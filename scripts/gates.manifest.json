@@ -1,0 +1,557 @@
+{
+  "$comment": "verify 范围化清单(包 ar,2026-08-17)。每道重门/每个链步骤声明自己的输入文件集(glob,path.matchesGlob 语义);scoped 模式下改动集∩inputs=∅ 才跳过。未在此声明的门一律照跑;globals 命中即整轮升 full;kind=runtime|server 的在 static 模式一律跳过。改本文件 = 改门定义,自动属于 globals。接线一致性由 `node scripts/lib/verify-scope.mjs lint` 守(verify.sh 也跑它)。 包 ax(2026-08-17 主人拍板 A+B):门可声明 `pages`(页面文件路径 / glob / \"*\"=pages.json 全部)—— scoped 时输入集 = inputs ∪ 这些页面的静态 import 闭包(scripts/lib/import-graph.mjs),改共享组件 / store 自然命中引用它的页面;探针脚本(inputs 里 scripts/*.mjs)里 import(\"/src/…\") 的模块自动并入闭包根。route 类探针另收 PROBE_ROUTES(=受影响路由 ∩ 探针射程)做路由级缩范围;`runIfAny:\"h5Probes\"` = 只在任一 h5 子探针要跑时才跑。 routeScoped:true = 该门的探针读 PROBE_ROUTES(路由级缩范围只给这些门算,verify.sh 必须紧跟 route_scope <id>,lint 双向配对);其它门 routes 恒 \"*\"。app 壳(App.vue/main.ts/app-chassis/global-ui)闭包内任何文件变了 = 全部路由受影响。 cells:N = 该门在 verify.sh 里出几格(selftest+探针 = 2,SPEC-7 = 风控 + AUTH02 en/zh = 3;缺省 1);scope_hit 跳过时按 cells 计 scoped_skip,verify:scope-audit:deep 的判据 ③(scoped ran+scoped_skip == full ran)靠它守恒。",
+  "globals": [
+    "scripts/verify.sh",
+    "scripts/gates.manifest.json",
+    "scripts/lib/**",
+    "scripts/verify-chain.mjs",
+    "scripts/typecheck-cached.mjs",
+    "scripts/run-legacy-suite.mjs",
+    "scripts/verify-h5-runtime.mjs",
+    "package.json",
+    "package-lock.json",
+    "tsconfig*.json",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "uno.config.ts",
+    "shims-uni.d.ts",
+    "index.html",
+    "src/pages.json",
+    "src/App.vue",
+    "src/main.ts",
+    "src/manifest.json",
+    "src/lib/route.ts",
+    "src/components/app-chassis.vue",
+    "src/components/global-ui.vue",
+    "src/styles/**",
+    "src/i18n/**",
+    "src/static/**",
+    "src/uni.scss",
+    "src/api/runtime.ts",
+    "src/api/runtime-config.ts",
+    ".claude/hooks/**"
+  ],
+  "gates": {
+    "route-http": {
+      "kind": "server",
+      "always": true,
+      "$why": "[2] 路由 200 + 身份;有 server 就跑(0.7s),static 跳"
+    },
+    "api-mode-preflight": {
+      "kind": "server",
+      "always": true,
+      "$why": "[2.5] mock 模式 + 树身份;有 server 就跑,static 跳"
+    },
+    "server-health-preflight": {
+      "kind": "server",
+      "always": true,
+      "$why": "[2.7] shell 延迟环境门;有 server 就跑,static 跳"
+    },
+    "store-unreachable": {
+      "kind": "static",
+      "inputs": [
+        "src/store/**",
+        "src/api/**",
+        "scripts/store-unreachable-code-gate.mjs"
+      ]
+    },
+    "withdraw-rail-alias-redtest": {
+      "kind": "static",
+      "inputs": [
+        "src/store/**",
+        "src/api/**",
+        "src/lib/**",
+        "scripts/selfcheck-fastlane.mjs",
+        "scripts/withdraw-rail-alias.redtest.mjs"
+      ]
+    },
+    "pending-checkout-vitest": {
+      "kind": "test",
+      "inputs": [
+        "src/store/**",
+        "src/lib/**",
+        "src/api/**",
+        "src/mock/**"
+      ]
+    },
+    "remote-refresh-resilience": {
+      "kind": "static",
+      "inputs": [
+        "src/**",
+        "scripts/selfcheck-remote-refresh-resilience.mjs"
+      ]
+    },
+    "login-entry-chrome-runtime": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/onboarding/*.vue",
+        "src/pages/login/*.vue",
+        "src/pages/register/*.vue",
+        "src/pages/ref/*.vue",
+        "src/pages/session/*.vue"
+      ],
+      "inputs": [
+        "scripts/auth-system-chrome-runtime.mjs"
+      ]
+    },
+    "spec6-entry-runtime": {
+      "kind": "runtime",
+      "routeScoped": true,
+      "pages": [
+        "src/pages/entry-surfaces/*.vue"
+      ],
+      "inputs": [
+        "scripts/spec6-entry-surface-runtime.mjs"
+      ]
+    },
+    "r7-device-runtime": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/earn/device-detail.vue",
+        "src/pages/earn/earn.vue",
+        "src/pages/index/index.vue"
+      ],
+      "inputs": [
+        "scripts/r7-device-detail-runtime.mjs"
+      ]
+    },
+    "spec7-k1-auth02-runtime": {
+      "kind": "runtime",
+      "cells": 3,
+      "pages": [
+        "src/pages/index/index.vue",
+        "src/pages/login/login.vue",
+        "src/pages/onboarding/estimator.vue",
+        "src/pages/register/register.vue",
+        "src/pages/register/success.vue"
+      ],
+      "inputs": [
+        "scripts/spec7-risk-gate-runtime.mjs",
+        "scripts/auth-register-existing-runtime.mjs"
+      ]
+    },
+    "spec4-runtime": {
+      "kind": "runtime",
+      "cells": 2,
+      "pages": [
+        "src/pages/index/index.vue",
+        "src/pages/me/security.vue",
+        "src/pages/session/kicked.vue"
+      ],
+      "inputs": [
+        "scripts/spec4-account-cloud-app-sync.mjs",
+        "scripts/spec4-runtime-session-guard.mjs"
+      ]
+    },
+    "theme-constant-runtime": {
+      "kind": "runtime",
+      "cells": 2,
+      "routeScoped": true,
+      "pages": [
+        "src/pages/index/index.vue",
+        "src/pages/earn/earn.vue",
+        "src/pages/store/store.vue",
+        "src/pages/team/team.vue",
+        "src/pages/me/me.vue"
+      ],
+      "inputs": [
+        "src/**/*.css",
+        "src/**/*.scss",
+        "docs/THEME-CONSTANT-BASELINE.json",
+        "scripts/theme-constant-gate.mjs"
+      ]
+    },
+    "zero-border-runtime": {
+      "kind": "runtime",
+      "cells": 2,
+      "routeScoped": true,
+      "pages": "*",
+      "inputs": [
+        "src/**/*.css",
+        "src/**/*.scss",
+        "docs/ZERO-BORDER-BASELINE.json",
+        "docs/ZERO-BORDER-ALLOWLIST.json",
+        "scripts/zero-border-gate.mjs"
+      ]
+    },
+    "dom-qa-runtime": {
+      "kind": "runtime",
+      "cells": 2,
+      "routeScoped": true,
+      "pages": [
+        "src/pages/index/index.vue",
+        "src/pages/earn/earn.vue",
+        "src/pages/store/store.vue",
+        "src/pages/team/team.vue",
+        "src/pages/me/me.vue"
+      ],
+      "inputs": [
+        "docs/DOM-QA-LEDGER.json",
+        "scripts/dom-qa.mjs"
+      ]
+    },
+    "tap-feedback-runtime": {
+      "kind": "runtime",
+      "cells": 2,
+      "routeScoped": true,
+      "pages": [
+        "src/pages/index/index.vue",
+        "src/pages/earn/earn.vue",
+        "src/pages/store/store.vue",
+        "src/pages/team/team.vue",
+        "src/pages/me/me.vue"
+      ],
+      "inputs": [
+        "docs/TAP-FEEDBACK-LEDGER.json",
+        "scripts/tap-feedback-probe.mjs"
+      ]
+    },
+    "orphan-line-runtime": {
+      "kind": "runtime",
+      "cells": 2,
+      "routeScoped": true,
+      "pages": [
+        "src/pages/me/wallet-withdraw.vue",
+        "src/pages/me/wallet.vue",
+        "src/pages/me/wallet-topup.vue",
+        "src/pages/me/wallet-bills.vue",
+        "src/pages/me/security.vue",
+        "src/pages/me/support-tickets.vue",
+        "src/pages/store/order-detail.vue",
+        "src/pages/register/success.vue",
+        "src/pages/index/index.vue",
+        "src/pages/me/me.vue"
+      ],
+      "inputs": [
+        "scripts/orphan-line-probe.mjs"
+      ]
+    },
+    "empty-state-runtime": {
+      "kind": "runtime",
+      "routeScoped": true,
+      "pages": [
+        "src/pages/search/search.vue",
+        "src/pages/me/devices.vue",
+        "src/pages/staking/staking.vue",
+        "src/pages/daily/daily.vue",
+        "src/pages/team/unilevel.vue",
+        "src/pages/market/market.vue",
+        "src/pages/me/wallet-exchange.vue",
+        "src/pages/me/wallet-nex.vue",
+        "src/pages/me/wallet-bills.vue",
+        "src/pages/me/support-tickets.vue",
+        "src/pages/events/events.vue",
+        "src/pages/team/commissions.vue",
+        "src/pages/me/help.vue",
+        "src/pages/me/wallet-cards.vue",
+        "src/pages/store/orders.vue",
+        "src/pages/me/notifications.vue",
+        "src/pages/me/receipts.vue",
+        "src/pages/support/messages.vue",
+        "src/pages/store/bundle.vue",
+        "src/pages/me/rewards-list.vue",
+        "src/pages/genesis/marketplace.vue"
+      ],
+      "inputs": [
+        "scripts/empty-state-probe.mjs"
+      ]
+    },
+    "withdraw-bill-runtime": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/me/wallet-withdraw.vue"
+      ],
+      "inputs": [
+        "scripts/withdraw-bill-runtime.mjs"
+      ]
+    },
+    "h5-runtime-isolated": {
+      "kind": "runtime",
+      "runIfAny": "h5Probes",
+      "inputs": [
+        "scripts/verify-h5-runtime.mjs",
+        "scripts/guard-liveness-runtime.mjs",
+        "scripts/auth-guard-verify.mjs",
+        "scripts/business-loop-liveness-runtime.mjs",
+        "scripts/spec6-entry-surface-runtime.mjs",
+        "scripts/trial-check.mjs",
+        "scripts/sticky-check.mjs",
+        "scripts/backnav-check.mjs",
+        "scripts/profile-identity-check.mjs",
+        "scripts/pending-checkout-runtime.mjs",
+        "scripts/page-check.mjs"
+      ]
+    },
+    "svg-text-runtime": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/team/network.vue",
+        "src/pages/team/binary-how.vue",
+        "src/pages/globe/globe.vue",
+        "src/pages/store/detail.vue"
+      ],
+      "inputs": [
+        "scripts/svg-text-render-probe.mjs"
+      ]
+    }
+  },
+  "steps": {
+    "type-check:cached": {
+      "kind": "static",
+      "always": true,
+      "$why": "走 typecheck-cached(指纹缓存;真跑 = 裸 vue-tsc,--incremental 因假绿禁用)"
+    },
+    "test:contract-registry": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:cross-repo": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:kyc-removal": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:probe-safety": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:earnings-accrual": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:business-loop-liveness": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:janus-stop-cancellation": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:production-boundaries": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:session-reload-recovery": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/earn/earn.vue",
+        "src/pages/login/login.vue",
+        "src/pages/onboarding/intro.vue"
+      ],
+      "inputs": [
+        "scripts/server-session-reload-recovery-contract.test.mjs",
+        "scripts/server-session-reload-recovery-runtime.mjs"
+      ]
+    },
+    "test:guard-liveness": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:a11y-activate": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:learning-contracts": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "test:real-backend-integration": {
+      "kind": "test",
+      "inputs": [
+        "src/**",
+        "scripts/**"
+      ]
+    },
+    "build:h5": {
+      "kind": "build",
+      "always": true,
+      "fullOnly": true,
+      "$why": "生产构建只在 full 档;scoped/static 不跑"
+    },
+    "test:fixed-mock-home": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/login/login.vue",
+        "src/pages/index/index.vue"
+      ],
+      "inputs": [
+        "src/App.vue",
+        "src/api/mock-auth-api.ts",
+        "src/api/mock-preview-account.ts",
+        "src/store/auth-account.ts",
+        "scripts/app-home-live-e2e.mjs"
+      ],
+      "$why": "固定 mock 预览账号必须能免注册登录、进入首页并在刷新后保持会话"
+    },
+    "test:h5-runtime": {
+      "kind": "runtime",
+      "runIfAny": "h5Probes",
+      "inputs": [
+        "scripts/verify-h5-runtime.mjs",
+        "scripts/guard-liveness-runtime.mjs",
+        "scripts/auth-guard-verify.mjs",
+        "scripts/business-loop-liveness-runtime.mjs",
+        "scripts/spec6-entry-surface-runtime.mjs",
+        "scripts/trial-check.mjs",
+        "scripts/sticky-check.mjs",
+        "scripts/backnav-check.mjs",
+        "scripts/profile-identity-check.mjs",
+        "scripts/pending-checkout-runtime.mjs",
+        "scripts/page-check.mjs"
+      ]
+    },
+    "test:withdraw-status-mirror": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/me/wallet.vue",
+        "src/pages/me/wallet-withdraw-tracking.vue"
+      ],
+      "inputs": [
+        "scripts/withdraw-status-mirror-runtime.mjs"
+      ]
+    },
+    "test:legacy-suite": {
+      "kind": "meta",
+      "always": true,
+      "$why": "verify.sh 自己按 gates 缩范围(VERIFY_MODE 透传);kind=meta:full/scoped 由 runner 起服后经 run-legacy-suite 跑,static 由 runner 直接以 VERIFY_MODE=static 裸跑 verify.sh(不起服),三档都跑"
+    }
+  },
+  "h5Probes": {
+    "guard-liveness-runtime": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/entry-surfaces/index.vue",
+        "src/pages/me/wallet-withdraw.vue",
+        "src/pages/index/index.vue"
+      ],
+      "inputs": [
+        "scripts/guard-liveness-runtime.mjs"
+      ]
+    },
+    "auth-guard-verify": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/earn/earn.vue",
+        "src/pages/entry-surfaces/index.vue",
+        "src/pages/index/index.vue",
+        "src/pages/me/me.vue",
+        "src/pages/onboarding/intro.vue"
+      ],
+      "inputs": [
+        "scripts/auth-guard-verify.mjs"
+      ]
+    },
+    "business-loop-liveness-runtime": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/index/index.vue",
+        "src/pages/entry-surfaces/index.vue"
+      ],
+      "inputs": [
+        "scripts/business-loop-liveness-runtime.mjs"
+      ]
+    },
+    "spec6-entry-surface-runtime": {
+      "kind": "runtime",
+      "routeScoped": true,
+      "pages": [
+        "src/pages/entry-surfaces/*.vue"
+      ],
+      "inputs": [
+        "scripts/spec6-entry-surface-runtime.mjs"
+      ]
+    },
+    "trial-check": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/index/index.vue",
+        "src/pages/me/me.vue"
+      ],
+      "inputs": [
+        "scripts/trial-check.mjs"
+      ]
+    },
+    "sticky-check": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/team/rank.vue"
+      ],
+      "inputs": [
+        "scripts/sticky-check.mjs"
+      ]
+    },
+    "backnav-check": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/team/rank.vue",
+        "src/pages/team/rank-how.vue"
+      ],
+      "inputs": [
+        "scripts/backnav-check.mjs"
+      ]
+    },
+    "profile-identity-check": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/me/profile.vue"
+      ],
+      "inputs": [
+        "scripts/profile-identity-check.mjs"
+      ]
+    },
+    "pending-checkout-runtime": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/store/checkout.vue",
+        "src/pages/store/store.vue"
+      ],
+      "inputs": [
+        "scripts/pending-checkout-runtime.mjs"
+      ]
+    },
+    "page-check": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/index/index.vue"
+      ],
+      "inputs": [
+        "scripts/page-check.mjs"
+      ]
+    }
+  }
+}

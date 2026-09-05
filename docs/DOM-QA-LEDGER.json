@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-07-22T10:34:50.592Z",
+  "note": "DOM-QA 存量黄灯台账(vibe-playbook P1-A)。entry 加 qaOk:'理由' = 人工豁免;删 entry = 要求修复。gate 只拦 ledger 外新指纹。",
+  "smallTextCensus": 5,
+  "entries": [
+    {
+      "fp": "pages/store/store|tap-target|uni-text.whitespace-nowrap.active:opacity-70",
+      "route": "pages/store/store",
+      "check": "tap-target",
+      "sig": "uni-text.whitespace-nowrap.active:opacity-70",
+      "detail": "49×17 < 44pt",
+      "since": "2026-08-11",
+      "qaOk": "商品卡「以旧换新」callout 里的行动链接(product-card.vue:100)。热区不足是**既有问题**,不是本轮引入:本门只管带 button/link/tab 身份的元素,而这个链接此前是裸 <text @click>(无 role),压根不在判定域内 —— 包 k1 给它补上键盘身份后才被看见。判为合法例外的理由:① 它与左侧说明文字同处一个紧凑 callout 行,属 WCAG 2.5.8 的行内目标豁免;② 撑到 44pt 会让这个 padding 7px、字号 12px 的提示块高度接近翻倍,破坏商品卡密度,属视觉回归而非无障碍改进;③ 键盘可达性已解决(role+tabindex,能 Tab 能回车),触摸精度对键盘与读屏用户无影响;④ 它不是唯一入口,同卡底部有满足 44pt 的主购买按钮。若后续要改商品卡视觉,应连同此条一并重估。"
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "VietQR 银行转账入金 · 锁价付款单到回单匹配",
+    "subtitle": "牌价下单即定格；附言码命中且金额在容差内自动入账，对不上的进挂账队列等人工",
+    "output": "PAY-03-VietQR银行轨.html"
+  },
+  "lanes": [
+    {
+      "id": "user",
+      "label": "用户"
+    },
+    {
+      "id": "srv",
+      "label": "服务端"
+    },
+    {
+      "id": "bank",
+      "label": "银行 / 回单通道"
+    },
+    {
+      "id": "ops",
+      "label": "后台运营 · 异常处置",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "quote",
+      "label": "锁价下单",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "transfer",
+      "label": "用户付款",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "settle",
+      "label": "匹配入账",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "amount",
+    "intent",
+    "pay",
+    "callback",
+    "match",
+    "credit"
+  ],
+  "nodes": [
+    {
+      "id": "amount",
+      "lane": "user",
+      "col": 0,
+      "type": "frontend",
+      "label": "输入金额",
+      "sublabel": "$10 ~ $5,000"
+    },
+    {
+      "id": "pay",
+      "lane": "user",
+      "col": 2,
+      "type": "frontend",
+      "label": "银行转账",
+      "sublabel": "附言填 NX 码"
+    },
+    {
+      "id": "intent",
+      "lane": "srv",
+      "col": 1,
+      "type": "backend",
+      "label": "生成付款单",
+      "sublabel": "锁牌价 + 附言码",
+      "tag": "30 分钟"
+    },
+    {
+      "id": "match",
+      "lane": "srv",
+      "col": 4,
+      "type": "backend",
+      "label": "自动匹配",
+      "sublabel": "容差 ±1,000₫",
+      "tag": "0 手续费"
+    },
+    {
+      "id": "credit",
+      "lane": "srv",
+      "col": 5,
+      "type": "messagebus",
+      "label": "入账完成",
+      "sublabel": "余额 + 账单"
+    },
+    {
+      "id": "callback",
+      "lane": "bank",
+      "col": 3,
+      "type": "cloud",
+      "label": "回单到达",
+      "sublabel": "金额 + 附言"
+    },
+    {
+      "id": "expired",
+      "lane": "ops",
+      "col": 0,
+      "type": "security",
+      "label": "锁价过期",
+      "sublabel": "未付款作废"
+    },
+    {
+      "id": "orphan",
+      "lane": "ops",
+      "col": 2,
+      "type": "security",
+      "label": "对不上账",
+      "sublabel": "孤儿 / 差额 / 迟到"
+    },
+    {
+      "id": "suspense",
+      "lane": "ops",
+      "col": 3,
+      "type": "database",
+      "label": "挂账 #9",
+      "sublabel": "待核实入金"
+    },
+    {
+      "id": "resolve",
+      "lane": "ops",
+      "col": 5,
+      "type": "security",
+      "label": "人工处置",
+      "sublabel": "核销 / 退回",
+      "tag": "审计留痕"
+    }
+  ],
+  "edges": [
+    {
+      "from": "amount",
+      "to": "intent",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop"
+    },
+    {
+      "from": "intent",
+      "to": "pay",
+      "label": "应付₫ + 收款账号",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "drop",
+      "labelSegment": 1
+    },
+    {
+      "from": "pay",
+      "to": "callback",
+      "label": "转账",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop",
+      "labelSegment": 1
+    },
+    {
+      "from": "callback",
+      "to": "match",
+      "label": "回单回调",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "drop",
+      "labelSegment": 1,
+      "labelDy": 11
+    },
+    {
+      "from": "match",
+      "to": "credit",
+      "variant": "emphasis"
+    },
+    {
+      "from": "intent",
+      "to": "expired",
+      "label": "超时未付",
+      "variant": "security",
+      "role": "error",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop",
+      "labelSegment": 1
+    },
+    {
+      "from": "callback",
+      "to": "orphan",
+      "label": "对不上",
+      "variant": "security",
+      "role": "error",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop",
+      "labelSegment": 1
+    },
+    {
+      "from": "orphan",
+      "to": "suspense",
+      "variant": "security"
+    },
+    {
+      "from": "suspense",
+      "to": "resolve",
+      "label": "人工匹配",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "from": "resolve",
+      "to": "credit",
+      "label": "补入账",
+      "variant": "emphasis",
+      "role": "return",
+      "fromSide": "right",
+      "toSide": "right",
+      "route": "outside-right"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "锁价的意义",
+      "items": [
+        "下单瞬间牌价、应付越南盾金额、倒计时全部定格",
+        "窗口内平台调价不影响已生成的付款单，用户按看到的数字付即可",
+        "牌价 = 基准价 ×（1 + 点差），取整到十位；点差合法区间 0 ~ 3%"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "怎么认出是谁付的钱",
+      "items": [
+        "每单铸一个附言码（NX-XXXXXX），在途期内唯一",
+        "应付金额精确到盾、不凑整千，零头本身就是第二重匹配线索",
+        "收款账户从账户池轮询取，支持单账户停用与熔断摘出"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "对不上不等于丢钱",
+      "items": [
+        "钱已进银行，只是认不到人：先记进负债科目 #9 待核实入金",
+        "三类进挂账：无附言码、金额差超 ±1,000₫、锁价窗过期后才到账",
+        "后台按实收核销或登记退回，挂账各行合计恒等于科目 #9 余额"
+      ]
+    }
+  ]
+}

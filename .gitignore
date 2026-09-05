@@ -1,0 +1,74 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.DS_Store
+dist
+*.local
+
+# env & secrets
+.env
+.env.*
+!.env.example
+!.env.acceptance-h5
+
+# tooling / temp artifacts
+.trash/
+.playwright-mcp/
+.playwright-cli/
+# 🔴 .claude/ 整体不入库,但**质量门本身要跟着代码走版本**(2026-08-11):
+#   verify 的 Stop 门外壳 + 接线以前是本机本树专有,6 棵树各拿一份、改一处要手拷 5 次,
+#   靠手动同步的守卫迟早漂移失效 —— 所以精确豁免这两项。
+#   写 `.claude/*` 而不是 `.claude/`:父目录被整体忽略时 git 不会递归进去,底下的
+#   反向豁免会**静默失效**(gitignore 经典陷阱)。
+#   worktrees/(主 checkout 下有 9 棵完整工作树)和 settings.local.json 仍被 `.claude/*` 兜住。
+.claude/*
+!.claude/hooks/
+!.claude/settings.json
+.vscode/*
+
+# chrome-baseline transient run outputs (regenerated each run; only baseline/ + _check/ are tracked references)
+# 例外:这两张是 verify.sh 每次跑都重写的探针产物(page-check / sticky-check),
+# 曾误入库又被 cfe98fe 移出——按文件名单独忽略,不整目录忽略(_check/ 下的
+# chk.png / w.png 是入库的参考图,整目录忽略会把将来新增的参考图一起静默吞掉)。
+# 包 z2 实测过它会复发:基线早于本规则的分支上,一条 docs commit 夹带了 402KB 截图。
+scripts/.baseline/_check/h5-runtime-home.png
+scripts/.baseline/_check/sticky-frost.png
+scripts/.baseline/current/
+scripts/.baseline/current2/
+scripts/.baseline/warmup/
+scripts/.baseline/final-check/
+scripts/.baseline/baseline-*/
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# verify.sh 退出码哨兵(WF-10 挂账修法):外部判定读它,不读管道
+.verify-exit.code
+# 探针每跑一次就重生成的临时对照图(chk.png / w.png 是有意跟踪的参考图,不在此列)
+scripts/.baseline/_check/h5-runtime-home.png
+scripts/.baseline/_check/sticky-frost.png
+
+# verify 三档制(包 ar):runner 产物 —— 缓存 / 日志 / 上次运行记录 / 链退出码哨兵,外部判定读文件不读管道
+.verify-cache/
+.verify-chain.code
+
+# Local runtime and test artifacts
+.codex-run/
+.codex-runtime/
+coverage/
+test-results*/
+artifacts/
+.tmp*/
+*.out
+*.err

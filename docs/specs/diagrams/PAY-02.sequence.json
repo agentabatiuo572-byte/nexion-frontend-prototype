@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "USDT 链上入金 · 扫码到自动到账",
+    "subtitle": "用户扫码转账后全程无需再操作；服务端侦测 → 确认数达标 → 自动扣费入账",
+    "output": "PAY-02-USDT链上入金.html",
+    "viewBox": [
+      920,
+      980
+    ]
+  },
+  "participants": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "用户",
+      "sublabel": "自有钱包"
+    },
+    {
+      "id": "app",
+      "type": "frontend",
+      "label": "前端 App",
+      "sublabel": "充值页"
+    },
+    {
+      "id": "srv",
+      "type": "backend",
+      "label": "服务端",
+      "sublabel": "入金服务"
+    },
+    {
+      "id": "chain",
+      "type": "cloud",
+      "label": "区块链",
+      "sublabel": "三条链"
+    },
+    {
+      "id": "det",
+      "type": "messagebus",
+      "label": "侦测服务",
+      "sublabel": "地址监听"
+    },
+    {
+      "id": "led",
+      "type": "database",
+      "label": "后台账本",
+      "sublabel": "复式记账"
+    },
+    {
+      "id": "ops",
+      "type": "security",
+      "label": "后台运营",
+      "sublabel": "人工处置"
+    }
+  ],
+  "segments": [
+    {
+      "from": 172,
+      "to": 330,
+      "label": "01 / 取地址"
+    },
+    {
+      "from": 340,
+      "to": 500,
+      "label": "02 / 用户转账 + 链上侦测"
+    },
+    {
+      "from": 510,
+      "to": 715,
+      "label": "03 / 确认推进 + 自动入账"
+    },
+    {
+      "from": 730,
+      "to": 855,
+      "label": "04 / 粉尘例外 · 必人工"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "srv",
+      "from": 220,
+      "to": 850,
+      "type": "backend"
+    },
+    {
+      "participant": "det",
+      "from": 390,
+      "to": 580,
+      "type": "messagebus"
+    }
+  ],
+  "messages": [
+    {
+      "from": "user",
+      "to": "app",
+      "y": 190,
+      "label": "选择网络",
+      "variant": "default"
+    },
+    {
+      "from": "app",
+      "to": "srv",
+      "y": 230,
+      "label": "请求充值地址",
+      "variant": "default"
+    },
+    {
+      "from": "srv",
+      "to": "app",
+      "y": 270,
+      "label": "返回专属地址",
+      "variant": "return"
+    },
+    {
+      "from": "app",
+      "to": "user",
+      "y": 310,
+      "label": "二维码 + 通道费",
+      "variant": "return",
+      "note": "同账号同网络地址恒定，不轮换"
+    },
+    {
+      "from": "user",
+      "to": "chain",
+      "y": 360,
+      "label": "扫码发送 USDT",
+      "variant": "emphasis",
+      "note": "用户侧动作到此结束，之后全自动"
+    },
+    {
+      "from": "chain",
+      "to": "det",
+      "y": 400,
+      "label": "转账上链",
+      "variant": "default"
+    },
+    {
+      "from": "det",
+      "to": "srv",
+      "y": 440,
+      "label": "上报 txHash",
+      "variant": "default",
+      "note": "同哈希重复上报直接忽略（幂等）"
+    },
+    {
+      "from": "srv",
+      "to": "led",
+      "y": 480,
+      "label": "建单：待确认",
+      "variant": "default"
+    },
+    {
+      "from": "chain",
+      "to": "det",
+      "y": 525,
+      "label": "确认数递增",
+      "variant": "dashed"
+    },
+    {
+      "from": "det",
+      "to": "srv",
+      "y": 565,
+      "label": "推进确认数",
+      "variant": "dashed",
+      "note": "达标线：TRC20 20 · BEP20 15 · ERC20 12"
+    },
+    {
+      "from": "srv",
+      "to": "led",
+      "y": 615,
+      "label": "达标 → 扣费入账",
+      "variant": "emphasis"
+    },
+    {
+      "from": "srv",
+      "to": "app",
+      "y": 655,
+      "label": "状态：已入账",
+      "variant": "return"
+    },
+    {
+      "from": "app",
+      "to": "user",
+      "y": 695,
+      "label": "余额到账 + 账单",
+      "variant": "return"
+    },
+    {
+      "from": "srv",
+      "to": "ops",
+      "y": 750,
+      "label": "低于 $10：挂账 #9",
+      "variant": "security"
+    },
+    {
+      "from": "ops",
+      "to": "srv",
+      "y": 795,
+      "label": "核销 / 退回",
+      "variant": "security",
+      "note": "高敏动作：确认 + 理由 + 审计留痕"
+    },
+    {
+      "from": "srv",
+      "to": "led",
+      "y": 835,
+      "label": "按处置结果记账",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "为什么能自动到账",
+      "items": [
+        "充值地址按账号 × 网络专属派发，恒定不轮换，转入即可归属到人",
+        "侦测服务监听地址入账，确认数由链上推进，服务端只做裁定",
+        "入账额 = 到账额 − 通道费（TRC20/BEP20 各 $1，ERC20 $5）"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "重复到账为什么不会多记",
+      "items": [
+        "交易哈希是幂等键，同一笔重复上报直接忽略",
+        "状态机只允许待确认 / 粉尘挂起两种状态进入入账",
+        "账单按交易哈希去重，第三层兜底防重复记账"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "唯一的人工分支",
+      "items": [
+        "金额低于 $10 的粉尘转账不自动入账，停在挂起态",
+        "后台二选一：核销入账 或 登记退回，均需理由并留审计痕",
+        "到账额不足以覆盖通道费的，只能退回，不可核销"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "对接真后台的落地方案 · 替换边界",
+    "subtitle": "前端与账本口径保持不变；只需补齐服务端与三路外部接入，即可从演示切换到真到账",
+    "output": "PAY-06-真后台对接方案.html"
+  },
+  "layout": {
+    "mode": "grid",
+    "cols": 7,
+    "origin": [
+      40,
+      100
+    ],
+    "gapX": 28,
+    "gapY": 70,
+    "cellW": 124,
+    "cellH": 62
+  },
+  "components": [
+    {
+      "id": "app",
+      "type": "frontend",
+      "label": "前端 App",
+      "sublabel": "充值 / 提现页",
+      "row": 1,
+      "col": 1
+    },
+    {
+      "id": "store",
+      "type": "frontend",
+      "label": "本地状态层",
+      "sublabel": "只读展示，不写状态",
+      "row": 2,
+      "col": 1
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "入金 API",
+      "sublabel": "地址 / 付款单 / 状态",
+      "row": 1,
+      "col": 3
+    },
+    {
+      "id": "fsm",
+      "type": "backend",
+      "label": "状态机引擎",
+      "sublabel": "服务端权威裁定",
+      "row": 2,
+      "col": 3
+    },
+    {
+      "id": "fx",
+      "type": "backend",
+      "label": "牌价服务",
+      "sublabel": "基准价 + 点差",
+      "row": 3,
+      "col": 3
+    },
+    {
+      "id": "watch",
+      "type": "cloud",
+      "label": "链上侦测",
+      "sublabel": "三链地址监听",
+      "row": 1,
+      "col": 6
+    },
+    {
+      "id": "psp",
+      "type": "cloud",
+      "label": "银行回单通道",
+      "sublabel": "VietQR / PSP",
+      "row": 2,
+      "col": 6
+    },
+    {
+      "id": "acq",
+      "type": "cloud",
+      "label": "国际卡收单",
+      "sublabel": "3DS 授权",
+      "row": 3,
+      "col": 6
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "入金库",
+      "sublabel": "记录 + 付款单",
+      "row": 4,
+      "col": 2
+    },
+    {
+      "id": "ledger",
+      "type": "database",
+      "label": "复式账本",
+      "sublabel": "储备 / 负债 #9",
+      "row": 4,
+      "col": 4
+    },
+    {
+      "id": "admin",
+      "type": "security",
+      "label": "运营后台",
+      "sublabel": "对账 + 挂账处置",
+      "row": 4,
+      "col": 6
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "服务端 · 本次需新建",
+      "wraps": [
+        "api",
+        "fsm",
+        "fx"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "外部接入 · 需签约对接",
+      "wraps": [
+        "watch",
+        "psp",
+        "acq"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "资金真相层 · 口径已定稿",
+      "wraps": [
+        "db",
+        "ledger"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "app",
+      "to": "api",
+      "label": "轮询状态",
+      "variant": "default"
+    },
+    {
+      "from": "store",
+      "to": "api",
+      "label": "拉取配置",
+      "variant": "dashed"
+    },
+    {
+      "from": "watch",
+      "to": "fsm",
+      "label": "到账回报",
+      "variant": "emphasis"
+    },
+    {
+      "from": "psp",
+      "to": "fsm",
+      "label": "回单回调",
+      "variant": "emphasis"
+    },
+    {
+      "from": "acq",
+      "to": "fsm",
+      "label": "授权结果",
+      "variant": "default"
+    },
+    {
+      "from": "api",
+      "to": "fsm",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "from": "fsm",
+      "to": "db",
+      "label": "落库",
+      "variant": "default"
+    },
+    {
+      "from": "fsm",
+      "to": "ledger",
+      "label": "复式分录",
+      "variant": "emphasis",
+      "labelAt": [
+        632,
+        570
+      ]
+    },
+    {
+      "from": "admin",
+      "to": "ledger",
+      "label": "挂账处置",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "不用改的部分",
+      "items": [
+        "前端全程只读，状态由服务端下发，接真后台不需要重写页面",
+        "所有金额口径已按整数域计算，不存在浮点误差需要重算",
+        "账本分录、负债科目、挂账恒等式已定稿，后台照搬即可"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "需要新建的服务端能力",
+      "items": [
+        "按账号 × 网络派发真实充值地址，恒定不轮换",
+        "状态推进与入账在同一事务内完成：置状态 + 记账 + 写账单",
+        "幂等三层保留：交易哈希去重、状态机边界、账单去重"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "需要外部对接的三路",
+      "items": [
+        "链上侦测：监听三链专属地址入账并回报确认数",
+        "银行回单：VietQR 收款账户池 + 回单回调（附言码匹配）",
+        "国际卡收单：3DS 授权结果回调，并补齐入金状态机（当前缺）"
+      ]
+    }
+  ]
+}

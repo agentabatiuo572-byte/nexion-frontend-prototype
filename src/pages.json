@@ -1,0 +1,374 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/entry-surfaces/index",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/entry-surfaces/signed",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/entry-surfaces/h5",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/entry-surfaces/white",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/onboarding/intro",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/onboarding/estimator",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/onboarding/connect",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/onboarding/terms",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/register/register",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/register/success",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/login/login",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/session/kicked",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/store/store",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/store/detail",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/store/checkout",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/store/orders",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/store/order-detail",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/store/bundle",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/earn/earn",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/earn/device-detail",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/compute-share/download",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/me",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-topup",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-withdraw",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-address-rebind",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/usdt-guide",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/devices",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/profile",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/security",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/goals",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-bills",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-exchange",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-nex",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-cards",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-cards-new",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/receipts",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/rewards",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/rewards-list",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/proof",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/market/market",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/team",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/commissions",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/binary",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/agent",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/rank",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/rank-how",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/leaderboard",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/leadership-pool",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/leadership-pool-how",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/network",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/quota",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/tree",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/unilevel",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/unilevel-how",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/binary-how",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/team/commissions-how",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/genesis/genesis",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/genesis/holder",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/genesis/marketplace",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/genesis/how-it-works",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/staking/staking",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/staking/how-it-works",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/daily/daily",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/missions/missions",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/events/events",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/globe/globe",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/developer/developer",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/search/search",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/achievements",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/help",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/support",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/support-tickets",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/support/messages",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/support/chat",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/language",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/notifications",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/preferences",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/risk-disclosure",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/learn/courses",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/learn/course",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/trial",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-repurchase",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-repurchase-how",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-exchange-how",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-withdraw-tracking",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/trust/trust",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/trust/nex",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/ref/code",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/tx/hash",
+      "style": { "navigationStyle": "custom" }
+    }
+  ],
+  "globalStyle": {
+    "navigationStyle": "custom",
+    "navigationBarTitleText": "NexGrid",
+    "backgroundColor": "#000000",
+    "backgroundColorContent": "#000000"
+  }
+}

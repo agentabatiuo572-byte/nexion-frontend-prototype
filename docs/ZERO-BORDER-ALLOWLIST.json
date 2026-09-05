@@ -1,0 +1,24 @@
+{
+  "_doc": "零-border 门(scripts/zero-border-gate.mjs)的人工裁决豁免。门本身已内建三条**规范自带**的豁免(chrome 身份 / empty-state 虚线 / ≤16px 圆形隔离描边环),那三条不需要在此登记。此处只放规范之外、经回源判定并由主人拍板的例外。匹配需 route + cls + size 三者都对上(cls 常是泛用工具类,只比 route+cls 会把同页同类名元素一起放走);其中 **size 走 ±2px 容差**(sizeMatches)——行高是字体度量的函数,而首选字体 General Sans 本工程不随包发运,渲染结果随机器变,精确 pin 会假红;3px 以上的位移(改字号 / 抬热区那一类真实设计改动)仍会失配并被拦下来复核。reason 必填、size 格式必须是 WxH,selftest 校验。",
+  "_updated": "2026-07-28 · orb 卡 391→390:同一根因(pin 死像素)第 3 次假红,容差已归层进门(scripts/zero-border-gate.mjs sizeMatches),条目同步重新对齐到实测值;例外本体不变",
+  "exemptions": [
+    {
+      "route": "/pages/genesis/genesis",
+      "cls": "relative overflow-hidden",
+      "size": "358x252",
+      "reason": "🏛 域级例外(主人 2026-07-23 拍板)。创世节点 hero:linear-gradient(160deg,#1B140A…) 曜石底 + color-mix(var(--v5-genesis-gold-on-dark) 35%) 金色描边。判定理由:「金-曜石」是创世域($11,999 旗舰 SKU)的**视觉身份**,靠「暗底 + 金边」成立;删边后 hero 与普通暗卡不可区分,损失产品线高端识别度,收益不抵。与 canvas 分享海报、商品实拍图衬底同类——都是**自成体系、不参与全站分层语言的孤岛**。⚠️ 本条只覆盖这一个元素(route+cls+size 精确匹配),**不覆盖 genesis 路由上的其它容器**:how-it-works 的 callout / secondary CTA、holder 的琥珀边卡、marketplace 的排序 chip 都是普通违例,仍在基线里等 C2 第二轮消化。"
+    },
+    {
+      "route": "/pages/genesis/genesis",
+      "cls": "relative w-full overflow-hidden active:scale-[0.98]",
+      "size": "358x54",
+      "reason": "🏛 域级例外(主人 2026-07-23 拍板)。创世吸底「Claim seat」CTA:暗金属渐变底 + color-mix(var(--v5-genesis-gold-on-dark) 55%) 金色描边。与上条 hero 同族同身份,一并裁定。同样只覆盖这一个元素。"
+    },
+    {
+      "route": "/pages/team/network",
+      "cls": "relative overflow-hidden rounded-2xl",
+      "size": "358x390",
+      "reason": "📐 规范本体豁免,非人情例外(C2 第二轮 2026-07-23 回源 + 运行时实测;2026-07-28 再次回源复核,前提仍成立)。network orb 可视化卡的**平底层就是页面地板色**——两主题逐值实测:dark 卡底 rgb(0,0,0) = 祖先 rgb(0,0,0);light 卡底 rgb(244,241,233) = 祖先 rgb(244,241,233),色差为 0。因此《03》§3「零 border,层级靠 surface 微差色分层」的**前提在这里不成立**(不存在可用的 surface 微差)。按 §3 本体判,它属「**透明容器**」形态(可见的只有装饰性 radial wash + overflow-hidden 裁剪),而 border **正是**规范允许透明容器使用的边界。门之所以仍报违例,是 hasFill() 把「任何 gradient」一律当填充,分不出「装饰性 wash」与「卡片实底」——**这是门的判据粒度问题,我没有去改门迁就它**(纪律:门是用来量的)。⚠️ C2 第二轮曾误删此边(脚本按行号批量删,没读上面两行保护性注释),audit ②层抓出后已回滚。源码 `src/pages/team/network.vue` 注释已写明,别再删。📌 2026-07-28 复核实测:dark 卡底 rgb(0,0,0) = 第一个不透明祖先 .nx-chassis rgb(0,0,0);light 卡底 rgb(244,241,233) = 祖先 rgb(244,241,233)——色差仍为 0,豁免前提未变。本轮只把 size 从 391 对齐到实测 390(高度 = 1 边框 + 356 svg + 32 legend + 1 边框),源码零改动。"
+    }
+  ]
+}

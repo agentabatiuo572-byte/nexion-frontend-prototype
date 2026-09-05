@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') ||
+        CSS.supports('top: constant(a)'))
+      document.write(
+        '<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0' +
+        (coverSupport ? ', viewport-fit=cover' : '') + '" />')
+    </script>
+    <title>NexGrid</title>
+    <link rel="icon" href="data:," />
+    <!-- v5 brand fonts — General Sans (Fontshare) + Manrope + JetBrains Mono
+         (Google). The prototype loads these via next/font + a Fontshare <link>
+         in app/layout.tsx; uni-app has no layout.tsx, so they are loaded here.
+         Without them every text node renders in the system fallback (or, when
+         the var(--font-*) chain is broken, Times New Roman). display=swap →
+         no FOIT. (PITFALLS P-038) -->
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <style>
+      html.nx-device-host,
+      html.nx-device-host body {
+        --nx-device-host-bg:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 100%),
+          linear-gradient(180deg, #15171b 0%, #08090b 100%);
+        --nx-device-host-bg-size: 26px 26px, 100% 100%;
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--nx-device-host-bg);
+        background-size: var(--nx-device-host-bg-size);
+        font-family: "General Sans", "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      html.nx-device-host[data-nx-app-theme="dark"],
+      html.nx-device-host[data-nx-app-theme="dark"] body {
+        --nx-device-host-bg:
+          linear-gradient(135deg, rgba(20, 28, 42, 0.045) 0 1px, transparent 1px 100%),
+          radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0) 54%),
+          linear-gradient(180deg, #f7f9fc 0%, #e8edf4 100%);
+        --nx-device-host-bg-size: 26px 26px, 100% 100%, 100% 100%;
+      }
+
+      .nx-device-stage {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        overflow: hidden;
+      }
+
+      .nx-device-stage,
+      .nx-device-stage * {
+        box-sizing: border-box;
+      }
+
+      html.nx-device-host #app {
+        display: none;
+      }
+
+      .nx-device-fit {
+        position: relative;
+        width: var(--nx-device-fit-w, 472px);
+        height: var(--nx-device-fit-h, 988px);
+      }
+
+      .nx-phone-preview {
+        --nx-screen-w: 440px;
+        --nx-screen-h: 956px;
+        --nx-bezel: 16px;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: calc(var(--nx-screen-w) + var(--nx-bezel) * 2);
+        height: calc(var(--nx-screen-h) + var(--nx-bezel) * 2);
+        padding: var(--nx-bezel);
+        transform: scale(var(--nx-device-scale, 1));
+        transform-origin: top left;
+      }
+
+      .nx-phone-screen {
+        position: relative;
+        width: var(--nx-screen-w);
+        height: var(--nx-screen-h);
+        overflow: hidden;
+        border-radius: 56px;
+        background: #000;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.42);
+      }
+
+      .nx-phone-screen iframe {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+      }
+
+      @media (max-width: 520px) {
+        .nx-device-stage {
+          padding: 10px;
+        }
+
+        .nx-phone-screen {
+          border-radius: 50px;
+        }
+      }
+    </style>
+    <!--preload-links-->
+    <!--app-context-->
+  </head>
+  <body>
+    <script>
+      ;(function () {
+        var params = new URLSearchParams(window.location.search)
+        var host = window.location.hostname
+        var isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]'
+        var shellOff = params.get('nx_device') === 'off'
+        var shellOn = params.get('nx_device') === 'iphone16pm'
+        var isInner = params.get('nx_device_inner') === '1'
+        var shouldUseShell = !isInner && !shellOff && (isLocal || shellOn)
+
+        if (!shouldUseShell) {
+          return
+        }
+
+        window.__NX_DEVICE_SHELL__ = true
+        document.documentElement.classList.add('nx-device-host')
+        document.documentElement.setAttribute('data-nx-app-theme', 'dark')
+        var innerUrl = new URL(window.location.href)
+        innerUrl.searchParams.set('nx_device_inner', '1')
+        var safeSrc = innerUrl.href.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+
+        document.write(
+          '<div class="nx-device-stage">' +
+            '<div class="nx-device-fit">' +
+              '<div class="nx-phone-preview">' +
+                '<div class="nx-phone-screen">' +
+                  '<iframe id="nx-app-frame" src="' + safeSrc + '" title="NexGrid app preview"></iframe>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>',
+        )
+
+        function fitDevice() {
+          var outerW = 472
+          var outerH = 988
+          var padding = window.innerWidth <= 520 ? 20 : 36
+          var scale = Math.min(
+            1,
+            Math.max(0.36, (window.innerWidth - padding) / outerW),
+            Math.max(0.36, (window.innerHeight - padding) / outerH),
+          )
+          document.documentElement.style.setProperty('--nx-device-scale', String(scale))
+          document.documentElement.style.setProperty('--nx-device-fit-w', outerW * scale + 'px')
+          document.documentElement.style.setProperty('--nx-device-fit-h', outerH * scale + 'px')
+        }
+
+        var lastHostHash = window.location.hash
+
+        function syncFrameFromHost() {
+          var frame = document.getElementById('nx-app-frame')
+          if (!frame || !frame.contentWindow) return
+          try {
+            lastHostHash = window.location.hash
+            if (frame.contentWindow.location.hash !== window.location.hash) {
+              frame.contentWindow.location.hash = window.location.hash
+            }
+          } catch {}
+        }
+
+        function syncHostFromFrame() {
+          var frame = document.getElementById('nx-app-frame')
+          if (!frame || !frame.contentWindow) return
+          try {
+            var frameHash = frame.contentWindow.location.hash
+            if (frameHash && frameHash !== window.location.hash) {
+              history.replaceState(null, '', window.location.pathname + window.location.search + frameHash)
+              lastHostHash = frameHash
+            }
+          } catch {}
+        }
+
+        function syncThemeFromFrame() {
+          var frame = document.getElementById('nx-app-frame')
+          if (!frame || !frame.contentDocument) return
+          try {
+            var mode = frame.contentDocument.documentElement.getAttribute('data-theme')
+            document.documentElement.setAttribute('data-nx-app-theme', mode === 'light' ? 'light' : 'dark')
+          } catch {}
+        }
+
+        function syncRouteDrift() {
+          syncThemeFromFrame()
+          if (window.location.hash !== lastHostHash) {
+            syncFrameFromHost()
+            return
+          }
+          syncHostFromFrame()
+        }
+
+        function bindFrameRouteSync() {
+          var frame = document.getElementById('nx-app-frame')
+          if (!frame) return
+          frame.addEventListener('load', function () {
+            syncFrameFromHost()
+            syncThemeFromFrame()
+            try {
+              frame.contentWindow.addEventListener('hashchange', syncHostFromFrame)
+            } catch {}
+          })
+          window.addEventListener('hashchange', syncFrameFromHost)
+          syncFrameFromHost()
+          window.setInterval(syncRouteDrift, 500)
+        }
+
+        fitDevice()
+        bindFrameRouteSync()
+        window.addEventListener('resize', fitDevice)
+      })()
+    </script>
+    <div id="app"><!--app-html--></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

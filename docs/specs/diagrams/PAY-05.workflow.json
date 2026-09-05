@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "提现出金 · 三道闸",
+    "subtitle": "出金仅走 USDT；风控路由 → 额度双门 → 原子扣款，任一道不过都不放款",
+    "output": "PAY-05-提现出金闸.html"
+  },
+  "lanes": [
+    {
+      "id": "user",
+      "label": "用户"
+    },
+    {
+      "id": "risk",
+      "label": "风控评估"
+    },
+    {
+      "id": "srv",
+      "label": "服务端 · 资金处置"
+    },
+    {
+      "id": "exc",
+      "label": "拒绝 / 冻结 / 人工审核",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "apply",
+      "label": "发起",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "gates",
+      "label": "三道闸",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "payout",
+      "label": "出金",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "req",
+    "evalr",
+    "gate",
+    "debit",
+    "done"
+  ],
+  "nodes": [
+    {
+      "id": "req",
+      "lane": "user",
+      "col": 0,
+      "type": "frontend",
+      "label": "发起提现",
+      "sublabel": "地址 + 金额"
+    },
+    {
+      "id": "rebind",
+      "lane": "user",
+      "col": 2,
+      "type": "security",
+      "label": "换绑地址",
+      "sublabel": "$1 回验",
+      "tag": "24h 冻结"
+    },
+    {
+      "id": "evalr",
+      "lane": "risk",
+      "col": 1,
+      "type": "security",
+      "label": "风控评估",
+      "sublabel": "地址 / 行为 / 冻结",
+      "tag": "四种路由"
+    },
+    {
+      "id": "gate",
+      "lane": "srv",
+      "col": 2,
+      "type": "backend",
+      "label": "额度双门",
+      "sublabel": "可提额 + 总余额"
+    },
+    {
+      "id": "debit",
+      "lane": "srv",
+      "col": 3,
+      "type": "backend",
+      "label": "原子扣款",
+      "sublabel": "两口径同扣",
+      "tag": "防超提"
+    },
+    {
+      "id": "done",
+      "lane": "srv",
+      "col": 5,
+      "type": "messagebus",
+      "label": "排队上链",
+      "sublabel": "仅 USDT 出金"
+    },
+    {
+      "id": "reject",
+      "lane": "exc",
+      "col": 0,
+      "type": "security",
+      "label": "直接拒绝",
+      "sublabel": "不建单不扣款"
+    },
+    {
+      "id": "frozen",
+      "lane": "exc",
+      "col": 1,
+      "type": "security",
+      "label": "冻结队列",
+      "sublabel": "资金占用待处置"
+    },
+    {
+      "id": "review",
+      "lane": "exc",
+      "col": 3,
+      "type": "database",
+      "label": "人工审核",
+      "sublabel": "复核 / 延迟放行"
+    }
+  ],
+  "edges": [
+    {
+      "from": "req",
+      "to": "evalr",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop"
+    },
+    {
+      "from": "evalr",
+      "to": "gate",
+      "label": "通过",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop",
+      "labelSegment": 1,
+      "labelDy": 11
+    },
+    {
+      "from": "gate",
+      "to": "debit",
+      "variant": "emphasis"
+    },
+    {
+      "from": "debit",
+      "to": "done",
+      "variant": "emphasis"
+    },
+    {
+      "from": "evalr",
+      "to": "reject",
+      "label": "拒绝路由",
+      "variant": "security",
+      "role": "error",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop",
+      "labelSegment": 1
+    },
+    {
+      "from": "evalr",
+      "to": "frozen",
+      "label": "冻结路由",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop",
+      "labelSegment": 1
+    },
+    {
+      "from": "frozen",
+      "to": "review",
+      "label": "转人工复核",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "from": "rebind",
+      "to": "evalr",
+      "label": "冻结期内禁提",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "top",
+      "route": "up-channel"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "第一道：风控路由",
+      "items": [
+        "拒绝路由不建单、不扣款，资金完全不动",
+        "冻结 / 人工 / 延迟三种路由建单进队列，资金占用但不放款",
+        "只有通过路由才继续往下走额度校验"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "第二道：额度双门",
+      "items": [
+        "可提额度门：只有已解锁的收益才能提，本金锁仓部分不可提",
+        "总余额门：纵深兜底，任何情况下都不放行超过总余额的提现",
+        "两门独立校验，多端数据合并出错时也不会放出负余额"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "第三道：原子扣款 + 换绑冻结",
+      "items": [
+        "总余额与可提额度在同一步一起扣，不存在扣一半的中间态",
+        "换绑提现地址需 $1 小额回验，生效后 24 小时内禁止提现",
+        "冻结判定下沉在风控层，绕过界面直接调用也拦得住"
+      ]
+    }
+  ]
+}

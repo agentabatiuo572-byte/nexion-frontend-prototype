@@ -1,0 +1,269 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  html,body{margin:0;background:#333}
+  #stage{position:relative;width:1024px;height:1024px;overflow:hidden}
+  #stage>img.base{position:absolute;left:0;top:0;width:1024px;height:1024px}
+  .abs{position:absolute}
+</style>
+<div id="stage"></div>
+<script>
+// ---------- glyph skeletons: cap 100 grid, stroke-centerline paths ----------
+// iw = ink width pre-stretch; I is never stretched
+const GL = {
+  N: { iw: 72, d: ["M13,100 L13,0 L59,100 L59,0"] },
+  E: { iw: 66, d: ["M66,13 L13,13 L13,87 L66,87", "M13,50 L62,50"] },
+  X: { iw: 72, d: ["M13,0 L59,100", "M59,0 L13,100"] },
+  G: { iw: 70, d: ["M66,13 L13,13 L13,87 L57,87 L57,50 L34,50"] },
+  R: { iw: 68, d: ["M13,100 L13,13 L45,13 L45,48 L13,48", "M39,48 L62,100"] },
+  I: { iw: 26, d: ["M13,0 L13,100"] },
+  D: { iw: 70, d: ["M13,0 L13,100", "M13,13 L38,13 L57,30 L57,70 L38,87 L13,87"] },
+};
+
+// stretch x-coords of a path string
+function stretchPath(d, sx) {
+  return d.replace(/(-?[\d.]+),(-?[\d.]+)/g, (_, x, y) => `${(+x * sx).toFixed(1)},${y}`);
+}
+
+let uid = 0;
+// single glyph svg. o: {cap, stroke, stretch, grad:[[off,c]..], gradAxis,
+//   rim:{color,extra,dx,dy,blur,opacity}, extrude:{dx,dy,steps,color}, coreBlur}
+function buildGlyph(ch, o) {
+  const id = "g" + (uid++);
+  const g = GL[ch];
+  const sx = ch === "I" ? 1 : (o.stretch || 1);
+  let iw, paths;
+  if (ch === "I") {
+    const s = o.iStroke ?? o.stroke;
+    iw = s;
+    paths = `<path d="M${(s / 2).toFixed(1)},0 L${(s / 2).toFixed(1)},100" stroke-width="${s}"/>`;
+  } else {
+    iw = g.iw * sx;
+    paths = g.d.map(d => `<path d="${stretchPath(d, sx)}"/>`).join("");
+  }
+  const pad = 26;
+  const stops = o.grad.map(([off, c]) => `<stop offset="${off}" stop-color="${c}"/>`).join("");
+  // userSpaceOnUse: avoids degenerate zero-size bbox on straight-line paths,
+  // and spans the whole glyph (not per-subpath)
+  const gradDef = o.gradAxis === "x"
+    ? `x1="0" y1="0" x2="${iw.toFixed(1)}" y2="0" gradientUnits="userSpaceOnUse"`
+    : `x1="0" y1="0" x2="0" y2="100" gradientUnits="userSpaceOnUse"`;
+  let layers = "";
+  if (o.rim) layers += `<g filter="url(#${id}rb)" transform="translate(${o.rim.dx},${o.rim.dy})" fill="none"
+      stroke="${o.rim.color}" stroke-width="${o.stroke + o.rim.extra}" opacity="${o.rim.opacity ?? .8}">${paths}</g>`;
+  if (o.extrude) {
+    const n = o.extrude.steps;
+    for (let i = n; i >= 1; i--) {
+      const t = i / n;
+      layers += `<g transform="translate(${o.extrude.dx * t},${o.extrude.dy * t})" fill="none"
+        stroke="${o.extrude.color}" stroke-width="${o.stroke}">${paths}</g>`;
+    }
+  }
+  layers += `<g fill="none" stroke="url(#${id}lg)" stroke-width="${o.stroke}"
+      ${o.coreBlur ? `filter="url(#${id}cb)"` : ""}>${paths}</g>`;
+  const scale = o.cap / 100;
+  const w = Math.round((iw + pad * 2) * scale), h = Math.round((100 + pad * 2) * scale);
+  const div = document.createElement("div");
+  div.innerHTML = `<svg width="${w}" height="${h}"
+      viewBox="${-pad} ${-pad} ${iw + pad * 2} ${100 + pad * 2}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="${id}lg" ${gradDef}>${stops}</linearGradient>
+      ${o.rim ? `<filter id="${id}rb" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="${o.rim.blur}"/></filter>` : ""}
+      ${o.coreBlur ? `<filter id="${id}cb" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="${o.coreBlur}"/></filter>` : ""}
+    </defs>${layers}</svg>`;
+  return div.firstElementChild;
+}
+
+// place glyph svg centered at (cx,cy) with transform + glow filter
+function put(stage, el, cx, cy, transform, glow) {
+  const wrap = document.createElement("div");
+  wrap.className = "abs";
+  const w = +el.getAttribute("width"), h = +el.getAttribute("height");
+  Object.assign(wrap.style, {
+    left: (cx - w / 2) + "px", top: (cy - h / 2) + "px",
+    width: w + "px", height: h + "px", transform: transform || "",
+  });
+  el.style.display = "block";
+  if (glow) el.style.filter = glow;
+  wrap.appendChild(el);
+  stage.appendChild(wrap);
+}
+
+// feathered clone/fill patch
+function patch(stage, img, r) {
+  const outer = document.createElement("div");
+  outer.className = "abs";
+  Object.assign(outer.style, {
+    left: r.x + "px", top: r.y + "px", width: r.w + "px", height: r.h + "px",
+    maskImage: `linear-gradient(90deg,transparent,#000 ${r.f}px,#000 calc(100% - ${r.f}px),transparent)`,
+    WebkitMaskImage: `linear-gradient(90deg,transparent,#000 ${r.f}px,#000 calc(100% - ${r.f}px),transparent)`,
+    transform: r.transform || "",
+  });
+  const inner = document.createElement("div");
+  Object.assign(inner.style, {
+    position: "absolute", inset: "0",
+    maskImage: `linear-gradient(180deg,transparent,#000 ${r.fy ?? r.f}px,#000 calc(100% - ${r.fy ?? r.f}px),transparent)`,
+    WebkitMaskImage: `linear-gradient(180deg,transparent,#000 ${r.fy ?? r.f}px,#000 calc(100% - ${r.fy ?? r.f}px),transparent)`,
+  });
+  if (r.fill) inner.style.background = r.fill;
+  else {
+    inner.style.backgroundImage = `url(${img})`;
+    inner.style.backgroundPosition = `${-r.sx}px ${-r.sy}px`;
+  }
+  outer.appendChild(inner);
+  stage.appendChild(outer);
+}
+
+const P = new URLSearchParams(location.search);
+const SCENE = P.get("scene") || "box";
+const stage = document.getElementById("stage");
+if (SCENE === "debug") {
+  stage.style.background = "#181818";
+  let x = 20;
+  for (const ch of "NEXGRID") {
+    const el = buildGlyph(ch, {
+      cap: 130, stroke: 26, stretch: 1.45,
+      grad: [["0%", "#d0ee70"], ["100%", "#9cba45"]], gradAxis: "y",
+    });
+    put(stage, el, x + (+el.getAttribute("width")) / 2, 120, "", "");
+    x += +el.getAttribute("width") + 6;
+  }
+  // second row: with rim + extrude (box style)
+  x = 20;
+  for (const ch of "NEXGRID") {
+    const el = buildGlyph(ch, {
+      cap: 130, stroke: 26, stretch: 1.45,
+      grad: [["0%", "#d0ee70"], ["100%", "#9cba45"]], gradAxis: "y",
+      rim: { color: "#0e120a", extra: 5, dx: -1.6, dy: 2, blur: 1.1, opacity: .75 },
+      extrude: { dx: -2.2, dy: 2.6, steps: 3, color: "#556e24" },
+    });
+    put(stage, el, x + (+el.getAttribute("width")) / 2, 340, "", "");
+    x += +el.getAttribute("width") + 6;
+  }
+  requestAnimationFrame(() => requestAnimationFrame(() => window.READY = 1));
+} else {
+  const base = new Image();
+  base.className = "base";
+  base.src = SCENE === "rack" ? "rack.png" : "box.png";
+  base.onload = () => { build(); requestAnimationFrame(() => requestAnimationFrame(() => window.READY = 1)); };
+  stage.appendChild(base);
+}
+
+function build() {
+  const W = "NEXGRID";
+  if (SCENE === "box") {
+    // ---- erase vertical NEXION strip (clone panel from left, 86px offset) ----
+    patch(stage, "box.png", { x: 742, y: 256, w: 74, h: 478, f: 14, fy: 18, sx: 656, sy: 256 });
+    // soft re-light wash where old glow lived
+    const wash = document.createElement("div");
+    wash.className = "abs";
+    Object.assign(wash.style, {
+      left: "742px", top: "256px", width: "74px", height: "478px",
+      background: "rgba(110,150,55,.07)",
+      maskImage: "linear-gradient(90deg,transparent,#000 20px,#000 calc(100% - 20px),transparent)",
+      WebkitMaskImage: "linear-gradient(90deg,transparent,#000 20px,#000 calc(100% - 20px),transparent)",
+    });
+    stage.appendChild(wash);
+    // ---- erase pump NEXION: smooth plastic face → synthesized fill (no clean clone source) ----
+    patch(stage, "box.png", {
+      x: 368, y: 370, w: 62, h: 28, f: 7,
+      fill: "linear-gradient(180deg, rgba(30,33,27,.97), rgba(25,27,21,.97))",
+    });
+
+    // ---- vertical NEXGRID: per-glyph, rotate(-90), bottom→top ----
+    // per-glyph ink from iw; word must span y 720→~269; cap width 49 at x-center 778.5
+    const capPx = 49, stretch = 1.55, iStroke = 34;
+    const style = {
+      cap: capPx, stroke: 26, stretch, iStroke,
+      grad: [["0%", "#dff29b"], ["45%", "#c3e065"], ["100%", "#9cba45"]],
+      gradAxis: "y",
+      rim: { color: "#0e120a", extra: 5, dx: -1.6, dy: 2, blur: 1.1, opacity: .75 },
+      extrude: { dx: -2.6, dy: 3.2, steps: 4, color: "#556e24" },
+    };
+    const glow = "drop-shadow(0 0 4px rgba(190,230,90,.5)) drop-shadow(0 0 16px rgba(120,170,50,.3))";
+    // compute gap so the word exactly fills 720→269 (span 451)
+    const inks = [...W].map(ch => (ch === "I" ? iStroke : GL[ch].iw * stretch) * capPx / 100);
+    const gapB = (451 - inks.reduce((a, b) => a + b, 0)) / (W.length - 1);
+    let yCursor = 720;
+    for (let i = 0; i < W.length; i++) {
+      const ink = inks[i];
+      put(stage, buildGlyph(W[i], style), 778.5, yCursor - ink / 2, "rotate(-90deg)", glow);
+      yCursor -= ink + gapB;
+    }
+
+    // ---- tiny pump NEXGRID ----
+    const pstyle = {
+      cap: 11, stroke: 30, stretch: 1.3, iStroke: 55,
+      grad: [["0%", "#d5ec6e"], ["100%", "#aacc49"]],
+      gradAxis: "y", coreBlur: 3.2,
+    };
+    const pInkFull = 72 * 1.3 * 0.11, pInkI = 55 * 0.11, pGap = 3.3;
+    const pTot = 6 * pInkFull + pInkI + 6 * pGap;
+    let px = 408.5 - pTot / 2;
+    for (const ch of W) {
+      const ink = ch === "I" ? pInkI : pInkFull;
+      put(stage, buildGlyph(ch, pstyle), px + ink / 2, 383,
+        "perspective(260px) rotateY(9deg) rotate(-1.2deg)",
+        "drop-shadow(0 0 2.5px rgba(190,230,90,.5))");
+      px += ink + pGap;
+    }
+  }
+
+  if (SCENE === "rack") {
+    // ---- erase old letters (probe-exact boxes + margin) ----
+    const old = [
+      { x0: 414, x1: 459, y0: 605, y1: 647 }, { x0: 482, x1: 525, y0: 596, y1: 638 },
+      { x0: 550, x1: 601, y0: 587, y1: 629 }, { x0: 622, x1: 634, y0: 582, y1: 619 },
+      { x0: 654, x1: 697, y0: 574, y1: 615 }, { x0: 714, x1: 756, y0: 567, y1: 607 },
+    ];
+    for (const b of old) {
+      const m = 4;
+      patch(stage, "rack.png", {
+        x: b.x0 - m, y: b.y0 - m, w: (b.x1 - b.x0) + 2 * m, h: (b.y1 - b.y0) + 2 * m, f: 6,
+        fill: "linear-gradient(180deg, rgba(30,34,23,.96), rgba(21,25,16,.96) 55%, rgba(15,18,11,.96))",
+      });
+    }
+    // dampen the green-lit slot right of the word (reads as apostrophe next to new D)
+    patch(stage, "rack.png", {
+      x: 768, y: 549, w: 30, h: 26, f: 5,
+      fill: "linear-gradient(180deg, rgba(28,32,24,.92), rgba(18,21,14,.92))",
+    });
+    // ambient glow unifier over the lettering band
+    const amb = document.createElement("div");
+    amb.className = "abs";
+    Object.assign(amb.style, {
+      left: "350px", top: "530px", width: "460px", height: "160px",
+      background: "radial-gradient(ellipse at 50% 55%, rgba(130,200,55,.13), rgba(130,200,55,.05) 55%, transparent 75%)",
+      mixBlendMode: "screen",
+    });
+    stage.appendChild(amb);
+
+    // ---- NEXGRID along tilted baseline, upright glyphs, slight cap taper ----
+    const bl = x => 645 + (x - 436.5) * (-0.131); // baseline y model from probe
+    const glow = "drop-shadow(0 0 4px rgba(160,230,70,.55)) drop-shadow(0 0 14px rgba(120,210,50,.4)) drop-shadow(0 0 36px rgba(90,180,40,.22))";
+    const stretch = 1.45;
+    // fit: span x 380→780 with per-glyph inks at avg cap ~41.2
+    const inksU = [...W].map(ch => ch === "I" ? 28 : GL[ch].iw * stretch);
+    const capOf = i => 42.4 - (i / 6) * 2.4;
+    const inksPx = inksU.map((u, i) => u * capOf(i) / 100);
+    const gapR = (400 - inksPx.reduce((a, b) => a + b, 0)) / (W.length - 1);
+    let x = 380;
+    for (let i = 0; i < W.length; i++) {
+      const ch = W[i];
+      const cap = capOf(i);
+      const ink = inksPx[i];
+      const cx = x + ink / 2, cy = bl(cx) - cap / 2;
+      const st = {
+        cap, stroke: 28, stretch,
+        grad: [["0%", "#8fb040"], ["40%", "#b5d94c"], ["100%", "#c9e75a"]],
+        gradAxis: "y",
+        rim: { color: "#0a0e06", extra: 4, dx: 0, dy: 1.6, blur: 1, opacity: .6 },
+      };
+      put(stage, buildGlyph(ch, st), cx, cy, "", glow);
+      x += ink + gapR;
+    }
+  }
+}
+</script>

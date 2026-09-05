@@ -1,0 +1,481 @@
+{
+ "console": [],
+ "routes": {
+  "/pages/staking/staking": {
+   "dark": [
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.619608 0.862745 0.113725 / 0.3)",
+     "txt": "30D",
+     "size": "42x24",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 1 0.796078 0.301961 / 0.3)",
+     "txt": "365D",
+     "size": "49x24",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 1 0.796078 0.301961 / 0.3)",
+     "txt": "Highest yield",
+     "size": "101x20",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(to right, color(srgb 0.960784 0.968628 0.980392 / 0.04) 1px, rgba(0, 0, 0, 0) 1px), linear-gradient(color(srgb 0.960784 0.968628 0.980",
+     "txt": "",
+     "size": "355x362",
+     "visible": true
+    }
+   ],
+   "light": [
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.054902 0.556863 0.290196 / 0.3)",
+     "txt": "30D",
+     "size": "42x24",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.776471 0.513726 0.0862745 / 0.3)",
+     "txt": "365D",
+     "size": "49x24",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.776471 0.513726 0.0862745 / 0.3)",
+     "txt": "Highest yield",
+     "size": "101x20",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(to right, color(srgb 0.0745098 0.0784314 0.101961 / 0.04) 1px, rgba(0, 0, 0, 0) 1px), linear-gradient(color(srgb 0.0745098 0.0784314 0",
+     "txt": "",
+     "size": "355x362",
+     "visible": true
+    }
+   ]
+  },
+  "/pages/staking/how-it-works": {
+   "dark": [
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(to right, color(srgb 0.960784 0.968628 0.980392 / 0.04) 1px, rgba(0, 0, 0, 0) 1px), linear-gradient(color(srgb 0.960784 0.968628 0.980",
+     "txt": "",
+     "size": "355x247",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.960784 0.968628 0.980392 / 0.9)",
+     "txt": "30d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "color",
+     "value": "color(srgb 0.960784 0.968628 0.980392 / 0.9)",
+     "txt": "30d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 1 1 1 / 0.0352941)",
+     "txt": "90d35%$86.30",
+     "size": "351x34",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.960784 0.968628 0.980392 / 0.9)",
+     "txt": "90d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "color",
+     "value": "color(srgb 0.960784 0.968628 0.980392 / 0.9)",
+     "txt": "90d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 1 1 1 / 0.0352941)",
+     "txt": "180d80%$394.52",
+     "size": "351x34",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.960784 0.968628 0.980392 / 0.9)",
+     "txt": "180d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "color",
+     "value": "color(srgb 0.960784 0.968628 0.980392 / 0.9)",
+     "txt": "180d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 1 1 1 / 0.0352941)",
+     "txt": "365d180%$1800.00",
+     "size": "351x34",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.960784 0.968628 0.980392 / 0.9)",
+     "txt": "365d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "color",
+     "value": "color(srgb 0.960784 0.968628 0.980392 / 0.9)",
+     "txt": "365d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.619608 0.862745 0.113725 / 0.3)",
+     "txt": "✓ Why it's safe to stake h",
+     "size": "353x113",
+     "visible": true
+    }
+   ],
+   "light": [
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(to right, color(srgb 0.0745098 0.0784314 0.101961 / 0.04) 1px, rgba(0, 0, 0, 0) 1px), linear-gradient(color(srgb 0.0745098 0.0784314 0",
+     "txt": "",
+     "size": "355x247",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.0745098 0.0784314 0.101961 / 0.9)",
+     "txt": "30d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "color",
+     "value": "color(srgb 0.0745098 0.0784314 0.101961 / 0.9)",
+     "txt": "30d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.898039 0.87451 0.815686 / 0.6)",
+     "txt": "90d35%$86.30",
+     "size": "351x34",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.0745098 0.0784314 0.101961 / 0.9)",
+     "txt": "90d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "color",
+     "value": "color(srgb 0.0745098 0.0784314 0.101961 / 0.9)",
+     "txt": "90d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.898039 0.87451 0.815686 / 0.6)",
+     "txt": "180d80%$394.52",
+     "size": "351x34",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.0745098 0.0784314 0.101961 / 0.9)",
+     "txt": "180d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "color",
+     "value": "color(srgb 0.0745098 0.0784314 0.101961 / 0.9)",
+     "txt": "180d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.898039 0.87451 0.815686 / 0.6)",
+     "txt": "365d180%$1800.00",
+     "size": "351x34",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.0745098 0.0784314 0.101961 / 0.9)",
+     "txt": "365d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "color",
+     "value": "color(srgb 0.0745098 0.0784314 0.101961 / 0.9)",
+     "txt": "365d",
+     "size": "117x33",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.054902 0.556863 0.290196 / 0.3)",
+     "txt": "✓ Why it's safe to stake h",
+     "size": "353x113",
+     "visible": true
+    }
+   ]
+  },
+  "/pages/store/store": {
+   "dark": [
+    {
+     "prop": "backgroundImage",
+     "value": "radial-gradient(120% 140% at 0% 0%, color(srgb 0.619608 0.862745 0.113725 / 0.16), rgba(0, 0, 0, 0) 70%), none",
+     "txt": "You have a voucher to clai",
+     "size": "358x58",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 0.619608 0.862745 0.113725 / 0.14)",
+     "txt": "",
+     "size": "34x34",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 1 0.478431 0.239216 / 0.12)",
+     "txt": "117× more",
+     "size": "84x26",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 1 0.478431 0.239216 / 0.4)",
+     "txt": "Upgrade trade-inYour NexGr",
+     "size": "357x220",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(160deg, color(srgb 1 0.478431 0.239216 / 0.14) 0%, rgb(20, 20, 20) 70%)",
+     "txt": "Upgrade trade-inYour NexGr",
+     "size": "357x220",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "radial-gradient(60% 80% at 95% 0%, color(srgb 1 0.478431 0.239216 / 0.2), rgba(0, 0, 0, 0) 70%)",
+     "txt": "",
+     "size": "355x218",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 1 0.796079 0.301961 / 0.1)",
+     "txt": "Unlock to buy",
+     "size": "325x44",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 1 0.796079 0.301961 / 0.1)",
+     "txt": "",
+     "size": "28x28",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "repeating-linear-gradient(135deg, color(srgb 0.556863 0.447059 1 / 0.08) 0px, color(srgb 0.556863 0.447059 1 / 0.08) 8px, rgba(0, 0, 0, 0) 8px, rgba(0",
+     "txt": "Low BarrierCloud · Distrib",
+     "size": "357x180",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 1 0.796078 0.301961 / 0.12)",
+     "txt": "153 left",
+     "size": "76x22",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(135deg, color(srgb 1 0.478431 0.239216 / 0.1), color(srgb 0.556863 0.447059 1 / 0.08))",
+     "txt": "",
+     "size": "44x44",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(135deg, color(srgb 1 0.478431 0.239216 / 0.1), color(srgb 0.556863 0.447059 1 / 0.08))",
+     "txt": "",
+     "size": "44x44",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(color(srgb 0.619608 0.862745 0.113725 / 0.22) 0%, color(srgb 0.619608 0.862745 0.113725 / 0.08) 100%)",
+     "txt": "Store",
+     "size": "71x56",
+     "visible": true
+    },
+    {
+     "prop": "boxShadow",
+     "value": "rgba(255, 255, 255, 0.22) 0px 1px 0px 0px inset, color(srgb 0.619608 0.862745 0.113725 / 0.14) 0px 0px 16px 0px inset, color(srgb 0.619608 0.862745 0.",
+     "txt": "Store",
+     "size": "71x56",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.619608 0.862745 0.113725 / 0.45)",
+     "txt": "3",
+     "size": "48x48",
+     "visible": true
+    }
+   ],
+   "light": [
+    {
+     "prop": "backgroundImage",
+     "value": "radial-gradient(120% 140% at 0% 0%, color(srgb 0.054902 0.282353 0.901961 / 0.16), rgba(0, 0, 0, 0) 70%), none",
+     "txt": "You have a voucher to clai",
+     "size": "358x58",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 0.054902 0.282353 0.901961 / 0.14)",
+     "txt": "",
+     "size": "34x34",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 1 0.352941 0.121569 / 0.12)",
+     "txt": "117× more",
+     "size": "84x26",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 1 0.352941 0.121569 / 0.4)",
+     "txt": "Upgrade trade-inYour NexGr",
+     "size": "357x220",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(160deg, color(srgb 1 0.352941 0.121569 / 0.14) 0%, rgb(255, 255, 255) 70%)",
+     "txt": "Upgrade trade-inYour NexGr",
+     "size": "357x220",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "radial-gradient(60% 80% at 95% 0%, color(srgb 1 0.352941 0.121569 / 0.2), rgba(0, 0, 0, 0) 70%)",
+     "txt": "",
+     "size": "355x218",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 0.776471 0.513726 0.0862745 / 0.1)",
+     "txt": "Unlock to buy",
+     "size": "325x44",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 0.776471 0.513726 0.0862745 / 0.1)",
+     "txt": "",
+     "size": "28x28",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "repeating-linear-gradient(135deg, color(srgb 0.0470588 0.768627 0.839216 / 0.08) 0px, color(srgb 0.0470588 0.768627 0.839216 / 0.08) 8px, rgba(0, 0, 0",
+     "txt": "Low BarrierCloud · Distrib",
+     "size": "357x180",
+     "visible": true
+    },
+    {
+     "prop": "backgroundColor",
+     "value": "color(srgb 0.776471 0.513726 0.0862745 / 0.12)",
+     "txt": "153 left",
+     "size": "76x22",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(135deg, color(srgb 1 0.352941 0.121569 / 0.1), color(srgb 0.0470588 0.768627 0.839216 / 0.08))",
+     "txt": "",
+     "size": "44x44",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(135deg, color(srgb 1 0.352941 0.121569 / 0.1), color(srgb 0.0470588 0.768627 0.839216 / 0.08))",
+     "txt": "",
+     "size": "44x44",
+     "visible": true
+    },
+    {
+     "prop": "backgroundImage",
+     "value": "linear-gradient(color(srgb 0.054902 0.282353 0.901961 / 0.22) 0%, color(srgb 0.054902 0.282353 0.901961 / 0.08) 100%)",
+     "txt": "Store",
+     "size": "71x56",
+     "visible": true
+    },
+    {
+     "prop": "boxShadow",
+     "value": "rgba(255, 255, 255, 0.22) 0px 1px 0px 0px inset, color(srgb 0.054902 0.282353 0.901961 / 0.14) 0px 0px 16px 0px inset, color(srgb 0.054902 0.282353 0.",
+     "txt": "Store",
+     "size": "71x56",
+     "visible": true
+    },
+    {
+     "prop": "borderTopColor",
+     "value": "color(srgb 0.054902 0.282353 0.901961 / 0.45)",
+     "txt": "3",
+     "size": "48x48",
+     "visible": true
+    }
+   ]
+  }
+ },
+ "mask": {
+  "dark": {
+   "backdrop": "rgba(0, 0, 0, 0.62)",
+   "panel": "rgb(20, 20, 20)"
+  },
+  "light": {
+   "backdrop": "rgba(19, 20, 26, 0.45)",
+   "panel": "rgb(255, 255, 255)"
+  }
+ }
+}

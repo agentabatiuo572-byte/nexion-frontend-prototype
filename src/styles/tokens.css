@@ -1,0 +1,946 @@
+/* NexGrid design tokens + global utility classes / animations
+   Ported from Nexion-prototype/app/globals.css with Tailwind v4 directives
+   (@import tailwindcss + @theme inline) stripped.
+   :root = light theme; html[data-theme=dark] = dark theme.
+   The ~3219 [var(--*)] arbitrary-value classes + 1889 inline var() refs in
+   ported pages resolve against these custom properties. */
+
+/* Global box-model reset — the prototype relies on Tailwind v4 Preflight's
+   `*,::before,::after { box-sizing: border-box }`. uni-app ships NO such reset
+   and UnoCSS presetWind3 doesn't inject a preflight, so every ported component
+   (all field-level copies of border-box Tailwind originals) rendered under the
+   CSS default content-box → any element with an explicit height/width + padding
+   or border came out larger than the prototype (e.g. the add-device pill 66px
+   vs 44px, sign-out 46 vs 44). Restore border-box globally to match the source
+   of truth. (PITFALLS P-038) */
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+/* v2 palette — pure black + lime green + retain v1 dot-grid / pulse-node effects.
+   Legacy tokens — kept until each module is migrated to v5. */
+:root {
+  --bg-base: #000000;
+  --bg-app: #000000;
+  --bg-card: #0F0F0F;
+  --bg-card-2: #1A1A1A;
+  --bg-card-deep: #0A0A0A;
+  --border: #1F1F1F;
+  --border-strong: #2A2A2A;
+  --text: #FFFFFF;
+  --text-muted: #8A95A8;
+  --brand: #9EDC1D;
+  --brand-hover: #D4FF55;
+  --brand-dark: #84B82A;
+  --earnings: #9EDC1D;
+  --warning: #FF6B35;
+  --negative: #FF4747;
+  --accent-purple: #7C5CFF;
+  --accent-amber: #FFBE3D;
+
+  /* v5 light fintech tokens — chassis chrome uses these immediately.
+     Inner page content (mission-control etc.) keeps legacy tokens until
+     migrated module-by-module. Adopt v5 prefix to avoid mass-cascade. */
+  --v5-bg: #F4F1E9;          /* warm cream page */
+  --v5-surface: #FFFFFF;
+  --v5-surface-2: #FAF7F0;
+  --v5-surface-3: #F0EBE0;
+  --v5-border: #E5DFD0;
+  --v5-border-strong: #D5CDB8;
+
+  --v5-ink: #13141A;          /* primary text */
+  --v5-ink-2: #3C3F47;
+  /* 2026-07-23:#6A6F78 对页面底 #F4F1E9 实测 4.47 —— 差 0.03 不达 AA,而它承载
+     「忘记密码 / 或使用其他方式 / 立即注册」这类需读懂的辅助信息。微调至 4.53,
+     色相偏移 3°、肉眼无差。 */
+  --v5-ink-3: #6A6E77;
+  /* 🔴 ink-4 用法边界(2026-07-23 AA 分析结论,值未改):它是「禁用/最弱占位」层,
+     WCAG 2.1 §1.4.3 对 disabled 文本明确豁免。**不要为达 AA 去加深它** —— 实算
+     压到 4.5 会得到 #696E79,与 ink-3 的 #6A6E77 几乎重合,文字层级体系会被摧毁。
+     合法用途:禁用态 · 装饰性图标描边 · 分隔符 · 时间戳等最弱元信息。
+     ❌ 不得承载需要阅读的正文/标签 —— 那是**用法错**,改用 ink-3。 */
+  --v5-ink-4: #A4A8B0;
+
+  --v5-brand: #0E48E6;        /* electric blue */
+  --v5-brand-deep: #0833B8;
+  --v5-brand-soft: #E8EDFB;
+  --v5-brand-border: #C8D5F7;
+  --v5-on-brand: #FFFFFF;     /* readable text on brand fill: white on blue */
+  --v5-on-brand-soft: rgba(255,255,255,0.78);   /* secondary text on brand */
+  --v5-on-brand-mute: rgba(255,255,255,0.22);   /* dividers/borders on brand */
+
+  --v5-brand-2: #FF5A1F;      /* warm orange — funnel hook */
+  --v5-brand-2-soft: #FFEEDC;
+  --v5-brand-2-border: #FFD0A8;
+  --v5-on-brand-2: #0A0A0A;   /* near-black on warm orange — WCAG AA passes both themes (white on #FF5A1F / #FF7A3D fails) */
+
+  --v5-success: #0E8E4A;
+  --v5-success-soft: #DFF5E8;
+  --v5-warning: #C68316;
+  --v5-warning-soft: #FBF1D9;
+  --v5-danger: #B9554A;
+  --v5-danger-soft: #F8E1DC;
+
+  --v5-tech-cyan: #0CC4D6;
+  --v5-tech-cyan-soft: #E0F6F9;
+  --v5-tech-cyan-border: #9FE0E8;
+
+  /* NEX 代币标识 — 紫,与 AI/tech-cyan(青) 分色。仅用于 NEX badge/code-tag/图表 NEX 序列 */
+  --v5-nex: #7C5CFF;
+  --v5-nex-soft: #ECE7FF;
+  --v5-nex-border: #C9BCFF;
+
+  /* Chrome (Header + TabBar + frosted glass tap-target boxes).
+     Theme-aware so Header / TabBar / .pd-back glass tiles adapt cleanly
+     between v5 light cream and v4 dark obsidian.
+     Solid uniform alpha (not gradient fade-to-0): backdrop-filter renders
+     the whole element box regardless of bg alpha, so a gradient fade tail
+     leaves a blur halo with no surface cover — looks "too wide". Solid
+     alpha = glass box exactly equals visible content rect. */
+  --v5-chrome-bg: rgba(244,241,233,0.58);
+  --v5-chrome-border: rgba(255,255,255,0.40);
+  --v5-glass-bg: rgba(255,255,255,0.55);
+  --v5-glass-border: rgba(255,255,255,0.60);
+  --v5-glass-shadow: 0 2px 8px rgba(20,16,8,0.05);
+  /* Toast surface — frosted, theme-aware */
+  --v5-toast-bg: rgba(255,255,255,0.92);
+  --v5-toast-border: var(--v5-border);
+  --v5-toast-shadow: 0 8px 24px rgba(20,16,8,0.10);
+  /* Sticky CTA bottom bar — frosted gradient, theme-aware */
+  --v5-sticky-bar-bg: linear-gradient(180deg, rgba(244,241,233,0.45) 0%, rgba(244,241,233,0.78) 60%, rgba(244,241,233,0.92) 100%);
+  --v5-sticky-bar-border: rgba(213,205,184,0.55);
+  --v5-tabbar-bg: rgba(255,255,255,0.20);
+  --v5-tabbar-border: rgba(255,255,255,0.60);
+  --v5-tabbar-shadow: 0 8px 24px rgba(20,16,8,0.06), inset 0 1px 0 rgba(255,255,255,0.80);
+  --v5-home-indicator: rgba(19,20,26,0.55);
+
+  /* Spotlight / ambient tokens — glow that exists only in dark mode. All default
+     to `none` here so components can reference them unconditionally.
+
+     🔴 别把下面这句读成全站不变量(2026-08-18 全站 91 路由实测后改写):
+     「亮色无辉光」只对**本组 token 覆盖到的那部分**成立。
+     - box-shadow 组(--v5-spotlight-brand / -brand-2)已接线 25 处,亮色确实塌成
+       none、辉光确实自动消失 —— 规则在这一面是落地的。
+     - 背景渐变组只有 --v5-ambient-nex 有消费者(首页英雄卡);其余三个
+       --v5-ambient-* 与 --v5-spotlight-brand-strong 当前**零引用**,属「设计好了
+       没接线」,不是死代码,别删。
+     - 另有 54 层装饰性辉光是各组件**手拼**的 radial-gradient,亮色下不消失而是
+       渲染成浅色品牌色晕。主人 2026-08-18 拍板保持现状(只修「暗色色号直接糊到
+       浅底」的个别缺陷),所以那批不受本条约束。 */
+  --v5-ambient-glow: none;
+  --v5-ambient-overlay-brand: none;
+  --v5-ambient-overlay-brand-2: none;
+  --v5-ambient-nex: none;
+  --v5-spotlight-brand: none;
+  --v5-spotlight-brand-strong: none;
+  --v5-spotlight-brand-2: none;
+
+  /* Card lift shadow — light theme uses v5 SKILL signature soft blur
+     (warm shadow on cream). Dark overrides to higher-contrast obsidian shadow. */
+  --v5-card-shadow-lift: 0 1px 2px rgba(20,16,8,0.04), 0 4px 12px rgba(20,16,8,0.06);
+  --v5-card-shadow-lift-strong: 0 2px 4px rgba(20,16,8,0.06), 0 8px 24px rgba(20,16,8,0.10);
+
+  /* Money hero aurora — 3-layer radial gradient inside .tech-money-card.
+     Light: cyan + blue + warm cream (v5 fintech).
+     Dark: purple + lemon + ember (v4 obsidian + conversion spotlight). */
+  --v5-money-aurora:
+    radial-gradient(45% 35% at 22% 30%, rgba(12,196,214,0.18), transparent 60%),
+    radial-gradient(40% 30% at 78% 20%, rgba(14,72,230,0.14), transparent 60%),
+    radial-gradient(50% 40% at 55% 80%, rgba(255,203,148,0.20), transparent 65%);
+
+  /* Earn hero aurora — visually distinct from money-aurora so Home Hero +
+     Earn Hero don't read as the same card. Warmth accumulates DOWNWARD
+     (history sediment), cool wash on top, NO lemon (lemon stays Home-only
+     as the conversion-magnet signal). Light: amber + cyan + neutral fog. */
+  --v5-earn-aurora:
+    radial-gradient(55% 40% at 18% 75%, rgba(255,184,93,0.22), transparent 65%),
+    radial-gradient(50% 35% at 82% 80%, rgba(12,196,214,0.16), transparent 60%),
+    radial-gradient(60% 45% at 50% 15%, rgba(180,190,210,0.10), transparent 65%);
+
+  /* next/font injected --font-display (Manrope) + --font-jet-mono (JetBrains
+     Mono) on :root in the prototype's layout.tsx. uni has NO layout.tsx, so if
+     left undefined the `var(--font-display)` / `var(--font-jet-mono)` refs below
+     are "guaranteed-invalid" → the ENTIRE font-family declaration is dropped →
+     every text node falls back to the browser default (Times New Roman serif).
+     Defining them here makes all three usages (--font-v5 / body / .font-mono-
+     tabular) valid → clean sans-serif even before the web fonts load. (P-038) */
+  --font-display: "General Sans", "Manrope", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-jet-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* v5 font stack — for use in inline style fontFamily. */
+  --font-v5: "General Sans", var(--font-display), "Manrope", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Radius ladder — 《03 空间圆角边框分层》阶梯落 token(vibe-playbook P2-F 2026-07-22)。
+     主题无关;新代码优先引用,存量迁移随「尺寸迁移工程」分批。
+     值域哨兵(scripts/value-ladder-sentinel.mjs)拦「基线外且非阶梯」的新离散值。 */
+  --v5-radius-s: 12px;    /* 小标签 / 小状态 */
+  --v5-radius-m: 16px;    /* 输入框 / 任务小卡 */
+  --v5-radius-l: 20px;    /* 列表卡 / 内嵌块 */
+  --v5-radius-xl: 24px;   /* 普通卡片(规范默认) */
+  --v5-radius-2xl: 28px;  /* 主卡片 / TabBar */
+  --v5-radius-3xl: 32px;  /* Hero / Bottom Sheet */
+  --v5-radius-full: 999px; /* chip / 所有按钮(pill 铁律) */
+
+  /* 遮罩底色 —— 全局弹层/确认框背后的压暗层。原先只在 global-ui 里以 fallback
+     形式引用而无定义(未定义 token 差集查出),补齐使其可主题化。 */
+  --v5-bg-color-mask: rgba(19, 20, 26, 0.45);
+
+  /* Onboarding/新手引导专用强调色(2026-07-23 主人批准补 token)。
+     原为设计稿钦定 hex #9B89E0 / #FF6B35 散落 3 个组件、注释自陈「不走 V5 token
+     映射」→ 无法主题化、无法审计、哨兵盲区。收敛为 token,值保持设计稿原色不变;
+     暗色主题按需在 dark 块覆盖。用途:新手任务倒计时/分类点、试用票券装饰。 */
+  --v5-quest-violet: #9B89E0;
+  --v5-quest-ember: #FF6B35;
+  /* 🔴 quest 两色**双主题恒浅**(dark 块不覆写)→ 其上的文字/图标必须恒定深墨,
+     不能用 --v5-on-brand(那是给随主题翻转的 brand 填充用的:亮色时它是白,
+     白勾压在浅紫/浅橙上会糊掉——2026-07-23 独立验收实测 2.98:1 回归)。 */
+  --v5-on-quest: #12101A;
+  /* quest 两色**当前景文字/图标**用时的可读档(2026-07-23 C1,主人批「修」)。
+     base 是「填充档」(浅紫/浅橙,双主题恒浅,其上文字走 --v5-on-quest,见上条);
+     但同一个色被直接当文字色使时,亮主题白卡面上实测 紫 2.98 / 橙 2.84 —— 不达 AA。
+     故另立「文字档」:亮主题取同色相的深色变体(白底 5.47 / 5.28),暗主题沿用 base
+     (暗底实测 6.18 / 6.50,本就达标,保持视觉不变)。填充档不动 = 不影响 --v5-on-quest 的前提。 */
+  --v5-quest-violet-ink: #6E54D0;
+  --v5-quest-ember-ink: #C93400;
+
+  /* 语义色的「文字档」(2026-07-23 B1,主人批「按建议做」;沿用 C1 的填充/文字分档模式)。
+     问题:亮主题下这 4 个语义色被直接当文字色使时,对最差背景(页面底 #F4F1E9)实测
+     tech-cyan 1.88 · brand-2 2.76 · warning 2.79 · success 3.73 —— 全不达 AA 4.5;
+     其中 warning 承载「设备今日收益」等核心数字。
+     解法与 C1 一致:**base 填充档不动**(视觉零变化、其上 on-* 前景关系不变),
+     另立文字档取同色相深色变体(二分压 HSL 明度,锁死色相与饱和度,色相偏移 ≤0.3°)。
+     暗主题在 dark 块沿用 base(暗底本就达标),故风险只落在亮主题。 */
+  --v5-warning-ink: #966411;    /* AA 4.51(base #C68316 = 2.79) */
+  --v5-success-ink: #0D7F42;    /* AA 4.50(base #0E8E4A = 3.73) */
+  --v5-tech-cyan-ink: #077A85;  /* AA 4.50(base #0CC4D6 = 1.88) */
+  --v5-brand-2-ink: #CD3600;    /* AA 4.51(base #FF5A1F = 2.76) */
+
+  /* 创世节点「奢华金」子调色板(2026-07-23 C1,主人批「修」)。
+     原为散落的 #D4AF5A / #F4E5C2 字面量,双主题恒定。在**固定曜石底**(genesis hero)上
+     实测 8.76 / 14.62 达标,但落到**跟主题的**卡面/页面底时,亮主题实测:
+     商店创世卡 2.08、创世页 Claim seat 主 CTA **1.11**、Current 标签 1.85 —— 全部不达 AA。
+     故按承载面分两档:-on-dark 给固定曜石底(恒定,设计意图),无后缀给跟主题的面(亮主题取深金)。 */
+  --v5-genesis-gold: #86671F;        /* 跟主题:亮主题深金,白底 5.28 / 奶油底 4.68 */
+  --v5-genesis-gold-hi: #86671F;     /* 高亮档,亮主题与主档同值(AA 约束下收敛) */
+  --v5-genesis-gold-on-dark: #D4AF5A;      /* 固定曜石底专用,双主题恒定 */
+  --v5-genesis-gold-pale-on-dark: #F4E5C2; /* 同上,高亮档 */
+
+  /* Space ladder — 《03》§1 8pt grid(B0 2026-07-22)。新代码优先引用,存量随尺寸迁移分批。 */
+  --v5-space-1: 4px;
+  --v5-space-2: 8px;
+  --v5-space-3: 12px;
+  --v5-space-4: 16px;
+  --v5-space-5: 20px;
+  --v5-space-6: 24px;
+  --v5-space-8: 32px;
+  --v5-space-10: 40px;
+
+  /* Typography ladder — 《02》§2 14 档(B0 2026-07-22)。成对引用:
+     font-size: var(--v5-type-X); line-height: var(--v5-type-X-lh);
+     字重/判定线与 9→14 迁移映射见 docs/TYPO-MIGRATION-MAP.md(棘轮哨兵同源)。
+     以下三个命名 token 是经本轮真实业务 UI 复核保留的微型标记 / 模式徽章 /
+     详情卡标题，不把裸字号散落在组件里。 */
+  --v5-type-hero: 56px;       --v5-type-hero-lh: 64px;       /* display.hero · 600 */
+  --v5-type-display-xl: 44px; --v5-type-display-xl-lh: 52px; /* display.xl · 600 */
+  --v5-type-display-l: 36px;  --v5-type-display-l-lh: 44px;  /* display.l · 600 */
+  --v5-type-h1: 34px;         --v5-type-h1-lh: 42px;         /* heading.h1 · 600 */
+  --v5-type-h2: 26px;         --v5-type-h2-lh: 34px;         /* heading.h2 · 600 */
+  --v5-type-h3: 20px;         --v5-type-h3-lh: 28px;         /* heading.h3 · 600 */
+  --v5-type-body-m: 15px;     --v5-type-body-m-lh: 22px;     /* body.m · 400/500 */
+  --v5-type-body-s: 13px;     --v5-type-body-s-lh: 18px;     /* body.s · 400 */
+  --v5-type-caption: 12px;    --v5-type-caption-lh: 16px;    /* caption · 500 · 🔴 生产最小档 */
+  --v5-type-tab: 12px;        --v5-type-tab-lh: 14px;        /* tab.label · 600 · 配 22px 图标 */
+  --v5-type-mono: 15px;       --v5-type-mono-lh: 22px;       /* number.mono · 500 · JetBrains */
+  --v5-type-button: 15px;     --v5-type-button-lh: 20px;     /* button.m · 600 */
+  --v5-type-input: 15px;      --v5-type-input-lh: 22px;      /* input.m · 400 */
+  --v5-type-micro: 9px;       --v5-type-micro-lh: 12px;       /* receipt marker · 700 */
+  --v5-type-meta: 11px;       --v5-type-meta-lh: 14px;       /* runtime mode badge · 700 */
+  --v5-type-card-title: 16px; --v5-type-card-title-lh: 22px; /* unavailable product title · 600 */
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Dark mode — applied when <html data-theme="dark">.
+   Overrides v5 light tokens to a desaturated obsidian palette while
+   keeping brand identity (brand / brand-2 / success / warning) hue-anchored.
+   Soft variants get slight transparency for proper layering on dark surfaces.
+   ───────────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────
+   Dark mode — applied when <html data-theme="dark">.
+   Per SKILL-nexgrid-v5-dark-design-system.md: v4 obsidian + lemon-green
+   identity. Pure black page, #0F0F0F cards, #9EDC1D lemon brand, #FF6B35
+   orange brand-2, #7C5CFF purple tech accent, #FFBE3D amber warning.
+   All non-color v5 rules (typography / spacing / nesting / sheets /
+   buttons / home indicator) remain identical — see the light SKILL.
+   ───────────────────────────────────────────────────────────────────── */
+html[data-theme="dark"] {
+  /* Surface ladder — neutral obsidian, NO hue tint. Wider luminance steps
+     than v4 baseline so cards visibly LIFT off the page floor (×1.5 step
+     so 95% of users register hierarchy at first glance).
+       bg #000 → surface #141414 (+8%) → surface-2 #1F1F1F (+12%)
+       → surface-3 #2A2A2A (+16%). Borders are micro-bright (white α0.06)
+     rather than darker-than-bg (which collapses to invisible). */
+  --v5-bg: #000000;             /* pure black page floor */
+  --v5-bg-color-mask: rgba(0, 0, 0, 0.62);  /* 纯黑底上遮罩需更重才压得住 */
+  --v5-surface: #141414;        /* card surface — +8% lift */
+  --v5-surface-2: #1F1F1F;      /* nested chip / pill bg — +12% */
+  --v5-surface-3: #2A2A2A;      /* recessed input / inset — +16% */
+  --v5-border: rgba(255,255,255,0.06);          /* micro-bright card edge */
+  --v5-border-strong: rgba(255,255,255,0.12);
+
+  /* Ink — slightly off-white for less eye strain, brighter secondary tier
+     so info hierarchy doesn't collapse into one grey blur. */
+  --v5-ink: #F5F7FA;            /* primary text — cool off-white */
+  --v5-ink-2: #D1D5DB;          /* secondary, brighter than before */
+  --v5-ink-3: #9BA3B5;          /* tertiary — readable mid-grey (was #8A95A8) */
+  --v5-ink-4: #6B7385;          /* quaternary / disabled */
+
+  /* Brand — lemon green retained as NexGrid signature. Soft alpha bumped from
+     0.14 → 0.20 so the brand "glow" on Hero cards / Earn / CTA pills actually
+     reads as a tinted glow on the dark surface, not just a barely-tinted block. */
+  --v5-brand: #9EDC1D;          /* lemon green — CTA, live, earnings */
+  --v5-brand-deep: #84B82A;
+  --v5-brand-soft: rgba(158,220,29,0.20);
+  --v5-brand-border: rgba(158,220,29,0.45);
+  --v5-on-brand: #0A0A0A;       /* readable text on lemon fill: near-black on lemon (~14:1 contrast) */
+  --v5-on-brand-soft: rgba(10,10,10,0.74);      /* secondary text on lemon */
+  --v5-on-brand-mute: rgba(10,10,10,0.18);      /* dividers/borders on lemon */
+
+  /* Brand-2 — warm orange. Slightly brighter (#FF7A3D) so FOMO / stock-urgency
+     chips visibly burn against dark cards, like v4's signature ember tone. */
+  --v5-brand-2: #FF7A3D;
+  --v5-brand-2-soft: rgba(255,122,61,0.20);
+  --v5-brand-2-border: rgba(255,122,61,0.45);
+  --v5-on-brand-2: #0A0A0A;     /* near-black on orange — white-on-orange fails WCAG AA on #FF7A3D (~3:1) */
+
+  /* Earnings/success re-uses brand lemon on dark per dark SKILL */
+  --v5-success: #9EDC1D;
+  --v5-success-soft: rgba(158,220,29,0.20);
+  --v5-warning: #FFCB4D;        /* amber, brighter on dark surfaces */
+  --v5-warning-soft: rgba(255,203,77,0.20);
+  --v5-danger: #FF5C5C;         /* slightly brighter, still desaturated */
+  --v5-danger-soft: rgba(255,92,92,0.18);
+
+  /* Tech accent — purple, lifted for visibility on dark cards */
+  --v5-tech-cyan: #8E72FF;      /* purple — tech / staking accent */
+  --v5-tech-cyan-soft: rgba(142,114,255,0.20);
+  --v5-tech-cyan-border: rgba(142,114,255,0.45);
+
+  /* NEX 代币标识 — 亮紫,区分 tech-cyan 蓝紫。仅 NEX badge/code-tag/图表 NEX 序列 */
+  --v5-nex: #B47FFF;
+  --v5-nex-soft: rgba(180,127,255,0.20);
+  --v5-nex-border: rgba(180,127,255,0.45);
+
+  /* Conversion spotlight tokens — hierarchy = "谁该 glow 谁就 glow".
+     意图:只给 7 个转化触点(main Buy CTA / Hero amount / task progress /
+     repurchase / stake / mint / genesis bid)用;Bills / Settings /
+     Notifications 保持纯平深色作为视觉静默。
+     🔴 意图 ≠ 现状:全站另有 54 层手拼辉光散在 24 组组件上,不少并非转化触点
+     (帮助页 / 里程碑弹层 / 开发者页 / 信任页都有)。主人 2026-08-18 拍板保持
+     现状,所以上面这句是**本组 token 的使用约束**,不是全站已达成的事实。 */
+  --v5-ambient-glow: radial-gradient(70% 50% at 80% 0%, rgba(158,220,29,0.10) 0%, transparent 65%);
+  --v5-ambient-overlay-brand: radial-gradient(80% 60% at 50% 0%, rgba(158,220,29,0.06) 0%, transparent 70%);
+  --v5-ambient-overlay-brand-2: radial-gradient(80% 60% at 50% 0%, rgba(255,122,61,0.06) 0%, transparent 70%);
+  /* Hero amount 的极光层(首页「今日收益」)。值与 2026-08-17 前内联写法逐字节
+     等价,所以暗色 0 像素变化;亮色塌成 none,不再把 #7C5CFF 45% 糊到米色底上。 */
+  --v5-ambient-nex: radial-gradient(52% 80% at 14% 50%, color-mix(in srgb, var(--v5-nex) 45%, transparent) 0%, transparent 66%);
+  --v5-spotlight-brand: 0 0 32px rgba(158,220,29,0.30), 0 0 12px rgba(158,220,29,0.18);
+  --v5-spotlight-brand-strong: 0 0 40px rgba(158,220,29,0.45), 0 0 16px rgba(158,220,29,0.28);
+  --v5-spotlight-brand-2: 0 0 32px rgba(255,122,61,0.30), 0 0 12px rgba(255,122,61,0.18);
+
+  /* Card lift shadow — applied to every elevated surface in dark mode so
+     cards have a soft "floating" base shadow against pure-black page.
+     2-layer: micro highlight on top edge + soft black shadow below. */
+  --v5-card-shadow-lift: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.55);
+  --v5-card-shadow-lift-strong: 0 1px 0 rgba(255,255,255,0.06) inset, 0 12px 32px rgba(0,0,0,0.70);
+
+  /* Money hero aurora — dark variant: lemon brand on top-right as conversion
+     magnet, purple for tech accent, ember bottom-glow for warmth. Higher alpha
+     than light to actually read on the obsidian surface. */
+  --v5-money-aurora:
+    radial-gradient(45% 35% at 22% 30%, rgba(142,114,255,0.22), transparent 60%),
+    radial-gradient(40% 30% at 78% 20%, rgba(198,255,58,0.18), transparent 60%),
+    radial-gradient(50% 40% at 55% 80%, rgba(255,122,61,0.24), transparent 65%);
+
+  /* Earn hero aurora — dark variant. Differentiates from money-aurora:
+     - NO lemon (lemon is Home-only, the conversion-magnet signal)
+     - Warmth at bottom-left (history accumulating), cool sweep at top-right
+     - Deeper amber + tech-cyan + faint purple — "analytics dashboard" tone
+       vs Home's "earning right now" lemon spotlight. */
+  --v5-earn-aurora:
+    radial-gradient(55% 40% at 18% 75%, rgba(255,142,68,0.22), transparent 65%),
+    radial-gradient(50% 35% at 82% 25%, rgba(12,196,214,0.20), transparent 60%),
+    radial-gradient(60% 45% at 50% 50%, rgba(124,92,255,0.10), transparent 70%);
+
+  /* Chrome (Header + TabBar + frosted glass) — same page-bg tone, only
+     translucency + blur. No hue tint, just black + alpha for frosted glass.
+     Solid uniform alpha so backdrop-filter blur box = visible content rect
+     (gradient fade-to-0 leaves a blur halo with no cover — see light note). */
+  --v5-chrome-bg: rgba(0,0,0,0.55);
+  --v5-chrome-border: transparent;
+  /* Glass tiles (back / bell / icon buttons in header) — lifted from page bg.
+     Pure-black bg on pure-black page would disappear; use a slight white
+     overlay so the tile reads as "elevated above the page". */
+  --v5-glass-bg: rgba(255,255,255,0.08);
+  --v5-glass-border: rgba(255,255,255,0.12);
+  --v5-glass-shadow: 0 2px 8px rgba(0,0,0,0.40);
+  /* Toast surface — slightly lifted obsidian in dark */
+  --v5-toast-bg: rgba(40,40,40,0.92);
+  --v5-toast-border: rgba(255,255,255,0.10);
+  --v5-toast-shadow: 0 8px 24px rgba(0,0,0,0.55);
+  /* Sticky CTA bottom bar — lifted obsidian gradient (slightly above page bg
+     so the bar visibly separates from the page below). */
+  --v5-sticky-bar-bg: linear-gradient(180deg, rgba(28,28,28,0.50) 0%, rgba(28,28,28,0.88) 60%, rgba(28,28,28,0.96) 100%);
+  --v5-sticky-bar-border: rgba(255,255,255,0.10);
+  --v5-tabbar-bg: rgba(12,12,14,0.22);
+  --v5-tabbar-border: rgba(255,255,255,0.10);
+  --v5-tabbar-shadow: 0 12px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10);
+  --v5-home-indicator: rgba(255,255,255,0.55);
+
+  /* quest 文字档 / 创世金:暗主题沿用设计原色(暗底实测 6.18 / 6.50 / 8.84 / 16.83 全达标),
+     只有亮主题需要压深。这样暗主题视觉零变化,改动风险只落在亮主题。
+     -on-dark 两个是固定曜石底专用,不在此覆写(它们本就该恒定)。 */
+  --v5-quest-violet-ink: #9B89E0;
+  --v5-quest-ember-ink: #FF6B35;
+  /* 语义色文字档:暗主题沿用 base(暗底实测本就达标),保持视觉零变化 */
+  --v5-warning-ink: #FFCB4D;
+  --v5-success-ink: #9EDC1D;
+  --v5-tech-cyan-ink: #8E72FF;
+  --v5-brand-2-ink: #FF7A3D;
+  --v5-genesis-gold: #D4AF5A;
+  --v5-genesis-gold-hi: #F4E5C2;
+}
+
+/* Smooth theme transition — apply on body, not :root, to avoid flashing
+   the OS chrome on toggle. */
+body {
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Dark theme — global card lift hierarchy.
+   In dark mode every "rounded card on the page" needs a subtle floating
+   shadow so it visibly lifts off the pure-black bg. Light theme keeps
+   no shadow (cream-on-cream relies on border only — SKILL克制装饰).
+   Selectors target only block-level rounded surface containers so chips
+   (typically size-* + rounded-full, no padding) are skipped. The hot-CTA
+   spotlights (Sprint 2) win over this default via specificity / longer cascade. */
+/* Dark card lift — opt-in via data-attribute (was attr-selector that
+   referenced Tailwind class strings, which Tailwind v4 mis-extracted
+   into `bg-[var(--v5-surface)` and emitted `var(--*)` invalid CSS).
+   Cards needing lift now add either inline `boxShadow` or `data-v5-lift`. */
+html[data-theme="dark"] [data-v5-lift] {
+  box-shadow: var(--v5-card-shadow-lift);
+}
+
+
+/* Display font — alias to var(--font-v5) per V5 SKILL.
+   Both .font-display Tailwind class and inline `fontFamily: var(--font-v5)`
+   now resolve to the same chain: General Sans → Manrope → system.
+   Max font-weight 600 per v5 design rules — never 700+. */
+.font-display {
+  font-family: var(--font-v5);
+  letter-spacing: -0.01em;
+}
+
+body {
+  /* Theme-aware: light = warm cream (#F4F1E9) / dark = cool near-black (#07090F).
+     v5 token replaces legacy --bg-base (which was hardcoded #000 v2 token). */
+  background: var(--v5-bg);
+  color: var(--v5-ink);
+  /* v5 default body font — General Sans (Fontshare, loaded via <link> in
+     layout.tsx). Falls back to Manrope (next/font, var(--font-display))
+     during load, then system fonts. */
+  font-family: "General Sans", var(--font-display), "Manrope", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  /* Suppress native overscroll bounce so our pull-to-refresh owns the gesture
+     at scrollY === 0. Without this, iOS Safari's elastic bounce competes with
+     the indicator. */
+  overscroll-behavior-y: contain;
+}
+
+/* Lime-tinted dot grid for hero zones */
+.dot-grid {
+  background-image:
+    radial-gradient(circle at center, rgba(198, 255, 58, 0.14) 1px, transparent 1.5px);
+  background-size: 18px 18px;
+}
+
+/* Subtle pulsing dots scattered on hero cards — retained from v1 */
+@keyframes pulse-node {
+  0%, 100% { opacity: 0.45; transform: scale(0.90); }
+  50%      { opacity: 0.95; transform: scale(1.25); }
+}
+.pulse-node {
+  animation: pulse-node 2.6s ease-in-out infinite;
+  /* Halo glow — radiates the lemon brand color so each dot reads as a
+     live "node" rather than a flat speck against the dark backdrop. */
+  box-shadow: 0 0 6px rgba(198, 255, 58, 0.55), 0 0 12px rgba(198, 255, 58, 0.25);
+}
+
+/* Lime "online" pulse */
+@keyframes glow-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(198, 255, 58, 0.55); }
+  50%      { box-shadow: 0 0 0 6px rgba(198, 255, 58, 0); }
+}
+.glow-green { animation: glow-green 1.8s ease-in-out infinite; }
+
+/* Nova unread pulse — pure box-shadow so no transform/layout side-effects.
+   Avoids the bug where Tailwind's animate-ping (transform: scale(2)) on the
+   floating bubble caused the sticky TabBar to perceptibly jitter. */
+@keyframes nova-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 24px rgba(198, 255, 58, 0.28),
+      0 0 0 0 rgba(198, 255, 58, 0.45);
+  }
+  70% {
+    box-shadow:
+      0 0 24px rgba(198, 255, 58, 0.28),
+      0 0 0 14px rgba(198, 255, 58, 0);
+  }
+}
+.nova-pulse { animation: nova-pulse 2s ease-out infinite; }
+
+/* Nova gentle floating motion — translate3d for GPU compositing so the
+   sticky TabBar (separate compositing layer) is not affected. */
+@keyframes nova-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -4px, 0); }
+}
+.nova-float {
+  animation: nova-float 3.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* NovaAvatar halo pulse — outward brand ring (ported from prototype globals
+   @keyframes v5-nova-halo). Used by <nova-avatar pulse>. */
+@keyframes v5-nova-halo {
+  0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--v5-brand) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 10px color-mix(in oklab, var(--v5-brand) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--v5-brand) 0%, transparent); }
+}
+
+/* CardStagger entrance — fade + slide-up, replayed via animation-delay per
+   nth-child (replaces framer-motion staggerChildren). Honors reduced-motion. */
+@keyframes nx-card-stagger-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* TrialHeroBanner coupon — 3D Y-flip entrance (IntersectionObserver-gated),
+   diagonal shimmer sweep, and scarcity-dot pulse. Ported from prototype globals
+   @keyframes v5-ticket-enter / v5-ticket-shimmer / v5-hb-pulse. */
+@keyframes v5-ticket-enter {
+  0%   { opacity: 0; transform: perspective(1100px) rotateY(-92deg) scale(0.96); }
+  55%  { opacity: 1; transform: perspective(1100px) rotateY(8deg)   scale(1.01); }
+  78%  { transform: perspective(1100px) rotateY(-2.5deg) scale(0.998); }
+  100% { opacity: 1; transform: perspective(1100px) rotateY(0deg)   scale(1); }
+}
+@keyframes v5-ticket-shimmer {
+  0%   { opacity: 0; transform: translateX(-110%) skewX(-14deg); }
+  35%  { opacity: 0.55; }
+  100% { opacity: 0; transform: translateX(230%) skewX(-14deg); }
+}
+@keyframes v5-hb-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(12, 196, 214, 0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(12, 196, 214, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(12, 196, 214, 0); }
+}
+@keyframes v5-hb-pulse-success {
+  0%   { box-shadow: 0 0 0 0 rgba(14, 142, 74, 0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(14, 142, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(14, 142, 74, 0); }
+}
+
+/* Global spinner (used inline as `animation: spin 1s linear infinite`) +
+   step-in entrance (`class="nx-step-in"`) for the me/wallet sub-page flows.
+   Mirror checkout.vue's scoped versions but live here so any component / page
+   can reuse them (scoped <style> keyframes don't cross component bounds). */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.nx-step-in {
+  animation: nx-step-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes nx-step-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-step-in { animation: none; }
+}
+
+/* Hero glow now lime-tinted */
+.hero-glow {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(198, 255, 58, 0.13), transparent 60%),
+    linear-gradient(180deg, #0E0E0E 0%, #050505 100%);
+}
+
+.warning-gradient {
+  background:
+    linear-gradient(135deg, rgba(255, 107, 53, 0.18) 0%, rgba(255, 107, 53, 0.04) 100%);
+  border: 1px solid rgba(255, 107, 53, 0.35);
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+@keyframes scan {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Left-direction infinite marquee.
+   Render the track content TWICE in source order, then animate the inner
+   track from translateX(0%) → translateX(-50%). At start the first copy
+   fills the viewport; at end the second copy fills the viewport; both
+   states are visually identical so the loop is seamless. Chips appear to
+   slide leftward. */
+@keyframes marquee-left {
+  from { transform: translate3d(0%, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+.marquee-track {
+  animation: marquee-left 28s linear infinite;
+  will-change: transform;
+}
+.marquee-track:hover { animation-play-state: paused; }
+
+/* ─── Mission Control (Home v2) ─── */
+
+/* Mono font helper — JetBrains Mono used for live numbers, tiny labels. */
+.font-mono-tabular {
+  font-family: var(--font-jet-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Slow spin used by the orbital particle ring around the phone hero. */
+@keyframes mc-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.mc-orbit { animation: mc-orbit 14s linear infinite; }
+.mc-orbit-slow { animation: mc-orbit 24s linear infinite; }
+
+/* Dashed inner ring rotates the opposite direction half-tempo. */
+@keyframes mc-orbit-rev {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+.mc-orbit-rev { animation: mc-orbit-rev 24s linear infinite; }
+
+/* Background ring opacity breathing. */
+@keyframes mc-ring-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.18; }
+}
+.mc-ring-pulse { animation: mc-ring-pulse 3.2s ease-in-out infinite; }
+
+/* Phone shape glow breathing — used by the central phone in PhoneHero. */
+@keyframes mc-phone-glow {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(198,255,58,0.18), inset 0 0 0 1px rgba(198,255,58,0.30);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(198,255,58,0.34), inset 0 0 0 1px rgba(198,255,58,0.50);
+  }
+}
+.mc-phone-glow { animation: mc-phone-glow 2.4s ease-in-out infinite; }
+
+/* Status dot pulse — replaces "● Live" indicator next to live labels. */
+@keyframes mc-pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.4); opacity: 0.6; }
+}
+.mc-pulse { animation: mc-pulse 1.6s ease-in-out infinite; }
+
+/* New ledger row drops in from the top and fades the highlight color. */
+@keyframes mc-ledger-in {
+  from { opacity: 0; transform: translateY(-8px); background-color: rgba(198,255,58,0.12); }
+  to   { opacity: 1; transform: translateY(0);    background-color: rgba(198,255,58,0.04); }
+}
+.mc-ledger-in { animation: mc-ledger-in 0.6s ease-out; }
+
+/* Shimmer band for running task progress bars. */
+@keyframes mc-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.mc-shimmer { animation: mc-shimmer 2.4s ease-in-out infinite; }
+
+
+/* Money hero — pulsing lemon glow on the big earnings number. */
+@keyframes mc-money-glow {
+  0%, 100% { text-shadow: 0 0 14px rgba(198,255,58,0.28); }
+  50%      { text-shadow: 0 0 28px rgba(198,255,58,0.55),
+                          0 0 48px rgba(124,92,255,0.22); }
+}
+.mc-money-glow { animation: mc-money-glow 2.6s ease-in-out infinite; }
+
+/* Diagonal shimmer band sweeping across the money number (uses bg-clip-text
+   masked stripe). */
+@keyframes mc-money-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.mc-money-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 35%,
+    rgba(255,255,255,0.45) 50%,
+    transparent 65%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-position: -200% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: mc-money-shimmer 3.4s linear infinite;
+}
+
+/* Increment chip — small "+$0.0004" beside the money. Pure fade in /
+   fade out, no vertical motion, so the chip stays anchored next to
+   the +5.2% delta chip and never bobs against the digits. */
+@keyframes mc-money-fade {
+  0%   { opacity: 0; transform: scale(0.88); }
+  15%  { opacity: 1; transform: scale(1); }
+  70%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.92); }
+}
+.mc-money-fade {
+  animation: mc-money-fade 1.6s ease forwards;
+}
+
+/* Boost upsell — soft slide-in when a new slot rotates into view */
+@keyframes mc-boost-in {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.mc-boost-in { animation: mc-boost-in 0.42s ease-out; }
+
+/* ───── v5 animations (used by v5-migrated modules) ───── */
+
+@keyframes v5-aurora-drift {
+  0%   { transform: translate3d(0%, 0%, 0) rotate(0deg); }
+  50%  { transform: translate3d(-6%, 3%, 0) rotate(2deg); }
+  100% { transform: translate3d(4%, -2%, 0) rotate(-1deg); }
+}
+
+/* TrialHeroBanner / coupon entrance — 3D Y-axis flip with spring overshoot.
+   Ticket starts edge-on (rotateY -92deg, nearly invisible) and rotates to
+   face the user, briefly past 0° (overshoot to +8°) then settling back.
+   Perspective applied inline on the element. Triggered via
+   IntersectionObserver so it fires when the user actually sees the coupon. */
+@keyframes v5-ticket-enter {
+  0%   { opacity: 0; transform: perspective(1100px) rotateY(-92deg) scale(0.96); }
+  55%  { opacity: 1; transform: perspective(1100px) rotateY(8deg)   scale(1.01); }
+  78%  { transform: perspective(1100px) rotateY(-2.5deg) scale(0.998); }
+  100% { opacity: 1; transform: perspective(1100px) rotateY(0deg)   scale(1); }
+}
+
+/* Lemon hairline sweeps across the coupon shortly after it lands —
+   reinforces "fresh / just-issued" feel without being noisy. */
+@keyframes v5-ticket-shimmer {
+  0%   { opacity: 0; transform: translateX(-110%) skewX(-14deg); }
+  35%  { opacity: 0.55; }
+  100% { opacity: 0; transform: translateX(230%) skewX(-14deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Skip the bounce + shimmer for users who opted out — just fade in. */
+  .v5-ticket-enter,
+  .v5-ticket-shimmer {
+    animation: none !important;
+  }
+}
+
+@keyframes v5-hb-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(12, 196, 214, 0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(12, 196, 214, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(12, 196, 214, 0); }
+}
+
+@keyframes v5-hb-pulse-success {
+  0%   { box-shadow: 0 0 0 0 rgba(14, 142, 74, 0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(14, 142, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(14, 142, 74, 0); }
+}
+
+/* Nova avatar halo pulse — outward lemon ring radiating from the cartoon
+   portrait so "Nova is listening" reads visually without re-rendering the
+   character art. Drives NovaAvatar's optional pulse prop. */
+@keyframes v5-nova-halo {
+  0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--v5-brand) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 10px color-mix(in oklab, var(--v5-brand) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--v5-brand) 0%, transparent); }
+}
+
+/* Nova chat-card flowing aurora — three overlapping color blobs drift
+   around inside the bubble continuously, like a slow lava-lamp. Brand
+   (lemon) + brand-2 (purple) + tech-cyan, each blob runs on its own
+   duration / offset so they never align and the motion never repeats
+   visibly. All three live inside the bubble's overflow:hidden container,
+   so motion is fully contained — zero bleed into adjacent layout. */
+@keyframes v5-nova-blob-1 {
+  0%, 100% { transform: translate(-22%, 18%)  scale(1);    opacity: 0.55; }
+  50%      { transform: translate(18%,  -12%) scale(1.25); opacity: 0.85; }
+}
+@keyframes v5-nova-blob-2 {
+  0%, 100% { transform: translate(55%, -15%) scale(1.1);  opacity: 0.4;  }
+  50%      { transform: translate(15%,  25%) scale(0.95); opacity: 0.65; }
+}
+@keyframes v5-nova-blob-3 {
+  0%, 100% { transform: translate(70%, 55%) scale(0.95); opacity: 0.3;  }
+  50%      { transform: translate(40%, 75%) scale(1.2);  opacity: 0.55; }
+}
+
+@keyframes v5-lane-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes v5-dot-drift {
+  0%   { transform: translateY(0); opacity: 0; }
+  10%  { opacity: 0.7; }
+  90%  { opacity: 0.7; }
+  100% { transform: translateY(-220px); opacity: 0; }
+}
+
+/* Product image 3D tilt — perspective parent + rotateY/X loop. Subtle ±4°/±2°
+   so the still PNG reads as "alive / volumetric" without spinning the user out.
+   Used on /store list ProductCardV5 photo and /store/[id] detail hero. */
+@keyframes v5-product-tilt {
+  0%   { transform: rotateY(-4deg) rotateX(2deg)  scale(1.01); }
+  100% { transform: rotateY( 4deg) rotateX(-2deg) scale(1.01); }
+}
+
+/* Taller variant for hero cards. Dots start 6px below the card and drift up
+   to roughly the hero-number row (≈ card.bottom − 240, just under the big
+   $193 line on EmptySlotsHint). They fade out there so the upper third of
+   the card stays clean. Peak opacity read from per-particle var. */
+@keyframes v5-dot-drift-tall {
+  0%   { transform: translateY(0); opacity: 0; }
+  5%   { opacity: var(--dot-peak-opacity, 0.5); }
+  85%  { opacity: var(--dot-peak-opacity, 0.5); }
+  100% { transform: translateY(-240px); opacity: 0; }
+}
+
+@keyframes v5-ledger-fade {
+  from { opacity: 0; transform: translateY(-6px); background-color: var(--v5-brand-soft); }
+  to   { opacity: 1; transform: translateY(0); background-color: transparent; }
+}
+
+/* Live activity danmaku — seamless upward scroll. The list is duplicated, so
+   translateY(-50%) lands the second copy exactly where the first started.
+   (Ported from live-social-proof.tsx styled-jsx @keyframes dnk-scroll.) */
+@keyframes dnk-scroll {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+
+/* ── Genesis Node hero / dock animations ──
+   Ported from Nexion-prototype/app/(main)/genesis/page.tsx styled-jsx +
+   genesis-dock-host.tsx. Shared by genesis.vue (gold obsidian hero) and the
+   in-page sticky dock; per P-023 shared keyframes live here (not scoped). */
+@keyframes gen-dust-rise {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  20%  { opacity: 0.9; }
+  60%  { opacity: 0.7; }
+  100% { transform: translateY(-220px) scale(1); opacity: 0; }
+}
+@keyframes gen-glow-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  50%      { transform: translate(-20px, 14px) scale(1.15); opacity: 1; }
+}
+@keyframes gen-sheen {
+  0%   { transform: translateX(-100%); }
+  40%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes gen-bar-shimmer {
+  100% { transform: translateX(100%); }
+}
+@keyframes gen-engrave {
+  from { background-position: 0 0; }
+  to   { background-position: 200px 0; }
+}
+@keyframes gen-urgent {
+  0%, 100% { opacity: 1; text-shadow: 0 0 0 transparent; }
+  50%      { opacity: 0.7; text-shadow: 0 0 8px rgba(212, 175, 90, 0.7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gen-anim { animation: none !important; }
+}
+
+/* ── Bottom-sheet enter (scrim fade + sheet slide-up) ──
+   Ported from Nexion-prototype framer-motion sheets (deactivate-sheet.tsx).
+   Shared by /me/devices DeviceDeactivateSheet (and reusable by future sheets);
+   per P-023 shared keyframes live in tokens.css, not a scoped <style>. */
+@keyframes nx-sheet-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes nx-sheet-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.nx-sheet-fade-in {
+  animation: nx-sheet-fade-in 240ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.nx-sheet-slide-up {
+  animation: nx-sheet-slide-up 340ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-sheet-slide-up { animation: nx-sheet-fade-in 200ms ease both; }
+}
+
+/* ── Reduced Motion 全局兜底(《08》§3 原文落地;B0 2026-07-22)──
+   per-component 温和降级(sheet-slide-up / ticket / step-in / gen-anim)保留;
+   本 catch-all 保证任何未覆盖动画在系统「减少动态」偏好下退化为即时态。 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    /* delay 也必须清零:若有人写 delay + fill:both 的错位入场,reduce 用户会
+       看到内容先消失若干秒再闪现(独立 a11y 审查提出的防御性缺口)。 */
+    animation-delay: -1ms !important;
+    transition-delay: 0s !important;
+  }
+}
+
+/* ── 根字号锁定 —— 修「间距/圆角随视口等比拉伸」(2026-07-23 B1,主人批「按建议做」)──
+   现象:uni-app H5 运行时在 <html> 注入 `font-size: 16 × 视口宽/375`,而 UnoCSS 预设
+   刻度类(rounded-* / mt-* / gap-* / px-* 等 ~550 处)输出 rem → 全站间距圆角随视口
+   线性拉伸。实测 rounded-2xl:375px→16px · 390px→16.64px · 414px→17.664px。
+   后果:①《03》的 8pt grid 与圆角阶梯**只在 375 视口成立**(414 下 8pt 变 8.83pt)
+        ②同屏两套单位打架 —— inline 写的 16px 与工具类算出的 16.64px 并存(既有缺陷)。
+   前提(已证实):该 rem 基准服务的是 rpx 单位,而本项目 **rpx 用量 = 0**,纯属副作用;
+   字号不受影响(UnoCSS 字号任意值输出 px 字面量,全站仅 14 处)。
+   代价:非 375 视口下间距圆角收紧约 10% —— 即回到规范定义的值。
+   ⚠️ 用 !important 是必需的:uni 注入的是 <html> 的 **inline style**,优先级高于普通规则。 */
+html {
+  font-size: 16px !important;
+}
+
+/* ── 输入框触控地板(2026-07-23 C3)──
+   《07》tap≥44 / WCAG 2.5.8。输入框高度眼下由各页 inline 的 fontSize × line-height 决定,
+   实测 10 处落在 18–42px 之间 —— 最矮的 team/agent 三个字段只有 18px,连 AA 的 24px 都不到。
+   逐页改 inline style 治不了下一个新页,所以把地板焊在编译产物 uni-input 上:
+   已 ≥44 的不受影响(min-height 只抬不压),uni 自带的 .uni-input-wrapper 是
+   height:100% + align-items:center,元素长高后文字自动保持垂直居中。 */
+uni-input {
+  min-height: 44px;
+}

@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-07-23T16:36:52.656Z",
+  "note": "值域棘轮基线(vibe-playbook P2-F;2026-07-22 B0 切 14 档口径)。font=**不在《02》14 档合法集 {56,44,36,34,26,20,15,13,12}** 的 font-size 存量,按文件计数(只许降不许升)——这是「离 14 档还有多远」的债务台账,B1-B8 每批迁移后收紧;radius.values=历史离散圆角值(新值必须上阶梯)。人工审阅后才 --update-baseline。",
+  "font": {
+    "total": 8,
+    "perFile": {
+      "src/components/earn/market-board.vue": 1,
+      "src/components/events/events-featured-hero.vue": 1,
+      "src/components/genesis/opensea-modal.vue": 1,
+      "src/components/me/topup-card-form.vue": 1,
+      "src/components/team/team-ledger-card.vue": 1,
+      "src/pages/daily/daily.vue": 1,
+      "src/pages/genesis/holder.vue": 1,
+      "src/pages/genesis/marketplace.vue": 1
+    }
+  },
+  "radius": {
+    "values": [
+      "2",
+      "2.5",
+      "3",
+      "4",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "14",
+      "18",
+      "22"
+    ]
+  }
+}

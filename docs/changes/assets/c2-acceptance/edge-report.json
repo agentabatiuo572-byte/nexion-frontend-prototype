@@ -1,0 +1,102 @@
+[
+ {
+  "scrim": true,
+  "name": "position-row",
+  "route": "/pages/staking/staking",
+  "theme": "dark",
+  "cls": "",
+  "borderGone": true,
+  "bw": "0px/0px/0px/0px",
+  "bs": "none/none/none/none",
+  "outline": "3px none",
+  "shadow": "none",
+  "insideAvg": [
+   92,
+   94,
+   98
+  ],
+  "outsideAvg": [
+   20,
+   20,
+   20
+  ],
+  "contrast": 2.836,
+  "dL": 33.6,
+  "shot": "D:\\WORKS\\PLAN\\Nexion-uniapp\\docs\\changes\\assets\\c2-acceptance\\position-row-dark.png"
+ },
+ {
+  "scrim": true,
+  "name": "position-row",
+  "route": "/pages/staking/staking",
+  "theme": "light",
+  "cls": "",
+  "borderGone": true,
+  "bw": "0px/0px/0px/0px",
+  "bs": "none/none/none/none",
+  "outline": "3px none",
+  "shadow": "none",
+  "insideAvg": [
+   195,
+   196,
+   198
+  ],
+  "outsideAvg": [
+   255,
+   255,
+   255
+  ],
+  "contrast": 1.745,
+  "dL": -20.9,
+  "shot": "D:\\WORKS\\PLAN\\Nexion-uniapp\\docs\\changes\\assets\\c2-acceptance\\position-row-light.png"
+ },
+ {
+  "scrim": true,
+  "name": "me-signout",
+  "route": "/pages/me/me",
+  "theme": "dark",
+  "cls": "w-full inline-flex items-center justify-center active:opacity-90",
+  "borderGone": true,
+  "bw": "0px/0px/0px/0px",
+  "bs": "none/none/none/none",
+  "outline": "3px none",
+  "shadow": "none",
+  "insideAvg": [
+   33,
+   12,
+   12
+  ],
+  "outsideAvg": [
+   0,
+   0,
+   0
+  ],
+  "contrast": 1.123,
+  "dL": 5.5,
+  "shot": "D:\\WORKS\\PLAN\\Nexion-uniapp\\docs\\changes\\assets\\c2-acceptance\\me-signout-dark.png"
+ },
+ {
+  "scrim": true,
+  "name": "me-signout",
+  "route": "/pages/me/me",
+  "theme": "light",
+  "cls": "w-full inline-flex items-center justify-center active:opacity-90",
+  "borderGone": true,
+  "bw": "0px/0px/0px/0px",
+  "bs": "none/none/none/none",
+  "outline": "3px none",
+  "shadow": "none",
+  "insideAvg": [
+   247,
+   230,
+   224
+  ],
+  "outsideAvg": [
+   244,
+   241,
+   233
+  ],
+  "contrast": 1.072,
+  "dL": -2.7,
+  "shot": "D:\\WORKS\\PLAN\\Nexion-uniapp\\docs\\changes\\assets\\c2-acceptance\\me-signout-light.png"
+ }
+]

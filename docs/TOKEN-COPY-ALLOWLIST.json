@@ -1,0 +1,73 @@
+{
+  "_doc": "token-copy 哨兵(scripts/token-copy-sentinel.mjs)的人工裁决豁免。哨兵只钉『亮暗异值 token 的色值被抄成字面量』——那类在另一主题下必然失配。此处每条 = 回源判过、确认不是失配的例外,reason 必填(selftest 会校验)。省略 literal = 整文件豁免,仅用于整份色彩模型都不随主题的文件。",
+  "_updated": "2026-07-23 · C1 + 主人拍板 1/2/3 落地",
+  "_scrimDoc": "scrimExemptions = 遮罩单源哨兵(scripts/scrim-single-source.mjs)的豁免:弹层遮罩底色必须走 var(--v5-bg-color-mask)。按 {file, selector?, reason} 写,省略 selector = 整文件豁免。当前全站 20 个遮罩已全部收敛,无豁免。",
+  "scrimExemptions": [],
+  "exemptions": [
+    {
+      "file": "src/components/team/share-poster-sheet.vue",
+      "literal": "#9EDC1D",
+      "reason": "canvas 常量 BRAND_ON_DARK:ctx 拿不到 CSS 变量,海报恒暗底(常量名已显式声明锁定暗色)。"
+    },
+    {
+      "file": "src/components/team/share-poster-sheet.vue",
+      "literal": "#8E72FF",
+      "reason": "canvas 常量 CYAN_ON_DARK,同上。"
+    },
+    {
+      "file": "src/components/team/share-poster-sheet.vue",
+      "literal": "#F5F7FA",
+      "reason": "canvas 常量 INK_ON_DARK,同上。"
+    },
+    {
+      "file": "src/components/team/share-poster-sheet.vue",
+      "literal": "rgba(158,220,29,0.16)",
+      "reason": "canvas 极光渐变起点,恒暗底海报。"
+    },
+    {
+      "file": "src/components/team/share-poster-sheet.vue",
+      "literal": "rgba(158,220,29,0)",
+      "reason": "canvas 极光渐变终点(全透明),恒暗底海报。"
+    },
+    {
+      "file": "src/components/team/share-poster-sheet.vue",
+      "literal": "rgba(142,114,255,0.13)",
+      "reason": "canvas 底部极光起点,恒暗底海报。"
+    },
+    {
+      "file": "src/components/team/share-poster-sheet.vue",
+      "literal": "rgba(142,114,255,0)",
+      "reason": "canvas 底部极光终点(全透明),恒暗底海报。"
+    },
+    {
+      "file": "src/components/team/share-poster-sheet.vue",
+      "literal": "rgba(245,247,250,0.045)",
+      "reason": "canvas 分隔面填充,恒暗底海报。"
+    },
+    {
+      "file": "src/components/team/share-poster-sheet.vue",
+      "literal": "rgba(245,247,250,0.08)",
+      "reason": "canvas 分隔面填充(重),恒暗底海报。"
+    },
+    {
+      "file": "src/mock/tokens.ts",
+      "literal": "#7C5CFF",
+      "reason": "io.net(IO)币种品牌识别色,是 mock 行情数据不是主题色;与 --v5-nex@light 巧合同值。同表 16 个币种品牌色同理。"
+    },
+    {
+      "file": "src/mock/events.ts",
+      "literal": "#7C5CFF",
+      "reason": "mock 事件流的事件标识 tint,属数据字段;与 --v5-nex@light 巧合同值。"
+    },
+    {
+      "file": "src/mock/events.ts",
+      "literal": "#FF6B35",
+      "reason": "同上,mock 事件流的 tint 数据字段;与 --v5-quest-ember-ink@dark 巧合同值(该 token 2026-07-23 C1 新增,暗主题沿用 quest 设计原色)。事件 tint 是数据不是主题。"
+    },
+    {
+      "file": "src/pages/team/network.vue",
+      "literal": "rgba(124,92,255,0.18)",
+      "reason": "网络关系图的轨道环装饰紫 + 卡片径向光晕,语义是可视化装饰不是 NEX 标识;与 --v5-nex@light 巧合同值。改走 token 会让暗主题变亮紫,偏离可视化设计意图。"
+    }
+  ]
+}

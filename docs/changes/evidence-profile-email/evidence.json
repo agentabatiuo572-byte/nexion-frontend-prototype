@@ -1,0 +1,992 @@
+{
+  "meta": {
+    "when": "2026-08-16T02:33:31.090Z",
+    "base": "http://127.0.0.1:5399",
+    "viewport": "390x844 dark"
+  },
+  "zh": {
+    "gotoAttempts": {
+      "lang": 1,
+      "profile": 1
+    },
+    "langNodes": [
+      {
+        "text": "Language",
+        "tag": "span",
+        "cls": "",
+        "x": 151.8,
+        "y": 7.5,
+        "w": 86.5,
+        "h": 27
+      },
+      {
+        "text": "Choose your preferred language. Translation coverage rolls out per priority tier — layout & RTL preview available for every option.",
+        "tag": "span",
+        "cls": "",
+        "x": 16,
+        "y": 69,
+        "w": 358,
+        "h": 58.6
+      },
+      {
+        "text": "Recommended",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 144.4,
+        "w": 100.3,
+        "h": 20
+      },
+      {
+        "text": "P0",
+        "tag": "span",
+        "cls": "",
+        "x": 358.8,
+        "y": 147.4,
+        "w": 13.2,
+        "h": 14
+      },
+      {
+        "text": "🌐",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 190.9,
+        "w": 27.5,
+        "h": 27
+      },
+      {
+        "text": "English",
+        "tag": "span",
+        "cls": "",
+        "x": 57.5,
+        "y": 187.4,
+        "w": 42.1,
+        "h": 17
+      },
+      {
+        "text": "en",
+        "tag": "span",
+        "cls": "",
+        "x": 107.6,
+        "y": 187.9,
+        "w": 13.1,
+        "h": 16
+      },
+      {
+        "text": "English · Global",
+        "tag": "span",
+        "cls": "",
+        "x": 57.5,
+        "y": 206.4,
+        "w": 81,
+        "h": 16
+      },
+      {
+        "text": "🇻🇳",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 250.9,
+        "w": 21.3,
+        "h": 27
+      },
+      {
+        "text": "Tiếng Việt",
+        "tag": "span",
+        "cls": "",
+        "x": 51.3,
+        "y": 247.4,
+        "w": 57.8,
+        "h": 17
+      },
+      {
+        "text": "vi",
+        "tag": "span",
+        "cls": "",
+        "x": 117.1,
+        "y": 247.9,
+        "w": 8.7,
+        "h": 16
+      },
+      {
+        "text": "Vietnamese · Vietnam",
+        "tag": "span",
+        "cls": "",
+        "x": 51.3,
+        "y": 266.4,
+        "w": 114.7,
+        "h": 16
+      },
+      {
+        "text": "Major markets",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 314.4,
+        "w": 96,
+        "h": 20
+      },
+      {
+        "text": "P1",
+        "tag": "span",
+        "cls": "",
+        "x": 358.8,
+        "y": 317.4,
+        "w": 13.2,
+        "h": 14
+      },
+      {
+        "text": "🇨🇳",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 360.9,
+        "w": 21,
+        "h": 27
+      },
+      {
+        "text": "简体中文",
+        "tag": "span",
+        "cls": "",
+        "x": 51,
+        "y": 357.4,
+        "w": 52,
+        "h": 17
+      },
+      {
+        "text": "zh",
+        "tag": "span",
+        "cls": "",
+        "x": 111,
+        "y": 357.9,
+        "w": 12.2,
+        "h": 16
+      },
+      {
+        "text": "Chinese (Simplified) · China · Singapore",
+        "tag": "span",
+        "cls": "",
+        "x": 51,
+        "y": 376.4,
+        "w": 206.7,
+        "h": 16
+      },
+      {
+        "text": "🇯🇵",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 420.9,
+        "w": 15.2,
+        "h": 27
+      },
+      {
+        "text": "日本語",
+        "tag": "span",
+        "cls": "",
+        "x": 45.2,
+        "y": 417.4,
+        "w": 39,
+        "h": 17
+      },
+      {
+        "text": "ja",
+        "tag": "span",
+        "cls": "",
+        "x": 92.2,
+        "y": 417.9,
+        "w": 9,
+        "h": 16
+      },
+      {
+        "text": "Japanese · Japan",
+        "tag": "span",
+        "cls": "",
+        "x": 45.2,
+        "y": 436.4,
+        "w": 87.5,
+        "h": 16
+      },
+      {
+        "text": "🇰🇷",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 480.9,
+        "w": 19,
+        "h": 27
+      },
+      {
+        "text": "한국어",
+        "tag": "span",
+        "cls": "",
+        "x": 49,
+        "y": 477.4,
+        "w": 39,
+        "h": 17
+      },
+      {
+        "text": "ko",
+        "tag": "span",
+        "cls": "",
+        "x": 96,
+        "y": 477.9,
+        "w": 13,
+        "h": 16
+      },
+      {
+        "text": "Korean · South Korea",
+        "tag": "span",
+        "cls": "",
+        "x": 49,
+        "y": 496.4,
+        "w": 110.8,
+        "h": 16
+      },
+      {
+        "text": "🇷🇺",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 540.9,
+        "w": 19.8,
+        "h": 27
+      },
+      {
+        "text": "Русский",
+        "tag": "span",
+        "cls": "",
+        "x": 49.8,
+        "y": 537.4,
+        "w": 47.2,
+        "h": 17
+      },
+      {
+        "text": "ru",
+        "tag": "span",
+        "cls": "",
+        "x": 104.9,
+        "y": 537.9,
+        "w": 11,
+        "h": 16
+      },
+      {
+        "text": "Russian · CIS",
+        "tag": "span",
+        "cls": "",
+        "x": 49.8,
+        "y": 556.4,
+        "w": 66.1,
+        "h": 16
+      },
+      {
+        "text": "Growing regions",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 604.4,
+        "w": 109.8,
+        "h": 20
+      },
+      {
+        "text": "P2",
+        "tag": "span",
+        "cls": "",
+        "x": 358.8,
+        "y": 607.4,
+        "w": 13.2,
+        "h": 14
+      },
+      {
+        "text": "🇪🇸",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 650.9,
+        "w": 16.8,
+        "h": 27
+      },
+      {
+        "text": "Español",
+        "tag": "span",
+        "cls": "",
+        "x": 46.8,
+        "y": 647.4,
+        "w": 44.5,
+        "h": 17
+      },
+      {
+        "text": "es",
+        "tag": "span",
+        "cls": "",
+        "x": 99.3,
+        "y": 647.9,
+        "w": 11.4,
+        "h": 16
+      },
+      {
+        "text": "Spanish · Latin America",
+        "tag": "span",
+        "cls": "",
+        "x": 46.8,
+        "y": 666.4,
+        "w": 122.2,
+        "h": 16
+      },
+      {
+        "text": "🇧🇷",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 710.9,
+        "w": 18.8,
+        "h": 27
+      },
+      {
+        "text": "Português",
+        "tag": "span",
+        "cls": "",
+        "x": 48.8,
+        "y": 707.4,
+        "w": 58,
+        "h": 17
+      },
+      {
+        "text": "pt",
+        "tag": "span",
+        "cls": "",
+        "x": 114.8,
+        "y": 707.9,
+        "w": 11.1,
+        "h": 16
+      },
+      {
+        "text": "Portuguese · Brazil",
+        "tag": "span",
+        "cls": "",
+        "x": 48.8,
+        "y": 726.4,
+        "w": 97.4,
+        "h": 16
+      },
+      {
+        "text": "🇸🇦",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 771.4,
+        "w": 17.9,
+        "h": 27
+      },
+      {
+        "text": "العربية",
+        "tag": "span",
+        "cls": "",
+        "x": 47.9,
+        "y": 767.9,
+        "w": 35.8,
+        "h": 17
+      },
+      {
+        "text": "ar",
+        "tag": "span",
+        "cls": "",
+        "x": 91.7,
+        "y": 768.4,
+        "w": 10.3,
+        "h": 16
+      },
+      {
+        "text": "RTL",
+        "tag": "span",
+        "cls": "",
+        "x": 116,
+        "y": 768.4,
+        "w": 18.6,
+        "h": 16
+      },
+      {
+        "text": "Arabic · Middle East",
+        "tag": "span",
+        "cls": "",
+        "x": 47.9,
+        "y": 787.4,
+        "w": 104.3,
+        "h": 16
+      },
+      {
+        "text": "Europe",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 835.4,
+        "w": 46.8,
+        "h": 20
+      },
+      {
+        "text": "P3",
+        "tag": "span",
+        "cls": "",
+        "x": 358.8,
+        "y": 838.4,
+        "w": 13.2,
+        "h": 14
+      },
+      {
+        "text": "🇩🇪",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 881.9,
+        "w": 19.3,
+        "h": 27
+      },
+      {
+        "text": "Deutsch",
+        "tag": "span",
+        "cls": "",
+        "x": 49.3,
+        "y": 878.4,
+        "w": 46.6,
+        "h": 17
+      },
+      {
+        "text": "de",
+        "tag": "span",
+        "cls": "",
+        "x": 103.9,
+        "y": 878.9,
+        "w": 13.3,
+        "h": 16
+      },
+      {
+        "text": "German · Germany",
+        "tag": "span",
+        "cls": "",
+        "x": 49.3,
+        "y": 897.4,
+        "w": 98.8,
+        "h": 16
+      },
+      {
+        "text": "🇫🇷",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 941.9,
+        "w": 17.4,
+        "h": 27
+      },
+      {
+        "text": "Français",
+        "tag": "span",
+        "cls": "",
+        "x": 47.4,
+        "y": 938.4,
+        "w": 46.1,
+        "h": 17
+      },
+      {
+        "text": "fr",
+        "tag": "span",
+        "cls": "",
+        "x": 101.5,
+        "y": 938.9,
+        "w": 7.9,
+        "h": 16
+      },
+      {
+        "text": "French · France",
+        "tag": "span",
+        "cls": "",
+        "x": 47.4,
+        "y": 957.4,
+        "w": 79.4,
+        "h": 16
+      },
+      {
+        "text": "11 languages · auto-detect coming soon",
+        "tag": "span",
+        "cls": "",
+        "x": 88,
+        "y": 1005.4,
+        "w": 213.9,
+        "h": 16
+      },
+      {
+        "text": "Back to Account",
+        "tag": "span",
+        "cls": "",
+        "x": 152.2,
+        "y": 1035.4,
+        "w": 85.7,
+        "h": 16
+      }
+    ],
+    "zhMatches": [
+      {
+        "text": "简体中文",
+        "tag": "span",
+        "cls": "",
+        "x": 51,
+        "y": 357.4,
+        "w": 52,
+        "h": 17
+      }
+    ],
+    "clickCount": 1,
+    "hasCJK": true,
+    "nodes": [
+      {
+        "text": "个人资料",
+        "tag": "span",
+        "cls": "",
+        "x": 155.5,
+        "y": 8.5,
+        "w": 78.9,
+        "h": 25
+      },
+      {
+        "text": "H",
+        "tag": "span",
+        "cls": "",
+        "x": 40.1,
+        "y": 83.5,
+        "w": 19.8,
+        "h": 32
+      },
+      {
+        "text": "Hyper Drift 41",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 72.5,
+        "w": 97.7,
+        "h": 19
+      },
+      {
+        "text": "alex@nexgrid.ai",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 93.5,
+        "w": 86.3,
+        "h": 15
+      },
+      {
+        "text": "加入时间 2026年7月17日",
+        "tag": "span",
+        "cls": "",
+        "x": 116,
+        "y": 112.5,
+        "w": 127.4,
+        "h": 15
+      },
+      {
+        "text": "公开资料",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 155,
+        "w": 59.3,
+        "h": 19
+      },
+      {
+        "text": "昵称",
+        "tag": "span",
+        "cls": "",
+        "x": 36,
+        "y": 188,
+        "w": 24,
+        "h": 15
+      },
+      {
+        "text": "Hyper Drift 41",
+        "tag": "span",
+        "cls": "",
+        "x": 30,
+        "y": 221.5,
+        "w": 78.1,
+        "h": 16
+      },
+      {
+        "text": "更换",
+        "tag": "span",
+        "cls": "",
+        "x": 336,
+        "y": 222.5,
+        "w": 24,
+        "h": 15
+      },
+      {
+        "text": "团队成员可见",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 257,
+        "w": 72,
+        "h": 15
+      },
+      {
+        "text": "等级",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 296,
+        "w": 29.6,
+        "h": 19
+      },
+      {
+        "text": "活跃",
+        "tag": "span",
+        "cls": "",
+        "x": 346,
+        "y": 297.5,
+        "w": 26,
+        "h": 16
+      },
+      {
+        "text": "距离 升级候选 · 62%",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 341,
+        "w": 107.7,
+        "h": 15
+      },
+      {
+        "text": "提现地址",
+        "tag": "span",
+        "cls": "",
+        "x": 84,
+        "y": 396,
+        "w": 52,
+        "h": 16
+      },
+      {
+        "text": "尚未设置",
+        "tag": "span",
+        "cls": "",
+        "x": 84,
+        "y": 415,
+        "w": 48,
+        "h": 16
+      },
+      {
+        "text": "设置地址",
+        "tag": "span",
+        "cls": "",
+        "x": 310,
+        "y": 405.5,
+        "w": 48,
+        "h": 15
+      },
+      {
+        "text": "保存修改",
+        "tag": "span",
+        "cls": "",
+        "x": 169,
+        "y": 483,
+        "w": 52,
+        "h": 16
+      }
+    ],
+    "fullText": "个人资料\nH\nHyper Drift 41\nalex@nexgrid.ai\n加入时间 2026年7月17日\n公开资料\n昵称\nHyper Drift 41\n更换\n团队成员可见\n等级\n活跃\n距离 升级候选 · 62%\n提现地址\n尚未设置\n设置地址\n保存修改",
+    "analysis": {
+      "nick": {
+        "text": "Hyper Drift 41",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 72.5,
+        "w": 97.7,
+        "h": 19
+      },
+      "belowDoc": {
+        "text": "alex@nexgrid.ai",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 93.5,
+        "w": 86.3,
+        "h": 15
+      },
+      "belowVisual": {
+        "text": "alex@nexgrid.ai",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 93.5,
+        "w": 86.3,
+        "h": 15
+      },
+      "bareDefaultNodes": [],
+      "bareDefaultLines": [],
+      "emailNodes": [
+        {
+          "text": "alex@nexgrid.ai",
+          "tag": "span",
+          "cls": "",
+          "x": 98,
+          "y": 93.5,
+          "w": 86.3,
+          "h": 15
+        }
+      ],
+      "suspicious": []
+    },
+    "sink": {
+      "console": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] hot updated: /__uno.css"
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ],
+      "pageerrors": [],
+      "requestfailed": [
+        "http://127.0.0.1:5399/__uno.css?t=1786847612484 :: net::ERR_ABORTED"
+      ]
+    }
+  },
+  "en": {
+    "gotoAttempts": {
+      "profile": 1
+    },
+    "hasCJK": false,
+    "nodes": [
+      {
+        "text": "Profile",
+        "tag": "span",
+        "cls": "",
+        "x": 164.5,
+        "y": 8.5,
+        "w": 60.9,
+        "h": 25
+      },
+      {
+        "text": "H",
+        "tag": "span",
+        "cls": "",
+        "x": 40.1,
+        "y": 83.5,
+        "w": 19.8,
+        "h": 32
+      },
+      {
+        "text": "Hyper Drift 41",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 73,
+        "w": 97.7,
+        "h": 19
+      },
+      {
+        "text": "alex@nexgrid.ai",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 94,
+        "w": 86.3,
+        "h": 15
+      },
+      {
+        "text": "Joined on Jul 17, 2026",
+        "tag": "span",
+        "cls": "",
+        "x": 116,
+        "y": 112,
+        "w": 114.3,
+        "h": 15
+      },
+      {
+        "text": "Public profile",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 155,
+        "w": 91.8,
+        "h": 19
+      },
+      {
+        "text": "Display name",
+        "tag": "span",
+        "cls": "",
+        "x": 36,
+        "y": 187,
+        "w": 73.8,
+        "h": 15
+      },
+      {
+        "text": "Hyper Drift 41",
+        "tag": "span",
+        "cls": "",
+        "x": 30,
+        "y": 220.5,
+        "w": 78.1,
+        "h": 16
+      },
+      {
+        "text": "Change",
+        "tag": "span",
+        "cls": "",
+        "x": 315.7,
+        "y": 221,
+        "w": 44.3,
+        "h": 15
+      },
+      {
+        "text": "Visible to your team",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 255,
+        "w": 107.1,
+        "h": 15
+      },
+      {
+        "text": "Tier",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 294,
+        "w": 27.8,
+        "h": 19
+      },
+      {
+        "text": "Active",
+        "tag": "span",
+        "cls": "",
+        "x": 332.2,
+        "y": 295,
+        "w": 39.8,
+        "h": 16
+      },
+      {
+        "text": "Progress to Upgrade-ready · 62%",
+        "tag": "span",
+        "cls": "",
+        "x": 18,
+        "y": 338,
+        "w": 180.5,
+        "h": 15
+      },
+      {
+        "text": "Wallet address",
+        "tag": "span",
+        "cls": "",
+        "x": 84,
+        "y": 393.5,
+        "w": 90.8,
+        "h": 16
+      },
+      {
+        "text": "Not set yet",
+        "tag": "span",
+        "cls": "",
+        "x": 84,
+        "y": 412.5,
+        "w": 72.6,
+        "h": 14
+      },
+      {
+        "text": "Set address",
+        "tag": "span",
+        "cls": "",
+        "x": 290.2,
+        "y": 402,
+        "w": 67.8,
+        "h": 15
+      },
+      {
+        "text": "Save Changes",
+        "tag": "span",
+        "cls": "",
+        "x": 150.1,
+        "y": 479.5,
+        "w": 89.8,
+        "h": 16
+      }
+    ],
+    "fullText": "Profile\nH\nHyper Drift 41\nalex@nexgrid.ai\nJoined on Jul 17, 2026\nPublic profile\nDisplay name\nHyper Drift 41\nChange\nVisible to your team\nTier\nActive\nProgress to Upgrade-ready · 62%\nWallet address\nNot set yet\nSet address\nSave Changes",
+    "analysis": {
+      "nick": {
+        "text": "Hyper Drift 41",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 73,
+        "w": 97.7,
+        "h": 19
+      },
+      "belowDoc": {
+        "text": "alex@nexgrid.ai",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 94,
+        "w": 86.3,
+        "h": 15
+      },
+      "belowVisual": {
+        "text": "alex@nexgrid.ai",
+        "tag": "span",
+        "cls": "",
+        "x": 98,
+        "y": 94,
+        "w": 86.3,
+        "h": 15
+      },
+      "bareDefaultNodes": [],
+      "bareDefaultLines": [],
+      "emailNodes": [
+        {
+          "text": "alex@nexgrid.ai",
+          "tag": "span",
+          "cls": "",
+          "x": 98,
+          "y": 94,
+          "w": 86.3,
+          "h": 15
+        }
+      ],
+      "suspicious": []
+    },
+    "sink": {
+      "console": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] hot updated: /__uno.css"
+        }
+      ],
+      "pageerrors": [],
+      "requestfailed": []
+    }
+  },
+  "envFailures": []
+}

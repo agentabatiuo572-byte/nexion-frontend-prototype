@@ -1,0 +1,360 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "NexGrid 越南支付架构 · 资金流转全景",
+    "subtitle": "入金三通道 → 到账判定 → 自动入账 / 异常挂账 → 用户余额 → 资金出口",
+    "output": "PAY-01-资金流转全景.html",
+    "viewBox": [
+      1080,
+      780
+    ]
+  },
+  "stages": [
+    {
+      "label": "资金来源"
+    },
+    {
+      "label": "到账判定"
+    },
+    {
+      "label": "入账处置"
+    },
+    {
+      "label": "平台账本"
+    },
+    {
+      "label": "资金出口"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "usdt",
+      "type": "external",
+      "label": "用户钱包",
+      "sublabel": "TRC20/BEP20/ERC20",
+      "stage": 0,
+      "row": 0,
+      "tag": "链上"
+    },
+    {
+      "id": "bank",
+      "type": "external",
+      "label": "越南银行",
+      "sublabel": "VietQR 转账",
+      "stage": 0,
+      "row": 2,
+      "tag": "越南盾"
+    },
+    {
+      "id": "card",
+      "type": "external",
+      "label": "国际银行卡",
+      "sublabel": "3DS 授权",
+      "stage": 0,
+      "row": 4,
+      "tag": "收单"
+    },
+    {
+      "id": "detect",
+      "type": "cloud",
+      "label": "链上侦测",
+      "sublabel": "确认数达标",
+      "stage": 1,
+      "row": 0,
+      "tag": "全自动"
+    },
+    {
+      "id": "recon",
+      "type": "backend",
+      "label": "回单匹配",
+      "sublabel": "附言码 + 金额",
+      "stage": 1,
+      "row": 2,
+      "tag": "自动"
+    },
+    {
+      "id": "acquire",
+      "type": "backend",
+      "label": "收单授权",
+      "sublabel": "3DS 结果",
+      "stage": 1,
+      "row": 4,
+      "tag": "同步"
+    },
+    {
+      "id": "suspense",
+      "type": "security",
+      "label": "挂账队列",
+      "sublabel": "科目 #9 待核实",
+      "stage": 2,
+      "row": 0,
+      "tag": "必人工"
+    },
+    {
+      "id": "credited",
+      "type": "messagebus",
+      "label": "自动入账",
+      "sublabel": "服务端事务",
+      "stage": 2,
+      "row": 2,
+      "tag": "幂等"
+    },
+    {
+      "id": "balance",
+      "type": "database",
+      "label": "用户余额",
+      "sublabel": "可提 USDT",
+      "stage": 3,
+      "row": 2,
+      "tag": "负债侧"
+    },
+    {
+      "id": "buy",
+      "type": "backend",
+      "label": "购买算力",
+      "sublabel": "设备 / 套餐",
+      "stage": 4,
+      "row": 1
+    },
+    {
+      "id": "withdraw",
+      "type": "backend",
+      "label": "提现出金",
+      "sublabel": "仅 USDT",
+      "stage": 4,
+      "row": 3,
+      "tag": "三道闸"
+    }
+  ],
+  "flows": [
+    {
+      "from": "usdt",
+      "to": "detect",
+      "label": "链上转账",
+      "classification": "扫码发币",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelAt": [
+        268,
+        112
+      ]
+    },
+    {
+      "from": "bank",
+      "to": "recon",
+      "label": "银行回单",
+      "classification": "锁价付款单",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelAt": [
+        268,
+        340
+      ]
+    },
+    {
+      "from": "card",
+      "to": "acquire",
+      "label": "卡授权",
+      "classification": "即时",
+      "variant": "default",
+      "route": "straight",
+      "labelAt": [
+        268,
+        568
+      ]
+    },
+    {
+      "from": "detect",
+      "to": "credited",
+      "label": "确认达标",
+      "classification": "扣通道费",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          470,
+          157
+        ],
+        [
+          470,
+          300
+        ]
+      ],
+      "labelAt": [
+        478,
+        200
+      ]
+    },
+    {
+      "from": "detect",
+      "to": "suspense",
+      "label": "粉尘挂起",
+      "classification": "低于 $10",
+      "variant": "security",
+      "route": "straight",
+      "labelAt": [
+        483,
+        112
+      ]
+    },
+    {
+      "from": "recon",
+      "to": "credited",
+      "label": "附言命中",
+      "classification": "0 手续费",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelAt": [
+        483,
+        340
+      ]
+    },
+    {
+      "from": "recon",
+      "to": "suspense",
+      "label": "对不上",
+      "classification": "孤儿/差额/迟到",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "via": [
+        [
+          371,
+          214
+        ],
+        [
+          371,
+          214
+        ]
+      ],
+      "labelAt": [
+        360,
+        250
+      ]
+    },
+    {
+      "from": "acquire",
+      "to": "credited",
+      "label": "授权成功",
+      "classification": "90% 通过",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [
+        [
+          470,
+          613
+        ],
+        [
+          470,
+          414
+        ]
+      ],
+      "labelAt": [
+        478,
+        500
+      ]
+    },
+    {
+      "from": "suspense",
+      "to": "credited",
+      "label": "人工核销",
+      "classification": "确认+理由+审计",
+      "variant": "dashed",
+      "route": "straight",
+      "labelAt": [
+        586,
+        200
+      ]
+    },
+    {
+      "from": "credited",
+      "to": "balance",
+      "label": "余额 + 账单",
+      "classification": "同一事务",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelAt": [
+        698,
+        340
+      ]
+    },
+    {
+      "from": "balance",
+      "to": "buy",
+      "label": "扣款下单",
+      "classification": "消费",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          900,
+          385
+        ],
+        [
+          900,
+          271
+        ]
+      ],
+      "labelAt": [
+        880,
+        320
+      ]
+    },
+    {
+      "from": "balance",
+      "to": "withdraw",
+      "label": "风控 + 双门",
+      "classification": "原子扣款",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          900,
+          385
+        ],
+        [
+          900,
+          499
+        ]
+      ],
+      "labelAt": [
+        880,
+        542
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "自动到账（架构设计）",
+      "items": [
+        "用户扫码发币后无需回 App 做任何操作，服务端侦测到转账即自主推进",
+        "确认数达标线：TRC20 20 · BEP20 15 · ERC20 12，达标即自动扣费入账",
+        "状态由服务端权威裁定，前端全程只读，没有任何前端写状态入口"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "必须人工的三种例外",
+      "items": [
+        "链上小于 $10 的粉尘转账：挂起等后台核销或退回，不自动入账",
+        "银行回单对不上（缺附言码 / 金额差超 ±1,000₫ / 过期后到账）",
+        "挂账期间钱记在负债科目 #9，账实相等，不会凭空消失"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "对接真后台需补的能力",
+      "items": [
+        "链上侦测服务：监听三条链的专属地址入账并回报确认数",
+        "服务端派发真实充值地址 + 真二维码编码（当前为拟真占位）",
+        "入账在服务端单事务内完成：置状态 + 记账 + 写账单"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-07-23",
+  "note": "tap 目标豁免台账(C3)。gate 只拦台账外的新指纹。每条必须有 tapOk 理由 —— 没有理由的不算豁免,是欠账。删掉 entry = 要求下次修复。",
+  "scope": "all(88 路由 / 921 个真 tap 目标)",
+  "totalTargets": 921,
+  "entries": [
+    {
+      "fp": "size|pages/earn/earn|uni-view.nx-toast.nx-toast--success",
+      "kind": "size",
+      "route": "pages/earn/earn",
+      "sig": "uni-view.nx-toast.nx-toast--success",
+      "detail": "335×43 < 44",
+      "text": "Quest complete · +30 NEX",
+      "tapOk": "toast 是自动消失的临时提示,点它只为让它早点消失 —— 不是需要瞄准的目标(实测 335×43,也只差 1px)。C3 任务书列为排除项。"
+    },
+    {
+      "fp": "feedback|pages/earn/earn|uni-view.nx-toast.nx-toast--success",
+      "kind": "feedback",
+      "route": "pages/earn/earn",
+      "sig": "uni-view.nx-toast.nx-toast--success",
+      "detail": ":active 下 8 项视觉属性零变化",
+      "text": "Quest complete · +30 NEX",
+      "tapOk": "toast 是自动消失的临时提示,点它只为让它早点消失 —— 不是需要瞄准的目标(实测 335×43,也只差 1px)。C3 任务书列为排除项。"
+    },
+    {
+      "fp": "size|pages/store/store|uni-view.nx-toast.nx-toast--success",
+      "kind": "size",
+      "route": "pages/store/store",
+      "sig": "uni-view.nx-toast.nx-toast--success",
+      "detail": "335×43 < 44",
+      "text": "Quest complete · +50 NEX",
+      "tapOk": "toast 是自动消失的临时提示,点它只为让它早点消失 —— 不是需要瞄准的目标(实测 335×43,也只差 1px)。C3 任务书列为排除项。"
+    },
+    {
+      "fp": "feedback|pages/store/store|uni-view.nx-toast.nx-toast--success",
+      "kind": "feedback",
+      "route": "pages/store/store",
+      "sig": "uni-view.nx-toast.nx-toast--success",
+      "detail": ":active 下 8 项视觉属性零变化",
+      "text": "Quest complete · +50 NEX",
+      "tapOk": "toast 是自动消失的临时提示,点它只为让它早点消失 —— 不是需要瞄准的目标(实测 335×43,也只差 1px)。C3 任务书列为排除项。"
+    },
+    {
+      "fp": "size|pages/store/detail|uni-view.nx-toast.nx-toast--success",
+      "kind": "size",
+      "route": "pages/store/detail",
+      "sig": "uni-view.nx-toast.nx-toast--success",
+      "detail": "335×43 < 44",
+      "text": "Quest complete · +100 NEX",
+      "tapOk": "toast 是自动消失的临时提示,点它只为让它早点消失 —— 不是需要瞄准的目标(实测 335×43,也只差 1px)。C3 任务书列为排除项。"
+    },
+    {
+      "fp": "feedback|pages/store/detail|uni-view.nx-toast.nx-toast--success",
+      "kind": "feedback",
+      "route": "pages/store/detail",
+      "sig": "uni-view.nx-toast.nx-toast--success",
+      "detail": ":active 下 8 项视觉属性零变化",
+      "text": "Quest complete · +100 NEX",
+      "tapOk": "toast 是自动消失的临时提示,点它只为让它早点消失 —— 不是需要瞄准的目标(实测 335×43,也只差 1px)。C3 任务书列为排除项。"
+    },
+    {
+      "fp": "size|pages/compute-share/download|uni-view.nx-toast.nx-toast--info",
+      "kind": "size",
+      "route": "pages/compute-share/download",
+      "sig": "uni-view.nx-toast.nx-toast--info",
+      "detail": "335×43 < 44",
+      "text": "Computer GPU share is curren",
+      "tapOk": "toast 是自动消失的临时提示,点它只为让它早点消失 —— 不是需要瞄准的目标(实测 335×43,也只差 1px)。C3 任务书列为排除项。"
+    },
+    {
+      "fp": "feedback|pages/compute-share/download|uni-view.nx-toast.nx-toast--info",
+      "kind": "feedback",
+      "route": "pages/compute-share/download",
+      "sig": "uni-view.nx-toast.nx-toast--info",
+      "detail": ":active 下 8 项视觉属性零变化",
+      "text": "Computer GPU share is curren",
+      "tapOk": "toast 是自动消失的临时提示,点它只为让它早点消失 —— 不是需要瞄准的目标(实测 335×43,也只差 1px)。C3 任务书列为排除项。"
+    },
+    {
+      "fp": "feedback|pages/team/network|g.cursor-pointer",
+      "kind": "feedback",
+      "route": "pages/team/network",
+      "sig": "g.cursor-pointer",
+      "detail": ":active 下 8 项视觉属性零变化",
+      "text": "",
+      "tapOk": "SVG 数据可视化节点(团队网络图成员点 / 地球区域)。按下反馈本可以给(改 fill/opacity),但这类节点的选中态**已经由图形本身表达**——点中后节点高亮 + 详情面板展开,反馈不是缺的、是换了载体。⚠️ 独立验收 agent 2026-07-23 指出:上一版这条的理由写的是尺寸理由(「撑到 44 会重叠」),拿尺寸论据去豁免反馈是偷换——已改正。"
+    },
+    {
+      "fp": "feedback|pages/globe/globe|g.cursor-pointer",
+      "kind": "feedback",
+      "route": "pages/globe/globe",
+      "sig": "g.cursor-pointer",
+      "detail": ":active 下 8 项视觉属性零变化",
+      "text": "",
+      "tapOk": "SVG 数据可视化节点(团队网络图成员点 / 地球区域)。按下反馈本可以给(改 fill/opacity),但这类节点的选中态**已经由图形本身表达**——点中后节点高亮 + 详情面板展开,反馈不是缺的、是换了载体。⚠️ 独立验收 agent 2026-07-23 指出:上一版这条的理由写的是尺寸理由(「撑到 44 会重叠」),拿尺寸论据去豁免反馈是偷换——已改正。"
+    },
+    {
+      "fp": "feedback|pages/me/help|div.uni-scroll-view",
+      "kind": "feedback",
+      "route": "pages/me/help",
+      "sig": "div.uni-scroll-view",
+      "detail": ":active 下 8 项视觉属性零变化",
+      "text": "Hi, I'm NexGridBot — I can a",
+      "tapOk": "uni 框架自己给滚动容器挂的 click 监听,不是产品里的按钮,没有「按下反馈」这回事。"
+    }
+  ],
+  "_note_revision": "2026-07-23 独立验收后修订:g.cursor-pointer 的 feedback 豁免原用尺寸理由,已换成反馈本身的理由;尺寸门修复后台账已按真实扫描重建。"
+}

@@ -1,0 +1,58 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const root = new URL("../", import.meta.url);
+async function source(path) {
+  return readFile(new URL(path, root), "utf8");
+}
+
+test("mock checkout receipts stop in a recoverable error state", async () => {
+  const checkout = await source("src/pages/store/checkout.vue");
+  const bundle = await source("src/pages/store/bundle.vue");
+  for (const page of [checkout, bundle]) {
+    assert.match(page, /if \(!postReceiptOnly\(/);
+    assert.match(page, /receiptWriteFailure/);
+    assert.match(page, /retryReceiptWrite/);
+    assert.match(page, /accountKey/);
+    assert.match(page, /readAccountRow<[^>]*ReceiptRecovery/);
+    assert.match(page, /writeAccountRow<[^>]*ReceiptRecovery/);
+  }
+});
+
+test("remote card mutations require authoritative readback before UI success", async () => {
+  const cards = await source("src/store/cards.ts");
+  const page = await source("src/pages/me/wallet-cards.vue");
+  assert.match(cards, /if \(!\(await refreshRemote\(\)\)\) throw new Error\("PAYMENT_METHOD_READBACK_FAILED"\)/g);
+  assert.match(cards, /const nextCards = remote\.map/);
+  assert.match(cards, /catch \{ return false; \}/);
+  assert.match(page, /data-testid="wallet-cards-retry"/);
+  assert.match(page, /cardsStore\.refreshRemote\(\)/);
+  assert.match(page, /await cardsStore\.setDefault\(tokenId\);[\s\S]*toast\.success/);
+  assert.match(page, /notifs\.push[\s\S]*toast\.success/);
+});
+
+test("security mutations fail closed when overview readback fails", async () => {
+  const security = await source("src/pages/me/security.vue");
+  assert.match(security, /async function loadRemoteSecurity\(\): Promise<boolean>/);
+  assert.match(security, /if \(!\(await loadRemoteSecurity\(\)\)\) throw new Error\("SECURITY_READBACK_FAILED"\)/g);
+  assert.match(security, /cause\.message === "SECURITY_READBACK_FAILED"[\s\S]*t\.value\.security\.opFailed/);
+});
+
+test("catalog detail retry and bundle order item count remain visible", async () => {
+  const detail = await source("src/pages/store/detail.vue");
+  const api = await source("src/api/order-api.ts");
+  const orders = await source("src/store/orders.ts");
+  const orderDetail = await source("src/pages/store/order-detail.vue");
+  const bundle = await source("src/pages/store/bundle.vue");
+  assert.match(detail, /data-testid="detail-catalog-retry"/);
+  assert.match(detail, /refreshServerProductPhase\(true\)/);
+  assert.match(api, /itemCount: number \| null/);
+  assert.match(orders, /itemCount: row\.itemCount/);
+  assert.match(orderDetail, /order\.itemCount \?\? order\.quantity/);
+  assert.match(bundle, /fundsSandboxEnabled\s*\?\s*t\.value\.bundle\.checkoutSuccessBody/);
+  assert.match(bundle, /await orderApi\.list\(\)/);
+  assert.match(bundle, /isCanonicalPaidOrder\(readback, created\.orderNo, created\.itemCount\)/);
+  const checkout = await source("src/pages/store/checkout.vue");
+  assert.match(checkout, /isCanonicalPaidOrder\(readback, conversion\.orderNo\)/);
+});

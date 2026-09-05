@@ -1,0 +1,38 @@
+{
+ "_doc": "双主题恒定着色棘轮基线(scripts/theme-constant-gate.mjs)。门只拦新增指纹;基线只许缩不许涨。每条 note 必须写「为什么现在允许」。配对用稳定身份键(非 DOM 下标)——首页轮播会让下标错位产生假阳性。",
+ "_updated": "2026-07-23 · C1 收官(主人裁定 item 4 不转)",
+ "entries": [
+  {
+   "route": "/pages/earn/earn",
+   "prop": "backgroundColor",
+   "value": "155,137,224,0.12",
+   "count": 1,
+   "sample": "Free trial",
+   "note": "✅ 已裁决可保留:quest 紫**填充档**。设计上双主题恒浅(tokens.css 明写 dark 块不覆写),其上的文字/图标走恒定深墨 --v5-on-quest。C1 只把**当文字用**的那批改走 --v5-quest-violet-ink(亮主题 2.98→5.47),填充档按设计保持恒定。"
+  },
+  {
+   "route": "/pages/earn/earn",
+   "prop": "backgroundImage",
+   "value": "155,137,224,0.18",
+   "count": 1,
+   "sample": "Free trialNexGridBox S1T",
+   "note": "同上,quest 紫填充档的卡面渐变。"
+  },
+  {
+   "route": "/pages/earn/earn",
+   "prop": "backgroundImage",
+   "value": "198,255,58,0.55",
+   "count": 1,
+   "sample": "",
+   "note": "✅ 已裁决保留(主人 2026-07-23 定案「不转」):遗留品牌绿 #C6FF3A 的 rgba 形式,全站约 20 处。已出浅色模式对比图(docs/changes/assets/c1-legacy-green/)供主人过目 —— 转 var(--v5-brand) 会让亮主题由柠檬绿变电光蓝,是品牌观感变更。主人权衡后决定保持现状,本条为**永久豁免**不再列待办。"
+  },
+  {
+   "route": "/pages/store/store",
+   "prop": "backgroundImage",
+   "value": "16,18,22,1",
+   "count": 3,
+   "sample": "Best SellerS1Classic",
+   "note": "✅ 合理恒定,不改:#101216 是商品实拍图的衬底渐变。产品图是固定曝光的暗调实拍,衬底必须跟图走不跟主题走,否则亮主题白衬底 + 暗产品图会出硬边。与 canvas 海报同类。"
+  }
+ ]
+}

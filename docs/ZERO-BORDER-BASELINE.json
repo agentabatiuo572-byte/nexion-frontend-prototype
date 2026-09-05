@@ -1,0 +1,866 @@
+{
+ "_doc": "零-border 铁律棘轮基线。门只拦新增 full 违例(≥3 边描边 + 有填充);partial(1-2 边,多为行分隔线)只列不拦。基线只许缩不许涨,每条 note 写为什么还在(重建时按 route|kind|cls|size 继承,不会被冲掉)。",
+ "_updated": "2026-08-18 · 包 ax:探针改每路由整页重载后,73 条 .tis-panel 跨路由串扰假归属收缩(note 按 key 继承)",
+ "entries": [
+  {
+   "route": "/pages/login/login",
+   "kind": "full",
+   "cls": "lg-field-wrap",
+   "size": "342x56",
+   "radius": "16px",
+   "sample": "Password",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/login/login",
+   "kind": "full",
+   "cls": "lg-phone",
+   "size": "342x56",
+   "radius": "16px",
+   "sample": "+1Mobile number",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/register/register",
+   "kind": "full",
+   "cls": "rg-phone",
+   "size": "342x56",
+   "radius": "16px",
+   "sample": "+1Mobile number",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/compute-share/download",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Device inventory",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/compute-share/download",
+   "kind": "partial",
+   "cls": "w-full flex items-center justify-between",
+   "size": "358x51",
+   "radius": "0px",
+   "sample": "Credit $14.92 ›Upgrade tra",
+   "count": 6,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/compute-share/download",
+   "kind": "partial",
+   "cls": "w-full flex items-center justify-between",
+   "size": "358x45",
+   "radius": "0px",
+   "sample": "No upgrade targets availab",
+   "count": 2,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/daily/daily",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Daily check-in",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/developer/developer",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Developer",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/earn/device-detail",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Device details",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/events/events",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Events",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/genesis/genesis",
+   "kind": "partial",
+   "cls": "nx-genesis-dock",
+   "size": "390x91",
+   "radius": "0px",
+   "sample": "Claim seat$9,999",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/genesis/genesis",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Genesis",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/genesis/holder",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Genesis Holder",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/genesis/how-it-works",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Genesis · How it works",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/genesis/marketplace",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Marketplace",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/globe/globe",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Global network",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/index/index",
+   "kind": "partial",
+   "cls": "grid gap-2 font-mono-tabular",
+   "size": "358x35",
+   "radius": "0px",
+   "sample": "tagmodel1hprice24h",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/index/index",
+   "kind": "partial",
+   "cls": "px-3.5 py-2.5 flex justify-between items-center font-mono-ta",
+   "size": "358x37",
+   "radius": "0px",
+   "sample": "Global grid · live",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/index/index",
+   "kind": "partial",
+   "cls": "px-4 py-2 flex items-center justify-center font-mono-tabular",
+   "size": "358x44",
+   "radius": "0px",
+   "sample": "Updating · Retry",
+   "count": 2,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/index/index",
+   "kind": "partial",
+   "cls": "vcs-panel",
+   "size": "390x501",
+   "radius": "16px",
+   "sample": "Limited offerClaim your vo",
+   "count": 2,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/learn/course",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "358x44",
+   "radius": "0px",
+   "sample": "",
+   "count": 1,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/learn/courses",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "358x44",
+   "radius": "0px",
+   "sample": "",
+   "count": 1,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/market/market",
+   "kind": "partial",
+   "cls": "grid items-center nx-tr nx-tr--nex",
+   "size": "358x65",
+   "radius": "0px",
+   "sample": "NNEXOURSNexGrid · $487.4M$",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/market/market",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "MarketLive prices & token ",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/achievements",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Achievements",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/devices",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Device inventory",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/devices",
+   "kind": "partial",
+   "cls": "w-full flex items-center justify-between",
+   "size": "358x51",
+   "radius": "0px",
+   "sample": "Credit $14.92 ›Upgrade tra",
+   "count": 6,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/devices",
+   "kind": "partial",
+   "cls": "w-full flex items-center justify-between",
+   "size": "358x45",
+   "radius": "0px",
+   "sample": "No upgrade targets availab",
+   "count": 2,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/me/goals",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Earning goals",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/help",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Help center",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/language",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Language",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/notifications",
+   "kind": "partial",
+   "cls": "flex items-start active:opacity-90",
+   "size": "354x65",
+   "radius": "0px",
+   "sample": "Diego P. just bought NexGr",
+   "count": 2,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/me/notifications",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Notifications",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/preferences",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Preferences",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/profile",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Profile",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/proof",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Earnings Proof",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/receipts",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Receipts",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/rewards-list",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Vouchers",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/rewards",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "My Rewards",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/risk-disclosure",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Risk disclosure",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/security",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Security",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/support-tickets",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Tickets",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/support",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Support",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/trial",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "Free trialNexGridBox S1",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/usdt-guide",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "How to get USDTStep-by-ste",
+   "count": 1,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/me/wallet-address-rebind",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "Withdrawal addressAddress ",
+   "count": 1,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/me/wallet-bills",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Bills",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-cards-new",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Bind a bank card",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-cards",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "My bank cardsReused at che",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-exchange-how",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Exchange · How it works",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-exchange",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Exchange",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-nex",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "NEX wallet",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-repurchase-how",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Re-invest · How it works",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-repurchase",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Re-invest",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-topup",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "Add fundsTop-up",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-withdraw-tracking",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Withdrawal Status",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet-withdraw",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "USDTWithdraw",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/me/wallet",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "WalletBalances · transfers",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/missions/missions",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Missions",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/onboarding/terms",
+   "kind": "partial",
+   "cls": "tos-top",
+   "size": "390x65",
+   "radius": "0px",
+   "sample": "NTerms of Service",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/search/search",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Search",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/staking/how-it-works",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Staking · How it works",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/staking/staking",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Staking",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/store/checkout",
+   "kind": "partial",
+   "cls": "tis-panel",
+   "size": "390x209",
+   "radius": "16px",
+   "sample": "How would you like to pay?",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/store/store",
+   "kind": "partial",
+   "cls": "grid items-center gap-3",
+   "size": "358x71",
+   "radius": "0px",
+   "sample": "Price$649Buy now",
+   "count": 8,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/support/messages",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Messages",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/agent",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Agent",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/binary-how",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Balance Match · How it wor",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/binary",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "Balance MatchTrack A & B ·",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/commissions-how",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Commissions · How it works",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/commissions",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x56",
+   "radius": "0px",
+   "sample": "CommissionsAll commission ",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/leaderboard",
+   "kind": "partial",
+   "cls": "",
+   "size": "390x75",
+   "radius": "0px",
+   "sample": "Share my invite link",
+   "count": 2,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/leaderboard",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Top Inviters",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/leadership-pool-how",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Leadership Pool · How it w",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/leadership-pool",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Global Leadership Pool",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/network",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Influence Network",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/quota",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Hardware Quota",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/rank-how",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Rank · How it works",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/rank",
+   "kind": "partial",
+   "cls": "flex items-start",
+   "size": "358x121",
+   "radius": "0px",
+   "sample": "2V2 OperatorCURRENTTeam $5",
+   "count": 2,
+   "note": "新登记,待判"
+  },
+  {
+   "route": "/pages/team/rank",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "V Rank",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/tree",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Genealogy",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/unilevel-how",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Network Royalty · How it w",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/team/unilevel",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Influence Network Royalty",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/trust/nex",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "NEX Trust",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/trust/trust",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Trust center",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  },
+  {
+   "route": "/pages/tx/hash",
+   "kind": "partial",
+   "cls": "spv",
+   "size": "390x44",
+   "radius": "0px",
+   "sample": "Transaction",
+   "count": 1,
+   "note": "存量,C2 批次待判"
+  }
+ ]
+}

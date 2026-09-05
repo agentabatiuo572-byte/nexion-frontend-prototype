@@ -1,0 +1,47 @@
+{
+  "home": {
+    "headerCount": 1,
+    "pillCount": 1,
+    "tabCount": 5,
+    "headerH": 52,
+    "headerBackdrop": "none",
+    "fontFamily": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+    "consoleErrors": []
+  },
+  "earn": {
+    "headerCount": 1,
+    "pillCount": 1,
+    "tabCount": 5,
+    "headerH": 52,
+    "headerBackdrop": "none",
+    "fontFamily": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+    "consoleErrors": []
+  },
+  "store": {
+    "headerCount": 1,
+    "pillCount": 1,
+    "tabCount": 5,
+    "headerH": 52,
+    "headerBackdrop": "none",
+    "fontFamily": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+    "consoleErrors": []
+  },
+  "team": {
+    "headerCount": 1,
+    "pillCount": 1,
+    "tabCount": 5,
+    "headerH": 52,
+    "headerBackdrop": "none",
+    "fontFamily": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+    "consoleErrors": []
+  },
+  "me": {
+    "headerCount": 1,
+    "pillCount": 1,
+    "tabCount": 5,
+    "headerH": 52,
+    "headerBackdrop": "none",
+    "fontFamily": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+    "consoleErrors": []
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "银行付款单状态机 · 从下单到终态",
+    "subtitle": "状态由服务端权威裁定；异常态一律挂负债科目 #9，钱不会凭空消失",
+    "output": "PAY-04-付款单状态机.html",
+    "viewBox": [
+      980,
+      700
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "付款单主流程"
+    },
+    {
+      "id": "suspense",
+      "label": "挂账队列 · 待人工核实"
+    },
+    {
+      "id": "terminal",
+      "label": "终态出口"
+    }
+  ],
+  "states": [
+    {
+      "id": "awaiting",
+      "type": "start",
+      "label": "等待付款",
+      "sublabel": "锁价 30 分钟",
+      "lane": "main",
+      "col": 0,
+      "step": "01",
+      "tag": "在途"
+    },
+    {
+      "id": "matched",
+      "type": "active",
+      "label": "回单匹配",
+      "sublabel": "附言码 + 金额",
+      "lane": "main",
+      "col": 2,
+      "step": "02",
+      "tag": "自动"
+    },
+    {
+      "id": "credited",
+      "type": "success",
+      "label": "已入账",
+      "sublabel": "按锁定牌价",
+      "lane": "main",
+      "col": 4,
+      "step": "03",
+      "tag": "0 手续费"
+    },
+    {
+      "id": "mismatch",
+      "type": "waiting",
+      "label": "差额待核",
+      "sublabel": "超 ±1,000₫",
+      "lane": "suspense",
+      "col": 0,
+      "tag": "科目 #9"
+    },
+    {
+      "id": "expired",
+      "type": "waiting",
+      "label": "锁价过期",
+      "sublabel": "窗口内未付",
+      "lane": "suspense",
+      "col": 1,
+      "tag": "可补"
+    },
+    {
+      "id": "orphan",
+      "type": "waiting",
+      "label": "孤儿回单",
+      "sublabel": "无附言码",
+      "lane": "suspense",
+      "col": 2,
+      "tag": "科目 #9"
+    },
+    {
+      "id": "cancelled",
+      "type": "failure",
+      "label": "用户取消",
+      "sublabel": "未付即撤",
+      "lane": "terminal",
+      "col": 0
+    },
+    {
+      "id": "returning",
+      "type": "failure",
+      "label": "登记退回",
+      "sublabel": "资金退出",
+      "lane": "terminal",
+      "col": 2
+    }
+  ],
+  "transitions": [
+    {
+      "from": "awaiting",
+      "to": "matched",
+      "variant": "emphasis"
+    },
+    {
+      "from": "matched",
+      "to": "credited",
+      "label": "容差内",
+      "variant": "emphasis"
+    },
+    {
+      "from": "matched",
+      "to": "mismatch",
+      "label": "金额不符",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop"
+    },
+    {
+      "from": "awaiting",
+      "to": "expired",
+      "label": "超时未付",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop"
+    },
+    {
+      "from": "awaiting",
+      "to": "cancelled",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "left",
+      "route": "left-channel"
+    },
+    {
+      "from": "mismatch",
+      "to": "returning",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "主路径：三步到账",
+      "items": [
+        "下单即锁牌价与倒计时，用户按定格金额转账",
+        "回单到达后自动比对附言码与金额，命中即按锁定牌价入账",
+        "银行轨 0 手续费，入账额等于下单时看到的美元数"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "三类进挂账（必人工）",
+      "items": [
+        "差额：实收与应付相差超过 ±1,000₫，永不自动入账",
+        "过期：锁价窗结束才到账，超 10 分钟宽限的进人工补入账",
+        "孤儿：附言码缺失或残缺，金额也撞不上任何在途单"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "终态与账实一致",
+      "items": [
+        "已入账与登记退回是终态，再处置一律拒绝",
+        "挂账期间钱记在负债科目 #9，不计入用户可提余额",
+        "挂账各行折算美元之和恒等于科目 #9 余额，后台哨兵机器校验"
+      ]
+    }
+  ]
+}
