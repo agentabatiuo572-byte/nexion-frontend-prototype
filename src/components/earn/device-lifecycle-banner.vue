@@ -3,7 +3,7 @@
   Nexion-prototype/app/components/device-lifecycle-banner.tsx.
 
   Surfaces device-lifecycle efficiency: average effective output across all
-  degradable devices (NexGridBox / Rack) + monthly USD loss vs the day-1
+  degradable devices (UVELBox / Rack) + monthly USD loss vs the day-1
   baseline. Only renders when the user owns ≥1 degradable device — the seeded
   phone-only fleet has none, so it self-hides until a Box is owned. Accent color
   follows efficiency thresholds (≥85% cyan / ≥65% warning / <65% orange). Taps

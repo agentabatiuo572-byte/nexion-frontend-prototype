@@ -49,11 +49,11 @@ interface Purchase { who: string; co: string; prod: string; t: string; color: st
 // ⚠️ 原注释自陈「Alex 的蓝特意挪到 #1A4FD0,使其不触发 verify 的硬编码色哨兵」——
 // 这是绕哨兵而非解决问题的先例;哨兵覆盖面待横切批次补全(见 B1 verdicts 未闭合项)。
 const purchases: Purchase[] = [
-  { who: "Maya", co: "ID", prod: "NexGridBox S1", t: "3m", color: "var(--v5-warning-ink)" },
-  { who: "cypher.eth", co: "US", prod: "NexGridRack P1", t: "7m", color: "var(--v5-brand-deep)" },
-  { who: "Hideo", co: "JP", prod: "NexGridBox Pro", t: "12m", color: "var(--v5-success-ink)" },
-  { who: "Alex", co: "DE", prod: "NexGridBox S1", t: "14m", color: "var(--v5-brand)" },
-  { who: "Layla", co: "AE", prod: "NexGridBox S1 ×2", t: "21m", color: "var(--v5-danger)" },
+  { who: "Maya", co: "ID", prod: "UVELBox S1", t: "3m", color: "var(--v5-warning-ink)" },
+  { who: "cypher.eth", co: "US", prod: "UVELRack P1", t: "7m", color: "var(--v5-brand-deep)" },
+  { who: "Hideo", co: "JP", prod: "UVELBox Pro", t: "12m", color: "var(--v5-success-ink)" },
+  { who: "Alex", co: "DE", prod: "UVELBox S1", t: "14m", color: "var(--v5-brand)" },
+  { who: "Layla", co: "AE", prod: "UVELBox S1 ×2", t: "21m", color: "var(--v5-danger)" },
 ];
 
 const i = ref(0);

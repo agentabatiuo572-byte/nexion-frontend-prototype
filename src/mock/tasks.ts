@@ -200,7 +200,7 @@ export interface LockedTeaser {
    * amounts convert better than per-task ranges.
    */
   dailyPotentialUSD: number;
-  unlockTier: string;  // e.g. "NexGridBox S1 (96GB)"
+  unlockTier: string;  // e.g. "UVELBox S1 (96GB)"
 }
 
 // Realistic queue saturation. A real shared GPU pool isn't pegged at 100%
@@ -210,9 +210,9 @@ const QUEUE_SATURATION = 0.35;
 // Map a VRAM requirement to the cheapest device tier that satisfies it.
 function unlockTierFor(minVRAM: number): string {
   if (minVRAM <= 24) return "RTX 4090 PC (24GB)";
-  if (minVRAM <= 96) return "NexGridBox S1 (96GB)";
-  if (minVRAM <= 192) return "NexGridBox Pro (192GB)";
-  return "NexGridRack P1 (640GB)";
+  if (minVRAM <= 96) return "UVELBox S1 (96GB)";
+  if (minVRAM <= 192) return "UVELBox Pro (192GB)";
+  return "UVELRack P1 (640GB)";
 }
 
 // Return up to `count` locked teasers — one per category that has at least

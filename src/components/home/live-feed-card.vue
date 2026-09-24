@@ -145,9 +145,9 @@ const activityRows = ref<FeedRow[]>(
 let activityCounter = 100;
 
 const earningsItems = ref<CommissionItem[]>([
-  { id: 1, name: "Tom Wang", product: "NexGridBox Pro", amount: 89.9 },
-  { id: 2, name: "Lisa Park", product: "NexGridBox S1", amount: 29.9 },
-  { id: 3, name: "Sara L.", product: "NexGridRack P1", amount: 349.9 },
+  { id: 1, name: "Tom Wang", product: "UVELBox Pro", amount: 89.9 },
+  { id: 2, name: "Lisa Park", product: "UVELBox S1", amount: 29.9 },
+  { id: 3, name: "Sara L.", product: "UVELRack P1", amount: 349.9 },
 ]);
 let earningsId = 100;
 
@@ -163,9 +163,9 @@ onMounted(() => {
   }, 3200);
   const names = ["Sarah K.", "Tom Wang", "Lisa Park", "Diego P.", "Yuki H.", "Mehmet A.", "Mila V."];
   const products = [
-    { p: "NexGridBox S1", a: 29.9 },
-    { p: "NexGridBox Pro", a: 89.9 },
-    { p: "NexGridRack P1", a: 349.9 },
+    { p: "UVELBox S1", a: 29.9 },
+    { p: "UVELBox Pro", a: 89.9 },
+    { p: "UVELRack P1", a: 349.9 },
   ];
   earnTimer = setInterval(() => {
     const n = names[Math.floor(Math.random() * names.length)];

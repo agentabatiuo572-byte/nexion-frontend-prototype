@@ -45,7 +45,7 @@
             </view>
             <view class="flex-1 min-w-0">
               <text class="block" :style="heroLabelStyle">{{ statusLabel(order.status) }}</text>
-              <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ order.productName }}</text>
+              <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ brandProductName(order.productName) }}</text>
             </view>
           </view>
 
@@ -142,6 +142,7 @@
 </template>
 
 <script setup lang="ts">
+import { brandProductName, brandOrderNote } from "@/lib/brand";
 import { ref, computed, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -297,7 +298,7 @@ function eventFor(stage: OrderStatus) {
 function eventText(stage: OrderStatus): string {
   const evt = eventFor(stage);
   if (!evt) return "";
-  return `${dt(evt.ts)}${evt.note ? ` · ${evt.note}` : ""}`;
+  return `${dt(evt.ts)}${evt.note ? ` · ${brandOrderNote(evt.note)}` : ""}`;
 }
 
 function dt(ts: number): string {

@@ -10,8 +10,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8D0DC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
         <view class="rg-brand">
-          <view class="rg-brand__n"><text class="rg-brand__n-t">N</text></view>
-          <text class="rg-brand__name">NexGrid</text>
+          <BrandLockup />
         </view>
         <view class="rg-top__sp" />
       </view>
@@ -150,6 +149,7 @@
 </template>
 
 <script setup lang="ts">
+import BrandLockup from "@/components/brand-lockup.vue";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -848,9 +848,6 @@ onUnmounted(() => cleanup());
 /* 《08》§2 按下反馈(同 login) */
 .rg-iconbtn:active, .rg-phone__cc:active { opacity: 0.6; }
 .rg-brand { display: flex; align-items: center; gap: 6px; justify-self: center; }
-.rg-brand__n { width: 24px; height: 24px; border-radius: 7px; background: var(--v5-ink); display: flex; align-items: center; justify-content: center; }
-.rg-brand__n-t { color: var(--v5-surface); font-family: var(--font-v5); font-weight: 600; font-size: 13px; }
-.rg-brand__name { color: var(--v5-ink); font-weight: 600; font-family: var(--font-v5); font-size: 15px; letter-spacing: -0.02em; }
 .rg-top__sp { }
 .rg-sponsor { margin-top: 16px; border-radius: 16px; padding: 12px; display: flex; align-items: center; gap: 12px; background: radial-gradient(80% 60% at 0% 0%, rgba(198,255,58,0.12) 0%, transparent 65%), var(--v5-surface); }
 .rg-sponsor__av { width: 40px; height: 40px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: linear-gradient(135deg, var(--v5-brand), var(--v5-tech-cyan)); }

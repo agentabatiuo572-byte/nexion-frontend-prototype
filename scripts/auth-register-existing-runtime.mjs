@@ -13,17 +13,17 @@ const referralCode = "NEXGRID-AB12";
 const registeredTitle = locale === "zh" ? "该手机号已注册" : "This number is already registered";
 const registeredBody = locale === "zh" ? "验证通过,正在登录…" : "Verification complete. Signing you in…";
 const successDownloadHint = locale === "zh"
-  ? "浏览器版可通过 NexGrid 官网下载 APP"
-  : "Download the APP from NexGrid's website in your browser";
+  ? "浏览器版可通过 UVEL 官网下载 APP"
+  : "Download the APP from UVEL's website in your browser";
 const successDownloadPending = locale === "zh"
   ? "官网下载 APP 地址暂未开放"
   : "APP download link unavailable";
 const successDownloadLink = locale === "zh"
   ? "前往官网下载 APP"
-  : "Download the APP from NexGrid";
+  : "Download the APP from UVEL";
 const successTitle = locale === "zh" ? "注册成功" : "You're in";
-const successSub = locale === "zh" ? "欢迎加入 NexGrid" : "Welcome to NexGrid";
-const successTeamPrefix = locale === "zh" ? "欢迎加入 NexGrid," : "Welcome to NexGrid — you joined ";
+const successSub = locale === "zh" ? "欢迎加入 UVEL" : "Welcome to UVEL";
+const successTeamPrefix = locale === "zh" ? "欢迎加入 UVEL," : "Welcome to UVEL — you joined ";
 const successBenefits = locale === "zh"
   ? ["APP 在线时长可加速礼包与收益解锁", "设备收益实时推送,睡醒先看进账", "更稳的连接与算力调度"]
   : ["APP online hours speed up gift & yield release", "Real-time yield alerts — wake up to earnings", "Steadier connection & compute scheduling"];
@@ -364,7 +364,7 @@ async function assertRegistrationSuccessUi(frame, expectGift, expectRouteEntryFo
   await page.context().route(officialUrl, (route) => route.fulfill({
     status: 200,
     contentType: "text/html",
-    body: "<!doctype html><title>NexGrid download</title><p>official download test</p>",
+    body: "<!doctype html><title>UVEL download</title><p>official download test</p>",
   }));
   await frame.evaluate(async (url) => {
     const { useConfig } = await import("/src/store/config.ts");

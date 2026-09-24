@@ -21,11 +21,11 @@ const DEVICE_SPECS: Record<
 > = {
   phone: { name: "Your phone", gpu: "Mobile NPU · ~28 TOPS", vramTotal: 8, basePower: 0, baseRate: 0.06, baseRateNEX: 10 },
   "pc-gpu": { name: "Computer GPU", gpu: "Computer GPU · shared", vramTotal: 12, basePower: 320, baseRate: 0.34, baseRateNEX: 56.7, hashRate: 620, location: "Linked computer" },
-  "stellarbox-s1": { name: "NexGridBox S1", gpu: "4× RTX 4090", vramTotal: 96, basePower: 1200, baseRate: 7, baseRateNEX: 40, hashRate: 1240, location: "Singapore Data Center" },
-  "stellarbox-pro": { name: "NexGridBox Pro", gpu: "8× RTX 4090", vramTotal: 192, basePower: 2400, baseRate: 13, baseRateNEX: 80, hashRate: 2480, location: "Singapore Data Center" },
-  "stellarbox-pro-v2": { name: "NexGridBox Pro v2", gpu: "8× RTX 5090", vramTotal: 256, basePower: 2200, baseRate: 14, baseRateNEX: 90, hashRate: 5120, location: "Singapore Data Center" },
-  "stellarrack-p1": { name: "NexGridRack P1", gpu: "8× NVIDIA A100", vramTotal: 640, basePower: 3200, baseRate: 45, baseRateNEX: 300, hashRate: 3840, location: "Frankfurt Data Center" },
-  "stellarrack-p2": { name: "NexGridRack P2", gpu: "8× NVIDIA H100", vramTotal: 1024, basePower: 4000, baseRate: 75, baseRateNEX: 500, hashRate: 9600, location: "Frankfurt Data Center" },
+  "stellarbox-s1": { name: "UVELBox S1", gpu: "4× RTX 4090", vramTotal: 96, basePower: 1200, baseRate: 7, baseRateNEX: 40, hashRate: 1240, location: "Singapore Data Center" },
+  "stellarbox-pro": { name: "UVELBox Pro", gpu: "8× RTX 4090", vramTotal: 192, basePower: 2400, baseRate: 13, baseRateNEX: 80, hashRate: 2480, location: "Singapore Data Center" },
+  "stellarbox-pro-v2": { name: "UVELBox Pro v2", gpu: "8× RTX 5090", vramTotal: 256, basePower: 2200, baseRate: 14, baseRateNEX: 90, hashRate: 5120, location: "Singapore Data Center" },
+  "stellarrack-p1": { name: "UVELRack P1", gpu: "8× NVIDIA A100", vramTotal: 640, basePower: 3200, baseRate: 45, baseRateNEX: 300, hashRate: 3840, location: "Frankfurt Data Center" },
+  "stellarrack-p2": { name: "UVELRack P2", gpu: "8× NVIDIA H100", vramTotal: 1024, basePower: 4000, baseRate: 75, baseRateNEX: 500, hashRate: 9600, location: "Frankfurt Data Center" },
   "cloud-share": { name: "Cloud Share", gpu: "Distributed", vramTotal: 0, basePower: 0, baseRate: 0.19, baseRateNEX: 3 },
 };
 

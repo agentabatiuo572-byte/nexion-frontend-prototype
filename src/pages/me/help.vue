@@ -1,6 +1,6 @@
 <!--
   Help Center (ported from Nexion-prototype/app/(main)/me/help/page.tsx).
-  FAQ search + category chips + accordion, an inline NexGridBot chat (keyword
+  FAQ search + category chips + accordion, an inline UVELBot chat (keyword
   match over the FAQ corpus), and a contact card. Wrapped in <AppChassis active="me">.
 -->
 <template>

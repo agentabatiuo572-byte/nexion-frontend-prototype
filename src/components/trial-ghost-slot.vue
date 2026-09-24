@@ -1,5 +1,5 @@
 <!--
-  TrialGhostSlot — the user's NexGridBox S1 on free trial, surfaced on Home + Earn
+  TrialGhostSlot — the user's UVELBox S1 on free trial, surfaced on Home + Earn
   (ported from Nexion-prototype/app/components/trial-ghost-slot.tsx).
 
   Reads as a high-tier device under test-drive: device identity + live shadow
@@ -50,7 +50,7 @@
         </view>
         <view class="flex-1 min-w-0">
           <view class="flex items-center gap-1.5">
-            <text class="text-[13px] font-semibold truncate" :style="deviceNameStyle">NexGridBox S1</text>
+            <text class="text-[13px] font-semibold truncate" :style="deviceNameStyle">UVELBox S1</text>
             <text
               class="shrink-0 text-[12px] font-mono-tabular rounded px-1.5 py-0.5"
               style="background: color-mix(in oklab, var(--v5-brand-2) 16%, transparent); color: var(--v5-brand-2-ink)"

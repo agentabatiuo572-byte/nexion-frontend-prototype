@@ -1,7 +1,7 @@
 <!--
   AppChassis — page shell (uni has no root layout / App.vue renders no template,
   P-004). Route-aware like the prototype's root layout (header.tsx + tab-bar.tsx):
-    · TAB routes (home/earn/store/team/me): brand row (N badge + NexGrid/title +
+    · TAB routes (home/earn/store/team/me): brand row (N badge + UVEL/title +
       search + bell-badge) + FLOATING frosted-glass pill TabBar (5 tabs, active =
       gradient brand pill) + home indicator. Liquid-Glass faithful to v5.
     · SUB routes (everything else): NO brand row + NO 5-tab pill (the page carries
@@ -20,10 +20,7 @@
     <!-- Header brand row — TAB routes only (sub-pages carry their own back row) -->
     <view v-if="isTabRoute" class="nx-header" :style="{ top: statusBarHeight + 'px' }">
       <view class="nx-header__l">
-        <view class="nx-logo" aria-hidden="true">
-          <image class="nx-logo-img nx-logo-img--light" src="/static/img/brand/header-logo-light.png" mode="aspectFit" />
-          <image class="nx-logo-img nx-logo-img--dark" src="/static/img/brand/header-logo-dark.png" mode="aspectFit" />
-        </view>
+        <BrandLockup class="nx-logo" />
       </view>
       <view class="nx-header__center" />
       <view class="nx-header__r">
@@ -164,6 +161,7 @@
 </template>
 
 <script setup lang="ts">
+import BrandLockup from "@/components/brand-lockup.vue";
 import { ref, computed, watch, onMounted, onUnmounted, onActivated, nextTick, provide, type CSSProperties } from "vue";
 import GlobalUi from "@/components/global-ui.vue";
 import NovaBubble from "@/components/nova/nova-bubble.vue";
@@ -731,24 +729,10 @@ function goNotifications() {
 }
 .nx-logo {
   position: relative;
-  width: 96px;
-  height: 27px;
+  width: 112px;
+  height: 38.7px;
   display: block;
   flex-shrink: 0;
-}
-.nx-logo-img {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-.nx-logo-img--dark {
-  display: none;
-}
-html[data-theme="dark"] .nx-logo-img--light {
-  display: none;
-}
-html[data-theme="dark"] .nx-logo-img--dark {
-  display: block;
 }
 .nx-brand {
   font-size: 20px;

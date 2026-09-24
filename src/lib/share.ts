@@ -178,7 +178,7 @@ export async function activateChannel(def: ShareChannelDef, surface: ShareSurfac
     case "system": {
       // #ifdef H5
       try {
-        await navigator.share({ title: "NexGrid", text, url: link });
+        await navigator.share({ title: "UVEL", text, url: link });
         recordShareEvent(def.key, surface);
       } catch {
         // 取消与真实失败在此均静默不计事件:取消不该报错;AbortError 与其它

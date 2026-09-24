@@ -74,7 +74,7 @@
       </view>
 
       <!-- i18n-en-ok: 版本指纹(品牌 · 语义化版本 · 构建号),报障时要跟日志逐字对得上,本地化会让对不上 -->
-      <text class="block text-center font-mono-tabular" style="margin-top: 16px; font-size: 12px; color: var(--v5-ink-4)">NexGrid · v3.2.0 · build 6824</text>
+      <text class="block text-center font-mono-tabular" style="margin-top: 16px; font-size: 12px; color: var(--v5-ink-4)">UVEL · v3.2.0 · build 6824</text>
     </CardStagger>
   </AppChassis>
 

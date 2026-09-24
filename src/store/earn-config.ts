@@ -23,9 +23,9 @@ if (remoteApiEnabled) applyCanonicalPhoneTierYields([]);
 
 function unlockTierFor(minVRAM: number): string {
   if (minVRAM <= 24) return "RTX 4090 PC (24GB)";
-  if (minVRAM <= 96) return "NexGridBox S1 (96GB)";
-  if (minVRAM <= 192) return "NexGridBox Pro (192GB)";
-  return "NexGridRack P1 (640GB)";
+  if (minVRAM <= 96) return "UVELBox S1 (96GB)";
+  if (minVRAM <= 192) return "UVELBox Pro (192GB)";
+  return "UVELRack P1 (640GB)";
 }
 
 export async function refreshEarnConfig(): Promise<void> {

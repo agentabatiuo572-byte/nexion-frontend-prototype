@@ -43,8 +43,8 @@ export interface TrialConfig {
  * deliberately rejected instead of being guessed or silently falling back.
  */
 export const TRIAL_PRODUCT_DEVICE_NAMES = {
-  "stellarbox-s1": "NexGridBox S1",
-  "device-trial-standard": "NexGridBox S1",
+  "stellarbox-s1": "UVELBox S1",
+  "device-trial-standard": "UVELBox S1",
 } as const;
 
 export type TrialProductId = keyof typeof TRIAL_PRODUCT_DEVICE_NAMES;

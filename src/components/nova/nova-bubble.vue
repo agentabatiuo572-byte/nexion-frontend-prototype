@@ -82,9 +82,9 @@ const WELCOME_DELAY = 1_200, WELCOME_COOLDOWN = 24 * 60 * 60 * 1000;
 
 const TEAM_NAMES = ["Sarah K.", "Tom Wang", "Lisa Park", "Carlos R.", "Yuki H.", "Mehmet A.", "Diego P.", "Mila V."];
 const TEAM_ORDERS = [
-  { product: "NexGridBox S1", price: 299, l1: 29.9 },
-  { product: "NexGridBox Pro", price: 899, l1: 89.9 },
-  { product: "NexGridRack P1", price: 3499, l1: 349.9 },
+  { product: "UVELBox S1", price: 299, l1: 29.9 },
+  { product: "UVELBox Pro", price: 899, l1: 89.9 },
+  { product: "UVELRack P1", price: 3499, l1: 349.9 },
 ];
 
 interface ChannelMsg { text: string; ctaLabel: string; ctaHref: string; }

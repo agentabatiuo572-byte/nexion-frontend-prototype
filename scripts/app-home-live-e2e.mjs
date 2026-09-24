@@ -66,7 +66,9 @@ try {
     signedInWithoutRegistration,
     sessionSurvivesReload: /今日收益|Today's earnings|Thu nhập hôm nay/.test(bodyAfterReload)
       && !/立即注册|Sign up now|Đăng ký ngay/.test(bodyAfterReload),
-    homeVisible: /NexGrid|NEX/.test(bodyAfterReload),
+    homeVisible: await page.locator('.nx-header [aria-label="UVEL"]').isVisible(),
+    brandLoaded: await page.locator('.nx-header .uvel-brand img:visible').evaluateAll(images =>
+      images.length === 1 && images.every(image => image.complete && image.naturalWidth === 712 && image.naturalHeight === 246)),
     localMockOnly: backendRequests.length === 0,
     deletedModeHidden: !/Acceptance Sandbox|Sandbox authentication|remote mode/i.test(bodyAfterReload),
   };

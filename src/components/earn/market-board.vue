@@ -113,9 +113,9 @@ const PRICE_INDEX: WorkloadPrice[] = [
 ];
 
 const DEVICE_RANKINGS: DeviceRanking[] = [
-  { rank: 1, name: "NexGridRack P1", dailyEarn: 45, bestFor: "rackP1", kind: "stellarrack-p1" },
-  { rank: 2, name: "NexGridBox Pro", dailyEarn: 13, bestFor: "boxPro", kind: "stellarbox-pro" },
-  { rank: 3, name: "NexGridBox S1", dailyEarn: 7, bestFor: "boxS1", kind: "stellarbox-s1" },
+  { rank: 1, name: "UVELRack P1", dailyEarn: 45, bestFor: "rackP1", kind: "stellarrack-p1" },
+  { rank: 2, name: "UVELBox Pro", dailyEarn: 13, bestFor: "boxPro", kind: "stellarbox-pro" },
+  { rank: 3, name: "UVELBox S1", dailyEarn: 7, bestFor: "boxS1", kind: "stellarbox-s1" },
   { rank: 4, name: "Inference Share", dailyEarn: 0.19, bestFor: "cloudShare", kind: "cloud-share" },
   { rank: 5, dailyEarn: 0.06, bestFor: "phone", isPhone: true },
 ];

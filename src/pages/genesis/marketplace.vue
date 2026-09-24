@@ -22,7 +22,7 @@
             </view>
             <view class="flex-1 min-w-0">
               <view class="flex items-center" style="gap: 6px">
-                <text class="truncate" :style="collTitleStyle">NexGrid Genesis Node</text>
+                <text class="truncate" :style="collTitleStyle">UVEL Genesis Node</text>
                 <text class="shrink-0" :style="verifiedStyle">✓</text>
               </view>
               <text class="block" :style="ercLineStyle">{{ t.marketplace.erc721Line }}</text>

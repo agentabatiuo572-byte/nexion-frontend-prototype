@@ -34,7 +34,7 @@
           :style="orderRowStyle(i === orderList.length - 1)"
           role="button"
           tabindex="0"
-          :aria-label="`${o.productName} ${o.id}`"
+          :aria-label="`${brandProductName(o.productName)} ${o.id}`"
           @click.stop="goDetail(o.id)"
         >
           <view class="flex items-start" style="gap: 12px">
@@ -43,7 +43,7 @@
             </view>
             <view class="flex-1 min-w-0">
               <view class="flex items-center justify-between" style="gap: 8px">
-                <text class="truncate" style="font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--v5-ink) 95%, transparent)">{{ o.productName }}</text>
+                <text class="truncate" style="font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--v5-ink) 95%, transparent)">{{ brandProductName(o.productName) }}</text>
                 <text class="shrink-0" :style="statusChipStyle(o.status)">{{ badge(o.status).label }}</text>
               </view>
               <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ t.orders.orderId }} <text class="font-mono">{{ o.id }}</text></text>
@@ -61,6 +61,7 @@
 </template>
 
 <script setup lang="ts">
+import { brandProductName } from "@/lib/brand";
 import { computed, ref, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";

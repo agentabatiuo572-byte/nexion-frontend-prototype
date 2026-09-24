@@ -104,7 +104,7 @@ function statusNote(next: OrderStatus, dc: Order["dataCenter"]): string | undefi
     case "provisioning":
       return `Allocating rack slot in ${dc}…`;
     case "activated":
-      return "Device live · joined NexGrid network";
+      return "Device live · joined UVEL network";
     default:
       return undefined;
   }
@@ -382,7 +382,7 @@ export const useOrders = defineStore("orders", () => {
                   {
                     status: "activated",
                     ts: Date.now(),
-                    note: "Device live · joined NexGrid network",
+                    note: "Device live · joined UVEL network",
                   },
                 ],
               }

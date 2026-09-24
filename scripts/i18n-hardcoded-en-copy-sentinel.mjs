@@ -56,7 +56,7 @@ const TECH_TOKENS = [
     why: "币种代码 / 品牌名 / 产品型号 / 支付服务商名:全球单一写法,翻译过去反而是错的",
     // 🔴 `CertiK` 曾在这里,被本门自己的「0 命中即失效」判据赶走 —— 那行原文是 `CertiK audited`,
     //    `audited` 是要翻译的动词,整句收进 t.ref.certikAudited 之后判定面上再没有这个词。
-    tokens: ["NEX", "USDT", "NexGrid", "NexGridBox", "Cregis", "BEP", "GEN", "REF", "RunID", "Visa", "Mastercard"],
+    tokens: ["NEX", "USDT", "UVEL", "UVELBox", "Cregis", "BEP", "GEN", "REF", "RunID", "Visa", "Mastercard"],
   },
   {
     id: "cert-acronym",
@@ -80,7 +80,7 @@ const DUP_TOKENS = [];
 for (const group of TECH_TOKENS) {
   for (const tk of group.tokens) {
     const key = tk.toLowerCase();
-    // 🔴 大小写不敏感的表里 `NexGrid` 与 `NEXGRID` 折叠成同一条 —— 于是「逐 token 判存活」
+    // 🔴 大小写不敏感的表里 `UVEL` 与 `uvel` 折叠成同一条 —— 于是「逐 token 判存活」
     //    实际是「逐 lowercase key 判存活」,重复那条既不可能独立死也不可能独立报(审计 F16)。
     if (AUTHORIZED.has(key)) DUP_TOKENS.push(tk);
     AUTHORIZED.set(key, group.id);
@@ -725,7 +725,7 @@ function selftest() {
     ["🔴 pages.json 的原生标题是用户可见文案面", '{"pages":[{"path":"x","style":{"navigationBarTitleText":"Tutorials Hub"}}]}', 1],
     ["🔴 tabBar 文字同样是用户可见面", '{"tabBar":{"list":[{"pagePath":"x","text":"Earn now"}]}}', 1],
     ["🔴 manifest 的应用描述同样是用户可见面", '{"description":"Rent idle GPU power"}', 1],
-    ["合法:标题是授权品牌名", '{"globalStyle":{"navigationBarTitleText":"NexGrid"}}', 0],
+    ["合法:标题是授权品牌名", '{"globalStyle":{"navigationBarTitleText":"UVEL"}}', 0],
     ["合法:块注释里的英文标题不算", '{/* "navigationBarTitleText": "Tutorials Hub" */"pages":[]}', 0],
     ["合法:空值不计入判定面", '{"description":""}', 0],
   ];
@@ -736,7 +736,7 @@ function selftest() {
   if (scanJsonFace(PAGES_JSON, '{"pages":[]}').faceCount !== 0) {
     failed += 1; console.error("  ✗ 无标题字段时 faceCount 应为 0(run() 据此判红)");
   }
-  if (scanJsonFace(PAGES_JSON, '{"globalStyle":{"navigationBarTitleText":"NexGrid"}}').faceCount !== 1) {
+  if (scanJsonFace(PAGES_JSON, '{"globalStyle":{"navigationBarTitleText":"UVEL"}}').faceCount !== 1) {
     failed += 1; console.error("  ✗ 有标题字段时 faceCount 应计数(否则空集判据恒真)");
   }
 

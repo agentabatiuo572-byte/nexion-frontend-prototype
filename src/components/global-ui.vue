@@ -243,7 +243,7 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
   font-weight: 600;
   color: var(--v5-on-brand);
 }
-/* Cancel is visually subordinate to the primary CTA (NexGrid conversion rule). */
+/* Cancel is visually subordinate to the primary CTA (UVEL conversion rule). */
 .nx-btn__label--ghost {
   font-weight: 400;
   color: var(--v5-ink-3);

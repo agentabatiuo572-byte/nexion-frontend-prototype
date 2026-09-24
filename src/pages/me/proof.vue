@@ -45,10 +45,7 @@
         <view v-if="!remoteApiEnabled || remoteSnapshot" class="relative overflow-hidden" :style="shareCardStyle">
           <!-- brand -->
           <view class="flex items-center" style="gap: 8px">
-            <view class="grid place-items-center" :style="brandMarkStyle">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--v5-on-brand)" stroke="var(--v5-on-brand)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z" /></svg>
-            </view>
-            <text class="font-display" :style="brandNameStyle">NexGrid</text>
+            <BrandLockup />
             <text style="margin-left: auto; font-size: 12px; letter-spacing: 0.18em; color: var(--v5-ink-3)">{{ t.uiChrome.proofOfContribution }}</text>
           </view>
 
@@ -193,6 +190,8 @@
 </template>
 
 <script setup lang="ts">
+import BrandLockup from "@/components/brand-lockup.vue";
+import { loadPosterBrand } from "@/lib/brand";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onUnload } from "@dcloudio/uni-app";
 import qrcode from "qrcode-generator";
@@ -329,10 +328,10 @@ const topPctText = computed(() => topPct.value === null ? "Top —" : `Top ${top
 
 const shareText = computed(() => {
   if (variant.value === "streak")
-    return `🔥 ${longestOrCurrent.value ?? "—"}-day streak on NexGrid. Daily check-ins = passive NEX. Join me: ${referralLink.value}`;
+    return `🔥 ${longestOrCurrent.value ?? "—"}-day streak on UVEL. Daily check-ins = passive NEX. Join me: ${referralLink.value}`;
   if (variant.value === "network")
-    return `🌐 My NexGrid network is ${totalMembers.value ?? "—"} strong across 7 layers. Compound earnings from each. Join: ${referralLink.value}`;
-  return `💸 Earned $${earningsTotalText.value} on NexGrid in ${activeDays.value ?? "—"} days. Join my network: ${referralLink.value}`;
+    return `🌐 My UVEL network is ${totalMembers.value ?? "—"} strong across 7 layers. Compound earnings from each. Join: ${referralLink.value}`;
+  return `💸 Earned $${earningsTotalText.value} on UVEL in ${activeDays.value ?? "—"} days. Join my network: ${referralLink.value}`;
 });
 
 // ── derived labels ──
@@ -351,7 +350,7 @@ function nativeShare() {
       provider: "weixin",
       type: 0,
       href: referralLink.value,
-      title: "NexGrid · Proof of Contribution",
+      title: "UVEL · Proof of Contribution",
       summary: shareText.value,
       success: () => {},
       fail: () => copyText(shareText.value, t.value.proof.sharedToast),
@@ -405,17 +404,14 @@ const qrCells = computed<boolean[]>(() => {
   return modules;
 });
 
-function drawProofPoster(): Promise<void> {
+async function drawProofPoster(): Promise<void> {
+  const logo = await loadPosterBrand();
   return new Promise((resolve, reject) => {
     try {
       const ctx = uni.createCanvasContext("proofPosterCanvas");
       ctx.setFillStyle("#07101f");
       ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
-      ctx.setFillStyle("#b7ff3c");
-      ctx.fillRect(72, 72, 18, 76);
-      ctx.setFillStyle("#f7fbff");
-      ctx.setFontSize(54);
-      ctx.fillText("NexGrid", 116, 128);
+      ctx.drawImage(logo, 72, 62, 264, 264 * 246 / 712);
       ctx.setFillStyle("#9cabbd");
       ctx.setFontSize(24);
       ctx.fillText("PROOF OF CONTRIBUTION", 72, 204);
@@ -510,7 +506,7 @@ function exportProofCanvas(): Promise<string> {
 function downloadProofOnH5(tempFilePath: string) {
   const anchor = document.createElement("a");
   anchor.href = tempFilePath;
-  anchor.download = `nexgrid-proof-${refCode.value || "member"}.png`;
+  anchor.download = `uvel-proof-${refCode.value || "member"}.png`;
   anchor.rel = "noopener";
   document.body.appendChild(anchor);
   anchor.click();
@@ -592,8 +588,6 @@ const shareCardStyle = computed<CSSProperties>(() => {
   };
   return { marginTop: "12px", borderRadius: "16px", padding: "20px", background: grad[variant.value] };
 });
-const brandMarkStyle: CSSProperties = { width: "28px", height: "28px", borderRadius: "6px", background: "var(--v5-brand)" };
-const brandNameStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, letterSpacing: "-0.01em", color: "var(--v5-ink)" };
 const profileNameStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, color: "var(--v5-ink)" };
 const memberSinceStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
 function heroKickerStyle(color: string): CSSProperties {

@@ -1,7 +1,7 @@
 <!--
   OpenSeaModal — full-screen fake "Connecting to OpenSea…" overlay that always
   times out into a believable error, reinforcing the "external secondary market
-  exists" illusion while keeping users inside NexGrid (marketplace/page.tsx
+  exists" illusion while keeping users inside UVEL (marketplace/page.tsx
   OpenSeaModal). Controlled via `v-model:open`. The 2.4s loading→error timer
   uses Vue onMounted/onUnmounted (component lifecycle, P-021), restarted on each
   open via a watcher. Spinner uses the shared `spin` keyframe in tokens.css.

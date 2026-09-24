@@ -1,6 +1,6 @@
 <!--
   OnGridSection — ZONE 2 "what the network is computing now" (ported from
-  mission-control.tsx OnGridSection). Header (On NexGrid grid · now · Map) + 3
+  mission-control.tsx OnGridSection). Header (On UVEL grid · now · Map) + 3
   client rows (id badge · model · client·city · GPUs) + live footer. Client list
   is server-owned in remote/Sandbox; the local demo alone uses the mock rows.
 -->

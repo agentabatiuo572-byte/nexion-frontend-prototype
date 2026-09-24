@@ -1,0 +1,15 @@
+{
+  "method": "Built-in image_gen image editing",
+  "date": "2026-09-24",
+  "reference": "src/static/img/brand/header-logo-dark.png",
+  "edits": [
+    {
+      "target": "src/static/img/products/nexgridbox-pro-v2.png",
+      "prompt": "Use case: text-localization. Edit target image 1: the existing square computer tower product render. Supporting reference image 2: approved UVEL wordmark, use its four-letter typography only. Replace BOTH instances of NEXGRID on the computer (the large vertical front-panel lettering and the tiny water-cooling pump lettering) with exactly UVEL, spelled U V E L. Match original lime-green illuminated embedded lettering, perspective and material; large word remains vertically oriented. Keep every other pixel/object as close to original as possible: computer shape, proportions, 8 stacked GeForce RTX GPUs, fans, cables, LEDs, dark background, camera angle, shadows and composition unchanged. No extra emblem, no watermark, no other new text. Preserve square 1024 x 1024 resolution. Return only the edited tower image."
+    },
+    {
+      "target": "src/static/img/products/nexgridrack-p1-v2.png",
+      "prompt": "Use case: text-localization. Edit target image 1: existing square rack server product render. Supporting reference image 2: approved UVEL wordmark, use its four-letter typography only. Replace the large NEXGRID lettering across the front rack grille with exactly UVEL, spelled U V E L, matching original luminous lime-green embedded lettering and perspective. Keep every other element as close to original as possible: eight GPU modules, vents/fans, metal chassis, ports, feet, camera angle, dark background, lighting and shadows, framing and proportions. No new emblem, no other new text, no watermark. Preserve square 1024 x 1024 resolution. Return only the edited rack image."
+    }
+  ]
+}

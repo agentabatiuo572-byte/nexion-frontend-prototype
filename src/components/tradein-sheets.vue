@@ -233,6 +233,7 @@ import { navTo } from "@/lib/route";
 import type { DeviceKind, Device } from "@/store/types";
 import { useT } from "@/i18n/use-t";
 import { deviceName, deviceNameByKind } from "@/lib/device-copy";
+import { brandProductName } from "@/lib/brand";
 import { fmt } from "@/i18n/format";
 import { deviceE3Api, orderApi, remoteApiEnabled } from "@/api/runtime";
 import type { CanonicalCapacityReplaceQuote, CanonicalTradeinConfig, CanonicalTradeinQuote } from "@/api/device-e3-api";
@@ -481,7 +482,7 @@ const tradeinView = computed(() => {
       to: kindLabel(s.newKind),
     }),
     // 只给设备名——内部 id 是工程标识,禁止渲染(页面文案禁字段名/枚举值)。
-    oldDeviceText: oldDevice.name,
+    oldDeviceText: deviceName(t.value, oldDevice),
     earned: earned.toFixed(2),
     bandText: remoteQuote
       ? fmt(t.value.tradein.sheetBandText, { band: t.value.tradein.remoteQuoteBandLabel, pct: remoteQuote.creditRatePct })
@@ -506,7 +507,7 @@ function onConfirmTradein() {
   // 入口后任务才开始的竞态:退回阻断提示(规格 DEV02A 异常2)。判定单源
   // isDeviceTaskBlocked——库存机的出厂任务不在跑,不阻断。
   if (isDeviceTaskBlocked(oldDevice)) {
-    sheet.showRetireBlock(oldDevice.id, oldDevice.name);
+    sheet.showRetireBlock(oldDevice.id, deviceName(t.value, oldDevice));
     return;
   }
   confirming.value = true;
@@ -548,7 +549,7 @@ const replaceView = computed(() => {
   return {
     warning: fmt(t.value.tradein.replaceWarning, { newKind: kindLabel(s.newKind) }),
     lowestText: fmt(t.value.tradein.replaceLowestText, {
-      name: lowest.name,
+      name: deviceName(t.value, lowest),
       earn: lowest.todayEarnings.toFixed(2),
     }),
     insufficient,
@@ -641,7 +642,7 @@ function onReplace() {
   // Pending-task gate: refuse if a task is in-flight; user must choose
   // Force/Wait in the block sheet before reaching this path.
   if (lowest.currentTask !== null) {
-    sheet.showBlock(lowest.id, lowest.name, s.newKind, s.newPrice);
+    sheet.showBlock(lowest.id, deviceName(t.value, lowest), s.newKind, s.newPrice);
     confirming.value = false;
     return;
   }
@@ -777,7 +778,7 @@ function onKeepBuy() {
 const blockTitle = computed(() => {
   const s = state.value;
   if (s.kind !== "block") return "";
-  return fmt(t.value.tradein.blockTitle, { deviceName: s.oldDeviceName });
+  return fmt(t.value.tradein.blockTitle, { deviceName: brandProductName(s.oldDeviceName) });
 });
 
 function onWait() {

@@ -13,10 +13,7 @@
     <view class="relative" style="padding: 16px">
       <!-- Brand -->
       <view class="flex items-center" style="gap: 8px; margin-bottom: 16px">
-        <view class="grid place-items-center" :style="brandMarkStyle">
-          <text :style="brandMarkTextStyle">N</text>
-        </view>
-        <text :style="brandNameStyle">NexGrid</text>
+        <BrandLockup />
         <text v-if="hasCode" :style="refChipStyle">REF/{{ codeUpper }}</text>
       </view>
 
@@ -128,6 +125,7 @@
 </template>
 
 <script setup lang="ts">
+import BrandLockup from "@/components/brand-lockup.vue";
 import { computed, ref, type CSSProperties } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -255,9 +253,6 @@ const cornerGlowStyle: CSSProperties = {
   background:
     "radial-gradient(60% 100% at 50% 0%, color-mix(in srgb, var(--v5-tech-cyan) 22%, transparent) 0%, transparent 70%), radial-gradient(80% 60% at 50% 100%, color-mix(in srgb, var(--v5-brand) 10%, transparent) 0%, transparent 70%)",
 };
-const brandMarkStyle: CSSProperties = { width: "28px", height: "28px", borderRadius: "8px", background: "var(--v5-brand)" };
-const brandMarkTextStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontWeight: 600, color: "var(--v5-on-brand)", fontSize: "15px" };
-const brandNameStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontWeight: 600, fontSize: "15px", letterSpacing: "-0.025em", color: "var(--v5-ink)" };
 const refChipStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",

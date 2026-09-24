@@ -111,8 +111,8 @@ export const PERIOD_PRIZE: Record<
  *  Medal colors are intrinsic gold/silver/bronze, not theme tokens. */
 export const PODIUM_PRIZE = [
   { medal: "🥇", color: "#FFC83D", reward: "Genesis Node + Rack ×1" },
-  { medal: "🥈", color: "#C9D2DC", reward: "NexGridBox Pro ×3" },
-  { medal: "🥉", color: "#C77546", reward: "NexGridBox Pro ×1" },
+  { medal: "🥈", color: "#C9D2DC", reward: "UVELBox Pro ×3" },
+  { medal: "🥉", color: "#C77546", reward: "UVELBox Pro ×1" },
 ];
 
 /** My current rank (mock — would come from server) */

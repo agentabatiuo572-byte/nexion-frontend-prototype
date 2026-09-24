@@ -10,8 +10,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8D0DC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
         <view class="lg-brand">
-          <view class="lg-brand__n"><text class="lg-brand__n-t">N</text></view>
-          <text class="lg-brand__name">NexGrid</text>
+          <BrandLockup />
         </view>
         <view class="lg-top__sp" />
       </view>
@@ -123,6 +122,7 @@
 </template>
 
 <script setup lang="ts">
+import BrandLockup from "@/components/brand-lockup.vue";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -792,9 +792,6 @@ onUnmounted(() => cleanup());
 /* 《08》§2 按下反馈 —— 本页六个可点控件原先按下去零视觉变化(CDP forcePseudoState 实测) */
 .lg-iconbtn:active, .lg-phone__cc:active, .lg-eye:active, .lg-forgot:active, .lg-switch:active { opacity: 0.6; }
 .lg-brand { display: flex; align-items: center; gap: 6px; justify-self: center; }
-.lg-brand__n { width: 24px; height: 24px; border-radius: 7px; background: var(--v5-ink); display: flex; align-items: center; justify-content: center; }
-.lg-brand__n-t { color: var(--v5-surface); font-family: var(--font-v5); font-weight: 600; font-size: 13px; }
-.lg-brand__name { color: var(--v5-ink); font-weight: 600; font-family: var(--font-v5); font-size: 15px; letter-spacing: -0.02em; }
 .lg-dots { margin-top: 28px; display: flex; align-items: center; gap: 6px; }
 .lg-dot { height: 4px; width: 16px; border-radius: 9999px; background: var(--v5-surface-2); transition: all 0.3s; }
 .lg-dot--active { width: 32px; background: var(--v5-brand); }

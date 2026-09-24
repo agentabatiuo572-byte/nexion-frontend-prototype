@@ -118,7 +118,7 @@ check("B 开启: 窗口内 pro-v2 进入目标(3 台)", optB === 3, `got ${optB}
 check("B 开启: pro-v2 行带「抢先升级」标", /Pro v2[^|]*抢先升级/.test(t));
 check("B 开启: 窗口外 rack-p2 仍排除", !t.includes("Rack P2"));
 // 选 pro-v2 → 确认 → 去结算:携上下文 + 窗口 → 不被弹回
-await domClick(/NexGridBox Pro v2/);
+await domClick(/UVELBox Pro v2/);
 await page.waitForTimeout(400);
 const dbgPre = await ui.evaluate(async () => {
   const pp = await import("/src/store/product-phase.ts");

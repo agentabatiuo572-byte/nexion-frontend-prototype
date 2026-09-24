@@ -6,11 +6,9 @@
 // stored string freezes whatever language the device was created in. Resolve
 // from the stable `kind` at render time instead.
 //
-// Only descriptive strings resolve. SKU names (NexGridBox S1, NexGridRack P1,
-// Cloud Share — all sold under those names in the store) and hardware models
-// (4× RTX 4090, 8× NVIDIA A100, the user's own "RTX 4070 · 240 TOPS") are brand
-// marks and proper nouns: they stay as stored in every locale, matching how
-// lib/product-copy.ts leaves Product.name alone.
+// Descriptive strings follow the locale. Known legacy SKU labels use the current
+// brand at the display boundary; persisted records, custom names and hardware
+// models remain unchanged.
 //
 // Anything we cannot resolve falls back to the stored English rather than
 // rendering blank — a new DeviceKind degrades, it does not break the card.
@@ -18,6 +16,7 @@
 import type { Messages } from "@/i18n/messages/en";
 import type { Device, DeviceKind } from "@/store/types";
 import { fmt } from "@/i18n/format";
+import { brandProductName } from "@/lib/brand";
 
 /** A linked computer carries the user's own GPU model → its stored strings are
  *  proper nouns. Without a tier match it holds the generic English spec. */
@@ -30,7 +29,7 @@ export function deviceName(t: Messages, d: Device): string {
   if (d.kind === "pc-gpu") {
     return isTieredPcGpu(d) ? t.device.nameSharedComputer : t.device.nameComputerGpu;
   }
-  return d.name; // SKU / brand mark
+  return brandProductName(d.name);
 }
 
 /** Promo copy names a device by kind before one exists — no Device to pass. */
@@ -38,7 +37,7 @@ export function deviceNameByKind(t: Messages, kind: DeviceKind | null, stored: s
   if (kind === null) return t.device.promoNoActive;
   if (kind === "phone") return t.earn.yourPhone;
   if (kind === "pc-gpu") return t.device.nameComputerGpu;
-  return stored; // SKU / brand mark
+  return brandProductName(stored);
 }
 
 /** Same, for a name dropped mid-sentence. The standalone names are label-cased
@@ -48,7 +47,7 @@ export function deviceNameInline(t: Messages, kind: DeviceKind | null, stored: s
   if (kind === null) return t.device.promoNoActive;
   if (kind === "phone") return t.device.namePhoneInline;
   if (kind === "pc-gpu") return t.device.nameComputerGpuInline;
-  return stored; // SKU / brand mark
+  return brandProductName(stored);
 }
 
 export function deviceGpuLabel(t: Messages, d: Device): string {

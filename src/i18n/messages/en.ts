@@ -103,7 +103,7 @@ export const en = {
     teamNetwork: "Your node influence map",
   },
   intro: {
-    title1: "NexGrid. Compute flows.",
+    title1: "UVEL. Compute flows.",
     subtitleLine1: "Connecting the world's compute to power AI.",
     statsDevices: "devices online",
     statsPaidTotal: "total paid out",
@@ -118,19 +118,19 @@ export const en = {
     effectiveLabel: "EFFECTIVE JUNE 1, 2026",
     heroTitle: "Terms of Service",
     heroSubtitle:
-      "These terms form a binding agreement between you and NexGrid Compliance Authority governing your use of the NexGrid compute marketplace, hardware, wallet, and NEX token rewards. By creating an account or tapping “Get started,” you accept them in full.",
+      "These terms form a binding agreement between you and UVEL Compliance Authority governing your use of the UVEL compute marketplace, hardware, wallet, and NEX token rewards. By creating an account or tapping “Get started,” you accept them in full.",
     s1Title: "Acceptance & eligibility",
     s1Body:
-      "You must be at least 18 years old and legally able to enter contracts to use NexGrid. The service is not offered to residents of OFAC-sanctioned jurisdictions or anywhere our compute marketplace is prohibited by law. By using NexGrid you confirm you meet these requirements and that the information you provide is accurate.",
-    s2Title: "The NexGrid service",
+      "You must be at least 18 years old and legally able to enter contracts to use UVEL. The service is not offered to residents of OFAC-sanctioned jurisdictions or anywhere our compute marketplace is prohibited by law. By using UVEL you confirm you meet these requirements and that the information you provide is accurate.",
+    s2Title: "The UVEL service",
     s2Body:
-      "NexGrid operates a smart-contract-based marketplace that routes AI-inference and rendering workloads to participant-owned NexGridBox and NexGridRack hardware. We provide the matchmaking, settlement, and wallet layers; we do not guarantee continuous job availability, fixed pricing, or any specific level of compute demand.",
+      "UVEL operates a smart-contract-based marketplace that routes AI-inference and rendering workloads to participant-owned UVELBox and UVELRack hardware. We provide the matchmaking, settlement, and wallet layers; we do not guarantee continuous job availability, fixed pricing, or any specific level of compute demand.",
     s3Title: "Your account & security",
     s3Body:
       "You are responsible for safeguarding your login credentials, two-factor authentication, and wallet keys. Activity under your account is your responsibility. Notify us immediately of any unauthorized access. We may suspend accounts showing signs of fraud, multi-accounting, or credential compromise.",
     s4Title: "Hardware purchase & operation",
     s4Body:
-      "NexGridBox / NexGridRack purchases are final once the device is activated on the network. The platform's AI task pool keeps upgrading: higher-tier tasks grow while lower-tier task volume keeps shrinking, so the tasks a fixed-compute device can book — and its earnings — narrow month by month; see the Risk Disclosure for details. You may retire an owned device at any time and trade it in toward a higher-tier device; the credit is set by the tier your device's lifetime output falls into, not by its original price.",
+      "UVELBox / UVELRack purchases are final once the device is activated on the network. The platform's AI task pool keeps upgrading: higher-tier tasks grow while lower-tier task volume keeps shrinking, so the tasks a fixed-compute device can book — and its earnings — narrow month by month; see the Risk Disclosure for details. You may retire an owned device at any time and trade it in toward a higher-tier device; the credit is set by the tier your device's lifetime output falls into, not by its original price.",
     s5Title: "Earnings, rewards & the NEX token",
     s5Body:
       "All yield figures shown in the app are projections based on current network parameters and recent demand, not guarantees. Earnings fluctuate and may decline over time. NEX is a platform reward token whose value can move sharply and is not deposit-insured. Never commit more than you can afford to lose.",
@@ -141,16 +141,16 @@ export const en = {
       "Direct Royalty and Network Yield Bonus are paid from platform margin, never from a friend's deposit. Rewards depend on referred users completing qualifying actions. Spam, fake accounts, or mass-recruitment schemes are prohibited, will be voided, and may result in suspension and forfeiture of pending rewards.",
     s8Title: "Prohibited conduct",
     s8Body:
-      "You may not use NexGrid to launder funds, manipulate token markets, bypass security controls, operate multiple accounts to farm rewards, decompile or tamper with the network, or interfere with other participants' devices. Violations may lead to immediate termination and reporting to relevant authorities.",
+      "You may not use UVEL to launder funds, manipulate token markets, bypass security controls, operate multiple accounts to farm rewards, decompile or tamper with the network, or interfere with other participants' devices. Violations may lead to immediate termination and reporting to relevant authorities.",
     s9Title: "Fees, taxes & changes",
     s9Body:
       "Network, withdrawal, and card-processing fees are disclosed at the point of each transaction. You are solely responsible for any taxes on your earnings. We may update these terms; material changes will be notified in-app, and continued use after the effective date constitutes acceptance.",
     s10Title: "Disclaimers, liability & governing law",
     s10Body:
-      "NexGrid is provided “as is” without any warranty of guaranteed return. To the fullest extent permitted by law, our aggregate liability is limited to the fees you paid in the prior three months. These terms are governed by the laws of the jurisdiction of NexGrid Compliance Authority, and disputes are resolved by binding arbitration where permitted.",
+      "UVEL is provided “as is” without any warranty of guaranteed return. To the fullest extent permitted by law, our aggregate liability is limited to the fees you paid in the prior three months. These terms are governed by the laws of the jurisdiction of UVEL Compliance Authority, and disputes are resolved by binding arbitration where permitted.",
     riskLink: "See also: Platform Risk Disclosure",
     footer:
-      "NexGrid Compliance Authority · FinCEN MSB #MSB1234567 · MiCA-aligned · Questions: legal@nexgrid.io",
+      "UVEL Compliance Authority · FinCEN MSB #MSB1234567 · MiCA-aligned · Questions: legal@nexgrid.io",
     gotIt: "Got it",
   },
   authOtp: {
@@ -312,16 +312,16 @@ export const en = {
     giftPendingToast: "Welcome gift on the way",
     giftPendingToastSub: "Signup is complete. It credits automatically after a quick security check.",
     doneTitle: "You're in",
-    doneSubTeam: "Welcome to NexGrid — you joined {name}'s team",
-    doneSubSolo: "Welcome to NexGrid",
+    doneSubTeam: "Welcome to UVEL — you joined {name}'s team",
+    doneSubSolo: "Welcome to UVEL",
     doneGiftPosted: "Credited — visible in your balance",
     doneGiftPending: "Confirming · credits shortly",
     doneGiftPendingNote: "Staying online in the APP speeds up the release.",
     doneWhyApp1: "APP online hours speed up gift & yield release",
     doneWhyApp2: "Real-time yield alerts — wake up to earnings",
     doneWhyApp3: "Steadier connection & compute scheduling",
-    doneOfficialDownloadHint: "Download the APP from NexGrid's website in your browser",
-    doneOfficialDownloadLink: "Download the APP from NexGrid",
+    doneOfficialDownloadHint: "Download the APP from UVEL's website in your browser",
+    doneOfficialDownloadLink: "Download the APP from UVEL",
     doneOfficialDownloadPending: "APP download link unavailable",
     doneContinue: "Continue",
     giftBillMemo: "Welcome gift - referral bonus",
@@ -346,12 +346,12 @@ export const en = {
     deviceEarning: "earning",
     deviceOffline: "Offline",
     deviceToday: "today",
-    addNexGridBox: "Add a NexGridBox",
+    addNexGridBox: "Add a UVELBox",
     fleetAddSlot: "Add device",
     addBoxPayback: "Pays back in ~{n} days",
     estPerDay: "est. /d",
     // OnGridSection + NetworkPulseCard (structural labels keyed; dense mock stat subs kept faithful)
-    onGridTitle: "On NexGrid grid",
+    onGridTitle: "On UVEL grid",
     onGridNow: "now",
     onGridMap: "Map",
     onGridGpus: "{n} GPUs",
@@ -469,7 +469,7 @@ export const en = {
     liveActivityLabel: "Live platform activity",
     liveActivityNowSec: "{n}s ago",
     liveActivityMinAgo: "{n}m ago",
-    globalNetwork: "NexGrid AI Network",
+    globalNetwork: "UVEL AI Network",
     nodes: "Nodes",
     uptime: "Uptime",
     todaySuffix: "today",
@@ -491,7 +491,7 @@ export const en = {
     liveStreaming: "Live · streaming every minute",
     manage: "Manage",
     boostEarnings: "Boost your earnings",
-    upgradeHint: "Upgrade to NexGridBox to earn 16× more",
+    upgradeHint: "Upgrade to UVELBox to earn 16× more",
     upgradeCTA: "Explore Store",
     news: "News",
     vsYesterday: "vs yesterday",
@@ -528,7 +528,7 @@ export const en = {
     dayOneTaskBindCard: "Link bank card",
     dayOneTaskVisitEarn: "Visit Earn tab",
     dayOneTaskVisitStore: "Visit Store",
-    dayOneTaskSeeRoi: "See NexGridBox S1 ROI",
+    dayOneTaskSeeRoi: "See UVELBox S1 ROI",
     dayOneTaskSetupProfile: "Set up profile",
     dayOneTaskInviteFriend: "Invite a friend",
     dayOneCatWallet: "wallet",
@@ -541,7 +541,7 @@ export const en = {
     weeklyQuestEndsIn: "ends in",
     weeklyQuestActivateToClaim: "Activate {device} to claim",
     weeklyQuestAddCapacity: "Add capacity to claim",
-    weeklyQuestGetNexGridBox: "Get NexGridBox",
+    weeklyQuestGetNexGridBox: "Get UVELBox",
     // ConversionBanner micro-stats (source hardcoded; keyed for bilingual parity)
     // LiveFeedCard (tabs + chrome)
     liveFeedTabActivity: "Activity",
@@ -603,13 +603,13 @@ export const en = {
     txLabel: "Earnings",
     jobsLive: "jobs live globally",
     addAnother: "Add another device",
-    addAnotherHint: "Browse NexGridBox hardware to unlock higher-paying jobs",
+    addAnotherHint: "Browse UVELBox hardware to unlock higher-paying jobs",
     downloadAgent: "Download Agent",
-    browseStore: "Browse NexGridBox",
+    browseStore: "Browse UVELBox",
     boostEarnings: "Boost earnings",
     boostMoreDaily: "more daily revenue",
     boostPhoneLabel: "Phone",
-    boostS1Label: "NexGridBox S1",
+    boostS1Label: "UVELBox S1",
     boostLimitedOffer: "$200 off · ends in 2d 14h",
     boostUpgradeCta: "Upgrade Now",
     slotsUsed: "slots used",
@@ -623,7 +623,7 @@ export const en = {
     requires: "Requires",
     upgradeNow: "Upgrade",
     phoneWaitingTask: "Waiting to pick up a task…",
-    phoneWaitingHint: "NexGrid is matching your phone with an available AI workload.",
+    phoneWaitingHint: "UVEL is matching your phone with an available AI workload.",
     phonePausedNoCharger: "Idle · waiting for charger",
     phonePausedNoChargerHint: "Plug in to start earning. Battery-only mode is off by default to protect your device.",
     phonePausedNoNetwork: "Idle · network unreachable",
@@ -880,11 +880,11 @@ export const en = {
       white: {
         linkLabel: "White-app takeover home",
         kicker: "White-app takeover",
-        title: "Health scan into NexGrid home",
+        title: "Health scan into UVEL home",
         body: "Hardware score, account balance and fleet status stay on one takeover screen before moving into the live tabs.",
         modeLabel: "Entry state",
         modeValue: "Scan merged",
-        primaryLabel: "Continue to NexGrid",
+        primaryLabel: "Continue to UVEL",
         secondaryLabel: "Security sessions",
         metrics: {
           a: { label: "Health score", value: "Visible" },
@@ -903,7 +903,7 @@ export const en = {
   search: {
     navTitle: "Search",
     placeholder: "Search devices, members, FAQ, pages…",
-    emptyTitle: "Search NexGrid",
+    emptyTitle: "Search UVEL",
     emptyBody: "Type to find routes, devices, products, network members, or FAQ entries.",
     noResults: "No results — try different keywords.",
     askNova: "Ask Nova",
@@ -921,7 +921,7 @@ export const en = {
     routes: {
       home: { label: "Home / Mission Control", sub: "Live earnings · ticker · dashboard" },
       earn: { label: "Earn / Fleet", sub: "Device cards · task center · task capacity" },
-      store: { label: "Store", sub: "NexGridBox / Rack / Cloud Share" },
+      store: { label: "Store", sub: "UVELBox / Rack / Cloud Share" },
       tradeIn: { label: "Trade-in", sub: "Retire & credit toward an upgrade" },
       team: { label: "Team hub", sub: "Royalty / V-rank / network" },
       royalty: { label: "Influence Network Royalty", sub: "Direct + Network Yield Bonus" },
@@ -1018,7 +1018,7 @@ export const en = {
     network: "Network",
     externalTitle: "View on external explorer",
     externalBody: "This transaction is also indexed on public blockchain explorers. Click below to verify independently.",
-    footer: "All NexGrid transactions settle on their native network with batch finality. Inquiries: compliance@nexgrid.ai",
+    footer: "All UVEL transactions settle on their native network with batch finality. Inquiries: compliance@nexgrid.ai",
     detailUnavailableTitle: "On-chain details unavailable",
     detailUnavailableBody: "This receipt is not yet connected to a server-side chain-detail source. The transaction hash is retained, but block, addresses, gas and confirmations are never generated locally. Return to Bills for the server receipt status.",
   },
@@ -1027,13 +1027,13 @@ export const en = {
     navTitle: "Platform risk disclosure",
     heroLabel: "REQUIRED READING",
     heroTitle: "Read this before staking, locking, or withdrawing.",
-    heroSubtitle: "NexGrid is a smart-contract-based compute marketplace with token rewards. Returns are projections, not guarantees. Read the 7 sections below and acknowledge to continue.",
+    heroSubtitle: "UVEL is a smart-contract-based compute marketplace with token rewards. Returns are projections, not guarantees. Read the 7 sections below and acknowledge to continue.",
     alreadyAccepted: "Already acknowledged",
     alreadyAcceptedCta: "Acknowledged",
     s1Title: "Earnings projections are forecasts, not promises",
-    s1Body: "All daily / monthly / annual yield estimates shown on NexGrid are based on current network parameters and recent client demand. Actual earnings will fluctuate ±15% week-to-week and may decline as more devices join the network or as compute prices fall. Past performance is not indicative of future results.",
+    s1Body: "All daily / monthly / annual yield estimates shown on UVEL are based on current network parameters and recent client demand. Actual earnings will fluctuate ±15% week-to-week and may decline as more devices join the network or as compute prices fall. Past performance is not indicative of future results.",
     s2Title: "The task pool keeps upgrading — a device's bookable tasks narrow month by month",
-    s2Body: "NexGrid's AI task pool keeps upgrading: newer tasks demand more compute (VRAM), so higher-tier tasks grow while lower-tier task volume shrinks. The tasks a given device can book narrow month over month through its first year — faster in later months — until only the capacity-floor share of earnings remains. Newly activated devices receive a task-priority subsidy that keeps them booked at full capacity. Trade-in credit is set by the tier your device's lifetime output falls into — the more it has produced, the smaller the credit.",
+    s2Body: "UVEL's AI task pool keeps upgrading: newer tasks demand more compute (VRAM), so higher-tier tasks grow while lower-tier task volume shrinks. The tasks a given device can book narrow month over month through its first year — faster in later months — until only the capacity-floor share of earnings remains. Newly activated devices receive a task-priority subsidy that keeps them booked at full capacity. Trade-in credit is set by the tier your device's lifetime output falls into — the more it has produced, the smaller the credit.",
     s3Title: "Token (NEX) market risk",
     s3Body: "NEX is a platform reward token. Its USD-denominated value can move ±20% daily based on AI inference demand, buyback flow, and broader crypto market conditions. Token holdings are not FDIC / SIPC insured. Do not stake or hold more NEX than you can afford to lose.",
     s4Title: "Withdrawal timing + extra security checks",
@@ -1044,7 +1044,7 @@ export const en = {
     s6Title: "Network economics + referral compensation",
     s6Body: "Direct Royalty (10% of a qualifying friend order at the base tier, scaled up by Rate Tier) and Network Yield Bonus (algorithmic extended-network yield) are paid from platform margin, not from the friend's pocket. Referral rewards depend on referred users completing qualifying actions. Mass-recruitment or spam referrals will be voided and may result in account suspension.",
     s7Title: "Custody, compliance, and regulatory jurisdiction",
-    s7Body: "NexGrid is operated by NexGrid Ltd. under FinCEN MSB registration #MSB1234567, with MiCA-aligned compliance procedures. Funds are held in segregated reserve accounts audited quarterly by PwC. NexGrid is not available in OFAC-sanctioned jurisdictions.",
+    s7Body: "UVEL is operated by UVEL Ltd. under FinCEN MSB registration #MSB1234567, with MiCA-aligned compliance procedures. Funds are held in segregated reserve accounts audited quarterly by PwC. UVEL is not available in OFAC-sanctioned jurisdictions.",
     scrollHint: "Please scroll through all sections before acknowledging.",
     checkboxLabel: "I have read the 7 sections above and understand that earnings are projections, bookable task volume declines as the task pool upgrades, tokens carry market risk, and large withdrawals may need an extra security check.",
     acceptCta: "I acknowledge — continue",
@@ -1069,9 +1069,9 @@ export const en = {
     title: "Lifetime earnings · ${amount} milestone",
     earn100: "First $100 earned — your phone has officially paid back its activation overhead.",
     earn500: "Half-grand reached. Hardware tier upgrades start unlocking measurable ROI from here.",
-    earn1000: "Four-figure earner. You're outpacing 88% of solo-phone accounts on NexGrid.",
-    earn5000: "Mid five-figure operator. Most users at this stage already own a NexGridBox Pro.",
-    earn10000: "Top 2% of NexGrid earners. Founders Tier consideration unlocks at $25K.",
+    earn1000: "Four-figure earner. You're outpacing 88% of solo-phone accounts on UVEL.",
+    earn5000: "Mid five-figure operator. Most users at this stage already own a UVELBox Pro.",
+    earn10000: "Top 2% of UVEL earners. Founders Tier consideration unlocks at $25K.",
     genericBody: "A new earnings milestone has been reached.",
     nexChip: "+{amount} NEX",
   },
@@ -1267,7 +1267,7 @@ export const en = {
       empty: "No NEX activity yet",
       miningLabel: "Compute payout · fleet",
     },
-    note: "NEX is the NexGrid platform token. Convert it to USDT in Exchange, or use it to offset USDT withdrawal fees.",
+    note: "NEX is the UVEL platform token. Convert it to USDT in Exchange, or use it to offset USDT withdrawal fees.",
   },
 
   events: {
@@ -1393,13 +1393,13 @@ export const en = {
     // Home TrialHeroBanner — coupon ticket form (100% v5 BzBtJ design port).
     // Paired with SVG star icon; CSS handles uppercase + letter-spacing.
     heroBadge: "Free trial",
-    heroDeviceName: "NexGridBox S1",
+    heroDeviceName: "UVELBox S1",
     heroTagline: "Try free for {days} days, cancel anytime.",
     heroEarnLabel: "EST. {days}-DAY EARN",
     heroTrialsLeft: "{n} trials left today",
     heroClaimCta: "Claim trial",
     // /me TrialEntry — ticket form (lemon-themed, design IUVoAAI port)
-    entryDeviceName: "NexGridBox S1",
+    entryDeviceName: "UVELBox S1",
     entryDescription: "Free for {days} days · cancel anytime",
     entryBenefitTitle: "You have a free trial device waiting to claim",
     entryClaimCta: "Claim now",
@@ -1410,7 +1410,7 @@ export const en = {
     // claim sheet (chassis popup — cardless: confirming starts the trial
     // directly, FEAT-TRIAL02; failure shows an inline retry, never silent)
     sheetCapLabel: "Limited free",
-    sheetTitle: "NexGridBox S1 free trial",
+    sheetTitle: "UVELBox S1 free trial",
     sheetCloseAria: "Close",
     sheetPotentialLabel: "What you'll pocket",
     sheetPerDay: "${amount}/day",
@@ -1435,8 +1435,8 @@ export const en = {
     eligReasonUnknown: "We can't confirm trial eligibility from the server. Check your connection and retry",
     // /me/trial five-state page
     pageTitle: "Free trial",
-    pageHeaderSubtitle: "NexGridBox S1",
-    toastActivated: "Free trial activated · NexGridBox S1",
+    pageHeaderSubtitle: "UVELBox S1",
+    toastActivated: "Free trial activated · UVELBox S1",
     offsetAccruedLabel: "Trial credit accrued",
     offsetRemainderNote: "${remainder} credited to your balance after purchase",
     offsetUsableUntil: "Trial credit stays usable until {time}",
@@ -1458,7 +1458,7 @@ export const en = {
     ghostRibbonActive: "Free trial",
     ghostRibbonGrace: "Production stopped",
     ghostEta: "{eta} left",
-    ghostSubtitle: "NexGridBox S1 trial earnings",
+    ghostSubtitle: "UVELBox S1 trial earnings",
     ghostDiscount: "Buy early: save {amount} + earnings credit",
     deviceRowSub: "On free trial",
     slotTag: "Trial",
@@ -1476,13 +1476,13 @@ export const en = {
     countdownStart: "Start {date}",
     countdownEnd: "Purchase by {date}",
     countdownDateEmpty: "—",
-    idleTitleNew: "Try NexGridBox S1 free",
+    idleTitleNew: "Try UVELBox S1 free",
     idleBody: "{n} days free · cancel anytime",
     idleCta: "Claim trial",
     endedTitle: "Trial ended",
     endedDesc: "Your trial credit expired on {time}. New purchases settle at the standard price.",
     convertedTitle: "Purchase complete",
-    convertedDesc: "Your NexGridBox S1 is owned and earning in your fleet.",
+    convertedDesc: "Your UVELBox S1 is owned and earning in your fleet.",
     convertedDevicesCta: "View my devices",
     // Lifecycle toasts + urgency pushes (App-layer poll; zero auto-charge)
     graceStartToast: "Trial ended · production stopped. Your credit stays usable until {time}",
@@ -1526,7 +1526,7 @@ export const en = {
     inventoryConfirmDeactivateCancel: "Back",
     inventorySlotsFullWarning: "Slots full — deactivate a device to activate another.",
     inventoryEmptyTitle: "No devices yet",
-    inventoryEmptyBody: "Buy a NexGridBox from the store. Activate it to start earning.",
+    inventoryEmptyBody: "Buy a UVELBox from the store. Activate it to start earning.",
     inventoryCtaGoStore: "Go to store",
     inventoryPendingDeactivateChip: "Auto-deactivate after task ends",
     inventoryRowActivate: "Activate",
@@ -1593,7 +1593,7 @@ export const en = {
     pairingLabel: "Desktop pairing code",
     copyPairingCode: "Copy",
     pairingCodeCopied: "Pairing code copied",
-    pairingPending: "Enter this six-digit code in the NexGrid desktop client signed in to the same account. The device appears only after the server verifies the desktop executor signature.",
+    pairingPending: "Enter this six-digit code in the UVEL desktop client signed in to the same account. The device appears only after the server verifies the desktop executor signature.",
     pairingConnected: "The server verified the desktop executor and connected the device.",
     pairingExpired: "The pairing code expired. Create a new pairing.",
     pairingFailed: "Unable to confirm pairing status. Please retry.",
@@ -1657,10 +1657,10 @@ export const en = {
   },
   store: {
     title: "Store",
-    subtitle: "Dedicated compute devices, fully managed by NexGrid.",
+    subtitle: "Dedicated compute devices, fully managed by UVEL.",
     allProducts: "Devices",
     promoLine1: "🎁 LIMITED TIME · This week only",
-    promoLine2: "$200 off NexGridBox S1 — ends in 2d 14h",
+    promoLine2: "$200 off UVELBox S1 — ends in 2d 14h",
     promoLine3: "Use code",
     promoAtCheckout: "at checkout",
     estDaily: "Est. Daily",
@@ -1928,7 +1928,7 @@ export const en = {
     coTrialEarnNexPart: "+{n} NEX",
     coTrialEarnToast: "Trial earnings credited · {parts}",
     // Sprint A-1 / E.1: first-order celebration
-    firstOrderTitle: "🎉 Your first NexGridBox is on its way",
+    firstOrderTitle: "🎉 Your first UVELBox is on its way",
     firstOrderBody: "We'll provision your slot in the data center within minutes.",
     firstOrderAchievement: "Achievement unlocked · First Hardware Owner · +50 NEX",
     // Sprint A-1 / B.1: LiveSocialProof
@@ -1948,7 +1948,7 @@ export const en = {
     roiCalculator: "ROI Calculator",
     vsPhoneTitle: "VS YOUR PHONE",
     vsPhoneYourPhone: "Your phone",
-    vsPhoneS1: "NexGridBox S1",
+    vsPhoneS1: "UVELBox S1",
     vsPhoneMore: "more",
     // v3.6 ROI-first conversion copy
     paysBackIn: "Pays back in",
@@ -2079,7 +2079,7 @@ export const en = {
     rewardHistoryUnavailable: "Reward history unavailable · tap to retry",
     noSettledRewards: "No settled invitation rewards yet",
     inviteShareText:
-      "I'm earning passive income on NexGrid — turn your phone into an AI cluster. Sign up with my link and we both get $200: {url}",
+      "I'm earning passive income on UVEL — turn your phone into an AI cluster. Sign up with my link and we both get $200: {url}",
     inviteLinkCopied: "Link copied — share anywhere",
     inviteShareCode: "Code",
     inviteShareLink: "Link",
@@ -2311,8 +2311,8 @@ export const en = {
     estimatorTitleH: "Your phone earns from day one",
     estimatorSubtitle: "Reading your NPU specs to estimate earnings…",
     yourPrefix: "Your",
-    withS1: "With NexGridBox S1",
-    withPro: "With NexGridBox Pro",
+    withS1: "With UVELBox S1",
+    withPro: "With UVELBox Pro",
     estimatorHint:
       "Estimates based on current network parameters. Actual earnings vary ±15%.",
     yourCurrentRate: "your current rate",
@@ -2356,13 +2356,13 @@ export const en = {
     recalSubtitle: "New device detected — re-measuring this phone's compute.",
     recalActivate: "Finish recalibration",
     bgIntro: "Background mode lets your phone earn while you're not using it.",
-    activateCta: "Activate NexGrid Compute",
+    activateCta: "Activate UVEL Compute",
     seeProducts: "See products",
     completedAll: "I've completed all 3 steps",
-    enterNexGrid: "Enter NexGrid",
+    enterNexGrid: "Enter UVEL",
     // Legacy keys retained for fallback only (no longer rendered)
     downloadFor: "Download for",
-    downloadAgent: "Download NexGrid Agent",
+    downloadAgent: "Download UVEL Agent",
     downloadHint: "Lightweight, signed installer · ~24 MB",
     installLaunch: "Install & Launch",
     installHint: "One-click install · runs silently in background",
@@ -2453,7 +2453,7 @@ export const en = {
     walletSlotMore: "more",
     walletSlotsLine: "{online} live · {open} slots open",
     withdrawalLocked: "Minimum not reached yet",
-    withdrawalLockedBody: "You need ${min} minimum (need ${short} more). At phone-tier earnings of $0.06/d, that's ~325 days. A NexGridBox S1 hits $20 in under 3 days.",
+    withdrawalLockedBody: "You need ${min} minimum (need ${short} more). At phone-tier earnings of $0.06/d, that's ~325 days. A UVELBox S1 hits $20 in under 3 days.",
     withdrawalLockedBrowse: "Browse hardware",
     secWithPasskey: "Passkey · 2FA",
     secNoTwoFa: "2FA off",
@@ -2581,7 +2581,7 @@ export const en = {
       boostLocked:
         "Three quick wins:\n\n1. Keep at least one device online overnight — the {pool} pool peaks 02:00-06:00 UTC.\n2. Your current rig caps at {vram}GB VRAM. Upgrading to {tier} unlocks {model} ({type}) — a single job pays {reward}.\n3. Refer a friend with your invite code — you earn 5% of their lifetime payouts.",
       boostMaxed:
-        "You already run the highest tier — nice. Two ways to scale further:\n\n1. Add a second NexGridBox to handle parallel fine-tune jobs.\n2. Keep referring — your tier earns 8% lifetime split on each referral.",
+        "You already run the highest tier — nice. Two ways to scale further:\n\n1. Add a second UVELBox to handle parallel fine-tune jobs.\n2. Keep referring — your tier earns 8% lifetime split on each referral.",
       hotLlm:
         "🔥 {pool} prices jumped +18% in the last hour after Anthropic's Claude 4.6 launch. Demand surge expected through tonight.",
       hotVideo:
@@ -2749,7 +2749,7 @@ export const en = {
     sessionSurfaceSigned: "App",
     sessionSurfaceWhite: "App",
     sessionSurfaceH5: "Web",
-    sessionLocation: "NexGrid Cloud",
+    sessionLocation: "UVEL Cloud",
     sessionRevoke: "Revoke",
     sessionRevoked: "Session revoked",
     sessionRevokeConfirm: "Sign this device out of your account?",
@@ -2770,7 +2770,7 @@ export const en = {
       "The request is reviewed by the server. Financial and security records required by law are not erased immediately.", // anxiety-exempt: 注销为破坏性流程,刻意摩擦+审计要求诚实披露
     deleteAccountPending: "The server has accepted this deletion request and it is under review. Do not submit it again.", // anxiety-exempt: 注销为破坏性流程,刻意摩擦+审计要求诚实披露
     deleteAccountConfirm:
-      "Submit a NexGrid account deletion request?\n\nYou will be signed out; the server request remains the source of truth for completion.",
+      "Submit a UVEL account deletion request?\n\nYou will be signed out; the server request remains the source of truth for completion.",
     deleteAccountForfeitBalance: "Balance {balance} — will NOT be refunded",
     deleteAccountForfeitPrincipal: "Staked principal {principal} — will NOT be refunded (including terms not yet matured)",
     deleteAccountForfeitLead: "Submitting this request forfeits, permanently:",
@@ -2794,11 +2794,11 @@ export const en = {
     catDevices: "Devices",
     catPayments: "Payments",
     catTechnical: "Technical",
-    askBot: "Ask NexGridBot",
+    askBot: "Ask UVELBot",
     botGreeting:
-      "Hi, I'm NexGridBot — I can answer most common questions in seconds. Tap a topic above or type below.",
+      "Hi, I'm UVELBot — I can answer most common questions in seconds. Tap a topic above or type below.",
     botPlaceholder: "Type your question…",
-    botThinking: "NexGridBot is thinking…",
+    botThinking: "UVELBot is thinking…",
     contactSupport: "Contact support",
     contactHint: "Average response time · 24h via email",
     contactCta: "Open ticket",
@@ -2827,7 +2827,7 @@ export const en = {
     pinnedItem3:
       "Devices that go offline for 24h reset their compounding streak — keep them charging.",
     pinnedItem4:
-      "Beware of fake NexGrid DMs — official accounts never DM you first.",
+      "Beware of fake UVEL DMs — official accounts never DM you first.",
     openChannel: "Open",
     chLiveChat: "Live messages",
     chLiveChatHint: "Chat with your advisor & support team",
@@ -2873,7 +2873,7 @@ export const en = {
       advisorWelcome:
         "Hi, I'm {name}, your growth advisor 👋 I keep an eye on your rigs and ping you when there's a clear win.",
       advisorIdleGpu:
-        "Heads up — your devices have been idling ~30% the last few days. Upgrading to NexGridBox Pro earns noticeably more on the same plug. Want me to show you?",
+        "Heads up — your devices have been idling ~30% the last few days. Upgrading to UVELBox Pro earns noticeably more on the same plug. Want me to show you?",
       advisorStaking:
         "The 180-day vault is at 95% APY, today only. Locking even part of your balance now compounds fast — quick to set up 👇",
       supportResolved:
@@ -2881,7 +2881,7 @@ export const en = {
       supportUserQ:
         "Hi, my withdrawal has shown 'pending' for over a day — can you check the status?",
       supportGreeting:
-        "You're connected — I'm {name} from NexGrid support 👋 How can I help today?",
+        "You're connected — I'm {name} from UVEL support 👋 How can I help today?",
       sessionIdleWarn:
         "You've been quiet for a while — without a reply, this session will close automatically in about {n} min. If you still need help afterwards, you can start a new session anytime.",
       sessionTimeoutClosed:
@@ -2889,7 +2889,7 @@ export const en = {
     },
     // CTA labels for seed messages
     cta: {
-      browseStore: "See NexGridBox Pro →",
+      browseStore: "See UVELBox Pro →",
       lockStaking: "Lock 180-day →",
     },
     // Runtime agent reply templates (cycled in order)
@@ -2924,7 +2924,7 @@ export const en = {
     insufficientMessage: "You don't have enough {sym} for this swap.",
     minAmount: "Min: {n} {sym}",
     nexInfo:
-      "NEX is the NexGrid platform token. Convert it to USDT in Exchange, or use it to offset USDT withdrawal fees.",
+      "NEX is the UVEL platform token. Convert it to USDT in Exchange, or use it to offset USDT withdrawal fees.",
     historyTitle: "Recent swaps",
     historyEmpty: "Your first swap will appear here.",
     howItWorksEntry: "Rules",
@@ -2969,7 +2969,7 @@ export const en = {
     heroLabel: "NEX ↔ USDT EXCHANGE",
     heroTitle: "Convert NEX to USDT (or back) at live market rate.",
     heroSub:
-      "Move between NexGrid's platform token and the dollar-pegged stablecoin in your wallet. Daily caps protect both you and the platform.",
+      "Move between UVEL's platform token and the dollar-pegged stablecoin in your wallet. Daily caps protect both you and the platform.",
     s1Title: "Why a built-in exchange?",
     s1Para1:
       "Your earnings come in two forms — USDT (stablecoin you can withdraw) and NEX (platform token used for rewards and discounts). Most users want to convert NEX into USDT to eventually cash out. This page lets you do that instantly at the live market price.",
@@ -3008,7 +3008,7 @@ export const en = {
     faqTitle: "Common questions",
     faqQ1: "What's the current NEX/USDT rate based on?",
     faqA1:
-      "The rate tracks NexGrid's internal market index, which aggregates DEX trading data plus monthly buyback floor. Quoted live, refreshed every 15 seconds.",
+      "The rate tracks UVEL's internal market index, which aggregates DEX trading data plus monthly buyback floor. Quoted live, refreshed every 15 seconds.",
     faqQ2: "Are there fees on exchanges?",
     faqA2:
       "No. In-platform NEX↔USDT swaps are completely free — no network fees, no spread markup beyond the live rate.",
@@ -3046,7 +3046,7 @@ export const en = {
     },
     title: "Bills",
     back: "Back",
-    subtitle: "Reconcile every credit and debit on your NexGrid wallet.",
+    subtitle: "Reconcile every credit and debit on your UVEL wallet.",
     tabAll: "All",
     tabIn: "Credit",
     tabOut: "Debit",
@@ -3096,7 +3096,7 @@ export const en = {
     orderSummary: "Order summary",
     orderIdLabel: "Order ID",
     back: "Back",
-    subtitle: "Track your NexGridBox deployment and activation status.",
+    subtitle: "Track your UVELBox deployment and activation status.",
     empty: "No orders yet",
     emptyHint: "Visit the store to find a device that fits your goals.",
     browseStore: "Browse Store",
@@ -3136,7 +3136,7 @@ export const en = {
     trackingNumber: "Deployment #",
     courier: "Datacenter",
     carrierNote:
-      "Hosted across NexGrid data centers in Singapore, Frankfurt, and Virginia.",
+      "Hosted across UVEL data centers in Singapore, Frankfurt, and Virginia.",
     activateTitle: "Activate this device",
     activateCta: "Activate now",
     activatedToast: "Device activated — it's now in your Earn list",
@@ -3196,7 +3196,7 @@ export const en = {
   achievements: {
     title: "Achievements",
     back: "Back",
-    subtitle: "Earn badges and NEX for hitting NexGrid milestones.",
+    subtitle: "Earn badges and NEX for hitting UVEL milestones.",
     progress: "Progress",
     unlocked: "{n} unlocked",
     locked: "{n} locked",
@@ -3229,16 +3229,16 @@ export const en = {
     a_power_user: "Power User",
     a_power_user_d: "Stay online 7 days in a row",
     a_social_star: "Social Star",
-    a_social_star_d: "Refer 5 friends to NexGrid",
+    a_social_star_d: "Refer 5 friends to UVEL",
     a_hardware_owner: "Hardware Owner",
-    a_hardware_owner_d: "Purchase your first NexGridBox device",
+    a_hardware_owner_d: "Purchase your first UVELBox device",
     a_diamond_miner: "Diamond Contributor",
     a_diamond_miner_d: "Cumulative earnings reach $1,000",
   },
   developer: {
     title: "Developer Hub",
     back: "Back",
-    headline: "Build on NexGrid Compute",
+    headline: "Build on UVEL Compute",
     tagline:
       "Programmatic access to compute orchestration, earnings, and market data.",
     apiOverviewTab: "Overview",
@@ -3259,7 +3259,7 @@ export const en = {
     formCompany: "Company",
     formEmail: "Work email",
     formUseCase: "Use case",
-    formUseCasePlaceholder: "Tell us how you'll use NexGrid's APIs…",
+    formUseCasePlaceholder: "Tell us how you'll use UVEL's APIs…",
     formSubmit: "Request access",
     formRequiredToast: "Complete the company, work email, and use-case fields",
     formSubmittedToast: "Request received · our partnerships team will reach out",
@@ -3278,7 +3278,7 @@ export const en = {
   globe: {
     title: "Global Network",
     back: "Back",
-    headline: "Live map of every active NexGrid node",
+    headline: "Live map of every active UVEL node",
     activeNodes: "Active nodes",
     activeJobs: "Jobs in flight",
     jobsPerHour: "Jobs/hr",
@@ -3311,7 +3311,7 @@ export const en = {
     back: "Back",
     headline: "Share your contribution",
     tagline:
-      "A snapshot of your NexGrid activity. Anyone with your referral link earns when they join.",
+      "A snapshot of your UVEL activity. Anyone with your referral link earns when they join.",
     memberSince: "Member since {m}",
     totalEarned: "Total earned",
     activeDays: "Active days",
@@ -3983,7 +3983,7 @@ export const en = {
       "Every rank has its own set of requirements. To advance to the next rank, you must meet ALL of them simultaneously.",
     req1Label: "1. Self-investment",
     req1Body:
-      "USDT spent buying your own devices (NexGridBox / Cloud Share). Refunds are deducted. NEX-token purchases and gift packs don't count.",
+      "USDT spent buying your own devices (UVELBox / Cloud Share). Refunds are deducted. NEX-token purchases and gift packs don't count.",
     req2Label: "2. Direct invites",
     req2Body:
       "Number of friends you personally invited who completed sign-up. Only unique accounts count; downgraded or closed accounts are removed.",
@@ -4025,10 +4025,10 @@ export const en = {
       "Alice's two V1 invites (Bob and Carol) each build out their own teams. Both cross the $5,000 team-volume mark and auto-promote to V2. Alice receives a +2,000 NEX cultivation bonus for each promotion.",
     s5Phase2Title: "Phase 2 — A new invite matures",
     s5Phase2Body:
-      "Alice invites David, who signs up and buys his first NexGridBox. David grows his own small team and also reaches V2. Alice now has 3 direct invites at V2 (Bob, Carol, David) — and her team-volume total has climbed to about $52,000 from cumulative orders across the network.",
+      "Alice invites David, who signs up and buys his first UVELBox. David grows his own small team and also reaches V2. Alice now has 3 direct invites at V2 (Bob, Carol, David) — and her team-volume total has climbed to about $52,000 from cumulative orders across the network.",
     s5Phase3Title: "Phase 3 — Promotion trigger",
     s5Phase3Body:
-      "David places one more NexGridBox order. The system re-checks Alice's rank progress.",
+      "David places one more UVELBox order. The system re-checks Alice's rank progress.",
     s5TriggerLabel: "Promotion fires instantly",
     s5TriggerBody:
       "Team volume $52,300 ≥ $50,000 ✓ AND direct invites at V2+ count = 3 ≥ 3 ✓. Both conditions are satisfied in the same event — Alice is auto-promoted to V4 Commander on that exact frame.",
@@ -4151,7 +4151,7 @@ export const en = {
       "Concrete numbers — your friend buys one device, and here's what lands in your wallet that month.",
     s4Scenario: "Scenario",
     s4Setup:
-      "You're at Verified status ($5K+ monthly network activity), and your Direct Royalty rate is a flat 10%. Your direct friend buys a NexGridBox Pro for $899.",
+      "You're at Verified status ($5K+ monthly network activity), and your Direct Royalty rate is a flat 10%. Your direct friend buys a UVELBox Pro for $899.",
     youHere: "Your monthly royalty",
     totalYouEarn: "You earn this month",
     s4DirectLabel: "Direct Royalty · 10% × $899",
@@ -4259,7 +4259,7 @@ export const en = {
     s5BlockedTag: "· below qualifying threshold",
     s5M2Month: "Month 2",
     s5M2Text:
-      "Tom and Alex each invite 2 new members who buy NexGridBox S1. Both tracks cross $1,000 — Sarah's bonus kicks in.",
+      "Tom and Alex each invite 2 new members who buy UVELBox S1. Both tracks cross $1,000 — Sarah's bonus kicks in.",
     s5M3Month: "Month 3",
     s5M3Text:
       "Sarah's Track A grows fast to $4,500, but Track B only reaches $2,400. Bonus is still based on the smaller track.",
@@ -4323,7 +4323,7 @@ export const en = {
       "The Leadership Pool is the platform's way of sharing growth with the leaders who actually build teams. Earn votes by climbing V ranks; collect dividends every Monday.",
     s1Title: "What is the Leadership Pool?",
     s1Para1:
-      "Every week, the platform takes 5% of total transaction volume across NexGrid and puts it into a shared pool. That pool is then distributed among all users at V rank 3 (Captain) or above, in proportion to each leader's vote weight.",
+      "Every week, the platform takes 5% of total transaction volume across UVEL and puts it into a shared pool. That pool is then distributed among all users at V rank 3 (Captain) or above, in proportion to each leader's vote weight.",
     s1Para2:
       "Think of it like a profit-sharing program. The more the platform grows, the bigger the weekly pool — and the more votes you hold (by climbing V ranks), the larger your slice.",
     s2Title: "How votes scale with V rank",
@@ -4452,7 +4452,7 @@ export const en = {
     s4Title: "A typical day's commissions",
     s4Intro: "Here's what one day might look like for a V3 user with active team:",
     s4Day: "Today",
-    ex1Label: "Sarah K. bought NexGridBox S1 — Direct royalty",
+    ex1Label: "Sarah K. bought UVELBox S1 — Direct royalty",
     ex2Label: "Bob reached V2 — cultivation bonus",
     ex3Label: "Carol (V3) bought Cloud Share — peer bonus",
     ex4Label: "Weekly leadership pool — V3 share",
@@ -4821,16 +4821,16 @@ export const en = {
     openSeaLoading: "Connecting to OpenSea…",
     openSeaLoadingSub: "Loading collection · 0xNX...A98F",
     openSeaErrorTitle: "Couldn't reach OpenSea right now",
-    openSeaErrorSub: "Don't worry — your listing is safe on NexGrid's internal book.",
-    openSeaErrorHint: "Most holders trade peer-to-peer inside NexGrid · faster + zero gas.",
+    openSeaErrorSub: "Don't worry — your listing is safe on UVEL's internal book.",
+    openSeaErrorHint: "Most holders trade peer-to-peer inside UVEL · faster + zero gas.",
     openSeaRetry: "Retry connection",
-    openSeaBack: "Back to NexGrid market",
+    openSeaBack: "Back to UVEL market",
     openSeaErrorPool: {
       rateLimit: "OpenSea API rate limit reached. Try again in ~15 min.",
       syncPending: "Collection sync pending — OpenSea typically takes 24–48h after listing.",
       bridge: "Cross-chain bridge under maintenance. ETA: 24h.",
       verifyPending: "Collection awaiting OpenSea Verified ✓ approval. Listing visible after.",
-      cf: "The third-party market isn't reachable right now — your listing is safe on NexGrid. Retry shortly.",
+      cf: "The third-party market isn't reachable right now — your listing is safe on UVEL. Retry shortly.",
     },
     sellNav: "Sell",
     listBannerTitle: "Own a Genesis? List it for sale",
@@ -4883,7 +4883,7 @@ export const en = {
       "Seats share a slice of the ecosystem reward pool, on top of your emission allocation.",
     perk3Label: "Founding-member identity",
     perk3Body:
-      "A blockchain-verified record that you were among NexGrid's first 1,000 OG holders — held permanently in your wallet.",
+      "A blockchain-verified record that you were among UVEL's first 1,000 OG holders — held permanently in your wallet.",
     perk4Label: "DAO voting rights",
     perk4Body:
       "Each seat grants 1 governance vote on major platform decisions (fee changes, treasury allocation, partnership approvals).",
@@ -4925,7 +4925,7 @@ export const en = {
       "Emissions open when $NEX lists. Before that you hold a reserved allocation and climb the points leaderboard; there is no daily payout in the pre-listing phase.",
     faqQ4: "What are the risks?",
     faqA4:
-      "Emissions are paid in $NEX and vary with the network — no guaranteed return. Treat a seat as venture-style exposure to NexGrid's long-term success.",
+      "Emissions are paid in $NEX and vary with the network — no guaranteed return. Treat a seat as venture-style exposure to UVEL's long-term success.",
     faqQ5: "Can I hold multiple seats?",
     faqA5:
       "Yes — no per-account cap. Each seat is independent and tradeable separately, and more seats mean a larger reserved allocation.",
@@ -4956,8 +4956,8 @@ export const en = {
     privacy: "Privacy",
     trustCenter: "Trust Center",
     sponsorCityLine: "{city} · {n} network members",
-    alreadyBar: "You're already on NexGrid. Invite links are for new users — the welcome gift is once per account.",
-    enterApp: "Enter NexGrid",
+    alreadyBar: "You're already on UVEL. Invite links are for new users — the welcome gift is once per account.",
+    enterApp: "Enter UVEL",
     previewUnavailable: "This referral offer is unavailable right now. Please try again later.",
     certikAudited: "CertiK audited",
   },
@@ -4976,12 +4976,12 @@ export const en = {
   nexHowItWorks: {
     navTitle: "About NEX token",
     heroLabel: "PLATFORM TOKEN",
-    heroTitle: "NEX — the token that powers NexGrid's compute economy.",
+    heroTitle: "NEX — the token that powers UVEL's compute economy.",
     heroSub:
       "Every time AI inference runs on the network, NEX is minted. Every time someone pays platform fees, NEX is burned. Supply and demand both come from real activity.",
     s1Title: "NEX vs USDT — what's the difference?",
     s1Para1:
-      "Your wallet holds two kinds of money. USDT is a stablecoin pegged to the US dollar — predictable, used for payments and withdrawals. NEX is NexGrid's native platform token — variable price, used to exchange into USDT and to offset USDT withdrawal fees.",
+      "Your wallet holds two kinds of money. USDT is a stablecoin pegged to the US dollar — predictable, used for payments and withdrawals. NEX is UVEL's native platform token — variable price, used to exchange into USDT and to offset USDT withdrawal fees.",
     colWhat: "Property",
     rowType: "Token type",
     usdtType: "Stablecoin (peg)",
@@ -5068,7 +5068,7 @@ export const en = {
     // Foundation Builder (0-2 months)
     foundation_builder_title: "Foundation Builder",
     foundation_builder_body: "Onboarding gauntlet. Own your first rig, hit $200 lifetime, refer your first friend.",
-    foundation_builder_sub_have_hardware: "Own ≥ 1 NexGridBox or Rack",
+    foundation_builder_sub_have_hardware: "Own ≥ 1 UVELBox or Rack",
     foundation_builder_sub_lifetime_earned_200: "Lifetime earnings ≥ $200",
     foundation_builder_sub_direct_invite_1: "Refer 1 friend who signs up",
 
@@ -5082,7 +5082,7 @@ export const en = {
     // Premium Pathway (4-6 months)
     premium_pathway_title: "Premium Pathway",
     premium_pathway_body: "Tier upgrade window. Own Pro+, hit $5,000 lifetime, stake $1,000 to lock yield.",
-    premium_pathway_sub_own_pro_or_higher: "Own NexGridBox Pro or higher",
+    premium_pathway_sub_own_pro_or_higher: "Own UVELBox Pro or higher",
     premium_pathway_sub_lifetime_earned_5000: "Lifetime earnings ≥ $5,000",
     premium_pathway_sub_staked_1000: "Active stake ≥ $1,000",
 
@@ -5155,17 +5155,17 @@ export const en = {
     tier1_tradein_upgrade_title: "Retire a device · credit your upgrade",
     tier1_tradein_upgrade_body: "Retire anytime for checkout credit: the less it has produced, the bigger the credit — upgrading early pays more. Pro v2 packs 2.5× the compute, Rack P2 far more — booking more higher-tier tasks.",
     tier1_tradein_upgrade_cta: "See upgrade trade-in",
-    tier1_upgrade_s1_to_pro_v2_title: "Upgrade NexGridBox S1 → Pro v2",
+    tier1_upgrade_s1_to_pro_v2_title: "Upgrade UVELBox S1 → Pro v2",
     tier1_upgrade_s1_to_pro_v2_body: "2.5× throughput, 256GB VRAM, stronger silicon. Compound your daily ceiling immediately.",
     tier1_upgrade_s1_to_pro_v2_cta: "View Pro v2",
     tier1_subscribe_premium_title: "Re-invest · lock your balance for another round",
     tier1_subscribe_premium_body: "Re-invest your withdrawable balance into a 90-day lock: 35% APY + 1.5× cultivation + Genesis raffle tickets.",
     tier1_subscribe_premium_cta: "Re-invest",
-    tier1_buy_first_box_title: "Buy your first NexGridBox · stop bleeding $7/day",
+    tier1_buy_first_box_title: "Buy your first UVELBox · stop bleeding $7/day",
     tier1_buy_first_box_body: "S1 produces 117× your phone's daily output. Pays itself back in 93 days at the base output tier.",
-    tier1_buy_first_box_cta: "Shop NexGridBox",
+    tier1_buy_first_box_cta: "Shop UVELBox",
     tier1_topup_balance_title: "Top up your wallet · activate hardware path",
-    tier1_topup_balance_body: "Reach $200 balance to unlock the NexGridBox S1 / Cloud Share entry tiers.",
+    tier1_topup_balance_body: "Reach $200 balance to unlock the UVELBox S1 / Cloud Share entry tiers.",
     tier1_topup_balance_cta: "Add USDT",
     tier1_stake_fallback_title: "Stake $500 to unlock weekly yield",
     tier1_stake_fallback_body: "Even small locks accrue NEX. 30-day pool returns 5% on principal, paid in NEX.",
@@ -5197,7 +5197,7 @@ export const en = {
     graceBanner: "First 24h closed. Grace window: claim {n} NEX (60% bonus reduced) before it fully expires.",
     expand: "View {n} tasks",
     collapse: "Hide tasks",
-    buyCta: "Get your first NexGridBox · earn $7/day forever",
+    buyCta: "Get your first UVELBox · earn $7/day forever",
     routeToast: "Quest complete · +{n} NEX",
     bindCardMemo: "Day-one quest · Link bank card",
 
@@ -5205,7 +5205,7 @@ export const en = {
     t_bind_bank_card: "Link a bank card",
     t_visit_earn: "Open Earn tab",
     t_visit_store: "Browse the store",
-    t_view_product_roi: "View a NexGridBox ROI",
+    t_view_product_roi: "View a UVELBox ROI",
     t_setup_profile: "Set up your profile",
     t_invite_friend: "Invite 1 friend",
   },
@@ -5275,7 +5275,7 @@ export const en = {
     schemeCopied: "Invite text copied — open {channel} and paste to send",
     noCodeYet: "Your invite code is being prepared — try again shortly",
     copyFailed: "Copy failed — try again",
-    shareText: "I earn daily compute yield on NexGrid. Sign up with my link and grab ${usd} + {nex} NEX free → {link}",
+    shareText: "I earn daily compute yield on UVEL. Sign up with my link and grab ${usd} + {nex} NEX free → {link}",
     questRewardMemo: "Day-one quest · Invite a friend",
     questRewardToast: "Quest complete: invite a friend",
     posterGiftCap: "WELCOME GIFT",
@@ -5378,7 +5378,7 @@ export const en = {
     cardFeeLabel: "Card fee {rate}",
     cardLimitHint: "Per-transaction limit {min} – {max}",
     payCta: "Pay {amount}",
-    trustFootnote: "Card processed by Checkout.com (PCI DSS Level 1). NexGrid never sees your full card number. 3D Secure 2.2 enforced for transactions over $50.",
+    trustFootnote: "Card processed by Checkout.com (PCI DSS Level 1). UVEL never sees your full card number. 3D Secure 2.2 enforced for transactions over $50.",
     receiptLine: "Receipt #{no} · Charged ${amount} to ••••{last4}",
     authorizingCard: "Authorizing card…",
     secureVerification: "3D Secure verification",

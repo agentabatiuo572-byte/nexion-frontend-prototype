@@ -97,6 +97,7 @@
 
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, ref, watch } from "vue";
+import { loadPosterBrand } from "@/lib/brand";
 import qrcode from "qrcode-generator";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -271,10 +272,9 @@ function ts(): string {
   return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-function paint(link: string, myToken: number) {
+function paint(link: string, myToken: number, logo: string) {
   const ctx = uni.createCanvasContext("sharePosterCv", inst?.proxy);
   const brand = BRAND_ON_DARK;
-  const onBrand = ON_BRAND_DARK;
   const cyan = CYAN_ON_DARK;
 
   // 底:暗色画稿渐变
@@ -310,17 +310,7 @@ function paint(link: string, myToken: number) {
   ctx.fillRect(16, H - 112, W - 32, 1);
 
   // 品牌行
-  ctx.setFillStyle(brand);
-  roundRect(ctx, 16, 14, 20, 20, 6);
-  ctx.fill();
-  ctx.setFillStyle(onBrand);
-  ctx.setFontSize(11);
-  ctx.setTextAlign("center");
-  ctx.fillText("N", 26, 28);
-  ctx.setTextAlign("left");
-  ctx.setFillStyle(INK_ON_DARK);
-  ctx.setFontSize(13);
-  ctx.fillText("NexGrid", 42, 28);
+  ctx.drawImage(logo, 16, 12, 104, 104 * 246 / 712);
   ctx.setFillStyle(FAINT_ON_DARK);
   ctx.setFontSize(9);
   ctx.setTextAlign("right");
@@ -429,10 +419,12 @@ function regenerate() {
   genState.value = "generating";
   void nextTick(() => {
     // canvas 挂载/尺寸就绪缓冲;绘制异常一律落 failed(异常1,不白屏)。
-    setTimeout(() => {
+    setTimeout(async () => {
       if (myToken !== genToken || !props.open) return;
       try {
-        paint(link, myToken);
+        const logo = await loadPosterBrand();
+        if (myToken !== genToken || !props.open) return;
+        paint(link, myToken, logo);
       } catch {
         if (myToken === genToken) genState.value = "failed";
       }
@@ -470,7 +462,7 @@ function saveImage() {
       const u = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = u;
-      a.download = `nexgrid-invite-${Date.now()}.png`;
+      a.download = `uvel-invite-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();

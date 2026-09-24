@@ -10,7 +10,7 @@
       有效期属持卡人数据但不属敏感认证数据(SAD),与 PAN/CVV 不同级。
       ⚠️ 曾把它写进「只存在于组件内」的列表里 —— 过度声明,会让人误以为它像
       卡号一样不可见。审计已纠(2026-07-28)。
-  产品文案承诺的也正是这个范围(充值页 trustFootnote「NexGrid 不会接触你的完整
+  产品文案承诺的也正是这个范围(充值页 trustFootnote「UVEL 不会接触你的完整
   卡号」· 绑卡页 formSecurityNote「PCI DSS Level 1 token 化」——都只承诺卡号)。
 
   形状照 Stripe Elements:一个 elements 容器 + 若干 element 子项,容器负责

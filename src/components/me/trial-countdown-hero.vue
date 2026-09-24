@@ -9,7 +9,7 @@
   <view class="relative overflow-hidden" :style="cardStyle">
     <view class="flex items-center justify-between">
       <text :style="ribbonStyle">{{ ribbon }}</text>
-      <text :style="boxNameStyle">NexGridBox S1</text>
+      <text :style="boxNameStyle">UVELBox S1</text>
     </view>
 
     <!-- Shadow earnings -->

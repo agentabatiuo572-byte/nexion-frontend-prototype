@@ -3,12 +3,12 @@
   Nexion-prototype/app/components/product-render.tsx).
 
   Hardware tiers (Entry/Pro/Flagship) show a tilted product photo with a flat
-  (non-tilting) NEXGRID brand overlay. Cloud Share keeps the abstract distributed-
+  (non-tilting) UVEL brand overlay. Cloud Share keeps the abstract distributed-
   cloud SVG (all SMIL <animate> tags render in the .vue webview — see PITFALLS
   P-013). The tilt uses the existing `v5-product-tilt` keyframe in tokens.css.
 
   The store LIST card has its own inline render (id-keyed photo, no brand
-  overlay); this tier-keyed variant with the NEXGRID label is detail-only.
+  overlay); this tier-keyed variant with the UVEL label is detail-only.
 -->
 <template>
   <view class="relative w-full overflow-hidden" :style="rootStyle">
@@ -23,7 +23,7 @@
       <view aria-hidden :style="vignetteStyle" />
       <!-- Brand overlay — flat 2D label, does NOT tilt with the product -->
       <view class="absolute text-right" style="bottom: 10px; right: 16px; pointer-events: none">
-        <text class="block" :style="brandStyle">NEXGRID</text>
+        <text class="block" :style="brandStyle">UVEL</text>
         <text class="block" :style="tierCodeStyle">{{ photo.tierCode }}</text>
       </view>
     </template>

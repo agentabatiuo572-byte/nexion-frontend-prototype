@@ -52,7 +52,7 @@
             </view>
             <view class="flex-1 min-w-0">
               <view class="flex items-center" style="gap: 6px">
-                <text class="truncate" :style="trialNameStyle">NexGridBox S1</text>
+                <text class="truncate" :style="trialNameStyle">UVELBox S1</text>
                 <text :style="trialBadgeStyle">{{ t.trial.ghostBadge }}</text>
               </view>
               <text class="block" :style="trialSubStyle">{{ t.trial.deviceRowSub }}</text>

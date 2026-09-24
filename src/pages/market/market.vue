@@ -22,7 +22,7 @@
               </view>
               <view>
                 <text class="block font-display" :style="nexPairStyle">NEX / USDT</text>
-                <text class="block" :style="nexSubStyle">NexGrid · #{{ nex.rank }}</text>
+                <text class="block" :style="nexSubStyle">UVEL · #{{ nex.rank }}</text>
               </view>
             </view>
             <view class="text-right">

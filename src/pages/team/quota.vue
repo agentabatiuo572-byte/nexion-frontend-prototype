@@ -1,6 +1,6 @@
 <!--
   Hardware Quota — ported from Nexion-prototype/app/(main)/team/quota/page.tsx.
-  Higher tiers (NexGridBox Pro / Rack P1) gated behind activated-direct-invite /
+  Higher tiers (UVELBox Pro / Rack P1) gated behind activated-direct-invite /
   team-volume milestones. De-carded hero (active-invites count directly on the
   page floor, hairline footer) + 2 QuotaTierCards (whitelist tier cards, fill
   no border) + invite CTA (tint fill, border dropped) → /team. Sub-page →

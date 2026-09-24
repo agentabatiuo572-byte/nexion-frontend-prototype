@@ -131,9 +131,9 @@ const days = ref(90);
 const recommendation = computed(() => {
   const perDay = target.value / days.value;
   if (perDay <= 0.19) return { tier: "Cloud Share", reason: t.value.goals.recCloudShare };
-  if (perDay <= 7) return { tier: "NexGridBox S1", reason: t.value.goals.recS1 };
-  if (perDay <= 13) return { tier: "NexGridBox Pro", reason: t.value.goals.recPro };
-  return { tier: "NexGridRack P1", reason: t.value.goals.recRack };
+  if (perDay <= 7) return { tier: "UVELBox S1", reason: t.value.goals.recS1 };
+  if (perDay <= 13) return { tier: "UVELBox Pro", reason: t.value.goals.recPro };
+  return { tier: "UVELRack P1", reason: t.value.goals.recRack };
 });
 
 const heroSubLine = computed(() =>

@@ -109,7 +109,7 @@ export const V_RANKS: VRankDef[] = [
     cultivationBonus: 0,
   },
   {
-    v: 10, title: "NexGrid Founder", cnTitle: "联合创始",
+    v: 10, title: "UVEL Founder", cnTitle: "联合创始",
     conditions: { teamVolumeUSD: 30_000_000 },
     directBonus: 0.10, unilevelDepth: 99,
     peerBonus: 0.05, leadershipVotes: 128,

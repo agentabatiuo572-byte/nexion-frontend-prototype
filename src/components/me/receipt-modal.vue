@@ -70,6 +70,7 @@
 </template>
 
 <script setup lang="ts">
+import { brandProductName } from "@/lib/brand";
 import { computed, ref, onUnmounted, type CSSProperties } from "vue";
 import type { Receipt, ReceiptDetails } from "@/mock/receipt";
 import { shortenHex } from "@/mock/receipt";
@@ -253,7 +254,7 @@ const sections = computed<DescSection[]>(() => {
     },
     {
       rows: [
-        { k: "device", v: r.deviceName },
+        { k: "device", v: brandProductName(r.deviceName) },
         { k: "gpu", v: r.deviceGpu },
         { k: "gpu_fingerprint", v: r.deviceFingerprint },
       ],
