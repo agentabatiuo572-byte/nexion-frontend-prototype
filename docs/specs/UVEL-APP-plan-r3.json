@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 2,
+  "id": "uvel-app-brand-20260924-r3",
+  "title": "APP 原型 NexGrid 更名 UVEL",
+  "repo": "D:/WORKS/PLAN/Nexion-uniapp",
+  "base": "5590a6da3d93304254a0b71d40edf79a43c3bac0",
+  "mode": "implement",
+  "risk": "medium",
+  "owner": "codex-primary",
+  "outOfScope": [
+    "官网、后台和跨仓 PRD",
+    "协议、服务地址、币种、存储键和既有未提交改动",
+    "原生签名上架"
+  ],
+  "inputs": [
+    "D:/WORKS/PLAN/Nexion-uniapp/docs/specs/UVEL-APP-品牌替换.md",
+    "D:/WORKS/PLAN/UI/UVEL_Lemon_Complete_16_PNG/README.md",
+    "D:/WORKS/PLAN/UI/UVEL_Lemon_Complete_16_PNG/manifest.json"
+  ],
+  "steps": [
+    {
+      "id": "assets",
+      "title": "接入品牌资源与共享展示",
+      "dependsOn": [],
+      "scope": [
+        "src/static/img/brand/**",
+        "src/static/logo.png",
+        "src/components/brand-lockup.vue",
+        "scripts/uvel-brand-check.mjs"
+      ],
+      "acceptance": [
+        {
+          "id": "asset-provenance",
+          "description": "APP 深浅 LOGO 与指定交付资源逐字节一致；共享组件引用正确",
+          "source": {
+            "input": "D:/WORKS/PLAN/Nexion-uniapp/docs/specs/UVEL-APP-品牌替换.md",
+            "locator": "范围与不变量；依赖与分步验收；FEAT-BRAND1"
+          },
+          "kind": "static",
+          "checks": [
+            "assets/asset-check"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "id": "asset-check",
+          "argv": [
+            "node",
+            "scripts/uvel-brand-check.mjs",
+            "--assets"
+          ],
+          "kind": "exit",
+          "timeoutMs": 10000
+        }
+      ],
+      "reviewRequired": false
+    },
+    {
+      "id": "app",
+      "title": "替换名称、全部品牌入口与分享，保留数据兼容",
+      "dependsOn": [
+        "assets"
+      ],
+      "scope": [
+        "src/**",
+        "index.html",
+        "package.json",
+        "scripts/uvel-brand-check.mjs",
+        "scripts/app-home-live-e2e.mjs",
+        "docs/前端产品更新日志.md",
+        "scripts/i18n-hardcoded-en-copy-sentinel.mjs",
+        "scripts/auth-register-existing-runtime.mjs",
+        "scripts/release-gate-walkthrough.mjs",
+        "scripts/frontend-mock-mode-contract.test.mjs"
+      ],
+      "acceptance": [
+        {
+          "id": "brand-copy",
+          "description": "英中越三套文案及 APP 展示品牌为 UVEL；技术兼容标识和币种不改",
+          "source": {
+            "input": "D:/WORKS/PLAN/Nexion-uniapp/docs/specs/UVEL-APP-品牌替换.md",
+            "locator": "范围与不变量；依赖与分步验收；FEAT-BRAND1"
+          },
+          "kind": "static",
+          "checks": [
+            "app/brand-check",
+            "app/i18n"
+          ]
+        },
+        {
+          "id": "legacy-data",
+          "description": "历史商品/设备展示更新且自定义名称、存储键、接口标识保持",
+          "source": {
+            "input": "D:/WORKS/PLAN/Nexion-uniapp/docs/specs/UVEL-APP-品牌替换.md",
+            "locator": "范围与不变量；依赖与分步验收；FEAT-BRAND1"
+          },
+          "kind": "behavior",
+          "checks": [
+            "app/brand-check",
+            "app/unit"
+          ]
+        },
+        {
+          "id": "app-type-safe",
+          "description": "品牌组件与消费入口编译类型一致",
+          "source": {
+            "input": "D:/WORKS/PLAN/Nexion-uniapp/docs/specs/UVEL-APP-品牌替换.md",
+            "locator": "范围与不变量；依赖与分步验收；FEAT-BRAND1"
+          },
+          "kind": "static",
+          "checks": [
+            "app/type-check",
+            "app/mock-mode"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "id": "brand-check",
+          "argv": [
+            "node",
+            "scripts/uvel-brand-check.mjs"
+          ],
+          "kind": "exit",
+          "timeoutMs": 15000
+        },
+        {
+          "id": "i18n",
+          "argv": [
+            "node",
+            "scripts/i18n-key-mirror.mjs"
+          ],
+          "kind": "exit",
+          "timeoutMs": 30000
+        },
+        {
+          "id": "unit",
+          "argv": [
+            "node",
+            "node_modules/vitest/vitest.mjs",
+            "run"
+          ],
+          "kind": "exit",
+          "timeoutMs": 300000
+        },
+        {
+          "id": "type-check",
+          "argv": [
+            "node",
+            "node_modules/vue-tsc/bin/vue-tsc.js",
+            "--noEmit"
+          ],
+          "kind": "exit",
+          "timeoutMs": 180000
+        },
+        {
+          "id": "mock-mode",
+          "argv": [
+            "node",
+            "scripts/frontend-mock-mode-contract.test.mjs"
+          ],
+          "kind": "exit",
+          "timeoutMs": 30000
+        }
+      ],
+      "reviewRequired": false
+    }
+  ],
+  "integration": {
+    "id": "integration",
+    "title": "全站运行时、最终提交 full verify 与独立验收",
+    "dependsOn": [
+      "assets",
+      "app"
+    ],
+    "scope": [
+      "src/**",
+      "index.html",
+      "package.json",
+      "scripts/uvel-brand-*.mjs",
+      "scripts/app-home-live-e2e.mjs",
+      "docs/specs/UVEL*",
+      "docs/前端产品更新日志.md",
+      "scripts/i18n-hardcoded-en-copy-sentinel.mjs",
+      "scripts/auth-register-existing-runtime.mjs",
+      "scripts/release-gate-walkthrough.mjs",
+      "scripts/frontend-mock-mode-contract.test.mjs"
+    ],
+    "acceptance": [
+      {
+        "id": "runtime-brand",
+        "description": "全路由与 en/zh/vi、light/dark 品牌资源正确，分享图生成成功，登录及旧数据刷新可用",
+        "source": {
+          "input": "D:/WORKS/PLAN/Nexion-uniapp/docs/specs/UVEL-APP-品牌替换.md",
+          "locator": "范围与不变量；依赖与分步验收；FEAT-BRAND1"
+        },
+        "kind": "ui",
+        "checks": [
+          "integration/runtime"
+        ]
+      },
+      {
+        "id": "full-verify",
+        "description": "最终提交的干净检出通过项目现行 full verify",
+        "source": {
+          "input": "D:/WORKS/PLAN/Nexion-uniapp/docs/specs/UVEL-APP-品牌替换.md",
+          "locator": "范围与不变量；依赖与分步验收；FEAT-BRAND1"
+        },
+        "kind": "behavior",
+        "checks": [
+          "integration/full"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "id": "runtime",
+        "argv": [
+          "node",
+          "scripts/uvel-brand-runtime.mjs"
+        ],
+        "kind": "record",
+        "capability": "runtime",
+        "report": "D:/WORKS/PLAN/Nexion-uniapp/.codex-run/uvel-rebrand/runtime.json",
+        "requiredChecks": [
+          "runtime-brand"
+        ],
+        "timeoutMs": 600000
+      },
+      {
+        "id": "full",
+        "argv": [
+          "node",
+          "D:/WORKS/PLAN/.wt/uvel-app-verify-20260924/scripts/verify-chain.mjs",
+          "--full"
+        ],
+        "kind": "exit",
+        "timeoutMs": 600000
+      }
+    ],
+    "reviewRequired": true
+  }
+}

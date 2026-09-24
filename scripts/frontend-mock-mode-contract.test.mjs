@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const file = (relative) => path.join(root, relative);
@@ -19,7 +20,17 @@ assert.match(runtimeConfig, /export type ApiEnvironment = "mock"/,
   "the high-fidelity App must expose mock as its only runtime environment");
 assert.match(runtimeConfig, /environment:\s*"mock"/,
   "the high-fidelity App runtime must be fixed to mock");
-assert.doesNotMatch(runtimeConfig, /VITE_NEXGRID_API_MODE|"sandbox"|"remote"|modeExplicit/,
+// Type-only transport contracts do not enable a runtime mode; inspect emitted code.
+const emit = (source) => ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, removeComments: true } }).outputText;
+const modeOverride = /VITE_NEXGRID_API_MODE|["'`](?:sandbox|remote)["'`]|modeExplicit/;
+assert.doesNotMatch(emit('export type Mode = "mock" | "sandbox" | "remote";'), modeOverride);
+for (const source of [
+  ...["sandbox", "remote"].flatMap(mode => ['"', "'", "`"].map(quote => `export const mode = ${quote}${mode}${quote};`)),
+  'export const mode = import.meta.env.VITE_NEXGRID_API_MODE;',
+]) {
+  assert.match(emit(source), modeOverride, "an actual runtime override must still fail the gate");
+}
+assert.doesNotMatch(emit(runtimeConfig), modeOverride,
   "the high-fidelity App must not accept sandbox/remote overrides");
 assert.doesNotMatch(runtime, /fundsSandboxEnabled|paymentSandboxEnabled|apiRuntimeConfig\.mode/,
   "the high-fidelity runtime must not expose sandbox capability switches");
