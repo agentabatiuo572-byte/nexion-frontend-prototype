@@ -13,7 +13,7 @@ const artifacts = resolve(process.env.CALIBRATION_ARTIFACT_DIR || `${tmpdir()}/n
 const results = [];
 let server, browser;
 const labels = { en: "Device assessment", zh: "设备能力评估", vi: "Đánh giá thiết bị" };
-const resultTitles = { en: "Device check", zh: "综合体检", vi: "Kiểm tra tổng thể" };
+const resultTitles = { en: "Check complete", zh: "校验完成", vi: "Kiểm tra hoàn tất" };
 const removedDetails = ".cn-test__metric, .cn-summary, .cn-row, .cn-score__tier, .cn-score__yield";
 
 async function checkScoreMotion(page, reduced = false) {

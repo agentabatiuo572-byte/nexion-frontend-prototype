@@ -2330,7 +2330,7 @@ export const en = {
     calibrationStart: "Start calibration",
     calibrationProgress: "Calibrating… {n}s remaining",
     testNpu: "Device assessment",
-    resultTitle: "Device check",
+    resultTitle: "Check complete",
     scoreLabel: "Estimated score",
     policyTitle: "Task acceptance rules",
     policyLine1: "Pauses below 20% battery. Charging is optional.",

@@ -2240,7 +2240,7 @@ export const vi: Messages = {
     calibrationStart: "Bắt đầu hiệu chỉnh",
     calibrationProgress: "Đang hiệu chỉnh… còn {n}s",
     testNpu: "Đánh giá thiết bị",
-    resultTitle: "Kiểm tra tổng thể",
+    resultTitle: "Kiểm tra hoàn tất",
     scoreLabel: "Điểm ước tính",
     policyTitle: "Quy tắc nhận nhiệm vụ",
     policyLine1: "Tạm dừng khi pin dưới 20%. Không cần cắm sạc.",

@@ -2256,7 +2256,7 @@ export const zh: Messages = {
     calibrationStart: "开始校准",
     calibrationProgress: "校准中… 剩余 {n} 秒",
     testNpu: "设备能力评估",
-    resultTitle: "综合体检",
+    resultTitle: "校验完成",
     scoreLabel: "估算评分",
     policyTitle: "任务接取规则",
     policyLine1: "电量低于 20% 暂停,无需保持充电。",
