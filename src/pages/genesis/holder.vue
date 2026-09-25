@@ -297,8 +297,8 @@ const perkColors = { a: "var(--v5-warning)", b: "var(--v5-tech-cyan)", c: "var(-
 .gh-content { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .gh-surface { background: color-mix(in srgb, var(--v5-surface) 96%, transparent); border-radius: var(--v5-radius-xl); padding: 16px; }
 /* Theme artwork is used directly; all account content stays live. */
-.gh-hero { --gh-logo-width: 128px; padding: 12px 20px 16px; border-radius: 18px; background: var(--v5-surface) url("/static/img/genesis/vip-card-light.png") center / cover no-repeat; }
-:global(html[data-theme="dark"] .gh-hero) { background-image: url("/static/img/genesis/vip-card-dark.png"); }
+.gh-hero { --gh-logo-width: 128px; padding: 12px 20px 16px; border-radius: 18px; background: var(--v5-surface) url("/static/img/genesis/vip-card-light.png") center / cover no-repeat; box-shadow: 0 0 18px -3px color-mix(in srgb, var(--v5-genesis-gold-on-dark) 14%, transparent), var(--v5-card-shadow-lift); }
+:global(html[data-theme="dark"] .gh-hero) { background-image: url("/static/img/genesis/vip-card-dark.png"); box-shadow: 0 0 22px -3px color-mix(in srgb, var(--v5-genesis-gold) 24%, transparent), var(--v5-card-shadow-lift); }
 .gh-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-bottom: 12px; }
 .gh-identity :deep(.uvel-brand) { width: var(--gh-logo-width); height: 44px; }
 .gh-identity :deep(.genesis-holder-badge) { max-width: calc(100% - var(--gh-logo-width) - 12px); gap: 8px; padding: 5px 12px; min-height: 36px; border: 1px solid color-mix(in srgb, var(--v5-genesis-gold) 80%, transparent); font-size: 14px; font-weight: 600; line-height: 1.3; background: color-mix(in srgb, var(--v5-genesis-gold) 5%, transparent); }

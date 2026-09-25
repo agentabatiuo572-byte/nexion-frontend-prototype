@@ -4,6 +4,8 @@ The holder presentation adds a gold holder badge and page-wide mineral textures.
 
 The holder card directly displays the fresh raster backgrounds `src/static/img/genesis/vip-card-dark.png` and `vip-card-light.png` with centered `background-size: cover` and an 18px corner radius. The dark artwork combines obsidian, gold and the brand lime `#9EDC1D`; the light artwork combines ivory, obsidian, gold and the brand blue `#0E48E6`. The real UVEL logo and live card content remain separate from the artwork. The card has no decorative SVG corners, pseudo-element artwork, masks or halo layers.
 
+The card uses the existing theme-aware lift shadow with a soft champagne-gold outer glow. Light mode keeps the glow softer and tighter; dark mode adds a little more warmth against the obsidian page. The artwork, content and layout remain unchanged.
+
 The six seat benefits use the personal center's centered icon-tile styling in a three-column grid. Activating a tile opens its existing description in the shared accessible dialog.
 
 Asset provenance: the backgrounds were generated with the built-in imagegen tool. The tool does not expose the exact model identifier.
