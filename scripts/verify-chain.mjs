@@ -60,10 +60,10 @@ const h5Only = mode === "scoped"
   : [];
 // 路由级范围(包 ax):scoped 时 h5 子探针各自的 PROBE_ROUTES 由 H5_PROBE_ROUTES(JSON,脚本名 → 路由串)下发,
 //   verify-h5-runtime.mjs 起子进程时逐个设;verify.sh 里的 route 类门由它自己的 plan 算(SCOPE_ROUTES_FOR[id])。
-//   PROBE_ROUTES 本身一律清空 —— 外层 shell 残留的 PROBE_ROUTES 绝不能让 full 悄悄变半量。
+//   缩范围变量一律清空 —— 外层 shell 残留值绝不能让 full 悄悄变半量。
 const h5OnlyEnv = mode === "scoped"
   ? { H5_RUNTIME_ONLY: h5Only.join(",") || "__none__", H5_PROBE_ROUTES: JSON.stringify(h5ProbeRoutesMap(P)), PROBE_ROUTES: "" }
-  : { H5_PROBE_ROUTES: "", PROBE_ROUTES: "" };
+  : { H5_RUNTIME_ONLY: "", H5_PROBE_ROUTES: "", PROBE_ROUTES: "" };
 if (mode === "scoped" && P.routes) say(`${C.d}  路由范围 ${P.routes.affected === "*" ? "全部" : `${P.routes.affected.length}/${P.routes.all.length}`}(${P.routes.reason});route 类探针只扫「这些 ∩ 探针射程」,门自身输入变了仍全扫${P.routes.affected !== "*" && P.routes.affected.length ? ":" + P.routes.affected.slice(0, 8).join(", ") + (P.routes.affected.length > 8 ? " …" : "") : ""}${C.n}`);
 
 // ── 起服(只在需要时、只起固定 mock server)──────────────────────────────────
@@ -87,7 +87,10 @@ const npmCli = [process.env.npm_execpath, path.join(path.dirname(process.execPat
 function runCommand(cmd, args, env, logFile) {
   return new Promise((resolve) => {
     const t0 = Date.now();
-    const child = spawn(cmd, args, { cwd: ROOT, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"], shell: false });
+    const childEnv = { ...process.env };
+    delete childEnv.BASE_URL;
+    delete childEnv.UNI_BASE_URL;
+    const child = spawn(cmd, args, { cwd: ROOT, env: { ...childEnv, ...env }, stdio: ["ignore", "pipe", "pipe"], shell: false });
     // 日志边跑边落盘(长步骤如 legacy-suite 十几分钟,`tail -f .verify-cache/logs/<step>.log` 能看进度),内存里只留尾巴给摘要用
     const stream = fs.createWriteStream(logFile, { flags: "w" });
     let out = "";

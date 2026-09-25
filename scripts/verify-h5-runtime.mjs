@@ -22,7 +22,7 @@ const skippedProbes = [];
 let h5ProbeRoutes = {};
 try { h5ProbeRoutes = process.env.H5_PROBE_ROUTES ? JSON.parse(process.env.H5_PROBE_ROUTES) : {}; } catch { h5ProbeRoutes = {}; }
 function probeEnv(script, baseUrl) {
-  const env = { ...process.env, BASE_URL: baseUrl };
+  const env = { ...process.env, BASE_URL: baseUrl, UNI_BASE_URL: baseUrl };
   delete env.PROBE_ROUTES;
   const r = h5ProbeRoutes[script];
   if (r && r !== "*") env.PROBE_ROUTES = r;
@@ -82,13 +82,14 @@ try {
           ".home-earnings-cluster",
         ]) : skipGate("page-check.mjs"),
       ]),
+      only("behavior-verify-genesis-closed.mjs") ? await runGate("behavior-verify-genesis-closed.mjs", baseUrl) : await skipGate("behavior-verify-genesis-closed.mjs"),
     ];
   for (const output of outputs) console.log(output.split(/\r?\n/).at(-1));
   const where = `${server.reused ? "reused" : "isolated"} server ${port}`;
-  const scopedNote = onlyList.length ? ` · scoped: ran ${outputs.length - skippedProbes.length}/${outputs.length} probes, SCOPED-SKIP ${skippedProbes.length}` : "";
+  const scopedNote = onlyList.length ? ` · SCOPED-SKIP ${skippedProbes.length}` : "";
   console.log(serverSessionReloadRecoveryOnly
     ? `H5 server-session reload recovery: PASS (${where}, returning + fresh flows)`
-    : `H5 runtime gates: PASS (${where}, 22 scenarios + 6 direct probes${scopedNote})`);
+    : `H5 runtime gates: PASS (${where}, ${outputs.length - skippedProbes.length}/${outputs.length} probes${scopedNote})`);
 } finally {
   server.stop();
 }

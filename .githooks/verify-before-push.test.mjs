@@ -10,6 +10,14 @@ import { fileURLToPath } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "verify-before-push.mjs");
+test("full verify clears inherited H5 probe scope and origin", () => {
+  const runner = readFileSync(join(dirname(HOOK), "../scripts/verify-chain.mjs"), "utf8");
+  const h5 = readFileSync(join(dirname(HOOK), "../scripts/verify-h5-runtime.mjs"), "utf8");
+  assert.match(runner, /const h5OnlyEnv = mode === "scoped"[\s\S]*?\n\s*:\s*\{\s*H5_RUNTIME_ONLY:\s*""/);
+  assert.match(runner, /delete childEnv\.BASE_URL;\s*delete childEnv\.UNI_BASE_URL;/);
+  assert.match(runner, /env:\s*\{\s*\.\.\.childEnv,\s*\.\.\.env\s*\}/);
+  assert.match(h5, /const env = \{ \.\.\.process\.env, BASE_URL: baseUrl, UNI_BASE_URL: baseUrl \}/);
+});
 const base = mkdtempSync(join(tmpdir(), "pre-push-gate-")).replace(/\\/g, "/");
 const repo = `${base}/repo`;
 mkdirSync(repo, { recursive: true });

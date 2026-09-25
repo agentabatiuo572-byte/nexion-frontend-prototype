@@ -207,7 +207,7 @@ const DAY = 86400_000;
 
 export const DEFAULT_GENESIS_CONFIG: GenesisConfig = {
   tiers: GENESIS_TIERS_DEFAULT.map((t) => ({ ...t })),
-  marketOpenState: "closed", // fail-closed until the server state is available
+  marketOpenState: "open", // mock default; the store stays closed until refresh succeeds
   closedNoticeKey: "default",
   saleStartAt: null, // 默认已开售(不阻断现状)
   showCountdown: true,
@@ -377,23 +377,16 @@ export const useGenesisConfig = defineStore("genesisConfig", () => {
    *      判定读的不再是构造时的内存快照,而是当下的权威源。
    */
   async function refresh() {
-    // 🔴🔴 mock 模式没有服务端可读,而下面的 catch 是 **fail-closed**(把市场钉成 closed、
-    //   loaded 置 false)。少了这个分支,mock 下 refresh 必然走进 catch ⇒
-    //   `genesisPurchaseBlock` 先判 `!configLoaded → configUnavailable`,创世**整条流程**
-    //   (购买 / 挂单 / 承接 / 展示)全被钉死在「市场暂未开放」。
-    //   mock 期的「服务端」就是内置默认配置:标记就绪 + 开市,其余字段沿用 DEFAULT_GENESIS_CONFIG。
-    //   fail-closed 只对**真的有服务端却读不到**的情形成立;没有服务端的构建不适用。
+    // mock 期的配置源是 uni storage；默认开市，但每次都要重读运营写入的关闭态。
     if (!remoteApiEnabled) {
+      const source = hydrate();
       config.value = {
         ...config.value,
-        // 初始态为远端 fail-closed 会暂时清空档位；固定演示模式恢复内置档表，
-        // 否则 0 已售会误落到空档回退价 $9,999，而不是白名单价 $7,999。
-        tiers: config.value.tiers.length
-          ? config.value.tiers.map((tier) => ({ ...tier }))
-          : GENESIS_TIERS_DEFAULT.map((tier) => ({ ...tier })),
-        marketOpenState: "open",
+        tiers: source.config.tiers,
+        marketOpenState: source.config.marketOpenState,
+        closedNoticeKey: source.config.closedNoticeKey,
       };
-      loaded.value = true;
+      loaded.value = source.ok;
       return;
     }
     try {

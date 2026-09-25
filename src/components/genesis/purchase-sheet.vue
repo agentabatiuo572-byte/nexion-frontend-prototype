@@ -113,6 +113,7 @@ import HolderBadge from "@/components/genesis/holder-badge.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useGenesis, GENESIS_ELIGIBILITY_POLICY } from "@/store/genesis";
+import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisEligibility } from "@/composables/use-genesis-eligibility";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { toast } from "@/store/ui";
@@ -128,6 +129,7 @@ const emit = defineEmits<{ "update:open": [boolean] }>();
 
 const t = useT();
 const genesis = useGenesis();
+const cfg = useGenesisConfig();
 const { gate } = useGenesisEligibility();
 // 🔴 半屏必须**自己**接闸(独立验收 P1-7)。此前它完全不知道市场状态:
 //   用户已打开半屏、运营此刻切关闭 → 走完扣款才被 store 拒 → 冲正 → 一句 toast,
@@ -229,6 +231,11 @@ async function handlePurchase() {
     //   这一段是原实现原样恢复,只多套一层 `!remoteApiEnabled`;远端模式一行都不走。
     //   顺序不可调:扣款⊗记账(一次提交)→ 铸席位 → 失败冲正。理由见 money-receipt.ts。
     if (!remoteApiEnabled) {
+      await cfg.refresh();
+      if (sheetBlocked.value) {
+        toast.error(sheetBlockText.value, t.value.genesis.marketClosed.holdingsSafe);
+        return;
+      }
       const cost = qty.value * price.value;
       const billRef = `GENESIS-PRIM-${Date.now().toString(36).toUpperCase()}`;
       const before = app.captureMoney();

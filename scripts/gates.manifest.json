@@ -279,7 +279,8 @@
         "scripts/backnav-check.mjs",
         "scripts/profile-identity-check.mjs",
         "scripts/pending-checkout-runtime.mjs",
-        "scripts/page-check.mjs"
+        "scripts/page-check.mjs",
+        "scripts/behavior-verify-genesis-closed.mjs"
       ]
     },
     "svg-text-runtime": {
@@ -422,7 +423,9 @@
       "kind": "runtime",
       "pages": [
         "src/pages/onboarding/connect.vue",
-        "src/pages/login/login.vue"
+        "src/pages/login/login.vue",
+        "src/pages/earn/device-detail.vue",
+        "src/pages/index/index.vue"
       ],
       "inputs": [
         "src/App.vue",
@@ -446,7 +449,8 @@
         "scripts/backnav-check.mjs",
         "scripts/profile-identity-check.mjs",
         "scripts/pending-checkout-runtime.mjs",
-        "scripts/page-check.mjs"
+        "scripts/page-check.mjs",
+        "scripts/behavior-verify-genesis-closed.mjs"
       ]
     },
     "test:withdraw-status-mirror": {
@@ -556,6 +560,16 @@
       ],
       "inputs": [
         "scripts/pending-checkout-runtime.mjs"
+      ]
+    },
+    "behavior-verify-genesis-closed": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/genesis/genesis.vue",
+        "src/pages/genesis/marketplace.vue"
+      ],
+      "inputs": [
+        "scripts/behavior-verify-genesis-closed.mjs"
       ]
     },
     "page-check": {

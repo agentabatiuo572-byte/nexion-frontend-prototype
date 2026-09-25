@@ -59,6 +59,18 @@ const hashGo = async (route) => {
   await wait(1500);
 };
 const text = () => page.evaluate(() => document.body.innerText);
+const state = () => page.evaluate(async () => {
+  const genesis = (await import("/src/store/genesis.ts")).useGenesis();
+  const app = (await import("/src/store/app.ts")).useApp();
+  const bills = (await import("/src/store/bills.ts")).useBills();
+  return {
+    owned: genesis.myOwned, ownedTokenIds: [...genesis.ownedTokenIds],
+    sold: genesis.soldSlots, listings: [...genesis.myListings],
+    balance: app.user.usdtBalance,
+    debits: bills.bills.filter((bill) => bill.ref?.startsWith("GENESIS-PRIM-")).length,
+    price: genesis.unitPriceUSDT,
+  };
+});
 
 try {
   // 起一个会话拿到 origin,才能写 localStorage
@@ -126,7 +138,7 @@ try {
   check("⑤ 恢复开放后挂单入口回到可用态", /挂单|List/.test(t3) && !/系统维护中|Under maintenance/i.test(t3),
     `实测:${t3.split("\n").filter(Boolean).slice(-3).join(" | ")}`);
 
-  // ══ ⑦ 配置刷新的三条路径 —— 分开断言,别混成一条 ══
+  // ══ ⑦ 会话打开后改配置,不刷新文档 ══
   // 复刻独立验收 P0 的原攻击路径:会话以 open 启动 → 外部(运营)改盘 → 用户不刷新。
   await seed({ marketOpenState: "open", closedNoticeKey: "default" }, { myOwned: 2, ownedTokenIds: [301, 302], myListings: [] });
   await go("/pages/genesis/genesis");
@@ -146,12 +158,40 @@ try {
   check("🔴 ⑦b 页内导航往返后跟上新状态(P0 原攻击路径,已修)", caughtAfterNav,
     "不跟上 = hydrate-once 修复没生效");
   check("🔴 ⑦a 停在页面上不动也跟上(规格 ⑤「就地转为锁定态」)", caughtInPlace,
-    "已知缺口:共享时钟每秒 tick 但不重读配置源 —— 待修(钱路径安全:动钱前 refresh 会拒)");
+    "15 秒轮询后仍未读取配置源");
+
+  // 先证明卖方持有目标节点,再在下一轮轮询前直接尝试挂单。
+  await seed({ marketOpenState: "open", closedNoticeKey: "default" }, { myOwned: 2, ownedTokenIds: [301, 302], myListings: [] });
+  await go("/pages/genesis/marketplace");
+  const listingBefore = await state();
+  check("⑦c 前提:可挂单节点确实在当前账号", listingBefore.ownedTokenIds.includes(301) && listingBefore.listings.length === 0);
+  await seed({ marketOpenState: "closed", closedNoticeKey: "maintenance" });
+  const listed = await page.evaluate(async () => (await import("/src/store/genesis.ts")).useGenesis().listNode(301, 12000));
+  const listingAfter = await state();
+  check("🔴 ⑦c 切关闭后立即挂单被拒且不产生挂单", !listed && listingAfter.listings.length === 0,
+    `实测 listed=${listed}, listings=${JSON.stringify(listingAfter.listings)}`);
+
+  // 购买半屏先在 open 态打开,切 closed 后立刻点确认；不能先扣再冲正。
+  await seed({ marketOpenState: "open", closedNoticeKey: "default" }, { myOwned: 2, ownedTokenIds: [301, 302], myListings: [] });
+  await go("/pages/genesis/genesis");
+  await page.locator(".nx-genesis-dock").click();
+  const submit = page.locator('.nx-sheet-panel [role="button"]');
+  await submit.waitFor();
+  const before = await state();
+  check("⑦d 前提:半屏可确认且余额足够", await submit.count() === 1 && before.balance >= before.price && before.owned < 5);
+  await seed({ marketOpenState: "closed", closedNoticeKey: "maintenance" });
+  await submit.click();
+  await wait(500);
+  const after = await state();
+  check("🔴 ⑦d 切关闭后立即确认:零扣款、零铸造", after.debits === before.debits
+    && after.balance === before.balance && after.owned === before.owned && after.sold === before.sold,
+    `实测 before=${JSON.stringify(before)}, after=${JSON.stringify(after)}`);
+  check("⑦d 半屏就地锁定并展示关闭说明", /系统维护中|Under maintenance/i.test(await text()) && await submit.count() === 0);
 
   check("⑥ 全程 console error = 0", errs.length === 0, errs.slice(0, 3).join(" ; "));
 } finally {
   await browser.close();
 }
 
-console.log(`\n${pass} pass / ${fail} fail(样本:关闭态 2 页 × 渲染/文案变体/紧迫感抑制 · 挂单点击行为固定靶 · 开放态回归 · console)`);
+console.log(`\n${pass} pass / ${fail} fail(关闭态两页、原地轮询、切换瞬间挂单与扣款、恢复开放、console)`);
 process.exit(fail === 0 ? 0 : 1);
