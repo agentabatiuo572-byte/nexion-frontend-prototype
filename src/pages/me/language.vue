@@ -8,8 +8,6 @@
     <view style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/me" :title="t.language.pageTitle" />
 
-      <text class="block mx-4" :style="introStyle">{{ t.language.intro }}</text>
-
       <view class="mx-4">
         <view style="display: flex; flex-direction: column; gap: 20px">
           <template v-for="p in priorities" :key="p">
@@ -78,13 +76,6 @@ function goAccount() {
   uni.navigateTo({ url: "/pages/me/me", fail: () => {} });
 }
 
-// Intro caption — header already provides the 24px breathing (no top margin).
-const introStyle: CSSProperties = {
-  marginBottom: "14px",
-  fontSize: "13px",
-  color: "var(--v5-ink-3)",
-  lineHeight: 1.6,
-};
 // Section label (de-card spec): 15/600/ink tier heading + mono P-tag on the floor.
 const sectionHeadStyle: CSSProperties = { padding: "0 2px 10px" };
 const sectionLabelStyle: CSSProperties = {
