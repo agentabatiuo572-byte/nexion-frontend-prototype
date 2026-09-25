@@ -43,13 +43,17 @@ async function themeAndLocale(page, theme, locale) {
 }
 async function cardFrameAlignment(page) {
   const edges = await page.locator('.gh-hero').evaluate(e => {
-    const card = e.getBoundingClientRect(), art = getComputedStyle(e, '::before'), style = getComputedStyle(e);
-    const top = parseFloat(art.top), height = parseFloat(art.height);
-    // Visible gold edge bounds in the approved PNG, excluding its transparent halo margins.
-    return { top: top + height * .1172, bottom: top + height * .879 - card.height,
-      overflow: style.overflow };
+    const card = e.getBoundingClientRect();
+    const corners = ['.gh-corner--outer', '.gh-corner--inner'].map(selector => {
+      const svg = e.querySelector(selector), matrix = svg.getScreenCTM();
+      const origin = svg.createSVGPoint().matrixTransform(matrix);
+      return { x: origin.x, y: origin.y, scale: Math.hypot(matrix.a, matrix.b), hidden: svg.getAttribute('aria-hidden') };
+    });
+    return { deltas: [corners[0].x - card.left, corners[0].y - card.top, corners[1].x - card.right, corners[1].y - card.bottom],
+      corners, overflow: getComputedStyle(e).overflow };
   });
-  assert.ok(Math.abs(edges.top) < 2 && Math.abs(edges.bottom) < 2, 'art frame fits the current content height: ' + JSON.stringify(edges));
+  assert.ok(edges.deltas.every(n => Math.abs(n) < 1), 'both light corners stay anchored when card height changes: ' + JSON.stringify(edges));
+  assert.ok(edges.corners.every(c => Math.abs(c.scale - 1) < .01 && c.hidden === 'true'), 'decorative corner geometry is not stretched');
   assert.equal(edges.overflow, 'visible', 'corner bloom must fade naturally rather than be hard-clipped');
 }
 async function layout(page, selector, theme) {
@@ -150,11 +154,11 @@ async function runCase(base, locale, theme) {
       assert.ok(Math.abs(composition.width - 348) < 1 && Math.abs(composition.height - 224) < 2, "reference card proportions: " + JSON.stringify(composition));
       assert.equal(await page.locator('.gh-summary .gh-label').allTextContents().then(v => v.join('|')), '持有席位|优先额度');
     }
-    assert.ok(composition.artwork.includes('holder-card-glass.png'), "approved gradient-corner art is actually rendered");
+    assert.ok(composition.artwork.includes('holder-card-glass.png'), "approved body artwork is actually rendered");
     assert.equal(composition.background, 'rgba(0, 0, 0, 0)', "no opaque backing behind the tinted artwork");
     assert.ok(composition.washOpacity > 0 && composition.washOpacity < .5, "visible partial tint, not opaque or fully clear");
-    assert.equal(composition.edgeOpacity, 1, "corner highlights are not faded with the body");
-    assert.ok(composition.edgeMask.includes('linear-gradient'), "full-strength artwork is restricted to the rim");
+    assert.equal(composition.edgeOpacity, 1, "rim is independent of the body's transparency");
+    assert.ok(composition.edgeMask.includes('linear-gradient'), "fine outline has a hollow center");
     assert.equal(composition.text, theme === 'dark' ? 'rgb(245, 247, 250)' : 'rgb(19, 20, 26)', "readable themed text through clear card");
     assert.equal(composition.brand, theme === 'dark' ? 'rgb(158, 220, 29)' : 'rgb(14, 72, 230)');
     assert.equal(composition.logo, theme === 'dark' ? 'block' : 'none', "wordmark follows the visible page theme");

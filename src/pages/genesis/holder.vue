@@ -16,6 +16,30 @@
 
         <template v-else>
           <view class="gh-hero gh-surface">
+            <svg class="gh-corner gh-corner--outer" viewBox="-12 -12 176 160" aria-hidden="true">
+              <defs>
+                <radialGradient id="gh-outer-gold" gradientUnits="userSpaceOnUse" cx="9" cy="9" r="110">
+                  <stop stop-color="var(--gh-glint)"/><stop offset=".2" stop-color="var(--gh-bloom)"/><stop offset="1" stop-color="var(--v5-genesis-gold)" stop-opacity="0"/>
+                </radialGradient>
+                <filter id="gh-outer-bloom" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/><feOffset dx="-3" dy="-3"/></filter>
+              </defs>
+              <path class="gh-corner-halo" d="M0 103V18A18 18 0 0 1 18 0H130" fill="none" stroke="url(#gh-outer-gold)" stroke-width="6" filter="url(#gh-outer-bloom)"/>
+              <path d="M-.15 137C-.3 82-1 43-1 18A19 19 0 0 1 18-1C53-1 104-.3 162-.15V.15C104 .3 53 1 18 1A17 17 0 0 0 1 18C1 43 .3 82 .15 137Z" fill="url(#gh-outer-gold)"/>
+            </svg>
+            <svg class="gh-corner gh-corner--inner" viewBox="-12 -12 176 160" aria-hidden="true">
+              <defs>
+                <radialGradient id="gh-inner-gold" gradientUnits="userSpaceOnUse" cx="5" cy="5" r="75">
+                  <stop stop-color="var(--gh-glint)"/><stop offset=".12" stop-color="var(--gh-bloom)"/><stop offset="1" stop-color="var(--v5-genesis-gold)" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="gh-inner-peak" gradientUnits="userSpaceOnUse" cx="5.27" cy="5.27" r="10"><stop stop-color="var(--gh-glint)"/><stop offset="1" stop-color="var(--gh-glint)" stop-opacity="0"/></radialGradient>
+                <filter id="gh-inner-glint" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.5"/></filter>
+                <filter id="gh-inner-bloom" x="-60%" y="-100%" width="240%" height="300%"><feGaussianBlur stdDeviation="8"/><feOffset dx="2" dy="2"/></filter>
+                <clipPath id="gh-inner-aperture"><path d="M0 148V18A18 18 0 0 1 18 0H164V148Z"/></clipPath>
+              </defs>
+              <g clip-path="url(#gh-inner-aperture)"><ellipse class="gh-corner-halo" cx="10" cy="10" rx="24" ry="12" transform="rotate(45 10 10)" fill="var(--gh-bloom)" filter="url(#gh-inner-bloom)"/></g>
+              <path d="M-.1 122C-.2 70-.8 38-.8 18A18.8 18.8 0 0 1 18-.8C44-.8 88-.2 140-.1V.1C88 .2 44 .8 18 .8A17.2 17.2 0 0 0 .8 18C.8 38 .2 70 .1 122Z" fill="url(#gh-inner-gold)"/>
+              <path d="M1.37 11.11A18 18 0 0 1 11.11 1.37" fill="none" stroke="url(#gh-inner-peak)" stroke-width="2.2" filter="url(#gh-inner-glint)"/>
+            </svg>
             <view class="gh-identity"><BrandLockup /><HolderBadge /></view>
             <view class="gh-summary">
               <view>
@@ -296,12 +320,17 @@ const perkColors = { a: "var(--v5-warning)", b: "var(--v5-tech-cyan)", c: "var(-
 .gh-page { padding-bottom: 32px; color: var(--v5-ink); font-family: var(--font-v5); }
 .gh-content { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .gh-surface { background: color-mix(in srgb, var(--v5-surface) 96%, transparent); border-radius: var(--v5-radius-xl); padding: 16px; }
-/* Feather the light itself; clipping the card would cut off the corner bloom. */
-.gh-hero { --gh-logo-width: 128px; position: relative; padding: 12px 20px 16px; border-radius: 18px; background: transparent; }
-.gh-hero::before, .gh-hero::after { content: ""; position: absolute; inset: -15.625% -2.586% -16.071%; z-index: 0; pointer-events: none; background: url("/static/img/genesis/holder-card-glass.png") center / 100% 100% no-repeat; }
-.gh-hero::before { opacity: 0.44; }
-.gh-hero::after { mask-image: linear-gradient(to bottom, transparent calc(12% - 7px), black 12%, transparent 24%, transparent 76%, black 88%, transparent calc(88% + 7px)), linear-gradient(to right, transparent calc(3% - 7px), black 3%, transparent 11%, transparent 89%, black 97%, transparent calc(97% + 7px)); mix-blend-mode: screen; }
+/* The reference has an outward upper-left bloom and an inward lower-right bloom. */
+.gh-hero { --gh-logo-width: 128px; --gh-glint: color-mix(in srgb, var(--v5-warning) 25%, white); --gh-bloom: color-mix(in srgb, var(--v5-warning) 75%, var(--gh-glint)); position: relative; padding: 12px 20px 16px; border-radius: 18px; background: transparent; }
+.gh-hero::before { content: ""; position: absolute; inset: -15.625% -2.586% -16.071%; z-index: 0; pointer-events: none; background: url("/static/img/genesis/holder-card-glass.png") center / 100% 100% no-repeat; opacity: 0.44; mask-image: linear-gradient(to right, transparent 3%, black calc(3% + 12px), black calc(97% - 12px), transparent 97%), linear-gradient(to bottom, transparent 12%, black calc(12% + 12px), black calc(88% - 12px), transparent 88%); mask-composite: intersect; }
+.gh-hero::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: inherit; padding: 0.7px; background: linear-gradient(135deg, color-mix(in srgb, var(--v5-genesis-gold) 55%, transparent), color-mix(in srgb, var(--v5-genesis-gold) 16%, transparent) 45%, color-mix(in srgb, var(--v5-genesis-gold) 45%, transparent)); mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); mask-composite: exclude; }
+.gh-corner { position: absolute; z-index: 1; width: 176px; height: 160px; overflow: visible; pointer-events: none; }
+.gh-corner--outer { top: -12px; left: -12px; }
+.gh-corner--inner { right: -12px; bottom: -12px; transform: rotate(180deg); }
+.gh-corner-halo { opacity: 0.85; }
+.gh-corner--inner .gh-corner-halo { opacity: 0.5; }
 :global(html[data-theme="light"] .gh-hero::before) { opacity: 0.16; }
+:global(html[data-theme="light"] .gh-corner-halo) { opacity: 0.35; }
 .gh-identity, .gh-summary, .gh-stats, .gh-emissions { position: relative; z-index: 1; }
 .gh-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-bottom: 12px; }
 .gh-identity :deep(.uvel-brand) { width: var(--gh-logo-width); height: 44px; }
