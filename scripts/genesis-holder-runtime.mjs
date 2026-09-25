@@ -43,12 +43,16 @@ async function themeAndLocale(page, theme, locale) {
 }
 async function cardFrameAlignment(page) {
   const edges = await page.locator('.gh-hero').evaluate(e => {
-    const card = e.getBoundingClientRect(), art = getComputedStyle(e, '::before');
+    const card = e.getBoundingClientRect(), art = getComputedStyle(e, '::before'), style = getComputedStyle(e);
     const top = parseFloat(art.top), height = parseFloat(art.height);
     // Visible gold edge bounds in the approved PNG, excluding its transparent halo margins.
-    return { top: top + height * .1172, bottom: top + height * .879 - card.height };
+    return { top: top + height * .1172, bottom: top + height * .879 - card.height,
+      overflow: style.overflow, halo: parseFloat(style.overflowClipMargin), radius: parseFloat(style.borderTopLeftRadius) };
   });
   assert.ok(Math.abs(edges.top) < 2 && Math.abs(edges.bottom) < 2, 'art frame fits the current content height: ' + JSON.stringify(edges));
+  assert.equal(edges.overflow, 'clip', 'artwork halo has a bounded outer edge');
+  assert.ok(edges.halo > 0 && edges.halo <= 2, 'a slight outer glow remains without a broad spill');
+  assert.ok(edges.radius > 0, 'halo is clipped to the rounded corners');
 }
 async function layout(page, selector, theme) {
   const shape = await page.locator(selector).evaluate(root => {
@@ -176,6 +180,7 @@ async function runCase(base, locale, theme) {
     assert.notEqual(composition.divider, "none", "reference column dividers exist");
     await cardFrameAlignment(page);
     await hero.screenshot({ animations: "disabled", path: resolve(artifacts, name + "-hero-reference.png") });
+    await page.screenshot({ animations: "disabled", path: resolve(artifacts, name + "-hero-surroundings.png") });
     const scrollState = await page.locator('.nx-scroll').evaluate(e => ({ scroll: e.scrollTop, cardY: e.querySelector('.gh-hero').getBoundingClientRect().top, pageY: e.closest('.gh-chassis').getBoundingClientRect().top }));
     await page.locator('.nx-scroll').evaluate(e => { e.scrollTop += 70; });
     await page.screenshot({ animations: "disabled", path: resolve(artifacts, name + '-transparent-scroll.png') });
@@ -210,6 +215,7 @@ async function runCase(base, locale, theme) {
     for (const width of [320, 430]) {
       await page.setViewportSize({ width, height: 844 });
       evidence.push({ width, layout: await layout(page, ".gh-page", theme) });
+      await cardFrameAlignment(page);
       await page.screenshot({ path: resolve(artifacts, name + "-holder-" + width + ".png") });
     }
     await page.reload({ waitUntil: "domcontentloaded" });
