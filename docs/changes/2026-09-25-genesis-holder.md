@@ -4,7 +4,7 @@ Approved A3 presentation adds a gold holder badge and page-wide mineral textures
 
 The holder card composites `src/static/img/genesis/holder-card-glass.png` over the page texture. The body's partial opacity leaves the stationary background visible while scrolling; a separate masked rim preserves the bright upper-left/lower-right highlights and fine fading upper-right/lower-left edges. There is no opaque backing or duplicate mineral texture. Body opacity is 44% in dark mode and 16% in light mode, applied independently of live text and the themed UVEL wordmark. The six seat benefits use the personal center's centered icon-tile styling in a three-column grid. Activating a tile opens its existing description in the shared accessible dialog.
 
-The rounded card limits the outer halo to 2px. The rim mask fades farther into the card, preserving inward corner light without a broad exterior glow. The approved PNG and body transparency remain unchanged.
+The rim mask fades to transparent over 7px outside the bright edge and over a broader area inside the card. The artwork's soft bloom remains unclipped, so the corner light diffuses naturally without a cut edge. The approved PNG and body transparency remain unchanged.
 
 Asset prompt (built-in image editing): match the original dark card's charcoal tint, gold corner highlights and delicate lime network; remove text and logo; make the upper-right/lower-left perimeter thinner and fade toward the corners, preserving the other two highlights. Runtime compositing controls partial transparency independently of the generated image's alpha.
 

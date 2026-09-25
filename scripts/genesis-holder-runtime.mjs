@@ -47,12 +47,10 @@ async function cardFrameAlignment(page) {
     const top = parseFloat(art.top), height = parseFloat(art.height);
     // Visible gold edge bounds in the approved PNG, excluding its transparent halo margins.
     return { top: top + height * .1172, bottom: top + height * .879 - card.height,
-      overflow: style.overflow, halo: parseFloat(style.overflowClipMargin), radius: parseFloat(style.borderTopLeftRadius) };
+      overflow: style.overflow };
   });
   assert.ok(Math.abs(edges.top) < 2 && Math.abs(edges.bottom) < 2, 'art frame fits the current content height: ' + JSON.stringify(edges));
-  assert.equal(edges.overflow, 'clip', 'artwork halo has a bounded outer edge');
-  assert.ok(edges.halo > 0 && edges.halo <= 2, 'a slight outer glow remains without a broad spill');
-  assert.ok(edges.radius > 0, 'halo is clipped to the rounded corners');
+  assert.equal(edges.overflow, 'visible', 'corner bloom must fade naturally rather than be hard-clipped');
 }
 async function layout(page, selector, theme) {
   const shape = await page.locator(selector).evaluate(root => {

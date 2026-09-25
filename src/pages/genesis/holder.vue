@@ -296,11 +296,11 @@ const perkColors = { a: "var(--v5-warning)", b: "var(--v5-tech-cyan)", c: "var(-
 .gh-page { padding-bottom: 32px; color: var(--v5-ink); font-family: var(--font-v5); }
 .gh-content { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .gh-surface { background: color-mix(in srgb, var(--v5-surface) 96%, transparent); border-radius: var(--v5-radius-xl); padding: 16px; }
-/* Keep a 2px outer halo; let the brighter rim fall inward over the translucent body. */
-.gh-hero { --gh-logo-width: 128px; position: relative; overflow: clip; overflow-clip-margin: 2px; padding: 12px 20px 16px; border-radius: 18px; background: transparent; }
+/* Feather the light itself; clipping the card would cut off the corner bloom. */
+.gh-hero { --gh-logo-width: 128px; position: relative; padding: 12px 20px 16px; border-radius: 18px; background: transparent; }
 .gh-hero::before, .gh-hero::after { content: ""; position: absolute; inset: -15.625% -2.586% -16.071%; z-index: 0; pointer-events: none; background: url("/static/img/genesis/holder-card-glass.png") center / 100% 100% no-repeat; }
 .gh-hero::before { opacity: 0.44; }
-.gh-hero::after { mask-image: linear-gradient(to bottom, black 12%, transparent 24%, transparent 76%, black 88%), linear-gradient(to right, black 3%, transparent 11%, transparent 89%, black 97%); mix-blend-mode: screen; }
+.gh-hero::after { mask-image: linear-gradient(to bottom, transparent calc(12% - 7px), black 12%, transparent 24%, transparent 76%, black 88%, transparent calc(88% + 7px)), linear-gradient(to right, transparent calc(3% - 7px), black 3%, transparent 11%, transparent 89%, black 97%, transparent calc(97% + 7px)); mix-blend-mode: screen; }
 :global(html[data-theme="light"] .gh-hero::before) { opacity: 0.16; }
 .gh-identity, .gh-summary, .gh-stats, .gh-emissions { position: relative; z-index: 1; }
 .gh-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-bottom: 12px; }
