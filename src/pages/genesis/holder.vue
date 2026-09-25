@@ -36,7 +36,7 @@
                 <filter id="gh-inner-bloom" x="-60%" y="-100%" width="240%" height="300%"><feGaussianBlur stdDeviation="8"/><feOffset dx="2" dy="2"/></filter>
                 <clipPath id="gh-inner-aperture"><path d="M0 148V18A18 18 0 0 1 18 0H164V148Z"/></clipPath>
               </defs>
-              <g clip-path="url(#gh-inner-aperture)"><ellipse class="gh-corner-halo" cx="10" cy="10" rx="24" ry="12" transform="rotate(45 10 10)" fill="var(--gh-bloom)" filter="url(#gh-inner-bloom)"/></g>
+              <g clip-path="url(#gh-inner-aperture)"><ellipse class="gh-corner-halo" cx="3" cy="3" rx="24" ry="12" transform="rotate(45 3 3)" fill="var(--gh-bloom)" filter="url(#gh-inner-bloom)"/></g>
               <path d="M-.1 122C-.2 70-.8 38-.8 18A18.8 18.8 0 0 1 18-.8C44-.8 88-.2 140-.1V.1C88 .2 44 .8 18 .8A17.2 17.2 0 0 0 .8 18C.8 38 .2 70 .1 122Z" fill="url(#gh-inner-gold)"/>
               <path d="M1.37 11.11A18 18 0 0 1 11.11 1.37" fill="none" stroke="url(#gh-inner-peak)" stroke-width="2.2" filter="url(#gh-inner-glint)"/>
             </svg>
@@ -330,7 +330,7 @@ const perkColors = { a: "var(--v5-warning)", b: "var(--v5-tech-cyan)", c: "var(-
 .gh-corner-halo { opacity: 0.85; }
 .gh-corner--inner .gh-corner-halo { opacity: 0.5; }
 :global(html[data-theme="light"] .gh-hero::before) { opacity: 0.16; }
-:global(html[data-theme="light"] .gh-corner-halo) { opacity: 0.35; }
+:global(html[data-theme="light"] .gh-hero .gh-corner .gh-corner-halo) { opacity: 0.35; }
 .gh-identity, .gh-summary, .gh-stats, .gh-emissions { position: relative; z-index: 1; }
 .gh-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-bottom: 12px; }
 .gh-identity :deep(.uvel-brand) { width: var(--gh-logo-width); height: 44px; }

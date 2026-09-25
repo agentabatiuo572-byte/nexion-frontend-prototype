@@ -144,6 +144,7 @@ async function runCase(base, locale, theme) {
         washOpacity: Number(getComputedStyle(e, '::before').opacity),
         edgeOpacity: Number(getComputedStyle(e, '::after').opacity),
         edgeMask: getComputedStyle(e, '::after').maskImage,
+        haloOpacities: [...e.querySelectorAll('.gh-corner-halo')].map(halo => Number(getComputedStyle(halo).opacity)),
         text: getComputedStyle(e).color,
         brand: getComputedStyle(e.querySelector('.gh-brand')).color,
         logo: getComputedStyle(e.querySelector('.uvel-brand__dark')).display,
@@ -159,6 +160,8 @@ async function runCase(base, locale, theme) {
     assert.ok(composition.washOpacity > 0 && composition.washOpacity < .5, "visible partial tint, not opaque or fully clear");
     assert.equal(composition.edgeOpacity, 1, "rim is independent of the body's transparency");
     assert.ok(composition.edgeMask.includes('linear-gradient'), "fine outline has a hollow center");
+    assert.equal(composition.haloOpacities.length, 2, 'both independent corner blooms are rendered');
+    assert.ok(composition.haloOpacities.every(n => n > 0 && (theme !== 'light' || n <= .35)), 'both blooms soften in the light theme');
     assert.equal(composition.text, theme === 'dark' ? 'rgb(245, 247, 250)' : 'rgb(19, 20, 26)', "readable themed text through clear card");
     assert.equal(composition.brand, theme === 'dark' ? 'rgb(158, 220, 29)' : 'rgb(14, 72, 230)');
     assert.equal(composition.logo, theme === 'dark' ? 'block' : 'none', "wordmark follows the visible page theme");
