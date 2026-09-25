@@ -92,11 +92,12 @@
           <view class="gh-perks">
             <text class="gh-heading">{{ t.genesisHolder.perksLabel }}</text>
             <view class="gh-surface gh-perk-grid">
-              <view v-for="k in perkKeys" :key="k" class="gh-perk" role="button" tabindex="0" :aria-label="t.genesisHolder.perks[k].label" @click="showPerk(k)" @keydown.enter.prevent="showPerk(k)" @keydown.space.prevent="showPerk(k)">
-                <view class="gh-perk-icon" :style="{ color: perkColors[k], background: 'color-mix(in srgb, ' + perkColors[k] + ' 14%, transparent)' }" aria-hidden="true">
-                  <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-for="path in perkIcons[k]" :key="path" :d="path" /></svg>
+              <view v-for="k in perkKeys" :key="k" class="gh-perk">
+                <view class="gh-perk-icon" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path v-for="path in perkIcons[k]" :key="path" :d="path" /></svg>
                 </view>
                 <text class="gh-perk-label">{{ t.genesisHolder.perks[k].label }}</text>
+                <text class="gh-perk-body">{{ t.genesisHolder.perks[k].body }}</text>
               </view>
             </view>
           </view>
@@ -130,7 +131,6 @@ import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useGenesisPoints } from "@/store/genesis-points";
-import { confirm } from "@/store/ui";
 
 const DAY = 86400_000;
 // mock 参考价：真后台提供平台 NEX 结算价（GET /api/market），此处仅用于「≈$」参考展示（非保证）。
@@ -149,10 +149,6 @@ const perkIcons = {
   e: ["M20 12v10H4V12", "M2 7h20v5H2z", "M12 22V7", "M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z", "M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"],
   f: ["M4 7h16m-4-4 4 4-4 4", "M20 17H4m4-4-4 4 4 4"],
 };
-function showPerk(key: typeof perkKeys[number]) {
-  const perk = t.value.genesisHolder.perks[key];
-  void confirm({ title: perk.label, message: perk.body, hideCancel: true, icon: "info" });
-}
 
 const owned = computed(() => genesis.myOwned);
 const hasNodes = computed(() => owned.value > 0);
@@ -286,7 +282,6 @@ function goStaking() {
 
 const progressPct = computed(() => Math.max(0, Math.min(100, genesis.totalSlots > 0 ? genesis.soldSlots / genesis.totalSlots * 100 : 0)));
 const displayedLeaderboard = computed(() => remoteApiEnabled ? remoteLeaderboard.value : leaderboard.value);
-const perkColors = { a: "var(--v5-warning)", b: "var(--v5-tech-cyan)", c: "var(--v5-nex)", d: "var(--v5-brand)", e: "var(--v5-brand-2)", f: "var(--v5-tech-cyan)" };
 </script>
 
 <style scoped>
@@ -344,10 +339,12 @@ const perkColors = { a: "var(--v5-warning)", b: "var(--v5-tech-cyan)", c: "var(-
 .gh-id { font-family: var(--font-jet-mono); font-size: var(--v5-type-caption); font-weight: 500; overflow-wrap: anywhere; }
 .gh-amount { display: block; margin-top: 4px; font-size: var(--v5-type-caption); line-height: 1.5; overflow-wrap: anywhere; }
 .gh-icon-button { display: grid; place-items: center; width: 44px; min-height: 44px; border-radius: var(--v5-radius-full); flex-shrink: 0; color: var(--v5-ink-3); background: var(--v5-surface-2); }
-.gh-perk-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 4px; row-gap: 18px; padding: 18px 10px; border-radius: 16px; }
-.gh-perk { display: flex; flex-direction: column; align-items: center; gap: 7px; min-height: 76px; padding: 4px 2px; border-radius: 12px; }
-.gh-perk-icon { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px; }
-.gh-perk-label { display: block; max-width: 96px; font-size: 13px; font-weight: 500; line-height: 1.2; text-align: center; overflow-wrap: anywhere; }
+.gh-perk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; row-gap: 20px; padding: 20px; }
+.gh-perk { min-width: 0; }
+.gh-perk:nth-child(n + 3) { padding-top: 20px; border-top: 1px solid var(--v5-border); }
+.gh-perk-icon { display: flex; color: var(--v5-genesis-gold); margin-bottom: 10px; }
+.gh-perk-label { display: block; font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.gh-perk-body { display: block; margin-top: 5px; color: var(--v5-ink-3); font-size: var(--v5-type-body-s); line-height: 1.6; overflow-wrap: anywhere; }
 .gh-body { display: block; font-size: var(--v5-type-body-s); font-weight: 500; line-height: 1.5; }
 .gh-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .gh-action { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; min-height: 52px; border-radius: var(--v5-radius-full); background: var(--v5-surface); font-size: var(--v5-type-body-s); font-weight: 500; text-align: center; }

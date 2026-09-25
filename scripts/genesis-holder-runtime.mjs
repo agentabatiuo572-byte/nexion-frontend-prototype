@@ -83,6 +83,35 @@ async function layout(page, selector, theme) {
   assert.equal(shape.primary, theme === "dark" ? "rgb(158, 220, 29)" : "rgb(14, 72, 230)");
   return shape;
 }
+async function staticPerks(page) {
+  const perks = await page.locator('.gh-perk-grid').evaluate(async e => {
+    const messages = (await import('/src/i18n/use-t.ts')).getT().genesisHolder.perks;
+    const items = [...e.querySelectorAll('.gh-perk')];
+    return { columns: getComputedStyle(e).gridTemplateColumns.split(' ').length,
+      rows: getComputedStyle(e).gridTemplateRows.split(' ').length,
+      icons: e.querySelectorAll('.gh-perk-icon svg').length,
+      controls: e.querySelectorAll('button, a, input, select, textarea, [role="button"], [role="link"], [tabindex], [contenteditable="true"]').length,
+      pointers: [...e.querySelectorAll('*')].filter(node => getComputedStyle(node).cursor === 'pointer').length,
+      expected: ['a', 'b', 'c', 'd', 'e', 'f'].map(key => ({ label: messages[key].label, body: messages[key].body })),
+      actual: items.map(item => ({ label: item.querySelector('.gh-perk-label')?.textContent.trim(),
+        body: item.querySelector('.gh-perk-body')?.textContent.trim() })),
+      clipped: items.flatMap(item => [...item.querySelectorAll('.gh-perk-label, .gh-perk-body')].filter(node => {
+        const style = getComputedStyle(node), bounds = node.getBoundingClientRect(), parent = item.getBoundingClientRect();
+        const text = document.createRange();
+        text.selectNodeContents(node);
+        const content = text.getBoundingClientRect();
+        return bounds.width <= 0 || bounds.height <= 0 || node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1
+          || style.textOverflow === 'ellipsis' || Number(style.webkitLineClamp) > 0
+          || content.left < parent.left - 1 || content.right > parent.right + 1 || content.bottom > parent.bottom + 1;
+      }).map(node => node.textContent)) };
+  });
+  assert.deepEqual({ columns: perks.columns, rows: perks.rows, icons: perks.icons }, { columns: 2, rows: 3, icons: 6 }, 'two-column static benefit descriptions');
+  assert.deepEqual(perks.actual, perks.expected, 'all six benefit titles and descriptions match the active messages');
+  assert.equal(perks.controls, 0, 'benefit descriptions contain no interactive or focusable controls');
+  assert.equal(perks.pointers, 0, 'benefit descriptions do not show a pointer cursor');
+  assert.deepEqual(perks.clipped, [], 'benefit titles and descriptions remain visible without clipping or truncation');
+  return perks;
+}
 async function runCase(base, locale, theme) {
   const name = locale + "-" + theme;
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -210,24 +239,13 @@ async function runCase(base, locale, theme) {
     assert.ok(scrolled.scroll - scrollState.scroll >= 69 && scrollState.cardY - scrolled.cardY >= 69, 'card scrolls over the page texture');
     assert.equal(scrolled.pageY, scrollState.pageY, 'page stays fixed while the card scrolls');
     await page.locator('.nx-scroll').evaluate((e, top) => { e.scrollTop = top; }, scrollState.scroll);
-    const grid = await page.locator('.gh-perk-grid').evaluate(e => ({
-      columns: getComputedStyle(e).gridTemplateColumns.split(' ').length,
-      rows: getComputedStyle(e).gridTemplateRows.split(' ').length,
-      icons: e.querySelectorAll('.gh-perk-icon svg').length,
-    }));
-    assert.deepEqual(grid, { columns: 3, rows: 2, icons: 6 }, "profile-style benefit icon grid");
+    await staticPerks(page);
+    const holderUrl = page.url();
     for (let i = 0; i < 6; i++) {
-      const tile = page.locator('.gh-perk').nth(i);
-      const title = await tile.getAttribute('aria-label');
-      await tile.press(i % 2 ? 'Space' : 'Enter');
-      const dialog = page.locator('.nx-mask--confirm');
-      await dialog.waitFor();
-      assert.equal(await dialog.getAttribute('aria-label'), title);
-      assert.ok((await dialog.locator('.nx-modal__msg').innerText()).length > 5, "original perk description retained");
-      await page.keyboard.press('Escape');
-      await dialog.waitFor({ state: 'hidden' });
+      await page.locator('.gh-perk-body').nth(i).click();
+      assert.equal(await page.locator('.nx-mask--confirm, [role="dialog"]').count(), 0, 'clicking a description does not open a dialog');
+      assert.equal(page.url(), holderUrl, 'clicking a description does not navigate');
     }
-    await page.locator('.gh-perks > .gh-heading').click();
     await page.locator('.gh-perk-grid').screenshot({ animations: "disabled", path: resolve(artifacts, name + '-benefits-grid.png') });
     const bg = await page.locator(".gh-chassis").evaluate(e => getComputedStyle(e).backgroundImage);
     assert.ok(bg.includes("obsidian-" + theme + ".webp"), "correct actual background image");
@@ -236,9 +254,10 @@ async function runCase(base, locale, theme) {
     assert.ok((await bgResponse.body()).length > 10_000, "texture asset has real pixels");
     for (const width of [320, 430]) {
       await page.setViewportSize({ width, height: 844 });
-      evidence.push({ width, layout: await layout(page, ".gh-page", theme) });
+      evidence.push({ width, layout: await layout(page, ".gh-page", theme), perks: await staticPerks(page) });
       await cardArtwork(page, theme);
       await page.screenshot({ path: resolve(artifacts, name + "-holder-" + width + ".png") });
+      await page.locator('.gh-perk-grid').screenshot({ animations: "disabled", path: resolve(artifacts, name + '-benefits-' + width + '.png') });
     }
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator(".gh-holding").waitFor();
@@ -252,6 +271,7 @@ async function runCase(base, locale, theme) {
     assert.equal(await page.locator(".gh-feed").count(), 1);
     await cardArtwork(page, theme);
     await layout(page, ".gh-page", theme);
+    await staticPerks(page);
     await page.screenshot({ path: resolve(artifacts, name + "-post-listing.png") });
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator(".gh-emissions").waitFor();
@@ -263,6 +283,7 @@ async function runCase(base, locale, theme) {
     assert.equal(await page.locator("html").getAttribute("dir"), "rtl");
     await page.setViewportSize({ width: 320, height: 844 });
     await layout(page, ".gh-page", theme);
+    await staticPerks(page);
     await page.screenshot({ path: resolve(artifacts, name + "-rtl.png") });
     await page.evaluate(() => { document.documentElement.removeAttribute("dir"); });
     await themeAndLocale(page, theme, locale);

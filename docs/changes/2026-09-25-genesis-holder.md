@@ -6,7 +6,7 @@ The holder card directly displays the raster backgrounds `src/static/img/genesis
 
 The transparent `vip-card-aura.png` supplies the visible champagne-gold bloom and soft shadow. A single non-interactive pseudo-element uses nine-slice `border-image` without a center fill; the original card artwork and live content remain clear. Fixed corner scaling preserves the light shape as post-listing content increases the card height. CSS-generated shadows, old SVG corners and masks are absent. The lighting PNG is copied byte-for-byte from the built-in imagegen output; its central opening and outer corners contain real alpha transparency.
 
-The six seat benefits use the personal center's centered icon-tile styling in a three-column grid. Activating a tile opens its existing description in the shared accessible dialog.
+The six seat benefits form a static two-column description section. Each benefit displays a plain gold icon, its existing localized title and its complete description. Individual benefits have no button styling, focus target or activation handler; all descriptions are readable without opening a dialog. Separate purchase, marketplace and staking actions remain interactive.
 
 Asset provenance: the backgrounds were generated with the built-in imagegen tool. The tool does not expose the exact model identifier.
 
@@ -14,7 +14,7 @@ A settled primary purchase opens a dismissible success dialog. Its “查看我�
 
 No prices, eligibility, settlement rules, allocation or emission calculations changed. The current frontend uses fixed mock mode; browser purchases below run only in disposable accounts. This is not evidence of a production payment transaction. No economic PRD changes are required for this presentation and receipt-navigation change.
 
-`npm run test:genesis-holder` runs real browser actions in isolated contexts for Chinese, English and Vietnamese in both themes. It checks the theme-appropriate card image URL, successful asset loading and decoded dimensions, centered cover sizing, 320/430px geometry, reference card proportions, scrolling, all six benefit dialogs, Arabic English fallback with a forced RTL layout stress test, all holder states, persisted purchase/readback, double submission, insufficient funds, closed/capped sales, dialog keyboard access, dismiss/reopen and focus restoration. Global automatic RTL remains outside this change. The command is registered in the full `npm run verify` chain. Runtime screenshots and assertions are written to the report directory printed by the command.
+`npm run test:genesis-holder` runs real browser actions in isolated contexts for Chinese, English and Vietnamese in both themes. It checks the theme-appropriate card image URL, successful asset loading and decoded dimensions, centered cover sizing, 320/430px geometry, reference card proportions, scrolling, all six static benefit descriptions, Arabic English fallback with a forced RTL layout stress test, all holder states, persisted purchase/readback, double submission, insufficient funds, closed/capped sales, dialog keyboard access, dismiss/reopen and focus restoration. Global automatic RTL remains outside this change. The command is registered in the full `npm run verify` chain. Runtime screenshots and assertions are written to the report directory printed by the command.
 
 ## Image generation prompts
 
