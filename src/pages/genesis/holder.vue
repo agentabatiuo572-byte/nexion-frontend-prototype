@@ -51,27 +51,19 @@
             <text>{{ dividendsOpen ? t.genesisHolder.post.disc : t.genesisHolder.pre.disc }}</text>
           </view>
 
-          <template v-if="!dividendsOpen">
-            <view class="gh-progress">
-              <text class="gh-heading">{{ t.genesisHolder.pre.progressLabel }}</text>
-              <view class="gh-track"><view :style="{ width: progressPct + '%' }" /></view>
-              <view class="gh-progress-meta"><text>{{ progressStageText }}</text><text>{{ progressUnlockText }}</text></view>
-              <view class="gh-link gh-how" role="button" tabindex="0" @click="goHowItWorks" @keydown.enter.prevent="goHowItWorks" @keydown.space.prevent="goHowItWorks">{{ t.genesisHolder.pre.howLink }}</view>
-            </view>
-            <view class="gh-points gh-surface">
-              <view class="gh-section-row"><text class="gh-title">{{ t.genesisHolder.pre.pointsLabel }}</text><text v-if="!remoteApiEnabled" class="gh-chip">{{ poolText }}</text></view>
-              <template v-if="!remoteApiEnabled || genesisPoints.status === 'ready'">
-                <view v-for="r in displayedLeaderboard" :key="r.rank" class="gh-rank" :class="{ 'gh-rank--me': r.me }">
-                  <text>{{ r.rank }}</text><text class="gh-rank-who">{{ r.who }}</text><text class="gh-brand">{{ r.pts }}</text>
-                </view>
-                <view v-if="remoteApiEnabled && remoteCurrentUserRow" class="gh-rank gh-rank--me">
-                  <text>{{ remoteCurrentUserRow.rank }}</text><text class="gh-rank-who">{{ remoteCurrentUserRow.who }}</text><text class="gh-brand">{{ remoteCurrentUserRow.pts }}</text>
-                </view>
-                <text class="gh-note">{{ t.genesisHolder.pre.pointsNote }}</text>
-              </template>
-              <text v-else class="gh-note">{{ t.genesisHolder.pre.serverPointsUnavailable }}</text>
-            </view>
-          </template>
+          <view v-if="!dividendsOpen" class="gh-points gh-surface">
+            <view class="gh-section-row"><text class="gh-title">{{ t.genesisHolder.pre.pointsLabel }}</text><text v-if="!remoteApiEnabled" class="gh-chip">{{ poolText }}</text></view>
+            <template v-if="!remoteApiEnabled || genesisPoints.status === 'ready'">
+              <view v-for="r in displayedLeaderboard" :key="r.rank" class="gh-rank" :class="{ 'gh-rank--me': r.me }">
+                <text>{{ r.rank }}</text><text class="gh-rank-who">{{ r.who }}</text><text class="gh-brand">{{ r.pts }}</text>
+              </view>
+              <view v-if="remoteApiEnabled && remoteCurrentUserRow" class="gh-rank gh-rank--me">
+                <text>{{ remoteCurrentUserRow.rank }}</text><text class="gh-rank-who">{{ remoteCurrentUserRow.who }}</text><text class="gh-brand">{{ remoteCurrentUserRow.pts }}</text>
+              </view>
+              <text class="gh-note">{{ t.genesisHolder.pre.pointsNote }}</text>
+            </template>
+            <text v-else class="gh-note">{{ t.genesisHolder.pre.serverPointsUnavailable }}</text>
+          </view>
           <view v-else class="gh-feed gh-surface">
             <text class="gh-title">{{ t.genesisHolder.post.feedLabel }}</text>
             <view v-if="emissionFeed.length === 0" class="gh-ledger-row"><text>{{ t.genesisHolder.post.noEmissions }}</text><text>—</text></view>
@@ -194,12 +186,6 @@ const remoteCurrentUserRow = computed(() => {
   if (projection.currentUser.points <= 0 && projection.currentUser.holdings <= 0) return null;
   return { rank: rank ?? "—", who: t.value.genesisHolder.pre.pointsYou, pts: projection.currentUser.points.toLocaleString() };
 });
-const progressStageText = computed(() => remoteApiEnabled
-  ? `${genesis.soldSlots.toLocaleString()} / ${genesis.totalSlots.toLocaleString()}`
-  : t.value.genesisHolder.pre.progressStage);
-const progressUnlockText = computed(() => remoteApiEnabled
-  ? `${remaining.value.toLocaleString()} ${t.value.genesisHolder.pre.remainingUnit}`
-  : t.value.genesisHolder.pre.progressUnlock);
 
 // ── 上所后：排放快照（server-canonical mock）──
 const snap = computed(() => genesis.emissionSnapshot());
@@ -273,14 +259,10 @@ function goGenesis() {
 function goMarketplace() {
   uni.navigateTo({ url: "/pages/genesis/marketplace", fail: () => {} });
 }
-function goHowItWorks() {
-  uni.navigateTo({ url: "/pages/genesis/how-it-works", fail: () => {} });
-}
 function goStaking() {
   uni.navigateTo({ url: "/pages/staking/staking", fail: () => {} });
 }
 
-const progressPct = computed(() => Math.max(0, Math.min(100, genesis.totalSlots > 0 ? genesis.soldSlots / genesis.totalSlots * 100 : 0)));
 const displayedLeaderboard = computed(() => remoteApiEnabled ? remoteLeaderboard.value : leaderboard.value);
 </script>
 
@@ -319,12 +301,7 @@ const displayedLeaderboard = computed(() => remoteApiEnabled ? remoteLeaderboard
 .gh-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: var(--v5-type-body-m); font-weight: 600; line-height: 1.5; }
 .gh-heading::after { content: ""; width: 40px; height: 1px; flex-shrink: 0; background: linear-gradient(90deg, var(--v5-genesis-gold), transparent); }
 .gh-title { display: block; font-size: var(--v5-type-body-m); font-weight: 600; line-height: 1.5; }
-.gh-progress { padding: 4px 8px 0; }
-.gh-track { height: 8px; border-radius: var(--v5-radius-full); overflow: hidden; background: var(--v5-surface-3); }
-.gh-track > view { height: 100%; border-radius: inherit; background: var(--v5-brand); }
-.gh-progress-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: var(--v5-ink-3); font-size: var(--v5-type-caption); line-height: 1.5; }
 .gh-link { color: var(--v5-brand); font-size: var(--v5-type-body-s); }
-.gh-how { display: inline-flex; align-items: center; min-height: 44px; }
 .gh-section-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .gh-chip { padding: 4px 8px; border-radius: var(--v5-radius-full); color: var(--v5-brand); background: var(--v5-brand-soft); font-size: var(--v5-type-caption); }
 .gh-rank { display: flex; gap: 12px; align-items: center; padding: 8px; font-size: var(--v5-type-body-s); }

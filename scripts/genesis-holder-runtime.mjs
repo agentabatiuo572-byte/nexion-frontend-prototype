@@ -42,6 +42,7 @@ async function themeAndLocale(page, theme, locale) {
   }, { theme, locale });
 }
 async function cardArtwork(page, theme) {
+  assert.equal(await page.locator('.gh-progress').count(), 0, 'holder page does not display listing progress');
   const artwork = await page.locator('.gh-hero').evaluate(e => {
     const style = getComputedStyle(e);
     const aura = getComputedStyle(e, '::before');
@@ -267,7 +268,6 @@ async function runCase(base, locale, theme) {
     await page.evaluate(async () => (await import("/src/store/genesis.ts")).useGenesis().setNexListed(true, Date.now()));
     await page.locator(".gh-emissions").waitFor();
     assert.equal(await page.locator(".gh-hero .genesis-holder-badge").count(), 1, "post-listing retains identity");
-    assert.equal(await page.locator(".gh-progress").count(), 0);
     assert.equal(await page.locator(".gh-feed").count(), 1);
     await cardArtwork(page, theme);
     await layout(page, ".gh-page", theme);
