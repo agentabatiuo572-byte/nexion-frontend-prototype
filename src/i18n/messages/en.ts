@@ -769,14 +769,14 @@ export const en = {
   genesisHolder: {
     pageTitle: "My Genesis nodes",
     identityLabel: "Genesis holder",
-    heroLabel: "YOUR GENESIS SEATS",
+    heroLabel: "Seats held",
     nodes: "seats",
     notHolderTitle: "No Genesis seats yet",
     notHolderBody: "1,000 OG seats total · {n} left. Lock in $NEX listing priority.",
     notHolderCta: "Claim a seat",
     // ── Pre-listing state (before $NEX lists) ──
     pre: {
-      allocLabel: "Reserved $NEX allocation",
+      allocLabel: "Priority allocation",
       priority: "Priority",
       multiplier: "OG multiplier",
       disc: "Opens after listing · nothing to claim yet",

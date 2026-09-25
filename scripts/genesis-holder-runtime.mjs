@@ -118,6 +118,52 @@ async function runCase(base, locale, theme) {
     assert.equal(await page.locator(".gh-hero .genesis-holder-badge").count(), 1);
     assert.equal(await page.locator(".gh-holding").count(), 1);
     assert.equal(await page.locator(".gh-perk").count(), 6);
+    assert.equal(await page.locator(".gh-perk-list").count(), 0, "benefits are no longer a list");
+    await page.setViewportSize({ width: 380, height: 844 });
+    const hero = page.locator(".gh-hero");
+    const composition = await hero.evaluate(e => {
+      const rect = e.getBoundingClientRect();
+      return { width: rect.width, height: rect.height,
+        artwork: getComputedStyle(e, '::before').backgroundImage,
+        text: getComputedStyle(e).color,
+        brand: getComputedStyle(e.querySelector('.gh-brand')).color,
+        logo: getComputedStyle(e.querySelector('.uvel-brand__dark')).display,
+        badgeBorder: getComputedStyle(e.querySelector('.genesis-holder-badge')).borderTopWidth,
+        divider: getComputedStyle(e.querySelector('.gh-allocation'), '::before').content };
+    });
+    if (locale === "zh") {
+      assert.ok(Math.abs(composition.width - 348) < 1 && Math.abs(composition.height - 224) < 2, "reference card proportions: " + JSON.stringify(composition));
+      assert.equal(await page.locator('.gh-summary .gh-label').allTextContents().then(v => v.join('|')), '持有席位|优先额度');
+    }
+    assert.ok(composition.artwork.includes('holder-card-background.png'), "extracted reference artwork is actually rendered");
+    assert.equal(composition.text, 'rgb(255, 255, 255)', "light text on the fixed black card in both themes");
+    assert.equal(composition.brand, 'rgb(158, 220, 29)', "original lime figures on the fixed black card");
+    assert.equal(composition.logo, 'block', "white wordmark remains visible in both themes");
+    const cardResponse = await page.request.get(base + '/static/img/genesis/holder-card-background.png');
+    assert.equal(cardResponse.status(), 200);
+    assert.ok((await cardResponse.body()).length > 10_000, "extracted artwork has real pixels");
+    assert.equal(composition.badgeBorder, "1px", "outlined identity badge");
+    assert.notEqual(composition.divider, "none", "reference column dividers exist");
+    await hero.screenshot({ animations: "disabled", path: resolve(artifacts, name + "-hero-reference.png") });
+    const grid = await page.locator('.gh-perk-grid').evaluate(e => ({
+      columns: getComputedStyle(e).gridTemplateColumns.split(' ').length,
+      rows: getComputedStyle(e).gridTemplateRows.split(' ').length,
+      icons: e.querySelectorAll('.gh-perk-icon svg').length,
+    }));
+    assert.deepEqual(grid, { columns: 3, rows: 2, icons: 6 }, "profile-style benefit icon grid");
+    for (let i = 0; i < 6; i++) {
+      const tile = page.locator('.gh-perk').nth(i);
+      const title = await tile.getAttribute('aria-label');
+      await tile.press(i % 2 ? 'Space' : 'Enter');
+      const dialog = page.locator('.nx-mask--confirm');
+      await dialog.waitFor();
+      assert.equal(await dialog.getAttribute('aria-label'), title);
+      assert.ok((await dialog.locator('.nx-modal__msg').innerText()).length > 5, "original perk description retained");
+      await page.keyboard.press('Escape');
+      await dialog.waitFor({ state: 'hidden' });
+    }
+    await page.locator('.gh-perks > .gh-heading').click();
+    await page.locator('.gh-perk-grid').screenshot({ animations: "disabled", path: resolve(artifacts, name + '-benefits-grid.png') });
     const bg = await page.locator(".gh-chassis").evaluate(e => getComputedStyle(e).backgroundImage);
     assert.ok(bg.includes("obsidian-" + theme + ".webp"), "correct actual background image");
     const bgResponse = await page.request.get(base + "/static/img/genesis/obsidian-" + theme + ".webp");

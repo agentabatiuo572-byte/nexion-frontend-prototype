@@ -707,14 +707,14 @@ export const zh: Messages = {
   genesisHolder: {
     pageTitle: "我的创世节点",
     identityLabel: "创世持有人",
-    heroLabel: "你的创世席位",
+    heroLabel: "持有席位",
     nodes: "席",
     notHolderTitle: "暂无创世席位",
     notHolderBody: "1,000 个 OG 席位限量,剩 {n} 席。锁定 $NEX 上所优先权。",
     notHolderCta: "去认购",
     // ── 上所前(NEX 上所前)──
     pre: {
-      allocLabel: "排放优先额度",
+      allocLabel: "优先额度",
       priority: "优先级",
       multiplier: "OG 倍率",
       disc: "上所后开领 · 现无可领余额",

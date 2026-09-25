@@ -725,14 +725,14 @@ export const vi: Messages = {
   genesisHolder: {
     pageTitle: "Nút Genesis của tôi",
     identityLabel: "Chủ sở hữu Genesis",
-    heroLabel: "SUẤT GENESIS CỦA BẠN",
+    heroLabel: "Suất đang giữ",
     nodes: "suất",
     notHolderTitle: "Chưa có suất Genesis nào",
     notHolderBody: "Tổng cộng 1,000 suất OG · còn {n}. Khóa quyền ưu tiên khi $NEX lên sàn.",
     notHolderCta: "Nhận một suất",
     // ── Pre-listing state (before $NEX lists) ──
     pre: {
-      allocLabel: "Suất $NEX đã dành riêng",
+      allocLabel: "Hạn mức ưu tiên",
       priority: "Ưu tiên",
       multiplier: "Hệ số OG",
       disc: "Mở sau khi lên sàn · chưa có gì để nhận",

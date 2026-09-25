@@ -17,10 +17,6 @@
         <template v-else>
           <view class="gh-hero gh-surface">
             <view class="gh-identity"><BrandLockup /><HolderBadge /></view>
-            <svg class="gh-network" viewBox="0 0 200 220" fill="none" aria-hidden="true">
-              <path d="m185 4-48 34 40 47-68 36 44 49-70 43M137 38l-56 25 28 58-66 26 40 66M177 85l14 103-38-18M81 63l-38 84" />
-              <g><circle cx="137" cy="38" r="3"/><circle cx="177" cy="85" r="3"/><circle cx="109" cy="121" r="3"/><circle cx="153" cy="170" r="3"/><circle cx="81" cy="63" r="3"/><circle cx="43" cy="147" r="3"/></g>
-            </svg>
             <view class="gh-summary">
               <view>
                 <text class="gh-label">{{ t.genesisHolder.heroLabel }}</text>
@@ -95,10 +91,12 @@
 
           <view class="gh-perks">
             <text class="gh-heading">{{ t.genesisHolder.perksLabel }}</text>
-            <view class="gh-surface gh-perk-list">
-              <view v-for="k in perkKeys" :key="k" class="gh-perk">
-                <view class="gh-perk-icon" :style="{ background: 'color-mix(in srgb, ' + perkColors[k] + ' 14%, transparent)' }" aria-hidden="true">{{ t.genesisHolder.perks[k].icon }}</view>
-                <view class="gh-perk-copy"><text class="gh-body">{{ t.genesisHolder.perks[k].label }}</text><text class="gh-note">{{ t.genesisHolder.perks[k].body }}</text></view>
+            <view class="gh-surface gh-perk-grid">
+              <view v-for="k in perkKeys" :key="k" class="gh-perk" role="button" tabindex="0" :aria-label="t.genesisHolder.perks[k].label" @click="showPerk(k)" @keydown.enter.prevent="showPerk(k)" @keydown.space.prevent="showPerk(k)">
+                <view class="gh-perk-icon" :style="{ color: perkColors[k], background: 'color-mix(in srgb, ' + perkColors[k] + ' 14%, transparent)' }" aria-hidden="true">
+                  <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-for="path in perkIcons[k]" :key="path" :d="path" /></svg>
+                </view>
+                <text class="gh-perk-label">{{ t.genesisHolder.perks[k].label }}</text>
               </view>
             </view>
           </view>
@@ -132,6 +130,7 @@ import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useGenesisPoints } from "@/store/genesis-points";
+import { confirm } from "@/store/ui";
 
 const DAY = 86400_000;
 // mock 参考价：真后台提供平台 NEX 结算价（GET /api/market），此处仅用于「≈$」参考展示（非保证）。
@@ -142,6 +141,18 @@ const genesis = useGenesis();
 const genesisPoints = useGenesisPoints();
 
 const perkKeys = ["a", "b", "c", "d", "e", "f"] as const;
+const perkIcons = {
+  a: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "M8 16V8l8 8V8"],
+  b: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "M2 12h20", "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"],
+  c: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 7a4 4 0 1 0 0 .01", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"],
+  d: ["m3 9 9-6 9 6H3z", "M5 9v9M10 9v9M14 9v9M19 9v9", "M3 21h18"],
+  e: ["M20 12v10H4V12", "M2 7h20v5H2z", "M12 22V7", "M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z", "M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"],
+  f: ["M4 7h16m-4-4 4 4-4 4", "M20 17H4m4-4-4 4 4 4"],
+};
+function showPerk(key: typeof perkKeys[number]) {
+  const perk = t.value.genesisHolder.perks[key];
+  void confirm({ title: perk.label, message: perk.body, hideCancel: true, icon: "info" });
+}
 
 const owned = computed(() => genesis.myOwned);
 const hasNodes = computed(() => owned.value > 0);
@@ -285,19 +296,29 @@ const perkColors = { a: "var(--v5-warning)", b: "var(--v5-tech-cyan)", c: "var(-
 .gh-page { padding-bottom: 32px; color: var(--v5-ink); font-family: var(--font-v5); }
 .gh-content { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .gh-surface { background: color-mix(in srgb, var(--v5-surface) 96%, transparent); border-radius: var(--v5-radius-xl); padding: 16px; }
-.gh-hero { position: relative; overflow: hidden; padding: 20px; isolation: isolate; }
-.gh-hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; box-shadow: inset 1px 1px 0 color-mix(in srgb, var(--v5-genesis-gold) 42%, transparent), inset -1px -1px 0 color-mix(in srgb, var(--v5-genesis-gold) 24%, transparent); }
-.gh-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
-.gh-identity :deep(.uvel-brand) { width: 112px; height: 39px; }
-.gh-network { position: absolute; right: 0; top: 64px; width: 45%; height: 220px; z-index: -1; stroke: var(--v5-brand); stroke-width: 0.6; opacity: 0.15; }
-.gh-network g { fill: var(--v5-brand); stroke: none; }
-.gh-summary { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 16px; align-items: center; }
+/* The extracted artwork is a fixed dark surface in both page themes. */
+.gh-hero { --gh-logo-width: 128px; --v5-brand: var(--brand); --v5-surface: var(--bg-card); --v5-surface-2: var(--bg-card-2); --v5-ink-3: color-mix(in srgb, var(--text) 65%, transparent); --v5-border: color-mix(in srgb, var(--text) 6%, transparent); --v5-border-strong: color-mix(in srgb, var(--text) 12%, transparent); --v5-genesis-gold: var(--v5-genesis-gold-on-dark); position: relative; padding: 12px 20px 16px; border-radius: 18px; isolation: isolate; color: var(--text); background: var(--bg-card); }
+/* Transparent margins preserve the source's outer glow around the card edge. */
+.gh-hero::before { content: ""; position: absolute; inset: -13px -9px -12px; z-index: -1; pointer-events: none; background: url("/static/img/genesis/holder-card-background.png") center / 100% 100% no-repeat; }
+.gh-identity, .gh-summary, .gh-stats, .gh-emissions { position: relative; z-index: 1; }
+.gh-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-bottom: 12px; }
+.gh-identity :deep(.uvel-brand) { width: var(--gh-logo-width); height: 44px; }
+.gh-hero .gh-identity :deep(.uvel-brand__dark) { display: block; }
+.gh-hero .gh-identity :deep(.uvel-brand__light) { display: none; }
+.gh-identity :deep(.genesis-holder-badge) { max-width: calc(100% - var(--gh-logo-width) - 12px); gap: 8px; padding: 5px 12px; min-height: 36px; border: 1px solid color-mix(in srgb, var(--v5-genesis-gold) 80%, transparent); font-size: 14px; font-weight: 600; line-height: 1.3; background: color-mix(in srgb, var(--v5-genesis-gold) 5%, transparent); }
+.gh-identity :deep(.genesis-holder-badge svg) { width: 24px; height: 24px; }
+.gh-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; }
+.gh-allocation, .gh-stats > view:last-child { position: relative; }
+.gh-allocation { transform: translateY(-4px); }
+.gh-allocation::before, .gh-stats > view:last-child::before { content: ""; position: absolute; inset-inline-start: -23px; top: 4px; bottom: 4px; width: 1px; background: linear-gradient(transparent, var(--v5-border-strong), transparent); }
 .gh-label { display: block; font-size: var(--v5-type-body-s); line-height: 1.5; color: var(--v5-ink-3); overflow-wrap: anywhere; }
-.gh-count { display: flex; align-items: baseline; gap: 8px; font-size: var(--v5-type-hero); line-height: 1.2; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 4px; }
+.gh-count { display: flex; align-items: baseline; gap: 8px; font-size: var(--v5-type-hero); line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
 .gh-unit { font-size: var(--v5-type-h3); }
 .gh-value { display: block; font-size: var(--v5-type-h3); line-height: 1.4; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .gh-brand { color: var(--v5-brand); }
-.gh-stats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--v5-border); }
+.gh-hero .gh-value { line-height: 1.2; }
+.gh-stats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--v5-border); }
+@media (max-width: 374px) { .gh-hero { --gh-logo-width: 104px; padding-inline: 16px; } .gh-identity :deep(.genesis-holder-badge) { gap: 6px; padding-inline: 8px; font-size: 12px; } .gh-identity :deep(.genesis-holder-badge svg) { width: 20px; height: 20px; } .gh-summary, .gh-stats { column-gap: 24px; } .gh-allocation::before, .gh-stats > view:last-child::before { inset-inline-start: -16px; } }
 .gh-disclosure { display: flex; align-items: center; gap: 12px; color: var(--v5-ink-3); font-size: var(--v5-type-body-s); line-height: 1.5; }
 .gh-disclosure svg { flex-shrink: 0; }
 .gh-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: var(--v5-type-body-m); font-weight: 600; line-height: 1.5; }
@@ -315,16 +336,18 @@ const perkColors = { a: "var(--v5-warning)", b: "var(--v5-tech-cyan)", c: "var(-
 .gh-rank--me { background: var(--v5-brand-soft); border-radius: var(--v5-radius-s); }
 .gh-rank-who { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .gh-note { display: block; font-size: var(--v5-type-caption); line-height: 1.5; color: var(--v5-ink-3); margin-top: 4px; overflow-wrap: anywhere; }
-.gh-holding-list, .gh-perk-list { padding-top: 4px; padding-bottom: 4px; }
+.gh-holding-list { padding-top: 4px; padding-bottom: 4px; }
 .gh-holding { display: flex; align-items: center; gap: 12px; padding: 16px 0; }
-.gh-holding + .gh-holding, .gh-perk + .gh-perk { border-top: 1px solid var(--v5-border); }
+.gh-holding + .gh-holding { border-top: 1px solid var(--v5-border); }
 .gh-holding-icon { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; border-radius: var(--v5-radius-s); color: var(--v5-genesis-gold); background: color-mix(in srgb, var(--v5-genesis-gold) 12%, transparent); }
-.gh-holding-body, .gh-perk-copy { flex: 1; min-width: 0; }
+.gh-holding-body { flex: 1; min-width: 0; }
 .gh-id { font-family: var(--font-jet-mono); font-size: var(--v5-type-caption); font-weight: 500; overflow-wrap: anywhere; }
 .gh-amount { display: block; margin-top: 4px; font-size: var(--v5-type-caption); line-height: 1.5; overflow-wrap: anywhere; }
 .gh-icon-button { display: grid; place-items: center; width: 44px; min-height: 44px; border-radius: var(--v5-radius-full); flex-shrink: 0; color: var(--v5-ink-3); background: var(--v5-surface-2); }
-.gh-perk { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
-.gh-perk-icon { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: var(--v5-radius-s); font-size: 20px; }
+.gh-perk-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 4px; row-gap: 18px; padding: 18px 10px; border-radius: 16px; }
+.gh-perk { display: flex; flex-direction: column; align-items: center; gap: 7px; min-height: 76px; padding: 4px 2px; border-radius: 12px; }
+.gh-perk-icon { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px; }
+.gh-perk-label { display: block; max-width: 96px; font-size: 13px; font-weight: 500; line-height: 1.2; text-align: center; overflow-wrap: anywhere; }
 .gh-body { display: block; font-size: var(--v5-type-body-s); font-weight: 500; line-height: 1.5; }
 .gh-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .gh-action { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; min-height: 52px; border-radius: var(--v5-radius-full); background: var(--v5-surface); font-size: var(--v5-type-body-s); font-weight: 500; text-align: center; }
