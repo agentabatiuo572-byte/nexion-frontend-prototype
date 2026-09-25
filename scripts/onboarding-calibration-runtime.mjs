@@ -11,13 +11,14 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const artifacts = resolve(process.env.CALIBRATION_ARTIFACT_DIR || `${tmpdir()}/nexion-calibration-${Date.now()}`);
 const results = [];
 let server, browser;
-const labels = { en: "NPU benchmark", zh: "AI 算力性能", vi: "Đo hiệu năng NPU" };
+const labels = { en: "Device assessment", zh: "设备能力评估", vi: "Đánh giá thiết bị" };
+const removedDetails = ".cn-test__metric, .cn-summary, .cn-row, .cn-score__tier, .cn-score__yield";
 
 async function checkIntro(page, locale) {
   await page.locator(".cn-point").first().waitFor();
-  assert.equal(await page.locator(".cn-point").count(), 1, "intro must contain only compute");
-  assert.match(await page.locator(".cn-point").innerText(), /NPU|算力/);
-  assert.equal(await page.locator(".cn-test, .cn-row").count(), 0);
+  assert.equal(await page.locator(".cn-point").count(), 1, "intro must contain only device assessment");
+  assert.ok((await page.locator(".cn-point").innerText()).trim());
+  assert.equal(await page.locator(`.cn-test, .cn-score, ${removedDetails}`).count(), 0);
   assert.ok((await page.locator(".cn-title").innerText()).trim());
   assert.equal(await page.evaluate(() => uni.getStorageSync("nexgrid-locale-v1").code), locale);
   const geometry = await page.locator(".cn-root").evaluate(el => ({ width: el.clientWidth, scrollWidth: el.scrollWidth }));
@@ -74,6 +75,7 @@ async function runCase(base, { locale, mode, width, height }) {
     await page.goto(connect, { waitUntil: "domcontentloaded" });
     await page.reload({ waitUntil: "domcontentloaded" });
     await checkIntro(page, locale);
+    result.intro = await page.locator(".cn-point").innerText();
     // Seed only this fresh context, after reload: preview boot restores its account.
     // This tests first-time calibration state, not the registration journey.
     result.expected = await page.evaluate(async mode => {
@@ -113,42 +115,44 @@ async function runCase(base, { locale, mode, width, height }) {
     }
     await screenshot("intro");
     const started = Date.now();
-    await page.evaluate(started => {
+    await page.evaluate(({ started, label }) => {
       window.__calibrationSamples = [];
       window.__calibrationTimer = setInterval(() => {
         const fill = document.querySelector(".cn-test__fill");
-        const metric = document.querySelector(".cn-test__metric");
-        if (fill && metric) window.__calibrationSamples.push({ ms: Date.now() - started, progress: parseFloat(fill.style.width), tops: Number(metric.textContent.match(/-?[\d.]+/)?.[0]) });
+        if (fill) window.__calibrationSamples.push({
+          ms: Date.now() - started,
+          progress: parseFloat(fill.style.width),
+          onlyProgress: document.querySelector(".cn-test")?.innerText.trim() === label && !document.querySelector(".cn-test__metric, .cn-score, .cn-summary"),
+        });
       }, 200);
-    }, started);
+    }, { started, label: labels[locale] });
     await page.locator(".cn-go--glow").press("Enter");
     await page.locator(".cn-test").first().waitFor();
-    assert.equal(await page.locator(".cn-test").count(), 1, "only compute may be measured");
-    assert.equal(await page.locator(".cn-test__title").innerText(), labels[locale]);
+    assert.equal(await page.locator(".cn-test").count(), 1, "only device assessment may appear");
+    assert.equal((await page.locator(".cn-test").innerText()).trim(), labels[locale], "calibration card must have no numeric metrics");
     await page.waitForFunction(() => parseFloat(document.querySelector(".cn-test__fill")?.style.width || "0") >= 45);
-    assert.equal(await page.locator(".cn-row").count(), 0, "result appeared before calibration finished");
-    assert.doesNotMatch(await page.locator(".cn-test").innerText(), /\b\d+\s*ms\b|78\s*%|SG\s*\d|TK\s*\d|US\s*\d/i);
+    assert.equal(await page.locator(`.cn-score, ${removedDetails}`).count(), 0, "calibration must show progress without scores or throughput");
     await screenshot("calibrating");
-    await page.locator(".cn-row").first().waitFor();
+    await page.locator(".cn-score").waitFor();
     result.calibrationMs = Date.now() - started;
     result.progressSamples = await page.evaluate(() => {
       clearInterval(window.__calibrationTimer);
       return window.__calibrationSamples;
     });
     assert.ok(result.progressSamples.length >= 20, "whole calibration must be sampled");
-    let previous = { progress: 0, tops: 0 };
+    let previous = 0;
     for (const sample of result.progressSamples) {
-      assert.ok(sample.progress >= previous.progress && sample.progress <= 100 && sample.tops >= previous.tops && sample.tops <= result.expected.tops, "progress and compute must be finite, nonnegative and monotonic");
-      if (sample.ms < 11_800) assert.ok(sample.progress < 100, "compute cannot finish early and leave a stalled countdown");
-      previous = sample;
+      assert.ok(sample.progress >= previous && sample.progress <= 100, "progress must be finite, nonnegative and monotonic");
+      assert.ok(sample.onlyProgress, "calibration must not expose scores or throughput at any sampled point");
+      if (sample.ms < 11_800) assert.ok(sample.progress < 100, "assessment cannot finish early and leave a stalled countdown");
+      previous = sample.progress;
     }
     assert.ok(result.calibrationMs >= 11_900, "12-second calibration ended early");
-    assert.equal(await page.locator(".cn-row").count(), 1, "only compute may appear in results");
-    assert.equal(await page.locator(".cn-row__label").innerText(), labels[locale]);
-    assert.equal(parseFloat(await page.locator(".cn-row__val").innerText()), result.expected.tops);
     await page.waitForFunction(score => Number(document.querySelector(".cn-score__v")?.textContent) === score, result.expected.score);
-    assert.equal(Number((await page.locator(".cn-score__tier").innerText()).match(/\d+/)?.[0]), result.expected.tier);
-    assert.ok((await page.locator(".cn-score__yield-v").innerText()).includes(`$${result.expected.usdt.toFixed(2)}/d`));
+    assert.equal(await page.locator(removedDetails).count(), 0, "result must not contain throughput, tier or yield details");
+    assert.equal(await page.locator(".cn-score__d").innerText(), "/100");
+    assert.deepEqual((await page.locator(".cn-score").innerText()).match(/\d+(?:\.\d+)?/g), [String(result.expected.score), "100"], "score must be the only numeric result");
+    assert.doesNotMatch(await page.locator(".cn-phase").innerText(), /\b(?:TOPS|TFLOPS|Tier|yield)\b|万亿|运算\/秒|每秒|\$\s*\d|\/d\b/iu);
     assert.equal(await page.locator(".cn-policy__line").count(), 3, "task acceptance policies must remain");
     await page.locator(".cn-go--on").scrollIntoViewIfNeeded();
     await screenshot("result");
@@ -201,6 +205,7 @@ try {
       await page.evaluate(async locale => (await import("/src/store/locale.ts")).useLocaleStore().setLocale(locale), locale);
       await page.reload({ waitUntil: "domcontentloaded" });
       await checkIntro(page, locale);
+      assert.equal(await page.locator(".cn-point").innerText(), results.find(row => row.name === "en-first-320x568").intro, "preview locales must use the English assessment fallback");
       previewLocales.push(locale);
     }
     assert.deepEqual(errors, []);

@@ -50,7 +50,6 @@
             </view>
             <view class="cn-test__body">
               <text class="cn-test__title">{{ tc.title }}</text>
-              <text class="cn-test__metric">{{ tc.metric }}</text>
             </view>
           </view>
           <view class="cn-test__track">
@@ -69,21 +68,6 @@
           <view class="cn-score__num">
             <text class="cn-score__v">{{ shownScore }}</text>
             <text class="cn-score__d">/100</text>
-          </view>
-          <text class="cn-score__tier">{{ tierLabel }}</text>
-          <view class="cn-score__yield">
-            <text class="cn-score__yield-cap">{{ t.onboarding.resultEstYield }}</text>
-            <text class="cn-score__yield-v">${{ FINAL_YIELD.toFixed(2) }}/d</text>
-          </view>
-        </view>
-
-        <view class="cn-summary">
-          <view v-for="(r, i) in resultRows" :key="i" class="cn-row">
-            <view class="cn-row__check">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-            </view>
-            <text class="cn-row__label">{{ r.label }}</text>
-            <text class="cn-row__val">{{ r.value }}</text>
           </view>
         </view>
 
@@ -127,7 +111,7 @@ import { getDeviceId } from "@/lib/device-id";
 const t = useT();
 const auth = useAuth();
 
-// Recalibrate mode (?mode=recalibrate) = new-device re-measure; otherwise the
+// Recalibrate mode (?mode=recalibrate) = new-device assessment; otherwise the
 // first-time onboarding calibration. Set in onLoad.
 const isRecal = ref(false);
 
@@ -135,14 +119,10 @@ type Phase = "intro" | "calibrating" | "result";
 const phase = ref<Phase>("intro");
 
 const CALIBRATION_MS = 12_000;
-// Capability finals are DETERMINISTICALLY derived from this device's real
-// signals (not hardcoded) — so the displayed TOPS/score/tier/yield are
-// plausible, reproducible, and monotonic with real device class.
+// This is an estimate from device information, not a hardware benchmark.
+// The timer presents progress; only the final estimated score is displayed.
 const cap = measureDeviceCapability(getDeviceId());
-const FINAL_TOPS = cap.tops;
 const FINAL_SCORE = cap.score;
-const FINAL_TIER = cap.tier;
-const FINAL_YIELD = cap.baseRateUsdt;
 
 // Copy swaps: recalibrate vs first-time onboarding.
 const stepText = computed(() => (isRecal.value ? t.value.onboarding.recalStep : t.value.onboarding.step3of3));
@@ -162,7 +142,6 @@ const whyPoints = computed(() => [
 
 // ── calibrating tickers ──
 const progress = ref(0);
-const tops = ref(0);
 let calInterval: ReturnType<typeof setInterval> | undefined;
 let calTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -171,7 +150,6 @@ function startCalibration() {
   calInterval = setInterval(() => {
     const p = Math.min(1, (Date.now() - start) / CALIBRATION_MS);
     progress.value = p;
-    tops.value = +(p * FINAL_TOPS).toFixed(1);
   }, 100);
   calTimeout = setTimeout(() => {
     if (calInterval) clearInterval(calInterval);
@@ -188,7 +166,7 @@ const progressText = computed(() =>
 );
 
 const testCards = computed(() => [
-  { icon: ICON.cpu, title: t.value.onboarding.testNpu, metric: fmt(t.value.onboarding.testComputeMetric, { n: tops.value.toFixed(1) }), progress: progress.value, accent: "var(--v5-brand)" },
+  { icon: ICON.cpu, title: t.value.onboarding.testNpu, progress: progress.value, accent: "var(--v5-brand)" },
 ]);
 
 // ── result score tick ──
@@ -204,10 +182,6 @@ function startResult() {
   raf = requestAnimationFrame(tick);
 }
 
-const tierLabel = computed(() => fmt(t.value.onboarding.resultTier, { n: FINAL_TIER }));
-const resultRows = computed(() => [
-  { label: t.value.onboarding.testNpu, value: fmt(t.value.onboarding.resultComputeMetric, { n: FINAL_TOPS }) },
-]);
 const policyLines = computed(() => [
   t.value.onboarding.policyLine1,
   t.value.onboarding.policyLine2,
@@ -226,7 +200,7 @@ watch(phase, (p) => {
 
 function activate() {
   const app = useApp();
-  // Apply the freshly-measured baseline to the live phone device + record this
+  // Apply the estimated baseline to the live phone device + record this
   // device as the account's calibrated device (so future logins on it skip
   // recalibration, while a different device triggers it).
   app.applyPhoneCalibration(cap);
@@ -299,7 +273,6 @@ onUnmounted(() => {
 .cn-test__ic { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .cn-test__body { flex: 1; min-width: 0; }
 .cn-test__title { display: block; font-size: 13px; font-weight: 600; color: var(--v5-ink); line-height: 1.25; }
-.cn-test__metric { display: block; font-family: var(--font-jet-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--v5-ink-3); margin-top: 2px; }
 .cn-test__track { margin-top: 10px; height: 4px; border-radius: 9999px; background: var(--v5-surface-2); overflow: hidden; }
 .cn-test__fill { height: 100%; border-radius: 9999px; transition: width 0.15s linear; }
 
@@ -309,16 +282,6 @@ onUnmounted(() => {
 .cn-score__num { margin-top: 12px; display: flex; align-items: baseline; justify-content: center; gap: 4px; }
 .cn-score__v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.025em; color: var(--v5-brand); font-size: 56px; font-weight: 600; }
 .cn-score__d { font-family: var(--font-v5); font-variant-numeric: tabular-nums; color: var(--v5-ink-3); font-size: 20px; font-weight: 500; }
-.cn-score__tier { display: block; margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--v5-ink); }
-.cn-score__yield { margin: 12px auto 0; display: inline-flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 9999px; background: color-mix(in oklab, var(--v5-brand) 14%, transparent); }
-.cn-score__yield-cap { font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-brand); }
-.cn-score__yield-v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; color: var(--v5-brand); font-size: 15px; font-weight: 600; }
-
-.cn-summary { border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--v5-surface); }
-.cn-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.cn-row__check { width: 24px; height: 24px; border-radius: 6px; background: color-mix(in oklab, var(--v5-brand) 14%, transparent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.cn-row__label { color: var(--v5-ink-3); }
-.cn-row__val { margin-left: auto; font-family: var(--font-jet-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--v5-ink); font-weight: 600; }
 
 .cn-policy { border-radius: 16px; padding: 14px; background: color-mix(in oklab, var(--v5-warning) 8%, transparent); border: 1px solid color-mix(in oklab, var(--v5-warning) 22%, transparent); }
 .cn-policy__cap { display: flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-warning); }
