@@ -81,7 +81,6 @@
               <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.coTotal }}</text>
               <text class="tabular-nums" :style="payTotalStyle">${{ netPriceText }}</text>
             </view>
-            <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ paybackLine }}</text>
             <!-- FEAT-TRIAL02: conversion credit chips (promo + accrued credit) -->
             <view v-if="promoDiscount > 0" class="flex items-center" style="gap: 5px; margin-top: 6px">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
@@ -876,13 +875,6 @@ const cardFee = computed(() => (remoteApiEnabled && appliedTradeinView.value?.ca
 const cardFeeText = computed(() => cardFee.value.toLocaleString());
 const confirmTotalText = computed(() => (netPrice.value + cardFee.value).toLocaleString());
 const paymentLabel = computed(() => PAYMENT_METHODS.value.find((m) => m.id === payment.value)?.label ?? "");
-const paybackLine = computed(() => {
-  const p = product.value;
-  if (!p) return "";
-  return fmt(t.value.store.coEstPayback, {
-    days: Math.round(p.price / p.dailyEarn),
-  });
-});
 const slotsFullText = computed(() => fmt(t.value.store.coSlotsFull, { max: MAX_DEVICES }));
 const activatingSubText = computed(() => {
   const p = product.value;

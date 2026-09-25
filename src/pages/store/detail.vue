@@ -5,7 +5,7 @@
   Wrapped in <AppChassis active="store">. Top→bottom:
     in-page header (back + title/tier) → Hero (ProductRender + ribbon +
     LiveSocialProof + name/tagline/mult + trust chips) → Vs-phone strip →
-    Return estimates (qty stepper + 3-cell grid) → Hardware spec → AI perf spec →
+    Return estimates (qty stepper + 2-cell grid) → Hardware spec → AI perf spec →
     Trust badges → FAQ accordion → sticky bottom Buy CTA.
 
   Phase-gated products (unlocksAtPhase not yet reached) render the shared
@@ -129,7 +129,7 @@
           <text v-if="speedup > 0" class="shrink-0" :style="vsMultChipStyle">{{ speedup }}×</text>
         </view>
 
-        <!-- === Section 4: Return estimates — qty stepper + 3-cell grid === -->
+        <!-- === Section 4: Return estimates — qty stepper + 2-cell grid === -->
         <template v-if="!isShare">
           <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detEstReturns" :count="t.store.detEstReturnsMeta" /></view>
           <view class="mx-4 rounded-2xl" :style="roiCardStyle">
@@ -147,7 +147,7 @@
               </view>
             </view>
 
-            <!-- Daily/monthly estimates and payback -->
+            <!-- Daily/monthly estimates -->
             <view class="grid" style="margin-top: 16px; grid-template-columns: 1fr 1fr">
               <view :style="roiCellStyle(0)">
                 <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.store.detDaily }}</text>
@@ -157,11 +157,6 @@
               <view :style="roiCellStyle(1)">
                 <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.store.detMonthly }}</text>
                 <text class="block tabular-nums" :style="roiValStyle('success')">${{ monthlyYieldText }}</text>
-              </view>
-              <view :style="roiCellStyle(2)">
-                <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.store.detPayback }}</text>
-                <text class="block tabular-nums" :style="roiValStyle('brand')">{{ paybackDays }}<text style="font-size: 13px; color: var(--v5-ink-3); font-weight: 500; margin-left: 1px">{{ t.store.detDaySuffix }}</text></text>
-                <text class="block" :style="roiSubStyle">{{ t.store.detToBreakEven }}</text>
               </view>
             </view>
           </view>
@@ -345,7 +340,7 @@ useSetPageHeader(() => ({
   backHref: "/store",
 }));
 
-// ── derived ROI math (mirrors page.tsx + _client.tsx) ──
+// ── daily/monthly estimates ──
 const qty = ref(1);
 const openFaq = ref(0);
 
@@ -361,19 +356,6 @@ const speedup = computed(() =>
 );
 const dailyYield = computed(() => (product.value?.dailyEarn ?? 0) * qty.value);
 const monthlyYield = computed(() => dailyYield.value * 30);
-const totalPrice = computed(() => (product.value?.price ?? 0) * qty.value);
-const paybackDays = computed(() =>
-  product.value && !isShare.value && dailyYield.value > 0
-    ? Math.round(totalPrice.value / dailyYield.value)
-    : 0,
-);
-const paybackLabel = computed(() => {
-  if (!product.value || isShare.value) return "";
-  const d = Math.round(product.value.price / product.value.dailyEarn);
-  return d >= 60
-    ? fmt(t.value.store.detPaybackMonths, { n: (d / 30).toFixed(1) })
-    : fmt(t.value.store.detPaybackDays, { n: d });
-});
 
 // Hardware spec rows — per-SKU values are server-owned and optional, so labels
 // localise while values render as authored upstream, and a row with nothing to
@@ -477,7 +459,7 @@ function toggleFaq(i: number) {
 // product/qty resolve; cleared on hide/unmount so it never bleeds to the next page.
 const sticky = useStickyCTA();
 watch(
-  [product, isShare, isLocked, purchaseUnavailable, priceText, dailyEarnText, paybackLabel, purchaseGate],
+  [product, isShare, isLocked, purchaseUnavailable, priceText, purchaseGate],
   () => {
     if (!product.value || isLocked.value || purchaseUnavailable.value
       || (remoteApiEnabled && eligibility.value.status !== "ready")) {
@@ -512,9 +494,6 @@ watch(
     sticky.show({
       href: `/pages/store/checkout?product=${product.value.id}`,
       amount: `$${priceText.value}`,
-      amountSubtext: isShare.value
-        ? undefined
-        : fmt(t.value.store.detCtaPayback, { daily: dailyEarnText.value, payback: paybackLabel.value }),
       buttonLabel: t.value.store.cardBuyNow,
       showTabBar: false,
     });
@@ -657,8 +636,6 @@ function roiCellStyle(index: number): CSSProperties {
   return {
     padding: "14px 16px",
     borderRight: index === 0 ? "1px solid color-mix(in srgb, var(--v5-border) 50%, transparent)" : "none",
-    borderBottom: index < 2 ? "1px solid color-mix(in srgb, var(--v5-border) 50%, transparent)" : "none",
-    gridColumn: index === 2 ? "1 / -1" : undefined,
   };
 }
 const roiLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)" };

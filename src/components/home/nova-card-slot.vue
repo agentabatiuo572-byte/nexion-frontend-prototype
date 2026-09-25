@@ -26,7 +26,7 @@
             <text style="color: var(--v5-ink-4)">· {{ t.novaCard.senderRole }}</text>
           </view>
           <view class="mt-1.5" style="font-family: var(--font-v5); font-size: 15px; line-height: 1.45; color: var(--v5-ink); font-weight: 500">
-            <text>{{ msgBefore }}</text><text class="tabular-nums" style="color: var(--v5-brand); font-weight: 600">{{ yieldPct }}</text><text>{{ msgAfter }}</text>
+            <text>{{ t.novaCard.messageWithPercent }}</text>
           </view>
           <view class="mt-2 inline-flex items-center gap-1" style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-brand)">
             <text style="color: var(--v5-brand)">{{ t.novaCard.openChatCta }}</text>
@@ -49,18 +49,6 @@ const t = useT();
 const nova = useNova();
 
 const unread = computed(() => nova.unread);
-const yieldPct = "0.16";
-
-const msgBefore = computed(() => {
-  const tpl = t.value.novaCard.messageWithPercent;
-  const idx = tpl.indexOf("{pct}");
-  return idx >= 0 ? tpl.slice(0, idx) : tpl;
-});
-const msgAfter = computed(() => {
-  const tpl = t.value.novaCard.messageWithPercent;
-  const idx = tpl.indexOf("{pct}");
-  return idx >= 0 ? tpl.slice(idx + 5) : "";
-});
 
 function open() {
   navTo("/pages/support/chat?type=ai");

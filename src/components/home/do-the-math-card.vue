@@ -1,8 +1,8 @@
 <!--
-  DoTheMathCard — ZONE 5 upgrade ROI math (ported from mission-control.tsx
+  DoTheMathCard — ZONE 5 upgrade comparison (ported from mission-control.tsx
   DoTheMathCard + MathBar inline). Headline compares the next tier vs the user's
   current device (colored inline spans rendered via a placeholder-segment split
-  so word order works in any locale), two rate bars, a 3-stat grid, and a CTA.
+  so word order works in any locale), two rate bars, a 2-stat grid, and a CTA.
   Hidden at top tier (multiplier 0). Grid bg uses the brand token (theme-aware)
   rather than the source's hardcoded light-blue rgba (would leak in dark).
 -->
@@ -43,9 +43,7 @@
         </view>
 
         <!-- 去线(主人 2026-08-17 全站令):mt-7 = 原 mt-4 + pt-3 的总间距 -->
-        <view class="mt-7 grid grid-cols-3">
-          <!-- 每列拉满行高 + 标签贴顶数值贴底:第三列标签("对比 <机型>")会折成两行,
-               不这么做的话它的数值被推低 15px,三列数字读起来是歪的(去掉分隔虚线后更明显) -->
+        <view class="mt-7 grid grid-cols-2">
           <view v-for="s in stats" :key="s.k" style="display: flex; flex-direction: column; justify-content: space-between">
             <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-4)">{{ s.k }}</text>
             <text class="block tabular-nums" :style="{ marginTop: '3px', fontFamily: 'var(--font-v5)', fontWeight: 600, fontSize: '20px', color: s.tone, letterSpacing: '-0.014em' }">{{ s.v }}</text>
@@ -109,7 +107,6 @@ const headlineSegs = computed(() => {
 
 const stats = computed(() => [
   { k: t.value.home.doMathDaily, v: `$${promo.value.targetDaily.toFixed(2)}`, tone: "var(--v5-ink)" },
-  { k: t.value.home.doMathPayback, v: `${promo.value.targetPayback} d`, tone: "var(--v5-brand)" },
   { k: fmt(t.value.home.doMathVs, { base: baseShort.value }), v: `${promo.value.multiplier}×`, tone: "var(--v5-success)" },
 ]);
 

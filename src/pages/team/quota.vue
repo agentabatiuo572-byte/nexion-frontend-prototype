@@ -99,7 +99,11 @@ function buildTier(productId: string, tint: string): QuotaTier | null {
 
 function visibleQuotaPerks(perks: readonly string[]): string[] {
   const annualReturn = /年化|每年|年(?:度)?(?:收益|回报|产出|产量)|\b(?:annual(?:i[sz]ed|ly)?|yearly|apy|apr|roi)\b|(?:\/|per\s+)(?:yr|year|annum)\b|(?:\/|mỗi\s+|hằng\s+|hàng\s+)năm/iu;
-  return perks.filter((perk) => !annualReturn.test(perk.normalize("NFC")));
+  const payback = /回本|回收(?:期|周期|成本|本金|投资)|收回(?:成本|本金|投资)|\b(?:pay[ -]?back|paid back|break[ -]?even|recoup)\b|pays? (?:for )?itself|(?:capital|cost|investment) recovery|hoàn vốn|h[òo][aà] vốn|thu hồi vốn/iu;
+  return perks.filter((perk) => {
+    const text = perk.normalize("NFC");
+    return !annualReturn.test(text) && !payback.test(text);
+  });
 }
 
 const tiers = computed<QuotaTier[]>(() =>
