@@ -50,18 +50,16 @@
         </view>
 
         <view v-if="remoteApiEnabled && enrollment" class="mt-3" :style="pairingStyle" data-proof="compute-share-server-pairing">
-          <view class="flex items-center justify-between" style="gap: 12px">
+          <view v-if="enrollment.pairingCode" class="flex items-center justify-between" style="gap: 12px">
             <view class="min-w-0">
               <text class="block" :style="pairingLabelStyle">{{ t.computeShare.pairingLabel }}</text>
-              <text v-if="enrollment.pairingCode" class="block" :style="pairingCodeStyle">{{ enrollment.pairingCode }}</text>
-              <text v-else class="block" :style="pairingCodeStyle">{{ enrollment.status }}</text>
+              <text class="block" :style="pairingCodeStyle">{{ enrollment.pairingCode }}</text>
             </view>
-            <view v-if="enrollment.pairingCode" :style="copyCodeStyle" @click="copyPairingCode">
+            <view :style="copyCodeStyle" @click="copyPairingCode">
               <text>{{ t.computeShare.copyPairingCode }}</text>
             </view>
           </view>
           <text class="block" :style="pairingBodyStyle">{{ pairingStatusText }}</text>
-          <text class="block" :style="pairingNoStyle">{{ enrollment.enrollmentNo }}</text>
         </view>
 
         <view
@@ -492,13 +490,6 @@ const pairingBodyStyle: CSSProperties = {
   fontSize: "12px",
   lineHeight: 1.5,
   color: "var(--v5-ink-2)",
-};
-const pairingNoStyle: CSSProperties = {
-  marginTop: "6px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  color: "var(--v5-ink-4)",
-  wordBreak: "break-all",
 };
 const copyCodeStyle: CSSProperties = {
   flexShrink: 0,

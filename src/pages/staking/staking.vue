@@ -18,7 +18,7 @@
            ③ 与下面的 remoteError 分支解耦成独立 v-if:挂在同一条 v-else-if 链上时,这道闸一旦为假
            就会把 remoteError 分支放出来,是个只等某天 mock 下写了 remoteError 就会炸的暗雷。
            i18n-en-ok: 工程话诊断横幅,仅 DEV + mock 档渲染 -->
-      <text v-if="isDevBuild && staking.isMockMode" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)">Dev build · mock data</text>
+      <text v-if="isDevBuild && staking.isMockMode" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)">{{ t.publicCopy.experienceMode }}</text>
       <text v-if="staking.remoteError" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-danger)">{{ t.staking.remoteUnavailableClosed }}</text>
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">

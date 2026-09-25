@@ -42,7 +42,6 @@
           <HowStepRow :n="2" :title="w.s3Step2Title" :body="w.s3Step2Body" accent="amber" />
           <HowStepRow :n="3" :title="w.s3Step3Title" :body="w.s3Step3Body" accent="amber" />
         </view>
-        <CalloutBox :title="`💡 ${w.s3HintTitle}`" :body="w.s3HintBody" tone="purple" />
       </HowSection>
 
       <HowSection :title="w.s4Title">

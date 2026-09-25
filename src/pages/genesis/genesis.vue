@@ -77,31 +77,6 @@
           </view>
         </view>
 
-        <!-- ════ Live social proof ════ -->
-        <!-- ════ Tier ladder — 售罄跳价 ════ -->
-        <view class="flex items-center justify-between" :style="secHeaderStyle">
-          <text :style="secTitleStyle">{{ t.genesis.tier.title }}</text>
-        </view>
-        <view :style="ladderCardStyle">
-          <view v-for="tr in tiers" :key="tr.id" class="flex items-center" :style="tierRowStyle(tr.isCurrent)">
-            <view class="flex-1 min-w-0">
-              <view class="flex items-center" style="gap: 8px">
-                <text :style="tierNameStyle">{{ t.genesis.tier[tr.labelKey] }}</text>
-                <text :style="tr.isCurrent ? tierChipLiveStyle : tierChipSoldStyle">{{ tr.isCurrent ? t.genesis.tier.live : t.genesis.tier.soldOut }}</text>
-              </view>
-              <!-- 🔴 「还剩 N 席」也是名额紧迫文案,与 hero 那处同一条规则(FEAT-GEN10 ④)。
-                   独立验收 P1-4:上次只关了 hero,这里漏了,关闭态实测仍显示「Live · 153 left」。
-                   阻断态改显总席位数(中性事实),不显剩余。 -->
-              <text class="block" :style="tierMetaStyle">{{ tr.isCurrent && showUrgency ? fmt(t.genesis.tier.left, { n: tr.left }) : fmt(t.genesis.tier.seats, { n: tr.seatsTotal }) }}</text>
-            </view>
-            <view class="text-right shrink-0">
-              <text class="block tabular-nums" :style="tierPriceStyle">${{ tr.priceText }}</text>
-              <text v-if="tr.isCurrent" class="block" :style="tierCurrentStyle">{{ t.genesis.tier.current }}</text>
-            </view>
-          </view>
-          <text class="block" :style="tierPremiumStyle">{{ t.genesis.tier.premium }}</text>
-        </view>
-
         <!-- ════ Value / perks ════ -->
         <view class="flex items-center justify-between" :style="secHeaderStyle">
           <text :style="secTitleStyle">{{ t.genesis.value.title }}</text>
@@ -291,27 +266,6 @@ const countdownDisplay = computed(() => {
 const totalText = computed(() => total.value.toLocaleString());
 const soldText = computed(() => sold.value.toLocaleString());
 const priceText = computed(() => price.value.toLocaleString());
-
-// 阶梯档展示：累计售出决定各档 售罄/当前 态。档位读 live config(运营 G4 可配、可增删)。
-// labelKey 按位置派生(不按 id 硬编码):首档=wl / 末档=Final tier / 中间=Public Tier —
-// 运营增删档(t3/t4…)标签不错位、末档恒为 Final(修 id 硬编码致 label 错位)。
-type TierLabelKey = "wl" | "t1" | "tail";
-const tiers = computed(() =>
-  cfg.config.tiers.map((tier, i, arr) => {
-    const s = sold.value;
-    const isCurrent = s >= tier.from && s < tier.to;
-    const left = Math.max(0, tier.to - Math.max(tier.from, s));
-    const labelKey: TierLabelKey = i === 0 ? "wl" : i === arr.length - 1 ? "tail" : "t1";
-    return {
-      id: tier.id,
-      labelKey,
-      priceText: tier.priceUSDT.toLocaleString(),
-      isCurrent,
-      left,
-      seatsTotal: tier.to - tier.from,
-    };
-  }),
-);
 
 const { elRef: salesBarRef, inView: salesBarInView } = useScrollGrowProgress();
 
@@ -560,74 +514,6 @@ const secLinkStyle: CSSProperties = {
 const perksCardStyle: CSSProperties = {
   padding: "0 2px",
   borderTop: "1px solid var(--v5-border)",
-};
-// ── Tier ladder — de-carded: floor hairline group (rows sit on the page). ──
-const ladderCardStyle: CSSProperties = {
-  padding: "0 2px",
-  borderTop: "1px solid var(--v5-border)",
-};
-function tierRowStyle(isCurrent: boolean): CSSProperties {
-  return {
-    gap: "12px",
-    padding: "12px 0",
-    borderBottom: "1px solid var(--v5-border)",
-    opacity: isCurrent ? 1 : 0.6,
-  };
-}
-const tierNameStyle: CSSProperties = {
-  fontFamily: "var(--font-v5)",
-  fontSize: "13px",
-  fontWeight: 600,
-  color: "var(--v5-ink)",
-  letterSpacing: "-0.008em",
-};
-const tierChipLiveStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-  padding: "1px 7px",
-  borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-warning) 16%, transparent)",
-  color: "var(--v5-warning)",
-  letterSpacing: "0.02em",
-  whiteSpace: "nowrap",
-};
-const tierChipSoldStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-  padding: "1px 7px",
-  borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-surface-2) 60%, transparent)",
-  color: "var(--v5-ink-4)",
-  letterSpacing: "0.02em",
-  whiteSpace: "nowrap",
-};
-const tierMetaStyle: CSSProperties = {
-  marginTop: "3px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
-};
-const tierPriceStyle: CSSProperties = {
-  fontFamily: "var(--font-v5)",
-  fontSize: "15px",
-  fontWeight: 600,
-  color: "var(--v5-ink)",
-  letterSpacing: "-0.014em",
-};
-const tierCurrentStyle: CSSProperties = {
-  marginTop: "2px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  // 这行落在**跟主题的页面底**上(不是曜石 hero):原金亮主题实测 1.85 → 走跟主题的深金档
-  color: "var(--v5-genesis-gold)",
-  letterSpacing: "0.02em",
-};
-const tierPremiumStyle: CSSProperties = {
-  marginTop: "10px",
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
 };
 // De-carded: floor hairline group + typed Q/A layering (title ink, body ink-2).
 const faqWrapStyle: CSSProperties = {

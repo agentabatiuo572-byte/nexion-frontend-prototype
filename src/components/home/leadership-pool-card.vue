@@ -26,7 +26,6 @@
       </view>
       <view v-if="unlocked" class="text-right whitespace-nowrap">
         <text class="block tabular-nums" style="font-family: var(--font-v5); font-weight: 600; font-size: 20px; color: var(--v5-success); letter-spacing: -0.014em; line-height: 1">+${{ payoutText }}</text>
-        <text class="block mt-1 font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ shareText }}</text>
       </view>
       <text v-else class="font-mono-tabular whitespace-nowrap" style="padding: 5px 10px; background: var(--v5-brand-2-soft); border-radius: 999px; font-size: 12px; color: var(--v5-brand-2); font-weight: 500">{{ t.home.poolV3Unlock }}</text>
     </view>
@@ -36,7 +35,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
 import { useVRank } from "@/store/v-rank";
 import type { VRank } from "@/store/v-rank";
 import { useLeadershipPool } from "@/store/leadership-pool";
@@ -61,13 +59,11 @@ let mounted = true;
 
 const myRank = computed<VRank>(() => (remoteApiEnabled ? remotePool.value?.myRank ?? 0 : vrank.myRank) as VRank);
 const poolUSDT = computed(() => remoteApiEnabled ? remotePool.value?.currentWeekPoolUSDT ?? 0 : pool.currentWeekPoolUSDT);
-const myShare = computed(() => remoteApiEnabled ? remotePool.value?.mySharePct ?? 0 : pool.mySharePct(myRank.value));
 const myPayout = computed(() => remoteApiEnabled ? remotePool.value?.projectedPayoutUSDT ?? 0 : pool.myProjectedPayout(myRank.value));
 const unlocked = computed(() => myRank.value >= 3);
 
 const poolKText = computed(() => (poolUSDT.value / 1000).toFixed(1));
 const payoutText = computed(() => myPayout.value.toFixed(2));
-const shareText = computed(() => fmt(t.value.home.poolShare, { n: (myShare.value * 100).toFixed(2) }));
 
 async function loadRemotePool() {
   if (!remoteApiEnabled) return;

@@ -1,13 +1,3 @@
-<!--
-  V Rank — ported from Nexion-prototype/app/(main)/team/rank/page.tsx.
-  My-status block de-carded (DECARD form c): cap + VBadgeIcon 48 + progress bar
-  w/ scroll-grow + missing list + upgrade CTA sit directly on the page floor,
-  hairline splits the progress zone. 13-rank ladder = single surface container
-  (form b, no border), rows hairlined, current row tinted. Sub-page →
-  <AppChassis active="team"> w/ in-page back → /team.
-  Reuses v-rank store + nextRankProgress + V_RANKS + useScrollGrowProgress (P-019
-  $el-safe). useMemo → computed. lucide → inline <svg>. <Link>→<view @click>.
--->
 <template>
   <AppChassis active="team">
     <view class="pb-6" style="color: var(--v5-ink)">
@@ -32,32 +22,9 @@
               <VBadgeIcon :v="myRank" :size="48" />
               <view>
                 <text class="block" :style="heroRankStyle">{{ rankLabel(myRank, isZh, rankDefs) }}</text>
-                <text class="block" :style="heroSubStyle">{{ heroSubText }}</text>
               </view>
             </view>
 
-            <view v-if="prog.next" :style="progressWrapStyle">
-              <view class="flex items-center justify-between" style="font-size: 12px; margin-bottom: 6px">
-                <text :style="{ color: 'var(--v5-ink-3)' }">
-                  <text>{{ t.rank.next }} </text>
-                  <text :style="{ color: 'var(--v5-brand)', fontWeight: 600 }">{{ rankLabel(prog.next.v, isZh, rankDefs) }}</text>
-                </text>
-                <text class="font-mono-tabular" :style="{ color: 'var(--v5-brand)' }">{{ Math.round(prog.progressPct * 100) }}%</text>
-              </view>
-              <view ref="rankBarRef" class="rounded-full overflow-hidden" :style="barTrackStyle">
-                <view class="rounded-full" :style="barFillStyle" />
-              </view>
-              <view v-if="prog.missing.length > 0" style="margin-top: 12px; display: flex; flex-direction: column; gap: 4px">
-                <view v-for="(m, i) in prog.missing" :key="i" class="flex items-center" style="gap: 6px">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                  <text :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ rankGapText(t, m, isZh, rankDefs) }}</text>
-                </view>
-              </view>
-              <view class="inline-flex items-center active:scale-[0.97] transition-transform" :style="upgradeCtaStyle" @click="go('/pages/store/store')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                <text>{{ t.rank.upgradeCta }}</text>
-              </view>
-            </view>
           </view>
         </view>
 
@@ -81,15 +48,6 @@
                 <text v-else-if="rowStatus(r.v) === 'current'" class="font-mono-tabular" :style="currentTagStyle">{{ t.rank.current }}</text>
               </view>
 
-              <text class="block" :style="condStyle">{{ formatConditions(r) }}</text>
-
-              <view class="flex" style="margin-top: 8px; gap: 6px; flex-wrap: wrap">
-                <text v-if="r.directBonus > 0.05" :style="chipStyle('default')">{{ t.rank.chips.direct }} {{ Math.round(r.directBonus * 100) }}%</text>
-                <text v-if="r.unilevelDepth > 1" :style="chipStyle('default')">{{ r.unilevelDepth >= 99 ? t.rank.chips.unlimitedExtended : t.teamV3.extendedRoyalty }}</text>
-                <text v-if="r.peerBonus > 0" :style="chipStyle('default')">{{ t.rank.chips.peer }} {{ Math.round(r.peerBonus * 100) }}%</text>
-                <text v-if="r.leadershipVotes > 0" :style="chipStyle('purple')">{{ t.rank.chips.pool }} {{ r.leadershipVotes }} {{ t.rank.chips.votes }}</text>
-                <text v-if="r.cultivationBonus > 0" :style="chipStyle('lemon')">🎁 {{ r.cultivationBonus.toLocaleString() }} NEX</text>
-              </view>
             </view>
           </view>
         </view>
@@ -104,52 +62,26 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import VBadgeIcon from "@/components/team/v-badge-icon.vue";
 import { useT } from "@/i18n/use-t";
-import { useVRank, nextRankProgress, type VRank, type VRankDef } from "@/store/v-rank";
-import { rankGapText, rankConditionsText, rankLabel } from "@/lib/v-rank-copy";
+import { useVRank, type VRank } from "@/store/v-rank";
+import { rankLabel } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
 import { remoteApiEnabled } from "@/api/runtime";
-import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
 const t = useT();
 // 中文界面显示中文头衔(主人 2026-08-17 拍板:V3 = 舰长),拼法收在 lib/v-rank-copy
 const isZh = computed(() => useLocaleStore().code === "zh");
 const vState = useVRank();
-const { elRef: rankBarRef, inView: rankBarInView } = useScrollGrowProgress();
 
 const myRank = computed(() => vState.myRank);
 const rankDefs = computed(() => vState.ladder);
-const currentDef = computed(() => rankDefs.value[vState.myRank] ?? {
-  v: vState.myRank, title: "", cnTitle: "", conditions: {}, directBonus: 0,
-  unilevelDepth: 0, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0,
-});
-const prog = computed(() =>
-  nextRankProgress({
-    myRank: vState.myRank,
-    selfBuyUSD: vState.selfBuyUSD,
-    directRefs: vState.directRefs,
-    teamVolumeUSD: vState.teamVolumeUSD,
-    vDownlineCounts: vState.vDownlineCounts,
-  }, rankDefs.value),
-);
-
 onMounted(() => {
   // Local rank data is not used in remote mode; the ladder and member progress arrive together.
   if (remoteApiEnabled) void vState.refreshCanonicalVRank();
 });
 
-const heroSubText = computed(() => {
-  const d = currentDef.value;
-  // 三语:词典里 teamV3.directBonus / teamV3.extendedRoyalty 早就有(此前是死键,这里原本拼英文)
-  const head = `${t.value.teamV3.directBonus} ${Math.round(d.directBonus * 100)}%`;
-  return d.unilevelDepth > 1 ? `${head} · ${t.value.teamV3.extendedRoyalty}` : head;
-});
-
 function rowStatus(v: VRank): "done" | "current" | "locked" {
   return v < vState.myRank ? "done" : v === vState.myRank ? "current" : "locked";
 }
-
-// 三语:词典里 rank.cond.* 五条早就有(此前是死键,这里原本拼英文)
-const formatConditions = (r: VRankDef): string => rankConditionsText(t.value, r.conditions);
 
 function go(url: string) {
   uni.navigateTo({ url, fail: () => {} });
@@ -171,8 +103,6 @@ const howEntryStyle: CSSProperties = {
 // De-carded hero: no surface/border/glow — content sits directly on the page
 // floor with a 2px optical inset (leaderboard.vue prize-hero idiom).
 const heroStyle: CSSProperties = { padding: "10px 2px 0" };
-// -2px side margins pull the hairline back to full width (hero has a 2px optical inset).
-const progressWrapStyle: CSSProperties = { margin: "16px -2px 0", padding: "12px 2px 0", borderTop: "1px solid var(--v5-border)" };
 const heroCapStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
@@ -187,31 +117,6 @@ const heroRankStyle: CSSProperties = {
   letterSpacing: "-0.018em",
   color: "var(--v5-ink)",
   lineHeight: 1,
-};
-const heroSubStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "4px" };
-
-const barTrackStyle: CSSProperties = { height: "8px", background: "color-mix(in srgb, var(--v5-surface-2) 70%, transparent)" };
-const barFillStyle = computed<CSSProperties>(() => ({
-  height: "100%",
-  background: "linear-gradient(to right, var(--v5-tech-cyan), var(--v5-brand))",
-  width: `${rankBarInView.value ? prog.value.progressPct * 100 : 0}%`,
-  transition: rankBarInView.value ? PROGRESS_GROW_TRANSITION : "none",
-  willChange: "width",
-}));
-
-const upgradeCtaStyle: CSSProperties = {
-  marginTop: "12px",
-  gap: "6px",
-  height: "44px",
-  padding: "0 16px",
-  borderRadius: "999px",
-  background: "var(--v5-brand)",
-  boxShadow: "var(--v5-spotlight-brand)",
-  color: "var(--v5-on-brand)",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 500,
-  fontSize: "13px",
-  letterSpacing: "-0.005em",
 };
 
 // Form b container — no border (fill is the single visual difference);
@@ -234,24 +139,4 @@ const currentTagStyle: CSSProperties = {
   color: "var(--v5-brand)",
   letterSpacing: "0.06em",
 };
-// SKILL leading-snug = 1.375 (原版 .mt-1.5 text-[12px] leading-snug; was 1.45)
-const condStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375 };
-
-function chipStyle(kind: "default" | "purple" | "lemon"): CSSProperties {
-  const map = {
-    default: { background: "color-mix(in srgb, var(--v5-surface-2) 60%, transparent)", color: "var(--v5-ink-3)" },
-    purple: { background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)", color: "var(--v5-brand-2)" },
-    lemon: { background: "color-mix(in srgb, var(--v5-brand) 12%, transparent)", color: "var(--v5-brand)" },
-  } as const;
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "1px 6px",
-    borderRadius: "4px",
-    fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-    fontSize: "12px",
-    letterSpacing: "0.02em",
-    ...map[kind],
-  };
-}
 </script>

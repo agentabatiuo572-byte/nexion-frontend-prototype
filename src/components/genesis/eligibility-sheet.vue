@@ -1,4 +1,4 @@
-<!-- 创世认购资格：只展示服务端新策略，不在客户端拼装资格条件。 -->
+<!-- Show current purchase availability without exposing internal eligibility thresholds. -->
 <template>
   <view v-if="open">
     <transition name="nx-elig-fade">
@@ -27,10 +27,6 @@
         </view>
 
         <view :style="ruleListStyle">
-          <view :style="ruleRowStyle">
-            <text :style="ruleLabelStyle">{{ t.genesisEligibility.accountAgeRule }}</text>
-            <text :style="ruleValueStyle">{{ accountAgeDays }} / {{ minAccountAgeDays }} {{ t.genesisEligibility.daysUnit }}</text>
-          </view>
           <view :style="ruleRowStyle">
             <text :style="ruleLabelStyle">{{ t.genesisEligibility.holdingCapRule }}</text>
             <text :style="ruleValueStyle">{{ ownedCount }} / {{ maxPerUser }}</text>
@@ -70,12 +66,6 @@ const t = useT();
 const genesis = useGenesis();
 const { gate } = useGenesisEligibility();
 
-const minAccountAgeDays = computed(() => remoteApiEnabled
-  ? genesis.remoteEligibility?.minAccountAgeDays ?? 0
-  : GENESIS_ELIGIBILITY_POLICY.minAccountAgeDays);
-const accountAgeDays = computed(() => remoteApiEnabled
-  ? genesis.remoteEligibility?.accountAgeDays ?? 0
-  : 0);
 const maxPerUser = computed(() => remoteApiEnabled
   ? genesis.remoteEligibility?.maxPerUser ?? 0
   : GENESIS_ELIGIBILITY_POLICY.maxPerUser);

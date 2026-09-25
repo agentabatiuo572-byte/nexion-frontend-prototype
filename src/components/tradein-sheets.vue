@@ -11,8 +11,8 @@
          (→ replace if slot-full, else dismiss + caller proceeds).
     1.5  retire  — FEAT-DEV02 devices-page entry: pick a higher-priced upgrade
          target for the chosen device (select list, no free input) → tradein.
-    2.   tradein — confirm card (lifetime output / ladder band / credit / est.
-         payable). Confirm writes the checkout credit context
+    2.   tradein — confirm card (old device / credit / estimated payable).
+         Confirm writes the checkout credit context
          (sheet.applyTradein) and routes to checkout — money + device mutation
          happen atomically in checkout's persist block, not here.
     3.   replace — Path B slot-full prompt. Demote the lowest-yield active
@@ -97,19 +97,11 @@
           <text class="tis-title">{{ tradeinView.title }}</text>
         </view>
 
-        <!-- 旧机 / 累计产出 / 档位 / 抵扣 / 预计应付 — soft surface card, no border -->
+        <!-- 旧机 / 抵扣 / 预计应付 — soft surface card, no border -->
         <view class="tis-card">
           <view class="tis-row">
             <text class="tis-row-label">{{ t.tradein.sheetOldDeviceLabel }}</text>
             <text class="tis-row-value">{{ tradeinView.oldDeviceText }}</text>
-          </view>
-          <view class="tis-row">
-            <text class="tis-row-label">{{ t.tradein.sheetEarnedLabel }}</text>
-            <text class="tis-row-value tis-num">${{ tradeinView.earned }}</text>
-          </view>
-          <view class="tis-row">
-            <text class="tis-row-label">{{ t.tradein.sheetBandLabel }}</text>
-            <text class="tis-row-value">{{ tradeinView.bandText }}</text>
           </view>
           <view class="tis-row">
             <text class="tis-row-label">{{ t.tradein.sheetCreditLabel }}</text>
@@ -225,7 +217,7 @@ import {
   DEVICE_SPECS,
   createDevice,
 } from "@/store/device-types";
-import { computeTradeInCredit, ladderBandFor, TRADEIN_LADDER_RULES } from "@/mock/tradein-config";
+import { computeTradeInCredit, TRADEIN_LADDER_RULES } from "@/mock/tradein-config";
 import { isDeviceTaskBlocked } from "@/mock/eligibility";
 import { getMonthsSince, isPhaseReached, isTradeInTargetAvailable } from "@/store/product-phase";
 import { useProductPhase } from "@/composables/use-product-phase";
@@ -471,10 +463,7 @@ const tradeinView = computed(() => {
   const remoteQuote = remoteApiEnabled ? canonicalQuote.value : null;
   if (remoteApiEnabled && (!remoteQuote || remoteQuote.sourceDeviceId !== Number(oldDevice.id)
       || remoteQuote.targetProductNo !== s.newKind)) return null;
-  const paid = remoteQuote?.sourceActualPaidUsdt ?? oldDevice.paidPriceUsdt ?? 0;
-  const earned = remoteQuote?.cumulativeOutputUsdt ?? Math.max(0, oldDevice.cumulativeEarningsUsdt ?? 0);
   const credit = remoteQuote?.discountUsdt ?? previewCredit(oldDevice, s.newPrice);
-  const band = remoteQuote ? null : ladderBandFor(paid, earned);
   const estNet = remoteQuote?.payableUsdt ?? Math.max(0, +(s.newPrice - credit).toFixed(2));
   return {
     title: fmt(t.value.tradein.sheetTitle, {
@@ -483,12 +472,6 @@ const tradeinView = computed(() => {
     }),
     // 只给设备名——内部 id 是工程标识,禁止渲染(页面文案禁字段名/枚举值)。
     oldDeviceText: deviceName(t.value, oldDevice),
-    earned: earned.toFixed(2),
-    bandText: remoteQuote
-      ? fmt(t.value.tradein.sheetBandText, { band: t.value.tradein.remoteQuoteBandLabel, pct: remoteQuote.creditRatePct })
-      : band
-      ? fmt(t.value.tradein.sheetBandText, { band: band.band, pct: band.creditPct })
-      : "—",
     credit: credit.toFixed(2),
     estNet: estNet.toFixed(2),
     ctaText: fmt(t.value.tradein.sheetCta, { amount: estNet.toFixed(2) }),

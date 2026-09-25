@@ -7,7 +7,7 @@
 <template>
   <view data-home-section="on-grid">
     <view class="flex items-center justify-between" style="margin: 8px 2px 10px">
-      <text style="font-family: var(--font-v5); font-weight: 600; font-size: 15px; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.onGridTitle }} <text class="font-mono-tabular" style="font-size: 12px; font-weight: 400; color: var(--v5-ink-3)">{{ t.home.onGridNow }}<text v-if="app.homeTruth?.sourceEnvironment === 'SANDBOX'"> · SANDBOX</text></text></text>
+      <text style="font-family: var(--font-v5); font-weight: 600; font-size: 15px; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.onGridTitle }} <text class="font-mono-tabular" style="font-size: 12px; font-weight: 400; color: var(--v5-ink-3)">{{ t.home.onGridNow }}<text v-if="app.homeTruth?.sourceEnvironment === 'SANDBOX'"> · {{ t.publicCopy.experienceMode }}</text></text></text>
       <text class="font-mono-tabular inline-flex items-center active:opacity-70" style="min-height: 44px; padding-left: 12px; font-size: 13px; color: var(--v5-brand); font-weight: 500" role="link" tabindex="0" data-home-action="on-grid-map" @click="goGlobe" @keydown.enter.stop.prevent="goGlobe" @keydown.space.stop.prevent="goGlobe">{{ t.home.onGridMap }} →</text>
     </view>
 

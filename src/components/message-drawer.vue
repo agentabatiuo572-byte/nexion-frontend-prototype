@@ -130,6 +130,8 @@ import { useMessageDrawer } from "@/store/message-drawer";
 import { useNotifications, type NotifKind, type Notification } from "@/store/notifications";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { navTo } from "@/lib/route";
+import { notificationCopy } from "@/lib/notification-copy";
+import { remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
 const drawer = useMessageDrawer();
@@ -172,7 +174,8 @@ const unreadLabel = computed(() =>
 );
 
 const filtered = computed(() =>
-  filter.value === "all" ? notifs.items : notifs.items.filter((x) => x.kind === filter.value),
+  (filter.value === "all" ? notifs.items : notifs.items.filter((x) => x.kind === filter.value))
+    .map((item) => notificationCopy(item, t.value, remoteApiEnabled)),
 );
 function countOf(id: Filter): number {
   return id === "all" ? notifs.items.length : notifs.items.filter((x) => x.kind === id).length;
@@ -209,8 +212,9 @@ function close() {
 // Enter/Space 由 lib/a11y-activate.ts 自动补,故上面只声明 role + tabindex,不手写 @keydown。
 useDialogA11y(computed(() => drawer.open), ".md-root", close);
 async function onCta(notification: Notification) {
-  const canonicalRoute = await notifs.recordCta(notification.id);
+  const canonicalRoute = remoteApiEnabled ? await notifs.recordCta(notification.id) : notification.ctaHref;
   if (!canonicalRoute) return;
+  if (!remoteApiEnabled) await notifs.markRead(notification.id);
   close();
   navTo(canonicalRoute);
 }

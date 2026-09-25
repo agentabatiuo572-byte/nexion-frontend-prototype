@@ -67,8 +67,8 @@
               </view>
               <view class="truncate" :style="memoStyle">
                 <text>{{ billMemo(b) }}</text>
-                <text v-if="b.ref" style="color: var(--v5-ink-4); margin: 0 4px">·</text>
-                <text v-if="b.ref" class="font-mono-tabular">{{ b.ref }}</text>
+                <text v-if="b.ref && !b.ref.startsWith('QST-')" style="color: var(--v5-ink-4); margin: 0 4px">·</text>
+                <text v-if="b.ref && !b.ref.startsWith('QST-')" class="font-mono-tabular">{{ b.ref }}</text>
               </view>
               <text class="block" :style="timeStyle">{{ fmtTime(b.ts) }}</text>
             </view>
@@ -202,6 +202,7 @@ function monthLabel(month: string, n: number): string {
  * 之前种子行是英文硬串,越南语用户会在同一个列表里看到中文表头 + 英文摘要 + 越南语新行,三种语言。
  */
 function billMemo(b: Bill): string {
+  if (b.ref?.startsWith("QST-")) return t.value.bills.typeBonus;
   const dict = t.value.bills.memo as Record<string, string> | undefined;
   const s = b.memoKey ? dict?.[b.memoKey] : undefined;
   return s ? (b.memoParams ? fmt(s, b.memoParams) : s) : b.memo;

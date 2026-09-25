@@ -61,7 +61,6 @@
           <IconRow emoji="⚠️" :label="w.r2Label" :body="w.r2Body" />
           <IconRow emoji="📉" :label="w.r3Label" :body="w.r3Body" />
         </view>
-        <CalloutBox :title="`✓ ${w.s4SafetyTitle}`" :body="w.s4SafetyBody" tone="lemon" />
       </HowSection>
 
       <HowSection :title="w.faqTitle" accent="purple">
@@ -73,7 +72,6 @@
           <HowFaqRow :q="w.faqQ2" :a="w.faqA2" />
           <HowFaqRow :q="w.faqQ3" :a="w.faqA3" />
           <HowFaqRow :q="w.faqQ4" :a="w.faqA4" />
-          <HowFaqRow :q="w.faqQ5" :a="w.faqA5" />
         </view>
       </HowSection>
 
@@ -96,7 +94,6 @@ import HowSection from "@/components/how/how-section.vue";
 import HowStepRow from "@/components/how/how-step-row.vue";
 import HowFaqRow from "@/components/how/how-faq-row.vue";
 import IconRow from "@/components/how/how-icon-row.vue";
-import CalloutBox from "@/components/how/how-callout-box.vue";
 import { useT } from "@/i18n/use-t";
 import { STAKING_APY, type StakingTerm } from "@/store/staking";
 

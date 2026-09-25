@@ -170,7 +170,7 @@
               :style="historyRowStyle(i === historyRows.length - 1)"
             >
               <view>
-                <text class="block" :style="historyReasonStyle">{{ h.reason }}</text>
+                <text class="block" :style="historyReasonStyle">{{ historyReason(h.reason) }}</text>
                 <text class="block" :style="historyTimeStyle">{{ formatTs(h.ts) }}</text>
               </view>
               <text class="block tabular-nums" :style="historyDeltaStyle(h.delta)">{{ h.delta > 0 ? "+" : "" }}{{ h.delta }}</text>
@@ -244,8 +244,8 @@ const milestones = computed<Milestone[]>(() => remoteApiEnabled
       day: m.milestoneDay,
       rewardKey: "reward3",
       labelKey: "day3",
-      labelText: `Day-${m.milestoneDay}`,
-      rewardText: `${m.rewardType} ${m.rewardAmount}`,
+      labelText: fmt(t.value.daily.milestones.locked, { n: m.milestoneDay }),
+      rewardText: rewardLabel(m.rewardType, m.rewardAmount),
       status: m.status,
       reward: { type: (m.rewardType.toLowerCase() === "usdt" ? "usdt" : m.rewardType.toLowerCase() === "spin" ? "spin" : m.rewardType.toLowerCase() === "badge" ? "badge" : "nex") as Milestone["reward"]["type"], amount: m.rewardAmount },
       tint: "var(--v5-nex)", iconPath: "m12 3v18M3 12h18",
@@ -365,6 +365,21 @@ const lifetimeSpent = computed(() =>
   String(-faucet.history.reduce((s, h) => s + (h.delta < 0 ? h.delta : 0), 0)),
 );
 const historyRows = computed(() => faucet.history.slice(0, 10));
+function rewardLabel(type: string, amount: number): string {
+  switch (type.toUpperCase()) {
+    case "NEX": return `+${amount} NEX`;
+    case "USDT": return `+${amount} USDT`;
+    case "SPIN": return fmt(t.value.publicCopy.rewardSpin, { n: amount });
+    case "BADGE": return fmt(t.value.publicCopy.rewardBadge, { n: amount });
+    default: return fmt(t.value.publicCopy.rewardOther, { n: amount });
+  }
+}
+function historyReason(reason: string): string {
+  const milestone = /^Milestone Day-(\d+):/.exec(reason);
+  if (milestone) return fmt(t.value.publicCopy.dailyMilestone, { n: milestone[1] });
+  if (reason === "Streak saver used") return t.value.daily.saver.restored;
+  return t.value.publicCopy.dailyHistory;
+}
 function daysLeftText(day: number): string {
   return fmt(t.value.daily.milestones.daysLeft, { n: day - streak.value });
 }
@@ -388,14 +403,14 @@ async function handleCheckIn() {
       toast.error(t.value.authOtp.errorServiceUnavailable);
       return;
     }
-    toast.success(`+${remote.gained} NEX`, `${remote.streak}-day streak`);
+    toast.success(`+${remote.gained} NEX`, fmt(t.value.daily.streakSummary, { n: remote.streak }));
     return;
   }
   const r = faucet.signIn();
   if (!r.ok) {
     // conflict = 别的标签页刚签过(store 已刷新到最新);否则就是本页自己今天已签。
     if (r.conflict) toast.warn(t.value.errors.staleTitle, t.value.errors.staleMsg);
-    else toast.info("Already checked in today", "Come back tomorrow for more NEX.");
+    else toast.info(t.value.daily.checkedInToday, t.value.daily.alreadyCheckedToast);
     return;
   }
   // Faucet store tracks streak only; crediting NEX to the wallet is composed here
@@ -425,11 +440,11 @@ async function handleCheckIn() {
     // vibrate unavailable
   }
   if (r.multiplier > 1) {
-    toast.success(`🎲 Lucky ×${r.multiplier}! +${r.gained} NEX`, `${r.streak}-day streak`);
+    toast.success(`${fmt(t.value.daily.luckyToday, { x: r.multiplier })} · +${r.gained} NEX`, fmt(t.value.daily.streakSummary, { n: r.streak }));
   } else if (r.gained > 2) {
-    toast.success(`🔥 ${r.streak}-day streak! +${r.gained} NEX`, "Day-7 bonus unlocked");
+    toast.success(fmt(t.value.daily.streakBonus, { n: r.streak, p: r.gained }), t.value.daily.bonusUnlocked);
   } else {
-    toast.success(`+${r.gained} NEX`, `${r.streak}-day streak`);
+    toast.success(`+${r.gained} NEX`, fmt(t.value.daily.streakSummary, { n: r.streak }));
   }
 }
 
@@ -447,7 +462,7 @@ async function handleClaimMilestone(m: Milestone) {
       toast.error(t.value.authOtp.errorServiceUnavailable);
       return;
     }
-    toast.success(m.rewardText ?? `${m.reward.type} ${m.reward.amount}`, `Day-${m.day} milestone claimed`);
+    toast.success(m.rewardText ?? rewardLabel(m.reward.type, m.reward.amount), t.value.daily.milestones.claimedToast);
     return;
   }
   const gainedNex = m.reward.type === "nex" ? m.reward.amount : 0;
@@ -495,7 +510,7 @@ async function handleClaimMilestone(m: Milestone) {
     luckySpin.openSheet();
   }
   // spin / badge milestones are non-currency unlocks → claim (+ spin sheet above).
-  toast.success(rewardDisplay, `Day-${m.day} milestone claimed`);
+  toast.success(rewardDisplay, t.value.daily.milestones.claimedToast);
 }
 
 async function handleUseSaver() {

@@ -35,8 +35,8 @@
           <text class="weekly-quest__title">{{ t.home.weeklyQuestEyebrow }}</text>
           <text class="weekly-quest__multiplier">{{ promoMult === null ? "—" : `${promoMult}×` }}</text>
         </view>
-        <view class="weekly-quest__countdown">
-          <text class="weekly-quest__countdown-label">{{ contextLabel }}</text>
+        <view v-if="!weeklyQuest" class="weekly-quest__countdown">
+          <text class="weekly-quest__countdown-label">{{ t.home.weeklyQuestEndsIn }}</text>
           <text class="weekly-quest__countdown-value">{{ remainingLabel }}</text>
         </view>
       </view>
@@ -118,10 +118,8 @@ const finalRewardText = computed(() => {
   return reward === null ? "—" : reward.toLocaleString();
 });
 
-const contextLabel = computed(() => weeklyQuest.value ? t.value.headerTitles.missions : t.value.home.weeklyQuestEndsIn);
 const remainingLabel = computed(() => {
   if (remoteApiEnabled) {
-    if (weeklyQuest.value) return weeklyQuest.value.layer === "WEEKLY_T1" ? "Tier 1" : "Tier 2";
     if (!canonicalPromo.value) return "—";
     const days = canonicalPromo.value.countdownDays;
     const hours = canonicalPromo.value.countdownHours;

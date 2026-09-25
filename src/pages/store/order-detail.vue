@@ -142,7 +142,8 @@
 </template>
 
 <script setup lang="ts">
-import { brandProductName, brandOrderNote } from "@/lib/brand";
+import { brandProductName } from "@/lib/brand";
+import { orderStatusText } from "@/components/store/order-status-copy";
 import { ref, computed, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -268,18 +269,7 @@ function stageIcon(stage: OrderStatus): string[] {
 }
 
 function statusLabel(s: OrderStatus): string {
-  switch (s) {
-    case "placed": return t.value.orders.statusPlaced;
-    case "paid": return t.value.orders.statusPaid;
-    case "provisioning": return t.value.orders.statusProvisioning;
-    case "activated": return t.value.orders.statusActivated;
-    case "cancelled": return t.value.orders.cancelStatus;
-    case "payment_failed": return t.value.orders.statusPaymentFailed;
-    case "expired": return t.value.orders.statusExpired;
-    case "provisioning_failed": return t.value.orders.statusProvisioningFailed;
-    case "refunded": return t.value.orders.statusRefunded;
-    case "chargeback": return t.value.orders.statusChargeback;
-  }
+  return orderStatusText(t.value.orders, s);
 }
 
 const dynamicHint = computed(() => {
@@ -298,7 +288,10 @@ function eventFor(stage: OrderStatus) {
 function eventText(stage: OrderStatus): string {
   const evt = eventFor(stage);
   if (!evt) return "";
-  return `${dt(evt.ts)}${evt.note ? ` · ${brandOrderNote(evt.note)}` : ""}`;
+  const note = evt.note === "Waiting for an empty device slot"
+    ? t.value.publicCopy.orderWaitingSlot
+    : statusLabel(evt.status);
+  return `${dt(evt.ts)} · ${note}`;
 }
 
 function dt(ts: number): string {

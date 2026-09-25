@@ -73,7 +73,7 @@
         </view>
         <view v-if="mockFundsEnabled" class="flex items-center" :style="sandboxTopupStyle">
           <view class="flex-1 min-w-0">
-            <text class="block" :style="warnTextStyle">Cregis USDT-BEP20 · SANDBOX</text>
+            <text class="block" :style="warnTextStyle">{{ t.publicCopy.experienceMode }}</text>
             <view class="flex items-center" style="margin-top: 6px; gap: 6px">
               <input
                 v-model="sandboxAmount"
@@ -82,16 +82,13 @@
                 type="text"
                 inputmode="decimal"
                 :disabled="sandboxSubmitting"
-                aria-label="Sandbox USDT top-up amount"
+                :aria-label="t.bankPane.amountLabel"
               />
               <text style="font-size: 12px; color: var(--v5-ink-3)">USDT</text>
             </view>
           </view>
           <view class="grid place-items-center active:opacity-80" :style="sandboxSubmitStyle" role="button" tabindex="0" @click="simulateSandboxTopup">
-            <!-- 🔴 工程话,**故意不进 i18n 词典**(硬编码中文门失败提示的出路②):进词典就成了
-                 用户文案契约,词典打包摇不掉会原样进生产包。本门只判中文,这行英文不撞门 —— 别收进词典。
-                 i18n-en-ok: 沙箱直充按钮的工程话,仅验收沙箱档可见 -->
-            <text style="font-size: 12px; color: var(--v5-brand)">{{ sandboxSubmitting ? "Wait…" : "Credit" }}</text>
+            <text style="font-size: 12px; color: var(--v5-brand)">{{ sandboxSubmitting ? t.wallet.processing : t.wallet.topUp }}</text>
           </view>
         </view>
       </view>
@@ -279,8 +276,7 @@ async function simulateSandboxTopup() {
   sandboxSubmitting.value = true;
   try {
     const record = await dep.createSandboxTopup("CREGIS_USDT_BEP20", amount, dep.currentAccountKey());
-    // 工程话,故意不进 i18n 词典(同 :79 的理由:出路②)。
-    if (record) toast.success(`SANDBOX: server credited ${amount.toFixed(2)} USDT`);
+    if (record) toast.success(fmt(t.value.publicCopy.experienceDepositCredited, { amount: amount.toFixed(2) }));
   } catch (cause) {
     toast.info(geoPolicyUserMessage(cause, t.value.geoPolicy) ?? t.value.topupChrome.topupNotCreditedYet);
   } finally {

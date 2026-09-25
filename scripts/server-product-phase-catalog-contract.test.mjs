@@ -46,12 +46,12 @@ test("store detail and checkout refresh the server phase when they become visibl
   assert.match(checkout, /onShow\([\s\S]*refreshServerProductPhase\(true\)/);
 });
 
-test("remote product locks display the server E1 decision without deriving H1 progress", () => {
+test("product locks retain server availability without exposing internal phase decisions", () => {
   assert.match(productAvailability, /typeof product\.available === "boolean"[\s\S]*return product\.available/);
   assert.match(productCatalogContract, /releaseState:\s*optionalString\(source\.releaseState\)/);
   assert.match(productCatalogContract, /releasePhaseId:\s*optionalString\(source\.releasePhaseId\)/);
-  assert.match(lockedProductCard, /data-testid="server-release-reason"/);
-  assert.match(lockedProductCard, /props\.product\.available === false && props\.product\.releasePhaseId/);
+  assert.match(lockedProductCard, /t\.store\.comingSoonHeading/);
+  assert.doesNotMatch(lockedProductCard, /server-release-reason|releasePhaseId|releaseState|lockedPhaseBody|phaseProgress/);
   assert.match(lockedProductCard, /props\.product\.available === undefined && props\.product\.unlocksAtPhase/);
   assert.doesNotMatch(lockedProductCard, /available === false[^\n]*isPhaseReached/);
 });

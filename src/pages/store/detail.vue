@@ -5,7 +5,7 @@
   Wrapped in <AppChassis active="store">. Top→bottom:
     in-page header (back + title/tier) → Hero (ProductRender + ribbon +
     LiveSocialProof + name/tagline/mult + trust chips) → Vs-phone strip →
-    ROI (qty stepper + 4-cell grid) → Hardware spec → AI perf spec →
+    Return estimates (qty stepper + 3-cell grid) → Hardware spec → AI perf spec →
     Trust badges → FAQ accordion → sticky bottom Buy CTA.
 
   Phase-gated products (unlocksAtPhase not yet reached) render the shared
@@ -129,7 +129,7 @@
           <text v-if="speedup > 0" class="shrink-0" :style="vsMultChipStyle">{{ speedup }}×</text>
         </view>
 
-        <!-- === Section 4: ROI calc — qty stepper + 4-cell grid === -->
+        <!-- === Section 4: Return estimates — qty stepper + 3-cell grid === -->
         <template v-if="!isShare">
           <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detEstReturns" :count="t.store.detEstReturnsMeta" /></view>
           <view class="mx-4 rounded-2xl" :style="roiCardStyle">
@@ -147,7 +147,7 @@
               </view>
             </view>
 
-            <!-- 4-cell roi-grid -->
+            <!-- Daily/monthly estimates and payback -->
             <view class="grid" style="margin-top: 16px; grid-template-columns: 1fr 1fr">
               <view :style="roiCellStyle(0)">
                 <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.store.detDaily }}</text>
@@ -157,14 +157,8 @@
               <view :style="roiCellStyle(1)">
                 <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.store.detMonthly }}</text>
                 <text class="block tabular-nums" :style="roiValStyle('success')">${{ monthlyYieldText }}</text>
-                <text class="block" :style="roiSubStyle">{{ monthlyPctText }}{{ t.store.detPerMoSuffix }}</text>
               </view>
               <view :style="roiCellStyle(2)">
-                <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.store.detAnnual }}</text>
-                <text class="block tabular-nums" :style="roiValStyle('success')">${{ annualYieldText }}</text>
-                <text class="block" :style="roiSubStyle">{{ annualPctText }}{{ t.store.detRoiSuffix }}</text>
-              </view>
-              <view :style="roiCellStyle(3)">
                 <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.store.detPayback }}</text>
                 <text class="block tabular-nums" :style="roiValStyle('brand')">{{ paybackDays }}<text style="font-size: 13px; color: var(--v5-ink-3); font-weight: 500; margin-left: 1px">{{ t.store.detDaySuffix }}</text></text>
                 <text class="block" :style="roiSubStyle">{{ t.store.detToBreakEven }}</text>
@@ -367,7 +361,6 @@ const speedup = computed(() =>
 );
 const dailyYield = computed(() => (product.value?.dailyEarn ?? 0) * qty.value);
 const monthlyYield = computed(() => dailyYield.value * 30);
-const annualYield = computed(() => dailyYield.value * 365);
 const totalPrice = computed(() => (product.value?.price ?? 0) * qty.value);
 const paybackDays = computed(() =>
   product.value && !isShare.value && dailyYield.value > 0
@@ -467,13 +460,6 @@ const vsPhoneSubText = computed(() => fmt(t.value.store.detVsPhone, { n: phoneDa
 const dailyEarnText = computed(() => (product.value?.dailyEarn ?? 0).toFixed(2));
 const dailyYieldText = computed(() => dailyYield.value.toFixed(2));
 const monthlyYieldText = computed(() => monthlyYield.value.toFixed(0));
-const annualYieldText = computed(() => annualYield.value.toFixed(0));
-const monthlyPctText = computed(() =>
-  totalPrice.value > 0 ? ((monthlyYield.value / totalPrice.value) * 100).toFixed(1) : "0",
-);
-const annualPctText = computed(() =>
-  totalPrice.value > 0 ? ((annualYield.value / totalPrice.value) * 100).toFixed(0) : "0",
-);
 const priceText = computed(() => (product.value?.price ?? 0).toLocaleString());
 
 function dec() {
@@ -515,7 +501,7 @@ watch(
         amount: `$${priceText.value}`,
         amountSubtext: purchaseGate.value.soldOut
           ? t.value.store.gateSoldOut
-          : fmt(t.value.store.gateProgress, { pct: Math.round(purchaseGate.value.progressPct * 100) }),
+          : t.value.store.purchaseEligibilityIneligible,
         buttonLabel: purchaseGate.value.soldOut
           ? t.value.store.gateSoldOut
           : t.value.store.gateLockedCta,
@@ -670,8 +656,9 @@ const qtyNumStyle: CSSProperties = {
 function roiCellStyle(index: number): CSSProperties {
   return {
     padding: "14px 16px",
-    borderRight: index % 2 === 0 ? "1px solid color-mix(in srgb, var(--v5-border) 50%, transparent)" : "none",
+    borderRight: index === 0 ? "1px solid color-mix(in srgb, var(--v5-border) 50%, transparent)" : "none",
     borderBottom: index < 2 ? "1px solid color-mix(in srgb, var(--v5-border) 50%, transparent)" : "none",
+    gridColumn: index === 2 ? "1 / -1" : undefined,
   };
 }
 const roiLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)" };

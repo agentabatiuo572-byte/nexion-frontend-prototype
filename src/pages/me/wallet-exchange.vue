@@ -18,8 +18,7 @@
     <view style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/wallet" :title="t.exchange.title" />
       <text v-if="!remoteState && remoteError" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-danger)">{{ t.exchange.remoteUnavailableClosed }}</text>
-      <!-- 同 staking:开发诊断,DEV 构建才渲染,裸英文字面量不进三语词典。 i18n-en-ok: 工程话诊断横幅,仅 DEV 构建渲染 -->
-      <text v-else-if="isDevBuild && !remoteApiEnabled" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)">Dev build · mock data</text>
+      <text v-else-if="isDevBuild && !remoteApiEnabled" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)">{{ t.publicCopy.experienceMode }}</text>
 
       <!-- How-it-works entry + refresh — pill compacted to match the other pages;
            it stays paired with the rate-refresh button (no de-carded hero here to
@@ -129,20 +128,6 @@
           </view>
         </view>
 
-        <!-- Platform cap -->
-        <view style="margin-bottom: 12px">
-          <view class="flex items-center justify-between" style="margin-bottom: 4px">
-            <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.walletV3.exchangePoolToday }}</text>
-            <view class="font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink)">
-              <text>{{ remoteApiEnabled && !remoteState ? t.exchange.remoteNotProvided :`$${(displayPlatformUsed / 1000).toFixed(1)}K` }} </text>
-              <text v-if="!remoteApiEnabled || remoteState" style="color: var(--v5-ink-3)">/ ${{ (displayPlatformCap / 1000).toFixed(0) }}K</text>
-            </view>
-          </view>
-          <view :style="barTrackStyle">
-            <view :style="platformBarStyle" />
-          </view>
-        </view>
-
         <!-- Queue -->
         <view v-if="displayQueue.length > 0" :style="queueWrapStyle">
           <view class="flex items-center" :style="queueTitleStyle">
@@ -221,9 +206,7 @@ import { useExchange, type SwapEvent } from "@/store/exchange";
 import {
   useExchangeV3,
   USER_DAILY_CAP_USD,
-  PLATFORM_DAILY_CAP_USD,
   dailyUserPctUsed,
-  dailyPlatformPctUsed,
 } from "@/store/exchange-v3";
 
 const t = useT();
@@ -339,9 +322,7 @@ const history = computed<SwapEvent[]>(() => {
 });
 // remote mode must never render persisted exchange or v3 facts.
 const displayUserUsed = computed(() => remoteApiEnabled ? (remoteState.value?.todayUserUsedUsdt ?? 0) : v3.todayUserUsedUSD);
-const displayPlatformUsed = computed(() => remoteApiEnabled ? (remoteState.value?.todayPlatformUsedUsdt ?? 0) : v3.todayPlatformUsedUSD);
 const displayUserCap = computed(() => remoteApiEnabled ? (remoteState.value?.caps.userDailyCapUsdt ?? 0) : USER_DAILY_CAP_USD);
-const displayPlatformCap = computed(() => remoteApiEnabled ? (remoteState.value?.caps.platformDailyCapUsdt ?? 0) : PLATFORM_DAILY_CAP_USD);
 const displayQueue = computed(() => remoteApiEnabled
   ? visibleQueuedExchangeOrders(remoteState.value?.orders ?? []).map((order) => ({
     id: order.exchangeNo,
@@ -488,7 +469,7 @@ function notifyRemoteSwapResult(order: ExchangeOrder) {
     PLATFORM_CAP: t.value.exchange.swapPlatformCapReason,
     GEO_BLOCKED: t.value.exchange.swapGeoBlockedReason,
   }[order.status];
-  toast.error(reason ?? fmt(t.value.exchange.swapNotFilled, { status: order.status }), order.exchangeNo);
+  toast.error(reason ?? t.value.exchange.swapFailed, order.exchangeNo);
 }
 
 async function handleConfirm() {
@@ -839,15 +820,6 @@ const userBarStyle = computed<CSSProperties>(() => {
     transition: "width 600ms cubic-bezier(0.16,1,0.3,1)",
   };
 });
-const platformBarStyle = computed<CSSProperties>(() => ({
-  height: "100%",
-  width: `${remoteApiEnabled
-    ? Math.min(1, displayPlatformUsed.value / Math.max(displayPlatformCap.value, 1)) * 100
-    : dailyPlatformPctUsed(v3.todayPlatformUsedUSD) * 100}%`,
-  borderRadius: "999px",
-  background: "var(--v5-brand-2)",
-  transition: "width 600ms cubic-bezier(0.16,1,0.3,1)",
-}));
 const queueWrapStyle: CSSProperties = {
   marginTop: "12px",
   paddingTop: "12px",

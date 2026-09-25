@@ -1,13 +1,3 @@
-<!--
-  Team — invitation network hub: InviteEarnCard → royalty hero (V3+) → V-rank summary
-  → unified quick-nav (leaderboard / royalty network / binary / leadership pool) →
-  TeamLedgerCard → network composition → tool grid.
-  Tab page → <AppChassis active="team">.
-  Reuses v-rank / network / commission / leadership-pool stores (all ported).
-  zustand selectors → computed off Pinia store; mount-effect unlockMatured @60s →
-  onMounted/onUnmounted interval. framer scroll-grow bar → CSS width transition.
-  Nav targets to not-yet-ported sub-pages degrade via fail:()=>{} (see report §7).
--->
 <template>
   <AppChassis active="team">
     <view class="pb-4" style="padding-top: 12px; color: var(--v5-ink)">
@@ -43,11 +33,6 @@
             <view :style="rankBodyStyle">
               <view :style="rankLevelWrapStyle">
                 <text class="font-display tabular-nums" :style="rankLevelTextStyle">{{ myRankDisplay }}</text>
-              </view>
-              <view v-if="rankInfo.next?.cultivationBonus" :style="rankDividerStyle" />
-              <view v-if="rankInfo.next?.cultivationBonus" :style="rankPrizeWrapStyle">
-                <text class="font-mono-tabular" :style="rankPrizeLabelStyle">{{ t.teamV3.prize }}</text>
-                <text class="font-display tabular-nums" :style="rankPrizeValueStyle">{{ rankInfo.next.cultivationBonus.toLocaleString() }} NEX</text>
               </view>
             </view>
           </view>
@@ -119,7 +104,7 @@
               </view>
               <view class="flex-1 min-w-0">
                 <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.weeklyPool }}</text>
-                <text class="block" :style="quickRowMetaStyle">{{ leadershipPoolLineA }}  /  {{ leadershipPoolLineB }}</text>
+                <text class="block" :style="quickRowMetaStyle">{{ leadershipPoolLineA }}</text>
               </view>
             </view>
             <view :style="quickRowValueWrapStyle">
@@ -157,7 +142,6 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10M7 17 17 7" /></svg>
             </view>
             <text class="block" :style="toolTitleStyle">{{ t.teamV3.hardwareQuota }}</text>
-            <text class="block" :style="toolSubStyle">{{ t.teamV3.quotaSubtitle }}</text>
           </view>
           <view class="active:opacity-95" :style="toolCellStyle(1)" @click="go('/pages/team/agent')">
             <view class="flex items-start justify-between">
@@ -167,7 +151,6 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10M7 17 17 7" /></svg>
             </view>
             <text class="block" :style="toolTitleStyle">{{ t.teamV3.ambassador }}</text>
-            <text class="block" :style="toolSubStyle">{{ t.teamV3.ambassadorSubtitle }}</text>
           </view>
           <view class="active:opacity-95" :style="toolCellStyle(2)" @click="go('/pages/team/network')">
             <view class="flex items-start justify-between">
@@ -177,7 +160,6 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10M7 17 17 7" /></svg>
             </view>
             <text class="block" :style="toolTitleStyle">{{ t.teamV3.visualizations.influenceNetwork }}</text>
-            <text class="block" :style="toolSubStyle">{{ t.teamV3.visualizations.orbitLiveMap }}</text>
           </view>
           <view class="active:opacity-95" :style="toolCellStyle(3)" @click="go('/pages/team/tree')">
             <view class="flex items-start justify-between">
@@ -187,7 +169,6 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10M7 17 17 7" /></svg>
             </view>
             <text class="block" :style="toolTitleStyle">{{ t.teamV3.visualizations.genealogy }}</text>
-            <text class="block" :style="toolSubStyle">{{ t.teamV3.visualizations.genealogySubtitle }}</text>
           </view>
         </view>
       </view>
@@ -202,7 +183,7 @@ import InviteEarnCard from "@/components/team/invite-earn-card.vue";
 import TeamLedgerCard from "@/components/team/team-ledger-card.vue";
 import NetworkOrbBackdrop from "@/components/team/network-orb-backdrop.vue";
 import { useT } from "@/i18n/use-t";
-import { useVRank, nextRankProgress } from "@/store/v-rank";
+import { useVRank } from "@/store/v-rank";
 import { rankLabel } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
 import { useNetwork } from "@/store/network";
@@ -238,16 +219,6 @@ const myRankDisplay = computed(() => (remoteApiEnabled && vrank.ladder.length ==
 const members = computed(() => network.members);
 const localTotalMembersCount = computed(() => network.totalMembers);
 const events = computed(() => commission.events);
-
-const rankInfo = computed(() =>
-  nextRankProgress({
-    myRank: vrank.myRank,
-    selfBuyUSD: vrank.selfBuyUSD,
-    directRefs: vrank.directRefs,
-  teamVolumeUSD: vrank.teamVolumeUSD,
-  vDownlineCounts: vrank.vDownlineCounts,
-}, vrank.ladder),
-);
 
 const byLayerBuckets = computed(() => network.byLayer());
 const directCountText = computed(() => {
@@ -312,7 +283,6 @@ const leftVolText = computed(() => binary.value === null ? "—" : `$${binary.va
 const rightVolText = computed(() => binary.value === null ? "—" : `$${binary.value.rightVol.toFixed(0)}`);
 
 const myVotes = computed(() => remoteApiEnabled ? remotePool.value?.myVotes ?? 0 : pool.myVotes(vrank.myRank));
-const myShare = computed(() => remoteApiEnabled ? remotePool.value?.mySharePct ?? 0 : pool.mySharePct(vrank.myRank));
 const projectedPayout = computed(() => remoteApiEnabled ? remotePool.value?.projectedPayoutUSDT ?? 0 : pool.myProjectedPayout(vrank.myRank));
 const leadershipPoolUnlocked = computed(() => myVotes.value > 0);
 const leadershipPoolKText = computed(() => (remoteApiEnabled ? remotePool.value?.currentWeekPoolUSDT ?? 0 : pool.currentWeekPoolUSDT) / 1000);
@@ -320,10 +290,7 @@ const leadershipPoolPrimary = computed(() =>
   remoteApiEnabled && remotePoolState.value !== "ready" ? "—" : leadershipPoolUnlocked.value ? `+$${projectedPayout.value.toFixed(2)}` : `$${leadershipPoolKText.value.toFixed(1)}K`,
 );
 const leadershipPoolLineA = computed(() =>
-  remoteApiEnabled && remotePoolState.value !== "ready" ? t.value.network.projectionErrorDesc : leadershipPoolUnlocked.value ? `${myVotes.value} ${t.value.teamV3.votes}` : t.value.home.poolV3Unlock,
-);
-const leadershipPoolLineB = computed(() =>
-  remoteApiEnabled && remotePoolState.value !== "ready" ? t.value.network.retry : leadershipPoolUnlocked.value ? `${(myShare.value * 100).toFixed(2)}%` : t.value.home.poolThisWeek,
+  remoteApiEnabled && remotePoolState.value !== "ready" ? t.value.network.projectionErrorDesc : leadershipPoolUnlocked.value ? t.value.pool.unlocked : t.value.publicCopy.participationUnavailable,
 );
 
 function go(url: string) {
@@ -433,27 +400,6 @@ const rankLevelWrapStyle: CSSProperties = {
 };
 const rankLevelTextStyle: CSSProperties = {
   fontSize: "20px",
-  fontWeight: 600,
-  lineHeight: 1,
-  color: "var(--v5-ink)",
-  whiteSpace: "nowrap",
-};
-const rankDividerStyle: CSSProperties = {
-  width: "1px",
-  height: "34px",
-  background: "color-mix(in srgb, var(--v5-ink) 12%, transparent)",
-};
-const rankPrizeWrapStyle: CSSProperties = {
-  minHeight: "44px",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-end",
-  justifyContent: "center",
-};
-const rankPrizeLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-brand)", lineHeight: 1.1 };
-const rankPrizeValueStyle: CSSProperties = {
-  marginTop: "4px",
-  fontSize: "15px",
   fontWeight: 600,
   lineHeight: 1,
   color: "var(--v5-ink)",

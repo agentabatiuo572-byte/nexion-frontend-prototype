@@ -36,9 +36,7 @@
         <text class="block" :style="introStyle">{{ w.s3Intro }}</text>
         <view style="display: flex; flex-direction: column; gap: 10px">
           <IconRow emoji="📅" :label="w.lim1Label" :body="w.lim1Body" />
-          <IconRow emoji="🌐" :label="w.lim2Label" :body="w.lim2Body" />
         </view>
-        <CalloutBox :title="`💡 ${w.s3HintTitle}`" :body="w.s3HintBody" tone="amber" />
       </HowSection>
 
       <HowSection :title="w.s4Title">

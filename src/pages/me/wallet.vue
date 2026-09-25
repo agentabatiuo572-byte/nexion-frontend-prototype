@@ -57,9 +57,8 @@
         <text class="block" :style="syncFailBodyStyle">{{ t.wallet.syncFailedBody }}</text>
       </view>
       <view v-if="fundsAuthorityError" :style="syncFailBoxStyle">
-        <!-- i18n-en-ok: 资金权威同步失败的工程话标题,下一行直接吐后端错误串,受众是排障的人 -->
-        <text class="block" :style="syncFailTitleStyle">SANDBOX</text>
-        <text class="block break-all" :style="syncFailBodyStyle">{{ fundsAuthorityError }}</text>
+        <text class="block" :style="syncFailTitleStyle">{{ t.empty.errorTitle }}</text>
+        <text class="block" :style="syncFailBodyStyle">{{ t.empty.errorDesc }}</text>
       </view>
 
       <!-- Earnings list -->
@@ -140,9 +139,7 @@ const cards = useCards();
 const cfg = useConfig();
 
 const configSyncFailed = computed(() => cfg.syncFailed);
-const fundsAuthorityError = computed(() => mockFundsEnabled && app.fundsSandboxStatus === "error"
-  ? app.fundsSandboxError
-  : "");
+const fundsAuthorityError = computed(() => mockFundsEnabled && app.fundsSandboxStatus === "error");
 
 // SPEC-7 FEAT-RISK02 ⑥: 审核中/锁定信息弹层 — 释放规则 + 当前命中原因摘要
 // (reason code → i18n 业务话术,工程码不直出;R5: 原因现算不读缓存)。

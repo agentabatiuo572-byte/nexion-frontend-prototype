@@ -29,10 +29,12 @@ test("remote device and product cards do not render a locally estimated trade-in
   assert.match(banner, /deviceE3Api\.quote/);
 });
 
-test("remote ladder and device capability use server facts or fail closed", () => {
+test("trade-in help hides internal bands while device capability remains fail closed", () => {
   const ladder = read("src/components/me/tradein-ladder-sheet.vue");
   const card = read("src/components/earn/device-card-pc.vue");
-  assert.match(ladder, /deviceE3Api\.tradeinConfig/);
+  assert.match(ladder, /t\.tradein\.ladderFootnote/);
+  assert.match(ladder, /deviceName\(t, device\)/);
+  assert.doesNotMatch(ladder, /ladderRows|currentBand|creditPct|ratioPct|tradeinConfig/);
   assert.match(card, /remoteApiEnabled \? 0 : FALLBACK_CAP\.tops/);
   assert.match(card, /remoteApiEnabled \? "—" : FALLBACK_CAP\.tier/);
 });

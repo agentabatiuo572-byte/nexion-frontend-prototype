@@ -81,20 +81,13 @@
         </view>
 
         <!-- Purchase gate — remote mode is server-authoritative and fail-closed. -->
-        <view v-if="gateLockedView" class="mt-2.5 active:opacity-70" :style="gateBoxStyle" role="button" tabindex="0" @click.stop="toggleGateDetails">
+        <view v-if="gateLockedView" class="mt-2.5" :style="gateBoxStyle" :role="remoteApiEnabled && eligibility.status === 'error' ? 'button' : undefined" :tabindex="remoteApiEnabled && eligibility.status === 'error' ? 0 : undefined" @click.stop="retryGate">
           <view class="flex items-center justify-between">
             <view class="flex items-center gap-1.5" :style="gateEyebrowStyle">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
               <text>{{ gateLabel }}</text>
             </view>
-            <view v-if="!gate.soldOut" class="grid place-items-center" :style="gateToggleStyle">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-            </view>
           </view>
-          <view v-if="!remoteApiEnabled && !gate.soldOut && gateDetailsOpen" class="mt-1.5 flex flex-wrap" style="gap: 6px">
-            <text v-for="(c, i) in gateCondTexts" :key="i" :style="gateCondStyle">{{ c }}</text>
-          </view>
-          <text v-if="!remoteApiEnabled && !gate.soldOut && gateDetailsOpen" class="block" :style="gateMetaStyle">{{ gateModeText ? gateModeText + " · " : "" }}{{ gateProgressText }}</text>
           <text v-if="remoteApiEnabled && eligibility.status === 'error'" class="block" :style="gateMetaStyle">{{ t.store.purchaseEligibilityError }}</text>
         </view>
 
@@ -126,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type CSSProperties } from "vue";
+import { computed, type CSSProperties } from "vue";
 import type { Product } from "@/mock/products";
 import type { DeviceKind } from "@/store/types";
 import { useDeviceEligibility } from "@/composables/use-device-eligibility";
@@ -188,8 +181,6 @@ const gate = computed(() => remoteApiEnabled
       progressPct: eligibility.value.status === "ready" && eligibility.value.eligible ? 1 : 0,
     }
   : localPurchaseGate!.gate.value);
-const gateDetailsOpen = ref(false);
-let lastGateToggleAt = 0;
 const gateLockedView = computed(() => gate.value.gated && gate.value.blocked);
 const gateLabel = computed(() => {
   if (!remoteApiEnabled) return gate.value.soldOut ? t.value.store.gateSoldOut : t.value.store.gateLockedEyebrow;
@@ -197,23 +188,6 @@ const gateLabel = computed(() => {
   if (eligibility.value.status === "error") return t.value.store.purchaseEligibilityRetry;
   return gate.value.soldOut ? t.value.store.gateSoldOut : t.value.store.purchaseEligibilityIneligible;
 });
-const gateCondTexts = computed(() =>
-  gate.value.conditions.map((c) => {
-    if (c.kind === "rank") return fmt(t.value.store.gateCondRank, { n: c.need });
-    if (c.kind === "activeDirect") return fmt(t.value.store.gateCondDirect, { n: c.need });
-    return fmt(t.value.store.gateCondVolume, { n: c.need.toLocaleString() });
-  }),
-);
-const gateModeText = computed(() =>
-  gate.value.conditions.length > 1
-    ? props.product.purchaseGate?.mode === "all"
-      ? t.value.store.gateModeAll
-      : t.value.store.gateModeAny
-    : "",
-);
-const gateProgressText = computed(() =>
-  fmt(t.value.store.gateProgress, { pct: Math.round(gate.value.progressPct * 100) }),
-);
 const buyLabel = computed(() =>
   remoteApiEnabled && (eligibility.value.status === "loading" || eligibility.value.status === "idle")
     ? t.value.store.purchaseEligibilityLoading
@@ -237,17 +211,9 @@ function onBuy() {
   }
   goCheckout();
 }
-function toggleGateDetails() {
-  const now = Date.now();
-  if (now - lastGateToggleAt < 120) return;
-  lastGateToggleAt = now;
-  if (remoteApiEnabled && eligibility.value.status === "error") {
-    void retryEligibility();
-    return;
-  }
-  if (!gate.value.soldOut) gateDetailsOpen.value = !gateDetailsOpen.value;
+function retryGate() {
+  if (remoteApiEnabled && eligibility.value.status === "error") void retryEligibility();
 }
-
 // Text helpers (toFixed / toLocaleString / fmt) — kept out of template for clarity
 const dailyEarnText = computed(() => props.product.dailyEarn.toFixed(2));
 const nexPerDayText = computed(() => fmt(t.value.store.cardNexPerDay, { n: props.product.dailyEarnNEX }));
@@ -435,31 +401,11 @@ const gateBoxStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)",
   borderRadius: "10px",
 };
-const gateToggleBaseStyle: CSSProperties = {
-  width: "28px",
-  height: "28px",
-  borderRadius: "999px",
-  color: "var(--v5-warning-ink)",
-  background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)",
-  transition: "transform 160ms ease",
-};
-const gateToggleStyle = computed<CSSProperties>(() => ({
-  ...gateToggleBaseStyle,
-  transform: gateDetailsOpen.value ? "rotate(180deg)" : "rotate(0deg)",
-}));
 const gateEyebrowStyle: CSSProperties = {
   fontSize: "12px",
   fontWeight: 600,
   color: "var(--v5-warning-ink)",
   letterSpacing: "0.02em",
-};
-const gateCondStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
-  background: "var(--v5-surface-2)",
-  padding: "2px 8px",
-  borderRadius: "6px",
 };
 const gateMetaStyle: CSSProperties = {
   marginTop: "6px",

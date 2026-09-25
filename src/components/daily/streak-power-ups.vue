@@ -110,10 +110,17 @@ const powerUps = computed<PowerUp[]>(() => remoteApiEnabled
       id: item.powerUpCode.toLowerCase() as StreakPowerUpId,
       threshold: item.unlockStreakDays,
       tint: "var(--v5-success)", key: item.powerUpCode.toLowerCase() as PowerUp["key"], href: item.targetPath,
-      labelText: item.name, descText: `${item.effectType}: ${item.effectValue}`,
+      labelText: item.name, descText: benefitDescription(item.powerUpCode, item.effectValue, item.status),
       status: item.status,
     }))
   : POWERUPS);
+
+function benefitDescription(code: string, value: string, status: PowerUp["status"]): string {
+  if (POWERUPS.some((item) => item.id === code.toLowerCase()) && /^\d+(?:\.\d+)?(?:%|×|x| NEX| USDT)?$/.test(value.trim())) {
+    return fmt(t.value.publicCopy.benefitAmount, { value: value.trim().replace(/x$/, "×") });
+  }
+  return status === "ACTIVATED" ? w.value.activated : status === "LOCKED" ? w.value.locked : t.value.publicCopy.benefitAvailable;
+}
 
 const streak = computed(() => faucet.signInStreak);
 

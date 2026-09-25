@@ -6,17 +6,21 @@ function source(path) {
 }
 
 const howPage = source("../src/pages/team/leadership-pool-how.vue");
-assert.match(howPage, /subscribeCurrentCommerceSandboxRun/);
-assert.match(howPage, /unsubscribeRemotePoolRun/);
-assert.match(howPage, /remotePool\.value = null/);
-assert.match(howPage, /void loadRemotePool\(\)/);
-assert.match(howPage, /import \{ remoteApiEnabled, teamInsightsApi \} from "@\/api\/runtime"/);
-assert.match(howPage, /useLeadershipPool, V_VOTES/);
-assert.match(howPage, /remoteApiEnabled \? "loading" : "ready"/);
-assert.match(howPage, /if \(!remoteApiEnabled\) return;/);
-assert.match(howPage, /pool\.totalVotes\(\)/);
-assert.match(howPage, /pool\.globalVDistribution\[v\]/);
-assert.match(howPage, /votes: V_VOTES\[v\]/);
+// Help is static copy. The live page still owns refresh and account isolation.
+assert.match(howPage, /publicCopy\.earningsHelp/);
+assert.doesNotMatch(howPage, /V_VOTES|globalVDistribution|totalVotes|teamInsightsApi/);
+const poolPage = source("../src/pages/team/leadership-pool.vue");
+assert.match(poolPage, /teamInsightsApi\.leadershipPool\(\)/);
+assert.match(poolPage, /subscribeCurrentCommerceSandboxRun/);
+assert.match(poolPage, /unsubscribePoolRun\(\)/);
+assert.match(poolPage, /remotePool\.value = null/);
+assert.match(poolPage, /void loadRemotePool\(\)/);
+assert.match(poolPage, /if \(!remoteApiEnabled\) return;/);
+assert.match(poolPage, /captureAccountScope/);
+assert.match(poolPage, /isCurrentAccountScope/);
+assert.match(poolPage, /isCurrentCommerceSandboxScope/);
+assert.match(poolPage, /remoteState\.value = "error"/);
+assert.doesNotMatch(poolPage.split("<script")[0], /rankWeights|concentrationHint|peopleVotesEa/);
 
 const homeCard = source("../src/components/home/leadership-pool-card.vue");
 assert.match(homeCard, /teamInsightsApi\.leadershipPool\(\)/);

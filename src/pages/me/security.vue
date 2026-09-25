@@ -118,7 +118,7 @@
           <text :style="revokeAllLabelStyle">{{ t.security.cancelDeletionRequest }}</text>
         </view>
       </view>
-      <text class="block mx-4" :style="footerStyle">{{ deletionStatus.status === 'BLOCKED' ? fmt(t.security.deleteAccountBlocked, { reason: deletionStatus.blockReason ?? deletionStatus.reason ?? t.security.deleteAccountPendingReason }) : deletionPending ? t.security.deleteAccountPending : t.security.deleteAccountHint }}</text>
+      <text class="block mx-4" :style="footerStyle">{{ deletionStatus.status === 'BLOCKED' ? t.publicCopy.accountDeletionBlocked : deletionPending ? t.security.deleteAccountPending : t.security.deleteAccountHint }}</text>
     </view>
   </AppChassis>
 </template>
@@ -396,10 +396,8 @@ async function handleRevoke(s: SessionListItem) {
         if (!(await loadRemoteSecurity())) throw new Error("SECURITY_READBACK_FAILED");
       } else session.revokeSession(s.id);
       toast.success(t.value.security.sessionRevoked);
-    } catch (cause) {
-      toast.error(cause instanceof Error && cause.message === "SECURITY_READBACK_FAILED"
-        ? t.value.security.opFailed
-        : cause instanceof Error ? cause.message : t.value.security.opFailed);
+    } catch {
+      toast.error(t.value.security.opFailed);
     }
   }
 }
@@ -418,10 +416,8 @@ async function handleRevokeAll() {
         if (!(await loadRemoteSecurity())) throw new Error("SECURITY_READBACK_FAILED");
       } else session.revokeAllOtherSessions();
       toast.success(t.value.security.revokeAllDone);
-    } catch (cause) {
-      toast.error(cause instanceof Error && cause.message === "SECURITY_READBACK_FAILED"
-        ? t.value.security.opFailed
-        : cause instanceof Error ? cause.message : t.value.security.opFailed);
+    } catch {
+      toast.error(t.value.security.opFailed);
     }
   }
 }
@@ -505,8 +501,8 @@ async function handleDeleteAccount() {
           toast.success(t.value.security.deleteAccountToast, request.requestNo);
           deletionCommandKey.value = "";
           await authApi.logout();
-        } catch (cause) {
-          toast.error(cause instanceof Error ? cause.message : "ACCOUNT_DELETION_REQUEST_FAILED");
+        } catch {
+          toast.error(t.value.publicCopy.operationUnconfirmed);
           return;
         }
       } else {
@@ -546,8 +542,8 @@ async function handleCancelAccountDeletion() {
     await accountApi.cancelAccountDeletion(current.version, key);
     if (!(await loadRemoteSecurity())) throw new Error("SECURITY_READBACK_FAILED");
     toast.success(t.value.security.cancelDeletionSuccess);
-  } catch (cause) {
-    toast.error(cause instanceof Error ? cause.message : "ACCOUNT_DELETION_CANCEL_FAILED");
+  } catch {
+    toast.error(t.value.publicCopy.operationUnconfirmed);
     await loadRemoteSecurity();
   } finally {
     securityBusy.value = false;

@@ -23,7 +23,7 @@
       </view>
     </view>
   </view>
-  <view v-else-if="!remoteApiEnabled" class="absolute" :style="rootStyle" :aria-label="`${w.label} · ${MOCK_STOREFRONT_SOCIAL_PROOF_FIXTURE_ID}`">
+  <view v-else-if="!remoteApiEnabled" class="absolute" :style="rootStyle" :data-fixture-id="MOCK_STOREFRONT_SOCIAL_PROOF_FIXTURE_ID" :aria-label="`${w.label} · ${t.publicCopy.experienceMode}`">
     <view :style="listStyle">
       <view v-for="(r, i) in doubled" :key="i" class="flex items-baseline" :style="rowStyle">
         <view aria-hidden class="shrink-0" :style="dotStyle(r.color)" />

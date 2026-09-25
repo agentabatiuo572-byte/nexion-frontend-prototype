@@ -158,7 +158,7 @@
             <text>{{ t.network.title }}: </text>
             <text :style="{ color: 'var(--v5-ink)' }">{{ memberRankTitle(selected) }}</text>
             <text> · {{ t.network.status }}: </text>
-            <text :style="{ color: statusColor(selected.status) }">{{ selected.status }}</text>
+            <text :style="{ color: statusColor(selected.status) }">{{ memberStatusText(selected.status) }}</text>
           </view>
         </view>
       </view>
@@ -263,6 +263,12 @@ function memberRankTitle(m: NetworkMember): string {
 }
 function statusColor(status: MemberStatus): string {
   return status === "active" ? "var(--v5-brand)" : status === "idle" ? "var(--v5-warning)" : "var(--v5-ink-4)";
+}
+function memberStatusText(status: MemberStatus): string {
+  return status === "active" ? t.value.network.activeNow
+    : status === "idle" ? t.value.publicCopy.memberIdle
+    : status === "offline" ? t.value.earn.offline
+    : t.value.uiChrome.unavailable;
 }
 
 // ─── styles ───

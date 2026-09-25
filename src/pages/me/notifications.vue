@@ -87,6 +87,7 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNotifications, type NotifKind, type Notification } from "@/store/notifications";
 import { navTo } from "@/lib/route";
+import { notificationCopy } from "@/lib/notification-copy";
 import { remoteApiEnabled } from "@/api/runtime";
 import { isLeftConversionSwipe, type SwipePoint } from "@/lib/notification-swipe";
 
@@ -127,7 +128,8 @@ function countOf(id: Filter): number {
   return id === "all" ? notifs.items.length : notifs.items.filter((x) => x.kind === id).length;
 }
 const filtered = computed(() =>
-  filter.value === "all" ? notifs.items : notifs.items.filter((x) => x.kind === filter.value),
+  (filter.value === "all" ? notifs.items : notifs.items.filter((x) => x.kind === filter.value))
+    .map((item) => notificationCopy(item, t.value, remoteApiEnabled)),
 );
 
 function filterLabelKey(id: Filter): string {

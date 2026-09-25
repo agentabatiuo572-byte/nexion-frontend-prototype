@@ -189,7 +189,7 @@
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
           </view>
           <text class="block" :style="centerTitleStyle">{{ remoteOrderFailure ? t.tradein.errPurchaseFailed : t.store.coAwaiting }}</text>
-          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.4; padding: 0 8px">{{ remoteOrderFailure ? `${t.store.coServerStatus}: ${remoteOrderFailure}` : remoteApiEnabled ? t.store.coAwaitingServer : isCard ? t.store.coAwaitingCard : t.store.coAwaitingChain }}</text>
+          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.4; padding: 0 8px">{{ remoteOrderFailure ? orderStatusText(t.orders, remoteOrderFailure) : remoteApiEnabled ? t.store.coAwaitingServer : isCard ? t.store.coAwaitingCard : t.store.coAwaitingChain }}</text>
           <view v-if="remoteApiEnabled && remoteOrderPollError && !remoteOrderFailure" class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: 14px" @click.stop="restartRemoteOrderPolling">
             <text>{{ t.store.coRetryStatus }}</text>
           </view>
@@ -270,14 +270,15 @@ import { useT } from "@/i18n/use-t";
 import { deviceName } from "@/lib/device-copy";
 import { fmt } from "@/i18n/format";
 import { cardFeeRateLabel, cardFeeUsd } from "@/store/deposits-core";
-import { getProduct, annualRoiPct, type Product } from "@/mock/products";
+import { getProduct, type Product } from "@/mock/products";
 import { computeTradeInCredit, DEFAULT_TRADEIN_CONFIG } from "@/mock/tradein-config";
 import { isDeviceTaskBlocked } from "@/mock/eligibility";
 import { getMonthsSince, tradeInEarlyWindowOk } from "@/store/product-phase";
 import { useProductPhase } from "@/composables/use-product-phase";
 import { voucherAppliesToSku } from "@/mock/vouchers";
 import { useApp } from "@/store/app";
-import { useOrders, type Order } from "@/store/orders";
+import { useOrders, type Order, type OrderStatus } from "@/store/orders";
+import { orderStatusText } from "@/components/store/order-status-copy";
 import { useAuth } from "@/store/auth";
 import { readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
 import { postMoneyBill, postReceiptOnce, postReceiptOnly, reportStuckFunds, type ReceiptDraft } from "@/lib/money-receipt";
@@ -784,7 +785,7 @@ useSetPageHeader(() => ({
 const step = ref<Step>("select-payment");
 const payment = ref<string>(mockFundsEnabled ? "sandbox-wallet" : "usdt-trc20");
 const orderId = ref<string | null>(null);
-const remoteOrderFailure = ref<string | null>(null);
+const remoteOrderFailure = ref<OrderStatus | null>(null);
 const remoteOrderPollError = ref(false);
 const CHECKOUT_RECEIPT_RECOVERY_KEY = "nexgrid-checkout-receipt-recovery-v1";
 type CheckoutReceiptRecovery = { accountKey: string; draft: ReceiptDraft; orderId: string; productId?: string };
@@ -880,7 +881,6 @@ const paybackLine = computed(() => {
   if (!p) return "";
   return fmt(t.value.store.coEstPayback, {
     days: Math.round(p.price / p.dailyEarn),
-    roi: annualRoiPct(p),
   });
 });
 const slotsFullText = computed(() => fmt(t.value.store.coSlotsFull, { max: MAX_DEVICES }));

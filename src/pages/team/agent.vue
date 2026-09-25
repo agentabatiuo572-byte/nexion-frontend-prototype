@@ -1,12 +1,3 @@
-<!--
-  Agent — ported from Nexion-prototype/app/(main)/team/agent/page.tsx.
-  Regional Ambassador dashboard (V5+ gated), de-carded: floor hero →
-  eligibility tint banner (eligible / locked + path CTA) → 4 reimbursable
-  buckets (transparent hairline rows) → application form on the floor
-  (recessed fields, gated submit) → approved-case rows. Sub-page →
-  <AppChassis active="team"> with in-page back row. Reuses v-rank store +
-  v-badge. lucide → inline SVG; <input>→uni input; toast via store/ui.
--->
 <template>
   <AppChassis active="team">
     <view class="pb-6" style="color: var(--v5-ink)">
@@ -48,11 +39,10 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             </view>
             <view class="flex-1">
-              <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ t.agent.lockedReq }}</text>
-              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ lockedSubText }}</text>
+              <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ t.publicCopy.participationUnavailable }}</text>
             </view>
-            <view class="shrink-0 rounded-full flex items-center active:scale-95" :style="pathCtaStyle" @click="go('/pages/team/rank')">
-              <text>{{ t.agent.pathCta }}</text>
+            <view class="shrink-0 rounded-full flex items-center active:scale-95" :style="pathCtaStyle" @click="go('/pages/support/messages')">
+              <text>{{ t.publicCopy.contactSupport }}</text>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </view>
           </view>
@@ -152,7 +142,6 @@
               <view class="flex items-start justify-between">
                 <view>
                   <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ latestApplication.city }} · {{ latestApplication.eventDate }}</text>
-                  <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ applicationProof }}</text>
                 </view>
                 <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-brand)' }">{{ applicationStatusText }}</text>
               </view>
@@ -186,8 +175,6 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import VBadge from "@/components/team/v-badge.vue";
 import { useVRank } from "@/store/v-rank";
-import { rankTitle } from "@/lib/v-rank-copy";
-import { useLocaleStore } from "@/store/locale";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
@@ -199,7 +186,6 @@ import { acquireAmbassadorCommandKey, finishAmbassadorCommand } from "@/lib/amba
 
 const t = useT();
 const vrank = useVRank();
-const isZh = computed(() => useLocaleStore().code === "zh");
 const app = useApp();
 
 const myRank = computed(() => vrank.myRank);
@@ -272,17 +258,11 @@ const latestApplication = ref<AmbassadorApplication>({ applicationId: null, stat
   sourceEnvironment: "PRODUCTION", runId: "" });
 
 const applicationStatusText = computed(() => t.value.agent.applicationStatuses[latestApplication.value.status]);
-const applicationProof = computed(() => latestApplication.value.sourceEnvironment === "SANDBOX"
-  ? `SANDBOX · Run ${latestApplication.value.runId}` : "PRODUCTION · server");
-
 function onBudgetInput() {
   const n = Math.max(0, parseInt(budgetText.value.replace(/\D/g, "")) || 0);
   budget.value = n;
 }
 
-const lockedSubText = computed(() =>
-  fmt(t.value.agent.lockedSub, { n: vrank.myRank, title: rankTitle(vrank.myRank, isZh.value, vrank.ladder) }),
-);
 function hostedByText(c: ApprovedCase): string {
   return fmt(t.value.agent.hostedBy, { name: c.host, attendees: c.attendees });
 }
@@ -345,9 +325,9 @@ async function submit() {
         } else {
           throw error;
         }
-      } catch (readError) {
+      } catch {
         if (isSettledRejection(error)) finishAmbassadorCommand(expectedAccount, identity);
-        toast.error(t.value.agent.toastRemoteFailed, readError instanceof Error ? readError.message : String(readError));
+        toast.error(t.value.agent.toastRemoteFailed, t.value.publicCopy.applicationUnknown);
         return;
       }
     } finally {

@@ -14,7 +14,7 @@ const results = [];
 let server, browser;
 const labels = { en: "Device assessment", zh: "设备能力评估", vi: "Đánh giá thiết bị" };
 const resultTitles = { en: "Check complete", zh: "校验完成", vi: "Kiểm tra hoàn tất" };
-const policyLabels = { en: "Task acceptance rules", zh: "任务接取规则", vi: "Quy tắc nhận nhiệm vụ" };
+const policyLabels = { en: "Before you start", zh: "运行须知", vi: "Lưu ý khi chạy" };
 const removedDetails = ".cn-test__metric, .cn-summary, .cn-row, .cn-score__tier, .cn-score__yield";
 
 async function checkCtaPlacement(page, contentSelector) {
@@ -271,6 +271,7 @@ async function runCase(base, { locale, mode, width, height }) {
     result.policyLines = await page.locator(".cn-policy__t").allTextContents();
     assert.match(result.policyLines[0], /20\s*%/);
     assert.doesNotMatch(result.policyLines.join(" "), /Charging is required|充电是硬性门槛|Bắt buộc phải sạc/i);
+    assert.doesNotMatch(result.policyLines.join(" "), /reassign|重新分配|phân công lại|调度器/i);
     result.policyBubble = await bubble.boundingBox();
     assert.ok(result.policyBubble.x >= 0 && result.policyBubble.y >= 0 && result.policyBubble.x + result.policyBubble.width <= width && result.policyBubble.y + result.policyBubble.height <= result.policyIcon.y, "bubble must fit the viewport above its trigger");
     const openCta = await page.locator(".cn-go--on").boundingBox();
