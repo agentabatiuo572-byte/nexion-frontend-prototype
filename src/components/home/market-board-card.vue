@@ -12,10 +12,10 @@
     </view>
 
     <view v-if="!remoteApiEnabled" style="background: var(--v5-surface); border-radius: 16px; overflow: hidden">
-      <view class="grid gap-2 font-mono-tabular" style="grid-template-columns: 36px 1fr 60px 76px 58px; padding: 9px 14px; background: var(--v5-surface-2); border-bottom: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-4)">
+      <view class="nx-market-grid grid gap-2 font-mono-tabular" style="padding: 9px 14px; background: var(--v5-surface-2); border-bottom: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-4)">
         <text>{{ t.home.mbColTag }}</text>
         <text>{{ t.home.mbColModel }}</text>
-        <text class="text-right">{{ t.home.mbCol1h }}</text>
+        <text class="nx-market-spark text-right">{{ t.home.mbCol1h }}</text>
         <text class="text-right">{{ t.home.mbColPrice }}</text>
         <text class="text-right">{{ t.home.mbCol24h }}</text>
       </view>
@@ -23,10 +23,10 @@
       <view
         v-for="(r, i) in ROWS"
         :key="r.name"
-        class="grid items-center gap-2 active:opacity-70 transition-opacity"
+        class="nx-market-grid grid items-center gap-2 active:opacity-70 transition-opacity"
         role="link"
         tabindex="0"
-        :style="{ gridTemplateColumns: '36px 1fr 60px 76px 58px', padding: '10px 14px', borderBottom: i < ROWS.length - 1 ? '1px solid var(--v5-border)' : 'none', minWidth: 0 }"
+        :style="{ padding: '10px 14px', borderBottom: i < ROWS.length - 1 ? '1px solid var(--v5-border)' : 'none', minWidth: 0 }"
         @click="goEarn"
         @keydown.enter.stop.prevent="goEarn"
         @keydown.space.stop.prevent="goEarn"
@@ -36,7 +36,7 @@
           <text class="block truncate" style="font-family: var(--font-v5); font-weight: 500; font-size: 13px; color: var(--v5-ink); letter-spacing: -0.008em">{{ r.name }}</text>
           <text class="block font-mono-tabular mt-0.5" style="font-size: 12px; color: var(--v5-ink-4)">{{ volText(r) }}</text>
         </view>
-        <view class="min-w-0">
+        <view class="nx-market-spark min-w-0">
           <HomeSparkline :data="r.spark" :color="r.d >= 0 ? 'var(--v5-success)' : 'var(--v5-danger)'" :height="18" :fill="false" />
         </view>
         <view class="text-right whitespace-nowrap tabular-nums">
@@ -126,3 +126,17 @@ function retryHome() {
   void app.refreshHomeTruth();
 }
 </script>
+
+<style scoped>
+.nx-market-grid {
+  grid-template-columns: 36px minmax(0, 1fr) 60px 76px 58px;
+}
+@media (max-width: 350px) {
+  .nx-market-grid {
+    grid-template-columns: 36px minmax(0, 1fr) 76px 50px;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  .nx-market-spark { display: none; }
+}
+</style>

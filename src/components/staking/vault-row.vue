@@ -16,7 +16,7 @@
         <text v-if="ribbon" :style="ribbonStyle">{{ ribbon.label }}</text>
       </view>
       <text class="block" :style="blurbStyle">{{ blurb }}</text>
-      <text class="block tabular-nums" :style="metaStyle">{{ fmt(t.stakingV3.vaultMin, { amount: `$${minText}` }) }} · {{ penaltyPct }}% {{ penaltySuffix }}</text>
+      <text class="block tabular-nums" :style="metaStyle">{{ fmt(t.stakingV3.vaultMin, { amount: `$${minText}` }) }} · {{ penaltyPct }}% <text class="whitespace-nowrap">{{ penaltySuffix }}</text></text>
     </view>
 
     <!-- Arrow -->

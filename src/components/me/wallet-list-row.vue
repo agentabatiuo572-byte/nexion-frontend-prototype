@@ -15,7 +15,7 @@
     </view>
     <view class="flex-1 min-w-0" style="padding-top: 8px; padding-bottom: 8px">
       <text class="block" :style="labelStyle">{{ label }}</text>
-      <text v-if="sublabel" class="block truncate" :style="sublabelStyle">{{ sublabel }}</text>
+      <text v-if="sublabel" class="block" :style="sublabelStyle">{{ sublabel }}</text>
     </view>
     <view v-if="hasValue" class="shrink-0 text-right" :style="valueWrapStyle">
       <slot name="value" />

@@ -136,7 +136,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="r.isYou ? 'var(--v5-tech-cyan)' : 'var(--v5-brand)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
           </view>
           <view class="flex-1 min-w-0">
-            <view class="flex items-center" style="gap: 8px">
+            <view class="flex flex-wrap items-center" style="column-gap: 8px; row-gap: 4px">
               <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ regionName(r) }}</text>
               <text v-if="r.isYou" :style="youChipStyle">{{ t.globe.youAre }}</text>
             </view>

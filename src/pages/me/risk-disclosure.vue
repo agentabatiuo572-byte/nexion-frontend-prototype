@@ -7,7 +7,7 @@
 -->
 <template>
   <AppChassis active="me">
-    <scroll-view scroll-y style="height: 100vh" @scrolltolower="onScrollToLower">
+    <scroll-view scroll-y style="height: 100vh; text-wrap: pretty" @scrolltolower="onScrollToLower">
     <view style="padding-bottom: 32px">
       <SubPageHeader :back="returnTo" />
 

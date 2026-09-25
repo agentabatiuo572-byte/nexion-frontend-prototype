@@ -74,14 +74,14 @@
         </view>
 
         <!-- Empty-slot conversion hook -->
-        <view v-if="emptySlots > 0" class="grid items-center" :style="slotBlockStyle">
+        <view v-if="emptySlots > 0" class="nx-wallet-slot-block grid items-center" :style="slotBlockStyle">
           <view style="min-width: 0">
             <view class="flex items-center" style="gap: 6px">
               <view aria-hidden :style="pulseDotStyle" />
               <text style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; color: var(--v5-ink-3)">{{ slotsLine }}</text>
             </view>
-            <view class="flex items-baseline" style="gap: 4px; margin-top: 4px">
-              <text style="font-family: var(--font-v5); font-size: 13px; color: var(--v5-ink-2)">{{ t.me.walletSlotUnlock }}</text>
+            <view class="flex items-baseline flex-wrap" style="gap: 4px; margin-top: 4px">
+              <text style="font-family: var(--font-v5); font-size: 13px; color: var(--v5-ink-2); white-space: nowrap">{{ t.me.walletSlotUnlock }}</text>
               <text class="tabular-nums" :style="slotPotentialStyle">+${{ slotPotential }}/d</text>
               <text style="font-family: var(--font-v5); font-size: 13px; color: var(--v5-ink-3)">{{ t.me.walletSlotMore }}</text>
             </view>
@@ -254,7 +254,6 @@ const actionsBlockStyle: CSSProperties = {
 };
 const slotBlockStyle: CSSProperties = {
   marginTop: "28px",
-  gridTemplateColumns: "minmax(0,1fr) auto",
   gap: "12px",
 };
 const pulseDotStyle: CSSProperties = {
@@ -285,3 +284,10 @@ const addDeviceBtnStyle: CSSProperties = {
   whiteSpace: "nowrap",
 };
 </script>
+
+<style scoped>
+.nx-wallet-slot-block { grid-template-columns: minmax(0, 1fr) auto; }
+@media (max-width: 350px) {
+  .nx-wallet-slot-block { grid-template-columns: minmax(0, 1fr); }
+}
+</style>

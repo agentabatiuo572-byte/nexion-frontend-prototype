@@ -28,7 +28,7 @@
           </view>
 
           <!-- 4-stat grid -->
-          <view class="grid grid-cols-4" :style="statGridStyle">
+          <view class="nx-marketplace-stats grid" :style="statGridStyle">
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.floor }}</text>
               <text class="tabular-nums" :style="statValStyle('var(--v5-success)')">{{ stats.floor === null ? "—" : `$${(stats.floor / 1000).toFixed(1)}K` }}</text>
@@ -447,6 +447,10 @@ const reserveBtnStyle: CSSProperties = {
 </script>
 
 <style scoped>
+.nx-marketplace-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 350px) {
+  .nx-marketplace-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .nx-sort-row {
   width: 100%;
   white-space: nowrap;

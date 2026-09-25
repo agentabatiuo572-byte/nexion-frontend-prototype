@@ -397,6 +397,8 @@ function pollMilestones() {
     amount: step.nexReward,
     status: "posted",
     memo: `Earnings milestone · $${step.thresholdUSD}`,
+    memoKey: "earningsMilestone",
+    memoParams: { threshold: step.thresholdUSD },
     ref: `MILESTONE-${step.id}`,
   }) !== "ok") return;
   m.markFired(step.id);

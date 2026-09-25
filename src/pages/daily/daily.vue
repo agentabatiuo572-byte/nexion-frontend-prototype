@@ -624,6 +624,8 @@ const milestoneDayStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
   color: "var(--v5-ink-3)",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
 };
 const milestoneRewardStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",

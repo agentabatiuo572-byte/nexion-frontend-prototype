@@ -124,6 +124,7 @@ function go(href: string) {
 <style scoped>
 .entry-page {
   min-height: 100%;
+  text-wrap: pretty;
   padding: 0 16px 16px;
   /* chassis-nav 页(useSetPageHeader,无 SubPageHeader):全局 24px 顶距不生效,此处单一 padding-top 作 nav→content 呼吸单源 */
   padding-top: 24px;
@@ -347,6 +348,13 @@ function go(href: string) {
 
 .entry-link:active {
   opacity: 0.7;
+}
+
+@media (max-width: 420px) {
+  .entry-mode { display: block; }
+  .entry-mode-value { display: block; margin-top: 4px; }
+  .entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .entry-metric:last-child { grid-column: span 2; }
 }
 
 @media (min-width: 700px) {

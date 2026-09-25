@@ -111,7 +111,7 @@
           <view class="grid items-center" :style="listHeadStyle">
             <text>{{ t.leaderboard.columns.rank }}</text>
             <text>{{ t.leaderboard.columns.inviter }}</text>
-            <text class="text-right">{{ t.leaderboard.columns.directs }}</text>
+            <text class="text-right" style="font-size: 10px; letter-spacing: 0">{{ t.leaderboard.columns.directs }}</text>
             <text class="text-right">{{ t.leaderboard.columns.earned }}</text>
           </view>
           <view
@@ -133,7 +133,10 @@
                 </view>
                 <view class="flex items-center" style="margin-top: 2px; gap: 6px">
                   <text class="font-mono-tabular" :style="vRankChipStyle">V{{ row.vRank }}</text>
-                  <text class="font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-ink-4)' }">{{ fmt(t.leaderboard.chips.teamSize, { n: row.teamSize.toLocaleString() }) }}</text>
+                  <view class="inline-flex items-center shrink-0 font-mono-tabular tabular-nums" style="gap: 2px; font-size: 12px; color: var(--v5-ink-4)" role="img" :aria-label="fmt(t.leaderboard.chips.teamSize, { n: row.teamSize.toLocaleString() })">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                    <text>{{ row.teamSize.toLocaleString() }}</text>
+                  </view>
                   <text v-if="row.delta !== 0" class="font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: row.delta > 0 ? 'var(--v5-brand)' : 'var(--v5-brand-2)' }">{{ row.delta > 0 ? "↑" : "↓" }}{{ Math.abs(row.delta) }}</text>
                 </view>
               </view>

@@ -67,8 +67,8 @@
               </view>
               <view class="truncate" :style="memoStyle">
                 <text>{{ billMemo(b) }}</text>
-                <text v-if="b.ref && !b.ref.startsWith('QST-')" style="color: var(--v5-ink-4); margin: 0 4px">·</text>
-                <text v-if="b.ref && !b.ref.startsWith('QST-')" class="font-mono-tabular">{{ b.ref }}</text>
+                <text v-if="showRef(b)" style="color: var(--v5-ink-4); margin: 0 4px">·</text>
+                <text v-if="showRef(b)" class="font-mono-tabular">{{ b.ref }}</text>
               </view>
               <text class="block" :style="timeStyle">{{ fmtTime(b.ts) }}</text>
             </view>
@@ -205,7 +205,12 @@ function billMemo(b: Bill): string {
   if (b.ref?.startsWith("QST-")) return t.value.bills.typeBonus;
   const dict = t.value.bills.memo as Record<string, string> | undefined;
   const s = b.memoKey ? dict?.[b.memoKey] : undefined;
-  return s ? (b.memoParams ? fmt(s, b.memoParams) : s) : b.memo;
+  if (s) return b.memoParams ? fmt(s, b.memoParams) : s;
+  const legacyMilestone = b.type === "achievement" ? /^Earnings milestone · \$(\d+(?:\.\d+)?)$/.exec(b.memo) : null;
+  return legacyMilestone ? fmt(t.value.bills.memo.earningsMilestone, { threshold: legacyMilestone[1] }) : b.memo;
+}
+function showRef(b: Bill): boolean {
+  return Boolean(b.ref && !b.ref.startsWith("QST-") && !b.ref.startsWith("MILESTONE-"));
 }
 function runningBalanceLabel(bal: number): string {
   return `${t.value.bills.runningBalance}: $${bal.toFixed(2)}`;

@@ -44,6 +44,7 @@ const ACCENT_SOFT: Record<Accent, string> = {
 // (owner 2026-07-09: sections still cramped, reference Alipay/Binance grouping).
 const cardStyle: CSSProperties = {
   padding: "16px 2px 0",
+  textWrap: "pretty",
 };
 // Icon chip: soft tint only, no border (inner-element rule).
 const chipStyle = computed<CSSProperties>(() => ({

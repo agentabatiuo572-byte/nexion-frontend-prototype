@@ -1,7 +1,7 @@
 <template>
   <view class="rounded-2xl" :style="cardStyle">
     <!-- header -->
-    <view class="flex items-start justify-between">
+    <view class="nx-quota-header flex items-start justify-between">
       <view class="flex items-center" style="gap: 8px">
         <view class="rounded-xl grid place-items-center" :style="iconBoxStyle">
           <svg v-if="unlocked" width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="tier.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -12,7 +12,7 @@
           <text class="block font-mono-tabular" :style="stockLineStyle">{{ stockLineText }}</text>
         </view>
       </view>
-      <text class="font-mono-tabular" :style="badgeStyle">{{ unlocked ? t.quota.unlocked : t.publicCopy.quotaUnavailable }}</text>
+      <text class="nx-quota-badge font-mono-tabular" :style="badgeStyle">{{ unlocked ? t.quota.unlocked : t.quota.locked }}</text>
     </view>
 
     <!-- stock progress -->
@@ -106,6 +106,8 @@ const nameStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, lineHeight
 const stockLineStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
 const badgeStyle = computed<CSSProperties>(() => ({
   fontSize: "12px",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
   letterSpacing: "0.04em",
   padding: "1px 6px",
   borderRadius: "4px",
@@ -151,3 +153,10 @@ const lockedCtaStyle: CSSProperties = {
   background: "var(--v5-surface-2)",
 };
 </script>
+
+<style scoped>
+@media (max-width: 350px) {
+  .nx-quota-header { flex-direction: column; gap: 6px; }
+  .nx-quota-badge { margin-left: 48px; }
+}
+</style>

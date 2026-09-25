@@ -16,7 +16,7 @@
       </view>
       <view class="flex-1 min-w-0">
         <text class="block truncate" :style="nameStyle">{{ deviceName(t, device) }}</text>
-        <text class="block truncate" :style="specStyle">${{ device.baseRate.toFixed(2) }}/d · {{ deviceGpuLabel(t, device) }}</text>
+        <text class="block" :style="specStyle">${{ device.baseRate.toFixed(2) }}/d · {{ deviceGpuLabel(t, device) }}</text>
         <view v-if="device.pendingDeactivate" class="inline-flex items-center" :style="pendingChipStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
           <text>{{ pendingChipLabel }}</text>
@@ -107,6 +107,7 @@ const nameStyle: CSSProperties = {
 };
 const specStyle: CSSProperties = {
   marginTop: "2px",
+  textWrap: "pretty",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
   color: "var(--v5-ink-3)",

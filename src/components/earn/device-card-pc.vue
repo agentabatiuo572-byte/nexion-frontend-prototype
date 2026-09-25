@@ -62,7 +62,7 @@
       @keydown.shift.f10.stop.prevent="openMenu"
       @contextmenu.stop.prevent="openMenu"
     >
-      <view class="flex items-center gap-2.5 min-w-0" style="flex: 1">
+      <view class="nx-device-card__main flex items-center gap-2.5 min-w-0">
         <view class="rounded-lg grid place-items-center shrink-0" style="width: 36px; height: 36px; background: var(--v5-surface-2)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="kindIconPath" /></svg>
         </view>
@@ -74,7 +74,7 @@
           </view>
         </view>
       </view>
-      <view class="flex items-center gap-2.5 shrink-0">
+      <view class="nx-device-card__numbers flex items-center gap-2.5 shrink-0">
         <view class="text-right">
           <!-- 《09》§3:正收益=success(warning 专属 Pending/Cooling)。本行是设备
                今日**已实现**收益,非待结算 → success;同卡的 −$锁定日产 / 未解锁潜在
@@ -782,6 +782,12 @@ const unlockCtaLabelStyle: CSSProperties = {
 </script>
 
 <style scoped>
+.nx-device-card__main { flex: 1; }
+@media (max-width: 350px) {
+  .nx-device-card__header { flex-wrap: wrap; row-gap: 8px; }
+  .nx-device-card__main { flex: 1 1 100%; }
+  .nx-device-card__numbers { width: calc(100% - 46px); margin-left: 46px; justify-content: space-between; }
+}
 .nx-spin {
   animation: spin 1s linear infinite;
 }

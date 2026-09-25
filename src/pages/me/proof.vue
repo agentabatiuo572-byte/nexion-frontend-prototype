@@ -84,7 +84,7 @@
           </view>
 
           <!-- secondary stats -->
-          <view class="grid grid-cols-3" style="margin-top: 16px; gap: 8px">
+          <view class="grid nx-proof-stats" style="margin-top: 16px; gap: 8px">
             <view :style="miniStatStyle">
               <text class="block truncate" :style="miniLabelStyle">{{ t.proof.activeDays }}</text>
               <text class="block font-display tabular-nums" :style="miniValueStyle">{{ activeDays === null ? "—" : activeDays }}</text>
@@ -93,7 +93,7 @@
               <text class="block truncate" :style="miniLabelStyle">{{ t.proof.devices }}</text>
               <text class="block font-display tabular-nums" :style="miniValueStyle">{{ onlineDevices === null ? "—" : onlineDevices }}</text>
             </view>
-            <view :style="miniStatStyle">
+            <view class="nx-proof-rank-stat" :style="miniStatStyle">
               <text class="block truncate" :style="miniLabelStyle">{{ topPctLabel }}</text>
               <text class="block font-display tabular-nums" :style="miniValueSmallStyle">{{ topPctText }}</text>
             </view>
@@ -609,7 +609,7 @@ const miniStatStyle: CSSProperties = {
   padding: "8px",
   textAlign: "center",
 };
-const miniLabelStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.16em", color: "var(--v5-ink-3)" };
+const miniLabelStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.02em", color: "var(--v5-ink-3)" };
 const miniValueStyle: CSSProperties = { marginTop: "2px", fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
 const miniValueSmallStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", fontWeight: 600, color: "var(--v5-ink)" };
 const chipsLabelStyle: CSSProperties = {
@@ -703,3 +703,10 @@ const tipBodyStyle: CSSProperties = {
   lineHeight: 1.625,
 };
 </script>
+<style scoped>
+.nx-proof-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 420px) {
+  .nx-proof-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nx-proof-rank-stat { grid-column: span 2; }
+}
+</style>

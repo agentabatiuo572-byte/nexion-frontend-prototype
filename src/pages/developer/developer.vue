@@ -56,7 +56,7 @@
         <!-- Partners -->
         <view v-if="!remoteApiEnabled" class="mx-4 mt-4">
           <text class="block" :style="partnerTitleStyle">{{ t.developer.partners }}</text>
-          <view class="rounded-2xl grid" :style="partnerGridStyle">
+          <view class="nx-dev-partners rounded-2xl grid" :style="partnerGridStyle">
             <view v-for="p in PARTNERS" :key="p.id" class="grid place-items-center" :style="partnerCellStyle">
               <text style="font-size: 12px; color: var(--v5-ink-3); font-weight: 500">{{ p.label }}</text>
             </view>
@@ -409,7 +409,6 @@ const partnerTitleStyle: CSSProperties = {
 const partnerGridStyle: CSSProperties = {
   background: "var(--v5-surface)",
   padding: "16px",
-  gridTemplateColumns: "repeat(4, 1fr)",
   gap: "12px",
 };
 const partnerCellStyle: CSSProperties = {
@@ -477,6 +476,10 @@ const smallBtnStyle: CSSProperties = {
 </script>
 
 <style scoped>
+.nx-dev-partners { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 420px) {
+  .nx-dev-partners { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .nx-dev-ph {
   color: var(--v5-ink-4);
 }

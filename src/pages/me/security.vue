@@ -86,7 +86,7 @@
           </view>
           <view class="flex-1 min-w-0">
             <text class="block truncate" :style="rowLabelStyle">{{ sessionDeviceLabel(s) }}</text>
-            <text class="block truncate" :style="rowSubStyle">{{ sessionSecondaryLabel(s) }}</text>
+            <text class="block" :style="rowSubStyle">{{ sessionSecondaryLabel(s) }}</text>
           </view>
           <text v-if="s.current" :style="currentBadgeStyle">{{ t.security.sessionCurrent }}</text>
           <view v-else class="grid place-items-center active:opacity-70" :style="revokeBtnStyle" @click="handleRevoke(s)">
@@ -593,6 +593,7 @@ const rowSubStyle: CSSProperties = {
 const chevronStyle: CSSProperties = { flexShrink: 0 };
 const footerStyle: CSSProperties = {
   marginTop: "10px",
+  textWrap: "pretty",
   fontFamily: "var(--font-v5)",
   fontSize: "12px",
   color: "var(--v5-ink-3)",

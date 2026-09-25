@@ -69,6 +69,7 @@ const AURORA: Record<Accent, string> = {
 // 内部 aurora/grid 表达(参照 Today's earnings card)。
 const cardStyle: CSSProperties = {
   padding: "22px",
+  textWrap: "pretty",
   borderRadius: "16px",
   background: "var(--v5-surface)",
 };

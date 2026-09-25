@@ -538,6 +538,7 @@ const faqQStyle: CSSProperties = {
 };
 const faqAStyle: CSSProperties = {
   marginTop: "5px",
+  textWrap: "pretty",
   fontSize: "13px",
   color: "var(--v5-ink-2)",
   lineHeight: 1.62,

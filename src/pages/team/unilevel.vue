@@ -51,12 +51,12 @@
         <!-- Royalty breakdown — Direct (D) + Network (N): one frosted-glass
              card each (owner 2026-07-09; chassis glass-tile tokens); colored
              badge chips + values carry the semantic identity. -->
-        <view v-if="!remoteApiEnabled" class="flex items-start" style="gap: 12px" :style="glassCardStyle">
+        <view v-if="!remoteApiEnabled" class="nx-unilevel-direct-card" :style="glassCardStyle">
           <text class="rounded-xl grid place-items-center shrink-0" :style="compBadgeStyle('var(--v5-brand)')">D</text>
           <view class="flex-1 min-w-0">
             <text class="block" :style="compTitleStyle">{{ t.unilevel.directLabel }}</text>
           </view>
-          <view class="text-right shrink-0">
+          <view class="nx-unilevel-direct-amount text-right shrink-0">
             <text class="block font-display tabular-nums" :style="{ fontSize: '20px', fontWeight: 600, color: 'var(--v5-brand)' }">${{ directRoyalty.toFixed(2) }}</text>
             <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ directMembersText }}</text>
           </view>
@@ -117,7 +117,7 @@
                   <text class="truncate" :style="{ fontSize: '13px', fontWeight: 500, color: 'var(--v5-ink)' }">{{ m.name }}</text>
                   <VBadge :v="m.vRank" size="sm" :show-title="false" />
                 </view>
-                <view class="flex items-center" style="margin-top: 2px; gap: 6px">
+                <view class="nx-unilevel-meta flex items-center" style="margin-top: 2px; gap: 6px">
                   <view class="rounded-full" :style="{ width: '6px', height: '6px', background: statusColor(m.status) }" />
                   <text :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ m.status }} · {{ m.city }}</text>
                   <text class="font-mono-tabular" :style="memberBadgeStyle(m.kind)">{{ m.kind === "direct" ? t.unilevel.memberBadgeDirect : t.unilevel.memberBadgeExtended }}</text>
@@ -325,8 +325,18 @@ function memberBadgeStyle(kind: "direct" | "extended"): CSSProperties {
     borderRadius: "4px",
     fontSize: "12px",
     letterSpacing: "0.04em",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
     background: `color-mix(in srgb, ${color} 15%, transparent)`,
     color,
   };
 }
 </script>
+<style scoped>
+.nx-unilevel-direct-card { display: flex; align-items: flex-start; gap: 12px; }
+@media (max-width: 350px) {
+  .nx-unilevel-direct-card { display: grid; grid-template-columns: 40px minmax(0, 1fr); }
+  .nx-unilevel-direct-amount { grid-column: 2; text-align: left; }
+  .nx-unilevel-meta { flex-wrap: wrap; }
+}
+</style>

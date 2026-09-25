@@ -60,7 +60,7 @@
         </view>
 
         <!-- 6-kind summary -->
-        <view class="grid grid-cols-3" style="gap: 8px">
+        <view class="nx-commission-kinds grid" style="gap: 8px">
           <view
             v-for="k in KIND_ORDER"
             :key="k"
@@ -326,3 +326,10 @@ const extendedBadgeStyle: CSSProperties = {
 };
 const eventMetaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
 </script>
+
+<style scoped>
+.nx-commission-kinds { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 420px) {
+  .nx-commission-kinds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+</style>

@@ -39,7 +39,7 @@
       <view v-for="section in quickSections" :key="section.key">
         <SectionHeader :title="section.title" :count="section.count" />
         <view :style="quickGridCardStyle">
-          <view :style="quickGridStyle">
+          <view class="nx-quick-grid" :style="quickGridStyle">
             <view
               v-for="item in section.items"
               :key="item.key"
@@ -56,7 +56,7 @@
                 <view v-else-if="item.dot" :style="quickDotStyle" />
               </view>
               <text :style="quickLabelStyle">{{ item.label }}</text>
-              <text v-if="item.meta" class="truncate" :style="quickMetaStyle(item.tone)">{{ item.meta }}</text>
+              <text v-if="item.meta" :style="quickMetaStyle(item.tone)">{{ item.meta }}</text>
             </view>
           </view>
         </view>
@@ -351,7 +351,6 @@ const quickGridCardStyle: CSSProperties = {
 };
 const quickGridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
   columnGap: "4px",
   rowGap: "18px",
 };
@@ -416,7 +415,7 @@ const quickLabelStyle: CSSProperties = {
 };
 function quickMetaStyle(tone: QuickTone = "muted"): CSSProperties {
   return {
-    maxWidth: "76px",
+    maxWidth: "100%",
     marginTop: "-3px",
     fontFamily: "var(--font-v5)",
     fontSize: "12px",
@@ -424,7 +423,7 @@ function quickMetaStyle(tone: QuickTone = "muted"): CSSProperties {
     color: toneColor(tone),
     textAlign: "center",
     opacity: 0.9,
-    whiteSpace: "nowrap",
+    whiteSpace: "normal",
   };
 }
 
@@ -472,3 +471,10 @@ const signOutStyle: CSSProperties = {
   letterSpacing: "-0.005em",
 };
 </script>
+
+<style scoped>
+.nx-quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 350px) {
+  .nx-quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+</style>

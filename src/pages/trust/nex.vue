@@ -141,17 +141,17 @@ const tableStyle: CSSProperties = {
   overflow: "hidden",
 };
 const tableHeadStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.14em", color: "var(--v5-ink-3)" };
-const thWhat: CSSProperties = { flex: "1.2", padding: "8px 12px", fontWeight: 500 };
-const thCell: CSSProperties = { flex: "1", padding: "8px 12px", fontWeight: 500 };
+const thWhat: CSSProperties = { flex: "1.2", padding: "8px", fontWeight: 500 };
+const thCell: CSSProperties = { flex: "1", padding: "8px", fontWeight: 500 };
 function tableRowStyle(isFirst: boolean): CSSProperties {
   return {
     fontSize: "12px",
     borderTop: isFirst ? "none" : "1px solid color-mix(in srgb, var(--v5-border) 60%, transparent)",
   };
 }
-const tdWhat: CSSProperties = { flex: "1.2", padding: "8px 12px", color: "var(--v5-ink-3)" };
-const tdUsdt: CSSProperties = { flex: "1", padding: "8px 12px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)" };
-const tdNex: CSSProperties = { flex: "1", padding: "8px 12px", color: "var(--v5-nex)" };
+const tdWhat: CSSProperties = { flex: "1.2", padding: "8px", color: "var(--v5-ink-3)" };
+const tdUsdt: CSSProperties = { flex: "1", padding: "8px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)" };
+const tdNex: CSSProperties = { flex: "1", padding: "8px", color: "var(--v5-nex)" };
 const demandBoxStyle: CSSProperties = {
   marginTop: "12px",
   borderRadius: "12px",

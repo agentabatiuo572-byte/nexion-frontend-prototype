@@ -26,9 +26,9 @@
     </view>
 
     <!-- Top label row -->
-    <view class="relative flex items-center justify-between" style="z-index: 1; font-size: 12px">
-      <text :style="{ color: 'var(--v5-brand)', fontWeight: 500 }">💰 {{ t.team.earnForEachFriend }}</text>
-      <view class="flex items-center" style="gap: 4px">
+    <view class="relative flex items-center justify-between flex-wrap" style="z-index: 1; font-size: 12px; gap: 4px">
+      <text :style="{ color: 'var(--v5-brand)', fontWeight: 500, whiteSpace: 'nowrap' }">💰 {{ t.team.earnForEachFriend }}</text>
+      <view class="flex items-center" style="gap: 4px; white-space: nowrap">
         <PulseDot color="var(--v5-success)" :size="6" />
         <text class="font-mono-tabular tabular-nums" :style="{ color: 'var(--v5-ink-3)' }">{{ settlementStatus }}</text>
       </view>
@@ -42,7 +42,7 @@
     </view>
 
     <!-- Two-column body -->
-    <view class="relative grid" :style="bodyGridStyle">
+    <view class="relative grid nx-invite-body" :style="bodyGridStyle">
       <!-- LEFT — stats -->
       <view class="min-w-0 flex flex-col" style="gap: 6px">
         <view class="flex items-baseline" style="gap: 4px; line-height: 1">
@@ -59,7 +59,7 @@
       </view>
 
       <!-- RIGHT — actions(码为空整列置灰,点击仍有 toast 反馈) -->
-      <view class="flex flex-col shrink-0" :class="referralCode ? '' : 'opacity-50'" style="width: 158px; gap: 8px">
+      <view class="flex flex-col shrink-0 nx-invite-actions" :class="referralCode ? '' : 'opacity-50'" style="gap: 8px">
         <view class="rounded-lg flex items-center active:opacity-90" :style="shareBtnStyle(false)" @click="openPoster">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M21 21v.01M17 21h.01M21 17v.01" /></svg>
           <text class="shrink-0" :style="shareLabelStyle">{{ t.team.inviteSharePoster }}</text>
@@ -278,7 +278,6 @@ const promoChipStyle: CSSProperties = {
 };
 const bodyGridStyle: CSSProperties = {
   marginTop: "12px",
-  gridTemplateColumns: "1fr auto",
   gap: "12px",
   alignItems: "stretch",
   zIndex: 1,
@@ -343,3 +342,12 @@ const tickerWrapStyle: CSSProperties = {
 };
 const tickerAmtStyle: CSSProperties = { marginLeft: "auto", color: "var(--v5-brand)", fontWeight: 600 };
 </script>
+
+<style scoped>
+.nx-invite-body { grid-template-columns: minmax(0, 1fr) 158px; }
+.nx-invite-actions { width: 158px; }
+@media (max-width: 350px) {
+  .nx-invite-body { grid-template-columns: minmax(0, 1fr); }
+  .nx-invite-actions { width: 100%; }
+}
+</style>

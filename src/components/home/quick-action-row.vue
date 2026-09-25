@@ -36,8 +36,8 @@
           <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
         </svg>
       </view>
-      <text class="block mt-1" style="font-family: var(--font-v5); font-weight: 600; font-size: 12px; color: var(--v5-ink)">{{ c.label }}</text>
-      <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: iconColor(c.tone), marginTop: '1px' }">{{ c.sub }}</text>
+      <text class="block mt-1 whitespace-nowrap" style="font-family: var(--font-v5); font-weight: 600; font-size: clamp(11px, 3.1vw, 12px); color: var(--v5-ink)">{{ c.label }}</text>
+      <text class="block font-mono-tabular" :style="{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: iconColor(c.tone), marginTop: '1px' }">{{ c.sub }}</text>
     </view>
   </view>
 </template>
@@ -73,7 +73,7 @@ function iconColor(tone: "brand" | "warm"): string {
 function chipStyle(tone: "brand" | "warm"): CSSProperties {
   const accent = tone === "warm" ? "var(--v5-brand-2)" : "var(--v5-brand)";
   return {
-    padding: "10px 8px",
+    padding: "10px 4px",
     background: `color-mix(in srgb, ${accent} 14%, var(--v5-surface))`,
     borderRadius: "12px",
   };

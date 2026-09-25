@@ -77,7 +77,7 @@
         <!-- FEAT-DEV01: 高阶任务能力线(算力越高可接任务面越大 · 数据取 SKU 解锁算力池) -->
         <view v-if="copy.unlocks" class="mt-1.5 flex items-center gap-1.5">
           <svg class="shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
-          <text class="min-w-0 truncate" style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.store.cardHighTierLine, { pool: copy.unlocks }) }}</text>
+          <text class="min-w-0" style="font-size: 12px; line-height: 1.35; color: var(--v5-ink-3)">{{ fmt(t.store.cardHighTierLine, { pool: copy.unlocks }) }}</text>
         </view>
 
         <!-- Purchase gate — remote mode is server-authoritative and fail-closed. -->

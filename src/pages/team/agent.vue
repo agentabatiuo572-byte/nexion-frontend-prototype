@@ -34,14 +34,14 @@
           </view>
         </view>
         <view v-else class="rounded-2xl" :style="lockedStyle">
-          <view class="flex items-center" style="gap: 12px">
+          <view class="nx-agent-locked-row flex items-center" style="gap: 12px">
             <view class="rounded-xl grid place-items-center" :style="lockedIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             </view>
             <view class="flex-1">
               <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ t.publicCopy.participationUnavailable }}</text>
             </view>
-            <view class="shrink-0 rounded-full flex items-center active:scale-95" :style="pathCtaStyle" @click="go('/pages/support/messages')">
+            <view class="nx-agent-locked-cta shrink-0 rounded-full flex items-center active:scale-95" :style="pathCtaStyle" @click="go('/pages/support/messages')">
               <text>{{ t.publicCopy.contactSupport }}</text>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </view>
@@ -492,3 +492,10 @@ function caseRowStyle(isLast: boolean): CSSProperties {
   };
 }
 </script>
+
+<style scoped>
+@media (max-width: 350px) {
+  .nx-agent-locked-row { flex-wrap: wrap; }
+  .nx-agent-locked-cta { margin-left: 52px; }
+}
+</style>

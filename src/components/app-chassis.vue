@@ -902,5 +902,6 @@ function goNotifications() {
   font-weight: 600;
   font-family: var(--font-v5);
   letter-spacing: -0.005em;
+  white-space: nowrap;
 }
 </style>

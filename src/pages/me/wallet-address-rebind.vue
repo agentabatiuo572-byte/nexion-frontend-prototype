@@ -628,8 +628,11 @@ function netChipLabelStyle(id: ChainDepositChannel): CSSProperties {
   };
 }
 const netChipTagStyle: CSSProperties = {
-  fontSize: "12px",
+  display: "block",
+  width: "100%",
+  fontSize: "11px",
   fontWeight: 600,
+  whiteSpace: "nowrap",
   color: "var(--v5-brand)",
   textAlign: "center",
   lineHeight: 1.3,

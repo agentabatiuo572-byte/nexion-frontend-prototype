@@ -2921,6 +2921,7 @@ export const zh: Messages = {
       welcomeBonus: "激活赠送的新人礼",
       achFirstContribution: "成就 · 首次贡献算力",
       achFirstDollar: "成就 · 赚到第一美元",
+      earningsMilestone: "收益里程碑 ${threshold}",
       verificationRefund: "验证返还(历史)",
       legacyRebindRefund: "验证转账返还(流程已下线)",
       topupTrc20: "充值 · USDT-TRC20",

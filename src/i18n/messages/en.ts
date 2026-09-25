@@ -3025,6 +3025,7 @@ export const en = {
       welcomeBonus: "Welcome bonus credited on activation",
       achFirstContribution: "Achievement · First Contribution",
       achFirstDollar: "Achievement · First Dollar",
+      earningsMilestone: "Earnings milestone ${threshold}",
       verificationRefund: "Verification refund (legacy)",
       legacyRebindRefund: "Verification transfer refund (flow retired)",
       topupTrc20: "Top-up · USDT-TRC20",

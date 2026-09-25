@@ -69,7 +69,7 @@
               </view>
               <view class="flex-1 min-w-0">
                 <text class="block" :style="breakdownLabelStyle">{{ br.label }}</text>
-                <text class="block truncate" :style="breakdownHintStyle">{{ br.hint }}</text>
+                <text class="block" :style="breakdownHintStyle">{{ br.hint }}</text>
               </view>
               <text class="font-mono-tabular tabular-nums" :style="breakdownValueStyle">{{ br.value }}</text>
             </view>
@@ -122,7 +122,7 @@
               <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
             </view>
             <view class="flex-1 min-w-0">
-              <text class="block truncate" :style="activityLabelStyle">{{ a.label }}</text>
+              <text class="block" :style="activityLabelStyle">{{ a.label }}</text>
               <text class="block" :style="activityTimeStyle">{{ new Date(a.ts).toLocaleString(dateLocale()) }}</text>
             </view>
             <view class="text-right">
@@ -415,7 +415,7 @@ function breakdownIconStyle(tint: string): CSSProperties {
   };
 }
 const breakdownLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink)" };
-const breakdownHintStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
+const breakdownHintStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)", textWrap: "pretty" };
 const breakdownValueStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
 const pnlValueStyle = computed<CSSProperties>(() => ({
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
@@ -476,7 +476,7 @@ function activityIconStyle(kind: string): CSSProperties {
     background: kind === "mining" ? "var(--v5-brand-soft)" : "var(--v5-success-soft)",
   };
 }
-const activityLabelStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "13px", color: "var(--v5-ink)" };
+const activityLabelStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "13px", color: "var(--v5-ink)", textWrap: "pretty" };
 const activityTimeStyle: CSSProperties = {
   marginTop: "2px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",

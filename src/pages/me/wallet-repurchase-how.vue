@@ -6,7 +6,7 @@
 <template>
   <AppChassis active="me">
     <view style="padding-bottom: 32px">
-      <SubPageHeader back="/pages/me/wallet-repurchase" />
+      <SubPageHeader back="/pages/me/wallet-repurchase" :title="w.navTitle" />
 
       <HowHero :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="lemon" />
 

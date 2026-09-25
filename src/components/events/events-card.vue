@@ -16,17 +16,17 @@
 
     <view style="padding: 14px">
       <!-- HEADER row -->
-      <view class="flex items-start" style="gap: 12px">
+      <view class="flex items-start flex-wrap" style="column-gap: 12px; row-gap: 4px">
         <view class="grid place-items-center shrink-0" :style="emojiChipStyle">
           <text style="font-size: 20px">{{ ev.emoji }}</text>
         </view>
-        <view class="flex-1 min-w-0">
+        <view class="min-w-0" style="flex: 1 1 calc(100% - 52px)">
           <text class="block font-mono-tabular" :style="kindLineStyle">{{ kindLabel }}<text v-if="ev.ribbon" style="color: var(--v5-ink-4)"> · {{ ev.ribbon }}</text></text>
-          <text class="block truncate" :style="titleStyle">{{ ev.title }}</text>
+          <text class="block" :style="titleStyle">{{ ev.title }}</text>
           <text class="block" :style="subtitleStyle">{{ ev.subtitle }}</text>
         </view>
         <!-- status chip -->
-        <view v-if="statusChip" class="shrink-0 inline-flex items-center font-mono-tabular tabular-nums" :style="chipStyle">
+        <view v-if="statusChip" class="shrink-0 inline-flex items-center font-mono-tabular tabular-nums" :style="{ ...chipStyle, marginLeft: '52px' }">
           <svg v-if="statusChip.icon === 'clock'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
           <svg v-else-if="statusChip.icon === 'check'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px"><path d="M20 6 9 17l-5-5" /></svg>
           <text>{{ statusChip.label }}</text>
@@ -181,6 +181,7 @@ const titleStyle: CSSProperties = {
   marginTop: "2px",
   fontSize: "15px",
   fontWeight: 600,
+  textWrap: "balance",
   color: "var(--v5-ink)",
   lineHeight: 1.25,
 };

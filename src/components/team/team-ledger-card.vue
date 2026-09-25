@@ -13,15 +13,15 @@
       <view class="flex items-start justify-between" style="gap: 16px">
         <view class="flex-1 min-w-0">
           <text class="block font-mono-tabular" :style="capLabelStyle">{{ t.teamV3.thisMonth }}</text>
-          <text class="block" :style="lifetimeStyle">
-            {{ t.teamV3.lifetime }} ${{ totalUSDTLifetime.toFixed(2) }} · {{ contributors }} {{ t.teamV3.contributors }}
-          </text>
         </view>
         <view class="nx-team-commissions-link inline-flex items-center active:opacity-70" :style="detailsLinkStyle" @click="goCommissions">
           <text :style="{ fontSize: '13px', color: 'var(--v5-ink-2)' }">{{ t.teamV3.viewDetails }}</text>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </view>
       </view>
+      <text class="block" :style="lifetimeStyle">
+        {{ t.teamV3.lifetime }} ${{ totalUSDTLifetime.toFixed(2) }} · {{ contributors }} {{ t.teamV3.contributors }}
+      </text>
 
       <view :style="amountRowStyle">
         <view>
@@ -159,17 +159,18 @@ function metricItemStyle(index: number): CSSProperties {
   return {
     minHeight: "86px",
     paddingTop: index < 2 ? "0" : "18px",
-    paddingRight: index % 2 === 0 ? "18px" : "0",
+    paddingRight: index % 2 === 0 ? "8px" : "0",
     paddingBottom: index < 2 ? "18px" : "0",
-    paddingLeft: index % 2 === 1 ? "18px" : "0",
+    paddingLeft: index % 2 === 1 ? "12px" : "0",
     borderRight: index % 2 === 0 ? "1px solid color-mix(in srgb, var(--v5-border) 58%, transparent)" : "none",
     borderBottom: index < 2 ? "1px solid color-mix(in srgb, var(--v5-border) 58%, transparent)" : "none",
   };
 }
 function metricLabelStyle(color: string): CSSProperties {
   return {
-    fontSize: "13px",
+    fontSize: "clamp(11px, 3.2vw, 13px)",
     letterSpacing: "0.01em",
+    whiteSpace: "nowrap",
     color,
     lineHeight: 1.35,
   };

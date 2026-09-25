@@ -16,20 +16,20 @@ import { useProfile } from "@/store/profile";
 const t = useT();
 const profile = useProfile();
 
-// Time-of-day greeting depends on the client's local hour → compute on mount
-// (SPA, no SSR hydration concern; mirrors the source's mount-effect).
-const greeting = ref("");
+// Read the local hour on mount, while keeping the wording reactive to locale changes.
+const hour = ref(new Date().getHours());
 onMounted(() => {
-  const h = new Date().getHours();
-  greeting.value =
-    h < 5
-      ? t.value.home.greetingLateNight
-      : h < 12
-        ? t.value.home.greetingMorning
-        : h < 18
-          ? t.value.home.greetingAfternoon
-          : t.value.home.greetingEvening;
+  hour.value = new Date().getHours();
 });
+const greeting = computed(() =>
+  hour.value < 5
+    ? t.value.home.greetingLateNight
+    : hour.value < 12
+      ? t.value.home.greetingMorning
+      : hour.value < 18
+        ? t.value.home.greetingAfternoon
+        : t.value.home.greetingEvening,
+);
 
 // 兜底用品牌名是原设计(没设昵称时问候语显示品牌)。"Stellar" 是旧品牌,改名批次漏网 —— 它藏在
 // 兜底值里而不是显示文案里,当时的 grep 没扫到。

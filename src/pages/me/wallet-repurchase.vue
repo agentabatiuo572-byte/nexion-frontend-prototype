@@ -13,8 +13,8 @@
         <!-- hero — rules-intro pill rides the title row (owner 2026-07-09: kill
              the empty gap above the hero). -->
         <view :style="heroStyle">
-          <view class="flex items-center justify-between" style="gap: 8px">
-            <view class="flex items-center" style="gap: 8px">
+          <view class="nx-repurchase-hero-head flex items-center justify-between" style="gap: 8px">
+            <view class="nx-repurchase-hero-main flex items-center" style="gap: 8px">
               <view class="grid place-items-center" :style="heroIconBoxStyle">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>
               </view>
@@ -23,14 +23,14 @@
                 <text class="block" :style="heroPtsStyle">{{ w.benefits.apy }}</text>
               </view>
             </view>
-            <view class="inline-flex items-center shrink-0 active:scale-[0.98]" :style="howLinkStyle" role="button" tabindex="0" @click="goHow">
+            <view class="nx-repurchase-how-link inline-flex items-center shrink-0 active:scale-[0.98]" :style="howLinkStyle" role="button" tabindex="0" @click="goHow">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
               <text style="margin: 0 6px">{{ w.howItWorksEntry }}</text>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
             </view>
           </view>
 
-          <view class="grid grid-cols-2" :style="benefitsGridStyle">
+          <view class="nx-repurchase-benefits grid" :style="benefitsGridStyle">
             <view v-for="(b, i) in benefitTiles" :key="b.text" class="flex items-center nx-step-in" :style="benefitStyle(b.tint, i)">
               <view v-html="b.icon" />
               <text :style="benefitTextStyle">{{ b.text }}</text>
@@ -274,3 +274,12 @@ const ctaStyle = computed<CSSProperties>(() => ({
 }));
 const lockedNoticeStyle: CSSProperties = { padding: "0 8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
 </script>
+<style scoped>
+.nx-repurchase-benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 350px) {
+  .nx-repurchase-hero-head { flex-wrap: wrap; }
+  .nx-repurchase-hero-main { flex: 1 1 100%; }
+  .nx-repurchase-how-link { margin-left: 48px; }
+  .nx-repurchase-benefits { grid-template-columns: minmax(0, 1fr); }
+}
+</style>

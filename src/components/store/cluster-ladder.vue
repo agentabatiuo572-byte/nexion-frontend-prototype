@@ -12,7 +12,7 @@
         v-for="tier in tiers"
         :key="tier.id"
         class="grid items-center"
-        style="grid-template-columns: 72px 1fr 84px; gap: 10px"
+        style="grid-template-columns: 96px minmax(0, 1fr) 84px; gap: 8px"
       >
         <view class="whitespace-nowrap truncate" :style="labelStyle(tier)">
           <text>{{ tier.label }}</text>
