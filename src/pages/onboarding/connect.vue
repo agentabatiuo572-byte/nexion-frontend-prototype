@@ -13,10 +13,10 @@
     <view>
       <text class="cn-step">{{ stepText }}</text>
       <text class="cn-title">{{ titleText }}</text>
-      <text class="cn-sub">{{ subText }}</text>
+      <text v-if="phase !== 'result'" class="cn-sub">{{ subText }}</text>
     </view>
 
-    <transition name="cn-fade" mode="out-in">
+    <transition name="cn-fade" mode="out-in" @after-enter="startScoreMotion">
       <!-- Phase: intro -->
       <view v-if="phase === 'intro'" key="intro" class="cn-phase">
         <view class="cn-why">
@@ -61,13 +61,26 @@
       <!-- Phase: result -->
       <view v-else key="result" class="cn-phase anim-up">
         <view class="cn-score">
-          <view class="cn-score__cap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
-            <text class="cn-score__cap-t">{{ t.onboarding.resultTitle }}</text>
-          </view>
-          <view class="cn-score__num">
-            <text class="cn-score__v">{{ shownScore }}</text>
-            <text class="cn-score__d">/100</text>
+          <svg class="cn-score__tree cn-score__tree--left" viewBox="0 0 122 248" aria-hidden="true" focusable="false">
+            <path d="M0 30H46V14H80M0 66H30V52H60M0 96H72M0 128H40V150H88M0 162H24M0 196H58V178H94M0 226H36V208H74" />
+            <g><circle cx="80" cy="14" r="2.6" /><circle cx="60" cy="52" r="2.2" /><circle cx="72" cy="96" r="2.6" /><circle cx="88" cy="150" r="2.4" /><circle cx="24" cy="162" r="2.2" /><circle cx="94" cy="178" r="2.6" /><circle cx="74" cy="208" r="2.2" /></g>
+          </svg>
+          <svg class="cn-score__tree cn-score__tree--right" viewBox="0 0 122 248" aria-hidden="true" focusable="false">
+            <path d="M0 40H50V22H82M0 74H28M0 104H66V120H96M0 138H38V156H80M0 172H26V158H56M0 204H62M0 232H40V214H78" />
+            <g><circle cx="82" cy="22" r="2.6" /><circle cx="28" cy="74" r="2.2" /><circle cx="96" cy="120" r="2.6" /><circle cx="80" cy="156" r="2.4" /><circle cx="56" cy="158" r="2.2" /><circle cx="62" cy="204" r="2.6" /><circle cx="78" cy="214" r="2.2" /></g>
+          </svg>
+          <view class="cn-score__aurora" aria-hidden="true" />
+          <svg :key="String(reducedMotion)" ref="scoreHex" class="cn-score__hex" viewBox="0 0 220 220" aria-hidden="true" focusable="false">
+            <path v-for="layer in ['fill', 'halo', 'edge', 'pulse']" :key="layer" class="cn-score__ring" :class="`cn-score__ring--${layer}`" :d="hexFrames[0]">
+              <animate v-if="!reducedMotion" attributeName="d" begin="indefinite" dur="8s" repeatCount="indefinite" :values="hexMorph" keyTimes="0;0.25;0.5;0.75;1" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1" />
+            </path>
+          </svg>
+          <view class="cn-score__num" role="img" :aria-label="`${t.onboarding.scoreLabel} ${FINAL_SCORE}/100`">
+            <view class="cn-score__value" aria-hidden="true">
+              <text class="cn-score__v">{{ shownScore }}</text>
+              <text class="cn-score__d">/100</text>
+            </view>
+            <text class="cn-score__label" aria-hidden="true">{{ t.onboarding.scoreLabel }}</text>
           </view>
         </view>
 
@@ -97,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from "vue";
+import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import { useT } from "@/i18n/use-t";
@@ -128,7 +141,7 @@ const FINAL_SCORE = cap.score;
 
 // Copy swaps: recalibrate vs first-time onboarding.
 const stepText = computed(() => (isRecal.value ? t.value.onboarding.recalStep : t.value.onboarding.step3of3));
-const titleText = computed(() => (isRecal.value ? t.value.onboarding.recalTitle : t.value.onboarding.calibrationTitle));
+const titleText = computed(() => phase.value === "result" ? t.value.onboarding.resultTitle : (isRecal.value ? t.value.onboarding.recalTitle : t.value.onboarding.calibrationTitle));
 const subText = computed(() => (isRecal.value ? t.value.onboarding.recalSubtitle : t.value.onboarding.calibrationSubtitle));
 const activateText = computed(() => (isRecal.value ? t.value.onboarding.recalActivate : t.value.onboarding.activatePhone));
 
@@ -172,12 +185,55 @@ const testCards = computed(() => [
 ]);
 
 // ── result score tick ──
+const motionQuery = typeof window !== "undefined" && typeof window.matchMedia === "function"
+  ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+const reducedMotion = ref(motionQuery?.matches ?? false);
+const updateReducedMotion = () => { reducedMotion.value = motionQuery?.matches ?? false; };
+motionQuery?.addEventListener?.("change", updateReducedMotion);
+const scoreHex = ref<SVGSVGElement | null>(null);
+function startScoreMotion() {
+  if (reducedMotion.value) return;
+  // Start after Vue has attached every path/value; automatic SMIL can stall its first cycle.
+  scoreHex.value?.querySelectorAll("animate").forEach(animation => animation.beginElement());
+}
+watch(reducedMotion, async reduce => {
+  if (!reduce) {
+    await nextTick();
+    startScoreMotion();
+  }
+});
+
+// The reference hero's four rounded-hexagon poses, interpolated natively by SVG.
+function hexFrame(offsets: number[], corner: number): string {
+  const vertices = offsets.map((offset, i) => {
+    const angle = i * Math.PI / 3;
+    return [110 + (90 + offset) * Math.cos(angle), 110 + (90 + offset) * Math.sin(angle)];
+  });
+  return vertices.map((vertex, i) => {
+    const toward = (neighbor: number[]) => {
+      const length = Math.hypot(neighbor[0] - vertex[0], neighbor[1] - vertex[1]);
+      return vertex.map((value, axis) => (value + (neighbor[axis] - value) * corner / length).toFixed(2)).join(",");
+    };
+    return `${i === 0 ? "M" : "L"}${toward(vertices[(i + 5) % 6])} Q${vertex.map(value => value.toFixed(2)).join(",")} ${toward(vertices[(i + 1) % 6])}`;
+  }).join(" ") + " Z";
+}
+const hexFrames = [
+  hexFrame([0, 0, 0, 0, 0, 0], 22),
+  hexFrame([7, -5, 6, -3, 7, -5], 27),
+  hexFrame([-5, 7, -4, 7, -5, 6], 18),
+  hexFrame([6, -6, 7, -5, 3, -3], 25),
+];
+const hexMorph = [...hexFrames, hexFrames[0]].join(";");
 const shownScore = ref(0);
 let raf = 0;
 function startResult() {
+  if (reducedMotion.value) {
+    shownScore.value = FINAL_SCORE;
+    return;
+  }
   const start = Date.now();
   const tick = () => {
-    const p = Math.min(1, (Date.now() - start) / 900);
+    const p = reducedMotion.value ? 1 : Math.min(1, (Date.now() - start) / 900);
     shownScore.value = Math.round(p * FINAL_SCORE);
     if (p < 1) raf = requestAnimationFrame(tick);
   };
@@ -233,6 +289,7 @@ onLoad((options) => {
   if (o.mode === "recalibrate") isRecal.value = true;
 });
 onUnmounted(() => {
+  motionQuery?.removeEventListener?.("change", updateReducedMotion);
   if (calInterval) clearInterval(calInterval);
   if (calTimeout) clearTimeout(calTimeout);
   if (raf) cancelAnimationFrame(raf);
@@ -278,12 +335,25 @@ onUnmounted(() => {
 .cn-test__track { margin-top: 10px; height: 4px; border-radius: 9999px; background: var(--v5-surface-2); overflow: hidden; }
 .cn-test__fill { height: 100%; border-radius: 9999px; transition: width 0.15s linear; }
 
-.cn-score { position: relative; overflow: hidden; border-radius: 16px; padding: 20px; text-align: center; background: radial-gradient(70% 80% at 50% 0%, color-mix(in oklab, var(--v5-brand) 18%, transparent) 0%, transparent 60%), var(--v5-surface); border: 1px solid var(--v5-border); box-shadow: var(--v5-card-shadow-lift-strong); }
-.cn-score__cap { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--v5-brand); }
-.cn-score__cap-t { font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; letter-spacing: 0.18em; color: var(--v5-brand); }
-.cn-score__num { margin-top: 12px; display: flex; align-items: baseline; justify-content: center; gap: 4px; }
-.cn-score__v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.025em; color: var(--v5-brand); font-size: 56px; font-weight: 600; }
-.cn-score__d { font-family: var(--font-v5); font-variant-numeric: tabular-nums; color: var(--v5-ink-3); font-size: 20px; font-weight: 500; }
+.cn-score { --score-size: clamp(184px, 32vh, 306px); position: relative; height: var(--score-size); display: grid; place-items: center; isolation: isolate; }
+.cn-score__tree { position: absolute; top: 50%; width: min(30%, 122px); height: 82%; fill: none; stroke: var(--v5-brand); stroke-width: 1; stroke-opacity: 0.2; transform: translateY(-50%); pointer-events: none; mask-image: linear-gradient(90deg, var(--v5-bg) 2%, transparent 70%); }
+.cn-score__tree g { fill: var(--v5-brand); fill-opacity: 0.3; stroke: none; }
+.cn-score__tree--left { left: 0; }
+.cn-score__tree--right { right: 0; transform: translateY(-50%) scaleX(-1); }
+.cn-score__aurora { position: absolute; width: calc(var(--score-size) * 0.77); height: calc(var(--score-size) * 0.77); border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--v5-brand) 45%, transparent), transparent 62%); filter: blur(26px); animation: cn-aurora 13s ease-in-out infinite alternate; pointer-events: none; }
+.cn-score__hex { position: relative; width: calc(var(--score-size) - 16px); height: calc(var(--score-size) - 16px); overflow: visible; }
+.cn-score__ring { fill: none; stroke-linejoin: round; }
+.cn-score__ring--fill { fill: color-mix(in oklab, var(--v5-brand) 5%, transparent); }
+.cn-score__ring--halo { stroke: color-mix(in oklab, var(--v5-brand) 18%, transparent); stroke-width: 7.5; }
+.cn-score__ring--edge { stroke: var(--v5-brand); stroke-width: 3.4; filter: drop-shadow(0 0 7px color-mix(in oklab, var(--v5-brand) 45%, transparent)) drop-shadow(0 0 18px color-mix(in oklab, var(--v5-brand) 45%, transparent)); }
+.cn-score__ring--pulse { stroke: color-mix(in oklab, var(--v5-brand) 45%, var(--v5-ink)); stroke-width: 1.5; filter: drop-shadow(0 0 5px color-mix(in oklab, var(--v5-brand) 85%, transparent)); animation: cn-ring-pulse 3.2s ease-in-out infinite; }
+.cn-score__num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+.cn-score__value { position: relative; }
+.cn-score__v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.035em; color: var(--v5-brand); font-size: clamp(56px, 9vh, 88px); font-weight: 600; text-shadow: 0 0 24px color-mix(in oklab, var(--v5-brand) 45%, transparent), 0 0 9px color-mix(in oklab, var(--v5-brand) 45%, transparent); }
+.cn-score__label { margin-top: 8px; color: var(--v5-ink-3); font-size: 11px; letter-spacing: 0.08em; }
+.cn-score__d { position: absolute; left: calc(100% + 3px); bottom: 5px; color: var(--v5-ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+@keyframes cn-aurora { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-4%, 3%) scale(1.07); } }
+@keyframes cn-ring-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.95; } }
 
 .cn-policy { border-radius: 16px; padding: 0 14px; background: color-mix(in oklab, var(--v5-warning) 8%, transparent); border: 1px solid color-mix(in oklab, var(--v5-warning) 22%, transparent); }
 .cn-policy__cap { min-height: 44px; display: flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-warning); }
@@ -305,4 +375,8 @@ onUnmounted(() => {
 @keyframes cn-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .cn-fade-enter-active, .cn-fade-leave-active { transition: opacity 0.3s; }
 .cn-fade-enter-from, .cn-fade-leave-to { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .cn-score__aurora, .cn-score__ring--pulse, .cn-spin, .anim-up { animation: none; }
+  .cn-fade-enter-active, .cn-fade-leave-active, .cn-test__fill { transition: none; }
+}
 </style>

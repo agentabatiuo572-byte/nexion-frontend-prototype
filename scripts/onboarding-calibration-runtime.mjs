@@ -13,7 +13,60 @@ const artifacts = resolve(process.env.CALIBRATION_ARTIFACT_DIR || `${tmpdir()}/n
 const results = [];
 let server, browser;
 const labels = { en: "Device assessment", zh: "设备能力评估", vi: "Đánh giá thiết bị" };
+const resultTitles = { en: "Device check", zh: "综合体检", vi: "Kiểm tra tổng thể" };
 const removedDetails = ".cn-test__metric, .cn-summary, .cn-row, .cn-score__tier, .cn-score__yield";
+
+async function checkScoreMotion(page, reduced = false) {
+  // Sample rendered SVG geometry, not the unchanged SMIL base d attribute.
+  const samples = await page.locator(".cn-score").evaluate(async element => {
+    const read = () => ({
+      ms: performance.now(),
+      smil: element.querySelectorAll(".cn-score__hex animate").length,
+      paths: [...element.querySelectorAll(".cn-score__hex > path")].map(path => {
+        const length = path.getTotalLength();
+        return { d: path.getAttribute("d"), points: [0.13, 0.37, 0.71].flatMap(fraction => {
+          const point = path.getPointAtLength(length * fraction);
+          return [point.x, point.y];
+        }) };
+      }),
+      css: [".cn-score__ring--pulse", ".cn-score__aurora"].map(selector => {
+        const node = element.querySelector(selector);
+        const style = getComputedStyle(node);
+        return { opacity: style.opacity, transform: style.transform, name: style.animationName,
+          animations: node.getAnimations().map(animation => ({ state: animation.playState, time: animation.currentTime })) };
+      }),
+    });
+    const samples = [read()];
+    // Three observations avoid accidentally comparing equal points around a pulse peak.
+    await new Promise(resolve => {
+      const sample = () => {
+        if (performance.now() - samples.at(-1).ms >= 400) samples.push(read());
+        if (samples.length === 3) resolve(); else requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+    return samples;
+  });
+  assert.ok(samples.every(sample => sample.paths.length === 4 && sample.smil === (reduced ? 0 : 4)), "four hex layers must respect motion preference");
+  for (let index = 0; index < 4; index++) {
+    const initial = samples[0].paths[index];
+    assert.ok(samples.every(sample => sample.paths[index].d === initial.d), "SMIL should animate rendered geometry without rewriting base d");
+    const changed = samples.slice(1).some(sample => sample.paths[index].points.some((value, point) => Math.abs(value - initial.points[point]) > 0.01));
+    assert.equal(changed, !reduced, reduced ? "reduced-motion hex must stay still" : "hex path must actually morph");
+  }
+  for (let index = 0; index < 2; index++) {
+    const states = samples.map(sample => sample.css[index]);
+    if (reduced) {
+      assert.ok(states.every(state => state.name === "none" && state.animations.length === 0), "reduced-motion must stop pulse and aurora CSS animations");
+      assert.ok(states.every(state => state.opacity === states[0].opacity && state.transform === states[0].transform));
+    } else {
+      assert.ok(states.every(state => state.animations.some(animation => animation.state === "running")), "pulse and aurora must be running");
+      assert.ok(states.at(-1).animations[0].time > states[0].animations[0].time, "CSS animation time must advance");
+      assert.ok(states.slice(1).some(state => state.opacity !== states[0].opacity || state.transform !== states[0].transform), "CSS animation must change rendered style");
+    }
+  }
+  return samples;
+}
 
 async function checkIntro(page, locale) {
   await page.locator(".cn-point").first().waitFor();
@@ -123,6 +176,7 @@ async function runCase(base, { locale, mode, width, height }) {
     const started = Date.now();
     await page.evaluate(({ started, label }) => {
       window.__calibrationSamples = [];
+      window.__scoreSamples = [];
       window.__calibrationTimer = setInterval(() => {
         const fill = document.querySelector(".cn-test__fill");
         if (fill) window.__calibrationSamples.push({
@@ -130,6 +184,8 @@ async function runCase(base, { locale, mode, width, height }) {
           progress: parseFloat(fill.style.width),
           onlyProgress: document.querySelector(".cn-test")?.innerText.trim() === label && !document.querySelector(".cn-test__metric, .cn-score, .cn-summary"),
         });
+        const score = document.querySelector(".cn-score__v");
+        if (score) window.__scoreSamples.push(Number(score.textContent));
       }, 200);
     }, { started, label: labels[locale] });
     await page.locator(".cn-go--glow").press("Enter");
@@ -141,10 +197,7 @@ async function runCase(base, { locale, mode, width, height }) {
     await screenshot("calibrating");
     await page.locator(".cn-score").waitFor();
     result.calibrationMs = Date.now() - started;
-    result.progressSamples = await page.evaluate(() => {
-      clearInterval(window.__calibrationTimer);
-      return window.__calibrationSamples;
-    });
+    result.progressSamples = await page.evaluate(() => window.__calibrationSamples);
     assert.ok(result.progressSamples.length >= 20, "whole calibration must be sampled");
     let previous = 0;
     for (const sample of result.progressSamples) {
@@ -155,6 +208,15 @@ async function runCase(base, { locale, mode, width, height }) {
     }
     assert.ok(result.calibrationMs >= 11_900, "12-second calibration ended early");
     await page.waitForFunction(score => Number(document.querySelector(".cn-score__v")?.textContent) === score, result.expected.score);
+    assert.equal(await page.locator(".cn-title").innerText(), resultTitles[locale]);
+    result.motion = await checkScoreMotion(page);
+    result.scoreSamples = await page.evaluate(() => {
+      clearInterval(window.__calibrationTimer);
+      return window.__scoreSamples;
+    });
+    assert.ok(result.scoreSamples.some(score => score > 0 && score < result.expected.score), "normal motion must visibly count up");
+    assert.ok(result.scoreSamples.every((score, index, values) => score >= 0 && score <= result.expected.score && (!index || score >= values[index - 1])), "score count-up must be nonnegative, monotonic and bounded");
+    assert.equal(result.scoreSamples.at(-1), result.expected.score, "score must stabilize at the original capability score");
     assert.equal(await page.locator(removedDetails).count(), 0, "result must not contain throughput, tier or yield details");
     assert.equal(await page.locator(".cn-score__d").innerText(), "/100");
     assert.deepEqual((await page.locator(".cn-score").innerText()).match(/\d+(?:\.\d+)?/g), [String(result.expected.score), "100"], "score must be the only numeric result");
@@ -182,6 +244,9 @@ async function runCase(base, { locale, mode, width, height }) {
     await page.locator(".cn-policy__list").waitFor({ state: "detached" });
     assert.equal(await policy.getAttribute("aria-expanded"), "false");
     await page.locator(".cn-go--on").scrollIntoViewIfNeeded();
+    const geometry = await page.locator(".cn-root").evaluate(element => ({ width: element.clientWidth, scrollWidth: element.scrollWidth }));
+    assert.ok(geometry.scrollWidth <= geometry.width + 1, "result must not overflow horizontally");
+    await page.locator(".cn-go--on").click({ trial: true });
     await screenshot("result");
     if (locale === "en" && width === 320) await policy.click();
     await page.locator(".cn-go--on").click();
@@ -199,11 +264,34 @@ async function runCase(base, { locale, mode, width, height }) {
     if (locale === "en" && width === 320) {
       await page.goto(connect, { waitUntil: "domcontentloaded" });
       await checkIntro(page, locale);
+      if (mode === "first") {
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await page.evaluate(() => {
+          window.__reducedInitialScore = null;
+          const observer = new MutationObserver(() => {
+            const score = document.querySelector(".cn-score__v");
+            if (score) { window.__reducedInitialScore = Number(score.textContent); observer.disconnect(); }
+          });
+          observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+        });
+      }
       await page.locator(".cn-go--glow").click();
       await page.locator(".cn-score").waitFor();
       assert.equal(await page.locator(".cn-policy__cap").getAttribute("aria-expanded"), "false");
       assert.equal(await page.locator(".cn-policy__list").count(), 0, "reentry must reset the rules to collapsed");
       result.rulesCollapsedOnReentry = true;
+      if (mode === "first") {
+        assert.equal(await page.evaluate(() => window.__reducedInitialScore), result.expected.score, "reduced-motion result must start at its final score");
+        result.reducedMotion = await checkScoreMotion(page, true);
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+        await page.waitForFunction(() => document.querySelectorAll(".cn-score__hex animate").length === 4);
+        result.motionResumed = await checkScoreMotion(page);
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await page.waitForFunction(() => document.querySelectorAll(".cn-score__hex animate").length === 0);
+        result.motionStopped = await checkScoreMotion(page, true);
+        assert.equal(Number(await page.locator(".cn-score__v").innerText()), result.expected.score);
+        await screenshot("reduced-motion");
+      }
     }
     assert.deepEqual(result.consoleErrors, []);
     assert.deepEqual(result.pageErrors, []);
