@@ -24,7 +24,7 @@
           <view class="cn-why__list">
             <view v-for="(p, i) in whyPoints" :key="i" class="cn-point">
               <view class="cn-point__ic">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="p.color" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path :d="p.icon" /><path v-if="p.icon2" :d="p.icon2" /></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="p.color" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path :d="p.icon" /></svg>
               </view>
               <text class="cn-point__t">{{ p.text }}</text>
             </view>
@@ -45,7 +45,7 @@
         <view v-for="(tc, i) in testCards" :key="i" class="cn-test">
           <view class="cn-test__top">
             <view class="cn-test__ic" :style="{ background: mix(tc.accent, 14), color: tc.accent }">
-              <svg v-if="tc.progress < 1" width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="tc.accent" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path :d="tc.icon" /><path v-if="tc.icon2" :d="tc.icon2" /></svg>
+              <svg v-if="tc.progress < 1" width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="tc.accent" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path :d="tc.icon" /></svg>
               <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="tc.accent" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
             </view>
             <view class="cn-test__body">
@@ -143,10 +143,6 @@ const FINAL_TOPS = cap.tops;
 const FINAL_SCORE = cap.score;
 const FINAL_TIER = cap.tier;
 const FINAL_YIELD = cap.baseRateUsdt;
-// Network + battery rows stay cosmetic ritual theater (not part of the
-// hardware-class capability score).
-const FINAL_PING = { sg: 38, tk: 42, us: 156 };
-const FINAL_BATTERY = 78;
 
 // Copy swaps: recalibrate vs first-time onboarding.
 const stepText = computed(() => (isRecal.value ? t.value.onboarding.recalStep : t.value.onboarding.step3of3));
@@ -158,22 +154,15 @@ const activateText = computed(() => (isRecal.value ? t.value.onboarding.recalAct
 const ICON = {
   cpu: "M12 20v2M12 2v2M17 20v2M17 2v2M2 12h2M2 17h2M2 7h2M20 12h2M20 17h2M20 7h2M7 20v2M7 2v2",
   cpu2: "M4 4h16v16H4zM9 9h6v6H9z",
-  globe: "M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z",
-  globe2: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z",
-  battery: "M7 7h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7M11 7l-4 5h4l-4 5",
 };
 
 const whyPoints = computed(() => [
   { icon: ICON.cpu2, color: "var(--v5-brand)", text: t.value.onboarding.calibrationWhyLine1 },
-  { icon: ICON.globe2, icon2: ICON.globe, color: "var(--v5-tech-cyan)", text: t.value.onboarding.calibrationWhyLine2 },
-  { icon: ICON.battery, color: "var(--v5-warning)", text: t.value.onboarding.calibrationWhyLine3 },
 ]);
 
 // ── calibrating tickers ──
 const progress = ref(0);
 const tops = ref(0);
-const ping = ref({ sg: 0, tk: 0, us: 0 });
-const battery = ref(0);
 let calInterval: ReturnType<typeof setInterval> | undefined;
 let calTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -182,19 +171,7 @@ function startCalibration() {
   calInterval = setInterval(() => {
     const p = Math.min(1, (Date.now() - start) / CALIBRATION_MS);
     progress.value = p;
-    const npuP = Math.min(1, p / 0.45);
-    tops.value = +(npuP * FINAL_TOPS + (npuP < 1 ? (Math.random() - 0.5) * 2 : 0)).toFixed(1);
-    if (p > 0.3) {
-      const netP = Math.min(1, (p - 0.3) / 0.5);
-      ping.value = {
-        sg: Math.round(netP * FINAL_PING.sg + (netP < 1 ? Math.random() * 12 : 0)),
-        tk: Math.round(netP * FINAL_PING.tk + (netP < 1 ? Math.random() * 10 : 0)),
-        us: Math.round(netP * FINAL_PING.us + (netP < 1 ? Math.random() * 18 : 0)),
-      };
-    }
-    if (p > 0.55) {
-      battery.value = Math.round(Math.min(1, (p - 0.55) / 0.3) * FINAL_BATTERY);
-    }
+    tops.value = +(p * FINAL_TOPS).toFixed(1);
   }, 100);
   calTimeout = setTimeout(() => {
     if (calInterval) clearInterval(calInterval);
@@ -210,16 +187,9 @@ const progressText = computed(() =>
   })
 );
 
-const testCards = computed(() => {
-  const npuP = Math.min(1, progress.value / 0.45);
-  const netP = Math.min(1, Math.max(0, (progress.value - 0.3) / 0.5));
-  const pwP = Math.min(1, Math.max(0, (progress.value - 0.55) / 0.3));
-  return [
-    { icon: ICON.cpu, title: t.value.onboarding.testNpu, metric: fmt(t.value.onboarding.testComputeMetric, { n: tops.value.toFixed(1) }), progress: npuP, accent: "var(--v5-brand)" },
-    { icon: ICON.globe2, icon2: ICON.globe, title: t.value.onboarding.testNetwork, metric: fmt(t.value.onboarding.testNetworkPing, ping.value), progress: netP, accent: "var(--v5-tech-cyan)" },
-    { icon: ICON.battery, title: t.value.onboarding.testPower, metric: fmt(t.value.onboarding.testPowerOK, { n: battery.value }), progress: pwP, accent: "var(--v5-warning)" },
-  ];
-});
+const testCards = computed(() => [
+  { icon: ICON.cpu, title: t.value.onboarding.testNpu, metric: fmt(t.value.onboarding.testComputeMetric, { n: tops.value.toFixed(1) }), progress: progress.value, accent: "var(--v5-brand)" },
+]);
 
 // ── result score tick ──
 const shownScore = ref(0);
@@ -237,8 +207,6 @@ function startResult() {
 const tierLabel = computed(() => fmt(t.value.onboarding.resultTier, { n: FINAL_TIER }));
 const resultRows = computed(() => [
   { label: t.value.onboarding.testNpu, value: fmt(t.value.onboarding.resultComputeMetric, { n: FINAL_TOPS }) },
-  { label: t.value.onboarding.testNetwork, value: `${FINAL_PING.sg}ms · ${t.value.onboarding.resultLatencyGood}` },
-  { label: t.value.onboarding.testPower, value: fmt(t.value.onboarding.resultPowerReady, { n: FINAL_BATTERY }) },
 ]);
 const policyLines = computed(() => [
   t.value.onboarding.policyLine1,

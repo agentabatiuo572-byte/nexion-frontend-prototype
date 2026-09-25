@@ -418,6 +418,20 @@
       ],
       "$why": "固定 mock 预览账号必须能免注册登录、进入首页并在刷新后保持会话"
     },
+    "test:onboarding-calibration": {
+      "kind": "runtime",
+      "pages": [
+        "src/pages/onboarding/connect.vue",
+        "src/pages/login/login.vue"
+      ],
+      "inputs": [
+        "src/App.vue",
+        "src/api/mock-preview-account.ts",
+        "scripts/onboarding-calibration-runtime.mjs",
+        "scripts/lib/dev-server-pool.mjs"
+      ],
+      "$why": "首次和重新校准仅显示算力评估，激活后的设备能力与完成状态必须经刷新读回"
+    },
     "test:h5-runtime": {
       "kind": "runtime",
       "runIfAny": "h5Probes",
