@@ -2,20 +2,20 @@
  * Live effective hashpower derivation — single source for the phone card's
  * real-time "算力" number and curve.
  *
- *   online  (fresh heartbeat): effectiveTops = baselineTops × charge × network × thermal × continuity × jitter
- *   offline (no/stale beat):   effectiveTops = baselineTops × H5_BASE_FACTOR × network × jitter   (基础托管)
+ *   online  (fresh heartbeat): effectiveTops = baselineTops × battery × network × thermal × continuity × jitter
+ *   offline (no/stale beat):   effectiveTops = baselineTops × H5_BASE_FACTOR × battery × network × jitter   (基础托管)
  *
  * SPEC-1 R7: the online tier is driven by the device's fresh resident-agent
  * heartbeat, never by the shell used to view it. A killed/offline device or an
  * H5-only session has no fresh beat and falls back to the hosted baseline.
  *
- * INVARIANT: every factor ∈ (0, 1], so the live value can never exceed the
+ * INVARIANT: every factor ∈ [0, 1], so the live value can never exceed the
  * device's own calibrated baseline ceiling. Combined with device-capability's
  * monotonic, globally-ordered baselines, this guarantees the displayed number
  * is always plausible (a budget phone's peak stays below a flagship's typical).
  *
- * The App factors are all things the user can see and act on (charge the phone,
- * stay online, keep it cool, stay connected on ONE device) — so the number feels
+ * The App factors reflect sufficient battery, connectivity, temperature and
+ * staying connected on ONE device — so the number feels
  * measured and earned. ContinuityFactor rewards keeping the app running on this
  * physical device and is reset on new-device recalibration.
  *
@@ -24,6 +24,7 @@
  */
 import type { ThermalState } from "@/store/types";
 import { DEFAULT_PLATFORM_CONFIG } from "@/mock/platform-config";
+import { phoneRuntimePauseReason } from "./phone-runtime";
 
 /** Continuous-online time at which the stability bonus reaches full — DEFAULT 2h,
  *  seeded from the 在线加成系数 config structure. The LIVE value flows in via the
@@ -35,7 +36,7 @@ const CONTINUITY_FLOOR = 0.85; // fresh session / just-switched device starts he
 
 /** Hosted-baseline factor (legacy config key: h5BaseFactor): any phone without a
  *  fresh device heartbeat earns this fraction of its ceiling, including H5-only,
- *  killed-App and offline devices (charge/thermal/continuity are not measurable).
+ *  killed-App and offline devices (thermal/continuity are not measurable).
  *  DEFAULT seeded from the config; the LIVE value flows via the caller's
  *  onlineBonus (read from the config store) — backend-replaceable, this is the fallback. */
 export const H5_BASE_FACTOR = DEFAULT_PLATFORM_CONFIG.onlineBonus.h5BaseFactor;
@@ -66,7 +67,7 @@ export function isDeviceOnline(
 export type HashFactorKey = "offline" | "battery" | "thermal" | "continuity" | "peak";
 
 export interface HashFactors {
-  charge: number;
+  battery: number;
   network: number;
   thermal: number;
   continuity: number;
@@ -114,7 +115,7 @@ export interface LiveHashInput {
   baselineTops: number;
   /** R7: fresh device heartbeat → full factors; otherwise hosted baseline. */
   online: boolean;
-  isCharging: boolean;
+  batteryLevel?: number;
   isOnline: boolean;
   thermalState?: ThermalState;
   /** ms the phone has been continuously mining (since miningSince); 0 if idle. */
@@ -129,6 +130,7 @@ export interface LiveHashInput {
 export function computeLiveHashpower(input: LiveHashInput): LiveHashpower {
   const jitter = smoothJitter(input.nowSeed);
   const network = input.isOnline ? 1 : 0;
+  const battery = phoneRuntimePauseReason({ batteryLevel: input.batteryLevel, isWifiConnected: true }) == null ? 1 : 0;
   // SPEC-1: live 在线加成系数 from the caller (config store); default = seed const.
   const h5Base = input.onlineBonus?.h5BaseFactor ?? H5_BASE_FACTOR;
   const continuityFullMs = input.onlineBonus
@@ -137,24 +139,23 @@ export function computeLiveHashpower(input: LiveHashInput): LiveHashpower {
 
   // ── Device offline / stale heartbeat: hosted baseline ──
   if (!input.online) {
-    const effectiveTops = +(input.baselineTops * h5Base * network * jitter).toFixed(1);
+    const effectiveTops = +(input.baselineTops * h5Base * battery * network * jitter).toFixed(1);
     const effectivePct = input.baselineTops > 0 ? Math.round((effectiveTops / input.baselineTops) * 100) : 0;
-    const factors: HashFactors = { charge: h5Base, network, thermal: 1, continuity: 1, jitter };
-    return { effectiveTops, effectivePct, factors, dominant: network === 0 ? "offline" : "peak" };
+    const factors: HashFactors = { battery, network, thermal: 1, continuity: 1, jitter };
+    return { effectiveTops, effectivePct, factors, dominant: network === 0 ? "offline" : battery === 0 ? "battery" : "peak" };
   }
 
   // ── Device truly online: full live factors ──
-  const charge = input.isCharging ? 1 : 0.6;
   const thermal = thermalFactor(input.thermalState);
   const continuity = continuityFactor(input.continuityMs, continuityFullMs);
 
-  const factors: HashFactors = { charge, network, thermal, continuity, jitter };
-  const effectiveTops = +(input.baselineTops * charge * network * thermal * continuity * jitter).toFixed(1);
+  const factors: HashFactors = { battery, network, thermal, continuity, jitter };
+  const effectiveTops = +(input.baselineTops * battery * network * thermal * continuity * jitter).toFixed(1);
   const effectivePct = input.baselineTops > 0 ? Math.round((effectiveTops / input.baselineTops) * 100) : 0;
 
   let dominant: HashFactorKey;
   if (network === 0) dominant = "offline";
-  else if (charge < 1) dominant = "battery";
+  else if (battery === 0) dominant = "battery";
   else if (thermal < 1) dominant = "thermal";
   else if (continuity < 0.999) dominant = "continuity";
   else dominant = "peak";

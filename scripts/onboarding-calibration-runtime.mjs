@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { ensureServer, identify } from "./lib/dev-server-pool.mjs";
+import { isThirdPartyResourceError } from "./lib/console-origin-filter.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const artifacts = resolve(process.env.CALIBRATION_ARTIFACT_DIR || `${tmpdir()}/nexion-calibration-${Date.now()}`);
@@ -44,11 +45,16 @@ async function persistedState(page) {
 
 async function runCase(base, { locale, mode, width, height }) {
   const name = `${locale}-${mode}-${width}x${height}`;
-  const result = { name, consoleErrors: [], pageErrors: [], backendRequests: [], screenshots: [] };
+  const result = { name, consoleErrors: [], externalResourceErrors: [], pageErrors: [], requestFailures: [], backendRequests: [], screenshots: [] };
   const context = await browser.newContext({ viewport: { width, height } });
   const page = await context.newPage();
   page.setDefaultTimeout(30_000);
-  page.on("console", message => { if (message.type() === "error") result.consoleErrors.push(message.text()); });
+  page.on("console", message => {
+    if (message.type() !== "error") return;
+    const error = { text: message.text(), location: message.location() };
+    (isThirdPartyResourceError(error.text, error.location.url, base) ? result.externalResourceErrors : result.consoleErrors).push(error);
+  });
+  page.on("requestfailed", request => result.requestFailures.push({ url: request.url(), error: request.failure()?.errorText }));
   page.on("pageerror", error => result.pageErrors.push(error.message));
   page.on("request", request => {
     const url = new URL(request.url());
@@ -56,7 +62,7 @@ async function runCase(base, { locale, mode, width, height }) {
   });
   const screenshot = async phase => {
     const path = resolve(artifacts, `${name}-${phase}.png`);
-    await page.screenshot({ path, fullPage: true });
+    await page.screenshot({ path, fullPage: true, timeout: 60_000 });
     result.screenshots.push(path);
   };
   try {
@@ -153,9 +159,31 @@ async function runCase(base, { locale, mode, width, height }) {
     assert.equal(await page.locator(".cn-score__d").innerText(), "/100");
     assert.deepEqual((await page.locator(".cn-score").innerText()).match(/\d+(?:\.\d+)?/g), [String(result.expected.score), "100"], "score must be the only numeric result");
     assert.doesNotMatch(await page.locator(".cn-phase").innerText(), /\b(?:TOPS|TFLOPS|Tier|yield)\b|万亿|运算\/秒|每秒|\$\s*\d|\/d\b/iu);
-    assert.equal(await page.locator(".cn-policy__line").count(), 3, "task acceptance policies must remain");
+    const policy = page.locator(".cn-policy__cap");
+    assert.equal(await policy.getAttribute("role"), "button");
+    assert.equal(await policy.getAttribute("tabindex"), "0");
+    assert.equal(await policy.getAttribute("aria-expanded"), "false");
+    assert.equal(await page.locator(".cn-policy__list").count(), 0, "rules must start collapsed");
+    await policy.click();
+    await page.locator(".cn-policy__list").waitFor();
+    assert.equal(await policy.getAttribute("aria-expanded"), "true");
+    assert.equal(await page.locator(".cn-policy__line").count(), 3);
+    result.policyLines = await page.locator(".cn-policy__t").allTextContents();
+    assert.match(result.policyLines[0], /20\s*%/);
+    assert.doesNotMatch(result.policyLines.join(" "), /Charging is required|充电是硬性门槛|Bắt buộc phải sạc/i);
+    await screenshot("rules-expanded");
+    await policy.press("Enter");
+    await page.locator(".cn-policy__list").waitFor({ state: "detached" });
+    assert.equal(await policy.getAttribute("aria-expanded"), "false");
+    await policy.press("Space");
+    await page.locator(".cn-policy__list").waitFor();
+    assert.equal(await policy.getAttribute("aria-expanded"), "true");
+    await policy.click();
+    await page.locator(".cn-policy__list").waitFor({ state: "detached" });
+    assert.equal(await policy.getAttribute("aria-expanded"), "false");
     await page.locator(".cn-go--on").scrollIntoViewIfNeeded();
     await screenshot("result");
+    if (locale === "en" && width === 320) await policy.click();
     await page.locator(".cn-go--on").click();
     await page.waitForURL(/#\/$|#\/pages\/index\/index/);
     result.afterActivation = await persistedState(page);
@@ -168,6 +196,15 @@ async function runCase(base, { locale, mode, width, height }) {
       assert.ok(state.phone.miningSince >= started, "activation must write a fresh phone calibration");
     }
     assert.deepEqual(result.afterReload, result.afterActivation, "calibration must survive reload");
+    if (locale === "en" && width === 320) {
+      await page.goto(connect, { waitUntil: "domcontentloaded" });
+      await checkIntro(page, locale);
+      await page.locator(".cn-go--glow").click();
+      await page.locator(".cn-score").waitFor();
+      assert.equal(await page.locator(".cn-policy__cap").getAttribute("aria-expanded"), "false");
+      assert.equal(await page.locator(".cn-policy__list").count(), 0, "reentry must reset the rules to collapsed");
+      result.rulesCollapsedOnReentry = true;
+    }
     assert.deepEqual(result.consoleErrors, []);
     assert.deepEqual(result.pageErrors, []);
     assert.deepEqual(result.backendRequests, [], "fixed mock must not contact a backend");
@@ -183,6 +220,175 @@ async function runCase(base, { locale, mode, width, height }) {
   }
 }
 
+async function runBatteryRules(base) {
+  const result = { name: "phone-battery-rules", states: [], consoleErrors: [], externalResourceErrors: [], pageErrors: [], requestFailures: [], backendRequests: [] };
+  const context = await browser.newContext({ viewport: { width: 430, height: 940 } });
+  const page = await context.newPage();
+  page.setDefaultTimeout(30_000);
+  page.on("console", message => {
+    if (message.type() !== "error") return;
+    const error = { text: message.text(), location: message.location() };
+    (isThirdPartyResourceError(error.text, error.location.url, base) ? result.externalResourceErrors : result.consoleErrors).push(error);
+  });
+  page.on("requestfailed", request => result.requestFailures.push({ url: request.url(), error: request.failure()?.errorText }));
+  page.on("pageerror", error => result.pageErrors.push(error.message));
+  page.on("request", request => { if (/^\/(api|auth)\//.test(new URL(request.url()).pathname)) result.backendRequests.push(new URL(request.url()).pathname); });
+  const setRuntime = patch => page.evaluate(async patch => {
+    const app = (await import("/src/store/app.ts")).useApp();
+    app.setPhoneRuntime(app.devices.find(row => row.kind === "phone").id, patch);
+    app.tick(1000);
+  }, patch);
+  const read = () => page.evaluate(async () => {
+    const app = (await import("/src/store/app.ts")).useApp();
+    const phone = app.devices.find(row => row.kind === "phone");
+    const auth = uni.getStorageSync("nexgrid-auth-v1");
+    const saved = uni.getStorageSync("nexgrid-account-cloud-v1")[(auth.email || auth.accountId).toLowerCase()].devices.find(row => row.id === phone.id);
+    const fields = ["batteryLevel", "isCharging", "isWifiConnected", "pausedReason"];
+    return {
+      runtime: Object.fromEntries(fields.map(key => [key, phone[key]])),
+      stored: Object.fromEntries(fields.map(key => [key, saved[key]])),
+      taskId: phone.currentTask?.id ?? null,
+      startedAt: phone.currentTask?.startedAt ?? null,
+      interruptedAt: phone.interruptedAt,
+      completed: phone.recentTasks.length,
+      hashrate: app.myTotalHashrateAt(Date.now()),
+      lastSettledAt: phone.lastSettledAt,
+    };
+  });
+  try {
+    await page.goto(`${base}/?nx_device_inner=1#/pages/login/login`, { waitUntil: "domcontentloaded" });
+    await page.locator('.lg-wrap[data-preview-account-status="ready"]').waitFor();
+    await page.getByTestId("mock-preview-password").locator("input").press("Enter");
+    await page.waitForURL(/#\/$|#\/pages\/index\/index/);
+    const fixture = await page.evaluate(async () => {
+      const app = (await import("/src/store/app.ts")).useApp();
+      const { getT } = await import("/src/i18n/use-t.ts");
+      (await import("/src/store/locale.ts")).useLocaleStore().setLocale("en");
+      // Isolate the existing phone with public store actions; no fabricated task engine.
+      for (const device of [...app.devices]) if (!app.deactivateDevice(device.id)) throw new Error("fixture deactivation failed");
+      const id = app.devices.find(row => row.kind === "phone")?.id;
+      if (!id || !app.activateDevice(id)) throw new Error("fixture phone activation failed");
+      app.resumeMining();
+      app.setPhoneRuntime(id, { batteryLevel: 19, isCharging: false, isWifiConnected: true });
+      const t = getT();
+      return { id, lowBattery: t.earn.phonePausedLowBattery, hashLabel: t.earn.hashLabel, rankLabel: t.home.networkYourRank, unranked: t.home.networkRankUnranked, updating: t.home.networkStatUpdating, retry: t.home.networkStatRetry };
+    });
+    assert.ok(fixture.lowBattery, "low-battery translation missing");
+    for (const batteryLevel of [19, 20]) for (const isCharging of [false, true]) {
+      const name = `battery-${batteryLevel}-charging-${isCharging}`;
+      await setRuntime({ batteryLevel, isCharging, isWifiConnected: true });
+      const beforeReload = await read();
+      assert.equal(beforeReload.runtime.pausedReason, batteryLevel < 20 ? "low-battery" : null);
+      assert.deepEqual(beforeReload.stored, beforeReload.runtime, "runtime patch must persist");
+      assert.equal(beforeReload.hashrate > 0, batteryLevel >= 20, "home aggregate must follow battery gate");
+      if (batteryLevel < 20) assert.equal(beforeReload.taskId, null, "low battery must not acquire a task");
+      else assert.ok(beforeReload.taskId, "20% phone must acquire a task without charging");
+      await page.goto(`${base}/?nx_device_inner=1#/pages/earn/device-detail?id=${encodeURIComponent(fixture.id)}`, { waitUntil: "domcontentloaded" });
+      const card = page.locator(".nx-device-card");
+      await card.waitFor();
+      const afterReload = await read();
+      const state = { name, beforeReload, afterReload };
+      result.states.push(state);
+      assert.deepEqual(afterReload.runtime, beforeReload.runtime, "battery/charging/network and pause reason must survive reload");
+      assert.deepEqual(afterReload.stored, afterReload.runtime);
+      if (batteryLevel < 20) {
+        await card.getByText(fixture.lowBattery, { exact: true }).waitFor();
+        assert.equal(await card.getByText(fixture.hashLabel, { exact: true }).count(), 0);
+      } else {
+        await card.getByText(fixture.hashLabel, { exact: true }).waitFor();
+        assert.equal(await card.getByText(fixture.lowBattery, { exact: true }).count(), 0);
+      }
+      assert.match(await card.locator(".nx-device-charger-toggle").innerText(), new RegExp(`${batteryLevel}%`));
+      assert.equal(await card.locator(".nx-device-charger-toggle").getAttribute("aria-checked"), String(isCharging));
+      await card.screenshot({ path: resolve(artifacts, `${name}-card.png`), timeout: 60_000 });
+      await page.goto(`${base}/?nx_device_inner=1#/pages/index/index`, { waitUntil: "domcontentloaded" });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const dismiss = page.locator(".tcs-dismiss:visible, .vcs-dismiss:visible, .tcs-close:visible, .vcs-close:visible").first();
+        if (!await dismiss.waitFor({ state: "visible", timeout: 1500 }).then(() => true, () => false)) break;
+        await dismiss.click();
+      }
+      const rank = page.locator(".grid.items-center").filter({ has: page.getByText(fixture.rankLabel, { exact: true }) });
+      state.rankInputs = await page.evaluate(async () => {
+        const cfg = (await import("/src/store/config.ts")).useConfig();
+        const app = (await import("/src/store/app.ts")).useApp();
+        const { publicStatsHealth } = await import("/src/lib/platform-stats.ts");
+        const { computeRank } = await import("/src/lib/network-rank.ts");
+        const ps = cfg.config.publicStats;
+        const health = publicStatsHealth(ps);
+        return { syncFailed: cfg.syncFailed, health, kind: cfg.syncFailed || !health.membersOk || !health.rankOk ? "unavailable" : computeRank({ myTotalHashrate: app.myTotalHashrateAt(Date.now()), table: ps.hashratePercentileTable, realPopulation: ps.realUserCount, virtualPopulation: ps.virtualUserCount }).kind };
+      });
+      // Fixed mock has no authoritative ranking population. Assert its real fallback,
+      // while the store assertions above still enforce zero/positive phone hashpower.
+      await rank.filter({ hasText: state.rankInputs.kind === "unavailable" ? fixture.updating : batteryLevel < 20 ? fixture.unranked : /#\d/ }).waitFor();
+      state.rankText = await rank.innerText();
+      if (state.rankInputs.kind === "unavailable") {
+        assert.ok(state.rankText.includes(fixture.retry));
+        assert.doesNotMatch(state.rankText, /#\d/);
+      }
+      await rank.screenshot({ path: resolve(artifacts, `${name}-home-rank.png`), timeout: 60_000 });
+    }
+    const running = await read();
+    await setRuntime({ batteryLevel: 19, isCharging: false });
+    const interrupted = await read();
+    assert.equal(interrupted.taskId, running.taskId, "brief low-battery interruption must keep the task");
+    assert.ok(interrupted.interruptedAt);
+    await setRuntime({ batteryLevel: 20 });
+    const resumed = await read();
+    assert.equal(resumed.taskId, running.taskId);
+    assert.equal(resumed.interruptedAt, null);
+    assert.ok(resumed.startedAt >= running.startedAt && resumed.hashrate > 0);
+    await setRuntime({ isWifiConnected: false });
+    const disconnected = await read();
+    assert.equal(disconnected.runtime.pausedReason, "no-network");
+    assert.equal(disconnected.hashrate, 0);
+    assert.equal(disconnected.taskId, running.taskId);
+    await setRuntime({ isWifiConnected: true });
+    assert.equal((await read()).taskId, running.taskId, "brief network outage must keep the task");
+    result.recovery = { running, interrupted, resumed, disconnected };
+    result.settlement = [];
+    for (const batteryLevel of [19, 20]) {
+      await setRuntime({ batteryLevel, isCharging: false });
+      const delta = await page.evaluate(async () => {
+        const app = (await import("/src/store/app.ts")).useApp();
+        const phone = app.devices.find(row => row.kind === "phone");
+        const before = [phone.todayEarnings, phone.todayEarningsNEX];
+        // Backdate only this isolated fixture's settlement anchor; use real settlement.
+        app.$patch({ devices: app.devices.map(row => row.id === phone.id ? { ...row, lastSettledAt: Date.now() - 3_600_000 } : row) });
+        app.settle();
+        const after = app.devices.find(row => row.id === phone.id);
+        return [after.todayEarnings - before[0], after.todayEarningsNEX - before[1]];
+      });
+      if (batteryLevel < 20) assert.deepEqual(delta, [0, 0], "paused phone must not accrue either currency");
+      else assert.ok(delta.every(value => value > 0), "20% unplugged phone must accrue both currencies");
+      result.settlement.push({ batteryLevel, delta });
+    }
+    await setRuntime({ batteryLevel: 19 });
+    await page.evaluate(async () => {
+      const app = (await import("/src/store/app.ts")).useApp();
+      const { INTERRUPT_GRACE_MS } = await import("/src/store/interrupt.ts");
+      app.$patch({ devices: app.devices.map(row => row.kind === "phone" ? { ...row, interruptedAt: Date.now() - INTERRUPT_GRACE_MS - 1 } : row) });
+      app.tick(1000);
+    });
+    const expired = await read();
+    assert.equal(expired.taskId, null, "expired interruption must cancel the task");
+    assert.equal(expired.completed, running.completed, "cancelled task must not count as completed");
+    await setRuntime({ batteryLevel: 20 });
+    const reassigned = await read();
+    assert.ok(reassigned.taskId && reassigned.taskId !== running.taskId, "recovery after timeout must get a new task");
+    result.timeout = { expired, reassigned };
+    assert.deepEqual(result.consoleErrors, []);
+    assert.deepEqual(result.pageErrors, []);
+    assert.deepEqual(result.backendRequests, []);
+    result.passed = true;
+  } catch (error) {
+    result.passed = false;
+    result.error = error.stack;
+    await page.screenshot({ path: resolve(artifacts, "battery-rules-failed.png"), fullPage: true, timeout: 60_000 }).catch(() => {});
+  } finally { await context.close(); }
+  console.log(`${result.passed ? "PASS" : "FAIL"} ${result.name}${result.error ? `: ${result.error}` : ""}`);
+  return result;
+}
+
 try {
   await mkdir(artifacts, { recursive: true });
   if (!process.env.UNI_BASE_URL) server = await ensureServer({ root, reuseUrl: process.env.FIXED_MOCK_REUSE_URL || null });
@@ -193,11 +399,16 @@ try {
   const cases = Object.keys(labels).flatMap(locale => ["first", "recalibrate"].flatMap(mode => [{ width: 320, height: 568 }, { width: 430, height: 940 }].map(viewport => ({ locale, mode, ...viewport }))));
   for (let i = 0; i < cases.length; i += 3) await Promise.all(cases.slice(i, i + 3).map(row => runCase(base, row)));
   const previewLocales = [];
+  const previewExternalResourceErrors = [];
   const context = await browser.newContext({ viewport: { width: 320, height: 568 } });
   try {
     const page = await context.newPage();
     const errors = [];
-    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("console", message => {
+      if (message.type() !== "error") return;
+      const error = { text: message.text(), location: message.location() };
+      (isThirdPartyResourceError(error.text, error.location.url, base) ? previewExternalResourceErrors : errors).push(error);
+    });
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(`${base}/?nx_device_inner=1#/pages/onboarding/connect`, { waitUntil: "domcontentloaded" });
     await page.locator(".cn-point").first().waitFor();
@@ -210,11 +421,12 @@ try {
     }
     assert.deepEqual(errors, []);
   } finally { await context.close(); }
-  const report = { executedAt: new Date().toISOString(), base, identity, setup: "isolated fixed-mock preview login; first-time calibration state seeded, not a registration test", results, previewLocales };
+  const batteryRules = await runBatteryRules(base);
+  const report = { executedAt: new Date().toISOString(), base, identity, setup: "isolated fixed-mock preview login; first-time calibration state seeded, not a registration test", results, previewLocales, previewExternalResourceErrors, batteryRules };
   const resultPath = resolve(artifacts, "result.json");
   await writeFile(resultPath, `${JSON.stringify(report, null, 2)}\n`);
   console.log(`Calibration: ${results.filter(row => row.passed).length}/${cases.length}; preview locales: ${previewLocales.length}/8; evidence: ${resultPath}`);
-  assert.ok(results.every(row => row.passed), "ONBOARDING_CALIBRATION_RUNTIME_FAILED");
+  assert.ok(results.every(row => row.passed) && batteryRules.passed, "ONBOARDING_CALIBRATION_RUNTIME_FAILED");
 } finally {
   await browser?.close();
   server?.stop();

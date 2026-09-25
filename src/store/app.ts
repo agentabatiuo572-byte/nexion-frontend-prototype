@@ -7,6 +7,7 @@ import { pickRandomTask } from "@/mock/tasks";
 import { isDegradable, getEfficiency, getMonthsOwned, installCanonicalLifecycleConfig } from "./device-lifecycle";
 import { interruptInfo } from "./interrupt";
 import { continuityFactor, thermalFactor, isDeviceOnline } from "@/lib/hashpower";
+import { phoneRuntimePauseReason } from "@/lib/phone-runtime";
 import { accountTotalHashrate } from "@/lib/account-hashrate";
 import { getCarrier, type Carrier } from "@/lib/carrier";
 import { getEntrySurface, type EntrySurface } from "@/lib/entry-surface";
@@ -235,6 +236,19 @@ function hydrateSnapshotEconomics(s: AccountCloudSnapshot | null): AccountCloudS
   return s ? { ...s, devices: (s.devices ?? []).map(backfillDeviceEconomics) } : null;
 }
 
+function migratePhonePause(device: Device): Device {
+  if (device.kind !== "phone" || (device.pausedReason as string | null) !== "no-charger") return device;
+  return {
+    ...device,
+    pausedReason: phoneRuntimePauseReason(device),
+    // An old pause without a start time cannot safely resume its wall-clock task.
+    currentTask: device.interruptedAt == null ? null : device.currentTask,
+    lastSettledAt: null,
+    miningSince: null,
+    onlineHeartbeatAt: null,
+  };
+}
+
 // user.email 只收联系身份,不收账号内部 key:兜底链的入参既有邮箱也有账号 key
 // ("default" / "user:<id>" 等),匿名 boot key 一旦流进去,profile 页会把裸 "default"
 // 当邮箱渲出来(页面文案禁枚举值/字段名不变量;2026-08-15 date-locale T1 验收发现#2)。
@@ -305,7 +319,7 @@ function settleDevice(d: Device, now: number, onlineBonus: OnlineBonus): Device 
     d.status !== "online" ||
     d.kind === "cloud-share" ||
     d.pausedReason != null ||
-    (d.kind === "phone" && (d.isCharging === false || d.isWifiConnected === false))
+    (d.kind === "phone" && phoneRuntimePauseReason(d) != null)
   ) {
     return d.lastSettledAt == null ? d : { ...d, lastSettledAt: null };
   }
@@ -358,8 +372,7 @@ export function settleDeviceBatch(
         device.kind === "phone" &&
         device.status === "online" &&
         device.pausedReason == null &&
-        device.isCharging !== false &&
-        device.isWifiConnected !== false &&
+        phoneRuntimePauseReason(device) == null &&
         device.activatedAt !== null
           ? { ...device, onlineHeartbeatAt: now }
           : device,
@@ -398,7 +411,7 @@ export const useApp = defineStore("app", () => {
     pendingEarnings: 0,
     earningBuckets: createEarningBuckets(0, 0),
   } : bootSnapshot.user);
-  const devices = ref<Device[]>(remoteApiEnabled ? [] : bootSnapshot.devices);
+  const devices = ref<Device[]>(remoteApiEnabled ? [] : bootSnapshot.devices.map(migratePhonePause));
   const earnings = ref<EarningsState>(remoteApiEnabled
     ? { today: 0, todayNEX: 0, thisWeek: 0, thisMonth: 0, total: 0, history: [] }
     : bootSnapshot.earnings);
@@ -554,7 +567,8 @@ export const useApp = defineStore("app", () => {
   function adoptAccountSnapshot(snapshot: AccountCloudSnapshot, resetRuntime = false) {
     const normalizedSnapshot = { ...snapshot, user: withDefaultEarningBuckets(snapshot.user) };
     user.value = normalizedSnapshot.user;
-    devices.value = snapshot.devices;
+    // Keep the raw snapshot as the merge base: the next write persists this migration.
+    devices.value = snapshot.devices.map(migratePhonePause);
     earnings.value = snapshot.earnings;
     withdrawals.value = snapshot.withdrawals ?? [];
     syncDeviceRuntime(snapshot.devices, resetRuntime);
@@ -933,11 +947,9 @@ export const useApp = defineStore("app", () => {
 
       const next: Device = { ...d };
 
-      // Phone charging + network gating
+      // Phone battery + network gating
       if (d.kind === "phone") {
-        let reason: Device["pausedReason"] = null;
-        if (d.isCharging === false) reason = "no-charger";
-        else if (!d.isWifiConnected) reason = "no-network";
+        const reason = phoneRuntimePauseReason(d);
         next.pausedReason = reason;
         if (reason !== null) {
           if (next.currentTask) {
@@ -953,16 +965,22 @@ export const useApp = defineStore("app", () => {
           }
           next.gpuUsage = 0;
           next.miningSince = null; // paused → continuous-online run ends, stability bonus resets
+          next.lastSettledAt = null;
+          next.onlineHeartbeatAt = null;
           return next;
         }
         if (next.interruptedAt != null) {
           if (next.currentTask) {
-            const heldMs = Date.now() - next.interruptedAt;
-            next.currentTask = { ...next.currentTask, startedAt: next.currentTask.startedAt + heldMs };
+            if (interruptInfo(next.interruptedAt, Date.now()).expired) {
+              next.currentTask = null;
+            } else {
+              const heldMs = Date.now() - next.interruptedAt;
+              next.currentTask = { ...next.currentTask, startedAt: next.currentTask.startedAt + heldMs };
+            }
           }
           next.interruptedAt = null;
         }
-        // Running (charging + online): start a fresh continuity run if none.
+        // Running (sufficient battery + network): start a fresh continuity run if none.
         if (next.miningSince == null) next.miningSince = Date.now();
       } else {
         next.pausedReason = null;
@@ -1151,7 +1169,7 @@ export const useApp = defineStore("app", () => {
 
   // ⚠️ MOCK-ONLY demo helper (ported from index.ts setPhoneRuntime). Lets the
   // device card toggle isCharging / isWifiConnected / batteryLevel on a phone so
-  // reviewers can simulate unplugging / losing network and watch the gating fire.
+  // reviewers can simulate low battery / losing network and watch the gating fire.
   // Real backend pulls these from candidate POST /api/device/:id/heartbeat
   // (PRD §6.11/§12.2) — client must NOT mutate. Only patches phone-kind devices.
   function setPhoneRuntime(
@@ -1161,13 +1179,14 @@ export const useApp = defineStore("app", () => {
     devices.value = devices.value.map((d) => {
       if (d.id !== id || d.kind !== "phone") return d;
       const next = { ...d, ...patch };
-      const pausedReason: Device["pausedReason"] =
-        next.isCharging === false ? "no-charger" : next.isWifiConnected === false ? "no-network" : null;
-      return pausedReason == null
+      const pausedReason = phoneRuntimePauseReason(next);
+      return pausedReason == null && d.pausedReason == null
         ? { ...next, pausedReason }
         : {
             ...next,
             pausedReason,
+            interruptedAt: pausedReason != null && next.currentTask ? next.interruptedAt ?? Date.now() : next.interruptedAt,
+            gpuUsage: pausedReason != null ? 0 : next.gpuUsage,
             miningSince: null,
             lastSettledAt: null,
             onlineHeartbeatAt: null,

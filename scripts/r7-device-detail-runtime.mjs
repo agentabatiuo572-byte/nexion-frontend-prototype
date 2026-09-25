@@ -158,11 +158,11 @@ try {
       check(hardwareA.todayEarnings === hardwareB.todayEarnings, "non-phone earnings depended on heartbeat");
 
       const offlineLive = computeLiveHashpower({
-        baselineTops: 30, online: false, isCharging: true, isOnline: true,
+        baselineTops: 30, online: false, batteryLevel: 78, isOnline: true,
         thermalState: "nominal", continuityMs: sixHours, nowSeed: now, onlineBonus: bonus,
       });
       const onlineLive = computeLiveHashpower({
-        baselineTops: 30, online: true, isCharging: true, isOnline: true,
+        baselineTops: 30, online: true, batteryLevel: 78, isOnline: true,
         thermalState: "nominal", continuityMs: sixHours, nowSeed: now, onlineBonus: bonus,
       });
       check(onlineLive.effectiveTops > offlineLive.effectiveTops, "online display factor did not exceed hosted baseline");

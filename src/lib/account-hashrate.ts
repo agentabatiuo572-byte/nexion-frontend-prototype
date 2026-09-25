@@ -41,15 +41,13 @@
 //
 // 「在不在产」的参照系是 app.ts `settleDevice` 那张不结算清单 —— 它实际是 **5 条**
 // (store/app.ts:234-240):① activatedAt===null ② status!=="online" ③ kind==="cloud-share"
-// ④ pausedReason!=null ⑤ kind==="phone" 且(isCharging===false 或 isWifiConnected===false)。
+// ④ pausedReason!=null ⑤ 手机电量低于20%或断网。
 // 🔴 排名的在产判据只取其中 ①②④ 三条,**不是全等关系**,差出来的两条是刻意取舍,
 // 下一个人别按「权威=那张清单」把它们改回去:
 //   · ③ cloud-share:收益另路、算力在网 —— 不走 settleDevice 计息是收益侧的安排,
 //     排名照算它的档位算力(G2 兜底 90)。
-//   · ⑤ 手机不充电:结算给 $0,排名照算打折后的正数(charge 因子 0.6,28.3 标定实测
-//     16.5 TOPS)—— 与设备卡显示自洽(设备卡对不充电的手机也显示正 TOPS),
-//     展示≠结算,排名跟展示对齐。断网那半条殊途同归:既有模型的 network 因子把它
-//     归 0,与结算侧一致,但守它的是因子不是这张清单。
+//   · ⑤ 手机低电量或断网:既有模型的 battery/network 因子归0,与结算侧一致。
+//     充电状态不限制任务,也不对展示或排名打折。
 // 也**不是** `isDeviceOnline` —— 后者只回答「有没有常驻 App 心跳」(决定拿满档还是拿
 // hosted 档)。拿它当在产判据的后果:H5 上一台正按 $0.036/日 真给钱、设备卡显示
 // 16.4 TOPS 的手机,在排名里被算成 0,首页对着一个正在赚钱的用户说
@@ -102,7 +100,7 @@ export function deviceEffectiveTops(
   gpuTiers: GpuTier[],
 ): number {
   // 在产判据 = settleDevice 不结算清单(5 条)里的 ①②④ 三条;cloud-share 与
-  // 手机不充电两条是刻意不取的取舍,别改回去 —— 逐条理由见文件头。
+  // 手机条件因子两条由单台模型处理 —— 逐条理由见文件头。
   if (device.activatedAt === null || device.status !== "online" || device.pausedReason != null) return 0;
   const baselineTops = deviceBaselineTops(device, gpuTiers);
 
@@ -111,8 +109,8 @@ export function deviceEffectiveTops(
       baselineTops,
       // 心跳新鲜 → 满档;H5 / App 被杀 → 既有模型的 hosted 档(与设备卡上那个数同源)。
       online: isDeviceOnline(device, now),
-      isCharging: device.isCharging !== false,
-      isOnline: device.isWifiConnected !== false,
+      batteryLevel: device.batteryLevel,
+      isOnline: device.isWifiConnected === true,
       thermalState: device.thermalState,
       continuityMs: device.miningSince ? Math.max(0, now - device.miningSince) : 0,
       nowSeed: RANK_JITTER_SEED,

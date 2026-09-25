@@ -72,11 +72,12 @@
         </view>
 
         <view class="cn-policy">
-          <view class="cn-policy__cap">
+          <view class="cn-policy__cap active:opacity-70" role="button" tabindex="0" :aria-expanded="rulesExpanded" @click="rulesExpanded = !rulesExpanded">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
             <text class="cn-policy__cap-t">{{ t.onboarding.policyTitle }}</text>
+            <svg class="cn-policy__chevron" :class="{ 'cn-policy__chevron--open': rulesExpanded }" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
           </view>
-          <view class="cn-policy__list">
+          <view v-if="rulesExpanded" class="cn-policy__list">
             <view v-for="(l, i) in policyLines" :key="i" class="cn-policy__line">
               <view class="cn-policy__dot" />
               <text class="cn-policy__t">{{ l }}</text>
@@ -117,6 +118,7 @@ const isRecal = ref(false);
 
 type Phase = "intro" | "calibrating" | "result";
 const phase = ref<Phase>("intro");
+const rulesExpanded = ref(false);
 
 const CALIBRATION_MS = 12_000;
 // This is an estimate from device information, not a hardware benchmark.
@@ -283,10 +285,12 @@ onUnmounted(() => {
 .cn-score__v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.025em; color: var(--v5-brand); font-size: 56px; font-weight: 600; }
 .cn-score__d { font-family: var(--font-v5); font-variant-numeric: tabular-nums; color: var(--v5-ink-3); font-size: 20px; font-weight: 500; }
 
-.cn-policy { border-radius: 16px; padding: 14px; background: color-mix(in oklab, var(--v5-warning) 8%, transparent); border: 1px solid color-mix(in oklab, var(--v5-warning) 22%, transparent); }
-.cn-policy__cap { display: flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-warning); }
+.cn-policy { border-radius: 16px; padding: 0 14px; background: color-mix(in oklab, var(--v5-warning) 8%, transparent); border: 1px solid color-mix(in oklab, var(--v5-warning) 22%, transparent); }
+.cn-policy__cap { min-height: 44px; display: flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-warning); }
 .cn-policy__cap-t { font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; letter-spacing: 0.16em; color: var(--v5-warning); }
-.cn-policy__list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.cn-policy__chevron { margin-left: auto; flex-shrink: 0; }
+.cn-policy__chevron--open { transform: rotate(180deg); }
+.cn-policy__list { padding-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
 .cn-policy__line { display: flex; align-items: flex-start; gap: 6px; }
 .cn-policy__dot { flex-shrink: 0; margin-top: 6px; width: 4px; height: 4px; border-radius: 9999px; background: color-mix(in oklab, var(--v5-warning) 55%, transparent); }
 .cn-policy__t { flex: 1; font-size: 12px; line-height: 1.375; color: var(--v5-ink-2); }

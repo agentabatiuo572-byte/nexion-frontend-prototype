@@ -5,13 +5,9 @@
 // 守四件事,前三件是规格对这个入参的定义,第四件是它凭什么可信:
 //   ① **多台求和**:总算力 = 每台有效算力之和(不是只取一台、不是取平均、不是重复计)。
 //   ② **未激活不计**:activatedAt === null 的设备一台都不许进和。
-//   ③ **不在产不计 / 无设备为 0**:参照系 = settleDevice 那张不结算清单,它实际是
-//      **5 条**(store/app.ts:234-240:未激活 / status 非 online / cloud-share /
-//      pausedReason 非空 / 手机未充电或无 WiFi)。排名的在产判据只取其中 3 条
-//      (未激活 / 非 online / pausedReason),差出来的两条是**刻意取舍**,别当 bug 修:
-//      · cloud-share:收益另路、算力在网(排名照算 G2 兜底 90);
-//      · 手机不充电:结算给 $0,排名照算打折正数(charge 0.6,28.3 标定实测 16.5)——
-//        与设备卡显示自洽,展示≠结算;断网那半条由既有模型 network 因子归 0。
+//   ③ **不在产不计 / 无设备为 0**:未激活、离线或暂停的设备不贡献算力。
+//      手机电量低于 20% 或断网时贡献为 0,充电状态不影响算力。
+//      cloud-share 收益另路、算力在网(排名照算 G2 兜底 90)。
 //      🔴 **心跳过期 ≠ 不在产**:H5 上没有常驻
 //      App 心跳的手机照样按 hosted 档真给钱、设备卡照样显示 TOPS,排名里必须同样有数,
 //      判成 0 就会对一个正在赚钱的用户说「未上榜,激活设备就上榜」。
@@ -130,7 +126,7 @@ function hw(kind, over = {}) {
 {
   // 期望值不走被测函数:直接问既有单台模型要两台的数,再自己加。
   const live = (tops) => computeLiveHashpower({
-    baselineTops: tops, online: true, isCharging: true, isOnline: true,
+    baselineTops: tops, online: true, batteryLevel: 78, isOnline: true,
     thermalState: "nominal", continuityMs: 10 * HOUR, nowSeed: 0, onlineBonus: BONUS,
   }).effectiveTops;
 
@@ -168,8 +164,8 @@ function hw(kind, over = {}) {
   const active = phone(30);
   check("③ 硬件 status=offline → 0", one(hw("stellarbox-s1", { status: "offline" })) === 0);
   check("③ 手机 status=offline → 0", one(phone(30, { status: "offline" })) === 0);
-  check("③ 手机被 tick 挂起(pausedReason 非空,拔电/断网)→ 0",
-    one(phone(30, { pausedReason: "no-charger" })) === 0);
+  check("③ 手机因低电量暂停 → 0",
+    one(phone(30, { batteryLevel: 19, pausedReason: "low-battery" })) === 0);
   check("③ 硬件被挂起(pausedReason 非空)→ 0",
     one(hw("stellarbox-s1", { pausedReason: "no-network" })) === 0);
   check("③ 离线设备不进和",
@@ -186,7 +182,7 @@ function hw(kind, over = {}) {
   //   排名判它 0,首页就会对着一个正在赚钱的用户说「未上榜,激活设备就上榜」。
   const staleBeat = phone(30, { onlineHeartbeatAt: NOW - 10 * 60_000 });
   const hostedExpected = computeLiveHashpower({
-    baselineTops: 30, online: false, isCharging: true, isOnline: true,
+    baselineTops: 30, online: false, batteryLevel: 78, isOnline: true,
     thermalState: "nominal", continuityMs: 10 * HOUR, nowSeed: 0, onlineBonus: BONUS,
   }).effectiveTops;
   check("🔴 ③ 心跳过期的手机(H5 / App 被杀)贡献 > 0,不是被判成不在产",
@@ -201,15 +197,16 @@ function hw(kind, over = {}) {
 {
   const p = phone(33.3);
   const expected = computeLiveHashpower({
-    baselineTops: 33.3, online: true, isCharging: true, isOnline: true,
+    baselineTops: 33.3, online: true, batteryLevel: 78, isOnline: true,
     thermalState: "nominal", continuityMs: 10 * HOUR, nowSeed: 0, onlineBonus: BONUS,
   }).effectiveTops;
   check("🔴 ④ 手机单台 = computeLiveHashpower 的输出(改成自己算就红)",
     near(one(p), expected, 1e-9), `得到 ${one(p)},既有模型给 ${expected}`);
   check("④ 手机天花板取标定值 capabilityTops,不走日产反推",
     ceiling(p) === 33.3, `得到 ${ceiling(p)}`);
-  check("④ 手机不充电时贡献下降(条件因子真的生效,不是拿天花板直接求和)",
-    one(phone(30, { isCharging: false })) < one(phone(30)) && one(phone(30, { isCharging: false })) > 0);
+  check("④ 手机电量 20% 可贡献算力,充电状态不影响数值",
+    one(phone(30, { batteryLevel: 20, isCharging: false })) === one(phone(30, { batteryLevel: 20, isCharging: true }))
+      && one(phone(30, { batteryLevel: 20, isCharging: false })) > 0);
   check("④ 手机断网时贡献为 0(既有模型的 network 因子)",
     one(phone(30, { isWifiConnected: false })) === 0);
 

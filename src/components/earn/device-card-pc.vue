@@ -2,7 +2,7 @@
   DeviceCardPC — ported from Nexion-prototype/app/components/device-card-pc.tsx.
   A single device card on /earn. Sections (conditional on kind + state):
     header (icon · name · gpu · status pill · lifecycle chip) →
-    phone states (reconnecting / paused-no-charger / paused-no-network /
+    phone states (reconnecting / paused-low-battery / paused-no-network /
       waiting / current task with progress bar) →
     phone background-mode toggles (battery + network demo pills) →
     phone locked-tasks loss-ad →
@@ -437,16 +437,16 @@ const pausedIconPath = computed(() =>
     : "M22 11v2M19 6V4a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2M12 18h.01M9 22h6",
 );
 const pausedTitle = computed(() =>
-  props.device.pausedReason === "no-network" ? t.value.earn.phonePausedNoNetwork : t.value.earn.phonePausedNoCharger,
+  props.device.pausedReason === "no-network" ? t.value.earn.phonePausedNoNetwork : t.value.earn.phonePausedLowBattery,
 );
 const pausedHint = computed(() =>
-  props.device.pausedReason === "no-network" ? t.value.earn.phonePausedNoNetworkHint : t.value.earn.phonePausedNoChargerHint,
+  props.device.pausedReason === "no-network" ? t.value.earn.phonePausedNoNetworkHint : t.value.earn.phonePausedLowBatteryHint,
 );
 
 // Background-mode toggles
 const showHelp = ref(false);
 const isCharging = computed(() => props.device.isCharging !== false);
-const isOnline = computed(() => props.device.isWifiConnected !== false);
+const isOnline = computed(() => props.device.isWifiConnected === true);
 function toggleCharger() {
   app.setPhoneRuntime(props.device.id, { isCharging: !isCharging.value });
 }
@@ -458,8 +458,8 @@ function toggleNetwork() {
 // The stable capability (TOPS·Tier) is the comparable identity number; the live
 // effective value oscillates beneath that ceiling with the phone's current
 // condition (continuous-online stability bonus, thermal, jitter). Only shown
-// while running (charging + online + no interrupt) — paused/reconnect states use
-// their own blocks. Toggling charger/network visibly moves the number.
+// while running (sufficient battery + network + no interrupt) — paused/reconnect
+// states use their own blocks. Charging telemetry does not change the number.
 const phoneRunning = computed(
   () => props.device.kind === "phone" && !reconnecting.value && !props.device.pausedReason,
 );
@@ -474,7 +474,7 @@ const live = computed(() =>
   computeLiveHashpower({
     baselineTops: baselineTops.value,
     online: deviceOnline.value,
-    isCharging: isCharging.value,
+    batteryLevel: props.device.batteryLevel,
     isOnline: isOnline.value,
     thermalState: props.device.thermalState,
     continuityMs: props.device.miningSince ? Math.max(0, now.value - props.device.miningSince) : 0,
