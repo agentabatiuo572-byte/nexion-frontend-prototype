@@ -89,10 +89,27 @@
       </view>
     </transition>
   </view>
+  <view v-if="successOpen" class="genesis-purchase-success" role="dialog" aria-modal="true" :aria-label="t.genesis.purchaseSuccessTitle" @click="closeSuccess">
+    <view class="genesis-purchase-success__panel" @click.stop>
+      <view class="genesis-purchase-success__close" role="button" tabindex="0" :aria-label="t.ui.close" @click="closeSuccess" @keydown.enter.prevent="closeSuccess" @keydown.space.prevent="closeSuccess">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+      </view>
+      <view class="genesis-purchase-success__mark" aria-hidden="true">
+        <view class="genesis-purchase-success__check"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg></view>
+        <BrandLockup mark-only />
+      </view>
+      <HolderBadge />
+      <text class="genesis-purchase-success__title">{{ t.genesis.purchaseSuccessTitle }}</text>
+      <text class="genesis-purchase-success__body">{{ t.genesis.purchaseSuccessBody }}</text>
+      <view class="genesis-purchase-success__cta" role="button" tabindex="0" @click="viewHoldings" @keydown.enter.prevent="viewHoldings" @keydown.space.prevent="viewHoldings">{{ t.genesis.viewMyNodes }}</view>
+    </view>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, type CSSProperties } from "vue";
+import { ref, computed, watch, nextTick, type CSSProperties } from "vue";
+import BrandLockup from "@/components/brand-lockup.vue";
+import HolderBadge from "@/components/genesis/holder-badge.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useGenesis, GENESIS_ELIGIBILITY_POLICY } from "@/store/genesis";
@@ -128,6 +145,21 @@ const qty = ref(1);
  * 所有创世购买永久锁死。复位交给 finally + 下面的 open watcher 兜底。
  */
 const purchasing = ref(false);
+const successOpen = ref(false);
+
+function closeSuccess() {
+  successOpen.value = false;
+}
+function viewHoldings() {
+  // Keep the receipt visible if navigation fails, so the action can be retried.
+  uni.navigateTo({ url: "/pages/genesis/holder", success: closeSuccess });
+}
+async function showPurchaseSuccess() {
+  emit("update:open", false);
+  // Let the purchase sheet restore focus before the success dialog takes it.
+  await nextTick();
+  successOpen.value = true;
+}
 
 /** 半屏是否已被阻断(市场关闭 / 熔断 / 配置未知)。**售罄与预售不在此列** ——
  *  半屏只在可购买时才被打开,那两态由调用方拦在门外;这里管的是「开着的时候翻脸」。 */
@@ -168,7 +200,7 @@ function inc() {
   qty.value = Math.min(maxQty, qty.value + 1);
 }
 function emitClose() {
-  emit("update:open", false);
+  if (!purchasing.value) emit("update:open", false);
 }
 
 async function handlePurchase() {
@@ -239,12 +271,8 @@ async function handlePurchase() {
         } else toast.error(fmt(t.value.genesis.onlyNLeft, { n: remaining.value }), t.value.genesis.reduceQty);
         return;
       }
-      toast.success(
-        fmt(t.value.genesis.purchaseSuccess, { n: qty.value, s: qty.value > 1 ? "s" : "" }),
-        t.value.genesis.purchaseSubtitle,
-      );
       committed = true;
-      emitClose();
+      await showPurchaseSuccess();
       return;
     }
     const result = await genesis.purchase(qty.value);
@@ -260,12 +288,8 @@ async function handlePurchase() {
       toast.error(copy[0], copy[1]);
       return;
     }
-    toast.success(
-      fmt(t.value.genesis.purchaseSuccess, { n: qty.value, s: qty.value > 1 ? "s" : "" }),
-      t.value.genesis.purchaseSubtitle,
-    );
     committed = true;
-    emitClose();
+    await showPurchaseSuccess();
   } finally {
     if (!committed) purchasing.value = false;
   }
@@ -392,10 +416,23 @@ const submitStyle = computed<CSSProperties>(() => ({
 
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。
-useDialogA11y(computed(() => props.open), ".nx-sheet-backdrop", emitClose);
+useDialogA11y(computed(() => props.open), ".nx-sheet-panel", emitClose);
+useDialogA11y(successOpen, ".genesis-purchase-success", closeSuccess);
 </script>
 
 <style scoped>
+.genesis-purchase-success { position: fixed; inset: 0; z-index: 810; padding: 24px; display: flex; align-items: center; justify-content: center; background: var(--v5-bg-color-mask); backdrop-filter: blur(8px); }
+.genesis-purchase-success__panel { position: relative; width: 100%; max-width: 360px; max-height: calc(100dvh - 48px); overflow-y: auto; padding: 32px 20px 24px; border-radius: var(--v5-radius-2xl); background: var(--v5-surface); color: var(--v5-ink); font-family: var(--font-v5); text-align: center; }
+.genesis-purchase-success__close { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: var(--v5-radius-full); background: var(--v5-surface-2); color: var(--v5-ink-2); }
+.genesis-purchase-success__mark { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 16px 0; }
+.genesis-purchase-success__check { width: 56px; height: 56px; border-radius: var(--v5-radius-full); display: grid; place-items: center; background: var(--v5-success-soft); color: var(--v5-success-ink); }
+.genesis-purchase-success__mark :deep(.uvel-brand) { width: 48px; height: 48px; }
+.genesis-purchase-success__title { display: block; margin-top: 16px; font-size: var(--v5-type-h3); line-height: 1.4; font-weight: 600; }
+.genesis-purchase-success__body { display: block; margin-top: 8px; font-size: var(--v5-type-body-s); line-height: 1.5; color: var(--v5-ink-3); }
+.genesis-purchase-success__cta { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 16px; margin-top: 24px; border-radius: var(--v5-radius-full); background: var(--v5-brand); color: var(--v5-on-brand); font-size: var(--v5-type-button); line-height: 1.5; font-weight: 600; }
+.genesis-purchase-success [role="button"] { cursor: pointer; }
+.genesis-purchase-success [role="button"]:active { opacity: 0.8; }
+.genesis-purchase-success [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .nx-sheet-backdrop {
   position: fixed;
   inset: 0;

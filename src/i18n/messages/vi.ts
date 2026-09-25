@@ -723,7 +723,8 @@ export const vi: Messages = {
   },
 
   genesisHolder: {
-    pageTitle: "Bảng điều khiển Genesis",
+    pageTitle: "Nút Genesis của tôi",
+    identityLabel: "Chủ sở hữu Genesis",
     heroLabel: "SUẤT GENESIS CỦA BẠN",
     nodes: "suất",
     notHolderTitle: "Chưa có suất Genesis nào",
@@ -3607,6 +3608,9 @@ export const vi: Messages = {
   },
 
   genesis: {
+    purchaseSuccessTitle: "Chúc mừng, mua thành công",
+    purchaseSuccessBody: "Nút Genesis đã được thêm vào danh sách sở hữu.",
+    viewMyNodes: "Xem nút Genesis của tôi",
     title: "Genesis Node",
     secHolderPerks: "Đặc quyền chủ sở hữu",
     secLiveMarket: "Thị trường trực tiếp",

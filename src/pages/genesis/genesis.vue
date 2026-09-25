@@ -114,7 +114,11 @@
         class="relative w-full overflow-hidden"
         :class="dockDisabled ? '' : 'active:scale-[0.98]'"
         :style="dockBtnStyle"
+        role="button"
+        tabindex="0"
         @click="openSheet"
+        @keydown.enter.prevent="openSheet"
+        @keydown.space.prevent="openSheet"
       >
         <!-- 装饰(高光 / 描边 / 流光)只在**可购买**时出现:置灰按钮不该还在发光。 -->
         <template v-if="dockActive">
@@ -627,6 +631,7 @@ const dockDividerStyle: CSSProperties = {
 </script>
 
 <style scoped>
+.nx-genesis-dock [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -4px; }
 .nx-genesis-dock {
   position: fixed;
   left: 0;

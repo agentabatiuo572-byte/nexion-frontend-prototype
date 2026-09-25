@@ -53,7 +53,7 @@
     "verify": "node scripts/verify-chain.mjs --full",
     "verify:scoped": "node scripts/verify-chain.mjs --scoped",
     "verify:static": "node scripts/verify-chain.mjs --static",
-    "verify:steps": "npm run type-check:cached && npm run test:githooks && npm run test:contract-registry && npm run test:uvel-brand && npm run test:unit && npm run test:fixed-mock-home && npm run test:onboarding-calibration && npm run build:h5",
+    "verify:steps": "npm run type-check:cached && npm run test:githooks && npm run test:contract-registry && npm run test:uvel-brand && npm run test:unit && npm run test:fixed-mock-home && npm run test:onboarding-calibration && npm run test:genesis-holder && npm run build:h5",
     "test:uvel-brand": "node scripts/uvel-brand-check.mjs",
     "verify:scope-lint": "node scripts/lib/verify-scope.mjs lint",
     "verify:scope-audit": "node scripts/verify-scope-audit.mjs",
@@ -61,7 +61,8 @@
     "test:learning-contracts": "node --experimental-strip-types --test scripts/learning-submission.test.mjs",
     "test:a11y-activate": "node --experimental-strip-types --test scripts/a11y-activate-behavior.test.mjs && node scripts/a11y-activate-gate.mjs && node scripts/a11y-activate-gate.redtest.mjs",
     "test:fixed-mock-home": "node scripts/app-home-live-e2e.mjs",
-    "test:onboarding-calibration": "node scripts/onboarding-calibration-runtime.mjs"
+    "test:onboarding-calibration": "node scripts/onboarding-calibration-runtime.mjs",
+    "test:genesis-holder": "node scripts/genesis-holder-runtime.mjs"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-4080420251103001",

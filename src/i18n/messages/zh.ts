@@ -705,7 +705,8 @@ export const zh: Messages = {
   },
 
   genesisHolder: {
-    pageTitle: "Genesis 持有人看板",
+    pageTitle: "我的创世节点",
+    identityLabel: "创世持有人",
     heroLabel: "你的创世席位",
     nodes: "席",
     notHolderTitle: "暂无创世席位",
@@ -3612,6 +3613,9 @@ export const zh: Messages = {
   },
 
   genesis: {
+    purchaseSuccessTitle: "恭喜，购买成功",
+    purchaseSuccessBody: "创世节点已加入持有列表",
+    viewMyNodes: "查看我的创世节点",
     title: "创世节点",
     secHolderPerks: "持有人权益",
     secLiveMarket: "实时市场",

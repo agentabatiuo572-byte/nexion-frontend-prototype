@@ -767,7 +767,8 @@ export const en = {
   },
 
   genesisHolder: {
-    pageTitle: "Genesis Dashboard",
+    pageTitle: "My Genesis nodes",
+    identityLabel: "Genesis holder",
     heroLabel: "YOUR GENESIS SEATS",
     nodes: "seats",
     notHolderTitle: "No Genesis seats yet",
@@ -3742,6 +3743,9 @@ export const en = {
   },
 
   genesis: {
+    purchaseSuccessTitle: "Congratulations, purchase complete",
+    purchaseSuccessBody: "Your Genesis nodes have been added to your holdings.",
+    viewMyNodes: "View my Genesis nodes",
     title: "Genesis Node",
     secHolderPerks: "Holder perks",
     secLiveMarket: "Live market",
