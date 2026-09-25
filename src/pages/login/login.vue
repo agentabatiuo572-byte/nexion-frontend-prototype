@@ -22,7 +22,7 @@
 
       <!-- Title -->
       <text class="lg-title">{{ titleText }}</text>
-      <view class="lg-mode-badge" data-testid="auth-runtime-label">
+      <view v-if="!remoteApiEnabled" class="lg-mode-badge" data-testid="auth-runtime-label">
         <text class="lg-mode-badge__t">{{ modeLabel }}</text>
       </view>
       <view v-if="serverSessionReloadNotice" class="lg-recovery-notice" role="status" data-qa="server-session-reload-notice">

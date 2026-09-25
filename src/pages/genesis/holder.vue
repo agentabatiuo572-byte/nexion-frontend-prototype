@@ -4,7 +4,7 @@
   由 genesis.dividendsOpen（全平台上所信号，fail-closed）决定：
   - 上所前(!dividendsOpen)：排放优先额度 + 上所进度 + 积分榜，无 live 排放 / 无可领余额。
   - 上所后(dividendsOpen)：NEX 排放（vesting 曲线：已释放/锁定中）+ 排放明细，NEX 计价。
-  myOwned === 0 → 空状态 CTA + preview（no fake holder numbers）。
+  myOwned === 0 → 空状态 CTA；仅本地演示显示体验提示（no fake holder numbers）。
   Wrapped in <AppChassis active="me">. 排放数据源 = store emissionSnapshot()（backend-replaceable）。
 -->
 <template>
@@ -27,9 +27,9 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
-          <view :style="previewStyle">
+          <view v-if="!remoteApiEnabled" :style="previewStyle">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
-            <text :style="previewTextStyle">{{ t.genesisHolder.previewModeBanner }}</text>
+            <text :style="previewTextStyle">{{ t.publicCopy.experienceMode }}</text>
           </view>
         </template>
 
@@ -220,7 +220,6 @@
           </view>
         </template>
 
-        <text class="block text-center" :style="noteStyle">{{ t.genesisHolder.note }}</text>
       </view>
     </view>
   </AppChassis>
@@ -730,11 +729,5 @@ const boostLabelStyle: CSSProperties = {
   fontSize: "15px",
   color: "var(--v5-on-brand)",
   letterSpacing: "-0.008em",
-};
-const noteStyle: CSSProperties = {
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
-  lineHeight: 1.625,
-  paddingTop: "8px",
 };
 </script>

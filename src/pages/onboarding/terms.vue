@@ -47,9 +47,6 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
       </view>
 
-      <!-- Footer entity / contact -->
-      <text class="tos-footer">{{ t.terms.footer }}</text>
-
       <!-- Acknowledge & return -->
       <view class="tos-cta active:opacity-90 active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="goBack" @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack">
         <text class="tos-cta__t">{{ t.terms.gotIt }}</text>
@@ -233,15 +230,7 @@ function goRisk() {
   color: var(--v5-brand-2);
 }
 
-/* Footer + CTA */
-.tos-footer {
-  display: block;
-  margin-top: 18px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--v5-ink-4);
-  text-align: center;
-}
+/* CTA */
 .tos-cta {
   margin-top: 20px;
   height: 52px;

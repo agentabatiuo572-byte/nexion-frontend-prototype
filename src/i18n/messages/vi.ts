@@ -163,7 +163,7 @@ export const vi: Messages = {
     s5Body:
       "Mọi con số lợi nhuận hiển thị trong ứng dụng đều là dự phóng dựa trên tham số mạng lưới hiện tại và nhu cầu gần đây, không phải cam kết. Thu nhập dao động và có thể giảm theo thời gian. NEX là token thưởng của nền tảng, giá trị có thể biến động mạnh và không được bảo hiểm tiền gửi. Đừng bao giờ đầu tư nhiều hơn mức bạn có thể chịu mất.",
     s6Title: "Ví, rút tiền & tuân thủ",
-    s6Body: "Tiền rút được chuyển đến địa chỉ đã xác nhận bằng SMS, có thời gian bảo vệ sau khi đổi địa chỉ. Xem tiến độ trong trạng thái lệnh; một số lần rút cần xác nhận bảo mật bổ sung. Tiền được giữ ở tài khoản dự trữ tách biệt và được giám sát giao dịch theo đăng ký MSB.",
+    s6Body: "Tiền rút được chuyển đến địa chỉ đã xác nhận bằng SMS, có thời gian bảo vệ sau khi đổi địa chỉ. Xem tiến độ trong trạng thái lệnh; một số lần rút cần xác nhận bảo mật bổ sung.",
     s7Title: "Phần thưởng giới thiệu & mạng lưới",
     s7Body:
       "Hoa hồng trực tiếp và Thưởng lợi nhuận mạng lưới được trả từ biên lợi nhuận của nền tảng, không bao giờ lấy từ tiền nạp của bạn bè. Phần thưởng phụ thuộc vào việc người được giới thiệu hoàn thành các hành động hợp lệ. Spam, tài khoản giả hay các chiêu lôi kéo người hàng loạt đều bị cấm, sẽ bị hủy, và có thể dẫn tới khóa tài khoản cùng mất các phần thưởng đang chờ.",
@@ -177,8 +177,6 @@ export const vi: Messages = {
     s10Body:
       "UVEL được cung cấp “nguyên trạng”, không có bất kỳ bảo đảm nào về lợi nhuận. Trong phạm vi tối đa pháp luật cho phép, tổng trách nhiệm của chúng tôi giới hạn ở khoản phí bạn đã trả trong ba tháng gần nhất. Các điều khoản này được điều chỉnh theo pháp luật tại khu vực tài phán của UVEL Compliance Authority, và tranh chấp được giải quyết bằng trọng tài có tính ràng buộc ở nơi được phép.",
     riskLink: "Xem thêm: Công bố rủi ro nền tảng",
-    footer:
-      "UVEL Compliance Authority · FinCEN MSB #MSB1234567 · Tuân thủ MiCA · Thắc mắc: legal@nexgrid.io",
     gotIt: "Đã hiểu",
   },
   authOtp: {
@@ -731,7 +729,6 @@ export const vi: Messages = {
     notHolderTitle: "Chưa có suất Genesis nào",
     notHolderBody: "Tổng cộng 1,000 suất OG · còn {n}. Khóa quyền ưu tiên khi $NEX lên sàn.",
     notHolderCta: "Nhận một suất",
-    previewModeBanner: "Xem trước · những gì chủ sở hữu thấy. Nhận một suất để kích hoạt bảng điều khiển của bạn.",
     // ── Pre-listing state (before $NEX lists) ──
     pre: {
       allocLabel: "Suất $NEX đã dành riêng",
@@ -785,7 +782,6 @@ export const vi: Messages = {
       buy: "Nhận thêm suất",
       sell: "Bán trên thị trường",
     },
-    note: "Suất Genesis là ERC-721 trên Ethereum mainnet. Hợp đồng: 0xNX...A98F. Được CertiK và Halborn kiểm toán.",
   },
 
   preferences: {
@@ -4618,7 +4614,6 @@ export const vi: Messages = {
     pageTitle: "Sàn Giao Dịch",
     verifiedTag: "✓",
     verifiedCollection: "Bộ sưu tập đã xác minh",
-    erc721Line: "ERC-721 · Ethereum · tổng cung 1,000",
     floor: "Giá sàn",
     vol24h: "KL 24h",
     listed: "Đang rao",
@@ -4672,7 +4667,6 @@ export const vi: Messages = {
     // OpenSea redirect modal (faked external secondary)
     openSeaTitle: "OpenSea",
     openSeaLoading: "Đang kết nối OpenSea…",
-    openSeaLoadingSub: "Đang tải bộ sưu tập · 0xNX...A98F",
     openSeaErrorTitle: "Chưa kết nối được OpenSea lúc này",
     openSeaErrorSub: "Quay lại thị trường UVEL để xem trạng thái niêm yết hiện tại.",
     openSeaErrorHint: "Đa số người giữ chọn giao dịch P2P ngay trong UVEL · nhanh hơn + không mất gas.",

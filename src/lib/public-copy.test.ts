@@ -18,6 +18,8 @@ const sources = import.meta.glob([
   "../components/tradein-sheets.vue", "../components/me/tradein-ladder-sheet.vue",
   "../components/store/live-social-proof.vue",
   "../components/home/do-the-math-card.vue", "../components/home/nova-card-slot.vue",
+  "../pages/genesis/holder.vue", "../pages/genesis/marketplace.vue",
+  "../pages/login/login.vue", "../pages/register/register.vue", "../pages/me/security.vue",
 ], { query: "?raw", import: "default", eager: true });
 const source = (path: string) => String(sources[path] ?? "");
 function componentFunction(path: string, name: string): string {
@@ -81,6 +83,35 @@ describe.each([en, zh, vi])("public copy in each supported dictionary", (words) 
       .not.toMatch(/\bROI\b|回报率|\{pct\}/i);
     const memo = new Function("t", "fmt", `${componentFunction("../pages/me/wallet-bills.vue", "billMemo")}; return billMemo;`)({ value: words }, () => "");
     expect(memo({ ref: "QST-view_product_roi", memo: "5% legacy formula" })).toBe(words.bills.typeBonus);
+  });
+
+  it("keeps preview notices in demo mode and removes unsupported Genesis and registration claims", async () => {
+    const { descriptor } = parse(source("../pages/genesis/holder.vue"));
+    const { code } = compile(descriptor.template!.content, { mode: "function", prefixIdentifiers: true, isCustomElement: () => true });
+    const render = new Function("Vue", code)(Vue);
+    for (const remoteApiEnabled of [false, true]) {
+      const html = await renderToString(Vue.createSSRApp({ render, setup: () => ({
+        t: words, hasNodes: false, remoteApiEnabled, notHolderBodyText: "Seat availability", goGenesis() {},
+        ctaCardStyle: {}, ctaIconStyle: {}, ctaTitleStyle: {}, ctaBodyStyle: {}, previewStyle: {}, previewTextStyle: {},
+      }) }));
+      expect(html).toContain(words.genesisHolder.notHolderTitle);
+      expect(html).toContain("Seat availability");
+      expect(html.includes(words.publicCopy.experienceMode)).toBe(!remoteApiEnabled);
+      expect(html).not.toMatch(/0xNX|CertiK|Halborn|ERC-721|Ethereum/);
+      for (const path of ["../pages/login/login.vue", "../pages/register/register.vue", "../pages/me/security.vue"]) {
+        const template = parse(source(path)).descriptor.template!.content;
+        const badge = template.match(/<view\b[^>]*data-testid="(?:auth-runtime-label|mock-security-label)"[^>]*>[\s\S]*?<\/view>/)?.[0];
+        expect(badge, path).toBeTruthy();
+        const compiled = compile(badge!, { mode: "function", prefixIdentifiers: true, isCustomElement: () => true });
+        const html = await renderToString(Vue.createSSRApp({ render: new Function("Vue", compiled.code)(Vue), setup: () => ({
+          remoteApiEnabled, modeLabel: words.security.mockModeLabel, mockModeBannerStyle: {}, mockModeBannerTextStyle: {},
+        }) }));
+        expect(html.includes(words.security.mockModeLabel), path).toBe(!remoteApiEnabled);
+      }
+    }
+    expect(JSON.stringify([words.genesisHolder, words.marketplace])).not.toMatch(/0xNX|CertiK|Halborn|ERC-721|Ethereum/);
+    expect(JSON.stringify(words.terms)).not.toMatch(/MSB|MiCA|segregated reserve|隔离储备|dự trữ tách biệt/);
+    expect(source("../pages/genesis/marketplace.vue")).not.toMatch(/Verified|erc721Line|verifiedStyle/);
   });
 });
 

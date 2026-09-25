@@ -23,9 +23,7 @@
             <view class="flex-1 min-w-0">
               <view class="flex items-center" style="gap: 6px">
                 <text class="truncate" :style="collTitleStyle">UVEL Genesis Node</text>
-                <text class="shrink-0" :style="verifiedStyle">✓</text>
               </view>
-              <text class="block" :style="ercLineStyle">{{ t.marketplace.erc721Line }}</text>
             </view>
           </view>
 
@@ -320,22 +318,6 @@ const collTitleStyle: CSSProperties = {
   fontWeight: 600,
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",
-};
-const verifiedStyle: CSSProperties = {
-  padding: "2px 6px",
-  borderRadius: "4px",
-  background: "var(--v5-success-soft)",
-  color: "var(--v5-success)",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-};
-const ercLineStyle: CSSProperties = {
-  marginTop: "3px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
-  letterSpacing: "0.02em",
 };
 const statGridStyle: CSSProperties = {
   // 去线(主人 2026-08-17 全站令):总间距沿用有线时代的 14+14。

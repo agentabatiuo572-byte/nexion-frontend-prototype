@@ -32,7 +32,7 @@
 
       <!-- Title -->
       <text class="rg-title">{{ step === 1 ? t.register.title : step === 2 ? t.register.codeStepTitle : t.register.setPasswordTitle }}</text>
-      <view class="rg-mode-badge" data-testid="auth-runtime-label">
+      <view v-if="!remoteApiEnabled" class="rg-mode-badge" data-testid="auth-runtime-label">
         <text class="rg-mode-badge__t">{{ modeLabel }}</text>
       </view>
       <text class="rg-subtitle">

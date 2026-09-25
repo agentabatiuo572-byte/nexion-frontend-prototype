@@ -162,7 +162,7 @@ export const en = {
     s5Body:
       "All yield figures shown in the app are projections based on current network parameters and recent demand, not guarantees. Earnings fluctuate and may decline over time. NEX is a platform reward token whose value can move sharply and is not deposit-insured. Never commit more than you can afford to lose.",
     s6Title: "Wallet, withdrawals & compliance",
-    s6Body: "Withdrawals go to your SMS-confirmed payout address, with a protection period after an address change. Check the order status for progress; some withdrawals require an additional security check. Funds are held in segregated reserve accounts and transaction monitoring applies under our MSB registration.",
+    s6Body: "Withdrawals go to your SMS-confirmed payout address, with a protection period after an address change. Check the order status for progress; some withdrawals require an additional security check.",
     s7Title: "Referral & network rewards",
     s7Body:
       "Direct Royalty and Network Yield Bonus are paid from platform margin, never from a friend's deposit. Rewards depend on referred users completing qualifying actions. Spam, fake accounts, or mass-recruitment schemes are prohibited, will be voided, and may result in suspension and forfeiture of pending rewards.",
@@ -176,8 +176,6 @@ export const en = {
     s10Body:
       "UVEL is provided “as is” without any warranty of guaranteed return. To the fullest extent permitted by law, our aggregate liability is limited to the fees you paid in the prior three months. These terms are governed by the laws of the jurisdiction of UVEL Compliance Authority, and disputes are resolved by binding arbitration where permitted.",
     riskLink: "See also: Platform Risk Disclosure",
-    footer:
-      "UVEL Compliance Authority · FinCEN MSB #MSB1234567 · MiCA-aligned · Questions: legal@nexgrid.io",
     gotIt: "Got it",
   },
   authOtp: {
@@ -775,7 +773,6 @@ export const en = {
     notHolderTitle: "No Genesis seats yet",
     notHolderBody: "1,000 OG seats total · {n} left. Lock in $NEX listing priority.",
     notHolderCta: "Claim a seat",
-    previewModeBanner: "Preview · what holders see. Claim a seat to activate your dashboard.",
     // ── Pre-listing state (before $NEX lists) ──
     pre: {
       allocLabel: "Reserved $NEX allocation",
@@ -829,7 +826,6 @@ export const en = {
       buy: "Claim another",
       sell: "Sell on market",
     },
-    note: "Genesis seats are ERC-721 on Ethereum mainnet. Contract: 0xNX...A98F. Audited by CertiK and Halborn.",
   },
 
   preferences: {
@@ -4763,7 +4759,6 @@ export const en = {
     pageTitle: "Marketplace",
     verifiedTag: "✓",
     verifiedCollection: "Verified collection",
-    erc721Line: "ERC-721 · Ethereum · 1,000 supply",
     floor: "Floor",
     vol24h: "24h vol",
     listed: "Listed",
@@ -4817,7 +4812,6 @@ export const en = {
     // OpenSea redirect modal (faked external secondary)
     openSeaTitle: "OpenSea",
     openSeaLoading: "Connecting to OpenSea…",
-    openSeaLoadingSub: "Loading collection · 0xNX...A98F",
     openSeaErrorTitle: "Couldn't reach OpenSea right now",
     openSeaErrorSub: "Return to the UVEL marketplace to check current listing status.",
     openSeaErrorHint: "Most holders trade peer-to-peer inside UVEL · faster + zero gas.",

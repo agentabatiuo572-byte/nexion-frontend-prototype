@@ -14,7 +14,7 @@
   <AppChassis active="me">
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/me" :title="t.security.title" />
-      <view class="mx-4" :style="mockModeBannerStyle" data-testid="mock-security-label">
+      <view v-if="!remoteApiEnabled" class="mx-4" :style="mockModeBannerStyle" data-testid="mock-security-label">
         <text :style="mockModeBannerTextStyle">{{ modeLabel }}</text>
       </view>
 

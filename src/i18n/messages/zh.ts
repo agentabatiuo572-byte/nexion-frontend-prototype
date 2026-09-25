@@ -151,7 +151,7 @@ export const zh: Messages = {
     s5Body:
       "应用内展示的所有收益数字均为基于当前网络参数与近期需求的预测，并非承诺。收益会波动，并可能随时间下降。NEX 是平台奖励代币，价值可能剧烈变动，且不受存款保险保障。切勿投入超过你可承受损失的金额。",
     s6Title: "钱包、提现与合规",
-    s6Body: "提现将转入自行设置并经短信确认的提现地址；更换地址后有安全保护期。处理进度以订单状态为准，部分提现需要额外安全确认。资金存放于隔离储备账户，并依据 MSB 注册要求执行交易监控。",
+    s6Body: "提现将转入自行设置并经短信确认的提现地址；更换地址后有安全保护期。处理进度以订单状态为准，部分提现需要额外安全确认。",
     s7Title: "推荐与网络奖励",
     s7Body:
       "直推权益金与网络收益奖金均由平台利润支付，绝不来自好友的充值。奖励取决于被推荐用户完成合格行为。垃圾推广、虚假账户或大规模拉人方案均被禁止，将被作废，并可能导致账户暂停及待发放奖励被没收。",
@@ -165,8 +165,6 @@ export const zh: Messages = {
     s10Body:
       "UVEL 按「现状」提供，不对保证收益作任何担保。在法律允许的最大范围内，我们的累计赔偿责任以你前三个月支付的费用为限。本条款受 UVEL 合规管理机构所在司法辖区法律管辖，争议在允许的范围内通过具约束力的仲裁解决。",
     riskLink: "另见：平台风险披露",
-    footer:
-      "UVEL 合规管理机构 · FinCEN MSB #MSB1234567 · 符合 MiCA · 咨询：legal@nexgrid.io",
     gotIt: "我已了解",
   },
   authOtp: {
@@ -713,7 +711,6 @@ export const zh: Messages = {
     notHolderTitle: "暂无创世席位",
     notHolderBody: "1,000 个 OG 席位限量,剩 {n} 席。锁定 $NEX 上所优先权。",
     notHolderCta: "去认购",
-    previewModeBanner: "预览 · 持有人看到的内容。认购一个席位激活完整看板。",
     // ── 上所前(NEX 上所前)──
     pre: {
       allocLabel: "排放优先额度",
@@ -767,7 +764,6 @@ export const zh: Messages = {
       buy: "再认购",
       sell: "二级市场出售",
     },
-    note: "Genesis 席位是以太坊主网 ERC-721 · 合约地址 0xNX...A98F · 由 CertiK 和 Halborn 审计。",
   },
 
   preferences: {
@@ -4610,7 +4606,6 @@ export const zh: Messages = {
     pageTitle: "二级市场",
     verifiedTag: "✓",
     verifiedCollection: "已验证合集",
-    erc721Line: "ERC-721 · Ethereum · 1,000 总量",
     floor: "地板价",
     vol24h: "24h 成交",
     listed: "在售",
@@ -4663,7 +4658,6 @@ export const zh: Messages = {
     soldDesc: "买家支付 ${paid} · 到账 ${net}(扣 2.5% 版税)",
     openSeaTitle: "OpenSea",
     openSeaLoading: "正在连接 OpenSea…",
-    openSeaLoadingSub: "加载 collection · 0xNX...A98F",
     openSeaErrorTitle: "暂时无法连接 OpenSea",
     openSeaErrorSub: "可返回 UVEL 市场查看当前挂单状态。",
     openSeaErrorHint: "大多数持有人选择在 UVEL 站内 P2P 交易 · 更快 + 零 gas。",
