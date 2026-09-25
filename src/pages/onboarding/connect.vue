@@ -1,5 +1,5 @@
 <template>
-  <StandalonePageShell class="cn-root" :top-inset="24">
+  <StandalonePageShell class="cn-root" :top-inset="24" @click="rulesExpanded = false">
     <!-- Progress (3/3 full) -->
     <view class="cn-bars">
       <view class="cn-back active:opacity-60" role="button" tabindex="0" :aria-label="t.login.back" @click="leaveConnect" @keydown.enter.prevent="leaveConnect" @keydown.space.prevent="leaveConnect">
@@ -30,9 +30,11 @@
             </view>
           </view>
         </view>
-        <view class="cn-go cn-go--glow active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="phase = 'calibrating'" @keydown.enter.prevent="phase = 'calibrating'" @keydown.space.prevent="phase = 'calibrating'">
-          <text class="cn-go__t">{{ t.onboarding.calibrationStart }}</text>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+        <view class="cn-cta">
+          <view class="cn-go cn-go--glow active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="phase = 'calibrating'">
+            <text class="cn-go__t">{{ t.onboarding.calibrationStart }}</text>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+          </view>
         </view>
       </view>
 
@@ -83,27 +85,25 @@
             <text class="cn-score__label" aria-hidden="true">{{ t.onboarding.scoreLabel }}</text>
           </view>
         </view>
-
-        <view class="cn-policy">
-          <view class="cn-policy__cap active:opacity-70" role="button" tabindex="0" :aria-expanded="rulesExpanded" @click="rulesExpanded = !rulesExpanded">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-            <text class="cn-policy__cap-t">{{ t.onboarding.policyTitle }}</text>
-            <svg class="cn-policy__chevron" :class="{ 'cn-policy__chevron--open': rulesExpanded }" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-          </view>
-          <view v-if="rulesExpanded" class="cn-policy__list">
-            <view v-for="(l, i) in policyLines" :key="i" class="cn-policy__line">
-              <view class="cn-policy__dot" />
-              <text class="cn-policy__t">{{ l }}</text>
-            </view>
+        <view class="cn-cta">
+          <view class="cn-go cn-go--on active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="activate">
+            <text class="cn-go__t cn-go__t--on">{{ activateText }}</text>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
           </view>
         </view>
       </view>
     </transition>
 
-    <view class="cn-cta">
-      <view v-if="phase === 'result'" class="cn-go cn-go--on active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="activate" @keydown.enter.prevent="activate" @keydown.space.prevent="activate">
-        <text class="cn-go__t cn-go__t--on">{{ activateText }}</text>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+    <view v-if="phase === 'result'" class="cn-policy" @click.stop>
+      <view v-if="rulesExpanded" id="cn-policy-details" class="cn-policy__list" role="tooltip">
+        <text class="cn-policy__title">{{ t.onboarding.policyTitle }}</text>
+        <view v-for="(l, i) in policyLines" :key="i" class="cn-policy__line">
+          <view class="cn-policy__dot" />
+          <text class="cn-policy__t">{{ l }}</text>
+        </view>
+      </view>
+      <view class="cn-policy__cap active:opacity-70" role="button" tabindex="0" :aria-label="t.onboarding.policyTitle" :aria-expanded="rulesExpanded" aria-controls="cn-policy-details" :aria-describedby="rulesExpanded ? 'cn-policy-details' : undefined" @click="rulesExpanded = !rulesExpanded">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><path d="M12 8h.01" /></svg>
       </view>
     </view>
   </StandalonePageShell>
@@ -132,6 +132,17 @@ const isRecal = ref(false);
 type Phase = "intro" | "calibrating" | "result";
 const phase = ref<Phase>("intro");
 const rulesExpanded = ref(false);
+function onRulesKeydown(event: KeyboardEvent) {
+  if (!rulesExpanded.value) return;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    rulesExpanded.value = false;
+    document.querySelector<HTMLElement>(".cn-policy__cap")?.focus();
+  } else if (event.key === "Tab") {
+    rulesExpanded.value = false;
+  }
+}
+if (typeof document !== "undefined") document.addEventListener("keydown", onRulesKeydown);
 
 const CALIBRATION_MS = 12_000;
 // This is an estimate from device information, not a hardware benchmark.
@@ -289,6 +300,7 @@ onLoad((options) => {
   if (o.mode === "recalibrate") isRecal.value = true;
 });
 onUnmounted(() => {
+  if (typeof document !== "undefined") document.removeEventListener("keydown", onRulesKeydown);
   motionQuery?.removeEventListener?.("change", updateReducedMotion);
   if (calInterval) clearInterval(calInterval);
   if (calTimeout) clearTimeout(calTimeout);
@@ -314,7 +326,7 @@ onUnmounted(() => {
 .cn-step { display: block; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--v5-brand); }
 .cn-title { display: block; font-family: var(--font-v5); margin-top: 4px; font-size: 20px; font-weight: 600; line-height: 1.25; color: var(--v5-ink); }
 .cn-sub { display: block; margin-top: 4px; font-size: 13px; color: var(--v5-ink-3); }
-.cn-phase { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.cn-phase { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
 
 .cn-why { background: var(--v5-surface); border-radius: 16px; padding: 16px; }
 .cn-why__h { display: block; font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-brand); }
@@ -355,17 +367,17 @@ onUnmounted(() => {
 @keyframes cn-aurora { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-4%, 3%) scale(1.07); } }
 @keyframes cn-ring-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.95; } }
 
-.cn-policy { border-radius: 16px; padding: 0 14px; background: color-mix(in oklab, var(--v5-warning) 8%, transparent); border: 1px solid color-mix(in oklab, var(--v5-warning) 22%, transparent); }
-.cn-policy__cap { min-height: 44px; display: flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-warning); }
-.cn-policy__cap-t { font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; letter-spacing: 0.16em; color: var(--v5-warning); }
-.cn-policy__chevron { margin-left: auto; flex-shrink: 0; }
-.cn-policy__chevron--open { transform: rotate(180deg); }
-.cn-policy__list { padding-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+.cn-policy { position: fixed; right: 20px; bottom: calc(env(safe-area-inset-bottom, 0px) + 38px); z-index: 20; }
+.cn-policy__cap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--v5-ink-3); }
+.cn-policy__cap[aria-expanded="true"] { background: var(--v5-surface); color: var(--v5-ink-2); }
+.cn-policy__list { position: absolute; right: 0; bottom: calc(100% + 10px); width: min(280px, calc(100vw - 40px)); box-sizing: border-box; padding: 16px; border-radius: 14px; background: var(--v5-surface-2); display: flex; flex-direction: column; gap: 8px; }
+.cn-policy__list::after { content: ""; position: absolute; right: 17px; bottom: -5px; width: 10px; height: 10px; background: var(--v5-surface-2); transform: rotate(45deg); }
+.cn-policy__title { display: block; margin-bottom: 2px; font-size: 12px; font-weight: 600; color: var(--v5-ink); }
 .cn-policy__line { display: flex; align-items: flex-start; gap: 6px; }
-.cn-policy__dot { flex-shrink: 0; margin-top: 6px; width: 4px; height: 4px; border-radius: 9999px; background: color-mix(in oklab, var(--v5-warning) 55%, transparent); }
+.cn-policy__dot { flex-shrink: 0; margin-top: 6px; width: 4px; height: 4px; border-radius: 9999px; background: var(--v5-ink-3); }
 .cn-policy__t { flex: 1; font-size: 12px; line-height: 1.375; color: var(--v5-ink-2); }
 
-.cn-cta { margin-top: auto; padding-top: 24px; }
+.cn-cta { margin-top: 14px; margin-bottom: 64px; flex-shrink: 0; }
 .cn-go { width: 100%; height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--v5-brand); transition: transform 0.15s ease; }
 .cn-go--glow { box-shadow: 0 0 24px color-mix(in oklab, var(--v5-brand) 35%, transparent); }
 .cn-go__t { font-size: 15px; font-weight: 600; color: var(--v5-on-brand); }

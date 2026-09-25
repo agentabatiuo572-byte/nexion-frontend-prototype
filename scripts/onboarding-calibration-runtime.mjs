@@ -14,7 +14,26 @@ const results = [];
 let server, browser;
 const labels = { en: "Device assessment", zh: "设备能力评估", vi: "Đánh giá thiết bị" };
 const resultTitles = { en: "Check complete", zh: "校验完成", vi: "Kiểm tra hoàn tất" };
+const policyLabels = { en: "Task acceptance rules", zh: "任务接取规则", vi: "Quy tắc nhận nhiệm vụ" };
 const removedDetails = ".cn-test__metric, .cn-summary, .cn-row, .cn-score__tier, .cn-score__yield";
+
+async function checkCtaPlacement(page, contentSelector) {
+  // Measure before any locator action can scroll an otherwise hidden button into view.
+  const geometry = await page.locator(".cn-root").evaluate((root, selector) => {
+    const button = root.querySelector(".cn-cta .cn-go").getBoundingClientRect();
+    const content = root.querySelector(selector).getBoundingClientRect();
+    return { button: button.toJSON(), contentGap: button.top - content.bottom,
+      bottomGap: innerHeight - button.bottom, viewportWidth: innerWidth, viewportHeight: innerHeight,
+      scrollTop: root.scrollTop, pageScrollY: scrollY, width: root.clientWidth, scrollWidth: root.scrollWidth };
+  }, contentSelector);
+  assert.equal(geometry.scrollTop, 0, "CTA must be available without scrolling its page");
+  assert.equal(geometry.pageScrollY, 0);
+  assert.ok(geometry.button.top >= 0 && geometry.button.bottom <= geometry.viewportHeight && geometry.button.left >= 0 && geometry.button.right <= geometry.viewportWidth, "CTA must be fully visible initially");
+  assert.ok(geometry.button.height >= 44 && geometry.bottomGap >= 96, "CTA must sit meaningfully above the screen bottom");
+  assert.ok(geometry.contentGap >= 22 && geometry.contentGap <= 26, `CTA must follow content by 24px, got ${geometry.contentGap}`);
+  assert.ok(geometry.scrollWidth <= geometry.width + 1, "page must not overflow horizontally");
+  return geometry;
+}
 
 async function checkScoreMotion(page, reduced = false) {
   // Sample rendered SVG geometry, not the unchanged SMIL base d attribute.
@@ -75,8 +94,8 @@ async function checkIntro(page, locale) {
   assert.equal(await page.locator(`.cn-test, .cn-score, ${removedDetails}`).count(), 0);
   assert.ok((await page.locator(".cn-title").innerText()).trim());
   assert.equal(await page.evaluate(() => uni.getStorageSync("nexgrid-locale-v1").code), locale);
-  const geometry = await page.locator(".cn-root").evaluate(el => ({ width: el.clientWidth, scrollWidth: el.scrollWidth }));
-  assert.ok(geometry.scrollWidth <= geometry.width + 1, "calibration has horizontal overflow");
+  assert.equal(await page.locator(".cn-policy").count(), 0, "rules icon is result-only");
+  return checkCtaPlacement(page, ".cn-why");
 }
 
 async function persistedState(page) {
@@ -127,7 +146,7 @@ async function runCase(base, { locale, mode, width, height }) {
     await page.evaluate(async locale => (await import("/src/store/locale.ts")).useLocaleStore().setLocale(locale), locale);
     const connect = `${base}/?nx_device_inner=1#/pages/onboarding/connect${mode === "recalibrate" ? "?mode=recalibrate" : ""}`;
     await page.goto(connect, { waitUntil: "domcontentloaded" });
-    await checkIntro(page, locale);
+    result.introGeometry = await checkIntro(page, locale);
     await page.locator(".cn-back").press("Enter");
     await page.waitForURL(mode === "first" ? /#\/pages\/onboarding\/estimator/ : /#\/pages\/me\/devices/);
     result.backExit = true;
@@ -191,6 +210,7 @@ async function runCase(base, { locale, mode, width, height }) {
     await page.locator(".cn-go--glow").press("Enter");
     await page.locator(".cn-test").first().waitFor();
     assert.equal(await page.locator(".cn-test").count(), 1, "only device assessment may appear");
+    assert.equal(await page.locator(".cn-policy").count(), 0, "rules icon must stay hidden during calibration");
     assert.equal((await page.locator(".cn-test").innerText()).trim(), labels[locale], "calibration card must have no numeric metrics");
     await page.waitForFunction(() => parseFloat(document.querySelector(".cn-test__fill")?.style.width || "0") >= 45);
     assert.equal(await page.locator(`.cn-score, ${removedDetails}`).count(), 0, "calibration must show progress without scores or throughput");
@@ -221,34 +241,75 @@ async function runCase(base, { locale, mode, width, height }) {
     assert.equal(await page.locator(".cn-score__d").innerText(), "/100");
     assert.deepEqual((await page.locator(".cn-score").innerText()).match(/\d+(?:\.\d+)?/g), [String(result.expected.score), "100"], "score must be the only numeric result");
     assert.doesNotMatch(await page.locator(".cn-phase").innerText(), /\b(?:TOPS|TFLOPS|Tier|yield)\b|万亿|运算\/秒|每秒|\$\s*\d|\/d\b/iu);
+    result.resultGeometry = await checkCtaPlacement(page, ".cn-score");
     const policy = page.locator(".cn-policy__cap");
+    const bubble = page.locator(".cn-policy__list");
+    const expectClosed = async () => {
+      await bubble.waitFor({ state: "detached" });
+      assert.equal(await policy.getAttribute("aria-expanded"), "false");
+    };
     assert.equal(await policy.getAttribute("role"), "button");
     assert.equal(await policy.getAttribute("tabindex"), "0");
     assert.equal(await policy.getAttribute("aria-expanded"), "false");
-    assert.equal(await page.locator(".cn-policy__list").count(), 0, "rules must start collapsed");
+    assert.equal(await policy.getAttribute("aria-label"), policyLabels[locale]);
+    assert.equal(await policy.getAttribute("aria-controls"), "cn-policy-details");
+    assert.equal((await policy.innerText()).trim(), "", "trigger must be an icon without visible title text");
+    assert.equal(await policy.locator("svg").count(), 1);
+    assert.equal(await bubble.count(), 0, "rules must start collapsed");
+    result.policyIcon = await policy.boundingBox();
+    assert.ok(result.policyIcon.width >= 44 && result.policyIcon.width <= 46 && result.policyIcon.height >= 44 && result.policyIcon.height <= 46, "info icon needs a 44px tap target");
+    assert.ok(Math.abs(width - result.policyIcon.x - result.policyIcon.width - 20) <= 1, "info icon must sit 20px from the right edge");
+    assert.ok(Math.abs(height - result.policyIcon.y - result.policyIcon.height - 38) <= 1, "info icon must sit above the 38px bottom safe reserve");
     await policy.click();
-    await page.locator(".cn-policy__list").waitFor();
+    await bubble.waitFor();
     assert.equal(await policy.getAttribute("aria-expanded"), "true");
+    assert.equal(await bubble.getAttribute("id"), "cn-policy-details");
+    assert.equal(await bubble.getAttribute("role"), "tooltip");
+    assert.ok((await bubble.innerText()).includes(policyLabels[locale]), "bubble must include its localized title");
+    assert.equal(await page.locator('.cn-policy [role="dialog"], .cn-policy [aria-modal="true"]').count(), 0, "rules must not become a modal");
     assert.equal(await page.locator(".cn-policy__line").count(), 3);
     result.policyLines = await page.locator(".cn-policy__t").allTextContents();
     assert.match(result.policyLines[0], /20\s*%/);
     assert.doesNotMatch(result.policyLines.join(" "), /Charging is required|充电是硬性门槛|Bắt buộc phải sạc/i);
+    result.policyBubble = await bubble.boundingBox();
+    assert.ok(result.policyBubble.x >= 0 && result.policyBubble.y >= 0 && result.policyBubble.x + result.policyBubble.width <= width && result.policyBubble.y + result.policyBubble.height <= result.policyIcon.y, "bubble must fit the viewport above its trigger");
+    const openCta = await page.locator(".cn-go--on").boundingBox();
+    for (const key of ["x", "y", "width", "height"]) assert.ok(Math.abs(openCta[key] - result.resultGeometry.button[key]) <= 1, "opening rules must not move the CTA");
+    await page.locator(".cn-policy__t").first().click();
+    assert.equal(await policy.getAttribute("aria-expanded"), "true", "clicking bubble text must keep it open");
     await screenshot("rules-expanded");
-    await policy.press("Enter");
-    await page.locator(".cn-policy__list").waitFor({ state: "detached" });
-    assert.equal(await policy.getAttribute("aria-expanded"), "false");
-    await policy.press("Space");
-    await page.locator(".cn-policy__list").waitFor();
-    assert.equal(await policy.getAttribute("aria-expanded"), "true");
     await policy.click();
-    await page.locator(".cn-policy__list").waitFor({ state: "detached" });
-    assert.equal(await policy.getAttribute("aria-expanded"), "false");
-    await page.locator(".cn-go--on").scrollIntoViewIfNeeded();
-    const geometry = await page.locator(".cn-root").evaluate(element => ({ width: element.clientWidth, scrollWidth: element.scrollWidth }));
-    assert.ok(geometry.scrollWidth <= geometry.width + 1, "result must not overflow horizontally");
+    await expectClosed();
+    await policy.press("Enter");
+    await bubble.waitFor();
+    await page.keyboard.press("Escape");
+    await expectClosed();
+    assert.ok(await policy.evaluate(element => element === document.activeElement), "Escape must retain trigger focus");
+    await policy.press("Space");
+    await bubble.waitFor();
+    await page.keyboard.press("Shift+Tab");
+    await expectClosed();
+    assert.ok(await page.evaluate(() => !document.querySelector(".cn-policy").contains(document.activeElement)), "focus must be free to leave the policy");
+    await policy.press("Enter");
+    await bubble.waitFor();
+    await page.keyboard.press("Tab");
+    await expectClosed();
+    assert.ok(await page.evaluate(() => !document.querySelector(".cn-policy").contains(document.activeElement)), "Tab must not trap focus in the policy");
+    await policy.click();
+    await bubble.waitFor();
+    await page.locator(".cn-title").click();
+    await expectClosed();
+    assert.match(page.url(), /#\/pages\/onboarding\/connect(?:\?|$)/, "policy interaction must not navigate or activate");
+    assert.equal((await persistedState(page)).calibratedDeviceMatches, false, "policy interaction must not apply calibration");
+    await checkCtaPlacement(page, ".cn-score");
     await page.locator(".cn-go--on").click({ trial: true });
     await screenshot("result");
-    if (locale === "en" && width === 320) await policy.click();
+    if (locale === "en" && width === 320) {
+      await policy.click();
+      await bubble.waitFor();
+      await page.keyboard.press("Escape");
+      await expectClosed();
+    }
     await page.locator(".cn-go--on").click();
     await page.waitForURL(/#\/$|#\/pages\/index\/index/);
     result.afterActivation = await persistedState(page);
