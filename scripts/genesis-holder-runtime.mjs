@@ -61,7 +61,9 @@ async function layout(page, selector, theme) {
     const controls = [...root.querySelectorAll('[role="button"]')].filter(e => e.getClientRects().length);
     const label = [...root.querySelectorAll("uni-text")].filter(e => e.getClientRects().length);
     return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth,
-      overflow: [...root.querySelectorAll("*")].filter(e => e.getClientRects().length && e.getBoundingClientRect().width > 0
+      // SVG bounds include the unpainted area outside the inward bloom's clip path.
+      // Keep checking its outer SVG box, page width, and all visible content.
+      overflow: [...root.querySelectorAll("*")].filter(e => !e.closest('.gh-corner [clip-path]') && e.getClientRects().length && e.getBoundingClientRect().width > 0
         && (e.getBoundingClientRect().right > innerWidth + 1 || e.getBoundingClientRect().left < -1)).map(e => e.className).slice(0, 10),
       targets: controls.map(e => ({ width: e.getBoundingClientRect().width, height: e.getBoundingClientRect().height, label: e.getAttribute("aria-label") || e.textContent })),
       fonts: label.map(e => parseFloat(getComputedStyle(e).fontSize)),
