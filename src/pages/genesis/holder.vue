@@ -296,15 +296,15 @@ const perkColors = { a: "var(--v5-warning)", b: "var(--v5-tech-cyan)", c: "var(-
 .gh-page { padding-bottom: 32px; color: var(--v5-ink); font-family: var(--font-v5); }
 .gh-content { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .gh-surface { background: color-mix(in srgb, var(--v5-surface) 96%, transparent); border-radius: var(--v5-radius-xl); padding: 16px; }
-/* The extracted artwork is a fixed dark surface in both page themes. */
-.gh-hero { --gh-logo-width: 128px; --v5-brand: var(--brand); --v5-surface: var(--bg-card); --v5-surface-2: var(--bg-card-2); --v5-ink-3: color-mix(in srgb, var(--text) 65%, transparent); --v5-border: color-mix(in srgb, var(--text) 6%, transparent); --v5-border-strong: color-mix(in srgb, var(--text) 12%, transparent); --v5-genesis-gold: var(--v5-genesis-gold-on-dark); position: relative; padding: 12px 20px 16px; border-radius: 18px; isolation: isolate; color: var(--text); background: var(--bg-card); }
-/* Transparent margins preserve the source's outer glow around the card edge. */
-.gh-hero::before { content: ""; position: absolute; inset: -13px -9px -12px; z-index: -1; pointer-events: none; background: url("/static/img/genesis/holder-card-background.png") center / 100% 100% no-repeat; }
+/* Keep the approved art's rim bright while its body reveals the stationary page texture. */
+.gh-hero { --gh-logo-width: 128px; position: relative; padding: 12px 20px 16px; border-radius: 18px; background: transparent; }
+.gh-hero::before, .gh-hero::after { content: ""; position: absolute; inset: -15.625% -2.586% -16.071%; z-index: 0; pointer-events: none; background: url("/static/img/genesis/holder-card-glass.png") center / 100% 100% no-repeat; }
+.gh-hero::before { opacity: 0.44; }
+.gh-hero::after { mask-image: linear-gradient(to bottom, black 12%, transparent 16%, transparent 84%, black 88%), linear-gradient(to right, black 3%, transparent 5%, transparent 95%, black 97%); mix-blend-mode: screen; }
+:global(html[data-theme="light"] .gh-hero::before) { opacity: 0.16; }
 .gh-identity, .gh-summary, .gh-stats, .gh-emissions { position: relative; z-index: 1; }
 .gh-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-bottom: 12px; }
 .gh-identity :deep(.uvel-brand) { width: var(--gh-logo-width); height: 44px; }
-.gh-hero .gh-identity :deep(.uvel-brand__dark) { display: block; }
-.gh-hero .gh-identity :deep(.uvel-brand__light) { display: none; }
 .gh-identity :deep(.genesis-holder-badge) { max-width: calc(100% - var(--gh-logo-width) - 12px); gap: 8px; padding: 5px 12px; min-height: 36px; border: 1px solid color-mix(in srgb, var(--v5-genesis-gold) 80%, transparent); font-size: 14px; font-weight: 600; line-height: 1.3; background: color-mix(in srgb, var(--v5-genesis-gold) 5%, transparent); }
 .gh-identity :deep(.genesis-holder-badge svg) { width: 24px; height: 24px; }
 .gh-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; }

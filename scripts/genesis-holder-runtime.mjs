@@ -41,6 +41,15 @@ async function themeAndLocale(page, theme, locale) {
     (await import("/src/store/locale.ts")).useLocaleStore().setLocale(locale);
   }, { theme, locale });
 }
+async function cardFrameAlignment(page) {
+  const edges = await page.locator('.gh-hero').evaluate(e => {
+    const card = e.getBoundingClientRect(), art = getComputedStyle(e, '::before');
+    const top = parseFloat(art.top), height = parseFloat(art.height);
+    // Visible gold edge bounds in the approved PNG, excluding its transparent halo margins.
+    return { top: top + height * .1172, bottom: top + height * .879 - card.height };
+  });
+  assert.ok(Math.abs(edges.top) < 2 && Math.abs(edges.bottom) < 2, 'art frame fits the current content height: ' + JSON.stringify(edges));
+}
 async function layout(page, selector, theme) {
   const shape = await page.locator(selector).evaluate(root => {
     const controls = [...root.querySelectorAll('[role="button"]')].filter(e => e.getClientRects().length);
@@ -125,6 +134,10 @@ async function runCase(base, locale, theme) {
       const rect = e.getBoundingClientRect();
       return { width: rect.width, height: rect.height,
         artwork: getComputedStyle(e, '::before').backgroundImage,
+        background: getComputedStyle(e).backgroundColor,
+        washOpacity: Number(getComputedStyle(e, '::before').opacity),
+        edgeOpacity: Number(getComputedStyle(e, '::after').opacity),
+        edgeMask: getComputedStyle(e, '::after').maskImage,
         text: getComputedStyle(e).color,
         brand: getComputedStyle(e.querySelector('.gh-brand')).color,
         logo: getComputedStyle(e.querySelector('.uvel-brand__dark')).display,
@@ -135,16 +148,41 @@ async function runCase(base, locale, theme) {
       assert.ok(Math.abs(composition.width - 348) < 1 && Math.abs(composition.height - 224) < 2, "reference card proportions: " + JSON.stringify(composition));
       assert.equal(await page.locator('.gh-summary .gh-label').allTextContents().then(v => v.join('|')), '持有席位|优先额度');
     }
-    assert.ok(composition.artwork.includes('holder-card-background.png'), "extracted reference artwork is actually rendered");
-    assert.equal(composition.text, 'rgb(255, 255, 255)', "light text on the fixed black card in both themes");
-    assert.equal(composition.brand, 'rgb(158, 220, 29)', "original lime figures on the fixed black card");
-    assert.equal(composition.logo, 'block', "white wordmark remains visible in both themes");
-    const cardResponse = await page.request.get(base + '/static/img/genesis/holder-card-background.png');
+    assert.ok(composition.artwork.includes('holder-card-glass.png'), "approved gradient-corner art is actually rendered");
+    assert.equal(composition.background, 'rgba(0, 0, 0, 0)', "no opaque backing behind the tinted artwork");
+    assert.ok(composition.washOpacity > 0 && composition.washOpacity < .5, "visible partial tint, not opaque or fully clear");
+    assert.equal(composition.edgeOpacity, 1, "corner highlights are not faded with the body");
+    assert.ok(composition.edgeMask.includes('linear-gradient'), "full-strength artwork is restricted to the rim");
+    assert.equal(composition.text, theme === 'dark' ? 'rgb(245, 247, 250)' : 'rgb(19, 20, 26)', "readable themed text through clear card");
+    assert.equal(composition.brand, theme === 'dark' ? 'rgb(158, 220, 29)' : 'rgb(14, 72, 230)');
+    assert.equal(composition.logo, theme === 'dark' ? 'block' : 'none', "wordmark follows the visible page theme");
+    const cardResponse = await page.request.get(base + '/static/img/genesis/holder-card-glass.png');
     assert.equal(cardResponse.status(), 200);
     assert.ok((await cardResponse.body()).length > 10_000, "extracted artwork has real pixels");
+    const interiorAlpha = await page.evaluate(async () => {
+      const image = new Image();
+      image.src = '/static/img/genesis/holder-card-glass.png';
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(image, 0, 0);
+      const pixels = ctx.getImageData(Math.floor(canvas.width * .2), Math.floor(canvas.height * .2), Math.floor(canvas.width * .35), Math.floor(canvas.height * .5)).data;
+      let alpha = 0;
+      for (let i = 3; i < pixels.length; i += 4) alpha += pixels[i];
+      return alpha / (pixels.length / 4) / 255;
+    });
+    assert.ok(interiorAlpha * composition.washOpacity > .05 && interiorAlpha * composition.washOpacity < .5, 'composited center is partially transparent');
     assert.equal(composition.badgeBorder, "1px", "outlined identity badge");
     assert.notEqual(composition.divider, "none", "reference column dividers exist");
+    await cardFrameAlignment(page);
     await hero.screenshot({ animations: "disabled", path: resolve(artifacts, name + "-hero-reference.png") });
+    const scrollState = await page.locator('.nx-scroll').evaluate(e => ({ scroll: e.scrollTop, cardY: e.querySelector('.gh-hero').getBoundingClientRect().top, pageY: e.closest('.gh-chassis').getBoundingClientRect().top }));
+    await page.locator('.nx-scroll').evaluate(e => { e.scrollTop += 70; });
+    await page.screenshot({ animations: "disabled", path: resolve(artifacts, name + '-transparent-scroll.png') });
+    const scrolled = await page.locator('.nx-scroll').evaluate(e => ({ scroll: e.scrollTop, cardY: e.querySelector('.gh-hero').getBoundingClientRect().top, pageY: e.closest('.gh-chassis').getBoundingClientRect().top }));
+    assert.ok(scrolled.scroll - scrollState.scroll >= 69 && scrollState.cardY - scrolled.cardY >= 69, 'card scrolls over the page texture');
+    assert.equal(scrolled.pageY, scrollState.pageY, 'page texture stays behind the moving clear card');
+    await page.locator('.nx-scroll').evaluate((e, top) => { e.scrollTop = top; }, scrollState.scroll);
     const grid = await page.locator('.gh-perk-grid').evaluate(e => ({
       columns: getComputedStyle(e).gridTemplateColumns.split(' ').length,
       rows: getComputedStyle(e).gridTemplateRows.split(' ').length,
@@ -184,6 +222,7 @@ async function runCase(base, locale, theme) {
     assert.equal(await page.locator(".gh-hero .genesis-holder-badge").count(), 1, "post-listing retains identity");
     assert.equal(await page.locator(".gh-progress").count(), 0);
     assert.equal(await page.locator(".gh-feed").count(), 1);
+    await cardFrameAlignment(page);
     await layout(page, ".gh-page", theme);
     await page.screenshot({ path: resolve(artifacts, name + "-post-listing.png") });
     await page.reload({ waitUntil: "domcontentloaded" });
