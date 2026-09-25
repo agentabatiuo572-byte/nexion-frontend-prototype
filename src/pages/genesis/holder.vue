@@ -103,6 +103,7 @@
             </view>
           </view>
           <view class="gh-boost" role="button" tabindex="0" @click="goStaking" @keydown.enter.prevent="goStaking" @keydown.space.prevent="goStaking">{{ dividendsOpen ? t.genesisHolder.post.boostCta : t.genesisHolder.pre.boostCta }}</view>
+          <view class="gh-link gh-how" role="button" tabindex="0" @click="goHowItWorks" @keydown.enter.prevent="goHowItWorks" @keydown.space.prevent="goHowItWorks">{{ t.genesisHolder.pre.howLink }}</view>
         </template>
       </view>
     </view>
@@ -262,6 +263,9 @@ function goMarketplace() {
 function goStaking() {
   uni.navigateTo({ url: "/pages/staking/staking", fail: () => {} });
 }
+function goHowItWorks() {
+  uni.navigateTo({ url: "/pages/genesis/how-it-works", fail: () => {} });
+}
 
 const displayedLeaderboard = computed(() => remoteApiEnabled ? remoteLeaderboard.value : leaderboard.value);
 </script>
@@ -302,6 +306,7 @@ const displayedLeaderboard = computed(() => remoteApiEnabled ? remoteLeaderboard
 .gh-heading::after { content: ""; width: 40px; height: 1px; flex-shrink: 0; background: linear-gradient(90deg, var(--v5-genesis-gold), transparent); }
 .gh-title { display: block; font-size: var(--v5-type-body-m); font-weight: 600; line-height: 1.5; }
 .gh-link { color: var(--v5-brand); font-size: var(--v5-type-body-s); }
+.gh-how { display: flex; align-items: center; justify-content: center; align-self: center; min-height: 44px; padding: 0 12px; text-align: center; }
 .gh-section-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .gh-chip { padding: 4px 8px; border-radius: var(--v5-radius-full); color: var(--v5-brand); background: var(--v5-brand-soft); font-size: var(--v5-type-caption); }
 .gh-rank { display: flex; gap: 12px; align-items: center; padding: 8px; font-size: var(--v5-type-body-s); }

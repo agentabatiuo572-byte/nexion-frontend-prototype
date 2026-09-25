@@ -113,6 +113,24 @@ async function staticPerks(page) {
   assert.deepEqual(perks.clipped, [], 'benefit titles and descriptions remain visible without clipping or truncation');
   return perks;
 }
+async function emissionGuide(page, activation) {
+  const copy = await page.evaluate(async () => {
+    const t = (await import('/src/i18n/use-t.ts')).getT();
+    return { label: t.genesisHolder.pre.howLink, title: t.genesisHowItWorks.heroTitle };
+  });
+  const link = page.locator('.gh-how');
+  assert.equal(await link.count(), 1, 'emission explanation remains available independently of listing progress');
+  assert.equal(await link.innerText(), copy.label);
+  assert.ok(await link.evaluate(e => e.parentElement.classList.contains('gh-content') && !e.nextElementSibling
+    && e.previousElementSibling.classList.contains('gh-boost')), 'explanation is the final action at the page bottom');
+  if (activation === 'click') await link.click();
+  else await link.press(activation);
+  await page.waitForURL(/#\/pages\/genesis\/how-it-works$/);
+  await page.getByText(copy.title, { exact: true }).waitFor();
+  await page.goBack();
+  await page.waitForURL(/#\/pages\/genesis\/holder$/);
+  await link.waitFor();
+}
 async function runCase(base, locale, theme) {
   const name = locale + "-" + theme;
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -265,6 +283,7 @@ async function runCase(base, locale, theme) {
     assert.equal((await state(page)).owned, 1, "purchase persists after reload");
     assert.equal((await state(page)).purchases, after.purchases, "reload creates no duplicate receipt");
     assert.equal(await page.locator(".gh-emissions").count(), 0, "pre-listing never shows released funds");
+    await emissionGuide(page, theme === 'dark' ? 'click' : 'Enter');
     await page.evaluate(async () => (await import("/src/store/genesis.ts")).useGenesis().setNexListed(true, Date.now()));
     await page.locator(".gh-emissions").waitFor();
     assert.equal(await page.locator(".gh-hero .genesis-holder-badge").count(), 1, "post-listing retains identity");
@@ -276,6 +295,7 @@ async function runCase(base, locale, theme) {
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator(".gh-emissions").waitFor();
 
+    await emissionGuide(page, 'Space');
     // Arabic currently falls back to English. Stress RTL layout in this isolated
     // fixture; the app itself does not yet apply a document direction globally.
     await themeAndLocale(page, theme, "ar");

@@ -6,7 +6,7 @@ The holder card directly displays the raster backgrounds `src/static/img/genesis
 
 The transparent `vip-card-aura.png` supplies the visible champagne-gold bloom and soft shadow. A single non-interactive pseudo-element uses nine-slice `border-image` without a center fill; the original card artwork and live content remain clear. Fixed corner scaling preserves the light shape as post-listing content increases the card height. CSS-generated shadows, old SVG corners and masks are absent. The lighting PNG is copied byte-for-byte from the built-in imagegen output; its central opening and outer corners contain real alpha transparency.
 
-The six seat benefits form a static two-column description section. Each benefit displays a plain gold icon, its existing localized title and its complete description. Individual benefits have no button styling, focus target or activation handler; all descriptions are readable without opening a dialog. Separate purchase, marketplace and staking actions remain interactive.
+The six seat benefits form a static two-column description section. Each benefit displays a plain gold icon, its existing localized title and its complete description. Individual benefits have no button styling, focus target or activation handler; all descriptions are readable without opening a dialog. Separate purchase, marketplace and staking actions remain interactive. An emissions explanation link at the page bottom opens `/pages/genesis/how-it-works` both before and after listing, independently of the removed listing-progress display.
 
 Asset provenance: the backgrounds were generated with the built-in imagegen tool. The tool does not expose the exact model identifier.
 
