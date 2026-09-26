@@ -9,7 +9,7 @@ import { interruptInfo } from "./interrupt";
 import { continuityFactor, thermalFactor, isDeviceOnline } from "@/lib/hashpower";
 import { phoneRuntimePauseReason } from "@/lib/phone-runtime";
 import { getDeviceId } from "@/lib/device-id";
-import { readAccountSessionRecords, readCalibratedInstallation } from "@/store/session";
+import { readAccountSessionRecordsStrict, readCalibratedInstallation } from "@/store/session";
 import { matchesPhoneBinding, phoneReplacementError, stopPhoneTask, type PhoneBinding, type PhoneActivationError } from "@/lib/phone-policy";
 import { accountTotalHashrate } from "@/lib/account-hashrate";
 import { getCarrier, type Carrier } from "@/lib/carrier";
@@ -366,13 +366,14 @@ export function settleDeviceBatch(
   onlineBonus: OnlineBonus,
   computeShareEnabled: boolean,
   residentDeviceId?: string,
+  phoneSessionKnown = true,
 ): { settled: Device[]; nextDevices: Device[] } {
   const settled = current.map((device) =>
-    device.kind === "pc-gpu" && !computeShareEnabled
+    device.kind === "phone" && !phoneSessionKnown ? device : device.kind === "pc-gpu" && !computeShareEnabled
       ? freezeComputeShareDevice(device)
       : settleDevice(device, now, onlineBonus),
   );
-  const nextDevices = carrier === "app"
+  const nextDevices = carrier === "app" && phoneSessionKnown
     ? settled.map((device) =>
         device.kind === "phone" &&
         device.id === residentDeviceId &&
@@ -973,7 +974,9 @@ export const useApp = defineStore("app", () => {
 
       // Phone battery + network gating
       if (d.kind === "phone") {
-        if (!phoneExecutionAllowed(d)) return stopPhoneTask(d);
+        const allowed = phoneExecutionAllowed(d);
+        if (allowed === null) return d;
+        if (!allowed) return stopPhoneTask(d);
         // H5 observes fresh APP work; it never runs or completes phone tasks.
         if (getCarrier() !== "app" || d.phoneInstallationId !== getDeviceId()) return d;
         const reason = phoneRuntimePauseReason(d);
@@ -1099,6 +1102,7 @@ export const useApp = defineStore("app", () => {
       onlineBonus,
       computeShareEnabled.value,
       residentPhoneDeviceId(),
+      !phoneBinding.value || liveAppSession(phoneBinding.value.installationId) !== null,
     );
     // Only a delta that was already backed by a fresh device heartbeat counts
     // as App online attestation. A stale reopen tick is baseline and attests 0.
@@ -1235,12 +1239,15 @@ export const useApp = defineStore("app", () => {
       && (cfg.syncFailed || cfg.loading)) return "config-unavailable";
     const error = phoneReplacementError(phoneBinding.value, getDeviceId(), getCarrier(), cfg.config.phoneBinding, mockServerNow());
     if (error) return error;
-    return liveAppSession(getDeviceId()) ? null : "reauth-required";
+    const live = liveAppSession(getDeviceId());
+    return live === null ? "storage-failed" : live ? null : "reauth-required";
   }
 
-  function liveAppSession(installationId: string): boolean {
+  function liveAppSession(installationId: string): boolean | null {
     const now = Date.now();
-    return readAccountSessionRecords(accountKey.value).some((s) => s.entrySurface === "signed-app"
+    const records = readAccountSessionRecordsStrict(accountKey.value);
+    if (records === null) return null;
+    return records.some((s) => s.entrySurface === "signed-app"
       && s.deviceId === installationId && now >= s.lastSeenAt && now - s.lastSeenAt < 180000);
   }
 
@@ -1250,9 +1257,10 @@ export const useApp = defineStore("app", () => {
     return liveAppSession(binding.installationId) ? binding.deviceId : undefined;
   }
 
-  function phoneExecutionAllowed(d: Device): boolean {
+  function phoneExecutionAllowed(d: Device): boolean | null {
     if (!matchesPhoneBinding(d, phoneBinding.value) || phoneBinding.value?.suspendedAt !== null) return false;
-    if (!liveAppSession(phoneBinding.value!.installationId)) return false;
+    const live = liveAppSession(phoneBinding.value!.installationId);
+    if (live !== true) return live;
     return d.id === residentPhoneDeviceId() || isDeviceOnline(d, Date.now());
   }
 
@@ -1265,8 +1273,12 @@ export const useApp = defineStore("app", () => {
       // the phone counters would count remote earnings again as local income.
       adoptAccountSnapshot(latest);
     }
-    devices.value = devices.value.map((d) => d.kind === "phone" && (!phoneExecutionAllowed(d)
-      || (d.onlineHeartbeatAt != null && !isDeviceOnline(d, Date.now()) && d.interruptedAt == null)) ? stopPhoneTask(d) : d);
+    devices.value = devices.value.map((d) => {
+      if (d.kind !== "phone") return d;
+      const allowed = phoneExecutionAllowed(d);
+      if (allowed === null) return d;
+      return !allowed || (d.onlineHeartbeatAt != null && !isDeviceOnline(d, Date.now()) && d.interruptedAt == null) ? stopPhoneTask(d) : d;
+    });
   }
 
   // Only a completed, explicit authentication calls this. onShow/session refresh
@@ -1434,7 +1446,9 @@ export const useApp = defineStore("app", () => {
     if (device.kind !== "phone") return null;
     if (getCarrier() !== "app") return "web-only";
     if (!matchesPhoneBinding(device, phoneBinding.value) || device.phoneInstallationId !== getDeviceId()) return "device-mismatch";
-    if (phoneBinding.value?.suspendedAt !== null || !liveAppSession(getDeviceId())) return "reauth-required";
+    const live = liveAppSession(getDeviceId());
+    if (live === null) return "storage-failed";
+    if (phoneBinding.value?.suspendedAt !== null || !live) return "reauth-required";
     return null;
   }
 
