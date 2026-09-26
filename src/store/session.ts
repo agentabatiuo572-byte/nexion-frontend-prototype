@@ -56,14 +56,17 @@ export interface SessionListItem {
   entrySurface: EntrySurface;
 }
 
-function readRegistry(): SessionRegistry {
+function readRegistryStrict(): SessionRegistry | null {
   try {
     const r = uni.getStorageSync(SESSION_REGISTRY_KEY) as SessionRegistry | "";
-    if (r && typeof r === "object" && r.schema === 1 && r.sessions) return r;
+    if (!r) return { schema: 1, sessions: {} };
+    if (typeof r === "object" && r.schema === 1 && r.sessions && !Array.isArray(r.sessions)
+      && typeof r.sessions === "object" && Object.values(r.sessions).every(s => s && typeof s.accountKey === "string"
+        && typeof s.deviceId === "string" && typeof s.entrySurface === "string" && Number.isFinite(s.lastSeenAt))) return r;
   } catch {
-    // first run
+    // Unknown is not evidence that an existing APP session was revoked.
   }
-  return { schema: 1, sessions: {} };
+  return null;
 }
 
 function writeRegistry(registry: SessionRegistry): void {
@@ -106,8 +109,14 @@ function writeCalibratedMap(m: Record<string, string>): void {
 }
 
 export function readAccountSessionRecords(accountKey: string): AccountSessionRecord[] {
+  return readAccountSessionRecordsStrict(accountKey) ?? [];
+}
+
+export function readAccountSessionRecordsStrict(accountKey: string): AccountSessionRecord[] | null {
   const key = normalizeAccountKey(accountKey);
-  return Object.values(readRegistry().sessions)
+  const registry = readRegistryStrict();
+  if (!registry) return null;
+  return Object.values(registry.sessions)
     .filter((s) => s.accountKey === key && !s.endedAt && !s.killedAt)
     .sort((a, b) => b.lastSeenAt - a.lastSeenAt);
 }
@@ -173,13 +182,20 @@ export const useSession = defineStore("session", () => {
   }
 
   function writeSession(rec: AccountSessionRecord): void {
-    const registry = readRegistry();
+    const registry = readRegistryStrict();
+    if (!registry) return;
     registry.sessions[rec.sessionId] = rec;
     writeRegistry(registry);
     bump();
   }
 
   function claim(rawAccountKey: string, surface: EntrySurface = getEntrySurface()): { requiresRecalibration: boolean } {
+    const registry = readRegistryStrict();
+    if (!registry) {
+      sessionId.value = "";
+      status.value = "logged-out";
+      return { requiresRecalibration: false };
+    }
     forgetLegacyActiveRecord();
     const id = getDeviceIdentity();
     const key = normalizeAccountKey(rawAccountKey);
@@ -194,7 +210,6 @@ export const useSession = defineStore("session", () => {
     status.value = "active";
     kickedReason.value = null;
 
-    const registry = readRegistry();
     endSameDeviceSessions(registry, key, id.deviceId, surface, sid, now);
     registry.sessions[sid] = {
       sessionId: sid,
@@ -222,7 +237,8 @@ export const useSession = defineStore("session", () => {
     forgetLegacyActiveRecord();
     const id = getDeviceIdentity();
     const key = normalizeAccountKey(rawAccountKey);
-    const registry = readRegistry();
+    const registry = readRegistryStrict();
+    if (!registry) return { requiresRecalibration: requiresRecalibration.value, status: status.value };
     const matches = Object.values(registry.sessions)
       .filter((s) => s.accountKey === key && s.deviceId === id.deviceId && s.entrySurface === surface)
       .sort((a, b) => sessionSeenAt(b) - sessionSeenAt(a));
@@ -265,7 +281,8 @@ export const useSession = defineStore("session", () => {
       status.value = "active";
       return "active";
     }
-    const registry = readRegistry();
+    const registry = readRegistryStrict();
+    if (!registry) return status.value;
     const rec = registry.sessions[sessionId.value];
     if (!rec) {
       status.value = "logged-out";
@@ -298,9 +315,9 @@ export const useSession = defineStore("session", () => {
   }
 
   function signOutSession(): void {
-    const registry = readRegistry();
-    const rec = registry.sessions[sessionId.value];
-    if (rec) {
+    const registry = readRegistryStrict();
+    const rec = registry?.sessions[sessionId.value];
+    if (registry && rec) {
       registry.sessions[sessionId.value] = { ...rec, endedAt: Date.now() };
       writeRegistry(registry);
     }
@@ -311,7 +328,8 @@ export const useSession = defineStore("session", () => {
   }
 
   function revokeSession(id: string): void {
-    const registry = readRegistry();
+    const registry = readRegistryStrict();
+    if (!registry) return;
     const rec = registry.sessions[id];
     if (!rec || rec.accountKey !== accountKey.value) return;
     registry.sessions[id] = { ...rec, killedAt: Date.now() };
@@ -320,7 +338,8 @@ export const useSession = defineStore("session", () => {
   }
 
   function revokeAllOtherSessions(): void {
-    const registry = readRegistry();
+    const registry = readRegistryStrict();
+    if (!registry) return;
     Object.entries(registry.sessions).forEach(([id, rec]) => {
       if (rec.accountKey === accountKey.value && id !== sessionId.value && !rec.endedAt && !rec.killedAt) {
         registry.sessions[id] = { ...rec, killedAt: Date.now() };

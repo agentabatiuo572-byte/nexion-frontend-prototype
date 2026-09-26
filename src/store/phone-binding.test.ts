@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { useApp } from "./app";
+import { useApp, settleDeviceBatch } from "./app";
 import { useSession } from "./session";
 import { useConfig } from "./config";
 import { fallbackCapability } from "@/lib/device-capability";
@@ -97,6 +97,37 @@ describe("phone binding lifecycle", () => {
     vi.setSystemTime(now + 180000); app.tick(1000);
     expect(app.devices.find((d) => d.id === id)!.currentTask).toBeNull();
     expect(app.devices.find((d) => d.id === id)!.lastSettledAt).toBeNull();
+  });
+
+  it("unknown session reads preserve live APP work without H5 settlement or heartbeat", () => {
+    const app = useApp(); app.applyPhoneCalibration(fallbackCapability()); app.tick(1000);
+    const id = app.phoneBinding!.deviceId;
+    target.carrier = "h5"; signIn("browser");
+    const before = clone(app.devices.find(d => d.id === id)!);
+    const sessionsBefore = clone(storage.get("nexgrid-account-sessions-v1"));
+    const original = uni.getStorageSync;
+    const reader = vi.spyOn(uni, "getStorageSync").mockImplementation((key: string) => {
+      if (key === "nexgrid-account-sessions-v1") throw new Error("session read unavailable");
+      return original(key);
+    });
+    vi.setSystemTime(now + 10000);
+    expect(useSession().validate()).toBe("active");
+    useSession().resumeOrClaim("default", "h5");
+    app.tick(1000); app.settle();
+    expect(app.devices.find(d => d.id === id)).toEqual(before);
+    expect(readAccountSnapshot("default")!.devices.find(d => d.id === id)).toEqual(before);
+    expect(storage.get("nexgrid-account-sessions-v1")).toEqual(sessionsBefore);
+    reader.mockRestore();
+    app.tick(1000);
+    expect(app.devices.find(d => d.id === id)?.currentTask).toEqual(before.currentTask);
+  });
+
+  it("unknown session state cannot renew a previously resolved resident heartbeat", () => {
+    const app = useApp(); app.applyPhoneCalibration(fallbackCapability()); app.tick(1000);
+    const phone = clone(app.devices.find(d => d.id === app.phoneBinding?.deviceId)!);
+    const result = settleDeviceBatch([phone], "app", now + 10000, useConfig().config.onlineBonus, true, phone.id, false);
+    expect(result.settled).toEqual([phone]);
+    expect(result.nextDevices).toEqual([phone]);
   });
 
   it("rejects stale replacement/earnings writes and failed storage never activates", () => {
