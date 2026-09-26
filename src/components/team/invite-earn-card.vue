@@ -68,12 +68,12 @@
         <view class="rounded-lg flex items-center active:opacity-90" :style="shareBtnStyle(copiedCode)" @click="copyCode">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="copiedCode ? 'var(--v5-brand)' : 'var(--v5-brand)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><template v-if="copiedCode"><path d="M20 6 9 17l-5-5" /></template><template v-else><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></template></svg>
           <text class="shrink-0" :style="shareLabelStyle">{{ copiedCode ? t.team.copied : t.team.inviteShareCode }}</text>
-          <text class="font-mono-tabular tabular-nums" :style="shareValStyle(copiedCode)">{{ referralCode }}</text>
+          <text class="font-mono-tabular tabular-nums" :style="shareValStyle(copiedCode)">{{ displayReferralCode(referralCode) }}</text>
         </view>
         <view class="rounded-lg flex items-center active:opacity-90" :style="shareBtnStyle(copiedLink)" @click="copyLink">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><template v-if="copiedLink"><path d="M20 6 9 17l-5-5" /></template><template v-else><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8" /></template></svg>
           <text class="shrink-0" :style="shareLabelStyle">{{ copiedLink ? t.team.copied : t.team.inviteShareLink }}</text>
-          <text class="font-mono-tabular tabular-nums" :style="shareValStyle(copiedLink)">{{ linkLabel }}</text>
+          <text class="font-mono-tabular tabular-nums" :style="shareValStyle(copiedLink)">{{ t.share.copyLink }}</text>
         </view>
 
         <view class="rounded-full flex items-center justify-center active:opacity-90" :style="primaryCtaStyle" @click="openShare">
@@ -131,6 +131,7 @@ import ShareChannelSheet from "@/components/team/share-channel-sheet.vue";
 import SharePosterSheet from "@/components/team/share-poster-sheet.vue";
 import { useApp } from "@/store/app";
 import { useReferralReward } from "@/store/referral-reward";
+import { displayReferralCode } from "@/lib/brand";
 import { useT } from "@/i18n/use-t";
 import { toast } from "@/store/ui";
 import { buildShareLink, copyText, recordShareEvent } from "@/lib/share";
@@ -171,13 +172,6 @@ const referralCode = computed(() => {
   if (remoteApiEnabled) return rewards.snapshot?.referralCode ?? "";
   return app.user.referralCode;
 });
-// 展示用短链标签从真实链接派生(禁写死 nexgrid.ai 与实际复制内容脱节,审计 P2)。
-const linkLabel = computed(() => {
-  const bare = buildShareLink(referralCode.value).replace(/^https?:\/\//, "");
-  if (!bare) return "—";
-  return bare.length > 15 ? `${bare.slice(0, 15)}…` : bare;
-});
-
 const promoChipText = computed(() => "");
 
 const copiedCode = ref(false);
@@ -194,6 +188,13 @@ function guardCode(): boolean {
   return false;
 }
 
+function guardShareLink(): string {
+  if (!guardCode()) return "";
+  const link = buildShareLink(referralCode.value);
+  if (!link) toast.info(t.value.share.linkUnavailable);
+  return link;
+}
+
 async function copyCode() {
   if (!guardCode()) return;
   const ok = await copyText(referralCode.value);
@@ -207,8 +208,9 @@ async function copyCode() {
   setTimeout(() => (copiedCode.value = false), 1500);
 }
 async function copyLink() {
-  if (!guardCode()) return;
-  const ok = await copyText(buildShareLink(referralCode.value));
+  const link = guardShareLink();
+  if (!link) return;
+  const ok = await copyText(link);
   if (!ok) {
     toast.info(t.value.share.copyFailed);
     return;
@@ -218,11 +220,11 @@ async function copyLink() {
   setTimeout(() => (copiedLink.value = false), 1500);
 }
 function openPoster() {
-  if (!guardCode()) return;
+  if (!guardShareLink()) return;
   posterOpen.value = true;
 }
 function openShare() {
-  if (!guardCode()) return;
+  if (!guardShareLink()) return;
   shareOpen.value = true;
 }
 

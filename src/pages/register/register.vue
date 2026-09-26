@@ -73,7 +73,7 @@
                  无码自然进入才渲染可手输框。 -->
             <view v-if="lockedRef">
               <view class="rg-locked">
-                <text class="rg-locked__code">{{ lockedRef }}</text>
+                <text class="rg-locked__code">{{ displayReferralCode(lockedRef) }}</text>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
               </view>
               <text class="rg-locked__tag">{{ t.register.inviteLockedTag }}</text>
@@ -177,6 +177,7 @@ import { useApp } from "@/store/app";
 import { useBills } from "@/store/bills";
 import { normalizeRefCode, useSponsorship } from "@/store/sponsorship";
 import { rebindAccountScopedStores } from "@/lib/account-scope";
+import { displayReferralCode } from "@/lib/brand";
 import { useConfig } from "@/store/config";
 import { fmt } from "@/i18n/format";
 import { evaluateRegistration, commitRegistration, type RegistrationAssessment } from "@/store/risk-cluster";

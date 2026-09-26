@@ -86,6 +86,7 @@ import { MAX_DEVICES } from "@/store/device-types";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { toast } from "@/store/ui";
 import { matchGpuTier } from "@/lib/gpu-tiers";
+import { containsLegacyBrand, isLegacyBrandUrl } from "@/lib/brand";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { computeShareApi, mockFundsEnabled, remoteApiEnabled } from "@/api/runtime";
@@ -110,16 +111,19 @@ const connecting = ref(false);
 let accountGeneration = 0;
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 const enabled = computed(() => cfg.isEnabled("computeShareEnabled"));
-const downloadUrl = computed(() => cfg.config.computeShare.downloadUrl.trim());
+const downloadUrl = computed(() => {
+  const raw = cfg.config.computeShare.downloadUrl.trim();
+  return isLegacyBrandUrl(raw) ? "" : raw;
+});
 const downloadTitle = computed(() => {
   const content = cfg.config.computeShare.content;
   const configured = (locale.code === "zh" ? content.zhTitle : content.enTitle).trim();
-  return configured || t.value.computeShare.downloadTitle;
+  return configured && !containsLegacyBrand(configured) ? configured : t.value.computeShare.downloadTitle;
 });
 const downloadGuide = computed(() => {
   const content = cfg.config.computeShare.content;
   const configured = (locale.code === "zh" ? content.zhGuide : content.enGuide).trim();
-  return configured || t.value.computeShare.downloadBody;
+  return configured && !containsLegacyBrand(configured) ? configured : t.value.computeShare.downloadBody;
 });
 const selectedTier = computed(() => matchGpuTier(selectedModel.value, cfg.config.computeShare.gpuTiers));
 const tierLabels = computed(() => ({

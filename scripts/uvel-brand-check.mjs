@@ -30,6 +30,7 @@ if (!process.argv.includes("--assets")) {
     "src/static/img/products/nexgridrack-p1-v2.png": "97428289de1f601ce46a3f0490cec72b1dc405002336581db9d1e719f7a8bf3a",
   })) assert.equal(createHash("sha256").update(readFileSync(root + path)).digest("hex"), hash, path);
   const legacyCopy = /(?<![\w-])NexGrid(?![-_])|(?<![\w-])NEXGRID(?![\w-])/g;
+  const legacyContact = /(?:[\w.+-]+@)?(?:[\w-]+\.)*nexgrid\.(?:ai|io)|@nexgrid_official|discord\.gg\/nexgrid/i;
   // Keys, comments, paths, domains, referral codes and protocol headers retain their contracts.
   const visibleLine = (line) => line
     .replace(/^\s*(?:\/\/|\*|<!--).*$/, "")
@@ -52,9 +53,20 @@ if (!process.argv.includes("--assets")) {
       if (path.endsWith("/store/deposits-core.ts")) line = line.replace(/accountName: "CTY TNHH NEXGRID VIETNAM"/g, 'accountName: ""'); // Preserve only the exact registered payee token.
       legacyCopy.lastIndex = 0;
       if (legacyCopy.test(visibleLine(line))) failures.push(path.slice(root.length) + ":" + (n + 1));
+      if (path.endsWith(".vue")) {
+        const contactLine = path.endsWith("/pages/register/register.vue")
+          ? line.replace(/@demo\.nexgrid\.ai/g, "") // Mock account key, never a contact address.
+          : line;
+        if (legacyContact.test(contactLine.replace(/^\s*\/\/.*$/, ""))) failures.push(path.slice(root.length) + ":" + (n + 1) + " contact");
+      }
     });
   }
-  assert.deepEqual(failures, [], "old display brand remains");
+  assert.deepEqual(failures, [], "old display brand or contact remains");
+  for (const locale of ["en", "zh", "vi"]) {
+    assert.doesNotMatch(read(`src/i18n/messages/${locale}.ts`), /nexgrid\.(?:ai|io)|@nexgrid_official|discord\.gg\/nexgrid/i, `${locale} old contact details`);
+  }
+  assert.doesNotMatch(read("src/pages/developer/developer.vue"), /Host:\s*api\.nexgrid\.ai/i, "old API host in displayed example");
+  assert.doesNotMatch(read("src/lib/share.ts"), /return\s+`https:\/\/nexgrid\.(?:ai|io)/i, "old native share fallback");
   assert.match(read("index.html"), /<title>UVEL<\/title>/);
   const icons = read("index.html").match(/<link\b[^>]*rel="icon"[^>]*>/g) || [];
   assert.equal(icons.length, 1, "one unambiguous favicon");

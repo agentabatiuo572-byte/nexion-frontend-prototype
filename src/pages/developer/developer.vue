@@ -179,7 +179,7 @@ const PARTNERS = [
 ];
 
 const API_SNIPPET = `POST /v1/inference/dispatch HTTP/1.1
-Host: api.nexgrid.ai
+Host: <YOUR_API_HOST>
 Authorization: Bearer <YOUR_API_KEY>
 Content-Type: application/json
 X-NexGrid-Signature: t=1747432411,v1=2fae...

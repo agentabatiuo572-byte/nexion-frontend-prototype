@@ -114,7 +114,7 @@
           <view class="flex items-center" :style="refBlockStyle">
             <view class="flex-1 min-w-0">
               <text class="block" :style="refLabelStyle">{{ t.proof.refCodeLabel }}</text>
-              <text class="block font-display" :style="refCodeStyle">{{ refCode }}</text>
+              <text class="block font-display" :style="refCodeStyle">{{ displayReferralCode(refCode) }}</text>
               <view
                 class="inline-flex items-center active:opacity-70 font-mono-tabular"
                 :style="refLinkStyle"
@@ -124,10 +124,10 @@
                 @click="copyLink"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-                <text style="margin-left: 4px; pointer-events: none">{{ referralLink }}</text>
+                <text style="margin-left: 4px; pointer-events: none">{{ t.share.copyLink }}</text>
               </view>
             </view>
-            <view class="grid place-items-center shrink-0" :style="qrBoxStyle">
+            <view v-if="referralLink" class="grid place-items-center shrink-0" :style="qrBoxStyle">
               <view class="grid" :style="qrGridStyle">
                 <view v-for="(on, i) in qrCells" :key="i" :style="qrCellStyle(on)" />
               </view>
@@ -191,7 +191,7 @@
 
 <script setup lang="ts">
 import BrandLockup from "@/components/brand-lockup.vue";
-import { loadPosterBrand } from "@/lib/brand";
+import { displayReferralCode, loadPosterBrand } from "@/lib/brand";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onUnload } from "@dcloudio/uni-app";
 import qrcode from "qrcode-generator";
@@ -344,6 +344,10 @@ const daysActiveChip = computed(() => fmt(t.value.proof.badges.daysActive, { n: 
 
 // ── share actions (P-028: uni.share? + setClipboardData fallback) ──
 function nativeShare() {
+  if (!referralLink.value) {
+    toast.info(t.value.share.linkUnavailable);
+    return;
+  }
   const share = (uni as { share?: (o: unknown) => void }).share;
   if (typeof share === "function") {
     share({
@@ -360,9 +364,17 @@ function nativeShare() {
   }
 }
 function copyLink() {
+  if (!referralLink.value) {
+    toast.info(t.value.share.linkUnavailable);
+    return;
+  }
   copyText(referralLink.value, t.value.proof.copiedToast);
 }
 function copyShareText(networkName: string) {
+  if (!referralLink.value) {
+    toast.info(t.value.share.linkUnavailable);
+    return;
+  }
   copyText(shareText.value, t.value.proof.sharedToast, `Open ${networkName} and paste`);
 }
 const POSTER_WIDTH = 1080;
@@ -370,15 +382,25 @@ const POSTER_HEIGHT = 1350;
 
 async function downloadPng() {
   if (exportingPoster.value) return;
+  if (!referralLink.value) {
+    toast.info(t.value.share.linkUnavailable);
+    return;
+  }
+  const link = referralLink.value;
   exportingPoster.value = true;
   try {
-    await drawProofPoster();
+    await drawProofPoster(link);
     const tempFilePath = await exportProofCanvas();
+    if (referralLink.value !== link) {
+      toast.info(t.value.share.linkUnavailable);
+      return;
+    }
     if (typeof document !== "undefined") downloadProofOnH5(tempFilePath);
     else await saveProofToAlbum(tempFilePath);
     toast.success(t.value.proof.downloadToast, "");
   } catch {
-    toast.error(t.value.proof.downloadErrorToast);
+    if (referralLink.value !== link) toast.info(t.value.share.linkUnavailable);
+    else toast.error(t.value.proof.downloadErrorToast);
   } finally {
     exportingPoster.value = false;
   }
@@ -388,24 +410,28 @@ function copyText(data: string, title: string, desc = "") {
   toast.success(title, desc);
 }
 
-// ── QR payload is the exact referral URL shown beside it. ──
+// ── QR payload remains the exact referral URL copied/shared by the actions. ──
 const qrCode = computed(() => {
+  if (!referralLink.value) return null;
   const code = qrcode(0, "M");
   code.addData(referralLink.value, "Byte");
   code.make();
   return code;
 });
-const qrModuleCount = computed(() => qrCode.value.getModuleCount());
+const qrModuleCount = computed(() => qrCode.value?.getModuleCount() ?? 0);
 const qrCells = computed<boolean[]>(() => {
+  const code = qrCode.value;
+  if (!code) return [];
   const modules: boolean[] = [];
   for (let row = 0; row < qrModuleCount.value; row += 1) {
-    for (let col = 0; col < qrModuleCount.value; col += 1) modules.push(qrCode.value.isDark(row, col));
+    for (let col = 0; col < qrModuleCount.value; col += 1) modules.push(code.isDark(row, col));
   }
   return modules;
 });
 
-async function drawProofPoster(): Promise<void> {
+async function drawProofPoster(link: string): Promise<void> {
   const logo = await loadPosterBrand();
+  if (referralLink.value !== link || !qrCode.value) throw new Error("SHARE_LINK_UNAVAILABLE");
   return new Promise((resolve, reject) => {
     try {
       const ctx = uni.createCanvasContext("proofPosterCanvas");
@@ -444,10 +470,10 @@ async function drawProofPoster(): Promise<void> {
       ctx.fillText(t.value.proof.refCodeLabel, 124, 874);
       ctx.setFillStyle("#f7fbff");
       ctx.setFontSize(44);
-      ctx.fillText(refCode.value.slice(0, 32), 124, 930);
+      ctx.fillText(displayReferralCode(refCode.value).slice(0, 32), 124, 930);
       ctx.setFillStyle("#9cabbd");
       ctx.setFontSize(22);
-      ctx.fillText(referralLink.value.slice(0, 68), 124, 986);
+      ctx.fillText(t.value.share.scanTip, 124, 986);
       ctx.setFillStyle("#d9e4f2");
       ctx.setFontSize(24);
       ctx.fillText(t.value.proof.qrHint, 124, 1106);
@@ -471,6 +497,8 @@ function posterMetricValue(): string {
 }
 
 function drawPosterQr(ctx: UniApp.CanvasContext, x: number, y: number, size: number) {
+  const code = qrCode.value;
+  if (!code) return;
   const quietModules = 4;
   const count = qrModuleCount.value;
   const moduleSize = Math.floor(size / (count + quietModules * 2));
@@ -480,7 +508,7 @@ function drawPosterQr(ctx: UniApp.CanvasContext, x: number, y: number, size: num
   ctx.setFillStyle("#07101f");
   for (let row = 0; row < count; row += 1) {
     for (let col = 0; col < count; col += 1) {
-      if (qrCode.value.isDark(row, col)) {
+      if (code.isDark(row, col)) {
         ctx.fillRect(x + (col + quietModules) * moduleSize, y + (row + quietModules) * moduleSize, moduleSize, moduleSize);
       }
     }
@@ -506,7 +534,7 @@ function exportProofCanvas(): Promise<string> {
 function downloadProofOnH5(tempFilePath: string) {
   const anchor = document.createElement("a");
   anchor.href = tempFilePath;
-  anchor.download = `uvel-proof-${refCode.value || "member"}.png`;
+  anchor.download = `uvel-proof-${displayReferralCode(refCode.value).replace(/[^A-Za-z0-9-]/g, "").replace(/^-+/, "") || "member"}.png`;
   anchor.rel = "noopener";
   document.body.appendChild(anchor);
   anchor.click();

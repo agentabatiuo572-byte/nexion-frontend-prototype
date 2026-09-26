@@ -12,6 +12,7 @@ import { useT } from "@/i18n/use-t";
 import type { ShareChannelDef } from "@/store/config-types";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useReferralReward } from "@/store/referral-reward";
+import { containsLegacyBrand, isLegacyBrandUrl } from "@/lib/brand";
 
 // §8.1.1 邀请人回报口径:每注册好友 lifetime 贡献估值(展示用)× 阶段倍率。
 // 单一常量源 — invite-earn-card 与渠道面板共用,禁再写局部镜像(F4)。
@@ -46,24 +47,25 @@ export function buildShareLink(referralCode = currentShareReferralCode()): strin
   // mock seed in that mode; the current H5 origin is the only non-business
   // transport fallback and contains no reward or channel policy.
   const base = useConfig().config.share.baseUrl;
-  if (base) return `${base}${code}`;
+  // Until an approved UVEL share host is configured, do not send an old-brand URL.
+  if (base) return isLegacyBrandUrl(base) ? "" : `${base}${code}`;
   if (remoteApiEnabled) {
     // A missing server base URL has no business fallback; the current origin
     // is transport-only and is never composed from a mock domain.
     // #ifdef H5
-    if (typeof location !== "undefined") {
+    if (typeof location !== "undefined" && !isLegacyBrandUrl(location.origin)) {
       return `${location.origin}${location.pathname}#/pages/ref/code?code=${code}`;
     }
     // #endif
     return "";
   }
   // #ifdef H5
-  if (typeof location !== "undefined") {
+  if (typeof location !== "undefined" && !isLegacyBrandUrl(location.origin)) {
     return `${location.origin}${location.pathname}#/pages/ref/code?code=${code}`;
   }
   // #endif
-  // 非 H5 且未配置 → canonical 域名兜底(F1 域名单源)。
-  return `https://nexgrid.ai/ref/${code}`;
+  // Non-H5 has no browser origin to fall back to; wait for a configured host.
+  return "";
 }
 
 // 邀请文案(渠道预填):礼包金额 config 派生,en/zh 镜像模板。
@@ -106,6 +108,15 @@ export function copyText(data: string): Promise<boolean> {
   });
 }
 
+export function hasLegacyShareTemplate(def: ShareChannelDef, remoteMode = remoteApiEnabled): boolean {
+  if (def.intentType === "copy" || def.intentType === "poster") return false;
+  if (def.intentType === "web") {
+    const template = def.urlTemplate ?? "";
+    if (containsLegacyBrand(template) || isLegacyBrandUrl(template.replace(/\{(?:link|text)\}/g, "x"))) return true;
+  }
+  return (def.intentType === "web" || remoteMode) && containsLegacyBrand(def.textTemplate ?? "");
+}
+
 // 渠道激活(渠道面板 + 海报面板共用,单一实现):按 intentType 分派 —
 // web 直开 intent(拦截失败降级复制,异常3);scheme 复制引导(异常4);
 // copy 复制链接(失败禁误报,FEAT-SHARE1 异常3);system 走 navigator.share。
@@ -113,8 +124,8 @@ export function copyText(data: string): Promise<boolean> {
 export async function activateChannel(def: ShareChannelDef, surface: ShareSurface, label: string): Promise<void> {
   const t = useT();
   const link = buildShareLink();
-  if (!link) {
-    toast.info(t.value.share.noCodeYet);
+  if (!link || hasLegacyShareTemplate(def)) {
+    toast.info(currentShareReferralCode() ? t.value.share.linkUnavailable : t.value.share.noCodeYet);
     return;
   }
   const text = remoteApiEnabled

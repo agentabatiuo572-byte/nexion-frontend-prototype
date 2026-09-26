@@ -14,7 +14,7 @@
       <!-- Brand -->
       <view class="flex items-center" style="gap: 8px; margin-bottom: 16px">
         <BrandLockup />
-        <text v-if="hasCode" :style="refChipStyle">REF/{{ codeUpper }}</text>
+        <text v-if="hasCode" :style="refChipStyle">REF/{{ displayReferralCode(code) }}</text>
       </view>
 
       <!-- [FEAT-SHARE4] 异常2:本机已登录 → 提示条 + CTA 变「进入」,不重复领礼 -->
@@ -126,6 +126,7 @@
 
 <script setup lang="ts">
 import BrandLockup from "@/components/brand-lockup.vue";
+import { displayReferralCode } from "@/lib/brand";
 import { computed, ref, type CSSProperties } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -193,7 +194,6 @@ onLoad(async (options) => {
 const hasCode = computed(() => remoteApiEnabled ? !!remotePreview.value : !!code.value);
 const authed = computed(() => auth.isAuthenticated);
 
-const codeUpper = computed(() => code.value.toUpperCase());
 const sponsor = computed(() => {
   if (remoteApiEnabled) {
     const value = remotePreview.value?.sponsor;

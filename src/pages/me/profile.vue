@@ -38,7 +38,7 @@
           </view>
           <view class="flex-1 min-w-0">
             <text class="block truncate" :style="nameStyle">{{ displayName }}</text>
-            <text class="block truncate" :style="emailStyle">{{ email }}</text>
+            <text class="block truncate" :style="emailStyle" data-testid="profile-identity">{{ email }}</text>
             <view class="flex items-center" style="gap: 6px; margin-top: 2px">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
               <text :style="joinedStyle">{{ t.profile.joinedOn }} {{ joinedDate }}</text>
@@ -167,7 +167,9 @@ const avatarUploading = ref(false);
 const displayName = computed(() => profile.displayName);
 // A remote session's user-id key is internal routing state, never profile copy.
 // Until the backend supplies a phone projection, show an honest blank field.
-const email = computed(() => remoteApiEnabled ? profile.phoneE164 : (auth.email || app.user.email));
+// Keep legacy account emails in storage, but do not show their former brand domain.
+const email = computed(() => (remoteApiEnabled ? profile.phoneE164 : (auth.email || app.user.email))
+  .replace(/@(?:demo\.)?nexgrid\.ai$/i, ""));
 const initial = computed(
   () => (displayName.value || email.value || "S").trim()[0]?.toUpperCase() || "S",
 );

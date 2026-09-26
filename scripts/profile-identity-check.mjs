@@ -7,11 +7,11 @@
  * (2026-08-15 date-locale T1 独立验收发现#2;修法 = app.ts asEmailIdentity 收敛)。
  *
  * 两个场景:
- *   A fresh mock boot:身份行渲 demo 邮箱 alex@nexgrid.ai,且全页无 standalone
+ *   A fresh mock boot:身份行展示 demo 标识 alex,不暴露旧品牌域名,且全页无 standalone
  *     "default" 文本节点(构造性判据:扫渲染结果,不扫源码形状)。
  *   B 毒快照痊愈:注入旧 bug 真实会持久化出的形状(account-cloud "default" 行
  *     user.email="default"),重载后启动绑定闸(App.vue → bindAccount)应把它治成
- *     demo 邮箱 —— 存量污染用户升级后自动痊愈,不能靠清存储。
+ *     demo 联系身份(展示为 alex)—— 存量污染账号升级后自动痊愈,不能靠清存储。
  *
  * Usage: BASE_URL=http://127.0.0.1:<port> node scripts/profile-identity-check.mjs
  */
@@ -85,7 +85,8 @@ async function check(label, poisonTable) {
         bare.push(`<${parent?.tagName?.toLowerCase() ?? "?"} class="${parent?.className ?? ""}">`);
       }
     }
-    return { bareDefaultNodes: bare, hasDemoEmail: (document.body.innerText || "").includes("alex@nexgrid.ai") };
+    return { bareDefaultNodes: bare, identity: document.querySelector('[data-testid="profile-identity"]')?.textContent?.trim(),
+      visibleLegacyDomain: /nexgrid\.ai/i.test(document.body.innerText || "") };
   });
   const runtimeIdentity = await collectUniAppRuntimeIdentity(page);
   const routeWitness = await collectDirectPageWitness(page, errors);
@@ -105,8 +106,8 @@ try {
     if (result.bareDefaultNodes.length > 0) {
       throw new Error(`profile-identity ${result.label}: internal account key rendered as bare text at ${result.bareDefaultNodes.join(", ")}`);
     }
-    if (!result.hasDemoEmail) {
-      throw new Error(`profile-identity ${result.label}: identity line does not show the demo contact email`);
+    if (result.identity !== "alex" || result.visibleLegacyDomain) {
+      throw new Error(`profile-identity ${result.label}: demo identity is missing or shows the former brand domain`);
     }
   }
   console.log("PROFILE-IDENTITY-CHECK: PASS");

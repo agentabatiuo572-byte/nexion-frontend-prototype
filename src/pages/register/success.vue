@@ -111,6 +111,7 @@ import GlobalUi from "@/components/global-ui.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useConfig } from "@/store/config";
+import { isLegacyBrandUrl } from "@/lib/brand";
 import { pickSponsor } from "@/mock/sponsors";
 import { useAuth } from "@/store/auth";
 import { resolveAuthAccountById } from "@/store/auth-account";
@@ -172,7 +173,7 @@ onMounted(() => {
 // #ifdef H5
 const officialDownloadUrl = computed(() => {
   const raw = cfg.config.share.appDownload.officialUrl?.trim() ?? "";
-  if (!raw) return "";
+  if (!raw || isLegacyBrandUrl(raw)) return "";
   try {
     const parsed = new URL(raw);
     return parsed.protocol === "https:" ? parsed.href : "";

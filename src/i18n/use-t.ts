@@ -5,6 +5,7 @@ import { zh } from "./messages/zh";
 import type { LocaleCode } from "./index";
 import { useLocaleStore } from "@/store/locale";
 import { useI18nRuntime } from "@/store/i18n-runtime";
+import { containsLegacyBrand } from "@/lib/brand";
 
 // Ported from Nexion-prototype/lib/i18n/use-t.ts (zustand → Pinia).
 // Only locales with real dictionaries are listed; everything else falls back
@@ -22,7 +23,8 @@ function applyRuntimeMessages<T>(bundled: T, runtime: Readonly<Record<string, st
       if (typeof key !== "string") return Reflect.get(target, key, receiver);
       const currentPath = path ? `${path}.${key}` : key;
       const remote = runtime[currentPath];
-      if (typeof remote === "string") return remote;
+      // A published translation must not restore contact details from the old brand.
+      if (typeof remote === "string" && !containsLegacyBrand(remote)) return remote;
       const value = Reflect.get(target, key, receiver);
       return value && typeof value === "object" ? applyRuntimeMessages(value, runtime, currentPath) : value;
     },

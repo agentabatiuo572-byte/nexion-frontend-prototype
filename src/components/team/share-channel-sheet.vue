@@ -37,8 +37,9 @@
 import { computed } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import { toast } from "@/store/ui";
 import { useProductPhase } from "@/composables/use-product-phase";
-import { activateChannel, INVITER_REWARD_USDT_ESTIMATE, visibleChannels } from "@/lib/share";
+import { activateChannel, buildShareLink, INVITER_REWARD_USDT_ESTIMATE, visibleChannels } from "@/lib/share";
 import type { ShareChannelDef, ShareChannelKey } from "@/store/config-types";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useReferralReward } from "@/store/referral-reward";
@@ -108,6 +109,10 @@ function channelMeta(key: ShareChannelKey): ChannelMeta {
 }
 
 async function onChannel(c: ShareChannelDef) {
+  if (!buildShareLink()) {
+    toast.info(t.value.share.linkUnavailable);
+    return;
+  }
   if (c.intentType === "poster") {
     emit("openPoster");
     return;

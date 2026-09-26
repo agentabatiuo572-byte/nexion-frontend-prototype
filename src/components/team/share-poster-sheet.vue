@@ -97,7 +97,7 @@
 
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, ref, watch } from "vue";
-import { loadPosterBrand } from "@/lib/brand";
+import { displayReferralCode, loadPosterBrand } from "@/lib/brand";
 import qrcode from "qrcode-generator";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -377,7 +377,7 @@ function paint(link: string, myToken: number, logo: string) {
   }
   ctx.setFillStyle(BRAND_ON_DARK);
   ctx.setFontSize(11);
-  ctx.fillText(currentShareReferralCode(), 20, footY + 40);
+  ctx.fillText(displayReferralCode(currentShareReferralCode()), 20, footY + 40);
   ctx.setFillStyle(FAINT_ON_DARK);
   ctx.setFontSize(8.5);
   ctx.fillText(t.value.share.scanTip, 20, footY + 58);
@@ -411,7 +411,10 @@ let genToken = 0;
 function regenerate() {
   const link = buildShareLink();
   if (!link) {
-    toast.info(t.value.share.noCodeYet);
+    ++genToken;
+    genState.value = "idle";
+    imgSrc.value = "";
+    toast.info(currentShareReferralCode() ? t.value.share.linkUnavailable : t.value.share.noCodeYet);
     emit("close");
     return;
   }
@@ -433,7 +436,7 @@ function regenerate() {
 }
 
 watch(
-  () => [props.open, tpl.value, showUsername.value] as const,
+  [() => props.open, tpl, showUsername, () => buildShareLink()],
   ([open]) => {
     if (open) {
       regenerate();
@@ -453,6 +456,10 @@ watch(availableTpls, (list) => {
 let saving = false;
 function saveImage() {
   if (genState.value !== "ready" || saving) return;
+  if (!buildShareLink()) {
+    toast.info(t.value.share.linkUnavailable);
+    return;
+  }
   saving = true;
   setTimeout(() => (saving = false), 900);
   // #ifdef H5
@@ -489,7 +496,12 @@ function saveImage() {
 
 async function copyLinkAction() {
   if (genState.value !== "ready") return;
-  const ok = await copyText(buildShareLink());
+  const link = buildShareLink();
+  if (!link) {
+    toast.info(t.value.share.linkUnavailable);
+    return;
+  }
+  const ok = await copyText(link);
   if (ok) {
     toast.success(t.value.team.inviteLinkCopied);
     recordShareEvent("copy", "poster_sheet");
@@ -500,6 +512,10 @@ async function copyLinkAction() {
 
 async function onChannel(c: ShareChannelDef) {
   if (genState.value !== "ready") return;
+  if (!buildShareLink()) {
+    toast.info(t.value.share.linkUnavailable);
+    return;
+  }
   await activateChannel(c, "poster_sheet", channelLabel(c.key));
 }
 </script>
