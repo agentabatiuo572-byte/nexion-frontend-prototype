@@ -67,8 +67,7 @@
         </view>
 
         <!-- Filter pills — opens the member-list section, extra top break. -->
-        <scroll-view scroll-x class="nx-no-scrollbar" style="white-space: nowrap; width: 100%; margin-top: 6px">
-          <view class="inline-flex" style="gap: 6px">
+        <view class="flex flex-wrap" style="gap: 6px; margin-top: 6px">
             <view class="nx-unilevel-filter-all shrink-0 inline-flex items-center active:opacity-70" :style="pillStyle(filter === 'all')" @click="filter = 'all'">
               <text :style="pillTextStyle(filter === 'all')">{{ t.unilevel.filterAll }}</text>
               <text class="font-mono-tabular" :style="pillCountStyle(filter === 'all')">· {{ directMembers.length + extendedMembers.length }}</text>
@@ -83,8 +82,7 @@
               <text :style="pillTextStyle(filter === 'extended')">{{ t.unilevel.filterExtended }}</text>
               <text class="font-mono-tabular" :style="pillCountStyle(filter === 'extended')">· {{ extendedMembers.length }}</text>
             </view>
-          </view>
-        </scroll-view>
+        </view>
 
         <!-- Member list — de-carded: transparent hairline group (leaderboard
              rest-list idiom); the surface + border shell was redundant
@@ -119,7 +117,7 @@
                 </view>
                 <view class="nx-unilevel-meta flex items-center" style="margin-top: 2px; gap: 6px">
                   <view class="rounded-full" :style="{ width: '6px', height: '6px', background: statusColor(m.status) }" />
-                  <text :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ m.status }} · {{ m.city }}</text>
+                  <text :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ memberStatusText(m.status) }} · {{ m.city }}</text>
                   <text class="font-mono-tabular" :style="memberBadgeStyle(m.kind)">{{ m.kind === "direct" ? t.unilevel.memberBadgeDirect : t.unilevel.memberBadgeExtended }}</text>
                 </view>
               </view>
@@ -232,6 +230,12 @@ function loadMoreMembers() {
 const directMembersText = computed(() => fmt(t.value.unilevel.directMembersText, { n: directMembers.value.length }));
 function statusColor(status: MemberStatus): string {
   return status === "active" ? "var(--v5-brand)" : status === "idle" ? "var(--v5-warning)" : "var(--v5-ink-4)";
+}
+function memberStatusText(status: MemberStatus): string {
+  return status === "active" ? t.value.network.activeNow
+    : status === "idle" ? t.value.publicCopy.memberIdle
+    : status === "offline" ? t.value.earn.offline
+    : t.value.uiChrome.unavailable;
 }
 function memberCommission(m: PlottedMember): number {
   return m.monthVolumeUSD * (UNILEVEL_USDT[m.layer] ?? 0);

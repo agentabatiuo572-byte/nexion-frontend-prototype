@@ -85,10 +85,10 @@ const floorHintText = computed(() => fmt(t.value.marketplace.floorShort, { k: (f
 
 function relativeTime(ts: number): string {
   const ms = Date.now() - ts;
-  if (ms < 60_000) return "<1m";
-  if (ms < 3600_000) return `${Math.floor(ms / 60_000)}m`;
-  if (ms < 86_400_000) return `${Math.floor(ms / 3600_000)}h`;
-  return `${Math.floor(ms / 86_400_000)}d`;
+  if (ms < 60_000) return t.value.genesis.justNow;
+  if (ms < 3600_000) return fmt(t.value.marketplace.timeMinAgo, { n: Math.floor(ms / 60_000) });
+  if (ms < 86_400_000) return fmt(t.value.marketplace.timeHrAgo, { n: Math.floor(ms / 3600_000) });
+  return fmt(t.value.marketplace.timeDayAgo, { n: Math.floor(ms / 86_400_000) });
 }
 
 function onAskInput(e: Event) {

@@ -167,7 +167,7 @@ const notHolderBodyText = computed(() =>
 // ── 上所前：额度 + 优先级（mock，backend-replaceable）──
 const allocText = computed(() => remoteApiEnabled
   ? t.value.genesisHolder.pre.serverVerified
-  : `${genesis.reservedAllocationNEX().toLocaleString()} NEX`);
+  : `${genesis.reservedAllocationNEX().toLocaleString()}\u00a0NEX`);
 const priorityText = computed(() => remoteApiEnabled
   ? t.value.genesisHolder.pre.serverVerified
   : (owned.value >= 5 ? "Top 1%" : owned.value >= 2 ? "Top 3%" : "Top 5%"));
@@ -241,7 +241,7 @@ function mockHoldings(): Array<{ id: string; mintedAt: number; allocText: string
     list.push({
       id: `NEX-GEN-${serial.toString().padStart(4, "0")}`,
       mintedAt: Date.now() - (142 - i * 18) * DAY,
-      allocText: `${GENESIS_EMISSION.nominalPerNodeNEX.toLocaleString()} NEX`,
+      allocText: `${GENESIS_EMISSION.nominalPerNodeNEX.toLocaleString()}\u00a0NEX`,
     });
   }
   return list;
@@ -299,7 +299,7 @@ const displayedLeaderboard = computed(() => remoteApiEnabled ? remoteLeaderboard
 .gh-brand { color: var(--v5-brand); }
 .gh-hero .gh-value { line-height: 1.2; }
 .gh-stats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--v5-border); }
-@media (max-width: 374px) { .gh-hero { --gh-logo-width: 104px; padding-inline: 16px; } .gh-identity :deep(.genesis-holder-badge) { gap: 6px; padding-inline: 8px; font-size: 12px; } .gh-identity :deep(.genesis-holder-badge svg) { width: 20px; height: 20px; } .gh-summary, .gh-stats { column-gap: 24px; } .gh-allocation::before, .gh-stats > view:last-child::before { inset-inline-start: -16px; } }
+@media (max-width: 374px) { .gh-hero { --gh-logo-width: 104px; padding-inline: 16px; } .gh-identity :deep(.genesis-holder-badge) { gap: 6px; padding-inline: 8px; font-size: 12px; } .gh-identity :deep(.genesis-holder-badge svg) { width: 20px; height: 20px; } .gh-summary { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); } .gh-summary, .gh-stats { column-gap: 16px; } .gh-allocation::before, .gh-stats > view:last-child::before { inset-inline-start: -12px; } }
 .gh-disclosure { display: flex; align-items: center; gap: 12px; color: var(--v5-ink-3); font-size: var(--v5-type-body-s); line-height: 1.5; }
 .gh-disclosure svg { flex-shrink: 0; }
 .gh-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: var(--v5-type-body-m); font-weight: 600; line-height: 1.5; }

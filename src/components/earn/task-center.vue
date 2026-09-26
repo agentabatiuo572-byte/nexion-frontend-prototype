@@ -92,6 +92,7 @@
 import { computed, ref, watch, type CSSProperties } from "vue";
 import { useApp } from "@/store/app";
 import { useT } from "@/i18n/use-t";
+import { fmt } from "@/i18n/format";
 import { prepareEarnConfig, useEarnConfig } from "@/store/earn-config";
 import type { TaskCategory } from "@/store/types";
 import { workloadLabel as resolveWorkloadLabel } from "@/lib/workload-label";
@@ -166,8 +167,8 @@ function goReceipts() {
 
 function shortTime(ts: number): string {
   const m = Math.floor((Date.now() - ts) / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  return `${Math.floor(m / 60)}h ago`;
+  if (m < 1) return t.value.taskHistory.timeJustNow;
+  if (m < 60) return fmt(t.value.taskHistory.timeMinutesAgo, { n: m });
+  return fmt(t.value.taskHistory.timeHoursAgo, { n: Math.floor(m / 60) });
 }
 </script>

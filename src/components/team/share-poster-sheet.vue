@@ -12,7 +12,7 @@
 <template>
   <view v-if="open">
     <view class="ps-mask" @click="emit('close')" />
-    <view class="ps-sheet">
+    <view class="ps-sheet no-scrollbar">
       <view class="ps-grab" />
       <view class="ps-head">
         <text class="ps-head__t">{{ t.share.posterTitle }}</text>
@@ -556,10 +556,10 @@ async function onChannel(c: ShareChannelDef) {
 .ps-sw--on { background: var(--v5-brand); }
 .ps-sw__knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 9999px; background: var(--v5-surface); transition: left 0.18s; }
 .ps-sw--on .ps-sw__knob { left: 21px; }
-.ps-chrow { display: flex; gap: 14px; overflow-x: auto; padding: 14px 16px 2px; }
-.ps-ch { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 56px; min-height: 44px; }
+.ps-chrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 6px; padding: 14px 16px 2px; }
+.ps-ch { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; min-height: 44px; }
 .ps-ch--off { opacity: 0.4; pointer-events: none; }
 .ps-ch__ic { width: 48px; height: 48px; border-radius: 9999px; background: var(--v5-surface-2); color: var(--v5-ink-2); display: flex; align-items: center; justify-content: center; }
 .ps-ch__ic--hl { background: color-mix(in srgb, var(--v5-brand) 14%, transparent); color: var(--v5-brand); }
-.ps-ch__lb { font-size: 12px; color: var(--v5-ink-3); max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-ch__lb { font-size: 12px; color: var(--v5-ink-3); width: 100%; text-align: center; line-height: 1.3; overflow-wrap: anywhere; }
 </style>

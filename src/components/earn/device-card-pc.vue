@@ -91,8 +91,8 @@
     <!-- Detail body (expanded; accordion) -->
     <view v-if="expanded" class="nx-device-card__details">
       <!-- device identity: gpu · location + lifecycle chip -->
-      <view class="flex items-center justify-between gap-2" style="padding: 0 20px 12px">
-        <text class="min-w-0 truncate" style="font-size: 12px; color: var(--v5-ink-3)">{{ displayGpu }}<text v-if="displayLocation"><text style="color: var(--v5-ink-4); margin: 0 6px">·</text>{{ displayLocation }}</text></text>
+      <view class="flex flex-wrap items-center justify-between gap-2" style="padding: 0 20px 12px">
+        <text class="nx-device-card__spec" style="font-size: 12px; color: var(--v5-ink-3)">{{ displayGpu }}<text v-if="displayLocation"><text style="color: var(--v5-ink-4); margin: 0 6px">·</text>{{ displayLocation }}</text></text>
         <view v-if="degradable && inSubsidy" class="nx-device-explainer inline-flex items-center gap-1 shrink-0 active:opacity-70" :style="subsidyChipStyle" role="button" tabindex="0" @click.stop="openExplainer" @keydown.enter.stop.prevent="openExplainer" @keydown.space.stop.prevent="openExplainer">
           <text>{{ subsidyText }}</text>
         </view>
@@ -113,7 +113,7 @@
 
       <!-- FEAT-DEV01: task-capacity readout(补贴期内隐藏百分比只显 badge;tap → W-CAP1 说明弹层) -->
       <view v-if="degradable && !inSubsidy && lifecycle" class="nx-device-explainer flex items-center justify-between gap-2 active:opacity-70" style="padding: 0 20px 12px" role="button" tabindex="0" @click.stop="openExplainer" @keydown.enter.stop.prevent="openExplainer" @keydown.space.stop.prevent="openExplainer">
-        <text class="min-w-0 truncate" :style="capacityRowStyle">{{ capacityRowText }}</text>
+        <text class="min-w-0" :style="capacityRowStyle">{{ capacityRowText }}</text>
         <svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>
       </view>
 
@@ -127,9 +127,9 @@
 
     <!-- Phone: live hashpower (effective vs calibrated capability ceiling) -->
     <view v-if="phoneRunning" style="padding: 0 20px 12px">
-      <view class="flex items-center justify-between" style="margin-bottom: 8px">
-        <text :style="sectionLabelStyle">{{ t.earn.hashLabel }}</text>
-        <view class="flex items-center gap-1" :style="capChipStyle">
+      <view class="nx-device-card__hash-heading flex flex-wrap items-center justify-between" style="margin-bottom: 8px">
+        <text class="nx-device-card__hash-label" :style="sectionLabelStyle">{{ t.earn.hashLabel }}</text>
+        <view class="nx-device-card__cap-chip flex items-center gap-1" :style="capChipStyle">
           <text style="color: var(--v5-ink-3)">{{ t.earn.hashCapability }}</text>
           <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-ink-2); font-weight: 600">{{ baselineTops.toFixed(1) }} TOPS</text>
           <text style="color: var(--v5-ink-4)">·</text>
@@ -783,6 +783,10 @@ const unlockCtaLabelStyle: CSSProperties = {
 
 <style scoped>
 .nx-device-card__main { flex: 1; }
+.nx-device-card__spec { flex: 1 1 160px; min-width: min(100%, 160px); line-height: 1.35; }
+.nx-device-card__hash-label { flex: 1 1 150px; min-width: min(100%, 150px); }
+.nx-device-card__cap-chip { flex: none; white-space: nowrap; }
+.nx-device-card__hash-heading { row-gap: 6px; }
 @media (max-width: 350px) {
   .nx-device-card__header { flex-wrap: wrap; row-gap: 8px; }
   .nx-device-card__main { flex: 1 1 100%; }

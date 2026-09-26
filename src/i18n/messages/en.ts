@@ -1628,6 +1628,8 @@ export const en = {
     popupCap: "Limited offer",
     popupTitle: "Claim your voucher",
     popupSubtitle: "Claim now and save on your next device.",
+    newUserGiftName: "New User Gift",
+    summerActivityName: "Summer Activity",
     closeAria: "Close",
     claimCta: "Claim",
     useCta: "Use now",
@@ -3356,6 +3358,9 @@ export const en = {
     historyEmpty: "No completed tasks yet — your first one is on the way.",
     historyHint:
       "Last {n} jobs · Tap any row to open its Proof-of-Compute receipt.",
+    timeJustNow: "just now",
+    timeMinutesAgo: "{n}m ago",
+    timeHoursAgo: "{n}h ago",
   },
   errors: {
     deviceCapTitle: "Device limit reached",
@@ -4368,6 +4373,8 @@ export const en = {
 
   commissions: {
     pageTitle: "Commissions",
+    mockDailyBinaryMatch: "Daily binary match",
+    mockWeek42Pool: "Week 42 pool",
     directBadge: "Direct",
     extendedBadge: "Extended",
     withdrawable: "Withdrawable",
@@ -5312,7 +5319,7 @@ export const en = {
     ordersDesc: "What you buy shows up here",
     ordersCta: "Browse the store",
     billsTitle: "No records yet",
-    billsDesc: "Every top-up and payout lands here",
+    billsDesc: "Transactions will appear here",
     rewardsTitle: "No rewards yet",
     rewardsDesc: "Vouchers and gifts collect here",
     messagesTitle: "No conversations",

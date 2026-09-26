@@ -73,7 +73,7 @@
         <view class="rounded-lg flex items-center active:opacity-90" :style="shareBtnStyle(copiedLink)" @click="copyLink">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><template v-if="copiedLink"><path d="M20 6 9 17l-5-5" /></template><template v-else><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8" /></template></svg>
           <text class="shrink-0" :style="shareLabelStyle">{{ copiedLink ? t.team.copied : t.team.inviteShareLink }}</text>
-          <text class="font-mono-tabular tabular-nums" :style="shareValStyle(copiedLink)">{{ t.share.copyLink }}</text>
+          <text class="font-mono-tabular tabular-nums" :style="shareValStyle(copiedLink)">{{ t.team.copyCode }}</text>
         </view>
 
         <view class="rounded-full flex items-center justify-center active:opacity-90" :style="primaryCtaStyle" @click="openShare">

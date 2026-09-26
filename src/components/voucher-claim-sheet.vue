@@ -37,7 +37,7 @@
             <text v-if="condText(v)" class="vcs-cond">{{ condText(v) }}</text>
           </view>
           <view class="vcs-card-r">
-            <text class="vcs-name">{{ v.name }}</text>
+            <text class="vcs-name">{{ voucherName(v) }}</text>
             <text class="vcs-scope">{{ scopeText(v) }}</text>
             <text class="vcs-expiry">{{ expiryText(v) }}</text>
             <view
@@ -88,6 +88,13 @@ const vouchers = computed<VoucherDef[]>(() => {
   ]);
   return (remoteApiEnabled ? voucher.catalog : listVouchers()).filter((v) => showable.has(v.id));
 });
+
+function voucherName(v: VoucherDef): string {
+  // ponytail: only local seed campaigns have translated names; remote campaigns need operator-provided locales.
+  if (!remoteApiEnabled && v.id === "vc-newuser-50") return t.value.voucher.newUserGiftName;
+  if (!remoteApiEnabled && v.id === "vc-activity-8pct") return t.value.voucher.summerActivityName;
+  return v.name;
+}
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");

@@ -36,7 +36,7 @@
         <view :style="heroStyle">
           <view class="flex items-start justify-between">
             <view>
-              <text class="block font-mono-tabular" :style="heroCapStyle('var(--v5-warning)')">{{ t.leaderboard.pool.label }} · {{ prize.label }}</text>
+              <text class="block font-mono-tabular" :style="heroCapStyle('var(--v5-warning)')">{{ t.leaderboard.pool.label }} · {{ t.leaderboard.periods[period] }}</text>
               <text class="block font-display tabular-nums" :style="heroBigStyle">{{ fmtCompactUSD(prize.poolUSD) }}</text>
               <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '6px' }">{{ payoutToText }}</text>
             </view>

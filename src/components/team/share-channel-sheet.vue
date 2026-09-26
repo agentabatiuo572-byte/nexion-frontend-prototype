@@ -132,11 +132,11 @@ async function onChannel(c: ShareChannelDef) {
 .ss-head__x { width: 44px; height: 44px; border-radius: 9999px; background: var(--v5-surface-2); display: flex; align-items: center; justify-content: center; }
 .ss-reward { margin: 10px 16px 0; border-radius: 12px; background: color-mix(in srgb, var(--v5-brand) 8%, transparent); padding: 10px 12px; }
 .ss-reward__t { font-size: 12px; color: var(--v5-ink-2); line-height: 1.55; text-wrap: pretty; }
-.ss-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; padding: 14px 16px 4px; }
-.ss-ch { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 44px; }
+.ss-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 6px; padding: 14px 16px 4px; }
+.ss-ch { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; min-height: 44px; }
 .ss-ch__ic { width: 48px; height: 48px; border-radius: 9999px; background: var(--v5-surface-2); color: var(--v5-ink-2); display: flex; align-items: center; justify-content: center; }
 .ss-ch__ic--hl { background: color-mix(in srgb, var(--v5-brand) 14%, transparent); color: var(--v5-brand); }
-.ss-ch__lb { font-size: 12px; color: var(--v5-ink-3); max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-ch__lb { font-size: 12px; color: var(--v5-ink-3); width: 100%; text-align: center; line-height: 1.3; overflow-wrap: anywhere; }
 /* 转化场景 cancel 必须弱于主操作:ghost、font-normal、ink-3。 */
 .ss-cancel { margin: 8px 16px 16px; min-height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 .ss-cancel__t { font-size: 13px; font-weight: 400; color: var(--v5-ink-3); }

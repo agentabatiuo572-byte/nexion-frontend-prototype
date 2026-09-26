@@ -1562,6 +1562,8 @@ export const zh: Messages = {
     popupCap: "限时福利",
     popupTitle: "领取你的专属代金券",
     popupSubtitle: "领取后购买设备立享优惠。",
+    newUserGiftName: "新用户礼遇",
+    summerActivityName: "夏日活动",
     closeAria: "关闭",
     claimCta: "立即领取",
     useCta: "马上去使用",
@@ -3241,6 +3243,9 @@ export const zh: Messages = {
     viewAll: "查看全部",
     historyEmpty: "暂无已完成任务 — 第一笔即将出现。",
     historyHint: "最近 {n} 笔 · 点击任意一条可打开对应的 Proof-of-Compute 收据。",
+    timeJustNow: "刚刚",
+    timeMinutesAgo: "{n}分钟前",
+    timeHoursAgo: "{n}小时前",
   },
   errors: {
     deviceCapTitle: "设备数已达上限",
@@ -4223,6 +4228,8 @@ export const zh: Messages = {
 
   commissions: {
     pageTitle: "佣金明细",
+    mockDailyBinaryMatch: "每日平衡匹配",
+    mockWeek42Pool: "第 42 周奖金池",
     directBadge: "直推",
     extendedBadge: "扩展",
     withdrawable: "可提现",
@@ -5149,7 +5156,7 @@ export const zh: Messages = {
     ordersDesc: "你买的东西会显示在这里",
     ordersCta: "去逛逛",
     billsTitle: "还没有记录",
-    billsDesc: "每一笔充值和到账都会记在这里",
+    billsDesc: "交易记录会显示在这里",
     rewardsTitle: "还没有奖励",
     rewardsDesc: "代金券和礼包会收在这里",
     messagesTitle: "还没有会话",

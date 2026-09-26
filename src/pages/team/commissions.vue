@@ -78,7 +78,7 @@
         </view>
 
         <!-- filter pills -->
-        <scroll-view scroll-x class="nx-no-scrollbar" style="white-space: nowrap; width: 100%">
+        <scroll-view scroll-x :show-scrollbar="false" class="no-scrollbar" style="white-space: nowrap; width: 100%">
           <view class="inline-flex" style="gap: 6px">
             <view class="shrink-0 rounded-full grid place-items-center active:opacity-70" :style="pillStyle(filter === 'all', 'var(--v5-brand)')" @click="filter = 'all'">
               <text :style="pillTextStyle(filter === 'all', 'var(--v5-brand)')">{{ t.commissions.all }} ({{ commission.events.length }})</text>
@@ -109,7 +109,7 @@
               </view>
               <view class="flex-1 min-w-0">
                 <view class="flex items-center" style="gap: 6px">
-                  <text class="truncate" :style="{ fontSize: '13px', color: 'var(--v5-ink)' }">{{ e.sourceUserName }}</text>
+                  <text class="truncate" :style="{ fontSize: '13px', color: 'var(--v5-ink)' }">{{ sourceName(e) }}</text>
                   <text v-if="e.layer" class="font-mono-tabular" :style="e.layer === 1 ? directBadgeStyle : extendedBadgeStyle">{{ e.layer === 1 ? t.commissions.directBadge : t.commissions.extendedBadge }}</text>
                 </view>
                 <text class="block font-mono-tabular" :style="eventMetaStyle">{{ eventMeta(e) }}</text>
@@ -188,6 +188,14 @@ const coolingOverviewText = computed(() => {
 const noKindText = computed(() =>
   fmt(t.value.commissions.noKindEvents, { kind: t.value.commissions.kind[filter.value as CommissionKind] }),
 );
+
+function sourceName(e: CommissionEvent): string {
+  if (e.kind === "binary" && ["match-today", "match-1", "match-2"].includes(e.sourceUserId ?? ""))
+    return t.value.commissions.mockDailyBinaryMatch;
+  if (e.kind === "leadership" && e.sourceUserId === "pool-w42")
+    return t.value.commissions.mockWeek42Pool;
+  return e.sourceUserName;
+}
 
 function eventMeta(e: CommissionEvent): string {
   const kindLabel = t.value.commissions.kind[e.kind];

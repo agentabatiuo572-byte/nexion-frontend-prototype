@@ -41,7 +41,7 @@
               </view>
               <view class="flex-1 min-w-0 flex items-center" style="padding: 14px; gap: 10px">
                 <view class="flex-1 min-w-0">
-                  <text class="block truncate" :style="ticketNameStyle">{{ v.name }}</text>
+                  <text class="block truncate" :style="ticketNameStyle">{{ voucherName(v) }}</text>
                   <text class="block truncate" :style="rowSubStyle">{{ scopeText(v) }}</text>
                   <text class="block truncate" :style="rowSubTightStyle">{{ expiryText(v) }}</text>
                 </view>
@@ -68,7 +68,7 @@
               </view>
               <view class="flex-1 min-w-0 flex items-center" style="padding: 14px; gap: 10px">
                 <view class="flex-1 min-w-0">
-                  <text class="block truncate" :style="ticketNameExpiredStyle">{{ v.name }}</text>
+                  <text class="block truncate" :style="ticketNameExpiredStyle">{{ voucherName(v) }}</text>
                   <text class="block truncate" :style="rowSubStyle">{{ scopeText(v) }}</text>
                 </view>
                 <view class="shrink-0 inline-flex" :style="expiredBadgeStyle"><text>{{ t.rewards.expiredBadge }}</text></view>
@@ -118,6 +118,7 @@ import { useBills, isRewardBill, type BillType } from "@/store/bills";
 import { getProduct } from "@/mock/products";
 import { isSingleSkuVoucher, type VoucherDef } from "@/mock/vouchers";
 import { navTo } from "@/lib/route";
+import { remoteApiEnabled } from "@/api/runtime";
 import { useScrollGrowProgress } from "@/composables/use-scroll-grow-progress";
 
 // Mirrors L1's RewardsCat (pages/me/rewards.vue); unknown values fall back.
@@ -143,6 +144,11 @@ const pageTitle = computed(() =>
 // ── vouchers ──
 const available = computed<VoucherDef[]>(() => voucher.claimedUnused);
 const expired = computed<VoucherDef[]>(() => voucher.expiredVouchers);
+function voucherName(v: VoucherDef): string {
+  if (!remoteApiEnabled && v.id === "vc-newuser-50") return t.value.voucher.newUserGiftName;
+  if (!remoteApiEnabled && v.id === "vc-activity-8pct") return t.value.voucher.summerActivityName;
+  return v.name;
+}
 
 // ── reward records (per-symbol, newest-first from the ledger) ──
 const symbol = computed(() => (cat.value === "nex" ? "NEX" : "USDT"));

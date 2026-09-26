@@ -494,8 +494,8 @@ function caseRowStyle(isLast: boolean): CSSProperties {
 </script>
 
 <style scoped>
-@media (max-width: 350px) {
-  .nx-agent-locked-row { flex-wrap: wrap; }
-  .nx-agent-locked-cta { margin-left: 52px; }
+@media (max-width: 420px) {
+  .nx-agent-locked-row { display: grid; grid-template-columns: 40px minmax(0, 1fr); }
+  .nx-agent-locked-cta { grid-column: 2; justify-self: start; }
 }
 </style>

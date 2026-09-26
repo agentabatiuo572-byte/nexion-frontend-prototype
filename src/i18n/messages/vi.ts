@@ -518,7 +518,7 @@ export const vi: Messages = {
     // ConversionBanner (weekly quest)
     weeklyQuestEyebrow: "Nhiệm vụ tuần này",
     weeklyQuestEndsIn: "Còn",
-    weeklyQuestActivateToClaim: "Kích hoạt {device} để nhận",
+    weeklyQuestActivateToClaim: "Kích hoạt {device}",
     weeklyQuestAddCapacity: "Thêm công suất để nhận",
     weeklyQuestGetNexGridBox: "Mua UVELBox",
     // ConversionBanner micro-stats (source hardcoded; keyed for bilingual parity)
@@ -1072,7 +1072,7 @@ export const vi: Messages = {
     // FEAT-DEV02 — retire flow: pick an upgrade target
     retireTitle: "Nâng cấp đổi máy",
     retireSubtitle: "Chọn mẫu nâng cấp cho {name} và xem báo giá đổi máy hiện tại.",
-    retireTargetOption: "{name} · ${price} · còn ≈${net} sau khi trừ",
+    retireTargetOption: "{name} · ${price} · trả ≈${net}",
     retireEarlyTag: "Nâng cấp sớm",
     // Trade-in confirm (proceeds to checkout)
     sheetTitle: "Đổi {from} của bạn → {to}",
@@ -1563,6 +1563,8 @@ export const vi: Messages = {
     popupCap: "Ưu đãi có hạn",
     popupTitle: "Nhận voucher của bạn",
     popupSubtitle: "Nhận ngay để tiết kiệm cho lần mua máy tới.",
+    newUserGiftName: "Quà người mới",
+    summerActivityName: "Ưu đãi mùa hè",
     closeAria: "Đóng",
     claimCta: "Nhận",
     useCta: "Dùng ngay",
@@ -2368,7 +2370,7 @@ export const vi: Messages = {
     stakingVault: "Kho Staking",
     upTo180: "lên tới 180%",
     genesisNode: "Genesis",
-    myGenesisNodeValue: "{n} node",
+    myGenesisNodeValue: "{n} suất",
     achievementsRowValue: "{n}/{total}",
     leftCount: "còn ~{n}",
     trustCenter: "Tin cậy",
@@ -3227,6 +3229,9 @@ export const vi: Messages = {
     historyEmpty: "Chưa có tác vụ hoàn thành. Tác vụ đầu tiên sẽ sớm xuất hiện.",
     historyHint:
       "{n} tác vụ gần nhất · Chạm vào dòng để xem biên nhận Proof‑of‑Compute.",
+    timeJustNow: "vừa xong",
+    timeMinutesAgo: "{n} phút",
+    timeHoursAgo: "{n} giờ",
   },
   errors: {
     deviceCapTitle: "Đã đạt giới hạn thiết bị",
@@ -4223,6 +4228,8 @@ export const vi: Messages = {
 
   commissions: {
     pageTitle: "Hoa Hồng",
+    mockDailyBinaryMatch: "Ghép cân bằng hằng ngày",
+    mockWeek42Pool: "Quỹ thưởng tuần 42",
     directBadge: "Trực tiếp",
     extendedBadge: "Mở rộng",
     withdrawable: "Có thể rút",
@@ -4682,9 +4689,9 @@ export const vi: Messages = {
     listBannerNoneTitle: "Chưa có Genesis?",
     listBannerNoneBody: "Mua một tin rao bên dưới hoặc đặt trước một suất đúc mới để chốt phần phát hành + được rao bán.",
     listBannerNoneCta: "Đặt sơ cấp",
-    timeMinAgo: "{n}m trước",
-    timeHrAgo: "{n}h trước",
-    timeDayAgo: "{n}d trước",
+    timeMinAgo: "{n} phút",
+    timeHrAgo: "{n} giờ",
+    timeDayAgo: "{n} ngày",
     actKind: {
       sale: "Bán",
       list: "Rao",
@@ -5165,7 +5172,7 @@ export const vi: Messages = {
     ordersDesc: "Những gì bạn mua sẽ hiện ở đây",
     ordersCta: "Dạo cửa hàng",
     billsTitle: "Chưa có ghi nhận",
-    billsDesc: "Mọi khoản nạp và nhận đều ghi ở đây",
+    billsDesc: "Giao dịch sẽ được ghi ở đây",
     rewardsTitle: "Chưa có phần thưởng",
     rewardsDesc: "Voucher và quà sẽ gom về đây",
     messagesTitle: "Chưa có cuộc trò chuyện",

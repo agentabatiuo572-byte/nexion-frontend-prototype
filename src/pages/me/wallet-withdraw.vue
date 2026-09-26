@@ -1641,7 +1641,8 @@ const feeWhyBodyStyle: CSSProperties = {
   lineHeight: 1.5,
 };
 const submitBtnStyle = computed<CSSProperties>(() => ({
-  height: "48px",
+  minHeight: "48px",
+  padding: "8px 16px",
   borderRadius: "999px",
   background: canSubmit.value ? "var(--v5-brand)" : "var(--v5-surface-2)",
   // 🔴 页面主 CTA。用 --v5-ink 实测对比度 **1.54:1**(暗色主题下亮绿底配浅色字),

@@ -60,7 +60,7 @@
       >
         <view class="flex-1 min-w-0">
           <text class="block truncate" :style="{ fontSize: '15px', color: d.isPhone ? 'var(--v5-ink-3)' : 'var(--v5-ink-2)', fontWeight: d.isPhone ? 400 : 600 }">{{ d.name ?? t.market.yourPhone }}<text v-if="d.rank === 1" style="margin-left: 6px; font-size: 12px; color: var(--v5-warning-ink)">{{ t.uiChrome.best }}</text></text>
-          <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 2px">{{ d.bestFor ?? "—" }}</text>
+          <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 2px">{{ bestForText(d.bestFor) }}</text>
         </view>
         <text class="tabular-nums shrink-0" :style="{ fontFamily: 'var(--font-v5)', fontSize: '14.5px', fontWeight: 400, color: 'var(--v5-warning-ink)' }">{{ d.dailyEarn === null ? "—" : `$${d.dailyEarn.toFixed(2)}/d` }}</text>
         <svg v-if="d.kind" class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
@@ -126,6 +126,13 @@ const priceIndex = computed<WorkloadPrice[]>(() => remoteApiEnabled
 const deviceRankings = computed<DeviceRanking[]>(() => remoteApiEnabled
   ? (app.homeTruth?.marketBoard.deviceRankings ?? []).map((row) => ({ rank: Math.min(5, row.rank) as 1 | 2 | 3 | 4 | 5, name: row.name ?? undefined, dailyEarn: row.dailyUsdt, bestFor: row.bestFor, kind: row.kind && row.kind !== "phone" ? row.kind : undefined, isPhone: row.kind === "phone" }))
   : DEVICE_RANKINGS);
+
+function bestForText(value: string | null): string {
+  if (!value) return "—";
+  if (remoteApiEnabled) return value;
+  const labels = t.value.market.bestFor as Record<string, string>;
+  return Object.prototype.hasOwnProperty.call(labels, value) ? labels[value] : value;
+}
 
 function formatPrice(n: number): string {
   if (n >= 1) return n.toFixed(2);
