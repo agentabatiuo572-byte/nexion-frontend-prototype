@@ -54,6 +54,8 @@ export interface CompletedTask extends CurrentTask {
 
 export interface Device {
   id: string;
+  /** Mock installation ownership; production comes from authenticated server identity. */
+  phoneInstallationId?: string;
   /** Server CAS version. Remote mutations must send this exact value. */
   rowVersion?: number;
   kind: DeviceKind;

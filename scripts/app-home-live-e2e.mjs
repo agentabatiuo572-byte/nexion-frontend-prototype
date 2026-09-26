@@ -42,7 +42,13 @@ try {
   const previewAccountReady = await loginShell.getAttribute("data-preview-account-status") === "ready";
   const previewPhonePrefilled = await phoneInput.inputValue() === "901234567";
   await passwordInput.press("Enter");
-  await page.waitForURL(/#\/$|#\/pages\/index\/index/, { timeout: 15_000 });
+  await page.waitForURL(/#\/$|#\/pages\/index\/index|pages\/onboarding\/connect/, { timeout: 15_000 });
+  // This suite checks account features after declining optional phone setup.
+  if (page.url().includes("/onboarding/connect")) {
+    await page.locator(".cn-back").click();
+    await page.evaluate(() => uni.reLaunch({ url: "/pages/index/index" }));
+    await page.waitForURL(/#\/$|#\/pages\/index\/index/);
+  }
   await page.waitForTimeout(1_000);
 
   for (let attempt = 0; attempt < 12; attempt += 1) {

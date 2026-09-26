@@ -2,7 +2,30 @@
 // Messages type is exported so other locales must match its shape.
 
 export const en = {
+  phonePolicy: {
+  "webNotice": "The web version cannot run phone compute tasks. Tasks continue while the bound app is online and stop when it goes offline. Purchased devices are unaffected.",
+  "appNotice": "Bind and activate this phone in the app to run phone compute tasks.",
+  "download": "Download the app",
+  "manage": "Set up phone compute",
+  "retry": "Check again",
+  "login": "Sign in again",
+  "continueWeb": "Continue on the web",
+  "continueApp": "Continue in the app",
+  "confirmReplacement": "Confirm replacement and activate",
+  "replaceNotice": "This replaces the bound phone. Its active slot will be transferred to this phone; the old phone cannot be activated from this device. Purchased devices are unaffected.",
+  "errors": {
+    "config-unavailable": "Device replacement settings are unavailable. Check again before replacing the phone.",
+    "web-only": "Phone compute is available in the installed app only.",
+    "replacement-disabled": "This account is bound to another phone. Device replacement is not allowed. Phone tasks are paused; purchased devices are unaffected.",
+    "cooldown": "Device replacement is still in its waiting period. Next available: {date}.",
+    "device-mismatch": "This phone does not match the registered device. Reassess the current phone to replace it.",
+    "slots-full": "No activation slot is available. Free a slot before activating this phone.",
+    "storage-failed": "Activation was not saved. Check the connection and try again.",
+    "reauth-required": "Sign in again on the bound phone to resume phone tasks."
+  }
+},
   publicCopy: {
+    // Phone policy uses the same keys on APP and H5.
     memberIdle: "Inactive",
     experienceDepositCredited: "Demo deposit credited: {amount} USDT",
     orderWaitingSlot: "Waiting for a free device slot to activate",
@@ -279,8 +302,8 @@ export const en = {
   register: {
     title: "Create account",
     subtitleHighlight: "${usd} Welcome Bonus",
-    subtitleRest: " credited the moment your device connects.",
-    subtitleNoBonus: "Your welcome bonus is ready — credited the moment your device connects.",
+    subtitleRest: ". Check its status after registration.",
+    subtitleNoBonus: "Create an account to continue. Check any welcome gift status after registration.",
     phoneLenHint: "Phone numbers for this code are {range} digits",
     phonePlaceholder: "Mobile number",
     passwordPlaceholder: "Create password (8–64 chars)",
@@ -721,9 +744,9 @@ export const en = {
     hashFactorThermal: "Cooling · thermal guard",
     hashFactorOffline: "Offline · reconnecting",
     // SPEC-1 R7: a phone without a fresh device heartbeat runs the base-hosting tier; weak nudge to the app for the online boost
-    hashCarrierH5Mode: "Base hosting mode",
-    hashCarrierH5Network: "Registered hashpower network",
-    hashCarrierUpgradeHook: "Upgrade to the app for the online boost",
+    hashCarrierH5Mode: "Phone tasks paused",
+    hashCarrierH5Network: "App offline",
+    hashCarrierUpgradeHook: "Sign in to the app on the bound phone to resume",
     rangeToday: "Today",
     rangeWeek: "Week",
     rangeMonth: "Month",
@@ -881,10 +904,10 @@ export const en = {
       h5: {
         linkLabel: "Web home",
         kicker: "Web app",
-        title: "Base-hosted mobile earning",
-        body: "Mobile browser keeps account devices and wallet available without background lock-in. PC sharing appears when available.",
+        title: "Web account management",
+        body: "View devices and wallet. Phone tasks require the bound native app to stay online. Web sign-in does not affect purchased devices.",
         modeLabel: "Compute mode",
-        modeValue: "Base hosted",
+        modeValue: "Phone tasks require an online app",
         primaryLabel: "Open earn view",
         secondaryLabel: "Manage device slots",
         metrics: {

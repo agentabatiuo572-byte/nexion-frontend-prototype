@@ -7,6 +7,9 @@ import { settleDeviceBatch, useApp } from "./app";
 import { createDevice } from "./device-types";
 import { useConfig } from "./config";
 import type { Device } from "./types";
+import { getDeviceId } from "@/lib/device-id";
+import { fallbackCapability } from "@/lib/device-capability";
+import { useSession } from "./session";
 
 const NOW = 1_800_000_000_000;
 const HOUR = 3_600_000;
@@ -18,6 +21,7 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 function phone(patch: Partial<Device> = {}): Device {
   return {
     ...createDevice("phone", "battery-policy-phone"),
+    phoneInstallationId: getDeviceId(),
     activatedAt: NOW - HOUR,
     lastSettledAt: NOW - HOUR,
     miningSince: NOW - HOUR,
@@ -32,7 +36,7 @@ function phone(patch: Partial<Device> = {}): Device {
 }
 
 function settle(device: Device, now = Date.now()) {
-  return settleDeviceBatch([device], "app", now, bonus, true).nextDevices[0];
+  return settleDeviceBatch([device], "app", now, bonus, true, device.id).nextDevices[0];
 }
 
 describe("phone battery task policy", () => {
@@ -49,6 +53,9 @@ describe("phone battery task policy", () => {
     });
     setActivePinia(createPinia());
     useConfig()._devSetConfigSyncFailed(false);
+    useSession().claim("default", "signed-app");
+    useApp().$patch({ devices: [phone()] });
+    expect(useApp().applyPhoneCalibration(fallbackCapability())).toBeNull();
   });
 
   afterEach(() => {
@@ -118,6 +125,7 @@ describe("phone battery task policy", () => {
     app.setPhoneRuntime("battery-policy-phone", { isWifiConnected: false });
     expect(app.devices[0].pausedReason).toBe("no-network");
     vi.setSystemTime(NOW + HOUR);
+    useSession().resumeOrClaim("default", "signed-app");
     app.setPhoneRuntime("battery-policy-phone", { batteryLevel: 20, isCharging: false, isWifiConnected: true });
     app.tick(1000);
     expect(app.devices[0].pausedReason).toBeNull();

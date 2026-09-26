@@ -3,7 +3,30 @@ import type { Messages } from "./en";
 // Simplified Chinese — natural Mandarin phrasing. Keys mirror en.ts exactly.
 
 export const zh: Messages = {
+  phonePolicy: {
+  "webNotice": "网页版不能执行手机算力任务。绑定的 APP 在线时任务继续，离线后自动停止；已购设备不受影响。",
+  "appNotice": "在 APP 中绑定并激活当前手机后，才能执行手机算力任务。",
+  "download": "下载 APP",
+  "manage": "设置手机算力",
+  "retry": "重新检查",
+  "login": "重新登录",
+  "continueWeb": "继续使用网页版",
+  "continueApp": "继续使用 APP",
+  "confirmReplacement": "确认替换并激活",
+  "replaceNotice": "此操作将更换绑定手机。原手机如已上架，其槽位会由当前手机替换；原手机不能在当前设备上重新激活。已购设备不受影响。",
+  "errors": {
+    "config-unavailable": "暂时无法读取换机设置，请重新检查后再更换手机。",
+    "web-only": "请在原生安装的 APP 中使用手机算力。",
+    "replacement-disabled": "当前账号已绑定其它手机，暂不允许更换设备。手机算力任务已暂停，已购设备不受影响。",
+    "cooldown": "尚未达到允许换机的时间，下次可更换时间：{date}。",
+    "device-mismatch": "当前手机与登记设备不匹配。请重新评估当前手机后再替换激活。",
+    "slots-full": "没有可用的激活槽位，请先空出槽位再激活手机。",
+    "storage-failed": "激活结果未能保存，请检查连接后重试。",
+    "reauth-required": "请在原绑定手机上重新登录，以恢复手机算力任务。"
+  }
+},
   publicCopy: {
+    // Phone policy uses the same keys on APP and H5.
     memberIdle: "暂不活跃",
     experienceDepositCredited: "体验充值已到账：{amount} USDT",
     orderWaitingSlot: "待腾出设备槽位后开通",
@@ -262,8 +285,8 @@ export const zh: Messages = {
   register: {
     title: "创建账号",
     subtitleHighlight: "{usd} 美元新人奖励",
-    subtitleRest: ",连接设备即刻到账。",
-    subtitleNoBonus: "新人奖励已备好,连接设备即刻到账。",
+    subtitleRest: "，注册后可查看礼包状态。",
+    subtitleNoBonus: "注册账号后即可继续使用；如有新人礼包，可在注册后查看状态。",
     phoneLenHint: "该区号手机号为 {range} 位",
     phonePlaceholder: "手机号码",
     passwordPlaceholder: "设置密码(8–64 位)",
@@ -661,9 +684,9 @@ export const zh: Messages = {
     hashFactorThermal: "散热中 · 温度保护",
     hashFactorOffline: "离线 · 重连中",
     // SPEC-1 R7:无新鲜设备心跳走基础托管档,弱引导升级 App 常驻获取在线加成
-    hashCarrierH5Mode: "基础托管模式",
-    hashCarrierH5Network: "登记算力网络",
-    hashCarrierUpgradeHook: "升级 App 拿在线加成",
+    hashCarrierH5Mode: "手机任务已暂停",
+    hashCarrierH5Network: "APP 未在线",
+    hashCarrierUpgradeHook: "在绑定手机上登录 APP 后恢复",
     rangeToday: "今天",
     rangeWeek: "本周",
     rangeMonth: "本月",
@@ -819,10 +842,10 @@ export const zh: Messages = {
       h5: {
         linkLabel: "网页版首页",
         kicker: "网页版",
-        title: "网页版移动收益",
-        body: "手机浏览器里账号设备和钱包照常可用,不占用后台;电脑共享可用时会出现。",
+        title: "网页版账户管理",
+        body: "查看设备和钱包。手机算力任务仅由已绑定且在线的原生 APP 执行，已购设备不受网页版登录影响。",
         modeLabel: "算力模式",
-        modeValue: "基础托管",
+        modeValue: "手机任务需 APP 在线",
         primaryLabel: "打开赚币页",
         secondaryLabel: "管理设备槽位",
         metrics: {

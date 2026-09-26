@@ -911,7 +911,7 @@ if "$NODE_BIN" -e 'const s=require("fs").readFileSync("src/store/app.ts","utf8")
 else
   bad "SPEC-1 R7 heartbeat refresh must happen after stale-gap settlement"
 fi
-sentinel_present "SPEC-1 hosted baseline present" src/lib/hashpower.ts 'H5_BASE_FACTOR'
+sentinel_present "Phone policy: offline compute is zero" src/lib/hashpower.ts 'const effectiveTops = 0;'
 sentinel_present "SPEC-1 carrier retained only as App heartbeat source" src/lib/carrier.ts '#ifdef APP-PLUS'
 # settle-single-source: earnings accrue by WALL-CLOCK Δ via settleDevice (not tick-time / fixed window)
 sentinel_present "SPEC-1 settle: settleDevice exists" src/store/app.ts 'function settleDevice'

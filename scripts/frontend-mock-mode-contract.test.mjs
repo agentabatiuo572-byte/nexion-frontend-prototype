@@ -36,8 +36,8 @@ assert.doesNotMatch(runtime, /fundsSandboxEnabled|paymentSandboxEnabled|apiRunti
   "the high-fidelity runtime must not expose sandbox capability switches");
 assert.doesNotMatch(example, /VITE_NEXGRID_API_MODE|sandbox|remote/i,
   "the example environment must not document obsolete sandbox/remote startup modes");
-assert.match(viteConfig, /port:\s*5174/,
-  "the high-fidelity preview must own its fixed 5174 port");
+assert.match(viteConfig, /port:\s*5175/,
+  "the H5 preview must own its fixed 5175 port");
 assert.doesNotMatch(viteConfig, /loadEnv|VITE_NEXGRID_API_PREVIEW_TARGET|proxy:\s*\{/,
   "the fixed mock preview must not expose a Java backend proxy");
 assert.doesNotMatch(vitestConfig, /VITE_NEXGRID_API_MODE|VITE_NEXGRID_API_DEV_BASE_URL/,

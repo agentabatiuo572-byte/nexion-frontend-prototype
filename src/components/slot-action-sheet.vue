@@ -108,6 +108,8 @@ function hide() {
 }
 
 function onActivate(d: Device) {
+  const phoneError = app.phoneInventoryActivationError(d);
+  if (phoneError) { toast.warn(t.value.phonePolicy.errors[phoneError]); return; }
   if (slotsUsed.value >= MAX_DEVICES) {
     toast.warn(fmt(t.value.slotSheet.toastSlotsFull, { max: MAX_DEVICES }));
     return;
@@ -116,6 +118,8 @@ function onActivate(d: Device) {
   if (ok) {
     toast.success(fmt(t.value.slotSheet.toastActivated, { name: deviceName(t.value, d) }));
     sheet.hide();
+  } else {
+    toast.warn(t.value.publicCopy.operationUnconfirmed);
   }
 }
 

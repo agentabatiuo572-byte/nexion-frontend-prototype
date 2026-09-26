@@ -10,6 +10,8 @@ import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
 import { useProfile } from "@/store/profile";
 import { authApi, remoteApiEnabled } from "@/api/runtime";
 import type { UserSession } from "@/api/contracts";
+import { getCarrier } from "@/lib/carrier";
+import { getDeviceId } from "@/lib/device-id";
 
 interface CompleteSignInOptions {
   identity: string;
@@ -143,6 +145,7 @@ export function completeSignIn(options: CompleteSignInOptions): CompleteSignInRe
     if (!readAccountSessionRecords(options.identity).some((record) => record.sessionId === session.sessionId)) {
       return abortSignIn();
     }
+    if (!remoteApiEnabled && !completed && !app.acceptPhoneSignIn()) return abortSignIn();
     if (!remoteApiEnabled && options.sponsorCode && !sponsorship?.bind(options.sponsorCode)) {
       return abortSignIn();
     }
@@ -178,14 +181,14 @@ export function completeSignIn(options: CompleteSignInOptions): CompleteSignInRe
   // snapshot unavailable and the withdrawal endpoint still fails closed.
   void refreshEarningsReleaseStatus(options.identity).catch(() => {});
   if (options.deferNavigation) return { ok: true };
-  if (!auth.onboardingComplete) {
+  if (getCarrier() === "app" && !auth.onboardingComplete) {
     uni.reLaunch({
       url: "/pages/onboarding/estimator",
       fail: () => uni.reLaunch({ url: "/pages/onboarding/intro", fail: () => {} }),
     });
     return { ok: true };
   }
-  if (requiresRecalibration) {
+  if (getCarrier() === "app" && (requiresRecalibration || !app.phoneBinding || app.phoneBinding.installationId !== getDeviceId())) {
     uni.reLaunch({
       url: "/pages/onboarding/connect?mode=recalibrate",
       fail: () => uni.reLaunch({ url: "/pages/index/index", fail: () => {} }),

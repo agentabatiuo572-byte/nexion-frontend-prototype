@@ -62,6 +62,7 @@ export function completePlatformConfigSeed(seed: PlatformConfigSeed): PlatformCo
     RUNTIME_CAPTCHA_ALWAYS_SCENES_DEFAULT;
 
   return {
+    phoneBinding: seed.phoneBinding ? { ...seed.phoneBinding } : { allowReplacement: false, minReplacementIntervalDays: 0 },
     featureFlags: { ...seed.featureFlags },
     publicStats: {
       ...publicStats,

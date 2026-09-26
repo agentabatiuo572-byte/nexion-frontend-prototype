@@ -149,6 +149,7 @@
 </template>
 
 <script setup lang="ts">
+import { getCarrier } from "@/lib/carrier";
 import BrandLockup from "@/components/brand-lockup.vue";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
@@ -801,15 +802,10 @@ function completeActivatedRegistration(accountId: string, restorePreviousAccount
 function launchRegistrationSuccess() {
   // [FEAT-SHARE5] H5 注册完成 → 成功页(礼包确认 + 引导下载 APP);
   // APP 壳内注册装 APP 引导无意义,直进 onboarding(异常2)。
-  // #ifdef H5
   uni.reLaunch({
-    url: "/pages/register/success",
-    fail: () => uni.reLaunch({ url: "/pages/onboarding/estimator", fail: () => {} }),
+    url: getCarrier() === "h5" ? "/pages/register/success" : "/pages/onboarding/estimator",
+    fail: () => uni.reLaunch({ url: "/pages/index/index", fail: () => {} }),
   });
-  // #endif
-  // #ifndef H5
-  uni.reLaunch({ url: "/pages/onboarding/estimator", fail: () => {} });
-  // #endif
 }
 function prospectiveIdentity() {
   return `${country.value}${phoneClean.value}@demo.nexgrid.ai`;

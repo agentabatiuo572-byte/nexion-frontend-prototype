@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 2,
+  "id": "phone-platform-h5-implementation",
+  "title": "APP/H5 手机绑定与执行资格",
+  "repo": "D:/WORKS/PLAN/Nexion-H5",
+  "base": "cac04d18",
+  "mode": "implement",
+  "risk": "high",
+  "owner": "codex-primary",
+  "outOfScope": [
+    "可点演示",
+    "修改既有注册礼",
+    "把模拟身份声称为真机身份"
+  ],
+  "inputs": [
+    "D:/WORKS/PLAN/Nexion-H5/docs/specs/phone-platform-policy.md"
+  ],
+  "steps": [
+    {
+      "id": "policy",
+      "title": "绑定、换机、手机任务统一资格",
+      "dependsOn": [],
+      "scope": [
+        "src/store/**",
+        "src/lib/**",
+        "src/mock/**"
+      ],
+      "acceptance": [
+        {
+          "id": "binding-policy",
+          "description": "首次绑定、频控、非匹配仓库手机和手机专属停止按 R1-R11 执行",
+          "source": {
+            "input": "D:/WORKS/PLAN/Nexion-H5/docs/specs/phone-platform-policy.md",
+            "locator": "R1-R11; T01-T26"
+          },
+          "kind": "behavior",
+          "checks": [
+            "policy/unit"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "id": "unit",
+          "argv": [
+            "node",
+            "node_modules/vitest/vitest.mjs",
+            "run"
+          ],
+          "kind": "exit",
+          "timeoutMs": 300000
+        }
+      ],
+      "reviewRequired": true
+    },
+    {
+      "id": "surfaces",
+      "title": "APP/H5 入口、引导和全站文案",
+      "dependsOn": [
+        "policy"
+      ],
+      "scope": [
+        "src/**",
+        "scripts/**"
+      ],
+      "acceptance": [
+        {
+          "id": "platform-entry",
+          "description": "H5 注册进入下载页且禁止校准，APP 换机失败可回其他业务",
+          "source": {
+            "input": "D:/WORKS/PLAN/Nexion-H5/docs/specs/phone-platform-policy.md",
+            "locator": "FEAT-WEB1; FEAT-APP1"
+          },
+          "kind": "behavior",
+          "checks": [
+            "surfaces/runtime"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "id": "runtime",
+          "argv": [
+            "node",
+            "scripts/phone-platform-runtime.mjs"
+          ],
+          "kind": "exit",
+          "timeoutMs": 300000
+        }
+      ],
+      "reviewRequired": true
+    }
+  ],
+  "integration": {
+    "id": "integration",
+    "title": "双项目回归与同步",
+    "dependsOn": [
+      "policy",
+      "surfaces"
+    ],
+    "scope": [
+      "src/**",
+      "scripts/**",
+      "docs/specs/**"
+    ],
+    "acceptance": [
+      {
+        "id": "all-regressions",
+        "description": "已购设备、注册礼、三语言双主题回归通过",
+        "source": {
+          "input": "D:/WORKS/PLAN/Nexion-H5/docs/specs/phone-platform-policy.md",
+          "locator": "验收矩阵"
+        },
+        "kind": "behavior",
+        "checks": [
+          "integration/full"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "id": "full",
+        "argv": [
+          "node",
+          "scripts/verify-chain.mjs",
+          "--full"
+        ],
+        "kind": "exit",
+        "timeoutMs": 600000
+      }
+    ],
+    "reviewRequired": true
+  }
+}

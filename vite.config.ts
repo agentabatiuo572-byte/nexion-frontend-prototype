@@ -33,7 +33,7 @@ export default defineConfig(() => {
     //   host:true → Node 监听 `::` 双栈,127.0.0.1 / [::1] / localhost / 局域网都通。
     //   修在服务端一处,不追着改 N 个脚本里写死的地址(那是散弹枪,新脚本必复发)。
     host: true,
-    port: 5174,
+    port: 5175,
       strictPort: true, // 高保真固定 5174；端口占用时直接失败，不静默漂移
       // 🔴 .claude/worktrees 与 admin 仓互挂 junction(跨仓门取材面),构成双向环:
       //   uniapp/.claude/worktrees/nexion-ops-console → admin-ops/.claude/worktrees/Nexion-uniapp → 回本仓。

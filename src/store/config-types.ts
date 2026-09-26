@@ -240,6 +240,7 @@ export interface PublicStatsConfig {
 }
 
 export interface PlatformConfig {
+  phoneBinding?: { allowReplacement: boolean; minReplacementIntervalDays: number };
   featureFlags: FeatureFlags;
   publicStats: PublicStatsConfig;
   onlineBonus: OnlineBonus;
