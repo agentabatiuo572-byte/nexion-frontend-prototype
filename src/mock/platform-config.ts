@@ -14,7 +14,7 @@ export const DEFAULT_PLATFORM_CONFIG: PlatformConfigSeed = {
     homeNewcomerTasksEnabled: true,
     homeWeeklyPromoEnabled: true,
   },
-  // SPEC-1 在线加成系数(单一来源:lib/hashpower.ts 派生 H5_BASE_FACTOR / CONTINUITY_FULL_MS)。
+  // 在线加成系数；h5BaseFactor 仅保留旧配置兼容，手机离线不计产。
   // 与 admin compute-config COMPUTE_COEFFICIENTS 同 key,运营在 E6 调,PROD 由服务端下发。
   onlineBonus: {
     h5BaseFactor: 0.6,

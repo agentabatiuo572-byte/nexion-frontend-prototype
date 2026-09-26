@@ -10,9 +10,10 @@
 // device state used by the online factor.
 
 export type Carrier = "app" | "h5";
+import { PRODUCT_TARGET } from "./product-target";
 
 export function getCarrier(): Carrier {
-  let carrier: Carrier = "h5"; // H5 / mp-* do not produce resident heartbeats
+  let carrier: Carrier = PRODUCT_TARGET;
   // #ifdef APP-PLUS
   carrier = "app";
   // #endif

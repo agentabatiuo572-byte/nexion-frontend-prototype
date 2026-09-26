@@ -544,10 +544,8 @@ function checkAuthGuard(): boolean {
     uni.reLaunch({ url: "/pages/onboarding/intro" });
     return true;
   }
-  if (!auth.onboardingComplete) {
-    uni.reLaunch({ url: "/pages/onboarding/estimator" });
-    return true;
-  }
+  // First-login guidance is handled once by completeSignIn. Declining phone
+  // activation must leave the rest of the account accessible on both platforms.
   return false;
 }
 
@@ -582,10 +580,7 @@ function checkSession(): boolean {
   // that follows an eviction).
   const app = useApp();
   if (app.miningPaused) app.resumeMining();
-  if (session.requiresRecalibration && auth.onboardingComplete) {
-    uni.reLaunch({ url: "/pages/onboarding/connect?mode=recalibrate" });
-    return true;
-  }
+  // A persistent home action offers calibration without trapping every route.
   return false;
 }
 

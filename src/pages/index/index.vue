@@ -16,6 +16,10 @@
         <TechMoneyCard />
       </view>
       <TrialGhostSlot />
+      <view v-if="showPhoneNotice" class="phone-policy-notice" role="status">
+        <text>{{ webVersion ? t.phonePolicy.webNotice : t.phonePolicy.appNotice }}</text>
+        <button class="phone-policy-action" @click="openPhoneSetup">{{ webVersion ? t.phonePolicy.download : t.phonePolicy.manage }}</button>
+      </view>
 
       <view
         v-if="visibleTaskCards.length"
@@ -119,6 +123,9 @@ import MarketBoardCard from "@/components/home/market-board-card.vue";
 import ProductTrustCard from "@/components/home/product-trust-card.vue";
 import TrustChipWall from "@/components/home/trust-chip-wall.vue";
 import { useT } from "@/i18n/use-t";
+import { useApp } from "@/store/app";
+import { getCarrier } from "@/lib/carrier";
+import { getDeviceId } from "@/lib/device-id";
 import { fmt } from "@/i18n/format";
 import { useConfig } from "@/store/config";
 import { useLocaleStore } from "@/store/locale";
@@ -141,6 +148,13 @@ const TASK_CAROUSEL_INTERVAL_MS = 5000;
 const TASK_CARD_COLLAPSED_HEIGHT = 184;
 
 const t = useT();
+const phoneApp = useApp();
+const webVersion = getCarrier() === "h5";
+const showPhoneNotice = computed(() => webVersion || !phoneApp.phoneBinding
+  || phoneApp.phoneBinding.installationId !== getDeviceId() || phoneApp.phoneBinding.suspendedAt !== null);
+function openPhoneSetup() {
+  uni.navigateTo({ url: webVersion ? "/pages/register/success?download=1" : "/pages/onboarding/connect?mode=recalibrate" });
+}
 // 🔴 首页承载 QuickActionRow(创世快捷入口,受闸文案),必须跟着重读配置(独立验收 P1:
 //   此前只有 3 个创世页接了 onShow,首页与商城页漏接 —— 用户停在首页,运营切关闭,
 //   首页仍在催「仅剩 N 席」)。
@@ -392,4 +406,9 @@ onLoad(() => {
     transition: none;
   }
 }
+</style>
+<style scoped>
+.phone-policy-notice { padding: 14px; border-radius: 12px; background: var(--v5-surface); color: var(--v5-ink-2); font-size: 13px; line-height: 1.6; }
+.phone-policy-action { margin-top: 10px; min-height: 44px; background: var(--v5-brand); color: var(--v5-on-brand); font-size: 14px; }
+.phone-policy-action:focus-visible { outline: 2px solid var(--v5-ink); outline-offset: 3px; }
 </style>

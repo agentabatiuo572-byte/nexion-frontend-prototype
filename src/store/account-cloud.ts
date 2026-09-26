@@ -1,5 +1,6 @@
 import type { Device, EarningsState, UserState, Withdrawal } from "@/store/types";
 import type { EntrySurface } from "@/lib/entry-surface";
+import type { PhoneBinding } from "@/lib/phone-policy";
 
 const STORAGE_KEY = "nexgrid-account-cloud-v1";
 
@@ -10,6 +11,7 @@ export interface AccountCloudSnapshot {
   updatedAt: number;
   user: UserState;
   devices: Device[];
+  phoneBinding?: PhoneBinding | null;
   earnings: EarningsState;
   /**
    * 🔴 提现单**列表**,不是「最新一条」。
@@ -489,6 +491,7 @@ export function mergeAccountSnapshots(
       latest.user as unknown as JsonRecord,
     ) as unknown as UserState,
     devices: mergeDevicesByDiff(base.devices, next.devices, latest.devices),
+    phoneBinding: sameValue(base.phoneBinding, next.phoneBinding) ? latest.phoneBinding : next.phoneBinding,
     earnings: mergeFieldByDiff(
       base.earnings as unknown as JsonRecord,
       next.earnings as unknown as JsonRecord,
@@ -541,6 +544,19 @@ export function mergeAndWriteAccountSnapshotResult(
 ): AccountSnapshotWriteResult {
   const key = normalizeAccountKey(next.accountKey);
   const latest = readAccountSnapshot(key);
+  // A changed binding invalidates all work based on the old authority, including
+  // phone earnings. The caller adopts the latest snapshot and can retry safely.
+  if (base && latest && !sameValue(base.phoneBinding, latest.phoneBinding)) {
+    return { snapshot: latest, persisted: false };
+  }
+  // A stale observer cannot stop a phone whose resident APP has since renewed
+  // its heartbeat. Reject and reload instead of merging null over live work.
+  if (base && latest && sameValue(base.phoneBinding, next.phoneBinding) && next.devices.some((device) => {
+    if (device.kind !== "phone" || device.onlineHeartbeatAt != null) return false;
+    const before = base.devices.find((d) => d.id === device.id);
+    const current = latest.devices.find((d) => d.id === device.id);
+    return (current?.onlineHeartbeatAt ?? 0) > (before?.onlineHeartbeatAt ?? 0);
+  })) return { snapshot: latest, persisted: false };
   const rawMerged = base && latest ? mergeAccountSnapshots(base, next, latest) : { ...next, accountKey: key, updatedAt: Date.now() };
   const merged = clampAccountFundInvariants(rawMerged);
   // 🔴 **无条件写盘**。曾经在这里加过「内容没变就跳过」的脏检查(2026-08-04,已撤),

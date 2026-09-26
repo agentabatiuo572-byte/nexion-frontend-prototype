@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +9,12 @@ import { ensureServer, identify } from "./lib/dev-server-pool.mjs";
 import { isThirdPartyResourceError } from "./lib/console-origin-filter.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+// H5 has no assessment flow. Its replacement acceptance proves download
+// routing and rejects direct calibration/activation attempts on the real UI.
+if (/PRODUCT_TARGET[^=]*=\s*"h5"/.test(await readFile(resolve(root, "src/lib/product-target.ts"), "utf8"))) {
+  await import("./phone-platform-runtime.mjs");
+  process.exit(0);
+}
 const artifacts = resolve(process.env.CALIBRATION_ARTIFACT_DIR || `${tmpdir()}/nexion-calibration-${Date.now()}`);
 const results = [];
 let server, browser;
@@ -142,7 +148,7 @@ async function runCase(base, { locale, mode, width, height }) {
     await page.locator('.lg-wrap[data-preview-account-status="ready"]').waitFor();
     assert.equal(await page.getByTestId("mock-preview-phone").locator("input").inputValue(), "901234567");
     await page.getByTestId("mock-preview-password").locator("input").press("Enter");
-    await page.waitForURL(/#\/$|#\/pages\/index\/index/);
+    await page.waitForURL(/#\/$|#\/pages\/index\/index|pages\/onboarding\/connect/);
     await page.evaluate(async locale => (await import("/src/store/locale.ts")).useLocaleStore().setLocale(locale), locale);
     const connect = `${base}/?nx_device_inner=1#/pages/onboarding/connect${mode === "recalibrate" ? "?mode=recalibrate" : ""}`;
     await page.goto(connect, { waitUntil: "domcontentloaded" });
@@ -182,7 +188,7 @@ async function runCase(base, { locale, mode, width, height }) {
     assert.equal(result.before.onboardingComplete, mode !== "first");
     assert.equal(result.before.accountComplete, mode !== "first");
     if (locale === "en" && width === 320) {
-      await page.locator(".cn-go--glow").click();
+      await page.locator('.cn-go--glow[aria-disabled="false"]').click();
       await page.waitForFunction(() => parseFloat(document.querySelector(".cn-test__fill")?.style.width || "0") >= 10);
       await page.locator(".cn-back").click();
       await page.waitForURL(mode === "first" ? /#\/pages\/onboarding\/estimator/ : /#\/pages\/me\/devices/);
@@ -207,7 +213,7 @@ async function runCase(base, { locale, mode, width, height }) {
         if (score) window.__scoreSamples.push(Number(score.textContent));
       }, 200);
     }, { started, label: labels[locale] });
-    await page.locator(".cn-go--glow").press("Enter");
+    await page.locator('.cn-go--glow[aria-disabled="false"]').press("Enter");
     await page.locator(".cn-test").first().waitFor();
     assert.equal(await page.locator(".cn-test").count(), 1, "only device assessment may appear");
     assert.equal(await page.locator(".cn-policy").count(), 0, "rules icon must stay hidden during calibration");
@@ -337,7 +343,7 @@ async function runCase(base, { locale, mode, width, height }) {
           observer.observe(document.body, { childList: true, subtree: true, characterData: true });
         });
       }
-      await page.locator(".cn-go--glow").click();
+      await page.locator('.cn-go--glow[aria-disabled="false"]').click();
       await page.locator(".cn-score").waitFor();
       assert.equal(await page.locator(".cn-policy__cap").getAttribute("aria-expanded"), "false");
       assert.equal(await page.locator(".cn-policy__list").count(), 0, "reentry must reset the rules to collapsed");
@@ -409,9 +415,12 @@ async function runBatteryRules(base) {
     await page.goto(`${base}/?nx_device_inner=1#/pages/login/login`, { waitUntil: "domcontentloaded" });
     await page.locator('.lg-wrap[data-preview-account-status="ready"]').waitFor();
     await page.getByTestId("mock-preview-password").locator("input").press("Enter");
-    await page.waitForURL(/#\/$|#\/pages\/index\/index/);
+    await page.waitForURL(/#\/$|#\/pages\/index\/index|pages\/onboarding\/connect/);
     const fixture = await page.evaluate(async () => {
       const app = (await import("/src/store/app.ts")).useApp();
+      const cap = (await import("/src/lib/device-capability.ts")).fallbackCapability();
+      const activationError = app.applyPhoneCalibration(cap);
+      if (activationError) throw new Error(activationError);
       const { getT } = await import("/src/i18n/use-t.ts");
       (await import("/src/store/locale.ts")).useLocaleStore().setLocale("en");
       // Isolate the existing phone with public store actions; no fabricated task engine.

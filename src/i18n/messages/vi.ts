@@ -3,7 +3,30 @@ import type { Messages } from "./en";
 // Vietnamese (Tiếng Việt) — professional yet friendly register (bạn). Keys mirror en.ts exactly.
 
 export const vi: Messages = {
+  phonePolicy: {
+  "webNotice": "Bản web không thể chạy tác vụ tính toán trên điện thoại. Tác vụ tiếp tục khi app đã liên kết còn trực tuyến và dừng khi ngoại tuyến. Thiết bị đã mua không bị ảnh hưởng.",
+  "appNotice": "Liên kết và kích hoạt điện thoại này trong app để chạy tác vụ tính toán.",
+  "download": "Tải app",
+  "manage": "Thiết lập tính toán điện thoại",
+  "retry": "Kiểm tra lại",
+  "login": "Đăng nhập lại",
+  "continueWeb": "Tiếp tục dùng bản web",
+  "continueApp": "Tiếp tục trong app",
+  "confirmReplacement": "Xác nhận thay thế và kích hoạt",
+  "replaceNotice": "Thao tác này thay điện thoại đã liên kết. Nếu điện thoại cũ đang hoạt động, ô đó sẽ chuyển sang điện thoại này. Không thể kích hoạt điện thoại cũ từ thiết bị này. Thiết bị đã mua không bị ảnh hưởng.",
+  "errors": {
+    "config-unavailable": "Chưa thể đọc cài đặt đổi điện thoại. Hãy kiểm tra lại trước khi thay thế.",
+    "web-only": "Tính toán trên điện thoại chỉ có trong app đã cài đặt.",
+    "replacement-disabled": "Tài khoản đã liên kết với điện thoại khác và không được phép đổi thiết bị. Tác vụ điện thoại tạm dừng; thiết bị đã mua không bị ảnh hưởng.",
+    "cooldown": "Chưa hết thời gian chờ đổi điện thoại. Có thể đổi từ: {date}.",
+    "device-mismatch": "Điện thoại hiện tại không khớp với thiết bị đã đăng ký. Hãy đánh giá lại trước khi thay thế và kích hoạt.",
+    "slots-full": "Không còn ô kích hoạt. Hãy giải phóng một ô trước khi kích hoạt điện thoại.",
+    "storage-failed": "Chưa lưu được kết quả kích hoạt. Kiểm tra kết nối và thử lại.",
+    "reauth-required": "Đăng nhập lại trên điện thoại đã liên kết để tiếp tục tác vụ."
+  }
+},
   publicCopy: {
+    // Phone policy uses the same keys on APP and H5.
     memberIdle: "Chưa hoạt động",
     experienceDepositCredited: "Đã ghi có tiền nạp trải nghiệm: {amount} USDT",
     orderWaitingSlot: "Đang chờ chỗ thiết bị trống để kích hoạt",
@@ -274,8 +297,8 @@ export const vi: Messages = {
   register: {
     title: "Tạo tài khoản",
     subtitleHighlight: "Thưởng chào mừng ${usd}",
-    subtitleRest: " vào tài khoản ngay khi thiết bị của bạn kết nối.",
-    subtitleNoBonus: "Thưởng chào mừng đã sẵn sàng — vào tài khoản ngay khi thiết bị kết nối.",
+    subtitleRest: ". Xem trạng thái quà sau khi đăng ký.",
+    subtitleNoBonus: "Tạo tài khoản để tiếp tục. Nếu có quà chào mừng, hãy xem trạng thái sau khi đăng ký.",
     phoneLenHint: "Số điện thoại mã vùng này gồm {range} chữ số",
     phonePlaceholder: "Số điện thoại",
     passwordPlaceholder: "Tạo mật khẩu (8–64 ký tự)",
@@ -677,9 +700,9 @@ export const vi: Messages = {
     hashFactorThermal: "Đang hạ nhiệt · bảo vệ nhiệt",
     hashFactorOffline: "Ngoại tuyến · đang kết nối lại",
     // SPEC-1 R7: a phone without a fresh device heartbeat runs the base-hosting tier; weak nudge to the app for the online boost
-    hashCarrierH5Mode: "Chế độ cơ bản",
-    hashCarrierH5Network: "Mạng lưới sức mạnh tính toán đã đăng ký",
-    hashCarrierUpgradeHook: "Nâng lên app để nhận thưởng online",
+    hashCarrierH5Mode: "Tác vụ điện thoại đã tạm dừng",
+    hashCarrierH5Network: "App ngoại tuyến",
+    hashCarrierUpgradeHook: "Đăng nhập app trên điện thoại đã liên kết để tiếp tục",
     rangeToday: "Hôm nay",
     rangeWeek: "Tuần",
     rangeMonth: "Tháng",
@@ -837,10 +860,10 @@ export const vi: Messages = {
       h5: {
         linkLabel: "Trang chủ web",
         kicker: "Ứng dụng web",
-        title: "Kiếm tiền trên di động qua web",
-        body: "Trình duyệt di động vẫn giữ thiết bị tài khoản và ví mà không chiếm nền. Chia sẻ PC hiện ra khi khả dụng.",
+        title: "Quản lý tài khoản trên web",
+        body: "Xem thiết bị và ví. Tác vụ điện thoại cần app đã liên kết duy trì trực tuyến. Đăng nhập web không ảnh hưởng đến thiết bị đã mua.",
         modeLabel: "Chế độ tính toán",
-        modeValue: "Lưu trữ cơ bản",
+        modeValue: "Tác vụ điện thoại cần app trực tuyến",
         primaryLabel: "Mở trang kiếm tiền",
         secondaryLabel: "Quản lý khe thiết bị",
         metrics: {

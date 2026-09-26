@@ -8,6 +8,9 @@ import { isDegradable, getEfficiency, getMonthsOwned, installCanonicalLifecycleC
 import { interruptInfo } from "./interrupt";
 import { continuityFactor, thermalFactor, isDeviceOnline } from "@/lib/hashpower";
 import { phoneRuntimePauseReason } from "@/lib/phone-runtime";
+import { getDeviceId } from "@/lib/device-id";
+import { readAccountSessionRecords, readCalibratedInstallation } from "@/store/session";
+import { matchesPhoneBinding, phoneReplacementError, stopPhoneTask, type PhoneBinding, type PhoneActivationError } from "@/lib/phone-policy";
 import { accountTotalHashrate } from "@/lib/account-hashrate";
 import { getCarrier, type Carrier } from "@/lib/carrier";
 import { getEntrySurface, type EntrySurface } from "@/lib/entry-surface";
@@ -264,7 +267,8 @@ function createSeedSnapshot(accountKey: string, email: string, entrySurface: Ent
     entrySurface,
     updatedAt: Date.now(),
     user: createInitialUser(asEmailIdentity(email) || asEmailIdentity(accountKey) || "alex@nexgrid.ai"),
-    devices: makeInitialDevices(),
+    devices: makeInitialDevices().map((d) => d.kind === "phone"
+      ? { ...stopPhoneTask(d), activatedAt: null } : d),
     earnings: createInitialEarnings(),
     withdrawals: [],
   };
@@ -309,7 +313,7 @@ function createServerEmptySnapshot(accountKey: string, email: string, entrySurfa
  *  mock persists and reloads this anchor across refreshes; PROD makes the server
  *  canonical for lastSettledAt and the resulting aggregate.
  *  R7 在线分层: a phone with a fresh device heartbeat accrues continuity×thermal;
- *  a missing/stale beat accrues the hosted baseline. The view carrier is never
+ *  a missing/stale beat produces no phone income. The view carrier is never
  *  a factor source (display uses the same isDeviceOnline seam). */
 function settleDevice(d: Device, now: number, onlineBonus: OnlineBonus): Device {
   // Not earning right now (idle / offline / cloud-share / phone gated) → drop a
@@ -319,7 +323,7 @@ function settleDevice(d: Device, now: number, onlineBonus: OnlineBonus): Device 
     d.status !== "online" ||
     d.kind === "cloud-share" ||
     d.pausedReason != null ||
-    (d.kind === "phone" && phoneRuntimePauseReason(d) != null)
+    (d.kind === "phone" && (phoneRuntimePauseReason(d) != null || !isDeviceOnline(d, now)))
   ) {
     return d.lastSettledAt == null ? d : { ...d, lastSettledAt: null };
   }
@@ -336,7 +340,7 @@ function settleDevice(d: Device, now: number, onlineBonus: OnlineBonus): Device 
     d.kind === "phone"
       ? isDeviceOnline(d, now)
         ? continuityFactor(now - (d.miningSince ?? now), onlineBonus.continuityFullHours * 60 * 60 * 1000) * thermalFactor(d.thermalState)
-        : onlineBonus.h5BaseFactor
+        : 0
       : 1;
   const inc = (d.baseRate * lifeEff * phoneFactor * marketMult * variation * deltaMs) / ONE_DAY;
   const incNEX = (d.baseRateNEX * lifeEff * phoneFactor * marketMult * variation * deltaMs) / ONE_DAY;
@@ -361,6 +365,7 @@ export function settleDeviceBatch(
   now: number,
   onlineBonus: OnlineBonus,
   computeShareEnabled: boolean,
+  residentDeviceId?: string,
 ): { settled: Device[]; nextDevices: Device[] } {
   const settled = current.map((device) =>
     device.kind === "pc-gpu" && !computeShareEnabled
@@ -370,11 +375,12 @@ export function settleDeviceBatch(
   const nextDevices = carrier === "app"
     ? settled.map((device) =>
         device.kind === "phone" &&
+        device.id === residentDeviceId &&
         device.status === "online" &&
         device.pausedReason == null &&
         phoneRuntimePauseReason(device) == null &&
         device.activatedAt !== null
-          ? { ...device, onlineHeartbeatAt: now }
+          ? { ...device, onlineHeartbeatAt: now, lastSettledAt: device.lastSettledAt ?? now }
           : device,
       )
     : settled;
@@ -394,6 +400,20 @@ function freezeComputeShareDevice(d: Device): Device {
   };
 }
 
+function legacyPhoneBinding(snapshot: AccountCloudSnapshot): PhoneBinding | null {
+  const installationId = readCalibratedInstallation(snapshot.accountKey);
+  if (!installationId) return null;
+  const phone = snapshot.devices.find((d) => d.kind === "phone");
+  // Existing explicit installation evidence survives migration. Unknown
+  // historical change time conservatively starts the replacement interval now.
+  return { version: 0, installationId, deviceId: phone?.id ?? "", changedAt: mockServerNow(), suspendedAt: null };
+}
+
+function projectPhoneDevices(snapshot: AccountCloudSnapshot, binding: PhoneBinding | null): Device[] {
+  return snapshot.devices.map((d) => migratePhonePause(d.kind === "phone" && !d.phoneInstallationId && d.id === binding?.deviceId
+    ? { ...d, phoneInstallationId: binding.installationId } : d));
+}
+
 export const useApp = defineStore("app", () => {
   const bootSurface = getEntrySurface();
   const bootSnapshot = remoteApiEnabled
@@ -411,7 +431,8 @@ export const useApp = defineStore("app", () => {
     pendingEarnings: 0,
     earningBuckets: createEarningBuckets(0, 0),
   } : bootSnapshot.user);
-  const devices = ref<Device[]>(remoteApiEnabled ? [] : bootSnapshot.devices.map(migratePhonePause));
+  const phoneBinding = ref<PhoneBinding | null>(bootSnapshot.phoneBinding ?? legacyPhoneBinding(bootSnapshot));
+  const devices = ref<Device[]>(remoteApiEnabled ? [] : projectPhoneDevices(bootSnapshot, phoneBinding.value));
   const earnings = ref<EarningsState>(remoteApiEnabled
     ? { today: 0, todayNEX: 0, thisWeek: 0, thisMonth: 0, total: 0, history: [] }
     : bootSnapshot.earnings);
@@ -568,7 +589,8 @@ export const useApp = defineStore("app", () => {
     const normalizedSnapshot = { ...snapshot, user: withDefaultEarningBuckets(snapshot.user) };
     user.value = normalizedSnapshot.user;
     // Keep the raw snapshot as the merge base: the next write persists this migration.
-    devices.value = snapshot.devices.map(migratePhonePause);
+    phoneBinding.value = snapshot.phoneBinding ?? legacyPhoneBinding(snapshot);
+    devices.value = projectPhoneDevices(snapshot, phoneBinding.value);
     earnings.value = snapshot.earnings;
     withdrawals.value = snapshot.withdrawals ?? [];
     syncDeviceRuntime(snapshot.devices, resetRuntime);
@@ -600,6 +622,7 @@ export const useApp = defineStore("app", () => {
       updatedAt: Date.now(),
       user: user.value,
       devices: devices.value,
+      phoneBinding: phoneBinding.value,
       earnings: earnings.value,
       withdrawals: withdrawals.value,
     };
@@ -916,6 +939,7 @@ export const useApp = defineStore("app", () => {
       void syncRemoteTaskAssignments();
       return;
     }
+    enforcePhoneRuntime();
     // ── Global platform stats jitter ──
     // Runs even while the personal session is paused — platform-wide figures
     // must not freeze on an individual's mining state. Symmetric BOUNDED
@@ -949,6 +973,9 @@ export const useApp = defineStore("app", () => {
 
       // Phone battery + network gating
       if (d.kind === "phone") {
+        if (!phoneExecutionAllowed(d)) return stopPhoneTask(d);
+        // H5 observes fresh APP work; it never runs or completes phone tasks.
+        if (getCarrier() !== "app" || d.phoneInstallationId !== getDeviceId()) return d;
         const reason = phoneRuntimePauseReason(d);
         next.pausedReason = reason;
         if (reason !== null) {
@@ -1049,6 +1076,7 @@ export const useApp = defineStore("app", () => {
     // (GET /api/me/earnings —— PRD §9.11c.1),client 不自算。
     if (remoteApiEnabled) return;
     if (miningPaused.value) return;
+    enforcePhoneRuntime();
     const cfgStore = useConfig();
     // FEAT-RISK02 异常3: 配置同步失败 → 暂停结算并由钱包显示失败态;
     // 禁止回退到前端写死默认值继续结算。
@@ -1070,6 +1098,7 @@ export const useApp = defineStore("app", () => {
       now,
       onlineBonus,
       computeShareEnabled.value,
+      residentPhoneDeviceId(),
     );
     // Only a delta that was already backed by a fresh device heartbeat counts
     // as App online attestation. A stale reopen tick is baseline and attests 0.
@@ -1201,38 +1230,93 @@ export const useApp = defineStore("app", () => {
   // starts a fresh continuity run. Called by the onboarding/recalibration ritual
   // after measureDeviceCapability(). PROD: GET /api/onboarding/calibrate/result
   // returns score/tier/yield baseline; the client applies that result here.
-  function applyPhoneCalibration(cap: DeviceCapability) {
-    devices.value = devices.value.map((d) =>
-      d.kind === "phone"
-        ? {
-            ...d,
-            baseRate: cap.baseRateUsdt,
-            baseRateNEX: cap.baseRateNex,
-            gpu: `Mobile NPU · ~${cap.tops} TOPS`,
-            capabilityScore: cap.score,
-            capabilityTops: cap.tops,
-            capabilityTier: cap.tier,
-            miningSince: Date.now(),
-            onlineHeartbeatAt: null,
-          }
-        : d,
-    );
-    // persist-verdict-ok: 手机校准遥测,非资金;失败时内存已拨回,下一次心跳重写
-    persistAccountSnapshot();
+  function phoneActivationError(): PhoneActivationError | null {
+    if (getCarrier() === "app" && phoneBinding.value && phoneBinding.value.installationId !== getDeviceId()
+      && (cfg.syncFailed || cfg.loading)) return "config-unavailable";
+    const error = phoneReplacementError(phoneBinding.value, getDeviceId(), getCarrier(), cfg.config.phoneBinding, mockServerNow());
+    if (error) return error;
+    return liveAppSession(getDeviceId()) ? null : "reauth-required";
   }
 
-  // Session invalidated (self logged-out / admin revoked): immediately cancel
-  // every in-flight task across the fleet WITHOUT a grace window and WITHOUT
-  // issuing a receipt — the in-progress job's reward is forfeited (the
-  // "回退"/rollback), mirroring interrupt.ts cancel semantics but triggered by
-  // auth, not connectivity. Freezes mining until resumeMining().
+  function liveAppSession(installationId: string): boolean {
+    const now = Date.now();
+    return readAccountSessionRecords(accountKey.value).some((s) => s.entrySurface === "signed-app"
+      && s.deviceId === installationId && now >= s.lastSeenAt && now - s.lastSeenAt < 180000);
+  }
+
+  function residentPhoneDeviceId(): string | undefined {
+    const binding = phoneBinding.value;
+    if (!binding || binding.suspendedAt !== null || getCarrier() !== "app" || binding.installationId !== getDeviceId()) return;
+    return liveAppSession(binding.installationId) ? binding.deviceId : undefined;
+  }
+
+  function phoneExecutionAllowed(d: Device): boolean {
+    if (!matchesPhoneBinding(d, phoneBinding.value) || phoneBinding.value?.suspendedAt !== null) return false;
+    if (!liveAppSession(phoneBinding.value!.installationId)) return false;
+    return d.id === residentPhoneDeviceId() || isDeviceOnline(d, Date.now());
+  }
+
+  function enforcePhoneRuntime() {
+    const latest = readAccountSnapshot(accountKey.value);
+    if (latest && JSON.stringify(latest.phoneBinding ?? null) !== JSON.stringify(phoneBinding.value)) adoptAccountSnapshot(latest);
+    else if (latest && latest.devices.some((d) => d.kind === "phone"
+      && (d.onlineHeartbeatAt ?? 0) > (devices.value.find((row) => row.id === d.id)?.onlineHeartbeatAt ?? 0))) {
+      // Adopt funds, merge base and aggregate anchors together. Importing only
+      // the phone counters would count remote earnings again as local income.
+      adoptAccountSnapshot(latest);
+    }
+    devices.value = devices.value.map((d) => d.kind === "phone" && (!phoneExecutionAllowed(d)
+      || (d.onlineHeartbeatAt != null && !isDeviceOnline(d, Date.now()) && d.interruptedAt == null)) ? stopPhoneTask(d) : d);
+  }
+
+  // Only a completed, explicit authentication calls this. onShow/session refresh
+  // cannot clear a different-phone login suspension.
+  function acceptPhoneSignIn(): boolean {
+    const latest = readAccountSnapshot(accountKey.value);
+    if (latest) adoptAccountSnapshot(latest);
+    const binding = phoneBinding.value;
+    if (getCarrier() === "app" && binding && (binding.installationId !== getDeviceId() || binding.suspendedAt !== null)) {
+      phoneBinding.value = { ...binding, version: binding.version + 1,
+        suspendedAt: binding.installationId === getDeviceId() ? null : mockServerNow() };
+      devices.value = devices.value.map(stopPhoneTask);
+    }
+    if (getCarrier() !== "app") enforcePhoneRuntime();
+    return persistAccountSnapshot();
+  }
+
+  function applyPhoneCalibration(cap: DeviceCapability, reservedSlots = 0): PhoneActivationError | null {
+    const error = phoneActivationError();
+    if (error) return error;
+    const installationId = getDeviceId();
+    const now = mockServerNow();
+    const binding = phoneBinding.value;
+    const legacy = !binding ? devices.value.find((d) => d.kind === "phone" && !d.phoneInstallationId) : undefined;
+    const old = devices.value.find((d) => d.id === binding?.deviceId) ?? legacy;
+    const same = devices.value.find((d) => d.kind === "phone" && d.phoneInstallationId === installationId) ?? legacy;
+    // Replacing an active phone consumes its existing slot. A warehouse phone
+    // needs a genuinely free slot, including the trial's reservation.
+    const releasing = old?.activatedAt != null ? 1 : 0;
+    if (activeSlotCount.value - releasing + reservedSlots >= MAX_DEVICES) return "slots-full";
+    const device = same ?? createDevice("phone", `phone-${installationId}`);
+    const activated: Device = { ...stopPhoneTask(device), phoneInstallationId: installationId,
+      activatedAt: now, pendingDeactivate: false, status: "online", baseRate: cap.baseRateUsdt,
+      baseRateNEX: cap.baseRateNex, gpu: `Mobile NPU · ~${cap.tops} TOPS`, capabilityScore: cap.score,
+      capabilityTops: cap.tops, capabilityTier: cap.tier, miningSince: now, lastSettledAt: now };
+    devices.value = devices.value.map((d) => d.id === activated.id ? activated : d.kind === "phone"
+      ? { ...stopPhoneTask(d), activatedAt: null, pendingDeactivate: false } : d);
+    if (!same) devices.value.push(activated);
+    phoneBinding.value = { version: (binding?.version ?? 0) + 1, installationId, deviceId: activated.id,
+      changedAt: binding?.installationId === installationId ? binding.changedAt : now, suspendedAt: null };
+    return persistAccountSnapshot() ? null : "storage-failed";
+  }
+
+  // Session invalidation cancels only this installation's phone work.
+  // Purchased hardware retains its independent execution state.
   function interruptAllTasks(_reason: "kicked" | "logged-out") {
-    miningPaused.value = true;
-    devices.value = devices.value.map((d) =>
-      d.activatedAt !== null
-        ? { ...d, currentTask: null, interruptedAt: null, miningSince: null, lastSettledAt: null, onlineHeartbeatAt: null }
-        : d,
-    );
+    // Account browsing sessions do not own purchased hardware execution.
+    if (getCarrier() !== "app" || phoneBinding.value?.installationId !== getDeviceId()) return;
+    phoneBinding.value = { ...phoneBinding.value, version: phoneBinding.value.version + 1, suspendedAt: mockServerNow() };
+    devices.value = devices.value.map(stopPhoneTask);
     // persist-verdict-ok: 任务中断态,失败时内存已拨回;任务引擎下一 tick 复验
     persistAccountSnapshot();
   }
@@ -1334,6 +1418,7 @@ export const useApp = defineStore("app", () => {
   function activateDevice(id: string, reservedSlots = 0): boolean {
     const device = devices.value.find((d) => d.id === id);
     if (!device || device.activatedAt !== null) return false;
+    if (phoneInventoryActivationError(device)) return false;
     if (device.kind === "pc-gpu" && !computeShareEnabled.value) return false;
     if (activeSlotCount.value + reservedSlots >= MAX_DEVICES) return false;
     devices.value = devices.value.map((d) =>
@@ -1343,6 +1428,14 @@ export const useApp = defineStore("app", () => {
     );
     // 落盘失败 = 没激活(内存已拨回):如实返 false,调用方按「激活未成」处置,别把幽灵激活当成功。
     return persistAccountSnapshot();
+  }
+
+  function phoneInventoryActivationError(device: Device): PhoneActivationError | null {
+    if (device.kind !== "phone") return null;
+    if (getCarrier() !== "app") return "web-only";
+    if (!matchesPhoneBinding(device, phoneBinding.value) || device.phoneInstallationId !== getDeviceId()) return "device-mismatch";
+    if (phoneBinding.value?.suspendedAt !== null || !liveAppSession(getDeviceId())) return "reauth-required";
+    return null;
   }
 
   // Clears activatedAt + zeroes runtime telemetry so the device exits earnings
@@ -2440,6 +2533,7 @@ export const useApp = defineStore("app", () => {
     bindAccount, projectServerIdentity, persistAccountSnapshot, refreshHomeTruth, refreshRemoteFleet, syncRemoteTaskAssignments, refreshFundsSandbox, refreshFundsSandboxForAccount,
     fundsSandboxStatus, fundsSandboxError, fundsSandboxEvidence,
     tick, settle, setPhoneRuntime, applyPhoneCalibration, interruptAllTasks, resumeMining,
+    phoneBinding, phoneActivationError, phoneInventoryActivationError, acceptPhoneSignIn,
     creditBalance, debitBalance, creditNex, debitNex, captureMoney, restoreMoney,
     recordDeposit, creditRewardBucket, creditRewardBucketOnce,
     submitWithdrawal, applyWithdrawalDebit, advanceWithdrawalArrival, refreshRemoteWithdrawals, refreshRemoteWithdrawalList,

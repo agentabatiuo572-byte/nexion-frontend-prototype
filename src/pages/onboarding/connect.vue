@@ -13,7 +13,8 @@
     <view>
       <text class="cn-step">{{ stepText }}</text>
       <text class="cn-title">{{ titleText }}</text>
-      <text v-if="phase !== 'result'" class="cn-sub">{{ subText }}</text>
+      <text v-if="phase !== 'result' && !activationError" class="cn-sub">{{ subText }}</text>
+      <text v-if="activationError" class="cn-sub" role="alert" aria-live="polite">{{ activationErrorText }}</text>
     </view>
 
     <transition name="cn-fade" mode="out-in" @after-enter="startScoreMotion">
@@ -31,8 +32,8 @@
           </view>
         </view>
         <view class="cn-cta">
-          <view class="cn-go cn-go--glow active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="phase = 'calibrating'">
-            <text class="cn-go__t">{{ t.onboarding.calibrationStart }}</text>
+          <view class="cn-go cn-go--glow active:scale-[0.98]" role="button" tabindex="0" :aria-disabled="checking || cfg.loading" :aria-busy="checking || cfg.loading" data-system-chrome-primary @click="beginCalibration" @keydown.enter.prevent="beginCalibration" @keydown.space.prevent="beginCalibration">
+            <text class="cn-go__t">{{ activationError === 'reauth-required' ? t.phonePolicy.login : activationError ? t.phonePolicy.retry : t.onboarding.calibrationStart }}</text>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
           </view>
         </view>
@@ -86,7 +87,7 @@
           </view>
         </view>
         <view class="cn-cta">
-          <view class="cn-go cn-go--on active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="activate">
+          <view class="cn-go cn-go--on active:scale-[0.98]" role="button" tabindex="0" :aria-disabled="checking || cfg.loading" :aria-busy="checking || cfg.loading" data-system-chrome-primary @click="activate" @keydown.enter.prevent="activate" @keydown.space.prevent="activate">
             <text class="cn-go__t cn-go__t--on">{{ activateText }}</text>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
           </view>
@@ -94,6 +95,7 @@
       </view>
     </transition>
 
+    <text v-if="phase === 'result' && isReplacement" class="cn-sub" role="note">{{ t.phonePolicy.replaceNotice }}</text>
     <view v-if="phase === 'result'" class="cn-policy" @click.stop>
       <view v-if="rulesExpanded" id="cn-policy-details" class="cn-policy__list" role="tooltip">
         <text class="cn-policy__title">{{ t.onboarding.policyTitle }}</text>
@@ -121,9 +123,20 @@ import { useSession } from "@/store/session";
 import { markAuthAccountOnboardingComplete } from "@/store/auth-account";
 import { measureDeviceCapability } from "@/lib/device-capability";
 import { getDeviceId } from "@/lib/device-id";
+import { getCarrier } from "@/lib/carrier";
+import { trialReservesSlotNow } from "@/store/free-trial";
+import { useConfig } from "@/store/config";
+import type { PhoneActivationError } from "@/lib/phone-policy";
 
 const t = useT();
 const auth = useAuth();
+const app = useApp();
+const cfg = useConfig();
+const checking = ref(false);
+const activationError = ref<PhoneActivationError | null>(null);
+const activationErrorText = computed(() => activationError.value ? fmt(t.value.phonePolicy.errors[activationError.value], {
+  date: new Date((app.phoneBinding?.changedAt ?? 0) + (useConfig().config.phoneBinding?.minReplacementIntervalDays ?? 0) * 86400000).toLocaleString(),
+}) : "");
 
 // Recalibrate mode (?mode=recalibrate) = new-device assessment; otherwise the
 // first-time onboarding calibration. Set in onLoad.
@@ -147,14 +160,16 @@ if (typeof document !== "undefined") document.addEventListener("keydown", onRule
 const CALIBRATION_MS = 12_000;
 // This is an estimate from device information, not a hardware benchmark.
 // The timer presents progress; only the final estimated score is displayed.
-const cap = measureDeviceCapability(getDeviceId());
+const calibrationDeviceId = getDeviceId();
+const cap = measureDeviceCapability(calibrationDeviceId);
 const FINAL_SCORE = cap.score;
 
 // Copy swaps: recalibrate vs first-time onboarding.
 const stepText = computed(() => (isRecal.value ? t.value.onboarding.recalStep : t.value.onboarding.step3of3));
-const titleText = computed(() => phase.value === "result" ? t.value.onboarding.resultTitle : (isRecal.value ? t.value.onboarding.recalTitle : t.value.onboarding.calibrationTitle));
+const titleText = computed(() => activationError.value ? t.value.phonePolicy.manage : phase.value === "result" ? t.value.onboarding.resultTitle : (isRecal.value ? t.value.onboarding.recalTitle : t.value.onboarding.calibrationTitle));
 const subText = computed(() => (isRecal.value ? t.value.onboarding.recalSubtitle : t.value.onboarding.calibrationSubtitle));
-const activateText = computed(() => (isRecal.value ? t.value.onboarding.recalActivate : t.value.onboarding.activatePhone));
+const isReplacement = computed(() => !!app.phoneBinding && app.phoneBinding.installationId !== calibrationDeviceId);
+const activateText = computed(() => isReplacement.value ? t.value.phonePolicy.confirmReplacement : (isRecal.value ? t.value.onboarding.recalActivate : t.value.onboarding.activatePhone));
 
 // lucide paths
 const ICON = {
@@ -183,6 +198,18 @@ function startCalibration() {
     startResult();
     phase.value = "result";
   }, CALIBRATION_MS);
+}
+
+async function beginCalibration() {
+  if (phase.value !== "intro" || checking.value || cfg.loading) return;
+  checking.value = true;
+  try { await cfg.load(); } finally { checking.value = false; }
+  activationError.value = app.phoneActivationError();
+  if (activationError.value === "reauth-required") {
+    uni.reLaunch({ url: "/pages/login/login" });
+    return;
+  }
+  if (!activationError.value) phase.value = "calibrating";
 }
 
 const progressText = computed(() =>
@@ -267,16 +294,19 @@ watch(phase, (p) => {
   if (p === "calibrating") startCalibration();
 });
 
-function activate() {
+async function activate() {
+  if (checking.value || cfg.loading) return;
+  checking.value = true;
+  try { await cfg.load(); } finally { checking.value = false; }
   const app = useApp();
   // Apply the estimated baseline to the live phone device + record this
   // device as the account's calibrated device (so future logins on it skip
   // recalibration, while a different device triggers it).
-  app.applyPhoneCalibration(cap);
+  activationError.value = calibrationDeviceId !== getDeviceId() ? "device-mismatch"
+    : app.applyPhoneCalibration(cap, trialReservesSlotNow() ? 1 : 0);
+  if (activationError.value) return;
   useSession().markCalibrated(auth.email || auth.accountId || "default");
-  if (isRecal.value) {
-    app.resumeMining();
-  } else {
+  if (!auth.onboardingComplete) {
     if (!auth.completeOnboarding()) {
       uni.showToast({ title: t.value.authOtp.errorServiceUnavailable, icon: "none" });
       return;
@@ -296,6 +326,12 @@ function leaveConnect() {
 }
 
 onLoad((options) => {
+  if (getCarrier() === "h5") {
+    uni.reLaunch({ url: "/pages/register/success?download=1" });
+    return;
+  }
+  app.resumeMining();
+  activationError.value = app.phoneActivationError();
   const o = (options || {}) as Record<string, string>;
   if (o.mode === "recalibrate") isRecal.value = true;
 });

@@ -163,6 +163,8 @@ import { useT } from "@/i18n/use-t";
 import { deviceName } from "@/lib/device-copy";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
+import { getCarrier } from "@/lib/carrier";
+import { getDeviceId } from "@/lib/device-id";
 import { useFreeTrial } from "@/store/free-trial";
 import { useTradeinSheet } from "@/store/tradein-sheet";
 import { MAX_DEVICES } from "@/store/device-types";
@@ -290,6 +292,12 @@ function handleTradein(d: Device) {
 }
 
 async function handleActivate(d: Device) {
+  if (d.kind === "phone") {
+    if (getCarrier() === "h5") { toast.warn(t.value.phonePolicy.errors["web-only"]); return; }
+    if (!app.phoneBinding) { uni.navigateTo({ url: "/pages/onboarding/connect" }); return; }
+    const phoneError = app.phoneInventoryActivationError(d);
+    if (phoneError) { toast.warn(t.value.phonePolicy.errors[phoneError]); return; }
+  }
   if (slotsFull.value) {
     toast.warn(fmt(t.value.myDevices.inventoryToastSlotsFull, { max: MAX_DEVICES }));
     return;

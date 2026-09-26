@@ -92,6 +92,11 @@ function readCalibratedMap(): Record<string, string> {
   return {};
 }
 
+export function readCalibratedInstallation(accountKey: string): string | null {
+  const id = readCalibratedMap()[normalizeAccountKey(accountKey)];
+  return typeof id === "string" && id.length > 0 ? id : null;
+}
+
 function writeCalibratedMap(m: Record<string, string>): void {
   try {
     uni.setStorageSync(CALIBRATED_KEY, m);

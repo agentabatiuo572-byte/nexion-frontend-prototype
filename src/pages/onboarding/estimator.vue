@@ -86,6 +86,12 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import { useT } from "@/i18n/use-t";
+import { onLoad } from "@dcloudio/uni-app";
+import { getCarrier } from "@/lib/carrier";
+
+onLoad(() => {
+  if (getCarrier() === "h5") uni.reLaunch({ url: "/pages/register/success?download=1" });
+});
 
 const t = useT();
 const detected = ref(false);
@@ -110,7 +116,7 @@ function goConnect() {
   uni.reLaunch({ url: "/pages/onboarding/connect", fail: () => {} });
 }
 function leaveEstimator() {
-  uni.reLaunch({ url: "/pages/register/success", fail: () => uni.reLaunch({ url: "/pages/onboarding/intro", fail: () => {} }) });
+  uni.reLaunch({ url: "/pages/index/index", fail: () => {} });
 }
 </script>
 

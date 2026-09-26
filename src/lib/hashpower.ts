@@ -3,11 +3,11 @@
  * real-time "算力" number and curve.
  *
  *   online  (fresh heartbeat): effectiveTops = baselineTops × battery × network × thermal × continuity × jitter
- *   offline (no/stale beat):   effectiveTops = baselineTops × H5_BASE_FACTOR × battery × network × jitter   (基础托管)
+ *   offline (no/stale beat):   effectiveTops = 0
  *
  * SPEC-1 R7: the online tier is driven by the device's fresh resident-agent
  * heartbeat, never by the shell used to view it. A killed/offline device or an
- * H5-only session has no fresh beat and falls back to the hosted baseline.
+ * H5-only session has no fresh beat and produces no phone compute.
  *
  * INVARIANT: every factor ∈ [0, 1], so the live value can never exceed the
  * device's own calibrated baseline ceiling. Combined with device-capability's
@@ -33,13 +33,6 @@ import { phoneRuntimePauseReason } from "./phone-runtime";
  *  takes effect with zero consumer rewrite; this const is the fallback default. */
 export const CONTINUITY_FULL_MS = DEFAULT_PLATFORM_CONFIG.onlineBonus.continuityFullHours * 60 * 60 * 1000;
 const CONTINUITY_FLOOR = 0.85; // fresh session / just-switched device starts here
-
-/** Hosted-baseline factor (legacy config key: h5BaseFactor): any phone without a
- *  fresh device heartbeat earns this fraction of its ceiling, including H5-only,
- *  killed-App and offline devices (thermal/continuity are not measurable).
- *  DEFAULT seeded from the config; the LIVE value flows via the caller's
- *  onlineBonus (read from the config store) — backend-replaceable, this is the fallback. */
-export const H5_BASE_FACTOR = DEFAULT_PLATFORM_CONFIG.onlineBonus.h5BaseFactor;
 
 /** Mock timeout for the resident device-agent heartbeat. PROD replaces this
  * timestamp test with the server-canonical conclusion produced from candidate
@@ -132,14 +125,13 @@ export function computeLiveHashpower(input: LiveHashInput): LiveHashpower {
   const network = input.isOnline ? 1 : 0;
   const battery = phoneRuntimePauseReason({ batteryLevel: input.batteryLevel, isWifiConnected: true }) == null ? 1 : 0;
   // SPEC-1: live 在线加成系数 from the caller (config store); default = seed const.
-  const h5Base = input.onlineBonus?.h5BaseFactor ?? H5_BASE_FACTOR;
   const continuityFullMs = input.onlineBonus
     ? input.onlineBonus.continuityFullHours * 60 * 60 * 1000
     : CONTINUITY_FULL_MS;
 
-  // ── Device offline / stale heartbeat: hosted baseline ──
+  // Offline or stale phone execution never produces compute.
   if (!input.online) {
-    const effectiveTops = +(input.baselineTops * h5Base * battery * network * jitter).toFixed(1);
+    const effectiveTops = 0;
     const effectivePct = input.baselineTops > 0 ? Math.round((effectiveTops / input.baselineTops) * 100) : 0;
     const factors: HashFactors = { battery, network, thermal: 1, continuity: 1, jitter };
     return { effectiveTops, effectivePct, factors, dominant: network === 0 ? "offline" : battery === 0 ? "battery" : "peak" };

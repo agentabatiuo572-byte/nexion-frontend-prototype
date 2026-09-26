@@ -33,7 +33,12 @@ async function login(page, base) {
   await go(page, base, "/pages/login/login");
   await page.locator('.lg-wrap[data-preview-account-status="ready"]').waitFor();
   await page.getByTestId("mock-preview-password").locator("input").press("Enter");
-  await page.waitForURL(/#\/$|#\/pages\/index\/index/);
+  await page.waitForURL(/#\/$|#\/pages\/index\/index|pages\/onboarding\/connect/);
+  if (page.url().includes("/onboarding/connect")) {
+    await page.locator(".cn-back").click();
+    await page.evaluate(() => uni.reLaunch({ url: "/pages/index/index" }));
+    await page.locator(".home-earnings-cluster").waitFor();
+  }
 }
 async function themeAndLocale(page, theme, locale) {
   await page.evaluate(async ({ theme, locale }) => {

@@ -17,8 +17,8 @@
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>
             </view>
           </view>
-          <text class="rs-title" role="heading" aria-level="1" tabindex="-1">{{ t.register.doneTitle }}</text>
-          <text class="rs-sub">{{ subLine }}</text>
+          <text class="rs-title" role="heading" aria-level="1" tabindex="-1">{{ downloadOnly ? t.phonePolicy.download : t.register.doneTitle }}</text>
+          <text class="rs-sub">{{ downloadOnly ? t.phonePolicy.webNotice : subLine }}</text>
 
           <!-- 礼包确认(giftRoute 两态;无礼包注册则整块省略) -->
           <view v-if="giftState !== 'none'" class="rs-gift">
@@ -82,6 +82,7 @@
         <view v-else class="rs-h5-download__action rs-h5-download__action--disabled" role="status" aria-disabled="true">
           <text class="rs-h5-download__pending">{{ t.register.doneOfficialDownloadPending }}</text>
         </view>
+        <button v-if="!officialDownloadUrl" class="rs-retry" :disabled="cfg.loading" @click="cfg.load()">{{ t.phonePolicy.retry }}</button>
       </view>
       <!-- #endif -->
 
@@ -95,7 +96,7 @@
           @keydown.enter.prevent="continueWeb"
           @keydown.space.prevent="continueWeb"
         >
-          <text class="rs-cta__t">{{ t.register.doneContinue }}</text>
+          <text class="rs-cta__t">{{ getCarrier() === 'h5' ? t.phonePolicy.continueWeb : t.phonePolicy.continueApp }}</text>
         </view>
       </view>
     </view>
@@ -105,12 +106,13 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from "vue";
-import { onBackPress } from "@dcloudio/uni-app";
+import { onBackPress, onLoad } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import GlobalUi from "@/components/global-ui.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useConfig } from "@/store/config";
+import { getCarrier } from "@/lib/carrier";
 import { isLegacyBrandUrl } from "@/lib/brand";
 import { pickSponsor } from "@/mock/sponsors";
 import { useAuth } from "@/store/auth";
@@ -122,6 +124,8 @@ import type { RegistrationReceipt } from "@/api/contracts";
 type GiftState = "posted" | "pending" | "none";
 
 const t = useT();
+const downloadOnly = ref(false);
+onLoad((options) => { downloadOnly.value = options?.download === "1"; });
 const cfg = useConfig();
 const auth = useAuth();
 const remoteReceipt = ref<RegistrationReceipt | null>(consumeRemoteRegistrationReceipt(auth.accountId));
@@ -135,6 +139,7 @@ const registration = computed(() => {
   return resolved.ok && resolved.account?.status === "active" ? resolved.account.registration : null;
 });
 const giftState = computed<GiftState>(() => {
+  if (downloadOnly.value) return "none";
   if (remoteApiEnabled) {
     const status = remoteReceipt.value?.giftStatus;
     if (!remoteReceipt.value || status === "UNAVAILABLE"
@@ -172,6 +177,7 @@ onMounted(() => {
 
 // #ifdef H5
 const officialDownloadUrl = computed(() => {
+  if (cfg.syncFailed) return "";
   const raw = cfg.config.share.appDownload.officialUrl?.trim() ?? "";
   if (!raw || isLegacyBrandUrl(raw)) return "";
   try {
@@ -192,7 +198,7 @@ function openOfficialDownload() {
 // #endif
 
 function continueWeb() {
-  uni.reLaunch({ url: "/pages/onboarding/estimator", fail: () => {} });
+  uni.reLaunch({ url: "/pages/index/index", fail: () => {} });
 }
 // 禁回注册流:返回键视同「继续」(App 端;H5 hash 回退由浏览器承担)。
 onBackPress(() => {
@@ -203,8 +209,8 @@ onBackPress(() => {
 
 <style scoped>
 .rs-root { position: fixed; inset: 0; background: var(--v5-bg); overflow-y: auto; }
-.rs-wrap { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 100%; padding: 0 24px; box-sizing: border-box; text-align: center; }
-.rs-main { position: absolute; inset: 0 24px; display: flex; align-items: center; justify-content: center; padding: 24px 0; box-sizing: border-box; }
+.rs-wrap { position: relative; display: flex; flex-direction: column; min-height: 100%; padding: 0 24px calc(env(safe-area-inset-bottom, 0px) + 114px); box-sizing: border-box; text-align: center; }
+.rs-main { display: flex; flex: 1; align-items: center; justify-content: center; padding: 24px 0; box-sizing: border-box; }
 .rs-content { width: 100%; }
 .rs-badge { width: 74px; height: 74px; border-radius: 9999px; margin: 0 auto; background: color-mix(in srgb, var(--v5-brand) 16%, transparent); display: flex; align-items: center; justify-content: center; }
 .rs-badge__in { width: 52px; height: 52px; border-radius: 9999px; background: var(--v5-brand); display: flex; align-items: center; justify-content: center; }
@@ -227,7 +233,9 @@ onBackPress(() => {
 .rs-why__r:last-child { border-bottom: none; }
 .rs-why__ic { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .rs-why__t { flex: 1; font-size: 12px; color: var(--v5-ink-2); line-height: 1.5; text-wrap: pretty; }
-.rs-h5-download { position: absolute; right: 24px; bottom: calc(env(safe-area-inset-bottom, 0px) + 102px); left: 24px; }
+.rs-h5-download { margin-bottom: 12px; }
+.rs-retry { min-height: 44px; margin-top: 4px; border-radius: 9999px; background: var(--v5-surface); color: var(--v5-brand); font-size: 13px; }
+.rs-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .rs-h5-download__hint { display: block; font-size: 12px; color: var(--v5-ink-2); line-height: 1.5; text-wrap: pretty; }
 .rs-h5-download__action { min-height: 44px; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 5px; border-radius: 9999px; color: var(--v5-brand); background: color-mix(in srgb, var(--v5-brand) 10%, transparent); }
 .rs-h5-download__action--disabled { color: var(--v5-ink-3); background: var(--v5-surface); }
@@ -253,6 +261,5 @@ onBackPress(() => {
   .rs-h5-download__hint { display: none; }
   .rs-wrap--gift { height: auto; min-height: 100%; padding-top: 18px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 114px); }
   .rs-wrap--gift .rs-main { position: static; flex: 1; min-height: 0; padding: 0 0 12px; }
-  .rs-wrap--gift .rs-h5-download { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 102px); z-index: 2; margin-bottom: 12px; background: var(--v5-bg); }
 }
 </style>
