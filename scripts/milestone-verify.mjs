@@ -42,7 +42,7 @@ async function navigate(route) {
 }
 
 try {
-  await page.goto(`${server.baseUrl}/?nx_device_inner=1#/pages/login/login`);
+  await page.goto(`${server.baseUrl}/?nx_device_inner=1#/pages/login/login`, { waitUntil: "domcontentloaded" });
   await page.locator('.lg-wrap[data-preview-account-status="ready"]').waitFor();
   await page.getByTestId("mock-preview-password").locator("input").press("Enter");
   await page.waitForURL(/#\/$|#\/pages\/index\/index|pages\/onboarding\/connect/);
@@ -55,7 +55,7 @@ try {
   assert.deepEqual(startup.pending, []);
   assert.deepEqual(startup.fired, []);
   assert.deepEqual(startup.bills, []);
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".nx-tabbar-pill").waitFor();
   await page.waitForTimeout(4_500);
   assert.deepEqual((await state()).bills, []);
@@ -95,7 +95,7 @@ try {
   assert.equal(crossed.nex - below.nex, 100);
   await page.screenshot({ path: resolve(out, "real-crossing.png") });
   report.checks.push({ name: "actual crossing rewards and celebrates once", state: crossed });
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".nx-tabbar-pill").waitFor();
   await page.waitForTimeout(8_500);
   const reloaded = await state();
@@ -122,7 +122,7 @@ try {
   assert.equal(failedMarker.active, null);
   assert.equal(failedMarker.bills.length, 2);
   assert.equal(failedMarker.nex - reloaded.nex, 250);
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".ms-overlay").waitFor({ timeout: 12_000 });
   const recovered = await state();
   assert.equal(recovered.active, "earn-500");

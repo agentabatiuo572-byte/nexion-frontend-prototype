@@ -19,7 +19,7 @@ async function nav(route) {
   for(const s of ['.tcs-dismiss','.vcs-dismiss','.tcs-close','.vcs-close'])if(await page.locator(s).isVisible().catch(()=>false))await page.locator(s).click();
 }
 try {
-  await page.goto(`${server.baseUrl}/?nx_device_inner=1#/pages/login/login`);
+  await page.goto(`${server.baseUrl}/?nx_device_inner=1#/pages/login/login`,{waitUntil:'domcontentloaded'});
   await page.locator('.lg-wrap[data-preview-account-status="ready"]').waitFor();
   await page.getByTestId('mock-preview-password').locator('input').press('Enter');
   await page.waitForURL(/#\/$|#\/pages\/index\/index|pages\/onboarding\/connect/);
