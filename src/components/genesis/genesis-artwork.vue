@@ -21,7 +21,7 @@ const serialText = computed(() => props.context === "holding" ? formatGenesisSer
 </script>
 
 <style scoped>
-.genesis-artwork { position: relative; aspect-ratio: 1; overflow: hidden; background: var(--v5-surface-2); }
+.genesis-artwork { position: relative; aspect-ratio: 1; border-radius: var(--v5-radius-m); overflow: hidden; background: var(--v5-surface-2); }
 .genesis-artwork__image { position: absolute; inset: 0; width: 100%; height: 100%; }
 .genesis-artwork__serial { position: absolute; bottom: 8px; right: 8px; max-width: calc(100% - 16px); box-sizing: border-box; padding: 4px 7px; border-radius: 5px; background: var(--v5-surface); color: var(--v5-ink); font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
 </style>

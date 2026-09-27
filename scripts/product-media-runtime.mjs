@@ -42,10 +42,13 @@ async function imageState(locator, expected) {
     const img = e.querySelector("img");
     const rect = e.getBoundingClientRect();
     const style = getComputedStyle(e);
+    const frameStyle = getComputedStyle(e.matches(".weekly-quest__product") ? e : e.parentElement);
     return { src: new URL(img.src).pathname, loaded: img.complete, natural: [img.naturalWidth, img.naturalHeight],
       mode: e.getAttribute("mode"), backgroundSizes: [...e.querySelectorAll("div")].map(d => getComputedStyle(d).backgroundSize),
       width: rect.width, height: rect.height, left: rect.left, right: rect.right,
-      filter: style.filter, opacity: style.opacity, mask: style.maskImage, viewport: innerWidth };
+      filter: style.filter, opacity: style.opacity, mask: style.maskImage, viewport: innerWidth,
+      corners: [frameStyle.borderTopLeftRadius, frameStyle.borderTopRightRadius, frameStyle.borderBottomRightRadius, frameStyle.borderBottomLeftRadius],
+      clipping: [frameStyle.overflowX, frameStyle.overflowY] };
   });
   assert.equal(value.src, assetPath(expected));
   assert.deepEqual(value.natural, [1254, 1254]);
@@ -57,6 +60,8 @@ async function imageState(locator, expected) {
   assert.equal(value.filter, "none");
   assert.equal(value.opacity, "1");
   assert.equal(value.mask, "none");
+  assert.ok(value.corners.every(radius => parseFloat(radius) > 0), `${expected}: all four image corners are rounded`);
+  assert.ok(value.clipping.every(overflow => ["hidden", "clip"].includes(overflow)), `${expected}: image is clipped to the rounded frame`);
   assert.ok(value.left >= -1 && value.right <= value.viewport + 1, "image remains within viewport");
   return value;
 }

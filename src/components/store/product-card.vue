@@ -235,6 +235,7 @@ const featuredGlowStyle: CSSProperties = {
 const renderWrapStyle: CSSProperties = {
   width: "100%",
   aspectRatio: "1",
+  borderRadius: "var(--v5-radius-m)",
   background: "var(--v5-surface-2)",
 };
 const ribbonStyle: CSSProperties = {

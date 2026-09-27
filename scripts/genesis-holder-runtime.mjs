@@ -203,9 +203,12 @@ async function runCase(base, locale, theme) {
     const hero = page.locator(".gh-hero");
     const composition = await hero.evaluate(e => {
       const rect = e.getBoundingClientRect();
+      const artworkStyle = getComputedStyle(e.querySelector('.gh-hero-art'));
       return { width: rect.width, height: rect.height,
         artworkWidth: e.querySelector('.gh-hero-art').getBoundingClientRect().width,
         artworkHeight: e.querySelector('.gh-hero-art').getBoundingClientRect().height,
+        artworkCorners: [artworkStyle.borderTopLeftRadius, artworkStyle.borderTopRightRadius, artworkStyle.borderBottomRightRadius, artworkStyle.borderBottomLeftRadius],
+        artworkClipping: [artworkStyle.overflowX, artworkStyle.overflowY],
         text: getComputedStyle(e).color,
         brand: getComputedStyle(e.querySelector('.gh-brand')).color,
         logo: getComputedStyle(e.querySelector('.uvel-brand__dark')).display,
@@ -213,6 +216,8 @@ async function runCase(base, locale, theme) {
         divider: getComputedStyle(e.querySelector('.gh-allocation'), '::before').content };
     });
     assert.ok(Math.abs(composition.artworkWidth - composition.artworkHeight) < 1, "holder hero artwork is square");
+    assert.ok(composition.artworkCorners.every(radius => parseFloat(radius) > 0), "holder hero artwork has four rounded corners");
+    assert.ok(composition.artworkClipping.every(overflow => ['hidden', 'clip'].includes(overflow)), "holder artwork clips to its rounded frame");
     if (locale === "zh") {
       assert.ok(Math.abs(composition.width - 348) < 1 && Math.abs(composition.height - composition.artworkHeight - 12 - 224) < 2, "artwork is separate from the unchanged account summary: " + JSON.stringify(composition));
       assert.equal(await page.locator('.gh-summary .gh-label').allTextContents().then(v => v.join('|')), '持有席位|优先额度');

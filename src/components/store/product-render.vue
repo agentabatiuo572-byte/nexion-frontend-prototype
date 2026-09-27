@@ -17,6 +17,6 @@ const photo = computed(() => getProductMedia(props.productId));
 </script>
 
 <style scoped>
-.product-render { aspect-ratio: 1; background: var(--v5-surface-2); }
+.product-render { aspect-ratio: 1; border-radius: var(--v5-radius-m); background: var(--v5-surface-2); }
 .product-render__image { position: absolute; inset: 0; width: 100%; height: 100%; }
 </style>
