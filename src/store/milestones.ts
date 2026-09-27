@@ -66,18 +66,25 @@ export function isMoneyFlowRoute(route: string): boolean {
 
 // 旧设备级单键 "nexgrid-milestones-v1" 废弃(存量无账号归属,mock 可重建);里程碑 fired 态按账号分行。
 // 🔴 spec6-entry-surface-runtime.mjs 的反泄漏护栏键同步改为 nexgrid-milestones-accounts-v1。
-const ACCOUNTS_KEY = "nexgrid-milestones-accounts-v1"; // { [accountKey]: { firedIds: string[] } }
+const ACCOUNTS_KEY = "nexgrid-milestones-accounts-v1";
 
-function hydrate(accountKey: string): string[] {
-  const row = readAccountRow<{ firedIds?: string[] }>(ACCOUNTS_KEY, accountKey);
-  if (row && Array.isArray(row.firedIds)) return row.firedIds;
-  return [];
+interface MilestoneProgress {
+  firedIds: string[];
+  baselineUSD: number | null;
+}
+
+function hydrate(accountKey: string): MilestoneProgress {
+  const row = readAccountRow<Partial<MilestoneProgress>>(ACCOUNTS_KEY, accountKey);
+  return {
+    firedIds: row && Array.isArray(row.firedIds) ? row.firedIds : [],
+    baselineUSD: typeof row?.baselineUSD === "number" && Number.isFinite(row.baselineUSD) && row.baselineUSD >= 0
+      ? row.baselineUSD : null,
+  };
 }
 
 /**
- * Pure selector — returns the lowest unfired milestone the given life-to-date
- * earnings has crossed, or null. App.vue polls this every 4s and, when it
- * returns a step, composes markFired + creditNex + bills.add + show().
+ * Returns the lowest unfired threshold crossed after the historical baseline.
+ * App.vue posts the receipt, marks the tier and queues its celebration.
  *
  * `firedIds` is passed in (not read off the store) so this stays a pure
  * function callable from anywhere without coupling.
@@ -85,8 +92,11 @@ function hydrate(accountKey: string): string[] {
 export function nextUnfired(
   lifeToDate: number,
   firedIds: ReadonlyArray<string>,
+  baselineUSD: number,
 ): MilestoneStep | null {
+  if (!Number.isFinite(lifeToDate) || lifeToDate < 0) return null;
   for (const m of EARNINGS_MILESTONES) {
+    if (m.thresholdUSD <= baselineUSD) continue;
     if (firedIds.includes(m.id)) continue;
     if (lifeToDate >= m.thresholdUSD) return m;
   }
@@ -105,7 +115,10 @@ export const useMilestones = defineStore("milestones", () => {
   // 账号维度:boot 期落 "default",账号确定后由 lib/account-scope 统一重绑。
   let boundKey = "default";
   // ── persisted (cross-session) ──
-  const firedIds = ref<string[]>(hydrate(boundKey));
+  const initial = hydrate(boundKey);
+  const firedIds = ref<string[]>(initial.firedIds);
+  let baselineUSD = initial.baselineUSD;
+  let pendingBaselineUSD: number | null = null;
 
   // ── session-only (drives the celebration overlay) ──
   // `active` = the one currently on screen; `pendingCelebrations` = FIFO queue
@@ -115,13 +128,33 @@ export const useMilestones = defineStore("milestones", () => {
   const pendingCelebrations = ref<ActiveMilestone[]>([]);
 
   function persist() {
-    writeAccountRow<{ firedIds: string[] }>(ACCOUNTS_KEY, boundKey, { firedIds: firedIds.value });
+    return writeAccountRow<MilestoneProgress>(ACCOUNTS_KEY, boundKey, { firedIds: firedIds.value, baselineUSD });
+  }
+
+  // Historical earnings are a starting point, never a new achievement. Persist
+  // it so real crossings survive reload; retain the first observation on retry.
+  function initialize(lifeToDate: number): boolean {
+    if (baselineUSD !== null) return true;
+    if (!Number.isFinite(lifeToDate) || lifeToDate < 0) return false;
+    pendingBaselineUSD ??= lifeToDate;
+    if (!writeAccountRow<MilestoneProgress>(ACCOUNTS_KEY, boundKey, { firedIds: firedIds.value, baselineUSD: pendingBaselineUSD })) return false;
+    baselineUSD = pendingBaselineUSD;
+    pendingBaselineUSD = null;
+    return true;
+  }
+
+  function nextEligible(lifeToDate: number): MilestoneStep | null {
+    if (!initialize(lifeToDate) || baselineUSD === null) return null;
+    return nextUnfired(lifeToDate, firedIds.value, baselineUSD);
   }
 
   /** 账号切换重绑:装载该账号的里程碑 fired 态;清掉会话庆祝弹窗与待发队列(别把 A 的庆祝弹给 B)。 */
   function bindAccount(rawAccountKey: string) {
     boundKey = normalizeAccountKey(rawAccountKey);
-    firedIds.value = hydrate(boundKey);
+    const row = hydrate(boundKey);
+    firedIds.value = row.firedIds;
+    baselineUSD = row.baselineUSD;
+    pendingBaselineUSD = null;
     active.value = null;
     pendingCelebrations.value = [];
   }
@@ -130,13 +163,17 @@ export const useMilestones = defineStore("milestones", () => {
     return firedIds.value.includes(id);
   }
 
-  function markFired(id: string) {
-    if (firedIds.value.includes(id)) return;
-    firedIds.value = [...firedIds.value, id];
-    persist();
+  function markFired(id: string): boolean {
+    if (firedIds.value.includes(id)) return true;
+    const next = [...firedIds.value, id];
+    if (!writeAccountRow<MilestoneProgress>(ACCOUNTS_KEY, boundKey, { firedIds: next, baselineUSD })) return false;
+    firedIds.value = next;
+    return true;
   }
 
   function reset() {
+    baselineUSD = null;
+    pendingBaselineUSD = null;
     firedIds.value = [];
     active.value = null;
     pendingCelebrations.value = [];
@@ -201,6 +238,8 @@ export const useMilestones = defineStore("milestones", () => {
     pendingCelebrations,
     isFired,
     markFired,
+    initialize,
+    nextEligible,
     reset,
     show,
     advance,

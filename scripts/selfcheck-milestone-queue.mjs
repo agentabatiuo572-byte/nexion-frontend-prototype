@@ -153,11 +153,11 @@ console.log("selfcheck-milestone-queue — 钱链路挂起 / 逐条补发 / z �
     //      而「标了 + 没落盘」= 里程碑记成已发、钱和账都没有,用户永久少一级奖励。
     //      改成落盘成功才标记,失败停在未标记态、下一 tick 自愈重试。
     //   本门守的是「奖励侧无条件执行」这条不变量,顺序断言随实现更新,但只许更严不许更松。
-    const iPost = body.indexOf("postMoneyBill(");
+    const iPost = body.indexOf("postMoneyBillsOnce(");
     const iMark = body.indexOf("markFired");
     const iShow = body.indexOf(".show(");
     const iGuard = body.indexOf('!== "ok"');
-    check("① 组合完整且有序:postMoneyBill → markFired → show(3/3 步齐)",
+    check("① 组合完整且有序:postMoneyBillsOnce → markFired → show(3/3 步齐)",
       iPost !== -1 && iMark !== -1 && iShow !== -1 && iPost < iMark && iMark < iShow,
       `idx post=${iPost} mark=${iMark} show=${iShow}`);
     check("① 🔴 资金与收据不许拆开:体内无裸 creditNex / bills.add(拆开就是发了 NEX 却查无此单)",
@@ -165,6 +165,8 @@ console.log("selfcheck-milestone-queue — 钱链路挂起 / 逐条补发 / z �
       `creditNex=${body.indexOf("creditNex")} add=${body.indexOf(".add(")}`);
     check("① 🔴 收口点返回值被判定(丢弃返回值 = 落盘失败照样标记已发、照样弹庆祝)",
       iGuard !== -1 && iGuard > iPost && iGuard < iMark, `guard=${iGuard}`);
+    check("① 标记落盘成功后才展示，失败重试复用同一收据",
+      body.includes("if (!m.markFired(step.id)) return;"));
     check("① 奖励侧不接 UI 路由门:pollMilestones 体内无 isMoneyFlowRoute 调用",
       body.indexOf("isMoneyFlowRoute") === -1);
     check("① 奖励侧不接停轮询机制:pollMilestones 体内无 stopMilestonePoll 调用",

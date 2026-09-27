@@ -123,7 +123,7 @@
           @keydown.enter.prevent="go(tab)"
           @keydown.space.prevent="go(tab)"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+          <svg class="nx-tab__icon" width="22" height="22" viewBox="0 0 24 24" fill="none"
             :stroke="tab.key === activeTab ? 'var(--v5-brand)' : 'var(--v5-ink-3)'"
             :stroke-width="tab.key === activeTab ? 2.4 : 2" stroke-linecap="round" stroke-linejoin="round">
             <path :d="tab.icon" />
@@ -896,6 +896,9 @@ function goNotifications() {
   gap: 2px;
   border-radius: 16px;
 }
+.nx-tab__icon {
+  filter: drop-shadow(0 0 1px var(--v5-tabbar-ink-halo)) drop-shadow(0 1px 1px var(--v5-tabbar-ink-halo));
+}
 .nx-tab__label {
   font-size: 12px;
   line-height: 14px; /* 《02》§2 tab.label 12/14/600 */
@@ -903,5 +906,6 @@ function goNotifications() {
   font-family: var(--font-v5);
   letter-spacing: -0.005em;
   white-space: nowrap;
+  text-shadow: -.6px 0 1px var(--v5-tabbar-ink-halo), .6px 0 1px var(--v5-tabbar-ink-halo), 0 -.6px 1px var(--v5-tabbar-ink-halo), 0 1px 2px var(--v5-tabbar-ink-halo);
 }
 </style>

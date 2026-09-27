@@ -111,8 +111,8 @@
   /* Sticky CTA bottom bar — frosted gradient, theme-aware */
   --v5-sticky-bar-bg: linear-gradient(180deg, rgba(244,241,233,0.45) 0%, rgba(244,241,233,0.78) 60%, rgba(244,241,233,0.92) 100%);
   --v5-sticky-bar-border: rgba(213,205,184,0.55);
-  /* Keep navigation legible over both light and dark product artwork. */
-  --v5-tabbar-bg: rgba(255,255,255,0.96);
+  --v5-tabbar-bg: rgba(255,255,255,0.20);
+  --v5-tabbar-ink-halo: rgba(255,255,255,0.95);
   --v5-tabbar-border: rgba(255,255,255,0.60);
   --v5-tabbar-shadow: 0 8px 24px rgba(20,16,8,0.06), inset 0 1px 0 rgba(255,255,255,0.80);
   --v5-home-indicator: rgba(19,20,26,0.55);
@@ -396,7 +396,8 @@ html[data-theme="dark"] {
      so the bar visibly separates from the page below). */
   --v5-sticky-bar-bg: linear-gradient(180deg, rgba(28,28,28,0.50) 0%, rgba(28,28,28,0.88) 60%, rgba(28,28,28,0.96) 100%);
   --v5-sticky-bar-border: rgba(255,255,255,0.10);
-  --v5-tabbar-bg: rgba(12,12,14,0.92);
+  --v5-tabbar-bg: rgba(12,12,14,0.22);
+  --v5-tabbar-ink-halo: rgba(0,0,0,0.95);
   --v5-tabbar-border: rgba(255,255,255,0.10);
   --v5-tabbar-shadow: 0 12px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10);
   --v5-home-indicator: rgba(255,255,255,0.55);

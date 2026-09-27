@@ -9,10 +9,10 @@ import {
 } from "@/store/free-trial";
 import { useTrialConfig } from "@/store/trial-config";
 import { useBills } from "@/store/bills";
-import { postMoneyBill, postMoneyBillsOnce, postReceiptForAccount, type ReceiptDraft } from "@/lib/money-receipt";
+import { postMoneyBillsOnce, postReceiptForAccount, type ReceiptDraft } from "@/lib/money-receipt";
 import { withdrawalBillDrafts } from "@/lib/withdrawal-bill-drafts";
 import { tickOrders } from "@/store/orders";
-import { useMilestones, nextUnfired } from "@/store/milestones";
+import { useMilestones } from "@/store/milestones";
 import { useQuest, type QuestTaskId } from "@/store/quest";
 import { hasPersistedServerAuthenticatedAccountTrace, useAuth } from "@/store/auth";
 import { useSession } from "@/store/session";
@@ -359,14 +359,13 @@ function stopOrderPoll() {
 
 // ── Earnings-milestone 4s poll (ports milestone-watcher.tsx) ──
 // Reads life-to-date earnings each tick; when it crosses the next unfired
-// threshold, fires exactly once: mark (idempotent guard) → credit NEX → write
-// the bonus bill → queue the celebration (store.show() enqueues; the overlay
+// threshold, fires once: post the idempotent reward receipt → mark the tier →
+// queue the celebration (store.show() enqueues; the overlay
 // host promotes via advance(), which suspends UI on money-flow routes —
 // checkout / withdraw / trial — and replays each queued tier afterwards).
 // 🔴 奖励/记账必须留在这里无条件执行,不许接路由门 / stopMilestonePoll:那会变成
 // 「钱链路期间不发奖励」而非「不弹窗」。UI 挂起只住在 store.advance()。
-// nextUnfired returns the lowest unfired step (one at a time, original
-// "fire one per tick" semantics) so the next poll surfaces the next tier.
+// Only thresholds above the persisted historical baseline are eligible.
 // Production: GET /api/config/milestones + atomic POST /api/me/milestones/:id/claim
 // (PRD §9.11e). Cross-store composition stays here (stores import-free).
 const MILESTONE_TICK_MS = 4000;
@@ -381,17 +380,15 @@ function pollMilestones() {
   if (remoteApiEnabled) return;
   const app = useApp();
   const m = useMilestones();
-  // Life-to-date = banked total + the still-accruing today bucket (matches the
-  // prototype's lifetime figure used by milestone-watcher).
-  const lifeToDate = (app.earnings.total ?? 0) + (app.earnings.today ?? 0);
-  const step = nextUnfired(lifeToDate, m.firedIds);
+  // total already includes today's accrual (app.settle updates both buckets).
+  const step = m.nextEligible(app.earnings.total);
   if (!step) return;
   // 收据即指令:+NEX 由这一条落定,不再单独 creditNex(那样钱和账各走各的路)。
   // 🔴 markFired 从「先标记」挪到落盘成功之后。先标记原本是防同一级被下一 tick 重入,
   // 但发奖这条链自始至终同步,轮询之间插不进第二次;而「标了 + 没落盘」= 里程碑记成已发、
   // 钱和账单都没有,用户永久少一级奖励。失败就停在未标记态,下一 tick 自愈重试
   // (与 reconcileBills 同一套「该做什么从数据推出来」的思路)。
-  if (postMoneyBill({
+  if (postMoneyBillsOnce([{
     type: "achievement",
     symbol: "NEX",
     amount: step.nexReward,
@@ -400,8 +397,8 @@ function pollMilestones() {
     memoKey: "earningsMilestone",
     memoParams: { threshold: step.thresholdUSD },
     ref: `MILESTONE-${step.id}`,
-  }) !== "ok") return;
-  m.markFired(step.id);
+  }]) !== "ok") return;
+  if (!m.markFired(step.id)) return;
   // Drive the global celebration overlay (label lets it resolve i18n copy).
   m.show({
     id: step.id,
@@ -921,6 +918,8 @@ function ensureBusinessLoopsAllowed(): boolean {
  */
 function ensureBusinessLoopsRunning(): boolean {
   if (!ensureBusinessLoopsAllowed()) return false;
+  // Capture hydrated history before the first settlement can cross a threshold.
+  if (!remoteApiEnabled) useMilestones().initialize(useApp().earnings.total);
   if (businessLoopsRunning) return true;
 
   useApp().settle();
