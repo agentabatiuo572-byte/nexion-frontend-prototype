@@ -31,6 +31,16 @@ function componentFunction(path: string, name: string): string {
 }
 
 describe.each([en, zh, vi])("public copy in each supported dictionary", (words) => {
+  it("keeps store FAQs free of fixed deployment, withdrawal and earnings promises", () => {
+    const faq = words.store.faq;
+    expect(Object.keys(faq).sort()).toEqual(["demand", "location", "refund", "withdraw"]);
+    expect(Object.values(faq).map(item => item.a).join(" ")).not.toMatch(/[0-9$%]/);
+    expect(faq.location.a).not.toMatch(/Singapore|新加坡/i);
+    expect(faq.refund.a).toMatch(/不支持退款|non-refundable|không hỗ trợ hoàn tiền/);
+    expect(faq.refund.a).toMatch(/抵扣升级|credited toward an upgrade|khấu trừ để nâng cấp/);
+    expect(faq.refund.a).not.toMatch(/转售|resale|bán lại/i);
+  });
+
   it("re-renders saved simulator notices without changing records or real notifications", () => {
     const old: Notification = { id: "team_/team/commissions-123", kind: "team", priority: "normal",
       title: "5% peer bonus from internal formula", body: "V5 allocation", ctaHref: "/team/commissions",

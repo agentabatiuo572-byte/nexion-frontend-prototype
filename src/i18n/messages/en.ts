@@ -1755,7 +1755,7 @@ export const en = {
     detDaySuffix: "d",
     detHardware: "Hardware",
     detAiPerf: "AI performance",
-    detTrustedBy: "Trusted by",
+    detTrustedBy: "Trust",
     detYourPhone: "Your phone",
     detFeaturedIn: "Featured in",
     detCompliance: "Compliance",
@@ -1786,20 +1786,20 @@ export const en = {
     aiUnitMin: "min",
     faq: {
       location: {
-        q: "Where is the device physically?",
-        a: "In our Singapore datacenter. You never receive hardware — all maintenance and power is included.",
+        q: "Where will the device be deployed?",
+        a: "Deployment is assigned dynamically based on available datacenter capacity, resources and operational needs, rather than a fixed location.",
       },
       withdraw: {
-        q: "Can I withdraw earnings anytime?",
-        a: "Yes, from $20. First withdrawal processes within 24 hours. Withdrawals go to the payout address you set in your wallet.",
+        q: "How can I withdraw earnings?",
+        a: "Request a withdrawal from your wallet. Minimum amounts, fees and processing arrangements follow the current rules shown on the withdrawal page.",
       },
       demand: {
-        q: "What if AI demand drops?",
-        a: "Earnings scale with AI workload pool pricing. Historical floor: $24/day even during low-demand periods.",
+        q: "Can changes in AI demand affect earnings?",
+        a: "Earnings vary with task demand, resource usage and market prices. Lower demand may reduce earnings; no fixed or minimum earnings are guaranteed.",
       },
       refund: {
-        q: "Is there a refund window?",
-        a: "7-day money-back if device hasn't been activated. After activation, resale on marketplace.",
+        q: "Can I get a refund or upgrade after purchase?",
+        a: "Purchases are non-refundable, but can be credited toward an upgrade. Credit amounts and eligibility follow the rules shown on the upgrade page.",
       },
     },
     coProductNotFound: "Product not found.",

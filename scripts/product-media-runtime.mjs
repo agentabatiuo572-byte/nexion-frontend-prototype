@@ -100,6 +100,8 @@ async function runCase(base, locale, theme, width) {
     for (const id of ids) {
       const photo = page.locator(`uni-image[data-product-id="${id}"]`);
       result.products.push({ id, list: await imageState(photo, id) });
+      const frame = result.products.at(-1).list;
+      assert.ok(Math.abs(frame.width - frame.height) < 1, `${id}: square store image without side bars`);
       await capture(page, `${name}-store-${id}`, photo);
     }
     result.sources.push(await imageState(page.locator('.genesis-artwork[data-art-context="showcase"] uni-image'), "genesis"));
@@ -109,6 +111,30 @@ async function runCase(base, locale, theme, width) {
       const photo = page.locator(`.product-render[data-product-id="${entry.id}"] uni-image`);
       entry.detail = await imageState(photo, entry.id);
       await capture(page, `${name}-detail-${entry.id}`, photo);
+      const words = await page.evaluate(async locale => (await import(`/src/i18n/messages/${locale}.ts`))[locale].store, locale);
+      assert.ok(await page.getByText(words.detTrustedBy, { exact: true }).isVisible(), "trust heading is present");
+      entry.faq = [];
+      for (const item of Object.values(words.faq)) {
+        const toggle = page.getByRole("button", { name: item.q, exact: true });
+        if (await page.getByText(item.a, { exact: true }).isVisible()) {
+          await toggle.click();
+          await page.getByText(item.a, { exact: true }).waitFor({ state: "detached" });
+        }
+        await toggle.click();
+        await page.getByText(item.a, { exact: true }).waitFor({ state: "visible" });
+        assert.ok(await page.getByText(item.a, { exact: true }).isVisible(), "FAQ answer expands");
+        entry.faq.push({ question: item.q, answer: item.a });
+        if (entry.id === "cloud-share") await capture(page, `${name}-faq-${entry.faq.length}`, toggle);
+        await toggle.press("Enter");
+        await page.getByText(item.a, { exact: true }).waitFor({ state: "detached" });
+        assert.equal(await page.getByText(item.a, { exact: true }).count(), 0, "FAQ closes with keyboard");
+      }
+      if (entry.id === "cloud-share") {
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.getByRole("button", { name: words.faq.refund.q, exact: true }).click();
+        await page.getByText(words.faq.refund.a, { exact: true }).waitFor({ state: "visible" });
+        assert.ok(await page.getByText(words.faq.refund.a, { exact: true }).isVisible(), "updated copy survives reload");
+      }
     }
     await go(page, base, "/pages/genesis/genesis");
     result.sources.push(await imageState(page.locator('.genesis-artwork[data-art-context="showcase"] uni-image'), "genesis"));

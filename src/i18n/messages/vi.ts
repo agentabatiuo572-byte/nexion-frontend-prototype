@@ -1689,7 +1689,7 @@ export const vi: Messages = {
     detDaySuffix: "ngày",
     detHardware: "Phần cứng",
     detAiPerf: "Hiệu năng AI",
-    detTrustedBy: "Được tin dùng bởi",
+    detTrustedBy: "Tin cậy",
     detYourPhone: "Điện thoại của bạn",
     detFeaturedIn: "Xuất hiện trên",
     detCompliance: "Tuân thủ",
@@ -1716,20 +1716,20 @@ export const vi: Messages = {
     aiUnitMin: "phút",
     faq: {
       location: {
-        q: "Thiết bị đặt ở đâu?",
-        a: "Tại trung tâm dữ liệu của chúng tôi ở Singapore. Bạn không nhận phần cứng — toàn bộ bảo trì và điện năng đã bao gồm.",
+        q: "Thiết bị sẽ được triển khai ở đâu?",
+        a: "Địa điểm triển khai được phân bổ linh hoạt theo công suất còn trống của trung tâm dữ liệu, tài nguyên và nhu cầu vận hành thực tế, không cố định tại một địa điểm.",
       },
       withdraw: {
-        q: "Tôi có thể rút thu nhập bất cứ lúc nào không?",
-        a: "Được, từ $20. Lần rút đầu tiên xử lý trong vòng 24 giờ. Tiền rút sẽ chuyển vào địa chỉ rút tiền bạn đã thiết lập trong ví.",
+        q: "Làm thế nào để rút thu nhập?",
+        a: "Có thể yêu cầu rút tiền trong ví. Số tiền tối thiểu, phí và quy trình xử lý tuân theo quy định hiện hành hiển thị trên trang rút tiền.",
       },
       demand: {
-        q: "Nếu nhu cầu AI giảm thì sao?",
-        a: "Thu nhập biến động theo giá của nhóm tác vụ AI. Mức thấp nhất từng ghi nhận: $24/ngày ngay cả trong giai đoạn nhu cầu thấp.",
+        q: "Nhu cầu AI thay đổi có ảnh hưởng đến thu nhập không?",
+        a: "Thu nhập thay đổi theo nhu cầu tác vụ, mức sử dụng tài nguyên và giá thị trường. Nhu cầu giảm có thể làm thu nhập giảm; không có cam kết về thu nhập cố định hay tối thiểu.",
       },
       refund: {
-        q: "Có thời hạn hoàn tiền không?",
-        a: "Hoàn tiền trong 7 ngày nếu thiết bị chưa được kích hoạt. Sau khi kích hoạt, có thể bán lại trên chợ giao dịch.",
+        q: "Sau khi mua có thể hoàn tiền hoặc nâng cấp không?",
+        a: "Sau khi mua không hỗ trợ hoàn tiền, nhưng có thể dùng giá trị khấu trừ để nâng cấp. Mức khấu trừ và điều kiện áp dụng tuân theo quy định hiển thị trên trang nâng cấp.",
       },
     },
     coProductNotFound: "Không tìm thấy sản phẩm.",
