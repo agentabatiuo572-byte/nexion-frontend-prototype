@@ -5,6 +5,7 @@
 - [lollipopkit/liquid-glass](https://github.com/lollipopkit/liquid-glass)，固定 core 0.2.1：计算圆角玻璃的位移与高光贴图；未引入其 Vue 包装层或全局 CSS reset。
 - [lucaperullo/simple-liquid-glass](https://github.com/lucaperullo/simple-liquid-glass)，固定 5.3.0：外置导航在不支持 SVG 背景折射的引擎上使用 WebGL。
 - 两项均按各自 MIT 许可接入。完整许可及内嵌第三方声明保存在 LIQUID-GLASS-NOTICES.txt，构建时一并输出。
+- core 0.2.1 会在导入时提前启动 Worker，与所用的 `backend: "ts"` 无关。安装脚本只移除这条未使用的启动语句，统一覆盖 H5 与 App renderjs；版本或上游结构变化会让安装明确失败，要求重新核验。光学算法保持原样。
 
 ## 版本与平台边界
 
@@ -13,6 +14,8 @@
 材质和选中底座在 renderjs 视图层运行，显式 hostId 定位宿主；App renderjs 的空 Vue 实例不作为页面 DOM。Chrome 使用 SVG 背景滤镜；WebKit 的外置导航捕获随滚动移动的内容节点并折射。内容内的分类控件在该路径采用模糊、高光和边缘材质，避免递归捕获包含自身的背景。WebGL 更新期间保持有效帧；捕获失败或图形上下文丢失时隐藏旧纹理并退回实时磨砂，截图和图形引擎均恢复后再显示折射。
 
 系统减少动态效果时停止底座与按压动画；减少透明或提高对比时使用实色底。WebKit 浏览器和 App 构建可由本仓验证，iOS/Android 真机性能与辅助技术仍需设备验收。
+
+原有 General Sans、Manrope、JetBrains Mono 改为随应用加载，保持字体与字重，不再依赖外部字体 CSS 完成首屏。字体原文件与各自许可置于 `src/static/fonts/`；General Sans 按 ITF FFL 自托管，另两项按 OFL 保留声明。材质回归同时检查字体实际加载、失败请求与资源 HTTP 错误。
 
 ## 已接入范围
 

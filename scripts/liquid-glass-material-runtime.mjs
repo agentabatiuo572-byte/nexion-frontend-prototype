@@ -9,7 +9,7 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const out=resolve(root,'.codex-runtime/liquid-glass/material');
 await mkdir(out,{recursive:true});
 const server=await ensureServer({root,reuseUrl:process.env.LIQUID_GLASS_BASE_URL,log:console.log});
-const cases=[],errors=[];
+const cases=[],errors=[],failedAssets=[];
 try {
   for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]) {
     const browser=await engine.launch();
@@ -17,11 +17,25 @@ try {
       const context=await browser.newContext({viewport:{width:390,height:844}});
       const page=await context.newPage();
       page.on('pageerror',e=>errors.push(name+': '+e.message));
+      page.on('requestfailed',r=>{
+        if(['script','stylesheet','font'].includes(r.resourceType())) failedAssets.push({engine:name,url:r.url(),error:r.failure()?.errorText});
+      });
+      page.on('response',r=>{
+        if(r.status()>=400 && ['script','stylesheet','font'].includes(r.request().resourceType())) failedAssets.push({engine:name,url:r.url(),status:r.status()});
+      });
       await page.goto(server.baseUrl+'/?nx_device_inner=1#/pages/earn/earn',{waitUntil:'domcontentloaded'});
       const track=page.locator('.nx-tabbar-pill .nx-glass-track');
       await track.locator('.nx-liquid-optics').waitFor({state:'attached'});
       await track.locator('xpath=.').filter({visible:true}).waitFor();
       await page.waitForFunction(({name})=>document.querySelector('.nx-glass-track')?.dataset.glassStrategy===(name==='webkit'?'webgl':'svg'),{name},{timeout:45000});
+      const fonts=await page.evaluate(async()=>{
+        const names=['General Sans','Manrope','JetBrains Mono'];
+        const loaded=await Promise.all(names.map(async family=>({family,count:(await document.fonts.load(`400 16px "${family}"`,'Tiếng Việt 012345')).length})));
+        await document.fonts.ready;
+        return {loaded,external:performance.getEntriesByType('resource').filter(r=>/fonts\.(googleapis|gstatic)\.com|api\.fontshare\.com/.test(r.name)).map(r=>r.name)};
+      });
+      assert.ok(fonts.loaded.every(font=>font.count>0),'All three original font families must load');
+      assert.deepEqual(fonts.external,[]);cases.push({id:name+'-bundled-fonts',...fonts});
       if(name==='chromium') {
         // App renderjs has a separate empty Vue instance. Exercise the exact
         // adapter with a comment $el and explicit host ID, including scrolled rails.
@@ -119,7 +133,8 @@ try {
     } finally { await browser.close(); }
   }
   assert.deepEqual(errors,[]);
+  assert.deepEqual(failedAssets,[], 'Glass and font assets must load without failed requests');
 } finally {
-  await writeFile(resolve(out,'result.json'),JSON.stringify({cases,errors},null,2));
+  await writeFile(resolve(out,'result.json'),JSON.stringify({cases,errors,failedAssets},null,2));
   server.stop();
 }

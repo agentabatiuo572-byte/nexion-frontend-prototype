@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/liquid-glass-install.mjs",
     "prepare": "node .githooks/verify-before-push.mjs --install",
     "test:githooks": "node --test .githooks/verify-before-push.test.mjs",
     "dev:custom": "uni -p",

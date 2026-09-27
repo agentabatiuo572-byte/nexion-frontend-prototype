@@ -1,5 +1,9 @@
 Liquid Glass third-party notices
 
+Integration modification: scripts/liquid-glass-install.mjs removes the unused
+automatic worker warmup from @lollipopkit/liquid-glass 0.2.1. Optical algorithms
+and the explicit runtime APIs are unmodified.
+
 node_modules/@lollipopkit/liquid-glass/LICENSE
 
 MIT License

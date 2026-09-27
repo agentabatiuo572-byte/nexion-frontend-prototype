@@ -11,17 +11,7 @@
     </script>
     <title>UVEL</title>
     <link rel="icon" type="image/png" href="/static/logo.png" />
-    <!-- v5 brand fonts — General Sans (Fontshare) + Manrope + JetBrains Mono
-         (Google). The prototype loads these via next/font + a Fontshare <link>
-         in app/layout.tsx; uni-app has no layout.tsx, so they are loaded here.
-         Without them every text node renders in the system fallback (or, when
-         the var(--font-*) chain is broken, Times New Roman). display=swap →
-         no FOIT. (PITFALLS P-038) -->
-    <link rel="preconnect" href="https://api.fontshare.com" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <!-- Brand fonts are bundled by src/styles/fonts.css, without a network prerequisite. -->
     <style>
       html.nx-device-host,
       html.nx-device-host body {
