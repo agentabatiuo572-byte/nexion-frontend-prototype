@@ -300,7 +300,7 @@ const earnEyebrowStyle: CSSProperties = {
 };
 const bigEarnStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontWeight: 600,
+  fontWeight: 400,
   fontSize: "26px",
   color: "var(--v5-warning-ink)",
   letterSpacing: "-0.022em",
