@@ -19,6 +19,7 @@
       <view aria-hidden :style="auroraStyle" />
 
       <view class="relative" style="z-index: 1">
+        <GenesisArtwork variant="banner" style="border-radius: 12px; margin-bottom: 14px" />
         <!-- Eyebrow -->
         <view class="flex items-center justify-between" style="gap: 10px">
           <view class="inline-flex items-center" style="gap: 6px; color: var(--v5-genesis-gold)">
@@ -73,6 +74,7 @@
 <script setup lang="ts">
 import { ref, computed, type CSSProperties } from "vue";
 import GenesisEligibilitySheet from "@/components/genesis/eligibility-sheet.vue";
+import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useGenesis } from "@/store/genesis";

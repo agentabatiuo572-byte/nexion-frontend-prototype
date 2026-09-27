@@ -22,6 +22,7 @@
       <SubPageHeader back="/pages/me/me" />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
+        <GenesisArtwork variant="banner" style="border-radius: 18px" />
         <!-- ════ HERO — dark obsidian gold ════ -->
         <view class="relative overflow-hidden" :style="heroStyle">
           <!-- Gold dust particles -->
@@ -162,6 +163,7 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import PerkRow from "@/components/genesis/perk-row.vue";
 import NftCard from "@/components/genesis/nft-card.vue";
+import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 import GenesisPurchaseSheet from "@/components/genesis/purchase-sheet.vue";
 import GenesisEligibilitySheet from "@/components/genesis/eligibility-sheet.vue";
 import { useT } from "@/i18n/use-t";

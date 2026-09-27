@@ -3,11 +3,7 @@
   <view class="overflow-hidden" :style="cardStyle">
     <!-- NFT visual -->
     <view class="relative flex items-center justify-center" :style="artStyle">
-      <view class="text-center">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" /><path d="M5 20h14" /></svg>
-        <text class="block tabular-nums" :style="tokenIdStyle">#{{ l.tokenId }}</text>
-        <text class="block" :style="founderStyle">{{ t.marketplace.founderLabel }}</text>
-      </view>
+      <GenesisArtwork context="holding" :serial="l.holdingNo ?? l.tokenId" style="position: absolute; inset: 0" />
       <view class="mc-pulse" :style="dotStyle" />
     </view>
     <!-- Meta -->
@@ -32,6 +28,7 @@
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 
 export interface Listing {
   tokenId: number;
@@ -66,25 +63,6 @@ const cardStyle: CSSProperties = {
 };
 const artStyle: CSSProperties = {
   aspectRatio: "1 / 1",
-  background:
-    "radial-gradient(80% 80% at 50% 30%, color-mix(in srgb, var(--v5-quest-ember) 18%, transparent) 0%, transparent 65%), linear-gradient(135deg, #1F1408 0%, var(--v5-on-brand) 100%)",
-};
-const tokenIdStyle: CSSProperties = {
-  marginTop: "4px",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "20px",
-  letterSpacing: "-0.014em",
-  color: "var(--v5-ink)",
-  lineHeight: 1,
-};
-const founderStyle: CSSProperties = {
-  marginTop: "4px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-  letterSpacing: "0.06em",
-  color: "var(--v5-warning)",
 };
 const dotStyle: CSSProperties = {
   position: "absolute",

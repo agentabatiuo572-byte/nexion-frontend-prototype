@@ -7,14 +7,10 @@
 <template>
   <view class="overflow-hidden" :style="cardStyle">
     <view class="flex items-center justify-center relative" :style="artStyle">
+      <GenesisArtwork context="holding" :serial="tokenId" style="position: absolute; inset: 0" />
       <view v-if="isListed" class="absolute inline-flex items-center" :style="listedBadgeStyle">
         <view :style="listedBadgeDotStyle" />
         <text>{{ t.marketplace.listedBadge }}</text>
-      </view>
-      <view class="text-center">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" :stroke="isListed ? 'var(--v5-warning)' : 'var(--v5-brand)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" /><path d="M5 20h14" /></svg>
-        <text class="block tabular-nums" :style="tokenIdStyle">#{{ tokenId }}</text>
-        <text class="block" :style="yoursStyle">{{ t.marketplace.yoursLabel }}</text>
       </view>
     </view>
 
@@ -55,6 +51,7 @@ import { useGenesis } from "@/store/genesis";
 import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { toast, confirm } from "@/store/ui";
+import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 
 const props = defineProps<{ tokenId: number }>();
 
@@ -147,18 +144,14 @@ async function handleCancel() {
   }
 }
 
-// Collectible tile — filled surface, no border (single visual difference); the
-// listed state is signaled by the badge + warning-tinted art + "yours" label.
+// Listed state stays on the badge; artwork never supplies a holding identity.
 const cardStyle: CSSProperties = {
   borderRadius: "16px",
   background: "var(--v5-surface)",
 };
-const artStyle = computed<CSSProperties>(() => ({
+const artStyle: CSSProperties = {
   aspectRatio: "1 / 1",
-  background: isListed.value
-    ? "radial-gradient(80% 80% at 50% 30%, rgba(255,200,61,0.18) 0%, transparent 65%), linear-gradient(135deg, #1A1408 0%, var(--v5-on-brand) 100%)"
-    : "radial-gradient(80% 80% at 50% 30%, rgba(198,255,58,0.18) 0%, transparent 65%), linear-gradient(135deg, #14160F 0%, var(--v5-on-brand) 100%)",
-}));
+};
 const listedBadgeStyle: CSSProperties = {
   top: "8px",
   right: "8px",
@@ -178,23 +171,6 @@ const listedBadgeDotStyle: CSSProperties = {
   borderRadius: "999px",
   background: "var(--v5-warning)",
 };
-const tokenIdStyle: CSSProperties = {
-  marginTop: "4px",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "20px",
-  letterSpacing: "-0.014em",
-  color: "var(--v5-ink)",
-  lineHeight: 1,
-};
-const yoursStyle = computed<CSSProperties>(() => ({
-  marginTop: "4px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-  letterSpacing: "0.06em",
-  color: isListed.value ? "var(--v5-warning)" : "var(--v5-brand)",
-}));
 const askLabelStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",

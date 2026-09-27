@@ -16,6 +16,7 @@
 
         <template v-else>
           <view class="gh-hero gh-surface">
+            <GenesisArtwork context="holding" variant="banner" class="gh-hero-art" />
             <view class="gh-identity"><BrandLockup /><HolderBadge /></view>
             <view class="gh-summary">
               <view>
@@ -75,7 +76,7 @@
             <view class="gh-surface gh-holding-list">
               <view v-for="h in holdings" :key="h.id" class="gh-holding">
                 <view class="gh-holding-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"/></svg></view>
-                <view class="gh-holding-body"><text class="gh-id">{{ h.id }}</text><text class="gh-note">{{ mintedText(h.mintedAt) }}</text><text class="gh-amount gh-brand">{{ holdingAmountLabel }} {{ h.allocText }}</text></view>
+                <view class="gh-holding-body"><text class="gh-id">{{ formatGenesisSerial(h.serial) }}</text><text class="gh-note">{{ mintedText(h.mintedAt) }}</text><text class="gh-amount gh-brand">{{ holdingAmountLabel }} {{ h.allocText }}</text></view>
                 <view class="gh-icon-button" role="button" tabindex="0" :aria-label="t.genesisHolder.actions.sell" @click="goMarketplace" @keydown.enter.prevent="goMarketplace" @keydown.space.prevent="goMarketplace"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></view>
               </view>
             </view>
@@ -117,6 +118,8 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import BrandLockup from "@/components/brand-lockup.vue";
 import HolderBadge from "@/components/genesis/holder-badge.vue";
+import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
+import { formatGenesisSerial } from "@/lib/product-media";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { useGenesis, GENESIS_EMISSION } from "@/store/genesis";
@@ -229,17 +232,19 @@ const emissionFeed = computed(() => {
 // Holdings list — 席位 + 铸造日 + 预留额度（无排放数字）。
 const holdings = computed(() => remoteApiEnabled ? genesis.remoteHoldings.slice(0, 6).map((holding) => ({
   id: holding.holdingNo,
+  serial: holding.holdingNo,
   mintedAt: holding.acquiredAt,
   allocText: `$${holding.acquiredPriceUsdt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} USDT`,
 })) : mockHoldings());
 
-function mockHoldings(): Array<{ id: string; mintedAt: number; allocText: string }> {
-  const list: Array<{ id: string; mintedAt: number; allocText: string }> = [];
+function mockHoldings(): Array<{ id: string; serial: number; mintedAt: number; allocText: string }> {
+  const list: Array<{ id: string; serial: number; mintedAt: number; allocText: string }> = [];
   const count = Math.min(owned.value, 6);
   for (let i = 0; i < count; i++) {
     const serial = genesis.ownedTokenIds[i] ?? i + 1;
     list.push({
       id: `NEX-GEN-${serial.toString().padStart(4, "0")}`,
+      serial,
       mintedAt: Date.now() - (142 - i * 18) * DAY,
       allocText: `${GENESIS_EMISSION.nominalPerNodeNEX.toLocaleString()}\u00a0NEX`,
     });
@@ -277,12 +282,9 @@ const displayedLeaderboard = computed(() => remoteApiEnabled ? remoteLeaderboard
 .gh-page { padding-bottom: 32px; color: var(--v5-ink); font-family: var(--font-v5); }
 .gh-content { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .gh-surface { background: color-mix(in srgb, var(--v5-surface) 96%, transparent); border-radius: var(--v5-radius-xl); padding: 16px; }
-/* Theme artwork is used directly; all account content stays live. */
-.gh-hero { --gh-logo-width: 128px; position: relative; padding: 12px 20px 16px; border-radius: 18px; background: var(--v5-surface) url("/static/img/genesis/vip-card-light.png") center / cover no-repeat; }
-:global(html[data-theme="dark"] .gh-hero) { background-image: url("/static/img/genesis/vip-card-dark.png"); }
-/* Nine-slice the generated alpha artwork to keep its light corners fixed as the card grows. */
-.gh-hero::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.72; border-image: url("/static/img/genesis/vip-card-aura.png") 300 320 350 320 / 36px 38.4px 42px / 15px 17px 27px stretch; }
-:global(html[data-theme="dark"] .gh-hero::before) { opacity: 0.84; }
+/* Aggregate holding artwork carries no fixed serial; account content stays live. */
+.gh-hero { --gh-logo-width: 128px; position: relative; padding: 12px 20px 16px; border-radius: 18px; background: var(--v5-surface); }
+.gh-hero-art { margin-bottom: 12px; border-radius: 12px; }
 .gh-identity, .gh-summary, .gh-stats, .gh-emissions { position: relative; z-index: 1; }
 .gh-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-bottom: 12px; }
 .gh-identity :deep(.uvel-brand) { width: var(--gh-logo-width); height: 44px; }

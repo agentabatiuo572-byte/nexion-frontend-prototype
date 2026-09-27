@@ -75,7 +75,7 @@
           <view aria-hidden :style="auroraStyle" />
 
           <view class="relative border-b" style="border-color: var(--v5-border)">
-            <ProductRender :tier="product.tier" />
+            <ProductRender :product-id="product.id" />
             <!-- Folded-corner ribbon -->
             <view v-if="copy.badge" class="absolute" :style="ribbonStyle">
               <text>{{ copy.badge }}</text>

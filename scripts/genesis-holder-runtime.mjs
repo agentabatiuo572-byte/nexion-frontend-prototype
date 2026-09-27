@@ -48,25 +48,27 @@ async function themeAndLocale(page, theme, locale) {
 }
 async function cardArtwork(page, theme) {
   assert.equal(await page.locator('.gh-progress').count(), 0, 'holder page does not display listing progress');
+  await page.waitForFunction(() => {
+    const image = document.querySelector('.gh-hero .genesis-artwork img');
+    return image?.complete && image.naturalWidth > 0;
+  });
   const artwork = await page.locator('.gh-hero').evaluate(e => {
     const style = getComputedStyle(e);
-    const aura = getComputedStyle(e, '::before');
+    const image = e.querySelector('.genesis-artwork[data-art-context="holding"] img');
     return { image: style.backgroundImage, size: style.backgroundSize,
       position: style.backgroundPosition, radius: style.borderRadius,
       boxShadow: style.boxShadow,
       corners: e.querySelectorAll('.gh-corner').length,
-      aura: { content: aura.content, image: aura.borderImageSource, pointerEvents: aura.pointerEvents },
+      artworkSrc: image?.src, artworkLoaded: !!image?.complete && image.naturalWidth > 0,
+      fixedSerials: e.querySelectorAll('.genesis-artwork__serial').length,
       after: getComputedStyle(e, '::after').content };
   });
-  assert.ok(artwork.image.includes('/static/img/genesis/vip-card-' + theme + '.png'), 'theme-appropriate card image is rendered directly');
-  assert.equal(artwork.size, 'cover', 'card image fills the card');
-  assert.equal(artwork.position, '50% 50%', 'card image stays centered');
+  assert.ok(artwork.artworkSrc.includes('/static/img/products/uvel-v3/genesis-holder-base.png'), 'aggregate holdings use unnumbered artwork');
+  assert.ok(artwork.artworkLoaded, 'holding artwork actually loads');
+  assert.equal(artwork.fixedSerials, 0, 'aggregate holdings never display a fabricated fixed serial');
   assert.equal(artwork.radius, '18px', 'card retains its rounded shape');
-  assert.equal(artwork.boxShadow, 'none', 'external glow comes from the generated image');
+  assert.equal(artwork.boxShadow, 'none', 'card has no external glow');
   assert.equal(artwork.corners, 0, 'old corner effects do not cover the artwork');
-  assert.ok(!['none', 'normal'].includes(artwork.aura.content), 'generated aura layer is rendered');
-  assert.ok(artwork.aura.image.includes('/static/img/genesis/vip-card-aura.png'), 'generated aura is the border image');
-  assert.equal(artwork.aura.pointerEvents, 'none', 'decorative aura cannot intercept interactions');
   assert.equal(artwork.after, 'none', 'card has no additional after overlay');
   return artwork;
 }
@@ -193,6 +195,8 @@ async function runCase(base, locale, theme) {
     assert.equal(await page.locator(".genesis-purchase-success").count(), 0);
     assert.equal(await page.locator(".gh-hero .genesis-holder-badge").count(), 1);
     assert.equal(await page.locator(".gh-holding").count(), 1);
+    const actualSerial = await page.evaluate(async () => (await import("/src/store/genesis.ts")).useGenesis().ownedTokenIds[0]);
+    assert.equal(await page.locator(".gh-id").innerText(), `No.${String(actualSerial).padStart(4, "0")}`, "holding label formats the actual owned token, never the campaign serial");
     assert.equal(await page.locator(".gh-perk").count(), 6);
     assert.equal(await page.locator(".gh-perk-list").count(), 0, "benefits are no longer a list");
     await page.setViewportSize({ width: 380, height: 844 });
@@ -200,6 +204,7 @@ async function runCase(base, locale, theme) {
     const composition = await hero.evaluate(e => {
       const rect = e.getBoundingClientRect();
       return { width: rect.width, height: rect.height,
+        artworkHeight: e.querySelector('.gh-hero-art').getBoundingClientRect().height,
         text: getComputedStyle(e).color,
         brand: getComputedStyle(e.querySelector('.gh-brand')).color,
         logo: getComputedStyle(e.querySelector('.uvel-brand__dark')).display,
@@ -207,14 +212,14 @@ async function runCase(base, locale, theme) {
         divider: getComputedStyle(e.querySelector('.gh-allocation'), '::before').content };
     });
     if (locale === "zh") {
-      assert.ok(Math.abs(composition.width - 348) < 1 && Math.abs(composition.height - 224) < 2, "reference card proportions: " + JSON.stringify(composition));
+      assert.ok(Math.abs(composition.width - 348) < 1 && Math.abs(composition.height - composition.artworkHeight - 12 - 224) < 2, "artwork is separate from the unchanged account summary: " + JSON.stringify(composition));
       assert.equal(await page.locator('.gh-summary .gh-label').allTextContents().then(v => v.join('|')), '持有席位|优先额度');
     }
     const cardBackground = await cardArtwork(page, theme);
     assert.equal(composition.text, theme === 'dark' ? 'rgb(245, 247, 250)' : 'rgb(19, 20, 26)', "themed card text");
     assert.equal(composition.brand, theme === 'dark' ? 'rgb(158, 220, 29)' : 'rgb(14, 72, 230)');
     assert.equal(composition.logo, theme === 'dark' ? 'block' : 'none', "wordmark follows the visible page theme");
-    const cardAsset = '/static/img/genesis/vip-card-' + theme + '.png';
+    const cardAsset = '/static/img/products/uvel-v3/genesis-holder-base.png';
     const cardResponse = await page.request.get(base + cardAsset);
     assert.equal(cardResponse.status(), 200);
     assert.ok((await cardResponse.body()).length > 10_000, "card artwork contains a substantial image file");
@@ -224,34 +229,7 @@ async function runCase(base, locale, theme) {
       await image.decode();
       return { width: image.naturalWidth, height: image.naturalHeight };
     }, cardAsset);
-    assert.ok(cardPixels.width >= 512 && cardPixels.height >= 256, 'card artwork decodes at meaningful dimensions: ' + JSON.stringify(cardPixels));
-    const auraAsset = '/static/img/genesis/vip-card-aura.png';
-    const auraResponse = await page.request.get(base + auraAsset);
-    assert.equal(auraResponse.status(), 200);
-    const auraPixels = await page.evaluate(async src => {
-      const image = new Image();
-      image.src = src;
-      await image.decode();
-      const canvas = document.createElement('canvas');
-      canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(image, 0, 0);
-      const opacity = (x, y) => {
-        const pixels = ctx.getImageData(Math.floor(canvas.width * x), Math.floor(canvas.height * y), Math.floor(canvas.width * .1), Math.floor(canvas.height * .1)).data;
-        let alpha = 0;
-        for (let i = 3; i < pixels.length; i += 4) alpha += pixels[i];
-        return alpha / (pixels.length / 4) / 255;
-      };
-      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      let visible = 0;
-      for (let i = 3; i < pixels.length; i += 4) if (pixels[i] >= 32) visible++;
-      return { width: canvas.width, height: canvas.height, center: opacity(.45, .45),
-        corners: [[0, 0], [.9, 0], [0, .9], [.9, .9]].map(([x, y]) => opacity(x, y)),
-        visibleFraction: visible / (pixels.length / 4) };
-    }, auraAsset);
-    assert.ok(auraPixels.center < .01, 'aura center is transparent: ' + JSON.stringify(auraPixels));
-    assert.ok(auraPixels.corners.every(alpha => alpha < .01), 'aura outer corners are transparent: ' + JSON.stringify(auraPixels));
-    assert.ok(auraPixels.visibleFraction > .01, 'aura has visible pixels rather than an empty transparent image: ' + JSON.stringify(auraPixels));
+    assert.deepEqual(cardPixels, { width: 1254, height: 1254 }, 'original square artwork dimensions are preserved');
     assert.equal(composition.badgeBorder, "1px", "outlined identity badge");
     assert.notEqual(composition.divider, "none", "reference column dividers exist");
     await hero.screenshot({ animations: "disabled", path: resolve(artifacts, name + "-hero-reference.png") });
@@ -369,7 +347,7 @@ async function runCase(base, locale, theme) {
     assert.equal(await success.count(), 0);
     assert.deepEqual(errors, []);
     assert.deepEqual(network, []);
-    results.push({ name, passed: true, evidence, before, after, background: bg, cardBackground, cardPixels, auraPixels });
+    results.push({ name, passed: true, evidence, before, after, background: bg, cardBackground, cardPixels });
     console.log("PASS " + name);
   } catch (e) {
     await page.screenshot({ path: resolve(artifacts, name + "-failed.png") }).catch(() => {});

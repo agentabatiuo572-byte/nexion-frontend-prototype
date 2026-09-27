@@ -4,7 +4,7 @@
   detail page; the footer Buy/Stake CTA taps to checkout (stops propagation).
 
   Top→bottom:
-    · ProductRender hero photo (S1/Pro/Rack) or cyan Cloud-Share schematic,
+    · SKU-specific product artwork, including the Cloud Share resource pool,
       with folded-corner badge ribbon + tier-code chip + Legacy chip overlay.
     · Body: name, ROI hero (daily earn / trade-in). Specs and AI throughput
       stay on the detail page.
@@ -17,20 +17,11 @@
 
     <!-- ───── Hero photo banner ───── -->
     <view class="relative overflow-hidden" :style="renderWrapStyle">
-      <!-- Cloud Share schematic -->
-      <view v-if="isShare" class="absolute inset-0 grid place-items-center" style="color: var(--v5-tech-cyan-ink)">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2" /><rect width="6" height="6" x="9" y="9" rx="1" /><path d="M15 2v2" /><path d="M15 20v2" /><path d="M2 15h2" /><path d="M2 9h2" /><path d="M20 15h2" /><path d="M20 9h2" /><path d="M9 2v2" /><path d="M9 20v2" /></svg>
-      </view>
-      <!-- Real product photo -->
-      <image v-else-if="photo" :src="photo.src" mode="aspectFill" style="position: absolute; inset: 0; width: 100%; height: 100%" />
+      <image v-if="photo" :src="photo.src" mode="aspectFit" :data-product-id="product.id" style="position: absolute; inset: 0; width: 100%; height: 100%" aria-hidden="true" />
       <!-- Fallback box icon -->
       <view v-else class="absolute inset-0 grid place-items-center" style="color: var(--v5-ink-3)">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
       </view>
-
-      <!-- Mid-vignette + bottom fade -->
-      <view v-if="photo" aria-hidden :style="vignetteStyle" />
-      <view aria-hidden :style="fadeStyle" />
 
       <!-- Badge ribbon -->
       <view v-if="copy.badge" class="absolute" :style="ribbonStyle">
@@ -38,7 +29,7 @@
       </view>
 
       <!-- Tier-code chip + Legacy chip (photo) -->
-      <view v-if="photo" class="absolute flex flex-col items-start gap-1.5" style="bottom: 12px; left: 14px; pointer-events: none">
+      <view v-if="photo && !isShare" class="absolute flex flex-col items-start gap-1.5" style="bottom: 12px; left: 14px; pointer-events: none">
         <text class="font-mono-tabular" :style="tierChipStyle">{{ photo.tierCode }}</text>
         <text v-if="product.status === 'legacy'" class="font-mono-tabular" :style="legacyChipStyle">{{ t.store.cardLegacyBadge }}</text>
       </view>
@@ -129,6 +120,7 @@ import { fmt } from "@/i18n/format";
 import { navTo } from "@/lib/route";
 import { usePurchaseGate } from "@/composables/use-purchase-gate";
 import { productCopy } from "@/lib/product-copy";
+import { getProductMedia } from "@/lib/product-media";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useRemotePurchaseEligibility } from "@/store/purchase-eligibility";
 
@@ -138,16 +130,8 @@ const props = withDefaults(defineProps<{ product: Product; featured?: boolean }>
 const t = useT();
 const copy = computed(() => productCopy(t.value, props.product));
 
-const PRODUCT_PHOTO: Record<string, { src: string; tierCode: string }> = {
-  "stellarbox-s1": { src: "/static/img/products/nexgridbox-s1-v4.png", tierCode: "S1" },
-  "stellarbox-pro": { src: "/static/img/products/nexgridbox-pro-v2.png", tierCode: "Pro" },
-  "stellarbox-pro-v2": { src: "/static/img/products/nexgridbox-pro-v2.png", tierCode: "Pro v2" },
-  "stellarrack-p1": { src: "/static/img/products/nexgridrack-p1-v2.png", tierCode: "Rack P1" },
-  "stellarrack-p2": { src: "/static/img/products/nexgridrack-p1-v2.png", tierCode: "Rack P2" },
-};
-
 const isShare = computed(() => props.product.tier === "Share");
-const photo = computed(() => (isShare.value ? null : PRODUCT_PHOTO[props.product.id] ?? null));
+const photo = computed(() => getProductMedia(props.product.id));
 
 const stockLow = computed(
   () => !isShare.value && props.product.stock != null && props.product.stock < 50,
@@ -248,28 +232,10 @@ const featuredGlowStyle: CSSProperties = {
   opacity: 0.6,
   pointerEvents: "none",
 };
-const renderWrapStyle = computed<CSSProperties>(() => ({
+const renderWrapStyle: CSSProperties = {
   width: "100%",
   height: "180px",
-  background: isShare.value
-    ? "repeating-linear-gradient(135deg, color-mix(in srgb, var(--v5-tech-cyan) 8%, transparent) 0 8px, transparent 8px 18px)," +
-      "linear-gradient(135deg, var(--v5-tech-cyan-soft) 0%, var(--v5-surface-2) 100%)"
-    : photo.value
-      ? "linear-gradient(135deg, #101216 0%, #0A0B0E 60%, #000000 100%)"
-      : "var(--v5-surface-2)",
-}));
-const vignetteStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background:
-    "linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.28) 78%, rgba(0,0,0,0.32) 88%)",
-  pointerEvents: "none",
-};
-const fadeStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "linear-gradient(180deg, transparent 78%, var(--v5-surface) 100%)",
-  pointerEvents: "none",
+  background: "var(--v5-surface-2)",
 };
 const ribbonStyle: CSSProperties = {
   top: 0,

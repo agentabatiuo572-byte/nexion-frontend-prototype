@@ -15,8 +15,9 @@
     @keydown.space.prevent="goTarget"
   >
     <image
+      v-if="promoPhoto"
       class="weekly-quest__product"
-      src="/static/img/marketing/trial-hero.png"
+      :src="promoPhoto.src"
       mode="aspectFit"
       :style="productStyle"
       aria-hidden="true"
@@ -76,6 +77,7 @@ import { useWeeklyQuest } from "@/store/weekly-quest";
 import { remoteApiEnabled } from "@/api/runtime";
 import { selectHomeWeeklySource } from "@/lib/home-task-carousel";
 import { navTo } from "@/lib/route";
+import { getProductMedia } from "@/lib/product-media";
 
 const MANAGED_POSITION = "home.conversion-banner";
 
@@ -132,6 +134,7 @@ const remainingLabel = computed(() => {
 });
 
 const promo = computed(() => derivePromoUpgrade(app.visibleDevices));
+const promoPhoto = computed(() => getProductMedia(promo.value.targetKind));
 const targetDailyText = computed(() => {
   if (remoteApiEnabled) {
     const value = canonicalPromo.value?.targetDaily;
@@ -161,18 +164,15 @@ const rootStyle: CSSProperties = {
   color: "var(--v5-ink)",
 };
 
-const PRODUCT_MASK =
-  "radial-gradient(ellipse 200px 250px at 95% 50%, #000 25%, rgba(0,0,0,0.7) 45%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0.1) 82%, transparent 100%)";
 const productStyle: CSSProperties = {
   position: "absolute",
-  top: "-36px",
-  right: "-50px",
-  width: "220px",
-  height: "220px",
+  top: "48px",
+  right: "16px",
+  width: "72px",
+  height: "72px",
+  borderRadius: "10px",
   pointerEvents: "none",
   zIndex: 0,
-  maskImage: PRODUCT_MASK,
-  WebkitMaskImage: PRODUCT_MASK,
 };
 
 function goTarget() {
