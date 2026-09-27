@@ -11,49 +11,46 @@
   Device-local preference — no backend call.
 -->
 <template>
-  <view v-if="open">
+  <view v-if="open" class="nx-theme-dialog" role="dialog" aria-modal="true" :aria-label="t.me.themePickerTitle">
     <view class="nx-sheet-fade-in" :style="scrimStyle" @click="emit('close')">
       <view class="nx-sheet-fade-in" :style="panelStyle" @click.stop>
         <!-- Title row -->
         <view class="flex items-start justify-between" style="gap: 12px; margin-bottom: 14px">
           <text class="block" :style="titleStyle">{{ t.me.themePickerTitle }}</text>
-          <view class="grid place-items-center shrink-0 active:opacity-60" :style="closeBtnStyle" @click="emit('close')">
+          <view class="grid place-items-center shrink-0 active:opacity-60" :style="closeBtnStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="emit('close')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
           </view>
         </view>
 
-        <!-- Options -->
-        <view
-          v-for="opt in options"
-          :key="opt.mode"
-          class="flex items-center active:opacity-80"
-          :style="optionStyle(opt.mode)"
-          @click="choose(opt.mode)"
-        >
-          <view class="grid place-items-center shrink-0" :style="iconChipStyle(opt.mode)">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" :stroke="isActive(opt.mode) ? 'var(--v5-brand)' : 'var(--v5-ink-2)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path v-for="d in opt.paths" :key="d" :d="d" />
-            </svg>
-          </view>
-          <text class="flex-1" :style="labelStyle(opt.mode)">{{ opt.label }}</text>
-          <!-- Check on the active mode -->
-          <svg v-if="isActive(opt.mode)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-        </view>
+        <GlassSegments :model-value="theme.mode" :options="glassOptions" layout="vertical" class="nx-theme-options" :label="t.me.themePickerTitle" @select="choose">
+          <template #option="{ option, selected }">
+            <view class="grid place-items-center shrink-0" :style="iconChipStyle(option.value as ThemeMode)">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" :stroke="selected ? 'var(--v5-brand)' : 'var(--v5-ink-2)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path v-for="d in (option.paths as string[])" :key="d" :d="d" />
+              </svg>
+            </view>
+            <text class="flex-1" :style="labelStyle(option.value as ThemeMode)">{{ option.label }}</text>
+            <svg v-if="selected" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+          </template>
+        </GlassSegments>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { useTheme, type ThemeMode } from "@/store/theme";
 
-defineProps<{ open: boolean }>();
+const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
 
 const t = useT();
 const theme = useTheme();
+useDialogA11y(computed(() => props.open), ".nx-theme-dialog", () => emit("close"));
 
 const SUN = ["M12 2v2", "M12 20v2", "m4.93 4.93 1.41 1.41", "m17.66 17.66 1.41 1.41", "M2 12h2", "M20 12h2", "m6.34 17.66-1.41 1.41", "m19.07 4.93-1.41 1.41", "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8"];
 const MOON = ["M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"];
@@ -102,22 +99,11 @@ const titleStyle: CSSProperties = {
   color: "var(--v5-ink)",
 };
 const closeBtnStyle: CSSProperties = {
-  width: "32px",
-  height: "32px",
+  width: "44px",
+  height: "44px",
   borderRadius: "999px",
   background: "var(--v5-surface-2)",
 };
-function optionStyle(m: ThemeMode): CSSProperties {
-  const on = isActive(m);
-  return {
-    gap: "12px",
-    minHeight: "52px",
-    marginTop: "8px",
-    padding: "0 14px",
-    borderRadius: "14px",
-    background: on ? "color-mix(in srgb, var(--v5-brand) 12%, transparent)" : "var(--v5-surface-2)",
-  };
-}
 function iconChipStyle(m: ThemeMode): CSSProperties {
   const on = isActive(m);
   return {
@@ -136,4 +122,9 @@ function labelStyle(m: ThemeMode): CSSProperties {
     color: on ? "var(--v5-ink)" : "var(--v5-ink-2)",
   };
 }
+const glassOptions = computed(() => options.value.map(option => ({ ...option, value: option.mode })));
 </script>
+
+<style scoped>
+.nx-theme-options :deep(.nx-glass-option) { gap: 12px; min-height: 56px; }
+</style>

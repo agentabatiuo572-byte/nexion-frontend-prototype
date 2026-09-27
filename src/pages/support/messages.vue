@@ -15,24 +15,15 @@
 
       <view class="nx-conv-center">
         <!-- Left type rail -->
-        <view class="nx-conv-rail">
-          <view
-            v-for="ty in TYPES"
-            :key="ty.key"
-            class="nx-conv-rail-item active:opacity-80"
-            :style="railItemStyle(ty.key, ty.tint)"
-            role="button"
-            tabindex="0"
-            :aria-label="typeLabel(ty.key)"
-            @click="selectedType = ty.key"
-          >
-            <view class="nx-conv-rail-ico" :style="{ color: selectedType === ty.key ? ty.tint : 'var(--v5-ink-3)' }">
-              <view v-html="ty.icon" />
-              <view v-if="typeUnread(ty.key) > 0" class="nx-conv-rail-dot" />
+        <GlassSegments v-model="selectedType" :options="typeOptions" layout="vertical" class="nx-conv-rail" :label="t.conversations.title">
+          <template #option="{ option, selected }">
+            <view class="nx-conv-rail-ico" :style="{ color: selected ? String(option.tint) : 'var(--v5-ink-3)' }">
+              <view v-html="option.icon" />
+              <view v-if="option.count" class="nx-conv-rail-dot" />
             </view>
-            <text class="nx-conv-rail-label" :style="{ color: selectedType === ty.key ? ty.tint : 'var(--v5-ink-3)' }">{{ typeLabel(ty.key) }}</text>
-          </view>
-        </view>
+            <text class="nx-conv-rail-label">{{ option.label }}</text>
+          </template>
+        </GlassSegments>
 
         <!-- Right conversation list -->
         <view class="nx-conv-listcol">
@@ -82,6 +73,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { computed, ref, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -233,21 +225,6 @@ function openRow(r: Row) {
   }
   navTo("/pages/support/chat?cid=" + r.id);
 }
-
-// ── styles ──
-function railItemStyle(key: ConversationType, tint: string): CSSProperties {
-  const on = selectedType.value === key;
-  return {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "5px",
-    minHeight: "64px",
-    padding: "10px 4px",
-    borderRadius: "14px",
-    background: on ? `color-mix(in srgb, ${tint} 12%, transparent)` : "transparent",
-  };
-}
 function avaStyle(tint: string): CSSProperties {
   return {
     width: "44px",
@@ -260,6 +237,7 @@ function avaStyle(tint: string): CSSProperties {
     background: `color-mix(in srgb, ${tint} 14%, transparent)`,
   };
 }
+const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, label: typeLabel(type.key), icon: type.icon, tint: type.tint, count: typeUnread(type.key), className: "nx-conv-rail-item" })));
 </script>
 
 <style scoped>
@@ -269,18 +247,8 @@ function avaStyle(tint: string): CSSProperties {
   /* No top padding — the sub-page header already supplies the 24px header→content gap. */
   padding: 0;
 }
-.nx-conv-rail {
-  width: 76px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 8px 8px 10px;
-  border-right: 1px solid var(--v5-border);
-}
-.nx-conv-rail-item {
-  /* layout supplied inline (active tint bg) */
-}
+.nx-conv-rail { width: 84px; flex-shrink: 0; align-self: flex-start; margin-right: 8px; }
+.nx-conv-rail :deep(.nx-conv-rail-item) { flex-direction: column; min-height: 72px; padding: 10px 4px; }
 .nx-conv-rail-ico {
   position: relative;
   width: 30px;

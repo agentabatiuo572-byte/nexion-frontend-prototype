@@ -45,6 +45,7 @@
               :key="item.key"
               class="active:opacity-80"
               :data-quick-key="item.key"
+              role="button" tabindex="0" :aria-label="item.label"
               :style="quickItemStyle"
               @click="handleQuickItem(item)"
             >

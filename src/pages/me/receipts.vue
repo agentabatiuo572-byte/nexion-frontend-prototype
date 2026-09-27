@@ -51,20 +51,7 @@
 
       <!-- Tabs + clear-all -->
       <view v-if="!remoteReceiptsMode" class="flex items-center" :style="tabsRowStyle">
-        <scroll-view scroll-x class="flex-1 min-w-0" :show-scrollbar="false" style="white-space: nowrap">
-          <view class="inline-flex" style="gap: 6px; padding: 0 1px 4px">
-            <view
-              v-for="c in TAB_ORDER"
-              :key="c"
-              class="inline-flex items-center shrink-0 active:opacity-70"
-              :style="tabPillStyle(c)"
-              @click="tab = c"
-            >
-              <text :style="tabLabelStyle(c)">{{ tabLabel(c) }}</text>
-              <text v-if="counts[c] > 0" class="font-mono-tabular tabular-nums" :style="tabCountStyle">{{ counts[c] }}</text>
-            </view>
-          </view>
-        </scroll-view>
+        <GlassSegments v-model="tab" :options="categoryOptions" layout="scroll" class="flex-1 min-w-0" />
         <view v-if="receipts.length > 0" class="grid place-items-center shrink-0 active:opacity-70" :style="clearBtnStyle" @click="handleClearAll">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
         </view>
@@ -117,6 +104,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { computed, ref, watchEffect, watch, onMounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -256,24 +244,6 @@ function shortDate(ts: number): string {
 
 // ── styles ──
 const tabsRowStyle: CSSProperties = { margin: "0 16px 12px", gap: "8px" };
-function tabPillStyle(c: Tab): CSSProperties {
-  const on = tab.value === c;
-  // Filter chip — filled tint (active) vs L1 surface (idle), no border: the fill
-  // + text color is the single visual difference (V5 chip idiom).
-  return {
-    height: "44px",
-    padding: "0 16px",
-    borderRadius: "999px",
-    gap: "4px",
-    // 未选中原 surface-2 与页面底同色不可辨(亮色 ΔE 2.2),胶囊直接坐在页面底上 → 改 L1
-    background: on ? "color-mix(in srgb, var(--v5-brand) 15%, transparent)" : "var(--v5-surface)",
-  };
-}
-function tabLabelStyle(c: Tab): CSSProperties {
-  const on = tab.value === c;
-  return { fontSize: "12px", fontWeight: 500, color: on ? "var(--v5-brand)" : "var(--v5-ink-3)" };
-}
-const tabCountStyle: CSSProperties = { fontSize: "12px", opacity: 0.7 };
 const clearBtnStyle: CSSProperties = { width: "44px", height: "44px", borderRadius: "999px" };
 
 // Empty state — dashed outline hint, no fill (V5 empty-state idiom).
@@ -341,4 +311,5 @@ const footerStyle: CSSProperties = {
   color: "var(--v5-ink-4)",
   lineHeight: 1.625,
 };
+const categoryOptions = computed(() => TAB_ORDER.map(value => ({ value, label: tabLabel(value), count: counts.value[value] || undefined })));
 </script>

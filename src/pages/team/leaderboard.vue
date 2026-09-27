@@ -51,11 +51,7 @@
         </view>
 
         <!-- Period tabs -->
-        <view class="flex" :style="segWrapStyle">
-          <view v-for="p in PERIODS" :key="p" class="flex-1 grid place-items-center active:opacity-70" :style="pillStyle(p)" @click="period = p">
-            <text :style="pillLabelStyle(p)">{{ t.leaderboard.periods[p] }}</text>
-          </view>
-        </view>
+        <GlassSegments v-model="period" :options="periodOptions" />
 
         <!-- My rank — transparent stat row on the page floor (was a second
              glowing hero stacked right under the prize hero). -->
@@ -174,6 +170,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -275,20 +272,6 @@ const heroIconStyle: CSSProperties = { width: "48px", height: "48px", background
 // -2px side margins pull the hairline back to full width (hero has a 2px optical inset).
 const heroFooterStyle: CSSProperties = { margin: "12px -2px 0", padding: "12px 2px 0", borderTop: "1px solid var(--v5-border)", fontSize: "12px" };
 
-// 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface
-const segWrapStyle: CSSProperties = { background: "var(--v5-surface)", borderRadius: "12px", padding: "3px", gap: "2px" };
-function pillStyle(p: LeaderPeriod): CSSProperties {
-  const on = period.value === p;
-  // 《07》tap≥44(原 34);同型控件 earn 页已是 44,这里是漏掉的兄弟实例
-  // 选中态原是「surface 底 + 投影」,轨道提到 L1 后会与轨道撞色(只剩投影可辨),且投影表达层级违反《03》;
-  // 改 brand-soft 底 + brand 文字,与 earn / live-feed-card / marketplace sortPill 同一写法。
-  return { height: "44px", borderRadius: "9px", background: on ? "var(--v5-brand-soft)" : "transparent", boxShadow: "none" };
-}
-function pillLabelStyle(p: LeaderPeriod): CSSProperties {
-  const on = period.value === p;
-  return { fontSize: "12px", fontWeight: on ? 600 : 500, color: on ? "var(--v5-brand)" : "var(--v5-ink-3)" };
-}
-
 // Transparent stat row — was a second glowing surface card under the hero.
 const myRankStyle: CSSProperties = { padding: "4px 2px 0" };
 const myRankBigStyle: CSSProperties = { fontSize: "26px", fontWeight: 600, lineHeight: 1, letterSpacing: "-0.022em", color: "var(--v5-ink)" };
@@ -387,4 +370,5 @@ const shareCtaStyle: CSSProperties = {
   letterSpacing: "-0.005em",
 };
 const footerNoteStyle: CSSProperties = { paddingTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
+const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.value.leaderboard.periods[value] })));
 </script>

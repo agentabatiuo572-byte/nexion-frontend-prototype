@@ -32,11 +32,7 @@
 
       <!-- Tabs — SegmentedControl (HIG 44pt, accent = tech-cyan) -->
       <view class="mx-4 mt-3">
-        <view class="grid" :style="segWrapStyle">
-          <view v-for="o in tabOptions" :key="o.value" class="grid place-items-center active:opacity-70" :style="pillStyle(o.value)" @click="tab = o.value">
-            <text :style="pillLabelStyle(o.value)">{{ o.label }}</text>
-          </view>
-        </view>
+        <GlassSegments v-model="tab" :options="tabOptions" />
       </view>
 
       <!-- Overview -->
@@ -134,6 +130,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -351,32 +348,6 @@ const badgeStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-ink) 5%, transparent)",
   color: "var(--v5-ink-2)",
 };
-const segWrapStyle: CSSProperties = {
-  // 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 是 tech-cyan 实底,不撞色
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
-  padding: "4px",
-  gap: "2px",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-};
-function pillStyle(v: Tab): CSSProperties {
-  const on = tab.value === v;
-  return {
-    height: "44px",
-    borderRadius: "10px",
-    background: on ? "var(--v5-tech-cyan)" : "transparent",
-  };
-}
-function pillLabelStyle(v: Tab): CSSProperties {
-  const on = tab.value === v;
-  return {
-    fontFamily: "var(--font-v5)",
-    fontSize: "13px",
-    fontWeight: 500,
-    letterSpacing: "-0.005em",
-    color: on ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
-  };
-}
 // De-carded: the 4 API cards merge into a transparent hairline list (rows carry
 // their own dividers, last = none) instead of 4 stacked bordered cards.
 const apiListStyle: CSSProperties = {

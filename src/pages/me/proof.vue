@@ -25,20 +25,7 @@
         <!-- Variant tabs -->
         <view>
           <text class="block font-mono-tabular" :style="variantLabelStyle">{{ t.proof.variantLabel }}</text>
-          <view class="grid grid-cols-3" :style="variantTabsStyle">
-            <view
-              v-for="v in VARIANTS"
-              :key="v"
-              class="grid place-items-center active:scale-[0.97]"
-              :style="variantPillStyle(v)"
-              role="button"
-              tabindex="0"
-              :aria-label="t.proof.variants[v]"
-              @click="variant = v"
-            >
-              <text :style="variantPillTextStyle(v)" style="pointer-events: none">{{ t.proof.variants[v] }}</text>
-            </view>
-          </view>
+          <GlassSegments v-model="variant" :options="variantOptions" :label="t.proof.variantLabel" style="margin-top: 8px" />
         </view>
 
         <!-- Share card -->
@@ -190,6 +177,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import BrandLockup from "@/components/brand-lockup.vue";
 import { displayReferralCode, loadPosterBrand } from "@/lib/brand";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
@@ -585,22 +573,6 @@ const variantLabelStyle: CSSProperties = {
   letterSpacing: "0.06em",
   color: "var(--v5-ink-3)",
 };
-// Segmented control — filled L1 surface container, no border (active pill is brand).
-const variantTabsStyle: CSSProperties = {
-  gap: "4px",
-  padding: "4px",
-  borderRadius: "16px",
-  // 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 是 brand 实底,不撞色
-  background: "var(--v5-surface)",
-};
-function variantPillStyle(v: Variant): CSSProperties {
-  const on = variant.value === v;
-  return { height: "44px", borderRadius: "12px", background: on ? "var(--v5-brand)" : "transparent" };
-}
-function variantPillTextStyle(v: Variant): CSSProperties {
-  const on = variant.value === v;
-  return { fontSize: "12px", fontWeight: 600, color: on ? "var(--v5-on-brand)" : "var(--v5-ink-3)" };
-}
 const shareCardStyle = computed<CSSProperties>(() => {
   // Proof "certificate" — single container (form b): the gradient fill is the
   // poster look; the accent border is dropped (filled = no border). Gradient
@@ -730,6 +702,7 @@ const tipBodyStyle: CSSProperties = {
   color: "color-mix(in srgb, var(--v5-warning) 85%, transparent)",
   lineHeight: 1.625,
 };
+const variantOptions = computed(() => VARIANTS.map(value => ({ value, label: t.value.proof.variants[value] })));
 </script>
 <style scoped>
 .nx-proof-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }

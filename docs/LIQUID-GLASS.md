@@ -1,0 +1,38 @@
+# Liquid Glass 接入与优化清单
+
+## 采用的开源实现
+
+- [lollipopkit/liquid-glass](https://github.com/lollipopkit/liquid-glass)，固定 core 0.2.1：计算圆角玻璃的位移与高光贴图；未引入其 Vue 包装层或全局 CSS reset。
+- [lucaperullo/simple-liquid-glass](https://github.com/lucaperullo/simple-liquid-glass)，固定 5.3.0：外置导航在不支持 SVG 背景折射的引擎上使用 WebGL。
+- 两项均按各自 MIT 许可接入。完整许可及内嵌第三方声明保存在 LIQUID-GLASS-NOTICES.txt，构建时一并输出。
+
+## 版本与平台边界
+
+当前 DCloud H5 编译插件将 vue 重定向至 @dcloudio/uni-h5-vue，实际版本为 3.4.21；App 由基座提供 Vue。只更新项目 vue 依赖不能把整套运行时升级到 3.5。光学渲染不依赖 Vue 3.5，因此保持现有 DCloud 编译链。
+
+材质和选中底座在 renderjs 视图层运行，显式 hostId 定位宿主；App renderjs 的空 Vue 实例不作为页面 DOM。Chrome 使用 SVG 背景滤镜；WebKit 的外置导航捕获随滚动移动的内容节点并折射。内容内的分类控件在该路径采用模糊、高光和边缘材质，避免递归捕获包含自身的背景。WebGL 更新期间保持有效帧；捕获失败或图形上下文丢失时隐藏旧纹理并退回实时磨砂，截图和图形引擎均恢复后再显示折射。
+
+系统减少动态效果时停止底座与按压动画；减少透明或提高对比时使用实色底。WebKit 浏览器和 App 构建可由本仓验证，iOS/Android 真机性能与辅助技术仍需设备验收。
+
+## 已接入范围
+
+| 范围 | 处理 |
+| --- | --- |
+| 五个主导航入口 | 重构悬浮容器、滑动底座、图标反馈；保留路由、重复点击回顶和安全区 |
+| 顶部与子页导航 | 分组玻璃、返回/搜索/消息触控区与键盘入口 |
+| 首页、收益、账单、充值、行情、排行榜、活动、开发者、Genesis 市场、贡献海报、回执、帮助、通知、工单、佣金、成员、消息中心 | 共 17 页；同一材质、44px 最小触控区；按文本与数量支持横向滚动、换行或纵向布局 |
+| Genesis 非空挂单 | 排序选择复用组件；空挂单继续隐藏排序 |
+| 消息抽屉 | 动态分类、未读数量与玻璃底座 |
+| 主题与分享海报模板 | 选中反馈、键盘取消、焦点限制；主题持久化和海报导出内容保持原流程 |
+| Nova 与聊天返回 | 玻璃和轻量按压反馈，移除 Nova 入口持续浮动/呼吸 |
+
+金额、账单正文、长文本、输入区和交易确认内容保持稳定底色；玻璃集中于导航与操作层。
+
+## 验证入口
+
+- npm run type-check
+- npm run test:tabbar-glass（核心行为、60 组主导航矩阵、双浏览器材质/恢复、分类/辅助入口与 91 路由）
+- node node_modules/@dcloudio/vite-plugin-uni/bin/uni.js build -p app
+- npm run verify（最终提交的全量门）
+
+浏览器依赖：npx playwright install chromium webkit。测试产物保存在忽略目录 .codex-runtime/liquid-glass/。真实折射用开启/关闭位移的像素差证明；策略标记本身不作为效果证据。

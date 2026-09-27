@@ -78,22 +78,7 @@
         </view>
 
         <!-- filter pills -->
-        <scroll-view scroll-x :show-scrollbar="false" class="no-scrollbar" style="white-space: nowrap; width: 100%">
-          <view class="inline-flex" style="gap: 6px">
-            <view class="shrink-0 rounded-full grid place-items-center active:opacity-70" :style="pillStyle(filter === 'all', 'var(--v5-brand)')" @click="filter = 'all'">
-              <text :style="pillTextStyle(filter === 'all', 'var(--v5-brand)')">{{ t.commissions.all }} ({{ commission.events.length }})</text>
-            </view>
-            <view
-              v-for="k in KIND_ORDER"
-              :key="k"
-              class="shrink-0 rounded-full grid place-items-center active:opacity-70"
-              :style="pillStyle(filter === k, KIND[k].color)"
-              @click="filter = k"
-            >
-              <text :style="pillTextStyle(filter === k, KIND[k].color)">{{ t.commissions.kind[k] }} ({{ byKind[k].count }})</text>
-            </view>
-          </view>
-        </scroll-view>
+        <GlassSegments v-model="filter" :options="filterOptions" layout="scroll" />
 
         <!-- event list — transparent hairline group on the page floor -->
         <EmptyState v-if="filtered.length === 0" :kind="filter === 'all' ? 'empty-list' : 'no-filter-results'" :title="filter === 'all' ? t.empty.commissionsTitle : t.empty.filterTitle" :desc="filter === 'all' ? t.empty.commissionsDesc : t.empty.filterDesc" />
@@ -130,6 +115,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { ref, computed, onMounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -276,27 +262,6 @@ const kindCountStyle: CSSProperties = {
   color: "var(--v5-ink-4)",
 };
 
-function pillStyle(active: boolean, color: string): CSSProperties {
-  return {
-    height: "44px",
-    padding: "0 16px",
-    // 未选中态原用 surface-2,与页面底同色(亮色 ΔE 2.2)不可辨,改 L1 surface。
-    background: active ? color : "var(--v5-surface)",
-  };
-}
-// Bright active fill → on-brand text (brand-2 fill takes on-brand-2), incl. inactive fallback.
-function pillTextStyle(active: boolean, color: string): CSSProperties {
-  return {
-    fontSize: "12px",
-    fontWeight: 600,
-    color: active
-      ? color === "var(--v5-brand-2)"
-        ? "var(--v5-on-brand-2)"
-        : "var(--v5-on-brand)"
-      : "var(--v5-ink-3)",
-  };
-}
-
 // Empty state — dashed outline hint, no fill (V5 empty-state idiom).
 const emptyStyle: CSSProperties = { borderRadius: "16px", border: "1px dashed var(--v5-border-strong)", padding: "32px", fontSize: "12px", color: "var(--v5-ink-3)" };
 // Transparent hairline group — border-top opens the group, rows separate with hairlines.
@@ -333,6 +298,10 @@ const extendedBadgeStyle: CSSProperties = {
   borderRadius: "4px",
 };
 const eventMetaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
+const filterOptions = computed(() => [
+  { value: "all", label: t.value.commissions.all, count: commission.events.length },
+  ...KIND_ORDER.map(value => ({ value, label: t.value.commissions.kind[value], count: byKind.value[value].count })),
+]);
 </script>
 
 <style scoped>

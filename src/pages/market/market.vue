@@ -34,17 +34,7 @@
           </view>
 
           <!-- Timeframe — SegmentedControl (HIG 44pt, brand indicator) -->
-          <view class="grid" :style="segWrapStyle">
-            <view
-              v-for="f in TIMEFRAMES"
-              :key="f"
-              class="grid place-items-center active:opacity-70"
-              :style="segItemStyle(f === tf)"
-              @click="tf = f"
-            >
-              <text :style="segLabelStyle(f === tf)">{{ f }}</text>
-            </view>
-          </view>
+          <GlassSegments v-model="tf" :options="timeframeOptions" style="margin-top: 12px" />
 
           <!-- chart -->
           <view v-if="nexChartData.length >= 2" class="rounded-xl overflow-hidden" :style="chartBoxStyle">
@@ -90,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { ref, computed, onMounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -186,32 +177,6 @@ const nexChangeStyle = computed<CSSProperties>(() => ({
   fontSize: "12px",
   color: nex.value.change24h > 0 ? "var(--v5-brand)" : nex.value.change24h < 0 ? "var(--v5-brand-2)" : "var(--v5-ink-4)",
 }));
-const segWrapStyle: CSSProperties = {
-  marginTop: "12px",
-  gap: "2px",
-  padding: "4px",
-  borderRadius: "16px",
-  // hero 已去卡,轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 是 brand 实底,不撞色
-  background: "var(--v5-surface)",
-  gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-};
-function segItemStyle(active: boolean): CSSProperties {
-  return {
-    height: "44px",
-    borderRadius: "10px",
-    background: active ? "var(--v5-brand)" : "transparent",
-    transition: "background 0.2s",
-  };
-}
-function segLabelStyle(active: boolean): CSSProperties {
-  return {
-    fontFamily: "var(--font-v5)",
-    fontSize: "13px",
-    fontWeight: 500,
-    letterSpacing: "-0.005em",
-    color: active ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
-  };
-}
 const chartBoxStyle: CSSProperties = {
   marginTop: "12px",
   height: "120px",
@@ -251,6 +216,7 @@ const athRowStyle: CSSProperties = {
   fontSize: "12px",
 };
 const marketHoldBodyStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", lineHeight: "18px", color: "var(--v5-ink-3)" };
+const timeframeOptions = TIMEFRAMES.map(value => ({ value, label: value }));
 </script>
 
 <style scoped>

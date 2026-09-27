@@ -67,22 +67,7 @@
         </view>
 
         <!-- Filter pills — opens the member-list section, extra top break. -->
-        <view class="flex flex-wrap" style="gap: 6px; margin-top: 6px">
-            <view class="nx-unilevel-filter-all shrink-0 inline-flex items-center active:opacity-70" :style="pillStyle(filter === 'all')" @click="filter = 'all'">
-              <text :style="pillTextStyle(filter === 'all')">{{ t.unilevel.filterAll }}</text>
-              <text class="font-mono-tabular" :style="pillCountStyle(filter === 'all')">· {{ directMembers.length + extendedMembers.length }}</text>
-            </view>
-            <view class="nx-unilevel-filter-direct shrink-0 inline-flex items-center active:opacity-70" :style="pillStyle(filter === 'direct')" @click="filter = 'direct'">
-              <view v-if="filter !== 'direct'" class="rounded-full" :style="{ width: '6px', height: '6px', background: 'var(--v5-brand)' }" />
-              <text :style="pillTextStyle(filter === 'direct')">{{ t.unilevel.filterDirect }}</text>
-              <text class="font-mono-tabular" :style="pillCountStyle(filter === 'direct')">· {{ directMembers.length }}</text>
-            </view>
-            <view class="nx-unilevel-filter-extended shrink-0 inline-flex items-center active:opacity-70" :style="pillStyle(filter === 'extended')" @click="filter = 'extended'">
-              <view v-if="filter !== 'extended'" class="rounded-full" :style="{ width: '6px', height: '6px', background: 'var(--v5-tech-cyan)' }" />
-              <text :style="pillTextStyle(filter === 'extended')">{{ t.unilevel.filterExtended }}</text>
-              <text class="font-mono-tabular" :style="pillCountStyle(filter === 'extended')">· {{ extendedMembers.length }}</text>
-            </view>
-        </view>
+        <GlassSegments v-model="filter" :options="filterOptions" layout="wrap" style="margin-top: 6px" />
 
         <!-- Member list — de-carded: transparent hairline group (leaderboard
              rest-list idiom); the surface + border shell was redundant
@@ -138,6 +123,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -292,23 +278,7 @@ function compBadgeStyle(color: string): CSSProperties {
   };
 }
 const compTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
-const compSubStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375 }; // SKILL: leading-snug=1.375 (was 1.45)
-function pillStyle(active: boolean): CSSProperties {
-  return {
-    height: "44px",
-    padding: "0 16px",
-    gap: "6px",
-    borderRadius: "999px",
-    // 未选中态原用 surface-2,与页面底同色(亮色 ΔE 2.2)不可辨,改 L1 surface。
-    background: active ? "var(--v5-brand)" : "var(--v5-surface)",
-  };
-}
-function pillTextStyle(active: boolean): CSSProperties {
-  return { fontSize: "12px", fontWeight: 600, color: active ? "var(--v5-on-brand)" : "var(--v5-ink-3)" };
-}
-function pillCountStyle(active: boolean): CSSProperties {
-  return { fontSize: "12px", opacity: 0.65, color: active ? "var(--v5-on-brand)" : "var(--v5-ink-3)" };
-}
+const compSubStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375 };
 
 // Transparent hairline group — border-top opener + 2px optical inset;
 // rows sit on the page floor, content aligned to the 16px gutter.
@@ -335,6 +305,11 @@ function memberBadgeStyle(kind: "direct" | "extended"): CSSProperties {
     color,
   };
 }
+const filterOptions = computed(() => [
+  { value: "all", label: t.value.unilevel.filterAll, count: directMembers.value.length + extendedMembers.value.length, className: "nx-unilevel-filter-all" },
+  { value: "direct", label: t.value.unilevel.filterDirect, count: directMembers.value.length, className: "nx-unilevel-filter-direct" },
+  { value: "extended", label: t.value.unilevel.filterExtended, count: extendedMembers.value.length, className: "nx-unilevel-filter-extended" },
+]);
 </script>
 <style scoped>
 .nx-unilevel-direct-card { display: flex; align-items: flex-start; gap: 12px; }

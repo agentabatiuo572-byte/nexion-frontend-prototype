@@ -18,9 +18,10 @@
 -->
 <template>
   <view>
-    <view v-if="visible" class="nx-nova-bubble nova-float" :class="{ 'nx-nova-bubble--dimmed': dimmed }" @click="open">
-      <view class="nx-nova-btn nova-pulse">
-        <NovaAvatar :size="36" pulse />
+    <view v-if="visible" class="nx-nova-bubble" role="button" tabindex="0" :aria-label="t.conversations.title" :class="{ 'nx-nova-bubble--dimmed': dimmed }" @click="open">
+      <view class="nx-nova-btn">
+        <LiquidGlass :radius="24" tone="control" backdrop=".nx-page-enter" />
+        <NovaAvatar :size="36" class="nx-nova-avatar" />
         <view v-if="showUnreadBadge" class="nx-nova-badge"><text class="nx-nova-badge-t">{{ unreadLabel }}</text></view>
       </view>
     </view>
@@ -28,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import LiquidGlass from "@/components/liquid-glass.vue";
 import { computed, onMounted, onUnmounted } from "vue";
 import { useNova } from "@/store/nova";
 import { useConversations } from "@/store/conversations";
@@ -194,7 +196,7 @@ onUnmounted(() => {
   right: 16px;
   bottom: 100px;
   z-index: 40;
-  transition: opacity 0.15s;
+  transition: opacity 150ms, transform 120ms cubic-bezier(.2,.8,.2,1);
   /* 命中区跟着视觉走。这层是 48×48 的**方框**,而看得见的球是内切圆 —— 四角那
      22% 面积是透明的却照样截走点击(实测 144 点网格:144 点全被吃,只有 112 点
      在圆内)。实付:赚取页「添加设备」按钮左上角约 1/4 面积点下去开的是 Nova。
@@ -206,7 +208,7 @@ onUnmounted(() => {
    只动 opacity 不动 transform —— .nova-float 的 animation 一直在写 transform,
    普通声明压不过 animation,写了也不会生效。 */
 .nx-nova-bubble:active {
-  opacity: 0.7;
+  transform: scale(.94);
 }
 /* 滚动让路态。注意它压不过上面的 :active(带伪类,特异性更高)—— 靠的是
    pointer-events:none 让 :active 根本无从成立,不是靠选择器权重或书写顺序。
@@ -223,8 +225,7 @@ onUnmounted(() => {
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: var(--v5-bg);
-  border: 1px solid color-mix(in srgb, var(--v5-brand) 45%, transparent);
+  background: transparent;
 }
 .nx-nova-badge {
   position: absolute;
@@ -246,4 +247,7 @@ onUnmounted(() => {
   color: var(--v5-on-brand-2);
   line-height: 1;
 }
+.nx-nova-avatar { position: relative; z-index: 1; }
+.nx-nova-bubble:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .nx-nova-bubble { transition: none; } .nx-nova-bubble:active { transform: none; } }
 </style>

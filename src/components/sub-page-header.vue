@@ -13,6 +13,7 @@
 -->
 <template>
   <view class="spv" :style="{ top: (statusBarHeight + pendingBarInset) + 'px', height: rowH + 'px' }">
+    <LiquidGlass :radius="rowH / 2" tone="navigation" />
     <view
       class="spv-side spv-back"
       role="button"
@@ -49,6 +50,7 @@
 
 <script setup lang="ts">
 import { computed, inject, ref } from "vue";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import { PENDING_BAR_INSET_KEY } from "@/store/pending-checkout-core";
 import { useMessageDrawer } from "@/store/message-drawer";
 import { useNotifications } from "@/store/notifications";
@@ -104,18 +106,18 @@ function goBell() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
+  padding: 0 2px;
   /* Global header→content breathing (owner 2026-07-09: nav sat too close to
      content across every sub-page). One place, all ~55 sub-pages; tab pages use
      the chassis header so they're untouched. Pages must NOT add their own top
      padding on top of this — reset to 0 when de-carding. */
+  margin: 0 12px 24px;
   margin-bottom: 24px;
-  background: var(--v5-chrome-bg);
-  border-bottom: 1px solid var(--v5-chrome-border);
-  backdrop-filter: saturate(180%) blur(24px);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-radius: 28px;
 }
 .spv-side {
+  position: relative;
+  z-index: 1;
   width: 44px;
   height: 44px;
   display: grid;
@@ -129,16 +131,16 @@ function goBell() {
   position: relative;
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--v5-glass-bg);
-  border: 1px solid var(--v5-glass-border);
-  box-shadow: var(--v5-glass-shadow);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  transition: transform 100ms cubic-bezier(.2,.8,.2,1);
 }
+.spv-side:active .spv-glass { transform: scale(.92); }
+.spv-side:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; border-radius: 24px; }
 .spv-titlewrap {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-width: 0;
   display: flex;

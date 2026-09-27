@@ -73,26 +73,12 @@
         </view>
 
         <!-- Tabs -->
-        <view class="grid grid-cols-3" :style="tabsStyle">
-          <view class="active:opacity-70 transition-opacity" :style="tabPillStyle(tab === 'listings')" @click="tab = 'listings'"><text>{{ listingsTabText }}</text></view>
-          <view class="active:opacity-70 transition-opacity" :style="tabPillStyle(tab === 'activity')" @click="tab = 'activity'"><text>{{ t.marketplace.activityTab }}</text></view>
-          <view class="active:opacity-70 transition-opacity" :style="tabPillStyle(tab === 'mine')" @click="tab = 'mine'"><text>{{ mineTabText }}</text></view>
-        </view>
+        <GlassSegments v-model="tab" :options="marketTabOptions" />
 
         <!-- LISTINGS TAB -->
         <template v-if="tab === 'listings'">
           <template v-if="sortedListings.length > 0">
-            <scroll-view scroll-x class="nx-sort-row">
-              <view class="flex items-center" style="gap: 6px; white-space: nowrap">
-                <text class="inline-flex items-center" :style="sortLabelStyle">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
-                  <text>{{ t.marketplace.sortLabel }}</text>
-                </text>
-                <view class="active:opacity-70 transition-opacity" :style="sortPillStyle(sortKey === 'floor')" @click="sortKey = 'floor'"><text>{{ t.marketplace.sortPriceAsc }}</text></view>
-                <view class="active:opacity-70 transition-opacity" :style="sortPillStyle(sortKey === 'recent')" @click="sortKey = 'recent'"><text>{{ t.marketplace.sortRecent }}</text></view>
-                <view class="active:opacity-70 transition-opacity" :style="sortPillStyle(sortKey === 'lastSale')" @click="sortKey = 'lastSale'"><text>{{ t.marketplace.sortLastSale }}</text></view>
-              </view>
-            </scroll-view>
+            <GlassSegments v-model="sortKey" :options="sortOptions" layout="scroll" :label="t.marketplace.sortLabel" style="margin-bottom: 12px" />
 
             <view class="grid grid-cols-2" style="gap: 10px">
               <ListingCard v-for="l in sortedListings" :key="l.tokenId" :l="l" :disabled="secondaryBlock !== null" @buy="handleBuy(l)" />
@@ -148,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { ref, computed, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -377,51 +364,6 @@ const closedNoticeSubStyle: CSSProperties = {
   lineHeight: 1.5,
   textWrap: "pretty",
 };
-const tabsStyle: CSSProperties = { gap: "4px", padding: "4px", borderRadius: "12px", background: "var(--v5-surface)" };
-function tabPillStyle(active: boolean): CSSProperties {
-  return {
-    // 《07》tap≥44:原 40px(同页 sortPill 已补,这条是同类)
-    minHeight: "44px",
-    borderRadius: "8px",
-    background: active ? "var(--v5-brand)" : "transparent",
-    color: active ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
-    fontFamily: "var(--font-v5)",
-    fontSize: "13px",
-    fontWeight: 500,
-    letterSpacing: "-0.005em",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-}
-const sortLabelStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-  color: "var(--v5-ink-3)",
-  letterSpacing: "0.06em",
-  marginRight: "4px",
-  flexShrink: 0,
-};
-function sortPillStyle(active: boolean): CSSProperties {
-  return {
-    flexShrink: 0,
-    height: "32px",
-    padding: "0 12px",
-    borderRadius: "999px",
-    fontSize: "12px",
-    fontWeight: 500,
-    fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-    letterSpacing: "0.04em",
-    background: active ? "var(--v5-brand-soft)" : "var(--v5-surface)", // 未选中 pill 贴页面底:原 surface-2 与页面底同色不可辨,改 L1(选中态不动)
-    color: active ? "var(--v5-brand)" : "var(--v5-ink-3)",
-    // 零-border(《03》§6):选中态靠 brand-soft 底 + brand 文字表达,不描边。
-    // 两态都不带 border,状态切换无 1px 位移。
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-}
 // Activity feed — single filled surface container, no border (rows carry hairlines).
 const listCardStyle: CSSProperties = {
   borderRadius: "16px",
@@ -444,6 +386,16 @@ const reserveBtnStyle: CSSProperties = {
   fontWeight: 600,
   fontSize: "13px",
 };
+const marketTabOptions = computed(() => [
+  { value: "listings", label: listingsTabText.value },
+  { value: "activity", label: t.value.marketplace.activityTab },
+  { value: "mine", label: mineTabText.value },
+]);
+const sortOptions = computed(() => [
+  { value: "floor", label: t.value.marketplace.sortPriceAsc },
+  { value: "recent", label: t.value.marketplace.sortRecent },
+  { value: "lastSale", label: t.value.marketplace.sortLastSale },
+]);
 </script>
 
 <style scoped>

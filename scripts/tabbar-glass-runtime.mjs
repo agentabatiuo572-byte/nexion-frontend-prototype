@@ -32,12 +32,15 @@ try {
     },{locale,theme});
     for(const route of ['index/index','earn/earn','store/store','team/team','me/me']) {
       await nav(route);
+      await page.locator('.nx-glass-track[data-glass-strategy="svg"]').waitFor();
       const state=await page.evaluate(()=>{
-        const bar=document.querySelector('.nx-tabbar-pill'),s=getComputedStyle(bar);
-        return {background:s.backgroundColor,blur:s.backdropFilter,labels:[...bar.querySelectorAll('.nx-tab__label')].map(e=>({shadow:getComputedStyle(e).textShadow,overflow:e.scrollWidth>e.clientWidth+1,text:e.textContent})),icons:[...bar.querySelectorAll('.nx-tab__icon')].map(e=>getComputedStyle(e).filter)};
+        const bar=document.querySelector('.nx-tabbar-pill'),material=bar.querySelector('.nx-glass-track'),s=getComputedStyle(material);
+        return {strategy:material.dataset.glassStrategy,blur:s.backdropFilter,active:bar.querySelectorAll('[aria-current="page"]').length,targets:[...bar.querySelectorAll('.nx-glass-option')].map(e=>e.getBoundingClientRect().height),labels:[...bar.querySelectorAll('.nx-tab__label')].map(e=>({shadow:getComputedStyle(e).textShadow,overflow:e.scrollWidth>e.clientWidth+1,text:e.textContent})),icons:[...bar.querySelectorAll('.nx-tab__icon')].map(e=>getComputedStyle(e).filter)};
       });
-      assert.equal(state.background,theme==='dark'?'rgba(12, 12, 14, 0.22)':'rgba(255, 255, 255, 0.2)');
-      assert.ok(state.blur.includes('blur(40px)'));
+      assert.equal(state.strategy,'svg');
+      assert.ok(state.blur.includes('url('));
+      assert.equal(state.active,1);
+      assert.ok(state.targets.every(h=>h>=44));
       assert.equal(state.labels.length,5);
       assert.ok(state.labels.every(l=>l.shadow!=='none'&&!l.overflow));
       assert.ok(state.icons.every(f=>f.includes('drop-shadow')));

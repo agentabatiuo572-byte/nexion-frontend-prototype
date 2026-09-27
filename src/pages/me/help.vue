@@ -28,24 +28,7 @@
       </view>
 
       <!-- Category chips -->
-      <scroll-view scroll-x class="mx-4" style="margin-bottom: 12px; white-space: nowrap">
-        <view
-          class="active:opacity-70"
-          :style="chipStyle(cat === 'all')"
-          @click="cat = 'all'"
-        >
-          <text>{{ t.receipt.tabAll }}</text>
-        </view>
-        <view
-          v-for="c in catOrder"
-          :key="c"
-          class="active:opacity-70"
-          :style="chipStyle(cat === c)"
-          @click="cat = c"
-        >
-          <text>{{ categoryLabel(c) }}</text>
-        </view>
-      </scroll-view>
+      <GlassSegments v-model="cat" :options="categoryOptions" layout="scroll" style="margin: 0 16px 12px" />
 
       <!-- FAQ list -->
       <view class="mx-4" :style="faqWrapStyle">
@@ -129,6 +112,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { computed, ref, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -252,21 +236,6 @@ const searchInputStyle: CSSProperties = {
   fontSize: "13px",
   color: "var(--v5-ink)",
 };
-function chipStyle(active: boolean): CSSProperties {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    height: "44px",
-    padding: "0 16px",
-    marginRight: "6px",
-    borderRadius: "999px",
-    fontSize: "12px",
-    fontWeight: 500,
-    // 未选中原 surface-2 与页面底同色不可辨(亮色 ΔE 2.2),分类胶囊直接坐在页面底上 → 改 L1
-    background: active ? "color-mix(in srgb, var(--v5-brand) 15%, transparent)" : "var(--v5-surface)",
-    color: active ? "var(--v5-brand)" : "var(--v5-ink-3)",
-  };
-}
 // FAQ list — transparent hairline group on the page floor (2px optical indent,
 // border-top opens the group; per-item hairlines below). No card chrome.
 const faqWrapStyle: CSSProperties = {
@@ -337,6 +306,7 @@ const contactCtaStyle: CSSProperties = {
   fontSize: "12px",
   fontWeight: 600,
 };
+const categoryOptions = computed(() => [{ value: "all", label: t.value.receipt.tabAll }, ...catOrder.map(value => ({ value, label: categoryLabel(value) }))]);
 </script>
 
 <style scoped>

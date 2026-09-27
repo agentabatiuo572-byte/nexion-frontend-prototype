@@ -41,31 +41,13 @@
       </view>
 
       <!-- Tabs (category filter) -->
-      <scroll-view scroll-x class="md-tabs" :show-scrollbar="false">
-        <view class="md-tabs-inner">
-          <template v-for="id in filterIds" :key="id">
-            <view
-              v-if="id === 'all' || countOf(id) > 0"
-              class="md-tab"
-              :class="{ 'md-tab--on': filter === id }"
-              role="tab"
-              tabindex="0"
-              :aria-selected="filter === id ? 'true' : 'false'"
-              @click="filter = id"
-            >
-              <text class="md-tab-t" :class="{ 'md-tab-t--on': filter === id }">{{ filterLabel(id) }}</text>
-              <view v-if="countUnread(id) > 0" class="md-tab-badge" :class="{ 'md-tab-badge--on': filter === id }">
-                <text class="md-tab-badge-t" :class="{ 'md-tab-badge-t--on': filter === id }">{{ countUnread(id) }}</text>
-              </view>
-            </view>
-          </template>
-          <view class="md-tabs-spacer" />
-          <view v-if="unread > 0" class="md-markall" role="button" tabindex="0" :aria-label="t.notifs.markAll" @click="markAll">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
-            <text class="md-markall-t">{{ t.notifs.markAll }}</text>
-          </view>
+      <view class="md-tabs">
+        <GlassSegments v-model="filter" :options="filterOptions" layout="scroll" class="flex-1 min-w-0" :label="t.notifs.drawerTitle" />
+        <view v-if="unread > 0" class="md-markall" role="button" tabindex="0" :aria-label="t.notifs.markAll" @click="markAll">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
+          <text class="md-markall-t">{{ t.notifs.markAll }}</text>
         </view>
-      </scroll-view>
+      </view>
 
       <!-- List -->
       <scroll-view scroll-y class="md-list" :show-scrollbar="false">
@@ -123,7 +105,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type CSSProperties } from "vue";
+import GlassSegments from "@/components/glass-segments.vue";
+import { ref, computed, watch, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useMessageDrawer } from "@/store/message-drawer";
@@ -238,6 +221,8 @@ function iconBoxStyle(k: NotifKind, unreadRow: boolean): CSSProperties {
     opacity: unreadRow ? 1 : 0.5,
   };
 }
+const filterOptions = computed(() => filterIds.filter(value => value === "all" || countOf(value) > 0).map(value => ({ value, label: filterLabel(value), count: countUnread(value) || undefined, className: "md-tab" })));
+watch(filterOptions, options => { if (!options.some(option => option.value === filter.value)) filter.value = "all"; });
 </script>
 
 <style scoped>
@@ -321,72 +306,13 @@ function iconBoxStyle(k: NotifKind, unreadRow: boolean): CSSProperties {
   flex-shrink: 0;
 }
 /* ── tabs ── */
-.md-tabs {
-  white-space: nowrap;
-  border-bottom: 1px solid color-mix(in srgb, var(--v5-surface-2) 60%, transparent);
-}
-.md-tabs-inner {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-}
-.md-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: var(--v5-surface);
-  border: 1px solid transparent;
-}
-.md-tab--on {
-  background: color-mix(in srgb, var(--v5-brand) 15%, transparent);
-  border-color: color-mix(in srgb, var(--v5-brand) 35%, transparent);
-}
-.md-tab-t {
-  font-family: var(--font-v5);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--v5-ink-3);
-}
-.md-tab-t--on {
-  color: var(--v5-brand);
-}
-.md-tab-badge {
-  min-width: 16px;
-  height: 15px;
-  padding: 0 4px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: var(--v5-brand-2);
-}
-.md-tab-badge--on {
-  background: var(--v5-brand);
-}
-.md-tab-badge-t {
-  font-size: 12px;
-  font-weight: 600;
-  /* badge 底是 --v5-brand-2(暖橙);白字在其上 WCAG 不过(见 tokens.css on-brand-2 注释) */
-  color: var(--v5-on-brand-2);
-  line-height: 1;
-}
-.md-tab-badge-t--on {
-  color: var(--v5-on-brand);
-}
-.md-tabs-spacer {
-  flex: 1;
-  min-width: 8px;
-}
+.md-tabs { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--v5-border); }
 .md-markall {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
-  height: 28px;
+  min-height: 44px;
   padding: 0 10px;
 }
 .md-markall-t {

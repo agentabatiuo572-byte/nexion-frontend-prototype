@@ -29,18 +29,7 @@
       </view>
 
       <!-- Filter pills -->
-      <scroll-view scroll-x class="px-4" style="margin-bottom: 12px; white-space: nowrap">
-        <template v-for="id in filterIds" :key="id">
-          <view
-            v-if="id === 'all' || countOf(id) > 0"
-            class="active:opacity-70"
-            :style="pillStyle(filter === id)"
-            @click="filter = id"
-          >
-            <text>{{ filterLabel(id) }} ({{ countOf(id) }})</text>
-          </view>
-        </template>
-      </scroll-view>
+      <GlassSegments v-model="filter" :options="filterOptions" layout="scroll" style="margin: 0 16px 12px" />
 
       <!-- Timeline -->
       <view class="px-4">
@@ -79,7 +68,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, type CSSProperties } from "vue";
+import GlassSegments from "@/components/glass-segments.vue";
+import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -208,21 +198,6 @@ const unreadBadgeStyle: CSSProperties = {
 function actionBtnStyle(color: string): CSSProperties {
   return { height: "36px", padding: "0 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 600, color };
 }
-function pillStyle(active: boolean): CSSProperties {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    height: "44px",
-    padding: "0 16px",
-    marginRight: "6px",
-    borderRadius: "999px",
-    fontSize: "12px",
-    fontWeight: 600,
-    // 未选中原 surface-2 与页面底同色不可辨(亮色 ΔE 2.2),筛选胶囊直接坐在页面底上 → 改 L1
-    background: active ? "var(--v5-brand)" : "var(--v5-surface)",
-    color: active ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
-  };
-}
 // Empty state — dashed outline hint, no fill (V5 empty-state idiom).
 const emptyCardStyle: CSSProperties = {
   borderRadius: "16px",
@@ -275,4 +250,6 @@ const bodyStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", m
 function ctaStyle(k: NotifKind): CSSProperties {
   return { fontSize: "12px", fontWeight: 600, color: KIND_META[k].tint, marginTop: "6px" };
 }
+const filterOptions = computed(() => filterIds.filter(value => value === "all" || countOf(value) > 0).map(value => ({ value, label: filterLabel(value), count: countOf(value) })));
+watch(filterOptions, options => { if (!options.some(option => option.value === filter.value)) filter.value = "all"; });
 </script>

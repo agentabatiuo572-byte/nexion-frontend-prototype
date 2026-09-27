@@ -44,12 +44,7 @@
       </view>
       <!-- ===== HERO: pill tabs ===== -->
       <view class="mx-4">
-        <!-- 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 已是 brand-soft,不撞色 -->
-        <view class="flex gap-0.5" style="background: var(--v5-surface); border-radius: 12px; padding: 3px">
-          <view v-for="r in RANGES" :key="r" class="flex-1 grid place-items-center active:opacity-70" :style="pillStyle(r)" @click="range = r">
-            <text :style="pillLabelStyle(r)">{{ rangeLabel(r) }}</text>
-          </view>
-        </view>
+        <GlassSegments v-model="range" :options="rangeOptions" />
       </view>
 
       <!-- ===== HERO: total earned card ===== -->
@@ -113,6 +108,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { computed, ref, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -149,6 +145,7 @@ onShow(() => {
 
 function retryFleet() { void app.refreshRemoteFleet().catch(() => undefined); }
 function rangeLabel(r: Range): string { return r === "Today" ? t.value.earn.rangeToday : r === "Week" ? t.value.earn.rangeWeek : r === "Month" ? t.value.earn.rangeMonth : t.value.earn.rangeAll; }
+const rangeOptions = computed(() => RANGES.map(value => ({ value, label: rangeLabel(value) })));
 
 // FEAT-DEV01: 任务池提示线展开态 + W-CAP1 弹层入口。
 const taskPoolOpen = ref(false);
@@ -196,24 +193,6 @@ const HERO_DOTS = [
 ];
 
 // ── styles ──
-function pillStyle(r: Range): CSSProperties {
-  const on = range.value === r;
-  return {
-    // 《07》tap≥44(原 32);《03》§2 圆角上阶梯 9→12;透明 border 无视觉作用,删。
-    height: "44px",
-    background: on ? "var(--v5-brand-soft)" : "transparent",
-    borderRadius: "12px",
-  };
-}
-function pillLabelStyle(r: Range): CSSProperties {
-  const on = range.value === r;
-  return {
-    color: on ? "var(--v5-brand)" : "var(--v5-ink-3)",
-    fontFamily: "var(--font-v5)",
-    fontWeight: on ? 600 : 500,
-    fontSize: "13px",
-  };
-}
 const totalCardStyle: CSSProperties = {
   padding: "0 0 10px",
 };

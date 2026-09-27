@@ -35,11 +35,7 @@
           <text :style="avgValueStyle">{{ t.tickets.avgResponseValue }}</text>
         </view>
 
-        <view class="grid grid-cols-4" :style="tabsStyle">
-          <view v-for="id in tabs" :key="id" class="active:opacity-70 transition-opacity" :style="tabStyle(tab === id)" role="button" tabindex="0" :aria-label="tabLabel(id)" @click="selectTab(id)">
-            <text>{{ tabLabel(id) }}</text>
-          </view>
-        </view>
+        <GlassSegments :model-value="tab" :options="tabOptions" @select="selectTab" />
         <text v-if="filterFeedback" class="block text-center" :style="filterFeedbackStyle">{{ filterFeedback }}</text>
 
         <EmptyState v-if="ticketsStore.error" kind="recoverable-error" :title="t.empty.errorTitle" :desc="t.empty.errorDesc" :cta-label="t.empty.errorCta" @cta="reloadTickets" />
@@ -126,6 +122,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { computed, ref, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -318,22 +315,6 @@ const avgRowStyle: CSSProperties = {
 };
 const avgLabelStyle: CSSProperties = { color: "var(--v5-ink-3)" };
 const avgValueStyle: CSSProperties = { marginLeft: "auto", fontFamily: "var(--font-jet-mono), ui-monospace, monospace", color: "var(--v5-brand-2)", fontWeight: 600 };
-// Segmented control — filled container, no border (single visual difference).
-// 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 是 brand 实底,不撞色
-const tabsStyle: CSSProperties = { gap: "4px", padding: "4px", borderRadius: "16px", background: "var(--v5-surface)" };
-function tabStyle(active: boolean): CSSProperties {
-  return {
-    height: "44px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: "12px",
-    fontSize: "12px",
-    fontWeight: 600,
-    background: active ? "var(--v5-brand)" : "transparent",
-    color: active ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
-  };
-}
 // Empty state — dashed outline hint, no fill (V5 empty-state idiom).
 const emptyStyle: CSSProperties = { borderRadius: "16px", border: "1px dashed var(--v5-border-strong)", padding: "32px", textAlign: "center" };
 const emptyTextStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
@@ -429,6 +410,7 @@ function sendReplyStyle(active: boolean): CSSProperties {
     fontSize: "13px",
   };
 }
+const tabOptions = computed(() => tabs.map(value => ({ value, label: tabLabel(value) })));
 </script>
 
 <style scoped>

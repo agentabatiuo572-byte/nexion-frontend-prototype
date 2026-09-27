@@ -60,7 +60,7 @@
 
       <!-- RIGHT — actions(码为空整列置灰,点击仍有 toast 反馈) -->
       <view class="flex flex-col shrink-0 nx-invite-actions" :class="referralCode ? '' : 'opacity-50'" style="gap: 8px">
-        <view class="rounded-lg flex items-center active:opacity-90" :style="shareBtnStyle(false)" @click="openPoster">
+        <view class="rounded-lg flex items-center active:opacity-90" :style="shareBtnStyle(false)" role="button" tabindex="0" :aria-label="t.team.inviteSharePoster" @click="openPoster">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M21 21v.01M17 21h.01M21 17v.01" /></svg>
           <text class="shrink-0" :style="shareLabelStyle">{{ t.team.inviteSharePoster }}</text>
           <text :style="shareValStyle(false)">{{ t.team.inviteShareQR }}</text>

@@ -18,19 +18,7 @@
       <DepositBankPane v-if="remoteApiEnabled && !mockFundsEnabled" />
 
       <!-- 通道 segmented(A4 在 SEGMENTS 中段插「银行转账」+ pane 分支) -->
-      <view v-else class="flex" :style="segWrapStyle">
-        <view
-          v-for="s in SEGMENTS"
-          :key="s.id"
-          :class="['flex-1 grid place-items-center active:opacity-70', `nx-topup-seg-${s.id}`]"
-          :style="segPillStyle(s.id)"
-          role="tab" tabindex="0"
-          :aria-selected="seg === s.id"
-          @click="seg = s.id"
-        >
-          <text :style="segLabelStyle(s.id)">{{ segLabel(s.id) }}</text>
-        </view>
-      </view>
+      <GlassSegments v-else v-model="seg" :options="segmentOptions" style="margin: 0 16px 16px" />
 
       <template v-if="!remoteApiEnabled || mockFundsEnabled">
         <!-- USDT 链上通道段 -->
@@ -47,7 +35,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, type CSSProperties } from "vue";
+import { ref, computed } from "vue";
+import GlassSegments from "@/components/glass-segments.vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
@@ -72,31 +61,9 @@ function segLabel(id: Seg): string {
 const t = useT();
 const dep = useDeposits();
 
-// ── styles ──
-// Segmented pill tabs — wallet-bills / SegmentedControl idiom.
-const segWrapStyle: CSSProperties = {
-  margin: "0 16px 16px",
-  // 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 是 brand 实底,不撞色
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
-  padding: "4px",
-  gap: "2px",
-};
-function segPillStyle(id: Seg): CSSProperties {
-  return {
-    height: "44px",
-    borderRadius: "10px",
-    background: seg.value === id ? "var(--v5-brand)" : "transparent",
-    // 收款账户池无可用账户 → 银行转账 chip 置灰([FEAT-PAY02] ⑤;可点进,pane 给维护说明)
-    opacity: id === "bank" && !dep.bankRailAvailable ? 0.45 : 1,
-  };
-}
-function segLabelStyle(id: Seg): CSSProperties {
-  return {
-    fontFamily: "var(--font-v5)",
-    fontSize: "13px",
-    fontWeight: seg.value === id ? 600 : 500,
-    color: seg.value === id ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
-  };
-}
+// Unavailable bank rails stay selectable so the existing pane explains maintenance.
+const segmentOptions = computed(() => SEGMENTS.map(({ id }) => ({
+  value: id, label: segLabel(id), className: `nx-topup-seg-${id}`,
+  dimmed: id === "bank" && !dep.bankRailAvailable,
+})));
 </script>

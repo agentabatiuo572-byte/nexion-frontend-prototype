@@ -10,13 +10,13 @@
   海报,不随 app 主题变),全部颜色为画稿常量,不读运行时 token。
 -->
 <template>
-  <view v-if="open">
+  <view v-if="open" class="nx-poster-dialog" role="dialog" aria-modal="true" :aria-label="t.share.posterTitle">
     <view class="ps-mask" @click="emit('close')" />
     <view class="ps-sheet no-scrollbar">
       <view class="ps-grab" />
       <view class="ps-head">
         <text class="ps-head__t">{{ t.share.posterTitle }}</text>
-        <view class="ps-head__x active:opacity-70" @click="emit('close')">
+        <view class="ps-head__x active:opacity-70" role="button" tabindex="0" :aria-label="t.ui.close" @click="emit('close')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
       </view>
@@ -40,18 +40,7 @@
       </view>
 
       <!-- 模板轮播(yield 无设备自动隐藏,异常3) -->
-      <view class="ps-thumbs">
-        <view
-          v-for="tp in availableTpls"
-          :key="tp.key"
-          class="ps-thumb active:scale-95"
-          :class="{ 'ps-thumb--on': tpl === tp.key }"
-          @click="pickTpl(tp.key)"
-        >
-          <view class="ps-thumb__dot" :style="{ background: tp.tint }" />
-          <text class="ps-thumb__t">{{ tp.label }}</text>
-        </view>
-      </view>
+      <GlassSegments :model-value="tpl" :options="templateOptions" class="ps-thumbs" :label="t.share.posterTitle" @select="pickTpl" />
 
       <view class="ps-reward">
         <text class="ps-reward__t">{{ posterRewardLine }}</text>
@@ -96,6 +85,8 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { computed, getCurrentInstance, nextTick, ref, watch } from "vue";
 import { displayReferralCode, loadPosterBrand } from "@/lib/brand";
 import qrcode from "qrcode-generator";
@@ -112,6 +103,7 @@ const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
 
 const t = useT();
+useDialogA11y(computed(() => props.open), ".nx-poster-dialog", () => emit("close"));
 const app = useApp();
 const cfg = useConfig();
 const profile = useProfile();
@@ -518,6 +510,7 @@ async function onChannel(c: ShareChannelDef) {
   }
   await activateChannel(c, "poster_sheet", channelLabel(c.key));
 }
+const templateOptions = computed(() => availableTpls.value.map(item => ({ value: item.key, label: item.label, className: "ps-thumb" })));
 </script>
 
 <style scoped>
@@ -543,11 +536,7 @@ async function onChannel(c: ShareChannelDef) {
 .ps-fail__t { font-size: 13px; color: var(--v5-ink-3); }
 .ps-fail__btn { min-height: 36px; padding: 0 18px; border-radius: 9999px; background: var(--v5-surface-3); display: flex; align-items: center; }
 .ps-fail__btn-t { font-size: 13px; color: var(--v5-ink); }
-.ps-thumbs { display: flex; justify-content: center; gap: 8px; margin-top: 12px; padding: 0 16px; }
-.ps-thumb { display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 6px 12px; border-radius: 9999px; background: var(--v5-surface-2); opacity: 0.6; }
-.ps-thumb--on { opacity: 1; outline: 2px solid var(--v5-brand); outline-offset: 1px; }
-.ps-thumb__dot { width: 8px; height: 8px; border-radius: 9999px; }
-.ps-thumb__t { font-size: 12px; color: var(--v5-ink-2); }
+.ps-thumbs { margin: 12px 16px 0; }
 .ps-reward { margin-top: 10px; text-align: center; padding: 0 16px; }
 .ps-reward__t { font-size: 12px; color: var(--v5-ink-3); text-wrap: pretty; }
 .ps-toggle { display: flex; align-items: center; justify-content: space-between; margin: 10px 18px 0; min-height: 32px; }

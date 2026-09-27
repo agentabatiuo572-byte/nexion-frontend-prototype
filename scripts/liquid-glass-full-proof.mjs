@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+const git = (...args) => execFileSync('git',args,{encoding:'utf8'}).trim();
+const record = JSON.parse(readFileSync('.verify-cache/last-run.json','utf8'));
+assert.equal(record.mode,'full');
+assert.equal(record.verdict,'pass');
+assert.equal(record.treeMoved,false);
+assert.equal(record.dirty,false);
+assert.equal(record.head,git('rev-parse','HEAD'));
+assert.equal(record.headTree,git('rev-parse','HEAD^{tree}'));
+assert.equal(git('status','--porcelain'),'');
+assert.ok(record.steps.length>0 && record.steps.every(s=>['PASS','CACHED'].includes(s.status)));
+console.log('PASS full verification matches the current clean committed tree');

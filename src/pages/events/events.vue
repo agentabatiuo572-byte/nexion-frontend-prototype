@@ -35,11 +35,7 @@
         <!-- Tabs — shared SegmentedControl spec (segmented-control.tsx): p-1 / gap
              0.5 / rounded-2xl container, h-11 rounded-[10px] segments, brand fill
              + on-brand text on active (no shadow), label v5 12.5/500/-0.005em. -->
-        <view class="flex" :style="segWrapStyle">
-          <view v-for="id in TABS" :key="id" class="flex-1 relative grid place-items-center active:opacity-70" :style="pillStyle(id)" @click="tab = id">
-            <text :style="pillLabelStyle(id)">{{ t.events.tabs[id] }}</text>
-          </view>
-        </view>
+        <GlassSegments v-model="tab" :options="tabOptions" layout="scroll" />
 
         <!-- Event list -->
         <EmptyState
@@ -71,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { ref, computed, onMounted, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -296,36 +293,9 @@ function handleCta(ev: EnrichedEvent) {
     luckySpin.openSheet();
   }
 }
-
-// ── styles ──
-const segWrapStyle: CSSProperties = {
-  // 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 是 brand 实底,不撞色
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
-  padding: "4px",
-  gap: "2px",
-};
-function pillStyle(id: TabId): CSSProperties {
-  const on = tab.value === id;
-  return {
-    height: "44px",
-    borderRadius: "10px",
-    background: on ? "var(--v5-brand)" : "transparent",
-  };
-}
-function pillLabelStyle(id: TabId): CSSProperties {
-  const on = tab.value === id;
-  return {
-    fontFamily: "var(--font-v5)",
-    fontSize: "clamp(12px, 3.4vw, 13px)",
-    fontWeight: 500,
-    letterSpacing: "-0.005em",
-    whiteSpace: "nowrap",
-    color: on ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
-  };
-}
 const emptyStyle: CSSProperties = {
   border: "1px dashed var(--v5-border-strong)",
   padding: "32px",
 };
+const tabOptions = computed(() => TABS.map(value => ({ value, label: t.value.events.tabs[value] })));
 </script>

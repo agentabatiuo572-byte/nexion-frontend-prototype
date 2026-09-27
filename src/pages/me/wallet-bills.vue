@@ -18,17 +18,7 @@
       <FundsSandboxBadge />
 
       <!-- Tabs -->
-      <view class="flex" :style="segWrapStyle">
-        <view
-          v-for="tb in TABS"
-          :key="tb"
-          class="flex-1 grid place-items-center active:opacity-70"
-          :style="pillStyle(tb)"
-          @click="tab = tb"
-        >
-          <text :style="pillLabelStyle(tb)">{{ tabLabel(tb) }}</text>
-        </view>
-      </view>
+      <GlassSegments v-model="tab" :options="tabOptions" style="margin: 0 16px 12px" />
 
       <view v-if="ledgerError" :style="ledgerErrorStyle">
         <view class="flex items-center justify-between" style="gap: 12px">
@@ -93,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { computed, ref, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -304,43 +295,12 @@ function billNetwork(b: Bill): string | null {
   const m = /USDT-(TRC20|ERC20|BEP20)/i.exec(b.memo);
   return m ? m[1].toUpperCase() : null;
 }
-
-// ── styles ──
-// Mirrors prototype shared SegmentedControl (segmented-control.tsx):
-// container gap-0.5(2px)/p-1(4px)/rounded-2xl(16px) L1 surface bg; segment
-// h-11(44px)/rounded-[10px]; active = brand-filled indicator + on-brand text.
-// Header→content breathing is global (SubPageHeader 24px); no extra top offset.
-const segWrapStyle: CSSProperties = {
-  margin: "0 16px 12px",
-  // 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 是 brand 实底,不撞色
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
-  padding: "4px",
-  gap: "2px",
-};
-function pillStyle(tb: Tab): CSSProperties {
-  const on = tab.value === tb;
-  return {
-    height: "44px",
-    borderRadius: "10px",
-    background: on ? "var(--v5-brand)" : "transparent",
-  };
-}
-function pillLabelStyle(tb: Tab): CSSProperties {
-  const on = tab.value === tb;
-  return {
-    fontFamily: "var(--font-v5)",
-    fontSize: "13px",
-    fontWeight: 500,
-    letterSpacing: "-0.005em",
-    color: on ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
-  };
-}
 function tabLabel(tb: Tab): string {
   if (tb === "all") return t.value.bills.tabAll;
   if (tb === "in") return t.value.bills.tabIn;
   return t.value.bills.tabOut;
 }
+const tabOptions = computed(() => TABS.map(value => ({ value, label: tabLabel(value) })));
 
 // Empty state (de-card white-list): dashed outline, no fill.
 const emptyStyle: CSSProperties = {

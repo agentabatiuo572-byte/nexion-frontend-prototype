@@ -22,6 +22,7 @@
     <!-- Header -->
     <view class="cp-head" :style="{ paddingTop: statusBarHeight + 10 + 'px' }">
       <view class="cp-back active:opacity-60" role="button" tabindex="0" :aria-label="t.conversations.back" @click="goBack">
+        <LiquidGlass :radius="22" />
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       </view>
 
@@ -77,6 +78,7 @@
 </template>
 
 <script setup lang="ts">
+import LiquidGlass from "@/components/liquid-glass.vue";
 import { ref, computed, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onUnload, onShow, onHide } from "@dcloudio/uni-app";
 import NovaAvatar from "@/components/nova/nova-avatar.vue";
@@ -624,4 +626,6 @@ function goBack() {
   z-index: 110;
   pointer-events: none;
 }
+.cp-back { position: relative; overflow: visible; }
+.cp-back > svg { position: relative; z-index: 1; }
 </style>

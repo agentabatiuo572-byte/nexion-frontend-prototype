@@ -22,22 +22,7 @@
   <view v-else>
     <!-- Tab switcher + see-all shortcut -->
     <view class="px-0.5 pt-1 pb-2.5 flex items-center justify-between gap-2">
-      <!-- 轨道贴页面底:原 surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1。
-           配套把选中 pill 从「白底+投影」换成 brand-soft 底(见 tabStyle),
-           否则轨道和选中 pill 都是白的,等于修掉隐形又弄丢选中态。 -->
-      <view class="flex gap-0.5" style="padding: 3px; background: var(--v5-surface); border-radius: 9px">
-        <!-- 《08》§2 反馈恒定:选中态原先是空 class,按下去零反馈。
-             切到自己虽然不改变什么,但用户仍需要「点到了」的确认。 -->
-        <view
-          v-for="tb in tabs"
-          :key="tb.id"
-          class="active:opacity-70 transition-opacity"
-          :style="tabStyle(tb.id)"
-          @click="tab = tb.id"
-        >
-          <text :style="{ color: tab === tb.id ? 'var(--v5-brand)' : 'var(--v5-ink-3)', fontWeight: tab === tb.id ? 600 : 500, fontFamily: 'var(--font-v5)', fontSize: '12px', letterSpacing: '-0.005em' }">{{ tb.label }}</text>
-        </view>
-      </view>
+      <GlassSegments v-model="tab" :options="tabs" class="min-w-0 flex-1" />
       <view v-if="tab === 'earnings'" class="inline-flex items-center gap-1 font-mono-tabular active:opacity-70 transition-opacity" style="min-height: 32px; font-size: 12px; color: var(--v5-ink-3)" @click.stop="goCommissions">
         <text style="color: var(--v5-ink-3)">{{ t.home.liveFeedSeeAll }}</text>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -83,6 +68,7 @@
 </template>
 
 <script setup lang="ts">
+import GlassSegments from "@/components/glass-segments.vue";
 import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
@@ -131,8 +117,8 @@ const remoteTaskRows = computed(() => app.visibleDevices
   .map((task) => ({ id: task.id, client: task.client, model: task.model, reward: task.reward, time: new Date(task.eventAt).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit", hour12: false }) })));
 
 const tabs = computed(() => [
-  { id: "activity" as const, label: t.value.home.liveFeedTabActivity },
-  { id: "earnings" as const, label: t.value.home.liveFeedTabEarnings },
+  { value: "activity" as const, label: t.value.home.liveFeedTabActivity },
+  { value: "earnings" as const, label: t.value.home.liveFeedTabEarnings },
 ]);
 
 const activityRows = ref<FeedRow[]>(
@@ -178,25 +164,6 @@ onUnmounted(() => {
   if (actTimer) clearInterval(actTimer);
   if (earnTimer) clearInterval(earnTimer);
 });
-
-function tabStyle(id: "activity" | "earnings"): CSSProperties {
-  const on = tab.value === id;
-  return {
-    // 《07》tap≥44:原 3px 纵向 padding 实测盒高仅 28px。用 min-height 撑热区,
-    // 视觉高度靠 flex 居中维持紧凑观感(《03》§2 圆角上阶梯 6→12)。
-    minHeight: "44px",
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "0 12px",
-    borderRadius: "12px",
-    // 选中态改用 brand-soft 底 + brand 文字 —— 与本仓库同类分段/排序控件一致
-    // (genesis/marketplace 的 sortPillStyle、home/device-slot 的在线态)。
-    // 原「白底 + 投影」在轨道提到 L1(白)之后会与轨道撞色,只剩一层淡投影可辨;
-    // 且靠 box-shadow 表达选中本就违反《03》「不用 box-shadow 做层级」。
-    background: on ? "var(--v5-brand-soft)" : "transparent",
-    boxShadow: "none",
-  };
-}
 // 身份徽章列宽按语言取值(包 G P2#2 选项 a):en「Peer」/zh「同伴」进 38px,
 // vi「Thành viên」实测 ~62px,固定 38px 溢出 5px+;列宽仍是常量 → 跨行对齐不破。
 const localeStore = useLocaleStore();
