@@ -286,7 +286,7 @@ const cloudChipStyle: CSSProperties = {
 const nameStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "20px",
+  fontSize: "26px",
   color: "var(--v5-ink)",
   letterSpacing: "-0.022em",
   lineHeight: 1.15,

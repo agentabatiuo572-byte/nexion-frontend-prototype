@@ -67,6 +67,14 @@ async function capture(page, name, locator) {
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await page.screenshot({ path: resolve(out, `${name}.png`), animations: "disabled" });
 }
+async function titleState(locator) {
+  const value = await locator.evaluate(e => ({ text: e.textContent, fontSize: getComputedStyle(e).fontSize,
+    width: e.getBoundingClientRect().width, left: e.getBoundingClientRect().left,
+    right: e.getBoundingClientRect().right, overflow: e.scrollWidth > e.clientWidth + 1, viewport: innerWidth }));
+  assert.ok(value.width > 0 && value.left >= -1 && value.right <= value.viewport + 1 && !value.overflow,
+    "store title fits without clipping: " + JSON.stringify(value));
+  return value;
+}
 async function runCase(base, locale, theme, width) {
   const name = `${locale}-${theme}-${width}`;
   const context = await browser.newContext({ viewport: { width, height: 844 } });
@@ -100,19 +108,36 @@ async function runCase(base, locale, theme, width) {
     assert.deepEqual(overlap, { bodyOverlaps: false, ctaOverlaps: false }, "homepage image must not overlap the copy or action");
     await capture(page, `${name}-home`, promo);
     await go(page, base, "/pages/store/store");
+    const productNames = await page.evaluate(async () => Object.fromEntries((await import("/src/mock/products.ts")).PRODUCTS.map(p => [p.id, p.name])));
     for (const id of ids) {
       const photo = page.locator(`uni-image[data-product-id="${id}"]`);
-      result.products.push({ id, list: await imageState(photo, id) });
+      result.products.push({ id, list: await imageState(photo, id),
+        title: await titleState(photo.locator("xpath=../..").getByText(productNames[id], { exact: true })) });
       const frame = result.products.at(-1).list;
       assert.ok(Math.abs(frame.width - frame.height) < 1, `${id}: square store image without side bars`);
       await capture(page, `${name}-store-${id}`, photo);
     }
     result.sources.push(await imageState(page.locator('.genesis-artwork[data-art-context="showcase"] uni-image'), "genesis"));
+    const genesisTitle = await page.evaluate(async () => (await import("/src/i18n/use-t.ts")).getT().store.genesisCardTitle);
+    result.genesisTitle = await titleState(page.getByText(genesisTitle, { exact: true }));
+    assert.equal(result.genesisTitle.fontSize, result.products[0].title.fontSize, "Genesis uses the same store title size");
     await capture(page, `${name}-store-genesis`, page.locator(".genesis-artwork"));
+    await page.evaluate(async () => (await import("/src/store/product-phase.ts")).useProductPhaseOverride().setPinned("P1"));
+    await go(page, base, "/pages/store/store");
+    result.lockedTitles = [];
+    for (const id of ["stellarbox-pro-v2", "stellarrack-p2"]) {
+      const title = await titleState(page.getByText(productNames[id], { exact: true }));
+      assert.equal(title.fontSize, result.products.find(p => p.id === id).title.fontSize, "locked and available titles match");
+      result.lockedTitles.push(title);
+    }
+    await page.evaluate(async () => (await import("/src/store/product-phase.ts")).useProductPhaseOverride().setPinned("P6"));
     for (const entry of result.products) {
       await go(page, base, `/pages/store/detail?id=${entry.id}`);
       const photo = page.locator(`.product-render[data-product-id="${entry.id}"] uni-image`);
       entry.detail = await imageState(photo, entry.id);
+      entry.detailTitleSize = await photo.locator("xpath=../../..").getByText(productNames[entry.id], { exact: true })
+        .evaluate(e => getComputedStyle(e).fontSize);
+      assert.equal(entry.title.fontSize, entry.detailTitleSize, "store and detail product title sizes match");
       await capture(page, `${name}-detail-${entry.id}`, photo);
       const words = await page.evaluate(async locale => (await import(`/src/i18n/messages/${locale}.ts`))[locale].store, locale);
       assert.ok(await page.getByText(words.detTrustedBy, { exact: true }).isVisible(), "trust heading is present");

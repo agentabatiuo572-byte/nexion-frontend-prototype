@@ -181,7 +181,7 @@ const leftChipStyle: CSSProperties = {
 const titleStyle: CSSProperties = {
   marginTop: "10px",
   fontFamily: "var(--font-v5)",
-  fontSize: "20px",
+  fontSize: "26px",
   fontWeight: 600,
   letterSpacing: "-0.016em",
   color: "var(--v5-ink)",

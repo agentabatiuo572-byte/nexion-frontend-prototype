@@ -151,7 +151,7 @@ const toggleStyle = computed<CSSProperties>(() => ({
 
 const titleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "20px",
+  fontSize: "26px",
   fontWeight: 600,
   color: "var(--v5-ink)",
   letterSpacing: "-0.018em",
