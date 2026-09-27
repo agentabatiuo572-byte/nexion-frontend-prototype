@@ -1,7 +1,7 @@
 <!-- Live Genesis listing artwork keeps the supplied token identity. -->
 <template>
   <view class="relative overflow-hidden" :style="cardStyle">
-    <GenesisArtwork context="holding" variant="banner" :serial="id" style="height: 100px; border-radius: 10px" />
+    <GenesisArtwork context="holding" :serial="id" style="border-radius: 10px" />
     <view class="flex items-baseline justify-between" style="margin-top: 6px">
       <text class="tabular-nums" :style="priceStyle">${{ price }}K</text>
       <text :style="agoStyle">{{ agoText }}</text>

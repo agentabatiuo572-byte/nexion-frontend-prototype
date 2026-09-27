@@ -19,7 +19,7 @@
       <view aria-hidden :style="auroraStyle" />
 
       <view class="relative" style="z-index: 1">
-        <GenesisArtwork variant="banner" style="border-radius: 12px; margin-bottom: 14px" />
+        <GenesisArtwork style="border-radius: 12px; margin-bottom: 14px" />
         <!-- Eyebrow -->
         <view class="flex items-center justify-between" style="gap: 10px">
           <view class="inline-flex items-center" style="gap: 6px; color: var(--v5-genesis-gold)">

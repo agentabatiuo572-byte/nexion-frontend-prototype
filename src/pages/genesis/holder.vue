@@ -16,7 +16,7 @@
 
         <template v-else>
           <view class="gh-hero gh-surface">
-            <GenesisArtwork context="holding" variant="banner" class="gh-hero-art" />
+            <GenesisArtwork context="holding" class="gh-hero-art" />
             <view class="gh-identity"><BrandLockup /><HolderBadge /></view>
             <view class="gh-summary">
               <view>

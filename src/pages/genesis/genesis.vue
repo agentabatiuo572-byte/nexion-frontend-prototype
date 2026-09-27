@@ -22,7 +22,7 @@
       <SubPageHeader back="/pages/me/me" />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
-        <GenesisArtwork variant="banner" style="border-radius: 18px" />
+        <GenesisArtwork style="border-radius: 18px" />
         <!-- ════ HERO — dark obsidian gold ════ -->
         <view class="relative overflow-hidden" :style="heroStyle">
           <!-- Gold dust particles -->

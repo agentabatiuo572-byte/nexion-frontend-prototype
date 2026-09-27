@@ -204,6 +204,7 @@ async function runCase(base, locale, theme) {
     const composition = await hero.evaluate(e => {
       const rect = e.getBoundingClientRect();
       return { width: rect.width, height: rect.height,
+        artworkWidth: e.querySelector('.gh-hero-art').getBoundingClientRect().width,
         artworkHeight: e.querySelector('.gh-hero-art').getBoundingClientRect().height,
         text: getComputedStyle(e).color,
         brand: getComputedStyle(e.querySelector('.gh-brand')).color,
@@ -211,6 +212,7 @@ async function runCase(base, locale, theme) {
         badgeBorder: getComputedStyle(e.querySelector('.genesis-holder-badge')).borderTopWidth,
         divider: getComputedStyle(e.querySelector('.gh-allocation'), '::before').content };
     });
+    assert.ok(Math.abs(composition.artworkWidth - composition.artworkHeight) < 1, "holder hero artwork is square");
     if (locale === "zh") {
       assert.ok(Math.abs(composition.width - 348) < 1 && Math.abs(composition.height - composition.artworkHeight - 12 - 224) < 2, "artwork is separate from the unchanged account summary: " + JSON.stringify(composition));
       assert.equal(await page.locator('.gh-summary .gh-label').allTextContents().then(v => v.join('|')), '持有席位|优先额度');

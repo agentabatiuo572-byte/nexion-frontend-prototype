@@ -50,6 +50,9 @@ async function imageState(locator, expected) {
   assert.equal(value.src, assetPath(expected));
   assert.deepEqual(value.natural, [1254, 1254]);
   assert.ok(value.loaded && value.width > 0 && value.height > 0);
+  if (expected === "genesis" || expected === "genesis-holder-base") {
+    assert.ok(Math.abs(value.width - value.height) < 1, `${expected}: square Genesis artwork without side bars`);
+  }
   assert.ok(value.mode === "aspectFit" || value.backgroundSizes.includes("contain"), "complete source image fits its frame: " + JSON.stringify(value));
   assert.equal(value.filter, "none");
   assert.equal(value.opacity, "1");
