@@ -53,4 +53,3 @@ Composition: every illustration centered in its cell, completely separate, NO ov
 ```
 
 Board references: existing `src/static/img/devices/generated-phone-alpha.png` and UVEL v3 cloud/S1/Pro v2/Rack P1 media. Atlas references: generated board plus four hardware photos. One rejected atlas call exceeded the tool's five-reference limit; rerun with those five inputs, unchanged artwork intent. Generated alpha corner/gap verified zero.
-
