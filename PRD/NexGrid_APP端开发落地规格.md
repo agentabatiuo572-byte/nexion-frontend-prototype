@@ -92,7 +92,7 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 | GreetingHeader | 时间感知问候+手机今日收益 | `earnings` | §5.1 |
 | EarningsHero(双引擎) | 今日总入账(设备 mining+团队佣金) | `earnings.today`+`useCommission.todayUSDT()`;`GET /api/me/earnings?range=today`(TBD) | §5.2 |
 | BoostUpsell | Fleet-aware 4 slot 8s 轮换升级提示 | 用户 fleet | §5.3 |
-| DeviceFleet | fleet 行+Add CTA | 用户 fleet | §5.4 |
+| DeviceFleet | 已激活设备、状态及收益；管理→仓库；添加按库存分流 | 当前账号可见 fleet、SlotActionSheet | §5.4/§6.9 |
 | LiveNetworkJobs | 3 个正跑 AI 任务(5s 刷新) | mock 任务流 | §5.5 |
 | RankProgressCard | V 级进度+实物奖钩 | V 级数据 | §5.6 |
 | NexTokenCard | NEX 价+24h sparkline | `useMarket.klineHourly` | §5.7 |
@@ -110,13 +110,13 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 | 组件 | 职责 | 数据依赖 | 关键状态 | §锚点 |
 |---|---|---|---|---|
 | MyDevices | 已激活 fleet 详细卡(`activatedAt!==null`) | 设备 store、`lib/mock/tasks.ts` lockedTeaser | Pause/Resume/detail/取消激活;手机 mini「Unlock N more」→`/store` | §6.1 |
-| TaskCenter | 当前+最近任务+升级解锁 teaser | `LockedTeaser.dailyPotentialUSD` | Upgrade 行展示 daily potential | §6.3 |
+| TaskCenter | 当前+最近任务+升级解锁 teaser | `LockedTeaser.dailyPotentialUSD`、设备任务历史 | 跨设备归并排序后最多 10 笔；查看全部→收据归档，不裁剪原记录 | §6.3 |
 | EarningsOverview | 算力收益 range 统计(4-pill) | `GET /api/me/earnings?range=` | 4 range streaming;仅 compute | §6.4 |
 | MarketOverview | AI Workload Price Index 6 模型 | market(1.6s tick) | — | §6.5 |
 | MissedIncomeBanner | 手机 vs S1 上限差额 | 常量+`user.joinedAt`;SSR 守卫 | 整卡→`/store`;60s 上涨 | §6.6 |
 | TaskLockCumulativeBanner | 高价任务 tier 月度累计锁定 | `lib/store/task-lock.ts`、`getLockedTeasers` | 整卡→`/store`或`/me/devices`;不暴露 phase 术语 | §6.7 |
 | DeviceLifecycleBanner | 已购硬件衰减+月损失(degradable) | `lib/store/device-lifecycle.ts` | 整卡→`/me/devices`;60s 重算 | §6.8 |
-| EmptySlotsHint | `/earn`→`/store` 核心转化(hero) | `selectActiveCount`、`derivePromoUpgrade`、MAX_DEVICES=6 | Active/Capped 两态(满槽不可点);CTA→`/store` | §6.2/§6.9 |
+| EmptySlotsHint | 已激活设备列表、试用占位及添加入口 | 当前账号可见 fleet、有效试用、MAX_DEVICES=6 | 有未激活硬件→选择仓库/商城；无库存→商城；远端读取失败→仓库重试；仅导航、不激活或扣款。首页与「我的」同入口共用 SlotActionSheet | §6.2/§6.9 |
 
 ### 1.5 Store(§7)
 

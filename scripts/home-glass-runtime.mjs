@@ -67,7 +67,8 @@ async function goto(page, route = 'index/index') {
   await page.goto(`${server.baseUrl}/?nx_device_inner=1#/pages/${route}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await active(page).waitFor(); await idle(page);
   if (route === 'index/index') {
-    await page.waitForFunction(async () => (await import('/src/store/voucher.ts')).useVoucher().catalogReady);
+    await page.evaluate(async () => { window.__homeVoucher = (await import('/src/store/voucher.ts')).useVoucher(); });
+    await page.waitForFunction(() => window.__homeVoucher.catalogReady === true);
     const pendingAutoPush = await page.evaluate(async () => {
       const v = (await import('/src/store/voucher.ts')).useVoucher(), s = (await import('/src/store/voucher-claim-sheet.ts')).useVoucherClaimSheet();
       return !s.lastClosedAt && v.claimableVouchers.some(v => v.popupEnabled);
@@ -276,11 +277,17 @@ async function actionCases(browser, engine) {
         return result;
       });
     }
-    await check(page, `${engine}-manage`, ['home-fleet'], async () => { const result = await navigateOnce(page, active(page).locator('.hf-manage'), 'pages/earn/earn', true); await homeTab(page); return result; });
+    await check(page, `${engine}-manage`, ['home-fleet'], async () => {
+      const result = await navigateOnce(page, active(page).locator('.hf-manage'), 'pages/me/devices', true);
+      await page.locator('.spv-back:visible').last().click();
+      await active(page).locator('.hf-section').waitFor(); await idle(page);
+      return result;
+    });
     await check(page, `${engine}-add`, ['home-fleet'], async () => {
-      const result = await navigateOnce(page, active(page).locator('.hf-add-device'), `pages/store/detail?id=${expected.targetKind}`);
-      // Return through the actual product page back control.
-      await active(page).locator('.nx-navheader .nx-nav-side').first().click(); await active(page).locator('.hf-section').waitFor(); return result;
+      await active(page).locator('.hf-add-device').click();
+      await page.locator('.sas-root:visible').waitFor();
+      const result = await navigateOnce(page, page.locator('.sas-root:visible .sas-store-cta'), 'pages/store/store');
+      await homeTab(page); return result;
     });
     await restoreFixture(page);
     for (const key of ['Enter', 'Space']) await check(page, `${engine}-phone-route-${key}`, ['home-phone'], async () => {
@@ -326,7 +333,7 @@ async function claimCase(browser, engine) {
       await active(page).locator('.vb-card').click(); await page.locator('.vcs-root:visible').waitFor();
       for (let i = 0; i < initial.length; i++) {
         await page.locator('.vcs-cta-claim:visible').first().click();
-        await page.waitForFunction(async expected => (await import('/src/store/voucher.ts')).useVoucher().claimableVouchers.length === expected, initial.length - i - 1);
+        await page.waitForFunction(expected => window.__homeVoucher.claimableVouchers.length === expected, initial.length - i - 1);
         await page.waitForFunction(() => ![...document.querySelectorAll('.nx-toast')].some(e => e.getClientRects().length), undefined, { timeout: 8000 });
       }
       const read = () => page.evaluate(async ids => { const s = (await import('/src/store/voucher.ts')).useVoucher(); return ids.map(id => ({ id, claimed: s.isClaimed(id), used: s.isUsed(id) })); }, initial);

@@ -1529,10 +1529,10 @@ export const zh: Messages = {
   },
   // SlotActionSheet — tap an empty compute slot in Earn.
   slotSheet: {
-    title: "填满算力槽位",
-    desc: "买一台新设备,空槽位立刻开始产出",
+    title: "添加设备",
+    desc: "仓库中有未激活的设备，可前往激活，或购买新设备。",
     goStoreCta: "购买新设备",
-    activateRow: "激活已有设备({n} 台)",
+    activateRow: "激活已有设备",
     toastSlotsFull: "槽位已满 {max}/{max}",
     toastActivated: "已激活 {name}",
   },

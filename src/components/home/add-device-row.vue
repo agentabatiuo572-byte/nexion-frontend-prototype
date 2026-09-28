@@ -1,6 +1,6 @@
-<!-- Empty fleet bay keeps the authoritative upgrade target and remains one keyboard action. -->
+<!-- Empty fleet bay shares the inventory choice with all general add-device entries. -->
 <template>
-  <view class="hf-add-device nx-home-glass-item" role="button" tabindex="0" :aria-label="t.earn.addDevice" @click="go">
+  <view class="hf-add-device nx-home-glass-item" role="button" tabindex="0" :aria-label="t.earn.addDevice" :aria-busy="sheet.checking" :aria-disabled="sheet.checking" @click="go" @keydown.enter.stop.prevent="go" @keydown.space.stop.prevent="go">
     <view class="hf-add-surface nx-home-glass-panel" aria-hidden="true" />
     <view class="hf-add-art" aria-hidden="true">
       <view class="hf-add-plus">
@@ -16,18 +16,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { useApp } from "@/store/app";
 import { useT } from "@/i18n/use-t";
-import { navTo } from "@/lib/route";
-import { derivePromoUpgrade } from "@/store/device-types";
+import { useSlotActionSheet } from "@/store/slot-action-sheet";
 
-const app = useApp();
 const t = useT();
-const promo = computed(() => derivePromoUpgrade(app.visibleDevices));
+const sheet = useSlotActionSheet();
 
 function go() {
-  navTo(`/pages/store/detail?id=${promo.value.targetKind}`);
+  void sheet.openForSlot();
 }
 </script>
 

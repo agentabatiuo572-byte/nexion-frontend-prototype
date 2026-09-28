@@ -50,8 +50,7 @@
 
     <!-- Collapsed row header (always visible; tap toggles detail) -->
     <view
-      class="nx-device-card__header flex items-center justify-between active:opacity-70 transition-opacity"
-      style="padding: 14px 20px; min-height: 58px"
+      class="nx-device-card__header active:opacity-70 transition-opacity"
       role="button"
       tabindex="0"
       :aria-expanded="expanded"
@@ -59,28 +58,24 @@
       @click="onRowTap"
       @keydown.enter.prevent="onRowTap"
       @keydown.space.prevent="onRowTap"
-      @keydown.shift.f10.stop.prevent="openMenu"
       @contextmenu.stop.prevent="openMenu"
     >
-      <view class="nx-device-card__main flex items-center gap-2.5 min-w-0">
-        <view class="rounded-lg grid place-items-center shrink-0" style="width: 36px; height: 36px; background: var(--v5-surface-2)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="kindIconPath" /></svg>
+      <view class="nx-device-card__main">
+        <view class="earn-device-art" aria-hidden="true">
+          <DeviceSlot :device="device" :online="false" />
         </view>
-        <view class="min-w-0" style="flex: 1">
-          <text class="block truncate" style="font-size: 15px; font-weight: 600; color: var(--v5-ink)">{{ displayName }}</text>
-          <view class="flex items-center gap-1.5" style="margin-top: 3px">
-            <view :style="{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: statusColor, boxShadow: statusGlow ? `0 0 6px ${statusColor}` : 'none' }" />
+        <view class="earn-device-meta">
+          <text class="earn-device-name">{{ displayName }}</text>
+          <view class="earn-device-status">
             <text class="nx-device-status-label" style="font-size: 12px" :style="{ color: statusColor }">{{ statusLabel }}</text>
           </view>
         </view>
       </view>
-      <view class="nx-device-card__numbers flex items-center gap-2.5 shrink-0">
-        <view class="text-right">
-          <!-- 《09》§3:正收益=success(warning 专属 Pending/Cooling)。本行是设备
-               今日**已实现**收益,非待结算 → success;同卡的 −$锁定日产 / 未解锁潜在
-               收益仍用 warning(语义正确,不批量改)。 -->
-          <text class="block tabular-nums" style="font-family: var(--font-v5); font-size: 20px; line-height: 1; font-weight: 600; color: var(--v5-success-ink); letter-spacing: -0.012em">${{ device.todayEarnings.toFixed(2) }}</text>
-          <text class="block" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 3px; letter-spacing: 0.04em">{{ t.earn.todayEarnings }}</text>
+      <view class="nx-device-card__numbers">
+        <view class="earn-device-amount">
+          <!-- Compact rows use neutral realized earnings; detailed pending/warning states retain their semantics. -->
+          <text class="earn-device-amount-label">{{ t.earn.todayEarnings }}</text>
+          <text class="earn-device-value tabular-nums">${{ device.todayEarnings.toFixed(2) }}</text>
         </view>
         <view class="grid place-items-center shrink-0 active:opacity-60" :style="chevronBtnStyle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }"><path d="m6 9 6 6 6-6" /></svg>
@@ -319,9 +314,10 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { useApp } from "@/store/app";
+import DeviceSlot from "@/components/home/device-slot.vue";
 import { useConfig } from "@/store/config";
 import { derivePromoUpgrade } from "@/store/device-types";
-import type { Device, DeviceKind, TaskCategory } from "@/store/types";
+import type { Device, TaskCategory } from "@/store/types";
 import { workloadLabel as resolveWorkloadLabel } from "@/lib/workload-label";
 import { deviceName, deviceGpuLabel, deviceLocation } from "@/lib/device-copy";
 import { getLifecycleSummary, isDegradable, SUBSIDY_DAYS, CAPACITY_FLOOR } from "@/store/device-lifecycle";
@@ -358,27 +354,19 @@ const displayLocation = computed(() => deviceLocation(t.value, props.device));
 // 1s re-render so progress + countdown tick.
 const now = ref(Date.now());
 let timer: ReturnType<typeof setInterval> | null = null;
+let keyboardHeader: HTMLElement | undefined;
 onMounted(() => {
+  keyboardHeader = cardRoot()?.querySelector<HTMLElement>(".nx-device-card__header") ?? undefined;
+  keyboardHeader?.addEventListener("keydown", onHeaderKeydown);
   timer = setInterval(() => {
     now.value = Date.now();
   }, 1000);
 });
 onUnmounted(() => {
   if (timer) clearInterval(timer);
+  keyboardHeader?.removeEventListener("keydown", onHeaderKeydown);
   if (typeof document !== "undefined") document.removeEventListener("keydown", onDocumentMenuKeydown, true);
 });
-
-const KIND_ICON_PATHS: Record<DeviceKind, string> = {
-  phone: "M5 2h14a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM12 18h.01",
-  "pc-gpu": "M4 5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6l1 3H9l1-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 21h8",
-  "stellarbox-s1": "M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z",
-  "stellarbox-pro": "M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z",
-  "stellarbox-pro-v2": "M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z",
-  "stellarrack-p1": "M5 4h14a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM5 14h14a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z",
-  "stellarrack-p2": "M5 4h14a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM5 14h14a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z",
-  "cloud-share": "M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 15.3",
-};
-const kindIconPath = computed(() => KIND_ICON_PATHS[props.device.kind] ?? KIND_ICON_PATHS.phone);
 
 const task = computed(() => props.device.currentTask);
 const taskLockRemainingMinutes = computed(() => {
@@ -410,7 +398,6 @@ const statusColor = computed(() => {
   if (idleGated.value || !deviceOnline.value) return "var(--v5-ink-3)";
   return "var(--v5-brand)";
 });
-const statusGlow = computed(() => !reconnecting.value && !idleGated.value && deviceOnline.value);
 
 const elapsedRemaining = computed(() => {
   const tk = task.value;
@@ -633,6 +620,14 @@ function cardRoot(): HTMLElement | undefined {
 function openMenu() {
   menuOpen.value = true;
 }
+function onHeaderKeydown(event: KeyboardEvent) {
+  // uni's normalized key event retains key/code but drops shiftKey; use the native header listener.
+  if (event.shiftKey && (event.key === "F10" || event.code === "F10")) {
+    event.preventDefault();
+    event.stopPropagation();
+    openMenu();
+  }
+}
 function closeMenu() {
   menuOpen.value = false;
 }
@@ -719,8 +714,8 @@ const rowStyle = computed<CSSProperties>(() => ({
   borderTop: props.divider ? "1px solid color-mix(in srgb, var(--v5-border) 60%, transparent)" : "none",
 }));
 const chevronBtnStyle: CSSProperties = {
-  width: "30px",
-  height: "30px",
+  width: "28px",
+  height: "28px",
   borderRadius: "999px",
   background: "var(--v5-surface-2)",
 };
@@ -782,15 +777,31 @@ const unlockCtaLabelStyle: CSSProperties = {
 </script>
 
 <style scoped>
-.nx-device-card__main { flex: 1; }
+.nx-device-card__header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 88px; padding: 14px; }
+.nx-device-card__main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.earn-device-art { flex: none; width: 52px; height: 56px; overflow: hidden; }
+.earn-device-art :deep(.nx-device-slot) { width: 52px; height: 56px; }
+.earn-device-art :deep(.hf-computer) { width: 52px; height: 56px; }
+.earn-device-art :deep(.hf-computer svg) { width: 38px; height: 38px; }
+.earn-device-meta { flex: 1; min-width: 0; }
+.earn-device-name { display: block; font: 600 15px/1.4 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
+.earn-device-status { margin-top: 4px; line-height: 1.45; overflow-wrap: anywhere; }
+.nx-device-card__numbers { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 152px; }
+.earn-device-amount { text-align: right; min-width: 0; }
+.earn-device-amount-label { display: block; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
+.earn-device-value { display: block; margin-top: 4px; font: 600 15px/1.3 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
+.nx-device-card__details { animation: earn-detail-in .2s ease-out; }
+@keyframes earn-detail-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .nx-device-card__details { animation: none; } }
 .nx-device-card__spec { flex: 1 1 160px; min-width: min(100%, 160px); line-height: 1.35; }
 .nx-device-card__hash-label { flex: 1 1 150px; min-width: min(100%, 150px); }
 .nx-device-card__cap-chip { flex: none; white-space: nowrap; }
 .nx-device-card__hash-heading { row-gap: 6px; }
 @media (max-width: 350px) {
-  .nx-device-card__header { flex-wrap: wrap; row-gap: 8px; }
-  .nx-device-card__main { flex: 1 1 100%; }
-  .nx-device-card__numbers { width: calc(100% - 46px); margin-left: 46px; justify-content: space-between; }
+  .nx-device-card__header { padding: 12px; gap: 6px; }
+  .nx-device-card__main { gap: 6px; }
+  .nx-device-card__numbers { gap: 4px; max-width: 112px; }
+  .earn-device-art, .earn-device-art :deep(.nx-device-slot) { width: 44px; }
 }
 .nx-spin {
   animation: spin 1s linear infinite;

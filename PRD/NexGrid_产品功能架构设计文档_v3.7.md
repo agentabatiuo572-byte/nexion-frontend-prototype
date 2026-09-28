@@ -1007,16 +1007,10 @@ Fleet-aware 4 slot 每 8 秒轮换,每条带 CTA:
 
 ### 5.4 我的设备 Fleet
 
-显示用户 fleet(phone + 已购 box):
+显示已激活且当前账号可见的设备、型号、运行状态和实时今日收益；点击设备进入详情。
 
-每行:
-- 设备 icon + 型号名(Your phone / NexGridBox S1 / Pro / Rack)
-- GPU 型号 + 实时温度 + 负载 / 状态(online / paused / offline)
-- 今日产出 +$X.XX(实时)
-
-**底部 Add CTA**:
-- 显示下一档没拥有的设备 + 倍数(8× / 30× / 133×)+ 价格
-- 点击直跳 `/store/[productId]`
+- **管理**：跳设备仓库 `/me/devices`。
+- **添加设备**：有空位时提供入口；按 §6.9 判断未激活硬件库存，选择去仓库激活或去商城购买。
 
 ### 5.5 实时网络任务(On NexGrid Grid)
 
@@ -1269,14 +1263,14 @@ sequenceDiagram
 
 ### 6.2 设备槽位卡 (EmptySlotsHint)
 
-详见 §6.7 — 统一的"添加设备 / 槽位占用 / 潜在收益"复合卡(原 AddDeviceTile 已合并入 §6.7,不再单列组件)。
+详见 §6.9：展示设备列表和试用占位，提供统一的添加设备入口。
 
 ### 6.3 任务中心(Task Center)
 
 单一视图(无分页 tab),自上而下:
 
 - **🔒 Upgrade Unlocks**:列出手机够不着的高价任务(Llama 70B / Sora-class video / Fine-tune)。每行右侧主视觉 `+$N/d` = daily potential,从 `LockedTeaser.dailyPotentialUSD` 字段读取,公式 `(86400 / avgSec) × QUEUE_SATURATION × avgReward`。VRAM 要求降为附注小字,要求 Pro/Rack 才能接;点击跳 `/store`
-- **任务历史(History)**:跨设备已完成任务列表(最近 20 笔,按完成时间倒序),每行 model · type · 奖励 · 相对时间;有对应收据的行可点开 Proof-of-Compute 收据详情(§11.5)。段头提供 **查看全部 →** 入口跳推理收据归档页 `/me/receipts` 查看完整记录
+- **任务历史(History)**:跨设备已完成任务归并后按完成时间倒序，默认最多显示最近 10 笔；每行 model · type · 奖励 · 相对时间，有对应收据的行可点开 Proof-of-Compute 收据详情(§11.5)。段头提供 **查看全部 →** 入口跳推理收据归档页 `/me/receipts` 查看完整记录，默认展示条数不裁剪底层记录。
 - 顶部保留全网实时任务计数(社会证明)
 
 ### 6.4 收益统计(Earnings Overview)
@@ -1425,65 +1419,21 @@ getNetworkMonthlyLoss(devices)      → { totalMonthlyLossUSD, degradableCount }
 
 ### 6.9 设备槽位卡(EmptySlotsHint)
 
-位置:设备列表之后、Market Overview 之前。
+**目的与入口**：赚取页展示当前账号的已激活设备、运行状态、今日收益和试用占位；每次只展开一台设备的详情，保留设备操作。首页、赚取页及「我的」页的通用添加设备入口共用以下分流规则。
 
-**目的**:作为 /earn → /store 的核心转化入口,以 hero-tier 视觉强度呈现"添加设备 → 潜在日收益"的转化叙事(原 AddDeviceTile + EmptySlotsHint 两组件已合并并升级至 hero-card 标准)。
+**库存判断**：从当前账号可见设备中查找 `activatedAt === null` 且属于已购硬件类型的设备。手机、本机 PC 和 Cloud Share 不算待激活硬件；判断不依赖购买金额，零价硬件仍算库存。
 
-**两种状态**:
+| 库存状态 | 添加设备的结果 |
+|---|---|
+| 有未激活硬件 | 打开选择弹窗：「激活已有设备」跳仓库 `/me/devices`；「购买新设备」跳商城 `/store` |
+| 无未激活硬件 | 直接跳商城 `/store` |
+| 远端库存读取失败或不可确认 | 跳仓库，由仓库展示同步失败及重试入口；不得当作空库存导向购买 |
 
-| 状态 | 触发 | 表现 |
-|---|---|---|
-| **Active**(还有空槽位)| `selectActiveCount(s) < MAX_DEVICES (6)` | hero-tier 完整 CTA |
-| **Capped**(满槽位)| `selectActiveCount(s) === MAX_DEVICES` | Lock icon + `Slot limit reached` 文案,不再可点 |
+**交互与权限**：远端模式在分流前刷新设备；读取期间抑制重复操作。弹窗支持关闭、取消及键盘退出，取消不导航、不改设备和余额。选择入口仅导航，不在弹窗内激活、创建订单或扣款；激活仍由仓库的确认和权威写入流程负责。
 
-**槽位口径**(Sprint #146-1):槽位占用 = `activatedAt !== null` 的设备数,**不**等于 `devices.length`(库存)。已购未激活设备不消耗槽位。
+**槽位约束**：已购未激活设备不占槽；已激活设备与有效试用预留共同受 `MAX_DEVICES = 6` 限制。列表保留试用预留提示，满槽不绕过仓库激活上限，购买与持有库存的原有规则不变。
 
-**Active UI 规格**(自上而下):
-
-1. **Eyebrow**(`↗ POTENTIAL DAILY YIELD · IF FILLED`):明确数字语义为"如果填满后的潜在日产",不是当前实际产。配 TrendingUp icon。
-
-2. **Hero number** — `$` Hero split 模式:
-   - `+$`(小)
-   - `{potentialDaily}`(大)
-   - `/day`
-   - 旁边 `UNTAPPED` chip(SKILL 卡片嵌套规则:无 border)
-
-3. **Subtitle**:`{empty} × NexGridBox S1 @ $7.00/d · {multiplier}× your phone`(具体硬件 + phone 倍数,转化语言)。
-
-4. **6-col slot grid**:
-   - **已用 slot**:device-kind icon(从 `KIND_ICON` 映射)+ 右上 pulse 圆点(`v5-hb-pulse-success` 2.4s)
-   - **空 slot**:Plus 占位
-
-5. **3-stat row**(居中):
-   - `{filled}/{MAX}`(本格状态)
-   - `${networkAvg}`(网络平均日产)
-   - `top {N}%`(填满后排名估算 = potentialDaily / NETWORK_AVG_DAILY × 70%)
-
-6. **CTA**:brand pill + Zap icon + Fill slots + ArrowRight。无 halo(per user feedback)。点击 CTA(或点任一空 slot)触发**槽位操作弹窗**(见本节末「槽位操作弹窗」)。
-
-7. **Footer note**:`current fleet ${current}/d · upgrade to multiply`(对比当前 baseline,放大转化诱因)。
-
-**动态效果** — 粒子从底部升起(`v5-dot-drift-tall` keyframe),在 hero number 行附近消失,不干扰上半部信息。
-
-**计算**(Sprint #146-1):
-
-- `activeCount = devices.filter(d => d.activatedAt !== null).length`
-- `empty = MAX_DEVICES − activeCount`
-- `potentialDaily = empty × promo.targetDaily`(随推广目标设备日收益,ladder 化)
-- `promo = derivePromoUpgrade(devices)` — 派生推广基准对象:激活真实设备中**最高**日收益的一台为 base,推广目标为算力阶梯下一档(参 §13.2a)
-- `multiplier = round(potentialDaily / promo.baseDaily)`(若 `baseDaily > 0`;无激活设备时不显示倍数行)
-- `baseName` 从 `promo.baseName` 取(随 active 设备切换:`Your phone` / `NexGridBox S1` / 等)
-- `fleetCurrentDaily = activeDevices.reduce((s, d) => s + d.baseRate, 0)`(实际激活设备日产之和,不再硬编 `count × 0.06`)
-- `fleetRankPctIfFilled = max(8, min(94, round(potentialDaily / NETWORK_AVG_DAILY × 70)))`
-- `empty ≤ 0` → 渲染 Capped 状态
-- 6-col slot grid 显示 **active devices**(非 inventory)
-
-**槽位操作弹窗(Slot Action Sheet)** — 点击 Fill slots CTA(或任一空 slot)触发,两个并存入口引导填满空槽位:
-
-1. **购买新设备**(主入口):跳转 `/store`。**始终呈现**。
-2. **激活已有设备**(次入口):仅当存在未激活设备(`activatedAt === null` 的库存设备)时出现,**默认折叠**;展开后列出全部未激活设备,点选即调 `activateDevice` 激活进槽。激活受 `MAX_DEVICES`(6)上限约束 —— 槽位已满(`activeCount + trial 预留槽 ≥ MAX_DEVICES`)则提示槽位已满、不激活。
-
-仓库无未激活设备时,弹窗仅呈现「购买新设备」入口;每次打开弹窗,次入口默认折叠。
+**验收**：覆盖有／无库存、零价硬件、远端读取失败、满槽／试用预留、重复点击、取消和三个页面入口；跳转后及刷新后设备激活状态和财务记录不因选择弹窗改变。任务历史完整性按 §6.3 验收。
 
 ### 6.10 手机算力显示规则与校准
 

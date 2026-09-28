@@ -86,7 +86,7 @@
               <text style="font-family: var(--font-v5); font-size: 13px; color: var(--v5-ink-3)">{{ t.me.walletSlotMore }}</text>
             </view>
           </view>
-          <view class="shrink-0 inline-flex items-center justify-center active:opacity-90" :style="addDeviceBtnStyle" @click="goStore">
+          <view class="wallet-add-device shrink-0 inline-flex items-center justify-center active:opacity-90" :style="addDeviceBtnStyle" role="button" tabindex="0" :aria-busy="slotSheet.checking" :aria-disabled="slotSheet.checking" @click="goStore" @keydown.enter.stop.prevent="goStore" @keydown.space.stop.prevent="goStore">
             <text>{{ t.me.addDeviceCta }}</text>
           </view>
         </view>
@@ -100,6 +100,7 @@ import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
+import { useSlotActionSheet } from "@/store/slot-action-sheet";
 import { earningsReleaseSnapshot } from "@/store/earning-release";
 import { useBills } from "@/store/bills";
 import { MAX_DEVICES, derivePromoUpgrade } from "@/store/device-types";
@@ -110,6 +111,7 @@ import WalletActionBtn from "@/components/me/wallet-action-btn.vue";
 
 const t = useT();
 const app = useApp();
+const slotSheet = useSlotActionSheet();
 const bills = useBills();
 
 const buckets = computed(() => ({
@@ -160,7 +162,7 @@ function goBills() {
   uni.navigateTo({ url: "/pages/me/wallet-bills", fail: () => {} });
 }
 function goStore() {
-  uni.reLaunch({ url: "/pages/store/store", fail: () => {} });
+  void slotSheet.openForSlot();
 }
 
 const cardStyle: CSSProperties = {

@@ -66,23 +66,30 @@ export function navBack(fallbackHref?: string): void {
 }
 
 /** Navigate to a logical-or-uni href, picking reLaunch for tab roots. */
-export function navTo(href: string): void {
+export function navTo(href: string): Promise<void> {
   const { url, tab } = toUniRoute(href);
-  if (tab) {
-    uni.reLaunch({
+  return new Promise((resolve) => {
+    const done = () => resolve();
+    if (tab) {
+      uni.reLaunch({
+        url,
+        success: done,
+        fail: () => uni.redirectTo({
+          url,
+          success: done,
+          fail: () => uni.navigateTo({ url, complete: done }),
+        }),
+      });
+      return;
+    }
+    uni.navigateTo({
       url,
+      success: done,
       fail: () => uni.redirectTo({
         url,
-        fail: () => uni.navigateTo({ url, fail: () => {} }),
+        success: done,
+        fail: () => uni.reLaunch({ url, complete: done }),
       }),
     });
-    return;
-  }
-  uni.navigateTo({
-    url,
-    fail: () => uni.redirectTo({
-      url,
-      fail: () => uni.reLaunch({ url, fail: () => {} }),
-    }),
   });
 }

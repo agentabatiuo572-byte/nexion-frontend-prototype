@@ -63,7 +63,7 @@
     "verify:scope-audit:deep": "node scripts/verify-scope-audit.mjs --deep",
     "test:learning-contracts": "node --experimental-strip-types --test scripts/learning-submission.test.mjs",
     "test:a11y-activate": "node --experimental-strip-types --test scripts/a11y-activate-behavior.test.mjs && node scripts/a11y-activate-gate.mjs && node scripts/a11y-activate-gate.redtest.mjs",
-    "test:fixed-mock-home": "node scripts/app-home-live-e2e.mjs && node scripts/home-glass-runtime.mjs",
+    "test:fixed-mock-home": "node scripts/app-home-live-e2e.mjs && node scripts/home-glass-runtime.mjs && node scripts/earn-glass-runtime.mjs",
     "test:onboarding-calibration": "node scripts/onboarding-calibration-runtime.mjs",
     "test:genesis-holder": "node scripts/genesis-holder-runtime.mjs"
   },

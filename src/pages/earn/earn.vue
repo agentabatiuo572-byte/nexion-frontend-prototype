@@ -6,7 +6,7 @@
     TrialHeroBanner / TrialGhostSlot
     → PillTabs (Today/Week/Month/All) + TotalEarnedCard (range total + breakdown)
     → MissedIncomeBanner
-    → "My Devices" header + slot rail + DeviceCardPC × N + add-device CTA
+    → "My Devices" header + compact DeviceCardPC rows + add-device CTA
     → MarketBoard
     → TaskCenter.
 

@@ -1531,10 +1531,10 @@ export const vi: Messages = {
     toastScheduled: "{name} sẽ tự tắt sau khi xong nhiệm vụ hiện tại",
   },
   slotSheet: {
-    title: "Lấp đầy khe tính toán",
-    desc: "Thêm thiết bị mới — khe trống sẽ sinh lời ngay lập tức",
+    title: "Thêm thiết bị",
+    desc: "Kho có thiết bị chưa kích hoạt. Bạn có thể kích hoạt thiết bị có sẵn hoặc mua thiết bị mới.",
     goStoreCta: "Mua thiết bị mới",
-    activateRow: "Kích hoạt thiết bị có sẵn ({n})",
+    activateRow: "Kích hoạt thiết bị có sẵn",
     toastSlotsFull: "Đã đầy khe {max}/{max}",
     toastActivated: "Đã kích hoạt {name}",
   },

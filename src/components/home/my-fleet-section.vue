@@ -1,4 +1,4 @@
-<!-- One large, accessible card per active device. The empty bay keeps the existing upgrade destination. -->
+<!-- One large, accessible card per active device; manage opens the inventory. -->
 <template>
   <view class="hf-section">
     <view class="hf-heading">
@@ -6,7 +6,7 @@
         <text class="hf-title">{{ t.home.myFleet }}</text>
         <text class="hf-count font-mono-tabular">{{ fleetCountText }}</text>
       </view>
-      <view class="hf-manage nx-home-glass-item" role="button" tabindex="0" @click="goManage">
+      <view class="hf-manage nx-home-glass-item" role="button" tabindex="0" @click="goManage" @keydown.enter.stop.prevent="goManage" @keydown.space.stop.prevent="goManage">
         <view class="nx-home-glass-panel" aria-hidden="true" />
         <text>{{ t.home.fleetManage }}</text>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7" /></svg>
@@ -34,7 +34,7 @@ const devices = computed(() => app.visibleDevices.filter((d) => d.activatedAt !=
 const fleetCountText = computed(() => fmt(t.value.home.fleetOfMax, { n: devices.value.length }));
 
 function goManage() {
-  navTo("/pages/earn/earn");
+  navTo("/pages/me/devices");
 }
 </script>
 

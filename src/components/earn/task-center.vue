@@ -59,7 +59,7 @@
     <view class="pt-3 pb-2" :style="historyHeadStyle">
       <view class="flex items-center justify-between">
         <text style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-ink-3)">{{ t.taskHistory.tabHistory }}</text>
-        <view class="flex items-center active:opacity-60" style="gap: 2px; padding: 0 0 0 16px; min-height: 44px" @click="goReceipts">
+        <view class="earn-history-all flex items-center active:opacity-60" style="gap: 2px; padding: 0 0 0 16px; min-height: 44px" role="button" tabindex="0" @click="goReceipts" @keydown.enter.stop.prevent="goReceipts" @keydown.space.stop.prevent="goReceipts">
           <text style="font-size: 12px; font-weight: 500; color: var(--v5-brand)">{{ t.taskHistory.viewAll }}</text>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </view>
@@ -69,8 +69,8 @@
     <view v-if="allRecent.length === 0" class="pb-4">
       <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.taskHistory.historyEmpty }}</text>
     </view>
-    <view v-else class="pb-3 space-y-1.5">
-      <view v-for="(task, i) in allRecent" :key="i" class="flex items-center justify-between gap-2" style="font-size: 12px">
+    <view v-else class="earn-history-list pb-3 space-y-1.5">
+      <view v-for="task in allRecent" :key="task.id" class="earn-history-row flex items-center justify-between gap-2" :data-task-id="task.id" style="font-size: 12px">
         <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
         <text class="flex-1 truncate min-w-0" style="color: var(--v5-ink-2)">{{ task.model }}<text style="color: var(--v5-ink-4); margin: 0 4px">·</text><text style="color: var(--v5-ink-3)">{{ workloadLabel(task.category) }}</text></text>
         <text class="tabular-nums shrink-0" style="font-family: var(--font-v5); color: var(--v5-warning-ink)">+${{ task.reward.toFixed(3) }}</text>
@@ -121,12 +121,12 @@ function workloadLabel(category: TaskCategory): string {
   return resolveWorkloadLabel(t.value, category);
 }
 
-// History list: completed tasks across all devices, most-recent first (last 20).
+// Compact preview only; the full receipt archive keeps all records.
 const allRecent = computed(() =>
   app.visibleDevices
     .flatMap((d) => d.recentTasks)
     .sort((a, b) => b.completedAt - a.completedAt)
-    .slice(0, 20),
+    .slice(0, 10),
 );
 
 const maxVram = computed(() => app.visibleDevices.reduce((m, d) => Math.max(m, d.vramTotal), 0));

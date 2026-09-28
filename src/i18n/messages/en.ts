@@ -1595,10 +1595,10 @@ export const en = {
   },
   // SlotActionSheet — tap an empty compute slot in Earn.
   slotSheet: {
-    title: "Fill compute slots",
-    desc: "Add a new device — empty slots start earning right away",
+    title: "Add a device",
+    desc: "You have inactive devices in your inventory. Activate one or buy a new device.",
     goStoreCta: "Buy a new device",
-    activateRow: "Activate an existing device ({n})",
+    activateRow: "Activate an existing device",
     toastSlotsFull: "Slots full {max}/{max}",
     toastActivated: "{name} activated",
   },
