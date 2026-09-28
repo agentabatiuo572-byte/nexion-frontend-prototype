@@ -933,6 +933,10 @@ body {
 }
 .nx-home-glass-panel .nx-liquid-specular { opacity: .26; }
 .nx-home-glass-panel .nx-liquid-rim { opacity: .55; }
+/* These nearly opaque cards need no fallback backdrop blur. Keep their optical
+   highlight on its own layer so WebKit can composite it during selector motion. */
+.nx-home-glass-panel[data-glass-strategy="frosted"] { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.nx-home-glass-panel[data-glass-strategy="frosted"] .nx-liquid-specular { filter: none; mix-blend-mode: normal; transform: translateZ(0); }
 .nx-home-glass-item:active > .nx-home-glass-panel { transform: scale(.97, .955); transition: transform 100ms ease-out; }
 .nx-home-glass-item:focus-visible, .nx-home-pill:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .nx-home-pill { position: relative; display: flex; justify-content: center; align-items: center; min-height: 44px; border-radius: var(--v5-radius-full); font-family: var(--font-v5); font-weight: 600; color: var(--v5-on-brand); text-align: center; cursor: pointer; }

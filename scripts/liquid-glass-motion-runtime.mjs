@@ -326,8 +326,13 @@ try {
       }
       await chassis().locator('.nx-bell').click();await page.locator('.md-panel:visible').waitFor();
       await page.locator('.md-panel:visible .md-close').click();
-      await chassis().locator('.nx-icon-btn').first().click();await page.waitForURL(/pages\/search\/search/);log('search-message-actions');
-      const delayed=await delayedNavigationIntent(page);
+      await chassis().locator('.nx-icon-btn').first().click();await page.waitForURL(/pages\/search\/search/);
+      await chassis().locator('.nx-search-nova').waitFor();await chassis().locator('input').waitFor();log('search-message-actions');
+      // The synthetic view fixture owns its document; replacing the live app
+      // here aborts its lazy route/capture work and produces WebKit CORS diagnostics.
+      const intentPage=await context.newPage();
+      intentPage.on('pageerror',e=>errors.push(engine+': '+(e.stack || `${e.name}: ${e.message}`)));
+      const delayed=await delayedNavigationIntent(intentPage);
       assert.equal(delayed.fromValue,'a');assert.ok(delayed.before>60);
       assert.ok(delayed.after>60 && delayed.after<delayed.target-20,`valid delayed flight restarted or teleported: ${JSON.stringify(delayed)}`);
       assert.ok(delayed.rejected.every(item=>Math.abs(item.x-item.expected)<1.1),'unrelated or missing intent consumed the old flight');
