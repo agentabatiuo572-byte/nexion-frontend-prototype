@@ -61,7 +61,7 @@ try {
     try {
       const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,recordVideo:{dir:out,size:{width:390,height:844}}});
       const page=await context.newPage();
-      page.on('pageerror',e=>errors.push(engine+': '+e.message));
+      page.on('pageerror',e=>errors.push(engine+': '+(e.stack || `${e.name}: ${e.message}`)));
       for(const prefix of ['tcs','vcs']) await page.addLocatorHandler(page.locator(`.${prefix}-root:visible`),async()=>{
         await page.locator(`.${prefix}-dismiss:visible,.${prefix}-close:visible`).first().click();
       });
