@@ -30,7 +30,7 @@
     </view>
 
     <!-- Medal card -->
-    <view class="ms-card">
+    <view class="nx-glass-sheet ms-card">
       <view class="ms-card__inner">
         <view class="ms-medal">
           <svg
@@ -324,18 +324,15 @@ useDialogA11y(computed(() => m.active !== null), ".ms-overlay", () => m.dismiss(
 }
 
 /* ── Medal card ── */
-.ms-card {
+.ms-card { border-radius: var(--nx-glass-radius); box-shadow: var(--nx-glass-edge);
   position: relative;
   width: 88%;
   max-width: 300px;
-  border-radius: 18px;
+
   padding: 20px;
   overflow: hidden;
-  background:
-    radial-gradient(70% 60% at 50% 0%, color-mix(in oklab, var(--v5-brand) 22%, transparent) 0%, transparent 70%),
-    radial-gradient(60% 50% at 50% 100%, color-mix(in oklab, var(--v5-tech-cyan) 14%, transparent) 0%, transparent 70%),
-    var(--v5-surface);
-  box-shadow: var(--v5-card-shadow-lift-strong);
+  background: var(--nx-glass-fill);
+
   animation: ms-card-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes ms-card-pop {

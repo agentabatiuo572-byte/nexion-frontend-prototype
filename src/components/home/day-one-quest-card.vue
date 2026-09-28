@@ -2,7 +2,7 @@
 <template>
   <view
     id="home-newcomer-task-card"
-    class="newcomer-task"
+    class="nx-glass-card newcomer-task"
     :class="{ 'newcomer-task--expanded': expanded }"
     :style="rootStyle"
     :aria-hidden="!props.active"
@@ -79,7 +79,7 @@
     </view>
 
     <view
-      class="newcomer-task__toggle"
+      class="nx-glass-action newcomer-task__toggle"
       :style="toggleStyle"
       role="button"
       :tabindex="props.active ? 0 : -1"
@@ -254,13 +254,13 @@ function rewardStyle(task: QuestTask): CSSProperties {
   };
 }
 
-const rootStyle = computed<CSSProperties>(() => ({
+const rootStyle = computed<CSSProperties>(() => ({ boxShadow: "var(--nx-glass-edge)",
   position: "relative",
   boxSizing: "border-box",
   height: expanded.value ? "auto" : "var(--home-task-card-height, 184px)",
   minHeight: "var(--home-task-card-height, 184px)",
-  borderRadius: "16px",
-  background: "radial-gradient(50% 60% at 0% 0%, var(--v5-brand-soft), transparent 70%), var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   overflow: "hidden",
   color: "var(--v5-ink)",
   display: "flex",
@@ -271,8 +271,8 @@ const toggleStyle: CSSProperties = {
   margin: "14px 16px",
   width: "auto",
   minHeight: "44px",
-  borderRadius: "12px",
-  background: "var(--v5-surface-2)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "transparent",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

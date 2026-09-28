@@ -13,7 +13,7 @@
 <template>
   <view v-if="open" class="nx-theme-dialog" role="dialog" aria-modal="true" :aria-label="t.me.themePickerTitle">
     <view class="nx-sheet-fade-in" :style="scrimStyle" @click="emit('close')">
-      <view class="nx-sheet-fade-in" :style="panelStyle" @click.stop>
+      <view class="nx-glass-sheet nx-sheet-fade-in" :style="panelStyle" @click.stop>
         <!-- Title row -->
         <view class="flex items-start justify-between" style="gap: 12px; margin-bottom: 14px">
           <text class="block" :style="titleStyle">{{ t.me.themePickerTitle }}</text>
@@ -83,13 +83,13 @@ const scrimStyle: CSSProperties = {
   justifyContent: "center",
   padding: "24px",
 };
-const panelStyle: CSSProperties = {
+const panelStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   width: "100%",
   maxWidth: "320px",
   zIndex: 800,
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
-  border: "1px solid var(--v5-border)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
+  border: "none",
   padding: "18px 16px 20px",
 };
 const titleStyle: CSSProperties = {

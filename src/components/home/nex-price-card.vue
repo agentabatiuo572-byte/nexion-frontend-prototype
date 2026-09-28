@@ -1,5 +1,5 @@
 <template>
-  <view class="block" style="background: var(--v5-surface); border-radius: 16px; padding: 12px 14px; position: relative; overflow: hidden" role="link" tabindex="0" data-home-action="nex-market-link" @click="goMarket" @keydown.enter.stop.prevent="goMarket" @keydown.space.stop.prevent="goMarket">
+  <view class="nx-glass-card block" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); padding: 12px 14px; position: relative; overflow: hidden" role="link" tabindex="0" data-home-action="nex-market-link" @click="goMarket" @keydown.enter.stop.prevent="goMarket" @keydown.space.stop.prevent="goMarket">
     <view class="grid items-center gap-3" style="grid-template-columns: 1fr 76px">
       <view class="min-w-0">
         <view class="flex items-baseline gap-1.5 font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">

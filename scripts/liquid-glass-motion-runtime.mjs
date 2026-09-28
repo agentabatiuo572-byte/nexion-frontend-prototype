@@ -311,7 +311,18 @@ try {
           throw error;
         }
         assert.deepEqual(await chassis().locator('.nx-header__r').boundingBox(),before);
-        await scrollContent(-140);await chassis().locator('.nx-header__l[data-hidden="false"]').waitFor({state:'attached'});
+        await scrollContent(-140);
+        assert.equal(await chassis().locator('.nx-header__l').getAttribute('data-hidden'),'true','reverse scroll must not reveal the logo over content');
+        await scrollContent(-10000);await chassis().locator('.nx-header__l[data-hidden="false"]').waitFor({state:'attached'});
+        const novaButton = chassis().locator('.nx-nova-btn');
+        if (await novaButton.count()) {
+          assert.notEqual(await novaButton.evaluate(el=>getComputedStyle(el).animationName),'none','Nova idle motion restored');
+          await page.emulateMedia({reducedMotion:'reduce'});
+          assert.equal(await novaButton.evaluate(el=>getComputedStyle(el).animationName),'none');
+          const halo=chassis().locator('.nx-nova-halo');
+          if(await halo.count()) assert.equal(await halo.evaluate(el=>getComputedStyle(el).animationName),'none');
+          await page.emulateMedia({reducedMotion:'no-preference'});
+        }
         log('logo-scroll-'+route);
       }
       await goto('store/store');

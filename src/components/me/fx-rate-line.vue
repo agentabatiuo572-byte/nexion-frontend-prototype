@@ -41,7 +41,7 @@
     <!-- 「牌价说明」半屏 -->
     <view v-if="sheetOpen">
       <view class="nx-sheet-fade-in" :style="scrimStyle" @click="sheetOpen = false" />
-      <view class="nx-sheet-slide-up" :style="sheetStyle">
+      <view class="nx-glass-sheet nx-sheet-slide-up" :style="sheetStyle">
         <text class="block" :style="titleStyle">{{ t.fx.sheetTitle }}</text>
         <text class="block" :style="bodyStyle">{{ sheetBody1 }}</text>
         <text class="block" :style="bodyStyle">{{ t.fx.sheetBody2 }}</text>
@@ -116,16 +116,16 @@ const scrimStyle: CSSProperties = {
   background: "rgba(8,8,12,0.45)",
   backdropFilter: "blur(8px) saturate(150%)",
 };
-const sheetStyle: CSSProperties = {
+const sheetStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   position: "fixed",
   left: 0,
   right: 0,
   bottom: 0,
   zIndex: 800,
-  borderTopLeftRadius: "16px",
-  borderTopRightRadius: "16px",
-  background: "var(--v5-surface)",
-  borderTop: "1px solid var(--v5-border)",
+  borderTopLeftRadius: "var(--nx-glass-radius)",
+  borderTopRightRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
+  borderTop: "none",
   padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)",
 };
 const titleStyle: CSSProperties = {

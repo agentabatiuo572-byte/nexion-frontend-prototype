@@ -5,7 +5,7 @@
   global ui confirm/toast.
 -->
 <template>
-  <view class="overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card overflow-hidden" :style="cardStyle">
     <view class="flex items-center justify-center relative" :style="artStyle">
       <GenesisArtwork context="holding" :serial="tokenId" style="position: absolute; inset: 0" />
       <view v-if="isListed" class="absolute inline-flex items-center" :style="listedBadgeStyle">
@@ -145,9 +145,9 @@ async function handleCancel() {
 }
 
 // Listed state stays on the badge; artwork never supplies a holding identity.
-const cardStyle: CSSProperties = {
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const artStyle: CSSProperties = {
   aspectRatio: "1 / 1",

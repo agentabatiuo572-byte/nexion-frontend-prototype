@@ -9,8 +9,8 @@
     <view
       v-for="c in chips"
       :key="c.href"
-      class="text-center active:opacity-70"
-      :style="chipStyle(c.tone)"
+      class="nx-glass-action text-center" role="link" tabindex="0"
+      style="width: 100%; min-width: 0; aspect-ratio: 1; min-height: 76px; box-sizing: border-box; padding: 8px 4px; display: flex; flex-direction: column; justify-content: center"
       @click="go(c.href)"
     >
       <view class="grid place-items-center" style="height: 24px">
@@ -36,14 +36,14 @@
           <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
         </svg>
       </view>
-      <text class="block mt-1 whitespace-nowrap" style="font-family: var(--font-v5); font-weight: 600; font-size: clamp(11px, 3.1vw, 12px); color: var(--v5-ink)">{{ c.label }}</text>
+      <text class="block mt-1" style="font-family: var(--font-v5); font-weight: 600; font-size: clamp(11px, 3.1vw, 12px); color: var(--v5-ink)">{{ c.label }}</text>
       <text class="block font-mono-tabular" :style="{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: iconColor(c.tone), marginTop: '1px' }">{{ c.sub }}</text>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { computed } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNexFaucet } from "@/store/nex-faucet";
@@ -69,14 +69,6 @@ const chips = computed(() => [
 
 function iconColor(tone: "brand" | "warm"): string {
   return tone === "warm" ? "var(--v5-brand-2)" : "var(--v5-brand)";
-}
-function chipStyle(tone: "brand" | "warm"): CSSProperties {
-  const accent = tone === "warm" ? "var(--v5-brand-2)" : "var(--v5-brand)";
-  return {
-    padding: "10px 4px",
-    background: `color-mix(in srgb, ${accent} 14%, var(--v5-surface))`,
-    borderRadius: "12px",
-  };
 }
 function go(href: string) {
   uni.navigateTo({ url: href, fail: () => {} });

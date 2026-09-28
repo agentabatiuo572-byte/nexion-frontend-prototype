@@ -7,7 +7,7 @@
   只拿 cvvToken。费率单源 deposits-core 的 CARD_FEE_RATE,组件与文案都不写死。
 -->
 <template>
-  <view class="rounded-2xl border overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card rounded-2xl border overflow-hidden" :style="cardStyle">
     <FundsSandboxBadge />
     <!-- Header -->
     <view class="flex items-center border-b" :style="headerStyle">
@@ -185,7 +185,7 @@ function emitCancel() {
 }
 
 // ─── styles ───
-const cardStyle: CSSProperties = { background: "var(--v5-surface)", borderColor: "var(--v5-border)" };
+const cardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderColor: "transparent" };
 const headerStyle: CSSProperties = { padding: "16px 20px", gap: "12px", borderColor: "color-mix(in srgb, var(--v5-border) 70%, transparent)" };
 const iconBoxStyle: CSSProperties = { width: "36px", height: "36px", borderRadius: "8px", background: "var(--v5-brand-2-soft)" };
 const headerTitleStyle: CSSProperties = {

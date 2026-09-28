@@ -44,7 +44,7 @@
 
         <!-- two wings -->
         <view class="grid grid-cols-2" style="gap: 10px">
-          <view v-for="wing in wings" :key="wing.key" class="rounded-2xl" :style="wingStyle">
+          <view v-for="wing in wings" :key="wing.key" class="nx-glass-card rounded-2xl" :style="wingStyle">
             <view class="flex items-center justify-between">
               <text class="font-display" :style="{ fontSize: '13px', fontWeight: 600, color: wing.color }">{{ wing.name }}</text>
             </view>
@@ -234,9 +234,9 @@ const inviteCtaStyle: CSSProperties = {
 };
 
 // Both wing columns use the same surface treatment.
-const wingStyle: CSSProperties = {
+const wingStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   padding: "14px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const wingVolStyle: CSSProperties = { marginTop: "8px", fontSize: "20px", fontWeight: 600, lineHeight: 1 };
 const topMemberStyle: CSSProperties = {

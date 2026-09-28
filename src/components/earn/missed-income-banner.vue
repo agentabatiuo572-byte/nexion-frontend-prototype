@@ -13,7 +13,7 @@
 -->
 <template>
   <view v-if="show" class="mx-4">
-    <view class="block relative overflow-hidden rounded-2xl active:opacity-90" :style="rootStyle" @click="goStore">
+    <view class="nx-glass-card block relative overflow-hidden active:opacity-90" :style="rootStyle" role="link" tabindex="0" @click="goStore">
       <!-- Subtle background glow on the right -->
       <view class="absolute inset-0 pointer-events-none" :style="glowStyle" />
 
@@ -26,7 +26,6 @@
       <!-- Big missed-today number -->
       <view class="relative mt-2 flex items-baseline gap-2">
         <view class="flex items-baseline">
-          <text class="tabular-nums" style="font-family: var(--font-v5); line-height: 1; color: var(--v5-brand-2-ink); letter-spacing: -0.014em; font-size: 34px; font-weight: 600">−</text>
           <text class="tabular-nums" style="font-family: var(--font-v5); line-height: 1; font-size: 15px; font-weight: 500; color: var(--v5-brand-2-ink); opacity: 0.75">$</text>
           <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; font-weight: 600; line-height: 1; color: var(--v5-brand-2-ink); letter-spacing: -0.014em">{{ missedToday.toFixed(2) }}</text>
         </view>
@@ -59,13 +58,14 @@
       <view class="relative mt-4 flex items-center justify-between gap-3">
         <view class="min-w-0" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.35">
           <text class="block">{{ t.earn.cumulativeMissed }}</text>
-          <text class="block tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-brand-2-ink); margin-top: 2px">−${{ cumulativeMissedRounded }}<text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 6px; font-weight: 400">· {{ daysSinceJoin }}d</text></text>
+          <text class="block tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-brand-2-ink); margin-top: 2px">${{ cumulativeMissedRounded }}<text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 6px; font-weight: 400">· {{ daysSinceJoin }}d</text></text>
         </view>
         <view class="shrink-0 inline-flex items-center gap-1.5 active:scale-[0.97]" :style="ctaStyle">
           <text :style="ctaLabelStyle">{{ t.earn.stopBleeding }}</text>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
       </view>
+      <text class="relative block mt-3" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.5">{{ t.earn.estimateDisclaimer }}</text>
     </view>
   </view>
 </template>
@@ -142,8 +142,6 @@ function goStore() {
 }
 
 const rootStyle: CSSProperties = {
-  background:
-    "linear-gradient(135deg, color-mix(in srgb, var(--v5-brand-2) 12%, transparent), var(--v5-surface) 45%, var(--v5-bg))",
   padding: "16px",
 };
 const glowStyle: CSSProperties = {

@@ -16,7 +16,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
         </template>
         <text class="block" :style="paraStyle">{{ w.s1Para1 }}</text>
-        <view :style="tableStyle">
+        <view class="nx-glass-card" :style="tableStyle">
           <view class="flex" :style="tableHeadStyle">
             <text class="text-left" :style="thWhat">{{ w.colWhat }}</text>
             <text class="text-left" :style="thCell">USDT</text>
@@ -134,10 +134,10 @@ function goBack() {
 
 const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
-const tableStyle: CSSProperties = {
+const tableStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "12px",
-  borderRadius: "12px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   overflow: "hidden",
 };
 const tableHeadStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.14em", color: "var(--v5-ink-3)" };

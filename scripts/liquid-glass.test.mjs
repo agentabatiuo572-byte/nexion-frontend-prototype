@@ -2,7 +2,20 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { patchLiquidGlassBundle } from './patch-liquid-glass.mjs';
-import { glassGeometry, glassSpring, rememberGlassNavigation, consumeGlassNavigation } from '../src/lib/liquid-glass-core.ts';
+import { glassGeometry, glassSpring, rememberGlassNavigation, consumeGlassNavigation, glassLogoHidden } from '../src/lib/liquid-glass-core.ts';
+
+test('logo waits for clear top space instead of reappearing on scroll reversal', () => {
+  let hidden = false;
+  for (const [top, expected] of [[0,false], [16,true], [324,true], [281,true], [80,true], [17,true], [12,true], [8,false], [12,false], [16,true]]) {
+    hidden = glassLogoHidden(top, hidden);
+    assert.equal(hidden, expected, `scrollTop=${top}`);
+  }
+  assert.equal(glassLogoHidden(281, true), true);
+  assert.equal(glassLogoHidden(12, true), true);
+  assert.equal(glassLogoHidden(12, false), false);
+  assert.equal(glassLogoHidden(8, true), false);
+  assert.equal(glassLogoHidden(-12, true), false);
+});
 
 test('cooperative capture patch is installed, repeatable and rejects changed upstream or patch bytes', () => {
   for (const entry of ['webgl.esm.js','webgl.cjs']) {

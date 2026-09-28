@@ -73,7 +73,7 @@
         <view class="flex items-center" :style="secHeaderStyle">
           <text :style="secTitleStyle">{{ t.stakingV3.stakePlans }}</text>
         </view>
-        <view :style="vaultCardStyle">
+        <view class="nx-glass-card" :style="vaultCardStyle">
           <VaultRow
             v-for="(term, i) in TERMS"
             :key="term"
@@ -481,9 +481,9 @@ const countStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
 };
 // Form-b: single filled container, no border — VaultRow supplies internal hairlines.
-const vaultCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const vaultCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "0 16px",
 };
 // Empty state — dashed outline, no fill (de-card empty-state idiom).

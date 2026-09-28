@@ -30,7 +30,7 @@
 
         <!-- 13-rank ladder — single surface container (form b): outer border
              dropped, the fill is the single visual difference; rows hairlined. -->
-        <view class="rounded-2xl overflow-hidden" :style="ladderCardStyle">
+        <view class="nx-glass-card rounded-2xl overflow-hidden" :style="ladderCardStyle">
           <view
             v-for="(r, idx) in rankDefs"
             :key="r.v"
@@ -121,7 +121,7 @@ const heroRankStyle: CSSProperties = {
 
 // Form b container — no border (fill is the single visual difference);
 // overflow-hidden stays: the tinted current row must clip to the radius.
-const ladderCardStyle: CSSProperties = { background: "var(--v5-surface)", borderRadius: "16px", marginTop: "12px" };
+const ladderCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderRadius: "var(--nx-glass-radius)", marginTop: "12px" };
 function rowStyle(status: "done" | "current" | "locked", isLast: boolean): CSSProperties {
   return {
     padding: "14px 16px",

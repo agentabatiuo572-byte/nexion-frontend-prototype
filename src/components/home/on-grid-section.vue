@@ -11,7 +11,7 @@
       <text class="font-mono-tabular inline-flex items-center active:opacity-70" style="min-height: 44px; padding-left: 12px; font-size: 13px; color: var(--v5-brand); font-weight: 500" role="link" tabindex="0" data-home-action="on-grid-map" @click="goGlobe" @keydown.enter.stop.prevent="goGlobe" @keydown.space.stop.prevent="goGlobe">{{ t.home.onGridMap }} →</text>
     </view>
 
-    <view style="background: var(--v5-surface); border-radius: 16px; overflow: hidden">
+    <view class="nx-glass-card" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); overflow: hidden">
       <view
         v-for="(c, i) in gridClients"
         :key="c.id"

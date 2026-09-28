@@ -4,7 +4,7 @@
   own bottom dividers; last row passes `last`).
 -->
 <template>
-  <view class="relative overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
     <slot />
   </view>
 </template>
@@ -12,9 +12,9 @@
 <script setup lang="ts">
 import type { CSSProperties } from "vue";
 
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "0 14px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 </script>

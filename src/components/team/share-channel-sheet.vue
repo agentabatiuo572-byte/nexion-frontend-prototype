@@ -9,7 +9,7 @@
 <template>
   <view v-if="open">
     <view class="ss-mask" @click="emit('close')" />
-    <view class="ss-sheet">
+    <view class="nx-glass-sheet ss-sheet">
       <view class="ss-grab" />
       <view class="ss-head">
         <text class="ss-head__t">{{ t.share.channelTitle }}</text>
@@ -123,7 +123,7 @@ async function onChannel(c: ShareChannelDef) {
 
 <style scoped>
 .ss-mask { position: fixed; inset: 0; background: var(--v5-bg-color-mask); backdrop-filter: blur(3px); z-index: 8000; }
-.ss-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001; background: var(--v5-surface); border-top: 1px solid var(--v5-border-strong); border-radius: 22px 22px 0 0; max-height: 80vh; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 38px); animation: ss-up 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+.ss-sheet { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge); position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001; background: var(--nx-glass-fill); border: none;  max-height: 80vh; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 38px); animation: ss-up 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes ss-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .ss-grab { width: 40px; height: 4px; border-radius: 9999px; background: var(--v5-surface-3); margin: 10px auto 0; }
 .ss-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 0; }

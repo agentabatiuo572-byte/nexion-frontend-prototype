@@ -51,7 +51,7 @@
       <template v-else>
       <!-- Map — de-carded (border dropped); relative + overflow-hidden retained
            to clip the region glow halos at the rounded panel edge (functional). -->
-      <view class="mx-4 rounded-2xl relative overflow-hidden" :style="mapCardStyle">
+      <view class="nx-glass-card mx-4 rounded-2xl relative overflow-hidden" :style="mapCardStyle">
         <svg :viewBox="`0 0 ${W} ${H}`" class="w-full block" preserveAspectRatio="xMidYMid meet">
           <defs>
             <radialGradient id="globe-glow" cx="50%" cy="50%" r="50%">
@@ -149,7 +149,7 @@
       <!-- Drawer -->
       <view v-if="selected" class="nx-globe-drawer" role="dialog" aria-modal="true">
         <view class="nx-globe-scrim" @click="selected = null" />
-        <view class="relative border rounded-2xl" :style="drawerCardStyle">
+        <view class="nx-glass-sheet relative border rounded-2xl" :style="drawerCardStyle">
           <view class="absolute grid place-items-center active:opacity-70" :style="drawerCloseStyle" @click="selected = null">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
           </view>
@@ -408,8 +408,8 @@ const statValStyle: CSSProperties = {
   marginTop: "4px",
   color: "var(--v5-ink)",
 };
-const mapCardStyle: CSSProperties = {
-  background: "var(--v5-surface-3)",
+const mapCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "12px",
 };
 const regionListStyle: CSSProperties = {
@@ -447,11 +447,11 @@ const regionRateStyle: CSSProperties = {
   fontWeight: 600,
   color: "var(--v5-brand)",
 };
-const drawerCardStyle: CSSProperties = {
+const drawerCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   width: "100%",
   maxWidth: "420px",
-  background: "var(--v5-surface)",
-  borderColor: "var(--v5-border)",
+  background: "var(--nx-glass-fill)",
+  borderColor: "transparent",
   padding: "20px",
 };
 const drawerCloseStyle: CSSProperties = {

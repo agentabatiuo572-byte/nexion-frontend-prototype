@@ -47,7 +47,7 @@
   <view v-if="state.kind !== 'none'" class="tis-root" role="dialog" aria-modal="true">
     <view class="tis-backdrop" @click="hide" />
 
-    <view class="tis-panel" @click.stop>
+    <view class="nx-glass-sheet tis-panel" @click.stop>
       <view class="tis-close" @click="hide">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
       </view>
@@ -892,16 +892,16 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
   -webkit-backdrop-filter: blur(8px) saturate(150%);
   animation: tradein-fade 0.24s ease-out;
 }
-.tis-panel {
+.tis-panel { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge);
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 800;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  background: var(--v5-surface);
-  border-top: 1px solid var(--v5-border);
+
+
+  background: var(--nx-glass-fill);
+  border: none;
   padding: 18px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 38px);
   animation: tradein-slide-up 0.36s cubic-bezier(0.16, 1, 0.3, 1);

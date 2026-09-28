@@ -2,8 +2,7 @@
 <template>
   <view v-if="sheet.open" class="sas-root" role="dialog" aria-modal="true" :aria-label="t.slotSheet.title">
     <view class="sas-backdrop" aria-hidden="true" @click="hide" />
-    <view class="sas-panel" @click.stop>
-      <view class="nx-home-glass-panel" aria-hidden="true" />
+    <view class="nx-glass-sheet sas-panel" @click.stop>
       <view class="sas-content">
         <view class="sas-icon" aria-hidden="true">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5v8l-9 5-9-5V8zM3 8l9 5 9-5M12 13v8" /></svg>
@@ -49,7 +48,7 @@ useDialogA11y(computed(() => sheet.open), ".sas-root", hide);
 <style scoped>
 .sas-root { position: fixed; inset: 0; z-index: 790; }
 .sas-backdrop { position: absolute; inset: 0; background: var(--v5-bg-color-mask); animation: sas-fade .2s ease-out; }
-.sas-panel { position: absolute; left: 0; right: 0; bottom: 0; max-height: 90%; overflow-y: auto; border-radius: var(--v5-radius-3xl) var(--v5-radius-3xl) 0 0; padding: 20px 20px calc(env(safe-area-inset-bottom) + 38px); background: var(--v5-surface); animation: sas-slide-up .32s cubic-bezier(.16,1,.3,1); }
+.sas-panel { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge); position: absolute; left: 0; right: 0; bottom: 0; max-height: 90%; overflow-y: auto;  padding: 20px 20px calc(env(safe-area-inset-bottom) + 38px); background: var(--nx-glass-fill); animation: sas-slide-up .32s cubic-bezier(.16,1,.3,1); }
 .sas-content { position: relative; text-align: center; }
 .sas-icon { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 10px; border-radius: var(--v5-radius-full); background: var(--v5-surface-2); color: var(--v5-ink-2); }
 .sas-close { position: absolute; top: 0; right: -4px; width: 44px; height: 44px; display: grid; place-items: center; color: var(--v5-ink-2); border-radius: var(--v5-radius-full); }

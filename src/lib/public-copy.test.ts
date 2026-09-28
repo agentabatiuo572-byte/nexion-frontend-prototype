@@ -9,6 +9,8 @@ import { zh } from "@/i18n/messages/zh";
 import { vi } from "@/i18n/messages/vi";
 import type { Notification } from "@/store/notifications";
 import { notificationCopy } from "./notification-copy";
+import { EVENTS, localizeEvent } from "@/mock/events";
+import { fmt } from "@/i18n/format";
 
 const sources = import.meta.glob([
   "../components/home/earnings-ledger-card.vue", "../components/team/quota-tier-card.vue",
@@ -20,6 +22,8 @@ const sources = import.meta.glob([
   "../components/home/do-the-math-card.vue", "../components/home/nova-card-slot.vue",
   "../pages/genesis/holder.vue", "../pages/genesis/marketplace.vue",
   "../pages/login/login.vue", "../pages/register/register.vue", "../pages/me/security.vue",
+  "../pages/me/proof.vue", "../pages/events/events.vue",
+  "../components/earn/missed-income-banner.vue", "../components/home/trust-chip-wall.vue",
 ], { query: "?raw", import: "default", eager: true });
 const source = (path: string) => String(sources[path] ?? "");
 function componentFunction(path: string, name: string): string {
@@ -31,6 +35,81 @@ function componentFunction(path: string, name: string): string {
 }
 
 describe.each([en, zh, vi])("public copy in each supported dictionary", (words) => {
+  it("compares displayed daily amounts without promising a rounded earnings multiplier", () => {
+    const script = parse(source("../components/home/do-the-math-card.vue")).descriptor.scriptSetup!.content;
+    const ast = ts.createSourceFile("comparison.ts", script, ts.ScriptTarget.Latest, true);
+    const expression = (name: string) => {
+      const declaration = ast.statements.filter(ts.isVariableStatement).flatMap(statement => [...statement.declarationList.declarations])
+        .find(node => node.name.getText(ast) === name)!;
+      return ts.transpileModule(`const result = ${declaration.initializer!.getText(ast)};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+    };
+    for (const [baseDaily, targetDaily] of [[45, 75], [0, 6.5], [6.5, 6.5]]) {
+      const promo = { value: { baseDaily, targetDaily, multiplier: 2 } };
+      const stats = new Function("computed", "fmt", "t", "promo", "baseShort", `${expression("stats")}; return result.value;`)(Vue.computed, fmt, { value: words }, promo, { value: "UVELRack P1" });
+      expect(stats.map((stat: { v: string }) => stat.v)).toEqual([`$${targetDaily.toFixed(2)}`, `$${(targetDaily - baseDaily).toFixed(2)}`]);
+      const headline = new Function("computed", "t", "targetLabel", "baseShort", `${expression("headlineSegs")}; return result.value;`)(Vue.computed, { value: words }, { value: "UVELRack P2" }, { value: "UVELRack P1" });
+      expect(headline.map((segment: { text: string }) => segment.text).join("")).toBe(fmt(words.home.doMathHeadline, { target: "UVELRack P2", base: "UVELRack P1" }));
+    }
+    expect(words.home.doMathHeadline).not.toContain("{mult}");
+    expect(source("../components/home/do-the-math-card.vue")).toContain("t.earn.estimateDisclaimer");
+  });
+
+  it("localizes every event without changing event conditions or stored state", () => {
+    expect(Object.keys(words.events.catalog).sort()).toEqual(EVENTS.map(event => event.id).sort());
+    for (const event of EVENTS) {
+      const snapshot = JSON.stringify(event);
+      const localized = localizeEvent(event, words.events.catalog);
+      const copy = words.events.catalog[event.id as keyof typeof words.events.catalog];
+      expect(localized.title).toBe(copy.title);
+      expect(localized.ctaLabel).toBe(copy.ctaLabel);
+      expect(localized.reward).toBe(copy.reward);
+      if (event.progress) {
+        expect(localized.progress).toEqual({ ...event.progress, label: copy.progressLabel });
+      }
+      for (const field of ["id", "kind", "status", "joined", "trackable", "done", "rewardNEX", "href", "useHref"] as const) {
+        expect(localized[field]).toBe(event[field]);
+      }
+      expect(JSON.stringify(event)).toBe(snapshot);
+    }
+    const unknown = { ...EVENTS[0], id: "remote-only-event" };
+    expect(localizeEvent(unknown, words.events.catalog)).toBe(unknown);
+    expect(source("../pages/events/events.vue")).toContain("label: t.value.events.progressLabel");
+  });
+
+  it("generates localized share text from actual values and discloses simulated data", () => {
+    const script = parse(source("../pages/me/proof.vue")).descriptor.scriptSetup!.content;
+    const ast = ts.createSourceFile("proof.ts", script, ts.ScriptTarget.Latest, true);
+    const declaration = ast.statements.filter(ts.isVariableStatement).flatMap(statement => [...statement.declarationList.declarations])
+      .find(node => node.name.getText(ast) === "shareText")!;
+    const expression = ts.transpileModule(`const result = ${declaration.initializer!.getText(ast)};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+    const make = new Function("computed", "fmt", "t", "variant", "longestOrCurrent", "totalMembers", "earningsTotalText", "activeDays", "referralLink", "remoteApiEnabled", "remoteSnapshot", `${expression}; return result.value;`);
+    for (const variant of ["streak", "network", "earnings"]) {
+      for (const environment of ["LOCAL", "SANDBOX", "PRODUCTION"]) {
+        const result = make(Vue.computed, fmt, { value: words }, { value: variant }, { value: 9 }, { value: 17 }, { value: "23.45" }, { value: 31 }, { value: "https://example.test/ref/test" }, environment !== "LOCAL", { value: { sourceEnvironment: environment } });
+        const expected = fmt(variant === "streak" ? words.proof.shareStreak : variant === "network" ? words.proof.shareNetwork : words.proof.shareEarnings,
+          { n: variant === "streak" ? "9" : "17", amount: "23.45", days: "31", link: "https://example.test/ref/test" });
+        expect(result).toBe(environment === "PRODUCTION" ? expected : `${words.proof.shareDemo} ${expected}`);
+        expect(result).not.toMatch(/7 layers|Compound earnings|passive NEX/);
+      }
+    }
+  });
+
+  it("keeps estimates, withdrawal thresholds and staking currency truthful", () => {
+    expect(words.empty.stakingDesc).toContain("USDT");
+    expect(words.empty.stakingDesc).not.toContain("NEX");
+    expect(words.me.withdrawalLockedBody).not.toMatch(/325|0\.06|S1|\$20/);
+    expect(words.me.withdrawalLockedBody).toContain("{min}");
+    expect(words.me.withdrawalLockedBody).toContain("{short}");
+    expect(words.onboarding.estimatorHint).not.toMatch(/±|15%/);
+    expect(words.earn.estimateDisclaimer).toBeTruthy();
+    const banner = parse(source("../components/earn/missed-income-banner.vue")).descriptor.template!.content;
+    expect(banner).not.toContain("−");
+    expect(banner).toContain("t.earn.estimateDisclaimer");
+    expect(words.repurchaseHowItWorks.s3HintBody).toContain("15%");
+    expect(source("../components/home/trust-chip-wall.vue")).not.toMatch(/CertiK|SOC 2|102\.4%|ISO 27001/);
+    expect(source("../pages/store/detail.vue")).not.toMatch(/Forbes|CoinDesk|TechCrunch|SOC 2 Type II|ISO 27001/);
+  });
+
   it("keeps store FAQs free of fixed deployment, withdrawal and earnings promises", () => {
     const faq = words.store.faq;
     expect(Object.keys(faq).sort()).toEqual(["demand", "location", "refund", "withdraw"]);

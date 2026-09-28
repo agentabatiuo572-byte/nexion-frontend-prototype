@@ -54,7 +54,7 @@
       </view>
 
       <!-- NexGridBot -->
-      <view class="mx-4" :style="botCardStyle">
+      <view class="nx-glass-card mx-4" :style="botCardStyle">
         <view class="flex items-center" :style="botHeadStyle">
           <view class="grid place-items-center" :style="botIconBoxStyle">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
@@ -254,10 +254,10 @@ function chevStyle(open: boolean): CSSProperties {
 const faqBodyStyle: CSSProperties = { padding: "0 0 14px" };
 const faqAStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.62 };
 // NexGridBot — a contained chat widget (single surface container, no border).
-const botCardStyle: CSSProperties = {
+const botCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginBottom: "12px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   overflow: "hidden",
 };
 const botHeadStyle: CSSProperties = { gap: "8px", padding: "12px 16px", borderBottom: "1px solid color-mix(in srgb, var(--v5-border) 70%, transparent)" };

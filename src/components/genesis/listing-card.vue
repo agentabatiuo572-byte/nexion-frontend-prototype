@@ -1,6 +1,6 @@
 <!-- ListingCard — marketplace listing tile + Buy CTA (marketplace/page.tsx ListingCard). -->
 <template>
-  <view class="overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card overflow-hidden" :style="cardStyle">
     <!-- NFT visual -->
     <view class="relative flex items-center justify-center" :style="artStyle">
       <GenesisArtwork context="holding" :serial="l.holdingNo ?? l.tokenId" style="position: absolute; inset: 0" />
@@ -57,9 +57,9 @@ const lastSaleText = computed(() => props.l.lastSaleUSDT === null
   ? "—" : fmt(t.value.marketplace.lastSale, { k: (props.l.lastSaleUSDT / 1000).toFixed(1) }));
 
 // Collectible tile — filled surface, no border (single visual difference).
-const cardStyle: CSSProperties = {
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const artStyle: CSSProperties = {
   aspectRatio: "1 / 1",

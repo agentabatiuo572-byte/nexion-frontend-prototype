@@ -29,7 +29,8 @@
         </view>
 
         <!-- Share card -->
-        <view v-if="!remoteApiEnabled || remoteSnapshot" class="relative overflow-hidden" :style="shareCardStyle">
+        <view v-if="!remoteApiEnabled || remoteSnapshot" class="nx-glass-card relative overflow-hidden" :style="shareCardStyle">
+          <text v-if="!remoteApiEnabled || remoteSnapshot?.sourceEnvironment === 'SANDBOX'" class="block" style="margin-bottom: 12px; font-size: 12px; color: var(--v5-ink-3)">{{ t.proof.shareDemo }}</text>
           <!-- brand -->
           <view class="flex items-center" style="gap: 8px">
             <BrandLockup />
@@ -315,11 +316,13 @@ const topPct = computed(() => remoteApiEnabled ? remoteSnapshot.value?.topPercen
 const topPctText = computed(() => topPct.value === null ? "Top —" : `Top ${topPct.value}%`);
 
 const shareText = computed(() => {
-  if (variant.value === "streak")
-    return `🔥 ${longestOrCurrent.value ?? "—"}-day streak on UVEL. Daily check-ins = passive NEX. Join me: ${referralLink.value}`;
-  if (variant.value === "network")
-    return `🌐 My UVEL network is ${totalMembers.value ?? "—"} strong across 7 layers. Compound earnings from each. Join: ${referralLink.value}`;
-  return `💸 Earned $${earningsTotalText.value} on UVEL in ${activeDays.value ?? "—"} days. Join my network: ${referralLink.value}`;
+  const words = t.value.proof;
+  const text = variant.value === "streak"
+    ? fmt(words.shareStreak, { n: String(longestOrCurrent.value ?? "—"), link: referralLink.value })
+    : variant.value === "network"
+      ? fmt(words.shareNetwork, { n: String(totalMembers.value ?? "—"), link: referralLink.value })
+      : fmt(words.shareEarnings, { amount: earningsTotalText.value, days: String(activeDays.value ?? "—"), link: referralLink.value });
+  return remoteApiEnabled && remoteSnapshot.value?.sourceEnvironment === "PRODUCTION" ? text : `${words.shareDemo} ${text}`;
 });
 
 // ── derived labels ──
@@ -342,7 +345,7 @@ function nativeShare() {
       provider: "weixin",
       type: 0,
       href: referralLink.value,
-      title: "UVEL · Proof of Contribution",
+      title: t.value.headerTitles.meProof,
       summary: shareText.value,
       success: () => {},
       fail: () => copyText(shareText.value, t.value.proof.sharedToast),
@@ -428,7 +431,7 @@ async function drawProofPoster(link: string): Promise<void> {
       ctx.drawImage(logo, 72, 62, 264, 264 * 246 / 712);
       ctx.setFillStyle("#9cabbd");
       ctx.setFontSize(24);
-      ctx.fillText("PROOF OF CONTRIBUTION", 72, 204);
+      ctx.fillText(t.value.uiChrome.proofOfContribution, 72, 204);
 
       ctx.setFillStyle("#111d30");
       ctx.fillRect(72, 254, 936, 948);
@@ -465,6 +468,10 @@ async function drawProofPoster(link: string): Promise<void> {
       ctx.setFillStyle("#d9e4f2");
       ctx.setFontSize(24);
       ctx.fillText(t.value.proof.qrHint, 124, 1106);
+      if (!remoteApiEnabled || remoteSnapshot.value?.sourceEnvironment === "SANDBOX") {
+        ctx.setFontSize(20);
+        ctx.fillText(t.value.proof.shareDemo, 72, 1260);
+      }
       ctx.draw(false, () => resolve());
     } catch (error) {
       reject(error);
@@ -573,21 +580,7 @@ const variantLabelStyle: CSSProperties = {
   letterSpacing: "0.06em",
   color: "var(--v5-ink-3)",
 };
-const shareCardStyle = computed<CSSProperties>(() => {
-  // Proof "certificate" — single container (form b): the gradient fill is the
-  // poster look; the accent border is dropped (filled = no border). Gradient
-  // literals → token color-mix (lemon brand / tech-cyan / brand-2 / warning over
-  // a near-black surface; matches source intent, token-disciplined).
-  const grad: Record<Variant, string> = {
-    earnings:
-      "linear-gradient(135deg, color-mix(in srgb, var(--v5-brand) 18%, transparent) 0%, color-mix(in srgb, var(--v5-on-brand) 95%, transparent) 60%, color-mix(in srgb, var(--v5-tech-cyan) 16%, transparent) 100%)",
-    streak:
-      "linear-gradient(135deg, color-mix(in srgb, var(--v5-brand-2) 20%, transparent) 0%, color-mix(in srgb, var(--v5-on-brand) 95%, transparent) 60%, color-mix(in srgb, var(--v5-warning) 18%, transparent) 100%)",
-    network:
-      "linear-gradient(135deg, color-mix(in srgb, var(--v5-tech-cyan) 20%, transparent) 0%, color-mix(in srgb, var(--v5-on-brand) 95%, transparent) 60%, color-mix(in srgb, var(--v5-brand) 16%, transparent) 100%)",
-  };
-  return { marginTop: "12px", borderRadius: "16px", padding: "20px", background: grad[variant.value] };
-});
+const shareCardStyle: CSSProperties = { marginTop: "12px", padding: "20px" };
 const profileNameStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, color: "var(--v5-ink)" };
 const memberSinceStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
 function heroKickerStyle(color: string): CSSProperties {

@@ -5,7 +5,7 @@
 <template>
   <view v-if="device" class="fixed inset-0" style="z-index: 900">
     <view class="absolute inset-0" style="background: var(--v5-bg-color-mask)" @click="emit('close')" />
-    <view class="absolute left-0 right-0 bottom-0" :style="sheetStyle">
+    <view class="nx-glass-sheet absolute left-0 right-0 bottom-0" :style="sheetStyle">
       <view class="flex items-center justify-between">
         <text style="font-family: var(--font-v5); font-size: 15px; font-weight: 650; color: var(--v5-ink)">{{ t.tradein.ladderTitle }}</text>
         <view class="grid place-items-center active:opacity-70" :style="closeBtnStyle" @click.stop="emit('close')">
@@ -34,10 +34,10 @@ defineProps<{ device: Device | null }>();
 const emit = defineEmits<{ (e: "close"): void }>();
 const t = useT();
 const sheetStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "24px 24px 0 0",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius) var(--nx-glass-radius) 0 0",
   padding: "18px 18px 30px",
-  boxShadow: "var(--v5-card-shadow-lift-strong)",
+  boxShadow: "var(--nx-glass-edge)",
 };
 // 44×44 点按区(移动端最小触控标准;PR-D 债 #4)。
 const closeBtnStyle: CSSProperties = {

@@ -6,7 +6,7 @@
         <InviteEarnCard />
 
         <!-- V3+ royalty hero -->
-        <view v-if="!remoteApiEnabled && myRank >= 3" class="rounded-2xl relative overflow-hidden active:opacity-95" :style="royaltyHeroStyle" @click="go('/pages/team/unilevel')">
+        <view v-if="!remoteApiEnabled && myRank >= 3" class="nx-glass-card rounded-2xl relative overflow-hidden active:opacity-95" :style="royaltyHeroStyle" @click="go('/pages/team/unilevel')">
           <view class="flex items-center font-mono-tabular" :style="royaltyCapStyle">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
             <text>{{ t.teamV3.royaltyHeroLabel }}</text>
@@ -20,7 +20,7 @@
         </view>
 
         <!-- My V-rank summary -->
-        <view class="nx-team-rank-link relative overflow-hidden rounded-2xl active:opacity-95" :style="rankCardStyle" @click="go('/pages/team/rank')">
+        <view class="nx-glass-card nx-team-rank-link relative overflow-hidden rounded-2xl active:opacity-95" :style="rankCardStyle" @click="go('/pages/team/rank')">
           <NetworkOrbBackdrop :opacity="0.32" />
           <view class="relative" :style="rankContentStyle">
             <view :style="rankHeaderStyle">
@@ -39,7 +39,7 @@
         </view>
 
         <!-- Unified quick nav -->
-        <view class="nx-team-quick-panel rounded-2xl overflow-hidden" :style="quickPanelStyle">
+        <view class="nx-glass-card nx-team-quick-panel rounded-2xl overflow-hidden" :style="quickPanelStyle">
           <!-- Leaderboard -->
           <view class="nx-team-leaderboard-link active:opacity-95" :style="quickRowStyle" @click="go('/pages/team/leaderboard')">
             <view :style="quickRowMainStyle">
@@ -133,7 +133,7 @@
         </view>
 
         <!-- Team tools -->
-        <view class="grid" :style="toolGridStyle">
+        <view class="nx-glass-card grid" :style="toolGridStyle">
           <view class="active:opacity-95" :style="toolCellStyle(0)" @click="go('/pages/team/quota')">
             <view class="flex items-start justify-between">
               <view :style="toolIconStyle('var(--v5-warning-soft)')">
@@ -353,17 +353,17 @@ onUnmounted(() => {
 });
 
 // ─── styles ───
-const royaltyHeroStyle: CSSProperties = {
+const royaltyHeroStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   padding: "16px",
-  background: "radial-gradient(80% 60% at 100% 0%, var(--v5-brand-soft) 0%, transparent 60%), var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const royaltyCapStyle: CSSProperties = { gap: "6px", fontSize: "12px", color: "var(--v5-brand)", marginBottom: "8px" };
 const royaltyAmtStyle: CSSProperties = { fontSize: "26px", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1 };
 const royaltySubStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)" };
 
-const rankCardStyle: CSSProperties = {
+const rankCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   padding: "16px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const rankContentStyle: CSSProperties = {
   minHeight: "104px",
@@ -406,9 +406,9 @@ const rankLevelTextStyle: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const quickPanelStyle: CSSProperties = {
+const quickPanelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   // 《03》§6:带 bg 填充零 border
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const quickRowStyle: CSSProperties = {
   minHeight: "74px",
@@ -457,11 +457,11 @@ const quickDividerStyle: CSSProperties = {
   marginLeft: "62px",
   background: "var(--v5-border)",
 };
-const toolGridStyle: CSSProperties = {
+const toolGridStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   overflow: "hidden",
 };
 function toolCellStyle(index: number): CSSProperties {

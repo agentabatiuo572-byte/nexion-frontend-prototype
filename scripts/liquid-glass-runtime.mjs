@@ -251,6 +251,19 @@ try {
   }
 
   if (stage === 'integration') {
+    await goto('index/index');
+    for (const width of [320,390]) for (const locale of ['zh','en','vi']) {
+      await page.setViewportSize({width,height:844}); await settings(locale,'dark');
+      const entries=active().locator('.nx-glass-action[role="link"]');
+      const boxes=await entries.evaluateAll(els=>els.map(el=>{
+        const r=el.getBoundingClientRect(),parent=el.parentElement.getBoundingClientRect();
+        return {x:r.x,right:r.right,width:r.width,height:r.height,parentRight:parent.right,overflow:el.scrollWidth>el.clientWidth+1};
+      }));
+      assert.equal(boxes.length,4);
+      assert.ok(boxes.every((b,i)=>b.width>=44 && b.height>=44 && b.right<=b.parentRight+1 && !b.overflow && (!i || b.x>=boxes[i-1].right)),JSON.stringify(boxes));
+      log(`home-shortcuts-${width}-${locale}`,{boxes});
+    }
+    await page.setViewportSize({width:390,height:844}); await settings('zh','dark');
     const source=await readFile(resolve(root,'src/pages.json'),'utf8');
     const routes=[...source.matchAll(/"path"\s*:\s*"([^"]+)"/g)].map(m=>m[1]);
     for(const route of routes) {
@@ -260,7 +273,15 @@ try {
       await page.waitForFunction(route=>getCurrentPages().at(-1)?.route===route,expected);
       await page.locator('uni-page-body').last().waitFor({state:'attached'});
       await page.waitForFunction(()=>document.querySelector('uni-page-body')?.textContent?.trim().length>0);
-      log('route-'+route,{actualRoute:expected,textLength:(await page.locator('uni-page-body').last().innerText()).length});
+      await closeTransient(); await settled();
+      const surfaces=await page.locator('uni-page-body').last().locator('.nx-glass-card,.nx-glass-sheet,.nx-glass-action').evaluateAll(els=>els.filter(el=>el.getClientRects().length).map(el=>{
+        const s=getComputedStyle(el,el.classList.contains('nx-glass-action')?'::before':null);
+        return {text:el.textContent?.trim().slice(0,70),radius:s.borderRadius,shadow:s.boxShadow,background:s.backgroundImage};
+      }));
+      assert.ok(surfaces.every(s=>s.shadow!=='none' && parseFloat(s.radius)>0),`Missing content material ${route}: ${JSON.stringify(surfaces)}`);
+      const shot=resolve(out,'route-'+route.replaceAll('/','-')+'.png');
+      await page.screenshot({path:shot}); evidence.push(shot);
+      log('route-'+route,{actualRoute:expected,textLength:(await page.locator('uni-page-body').last().innerText()).length,surfaces});
     }
   }
   await goto('earn/earn');await page.reload({waitUntil:'domcontentloaded'});await active().waitFor();

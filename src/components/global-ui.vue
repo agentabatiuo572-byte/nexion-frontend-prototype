@@ -31,7 +31,7 @@
     :aria-label="topConfirm.title"
     @click="ui.resolveConfirm(topConfirm.id, false)"
   >
-    <view class="nx-modal" @click.stop>
+    <view class="nx-glass-sheet nx-modal" @click.stop>
       <text class="nx-modal__title">{{ topConfirm.title }}</text>
       <text v-if="topConfirm.message" class="nx-modal__msg">{{ topConfirm.message }}</text>
       <view class="nx-modal__actions">
@@ -59,7 +59,7 @@
 
   <!-- Network-error overlay -->
   <view v-if="ui.netError.visible" class="nx-mask nx-mask--neterr" role="dialog" aria-modal="true" :aria-label="ui.netError.title">
-    <view class="nx-modal">
+    <view class="nx-glass-sheet nx-modal">
       <text class="nx-modal__title">{{ ui.netError.title }}</text>
       <text class="nx-modal__msg">{{ ui.netError.message }}</text>
       <view class="nx-modal__actions">
@@ -200,13 +200,13 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
   justify-content: center;
   padding: 24px;
 }
-.nx-modal {
+.nx-modal { border-radius: var(--nx-glass-radius); box-shadow: var(--nx-glass-edge);
   width: 100%;
   max-width: 320px;
-  background: var(--v5-surface);
-  border: 1px solid var(--v5-border);
-  border-radius: 18px;
-  box-shadow: var(--v5-card-shadow-lift-strong);
+  background: var(--nx-glass-fill);
+  border: none;
+
+
   padding: 22px 20px 16px;
   display: flex;
   flex-direction: column;

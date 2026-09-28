@@ -14,7 +14,7 @@
     <view class="flex items-end gap-2.5">
       <NovaAvatar :size="44" pulse />
 
-      <view class="flex-1 min-w-0 relative overflow-hidden" style="padding: 12px 14px; background: var(--v5-surface); border-radius: 18px 18px 18px 4px">
+      <view class="nx-glass-card flex-1 min-w-0 relative overflow-hidden" style="padding: 12px 14px; background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius)">
         <!-- Flowing aurora blobs (clipped by parent overflow-hidden) -->
         <view class="pointer-events-none absolute" :style="blob1" />
         <view class="pointer-events-none absolute" :style="blob2" />

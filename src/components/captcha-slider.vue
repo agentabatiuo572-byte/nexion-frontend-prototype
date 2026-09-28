@@ -6,7 +6,7 @@
          同理 `e.target.closest()` 也不存在。改用全站既有写法(country-code-sheet /
          slot-action-sheet / purchase-sheet):遮罩单独一层,点卡片根本到不了它。 -->
     <view class="cs-mask" @click="onCancel" />
-    <view class="cs-card">
+    <view class="nx-glass-sheet cs-card">
       <view class="cs-head">
         <view class="cs-head__txt">
           <text class="cs-title">{{ t.authOtp.captchaTitle }}</text>
@@ -312,7 +312,7 @@ onUnmounted(() => {
    重叠,压在滑块上不影响任何操作。 */
 .cs-layer { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .cs-mask { position: absolute; inset: 0; background: var(--v5-bg-color-mask); backdrop-filter: blur(4px); }
-.cs-card { position: relative; width: 100%; max-width: 340px; background: var(--v5-surface); border: 1px solid var(--v5-surface-2); border-radius: 20px; padding: 18px; }
+.cs-card { border-radius: var(--nx-glass-radius); box-shadow: var(--nx-glass-edge); position: relative; width: 100%; max-width: 340px; background: var(--nx-glass-fill); border: none;  padding: 18px; }
 .cs-head { display: flex; align-items: flex-start; justify-content: space-between; }
 .cs-head__txt { display: flex; flex-direction: column; gap: 3px; }
 .cs-title { font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); }

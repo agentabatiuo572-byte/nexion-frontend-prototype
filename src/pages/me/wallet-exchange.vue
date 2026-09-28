@@ -35,7 +35,7 @@
       </view>
 
       <!-- Pay card -->
-      <view :style="swapCardStyle">
+      <view class="nx-glass-card" :style="swapCardStyle">
         <text class="block" :style="cardLabelStyle">{{ t.exchange.pay }}</text>
         <view class="flex items-baseline" style="margin-top: 6px; gap: 4px">
           <input
@@ -69,7 +69,7 @@
       </view>
 
       <!-- Receive card -->
-      <view :style="swapCardStyle">
+      <view class="nx-glass-card" :style="swapCardStyle">
         <text class="block" :style="cardLabelStyle">{{ t.exchange.receive }}</text>
         <view class="flex items-baseline" style="margin-top: 6px; gap: 4px">
           <text class="flex-1 min-w-0 tabular-nums truncate" :style="receiveValueStyle">{{ toAmountLabel }}</text>
@@ -722,10 +722,10 @@ const refreshBtnStyle: CSSProperties = {
 };
 // Recessed swap field (topup tone): surface-2 fill, no border — pay/receive read
 // as a matched field pair around the flip control, numbers stay full-ink.
-const swapCardStyle: CSSProperties = {
+const swapCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   margin: "0 16px",
-  background: "var(--v5-surface-2)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
 };
 const cardLabelStyle: CSSProperties = {

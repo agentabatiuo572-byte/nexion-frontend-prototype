@@ -1,0 +1,37 @@
+/* Static, readable content material. Optical navigation remains LiquidGlass. */
+.nx-glass-card,
+.nx-glass-sheet,
+.nx-glass-action,
+.nx-home-glass-panel {
+  --nx-glass-radius: 24px;
+  --nx-glass-fill: linear-gradient(145deg, color-mix(in srgb, var(--v5-ink) 4%, transparent), transparent 65%), color-mix(in srgb, var(--v5-surface) 94%, transparent);
+  --nx-glass-edge: inset 0 0 0 1px var(--v5-liquid-rim), inset 0 1.5px 1px var(--v5-liquid-highlight), inset 0 3px 6px color-mix(in srgb, var(--v5-liquid-highlight) 38%, transparent), inset 0 -2px 2px var(--v5-liquid-bottom);
+}
+.nx-glass-card,
+.nx-glass-sheet {
+  border-radius: var(--nx-glass-radius);
+  background: var(--nx-glass-fill);
+  box-shadow: var(--nx-glass-edge);
+}
+.nx-glass-sheet {
+  --nx-glass-radius: 28px;
+  --nx-glass-fill: linear-gradient(155deg, color-mix(in srgb, var(--v5-ink) 4%, transparent), transparent 55%), color-mix(in srgb, var(--v5-surface) 98%, transparent);
+}
+/* Only the decorative layer springs; text, focus and hit targets stay still. */
+.nx-glass-action { position: relative; isolation: isolate; border-radius: var(--nx-glass-radius); }
+.nx-glass-action::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  pointer-events: none; background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge);
+  transition: transform 540ms cubic-bezier(.2, 1.65, .3, 1);
+}
+.nx-glass-action:active::before { transform: scale(.97, .955); transition-duration: 100ms; }
+.nx-glass-action:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .nx-glass-action:active::before { transform: none; }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .nx-glass-card, .nx-glass-sheet, .nx-glass-action, .nx-home-glass-panel { --nx-glass-fill: var(--v5-surface); }
+}
+@media (forced-colors: active) {
+  .nx-glass-card, .nx-glass-sheet, .nx-glass-action { border: 1px solid CanvasText; }
+}

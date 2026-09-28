@@ -1,7 +1,7 @@
 <!-- ConversionBanner — homepage weekly task card. -->
 <template>
   <view
-    class="weekly-quest block active:scale-[0.98] active:opacity-90 transition-transform"
+    class="nx-glass-action weekly-quest block"
     :style="rootStyle"
     role="button"
     :tabindex="props.active ? 0 : -1"
@@ -151,15 +151,15 @@ const subtitleText = computed(() =>
     : t.value.home.weeklyQuestAddCapacity),
 );
 
-const rootStyle: CSSProperties = {
+const rootStyle: CSSProperties = { boxShadow: "none",
   position: "relative",
   boxSizing: "border-box",
   width: "100%",
   height: "var(--home-task-card-height, 184px)",
   minHeight: "var(--home-task-card-height, 184px)",
-  borderRadius: "16px",
+  borderRadius: "var(--nx-glass-radius)",
   background:
-    "radial-gradient(50% 60% at 100% 0%, var(--v5-brand-soft), transparent 70%), var(--v5-surface)",
+    "var(--nx-glass-fill)",
   overflow: "hidden",
   color: "var(--v5-ink)",
 };

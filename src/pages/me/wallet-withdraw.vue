@@ -312,7 +312,7 @@
            范式同 device-deactivate-sheet(scrim z79 + slide-up panel z80,safe-area padding)。 -->
       <view v-if="feeWhyOpen">
         <view class="nx-sheet-fade-in" :style="feeWhyScrimStyle" @click="feeWhyOpen = false" />
-        <view class="nx-sheet-slide-up" :style="feeWhySheetStyle">
+        <view class="nx-glass-sheet nx-sheet-slide-up" :style="feeWhySheetStyle">
           <view class="flex items-start justify-between" style="gap: 12px">
             <text class="block" :style="feeWhyTitleStyle">{{ t.walletV3.feeWhyTitle }}</text>
             <view class="grid place-items-center shrink-0 active:opacity-60" :style="feeWhyCloseStyle" role="button" tabindex="0" :aria-label="t.walletV3.feeWhyClose" @click="feeWhyOpen = false">
@@ -1604,16 +1604,16 @@ const feeWhyScrimStyle: CSSProperties = {
   background: "rgba(8,8,12,0.45)",
   backdropFilter: "blur(8px) saturate(150%)",
 };
-const feeWhySheetStyle: CSSProperties = {
+const feeWhySheetStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius) var(--nx-glass-radius) 0 0", boxShadow: "var(--nx-glass-edge)",
   position: "fixed",
   left: 0,
   right: 0,
   bottom: 0,
   zIndex: 800,
-  borderTopLeftRadius: "16px",
-  borderTopRightRadius: "16px",
-  background: "var(--v5-surface)",
-  borderTop: "1px solid var(--v5-border)",
+  borderTopLeftRadius: "var(--nx-glass-radius)",
+  borderTopRightRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
+  borderTop: "none",
   padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)",
 };
 const feeWhyTitleStyle: CSSProperties = {

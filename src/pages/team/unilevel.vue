@@ -51,7 +51,7 @@
         <!-- Royalty breakdown — Direct (D) + Network (N): one frosted-glass
              card each (owner 2026-07-09; chassis glass-tile tokens); colored
              badge chips + values carry the semantic identity. -->
-        <view v-if="!remoteApiEnabled" class="nx-unilevel-direct-card" :style="glassCardStyle">
+        <view v-if="!remoteApiEnabled" class="nx-glass-card nx-unilevel-direct-card" :style="glassCardStyle">
           <text class="rounded-xl grid place-items-center shrink-0" :style="compBadgeStyle('var(--v5-brand)')">D</text>
           <view class="flex-1 min-w-0">
             <text class="block" :style="compTitleStyle">{{ t.unilevel.directLabel }}</text>
@@ -61,7 +61,7 @@
             <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ directMembersText }}</text>
           </view>
         </view>
-        <view v-if="!remoteApiEnabled" :style="glassCardStyle">
+        <view class="nx-glass-card" v-if="!remoteApiEnabled" :style="glassCardStyle">
           <text class="block" :style="compTitleStyle">{{ t.unilevel.networkLabel }}</text>
           <text class="block font-display tabular-nums" :style="remoteAmountStyle">${{ networkBonus.toFixed(2) }}</text>
         </view>
@@ -261,11 +261,11 @@ const heroBigStyle: CSSProperties = { marginTop: "8px", fontSize: "34px", fontWe
 // the genesis dock glass (Vue auto-prefixes backdropFilter inline).
 // Fill only, zero border: bg-filled cards carry no border line (owner ruling
 // 2026-07-09, same day).
-const glassCardStyle: CSSProperties = {
+const glassCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "16px",
-  borderRadius: "16px",
-  background: "var(--v5-glass-bg)",
-  backdropFilter: "blur(18px) saturate(180%)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
+  backdropFilter: "none",
 };
 function compBadgeStyle(color: string): CSSProperties {
   return {

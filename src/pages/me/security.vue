@@ -29,7 +29,7 @@
       </view>
 
       <!-- ───── Password + Two-factor (merged, de-carded group) ───── -->
-      <view class="mx-4" :style="cardStyle">
+      <view class="nx-glass-card mx-4" :style="cardStyle">
         <view class="flex items-center active:opacity-90" :style="rowStyle" @click="editingPwd = !editingPwd">
           <view class="grid place-items-center shrink-0" :style="iconBox('var(--v5-danger-soft)')">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
@@ -74,7 +74,7 @@
 
       <!-- ───── Active sessions ───── -->
       <text class="block mx-4" :style="sectionHeadStyle">{{ t.security.sessionsTitle }}</text>
-      <view class="mx-4" :style="[cardStyle, groupGap]">
+      <view class="nx-glass-card mx-4" :style="[cardStyle, groupGap]">
         <view v-for="(s, i) in sessions" :key="s.id" class="flex items-center" :style="i === 0 ? rowStyle : rowBorderedStyle">
           <view class="grid place-items-center shrink-0" :style="iconBox(s.current ? 'var(--v5-success-soft)' : 'var(--v5-surface-3)')">
             <!-- Smartphone -->
@@ -100,7 +100,7 @@
       <text class="block mx-4" :style="footerStyle">{{ t.security.sessionsHint }}</text>
 
       <!-- ───── Danger zone ───── -->
-      <view class="mx-4" :style="[cardStyle, groupGap]">
+      <view class="nx-glass-card mx-4" :style="[cardStyle, groupGap]">
         <view class="flex items-center" :class="deletionPending ? '' : 'active:opacity-90'" :style="rowStyle" @click="handleDeleteAccount">
           <view class="grid place-items-center shrink-0" :style="iconBox('var(--v5-danger-soft)')">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.77.04" /></svg>
@@ -562,10 +562,10 @@ function iconBox(bg: string): CSSProperties {
 
 // De-carded settings group (form b): filled surface, no border. The first group
 // sits at the global 24px header gap (no top margin); groupGap spaces the rest.
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "0 16px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const groupGap: CSSProperties = { marginTop: "12px" };
 const rowStyle: CSSProperties = {

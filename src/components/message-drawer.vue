@@ -25,7 +25,7 @@
     <view class="md-backdrop" @click="close" />
 
     <!-- Panel — slides in from chassis right -->
-    <view class="md-panel">
+    <view class="nx-glass-sheet md-panel">
       <!-- Header -->
       <view class="md-head">
         <view class="md-head-l">
@@ -246,7 +246,7 @@ watch(filterOptions, options => { if (!options.some(option => option.value === f
   -webkit-backdrop-filter: blur(4px);
   animation: md-fade 0.18s ease-out;
 }
-.md-panel {
+.md-panel { border-radius: var(--nx-glass-radius) 0 0 var(--nx-glass-radius); box-shadow: var(--nx-glass-edge);
   position: absolute;
   top: 0;
   right: 0;
@@ -255,8 +255,8 @@ watch(filterOptions, options => { if (!options.some(option => option.value === f
   width: 88%;
   display: flex;
   flex-direction: column;
-  background: var(--v5-surface);
-  border-left: 1px solid var(--v5-surface-3);
+  background: var(--nx-glass-fill);
+  border: none;
   animation: md-slide-in 0.28s ease-out;
 }
 @keyframes md-fade {

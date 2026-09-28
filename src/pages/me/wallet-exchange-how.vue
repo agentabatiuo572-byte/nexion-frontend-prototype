@@ -44,7 +44,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
         </template>
         <text class="block" :style="introStyle">{{ w.s4Intro }}</text>
-        <view :style="stepsBoxStyle">
+        <view class="nx-glass-card" :style="stepsBoxStyle">
           <view class="flex items-start" style="gap: 8px">
             <text class="shrink-0" :style="stepNumStyle">1.</text>
             <text :style="stepBodyStyle">{{ w.s4Step1 }}</text>
@@ -104,10 +104,10 @@ function goBack() {
 
 const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
-const stepsBoxStyle: CSSProperties = {
+const stepsBoxStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "12px",
-  borderRadius: "12px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   padding: "12px",
   display: "flex",
   flexDirection: "column",

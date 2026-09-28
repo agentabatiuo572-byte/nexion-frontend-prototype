@@ -12,7 +12,7 @@
 <template>
   <view v-if="device">
     <view class="nx-sheet-fade-in" :style="scrimStyle" @click="emit('dismiss')" />
-    <view class="nx-sheet-slide-up" :style="sheetStyle">
+    <view class="nx-glass-sheet nx-sheet-slide-up" :style="sheetStyle">
       <view class="flex items-start justify-between" style="gap: 12px">
         <view class="min-w-0">
           <text class="block" :style="titleStyle">{{ t.deactivateSheet.title }}</text>
@@ -121,16 +121,16 @@ const scrimStyle: CSSProperties = {
   background: "rgba(8,8,12,0.45)",
   backdropFilter: "blur(8px) saturate(150%)",
 };
-const sheetStyle: CSSProperties = {
+const sheetStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   position: "fixed",
   left: 0,
   right: 0,
   bottom: 0,
   zIndex: 800,
-  borderTopLeftRadius: "16px",
-  borderTopRightRadius: "16px",
-  background: "var(--v5-surface)",
-  borderTop: "1px solid var(--v5-border)",
+  borderTopLeftRadius: "var(--nx-glass-radius)",
+  borderTopRightRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
+  borderTop: "none",
   padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)",
 };
 const titleStyle: CSSProperties = {

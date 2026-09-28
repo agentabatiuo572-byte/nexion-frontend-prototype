@@ -1,5 +1,11 @@
 export type GlassTone = "navigation" | "selection" | "control";
 
+/** Reveal only inside the reserved header gap; direction alone cannot clear content. */
+export function glassLogoHidden(scrollTop: number, wasHidden: boolean) {
+  if (!Number.isFinite(scrollTop)) return true;
+  return scrollTop <= 8 ? false : scrollTop >= 16 ? true : wasHidden;
+}
+
 /** Exact damped spring step: stable at both 60/120 Hz and carries velocity on retarget. */
 export function glassSpring(position: number, velocity: number, target: number, seconds: number) {
   const dt = Math.max(0, Math.min(seconds, .064));

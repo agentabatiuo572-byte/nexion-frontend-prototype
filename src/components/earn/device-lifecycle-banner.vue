@@ -14,7 +14,7 @@
 -->
 <template>
   <view v-if="degradableDevices.length > 0" class="mx-4">
-    <view class="block relative overflow-hidden rounded-2xl" :style="rootStyle" @click="goDevices">
+    <view class="nx-glass-card block relative overflow-hidden rounded-2xl" :style="rootStyle" @click="goDevices">
       <view class="absolute inset-0 pointer-events-none" :style="glowStyle" />
 
       <view class="relative flex items-center gap-1.5" :style="labelStyle">
@@ -100,9 +100,9 @@ const monthsLabel = computed(() => {
     : fmt(t.value.earn.lifecycleMonths, { n: o.monthsOwned.toFixed(1) });
 });
 
-const rootStyle = computed<CSSProperties>(() => ({
-  border: `1px solid color-mix(in srgb, ${accent.value} 33%, transparent)`,
-  background: `linear-gradient(160deg, color-mix(in srgb, ${accent.value} 12%, transparent) 0%, var(--v5-surface) 70%)`,
+const rootStyle = computed<CSSProperties>(() => ({ borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  border: "none",
+  background: "var(--nx-glass-fill)",
   padding: "16px",
 }));
 const glowStyle = computed<CSSProperties>(() => ({

@@ -1,3 +1,4 @@
+@import "./glass-surfaces.css";
 @import "./fonts.css";
 
 /* NexGrid design tokens + global utility classes / animations
@@ -929,8 +930,8 @@ body {
 .nx-home-glass-panel {
   position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   transition: transform 540ms cubic-bezier(.2, 1.65, .3, 1); transform-origin: center;
-  background: linear-gradient(145deg, color-mix(in srgb, var(--v5-ink) 4%, transparent), transparent 65%), color-mix(in srgb, var(--v5-surface) 94%, transparent);
-  box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--v5-liquid-rim) 55%, transparent), inset 0 1px 1px color-mix(in srgb, var(--v5-liquid-highlight) 55%, transparent), inset 0 -1px 1px color-mix(in srgb, var(--v5-liquid-bottom) 55%, transparent);
+  background: var(--nx-glass-fill);
+  box-shadow: var(--nx-glass-edge);
 }
 .nx-home-glass-item:active > .nx-home-glass-panel { transform: scale(.97, .955); transition: transform 100ms ease-out; }
 .nx-home-glass-item:focus-visible, .nx-home-pill:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }

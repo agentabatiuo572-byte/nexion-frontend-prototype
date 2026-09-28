@@ -59,7 +59,7 @@
         </view>
 
         <!-- Activated → Earn jump -->
-        <view v-if="order.status === 'activated'" class="mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
+        <view v-if="order.status === 'activated'" class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
           <view class="flex items-center" style="gap: 12px">
             <view class="grid place-items-center" :style="earnIconStyle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2" /><rect width="6" height="6" x="9" y="9" rx="1" /><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2" /></svg>
@@ -74,7 +74,7 @@
         </view>
 
         <!-- Order summary -->
-        <view class="mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
+        <view class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
           <text class="block" :style="sectionLabelStyle">{{ t.orders.orderSummary }}</text>
           <DetailRow :label="t.orders.orderIdLabel" :value="order.id" mono />
           <DetailRow :label="t.orders.quantity" :value="`${order.itemCount ?? order.quantity}`" />
@@ -115,7 +115,7 @@
         </view>
 
         <!-- Timeline -->
-        <view class="mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
+        <view class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
           <text class="block" :style="sectionLabelStyle">{{ t.orders.timelineTitle }}</text>
           <view class="relative" :style="timelineWrapStyle">
             <view v-for="(stage, i) in stages" :key="stage" :style="{ marginTop: i !== 0 ? '12px' : '0' }">
@@ -362,8 +362,8 @@ const heroLabelStyle = computed<CSSProperties>(() => ({
 }));
 // Order summary / timeline / earn-jump — form-b single containers (surface, no
 // border). Internal hairlines (timestamp divider, timeline rail) do the parceling.
-const summaryCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+const summaryCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "16px",
 };
 const earnIconStyle: CSSProperties = {

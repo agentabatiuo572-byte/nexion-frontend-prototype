@@ -58,7 +58,7 @@
         </view>
 
         <!-- ───────── STATS GRID ───────── -->
-        <view class="rounded-2xl" :style="cardStyle">
+        <view class="nx-glass-card rounded-2xl" :style="cardStyle">
           <view class="grid grid-cols-3" style="row-gap: 12px; column-gap: 8px">
             <view v-for="cell in statCells" :key="cell.label">
               <text class="block" :style="statLabelStyle">{{ cell.label }}</text>
@@ -197,9 +197,9 @@ const sellBtnStyle: CSSProperties = {
 const sellTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
 
 // De-carded form-b stats container (single surface, no border).
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
 };
 const statLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };

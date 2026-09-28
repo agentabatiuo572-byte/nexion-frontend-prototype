@@ -1,5 +1,5 @@
 import { mountLiquidGlass, type GlassConfiguration } from "./liquid-glass-renderer";
-import { glassSpring } from "./liquid-glass-core";
+import { glassSpring, glassLogoHidden } from "./liquid-glass-core";
 
 export interface SegmentsConfiguration {
   hostId: string; value: string; values: string[]; fromValue?: string;
@@ -242,20 +242,17 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
 function mountChassis(root: HTMLElement) {
   const scroll = root.querySelector<HTMLElement>(".nx-content")!;
   const logo = root.querySelector<HTMLElement>(".nx-header__l");
-  let previous = scroll.scrollTop, anchor = previous, direction = 0;
+  let hidden = scroll.scrollTop > 8;
   function onScroll() {
     const top = Math.max(0, Math.min(scroll.scrollTop, scroll.scrollHeight - scroll.clientHeight));
-    const nextDirection = Math.sign(top - previous);
-    if (nextDirection && nextDirection !== direction) { anchor = previous; direction = nextDirection; }
-    if (logo && (top <= 8 || Math.abs(top - anchor) >= 10)) {
-      const hidden = top > 40 && direction > 0;
+    hidden = glassLogoHidden(top, hidden);
+    if (logo) {
       logo.dataset.hidden = String(hidden); logo.setAttribute("aria-hidden", String(hidden));
-      anchor = top;
     }
-    previous = top;
   }
   scroll.addEventListener("scroll", onScroll, { passive: true });
-  return { update() {}, destroy() { scroll.removeEventListener("scroll", onScroll); } };
+  onScroll();
+  return { update: onScroll, destroy() { scroll.removeEventListener("scroll", onScroll); } };
 }
 
 // App renderjs mounts a separate empty Vue instance: its $el is a comment.

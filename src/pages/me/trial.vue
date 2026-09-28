@@ -94,7 +94,7 @@
         </view>
 
         <!-- ═══ ended — credit expired terminal ═══ -->
-        <view v-else-if="status === 'ended'" :style="terminalCardStyle">
+        <view class="nx-glass-card" v-else-if="status === 'ended'" :style="terminalCardStyle">
           <view class="grid place-items-center" :style="terminalIconBoxStyle">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
           </view>
@@ -106,7 +106,7 @@
         </view>
 
         <!-- ═══ converted — owned terminal ═══ -->
-        <view v-else :style="terminalCardStyle">
+        <view class="nx-glass-card" v-else :style="terminalCardStyle">
           <view class="grid place-items-center" :style="terminalIconBoxStyle">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
           </view>
@@ -123,7 +123,7 @@
     <!-- ═══ Rules half-sheet (spec ⑥「查看抵扣规则」) ═══ -->
     <view v-if="rulesOpen" class="trs-root" role="dialog" aria-modal="true">
       <view class="trs-backdrop" role="button" tabindex="0" @click="rulesOpen = false" />
-      <view class="trs-panel" @click.stop>
+      <view class="nx-glass-sheet trs-panel" @click.stop>
         <view class="flex items-center justify-between">
           <text style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink)">{{ t.trial.rulesTitle }}</text>
           <view class="grid place-items-center active:opacity-70" style="width: 36px; height: 36px; border-radius: 999px; background: var(--v5-surface-2)" role="button" tabindex="0" :aria-label="t.trial.sheetCloseAria" @click="rulesOpen = false">
@@ -273,7 +273,7 @@ const idleBodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color
 const idleCtaStyle: CSSProperties = { marginTop: "16px", height: "48px", padding: "0 24px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px", fontWeight: 600 };
 const idleCtaDisabledStyle: CSSProperties = { marginTop: "16px", height: "48px", padding: "0 24px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink-4)", fontSize: "13px", fontWeight: 600 };
 const reasonNoteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625, textWrap: "pretty" };
-const terminalCardStyle: CSSProperties = { borderRadius: "16px", background: "var(--v5-surface)", padding: "24px 20px", textAlign: "center" };
+const terminalCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)", padding: "24px 20px", textAlign: "center" };
 const terminalIconBoxStyle: CSSProperties = { width: "48px", height: "48px", borderRadius: "999px", background: "var(--v5-surface-2)", margin: "0 auto" };
 const cooldownLinkStyle: CSSProperties = { marginTop: "16px", minHeight: "44px", fontSize: "13px", color: "var(--v5-ink-2)" };
 const rulesGotStyle: CSSProperties = { marginTop: "18px", height: "48px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px", fontWeight: 600 };
@@ -297,16 +297,16 @@ useDialogA11y(computed(() => rulesOpen.value), ".trs-root", () => { rulesOpen.va
   -webkit-backdrop-filter: blur(8px) saturate(150%);
   animation: trs-fade 0.24s ease-out;
 }
-.trs-panel {
+.trs-panel { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0;
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 800;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  background: var(--v5-surface);
-  border-top: 1px solid var(--v5-border);
+
+
+  background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge);
+
   padding: 20px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 38px);
   animation: trs-slide-up 0.36s cubic-bezier(0.16, 1, 0.3, 1);

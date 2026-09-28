@@ -11,7 +11,7 @@
   store in this sample).
 -->
 <template>
-  <view class="overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card overflow-hidden" :style="cardStyle">
     <view class="px-4 flex items-center justify-between" style="padding-top: 12px; padding-bottom: 8px">
       <text class="inline-flex items-center" :style="headLabelStyle">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
@@ -184,9 +184,9 @@ async function handleClaim(p: PowerUp) {
 // ── styles ──
 // Form-b: filled container, no border — game rows (tinted icons, activate CTAs,
 // dynamic footer) keep their full visual weight inside.
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const headLabelStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",

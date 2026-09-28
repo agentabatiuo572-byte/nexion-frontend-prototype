@@ -8,7 +8,7 @@
 <template>
   <view>
     <SectionHeader :title="t.orders.title" />
-    <view class="relative overflow-hidden" :style="cardStyle">
+    <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
       <view v-if="latestOrder" class="flex items-center justify-between" style="gap: 8px">
         <view class="min-w-0">
           <text class="block truncate" style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ brandProductName(latestOrder.productName) }}</text>
@@ -75,10 +75,10 @@ function statusPillStyle(status: string): CSSProperties {
   };
 }
 
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "14px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const browseBtnStyle: CSSProperties = {
   minHeight: "44px",

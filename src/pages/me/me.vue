@@ -38,7 +38,7 @@
 
       <view v-for="section in quickSections" :key="section.key">
         <SectionHeader :title="section.title" :count="section.count" />
-        <view :style="quickGridCardStyle">
+        <view class="nx-glass-card" :style="quickGridCardStyle">
           <view class="nx-quick-grid" :style="quickGridStyle">
             <view
               v-for="item in section.items"
@@ -345,10 +345,10 @@ function toneColor(tone: QuickTone = "muted"): string {
   }
 }
 
-const quickGridCardStyle: CSSProperties = {
+const quickGridCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "18px 10px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const quickGridStyle: CSSProperties = {
   display: "grid",

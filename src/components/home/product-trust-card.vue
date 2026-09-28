@@ -1,5 +1,5 @@
 <template>
-  <view class="block" :style="cardStyle" :role="selected ? 'link' : undefined" :tabindex="selected ? 0 : undefined" @click="openProduct" @keydown.enter.stop.prevent="openProduct" @keydown.space.stop.prevent="openProduct">
+  <view class="nx-glass-card block" :style="cardStyle" :role="selected ? 'link' : undefined" :tabindex="selected ? 0 : undefined" @click="openProduct" @keydown.enter.stop.prevent="openProduct" @keydown.space.stop.prevent="openProduct">
     <view class="flex items-start justify-between" style="gap: 12px">
       <view>
         <text class="block" :style="titleStyle">{{ t.home.productTrustTitle }}</text>
@@ -71,7 +71,7 @@ onMounted(() => {
   if (remoteApiEnabled && productCatalogState.status !== "ready") void refreshProductCatalog();
 });
 
-const cardStyle: CSSProperties = { padding: "14px", borderRadius: "16px", background: "var(--v5-surface)" };
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "14px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
 const titleStyle: CSSProperties = { fontSize: "14px", fontWeight: 600, color: "var(--v5-ink)" };
 const subtitleStyle: CSSProperties = { marginTop: "3px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const linkStyle: CSSProperties = { flexShrink: 0, fontSize: "12px", fontWeight: 600, color: "var(--v5-brand)" };

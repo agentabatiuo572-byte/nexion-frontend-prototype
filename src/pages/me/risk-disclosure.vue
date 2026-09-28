@@ -12,7 +12,7 @@
       <SubPageHeader :back="returnTo" />
 
       <!-- Hero -->
-      <view class="mx-4" :style="heroStyle">
+      <view class="nx-glass-card mx-4" :style="heroStyle">
         <view class="flex items-center" style="gap: 8px; margin-bottom: 6px">
           <view class="grid place-items-center" :style="heroIconBoxStyle">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
@@ -185,10 +185,10 @@ async function reload() { await risk.refresh(); }
 // Spotlight hero (whitelist ≤1):零 border(《03》§3,C2 第二轮起中性边也删)——
 // 边界靠 surface 与页面地板的微差色;the brand-2 mood lives in the icon + label.
 // Header provides the 24px top breathing, so no top margin here.
-const heroStyle: CSSProperties = {
-  borderRadius: "16px",
+const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const heroIconBoxStyle: CSSProperties = {
   width: "36px",

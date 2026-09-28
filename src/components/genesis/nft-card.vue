@@ -1,6 +1,6 @@
 <!-- Live Genesis listing artwork keeps the supplied token identity. -->
 <template>
-  <view class="relative overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
     <GenesisArtwork context="holding" :serial="id" style="border-radius: 10px" />
     <view class="flex items-baseline justify-between" style="margin-top: 6px">
       <text class="tabular-nums" :style="priceStyle">${{ price }}K</text>
@@ -21,9 +21,9 @@ const t = useT();
 const agoText = computed(() => fmt(t.value.genesis.agoLabel, { t: props.ago }));
 
 // Collectible tile — filled surface, no border.
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "14px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "12px",
 };
 const priceStyle: CSSProperties = {

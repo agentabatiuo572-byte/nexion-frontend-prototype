@@ -11,7 +11,7 @@
       <text class="font-mono-tabular inline-flex items-center active:opacity-70" style="min-height: 44px; padding-left: 12px; font-size: 13px; color: var(--v5-brand); font-weight: 500" role="link" tabindex="0" @click="goMarket" @keydown.enter.stop.prevent="goMarket" @keydown.space.stop.prevent="goMarket">{{ t.home.marketBoardOpen }} →</text>
     </view>
 
-    <view v-if="!remoteApiEnabled" style="background: var(--v5-surface); border-radius: 16px; overflow: hidden">
+    <view class="nx-glass-card" v-if="!remoteApiEnabled" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); overflow: hidden">
       <view class="nx-market-grid grid gap-2 font-mono-tabular" style="padding: 9px 14px; background: var(--v5-surface-2); border-bottom: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-4)">
         <text>{{ t.home.mbColTag }}</text>
         <text>{{ t.home.mbColModel }}</text>

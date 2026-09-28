@@ -66,7 +66,7 @@
              不许盖住本页正在展示的活票(地址 / 金额 / 倒计时 / 取消都在被它压掉的那一支里):
              恢复行是持久行,resume 进来的票会被它整页遮蔽而全站失联(审计 R5 P0)—— 有活票先付票,
              票结清 / 作废后这张卡再露出来。 -->
-        <view v-if="receiptWriteFailure && !activeSession" class="mx-4 rounded-2xl text-center nx-step-in" :style="receiptFailureCardStyle">
+        <view v-if="receiptWriteFailure && !activeSession" class="nx-glass-card mx-4 rounded-2xl text-center nx-step-in" :style="receiptFailureCardStyle">
           <text class="block" :style="centerTitleStyle">{{ t.errors.billMissingTitle }}</text>
           <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3)">{{ t.errors.billMissingMsg }}</text>
           <view class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: 16px" :aria-disabled="receiptRetrying" @click.stop="retryReceiptWrite">
@@ -75,7 +75,7 @@
         </view>
 
         <!-- === select-payment === -->
-        <view v-else-if="step === 'select-payment'" class="mx-4 rounded-2xl overflow-hidden nx-step-in" :style="surfaceCardStyle">
+        <view v-else-if="step === 'select-payment'" class="nx-glass-card mx-4 rounded-2xl overflow-hidden nx-step-in" :style="surfaceCardStyle">
           <view class="border-b" :style="payHeadStyle">
             <view class="flex items-center justify-between">
               <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.coTotal }}</text>
@@ -147,7 +147,7 @@
         </view>
 
         <!-- === confirm === -->
-        <view v-else-if="step === 'confirm'" class="mx-4 rounded-2xl nx-step-in" :style="confirmCardStyle">
+        <view v-else-if="step === 'confirm'" class="nx-glass-card mx-4 rounded-2xl nx-step-in" :style="confirmCardStyle">
           <text class="block font-mono-tabular" style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.coReviewOrder }}</text>
           <view style="margin-top: 12px">
             <CheckoutRow :label="t.store.coRowProduct" :value="product.name" />
@@ -183,7 +183,7 @@
         </view>
 
         <!-- === awaiting === -->
-        <view v-else-if="step === 'awaiting'" class="mx-4 rounded-2xl text-center nx-step-in" :style="centerCardStyle">
+        <view v-else-if="step === 'awaiting'" class="nx-glass-card mx-4 rounded-2xl text-center nx-step-in" :style="centerCardStyle">
           <view v-if="!remoteOrderFailure" class="mx-auto grid place-items-center nx-spin" :style="spinnerWrapStyle">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
           </view>
@@ -198,7 +198,7 @@
         </view>
 
         <!-- === confirmed === -->
-        <view v-else-if="step === 'confirmed'" class="mx-4 rounded-2xl text-center relative overflow-hidden nx-pop-in" :style="centerCardStyle">
+        <view v-else-if="step === 'confirmed'" class="nx-glass-card mx-4 rounded-2xl text-center relative overflow-hidden nx-pop-in" :style="centerCardStyle">
           <template v-if="firstOrderCelebrating">
             <view aria-hidden :style="celebrateGlowStyle" />
             <view class="relative">
@@ -223,7 +223,7 @@
         </view>
 
         <!-- === activating === -->
-        <view v-else-if="step === 'activating'" class="mx-4 rounded-2xl text-center nx-step-in" :style="centerCardStyle">
+        <view v-else-if="step === 'activating'" class="nx-glass-card mx-4 rounded-2xl text-center nx-step-in" :style="centerCardStyle">
           <view class="mx-auto grid place-items-center nx-spin" :style="spinnerWrapStyle">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
           </view>
@@ -238,7 +238,7 @@
         </view>
 
         <!-- === live === -->
-        <view v-else-if="step === 'live'" class="mx-4 rounded-2xl text-center nx-pop-in" :style="liveCardStyle">
+        <view v-else-if="step === 'live'" class="nx-glass-card mx-4 rounded-2xl text-center nx-pop-in" :style="liveCardStyle">
           <view class="mx-auto grid place-items-center" :style="liveSpinnerWrapStyle">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></svg>
           </view>
@@ -1993,7 +1993,7 @@ function stepFillStyle(i: number): CSSProperties {
   const w = i < stepDisplay.value ? "100%" : i === stepDisplay.value ? "50%" : "0%";
   return { width: w, background: "var(--v5-brand)", transition: "width 0.5s" };
 }
-const surfaceCardStyle: CSSProperties = { background: "var(--v5-surface)" };
+const surfaceCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)" };
 const payHeadStyle: CSSProperties = { padding: "16px 20px", borderColor: "color-mix(in srgb, var(--v5-border) 70%, transparent)" };
 const payTotalStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -2046,8 +2046,8 @@ const ghostCancelStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
   fontSize: "13px",
 };
-const confirmCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+const confirmCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "20px",
 };
 const confirmCtaStyle: CSSProperties = {
@@ -2068,8 +2068,8 @@ const changePayBtnStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
   fontSize: "13px",
 };
-const centerCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+const centerCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "24px",
 };
 // awaiting / activating / confirmed-check spinner — brand 15% (source).
@@ -2105,11 +2105,11 @@ const medalStyle: CSSProperties = {
   borderRadius: "50%",
   background: "var(--v5-brand-soft)",
 };
-const liveCardStyle: CSSProperties = {
+const liveCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   // Source: bg-gradient-to-br from-brand/15 via-#0F0F0F to-brand/10. Middle stop
   // uses --v5-surface (not the source's hardcoded #0F0F0F) for dual-theme safety.
   background:
-    "linear-gradient(to bottom right, color-mix(in srgb, var(--v5-brand) 15%, transparent), var(--v5-surface), color-mix(in srgb, var(--v5-brand) 10%, transparent))",
+    "var(--nx-glass-fill)",
   padding: "24px",
 };
 const liveTitleStyle: CSSProperties = {
@@ -2136,9 +2136,9 @@ const doneBtnStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
   fontSize: "13px",
 };
-const receiptFailureCardStyle: CSSProperties = {
+const receiptFailureCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   padding: "24px 20px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 </script>
 

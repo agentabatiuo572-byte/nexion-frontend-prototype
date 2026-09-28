@@ -12,14 +12,14 @@ export const en = {
   "continueWeb": "Continue on the web",
   "continueApp": "Continue in the app",
   "confirmReplacement": "Confirm replacement and activate",
-  "replaceNotice": "This replaces the bound phone. Its active slot will be transferred to this phone; the old phone cannot be activated from this device. Purchased devices are unaffected.",
+  "replaceNotice": "This replaces the bound phone. If enabled, its running-device place transfers to this phone; the old phone cannot be reactivated from this device. Purchased devices are unaffected.",
   "errors": {
     "config-unavailable": "Device replacement settings are unavailable. Check again before replacing the phone.",
-    "web-only": "Phone compute is available in the installed app only.",
+    "web-only": "Install and open UVEL on your phone to enable phone compute.",
     "replacement-disabled": "This account is bound to another phone. Device replacement is not allowed. Phone tasks are paused; purchased devices are unaffected.",
     "cooldown": "Device replacement is still in its waiting period. Next available: {date}.",
     "device-mismatch": "This phone does not match the registered device. Reassess the current phone to replace it.",
-    "slots-full": "No activation slot is available. Free a slot before activating this phone.",
+    "slots-full": "The device limit is reached. Deactivate one before enabling phone compute.",
     "storage-failed": "Activation was not saved. Check the connection and try again.",
     "reauth-required": "Sign in again on the bound phone to resume phone tasks."
   }
@@ -28,7 +28,7 @@ export const en = {
     // Phone policy uses the same keys on APP and H5.
     memberIdle: "Inactive",
     experienceDepositCredited: "Demo deposit credited: {amount} USDT",
-    orderWaitingSlot: "Waiting for a free device slot to activate",
+    orderWaitingSlot: "Waiting for an available running-device place",
     experienceMode: "Demo mode · No real funds involved",
     operationUnconfirmed: "Unable to confirm the result. Refresh to check before retrying.",
     accountDeletionBlocked: "Account deletion is unavailable. Contact support for help.",
@@ -118,7 +118,7 @@ export const en = {
     genesisMarketplace: "Marketplace",
     genesisHolder: "Genesis Holder",
     // Trust subtree
-    trustNex: "NEX Trust",
+    trustNex: "Using NEX",
     // Tx
     tx: "Transaction",
     // How-it-works suffix
@@ -388,7 +388,7 @@ export const en = {
     quickGenesisLeft: "{n} left",
     quickMissionsActive: "5 active",
     quickDailyStreak: "{n}-day streak",
-    myFleet: "My fleet",
+    myFleet: "My devices",
     fleetOfMax: "{n} of 6",
     fleetManage: "Manage",
     deviceEarning: "earning",
@@ -398,7 +398,7 @@ export const en = {
     fleetAddSlot: "Add device",
     estPerDay: "est. /d",
     // OnGridSection + NetworkPulseCard (structural labels keyed; dense mock stat subs kept faithful)
-    onGridTitle: "On UVEL grid",
+    onGridTitle: "UVEL network updates",
     onGridNow: "now",
     onGridMap: "Map",
     onGridGpus: "{n} GPUs",
@@ -475,9 +475,9 @@ export const en = {
     // DoTheMathCard (ZONE 5)
     doMathTitle: "Compare devices",
     // {base} carries its own possessive ("Your phone") — see lib/device-copy.ts.
-    doMathHeadline: "{target} earns {mult} what {base} does — every single day.",
-    doMathDaily: "daily",
-    doMathVs: "vs {base}",
+    doMathHeadline: "Estimated output: {target} compared with {base}",
+    doMathDaily: "Estimated daily output",
+    doMathVs: "Estimated daily difference vs {base}",
     doMathSeeCta: "View device",
     // EarningsLedgerCard (ZONE 5)
     earningsLedgerTitle: "Earnings ledger",
@@ -486,7 +486,7 @@ export const en = {
     earningsLedgerViewAll: "View all",
     // NexPriceCard (ZONE 6)
     nexPricePair: "NEX / USDT",
-    productTrustTitle: "Product trust profile",
+    productTrustTitle: "Device information",
     productTrustSubtitle: "Available devices · Product information",
     productTrustGpu: "GPU",
     productTrustDatacenter: "Managed at",
@@ -506,12 +506,12 @@ export const en = {
     marketBoardVol: "vol {n}/h",
     // TrustChipWall (ZONE 7)
     trustAudited: "Independently audited",
-    trustReserve: "Reserve proof on-chain · 102.4% backed · Trust Center →",
-    trustSnapshotTitle: "Trust snapshot",
-    trustSnapshotTvl: "On-chain TVL",
+    trustReserve: "No verifiable reserve information available.",
+    trustSnapshotTitle: "Platform disclosures",
+    trustSnapshotTvl: "Total value locked on-chain (TVL)",
     trustSnapshotNodes: "Active nodes",
     trustSnapshotOpen: "Open Trust Center",
-    trustSnapshotUnavailable: "Trust data unavailable",
+    trustSnapshotUnavailable: "Unable to load public information. Please retry.",
     liveActivityLabel: "Live platform activity",
     liveActivityNowSec: "{n}s ago",
     liveActivityMinAgo: "{n}m ago",
@@ -604,6 +604,7 @@ export const en = {
     liveFeedEmpty: "No task activity available.",
   },
   earn: {
+    estimateDisclaimer: "Estimated from the current daily output difference, excluding purchase costs. This does not affect your balance.",
     title: "Earn",
     subtitle: "Your devices, your earnings, your tasks — live.",
     myDevices: "My Devices",
@@ -658,7 +659,7 @@ export const en = {
     boostS1Label: "UVELBox S1",
     boostLimitedOffer: "$200 off · ends in 2d 14h",
     boostUpgradeCta: "Upgrade Now",
-    slotsUsed: "slots used",
+    slotsUsed: "Running devices",
     boostSocialProof: "12,847 users upgraded this month",
     capTitle: "Device limit reached",
     capHint: "Running {n}/{max} devices · the maximum per account.",
@@ -689,15 +690,15 @@ export const en = {
     phoneBatteryThreshold: "Battery threshold",
     phoneWifiOnly: "Only on WiFi",
     // v3.6 loss-aversion hooks
-    missedToday: "Missed today",
-    vsDeviceCeiling: "vs {name} ceiling",
+    missedToday: "Estimated output difference today",
+    vsDeviceCeiling: "Compared with the {name} estimate",
     yourPhone: "Your phone",
     deviceDetailTitle: "Device details",
     deviceNotFound: "This device could not be found.",
     backToEarn: "Back to Earn",
-    deviceCeiling: "{name} ceiling",
-    cumulativeMissed: "Cumulative missed since signup",
-    stopBleeding: "Stop the bleeding",
+    deviceCeiling: "{name} estimated output",
+    cumulativeMissed: "Estimated difference over membership days (not a loss)",
+    stopBleeding: "Compare devices",
     // FEAT-DEV01: fleet task-capacity banner (successor of the lifecycle-degradation banner)
     lifecycleLabel: "Fleet task capacity",
     lifecycleSubtitle: "average across {n} hardware devices",
@@ -729,8 +730,8 @@ export const en = {
     capExplainS2Title: "New-device task subsidy",
     capExplainS2Body: "New-device bonuses provide extra earnings for a limited period. Earnings may decrease when the bonus ends. See the device page for the time remaining.",
     capExplainCta: "Browse higher-compute devices",
-    emptySlotsTitle: "Idle slots",
-    emptySlotsHint: "Your {n} empty slots are sitting idle. Each S1 fills one and earns {rate}/d.",
+    emptySlotsTitle: "Add a device",
+    emptySlotsHint: "Room for {n} devices. Estimated S1 daily output is {rate}; actual output may vary.",
     ifAllFilled: "if all filled with S1",
     fillSlots: "Add device",
     // Phone live hashpower (effective = calibrated capability × live condition factors)
@@ -892,7 +893,7 @@ export const en = {
         secondaryLabel: "Manage devices",
         metrics: {
           a: { label: "Online boost", value: "Full" },
-          b: { label: "Device fleet", value: "6 slots" },
+          b: { label: "Device allowance", value: "6 slots" },
           c: { label: "Account data", value: "Shared" },
         },
         steps: {
@@ -909,7 +910,7 @@ export const en = {
         modeLabel: "Compute mode",
         modeValue: "Phone tasks require an online app",
         primaryLabel: "Open earn view",
-        secondaryLabel: "Manage device slots",
+        secondaryLabel: "Manage running devices",
         metrics: {
           a: { label: "Browser access", value: "Instant" },
           b: { label: "Phone device", value: "Kept" },
@@ -1002,7 +1003,7 @@ export const en = {
     recPath: "Reach ${target} in {days}d (~${perDay}/day). Best fit: {tier}.",
     recCloudShare: "Low per-day target — Cloud Share fractional access keeps risk minimal.",
     recS1: "S1 daily yield comfortably covers this target with single-device exposure.",
-    recPro: "Pro doubles S1's ceiling; one Pro unit + occasional re-invest hits this target.",
+    recPro: "Review Pro's current estimated output, price and fees. Actual output may vary and the goal is not guaranteed.",
     recRack: "Rack-tier compute clears this in deadline; consider trade-in financing.",
     saveCta: "Save goal",
     savedToast: "Goal saved · ${amount} in {days} days",
@@ -1174,12 +1175,12 @@ export const en = {
     ladderDeviceLine: "{name}: lifetime output ${earned}, output ratio {ratio}%, currently band {band}.",
     ladderFootnote: "Credit applies only to this device purchase and cannot be added to your balance or withdrawn. Quotes may change; check before checkout.",
     // ReplaceLowestSheet (Path B — slot full)
-    replaceTitle: "All slots in use",
+    replaceTitle: "Device limit reached",
     replaceWarning: "Deactivate the device below before activating {newKind}. It will stop taking tasks and move to storage.",
     replaceLowestDeviceLabel: "Step down",
     replaceLowestText: "{name} · ${earn}/d today",
     replaceReplaceCta: "Replace and activate {newKind}",
-    replaceKeepCta: "Keep all slots — store {newKind} in inventory",
+    replaceKeepCta: "Keep running devices · store {newKind} in inventory",
     replaceCancel: "Cancel",
     replaceSuccessToast: "{newKind} is online · {oldKind} moved to inventory.",
     // PendingTaskBlockSheet (mid-task block)
@@ -1201,7 +1202,7 @@ export const en = {
     errNoActiveDevice: "No active device can be replaced. Check Device Inventory or contact support.",
     errDeviceAlreadyInactive: "Device already inactive",
     errReplaceFailed: "Replace failed",
-    errReplaceSlotConflict: "Replace failed — slot conflict",
+    errReplaceSlotConflict: "Replacement failed · device state changed",
     errPurchaseFailed: "Purchase failed",
     errPleaseRetry: "Please retry",
   },
@@ -1315,6 +1316,109 @@ export const en = {
   },
 
   events: {
+    progressLabel: "Progress",
+    catalog: {
+      "evt-pro-upgrade-7d": {
+        "title": "UVELBox Pro · Flash Upgrade",
+        "subtitle": "Upgrade to Pro within 7 days · $500 OFF + ×2 Genesis raffle tickets.",
+        "ribbon": "LIMITED · ENDS 3D 12H",
+        "reward": "$500 OFF + ×2 tickets",
+        "progressLabel": "claimed",
+        "ctaLabel": "Claim discount",
+        "countdown": "3d 12h 04m",
+        "startsIn": ""
+      },
+      "evt-refer-5-get-pro": {
+        "title": "Refer 5 · Win a Pro",
+        "subtitle": "Invite 5 direct friends within 7 days · get a free UVELBox Pro ($899).",
+        "ribbon": "TEAM CHALLENGE",
+        "reward": "Free UVELBox Pro",
+        "progressLabel": "friends invited",
+        "ctaLabel": "View progress",
+        "countdown": "6d 02h",
+        "startsIn": ""
+      },
+      "evt-weekend-double-nex": {
+        "title": "Weekend Double NEX",
+        "subtitle": "Sat–Sun check-ins earn 2× NEX automatically.",
+        "ribbon": "ACTIVE NOW",
+        "reward": "2× NEX",
+        "progressLabel": "",
+        "ctaLabel": "Check in",
+        "countdown": "1d 18h",
+        "startsIn": ""
+      },
+      "evt-regional-pk": {
+        "title": "Regional PK · Win $20K Pool",
+        "subtitle": "LatAm vs SEA vs EU · weekly volume race. Top region splits $20K.",
+        "ribbon": "WEEK 21",
+        "reward": "Share $20,000 pool",
+        "progressLabel": "your region $",
+        "ctaLabel": "Join the race",
+        "countdown": "2d 09h",
+        "startsIn": ""
+      },
+      "evt-spring-spin": {
+        "title": "Spring Lucky Spin",
+        "subtitle": "1 free spin per day · win NEX, USDT & a device coupon.",
+        "ribbon": "DAILY · RESETS 00:00 UTC",
+        "reward": "Up to $500 USDT",
+        "progressLabel": "spin left today",
+        "ctaLabel": "Spin now",
+        "countdown": "Resets in 08:42:11",
+        "startsIn": ""
+      },
+      "evt-reinvest-bonus": {
+        "title": "Re-invest Bonus Week",
+        "subtitle": "Re-invest $100 = 2 Genesis tickets (normally 1) · all week long.",
+        "ribbon": "DOUBLED",
+        "reward": "2× Genesis tickets",
+        "progressLabel": "",
+        "ctaLabel": "Re-invest now",
+        "countdown": "4d 03h",
+        "startsIn": ""
+      },
+      "evt-onboarding-7d": {
+        "title": "New Pilot · 7-Day Boost",
+        "subtitle": "Reach V2 within 7 days of joining · get +200 NEX + 1 Streak Saver.",
+        "ribbon": "FIRST WEEK",
+        "reward": "+200 NEX + 1 Saver",
+        "progressLabel": "milestones done",
+        "ctaLabel": "View checklist",
+        "countdown": "5d 11h",
+        "startsIn": ""
+      },
+      "evt-black-friday": {
+        "title": "Black Friday · 20% OFF Everything",
+        "subtitle": "All hardware $300+ off · code BF20 stacks with Pro Flash Upgrade.",
+        "ribbon": "PRE-LAUNCH",
+        "reward": "20% OFF + stack codes",
+        "progressLabel": "",
+        "ctaLabel": "Notify me",
+        "countdown": "",
+        "startsIn": "Starts in 12d 04h"
+      },
+      "evt-nex-holders-share": {
+        "title": "NEX Holders Share · $5K Pool",
+        "subtitle": "Hold ≥ 1,000 NEX for 7 days · automatically share a $5K USDT pool.",
+        "ribbon": "AUTO",
+        "reward": "Share $5,000 USDT",
+        "progressLabel": "your NEX",
+        "ctaLabel": "View details",
+        "countdown": "4d 17h",
+        "startsIn": ""
+      },
+      "evt-anniversary-spin": {
+        "title": "Anniversary Mega Spin",
+        "subtitle": "Platform 1-year anniversary · 10,000 winners shared $250K USDT.",
+        "ribbon": "CONCLUDED",
+        "reward": "$250,000 distributed",
+        "progressLabel": "",
+        "ctaLabel": "View results",
+        "countdown": "",
+        "startsIn": ""
+      }
+    },
     pageTitle: "Events",
     subtitle: "Promotions · contests · seasonal drops",
     heroLabel: "FEATURED",
@@ -1549,17 +1653,17 @@ export const en = {
     sectionManage: "Manage",
     fleetTitle: "Manage your fleet",
     onlineLabel: "{n} online",
-    emptySlots: "{n} slots open",
+    emptySlots: "Room for {n} more devices",
     // Batch D — /me/devices renamed to "Device inventory" (设备仓库). Holds
     // the full per-device list with activate/deactivate toggles + trade-in
     // promo banner. Distinct from MyDevicesEntry above which is the /me
     // summary card.
     inventoryTitle: "Device inventory",
-    inventorySlotMeter: "{active}/{max} slots active",
-    inventorySlotsLabel: "Compute slots",
+    inventorySlotMeter: "{active}/{max} devices enabled",
+    inventorySlotsLabel: "Running devices",
     inventorySectionActive: "Active",
     inventorySectionInventory: "Inventory",
-    inventoryToastSlotsFull: "Slots full {max}/{max} — deactivate one device first",
+    inventoryToastSlotsFull: "{max}/{max} devices enabled. Deactivate one first.",
     inventoryToastActivated: "{deviceName} activated",
     inventoryToastDeactivated: "{deviceName} deactivated",
     inventoryRemoteMutationFailed: "The device state could not be confirmed. Try again.",
@@ -1568,14 +1672,14 @@ export const en = {
     inventoryConfirmDeactivateMsg: "Once deactivated, the device stops earning and pauses task progress. You can reactivate any time.",
     inventoryConfirmDeactivateOk: "Deactivate",
     inventoryConfirmDeactivateCancel: "Back",
-    inventorySlotsFullWarning: "Slots full — deactivate a device to activate another.",
+    inventorySlotsFullWarning: "The running-device limit is reached. Deactivate a device first.",
     inventoryEmptyTitle: "No devices yet",
     inventoryEmptyBody: "Buy a UVELBox from the store. Activate it to start earning.",
     inventoryCtaGoStore: "Go to store",
     inventoryPendingDeactivateChip: "Auto-deactivate after task ends",
     inventoryRowActivate: "Activate",
     inventoryRowDeactivate: "Deactivate",
-    inventoryRowSlotsFull: "Slots full",
+    inventoryRowSlotsFull: "Device limit reached",
     // Trade-in promo banner — surfaces when user has an eligible device for
     // an upgrade. Config-gated by DEFAULT_TRADEIN_CONFIG.promo (kill switch,
     // cooldown, max-per-session, routes).
@@ -1599,7 +1703,7 @@ export const en = {
     desc: "You have inactive devices in your inventory. Activate one or buy a new device.",
     goStoreCta: "Buy a new device",
     activateRow: "Activate an existing device",
-    toastSlotsFull: "Slots full {max}/{max}",
+    toastSlotsFull: "{max}/{max} devices enabled",
     toastActivated: "{name} activated",
   },
   computeShare: {
@@ -1607,12 +1711,12 @@ export const en = {
     sandboxHoldBody: "Demo mode cannot connect a real computer. You can view download and connection instructions.",
     entryEyebrow: "PC compute share",
     entryTitle: "Connect computer GPU power",
-    entryBody: "When computer compute opens, use an idle GPU as one compute slot.",
-    entryFull: "All compute slots are occupied. Open the PC page, then deactivate one device before connecting.",
+    entryBody: "When computer compute opens, connect an idle GPU as a running device.",
+    entryFull: "The device limit is reached. Deactivate one before connecting a computer.",
     entryCta: "Open",
     downloadTitle: "Computer GPU share",
     downloadEyebrow: "PC CLIENT",
-    downloadHeadline: "Use a computer GPU as one compute slot.",
+    downloadHeadline: "Connecting a computer GPU uses one place in your device allowance.",
     downloadBody: "Download the desktop client, sign in with the same account, and the computer appears in device inventory after connection.",
     urlLabel: "Client download address",
     urlPending: "Download package coming soon",
@@ -1641,8 +1745,8 @@ export const en = {
     pairingConnected: "Computer connected. View it in Devices.",
     pairingExpired: "The pairing code expired. Create a new pairing.",
     pairingFailed: "Unable to confirm pairing status. Please retry.",
-    slotsFullCta: "Slots full · deactivate one first",
-    slotsFullToast: "Slots full {max}/{max} · deactivate one device first",
+    slotsFullCta: "Device limit reached · deactivate one",
+    slotsFullToast: "{max}/{max} devices enabled. Deactivate one first.",
     connectedToast: "Computer linked as {tier}",
     disabledToast: "Computer GPU share is currently disabled",
   },
@@ -1755,7 +1859,7 @@ export const en = {
     detDaySuffix: "d",
     detHardware: "Hardware",
     detAiPerf: "AI performance",
-    detTrustedBy: "Trust",
+    detTrustedBy: "Related information",
     detYourPhone: "Your phone",
     detFeaturedIn: "Featured in",
     detCompliance: "Compliance",
@@ -1840,7 +1944,7 @@ export const en = {
     coHintErc20: "15 min",
     coCardHint: "Instant · +{rate} fee",
     coSlotsFull:
-      "All {max} activation slots are in use. You can still purchase — the new device lands in My Devices, pending activation once you free a slot.",
+      "All {max} allowed devices are enabled. You can still buy; the new device will wait in My devices. Deactivate a device before enabling the new one.",
     coContinue: "Continue",
     coReviewOrder: "Review order",
     coPayNow: "Pay now",
@@ -1877,7 +1981,7 @@ export const en = {
     pendingResumeBlocked: "This item can't be bought right now. Your pending payment is kept until it expires — if you already sent funds, contact support.",
     coSendExact: "Send the exact amount in one transaction · Send only on {network}",
     coCardSelect: "Select card",
-    coCardSecurity: "256-bit TLS · PCI DSS token",
+    coCardSecurity: "Review payment service terms and authorization details.",
     coCardExpiry: "Expires {expiry} · {holder}",
     coNoSavedCard: "No card on file yet",
     coAddCardCta: "Add a card",
@@ -1915,7 +2019,7 @@ export const en = {
         unlocks: "LLM 70B inference pool",
       },
       "stellarbox-pro": {
-        tagline: "Double the GPUs, double the earning power.",
+        tagline: "Explore the GPU configuration and supported tasks.",
         badge: "Trending",
         unlocks: "Flagship compute pool (Fine-tune + 405B inference)",
       },
@@ -1966,7 +2070,7 @@ export const en = {
     coTrialEarnToast: "Trial earnings credited · {parts}",
     // Sprint A-1 / E.1: first-order celebration
     firstOrderTitle: "🎉 Your first UVELBox is on its way",
-    firstOrderBody: "We'll provision your slot in the data center within minutes.",
+    firstOrderBody: "Check My devices for status after provisioning.",
     firstOrderAchievement: "Achievement unlocked · First Hardware Owner · +50 NEX",
     // Sprint A-1 / B.1: LiveSocialProof
     liveProof: {
@@ -2304,7 +2408,7 @@ export const en = {
     emptyHint: "Bind once, reuse at checkout",
     addNew: "Add a new card",
     listDisclaimer:
-      "Full card number and CVV are never stored. Only brand, last four digits, expiry, and cardholder name are kept — PCI DSS compliant.",
+      "Review the payment service's privacy and data-retention terms before linking a card. The card list shows summary information.",
     defaultBadge: "Default",
     rowMeta: "Exp {expiry} · {holder}",
     setDefault: "Set as default",
@@ -2317,7 +2421,7 @@ export const en = {
     // New card form
     newTitle: "Bind a bank card",
     formCardType: "Credit / Debit card",
-    formSecurityNote: "256-bit TLS · PCI DSS Level 1 tokenization",
+    formSecurityNote: "Review card details and payment service terms.",
     formPanLabel: "Card number",
     formExpiryLabel: "Expiry",
     formCvvLabel: "CVV",
@@ -2345,7 +2449,7 @@ export const en = {
     withS1: "With UVELBox S1",
     withPro: "With UVELBox Pro",
     estimatorHint:
-      "Estimates based on current network parameters. Actual earnings vary ±15%.",
+      "This is an estimate. Actual earnings vary with task demand and device status.",
     yourCurrentRate: "your current rate",
     detecting: "Reading your NPU specs…",
     yourPhone: "Your phone",
@@ -2421,8 +2525,8 @@ export const en = {
     billsThisMonth: "this month",
     viewAllBadges: "View all badges",
     viewAllOrders: "All orders",
-    slotsOpen: "{n} device slot open",
-    slotsOpenPlural: "{n} device slots open",
+    slotsOpen: "Room for {n} more devices",
+    slotsOpenPlural: "Room for {n} more devices",
     addDeviceCta: "Add device →",
     usdtBalance: "USDT balance",
     pendingHint: "+${n} pending · auto-settles every 24h",
@@ -2473,7 +2577,7 @@ export const en = {
     walletSlotMore: "more",
     walletSlotsLine: "{online} live · {open} slots open",
     withdrawalLocked: "Minimum not reached yet",
-    withdrawalLockedBody: "You need ${min} minimum (need ${short} more). At phone-tier earnings of $0.06/d, that's ~325 days. A UVELBox S1 hits $20 in under 3 days.",
+    withdrawalLockedBody: "The minimum withdrawal is ${min}; you need ${short} more.",
     withdrawalLockedBrowse: "Browse hardware",
     secWithPasskey: "Passkey · 2FA",
     secNoTwoFa: "2FA off",
@@ -2878,7 +2982,7 @@ export const en = {
     tHrAgo: "{n}h",
     tDayAgo: "{n}d",
     aiFreeFormReply:
-      "Got it — free-form chat is rolling out. For now, tap a quick prompt above ↑, or ask me to explain today's earnings.",
+      "Only quick questions are supported right now. Choose a question above to continue.",
     // Seed message bodies (proactive advisor + support) — {name} filled from mock
     seed: {
       advisorWelcome:
@@ -2983,16 +3087,16 @@ export const en = {
       "Exchange NEX and USDT in your wallet. Review the quote and amount received before confirming.",
     s1Title: "Why a built-in exchange?",
     s1Para1:
-      "Your earnings come in two forms — USDT (stablecoin you can withdraw) and NEX (platform token used for rewards and discounts). Most users want to convert NEX into USDT to eventually cash out. This page lets you do that instantly at the live market price.",
+      "The wallet supports NEX and USDT exchange. Review the current quote, fees and estimated amount before confirming.",
     s2Title: "How to make a swap (3 steps)",
-    s2Intro: "The whole flow takes under 30 seconds.",
+    s2Intro: "Choose an amount, review the quote and submit. Processing time depends on the order status.",
     s2Step1Title: "Pick direction and amount",
     s2Step1Body:
       "Choose whether you're paying with NEX or USDT, then enter how much. The other side updates live with the rate quoted. You'll see a 15-second quote window — refresh anytime.",
     s2Step2Title: "Review and confirm",
     s2Step2Body:
-      "Confirm the amount you'll receive at the locked rate. Network fee is free for in-platform swaps — no slippage, no hidden charges.",
-    s2Step3Title: "Funds settle instantly",
+      "Review the rate, fees and estimated amount received; confirm again if the quote changes.",
+    s2Step3Title: "View settlement results",
     s2Step3Body:
       "Your balance and transaction history update when the exchange completes.",
     s3Title: "Daily limit protection",
@@ -3006,23 +3110,23 @@ export const en = {
       "Total daily exchange volume across all users is capped at $20K. If the pool is full, swap goes into a queue and processes on next-day reset.",
     s3HintTitle: "Why daily limits?",
     s3HintBody:
-      "Caps prevent fraud and large-scale arbitrage that would hurt token holders. They also satisfy FATF Travel Rule and MiCA regulatory requirements for crypto-to-fiat conversions.",
+      "Exchange limits restrict the amount available to submit. Check the displayed allowance and order status.",
     s4Title: "What happens if I hit a cap?",
     s4Intro: "Three transparent outcomes — no surprises:",
     s4Step1: "Exchange requests may remain pending when your available limit is insufficient.",
     s4Step2:
       "Check exchange history for the status and amount received.",
     s4Step3: "If you cancel before processing, the locked NEX/USDT returns to your wallet untouched.",
-    s4SafetyTitle: "Your funds are never locked unilaterally",
+    s4SafetyTitle: "Check exchange cancellation conditions",
     s4SafetyBody:
-      "Queued swaps can be cancelled at any time before they process. The platform never holds your funds without your explicit consent.",
+      "An exchange that has not started processing can be cancelled as shown on the page. Check exchange records for cancellation and fund-return status.",
     faqTitle: "Common questions",
     faqQ1: "What's the current NEX/USDT rate based on?",
     faqA1:
       "The confirmation page shows the current quote and expected amount received. Review them before submitting.",
     faqQ2: "Are there fees on exchanges?",
     faqA2:
-      "No. In-platform NEX↔USDT swaps are completely free — no network fees, no spread markup beyond the live rate.",
+      "Check the confirmation page for exchange fees, the rate and the estimated amount received.",
     faqQ3: "Can I exchange NEX for fiat directly?",
     faqA3:
       "Not in one step. Swap NEX→USDT here first, then withdraw USDT to your wallet or off-ramp to fiat through any USDT-compatible exchange.",
@@ -3319,6 +3423,10 @@ export const en = {
     uptimeLine: "uptime {v}",
   },
   proof: {
+    shareStreak: "My UVEL check-in streak is {n} days. {link}",
+    shareNetwork: "My UVEL network has {n} members. {link}",
+    shareEarnings: "My UVEL records show ${amount} earned over {days} days. {link}",
+    shareDemo: "Experience data only; not actual earnings.",
     title: "Earnings Proof",
     back: "Back",
     headline: "Share your contribution",
@@ -3380,7 +3488,7 @@ export const en = {
     viewAll: "View all",
     historyEmpty: "No completed tasks yet — your first one is on the way.",
     historyHint:
-      "Last {n} jobs · Tap any row to open its Proof-of-Compute receipt.",
+      "Latest {n} records · Select a record to view its compute task receipt.",
     timeJustNow: "just now",
     timeMinutesAgo: "{n}m ago",
     timeHoursAgo: "{n}h ago",
@@ -3688,7 +3796,7 @@ export const en = {
     title: "Trust Center",
     heroLabel: "Independently audited",
     heroHeadline: "Hardware-backed compute. Verifiable execution.",
-    tvlOnChain: "TVL on-chain",
+    tvlOnChain: "Total value locked on-chain (TVL)",
     activeNodes: "Active nodes",
     complianceLabel: "Compliance & certifications",
     auditsLabel: "Audits & reserves",
@@ -3823,7 +3931,7 @@ export const en = {
     networkFee: "Network fee",
     networkFeeFree: "$0.00 (covered)",
     getRow: "You get",
-    getRowValue: "OG seat · listing priority",
+    getRowValue: "Genesis early-holder seat · NEX allocation",
     totalDue: "Total due",
     confirmCta: "Confirm",
     purchaseSuccess: "{n} Genesis seat{s} secured",
@@ -3840,11 +3948,11 @@ export const en = {
     howItWorksEntry: "Usage guide",
     faq: {
       q1: "How do earnings work?",
-      a1: "Your seat holds a priority allocation in $NEX protocol emissions, released on a vesting curve after listing.",
+      a1: "Seats include priority NEX allocations, distributed in instalments under the published plan after exchange listing.",
       q2: "Can I resell?",
       a2: "Yes — Genesis seats are tradeable on the secondary market (2.5% network royalty).",
       q3: "When do emissions start?",
-      a3: "Emissions open when $NEX lists. Until then you hold a reserved allocation, not a daily payout.",
+      a3: "Distribution starts under the published plan after NEX exchange listing. Before then, this is a reserved allocation, not daily income.",
     },
   },
 
@@ -3943,11 +4051,11 @@ export const en = {
     exchangePoolToday: "Platform pool today",
     // Sprint A-1 / B.2 — Reverse-talk staking alternative
     stakeAlt: {
-      label: "What this becomes if you stake instead",
-      headline: "{amount} staked for {days} days at peak APY becomes {peak}.",
+      label: "Staking plan estimate",
+      headline: "At the current annual rate, staking {amount} for {days} days gives an estimated total of {peak}; actual earnings may vary.",
       tierLabel: "{n}-day",
-      cta: "Stake for +{delta} in {days} days",
-      disclaimer: "Projections use current APY snapshot · Early unlock forfeits 100% of accrued premium · Not financial advice",
+      cta: "View the {days}-day plan",
+      disclaimer: "Estimated at the current annual rate. Early redemption forfeits all accrued earnings and may reduce principal; review the selected plan's fees before confirming.",
     },
   },
 
@@ -4309,7 +4417,7 @@ export const en = {
     loading: "Loading distribution records…",
     loadError: "The leadership pool is unavailable. Check your connection and retry.",
     retry: "Reload",
-    weekPool: "Week pool",
+    weekPool: "This week's reward pool",
     weeklyDesc: "5% of weekly platform volume · settles in {n}",
     daysShort: "d",
     hoursShort: "h",
@@ -4326,7 +4434,7 @@ export const en = {
     totalPeople: "{n} total",
     peopleVotesEa: "{count} people · {votes} votes ea",
     eaShort: "ea",
-    pastPools: "Past weekly pools",
+    pastPools: "Previous reward pools",
     poolTotalShort: "Pool ${k}K · {n} votes",
     youTag: "YOU",
     howItWorksEntry: "Usage guide",
@@ -4551,10 +4659,10 @@ export const en = {
       "See the exact interest, lottery ticket and cultivation multiplier for that amount. All three kick in the moment you confirm.",
     s3Step3Title: "Lock for 90 days",
     s3Step3Body:
-      "Funds move to a dedicated 90-day staking vault. At maturity, principal + interest auto-claim to your wallet. The lottery ticket is credited immediately.",
+      "At maturity, follow the page instructions to transfer principal and earnings to your wallet.",
     s3HintTitle: "Early withdrawal cost",
     s3HintBody:
-      "You can early-withdraw any time, but the penalty is 15% of principal — and all accrued interest and ticket are forfeited. Re-invest is designed to be held to maturity.",
+      "Early redemption deducts 15% of principal; accrued interest is forfeited and raffle tickets are cancelled. Review the fees before confirming.",
     s4Title: "Worked example: re-invest $1,000",
     s4Intro: "Concrete numbers — exactly what you get for a $1,000 commitment.",
     s4Scenario: "Deposit",
@@ -4758,14 +4866,14 @@ export const en = {
       yourBest: "Your best: {n} days",
     },
     powerUps: {
-      label: "STREAK POWER-UPS",
+      label: "Consecutive check-in rewards",
       streakStat: "{n}-day streak",
       threshold: "{n}d",
       daysToUnlock: "{n} more days to unlock",
       locked: "Locked",
       activate: "Activate",
       activated: "Activated",
-      footer: "The longer you check in, the more boosts unlock. Activated perks stick permanently.",
+      footer: "Consecutive check-ins unlock rewards. Scope and validity follow each reward's terms.",
       footerReady: "«{name}» is ready — tap Activate on the right",
       footerNext: "{days} more days to unlock «{name}»",
       footerAll: "All {n} perks activated · keep streaking to retain them",
@@ -4775,8 +4883,8 @@ export const en = {
       royalty_boost_desc: "Every commission earned from new invites this week gets a 5% top-up",
       nex_boost_label: "NEX boost unlock",
       nex_boost_desc: "Unlock exclusive NEX boost perks and a priority support channel at a 14-day streak",
-      staking_boost_label: "+2% APY on next stake",
-      staking_boost_desc: "Your next staking lockup gets a permanent +2% APY on top of the base rate",
+      staking_boost_label: "Next stake annual yield +2%",
+      staking_boost_desc: "An annual-yield bonus applies to the next stake. Check its rate and validity on the confirmation page.",
       genesis_whitelist_label: "Genesis access candidacy",
     },
   },
@@ -4879,32 +4987,32 @@ export const en = {
 
   genesisHowItWorks: {
     navTitle: "About Genesis seats",
-    heroLabel: "GENESIS OG SEATS",
-    heroTitle: "1,000 OG seats. Each a priority claim on $NEX.",
+    heroLabel: "Genesis early-holder seats",
+    heroTitle: "Genesis seats and NEX allocations",
     heroSub:
-      "Genesis seats are limited OG positions. You hold a priority allocation in $NEX protocol emissions, unlocked after listing — plus governance and a scarce founder identity.",
+      "Genesis seats are for early holders. NEX distribution depends on the published plan and conditions such as exchange listing; see the rules for community governance participation.",
     s1Title: "What is a Genesis seat?",
     s1Para1:
-      "A Genesis seat is a 1-of-1,000 OG position — an NFT you self-custody, tradeable on the secondary market. It carries a priority allocation in $NEX emissions plus governance rights.",
+      "Genesis seats are for early holders. Published rules define allocations, transfers and participation in community governance (DAO).",
     s1Para2:
-      "Seats mint once. When all 1,000 are gone, the only way in is buying from another holder on the secondary market. No new ones will ever be created.",
+      "Check published issuance limits, supply rules and transfer conditions before subscribing.",
     s1Access:
       "Check current availability on the purchase page.",
     s2Title: "What you get",
     s2Intro:
       "Every Genesis seat bundles four benefits:",
-    perk1Label: "Priority $NEX emissions",
+    perk1Label: "Priority NEX allocation",
     perk1Body:
-      "A priority allocation in the protocol's emission pool. It unlocks after $NEX lists and releases on a vesting curve — paid in $NEX, not a daily cash dividend.",
+      "NEX allocations are distributed in instalments under the published plan after exchange listing. They are denominated in NEX, not daily cash dividends.",
     perk2Label: "Ecosystem reward-pool share",
     perk2Body:
       "Seats share a slice of the ecosystem reward pool, on top of your emission allocation.",
     perk3Label: "Founding-member identity",
     perk3Body:
-      "A blockchain-verified record that you were among UVEL's first 1,000 OG holders — held permanently in your wallet.",
-    perk4Label: "DAO voting rights",
+      "View ownership in seat records. After a transfer, the updated owner record applies.",
+    perk4Label: "Community governance (DAO)",
     perk4Body:
-      "Each seat grants 1 governance vote on major platform decisions (fee changes, treasury allocation, partnership approvals).",
+      "Eligibility, voting scope and effective conditions follow the published governance rules.",
     s3Title: "How to get a seat",
     s3Intro: "Two paths — depending on whether the pre-sale is still open:",
     s3Step1Title: "Presale: check the current price",
@@ -4915,13 +5023,13 @@ export const en = {
       "Once the pre-sale sells out, the only way in is buying from another holder on the secondary market. Floor is set by the market.",
     s3Step3Title: "Hold · claim your allocation at listing",
     s3Step3Body:
-      "Before listing you hold a reserved allocation and earn points. When $NEX lists, emissions open and release on the vesting curve.",
-    s3HintTitle: "Why earlier is better",
+      "Before exchange listing, holders have a reserved allocation; NEX is then distributed in instalments under the published plan.",
+    s3HintTitle: "What should I check before subscribing?",
     s3HintBody:
-      "Each tier that sells out raises the price for the next. Earlier seats cost less and rank higher in emission priority.",
+      "Review the quote, available quantity, distribution conditions and risks. Buying earlier does not guarantee higher returns.",
     s4Title: "Trading on the secondary market",
     s4Intro:
-      "Genesis seats are fully transferable NFTs. You can sell, gift, or trade anytime.",
+      "Use the market page to list or transfer where available. A listing does not guarantee a sale; review fees and conditions first.",
     s4FlowLabel: "List your seat for sale",
     s4Flow1: "Open the marketplace",
     s4Flow2: "Tap your seat card, choose 'List for sale'",
@@ -4934,16 +5042,16 @@ export const en = {
     faqTitle: "Common questions",
     faqQ1: "Why are there only 1,000?",
     faqA1:
-      "Hard supply cap from day one, enforced on-chain — no team can mint more. Scarcity is permanent.",
+      "Review published issuance and supply rules. Contract permissions and changes should be verified against available documentation.",
     faqQ2: "How does the allocation work?",
     faqA2:
-      "Your seat holds a priority allocation in $NEX emissions. It's a reserved allocation; the exact share is set at listing and releases on the vesting curve — not a fixed daily payout.",
+      "Seats include priority NEX allocations. Shares and instalments follow the published plan and are not fixed daily earnings.",
     faqQ3: "When do emissions start?",
     faqA3:
-      "Emissions open when $NEX lists. Before that you hold a reserved allocation and climb the points leaderboard; there is no daily payout in the pre-listing phase.",
+      "NEX distribution follows the published plan after exchange listing. Before then, holders have reserved allocations and no daily earnings.",
     faqQ4: "What are the risks?",
     faqA4:
-      "Emissions are paid in $NEX and vary with the network — no guaranteed return. Treat a seat as venture-style exposure to UVEL's long-term success.",
+      "NEX distribution and price may change. Returns are not guaranteed. This is a high-risk investment and losses are possible.",
     faqQ5: "Can I hold multiple seats?",
     faqA5:
       "The purchase page shows the quantity available to you. Each seat is held separately.",
@@ -4996,7 +5104,7 @@ export const en = {
     heroLabel: "PLATFORM TOKEN",
     heroTitle: "NEX — the token that powers UVEL's compute economy.",
     heroSub:
-      "Every time AI inference runs on the network, NEX is minted. Every time someone pays platform fees, NEX is burned. Supply and demand both come from real activity.",
+      "NEX supports wallet exchange and eligible fee deductions. Check account records for distributions and public documentation for issuance rules.",
     s1Title: "NEX vs USDT — what's the difference?",
     s1Para1:
       "Your wallet holds two kinds of money. USDT is a stablecoin pegged to the US dollar — predictable, used for payments and withdrawals. NEX is UVEL's native platform token — variable price, used to exchange into USDT and to offset USDT withdrawal fees.",
@@ -5015,10 +5123,10 @@ export const en = {
     nexUse: "Exchange to USDT · offset fees",
     s2Title: "Where does NEX come from?",
     s2Intro:
-      "NEX is minted (created) only when real activity happens on the network. There's no pre-mint, no team unlock cliff, no fixed supply schedule.",
+      "Account NEX may come from task or event rewards. Check records for sources and amounts, and verifiable disclosures for issuance and unlock schedules.",
     src1Label: "AI inference output",
     src1Body:
-      "Every completed inference job on the network mints a small amount of NEX, paid to the device that did the work. Bigger / harder jobs mint more.",
+      "Task output is shown in task receipts and account records.",
     src2Label: "Team commissions",
     src2Body:
       "Network royalty, peer, and cultivation rewards are partially paid in NEX. As your team earns, you accumulate NEX automatically.",
@@ -5058,7 +5166,7 @@ export const en = {
     faqTitle: "Common questions",
     faqQ1: "Is NEX a stablecoin?",
     faqA1:
-      "No — NEX has a real, variable market price (currently around $0.17). USDT is the stablecoin in your wallet. They live side by side and serve different purposes.",
+      "NEX is not a stablecoin and its price may rise or fall. USDT and NEX have different uses and risks.",
     faqQ2: "Can I withdraw NEX directly?",
     faqA2:
       "Exchange NEX for USDT in your wallet before requesting a USDT withdrawal. Check current limits and fees before confirming.",
@@ -5067,10 +5175,10 @@ export const en = {
       "Your NEX amount is unchanged, but its USDT value may decrease. Market prices move in both directions.",
     faqQ4: "Will NEX be listed on Binance / Coinbase?",
     faqA4:
-      "NEX is currently in a 'pre-listing window' — listed on smaller DEXs while a Binance tier-1 review is pending. There is no guaranteed listing date or outcome.",
+      "Refer to verifiable official announcements for exchange listings. Timing and outcomes are not guaranteed.",
     faqQ5: "How is NEX different from a memecoin?",
     faqA5:
-      "Memecoins have no utility — their price comes purely from speculation and hype. NEX is backed by real platform fees and real AI demand. The mint and burn schedules are tied to actual on-chain activity, not arbitrary releases.",
+      "Assess each asset by its disclosed uses, issuance rules and price risks. NEX exchange and fee deductions do not guarantee value or returns.",
     ctaExchange: "Open Exchange",
     ctaBack: "Back to Trust Center",
   },
@@ -5125,7 +5233,7 @@ export const en = {
     heroTitle: "One place for every quest, streak, and challenge.",
     heroSubtitle: "Daily check-ins, weekly featured rewards, and limited-time events — all in one place.",
     todayHeading: "Today",
-    todayLabel: "Daily check-in + streak",
+    todayLabel: "Daily and consecutive check-ins",
     todayValue: "Hit your daily streak + claim NEX",
     weekHeading: "This week",
     weekLabel: "Weekly featured reward",
@@ -5174,7 +5282,7 @@ export const en = {
     tier1_tradein_upgrade_body: "View upgrade options and current trade-in quotes. Review old-device deactivation and the amount due before confirming.",
     tier1_tradein_upgrade_cta: "See upgrade trade-in",
     tier1_upgrade_s1_to_pro_v2_title: "Upgrade UVELBox S1 → Pro v2",
-    tier1_upgrade_s1_to_pro_v2_body: "2.5× throughput, 256GB VRAM, stronger silicon. Compound your daily ceiling immediately.",
+    tier1_upgrade_s1_to_pro_v2_body: "Review Pro's specifications and estimated daily output. Check the detail page for upgrade costs and task conditions.",
     tier1_upgrade_s1_to_pro_v2_cta: "View Pro v2",
     tier1_subscribe_premium_title: "Re-invest · lock your balance for another round",
     tier1_subscribe_premium_body: "Re-invest your withdrawable balance into a 90-day lock: 35% APY + 1.5× cultivation + Genesis raffle tickets.",
@@ -5333,7 +5441,7 @@ export const en = {
     devicesDesc: "Plug one in and it starts earning",
     devicesCta: "Browse devices",
     stakingTitle: "You have nothing staked",
-    stakingDesc: "Lock NEX and it earns while you sleep",
+    stakingDesc: "No stakes yet. Review USDT plans, terms and early redemption fees.",
     stakingCta: "Pick a plan",
     cardsTitle: "No cards saved",
     cardsDesc: "Save one and checkout gets a lot faster",
@@ -5397,7 +5505,7 @@ export const en = {
     cardFeeLabel: "Card fee {rate}",
     cardLimitHint: "Per-transaction limit {min} – {max}",
     payCta: "Pay {amount}",
-    trustFootnote: "Card processed by Checkout.com (PCI DSS Level 1). UVEL never sees your full card number. 3D Secure 2.2 enforced for transactions over $50.",
+    trustFootnote: "Follow the payment page to authorize your card and review the processor, fees and verification requirements.",
     receiptLine: "Receipt #{no} · Charged ${amount} to ••••{last4}",
     authorizingCard: "Authorizing card…",
     secureVerification: "3D Secure verification",
@@ -5496,7 +5604,7 @@ export const en = {
     volumeShort: "{amount} vol",
     joinedDaysAgo: "{n}d ago",
     perMonth: "{amount}/mo",
-    earnsPerDay: "Earns {amount}/d",
+    earnsPerDay: "Estimated daily output {amount}",
   },
   fx: {
     rateLabel: "Rate",

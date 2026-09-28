@@ -21,18 +21,18 @@
 
       <!-- Server mode has no seeded purchase inventory. Keep the live catalog
            state visible so a malformed or empty response cannot hide every CTA. -->
-      <view v-if="catalogStatus === 'loading'" data-testid="store-catalog-loading" :style="catalogStateStyle">
+      <view class="nx-glass-card" v-if="catalogStatus === 'loading'" data-testid="store-catalog-loading" :style="catalogStateStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogLoadingTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogLoadingBody }}</text>
       </view>
-      <view v-else-if="catalogStatus === 'error'" data-testid="store-catalog-error" :style="catalogStateStyle">
+      <view class="nx-glass-card" v-else-if="catalogStatus === 'error'" data-testid="store-catalog-error" :style="catalogStateStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogErrorTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogErrorBody }}</text>
         <view class="inline-flex mt-3 active:opacity-70" role="button" tabindex="0" :style="catalogRetryStyle" @click="retryCatalog">
           <text>{{ t.store.catalogRetry }}</text>
         </view>
       </view>
-      <view v-else-if="!catalogHasProducts" data-testid="store-catalog-empty" :style="catalogStateStyle">
+      <view class="nx-glass-card" v-else-if="!catalogHasProducts" data-testid="store-catalog-empty" :style="catalogStateStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogEmptyTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogEmptyBody }}</text>
       </view>
@@ -164,15 +164,15 @@ const amberTagStyle: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const catalogStateStyle: CSSProperties = {
+const catalogStateStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "18px 16px",
-  borderRadius: "16px",
+  borderRadius: "var(--nx-glass-radius)",
   // 《03》§3:带填充的卡片一律零 border,层级靠 surface 微差色。
   // 删 border 不会让它隐形 —— 卡面 surface 与页面底 bg 两个主题都有真实色差
   // (亮色是白卡压暖米底,暗色是深灰卡压纯黑底),不是「底色与父同色」那种坑。
   // ↑ 刻意不在注释里写具体色号:hex 硬编码哨兵扫的是字面色号,一句注释就能让它判红
   //   (2026-08-14 实测,与「注释里写接口路径把台账哨兵判红」同型)。
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const catalogStateTitleStyle: CSSProperties = {
   fontSize: "15px",

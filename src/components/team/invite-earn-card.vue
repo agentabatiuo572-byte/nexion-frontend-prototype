@@ -12,7 +12,7 @@
   <button>→<view @click>; <span>→<text>; <div>→<view>.
 -->
 <template>
-  <view class="relative overflow-hidden rounded-2xl" :style="rootStyle">
+  <view class="nx-glass-card relative overflow-hidden rounded-2xl" :style="rootStyle">
     <!-- 24px grid overlay -->
     <view aria-hidden="true" :style="gridStyle" />
 
@@ -243,10 +243,10 @@ onUnmounted(() => {
 });
 
 // ─── styles ───
-const rootStyle: CSSProperties = {
+const rootStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   padding: "16px",
   background:
-    "radial-gradient(70% 80% at 0% 0%, var(--v5-brand-soft) 0%, transparent 60%), radial-gradient(70% 80% at 100% 100%, var(--v5-tech-cyan-soft) 0%, transparent 60%), var(--v5-surface)",
+    "var(--nx-glass-fill)",
 };
 const gridStyle: CSSProperties = {
   position: "absolute",

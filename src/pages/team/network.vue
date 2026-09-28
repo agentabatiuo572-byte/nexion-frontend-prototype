@@ -23,15 +23,15 @@
         </view>
         <!-- Top metrics — filled stat tiles, no border (single visual difference) -->
         <view class="grid grid-cols-3" style="gap: 8px">
-          <view class="rounded-2xl text-center" :style="metricCardStyle">
+          <view class="nx-glass-card rounded-2xl text-center" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.network.members }}</text>
             <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : members.length }}</text>
           </view>
-          <view class="rounded-2xl text-center" :style="metricCardStyle">
+          <view class="nx-glass-card rounded-2xl text-center" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.network.activeNow }}</text>
             <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : activeCount }}</text>
           </view>
-          <view class="rounded-2xl text-center" :style="metricCardStyle">
+          <view class="nx-glass-card rounded-2xl text-center" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.network.direct }}</text>
             <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-tech-cyan)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : directCount }}</text>
           </view>
@@ -121,7 +121,7 @@
       <!-- Member detail bottom sheet -->
       <view v-if="selected" class="nx-net-sheet-wrap" role="dialog" aria-modal="true">
         <view class="nx-net-scrim" @click="selected = null" />
-        <view class="nx-net-sheet" :style="sheetStyle">
+        <view class="nx-glass-sheet nx-net-sheet" :style="sheetStyle">
           <view class="flex items-start justify-between">
             <view class="flex items-center" style="gap: 12px">
               <view class="rounded-full grid place-items-center" :style="sheetAvatarStyle">
@@ -273,7 +273,7 @@ function memberStatusText(status: MemberStatus): string {
 
 // ─── styles ───
 // Filled stat tile, no border (single visual difference).
-const metricCardStyle: CSSProperties = { background: "var(--v5-surface)", borderRadius: "16px", padding: "12px" };
+const metricCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderRadius: "var(--nx-glass-radius)", padding: "12px" };
 const errorStateStyle: CSSProperties = { padding: "14px", borderRadius: "14px", background: "var(--v5-warning-soft)", color: "var(--v5-ink)" };
 const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "grid", placeItems: "center", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink-2)" };
 const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
@@ -303,12 +303,12 @@ const legendWrapStyle: CSSProperties = { padding: "4px 12px 12px", gap: "16px", 
 // SKILL leading-relaxed = 1.625 (原版 .text-[12px] leading-relaxed; was 1.6)
 const footerStyle: CSSProperties = { padding: "0 4px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
 
-const sheetStyle: CSSProperties = {
+const sheetStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   width: "100%",
-  background: "var(--v5-surface)",
-  borderRadius: "16px 16px 0 0",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius) var(--nx-glass-radius) 0 0",
   padding: "16px",
-  borderTop: "1px solid var(--v5-border)",
+  borderTop: "none",
 };
 const sheetAvatarStyle: CSSProperties = { width: "48px", height: "48px", background: "var(--v5-surface-2)" };
 function sheetBadgeStyle(m: NetworkMember): CSSProperties {

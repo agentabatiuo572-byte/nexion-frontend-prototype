@@ -12,7 +12,7 @@
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <!-- hero — rules-intro pill rides the title row (owner 2026-07-09: kill
              the empty gap above the hero). -->
-        <view :style="heroStyle">
+        <view class="nx-glass-card" :style="heroStyle">
           <view class="nx-repurchase-hero-head flex items-center justify-between" style="gap: 8px">
             <view class="nx-repurchase-hero-main flex items-center" style="gap: 8px">
               <view class="grid place-items-center" :style="heroIconBoxStyle">
@@ -220,10 +220,10 @@ const howLinkStyle: CSSProperties = {
 // Spotlight hero kept (single per screen) but neutralised: the accent floor-adjacent
 // glow is dropped;描边已整条删除(《03》§3 零 border,C2 第二轮)。The colourful
 // benefit tiles inside carry the visual interest.
-const heroStyle: CSSProperties = {
-  borderRadius: "16px",
+const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const heroIconBoxStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-brand) 20%, transparent)" };
 const heroTitleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontWeight: 600, fontSize: "20px", letterSpacing: "-0.014em", color: "var(--v5-ink)" };

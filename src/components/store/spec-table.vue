@@ -4,7 +4,7 @@
   Value is ink (hardware) or brand (`brandValue`, for AI throughput rows).
 -->
 <template>
-  <view class="mx-4 rounded-2xl overflow-hidden" :style="rootStyle">
+  <view class="nx-glass-card mx-4 rounded-2xl overflow-hidden" :style="rootStyle">
     <view
       v-for="(r, i) in rows"
       :key="r.k"
@@ -25,8 +25,8 @@ const props = withDefaults(
   { brandValue: false },
 );
 
-const rootStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+const rootStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "0 16px",
 };
 function rowStyle(i: number): CSSProperties {

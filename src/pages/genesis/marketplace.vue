@@ -101,7 +101,7 @@
 
         <!-- ACTIVITY TAB(真实成交 + 虚拟成交混排,FEAT-GEN10)-->
         <template v-else-if="tab === 'activity'">
-          <view v-if="mergedActivity.length > 0" class="overflow-hidden" :style="listCardStyle">
+          <view v-if="mergedActivity.length > 0" class="nx-glass-card overflow-hidden" :style="listCardStyle">
             <ActivityRow v-for="(e, i) in mergedActivity" :key="e.id" :e="e" :is-last="i === mergedActivity.length - 1" />
           </view>
           <!-- 同上:零事件时原样渲染 listCardStyle 会留一个零高度的空 surface 盒子。 -->
@@ -365,9 +365,9 @@ const closedNoticeSubStyle: CSSProperties = {
   textWrap: "pretty",
 };
 // Activity feed — single filled surface container, no border (rows carry hairlines).
-const listCardStyle: CSSProperties = {
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+const listCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 // Empty state — dashed outline, no fill (whitelist empty-state idiom).
 const emptyCardStyle: CSSProperties = {

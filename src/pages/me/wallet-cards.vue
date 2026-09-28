@@ -25,7 +25,7 @@
         <EmptyState v-if="cards.length === 0" kind="empty-list" :title="t.empty.cardsTitle" :desc="t.empty.cardsDesc" :cta-label="cardBindingAvailable ? t.empty.cardsCta : undefined" @cta="goNew" />
 
         <!-- Card rows -->
-        <view v-for="card in cards" :key="card.tokenId" :style="cardRowStyle">
+        <view class="nx-glass-card" v-for="card in cards" :key="card.tokenId" :style="cardRowStyle">
           <view class="flex items-center" :style="cardRowHeadStyle">
             <view class="grid place-items-center shrink-0" :style="cardIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
@@ -161,10 +161,10 @@ const emptyHintStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", colo
 // Each saved card keeps its card-face identity as a filled surface; the outer
 // border is dropped (filled = single visual difference). The head→actions
 // hairline divider stays as the internal separator.
-const cardRowStyle: CSSProperties = {
+const cardRowStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginBottom: "12px",
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   overflow: "hidden",
 };
 const cardRowHeadStyle: CSSProperties = { padding: "16px 20px", gap: "12px" };

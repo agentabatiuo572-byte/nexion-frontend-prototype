@@ -5,7 +5,7 @@
   Detailed specs, progress, queue proof and Notify CTA stay collapsed by default.
 -->
 <template>
-  <view class="relative overflow-hidden" :style="rootStyle">
+  <view class="nx-glass-card relative overflow-hidden" :style="rootStyle">
     <!-- aurora drift bg -->
     <view aria-hidden :style="auroraStyle" />
     <!-- 24px grid overlay -->
@@ -88,9 +88,9 @@ function toggleDetails() {
   detailsOpen.value = !detailsOpen.value;
 }
 
-const rootStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 
 const auroraStyle: CSSProperties = {

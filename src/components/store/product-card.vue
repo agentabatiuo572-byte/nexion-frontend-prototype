@@ -12,7 +12,7 @@
 -->
 <template>
   <!-- 《08》§2:tap 反馈 active:scale+opacity(禁 hover 做移动端反馈) -->
-  <view class="relative overflow-hidden block active:scale-[0.98] active:opacity-80" :style="cardStyle" role="button" tabindex="0" @click="goDetail">
+  <view class="nx-glass-card relative overflow-hidden block active:scale-[0.98] active:opacity-80" :style="cardStyle" role="button" tabindex="0" @click="goDetail">
     <view v-if="featured" aria-hidden :style="featuredGlowStyle" />
 
     <!-- ───── Hero photo banner ───── -->
@@ -220,9 +220,9 @@ function goDevices() {
 }
 
 // ───── styles ─────
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const featuredGlowStyle: CSSProperties = {
   position: "absolute",

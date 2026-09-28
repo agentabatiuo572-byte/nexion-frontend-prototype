@@ -14,7 +14,7 @@
 <template>
   <view>
     <SectionHeader :title="t.me.myWallet" link="/pages/me/wallet-bills" :link-label="t.headerTitles.meWalletBills" />
-    <view class="relative overflow-hidden" :style="cardStyle">
+    <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
       <!-- grid-overlay 24px lattice -->
       <view aria-hidden :style="gridOverlayStyle" />
       <!-- aurora drift -->
@@ -168,9 +168,9 @@ function goStore() {
 const cardStyle: CSSProperties = {
   padding: "18px",
   background:
-    "radial-gradient(80% 60% at 50% 0%, color-mix(in oklab, var(--v5-brand) 8%, transparent) 0%, transparent 55%), var(--v5-surface-2)",
-  borderRadius: "16px",
-  boxShadow: "var(--v5-card-shadow-lift-strong)",
+    "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
+  boxShadow: "var(--nx-glass-edge)",
 };
 const gridOverlayStyle: CSSProperties = {
   position: "absolute",

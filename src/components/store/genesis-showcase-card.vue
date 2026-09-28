@@ -14,7 +14,7 @@
 -->
 <template>
   <view>
-    <view class="relative overflow-hidden active:scale-[0.98]" :style="cardStyle" @click="onCardTap">
+    <view class="nx-glass-card relative overflow-hidden active:scale-[0.98]" :style="cardStyle" @click="onCardTap">
       <!-- Gold aurora wash（装饰,卡内合法光晕:bg+overflow-hidden）-->
       <view aria-hidden :style="auroraStyle" />
 
@@ -151,9 +151,9 @@ function onCardTap() {
 }
 
 // ── styles（金色 = genesis 域例外,见文件头;其余走 --v5-* token,零 border 卡）──
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "18px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "18px 16px 16px",
 };
 const auroraStyle: CSSProperties = {

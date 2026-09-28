@@ -10,7 +10,7 @@
   color-mix. Emits join/claim to the page (which owns the store writes).
 -->
 <template>
-  <view class="relative rounded-2xl overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card relative rounded-2xl overflow-hidden" :style="cardStyle">
     <!-- left tint hairline -->
     <view aria-hidden class="absolute" :style="hairlineStyle" />
 
@@ -152,8 +152,8 @@ function onDecorativeCta() {
   openHref();
 }
 
-const cardStyle = computed<CSSProperties>(() => ({
-  background: "var(--v5-surface)",
+const cardStyle = computed<CSSProperties>(() => ({ borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   opacity: dim.value ? 0.6 : 1,
 }));
 const hairlineStyle = computed<CSSProperties>(() => ({

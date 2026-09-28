@@ -10,7 +10,7 @@
   <view v-if="sheet.open" class="vcs-root" role="dialog" aria-modal="true">
     <view class="vcs-backdrop" @click="hide" />
 
-    <view class="vcs-panel" @click.stop>
+    <view class="nx-glass-sheet vcs-panel" @click.stop>
       <!-- header -->
       <view class="vcs-head">
         <view class="vcs-head-l">
@@ -175,16 +175,16 @@ useDialogA11y(computed(() => sheet.open), ".vcs-root", hide);
   -webkit-backdrop-filter: blur(8px) saturate(150%);
   animation: vcs-fade 0.24s ease-out;
 }
-.vcs-panel {
+.vcs-panel { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge);
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 800;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  background: var(--v5-surface);
-  border-top: 1px solid var(--v5-border);
+
+
+  background: var(--nx-glass-fill);
+  border: none;
   padding: 20px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 38px);
   animation: vcs-slide-up 0.36s cubic-bezier(0.16, 1, 0.3, 1);

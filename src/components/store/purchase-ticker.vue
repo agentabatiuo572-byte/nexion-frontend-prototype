@@ -4,14 +4,14 @@
   "<who> · <country> bought <product>" · "<t> ago".
 -->
 <template>
-  <view v-if="remoteApiEnabled && remoteCurrent" class="flex items-center gap-2.5" :style="rootStyle">
+  <view v-if="remoteApiEnabled && remoteCurrent" class="nx-glass-card flex items-center gap-2.5" :style="rootStyle">
     <view class="flex-1 min-w-0 overflow-hidden" style="font-size: 13px">
       <text style="color: var(--v5-ink-3)">{{ t.store.tickerBought }} </text>
       <text style="color: var(--v5-brand); font-weight: 500">{{ remoteCurrent.productName }}</text>
     </view>
     <text class="font-mono-tabular whitespace-nowrap" style="font-size: 12px; color: var(--v5-ink-4)">{{ verifiedHour }}</text>
   </view>
-  <view v-else-if="!remoteApiEnabled" class="flex items-center gap-2.5" :style="rootStyle">
+  <view v-else-if="!remoteApiEnabled" class="nx-glass-card flex items-center gap-2.5" :style="rootStyle">
     <view class="flex-1 min-w-0 overflow-hidden" style="font-size: 13px">
       <text style="color: var(--v5-ink); font-weight: 500">{{ cur.who }} · {{ cur.co }}</text>
       <text style="color: var(--v5-ink-3)">&nbsp;{{ t.store.tickerBought }} </text>
@@ -97,10 +97,10 @@ onUnmounted(() => {
 
 const cur = computed(() => purchases[i.value]);
 
-const rootStyle: CSSProperties = {
+const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "10px 14px",
-  background: "var(--v5-surface)",
-  borderRadius: "12px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 
 </script>

@@ -29,7 +29,7 @@
       @click="closeMenu"
       @keydown="onMenuKeydown"
     >
-      <view class="w-full rounded-t-2xl p-3" style="background: var(--v5-surface); border-top: 1px solid var(--v5-border)" @click.stop>
+      <view class="nx-glass-sheet w-full p-3" style="border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0" @click.stop>
         <view class="mx-auto mb-2" style="width: 40px; height: 4px; border-radius: 3px; background: var(--v5-border-strong)" />
         <text class="block px-2 py-1.5 truncate font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ displayName }}</text>
         <view class="space-y-1">

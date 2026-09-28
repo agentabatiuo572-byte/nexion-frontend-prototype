@@ -37,7 +37,7 @@
             </view>
 
             <!-- sparkline -->
-            <view class="overflow-hidden" :style="sparkBoxStyle">
+            <view class="nx-glass-card overflow-hidden" :style="sparkBoxStyle">
               <NexSparkline :data="kline" :up="isUp" />
             </view>
 
@@ -51,7 +51,7 @@
 
         <!-- Quick actions 4-cell -->
         <view class="grid grid-cols-2" style="gap: 8px">
-          <view v-for="qc in quickCells" :key="qc.label" class="active:scale-[0.97]" :style="quickCellStyle" @click="navTo(qc.href)">
+          <view v-for="qc in quickCells" :key="qc.label" class="nx-glass-card active:scale-[0.97]" :style="quickCellStyle" @click="navTo(qc.href)">
             <view class="grid place-items-center" :style="quickIconStyle(qc.tint)">
               <view v-html="qc.icon" />
             </view>
@@ -94,7 +94,7 @@
         <view :style="cardStyle">
           <text class="block" :style="[cardLabelStyle, { marginBottom: '12px' }]">{{ t.nexWallet.useNex.label }}</text>
           <view class="grid grid-cols-2" style="gap: 8px">
-            <view v-for="tile in useTiles" :key="tile.label" class="active:scale-[0.98]" :style="useTileStyle" @click="navTo(tile.href)">
+            <view v-for="tile in useTiles" :key="tile.label" class="nx-glass-card active:scale-[0.98]" :style="useTileStyle" @click="navTo(tile.href)">
               <view class="flex items-center justify-between">
                 <view v-html="tile.icon" />
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
@@ -341,12 +341,12 @@ const heroChangeStyle = computed<CSSProperties>(() => ({
   fontWeight: 500,
   color: isUp.value ? "var(--v5-success)" : "var(--v5-brand-2)",
 }));
-const sparkBoxStyle: CSSProperties = {
+const sparkBoxStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "14px",
   height: "56px",
-  borderRadius: "10px",
+  borderRadius: "var(--nx-glass-radius)",
   // hero 已去卡,走势图底盒直接坐在页面底上;surface-2 与页面底同色不可辨 → 改 L1 surface。
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const viewMarketStyle: CSSProperties = {
   marginTop: "10px",
@@ -361,11 +361,11 @@ const viewMarketStyle: CSSProperties = {
   color: "var(--v5-brand-2)",
 };
 // Quick action cells — filled tiles, no border (single visual difference).
-const quickCellStyle: CSSProperties = {
+const quickCellStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "12px",
-  borderRadius: "12px",
+  borderRadius: "var(--nx-glass-radius)",
   // 格子直接坐在页面底上,原 surface-2 与页面底同色不可辨,改 L1 surface。
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
   padding: "12px",
   textAlign: "center",
 };
@@ -437,7 +437,7 @@ const pnlCellValueStyle: CSSProperties = {
   color: "var(--v5-ink)",
 };
 // 所在区块已去卡,tile 直接坐在页面底上:原 surface-2 与页面底同色不可辨,改 L1 surface。
-const useTileStyle: CSSProperties = { padding: "12px", borderRadius: "12px", background: "var(--v5-surface)" };
+const useTileStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "12px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
 const useTileLabelStyle: CSSProperties = {
   marginTop: "8px",
   fontFamily: "var(--font-v5)",

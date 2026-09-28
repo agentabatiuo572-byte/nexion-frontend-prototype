@@ -12,7 +12,7 @@
 <template>
   <view v-if="open" class="nx-poster-dialog" role="dialog" aria-modal="true" :aria-label="t.share.posterTitle">
     <view class="ps-mask" @click="emit('close')" />
-    <view class="ps-sheet no-scrollbar">
+    <view class="nx-glass-sheet ps-sheet no-scrollbar">
       <view class="ps-grab" />
       <view class="ps-head">
         <text class="ps-head__t">{{ t.share.posterTitle }}</text>
@@ -515,7 +515,7 @@ const templateOptions = computed(() => availableTpls.value.map(item => ({ value:
 
 <style scoped>
 .ps-mask { position: fixed; inset: 0; background: var(--v5-bg-color-mask); backdrop-filter: blur(3px); z-index: 8000; }
-.ps-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001; background: var(--v5-surface); border-top: 1px solid var(--v5-border-strong); border-radius: 22px 22px 0 0; max-height: 92vh; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 38px); animation: ps-up 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+.ps-sheet { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge); position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001; background: var(--nx-glass-fill); border: none;  max-height: 92vh; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 38px); animation: ps-up 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes ps-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .ps-grab { width: 40px; height: 4px; border-radius: 9999px; background: var(--v5-surface-3); margin: 10px auto 0; }
 .ps-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 0; }

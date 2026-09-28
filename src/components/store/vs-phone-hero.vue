@@ -4,7 +4,7 @@
   brand-2 radial ambient. Drives the core "117× your phone" conversion hook.
 -->
 <template>
-  <view class="relative overflow-hidden" :style="rootStyle">
+  <view class="nx-glass-card relative overflow-hidden" :style="rootStyle">
     <view aria-hidden :style="auroraStyle" />
     <view class="relative grid gap-2.5 items-center" style="grid-template-columns: 1fr auto 1fr">
       <!-- Your phone -->
@@ -39,9 +39,9 @@ import { useT } from "@/i18n/use-t";
 
 const t = useT();
 
-const rootStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "14px 16px",
 };
 

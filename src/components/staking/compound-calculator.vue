@@ -6,7 +6,7 @@
   $el-safe).
 -->
 <template>
-  <view class="relative overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
     <!-- aurora + grid -->
     <view aria-hidden class="gen-anim" :style="auroraStyle" />
     <view aria-hidden :style="gridStyle" />
@@ -27,12 +27,7 @@
         <input class="flex-1 min-w-0 tabular-nums" :style="inputStyle" type="text" inputmode="decimal" :value="amount" @input="onAmountInput" />
       </view>
 
-      <!-- Term selector (inline segmented) -->
-      <view class="grid grid-cols-4" :style="segWrapStyle">
-        <view v-for="(tm, i) in terms" :key="tm" class="active:opacity-70 transition-opacity" :style="segPillStyle(i === termIdx)" role="button" tabindex="0" @click="termIdx = i">
-          <text>{{ tm }}d</text>
-        </view>
-      </view>
+      <GlassSegments v-model="termIdx" :options="termOptions" :label="w.label" style="margin-top: 14px" />
 
       <template v-if="amountNum > 0">
         <text class="block" :style="periodLabelStyle">{{ fmt(t.uiChrome.afterDays, { n: 365 }) }}</text>
@@ -77,6 +72,7 @@
 
 <script setup lang="ts">
 import { ref, computed, type CSSProperties } from "vue";
+import GlassSegments from "@/components/glass-segments.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { STAKING_APY, type StakingTerm } from "@/store/staking";
@@ -86,6 +82,7 @@ const t = useT();
 const w = computed(() => t.value.stakingV3.calc);
 
 const terms: StakingTerm[] = [30, 90, 180, 365];
+const termOptions = computed(() => terms.map((tm, i) => ({ value: i, label: fmt(t.value.uiChrome.afterDays, { n: tm }) })));
 const amount = ref("1000");
 const termIdx = ref(2); // default 180d
 
@@ -121,10 +118,10 @@ function onAmountInput(e: Event) {
   amount.value = raw.replace(/[^0-9.]/g, "");
 }
 
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "18px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const auroraStyle: CSSProperties = {
   position: "absolute",
@@ -178,27 +175,8 @@ const inputStyle: CSSProperties = {
   color: "var(--v5-ink)",
   background: "transparent",
 };
-const segWrapStyle: CSSProperties = {
-  marginTop: "12px",
-  gap: "6px",
-  padding: "4px",
-  borderRadius: "12px",
-  background: "var(--v5-surface-2)",
-};
-function segPillStyle(active: boolean): CSSProperties {
-  return {
-    height: "34px",
-    borderRadius: "8px",
-    background: active ? "var(--v5-brand)" : "transparent",
-    color: active ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
-    fontFamily: "var(--font-v5)",
-    fontSize: "13px",
-    fontWeight: 500,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-}
+
+
 const periodLabelStyle: CSSProperties = {
   marginTop: "14px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",

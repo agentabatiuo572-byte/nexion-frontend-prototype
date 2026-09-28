@@ -1,12 +1,12 @@
 <!-- Weekly Tier 2 is a server-authoritative list; pending rows only refresh status. -->
 <template>
-  <view v-if="mounted && wq.error" class="mx-4 mt-3 px-4 py-3 active:opacity-70" :style="cardStyle" role="button" tabindex="0" @click="retry">
+  <view v-if="mounted && wq.error" class="nx-glass-card mx-4 mt-3 px-4 py-3 active:opacity-70" :style="cardStyle" role="button" tabindex="0" @click="retry">
     <text :style="pendingLabelStyle">{{ w.loadError }}</text>
   </view>
-  <view v-else-if="mounted && !wq.snapshot" class="mx-4 mt-3 px-4 py-3" :style="cardStyle">
+  <view v-else-if="mounted && !wq.snapshot" class="nx-glass-card mx-4 mt-3 px-4 py-3" :style="cardStyle">
     <text :style="pendingLabelStyle">{{ w.loading }}</text>
   </view>
-  <view v-else-if="mounted" class="mx-4 mt-3 overflow-hidden" :style="cardStyle">
+  <view v-else-if="mounted" class="nx-glass-card mx-4 mt-3 overflow-hidden" :style="cardStyle">
     <!-- Header -->
     <view class="px-4 py-3 flex items-center justify-between" :style="headerStyle">
       <text :style="tier2LabelStyle">{{ w.tier2Label }}</text>
@@ -107,9 +107,9 @@ function onClaimRow(q: CanonicalQuest) {
 // ── styles ──
 // Form-b: filled container, no border — quest rows keep their hairline dividers,
 // tinted claim states, and champion bonus row inside.
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const headerStyle: CSSProperties = { borderBottom: "1px solid var(--v5-border)" };
 const tier2LabelStyle: CSSProperties = {

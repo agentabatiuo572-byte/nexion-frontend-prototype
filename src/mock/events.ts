@@ -232,3 +232,15 @@ export const EVENT_KIND_LABEL: Record<EventKind, string> = {
   holding: "Holders Reward",
   onboarding: "New Pilot",
 };
+
+/** Translate display fields at render time so saved event state stays language-independent. */
+export function localizeEvent(event: NexEvent, catalog: Record<string, {
+  title: string; subtitle: string; ribbon: string; reward: string;
+  progressLabel: string; ctaLabel: string; countdown: string; startsIn: string;
+}>): NexEvent {
+  const copy = catalog[event.id];
+  if (!copy) return event;
+  const { progressLabel, ...display } = copy;
+  return { ...event, ...display,
+    progress: event.progress ? { ...event.progress, label: progressLabel } : null };
+}

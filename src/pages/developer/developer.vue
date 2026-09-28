@@ -17,7 +17,7 @@
       <SubPageHeader back="/pages/me/me" />
 
       <!-- Hero -->
-      <view class="mx-4 border rounded-2xl relative overflow-hidden" :style="heroStyle">
+      <view class="nx-glass-card mx-4 border rounded-2xl relative overflow-hidden" :style="heroStyle">
         <view class="absolute grid place-items-center" :style="heroIconBoxStyle">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6" /><path d="m8 6-6 6 6 6" /></svg>
         </view>
@@ -52,7 +52,7 @@
         <!-- Partners -->
         <view v-if="!remoteApiEnabled" class="mx-4 mt-4">
           <text class="block" :style="partnerTitleStyle">{{ t.developer.partners }}</text>
-          <view class="nx-dev-partners rounded-2xl grid" :style="partnerGridStyle">
+          <view class="nx-glass-card nx-dev-partners rounded-2xl grid" :style="partnerGridStyle">
             <view v-for="p in PARTNERS" :key="p.id" class="grid place-items-center" :style="partnerCellStyle">
               <text style="font-size: 12px; color: var(--v5-ink-3); font-weight: 500">{{ p.label }}</text>
             </view>
@@ -60,7 +60,7 @@
         </view>
 
         <!-- Request access form -->
-        <view class="mx-4 mt-4 mb-6 rounded-2xl" :style="formCardStyle">
+        <view class="nx-glass-card mx-4 mt-4 mb-6 rounded-2xl" :style="formCardStyle">
           <view class="flex items-center" style="gap: 8px; margin-bottom: 4px">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
             <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ t.developer.requestAccess }}</text>
@@ -88,7 +88,7 @@
 
       <!-- Docs -->
       <view v-else-if="tab === 'docs'" class="mx-4 mt-3 mb-6">
-        <view class="rounded-2xl" :style="formCardStyle">
+        <view class="nx-glass-card rounded-2xl" :style="formCardStyle">
           <view class="flex items-center" style="gap: 8px; margin-bottom: 8px">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></svg>
             <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ t.developer.docsPreview }}</text>
@@ -317,12 +317,10 @@ watch(() => String(app.accountKey), () => {
 });
 
 // ── styles ──
-const heroStyle: CSSProperties = {
+const heroStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   background:
-    "radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--v5-tech-cyan) 15%, transparent) 0%, transparent 55%)," +
-    "radial-gradient(100% 80% at 100% 100%, color-mix(in srgb, var(--v5-brand) 10%, transparent) 0%, transparent 60%)," +
-    "var(--v5-surface)",
-  borderColor: "var(--v5-border)",
+    "var(--nx-glass-fill)",
+  borderColor: "transparent",
   padding: "20px",
 };
 const heroIconBoxStyle: CSSProperties = {
@@ -377,8 +375,8 @@ const partnerTitleStyle: CSSProperties = {
   letterSpacing: "-0.025em",
   padding: "12px 8px 4px",
 };
-const partnerGridStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+const partnerGridStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "16px",
   gap: "12px",
 };
@@ -387,8 +385,8 @@ const partnerCellStyle: CSSProperties = {
   background: "var(--v5-surface-2)",
   borderRadius: "8px",
 };
-const formCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+const formCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "16px",
 };
 const formInputStyle: CSSProperties = {

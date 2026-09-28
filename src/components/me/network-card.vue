@@ -11,7 +11,7 @@
     <SectionHeader :title="t.me.myNetwork" link="/pages/team/team" :link-label="t.me.team" />
 
     <!-- Max-rank end state -->
-    <view v-if="!gap.next" class="block active:opacity-90" :style="maxCardStyle" @click="goTeam">
+    <view v-if="!gap.next" class="nx-glass-card block active:opacity-90" :style="maxCardStyle" @click="goTeam">
       <view :style="maxIconStyle" :aria-label="maxRankLine">
         <text style="font-size: 20px">{{ maxPrizeIcon }}</text>
       </view>
@@ -22,7 +22,7 @@
     </view>
 
     <!-- In-progress state -->
-    <view v-else class="block active:opacity-90" :style="cardStyle" @click="goTeam">
+    <view v-else class="nx-glass-card block active:opacity-90" :style="cardStyle" @click="goTeam">
       <!-- Aspiration hero anchor(实物奖已删) -->
       <view :style="prizeHeroStyle" :aria-label="towardLine">
         <text style="font-size: 26px">{{ prizeHeroIcon }}</text>
@@ -150,10 +150,10 @@ function goTeam() {
 }
 
 // ── styles ──
-const maxCardStyle: CSSProperties = {
+const maxCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "14px 18px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   display: "flex",
   alignItems: "center",
   gap: "12px",
@@ -167,10 +167,10 @@ const maxIconStyle: CSSProperties = {
   placeItems: "center",
   flexShrink: 0,
 };
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "16px 18px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   display: "flex",
   alignItems: "center",
   gap: "14px",

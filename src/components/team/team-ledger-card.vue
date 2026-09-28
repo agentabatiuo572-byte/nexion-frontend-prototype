@@ -6,7 +6,7 @@
   <div>→<view>; <span>→<text>; <Link>→<view @click>.
 -->
 <template>
-  <view class="relative overflow-hidden" :style="rootStyle">
+  <view class="nx-glass-card relative overflow-hidden" :style="rootStyle">
     <view aria-hidden="true" :style="ambientStyle" />
 
     <view class="relative" style="z-index: 1">
@@ -86,11 +86,11 @@ function goCommissions() {
 }
 
 // ─── styles ───
-const rootStyle: CSSProperties = {
+const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "24px 22px",
   background:
-    "radial-gradient(80% 70% at 92% 2%, color-mix(in srgb, var(--v5-tech-cyan) 13%, transparent) 0%, transparent 60%), radial-gradient(70% 70% at 0% 100%, color-mix(in srgb, var(--v5-brand) 12%, transparent) 0%, transparent 62%), var(--v5-surface)",
-  borderRadius: "18px",
+    "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const ambientStyle: CSSProperties = {
   position: "absolute",

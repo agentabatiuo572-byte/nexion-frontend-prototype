@@ -21,8 +21,8 @@
     <view v-if="visible" class="nx-nova-bubble" role="button" tabindex="0" :aria-label="t.conversations.title" :class="{ 'nx-nova-bubble--dimmed': dimmed }" @click="open">
       <view class="nx-nova-btn">
         <LiquidGlass :radius="24" tone="control" backdrop=".nx-page-enter" />
-        <NovaAvatar :size="36" class="nx-nova-avatar" />
-        <view v-if="showUnreadBadge" class="nx-nova-badge"><text class="nx-nova-badge-t">{{ unreadLabel }}</text></view>
+        <NovaAvatar :size="36" :pulse="showUnreadBadge && !dimmed" class="nx-nova-avatar" />
+        <view v-if="showUnreadBadge" :key="totalUnread" class="nx-nova-badge"><text class="nx-nova-badge-t">{{ unreadLabel }}</text></view>
       </view>
     </view>
   </view>
@@ -204,9 +204,7 @@ onUnmounted(() => {
      角标都不受影响(角标是子元素,不被父级圆角裁剪)。 */
   border-radius: 999px;
 }
-/* 《08》§2 按下反馈。全站五个 tab 都能看到这个球,原先按下去毫无变化。
-   只动 opacity 不动 transform —— .nova-float 的 animation 一直在写 transform,
-   普通声明压不过 animation,写了也不会生效。 */
+/* Press belongs to the outer hit target; idle float belongs to the inner visual. */
 .nx-nova-bubble:active {
   transform: scale(.94);
 }
@@ -226,7 +224,10 @@ onUnmounted(() => {
   display: grid;
   place-items: center;
   background: transparent;
+  animation: nx-nova-float 3.4s ease-in-out infinite;
 }
+@keyframes nx-nova-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.nx-nova-bubble--dimmed .nx-nova-btn { animation-play-state: paused; }
 .nx-nova-badge {
   position: absolute;
   top: -4px;
@@ -239,7 +240,9 @@ onUnmounted(() => {
   display: grid;
   place-items: center;
   border: 1px solid var(--v5-bg);
+  animation: nx-nova-unread 420ms cubic-bezier(.2,1.5,.3,1) both;
 }
+@keyframes nx-nova-unread { from { transform: scale(.65); } to { transform: scale(1); } }
 .nx-nova-badge-t {
   font-size: 12px;
   font-weight: 600;
@@ -249,5 +252,9 @@ onUnmounted(() => {
 }
 .nx-nova-avatar { position: relative; z-index: 1; }
 .nx-nova-bubble:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { .nx-nova-bubble { transition: none; } .nx-nova-bubble:active { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .nx-nova-bubble { transition: none; }
+  .nx-nova-bubble:active { transform: none; }
+  .nx-nova-btn, .nx-nova-badge { animation: none; }
+}
 </style>

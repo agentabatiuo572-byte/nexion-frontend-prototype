@@ -29,11 +29,11 @@
       <!-- Remote and explicit sandbox catalogs start empty. Do not render the
            compatibility PRODUCTS array until the authoritative snapshot is
            ready; a cold first frame must never look like a real quote. -->
-      <view v-if="catalogStatus === 'loading'" data-testid="bundle-catalog-loading" class="mx-4" :style="catalogStateStyle">
+      <view v-if="catalogStatus === 'loading'" data-testid="bundle-catalog-loading" class="nx-glass-card mx-4" :style="catalogStateStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogLoadingTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogLoadingBody }}</text>
       </view>
-      <view v-else-if="catalogStatus === 'error'" data-testid="bundle-catalog-error" class="mx-4" :style="catalogStateStyle">
+      <view v-else-if="catalogStatus === 'error'" data-testid="bundle-catalog-error" class="nx-glass-card mx-4" :style="catalogStateStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogErrorTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogErrorBody }}</text>
         <view class="inline-flex mt-3 active:opacity-70" role="button" tabindex="0" :style="catalogRetryStyle" @click="retryCatalog">
@@ -42,7 +42,7 @@
       </view>
       <template v-else>
 
-      <view v-if="receiptWriteFailure" class="mx-4 rounded-2xl text-center" :style="receiptFailureCardStyle">
+      <view v-if="receiptWriteFailure" class="nx-glass-card mx-4 rounded-2xl text-center" :style="receiptFailureCardStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.errors.billMissingTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.errors.billMissingMsg }}</text>
         <view class="inline-flex mt-3 active:opacity-70" role="button" tabindex="0" :style="catalogRetryStyle" :aria-disabled="receiptRetrying" @click="retryReceiptWrite">
@@ -53,7 +53,7 @@
 
       <!-- Hero — filled commercial spotlight (border dropped; aurora stays clipped
            inside the surface + overflow-hidden, so it's not a page-floor glow). -->
-      <view class="mx-4 relative overflow-hidden" :style="heroStyle">
+      <view class="nx-glass-card mx-4 relative overflow-hidden" :style="heroStyle">
         <view aria-hidden :style="heroAuroraStyle" />
         <view class="relative">
           <view class="flex items-center" style="gap: 6px; margin-bottom: 8px">
@@ -71,7 +71,7 @@
       </view>
 
       <!-- Items -->
-      <view class="mx-4 mt-3 overflow-hidden" :style="cardStyle">
+      <view class="nx-glass-card mx-4 mt-3 overflow-hidden" :style="cardStyle">
         <view class="px-4 py-2.5 flex items-center justify-between" style="border-bottom: 1px solid var(--v5-border)">
           <text :style="itemsHeadingStyle">{{ t.bundle.itemsHeading }}</text>
           <text v-if="products.length > 0" class="active:opacity-70" style="font-size: 12px; color: var(--v5-ink-3)" role="button" tabindex="0" :aria-label="t.bundle.clear" @click.stop="clear">{{ t.bundle.clear }}</text>
@@ -103,7 +103,7 @@
       <!-- Suggestions -->
       <view v-if="suggestions.length > 0" class="mx-4 mt-3">
         <text class="block" :style="suggestionsHeadingStyle">{{ t.bundle.suggestionsHeading }}</text>
-        <view class="overflow-hidden" :style="cardStyle">
+        <view class="nx-glass-card overflow-hidden" :style="cardStyle">
           <view
             v-for="(p, i) in suggestions"
             :key="p.id"
@@ -128,7 +128,7 @@
       </view>
 
       <!-- Total summary -->
-      <view v-if="products.length > 0" class="mx-4 mt-3 relative overflow-hidden" :style="heroStyle">
+      <view v-if="products.length > 0" class="nx-glass-card mx-4 mt-3 relative overflow-hidden" :style="heroStyle">
         <view aria-hidden :style="totalAuroraStyle" />
         <view class="relative">
           <!-- Subtotal -->
@@ -490,10 +490,10 @@ async function onCheckout() {
 }
 
 // ───── style objects ─────
-const catalogStateStyle: CSSProperties = {
+const catalogStateStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "18px 16px",
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const catalogStateTitleStyle: CSSProperties = {
   fontSize: "15px",
@@ -515,14 +515,14 @@ const catalogRetryStyle: CSSProperties = {
   fontSize: "13px",
   fontWeight: 600,
 };
-const receiptFailureCardStyle: CSSProperties = {
+const receiptFailureCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   padding: "24px 20px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
-const heroStyle: CSSProperties = {
+const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "18px",
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const heroAuroraStyle: CSSProperties = {
   position: "absolute",
@@ -591,9 +591,9 @@ function tierPctStyle(tier: BundleDiscountTier): CSSProperties {
 
 // Shared form-b container (items list + suggestions list): surface, no border,
 // internal hairline rows. overflow-hidden on the element clips the row corners.
-const cardStyle: CSSProperties = {
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const itemsHeadingStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",

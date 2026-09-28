@@ -17,7 +17,7 @@
     </transition>
     <!-- Panel -->
     <transition name="nx-sheet-slide">
-      <view v-if="open" class="nx-sheet-panel" :style="panelStyle" @click.stop>
+      <view v-if="open" class="nx-glass-sheet nx-sheet-panel" :style="panelStyle" @click.stop>
         <!-- Title row -->
         <view class="flex items-start justify-between" style="margin-bottom: 16px">
           <view>
@@ -302,9 +302,9 @@ async function handlePurchase() {
   }
 }
 
-const panelStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderTop: "1px solid var(--v5-border)",
+const panelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderTop: "none",
   padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)",
 };
 const titleStyle: CSSProperties = {

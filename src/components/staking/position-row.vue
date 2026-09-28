@@ -6,7 +6,7 @@
   Claim / early-withdraw emit to the page (cross-store composition lives there).
 -->
 <template>
-  <view :style="cardStyle">
+  <view class="nx-glass-card" :style="cardStyle">
     <!-- row1: principal + term-chip -->
     <view class="flex items-baseline justify-between">
       <text class="block tabular-nums" :style="principalStyle">${{ amountText }}</text>
@@ -99,9 +99,9 @@ function onTrack() {
   toast.info(t.value.stakingV3.position.autoClaimToast, fmt(t.value.stakingV3.position.autoClaimSubtitle, { n: remainingDays.value }));
 }
 
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "14px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "14px",
 };
 const principalStyle: CSSProperties = {

@@ -58,7 +58,7 @@
       </view>
 
       <!-- Recommendation -->
-      <view v-if="target > 0" class="mx-4" :style="recCardStyle">
+      <view v-if="target > 0" class="nx-glass-card mx-4" :style="recCardStyle">
         <text class="block" :style="recHeaderStyle">{{ t.goals.recHeader }}</text>
         <text class="block" :style="recPathStyle">{{ recPathLine }}</text>
         <text class="block" :style="recReasonStyle">{{ recommendation.reason }}</text>
@@ -269,11 +269,11 @@ const targetInputStyle: CSSProperties = {
   fontWeight: 600,
   color: "var(--v5-ink)",
 };
-const recCardStyle: CSSProperties = {
+const recCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "12px",
-  borderRadius: "16px",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
-  background: "color-mix(in srgb, var(--v5-brand) 6%, transparent)",
+  background: "var(--nx-glass-fill)",
 };
 const recHeaderStyle: CSSProperties = {
   marginBottom: "6px",

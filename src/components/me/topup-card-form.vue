@@ -25,18 +25,14 @@
       <text v-if="phase === 'form' || phase === 'fail'" style="font-size: 12px; color: var(--v5-ink-3)" @click="emit('changeChannel')">{{ t.topupChrome.change }}</text>
     </view>
     <!-- Processing / 3DS -->
-    <view v-if="phase === 'processing' || phase === '3ds'" class="rounded-2xl text-center" :style="centerCardStyle">
+    <view v-if="phase === 'processing' || phase === '3ds'" class="nx-glass-card text-center" :style="centerCardStyle">
       <view :style="spinnerStyle" />
       <text class="block" :style="centerTitleStyle">{{ phase === 'processing' ? t.topupChrome.authorizingCard : t.topupChrome.secureVerification }}</text>
       <text class="block" :style="centerBodyStyle">{{ phase === 'processing' ? t.topupChrome.submittingToBank : t.topupChrome.bankMayText }}</text>
-      <view class="inline-flex items-center font-mono-tabular" :style="pciChipStyle">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></svg>
-        <text style="margin-left: 6px">PCI DSS Level 1 · 3DS 2.2</text>
-      </view>
     </view>
 
     <!-- Success -->
-    <view v-else-if="phase === 'success'" class="rounded-2xl text-center" :style="centerCardStyle">
+    <view v-else-if="phase === 'success'" class="nx-glass-card text-center" :style="centerCardStyle">
       <view :style="successIconStyle">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
       </view>
@@ -47,7 +43,7 @@
     </view>
 
     <!-- Fail -->
-    <view v-else-if="phase === 'fail'" class="rounded-2xl text-center" :style="centerCardStyle">
+    <view v-else-if="phase === 'fail'" class="nx-glass-card text-center" :style="centerCardStyle">
       <view :style="failIconStyle"><text style="font-size: 32px">⚠️</text></view>
       <text class="block" :style="failTitleStyle">{{ t.topupChrome.payDeclined }}</text>
       <text class="block font-mono-tabular break-all" style="margin-top: 8px; font-size: 12px; color: var(--v5-brand-2)">{{ t.topupChrome.payDeclinedReason }}</text>
@@ -301,9 +297,8 @@ function goWallet() {
 }
 
 // ── styles ──
-// Filled state card — bg only, no border (single visual difference).
+// Reading content stays stable inside the shared glass state surface.
 const centerCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
   padding: "24px",
 };
 const spinnerStyle: CSSProperties = {
@@ -331,14 +326,6 @@ const centerBodyStyle: CSSProperties = {
   maxWidth: "280px",
   marginLeft: "auto",
   marginRight: "auto",
-};
-const pciChipStyle: CSSProperties = {
-  marginTop: "16px",
-  padding: "4px 10px",
-  borderRadius: "6px",
-  background: "color-mix(in srgb, var(--v5-surface-2) 50%, transparent)",
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
 };
 const successIconStyle: CSSProperties = {
   width: "56px",

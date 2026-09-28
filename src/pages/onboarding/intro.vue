@@ -135,7 +135,7 @@
     <!-- Language sheet(vcs-root 同型:dialog 角色在包裹层,遮罩是其子元素) -->
     <view v-if="langOpen" class="intro-lang-root" role="dialog" aria-modal="true" :aria-label="t.language.pageTitle">
       <view class="intro-lang-mask" role="presentation" aria-hidden="true" @click="closeLang" />
-      <view class="intro-lang-sheet">
+      <view class="nx-glass-sheet intro-lang-sheet">
       <view class="intro-lang-sheet__grab" />
       <text class="intro-lang-sheet__title">{{ t.language.pageTitle }}</text>
       <scroll-view scroll-y :show-scrollbar="false" class="intro-lang-list">
@@ -380,14 +380,14 @@ html[data-theme="dark"] .orb-appicon--dark {
   inset: 0;
   background: var(--v5-bg-color-mask);
 }
-.intro-lang-sheet {
+.intro-lang-sheet { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0;
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 800;
-  background: var(--v5-surface);
-  border-radius: 24px 24px 0 0;
+  background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge);
+
   padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 38px);
   display: flex;
   flex-direction: column;

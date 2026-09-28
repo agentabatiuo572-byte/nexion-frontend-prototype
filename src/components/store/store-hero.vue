@@ -5,7 +5,7 @@
 -->
 <template>
   <view
-    class="relative overflow-hidden grid items-center"
+    class="nx-glass-card relative overflow-hidden grid items-center"
     :style="rootStyle"
   >
     <view aria-hidden :style="auroraStyle" />
@@ -41,12 +41,12 @@ import { useT } from "@/i18n/use-t";
 const t = useT();
 
 const rootStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "20px",
   gridTemplateColumns: "minmax(0,1fr) 100px",
   gap: "12px",
-  boxShadow: "var(--v5-card-shadow-lift-strong)",
+  boxShadow: "var(--nx-glass-edge)",
 };
 
 const auroraStyle: CSSProperties = {

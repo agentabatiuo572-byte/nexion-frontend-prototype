@@ -1,5 +1,5 @@
 <template>
-  <view class="block" :style="cardStyle" role="link" tabindex="0" @click="goTrust" @keydown.enter.stop.prevent="goTrust" @keydown.space.stop.prevent="goTrust">
+  <view class="block nx-glass-card" :style="cardStyle" role="link" tabindex="0" @click="goTrust" @keydown.enter.stop.prevent="goTrust" @keydown.space.stop.prevent="goTrust">
     <view class="flex items-start justify-between" style="gap: 12px">
       <view class="flex items-center" style="gap: 8px">
         <view class="grid place-items-center" :style="iconStyle">
@@ -38,10 +38,7 @@
       </text>
     </template>
     <template v-else-if="!remoteApiEnabled">
-      <view class="flex flex-wrap" style="gap: 6px; margin-top: 12px">
-        <text v-for="chip in MOCK_CHIPS" :key="chip" :style="chipStyle">{{ chip }}</text>
-      </view>
-      <text class="block" :style="bodyStyle">{{ t.home.trustReserve }}</text>
+      <text class="block" :style="bodyStyle">{{ t.trust.errorUnavailable }}</text>
     </template>
     <text v-else-if="status === 'error'" class="block" :style="bodyStyle">{{ t.home.trustSnapshotUnavailable }}</text>
   </view>
@@ -57,7 +54,6 @@ import { buildHomepageTrustSummary } from "@/lib/home-data-presenters";
 import { useLocaleStore } from "@/store/locale";
 
 const t = useT();
-const MOCK_CHIPS = ["NVIDIA", "Intel", "AMD", "CertiK ✓", "SOC 2", "GDPR", "ISO 27001"];
 const locale = useLocaleStore();
 const { sections, status, refresh } = usePublishedTrust();
 const language = computed<TrustLocale>(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code as TrustLocale : "en");
@@ -78,7 +74,7 @@ watch(status, (next) => {
   if (remoteApiEnabled && next === "idle") load(true);
 });
 
-const cardStyle: CSSProperties = { padding: "14px", borderRadius: "16px", background: "var(--v5-surface)" };
+const cardStyle: CSSProperties = { padding: "14px" };
 const iconStyle: CSSProperties = { width: "32px", height: "32px", flexShrink: 0, borderRadius: "10px", background: "var(--v5-brand-soft)" };
 const titleStyle: CSSProperties = { fontSize: "14px", fontWeight: 600, color: "var(--v5-ink)" };
 const subtitleStyle: CSSProperties = { marginTop: "2px", fontSize: "11px", color: "var(--v5-brand)" };

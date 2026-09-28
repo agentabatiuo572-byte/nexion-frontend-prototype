@@ -85,7 +85,7 @@ import { useApp } from "@/store/app";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import { useLuckySpin } from "@/store/lucky-spin";
 import { toast } from "@/store/ui";
-import { EVENTS, type EventStatus, type NexEvent } from "@/mock/events";
+import { EVENTS, localizeEvent, type EventStatus, type NexEvent } from "@/mock/events";
 
 type TabId = "all" | EventStatus | "joined";
 type EnrichedEvent = NexEvent & { _trackable: boolean; _done: boolean; _claimed: boolean };
@@ -116,7 +116,7 @@ function remoteEventView(event: CanonicalEvent): NexEvent {
     emoji: "✦",
     tint: tintByKind[event.kind],
     reward: `${event.rewardAmount} ${event.rewardName}`,
-    progress: event.trackable ? { current: event.progressValue, total: event.targetValue, label: "progress" } : null,
+    progress: event.trackable ? { current: event.progressValue, total: event.targetValue, label: t.value.events.progressLabel } : null,
     joined: ["JOINED", "CLAIMABLE", "CLAIMED"].includes(event.userStatus),
     href: event.href || undefined,
     featured: event.featured,
@@ -160,7 +160,7 @@ watch(() => app.accountKey, (accountKey) => {
 
 // Enrich each event with live join/claim state from the store.
 const enrichedEvents = computed<EnrichedEvent[]>(() =>
-  (remoteApiEnabled ? remoteEvents.value.map(remoteEventView) : EVENTS).map((ev) => {
+  (remoteApiEnabled ? remoteEvents.value.map(remoteEventView) : EVENTS.map(event => localizeEvent(event, t.value.events.catalog))).map((ev) => {
     const trackable = ev.trackable === true;
     const remoteStatus = remoteApiEnabled
       ? remoteEvents.value.find((event) => event.eventCode === ev.id)?.userStatus

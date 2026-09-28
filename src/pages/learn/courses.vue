@@ -3,7 +3,7 @@
     <view v-if="loading"><text>{{ t.learning.centerLoading }}</text></view>
     <view v-else-if="error"><text class="block" style="text-wrap:pretty">{{ errorText }}</text><text class="block active:opacity-70" style="margin-top:12px;color:var(--v5-brand)" @click="load">{{ t.ui.retry }}</text></view>
     <view v-else><text class="block" style="font-size:20px;font-weight:600">{{ t.learning.centerTitle }}</text><text class="block" style="margin:8px 0;color:var(--v5-ink-3)">{{ progressLine }}</text>
-      <view v-for="course in overview?.courses" :key="course.id" class="active:opacity-70" style="margin-top:10px;padding:14px;border-radius:12px;background:var(--v5-surface)" @click="open(course.id)"><text class="block" style="font-weight:600">{{ course.title }}</text><text class="block" style="margin-top:5px;color:var(--v5-ink-3)">{{ courseMeta(course) }}</text></view>
+      <view v-for="course in overview?.courses" :key="course.id" class="nx-glass-card active:opacity-70" style="margin-top:10px;padding:14px" @click="open(course.id)"><text class="block" style="font-weight:600">{{ course.title }}</text><text class="block" style="margin-top:5px;color:var(--v5-ink-3)">{{ courseMeta(course) }}</text></view>
     </view>
   </view></AppChassis>
 </template>

@@ -13,7 +13,7 @@
       link="/pages/me/devices"
       :link-label="t.myDevices.sectionManage"
     />
-    <view class="block active:opacity-90" :style="cardStyle" @click="goDevices">
+    <view class="nx-glass-card block active:opacity-90" :style="cardStyle" @click="goDevices">
       <!-- Active device icon -->
       <view class="relative" :style="iconBoxStyle">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></svg>
@@ -69,9 +69,9 @@ function goDevices() {
   uni.navigateTo({ url: "/pages/me/devices", fail: () => {} });
 }
 
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "14px 16px",
   display: "grid",
   gridTemplateColumns: "auto 1fr auto auto",

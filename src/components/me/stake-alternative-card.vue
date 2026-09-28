@@ -6,7 +6,7 @@
   + headline + "Stake for +$delta in {days} days" CTA → /staking.
 -->
 <template>
-  <view class="mx-4 mt-3 relative overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card mx-4 mt-3 relative overflow-hidden" :style="cardStyle">
     <view aria-hidden :style="washStyle" />
     <view class="relative">
       <view class="flex items-center" :style="labelStyle">
@@ -80,11 +80,11 @@ function goStaking() {
 }
 
 // ── styles ──
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "16px",
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
-  border: "1px solid var(--v5-border)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
+  border: "none",
 };
 const washStyle: CSSProperties = {
   position: "absolute",

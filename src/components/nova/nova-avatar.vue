@@ -23,9 +23,8 @@
     />
     <view
       v-if="pulse"
-      class="absolute inset-0 rounded-full pointer-events-none"
+      class="absolute inset-0 rounded-full pointer-events-none nx-nova-halo"
       :style="{
-        animation: 'v5-nova-halo 1.8s ease-in-out infinite',
         boxShadow: '0 0 0 0 color-mix(in oklab, var(--v5-brand) 60%, transparent)',
       }"
     />
@@ -38,3 +37,8 @@ withDefaults(defineProps<{ size?: number; pulse?: boolean }>(), {
   pulse: false,
 });
 </script>
+
+<style scoped>
+.nx-nova-halo { animation: v5-nova-halo 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .nx-nova-halo { animation: none; } }
+</style>

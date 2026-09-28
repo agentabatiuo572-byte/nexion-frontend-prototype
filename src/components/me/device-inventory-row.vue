@@ -6,7 +6,7 @@
   greys the action. lucide Smartphone/Server/Power/PowerOff/Clock → inline svg.
 -->
 <template>
-  <view class="overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card overflow-hidden" :style="cardStyle">
     <view class="flex items-center" style="gap: 12px; padding: 12px 16px">
       <view class="grid place-items-center shrink-0" :style="iconBoxStyle">
         <!-- Smartphone -->
@@ -87,9 +87,9 @@ function onAction() {
 }
 
 // De-carded device card (form b): filled surface, no border (single visual diff).
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const iconBoxStyle = computed<CSSProperties>(() => ({
   width: "40px",

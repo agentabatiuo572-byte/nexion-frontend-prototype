@@ -26,7 +26,7 @@
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <!-- Streak hero -->
-        <view class="relative overflow-hidden text-center" :style="heroStyle">
+        <view class="nx-glass-card relative overflow-hidden text-center" :style="heroStyle">
           <text aria-hidden :style="fireStyle">🔥</text>
           <view class="relative">
             <text class="block tabular-nums" :style="streakNumStyle">{{ streak }}</text>
@@ -89,7 +89,7 @@
         <StreakPowerUps />
 
         <!-- Streak Saver -->
-        <view :style="saverCardStyle">
+        <view class="nx-glass-card" :style="saverCardStyle">
           <view class="flex items-start" style="gap: 12px">
             <view class="grid place-items-center shrink-0" :style="saverIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
@@ -106,7 +106,7 @@
         </view>
 
         <!-- Top Streakers -->
-        <view class="overflow-hidden" :style="leaderCardStyle">
+        <view class="nx-glass-card overflow-hidden" :style="leaderCardStyle">
           <view class="px-4 flex items-center justify-between" style="padding-top: 12px; padding-bottom: 8px">
             <text :style="leaderLabelStyle">{{ t.daily.topStreakers.label }}</text>
             <text :style="leaderBestStyle">{{ yourBestText }}</text>
@@ -145,7 +145,7 @@
         </view>
 
         <!-- Withdrawal context -->
-        <view :style="withdrawCardStyle" class="active:scale-[0.98]" @click="goWithdraw">
+        <view :style="withdrawCardStyle" class="nx-glass-card active:scale-[0.98]" @click="goWithdraw">
           <view class="flex items-center" style="gap: 12px">
             <view class="grid place-items-center" :style="withdrawIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
@@ -160,7 +160,7 @@
         <!-- History -->
         <view>
           <text class="block px-1" :style="historyLabelStyle">{{ t.daily.recent }}</text>
-          <view class="overflow-hidden" :style="historyCardStyle">
+          <view class="nx-glass-card overflow-hidden" :style="historyCardStyle">
             <EmptyState v-if="faucet.history.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" compact />
             <view
               v-for="(h, i) in historyRows"
@@ -534,10 +534,10 @@ function goWithdraw() {
 }
 
 // ── styles ──
-const heroStyle: CSSProperties = {
+const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "22px 20px",
-  borderRadius: "18px",
-  background: "linear-gradient(135deg, #FFCB94 0%, var(--v5-brand-2) 100%)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   color: "var(--v5-ink)",
 };
 const fireStyle: CSSProperties = {
@@ -560,16 +560,16 @@ const streakLblStyle: CSSProperties = {
   marginTop: "6px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
-  color: "rgba(255,255,255,0.82)",
+  color: "var(--v5-ink-2)",
   letterSpacing: "0.06em",
 };
-const streakPointsStyle: CSSProperties = { marginTop: "14px", fontSize: "13px", color: "rgba(255,255,255,0.92)" };
+const streakPointsStyle: CSSProperties = { marginTop: "14px", fontSize: "13px", color: "var(--v5-ink-2)" };
 const signInBtnStyle = computed<CSSProperties>(() => ({
   marginTop: "18px",
   height: "54px",
   borderRadius: "14px",
-  background: lastSignedToday.value ? "rgba(255,255,255,0.42)" : "var(--v5-ink)",
-  color: lastSignedToday.value ? "rgba(255,255,255,0.65)" : "var(--v5-brand-2)",
+  background: lastSignedToday.value ? "var(--v5-surface-2)" : "var(--v5-brand)",
+  color: lastSignedToday.value ? "var(--v5-ink-3)" : "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
   fontSize: "15px",
@@ -578,7 +578,7 @@ const nextClaimStyle: CSSProperties = {
   marginTop: "10px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
-  color: "rgba(255,255,255,0.85)",
+  color: "var(--v5-ink-3)",
 };
 const luckyHintStyle: CSSProperties = {
   marginTop: "-4px",
@@ -654,7 +654,7 @@ function milestoneBtnStyle(m: Milestone): CSSProperties {
     flexShrink: 0,
   };
 }
-const saverCardStyle: CSSProperties = { padding: "16px", borderRadius: "16px", background: "var(--v5-brand-2-soft)" };
+const saverCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "16px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
 const saverIconStyle: CSSProperties = {
   width: "40px",
   height: "40px",
@@ -695,9 +695,9 @@ const saverBtnStyle = computed<CSSProperties>(() => ({
   flexShrink: 0,
 }));
 // Form-b: filled container, no border — the social streak list stays grouped.
-const leaderCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const leaderCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const leaderLabelStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
@@ -766,10 +766,10 @@ function statValStyle(tint: string): CSSProperties {
 }
 const statSubStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)" };
 // Soft brand-2-tinted clickable callout, no border (tap affordance = tint + active-scale).
-const withdrawCardStyle: CSSProperties = {
-  borderRadius: "16px",
+const withdrawCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "14px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 8%, transparent)",
+  background: "var(--nx-glass-fill)",
 };
 const withdrawIconStyle: CSSProperties = {
   width: "40px",
@@ -788,9 +788,9 @@ const historyLabelStyle: CSSProperties = {
   letterSpacing: "0.06em",
 };
 // Form-b: filled container, no border — rows already hairline-separated.
-const historyCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const historyCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const historyEmptyStyle: CSSProperties = { padding: "24px", fontSize: "13px", color: "var(--v5-ink-3)" };
 function historyRowStyle(isLast: boolean): CSSProperties {

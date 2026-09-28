@@ -5,7 +5,7 @@
       <view v-if="open" class="nx-elig-backdrop" role="dialog" aria-modal="true" @click="emitClose" />
     </transition>
     <transition name="nx-elig-slide">
-      <view v-if="open" class="nx-elig-panel" :style="panelStyle" @click.stop>
+      <view v-if="open" class="nx-glass-sheet nx-elig-panel" :style="panelStyle" @click.stop>
         <view class="flex items-start justify-between" style="margin-bottom: 14px">
           <view>
             <text class="block" :style="titleStyle">{{ t.genesisEligibility.title }}</text>
@@ -92,7 +92,7 @@ function reasonText(reason: string): string {
 function emitClose() { emit("update:open", false); }
 function emitSubscribe() { emit("subscribe"); }
 
-const panelStyle: CSSProperties = { background: "var(--v5-surface)", borderTop: "1px solid var(--v5-border)", padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)" };
+const panelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderTop: "none", padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)" };
 const titleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "20px", fontWeight: 600, letterSpacing: "-0.018em", color: "var(--v5-ink)", lineHeight: 1.2 };
 const subtitleStyle: CSSProperties = { marginTop: "4px", fontFamily: "var(--font-v5)", fontSize: "13px", color: "var(--v5-ink-3)" };
 const closeBtnStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "999px", color: "var(--v5-ink-3)" };

@@ -4,7 +4,7 @@
       <SubPageHeader back="/pages/me/me" />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
-        <view :style="heroStyle">
+        <view class="nx-glass-card" :style="heroStyle">
           <view class="flex items-center" style="gap: 10px">
             <view class="grid place-items-center" :style="heroIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
@@ -21,8 +21,8 @@
           </view>
         </view>
 
-        <view v-if="loading" :style="stateCardStyle"><text :style="bodyStyle">{{ tr.loadingDisclosure }}</text></view>
-        <view v-else-if="hasError" :style="stateCardStyle">
+        <view class="nx-glass-card" v-if="loading" :style="stateCardStyle"><text :style="bodyStyle">{{ tr.loadingDisclosure }}</text></view>
+        <view class="nx-glass-card" v-else-if="hasError" :style="stateCardStyle">
           <text :style="bodyStyle">{{ remoteApiEnabled ? tr.errorUnavailable : tr.errorOffline }}</text>
           <text v-if="remoteApiEnabled" class="block active:opacity-70" :style="retryStyle" @click="loadTrustSections">{{ t.ui.retry }}</text>
         </view>
@@ -30,7 +30,7 @@
         <template v-else>
           <template v-if="financialSection && financialMetrics.length">
             <SectionHeader :label="sectionLabel('financials')" :suffix="financialSection.version" />
-            <view class="grid grid-cols-2" :style="gridCardStyle">
+            <view class="nx-glass-card grid grid-cols-2" :style="gridCardStyle">
               <view v-for="metric in financialMetrics" :key="metric.key" :style="metricStyle">
                 <text class="block" :style="labelStyle">{{ metric.label }}</text>
                 <view class="flex items-baseline" style="gap: 6px; margin-top: 4px">
@@ -54,7 +54,7 @@
 
           <template v-if="auditSection && auditRows.length">
             <SectionHeader :label="sectionLabel('auditsReserves')" :suffix="auditSection.version" />
-            <view :style="listCardStyle">
+            <view class="nx-glass-card" :style="listCardStyle">
               <view v-for="(row, index) in auditRows" :key="row.Primary" class="active:opacity-75" :style="listRowStyle(index === auditRows.length - 1)" @click="openHref(row.Url)">
                 <view class="min-w-0" style="flex: 1">
                   <text class="block" :style="titleStyle">{{ row.Primary }}</text>
@@ -67,7 +67,7 @@
 
           <template v-if="leadershipSection && leadershipRows.length">
             <SectionHeader :label="sectionLabel('leadership')" :suffix="leadershipSection.version" />
-            <view :style="listCardStyle">
+            <view class="nx-glass-card" :style="listCardStyle">
               <view v-for="(row, index) in leadershipRows" :key="row.Name" :style="listRowStyle(index === leadershipRows.length - 1)" @click="openHref(row.Url)">
                 <view class="grid place-items-center" :style="avatarStyle"><text :style="avatarTextStyle">{{ initials(row.Name) }}</text></view>
                 <view class="min-w-0" style="flex: 1">
@@ -81,7 +81,7 @@
 
           <template v-if="listingsSection && listingRows.length">
             <SectionHeader :label="sectionLabel('listings')" :suffix="listingsSection.version" />
-            <view :style="listCardStyle">
+            <view class="nx-glass-card" :style="listCardStyle">
               <view v-for="(row, index) in listingRows" :key="row.Exchange" class="flex items-center justify-between active:opacity-75" :style="listRowStyle(index === listingRows.length - 1)" @click="openHref(row.Url)">
                 <text :style="titleStyle">{{ row.Exchange }}</text>
                 <text :style="stateStyle">{{ row.State }}</text>
@@ -194,21 +194,21 @@ function openHref(raw: string) {
 
 onShow(() => { void loadTrustSections(); });
 
-const heroStyle: CSSProperties = { borderRadius: "16px", padding: "16px", background: "radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--v5-brand-2) 18%, transparent) 0%, transparent 65%), var(--v5-surface)" };
+const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", padding: "16px", background: "var(--nx-glass-fill)" };
 const heroIconStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)" };
 const heroLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-brand-2)" };
 const heroHeadlineStyle: CSSProperties = { marginTop: "3px", fontSize: "20px", fontWeight: 600, lineHeight: 1.3, color: "var(--v5-ink)" };
 const heroBodyStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 const heroStatsStyle: CSSProperties = { marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--v5-border)", gap: "8px" };
-const stateCardStyle: CSSProperties = { padding: "16px", borderRadius: "16px", background: "var(--v5-surface)" };
-const gridCardStyle: CSSProperties = { borderRadius: "16px", overflow: "hidden", background: "var(--v5-surface)" };
+const stateCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "16px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
+const gridCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", overflow: "hidden", background: "var(--nx-glass-fill)" };
 const metricStyle: CSSProperties = { padding: "14px", borderRight: "1px solid var(--v5-border)", borderBottom: "1px solid var(--v5-border)" };
 const labelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const metricValueStyle: CSSProperties = { fontSize: "18px", fontWeight: 600, color: "var(--v5-ink)" };
 const deltaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-success)" };
 const footnoteStyle: CSSProperties = { gridColumn: "1 / -1", padding: "10px 14px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-4)" };
 const tileStyle: CSSProperties = { padding: "12px", borderRadius: "12px", background: "var(--v5-surface)" };
-const listCardStyle: CSSProperties = { borderRadius: "16px", overflow: "hidden", background: "var(--v5-surface)" };
+const listCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", overflow: "hidden", background: "var(--nx-glass-fill)" };
 function listRowStyle(last: boolean): CSSProperties { return { display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderBottom: last ? "none" : "1px solid var(--v5-border)" }; }
 const titleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
 const bodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };

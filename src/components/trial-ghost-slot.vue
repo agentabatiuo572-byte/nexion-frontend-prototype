@@ -14,10 +14,10 @@
 <template>
   <view
     v-if="visible"
-    class="relative overflow-hidden rounded-2xl"
+    class="nx-glass-card relative overflow-hidden rounded-2xl"
     :style="{
-      background: 'var(--v5-surface)',
-      boxShadow: 'var(--v5-card-shadow-lift)',
+      background: 'var(--nx-glass-fill)', borderRadius: 'var(--nx-glass-radius)',
+      boxShadow: 'var(--nx-glass-edge)',
     }"
   >
     <!-- Internal aurora — brand-2 + tech-cyan glow marks the special trial device -->

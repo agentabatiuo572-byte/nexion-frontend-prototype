@@ -9,7 +9,7 @@
   <view v-if="sheet.open" class="tcs-root" role="dialog" aria-modal="true">
     <view class="tcs-backdrop" @click="hide" />
 
-    <view class="tcs-panel" @click.stop>
+    <view class="nx-glass-sheet tcs-panel" @click.stop>
       <!-- header -->
       <view class="tcs-head">
         <view class="tcs-head-l">
@@ -181,16 +181,16 @@ useDialogA11y(computed(() => sheet.open), ".tcs-root", hide);
   -webkit-backdrop-filter: blur(8px) saturate(150%);
   animation: tcs-fade 0.24s ease-out;
 }
-.tcs-panel {
+.tcs-panel { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge);
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 800;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  background: var(--v5-surface);
-  border-top: 1px solid var(--v5-border);
+
+
+  background: var(--nx-glass-fill);
+  border: none;
   padding: 20px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 38px);
   animation: tcs-slide-up 0.36s cubic-bezier(0.16, 1, 0.3, 1);
