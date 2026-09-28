@@ -163,17 +163,17 @@
             </view>
           </view>
           <view class="grid grid-cols-3 gap-2 mt-4">
-            <view class="rounded-xl text-center" :style="drawerStatStyle">
+            <view class="nx-glass-inset rounded-xl text-center" :style="drawerStatStyle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
               <text class="block tabular-nums" :style="drawerStatValStyle">{{ selected.devices.toLocaleString() }}</text>
               <text class="block" :style="drawerStatLabelStyle">{{ t.globe.activeNodes }}</text>
             </view>
-            <view class="rounded-xl text-center" :style="drawerStatStyle">
+            <view class="nx-glass-inset rounded-xl text-center" :style="drawerStatStyle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg>
               <text class="block tabular-nums" :style="drawerStatValStyle">{{ (selected.jobsPerHour / 1000).toFixed(1) }}k/h</text>
               <text class="block" :style="drawerStatLabelStyle">{{ t.globe.jobsPerHour }}</text>
             </view>
-            <view class="rounded-xl text-center" :style="drawerStatStyle">
+            <view class="nx-glass-inset rounded-xl text-center" :style="drawerStatStyle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto"><path d="M12 20h.01" /><path d="M2 8.82a15 15 0 0 1 20 0" /><path d="M5 12.859a10 10 0 0 1 14 0" /><path d="M8.5 16.429a5 5 0 0 1 7 0" /></svg>
               <text class="block tabular-nums" :style="drawerStatValStyle">{{ selected.avgLatencyMs === null ? t.globe.metricUnavailable : `${selected.avgLatencyMs}ms` }}</text>
               <text class="block" :style="drawerStatLabelStyle">{{ t.uiChrome.latency }}</text>
@@ -473,7 +473,6 @@ function drawerIconBox(isYou?: boolean): CSSProperties {
   };
 }
 const drawerStatStyle: CSSProperties = {
-  background: "var(--v5-surface-2)",
   padding: "10px",
 };
 const drawerStatValStyle: CSSProperties = {

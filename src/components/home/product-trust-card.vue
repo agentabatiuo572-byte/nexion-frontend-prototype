@@ -25,7 +25,7 @@
         </view>
       </view>
       <view class="grid grid-cols-3" style="gap: 8px; margin-top: 12px">
-        <view v-for="item in specs" :key="item.label" :style="specStyle">
+        <view class="nx-glass-inset" v-for="item in specs" :key="item.label" :style="specStyle">
           <text class="block" :style="specLabelStyle">{{ item.label }}</text>
           <text class="block" :style="specValueStyle">{{ item.value || t.home.productTrustUnavailable }}</text>
         </view>
@@ -81,7 +81,7 @@ const productNameStyle: CSSProperties = { fontSize: "16px", fontWeight: 600, col
 const taglineStyle: CSSProperties = { marginTop: "3px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const pricePillStyle: CSSProperties = { flexShrink: 0, padding: "5px 9px", borderRadius: "999px", background: "var(--v5-brand-soft)" };
 const priceStyle: CSSProperties = { fontSize: "12px", fontWeight: 600, color: "var(--v5-brand)" };
-const specStyle: CSSProperties = { minWidth: 0, padding: "9px", borderRadius: "10px", background: "var(--v5-surface-2)" };
+const specStyle: CSSProperties = { minWidth: 0, padding: "9px", borderRadius: "10px", };
 const specLabelStyle: CSSProperties = { fontSize: "10px", color: "var(--v5-ink-4)" };
 const specValueStyle: CSSProperties = { marginTop: "4px", fontSize: "10px", lineHeight: 1.35, color: "var(--v5-ink-2)", overflowWrap: "anywhere" };
 </script>

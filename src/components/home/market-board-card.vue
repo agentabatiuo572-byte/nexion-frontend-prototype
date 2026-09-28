@@ -12,7 +12,7 @@
     </view>
 
     <view class="nx-glass-card" v-if="!remoteApiEnabled" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); overflow: hidden">
-      <view class="nx-market-grid grid gap-2 font-mono-tabular" style="padding: 9px 14px; background: var(--v5-surface-2); border-bottom: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-4)">
+      <view class="nx-glass-inset nx-market-grid grid gap-2 font-mono-tabular" style="padding: 9px 14px; border-bottom: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-4)">
         <text>{{ t.home.mbColTag }}</text>
         <text>{{ t.home.mbColModel }}</text>
         <text class="nx-market-spark text-right">{{ t.home.mbCol1h }}</text>
@@ -46,7 +46,7 @@
         <text class="text-right tabular-nums font-mono-tabular" :style="{ fontSize: '13px', color: r.d >= 0 ? 'var(--v5-success)' : 'var(--v5-danger)', fontWeight: 500 }">{{ changeText(r) }}</text>
       </view>
     </view>
-    <view v-else class="rounded-xl" style="background: var(--v5-surface); padding: 14px">
+    <view v-else class="nx-glass-card" style="padding: 14px">
       <view v-for="row in homeMarketRows" :key="row.code" data-home-market-row="true" class="flex items-center justify-between py-1.5 active:opacity-70" role="link" tabindex="0" @click="goEarn" @keydown.enter.stop.prevent="goEarn" @keydown.space.stop.prevent="goEarn">
         <text class="truncate" style="font-size: 12px; color: var(--v5-ink-2)">{{ row.name ?? row.code }}</text>
         <text class="font-mono-tabular" style="color: var(--v5-ink)">{{ row.price === null ? "—" : `$${row.price}` }} <text style="color: var(--v5-ink-3)">{{ row.deltaPct === null ? "" : `${row.deltaPct >= 0 ? '+' : ''}${row.deltaPct.toFixed(1)}%` }}</text></text>

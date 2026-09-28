@@ -59,7 +59,7 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="nextUnclaimedUnlocked.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
       <text :style="{ fontWeight: 600, color: nextUnclaimedUnlocked.tint }">{{ footerReadyText }}</text>
     </view>
-    <view v-else-if="nextLocked" class="mx-2 flex items-center" :style="footerNextStyle">
+    <view v-else-if="nextLocked" class="nx-glass-inset mx-2 flex items-center" :style="footerNextStyle">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
       <text style="color: var(--v5-ink-2)">{{ footerNextText }}</text>
     </view>
@@ -280,7 +280,6 @@ const footerNextStyle: CSSProperties = {
   padding: "8px 12px",
   borderRadius: "10px",
   gap: "6px",
-  background: "var(--v5-surface-2)",
   fontSize: "12px",
   marginBottom: "8px",
 };

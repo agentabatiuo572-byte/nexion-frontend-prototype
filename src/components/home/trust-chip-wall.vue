@@ -20,11 +20,11 @@
 
     <template v-if="ready && summary">
       <view class="grid grid-cols-2" style="gap: 8px; margin-top: 12px">
-        <view :style="metricStyle">
+        <view class="nx-glass-inset" :style="metricStyle">
           <text class="block" :style="metricLabelStyle">{{ t.home.trustSnapshotTvl }}</text>
           <text class="block tabular-nums" :style="metricValueStyle">{{ summary.tvl || '—' }}</text>
         </view>
-        <view :style="metricStyle">
+        <view class="nx-glass-inset" :style="metricStyle">
           <text class="block" :style="metricLabelStyle">{{ t.home.trustSnapshotNodes }}</text>
           <text class="block tabular-nums" :style="metricValueStyle">{{ summary.activeNodes || '—' }}</text>
         </view>
@@ -79,7 +79,7 @@ const iconStyle: CSSProperties = { width: "32px", height: "32px", flexShrink: 0,
 const titleStyle: CSSProperties = { fontSize: "14px", fontWeight: 600, color: "var(--v5-ink)" };
 const subtitleStyle: CSSProperties = { marginTop: "2px", fontSize: "11px", color: "var(--v5-brand)" };
 const retryStyle: CSSProperties = { fontSize: "12px", fontWeight: 600, color: "var(--v5-brand)" };
-const metricStyle: CSSProperties = { padding: "10px", borderRadius: "10px", background: "var(--v5-surface-2)" };
+const metricStyle: CSSProperties = { padding: "10px", borderRadius: "10px", };
 const metricLabelStyle: CSSProperties = { fontSize: "10px", color: "var(--v5-ink-4)" };
 const metricValueStyle: CSSProperties = { marginTop: "4px", fontSize: "16px", fontWeight: 600, color: "var(--v5-ink)" };
 const chipStyle: CSSProperties = { padding: "4px 8px", borderRadius: "999px", fontSize: "11px", color: "var(--v5-ink-2)", background: "var(--v5-surface-2)" };

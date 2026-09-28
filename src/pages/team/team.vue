@@ -3,7 +3,16 @@
     <view class="pb-4" style="padding-top: 12px; color: var(--v5-ink)">
       <view class="px-4" style="display: flex; flex-direction: column; gap: 24px">
         <!-- Invite hero -->
-        <InviteEarnCard />
+        <InviteEarnCard ref="inviteCard" />
+
+        <TeamSummaryCard
+          :status="teamSummaryStatus"
+          :total="network.totalMembers"
+          :direct="byLayerBuckets[1].length"
+          @invite="inviteCard?.openShare()"
+          @open="go('/pages/team/tree')"
+          @retry="network.refreshCanonicalNetwork()"
+        />
 
         <!-- V3+ royalty hero -->
         <view v-if="!remoteApiEnabled && myRank >= 3" class="nx-glass-card rounded-2xl relative overflow-hidden active:opacity-95" :style="royaltyHeroStyle" @click="go('/pages/team/unilevel')">
@@ -20,22 +29,16 @@
         </view>
 
         <!-- My V-rank summary -->
-        <view class="nx-glass-card nx-team-rank-link relative overflow-hidden rounded-2xl active:opacity-95" :style="rankCardStyle" @click="go('/pages/team/rank')">
-          <NetworkOrbBackdrop :opacity="0.32" />
-          <view class="relative" :style="rankContentStyle">
-            <view :style="rankHeaderStyle">
-              <text class="font-mono-tabular" :style="rankTitleStyle">{{ t.teamV3.yourRank }}</text>
-              <view :style="rankArrowStyle">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-              </view>
-            </view>
-
-            <view :style="rankBodyStyle">
-              <view :style="rankLevelWrapStyle">
-                <text class="font-display tabular-nums" :style="rankLevelTextStyle">{{ myRankDisplay }}</text>
-              </view>
-            </view>
+        <view class="nx-glass-card nx-team-rank-link team-rank" role="link" tabindex="0" :aria-label="t.team.rankBenefits" @click="go('/pages/team/rank')">
+          <view class="team-rank__emblem" aria-hidden="true">
+            <svg width="60" height="66" viewBox="0 0 60 66" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linejoin="round"><path d="M30 5 54 19 30 33 6 19Z" fill="color-mix(in srgb, var(--v5-tech-cyan) 50%, transparent)"/><path d="M6 19v28l24 14V33Z" fill="color-mix(in srgb, var(--v5-tech-cyan) 28%, transparent)"/><path d="M54 19v28L30 61V33Z" fill="color-mix(in srgb, var(--v5-tech-cyan) 65%, transparent)"/><path d="m30 14 15 9-15 9-15-9Z" fill="var(--v5-bg)" stroke="none"/></svg>
           </view>
+          <view class="team-rank__body">
+            <text class="team-rank__title">{{ t.teamV3.yourRank }}</text>
+            <text class="team-rank__level">{{ myRankDisplay }}</text>
+            <text class="team-rank__hint">{{ t.team.rankBenefits }}</text>
+          </view>
+          <svg class="team-rank__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
         </view>
 
         <!-- Unified quick nav -->
@@ -133,40 +136,40 @@
         </view>
 
         <!-- Team tools -->
-        <view class="nx-glass-card grid" :style="toolGridStyle">
-          <view class="active:opacity-95" :style="toolCellStyle(0)" @click="go('/pages/team/quota')">
+        <view class="grid team-tools" :style="toolGridStyle">
+          <view class="nx-glass-card team-tool active:opacity-95" :style="toolCellStyle(0)" role="link" tabindex="0" @click="go('/pages/team/quota')">
             <view class="flex items-start justify-between">
               <view :style="toolIconStyle('var(--v5-warning-soft)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5M12 12v10" /></svg>
               </view>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10M7 17 17 7" /></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7" /></svg>
             </view>
             <text class="block" :style="toolTitleStyle">{{ t.teamV3.hardwareQuota }}</text>
           </view>
-          <view class="active:opacity-95" :style="toolCellStyle(1)" @click="go('/pages/team/agent')">
+          <view class="nx-glass-card team-tool active:opacity-95" :style="toolCellStyle(1)" role="link" tabindex="0" @click="go('/pages/team/agent')">
             <view class="flex items-start justify-between">
               <view :style="toolIconStyle('var(--v5-brand-2-soft)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
               </view>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10M7 17 17 7" /></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7" /></svg>
             </view>
             <text class="block" :style="toolTitleStyle">{{ t.teamV3.ambassador }}</text>
           </view>
-          <view class="active:opacity-95" :style="toolCellStyle(2)" @click="go('/pages/team/network')">
+          <view class="nx-glass-card team-tool active:opacity-95" :style="toolCellStyle(2)" role="link" tabindex="0" @click="go('/pages/team/network')">
             <view class="flex items-start justify-between">
               <view :style="toolIconStyle('var(--v5-tech-cyan-soft)')">
-                <view class="rounded-full" :style="orbDotStyle" />
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="4" r="3"/><circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/><path d="m10 6-4 9m8-9 4 9M8 18h8"/></svg>
               </view>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10M7 17 17 7" /></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7" /></svg>
             </view>
             <text class="block" :style="toolTitleStyle">{{ t.teamV3.visualizations.influenceNetwork }}</text>
           </view>
-          <view class="active:opacity-95" :style="toolCellStyle(3)" @click="go('/pages/team/tree')">
+          <view class="nx-glass-card team-tool active:opacity-95" :style="toolCellStyle(3)" role="link" tabindex="0" @click="go('/pages/team/tree')">
             <view class="flex items-start justify-between">
               <view :style="toolIconStyle('var(--v5-brand-soft)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="16" y="16" width="6" height="6" rx="1"/><path d="M12 8v4M5 16v-4h14v4"/></svg>
               </view>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10M7 17 17 7" /></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7" /></svg>
             </view>
             <text class="block" :style="toolTitleStyle">{{ t.teamV3.visualizations.genealogy }}</text>
           </view>
@@ -181,7 +184,7 @@ import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from
 import AppChassis from "@/components/app-chassis.vue";
 import InviteEarnCard from "@/components/team/invite-earn-card.vue";
 import TeamLedgerCard from "@/components/team/team-ledger-card.vue";
-import NetworkOrbBackdrop from "@/components/team/network-orb-backdrop.vue";
+import TeamSummaryCard from "@/components/team/team-summary-card.vue";
 import { useT } from "@/i18n/use-t";
 import { useVRank } from "@/store/v-rank";
 import { rankLabel } from "@/lib/v-rank-copy";
@@ -205,6 +208,8 @@ const app = useApp();
 const vrank = useVRank();
 const isZh = computed(() => useLocaleStore().code === "zh");
 const network = useNetwork();
+const inviteCard = ref<InstanceType<typeof InviteEarnCard> | null>(null);
+const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus : "ready");
 const commission = useCommission();
 const pool = useLeadershipPool();
 const referralRewards = useReferralReward();
@@ -361,50 +366,6 @@ const royaltyCapStyle: CSSProperties = { gap: "6px", fontSize: "12px", color: "v
 const royaltyAmtStyle: CSSProperties = { fontSize: "26px", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1 };
 const royaltySubStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)" };
 
-const rankCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
-  padding: "16px",
-  background: "var(--nx-glass-fill)",
-};
-const rankContentStyle: CSSProperties = {
-  minHeight: "104px",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  gap: "16px",
-};
-const rankHeaderStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-};
-const rankTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-tech-cyan-ink)" };
-const rankArrowStyle: CSSProperties = {
-  width: "28px",
-  height: "28px",
-  display: "grid",
-  placeItems: "center",
-  borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-ink) 5%, transparent)",
-};
-const rankBodyStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 1px minmax(0, 1fr)",
-  alignItems: "center",
-  gap: "14px",
-};
-const rankLevelWrapStyle: CSSProperties = {
-  minHeight: "44px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-start",
-};
-const rankLevelTextStyle: CSSProperties = {
-  fontSize: "20px",
-  fontWeight: 600,
-  lineHeight: 1,
-  color: "var(--v5-ink)",
-  whiteSpace: "nowrap",
-};
 
 const quickPanelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   // 《03》§6:带 bg 填充零 border
@@ -457,36 +418,40 @@ const quickDividerStyle: CSSProperties = {
   marginLeft: "62px",
   background: "var(--v5-border)",
 };
-const toolGridStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+const toolGridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  background: "var(--nx-glass-fill)",
-  borderRadius: "var(--nx-glass-radius)",
-  overflow: "hidden",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+  gap: "12px",
 };
-function toolCellStyle(index: number): CSSProperties {
+function toolCellStyle(_index: number): CSSProperties {
   return {
-    minHeight: "118px",
-    padding: "14px",
-    borderRight: index % 2 === 0 ? "1px solid var(--v5-border)" : "none",
-    borderBottom: index < 2 ? "1px solid var(--v5-border)" : "none",
+    minHeight: "110px",
+    padding: "16px",
   };
 }
-function toolIconStyle(bg: string): CSSProperties {
+function toolIconStyle(_bg: string): CSSProperties {
   return {
     width: "34px",
     height: "34px",
-    borderRadius: "12px",
     display: "grid",
     placeItems: "center",
-    background: `color-mix(in srgb, ${bg} 58%, transparent)`,
   };
 }
-const toolTitleStyle: CSSProperties = { marginTop: "10px", fontSize: "13px", fontWeight: 600, lineHeight: 1.2 };
+const toolTitleStyle: CSSProperties = { marginTop: "14px", fontSize: "15px", fontWeight: 600, lineHeight: 1.4 };
 const toolSubStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "4px", lineHeight: 1.35 };
-const orbDotStyle: CSSProperties = {
-  width: "18px",
-  height: "18px",
-  background: "radial-gradient(circle at 30% 30%, var(--v5-brand) 0%, var(--v5-tech-cyan) 70%, transparent 100%)",
-};
 </script>
+
+<style scoped>
+.team-rank { display: flex; align-items: center; gap: 16px; padding: 20px; }
+.team-rank:active { opacity: .8; }
+.team-rank:focus-visible, .team-tool:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+.team-rank__emblem { flex-shrink: 0; color: var(--v5-tech-cyan); filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--v5-tech-cyan) 32%, transparent)); }
+.team-rank__body { min-width: 0; flex: 1; }
+.team-rank__title { display: block; font-size: 18px; font-weight: 600; }
+.team-rank__level { display: block; margin-top: 8px; font-size: 20px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.team-rank__hint { display: block; margin-top: 8px; font-size: 12px; line-height: 1.4; color: var(--v5-ink-3); }
+.team-rank__chevron { flex-shrink: 0; }
+.team-tool { min-width: 0; }
+.team-tool :deep(svg) { color: var(--v5-brand); stroke: var(--v5-brand); }
+.team-tool :deep(svg:first-child) { flex-shrink: 0; }
+</style>

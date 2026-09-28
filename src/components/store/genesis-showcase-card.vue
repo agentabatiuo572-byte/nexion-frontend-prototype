@@ -59,7 +59,7 @@
         </view>
 
         <!-- Locked state line（资格未达:可见不藏,克制表述）-->
-        <view v-if="locked" :style="lockRowStyle">
+        <view class="nx-glass-inset" v-if="locked" :style="lockRowStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
           <text :style="lockTextStyle">{{ lockedLineText }}</text>
         </view>
@@ -230,7 +230,6 @@ const lockRowStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "6px",
-  background: "var(--v5-surface-2)",
   borderRadius: "11px",
   padding: "9px 12px",
 };

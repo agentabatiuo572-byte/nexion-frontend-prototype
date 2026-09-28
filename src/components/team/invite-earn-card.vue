@@ -1,137 +1,76 @@
-<!--
-  InviteEarnCard — ported from Nexion-prototype/app/components/team/
-  invite-earn-card.tsx. Single-card invite reward CTA: promo chip (phase-driven
-  multiplier) + reward numbers/social-proof (left) + share buttons (right) +
-  live commission ticker (bottom). framer AnimatePresence ticker → CSS re-keyed
-  fade (nx-step-in). framer ping dot → reusable PulseDot.
-  [FEAT-SHARE01] 2026-07-08 四入口接真链路(此前 DEGRADED 注记已解除):
-    • 海报 → SharePosterSheet(真二维码 canvas 海报);
-    • 立即分享 → ShareChannelSheet(渠道 intent 面板);
-    • 邀请码/链接复制 → lib/share 单源链接 + 分享事件(quest invite_friend 接线);
-    • 码为空四入口置灰 + toast(FEAT-SHARE1 异常2);复制失败禁误报(异常3)。
-  <button>→<view @click>; <span>→<text>; <div>→<view>.
--->
 <template>
-  <view class="nx-glass-card relative overflow-hidden rounded-2xl" :style="rootStyle">
-    <!-- 24px grid overlay -->
-    <view aria-hidden="true" :style="gridStyle" />
-
-    <view
-      v-if="isAuthoritativeSandbox"
-      data-testid="h8-sandbox-banner"
-      class="relative flex items-center"
-      :style="sandboxBannerStyle"
-    >
+  <view class="nx-glass-card invite-card">
+    <view v-if="isAuthoritativeSandbox" data-testid="h8-sandbox-banner" class="invite-card__sandbox">
       <text>{{ t.team.sandboxBanner }} · RunID {{ sandboxRunId }}</text>
     </view>
-
-    <!-- Top label row -->
-    <view class="relative flex items-center justify-between flex-wrap" style="z-index: 1; font-size: 12px; gap: 4px">
-      <text :style="{ color: 'var(--v5-brand)', fontWeight: 500, whiteSpace: 'nowrap' }">💰 {{ t.team.earnForEachFriend }}</text>
-      <view class="flex items-center" style="gap: 4px; white-space: nowrap">
-        <PulseDot color="var(--v5-success)" :size="6" />
-        <text class="font-mono-tabular tabular-nums" :style="{ color: 'var(--v5-ink-3)' }">{{ settlementStatus }}</text>
+    <view class="invite-card__header">
+      <svg class="invite-card__people" width="88" height="94" viewBox="0 0 88 94" fill="none" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="invite-glass-fill" x1="8" y1="10" x2="74" y2="90" gradientUnits="userSpaceOnUse"><stop stop-color="var(--v5-ink)" stop-opacity=".3"/><stop offset=".45" stop-color="var(--v5-ink)" stop-opacity=".04"/><stop offset="1" stop-color="var(--v5-ink)" stop-opacity=".18"/></linearGradient>
+          <linearGradient id="invite-glass-edge" x1="10" y1="8" x2="76" y2="84" gradientUnits="userSpaceOnUse"><stop stop-color="var(--v5-ink)" stop-opacity=".85"/><stop offset=".45" stop-color="var(--v5-ink)" stop-opacity=".14"/><stop offset="1" stop-color="var(--v5-ink)" stop-opacity=".48"/></linearGradient>
+        </defs>
+        <g fill="url(#invite-glass-fill)" stroke="url(#invite-glass-edge)" stroke-width="1.3">
+          <circle cx="65" cy="29" r="11"/><path d="M47 83V63a18 18 0 0 1 36 0v20Q65 89 47 83Z"/>
+          <circle cx="33" cy="22" r="17"/><path d="M6 84V61a27 27 0 0 1 54 0v23Q33 92 6 84Z"/>
+        </g>
+        <path d="M21 11a14 14 0 0 1 14-4M13 55a23 23 0 0 1 15-15M60 23a8 8 0 0 1 8-2" stroke="var(--v5-ink)" stroke-opacity=".65" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <view class="invite-card__heading">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2M16 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+        <text class="invite-card__title">{{ t.team.inviteTitle }}</text>
       </view>
+      <text class="invite-card__tagline">{{ t.team.inviteTagline }}</text>
+    </view>
+    <view class="invite-card__reward" role="status" :aria-busy="rewards.loading">
+      <template v-if="rewards.snapshot && !rewards.error">
+        <view class="invite-card__reward-line"><text>{{ t.team.serverRewardPerSettlement }}</text><text class="invite-card__amount">{{ nexReward.toLocaleString() }} NEX</text></view>
+        <text class="invite-card__muted">{{ t.team.perFriendCooldown }}</text>
+        <text class="invite-card__muted">{{ settlementStatus }}</text>
+        <text v-if="lifetimeEarned > 0" class="invite-card__earned">+{{ lifetimeEarned.toLocaleString() }} NEX</text>
+      </template>
+      <text v-else class="invite-card__muted">{{ rewards.loading ? t.team.rewardLoading : t.team.settlementUnavailable }}</text>
+      <view class="invite-card__rules" role="link" tabindex="0" @click="openRules"><text>{{ t.team.rewardRules }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></view>
     </view>
 
-    <!-- Limited-time promo chip -->
-    <!-- 《02》§7:促销 callout 整句(6-7 词)禁 Mono,chip 限 <5 词 -->
-    <view v-if="hasPromo" class="relative inline-flex items-center" :style="promoChipStyle">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>
-      <text>{{ promoChipText }}</text>
-    </view>
-
-    <!-- Two-column body -->
-    <view class="relative grid nx-invite-body" :style="bodyGridStyle">
-      <!-- LEFT — stats -->
-      <view class="min-w-0 flex flex-col" style="gap: 6px">
-        <view class="flex items-baseline" style="gap: 4px; line-height: 1">
-          <text class="font-mono-tabular" :style="leftDollarStyle">{{ nexReward.toLocaleString() }}</text>
-          <text class="font-display tabular-nums" :style="leftDollarSignStyle">NEX</text>
-        </view>
-        <text class="font-display tabular-nums" :style="nexLineStyle">{{ t.team.serverRewardPerSettlement }}</text>
-        <text :style="cooldownStyle">{{ t.team.perFriendCooldown }}</text>
-        <!-- Cumulative earned pill — 仅在有已结算战绩时渲染,零收益无空态文案 -->
-        <view v-if="lifetimeEarned > 0" class="inline-flex items-center" :style="earnedPillStyle">
-          <text>💎</text>
-          <text class="font-display tabular-nums" :style="{ color: 'var(--v5-tech-cyan-ink)', fontWeight: 600 }">+{{ lifetimeEarned.toLocaleString() }} NEX</text>
-        </view>
+    <view class="invite-card__actions" :class="{ 'invite-card__disabled': !referralCode }">
+      <view class="nx-glass-action invite-card__action" role="button" tabindex="0" :aria-label="t.team.inviteSharePoster" :aria-disabled="!referralCode" @click="openPoster">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="16" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 5"/></svg>
+        <text>{{ t.team.inviteSharePoster }}</text>
       </view>
-
-      <!-- RIGHT — actions(码为空整列置灰,点击仍有 toast 反馈) -->
-      <view class="flex flex-col shrink-0 nx-invite-actions" :class="referralCode ? '' : 'opacity-50'" style="gap: 8px">
-        <view class="rounded-lg flex items-center active:opacity-90" :style="shareBtnStyle(false)" role="button" tabindex="0" :aria-label="t.team.inviteSharePoster" @click="openPoster">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M21 21v.01M17 21h.01M21 17v.01" /></svg>
-          <text class="shrink-0" :style="shareLabelStyle">{{ t.team.inviteSharePoster }}</text>
-          <text :style="shareValStyle(false)">{{ t.team.inviteShareQR }}</text>
-        </view>
-        <view class="rounded-lg flex items-center active:opacity-90" :style="shareBtnStyle(copiedCode)" @click="copyCode">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="copiedCode ? 'var(--v5-brand)' : 'var(--v5-brand)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><template v-if="copiedCode"><path d="M20 6 9 17l-5-5" /></template><template v-else><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></template></svg>
-          <text class="shrink-0" :style="shareLabelStyle">{{ copiedCode ? t.team.copied : t.team.inviteShareCode }}</text>
-          <text class="font-mono-tabular tabular-nums" :style="shareValStyle(copiedCode)">{{ displayReferralCode(referralCode) }}</text>
-        </view>
-        <view class="rounded-lg flex items-center active:opacity-90" :style="shareBtnStyle(copiedLink)" @click="copyLink">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><template v-if="copiedLink"><path d="M20 6 9 17l-5-5" /></template><template v-else><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8" /></template></svg>
-          <text class="shrink-0" :style="shareLabelStyle">{{ copiedLink ? t.team.copied : t.team.inviteShareLink }}</text>
-          <text class="font-mono-tabular tabular-nums" :style="shareValStyle(copiedLink)">{{ t.team.copyCode }}</text>
-        </view>
-
-        <view class="rounded-full flex items-center justify-center active:opacity-90" :style="primaryCtaStyle" @click="openShare">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
-          <text :style="primaryCtaTextStyle">{{ fmt(t.team.shareAndEarn, { n: `${nexReward.toLocaleString()} NEX` }) }}</text>
-        </view>
+      <view class="nx-glass-action invite-card__action" role="button" tabindex="0" :aria-label="t.team.inviteShareCode" :aria-disabled="!referralCode" @click="copyCode">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-if="copiedCode" d="m4 12 5 5L20 6"/><template v-else><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M15 15h3v3h3v3h-6z"/></template></svg>
+        <text>{{ copiedCode ? t.team.copied : t.team.inviteShareCode }}</text>
+      </view>
+      <view class="nx-glass-action invite-card__action" role="button" tabindex="0" :aria-label="t.team.inviteShareLink" :aria-disabled="!referralCode" @click="copyLink">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-if="copiedLink" d="m4 12 5 5L20 6"/><template v-else><path d="m10 13 4-4M8 16l-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M16 8l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" transform="translate(2 0) scale(.83 1)"/></template></svg>
+        <text>{{ copiedLink ? t.team.copied : t.team.inviteShareLink }}</text>
       </view>
     </view>
+    <view class="invite-card__cta" :class="{ 'invite-card__disabled': !referralCode }" role="button" tabindex="0" :aria-disabled="!referralCode" @click="openShare">
+      <text>{{ t.team.shareInvite }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+    </view>
 
-    <!-- Live commission ticker -->
-    <view class="relative flex items-center overflow-hidden border-t" :style="tickerWrapStyle">
-      <view v-if="tickerItem" :key="tickerIdx" class="flex items-center w-full min-w-0 nx-step-in" style="gap: 6px; font-size: 12px">
-        <text class="shrink-0">⚡</text>
-        <text class="shrink-0" :style="{ color: 'var(--v5-ink)', fontWeight: 500 }">{{ tickerItem.name }}</text>
-        <text class="truncate" :style="{ color: 'var(--v5-ink-3)' }">{{ tickerItem.action }}</text>
-        <text class="font-mono-tabular tabular-nums shrink-0" :style="tickerAmtStyle">{{ tickerItem.amount }}</text>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M7 7h10v10M7 17 17 7" /></svg>
+    <view class="invite-card__history">
+      <view v-if="tickerItem && !rewards.error" :key="tickerIdx" class="invite-card__ticker nx-step-in">
+        <text>{{ tickerItem.name }}</text><text>{{ tickerItem.action }}</text><text class="invite-card__earned">{{ tickerItem.amount }}</text>
       </view>
-      <!-- 🔴 两种状态拆开:原来共用一个 @click 容器,于是「暂无已结算奖励」这种**没什么可重试**
-           的状态也长成可点的样子(文案却只在出错时才写「点击重试」),而且整条只有 16px 高、
-           按下去零反馈 —— tap 门两条违例都出在这一个元素上。
-           出错态:44px 热区 + 按下反馈 + role/tabindex(键盘激活由 lib/a11y-activate.ts 平台层给)。
-           空态:纯展示,不给可点暗示。 -->
-      <view
-        v-else-if="rewards.error"
-        class="flex items-center w-full min-w-0 active:opacity-70"
-        style="gap: 6px; font-size: 12px; min-height: 44px"
-        role="button" tabindex="0"
-        @click="rewards.refresh()"
-      >
-        <text :style="{ color: 'var(--v5-ink-3)' }">{{ t.team.rewardHistoryUnavailable }}</text>
+      <view v-else-if="rewards.error && remoteApiEnabled" class="invite-card__retry" role="button" tabindex="0" :aria-busy="rewards.loading" @click="rewards.refresh()">
+        <text>{{ rewards.loading ? t.team.rewardLoading : t.team.rewardHistoryUnavailable }}</text>
       </view>
-      <view v-else class="flex items-center w-full min-w-0" style="gap: 6px; font-size: 12px">
-        <text :style="{ color: 'var(--v5-ink-3)' }">{{ t.team.noSettledRewards }}</text>
-      </view>
+      <text v-else-if="rewards.loading">{{ t.team.rewardLoading }}</text>
+      <text v-else-if="rewards.snapshot">{{ t.team.noSettledRewards }}</text>
     </view>
   </view>
-
-  <!-- [FEAT-SHARE2/3] 分享面板(fragment 兄弟节点,避开卡片 overflow-hidden) -->
   <SharePosterSheet :open="posterOpen" @close="posterOpen = false" />
-  <ShareChannelSheet
-    :open="shareOpen"
-    @close="shareOpen = false"
-    @open-poster="
-      shareOpen = false;
-      posterOpen = true;
-    "
-  />
+  <ShareChannelSheet :open="shareOpen" @close="shareOpen = false" @open-poster="shareOpen = false; posterOpen = true;" />
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
-import PulseDot from "@/components/home/pulse-dot.vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import ShareChannelSheet from "@/components/team/share-channel-sheet.vue";
 import SharePosterSheet from "@/components/team/share-poster-sheet.vue";
 import { useApp } from "@/store/app";
 import { useReferralReward } from "@/store/referral-reward";
-import { displayReferralCode } from "@/lib/brand";
 import { useT } from "@/i18n/use-t";
 import { toast } from "@/store/ui";
 import { buildShareLink, copyText, recordShareEvent } from "@/lib/share";
@@ -157,8 +96,6 @@ const tickerItems = computed<TickerItem[]>(() => (rewards.snapshot?.recentReward
   action: row.releaseBucket === "withdrawable" ? t.value.team.settledToWallet : t.value.team.settledProtected,
   amount: `+${row.amountNex.toLocaleString()} NEX`,
 })));
-const hasPromo = computed(() => false);
-const multiplier = computed(() => 1);
 const nexReward = computed(() => rewards.snapshot?.inviterRewardNex ?? 0);
 const lifetimeEarned = computed(() => rewards.snapshot?.lifetimeInviterNex ?? 0);
 const settlementStatus = computed(() => rewards.snapshot
@@ -172,7 +109,6 @@ const referralCode = computed(() => {
   if (remoteApiEnabled) return rewards.snapshot?.referralCode ?? "";
   return app.user.referralCode;
 });
-const promoChipText = computed(() => "");
 
 const copiedCode = ref(false);
 const copiedLink = ref(false);
@@ -242,114 +178,39 @@ onUnmounted(() => {
   if (tickerTimer) clearInterval(tickerTimer);
 });
 
-// ─── styles ───
-const rootStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
-  padding: "16px",
-  background:
-    "var(--nx-glass-fill)",
-};
-const gridStyle: CSSProperties = {
-  position: "absolute",
-  inset: "0",
-  backgroundImage:
-    // 网格线跟随 ink:写死的白网格在亮主题下落在白卡面上 = 纹理消失(卡底是 var(--v5-surface),跟主题)
-    "linear-gradient(to right, color-mix(in srgb, var(--v5-ink) 3%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--v5-ink) 3%, transparent) 1px, transparent 1px)",
-  backgroundSize: "24px 24px",
-  pointerEvents: "none",
-  zIndex: 0,
-};
-const sandboxBannerStyle: CSSProperties = {
-  zIndex: 1,
-  marginBottom: "10px",
-  padding: "7px 10px",
-  borderRadius: "10px",
-  background: "color-mix(in srgb, var(--v5-warning) 12%, var(--v5-surface))",
-  color: "var(--v5-warning-ink)",
-  fontSize: "12px",
-  fontWeight: 700,
-};
-const promoChipStyle: CSSProperties = {
-  marginTop: "8px",
-  gap: "4px",
-  padding: "2px 8px",
-  borderRadius: "6px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 12%, transparent)",
-  color: "var(--v5-brand-2-ink)",
-  fontSize: "12px",
-  zIndex: 1,
-};
-const bodyGridStyle: CSSProperties = {
-  marginTop: "12px",
-  gap: "12px",
-  alignItems: "stretch",
-  zIndex: 1,
-};
-const leftDollarSignStyle: CSSProperties = { fontSize: "15px", fontWeight: 500, opacity: 0.75, color: "var(--v5-ink-3)" };
-const leftDollarStyle: CSSProperties = {
-  fontSize: "34px",
-  fontWeight: 600,
-  letterSpacing: "-0.024em",
-  color: "var(--v5-ink)",
-};
-const strikeStyle: CSSProperties = {
-  fontSize: "12px",
-  color: "var(--v5-ink-4)",
-  textDecoration: "line-through",
-  marginTop: "-4px",
-};
-const nexLineStyle: CSSProperties = { fontSize: "13px", fontWeight: 500, color: "var(--v5-tech-cyan-ink)" };
-const cooldownStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.3 };
-const earnedPillStyle: CSSProperties = {
-  marginTop: "auto",
-  alignSelf: "flex-start",
-  gap: "6px",
-  fontSize: "12px",
-  padding: "4px 8px",
-  borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-tech-cyan) 12%, transparent)",
-};
-function shareBtnStyle(highlight: boolean): CSSProperties {
-  return {
-    height: "44px",
-    gap: "6px",
-    padding: "0 10px",
-    background: highlight
-      ? "color-mix(in srgb, var(--v5-brand) 15%, transparent)"
-      : "var(--v5-surface-2)",
-  };
+function openRules() {
+  uni.navigateTo({ url: "/pages/team/unilevel-how", fail: () => {} });
 }
-const shareLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-2)", fontWeight: 500 };
-function shareValStyle(_highlight: boolean): CSSProperties {
-  return { marginLeft: "auto", fontSize: "12px", color: "var(--v5-ink-4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
-}
-const primaryCtaStyle: CSSProperties = {
-  height: "44px",
-  gap: "4px",
-  padding: "0 8px",
-  background: "var(--v5-brand)",
-  whiteSpace: "nowrap",
-};
-const primaryCtaTextStyle: CSSProperties = {
-  color: "var(--v5-on-brand)",
-  fontSize: "13px",
-  fontWeight: 500,
-  letterSpacing: "-0.005em",
-};
-const tickerWrapStyle: CSSProperties = {
-  marginTop: "12px",
-  paddingTop: "10px",
-  borderColor: "var(--v5-border)",
-  height: "34px",
-  zIndex: 1,
-};
-const tickerAmtStyle: CSSProperties = { marginLeft: "auto", color: "var(--v5-brand)", fontWeight: 600 };
+defineExpose({ openShare });
 </script>
 
 <style scoped>
-.nx-invite-body { grid-template-columns: minmax(0, 1fr) 158px; }
-.nx-invite-actions { width: 158px; }
+.invite-card { padding: 20px; }
+.invite-card__header { position: relative; padding-right: 80px; padding-bottom: 14px; min-height: 94px; }
+.invite-card__people { position: absolute; top: -4px; right: -6px; width: 78px; pointer-events: none; }
+.invite-card__heading { display: flex; align-items: center; gap: 12px; }
+.invite-card__title { font-size: 20px; font-weight: 600; line-height: 1.3; }
+.invite-card__tagline { display: block; margin-top: 10px; font-size: 13px; line-height: 1.5; color: var(--v5-ink-3); }
+.invite-card__reward { display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.5; }
+.invite-card__reward-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.invite-card__amount { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.invite-card__muted { color: var(--v5-ink-3); }
+.invite-card__rules { display: flex; gap: 10px; align-items: center; min-height: 44px; align-self: flex-start; color: var(--v5-ink-2); }
+.invite-card__actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.invite-card__action { display: flex; min-width: 0; min-height: 84px; flex-direction: column; align-items: center; justify-content: center; gap: 9px; padding: 12px 4px; border: 1px solid color-mix(in srgb, var(--v5-ink) 16%, transparent); border-radius: 18px; color: var(--v5-brand); text-align: center; }
+.invite-card__action text { color: var(--v5-ink); font-size: 13px; line-height: 1.3; overflow-wrap: anywhere; }
+.invite-card__cta { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; min-height: 48px; border-radius: 999px; padding: 10px 14px; background: var(--v5-brand); color: var(--v5-on-brand); font-size: 15px; font-weight: 600; }
+.invite-card__cta:active, .invite-card__action:active, .invite-card__rules:active, .invite-card__retry:active { opacity: .75; }
+.invite-card__disabled { opacity: .5; }
+.invite-card [tabindex="0"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+.invite-card__history { margin-top: 10px; color: var(--v5-ink-3); font-size: 12px; line-height: 1.5; }
+.invite-card__history:empty { display: none; }
+.invite-card__ticker { display: flex; gap: 6px; flex-wrap: wrap; border-top: 1px solid var(--v5-border); padding-top: 10px; }
+.invite-card__earned { color: var(--v5-tech-cyan-ink); font-variant-numeric: tabular-nums; }
+.invite-card__retry { min-height: 44px; display: flex; align-items: center; }
+.invite-card__sandbox { margin-bottom: 14px; padding: 8px 10px; border-radius: 10px; background: var(--v5-warning-soft); color: var(--v5-warning-ink); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 @media (max-width: 350px) {
-  .nx-invite-body { grid-template-columns: minmax(0, 1fr); }
-  .nx-invite-actions { width: 100%; }
+  .invite-card__header { padding-right: 0; min-height: 0; }
+  .invite-card__people { display: none; }
 }
 </style>

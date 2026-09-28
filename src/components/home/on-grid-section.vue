@@ -33,8 +33,8 @@
            上方客户内容在远端来自 Home canonical 投影；仅本地 demo 使用静态样本。 -->
       <view
         v-if="devicesBad && fleetBad"
-        class="px-4 py-2 flex items-center justify-center font-mono-tabular active:opacity-70"
-        style="border-top: 1px solid var(--v5-border); background: var(--v5-surface-2); font-size: 12px; color: var(--v5-ink-3); min-height: 44px"
+        class="nx-glass-inset px-4 py-2 flex items-center justify-center font-mono-tabular active:opacity-70"
+        style="border-top: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-3); min-height: 44px"
         :role="app.homeTruthStatus === 'error' ? 'button' : undefined"
         :tabindex="app.homeTruthStatus === 'error' ? 0 : undefined"
         data-home-action="on-grid-status"
@@ -44,7 +44,7 @@
       >
         <text>{{ gridStatusText }}<text v-if="app.homeTruthStatus === 'error'"> · <text style="color: var(--v5-tech-cyan-ink)">{{ t.home.networkStatRetry }}</text></text></text>
       </view>
-      <view v-else class="px-4 py-2 flex items-center justify-between font-mono-tabular" style="border-top: 1px solid var(--v5-border); background: var(--v5-surface-2); font-size: 12px; color: var(--v5-ink-3)">
+      <view v-else class="nx-glass-inset px-4 py-2 flex items-center justify-between font-mono-tabular" style="border-top: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-3)">
         <text v-if="devicesBad">{{ t.home.networkStatUpdating }}</text>
         <text v-else><text style="color: var(--v5-ink); font-weight: 500">{{ activeDevicesText }}</text> {{ t.home.onGridOnline }}</text>
         <text v-if="fleetBad">{{ t.home.networkStatUpdating }}</text>

@@ -10,7 +10,7 @@
     </view>
 
     <view class="nx-glass-card" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); overflow: hidden">
-      <view class="px-3.5 py-2.5 flex justify-between items-center font-mono-tabular" style="border-bottom: 1px solid var(--v5-border); background: var(--v5-surface-2); font-size: 12px; color: var(--v5-ink-3)">
+      <view class="nx-glass-inset px-3.5 py-2.5 flex justify-between items-center font-mono-tabular" style="border-bottom: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-3)">
         <view class="inline-flex items-center gap-1.5">
           <PulseDot color="var(--v5-tech-cyan)" />
           <text>{{ t.home.networkGlobalGrid }}</text>

@@ -91,7 +91,7 @@
     </view>
 
     <!-- ───── Footer: price + Buy CTA ───── -->
-    <view class="grid items-center gap-3" :style="footerStyle">
+    <view class="nx-glass-inset grid items-center gap-3" :style="footerStyle">
       <view class="min-w-0">
         <text class="block font-mono-tabular" :style="priceEyebrowStyle">{{ t.store.cardPriceLabel }}</text>
         <view class="tabular-nums flex items-baseline" :style="priceRowStyle">
@@ -325,7 +325,6 @@ const tradeinBoxStyle: CSSProperties = {
 };
 const footerStyle: CSSProperties = {
   padding: "13px 16px",
-  background: "var(--v5-surface-2)",
   borderTop: "1px solid var(--v5-border)",
   gridTemplateColumns: "1fr auto",
 };
@@ -356,8 +355,7 @@ const buyBtnStyle: CSSProperties = {
   letterSpacing: "-0.005em",
 };
 // Locked Buy CTA = muted (soft surface, no brand) when gate blocks purchase.
-// 用 surface-3 不用 surface-2 —— 按钮就落在 footerStyle 上,而 footer 本身是 surface-2,
-// 同值会让「解锁后购买」整颗按钮隐形(双主题实测 ΔE=0)。muted 的本意是弱化,不是消失。
+// The disabled CTA keeps its own stable fill against the shared glass footer.
 const buyBtnDynStyle = computed<CSSProperties>(() =>
   gate.value.blocked
     ? { ...buyBtnStyle, background: "var(--v5-surface-3)", color: "var(--v5-ink-3)" }

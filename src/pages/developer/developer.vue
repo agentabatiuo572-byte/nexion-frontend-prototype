@@ -66,11 +66,11 @@
             <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ t.developer.requestAccess }}</text>
           </view>
           <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-bottom: 12px">{{ t.developer.requestAccessHint }}</text>
-          <view v-if="remoteApiEnabled && latestRequest" class="rounded-xl" :style="requestStatusStyle">
+          <view v-if="remoteApiEnabled && latestRequest" class="nx-glass-inset rounded-xl" :style="requestStatusStyle">
             <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-tech-cyan)">{{ latestRequest.requestNo }} · {{ latestRequest.status }}</text>
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ new Date(latestRequest.submittedAt).toLocaleString(dateLocale()) }}</text>
           </view>
-          <view v-if="remoteApiEnabled && latestLoadFailed" class="rounded-xl" :style="requestStatusStyle">
+          <view v-if="remoteApiEnabled && latestLoadFailed" class="nx-glass-inset rounded-xl" :style="requestStatusStyle">
             <text class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.developer.latestLoadFailed }}</text>
             <view role="button" tabindex="0" style="min-height: 44px; display: grid; place-items: center; margin-top: 6px" @click="loadLatestRequest"><text>{{ t.network.retry }}</text></view>
           </view>
@@ -412,7 +412,7 @@ const submitBtnStyle: CSSProperties = {
   height: "48px",
   background: "var(--v5-tech-cyan)",
 };
-const requestStatusStyle: CSSProperties = { padding: "10px 12px", marginBottom: "12px", background: "var(--v5-surface-2)" };
+const requestStatusStyle: CSSProperties = { padding: "10px 12px", marginBottom: "12px", };
 const snippetWrapStyle: CSSProperties = {
   background: "var(--v5-surface-3)",
   borderRadius: "8px",
