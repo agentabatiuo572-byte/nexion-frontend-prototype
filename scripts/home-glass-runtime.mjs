@@ -231,13 +231,13 @@ async function motion(page, engine) {
   const reduced = await active(page).evaluate(root => ({
     panels: [...root.querySelectorAll('.nx-home-glass-panel')].map(e => getComputedStyle(e).transform),
     floats: [...root.querySelectorAll('.nx-home-art-float')].map(e => getComputedStyle(e).animationName),
-    tintImages: [...root.querySelectorAll('.nx-home-glass-panel .nx-liquid-tint')].map(e => getComputedStyle(e).backgroundImage),
+    surfaceImages: [...root.querySelectorAll('.nx-home-glass-panel')].map(e => getComputedStyle(e).backgroundImage),
     moreContrast: matchMedia('(prefers-contrast: more)').matches,
   }));
   await page.mouse.up();
   assert.ok(reduced.panels.every(t => t === 'none' || t === 'matrix(1, 0, 0, 1, 0, 0)'));
   assert.ok(reduced.floats.length && reduced.floats.every(t => t === 'none'));
-  assert.ok(reduced.moreContrast && reduced.tintImages.every(t => t === 'none'));
+  assert.ok(reduced.moreContrast && reduced.surfaceImages.length && reduced.surfaceImages.every(t => t === 'none'));
   await page.emulateMedia({ reducedMotion: 'no-preference', contrast: 'no-preference' });
   return { frames: frames.length, minScale: Math.min(...frames.map(f => f.scaleX)), maxScale: Math.max(...frames.map(f => f.scaleX)), reduced };
 }

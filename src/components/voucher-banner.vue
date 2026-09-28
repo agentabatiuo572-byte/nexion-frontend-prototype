@@ -2,7 +2,7 @@
 <template>
   <view v-if="visible" class="vb-wrap">
     <view class="vb-card nx-home-glass-item" role="button" tabindex="0" :aria-label="t.voucher.bannerTitle" @click="open">
-      <LiquidGlass class="nx-home-glass-panel" :radius="28" />
+      <view class="nx-home-glass-panel" aria-hidden="true" />
       <view class="vb-aura" aria-hidden="true" />
       <view class="vb-art nx-home-art-float" aria-hidden="true">
         <view class="nx-home-art" />
@@ -25,7 +25,6 @@ import { useVoucher } from "@/store/voucher";
 import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { useT } from "@/i18n/use-t";
 import type { VoucherSurface } from "@/mock/vouchers";
-import LiquidGlass from "@/components/liquid-glass.vue";
 
 const props = defineProps<{ surface: VoucherSurface }>();
 const voucher = useVoucher();

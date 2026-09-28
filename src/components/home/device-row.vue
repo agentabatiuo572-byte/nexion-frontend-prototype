@@ -4,7 +4,7 @@
     role="button" tabindex="0"
     :aria-label="`${t.earn.deviceDetailTitle}: ${displayName} · ${isOnline ? t.earn.online : t.earn.offline}`"
     @click="go" @keydown.enter.prevent="go" @keydown.space.prevent="go">
-    <LiquidGlass class="nx-home-glass-panel" :radius="24" />
+    <view class="nx-home-glass-panel" aria-hidden="true" />
     <text class="hf-device-status" :class="{ 'hf-device-status--online': isOnline }">{{ isOnline ? t.earn.online : t.earn.offline }}</text>
     <DeviceSlot :device="device" :online="isOnline" />
     <view class="hf-device-meta">
@@ -24,7 +24,6 @@ import { navTo } from "@/lib/route";
 import { isDeviceOnline } from "@/lib/hashpower";
 import { deviceName } from "@/lib/device-copy";
 import type { Device } from "@/store/types";
-import LiquidGlass from "@/components/liquid-glass.vue";
 import DeviceSlot from "./device-slot.vue";
 
 const props = defineProps<{ device: Device }>();

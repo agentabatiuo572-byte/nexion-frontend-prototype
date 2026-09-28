@@ -17,7 +17,7 @@
       </view>
       <TrialGhostSlot />
       <view v-if="showPhoneNotice" class="phone-policy-notice nx-home-glass-item" role="status">
-        <LiquidGlass class="nx-home-glass-panel" :radius="28" />
+        <view class="nx-home-glass-panel" aria-hidden="true" />
         <svg class="phone-policy-icon" width="24" height="32" viewBox="0 0 24 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="4" y="2" width="16" height="28" rx="4" /><path d="M10 5h4m-4 22h4" /></svg>
         <text class="phone-policy-copy">{{ webVersion ? t.phonePolicy.webNotice : t.phonePolicy.appNotice }}</text>
         <view class="phone-policy-action nx-home-pill" role="button" tabindex="0" @click="openPhoneSetup" @keydown.enter.prevent="openPhoneSetup" @keydown.space.prevent="openPhoneSetup"><text>{{ webVersion ? t.phonePolicy.download : t.phonePolicy.manage }}</text></view>
@@ -115,7 +115,6 @@ import DayOneQuestCard from "@/components/home/day-one-quest-card.vue";
 import LiveFeedCard from "@/components/home/live-feed-card.vue";
 import QuickActionRow from "@/components/home/quick-action-row.vue";
 import MyFleetSection from "@/components/home/my-fleet-section.vue";
-import LiquidGlass from "@/components/liquid-glass.vue";
 import OnGridSection from "@/components/home/on-grid-section.vue";
 import NetworkPulseCard from "@/components/home/network-pulse-card.vue";
 import NovaCardSlot from "@/components/home/nova-card-slot.vue";
