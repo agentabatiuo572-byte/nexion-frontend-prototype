@@ -76,8 +76,14 @@ async function tickerCaptureRecovery(page) {
   await page.waitForFunction(()=>document.querySelector('.nx-tabbar-pill .nx-glass-track')?.dataset.glassStrategy==='webgl',{},{timeout:45000});
   await page.evaluate(()=>{
     const p=window.__tickerCaptureProbe={draw:CanvasRenderingContext2D.prototype.drawImage,fail:false,failures:0,successes:0,changes:0};
-    p.observer=new MutationObserver(records=>{if(records.some(record=>record.type==='characterData'))p.changes++;});
-    p.observer.observe(document.querySelector('.nx-page-enter'),{subtree:true,characterData:true});
+    // A one-second page update may only rewrite fleet/progress styles while
+    // displayed earnings round to the same cents. Observe the actual backdrop
+    // updates, including styles, but never count generated glass as business work.
+    p.observer=new MutationObserver(records=>{if(records.some(record=>{
+      const target=record.target instanceof Element?record.target:record.target.parentElement;
+      return target && !target.closest('.nx-liquid-glass') && (record.type==='characterData'||record.attributeName==='style');
+    }))p.changes++;});
+    p.observer.observe(document.querySelector('.nx-page-enter'),{subtree:true,characterData:true,attributes:true,attributeFilter:['style']});
     CanvasRenderingContext2D.prototype.drawImage=function(image,...args){
       if(image instanceof HTMLImageElement&&String(image.src).startsWith('data:image/svg+xml')){
         if(p.fail){p.failures++;throw new Error('controlled ticker capture failure');}

@@ -10,7 +10,7 @@ type LensRect = { x: number; y: number; width: number; height: number };
 const axes = ["x", "y", "width", "height"] as const;
 const zeroVelocity = (): LensRect => ({ x: 0, y: 0, width: 0, height: 0 });
 // A new H5 page resumes the outgoing lens, including velocity, instead of restarting.
-let navigationFlight: { value: string; rect: LensRect; velocity: LensRect; at: number; width: number } | undefined;
+let navigationFlight: { from: string; value: string; sequence: number; rect: LensRect; velocity: LensRect; width: number } | undefined;
 let navigationSequence = 0;
 
 function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
@@ -40,7 +40,7 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
       } else (transformLayer.effect as KeyframeEffect).setKeyframes([{ transform }, { transform }]);
     } else lens.style.transform = transform;
     if (config.variant === "navigation" && destination !== config.value && root.clientWidth > 0 && outgoingSequence === navigationSequence) {
-      navigationFlight = { value: destination, rect: { ...current }, velocity: { ...velocity }, at: performance.now(), width: root.clientWidth };
+      navigationFlight = { from: config.value, value: destination, sequence: outgoingSequence, rect: { ...current }, velocity: { ...velocity }, width: root.clientWidth };
     }
   }
   function tick(now: number) {
@@ -68,7 +68,9 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
     if (!current) {
       const from = config.fromValue ? nodes()[config.values.indexOf(config.fromValue)] : undefined;
       const flight = navigationFlight;
-      if (config.variant === "navigation" && config.fromValue && flight?.value === value && performance.now() - flight.at < 800 && Math.abs(flight.width - root.clientWidth) < 1) {
+      // The logic layer has already validated/consumed this navigation intent.
+      // A second, shorter clock would discard a valid flight on a cold page.
+      if (config.variant === "navigation" && config.fromValue && flight?.from === config.fromValue && flight.value === value && flight.sequence === navigationSequence && Math.abs(flight.width - root.clientWidth) < 1) {
         current = { ...flight.rect }; velocity = { ...flight.velocity };
         navigationFlight = undefined;
       } else current = from ? rect(from) : { ...next };

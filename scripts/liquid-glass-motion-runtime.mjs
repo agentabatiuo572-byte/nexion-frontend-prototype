@@ -11,6 +11,50 @@ await mkdir(out,{recursive:true});
 const server=await ensureServer({root,reuseUrl:process.env.LIQUID_GLASS_BASE_URL,log:console.log});
 const cases=[],errors=[],evidence=[];
 let passed=false;
+
+async function delayedNavigationIntent(page){
+  await page.route('**/__glass_delayed_intent',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><html><body></body></html>'}));
+  await page.goto(server.baseUrl+'/__glass_delayed_intent');
+  return page.evaluate(async()=>{
+    const {segmentsView}=await import('/src/lib/liquid-glass-view.ts');
+    const {rememberGlassNavigation,consumeGlassNavigation}=await import('/src/lib/liquid-glass-core.ts');
+    const frame=()=>new Promise(requestAnimationFrame);
+    let serial=0;
+    function mount(value,fromValue){
+      const host=document.createElement('div');host.id='delayed-navigation-'+serial++;
+      host.style.cssText='position:fixed;left:10px;top:200px;width:360px;display:flex';
+      const lens=document.createElement('div');lens.className='nx-glass-indicator';lens.style.cssText='position:absolute;left:0;top:0;transform-origin:0 0';host.append(lens);
+      for(const value of ['a','b','c']){const option=document.createElement('div');option.className='nx-glass-option';option.dataset.glassValue=value;option.style.cssText='flex:1;height:44px';host.append(option);}
+      document.body.append(host);
+      const vm={$el:document.createComment('renderjs view')};
+      segmentsView.methods.update.call(vm,{hostId:host.id,value,fromValue,values:['a','b','c'],variant:'navigation',layout:'equal'});segmentsView.mounted.call(vm);
+      return {host,lens,vm};
+    }
+    const outgoing=mount('a');
+    for(let n=0;n<4;n++)await frame();
+    rememberGlassNavigation('a','c');outgoing.host.querySelector('[data-glass-value="c"]').click();
+    for(let n=0;n<4;n++)await frame();
+    const before=outgoing.lens.getBoundingClientRect().x;
+    // Like a real cold route, logic consumes the valid intent before the view
+    // is ready. The hidden old page must not overwrite its last visible flight.
+    const fromValue=consumeGlassNavigation('c');outgoing.host.style.display='none';
+    await new Promise(resolve=>setTimeout(resolve,1500));
+    const incoming=mount('c',fromValue);
+    for(let n=0;n<2;n++)await frame();
+    const after=incoming.lens.getBoundingClientRect().x,target=incoming.host.querySelector('[data-glass-value="c"]').getBoundingClientRect().x;
+    for(const current of [outgoing,incoming]){segmentsView.beforeUnmount.call(current.vm);current.host.remove();}
+    const rejected=[];
+    for(const from of [undefined,'b']){
+      const old=mount('a');for(let n=0;n<4;n++)await frame();
+      old.host.querySelector('[data-glass-value="c"]').click();for(let n=0;n<4;n++)await frame();old.host.style.display='none';
+      const next=mount('c',from);for(let n=0;n<2;n++)await frame();
+      rejected.push({from:from??'none',x:next.lens.getBoundingClientRect().x,expected:next.host.querySelector(`[data-glass-value="${from??'c'}"]`).getBoundingClientRect().x});
+      for(const current of [old,next]){segmentsView.beforeUnmount.call(current.vm);current.host.remove();}
+    }
+    return {fromValue,before,after,target,rejected};
+  });
+}
+
 try {
   for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]) {
     const browser=await browserType.launch();
@@ -159,7 +203,7 @@ try {
       log('cross-page-continuity',{frames:arrival.length,overshoot:Math.max(...arrival.map(f=>f.x))-final.x});
 
       // Interrupt real page transitions. Hidden outgoing rails must not overwrite
-      // the newest lens position, and slow capture must not expire the handoff.
+      // the newest lens position, and a cold page must not expire a valid intent.
       await page.evaluate(()=>{
         window.__rapidNavigation={clicks:[],frames:[],active:true};
         document.addEventListener('click',event=>{
@@ -197,7 +241,6 @@ try {
       assert.ok(interrupted.length>0,'no in-flight navigation was interrupted');
       assert.ok(interrupted.every(row=>Math.abs(row.first.x-row.click.selectedX)>2),JSON.stringify(interrupted));
       for(const {click,first} of transfers){
-        assert.ok(first.t-click.t<800,'page capture expired the navigation handoff');
         const origin=rapid.frames.filter(frame=>frame.host===click.host && frame.t>=click.t && frame.t<first.t).at(-1)??click;
         if(Math.abs(origin.x-click.targetX)>30)assert.ok(Math.abs(first.x-click.targetX)>2,'new page teleported to the destination');
       }
@@ -255,6 +298,11 @@ try {
       await chassis().locator('.nx-bell').click();await page.locator('.md-panel:visible').waitFor();
       await page.locator('.md-panel:visible .md-close').click();
       await chassis().locator('.nx-icon-btn').first().click();await page.waitForURL(/pages\/search\/search/);log('search-message-actions');
+      const delayed=await delayedNavigationIntent(page);
+      assert.equal(delayed.fromValue,'a');assert.ok(delayed.before>60);
+      assert.ok(delayed.after>60 && delayed.after<delayed.target-20,`valid delayed flight restarted or teleported: ${JSON.stringify(delayed)}`);
+      assert.ok(delayed.rejected.every(item=>Math.abs(item.x-item.expected)<1.1),'unrelated or missing intent consumed the old flight');
+      log('delayed-valid-navigation-intent',delayed);
       await context.close();
     } finally {await browser.close();}
   }
