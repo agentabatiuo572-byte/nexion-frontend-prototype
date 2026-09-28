@@ -314,9 +314,10 @@ try {
         await scrollContent(-140);
         assert.equal(await chassis().locator('.nx-header__l').getAttribute('data-hidden'),'true','reverse scroll must not reveal the logo over content');
         await scrollContent(-10000);await chassis().locator('.nx-header__l[data-hidden="false"]').waitFor({state:'attached'});
-        const novaButton = chassis().locator('.nx-nova-btn');
+        const novaButton = chassis().locator('.nx-nova-motion');
         if (await novaButton.count()) {
           assert.notEqual(await novaButton.evaluate(el=>getComputedStyle(el).animationName),'none','Nova idle motion restored');
+          assert.equal(await chassis().locator('.nx-nova-btn').evaluate(el=>getComputedStyle(el).animationName),'none','Optical shell stays still while the avatar floats');
           await page.emulateMedia({reducedMotion:'reduce'});
           assert.equal(await novaButton.evaluate(el=>getComputedStyle(el).animationName),'none');
           const halo=chassis().locator('.nx-nova-halo');
