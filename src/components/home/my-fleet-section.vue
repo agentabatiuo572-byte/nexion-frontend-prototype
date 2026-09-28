@@ -1,28 +1,20 @@
-<!--
-  MyFleetSection — ZONE 2 active-device fleet. Header (My fleet · N of 6 ·
-  Manage) over a horizontal slot rack (one icon bay per active device + an add
-  bay while under the 6-device cap), then a device list card below (status dot ·
-  name · today earnings). Shows ACTIVE devices only (inactive live in /me/devices).
--->
+<!-- One large, accessible card per active device. The empty bay keeps the existing upgrade destination. -->
 <template>
-  <view>
-    <view class="flex items-center justify-between" style="margin: 0 2px 12px">
-      <text style="font-family: var(--font-v5); font-weight: 600; font-size: 15px; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.myFleet }} <text class="font-mono-tabular" style="font-size: 12px; font-weight: 400; color: var(--v5-ink-3)">{{ fleetCountText }}</text></text>
-      <text class="font-mono-tabular inline-flex items-center active:opacity-70" style="min-height: 44px; padding-left: 12px; font-size: 13px; color: var(--v5-brand); font-weight: 500" @click="goManage">{{ t.home.fleetManage }} →</text>
+  <view class="hf-section">
+    <view class="hf-heading">
+      <view class="hf-title-group">
+        <text class="hf-title">{{ t.home.myFleet }}</text>
+        <text class="hf-count font-mono-tabular">{{ fleetCountText }}</text>
+      </view>
+      <view class="hf-manage nx-home-glass-item" role="button" tabindex="0" @click="goManage">
+        <LiquidGlass class="nx-home-glass-panel" :radius="24" />
+        <text>{{ t.home.fleetManage }}</text>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7" /></svg>
+      </view>
     </view>
-
-    <!-- Slot rack: icon bays -->
-    <view class="flex items-center" style="gap: 9px; margin-bottom: 14px">
-      <DeviceSlot v-for="d in devices" :key="d.id" :device="d" />
+    <view class="hf-grid">
+      <DeviceRow v-for="d in devices" :key="d.id" :device="d" />
       <AddDeviceRow v-if="devices.length < 6" />
-    </view>
-
-    <!-- Device list: status dot · name · today earnings -->
-    <!-- 《03》§6:带 bg 填充的卡片零 border,层级靠 surface 微差 -->
-    <!-- v-if:零设备时不渲染空壳(此前渲染成一条 2px 高的空卡,占着转化位);
-         零设备的引导由上方 slot rack 的 AddDeviceRow 承担。 -->
-    <view v-if="devices.length > 0" class="rounded-2xl overflow-hidden" style="background: var(--v5-surface)">
-      <DeviceRow v-for="(d, i) in devices" :key="d.id" :device="d" :divider="i < devices.length - 1" />
     </view>
   </view>
 </template>
@@ -32,17 +24,28 @@ import { computed } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
-import DeviceSlot from "./device-slot.vue";
+import { navTo } from "@/lib/route";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import DeviceRow from "./device-row.vue";
 import AddDeviceRow from "./add-device-row.vue";
 
 const t = useT();
 const app = useApp();
-
 const devices = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null));
 const fleetCountText = computed(() => fmt(t.value.home.fleetOfMax, { n: devices.value.length }));
 
 function goManage() {
-  uni.navigateTo({ url: "/pages/earn/earn", fail: () => {} });
+  navTo("/pages/earn/earn");
 }
 </script>
+
+<style scoped>
+.hf-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
+.hf-title-group { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.hf-title { font: 600 20px/1.35 var(--font-v5); color: var(--v5-ink); letter-spacing: -.02em; }
+.hf-count { font-size: 12px; line-height: 18px; color: var(--v5-ink-3); white-space: nowrap; }
+.hf-manage { display: flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: var(--v5-radius-full); font: 500 13px/20px var(--font-v5); color: var(--v5-ink); }
+.hf-manage > text, .hf-manage > svg { position: relative; }
+.hf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.hf-grid > :nth-child(even) { --home-art-delay: -2s; }
+</style>
