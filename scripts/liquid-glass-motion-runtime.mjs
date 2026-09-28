@@ -92,7 +92,12 @@ try {
       async function trace(kind) {
         await page.evaluate(kind=>{
           window.__glassMotion={frames:[],done:false};
-          document.addEventListener('click',()=>{
+          const shell=[...document.querySelectorAll('.nx-chassis')].filter(el=>el.getBoundingClientRect().width).at(-1);
+          const startRail=shell.querySelector(kind==='navigation'?'.nx-tabbar-pill':'.nx-glass-segments--filter');
+          // Register after the rail's motion handler so each RAF reads this
+          // frame's paint. Document capture reads the previous paint with a
+          // new timestamp, misclassifying a slower frame as a sudden jump.
+          startRail.addEventListener('click',()=>{
           const start=performance.now();
           function sample(now) {
             const shell=[...document.querySelectorAll('.nx-chassis')].filter(el=>el.getBoundingClientRect().width).at(-1);
@@ -137,11 +142,24 @@ try {
       log('filter-travel-stretch-rebound',{travel:end.x-min,overshoot:max-end.x});
 
       await item(filter(),'Today').click();await settled(filter());
-      await trace('filter');await item(filter(),'All').click();await page.waitForTimeout(70);await item(filter(),'Week').click();
+      const rapidAll=await item(filter(),'All').boundingBox(),rapidWeek=await item(filter(),'Week').boundingBox();
+      await filter().evaluate(el=>{
+        const x=()=>el.querySelector(':scope > .nx-glass-indicator').getBoundingClientRect().x;
+        const isWeek=event=>event.target.closest('[data-glass-value]')?.dataset.glassValue==='Week';
+        function before(event){if(isWeek(event))window.__glassRetarget={before:x(),oldTarget:el.querySelector('[data-glass-value="All"]').getBoundingClientRect().x,moving:el.dataset.glassMoving,trusted:event.isTrusted};}
+        function after(event){if(isWeek(event)){window.__glassRetarget.after=x();document.removeEventListener('click',before,true);el.removeEventListener('click',after,true);}}
+        document.addEventListener('click',before,true);el.addEventListener('click',after,true);
+      });
+      await trace('filter');await page.mouse.click(rapidAll.x+rapidAll.width/2,rapidAll.y+rapidAll.height/2);
+      await page.waitForFunction(()=>{const f=window.__glassMotion.frames;return f.some(p=>p.value==='All' && p.x-f[0].x>25 && p.to-p.x>50);});
+      await page.mouse.click(rapidWeek.x+rapidWeek.width/2,rapidWeek.y+rapidWeek.height/2);
       const reversal=await finishTrace('rapid-reversal');await settled(filter());
       assert.equal(await filter().locator('[data-selected="true"]').getAttribute('data-glass-value'),'Week');
+      const retarget=await page.evaluate(()=>window.__glassRetarget);
+      assert.ok(retarget.trusted && retarget.moving==='true' && Math.abs(retarget.before-retarget.oldTarget)>30,'reversal must actually interrupt a moving lens');
+      assert.ok(Math.abs(retarget.after-retarget.before)<1,'retarget click reset the current lens position');
       const jumps=reversal.slice(1).map((f,i)=>({distance:Math.abs(f.x-reversal[i].x),dt:f.t-reversal[i].t})).filter(f=>f.dt<25);
-      assert.ok(jumps.every(f=>f.distance<100),'rapid retarget teleported');log('rapid-retarget',{maxFrameJump:Math.max(...jumps.map(f=>f.distance))});
+      assert.ok(jumps.every(f=>f.distance<100),'rapid retarget teleported');log('rapid-retarget',{maxFrameJump:Math.max(...jumps.map(f=>f.distance)),retarget});
 
       await item(filter(),'Today').click();await settled(filter());
       const start=await item(filter(),'Today').boundingBox(),stop=await item(filter(),'All').boundingBox();
