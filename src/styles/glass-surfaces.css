@@ -1,11 +1,21 @@
-/* Static, readable content material. Optical navigation remains LiquidGlass. */
-.nx-glass-card,
+/* Glass is reserved for controls, overlays and explicitly selected key displays. */
+.nx-glass-hero,
 .nx-glass-sheet,
-.nx-glass-action,
-.nx-home-glass-panel {
+.nx-glass-action {
   --nx-glass-radius: 24px;
   --nx-glass-fill: linear-gradient(145deg, color-mix(in srgb, var(--v5-ink) 4%, transparent), transparent 65%), color-mix(in srgb, var(--v5-surface) 94%, transparent);
-  --nx-glass-edge: inset 0 0 0 1px var(--v5-liquid-rim), inset 0 1.5px 1px var(--v5-liquid-highlight), inset 0 3px 6px color-mix(in srgb, var(--v5-liquid-highlight) 38%, transparent), inset 0 -2px 2px var(--v5-liquid-bottom);
+  --nx-glass-edge: inset 0 0 0 1px color-mix(in srgb, var(--v5-liquid-rim) 45%, transparent), inset 0 1px 1px color-mix(in srgb, var(--v5-liquid-highlight) 45%, transparent), inset 0 -1px 1px var(--v5-liquid-bottom);
+}
+/* Keep the existing content class as a compatibility hook, but make it flat. */
+.nx-glass-card:not(.nx-glass-hero),
+.nx-home-glass-panel {
+  --nx-glass-radius: 20px;
+  --nx-glass-fill: var(--v5-content-surface);
+  --nx-glass-edge: none;
+}
+.nx-glass-card .nx-glass-card:not(.nx-glass-hero) {
+  --nx-glass-radius: 0px;
+  --nx-glass-fill: transparent;
 }
 .nx-glass-card,
 .nx-glass-sheet {
@@ -37,4 +47,4 @@
 }
 
 /* Explicit content bands share their parent glass; never apply to all descendants. */
-.nx-glass-inset { background: color-mix(in srgb, var(--v5-ink) 2%, transparent); }
+.nx-glass-inset { background: transparent; }

@@ -62,10 +62,11 @@ try {
         assert.equal(await page.locator(".team-tools .team-tool:visible").count(), 4);
         const actions = await page.locator(".invite-card__action:visible").evaluateAll(elements => elements.map(element => {
           const r = element.getBoundingClientRect();
-          return { width: r.width, x: r.x, right: r.right, action: element.classList.contains("nx-glass-action") };
+          const style = getComputedStyle(element);
+          return { width: r.width, height: r.height, x: r.x, right: r.right, flat: !element.classList.contains("nx-glass-action") && style.boxShadow === "none" && style.backgroundColor === "rgba(0, 0, 0, 0)" && parseFloat(style.borderTopWidth) === 0 };
         }));
         assert.equal(actions.length, 3);
-        assert.ok(actions.every(action => action.action && Math.abs(action.width - actions[0].width) < 1 && action.right <= width));
+        assert.ok(actions.every(action => action.flat && action.height >= 44 && action.width >= 44 && Math.abs(action.width - actions[0].width) < 1 && action.right <= width));
         await boundary("ready", 37, 4);
       });
     }
@@ -87,7 +88,13 @@ try {
         await button.press(key);
         await page.locator(".ss-sheet:visible").waitFor();
         assert.equal(await page.locator(".ss-sheet:visible").count(), 1);
-        await page.locator(".ss-cancel:visible").click();
+        assert.equal(await page.locator(".ss-sheet:visible").getAttribute("role"), "dialog");
+        await page.waitForFunction(() => document.activeElement?.classList.contains("ss-head__x"));
+        await page.keyboard.press("Shift+Tab");
+        assert.equal(await page.locator(".ss-cancel:visible").evaluate(el => el === document.activeElement), true);
+        await page.keyboard.press("Tab");
+        assert.equal(await page.locator(".ss-head__x:visible").evaluate(el => el === document.activeElement), true);
+        await page.keyboard.press("Escape");
         await page.locator(".ss-sheet:visible").waitFor({ state: "hidden" });
       }
     }
@@ -99,6 +106,27 @@ try {
     assert.equal(await button.evaluate(element => getComputedStyle(element).outlineStyle), "solid");
     await button.press("Enter");
     // Local network refresh is deliberately a no-op; the emitted action is covered by the unit check.
+  });
+  await check("share-channel-to-poster-keeps-focus-in-dialog", async () => {
+    const opener = page.locator(".invite-card__cta:visible");
+    await opener.focus();
+    await opener.press("Enter");
+    const channel = page.locator(".ss-ch:visible").filter({ hasText: "海报" });
+    await channel.focus();
+    await channel.press("Enter");
+    await page.locator(".ps-preview:visible").waitFor();
+    assert.equal(await page.locator(".ss-sheet:visible,.ps-sheet:visible").count(), 1);
+    assert.equal(await page.locator(".nx-poster-dialog").evaluate(el => el.contains(document.activeElement)), true);
+    const toggle = page.locator(".ps-toggle:visible");
+    const before = await toggle.getAttribute("aria-checked");
+    await toggle.focus();
+    await toggle.press("Space");
+    assert.notEqual(await toggle.getAttribute("aria-checked"), before);
+    await page.locator(".ps-preview:visible").waitFor();
+    assert.ok(await page.locator(".ps-ch[role='button'][tabindex='0']:visible").count() >= 2);
+    await page.keyboard.press("Escape");
+    await page.locator(".ps-sheet:visible").waitFor({ state: "hidden" });
+    await page.waitForFunction(() => document.activeElement?.classList.contains("invite-card__cta"));
   });
   await boundary("ready", 37, 4);
   await page.locator(".invite-card").scrollIntoViewIfNeeded();

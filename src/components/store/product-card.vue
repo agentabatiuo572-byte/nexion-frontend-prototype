@@ -72,7 +72,7 @@
         </view>
 
         <!-- Purchase gate — remote mode is server-authoritative and fail-closed. -->
-        <view v-if="gateLockedView" class="mt-2.5" :style="gateBoxStyle" :role="remoteApiEnabled && eligibility.status === 'error' ? 'button' : undefined" :tabindex="remoteApiEnabled && eligibility.status === 'error' ? 0 : undefined" @click.stop="retryGate">
+        <view v-if="gateLockedView" class="nx-glass-inset mt-2.5" :style="gateBoxStyle" :role="remoteApiEnabled && eligibility.status === 'error' ? 'button' : undefined" :tabindex="remoteApiEnabled && eligibility.status === 'error' ? 0 : undefined" @click.stop="retryGate">
           <view class="flex items-center justify-between">
             <view class="flex items-center gap-1.5" :style="gateEyebrowStyle">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
@@ -83,9 +83,9 @@
         </view>
 
         <!-- Trade-in callout (legacy) -->
-        <view v-if="showTradein" class="mt-2.5 flex items-center justify-between gap-2 font-mono-tabular" :style="tradeinBoxStyle">
+        <view v-if="showTradein" class="nx-glass-inset mt-2.5 flex items-center justify-between gap-2 font-mono-tabular" :style="tradeinBoxStyle">
           <text>{{ t.store.cardTradeUp }} · <text style="color: var(--v5-success-ink); font-weight: 500">{{ tradeCreditText }}</text></text>
-          <text class="whitespace-nowrap active:opacity-70" style="color: var(--v5-brand); font-weight: 500; font-family: var(--font-v5)" role="button" tabindex="0" @click.stop="goDevices">{{ t.store.cardTradeInCta }}</text>
+          <text class="whitespace-nowrap active:opacity-70" style="color: var(--v5-brand); font-weight: 500; font-family: var(--font-v5); min-height: 44px; display: flex; align-items: center" role="button" tabindex="0" @click.stop="goDevices">{{ t.store.cardTradeInCta }}</text>
         </view>
       </view>
     </view>
@@ -317,9 +317,7 @@ const stockHintStyle: CSSProperties = {
   whiteSpace: "nowrap",
 };
 const tradeinBoxStyle: CSSProperties = {
-  padding: "7px 10px",
-  background: "var(--v5-brand-soft)",
-  borderRadius: "8px",
+  minHeight: "44px",
   fontSize: "12px",
   color: "var(--v5-ink-3)",
 };
@@ -362,9 +360,11 @@ const buyBtnDynStyle = computed<CSSProperties>(() =>
     : buyBtnStyle,
 );
 const gateBoxStyle: CSSProperties = {
-  padding: "8px 10px",
-  background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)",
-  borderRadius: "10px",
+  padding: "8px 0",
+  minHeight: "44px",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
 };
 const gateEyebrowStyle: CSSProperties = {
   fontSize: "12px",

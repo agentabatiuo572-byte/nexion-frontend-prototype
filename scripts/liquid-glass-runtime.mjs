@@ -273,11 +273,14 @@ try {
       await page.locator('uni-page-body').last().waitFor({state:'attached'});
       await page.waitForFunction(()=>document.querySelector('uni-page-body')?.textContent?.trim().length>0);
       await closeTransient(); await settled();
-      const surfaces=await page.locator('uni-page-body').last().locator('.nx-glass-card,.nx-glass-sheet,.nx-glass-action').evaluateAll(els=>els.filter(el=>el.getClientRects().length).map(el=>{
+      const surfaces=await page.locator('uni-page-body').last().locator('.nx-glass-card,.nx-glass-sheet,.nx-glass-action,.nx-home-glass-panel').evaluateAll(els=>els.filter(el=>el.getClientRects().length).map(el=>{
         const s=getComputedStyle(el,el.classList.contains('nx-glass-action')?'::before':null);
-        return {text:el.textContent?.trim().slice(0,70),radius:s.borderRadius,shadow:s.boxShadow,background:s.backgroundImage};
+        const glass=el.matches('.nx-glass-sheet,.nx-glass-action,.nx-glass-hero');
+        const nested=el.matches('.nx-glass-card') && !!el.parentElement.closest('.nx-glass-card');
+        return {text:el.textContent?.trim().slice(0,70),glass,nested,radius:s.borderRadius,shadow:s.boxShadow,background:s.backgroundImage,fill:s.backgroundColor,filter:s.backdropFilter};
       }));
-      assert.ok(surfaces.every(s=>s.shadow!=='none' && parseFloat(s.radius)>0),`Missing content material ${route}: ${JSON.stringify(surfaces)}`);
+      assert.ok(surfaces.every(s=>s.glass ? s.shadow!=='none' && parseFloat(s.radius)>0 : s.shadow==='none' && s.background==='none' && (!s.filter || s.filter==='none') && (!s.nested || s.fill==='rgba(0, 0, 0, 0)')),`Surface hierarchy ${route}: ${JSON.stringify(surfaces)}`);
+      assert.equal(await page.locator('.nx-nova-btn .nx-liquid-glass').count(),0,'Nova has no optical layer');
       const shot=resolve(out,'route-'+route.replaceAll('/','-')+'.png');
       await page.screenshot({path:shot}); evidence.push(shot);
       log('route-'+route,{actualRoute:expected,textLength:(await page.locator('uni-page-body').last().innerText()).length,surfaces});

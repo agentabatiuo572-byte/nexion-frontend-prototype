@@ -14,15 +14,15 @@
 -->
 <template>
   <view>
-    <view class="nx-glass-card relative overflow-hidden active:scale-[0.98]" :style="cardStyle" @click="onCardTap">
+    <view class="nx-glass-card relative overflow-hidden active:scale-[0.98]" :style="cardStyle" role="button" tabindex="0" :aria-label="t.store.genesisCardTitle" @click="onCardTap">
       <!-- Gold aurora wash（装饰,卡内合法光晕:bg+overflow-hidden）-->
       <view aria-hidden :style="auroraStyle" />
 
       <view class="relative" style="z-index: 1">
         <GenesisArtwork style="border-radius: 12px; margin-bottom: 14px" />
         <!-- Eyebrow -->
-        <view class="flex items-center justify-between" style="gap: 10px">
-          <view class="inline-flex items-center" style="gap: 6px; color: var(--v5-genesis-gold)">
+        <view class="flex flex-wrap items-center justify-between" style="gap: 10px">
+          <view class="inline-flex items-center" style="gap: 6px; min-width: 0; color: var(--v5-genesis-gold)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" /><path d="M5 20h14" /></svg>
             <text class="font-mono-tabular" :style="eyebrowStyle">{{ eyebrowText }}</text>
           </view>

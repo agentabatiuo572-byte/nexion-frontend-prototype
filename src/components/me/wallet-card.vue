@@ -1,7 +1,7 @@
 <!-- Balances retain their existing sources; the summary follows the approved wallet design. -->
 <template>
   <view class="nx-wallet">
-    <view class="nx-glass-card nx-wallet-summary">
+    <view class="nx-glass-card nx-glass-hero nx-wallet-summary">
       <view class="nx-wallet-arc" aria-hidden="true" />
       <view class="nx-wallet-heading" role="link" tabindex="0" @click="goBills" @keydown.enter.stop.prevent="goBills" @keydown.space.stop.prevent="goBills">
         <svg class="nx-wallet-symbol" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M20 7H5a2 2 0 0 1 0-4h13v4M3 5v14a2 2 0 0 0 2 2h15V7M20 12h-5v5h5" /></svg>

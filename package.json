@@ -44,7 +44,7 @@
     "test:unit": "vitest run",
     "test:team-home": "vitest run src/components/team/team-home-redesign.test.ts && node scripts/team-home-redesign-runtime.mjs",
     "test:milestones": "node scripts/selfcheck-milestone-queue.mjs && node scripts/milestone-verify.mjs",
-    "test:tabbar-glass": "node --experimental-strip-types --test --test-reporter=tap scripts/liquid-glass.test.mjs scripts/glass-inset.test.mjs && node scripts/tabbar-glass-runtime.mjs && node scripts/liquid-glass-material-runtime.mjs && node scripts/liquid-glass-motion-runtime.mjs && node scripts/liquid-glass-quality-runtime.mjs && node scripts/liquid-glass-runtime.mjs --stage=integration",
+    "test:tabbar-glass": "node --experimental-strip-types --test --test-reporter=tap scripts/liquid-glass.test.mjs scripts/glass-inset.test.mjs && node scripts/tabbar-glass-runtime.mjs && node scripts/liquid-glass-material-runtime.mjs && node scripts/liquid-glass-motion-runtime.mjs && node scripts/liquid-glass-quality-runtime.mjs && node scripts/liquid-glass-runtime.mjs --stage=integration && node scripts/content-surfaces-runtime.mjs",
     "test:final-commerce-closure": "node --test scripts/final-commerce-closure-contract.test.mjs",
     "test:phase-isolation": "node --test scripts/phase-isolation-contract.test.mjs",
     "test:kyc-removal": "node --test scripts/kyc-removal-contract.test.mjs",

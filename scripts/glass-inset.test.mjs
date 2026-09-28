@@ -9,7 +9,9 @@ const targets = [
   ['components/home/network-pulse-card.vue', null, 1],
   ['components/home/on-grid-section.vue', null, 2],
   ['components/home/market-board-card.vue', null, 1],
-  ['components/store/product-card.vue', 'footerStyle', 1],
+  ['components/store/product-card.vue', 'footerStyle', 3, 1],
+  ['components/store/product-card.vue', 'gateBoxStyle', 3, 1],
+  ['components/store/product-card.vue', 'tradeinBoxStyle', 3, 1],
   ['components/home/product-trust-card.vue', 'specStyle', 1],
   ['components/home/trust-chip-wall.vue', 'metricStyle', 2],
   ['components/daily/streak-power-ups.vue', 'footerNextStyle', 1],
@@ -19,7 +21,7 @@ const targets = [
 ];
 
 test('glass content bands inherit the readable parent instead of opaque inner slabs', () => {
-  for (const [file, binding, count] of targets) {
+  for (const [file, binding, count, bindingCount = count] of targets) {
     const source = read('src/' + file);
     const bands = [...source.matchAll(/<view\b(?:[^"'>]|"[^"]*"|'[^']*')*>/g)]
       .map(match => match[0]).filter(tag => /class="[^"]*\bnx-glass-inset\b/.test(tag));
@@ -29,11 +31,11 @@ test('glass content bands inherit the readable parent instead of opaque inner sl
       const declaration = source.match(new RegExp('const ' + binding + '[^=]*=\\s*\\{([\\s\\S]*?)\\};'));
       assert.ok(declaration, file + ' style declaration');
       assert.doesNotMatch(declaration[1], /background\s*:/, file + ' inline fill overrides shared band');
-      assert.equal(bands.filter(tag => tag.includes(':style="' + binding + '"')).length, count, file);
+      assert.equal(bands.filter(tag => tag.includes(':style="' + binding + '"')).length, bindingCount, file);
     }
   }
   const css = read('src/styles/glass-surfaces.css').match(/\.nx-glass-inset\s*\{([^}]+)\}/)?.[1];
   assert.ok(css);
-  assert.match(css, /color-mix\(in srgb, var\(--v5-ink\) 2%, transparent\)/);
+  assert.match(css, /background:\s*transparent/);
   assert.doesNotMatch(css, /box-shadow|transform|animation|backdrop-filter|!important/);
 });

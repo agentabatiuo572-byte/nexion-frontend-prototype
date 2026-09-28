@@ -48,6 +48,7 @@
      migrated module-by-module. Adopt v5 prefix to avoid mass-cascade. */
   --v5-bg: #F4F1E9;          /* warm cream page */
   --v5-surface: #FFFFFF;
+  --v5-content-surface: #FFFFFF;
   --v5-surface-2: #FAF7F0;
   --v5-surface-3: #F0EBE0;
   --v5-border: #E5DFD0;
@@ -297,6 +298,7 @@ html[data-theme="dark"] {
   --v5-bg: #000000;             /* pure black page floor */
   --v5-bg-color-mask: rgba(0, 0, 0, 0.62);  /* 纯黑底上遮罩需更重才压得住 */
   --v5-surface: #141414;        /* card surface — +8% lift */
+  --v5-content-surface: #11151D; /* flat content, matched to the team design reference */
   --v5-surface-2: #1F1F1F;      /* nested chip / pill bg — +12% */
   --v5-surface-3: #2A2A2A;      /* recessed input / inset — +16% */
   --v5-border: rgba(255,255,255,0.06);          /* micro-bright card edge */
@@ -924,8 +926,7 @@ body {
   .nx-sheet-slide-up { animation: nx-sheet-fade-in 200ms ease both; }
 }
 
-/* These nearly opaque content cards use a smooth vector rim instead of capturing
-   the page through a large optical bitmap. Only their decoration deforms. */
+/* Flat content keeps its press feedback on decoration, leaving text stationary. */
 .nx-home-glass-item { position: relative; isolation: isolate; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .nx-home-glass-panel {
   position: absolute; inset: 0; border-radius: inherit; pointer-events: none;

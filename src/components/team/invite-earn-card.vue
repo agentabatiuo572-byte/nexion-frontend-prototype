@@ -4,22 +4,11 @@
       <text>{{ t.team.sandboxBanner }} · RunID {{ sandboxRunId }}</text>
     </view>
     <view class="invite-card__header">
-      <svg class="invite-card__people" width="88" height="94" viewBox="0 0 88 94" fill="none" aria-hidden="true" focusable="false">
-        <defs>
-          <linearGradient id="invite-glass-fill" x1="8" y1="10" x2="74" y2="90" gradientUnits="userSpaceOnUse"><stop stop-color="var(--v5-ink)" stop-opacity=".3"/><stop offset=".45" stop-color="var(--v5-ink)" stop-opacity=".04"/><stop offset="1" stop-color="var(--v5-ink)" stop-opacity=".18"/></linearGradient>
-          <linearGradient id="invite-glass-edge" x1="10" y1="8" x2="76" y2="84" gradientUnits="userSpaceOnUse"><stop stop-color="var(--v5-ink)" stop-opacity=".85"/><stop offset=".45" stop-color="var(--v5-ink)" stop-opacity=".14"/><stop offset="1" stop-color="var(--v5-ink)" stop-opacity=".48"/></linearGradient>
-        </defs>
-        <g fill="url(#invite-glass-fill)" stroke="url(#invite-glass-edge)" stroke-width="1.3">
-          <circle cx="65" cy="29" r="11"/><path d="M47 83V63a18 18 0 0 1 36 0v20Q65 89 47 83Z"/>
-          <circle cx="33" cy="22" r="17"/><path d="M6 84V61a27 27 0 0 1 54 0v23Q33 92 6 84Z"/>
-        </g>
-        <path d="M21 11a14 14 0 0 1 14-4M13 55a23 23 0 0 1 15-15M60 23a8 8 0 0 1 8-2" stroke="var(--v5-ink)" stroke-opacity=".65" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2M16 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
       <view class="invite-card__heading">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2M16 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
         <text class="invite-card__title">{{ t.team.inviteTitle }}</text>
+        <text class="invite-card__tagline">{{ t.team.inviteTagline }}</text>
       </view>
-      <text class="invite-card__tagline">{{ t.team.inviteTagline }}</text>
     </view>
     <view class="invite-card__reward" role="status" :aria-busy="rewards.loading">
       <template v-if="rewards.snapshot && !rewards.error">
@@ -33,21 +22,21 @@
     </view>
 
     <view class="invite-card__actions" :class="{ 'invite-card__disabled': !referralCode }">
-      <view class="nx-glass-action invite-card__action" role="button" tabindex="0" :aria-label="t.team.inviteSharePoster" :aria-disabled="!referralCode" @click="openPoster">
+      <view class="invite-card__action" role="button" tabindex="0" :aria-label="t.team.inviteSharePoster" :aria-disabled="!referralCode" @click="openPoster">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="16" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 5"/></svg>
         <text>{{ t.team.inviteSharePoster }}</text>
       </view>
-      <view class="nx-glass-action invite-card__action" role="button" tabindex="0" :aria-label="t.team.inviteShareCode" :aria-disabled="!referralCode" @click="copyCode">
+      <view class="invite-card__action" role="button" tabindex="0" :aria-label="t.team.inviteShareCode" :aria-disabled="!referralCode" @click="copyCode">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-if="copiedCode" d="m4 12 5 5L20 6"/><template v-else><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M15 15h3v3h3v3h-6z"/></template></svg>
         <text>{{ copiedCode ? t.team.copied : t.team.inviteShareCode }}</text>
       </view>
-      <view class="nx-glass-action invite-card__action" role="button" tabindex="0" :aria-label="t.team.inviteShareLink" :aria-disabled="!referralCode" @click="copyLink">
+      <view class="invite-card__action" role="button" tabindex="0" :aria-label="t.team.inviteShareLink" :aria-disabled="!referralCode" @click="copyLink">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-if="copiedLink" d="m4 12 5 5L20 6"/><template v-else><path d="m10 13 4-4M8 16l-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M16 8l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" transform="translate(2 0) scale(.83 1)"/></template></svg>
         <text>{{ copiedLink ? t.team.copied : t.team.inviteShareLink }}</text>
       </view>
     </view>
     <view class="invite-card__cta" :class="{ 'invite-card__disabled': !referralCode }" role="button" tabindex="0" :aria-disabled="!referralCode" @click="openShare">
-      <text>{{ t.team.shareInvite }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      <text>{{ t.team.shareInvite }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
     </view>
 
     <view class="invite-card__history">
@@ -185,21 +174,22 @@ defineExpose({ openShare });
 </script>
 
 <style scoped>
-.invite-card { padding: 20px; }
-.invite-card__header { position: relative; padding-right: 80px; padding-bottom: 14px; min-height: 94px; }
-.invite-card__people { position: absolute; top: -4px; right: -6px; width: 78px; pointer-events: none; }
-.invite-card__heading { display: flex; align-items: center; gap: 12px; }
-.invite-card__title { font-size: 20px; font-weight: 600; line-height: 1.3; }
-.invite-card__tagline { display: block; margin-top: 10px; font-size: 13px; line-height: 1.5; color: var(--v5-ink-3); }
-.invite-card__reward { display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.5; }
+.invite-card { padding: 20px 20px 16px; }
+.invite-card__header { display: flex; align-items: flex-start; gap: 14px; }
+.invite-card__header > svg { flex-shrink: 0; }
+.invite-card__heading { min-width: 0; }
+.invite-card__title { display: block; font-size: 18px; font-weight: 600; line-height: 1.3; }
+.invite-card__tagline { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); }
+.invite-card__reward { display: flex; flex-direction: column; margin-top: 20px; font-size: 12px; line-height: 1.5; }
 .invite-card__reward-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .invite-card__amount { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .invite-card__muted { color: var(--v5-ink-3); }
-.invite-card__rules { display: flex; gap: 10px; align-items: center; min-height: 44px; align-self: flex-start; color: var(--v5-ink-2); }
-.invite-card__actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
-.invite-card__action { display: flex; min-width: 0; min-height: 84px; flex-direction: column; align-items: center; justify-content: center; gap: 9px; padding: 12px 4px; border: 1px solid color-mix(in srgb, var(--v5-ink) 16%, transparent); border-radius: 18px; color: var(--v5-brand); text-align: center; }
-.invite-card__action text { color: var(--v5-ink); font-size: 13px; line-height: 1.3; overflow-wrap: anywhere; }
-.invite-card__cta { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; min-height: 48px; border-radius: 999px; padding: 10px 14px; background: var(--v5-brand); color: var(--v5-on-brand); font-size: 15px; font-weight: 600; }
+.invite-card__rules { display: flex; gap: 10px; align-items: center; min-height: 44px; align-self: flex-start; color: var(--v5-ink); font-size: 15px; }
+.invite-card__actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 20px; border-top: 1px solid var(--v5-border); }
+.invite-card__action { display: flex; min-width: 0; min-height: 50px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--v5-brand); text-align: center; }
+.invite-card__action > svg { width: 24px; height: 24px; }
+.invite-card__action text { color: var(--v5-ink-3); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.invite-card__cta { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; min-height: 44px; border-radius: 999px; padding: 10px 14px; background: var(--v5-brand); color: var(--v5-on-brand); font-size: 15px; font-weight: 600; }
 .invite-card__cta:active, .invite-card__action:active, .invite-card__rules:active, .invite-card__retry:active { opacity: .75; }
 .invite-card__disabled { opacity: .5; }
 .invite-card [tabindex="0"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
@@ -209,8 +199,4 @@ defineExpose({ openShare });
 .invite-card__earned { color: var(--v5-tech-cyan-ink); font-variant-numeric: tabular-nums; }
 .invite-card__retry { min-height: 44px; display: flex; align-items: center; }
 .invite-card__sandbox { margin-bottom: 14px; padding: 8px 10px; border-radius: 10px; background: var(--v5-warning-soft); color: var(--v5-warning-ink); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-@media (max-width: 350px) {
-  .invite-card__header { padding-right: 0; min-height: 0; }
-  .invite-card__people { display: none; }
-}
 </style>

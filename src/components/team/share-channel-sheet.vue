@@ -9,11 +9,11 @@
 <template>
   <view v-if="open">
     <view class="ss-mask" @click="emit('close')" />
-    <view class="nx-glass-sheet ss-sheet">
+    <view class="nx-glass-sheet ss-sheet" role="dialog" aria-modal="true" :aria-label="t.share.channelTitle">
       <view class="ss-grab" />
       <view class="ss-head">
         <text class="ss-head__t">{{ t.share.channelTitle }}</text>
-        <view class="ss-head__x active:opacity-70" @click="emit('close')">
+        <view class="ss-head__x active:opacity-70" role="button" tabindex="0" :aria-label="t.ui.close" @click="emit('close')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
       </view>
@@ -21,12 +21,12 @@
         <text class="ss-reward__t">{{ rewardLineText }}</text>
       </view>
       <view class="ss-grid">
-        <view v-for="c in channels" :key="c.key" class="ss-ch active:scale-95" @click="onChannel(c)">
+        <view v-for="c in channels" :key="c.key" class="ss-ch active:scale-95" role="button" tabindex="0" :aria-label="channelMeta(c.key).label" @click="onChannel(c)">
           <view class="ss-ch__ic" :class="{ 'ss-ch__ic--hl': c.intentType === 'copy' || c.intentType === 'poster' }" v-html="channelMeta(c.key).svg" />
           <text class="ss-ch__lb">{{ channelMeta(c.key).label }}</text>
         </view>
       </view>
-      <view class="ss-cancel active:opacity-70" @click="emit('close')">
+      <view class="ss-cancel active:opacity-70" role="button" tabindex="0" @click="emit('close')">
         <text class="ss-cancel__t">{{ t.share.cancel }}</text>
       </view>
     </view>
@@ -34,7 +34,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick } from "vue";
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
@@ -44,8 +45,9 @@ import type { ShareChannelDef, ShareChannelKey } from "@/store/config-types";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useReferralReward } from "@/store/referral-reward";
 
-defineProps<{ open: boolean }>();
+const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void; (e: "openPoster"): void }>();
+useDialogA11y(computed(() => props.open), ".ss-sheet", () => emit("close"));
 
 const t = useT();
 const phase = useProductPhase();
@@ -114,6 +116,9 @@ async function onChannel(c: ShareChannelDef) {
     return;
   }
   if (c.intentType === "poster") {
+    emit("close");
+    // Return focus before the next dialog captures its opener.
+    await nextTick();
     emit("openPoster");
     return;
   }
@@ -140,4 +145,6 @@ async function onChannel(c: ShareChannelDef) {
 /* 转化场景 cancel 必须弱于主操作:ghost、font-normal、ink-3。 */
 .ss-cancel { margin: 8px 16px 16px; min-height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 .ss-cancel__t { font-size: 13px; font-weight: 400; color: var(--v5-ink-3); }
+.ss-sheet [tabindex="0"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .ss-sheet { animation: none; } }
 </style>

@@ -20,7 +20,6 @@
   <view>
     <view v-if="visible" class="nx-nova-bubble" role="button" tabindex="0" :aria-label="t.conversations.title" :class="{ 'nx-nova-bubble--dimmed': dimmed }" @click="open">
       <view class="nx-nova-btn">
-        <LiquidGlass :radius="24" tone="control" backdrop=".nx-page-enter" />
         <view class="nx-nova-motion">
           <NovaAvatar :size="36" :pulse="showUnreadBadge && !dimmed" class="nx-nova-avatar" />
         </view>
@@ -31,7 +30,6 @@
 </template>
 
 <script setup lang="ts">
-import LiquidGlass from "@/components/liquid-glass.vue";
 import { computed, onMounted, onUnmounted } from "vue";
 import { useNova } from "@/store/nova";
 import { useConversations } from "@/store/conversations";
@@ -225,9 +223,9 @@ onUnmounted(() => {
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: transparent;
+  background: var(--v5-surface);
 }
-/* Float the artwork, keeping the WebGL sampling geometry stationary. */
+/* Float the artwork while keeping the outer hit target stationary. */
 .nx-nova-motion { position: relative; z-index: 1; animation: nx-nova-float 3.4s ease-in-out infinite; }
 @keyframes nx-nova-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 .nx-nova-bubble--dimmed .nx-nova-motion { animation-play-state: paused; }

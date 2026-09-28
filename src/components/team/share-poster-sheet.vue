@@ -30,7 +30,7 @@
         <view v-else-if="genState === 'failed'" class="ps-fail">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
           <text class="ps-fail__t">{{ t.share.genFailed }}</text>
-          <view class="ps-fail__btn active:opacity-80" @click="regenerate">
+          <view class="ps-fail__btn active:opacity-80" role="button" tabindex="0" @click="regenerate">
             <text class="ps-fail__btn-t">{{ t.share.retry }}</text>
           </view>
         </view>
@@ -46,22 +46,22 @@
         <text class="ps-reward__t">{{ posterRewardLine }}</text>
       </view>
 
-      <view class="ps-toggle">
+      <view class="ps-toggle" role="switch" tabindex="0" :aria-label="t.share.showUsername" :aria-checked="showUsername" @click="toggleUsername">
         <text class="ps-toggle__lb">{{ t.share.showUsername }}</text>
-        <view class="ps-sw active:opacity-70" :class="{ 'ps-sw--on': showUsername }" @click="toggleUsername">
+        <view class="ps-sw active:opacity-70" :class="{ 'ps-sw--on': showUsername }">
           <view class="ps-sw__knob" />
         </view>
       </view>
 
       <!-- 渠道行:保存 / 复制 + 链接渠道(与渠道面板同一 intent 实现) -->
       <view class="ps-chrow">
-        <view class="ps-ch active:scale-95" :class="{ 'ps-ch--off': genState !== 'ready' }" @click="saveImage">
+        <view class="ps-ch active:scale-95" role="button" tabindex="0" :aria-disabled="genState !== 'ready'" :class="{ 'ps-ch--off': genState !== 'ready' }" @click="saveImage">
           <view class="ps-ch__ic ps-ch__ic--hl">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3" /><path d="m7 10 5 5 5-5" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /></svg>
           </view>
           <text class="ps-ch__lb">{{ t.share.saveImage }}</text>
         </view>
-        <view class="ps-ch active:scale-95" :class="{ 'ps-ch--off': genState !== 'ready' }" @click="copyLinkAction">
+        <view class="ps-ch active:scale-95" role="button" tabindex="0" :aria-disabled="genState !== 'ready'" :class="{ 'ps-ch--off': genState !== 'ready' }" @click="copyLinkAction">
           <view class="ps-ch__ic ps-ch__ic--hl">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
           </view>
@@ -71,6 +71,9 @@
           v-for="c in linkChannels"
           :key="c.key"
           class="ps-ch active:scale-95"
+          role="button"
+          tabindex="0"
+          :aria-disabled="genState !== 'ready'"
           :class="{ 'ps-ch--off': genState !== 'ready' }"
           @click="onChannel(c)"
         >
@@ -534,12 +537,12 @@ const templateOptions = computed(() => availableTpls.value.map(item => ({ value:
 .ps-skeleton__t { font-size: 12px; color: var(--v5-ink-4); }
 .ps-fail { aspect-ratio: 3 / 4; border-radius: 16px; background: var(--v5-surface-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
 .ps-fail__t { font-size: 13px; color: var(--v5-ink-3); }
-.ps-fail__btn { min-height: 36px; padding: 0 18px; border-radius: 9999px; background: var(--v5-surface-3); display: flex; align-items: center; }
+.ps-fail__btn { min-height: 44px; padding: 0 18px; border-radius: 9999px; background: var(--v5-surface-3); display: flex; align-items: center; }
 .ps-fail__btn-t { font-size: 13px; color: var(--v5-ink); }
 .ps-thumbs { margin: 12px 16px 0; }
 .ps-reward { margin-top: 10px; text-align: center; padding: 0 16px; }
 .ps-reward__t { font-size: 12px; color: var(--v5-ink-3); text-wrap: pretty; }
-.ps-toggle { display: flex; align-items: center; justify-content: space-between; margin: 10px 18px 0; min-height: 32px; }
+.ps-toggle { display: flex; align-items: center; justify-content: space-between; margin: 10px 18px 0; min-height: 44px; }
 .ps-toggle__lb { font-size: 13px; color: var(--v5-ink-2); }
 .ps-sw { width: 44px; height: 26px; border-radius: 9999px; background: var(--v5-surface-3); position: relative; transition: background 0.18s; }
 .ps-sw--on { background: var(--v5-brand); }
@@ -551,4 +554,5 @@ const templateOptions = computed(() => availableTpls.value.map(item => ({ value:
 .ps-ch__ic { width: 48px; height: 48px; border-radius: 9999px; background: var(--v5-surface-2); color: var(--v5-ink-2); display: flex; align-items: center; justify-content: center; }
 .ps-ch__ic--hl { background: color-mix(in srgb, var(--v5-brand) 14%, transparent); color: var(--v5-brand); }
 .ps-ch__lb { font-size: 12px; color: var(--v5-ink-3); width: 100%; text-align: center; line-height: 1.3; overflow-wrap: anywhere; }
+.ps-sheet [tabindex="0"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 </style>

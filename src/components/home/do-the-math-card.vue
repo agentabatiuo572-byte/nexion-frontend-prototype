@@ -52,7 +52,7 @@
 
         <text class="block mt-3" style="font-size: 12px; line-height: 1.5; color: var(--v5-ink-3)">{{ t.earn.estimateDisclaimer }}</text>
 
-        <view class="mt-3.5 w-full flex items-center justify-center gap-1.5 active:opacity-80 transition-opacity" style="padding: 12px 16px; border-radius: 999px; background: var(--v5-brand-soft); color: var(--v5-brand); font-family: var(--font-v5); font-weight: 600; font-size: 15px; line-height: 20px; letter-spacing: -0.005em" @click="goStore">
+        <view class="mt-3.5 w-full flex items-center justify-center gap-1.5 active:opacity-80 transition-opacity" role="link" tabindex="0" style="padding: 12px 16px; border-radius: 999px; background: var(--v5-brand-soft); color: var(--v5-brand); font-family: var(--font-v5); font-weight: 600; font-size: 15px; line-height: 20px; letter-spacing: -0.005em" @click="goStore">
           <text style="color: var(--v5-brand)">{{ t.home.doMathSeeCta }}</text>
           <text class="font-mono-tabular" style="opacity: 0.8; font-size: 12px; color: var(--v5-brand)">→</text>
         </view>
