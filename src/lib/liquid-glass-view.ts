@@ -10,13 +10,15 @@ type LensRect = { x: number; y: number; width: number; height: number };
 const axes = ["x", "y", "width", "height"] as const;
 const zeroVelocity = (): LensRect => ({ x: 0, y: 0, width: 0, height: 0 });
 // A new H5 page resumes the outgoing lens, including velocity, instead of restarting.
-let navigationFlight: { from: string; value: string; sequence: number; rect: LensRect; velocity: LensRect; width: number } | undefined;
+let navigationFlight: { from: string; value: string; sequence: number; rect: LensRect; velocity: LensRect; width: number; expansion: number; expansionVelocity: number } | undefined;
 let navigationSequence = 0;
 
 function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
   let config = initial, disposed = false, frame = 0, motionFrame = 0, lastTime = 0;
   let current: LensRect | undefined, target: LensRect | undefined, velocity = zeroVelocity();
-  let transformLayer: Animation | undefined;
+  let transformLayer: Animation | undefined, trackLayer: Animation | undefined;
+  let expansion = 0, expansionVelocity = 0;
+  let maxTrackScroll = 0;
   let destination = initial.value, suppressClick = false;
   let outgoingSequence = 0;
   let drag: { id: number; x: number; y: number; lastX: number; at: number; engaged: boolean } | undefined;
@@ -24,6 +26,8 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
   const nodes = () => Array.from(root.querySelectorAll<HTMLElement>(":scope > .nx-glass-option"));
   const rect = (el: HTMLElement) => ({ x: el.offsetLeft, y: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight });
   const lens = root.querySelector<HTMLElement>(":scope > .nx-glass-indicator")!;
+  const track = root.querySelector<HTMLElement>(":scope > .nx-glass-backdrop, :scope > .nx-glass-track-viewport > .nx-glass-backdrop");
+  const trackViewport = root.querySelector<HTMLElement>(":scope > .nx-glass-track-viewport");
   const enabled = (el: HTMLElement) => el.getAttribute("aria-disabled") !== "true";
   function paint() {
     if (!current || !target) return;
@@ -39,22 +43,50 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
         transformLayer.pause(); transformLayer.currentTime = 0;
       } else (transformLayer.effect as KeyframeEffect).setKeyframes([{ transform }, { transform }]);
     } else lens.style.transform = transform;
+    // Only the material deforms. Its labels, focus rings and hit areas stay put.
+    if (track) {
+      // Rapid impulses remain continuous without growing beyond the safe gutters.
+      const limit = Math.min(.06, 18 / Math.max(1, config.layout === "vertical" ? root.clientHeight : root.clientWidth));
+      const amount = reduced.matches ? 0 : limit * Math.tanh(expansion / limit);
+      const scale = config.layout === "vertical"
+        ? `scale(${1 - amount * .5},${1 + amount})`
+        : `scale(${1 + amount},${1 - amount * .5})`;
+      // Clip only the scrolling rail's decoration. Its stretched child must not
+      // enlarge scrollWidth and feed its own overflow back into scrollLeft.
+      if (trackViewport) {
+        const offset = `translate3d(${Math.min(root.scrollLeft, maxTrackScroll)}px,0,0)`;
+        if (trackViewport.style.transform !== offset) trackViewport.style.transform = offset;
+      }
+      const backdropTransform = scale;
+      if (track.animate) {
+        if (!trackLayer) {
+          trackLayer = track.animate([{ transform: backdropTransform }, { transform: backdropTransform }], { duration: 1, fill: "both" });
+          trackLayer.pause(); trackLayer.currentTime = 0;
+        } else (trackLayer.effect as KeyframeEffect).setKeyframes([{ transform: backdropTransform }, { transform: backdropTransform }]);
+      } else track.style.transform = backdropTransform;
+    }
     if (config.variant === "navigation" && destination !== config.value && root.clientWidth > 0 && outgoingSequence === navigationSequence) {
-      navigationFlight = { from: config.value, value: destination, sequence: outgoingSequence, rect: { ...current }, velocity: { ...velocity }, width: root.clientWidth };
+      navigationFlight = { from: config.value, value: destination, sequence: outgoingSequence, rect: { ...current }, velocity: { ...velocity }, width: root.clientWidth, expansion, expansionVelocity };
     }
   }
   function tick(now: number) {
     motionFrame = 0;
-    if (disposed || !current || !target || drag?.engaged) return;
+    if (disposed || !current || !target) return;
     const dt = lastTime ? (now - lastTime) / 1000 : 1 / 60;
     lastTime = now;
     let moving = false;
-    for (const axis of axes) {
+    if (!drag?.engaged) for (const axis of axes) {
       const next = glassSpring(current[axis], velocity[axis], target[axis], dt);
       current[axis] = next.position; velocity[axis] = next.velocity;
       moving ||= Math.abs(next.position - target[axis]) > .08 || Math.abs(next.velocity) > .8;
     }
-    if (!moving || reduced.matches) { current = { ...target }; velocity = zeroVelocity(); }
+    if (!drag?.engaged && (!moving || reduced.matches)) { current = { ...target }; velocity = zeroVelocity(); }
+    const stretchTarget = drag?.engaged && !reduced.matches ? .018 + Math.min(.035, Math.abs(velocity.x) / 50000) : 0;
+    const body = glassSpring(expansion, expansionVelocity, stretchTarget, dt);
+    expansion = body.position; expansionVelocity = body.velocity;
+    const bodyMoving = Math.abs(expansion - stretchTarget) > .0001 || Math.abs(expansionVelocity) > .002;
+    if (!bodyMoving || reduced.matches) { expansion = stretchTarget; expansionVelocity = 0; }
+    moving ||= bodyMoving;
     paint();
     const active = String(moving && !reduced.matches);
     if (root.dataset.glassMoving !== active) root.dataset.glassMoving = active;
@@ -65,6 +97,7 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
     const next = rect(item);
     destination = value;
     const changed = !target || axes.some(axis => next[axis] !== target![axis]);
+    if (changed && current && !reduced.matches) expansionVelocity = Math.min(3, expansionVelocity + 2.8);
     if (!current) {
       const from = config.fromValue ? nodes()[config.values.indexOf(config.fromValue)] : undefined;
       const flight = navigationFlight;
@@ -72,14 +105,18 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
       // A second, shorter clock would discard a valid flight on a cold page.
       if (config.variant === "navigation" && config.fromValue && flight?.from === config.fromValue && flight.value === value && flight.sequence === navigationSequence && Math.abs(flight.width - root.clientWidth) < 1) {
         current = { ...flight.rect }; velocity = { ...flight.velocity };
+        expansion = flight.expansion; expansionVelocity = flight.expansionVelocity;
         navigationFlight = undefined;
-      } else current = from ? rect(from) : { ...next };
+      } else {
+        current = from ? rect(from) : { ...next };
+        if (from && !reduced.matches) expansionVelocity = 2.8;
+      }
     }
     target = next;
     Object.assign(lens.style, { visibility: "visible", width: next.width + "px", height: next.height + "px" });
-    if (reduced.matches) { current = { ...next }; velocity = zeroVelocity(); }
+    if (reduced.matches) { current = { ...next }; velocity = zeroVelocity(); expansion = expansionVelocity = 0; }
     paint();
-    if ((changed || axes.some(axis => Math.abs(current![axis] - next[axis]) > .08)) && !motionFrame && !drag?.engaged) {
+    if ((changed || axes.some(axis => Math.abs(current![axis] - next[axis]) > .08) || Math.abs(expansion) > .0001 || Math.abs(expansionVelocity) > .002) && !motionFrame && !drag?.engaged) {
       lastTime = 0; motionFrame = requestAnimationFrame(tick);
     }
   }
@@ -87,6 +124,9 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
     frame = 0;
     if (disposed || !root.offsetWidth) return;
     const items = nodes(), item = items[config.values.indexOf(config.value)];
+    const last = items[items.length - 1];
+    maxTrackScroll = config.layout === "scroll" && last
+      ? Math.max(0, last.offsetLeft + last.offsetWidth + parseFloat(getComputedStyle(root).paddingRight || "0") - root.clientWidth) : 0;
     if (!lens) return;
     if (!item) { lens.style.visibility = "hidden"; current = target = undefined; return; }
     if (!drag?.engaged) moveTo(item, config.value);
@@ -128,6 +168,7 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
     drag.lastX = event.clientX; drag.at = event.timeStamp;
     if (root.dataset.glassDragging !== "true") root.dataset.glassDragging = "true";
     paint();
+    if (!motionFrame) motionFrame = requestAnimationFrame(tick);
   }
   function endDrag(event: PointerEvent) {
     // Touch initially captures on the pressed child. Its handoff to this root
@@ -170,10 +211,12 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
   function observe() { resize.disconnect(); resize.observe(root); nodes().forEach(el => resize.observe(el)); }
   const stopMotion = () => {
     cancelAnimationFrame(motionFrame); motionFrame = 0; lastTime = 0;
+    expansion = expansionVelocity = 0;
     if (target) { current = { ...target }; velocity = zeroVelocity(); paint(); }
     root.dataset.glassMoving = "false"; schedule();
   };
   root.addEventListener("keydown", onArrow);
+  root.addEventListener("scroll", paint, { passive: true });
   root.addEventListener("click", onClick, true);
   root.addEventListener("pointerdown", onDown);
   root.addEventListener("pointermove", onMove, { passive: false });
@@ -186,8 +229,9 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
   return {
     update(value: SegmentsConfiguration) { config = value; observe(); schedule(); },
     destroy() {
-      disposed = true; cancelAnimationFrame(frame); cancelAnimationFrame(motionFrame); transformLayer?.cancel(); resize.disconnect();
+      disposed = true; cancelAnimationFrame(frame); cancelAnimationFrame(motionFrame); transformLayer?.cancel(); trackLayer?.cancel(); resize.disconnect();
       root.removeEventListener("keydown", onArrow); root.removeEventListener("click", onClick, true);
+      root.removeEventListener("scroll", paint);
       root.removeEventListener("pointerdown", onDown); root.removeEventListener("pointermove", onMove);
       root.removeEventListener("pointerup", endDrag); root.removeEventListener("pointercancel", endDrag); root.removeEventListener("lostpointercapture", endDrag);
       reduced.removeEventListener("change", stopMotion);

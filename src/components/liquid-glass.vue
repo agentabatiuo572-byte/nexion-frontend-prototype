@@ -33,10 +33,10 @@ export default glassViewImplementation;
 .nx-liquid-optics, .nx-liquid-tint, .nx-liquid-specular, .nx-liquid-rim { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
 .nx-liquid-optics { overflow: hidden; }
 .nx-liquid-tint { background: var(--v5-liquid-tint); box-shadow: var(--v5-liquid-shadow); }
-.nx-liquid-specular { background-size: 100% 100%; mix-blend-mode: screen; opacity: .72; }
-.nx-liquid-rim { border: 1px solid var(--v5-liquid-rim); box-shadow: inset 0 1px 0 var(--v5-liquid-highlight), inset 0 -1px 0 var(--v5-liquid-bottom); }
-.nx-liquid-glass--selection .nx-liquid-tint { background: var(--v5-liquid-selected); box-shadow: var(--v5-liquid-selection-shadow); }
-.nx-liquid-glass--selection .nx-liquid-specular { opacity: .82; }
+.nx-liquid-specular { background-size: 100% 100%; mix-blend-mode: screen; opacity: .38; filter: blur(.35px); }
+.nx-liquid-rim { box-shadow: inset 0 0 0 .5px var(--v5-liquid-rim), inset 0 1px 1px var(--v5-liquid-highlight), inset 0 -1px 1px var(--v5-liquid-bottom); }
+.nx-liquid-glass--selection .nx-liquid-tint { background-color: color-mix(in srgb, var(--v5-liquid-tint) 45%, var(--v5-surface)); background-image: linear-gradient(var(--v5-liquid-selected), var(--v5-liquid-selected)); box-shadow: var(--v5-liquid-selection-shadow); }
+.nx-liquid-glass--selection .nx-liquid-specular { opacity: .46; }
 .nx-liquid-glass[data-glass-strategy="webgl"], .nx-liquid-glass[data-glass-strategy="solid"] { backdrop-filter: none; -webkit-backdrop-filter: none; }
 .nx-liquid-glass[data-glass-strategy="solid"] .nx-liquid-optics { background: var(--v5-surface); }
 .nx-liquid-glass[data-glass-strategy="solid"] .nx-liquid-specular { display: none; }

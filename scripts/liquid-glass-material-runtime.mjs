@@ -39,7 +39,11 @@ async function clearMaterialPixels(page, engine, theme) {
     await page.waitForFunction(engine=>document.getElementById('probe-clear-host')?.dataset.glassStrategy===(engine==='webkit'?'webgl':'svg'),engine);
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const clip={x:25,y:280,width:340,height:68};
-    const refracted=await page.screenshot({clip,path:resolve(out,`${engine}-${theme}-clear.png`)});
+    await page.screenshot({clip,path:resolve(out,`${engine}-${theme}-material.png`)});
+    // Judge optical detail independently of the readability veil. A high
+    // contrast requirement on the final composite rewards illegible see-through UI.
+    await page.locator('#probe-clear-host').evaluate(el=>el.querySelectorAll('.nx-liquid-tint,.nx-liquid-rim,.nx-liquid-specular').forEach(layer=>layer.style.visibility='hidden'));
+    const refracted=await page.screenshot({clip,path:resolve(out,`${engine}-${theme}-optics.png`)});
     // WebGL optics explicitly sets visibility:visible, which can override an
     // ancestor's hidden visibility. Remove the whole surface for a true baseline.
     await page.locator('#probe-clear-host').evaluate(el=>el.style.display='none');

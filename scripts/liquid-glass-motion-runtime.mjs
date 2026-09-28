@@ -91,20 +91,26 @@ try {
       }
       async function trace(kind) {
         await page.evaluate(kind=>{
-          window.__glassMotion={frames:[],done:false};
+          window.__glassMotion={kind,frames:[],done:false};
           const shell=[...document.querySelectorAll('.nx-chassis')].filter(el=>el.getBoundingClientRect().width).at(-1);
           const startRail=shell.querySelector(kind==='navigation'?'.nx-tabbar-pill':'.nx-glass-segments--filter');
           // Register after the rail's motion handler so each RAF reads this
           // frame's paint. Document capture reads the previous paint with a
           // new timestamp, misclassifying a slower frame as a sudden jump.
-          startRail.addEventListener('click',()=>{
-          const start=performance.now();
+          startRail.addEventListener('click',event=>{
+          const destination=event.target.closest('[data-glass-value]')?.dataset.glassValue;
+          const start=performance.now();let firstVisible;
           function sample(now) {
             const shell=[...document.querySelectorAll('.nx-chassis')].filter(el=>el.getBoundingClientRect().width).at(-1);
             const rail=shell?.querySelector(kind==='navigation'?'.nx-tabbar-pill':'.nx-glass-segments--filter');
             const lens=rail?.querySelector(':scope > .nx-glass-indicator'),selected=rail?.querySelector(':scope > [data-selected="true"]');
-            if(lens && selected) {const a=lens.getBoundingClientRect(),b=selected.getBoundingClientRect();window.__glassMotion.frames.push({t:now-start,x:a.x,y:a.y,w:a.width,h:a.height,to:b.x,value:selected.dataset.glassValue,host:rail.id});}
-            if(now-start<1000)requestAnimationFrame(sample);else window.__glassMotion.done=true;
+            if(lens && selected) {const a=lens.getBoundingClientRect(),b=selected.getBoundingClientRect(),bounds=rail.getBoundingClientRect(),background=rail.querySelector('.nx-glass-backdrop').getBoundingClientRect();if(a.width>0 && a.height>0 && (kind!=='navigation'||selected.dataset.glassValue===destination))firstVisible??=now;window.__glassMotion.frames.push({t:now-start,x:a.x,y:a.y,w:a.width,h:a.height,to:b.x,value:selected.dataset.glassValue,host:rail.id,backgroundScale:background.width/bounds.width,backgroundExpansion:background.width-bounds.width});}
+            // A cold route can spend most of the first second mounting. Keep
+            // its click-relative timing, then sample a full second of real motion.
+            window.__glassMotion.firstVisible=firstVisible===undefined?null:firstVisible-start;
+            window.__glassMotion.destination=destination;
+            const sampling=kind==='navigation'?(firstVisible===undefined?now-start<1800:now-firstVisible<1000):now-start<1000;
+            if(sampling && now-start<4000)requestAnimationFrame(sample);else window.__glassMotion.done=true;
           }
           requestAnimationFrame(sample);
           },{capture:true,once:true});
@@ -112,10 +118,12 @@ try {
       }
       async function finishTrace(id) {
         await page.waitForFunction(()=>window.__glassMotion.done);
-        const frames=await page.evaluate(()=>window.__glassMotion.frames);
+        const {frames,firstVisible,kind,destination}=await page.evaluate(()=>window.__glassMotion);
         const path=resolve(out,`${engine}-${id}.json`);await writeFile(path,JSON.stringify(frames));evidence.push(path);
-        assert.ok(frames.length>12,`${id} missing animation frames: ${frames.length}`);
-        return frames;
+        const visible=kind==='navigation'?frames.filter(f=>f.value===destination && f.w>0 && f.h>0):frames;
+        assert.ok(visible.length>12,`${id} missing visible destination animation frames: ${visible.length}`);
+        assert.ok(firstVisible!==null && firstVisible<1800,`${id} did not expose a usable destination lens within the navigation intent window`);
+        return visible;
       }
       function log(id,data={}){cases.push({engine,id,...data});console.log(`PASS ${engine} ${id}`);}
       async function scrollContent(amount) {
@@ -218,6 +226,9 @@ try {
       const arrival=navigation.filter(f=>f.value==='me'),final=arrival.at(-1);
       assert.ok(arrival.some(f=>Math.abs(f.x-final.x)>15),'new page skipped navigation movement');
       assert.ok(Math.max(...arrival.map(f=>f.x))-final.x>.5,'navigation has no rebound');
+      assert.ok(Math.max(...navigation.map(f=>f.backgroundExpansion))>8,'navigation backdrop never visibly stretches');
+      assert.ok(Math.min(...navigation.map(f=>f.backgroundScale))<.9995,'navigation backdrop never rebounds');
+      assert.ok(Math.abs(navigation.at(-1).backgroundScale-1)<.001,'navigation backdrop never settles');
       log('cross-page-continuity',{frames:arrival.length,overshoot:Math.max(...arrival.map(f=>f.x))-final.x});
 
       // Interrupt real page transitions. Hidden outgoing rails must not overwrite

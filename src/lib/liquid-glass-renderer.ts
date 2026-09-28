@@ -51,7 +51,9 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
     mark("frosted", "preparing");
     try {
       const next = await createLiquidGlassRuntimeAssets(glassGeometry(width, height, config.radius, config.tone), {
-        backend: "ts", dpr: Math.min(devicePixelRatio || 1, 2), useCache: true,
+        // Supersample 1x screens too: these curved bitmap maps are stretched
+        // during gestures, so one source pixel per CSS pixel leaves hard steps.
+        backend: "ts", dpr: Math.max(2, Math.min(Math.ceil(devicePixelRatio || 1), 3)), useCache: true,
       });
       if (disposed || ownGeneration !== generation) { next.dispose(); return; }
       assets = next;
