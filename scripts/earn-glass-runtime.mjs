@@ -90,10 +90,13 @@ async function fixture(page, options = {}) {
     const { activeCount = 3, inactive = ['stellarbox-s1'], historyCount = 23, status = 'none', phase = true, online = false, days = 4, daily = 9.25 } = options;
     const kinds = ['stellarbox-s1', 'stellarbox-pro-v2', 'stellarrack-p2', 'phone', 'cloud-share', 'pc-gpu'];
     const now = Date.now();
+    // Persisted task history is append-only per device. Each fixture is a new
+    // device set, so normal session resume cannot merge an older fixture back.
+    const generation = window.__earnFixtureGeneration = (window.__earnFixtureGeneration ?? 0) + 1;
     const records = Array.from({ length: historyCount }, (_, i) => ({ id: `earn-glass-task-${i}`, category: 'IG', type: 'Image Gen', model: `Model ${String(i).padStart(2, '0')}`, client: 'Runtime fixture', location: 'Singapore', totalSec: 60, startedAt: now - ((i * 7) % historyCount + 2) * 60000, completedAt: now - ((i * 7) % historyCount + 1) * 60000, reward: (i + 1) / 1000 }));
     app.miningPaused = true; config.config.featureFlags.computeShareEnabled = true;
-    app.devices = kinds.slice(0, activeCount).map((kind, i) => ({ ...createDevice(kind, `earn-glass-active-${i}`, { paidPriceUsdt: 0 }), activatedAt: now - 86400000, status: online && kind !== 'phone' ? 'online' : 'offline', baseRate: 0, baseRateNEX: 0, onlineHeartbeatAt: null, lastSettledAt: null, currentTask: null, recentTasks: records.filter((_, n) => n % Math.max(1, activeCount) === i), todayEarnings: [.01, 1234.56, 75.25, 0, 3.21, 4.32][i] }));
-    app.devices.push(...inactive.map((kind, i) => ({ ...createDevice(kind, `earn-glass-inactive-${i}`, { paidPriceUsdt: 0 }), activatedAt: null, status: 'offline', currentTask: null, recentTasks: activeCount === 0 && i === 0 ? records : [], lastSettledAt: null })));
+    app.devices = kinds.slice(0, activeCount).map((kind, i) => ({ ...createDevice(kind, `earn-glass-${generation}-active-${i}`, { paidPriceUsdt: 0 }), activatedAt: now - 86400000, status: online && kind !== 'phone' ? 'online' : 'offline', baseRate: 0, baseRateNEX: 0, onlineHeartbeatAt: null, lastSettledAt: null, currentTask: null, recentTasks: records.filter((_, n) => n % Math.max(1, activeCount) === i), todayEarnings: [.01, 1234.56, 75.25, 0, 3.21, 4.32][i] }));
+    app.devices.push(...inactive.map((kind, i) => ({ ...createDevice(kind, `earn-glass-${generation}-inactive-${i}`, { paidPriceUsdt: 0 }), activatedAt: null, status: 'offline', currentTask: null, recentTasks: activeCount === 0 && i === 0 ? records : [], lastSettledAt: null })));
     Object.assign(trial, { status, startedAt: status === 'none' ? null : now - 1000, expiresAt: status === 'active' ? now + 86400000 : status === 'none' ? null : now - 1000, graceEndsAt: status === 'grace' ? now + 86400000 : status === 'none' ? null : now + 172800000, finishedAt: ['ended', 'converted'].includes(status) ? now : null, shadowFrozenAtUSD: 0, shadowFrozenAtNEX: 0 });
     Object.assign(trialConfig.config, { phaseOpen: phase, trialDays: days, shadowDailyUSD: daily, autoPushEnabled: false });
     return { devices: app.visibleDevices.filter(d => d.activatedAt !== null).map(d => ({ id: d.id, name: deviceName(t, d), online: d.kind !== 'phone' && d.status === 'online', income: '$' + d.todayEarnings.toFixed(2) })), records: [...records].sort((a, b) => b.completedAt - a.completedAt).slice(0, 10).map(r => r.id), expectedTrial: status === 'none' && phase, days, total: Math.round(days * daily) };
@@ -304,10 +307,22 @@ async function fleetStates(page) {
 }
 async function history(page) {
   await tab(page, 'earn'); const samples = [];
-  for (const count of [0, 3, 23]) {
-    const expected = await fixture(page, { historyCount: count }); await idle(page);
+  for (const count of [23, 0, 3, 23]) {
+    const expected = await fixture(page, { historyCount: count });
+    // Force the real persistence/adoption path that exposed reused fixture IDs.
+    await page.evaluate(async () => (await import('/src/store/app.ts')).useApp().resumeMining());
+    await idle(page);
+    const state = await page.evaluate(async () => {
+      const app = (await import('/src/store/app.ts')).useApp();
+      const { readAccountSnapshot } = await import('/src/store/account-cloud.ts');
+      const ids = devices => devices.flatMap(d => d.recentTasks).sort((a, b) => b.completedAt - a.completedAt).map(task => task.id);
+      return { canonical: ids(app.devices), visible: ids(app.visibleDevices), persisted: ids(readAccountSnapshot(app.accountKey)?.devices ?? []) };
+    });
+    assert.equal(state.canonical.length, count, 'Persistence changed the history fixture');
+    assert.deepEqual(state.visible, state.canonical); assert.deepEqual(state.persisted, state.canonical);
+    assert.deepEqual(state.canonical.slice(0, 10), expected.records);
     const ids = await active(page).locator('.earn-history-row').evaluateAll(rows => rows.map(row => row.dataset.taskId));
-    assert.deepEqual(ids, expected.records); assert.equal(ids.length, Math.min(count, 10)); samples.push({ input: count, ids });
+    assert.deepEqual(ids, expected.records); assert.equal(ids.length, Math.min(count, 10)); samples.push({ input: count, ids, state });
     if (!count) {
       const empty = await page.evaluate(async () => (await import('/src/i18n/use-t.ts')).getT().taskHistory.historyEmpty);
       assert.ok((await active(page).innerText()).includes(empty));
