@@ -25,10 +25,9 @@ const nav = () => active().locator('.nx-tabbar-pill');
 const options = rail => rail.locator(':scope > .nx-glass-option');
 async function settled() { await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))); }
 async function closeTransient() {
-  for (const s of ['.tcs-dismiss', '.vcs-dismiss', '.tcs-close', '.vcs-close']) {
-    const el = page.locator(s).filter({ visible: true }).first();
-    if (await el.count()) await el.click();
-  }
+  // Trigger the registered modal handlers without clicking page content.
+  // A second manual close can race the handler and wait for an already removed button.
+  await page.locator('body').click({ trial: true });
 }
 async function goto(route) {
   await page.goto(`${server.baseUrl}/?nx_device_inner=1#/pages/${route}`, { waitUntil: 'domcontentloaded' });
@@ -214,7 +213,7 @@ try {
     assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('data-quick-key')),'theme');
     log('theme-keyboard-cancel',{});
     await goto('team/team');await settings('zh','dark');
-    await active().locator('.nx-invite-actions > uni-view').first().focus();await page.keyboard.press('Space');
+    await active().locator('.invite-card__action').first().focus();await page.keyboard.press('Space');
     const poster=page.locator('.ps-sheet:visible');await poster.waitFor();
     const templateRail=poster.locator('.ps-thumbs');
     for(const item of await options(templateRail).all()) {
@@ -235,7 +234,7 @@ try {
     await page.evaluate(async()=>{(await import('/src/store/app.ts')).useApp().devices=window.__glassDevices;delete window.__glassDevices;});
     log('poster-no-devices-fallback',{templates:2});
     await page.keyboard.press('Escape');await poster.waitFor({state:'hidden'});
-    assert.ok(await page.evaluate(()=>document.activeElement===document.querySelector('.nx-invite-actions > uni-view')));
+    assert.ok(await page.evaluate(()=>document.activeElement===document.querySelector('.invite-card__action')));
     await goto('earn/earn');await active().locator('.nx-nova-bubble').click();
     await page.waitForURL(/pages\/support\/messages/);
     await active().locator('[data-glass-value="ai"]').click();
