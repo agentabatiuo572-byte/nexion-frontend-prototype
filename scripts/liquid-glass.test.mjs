@@ -1,6 +1,31 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { glassGeometry, rememberGlassNavigation, consumeGlassNavigation } from '../src/lib/liquid-glass-core.ts';
+import { readFileSync } from 'node:fs';
+import { patchLiquidGlassBundle } from './patch-liquid-glass.mjs';
+import { glassGeometry, glassSpring, rememberGlassNavigation, consumeGlassNavigation } from '../src/lib/liquid-glass-core.ts';
+
+test('cooperative capture patch is installed, repeatable and rejects changed upstream or patch bytes', () => {
+  for (const entry of ['webgl.esm.js','webgl.cjs']) {
+    const code=readFileSync(new URL(`../node_modules/simple-liquid-glass/dist/${entry}`,import.meta.url),'utf8');
+    assert.equal(patchLiquidGlassBundle(code,entry),code,'run npm postinstall before testing');
+    assert.throws(()=>patchLiquidGlassBundle(code+'\n// unexpected upstream change',entry),/Unexpected/);
+    assert.throws(()=>patchLiquidGlassBundle(code.replace('nxCloneYieldAt=0','nxCloneYieldAt=1'),entry),/Unexpected/);
+  }
+});
+
+test('liquid spring travels, overshoots and settles at 60/120 Hz; reversal preserves current velocity', () => {
+  for (const hz of [60,120]) {
+    let position=0,velocity=0,max=0;
+    for(let frame=0;frame<hz;frame++) {
+      ({position,velocity}=glassSpring(position,velocity,100,1/hz)); max=Math.max(max,position);
+    }
+    assert.ok(max>102 && max<110,`bounded visible rebound ${max}`);
+    assert.ok(Math.abs(position-100)<.01 && Math.abs(velocity)<.01);
+    ({position,velocity}=glassSpring(50,300,0,1/hz));
+    assert.ok(position>48 && position<55,`retarget does not teleport ${position}`);
+    assert.ok(Number.isFinite(glassSpring(position,velocity,0,10).position));
+  }
+});
 
 test('optical geometry stays finite and rounded inside narrow controls', () => {
   for (const size of [[320, 64], [1, 1], [NaN, Infinity], [5000, 1000]]) {

@@ -117,14 +117,13 @@
   --v5-tabbar-ink-halo: rgba(255,255,255,0.95);
   --v5-tabbar-border: rgba(255,255,255,0.60);
   --v5-tabbar-shadow: 0 8px 24px rgba(20,16,8,0.06), inset 0 1px 0 rgba(255,255,255,0.80);
-  --v5-liquid-tint: rgba(255,255,255,0.30);
-  --v5-liquid-selected: color-mix(in srgb, var(--v5-brand) 12%, rgba(255,255,255,0.62));
+  --v5-liquid-tint: rgba(255,255,255,0.06);
+  --v5-liquid-selected: color-mix(in srgb, var(--v5-brand) 6%, transparent);
   --v5-liquid-rim: rgba(255,255,255,0.54);
   --v5-liquid-highlight: rgba(255,255,255,0.92);
   --v5-liquid-bottom: rgba(28,24,16,0.12);
-  --v5-liquid-sheen: rgba(255,255,255,0.27);
   --v5-liquid-shadow: 0 8px 24px rgba(28,24,16,0.10), 0 2px 5px rgba(28,24,16,0.05);
-  --v5-liquid-selection-shadow: 0 3px 10px rgba(28,24,16,0.10), inset 0 0 12px rgba(255,255,255,0.40);
+  --v5-liquid-selection-shadow: 0 3px 10px rgba(28,24,16,0.14), inset 0 1px 0 rgba(255,255,255,0.85);
   --v5-home-indicator: rgba(19,20,26,0.55);
 
   /* Spotlight / ambient tokens — glow that exists only in dark mode. All default
@@ -410,14 +409,13 @@ html[data-theme="dark"] {
   --v5-tabbar-ink-halo: rgba(0,0,0,0.95);
   --v5-tabbar-border: rgba(255,255,255,0.10);
   --v5-tabbar-shadow: 0 12px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10);
-  --v5-liquid-tint: rgba(28,28,32,0.38);
-  --v5-liquid-selected: color-mix(in srgb, var(--v5-brand) 12%, rgba(255,255,255,0.13));
-  --v5-liquid-rim: rgba(255,255,255,0.18);
+  --v5-liquid-tint: rgba(28,28,32,0.06);
+  --v5-liquid-selected: color-mix(in srgb, var(--v5-brand) 8%, transparent);
+  --v5-liquid-rim: rgba(255,255,255,0.24);
   --v5-liquid-highlight: rgba(255,255,255,0.52);
   --v5-liquid-bottom: rgba(0,0,0,0.30);
-  --v5-liquid-sheen: rgba(255,255,255,0.13);
   --v5-liquid-shadow: 0 10px 30px rgba(0,0,0,0.32), 0 2px 8px rgba(0,0,0,0.20);
-  --v5-liquid-selection-shadow: 0 3px 12px rgba(0,0,0,0.22), inset 0 0 14px rgba(255,255,255,0.06);
+  --v5-liquid-selection-shadow: 0 3px 12px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.52);
   --v5-home-indicator: rgba(255,255,255,0.55);
 
   /* quest 文字档 / 创世金:暗主题沿用设计原色(暗底实测 6.18 / 6.50 / 8.84 / 16.83 全达标),

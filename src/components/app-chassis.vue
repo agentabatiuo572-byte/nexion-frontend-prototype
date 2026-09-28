@@ -11,7 +11,7 @@
   `active` prop is an optional fallback for the very first frame.
 -->
 <template>
-  <view class="nx-chassis" style="background: var(--v5-bg)">
+  <view :id="chassisHostId" class="nx-chassis" style="background: var(--v5-bg)" :chrome-config="chromeConfiguration" :change:chrome-config="chromeView.update">
     <view class="nx-top-chrome" :style="{ height: statusBarHeight + 'px' }" />
 
     <!-- Status bar safe area (real on device, ~0 on desktop H5) -->
@@ -20,7 +20,6 @@
     <!-- Header brand row — TAB routes only (sub-pages carry their own back row) -->
     <view v-if="isTabRoute" class="nx-header" :style="{ top: statusBarHeight + 'px' }">
       <view class="nx-header__l">
-        <LiquidGlass :radius="23" tone="control" backdrop=".nx-page-enter" />
         <BrandLockup class="nx-logo" />
       </view>
       <view class="nx-header__center" />
@@ -152,7 +151,7 @@
 
 <script setup lang="ts">
 import BrandLockup from "@/components/brand-lockup.vue";
-import { ref, computed, watch, onMounted, onUnmounted, onActivated, nextTick, provide } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, onActivated, nextTick, provide, getCurrentInstance } from "vue";
 import LiquidGlass from "@/components/liquid-glass.vue";
 import GlassSegments from "@/components/glass-segments.vue";
 import { rememberGlassNavigation, consumeGlassNavigation } from "@/lib/liquid-glass-core";
@@ -191,6 +190,10 @@ import { saveScrollPos, getScrollPos, dropScrollPos } from "@/lib/scroll-memory"
 const props = defineProps<{
   active?: "home" | "earn" | "store" | "team" | "me";
 }>();
+
+const chassisHostId = `nx-chassis-host-${getCurrentInstance()!.uid}`;
+const chromeConfiguration = { hostId: chassisHostId };
+declare const chromeView: { update(value: { hostId: string }): void };
 
 const t = useT();
 const notifications = useNotifications();
@@ -556,8 +559,8 @@ const tabs = computed(() => [
 ]);
 
 const navigationOptions = computed(() => tabs.value.map(tab => ({ ...tab, value: tab.key })));
-const navigationFrom = ref<string>();
-onMounted(() => { navigationFrom.value = consumeGlassNavigation(activeTab.value); });
+// Capture before the child view's first measurement; onMounted arrives too late.
+const navigationFrom = consumeGlassNavigation(activeTab.value);
 function selectNavigation(value: string) {
   const tab = tabs.value.find(item => item.key === value);
   if (tab) go(tab);
@@ -587,6 +590,12 @@ function goSearch() {
 function goNotifications() {
   messageDrawer.show();
 }
+</script>
+
+<script module="chromeView" lang="renderjs">
+import { chassisView } from "@/lib/liquid-glass-view";
+// @ts-expect-error vue-tsc 1.x treats uni renderjs as a second normal script.
+export default chassisView;
 </script>
 
 <style scoped>
@@ -704,7 +713,10 @@ function goNotifications() {
   height: 44px;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 200ms cubic-bezier(.23,1,.32,1), opacity 200ms, visibility 0s;
 }
+.nx-header__l[data-hidden="true"] { transform: translateY(-18px); opacity: 0; visibility: hidden; transition-delay: 0s, 0s, 200ms; }
+@media (prefers-reduced-motion: reduce) { .nx-header__l { transition: none; } .nx-header__l[data-hidden="true"] { transform: none; } }
 .nx-header__center {
   position: absolute;
   left: 50%;

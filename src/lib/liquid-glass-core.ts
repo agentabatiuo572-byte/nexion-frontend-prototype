@@ -1,5 +1,15 @@
 export type GlassTone = "navigation" | "selection" | "control";
 
+/** Exact damped spring step: stable at both 60/120 Hz and carries velocity on retarget. */
+export function glassSpring(position: number, velocity: number, target: number, seconds: number) {
+  const dt = Math.max(0, Math.min(seconds, .064));
+  const decay = 18, frequency = Math.sqrt(700 - decay * decay);
+  const offset = position - target, b = (velocity + decay * offset) / frequency;
+  const envelope = Math.exp(-decay * dt), cos = Math.cos(frequency * dt), sin = Math.sin(frequency * dt);
+  const wave = offset * cos + b * sin;
+  return { position: target + envelope * wave, velocity: envelope * (-decay * wave + frequency * (b * cos - offset * sin)) };
+}
+
 /** Optical dimensions are CSS pixels; text never enters this rendering layer. */
 export function glassGeometry(width: number, height: number, radius: number, tone: GlassTone) {
   const w = Math.max(1, Math.min(1024, Math.round(Number.isFinite(width) ? width : 1)));
@@ -8,7 +18,7 @@ export function glassGeometry(width: number, height: number, radius: number, ton
   return {
     width: w, height: h, radius: r,
     bezelWidth: Math.min(r, tone === "navigation" ? 16 : 11),
-    glassThickness: tone === "navigation" ? 28 : 18,
+    glassThickness: tone === "navigation" ? 60 : 40,
     refractiveIndex: 1.5, magnify: false, bezelType: "convex_squircle" as const,
   };
 }

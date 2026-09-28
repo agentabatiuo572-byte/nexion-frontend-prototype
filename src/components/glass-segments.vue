@@ -7,7 +7,7 @@
     <LiquidGlass v-if="variant === 'navigation'" :radius="34" tone="navigation" backdrop=".nx-page-enter" class="nx-glass-track" />
     <LiquidGlass
       class="nx-glass-indicator" :radius="variant === 'navigation' ? 28 : 23"
-      tone="selection"
+      tone="selection" :backdrop="variant === 'navigation' ? '.nx-page-enter' : ''"
     />
     <view
       v-for="option in options" :key="option.value" class="nx-glass-option"
@@ -61,12 +61,13 @@ export default viewImplementation;
 </script>
 
 <style scoped>
-.nx-glass-segments { position: relative; display: flex; gap: 3px; padding: 4px; border-radius: 27px; min-width: 0; background: color-mix(in srgb, var(--v5-surface-2) 68%, transparent); }
+.nx-glass-segments { position: relative; display: flex; gap: 3px; padding: 4px; border-radius: 27px; min-width: 0; background: color-mix(in srgb, var(--v5-surface-2) 14%, transparent); }
 .nx-glass-track { z-index: 0; }
+.nx-glass-segments--equal, .nx-glass-segments--equal .nx-glass-option { touch-action: pan-y; user-select: none; }
+.nx-glass-segments[data-glass-dragging="true"] { cursor: grabbing; }
 .nx-glass-indicator { inset: auto; left: 0; top: 0; z-index: 1; transform-origin: 0 0; visibility: hidden; }
 .nx-glass-option { position: relative; z-index: 2; flex: 1 1 0; min-width: 0; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 10px; box-sizing: border-box; border-radius: 23px; color: var(--v5-ink-3); cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: color 150ms, transform 100ms cubic-bezier(.2,.8,.2,1); }
 .nx-glass-option--selected { color: var(--v5-brand); }
-.nx-glass-option:active { transform: scale(.96); }
 .nx-glass-option:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -3px; }
 .nx-glass-option--disabled { opacity: .45; cursor: default; }
 .nx-glass-option__label { font-family: var(--font-v5); font-size: 12px; font-weight: 600; line-height: 17px; text-align: center; overflow-wrap: anywhere; }

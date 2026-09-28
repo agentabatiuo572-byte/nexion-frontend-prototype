@@ -62,7 +62,7 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
         svg.setAttribute("width", "0"); svg.setAttribute("height", "0");
         svg.style.cssText = "position:absolute;pointer-events:none";
         // Only generated blob URLs and numeric optical parameters enter this SVG.
-        svg.innerHTML = `<filter id="${filterId}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="${config.tone === "navigation" ? 6 : 3}" result="soft"/><feImage href="${next.displacementUrl}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" result="lens"/><feDisplacementMap in="soft" in2="lens" scale="${next.maxDisplacement}" xChannelSelector="R" yChannelSelector="G" result="refracted"/><feColorMatrix in="refracted" type="saturate" values="1.35"/></filter>`;
+        svg.innerHTML = `<filter id="${filterId}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="0.35" result="soft"/><feImage href="${next.displacementUrl}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" result="lens"/><feDisplacementMap in="soft" in2="lens" scale="${next.maxDisplacement}" xChannelSelector="R" yChannelSelector="G" result="refracted"/><feColorMatrix in="refracted" type="saturate" values="1.05"/></filter>`;
         host.append(svg);
         // Apply at the material root. A filtered child under specular compositing
         // can lose access to the page backdrop (covered by the pixel-difference test).
@@ -80,12 +80,14 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
       }
       const { createWebGLSurface } = await import("simple-liquid-glass/webgl");
       if (disposed || ownGeneration !== generation) return;
-      let refreshing = false, dirty = false, refreshFrame = 0, watching = true;
+      let refreshing = false, dirty = false, refreshFrame = 0, refreshTimer = 0, watching = true;
       let engineStatus = "preparing", captureFailed = false;
       webgl = createWebGLSurface(host, optics, source, {
         map: next.displacementUrl, scale: next.maxDisplacement, dispersion: .16,
-        specular: .22, classic: false, neutralPoint: 128 / 255,
-        radius: next.params.radius, blur: config.tone === "navigation" ? 6 : 3, saturation: 135,
+        // This displacement map has no blue-channel highlights; the generated
+        // specular image above supplies the same optical rim on both engines.
+        specular: 0, classic: false, neutralPoint: 128 / 255,
+        radius: next.params.radius, blur: 0, saturation: 105,
       }, status => {
         if (disposed || ownGeneration !== generation) return;
         engineStatus = status;
@@ -122,10 +124,29 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
           }
         });
       };
-      const changes = new MutationObserver(refresh), size = new ResizeObserver(refresh);
+      const queueRefresh = () => {
+        if (!watching || refreshTimer) return;
+        refreshTimer = window.setTimeout(() => { refreshTimer = 0; refresh(); }, 120);
+      };
+      const changes = new MutationObserver(records => {
+        // Lens transforms/maps are generated optics, not a changing backdrop.
+        // Recapturing them at spring-frame frequency stalls the view thread.
+        const contentChanged = records.some(record => {
+          const target = record.target instanceof Element ? record.target : record.target.parentElement;
+          if (target?.closest(".nx-liquid-glass")) return false;
+          if (record.type === "attributes" && target?.classList.contains("nx-glass-segments")
+            && ["data-glass-moving", "data-glass-dragging"].includes(record.attributeName ?? "")) return false;
+          if (record.type === "childList") {
+            const nodes = [...Array.from(record.addedNodes), ...Array.from(record.removedNodes)];
+            if (nodes.length && nodes.every(node => node instanceof Element && node.matches(".nx-liquid-glass"))) return false;
+          }
+          return true;
+        });
+        if (contentChanged) queueRefresh();
+      }), size = new ResizeObserver(queueRefresh);
       changes.observe(source, { subtree: true, childList: true, attributes: true, characterData: true });
-      size.observe(source); source.addEventListener("load", refresh, true);
-      stopWatchingSource = () => { watching = false; cancelAnimationFrame(refreshFrame); changes.disconnect(); size.disconnect(); source.removeEventListener("load", refresh, true); };
+      size.observe(source); source.addEventListener("load", queueRefresh, true);
+      stopWatchingSource = () => { watching = false; clearTimeout(refreshTimer); cancelAnimationFrame(refreshFrame); changes.disconnect(); size.disconnect(); source.removeEventListener("load", queueRefresh, true); };
     } catch (error) {
       if (disposed || ownGeneration !== generation) return;
       release(); mark("frosted", "renderer-unavailable");

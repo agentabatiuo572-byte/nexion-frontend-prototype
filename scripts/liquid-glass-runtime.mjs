@@ -44,7 +44,12 @@ async function settings(locale, theme) {
 }
 async function aligned(rail) {
   await rail.locator('.nx-glass-indicator').waitFor();
-  await page.waitForTimeout(260);
+  await page.waitForFunction(id => {
+    const el=document.getElementById(id), item=el?.querySelector(':scope > [data-selected="true"]'), lens=el?.querySelector(':scope > .nx-glass-indicator');
+    if(!item || !lens || getComputedStyle(lens).visibility!=='visible' || el.dataset.glassMoving==='true') return false;
+    const a=item.getBoundingClientRect(),b=lens.getBoundingClientRect();
+    return Math.max(Math.abs(a.left-b.left),Math.abs(a.top-b.top),Math.abs(a.width-b.width),Math.abs(a.height-b.height))<=1.6;
+  }, await rail.getAttribute('id'));
   const result = await rail.evaluate(el => {
     const item = el.querySelector(':scope > [data-selected="true"]'), lens = el.querySelector(':scope > .nx-glass-indicator');
     const a = item.getBoundingClientRect(), b = lens.getBoundingClientRect();
