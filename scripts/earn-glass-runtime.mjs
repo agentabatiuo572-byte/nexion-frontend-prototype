@@ -383,8 +383,9 @@ async function atlas(page) {
   await tab(page, 'earn'); await fixture(page); await idle(page);
   return active(page).locator('.trial-art .nx-home-art').evaluate(async el => {
     const style = getComputedStyle(el), image = new Image();
-    if (!style.backgroundImage.includes('/static/img/home-glass-20260928/atlas.png') || !['0%', '0px'].includes(style.backgroundPositionX) || style.backgroundPositionY !== '100%') throw Error(`Trial does not use the generated S1 atlas tile: ${style.backgroundImage} at ${style.backgroundPosition}`);
+    if (!style.backgroundImage.includes('/static/img/home-glass-20260928/s1.webp')) throw Error(`Trial does not use the generated S1 tile: ${style.backgroundImage}`);
     image.src = style.backgroundImage.slice(5, -2); await image.decode();
+    if (image.naturalWidth !== 512 || image.naturalHeight !== 512) throw Error('Trial artwork tile dimensions changed');
     const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
     const context = canvas.getContext('2d'); context.drawImage(image, 0, 0); const bytes = context.getImageData(0, 0, canvas.width, canvas.height).data;
     let clear = 0, visible = 0; for (let i = 3; i < bytes.length; i += 64) { if (bytes[i]) visible++; else clear++; }

@@ -938,7 +938,7 @@ body {
 .nx-home-pill::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--v5-brand); transition: transform 500ms cubic-bezier(.2, 1.65, .3, 1); }
 .nx-home-pill > * { position: relative; }
 .nx-home-glass-item:active .nx-home-pill::before, .nx-home-pill:active::before { transform: scale(.97, .95); transition: transform 100ms ease-out; }
-.nx-home-art { background-image: url('/static/img/home-glass-20260928/atlas.png'); background-size: 300% 200%; background-repeat: no-repeat; }
+.nx-home-art { background-image: url('/static/img/home-glass-20260928/coupon.webp'); background-size: 100% 100%; background-repeat: no-repeat; }
 .nx-home-art-float { animation: nx-home-art-drift 6s ease-in-out var(--home-art-delay, 0s) infinite; }
 @keyframes nx-home-art-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 .nx-home-arrow { display: grid; place-items: center; border-radius: var(--v5-radius-full); background: var(--v5-surface-2); color: var(--v5-ink-2); box-shadow: inset 0 0 0 .5px var(--v5-liquid-rim), inset 0 1px 1px var(--v5-liquid-highlight); }

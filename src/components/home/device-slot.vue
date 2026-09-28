@@ -1,7 +1,7 @@
 <!-- Decorative hardware bay inside the single DeviceRow action. Clicks bubble to that action. -->
 <template>
   <view class="nx-device-slot" :data-online="online ? 'true' : 'false'" aria-hidden="true">
-    <view v-if="artPosition" class="nx-home-art" :class="{ 'nx-home-art-float': online }" :style="{ backgroundPosition: artPosition }" />
+    <view v-if="artFile" class="nx-home-art" :class="{ 'nx-home-art-float': online }" :style="{ backgroundImage: `url('/static/img/home-glass-20260928/${artFile}.webp')` }" />
     <view v-else class="hf-computer">
       <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8m-4-4v4" /></svg>
       <view class="nx-home-empty-plinth" />
@@ -15,13 +15,13 @@ import type { Device } from "@/store/types";
 
 const props = defineProps<{ device: Device; online: boolean }>();
 // Family illustrations never replace persisted SKU identity or the detail-page product media.
-const artPosition = computed(() => {
+const artFile = computed(() => {
   const kind = props.device.kind;
-  if (kind === "phone") return "50% 0%";
-  if (kind === "cloud-share") return "100% 0%";
-  if (kind === "stellarbox-s1") return "0% 100%";
-  if (kind === "stellarbox-pro" || kind === "stellarbox-pro-v2") return "50% 100%";
-  if (kind === "stellarrack-p1" || kind === "stellarrack-p2") return "100% 100%";
+  if (kind === "phone") return "phone";
+  if (kind === "cloud-share") return "cloud";
+  if (kind === "stellarbox-s1") return "s1";
+  if (kind === "stellarbox-pro" || kind === "stellarbox-pro-v2") return "pro";
+  if (kind === "stellarrack-p1" || kind === "stellarrack-p2") return "rack";
   return "";
 });
 </script>

@@ -114,16 +114,43 @@ async function restoreFixture(page) {
 async function atlas(page) {
   return page.locator('.nx-home-art').first().evaluate(async el => {
     const background = getComputedStyle(el).backgroundImage;
-    if (!background.includes('/static/img/home-glass-20260928/atlas.png')) throw Error('Generated atlas is not the rendered artwork source');
-    const img = new Image(); img.src = background.slice(5, -2); await img.decode();
-    if (img.naturalWidth / img.naturalHeight !== 1.5) throw Error('Expected the generated 3 by 2 atlas');
-    const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    let transparent = 0, visible = 0, maxAlpha = 0, samples = 0;
-    for (let i = 3; i < data.length; i += 64) { samples++; if (data[i] === 0) transparent++; if (data[i] > 0) visible++; maxAlpha = Math.max(maxAlpha, data[i]); }
-    if (!transparent || !visible) throw Error('Atlas must contain actual transparent and visible pixels');
-    return { width: img.naturalWidth, height: img.naturalHeight, transparent, visible, maxAlpha, samples, source: img.src };
+    const names = ['coupon', 'phone', 'cloud', 's1', 'pro', 'rack'], base = '/static/img/home-glass-20260928/';
+    if (!names.some(name => background.includes(`${base}${name}.webp`))) throw Error('Generated artwork tile is not the rendered source');
+    const source = new Image(); source.src = `${base}atlas.png`; await source.decode();
+    if (source.naturalWidth !== 1536 || source.naturalHeight !== 1024) throw Error('Generated source atlas dimensions changed');
+    const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+    const ctx = canvas.getContext('2d'), tiles = [];
+    for (const [slot, name] of names.entries()) {
+      ctx.clearRect(0, 0, 512, 512); ctx.drawImage(source, slot % 3 * 512, Math.floor(slot / 3) * 512, 512, 512, 0, 0, 512, 512);
+      const expected = ctx.getImageData(0, 0, 512, 512).data;
+      const image = new Image(); image.src = `${base}${name}.webp`; await image.decode();
+      if (image.naturalWidth !== 512 || image.naturalHeight !== 512) throw Error(`${name} tile dimensions changed`);
+      ctx.clearRect(0, 0, 512, 512); ctx.drawImage(image, 0, 0);
+      const actual = ctx.getImageData(0, 0, 512, 512).data;
+      let transparent = 0, visible = 0, alphaMismatch = 0;
+      for (let i = 0; i < actual.length; i += 4) {
+        if (actual[i + 3]) visible++; else transparent++;
+        if (actual[i + 3] !== expected[i + 3]) alphaMismatch++;
+      }
+      if (alphaMismatch || !transparent || !visible) throw Error(`${name} tile transparency changed: ${alphaMismatch} pixels`);
+      // PNG/WebP use different 8-bit premultiplication rounding in Chromium.
+      // Unpremultiplying near-zero alpha magnifies one level into 255; compare
+      // actual painted colors on both opaque extremes, with a one-level bound.
+      const composite = [];
+      for (const backdrop of ['#000', '#fff']) {
+        ctx.fillStyle = backdrop; ctx.fillRect(0, 0, 512, 512);
+        ctx.drawImage(source, slot % 3 * 512, Math.floor(slot / 3) * 512, 512, 512, 0, 0, 512, 512);
+        const paintedSource = ctx.getImageData(0, 0, 512, 512).data;
+        ctx.fillStyle = backdrop; ctx.fillRect(0, 0, 512, 512); ctx.drawImage(image, 0, 0);
+        const paintedTile = ctx.getImageData(0, 0, 512, 512).data;
+        let maxError = 0;
+        for (let i = 0; i < paintedTile.length; i++) maxError = Math.max(maxError, Math.abs(paintedTile[i] - paintedSource[i]));
+        if (maxError > 1) throw Error(`${name} painted pixels differ on ${backdrop}: ${maxError}/255`);
+        composite.push({ backdrop, maxError });
+      }
+      tiles.push({ name, transparent, visible, alphaMismatch, composite });
+    }
+    return { width: 512, height: 512, source: source.src, rendered: background, tiles };
   });
 }
 async function geometry(page) {
@@ -168,6 +195,7 @@ async function inventory(page, expected) {
   const rows = active(page).locator('.nx-device-row');
   assert.equal(await rows.count(), expected.devices.length);
   assert.equal(await active(page).locator('.hf-add-device').count(), expected.devices.length < 6 ? 1 : 0);
+  const artwork = { phone: 'phone', 'cloud-share': 'cloud', 'stellarbox-s1': 's1', 'stellarbox-pro': 'pro', 'stellarbox-pro-v2': 'pro', 'stellarrack-p1': 'rack', 'stellarrack-p2': 'rack' };
   for (const d of expected.devices) {
     const row = active(page).locator(`.nx-device-row[data-device-id="${d.id}"]`);
     assert.equal(await row.getAttribute('data-online'), String(d.online));
@@ -175,6 +203,15 @@ async function inventory(page, expected) {
     assert.equal((await row.locator('.hf-device-name').innerText()).trim(), d.name);
     assert.equal((await row.locator('.hf-device-income').innerText()).trim(), d.income);
     assert.equal(await row.getAttribute('role'), 'button'); assert.equal(await row.getAttribute('tabindex'), '0');
+    const art = row.locator('.nx-home-art'), tile = artwork[d.kind];
+    if (tile) {
+      assert.equal(await art.count(), 1, `${d.kind} artwork absent`);
+      assert.ok((await art.evaluate(el => getComputedStyle(el).backgroundImage)).includes(`/static/img/home-glass-20260928/${tile}.webp`), `${d.kind} uses the wrong family artwork`);
+      assert.equal(await row.locator('.hf-computer').count(), 0);
+    } else {
+      assert.equal(d.kind, 'pc-gpu', 'Unexpected device kind requires an explicit artwork contract');
+      assert.equal(await art.count(), 0); assert.equal(await row.locator('.hf-computer svg').count(), 1);
+    }
   }
   const data = await geometry(page); assert.deepEqual(data.problems, []); return data;
 }

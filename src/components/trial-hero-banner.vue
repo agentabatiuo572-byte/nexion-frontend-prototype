@@ -56,7 +56,7 @@ function onClick() { claimSheet.show(); }
 .trial-cta text { white-space: normal; overflow-wrap: anywhere; }
 .trial-cta svg { flex: none; }
 .trial-art { position: absolute; width: 43%; aspect-ratio: 1; right: 0; top: 50%; margin-top: -21.5%; pointer-events: none; }
-.trial-art .nx-home-art { width: 100%; height: 100%; background-position: 0 100%; }
+.trial-art .nx-home-art { width: 100%; height: 100%; background-image: url('/static/img/home-glass-20260928/s1.webp'); }
 .trial-aura { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(ellipse at 83% 54%, color-mix(in srgb, var(--v5-brand) 12%, transparent), transparent 65%); }
 @media (max-width: 350px) {
   .nx-trial-hero { padding: 18px; }

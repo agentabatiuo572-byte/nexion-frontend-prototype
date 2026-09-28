@@ -2,7 +2,7 @@
   TaskCenter — ported from Nexion-prototype/app/components/task-center.tsx.
   Single merged view (no tabs): "Upgrade Unlocks" locked-tier teasers
   (VRAM-gated, route to /store) on top, followed by the task History list
-  (last 20 completed across devices). The currently-processing section and the
+  (last 10 completed across devices). The currently-processing section and the
   Current/History tab switcher were removed per product direction.
 
   Receipt detail: each completed row has a "view receipt" icon (Proof of Compute)
