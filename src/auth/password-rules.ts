@@ -53,9 +53,9 @@ export function validatePassword(
     return { ok: false, reason: "too_long" };
   }
 
-  const hasLetter = /[A-Za-z]/.test(password);
+  const hasUppercase = /[A-Z]/.test(password);
   const hasNumber = /\d/.test(password);
-  if (!hasLetter || !hasNumber) {
+  if (!hasUppercase || !hasNumber) {
     return { ok: false, reason: "no_mix" };
   }
 

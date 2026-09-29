@@ -13,106 +13,116 @@
     <view>
       <text class="est-step">{{ t.onboarding.step2of3 }}</text>
       <text class="est-title">{{ t.onboarding.estimatorTitleH }}</text>
-      <text class="est-hint">{{ detected ? t.onboarding.estimatorHint : t.onboarding.detecting }}</text>
+      <text class="est-hint">{{ phoneEstimate ? t.onboarding.estimatorHint : t.onboarding.estimatorSubtitle }}</text>
     </view>
 
-    <!-- Device reveal: loading → phone card -->
+    <!-- Only completed calibration for this account and installation supplies phone figures. -->
     <view class="est-reveal">
-      <transition name="est-fade" mode="out-in">
-        <view v-if="!detected" key="loading" class="est-loading">
-          <svg class="est-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round">
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-          </svg>
-          <text class="est-loading__t">{{ t.onboarding.detecting }}</text>
-        </view>
-        <view v-else key="reveal" class="est-phone anim-up">
-          <view class="est-phone__pill">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-            <text class="est-phone__pill-t">{{ t.onboarding.detected }}</text>
-          </view>
+      <view class="est-phone" :data-calibrated="!!phoneEstimate">
+        <view class="est-phone__header">
           <view class="est-phone__icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <rect x="5" y="2" width="14" height="20" rx="2" /><path d="M12 18h.01" />
             </svg>
           </view>
-          <view class="est-phone__body">
-            <text class="est-phone__name">{{ t.onboarding.yourPhone }}</text>
-            <text class="est-phone__spec">{{ t.onboarding.mobileNpu }}</text>
-          </view>
-          <view class="est-phone__rate">
-            <text class="est-phone__rate-v">~$0.06</text>
-            <text class="est-phone__rate-u">{{ t.onboarding.perDay }}</text>
+          <text class="est-phone__name">{{ t.onboarding.yourPhone }}</text>
+          <view class="est-phone__pill" :class="{ 'est-phone__pill--ready': phoneEstimate }">
+            <text>{{ phoneEstimate ? t.onboarding.calibrationDone : t.onboarding.calibrationPending }}</text>
           </view>
         </view>
-      </transition>
+        <view class="est-phone__metrics">
+          <view>
+            <text class="est-phone__label">{{ t.onboarding.estimatorScore }}</text>
+            <text class="est-phone__score est-phone__value">{{ phoneEstimate ? phoneEstimate.score : '—' }}<text v-if="phoneEstimate" class="est-phone__unit"> /100</text></text>
+          </view>
+          <view>
+            <text class="est-phone__label">{{ t.onboarding.estimatorYield }}</text>
+            <template v-if="phoneEstimate">
+              <text class="est-phone__yield est-phone__value">~${{ phoneEstimate.usdt.toFixed(2) }}<text class="est-phone__unit"> {{ t.onboarding.perDay }}</text></text>
+              <text class="est-phone__nex">+{{ phoneEstimate.nex }} NEX {{ t.onboarding.perDay }}</text>
+            </template>
+            <text v-else class="est-phone__pending">{{ t.onboarding.estimatorPendingValue }}</text>
+          </view>
+        </view>
+      </view>
     </view>
 
     <!-- Upgrade comparison -->
-    <view v-if="detected" class="est-compare anim-up-delay">
+    <view v-if="s1 || pro" class="est-compare">
       <text class="est-compare__h">{{ t.onboarding.unlockMore }}</text>
-      <view class="cmp">
+      <view v-if="s1" class="cmp">
         <view class="cmp__icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
         </view>
         <view class="cmp__body">
-          <text class="cmp__label">{{ t.onboarding.withS1 }}</text>
-          <text class="cmp__sub">{{ multS1 }}× {{ t.onboarding.yourCurrentRate }}</text>
+          <text class="cmp__label">{{ s1.name }}</text>
+          <text class="cmp__sub">+{{ s1.dailyEarnNEX }} NEX {{ t.onboarding.perDay }}</text>
         </view>
-        <text class="cmp__val">${{ s1.toFixed(2) }}{{ t.onboarding.perDay }}</text>
+        <text class="cmp__val">~${{ s1.dailyEarn.toFixed(2) }}{{ t.onboarding.perDay }}</text>
       </view>
-      <view class="cmp">
+      <view v-if="pro" class="cmp">
         <view class="cmp__icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" /></svg>
         </view>
         <view class="cmp__body">
-          <text class="cmp__label">{{ t.onboarding.withPro }}</text>
-          <text class="cmp__sub">~${{ (pro * 30).toFixed(0) }}{{ t.onboarding.perMonth }}</text>
+          <text class="cmp__label">{{ pro.name }}</text>
+          <text class="cmp__sub">+{{ pro.dailyEarnNEX }} NEX {{ t.onboarding.perDay }}</text>
         </view>
-        <text class="cmp__val">${{ pro.toFixed(2) }}{{ t.onboarding.perDay }}</text>
+        <text class="cmp__val">~${{ pro.dailyEarn.toFixed(2) }}{{ t.onboarding.perDay }}</text>
       </view>
     </view>
 
     <!-- CTA -->
     <view class="est-cta">
-      <view class="est-go" :class="{ 'est-go--on': detected, 'active:scale-[0.98]': detected }" role="button" :tabindex="detected ? 0 : -1" :aria-disabled="!detected" data-system-chrome-primary @click="goConnect" @keydown.enter.prevent="goConnect" @keydown.space.prevent="goConnect">
-        <text class="est-go__t">{{ t.onboarding.startEarning }}</text>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="detected ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+      <view class="est-go est-go--on active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="goConnect" @keydown.enter.prevent="goConnect" @keydown.space.prevent="goConnect">
+        <text class="est-go__t">{{ t.onboarding.calibrationStart }}</text>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
     </view>
   </StandalonePageShell>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { computed } from "vue";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import { useT } from "@/i18n/use-t";
 import { onLoad } from "@dcloudio/uni-app";
 import { getCarrier } from "@/lib/carrier";
+import { getDeviceId } from "@/lib/device-id";
+import { matchesPhoneBinding } from "@/lib/phone-policy";
+import { useAuth } from "@/store/auth";
+import { useApp } from "@/store/app";
+import { readCalibratedInstallation } from "@/store/session";
+import { getProduct } from "@/mock/products";
+import { productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
 
 onLoad(() => {
-  if (getCarrier() === "h5") uni.reLaunch({ url: "/pages/register/success?download=1" });
+  if (getCarrier() === "h5") {
+    uni.reLaunch({ url: "/pages/register/success?download=1" });
+    return;
+  }
+  void refreshProductCatalog();
 });
 
 const t = useT();
-const detected = ref(false);
-
-const PHONE_RATE = 0.06;
-const s1 = 7;
-const pro = 13;
-const multS1 = Math.round(s1 / PHONE_RATE);
-
-let timer: ReturnType<typeof setTimeout> | undefined;
-onMounted(() => {
-  timer = setTimeout(() => {
-    detected.value = true;
-  }, 1200);
+const auth = useAuth();
+const app = useApp();
+const phoneEstimate = computed(() => {
+  const installationId = getDeviceId();
+  const binding = app.phoneBinding;
+  if (!auth.isAuthenticated || readCalibratedInstallation(auth.email || auth.accountId) !== installationId
+    || binding?.installationId !== installationId) return null;
+  const phone = app.devices.find(device => device.kind === "phone" && matchesPhoneBinding(device, binding));
+  if (!phone || typeof phone.capabilityScore !== "number" || !Number.isFinite(phone.capabilityScore)
+    || phone.capabilityScore < 0 || phone.capabilityScore > 100
+    || !Number.isFinite(phone.baseRate) || phone.baseRate < 0
+    || !Number.isFinite(phone.baseRateNEX) || phone.baseRateNEX < 0) return null;
+  return { score: phone.capabilityScore, usdt: phone.baseRate, nex: phone.baseRateNEX };
 });
-onUnmounted(() => {
-  if (timer) clearTimeout(timer);
-});
+const s1 = computed(() => productCatalogState.status === "ready" ? getProduct("stellarbox-s1") : undefined);
+const pro = computed(() => productCatalogState.status === "ready" ? getProduct("stellarbox-pro") : undefined);
 
 function goConnect() {
-  if (!detected.value) return;
   uni.reLaunch({ url: "/pages/onboarding/connect", fail: () => {} });
 }
 function leaveEstimator() {
@@ -179,69 +189,38 @@ function leaveEstimator() {
 .est-reveal {
   margin-top: 20px;
 }
-.est-loading {
-  height: 88px;
-  background: var(--v5-surface);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-.est-spin {
-  animation: est-spin 0.9s linear infinite;
-}
-@keyframes est-spin {
-  to { transform: rotate(360deg); }
-}
-.est-loading__t {
-  font-size: 13px;
-  color: var(--v5-ink-3);
-}
 .est-phone {
-  position: relative;
-  background: linear-gradient(135deg, color-mix(in oklab, var(--v5-brand) 12%, transparent), var(--v5-surface) 60%);
+  background: var(--v5-content-surface);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 16px;
+}
+.est-phone__header {
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 0 24px -4px rgba(198, 255, 58, 0.35);
 }
 .est-phone__pill {
-  position: absolute;
-  top: -10px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
   font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 2px 8px;
+  padding: 4px 8px;
   border-radius: 9999px;
-  background: var(--v5-brand);
+  background: var(--v5-surface-2);
+  color: var(--v5-ink-3);
 }
-.est-phone__pill-t {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--v5-on-brand);
+.est-phone__pill--ready {
+  background: color-mix(in oklab, var(--v5-brand) 12%, transparent);
+  color: var(--v5-brand);
 }
 .est-phone__icon {
   width: 40px;
   height: 40px;
   border-radius: 8px;
   background: color-mix(in oklab, var(--v5-brand) 25%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--v5-brand) 40%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-.est-phone__body {
-  flex: 1;
-  min-width: 0;
 }
 .est-phone__name {
   display: block;
@@ -249,29 +228,33 @@ function leaveEstimator() {
   font-weight: 600;
   color: var(--v5-ink);
 }
-.est-phone__spec {
+.est-phone__metrics {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+.est-phone__label {
   display: block;
   font-size: 12px;
-  color: color-mix(in oklab, var(--v5-brand) 90%, transparent);
-  margin-top: 2px;
+  color: var(--v5-ink-3);
 }
-.est-phone__rate {
-  text-align: right;
-  flex-shrink: 0;
-}
-.est-phone__rate-v {
+.est-phone__value {
   display: block;
+  margin-top: 6px;
   font-family: var(--font-v5);
   font-variant-numeric: tabular-nums;
   font-size: 20px;
   font-weight: 600;
   color: var(--v5-brand);
 }
-.est-phone__rate-u {
-  display: block;
+.est-phone__unit, .est-phone__nex {
   font-size: 12px;
-  color: var(--v5-ink-4);
+  font-weight: 400;
+  color: var(--v5-ink-3);
 }
+.est-phone__nex { display: block; margin-top: 4px; }
+.est-phone__pending { display: block; margin-top: 8px; font-size: 13px; color: var(--v5-ink-2); }
 .est-compare {
   margin-top: 16px;
   display: flex;
@@ -360,23 +343,4 @@ function leaveEstimator() {
   color: var(--v5-on-brand);
 }
 
-/* entrance */
-.anim-up {
-  animation: est-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.anim-up-delay {
-  animation: est-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
-}
-@keyframes est-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.est-fade-enter-active,
-.est-fade-leave-active {
-  transition: opacity 0.25s;
-}
-.est-fade-enter-from,
-.est-fade-leave-to {
-  opacity: 0;
-}
 </style>

@@ -104,6 +104,35 @@ async function checkIntro(page, locale) {
   return checkCtaPlacement(page, ".cn-why");
 }
 
+async function checkEstimator(page, expected = null) {
+  const phone = page.locator(".est-phone");
+  await phone.waitFor();
+  assert.equal(await phone.getAttribute("data-calibrated"), String(!!expected));
+  assert.doesNotMatch(await page.locator(".est-root").innerText(), /\b(?:TOPS|TFLOPS|117\s*×)\b|万亿|运算\/秒|已识别/iu);
+  assert.equal(await page.locator(".est-loading").count(), 0, "entry must not simulate device detection");
+  if (expected) {
+    assert.deepEqual((await phone.locator(".est-phone__score").innerText()).match(/\d+(?:\.\d+)?/g), [String(expected.score), "100"]);
+    assert.ok((await phone.locator(".est-phone__yield").innerText()).includes(`~$${expected.usdt.toFixed(2)}`));
+    assert.ok((await phone.locator(".est-phone__nex").innerText()).includes(`+${expected.nex} NEX`));
+    assert.equal(await phone.locator(".est-phone__pending").count(), 0);
+  } else {
+    assert.equal((await phone.locator(".est-phone__score").innerText()).trim(), "—");
+    assert.equal(await phone.locator(".est-phone__yield, .est-phone__nex").count(), 0, "uncalibrated phone must not display a default earnings estimate");
+    assert.ok((await phone.locator(".est-phone__pending").innerText()).trim());
+  }
+  const geometry = await page.locator(".est-root").evaluate(root => {
+    const card = root.querySelector(".est-phone").getBoundingClientRect();
+    const pill = root.querySelector(".est-phone__pill").getBoundingClientRect();
+    const button = root.querySelector(".est-go").getBoundingClientRect();
+    return { width: root.clientWidth, scrollWidth: root.scrollWidth, viewportWidth: innerWidth,
+      card: card.toJSON(), pill: pill.toJSON(), button: button.toJSON() };
+  });
+  assert.ok(geometry.scrollWidth <= geometry.width + 1, "estimator must not overflow horizontally");
+  assert.ok(geometry.pill.right <= geometry.card.right && geometry.pill.left >= geometry.card.left, "calibration status must fit in the phone section");
+  assert.ok(geometry.button.height >= 44 && geometry.button.left >= 0 && geometry.button.right <= geometry.viewportWidth, "calibration action must keep a usable tap target");
+  return { text: await phone.innerText(), geometry };
+}
+
 async function persistedState(page) {
   return page.evaluate(() => {
     const auth = uni.getStorageSync("nexgrid-auth-v1");
@@ -187,12 +216,25 @@ async function runCase(base, { locale, mode, width, height }) {
     assert.equal(result.before.calibratedDeviceMatches, false, "calibration must not already be marked complete");
     assert.equal(result.before.onboardingComplete, mode !== "first");
     assert.equal(result.before.accountComplete, mode !== "first");
+    const estimator = `${base}/?nx_device_inner=1#/pages/onboarding/estimator`;
+    if (mode === "first") {
+      await page.goto(estimator, { waitUntil: "domcontentloaded" });
+      result.estimatorBefore = await checkEstimator(page);
+      // connect has already cached capability; elapsed time still must not imply completion.
+      await page.waitForTimeout(1500);
+      await checkEstimator(page);
+      await screenshot("estimator-pending");
+      await page.locator(".est-go").press("Enter");
+      await page.waitForURL(/#\/pages\/onboarding\/connect/);
+      await checkIntro(page, locale);
+    }
     if (locale === "en" && width === 320) {
       await page.locator('.cn-go--glow[aria-disabled="false"]').click();
       await page.waitForFunction(() => parseFloat(document.querySelector(".cn-test__fill")?.style.width || "0") >= 10);
       await page.locator(".cn-back").click();
       await page.waitForURL(mode === "first" ? /#\/pages\/onboarding\/estimator/ : /#\/pages\/me\/devices/);
       assert.equal((await persistedState(page)).calibratedDeviceMatches, false, "leaving calibration must not activate");
+      if (mode === "first") result.estimatorAfterCancel = await checkEstimator(page);
       await page.evaluate(mode => uni.navigateTo({ url: `/pages/onboarding/connect${mode === "recalibrate" ? "?mode=recalibrate" : ""}` }), mode);
       await checkIntro(page, locale);
       result.calibratingExit = true;
@@ -329,6 +371,11 @@ async function runCase(base, { locale, mode, width, height }) {
       assert.ok(state.phone.miningSince >= started, "activation must write a fresh phone calibration");
     }
     assert.deepEqual(result.afterReload, result.afterActivation, "calibration must survive reload");
+    await page.goto(estimator, { waitUntil: "domcontentloaded" });
+    result.estimatorAfter = await checkEstimator(page, result.expected);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    result.estimatorAfterReload = await checkEstimator(page, result.expected);
+    await screenshot("estimator-calibrated");
     if (locale === "en" && width === 320) {
       await page.goto(connect, { waitUntil: "domcontentloaded" });
       await checkIntro(page, locale);
