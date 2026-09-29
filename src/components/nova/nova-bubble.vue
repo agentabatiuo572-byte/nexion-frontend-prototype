@@ -19,10 +19,8 @@
 <template>
   <view>
     <view v-if="visible" class="nx-nova-bubble" role="button" tabindex="0" :aria-label="t.conversations.title" :class="{ 'nx-nova-bubble--dimmed': dimmed }" @click="open">
-      <view class="nx-nova-btn">
-        <view class="nx-nova-motion">
-          <NovaAvatar :size="36" :pulse="showUnreadBadge && !dimmed" class="nx-nova-avatar" />
-        </view>
+      <view class="nx-nova-btn nx-nova-motion">
+        <NovaAvatar :size="36" :pulse="showUnreadBadge && !dimmed" class="nx-nova-avatar" />
         <view v-if="showUnreadBadge" :key="totalUnread" class="nx-nova-badge"><text class="nx-nova-badge-t">{{ unreadLabel }}</text></view>
       </view>
     </view>
@@ -225,12 +223,13 @@ onUnmounted(() => {
   place-items: center;
   background: var(--v5-surface);
 }
-/* Float the artwork while keeping the outer hit target stationary. */
+/* Float the avatar and badge together while keeping the outer hit target stationary. */
 .nx-nova-motion { position: relative; z-index: 1; animation: nx-nova-float 3.4s ease-in-out infinite; }
 @keyframes nx-nova-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 .nx-nova-bubble--dimmed .nx-nova-motion { animation-play-state: paused; }
 .nx-nova-badge {
   position: absolute;
+  z-index: 2;
   top: -4px;
   right: -4px;
   min-width: 18px;

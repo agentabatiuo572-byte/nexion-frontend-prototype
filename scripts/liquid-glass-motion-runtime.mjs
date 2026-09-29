@@ -315,11 +315,37 @@ try {
         assert.equal(await chassis().locator('.nx-header__l').getAttribute('data-hidden'),'true','reverse scroll must not reveal the logo over content');
         await scrollContent(-10000);await chassis().locator('.nx-header__l[data-hidden="false"]').waitFor({state:'attached'});
         const novaButton = chassis().locator('.nx-nova-motion');
+        await novaButton.waitFor(); // The first unread push is delayed; every tab must be checked.
         if (await novaButton.count()) {
           assert.notEqual(await novaButton.evaluate(el=>getComputedStyle(el).animationName),'none','Nova idle motion restored');
-          assert.equal(await chassis().locator('.nx-nova-btn').evaluate(el=>getComputedStyle(el).animationName),'none','Optical shell stays still while the avatar floats');
+          const bubble=chassis().locator('.nx-nova-bubble');
+          await page.waitForFunction(id=>{const el=document.getElementById(id)?.querySelector('.nx-nova-bubble');return el && getComputedStyle(el).opacity==='1';},await chassis().getAttribute('id'));
+          assert.equal(await bubble.evaluate(el=>getComputedStyle(el).animationName),'none','Nova outer hit target stays still');
+          const badgeMotion=await bubble.evaluate(async el=>{
+            const float=el.querySelector('.nx-nova-motion').getAnimations().find(a=>a.animationName.includes('nova-float'));
+            float.pause();
+            try {
+              const samples=[];
+              for(const time of [0,850,1700,2550,3400]) {
+                float.currentTime=time;
+                await new Promise(requestAnimationFrame);
+                // A scheduled unread push may replace the badge during this frame.
+                for(const a of el.querySelector('.nx-nova-badge').getAnimations())a.finish();
+                const avatar=el.querySelector('.nx-nova-avatar').getBoundingClientRect(),badge=el.querySelector('.nx-nova-badge').getBoundingClientRect();
+                const hit=document.elementFromPoint(badge.left+5,badge.bottom-5);
+                samples.push({time,avatarY:avatar.y,badgeY:badge.y,offset:badge.y-avatar.y,target:el.getBoundingClientRect().toJSON(),onTop:!!hit?.closest('.nx-nova-badge'),inViewport:badge.left>=0 && badge.right<=innerWidth && badge.top>=0 && badge.bottom<=innerHeight});
+              }
+              return samples;
+            } finally {float.play();}
+          });
+          assert.ok(badgeMotion.every(s=>s.onTop && s.inViewport),'Nova unread badge must remain visible above the avatar');
+          assert.ok(badgeMotion.every(s=>Math.abs(s.offset-badgeMotion[0].offset)<.1),'Nova badge must float with its avatar: '+JSON.stringify(badgeMotion));
+          assert.ok(Math.abs(badgeMotion[0].avatarY-badgeMotion[2].avatarY-3)<.1,'Nova avatar still floats by 3px');
+          for(const sample of badgeMotion)assert.deepEqual(sample.target,badgeMotion[0].target,'Nova outer hit target must not drift');
+          log('nova-badge-motion-'+route,{samples:badgeMotion});
           await page.emulateMedia({reducedMotion:'reduce'});
           assert.equal(await novaButton.evaluate(el=>getComputedStyle(el).animationName),'none');
+          assert.equal(await bubble.locator('.nx-nova-badge').evaluate(el=>getComputedStyle(el).animationName),'none');
           const halo=chassis().locator('.nx-nova-halo');
           if(await halo.count()) assert.equal(await halo.evaluate(el=>getComputedStyle(el).animationName),'none');
           await page.emulateMedia({reducedMotion:'no-preference'});
