@@ -32,6 +32,7 @@ import { computed, onMounted, onUnmounted } from "vue";
 import { useNova } from "@/store/nova";
 import { useConversations } from "@/store/conversations";
 import { useNotifications, type NotifKind } from "@/store/notifications";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { remoteApiEnabled } from "@/api/runtime";
 import { welcomeMessage } from "@/mock/nova-templates";
 import { useGenesisConfig } from "@/store/genesis-config";
@@ -63,7 +64,7 @@ const totalUnread = computed(() =>
 );
 const visible = computed(() => remoteApiEnabled || totalUnread.value > 0);
 const showUnreadBadge = computed(() => totalUnread.value > 0);
-const unreadLabel = computed(() => (totalUnread.value > 9 ? "9+" : String(totalUnread.value)));
+const unreadLabel = computed(() => formatUnreadBadge(totalUnread.value));
 
 function open() {
   navTo("/pages/support/messages");

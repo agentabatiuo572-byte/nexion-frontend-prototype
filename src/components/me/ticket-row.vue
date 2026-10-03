@@ -31,6 +31,7 @@
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { STATUS_COLOR, type Ticket } from "@/domain/support";
 
 const props = withDefaults(defineProps<{ tk: Ticket; divider?: boolean }>(), { divider: true });
@@ -40,7 +41,7 @@ const t = useT();
 const statusColor = computed(() => STATUS_COLOR[props.tk.status]);
 const statusLabel = computed(() => t.value.tickets.status[props.tk.status]);
 const categoryLabel = computed(() => t.value.tickets.category[props.tk.category]);
-const unreadLabel = computed(() => fmt(t.value.tickets.unreadChip, { n: props.tk.unread }));
+const unreadLabel = computed(() => fmt(t.value.tickets.unreadChip, { n: formatUnreadBadge(props.tk.unread) }));
 const messageCountLabel = computed(() => fmt(t.value.tickets.messagesCount, { n: props.tk.messageCount }));
 const openLabel = computed(() => fmt(t.value.tickets.openAria, { id: props.tk.id, subject: props.tk.subject }));
 

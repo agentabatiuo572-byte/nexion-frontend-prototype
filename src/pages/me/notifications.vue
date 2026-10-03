@@ -15,7 +15,7 @@
       <!-- unread badge + action buttons -->
       <view class="px-4 flex items-center justify-between" style="padding-bottom: 8px">
         <view class="flex items-center" style="gap: 4px">
-          <text v-if="notifs.unread > 0" :style="unreadBadgeStyle">{{ notifs.unread }}</text>
+          <text v-if="notifs.unread > 0" :style="unreadBadgeStyle">{{ formatUnreadBadge(notifs.unread) }}</text>
         </view>
         <view class="flex items-center" style="gap: 4px">
           <view v-if="notifs.unread > 0" class="flex items-center active:opacity-70" :style="actionBtnStyle('var(--v5-brand)')" @click="notifs.markAllRead()">
@@ -86,6 +86,7 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNotifications, type NotifKind, type Notification } from "@/store/notifications";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { navTo } from "@/lib/route";
 import { notificationCopy } from "@/lib/notification-copy";
 import { remoteApiEnabled } from "@/api/runtime";

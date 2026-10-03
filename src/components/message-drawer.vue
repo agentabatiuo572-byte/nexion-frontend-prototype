@@ -55,7 +55,7 @@
             >
               <text class="md-tab-t" :class="{ 'md-tab-t--on': filter === id }">{{ filterLabel(id) }}</text>
               <view v-if="countUnread(id) > 0" class="md-tab-badge" :class="{ 'md-tab-badge--on': filter === id }">
-                <text class="md-tab-badge-t" :class="{ 'md-tab-badge-t--on': filter === id }">{{ countUnread(id) }}</text>
+                <text class="md-tab-badge-t" :class="{ 'md-tab-badge-t--on': filter === id }">{{ formatUnreadBadge(countUnread(id)) }}</text>
               </view>
             </view>
           </template>
@@ -128,6 +128,7 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useMessageDrawer } from "@/store/message-drawer";
 import { useNotifications, type NotifKind, type Notification } from "@/store/notifications";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { navTo } from "@/lib/route";
 import { notificationCopy } from "@/lib/notification-copy";

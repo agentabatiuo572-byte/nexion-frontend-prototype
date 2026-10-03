@@ -71,7 +71,7 @@
               </view>
               <view class="nx-conv-rowbot">
                 <text class="nx-conv-rowprev" :style="r.typing ? { color: r.tint } : undefined">{{ r.preview }}</text>
-                <view v-if="r.unread > 0" class="nx-conv-unread"><text class="nx-conv-unread-t">{{ r.unread > 9 ? "9+" : String(r.unread) }}</text></view>
+                <view v-if="r.unread > 0" class="nx-conv-unread"><text class="nx-conv-unread-t">{{ formatUnreadBadge(r.unread) }}</text></view>
               </view>
             </view>
           </view>
@@ -89,6 +89,7 @@ import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import NovaAvatar from "@/components/nova/nova-avatar.vue";
 import { useT } from "@/i18n/use-t";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { fmt } from "@/i18n/format";
 import { navTo } from "@/lib/route";
 import { useConversations } from "@/store/conversations";

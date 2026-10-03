@@ -178,6 +178,7 @@ import DeviceHomeIndicator from "@/components/device/device-home-indicator.vue";
 import DeviceStatusBar from "@/components/device/device-status-bar.vue";
 import { useT } from "@/i18n/use-t";
 import { useNotifications } from "@/store/notifications";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { useMessageDrawer } from "@/store/message-drawer";
 import { useRefresh } from "@/store/refresh";
 import { useTrialClaimSheet } from "@/store/trial-claim-sheet";
@@ -523,7 +524,7 @@ function navBack() {
 }
 
 const unread = computed(() => notifications.unread);
-const unreadLabel = computed(() => (unread.value > 99 ? "99+" : String(unread.value)));
+const unreadLabel = computed(() => formatUnreadBadge(unread.value));
 
 // ── layout insets ──
 const statusBarHeight = computed(() => {

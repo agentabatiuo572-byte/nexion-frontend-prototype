@@ -1,6 +1,6 @@
 <!--
   Me — ported from Nexion-prototype/app/(main)/me/page.tsx (13 sections).
-  Top→bottom: ProfileRow → WalletCard → WithdrawalLockedWarning (if balance < $20)
+  Top→bottom: ProfileRow → WalletCard
   → TrialEntry (hero, if eligible) → OKX-style quick sections (network / devices
   / account / preferences / help) → TrialEntry (active row, if
   trial running) → OrdersCard (if any orders) → Sign out → version footer.
@@ -30,8 +30,6 @@
       <ProfileRow />
 
       <WalletCard />
-
-      <WithdrawalLockedWarning v-if="showWithdrawalLocked" :balance="usdtBalance" />
 
       <!-- Hero slot — zero-cost trial activation right after wallet -->
       <TrialEntry v-if="trialIsHero" />
@@ -88,7 +86,6 @@ import CardStagger from "@/components/card-stagger.vue";
 import SectionHeader from "@/components/me/section-header.vue";
 import ProfileRow from "@/components/me/profile-row.vue";
 import WalletCard from "@/components/me/wallet-card.vue";
-import WithdrawalLockedWarning from "@/components/me/withdrawal-locked-warning.vue";
 import TrialEntry from "@/components/me/trial-entry.vue";
 import OrdersCard from "@/components/me/orders-card.vue";
 import ThemePickerSheet from "@/components/me/theme-picker-sheet.vue";
@@ -108,6 +105,7 @@ import { trialReservesSlotNow, useFreeTrial } from "@/store/free-trial";
 import { useSecurity } from "@/store/security";
 import { rebindAccountScopedStores } from "@/lib/account-scope";
 import { useNotifications } from "@/store/notifications";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { useGenesis } from "@/store/genesis";
 import { useConfig } from "@/store/config";
 import { useAchievements } from "@/store/achievements";
@@ -119,8 +117,6 @@ import { useTheme } from "@/store/theme";
 import { ACHIEVEMENTS } from "@/mock/achievements";
 import { confirm as uiConfirm } from "@/store/ui";
 import { authApi, remoteApiEnabled } from "@/api/runtime";
-
-const MIN_WITHDRAWAL_USD = 20;
 
 const t = useT();
 const app = useApp();
@@ -200,8 +196,6 @@ interface QuickSection {
   items: QuickItem[];
 }
 
-const usdtBalance = computed(() => app.user.usdtBalance);
-const showWithdrawalLocked = computed(() => usdtBalance.value < MIN_WITHDRAWAL_USD);
 const profileName = computed(() => profile.displayName);
 const receiptCount = computed(() => receipts.receipts.length);
 const orderCount = computed(() => orders.orders.length);
@@ -305,7 +299,7 @@ const quickSections = computed<QuickSection[]>(() => [
     key: "help",
     title: t.value.me.secHelp,
     items: [
-      { key: "messages", label: t.value.me.supportMessagesRow, href: "/support/messages", icon: "messages", badge: unreadNotifs.value > 0 ? String(unreadNotifs.value) : undefined, tone: "purple" },
+      { key: "messages", label: t.value.me.supportMessagesRow, href: "/support/messages", icon: "messages", badge: formatUnreadBadge(unreadNotifs.value) || undefined, tone: "purple" },
       { key: "support", label: t.value.me.liveSupportRow, href: "/me/support", icon: "chat", meta: t.value.me.onlineChip, tone: "success" },
       { key: "faq", label: t.value.me.helpFaq, href: "/me/help", icon: "help", tone: "muted" },
       { key: "tickets", label: t.value.me.supportTicketsRow, href: "/me/support-tickets", icon: "ticket", tone: "orange" },
