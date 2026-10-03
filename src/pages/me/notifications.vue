@@ -10,17 +10,17 @@
 <template>
   <AppChassis active="me">
     <view style="padding-bottom: 24px">
-      <SubPageHeader back="/pages/me/me" />
+      <SubPageHeader back="/pages/me/me" :title="t.notifs.drawerTitle" />
 
       <!-- unread badge + action buttons -->
-      <view class="px-4 flex items-center justify-between" style="padding-bottom: 8px">
-        <view class="flex items-center" style="gap: 4px">
+      <view class="px-4 notification-summary">
+        <view class="notification-count">
           <text v-if="notifs.unread > 0" :style="unreadBadgeStyle">{{ formatUnreadBadge(notifs.unread) }}</text>
         </view>
-        <view class="flex items-center" style="gap: 4px">
+        <view class="notification-actions">
           <view v-if="notifs.unread > 0" class="flex items-center active:opacity-70" :style="actionBtnStyle('var(--v5-brand)')" @click="notifs.markAllRead()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
-            <text style="margin-left: 4px">{{ t.notifs.markAll }}</text>
+            <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
+            <text class="min-w-0" style="margin-left: 4px; line-height: 1.25">{{ t.notifs.markAll }}</text>
           </view>
           <view v-if="hasRead" class="flex items-center active:opacity-70" :style="actionBtnStyle('var(--v5-ink-3)')" @click="notifs.clearRead()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
@@ -207,7 +207,7 @@ const unreadBadgeStyle: CSSProperties = {
   fontWeight: 600,
 };
 function actionBtnStyle(color: string): CSSProperties {
-  return { height: "36px", padding: "0 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 600, color };
+  return { minHeight: "36px", maxWidth: "100%", padding: "4px 10px", boxSizing: "border-box", borderRadius: "999px", fontSize: "12px", fontWeight: 600, color };
 }
 function pillStyle(active: boolean): CSSProperties {
   return {
@@ -277,3 +277,28 @@ function ctaStyle(k: NotifKind): CSSProperties {
   return { fontSize: "12px", fontWeight: 600, color: KIND_META[k].tint, marginTop: "6px" };
 }
 </script>
+
+<style scoped>
+.notification-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  padding-bottom: 8px;
+}
+.notification-count {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.notification-actions {
+  grid-column: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+</style>
