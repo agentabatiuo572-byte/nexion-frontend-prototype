@@ -49,6 +49,9 @@
       <!-- ── 专属地址 + QR(所选网络启用时)── -->
       <view v-if="activeNet" style="margin-top: 18px">
         <view><text class="font-mono-tabular" :style="metaLabelStyle">{{ fmt(t.topupChrome.sendVia, { network: activeLabel }) }}</text></view>
+        <view v-if="fundsServerEnabled && !serverCreditEnabled" class="nx-dep-credit-paused-note" :style="warnlineStyle">
+          <text :style="warnTextStyle">{{ t.topupChrome.creditPausedNote }}</text>
+        </view>
         <view v-if="address" class="nx-dep-qr-box" :style="qrBoxStyle">
           <view :style="qrGridStyle" aria-hidden>
             <view v-for="(d, i) in qrCells" :key="i" :style="d ? qrDarkCellStyle : undefined" />
@@ -130,7 +133,7 @@
               </view>
               <view class="flex items-center justify-between" style="gap: 8px; margin-top: 2px">
                 <text class="truncate font-mono-tabular" :style="rowSubStyle">{{ netShort(r.channel) }} · {{ r.depositId }}</text>
-                <text v-if="stateText(r)" :style="stateTextStyle(r)" style="white-space: nowrap">{{ stateText(r) }}</text>
+                <text v-if="stateText(r)" :style="stateTextStyle(r)">{{ stateText(r) }}</text>
               </view>
               <view v-if="isInFlight(r)" :style="progTrackStyle"><view :style="progFillStyle(r)" /></view>
               <view v-if="noteText(r)"><text class="block" :style="noteStyle">{{ noteText(r) }}</text></view>
@@ -200,7 +203,12 @@ let pollTimer: ReturnType<typeof setInterval> | undefined;
 let loadGeneration = 0;
 const serverAddress = ref("");
 const serverEnabled = ref(false);
-const serverRecords = ref<(DepositRecord & { reviewHold?: boolean })[]>([]);
+const serverCreditEnabled = ref(false);
+type PaneDepositRecord = Omit<DepositRecord, "status"> & {
+  status: DepositRecord["status"] | "reorg_investigating" | "provider_conflict_hold";
+  reviewHold?: boolean;
+};
+const serverRecords = ref<PaneDepositRecord[]>([]);
 const copied = ref(false);
 const minDeposit = ref(MIN_DEPOSIT_USDT);
 const feeUsdt = ref(0);
@@ -220,6 +228,7 @@ function load(background = false) {
         if (generation !== loadGeneration || account !== app.accountKey
             || bindingEpoch !== app.accountBindingEpoch || !remoteSessionReady.value) return;
         serverEnabled.value = snapshot.enabled;
+        serverCreditEnabled.value = snapshot.creditEnabled === true;
         serverAddress.value = snapshot.enabled ? snapshot.address ?? "" : "";
         minDeposit.value = snapshot.minDepositUsdt ?? MIN_DEPOSIT_USDT;
         feeUsdt.value = snapshot.feeUsdt ?? 0;
@@ -227,11 +236,13 @@ function load(background = false) {
         serverRecords.value = deposits.map((row) => ({
           depositId: row.depositId, channel: "usdt-bep20", txHash: row.txHash,
           address: row.address, grossAmountUsdt: row.grossAmountUsdt,
-          feeUsdt: row.status === "CREDITED" ? row.grossAmountUsdt - row.creditedUsdt : 0,
-          creditedUsdt: row.status === "CREDITED" ? Number(row.creditedUsdt) : 0,
+          feeUsdt: row.creditedUsdt > 0 ? row.grossAmountUsdt - row.creditedUsdt : 0,
+          creditedUsdt: row.creditedUsdt,
           confirmations: row.confirmations, requiredConfirmations: confirmations.value,
           reviewHold: row.status === "REVIEW_HOLD",
           status: row.status === "CREDITED" ? "credited"
+            : row.status === "REORG_INVESTIGATING" ? "reorg_investigating"
+            : row.status === "PROVIDER_CONFLICT_HOLD" ? "provider_conflict_hold"
             : row.status === "CONFIRMING" ? "confirming" : "dust_hold",
           createdAt: row.createdAt, creditedAt: row.creditedAt ?? undefined,
         }));
@@ -241,6 +252,7 @@ function load(background = false) {
             && bindingEpoch === app.accountBindingEpoch && remoteSessionReady.value) {
           serverAddress.value = "";
           serverEnabled.value = false;
+          serverCreditEnabled.value = false;
           phase.value = "error";
         }
       }
@@ -257,6 +269,7 @@ watch([remoteSessionReady, () => app.accountKey, () => app.accountBindingEpoch],
   loadGeneration++;
   serverAddress.value = "";
   serverEnabled.value = false;
+  serverCreditEnabled.value = false;
   serverRecords.value = [];
   copied.value = false;
   phase.value = "loading";
@@ -344,7 +357,7 @@ const sortedRecords = computed(() => [...(fundsServerEnabled ? serverRecords.val
 /** 法币轨(VietQR / 银行卡)入账后与链上记录同列此区,标题按通道分流。
  *  全键 Record 而非三元表达式:新增通道时 TS 强制补齐,不会静默落进 USDT 文案 ——
  *  卡轨接入本列表时正是先踩了这个(旧写法「非银行轨即 USDT」会把卡入金标成 USDT 充值)。 */
-function rowTitle(r: DepositRecord): string {
+function rowTitle(r: PaneDepositRecord): string {
   const tc = t.value.topupChrome;
   const titles: Record<DepositChannel, string> = {
     "usdt-trc20": tc.usdtDeposit,
@@ -355,18 +368,23 @@ function rowTitle(r: DepositRecord): string {
   };
   return titles[r.channel];
 }
-function rowAmount(r: DepositRecord): string {
-  const value = r.creditedUsdt > 0 ? r.creditedUsdt : r.grossAmountUsdt;
+function isRiskHold(r: PaneDepositRecord): boolean {
+  return r.status === "reorg_investigating" || r.status === "provider_conflict_hold";
+}
+function rowAmount(r: PaneDepositRecord): string {
+  const value = isRiskHold(r) || r.creditedUsdt > 0 ? r.creditedUsdt : r.grossAmountUsdt;
   return fundsServerEnabled ? value.toFixed(6).replace(/0+$/, "").replace(/\.$/, "") : value.toFixed(2);
 }
 function netShort(c: DepositChannel): string {
   return CHANNEL_SHORT[c];
 }
-function isInFlight(r: DepositRecord): boolean {
+function isInFlight(r: PaneDepositRecord): boolean {
   return r.status === "detected" || r.status === "confirming";
 }
-function stateText(r: DepositRecord): string {
+function stateText(r: PaneDepositRecord): string {
   const tc = t.value.topupChrome;
+  if (r.status === "reorg_investigating") return tc.reorgInvestigating;
+  if (r.status === "provider_conflict_hold") return tc.providerConflictHold;
   if (r.status === "credited") return tc.depositCredited;
   if (r.status === "returned") return tc.depositReturned;
   if (isInFlight(r)) {
@@ -375,22 +393,23 @@ function stateText(r: DepositRecord): string {
   }
   return ""; // dust_hold:右侧留空,整句人工处理说明走 note 行
 }
-function noteText(r: DepositRecord): string {
+function noteText(r: PaneDepositRecord): string {
   const tc = t.value.topupChrome;
+  if (isRiskHold(r)) return fmt(tc.riskHoldNote, { amount: rowAmount(r) });
   if ("reviewHold" in r && r.reviewHold) return tc.reviewHoldNote;
   if (r.status === "dust_hold") return fundsServerEnabled ? tc.dustHoldServerNote : tc.dustHoldNote;
   if (r.status === "confirming" && mockServerNow() - r.createdAt > CONFIRM_DELAY_NOTE_MS) return tc.confirmDelayed;
   return "";
 }
 /** 法币轨恒可点(跳账单页);链上轨只有已入账(credited)有交易详情可看(与 goRecord 同判据)。 */
-function recordClickable(r: DepositRecord): boolean {
+function recordClickable(r: PaneDepositRecord): boolean {
   return !isChainChannel(r.channel) || r.status === "credited";
 }
 /** 不可点记录行不注册 click 监听(同 wallet-bills.billRowOn:防 tap-feedback 门判死控件)。 */
-function recordRowOn(r: DepositRecord) {
+function recordRowOn(r: PaneDepositRecord) {
   return recordClickable(r) ? { click: () => goRecord(r) } : {};
 }
-function goRecord(r: DepositRecord) {
+function goRecord(r: PaneDepositRecord) {
   // 法币轨(银行转账 / 银行卡)无链上哈希,tx 浏览器框架页语义不符 → 跳账单页
   // (银行轨成功态的「查看账单」同口径;卡轨成功态回钱包,此处统一到账单页)。
   // 判据取自 deposits-core 单源,新增法币轨自动排除。
@@ -529,7 +548,7 @@ const rowTitleStyle: CSSProperties = {
   fontWeight: 500,
   color: "var(--v5-ink)",
 };
-function rowAmtStyle(r: DepositRecord): CSSProperties {
+function rowAmtStyle(r: PaneDepositRecord): CSSProperties {
   return {
     fontFamily: "var(--font-v5)",
     fontSize: "13px",
@@ -541,10 +560,12 @@ const rowSubStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-4)",
 };
-function stateTextStyle(r: DepositRecord): CSSProperties {
+function stateTextStyle(r: PaneDepositRecord): CSSProperties {
   return {
     fontSize: "12px",
-    color: r.status === "credited" ? "var(--v5-brand)" : r.status === "returned" ? "var(--v5-ink-4)" : "var(--v5-ink-3)",
+    whiteSpace: isRiskHold(r) ? "normal" : "nowrap",
+    textAlign: "right",
+    color: isRiskHold(r) ? "var(--v5-warning)" : r.status === "credited" ? "var(--v5-brand)" : r.status === "returned" ? "var(--v5-ink-4)" : "var(--v5-ink-3)",
   };
 }
 const progTrackStyle: CSSProperties = {
@@ -554,7 +575,7 @@ const progTrackStyle: CSSProperties = {
   background: "var(--v5-surface-3)",
   overflow: "hidden",
 };
-function progFillStyle(r: DepositRecord): CSSProperties {
+function progFillStyle(r: PaneDepositRecord): CSSProperties {
   const total = Math.max(1, r.requiredConfirmations ?? 1);
   const pct = Math.max(4, Math.round(((r.confirmations ?? 0) / total) * 100));
   return {
