@@ -87,12 +87,11 @@ const VALUE_EXEMPTIONS = [
   },
   {
     id: "support-unassigned-token",
-    why: "后端备勤池代理名仅用于未分配状态比较，显示文案仍由三语词典提供；限定文件、变量及严格相等比较位置",
+    why: "后端备勤池、待分配代理名仅用于未分配状态比较；限定文件、真实 isWaitingForAgent 返回判据、normalized 变量及严格相等比较，展示中文仍逐字检查",
     files: ["src/pages/support/chat.vue"],
-    // Only the final boolean operand of the real predicate is allowed. Anchors
-    // keep this token out of template text, string contents, assignments, and
-    // values passed to a rendering function.
-    strip: (line) => line.replace(/^(\s*return\b[^;\r\n]*\bnormalized\s*===\s*)(["'])备勤池\2(\s*;?\s*)$/, (_m, prefix, quote, suffix) => `${prefix}${quote}${quote}${suffix}`),
+    // Only the known comparison tail of the actual predicate is authorized.
+    strip: (line) => /^\s*return\s+(?:!normalized\s*\|\|\s*normalized\.toLowerCase\(\)\s*===\s*(["'])unassigned\1\s*\|\|\s*)?normalized\s*===\s*(["'])备勤池\2(?:\s*\|\|\s*normalized\s*===\s*(["'])待分配\3)?\s*;?\s*$/.test(line)
+      ? line.replace(/(["'])(?:备勤池|待分配)\1/g, (_m, quote) => `${quote}${quote}`) : line,
   },
   {
     id: "cn-title-field",
@@ -168,10 +167,36 @@ function supportIdleRegexLines(source) {
   return lines;
 }
 
+function supportUnassignedTokenLines(source) {
+  const lines = new Set();
+  const script = /^<script\b[^>]*>([\s\S]*?)^<\/script>/m.exec(source);
+  if (!script) return lines;
+  const offset = script.index + script[0].indexOf(">") + 1;
+  const lineOffset = source.slice(0, offset).split(/\r?\n/).length - 1;
+  const parsed = ts.createSourceFile("chat.ts", script[1], ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  function compare(node) {
+    if (!ts.isBinaryExpression(node)) return;
+    if (node.operatorToken.kind === ts.SyntaxKind.BarBarToken) { compare(node.left); compare(node.right); return; }
+    if (node.operatorToken.kind === ts.SyntaxKind.EqualsEqualsEqualsToken
+        && ts.isIdentifier(node.left) && node.left.text === "normalized" && ts.isStringLiteral(node.right)
+        && ["备勤池", "待分配"].includes(node.right.text)) {
+      lines.add(lineOffset + parsed.getLineAndCharacterOfPosition(node.right.getStart(parsed)).line + 1);
+    }
+  }
+  for (const node of parsed.statements) {
+    if (ts.isFunctionDeclaration(node) && node.name?.text === "isWaitingForAgent") {
+      for (const statement of node.body?.statements ?? [])
+        if (ts.isReturnStatement(statement) && statement.expression) compare(statement.expression);
+    }
+  }
+  return lines;
+}
+
 export function scanSource(file, src) {
   const stripped = decodeEscapes(stripComments(src, file.endsWith(".vue")));
   const fileRule = FILE_EXEMPTIONS.find((rule) => rule.match(file));
   const idleRegexLines = file === "src/lib/support-idle-message.ts" ? supportIdleRegexLines(src) : null;
+  const unassignedTokenLines = file === "src/pages/support/chat.vue" ? supportUnassignedTokenLines(src) : null;
   const hits = [];
   stripped.split(/\r?\n/).forEach((line, idx) => {
     if (!CJK.test(line)) return;
@@ -182,6 +207,7 @@ export function scanSource(file, src) {
     for (const rule of VALUE_EXEMPTIONS) {
       if (!rule.files.includes(file)) continue;
       if (rule.id === "support-idle-close-source-token" && !idleRegexLines?.has(idx + 1)) continue;
+      if (rule.id === "support-unassigned-token" && !unassignedTokenLines?.has(idx + 1)) continue;
       const next = rule.strip(rest);
       if (cjkCount(next) < cjkCount(rest)) used.push(rule.id);
       rest = next;
@@ -257,6 +283,7 @@ function run() {
 // 纪律:每条判据**单独隔离**验证,阳性样本只违反一条。合并成一个大样本时,
 // 任何一条判据失效都会被其它条掩盖,门看起来照样绿(踩过)。
 function selftest() {
+  const supportPredicate = (statement) => `<script setup lang="ts">\nfunction isWaitingForAgent(name: string): boolean {\n  const normalized = name.trim();\n  ${statement}\n}\n</script>`;
   const cases = [
     // [名称, 文件路径, 源码, 期望违规数]
     ["模板文本里的中文被抓", "src/pages/x/a.vue", "<template><view>正在加载</view></template>", 1],
@@ -285,8 +312,10 @@ function selftest() {
     ["豁免:cnTitle 单引号写法同样放行(宽严不许取决于引号风格)", "src/store/v-rank.ts", "cnTitle: '学员',", 0],
     ["同文件里非 cnTitle 的中文照抓", "src/store/v-rank.ts", 'v: 0, title: "学员", cnTitle: "学员",', 1],
     ["🔴 cnTitle 豁免带文件作用域:消费面塞文案照抓", "src/pages/product/detail.vue", 'const o = { cnTitle: "立即购买" };', 1],
-    ["support token comparison allowed", "src/pages/support/chat.vue", 'return !normalized || normalized.toLowerCase() === "unassigned" || normalized === "备勤池";', 0],
-    ["support token single quote allowed", "src/pages/support/chat.vue", "return normalized === '备勤池';", 0],
+    ["support token comparison allowed", "src/pages/support/chat.vue", supportPredicate('return !normalized || normalized.toLowerCase() === "unassigned" || normalized === "备勤池";'), 0],
+    ["support token single quote allowed", "src/pages/support/chat.vue", supportPredicate("return normalized === '备勤池';"), 0],
+    ["support known comparison pair allowed", "src/pages/support/chat.vue", supportPredicate('return !normalized || normalized.toLowerCase() === "unassigned" || normalized === "备勤池" || normalized === "待分配";'), 0],
+    ["support known comparison pair single quotes allowed", "src/pages/support/chat.vue", supportPredicate("return normalized === '备勤池' || normalized === '待分配';"), 0],
     ["support token display rejected", "src/pages/support/chat.vue", '<template><text>备勤池</text></template>', 1],
     ["support token assignment rejected", "src/pages/support/chat.vue", 'const label = "备勤池";', 1],
     ["support token fake comparison inside a string rejected", "src/pages/support/chat.vue", 'const source = "normalized === \\"备勤池\\"";', 1],
@@ -294,6 +323,15 @@ function selftest() {
     ["support token wrapped rendering expression rejected", "src/pages/support/chat.vue", 'return render(normalized === "备勤池");', 1],
     ["support token other file rejected", "src/pages/x/a.vue", 'return normalized === "备勤池";', 1],
     ["support token substring rejected", "src/pages/support/chat.vue", 'return normalized === "备勤池客服";', 1],
+    ["support waiting token display rejected", "src/pages/support/chat.vue", '<template><text>待分配</text></template>', 1],
+    ["support waiting token display inside predicate rejected", "src/pages/support/chat.vue", supportPredicate('return "待分配";'), 1],
+    ["support waiting token extra display operand rejected", "src/pages/support/chat.vue", supportPredicate('return "备勤池" || normalized === "备勤池" || normalized === "待分配";'), 1],
+    ["support waiting token other variable rejected", "src/pages/support/chat.vue", supportPredicate('return normalized === "备勤池" || label === "待分配";'), 1],
+    ["support waiting token loose comparison rejected", "src/pages/support/chat.vue", supportPredicate('return normalized === "备勤池" || normalized == "待分配";'), 1],
+    ["support waiting token arbitrary value rejected", "src/pages/support/chat.vue", supportPredicate('return normalized === "备勤池" || normalized === "其他客服";'), 1],
+    ["support waiting token other file rejected", "src/pages/x/a.vue", supportPredicate('return normalized === "备勤池" || normalized === "待分配";'), 1],
+    ["support waiting token wrong predicate rejected", "src/pages/support/chat.vue", supportPredicate('return normalized === "备勤池" || normalized === "待分配";').replace('function isWaitingForAgent', 'function displayAgentName'), 1],
+    ["support waiting token fake multiline predicate rejected", "src/pages/support/chat.vue", '<script setup lang="ts">\nconst source = `\nfunction isWaitingForAgent(name: string): boolean {\n  const normalized = name.trim();\n  return normalized === "备勤池" || normalized === "待分配";\n}\n`;\n</script>', 1],
     // legacy-config-token —— 阴阳两面各测一遍:只测 true 那行会让 "关"/"关闭" 半边判据无人验证。
     ["豁免:已发布 Pro 标语原值仅作匹配", "src/lib/product-copy.ts", 'const PRO_PUBLISHED_TAGLINE = "中端主力·AI 推理 + 挖掘";', 0],
     ["豁免:弗吉尼亚机房原值仅作匹配", "src/lib/product-copy.ts", 'const VIRGINIA_DATACENTER = "美国·弗吉尼亚";', 0],

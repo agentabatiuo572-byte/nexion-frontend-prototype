@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\app-usdt-qr-w67-20261004",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-support-history-w68-20261005",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "55ae84fb566f0399873def88b627b9a4d62d44a6",
-  "sourceRef": "55ae84fb566f0399873def88b627b9a4d62d44a6",
+  "sourceHead": "316a85da246de286a0d2be8e782bf5a921cbf41d",
+  "sourceRef": "316a85da246de286a0d2be8e782bf5a921cbf41d",
   "sourceRefKind": "commit",
-  "sourceTree": "06d4e274d912aa65f11e3837b31c9ab7c6b555bb",
+  "sourceTree": "f0b0218f7cf1c73d8af1b1584159b6abad6a6afb",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -4178,10 +4178,10 @@
       "mode": "100644"
     },
     "scripts/i18n-hardcoded-cjk-sentinel.mjs": {
-      "sourceBlob": "aa7eb1a60ac1859188966d523c6b2851d38eb47a",
-      "sourceSha256": "554e4fa68edc7640cc0f3a8b92afe954a351b03f46c9f593374784c3cc850d92",
-      "targetBlob": "aa7eb1a60ac1859188966d523c6b2851d38eb47a",
-      "targetSha256": "554e4fa68edc7640cc0f3a8b92afe954a351b03f46c9f593374784c3cc850d92",
+      "sourceBlob": "6bf98a7f16952e0454436f3a83556c6941c6c47f",
+      "sourceSha256": "d3ddbf2da7688b31d99067f5054ac8307846ee0a7ca3d50dee412b67aa7a2153",
+      "targetBlob": "6bf98a7f16952e0454436f3a83556c6941c6c47f",
+      "targetSha256": "d3ddbf2da7688b31d99067f5054ac8307846ee0a7ca3d50dee412b67aa7a2153",
       "mode": "100644"
     },
     "scripts/i18n-hardcoded-en-copy-sentinel.mjs": {
@@ -13922,10 +13922,10 @@
       "mode": "100644"
     },
     "src/pages/support/chat.vue": {
-      "sourceBlob": "b5b6ce4628dfd4144f1f1ee6cde34f807d9d19fa",
-      "sourceSha256": "e369a4c3af8dc51ba7818b005e4ce8e5b09e5c57ed0c57f47c27fcc7e1e9d388",
-      "targetBlob": "b5b6ce4628dfd4144f1f1ee6cde34f807d9d19fa",
-      "targetSha256": "e369a4c3af8dc51ba7818b005e4ce8e5b09e5c57ed0c57f47c27fcc7e1e9d388",
+      "sourceBlob": "6026ccaff72024590e502d9153df8b285cd5867a",
+      "sourceSha256": "a1e7a8f4e002f08a8e6df83d4c9168b49c108a60cddb4e08ea1c91c4189785ba",
+      "targetBlob": "6026ccaff72024590e502d9153df8b285cd5867a",
+      "targetSha256": "a1e7a8f4e002f08a8e6df83d4c9168b49c108a60cddb4e08ea1c91c4189785ba",
       "mode": "100644"
     },
     "src/pages/support/conversation-realtime-page.test.ts": {
@@ -13964,10 +13964,10 @@
       "mode": "100644"
     },
     "src/pages/support/messages-start-entry.test.ts": {
-      "sourceBlob": "d2bb8133c8010f1b0e9fe75d0d60adf0fde15f37",
-      "sourceSha256": "bcf3361b908b7aac8f7f0466f6ff6060d3f44bbc06eb6998240dbdb4742bf07e",
-      "targetBlob": "d2bb8133c8010f1b0e9fe75d0d60adf0fde15f37",
-      "targetSha256": "bcf3361b908b7aac8f7f0466f6ff6060d3f44bbc06eb6998240dbdb4742bf07e",
+      "sourceBlob": "8f2eddf1b112687a18fcee9fe79855ce33852292",
+      "sourceSha256": "0add2156b3ae86a5f4334be64da8097d64f0f6eea3d3f79f0b3c6f8b6159b45b",
+      "targetBlob": "8f2eddf1b112687a18fcee9fe79855ce33852292",
+      "targetSha256": "0add2156b3ae86a5f4334be64da8097d64f0f6eea3d3f79f0b3c6f8b6159b45b",
       "mode": "100644"
     },
     "src/pages/support/messages.vue": {
@@ -13985,10 +13985,10 @@
       "mode": "100644"
     },
     "src/pages/support/nova-queue-page.test.ts": {
-      "sourceBlob": "cab54de1df90d648646444a2b1ec43b1d6a89579",
-      "sourceSha256": "0670b4863714e1954b919ba4c71ae24e2b150ab28ff2ec549dd2fe80f947b3c0",
-      "targetBlob": "cab54de1df90d648646444a2b1ec43b1d6a89579",
-      "targetSha256": "0670b4863714e1954b919ba4c71ae24e2b150ab28ff2ec549dd2fe80f947b3c0",
+      "sourceBlob": "a046390f4f05ed1853a6fa2e61a9744de7c34144",
+      "sourceSha256": "36cc272637c444ece358d2e0ad267ff44361008b6110617b0ebd654e63a77622",
+      "targetBlob": "a046390f4f05ed1853a6fa2e61a9744de7c34144",
+      "targetSha256": "36cc272637c444ece358d2e0ad267ff44361008b6110617b0ebd654e63a77622",
       "mode": "100644"
     },
     "src/pages/team/agent.vue": {

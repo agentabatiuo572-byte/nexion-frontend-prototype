@@ -6,6 +6,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useNova } from "@/store/nova";
 import { zh } from "@/i18n/messages/zh";
+import { en } from "@/i18n/messages/en";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import * as thinking from "@/lib/nova-thinking";
@@ -52,6 +53,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
   }
   rebind(app.accountKey);
   const currentLocale = vue.ref(zh);
+  const locale = vue.reactive({ code: "zh" });
   const api = { status: vi.fn(async () => ({ available: true })),
     history: vi.fn(async () => ({ conversationId: null, messages: [] })), chat: vi.fn() };
   const startConversation = vi.fn(async (_type: string, _text: string) => "new-conversation");
@@ -105,7 +107,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/api/support-api": { isSupportAttachmentNotReady: () => false },
     '@/api/support-ticket-policy': ticketPolicy,
     "@/lib/nova-failure": failure,
-    "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
+    "@/store/locale": { useLocaleStore: () => locale },
     "@/lib/secure-command-id": secureId,
     "@/lib/nova-thinking": thinking,
     "./conversation-realtime-page": realtimePage,
@@ -118,11 +120,74 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     }, {},
   );
   hooks.onLoad(query);
-  return { page, hooks, app, rebind, api, startConversation, openConversation,watchRealtime, nova: useNova(), currentLocale, navigation: modules["@/lib/route"] as { navTo: ReturnType<typeof vi.fn>; navBack: ReturnType<typeof vi.fn> } };
+  return { page, hooks, app, rebind, api, startConversation, openConversation,watchRealtime, nova: useNova(), currentLocale, locale, navigation: modules["@/lib/route"] as { navTo: ReturnType<typeof vi.fn>; navBack: ReturnType<typeof vi.fn> } };
 }
 
 beforeEach(() => { setActivePinia(createPinia()); vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+describe("human message native clock", () => {
+  it.each(["support", "advisor"])("keeps compact local times and the original %s history when native locale options are ignored", type => {
+    vi.spyOn(Date.prototype, "toLocaleTimeString").mockReturnValue("18:57:08 GMT+0900 (JST)");
+    const messages = [
+      { id: "user-1", sender: "user", text: "Opening message", ts: new Date(2026, 9, 4, 18, 57, 8).getTime() },
+      { id: "agent-1", sender: "agent", authorName: "superadmin", text: "First reply", ts: new Date(2026, 9, 4, 18, 57, 40).getTime() },
+      { id: "agent-2", sender: "agent", authorName: "superadmin", text: "Second reply", ts: new Date(2026, 9, 4, 18, 59, 14).getTime() },
+      { id: "agent-3", sender: "agent", authorName: "superadmin", text: "Third reply", ts: new Date(2026, 9, 4, 19, 0, 59).getTime() },
+    ];
+    const before = JSON.stringify(messages);
+    const current = mount({ cid: "CV-time" }, { type, status: "open", agentName: "superadmin", messages });
+    try {
+      for (const [code, dictionary, times] of [
+        ["zh", zh, ["18:57", "18:57", "18:59", "19:00"]],
+        ["vi", vietnamese, ["18:57", "18:57", "18:59", "19:00"]],
+        ["en", en, ["06:57 PM", "06:57 PM", "06:59 PM", "07:00 PM"]],
+      ] as const) {
+        current.locale.code = code;
+        current.currentLocale.value = dictionary;
+        expect(current.page.threadMessages.value.map((message: { meta: string }) => message.meta)).toEqual([
+          `${dictionary.conversations.image.you} · ${times[0]}`,
+          ...times.slice(1).map(time => `superadmin · ${time}`),
+        ]);
+        expect(current.page.threadMessages.value.map((message: { id: string; text: string; side: string }) =>
+          ({ id: message.id, text: message.text, side: message.side }))).toEqual(messages.map(message =>
+          ({ id: message.id, text: message.text, side: message.sender === "user" ? "right" : "left" })));
+        expect(JSON.stringify(messages)).toBe(before);
+      }
+      expect(current.startConversation).not.toHaveBeenCalled();
+      expect(current.api.chat).not.toHaveBeenCalled();
+    } finally { current.page.cleanup(); }
+  });
+
+  it("preserves English AM/PM through midnight and noon while Chinese and Vietnamese use 24 hours", () => {
+    vi.spyOn(Date.prototype, "toLocaleTimeString").mockReturnValue("00:07:45 GMT+0900 (JST)");
+    const messages = [0, 12, 23].map((hour, index) => ({ id: `time-${index}`, sender: "agent", authorName: "Agent",
+      text: "Reply", ts: new Date(2026, 9, 4, hour, 7, 45).getTime() }));
+    const current = mount({ cid: "CV-boundaries" }, { type: "support", status: "open", agentName: "Agent", messages });
+    try {
+      for (const [code, expected] of [
+        ["en", ["12:07 AM", "12:07 PM", "11:07 PM"]],
+        ["zh", ["00:07", "12:07", "23:07"]],
+        ["vi", ["00:07", "12:07", "23:07"]],
+      ] as const) {
+        current.locale.code = code;
+        expect(current.page.threadMessages.value.map((message: { meta: string }) => message.meta))
+          .toEqual(expected.map(time => `Agent · ${time}`));
+      }
+    } finally { current.page.cleanup(); }
+  });
+
+  it("uses the existing compact-clock placeholder for an invalid message date", () => {
+    const current = mount({ cid: "CV-invalid-time" }, { type: "support", status: "open", agentName: "Agent",
+      messages: [{ id: "invalid-time", sender: "agent", authorName: "Agent", text: "Reply", ts: NaN }] });
+    try {
+      for (const code of ["zh", "vi", "en"]) {
+        current.locale.code = code;
+        expect(current.page.threadMessages.value[0].meta).toBe("Agent · —");
+      }
+    } finally { current.page.cleanup(); }
+  });
+});
 
 describe("human conversation restart", () => {
   it("shows the server-owned idle-close header after older public history and switches language", async () => {

@@ -42,7 +42,7 @@
       <view v-if="isAi && remoteApiEnabled" class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" :aria-label="t.conversations.restartSession" @click="onStartNewConversation"  @keydown.enter.prevent="onKeyboardActivate($event, onStartNewConversation)" @keydown.space.prevent="onKeyboardActivate($event, onStartNewConversation)"><LiquidGlass :radius="22" />
         <text>{{ t.conversations.restartSession }}</text>
       </view>
-      <view v-if="!isAi && convStore.advisorError" class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" :aria-label="t.conversations.image.retryPolicy" @click="convStore.refreshAdvisor()"  @keydown.enter.prevent="convStore.refreshAdvisor()" @keydown.space.prevent="convStore.refreshAdvisor()"><LiquidGlass :radius="22" /><text>{{ t.conversations.image.retryPolicy }}</text></view>
+      <view v-if="advisorApplies && convStore.advisorError" class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" :aria-label="t.conversations.image.retryPolicy" @click="convStore.refreshAdvisor()"  @keydown.enter.prevent="convStore.refreshAdvisor()" @keydown.space.prevent="convStore.refreshAdvisor()"><LiquidGlass :radius="22" /><text>{{ t.conversations.image.retryPolicy }}</text></view>
       <view v-if="!isAi && conv && !isClosedSession" class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" :aria-label="t.conversations.convertTicket" @click="onConvertToTicket"  @keydown.enter.prevent="onKeyboardActivate($event, onConvertToTicket)" @keydown.space.prevent="onKeyboardActivate($event, onConvertToTicket)"><LiquidGlass :radius="22" />
         <text>{{ t.conversations.convertTicket }}</text>
       </view>
@@ -69,7 +69,7 @@
       :aria-label="t.conversations.loadEarlier" @click="loadEarlierHumanHistory"  @keydown.enter.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)" @keydown.space.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)"><LiquidGlass :radius="22" />
       <text class="cp-ai-history-t">{{ t.conversations.loadEarlier }}</text>
     </view>
-    <view v-if="!isAi && convStore.advisor?.assignmentState === 'UNBOUND' && conv?.messages.some(message => message.sender === 'user')" class="cp-ai-history" role="status"><text class="cp-ai-history-t">{{ t.conversations.image.unassignedReceived }}</text></view>
+    <view v-if="showUnassignedReceived" class="cp-ai-history" role="status"><text class="cp-ai-history-t">{{ t.conversations.image.unassignedReceived }}</text></view>
 
     <view v-if="ticketCreationBlock" class="cp-ticket-limit" role="status" aria-live="polite">
       <text>{{ ticketCreationBlockText }}</text>
@@ -689,13 +689,19 @@ const isTransferredSession = computed(() => !isAi.value && conv.value?.status ==
 const isClosedSession = computed(() =>
   isAi.value ? novaProviderHold.value : !!conv.value && !isReplyAllowed.value,
 );
+// Account advisor state applies to advisor replies and the existing new-compose
+// flow. Other threads, including ended history, keep their server-owned identity.
+const advisorApplies = computed(() => !isAi.value && !isClosedSession.value
+  && (humanType.value === "advisor" || (!cid.value && !!startType.value)));
+const showUnassignedReceived = computed(() => advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND"
+  && !!conv.value?.messages.some(message => message.sender === "user"));
 
 const headerName = computed(() => {
   if (isAi.value) return t.value.nova.name;
-  if (convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.image.unassigned;
-  if (convStore.advisor?.currentAdvisorName) return convStore.advisor.currentAdvisorName;
-  if (convStore.advisorError) return t.value.conversations.image.advisorUnavailable;
-  if (convStore.advisorLoading) return t.value.conversations.image.loadingAdvisor;
+  if (advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.image.unassigned;
+  if (advisorApplies.value && convStore.advisor?.currentAdvisorName) return convStore.advisor.currentAdvisorName;
+  if (advisorApplies.value && convStore.advisorError) return t.value.conversations.image.advisorUnavailable;
+  if (advisorApplies.value && convStore.advisorLoading) return t.value.conversations.image.loadingAdvisor;
   if (conv.value) return displayAgentName(conv.value.agentName);
   return humanType.value === "advisor" ? t.value.conversations.typeAdvisor : humanType.value === "support" ? t.value.conversations.typeSupport : "";
 });
@@ -719,9 +725,10 @@ const thinkingLabel = computed(() => {
 });
 function isWaitingForAgent(name: string): boolean {
   const normalized = name.trim();
-  return !normalized || normalized.toLowerCase() === "unassigned" || normalized === "备勤池";
+  return !normalized || normalized.toLowerCase() === "unassigned" || normalized === "备勤池" || normalized === "待分配";
 }
-const waitingForAgent = computed(() => convStore.advisor?.assignmentState === "UNBOUND" || (!!conv.value && !convStore.advisor && isWaitingForAgent(conv.value.agentName)));
+const waitingForAgent = computed(() => (advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND")
+  || (!!conv.value && (!advisorApplies.value || !convStore.advisor) && isWaitingForAgent(conv.value.agentName)));
 const humanPresence = computed(() => {
   // Nova never consumes a human thread's connection or presence state.
   if (isAi.value) return { online: undefined, mutedDot: false };
@@ -740,17 +747,17 @@ const headerRole = computed(() => {
     return remoteApiEnabled ? t.value.nova.localRole : t.value.conversations.roleAi;
   }
   if (!supportSessionReady.value) return t.value.conversations.connecting;
-  if (convStore.advisorError) return t.value.conversations.image.advisorUnavailable;
-  if (startType.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.waitingAgent;
-  if (startType.value && convStore.advisor?.assignmentState === "ADVISOR_DISABLED") return t.value.conversations.image.disabledAdvisor;
-  if (startType.value && convStore.advisor?.availability === "BUSY") return t.value.conversations.image.busyAdvisor;
+  if (advisorApplies.value && convStore.advisorError) return t.value.conversations.image.advisorUnavailable;
+  if (startType.value && advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.waitingAgent;
+  if (startType.value && advisorApplies.value && convStore.advisor?.assignmentState === "ADVISOR_DISABLED") return t.value.conversations.image.disabledAdvisor;
+  if (startType.value && advisorApplies.value && convStore.advisor?.availability === "BUSY") return t.value.conversations.image.busyAdvisor;
   if (startType.value) return t.value.conversations.startConversation;
   if (!conv.value) return "";
   if (isTransferredSession.value) return t.value.conversations.sessionTransferred;
   if (isClosedSession.value) return t.value.conversations.sessionEnded;
   if (!remoteApiEnabled) return t.value.conversations[conv.value.roleKey];
-  if (convStore.advisor?.assignmentState === "ADVISOR_DISABLED") return t.value.conversations.image.disabledAdvisor;
-  if (convStore.advisor?.availability === "BUSY") return t.value.conversations.image.busyAdvisor;
+  if (advisorApplies.value && convStore.advisor?.assignmentState === "ADVISOR_DISABLED") return t.value.conversations.image.disabledAdvisor;
+  if (advisorApplies.value && convStore.advisor?.availability === "BUSY") return t.value.conversations.image.busyAdvisor;
   if (waitingForAgent.value) return t.value.conversations.waitingAgent;
   if (!convStore.realtimeReady) return t.value.conversations.connecting;
   if (humanPresence.value.online === false) return t.value.conversations.offline;
@@ -796,7 +803,7 @@ const emptyHint = computed(() => {
   if (isAi.value && novaProviderHold.value) return t.value.nova.localUnavailable;
   if (isAi.value) return remoteApiEnabled ? t.value.nova.localEmptyHint : t.value.nova.emptyHint;
   if (!supportSessionReady.value) return t.value.conversations.connecting;
-  if (convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.image.unassignedHint;
+  if (advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.image.unassignedHint;
   return humanType.value === "advisor" ? t.value.conversations.listEmptyAdvisor : t.value.conversations.listEmptySupport;
 });
 
@@ -817,6 +824,16 @@ const quickChips = computed<QuickChip[]>(() =>
 function receiptFor(status: "sent" | "read" | undefined, isLatestReceipt: boolean): string | undefined {
   if (!status || !isLatestReceipt) return undefined;
   return status === "read" ? t.value.conversations.receiptRead : t.value.conversations.receiptSent;
+}
+
+// Native engines can ignore locale options; retain each language's local clock.
+function humanMessageTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "—";
+  const hour = date.getHours(), minute = String(date.getMinutes()).padStart(2, "0");
+  return locale.code === "zh" || locale.code === "vi"
+    ? `${String(hour).padStart(2, "0")}:${minute}`
+    : `${String(hour % 12 || 12).padStart(2, "0")}:${minute} ${hour < 12 ? "AM" : "PM"}`;
 }
 
 const threadMessages = computed<ThreadMsg[]>(() => {
@@ -857,7 +874,7 @@ const threadMessages = computed<ThreadMsg[]>(() => {
     imageAttachmentId: m.attachmentId,
     imageLoading: !!m.attachmentId && !imageSources.value[m.attachmentId] && !imageFailures.value[m.attachmentId],
     imageError: !!m.attachmentId && !!imageFailures.value[m.attachmentId],
-    meta: `${m.sender === "user" ? t.value.conversations.image.you : m.authorName || (c.type === "advisor" ? t.value.conversations.typeAdvisor : t.value.conversations.typeSupport)} · ${new Date(m.ts).toLocaleTimeString(locale.code === "zh" ? "zh-CN" : locale.code === "vi" ? "vi-VN" : "en-US", { hour: "2-digit", minute: "2-digit" })}`,
+    meta: `${m.sender === "user" ? t.value.conversations.image.you : m.authorName || (c.type === "advisor" ? t.value.conversations.typeAdvisor : t.value.conversations.typeSupport)} · ${humanMessageTime(m.ts)}`,
     receipt: receiptFor(m.status, i === lastUser),
   }));
   const last = c.messages[c.messages.length - 1];

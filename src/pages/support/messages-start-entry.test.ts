@@ -248,7 +248,7 @@ import * as chatLimiter from "@/lib/send-limiter";
 import * as chatSecure from "@/lib/secure-command-id";
 import * as chatFormat from "@/i18n/format";
 import * as chatApiErrors from "@/api/errors";
-import { isSupportAttachmentNotReady } from "@/api/support-api";
+import { isSupportAttachmentNotReady, type CurrentAdvisor } from "@/api/support-api";
 import * as ticketPolicy from '@/api/support-ticket-policy';
 import { useAuth } from "@/store/auth";
 import { createSessionVault } from "@/api/session-vault";
@@ -259,7 +259,7 @@ const chatTransport = vi.hoisted(() => ({
   conversation: vi.fn(), replyConversation: vi.fn(), startConversation: vi.fn(), convertConversationToTicket: vi.fn(),
   conversationCategories: vi.fn(async () => ({ advisor: true, support: true, ai: false })),
   conversations: vi.fn(async () => ({ items: [] })), conversationDismissals: vi.fn(async () => []),
-  advisor: vi.fn(async () => ({ assignmentId: null, currentAdvisorId: null, currentAdvisorName: null, assignmentState: "UNBOUND", availability: "UNBOUND" })),
+  advisor: vi.fn(async (): Promise<CurrentAdvisor> => ({ assignmentId: null, currentAdvisorId: null, currentAdvisorName: null, assignmentState: "UNBOUND", availability: "UNBOUND" })),
   attachmentPolicy: vi.fn(async () => ({ available: false })),
 }));
 vi.mock("@/api/runtime", () => ({ supportApi: chatTransport, remoteApiEnabled: true,
@@ -316,7 +316,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/lib/secure-command-id": chatSecure, "@/lib/nova-thinking": chatThinking, "./conversation-realtime-page": chatRealtime,
   };
   const scope = Vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onConvertToTicket, cleanup, ticketCreationBlock, ticketCreationBlockText };")((name: string) => {
+  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onConvertToTicket, onRestart, goBack, cleanup, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived };")((name: string) => {
     if (name.endsWith(".vue")) return {}; if (!(name in modules)) throw new Error(`Unexpected chat dependency: ${name}`); return modules[name];
   }, {}));
   hooks.onLoad(query); chatCleanups.push(() => { page.cleanup(); scope.stop(); });
@@ -330,6 +330,98 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
   }
   return { page, hooks, show, waitForHistory, store, app, navigation, rebind, watchRealtime, toast };
 }
+
+describe("human chat assignment belongs to the current conversation", () => {
+  it.each(["warm", "cold", "reload"])("keeps %s closed support history independent of the account advisor", async entry => {
+    const current = mountRealHumanChat();
+    const history = { ...humanSnapshot(), status: "closed", sessionStatus: "closed", agentName: "待分配",
+      messages: [{ id: "1", sender: "user", text: "Existing public history", ts: 1, status: "read" }] };
+    chatTransport.conversation.mockResolvedValue(history);
+    if (entry === "warm") current.store.conversations.push(history as any);
+    await current.show();
+    if (entry === "reload") {
+      current.rebind(); await Vue.nextTick();
+      await vi.waitFor(() => expect(chatTransport.conversation).toHaveBeenCalledTimes(2));
+      await vi.waitFor(() => expect(current.store.get("CV-cold")?.status).toBe("closed"));
+    }
+    expect(readFileSync(new URL("./chat.vue", import.meta.url), "utf8")).toContain('v-if="showUnassignedReceived"');
+    for (const advisor of [
+      { assignmentState: "UNBOUND", availability: "UNBOUND", currentAdvisorName: null },
+      { assignmentState: "ADVISOR_DISABLED", availability: "BUSY", currentAdvisorName: "Current account advisor" },
+    ]) {
+      current.store.advisor = advisor as any;
+      current.store.advisorError = true; current.store.advisorLoading = true;
+      expect(current.page.headerName.value).toBe("待分配");
+      expect(current.page.headerRole.value).toBe(zh.conversations.sessionEnded);
+      expect(current.page.isClosedSession.value).toBe(true);
+      expect(current.page.showUnassignedReceived.value).toBe(false);
+    }
+    current.page.goBack();
+    expect(current.navigation.navBack).toHaveBeenCalledExactlyOnceWith("/pages/support/messages");
+    current.page.onRestart();
+    expect(current.navigation.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=support");
+    expect(chatTransport.startConversation).not.toHaveBeenCalled();
+    expect(chatTransport.replyConversation).not.toHaveBeenCalled();
+  });
+
+  it("does not borrow an assigned advisor while a cold conversation is unknown", async () => {
+    const current = mountRealHumanChat(), read = chatDeferred();
+    const advisor: CurrentAdvisor = { assignmentId: 1, currentAdvisorId: 1, currentAdvisorName: "Account advisor",
+      assignmentState: "ASSIGNED", availability: "BUSY" };
+    current.store.advisor = advisor as any;
+    chatTransport.advisor.mockResolvedValueOnce(advisor);
+    chatTransport.conversation.mockReturnValueOnce(read.promise);
+    const showing = current.hooks.onShow();
+    await vi.waitFor(() => expect(chatTransport.conversation).toHaveBeenCalledTimes(1));
+    expect(current.page.humanType.value).toBeNull();
+    expect(current.page.headerName.value).toBe("");
+    expect(current.page.showUnassignedReceived.value).toBe(false);
+    current.store.advisorLoading = true; current.store.advisorError = true;
+    expect(current.page.headerName.value).toBe("");
+    expect(current.page.headerRole.value).toBe("");
+    read.resolve(humanSnapshot()); await showing; await current.waitForHistory();
+    expect(current.page.headerName.value).toBe("Fixture");
+  });
+
+  it("uses an active support thread's own agent and presence despite account advisor state", async () => {
+    const current = mountRealHumanChat(); await current.show();
+    current.store.advisor = { assignmentState: "UNBOUND", availability: "UNBOUND", currentAdvisorName: null } as any;
+    current.store.advisorError = true; current.store.realtimeReady = true;
+    current.store.onlineIds = { "CV-cold": true };
+    expect(current.page.headerName.value).toBe("Fixture");
+    expect(current.page.headerRole.value).toBe(zh.conversations.online);
+    expect(current.page.waitingForAgent.value).toBe(false);
+    expect(current.page.showUnassignedReceived.value).toBe(false);
+    current.store.get("CV-cold")!.agentName = "待分配";
+    expect(current.page.headerRole.value).toBe(zh.conversations.waitingAgent);
+    expect(current.page.waitingForAgent.value).toBe(true);
+  });
+
+  it.each(["advisor", "support"])("preserves the existing %s new-composer advisor waiting state", async type => {
+    const current = mountRealHumanChat({ start: type }); await current.show();
+    current.store.advisor = { assignmentState: "UNBOUND", availability: "UNBOUND", currentAdvisorName: null } as any;
+    expect(current.page.headerName.value).toBe(zh.conversations.image.unassigned);
+    expect(current.page.headerRole.value).toBe(zh.conversations.waitingAgent);
+    expect(current.page.emptyHint.value).toBe(zh.conversations.image.unassignedHint);
+    expect(current.page.isClosedSession.value).toBe(false);
+    expect(chatTransport.startConversation).not.toHaveBeenCalled();
+    expect(chatTransport.replyConversation).not.toHaveBeenCalled();
+  });
+
+  it("retains advisor waiting only for replyable advisor history", async () => {
+    const current = mountRealHumanChat();
+    chatTransport.conversation.mockResolvedValue({ ...humanSnapshot(), type: "advisor", roleKey: "roleAdvisor",
+      messages: [{ id: "1", sender: "user", text: "Existing public history", ts: 1, status: "read" }] });
+    await current.show();
+    current.store.advisor = { assignmentState: "UNBOUND", availability: "UNBOUND", currentAdvisorName: null } as any;
+    expect(current.page.headerName.value).toBe(zh.conversations.image.unassigned);
+    expect(current.page.showUnassignedReceived.value).toBe(true);
+    current.store.get("CV-cold")!.status = "closed";
+    expect(current.page.headerName.value).toBe("Fixture");
+    expect(current.page.headerRole.value).toBe(zh.conversations.sessionEnded);
+    expect(current.page.showUnassignedReceived.value).toBe(false);
+  });
+});
 
 describe("real chat and store account recovery", () => {
   it.each([
