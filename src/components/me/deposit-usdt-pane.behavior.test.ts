@@ -4,6 +4,11 @@ import { parse } from "@vue/compiler-sfc";
 import * as Vue from "vue";
 import ts from "typescript";
 import qrcode from "qrcode-generator";
+import Jimp from "jimp";
+// @ts-expect-error Existing Node-only QR decoder has no published declarations.
+import QrCode from "qrcode-reader";
+// @ts-expect-error App TypeScript excludes Node declarations; this runs in Vitest's Node process.
+import { Buffer } from "node:buffer";
 import source from "./deposit-usdt-pane.vue?raw";
 import { createCregisDepositApi } from "@/api/cregis-deposit-api";
 import type { ApiClient } from "@/api/api-client";
@@ -24,7 +29,7 @@ const script = ts.transpileModule(descriptor.scriptSetup!.content, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText + `;return { ${exposed.join(", ")} };`;
 const render = new Function("Vue", compile(descriptor.template!.content, {
-  mode: "function", prefixIdentifiers: true, isCustomElement: tag => ["view", "text"].includes(tag),
+  mode: "function", prefixIdentifiers: true, isCustomElement: tag => ["view", "text", "image"].includes(tag),
 }).code)(Vue) as Vue.RenderFunction;
 
 // Mount the real template and setup; this host replaces only DOM I/O.
@@ -130,6 +135,7 @@ for (const messages of [zh, en, vietnamese]) {
     expect(controls(h.root, "nx-dep-credit-paused-note")).toHaveLength(creditEnabled === true ? 0 : 1);
     if (creditEnabled !== true) expect(h.text()).toContain(messages.topupChrome.creditPausedNote);
     expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(1);
+    expect(h.text()).toContain(messages.topupChrome.amountAtSenderNote);
     expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(1);
     expect(h.text()).toContain("BEP20");
     expect(h.text()).toContain("$10");
@@ -142,6 +148,7 @@ test("a disabled address has no QR or copy entry", async () => {
   const h = await pane({ enabled: false, creditEnabled: false, network: "BEP20" });
   expect(h.text()).toContain(zh.topupChrome.allNetworksPaused);
   expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(0);
+  expect(controls(h.root, "nx-dep-qr-image")).toHaveLength(0);
   expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(0);
   expect(controls(h.root, "nx-dep-credit-paused-note")).toHaveLength(0);
 });
@@ -152,4 +159,38 @@ test("a risk record with no historical credit does not substitute its gross tran
   expect(textOf(record)).toContain(fmt(zh.topupChrome.riskHoldNote, { amount: "0" }));
   expect(textOf(record)).not.toContain("10.125");
   expect(record.props.onClick).toBeUndefined();
+});
+
+test.each(["a", "b"])("the rendered QR bitmap decodes to the server address %s with fixed pixels and a four-module quiet zone", async digit => {
+  const serverAddress = "0x" + digit.repeat(40);
+  const h = await pane({ ...address, address: serverAddress, creditEnabled: false });
+  const images = controls(h.root, "nx-dep-qr-image");
+  expect(images).toHaveLength(1);
+  expect(images[0].kind).toBe("image");
+  expect(images[0].props.mode).toBe("aspectFit");
+  const src = images[0].props.src as string;
+  expect(src).toMatch(/^data:image\/gif;base64,/);
+  const bitmap = await Jimp.read(Buffer.from(src.split(",")[1], "base64"));
+  const { width, height } = bitmap.bitmap;
+  expect(width).toBe(height);
+  expect(width).toBeGreaterThan(100);
+  expect((width - 32) % 4).toBe(0);
+  const colors = new Set<number>();
+  let whiteQuietZone = true;
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const color = bitmap.getPixelColor(x, y);
+    colors.add(color);
+    if (x < 16 || y < 16 || x >= width - 16 || y >= height - 16) whiteQuietZone &&= color === 0xffffffff;
+  }
+  expect([...colors].sort()).toEqual([0x000000ff, 0xffffffff]);
+  expect(whiteQuietZone).toBe(true);
+  let finderWidth = 0;
+  while (bitmap.getPixelColor(16 + finderWidth, 16) === 0x000000ff) finderWidth++;
+  expect(finderWidth).toBe(7 * 4);
+  const decoded = await new Promise<string>((resolve, reject) => {
+    const reader = new QrCode();
+    reader.callback = (error: Error | null, value: { result: string }) => error ? reject(error) : resolve(value.result);
+    reader.decode(bitmap.bitmap);
+  });
+  expect(decoded).toBe(serverAddress);
 });

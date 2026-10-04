@@ -6266,6 +6266,7 @@ openSeaErrorPool: {
     cardCharged: "卡上扣款",
     network: "网络",
     scanOrCopy: "扫码或复制下方地址",
+    amountAtSenderNote: "在发送钱包或交易所填写充值金额，再向此地址转入 USDT。",
     fee: "手续费",
     time5min: "约 5 分钟",
     time15min: "约 15 分钟",

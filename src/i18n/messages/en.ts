@@ -6427,6 +6427,7 @@ openSeaErrorPool: {
     cardCharged: "Card charged",
     network: "Network",
     scanOrCopy: "Scan QR or copy the address below",
+    amountAtSenderNote: "Enter the deposit amount in the wallet or exchange you send from, then transfer USDT to this address.",
     fee: "Fee",
     time5min: "5 min",
     time15min: "15 min",

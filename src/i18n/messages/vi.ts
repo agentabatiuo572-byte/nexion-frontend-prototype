@@ -6273,6 +6273,7 @@ openSeaErrorPool: {
     cardCharged: "Đã trừ thẻ",
     network: "Mạng",
     scanOrCopy: "Quét mã QR hoặc sao chép địa chỉ bên dưới",
+    amountAtSenderNote: "Nhập số tiền nạp trong ví hoặc sàn giao dịch gửi tiền, rồi chuyển USDT đến địa chỉ này.",
     fee: "Phí",
     time5min: "≈ 5 phút",
     time15min: "≈ 15 phút",

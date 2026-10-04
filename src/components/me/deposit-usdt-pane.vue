@@ -53,11 +53,10 @@
           <text :style="warnTextStyle">{{ t.topupChrome.creditPausedNote }}</text>
         </view>
         <view v-if="address" class="nx-dep-qr-box" :style="qrBoxStyle">
-          <view :style="qrGridStyle" aria-hidden>
-            <view v-for="(d, i) in qrCells" :key="i" :style="d ? qrDarkCellStyle : undefined" />
-          </view>
+          <image class="nx-dep-qr-image" :src="qrImage" mode="aspectFit" :style="qrImageStyle" aria-hidden="true" />
         </view>
         <view><text class="block text-center" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">{{ t.topupChrome.scanOrCopy }}</text></view>
+        <view class="nx-dep-amount-note"><text class="block text-center" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.45">{{ t.topupChrome.amountAtSenderNote }}</text></view>
         <view class="flex items-center rounded-xl" :style="addressRowStyle">
           <view class="flex-1 min-w-0">
             <text class="font-mono" style="font-size: 12px; color: color-mix(in srgb, var(--v5-ink) 90%, transparent); white-space: nowrap">{{ shortAddr }}</text>
@@ -331,16 +330,14 @@ function copyAddr() {
   });
 }
 
-const qr = computed(() => {
-  if (!address.value) return { size: 1, cells: [] as boolean[] };
+const qrImage = computed(() => {
+  if (!address.value) return "";
   const code = qrcode(0, "M");
   code.addData(address.value);
   code.make();
-  const size = code.getModuleCount();
-  return { size, cells: Array.from({ length: size * size }, (_, i) =>
-    code.isDark(Math.floor(i / size), i % size)) };
+  // Keep black/white pixels and a four-module quiet zone inside the bitmap.
+  return code.createDataURL(4, 16);
 });
-const qrCells = computed(() => qr.value.cells);
 
 // ── 入口 ──
 function goGuide() {
@@ -477,19 +474,13 @@ const qrBoxStyle: CSSProperties = {
   margin: "16px auto 0",
   borderRadius: "16px",
   background: "#ffffff",
-  padding: "24px",
   display: "grid",
   placeItems: "center",
 };
-const qrGridStyle = computed<CSSProperties>(() => ({
+const qrImageStyle: CSSProperties = {
   width: "100%",
   height: "100%",
-  display: "grid",
-  gridTemplateColumns: `repeat(${qr.value.size}, 1fr)`,
-  gridTemplateRows: `repeat(${qr.value.size}, 1fr)`,
-}));
-const qrDarkCellStyle: CSSProperties = {
-  background: "rgba(0,0,0,0.85)", // QR 物理黑,白卡内固定色(同旧点阵先例)
+  display: "block",
 };
 const addressRowStyle: CSSProperties = {
   marginTop: "16px",

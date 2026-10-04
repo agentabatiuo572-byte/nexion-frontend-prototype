@@ -42,11 +42,25 @@ try {
     throw new Error("USDT deposit page did not show the server-backed BEP20 address and record");
   }
   const enabledText = await page.locator(".nx-dep-net-bep20").textContent();
-  const qrCells = await page.locator("[aria-hidden] > *").count();
-  const qrPadding = await page.locator(".nx-dep-qr-box").evaluate((node) =>
-    parseFloat(getComputedStyle(node).paddingLeft));
-  if (!enabledText?.includes("BEP20") || qrCells < 100 || qrPadding < 24)
-    throw new Error("BEP20 QR or quiet zone missing");
+  const qrImage = page.locator(".nx-dep-qr-image");
+  if (!enabledText?.includes("BEP20") || await qrImage.count() !== 1)
+    throw new Error("BEP20 QR bitmap missing");
+  const qrSource = await qrImage.evaluate((node) => node.querySelector("img")?.src ?? node.getAttribute("src"));
+  if (!qrSource?.startsWith("data:image/gif;base64,")) throw new Error("QR bitmap source missing");
+  const qrPixels = await Jimp.read(Buffer.from(qrSource.split(",")[1], "base64"));
+  const { width, height } = qrPixels.bitmap;
+  if (width !== height || width < 100 || (width - 32) % 4 !== 0)
+    throw new Error("QR bitmap dimensions invalid");
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const color = qrPixels.getPixelColor(x, y);
+    if (color !== 0x000000ff && color !== 0xffffffff)
+      throw new Error("QR bitmap must use opaque black and white pixels");
+    if ((x < 16 || y < 16 || x >= width - 16 || y >= height - 16) && color !== 0xffffffff)
+      throw new Error("QR bitmap four-module quiet zone missing");
+  }
+  let finderWidth = 0;
+  while (qrPixels.getPixelColor(16 + finderWidth, 16) === 0x000000ff) finderWidth++;
+  if (finderWidth !== 7 * 4) throw new Error("QR bitmap module size invalid");
   const bitmap = await Jimp.read(await page.locator(".nx-dep-qr-box").screenshot());
   const decoded = await new Promise((resolve, reject) => {
     const reader = new QrCode();
