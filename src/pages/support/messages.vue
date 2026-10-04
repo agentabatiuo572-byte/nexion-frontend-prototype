@@ -337,7 +337,7 @@ const rows = computed<Row[]>(() => {
     const latestText = idleClose ?? (last && last.ts >= c.lastTs ? msgText(last, c) : c.lastMessage);
     return {
       id: c.id,
-      name: remoteApiEnabled
+      name: remoteApiEnabled && c.type === "advisor" && (c.status === "open" || c.status === "resolved")
         ? convStore.advisorLoading ? t.value.conversations.image.loadingAdvisor
           : convStore.advisorError || !convStore.advisor ? t.value.conversations.image.advisorUnavailable
             : convStore.advisor.assignmentState === "UNBOUND" ? t.value.conversations.image.unassigned

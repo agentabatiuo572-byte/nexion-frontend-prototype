@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\app-support-history-w68-20261005",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "316a85da246de286a0d2be8e782bf5a921cbf41d",
-  "sourceRef": "316a85da246de286a0d2be8e782bf5a921cbf41d",
+  "sourceHead": "b82cc7e7047e4c55fa0f8cea93fb408830e1098b",
+  "sourceRef": "b82cc7e7047e4c55fa0f8cea93fb408830e1098b",
   "sourceRefKind": "commit",
-  "sourceTree": "f0b0218f7cf1c73d8af1b1584159b6abad6a6afb",
+  "sourceTree": "0bfa0022b8ca90012fe07168fc6ae93488bb9c67",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -13956,6 +13956,13 @@
       "targetSha256": "3ba2dc96d2ef3f60432174606b5c1ac0be913a75f9cc5ff2ae13cddc7da9cc2d",
       "mode": "100644"
     },
+    "src/pages/support/messages-history-kind.test.ts": {
+      "sourceBlob": "3f471c3be7c76b77da86435ca2d0ef909208fd99",
+      "sourceSha256": "d9ab21cbcd6afc513f6a8fdc31ad13418687f384622ac2076f94575a783c403d",
+      "targetBlob": "3f471c3be7c76b77da86435ca2d0ef909208fd99",
+      "targetSha256": "d9ab21cbcd6afc513f6a8fdc31ad13418687f384622ac2076f94575a783c403d",
+      "mode": "100644"
+    },
     "src/pages/support/messages-refresh.contract.test.ts": {
       "sourceBlob": "c73cf66eef9b1bb0af7c7858abb80a8a5de9a4c2",
       "sourceSha256": "087f32ca0f954f21118260d263d2f27587038d6f4e9cbbc4a333595ab3ddb644",
@@ -13971,10 +13978,10 @@
       "mode": "100644"
     },
     "src/pages/support/messages.vue": {
-      "sourceBlob": "892a6972e04431319d73d416fd65307c581f803a",
-      "sourceSha256": "1e027e44b26b357fa181d8ec4bf312b2629465374c0574323c9c79cdead2b0bd",
-      "targetBlob": "892a6972e04431319d73d416fd65307c581f803a",
-      "targetSha256": "1e027e44b26b357fa181d8ec4bf312b2629465374c0574323c9c79cdead2b0bd",
+      "sourceBlob": "96f3b7512db3f66971c0f0559e004dec6610ea07",
+      "sourceSha256": "d69bd7a4253b6bc0246ceac864c8a0f067a8d8aad3c8f1bbc29b51f52be8bad2",
+      "targetBlob": "96f3b7512db3f66971c0f0559e004dec6610ea07",
+      "targetSha256": "d69bd7a4253b6bc0246ceac864c8a0f067a8d8aad3c8f1bbc29b51f52be8bad2",
       "mode": "100644"
     },
     "src/pages/support/nova-handoff-lifecycle.test.ts": {
