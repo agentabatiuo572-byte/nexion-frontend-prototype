@@ -54,6 +54,9 @@ const RUNTIME_CAPTCHA_ALWAYS_SCENES_DEFAULT: PlatformConfig["otpGate"]["captchaA
 /** Complete an older local seed without mutating or replacing its Mock data. */
 export function completePlatformConfigSeed(seed: PlatformConfigSeed): PlatformConfig {
   const publicStats = seed.publicStats ?? RUNTIME_PUBLIC_STATS_DEFAULT;
+  // 可核验聚合没有本地种子可言:mock/离线一律 null,消费方走「不可用」占位,
+  // 绝不拿配置值冒充实测事实(zentao #59)。
+  const verifiedStats = seed.verifiedStats ?? null;
   const networkConfirmFeeUsd =
     seed.withdrawRules.networkConfirmFeeUsd ??
     RUNTIME_WITHDRAW_RULE_DEFAULTS.networkConfirmFeeUsd;
@@ -62,12 +65,12 @@ export function completePlatformConfigSeed(seed: PlatformConfigSeed): PlatformCo
     RUNTIME_CAPTCHA_ALWAYS_SCENES_DEFAULT;
 
   return {
-    phoneBinding: seed.phoneBinding ? { ...seed.phoneBinding } : { allowReplacement: false, minReplacementIntervalDays: 0 },
     featureFlags: { ...seed.featureFlags },
     publicStats: {
       ...publicStats,
       hashratePercentileTable: publicStats.hashratePercentileTable.map((bucket) => ({ ...bucket })),
     },
+    verifiedStats,
     onlineBonus: { ...seed.onlineBonus },
     riskCluster: { ...seed.riskCluster },
     withdrawRules: {
@@ -76,6 +79,8 @@ export function completePlatformConfigSeed(seed: PlatformConfigSeed): PlatformCo
       networkConfirmFeeUsd: { ...networkConfirmFeeUsd },
     },
     rewards: {
+      enabled: seed.rewards.enabled,
+      effectiveAt: seed.rewards.effectiveAt,
       welcomeGift: { ...seed.rewards.welcomeGift },
       inviterReward: { ...seed.rewards.inviterReward },
     },

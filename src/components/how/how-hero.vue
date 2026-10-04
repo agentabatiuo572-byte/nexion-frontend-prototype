@@ -8,7 +8,7 @@
 <!-- Header→content breathing is owned by SubPageHeader's margin-bottom (global);
      hero adds none of its own so every sub-page matches. -->
 <template>
-  <view class="mx-4 relative overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card mx-4 relative overflow-hidden" :style="cardStyle">
     <view aria-hidden class="gen-anim" :style="auroraStyle" />
     <view aria-hidden :style="gridStyle" />
     <view class="relative">
@@ -67,11 +67,10 @@ const AURORA: Record<Accent, string> = {
 
 // 零-border(《03》§3):带 surface 填充的卡片不描边,层级靠 surface 微差色 +
 // 内部 aurora/grid 表达(参照 Today's earnings card)。
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "22px",
-  textWrap: "pretty",
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const auroraStyle = computed<CSSProperties>(() => ({
   position: "absolute",
@@ -120,4 +119,6 @@ const subStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
   lineHeight: 1.55,
 };
+
+
 </script>

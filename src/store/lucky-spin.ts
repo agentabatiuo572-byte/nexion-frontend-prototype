@@ -149,6 +149,7 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   const remoteSegments = ref<SpinPrize[]>([]);
   const remoteHistory = ref<EventSpinHistory[]>([]);
   let remoteGeneration = 0;
+  const activeEventCode = ref("evt-spring-spin");
   const remoteState = ref<{
     freeAvailable: boolean;
     bonusTickets: number;
@@ -232,7 +233,7 @@ export const useLuckySpin = defineStore("luckySpin", () => {
     };
   }
 
-  async function refreshRemoteState(eventCode = "evt-spring-spin"): Promise<boolean> {
+  async function refreshRemoteState(eventCode = activeEventCode.value): Promise<boolean> {
     if (!remoteApiEnabled) return false;
     const generation = remoteGeneration;
     try {
@@ -258,7 +259,12 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   }
 
   // ── actions ──
-  function openSheet() {
+  function openSheet(eventCode = "evt-spring-spin") {
+    remoteGeneration += 1;
+    activeEventCode.value = eventCode;
+    remoteState.value = null;
+    remoteSegments.value = [];
+    remoteHistory.value = [];
     open.value = true;
     phase.value = "idle";
     lastWonPrizeId.value = null;
@@ -266,8 +272,10 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   }
 
   function closeSheet() {
+    remoteGeneration += 1;
     open.value = false;
     phase.value = "idle";
+    lastWonPrizeId.value = null;
   }
 
   /** Day-30 里程碑发 bonus 票。增量型:冲突时在**别处写完的最新票数**上重放这次加票。 */
@@ -316,6 +324,7 @@ export const useLuckySpin = defineStore("luckySpin", () => {
     idempotencyKey: string,
   ): Promise<{ ok: boolean; prizeId: string | null; stale?: boolean }> {
     if (!remoteApiEnabled) return spin();
+    if (eventCode !== activeEventCode.value) return { ok: false, prizeId: null, stale: true };
     if (availableSpins() <= 0) return { ok: false, prizeId: null };
     if (remoteSegments.value.length === 0) return { ok: false, prizeId: null };
     const generation = remoteGeneration;
@@ -385,6 +394,7 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   }
 
   return {
+    activeEventCode,
     open,
     phase,
     bonusTickets,

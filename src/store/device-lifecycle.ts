@@ -152,10 +152,68 @@ export interface DeviceLifecycleSummary {
   monthlyLossUSD: number;   // dailyLossUSD × 30
 }
 
+export function hasServerLifecycleProjection(device: Device): boolean {
+  return device.capacitySource === "server"
+    && typeof device.capacityPct === "number"
+    && Number.isFinite(device.capacityPct)
+    && device.capacityPct >= 0
+    && device.capacityPct <= 100
+    && Number.isInteger(device.capacityAgeMonths)
+    && (device.capacityAgeMonths ?? -1) >= 0
+    && typeof device.capacitySubsidized === "boolean"
+    && Number.isInteger(device.capacitySubsidyDays)
+    && (device.capacitySubsidyDays ?? -1) >= 0
+    && Number.isInteger(device.capacitySubsidyRemainingDays)
+    && (device.capacitySubsidyRemainingDays ?? -1) >= 0
+    && (device.capacitySubsidyRemainingDays ?? 0) <= (device.capacitySubsidyDays ?? -1)
+    && (device.capacitySubsidyEndsAt === null
+      || (typeof device.capacitySubsidyEndsAt === "number"
+        && Number.isFinite(device.capacitySubsidyEndsAt)
+        && device.capacitySubsidyEndsAt >= 0))
+    && (device.capacitySubsidized === true
+      ? (device.capacitySubsidyRemainingDays ?? 0) > 0
+        && typeof device.capacitySubsidyEndsAt === "number"
+        && device.capacitySubsidyEndsAt > (device.serverNow ?? Number.POSITIVE_INFINITY)
+      : (device.capacitySubsidyRemainingDays ?? -1) === 0)
+    && typeof device.serverNow === "number"
+    && Number.isFinite(device.serverNow)
+    && device.serverNow >= 0;
+}
+
+function serverLifecycleSummary(device: Device): DeviceLifecycleSummary | null {
+  if (!hasServerLifecycleProjection(device)) return null;
+  const efficiency = (device.capacityPct as number) / 100;
+  const dailyRateAtFull = device.baseRate;
+  const dailyRateNow = dailyRateAtFull * efficiency;
+  const dailyLossUSD = dailyRateAtFull - dailyRateNow;
+  return {
+    isDegradable: isDegradable(device.kind),
+    monthsOwned: device.capacityAgeMonths as number,
+    efficiency,
+    dailyRateAtFull,
+    dailyRateNow,
+    dailyLossUSD,
+    monthlyLossUSD: dailyLossUSD * 30,
+  };
+}
+
 export function getLifecycleSummary(
   device: Device,
   now: number = mockServerNow(),
 ): DeviceLifecycleSummary {
+  // A remote row is never allowed to fall back to purchasedAt + Date.now().
+  // Missing/null server facts are unavailable and must be rendered as such.
+  if (device.capacitySource === "server") {
+    return serverLifecycleSummary(device) ?? {
+      isDegradable: false,
+      monthsOwned: 0,
+      efficiency: 0,
+      dailyRateAtFull: 0,
+      dailyRateNow: 0,
+      dailyLossUSD: 0,
+      monthlyLossUSD: 0,
+    };
+  }
   const degradable = isDegradable(device.kind);
   if (!degradable) {
     return {
@@ -197,8 +255,9 @@ export function getNetworkMonthlyLoss(
   for (const d of devices) {
     if (!isDegradable(d.kind)) continue;
     degradableCount += 1;
-    const { monthlyLossUSD } = getLifecycleSummary(d, now);
-    totalMonthlyLossUSD += monthlyLossUSD;
+    if (d.capacitySource === "server" && !hasServerLifecycleProjection(d)) continue;
+    const summary = getLifecycleSummary(d, now);
+    totalMonthlyLossUSD += summary.monthlyLossUSD;
   }
   return { totalMonthlyLossUSD, degradableCount };
 }

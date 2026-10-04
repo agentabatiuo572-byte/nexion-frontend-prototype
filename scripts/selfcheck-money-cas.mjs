@@ -734,17 +734,17 @@ group();
     const bodyOf = (f) => src.slice(f.open + 1, f.close);
     // 🔴 2026-08-13 扩充自守形态:原先只认 `if (!remoteApiEnabled) return`,
     // 而沙箱专用函数(refreshFundsSandboxDeposits / createSandboxTopup 等)用的是
-    // `if (!fundsSandboxEnabled) return` —— 门不认,于是把**受守的**函数报成越界。
-    // 两者不是随便互换:`fundsSandboxEnabled = mode === "sandbox" && modeExplicit`,
+    // `if (!developmentFundsEnabled) return` —— 门不认,于是把**受守的**函数报成越界。
+    // 两者不是随便互换:`developmentFundsEnabled = mode === "sandbox" && modeExplicit`,
     // 而 `remoteApiEnabled = mode !== "mock"` ⇒ **沙箱档是非 mock 档的真子集**,
-    // 所以按 fundsSandboxEnabled 自守**更严**(只在沙箱跑,remote 档也进不来),
+    // 所以按 developmentFundsEnabled 自守**更严**(只在沙箱跑,remote 档也进不来),
     // 用它守沙箱专用函数是精确而非放宽。
     // 判据仍是构造性的:只认这两种**函数体开头的早退**,写在中间或藏进分支的不算。
     // 🔴 复合早退也算,但**只认 `||` 不认 `&&`**:
     //   `if (!闸 || 金额非法) return` —— 闸一关就返回,安全(createSandboxTopup 正是这形态);
     //   `if (!闸 && 别的) return` —— 要两个条件同时成立才返回,**闸单独关时照样往下跑**,不安全。
     //   所以判据钉「以 `!闸` 开头,且紧跟 `)` 或 `||`」,把这两种形态精确分开。
-    const isFormA = (f) => /^\s*if\s*\(\s*!(remoteApiEnabled|fundsSandboxEnabled)\s*(\)|\|\|)/.test(bodyOf(f));
+    const isFormA = (f) => /^\s*if\s*\(\s*!(remoteApiEnabled|developmentFundsEnabled)\s*(\)|\|\|)/.test(bodyOf(f));
     const formANames = fns.filter(isFormA).map((f) => f.name);
     const callsFormA = (f) => formANames.some((n) => new RegExp(`(?<![\\w$.])${n}\\s*\\(`).test(bodyOf(f)));
     const callSiteGuarded = (i) => {

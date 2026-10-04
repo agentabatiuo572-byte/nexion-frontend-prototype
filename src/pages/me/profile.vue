@@ -3,7 +3,7 @@
   Display name is picked from curated pool candidates via NicknameSheet
   (free-text input + bio + region/timezone all removed 2026-07-15, content
   governance — the page has zero manual input); avatar reroll, tier
-  progress bar, wallet-binding link, save bar (disabled until dirty).
+  tier guidance, wallet-binding link, save bar (disabled until dirty).
 
   Wrapped in <AppChassis active="me">; SubPageHeader (back chevron) scrolls
   with content. The source MechAvatar is replaced with the initial-letter
@@ -31,6 +31,7 @@
               role="button"
               tabindex="0"
               aria-disabled="false"
+              :aria-label="t.profile.avatarRegenerate"
               @click="handleRegen"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /></svg>
@@ -38,7 +39,7 @@
           </view>
           <view class="flex-1 min-w-0">
             <text class="block truncate" :style="nameStyle">{{ displayName }}</text>
-            <text class="block truncate" :style="emailStyle" data-testid="profile-identity">{{ email }}</text>
+            <text class="block truncate" :style="emailStyle">{{ email }}</text>
             <view class="flex items-center" style="gap: 6px; margin-top: 2px">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
               <text :style="joinedStyle">{{ t.profile.joinedOn }} {{ joinedDate }}</text>
@@ -64,7 +65,7 @@
             :aria-label="t.profile.nicknameChange"
             @click="openNicknameSheet"
           >
-            <text class="flex-1 truncate" :style="nameValueStyle">{{ name }}</text>
+            <text class="flex-1 truncate" :style="nameValueStyle">{{ nexGridBrandText(name) }}</text>
             <text class="shrink-0" :style="nameChangeStyle">{{ t.profile.nicknameChange }}</text>
           </view>
           <text class="block" :style="fieldHintStyle">{{ t.profile.displayNameHint }}</text>
@@ -77,15 +78,21 @@
         <text :style="tierTitleStyle">{{ t.profile.tierTitle }}</text>
         <text :style="tierLabelStyle">{{ tierLabel }}</text>
       </view>
-      <view :style="tierBarWrapStyle">
-        <view :style="tierTrackStyle">
-          <view :style="tierFillStyle" />
-        </view>
+      <text class="block" :style="tierProgressStyle">{{ tierProgressLine }}</text>
+      <view v-if="remoteApiEnabled && vRank.remoteError" class="mx-4 mt-2" role="status" aria-live="polite">
+        <text class="block" style="font-size: 13px; color: var(--v5-ink-2)">{{ t.profile.rankUnavailable }}</text>
+        <view
+          class="nx-profile-rank-retry inline-flex items-center active:opacity-80"
+          style="min-height: 44px; font-size: 13px; color: var(--v5-brand)"
+          role="button"
+          tabindex="0"
+          :aria-label="t.rank.retry"
+          @click="refreshVRankForCurrentAccount"
+        >{{ t.rank.retry }}</view>
       </view>
-      <text class="block" :style="tierProgressStyle">{{ tierProgressLine }} · 62%</text>
 
-      <!-- Wallet binding -->
-      <view class="mx-4 flex items-center active:opacity-90" :style="walletCardStyle" @click="goWallet">
+      <!-- Wallet binding — navigates to address management, so it is a link. -->
+      <view class="nx-glass-card mx-4 flex items-center active:opacity-90" :style="walletCardStyle" role="link" tabindex="0" :aria-label="`${t.profile.walletAddress} · ${walletAction}`" @click="goWallet">
         <view class="grid place-items-center shrink-0" :style="walletIconStyle">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></svg>
         </view>
@@ -96,7 +103,7 @@
           </view>
           <text class="block truncate" :style="walletSubStyle">{{ walletSub }}</text>
         </view>
-        <text :style="walletActionStyle">{{ paired ? t.profile.walletPaired : t.profile.walletPair }}</text>
+        <text :style="walletActionStyle">{{ walletAction }}</text>
       </view>
 
       <!-- Save bar -->
@@ -122,7 +129,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { nexGridBrandText } from "@/lib/brand-copy";
+import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import { profileApi, remoteApiEnabled } from "@/api/runtime";
 import AppChassis from "@/components/app-chassis.vue";
 import NicknameSheet from "@/components/me/nickname-sheet.vue";
@@ -133,9 +143,20 @@ import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
 import { useProfile } from "@/store/profile";
 import { usePayoutAddress } from "@/store/payout-address";
+import { useQuest } from "@/store/quest";
+import { useVRank } from "@/store/v-rank";
+import { useLocaleStore } from "@/store/locale";
 import { maskAddressMid, PAYOUT_NETWORKS } from "@/store/payout-address-core";
 import { toast } from "@/store/ui";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { claimSetupProfileQuest } from "@/lib/remote-profile-quest";
+import { reconcileProfileEdit } from "@/lib/profile-save-flow";
+import { requireCryptoUuid } from "@/lib/secure-command-id";
+import { formatJoinedDate } from "@/lib/profile-date";
+import { profileVRankProjection, type ProfileVRankDefinition } from "@/lib/profile-vrank-display";
+import { rankName } from "@/lib/v-rank-copy";
+import { subscribeRuntimeRevision } from "@/api/order-api";
+import { createP318AccountPageFence, type P318AccountPageScope } from "./p3-18-account-page-fence";
 
 const TIERS = ["L0", "L1", "L2", "L3", "L4", "L5"] as const;
 type Tier = (typeof TIERS)[number];
@@ -145,14 +166,20 @@ const app = useApp();
 const auth = useAuth();
 const profile = useProfile();
 const payout = usePayoutAddress();
+const quest = useQuest();
+const vRank = useVRank();
+const locale = useLocaleStore();
+const profilePageFence = createP318AccountPageFence(
+  () => String(app.accountKey),
+  () => app.accountBindingEpoch,
+);
+let profilePageVisible = true;
 onMounted(() => {
   // 合并裁决(2026-08-14):取远端那侧(保留 .catch + 收下新增的两个加载调用)。
   //   本地这侧只是把 payout 那行的 .catch 去掉了 —— 理由是缝已自吞、这层是死代码。
   //   但「死代码」和「有害」不是一回事:留着它,万一将来有人把缝的自吞改回抛,
   //   这个调用点仍是安全的。少一行的收益抵不上那个风险,所以不坚持本地那侧。
-  if (remoteApiEnabled) void payout.refreshRemote().catch(() => undefined);
-  if (remoteApiEnabled) void loadProfileCandidates();
-  if (remoteApiEnabled) void loadRemoteProfile();
+  if (remoteApiEnabled) refreshProfileForCurrentAccount();
 });
 
 // Local edit buffer (committed on Save), mirroring the source useState.
@@ -163,13 +190,85 @@ const nicknameSheetOpen = ref(false);
 const avatarUrl = ref("");
 const avatarRevision = ref("");
 const avatarUploading = ref(false);
+const setupProfileQuestPending = ref(false);
 
-const displayName = computed(() => profile.displayName);
+function isCurrentProfileRequest(
+  pageScope: P318AccountPageScope,
+  accountScope = captureAccountScope(),
+  accountKey = auth.accountId,
+): boolean {
+  return profilePageVisible
+    && profilePageFence.isCurrent(pageScope)
+    && isCurrentAccountScope(accountScope)
+    && auth.accountId === accountKey;
+}
+
+function clearProfileAccountState() {
+  profilePageFence.invalidate();
+  name.value = profile.displayName;
+  saveFeedback.value = "";
+  isSaving.value = false;
+  nicknameSheetOpen.value = false;
+  avatarUrl.value = "";
+  avatarRevision.value = "";
+  avatarUploading.value = false;
+  setupProfileQuestPending.value = false;
+}
+
+function refreshProfileForCurrentAccount() {
+  if (!profilePageVisible || !remoteApiEnabled) return;
+  void refreshPayoutForCurrentAccount();
+  void loadProfileCandidates();
+  void loadRemoteProfile();
+  void refreshVRankForCurrentAccount();
+}
+
+async function refreshVRankForCurrentAccount() {
+  const pageScope = profilePageFence.capture("v-rank");
+  const accountScope = captureAccountScope();
+  const accountKey = auth.accountId;
+  if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+  await vRank.refreshCanonicalVRank();
+  // The store fences account, request generation, and runtime revision before
+  // applying its projection; this page fence prevents a hidden/rebound page
+  // from treating the completed read as current work.
+  if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+}
+
+async function refreshPayoutForCurrentAccount() {
+  const pageScope = profilePageFence.capture("payout-address");
+  const accountScope = captureAccountScope();
+  const accountKey = auth.accountId;
+  if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+  await payout.refreshRemote().catch(() => undefined);
+  if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+}
+
+onShow(() => {
+  profilePageVisible = true;
+  refreshProfileForCurrentAccount();
+});
+const unsubscribeProfileRankRuntime = subscribeRuntimeRevision(() => {
+  if (profilePageVisible && remoteApiEnabled) void refreshVRankForCurrentAccount();
+});
+onHide(() => {
+  profilePageVisible = false;
+  clearProfileAccountState();
+});
+onUnmounted(() => {
+  unsubscribeProfileRankRuntime();
+  profilePageVisible = false;
+  clearProfileAccountState();
+});
+watch([() => String(app.accountKey), () => app.accountBindingEpoch], () => {
+  clearProfileAccountState();
+  refreshProfileForCurrentAccount();
+});
+
+const displayName = computed(() => nexGridBrandText(profile.displayName));
 // A remote session's user-id key is internal routing state, never profile copy.
 // Until the backend supplies a phone projection, show an honest blank field.
-// Keep legacy account emails in storage, but do not show their former brand domain.
-const email = computed(() => (remoteApiEnabled ? profile.phoneE164 : (auth.email || app.user.email))
-  .replace(/@(?:demo\.)?nexgrid\.ai$/i, ""));
+const email = computed(() => remoteApiEnabled ? profile.phoneE164 : (auth.email || app.user.email));
 const initial = computed(
   () => (displayName.value || email.value || "S").trim()[0]?.toUpperCase() || "S",
 );
@@ -179,36 +278,62 @@ const paired = computed(() => payout.hasAnyAddress);
 // 否则 BEP20/ERC20 用户点「管理」落到 TRC20 空槽,看起来像地址丢失(审计 P1)。
 const walletNetwork = computed(() => PAYOUT_NETWORKS.find((network) => payout.currentFor(network)));
 const walletAddress = computed(() => (walletNetwork.value ? payout.currentFor(walletNetwork.value)?.address : undefined));
+const walletReadConfirmed = computed(() => !remoteApiEnabled || payout.provenance !== null);
 const walletSub = computed(() =>
-  walletAddress.value ? maskAddressMid(walletAddress.value) : t.value.profile.walletEmpty,
+  walletAddress.value
+    ? maskAddressMid(walletAddress.value)
+    : walletReadConfirmed.value ? t.value.profile.walletEmpty : t.value.profile.walletUnknown,
+);
+const walletAction = computed(() =>
+  paired.value || !walletReadConfirmed.value ? t.value.profile.walletPaired : t.value.profile.walletPair,
 );
 
 const userTier = computed<Tier>(() => (app.user.tier as Tier) ?? "L0");
-const tierLabel = computed(() => t.value.profile.tierLabels[userTier.value]);
+const remoteTier = computed(() => profileVRankProjection(vRank.remoteReady, vRank.myRank, vRank.ladder));
+function configuredRankName(rank: ProfileVRankDefinition): string {
+  return rankName(rank, locale.code);
+}
+const tierLabel = computed(() => {
+  if (!remoteApiEnabled) return t.value.profile.tierLabels[userTier.value];
+  const projection = remoteTier.value;
+  return projection ? [`V${projection.current.v}`, configuredRankName(projection.current)].filter(Boolean).join(" · ") : "—";
+});
 const tierProgressLine = computed(() => {
+  if (remoteApiEnabled) {
+    const projection = remoteTier.value;
+    if (!projection || !projection.next) return "—";
+    return t.value.profile.tierProgress.replace(
+      "{next}",
+      [`V${projection.next.v}`, configuredRankName(projection.next)].filter(Boolean).join(" · "),
+    );
+  }
   const idx = TIERS.indexOf(userTier.value);
   const nextTier: Tier = idx >= 0 && idx < TIERS.length - 1 ? TIERS[idx + 1] : "L5";
   return t.value.profile.tierProgress.replace("{next}", t.value.profile.tierLabels[nextTier]);
 });
 
-const joinedDate = computed(() =>
-  new Date(app.user.joinedAt).toLocaleDateString(dateLocale(), {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }),
-);
+const joinedDate = computed(() => formatJoinedDate(app.user.joinedAt, dateLocale()));
 
 const dirty = computed(() => name.value !== profile.displayName);
 
 async function loadProfileCandidates() {
+  const pageScope = profilePageFence.capture("nickname-candidates");
+  const accountScope = captureAccountScope();
+  const accountKey = auth.accountId;
+  if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
   const ok = await profile.refreshNicknameCandidates();
+  if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
   if (!ok) toast.error(t.value.profile.serverMutationFailed);
 }
 
 async function openNicknameSheet() {
+  const pageScope = profilePageFence.capture("nickname-sheet");
+  const accountScope = captureAccountScope();
+  const accountKey = auth.accountId;
+  if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
   if (remoteApiEnabled && profile.nicknameCandidates.length === 0) {
     const ok = await profile.refreshNicknameCandidates();
+    if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
     if (!ok) {
       toast.error(t.value.profile.serverMutationFailed);
       return;
@@ -218,80 +343,139 @@ async function openNicknameSheet() {
 }
 
 function onNicknamePick(v: string) {
+  if (!profilePageVisible) return;
   name.value = v;
   nicknameSheetOpen.value = false;
 }
 
 async function handleSave() {
   if (isSaving.value) return;
+  const pageScope = profilePageFence.capture("profile-save");
+  const accountScope = captureAccountScope();
+  const accountKey = auth.accountId;
+  if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
   if (!dirty.value) {
+    if (remoteApiEnabled && setupProfileQuestPending.value) {
+      isSaving.value = true;
+      try {
+        const claimed = await claimSetupProfileQuest(quest);
+        if (isCurrentProfileRequest(pageScope, accountScope, accountKey) && claimed) {
+          setupProfileQuestPending.value = false;
+        }
+      } finally {
+        if (isCurrentProfileRequest(pageScope, accountScope, accountKey)) isSaving.value = false;
+      }
+      if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+      // The nickname is already authoritative at this point. A missing or
+      // temporarily unavailable setup-profile reward must never turn the
+      // completed profile mutation into a visible profile-service failure.
+      if (setupProfileQuestPending.value) toast.info(quest.claimNotice
+        ? t.value.questClaim[quest.claimNotice] : t.value.profile.noChangesToast);
+      else toast.success(t.value.profile.savedToast);
+      return;
+    }
     saveFeedback.value = t.value.profile.noChangesToast;
     toast.info(t.value.profile.noChangesToast);
     return;
   }
   isSaving.value = true;
   try {
-    const saved = await profile.setDisplayName(name.value);
-    if (!saved) return;
+    let outcome: { saved: boolean; questPending: boolean; claimNotice: typeof quest.claimNotice };
+    if (remoteApiEnabled) {
+      const saved = await profile.setDisplayName(name.value);
+      if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+      const claimed = saved ? await claimSetupProfileQuest(quest).catch(() => false) : false;
+      const claimNotice = saved && !claimed ? quest.claimNotice : null;
+      if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+      outcome = { saved, questPending: saved && !claimed, claimNotice };
+    } else {
+      const saved = await profile.setDisplayName(name.value);
+      if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+      outcome = { saved, questPending: false, claimNotice: null };
+    }
+    if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+    if (!outcome.saved) return;
     name.value = profile.displayName;
+    setupProfileQuestPending.value = outcome.questPending;
     saveFeedback.value = t.value.profile.savedToast;
     toast.success(t.value.profile.savedToast);
+    if (outcome.claimNotice) toast.info(t.value.questClaim[outcome.claimNotice]);
   } catch {
+    if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
     toast.error(t.value.profile.serverMutationFailed);
   } finally {
-    isSaving.value = false;
+    if (isCurrentProfileRequest(pageScope, accountScope, accountKey)) isSaving.value = false;
   }
 }
 
 async function loadRemoteProfile() {
+  const pageScope = profilePageFence.capture("profile");
   const scope = captureAccountScope();
   const accountKey = auth.accountId;
+  if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
   try {
     const projection = await profileApi.profile();
-    if (!isCurrentAccountScope(scope) || auth.accountId !== accountKey) return;
+    if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
+    name.value = reconcileProfileEdit(profile.displayName, name.value, projection.nickname);
+    profile.projectServerNickname(projection.nickname);
     avatarUrl.value = projection.avatarUrl;
     avatarRevision.value = projection.avatarRevision;
   } catch {
-    if (!isCurrentAccountScope(scope) || auth.accountId !== accountKey) return;
+    if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
     toast.error(t.value.profile.serverMutationFailed);
   }
 }
 
 async function handleRegen() {
   if (avatarUploading.value) return;
+  const pageScope = profilePageFence.capture("avatar-upload");
+  const scope = captureAccountScope();
+  const accountKey = auth.accountId;
+  if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
   if (remoteApiEnabled) {
     try {
-      const chosen = await new Promise<UniApp.ChooseImageSuccessCallbackResult>((resolve, reject) => {
-        uni.chooseImage({ count: 1, sizeType: ["compressed"], sourceType: ["album", "camera"], success: resolve, fail: reject });
+      const chosen = await new Promise<UniApp.ChooseImageSuccessCallbackResult | null>((resolve, reject) => {
+        uni.chooseImage({ count: 1, sizeType: ["compressed"], sourceType: ["album", "camera"], success: resolve, fail: (cause) => {
+          let cancelled = /^(?:chooseImage:fail\s+)?cancel(?:led|ed)?$/i.test(cause instanceof Error ? cause.message : cause.errMsg);
+          // #ifdef APP-PLUS
+          // Uni's native source actionSheet reports cancellation without a message.
+          cancelled = cancelled || cause.errMsg === "chooseImage:fail" && (cause as { code?: unknown }).code === 0
+            && Object.getOwnPropertyNames(cause).every(key => key === "errMsg" || key === "code");
+          // #endif
+          if (cancelled) resolve(null); else reject(cause);
+        } });
       });
+      if (!chosen) return;
       const filePath = chosen.tempFilePaths[0];
+      if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
       if (!filePath) return;
       avatarUploading.value = true;
-      const scope = captureAccountScope();
-      const accountKey = auth.accountId;
-      const key = `app-profile:avatar:${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
+      const key = `app-profile:avatar:${requireCryptoUuid()}`;
       const before = avatarRevision.value;
       try {
         const result = await profileApi.uploadAvatar(filePath, key);
-        if (!isCurrentAccountScope(scope) || auth.accountId !== accountKey) return;
+        if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
         avatarUrl.value = result.avatarUrl;
         avatarRevision.value = result.avatarRevision;
       } catch (cause) {
         const authoritative = await profileApi.profile().catch(() => null);
-        if (!isCurrentAccountScope(scope) || auth.accountId !== accountKey) return;
+        if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
         if (!authoritative || !authoritative.avatarRevision || authoritative.avatarRevision === before) throw cause;
         avatarUrl.value = authoritative.avatarUrl;
         avatarRevision.value = authoritative.avatarRevision;
       }
-      toast.success(t.value.profile.avatar, t.value.profile.avatarHint);
+      if (isCurrentProfileRequest(pageScope, scope, accountKey)) {
+        toast.success(t.value.profile.avatar, t.value.profile.avatarHint);
+      }
     } catch (cause) {
-      if (cause instanceof Error && /cancel/i.test(cause.message)) return;
+      if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
       toast.error(t.value.profile.serverMutationFailed);
     } finally {
-      avatarUploading.value = false;
+      if (isCurrentProfileRequest(pageScope, scope, accountKey)) avatarUploading.value = false;
     }
     return;
   }
+  if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
   if (!profile.regenerateAvatar()) return;
   toast.info(t.value.profile.avatar, t.value.profile.avatarHint);
 }
@@ -299,7 +483,7 @@ async function handleRegen() {
 function goWallet() {
   // 提现地址行 → 地址管理页(带展示中的网络参数,与 wallet-withdraw.goManage 同模式)
   const query = walletNetwork.value ? `?network=${walletNetwork.value}` : "";
-  uni.navigateTo({ url: `/pages/me/wallet-address-rebind${query}`, fail: () => {} });
+  navTo(`/pages/me/wallet-address-rebind${query}`);
 }
 
 // ── styles ──
@@ -405,8 +589,8 @@ const readOnlyHoldStyle: CSSProperties = {
   fontWeight: 600,
   color: "var(--v5-warning)",
 };
-// De-carded tier: section-label header (title + tier badge) then the bar +
-// progress line on the floor.
+// De-carded tier: section-label header (title + tier badge) then factual
+// next-tier guidance on the floor. No client-invented progress percentage.
 const tierHeaderStyle: CSSProperties = {
   margin: "22px 16px 8px",
   padding: "0 2px",
@@ -418,26 +602,11 @@ const tierTitleStyle: CSSProperties = {
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",
 };
-const tierBarWrapStyle: CSSProperties = {
-  margin: "0 16px",
-  padding: "0 2px",
-};
 const tierLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontSize: "13px",
   fontWeight: 600,
   color: "var(--v5-brand)",
-};
-const tierTrackStyle: CSSProperties = {
-  height: "8px",
-  borderRadius: "999px",
-  background: "var(--v5-surface-2)",
-  overflow: "hidden",
-};
-const tierFillStyle: CSSProperties = {
-  height: "100%",
-  width: "62%",
-  background: "linear-gradient(to right, var(--v5-brand), color-mix(in srgb, var(--v5-brand) 55%, var(--v5-success)))",
 };
 const tierProgressStyle: CSSProperties = {
   margin: "8px 18px 0",
@@ -446,11 +615,11 @@ const tierProgressStyle: CSSProperties = {
   color: "var(--v5-ink-4)",
 };
 // Wallet-binding nav row keeps its surface (nav-list whitelist) — border dropped.
-const walletCardStyle: CSSProperties = {
+const walletCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "20px",
   gap: "12px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
 };
 const walletIconStyle: CSSProperties = {
@@ -494,4 +663,6 @@ const saveFeedbackStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-3)",
 };
+
+
 </script>

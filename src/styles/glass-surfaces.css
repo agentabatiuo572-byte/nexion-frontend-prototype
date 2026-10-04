@@ -1,0 +1,51 @@
+/* Glass is reserved for controls, overlays and explicitly selected key displays. */
+.nx-glass-hero,
+.nx-glass-sheet,
+.nx-glass-action {
+  --nx-glass-radius: 24px;
+  --nx-glass-fill: linear-gradient(145deg, color-mix(in srgb, var(--v5-ink) 4%, transparent), transparent 65%), color-mix(in srgb, var(--v5-surface) 94%, transparent);
+  --nx-glass-edge: inset 0 0 0 1px color-mix(in srgb, var(--v5-liquid-rim) 45%, transparent), inset 0 1px 1px color-mix(in srgb, var(--v5-liquid-highlight) 45%, transparent), inset 0 -1px 1px var(--v5-liquid-bottom);
+}
+/* Keep the existing content class as a compatibility hook, but make it flat. */
+.nx-glass-card:not(.nx-glass-hero),
+.nx-home-glass-panel {
+  --nx-glass-radius: 20px;
+  --nx-glass-fill: var(--v5-content-surface);
+  --nx-glass-edge: none;
+}
+.nx-glass-card .nx-glass-card:not(.nx-glass-hero) {
+  --nx-glass-radius: 0px;
+  --nx-glass-fill: transparent;
+}
+.nx-glass-card,
+.nx-glass-sheet {
+  border-radius: var(--nx-glass-radius);
+  background: var(--nx-glass-fill);
+  box-shadow: var(--nx-glass-edge);
+}
+.nx-glass-sheet {
+  --nx-glass-radius: 28px;
+  --nx-glass-fill: linear-gradient(155deg, color-mix(in srgb, var(--v5-ink) 4%, transparent), transparent 55%), color-mix(in srgb, var(--v5-surface) 98%, transparent);
+}
+/* Only the decorative layer springs; text, focus and hit targets stay still. */
+.nx-glass-action { position: relative; isolation: isolate; border-radius: var(--nx-glass-radius); }
+.nx-glass-action::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  pointer-events: none; background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge);
+  transition: transform 540ms cubic-bezier(.2, 1.65, .3, 1);
+}
+.nx-glass-action:active::before { transform: scale(.97, .955); transition-duration: 100ms; }
+.nx-glass-action:active { opacity: .8; }
+.nx-glass-action:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .nx-glass-action:active::before { transform: none; }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .nx-glass-card, .nx-glass-sheet, .nx-glass-action, .nx-home-glass-panel { --nx-glass-fill: var(--v5-surface); }
+}
+@media (forced-colors: active) {
+  .nx-glass-card, .nx-glass-sheet, .nx-glass-action { border: 1px solid CanvasText; }
+}
+
+/* Explicit content bands share their parent glass; never apply to all descendants. */
+.nx-glass-inset { background: transparent; }

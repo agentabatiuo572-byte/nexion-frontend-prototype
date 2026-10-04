@@ -9,7 +9,7 @@
   to the page (which owns the store writes).
 -->
 <template>
-  <view class="relative overflow-hidden rounded-2xl" :style="cardStyle">
+  <view class="nx-glass-card relative overflow-hidden rounded-2xl" :style="cardStyle">
     <!-- top hairline -->
     <view aria-hidden :style="hairlineStyle" />
 
@@ -56,11 +56,11 @@
       </view>
 
       <!-- CTA -->
-      <view v-if="showClaim" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="claimBtnStyle" role="button" tabindex="0" :aria-label="claimLabel" @click="emit('claim')">
+      <view v-if="showClaim" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="claimBtnStyle" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" :aria-label="claimLabel" @click="emitUnlessBusy('claim')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287z" /></svg>
-        <text style="font-size: 15px; font-weight: 600; color: var(--v5-on-brand); pointer-events: none" @click.stop="emit('claim')">{{ claimLabel }}</text>
+        <text style="font-size: 15px; font-weight: 600; color: var(--v5-on-brand); pointer-events: none">{{ claimLabel }}</text>
       </view>
-      <view v-else-if="ev._claimed" class="mt-5 w-full rounded-full flex items-center justify-center" :class="{ 'active:opacity-90': !!ev.useHref }" :style="claimedPillStyle" :role="ev.useHref ? 'button' : undefined" :tabindex="ev.useHref ? 0 : undefined" :aria-label="claimedAriaLabel" @click="onClaimedUse">
+      <view v-else-if="ev._claimed" class="mt-5 w-full rounded-full flex items-center justify-center" :class="{ 'active:opacity-90': !!ev.useHref }" :style="claimedPillStyle" :role="ev.useHref ? 'button' : undefined" :tabindex="ev.useHref ? 0 : -1" :aria-label="claimedAriaLabel" @click="onClaimedUse">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="M20 6 9 17l-5-5" /></svg>
         <text style="font-size: 13px; font-weight: 500; color: var(--v5-ink-3); pointer-events: none">{{ t.events.claimedLabel }}</text>
         <template v-if="ev.useHref">
@@ -69,11 +69,11 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" :stroke="ev.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
         </template>
       </view>
-      <view v-else-if="showJoinAction" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="joinBtnStyle" role="button" tabindex="0" :aria-label="ev.ctaLabel ?? t.events.joinCta" @click="emit('join')">
+      <view v-else-if="showJoinAction" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="joinBtnStyle" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" :aria-label="ev.ctaLabel ?? t.events.joinCta" @click="emitUnlessBusy('join')">
         <text style="font-size: 15px; font-weight: 600; color: var(--v5-on-brand); pointer-events: none">{{ ev.ctaLabel ?? t.events.joinCta }}</text>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
       </view>
-      <view v-else class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="joinBtnStyle" role="button" tabindex="0" :aria-label="ev.joined ? t.events.viewProgress : (ev.ctaLabel ?? t.events.joinCta)" @click="openHref">
+      <view v-else-if="showOpenAction" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="joinBtnStyle" role="button" tabindex="0" :aria-label="ev.joined ? t.events.viewProgress : (ev.ctaLabel ?? t.events.joinCta)" @click="openHref">
         <svg v-if="ev.joined" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="M20 6 9 17l-5-5" /></svg>
         <text style="font-size: 15px; font-weight: 600; color: var(--v5-on-brand); pointer-events: none" @click.stop="openHref">{{ ev.joined ? t.events.viewProgress : (ev.ctaLabel ?? t.events.joinCta) }}</text>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
@@ -83,50 +83,59 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 import type { NexEvent } from "@/mock/events";
+import { eventOpenTarget } from "./event-open-target";
 
 type EnrichedEvent = NexEvent & { _trackable: boolean; _done: boolean; _claimed: boolean };
 
-const props = defineProps<{ ev: EnrichedEvent; rewardNex: number }>();
+const props = withDefaults(defineProps<{ ev: EnrichedEvent; rewardNex: number; busy?: boolean }>(), { busy: false });
 const emit = defineEmits<{ (e: "join"): void; (e: "claim"): void; (e: "cta"): void }>();
 
 const t = useT();
+const busy = computed(() => props.busy);
+function emitUnlessBusy(event: "join" | "claim") {
+  if (props.busy) return;
+  if (event === "join") emit("join");
+  else emit("claim");
+}
 const { elRef: barEl, inView: barInView } = useScrollGrowProgress();
 
-const showClaim = computed(() => props.ev._trackable && props.ev._done && !props.ev._claimed);
+const showClaim = computed(() => props.ev.status === "ongoing" && props.ev._trackable && props.ev._done && !props.ev._claimed);
 const showJoinAction = computed(() => props.ev._trackable && !props.ev.joined && !props.ev._done);
-const claimLabel = computed(() => fmt(t.value.events.claimCta, { n: props.rewardNex.toLocaleString() }));
+const openTarget = computed(() => eventOpenTarget(props.ev));
+const showOpenAction = computed(() => Boolean(openTarget.value));
+const claimLabel = computed(() => fmt(t.value.events.claimRewardCta, { reward: props.ev.reward }));
 const progressPct = computed(() =>
   props.ev.progress ? Math.min(100, (props.ev.progress.current / props.ev.progress.total) * 100) : 0,
 );
 
 function openHref() {
-  if (props.ev.href) {
-    uni.navigateTo({ url: props.ev.href, fail: () => {} });
+  const target = openTarget.value;
+  if (target?.type === "route") {
+    navTo(target.href);
     return;
   }
-  emit("cta");
+  if (target?.type === "local") emit("cta");
 }
 
-// After the reward is claimed, the pill becomes a "Use it" link to the relevant
-// surface (discount → store, NEX reward → NEX wallet). No useHref ⇒ inert pill.
+// After the reward is claimed, the pill becomes a "Use it" link only when the
+// event model has an explicit destination. No useHref means an inert status.
 const claimedAriaLabel = computed(() =>
   props.ev.useHref ? `${t.value.events.claimedLabel} · ${t.value.events.useCta}` : t.value.events.claimedLabel,
 );
 function onClaimedUse() {
-  if (props.ev.useHref) uni.navigateTo({ url: props.ev.useHref, fail: () => {} });
+  if (props.ev.useHref) navTo(props.ev.useHref);
 }
 
-const cardStyle = computed<CSSProperties>(() => ({
+const cardStyle = computed<CSSProperties>(() => ({ borderRadius: "var(--nx-glass-radius)",
   background:
-    `radial-gradient(70% 80% at 100% 0%, color-mix(in srgb, ${props.ev.tint} 20%, transparent) 0%, transparent 55%),` +
-    `radial-gradient(120% 60% at 50% 130%, color-mix(in srgb, ${props.ev.tint} 8%, transparent) 0%, transparent 70%),` +
-    `var(--v5-surface)`,
-  boxShadow: "var(--v5-card-shadow-lift-strong)",
+    "var(--nx-glass-fill)",
+  boxShadow: "var(--nx-glass-edge)",
 }));
 const hairlineStyle = computed<CSSProperties>(() => ({
   position: "absolute",
@@ -187,4 +196,6 @@ const joinBtnStyle = computed<CSSProperties>(() => ({
   background: props.ev.tint,
   boxShadow: `0 0 24px color-mix(in srgb, ${props.ev.tint} 33%, transparent)`,
 }));
+
+
 </script>

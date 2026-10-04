@@ -1,7 +1,7 @@
 <!--
   Referral landing (ported from Nexion-prototype/app/ref/[code]/page.tsx).
   Public full-screen entry for users arriving via a shared /ref link. Establishes
-  sponsor social proof + dangles the $5 + 20 NEX gift, then pushes into register
+  sponsor social proof and the server-authorized offer, then pushes into register
   with the ref code preserved. No chassis (full-bleed, like onboarding). Reads the
   code from `?code=` (the source's dynamic [code] segment). Literal dark hex from
   source mapped to v5 tokens.
@@ -13,18 +13,18 @@
     <view class="relative" style="padding: 16px">
       <!-- Brand -->
       <view class="flex items-center" style="gap: 8px; margin-bottom: 16px">
-        <BrandLockup />
-        <text v-if="hasCode" :style="refChipStyle">REF/{{ displayReferralCode(code) }}</text>
+        <BrandLockup :height="40" />
+        <text v-if="hasCode" :style="refChipStyle">REF/{{ codeUpper }}</text>
       </view>
 
       <!-- [FEAT-SHARE4] 异常2:本机已登录 → 提示条 + CTA 变「进入」,不重复领礼 -->
       <view v-if="authed" :style="alreadyBarStyle">
-        <text>{{ t.ref.alreadyBar }}</text>
+        <text>{{ rewardEnabled ? t.ref.alreadyBar : t.ref.alreadyBarNoReward }}</text>
       </view>
 
       <!-- Sponsor hero([FEAT-SHARE4] 异常1:无码/非法码 → 整块隐藏;已登录也隐藏,
            避免「你已注册礼包仅一次」提示条与「X 邀请了你领礼」同屏互相矛盾(审计 P1) -->
-      <view v-if="hasCode && !authed" :style="sponsorCardStyle">
+      <view v-if="hasCode && !authed" class="nx-glass-card" :style="sponsorCardStyle">
         <view class="flex items-center" style="gap: 12px">
           <view class="grid place-items-center" :style="avatarStyle">
             <text :style="avatarTextStyle">{{ initial }}</text>
@@ -42,7 +42,7 @@
       </view>
 
       <!-- Gift hero: remote promotion is rendered only after the server preview succeeds. -->
-      <view v-if="!remoteApiEnabled || remotePreview" class="text-center relative overflow-hidden" :style="giftCardStyle">
+      <view v-if="rewardEnabled" class="nx-glass-card text-center relative overflow-hidden" :style="giftCardStyle">
         <text class="block" :style="giftLabelStyle">{{ t.ref.welcomeGift }}</text>
         <view class="flex items-baseline justify-center" style="gap: 6px; margin-top: 8px">
           <text :style="giftAmountStyle">${{ giftUsdt }}</text>
@@ -52,7 +52,7 @@
       </view>
 
       <!-- What you get -->
-      <view v-if="!remoteApiEnabled || remotePreview" :style="perksCardStyle">
+      <view v-if="!remoteApiEnabled || remotePreview" class="nx-glass-card" :style="perksCardStyle">
         <view v-for="(p, i) in perks" :key="p.key" class="flex items-center" :style="perkRowStyle(i !== perks.length - 1)">
           <view class="grid place-items-center shrink-0" :style="perkIconBoxStyle(p.tint)">
             <view v-html="p.icon" />
@@ -62,85 +62,88 @@
         </view>
       </view>
 
-      <!-- CTA(已登录 → 进入 NexGrid,隐藏注册入口;异常2) -->
-      <view v-if="!authed && (!remoteApiEnabled || remotePreview)" class="ref-cta w-full flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" data-system-chrome-primary @click="goRegister" @keydown.enter.prevent="goRegister" @keydown.space.prevent="goRegister">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13" /><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" /></svg>
-        <text style="margin: 0 8px">{{ fmt(t.ref.claimCta, { usd: giftUsdt, nex: giftNex }) }}</text>
+      <!-- CTA(已登录 → 进入 UVEL,隐藏注册入口;异常2) -->
+      <view v-if="!authed && referralCta === 'referral'" class="ref-cta w-full flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" data-system-chrome-primary @click="goRegister"  @keydown.enter.prevent="goRegister" @keydown.space.prevent="goRegister">
+        <svg v-if="rewardEnabled" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13" /><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" /></svg>
+        <text style="margin: 0 8px">{{ rewardEnabled ? fmt(t.ref.claimCta, { usd: giftUsdt, nex: giftNex }) : t.ref.joinCta }}</text>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
-      <view v-if="remoteApiEnabled && !remotePreview" class="text-center" style="padding: 28px 12px">
+      <view v-else-if="!authed && referralCta === 'ordinary'" class="ref-cta w-full flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" data-system-chrome-primary @click="goRegister"  @keydown.enter.prevent="goRegister" @keydown.space.prevent="goRegister">
+        <text style="margin: 0 8px">{{ t.register.create }}</text>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+      </view>
+      <view v-if="remoteApiEnabled && remotePreviewState === 'unavailable'" class="text-center" style="padding: 28px 12px">
         <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.ref.previewUnavailable }}</text>
       </view>
-      <view v-if="authed" class="ref-cta w-full flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" data-system-chrome-primary @click="enterApp" @keydown.enter.prevent="enterApp" @keydown.space.prevent="enterApp">
+      <view v-if="authed" class="ref-cta w-full flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" data-system-chrome-primary @click="enterApp"  @keydown.enter.prevent="enterApp" @keydown.space.prevent="enterApp">
         <text style="margin: 0 8px">{{ t.ref.enterApp }}</text>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
 
       <view v-if="!authed" class="text-center" style="margin-top: 8px">
         <text :style="signinStyle">{{ t.ref.signinInstead }} </text>
-        <text :style="signinLinkStyle" @click="goLogin">{{ t.ref.continue }}</text>
+        <text
+          :style="signinLinkStyle"
+          role="button"
+          tabindex="0"
+          :data-system-chrome-primary="remoteApiEnabled && !remotePreview ? '' : undefined"
+          @click="goLogin"
+
+          @keydown.enter.prevent="goLogin" @keydown.space.prevent="goLogin"
+        >{{ t.ref.continue }}</text>
       </view>
 
       <!-- Network social proof -->
-      <view :style="proofCardStyle">
+      <view class="nx-glass-card" :style="proofCardStyle">
         <view class="flex items-center" :style="proofHeadStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
-          <text>{{ t.ref.thisMonth }}</text>
+          <text>{{ t.ref.platformTotals }}</text>
         </view>
-        <view class="grid grid-cols-3 text-center" style="gap: 8px">
+        <view class="grid grid-cols-2 text-center" style="gap: 8px">
           <Stat :label="t.ref.newJoiners" :value="joinersText" tint="var(--v5-brand)" />
-          <Stat :label="t.ref.countries" :value="countryCountText" />
           <Stat :label="t.ref.paidOut" :value="paidOutText" tint="var(--v5-warning)" />
         </view>
-      </view>
-
-      <!-- Partner wall -->
-      <view v-if="!remoteApiEnabled" :style="partnerCardStyle">
-        <view class="flex items-center" :style="partnerHeadStyle">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></svg>
-          <text>{{ t.ref.backedAudited }}</text>
-        </view>
-        <view class="flex" style="flex-wrap: wrap; gap: 6px">
-          <text v-for="name in PARTNER_LOGOS" :key="name" :style="partnerChipStyle">{{ name }}</text>
-        </view>
-        <view class="flex" :style="badgeRowStyle">
-          <text>SOC 2 Type II</text>
-          <text>ISO 27001</text>
-          <text>GDPR · MSB</text>
-          <text>{{ t.ref.certikAudited }}</text>
-        </view>
+        <!-- BUG #59: these two figures are operator-published platform aggregates, not a
+             measured month-to-date feed. Without the scope label the card reads as a live
+             fact and the numbers carry no timestamp, basis, or source. -->
+        <text class="block" :style="proofScopeStyle">{{ verifiedScopeText }}</text>
       </view>
 
       <!-- Footer -->
+      <!-- Footer — all three legal destinations are real keyboard-activatable links.
+           role="link" takes Enter only (Space stays with page scrolling); the shared
+           activation layer supplies the key handling, so no keydown is hand-written. -->
       <view class="text-center" :style="footerStyle">
         <text>{{ t.ref.legalLine }} </text>
-        <text class="nx-ref-footer-link" :style="footerLinkStyle" @click="goTerms">{{ t.ref.terms }}</text>
-        <text> · </text>
-        <text>{{ t.ref.privacy }}</text>
-        <text> · </text>
-        <text class="nx-ref-footer-link" :style="footerLinkStyle" @click="goTrust">{{ t.ref.trustCenter }}</text>
+        <text class="nx-ref-footer-link" :style="footerLinkStyle" role="link" tabindex="0" :aria-label="t.ref.terms" @click="goTerms">{{ t.ref.terms }}</text>
+        <text aria-hidden="true"> · </text>
+        <text class="nx-ref-footer-link" :style="footerLinkStyle" role="link" tabindex="0" :aria-label="t.ref.privacy" @click="goPrivacy">{{ t.ref.privacy }}</text>
+        <text aria-hidden="true"> · </text>
+        <text class="nx-ref-footer-link" :style="footerLinkStyle" role="link" tabindex="0" :aria-label="t.ref.trustCenter" @click="goTrust">{{ t.ref.trustCenter }}</text>
       </view>
     </view>
   </StandalonePageShell>
 </template>
 
 <script setup lang="ts">
-import BrandLockup from "@/components/brand-lockup.vue";
-import { displayReferralCode } from "@/lib/brand";
-import { computed, ref, type CSSProperties } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { privacyPolicyHref } from "@/lib/privacy-return";
+import { navReset, navTo } from "@/lib/route";
+import { computed, onUnmounted, ref, type CSSProperties } from "vue";
+import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
+import BrandLockup from "@/components/brand-lockup.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import Stat from "@/components/trust/trust-stat.vue";
 import { pickSponsor } from "@/mock/sponsors";
-import { apiClient, networkRegionsApi, remoteApiEnabled } from "@/api/runtime";
+import { apiClient, remoteApiEnabled } from "@/api/runtime";
 import { createPublicSponsorPreviewApi, type PublicSponsorPreview } from "@/api/public-sponsor-preview-api";
 import { normalizeRegistrationSponsorCode } from "@/auth/registration-sponsor";
 import { useConfig } from "@/store/config";
 import { useAuth } from "@/store/auth";
 import { normalizeRefCode, useSponsorship } from "@/store/sponsorship";
-import { monthlyPayoutUsdOf, publicStatsHealth } from "@/lib/platform-stats";
+import { visibleReferralGift } from "@/lib/referral-reward-gate";
+import { referralCtaMode, resolveReferralAttributionCode, type ReferralPreviewState } from "@/lib/referral-preview-state";
 
 const PARTNER_LOGOS = ["NVIDIA", "Intel", "AMD", "OpenRouter", "OPPO", "TechCrunch"];
 const t = useT();
@@ -148,42 +151,83 @@ const code = ref("");
 const cfg = useConfig();
 const publicSponsorPreviewApi = createPublicSponsorPreviewApi(apiClient);
 const remotePreview = ref<PublicSponsorPreview | null>(null);
-const countryCount = ref<number | null>(null);
-const countryCountText = computed(() => remoteApiEnabled && countryCount.value !== null ? String(countryCount.value) : "—");
+const remotePreviewState = ref<ReferralPreviewState>("idle");
+const proofScopeStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", lineHeight: 1.4, color: "var(--v5-ink-4)" };
+// 🔴 对外财务事实只能来自可核验聚合(zentao #59)。
+//   此前「已付」= 运营配置的设备数 × 公布档位 × 30,「本月新增」= 配置基数 × 配置增速 ——
+//   两者都是把人工配置当实测对外发布。现在:
+//     · 有 verified 聚合时,读真实提现完成额与真实注册账号数,并标注来源与统计时刻;
+//     · 没有(沙箱/旧后端)时显示「—」,不再用配置值编造一个看起来像事实的数字。
+const verified = computed(() => cfg.syncFailed ? null : cfg.config.verifiedStats);
 const paidOutText = computed(() => {
-  const ps = cfg.config.publicStats;
-  return !cfg.syncFailed && publicStatsHealth(ps).fleetOk
-    ? `$${(monthlyPayoutUsdOf(ps) / 1_000_000).toFixed(1)}M`
-    : "—";
+  const v = verified.value;
+  if (cfg.syncFailed || !v) return "—";
+  const amount = v.completedPayoutUsdt.value;
+  return amount >= 1_000_000
+    ? `${(amount / 1_000_000).toFixed(2)}M`
+    : `${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 });
 const joinersText = computed(() => {
-  const ps = cfg.config.publicStats;
-  return !cfg.syncFailed && publicStatsHealth(ps).membersOk
-    ? Math.round(ps.registeredUsersBase * ps.registeredUsersMonthlyGrowthPct / 100).toLocaleString("en-US")
-    : "—";
+  const v = verified.value;
+  if (cfg.syncFailed || !v) return "—";
+  return v.registeredAccounts.value.toLocaleString("en-US");
+});
+/** 可核验聚合的统计时刻与口径,附在卡片底部;没有聚合时不显示任何「已核对」表述。 */
+const verifiedScopeText = computed(() => {
+  const v = verified.value;
+  if (!v) return t.value.ref.unavailableScope;
+  return fmt(t.value.ref.verifiedScope, { at: v.capturedAt.slice(0, 16).replace("T", " ") });
 });
 const auth = useAuth();
 const sponsorship = remoteApiEnabled ? null : useSponsorship();
-// 礼包金额单源派生自 platform config(禁写死镜像)。
+const rewardEnabled = computed(() => remoteApiEnabled
+  ? !!remotePreview.value && remotePreview.value.gift.status !== "DISABLED"
+  : cfg.config.rewards.enabled);
+const localGift = computed(() => visibleReferralGift(cfg.config.rewards));
+// 礼包金额单源派生自服务端预览或已过 H8 闸门的 platform config。
 const giftUsdt = computed(() => remoteApiEnabled
-  ? remotePreview.value?.gift.usdtAmount ?? 0
-  : cfg.config.rewards.welcomeGift.usdtAmount);
+  ? (rewardEnabled.value ? remotePreview.value?.gift.usdtAmount ?? 0 : 0)
+  : localGift.value.usdtAmount);
 const giftNex = computed(() => remoteApiEnabled
-  ? remotePreview.value?.gift.nexAmount ?? 0
-  : cfg.config.rewards.welcomeGift.nexAmount);
-// [FEAT-SHARE4] 码过 client 预检才展示 sponsor / 写归因;非法 = 通用落地(异常1)。
+  ? (rewardEnabled.value ? remotePreview.value?.gift.nexAmount ?? 0 : 0)
+  : localGift.value.nexAmount);
+const referralCta = computed(() => referralCtaMode(remoteApiEnabled, remotePreviewState.value));
+const referralAttribution = computed(() => resolveReferralAttributionCode(
+  remoteApiEnabled,
+  remotePreviewState.value,
+  code.value,
+));
+let referralLoadVersion = 0;
+let referralMounted = true;
+const isCurrentReferralLoad = (version: number) => referralMounted && version === referralLoadVersion;
+
+// [FEAT-SHARE4] 仅服务端预览确认的码才展示 sponsor / 写归因;非法、失败 = 普通注册。
 onLoad(async (options) => {
+  privacyHref.value = privacyPolicyHref("/pages/ref/code", options?.code);
+  referralMounted = true;
+  const loadVersion = ++referralLoadVersion;
   if (remoteApiEnabled) {
-    void networkRegionsApi.list().then((value) => { countryCount.value = value.countryCount; }).catch(() => { countryCount.value = null; });
-    const norm = normalizeRegistrationSponsorCode(options?.code ?? "", true);
-    code.value = norm ?? "";
-    if (!norm) return;
+    code.value = "";
+    remotePreview.value = null;
+    remotePreviewState.value = "idle";
+    const rawCode = String(options?.code ?? "").trim();
+    const norm = normalizeRegistrationSponsorCode(rawCode, true);
+    if (!norm) {
+      remotePreviewState.value = rawCode ? "unavailable" : "idle";
+      return;
+    }
+    remotePreviewState.value = "loading";
     try {
-      remotePreview.value = await publicSponsorPreviewApi.preview(norm);
-      code.value = remotePreview.value.code;
+      const preview = await publicSponsorPreviewApi.preview(norm);
+      if (!isCurrentReferralLoad(loadVersion)) return;
+      remotePreview.value = preview;
+      code.value = preview.code;
+      remotePreviewState.value = "ready";
     } catch {
+      if (!isCurrentReferralLoad(loadVersion)) return;
       code.value = "";
       remotePreview.value = null;
+      remotePreviewState.value = "unavailable";
     }
     return;
   }
@@ -191,9 +235,16 @@ onLoad(async (options) => {
   code.value = norm ?? "";
   if (norm) sponsorship?.capturePending(norm);
 });
+function cleanupReferralLoad() {
+  referralMounted = false;
+  referralLoadVersion += 1;
+}
+onUnload(cleanupReferralLoad);
+onUnmounted(cleanupReferralLoad);
 const hasCode = computed(() => remoteApiEnabled ? !!remotePreview.value : !!code.value);
 const authed = computed(() => auth.isAuthenticated);
 
+const codeUpper = computed(() => code.value.toUpperCase());
 const sponsor = computed(() => {
   if (remoteApiEnabled) {
     const value = remotePreview.value?.sponsor;
@@ -209,33 +260,36 @@ const ZAP_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" str
 const USERS_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>`;
 
 type PerkKey = "gift" | "day1" | "always" | "sponsor";
-const perks: { key: PerkKey; icon: string; tint: string }[] = [
+const ALL_PERKS: { key: PerkKey; icon: string; tint: string }[] = [
   { key: "gift", icon: GIFT_SVG, tint: "var(--v5-brand)" },
   { key: "day1", icon: SPARK_SVG, tint: "var(--v5-tech-cyan)" },
   { key: "always", icon: ZAP_SVG, tint: "var(--v5-warning)" },
   { key: "sponsor", icon: USERS_SVG, tint: "var(--v5-tech-cyan)" },
 ];
+const perks = computed(() => ALL_PERKS.filter((perk) => rewardEnabled.value || perk.key !== "gift"));
 function perkLabel(k: PerkKey): string {
   const s = t.value.ref.perks[k];
   return k === "gift" ? fmt(s, { usd: giftUsdt.value, nex: giftNex.value }) : s;
 }
 
 function goRegister() {
-  const q = code.value ? `?ref=${encodeURIComponent(code.value)}` : "";
-  uni.navigateTo({ url: `/pages/register/register${q}`, fail: () => {} });
+  const q = referralAttribution.value ? `?ref=${encodeURIComponent(referralAttribution.value)}` : "";
+  navTo(`/pages/register/register${q}`);
 }
 function goLogin() {
-  const q = code.value ? `?ref=${encodeURIComponent(code.value)}` : "";
-  uni.navigateTo({ url: `/pages/login/login${q}`, fail: () => {} });
+  const q = referralAttribution.value ? `?ref=${encodeURIComponent(referralAttribution.value)}` : "";
+  navTo(`/pages/login/login${q}`);
 }
 function enterApp() {
-  uni.reLaunch({ url: "/pages/index/index", fail: () => {} });
+  navReset({ url: "/pages/index/index", fail: () => {} });
 }
 function goTrust() {
-  uni.navigateTo({ url: "/pages/trust/trust", fail: () => {} });
+  navTo("/pages/trust/trust");
 }
+const privacyHref = ref(privacyPolicyHref("/pages/ref/code"));
+function goPrivacy() { navTo(privacyHref.value); }
 function goTerms() {
-  uni.navigateTo({ url: "/pages/onboarding/terms", fail: () => {} });
+  navTo("/pages/onboarding/terms");
 }
 
 const rootStyle: CSSProperties = { position: "relative", minHeight: "100vh", background: "var(--v5-bg)" };
@@ -262,7 +316,7 @@ const refChipStyle: CSSProperties = {
   borderRadius: "4px",
   background: "color-mix(in srgb, var(--v5-ink) 4%, transparent)",
 };
-const sponsorCardStyle: CSSProperties = { borderRadius: "16px", padding: "16px", marginBottom: "12px", background: "var(--v5-surface)" };
+const sponsorCardStyle: CSSProperties = { padding: "16px", marginBottom: "12px" };
 const alreadyBarStyle: CSSProperties = {
   borderRadius: "12px",
   padding: "10px 12px",
@@ -292,17 +346,14 @@ const vRankChipStyle: CSSProperties = {
   fontWeight: 600,
 };
 const giftCardStyle: CSSProperties = {
-  borderRadius: "16px",
   padding: "20px",
   marginBottom: "12px",
-  background:
-    "radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--v5-brand) 22%, transparent) 0%, transparent 65%), var(--v5-surface)",
 };
 const giftLabelStyle: CSSProperties = { fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", letterSpacing: "0.16em", color: "var(--v5-brand)" };
 const giftAmountStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "56px", fontWeight: 600, lineHeight: 1, color: "var(--v5-ink)" };
 const giftNexStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "20px", color: "var(--v5-nex)", fontWeight: 600, lineHeight: 1 };
 const giftSubStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "8px", lineHeight: 1.625 };
-const perksCardStyle: CSSProperties = { borderRadius: "16px", marginBottom: "12px", overflow: "hidden", background: "var(--v5-surface)" };
+const perksCardStyle: CSSProperties = { marginBottom: "12px", overflow: "hidden" };
 function perkRowStyle(divider: boolean): CSSProperties {
   return { gap: "12px", padding: "12px 16px", borderBottom: divider ? "1px solid color-mix(in srgb, var(--v5-border) 70%, transparent)" : "none" };
 }
@@ -323,7 +374,7 @@ const ctaStyle: CSSProperties = {
 };
 const signinStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const signinLinkStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-brand)" };
-const proofCardStyle: CSSProperties = { marginTop: "20px", borderRadius: "16px", padding: "16px", background: "var(--v5-surface)" };
+const proofCardStyle: CSSProperties = { marginTop: "20px", padding: "16px" };
 const proofHeadStyle: CSSProperties = {
   marginBottom: "12px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
@@ -352,6 +403,8 @@ const badgeRowStyle: CSSProperties = { marginTop: "12px", flexWrap: "wrap", gap:
 const footerStyle: CSSProperties = { marginTop: "24px", fontSize: "12px", color: "var(--v5-ink-4)", lineHeight: 1.625, padding: "0 16px" };
 // inline 目标吃 WCAG 2.5.8 豁免,纵向 padding 只扩热区不撑行高(原 61×14)
 const footerLinkStyle: CSSProperties = { color: "var(--v5-ink-3)", padding: "15px 10px", margin: "0 -10px" };
+
+
 </script>
 
 <style scoped>
@@ -362,5 +415,12 @@ const footerLinkStyle: CSSProperties = { color: "var(--v5-ink-3)", padding: "15p
 }
 .nx-ref-footer-link:active {
   opacity: 0.6;
+}
+/* All three footer links are focusable now — the ring must be visible or keyboard
+   users cannot tell which legal document Enter will open. */
+.nx-ref-footer-link:focus-visible {
+  outline: 2px solid var(--v5-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 </style>

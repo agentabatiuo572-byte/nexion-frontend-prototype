@@ -10,7 +10,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8D0DC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
         <view class="rg-brand">
-          <BrandLockup />
+          <BrandLockup :height="40" />
         </view>
         <view class="rg-top__sp" />
       </view>
@@ -32,12 +32,12 @@
 
       <!-- Title -->
       <text class="rg-title">{{ step === 1 ? t.register.title : step === 2 ? t.register.codeStepTitle : t.register.setPasswordTitle }}</text>
-      <view v-if="!remoteApiEnabled" class="rg-mode-badge" data-testid="auth-runtime-label">
+      <view v-if="modeLabel" class="rg-mode-badge" data-testid="auth-runtime-label">
         <text class="rg-mode-badge__t">{{ modeLabel }}</text>
       </view>
       <text class="rg-subtitle">
         <!-- 奖励金额护栏(包 zm T1):配置未到位/被中毒清零时金额句整体让位,$0 永不上转化首屏 -->
-        <template v-if="step === 1"><template v-if="giftUsdt > 0"><text class="rg-subtitle__hl">{{ fmt(t.register.subtitleHighlight, { usd: giftUsdt }) }}</text>{{ t.register.subtitleRest }}</template><template v-else>{{ t.register.subtitleNoBonus }}</template></template>
+        <template v-if="step === 1"><template v-if="newcomerSubtitle === 'amount'"><text class="rg-subtitle__hl">{{ fmt(t.register.subtitleHighlight, { reward: giftLabel }) }}</text>{{ t.register.subtitleRest }}</template><template v-else>{{ t.register.subtitleRewardDisabled }}</template></template>
         <template v-else-if="step === 2">{{ t.register.codeSentTo }} <text class="rg-subtitle__ph">{{ country }} {{ phone }}</text></template>
         <template v-else>{{ t.register.setPasswordHint }}</template>
       </text>
@@ -52,15 +52,21 @@
               <text class="rg-phone__cc-t">{{ country }}</text>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: showCountries ? 'rotate(180deg)' : '' }"><path d="m6 9 6 6 6-6" /></svg>
             </view>
-            <input class="rg-phone__in" type="number" inputmode="numeric" maxlength="15" :placeholder="t.register.phonePlaceholder" :value="phone" :aria-invalid="!!phone && !phoneOk" aria-describedby="register-phone-format" confirm-type="done" @input="onPhone" @confirm="onCta" />
+            <input class="rg-phone__in" type="number" inputmode="numeric" maxlength="15" :placeholder="t.register.phonePlaceholder" :aria-label="t.register.phonePlaceholder" :value="phone" :aria-invalid="!!phone && !phoneOk" aria-describedby="register-phone-format" confirm-type="done" @input="onPhone" @blur="phoneTouched = true" @confirm="onCta" />
           </view>
           <text id="register-phone-format" data-testid="auth-phone-hint" class="rg-phone-hint" :class="{ 'rg-phone-hint--err': phone && !phoneOk }" role="status" aria-live="polite">{{ phoneFormatMessage }}</text>
+          <!-- 包 zm T3:仅开发构建,Java dev 后端网络级失联时亮工程横幅(生产构建整段剔除)
+               i18n-en-ok: 工程话,指名端口与启动方式,受众是开发者不是用户 -->
+          <view v-if="devBackendDown" class="rg-devbanner"><text class="rg-devbanner__t">Development backend unavailable · start the Java dev service on port 8110</text></view>
         </view>
 
         <!-- Step 2: OTP + invite -->
         <view v-else-if="step === 2" class="rg-step2">
           <view class="rg-otp">
-            <input v-for="(d, i) in code" :key="i" class="rg-otp__in" :class="{ 'rg-otp__in--filled': d }" type="number" :maxlength="1" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onCta()" />
+            <input v-for="(d, i) in code" :key="i" class="rg-otp__in" :class="{ 'rg-otp__in--filled': d }" type="number" :maxlength="1" :aria-label="fmt(t.register.otpDigitLabel, { n: i + 1 })" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onCta()" />
+          </view>
+          <view v-if="developmentOtpEnabled" class="rg-development-otp" data-testid="development-otp-code" role="status">
+            <text class="rg-development-otp__t">{{ fmt(t.authOtp.developmentCodeHint, { code: developmentOtpCode }) }}</text>
           </view>
           <view class="rg-resend">
             <text class="rg-resend__change" role="button" tabindex="0" :aria-label="t.register.changeNumber" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">{{ t.register.changeNumber }}</text>
@@ -73,26 +79,26 @@
                  无码自然进入才渲染可手输框。 -->
             <view v-if="lockedRef">
               <view class="rg-locked">
-                <text class="rg-locked__code">{{ displayReferralCode(lockedRef) }}</text>
+                <text class="rg-locked__code">{{ lockedRef }}</text>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
               </view>
               <text class="rg-locked__tag">{{ t.register.inviteLockedTag }}</text>
             </view>
-            <input v-else class="rg-field" type="text" :placeholder="t.register.invitePlaceholder" :value="invite" confirm-type="done" @input="onInvite" @confirm="onCta" />
+            <input v-else class="rg-field" type="text" :placeholder="t.register.invitePlaceholder" :aria-label="t.register.invitePlaceholder" :value="invite" confirm-type="done" @input="onInvite" @confirm="onCta" />
           </view>
         </view>
 
         <!-- Step 3: password -->
         <view v-else class="rg-step3">
           <view class="rg-field-wrap" :class="{ 'rg-field-wrap--err': password && !pwdOk }">
-            <input class="rg-field rg-field--flex" :type="showPwd ? 'text' : 'password'" :placeholder="t.register.passwordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="password" confirm-type="next" @input="onPwd" @confirm="focusPasswordConfirmation" />
+            <input class="rg-field rg-field--flex" :type="showPwd ? 'text' : 'password'" :placeholder="t.register.passwordPlaceholder" :aria-label="t.register.passwordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="password" confirm-type="next" @input="onPwd" @confirm="focusPasswordConfirmation" />
             <view class="rg-eye" role="button" tabindex="0" :aria-label="showPwd ? t.register.hidePassword : t.register.showPassword" :aria-pressed="showPwd" @click="showPwd = !showPwd" @keydown.enter.prevent="showPwd = !showPwd" @keydown.space.prevent="showPwd = !showPwd">
               <svg v-if="showPwd" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><path d="m2 2 20 20" /></svg>
               <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
             </view>
           </view>
           <view class="rg-field-wrap" :class="{ 'rg-field-wrap--err': confirmPwd && (!pwdOk || password !== confirmPwd) }">
-            <input class="rg-field rg-field--flex" :type="showPwd ? 'text' : 'password'" :placeholder="t.register.confirmPasswordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="confirmPwd" :focus="confirmPasswordFocused" confirm-type="done" @input="onConfirm" @blur="confirmPasswordFocused = false" @confirm="onCta" />
+            <input class="rg-field rg-field--flex" :type="showPwd ? 'text' : 'password'" :placeholder="t.register.confirmPasswordPlaceholder" :aria-label="t.register.confirmPasswordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="confirmPwd" :focus="confirmPasswordFocused" confirm-type="done" @input="onConfirm" @blur="confirmPasswordFocused = false" @confirm="onCta" />
             <view v-if="pwdMatch" class="rg-check">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>
             </view>
@@ -105,7 +111,7 @@
         <text class="rg-review__body">{{ reviewNoticeBody }}</text>
       </view>
       <!-- Error -->
-      <view v-if="error" class="rg-error">
+      <view v-if="error" class="rg-error" role="alert" aria-live="assertive">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
         <text class="rg-error__t">{{ error }}</text>
       </view>
@@ -120,40 +126,45 @@
         :aria-label="ctaLabel"
         :aria-disabled="!ctaEnabled || busy"
         :aria-busy="busy"
-        :aria-describedby="!ctaEnabled && !busy ? 'rg-cta-reason' : undefined"
+        :aria-describedby="!ctaEnabled && !busy && (phoneTouched || submitAttempted) ? 'rg-cta-reason' : undefined"
         @click="onCta"
         @keydown.enter.prevent="onCta"
         @keydown.space.prevent="onCta"
       >
         <text class="rg-cta__t" :class="ctaEnabled && !busy ? 'rg-cta__t--on' : ''">{{ ctaLabel }}</text>
       </view>
-      <text v-if="!ctaEnabled && !busy" id="rg-cta-reason" class="rg-sr-only">{{ ctaDisabledReason }}</text>
+      <!-- 简报 #213:空白表单首次展示必须中性 —— 交互过或尝试提交后才给出禁用原因。 -->
+      <text v-if="!ctaEnabled && !busy && (phoneTouched || submitAttempted)" id="rg-cta-reason" class="rg-sr-only">{{ ctaDisabledReason }}</text>
 
       <!-- OAuth (step 1) -->
-      <view v-if="step === 1" class="rg-oauth">
+      <view v-if="step === 1 && !remoteApiEnabled" class="rg-oauth">
         <view class="rg-divider"><view class="rg-divider__line" /><text class="rg-divider__t">{{ t.register.orContinueWith }}</text><view class="rg-divider__line" /></view>
-        <AuthProviderGrid :busy="busy" @select="startOauth" />
+        <AuthProviderGrid :busy="busy" :development="apiRuntimeConfig.environment === 'dev'" @select="startOauth" />
       </view>
 
       <!-- Footer -->
       <view class="rg-footer">
-        <text v-if="step === 1" class="rg-footer__acc">{{ t.register.haveAccount }} <text class="rg-footer__link" role="link" tabindex="0" @click="goLogin" @keydown.enter.prevent="goLogin" @keydown.space.prevent="goLogin">{{ t.register.signIn }}</text></text>
-        <text class="rg-footer__terms">{{ t.register.termsPrefix }}<text class="rg-footer__terms-link active:opacity-70" role="link" tabindex="0" @click="goTerms" @keydown.enter.prevent="goTerms" @keydown.space.prevent="goTerms">{{ t.register.termsServiceLink }}</text>{{ t.register.termsAndPrivacy }}</text>
+        <text v-if="step === 1" class="rg-footer__acc">{{ t.register.haveAccount }} <text class="rg-footer__link" role="link" tabindex="0" @click="goLogin" @keydown.enter.prevent="goLogin">{{ t.register.signIn }}</text></text>
+        <text class="rg-footer__terms">{{ t.register.termsPrefix }}<text class="rg-footer__terms-link active:opacity-70" role="link" tabindex="0" @click="goTerms" @keydown.enter.prevent="goTerms">{{ t.register.termsServiceLink }}</text> · <text class="rg-footer__terms-link active:opacity-70" role="link" tabindex="0" @click="goPrivacy" @keydown.enter.prevent="goPrivacy">{{ t.privacy.title }}</text></text>
       </view>
     </view>
 
     <CountryCodeSheet :open="showCountries" :model-value="country" @select="pickCountry" @close="showCountries = false" />
-    <CaptchaSlider v-if="showCaptcha" :phone="fullPhone" @success="onCaptchaOk" @close="showCaptcha = false" />
+    <!-- i18n-en-ok: Server CAPTCHA protocol scene enum, sent only to backend verification and never rendered. -->
+    <ServerCaptchaSlider v-if="showCaptcha && remoteApiEnabled" :phone="fullPhone" :scene='"REGISTER"' @success="onCaptchaOk" @close="showCaptcha = false" />
+    <CaptchaSlider v-else-if="showCaptcha" :phone="fullPhone" @success="onCaptchaOk" @close="showCaptcha = false" />
     <GlobalUi />
   </StandalonePageShell>
 </template>
 
 <script setup lang="ts">
-import { getCarrier } from "@/lib/carrier";
-import BrandLockup from "@/components/brand-lockup.vue";
+import { privacyPolicyHref } from "@/lib/privacy-return";
+import ServerCaptchaSlider from "@/components/server-captcha-slider.vue";
+import { navReset, navTo } from "@/lib/route";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
+import BrandLockup from "@/components/brand-lockup.vue";
 import GlobalUi from "@/components/global-ui.vue";
 import CaptchaSlider from "@/components/captcha-slider.vue";
 import CountryCodeSheet from "@/components/country-code-sheet.vue";
@@ -161,7 +172,8 @@ import AuthProviderGrid from "@/components/auth-provider-grid.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import { apiClient, authApi, remoteApiEnabled } from "@/api/runtime";
+import { apiClient, apiRuntimeConfig, authApi, remoteApiEnabled } from "@/api/runtime";
+import { apiEnvironmentBadgeLabel } from "@/api/runtime-config";
 import type { OAuthProvider } from "@/api/auth-api";
 import { createPublicSponsorPreviewApi, type PublicSponsorPreview } from "@/api/public-sponsor-preview-api";
 import { registerMockAuthCredential } from "@/api/mock-auth-api";
@@ -178,7 +190,6 @@ import { useApp } from "@/store/app";
 import { useBills } from "@/store/bills";
 import { normalizeRefCode, useSponsorship } from "@/store/sponsorship";
 import { rebindAccountScopedStores } from "@/lib/account-scope";
-import { displayReferralCode } from "@/lib/brand";
 import { useConfig } from "@/store/config";
 import { fmt } from "@/i18n/format";
 import { evaluateRegistration, commitRegistration, type RegistrationAssessment } from "@/store/risk-cluster";
@@ -189,6 +200,8 @@ import { completeSignIn } from "@/auth/complete-sign-in";
 import { restoreActivatedRegistrationSession } from "@/auth/complete-registration";
 import { stageRemoteRegistrationReceipt, clearRemoteRegistrationReceipt } from "@/auth/remote-registration-receipt";
 import { dialCodeForLocale, phoneFormatHint, sanitizePhoneInput, validateNationalPhone } from "@/auth/phone-number";
+import { newcomerSubtitleKind, visibleReferralGift } from "@/lib/referral-reward-gate";
+import { ApiError } from "@/api/errors";
 
 const t = useT();
 const app = useApp();
@@ -198,12 +211,20 @@ const cfg = useConfig();
 const publicSponsorPreviewApi = createPublicSponsorPreviewApi(apiClient);
 // 礼包金额单源派生自 platform config(禁本地常量镜像)。
 const remotePreview = ref<PublicSponsorPreview | null>(null);
+const localGift = computed(() => visibleReferralGift(cfg.config.rewards));
+// H8 闸门或邀请预览未确认金额时，注册页不承诺新人奖励。
+const rewardGateEnabled = computed(() => cfg.config.rewards.enabled);
+const newcomerSubtitle = computed(() => newcomerSubtitleKind(rewardGateEnabled.value, giftUsdt.value, giftNex.value));
 const giftUsdt = computed(() => remoteApiEnabled
   ? remotePreview.value?.gift.usdtAmount ?? 0
-  : cfg.config.rewards.welcomeGift.usdtAmount);
+  : localGift.value.usdtAmount);
 const giftNex = computed(() => remoteApiEnabled
   ? remotePreview.value?.gift.nexAmount ?? 0
-  : cfg.config.rewards.welcomeGift.nexAmount);
+  : localGift.value.nexAmount);
+const giftLabel = computed(() => [
+  giftUsdt.value > 0 ? `${giftUsdt.value} USDT` : "",
+  giftNex.value > 0 ? `${giftNex.value} NEX` : "",
+].filter(Boolean).join(" + "));
 
 type Step = 1 | 2 | 3;
 
@@ -225,6 +246,16 @@ const confirmPwd = ref("");
 const showPwd = ref(false);
 const confirmPasswordFocused = ref(false);
 const error = ref<string | null>(null);
+/**
+ * 简报 #213(与 #211 同一类):空白表单首次展示必须中性。此前 CTA 的禁用原因只挂在
+ * `!ctaEnabled` 上,空表单天然满足,于是「请输入有效手机号后继续。」从首帧起就在 DOM 里;
+ * 它虽带 .rg-sr-only,但 uni-app 会把内容包进内部 <span>,clip: rect(0,0,0,0) 裁不住
+ * 那个子盒,文本提取与自动化因此能读到用户从未触发的校验错误。
+ * 现在只在用户与手机号字段交互过、或尝试提交过之后才渲染。
+ */
+const phoneTouched = ref(false);
+const submitAttempted = ref(false);
+const devBackendDown = ref(false);
 const showCaptcha = ref(false);
 const registrationRisk = ref<RegistrationAssessment | null>(null);
 // OTP + K1 评估进行中(⑤ 加载态): CTA 显示「校验中」,拦重复提交。
@@ -236,6 +267,7 @@ const resendLeft = ref(0);
 let resendTimer: ReturnType<typeof setInterval> | undefined;
 let otpFlowVersion = 0;
 let mounted = true;
+let sponsorPreviewLoadVersion = 0;
 
 // [FEAT-SHARE4] 链接来源码(?ref > pendingRefCode)合法即锁定;非法/缺失视同
 // 无码,回到可手输。锁定后无任何解锁入口(防截断归因/换码自荐)。
@@ -245,16 +277,22 @@ const sponsorPreview = ref<SponsorPreview | null>(null);
 
 onLoad(async (options) => {
   const raw = options && (options as Record<string, string>).ref;
+  privacyHref.value = privacyPolicyHref("/pages/register/register", raw);
   if (remoteApiEnabled) {
+    const previewLoadVersion = ++sponsorPreviewLoadVersion;
+    remotePreview.value = null;
+    lockedRef.value = null;
+    sponsorPreview.value = null;
     const norm = normalizeRegistrationSponsorCode(raw, true);
     if (!norm) return;
     try {
       const preview = await publicSponsorPreviewApi.preview(norm);
-      if (!mounted) return;
+      if (!mounted || previewLoadVersion !== sponsorPreviewLoadVersion) return;
       remotePreview.value = preview;
       lockedRef.value = preview.code;
       sponsorPreview.value = preview.sponsor;
     } catch {
+      if (!mounted || previewLoadVersion !== sponsorPreviewLoadVersion) return;
       remotePreview.value = null;
       lockedRef.value = null;
       sponsorPreview.value = null;
@@ -278,7 +316,12 @@ const phoneFormatMessage = computed(() => {
     ? fmt(t.value.countryCodes.phoneInvalidHint, params)
     : fmt(t.value.countryCodes.phoneExampleHint, params);
 });
-const modeLabel = computed(() => t.value.security.mockModeLabel);
+const modeLabel = computed(() => apiEnvironmentBadgeLabel(apiRuntimeConfig, t.value.security.developmentModeLabel));
+const developmentOtpCode = String(import.meta.env.VITE_NEXGRID_DEV_OTP_CODE || "").trim();
+const developmentOtpEnabled = computed(() =>
+  apiRuntimeConfig.environment === "dev"
+  && /^\d{6}$/.test(developmentOtpCode)
+);
 const fullPhone = computed(() => `${country.value}${phoneClean.value}`);
 const codeStr = computed(() => code.value.join(""));
 const codeOk = computed(() => /^\d{6}$/.test(codeStr.value));
@@ -320,7 +363,7 @@ function oauthProvider(label: string): OAuthProvider | null {
 function oauthError(cause: unknown, provider: OAuthProvider): string {
   const code = cause instanceof Error ? cause.message : "";
   if (code === "OAUTH_PROVIDER_NOT_CONFIGURED" || code === "OAUTH_PROVIDER_UNAVAILABLE"
-      || code === "OAUTH_SANDBOX_ONLY") {
+      ) {
     return `${fmt(t.value.register.oauthUnavailableTitle, { provider })}: ${t.value.register.oauthUnavailableBody}`;
   }
   return t.value.authOtp.errorServiceUnavailable;
@@ -339,8 +382,7 @@ async function startOauth(label: string) {
   try {
     const result = await authApi.oauthExchange({
       provider,
-      mode: "PROVIDER",
-      displayName: provider,
+      displayName: `${provider} User`,
     });
     if (!mounted || flowVersion !== otpFlowVersion) {
       authApi.discardSessionIfCurrent(result.vaultRevision);
@@ -348,7 +390,7 @@ async function startOauth(label: string) {
     }
     const completed = completeSignIn({
       identity: `user:${result.user.userId}`,
-      onboardingComplete: true,
+      onboardingComplete: result.user.onboardingComplete,
       serverProfile: result.user,
       serverSessionRevision: result.vaultRevision,
     });
@@ -384,6 +426,7 @@ function inputVal(e: Event): string {
 }
 function onPhone(e: Event) {
   invalidateOtpFlow();
+  phoneTouched.value = true;
   phone.value = sanitizePhoneInput(inputVal(e));
   error.value = null;
   registrationRisk.value = null;
@@ -414,6 +457,7 @@ function pickCountry(c: string) {
 }
 
 function onCta() {
+  submitAttempted.value = true;
   if (busy.value) return;
   if (!ctaEnabled.value) {
     error.value = ctaDisabledReason.value;
@@ -431,12 +475,17 @@ function goSendCode() {
 // FEAT-AUTH01: 发码统一走闸门(冷却/24h 限频/滑块);倒计时以 server 返回值为准。
 async function requestCode(captchaTicket?: string) {
   if (verifying.value) return;
+  devBackendDown.value = false;
   const phoneAtRequest = fullPhone.value;
   const flowVersion = ++otpFlowVersion;
   verifying.value = true;
   if (remoteApiEnabled) {
     try {
-      const res = await authApi.sendRegistrationOtp({ countryCode: country.value, phone: phoneClean.value });
+      const res = await authApi.sendRegistrationOtp({
+        countryCode: country.value,
+        phone: phoneClean.value,
+        ...(captchaTicket ? { captchaTicket } : {}),
+      });
       if (!mounted || flowVersion !== otpFlowVersion || fullPhone.value !== phoneAtRequest) return;
       verifying.value = false;
       otpRequestId.value = res.challengeNo;
@@ -446,9 +495,15 @@ async function requestCode(captchaTicket?: string) {
       step.value = 2;
       startResend(res.resendAfterSec);
     } catch (cause) {
-      if (!mounted || flowVersion !== otpFlowVersion) return;
+      if (!mounted || flowVersion !== otpFlowVersion || fullPhone.value !== phoneAtRequest) return;
       verifying.value = false;
-      error.value = geoText(cause) ?? t.value.authOtp.errorOtpSendUnavailable;
+      if (cause instanceof Error && ["USER_CAPTCHA_REQUIRED", "USER_CAPTCHA_TICKET_INVALID"].includes(cause.message)) {
+        showCaptcha.value = true;
+      } else {
+        error.value = geoText(cause) ?? t.value.authOtp.errorOtpSendUnavailable;
+      }
+      // 开发构建里区分「产品坏了」与「本地后端没起」——网络级失败时亮工程横幅。
+      if (import.meta.env.DEV) devBackendDown.value = apiRuntimeConfig.environment === "dev" && cause instanceof ApiError && cause.kind === "network";
     }
     return;
   }
@@ -512,26 +567,69 @@ function isCurrentRemoteRegistrationAttempt(context: RemoteRegistrationAttemptCo
 function registrationErrorText(cause: unknown): string {
   const code = cause instanceof Error ? cause.message : "";
   if (code === "USER_REGISTRATION_SPONSOR_ENVIRONMENT_MISMATCH") {
-    return t.value.register.sandboxSponsorEnvironmentMismatch;
+    return t.value.register.sponsorEnvironmentMismatch;
   }
   return geoText(cause) ?? t.value.authOtp.errorServiceUnavailable;
+}
+
+function recoverRejectedRegistration(cause: unknown): boolean {
+  if (!(cause instanceof ApiError) || cause.kind !== "http") return false;
+  const invalidOtp = cause.status === 422 && cause.message === "USER_REGISTRATION_OTP_INVALID";
+  const signupLimited = cause.status === 409 && cause.message === "USER_REGISTRATION_K1_IP_LIMIT";
+  if (!invalidOtp && !signupLimited) return false;
+  // Both refusals leave no new account; the challenge cannot be reused.
+  // A user-requested resend must still pass the normal CAPTCHA and rate limits.
+  invalidateOtpFlow();
+  otpRequestId.value = null;
+  verifiedToken.value = null;
+  code.value = ["", "", "", "", "", ""];
+  focusIdx.value = 0;
+  if (resendTimer) clearInterval(resendTimer);
+  resendTimer = undefined;
+  resendLeft.value = 0;
+  step.value = invalidOtp ? 2 : 1;
+  error.value = invalidOtp ? t.value.authOtp.errorOtpInvalidOrExpired : t.value.register.errorSignupLimited;
+  return true;
 }
 
 async function verifyCode() {
   if (verifying.value) return;
   error.value = null;
-  if (verifiedToken.value) {
+  if (!remoteApiEnabled && verifiedToken.value) {
     verifying.value = true;
     exchangeVerifiedAccount(verifiedToken.value, fullPhone.value, otpFlowVersion);
     return;
   }
   if (!codeOk.value) { error.value = t.value.register.errorInvalidCode; return; }
-  // The remote contract validates the OTP atomically with registration. Do not
-  // mirror a successful verification in local storage before that authority has
-  // accepted it.
+  // Verify before password setup; registration still atomically rechecks and
+  // consumes the code, just like the password-reset flow.
   if (remoteApiEnabled) {
-    if (!otpRequestId.value) { error.value = t.value.authOtp.errorOtpNotFound; return; }
-    step.value = 3;
+    const requestId = otpRequestId.value;
+    if (!requestId) { error.value = t.value.authOtp.errorOtpNotFound; return; }
+    const phoneAtVerify = fullPhone.value;
+    const codeAtVerify = codeStr.value;
+    const flowVersion = otpFlowVersion;
+    const isCurrent = () => mounted && flowVersion === otpFlowVersion
+      && step.value === 2 && otpRequestId.value === requestId && fullPhone.value === phoneAtVerify;
+    verifying.value = true;
+    try {
+      await authApi.verifyRegistrationOtp({
+        countryCode: country.value,
+        phone: phoneClean.value,
+        challengeNo: requestId,
+        code: codeAtVerify,
+      });
+    } catch (cause) {
+      if (isCurrent() && codeStr.value === codeAtVerify) {
+        error.value = cause instanceof ApiError && cause.message === "USER_REGISTRATION_OTP_INVALID"
+          ? t.value.authOtp.errorOtpInvalidOrExpired
+          : registrationErrorText(cause);
+      }
+      return;
+    } finally {
+      if (isCurrent()) verifying.value = false;
+    }
+    if (isCurrent() && codeStr.value === codeAtVerify) step.value = 3;
     return;
   }
   // ⚠️ MOCK-ONLY: PRD 已列的 OTP verify 的 TTL/attempts/一码一与验后账号分流
@@ -644,11 +742,14 @@ async function finish() {
       code: codeStr.value,
       password: password.value,
       sponsorCode: currentSponsorCode(),
+      language: useLocaleStore().code,
     }, () => isCurrentRemoteRegistrationAttempt(registrationAttempt));
-    if (registration.kind === "stale") return;
+    if (registration.kind === "stale" || !isCurrentRemoteRegistrationAttempt(registrationAttempt)) return;
     if (registration.kind === "registration_error") {
       completing.value = false;
-      error.value = registrationErrorText(registration.error);
+      if (!recoverRejectedRegistration(registration.error)) {
+        error.value = registrationErrorText(registration.error);
+      }
       return;
     }
     if (registration.kind === "login_error") {
@@ -658,10 +759,12 @@ async function finish() {
     }
     const completed = completeSignIn({
       identity: `user:${registration.user.userId}`,
-      onboardingComplete: true,
+      onboardingComplete: registration.user.onboardingComplete,
       serverProfile: registration.user,
       serverSessionRevision: registration.vaultRevision,
       deferNavigation: true,
+      returnTo: registrationCompletionDestination(),
+      registrationLocale: useLocaleStore().code,
     });
     if (!completed.ok) {
       error.value = geoText(completed.error) ?? t.value.authOtp.errorServiceUnavailable;
@@ -745,12 +848,12 @@ async function finish() {
     }
     if (registration.sponsorCode) {
       if (!sponsorship?.bind(registration.sponsorCode)) throw new Error("sponsor_bind_unavailable");
-      const gift = sponsorship.ensureGiftClaim(createdIdentity, {
-        usdt: registration.giftUsdt,
-        nex: registration.giftNex,
-      });
-      if (!gift) throw new Error("gift_claim_unavailable");
-      {
+      if (cfg.config.rewards.enabled) {
+        const gift = sponsorship.ensureGiftClaim(createdIdentity, {
+          usdt: registration.giftUsdt,
+          nex: registration.giftNex,
+        });
+        if (!gift) throw new Error("gift_claim_unavailable");
         const posted = app.creditRewardBucketOnce(registration.giftRef, registration.giftRoute, gift.usdt, gift.nex);
         if (!posted) throw new Error("gift_credit_unavailable");
         const giftRef = registration.giftRef;
@@ -799,13 +902,26 @@ function completeActivatedRegistration(accountId: string, restorePreviousAccount
   }
   launchRegistrationSuccess();
 }
+function registrationCompletionDestination(): string {
+  // #ifdef H5
+  return "/pages/register/success";
+  // #endif
+  // #ifndef H5
+  return "/pages/onboarding/estimator";
+  // #endif
+}
 function launchRegistrationSuccess() {
   // [FEAT-SHARE5] H5 注册完成 → 成功页(礼包确认 + 引导下载 APP);
   // APP 壳内注册装 APP 引导无意义,直进 onboarding(异常2)。
-  uni.reLaunch({
-    url: getCarrier() === "h5" ? "/pages/register/success" : "/pages/onboarding/estimator",
-    fail: () => uni.reLaunch({ url: "/pages/index/index", fail: () => {} }),
+  // #ifdef H5
+  navReset({
+    url: registrationCompletionDestination(),
+    fail: () => navReset({ url: "/pages/onboarding/estimator", fail: () => {} }),
   });
+  // #endif
+  // #ifndef H5
+  navReset({ url: registrationCompletionDestination(), fail: () => {} });
+  // #endif
 }
 function prospectiveIdentity() {
   return `${country.value}${phoneClean.value}@demo.nexgrid.ai`;
@@ -824,12 +940,15 @@ function back() {
   resendLeft.value = 0;
   step.value = (step.value === 3 ? 2 : 1) as Step;
 }
-function close() { uni.reLaunch({ url: "/pages/onboarding/intro", fail: () => {} }); }
-function goLogin() { uni.reLaunch({ url: "/pages/login/login", fail: () => {} }); }
-function goTerms() { uni.navigateTo({ url: "/pages/onboarding/terms", fail: () => {} }); }
+function close() { navReset({ url: "/pages/onboarding/intro", fail: () => {} }); }
+function goLogin() { navReset({ url: "/pages/login/login", fail: () => {} }); }
+function goTerms() { navTo("/pages/onboarding/terms"); }
+const privacyHref = ref(privacyPolicyHref("/pages/register/register"));
+function goPrivacy() { navTo(privacyHref.value); }
 
 function cleanup() {
   mounted = false;
+  sponsorPreviewLoadVersion += 1;
   invalidateOtpFlow();
   if (resendTimer) clearInterval(resendTimer);
 }
@@ -870,6 +989,8 @@ onUnmounted(() => cleanup());
 .rg-phone__in { flex: 1; height: 100%; background: transparent; padding: 0 16px; font-size: 15px; color: var(--v5-ink); }
 .rg-step2 { display: flex; flex-direction: column; gap: 20px; }
 .rg-otp { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rg-development-otp { padding: 10px 12px; border-radius: 12px; background: var(--v5-warning-soft); }
+.rg-development-otp__t { font-size: 12px; line-height: 18px; font-weight: 600; color: var(--v5-warning); }
 .rg-otp__in { width: 48px; height: 56px; text-align: center; font-family: var(--font-v5); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; border-radius: 12px; background: var(--v5-surface); border: 1px solid var(--v5-surface-2); color: var(--v5-ink-4); }
 .rg-otp__in--filled { border-color: color-mix(in srgb, var(--v5-brand) 45%, transparent); color: var(--v5-ink); }
 .rg-resend { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }

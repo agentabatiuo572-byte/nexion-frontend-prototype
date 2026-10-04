@@ -1,9 +1,9 @@
-import { asApiError } from "../api/errors";
+import { asApiError, isAmbiguousOutcome } from "../api/errors";
 
 const STORAGE_KEY = "nexgrid-exchange-pending-mutations-v1";
 const TERMINAL_STATUSES = new Set([
   "COMPLETED", "SUCCESS", "QUEUED", "CANCELLED",
-  "USER_CAP", "PLATFORM_CAP", "GEO_BLOCKED",
+  "FAILED", "USER_CAP", "PLATFORM_CAP", "GEO_BLOCKED",
 ]);
 
 export interface ExchangeSwapIntent {
@@ -110,21 +110,10 @@ export function createExchangePendingMutationStore(
   storage: ExchangePendingStorage = defaultStorage(),
   keyFactory: () => string = defaultKey,
 ) {
-  // 🔴 落盘失败的分档语义(命令发出**之前**抛 / **之后**只回布尔)见 lib/funds-mutation-key.ts
-  // 那一整段头注 —— 同一条家规。兑换键是**随机**的:租约没落盘却把键交出去,下次重试铸的是
-  // 另一把键,服务端认不出同一次兑换意图 → 直接成交**第二笔**。而释放写一抛,就把一笔
-  // **已成交**的兑换报成失败。
-  /** 写盘。true = 真落盘了;false = 存储写不进去(配额满 / 站点数据被禁)。 */
-  function persist(records: ExchangePendingLease[]): boolean {
-    try {
-      storage.write({ version: 1, records });
-      return true;
-    } catch {
-      return false;
-    }
+  function persist(records: ExchangePendingLease[]) {
+    storage.write({ version: 1, records });
   }
 
-  /** 🔴 兑换请求发出**之前**:租约落不了盘就抛,这一笔不许发(fail closed)。 */
   function acquire(accountKey: string, intent: ExchangeSwapIntent, baselineOrders: ExchangeOrderLike[]): ExchangePendingLease {
     const fingerprint = exchangeSwapFingerprint(accountKey, intent);
     const records = hydrate(storage);
@@ -137,13 +126,12 @@ export function createExchangePendingMutationStore(
       intent: { ...intent },
       baselineOrderNos: baselineOrders.map((order) => order.exchangeNo),
     };
-    if (!persist([...records, created])) throw new Error("EXCHANGE_PENDING_KEY_UNPERSISTED");
+    persist([...records, created]);
     return created;
   }
 
-  /** 请求**已发出**:false = 没释放。不抛 —— 兑换可能已经成交,抛出去会把它报成失败。 */
-  function forget(fingerprint: string): boolean {
-    return persist(hydrate(storage).filter((record) => record.fingerprint !== fingerprint));
+  function forget(fingerprint: string) {
+    persist(hydrate(storage).filter((record) => record.fingerprint !== fingerprint));
   }
 
   function peek(accountKey: string, intent: ExchangeSwapIntent): ExchangePendingLease | null {
@@ -151,7 +139,12 @@ export function createExchangePendingMutationStore(
     return hydrate(storage).find((record) => record.fingerprint === fingerprint) ?? null;
   }
 
-  return { acquire, forget, peek };
+  function list(accountKey: string): ExchangePendingLease[] {
+    return hydrate(storage).filter(record => record.accountKey === normalizedAccount(accountKey)
+      && record.fingerprint === exchangeSwapFingerprint(accountKey, record.intent));
+  }
+
+  return { acquire, forget, peek, list };
 }
 
 type ExchangePendingStore = ReturnType<typeof createExchangePendingMutationStore>;
@@ -165,21 +158,6 @@ function matchesIntent(order: ExchangeOrderLike, intent: ExchangeSwapIntent): bo
     && TERMINAL_STATUSES.has(order.status.toUpperCase());
 }
 
-function reconcile(
-  authority: ExchangeStateLike,
-  lease: ExchangePendingLease,
-  receiptOrder?: ExchangeOrderLike,
-): ExchangeOrderLike | null {
-  if (receiptOrder) {
-    return authority.orders.find((order) => order.exchangeNo === receiptOrder.exchangeNo
-      && matchesIntent(order, lease.intent)) ?? null;
-  }
-  const baseline = new Set(lease.baselineOrderNos);
-  const matches = authority.orders.filter((order) => !baseline.has(order.exchangeNo)
-    && matchesIntent(order, lease.intent));
-  return matches.length === 1 ? matches[0] : null;
-}
-
 function outcomeUnknown(error: unknown): boolean {
   if (error instanceof ExchangeOutcomeUnknownError) return true;
   const message = error instanceof Error ? error.message : "";
@@ -189,61 +167,62 @@ function outcomeUnknown(error: unknown): boolean {
     "SESSION_CHANGED_DURING_REQUEST",
   ].includes(message)) return true;
   const api = asApiError(error);
-  if (api.kind === "network" || api.kind === "protocol") return true;
   if ([
     "IDEMPOTENCY_REQUEST_IN_PROGRESS",
     "IDEMPOTENCY_RESULT_UNKNOWN",
     "SESSION_CHANGED_DURING_REQUEST",
   ].includes(api.message)) return true;
-  if (api.kind === "http") return !api.status || api.status >= 500;
-  return false;
+  return isAmbiguousOutcome(error);
 }
 
-async function recoverFromAuthority<T extends ExchangeStateLike>(
-  pending: ExchangePendingStore,
-  lease: ExchangePendingLease,
-  fetchState: () => Promise<T>,
+interface RecoveryOptions<T extends ExchangeStateLike> {
+  pending: ExchangePendingStore;
+  recover: (lease: ExchangePendingLease) => Promise<{ status: string; order?: ExchangeOrderLike }>;
+  fetchState: () => Promise<T>;
+  isCurrent: () => boolean;
+}
+
+/** Reads only the persisted command; pagination and equal amounts never establish ownership. */
+export async function recoverExchangeSwap<T extends ExchangeStateLike>(
+  options: RecoveryOptions<T> & { lease: ExchangePendingLease },
 ): Promise<{ snapshot: T; order: ExchangeOrderLike; recovered: true }> {
-  let authority: T;
+  const { lease } = options;
+  const current = () => options.isCurrent()
+    && options.pending.peek(lease.accountKey, lease.intent)?.key === lease.key;
+  if (!current()) throw new ExchangeOutcomeUnknownError();
   try {
-    authority = await fetchState();
+    const receipt = await options.recover(lease);
+    if (!current() || receipt.status !== "SUCCEEDED" || !receipt.order || !matchesIntent(receipt.order, lease.intent)) {
+      throw new ExchangeOutcomeUnknownError();
+    }
+    const snapshot = await options.fetchState();
+    if (!current()) throw new ExchangeOutcomeUnknownError();
+    options.pending.forget(lease.fingerprint);
+    return { snapshot, order: receipt.order, recovered: true };
   } catch {
     throw new ExchangeOutcomeUnknownError();
   }
-  const order = reconcile(authority, lease);
-  if (!order) throw new ExchangeOutcomeUnknownError(authority);
-  pending.forget(lease.fingerprint);
-  return { snapshot: authority, order, recovered: true };
 }
 
-export async function executeExchangeSwap<T extends ExchangeStateLike>(options: {
-  pending: ExchangePendingStore;
+export async function executeExchangeSwap<T extends ExchangeStateLike>(options: RecoveryOptions<T> & {
   accountKey: string;
   intent: ExchangeSwapIntent;
   baseline: T;
   swap: (idempotencyKey: string) => Promise<T>;
-  fetchState: () => Promise<T>;
 }): Promise<{ snapshot: T; order: ExchangeOrderLike; recovered: boolean }> {
+  const existing = options.pending.peek(options.accountKey, options.intent);
+  if (existing) return recoverExchangeSwap({ ...options, lease: existing });
+  if (!options.isCurrent()) throw new ExchangeOutcomeUnknownError();
   const lease = options.pending.acquire(options.accountKey, options.intent, options.baseline.orders);
-  let receipt: T;
   try {
-    receipt = await options.swap(lease.key);
+    await options.swap(lease.key);
   } catch (error) {
     if (!outcomeUnknown(error)) {
       options.pending.forget(lease.fingerprint);
       throw error;
     }
-    return recoverFromAuthority(options.pending, lease, options.fetchState);
+    return recoverExchangeSwap({ ...options, lease });
   }
-
-  let authority: T;
-  try {
-    authority = await options.fetchState();
-  } catch {
-    throw new ExchangeOutcomeUnknownError();
-  }
-  const order = reconcile(authority, lease, receipt.order);
-  if (!order) throw new ExchangeOutcomeUnknownError(authority);
-  options.pending.forget(lease.fingerprint);
-  return { snapshot: authority, order, recovered: false };
+  const result = await recoverExchangeSwap({ ...options, lease });
+  return { ...result, recovered: false };
 }

@@ -17,25 +17,33 @@
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/wallet" :title="t.exchange.title" />
-      <text v-if="!remoteState && remoteError" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-danger)">{{ t.exchange.remoteUnavailableClosed }}</text>
-      <text v-else-if="isDevBuild && !remoteApiEnabled" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)">{{ t.publicCopy.experienceMode }}</text>
+      <view v-if="remoteApiEnabled && exchangeAuthorityStatus !== 'ready'" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-ink-3)" role="status" aria-live="polite" :aria-busy="exchangeAuthorityStatus === 'loading' ? 'true' : 'false'">
+        <text :style="exchangeAuthorityStatus === 'unavailable' ? { color: 'var(--v5-danger)' } : undefined">
+          {{ exchangeAuthorityStatus === "loading" ? t.wallet.loadingTransactions : t.exchange.remoteUnavailableClosed }}
+        </text>
+      </view>
+      <view v-else-if="exchangePaused" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)" role="status" aria-live="polite">
+        <text>{{ t.exchange.swapPaused }}</text>
+      </view>
+      <!-- 同 staking:开发诊断,DEV 构建才渲染,裸英文字面量不进三语词典。 i18n-en-ok: 工程话诊断横幅,仅 DEV 构建渲染 -->
+      <text v-else-if="isDevBuild && !remoteApiEnabled" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)">Dev build · mock data</text>
 
       <!-- How-it-works entry + refresh — pill compacted to match the other pages;
            it stays paired with the rate-refresh button (no de-carded hero here to
            merge into — owner 2026-07-09). -->
       <view class="flex items-center" :style="topRowStyle">
-        <view class="inline-flex items-center shrink-0 active:scale-[0.98]" :style="howStyle" @click="goHowItWorks">
+        <view class="inline-flex items-center shrink-0 active:scale-[0.98]" :style="howStyle" role="button" tabindex="0" :aria-label="t.exchange.howItWorksEntry" @click="goHowItWorks"  @keydown.enter.prevent="goHowItWorks" @keydown.space.prevent="goHowItWorks">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></svg>
           <text style="margin: 0 6px">{{ t.exchange.howItWorksEntry }}</text>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
-        <view class="grid place-items-center active:opacity-70" :style="refreshBtnStyle" @click="onRefresh">
+        <view class="grid place-items-center active:opacity-70" :style="refreshBtnStyle" role="button" tabindex="0" :aria-label="t.exchange.refreshRate" @click="onRefresh"  @keydown.enter.prevent="onRefresh" @keydown.space.prevent="onRefresh">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>
         </view>
       </view>
 
       <!-- Pay card -->
-      <view :style="swapCardStyle">
+      <view class="nx-glass-card" :style="swapCardStyle">
         <text class="block" :style="cardLabelStyle">{{ t.exchange.pay }}</text>
         <view class="flex items-baseline" style="margin-top: 6px; gap: 4px">
           <input
@@ -47,13 +55,15 @@
             placeholder="0"
             placeholder-style="color: var(--v5-ink-2)"
             :disabled="submitting"
+            :aria-label="fmt(t.exchange.payAmountLabel, { sym: fromSym })"
             @input="onInput"
+            @blur="onInputBlur"
           />
           <text class="shrink-0" style="font-size: 15px; color: var(--v5-ink-3)">{{ fromSym }}</text>
         </view>
         <view class="flex items-center justify-between" style="margin-top: 6px">
           <text style="font-size: 12px; color: var(--v5-ink-4)">{{ minLabel }}</text>
-          <view class="inline-flex items-center active:bg-[color-mix(in_srgb,var(--v5-surface-2)_50%,transparent)]" :style="maxBtnStyle" @click="setMax">
+          <view class="inline-flex items-center active:bg-[color-mix(in_srgb,var(--v5-surface-2)_50%,transparent)]" :style="maxBtnStyle" role="button" tabindex="0" :aria-label="t.uiChrome.max" @click="setMax"  @keydown.enter.prevent="setMax" @keydown.space.prevent="setMax">
             <text style="color: var(--v5-brand)">{{ fromSym }} </text>
             <text class="tabular-nums" style="color: var(--v5-brand)">{{ fromBalLabel }}</text>
             <text style="color: var(--v5-brand)"> · {{ t.uiChrome.max }}</text>
@@ -63,14 +73,14 @@
 
       <!-- Flip -->
       <view class="flex justify-center" style="margin: 8px 0">
-        <view class="grid place-items-center active:opacity-80" :style="flipBtnStyle" @click="flip">
+        <view class="grid place-items-center active:opacity-80" :style="flipBtnStyle" role="button" tabindex="0" :aria-label="t.exchange.flip" @click="flip"  @keydown.enter.prevent="flip" @keydown.space.prevent="flip">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4" /><path d="M7 20V4" /><path d="m21 8-4-4-4 4" /><path d="M17 4v16" /></svg>
         </view>
       </view>
 
       <!-- Receive card -->
-      <view :style="swapCardStyle">
-        <text class="block" :style="cardLabelStyle">{{ t.exchange.receive }}</text>
+      <view class="nx-glass-card" :style="swapCardStyle">
+        <text class="block" :style="cardLabelStyle">{{ remoteApiEnabled ? t.exchange.netReceive : t.exchange.receive }}</text>
         <view class="flex items-baseline" style="margin-top: 6px; gap: 4px">
           <text class="flex-1 min-w-0 tabular-nums truncate" :style="receiveValueStyle">{{ toAmountLabel }}</text>
           <text class="shrink-0" style="font-size: 15px; color: var(--v5-ink-3)">{{ toSym }}</text>
@@ -82,17 +92,29 @@
       </view>
 
       <!-- Fee -->
+      <view v-if="remoteApiEnabled" class="flex items-center justify-between" :style="feeRowStyle">
+        <text>{{ t.exchange.exchangeFee }}</text>
+        <text>{{ remoteQuote ? `${amtLabel(remoteQuote.feeUsdt)} USDT` : '—' }}</text>
+      </view>
       <view class="flex items-center justify-between" :style="feeRowStyle">
         <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.exchange.feeLabel }}</text>
         <text style="font-size: 12px; color: var(--v5-brand)">{{ t.exchange.feeFree }}</text>
       </view>
 
       <!-- Error -->
-      <view v-if="overBalance || underMin" :style="errorStyle">
+      <view v-if="overBalance || underMin || feeInvalid" :style="errorStyle">
         <text>{{ errorLabel }}</text>
       </view>
 
       <!-- Confirm CTA -->
+      <view v-if="remoteApiEnabled && pendingExchangeLeases.length" style="margin: 16px 16px 0">
+        <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.exchange.pendingRecoveryHint }}</text>
+        <view role="button" tabindex="0" :aria-disabled="recoveringExchange ? 'true' : 'false'"
+          class="grid place-items-center" style="min-height: 44px; color: var(--v5-brand)"
+          @click="recoverPendingExchange"  @keydown.enter.prevent="recoverPendingExchange" @keydown.space.prevent="recoverPendingExchange">
+          <text>{{ recoveringExchange ? t.exchange.recoveryChecking : t.exchange.recoverPending }}</text>
+        </view>
+      </view>
       <view style="margin: 16px 16px 0">
         <!-- 金额无效 / 本次兑换在途时点了没用 → 显式 aria-disabled + 置灰(《05》§6.1
              disabled 派生:文字降 ink-4 + 填充降 surface 系),而不是靠「没有按下反馈」暗示 -->
@@ -128,12 +150,27 @@
           </view>
         </view>
 
+        <!-- Platform cap -->
+        <view style="margin-bottom: 12px">
+          <view class="flex items-center justify-between" style="margin-bottom: 4px">
+            <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.walletV3.exchangePoolToday }}</text>
+            <view class="font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink)">
+              <text>{{ remoteApiEnabled && !remoteState ? t.exchange.remoteNotProvided :`$${(displayPlatformUsed / 1000).toFixed(1)}K` }} </text>
+              <text v-if="!remoteApiEnabled || remoteState" style="color: var(--v5-ink-3)">/ ${{ (displayPlatformCap / 1000).toFixed(0) }}K</text>
+            </view>
+          </view>
+          <view :style="barTrackStyle">
+            <view :style="platformBarStyle" />
+          </view>
+        </view>
+
         <!-- Queue -->
         <view v-if="displayQueue.length > 0" :style="queueWrapStyle">
           <view class="flex items-center" :style="queueTitleStyle">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
             <text style="margin-left: 6px">{{ queuedLabel }}</text>
           </view>
+          <text class="block" style="margin: 4px 0 6px; font-size: 12px; line-height: 1.4; color: var(--v5-ink-3)">{{ t.exchange.queuedReservation }}</text>
           <view v-for="q in displayQueue.slice(0, 3)" :key="q.id" class="flex items-center justify-between" style="padding: 4px 0">
             <view class="flex items-center min-w-0" style="gap: 8px">
               <text class="font-mono-tabular truncate" style="font-size: 12px; color: var(--v5-ink-3)">{{ q.id }} · {{ q.direction === "nex2usdt" ? "NEX → USDT" : "USDT → NEX" }}</text>
@@ -157,9 +194,12 @@
       <!-- History -->
       <view style="margin: 20px 16px 24px">
         <text class="block" :style="historyTitleStyle">{{ t.exchange.historyTitle }}</text>
-        <EmptyState v-if="history.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" compact />
+        <view v-if="remoteApiEnabled && exchangeAuthorityStatus !== 'ready'" :style="historyAuthorityStateStyle" role="status" aria-live="polite" :aria-busy="exchangeAuthorityStatus === 'loading' ? 'true' : 'false'">
+          <text>{{ exchangeAuthorityStatus === "loading" ? t.wallet.loadingTransactions : t.exchange.remoteUnavailableClosed }}</text>
+        </view>
+        <EmptyState v-else-if="history.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" compact />
         <view v-else :style="historyListStyle">
-          <view v-for="(h, i) in history.slice(0, 6)" :key="h.id" class="flex items-center" :style="historyRowStyle(i)">
+          <view v-for="(h, i) in history" :key="h.id" class="flex items-center" :style="historyRowStyle(i)">
             <view class="grid place-items-center shrink-0" :style="historyIconStyle">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4" /><path d="M7 20V4" /><path d="m21 8-4-4-4 4" /><path d="M17 4v16" /></svg>
             </view>
@@ -169,45 +209,41 @@
             </view>
           </view>
         </view>
+        <view v-if="canLoadMoreHistory" class="flex items-center justify-center active:opacity-70" style="min-height: 44px; color: var(--v5-brand)" role="button" tabindex="0" :aria-disabled="historyLoadingMore" @click="loadMoreHistory"  @keydown.enter.prevent="loadMoreHistory" @keydown.space.prevent="loadMoreHistory">
+          <text>{{ historyLoadingMore ? t.exchange.loadingMore : t.exchange.loadMore }}</text>
+        </view>
       </view>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { onLoad, onHide, onShow } from "@dcloudio/uni-app";
+import { navTo } from "@/lib/route";
+import { exchangeQuote } from "@/lib/exchange-quote";
+import { computed, ref, watch, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
+import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 import { toast, confirm } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { postMoneyBills } from "@/lib/money-receipt";
-import {
-  createExchangePendingMutationStore,
-  executeExchangeSwap,
-  ExchangeOutcomeUnknownError,
-  type ExchangeSwapIntent,
-} from "@/lib/exchange-pending-mutation";
-import {
-  acquireExchangeCancelCommand,
-  createExchangeCancelStorage,
-  exchangeOrderCanCancel,
-  finishExchangeCancelCommand,
-  isCurrentExchangeCancelScope,
-  visibleQueuedExchangeOrders,
-} from "@/lib/exchange-cancel";
+import { createExchangePendingMutationStore, executeExchangeSwap, recoverExchangeSwap, ExchangeOutcomeUnknownError, type ExchangeSwapIntent } from "@/lib/exchange-pending-mutation";
+import { acquireExchangeCancelCommand, createExchangeCancelStorage, exchangeOrderCanCancel, finishExchangeCancelCommand, isCurrentExchangeCancelScope, visibleQueuedExchangeOrders } from "@/lib/exchange-cancel";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
+import { canShowExchangeToast } from "@/lib/exchange-scope-toast";
+import { canonicalExchangeAmount, sanitizeExchangeAmountInput } from "@/lib/exchange-input-amount";
+import { createRemoteAuthorityCoordinator } from "@/lib/remote-authority-coordinator";
+import { refreshWalletAfterCommittedExchange } from "@/lib/remote-commerce-refresh";
 import { exchangeApi, remoteApiEnabled } from "@/api/runtime";
 import type { ExchangeOrder, ExchangeSnapshot } from "@/api/exchange-api";
 import { useExchange, type SwapEvent } from "@/store/exchange";
-import {
-  useExchangeV3,
-  USER_DAILY_CAP_USD,
-  dailyUserPctUsed,
-} from "@/store/exchange-v3";
+import { useExchangeV3, USER_DAILY_CAP_USD, PLATFORM_DAILY_CAP_USD, dailyUserPctUsed, dailyPlatformPctUsed } from "@/store/exchange-v3";
 
 const t = useT();
 // 同 staking:生产构建里 import.meta.env.DEV 恒为 false,Mock 横幅被摇掉。
@@ -217,76 +253,222 @@ const exchange = useExchange();
 const v3 = useExchangeV3();
 const remoteState = ref<ExchangeSnapshot | null>(null);
 const remoteError = ref<string | null>(null);
+const remoteSnapshotReceivedAt = ref(0);
+const exchangeAuthorityStatus = computed(() => remoteAuthorityStatus({
+  remoteApiEnabled,
+  hasSnapshot: remoteState.value !== null,
+  hasError: remoteError.value !== null,
+}));
+const exchangeSnapshotReady = computed(() => exchangeAuthorityStatus.value === "ready");
 const pendingExchangeMutations = createExchangePendingMutationStore();
+const pendingExchangeRevision = ref(0);
+const pendingExchangeLeases = computed(() => {
+  pendingExchangeRevision.value;
+  return pendingExchangeMutations.list(app.accountKey);
+});
+const recoveringExchange = ref(false);
+let pendingRecoveryGeneration = 0;
 const exchangeCancelStorage = createExchangeCancelStorage();
 const cancellingOrderNo = ref<string | null>(null);
+const historyLoadingMore = ref(false);
+const remoteAuthority = createRemoteAuthorityCoordinator();
+let exchangeMounted = true;
+let exchangePageEpoch = 0;
 
-async function syncRemoteState() {
-  if (!remoteApiEnabled) return;
-  const scope = captureAccountScope();
+function captureExchangeScope() {
+  return { ...captureAccountScope(), pageEpoch: exchangePageEpoch };
+}
+
+function remoteScopeCurrent(scope: ReturnType<typeof captureExchangeScope>, runScope: RuntimeRevisionScope): boolean {
+  return canShowExchangeToast({
+    mounted: exchangeMounted && scope.pageEpoch === exchangePageEpoch,
+    accountScopeCurrent: isCurrentAccountScope(scope) && app.accountKey === scope.accountKey,
+    runScopeCurrent: isCurrentRuntimeRevision(runScope),
+  });
+}
+
+function toastIfRemoteScopeCurrent(
+  scope: ReturnType<typeof captureExchangeScope>,
+  runScope: RuntimeRevisionScope,
+  show: () => void,
+): boolean {
+  if (!remoteScopeCurrent(scope, runScope)) return false;
+  show();
+  return true;
+}
+
+function refreshExchangeScope() {
+  invalidateRemoteReads();
+  commitRemoteSnapshot(null);
+  remoteError.value = null;
+  remoteSnapshotReceivedAt.value = 0;
+  pendingExchangeRevision.value += 1;
+  if (exchangeMounted && remoteApiEnabled) void syncRemoteState().catch(() => {});
+}
+watch(() => app.accountKey, refreshExchangeScope);
+const unsubscribeExchangeRuntime = subscribeRuntimeRevision(refreshExchangeScope);
+
+let remoteReadGeneration = 0;
+let remoteSnapshotVersion = 0;
+const remoteFirstPagePending = ref(false);
+function commitRemoteSnapshot(snapshot: ExchangeSnapshot | null) {
+  remoteSnapshotVersion += 1;
+  remoteState.value = snapshot;
+}
+function invalidateRemoteReads() {
+  remoteReadGeneration += 1;
+  remoteSnapshotVersion += 1;
+  historyLoadingMore.value = false;
+  remoteFirstPagePending.value = false;
+}
+function beginRemoteMutation(accountKey: string) {
+  invalidateRemoteReads();
+  return remoteAuthority.beginMutation(accountKey);
+}
+
+async function syncRemoteState(
+  scope = captureExchangeScope(),
+  runScope = captureRuntimeRevision(),
+): Promise<boolean> {
+  if (!remoteApiEnabled) return true;
+  if (!remoteScopeCurrent(scope, runScope)) return false;
+  const readGeneration = ++remoteReadGeneration;
+  const snapshotVersion = remoteSnapshotVersion;
+  historyLoadingMore.value = false;
+  remoteFirstPagePending.value = true;
+  const current = () => remoteScopeCurrent(scope, runScope)
+    && readGeneration === remoteReadGeneration && snapshotVersion === remoteSnapshotVersion;
   try {
-    const snapshot = await exchangeApi.fetchState();
-    if (!isCurrentAccountScope(scope) || app.accountKey !== scope.accountKey) return;
-    remoteState.value = snapshot;
+    const snapshot = await remoteAuthority.guardedRead(scope.accountKey, () => exchangeApi.fetchState(1, 20));
+    if (!snapshot) return false;
+    if (!current()) return false;
+    if (snapshot.ordersPage.pageNum !== 1
+        || snapshot.ordersPage.pageSize !== 20
+        || snapshot.orders.length > snapshot.ordersPage.total) {
+      throw new Error("EXCHANGE_HISTORY_PAGINATION_INVALID");
+    }
+    commitRemoteSnapshot(snapshot);
     remoteError.value = null;
+    remoteSnapshotReceivedAt.value = Date.now();
+    return true;
   } catch {
-    if (!isCurrentAccountScope(scope) || app.accountKey !== scope.accountKey) return;
+    if (!current()) return false;
     // Failure-close: local balances, rates, queues and history are not a remote fallback.
-    remoteState.value = null;
+    commitRemoteSnapshot(null);
     remoteError.value = "G2_REMOTE_AUTHORITY_UNAVAILABLE";
     throw new Error(remoteError.value);
+  } finally {
+    if (readGeneration === remoteReadGeneration) remoteFirstPagePending.value = false;
+  }
+}
+
+const canLoadMoreHistory = computed(() => remoteApiEnabled
+  && !remoteFirstPagePending.value
+  && !!remoteState.value
+  && remoteState.value.orders.length < remoteState.value.ordersPage.total);
+
+async function loadMoreHistory() {
+  if (!remoteState.value || !canLoadMoreHistory.value || historyLoadingMore.value) return;
+  const scope = captureExchangeScope();
+  const runScope = captureRuntimeRevision();
+  const baseline = remoteState.value;
+  const readGeneration = ++remoteReadGeneration;
+  const snapshotVersion = remoteSnapshotVersion;
+  const current = () => remoteScopeCurrent(scope, runScope)
+    && readGeneration === remoteReadGeneration && snapshotVersion === remoteSnapshotVersion
+    && remoteState.value === baseline;
+  const nextPage = baseline.ordersPage.pageNum + 1;
+  const snapshotId = baseline.ordersPage.snapshotId;
+  historyLoadingMore.value = true;
+  try {
+    const next = await remoteAuthority.guardedRead(scope.accountKey,
+      () => exchangeApi.fetchState(nextPage, baseline.ordersPage.pageSize, snapshotId));
+    if (!next || !current()) return;
+    if (next.ordersPage.pageNum !== nextPage
+        || next.ordersPage.pageSize !== baseline.ordersPage.pageSize
+        || next.ordersPage.total !== baseline.ordersPage.total
+        || next.ordersPage.snapshotId !== snapshotId
+        || next.orders.length === 0) {
+      throw new Error("EXCHANGE_HISTORY_PAGINATION_INVALID");
+    }
+    const merged = [...baseline.orders, ...next.orders];
+    if (new Set(merged.map((order) => order.exchangeNo)).size !== merged.length) {
+      throw new Error("EXCHANGE_HISTORY_DUPLICATE");
+    }
+    if (merged.length > next.ordersPage.total) throw new Error("EXCHANGE_HISTORY_PAGINATION_INVALID");
+    commitRemoteSnapshot({ ...next, orders: merged });
+    remoteSnapshotReceivedAt.value = Date.now();
+  } catch {
+    if (current()) toast.error(t.value.exchange.remoteUnavailableToast);
+  } finally {
+    if (readGeneration === remoteReadGeneration) historyLoadingMore.value = false;
   }
 }
 
 async function cancelRemoteOrder(exchangeNo: string): Promise<"cancelled" | "unknown" | "stale" | "not-cancellable"> {
   if (!remoteApiEnabled) return "unknown";
+  const scope = captureExchangeScope();
+  const runScope = captureRuntimeRevision();
+  if (!remoteScopeCurrent(scope, runScope)) return "stale";
   const current = remoteState.value?.orders.find((order) => order.exchangeNo === exchangeNo);
   if (!exchangeOrderCanCancel(current)) {
-    toast.info(t.value.exchange.cancelNotAllowed);
+    toastIfRemoteScopeCurrent(scope, runScope, () => toast.info(t.value.exchange.cancelNotAllowed));
     return "not-cancellable";
   }
-  const scope = captureAccountScope();
   const key = acquireExchangeCancelCommand(exchangeCancelStorage, scope.accountKey, exchangeNo);
+  const mutation = beginRemoteMutation(scope.accountKey);
   cancellingOrderNo.value = exchangeNo;
   try {
     const snapshot = await exchangeApi.cancel(exchangeNo, key);
-    if (!isCurrentExchangeCancelScope(scope, captureAccountScope()) || app.accountKey !== scope.accountKey) return "stale";
-    remoteState.value = snapshot;
+    if (!isCurrentExchangeCancelScope(scope, captureExchangeScope()) || !remoteScopeCurrent(scope, runScope)) return "stale";
+    commitRemoteSnapshot(snapshot);
     remoteError.value = null;
+    remoteSnapshotReceivedAt.value = Date.now();
     const updated = snapshot.orders.find((order) => order.exchangeNo === exchangeNo);
     if (updated?.status !== "CANCELLED") return "unknown";
     finishExchangeCancelCommand(exchangeCancelStorage, scope.accountKey, exchangeNo, key);
-    toast.success(t.value.exchange.cancelDone, t.value.exchange.cancelDoneBody);
+    toastIfRemoteScopeCurrent(scope, runScope, () => toast.success(
+      t.value.exchange.cancelDone,
+      t.value.exchange.cancelDoneBody,
+    ));
     return "cancelled";
   } catch {
-    if (!isCurrentExchangeCancelScope(scope, captureAccountScope()) || app.accountKey !== scope.accountKey) return "stale";
+    if (!isCurrentExchangeCancelScope(scope, captureExchangeScope()) || !remoteScopeCurrent(scope, runScope)) return "stale";
     // A timeout may happen after the server committed. Re-read the current
     // account's authority before telling the user whether retry is needed.
     try {
       const snapshot = await exchangeApi.fetchState();
-      if (!isCurrentExchangeCancelScope(scope, captureAccountScope()) || app.accountKey !== scope.accountKey) return "stale";
-      remoteState.value = snapshot;
+      if (!isCurrentExchangeCancelScope(scope, captureExchangeScope()) || !remoteScopeCurrent(scope, runScope)) return "stale";
+      commitRemoteSnapshot(snapshot);
       remoteError.value = null;
+      remoteSnapshotReceivedAt.value = Date.now();
       const updated = snapshot.orders.find((order) => order.exchangeNo === exchangeNo);
       if (updated?.status === "CANCELLED") {
         finishExchangeCancelCommand(exchangeCancelStorage, scope.accountKey, exchangeNo, key);
-        toast.success(t.value.exchange.cancelDone, t.value.exchange.cancelDoneBody);
+        toastIfRemoteScopeCurrent(scope, runScope, () => toast.success(
+          t.value.exchange.cancelDone,
+          t.value.exchange.cancelDoneBody,
+        ));
         return "cancelled";
       }
       if (updated && !exchangeOrderCanCancel(updated)) {
         finishExchangeCancelCommand(exchangeCancelStorage, scope.accountKey, exchangeNo, key);
-        toast.info(t.value.exchange.cancelNotAllowed);
+        toastIfRemoteScopeCurrent(scope, runScope, () => toast.info(t.value.exchange.cancelNotAllowed));
         return "not-cancellable";
       }
     } catch {
       // Keep the command key so a later retry is the same idempotent request.
-      if (!isCurrentExchangeCancelScope(scope, captureAccountScope()) || app.accountKey !== scope.accountKey) return "stale";
-      remoteState.value = null;
+      if (!isCurrentExchangeCancelScope(scope, captureExchangeScope()) || !remoteScopeCurrent(scope, runScope)) return "stale";
+      commitRemoteSnapshot(null);
       remoteError.value = "G2_REMOTE_AUTHORITY_UNAVAILABLE";
     }
-    toast.error(t.value.exchange.cancelUnknownTitle, t.value.exchange.cancelUnknownBody);
+    toastIfRemoteScopeCurrent(scope, runScope, () => toast.error(
+      t.value.exchange.cancelUnknownTitle,
+      t.value.exchange.cancelUnknownBody,
+    ));
     return "unknown";
   } finally {
+    mutation.finish();
     if (cancellingOrderNo.value === exchangeNo) cancellingOrderNo.value = null;
   }
 }
@@ -322,7 +504,9 @@ const history = computed<SwapEvent[]>(() => {
 });
 // remote mode must never render persisted exchange or v3 facts.
 const displayUserUsed = computed(() => remoteApiEnabled ? (remoteState.value?.todayUserUsedUsdt ?? 0) : v3.todayUserUsedUSD);
+const displayPlatformUsed = computed(() => remoteApiEnabled ? (remoteState.value?.todayPlatformUsedUsdt ?? 0) : v3.todayPlatformUsedUSD);
 const displayUserCap = computed(() => remoteApiEnabled ? (remoteState.value?.caps.userDailyCapUsdt ?? 0) : USER_DAILY_CAP_USD);
+const displayPlatformCap = computed(() => remoteApiEnabled ? (remoteState.value?.caps.platformDailyCapUsdt ?? 0) : PLATFORM_DAILY_CAP_USD);
 const displayQueue = computed(() => remoteApiEnabled
   ? visibleQueuedExchangeOrders(remoteState.value?.orders ?? []).map((order) => ({
     id: order.exchangeNo,
@@ -333,26 +517,40 @@ const displayQueue = computed(() => remoteApiEnabled
 const rate = computed(() => remoteApiEnabled ? (remoteState.value?.caps.currentPrice ?? 0) : exchange.rate);
 
 const direction = ref<"usdt2nex" | "nex2usdt">("nex2usdt");
+onLoad((options) => {
+  direction.value = options?.direction === "usdt2nex" ? "usdt2nex" : "nex2usdt";
+});
 const input = ref("");
 const secsAgo = ref(0);
 
-// Roll daily counters on mount.
-onMounted(() => {
+// A retained native page needs a fresh read whenever it becomes visible again.
+onShow(() => {
+  exchangeMounted = true;
+  pendingExchangeRevision.value += 1;
   if (remoteApiEnabled) {
-    void syncRemoteState().catch(() => toast.error(t.value.exchange.remoteUnavailableToast));
+    const scope = captureExchangeScope();
+    const runScope = captureRuntimeRevision();
+    void syncRemoteState(scope, runScope).catch(() => {
+      toastIfRemoteScopeCurrent(scope, runScope, () => toast.error(t.value.exchange.remoteUnavailableToast));
+    });
     return;
   }
   // Explicit mock mode only: local counters and local wallet receipts are never remote success.
   v3.resetIfNewDay();
 });
 
-// Periodic rate refresh (15s) + "n seconds ago" ticker (500ms). Page-level
-// component → clean up in onUnmounted (P-021).
+// Hidden native pages stop polling as well as invalidating their in-flight work.
 let rateTimer: ReturnType<typeof setInterval> | null = null;
 let agoTimer: ReturnType<typeof setInterval> | null = null;
-onMounted(() => {
+onShow(() => {
+  if (rateTimer !== null || agoTimer !== null) return;
   if (remoteApiEnabled) {
     rateTimer = setInterval(() => { void syncRemoteState().catch(() => {}); }, 15000);
+    agoTimer = setInterval(() => {
+      secsAgo.value = remoteSnapshotReceivedAt.value > 0
+        ? Math.floor((Date.now() - remoteSnapshotReceivedAt.value) / 1000)
+        : 0;
+    }, 500);
     return;
   }
   rateTimer = setInterval(() => exchange.refreshRate(), 15000);
@@ -360,10 +558,64 @@ onMounted(() => {
     secsAgo.value = Math.floor((Date.now() - exchange.rateUpdatedAt) / 1000);
   }, 500);
 });
+onHide(() => {
+  exchangeMounted = false;
+  exchangePageEpoch += 1;
+  pendingRecoveryGeneration += 1;
+  recoveringExchange.value = false;
+  invalidateRemoteReads();
+  commitRemoteSnapshot(null);
+  remoteSnapshotReceivedAt.value = 0;
+  if (rateTimer) clearInterval(rateTimer);
+  if (agoTimer) clearInterval(agoTimer);
+  rateTimer = null;
+  agoTimer = null;
+});
 onUnmounted(() => {
+  exchangeMounted = false;
+  exchangePageEpoch += 1;
+  pendingRecoveryGeneration += 1;
+  unsubscribeExchangeRuntime();
+  invalidateRemoteReads();
   if (rateTimer) clearInterval(rateTimer);
   if (agoTimer) clearInterval(agoTimer);
 });
+
+async function recoverPendingExchange() {
+  if (!remoteApiEnabled || recoveringExchange.value || submitting.value || cancellingOrderNo.value) return;
+  const scope = captureExchangeScope();
+  const runScope = captureRuntimeRevision();
+  if (!remoteScopeCurrent(scope, runScope)) return;
+  const leases = pendingExchangeMutations.list(scope.accountKey);
+  if (!leases.length) return;
+  const generation = ++pendingRecoveryGeneration;
+  const current = () => generation === pendingRecoveryGeneration && remoteScopeCurrent(scope, runScope);
+  recoveringExchange.value = true;
+  const mutation = beginRemoteMutation(scope.accountKey);
+  try {
+    for (const lease of leases) {
+      if (!current()) return;
+      const result = await recoverExchangeSwap({
+        pending: pendingExchangeMutations, lease,
+        recover: saved => exchangeApi.recover(saved.intent.direction, saved.intent.fromAmount,
+          saved.intent.queueIfCapped, saved.key),
+        fetchState: () => exchangeApi.fetchState(), isCurrent: current,
+      });
+      if (!current()) return;
+      commitRemoteSnapshot(result.snapshot);
+      remoteError.value = null;
+      remoteSnapshotReceivedAt.value = Date.now();
+      refreshCommittedExchangeWalletProjection(result.order as ExchangeOrder, scope, runScope);
+      notifyRemoteSwapResult(result.order as ExchangeOrder, scope, runScope);
+    }
+  } catch {
+    if (current()) toast.info(t.value.exchange.pendingRecoveryHint);
+  } finally {
+    mutation.finish();
+    if (generation === pendingRecoveryGeneration) recoveringExchange.value = false;
+    pendingExchangeRevision.value += 1;
+  }
+}
 
 const fromSym = computed(() => (direction.value === "usdt2nex" ? "USDT" : "NEX"));
 const toSym = computed(() => (direction.value === "usdt2nex" ? "NEX" : "USDT"));
@@ -373,7 +625,20 @@ const fromBal = computed(() => {
     : (remoteState.value?.wallet.nexAvailable ?? 0);
   return direction.value === "usdt2nex" ? app.user.usdtBalance : app.user.nexBalance;
 });
-const minFrom = computed(() => (direction.value === "usdt2nex" ? 1 : 10));
+// Remote mode consumes the same direction-specific minimums the submit endpoint
+// enforces. No local 1/10 fallback is safe: a config change would otherwise make
+// the visible validation disagree with the server's final gate.
+const minFrom = computed<number | null>(() => remoteApiEnabled
+  ? (remoteState.value?.caps[direction.value === "usdt2nex" ? "minUsdt" : "minNex"] ?? null)
+  : (direction.value === "usdt2nex" ? 1 : 10));
+const remoteMinimumReady = computed(() => !remoteApiEnabled || (remoteState.value !== null && minFrom.value !== null && minFrom.value > 0));
+// A readable snapshot is insufficient authority to submit: the platform can
+// explicitly pause swaps while retaining balances, history and queue recovery.
+const exchangeSubmissionAllowed = computed(() => !remoteApiEnabled
+  || (exchangeSnapshotReady.value && remoteState.value?.caps.swapEnabled === true
+    && pendingExchangeLeases.value.length === 0));
+const exchangePaused = computed(() => remoteApiEnabled
+  && exchangeSnapshotReady.value && remoteState.value?.caps.swapEnabled === false);
 
 /**
  * 🔴 **账本精度 = 2 位,两个币种都是**:app.ts 的 creditBalance / debitBalance /
@@ -386,7 +651,7 @@ const minFrom = computed(() => (direction.value === "usdt2nex" ? 1 : 10));
 const money = (n: number): number => +n.toFixed(2);
 /** 展示口径与 money() 同精度 —— 屏幕上的数 = 报价的数 = 落账的数。 */
 const amtLabel = (n: number): string =>
-  n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: remoteApiEnabled ? 6 : 2 });
 
 // 输入在**进入资金链路的那一刻**就归到账本精度:此后报价 / 额度门 / 扣款 / 账单 / 历史
 // 拿到的是同一个数。留着 1.2345 往下走的话,弹窗显示 1.23、账本扣 1.23、账单却记 1.2345。
@@ -402,10 +667,16 @@ function quoteTo(dir: "usdt2nex" | "nex2usdt", from: number, r: number): number 
   if (from === 0) return 0;
   return money(dir === "usdt2nex" ? from / r : from * r);
 }
-const toAmount = computed(() => quoteTo(direction.value, fromAmount.value, rate.value));
-const overBalance = computed(() => fromAmount.value > fromBal.value);
-const underMin = computed(() => fromAmount.value > 0 && fromAmount.value < minFrom.value);
-const valid = computed(() => fromAmount.value > 0 && !overBalance.value && !underMin.value);
+const remoteQuote = computed(() => {
+  const caps = remoteState.value?.caps;
+  return caps ? exchangeQuote(direction.value, fromAmount.value, rate.value, caps.feePct, caps.feeMinUsdt) : null;
+});
+const feeInvalid = computed(() => remoteApiEnabled && fromAmount.value > 0 && remoteState.value !== null && !remoteQuote.value);
+const toAmount = computed(() => remoteApiEnabled ? (remoteQuote.value?.toAmount ?? 0) : quoteTo(direction.value, fromAmount.value, rate.value));
+const overBalance = computed(() => exchangeSnapshotReady.value && fromAmount.value > fromBal.value);
+const underMin = computed(() => fromAmount.value > 0 && minFrom.value !== null && fromAmount.value < minFrom.value);
+const valid = computed(() => exchangeSubmissionAllowed.value
+  && remoteMinimumReady.value && fromAmount.value > 0 && !overBalance.value && !underMin.value && !feeInvalid.value);
 /**
  * 🔴 提交在途守卫(范式同 wallet-cards-new.vue 的 isBinding:`ref(false)` 挂在
  * **组件实例**上,不用 checkout.vue 那个模块级 `let` —— 模块级变量跨实例共享,
@@ -416,14 +687,18 @@ const valid = computed(() => fromAmount.value > 0 && !overBalance.value && !unde
 const submitting = ref(false);
 const ctaEnabled = computed(() => valid.value && !submitting.value);
 // USD value of this swap = the leg denominated in USDT
-const swapUSDValue = computed(() => (direction.value === "usdt2nex" ? fromAmount.value : toAmount.value));
+const swapUSDValue = computed(() => remoteApiEnabled ? (remoteQuote.value?.grossUsdt ?? 0) : (direction.value === "usdt2nex" ? fromAmount.value : toAmount.value));
 
 // uni input event → e.detail.value (typed Event; mirrors topup-card-form).
 function detailVal(e: Event): string {
   return (e as unknown as { detail: { value: string } }).detail.value;
 }
 function onInput(e: Event) {
-  input.value = detailVal(e).replace(/[^0-9.]/g, "");
+  input.value = sanitizeExchangeAmountInput(detailVal(e));
+}
+
+function onInputBlur() {
+  input.value = canonicalExchangeAmount(input.value);
 }
 function setMax() {
   // 提交在途时输入面整体冻结(输入框有 :disabled,这两个裸 <view @click> 入口没有)。
@@ -439,44 +714,75 @@ function flip() {
 
 function onRefresh() {
   if (remoteApiEnabled) {
-    void syncRemoteState()
-      .then(() => toast.info(t.value.exchange.remoteRefreshed))
-      .catch(() => toast.error(t.value.exchange.remoteUnavailableToast));
+    const scope = captureExchangeScope();
+    const runScope = captureRuntimeRevision();
+    void syncRemoteState(scope, runScope)
+      .then((applied) => {
+        if (!applied) return;
+        toastIfRemoteScopeCurrent(scope, runScope, () => toast.info(t.value.exchange.remoteRefreshed));
+      })
+      .catch(() => {
+        toastIfRemoteScopeCurrent(scope, runScope, () => toast.error(t.value.exchange.remoteUnavailableToast));
+      });
     return;
   }
   exchange.refreshRate();
   toast.info(t.value.exchange.quoteRefreshing);
 }
 function goHowItWorks() {
-  uni.navigateTo({ url: "/pages/me/wallet-exchange-how", fail: () => {} });
+  navTo("/pages/me/wallet-exchange-how");
 }
 
-function notifyRemoteSwapResult(order: ExchangeOrder) {
+function notifyRemoteSwapResult(
+  order: ExchangeOrder,
+  scope: ReturnType<typeof captureExchangeScope>,
+  runScope: RuntimeRevisionScope,
+) {
+  if (!remoteScopeCurrent(scope, runScope)) return;
   if (order.status === "COMPLETED" || order.status === "SUCCESS") {
-    toast.success(t.value.exchange.swapped);
+    toastIfRemoteScopeCurrent(scope, runScope, () => toast.success(t.value.exchange.swapped));
     return;
   }
   if (order.status === "QUEUED") {
-    toast.info(
+    toastIfRemoteScopeCurrent(scope, runScope, () => toast.info(
       t.value.exchange.queuedToastTitle,
       fmt(t.value.exchange.queuedToastBody, { amount: (order.fromAsset === "USDT" ? order.fromAmount : order.toAmount).toFixed(2) }),
-    );
+    ));
     return;
   }
   const reason = {
     CANCELLED: t.value.exchange.swapCancelledReason,
+    FAILED: t.value.exchange.swapFailedReason,
     USER_CAP: t.value.exchange.swapUserCapReason,
     PLATFORM_CAP: t.value.exchange.swapPlatformCapReason,
     GEO_BLOCKED: t.value.exchange.swapGeoBlockedReason,
   }[order.status];
-  toast.error(reason ?? t.value.exchange.swapFailed, order.exchangeNo);
+  toastIfRemoteScopeCurrent(scope, runScope, () => toast.error(
+    reason ?? fmt(t.value.exchange.swapNotFilled, { status: order.status }),
+    order.exchangeNo,
+  ));
+}
+
+function refreshCommittedExchangeWalletProjection(
+  order: ExchangeOrder,
+  scope: ReturnType<typeof captureExchangeScope>,
+  runScope: RuntimeRevisionScope,
+) {
+  void refreshWalletAfterCommittedExchange({
+    status: order.status,
+    isCurrent: () => remoteScopeCurrent(scope, runScope),
+    refreshWallet: () => app.refreshRemoteFleet(),
+  });
 }
 
 async function handleConfirm() {
   // 🔴 重入守卫排在最前:无守卫时连点两次会排队两条完整兑换链,而第二条的额度门
   // 读到的还是第一条 v3.record 之前的计数 —— 两笔都放行,日限直接翻倍。
-  if (submitting.value) return;
+  if (submitting.value || !exchangeSubmissionAllowed.value) return;
+  input.value = canonicalExchangeAmount(input.value);
   if (!valid.value) return;
+  const requestScope = captureExchangeScope();
+  const requestRunScope = captureRuntimeRevision();
 
   // 🔴 **成交快照冻在第一个 await 之前**(范式同 wallet-withdraw.vue 的 snap)。
   // 方向 / 币种 / 金额 / 到账额 / 汇率 / USD 计值 / 账号 一次冻结;额度门、弹窗文案、
@@ -495,8 +801,8 @@ async function handleConfirm() {
     usd: swapUSDValue.value,
     account: app.accountKey,
     remoteBaseline: remoteState.value,
+    feeUsdt: remoteQuote.value?.feeUsdt ?? 0,
   };
-
   submitting.value = true;
   // settled 记录「这笔到底成交了没有」—— 下面 catch 里那句资金断言必须跟它走,
   // 不能无条件说「一分没动」。见 catch 处注释。
@@ -505,13 +811,18 @@ async function handleConfirm() {
     if (remoteApiEnabled) {
       const ok = await confirm({
         title: t.value.exchange.confirm,
-        message: `${snap.fromSym} ${amtLabel(snap.fromAmount)} → ${snap.toSym} ${amtLabel(snap.toAmount)}`,
+        message: `${snap.fromSym} ${amtLabel(snap.fromAmount)} → ${t.value.exchange.netReceive}: ${snap.toSym} ${amtLabel(snap.toAmount)}\n${t.value.exchange.exchangeFee}: ${amtLabel(snap.feeUsdt)} USDT\n${t.value.exchange.quoteEstimate}`,
         icon: "info",
         confirmLabel: t.value.exchange.confirm,
       });
-      if (!ok) return;
-      if (app.accountKey !== snap.account || !snap.remoteBaseline) {
-        toast.error(t.value.exchange.quoteStaleTitle, t.value.exchange.quoteStaleContext);
+      // The native prompt is an await boundary: the 15-second authority refresh
+      // may have paused swaps while it was open, so re-read the same submit gate.
+      if (!ok || !exchangeSubmissionAllowed.value) return;
+      if (!remoteScopeCurrent(requestScope, requestRunScope) || app.accountKey !== snap.account || !snap.remoteBaseline) {
+        toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(
+          t.value.exchange.quoteStaleTitle,
+          t.value.exchange.quoteStaleContext,
+        ));
         return;
       }
       const directionCode = snap.direction === "usdt2nex" ? "USDT_TO_NEX" : "NEX_TO_USDT";
@@ -520,23 +831,36 @@ async function handleConfirm() {
         fromAmount: snap.fromAmount,
         queueIfCapped: true,
       };
-      const result = await executeExchangeSwap<ExchangeSnapshot>({
-        pending: pendingExchangeMutations,
-        accountKey: snap.account,
-        intent,
-        baseline: snap.remoteBaseline,
-        swap: (idempotencyKey) => exchangeApi.swap(directionCode, snap.fromAmount, true, idempotencyKey),
-        fetchState: () => exchangeApi.fetchState(),
-      });
-      if (app.accountKey !== snap.account) {
-        await syncRemoteState();
-        toast.info(t.value.exchange.accountSwitchedRefreshed);
+      const mutation = beginRemoteMutation(snap.account);
+      let result;
+      try {
+        result = await executeExchangeSwap<ExchangeSnapshot>({
+          pending: pendingExchangeMutations,
+          accountKey: snap.account,
+          intent,
+          baseline: snap.remoteBaseline,
+          swap: (idempotencyKey) => exchangeApi.swap(directionCode, snap.fromAmount, true, idempotencyKey),
+          fetchState: () => exchangeApi.fetchState(),
+          recover: lease => exchangeApi.recover(lease.intent.direction, lease.intent.fromAmount,
+            lease.intent.queueIfCapped, lease.key),
+          isCurrent: () => remoteScopeCurrent(requestScope, requestRunScope),
+        });
+      } finally {
+        mutation.finish();
+      }
+      if (!remoteScopeCurrent(requestScope, requestRunScope) || app.accountKey !== snap.account) {
+        const applied = await syncRemoteState(requestScope, requestRunScope).catch(() => false);
+        if (!applied) return;
+        toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.info(t.value.exchange.accountSwitchedRefreshed));
         return;
       }
-      remoteState.value = result.snapshot;
+      commitRemoteSnapshot(result.snapshot);
       remoteError.value = null;
+      remoteSnapshotReceivedAt.value = Date.now();
       if (["COMPLETED", "SUCCESS", "QUEUED"].includes(result.order.status)) input.value = "";
-      notifyRemoteSwapResult(result.order as ExchangeOrder);
+      if (!remoteScopeCurrent(requestScope, requestRunScope)) return;
+      refreshCommittedExchangeWalletProjection(result.order as ExchangeOrder, requestScope, requestRunScope);
+      notifyRemoteSwapResult(result.order as ExchangeOrder, requestScope, requestRunScope);
       return;
     }
     // v3 gate: cap / queue —— 判的是**快照金额**,后面扣的也是它(同一个数)。
@@ -554,20 +878,20 @@ async function handleConfirm() {
           icon: "warn",
           confirmLabel: t.value.exchange.capReachedConfirm,
         });
-        if (queueIt) {
+        if (queueIt && remoteScopeCurrent(requestScope, requestRunScope)) {
           v3.enqueue({ amountUSD: snap.usd, direction: snap.direction });
-          toast.info(
+          toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.info(
             t.value.exchange.queuedToastTitle,
             fmt(t.value.exchange.queuedToastBody, { amount: snap.usd.toFixed(2) }),
-          );
+          ));
         }
         return;
       }
       if (gate.reason === "platform-cap") {
-        toast.error(
+        toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(
           t.value.exchange.platformExhaustedTitle,
           fmt(t.value.exchange.platformExhaustedBody, { cap: (gate.cap / 1000).toFixed(0) }),
-        );
+        ));
         return;
       }
     }
@@ -580,9 +904,9 @@ async function handleConfirm() {
       icon: "info",
       confirmLabel: t.value.exchange.confirm,
     });
-    if (!ok) return;
+    if (!ok || !remoteScopeCurrent(requestScope, requestRunScope)) return;
 
-    toast.info(t.value.exchange.confirmingToast);
+    toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.info(t.value.exchange.confirmingToast));
     // 结算延迟(MOCK:真实现是兑换提交 endpoint〔TBD;PRD 未定义〕的往返)。写成 await 而不是 setTimeout 回调 ——
     // 回调版的守卫在函数返回时就复位了,等于没守;await 让整条链留在同一个 try/finally 里。
     await new Promise((r) => setTimeout(r, 900));
@@ -592,14 +916,20 @@ async function handleConfirm() {
     //  ① 汇率:拿**当前**汇率按同一个 quoteTo 重算到账额;变了就是漂移。
     //     (反过来用快照汇率复验快照报价,等式恒成立,这道门等于没有。)
     if (quoteTo(snap.direction, snap.fromAmount, rate.value) !== snap.toAmount) {
-      toast.error(t.value.exchange.quoteStaleTitle, t.value.exchange.quoteStaleRate);
+      toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(
+        t.value.exchange.quoteStaleTitle,
+        t.value.exchange.quoteStaleRate,
+      ));
       return;
     }
     //  ② 账号:确认期间换号 → 钱会扣在新账号头上,而弹窗展示的是旧账号的数。
     //  ③ 额度:再问一次同一个门(入参仍是快照金额)。
     //     ⚠️ 这只收口**本标签页**;计数器自身的跨标签页竞态是 exchange-v3.ts 的独立缺陷,不在本次范围。
-    if (app.accountKey !== snap.account || !v3.canExchange(snap.usd).ok) {
-      toast.error(t.value.exchange.quoteStaleTitle, t.value.exchange.quoteStaleContext);
+    if (!remoteScopeCurrent(requestScope, requestRunScope) || app.accountKey !== snap.account || !v3.canExchange(snap.usd).ok) {
+      toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(
+        t.value.exchange.quoteStaleTitle,
+        t.value.exchange.quoteStaleContext,
+      ));
       return;
     }
 
@@ -620,10 +950,10 @@ async function handleConfirm() {
       { type: "swap", amount: snap.toAmount, symbol: snap.toSym, status: "posted", memo: swapMemo, ref: swapRef },
     ]);
     if (posted === "insufficient") {
-      toast.error(
+      toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(
         t.value.exchange.insufficientTitle,
         t.value.exchange.insufficientMessage.replace("{sym}", snap.fromSym),
-      );
+      ));
       return;
     }
     if (posted !== "ok") return; // 落盘失败:资金已还原、账上无记录、收口点已提示
@@ -640,35 +970,43 @@ async function handleConfirm() {
     // Commit to v3 daily counters + lifetime
     v3.record(snap.usd);
 
-    toast.success(
+    toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.success(
       t.value.exchange.swapped,
       t.value.exchange.swappedDetail
         .replace("{from}", snap.fromSym)
         .replace("{fromAmt}", amtLabel(snap.fromAmount))
         .replace("{to}", snap.toSym)
         .replace("{toAmt}", amtLabel(snap.toAmount)),
-    );
+    ));
     input.value = "";
   } catch (err) {
     if (remoteApiEnabled) {
+      if (!remoteScopeCurrent(requestScope, requestRunScope)) return;
       if (err instanceof ExchangeOutcomeUnknownError) {
         if (app.accountKey === snap.account && err.authoritativeState) {
-          remoteState.value = err.authoritativeState as ExchangeSnapshot;
-        } else if (app.accountKey !== snap.account) {
-          await syncRemoteState().catch(() => {});
+          commitRemoteSnapshot(err.authoritativeState as ExchangeSnapshot);
+          remoteSnapshotReceivedAt.value = Date.now();
+        } else {
+          const applied = await syncRemoteState(requestScope, requestRunScope).catch(() => false);
+          if (!applied || !remoteScopeCurrent(requestScope, requestRunScope)) return;
         }
+        if (!remoteScopeCurrent(requestScope, requestRunScope)) return;
         remoteError.value = "G2_SWAP_OUTCOME_UNKNOWN";
-        toast.error(t.value.exchange.outcomeUnknownTitle, t.value.exchange.outcomeUnknownBody);
+        toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(
+          t.value.exchange.outcomeUnknownTitle,
+          t.value.exchange.outcomeUnknownBody,
+        ));
         return;
       }
-      remoteState.value = null;
+      commitRemoteSnapshot(null);
       remoteError.value = "G2_REMOTE_AUTHORITY_UNAVAILABLE";
       // 这条路径失败的是用户刚提交的**兑换动作**,不是一次数据读取 —— 与 :268/:370 两处
       // 「拉取失败」共用一句「数据取不到,请稍后再试」会让用户以为刷新一下就好,
       // 而实际是这笔兑换没有成交(独立审查判为文案与实际状态不符)。
-      toast.error(t.value.exchange.swapFailed);
+      toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(t.value.exchange.swapFailed));
       return;
     }
+    if (!remoteScopeCurrent(requestScope, requestRunScope)) return;
     // A region refusal surfaces on this path as a rejected submit. Translate it
     // into a toast; anything else is not ours to swallow — rethrow so the
     // existing failure behaviour (and the `finally` unlock below) is unchanged.
@@ -678,23 +1016,36 @@ async function handleConfirm() {
     // 「已部分落账后重试」的下游,那时说「一分没动」就是当面撒谎(本仓在
     // wallet-repurchase.vue 已为同形错误踩过一次)。settled 为真即已成交过,
     // 此时只报拒绝原因、不做资金断言。
-    toast.error(geo, settled ? undefined : t.value.geoPolicy.fundsSafeNote);
+    toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(
+      geo,
+      settled ? undefined : t.value.geoPolicy.fundsSafeNote,
+    ));
   } finally {
     // 所有出口(含取消 / 拒单 / 抛异常)统一解锁 —— 复位点只有一个,不会有分支漏掉。
     submitting.value = false;
+    pendingExchangeRevision.value += 1;
   }
 }
 
 // ── derived labels ──
-const minLabel = computed(() => t.value.exchange.minAmount.replace("{n}", String(minFrom.value)).replace("{sym}", fromSym.value));
-const fromBalLabel = computed(() => (fromSym.value === "USDT" ? fromBal.value.toFixed(2) : fromBal.value.toLocaleString()));
-const toAmountLabel = computed(() => amtLabel(toAmount.value));
-const rateLabel = computed(() => t.value.exchange.rate.replace("{rate}", rate.value.toFixed(5)));
-const updatedLabel = computed(() => t.value.exchange.rateLastUpdated.replace("{n}", String(secsAgo.value)));
+const minLabel = computed(() => exchangeSnapshotReady.value
+  ? t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : String(minFrom.value)).replace("{sym}", fromSym.value)
+  : t.value.exchange.remoteNotProvided);
+const fromBalLabel = computed(() => exchangeSnapshotReady.value
+  ? (fromSym.value === "USDT" ? fromBal.value.toFixed(2) : fromBal.value.toLocaleString())
+  : t.value.exchange.remoteNotProvided);
+const toAmountLabel = computed(() => !exchangeSnapshotReady.value || feeInvalid.value ? "—" : amtLabel(toAmount.value));
+const rateLabel = computed(() => exchangeSnapshotReady.value
+  ? t.value.exchange.rate.replace("{rate}", rate.value.toFixed(5))
+  : t.value.exchange.remoteNotProvided);
+const updatedLabel = computed(() => exchangeSnapshotReady.value
+  ? t.value.exchange.rateLastUpdated.replace("{n}", String(secsAgo.value))
+  : t.value.exchange.remoteNotProvided);
 const errorLabel = computed(() =>
   overBalance.value
     ? t.value.exchange.insufficientMessage.replace("{sym}", fromSym.value)
-    : t.value.exchange.minAmount.replace("{n}", String(minFrom.value)).replace("{sym}", fromSym.value),
+    : feeInvalid.value ? t.value.exchange.belowFee
+    : t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : String(minFrom.value)).replace("{sym}", fromSym.value),
 );
 const queuedLabel = computed(() => fmt(t.value.exchange.queuedLabel, { n: String(displayQueue.value.length) }));
 // 历史行同样走 amtLabel:历史与余额对不上,多半就是这里自己又取了一次整。
@@ -722,10 +1073,10 @@ const refreshBtnStyle: CSSProperties = {
 };
 // Recessed swap field (topup tone): surface-2 fill, no border — pay/receive read
 // as a matched field pair around the flip control, numbers stay full-ink.
-const swapCardStyle: CSSProperties = {
+const swapCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   margin: "0 16px",
-  background: "var(--v5-surface-2)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
 };
 const cardLabelStyle: CSSProperties = {
@@ -820,6 +1171,15 @@ const userBarStyle = computed<CSSProperties>(() => {
     transition: "width 600ms cubic-bezier(0.16,1,0.3,1)",
   };
 });
+const platformBarStyle = computed<CSSProperties>(() => ({
+  height: "100%",
+  width: `${remoteApiEnabled
+    ? Math.min(1, displayPlatformUsed.value / Math.max(displayPlatformCap.value, 1)) * 100
+    : dailyPlatformPctUsed(v3.todayPlatformUsedUSD) * 100}%`,
+  borderRadius: "999px",
+  background: "var(--v5-brand-2)",
+  transition: "width 600ms cubic-bezier(0.16,1,0.3,1)",
+}));
 const queueWrapStyle: CSSProperties = {
   marginTop: "12px",
   paddingTop: "12px",
@@ -841,6 +1201,11 @@ const historyTitleStyle: CSSProperties = {
   fontWeight: 600,
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",
+};
+const historyAuthorityStateStyle: CSSProperties = {
+  padding: "16px 0",
+  fontSize: "12px",
+  color: "var(--v5-ink-3)",
 };
 // Empty state (de-card white-list): dashed outline, no fill.
 const historyEmptyStyle: CSSProperties = {
@@ -875,4 +1240,6 @@ const historyMainStyle: CSSProperties = {
   color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)",
 };
 const historySubStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-4)" };
+
+
 </script>

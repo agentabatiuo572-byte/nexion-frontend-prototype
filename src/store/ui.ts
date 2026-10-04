@@ -58,7 +58,6 @@ export const useUI = defineStore("ui", () => {
     message: "",
     retryAfterMs: null,
   });
-  const messageDrawerOpen = ref(false);
 
   function pushToast(t: Omit<Toast, "id" | "durationMs"> & { durationMs?: number }) {
     // Same kind+title already on screen → replace it (fresh id + timer) instead of
@@ -116,18 +115,10 @@ export const useUI = defineStore("ui", () => {
     netError.value = { visible: false, title: "", message: "", retryAfterMs: null };
   }
 
-  function openMessageDrawer() {
-    messageDrawerOpen.value = true;
-  }
-  function closeMessageDrawer() {
-    messageDrawerOpen.value = false;
-  }
-
   return {
     toasts,
     confirmQueue,
     netError,
-    messageDrawerOpen,
     pushToast,
     dismissToast,
     confirm,
@@ -136,8 +127,6 @@ export const useUI = defineStore("ui", () => {
     clearConfirmsBy,
     showNetError,
     hideNetError,
-    openMessageDrawer,
-    closeMessageDrawer,
   };
 });
 

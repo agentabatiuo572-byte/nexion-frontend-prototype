@@ -2,7 +2,7 @@
  * Ported from Nexion-prototype/lib/store/orders.ts
  * (zustand persist → Pinia + uni storage).
  *
- * Unified 4-stage flow for every product (NexGridBox tiers + Cloud Share).
+ * Unified 4-stage flow for every product (UVELBox tiers + Cloud Share).
  * No shipping fiction — every device is platform-hosted in our DC, so the
  * only meaningful states are: order placed → paid → DC provisioning → live.
  *
@@ -21,10 +21,11 @@ import { normalizeAccountKey } from "./account-cloud";
 import { createAccountRowCommit } from "./account-scoped-storage";
 import { orderApi, remoteApiEnabled } from "@/api/runtime";
 import type { CanonicalOrder, CanonicalOrderStatus } from "@/api/order-api";
+import type { OrderLineItem } from "@/lib/order-line-items";
 import {
-  captureCommerceSandboxRun,
-  isCurrentCommerceSandboxScope,
-  subscribeCurrentCommerceSandboxRun,
+  captureRuntimeRevision,
+  isCurrentRuntimeRevision,
+  subscribeRuntimeRevision,
 } from "@/api/order-api";
 
 /** Server status is rendered verbatim in remote mode; no terminal outcome is collapsed into cancellation. */
@@ -43,6 +44,10 @@ export interface Order {
   quantity: number;
   /** Number of products represented by a canonical bundle order. */
   itemCount?: number;
+  /** Structured server SKU lines; present for canonical bundle orders. */
+  lineItems?: OrderLineItem[];
+  /** Server-calculated sum of every line item before discounts. */
+  subtotal: number;
   unitPrice: number;        // USDT
   discount: number;         // USDT (voucher)
   /** FEAT-DEV02 旧机抵扣(USDT)——仅结算抵减,永不入余额;服务端同事务复算。 */
@@ -57,12 +62,17 @@ export interface Order {
   paymentMethod: string;    // "usdt-trc20" etc
   status: OrderStatus;
   placedAt: number;
+  expiresAt?: number;
   paidAt?: number;
   activatedAt?: number;
+  refundedAt?: number;
+  refundAmountUsdt?: number;
+  refundChannel?: string;
+  refundBillNo?: string;
   timeline: OrderTimelineEvent[];
   deviceId?: string;        // the spawned device id once activated
-  // Data-center the unit was provisioned in (Singapore / Frankfurt)
-  dataCenter: "Singapore DC" | "Frankfurt DC";
+  /** Canonical server data-center; null means the location is not known. */
+  dataCenter: string | null;
 }
 
 export interface CreateOrderInput {
@@ -93,7 +103,7 @@ export function timelineFor(_productId: Order["productId"]): OrderStatus[] {
 }
 
 function pickDataCenter(productId: Order["productId"]): Order["dataCenter"] {
-  // NexGridRack (P1/P2) lives in Frankfurt, everything else in Singapore.
+  // UVELRack (P1/P2) lives in Frankfurt, everything else in Singapore.
   return productId === "stellarrack-p1" || productId === "stellarrack-p2"
     ? "Frankfurt DC"
     : "Singapore DC";
@@ -113,7 +123,11 @@ function statusNote(next: OrderStatus, dc: Order["dataCenter"]): string | undefi
 type OrdersRow = { orders: Order[] };
 function parseOrdersRow(raw: unknown): OrdersRow {
   const row = raw as { orders?: unknown } | null;
-  return { orders: row && Array.isArray(row.orders) ? (row.orders as Order[]) : [] };
+  const parsed = row && Array.isArray(row.orders) ? (row.orders as Order[]) : [];
+  return { orders: parsed.map((order) => ({
+    ...order,
+    subtotal: Number.isFinite(order.subtotal) ? order.subtotal : order.unitPrice * order.quantity,
+  })) };
 }
 
 // app store optional device-CRUD surface — these actions land on useApp when the
@@ -135,13 +149,23 @@ export const useOrders = defineStore("orders", () => {
   // or account switch must not project the prior account into the new session.
   let boundEpoch = 0;
   let refreshGeneration = 0;
+  // Pages that begin their own scoped reads during session restore must be able
+  // to observe the authoritative rebind. `boundKey` remains a plain closure
+  // for request fences; this mirror is read-only reactive UI state.
+  const boundAccountKey = ref("default");
+  const boundAccountRevision = ref(0);
   const orders = ref<Order[]>([]);
+  const nextCursor = ref<string | null>(null);
+  const loadingMore = ref(false);
 
-  const unsubscribeCommerceRun = subscribeCurrentCommerceSandboxRun(() => {
+  function clearOrdersForCommerceRunChange() {
     if (!remoteApiEnabled) return;
     refreshGeneration += 1;
     orders.value = [];
-  });
+    nextCursor.value = null;
+    loadingMore.value = false;
+  }
+  const unsubscribeCommerceRun = subscribeRuntimeRevision(clearOrdersForCommerceRunChange);
   onScopeDispose(unsubscribeCommerceRun);
 
   /**
@@ -170,21 +194,23 @@ export const useOrders = defineStore("orders", () => {
   function bindAccount(rawAccountKey: string) {
     boundKey = normalizeAccountKey(rawAccountKey);
     boundEpoch += 1;
+    boundAccountKey.value = boundKey;
+    boundAccountRevision.value += 1;
     refreshGeneration += 1;
     orders.value = remoteApiEnabled ? [] : (rows.bind(boundKey)?.orders ?? []);
+    nextCursor.value = null;
+    loadingMore.value = false;
   }
   bindAccount(boundKey); // boot 期先挂 "default";账号确定后由 rebindAccountScopedStores 重绑
 
   function fromCanonical(row: CanonicalOrder): Order {
     const status: OrderStatus = row.canonicalStatus;
-    const dataCenter = row.dataCenter?.toLowerCase().includes("frankfurt")
-      ? "Frankfurt DC" as const : "Singapore DC" as const;
     const timeline: OrderTimelineEvent[] = [{ status: "placed", ts: row.placedAt }];
     if (row.paidAt != null) timeline.push({ status: "paid", ts: row.paidAt });
     if (status === "provisioning") timeline.push({ status, ts: row.paidAt ?? row.placedAt });
     if (row.activatedAt != null) timeline.push({ status: "activated", ts: row.activatedAt });
     if (!["placed", "paid", "provisioning", "activated"].includes(status)) {
-      timeline.push({ status, ts: row.activatedAt ?? row.paidAt ?? row.placedAt });
+      timeline.push({ status, ts: row.refundedAt ?? row.activatedAt ?? row.paidAt ?? row.placedAt });
     }
     return {
       id: row.orderNo,
@@ -192,6 +218,8 @@ export const useOrders = defineStore("orders", () => {
       productName: row.productName,
       quantity: row.quantity,
       ...(row.itemCount != null && { itemCount: row.itemCount }),
+      ...(row.lineItems != null && { lineItems: row.lineItems }),
+      subtotal: row.subtotalUsdt,
       unitPrice: row.unitPriceUsdt,
       discount: row.tradeinNo ? 0 : row.discountUsdt,
       ...(row.tradeinNo && { tradeInCredit: row.discountUsdt, tradeInDeviceId: String(row.sourceDeviceId) }),
@@ -199,11 +227,16 @@ export const useOrders = defineStore("orders", () => {
       paymentMethod: row.paymentMethod ?? "wallet",
       status,
       placedAt: row.placedAt,
+      ...(row.expiresAt != null && { expiresAt: row.expiresAt }),
       ...(row.paidAt != null && { paidAt: row.paidAt }),
       ...(row.activatedAt != null && { activatedAt: row.activatedAt }),
+      ...(row.refundedAt != null && { refundedAt: row.refundedAt }),
+      ...(row.refundAmountUsdt != null && { refundAmountUsdt: row.refundAmountUsdt }),
+      ...(row.refundChannel != null && { refundChannel: row.refundChannel }),
+      ...(row.refundBillNo != null && { refundBillNo: row.refundBillNo }),
       ...(row.targetDeviceId != null && { deviceId: String(row.targetDeviceId) }),
       timeline,
-      dataCenter,
+      dataCenter: row.dataCenter,
     };
   }
 
@@ -212,38 +245,89 @@ export const useOrders = defineStore("orders", () => {
     const requestBoundKey = boundKey;
     const requestEpoch = boundEpoch;
     const requestGeneration = ++refreshGeneration;
-    const requestRunScope = captureCommerceSandboxRun();
+    loadingMore.value = false;
+    const requestRunScope = captureRuntimeRevision();
     const isCurrent = () => boundKey === requestBoundKey && boundEpoch === requestEpoch
       && requestGeneration === refreshGeneration
-      && isCurrentCommerceSandboxScope(requestRunScope);
+      && isCurrentRuntimeRevision(requestRunScope);
     try {
-      const canonical = await orderApi.list();
+      const canonical = await orderApi.list(null, 50);
       if (!isCurrent()) return;
       orders.value = canonical.orders.map(fromCanonical);
+      nextCursor.value = canonical.nextCursor ?? null;
     } catch (error) {
       if (!isCurrent()) return;
       throw error;
     }
   }
 
+  async function loadMoreRemote(): Promise<void> {
+    if (!remoteApiEnabled || loadingMore.value || !nextCursor.value) return;
+    const cursor = nextCursor.value;
+    const requestBoundKey = boundKey;
+    const requestEpoch = boundEpoch;
+    const requestGeneration = ++refreshGeneration;
+    const requestRunScope = captureRuntimeRevision();
+    const isCurrent = () => boundKey === requestBoundKey && boundEpoch === requestEpoch
+      && requestGeneration === refreshGeneration
+      && isCurrentRuntimeRevision(requestRunScope);
+    loadingMore.value = true;
+    try {
+      const canonical = await orderApi.list(cursor, 50);
+      if (!isCurrent()) return;
+      if (canonical.nextCursor === cursor) {
+        nextCursor.value = null;
+        throw new Error("ORDER_LIST_CURSOR_NOT_ADVANCING");
+      }
+      const known = new Set(orders.value.map((order) => order.id));
+      orders.value = [
+        ...orders.value,
+        ...canonical.orders.map(fromCanonical).filter((order) => !known.has(order.id)),
+      ];
+      nextCursor.value = canonical.nextCursor ?? null;
+    } finally {
+      if (isCurrent()) loadingMore.value = false;
+    }
+  }
+
+  async function ensureRemoteOrder(id: string): Promise<Order | undefined> {
+    if (!remoteApiEnabled) return getById(id);
+    const requestBoundKey = boundKey;
+    const requestEpoch = boundEpoch;
+    const requestRunScope = captureRuntimeRevision();
+    const isCurrent = () => boundKey === requestBoundKey && boundEpoch === requestEpoch
+      && isCurrentRuntimeRevision(requestRunScope);
+    await refreshRemote();
+    if (!isCurrent()) return undefined;
+    let found = getById(id);
+    const visited = new Set<string>();
+    while (!found && nextCursor.value && !visited.has(nextCursor.value)) {
+      visited.add(nextCursor.value);
+      await loadMoreRemote();
+      if (!isCurrent()) return undefined;
+      found = getById(id);
+    }
+    return found;
+  }
+
   async function cancelOrderRemote(id: string): Promise<boolean> {
     if (!remoteApiEnabled) return cancelOrder(id);
     const requestBoundKey = boundKey;
     const requestEpoch = boundEpoch;
-    const requestRunScope = captureCommerceSandboxRun();
+    const requestRunScope = captureRuntimeRevision();
     const isCurrent = () => boundKey === requestBoundKey && boundEpoch === requestEpoch
-      && isCurrentCommerceSandboxScope(requestRunScope);
+      && isCurrentRuntimeRevision(requestRunScope);
     try {
       await orderApi.cancel(id, `order-cancel:${id}`);
       if (!isCurrent()) return false;
-      await refreshRemote();
+      await ensureRemoteOrder(id);
       if (!isCurrent()) return false;
       return orders.value.some((item) => item.id === id && item.status === "cancelled");
     } catch {
       if (!isCurrent()) return false;
       // The command may have committed before the response was lost. Read-back is
       // the only safe result for the UI; never project a local cancellation.
-      try { await refreshRemote(); } catch { return false; }
+      try { await ensureRemoteOrder(id); } catch { return false; }
       if (!isCurrent()) return false;
       return orders.value.some((item) => item.id === id && item.status === "cancelled");
     }
@@ -281,6 +365,7 @@ export const useOrders = defineStore("orders", () => {
       productId,
       productName,
       quantity: 1,
+      subtotal: unitPrice,
       unitPrice,
       discount,
       ...(tradeInCredit > 0 && { tradeInCredit, tradeInDeviceId }),
@@ -420,14 +505,36 @@ export const useOrders = defineStore("orders", () => {
   }
 
   function currentAccountKey(): string {
-    return boundKey;
+    return boundAccountKey.value;
+  }
+
+  /** Reactive monotonic rebind revision for page-local remote readers. */
+  function currentAccountBindingRevision(): number {
+    return boundAccountRevision.value;
   }
 
   function getById(id: string): Order | undefined {
     return orders.value.find((o) => o.id === id);
   }
 
-  return { orders, createOrder, createOrders, advanceOrder, markActivated, cancelOrder, cancelOrderRemote, getById, bindAccount, currentAccountKey, refreshRemote };
+  return {
+    orders,
+    nextCursor,
+    loadingMore,
+    createOrder,
+    createOrders,
+    advanceOrder,
+    markActivated,
+    cancelOrder,
+    cancelOrderRemote,
+    getById,
+    bindAccount,
+    currentAccountKey,
+    currentAccountBindingRevision,
+    refreshRemote,
+    loadMoreRemote,
+    ensureRemoteOrder,
+  };
 });
 
 // ⚠️ MOCK-ONLY: client unilaterally progresses orders through provisioning with

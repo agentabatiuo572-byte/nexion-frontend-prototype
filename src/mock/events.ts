@@ -42,6 +42,8 @@ export interface NexEvent {
   joined: boolean;
   ctaLabel?: string;
   href?: string;
+  /** Runtime authority marker: remote rows must never fall back to Mock-only actions. */
+  runtimeSource?: "remote" | "mock";
   /** Where "Use it" navigates after the reward is claimed (discount → store, NEX reward → NEX wallet). */
   useHref?: string;
   featured?: boolean;
@@ -95,7 +97,7 @@ export const EVENTS: NexEvent[] = [
     kind: "boost",
     status: "ongoing",
     title: "Weekend Double NEX",
-    subtitle: "Sat–Sun check-ins earn 2× NEX automatically.",
+    subtitle: "Every Sat–Sun check-in earns 2× NEX · auto-applied.",
     ribbon: "ACTIVE NOW",
     emoji: "💎",
     tint: "#7C5CFF",
@@ -193,7 +195,7 @@ export const EVENTS: NexEvent[] = [
     status: "ongoing",
     title: "NEX Holders Share · $5K Pool",
     subtitle: "Hold ≥ 1,000 NEX for 7 days · automatically share a $5K USDT pool.",
-    ribbon: "AUTO",
+    ribbon: "AUTO-ENROLL",
     emoji: "💰",
     tint: "#C6FF3A",
     reward: "Share $5,000 USDT",
@@ -221,14 +223,3 @@ export const EVENTS: NexEvent[] = [
     ctaLabel: "View results",
   },
 ];
-
-export const EVENT_KIND_LABEL: Record<EventKind, string> = {
-  discount: "Flash Sale",
-  referral: "Refer & Earn",
-  wheel: "Lucky Wheel",
-  regional: "Regional PK",
-  boost: "Bonus Boost",
-  seasonal: "Seasonal",
-  holding: "Holders Reward",
-  onboarding: "New Pilot",
-};

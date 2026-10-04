@@ -4,7 +4,7 @@ import test from "node:test";
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
-test("a refreshed server-mode account trace goes to login with a recoverable explanation", () => {
+test("a refreshed H5 account restores its HttpOnly-cookie session before the route guard decides", () => {
   const app = read("src/App.vue");
   const auth = read("src/store/auth.ts");
   const login = read("src/pages/login/login.vue");
@@ -17,7 +17,14 @@ test("a refreshed server-mode account trace goes to login with a recoverable exp
   assert.match(auth, /export function hasPersistedServerAuthenticatedAccountTrace\(\): boolean/);
   assert.match(auth, /isAuthenticated === true[\s\S]*?startsWith\("user:"\)/);
   assert.match(auth, /"data" in record/);
-  assert.match(app, /if \(remoteApiEnabled && \(!serverSession[\s\S]*?hasServerAuthenticatedAccountTrace\(auth\)[\s\S]*?\/pages\/login\/login\?notice=server-session-reload/);
+  assert.match(app, /type ServerSessionRestoreState = "idle" \| "restoring" \| "ready" \| "failed"/);
+  assert.match(app, /serverSessionRestoreState === "restoring"/);
+  assert.match(app, /await authApi\.restore\(\)/);
+  assert.match(app, /COOKIE_LOCK_UNAVAILABLE[\s\S]*?clearInvalidRemoteSessionState\(useAuth\(\)\)[\s\S]*?secure-browser-unsupported/,
+    "a browser without the required cookie lock must clear the old account projection before showing login");
+  assert.match(app, /completeSignIn\(\{[\s\S]*?serverProfile: restored\.user[\s\S]*?serverSessionRevision: sessionVault\.revision\(\)/);
+  assert.match(app, /beginServerSessionRestore\(\)/);
+  assert.doesNotMatch(app, /runtime vault is deliberately in-memory, so refresh\/restart means a[\s\S]*?clean sign-in/);
   assert.match(app, /setRemoteUnauthorizedHandler\([\s\S]*?!sessionVault\.read\(\)[\s\S]*?hasServerAuthenticatedAccountTrace\(auth\)[\s\S]*?\/pages\/login\/login\?notice=server-session-reload/);
   assert.match(app, /let pendingServerSessionRecovery = false/);
   assert.match(app, /pendingServerSessionRecovery = requiresServerSessionRecovery/);
@@ -31,7 +38,7 @@ test("a refreshed server-mode account trace goes to login with a recoverable exp
   assert.match(login, /data-qa="server-session-reload-notice"/);
   assert.match(login, /notice === "server-session-reload"/);
   assert.match(login, /t\.login\.serverSessionReloadNotice/);
-  assert.match(zh, /数据在服务端安全保存，重新登录即可恢复/);
+  assert.match(zh, /页面刷新后会安全恢复服务端会话；只有会话已失效时才需要重新登录/);
   // 🔴 语言面三语齐点(门的门 ① 判据):只点一种语言时,另两种可以随意漂移而本门全绿。
   // 实测过的失败形态:语言豁免表不带语言维 → vi 真丢了占位符照样绿。
   // 中文钉原文(话术是产品决定),英/越钉**键存在** —— 这条是掉线后唯一的恢复指引,缺哪种语言哪种语言的用户就无路可走。

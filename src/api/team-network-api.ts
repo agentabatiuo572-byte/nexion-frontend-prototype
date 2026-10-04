@@ -1,5 +1,6 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
 
 export interface TeamNetworkMember {
   id: string; name: string; avatarUrl: string | null; vRank: number; layer: 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -9,7 +10,9 @@ export interface TeamNetworkMember {
 export interface TeamNetworkSnapshot {
   totalMembers: number; directMembers: number; activeMembers: number;
   monthVolumeUsdt: number; lifetimeVolumeUsdt: number | null; members: TeamNetworkMember[];
-  source: "server"; generatedAt: string;
+  source: "server"; sourceEnvironment: "PRODUCTION" | "SANDBOX"; runId: string;
+  serverCanonical: true; generatedAt: string;
+  nextCursor?: string | null;
 }
 export interface TeamNetworkApi { snapshot(): Promise<TeamNetworkSnapshot> }
 
@@ -33,8 +36,17 @@ function member(value: unknown): TeamNetworkMember {
     lifetimeVolumeUsdt: optionalAmount(source.lifetimeVolumeUsdt), status, region: text(source.region, true) };
 }
 
-function snapshot(value: unknown): TeamNetworkSnapshot {
-  const source = row(value); if (source.source !== "server" || !Array.isArray(source.members)) return invalid();
+function provenance(source: Record<string, unknown>, mode: ApiEnvironment): { sourceEnvironment: TeamNetworkSnapshot["sourceEnvironment"]; runId: string } {
+  if (source.source !== "server" || source.serverCanonical !== true
+      || (source.sourceEnvironment !== "PRODUCTION" && source.sourceEnvironment !== "SANDBOX")
+      || typeof source.runId !== "string") return invalid();
+  if ((mode !== "prod" && mode !== "dev") || source.sourceEnvironment !== "PRODUCTION" || source.runId !== "") return invalid();
+  return { sourceEnvironment: source.sourceEnvironment, runId: source.runId };
+}
+
+function snapshot(value: unknown, mode: ApiEnvironment): TeamNetworkSnapshot {
+  const source = row(value); const proof = provenance(source, mode);
+  if (!Array.isArray(source.members)) return invalid();
   const members = source.members.map(member); const totalMembers = count(source.totalMembers);
   const directMembers = count(source.directMembers); const activeMembers = count(source.activeMembers);
   const generatedAt = text(source.generatedAt) as string;
@@ -42,9 +54,39 @@ function snapshot(value: unknown): TeamNetworkSnapshot {
       || activeMembers !== members.filter((item) => item.status === "ACTIVE").length
       || new Set(members.map((item) => item.id)).size !== members.length || !Number.isFinite(Date.parse(generatedAt))) return invalid();
   return { totalMembers, directMembers, activeMembers, monthVolumeUsdt: amount(source.monthVolumeUsdt),
-    lifetimeVolumeUsdt: optionalAmount(source.lifetimeVolumeUsdt), members, source: "server", generatedAt };
+    lifetimeVolumeUsdt: optionalAmount(source.lifetimeVolumeUsdt), members, source: "server", ...proof,
+    serverCanonical: true, generatedAt, nextCursor: source.nextCursor === undefined || source.nextCursor === null ? null : text(source.nextCursor) };
 }
 
-export function createTeamNetworkApi(client: ApiClient): TeamNetworkApi {
-  return { async snapshot() { return snapshot(await client.request<unknown>({ path: "/api/app/team/network" })); } };
+export function createTeamNetworkApi(client: ApiClient, mode: ApiEnvironment = "prod"): TeamNetworkApi {
+  return { async snapshot() {
+    let result: TeamNetworkSnapshot | null = null;
+    let cursor: string | null = null;
+    const seen = new Set<string>();
+    do {
+      const page: TeamNetworkSnapshot = snapshot(await client.request<unknown>({
+        path: cursor === null ? "/api/app/team/network" : `/api/app/team/network?afterId=${encodeURIComponent(cursor)}`,
+      }), mode);
+      if (result && (page.runId !== result.runId || page.sourceEnvironment !== result.sourceEnvironment)) return invalid();
+      for (const member of page.members) {
+        if (seen.has(member.id)) return invalid();
+        seen.add(member.id);
+      }
+      if (page.nextCursor && (!/^[1-9][0-9]*$/.test(page.nextCursor) || page.members.length === 0
+          || page.nextCursor !== page.members[page.members.length - 1]?.id
+          || (cursor !== null && BigInt(page.nextCursor) <= BigInt(cursor)))) return invalid();
+      result = result === null ? page : {
+        ...page, members: [...result.members, ...page.members],
+        totalMembers: result.totalMembers + page.totalMembers,
+        directMembers: result.directMembers + page.directMembers,
+        activeMembers: result.activeMembers + page.activeMembers,
+        monthVolumeUsdt: result.monthVolumeUsdt + page.monthVolumeUsdt,
+        lifetimeVolumeUsdt: result.lifetimeVolumeUsdt === null || page.lifetimeVolumeUsdt === null ? null
+          : result.lifetimeVolumeUsdt + page.lifetimeVolumeUsdt,
+      };
+      cursor = page.nextCursor ?? null;
+    } while (cursor !== null);
+    return result;
+  } };
+
 }

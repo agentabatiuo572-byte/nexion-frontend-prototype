@@ -1,6 +1,6 @@
 <template>
   <StandalonePageShell class="lg-root" @keydown.esc="showCountries = false">
-    <view class="lg-wrap" :data-preview-account-status="previewAccount.ok ? 'ready' : previewAccount.error" :inert="showCountries || undefined" :aria-hidden="showCountries">
+    <view class="lg-wrap" :inert="showCountries || undefined" :aria-hidden="showCountries">
       <!-- Top bar -->
       <view class="lg-top">
         <view v-if="step > 1 || mode === 'reset'" class="lg-iconbtn" role="button" tabindex="0" :aria-label="t.login.back" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">
@@ -10,7 +10,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8D0DC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
         <view class="lg-brand">
-          <BrandLockup />
+          <BrandLockup :height="40" />
         </view>
         <view class="lg-top__sp" />
       </view>
@@ -22,12 +22,17 @@
 
       <!-- Title -->
       <text class="lg-title">{{ titleText }}</text>
-      <view v-if="!remoteApiEnabled" class="lg-mode-badge" data-testid="auth-runtime-label">
+      <view v-if="modeLabel" class="lg-mode-badge" data-testid="auth-runtime-label">
         <text class="lg-mode-badge__t">{{ modeLabel }}</text>
       </view>
       <view v-if="serverSessionReloadNotice" class="lg-recovery-notice" role="status" data-qa="server-session-reload-notice">
-        <text class="lg-recovery-notice__t">{{ t.login.serverSessionReloadNotice }}</text>
+        <text class="lg-recovery-notice__t">{{ h5RefreshCookieEnabled ? t.login.serverSessionReloadNotice : t.login.nativeSessionReloadNotice }}</text>
       </view>
+      <!-- #ifdef H5 -->
+      <view v-if="browserUnsupportedNotice" class="lg-recovery-notice" role="status" data-qa="secure-browser-unsupported-notice">
+        <text class="lg-recovery-notice__t">{{ t.session.secureBrowserUnsupported }}</text>
+      </view>
+      <!-- #endif -->
       <text v-if="step === 1 && mode === 'reset'" class="lg-sub">{{ t.login.resetSubtitle }}</text>
       <text v-else-if="step === 2" class="lg-sub">{{ t.login.codeSentTo }} <text class="lg-sub__ph">{{ country }} {{ phone }}</text></text>
       <text v-else-if="step === 3" class="lg-sub">{{ t.login.newPasswordHint }}</text>
@@ -41,19 +46,19 @@
               <text class="lg-phone__cc-t">{{ country }}</text>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: showCountries ? 'rotate(180deg)' : '' }"><path d="m6 9 6 6 6-6" /></svg>
             </view>
-            <input class="lg-phone__in" data-testid="mock-preview-phone" type="number" inputmode="numeric" maxlength="15" :placeholder="t.login.phonePlaceholder" :value="phone" :aria-invalid="!!phone && !phoneOk" aria-describedby="login-phone-format" :confirm-type="mode === 'password' ? 'next' : 'done'" @input="onPhone" @confirm="onPhoneConfirm" />
+            <input class="lg-phone__in" type="number" inputmode="numeric" maxlength="15" :placeholder="t.login.phonePlaceholder" :aria-label="t.login.phonePlaceholder" :value="phone" :aria-invalid="!!phone && !phoneOk" aria-describedby="login-phone-format" :confirm-type="mode === 'password' ? 'next' : 'done'" @input="onPhone" @blur="phoneTouched = true" @confirm="onPhoneConfirm" />
           </view>
           <text id="login-phone-format" data-testid="auth-phone-hint" class="lg-phone-hint" :class="{ 'lg-phone-hint--err': phone && !phoneOk }" role="status" aria-live="polite">{{ phoneFormatMessage }}</text>
           <template v-if="mode === 'password'">
             <view class="lg-field-wrap" :class="{ 'lg-field-wrap--err': password && !pwdOk }">
-              <input class="lg-field--flex" data-testid="mock-preview-password" :type="showPwd ? 'text' : 'password'" :placeholder="t.login.passwordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="password" :focus="passwordFocused" confirm-type="done" @input="onPwd" @blur="passwordFocused = false" @confirm="onPrimary" />
+              <input class="lg-field--flex" :type="showPwd ? 'text' : 'password'" :placeholder="t.login.passwordPlaceholder" :aria-label="t.login.passwordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="password" :focus="passwordFocused" confirm-type="done" @input="onPwd" @blur="passwordFocused = false" @confirm="onPrimary" />
               <view class="lg-eye" role="button" tabindex="0" :aria-label="showPwd ? t.login.hidePassword : t.login.showPassword" @click="showPwd = !showPwd" @keydown.enter.prevent="showPwd = !showPwd" @keydown.space.prevent="showPwd = !showPwd">
                 <svg v-if="showPwd" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><path d="m2 2 20 20" /></svg>
                 <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
               </view>
             </view>
             <view class="lg-forgot-row">
-              <text class="lg-forgot" role="link" tabindex="0" @click="goReset" @keydown.enter.prevent="goReset" @keydown.space.prevent="goReset">{{ t.login.forgotPassword }}</text>
+              <text class="lg-forgot" role="link" tabindex="0" @click="goReset" @keydown.enter.prevent="goReset">{{ t.login.forgotPassword }}</text>
             </view>
           </template>
         </view>
@@ -61,7 +66,10 @@
         <!-- Step 2: OTP -->
         <view v-else-if="step === 2" class="lg-col">
           <view class="lg-otp">
-            <input v-for="(d, i) in code" :key="i" class="lg-otp__in" :class="{ 'lg-otp__in--filled': d }" type="number" :maxlength="1" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onPrimary()" />
+            <input v-for="(d, i) in code" :key="i" class="lg-otp__in" :class="{ 'lg-otp__in--filled': d }" type="number" :maxlength="1" :aria-label="fmt(t.login.otpDigitLabel, { n: i + 1 })" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onPrimary()" />
+          </view>
+          <view v-if="developmentOtpEnabled" class="lg-development-otp" data-testid="development-otp-code" role="status">
+            <text class="lg-development-otp__t">{{ fmt(t.authOtp.developmentCodeHint, { code: developmentOtpCode }) }}</text>
           </view>
           <view class="lg-resend">
             <text class="lg-resend__change" role="button" tabindex="0" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">{{ t.login.changeNumber }}</text>
@@ -73,30 +81,33 @@
         <!-- Step 3: new password (reset) -->
         <view v-else class="lg-col">
           <view class="lg-field-wrap" :class="{ 'lg-field-wrap--err': newPassword && !newPwdOk }">
-            <input class="lg-field--flex" :type="showPwd ? 'text' : 'password'" :placeholder="t.login.newPasswordPlaceholder || t.login.passwordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="newPassword" confirm-type="next" @input="onNewPwd" @confirm="focusResetConfirmation" />
+            <input class="lg-field--flex" :type="showPwd ? 'text' : 'password'" :placeholder="t.login.newPasswordPlaceholder || t.login.passwordPlaceholder" :aria-label="t.login.newPasswordPlaceholder || t.login.passwordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="newPassword" confirm-type="next" @input="onNewPwd" @confirm="focusResetConfirmation" />
             <view class="lg-eye" role="button" tabindex="0" :aria-label="showPwd ? t.login.hidePassword : t.login.showPassword" @click="showPwd = !showPwd" @keydown.enter.prevent="showPwd = !showPwd" @keydown.space.prevent="showPwd = !showPwd">
               <svg v-if="showPwd" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><path d="m2 2 20 20" /></svg>
               <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
             </view>
           </view>
           <view class="lg-field-wrap" :class="{ 'lg-field-wrap--err': confirmPwd && newPassword !== confirmPwd }">
-            <input class="lg-field--flex" :type="showPwd ? 'text' : 'password'" :placeholder="t.login.confirmPasswordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="confirmPwd" :focus="confirmPasswordFocused" confirm-type="done" @input="onConfirm" @blur="confirmPasswordFocused = false" @confirm="onPrimary" />
+            <input class="lg-field--flex" :type="showPwd ? 'text' : 'password'" :placeholder="t.login.confirmPasswordPlaceholder" :aria-label="t.login.confirmPasswordPlaceholder" :maxlength="PASSWORD_MAX_LENGTH" :value="confirmPwd" :focus="confirmPasswordFocused" confirm-type="done" @input="onConfirm" @blur="confirmPasswordFocused = false" @confirm="onPrimary" />
           </view>
         </view>
       </view>
 
       <!-- Error -->
-      <view v-if="error" class="lg-error">
+      <view v-if="error" class="lg-error" role="alert" aria-live="assertive">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
         <text class="lg-error__t">{{ error }}</text>
       </view>
 
       <!-- Primary CTA -->
-      <view class="lg-cta" :class="canPrimary ? 'lg-cta--on' : ''" role="button" tabindex="0" :aria-disabled="!canPrimary || loading" :aria-describedby="!canPrimary && !loading ? 'lg-cta-reason' : undefined" data-system-chrome-primary @click="onPrimary" @keydown.enter.prevent="onPrimary" @keydown.space.prevent="onPrimary">
+      <view class="lg-cta" :class="canPrimary ? 'lg-cta--on' : ''" role="button" tabindex="0" :aria-disabled="!canPrimary || loading" :aria-describedby="!canPrimary && !loading && (phoneTouched || submitAttempted) ? 'lg-cta-reason' : undefined" data-system-chrome-primary @click="onPrimary" @keydown.enter.prevent="onPrimary" @keydown.space.prevent="onPrimary">
         <text v-if="loading" class="lg-cta__t lg-cta__t--on">···</text>
         <text v-else class="lg-cta__t" :class="canPrimary ? 'lg-cta__t--on' : ''">{{ primaryText }}</text>
       </view>
-      <text v-if="!canPrimary && !loading" id="lg-cta-reason" class="lg-sr-only">{{ primaryDisabledReason }}</text>
+      <!-- 简报 #211:空白表单首次展示必须中性 —— 只在用户已与手机号字段交互或尝试提交后
+           才给出禁用原因。此前它从首帧起就存在(空表单天然 canPrimary=false),而 sr-only
+           的 clip 裁不住 uni-app 内部的 <span>,导致文本提取/自动化会读到用户从未触发的错误。 -->
+      <text v-if="!canPrimary && !loading && (phoneTouched || submitAttempted)" id="lg-cta-reason" class="lg-sr-only">{{ primaryDisabledReason }}</text>
 
       <!-- Mode switch (password ↔ otp), only on step 1 non-reset -->
       <view v-if="step === 1 && mode !== 'reset'" class="lg-switch" role="button" tabindex="0" @click="toggleMode" @keydown.enter.prevent="toggleMode" @keydown.space.prevent="toggleMode">
@@ -104,28 +115,32 @@
       </view>
 
       <!-- OAuth (step 1, not reset) -->
-      <view v-if="step === 1 && mode !== 'reset'" class="lg-oauth">
+      <view v-if="step === 1 && mode !== 'reset' && !remoteApiEnabled" class="lg-oauth">
         <view class="lg-divider"><view class="lg-divider__line" /><text class="lg-divider__t">{{ t.login.orContinueWith }}</text><view class="lg-divider__line" /></view>
-        <AuthProviderGrid :busy="loading" @select="startOauth" />
+        <AuthProviderGrid :busy="loading" :development="apiRuntimeConfig.environment === 'dev'" @select="startOauth" />
       </view>
 
       <!-- Footer -->
       <view class="lg-footer">
-        <text v-if="step === 1 && mode !== 'reset'" class="lg-footer__acc">{{ t.login.noAccount }} <text class="lg-footer__link" role="link" tabindex="0" @click="goRegister" @keydown.enter.prevent="goRegister" @keydown.space.prevent="goRegister">{{ t.login.signUp }}</text></text>
+        <text v-if="step === 1 && mode !== 'reset'" class="lg-footer__acc">{{ t.login.noAccount }} <text class="lg-footer__link" role="link" tabindex="0" @click="goRegister" @keydown.enter.prevent="goRegister">{{ t.login.signUp }}</text></text>
       </view>
     </view>
 
     <CountryCodeSheet :open="showCountries" :model-value="country" @select="pickCountry" @close="showCountries = false" />
-    <CaptchaSlider v-if="showCaptcha" :phone="fullPhone" @success="onCaptchaOk" @close="showCaptcha = false" />
+    <!-- i18n-en-ok: Server CAPTCHA protocol scene enum, sent only to backend verification and never rendered. -->
+    <ServerCaptchaSlider v-if="showCaptcha && remoteApiEnabled" :phone="fullPhone" :scene='(captchaPurpose === "password" ? "LOGIN" : otpScene === "reset" ? "RESET" : "LOGIN")' @success="onCaptchaOk" @close="showCaptcha = false" />
+    <CaptchaSlider v-else-if="showCaptcha" :phone="fullPhone" @success="onCaptchaOk" @close="showCaptcha = false" />
     <GlobalUi />
   </StandalonePageShell>
 </template>
 
 <script setup lang="ts">
-import BrandLockup from "@/components/brand-lockup.vue";
+import ServerCaptchaSlider from "@/components/server-captcha-slider.vue";
+import { navReset } from "@/lib/route";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
+import BrandLockup from "@/components/brand-lockup.vue";
 import GlobalUi from "@/components/global-ui.vue";
 import CaptchaSlider from "@/components/captcha-slider.vue";
 import CountryCodeSheet from "@/components/country-code-sheet.vue";
@@ -141,12 +156,13 @@ import { toast } from "@/store/ui";
 import { isResetPasswordOk, PASSWORD_MAX_LENGTH } from "@/auth/password-rules";
 import { completeSignIn } from "@/auth/complete-sign-in";
 import { exchangeVerifiedLogin } from "@/store/auth-otp";
-import { authApi, remoteApiEnabled } from "@/api/runtime";
-import { MOCK_PREVIEW_ACCOUNT, provisionMockPreviewAccount } from "@/api/mock-preview-account";
+import { apiRuntimeConfig, authApi, h5RefreshCookieEnabled, remoteApiEnabled } from "@/api/runtime";
+import { apiEnvironmentBadgeLabel } from "@/api/runtime-config";
 import type { OAuthProvider } from "@/api/auth-api";
 import { ApiError } from "@/api/errors";
 import type { UserSession } from "@/api/contracts";
 import { dialCodeForLocale, phoneFormatHint, sanitizePhoneInput, validateNationalPhone } from "@/auth/phone-number";
+import { resolveRemoteLoginErrorKind } from "@/lib/remote-login-error";
 
 const t = useT();
 
@@ -172,19 +188,37 @@ interface RemoteTwoFactorAttemptContext {
   challengeNo: string;
 }
 
-const previewAccount = provisionMockPreviewAccount();
+interface PasswordResetAttemptContext {
+  version: number;
+  phone: string;
+  requestId: string;
+}
+
 const mode = ref<LoginMode>("password");
 const step = ref<Step>(1);
-const country = ref(previewAccount.ok ? MOCK_PREVIEW_ACCOUNT.countryCode : dialCodeForLocale(useLocaleStore().code));
+const country = ref(dialCodeForLocale(useLocaleStore().code));
 const showCountries = ref(false);
-const phone = ref(previewAccount.ok ? MOCK_PREVIEW_ACCOUNT.phone : "");
-const password = ref(previewAccount.ok ? MOCK_PREVIEW_ACCOUNT.password : "");
+const phone = ref("");
+const password = ref("");
 const newPassword = ref("");
 const confirmPwd = ref("");
 const code = ref<string[]>(["", "", "", "", "", ""]);
 const focusIdx = ref(0);
 const showPwd = ref(false);
 const error = ref<string | null>(null);
+/**
+ * 简报 #211:空白表单首次展示必须保持中性 —— 只有用户与手机号字段交互过(输入/失焦),
+ * 或尝试提交过,才给出「请输入有效的手机号」这类校验原因。
+ *
+ * 此前该原因只挂在 `!canPrimary` 上,而空表单天然不满足 canPrimary,于是它从首帧起
+ * 就存在于 DOM。它虽然带 .lg-sr-only,但 uni-app 会把内容包进内部 <span>,而
+ * clip: rect(0,0,0,0) 只裁剪定位元素自身、裁不住这个子盒 —— 实测该 span 的布局盒是
+ * 329×20 且被 document.body.innerText 计入,于是读屏之外,文本提取与自动化也会读到
+ * 一句用户从未触发过的错误。根因是「不该存在的内容被裁起来」,所以按验收要求直接
+ * 不渲染,而不是继续靠样式藏。
+ */
+const phoneTouched = ref(false);
+const submitAttempted = ref(false);
 const resendLeft = ref(0);
 const loading = ref(false);
 const returnParam = ref<string | null>(null);
@@ -193,6 +227,9 @@ const otpRequestId = ref<string | null>(null);
 const otpVerifyToken = ref<string | null>(null);
 const remoteTwoFactorChallenge = ref<string | null>(null);
 const serverSessionReloadNotice = ref(false);
+// #ifdef H5
+const browserUnsupportedNotice = ref(false);
+// #endif
 const passwordFocused = ref(false);
 const confirmPasswordFocused = ref(false);
 
@@ -205,12 +242,16 @@ onLoad((options) => {
   const o = (options || {}) as Record<string, string>;
   if (o.return) returnParam.value = o.return;
   serverSessionReloadNotice.value = o.notice === "server-session-reload";
+  // #ifdef H5
+  browserUnsupportedNotice.value = o.notice === "secure-browser-unsupported";
+  // #endif
   // [FEAT-SHARE4] 与注册页同一 client 预检:非法码不入绑定链(服务端权威校验另行)。
   const normRef = normalizeRefCode(o.ref);
   if (normRef) refOnLogin.value = normRef;
 });
 
 const showCaptcha = ref(false);
+const captchaPurpose = ref<"otp" | "password">("otp");
 
 const phoneClean = computed(() => sanitizePhoneInput(phone.value));
 const phoneOk = computed(() => validateNationalPhone(country.value, phoneClean.value));
@@ -243,7 +284,12 @@ const titleText = computed(() => {
   if (mode.value === "reset") return t.value.login.resetTitle;
   return t.value.login.title;
 });
-const modeLabel = computed(() => t.value.security.mockModeLabel);
+const modeLabel = computed(() => apiEnvironmentBadgeLabel(apiRuntimeConfig, t.value.security.developmentModeLabel));
+const developmentOtpCode = String(import.meta.env.VITE_NEXGRID_DEV_OTP_CODE || "").trim();
+const developmentOtpEnabled = computed(() =>
+  apiRuntimeConfig.environment === "dev"
+  && /^\d{6}$/.test(developmentOtpCode)
+);
 const primaryText = computed(() => {
   if (step.value === 1) return mode.value === "password" ? t.value.login.signIn : t.value.login.sendCode;
   if (step.value === 2) return t.value.login.verify;
@@ -280,7 +326,7 @@ function oauthProvider(label: string): OAuthProvider | null {
 function oauthError(cause: unknown, provider: OAuthProvider): string {
   const code = cause instanceof ApiError ? cause.message : "";
   if (code === "OAUTH_PROVIDER_NOT_CONFIGURED" || code === "OAUTH_PROVIDER_UNAVAILABLE"
-      || code === "OAUTH_SANDBOX_ONLY") {
+      ) {
     return `${fmt(t.value.login.oauthUnavailableTitle, { provider })}: ${t.value.login.oauthUnavailableBody}`;
   }
   return remoteLoginError(cause);
@@ -299,8 +345,7 @@ async function startOauth(label: string) {
   try {
     const result = await authApi.oauthExchange({
       provider,
-      mode: "PROVIDER",
-      displayName: provider,
+      displayName: `${provider} User`,
     });
     if (!mounted || flowVersion !== otpFlowVersion) {
       authApi.discardSessionIfCurrent(result.vaultRevision);
@@ -309,7 +354,7 @@ async function startOauth(label: string) {
     const completed = completeSignIn({
       identity: authenticatedAccountId(result.user),
       returnTo: returnParam.value,
-      onboardingComplete: true,
+      onboardingComplete: result.user.onboardingComplete,
       serverProfile: result.user,
       serverSessionRevision: result.vaultRevision,
     });
@@ -329,6 +374,7 @@ function inputVal(e: Event): string {
 }
 function onPhone(e: Event) {
   invalidateOtpFlow();
+  phoneTouched.value = true;
   phone.value = sanitizePhoneInput(inputVal(e));
   error.value = null;
 }
@@ -390,13 +436,16 @@ function isCurrentOtpFlow(context: OtpFlowContext): boolean {
   );
 }
 
-function isCurrentPasswordAttempt(context: PasswordAttemptContext): boolean {
+function isCurrentPasswordFlow(context: PasswordAttemptContext): boolean {
   return mounted
     && context.version === otpFlowVersion
     && mode.value === "password"
     && step.value === 1
-    && fullPhone.value === context.phone
-    && password.value === context.password;
+    && fullPhone.value === context.phone;
+}
+
+function isCurrentPasswordAttempt(context: PasswordAttemptContext): boolean {
+  return isCurrentPasswordFlow(context) && password.value === context.password;
 }
 
 function isCurrentRemoteTwoFactorAttempt(context: RemoteTwoFactorAttemptContext): boolean {
@@ -408,6 +457,15 @@ function isCurrentRemoteTwoFactorAttempt(context: RemoteTwoFactorAttemptContext)
     && remoteTwoFactorChallenge.value === context.challengeNo;
 }
 
+function isCurrentPasswordResetAttempt(context: PasswordResetAttemptContext): boolean {
+  return mounted
+    && context.version === otpFlowVersion
+    && mode.value === "reset"
+    && step.value === 3
+    && fullPhone.value === context.phone
+    && otpRequestId.value === context.requestId;
+}
+
 // A region-policy refusal arrives as a code on the same result objects as every
 // other sign-in failure. Translate it first; `null` means it wasn't one, and the
 // caller must fall through to its existing mapping — otherwise an unrelated
@@ -417,8 +475,8 @@ function geoText(code: unknown): string | null {
 }
 
 // Sign-in completion (shared by password + OTP). Binds the account-cloud
-// snapshot, claims this carrier's session, and routes a changed physical device
-// through recalibration before the main app.
+// snapshot, claims this carrier's session, then enters only a safe business
+// return target or Home. Registration and device setup own their own routes.
 function finishSignIn(
   session: { accountId: string; signInIdempotencyKey?: string; onboardingComplete: boolean; serverProfile?: UserSession; serverSessionRevision?: number },
   context: OtpFlowContext | null = null,
@@ -480,8 +538,8 @@ async function requestCode(captchaTicket?: string) {
   if (remoteApiEnabled) {
     try {
       const res = sceneAtRequest === "reset"
-        ? await authApi.sendPasswordResetOtp({ countryCode: country.value, phone: phoneClean.value })
-        : await authApi.sendLoginOtp({ countryCode: country.value, phone: phoneClean.value });
+        ? await authApi.sendPasswordResetOtp({ countryCode: country.value, phone: phoneClean.value, ...(captchaTicket ? { captchaTicket } : {}) })
+        : await authApi.sendLoginOtp({ countryCode: country.value, phone: phoneClean.value, ...(captchaTicket ? { captchaTicket } : {}) });
       if (!mounted || flowVersion !== otpFlowVersion || fullPhone.value !== phoneAtRequest || step.value !== stepAtRequest) return;
       loading.value = false;
       otpRequestId.value = res.challengeNo;
@@ -493,7 +551,12 @@ async function requestCode(captchaTicket?: string) {
     } catch (cause) {
       if (!mounted || flowVersion !== otpFlowVersion || fullPhone.value !== phoneAtRequest) return;
       loading.value = false;
-      error.value = remoteLoginError(cause);
+      if (cause instanceof Error && cause.message === "USER_CAPTCHA_REQUIRED") {
+        captchaPurpose.value = "otp";
+        showCaptcha.value = true;
+      } else {
+        error.value = remoteLoginError(cause);
+      }
     }
     return;
   }
@@ -515,7 +578,11 @@ async function requestCode(captchaTicket?: string) {
     startResend(res.resendAfterSec);
     return;
   }
-  if (res.error === "captcha_required") { showCaptcha.value = true; return; }
+  if (res.error === "captcha_required") {
+    captchaPurpose.value = "otp";
+    showCaptcha.value = true;
+    return;
+  }
   if (res.error === "rate_limited") {
     // 规格 ⑤(AUTH01):`rate_limited` → Toast 剩余秒数;inline 错误条留给 verify 类错误。
     toast.info(fmt(t.value.authOtp.errorTooFrequent, { s: res.retryAfterSec }));
@@ -524,6 +591,10 @@ async function requestCode(captchaTicket?: string) {
 }
 function onCaptchaOk(ticket: string) {
   showCaptcha.value = false;
+  if (captchaPurpose.value === "password") {
+    void signInWithPassword(ticket);
+    return;
+  }
   void requestCode(ticket);
 }
 function resend() {
@@ -539,14 +610,25 @@ function goSendCode() {
 }
 function remoteLoginError(error: unknown): string {
   const code = error instanceof ApiError ? error.message : "";
-  return geoText(code)
-    ?? (code === "USER_INVALID_CREDENTIALS" ? t.value.login.errorInvalidCredentials
-      : code === "USER_TWO_FACTOR_CHALLENGE_INVALID" || code === "OTP_CODE_INVALID"
-        ? t.value.security.twoFactorCodeInvalid
-        : t.value.authOtp.errorServiceUnavailable);
+  // #ifdef H5
+  if (code === "COOKIE_LOCK_UNAVAILABLE") return t.value.session.secureBrowserUnsupported;
+  // #endif
+  const geoMessage = geoText(code);
+  if (geoMessage) return geoMessage;
+  switch (resolveRemoteLoginErrorKind(code)) {
+    case "invalidCredentials": return t.value.login.errorInvalidCredentials;
+    case "invalidPhone": return t.value.login.errorInvalidPhone;
+    case "otpInvalid": return t.value.login.errorRemoteOtpInvalid;
+    case "twoFactorInvalid": return t.value.security.twoFactorCodeInvalid;
+    case "temporarilyLocked": return t.value.login.errorTemporarilyLocked;
+    case "accountBlocked": return t.value.login.errorAccountBlocked;
+    case "passwordResetRequired": return t.value.login.errorPasswordResetRequired;
+    case "signInStateChanged": return t.value.login.errorSignInStateChanged;
+    default: return t.value.authOtp.errorServiceUnavailable;
+  }
 }
 
-async function signInWithPassword() {
+async function signInWithPassword(captchaTicket?: string) {
   if (loading.value || signInTimer) return;
   error.value = null;
   if (!phoneOk.value || !pwdOk.value) { error.value = t.value.login.errorInvalidPassword; return; }
@@ -559,9 +641,15 @@ async function signInWithPassword() {
   };
   loading.value = true;
   try {
-    const result = await authApi.login({ countryCode: country.value, phone: phoneClean.value, password: password.value });
+    const result = await authApi.login({
+      countryCode: country.value,
+      phone: phoneClean.value,
+      password: password.value,
+      ...(captchaTicket ? { captchaTicket } : {}),
+    });
     if (!isCurrentPasswordAttempt(passwordAttempt)) {
       if (result.kind === "authenticated") authApi.discardSessionIfCurrent(result.vaultRevision);
+      if (isCurrentPasswordFlow(passwordAttempt)) loading.value = false;
       return;
     }
     if (result.kind === "challenge") {
@@ -572,10 +660,18 @@ async function signInWithPassword() {
       step.value = 2;
       return;
     }
-    finishSignIn({ accountId: authenticatedAccountId(result.user), onboardingComplete: true, serverProfile: result.user, serverSessionRevision: result.vaultRevision });
+    finishSignIn({ accountId: authenticatedAccountId(result.user), onboardingComplete: result.user.onboardingComplete, serverProfile: result.user, serverSessionRevision: result.vaultRevision });
   } catch (loginError) {
-    if (!isCurrentPasswordAttempt(passwordAttempt)) return;
+    if (!isCurrentPasswordAttempt(passwordAttempt)) {
+      if (isCurrentPasswordFlow(passwordAttempt)) loading.value = false;
+      return;
+    }
     loading.value = false;
+    if (loginError instanceof Error && loginError.message === "USER_CAPTCHA_REQUIRED") {
+      captchaPurpose.value = "password";
+      showCaptcha.value = true;
+      return;
+    }
     error.value = remoteLoginError(loginError);
   }
 }
@@ -583,6 +679,7 @@ async function signInWithPassword() {
 async function verifyRemoteTwoFactor() {
   const challengeNo = remoteTwoFactorChallenge.value;
   if (!challengeNo) return;
+  const codeAtVerify = code.value.join("");
   const twoFactorAttempt: RemoteTwoFactorAttemptContext = {
     version: otpFlowVersion,
     phone: fullPhone.value,
@@ -595,17 +692,23 @@ async function verifyRemoteTwoFactor() {
       phone: phoneClean.value,
       password: password.value,
       challengeNo,
-      code: code.value.join(""),
+      code: codeAtVerify,
     });
     if (result.kind !== "authenticated") throw new Error("TWO_FACTOR_SESSION_MISSING");
     if (!isCurrentRemoteTwoFactorAttempt(twoFactorAttempt)) {
       authApi.discardSessionIfCurrent(result.vaultRevision);
       return;
     }
-    finishSignIn({ accountId: authenticatedAccountId(result.user), onboardingComplete: true, serverProfile: result.user, serverSessionRevision: result.vaultRevision });
+    if (code.value.join("") !== codeAtVerify) {
+      authApi.discardSessionIfCurrent(result.vaultRevision);
+      loading.value = false;
+      return;
+    }
+    finishSignIn({ accountId: authenticatedAccountId(result.user), onboardingComplete: result.user.onboardingComplete, serverProfile: result.user, serverSessionRevision: result.vaultRevision });
   } catch (loginError) {
     if (!isCurrentRemoteTwoFactorAttempt(twoFactorAttempt)) return;
     loading.value = false;
+    if (code.value.join("") !== codeAtVerify) return;
     error.value = remoteLoginError(loginError);
   }
 }
@@ -616,6 +719,7 @@ async function verifyCode() {
   if (remoteTwoFactorChallenge.value) { await verifyRemoteTwoFactor(); return; }
   const requestId = otpRequestId.value;
   if (!requestId) { loading.value = false; error.value = t.value.authOtp.errorOtpNotFound; return; }
+  const codeAtVerify = code.value.join("");
   const context: OtpFlowContext = {
     version: otpFlowVersion,
     phone: fullPhone.value,
@@ -625,8 +729,26 @@ async function verifyCode() {
   loading.value = true;
   if (remoteApiEnabled) {
     if (mode.value === "reset") {
-      loading.value = false;
-      step.value = 3;
+      try {
+        await authApi.verifyPasswordResetOtp({
+          countryCode: country.value,
+          phone: phoneClean.value,
+          challengeNo: requestId,
+          code: codeAtVerify,
+        });
+        if (!isCurrentOtpFlow(context)) return;
+        loading.value = false;
+        if (code.value.join("") !== codeAtVerify) return;
+        step.value = 3;
+      } catch (cause) {
+        if (!isCurrentOtpFlow(context)) return;
+        loading.value = false;
+        if (code.value.join("") !== codeAtVerify) return;
+        const message = cause instanceof ApiError ? cause.message : "";
+        error.value = message === "USER_PASSWORD_RESET_CHALLENGE_INVALID" || message === "OTP_CODE_INVALID"
+          ? t.value.authOtp.errorOtpInvalidOrExpired
+          : t.value.authOtp.errorServiceUnavailable;
+      }
       return;
     }
     try {
@@ -634,22 +756,28 @@ async function verifyCode() {
         countryCode: country.value,
         phone: phoneClean.value,
         challengeNo: requestId,
-        code: code.value.join(""),
+        code: codeAtVerify,
       });
       if (result.kind !== "authenticated") throw new Error("LOGIN_OTP_SESSION_MISSING");
       if (!isCurrentOtpFlow(context)) {
         authApi.discardSessionIfCurrent(result.vaultRevision);
         return;
       }
+      if (code.value.join("") !== codeAtVerify) {
+        authApi.discardSessionIfCurrent(result.vaultRevision);
+        loading.value = false;
+        return;
+      }
       finishSignIn({
         accountId: authenticatedAccountId(result.user),
-        onboardingComplete: true,
+        onboardingComplete: result.user.onboardingComplete,
         serverProfile: result.user,
         serverSessionRevision: result.vaultRevision,
       }, context);
     } catch (cause) {
       if (!isCurrentOtpFlow(context)) return;
       loading.value = false;
+      if (code.value.join("") !== codeAtVerify) return;
       error.value = remoteLoginError(cause);
     }
     return;
@@ -660,8 +788,9 @@ async function verifyCode() {
   }
   // FEAT-AUTH01: server 同构校验(TTL/attemptsLeft/一码一)。PROD: 用返回的
   // verifyToken 换 session；mock 同样必须由本地 exchange 消费该凭证。
-  const res = await otpVerify(context.phone, context.scene, context.requestId, code.value.join(""));
+  const res = await otpVerify(context.phone, context.scene, context.requestId, codeAtVerify);
   if (!isCurrentOtpFlow(context)) return;
+  if (code.value.join("") !== codeAtVerify) { loading.value = false; return; }
   if (!res.ok) {
     loading.value = false;
     // 与 register.vue 的同名分支消费同一个 otpVerify 结果类型 —— 两边必须一起接,
@@ -692,6 +821,11 @@ async function finishReset() {
   if (!pwdMatch.value) { error.value = t.value.login.passwordMismatch; return; }
   const challengeNo = otpRequestId.value;
   if (!challengeNo) { error.value = t.value.authOtp.errorOtpNotFound; return; }
+  const resetAttempt: PasswordResetAttemptContext = {
+    version: otpFlowVersion,
+    phone: fullPhone.value,
+    requestId: challengeNo,
+  };
   loading.value = true;
   try {
     await authApi.completePasswordReset({
@@ -701,13 +835,15 @@ async function finishReset() {
       code: code.value.join(""),
       newPassword: newPassword.value,
     });
+    if (!isCurrentPasswordResetAttempt(resetAttempt)) return;
   } catch (cause) {
+    if (!isCurrentPasswordResetAttempt(resetAttempt)) return;
     loading.value = false;
     const message = cause instanceof ApiError ? cause.message : "";
     error.value = message === "USER_PASSWORD_RESET_CHALLENGE_INVALID" || message === "OTP_CODE_INVALID"
-      ? t.value.login.errorInvalidCode
+      ? t.value.authOtp.errorOtpInvalidOrExpired
       : message === "USER_NEW_PASSWORD_MUST_DIFFER"
-        ? t.value.login.errorWeakPassword
+        ? t.value.login.errorPasswordUnchanged
         : t.value.authOtp.errorServiceUnavailable;
     return;
   }
@@ -722,6 +858,7 @@ async function finishReset() {
 }
 
 function onPrimary() {
+  submitAttempted.value = true;
   if (step.value === 1) { if (mode.value === "password") signInWithPassword(); else goSendCode(); }
   else if (step.value === 2) verifyCode();
   else finishReset();
@@ -768,11 +905,11 @@ function back() {
 }
 function close() {
   invalidateOtpFlow();
-  uni.reLaunch({ url: "/pages/onboarding/intro", fail: () => {} });
+  navReset({ url: "/pages/onboarding/intro", fail: () => {} });
 }
 function goRegister() {
   invalidateOtpFlow();
-  uni.reLaunch({ url: "/pages/register/register", fail: () => {} });
+  navReset({ url: "/pages/register/register", fail: () => {} });
 }
 
 function cleanup() {
@@ -821,8 +958,8 @@ onUnmounted(() => cleanup());
 .lg-forgot-row { display: flex; justify-content: flex-end; }
 .lg-forgot { font-size: 13px; color: var(--v5-ink-3); min-height: 44px; padding: 0 4px; line-height: 44px; }
 .lg-otp { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.lg-sandbox-otp { padding: 10px 12px; border-radius: 12px; background: var(--v5-warning-soft); }
-.lg-sandbox-otp__t { font-size: 12px; line-height: 18px; font-weight: 600; color: var(--v5-warning); }
+.lg-development-otp { padding: 10px 12px; border-radius: 12px; background: var(--v5-warning-soft); }
+.lg-development-otp__t { font-size: 12px; line-height: 18px; font-weight: 600; color: var(--v5-warning); }
 .lg-otp__in { width: 48px; height: 56px; text-align: center; font-family: var(--font-v5); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; border-radius: 12px; background: var(--v5-surface); border: 1px solid var(--v5-surface-2); color: var(--v5-ink-4); }
 .lg-otp__in--filled { border-color: color-mix(in srgb, var(--v5-brand) 45%, transparent); color: var(--v5-ink); }
 .lg-resend { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }

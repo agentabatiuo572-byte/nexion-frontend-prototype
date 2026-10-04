@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseAppHomeOverview } from "./app-home-api";
 
-const SOURCE = "server:nx_compute_receipt,nx_compute_task,nx_user_device,nx_product,nx_growth_promo_banner";
+const SOURCE = "server:nx_compute_receipt,nx_compute_task,nx_user_device,nx_compute_datacenter,nx_product,nx_growth_promo_banner";
 
 const valid = {
   serverCanonical: true,
@@ -11,6 +11,7 @@ const valid = {
   accountScope: "authenticated-account",
   source: SOURCE,
   earnings: {
+    todayVsYesterdayPct: 5.2,
     today: { usdt: 1.2, nex: 4, jobCount: 3 },
     week: { usdt: 4, nex: 8, jobCount: 9 },
     month: { usdt: 5, nex: 10, jobCount: 12 },

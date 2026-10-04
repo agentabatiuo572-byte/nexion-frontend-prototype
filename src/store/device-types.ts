@@ -26,7 +26,7 @@ const DEVICE_SPECS: Record<
   "stellarbox-pro-v2": { name: "UVELBox Pro v2", gpu: "8× RTX 5090", vramTotal: 256, basePower: 2200, baseRate: 14, baseRateNEX: 90, hashRate: 5120, location: "Singapore Data Center" },
   "stellarrack-p1": { name: "UVELRack P1", gpu: "8× NVIDIA A100", vramTotal: 640, basePower: 3200, baseRate: 45, baseRateNEX: 300, hashRate: 3840, location: "Frankfurt Data Center" },
   "stellarrack-p2": { name: "UVELRack P2", gpu: "8× NVIDIA H100", vramTotal: 1024, basePower: 4000, baseRate: 75, baseRateNEX: 500, hashRate: 9600, location: "Frankfurt Data Center" },
-  "cloud-share": { name: "Cloud Share", gpu: "Distributed", vramTotal: 0, basePower: 0, baseRate: 0.19, baseRateNEX: 3 },
+  "cloud-share": { name: "Cloud Share", gpu: "Distributed", vramTotal: 0, basePower: 0, baseRate: 0, baseRateNEX: 3 },
 };
 
 // Device retail price (USDT) — catalog price single source. MOCK-ONLY (prod: GET /api/store/catalog).
@@ -111,8 +111,9 @@ export function createDevice(kind: DeviceKind, id: string, options: CreateDevice
       capabilityScore: cap?.score,
       capabilityTops: cap?.tops,
       capabilityTier: cap?.tier,
-      // Fresh page load = a fresh continuous mining run → continuity ramps up.
-      miningSince: Date.now(),
+      // Calibration alone is not activation. Continuity starts only after the
+      // authenticated activation command has succeeded.
+      miningSince: null,
     }),
   };
 }
@@ -124,11 +125,11 @@ export function createDevice(kind: DeviceKind, id: string, options: CreateDevice
 export function makeInitialDevices(): Device[] {
   const now = Date.now();
   const phone = createDevice("phone", "phone-1");
-  phone.todayEarnings = 0.04; // v3.2: phone tier shows tiny seed earnings
-  phone.todayEarningsNEX = 6.2;
+  phone.todayEarnings = 0;
+  phone.todayEarningsNEX = 0;
   // Phone is the onboarding device — purchased on signup (30d ago = user.joinedAt).
   phone.purchasedAt = now - 30 * ONE_DAY_MS;
-  phone.activatedAt = phone.purchasedAt; // onboarding-seeded phone enters active fleet
+  phone.activatedAt = null;
 
   // Demo seed leaves one free slot for the computer-connect flow.
   const demoKinds: DeviceKind[] = ["cloud-share", "stellarbox-s1", "stellarbox-pro", "stellarrack-p1"];
@@ -234,7 +235,9 @@ export function derivePromoUpgrade(devices: Device[]): {
     };
   }
   // BASE = highest-yield active device.
-  const base = actives.reduce((m, d) => (d.baseRate > m.baseRate ? d : m), actives[0]);
+  const dailyComparable = actives.filter((d) => d.kind !== "cloud-share" && d.baseRate > 0);
+  if (dailyComparable.length === 0) return derivePromoUpgrade([]);
+  const base = dailyComparable.reduce((m, d) => (d.baseRate > m.baseRate ? d : m), dailyComparable[0]);
   const idx = UPGRADE_LADDER.indexOf(base.kind);
   const atTop = idx === UPGRADE_LADDER.length - 1;
   const targetKind: DeviceKind = atTop

@@ -6,7 +6,7 @@
 -->
 <template>
   <view v-if="best" class="mb-3">
-    <view class="block relative overflow-hidden active:opacity-90" :style="rootStyle" role="button" tabindex="0" :aria-label="w.cta" @click.stop="go">
+    <view class="nx-glass-card block relative overflow-hidden active:opacity-90" :style="rootStyle" role="button" tabindex="0" :aria-label="w.cta" @click.stop="go">
       <view class="absolute inset-0 pointer-events-none" :style="radialStyle" />
 
       <view class="relative flex items-center gap-1.5" :style="labelStyle">
@@ -132,11 +132,11 @@ const body = computed(() =>
     : "",
 );
 
-const rootStyle: CSSProperties = {
-  borderRadius: "16px",
+const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
   background:
-    "linear-gradient(160deg, color-mix(in srgb, var(--v5-brand-2) 14%, transparent) 0%, var(--v5-surface) 70%)",
+    "var(--nx-glass-fill)",
 };
 
 const radialStyle: CSSProperties = {
@@ -165,4 +165,6 @@ const ctaStyle: CSSProperties = {
 function go() {
   navTo("/me/devices");
 }
+
+
 </script>

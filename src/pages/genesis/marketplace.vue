@@ -1,8 +1,8 @@
 <!--
-  Genesis Marketplace — OpenSea-style secondary market for Genesis Node NFTs
+  Genesis Marketplace — internal secondary market for Genesis Node seats.
   (ported from Nexion-prototype/app/(main)/genesis/marketplace/page.tsx).
 
-  Collection hero (4-stat grid + 7d floor delta + OpenSea redirect) →
+  Collection hero (4-stat grid + 7d floor delta) →
   segmented tabs (listings / activity / mine) → sort pills + listing grid /
   activity feed / owned-token grid. Wrapped in <AppChassis active="me">. Buy
   is settled atomically by the canonical Genesis backend transaction.
@@ -21,14 +21,13 @@
               <text style="font-size: 28px">👑</text>
             </view>
             <view class="flex-1 min-w-0">
-              <view class="flex items-center" style="gap: 6px">
-                <text class="truncate" :style="collTitleStyle">UVEL Genesis Node</text>
-              </view>
+              <text class="block truncate" :style="collTitleStyle">UVEL Genesis Node</text>
+              <text class="block" :style="marketScopeLineStyle">{{ t.marketplace.internalMarketLine }}</text>
             </view>
           </view>
 
           <!-- 4-stat grid -->
-          <view class="nx-marketplace-stats grid" :style="statGridStyle">
+          <view class="grid grid-cols-4" :style="statGridStyle">
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.floor }}</text>
               <text class="tabular-nums" :style="statValStyle('var(--v5-success)')">{{ stats.floor === null ? "—" : `$${(stats.floor / 1000).toFixed(1)}K` }}</text>
@@ -39,7 +38,7 @@
             </view>
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.listed }}</text>
-              <text class="tabular-nums" :style="statValStyle()">{{ stats.listed }}</text>
+              <text class="tabular-nums" :style="statValStyle()">{{ stats.listed === null ? "—" : stats.listed }}</text>
             </view>
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.owners }}</text>
@@ -47,18 +46,17 @@
             </view>
           </view>
 
-          <!-- 7-day floor delta -->
-          <view class="flex items-center justify-between" :style="floorDeltaStyle" role="button" tabindex="0" :aria-label="t.marketplace.viewOpenSea" @click.capture="openSeaOpen = true">
+          <!-- The canonical comparison may be unavailable; never invent a direction. -->
+          <view class="flex items-center" :style="floorDeltaStyle">
             <text class="flex items-center" style="gap: 6px; font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-3)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
-              <text>{{ t.marketplace.floorUp }} </text>
-              <text class="tabular-nums" style="color: var(--v5-success); font-weight: 600">{{ stats.floorDeltaPct === null ? "—" : `${stats.floorDeltaPct >= 0 ? "+" : ""}${stats.floorDeltaPct}%` }}</text>
+              <svg v-if="floorDelta.state === 'up'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
+              <svg v-else-if="floorDelta.state === 'down'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 17h6v-6" /><path d="m22 17-8.5-8.5-5 5L2 7" /></svg>
+              <svg v-else-if="floorDelta.state === 'flat'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round"><path d="M4 12h16" /></svg>
+              <svg v-else-if="floorDelta.state === 'unavailable'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round"><path d="M7 12h10" /></svg>
+              <text>{{ floorDeltaLabel }} </text>
+              <text class="tabular-nums" :style="floorDeltaValueStyle">{{ floorDelta.value }}</text>
               <text> {{ t.marketplace.past7d }}</text>
             </text>
-            <view class="inline-flex items-center active:opacity-80" :style="viewOpenSeaStyle" @click.stop="openSeaOpen = true">
-              <text style="pointer-events: none">{{ t.marketplace.viewOpenSea }} </text>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
-            </view>
           </view>
         </view>
 
@@ -73,29 +71,33 @@
         </view>
 
         <!-- Tabs -->
-        <view class="grid grid-cols-3" :style="tabsStyle">
-          <view class="active:opacity-70 transition-opacity" :style="tabPillStyle(tab === 'listings')" @click="tab = 'listings'"><text>{{ listingsTabText }}</text></view>
-          <view class="active:opacity-70 transition-opacity" :style="tabPillStyle(tab === 'activity')" @click="tab = 'activity'"><text>{{ t.marketplace.activityTab }}</text></view>
-          <view class="active:opacity-70 transition-opacity" :style="tabPillStyle(tab === 'mine')" @click="tab = 'mine'"><text>{{ mineTabText }}</text></view>
-        </view>
+        <GlassSegments v-model="tab" :options="marketTabOptions" />
 
         <!-- LISTINGS TAB -->
         <template v-if="tab === 'listings'">
-          <template v-if="sortedListings.length > 0">
+          <!-- 市场**被运营关闭**时不再渲染「市场数据暂不可用 + 重试」:那不是连接故障,
+               重试也修不好,而两个错误态并排会让用户分不清是未开放还是网络问题(#123)。
+               关闭原因由上方关闭说明条唯一承载。 -->
+          <EmptyState v-if="genesis.remotePublicReadState === 'loading' && secondaryBlock === null" kind="empty-list"
+            :title="t.marketplace.marketLoading" :desc="t.marketplace.marketLoadingHint" />
+          <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable' && secondaryBlock === null" kind="empty-list"
+            :title="t.marketplace.marketUnavailable" :desc="t.marketplace.marketUnavailableHint"
+            :cta-label="t.marketplace.retry" emphasis @cta="retryMarketplaceFacts" />
+          <template v-else-if="sortedListings.length > 0">
             <scroll-view scroll-x class="nx-sort-row">
-              <view class="flex items-center" style="gap: 6px; white-space: nowrap">
+              <view class="flex items-center" style="gap: 6px; white-space: nowrap" role="radiogroup" :aria-label="t.marketplace.sortLabel">
                 <text class="inline-flex items-center" :style="sortLabelStyle">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
                   <text>{{ t.marketplace.sortLabel }}</text>
                 </text>
-                <view class="active:opacity-70 transition-opacity" :style="sortPillStyle(sortKey === 'floor')" @click="sortKey = 'floor'"><text>{{ t.marketplace.sortPriceAsc }}</text></view>
-                <view class="active:opacity-70 transition-opacity" :style="sortPillStyle(sortKey === 'recent')" @click="sortKey = 'recent'"><text>{{ t.marketplace.sortRecent }}</text></view>
-                <view class="active:opacity-70 transition-opacity" :style="sortPillStyle(sortKey === 'lastSale')" @click="sortKey = 'lastSale'"><text>{{ t.marketplace.sortLastSale }}</text></view>
+                <view class="nx-marketplace-sort active:opacity-70 transition-opacity" :style="sortPillStyle(sortKey === 'floor')" role="radio" :aria-checked="sortKey === 'floor'" :tabindex="sortKey === 'floor' ? 0 : -1" @click="selectSort('floor')"    @keydown.left.prevent="cycleSort(-1)" @keydown.right.prevent="cycleSort(1)" @keydown.enter.prevent="selectSort('floor')" @keydown.space.prevent="selectSort('floor')"><text>{{ t.marketplace.sortPriceAsc }}</text></view>
+                <view class="nx-marketplace-sort active:opacity-70 transition-opacity" :style="sortPillStyle(sortKey === 'recent')" role="radio" :aria-checked="sortKey === 'recent'" :tabindex="sortKey === 'recent' ? 0 : -1" @click="selectSort('recent')"    @keydown.left.prevent="cycleSort(-1)" @keydown.right.prevent="cycleSort(1)" @keydown.enter.prevent="selectSort('recent')" @keydown.space.prevent="selectSort('recent')"><text>{{ t.marketplace.sortRecent }}</text></view>
+                <view class="nx-marketplace-sort active:opacity-70 transition-opacity" :style="sortPillStyle(sortKey === 'lastSale')" role="radio" :aria-checked="sortKey === 'lastSale'" :tabindex="sortKey === 'lastSale' ? 0 : -1" @click="selectSort('lastSale')"    @keydown.left.prevent="cycleSort(-1)" @keydown.right.prevent="cycleSort(1)" @keydown.enter.prevent="selectSort('lastSale')" @keydown.space.prevent="selectSort('lastSale')"><text>{{ t.marketplace.sortLastSale }}</text></view>
               </view>
             </scroll-view>
 
             <view class="grid grid-cols-2" style="gap: 10px">
-              <ListingCard v-for="l in sortedListings" :key="l.tokenId" :l="l" :disabled="secondaryBlock !== null" @buy="handleBuy(l)" />
+              <ListingCard v-for="l in sortedListings" :key="l.tokenId" :l="l" :disabled="secondaryBlock !== null || buyPending" @buy="handleBuy(l)" />
             </view>
           </template>
           <!-- 一条挂单都没有 ——《06 缺省页规范》禁空容器/白屏。排序 pill 一并撤:
@@ -115,16 +117,34 @@
 
         <!-- ACTIVITY TAB(真实成交 + 虚拟成交混排,FEAT-GEN10)-->
         <template v-else-if="tab === 'activity'">
-          <view v-if="mergedActivity.length > 0" class="overflow-hidden" :style="listCardStyle">
+          <!-- 同 LISTINGS:关闭态不叠加连接错误态(#123)。 -->
+          <EmptyState v-if="genesis.remotePublicReadState === 'loading' && secondaryBlock === null" kind="empty-list"
+            :title="t.marketplace.marketLoading" :desc="t.marketplace.marketLoadingHint" />
+          <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable' && secondaryBlock === null" kind="empty-list"
+            :title="t.marketplace.marketUnavailable" :desc="t.marketplace.marketUnavailableHint"
+            :cta-label="t.marketplace.retry" emphasis @cta="retryMarketplaceFacts" />
+          <view v-else-if="mergedActivity.length > 0" class="nx-glass-card overflow-hidden" :style="listCardStyle">
             <ActivityRow v-for="(e, i) in mergedActivity" :key="e.id" :e="e" :is-last="i === mergedActivity.length - 1" />
           </view>
           <!-- 同上:零事件时原样渲染 listCardStyle 会留一个零高度的空 surface 盒子。 -->
           <EmptyState v-else kind="empty-list" :title="t.empty.genesisActivityTitle" :desc="t.empty.genesisActivityDesc" />
+          <view v-if="genesis.activityPage.cursor" class="active:opacity-70" role="button" tabindex="0" :aria-disabled="genesis.activityPage.busy ? 'true' : 'false'"
+            :aria-busy="genesis.activityPage.busy ? 'true' : 'false'" style="padding:12px;text-align:center;color:var(--v5-brand)" @click="!genesis.activityPage.busy && genesis.loadMoreActivity()">
+            <text>{{ genesis.activityPage.error ? t.orders.retry : t.orders.loadMore }}</text>
+          </view>
         </template>
 
         <!-- MINE TAB -->
         <template v-else>
-          <view v-if="ownedCount === 0" class="text-center" :style="emptyCardStyle">
+          <view v-if="genesis.remoteAccountReadState !== 'ready'" class="text-center" :style="emptyCardStyle">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 8px"><path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="10" /></svg>
+            <text class="block" style="font-size: 13px; color: var(--v5-ink)">{{ genesis.remoteAccountReadState === 'loading' ? t.marketplace.accountLoading : t.marketplace.accountUnavailable }}</text>
+            <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ t.marketplace.accountUnavailableHint }}</text>
+            <view v-if="genesis.remoteAccountReadState === 'unavailable'" class="inline-block active:scale-95" :style="reserveBtnStyle" @click="retryMarketplaceFacts">
+              <text>{{ t.marketplace.retry }}</text>
+            </view>
+          </view>
+          <view v-else-if="ownedCount === 0" class="text-center" :style="emptyCardStyle">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 8px"><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></svg>
             <text class="block" style="font-size: 13px; color: var(--v5-ink)">{{ t.marketplace.noTokensTitle }}</text>
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ t.marketplace.noTokensSub }}</text>
@@ -133,29 +153,28 @@
             </view>
           </view>
           <view v-else class="grid grid-cols-2" style="gap: 10px">
-            <MyTokenCard v-for="id in ownedTokenIds" :key="id" :token-id="id" />
+            <MyTokenCard v-for="id in ownedTokenIds" :key="id" :token-id="id" :page-scope="listingPageScope" />
           </view>
         </template>
 
-        <text class="block px-2" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.625">{{ t.marketplace.royaltyFooter }}</text>
+        <text class="block px-2" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.625">{{ marketplaceRoyaltyText }}</text>
       </view>
     </view>
 
-    <OpenSeaModal v-model:open="openSeaOpen" />
     <!-- 当前服务端资格 sheet；一级与二级使用同一策略。 -->
     <GenesisEligibilitySheet v-model:open="eligSheetOpen" @subscribe="onEligSubscribe" />
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { navTo } from "@/lib/route";
+import { ref, reactive, computed, nextTick, onUnmounted, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import ListingCard, { type Listing } from "@/components/genesis/listing-card.vue";
 import ActivityRow, { type ActivityEvent } from "@/components/genesis/activity-row.vue";
 import MyTokenCard from "@/components/genesis/my-token-card.vue";
-import OpenSeaModal from "@/components/genesis/opensea-modal.vue";
 import GenesisEligibilitySheet from "@/components/genesis/eligibility-sheet.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { useT } from "@/i18n/use-t";
@@ -166,15 +185,71 @@ import { useGenesisEligibility } from "@/composables/use-genesis-eligibility";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { toast } from "@/store/ui";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import { remoteApiEnabled } from "@/api/runtime";
+import { ApiError } from "@/api/errors";
+import { h3ObservationApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { authenticatedPageObservationReporter } from "@/lib/authenticated-page-observation";
+import { registerActivePageRefresh } from "@/lib/active-page-refresh";
+import { presentGenesisFloorDelta, presentGenesisMarketplaceActivityDescription, presentGenesisRoyalty } from "@/lib/genesis-marketplace-presentation";
 
 const t = useT();
 const genesis = useGenesis();
 const cfg = useGenesisConfig();
+let marketplacePageVisible = false;
+let marketplaceObservationEpoch = 0;
+const listingPageScope = reactive({ visible: false, epoch: 0 });
+let releaseActiveRefresh = () => {};
+
+async function refreshMarketplaceFacts(): Promise<void> {
+  if (!remoteApiEnabled || !marketplacePageVisible) return;
+  const scope = captureAccountScope();
+  const pageEpoch = marketplaceObservationEpoch;
+  const loaded = await genesis.syncRemote().catch(() => false);
+  if (!loaded || genesis.remotePublicReadState !== "ready") return;
+
+  await nextTick();
+  if (!marketplacePageVisible || pageEpoch !== marketplaceObservationEpoch
+    || genesis.remotePublicReadState !== "ready") return;
+
+  void authenticatedPageObservationReporter.report({
+    subject: "genesis-secondary-market",
+    scope,
+    session: sessionVault.read(),
+    visible: () => marketplacePageVisible && pageEpoch === marketplaceObservationEpoch,
+    isCurrent: isCurrentAccountScope,
+    submit: () => h3ObservationApi.secondaryMarket(),
+  });
+}
+
+async function retryMarketplaceFacts(): Promise<void> {
+  await cfg.refresh();
+  // Recovery only rehydrates projections. Page exposure retains its existing
+  // weekly observation path above, but a user retry must not create an event.
+  await genesis.syncRemote();
+}
+
 // 页面每次露出重读配置(hydrate-once 修复;理由同 genesis.vue)。
 onShow(() => {
+  marketplacePageVisible = true;
+  listingPageScope.visible = true;
+  releaseActiveRefresh();
+  releaseActiveRefresh = registerActivePageRefresh(retryMarketplaceFacts);
   void cfg.refresh();
-  void genesis.syncRemote();
+  void refreshMarketplaceFacts();
+});
+onHide(() => {
+  marketplacePageVisible = false;
+  listingPageScope.visible = false;
+  listingPageScope.epoch += 1;
+  marketplaceObservationEpoch += 1;
+  releaseActiveRefresh();
+});
+onUnmounted(() => {
+  marketplacePageVisible = false;
+  listingPageScope.visible = false;
+  listingPageScope.epoch += 1;
+  marketplaceObservationEpoch += 1;
+  releaseActiveRefresh();
 });
 const { gate, eligible, gatesSecondary } = useGenesisEligibility();
 const { marketClosed, secondaryBlock, blockText } = useGenesisSaleGate();
@@ -195,23 +270,56 @@ const stats = computed(() => {
   return {
     floor: remote.floorUsdt,
     vol24h: remote.volume24hUsdt,
-    listed: genesis.remoteListings.length,
+    listed: genesis.remotePublicReadState === "ready" ? genesis.remoteListings.length : null,
     owners: remote.owners,
     floorDeltaPct: remote.floorDeltaPct,
   };
+});
+const floorDelta = computed(() => presentGenesisFloorDelta(stats.value.floorDeltaPct));
+const floorDeltaLabel = computed(() => {
+  if (floorDelta.value.state === "up") return t.value.marketplace.floorUp;
+  if (floorDelta.value.state === "down") return t.value.marketplace.floorDown;
+  if (floorDelta.value.state === "flat") return t.value.marketplace.floorFlat;
+  return t.value.marketplace.floorUnavailable;
+});
+const marketplaceRoyaltyText = computed(() => {
+  const royalty = presentGenesisRoyalty(genesis.remoteRoyaltyPct);
+  return royalty === null
+    ? t.value.marketplace.royaltyUnavailable
+    : fmt(t.value.marketplace.royaltyFooter, { royalty });
 });
 
 const eligSheetOpen = ref(false);
 
 const tab = ref<"listings" | "activity" | "mine">("listings");
 const sortKey = ref<"floor" | "recent" | "lastSale">("floor");
-const openSeaOpen = ref(false);
-
+type MarketplaceTab = "listings" | "activity" | "mine";
+type MarketplaceSort = "floor" | "recent" | "lastSale";
+const TAB_ORDER: MarketplaceTab[] = ["listings", "activity", "mine"];
+const SORT_ORDER: MarketplaceSort[] = ["floor", "recent", "lastSale"];
+function selectTab(next: MarketplaceTab) { tab.value = next; }
+function selectSort(next: MarketplaceSort) { sortKey.value = next; }
+function cycleTab(delta: number) {
+  const index = TAB_ORDER.indexOf(tab.value);
+  tab.value = TAB_ORDER[(index + delta + TAB_ORDER.length) % TAB_ORDER.length];
+  void nextTick(() => {
+    if (typeof document !== "undefined") document.querySelector<HTMLElement>('.nx-marketplace-tab[tabindex="0"]')?.focus();
+  });
+}
+function cycleSort(delta: number) {
+  const index = SORT_ORDER.indexOf(sortKey.value);
+  sortKey.value = SORT_ORDER[(index + delta + SORT_ORDER.length) % SORT_ORDER.length];
+  void nextTick(() => {
+    if (typeof document !== "undefined") document.querySelector<HTMLElement>('.nx-marketplace-sort[tabindex="0"]')?.focus();
+  });
+}
 const ownedCount = computed(() => genesis.myOwned);
 const ownedTokenIds = computed(() => genesis.ownedTokenIds);
 
-const listingsTabText = computed(() => fmt(t.value.marketplace.listingsTab, { n: stats.value.listed }));
-const mineTabText = computed(() => fmt(t.value.marketplace.mineTab, { n: ownedCount.value }));
+const listingsTabText = computed(() => fmt(t.value.marketplace.listingsTab, { n: stats.value.listed ?? "—" }));
+const mineTabText = computed(() => fmt(t.value.marketplace.mineTab, {
+  n: genesis.remoteAccountReadState === "ready" ? ownedCount.value : "—",
+}));
 
 // 承接成交后本地移除(mock 演示态,刷新重置;真后台由 server 单源回写挂单状态)。
 const soldTokenIds = ref<Set<number>>(new Set());
@@ -250,12 +358,19 @@ const mergedActivity = computed<ActivityEvent[]>(() => {
     from: "—",
     to: "—",
     ts: tx.completedAt,
-    description: `${tx.orderType} · ${tx.quantity} node${tx.quantity > 1 ? "s" : ""} · ${tx.orderNo}`,
+    description: presentGenesisMarketplaceActivityDescription(
+      tx.orderType,
+      fmt(tx.quantity === 1 ? t.value.marketplace.activityNodeOne : t.value.marketplace.activityNodeMany, { n: tx.quantity }),
+      tx.orderNo,
+      { primary: t.value.marketplace.activityPrimary, secondary: t.value.marketplace.activitySecondary },
+    ),
   }));
   return [...listings, ...transactions].sort((a, b) => b.ts - a.ts);
 });
 
+const buyPending = ref(false);
 async function handleBuy(listing: Listing) {
+  if (buyPending.value || !marketplacePageVisible) return;
   if (secondaryBlock.value !== null) {
     toast.error(secondaryBlockText.value, secondaryBlockSub.value);
     return;
@@ -271,26 +386,49 @@ async function handleBuy(listing: Listing) {
     );
     return;
   }
+  const accountScope = captureAccountScope();
+  const pageEpoch = marketplaceObservationEpoch;
+  const expectedPrice = listing.priceUSDT;
+  const isCurrent = () => marketplacePageVisible && pageEpoch === marketplaceObservationEpoch
+    && isCurrentAccountScope(accountScope);
+  buyPending.value = true;
   try {
-    if (await genesis.acquireSecondary(listing.tokenId)) {
+    const purchased = await genesis.acquireSecondary(listing.tokenId, expectedPrice);
+    if (!isCurrent()) return;
+    if (purchased === "recovered" || purchased === "local-retirement-pending") {
+      toast.info(purchased === "recovered" ? t.value.marketplace.commandRecovered : t.value.marketplace.commandLocalPending,
+        t.value.marketplace.commandRecoveryHint);
+      return;
+    }
+    if (purchased === true) {
       toast.success(
         fmt(t.value.marketplace.acquiredToast, { id: listing.tokenId }),
-        fmt(t.value.marketplace.acquiredDesc, { paid: listing.priceUSDT.toLocaleString(), held: ownedCount.value }),
+        fmt(t.value.marketplace.acquiredDesc, { paid: expectedPrice.toLocaleString(undefined, { maximumFractionDigits: 6 }), held: ownedCount.value }),
       );
       return;
     }
+    toast.error(t.value.marketplace.purchaseUnconfirmed, t.value.marketplace.purchaseUnconfirmedDesc);
   } catch (error) {
+    if (!isCurrent()) return;
     const geoMessage = geoPolicyUserMessage(error, t.value.geoPolicy);
     if (geoMessage) {
       toast.error(geoMessage, t.value.geoPolicy.fundsSafeNote);
       return;
     }
+    if (error instanceof ApiError && error.message === "GENESIS_WALLET_INSUFFICIENT") {
+      toast.error(t.value.marketplace.insufficient);
+    } else if (error instanceof ApiError && error.message === "GENESIS_LISTING_PRICE_CHANGED") {
+      toast.info(t.value.marketplace.priceChanged, t.value.marketplace.purchaseUnconfirmedDesc);
+    } else {
+      toast.error(t.value.marketplace.purchaseUnconfirmed, t.value.marketplace.purchaseUnconfirmedDesc);
+    }
+  } finally {
+    buyPending.value = false;
   }
-  toast.error(t.value.marketplace.insufficient);
 }
 
 function goGenesis() {
-  uni.navigateTo({ url: "/pages/genesis/genesis", fail: () => {} });
+  navTo("/pages/genesis/genesis");
 }
 
 /** 资格 sheet 达标态「立即认购」→ 关 sheet 去预售页(资格已解锁,留本页承接亦可)。 */
@@ -319,6 +457,13 @@ const collTitleStyle: CSSProperties = {
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",
 };
+const marketScopeLineStyle: CSSProperties = {
+  marginTop: "3px",
+  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontSize: "12px",
+  color: "var(--v5-ink-3)",
+  letterSpacing: "0.02em",
+};
 const statGridStyle: CSSProperties = {
   // 去线(主人 2026-08-17 全站令):总间距沿用有线时代的 14+14。
   marginTop: "28px",
@@ -345,15 +490,12 @@ const floorDeltaStyle: CSSProperties = {
   paddingTop: "12px",
   borderTop: "1px solid var(--v5-border)",
 };
-const viewOpenSeaStyle: CSSProperties = {
-  // 《07》tap≥44:原 32px
-  minHeight: "44px",
-  padding: "0 6px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  color: "var(--v5-brand)",
-  fontWeight: 500,
-};
+const floorDeltaValueStyle = computed<CSSProperties>(() => ({
+  color: floorDelta.value.state === "up" ? "var(--v5-success)"
+    : floorDelta.value.state === "down" ? "var(--v5-danger)"
+      : "var(--v5-ink-3)",
+  fontWeight: 600,
+}));
 // 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 是 brand 实底,不撞色
 // 市场关闭说明条(FEAT-GEN10)。soft bg tint + **零 border**(带 bg 的容器不加边框,
 // 卡片嵌套铁律);用 warning 语义色而非 error —— 这是运营节奏,不是故障。
@@ -423,9 +565,9 @@ function sortPillStyle(active: boolean): CSSProperties {
   };
 }
 // Activity feed — single filled surface container, no border (rows carry hairlines).
-const listCardStyle: CSSProperties = {
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+const listCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 // Empty state — dashed outline, no fill (whitelist empty-state idiom).
 const emptyCardStyle: CSSProperties = {
@@ -444,13 +586,21 @@ const reserveBtnStyle: CSSProperties = {
   fontWeight: 600,
   fontSize: "13px",
 };
+
+import GlassSegments from "@/components/glass-segments.vue";
+const marketTabOptions = computed(() => [
+  { value: "listings", label: listingsTabText.value },
+  { value: "activity", label: t.value.marketplace.activityTab },
+  { value: "mine", label: mineTabText.value },
+]);
+const sortOptions = computed(() => [
+  { value: "floor", label: t.value.marketplace.sortPriceAsc },
+  { value: "recent", label: t.value.marketplace.sortRecent },
+  { value: "lastSale", label: t.value.marketplace.sortLastSale },
+]);
 </script>
 
 <style scoped>
-.nx-marketplace-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 350px) {
-  .nx-marketplace-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 .nx-sort-row {
   width: 100%;
   white-space: nowrap;

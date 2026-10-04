@@ -5,7 +5,7 @@ import test from "node:test";
 import ts from "typescript";
 
 const source = fs.readFileSync("src/store/weekly-quest.ts", "utf8")
-  .replace(/^import .*;\r?\n/gm, "")
+  .replace(/^import[\s\S]*?;\r?\n/gm, "")
   .replace("export const useWeeklyQuest", "const useWeeklyQuest");
 
 function deferred() {
@@ -25,9 +25,12 @@ function createStore(replies) {
   }).outputText;
   const ref = (value) => ({ value });
   const computed = (read) => ({ get value() { return read(); } });
+  const watch = () => undefined;
   const defineStore = (_name, setup) => setup;
+  const useLocaleStore = () => ({ code: "zh" });
   const questApi = {
-    state: () => {
+    state: (locale) => {
+      assert.equal(locale, "zh");
       const reply = replies.shift();
       assert.ok(reply, "unexpected quest state request");
       return reply.promise;
@@ -35,9 +38,9 @@ function createStore(replies) {
     claim: async () => { throw new Error("claim not used"); },
   };
   const useWeeklyQuest = new Function(
-    "ref", "computed", "defineStore", "questApi", "remoteApiEnabled",
+    "ref", "computed", "watch", "defineStore", "questApi", "remoteApiEnabled", "useLocaleStore",
     `${compiled}\nreturn useWeeklyQuest;`,
-  )(ref, computed, defineStore, questApi, true);
+  )(ref, computed, watch, defineStore, questApi, true, useLocaleStore);
   return useWeeklyQuest();
 }
 

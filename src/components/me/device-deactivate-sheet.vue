@@ -10,15 +10,15 @@
   composed by the page (emit), keeping the app-store mutation in the page handler.
 -->
 <template>
-  <view v-if="device">
+  <view v-if="device" class="nx-device-deactivate-root" role="dialog" aria-modal="true" :aria-label="t.deactivateSheet.title">
     <view class="nx-sheet-fade-in" :style="scrimStyle" @click="emit('dismiss')" />
-    <view class="nx-sheet-slide-up" :style="sheetStyle">
+    <view class="nx-glass-sheet nx-sheet-slide-up" :style="sheetStyle">
       <view class="flex items-start justify-between" style="gap: 12px">
         <view class="min-w-0">
           <text class="block" :style="titleStyle">{{ t.deactivateSheet.title }}</text>
           <text class="block" :style="descStyle">{{ descLine }}</text>
         </view>
-        <view class="grid place-items-center shrink-0 transition active:bg-[var(--v5-surface-3)]" :style="closeBtnStyle" @click="emit('dismiss')">
+        <view class="grid place-items-center shrink-0 transition active:bg-[var(--v5-surface-3)]" :style="closeBtnStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="emit('dismiss')"  @keydown.enter.prevent="emit('dismiss')" @keydown.space.prevent="emit('dismiss')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
       </view>
@@ -42,15 +42,15 @@
 
       <!-- Actions -->
       <view style="margin-top: 16px">
-        <view class="w-full flex items-center justify-center transition active:scale-[0.98]" :style="waitBtnStyle" @click="emit('wait')">
+        <view class="w-full flex items-center justify-center transition active:scale-[0.98]" :style="waitBtnStyle" role="button" tabindex="0" @click="emit('wait')"  @keydown.enter.prevent="emit('wait')" @keydown.space.prevent="emit('wait')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
           <text :style="waitLabelStyle">{{ t.deactivateSheet.waitCta }}</text>
         </view>
-        <view class="w-full flex items-center justify-center transition active:bg-[color-mix(in_srgb,var(--v5-brand-2)_25%,transparent)]" :style="forceBtnStyle" @click="emit('force')">
+        <view class="w-full flex items-center justify-center transition active:bg-[color-mix(in_srgb,var(--v5-brand-2)_25%,transparent)]" :style="forceBtnStyle" role="button" tabindex="0" @click="emit('force')"  @keydown.enter.prevent="emit('force')" @keydown.space.prevent="emit('force')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.77.04" /></svg>
           <text :style="forceLabelStyle">{{ t.deactivateSheet.forceCta }}</text>
         </view>
-        <view class="w-full flex items-center justify-center transition active:bg-[var(--v5-surface-3)]" :style="backBtnStyle" @click="emit('dismiss')">
+        <view class="w-full flex items-center justify-center transition active:bg-[var(--v5-surface-3)]" :style="backBtnStyle" role="button" tabindex="0" @click="emit('dismiss')"  @keydown.enter.prevent="emit('dismiss')" @keydown.space.prevent="emit('dismiss')">
           <text :style="backLabelStyle">{{ t.deactivateSheet.backCta }}</text>
         </view>
       </view>
@@ -60,6 +60,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import type { Device } from "@/store/types";
 import { useT } from "@/i18n/use-t";
 import { deviceName } from "@/lib/device-copy";
@@ -69,6 +70,7 @@ const props = defineProps<{ device: Device | null }>();
 const emit = defineEmits<{ (e: "wait"): void; (e: "force"): void; (e: "dismiss"): void }>();
 
 const t = useT();
+useDialogA11y(computed(() => props.device !== null), ".nx-device-deactivate-root", () => emit("dismiss"));
 
 // Local epoch-ms clock so the task progress bar / ETA tick once a second while
 // the sheet is open. Component lifecycle (not page) → onMounted/onUnmounted (P-021).
@@ -121,16 +123,16 @@ const scrimStyle: CSSProperties = {
   background: "rgba(8,8,12,0.45)",
   backdropFilter: "blur(8px) saturate(150%)",
 };
-const sheetStyle: CSSProperties = {
+const sheetStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   position: "fixed",
   left: 0,
   right: 0,
   bottom: 0,
   zIndex: 800,
-  borderTopLeftRadius: "16px",
-  borderTopRightRadius: "16px",
-  background: "var(--v5-surface)",
-  borderTop: "1px solid var(--v5-border)",
+  borderTopLeftRadius: "var(--nx-glass-radius)",
+  borderTopRightRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
+  borderTop: "none",
   padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)",
 };
 const titleStyle: CSSProperties = {
@@ -229,4 +231,6 @@ const backLabelStyle: CSSProperties = {
   fontSize: "13px",
   color: "var(--v5-ink-2)",
 };
+
+
 </script>

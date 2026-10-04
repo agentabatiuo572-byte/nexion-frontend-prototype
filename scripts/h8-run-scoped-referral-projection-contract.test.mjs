@@ -22,8 +22,8 @@ test("H8 sandbox referral snapshot is a current-RunID ledger projection, never a
   assert.match(service, /appSandboxSettlementCount\(userId, runId\)/);
   assert.match(service, /appVerifiedSandboxRewardSummary\(userId, runId\)/);
   assert.match(service, /appRecentVerifiedSandboxRewards\(userId, runId, limit\)/);
-  assert.match(service, /sandbox \? lifetime : nz\(account\.walletNexAvailable\(\)\)/);
-  assert.match(service, /sandbox \? runId : null/);
+  assert.match(service, /sandboxFacts \? lifetime : nz\(account\.walletNexAvailable\(\)\)/);
+  assert.match(service, /sandboxFacts \? runId : null/);
   assert.doesNotMatch(service, /SANDBOX_FACT_SOURCES = List\.of\([\s\S]*?nx_user_wallet/);
 });
 
@@ -38,16 +38,18 @@ test("every App sandbox count, summary and history query is RunID-filtered", { s
   assert.match(mapper, /PARTITION BY sandbox_ledger\.user_id, sandbox_ledger\.run_id/);
 });
 
-test("App validates and visibly labels the server-owned RunID", () => {
+test("formal App accepts only the Java production-shaped referral projection", () => {
   const appApi = readApp("src/api/referral-reward-api.ts");
   const card = readApp("src/components/team/invite-earn-card.vue");
   assert.match(appApi, /runId: string \| null/);
-  assert.match(appApi, /SANDBOX_FACTS = \["nx_h8_sandbox_referral_settlement", "nx_h8_sandbox_referral_ledger"\]/);
-  assert.match(appApi, /sourceEnvironment === "SANDBOX"[\s\S]{0,700}runId/);
-  assert.match(card, /RunID \{\{ sandboxRunId \}\}/);
+  assert.doesNotMatch(appApi, /nx_h8_sandbox_referral_settlement|nx_h8_sandbox_referral_ledger/);
+  assert.match(appApi, /PRODUCTION_FACTS = \["nx_referral_reward_settlement", "nx_wallet_ledger", "nx_earnings_release_entry", "nx_user_wallet"\]/);
+  assert.match(appApi, /mode === "prod" \|\| mode === "dev"[\s\S]{0,180}sourceEnvironment === "PRODUCTION"[\s\S]{0,100}runId === null/);
+  assert.doesNotMatch(card, /RunID/);
 });
 
-test("PC rejects an overview whose RunID does not match the requested run", { skip: pcMissing }, () => {
+test("PC H8 consumes only the production referral overview and exposes no sandbox RunID selector", { skip: pcMissing }, () => {
   const pc = readFileSync(resolve(pcRoot, "lib/admin/h-client.ts"), "utf8");
-  assert.match(pc, /overview\.runId !== runId/);
+  assert.match(pc, /source !== "nx_user\.sponsor_user_id" \|\| settlementMode !== "REAL_WALLET_LEDGER"/);
+  assert.doesNotMatch(pc, /H8ReferralRewardOverview[\s\S]{0,800}runId/);
 });

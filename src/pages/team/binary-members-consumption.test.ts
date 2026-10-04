@@ -10,15 +10,18 @@ describe("Binary canonical member consumer", () => {
   it("renders the server network members instead of replacing them with empty remote wings", () => {
     expect(source).toContain("const sides = computed(() => network.byBinary())");
     expect(source).toContain("network.refreshCanonicalNetwork()");
-    expect(source).toContain("count: sides.value.left.length");
-    expect(source).toContain("count: sides.value.right.length");
+    expect(source).toContain("snapshot.value?.trackAMembers ?? 0");
+    expect(source).toContain("snapshot.value?.trackBMembers ?? 0");
     expect(source).not.toContain("remoteApiEnabled ? { left: [] as NetworkMember[], right: [] as NetworkMember[] }");
   });
 
-  it("fails closed while either canonical projection is loading or unavailable", () => {
-    expect(source).toContain("commission.binaryStatus !== 'ready' || network.remoteStatus !== 'ready'");
-    expect(source).toContain("commission.binaryStatus === 'error' || network.remoteStatus === 'error'");
-    expect(source).toContain("commission.binaryStatus === 'ready' && network.remoteStatus === 'ready'");
+  it("keeps F3 loading and failure independent from member-detail failure", () => {
+    expect(source).toContain("binaryPageState");
+    expect(source).toContain("pageState.primary === 'error'");
+    expect(source).toContain("pageState.primary === 'loading'");
+    expect(source).toContain("pageState.memberDetails === 'error'");
+    expect(source).not.toContain("commission.binaryStatus === 'ready' && network.remoteStatus === 'ready'");
     expect(source).toContain('@cta="retryCanonicalData"');
+    expect(source).toContain("retryNetworkMembers");
   });
 });

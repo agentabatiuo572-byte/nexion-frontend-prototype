@@ -1,5 +1,9 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
+
+const PRODUCTION_ACTIVITY_SOURCE = "nx_order/nx_order_item/nx_product";
+const PRODUCTION_SOCIAL_PROOF_SOURCE = "nx_product/nx_order/nx_order_item";
 
 export interface StorefrontActivityItem {
   eventType: "ORDER_PAID";
@@ -8,13 +12,19 @@ export interface StorefrontActivityItem {
 }
 
 export interface StorefrontActivitySnapshot {
-  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  source: string;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION";
+  runId: string;
   items: StorefrontActivityItem[];
   nextCursor: string | null;
 }
 
 export interface StorefrontSocialProof {
-  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  source: string;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION";
+  runId: string;
   productName: string;
   cumulativeSales: number;
   windowDays: 7 | 30 | 90;
@@ -35,20 +45,32 @@ function record(value: unknown, message: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function environment(value: unknown, message: string): "PRODUCTION" | "SANDBOX" {
-  if (value === "PRODUCTION" || value === "SANDBOX") return value;
-  return invalid(message);
-}
-
 function nonNegativeInteger(value: unknown, message: string): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) return invalid(message);
   return value;
 }
 
-function parseActivity(value: unknown): StorefrontActivitySnapshot {
+function provenance(source: Record<string, unknown>, mode: ApiEnvironment, expectedSource: string, message: string) {
+  if (source.serverCanonical !== true || source.source !== expectedSource
+      || typeof source.sourceEnvironment !== "string" || typeof source.runId !== "string") {
+    return invalid(message);
+  }
+  const canonical = (mode === "dev" || mode === "prod")
+    && source.sourceEnvironment === "PRODUCTION" && source.runId === "";
+  if (!canonical) return invalid(message);
+  return {
+    source: expectedSource,
+    serverCanonical: true as const,
+    sourceEnvironment: "PRODUCTION" as const,
+    runId: source.runId,
+  };
+}
+
+function parseActivity(value: unknown, mode: ApiEnvironment): StorefrontActivitySnapshot {
   const message = "STOREFRONT_ACTIVITY_RESPONSE_INVALID";
   const source = record(value, message);
-  if (source.source !== "nx_order/nx_order_item/nx_product" || !Array.isArray(source.items)) return invalid(message);
+  const proof = provenance(source, mode, PRODUCTION_ACTIVITY_SOURCE, message);
+  if (!Array.isArray(source.items)) return invalid(message);
   const items = source.items.map((raw) => {
     const row = record(raw, message);
     if (row.eventType !== "ORDER_PAID" || typeof row.productName !== "string" || !row.productName.trim()
@@ -62,19 +84,20 @@ function parseActivity(value: unknown): StorefrontActivitySnapshot {
     return invalid(message);
   }
   return {
-    sourceEnvironment: environment(source.sourceEnvironment, message),
+    ...proof,
     items,
     nextCursor: nextCursor as string | null,
   };
 }
 
-function parseSocialProof(value: unknown): StorefrontSocialProof {
+function parseSocialProof(value: unknown, mode: ApiEnvironment): StorefrontSocialProof {
   const message = "STOREFRONT_SOCIAL_PROOF_RESPONSE_INVALID";
   const source = record(value, message);
-  if (source.source !== "nx_product/nx_order/nx_order_item" || typeof source.productName !== "string"
+  const proof = provenance(source, mode, PRODUCTION_SOCIAL_PROOF_SOURCE, message);
+  if (typeof source.productName !== "string"
       || !source.productName.trim() || ![7, 30, 90].includes(source.windowDays as number)) return invalid(message);
   return {
-    sourceEnvironment: environment(source.sourceEnvironment, message),
+    ...proof,
     productName: source.productName.trim(),
     cumulativeSales: nonNegativeInteger(source.cumulativeSales, message),
     windowDays: source.windowDays as 7 | 30 | 90,
@@ -90,7 +113,7 @@ function normalizeProductNo(value: string): string {
   return normalized;
 }
 
-export function createStorefrontActivityApi(client: ApiClient): StorefrontActivityApi {
+export function createStorefrontActivityApi(client: ApiClient, mode: ApiEnvironment = "prod"): StorefrontActivityApi {
   return {
     async activity(limit = 20, cursor) {
       if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) {
@@ -98,7 +121,7 @@ export function createStorefrontActivityApi(client: ApiClient): StorefrontActivi
       }
       const query = [`limit=${limit}`];
       if (cursor) query.push(`cursor=${encodeURIComponent(cursor)}`);
-      return parseActivity(await client.request<unknown>({ path: `/api/storefront/activity?${query.join("&")}` }));
+      return parseActivity(await client.request<unknown>({ path: `/api/storefront/activity?${query.join("&")}` }), mode);
     },
     async socialProof(productNo, windowDays = 30) {
       if (![7, 30, 90].includes(windowDays)) {
@@ -107,7 +130,7 @@ export function createStorefrontActivityApi(client: ApiClient): StorefrontActivi
       const normalized = normalizeProductNo(productNo);
       return parseSocialProof(await client.request<unknown>({
         path: `/api/storefront/products/${encodeURIComponent(normalized)}/social-proof?windowDays=${windowDays}`,
-      }));
+      }), mode);
     },
   };
 }

@@ -41,4 +41,26 @@ describe("compute share enrollment API", () => {
       message: "COMPUTE_SHARE_ENROLLMENT_RESPONSE_INVALID",
     });
   });
+
+  it("allows the authoritative status read-back to omit the one-time pairing code", async () => {
+    const transport = client({
+      enrollmentNo: "CSE-01JXYZ",
+      pairingCode: null,
+      status: "PENDING",
+      requestedGpuModel: "NVIDIA RTX 4070",
+      expiresAt: "2026-08-13T00:10:00Z",
+      deviceId: null,
+      source: "server",
+    });
+    const api = createComputeShareApi(transport);
+
+    await expect(api.status("cse-01jxyz")).resolves.toMatchObject({
+      enrollmentNo: "CSE-01JXYZ",
+      pairingCode: null,
+      status: "PENDING",
+    });
+    expect(transport.request).toHaveBeenCalledWith({
+      path: "/api/app/compute-share/enrollments/CSE-01JXYZ",
+    });
+  });
 });

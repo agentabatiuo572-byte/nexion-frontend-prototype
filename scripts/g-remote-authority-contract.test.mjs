@@ -15,7 +15,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 test("G1 remote mode consumes the server staking authority and fails closed", () => {
   const source = read("src/store/staking.ts");
   assert.match(source, /import\s*\{[^}]*stakingApi[^}]*remoteApiEnabled[^}]*\}\s*from\s*["']@\/api\/runtime["']/);
-  assert.match(source, /async function syncRemote\(/);
+  assert.match(source, /async function syncRemote\([\s\S]{0,160}\): Promise<boolean>/);
   assert.match(source, /function clearRemoteState\(/);
   assert.match(source, /stakingApi\.fetchStakingPools\(\)/);
   assert.match(source, /stakingApi\.fetchStakingPositions\(\)/);
@@ -31,7 +31,8 @@ test("G2 remote mode never records a local wallet success", () => {
   assert.match(source, /await executeExchangeSwap<ExchangeSnapshot>\(/);
   assert.match(source, /swap:\s*\(idempotencyKey\)\s*=>\s*exchangeApi\.swap\(/);
   assert.match(source, /fetchState:\s*\(\)\s*=>\s*exchangeApi\.fetchState\(\)/);
-  assert.match(source, /remoteState\.value = null/);
+  assert.match(source, /commitRemoteSnapshot\(null\)/);
+  assert.match(source, /function commitRemoteSnapshot\(snapshot: ExchangeSnapshot \| null\) \{\s*remoteSnapshotVersion \+= 1;\s*remoteState\.value = snapshot;/);
   // 判据锚在 **i18n key** 上,不锚中文字面量:页面文案 2026-08-10 收进 src/i18n(硬编码中文
   // 哨兵 scripts/i18n-hardcoded-cjk-sentinel.mjs 要求 .vue 里不得出现中文),锚字面量会让
   // 这道门与那道门方向相反 —— 任何源码状态都不可能同时绿。
@@ -70,22 +71,22 @@ test("G1 remote mutations use instance pending locks, stable keys and authority 
   const sheet = read("src/components/staking/stake-sheet.vue");
   const page = read("src/pages/staking/staking.vue");
   assert.match(sheet, /const remotePending = ref\(false\)/);
-  assert.match(sheet, /const remoteIntent = ref/);
+  assert.match(sheet, /const remoteGate = createRemoteIntentGate/);
   assert.match(sheet, /if \(remotePending\.value\) return/);
   assert.match(sheet, /staking\.syncRemote\(\)/);
   assert.match(page, /const pendingRemoteMutations = ref/);
   assert.match(page, /if \(pendingRemoteMutations\.value\.has\(intent\)\) return/);
   assert.match(page, /await staking\.syncRemote\(\)/);
-  assert.match(sheet, /intentKey\(.*tierKey.*amount/);
-  assert.match(page, /intentKey\(.*positionNo/);
-  assert.match(sheet, /fingerprint = `\$\{tierKey\}:\$\{amountUsdt\.toFixed\(2\)\}`/);
-  assert.match(page, /remoteMutationKeys\.get\(intent\)/);
+  assert.match(sheet, /remoteGate\.acquire\(app\.accountKey, "open", \{ tierKey, amountUsdt \}\)/);
+  assert.match(page, /remoteMutationGate\.acquire\(app\.accountKey, kind, \{ positionNo \}\)/);
+  assert.match(sheet, /remoteGate\.complete\(lease,/);
+  assert.match(page, /remoteMutationGate\.complete\(lease,/);
 });
 
 test("G3 remote mode uses only the canonical market snapshot and clears stale facts", () => {
   const source = read("src/store/market.ts");
   assert.match(source, /import\s*\{[^}]*marketApi[^}]*remoteApiEnabled[^}]*\}\s*from\s*["']@\/api\/runtime["']/);
-  assert.match(source, /async function syncRemote\(/);
+  assert.match(source, /function syncRemote\(\): Promise<boolean>/);
   assert.match(source, /await marketApi\.fetch\(\)/);
   assert.match(source, /function clearRemoteState\(/);
   assert.match(source, /catch \{[\s\S]*clearRemoteState\(\)/);

@@ -1,6 +1,7 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
-import type { ApiResponseEnvironment } from "./runtime-config";
+import type { ApiEnvironment } from "./runtime-config";
+import { parseOrderLineItems, type OrderLineItem } from "@/lib/order-line-items";
 
 export const ORDER_STATUSES = [
   "placed",
@@ -23,6 +24,7 @@ export interface CanonicalOrder {
   productNo: string;
   productName: string;
   quantity: number;
+  subtotalUsdt: number;
   unitPriceUsdt: number;
   discountUsdt: number;
   amountUsdt: number;
@@ -33,8 +35,13 @@ export interface CanonicalOrder {
   canonicalStatus: CanonicalOrderStatus;
   orderType: string;
   placedAt: number;
+  expiresAt: number | null;
   paidAt: number | null;
   activatedAt: number | null;
+  refundedAt: number | null;
+  refundAmountUsdt: number | null;
+  refundChannel: string | null;
+  refundBillNo: string | null;
   dataCenter: string | null;
   tradeinNo: string | null;
   sourceDeviceId: number | null;
@@ -43,14 +50,17 @@ export interface CanonicalOrder {
   paymentNo?: string | null;
   /** Bundle composition count; a bundle order's quantity is still one order. */
   itemCount: number | null;
+  /** Server-authoritative composition, required for every bundle detail. */
+  lineItems?: OrderLineItem[] | null;
 }
 
 export interface CanonicalOrderList {
-  source: "server" | "mock";
-  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  source: "server";
+  sourceEnvironment: "PRODUCTION";
   runId: string | null;
   serverCanonical?: true;
   orders: CanonicalOrder[];
+  nextCursor?: string | null;
 }
 
 export interface CreatedOrder {
@@ -62,10 +72,7 @@ export interface CreatedOrder {
   voucherRedemption: { voucherId: string; grantId: string; status: "REDEEMED"; discountUsdt: number } | null;
   paymentStatus: string;
   orderStatus: string;
-  idSource: "server" | "sandbox-server";
-  source?: "mock";
-  sourceEnvironment?: "SANDBOX";
-  runId?: string;
+  idSource: "server";
 }
 
 export interface CancelledOrder {
@@ -73,10 +80,27 @@ export interface CancelledOrder {
   orderStatus: "CANCELLED";
   paymentStatus: "CANCELLED";
   serverCanonical: true;
-  source: "server" | "mock";
-  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  source: "server";
+  sourceEnvironment: "PRODUCTION";
   runId: string;
   idempotent: boolean;
+}
+
+export interface PaidOrderReceipt {
+  orderNo: string;
+  paymentNo: string;
+  paymentStatus: "PAID";
+  orderStatus: "COMPLETED";
+  activationStatus: "ACTIVATED";
+  canonicalStatus: "activated";
+  amountUsdt: number;
+  paymentMethod: "WALLET" | "VOUCHER";
+  walletBalanceAfterUsdt: number | null;
+  idempotent: boolean;
+  serverCanonical: true;
+  source: "server";
+  sourceEnvironment: "PRODUCTION";
+  runId: "";
 }
 
 export interface CreateOrderRequest {
@@ -87,55 +111,44 @@ export interface CreateOrderRequest {
 }
 
 export interface OrderApi {
-  list(): Promise<CanonicalOrderList>;
+  list(beforeOrderNo?: string | null, pageSize?: number): Promise<CanonicalOrderList>;
   create(request: CreateOrderRequest): Promise<CreatedOrder>;
   cancel(orderNo: string, idempotencyKey: string): Promise<CancelledOrder>;
+  pay(orderNo: string, idempotencyKey: string): Promise<PaidOrderReceipt>;
 }
 
 const STATUS_SET = new Set<string>(ORDER_STATUSES);
-const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{7,95}$/;
-let currentSandboxRunId: string | null = null;
-let currentSandboxRunEpoch = 0;
-const sandboxRunListeners = new Set<(scope: CommerceSandboxRunScope) => void>();
+let currentRuntimeRevision = 0;
+const runtimeRevisionListeners = new Set<(scope: RuntimeRevisionScope) => void>();
 
-export interface CommerceSandboxRunScope {
-  runId: string | null;
+export interface RuntimeRevisionScope {
+  runId: null;
   epoch: number;
 }
 
-/** The catalogue is the current run-scoped commerce proof for checkout. */
-export function setCurrentCommerceSandboxRun(runId: string | null): void {
-  const nextRunId = runId !== null && RUN_ID.test(runId) ? runId : null;
-  if (nextRunId !== currentSandboxRunId) {
-    currentSandboxRunEpoch += 1;
-    currentSandboxRunId = nextRunId;
-    const scope = captureCommerceSandboxRun();
-    sandboxRunListeners.forEach((listener) => listener(scope));
-    return;
-  }
-  currentSandboxRunId = nextRunId;
+/** Invalidate responses captured before a catalogue or account refresh. */
+export function advanceRuntimeRevision(_reason?: unknown): void {
+  currentRuntimeRevision += 1;
+  const scope = captureRuntimeRevision();
+  runtimeRevisionListeners.forEach((listener) => listener(scope));
 }
 
-/** Notify account-scoped stores when the product catalogue selects a new run. */
-export function subscribeCurrentCommerceSandboxRun(
-  listener: (scope: CommerceSandboxRunScope) => void,
+/** Notify account-scoped stores after a canonical runtime revision changes. */
+export function subscribeRuntimeRevision(
+  listener: (scope: RuntimeRevisionScope) => void,
 ): () => void {
-  sandboxRunListeners.add(listener);
-  return () => sandboxRunListeners.delete(listener);
+  runtimeRevisionListeners.add(listener);
+  return () => runtimeRevisionListeners.delete(listener);
 }
 
-export function isCurrentCommerceSandboxRun(runId: unknown): runId is string {
-  return typeof runId === "string" && RUN_ID.test(runId) && runId === currentSandboxRunId;
+/** Capture the current canonical runtime revision before a request. */
+export function captureRuntimeRevision(): RuntimeRevisionScope {
+  return { runId: null, epoch: currentRuntimeRevision };
 }
 
-/** Capture both the selected sandbox RunID and its generation before a request. */
-export function captureCommerceSandboxRun(): CommerceSandboxRunScope {
-  return { runId: currentSandboxRunId, epoch: currentSandboxRunEpoch };
-}
-
-/** Reject a response after the catalog/runtime moved to another environment or RunID. */
-export function isCurrentCommerceSandboxScope(scope: CommerceSandboxRunScope): boolean {
-  return scope.epoch === currentSandboxRunEpoch && scope.runId === currentSandboxRunId;
+/** Reject a response after the catalogue or account runtime moved on. */
+export function isCurrentRuntimeRevision(scope: RuntimeRevisionScope): boolean {
+  return scope.epoch === currentRuntimeRevision;
 }
 
 function invalid(): never {
@@ -182,12 +195,22 @@ function canonicalOrder(value: unknown): CanonicalOrder {
   const source = record(value);
   const status = nonEmptyString(source.canonicalStatus);
   if (!STATUS_SET.has(status)) return invalid();
+  const orderType = nonEmptyString(source.orderType);
+  let lineItems: OrderLineItem[] | null = null;
+  if (orderType.toUpperCase() === "BUNDLE") {
+    try {
+      lineItems = parseOrderLineItems(source.lineItems);
+    } catch {
+      return invalid();
+    }
+  }
   const parsed: CanonicalOrder = {
     orderNo: nonEmptyString(source.orderNo),
     productId: integer(source.productId, 1),
     productNo: nonEmptyString(source.productNo),
     productName: nonEmptyString(source.productName),
     quantity: integer(source.quantity, 1),
+    subtotalUsdt: finiteNumber(source.subtotalUsdt),
     unitPriceUsdt: finiteNumber(source.unitPriceUsdt),
     discountUsdt: finiteNumber(source.discountUsdt),
     amountUsdt: finiteNumber(source.amountUsdt),
@@ -196,28 +219,41 @@ function canonicalOrder(value: unknown): CanonicalOrder {
     orderStatus: nonEmptyString(source.orderStatus),
     activationStatus: nonEmptyString(source.activationStatus),
     canonicalStatus: status as CanonicalOrderStatus,
-    orderType: nonEmptyString(source.orderType),
+    orderType,
     placedAt: integer(source.placedAt, 0),
+    expiresAt: nullableTimestamp(source.expiresAt),
     paidAt: nullableTimestamp(source.paidAt),
     activatedAt: nullableTimestamp(source.activatedAt),
+    refundedAt: nullableTimestamp(source.refundedAt),
+    refundAmountUsdt: source.refundAmountUsdt === null || source.refundAmountUsdt === undefined
+      ? null : finiteNumber(source.refundAmountUsdt),
+    refundChannel: nullableString(source.refundChannel),
+    refundBillNo: nullableString(source.refundBillNo),
     dataCenter: nullableString(source.dataCenter),
     tradeinNo: nullableString(source.tradeinNo),
     sourceDeviceId: nullableInteger(source.sourceDeviceId),
     targetDeviceId: nullableInteger(source.targetDeviceId),
     targetDeviceInstanceNo: nullableString(source.targetDeviceInstanceNo),
     itemCount: nullableInteger(source.itemCount),
+    lineItems,
     ...(source.paymentNo === null || source.paymentNo === undefined
       ? {} : { paymentNo: nonEmptyString(source.paymentNo) }),
   };
   const paymentStatus = parsed.paymentStatus.toUpperCase();
   const orderStatus = parsed.orderStatus.toUpperCase();
   const activationStatus = parsed.activationStatus.toUpperCase();
+  const refundFacts = [parsed.refundedAt, parsed.refundAmountUsdt, parsed.refundChannel, parsed.refundBillNo];
+  const hasAnyRefundFact = refundFacts.some((value) => value !== null);
+  const hasCompleteRefundFacts = parsed.refundedAt !== null
+    && parsed.refundAmountUsdt !== null && parsed.refundAmountUsdt > 0
+    && parsed.refundChannel !== null && parsed.refundBillNo !== null;
   const coherentStatus = (() => {
     switch (parsed.canonicalStatus) {
       case "placed":
         return paymentStatus === "PENDING" && orderStatus === "PENDING_PAYMENT"
           && activationStatus === "WAITING_PAYMENT" && parsed.paidAt === null
-          && parsed.activatedAt === null;
+          && parsed.activatedAt === null && parsed.expiresAt !== null
+          && parsed.expiresAt > parsed.placedAt;
       case "paid":
         return paymentStatus === "PAID" && orderStatus === "PAID"
           && activationStatus === "WAITING_PROVISIONING" && parsed.paidAt !== null
@@ -240,7 +276,7 @@ function canonicalOrder(value: unknown): CanonicalOrder {
           && activationStatus === "PROVISIONING_FAILED";
       case "refunded":
         return paymentStatus === "REFUNDED" && orderStatus === "REFUNDED"
-          && activationStatus === "REFUNDED";
+          && activationStatus === "REFUNDED" && (!hasAnyRefundFact || hasCompleteRefundFacts);
       case "chargeback":
         return paymentStatus === "CHARGEBACK" && orderStatus === "CHARGEBACK"
           && activationStatus === "DEACTIVATED";
@@ -255,12 +291,10 @@ function canonicalOrder(value: unknown): CanonicalOrder {
 
 function createdOrder(value: unknown): CreatedOrder {
   const source = record(value);
-  const sandboxRunId = typeof source.runId === "string" ? source.runId : "";
-  const sandboxResponse = source.idSource === "sandbox-server";
-  if (source.idSource !== "server" && !sandboxResponse) return invalid();
-  if (sandboxResponse && (source.source !== "mock" || source.sourceEnvironment !== "SANDBOX"
-      || !RUN_ID.test(sandboxRunId) || sandboxRunId !== currentSandboxRunId)) return invalid();
-  if (!sandboxResponse && (source.source !== undefined || source.sourceEnvironment !== undefined || source.runId !== undefined)) return invalid();
+  if (source.idSource !== "server"
+      || source.source !== undefined
+      || source.sourceEnvironment !== undefined
+      || source.runId !== undefined) return invalid();
   const rawRedemption = source.voucherRedemption;
   const redemption = rawRedemption === null || rawRedemption === undefined ? null : record(rawRedemption);
   const voucherRedemption = redemption === null ? null : {
@@ -278,8 +312,7 @@ function createdOrder(value: unknown): CreatedOrder {
     voucherRedemption,
     paymentStatus: nonEmptyString(source.paymentStatus),
     orderStatus: nonEmptyString(source.orderStatus),
-    idSource: source.idSource as "server" | "sandbox-server",
-    ...(sandboxResponse ? { source: "mock" as const, sourceEnvironment: "SANDBOX" as const, runId: sandboxRunId } : {}),
+    idSource: "server",
   };
   if (parsed.paymentStatus.toUpperCase() !== "PENDING"
       || parsed.orderStatus.toUpperCase() !== "PENDING_PAYMENT") {
@@ -288,55 +321,80 @@ function createdOrder(value: unknown): CreatedOrder {
   return parsed;
 }
 
-function cancelledOrder(value: unknown, mode: ApiResponseEnvironment): CancelledOrder {
+function cancelledOrder(value: unknown): CancelledOrder {
   const source = record(value);
   if (typeof source.orderNo !== "string" || !source.orderNo.trim()
       || source.orderStatus !== "CANCELLED" || source.paymentStatus !== "CANCELLED"
       || typeof source.serverCanonical !== "boolean" || source.serverCanonical !== true
-      || (source.source !== "server" && source.source !== "mock")
-      || (source.sourceEnvironment !== "PRODUCTION" && source.sourceEnvironment !== "SANDBOX")
-      || typeof source.runId !== "string"
+      || source.source !== "server"
+      || source.sourceEnvironment !== "PRODUCTION"
+      || source.runId !== ""
       || typeof source.idempotent !== "boolean") return invalid();
-  const production = mode === "prod"
-    && source.source === "server"
-    && source.sourceEnvironment === "PRODUCTION"
-    && source.runId === "";
-  const sandbox = mode === "dev"
-    && source.source === "mock"
-    && source.sourceEnvironment === "SANDBOX"
-    && RUN_ID.test(source.runId)
-    && isCurrentCommerceSandboxRun(source.runId);
-  if (!production && !sandbox) return invalid();
   return { orderNo: source.orderNo.trim(), orderStatus: "CANCELLED", paymentStatus: "CANCELLED",
-    serverCanonical: true, source: production ? "server" : "mock",
-    sourceEnvironment: production ? "PRODUCTION" : "SANDBOX", runId: production ? "" : source.runId,
+    serverCanonical: true, source: "server",
+    sourceEnvironment: "PRODUCTION", runId: "",
     idempotent: source.idempotent };
 }
 
-export function createOrderApi(client: ApiClient, mode: ApiResponseEnvironment = "prod"): OrderApi {
+function paidOrderReceipt(value: unknown): PaidOrderReceipt {
+  const source = record(value);
+  if (source.paymentStatus !== "PAID" || source.orderStatus !== "COMPLETED"
+      || source.activationStatus !== "ACTIVATED" || source.canonicalStatus !== "activated"
+      || source.serverCanonical !== true || source.source !== "server"
+      || source.sourceEnvironment !== "PRODUCTION" || source.runId !== "") return invalid();
+  const amountUsdt = finiteNumber(source.amountUsdt);
+  if (amountUsdt < 0) return invalid();
+  const paymentMethod = source.paymentMethod === "NEXGRID_WALLET" || source.paymentMethod === "WALLET"
+    ? "WALLET" : source.paymentMethod === "VOUCHER" ? "VOUCHER" : invalid();
+  if ((paymentMethod === "VOUCHER") !== (amountUsdt === 0)) return invalid();
+  const walletBalanceAfterUsdt = paymentMethod === "WALLET"
+    ? finiteNumber(source.walletBalanceAfterUsdt)
+    : source.walletBalanceAfterUsdt === null ? null : invalid();
   return {
-    async list(): Promise<CanonicalOrderList> {
+    orderNo: nonEmptyString(source.orderNo),
+    paymentNo: nonEmptyString(source.paymentNo),
+    paymentStatus: "PAID",
+    orderStatus: "COMPLETED",
+    activationStatus: "ACTIVATED",
+    canonicalStatus: "activated",
+    amountUsdt,
+    paymentMethod,
+    walletBalanceAfterUsdt,
+    idempotent: typeof source.idempotent === "boolean" ? source.idempotent : invalid(),
+    serverCanonical: true,
+    source: "server",
+    sourceEnvironment: "PRODUCTION",
+    runId: "",
+  };
+}
+
+export function createOrderApi(client: ApiClient, mode: ApiEnvironment = "prod"): OrderApi {
+  return {
+    async list(beforeOrderNo = null, pageSize = 50): Promise<CanonicalOrderList> {
+      const cursor = beforeOrderNo?.trim() || null;
+      if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100) return invalid();
+      const query = cursor
+        ? `beforeOrderNo=${encodeURIComponent(cursor)}&pageSize=${pageSize}`
+        : `pageSize=${pageSize}`;
       const payload = record(await client.request<unknown>({
         method: "GET",
-        path: "/api/orders",
+        path: `/api/orders?${query}`,
       }));
       if (!Array.isArray(payload.orders)) return invalid();
       const source = nonEmptyString(payload.source);
       const sourceEnvironment = nonEmptyString(payload.sourceEnvironment);
       const rawRunId = payload.runId;
       if (payload.serverCanonical !== true) return invalid();
-      const sandbox = mode === "dev"
-        && source === "mock" && sourceEnvironment === "SANDBOX"
-        && typeof rawRunId === "string" && RUN_ID.test(rawRunId) && rawRunId === currentSandboxRunId;
-      const production = mode === "prod"
+      const production = (mode === "dev" || mode === "prod")
         && source === "server" && sourceEnvironment === "PRODUCTION"
         && (rawRunId === null || rawRunId === undefined);
-      if (!sandbox && !production) return invalid();
+      if (!production) return invalid();
       return {
-        source: source as "server" | "mock",
-        sourceEnvironment: sourceEnvironment as "PRODUCTION" | "SANDBOX",
-        runId: sandbox ? rawRunId : null,
+        source: "server",
+        sourceEnvironment: "PRODUCTION",
+        runId: null,
         serverCanonical: true,
+        nextCursor: nullableString(payload.nextCursor),
         orders: payload.orders.map(canonicalOrder),
       };
     },
@@ -366,7 +424,19 @@ export function createOrderApi(client: ApiClient, mode: ApiResponseEnvironment =
         method: "POST",
         path: `/api/orders/${encodeURIComponent(normalized)}/cancel`,
         idempotencyKey,
-      }), mode);
+      }));
+    },
+
+    async pay(orderNo, idempotencyKey): Promise<PaidOrderReceipt> {
+      const normalized = orderNo.trim();
+      if (!normalized || !idempotencyKey.trim()) return invalid();
+      const parsed = paidOrderReceipt(await client.request<unknown>({
+        method: "POST",
+        path: `/api/orders/${encodeURIComponent(normalized)}/pay`,
+        idempotencyKey,
+      }));
+      if (parsed.orderNo !== normalized) return invalid();
+      return parsed;
     },
   };
 }

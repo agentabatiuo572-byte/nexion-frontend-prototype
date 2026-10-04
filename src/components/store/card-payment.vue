@@ -7,8 +7,7 @@
   只拿 cvvToken。费率单源 deposits-core 的 CARD_FEE_RATE,组件与文案都不写死。
 -->
 <template>
-  <view class="rounded-2xl border overflow-hidden" :style="cardStyle">
-    <FundsSandboxBadge />
+  <view class="nx-glass-card rounded-2xl border overflow-hidden" :style="cardStyle">
     <!-- Header -->
     <view class="flex items-center border-b" :style="headerStyle">
       <view class="grid place-items-center shrink-0" :style="iconBoxStyle">
@@ -109,12 +108,11 @@ import { ref, computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { navTo } from "@/lib/route";
-import { useCards, brandLabel } from "@/store/cards";
-import type { SavedCard } from "@/store/cards";
+import { useCards, brandLabel, type SavedCard } from "@/store/cards";
+
 import { cardFeeRateLabel, cardFeeUsd } from "@/store/deposits-core";
 import HostedCardVault from "@/components/me/hosted-card-vault.vue";
 import HostedCardField from "@/components/me/hosted-card-field.vue";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
 
 const props = defineProps<{ amount: number }>();
 const emit = defineEmits<{ complete: []; cancel: [] }>();
@@ -185,7 +183,7 @@ function emitCancel() {
 }
 
 // ─── styles ───
-const cardStyle: CSSProperties = { background: "var(--v5-surface)", borderColor: "var(--v5-border)" };
+const cardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderColor: "transparent" };
 const headerStyle: CSSProperties = { padding: "16px 20px", gap: "12px", borderColor: "color-mix(in srgb, var(--v5-border) 70%, transparent)" };
 const iconBoxStyle: CSSProperties = { width: "36px", height: "36px", borderRadius: "8px", background: "var(--v5-brand-2-soft)" };
 const headerTitleStyle: CSSProperties = {
@@ -291,4 +289,6 @@ const addCardBtnStyle: CSSProperties = {
   fontSize: "13px",
   fontWeight: 500,
 };
+
+
 </script>

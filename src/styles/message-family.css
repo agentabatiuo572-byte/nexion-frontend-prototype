@@ -1,0 +1,15 @@
+/* Message subpages share their interaction finish without changing global controls. */
+.message-family { font-family: var(--font-v5); }
+.message-family .family-control { position: relative; box-sizing: border-box; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: 24px; background: transparent; color: var(--v5-ink-2); font-family: var(--font-v5); font-size: 13px; cursor: pointer; }
+.message-family .family-control > :not(.nx-liquid-glass) { position: relative; }
+.message-family .family-control:active { opacity: .75; }
+.message-family .family-control:focus-visible, .message-family [role="button"]:focus-visible, .message-family [role="radio"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+.message-family .family-control[aria-disabled="true"] { opacity: .45; cursor: default; }
+.message-family .family-control--primary, .message-family .nx-glass-option--selected, .message-family .family-control[aria-checked="true"] { color: var(--v5-bg); }
+.message-family .nx-liquid-glass--selection { --v5-liquid-selected: transparent; }
+.message-family .nx-liquid-glass--selection .nx-liquid-tint { background: linear-gradient(155deg, color-mix(in srgb, var(--v5-ink) 98%, var(--v5-surface)), color-mix(in srgb, var(--v5-ink) 65%, var(--v5-surface))); }
+.message-family .nx-glass-option__label { font-size: 13px; }
+.message-family .nx-glass-segments .nx-glass-option { padding-inline: 16px; }
+.message-family input, .message-family textarea { box-sizing: border-box; font-family: var(--font-v5); }
+.message-family input:focus-within, .message-family textarea:focus-within { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .message-family .family-control { transition: none; } .message-family .family-control:active { transform: none; } }

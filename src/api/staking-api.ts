@@ -1,5 +1,9 @@
 import type { ApiClient } from "./api-client";
+import { parseHistorySnapshotId, historySnapshotQuery } from "./history-snapshot";
+import { parseServerTimestamp } from "./server-time";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
+import { matchesRuntimeProvenance } from "./runtime-provenance";
 
 export type StakingTerm = 30 | 90 | 180 | 365;
 export type StakingStatus =
@@ -22,6 +26,8 @@ export interface StakingPool {
   enabled: boolean;
   killed: boolean;
   status: "ACTIVE" | "STOPPED" | "KILLED";
+  sourceEnvironment?: "PRODUCTION" | "SANDBOX";
+  runId?: string;
 }
 
 export interface StakingPosition {
@@ -41,6 +47,7 @@ export interface StakingPosition {
 
 export interface StakingSnapshot {
   positions: StakingPosition[];
+  positionsPage: { total: number; pageNum: number; pageSize: number; snapshotId?: string };
   walletBalanceUsdt: number;
   serverTime: number;
   position?: StakingPosition;
@@ -50,6 +57,8 @@ export interface StakingSnapshot {
   creditedUsdt?: number;
   billNo?: string;
   receiptId?: string;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
 }
 
 export interface StakingApi {
@@ -93,10 +102,7 @@ function integer(value: unknown, min = 0): number | null {
 }
 
 function timestamp(value: unknown): number | null {
-  const raw = text(value);
-  if (!raw) return null;
-  const parsed = Date.parse(raw);
-  return Number.isFinite(parsed) ? parsed : null;
+  return parseServerTimestamp(value);
 }
 
 function canonicalStatus(value: unknown): StakingStatus | null {
@@ -112,7 +118,7 @@ function canonicalStatus(value: unknown): StakingStatus | null {
   }
 }
 
-function parsePool(value: unknown): StakingPool {
+function parsePool(value: unknown, source: { sourceEnvironment: "PRODUCTION" | "SANDBOX"; runId: string }): StakingPool {
   const row = record(value);
   const poolId = integer(row?.poolId, 1);
   const tierKey = text(row?.tierKey)?.toLowerCase() ?? null;
@@ -141,16 +147,21 @@ function parsePool(value: unknown): StakingPool {
     enabled: row.enabled,
     killed: row.killed,
     status: status as StakingPool["status"],
+    sourceEnvironment: source.sourceEnvironment,
+    runId: source.runId,
   };
 }
 
-function parsePools(value: unknown): StakingPool[] {
+function parsePools(value: unknown, mode: ApiEnvironment): StakingPool[] {
   const row = record(value);
-  if (!row || row.serverCanonical !== true || text(row.source) !== "nx_staking_product + nx_config_item + nx_emergency_control_setting"
+  const source = row && matchesRuntimeProvenance(row, mode,
+    "nx_staking_product + nx_config_item + nx_emergency_control_setting")
+    ? { sourceEnvironment: row.sourceEnvironment, runId: row.runId } : null;
+  if (!row || !source || row.serverCanonical !== true
       || !Array.isArray(row.pools) || row.pools.length !== 4) {
     return invalid("STAKING_POOLS_RESPONSE_INVALID");
   }
-  const pools = row.pools.map(parsePool).sort((a, b) => a.termDays - b.termDays);
+  const pools = row.pools.map((pool) => parsePool(pool, source)).sort((a, b) => a.termDays - b.termDays);
   const terms = pools.map((pool) => pool.termDays);
   const ids = pools.map((pool) => pool.poolId);
   if (new Set(terms).size !== 4 || new Set(ids).size !== 4 || terms.join(",") !== "30,90,180,365") {
@@ -210,20 +221,31 @@ function optionalText(row: Record<string, unknown>, key: string): string | undef
   return value;
 }
 
-function parseSnapshot(value: unknown): StakingSnapshot {
+function parseSnapshot(value: unknown, mode: ApiEnvironment): StakingSnapshot {
   const row = record(value);
   const walletBalanceUsdt = number(row?.walletBalanceUsdt);
   const serverTime = timestamp(row?.serverTime);
-  if (!row || row.serverCanonical !== true || !Array.isArray(row.positions)
+  const expectedSource = "nx_staking_product + nx_config_item + nx_emergency_control_setting";
+  if (!row || row.serverCanonical !== true || !matchesRuntimeProvenance(row, mode, expectedSource)
+      || !Array.isArray(row.positions)
       || walletBalanceUsdt === null || serverTime === null) {
     return invalid("STAKING_POSITIONS_RESPONSE_INVALID");
   }
   const positions = row.positions.map(parsePosition);
+  const page = record(row.positionsPage);
+  const total = integer(page?.total);
+  const pageNum = integer(page?.pageNum, 1);
+  const pageSize = integer(page?.pageSize, 1);
   if (new Set(positions.map((position) => position.id)).size !== positions.length) {
+    return invalid("STAKING_POSITIONS_RESPONSE_INVALID");
+  }
+  if (!page || total === null || pageNum === null || pageSize === null
+      || positions.length > pageSize || positions.length > total) {
     return invalid("STAKING_POSITIONS_RESPONSE_INVALID");
   }
   return {
     positions,
+    positionsPage: { total, pageNum, pageSize, snapshotId: parseHistorySnapshotId(page.snapshotId) },
     walletBalanceUsdt,
     serverTime,
     position: row.position === undefined ? undefined : parsePosition(row.position),
@@ -233,20 +255,45 @@ function parseSnapshot(value: unknown): StakingSnapshot {
     creditedUsdt: optionalMoney(row, "creditedUsdt"),
     billNo: optionalText(row, "billNo"),
     receiptId: optionalText(row, "receiptId"),
+    sourceEnvironment: row.sourceEnvironment,
+    runId: row.runId,
   };
 }
 
-export function createStakingApi(client: ApiClient): StakingApi {
+export function createStakingApi(client: ApiClient, mode: ApiEnvironment = "prod"): StakingApi {
+  const fetchAllPositions = async (): Promise<StakingSnapshot> => {
+    const first = parseSnapshot(await client.request({ method: "GET", path: "/api/stakes?pageNum=1&pageSize=50" }), mode);
+    if (first.positionsPage.pageNum !== 1 || first.positionsPage.pageSize !== 50) {
+      return invalid("STAKING_POSITIONS_PAGINATION_INVALID");
+    }
+    const positions = [...first.positions];
+    const ids = new Set(positions.map((position) => position.id));
+    let pageNum = first.positionsPage.pageNum;
+    while (positions.length < first.positionsPage.total) {
+      pageNum += 1;
+      const next = parseSnapshot(await client.request({
+        method: "GET",
+        path: `/api/stakes?pageNum=${pageNum}&pageSize=${first.positionsPage.pageSize}${historySnapshotQuery(first.positionsPage.snapshotId)}`,
+      }), mode);
+      if (next.positionsPage.snapshotId !== first.positionsPage.snapshotId || next.positionsPage.pageNum !== pageNum || next.positionsPage.total !== first.positionsPage.total
+          || next.positionsPage.pageSize !== first.positionsPage.pageSize || next.positions.length === 0) {
+        return invalid("STAKING_POSITIONS_PAGINATION_INVALID");
+      }
+      for (const position of next.positions) {
+        if (ids.has(position.id)) return invalid("STAKING_POSITIONS_PAGINATION_INVALID");
+        ids.add(position.id);
+        positions.push(position);
+      }
+    }
+    return { ...first, positions, positionsPage: { ...first.positionsPage, pageNum } };
+  };
   return {
     fetchStakingPools: async () => parsePools(await client.request({
       method: "GET",
       path: "/api/config/staking/pools",
       authenticated: false,
-    })),
-    fetchStakingPositions: async () => parseSnapshot(await client.request({
-      method: "GET",
-      path: "/api/stakes",
-    })),
+    }), mode),
+    fetchStakingPositions: fetchAllPositions,
     openStakingPosition: async (tierKey, amountUsdt, idempotencyKey) =>
       parseSnapshot(await client.request({
         method: "POST",
@@ -254,20 +301,20 @@ export function createStakingApi(client: ApiClient): StakingApi {
         body: { tierKey, amountUsdt },
         idempotencyKey,
         timeoutMs: 30_000,
-      })),
+      }), mode),
     claimStakingPosition: async (positionNo, idempotencyKey) =>
       parseSnapshot(await client.request({
         method: "POST",
         path: `/api/stakes/${encodeURIComponent(positionNo)}/claim`,
         idempotencyKey,
         timeoutMs: 30_000,
-      })),
+      }), mode),
     earlyWithdrawStakingPosition: async (positionNo, idempotencyKey) =>
       parseSnapshot(await client.request({
         method: "POST",
         path: `/api/stakes/${encodeURIComponent(positionNo)}/early-withdraw`,
         idempotencyKey,
         timeoutMs: 30_000,
-      })),
+      }), mode),
   };
 }

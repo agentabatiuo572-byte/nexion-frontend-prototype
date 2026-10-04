@@ -3,6 +3,7 @@ import { ref } from "vue";
 import type { Receipt, ReceiptCategory } from "@/mock/receipt";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
+import { remoteApiEnabled } from "@/api/runtime";
 
 // Ported from Nexion-prototype/lib/store/receipts.ts (zustand → Pinia).
 // Proof-of-Compute receipts (design doc §6.9), newest-first, capped + persisted.
@@ -19,27 +20,33 @@ function hydrate(accountKey: string): Receipt[] {
 export const useReceipts = defineStore("receipts", () => {
   // 账号维度:boot 期落 "default",账号确定后由 lib/account-scope 统一重绑。
   let boundKey = "default";
-  const receipts = ref<Receipt[]>(hydrate(boundKey));
+  // Server runtimes must never hydrate the legacy local receipt projection.
+  // Remote and isolated sandbox receipts are both read from backend APIs.
+  const receipts = ref<Receipt[]>(remoteApiEnabled ? [] : hydrate(boundKey));
 
   function persist() {
+    if (remoteApiEnabled) return false;
     writeAccountRow<{ receipts: Receipt[] }>(ACCOUNTS_KEY, boundKey, { receipts: receipts.value });
+    return true;
   }
 
   /** 账号切换重绑:装载该账号的算力凭证(P2-8 设备级泄漏修复)。 */
   function bindAccount(rawAccountKey: string) {
     boundKey = normalizeAccountKey(rawAccountKey);
-    receipts.value = hydrate(boundKey);
+    receipts.value = remoteApiEnabled ? [] : hydrate(boundKey);
   }
   function add(receipt: Receipt) {
+    if (remoteApiEnabled) return false;
     receipts.value = [receipt, ...receipts.value].slice(0, MAX_RECEIPTS);
     persist();
+    return true;
   }
   function byId(id: string): Receipt | undefined {
     return receipts.value.find((r) => r.id === id);
   }
   function clear() {
     receipts.value = [];
-    persist();
+    return persist();
   }
 
   return { receipts, add, byId, clear, bindAccount };

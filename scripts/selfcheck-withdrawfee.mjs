@@ -207,7 +207,7 @@ const pageSrc = stripTs(readFileSync(path.join(root, "src", "pages", "me", "wall
     && /body:\s*\{\s*amount,\s*chain,\s*address:\s*targetAddress,\s*policyVersion,\s*useNexFeeOffset\s*\}/.test(apiSrc)
     && !/body:\s*\{[^}]*networkConfirmUsd/.test(apiSrc));
   check("🔴 页面费用来自 GET policy 且缺失时 fail-closed",
-    /withdrawalPolicy\.value\s*=\s*await withdrawalApi\.policy\(\)/.test(pageSrc)
+    /const policy = await withdrawalApi\.policy\(\);\s*if \(!isCurrentWithdrawalFactsScope\(\s*requestedAccountKey, requestedAccountBindingEpoch, runScope\.epoch, refreshSequence, withdrawalPolicyRefreshSequence,\s*\)\) return;\s*withdrawalPolicy\.value = policy;/.test(pageSrc)
     && /withdrawalPolicy\.value\s*=\s*null/.test(pageSrc)
     && /snap\.policyVersion/.test(pageSrc));
 }

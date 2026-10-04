@@ -6,7 +6,8 @@
   $el-safe).
 -->
 <template>
-  <view class="relative overflow-hidden" :style="cardStyle">
+  <view v-if="configAvailable && hasSellablePlan" class="nx-glass-card relative overflow-hidden nx-compound-calculator" :style="cardStyle">
+    <CalculatorWebviewAccessibility :amount-label="w.amountLabel" />
     <!-- aurora + grid -->
     <view aria-hidden class="gen-anim" :style="auroraStyle" />
     <view aria-hidden :style="gridStyle" />
@@ -18,30 +19,23 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
           <text>{{ w.label }}</text>
         </text>
-        <text class="tabular-nums" :style="apyChipStyle">{{ apy * 100 }}% · {{ term }}d</text>
+        <text class="tabular-nums" :style="apyChipStyle">{{ formatStakingPercentage(apy) }}% · {{ term }}d</text>
       </view>
 
       <!-- Input row -->
       <view class="flex items-baseline" style="gap: 8px">
         <text :style="dollarStyle">$</text>
-        <input class="flex-1 min-w-0 tabular-nums" :style="inputStyle" type="text" inputmode="decimal" :value="amount" @input="onAmountInput" />
+        <input class="flex-1 min-w-0 tabular-nums" :style="inputStyle" type="text" inputmode="decimal" :value="amount" :aria-label="w.amountLabel" @input="onAmountInput" />
       </view>
 
-      <!-- Term selector (inline segmented) -->
-      <view class="grid grid-cols-4" :style="segWrapStyle">
-        <view v-for="(tm, i) in terms" :key="tm" class="active:opacity-70 transition-opacity" :style="segPillStyle(i === termIdx)" role="button" tabindex="0" @click="termIdx = i">
-          <text>{{ tm }}d</text>
-        </view>
-      </view>
+<GlassSegments semantics="radio" :model-value="term" :options="termOptions" :label="w.termLabel" @select="selectTerm" style="margin-top: 14px" />
 
       <template v-if="amountNum > 0">
-        <text class="block" :style="periodLabelStyle">{{ fmt(t.uiChrome.afterDays, { n: 365 }) }}</text>
-
         <!-- Single bar -->
         <view class="flex items-center" style="margin-top: 8px; gap: 10px">
           <view ref="singleBarRef" class="flex-1 relative overflow-hidden" :style="barTrackStyle">
             <view :style="singleFillStyle" />
-            <text class="block absolute flex items-center" :style="barLabelStyle">{{ w.singlePayout }}</text>
+            <text class="block absolute flex items-center" :style="barLabelStyle">{{ singleLabel }}</text>
           </view>
           <view class="text-right" style="min-width: 88px">
             <text class="block tabular-nums" :style="barAmtStyle('var(--v5-ink)')">${{ singleText }}</text>
@@ -66,35 +60,74 @@
           <text style="color: var(--v5-brand); font-weight: 500">+${{ extraText }}</text>
           <!-- 分隔空格显式拼在表达式里,不藏在词典值的前导空格里(不可见契约,trim 型格式化会静默吃掉);
                也不能只在模板里打一个空格 —— Vue 的空白折叠会把标签边上的空白删掉(实景实测粘成 `+$550来自复投`)。 -->
-          <text>{{ " " + fmt(t.stakingV3.calc.compoundSuffix, { n: cycles }) }}</text>
+          <text>{{ " " + fmt(t.stakingV3.calc.compoundSuffix, { n: reinvestments }) }}</text>
         </view>
       </template>
 
       <text class="block" :style="disclaimerStyle">{{ w.disclaimer }}</text>
     </view>
   </view>
+  <view v-else class="relative overflow-hidden" :style="unavailableStyle">
+    <!-- 两种「不可计算」必须分开说:快照没到(重试可能好)vs 快照到了但全部停售(重试没用)。
+         合并成一句会让停售看起来像临时故障。 -->
+    <text>{{ configAvailable ? t.home.quickStakeStopped : t.staking.remoteUnavailableClosed }}</text>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type CSSProperties } from "vue";
+import { formatStakingPercentage } from "@/lib/staking-percentage";
+import CalculatorWebviewAccessibility from "./calculator-webview-accessibility.vue";
+import { ref, computed, onMounted, nextTick, watch, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-import { STAKING_APY, type StakingTerm } from "@/store/staking";
+import { useStaking, STAKING_APY, STAKING_PENALTY, STAKING_MIN, type StakingTerm } from "@/store/staking";
+import { canOpenStakingPool, resolveStakingPool } from "@/lib/staking-canonical";
+import { compoundDurationDays, reinvestmentCount } from "@/lib/compound-cycles";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
 const t = useT();
 const w = computed(() => t.value.stakingV3.calc);
+const staking = useStaking();
+onMounted(() => {
+  if (!staking.isMockMode) void staking.syncRemote();
+});
 
 const terms: StakingTerm[] = [30, 90, 180, 365];
+const DEFAULT_TERM: StakingTerm = 180;
 const amount = ref("1000");
-const termIdx = ref(2); // default 180d
 
-const term = computed(() => terms[termIdx.value]);
+const stakingState = computed(() => ({
+  isMockMode: staking.isMockMode,
+  remoteReady: staking.remoteReady,
+  pools: staking.pools,
+}));
+/**
+ * 当前**可售**的档位。远程档未就绪或全部停售时为空 —— 那时一个收益都不该算:
+ * 拿停售档位的 APY 算出「投 $1000 赚 $395」是在为买不到的产品报价。
+ */
+const sellableTerms = computed(() => terms.filter((tm) => canOpenStakingPool(stakingState.value, tm)));
+// 计算参数来自当前可售的服务端方案:默认 180d,它不可售时落到第一个可售档位。
+const term = ref<StakingTerm>(DEFAULT_TERM);
+watch(sellableTerms, (list) => {
+  const [first] = list;
+  if (first !== undefined && !list.includes(term.value)) term.value = first;
+}, { immediate: true });
+
 const amountNum = computed(() => parseFloat(amount.value) || 0);
-const apy = computed(() => STAKING_APY[term.value]);
+const pool = computed(() => resolveStakingPool(
+  stakingState.value,
+  term.value,
+  { apy: STAKING_APY[term.value], penalty: STAKING_PENALTY[term.value], minAmountUsdt: STAKING_MIN[term.value] },
+));
+const apy = computed(() => pool.value?.apy ?? 0);
+const configAvailable = computed(() => pool.value !== null);
+/** 至少要有一个可售档位才算得出收益;否则渲染暂停态,不报价。 */
+const hasSellablePlan = computed(() => sellableTerms.value.length > 0);
 const single = computed(() => amountNum.value * (1 + (apy.value * term.value) / 365));
 const singleProfit = computed(() => single.value - amountNum.value);
 const cycles = computed(() => Math.floor(365 / term.value));
+const reinvestments = computed(() => reinvestmentCount(cycles.value));
+const compoundDays = computed(() => compoundDurationDays(term.value));
 const compound = computed(() => {
   let c = amountNum.value;
   for (let i = 0; i < cycles.value; i++) c *= 1 + (apy.value * term.value) / 365;
@@ -114,17 +147,38 @@ const singleProfitText = computed(() => singleProfit.value.toFixed(0));
 const compoundText = computed(() => compound.value.toFixed(0));
 const compoundProfitText = computed(() => compoundProfit.value.toFixed(0));
 const extraText = computed(() => extraFromCompounding.value.toFixed(0));
-const compoundLabel = computed(() => fmt(w.value.compoundPayout, { n: cycles.value }));
+const singleLabel = computed(() => fmt(w.value.singlePayoutDuration, { days: term.value }));
+const compoundLabel = computed(() => fmt(w.value.compoundPayoutDuration, {
+  reinvestments: reinvestments.value,
+  days: compoundDays.value,
+}));
 
 function onAmountInput(e: Event) {
   const raw = (e as unknown as { detail: { value: string } }).detail.value;
   amount.value = raw.replace(/[^0-9.]/g, "");
 }
+/** 只允许选到可售档位 —— 停售档位不出现在组里,这里再挡一次(handler 内守卫)。 */
+function selectTerm(next: StakingTerm): void {
+  if (!sellableTerms.value.includes(next)) return;
+  term.value = next;
+}
+/** 单选组的左右方向键:在可售档位间移一格并选上,焦点跟到新选中项(roving tabindex 的标准行为)。 */
+function moveTerm(delta: number): void {
+  const list = sellableTerms.value;
+  const at = list.indexOf(term.value);
+  const next = list[((((at < 0 ? 0 : at) + delta) % list.length) + list.length) % list.length];
+  if (next === undefined) return;
+  selectTerm(next);
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('.nx-compound-term[aria-checked="true"]')?.focus();
+  });
+}
 
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "18px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const auroraStyle: CSSProperties = {
   position: "absolute",
@@ -178,13 +232,15 @@ const inputStyle: CSSProperties = {
   color: "var(--v5-ink)",
   background: "transparent",
 };
-const segWrapStyle: CSSProperties = {
+// 列数跟可售档位数走(原为固定 grid-cols-4 = repeat(4, minmax(0,1fr)))。
+const segWrapStyle = computed<CSSProperties>(() => ({
   marginTop: "12px",
   gap: "6px",
   padding: "4px",
   borderRadius: "12px",
   background: "var(--v5-surface-2)",
-};
+  gridTemplateColumns: `repeat(${sellableTerms.value.length}, minmax(0, 1fr))`,
+}));
 function segPillStyle(active: boolean): CSSProperties {
   return {
     height: "34px",
@@ -199,13 +255,6 @@ function segPillStyle(active: boolean): CSSProperties {
     justifyContent: "center",
   };
 }
-const periodLabelStyle: CSSProperties = {
-  marginTop: "14px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  color: "var(--v5-ink-4)",
-  letterSpacing: "0.02em",
-};
 const barTrackStyle: CSSProperties = {
   height: "28px",
   borderRadius: "6px",
@@ -264,4 +313,14 @@ const disclaimerStyle: CSSProperties = {
   color: "var(--v5-ink-4)",
   lineHeight: 1.45,
 };
+const unavailableStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "16px",
+  background: "var(--v5-warning-soft)",
+  color: "var(--v5-ink-2)",
+  fontSize: "13px",
+};
+
+import GlassSegments from "@/components/glass-segments.vue";
+const termOptions = computed(() => sellableTerms.value.map(value => ({ value, label: `${value}d` })));
 </script>

@@ -100,7 +100,7 @@ export interface EventSpinState {
 }
 
 export interface EventsApi {
-  state(): Promise<EventSnapshot>;
+  state(locale?: string): Promise<EventSnapshot>;
   spinState(eventCode: string): Promise<EventSpinState>;
   join(eventCode: string, idempotencyKey: string): Promise<EventJoinResult>;
   claim(eventCode: string, idempotencyKey: string): Promise<EventClaimResult>;
@@ -150,6 +150,14 @@ function required(value: string, error: string): string {
   return normalized;
 }
 
+export function isValidEventHref(href: string): boolean {
+  if (href === "") return true;
+  if (!/^\/pages\/[A-Za-z0-9_./-]+$/.test(href)) return false;
+  const segments = href.slice("/pages/".length).split("/");
+  return segments.length >= 2
+    && segments.every((segment) => segment !== "" && segment !== "." && segment !== "..");
+}
+
 function parseEvent(value: unknown): CanonicalEvent {
   const row = record(value);
   const eventCode = text(row?.eventCode);
@@ -171,7 +179,7 @@ function parseEvent(value: unknown): CanonicalEvent {
       || !title || subtitle === null || !rewardName || !rewardType || rewardAmount === null
       || featured === null || trackable === null || targetValue === null || progressValue === null
       || !USER_STATUSES.includes(userStatus) || geo === null || href === null
-      || (href !== "" && !/^\/pages\/[A-Za-z0-9_./-]+$/.test(href))) {
+      || !isValidEventHref(href)) {
     return invalid();
   }
   return {
@@ -322,7 +330,10 @@ export function createEventsApi(client: ApiClient): EventsApi {
   const code = (value: string) => encodeURIComponent(required(value, "EVENT_CODE_REQUIRED"));
   const key = (value: string) => required(value, "EVENT_IDEMPOTENCY_KEY_REQUIRED");
   return {
-    state: async () => parseSnapshot(await client.request({ method: "GET", path: "/api/events" })),
+    state: async (locale = "en") => parseSnapshot(await client.request({
+      method: "GET",
+      path: `/api/events?locale=${encodeURIComponent(["en", "zh", "vi"].includes(locale) ? locale : "en")}`,
+    })),
     spinState: async (eventCode) => parseSpinState(await client.request({
       method: "GET",
       path: `/api/events/${code(eventCode)}/spin/state`,

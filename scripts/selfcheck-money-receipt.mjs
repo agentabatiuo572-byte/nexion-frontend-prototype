@@ -98,6 +98,9 @@ const ALLOW = {
   // 注册赠礼两条分录(addOnce ×2)。收口点目前没有「多腿 + 幂等」的出口(addMany 无 Once 变体),
   // 补齐前保留直调;两条分开写本身是半边账风险,已登记为 P2 欠账。
   "src/pages/register/register.vue": 2,
+  // 测试专门直击 mock ledger 原语，验证分页改造后本地兼容、账号隔离和整组回滚。
+  // 仅 Vitest 文件可达；精确 3 次调用，多一处或少一处同样会触发下面的等式门。
+  "src/store/bills-mock-compatibility.test.ts": 3,
   // `businessTimeouts.add(handle)`(App.vue:76,Set.add 存定时器句柄,与 bills 无关)。
   // 判据是**有意的过近似**(见 billsWriteHits 头注):文件跟 bills 有关系后,任何 `.add(`
   // 成员调用都计入,多算的这一处按机制在额度里精确登记 —— 宁可过近似再逐个登记。
@@ -198,11 +201,7 @@ export const defineStore = (id, setup) => () => {
   }));
   return cache.get(id);
 };`,
-  "vue-stub": `export const ref = (v) => ({ __nxRef: true, value: v });
-export const shallowRef = ref;
-export const computed = (fn) => ({ __nxRef: true, get value() { return typeof fn === "function" ? fn() : fn.get(); } });
-export const reactive = (v) => v;
-export const watch = () => {};`,
+  "vue-stub": VUE_STUB_NXREF,
   "runtime-stub": runtimeStub(root),
 };
 const bundle = await build({

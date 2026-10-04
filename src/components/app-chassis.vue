@@ -3,7 +3,7 @@
   P-004). Route-aware like the prototype's root layout (header.tsx + tab-bar.tsx):
     · TAB routes (home/earn/store/team/me): brand row (N badge + UVEL/title +
       search + bell-badge) + FLOATING frosted-glass pill TabBar (5 tabs, active =
-      gradient brand pill) + home indicator. Liquid-Glass faithful to v5.
+      sliding refractive lens) + home indicator.
     · SUB routes (everything else): NO brand row + NO 5-tab pill (the page carries
       its own in-page back/title row); only the status bar + home indicator. This
       keeps all ~56 sub-pages correct with zero per-page edits.
@@ -11,8 +11,8 @@
   `active` prop is an optional fallback for the very first frame.
 -->
 <template>
-  <view class="nx-chassis" style="background: var(--v5-bg)">
-    <view class="nx-top-chrome" :style="{ height: topChromeHeight + 'px' }" />
+  <view v-bind="$attrs" :id="chassisHostId" class="nx-chassis" style="background: var(--v5-bg)" :chrome-config="chromeConfiguration" :change:chrome-config="chromeView.update">
+    <view class="nx-top-chrome" :style="{ height: statusBarHeight + 'px' }" />
 
     <!-- Status bar safe area (real on device, ~0 on desktop H5) -->
     <DeviceStatusBar />
@@ -20,27 +20,27 @@
     <!-- Header brand row — TAB routes only (sub-pages carry their own back row) -->
     <view v-if="isTabRoute" class="nx-header" :style="{ top: statusBarHeight + 'px' }">
       <view class="nx-header__l">
-        <BrandLockup class="nx-logo" />
+        <BrandLockup :height="40" aria-hidden="true" />
       </view>
       <view class="nx-header__center" />
       <view class="nx-header__r">
-        <view class="nx-icon-btn active:opacity-60" role="button" tabindex="0" :aria-label="t.headerTitles.search" @click="goSearch" @keydown.enter.prevent="goSearch" @keydown.space.prevent="goSearch">
+        <LiquidGlass :radius="24" tone="control" backdrop=".nx-page-enter" />
+        <view class="nx-icon-btn" role="button" tabindex="0" :aria-label="t.headerTitles.search" @click="goSearch"  @keydown.enter.prevent="onKeyboardActivate($event, goSearch)" @keydown.space.prevent="onKeyboardActivate($event, goSearch)">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
         </view>
-        <view class="nx-icon-btn nx-bell active:opacity-60" role="button" tabindex="0" :aria-label="t.notifs.drawerTitle" @click="goNotifications" @keydown.enter.prevent="goNotifications" @keydown.space.prevent="goNotifications">
+	        <view class="nx-icon-btn nx-bell" role="button" tabindex="0" :aria-label="unread > 0 ? t.notifs.drawerTitle + ' · ' + unreadLabel : t.notifs.drawerTitle" @click="goNotifications"  @keydown.enter.prevent="onKeyboardActivate($event, goNotifications)" @keydown.space.prevent="onKeyboardActivate($event, goNotifications)">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
           <view v-if="unread > 0" class="nx-badge"><text class="nx-badge__t">{{ unreadLabel }}</text></view>
         </view>
       </view>
     </view>
 
-    <!-- Page nav header — sub-pages that registered via useSetPageHeader. Sticky
-         chassis row (NOT inside page content) so it pins on scroll + frosts the
-         content behind it, mirroring the prototype Header nav row. Tab pages never
-         set pageHeader, so this never shows for them (brand row stays untouched). -->
+    <!-- Registered sub-page header: round glass controls stay available while
+         the bare title hides as content scrolls into the reserved header gap. -->
     <view v-if="!isTabRoute && navHeader" class="nx-navheader" :style="{ top: statusBarHeight + 'px', height: navHeaderH + 'px' }">
-      <view class="nx-nav-side" @click="navBack">
+      <view class="nx-nav-side" role="button" tabindex="0" :aria-label="t.privacy.back" @click="navBack"  @keydown.enter.prevent="onKeyboardActivate($event, navBack)" @keydown.space.prevent="onKeyboardActivate($event, navBack)">
         <view class="nx-nav-glass">
+          <LiquidGlass :radius="18" tone="navigation" backdrop=".nx-page-enter" />
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         </view>
       </view>
@@ -48,10 +48,11 @@
         <text class="nx-nav-title">{{ navHeader.title }}</text>
         <text v-if="navHeader.subtitle" class="nx-nav-sub">{{ navHeader.subtitle }}</text>
       </view>
-      <view class="nx-nav-side" @click="goNotifications">
+	      <view class="nx-nav-side" role="button" tabindex="0" :aria-label="unread > 0 ? t.notifs.drawerTitle + ' · ' + unreadLabel : t.notifs.drawerTitle" @click="goNotifications"  @keydown.enter.prevent="onKeyboardActivate($event, goNotifications)" @keydown.space.prevent="onKeyboardActivate($event, goNotifications)">
         <view class="nx-nav-glass">
+          <LiquidGlass :radius="18" tone="navigation" backdrop=".nx-page-enter" />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
-          <view class="nx-nav-belldot" />
+          <view v-if="unread > 0" class="nx-nav-belldot" />
         </view>
       </view>
     </view>
@@ -106,38 +107,24 @@
       </view>
     </view>
 
+    <slot name="pageFixed" :top="contentTop + pendingBarInset" />
+
     <!-- Bottom chrome: floating pill TabBar (tab routes) + home indicator (always) -->
     <view class="nx-tabbar-wrap">
-      <view v-if="isTabRoute" class="nx-tabbar-pill">
-        <view aria-hidden class="nx-tab-specular" />
-        <view
-          v-for="tab in tabs"
-          :key="tab.key"
-          class="nx-tab active:opacity-70"
-          :style="tab.key === activeTab ? activeTabStyle : { color: 'var(--v5-ink-3)' }"
-          role="tab"
-          tabindex="0"
-          :aria-selected="tab.key === activeTab ? 'true' : 'false'"
-          :aria-label="tab.label"
-          @click="go(tab)"
-          @keydown.enter.prevent="go(tab)"
-          @keydown.space.prevent="go(tab)"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-            :stroke="tab.key === activeTab ? 'var(--v5-brand)' : 'var(--v5-ink-3)'"
-            :stroke-width="tab.key === activeTab ? 2.4 : 2" stroke-linecap="round" stroke-linejoin="round">
+      <GlassSegments v-if="isTabRoute" class="nx-tabbar-pill" variant="navigation" :options="navigationOptions" :model-value="activeTab" :from-value="navigationFrom" @select="selectNavigation">
+        <template #option="{ option: tab, selected }">
+          <svg class="nx-tab__icon" width="22" height="22" viewBox="0 0 24 24" fill="none"
+            :stroke="selected ? 'var(--v5-brand)' : 'var(--v5-ink-2)'"
+            :stroke-width="selected ? 2.3 : 1.8" stroke-linecap="round" stroke-linejoin="round">
             <path :d="tab.icon" />
             <template v-if="tab.icon2"><path :d="tab.icon2" /></template>
           </svg>
-          <text class="nx-tab__label" :style="{ color: tab.key === activeTab ? 'var(--v5-brand)' : 'var(--v5-ink-3)' }">{{ tab.label }}</text>
-        </view>
-      </view>
+          <text class="nx-tab__label" :style="{ color: selected ? 'var(--v5-brand)' : 'var(--v5-ink-2)' }">{{ tab.label }}</text>
+        </template>
+      </GlassSegments>
       <DeviceHomeIndicator />
     </view>
 
-    <!-- Nova 浮标 — tab routes only. Remote mode keeps the real Gemma entry
-         resident; mock mode retains the prototype's unread-triggered behavior.
-         `dimmed` = 正在滚动 → 让路给内容(见 markScrolling)。 -->
     <NovaBubble v-if="isTabRoute" :dimmed="scrolling" />
 
     <!-- Chassis-level overlays (each self-gates on its own store's open state,
@@ -149,7 +136,6 @@
       <TradeinSheets />
       <LuckySpinSheet />
       <StickyCtaBar />
-      <MessageDrawer />
       <!-- 待支付浮动条:结算扫码步开出的那笔发票还没付,全站置顶提醒 + 一键回到同一笔。
            自隐藏:无在途会话 / 已过期 / 结算页正在展示它。位置见 pendingBarTop / pendingBarInset。 -->
       <PendingCheckoutBar :top="pendingBarTop" />
@@ -161,9 +147,10 @@
 </template>
 
 <script setup lang="ts">
-import BrandLockup from "@/components/brand-lockup.vue";
-import { ref, computed, watch, onMounted, onUnmounted, onActivated, nextTick, provide, type CSSProperties } from "vue";
+import { rememberGlassNavigation, consumeGlassNavigation } from "@/lib/liquid-glass-core";
+import { ref, computed, watch, onMounted, onUnmounted, onActivated, nextTick, provide, type CSSProperties, getCurrentInstance } from "vue";
 import GlobalUi from "@/components/global-ui.vue";
+import BrandLockup from "@/components/brand-lockup.vue";
 import NovaBubble from "@/components/nova/nova-bubble.vue";
 import TrialClaimSheet from "@/components/trial-claim-sheet.vue";
 import SlotActionSheet from "@/components/slot-action-sheet.vue";
@@ -171,15 +158,14 @@ import StickyCtaBar from "@/components/sticky-cta-bar.vue";
 import PendingCheckoutBar from "@/components/pending-checkout-bar.vue";
 import TradeinSheets from "@/components/tradein-sheets.vue";
 import LuckySpinSheet from "@/components/lucky-spin-sheet.vue";
-import MessageDrawer from "@/components/message-drawer.vue";
 import VoucherClaimSheet from "@/components/voucher-claim-sheet.vue";
 import VoucherBanner from "@/components/voucher-banner.vue";
 import DeviceHomeIndicator from "@/components/device/device-home-indicator.vue";
 import DeviceStatusBar from "@/components/device/device-status-bar.vue";
 import { useT } from "@/i18n/use-t";
 import { useNotifications } from "@/store/notifications";
-import { formatUnreadBadge } from "@/lib/unread-badge";
 import { useMessageDrawer } from "@/store/message-drawer";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { useRefresh } from "@/store/refresh";
 import { useTrialClaimSheet } from "@/store/trial-claim-sheet";
 import { usePageHeader } from "@/store/page-header";
@@ -189,13 +175,21 @@ import { useVoucher } from "@/store/voucher";
 import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { usePendingCheckout } from "@/store/pending-checkout";
 import { PENDING_BAR_INSET_KEY } from "@/store/pending-checkout-core";
-import { VOUCHER_POPUP } from "@/mock/vouchers";
 import { usePopupArbiter, runPriorityRound, type AutoPushCandidate, type PopupId } from "@/store/popup-arbiter";
 import { navBack as navBackTo, navTo } from "@/lib/route";
 import { isStaticReviewRoute } from "@/lib/static-review-routes";
 import { h5DevicePreviewStatusBarHeight } from "@/lib/device-preview";
 import { saveScrollPos, getScrollPos, dropScrollPos } from "@/lib/scroll-memory";
+import { resolveChassisScrollElement, scrollCurrentTabToTop, scrollNativeCurrentTabToTop } from "@/lib/chassis-scroll";
+import { createVoucherPopupScheduler } from "@/lib/voucher-popup-scheduler";
+import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
+import type { RemoteAccountRequest } from "@/lib/remote-account-epoch";
+import { isAcceptanceObservationModalOpen, onAcceptanceObservationModalClosed, onAcceptanceObservationModalOpened } from "@/services/behavior-analytics";
 
+// Uni forwards query parameters such as product `id` through the page root.
+// Bind fallthrough attrs explicitly so they cannot replace the view adapter's ID.
+defineOptions({ inheritAttrs: false });
 const props = defineProps<{
   active?: "home" | "earn" | "store" | "team" | "me";
 }>();
@@ -213,6 +207,52 @@ const voucherClaimSheet = useVoucherClaimSheet();
 const pendingCheckout = usePendingCheckout();
 const popupArbiter = usePopupArbiter();
 
+type VoucherPopupRequestScope = {
+  account: RemoteAccountRequest;
+  commerce: RuntimeRevisionScope;
+};
+
+function captureVoucherPopupScope(): VoucherPopupRequestScope {
+  return { account: captureAccountScope(), commerce: captureRuntimeRevision() };
+}
+
+function isCurrentVoucherPopupScope(scope: VoucherPopupRequestScope): boolean {
+  return isCurrentAccountScope(scope.account) && isCurrentRuntimeRevision(scope.commerce);
+}
+
+let autoPushMounted = false;
+const voucherPopupScheduler = createVoucherPopupScheduler<VoucherPopupRequestScope>({
+  isHome: () => autoPushMounted && readRoute() === "pages/index/index",
+  isObservationModalOpen: isAcceptanceObservationModalOpen,
+  isBlockingSheetOpen: () => popupArbiter.current !== null || popupArbiter.visitClaimed,
+  sessionShownCount: () => voucherClaimSheet.sessionShownCount,
+  cadence: () => voucher.autoPopupCadence,
+  captureScope: captureVoucherPopupScope,
+  isCurrentScope: isCurrentVoucherPopupScope,
+  tryAutoPush: (options) => {
+    if (!popupArbiter.acquire("voucher-claim")) return false;
+    const opened = voucherClaimSheet.tryAutoPush({ surface: "home", ...options });
+    if (!opened) popupArbiter.release("voucher-claim"); // persist-verdict-ok: 弹层令牌释放(popup-arbiter),void 无判决,非资金 / 落盘原语
+    else stopAutoPush();
+    return opened;
+  },
+  markPopupSeen: (voucherId) => voucher.markPopupSeen(voucherId),
+});
+let stopObservationOpened: (() => void) | null = null;
+let stopObservationClosed: (() => void) | null = null;
+let stopVoucherRunScope: (() => void) | null = null;
+
+function bindVoucherClaimSheetScope(): void {
+  const account = captureAccountScope();
+  const commerce = captureRuntimeRevision();
+  voucherClaimSheet.bindScope({
+    accountKey: account.accountKey,
+    accountEpoch: account.epoch,
+    runId: commerce.runId,
+    runEpoch: commerce.epoch,
+  });
+}
+
 // ── 首页自动弹层编排(主人 2026-08-16 拍板 A1 / B1 / C1)──────────────────────
 // 旧写法是两条各自独立的定时器 + 两两手写 `!对方.open`,优先级只体现为 1300ms 与
 // 1500ms 的延迟之差 —— 那是一段 200ms 的赛跑,不是一条规则。实测出的三条缺陷:
@@ -226,8 +266,8 @@ const popupArbiter = usePopupArbiter();
 //    赢家关掉之后不会再有第二个候选被评,因为表已经停了。
 const SETTLE_RETRY_MS = 300;
 // 资格复算窗口:只在安顿点评一次会重演缺陷 ②(异步目录还没到货)。
-// ponytail: 有界重试,20 × 300ms = 6s;超时就这一趟不弹 —— 比让低优先级顶上去好。
-const SETTLE_MAX_TICKS = 20;
+// 有界重试 205 × 300ms ≈ 61.5s；H7 的长冷却不靠这里轮询，而由权威 nextEligibleAt 调度。
+const SETTLE_MAX_TICKS = 205;
 let settleTimer: ReturnType<typeof setTimeout> | null = null;
 let settleRetry: ReturnType<typeof setInterval> | null = null;
 let settleTicks = 0;
@@ -235,20 +275,11 @@ let settleTicks = 0;
 // 顺序**不在这里定**(按 POPUP_PRIORITY 排),这里只声明每个 id 的资格与推送方式。
 const autoPushCandidates: AutoPushCandidate[] = [
   {
-    id: "voucher-claim",
-    eligible: () => voucher.claimableVouchers.some((v) => v.popupEnabled),
-    ready: () => voucher.catalogReady,
-    push: () =>
-      voucherClaimSheet.tryAutoPush({
-        cooldownHours: VOUCHER_POPUP.cooldownHours,
-        maxPerSession: VOUCHER_POPUP.maxPerSession,
-      }),
-  },
-  {
     id: "trial-claim",
-    // 试用的判据全部来自本地 config 与试用状态,无异步依赖,恒就绪。
-    eligible: () => trialConfig.config.autoPushEnabled && freeTrial.canStart(),
-    ready: () => true,
+    // 先等 H7 目录到货；若当前有到点的首页券，由独立权威调度器先拿本次首页名额。
+    eligible: () => voucher.catalogReady && !voucher.autoPopupDueNow
+      && trialConfig.config.autoPushEnabled && freeTrial.canStart(),
+    ready: () => voucher.catalogReady,
     push: () =>
       trialClaimSheet.tryAutoPush({
         cooldownHours: trialConfig.config.autoPushCooldownHours,
@@ -260,7 +291,7 @@ const autoPushCandidates: AutoPushCandidate[] = [
 // 延迟回归本职「让首屏先安顿」,不再兼任优先级。取各候选配置延迟的较大值,
 // 保证每个候选都过了它自己那份 autoPushDelayMs 才被评。
 function settleDelayMs(): number {
-  return Math.max(trialConfig.config.autoPushDelayMs, VOUCHER_POPUP.autoPushDelayMs);
+  return Math.max(trialConfig.config.autoPushDelayMs, voucher.autoPopupCadence?.delayMs ?? 0);
 }
 
 /** 按优先级评一轮。返回 true = 该停表(有人弹出来了,或已离开首页)。 */
@@ -334,11 +365,14 @@ const refreshing = computed(() => refresh.isRefreshing);
 const indicatorY = computed(() => (refreshing.value ? HOLD_PX : pullY.value));
 const refresherVisible = computed(() => refreshing.value || pullY.value > 6);
 
-// uni <view> template ref → DOM element via $el on H5 (P-019); read scrollTop
-// directly so the pull only arms when the content is at the very top.
+// H5's uni <view> ref exposes the DOM element via $el. APP-PLUS page logic has
+// no document; its ref still serves scroll-memory reads, while writes use evalJS.
 function chassisScrollDom(): HTMLElement | null {
   const raw = scrollEl.value as { $el?: HTMLElement } | HTMLElement | null;
+  // #ifdef APP-PLUS
   return (raw && typeof raw === "object" && "$el" in raw ? raw.$el : raw) as HTMLElement | null;
+  // #endif
+  return resolveChassisScrollElement(raw, () => null);
 }
 function currentScrollTop(): number {
   return chassisScrollDom()?.scrollTop ?? 0;
@@ -451,6 +485,13 @@ function readRoute(): string {
 }
 const route = ref(readRoute());
 onMounted(() => {
+  autoPushMounted = true;
+  bindVoucherClaimSheetScope();
+  stopVoucherRunScope = subscribeRuntimeRevision(() => {
+    bindVoucherClaimSheetScope();
+    voucherPopupScheduler.cancel();
+    if (readRoute() === "pages/index/index") voucherPopupScheduler.schedule();
+  });
   route.value = readRoute();
   // Fresh mount = fresh landing: start at top and wipe stale memory; only a
   // keep-alive re-activation (back-navigation) restores. H5-only listener —
@@ -472,6 +513,13 @@ onMounted(() => {
   // (ALIGNMENT 红线);路由在**触发时**复检,绝不弹到延迟期间跳过去的别的页上。
   if (isHome.value) {
     popupArbiter.beginHomeVisit();
+    voucherPopupScheduler.schedule();
+    stopObservationOpened = onAcceptanceObservationModalOpened(() => {
+      voucherPopupScheduler.onObservationModalOpened(captureVoucherPopupScope());
+    });
+    stopObservationClosed = onAcceptanceObservationModalClosed(({ token }) => {
+      voucherPopupScheduler.onObservationModalClosed(token);
+    });
     settleTicks = 0;
     settleTimer = setTimeout(() => {
       if (runAutoPushRound()) return;
@@ -483,6 +531,14 @@ onMounted(() => {
   }
 });
 onUnmounted(() => {
+  autoPushMounted = false;
+  voucherPopupScheduler.cancel();
+  stopVoucherRunScope?.();
+  stopVoucherRunScope = null;
+  stopObservationOpened?.();
+  stopObservationOpened = null;
+  stopObservationClosed?.();
+  stopObservationClosed = null;
   const scrollDom = chassisScrollDom();
   if (scrollDom && typeof scrollDom.removeEventListener === "function") {
     scrollDom.removeEventListener("scroll", onChassisScroll);
@@ -490,6 +546,14 @@ onUnmounted(() => {
   if (scrollIdleTimer) { clearTimeout(scrollIdleTimer); scrollIdleTimer = null; }
   stopAutoPush();
 });
+
+watch(
+  () => voucher.autoPopupCadence,
+  () => {
+    if (autoPushMounted) voucherPopupScheduler.schedule();
+  },
+  { deep: true },
+);
 
 const routeTab = computed(() => TAB_ROUTE_KEY[route.value]);
 const showBusinessOverlays = computed(() => !!route.value && !isStaticReviewRoute(route.value));
@@ -523,7 +587,12 @@ function navBack() {
   navBackTo(navHeader.value?.backHref);
 }
 
-const unread = computed(() => notifications.unread);
+function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
+  if (event.repeat) return;
+  action();
+}
+
+const unread = computed(() => messageDrawer.totalUnread);
 const unreadLabel = computed(() => formatUnreadBadge(unread.value));
 
 // ── layout insets ──
@@ -553,7 +622,6 @@ const pendingBarVisible = computed(() => !!pendingCheckout.barSession && showBus
 const pendingBarTop = computed(() => contentTop.value + 8);
 const pendingBarInset = computed(() => (pendingBarVisible.value ? PENDING_BAR_INSET : 0));
 provide(PENDING_BAR_INSET_KEY, pendingBarInset);
-const topChromeHeight = computed(() => contentTop.value);
 
 // lucide-style outline paths (Home / Zap / ShoppingBag / Users / User)
 const tabs = computed(() => [
@@ -581,23 +649,48 @@ function go(tab: { key: string; route: string }) {
   // behavior 显式跟随系统「减少动态」偏好——CSS 的 scroll-behavior 兜底管不到
   // JS scrollTo 的显式 behavior 参数。App 端无 matchMedia,try 兜住即可。
   if (tab.key === activeTab.value) {
+    // #ifdef APP-PLUS
+    const pages = typeof getCurrentPages === "function" ? getCurrentPages() : [];
+    scrollNativeCurrentTabToTop(pages[pages.length - 1]);
+    // #endif
+    // #ifndef APP-PLUS
     const dom = chassisScrollDom();
     if (!dom) return;
     let reduce = false;
     try { reduce = !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches; } catch { /* App 端无 matchMedia */ }
-    dom.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    scrollCurrentTabToTop(dom, reduce);
+    // #endif
     return;
   }
+  rememberGlassNavigation(activeTab.value, tab.key);
   navTo(tab.route);
 }
 function goSearch() {
-  uni.navigateTo({ url: "/pages/search/search", fail: () => {} });
+  navTo("/pages/search/search");
 }
-// Bell → in-place slide-in MessageDrawer (now ported, P-043), matching the
-// prototype. (Was routing to the full /pages/me/notifications page as a stopgap.)
+// Every bell opens the full-page center; back restores its origin page.
 function goNotifications() {
   messageDrawer.show();
 }
+
+import LiquidGlass from "@/components/liquid-glass.vue";
+import GlassSegments from "@/components/glass-segments.vue";
+
+const chassisHostId = `nx-chassis-host-${getCurrentInstance()!.uid}`;
+const chromeConfiguration = { hostId: chassisHostId };
+declare const chromeView: { update(value: { hostId: string }): void };
+const navigationOptions = computed(() => tabs.value.map(tab => ({ ...tab, value: tab.key })));
+const navigationFrom = consumeGlassNavigation(activeTab.value);
+function selectNavigation(value: string) {
+  const tab = tabs.value.find(item => item.key === value);
+  if (tab) go(tab);
+}
+</script>
+
+<script module="chromeView" lang="renderjs">
+import { chassisView } from "@/lib/liquid-glass-view";
+// @ts-expect-error vue-tsc 1.x treats uni renderjs as a second normal script.
+export default chassisView;
 </script>
 
 <style scoped>
@@ -627,23 +720,23 @@ function goNotifications() {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  border-bottom: 1px solid var(--v5-chrome-border);
+  gap: 12px;
 }
-/* Page nav header (sub-pages) — its OWN chrome surface so the brand row
-   (.nx-header) stays byte-identical for the 5 tab pages. Mirrors the prototype
-   Header nav row: 44/56 tall, back + centered title + bell, frosted. */
+/* Sub-page row has no shared surface; each control owns its round glass. */
 .nx-navheader {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 12px;
+  right: 12px;
   z-index: 100;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--v5-chrome-border);
+  padding: 0 2px;
+  border-radius: 28px;
 }
 .nx-nav-side {
+  position: relative;
+  z-index: 1;
   width: 44px;
   height: 44px;
   display: grid;
@@ -657,23 +750,25 @@ function goNotifications() {
   position: relative;
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--v5-glass-bg);
-  border: 1px solid var(--v5-glass-border);
-  box-shadow: var(--v5-glass-shadow);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  transition: transform 100ms cubic-bezier(.2,.8,.2,1);
 }
+.nx-nav-glass > svg { position: relative; z-index: 1; }
 .nx-nav-titlewrap {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  transition: transform 200ms cubic-bezier(.23,1,.32,1), opacity 200ms, visibility 0s;
 }
+.nx-nav-titlewrap[data-hidden="true"] { transform: translateY(-18px); opacity: 0; visibility: hidden; transition-delay: 0s, 0s, 200ms; }
+@media (prefers-reduced-motion: reduce) { .nx-nav-titlewrap { transition: none; } .nx-nav-titlewrap[data-hidden="true"] { transform: none; } }
 .nx-nav-title {
   max-width: 100%;
   font-family: var(--font-v5);
@@ -706,19 +801,28 @@ function goNotifications() {
   background: var(--v5-brand-2);
 }
 .nx-header__l {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  width: 104px;
+  /* 品牌包给横版定的最小渲染宽度是 120px(低于它 8 个节点糊成一团),槽宽跟着它走。
+     原值 104px 是旧字标 logo 的宽度,装不下新标会溢出到中间区。 */
+  width: 132px;
+  height: 44px;
+  justify-content: center;
   flex-shrink: 0;
+  transition: transform 200ms cubic-bezier(.23,1,.32,1), opacity 200ms, visibility 0s;
 }
+.nx-header__l[data-hidden="true"] { transform: translateY(-18px); opacity: 0; visibility: hidden; transition-delay: 0s, 0s, 200ms; }
+@media (prefers-reduced-motion: reduce) { .nx-header__l { transition: none; } .nx-header__l[data-hidden="true"] { transform: none; } }
 .nx-header__center {
   position: absolute;
   left: 50%;
   top: 0;
   height: 52px;
-  max-width: calc(100% - 208px);
+  /* 两侧各让出一个槽宽(120px),左右都不会压到居中区。原值 208 = 旧槽宽 104×2。 */
+  max-width: calc(100% - 240px);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -727,13 +831,6 @@ function goNotifications() {
   min-width: 0;
   text-align: center;
   pointer-events: none;
-}
-.nx-logo {
-  position: relative;
-  width: 112px;
-  height: 38.7px;
-  display: block;
-  flex-shrink: 0;
 }
 .nx-brand {
   font-size: 20px;
@@ -749,9 +846,11 @@ function goNotifications() {
   white-space: nowrap;
 }
 .nx-header__r {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
+  padding: 0 3px;
   flex-shrink: 0;
 }
 .nx-icon-btn {
@@ -762,7 +861,10 @@ function goNotifications() {
   align-items: center;
   justify-content: center;
   position: relative;
+  transition: transform 100ms cubic-bezier(.2,.8,.2,1);
 }
+.nx-icon-btn:active, .nx-nav-side:active .nx-nav-glass { transform: scale(.92); }
+.nx-icon-btn:focus-visible, .nx-nav-side:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; border-radius: 24px; }
 .nx-badge {
   position: absolute;
   top: 4px;
@@ -859,50 +961,5 @@ function goNotifications() {
 }
 .nx-tabbar-pill {
   margin: 0 12px;
-  display: flex;
-  align-items: stretch;
-  padding: 4px;
-  border-radius: 22px;
-  overflow: hidden;
-  position: relative;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 45%, transparent 100%),
-    var(--v5-tabbar-bg);
-  backdrop-filter: blur(40px) saturate(180%) brightness(1.05);
-  -webkit-backdrop-filter: blur(40px) saturate(180%) brightness(1.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
-    0 10px 36px rgba(0, 0, 0, 0.4),
-    0 0 0 0.5px rgba(255, 255, 255, 0.04);
-}
-.nx-tab-specular {
-  position: absolute;
-  left: 12%;
-  right: 12%;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
-  opacity: 0.7;
-  pointer-events: none;
-}
-.nx-tab {
-  flex: 1;
-  height: 56px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border-radius: 16px;
-}
-.nx-tab__label {
-  font-size: 12px;
-  line-height: 14px; /* 《02》§2 tab.label 12/14/600 */
-  font-weight: 600;
-  font-family: var(--font-v5);
-  letter-spacing: -0.005em;
-  white-space: nowrap;
 }
 </style>

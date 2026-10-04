@@ -1,28 +1,25 @@
 <!-- ConversionBanner — homepage weekly task card. -->
 <template>
   <view
-    class="weekly-quest block active:scale-[0.98] active:opacity-90 transition-transform"
+    class="nx-glass-action weekly-quest block"
+    :class="{ 'opacity-60': cardInactive }"
     :style="rootStyle"
-    role="button"
-    :tabindex="props.active ? 0 : -1"
+    :role="cardInactive ? undefined : 'button'"
+    :tabindex="props.active && !cardInactive ? 0 : -1"
     :aria-hidden="!props.active"
+    :aria-disabled="cardInactive ? 'true' : 'false'"
+    :aria-label="weeklyRetryAriaLabel"
     :data-copy-source="managedCopy.status[MANAGED_POSITION] ?? 'fallback'"
     :data-copy-key="managedCopy.deliveries[MANAGED_POSITION]?.copyKey ?? 'builtin'"
     :data-copy-version="managedCopy.deliveries[MANAGED_POSITION]?.version ?? 'builtin'"
     :data-experiment-id="managedCopy.deliveries[MANAGED_POSITION]?.experimentId ?? ''"
-    @click="goTarget"
-    @keydown.enter.prevent="goTarget"
-    @keydown.space.prevent="goTarget"
-  >
-    <image
-      class="weekly-quest__product"
-      src="/static/img/marketing/trial-hero.png"
-      mode="aspectFit"
-      :style="productStyle"
-      aria-hidden="true"
-    />
+    :data-target-device="weeklyCard.targetDevice ?? ''"
+    :data-quest-category="weeklyCard.category ?? ''"
+    @click="onCardAction"
 
-    <view class="weekly-quest__content">
+    @keydown.enter.prevent="onCardAction" @keydown.space.prevent="onCardAction"
+  >
+<view class="weekly-quest__content">
       <view class="weekly-quest__header">
         <view class="weekly-quest__identity">
           <view class="weekly-quest__mark" aria-hidden="true">
@@ -33,28 +30,42 @@
             </svg>
           </view>
           <text class="weekly-quest__title">{{ t.home.weeklyQuestEyebrow }}</text>
-          <text class="weekly-quest__multiplier">{{ promoMult === null ? "—" : `${promoMult}×` }}</text>
         </view>
-        <view v-if="!weeklyQuest" class="weekly-quest__countdown">
+        <view class="weekly-quest__countdown">
           <text class="weekly-quest__countdown-label">{{ t.home.weeklyQuestEndsIn }}</text>
           <text class="weekly-quest__countdown-value">{{ remainingLabel }}</text>
         </view>
       </view>
 
-      <view class="weekly-quest__body">
-        <view class="weekly-quest__reward">
-          <text class="weekly-quest__reward-value">+{{ finalRewardText }}</text>
-          <text class="weekly-quest__reward-unit">NEX</text>
+      <view v-if="weeklyState === 'loading'" class="weekly-quest__state" aria-live="polite">
+        <text class="weekly-quest__state-copy">{{ t.weeklyQuest.loading }}</text>
+      </view>
+      <view v-else-if="weeklyState === 'error'" class="weekly-quest__state" role="alert">
+        <text class="weekly-quest__state-copy">{{ weeklyRetryLabel }}</text>
+      </view>
+      <view v-else-if="weeklyState === 'empty'" class="weekly-quest__state" aria-live="polite">
+        <text class="weekly-quest__state-copy">{{ t.weeklyQuest.noTaskAction }}</text>
+      </view>
+      <view v-else class="weekly-quest__body">
+        <view class="weekly-quest__reward-row">
+          <view class="weekly-quest__reward">
+            <text class="weekly-quest__reward-value" :style="{ fontSize: rewardFontSize }">+{{ finalRewardText }}</text>
+            <text class="weekly-quest__reward-unit">NEX</text>
+          </view>
+          <view class="weekly-quest__badges">
+            <text v-if="categoryText" class="weekly-quest__category">{{ categoryText }}</text>
+            <text class="weekly-quest__multiplier">{{ weeklyState === "ready" && promoMult !== null ? `${promoMult}×` : "—" }}</text>
+          </view>
         </view>
-        <text class="weekly-quest__subtitle">{{ subtitleText }}</text>
-        <view v-if="!weeklyQuest" class="weekly-quest__rate">
+        <text class="weekly-quest__subtitle" :aria-label="subtitleText" :title="subtitleText">{{ subtitleText }}</text>
+        <view v-if="weeklyCard.targetDaily !== null" class="weekly-quest__rate">
           <text class="weekly-quest__rate-value">${{ targetDailyText }}</text>
           <text class="weekly-quest__rate-unit">/d</text>
         </view>
       </view>
 
       <view class="weekly-quest__cta">
-        <text>{{ weeklyQuest ? t.headerTitles.missions : t.home.weeklyQuestGetNexGridBox }}</text>
+        <text>{{ ctaText }}</text>
         <text class="weekly-quest__cta-arrow" aria-hidden="true">→</text>
       </view>
     </view>
@@ -64,18 +75,18 @@
 <script setup lang="ts">
 import { computed, onMounted, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
-import { useApp } from "@/store/app";
-import { derivePromoUpgrade } from "@/store/device-types";
-import { deviceNameByKind } from "@/lib/device-copy";
-import { useNow } from "@/composables/use-now";
-import { useContentCopy } from "@/store/content-copy";
 import { useLocaleStore } from "@/store/locale";
+import { useContentCopy } from "@/store/content-copy";
 import { refreshCanonicalOrders } from "@/store/order-canonical";
 import { useWeeklyQuest } from "@/store/weekly-quest";
-import { remoteApiEnabled } from "@/api/runtime";
-import { selectHomeWeeklySource } from "@/lib/home-task-carousel";
+import { presentHomeWeeklyCard, selectHomeWeeklySource } from "@/lib/home-task-carousel";
+import { weeklyQuestDisplayName } from "@/lib/quest-presentation";
 import { navTo } from "@/lib/route";
+import { useNow } from "@/composables/use-now";
+import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
+import { genesisBlockIsKnownUnavailable } from "@/store/genesis-config";
+import { questTargetBusiness, unclaimableBusinessQuests, type QuestTargetAvailability } from "@/lib/quest-business-availability";
+import { useQuestTargetAvailability } from "@/composables/use-quest-target-availability";
 
 const MANAGED_POSITION = "home.conversion-banner";
 
@@ -83,11 +94,10 @@ const props = withDefaults(defineProps<{ active?: boolean }>(), {
   active: true,
 });
 const t = useT();
-const app = useApp();
-const nowTick = useNow();
-const managedCopy = useContentCopy();
 const locale = useLocaleStore();
+const managedCopy = useContentCopy();
 const wq = useWeeklyQuest();
+const now = useNow();
 
 onMounted(() => {
   void managedCopy.refresh(MANAGED_POSITION).then(() => {
@@ -95,99 +105,135 @@ onMounted(() => {
   });
 });
 
+const { block: genesisBlock } = useGenesisSaleGate();
+const targetAvailability = useQuestTargetAvailability();
 const weeklySource = computed(() => selectHomeWeeklySource(
   [...wq.tier1Quests, ...wq.tier2Quests],
   wq.snapshot?.promoBanner ?? null,
 ));
-const weeklyQuest = computed(() => weeklySource.value?.kind === "quest" ? weeklySource.value.quest : null);
-const canonicalPromo = computed(() => weeklySource.value?.kind === "promo" ? weeklySource.value.promo : null);
-const promoMult = computed<number | null>(() => {
-  if (!remoteApiEnabled) return 1.5;
-  if (weeklyQuest.value) return wq.multiplier;
-  return canonicalPromo.value?.multiplier ?? null;
+const weeklyCard = computed(() => presentHomeWeeklyCard(
+  weeklySource.value,
+  wq.snapshot?.promoBanner ?? null,
+  wq.multiplier,
+  now.value * 1000,
+  weeklySource.value?.kind === "quest"
+    ? weeklyQuestDisplayName(weeklySource.value.quest, locale.code, t.value)
+    : undefined,
+));
+/**
+ * 这张卡指向的业务现在整体不可用吗(BUG 127 / 155)。
+ *
+ * 🔴 与 weekly-quest-hero / weekly-quest-list 用**同一份读数**:任务卡继续给「去完成」,
+ *   就是把用户送进一个他立刻撞上的墙 —— 实测形态是质押全部「暂停售卖」、兑换页明说
+ *   「已暂停兑换」,首页卡片仍在倒计时并跳转。hero/list 早就有这道闸,首页这张卡漏了。
+ *   `genesisBlockIsKnownUnavailable` 排除 `configUnavailable`(那是「还不知道」),所以
+ *   冷启动窗口不会把 CTA 误停一层。
+ */
+const questTargetClosed = computed(() => {
+  const source = weeklySource.value;
+  if (source?.kind !== "quest") return false;
+  const q = source.quest;
+  if (questTargetBusiness(q) === null) return false;
+  const availability: QuestTargetAvailability = {
+    genesisBlocked: genesisBlockIsKnownUnavailable(genesisBlock.value),
+    stakingClosed: targetAvailability.value.stakingClosed,
+    exchangeClosed: targetAvailability.value.exchangeClosed,
+  };
+  return unclaimableBusinessQuests([{ ...q, status: "PENDING" }], availability).length > 0;
 });
-const baseReward = 800;
+
+const weeklyState = computed<"loading" | "error" | "empty" | "ready">(() => {
+  if (wq.error && !wq.claimErrorQuestCode) return "error";
+  if (wq.loading || !wq.snapshot) return "loading";
+  return weeklySource.value ? "ready" : "empty";
+});
+const promoMult = computed<number | null>(() => weeklyCard.value.multiplier);
 const finalRewardText = computed(() => {
-  const reward = remoteApiEnabled
-    ? weeklyQuest.value
-      ? Math.round(weeklyQuest.value.rewardNex * (promoMult.value ?? 1))
-      : canonicalPromo.value
-        ? Math.round(canonicalPromo.value.baseReward * canonicalPromo.value.multiplier)
-        : null
-    : Math.round(baseReward * (promoMult.value ?? 1));
+  const reward = weeklyCard.value.rewardNex;
   return reward === null ? "—" : reward.toLocaleString();
+});
+// Scale long server rewards so the full number and task badges share one row.
+const rewardFontSize = computed(() => {
+  const chars = Math.max(7, finalRewardText.value.length);
+  return `${Math.max(12, Math.min(34, Math.floor((34 * 7) / chars)))}px`;
 });
 
 const remainingLabel = computed(() => {
-  if (remoteApiEnabled) {
-    if (!canonicalPromo.value) return "—";
-    const days = canonicalPromo.value.countdownDays;
-    const hours = canonicalPromo.value.countdownHours;
-    return `${days}d ${String(hours).padStart(2, "0")}h`;
-  }
-  const remainingMs = (4 * 86400 + 12 * 3600) * 1000 - ((nowTick.value * 1000) % 60_000);
-  const days = Math.floor(remainingMs / 86400_000);
-  const hours = Math.floor((remainingMs % 86400_000) / 3600_000);
+  const days = weeklyCard.value.countdownDays;
+  const hours = weeklyCard.value.countdownHours;
+  if (days === null || hours === null) return "—";
   return `${days}d ${String(hours).padStart(2, "0")}h`;
 });
 
-const promo = computed(() => derivePromoUpgrade(app.visibleDevices));
 const targetDailyText = computed(() => {
-  if (remoteApiEnabled) {
-    const value = canonicalPromo.value?.targetDaily;
-    return value == null ? "—" : value.toFixed(2);
-  }
-  return promo.value.targetDaily.toFixed(2);
+  const value = weeklyCard.value.targetDaily;
+  return value == null ? "—" : value.toFixed(2);
 });
-const managedCopyText = computed(() => managedCopy.localized(MANAGED_POSITION, locale.code));
-const subtitleText = computed(() =>
-  weeklyQuest.value?.name || managedCopyText.value || (remoteApiEnabled ? (canonicalPromo.value?.targetDevice || "—") : promo.value.multiplier > 0
-    ? fmt(t.value.home.weeklyQuestActivateToClaim, {
-        device: deviceNameByKind(t.value, promo.value.targetKind, promo.value.targetName),
-      })
-    : t.value.home.weeklyQuestAddCapacity),
-);
+const subtitleText = computed(() => weeklyCard.value.subtitle || "—");
+const categoryText = computed(() => {
+  const category = weeklyCard.value.category;
+  if (!category) return "";
+  return ({
+    wallet: t.value.home.dayOneCatWallet,
+    explore: t.value.home.dayOneCatExplore,
+    recommend: t.value.home.dayOneCatRecommend,
+    identity: t.value.home.dayOneCatIdentity,
+    social: t.value.home.dayOneCatSocial,
+  })[category];
+});
+const weeklyLoginRequired = computed(() => /(?:AUTH|LOGIN|SESSION|UNAUTHORIZED|401)/i.test(wq.error ?? ""));
+const weeklyRetryLabel = computed(() => weeklyLoginRequired.value
+  ? t.value.weeklyQuest.retryLogin
+  : t.value.weeklyQuest.retryNetwork);
+const weeklyRetryAriaLabel = computed(() => {
+  if (weeklyState.value === "loading") return t.value.weeklyQuest.loading;
+  if (weeklyState.value === "empty") return t.value.weeklyQuest.noTaskAction;
+  if (weeklyState.value === "error") return weeklyRetryLabel.value;
+  return ctaText.value;
+});
+const ctaText = computed(() => {
+  if (weeklyState.value === "loading") return t.value.weeklyQuest.loading;
+  if (weeklyState.value === "error") return weeklyRetryLabel.value;
+  if (weeklyState.value === "empty") return t.value.weeklyQuest.noTaskAction;
+  // 目标业务停摆时明说原因:静默不改文案会让用户以为点了没反应。
+  if (questTargetClosed.value) return t.value.weeklyQuest.targetClosed;
+  return weeklySource.value?.kind === "quest"
+    ? t.value.weeklyQuest.goComplete
+    : t.value.home.weeklyQuestGetNexGridBox;
+});
 
-const rootStyle: CSSProperties = {
+/** 卡片整体不可交互 = 非当前卡 / 加载中 / 无任务 / 目标业务停摆。 */
+const cardInactive = computed(() => !props.active
+  || weeklyState.value === "loading" || weeklyState.value === "empty"
+  || questTargetClosed.value);
+
+const rootStyle: CSSProperties = { boxShadow: "none",
   position: "relative",
   boxSizing: "border-box",
   width: "100%",
   height: "var(--home-task-card-height, 184px)",
   minHeight: "var(--home-task-card-height, 184px)",
-  borderRadius: "16px",
+  borderRadius: "var(--nx-glass-radius)",
   background:
-    "radial-gradient(50% 60% at 100% 0%, var(--v5-brand-soft), transparent 70%), var(--v5-surface)",
+    "var(--nx-glass-fill)",
   overflow: "hidden",
   color: "var(--v5-ink)",
 };
 
-const PRODUCT_MASK =
-  "radial-gradient(ellipse 200px 250px at 95% 50%, #000 25%, rgba(0,0,0,0.7) 45%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0.1) 82%, transparent 100%)";
-const productStyle: CSSProperties = {
-  position: "absolute",
-  top: "-36px",
-  right: "-50px",
-  width: "220px",
-  height: "220px",
-  pointerEvents: "none",
-  zIndex: 0,
-  maskImage: PRODUCT_MASK,
-  WebkitMaskImage: PRODUCT_MASK,
-};
+function onCardAction() {
+  if (weeklyState.value === "loading" || weeklyState.value === "empty") return;
+  if (questTargetClosed.value) return;
+  if (weeklyState.value === "error") {
+    if (weeklyLoginRequired.value) navTo("/pages/login/login");
+    else void wq.refresh();
+    return;
+  }
 
-function goTarget() {
-  if (weeklyQuest.value) {
-    uni.navigateTo({ url: "/pages/missions/missions", fail: () => {} });
-    return;
-  }
-  if (remoteApiEnabled) {
-    if (canonicalPromo.value) navTo("/store");
-    return;
-  }
-  const kind = promo.value.targetKind;
-  if (!kind) return;
-  uni.navigateTo({ url: `/pages/store/detail?id=${kind}`, fail: () => {} });
+  // 业务已停用时不跳转:否则用户点进一个明说「已暂停」的页面,任务卡等于骗点击。
+  if (questTargetClosed.value) return;
+  if (weeklyCard.value.actionRoute) navTo(weeklyCard.value.actionRoute);
 }
+
 </script>
 
 <style scoped>
@@ -196,7 +242,7 @@ function goTarget() {
   z-index: 1;
   box-sizing: border-box;
   height: 100%;
-  padding: 14px 16px;
+  padding: 8px 16px;
 }
 
 .weekly-quest__header {
@@ -211,6 +257,7 @@ function goTarget() {
 .weekly-quest__identity {
   display: flex;
   min-width: 0;
+  flex: 1;
   align-items: center;
   gap: 7px;
 }
@@ -226,17 +273,20 @@ function goTarget() {
 }
 
 .weekly-quest__title {
+  min-width: 0;
+  overflow: hidden;
   font-family: var(--font-v5);
   font-size: 15px;
   font-weight: 600;
   color: var(--v5-ink);
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .weekly-quest__multiplier {
   display: inline-flex;
-  height: 22px;
-  padding: 0 8px;
+  height: 18px;
+  padding: 0 6px;
   align-items: center;
   border-radius: 999px;
   border: 1px solid var(--v5-brand);
@@ -276,8 +326,53 @@ function goTarget() {
 .weekly-quest__body {
   position: relative;
   z-index: 2;
+  width: 100%;
+  margin-top: 0;
+}
+
+.weekly-quest__reward-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.weekly-quest__badges {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.weekly-quest__category {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--v5-brand-soft);
+  font-family: var(--font-v5);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--v5-brand);
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.weekly-quest__state {
+  position: relative;
+  z-index: 2;
+  display: flex;
   width: 62%;
-  margin-top: 6px;
+  min-height: 74px;
+  padding: 12px 0;
+  align-items: center;
+}
+
+.weekly-quest__state-copy {
+  font-family: var(--font-v5);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--v5-ink-3);
 }
 
 .weekly-quest__reward {
@@ -305,8 +400,9 @@ function goTarget() {
 }
 
 .weekly-quest__subtitle {
-  display: block;
-  margin-top: 4px;
+  display: -webkit-box;
+  width: 90%;
+  margin-top: 0;
   overflow: hidden;
   font-family: var(--font-v5);
   font-size: 13px;
@@ -314,14 +410,15 @@ function goTarget() {
   color: var(--v5-ink-3);
   letter-spacing: -0.008em;
   line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
 }
 
 .weekly-quest__rate {
   display: flex;
   align-items: baseline;
-  margin-top: 3px;
+  margin-top: 0;
   font-family: var(--font-jet-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   line-height: 1;

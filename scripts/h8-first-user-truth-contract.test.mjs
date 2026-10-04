@@ -10,7 +10,8 @@ test("remote H8 share surfaces use only the current server projection", () => {
 
   assert.match(share, /useReferralReward/);
   assert.match(share, /remoteApiEnabled[\s\S]*useReferralReward\(\)\.snapshot\?\.referralCode/);
-  assert.match(share, /export function recordShareEvent[\s\S]*if \(remoteApiEnabled\)[\s\S]*return;[\s\S]*uni\.setStorageSync/);
+  assert.match(share, /export async function recordShareEvent[\s\S]*if \(remoteApiEnabled\)[\s\S]*sourceEnvironment = "PRODUCTION"[\s\S]*runId = ""[\s\S]*return runShareEventFlight/);
+  assert.match(share, /return runShareEventFlight[\s\S]*uni\.setStorageSync/);
   assert.match(card, /rewards\.snapshot\?\.referralCode/);
   assert.doesNotMatch(card, /canonical === app\.user\.referralCode/);
 });
@@ -33,36 +34,34 @@ test("H8 drops malformed or stale-account projections instead of retaining anoth
   const store = read("src/store/referral-reward.ts");
   const accountScope = read("src/lib/account-scope.ts");
 
-  assert.match(store, /let accountEpoch = 0/);
-  assert.match(store, /if \(epoch !== accountEpoch\) return false/);
-  assert.match(store, /accountEpoch \+= 1;[\s\S]*snapshot\.value = null/);
+  assert.match(store, /createRemoteAccountEpoch\(\)/);
+  assert.match(store, /accountScope\.snapshot\(\)[\s\S]*captureRuntimeRevision\(\)/);
+  assert.match(store, /accountScope\.isCurrent\(request\)[\s\S]*isCurrentRuntimeRevision\(runScope\)/);
+  assert.match(store, /accountScope\.bind\(accountKey\);[\s\S]*refreshGeneration \+= 1;[\s\S]*snapshot\.value = null/);
   assert.match(store, /snapshot\.value = null;[\s\S]*error\.value = cause/);
   assert.match(accountScope, /useReferralReward\(\)\.bindAccount\(accountKey\)/);
 });
 
-test("H8 invitation summary keeps an authoritative localized sandbox banner across refresh and relogin", () => {
+test("H8 invitation summary keeps authoritative server data across refresh and relogin", () => {
   const card = read("src/components/team/invite-earn-card.vue");
   const api = read("src/api/referral-reward-api.ts");
   const en = read("src/i18n/messages/en.ts");
   const zh = read("src/i18n/messages/zh.ts");
   const vi = read("src/i18n/messages/vi.ts");
 
-  assert.match(card, /data-testid="h8-sandbox-banner"/);
-  assert.match(card, /snapshot\?\.source === "mock"[\s\S]*snapshot\?\.sourceEnvironment === "SANDBOX"/);
-  assert.match(card, /t\.team\.sandboxBanner/);
-  assert.match(card, /RunID \{\{ sandboxRunId \}\}/);
+  assert.doesNotMatch(card, /data-testid="h8-sandbox-banner"/);
+  assert.doesNotMatch(card, /RunID \{\{ sandboxRunId \}\}/);
   assert.doesNotMatch(card, />Server-set reward per settled invitation</);
   assert.doesNotMatch(card, /`\$\{rewards\.snapshot\.settledCount\} settled/);
   assert.doesNotMatch(card, />Share &amp; earn/);
   assert.doesNotMatch(card, /"settled to wallet"/);
   for (const messages of [en, zh, vi]) {
-    assert.match(messages, /sandboxBanner:/);
     assert.match(messages, /serverRewardPerSettlement:/);
     assert.match(messages, /settlementStatus:/);
     assert.match(messages, /settledToWallet:/);
   }
-  assert.match(api, /const SANDBOX_FACTS = \["nx_h8_sandbox_referral_settlement", "nx_h8_sandbox_referral_ledger"\]/);
-  assert.match(api, /sourceEnvironment === "SANDBOX"[\s\S]*runId/);
+  assert.match(api, /mode === "prod" \|\| mode === "dev"[\s\S]*sourceEnvironment === "PRODUCTION"[\s\S]*runId === null/);
+  assert.match(api, /const PRODUCTION_FACTS = \["nx_referral_reward_settlement", "nx_wallet_ledger", "nx_earnings_release_entry", "nx_user_wallet"\]/);
 });
 
 test("remote registration submits the captured referral code to the server", () => {

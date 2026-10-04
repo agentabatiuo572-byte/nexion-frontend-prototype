@@ -14,7 +14,7 @@ export const DEFAULT_PLATFORM_CONFIG: PlatformConfigSeed = {
     homeNewcomerTasksEnabled: true,
     homeWeeklyPromoEnabled: true,
   },
-  // 在线加成系数；h5BaseFactor 仅保留旧配置兼容，手机离线不计产。
+  // SPEC-1 在线加成系数(单一来源:lib/hashpower.ts 派生 H5_BASE_FACTOR / CONTINUITY_FULL_MS)。
   // 与 admin compute-config COMPUTE_COEFFICIENTS 同 key,运营在 E6 调,PROD 由服务端下发。
   onlineBonus: {
     h5BaseFactor: 0.6,
@@ -46,10 +46,11 @@ export const DEFAULT_PLATFORM_CONFIG: PlatformConfigSeed = {
     rebindCooldownDays: 7,
   },
   rewards: {
-    // NEX 数量原 200(≈免费 $2000 提现抵扣额度)过松,已收紧到 20;此处仅 mock seed,运营在 K 域调。
-    welcomeGift: { lockMode: "risk_bucket", usdtAmount: 5, nexAmount: 20 },
-    // 邀请人奖励:邀请人每邀请一名新用户得的 NEX;此处仅 mock seed,运营在 K 域调。
-    inviterReward: { nexAmount: 200 },
+    enabled: false,
+    effectiveAt: null,
+    // 奖励关闭时 seed 也必须为零，避免非 remote 分支绕过 H8 闸门展示或入账。
+    welcomeGift: { lockMode: "risk_bucket", usdtAmount: 0, nexAmount: 0 },
+    inviterReward: { nexAmount: 0 },
   },
   // FEAT-AUTH01 OTP 闸门 mock seed(PRD §4.6.2/§16.2.1;运营在 K 域调)。
   otpGate: {

@@ -2,8 +2,7 @@
   Wallet — ported from Nexion-prototype/app/(main)/me/wallet/page.tsx.
   iOS-Wallet pattern, top→bottom: balance hero (USDT 48px + NEX link + 3 quick
   actions) → Earnings list (Today / Pending / All-time) → Activity list (Daily
-  check-in / Transaction history / Bank cards / conditional in-flight withdrawal)
-  → NEX boost footer callout.
+  check-in / Transaction history / Bank cards / conditional in-flight withdrawal).
 
   Reads useApp (user/earnings/latestWithdrawal) + useCommission (team lifetime).
   IOSList/IOSListItem (source components) are inlined as a local list primitive.
@@ -20,29 +19,28 @@
 
       <!-- Balance hero — de-carded: balance + actions sit on the page floor. -->
       <view :style="heroStyle">
-        <FundsSandboxBadge />
         <text class="block" :style="heroLabelStyle">{{ t.wallet.usdtBalance }}</text>
-        <text class="block tabular-nums" :style="heroNumStyle">${{ usdt.toFixed(2) }}</text>
-        <view class="inline-flex items-center active:opacity-70 transition-opacity" style="margin-top: 8px; gap: 6px" @click="goNex">
+        <text class="block tabular-nums" :style="heroNumStyle">{{ usdtBalanceReadable ? `$${usdt.toFixed(2)}` : "—" }}</text>
+        <view v-if="fundsReadable" class="inline-flex items-center active:opacity-70 transition-opacity" style="margin-top: 8px; gap: 6px" role="button" tabindex="0" :aria-label="t.wallet.nexBalance" @click="goNex">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="m16.71 13.88.7.71-2.82 2.82" /></svg>
           <text style="font-size: 13px; color: var(--v5-ink-3)">{{ nexLabel }} NEX</text>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </view>
 
-        <view class="grid grid-cols-3" style="margin-top: 20px; gap: 8px">
-          <view class="flex flex-col items-center active:opacity-60" style="gap: 6px" @click="goTopup">
+        <view v-if="fundsReadable" class="grid grid-cols-3" style="margin-top: 20px; gap: 8px">
+          <view class="flex flex-col items-center active:opacity-60" style="gap: 6px" role="button" tabindex="0" :aria-label="t.wallet.topUp" @click="goTopup">
             <view class="grid place-items-center" :style="actionIconStyle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V3" /><path d="m6 11 6 6 6-6" /><path d="M19 21H5" /></svg>
             </view>
             <text :style="actionLabelStyle">{{ t.wallet.topUp }}</text>
           </view>
-          <view class="flex flex-col items-center active:opacity-60" style="gap: 6px" @click="goWithdraw">
+          <view class="flex flex-col items-center active:opacity-60" style="gap: 6px" role="button" tabindex="0" :aria-label="t.wallet.withdraw" @click="goWithdraw">
             <view class="grid place-items-center" :style="actionIconStyle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14" /><path d="m6 9 6-6 6 6" /><path d="M19 21H5" /></svg>
             </view>
             <text :style="actionLabelStyle">{{ t.wallet.withdraw }}</text>
           </view>
-          <view class="flex flex-col items-center active:opacity-60" style="gap: 6px" @click="goExchange">
+          <view class="flex flex-col items-center active:opacity-60" style="gap: 6px" role="button" tabindex="0" :aria-label="t.wallet.exchange" @click="goExchange">
             <view class="grid place-items-center" :style="actionIconStyle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg>
             </view>
@@ -56,17 +54,20 @@
         <text class="block" :style="syncFailTitleStyle">{{ t.wallet.syncFailedTitle }}</text>
         <text class="block" :style="syncFailBodyStyle">{{ t.wallet.syncFailedBody }}</text>
       </view>
-      <view v-if="fundsAuthorityError" :style="syncFailBoxStyle">
-        <text class="block" :style="syncFailTitleStyle">{{ t.empty.errorTitle }}</text>
-        <text class="block" :style="syncFailBodyStyle">{{ t.empty.errorDesc }}</text>
+      <view v-if="fundsAuthorityUnavailable" :style="syncFailBoxStyle">
+        <text class="block" :style="syncFailTitleStyle">{{ t.wallet.fundsUnavailableTitle }}</text>
+        <text class="block" :style="syncFailBodyStyle">{{ app.remoteFleetHasSnapshot ? t.wallet.fundsStaleBody : app.remoteWalletReceiptHasSnapshot ? t.wallet.fundsReceiptOnlyBody : t.wallet.fundsUnavailableBody }}</text>
+        <view role="button" tabindex="0" :aria-label="t.wallet.retryFunds" :style="retryFundsStyle" @click="retryFundsAuthority">
+          <text>{{ t.wallet.retryFunds }}</text>
+        </view>
       </view>
 
       <!-- Earnings list -->
-      <text class="block" :style="listTitleStyle">{{ t.wallet.earningsSection }}</text>
-      <view :style="listCardStyle">
+      <text v-if="fundsReadable" class="block" :style="listTitleStyle">{{ t.wallet.earningsSection }}</text>
+      <view v-if="fundsReadable" :style="listCardStyle">
         <WalletListRow icon-bg="var(--v5-success-soft)" :first="true" :label="t.wallet.todayLabel">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg></template>
-          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-brand)">+${{ pending.toFixed(2) }}</text></template>
+          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-brand)">{{ todayEarningsText }}</text></template>
         </WalletListRow>
         <WalletListRow icon-bg="var(--v5-warning-soft)" :label="t.wallet.reviewingEarnings" :sublabel="t.wallet.reviewingEarningsSub" @click="showPendingSheet">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></svg></template>
@@ -83,6 +84,7 @@
       </view>
 
       <!-- Activity list -->
+      <WalletListRow icon-bg="var(--v5-brand-2-soft)" :label="t.repurchase.ordersTitle" chevron href="/pages/me/wallet-repurchase" />
       <text class="block" :style="listTitleStyle">{{ t.wallet.activitySection }}</text>
       <view :style="listCardStyle">
         <WalletListRow icon-bg="var(--v5-brand-2-soft)" :first="true" :label="t.wallet.dailyCheckin" :sublabel="t.wallet.dailyCheckinSub" chevron href="/pages/daily/daily">
@@ -100,37 +102,28 @@
         </WalletListRow>
       </view>
 
-      <!-- NEX boost footer callout -->
-      <view :style="nexCalloutStyle">
-        <text class="block" :style="nexCalloutLabelStyle">{{ t.wallet.nexBoostActive }}</text>
-        <view :style="nexCalloutBodyStyle">
-          <text>{{ fmt(t.wallet.nexBoostPrefix, { nex: nexLabel }) }}</text>
-          <text style="color: var(--v5-brand); font-weight: 600">{{ t.wallet.nexBoostHighlight }}</text>
-          <text>{{ t.wallet.nexBoostSuffix }}</text>
-        </view>
-      </view>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
 import WalletListRow from "@/components/me/wallet-list-row.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
-import { earningsReleaseSnapshot } from "@/store/earning-release";
+import { earningsReleaseSnapshot, earningsReleaseStatus, refreshEarningsReleaseStatus, type LedgerRoute } from "@/store/earning-release";
 import { useCommission } from "@/store/commission";
 import { useCards } from "@/store/cards";
 import { useConfig } from "@/store/config";
 import { confirm as uiConfirm } from "@/store/ui";
-import { evaluateAccountCluster } from "@/store/risk-cluster";
-import { riskReasonLines } from "@/lib/risk-reason-text";
 import type { WithdrawalStatus } from "@/store/types";
-import { mockFundsEnabled } from "@/api/runtime";
+import { onShow } from "@dcloudio/uni-app";
+import { remoteApiEnabled, developmentPaymentEnabled } from "@/api/runtime";
+import { resolveWalletTodayEarnings } from "@/lib/wallet-today-earnings";
 
 const t = useT();
 const app = useApp();
@@ -138,31 +131,56 @@ const commission = useCommission();
 const cards = useCards();
 const cfg = useConfig();
 
-const configSyncFailed = computed(() => cfg.syncFailed);
-const fundsAuthorityError = computed(() => mockFundsEnabled && app.fundsSandboxStatus === "error");
+// uni pages remain alive in the navigation stack. Refresh the server-owned
+// wallet projection whenever this page becomes visible so a completed exchange
+// cannot send the user back to a stale pre-exchange balance.
+onShow(() => {
+  if (remoteApiEnabled) {
+    void app.refreshRemoteFleet();
+    void refreshEarningsReleaseStatus().catch(() => undefined);
+  }
+});
 
-// SPEC-7 FEAT-RISK02 ⑥: 审核中/锁定信息弹层 — 释放规则 + 当前命中原因摘要
-// (reason code → i18n 业务话术,工程码不直出;R5: 原因现算不读缓存)。
-function riskReasonSummary(): string {
-  // 码表单源 lib/risk-reason-text(簇码 + 换绑扩展码同一 dict,防散抄漏码)。
-  const lines = riskReasonLines(t.value, evaluateAccountCluster(app.accountKey).reasons);
-  return lines.length ? `\n· ${lines.join("\n· ")}` : "";
+const configSyncFailed = computed(() => cfg.syncFailed);
+const fundsAuthorityUnavailable = computed(() => remoteApiEnabled && app.remoteFleetStatus === "error");
+const fundsReadable = computed(() => !remoteApiEnabled || app.remoteFleetHasSnapshot);
+const usdtBalanceReadable = computed(() => fundsReadable.value || app.remoteWalletReceiptHasSnapshot);
+
+function retryFundsAuthority() {
+  void app.refreshRemoteFleet();
+}
+
+// Release explanations use the same account-scoped server receipt as the
+// buckets. Local device clustering and configuration defaults are not facts
+// about the user's held funds or their release eligibility.
+function releaseSheetMessage(route: LedgerRoute): string {
+  const snapshot = earningsReleaseSnapshot.value;
+  if (earningsReleaseStatus.value !== "ready" || !snapshot?.serverCanonical) {
+    return t.value.wallet.releaseDetailsUnavailable;
+  }
+  if (snapshot.buckets[route] === 0) {
+    return route === "pending_review" ? t.value.wallet.pendingSheetEmpty : t.value.wallet.lockedSheetEmpty;
+  }
+  const body = route === "pending_review" ? t.value.wallet.pendingSheetBody : t.value.wallet.lockedSheetBody;
+  if (snapshot.releaseMode !== "attest_or_manual" || snapshot.clusterRestricted
+    || snapshot.requiredAttestationSeconds <= 0) return body;
+  return body + "\n" + fmt(t.value.wallet.releaseAttestationInfo, {
+    hours: Math.ceil(snapshot.requiredAttestationSeconds / 3600 * 100) / 100,
+  });
 }
 function showPendingSheet() {
-  const hours = cfg.config.riskCluster.appAttestationReleaseHours;
   uiConfirm({
     title: t.value.wallet.pendingSheetTitle,
-    message: fmt(t.value.wallet.pendingSheetBody, { hours }) + riskReasonSummary(),
+    message: releaseSheetMessage("pending_review"),
     confirmLabel: t.value.wallet.sheetOk,
     hideCancel: true,
     icon: "info",
   });
 }
 function showLockedSheet() {
-  const hours = cfg.config.riskCluster.appAttestationReleaseHours;
   uiConfirm({
     title: t.value.wallet.lockedSheetTitle,
-    message: fmt(t.value.wallet.lockedSheetBody, { hours }) + riskReasonSummary(),
+    message: releaseSheetMessage("bonus_locked"),
     confirmLabel: t.value.wallet.sheetOk,
     hideCancel: true,
     icon: "info",
@@ -180,6 +198,13 @@ const buckets = computed(() => ({
 const usdt = computed(() => app.user.usdtBalance);
 const nexLabel = computed(() => app.user.nexBalance.toLocaleString());
 const pending = computed(() => app.user.pendingEarnings);
+const todayEarnings = computed(() => resolveWalletTodayEarnings({
+  remoteApiEnabled,
+  homeTruthStatus: app.homeTruthStatus,
+  homeTodayUsdt: app.homeTruth?.earnings.today.usdt ?? null,
+  localTodayUsdt: app.earnings.today,
+}));
+const todayEarningsText = computed(() => todayEarnings.value === null ? "—" : `+$${todayEarnings.value.toFixed(2)}`);
 const pendingReview = computed(() => buckets.value.pendingReviewUsdt);
 const lockedRewards = computed(() => buckets.value.bonusLockedUsdt);
 const teamLifetimeUSD = computed(() => commission.totalUSDTLifetime());
@@ -195,7 +220,9 @@ const allTimeSublabel = computed(() =>
 // (no i18n key) — see PORT report for the missing wallet.myBankCards keys.
 const cardsCount = computed(() => cards.cards.length);
 const cardsSub = computed(() =>
-  cardsCount.value > 0
+  remoteApiEnabled && !developmentPaymentEnabled
+    ? t.value.cards.newTitle
+    : cardsCount.value > 0
     ? fmt(t.value.wallet.cardsBound, { n: cardsCount.value })
     : t.value.wallet.cardsReuseHint,
 );
@@ -242,16 +269,16 @@ function fmtTime(ts: number): string {
 }
 
 function goNex() {
-  uni.navigateTo({ url: "/pages/me/wallet-nex", fail: () => {} });
+  navTo("/pages/me/wallet-nex");
 }
 function goTopup() {
-  uni.navigateTo({ url: "/pages/me/wallet-topup", fail: () => {} });
+  navTo("/pages/me/wallet-topup");
 }
 function goWithdraw() {
-  uni.navigateTo({ url: "/pages/me/wallet-withdraw", fail: () => {} });
+  navTo("/pages/me/wallet-withdraw-method");
 }
 function goExchange() {
-  uni.navigateTo({ url: "/pages/me/wallet-exchange", fail: () => {} });
+  navTo("/pages/me/wallet-exchange");
 }
 
 // ── styles ──
@@ -306,25 +333,6 @@ const listCardStyle: CSSProperties = {
   padding: "0 2px",
   borderTop: "1px solid var(--v5-border)",
 };
-const nexCalloutStyle: CSSProperties = {
-  margin: "20px 16px 24px",
-  padding: "12px 16px",
-  borderRadius: "12px",
-  background: "var(--v5-brand-2-soft)",
-};
-const nexCalloutLabelStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-  color: "var(--v5-brand-2)",
-  letterSpacing: "0.06em",
-};
-const nexCalloutBodyStyle: CSSProperties = {
-  marginTop: "4px",
-  fontSize: "13px",
-  color: "var(--v5-ink-2)",
-  lineHeight: 1.45,
-};
 const syncFailBoxStyle: CSSProperties = {
   margin: "8px 16px 0",
   padding: "10px 12px",
@@ -341,5 +349,18 @@ const syncFailBodyStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-3)",
   lineHeight: 1.45,
+};
+const retryFundsStyle: CSSProperties = {
+  marginTop: "10px",
+  minHeight: "44px",
+  padding: "0 16px",
+  borderRadius: "999px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "var(--v5-surface)",
+  color: "var(--v5-ink-2)",
+  fontSize: "13px",
+  fontWeight: 600,
 };
 </script>

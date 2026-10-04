@@ -1,8 +1,8 @@
 <!--
   Re-invest Boost (ported from Nexion-prototype/app/(main)/me/wallet/repurchase/page.tsx).
-  Funnels into another buy-in: 90d lock at 35% APY, 1.5× cultivation, Genesis lottery
-  ticket. Cross-store orchestration in handler (postMoneyBill 扣款⊗记账 + stake). framer
-  stagger → CSS nx-step-in. Wrapped in <AppChassis active="me">.
+  Mock mode keeps the isolated demo rail; remote mode renders and submits only
+  server-authoritative repurchase data. Explicit sandbox stays HOLD until its
+  isolated backend route exists. Wrapped in <AppChassis active="me">.
 -->
 <template>
   <AppChassis active="me">
@@ -12,25 +12,25 @@
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <!-- hero — rules-intro pill rides the title row (owner 2026-07-09: kill
              the empty gap above the hero). -->
-        <view :style="heroStyle">
-          <view class="nx-repurchase-hero-head flex items-center justify-between" style="gap: 8px">
-            <view class="nx-repurchase-hero-main flex items-center" style="gap: 8px">
+        <view class="nx-glass-card" :style="heroStyle">
+          <view class="flex items-center justify-between" style="gap: 8px">
+            <view class="flex items-center" style="gap: 8px">
               <view class="grid place-items-center" :style="heroIconBoxStyle">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>
               </view>
               <view>
                 <text class="block" :style="heroTitleStyle">{{ w.hero }}</text>
-                <text class="block" :style="heroPtsStyle">{{ w.benefits.apy }}</text>
+                <text class="block" :style="heroPtsStyle">{{ heroApy }}</text>
               </view>
             </view>
-            <view class="nx-repurchase-how-link inline-flex items-center shrink-0 active:scale-[0.98]" :style="howLinkStyle" role="button" tabindex="0" @click="goHow">
+            <view class="inline-flex items-center shrink-0 active:scale-[0.98]" :style="howLinkStyle" role="button" tabindex="0" @click="goHow"  @keydown.enter.prevent="goHow" @keydown.space.prevent="goHow">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
               <text style="margin: 0 6px">{{ w.howItWorksEntry }}</text>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
             </view>
           </view>
 
-          <view class="nx-repurchase-benefits grid" :style="benefitsGridStyle">
+          <view class="grid grid-cols-2" :style="benefitsGridStyle">
             <view v-for="(b, i) in benefitTiles" :key="b.text" class="flex items-center nx-step-in" :style="benefitStyle(b.tint, i)">
               <view v-html="b.icon" />
               <text :style="benefitTextStyle">{{ b.text }}</text>
@@ -38,14 +38,36 @@
           </view>
         </view>
 
+        <view v-if="isSandboxHold" :style="unavailableStyle">
+          <text class="block" :style="unavailableTitleStyle">{{ unavailableTitle }}</text>
+          <text class="block" :style="unavailableBodyStyle">{{ unavailableBody }}</text>
+        </view>
+
+        <view v-else-if="isRemote && !remoteReady" :style="unavailableStyle" role="status" :aria-busy="repurchase.loading">
+          <text class="block" :style="unavailableTitleStyle">{{ repurchase.loading ? loadingLabel : unavailableTitle }}</text>
+          <text v-if="!repurchase.loading" class="block" :style="unavailableBodyStyle">{{ unavailableBody }}</text>
+          <view v-if="!repurchase.loading" class="nx-repurchase-submit-cta w-full flex items-center justify-center" :style="retryCtaStyle" role="button" tabindex="0" @click="refreshRemote">
+            <text>{{ retryLabel }}</text>
+          </view>
+        </view>
+
+        <template v-else>
+        <view v-if="repurchase.historyLoading || repurchase.historyError" :style="cardStyle" role="status" aria-live="polite">
+          <text>{{ repurchase.historyLoading ? w.historySyncing : w.historySyncFailed }}</text>
+          <view v-if="!repurchase.historyLoading" role="button" tabindex="0" :style="retryCtaStyle" @click="repurchase.refreshHistory()"  @keydown.enter.prevent="repurchase.refreshHistory()" @keydown.space.prevent="repurchase.refreshHistory()">
+            <text>{{ retryLabel }}</text>
+          </view>
+        </view>
         <!-- amount input -->
         <view :style="cardStyle">
           <text class="block" :style="monoLabelStyle">{{ w.amountLabel }}</text>
           <view class="flex items-baseline" style="gap: 8px; margin-top: 8px">
             <text class="shrink-0" :style="dollarStyle">$</text>
             <input
-              :value="String(amount)"
+              :value="formatCommandAmount(amount)"
+              :aria-label="w.amountLabel"
               type="digit"
+              :disabled="confirming || repurchase.submitting || recovering"
               :style="amountInputStyle"
               @input="onAmount"
             />
@@ -53,51 +75,84 @@
           </view>
           <view class="grid grid-cols-4" style="gap: 8px; margin-top: 12px">
             <!-- 反馈恒定:选中档原是空 class,按下零反馈 -->
-            <view v-for="p in presets" :key="p" class="active:opacity-70 transition-opacity" :style="presetStyle(amount === p)" role="button" tabindex="0" @click="amount = p">
+            <view v-for="p in presets" :key="p" class="active:opacity-70 transition-opacity" :style="presetStyle(amount === p)" role="button" tabindex="0" @click="selectPreset(p)">
               <text>${{ p }}</text>
             </view>
           </view>
           <view style="margin-top: 12px">
             <text :style="balanceLabelStyle">{{ w.balanceLabel }}</text>
-            <text :style="balanceValueStyle"> ${{ user.usdtBalance.toFixed(2) }}</text>
+            <text :style="balanceValueStyle"> ${{ displayBalance.toFixed(2) }}</text>
           </view>
         </view>
 
         <!-- projection -->
         <view :style="cardStyle">
-          <text class="block" :style="monoLabelStyle">{{ w.after90 }}</text>
+          <text class="block" :style="monoLabelStyle">{{ isRemote ? fmt(w.afterDays, { days: repurchase.config?.lockDays ?? '—' }) : w.after90 }}</text>
           <view style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px">
-            <Row :label="w.principal" :value="`$${amount.toFixed(2)}`" />
-            <Row :label="w.interest" :value="`+$${projectedYield.toFixed(2)}`" tint="var(--v5-brand)" />
+            <Row :label="w.principal" :value="`$${formatCommandAmount(amount)}`" />
+            <Row :label="isRemote ? fmt(w.interestCanonical, { apy: repurchase.config?.apyPct ?? '—', days: repurchase.config?.lockDays ?? '—' }) : w.interest" :value="projectedYield === null ? '—' : `+$${projectedYield.toFixed(2)}`" tint="var(--v5-brand)" />
             <view :style="dividerStyle" />
-            <Row :label="w.unlockable" :value="`$${(amount + projectedYield).toFixed(2)}`" bold />
+            <Row :label="w.unlockable" :value="projectedYield === null ? '—' : `$${(amount + projectedYield).toFixed(2)}`" bold />
           </view>
         </view>
 
         <!-- CTA -->
-        <view class="nx-repurchase-submit-cta w-full flex items-center justify-center" :class="{ 'active:scale-[0.98]': canSubmit }" :style="ctaStyle" role="button" tabindex="0" @click="handleRepurchase">
+        <text v-if="recovering" class="block" :style="lockedNoticeStyle">{{ w.recoveryHint }}</text>
+        <!-- 置灰必须**说出来**:光换配色 + handler 里静默 return,读屏念的还是「按钮」、
+             眼睛看到的还是「复投 $100.00」——实测复现单(#165)正是这么读成「仍启用」的。
+             aria-disabled 同时是平台键盘激活层的第三道闸(a11y-activate 不激活置灰控件)。 -->
+        <view class="nx-repurchase-submit-cta w-full flex items-center justify-center" :class="{ 'active:scale-[0.98]': canSubmit }" :style="ctaStyle" role="button" tabindex="0" :aria-disabled="canSubmit ? 'false' : 'true'" :aria-busy="repurchase.submitting" @click="handleRepurchase">
           <text>{{ ctaLabel }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="canSubmit ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
 
-        <text class="block" :style="lockedNoticeStyle">{{ w.lockedNotice }}</text>
+        <!-- 余额不足:原因 + 下一步(充值)。只说「余额不足」不给出口 = 把用户堵在死路上。 -->
+        <view v-if="insufficientBalance" :style="insufficientNoticeStyle" role="status">
+          <text class="block" :style="insufficientTitleStyle">{{ w.insufficient }}</text>
+          <text class="block" :style="insufficientBodyStyle">{{ fmt(w.insufficientSub, { a: displayBalance.toFixed(2) }) }}</text>
+          <view class="active:opacity-80" :style="topupCtaStyle" role="button" tabindex="0" :aria-label="t.me.topup" @click="goTopup">
+            <text>{{ t.me.topup }}</text>
+          </view>
+        </view>
+
+        <text class="block" :style="lockedNoticeStyle">{{ isRemote ? fmt(w.confirmMessage, { amount: formatCommandAmount(amount), days: repurchase.config?.lockDays ?? '—', penalty: repurchase.config?.earlyPenaltyPct ?? '—' }) : w.lockedNotice }}</text>
+        </template>
+        <view v-if="isRemote" :style="cardStyle">
+          <text class="block" :style="heroTitleStyle">{{ w.ordersTitle }}</text>
+          <view role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading" :style="retryCtaStyle" @click="refreshOrders"  @keydown.enter.prevent="refreshOrders" @keydown.space.prevent="refreshOrders"><text>{{ repurchase.loading ? w.loading : w.retry }}</text></view>
+          <text v-if="!repurchase.loading && !repurchase.error && !repurchase.orders.length">{{ w.ordersEmpty }}</text>
+          <view v-for="order in repurchase.orders" :key="order.orderNo" style="padding: 16px 0; border-top: 1px solid var(--v5-border)">
+            <text class="block" style="overflow-wrap: anywhere">{{ order.orderNo }}</text>
+            <Row :label="orderStatusLabel(order.status)" :value="`${order.amountUsdt.toLocaleString(undefined, { maximumFractionDigits: 6 })} USDT`" />
+            <Row :label="w.maturesAt" :value="new Date(order.unlockAt).toLocaleString(dateLocale())" />
+            <Row :label="fmt(w.interestCanonical, { apy: order.apyPct, days: order.lockDays })" :value="`${order.estimatedInterestUsdt.toLocaleString(undefined, { maximumFractionDigits: 6 })} USDT`" />
+            <view v-if="order.status === 'MATURE_UNCLAIMED'" role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading || !!repurchase.error" :style="retryCtaStyle" @click="handleClaim(order.orderNo)"  @keydown.enter.prevent="handleClaim(order.orderNo)" @keydown.space.prevent="handleClaim(order.orderNo)"><text>{{ w.claimAction }}</text></view>
+            <view v-if="order.status === 'ACTIVE'" role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading || !!repurchase.error" :style="retryCtaStyle" @click="handleEarlyWithdraw(order.orderNo)"  @keydown.enter.prevent="handleEarlyWithdraw(order.orderNo)" @keydown.space.prevent="handleEarlyWithdraw(order.orderNo)"><text>{{ w.earlyAction }}</text></view>
+          </view>
+        </view>
       </view>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type CSSProperties } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import Row from "@/components/me/repurchase-row.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import { toast } from "@/store/ui";
+import { confirm as uiConfirm, toast } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { postMoneyBill } from "@/lib/money-receipt";
 import { useStaking } from "@/store/staking";
+import { apiRuntimeConfig } from "@/api/runtime";
+import { useRepurchase } from "@/store/repurchase";
+import { resolveRepurchaseRuntimePolicy } from "@/lib/repurchase-runtime-policy";
+import { navTo } from "@/lib/route";
+import { formatCommandAmount, normalizeCommandAmount } from "@/lib/command-amount";
+import type { RepurchaseStatus } from "@/api/repurchase-api";
 
 const PRESETS = [100, 200, 500, 1000];
 
@@ -105,15 +160,78 @@ const t = useT();
 const w = computed(() => t.value.repurchase);
 const app = useApp();
 const staking = useStaking();
+const repurchase = useRepurchase();
+const repurchasePolicy = resolveRepurchaseRuntimePolicy(apiRuntimeConfig.environment);
+const isRemote = computed(() => repurchasePolicy.serverAuthoritative);
+const isSandboxHold = computed(() => repurchasePolicy.unavailable);
+const isMounted = ref(true);
 
 const user = computed(() => app.user);
 const amount = ref<number>(200);
-const presets = PRESETS;
+const amountTouched = ref(false);
+const confirming = ref(false);
+let accountGeneration = 0;
+watch(() => app.accountKey, () => { accountGeneration += 1; }, { flush: "sync" });
+const currentScope = (generation: number) => isMounted.value && generation === accountGeneration;
+const recovering = computed(() => isRemote.value && repurchase.pendingOpenAmount !== null);
+watch(() => repurchase.pendingOpenAmount, (pending) => {
+  if (pending !== null) amount.value = pending;
+}, { immediate: true });
+const presets = computed(() => (isRemote.value ? (repurchase.config?.presets ?? []) : PRESETS));
+const displayBalance = computed(() => (isRemote.value ? repurchase.walletBalanceUsdt : user.value.usdtBalance));
+const remoteReady = computed(() => isRemote.value && repurchase.config !== null
+  && !repurchase.loading && repurchase.serverTime > 0 && !repurchase.error);
 
-const projectedYield = computed(() => amount.value * 0.35 * (90 / 365));
-const canSubmit = computed(() => amount.value > 0 && amount.value <= user.value.usdtBalance);
+const projectedYield = computed<number | null>(() => {
+  if (!isRemote.value) return amount.value * 0.35 * (90 / 365);
+  const config = repurchase.config;
+  return config ? amount.value * (config.apyPct / 100) * (config.lockDays / 365) : null;
+});
+const canSubmit = computed(() => {
+  if (isRemote.value) {
+    const config = repurchase.config;
+    return Boolean(
+      remoteReady.value && (config?.enabled || recovering.value)
+      && !confirming.value
+      && !repurchase.submitting
+      && Number.isFinite(amount.value)
+      && (recovering.value || (amount.value >= (config?.minAmountUsdt ?? Infinity)
+        && amount.value <= repurchase.walletBalanceUsdt)),
+    );
+  }
+  return amount.value > 0 && amount.value <= user.value.usdtBalance;
+});
 
-const ctaLabel = computed(() => fmt(w.value.cta, { amount: amount.value.toFixed(2) }));
+/**
+ * 主按钮此刻**只因余额**而不可提交 —— 判据要窄,窄到「把余额补上就能提交」:
+ * · 恢复态(上一笔结果未确认)按原金额重放,**豁免**余额门(与 canSubmit 同一条豁免),
+ *   否则用户会被永久卡在恢复路径上;
+ * · 产品未开放/快照未就绪时不报「余额不足」—— 那是另一件事,报错会指错方向;
+ * · 余额取 displayBalance(remote 走权威快照),与按钮、与余额行**同源**,
+ *   不会出现「行里写着 $0.00、门却按另一个数判」的自相矛盾。
+ */
+const insufficientBalance = computed(() => {
+  if (recovering.value || !Number.isFinite(amount.value)) return false;
+  if (!(amount.value > displayBalance.value)) return false;
+  if (isRemote.value) {
+    const config = repurchase.config;
+    return remoteReady.value && Boolean(config?.enabled);
+  }
+  return amount.value > 0;
+});
+
+const ctaLabel = computed(() => recovering.value
+  ? fmt(w.value.recoveryCta, { amount: formatCommandAmount(amount.value) })
+  : fmt(w.value.cta, { amount: formatCommandAmount(amount.value) }));
+const unavailableTitle = computed(() => w.value.unavailableTitle);
+const unavailableBody = computed(() => w.value.unavailableBody);
+const retryLabel = computed(() => w.value.retry);
+const loadingLabel = computed(() => w.value.loading);
+const heroApy = computed(() => {
+  if (!isRemote.value) return w.value.benefits.apy;
+  const config = repurchase.config;
+  return config ? fmt(w.value.benefits.apyCanonical, { apy: config.apyPct, days: config.lockDays }) : "—";
+});
 
 const BENEFIT_SVG = {
   sparkles: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>`,
@@ -122,20 +240,123 @@ const BENEFIT_SVG = {
   diamond: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></svg>`,
 };
 
-const benefitTiles = computed(() => [
-  { icon: BENEFIT_SVG.zap, text: w.value.benefits.apy, tint: "var(--v5-warning)" },
-  { icon: BENEFIT_SVG.check, text: w.value.benefits.cultivation, tint: "var(--v5-tech-cyan)" },
-  { icon: BENEFIT_SVG.diamond, text: w.value.benefits.genesis, tint: "var(--v5-brand-2)" },
-]);
+const benefitTiles = computed(() => {
+  const config = repurchase.config;
+  if (isRemote.value && !config) return [];
+  return [
+    {
+      icon: BENEFIT_SVG.zap,
+      text: isRemote.value
+        ? fmt(w.value.benefits.apyCanonical, { apy: config!.apyPct, days: config!.lockDays })
+        : w.value.benefits.apy,
+      tint: "var(--v5-warning)",
+    },
+    {
+      icon: BENEFIT_SVG.check,
+      text: isRemote.value
+        ? fmt(w.value.benefits.cultivationCanonical, { multiplier: config!.effectiveNurtureMultiplier })
+        : w.value.benefits.cultivation,
+      tint: "var(--v5-tech-cyan)",
+    },
+    {
+      icon: BENEFIT_SVG.diamond,
+      text: isRemote.value
+        ? fmt(w.value.benefits.genesisCanonical, { tickets: config!.ticketPerOrder })
+        : w.value.benefits.genesis,
+      tint: "var(--v5-brand-2)",
+    },
+  ];
+});
 
 function detailVal(e: Event): string {
   return (e as unknown as { detail: { value: string } }).detail.value;
 }
 function onAmount(e: Event) {
-  amount.value = Math.max(0, parseFloat(detailVal(e)) || 0);
+  if (confirming.value || repurchase.submitting || recovering.value) return;
+  amountTouched.value = true;
+  amount.value = normalizeCommandAmount(detailVal(e));
 }
 
-function handleRepurchase() {
+function selectPreset(preset: number) {
+  if (confirming.value || repurchase.submitting || recovering.value) return;
+  amountTouched.value = true;
+  amount.value = preset;
+}
+
+function refreshOrders() {
+  if (confirming.value || repurchase.submitting || repurchase.loading) return;
+  void refreshRemote();
+}
+
+async function refreshRemote() {
+  if (!isRemote.value || !isMounted.value) return;
+  await repurchase.refresh();
+  if (!isMounted.value) return;
+  if (repurchase.pendingOpenAmount !== null) amount.value = repurchase.pendingOpenAmount;
+  else if (!amountTouched.value && repurchase.config) {
+    amount.value = repurchase.config.presets[0] ?? repurchase.config.minAmountUsdt;
+  }
+}
+
+async function handleRepurchase() {
+  if (isRemote.value) {
+    if (!isMounted.value) return;
+    // 快照未就绪 = 整页 HOLD,那时根本没有可点的按钮。
+    if (!remoteReady.value) return;
+    // 🔴 余额门(第一道,按钮禁用之外的独立一道):余额不足**明确拒绝并说明原因**,
+    //    不是静默 return —— 静默 return 在用户看来和「点了没反应」无法区分。
+    if (insufficientBalance.value) {
+      toast.error(w.value.insufficient, fmt(w.value.insufficientSub, { a: displayBalance.value.toFixed(2) }));
+      return;
+    }
+    if (!canSubmit.value) return;
+    confirming.value = true;
+    const generation = accountGeneration;
+    const quoteAmount = normalizeCommandAmount(amount.value);
+    let confirmed = false;
+    try {
+      const config = repurchase.config;
+      confirmed = await uiConfirm({
+        title: w.value.confirmTitle,
+        message: recovering.value
+          ? fmt(w.value.recoveryHint, {
+              amount: formatCommandAmount(quoteAmount),
+              days: config?.lockDays ?? 0,
+              penalty: config?.earlyPenaltyPct ?? 0,
+            })
+          : fmt(w.value.confirmMessage, {
+              amount: formatCommandAmount(quoteAmount),
+              days: config?.lockDays ?? 0,
+              penalty: config?.earlyPenaltyPct ?? 0,
+            }),
+        confirmLabel: w.value.confirmLabel,
+        cancelLabel: w.value.cancelLabel,
+        icon: "warn",
+        owner: "wallet-repurchase",
+      });
+    } finally {
+      confirming.value = false;
+    }
+    if (!confirmed || !currentScope(generation)) return;
+    try {
+      await repurchase.open(quoteAmount);
+      if (!currentScope(generation)) return;
+      toast.success(w.value.toastSuccess, `${formatCommandAmount(quoteAmount)} USDT`);
+      const nextPreset = repurchase.config?.presets?.[0];
+      amount.value = repurchase.pendingOpenAmount ?? nextPreset ?? repurchase.config?.minAmountUsdt ?? 0;
+    } catch (cause) {
+      if (!currentScope(generation)) return;
+      const message = cause instanceof Error && cause.message
+        ? cause.message
+        : w.value.unavailableBody;
+      toast.error(w.value.unavailableTitle, message);
+    }
+    return;
+  }
+  if (isSandboxHold.value) {
+    toast.error(unavailableTitle.value, unavailableBody.value);
+    return;
+  }
   if (!canSubmit.value) return;
   const billRef = `REINVEST-${Date.now().toString(36).toUpperCase()}`;
   // Cross-store orchestration in the handler (stores don't import each other).
@@ -201,9 +422,65 @@ function handleRepurchase() {
   amount.value = 200;
 }
 
-function goHow() {
-  uni.navigateTo({ url: "/pages/me/wallet-repurchase-how", fail: () => {} });
+function orderStatusLabel(status: RepurchaseStatus): string {
+  return ({ PENDING_LOCK: w.value.statusPending, ACTIVE: w.value.statusActive,
+    MATURE_UNCLAIMED: w.value.statusMature, CLAIMED: w.value.statusClaimed,
+    EARLY_WITHDRAWN: w.value.statusEarly })[status];
 }
+
+async function handleClaim(orderNo: string) {
+  const order = repurchase.orders.find((entry) => entry.orderNo === orderNo);
+  if (!isRemote.value || !isMounted.value || confirming.value || repurchase.submitting || repurchase.loading || repurchase.error || order?.status !== "MATURE_UNCLAIMED") return;
+  const generation = accountGeneration;
+  confirming.value = true;
+  try {
+    const confirmed = await uiConfirm({
+      title: w.value.claimTitle,
+      message: fmt(w.value.claimMessage, { order: orderNo, amount: (order.amountUsdt + order.estimatedInterestUsdt).toFixed(6) }),
+      confirmLabel: w.value.claimAction, cancelLabel: w.value.cancelLabel, icon: "info", owner: "wallet-repurchase",
+    });
+    if (!confirmed || !currentScope(generation) || repurchase.orders.find((entry) => entry.orderNo === orderNo)?.status !== "MATURE_UNCLAIMED") return;
+    await repurchase.claim(orderNo);
+    if (currentScope(generation)) toast.success(w.value.actionSuccess);
+  } catch {
+    if (currentScope(generation)) toast.error(w.value.unavailableTitle, w.value.actionUnknown);
+  } finally { confirming.value = false; }
+}
+
+async function handleEarlyWithdraw(orderNo: string) {
+  const order = repurchase.orders.find((entry) => entry.orderNo === orderNo);
+  if (!isRemote.value || !isMounted.value || confirming.value || repurchase.submitting || repurchase.loading || repurchase.error || order?.status !== "ACTIVE") return;
+  const generation = accountGeneration;
+  confirming.value = true;
+  try {
+    const confirmed = await uiConfirm({
+      title: w.value.earlyTitle,
+      message: fmt(w.value.earlyMessage, { order: orderNo, penalty: order.earlyPenaltyPct, amount: (order.amountUsdt * (1 - order.earlyPenaltyPct / 100)).toFixed(6) }),
+      confirmLabel: w.value.earlyAction, cancelLabel: w.value.cancelLabel, icon: "warn", owner: "wallet-repurchase",
+    });
+    if (!confirmed || !currentScope(generation) || repurchase.orders.find((entry) => entry.orderNo === orderNo)?.status !== "ACTIVE") return;
+    await repurchase.earlyWithdraw(orderNo);
+    if (currentScope(generation)) toast.success(w.value.actionSuccess);
+  } catch {
+    if (currentScope(generation)) toast.error(w.value.unavailableTitle, w.value.actionUnknown);
+  } finally { confirming.value = false; }
+}
+
+function goHow() {
+  navTo("/pages/me/wallet-repurchase-how");
+}
+
+/** 余额不足的出口:充值页(与 store 结算/订单详情的引导同一目标)。 */
+function goTopup() {
+  navTo("/pages/me/wallet-topup");
+}
+
+onMounted(() => {
+  if (isRemote.value) void refreshRemote();
+});
+onUnmounted(() => {
+  isMounted.value = false;
+});
 
 // Secondary nav pill — soft brand-2 tint carries the affordance, no border (chip rule).
 const howLinkStyle: CSSProperties = {
@@ -220,10 +497,10 @@ const howLinkStyle: CSSProperties = {
 // Spotlight hero kept (single per screen) but neutralised: the accent floor-adjacent
 // glow is dropped;描边已整条删除(《03》§3 零 border,C2 第二轮)。The colourful
 // benefit tiles inside carry the visual interest.
-const heroStyle: CSSProperties = {
-  borderRadius: "16px",
+const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const heroIconBoxStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-brand) 20%, transparent)" };
 const heroTitleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontWeight: 600, fontSize: "20px", letterSpacing: "-0.014em", color: "var(--v5-ink)" };
@@ -273,13 +550,16 @@ const ctaStyle = computed<CSSProperties>(() => ({
   boxShadow: canSubmit.value ? "var(--v5-spotlight-brand)" : "none",
 }));
 const lockedNoticeStyle: CSSProperties = { padding: "0 8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
+const unavailableStyle: CSSProperties = { padding: "16px", borderRadius: "12px", background: "var(--v5-surface-2)" };
+const unavailableTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const unavailableBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
+const retryCtaStyle: CSSProperties = { marginTop: "12px", height: "44px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "13px", fontWeight: 600 };
+// 余额不足提示:warning 描边 + 一句原因 + 一个充值出口。读屏靠 role="status" 播报,
+// 视觉靠 warning 色与主按钮的置灰形成对照。
+const insufficientNoticeStyle: CSSProperties = { padding: "12px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-warning) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--v5-warning) 40%, transparent)" };
+const insufficientTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-warning)" };
+const insufficientBodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-2)" };
+const topupCtaStyle: CSSProperties = { marginTop: "10px", height: "44px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "15px", fontWeight: 600 };
+
+
 </script>
-<style scoped>
-.nx-repurchase-benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (max-width: 350px) {
-  .nx-repurchase-hero-head { flex-wrap: wrap; }
-  .nx-repurchase-hero-main { flex: 1 1 100%; }
-  .nx-repurchase-how-link { margin-left: 48px; }
-  .nx-repurchase-benefits { grid-template-columns: minmax(0, 1fr); }
-}
-</style>

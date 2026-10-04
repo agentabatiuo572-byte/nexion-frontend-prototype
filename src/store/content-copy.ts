@@ -62,9 +62,11 @@ export const useContentCopy = defineStore("content-copy", () => {
       .filter((value): value is string => !!value),
   )));
 
-  async function reportOrderConversions(orderNos: string[]): Promise<void> {
+  async function reportOrderConversions(
+    orderNos: string[],
+    scopeRequest = remoteAccountScope.snapshot(),
+  ): Promise<void> {
     if (!remoteApiEnabled || assignedExperimentIds.value.length === 0) return;
-    const scopeRequest = remoteAccountScope.snapshot();
     const uniqueOrders = Array.from(new Set(orderNos.map((value) => value.trim()).filter(Boolean)));
     if (!remoteAccountScope.isCurrent(scopeRequest)) return;
     await Promise.allSettled(

@@ -32,7 +32,7 @@ export function useGenesisEligibility(): UseGenesisEligibilityResult {
     const eligible = remote?.eligible === true && genesis.remoteHalted !== true;
     return {
       eligible,
-      reasons: remote?.reasons ?? ["SALE_POLICY_UNAVAILABLE"],
+      reasons: remote?.reasons ?? [genesis.remoteEligibilityError ?? "GENESIS_ELIGIBILITY_UNAVAILABLE"],
       capReached: capRemaining <= 0,
       capRemaining,
     };

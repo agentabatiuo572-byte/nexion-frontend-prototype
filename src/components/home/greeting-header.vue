@@ -12,27 +12,31 @@
 import { computed, ref, onMounted } from "vue";
 import { useT } from "@/i18n/use-t";
 import { useProfile } from "@/store/profile";
+import { homeGreetingName } from "./home-greeting";
+import { nexGridBrandText } from "@/lib/brand-copy";
 
 const t = useT();
 const profile = useProfile();
 
-// Read the local hour on mount, while keeping the wording reactive to locale changes.
-const hour = ref(new Date().getHours());
+// Capture the client's local hour on mount, but keep locale and copy reactive.
+const hour = ref<number | null>(null);
 onMounted(() => {
   hour.value = new Date().getHours();
 });
-const greeting = computed(() =>
-  hour.value < 5
-    ? t.value.home.greetingLateNight
-    : hour.value < 12
-      ? t.value.home.greetingMorning
-      : hour.value < 18
-        ? t.value.home.greetingAfternoon
-        : t.value.home.greetingEvening,
-);
+const greeting = computed(() => {
+  const h = hour.value;
+  if (h === null) return "";
+  return h < 5
+      ? t.value.home.greetingLateNight
+      : h < 12
+        ? t.value.home.greetingMorning
+        : h < 18
+          ? t.value.home.greetingAfternoon
+          : t.value.home.greetingEvening;
+});
 
-// 兜底用品牌名是原设计(没设昵称时问候语显示品牌)。"Stellar" 是旧品牌,改名批次漏网 —— 它藏在
-// 兜底值里而不是显示文案里,当时的 grep 没扫到。
-const firstName = computed(() => (profile.displayName || "UVEL").split(" ")[0]);
-const greetingLine = computed(() => `${greeting.value}, ${firstName.value}`);
+// 登录响应 /api/app/profile 投影的是服务端完整昵称；首页不得擅自按空格截断。
+// 存量账号的默认昵称在服务端仍是改名前的旧品牌,渲染层归一(见 lib/brand-copy.ts)。
+const nickname = computed(() => nexGridBrandText(homeGreetingName(profile.displayName, "UVEL")));
+const greetingLine = computed(() => `${greeting.value}, ${nickname.value}`);
 </script>

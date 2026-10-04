@@ -11,17 +11,8 @@ function read(): PendingTable {
   }
 }
 
-// 🔴 落盘失败的分档语义(命令发出**之前**抛 / **之后**只回布尔)见 lib/funds-mutation-key.ts
-// 那一整段头注 —— 同一条家规。本文件的键是**随机**的,比那边更不能放行:写没落盘却把键
-// 交出去,下次重试铸的是另一把键,服务端认不出同一次意图 → 执行**第二条**上下架命令。
-/** 写盘。true = 真落盘了;false = 存储写不进去(配额满 / 站点数据被禁)。 */
-function write(value: PendingTable): boolean {
-  try {
-    uni.setStorageSync(STORAGE_KEY, value);
-    return true;
-  } catch {
-    return false;
-  }
+function write(value: PendingTable): void {
+  uni.setStorageSync(STORAGE_KEY, value);
 }
 
 type DeviceCommandOperation = "activate" | "deactivate" | "deactivate-after-task";
@@ -40,7 +31,6 @@ function nextKey(operation: DeviceCommandOperation): string {
   return `app-device:${operation}:${id}`;
 }
 
-/** 🔴 命令下发**之前**:键落不了盘就抛,这一次不许下发(fail closed)。 */
 export function acquireDeviceCommandKey(
   accountKey: string,
   operation: DeviceCommandOperation,
@@ -51,20 +41,19 @@ export function acquireDeviceCommandKey(
   const id = slot(accountKey, operation, deviceId, rowVersion);
   if (typeof table[id] === "string" && table[id]) return table[id];
   const key = nextKey(operation);
-  if (!write({ ...table, [id]: key })) throw new Error("DEVICE_COMMAND_KEY_UNPERSISTED");
+  write({ ...table, [id]: key });
   return key;
 }
 
-/** 命令**已下发**:false = 没退役。不抛 —— 设备可能已经上/下架,抛出去会把它报成失败。 */
 export function finishDeviceCommand(
   accountKey: string,
   operation: DeviceCommandOperation,
   deviceId: string,
   rowVersion: number,
-): boolean {
+): void {
   const table = read();
   const id = slot(accountKey, operation, deviceId, rowVersion);
-  if (!(id in table)) return false;
+  if (!(id in table)) return;
   delete table[id];
-  return write(table);
+  write(table);
 }

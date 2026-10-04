@@ -22,10 +22,11 @@
     <view v-else class="mt-1.5 grid gap-3 items-end" style="grid-template-columns: 1fr auto">
       <view>
         <text class="block tabular-nums" style="font-family: var(--font-v5); font-weight: 600; font-size: 26px; color: var(--v5-ink); letter-spacing: -0.022em; line-height: 1">${{ poolKText }}K</text>
-        <text class="block mt-1.5" style="font-size: 12px; color: var(--v5-ink-3); font-family: var(--font-v5)">{{ t.home.poolThisWeek }}</text>
+        <text class="block mt-1.5" style="font-size: 12px; color: var(--v5-ink-3); font-family: var(--font-v5)">{{ poolThisWeekText }}</text>
       </view>
       <view v-if="unlocked" class="text-right whitespace-nowrap">
         <text class="block tabular-nums" style="font-family: var(--font-v5); font-weight: 600; font-size: 20px; color: var(--v5-success); letter-spacing: -0.014em; line-height: 1">+${{ payoutText }}</text>
+        <text class="block mt-1 font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ shareText }}</text>
       </view>
       <text v-else class="font-mono-tabular whitespace-nowrap" style="padding: 5px 10px; background: var(--v5-brand-2-soft); border-radius: 999px; font-size: 12px; color: var(--v5-brand-2); font-weight: 500">{{ t.home.poolV3Unlock }}</text>
     </view>
@@ -33,8 +34,10 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useT } from "@/i18n/use-t";
+import { dateLocale, fmt } from "@/i18n/format";
 import { useVRank } from "@/store/v-rank";
 import type { VRank } from "@/store/v-rank";
 import { useLeadershipPool } from "@/store/leadership-pool";
@@ -43,9 +46,9 @@ import type { TeamLeadershipPoolSnapshot } from "@/api/team-insights-api";
 import { useApp } from "@/store/app";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import {
-  captureCommerceSandboxRun,
-  isCurrentCommerceSandboxScope,
-  subscribeCurrentCommerceSandboxRun,
+  captureRuntimeRevision,
+  isCurrentRuntimeRevision,
+  subscribeRuntimeRevision,
 } from "@/api/order-api";
 
 const t = useT();
@@ -59,22 +62,30 @@ let mounted = true;
 
 const myRank = computed<VRank>(() => (remoteApiEnabled ? remotePool.value?.myRank ?? 0 : vrank.myRank) as VRank);
 const poolUSDT = computed(() => remoteApiEnabled ? remotePool.value?.currentWeekPoolUSDT ?? 0 : pool.currentWeekPoolUSDT);
+const myShare = computed(() => remoteApiEnabled ? remotePool.value?.mySharePct ?? 0 : pool.mySharePct(myRank.value));
 const myPayout = computed(() => remoteApiEnabled ? remotePool.value?.projectedPayoutUSDT ?? 0 : pool.myProjectedPayout(myRank.value));
 const unlocked = computed(() => myRank.value >= 3);
 
+const poolThisWeekText = computed(() => {
+  const rate = remoteApiEnabled ? remotePool.value?.injectRate : 0.05;
+  return rate == null ? "" : fmt(t.value.home.poolThisWeek, {
+    rate: (rate * 100).toLocaleString(dateLocale(), { maximumFractionDigits: 8 }),
+  });
+});
 const poolKText = computed(() => (poolUSDT.value / 1000).toFixed(1));
 const payoutText = computed(() => myPayout.value.toFixed(2));
+const shareText = computed(() => fmt(t.value.home.poolShare, { n: (myShare.value * 100).toFixed(2) }));
 
 async function loadRemotePool() {
   if (!remoteApiEnabled) return;
   const request = ++remoteRequest;
   const accountKey = app.accountKey;
   const accountScope = captureAccountScope();
-  const runScope = captureCommerceSandboxRun();
+  const runScope = captureRuntimeRevision();
   remotePool.value = null;
   remoteState.value = "loading";
   const current = () => mounted && request === remoteRequest && accountKey === app.accountKey
-    && isCurrentAccountScope(accountScope) && isCurrentCommerceSandboxScope(runScope);
+    && isCurrentAccountScope(accountScope) && isCurrentRuntimeRevision(runScope);
   try {
     const snapshot = await teamInsightsApi.leadershipPool();
     if (!current()) return;
@@ -88,7 +99,7 @@ async function loadRemotePool() {
 }
 
 watch(() => app.accountKey, () => { void loadRemotePool(); });
-const unsubscribeRemotePoolRun = subscribeCurrentCommerceSandboxRun(() => {
+const unsubscribeRemotePoolRun = subscribeRuntimeRevision(() => {
   remoteRequest += 1;
   remotePool.value = null;
   remoteState.value = "loading";
@@ -103,6 +114,6 @@ onUnmounted(() => {
 });
 
 function goPool() {
-  uni.navigateTo({ url: "/pages/team/leadership-pool", fail: () => {} });
+  navTo("/pages/team/leadership-pool");
 }
 </script>

@@ -6,7 +6,7 @@
   passed in as props.
 -->
 <template>
-  <view class="relative overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
     <view class="flex items-center justify-between">
       <text :style="ribbonStyle">{{ ribbon }}</text>
       <text :style="boxNameStyle">UVELBox S1</text>
@@ -43,12 +43,15 @@
 import { computed, type CSSProperties } from "vue";
 import Cell from "@/components/me/trial-time-cell.vue";
 import { useT } from "@/i18n/use-t";
-import { dateLocale, fmt } from "@/i18n/format";
+import { fmt } from "@/i18n/format";
+import { formatTrialDate } from "@/lib/trial-date";
 import { useTrialConfig } from "@/store/trial-config";
 import type { TrialStatus } from "@/store/free-trial";
+import { trialCycleDurationMs } from "@/lib/trial-cycle-duration";
 
 const props = defineProps<{
   status: TrialStatus;
+  extended?: boolean;
   now: number;
   remainingMs: number;
   shadowUSD: number;
@@ -66,7 +69,7 @@ const hours = computed(() => Math.floor((props.remainingMs % 86_400_000) / 3_600
 const minutes = computed(() => Math.floor((props.remainingMs % 3_600_000) / 60_000));
 const seconds = computed(() => Math.floor((props.remainingMs % 60_000) / 1000));
 
-const totalMs = computed(() => (cfg.value.trialDays + cfg.value.graceDays) * 86_400_000);
+const totalMs = computed(() => trialCycleDurationMs(props.startedAt, props.graceEndsAt, cfg.value.trialDays + cfg.value.graceDays));
 const elapsedMs = computed(() => (props.startedAt !== null ? props.now - props.startedAt : 0));
 const progressPct = computed(() => Math.min(100, Math.max(0, (elapsedMs.value / totalMs.value) * 100)));
 
@@ -77,6 +80,7 @@ const tint = computed(() => {
   return "var(--v5-ink-4)";
 });
 const ribbon = computed(() => {
+  if (props.extended) return w.value.countdownExtendedRibbon;
   if (props.status === "active") return w.value.countdownActiveRibbon;
   if (props.status === "grace") return w.value.countdownGraceRibbon;
   return "";
@@ -89,16 +93,16 @@ const cta = computed(() => {
 
 const startDateLine = computed(() =>
   fmt(w.value.countdownStart, {
-    date: props.startedAt ? new Date(props.startedAt).toLocaleDateString(dateLocale()) : w.value.countdownDateEmpty,
+    date: props.startedAt !== null ? formatTrialDate(props.startedAt) : w.value.countdownDateEmpty,
   }),
 );
 const endDateLine = computed(() =>
   fmt(w.value.countdownEnd, {
-    date: props.graceEndsAt ? new Date(props.graceEndsAt).toLocaleDateString(dateLocale()) : w.value.countdownDateEmpty,
+    date: props.graceEndsAt !== null ? formatTrialDate(props.graceEndsAt) : w.value.countdownDateEmpty,
   }),
 );
 
-const cardStyle: CSSProperties = { borderRadius: "16px", border: "1px solid var(--v5-border)", background: "var(--v5-surface)", padding: "20px" };
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", border: "none", background: "var(--nx-glass-fill)", padding: "20px" };
 const ribbonStyle = computed<CSSProperties>(() => ({
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
@@ -134,4 +138,6 @@ const barFillStyle = computed<CSSProperties>(() => ({
   transition: "width 500ms ease",
 }));
 const datesRowStyle: CSSProperties = { marginTop: "6px", fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", color: "var(--v5-ink-4)" };
+
+
 </script>

@@ -1,9 +1,10 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { onScopeDispose, ref } from "vue";
 import { commissionConfigApi, remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
-import type { CanonicalBinaryState } from "@/api/commission-config-api";
+import type { CanonicalBinaryState, CanonicalCommissionConfig } from "@/api/commission-config-api";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
 
 /**
  * Ported from Nexion-prototype/lib/v3/commission.ts (zustand persist → Pinia + uni storage).
@@ -23,7 +24,7 @@ export type CommissionKind =
   | "leadership"
   | "genesis";
 
-export type CommissionStatus = "cooling" | "unlocked" | "withdrawn";
+export type CommissionStatus = "cooling" | "unlocked" | "withdrawn" | "frozen" | "reversed" | "rejected" | "simulated";
 
 export interface CommissionEvent {
   id: string;
@@ -38,6 +39,8 @@ export interface CommissionEvent {
   ts: number;
   unlockAt: number;           // 30d 后
   status: CommissionStatus;
+  settlementState?: "SIMULATED" | "CANONICAL";
+  withdrawable?: boolean;
 }
 
 const ONE_DAY = 86400 * 1000;
@@ -161,15 +164,62 @@ export const useCommission = defineStore("commission", () => {
   // rebindAccountScopedStores 统一重绑(P-031 store 不互 import)。
   let boundKey = "default";
   let bindingEpoch = 0;
+  let configRefreshGeneration = 0;
+  let binaryRefreshGeneration = 0;
+  let eventsRefreshGeneration = 0;
   const events = ref<CommissionEvent[]>(remoteApiEnabled ? [] : hydrate(boundKey));
+  const eventsEvidence = ref<import("@/api/team-insights-api").TeamCommissionSnapshot | null>(null);
+  const config = ref<CanonicalCommissionConfig | null>(null);
   const binarySnapshot = ref<CanonicalBinaryState | null>(null);
   const eventsStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
+  const eventsLoadMoreStatus = ref<"idle" | "loading" | "error">("idle");
+  const eventsPage = ref(0);
+  const eventsTotalRows = ref(remoteApiEnabled ? 0 : events.value.length);
+  const configStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
   const binaryStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
 
-  type RequestScope = { accountKey: string; epoch: number };
-  const requestScope = (): RequestScope => ({ accountKey: boundKey, epoch: bindingEpoch });
+  type RequestScope = { accountKey: string; epoch: number; commerceRun: RuntimeRevisionScope };
+  const requestScope = (): RequestScope => ({ accountKey: boundKey, epoch: bindingEpoch, commerceRun: captureRuntimeRevision() });
   const isCurrentScope = (scope: RequestScope): boolean =>
-    scope.accountKey === boundKey && scope.epoch === bindingEpoch;
+    scope.accountKey === boundKey && scope.epoch === bindingEpoch && isCurrentRuntimeRevision(scope.commerceRun);
+  const sameScope = (left: RequestScope, right: RequestScope): boolean =>
+    left.accountKey === right.accountKey
+      && left.epoch === right.epoch
+      && left.commerceRun.runId === right.commerceRun.runId
+      && left.commerceRun.epoch === right.commerceRun.epoch;
+  let binaryInFlight: { scope: RequestScope; promise: Promise<void> } | null = null;
+  let configInFlight: { scope: RequestScope; promise: Promise<void> } | null = null;
+
+  const unsubscribeCommerceRun = subscribeRuntimeRevision(() => {
+    if (!remoteApiEnabled) return;
+    // A catalogue environment/RunID change invalidates every remote snapshot;
+    // stale requests are also fenced by isCurrentRuntimeRevision().
+    configRefreshGeneration += 1;
+    binaryInFlight = null;
+    config.value = null;
+    binarySnapshot.value = null;
+    events.value = [];
+    eventsEvidence.value = null;
+    configStatus.value = "idle";
+    eventsStatus.value = "idle";
+    eventsLoadMoreStatus.value = "idle";
+    eventsPage.value = 0;
+    eventsTotalRows.value = 0;
+    binaryStatus.value = "idle";
+
+    // A completed catalogue revision must also establish a new canonical
+    // snapshot for the account already bound to this store.  Otherwise the
+    // revision fence correctly drops the old in-flight responses, but the
+    // page remains indefinitely in its reset/idle state.
+    if (boundKey === "default") return;
+    const scope = requestScope();
+    void Promise.allSettled([
+      refreshCanonicalConfig(scope),
+      refreshCanonicalBinary(scope),
+      refreshCanonicalEvents(scope),
+    ]);
+  });
+  onScopeDispose(unsubscribeCommerceRun);
 
   function persist() {
     if (remoteApiEnabled) return;
@@ -181,40 +231,129 @@ export const useCommission = defineStore("commission", () => {
     boundKey = normalizeAccountKey(rawAccountKey);
     bindingEpoch += 1;
     if (remoteApiEnabled) {
+      configRefreshGeneration += 1;
+      binaryInFlight = null;
+      config.value = null;
       binarySnapshot.value = null;
       events.value = [];
+      eventsEvidence.value = null;
+      configStatus.value = "idle";
       eventsStatus.value = "idle";
+      eventsLoadMoreStatus.value = "idle";
+      eventsPage.value = 0;
+      eventsTotalRows.value = 0;
       binaryStatus.value = "idle";
       const scope = requestScope();
-      void Promise.allSettled([refreshCanonicalBinary(scope), refreshCanonicalEvents(scope)]);
+      void Promise.allSettled([refreshCanonicalConfig(scope), refreshCanonicalBinary(scope), refreshCanonicalEvents(scope)]);
       return;
     }
     events.value = hydrate(boundKey);
   }
 
-  async function refreshCanonicalBinary(scope = requestScope()) {
+  function ensureCanonicalConfig(): Promise<void> {
+    const scope = requestScope();
+    return configInFlight && sameScope(configInFlight.scope, scope)
+      ? configInFlight.promise : refreshCanonicalConfig(scope);
+  }
+
+  function refreshCanonicalConfig(scope = requestScope()): Promise<void> {
+    const promise = readCanonicalConfig(scope);
+    configInFlight = { scope, promise };
+    const clear = () => { if (configInFlight?.promise === promise) configInFlight = null; };
+    void promise.then(clear, clear);
+    return promise;
+  }
+
+  async function readCanonicalConfig(scope: RequestScope) {
     if (!remoteApiEnabled) return;
-    binaryStatus.value = "loading";
+    const generation = ++configRefreshGeneration;
+    config.value = null;
+    configStatus.value = "loading";
     try {
-      const snapshot = await commissionConfigApi.binary();
-      if (!isCurrentScope(scope)) return;
-      binarySnapshot.value = snapshot;
-      binaryStatus.value = "ready";
+      const snapshot = await commissionConfigApi.rates();
+      if (generation !== configRefreshGeneration || !isCurrentScope(scope)) return;
+      config.value = snapshot;
+      configStatus.value = "ready";
     } catch {
-      if (isCurrentScope(scope)) binaryStatus.value = "error";
+      if (generation === configRefreshGeneration && isCurrentScope(scope)) {
+        config.value = null;
+        configStatus.value = "error";
+      }
     }
+  }
+
+  function refreshCanonicalBinary(scope = requestScope()): Promise<void> {
+    if (!remoteApiEnabled) return Promise.resolve();
+    if (binaryInFlight && sameScope(binaryInFlight.scope, scope)) return binaryInFlight.promise;
+    const generation = ++binaryRefreshGeneration;
+    binaryStatus.value = "loading";
+    let operation!: Promise<void>;
+    operation = (async () => {
+      try {
+        const snapshot = await commissionConfigApi.binary();
+        if (generation !== binaryRefreshGeneration || !isCurrentScope(scope)) return;
+        binarySnapshot.value = snapshot;
+        binaryStatus.value = "ready";
+      } catch {
+        if (generation === binaryRefreshGeneration && isCurrentScope(scope)) {
+          // The team home consumes this same snapshot.  Clear it with the
+          // current-scope failure so no page can present an older estimate as
+          // current authority.
+          binarySnapshot.value = null;
+          binaryStatus.value = "error";
+        }
+      }
+    })();
+    binaryInFlight = { scope, promise: operation };
+    const clear = () => { if (binaryInFlight?.promise === operation) binaryInFlight = null; };
+    void operation.then(clear, clear);
+    return operation;
   }
 
   async function refreshCanonicalEvents(scope = requestScope()) {
     if (!remoteApiEnabled) return;
+    const generation = ++eventsRefreshGeneration;
+    events.value = [];
+    // Keep the last confirmed aggregate during this account's read only.
+    // Account/runtime resets and a failed read still remove its authority.
     eventsStatus.value = "loading";
+    eventsLoadMoreStatus.value = "idle";
+    eventsPage.value = 0;
+    eventsTotalRows.value = 0;
     try {
-      const snapshot = await teamInsightsApi.commissions();
-      if (!isCurrentScope(scope)) return;
+      const snapshot = await teamInsightsApi.commissions(1, 20);
+      if (generation !== eventsRefreshGeneration || !isCurrentScope(scope)) return;
+      eventsEvidence.value = snapshot;
       events.value = snapshot.events;
+      eventsPage.value = snapshot.page;
+      eventsTotalRows.value = snapshot.totalRows;
       eventsStatus.value = "ready";
     } catch {
-      if (isCurrentScope(scope)) eventsStatus.value = "error";
+      if (generation === eventsRefreshGeneration && isCurrentScope(scope)) {
+        eventsEvidence.value = null;
+        eventsStatus.value = "error";
+      }
+    }
+  }
+
+  async function loadMoreCanonicalEvents(scope = requestScope()) {
+    if (!remoteApiEnabled || eventsStatus.value !== "ready"
+        || eventsLoadMoreStatus.value === "loading" || events.value.length >= eventsTotalRows.value) return;
+    const nextPage = eventsPage.value + 1;
+    const generation = eventsRefreshGeneration;
+    eventsLoadMoreStatus.value = "loading";
+    try {
+      const snapshot = await teamInsightsApi.commissions(nextPage, 20, eventsEvidence.value?.snapshotAt);
+      if (generation !== eventsRefreshGeneration || !isCurrentScope(scope) || snapshot.page !== nextPage) return;
+      const seen = new Set(events.value.map((event) => event.id));
+      const appended = [...events.value, ...snapshot.events.filter((event) => !seen.has(event.id))];
+      events.value = appended;
+      eventsEvidence.value = { ...snapshot, events: appended };
+      eventsPage.value = snapshot.page;
+      eventsTotalRows.value = snapshot.totalRows;
+      eventsLoadMoreStatus.value = "idle";
+    } catch {
+      if (generation === eventsRefreshGeneration && isCurrentScope(scope)) eventsLoadMoreStatus.value = "error";
     }
   }
 
@@ -245,38 +384,53 @@ export const useCommission = defineStore("commission", () => {
   function withdraw(id: string): boolean {
     if (remoteApiEnabled) return false;
     const e = events.value.find((x) => x.id === id);
-    if (!e || e.status !== "unlocked") return false;
+    if (!e || e.status !== "unlocked" || e.withdrawable === false || e.settlementState === "SIMULATED") return false;
     events.value = events.value.map((x) => (x.id === id ? { ...x, status: "withdrawn" } : x));
     persist();
     return true;
   }
 
   function totalUSDTLifetime() {
+    if (remoteApiEnabled) return eventsEvidence.value?.aggregate.totalUSDT ?? 0;
     return events.value.reduce((s, e) => s + e.amountUSDT, 0);
   }
   function totalNEXLifetime() {
+    if (remoteApiEnabled) return eventsEvidence.value?.aggregate.totalNEX ?? 0;
     return events.value.reduce((s, e) => s + e.amountNEX, 0);
   }
+  /** Pages must use this lookup so remote mode can never fall back to mock rates. */
+  function unilevelRate(layer: number): number {
+    if (remoteApiEnabled) return config.value?.unilevelUsdt[layer] ?? 0;
+    return UNILEVEL_USDT[layer] ?? 0;
+  }
   function unlockedUSDT() {
-    return events.value.filter((e) => e.status === "unlocked").reduce((s, e) => s + e.amountUSDT, 0);
+    if (remoteApiEnabled) return eventsEvidence.value?.aggregate.unlockedUSDT ?? 0;
+    return events.value.filter((e) => e.status === "unlocked" && e.withdrawable !== false && e.settlementState !== "SIMULATED").reduce((s, e) => s + e.amountUSDT, 0);
   }
   function unlockedNEX() {
-    return events.value.filter((e) => e.status === "unlocked").reduce((s, e) => s + e.amountNEX, 0);
+    if (remoteApiEnabled) return eventsEvidence.value?.aggregate.unlockedNEX ?? 0;
+    return events.value.filter((e) => e.status === "unlocked" && e.withdrawable !== false && e.settlementState !== "SIMULATED").reduce((s, e) => s + e.amountNEX, 0);
   }
   function coolingUSDT() {
+    if (remoteApiEnabled) return eventsEvidence.value?.aggregate.coolingUSDT ?? 0;
     return events.value.filter((e) => e.status === "cooling").reduce((s, e) => s + e.amountUSDT, 0);
   }
   /** sum since local midnight — Home Hero "today's earnings" cross-stream. */
   function todayUSDT() {
+    if (remoteApiEnabled) return eventsEvidence.value?.aggregate.todayUSDT ?? 0;
     const cutoff = localDayStart();
     return events.value.filter((e) => e.ts >= cutoff).reduce((s, e) => s + e.amountUSDT, 0);
   }
   function monthUSDT() {
-    const cutoff = Date.now() - 30 * ONE_DAY;
+    if (remoteApiEnabled) return eventsEvidence.value?.aggregate.monthUSDT ?? 0;
+    const today = new Date();
+    const cutoff = new Date(today.getFullYear(), today.getMonth(), 1).getTime();
     return events.value.filter((e) => e.ts >= cutoff).reduce((s, e) => s + e.amountUSDT, 0);
   }
   function monthNEX() {
-    const cutoff = Date.now() - 30 * ONE_DAY;
+    if (remoteApiEnabled) return eventsEvidence.value?.aggregate.monthNEX ?? 0;
+    const today = new Date();
+    const cutoff = new Date(today.getFullYear(), today.getMonth(), 1).getTime();
     return events.value.filter((e) => e.ts >= cutoff).reduce((s, e) => s + e.amountNEX, 0);
   }
 
@@ -284,6 +438,7 @@ export const useCommission = defineStore("commission", () => {
     const kinds: CommissionKind[] = ["unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
     const out = {} as Record<CommissionKind, { usdt: number; nex: number; count: number }>;
     for (const k of kinds) out[k] = { usdt: 0, nex: 0, count: 0 };
+    if (remoteApiEnabled) return eventsEvidence.value?.aggregate.byKind ?? out;
     for (const e of events.value) {
       out[e.kind].usdt += e.amountUSDT;
       out[e.kind].nex += e.amountNEX;
@@ -293,7 +448,9 @@ export const useCommission = defineStore("commission", () => {
   }
 
   return {
-    events, binarySnapshot, eventsStatus, binaryStatus, bindAccount, refreshCanonicalBinary, refreshCanonicalEvents,
+    events, eventsEvidence, config, configStatus, binarySnapshot, eventsStatus, eventsLoadMoreStatus,
+    eventsPage, eventsTotalRows, binaryStatus, bindAccount,
+    refreshCanonicalConfig, ensureCanonicalConfig, refreshCanonicalBinary, refreshCanonicalEvents, loadMoreCanonicalEvents, unilevelRate,
     addEvent, unlockMatured, withdraw,
     totalUSDTLifetime, totalNEXLifetime, unlockedUSDT, unlockedNEX, coolingUSDT,
     todayUSDT, monthUSDT, monthNEX, byKind,

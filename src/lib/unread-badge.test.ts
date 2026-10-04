@@ -1,105 +1,133 @@
-import { describe, expect, it } from "vitest";
+import { baseParse, compile, type ElementNode, type TemplateChildNode } from "@vue/compiler-dom";
 import { parse } from "@vue/compiler-sfc";
-import { baseParse, compile, type ElementNode, type RootNode, type TemplateChildNode } from "@vue/compiler-dom";
 import { renderToString } from "@vue/server-renderer";
 import * as Vue from "vue";
-import * as ts from "typescript";
+import ts from "typescript";
+import { describe, expect, it } from "vitest";
 import { fmt } from "@/i18n/format";
+import { zh } from "@/i18n/messages/zh";
+import { en } from "@/i18n/messages/en";
+import { vi } from "@/i18n/messages/vi";
 import { formatUnreadBadge } from "./unread-badge";
+import chassis from "@/components/app-chassis.vue?raw";
+import bubble from "@/components/nova/nova-bubble.vue?raw";
+import services from "@/components/support/service-message-list.vue?raw";
+import conversations from "@/pages/support/messages.vue?raw";
+import notifications from "@/pages/me/notifications.vue?raw";
+import ticket from "@/components/me/ticket-row.vue?raw";
+import me from "@/pages/me/me.vue?raw";
+import segments from "@/components/glass-segments.vue?raw";
 
-describe("message badge display limit", () => {
-  it.each([
-    [0, ""], [1, "1"], [9, "9"], [10, "10"], [98, "98"], [99, "99"],
-    [100, "99"], [999, "99"], [Number.MAX_SAFE_INTEGER, "99"],
-    [-1, ""], [Number.NaN, ""], [Number.POSITIVE_INFINITY, ""], [1.9, "1"],
-  ])("formats %s as %s without changing the source count", (count, expected) => {
-    const source = Vue.ref(count);
-    expect(formatUnreadBadge(source.value)).toBe(expected);
-    expect(source.value).toBe(count);
-  });
-});
+const boundaries = [[0, ""], [1, "1"], [9, "9"], [10, "10"], [98, "98"], [99, "99"], [100, "99"], [12345, "99"]] as const;
 
-const sources = import.meta.glob([
-  "../components/app-chassis.vue", "../components/nova/nova-bubble.vue",
-  "../pages/support/messages.vue", "../pages/me/me.vue", "../pages/me/notifications.vue",
-  "../components/message-drawer.vue", "../components/me/ticket-row.vue",
-], { query: "?raw", import: "default", eager: true });
-
-const surfaces = [
-  { path: "../components/app-chassis.vue", className: "nx-badge", computedLabel: true },
-  { path: "../components/nova/nova-bubble.vue", className: "nx-nova-badge", computedLabel: true },
-  { path: "../pages/support/messages.vue", className: "nx-conv-unread" },
-  { path: "../pages/me/me.vue", styleName: "quickBadgeStyle", entryLabel: true },
-  { path: "../pages/me/notifications.vue", styleName: "unreadBadgeStyle" },
-  { path: "../components/message-drawer.vue", className: "md-tab-badge" },
-  { path: "../components/me/ticket-row.vue", styleName: "unreadChipStyle", computedLabel: true },
-];
-
-function badgeElement(node: RootNode | TemplateChildNode, surface: typeof surfaces[number]): ElementNode | undefined {
-  if (node.type === 1 && node.props.some(prop =>
-    (prop.type === 6 && prop.name === "class" && prop.value?.content.split(" ").includes(surface.className ?? ""))
-    || (prop.type === 7 && prop.name === "bind" && prop.arg?.type === 4
-      && prop.arg.content === "style" && prop.exp?.type === 4 && prop.exp.content === surface.styleName))) {
-    return node;
-  }
-  if (node.type === 0 || node.type === 1) {
-    for (const child of node.children) {
-      const found = badgeElement(child, surface);
-      if (found) return found;
+// Render the production badge markup, including its own visibility condition.
+function elementMarkup(source: string, matches: (node: ElementNode) => boolean): string {
+  const template = parse(source).descriptor.template;
+  if (!template) throw new Error("Missing production template");
+  function find(nodes: TemplateChildNode[]): ElementNode | undefined {
+    for (const node of nodes) {
+      if (node.type !== 1) continue;
+      if (matches(node)) return node;
+      const nested = find(node.children);
+      if (nested) return nested;
     }
   }
+  const node = find(baseParse(template.content).children);
+  if (!node) throw new Error("Missing production badge");
+  return node.loc.source;
+}
+const hasClass = (name: string) => (node: ElementNode) => node.props.some(prop => prop.type === 6 && prop.name === "class" && prop.value?.content.split(" ").includes(name));
+const markup = {
+  bell: elementMarkup(chassis, hasClass("nx-badge")),
+  bubble: elementMarkup(bubble, hasClass("nx-nova-badge")),
+  service: elementMarkup(services, hasClass("service-unread")),
+  conversation: elementMarkup(conversations, hasClass("nx-conv-unread")),
+  ticket: elementMarkup(ticket, node => node.props.some(prop => prop.type === 7 && prop.name === "if" && prop.exp?.type === 4 && prop.exp.content === "tk.unread > 0")),
+  segment: elementMarkup(segments, hasClass("nx-glass-option__count")),
+};
+async function renderBadge(template: string, bindings: Record<string, unknown>): Promise<string> {
+  const code = compile(template, { mode: "function", prefixIdentifiers: true, isCustomElement: tag => ["view", "text"].includes(tag) }).code;
+  const render = new Function("Vue", code)(Vue) as Vue.RenderFunction;
+  const html = await renderToString(Vue.createSSRApp({ setup: () => bindings, render }));
+  return html.replace(/<!--.*?-->/g, "");
 }
 
-function scriptLabel(script: string, count: number, entryLabel: boolean): string | undefined {
-  const ast = ts.createSourceFile("badge.vue.ts", script, ts.ScriptTarget.Latest, true);
-  let expression: string | undefined;
-  function visit(node: ts.Node) {
-    if (!entryLabel && ts.isVariableDeclaration(node) && node.name.getText(ast) === "unreadLabel") {
-      expression = `${node.initializer!.getText(ast)}.value`;
-    }
-    if (entryLabel && ts.isObjectLiteralExpression(node)
-      && node.properties.some(prop => ts.isPropertyAssignment(prop)
-        && prop.name.getText(ast) === "key" && prop.initializer.getText(ast) === '"messages"')) {
-      const badge = node.properties.find(prop => ts.isPropertyAssignment(prop) && prop.name.getText(ast) === "badge");
-      if (badge && ts.isPropertyAssignment(badge)) expression = badge.initializer.getText(ast);
-    }
-    ts.forEachChild(node, visit);
+// Read production computed expressions rather than recreating count logic here.
+function expression<T>(source: string, matches: (node: ts.Node) => boolean, bindings: Record<string, unknown>): T {
+  const script = parse(source).descriptor.scriptSetup;
+  if (!script) throw new Error("Missing production script");
+  const ast = ts.createSourceFile("badge.vue.ts", script.content, ts.ScriptTarget.Latest, true);
+  function find(node: ts.Node): ts.Node | undefined {
+    if (matches(node)) return node;
+    return ts.forEachChild(node, find);
   }
-  visit(ast);
-  if (!expression) throw new Error("Missing source badge expression");
-  return new Function("computed", "unread", "totalUnread", "unreadNotifs", "props", "t", "fmt", "formatUnreadBadge",
-    `return ${expression};`)(Vue.computed, Vue.ref(count), Vue.ref(count), Vue.ref(count),
-    { tk: { unread: count } }, { value: { tickets: { unreadChip: "{n}" } } }, fmt, formatUnreadBadge);
+  const node = find(ast);
+  if (!node) throw new Error("Missing production count expression");
+  const code = ts.transpileModule(`const result = ${node.getText(ast)};`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
+  return new Function(...Object.keys(bindings), code + ";return result;")(...Object.values(bindings)) as T;
 }
+function computedValue<T>(source: string, name: string, bindings: Record<string, unknown>): T {
+  const initializer = expression<Vue.ComputedRef<T>>(source, node => ts.isCallExpression(node) && ts.isVariableDeclaration(node.parent) && node.parent.name.getText() === name,
+    { computed: Vue.computed, formatUnreadBadge, ...bindings });
+  return initializer.value;
+}
+type CountOption = { count?: string | number };
 
-describe.each(surfaces)("message badge wiring in $path", surface => {
-  it.each([0, 1, 9, 10, 99, 100, 999])("renders the actual badge template at %s unread", async count => {
-    const source = String(sources[surface.path] ?? "");
-    const { descriptor } = parse(source);
-    expect(descriptor.scriptSetup!.content).toContain('import { formatUnreadBadge } from "@/lib/unread-badge"');
-    const element = badgeElement(baseParse(descriptor.template!.content), surface);
-    if (!element) throw new Error(`Missing badge element in ${surface.path}`);
-    const { code } = compile(element.loc.source, { mode: "function", prefixIdentifiers: true, isCustomElement: () => true });
-    const render = new Function("Vue", code)(Vue);
-    const label = surface.computedLabel || surface.entryLabel
-      ? scriptLabel(descriptor.scriptSetup!.content, count, Boolean(surface.entryLabel)) : undefined;
-    const html = await renderToString(Vue.createSSRApp({ render, setup: () => ({
-      unread: count, unreadLabel: label, showUnreadBadge: count > 0,
-      r: { unread: count }, item: { badge: label }, notifs: { unread: count }, tk: { unread: count },
-      countUnread: () => count, formatUnreadBadge, filter: "all", id: "all",
-      quickBadgeStyle: {}, unreadBadgeStyle: {}, unreadChipStyle: {},
-    }) }));
-    if (count === 0) expect(html).not.toContain("<text");
-    else expect(html).toMatch(new RegExp(`>${formatUnreadBadge(count)}</text>`));
-    expect(html).not.toMatch(/\d\+/);
+describe("message unread badge display", () => {
+  it.each(boundaries)("formats %i as '%s' without changing the source count", (count, label) => {
+    const original = count;
+    expect(formatUnreadBadge(count)).toBe(label);
+    expect(count).toBe(original);
   });
-});
-
-it("keeps the notification drawer's descriptive unread total exact", () => {
-  const { descriptor } = parse(String(sources["../components/message-drawer.vue"]));
-  const script = descriptor.scriptSetup!.content;
-  const label = new Function("computed", "unread", "t", "fmt",
-    `${script.match(/const unreadLabel = computed\([\s\S]*?\n\);/)![0]}; return unreadLabel.value;`)(
-    Vue.computed, Vue.ref(123), { value: { notifs: { unreadCount: "{n} unread", allCaughtUp: "All read" } } }, fmt);
-  expect(label).toBe("123 unread");
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY, 0.5])("hides unusable counts: %s", count => {
+    expect(formatUnreadBadge(count)).toBe("");
+  });
+  for (const [language, translations] of [["zh", zh], ["en", en], ["vi", vi]] as const) {
+    it.each(boundaries)(`${language}: renders every message badge for %i`, async (count, label) => {
+      const t = Vue.ref(translations), unread = Vue.ref(count), totalUnread = Vue.ref(count);
+      const bellLabel = computedValue<string>(chassis, "unreadLabel", { unread });
+      const bubbleLabel = computedValue<string>(bubble, "unreadLabel", { totalUnread });
+      const showUnreadBadge = computedValue<boolean>(bubble, "showUnreadBadge", { totalUnread });
+      const ticketLabel = computedValue<string>(ticket, "unreadLabel", { t, props: { tk: { unread: count } }, fmt });
+      const rowMarkup = await Promise.all([
+        renderBadge(markup.bell, { unread: count, unreadLabel: bellLabel }),
+        renderBadge(markup.bubble, { totalUnread: count, showUnreadBadge, unreadLabel: bubbleLabel }),
+        renderBadge(markup.service, { row: { unread: count }, formatUnreadBadge }),
+        renderBadge(markup.conversation, { r: { unread: count }, formatUnreadBadge }),
+        renderBadge(markup.ticket, { tk: { unread: count }, unreadLabel: ticketLabel, unreadChipStyle: {} }),
+      ]);
+      for (const [index, html] of rowMarkup.entries()) {
+        if (!label) expect(html).toBe("");
+        else expect(html.match(/<text[^>]*>([^<]*)<\/text>/)?.[1]).toBe(index === 4 ? fmt(translations.tickets.unreadChip, { n: label }) : label);
+      }
+      const sections = computedValue<CountOption[]>(notifications, "sectionOptions", { t, notifs: { unread: count }, center: { serviceUnread: count } });
+      const types = computedValue<CountOption[]>(conversations, "typeOptions", { TYPES: Vue.ref([{ key: "advisor" }, { key: "support" }, { key: "ai" }]), typeLabel: (key: string) => key, typeUnread: () => count });
+      for (const option of sections) {
+        expect(option.count).toBe(count);
+        const html = await renderBadge(markup.segment, { option });
+        expect(html.match(/<text[^>]*>([^<]*)<\/text>/)?.[1]).toBe(String(count));
+      }
+      for (const option of types) {
+        expect(option.count).toBe(label || undefined);
+        const html = await renderBadge(markup.segment, { option });
+        if (!label) expect(html).toBe("");
+        else expect(html.match(/<text[^>]*>([^<]*)<\/text>/)?.[1]).toBe(label);
+      }
+      const meEntry = expression<{ badge?: string }>(me, node => ts.isObjectLiteralExpression(node) && node.properties.some(prop => ts.isPropertyAssignment(prop) && prop.name.getText() === "key" && prop.initializer.getText() === '"messages"'), { t, messageUnread: unread, formatUnreadBadge });
+      expect(meEntry.badge).toBe(label || undefined);
+    });
+  }
+  it('does not announce partial legacy category counts as account-wide numbers', () => {
+    for (const exact of [false, true]) {
+      const options = computedValue<Array<{ value: string; count?: number; hasUnread: boolean }>>(notifications, 'filterOptions', {
+        visibleFilterIds: Vue.ref(['all', 'finance', 'device']), filterLabel: (value: string) => value,
+        notifs: { unread: 111, unreadByCategory: { finance: 100, device: 0 }, unreadByCategoryExact: exact },
+      });
+      expect(options[0].count).toBe(111);
+      expect(options[1].hasUnread).toBe(true);
+      expect(options[2].hasUnread).toBe(false);
+      expect(options[1].count).toBe(exact ? 100 : undefined);
+      expect(options[2].count).toBe(exact ? 0 : undefined);
+    }
+  });
 });

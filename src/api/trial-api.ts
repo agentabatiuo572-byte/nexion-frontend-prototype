@@ -1,8 +1,8 @@
 import type { ApiClient } from "./api-client";
 import type { TrialStatus } from "../store/trial-boundary";
-import { isCurrentCommerceSandboxRun } from "./order-api";
 
-export type TrialEligibilityReason = "in-progress" | "converted" | "used" | "phase-closed" | "risk" | "unknown";
+export type TrialEligibilityReason =
+  "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "unknown";
 export type TrialConfigValue = string | boolean;
 
 export interface TrialAuthorityState {
@@ -17,11 +17,21 @@ export interface TrialAuthorityState {
   startedAt: number | null;
   expiresAt: number | null;
   graceEndsAt: number | null;
+  extendedEndsAt?: number | null;
   finishedAt: number | null;
   cooldownUntil: number | null;
   shadowUSD: number;
   shadowNEX: number;
   source: string;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION";
+  runId: "";
+  provenance: {
+    serverCanonical: true;
+    source: string;
+    sourceEnvironment: "PRODUCTION";
+    runId: "";
+  };
   paymentRail: "NEXION_USDT_WALLET";
   config: Record<string, TrialConfigValue>;
 }
@@ -34,9 +44,16 @@ export interface TrialConvertReceipt {
   discountUsdt: number;
   paymentStatus: "PENDING" | "PAID";
   orderStatus: "PENDING_PAYMENT" | "PAID";
-  source: "mock" | "provider";
-  sourceEnvironment: "PRODUCTION" | "SANDBOX";
-  runId?: string;
+  source: "nx_trial_claim + nx_order + nx_order_item";
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION";
+  runId: "";
+  provenance: {
+    source: "nx_trial_claim + nx_order + nx_order_item";
+    serverCanonical: true;
+    sourceEnvironment: "PRODUCTION";
+    runId: "";
+  };
 }
 
 /**
@@ -56,7 +73,7 @@ const SERVER_STATES = new Set([
   "ELIGIBLE", "ACTIVE", "GRACE", "EXTENDED", "REDEEMED", "FAILED", "CANCELLED",
 ]);
 const REASONS = new Set([
-  "in-progress", "converted", "used", "phase-closed", "risk", "unknown",
+  "in-progress", "converted", "used", "phase-closed", "quota-exhausted", "risk", "product-unavailable", "unknown",
 ]);
 
 function invalid(): never {
@@ -88,20 +105,17 @@ export function parseTrialConvertReceipt(value: unknown): TrialConvertReceipt {
   const discountUsdt = finiteNumber(row?.discountUsdt);
   const paymentStatus = row?.paymentStatus === "PAID" ? "PAID" : row?.paymentStatus === "PENDING" ? "PENDING" : null;
   const orderStatus = row?.orderStatus === "PAID" ? "PAID" : row?.orderStatus === "PENDING_PAYMENT" ? "PENDING_PAYMENT" : null;
-  const environment = row?.sourceEnvironment === "SANDBOX" ? "SANDBOX"
-    : row?.sourceEnvironment === "PRODUCTION" ? "PRODUCTION" : null;
-  const source = row?.source === "mock" ? "mock" : row?.source === "provider"
-    ? "provider" : environment === "PRODUCTION" && row?.source == null ? "provider" : null;
+  const source = row?.source === "nx_trial_claim + nx_order + nx_order_item" ? row.source : null;
+  const provenance = record(row?.provenance);
   const paymentNo = row?.paymentNo == null ? undefined : String(row.paymentNo).trim();
-  const runId = row?.runId == null ? undefined : String(row.runId).trim();
-  if (!/^(TRC|TRC-SBX)-[A-Z0-9]+$/.test(orderNo) || !productNo || amountUsdt === null || discountUsdt === null
-      || !paymentStatus || !orderStatus || !environment || !source
-      || environment === "SANDBOX" && (source !== "mock" || paymentStatus !== "PAID" || orderStatus !== "PAID"
-        || !/^PAY-SBX-[A-Z0-9]+$/.test(paymentNo ?? "")
-        || !runId || !/^[A-Za-z0-9][A-Za-z0-9._-]{7,95}$/.test(runId)
-        || !isCurrentCommerceSandboxRun(runId))) return invalid();
+  if (!/^TRC-[A-Z0-9]+$/.test(orderNo) || !productNo || amountUsdt === null || discountUsdt === null
+      || !paymentStatus || !orderStatus || !source
+      || row?.serverCanonical !== true || row?.sourceEnvironment !== "PRODUCTION" || row?.runId !== ""
+      || provenance?.serverCanonical !== true || provenance.source !== source
+      || provenance.sourceEnvironment !== "PRODUCTION" || provenance.runId !== "") return invalid();
   return { orderNo, ...(paymentNo ? { paymentNo } : {}), productNo, amountUsdt, discountUsdt,
-    paymentStatus, orderStatus, source, sourceEnvironment: environment, ...(runId ? { runId } : {}) };
+    paymentStatus, orderStatus, source, serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    provenance: { source, serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "" } };
 }
 
 function clientStatus(serverState: TrialAuthorityState["serverState"]): TrialStatus {
@@ -135,15 +149,18 @@ export function parseTrialAuthorityState(value: unknown): TrialAuthorityState {
   const canStart = row.canStart;
   const serverNow = finiteNumber(row.serverNowEpochMs, 1);
   const version = finiteNumber(row.version);
-  const source = typeof row.source === "string" && row.source.startsWith("nx_trial_claim")
-    ? row.source
-    : null;
+  const source = row.source === "nx_trial_claim" || row.source === "nx_trial_claim + nx_user_wallet"
+    ? row.source : null;
+  const provenance = record(row.provenance);
   const reason = row.eligibilityReason == null ? undefined : String(row.eligibilityReason);
   const claimNo = row.claimNo == null ? null : String(row.claimNo).trim();
   const shadowUSD = finiteNumber(row.shadowUsdt ?? 0);
   const shadowNEX = finiteNumber(row.shadowNex ?? 0);
   if (typeof canStart !== "boolean" || serverNow === null || version === null || !Number.isInteger(version)
-      || !source || row.paymentRail !== "NEXION_USDT_WALLET"
+      || !source || row.serverCanonical !== true || row.sourceEnvironment !== "PRODUCTION" || row.runId !== ""
+      || provenance?.serverCanonical !== true || provenance.source !== source
+      || provenance.sourceEnvironment !== "PRODUCTION" || provenance.runId !== ""
+      || row.paymentRail !== "NEXION_USDT_WALLET"
       || (reason !== undefined && !REASONS.has(reason))
       || (canStart && reason !== undefined)
       || (!canStart && reason === undefined)
@@ -154,6 +171,8 @@ export function parseTrialAuthorityState(value: unknown): TrialAuthorityState {
   const startedAt = timestamp(row.claimedAtEpochMs ?? row.claimedAt);
   const expiresAt = timestamp(row.expiresAtEpochMs ?? row.expiresAt);
   const graceEndsAt = timestamp(row.graceEndsAtEpochMs ?? row.graceEndsAt);
+  const extendedEndsAt = timestamp(row.extendedEndsAtEpochMs ?? row.extendedEndsAt);
+  if (serverState === "EXTENDED" && extendedEndsAt === null) return invalid();
   const finishedAt = timestamp(row.finishedAtEpochMs ?? row.finishedAt);
   const cooldownUntil = timestamp(row.cooldownUntilEpochMs ?? row.cooldownUntil);
   if (["ACTIVE", "GRACE", "EXTENDED", "REDEEMED"].includes(serverState)
@@ -171,11 +190,21 @@ export function parseTrialAuthorityState(value: unknown): TrialAuthorityState {
     startedAt,
     expiresAt,
     graceEndsAt,
+    extendedEndsAt,
     finishedAt,
     cooldownUntil,
     shadowUSD,
     shadowNEX,
     source,
+    serverCanonical: true,
+    sourceEnvironment: "PRODUCTION",
+    runId: "",
+    provenance: {
+      serverCanonical: true,
+      source,
+      sourceEnvironment: "PRODUCTION",
+      runId: "",
+    },
     paymentRail: "NEXION_USDT_WALLET",
     config: trialConfig(row.config),
   };

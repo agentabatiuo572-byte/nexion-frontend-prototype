@@ -1,6 +1,7 @@
-import { watch, onUnmounted } from "vue";
+import { watch, onUnmounted, onActivated, onDeactivated } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import { usePageHeader, type PageHeaderPayload } from "@/store/page-header";
+import { createPageHeaderVisibilityGate } from "@/lib/page-header-visibility";
 
 type PayloadInput = PageHeaderPayload | (() => PageHeaderPayload);
 
@@ -10,9 +11,9 @@ type PayloadInput = PageHeaderPayload | (() => PageHeaderPayload);
  * a getter (use the getter when the title depends on async data, e.g. a product
  * loaded in onLoad — the watch re-sets once it resolves).
  *
- * Lifecycle: set reactively + on every onShow (covers tab-switch / back returning to
- * this page, P-044 hash-nav doesn't re-fire onLoad); clear on onHide / onUnmounted so
- * the header never leaks into the next page. Tab pages don't call this → brand row.
+ * Lifecycle: publish reactively and on Uni show / Vue cache activation; hide on
+ * Uni hide / Vue cache deactivation / unmount. Cached returns need the Vue hooks
+ * even when no Uni page-show notification is delivered. Tab pages keep the brand row.
  * Each page instance clears only the header it registered (owner token): the popped
  * page's late onUnmounted must not wipe the header the surviving page just re-set
  * (checkout → checkout?resume → back left the survivor without back button / title).
@@ -21,12 +22,20 @@ export function useSetPageHeader(input: PayloadInput) {
   const store = usePageHeader();
   const get = (): PageHeaderPayload => (typeof input === "function" ? input() : input);
   const owner = Symbol("page-header-owner");
+  const visibility = createPageHeaderVisibilityGate(
+    (payload: PageHeaderPayload) => store.set(payload, owner),
+    () => store.clear(owner),
+  );
 
   // Reactive: re-set whenever the getter's deps change (async product load etc.).
-  watch(get, (v) => store.set(v, owner), { immediate: true });
-  // Re-assert on show (another page's onHide may have cleared it before we re-enter).
-  onShow(() => store.set(get(), owner));
+  watch(get, (v) => visibility.publish(v), { immediate: true });
+  const show = () => visibility.show(get());
+  const hide = () => visibility.hide();
+  // Re-assert on both page notifications and cached Vue returns.
+  onShow(show);
+  onActivated(show);
   // Clear so the nav header doesn't bleed into the next page — but only our own entry.
-  onHide(() => store.clear(owner));
-  onUnmounted(() => store.clear(owner));
+  onHide(hide);
+  onDeactivated(hide);
+  onUnmounted(hide);
 }

@@ -1,9 +1,29 @@
 <!--
   NexChart — large area+line price chart for the NEX hero (ported from
   market/page.tsx NexChart). Normalizes `data` into a 360×120 viewBox; lemon
-  when up, brand-2 (red) when down. Inline SVG renders on both H5 + App webview.
+  when up, brand-2 (red) when down. App uses the supported NativeSvg markup path.
 -->
 <template>
+  <!-- #ifdef APP-PLUS -->
+  <NativeSvg width="100%" :height="H" :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none">
+    <defs>
+      <linearGradient :id="gradId" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" :stop-color="color" stop-opacity="0.30" />
+        <stop offset="100%" :stop-color="color" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+    <polygon :points="areaPoints" :fill="`url(#${gradId})`" />
+    <polyline
+      :points="linePoints"
+      fill="none"
+      :stroke="color"
+      stroke-width="1.6"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </NativeSvg>
+  <!-- #endif -->
+  <!-- #ifndef APP-PLUS -->
   <svg width="100%" :height="H" :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none">
     <defs>
       <linearGradient :id="gradId" x1="0" y1="0" x2="0" y2="1">
@@ -21,10 +41,14 @@
       stroke-linejoin="round"
     />
   </svg>
+  <!-- #endif -->
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+// #ifdef APP-PLUS
+import NativeSvg from "@/components/native-svg.vue";
+// #endif
 
 const props = defineProps<{ data: number[]; up: boolean }>();
 

@@ -1,5 +1,6 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import { parseServerTimestamp } from "./server-time";
 
 export type CanonicalNotificationPriority = "critical" | "high" | "normal" | "low";
 
@@ -19,6 +20,8 @@ export interface CanonicalNotificationPage {
   items: CanonicalNotification[];
   nextCursor: string | null;
   unread: number;
+  /** Account-wide counts, independent of the requested page. Omitted by older servers. */
+  unreadByKind?: Record<string, number>;
 }
 
 export interface NotificationActionResult {
@@ -64,8 +67,8 @@ function integer(value: unknown, min = 0): number | null {
 function timestamp(value: unknown, nullable = false): number | null {
   if (nullable && (value === null || value === undefined || value === "")) return null;
   if (typeof value !== "string" && typeof value !== "number") return null;
-  const parsed = typeof value === "number" ? value : Date.parse(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  const parsed = typeof value === "number" ? value : parseServerTimestamp(value);
+  return parsed !== null && Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function parseNotification(value: unknown): CanonicalNotification {
@@ -73,8 +76,8 @@ function parseNotification(value: unknown): CanonicalNotification {
   const id = integer(row?.id, 1);
   const kind = text(row?.kind);
   const priority = text(row?.priority)?.toLowerCase() as CanonicalNotificationPriority;
-  const title = text(row?.title);
-  const body = text(row?.body, true);
+  const title = typeof row?.title === "string" && row.title.trim() ? row.title : null;
+  const body = typeof row?.body === "string" ? row.body : null;
   const ctaLabel = text(row?.ctaLabel, true);
   const ctaHref = text(row?.ctaHref, true);
   const createdAt = timestamp(row?.createdAt);
@@ -100,7 +103,30 @@ function parsePage(value: unknown): CanonicalNotificationPage {
   if (ids.size !== items.length) {
     return invalid("NOTIFICATION_PAGE_INCONSISTENT");
   }
-  return { items, nextCursor, unread };
+  if (!Object.prototype.hasOwnProperty.call(row, "unreadByKind")) return { items, nextCursor, unread };
+  const summary = record(row.unreadByKind);
+  if (!summary) return invalid("NOTIFICATION_UNREAD_SUMMARY_INVALID");
+  let total = 0;
+  const entries = Object.entries(summary).map(([kind, count]): [string, number] => {
+    if (!kind || kind !== kind.trim().toLowerCase() || typeof count !== "number"
+        || !Number.isSafeInteger(count) || count < 0) {
+      return invalid("NOTIFICATION_UNREAD_SUMMARY_INVALID");
+    }
+    total += count;
+    return [kind, count];
+  });
+  if (!Number.isSafeInteger(total) || total !== unread) return invalid("NOTIFICATION_UNREAD_SUMMARY_INVALID");
+  const unreadByKind = Object.fromEntries(entries);
+  const knownUnread = new Map<string, number>();
+  for (const item of items) {
+    if (item.readAt !== null) continue;
+    const count = (knownUnread.get(item.kind) ?? 0) + 1;
+    knownUnread.set(item.kind, count);
+    if (count > (Object.prototype.hasOwnProperty.call(unreadByKind, item.kind) ? unreadByKind[item.kind] : 0)) {
+      return invalid("NOTIFICATION_PAGE_INCONSISTENT");
+    }
+  }
+  return { items, nextCursor, unread, unreadByKind };
 }
 
 function parseCount(value: unknown): number {

@@ -11,10 +11,21 @@
   <AppChassis active="me">
     <view style="padding-bottom: 16px">
       <SubPageHeader :back="'/pages/me/wallet'" :title="wd ? wd.id : t.wallet.withdrawalStatusSubtitle" />
-      <FundsSandboxBadge />
 
+      <!-- Exact deep-link reads wait for the authenticated account before presenting any absence. -->
+      <view v-if="trackingReadPending && !wd" class="px-5" style="padding-top: 4px">
+        <view :style="skelStyle('42%', '14px', '0')" />
+        <view :style="skelStyle('66%', '34px', '8px')" />
+        <view :style="skelStyle('88%', '14px', '12px')" />
+      </view>
+      <view v-else-if="trackingReadError" class="px-5 text-center">
+        <text class="block" :style="emptyTextStyle">{{ t.empty.errorDesc }}</text>
+        <view class="active:opacity-70" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; margin-top: 4px" role="button" tabindex="0" @click.stop="retryTrackedWithdrawal">
+          <text :style="emptyLinkStyle">{{ t.empty.errorCta }}</text>
+        </view>
+      </view>
       <!-- Empty — no top gap; the sub-page header already provides the 24px inset. -->
-      <view v-if="!wd" class="px-5 text-center">
+      <view v-else-if="!wd" class="px-5 text-center">
         <text class="block" :style="emptyTextStyle">{{ deepLinkMiss ? t.wallet.withdrawalNotFound : t.wallet.noActiveWithdrawal }}</text>
         <!-- 《07》tap≥44:空状态的行动链接独占一行,不吃 WCAG 2.5.8 的 inline 豁免 → 撑热区(原 88×22) -->
         <!-- 日限用尽时置灰 + 给原因(与「再提一笔」同判据同文案)。深链 miss 让本空态在
@@ -114,22 +125,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, type CSSProperties } from "vue";
+import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
-import { withdrawalApi } from "@/api/runtime";
-import type { WithdrawalPolicy } from "@/api/withdrawal-api";
+import { remoteApiEnabled, sessionVault, withdrawalApi } from "@/api/runtime";
+import { captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
+import { toCanonicalWithdrawal, type WithdrawalDetailSnapshot, type WithdrawalPolicy } from "@/api/withdrawal-api";
 import { mockServerNow } from "@/store/server-time";
 import { platformDayIndex } from "@/store/withdrawal-eligibility-core";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
-import type { WithdrawalStatus } from "@/store/types";
-import { navTo } from "@/lib/route";
+import type { Withdrawal, WithdrawalStatus } from "@/store/types";
+import { navTo, navReplace } from "@/lib/route";
 import { riskReasonLines, terminalReasonLine } from "@/lib/risk-reason-text";
 import { dailyLimitStatus } from "@/store/withdrawal-eligibility";
+import {
+  createWithdrawalTrackingRead,
+  resolveTrackedWithdrawal,
+  type WithdrawalTrackingReadScope,
+  type WithdrawalTrackingReadStatus,
+} from "./wallet-withdraw-tracking-read";
 
 const STEP_DELAY_MS = 3500;
 
@@ -143,11 +160,110 @@ const deepLinkId = ref<string | null>(null);
 onLoad((options) => {
   deepLinkId.value = typeof options?.id === "string" && options.id ? options.id : null;
 });
+const trackedWithdrawal = ref<Withdrawal | null>(null);
+// Captured by identity, rather than by status: the global list replaces a row
+// after a later authoritative poll, at which point it must outrank this page's
+// initial exact snapshot.
+const storeRowAtTrackedRead = ref<Withdrawal | null>(null);
+const trackingReadStatus = ref<WithdrawalTrackingReadStatus>("waiting");
+let trackingPageVisible = false;
+let trackingPageEpoch = 0;
+
+function trackingReadScope(): WithdrawalTrackingReadScope | null {
+  const withdrawalNo = deepLinkId.value;
+  // A cold page can mount before the authenticated binding finishes. Hold the
+  // exact read until the runtime has a concrete user scope; never query under
+  // the bootstrap/default account and never reuse an earlier account response.
+  const session = sessionVault.read();
+  if (!remoteApiEnabled || !trackingPageVisible || !withdrawalNo || !session?.accessToken
+      || app.accountKey !== `user:${session.user.userId}`) return null;
+  return {
+    withdrawalNo,
+    accountKey: app.accountKey,
+    accountBindingEpoch: app.accountBindingEpoch,
+    sessionRevision: sessionVault.revision(),
+    runtimeEpoch: captureRuntimeRevision().epoch,
+    pageEpoch: trackingPageEpoch,
+  };
+}
+
+function applyTrackedWithdrawal(detail: WithdrawalDetailSnapshot): void {
+  const submission = detail.withdrawal;
+  const canonical = toCanonicalWithdrawal(submission, submission.targetAddress ?? "", submission.createdAt);
+  trackedWithdrawal.value = {
+    ...canonical,
+    status: detail.status,
+    ...(detail.confirmedAt !== null ? { confirmedAt: detail.confirmedAt } : {}),
+    ...(detail.terminalReason !== null ? { terminalReason: detail.terminalReason } : {}),
+    ...(detail.retriable !== null ? { retriable: detail.retriable } : {}),
+    ...(detail.nexRefunded !== null
+      ? { nexRefunded: detail.nexRefunded, nexRefundedAt: detail.nexRefundedAt ?? canonical.nexRefundedAt }
+      : {}),
+  };
+  storeRowAtTrackedRead.value = app.withdrawals.find((row) => row.id === submission.withdrawalNo) ?? null;
+}
+
+const trackedWithdrawalRead = createWithdrawalTrackingRead<WithdrawalDetailSnapshot>({
+  read: withdrawalApi.get,
+  currentScope: trackingReadScope,
+  apply: applyTrackedWithdrawal,
+  setStatus: (status) => { trackingReadStatus.value = status; },
+});
+
+const trackingReadPending = computed(() => deepLinkId.value !== null
+  && (trackingReadStatus.value === "waiting" || trackingReadStatus.value === "loading"));
+const trackingReadError = computed(() => deepLinkId.value !== null && trackingReadStatus.value === "error");
 const wd = computed(() => {
-  if (deepLinkId.value) return app.withdrawals.find((x) => x.id === deepLinkId.value) ?? null;
+  if (deepLinkId.value) {
+    if (remoteApiEnabled && trackingReadStatus.value === "not-found") return null;
+    return resolveTrackedWithdrawal(
+      trackedWithdrawal.value,
+      app.withdrawals.find((row) => row.id === deepLinkId.value) ?? null,
+      storeRowAtTrackedRead.value,
+    );
+  }
   return app.primaryWithdrawal;
 });
-const deepLinkMiss = computed(() => deepLinkId.value !== null && !wd.value);
+const deepLinkMiss = computed(() => deepLinkId.value !== null && !wd.value
+  && (!remoteApiEnabled || trackingReadStatus.value === "not-found"));
+
+let bankRedirecting = false;
+function openBankTracking() {
+  const row = wd.value;
+  if (trackingPageVisible && !bankRedirecting && row?.network === "BANK-VND") {
+    bankRedirecting = true;
+    void navReplace(`/pages/me/wallet-withdraw-bank?order=${encodeURIComponent(row.id)}`)
+      .then(ok => { if (!ok) bankRedirecting = false; });
+  }
+}
+watch(() => wd.value, openBankTracking);
+
+function refreshTrackedWithdrawal(): void {
+  if (deepLinkId.value) void trackedWithdrawalRead.refresh();
+}
+
+function retryTrackedWithdrawal(): void {
+  refreshTrackedWithdrawal();
+}
+
+watch(
+  () => [deepLinkId.value, app.accountKey, app.accountBindingEpoch] as const,
+  () => {
+    trackedWithdrawal.value = null;
+    storeRowAtTrackedRead.value = null;
+    trackedWithdrawalRead.invalidate();
+    if (trackingPageVisible) refreshTrackedWithdrawal();
+  },
+);
+
+const stopTrackingRuntimeWatch = subscribeRuntimeRevision(() => {
+  if (!trackingPageVisible) return;
+  trackingPageEpoch += 1;
+  trackedWithdrawal.value = null;
+  storeRowAtTrackedRead.value = null;
+  trackedWithdrawalRead.invalidate();
+  refreshTrackedWithdrawal();
+});
 
 const steps = computed<{ key: WithdrawalStatus; label: string; hint: string }[]>(() => [
   { key: "submitted", label: t.value.wallet.submitted, hint: t.value.wallet.trackSubmittedHint },
@@ -234,13 +350,28 @@ const stopDayTimer = () => { if (dayTimer) { clearInterval(dayTimer); dayTimer =
 // 且隔壁 support/chat 就是这么写的。uni 页面栈会保活页面实例,前进离开时 onUnmounted 不触发:
 // 每往返一次就多留一个常驻 60s tick。我抄追踪页这段时只抄了「加个定时器」,没抄那条约束。
 onShow(() => {
+  trackingPageVisible = true;
+  openBankTracking();
+  trackingPageEpoch += 1;
   nowTick.value = mockServerNow();
   stopDayTimer();
   dayTimer = setInterval(() => (nowTick.value = mockServerNow()), 60_000);
   void loadWithdrawalPolicy();
+  refreshTrackedWithdrawal();
 });
-onHide(stopDayTimer);
-onUnmounted(stopDayTimer); // 兜底:onHide 不触发的场景(直接销毁)仍要清
+onHide(() => {
+  trackingPageVisible = false;
+  trackingPageEpoch += 1;
+  trackedWithdrawalRead.invalidate();
+  stopDayTimer();
+});
+onUnmounted(() => {
+  trackingPageVisible = false;
+  trackingPageEpoch += 1;
+  trackedWithdrawalRead.invalidate();
+  stopDayTimer();
+  stopTrackingRuntimeWatch();
+}); // 兜底:onHide 不触发的场景(直接销毁)仍要清
 
 // app.withdrawals 本身是响应源,提交完回到本页会自动重算 —— 不再需要 `void wd.value` 那种手动挂依赖。
 const dailyLimit = computed(() => {
@@ -323,10 +454,6 @@ const etaSub = computed(() => {
   if (isFailedEnd.value) return t.value.wallet.trackFailedBody;
   if (isFrozenHold.value) return t.value.wallet.routeHeldFrozenBody;
   if (routeHeld.value) return t.value.wallet.withdrawRouteHeldSub;
-  if (wd.value?.sourceEnvironment === "SANDBOX" && !isTerminalDone.value) {
-    // 工程话,故意不进 i18n 词典(同 :97 的理由:出路②)。
-    return "source=mock · SANDBOX: awaiting server callback, no client-side ETA auto-complete";
-  }
   // 终态给实际到账时刻；进行中只显示服务端订单快照中的预计时刻。
   if (isTerminalDone.value && wd.value) {
     const at = wd.value.confirmedAt ?? wd.value.estimatedCompletion;
@@ -373,7 +500,7 @@ function relTime(ts: number): string {
 
 function goWithdraw() {
   if (againDisabled.value) return; // 置灰按钮不能靠视觉拦,点击也得真的不走
-  navTo("/pages/me/wallet-withdraw");
+  navTo("/pages/me/wallet-withdraw-method");
 }
 function goWallet() {
   navTo("/me/wallet");

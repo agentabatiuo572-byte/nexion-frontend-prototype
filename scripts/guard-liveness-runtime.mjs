@@ -19,7 +19,7 @@ import { chromium } from "playwright";
 
 const BASE = process.env.BASE_URL || process.env.UNI_BASE_URL || "http://localhost:5173";
 const SETTLE_MS = 9000;
-const AUTHED = { isAuthenticated: true, email: "gate@nexgrid.test", accountId: "gate@nexgrid.test", onboardingComplete: true };
+const AUTHED = { isAuthenticated: true, email: "", accountId: "user:900001", onboardingComplete: true };
 const OUT = { isAuthenticated: false, email: "", accountId: "default", onboardingComplete: false };
 const BUSINESS = "pages/me/wallet-withdraw";
 
@@ -51,11 +51,92 @@ const readRoute = (p) => p.evaluate(() => {
 
 async function open(ctx, landing, auth) {
   const p = await ctx.newPage();
-  await p.goto(`${BASE}/?nx_device=off#/__gate_seed`, { waitUntil: "domcontentloaded" });
-  await p.evaluate((s) => {
-    localStorage.clear();
-    localStorage.setItem("nexgrid-auth-v1", JSON.stringify({ type: "object", data: s }));
-  }, auth);
+  if (auth.isAuthenticated) {
+    await p.addInitScript((s) => {
+      localStorage.clear();
+      localStorage.setItem("nexgrid-auth-v1", JSON.stringify({ type: "object", data: s }));
+    }, auth);
+  }
+  // The formal H5 no longer treats localStorage as authentication authority.
+  // An authenticated control must therefore prove the same HttpOnly-cookie
+  // restoration boundary used after F5. Keep all other server reads non-auth
+  // protocol failures so this route-guard probe cannot be evicted by an
+  // unrelated business parser while it observes the protected route.
+  await p.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (!/^\/(?:api|auth)\//.test(url.pathname)) return route.continue();
+    if (url.pathname === "/auth/users/refresh") {
+      if (!auth.isAuthenticated) {
+        return route.fulfill({
+          status: 401,
+          contentType: "application/json",
+          body: JSON.stringify({ code: 401, message: "AUTH_REQUIRED", data: null }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: 0,
+          message: "OK",
+          data: {
+            accessToken: "guard-liveness-access-token",
+            refreshToken: null,
+            tokenType: "Bearer",
+            user: { userId: 900001, countryCode: "+86", phone: "13800000000", nickname: "Guard Witness", onboardingComplete: true },
+          },
+        }),
+      });
+    }
+    if (url.pathname === "/api/app/profile" && auth.isAuthenticated && route.request().method() === "GET") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ code: 0, message: "OK", data: {
+          nickname: "Guard Witness", avatarUrl: "", avatarRevision: "", language: "en",
+        } }),
+      });
+    }
+    if (url.pathname === "/api/legal/terms/current" && auth.isAuthenticated) {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: 0,
+          message: "OK",
+          data: {
+            source: "server",
+            sourceEnvironment: "PRODUCTION",
+            runId: "",
+            requestedLocale: url.searchParams.get("locale") || "en",
+            resolvedLocale: "en",
+            requestedJurisdiction: "GLOBAL",
+            resolvedJurisdiction: "GLOBAL",
+            provenance: "guard-liveness-fixture",
+            version: "v1",
+            effectiveAt: "2026-01-01T00:00:00Z",
+            title: "Terms",
+            summary: "Current terms",
+            sections: [{ key: "general", title: "General", body: "Current terms", sortOrder: 0 }],
+            acknowledged: true,
+            acknowledgedAt: "2026-01-01T00:00:01Z",
+          },
+        }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ code: 0, message: "OK", data: {} }),
+    });
+  });
+  if (!auth.isAuthenticated) {
+    await p.goto(`${BASE}/?nx_device=off#/__gate_seed`, { waitUntil: "domcontentloaded" });
+    await p.evaluate((s) => {
+      localStorage.clear();
+      localStorage.setItem("nexgrid-auth-v1", JSON.stringify({ type: "object", data: s }));
+    }, auth);
+  }
   await p.goto(`${BASE}/?nx_device=off&cb=${Math.floor(performance.now())}#/${landing}`, { waitUntil: "load" });
   await wait(3000);
   return p;

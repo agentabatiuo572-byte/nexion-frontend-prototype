@@ -4,9 +4,11 @@ import type {
   BehaviorEvent,
   BehaviorZone,
 } from "@/api/behavior-analytics-api";
-import { behaviorAnalyticsApi, remoteApiEnabled } from "@/api/runtime";
+import { behaviorAnalyticsApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import type { SessionVault } from "@/api/session-vault";
 
 export type BehaviorTransport = Pick<BehaviorAnalyticsApi, "ingest">;
+export type StoreViewEvent = Extract<BehaviorEvent, { eventName: "store.viewed" }>;
 
 type TapInput = {
   route: string;
@@ -68,8 +70,8 @@ export function createBehaviorTracker(options: TrackerOptions) {
   let serial = Promise.resolve();
   let epoch = 0;
 
-  function enqueue(event: BehaviorEvent) {
-    if (options.enabled && !options.enabled()) return;
+  function enqueue(event: BehaviorEvent): boolean {
+    if (options.enabled && !options.enabled()) return false;
     const queuedEpoch = epoch;
     const task = serial = serial.catch(() => undefined).then(async () => {
       // Logout, account rotation, hiding and remote disable cancel unsent work.
@@ -80,10 +82,10 @@ export function createBehaviorTracker(options: TrackerOptions) {
       // this tracker epoch after await before it may project any credential.
       if (queuedEpoch !== epoch) return;
       if (options.enabled && !options.enabled()) return;
-      if (receipt) rememberAcceptanceObservationCredential(receipt, options.credentialScope || "");
     });
     pending.add(task);
     void task.finally(() => pending.delete(task));
+    return true;
   }
 
   function show(rawRoute: string) {
@@ -128,6 +130,12 @@ export function createBehaviorTracker(options: TrackerOptions) {
     });
   }
 
+  async function viewStore(event: StoreViewEvent): Promise<boolean> {
+    if (options.enabled && !options.enabled()) return false;
+    const receipt = await options.transport.ingest(event).catch(() => undefined);
+    return (!options.enabled || options.enabled()) && !!receipt && (receipt.accepted || receipt.duplicate);
+  }
+
   async function flush() {
     await Promise.allSettled([...pending]);
   }
@@ -137,45 +145,38 @@ export function createBehaviorTracker(options: TrackerOptions) {
     active = null;
   }
 
-  return { show, hide, tap, flush, discard };
+  return { show, hide, tap, viewStore, flush, discard };
 }
 
-let acceptanceObservationCredential = "";
-let acceptanceObservationCredentialScope = "";
+/** Compatibility hooks retained for the chassis while the retired observation
+ * panel is removed from its next layout pass. They never hold a credential. */
+export function isAcceptanceObservationModalOpen(): boolean {
+  return false;
+}
 
-function rememberAcceptanceObservationCredential(receipt: Awaited<ReturnType<BehaviorTransport["ingest"]>>, scope: string): void {
-  if (!scope) return;
-  if (receipt.source !== "mock" || receipt.sourceEnvironment !== "SANDBOX"
-    || !receipt.runId || !receipt.observationToken) return;
-  const credential = `${receipt.runId}.${receipt.observationToken}`;
-  if (credential === acceptanceObservationCredential && scope === acceptanceObservationCredentialScope) return;
-  acceptanceObservationCredential = credential;
-  acceptanceObservationCredentialScope = scope;
-  try {
-    uni.setClipboardData({ data: credential, showToast: false });
-    // 只在 mock + SANDBOX 下弹(见上面的早退)。文案是验收工具的工程话,按硬编码中文门的
-    // 出路②处理:改英文技术串,**不进 i18n 词典** —— 工程话进词典就成了用户文案契约,
-    // 而词典是普通对象、打包摇不掉,会原样进生产包。
-    uni.showModal({ title: "Acceptance observation credential", content: `${credential}\nCopied — paste into the L6 Sandbox observation panel on PC.`, showCancel: false });
-  } catch {
-    // The receipt remains available through the explicit getter on hosts that
-    // cannot show a modal or reach the native clipboard.
-  }
+export function onAcceptanceObservationModalClosed(
+  _listener: (event: { token: number; scope: string }) => void,
+): () => void {
+  return () => undefined;
+}
+
+export function onAcceptanceObservationModalOpened(
+  _listener: (event: { token: number; scope: string }) => void,
+): () => void {
+  return () => undefined;
 }
 
 function clearAcceptanceObservationCredential(): void {
-  acceptanceObservationCredential = "";
-  acceptanceObservationCredentialScope = "";
+  // no-op: the retired environment no longer issues observation credentials
 }
 
 /** H5 acceptance can display or copy this opaque server-issued PC query credential. */
 export function getAcceptanceObservationCredential(): string {
-  return acceptanceObservationCredential;
+  return "";
 }
 
 export function copyAcceptanceObservationCredential(): void {
-  if (!acceptanceObservationCredential) return;
-  try { uni.setClipboardData({ data: acceptanceObservationCredential, showToast: true }); } catch { /* no-op */ }
+  return;
 }
 
 type BehaviorTracker = ReturnType<typeof createBehaviorTracker>;
@@ -187,9 +188,32 @@ export type BehaviorAnalyticsContext = {
 
 type BehaviorAnalyticsManagerOptions = {
   context: () => BehaviorAnalyticsContext;
-  createTracker: (subject: string) => Pick<BehaviorTracker, "show" | "hide" | "tap" | "flush" | "discard">;
+  createTracker: (subject: string) => Pick<BehaviorTracker, "show" | "hide" | "tap" | "viewStore" | "flush" | "discard">;
   now: () => number;
+  identityRevision?: () => number;
 };
+
+/** Recheck the queued event's auth identity immediately before transport reads its token. */
+export function createBehaviorSessionGuard(
+  vault: Pick<SessionVault, "read" | "revision" | "isRefreshContinuation">,
+  expectedSubject: string,
+  context: () => BehaviorAnalyticsContext,
+): () => boolean {
+  const initial = vault.read();
+  const revision = vault.revision();
+  return () => {
+    try {
+      const current = vault.read();
+      const state = context();
+      return !!initial && !!current && state.enabled && state.subject === expectedSubject
+        && expectedSubject === `user:${initial.user.userId}`
+        && current.user.userId === initial.user.userId
+        && (vault.revision() === revision || vault.isRefreshContinuation(revision));
+    } catch {
+      return false;
+    }
+  };
+}
 
 /**
  * One fail-closed facade for every L6 caller (App lifecycle and AppChassis).
@@ -198,8 +222,9 @@ type BehaviorAnalyticsManagerOptions = {
  * prior tracker so a later account can never inherit its pseudonymous session.
  */
 export function createBehaviorAnalyticsManager(options: BehaviorAnalyticsManagerOptions) {
-  let tracker: Pick<BehaviorTracker, "show" | "hide" | "tap" | "flush" | "discard"> | null = null;
+  let tracker: Pick<BehaviorTracker, "show" | "hide" | "tap" | "viewStore" | "flush" | "discard"> | null = null;
   let subject = "";
+  let identityRevision = -1;
   let activeRoute = "";
   let lastClickAt = Number.NEGATIVE_INFINITY;
   let lastClickRoute = "";
@@ -214,6 +239,7 @@ export function createBehaviorAnalyticsManager(options: BehaviorAnalyticsManager
     // modal/getter projection must never carry a prior account's credential.
     clearAcceptanceObservationCredential();
     subject = "";
+    identityRevision = -1;
     activeRoute = "";
     lastClickAt = Number.NEGATIVE_INFINITY;
     lastClickRoute = "";
@@ -232,10 +258,18 @@ export function createBehaviorAnalyticsManager(options: BehaviorAnalyticsManager
       dispose(false);
       return null;
     }
-    if (tracker && subject !== nextSubject) dispose(false);
+    let nextRevision: number;
+    try {
+      nextRevision = options.identityRevision?.() ?? 0;
+    } catch {
+      dispose(false);
+      return null;
+    }
+    if (tracker && (subject !== nextSubject || identityRevision !== nextRevision)) dispose(false);
     if (!tracker) {
       tracker = options.createTracker(nextSubject);
       subject = nextSubject;
+      identityRevision = nextRevision;
     }
     return tracker;
   }
@@ -267,6 +301,12 @@ export function createBehaviorAnalyticsManager(options: BehaviorAnalyticsManager
     target.tap({ ...input, route });
   }
 
+  function viewStore(event: StoreViewEvent): Promise<boolean> {
+    const target = current();
+    if (!target) return Promise.resolve(false);
+    return target.viewStore(event);
+  }
+
   function refresh(): void {
     current();
   }
@@ -279,7 +319,7 @@ export function createBehaviorAnalyticsManager(options: BehaviorAnalyticsManager
     dispose(false);
   }
 
-  return { show, hide, tap, refresh, flush, discard };
+  return { show, hide, tap, viewStore, refresh, flush, discard };
 }
 
 type BehaviorLifecycleOptions = {
@@ -371,6 +411,21 @@ function randomHex32(): string {
   }
 }
 
+/** A fresh, stable payload for one visible store entry and all of its retries. */
+export function createStoreViewEvent(): StoreViewEvent {
+  return {
+    clientEventId: randomHex32(),
+    eventName: "store.viewed",
+    // Store retries must not be overtaken by later page/click facts in L6's
+    // chronological session, so this interaction has its own random session.
+    sessionId: randomHex32(),
+    route: "/pages/store/store",
+    clientTs: Date.now(),
+    deviceType: currentDevice(),
+    locale: currentLocale(),
+  };
+}
+
 function currentDevice(): BehaviorDevice {
   try {
     const platform = String(uni.getSystemInfoSync().uniPlatform || "").toLowerCase();
@@ -404,16 +459,20 @@ export function configureBehaviorAnalyticsContext(provider: () => BehaviorAnalyt
 export const behaviorTracker = createBehaviorAnalyticsManager({
   context: () => behaviorAnalyticsContext(),
   now: () => Date.now(),
-  createTracker: (subject) => createBehaviorTracker({
-    transport: behaviorAnalyticsApi,
-    now: () => Date.now(),
-    sessionId: randomHex32(),
-    deviceType: currentDevice,
-    locale: currentLocale,
-    eventId: randomHex32,
-    credentialScope: subject,
-    enabled: () => remoteApiEnabled,
-  }),
+  identityRevision: () => sessionVault.revision(),
+  createTracker: (subject) => {
+    const scopeCurrent = createBehaviorSessionGuard(sessionVault, subject, () => behaviorAnalyticsContext());
+    return createBehaviorTracker({
+      transport: behaviorAnalyticsApi,
+      now: () => Date.now(),
+      sessionId: randomHex32(),
+      deviceType: currentDevice,
+      locale: currentLocale,
+      eventId: randomHex32,
+      credentialScope: subject,
+      enabled: () => remoteApiEnabled && scopeCurrent(),
+    });
+  },
 });
 
 function readCurrentRoute(): string {

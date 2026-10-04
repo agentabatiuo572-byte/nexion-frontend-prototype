@@ -31,7 +31,7 @@ test("first server-mode profile render uses the projected name and masked E.164 
   const row = read("src/components/me/profile-row.vue");
   assert.match(me, /import ProfileRow from "@\/components\/me\/profile-row\.vue"/);
   assert.match(me, /<ProfileRow\s*\/>/);
-  assert.match(row, /const name = computed\(\(\) => profile\.displayName\)/);
+  assert.match(row, /const name = computed\(\(\) => nexGridBrandText\(profile\.displayName\)\)/);
   assert.match(row, /const phoneMask = computed\(\(\) => \{[\s\S]*?if \(!phone\) return ""/);
   assert.match(row, /\$\{phone\.slice\(0, 3\)\} ••••• \$\{phone\.slice\(-4\)\}/);
   // Remote mode must not fall back to a browser-owned user:<id> seed.
@@ -61,7 +61,9 @@ test("remote fleet reads cannot start without a matching in-memory server sessio
   const appStore = read("src/store/app.ts");
   assert.match(appShell, /function canRefreshRemoteAccount\(auth:/);
   assert.match(appShell, /sessionVault\.read\(\)[\s\S]*?auth\.accountId === `user:\$\{serverSession\.user\.userId\}`/);
-  assert.match(appShell, /if \(canRefreshRemoteAccount\(auth\)\) void useApp\(\)\.refreshRemoteFleet\(\);/);
+  assert.match(appShell, /async function refreshAuthenticatedRemoteFleet\(\)[\s\S]*if \(!canRefreshRemoteAccount\(auth\)\) return false;[\s\S]*await useApp\(\)\.syncRemoteTaskAssignments\(\);/);
+  assert.match(appStore, /async function syncRemoteTaskAssignments\(\)[\s\S]*reportPhoneRuntime\([\s\S]*readRemoteTaskAssignments\(request\)[\s\S]*refreshRemoteFleet\(request, \{ coalesce: true \}\)/);
+  assert.match(appShell, /if \(canRefreshRemoteAccount\(auth\)\) \{[\s\S]*refreshHomeTruth\(\);[\s\S]*refreshAuthenticatedRemoteFleet\(\);/);
   assert.doesNotMatch(appShell, /if \(remoteApiEnabled\) void useApp\(\)\.refreshRemoteFleet\(\);/);
   assert.match(appStore, /const activeSession = sessionVault\.read\(\);/);
   assert.match(appStore, /expectedAccountKey !== `user:\$\{activeSession\.user\.userId\}`[\s\S]*?return false;/);
@@ -79,7 +81,10 @@ test("remote nickname and avatar mutations use server authority", () => {
   assert.match(profile, /function regenerateAvatar\(\) \{[\s\S]*?if \(remoteApiEnabled\) return false;[\s\S]*?defaultSeed\(\)[\s\S]*?persist\(\);[\s\S]*?return true;/);
   assert.match(page, /:authoritative="remoteApiEnabled"/);
   assert.match(page, /:server-candidates="profile\.nicknameCandidates"/);
-  assert.match(page, /const saved = await profile\.setDisplayName\(name\.value\);[\s\S]*?toast\.success\(t\.value\.profile\.savedToast\)/);
+  assert.match(profile, /function projectServerNickname\(nickname: string\)[\s\S]*?displayName\.value = normalized/);
+  assert.match(page, /profile\.projectServerNickname\(projection\.nickname\)/);
+  assert.match(page, /async function handleSave\(\)[\s\S]*?profile\.setDisplayName\(name\.value\)[\s\S]*?claimSetupProfileQuest\(quest\)[\s\S]*?toast\.success\(t\.value\.profile\.savedToast\)/);
+  assert.doesNotMatch(page, /if \(setupProfileQuestPending\.value\) toast\.error\(t\.value\.profile\.serverMutationFailed\)/);
   assert.match(api, /uploadAvatar:[\s\S]*?client\.upload\(\{[\s\S]*?path: "\/api\/app\/profile\/avatar"/);
   assert.match(page, /async function handleRegen\(\) \{[\s\S]*?if \(remoteApiEnabled\) \{[\s\S]*?uni\.chooseImage\([\s\S]*?profileApi\.uploadAvatar\(filePath, key\)[\s\S]*?profileApi\.profile\(\)\.catch/);
   assert.doesNotMatch(page, /profile\.serverReadOnlyHold/);
@@ -93,12 +98,13 @@ test("remote registration calls password login and enters the App with that auth
   assert.match(register, /const registration = await registerAndLogin\(authApi, \{[\s\S]*?sponsorCode: currentSponsorCode\(\),[\s\S]*?\}, \(\) => isCurrentRemoteRegistrationAttempt\(registrationAttempt\)\);/);
   assert.match(autoLogin, /authApi\.discardSessionIfCurrent\(registration\.vaultRevision\)/);
   assert.match(autoLogin, /authApi\.login\(\{[\s\S]*?countryCode: request\.countryCode,[\s\S]*?phone: request\.phone,[\s\S]*?password: request\.password/);
-  assert.match(register, /const completed = completeSignIn\(\{[\s\S]*?identity: `user:\$\{registration\.user\.userId\}`,[\s\S]*?onboardingComplete: true,[\s\S]*?serverProfile: registration\.user,[\s\S]*?serverSessionRevision: registration\.vaultRevision,[\s\S]*?\}\);/);
-  assert.match(register, /onboardingComplete: true,[\s\S]*?serverProfile: registration\.user,[\s\S]*?serverSessionRevision: registration\.vaultRevision/);
+  assert.match(register, /const completed = completeSignIn\(\{[\s\S]*?identity: `user:\$\{registration\.user\.userId\}`,[\s\S]*?onboardingComplete: registration\.user\.onboardingComplete,[\s\S]*?serverProfile: registration\.user,[\s\S]*?serverSessionRevision: registration\.vaultRevision,[\s\S]*?\}\);/);
+  assert.match(register, /onboardingComplete: registration\.user\.onboardingComplete,[\s\S]*?serverProfile: registration\.user,[\s\S]*?serverSessionRevision: registration\.vaultRevision/);
   assert.doesNotMatch(register, /registration\.kind !== "authenticated"/);
   assert.match(completion, /deferNavigation\?: boolean;/);
   assert.match(completion, /if \(remoteApiEnabled\) \{[\s\S]*?options\.serverProfile\.userId[\s\S]*?onboardingComplete = options\.onboardingComplete \?\? false;/);
-  assert.match(completion, /if \(options\.deferNavigation\) return \{ ok: true \};[\s\S]*?if \(!auth\.onboardingComplete\)/);
+  assert.match(completion, /resolvePostSignInRoute\(\{[\s\S]*?onboardingComplete: auth\.onboardingComplete,[\s\S]*?deferNavigation: options\.deferNavigation/);
+  assert.doesNotMatch(completion, /if \(!auth\.onboardingComplete\)[\s\S]*?pages\/onboarding\/estimator/);
 });
 
 test("a rejected server completion consumes only the issued vault epoch", () => {

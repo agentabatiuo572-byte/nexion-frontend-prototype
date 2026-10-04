@@ -14,6 +14,8 @@ export interface StickyCTAPayload {
   amount: string;
   amountSubtext?: string;
   buttonLabel: string;
+  /** Disabled CTA remains visible but never navigates or vibrates. */
+  disabled?: boolean;
   /** Defaults to brand blue. */
   accentColor?: string;
   subtextColor?: string;
@@ -21,20 +23,33 @@ export interface StickyCTAPayload {
   showTabBar?: boolean;
 }
 
+export type StickyCTAOwner = symbol;
+
 /**
  * Chassis-level sticky bottom CTA store (zustand → Pinia, setup-style, NO
  * return-type annotation per P-017). `cta = null` hides the bar.
  */
 export const useStickyCTA = defineStore("stickyCta", () => {
   const cta = ref<StickyCTAPayload | null>(null);
+  let activeOwner: StickyCTAOwner | null = null;
 
-  function show(payload: StickyCTAPayload) {
+  function activate(owner: StickyCTAOwner) {
+    activeOwner = owner;
+  }
+
+  function show(payload: StickyCTAPayload, owner?: StickyCTAOwner) {
+    if (owner !== undefined && activeOwner !== null && activeOwner !== owner) return false;
     cta.value = payload;
+    activeOwner = owner ?? null;
+    return true;
   }
 
-  function hide() {
+  function hide(owner?: StickyCTAOwner) {
+    if (owner !== undefined && activeOwner !== owner) return false;
     cta.value = null;
+    if (owner === undefined) activeOwner = null;
+    return true;
   }
 
-  return { cta, show, hide };
+  return { cta, activate, show, hide };
 });

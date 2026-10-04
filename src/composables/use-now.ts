@@ -1,16 +1,16 @@
 import { ref, onMounted, onUnmounted } from "vue";
 
 /**
- * useNow — a counter that increments once per second from 0 (ported from
- * mission-control.tsx useNow; React useState/useEffect → Vue ref/onMounted).
- * Used to drive mock countdown labels that re-render every tick.
+ * Current Unix time in seconds, refreshed once per second. Re-reading the
+ * clock instead of incrementing a counter prevents timer throttling from
+ * making eligibility countdowns drift while the App is backgrounded.
  */
 export function useNow() {
-  const n = ref(0);
+  const n = ref(Math.floor(Date.now() / 1000));
   let id: ReturnType<typeof setInterval> | null = null;
   onMounted(() => {
     id = setInterval(() => {
-      n.value += 1;
+      n.value = Math.floor(Date.now() / 1000);
     }, 1000);
   });
   onUnmounted(() => {

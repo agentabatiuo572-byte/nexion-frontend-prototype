@@ -8,6 +8,7 @@
 import { chromium } from "playwright";
 import { collectAppConsoleErrors } from "./lib/console-origin-filter.mjs";
 import { directAppUrl } from "./lib/direct-app-url.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 import {
   assertNoRuntimeErrors,
   assertDirectPageCoverage,
@@ -24,16 +25,20 @@ const page = await browser.newPage({ viewport: { width: 414, height: 896 }, colo
 const errors = [];
 page.on("console", collectAppConsoleErrors(errors, BASE));
 page.on("pageerror", (e) => errors.push(String(e)));
+await installFormalProbeSession(page);
 const title = () => page.$eval(".spv-title", (e) => e.textContent.trim()).catch(() => null);
 
 await page.goto(directAppUrl(BASE, routeA), { waitUntil: "networkidle", timeout: 30000 });
-await page.waitForTimeout(1200);
+await page.waitForFunction(() => typeof globalThis.uni !== "undefined" && !!document.querySelector(".spv-title"), undefined, { timeout: 15_000 });
 const tA = await title();
-await page.evaluate((r) => uni.navigateTo({ url: r }), routeB);
-await page.waitForTimeout(1200);
+await page.evaluate((r) => globalThis.uni.navigateTo({ url: r }), routeB);
+await page.waitForFunction((previous) => {
+  const current = document.querySelector(".spv-title")?.textContent?.trim() ?? null;
+  return current !== null && current !== previous;
+}, tA, { timeout: 15_000 });
 const tB = await title();
-await page.evaluate(() => uni.navigateBack());
-await page.waitForTimeout(1200);
+await page.evaluate(() => globalThis.uni.navigateBack());
+await page.waitForFunction((expected) => document.querySelector(".spv-title")?.textContent?.trim() === expected, tA, { timeout: 15_000 });
 const tBack = await title();
 
 const result = {

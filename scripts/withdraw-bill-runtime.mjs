@@ -10,6 +10,7 @@
 // hardening by feeding one malformed canonical receipt through the real API.
 import { chromium } from "playwright";
 import { collectAppConsoleErrors } from "./lib/console-origin-filter.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 
 const baseUrl = process.env.BASE_URL || "http://127.0.0.1:5173";
 let pass = 0;
@@ -21,6 +22,7 @@ const check = (name, ok, detail = "") => {
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await installFormalProbeSession(page);
 const errors = [];
 const failedResponses = [];
 page.on("console", (msg) => { if (msg.type() === "error") collectAppConsoleErrors(errors, baseUrl)(msg); });
@@ -91,14 +93,14 @@ try {
     ]);
     const app = appMod.useApp();
     const bills = billsMod.useBills();
-    if (!rt.fundsServerEnabled || rt.fundsSandboxEnabled) {
+    if (!rt.fundsServerEnabled || rt.developmentFundsEnabled) {
       throw new Error("withdraw-bill-runtime requires the remote/server funds rail");
     }
     rt.sessionVault.save({
       accessToken: "runtime-access",
       refreshToken: "runtime-refresh",
       tokenType: "Bearer",
-      user: { userId: 900001, countryCode: "VN", phone: "+84900000001", nickname: "Runtime" },
+      user: { userId: 900001, countryCode: "+84", phone: "900000001", nickname: "Runtime", onboardingComplete: true },
     });
 
     const account = app.accountKey;

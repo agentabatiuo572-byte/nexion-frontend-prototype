@@ -1,6 +1,14 @@
 <template>
-  <view class="nx-home-indicator" aria-hidden="true" />
+  <view class="nx-home-indicator" :class="{ 'nx-home-indicator--system': isNativeAndroid }" aria-hidden="true" />
 </template>
+
+<script setup lang="ts">
+let isNativeAndroid = false;
+// #ifdef APP-PLUS
+// Keep the spacer and tab position; Android already draws the gesture bar.
+isNativeAndroid = uni.getSystemInfoSync().platform === "android";
+// #endif
+</script>
 
 <style scoped>
 .nx-home-indicator {
@@ -18,5 +26,8 @@
   height: 5px;
   border-radius: 3px;
   background: var(--v5-home-indicator);
+}
+.nx-home-indicator--system::after {
+  display: none;
 }
 </style>

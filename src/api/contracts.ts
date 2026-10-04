@@ -1,3 +1,5 @@
+import { isSelectablePhoneDialCode } from "@/auth/phone-number";
+
 export interface ApiResult<T> {
   code: number;
   message: string;
@@ -9,12 +11,13 @@ export interface UserSession {
   countryCode: string;
   phone: string;
   nickname: string;
+  onboardingComplete: boolean;
 }
 
 export interface RegistrationReceipt {
   sponsorCode: string;
   sponsorDisplayName: string;
-  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  sourceEnvironment: "PRODUCTION";
   giftStatus: "PENDING_REVIEW" | "POSTED" | "UNAVAILABLE";
   giftUsdt: number | null;
   giftNex: number | null;
@@ -41,7 +44,7 @@ export function isRegistrationReceipt(value: unknown): value is RegistrationRece
   return exactKeys(receipt, ["sponsorCode", "sponsorDisplayName", "sourceEnvironment", "giftStatus", "giftUsdt", "giftNex"])
     && typeof receipt.sponsorCode === "string" && /^[A-Z0-9]{4,32}$/.test(receipt.sponsorCode)
     && maskedSponsorDisplayName(receipt.sponsorDisplayName)
-    && (receipt.sourceEnvironment === "PRODUCTION" || receipt.sourceEnvironment === "SANDBOX")
+    && receipt.sourceEnvironment === "PRODUCTION"
     && (receipt.giftStatus === "PENDING_REVIEW" || receipt.giftStatus === "POSTED" || receipt.giftStatus === "UNAVAILABLE")
     && amount(receipt.giftUsdt) && amount(receipt.giftNex)
     && (receipt.giftStatus === "UNAVAILABLE" || (typeof receipt.giftUsdt === "number" && typeof receipt.giftNex === "number"));
@@ -55,10 +58,11 @@ export function isUserSession(value: unknown): value is UserSession {
     && Number.isSafeInteger(user.userId)
     && user.userId > 0
     && typeof user.countryCode === "string"
-    && user.countryCode.length > 0
+    && isSelectablePhoneDialCode(user.countryCode)
     && typeof user.phone === "string"
     && user.phone.length > 0
     && typeof user.nickname === "string"
+    && typeof user.onboardingComplete === "boolean"
   );
 }
 
@@ -69,6 +73,7 @@ export interface AuthSessionResponse {
   challengeNo?: string | null;
   deliveryHint?: string | null;
   refreshToken: string | null;
+  sessionSyncKey?: string | null;
   registrationReceipt?: RegistrationReceipt | null;
 }
 
@@ -81,6 +86,7 @@ export interface SecuritySession {
 }
 
 export interface SecurityState {
+  nextCursor?: string | null;
   twoFactorEnabled: boolean;
   passwordChangedAt: string | null;
   sessions: SecuritySession[];

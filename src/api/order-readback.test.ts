@@ -9,6 +9,7 @@ function order(overrides: Partial<CanonicalOrder> = {}): CanonicalOrder {
     productNo: "stellarbox-s1",
     productName: "StellarBox S1",
     quantity: 1,
+    subtotalUsdt: 100,
     unitPriceUsdt: 100,
     discountUsdt: 0,
     amountUsdt: 100,
@@ -19,8 +20,13 @@ function order(overrides: Partial<CanonicalOrder> = {}): CanonicalOrder {
     canonicalStatus: "paid",
     orderType: "DIRECT",
     placedAt: 1,
+    expiresAt: null,
     paidAt: 2,
     activatedAt: null,
+    refundedAt: null,
+    refundAmountUsdt: null,
+    refundChannel: null,
+    refundBillNo: null,
     dataCenter: null,
     tradeinNo: null,
     sourceDeviceId: null,
@@ -28,12 +34,18 @@ function order(overrides: Partial<CanonicalOrder> = {}): CanonicalOrder {
     targetDeviceInstanceNo: null,
     itemCount: 2,
     ...overrides,
-  };
+  } as CanonicalOrder;
 }
 
 describe("canonical payment readback", () => {
   it("accepts the same paid bundle and item count", () => {
     expect(isCanonicalPaidOrder(order(), "ORD-1", 2)).toBe(true);
+  });
+
+  it("accepts a development payment that completed and activated immediately", () => {
+    expect(isCanonicalPaidOrder(order({
+      canonicalStatus: "activated", orderStatus: "COMPLETED", activationStatus: "ACTIVATED",
+    }), "ORD-1", 2)).toBe(true);
   });
 
   it("rejects a pending or mismatched order", () => {

@@ -6,6 +6,7 @@ import { tickOrders } from "./orders";
 import { useExchange } from "./exchange";
 import { useConfig } from "./config";
 import { useGenesisConfig } from "./genesis-config";
+import { refreshActivePage } from "@/lib/active-page-refresh";
 
 /**
  * Pull-to-refresh store. Ported from Nexion-prototype/lib/store/refresh.ts
@@ -42,6 +43,10 @@ export const useRefresh = defineStore("refresh", () => {
       //   用户第一自救动作就是下拉 —— 不重拉配置,占位态永远刷不回来。fire-and-forget:
       //   load 自带合成延迟与 loading 态,卡片骨架去闪由 300ms 防抖门管。
       void useConfig().load();
+      // The active route owns remote page data that cannot be inferred from
+      // global stores (events, missions, globe, etc.). Await its registered
+      // refresh so the spinner only closes after the visible facts are new.
+      await refreshActivePage();
     } finally {
       isRefreshing.value = false;
     }

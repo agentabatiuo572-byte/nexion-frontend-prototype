@@ -1,5 +1,7 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
+import { matchesRuntimeProvenance } from "./runtime-provenance";
 
 export interface GenesisPointsRow { rank: number; handle: string; points: number; holdings: number }
 export interface GenesisPointsProjection {
@@ -21,9 +23,9 @@ function row(value: unknown): GenesisPointsRow {
   const rank = integer(source.rank, 1); const points = integer(source.points); const holdings = integer(source.holdings); const handle = text(source.handle);
   return { rank, handle, points, holdings };
 }
-function parse(value: unknown): GenesisPointsProjection {
+function parse(value: unknown, mode: ApiEnvironment): GenesisPointsProjection {
   const source = record(value);
-  if (source.source !== "nx_genesis_holding" || (source.sourceEnvironment !== "PRODUCTION" && source.sourceEnvironment !== "SANDBOX")
+  if (!matchesRuntimeProvenance(source, mode, "nx_genesis_holding")
       || !Array.isArray(source.leaderboard) || integer(source.pointsPerHolding, 1) <= 0) return invalid();
   const current = record(source.currentUser);
   const currentRank = current.rank === null ? null : integer(current.rank, 1);
@@ -35,7 +37,7 @@ function parse(value: unknown): GenesisPointsProjection {
   return {
     source: "nx_genesis_holding",
     sourceEnvironment: source.sourceEnvironment,
-    runId: text(source.runId, true),
+    runId: source.runId,
     pointsPerHolding: integer(source.pointsPerHolding, 1),
     leaderboard,
     currentUser: { rank: currentRank, points: integer(current.points), holdings: integer(current.holdings) },
@@ -44,6 +46,6 @@ function parse(value: unknown): GenesisPointsProjection {
 }
 
 export interface GenesisPointsApi { projection(): Promise<GenesisPointsProjection> }
-export function createGenesisPointsApi(client: ApiClient): GenesisPointsApi {
-  return { projection: async () => parse(await client.request({ path: "/api/genesis/points" })) };
+export function createGenesisPointsApi(client: ApiClient, mode: ApiEnvironment = "prod"): GenesisPointsApi {
+  return { projection: async () => parse(await client.request({ path: "/api/genesis/points" }), mode) };
 }

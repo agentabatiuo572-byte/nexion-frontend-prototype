@@ -1,4 +1,4 @@
-import { apiClient } from "./runtime";
+import { apiClient, expectedApiEnvironment } from "./runtime";
 import { createLearningApi } from "./learning-api";
 
-export const learningApi = createLearningApi(apiClient);
+export const learningApi = createLearningApi(apiClient, expectedApiEnvironment);

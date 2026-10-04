@@ -15,7 +15,7 @@
         <EmptyState
           v-if="remoteApiEnabled && commission.eventsStatus !== 'ready'"
           :kind="commission.eventsStatus === 'error' ? 'recoverable-error' : 'empty-list'"
-          :title="commission.eventsStatus === 'error' ? t.network.projectionErrorTitle : t.network.projectionErrorDesc"
+          :title="commission.eventsStatus === 'error' ? t.network.projectionErrorTitle : t.network.projectionLoadingTitle"
           :desc="commission.eventsStatus === 'error' ? t.network.projectionErrorDesc : undefined"
           :cta-label="commission.eventsStatus === 'error' ? t.network.retry : undefined"
           compact
@@ -29,7 +29,7 @@
         <view :style="heroWrapStyle">
           <!-- rules-intro pill hugs the top-right; 4px above the grid so no empty gap. -->
           <view class="flex items-center justify-end" style="margin-bottom: 4px">
-            <view class="inline-flex items-center shrink-0 active:scale-[0.98]" :style="howItWorksStyle" @click="go('/pages/team/commissions-how')">
+            <view class="nx-commissions-focusable inline-flex items-center shrink-0 active:scale-[0.98]" :style="howItWorksStyle" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
               <text>{{ t.commissions.howItWorksEntry }}</text>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
@@ -59,14 +59,24 @@
           </view>
         </view>
 
-        <!-- 6-kind summary -->
-        <view class="nx-commission-kinds grid" style="gap: 8px">
+        <!-- 6-kind summary。这些卡片与下方 pill 行驱动**同一个** filter,是互斥单选组;
+             原先 role="button" + aria-pressed 被浏览器当 toggle button,读屏按复选框朗读
+             (zentao #94)。改 radiogroup/radio + aria-checked + roving tabindex,与下方
+             tablist 同为「选中即筛选」的语义,键盘行为一致。 -->
+        <view class="grid grid-cols-3" style="gap: 8px" role="radiogroup" :aria-label="t.commissions.kindFilterLabel">
           <view
-            v-for="k in KIND_ORDER"
+            v-for="(k, i) in KIND_ORDER"
             :key="k"
-            class="text-left active:scale-[0.97]"
+            class="nx-commissions-focusable text-left active:scale-[0.97]"
             :style="kindCardStyle(k)"
+            role="radio"
+            :tabindex="filter === k || (filter === 'all' && i === 0) ? 0 : -1"
+            :aria-label="kindCardLabel(k)"
+            :aria-checked="filter === k ? 'true' : 'false'"
             @click="filter = k"
+
+
+             @keydown.enter.prevent="filter = k" @keydown.space.prevent="filter = k" @keydown.left.prevent="moveKindCard(i, -1)" @keydown.right.prevent="moveKindCard(i, 1)"
           >
             <text :style="{ color: KIND[k].color }">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="KIND[k].color" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-for="(p, pi) in KIND[k].paths" :key="pi" :d="p" /></svg>
@@ -77,23 +87,10 @@
           </view>
         </view>
 
+        <text v-if="remoteApiEnabled" class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.commissions.recentEventsHint, { n: events.length }) }}</text>
+
         <!-- filter pills -->
-        <scroll-view scroll-x :show-scrollbar="false" class="no-scrollbar" style="white-space: nowrap; width: 100%">
-          <view class="inline-flex" style="gap: 6px">
-            <view class="shrink-0 rounded-full grid place-items-center active:opacity-70" :style="pillStyle(filter === 'all', 'var(--v5-brand)')" @click="filter = 'all'">
-              <text :style="pillTextStyle(filter === 'all', 'var(--v5-brand)')">{{ t.commissions.all }} ({{ commission.events.length }})</text>
-            </view>
-            <view
-              v-for="k in KIND_ORDER"
-              :key="k"
-              class="shrink-0 rounded-full grid place-items-center active:opacity-70"
-              :style="pillStyle(filter === k, KIND[k].color)"
-              @click="filter = k"
-            >
-              <text :style="pillTextStyle(filter === k, KIND[k].color)">{{ t.commissions.kind[k] }} ({{ byKind[k].count }})</text>
-            </view>
-          </view>
-        </scroll-view>
+        <GlassSegments :label="t.commissions.pageTitle" v-model="filter" :options="filterOptions" layout="scroll"  />
 
         <!-- event list — transparent hairline group on the page floor -->
         <EmptyState v-if="filtered.length === 0" :kind="filter === 'all' ? 'empty-list' : 'no-filter-results'" :title="filter === 'all' ? t.empty.commissionsTitle : t.empty.filterTitle" :desc="filter === 'all' ? t.empty.commissionsDesc : t.empty.filterDesc" />
@@ -109,18 +106,33 @@
               </view>
               <view class="flex-1 min-w-0">
                 <view class="flex items-center" style="gap: 6px">
-                  <text class="truncate" :style="{ fontSize: '13px', color: 'var(--v5-ink)' }">{{ sourceName(e) }}</text>
+                  <text class="truncate" :style="{ fontSize: '13px', color: 'var(--v5-ink)' }">{{ e.sourceUserName }}</text>
                   <text v-if="e.layer" class="font-mono-tabular" :style="e.layer === 1 ? directBadgeStyle : extendedBadgeStyle">{{ e.layer === 1 ? t.commissions.directBadge : t.commissions.extendedBadge }}</text>
                 </view>
                 <text class="block font-mono-tabular" :style="eventMetaStyle">{{ eventMeta(e) }}</text>
               </view>
               <view class="text-right">
-                <text v-if="e.amountUSDT > 0" class="block font-mono-tabular tabular-nums" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-brand)' }">+${{ e.amountUSDT.toFixed(2) }}</text>
-                <text v-if="e.amountNEX > 0" class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-warning)' }">+{{ e.amountNEX.toLocaleString() }} NEX</text>
+                <text v-if="e.amountUSDT > 0" class="block font-mono-tabular tabular-nums" :style="commissionAmountStyle(e, 'usdt')">{{ commissionAmountLabel(e) }}</text>
+                <text v-if="e.amountNEX > 0" class="block font-mono-tabular tabular-nums" :style="commissionAmountStyle(e, 'nex')">{{ commissionNexLabel(e) }}</text>
                 <text v-if="e.status === 'cooling'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-warning)', marginTop: '2px' }">{{ coolingTag(e) }}</text>
                 <text v-else-if="e.status === 'unlocked'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-success)', marginTop: '2px' }">{{ t.commissions.readyTag }}</text>
                 <text v-else-if="e.status === 'withdrawn'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.commissions.withdrawnTag }}</text>
+                <text v-else-if="e.status === 'frozen'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-tech-cyan)', marginTop: '2px' }">{{ t.commissions.frozenTag }}</text>
+                <text v-else-if="e.status === 'reversed'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-4)', marginTop: '2px' }">{{ t.commissions.reversedTag }}</text>
+                <text v-else-if="e.status === 'rejected'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-danger)', marginTop: '2px' }">{{ t.commissions.rejectedTag }}</text>
               </view>
+            </view>
+            <view
+              v-if="remoteApiEnabled && commission.events.length < commission.eventsTotalRows"
+              class="flex items-center justify-center active:opacity-70"
+              :style="loadMoreStyle"
+              role="button"
+              tabindex="0"
+              :aria-disabled="commission.eventsLoadMoreStatus === 'loading'"
+              @click="commission.loadMoreCanonicalEvents()"
+              @keydown="activateLoadMore"
+            >
+              <text>{{ commission.eventsLoadMoreStatus === "loading" ? "…" : commission.eventsLoadMoreStatus === "error" ? t.network.retry : t.unilevel.loadMore }}</text>
             </view>
         </view>
         </template>
@@ -130,18 +142,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { ref, computed, nextTick, onMounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
-import {
-  useCommission,
-  type CommissionEvent,
-  type CommissionKind,
-} from "@/store/commission";
+import { useCommission, type CommissionEvent, type CommissionKind } from "@/store/commission";
 import { remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
@@ -177,6 +186,10 @@ const filtered = computed(() =>
 );
 
 const coolingOverviewText = computed(() => {
+  if (remoteApiEnabled) {
+    const next = commission.eventsEvidence?.aggregate.nextUnlockAt;
+    return next == null ? "—" : fmt(t.value.commissions.coolingTag, { n: Math.max(0, Math.ceil((next - Date.now()) / 86400000)) });
+  }
   const next = events.value
     .filter((event) => event.status === "cooling" && Number.isFinite(event.unlockAt))
     .sort((a, b) => a.unlockAt - b.unlockAt)[0];
@@ -189,14 +202,6 @@ const noKindText = computed(() =>
   fmt(t.value.commissions.noKindEvents, { kind: t.value.commissions.kind[filter.value as CommissionKind] }),
 );
 
-function sourceName(e: CommissionEvent): string {
-  if (e.kind === "binary" && ["match-today", "match-1", "match-2"].includes(e.sourceUserId ?? ""))
-    return t.value.commissions.mockDailyBinaryMatch;
-  if (e.kind === "leadership" && e.sourceUserId === "pool-w42")
-    return t.value.commissions.mockWeek42Pool;
-  return e.sourceUserName;
-}
-
 function eventMeta(e: CommissionEvent): string {
   const kindLabel = t.value.commissions.kind[e.kind];
   const order = e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${e.orderAmountUSD}` : "";
@@ -208,8 +213,77 @@ function coolingTag(e: CommissionEvent): string {
   return fmt(t.value.commissions.coolingTag, { n: days });
 }
 
+function commissionAmountLabel(e: CommissionEvent): string {
+  const amount = `${e.amountUSDT.toFixed(2)}`;
+  if (e.status === "reversed") return `−${amount}`;
+  if (e.status === "frozen" || e.status === "rejected") return amount;
+  return `+${amount}`;
+}
+
+function commissionNexLabel(e: CommissionEvent): string {
+  const amount = `${e.amountNEX.toLocaleString()} NEX`;
+  if (e.status === "reversed") return `−${amount}`;
+  if (e.status === "frozen" || e.status === "rejected") return amount;
+  return `+${amount}`;
+}
+
+function commissionAmountStyle(e: CommissionEvent, asset: "usdt" | "nex"): CSSProperties {
+  const color = e.status === "rejected"
+    ? "var(--v5-danger)"
+    : e.status === "frozen"
+      ? "var(--v5-tech-cyan)"
+      : e.status === "reversed"
+        ? "var(--v5-ink-4)"
+        : asset === "usdt" ? "var(--v5-brand)" : "var(--v5-warning)";
+  return { fontSize: asset === "usdt" ? "13px" : "12px", fontWeight: asset === "usdt" ? 600 : 400, color };
+}
+
 function go(url: string) {
-  uni.navigateTo({ url, fail: () => {} });
+  navTo(url);
+}
+
+// 6-kind summary cards double as filter controls: name them with the kind label
+// + current amount/count so a screen reader hears what the tile selects.
+function kindCardLabel(k: CommissionKind): string {
+  return `${t.value.commissions.kind[k]} · ${byKind.value[k].usdt.toFixed(0)} · ${byKind.value[k].count} ${t.value.commissions.events}`;
+}
+
+// Filter pills are one roving-tabindex tablist (same idiom as leaderboard/unilevel):
+// arrows move selection and the focus ring follows the newly selected tab.
+const FILTER_ORDER: Filter[] = ["all", ...KIND_ORDER];
+function moveFilter(delta: -1 | 1) {
+  const currentIndex = FILTER_ORDER.indexOf(filter.value);
+  filter.value = FILTER_ORDER[(currentIndex + delta + FILTER_ORDER.length) % FILTER_ORDER.length];
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>(".nx-commissions-pill[tabindex='0']")?.focus();
+  });
+}
+
+/**
+ * 六张 kind 卡的左右方向键。
+ *
+ * 卡片与下方 pill 行驱动**同一个** filter,但它们是两个独立的单选组:卡组只有 6 个成员
+ * (没有「全部」),所以方向键必须在**卡组内部**环转,不能复用 moveFilter —— 那会把选中项
+ * 移到「全部」,而卡组里没有对应成员,焦点随即无处可去。
+ *
+ * 焦点目标按 tabindex 而不是 aria-checked 取:filter 为「全部」时卡组无成员被选中,
+ * 此时可 Tab 进入的是第一张卡(tabindex=0),按 aria-checked 会取到 null 而丢失焦点。
+ */
+function moveKindCard(index: number, delta: -1 | 1) {
+  const next = KIND_ORDER[(index + delta + KIND_ORDER.length) % KIND_ORDER.length];
+  if (!next || next === filter.value) return;
+  filter.value = next;
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')?.focus();
+  });
+}
+
+function activateLoadMore(event: KeyboardEvent) {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  void commission.loadMoreCanonicalEvents();
 }
 
 // ─── styles ───
@@ -301,6 +375,7 @@ function pillTextStyle(active: boolean, color: string): CSSProperties {
 const emptyStyle: CSSProperties = { borderRadius: "16px", border: "1px dashed var(--v5-border-strong)", padding: "32px", fontSize: "12px", color: "var(--v5-ink-3)" };
 // Transparent hairline group — border-top opens the group, rows separate with hairlines.
 const listGroupStyle: CSSProperties = { padding: "0 2px", borderTop: "1px solid var(--v5-border)" };
+const loadMoreStyle: CSSProperties = { minHeight: "44px", color: "var(--v5-ink-3)", fontSize: "13px" };
 function eventRowStyle(isLast: boolean): CSSProperties {
   return {
     padding: "12px 0",
@@ -333,11 +408,22 @@ const extendedBadgeStyle: CSSProperties = {
   borderRadius: "4px",
 };
 const eventMetaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
+
+import GlassSegments from "@/components/glass-segments.vue";
+const filterOptions = computed(() => [
+  { value: "all", label: t.value.commissions.all, count: commission.events.length },
+  ...KIND_ORDER.map(value => ({ value, label: t.value.commissions.kind[value], count: byKind.value[value].count })),
+]);
 </script>
 
 <style scoped>
-.nx-commission-kinds { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (max-width: 420px) {
-  .nx-commission-kinds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Keyboard focus must be visible on the self-drawn tiles/pills — they are
+   focusable now (role+tabindex), and without this the focus ring is the
+   browser default outline clipped by the scroll-view on the pill row. */
+.nx-commissions-focusable:focus-visible,
+.nx-commissions-pill:focus-visible {
+  outline: 2px solid var(--v5-brand);
+  outline-offset: 2px;
+  border-radius: 12px;
 }
 </style>

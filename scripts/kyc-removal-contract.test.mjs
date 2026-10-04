@@ -44,7 +44,7 @@ test("retired KYC deep link migrates to the current security page with an explan
   assert.match(migration, /"pages\/me\/kyc"/);
   assert.match(migration, /"\/pages\/me\/security\?from=retired-flow"/);
   assert.match(app, /resolveRetiredRoute\(readCurrentRoute\(\)\)/);
-  assert.match(app, /uni\.reLaunch\(\{\s*url:\s*retiredRoute/);
+  assert.match(app, /navReset\(\{\s*url:\s*retiredRoute/);
   assert.match(security, /from === "retired-flow"/);
   assert.match(security, /flowRetired/);
   assert.match(security, /data-qa="retired-flow-notice"/);
@@ -65,7 +65,7 @@ test("KYC removal guard catches case and identifier variants without matching st
   assert.equal(containsForbiddenKyc("src/pages/risk/kyc-review.css"), true);
 });
 
-test("production payout-address flow is server-canonical while sandbox uses an explicit local mock", () => {
+test("payout-address is Java-server canonical in both formal dev and prod", () => {
   const api = fs.readFileSync("src/api/payout-address-api.ts", "utf8");
   const runtime = fs.readFileSync("src/api/runtime.ts", "utf8");
   const store = fs.readFileSync("src/store/payout-address.ts", "utf8");
@@ -74,13 +74,14 @@ test("production payout-address flow is server-canonical while sandbox uses an e
   assert.match(api, /path: "\/api\/payout-addresses"/);
   assert.match(api, /path: "\/api\/payout-addresses\/otp\/send"/);
   assert.match(api, /idempotencyKey: input\.idempotencyKey/);
-  assert.match(runtime, /createPayoutAddressApi\(apiClient\)/);
-  assert.match(runtime, /payoutAddressServerEnabled = apiRuntimeConfig\.mode === "remote"/);
-  assert.match(runtime, /payoutAddressMockEnabled = apiRuntimeConfig\.mode !== "remote"/);
+  assert.match(runtime, /createPayoutAddressApi\(apiClient, expectedApiEnvironment\)/);
+  assert.match(runtime, /payoutAddressServerEnabled = true/);
+  assert.match(runtime, /payoutAddressMockEnabled = false/);
+  assert.match(api, /mode === "prod" \|\| mode === "dev"/);
+  assert.doesNotMatch(api, /isCurrentCommerceSandboxRun|sourceEnvironment === "SANDBOX"/);
   assert.match(store, /payoutAddressServerEnabled \? emptyBook\(\) : hydrate\(boundKey\)/);
+  assert.doesNotMatch(store, /apiRuntimeConfig\.environment === "dev"[\s\S]{0,180}sourceEnvironment === "SANDBOX"/);
   assert.match(store, /await payoutAddressApi\.save/);
   assert.match(page, /await payout\.saveRemoteAddress/);
-  assert.match(page, /data-testid="payout-address-mock-source"/);
-  assert.match(page, /v-if="payoutAddressMockEnabled"/);
-  assert.match(page, /t\.addrRebind\.sandboxMockNotice/);
+  assert.doesNotMatch(page, /payout-address-mock-source|payout-address-sandbox-source|sandboxMockNotice/);
 });

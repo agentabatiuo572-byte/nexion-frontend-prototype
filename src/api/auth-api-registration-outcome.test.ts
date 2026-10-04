@@ -4,13 +4,35 @@ import { ApiError } from "./errors";
 import { createSessionVault } from "./session-vault";
 
 const request = {
-  countryCode: "+81",
-  phone: "81987654321",
+  countryCode: "+84",
+  phone: "912345678",
   challengeNo: "REG-0123456789abcdef0123456789abcdef",
   code: "123456",
   password: "NexPass9a",
   sponsorCode: null,
 };
+
+test("registration verification uses the public server endpoint without issuing a session", async () => {
+  const vault = createSessionVault();
+  const send = vi.fn().mockResolvedValue({ status: "REGISTRATION_OTP_VERIFIED" });
+  const authApi = createAuthApi({ request: send } as never, vault);
+  const verification = { countryCode: request.countryCode, phone: request.phone, challengeNo: request.challengeNo, code: request.code };
+  await expect(authApi.verifyRegistrationOtp(verification)).resolves.toEqual({ status: "REGISTRATION_OTP_VERIFIED" });
+  expect(send).toHaveBeenCalledExactlyOnceWith({
+    path: "/auth/users/register/otp/verify", method: "POST", body: verification, authenticated: false,
+  });
+  expect(vault.read()).toBeNull();
+  expect(vault.revision()).toBe(0);
+});
+
+test.each([null, {}, { status: "PASSWORD_RESET_OTP_VERIFIED" }, { status: false }])(
+  "registration verification rejects malformed server confirmations: %s", async (data) => {
+    const authApi = createAuthApi({ request: async () => data } as never, createSessionVault());
+    await expect(authApi.verifyRegistrationOtp(request)).rejects.toMatchObject({
+      kind: "protocol", message: "REGISTRATION_OTP_VERIFY_RESPONSE_INVALID",
+    });
+  },
+);
 
 test.each([
   new ApiError({ kind: "network", message: "NETWORK_UNAVAILABLE", retryable: true }),
@@ -39,7 +61,7 @@ test("discarding a failed completion consumes its issued vault epoch before best
     accessToken: "issued-access",
     refreshToken: "issued-refresh",
     tokenType: "Bearer",
-    user: { userId: 4201, countryCode: "+81", phone: "9012345678", nickname: "Issued" },
+    user: { userId: 4201, countryCode: "+84", phone: "912345678", nickname: "Issued", onboardingComplete: false },
   });
   const issuedRevision = vault.revision();
   const request = vi.fn().mockResolvedValue({});
@@ -62,14 +84,14 @@ test("discarding a stale issued epoch cannot clear or revoke a newer account", (
     accessToken: "old-access",
     refreshToken: "old-refresh",
     tokenType: "Bearer",
-    user: { userId: 4202, countryCode: "+81", phone: "9012345679", nickname: "Old" },
+    user: { userId: 4202, countryCode: "+84", phone: "912345679", nickname: "Old", onboardingComplete: true },
   });
   const issuedRevision = vault.revision();
   vault.save({
     accessToken: "new-access",
     refreshToken: "new-refresh",
     tokenType: "Bearer",
-    user: { userId: 4203, countryCode: "+81", phone: "9012345680", nickname: "New" },
+    user: { userId: 4203, countryCode: "+84", phone: "912345677", nickname: "New", onboardingComplete: true },
   });
   const request = vi.fn();
   const authApi = createAuthApi({ request } as never, vault);

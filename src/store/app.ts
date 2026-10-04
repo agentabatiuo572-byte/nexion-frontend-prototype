@@ -5,18 +5,20 @@ import type { DeviceKind } from "./types";
 import { ONE_DAY_MS, makeInitialDevices, createDevice, backfillDeviceEconomics, MAX_DEVICES, type CreateDeviceOptions } from "./device-types";
 import { pickRandomTask } from "@/mock/tasks";
 import { isDegradable, getEfficiency, getMonthsOwned, installCanonicalLifecycleConfig } from "./device-lifecycle";
+import { readMonotonicNowMs } from "../lib/server-deadline-clock";
 import { interruptInfo } from "./interrupt";
 import { continuityFactor, thermalFactor, isDeviceOnline } from "@/lib/hashpower";
 import { phoneRuntimePauseReason } from "@/lib/phone-runtime";
+import { collectNativePhoneRuntime, hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
 import { getDeviceId } from "@/lib/device-id";
-import { readAccountSessionRecordsStrict, readCalibratedInstallation } from "@/store/session";
-import { matchesPhoneBinding, phoneReplacementError, stopPhoneTask, type PhoneBinding, type PhoneActivationError } from "@/lib/phone-policy";
 import { accountTotalHashrate } from "@/lib/account-hashrate";
+import { isActiveSlotDevice, occupiesDeviceSlot } from "@/lib/device-slot-policy";
 import { getCarrier, type Carrier } from "@/lib/carrier";
 import { getEntrySurface, type EntrySurface } from "@/lib/entry-surface";
 import { matchGpuTier } from "@/lib/gpu-tiers";
 import { publicStatsHealth } from "@/lib/platform-stats";
 import { useConfig } from "@/store/config";
+import { useSession } from "@/store/session";
 import { accumulateUsdAccrual, completedUsdCentDelta } from "@/lib/earnings-accrual";
 import { evaluateAccountCluster } from "@/store/risk-cluster";
 import {
@@ -35,7 +37,6 @@ import { commitWithdrawal } from "@/store/withdrawal-eligibility";
 import { advanceArrival, occupiesWithdrawalSlot } from "@/store/withdrawal-arrival-core";
 import { mockServerNow } from "@/store/server-time";
 import type { OnlineBonus, WithdrawalRiskRoute } from "@/store/config-types";
-import type { DeviceCapability } from "@/lib/device-capability";
 import { useReceipts } from "./receipts";
 import { generateReceipt } from "@/mock/receipt";
 import {
@@ -47,9 +48,8 @@ import {
 import {
   deviceE3Api,
   appHomeApi,
-  fundsSandboxApi,
-  mockFundsEnabled,
   fundsServerEnabled,
+  expectedApiEnvironment,
   remoteApiEnabled,
   sessionVault,
   taskAssignmentApi,
@@ -57,29 +57,16 @@ import {
 } from "@/api/runtime";
 import type { AppHomeOverview } from "@/api/app-home-api";
 import { toCanonicalWithdrawal } from "@/api/withdrawal-api";
-import {
-  sandboxEvidenceFromOverview,
-  type FundsSandboxEvidence,
-  type FundsSandboxOrder,
-  type FundsSandboxWallet,
-} from "@/api/funds-sandbox-api";
 import type { CanonicalE3Device } from "@/api/device-e3-api";
-import type { CanonicalTaskAssignment, CanonicalTaskAssignments, TrustedTaskCompletionProof } from "@/api/task-assignment-api";
+import type { CanonicalTaskAssignment, CanonicalTaskAssignments } from "@/api/task-assignment-api";
+import { ApiError, asApiError } from "@/api/errors";
 import type { UserSession } from "@/api/contracts";
+import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import {
-  bindPendingFundsMutationOrder,
-  finishPendingFundsMutationByOrder,
-  fundsAmountFingerprint,
-  pendingFundsMutationKey,
-  type FundsMutationIdentity,
-} from "@/lib/funds-mutation-key";
-import {
-  captureFundsSandboxRequestScope,
-  fundsSandboxStaleRequestError,
-  isCurrentFundsSandboxRequestScope,
-  isFundsSandboxStaleRequestError,
-} from "@/lib/funds-sandbox-request-scope";
+  createRemoteFleetRefreshCoordinator,
+  type RemoteFleetRefreshOptions,
+} from "./remote-fleet-refresh-coordinator";
 
 // Ported from Nexion-prototype/lib/store/index.ts (useApp), zustand → Pinia.
 // MOCK-ONLY: entire earnings simulation runs client-side. Production replaces
@@ -93,9 +80,9 @@ const ONE_DAY = ONE_DAY_MS;
 // ── module-level tick state (mirrors original module scope) ──
 const deviceTimers = new Map<string, { vital: number }>();
 const lastTickAggregate = { usd: 0, nex: 0 };
-let remoteTaskSyncInFlight = false;
-let remoteTaskSyncAfter = 0;
-const REMOTE_TASK_SYNC_MS = 5000;
+const REMOTE_TASK_SYNC_MS = 60_000;
+const REMOTE_TASK_RETRY_MS = 15_000;
+const TASK_ASSIGNMENT_CACHE_MS = 5_000;
 
 function normalRandom(mean: number, std: number, min: number, max: number) {
   let u = 0, v = 0;
@@ -239,19 +226,6 @@ function hydrateSnapshotEconomics(s: AccountCloudSnapshot | null): AccountCloudS
   return s ? { ...s, devices: (s.devices ?? []).map(backfillDeviceEconomics) } : null;
 }
 
-function migratePhonePause(device: Device): Device {
-  if (device.kind !== "phone" || (device.pausedReason as string | null) !== "no-charger") return device;
-  return {
-    ...device,
-    pausedReason: phoneRuntimePauseReason(device),
-    // An old pause without a start time cannot safely resume its wall-clock task.
-    currentTask: device.interruptedAt == null ? null : device.currentTask,
-    lastSettledAt: null,
-    miningSince: null,
-    onlineHeartbeatAt: null,
-  };
-}
-
 // user.email 只收联系身份,不收账号内部 key:兜底链的入参既有邮箱也有账号 key
 // ("default" / "user:<id>" 等),匿名 boot key 一旦流进去,profile 页会把裸 "default"
 // 当邮箱渲出来(页面文案禁枚举值/字段名不变量;2026-08-15 date-locale T1 验收发现#2)。
@@ -267,8 +241,7 @@ function createSeedSnapshot(accountKey: string, email: string, entrySurface: Ent
     entrySurface,
     updatedAt: Date.now(),
     user: createInitialUser(asEmailIdentity(email) || asEmailIdentity(accountKey) || "alex@nexgrid.ai"),
-    devices: makeInitialDevices().map((d) => d.kind === "phone"
-      ? { ...stopPhoneTask(d), activatedAt: null } : d),
+    devices: makeInitialDevices(),
     earnings: createInitialEarnings(),
     withdrawals: [],
   };
@@ -313,7 +286,7 @@ function createServerEmptySnapshot(accountKey: string, email: string, entrySurfa
  *  mock persists and reloads this anchor across refreshes; PROD makes the server
  *  canonical for lastSettledAt and the resulting aggregate.
  *  R7 在线分层: a phone with a fresh device heartbeat accrues continuity×thermal;
- *  a missing/stale beat produces no phone income. The view carrier is never
+ *  a missing/stale beat accrues the hosted baseline. The view carrier is never
  *  a factor source (display uses the same isDeviceOnline seam). */
 function settleDevice(d: Device, now: number, onlineBonus: OnlineBonus): Device {
   // Not earning right now (idle / offline / cloud-share / phone gated) → drop a
@@ -323,7 +296,7 @@ function settleDevice(d: Device, now: number, onlineBonus: OnlineBonus): Device 
     d.status !== "online" ||
     d.kind === "cloud-share" ||
     d.pausedReason != null ||
-    (d.kind === "phone" && (phoneRuntimePauseReason(d) != null || !isDeviceOnline(d, now)))
+    (d.kind === "phone" && phoneRuntimePauseReason(d) !== null)
   ) {
     return d.lastSettledAt == null ? d : { ...d, lastSettledAt: null };
   }
@@ -340,7 +313,7 @@ function settleDevice(d: Device, now: number, onlineBonus: OnlineBonus): Device 
     d.kind === "phone"
       ? isDeviceOnline(d, now)
         ? continuityFactor(now - (d.miningSince ?? now), onlineBonus.continuityFullHours * 60 * 60 * 1000) * thermalFactor(d.thermalState)
-        : 0
+        : onlineBonus.h5BaseFactor
       : 1;
   const inc = (d.baseRate * lifeEff * phoneFactor * marketMult * variation * deltaMs) / ONE_DAY;
   const incNEX = (d.baseRateNEX * lifeEff * phoneFactor * marketMult * variation * deltaMs) / ONE_DAY;
@@ -365,23 +338,20 @@ export function settleDeviceBatch(
   now: number,
   onlineBonus: OnlineBonus,
   computeShareEnabled: boolean,
-  residentDeviceId?: string,
-  phoneSessionKnown = true,
 ): { settled: Device[]; nextDevices: Device[] } {
   const settled = current.map((device) =>
-    device.kind === "phone" && !phoneSessionKnown ? device : device.kind === "pc-gpu" && !computeShareEnabled
+    device.kind === "pc-gpu" && !computeShareEnabled
       ? freezeComputeShareDevice(device)
       : settleDevice(device, now, onlineBonus),
   );
-  const nextDevices = carrier === "app" && phoneSessionKnown
+  const nextDevices = carrier === "app"
     ? settled.map((device) =>
         device.kind === "phone" &&
-        device.id === residentDeviceId &&
         device.status === "online" &&
         device.pausedReason == null &&
-        phoneRuntimePauseReason(device) == null &&
+        phoneRuntimePauseReason(device) === null &&
         device.activatedAt !== null
-          ? { ...device, onlineHeartbeatAt: now, lastSettledAt: device.lastSettledAt ?? now }
+          ? { ...device, onlineHeartbeatAt: now }
           : device,
       )
     : settled;
@@ -401,20 +371,6 @@ function freezeComputeShareDevice(d: Device): Device {
   };
 }
 
-function legacyPhoneBinding(snapshot: AccountCloudSnapshot): PhoneBinding | null {
-  const installationId = readCalibratedInstallation(snapshot.accountKey);
-  if (!installationId) return null;
-  const phone = snapshot.devices.find((d) => d.kind === "phone");
-  // Existing explicit installation evidence survives migration. Unknown
-  // historical change time conservatively starts the replacement interval now.
-  return { version: 0, installationId, deviceId: phone?.id ?? "", changedAt: mockServerNow(), suspendedAt: null };
-}
-
-function projectPhoneDevices(snapshot: AccountCloudSnapshot, binding: PhoneBinding | null): Device[] {
-  return snapshot.devices.map((d) => migratePhonePause(d.kind === "phone" && !d.phoneInstallationId && d.id === binding?.deviceId
-    ? { ...d, phoneInstallationId: binding.installationId } : d));
-}
-
 export const useApp = defineStore("app", () => {
   const bootSurface = getEntrySurface();
   const bootSnapshot = remoteApiEnabled
@@ -422,6 +378,7 @@ export const useApp = defineStore("app", () => {
     : hydrateSnapshotEconomics(readAccountSnapshot("default")) ?? createSeedSnapshot("default", "alex@nexgrid.ai", bootSurface);
   const accountKey = ref(bootSnapshot.accountKey);
   const remoteAccountEpoch = createRemoteAccountEpoch(accountKey.value);
+  const accountBindingEpoch = ref(remoteAccountEpoch.snapshot().epoch);
   const entrySurface = ref<EntrySurface>(bootSnapshot.entrySurface);
   const accountCloudUpdatedAt = ref(bootSnapshot.updatedAt);
   const user = ref<UserState>(remoteApiEnabled ? {
@@ -432,8 +389,8 @@ export const useApp = defineStore("app", () => {
     pendingEarnings: 0,
     earningBuckets: createEarningBuckets(0, 0),
   } : bootSnapshot.user);
-  const phoneBinding = ref<PhoneBinding | null>(bootSnapshot.phoneBinding ?? legacyPhoneBinding(bootSnapshot));
-  const devices = ref<Device[]>(remoteApiEnabled ? [] : projectPhoneDevices(bootSnapshot, phoneBinding.value));
+  const devices = ref<Device[]>(remoteApiEnabled ? [] : bootSnapshot.devices);
+  const slotCap = ref(MAX_DEVICES);
   const earnings = ref<EarningsState>(remoteApiEnabled
     ? { today: 0, todayNEX: 0, thisWeek: 0, thisMonth: 0, total: 0, history: [] }
     : bootSnapshot.earnings);
@@ -445,8 +402,74 @@ export const useApp = defineStore("app", () => {
   let homeTruthRefreshInFlight: { key: string; request: Promise<boolean> } | null = null;
   const remoteFleetStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
   const remoteFleetError = ref("");
+  const remoteFleetHasSnapshot = ref(!remoteApiEnabled);
+  /**
+   * The fleet's own "today" total, which the backend defines as zero-safe
+   * (COALESCE per device → the exact sum the device cards render). The Home
+   * overview collapses a zero-receipt window to `null` — "no value" — so the
+   * Earn hero has no way to say "confirmed $0.00" from that projection alone.
+   * Keeping this here lets the summary agree with the device cards below it.
+   */
+  const remoteRealizedToday = ref<{ usdt: number; nex: number } | null>(null);
+  const remoteWithdrawalListStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
+  const remoteWithdrawalListHasSnapshot = ref(!remoteApiEnabled);
+  let remoteWithdrawalListRefreshSequence = 0;
+  const remoteWalletReceiptHasSnapshot = ref(false);
+  const remoteAssignmentStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
+  const remoteAssignmentError = ref("");
+  const remotePhoneBindingInvalid = ref(false);
+  // This belongs to the bound account generation only. It lets read-only Earn
+  // history remain visible while a subsequent assignment poll is in flight;
+  // it is deliberately reset before a different account can render anything.
+  const remoteAssignmentHasSnapshot = ref(!remoteApiEnabled);
+  let lastConfirmedAssignments: { request: RemoteAccountRequest; state: CanonicalTaskAssignments } | null = null;
+  let remoteTaskSyncInFlightKey: string | null = null;
+  let remoteTaskSyncAfter = 0;
+  let remoteTaskForeground = true;
+  let remoteTaskForegroundEpoch = 0;
+  // Runtime writes for this installation must reach the server in order. In
+  // particular, a returning foreground sample cannot overtake an old POST.
+  let remotePhoneRuntimeReportTail: Promise<void> = Promise.resolve();
+  function enqueuePhoneRuntimeReport(report: () => Promise<void>): Promise<void> {
+    const pending = remotePhoneRuntimeReportTail.then(report);
+    remotePhoneRuntimeReportTail = pending.catch(() => undefined);
+    return pending;
+  }
+  function setRemoteTaskForeground(foreground: boolean): void {
+    remoteTaskForeground = foreground;
+    remoteTaskForegroundEpoch += 1;
+    if (foreground) {
+      remoteTaskSyncAfter = 0;
+      taskAssignmentSnapshot = null;
+      invalidateRemoteFleet();
+    }
+  }
+  async function pauseLocalPhoneRuntimeBeforeSignOut(): Promise<void> {
+    setRemoteTaskForeground(false);
+    const request = remoteAccountEpoch.snapshot();
+    try {
+      await enqueuePhoneRuntimeReport(async () => {
+        if (!hasNativeAndroidPhoneRuntime() || !remoteAccountEpoch.isCurrent(request)) return;
+        await taskAssignmentApi.reportPhoneRuntime(getDeviceId(), null, false, null);
+      });
+    } catch { /* Offline logout falls back to the server's 120-second timeout. */ }
+  }
+  let taskAssignmentSnapshot: {
+    key: string;
+    receivedAt: number;
+    state: CanonicalTaskAssignments;
+  } | null = null;
+  let taskAssignmentSnapshotInFlight: {
+    key: string;
+    request: Promise<CanonicalTaskAssignments>;
+  } | null = null;
+  let taskAssignmentReadEpoch = 0;
+  const remoteFleetRefreshCoordinator = createRemoteFleetRefreshCoordinator();
+  let remoteFleetRefreshSequence = 0;
   // 🔴 在线设备锚改由展示配置驱动(规格 FEAT-HOME02 ③:「既有硬编码常量改为由此配置驱动」)。
-  //   在线数 = 舰队规模 × 在线率;呼吸带 = ±onlineJitter(只影响视觉,不进任何金额派生)。
+  //   在线数 = 舰队规模 × 在线率,**逐字展示公布值**。
+  //   BUG #59:此前的「呼吸带 ±onlineJitter」会让人工配置的公布规模在页面停留期间自行浮动,
+  //   对外读起来像实时接入统计。公布口径不是实时测量,不得人为抖动,故抖动带已删除。
   //   配置非法时回退编译期锚 —— 全局条不许因单个参数坏而冻结(异常3 的「单项坏不拖垮」);
   //   首页脉搏卡的「该格占位」判定读配置本体,不读这里的回退值,两层各管各的。
   const cfg = useConfig();
@@ -457,16 +480,12 @@ export const useApp = defineStore("app", () => {
   //   裸消费它 —— 同一行页脚里 200 万在线 × 按 2.8 万舰队算的 $/sec。根修这一个生产点,
   //   消费者自动收敛;域判定与卡片占位共用同一个函数,两层永不打架)。
   const pulseOnlineBaseline = (): number => {
+    if (remoteApiEnabled) return cfg.config.verifiedStats?.onlineDevices.value ?? 0;
     const ps = cfg.config.publicStats;
     // R3 P2:jitter 只属呼吸带(band 自己会回退 24),越域不该把合法舰队基线拖回种子
     const h = publicStatsHealth(ps ?? null);
     if (!ps || !h.fleetOk || !h.rateOk) return 0;
     return Math.round(ps.fleetDevices * (ps.onlineRatePct / 100));
-  };
-  const pulseJitterBand = (): number => {
-    const ps = cfg.config.publicStats;
-    if (!ps || !publicStatsHealth(ps).jitterOk) return 0;
-    return ps.onlineJitter;
   };
   const global = ref<GlobalStats>(createInitialGlobal(pulseOnlineBaseline()));
   // 真后端模式下 config 是异步装载的；global 比它更早创建，不能永久保留启动时的 0。
@@ -475,8 +494,7 @@ export const useApp = defineStore("app", () => {
     watch(
       () => [
         cfg.syncFailed,
-        cfg.config.publicStats.fleetDevices,
-        cfg.config.publicStats.onlineRatePct,
+        cfg.config.verifiedStats?.onlineDevices.value,
       ],
       () => {
         const activeDevices = cfg.syncFailed ? 0 : pulseOnlineBaseline();
@@ -516,13 +534,6 @@ export const useApp = defineStore("app", () => {
       : null,
   );
   let lastCloudSnapshot: AccountCloudSnapshot = bootSnapshot;
-  const fundsSandboxStatus = ref<"idle" | "loading" | "ready" | "error">(mockFundsEnabled ? "idle" : "ready");
-  const fundsSandboxError = ref("");
-  // It starts absent and is cleared before every read. A surface can therefore
-  // never label a stale, missing, malformed, or contradictory response as a
-  // sandbox success.
-  const fundsSandboxEvidence = ref<FundsSandboxEvidence | null>(null);
-  let fundsSandboxBootstrapInFlight: { accountKey: string; request: Promise<boolean> } | null = null;
   // cfg 声明已随「在线设备锚配置化」上移到 global 初始化之前(同一个实例,别再声明第二个)
   const computeShareEnabled = computed(() => cfg.isEnabled("computeShareEnabled"));
   const slotDevices = computed(() =>
@@ -532,7 +543,7 @@ export const useApp = defineStore("app", () => {
   // Slot authority must count hidden active pc-gpu devices too. When the PC
   // share flag is off, UI hides those devices, but they still reserve backend
   // capacity; otherwise closing/reopening the flag can push the account past 6.
-  const activeSlotCount = computed(() => devices.value.filter((d) => d.activatedAt !== null).length);
+  const activeSlotCount = computed(() => devices.value.filter(isActiveSlotDevice).length);
   /**
    * FEAT-HOME02 ③ 首页「你的排名」的入参:本账号全部在产设备的**有效算力之和**(TOPS)。
    * 口径与聚合全在 lib/account-hashrate.ts(复用既有单台模型,不新造第二套)。
@@ -589,9 +600,7 @@ export const useApp = defineStore("app", () => {
   function adoptAccountSnapshot(snapshot: AccountCloudSnapshot, resetRuntime = false) {
     const normalizedSnapshot = { ...snapshot, user: withDefaultEarningBuckets(snapshot.user) };
     user.value = normalizedSnapshot.user;
-    // Keep the raw snapshot as the merge base: the next write persists this migration.
-    phoneBinding.value = snapshot.phoneBinding ?? legacyPhoneBinding(snapshot);
-    devices.value = projectPhoneDevices(snapshot, phoneBinding.value);
+    devices.value = snapshot.devices;
     earnings.value = snapshot.earnings;
     withdrawals.value = snapshot.withdrawals ?? [];
     syncDeviceRuntime(snapshot.devices, resetRuntime);
@@ -623,7 +632,6 @@ export const useApp = defineStore("app", () => {
       updatedAt: Date.now(),
       user: user.value,
       devices: devices.value,
-      phoneBinding: phoneBinding.value,
       earnings: earnings.value,
       withdrawals: withdrawals.value,
     };
@@ -645,11 +653,17 @@ export const useApp = defineStore("app", () => {
     throw new Error("E3_DEVICE_KIND_UNSUPPORTED");
   }
 
-  function canonicalDevice(device: CanonicalE3Device, serverNow: number): Device {
+  function canonicalDevice(
+    device: CanonicalE3Device,
+    serverNow: number,
+    capacitySnapshotReceivedAt: number,
+  ): Device {
     const capacity = Math.max(0, Math.min(1, device.capacityPct / 100));
     const fullDailyUsdt = capacity > 0 ? device.dailyUsdt / capacity : 0;
     const fullDailyNex = capacity > 0 ? device.dailyNex / capacity : 0;
-    const active = ["ACTIVE", "ONLINE", "BUSY"].includes(device.status);
+    const activeLifecycle = ["ACTIVE", "ONLINE", "BUSY", "RUNNING", "OFFLINE"].includes(device.status);
+    const active = device.activatedAt != null && device.deactivatedAt == null && activeLifecycle;
+    const activationUnconfirmed = activeLifecycle && (device.activatedAt == null || device.deactivatedAt != null);
     return {
       id: String(device.id),
       rowVersion: device.rowVersion,
@@ -657,16 +671,20 @@ export const useApp = defineStore("app", () => {
       name: device.name,
       gpu: device.gpuModel,
       gpuModel: device.gpuModel,
+      capabilityTops: device.capabilityTops ?? undefined,
+      capabilityTier: device.capabilityTier ?? undefined,
       vramTotal: device.vramTotalGb,
       basePower: device.basePowerW,
       baseRate: fullDailyUsdt,
       baseRateNEX: fullDailyNex,
       purchasedAt: device.purchasedAt ?? serverNow,
-      activatedAt: active ? (device.activatedAt ?? serverNow) : null,
+      activatedAt: active ? device.activatedAt : null,
+      activationUnconfirmed,
       pendingDeactivate: device.pendingDeactivate,
       lastSettledAt: null,
       onlineHeartbeatAt: null,
-      status: active ? "online" : "offline",
+      runtimeStatus: device.runtimeStatus ?? "UNKNOWN",
+      status: active && device.runtimeStatus === "ONLINE" ? "online" : "offline",
       gpuUsage: 0,
       gpuTemp: 0,
       gpuPower: 0,
@@ -680,6 +698,15 @@ export const useApp = defineStore("app", () => {
       paidPriceUsdt: device.actualPaidUsdt,
       location: device.location,
       pausedReason: null,
+      capacitySource: "server",
+      capacityPct: device.capacityPct,
+      capacityAgeMonths: device.capacityAgeMonths,
+      capacitySubsidized: device.capacitySubsidized,
+      capacitySubsidyDays: device.capacitySubsidyDays,
+      capacitySubsidyRemainingDays: device.capacitySubsidyRemainingDays,
+      capacitySubsidyEndsAt: device.capacitySubsidyEndsAt,
+      serverNow,
+      capacitySnapshotReceivedAt,
     };
   }
 
@@ -694,81 +721,159 @@ export const useApp = defineStore("app", () => {
       totalSec: task.requiredSeconds,
       startedAt: task.startedAt,
       reward: task.rewardUsdt,
+      status: task.status,
+      completableAt: task.completableAt,
     };
   }
 
   function applyRemoteAssignments(base: Device[], state: CanonicalTaskAssignments): Device[] {
+    const taskSnapshotReceivedAt = readMonotonicNowMs();
     const byDevice = new Map(state.devices.map((entry) => [String(entry.deviceId), entry]));
     return base.map((device) => {
       const authority = byDevice.get(device.id);
-      if (!authority) return { ...device, currentTask: null, recentTasks: [], taskLockUntil: null };
+      if (!authority) {
+        return {
+          ...device,
+          taskServerNow: state.serverNow,
+          taskServerNowReceivedAt: taskSnapshotReceivedAt,
+          currentTask: null,
+          recentTasks: [],
+          taskLockUntil: null,
+        };
+      }
       return {
         ...device,
+        taskServerNow: state.serverNow,
+        taskServerNowReceivedAt: taskSnapshotReceivedAt,
         taskLockUntil: authority.lockUntil,
         currentTask: authority.currentTask ? remoteTask(authority.currentTask, device.location ?? "") : null,
         recentTasks: authority.recentTasks.map((entry) => ({
           ...remoteTask(entry, device.location ?? ""),
-          completedAt: entry.completedAt ?? entry.completableAt,
+          completedAt: entry.completedAt ?? entry.completableAt ?? state.serverNow,
           receiptNo: entry.receiptNo,
         })),
       };
     });
   }
 
-  async function trustedTaskProof(task: CanonicalTaskAssignment): Promise<TrustedTaskCompletionProof> {
-    const provider = (globalThis as typeof globalThis & {
-      __NEXION_TRUSTED_TASK_PROOF__?: (challenge: {
-        taskNo: string; deviceId: number; proofNonce: string; proofExpiresAt: number;
-      }) => Promise<TrustedTaskCompletionProof>;
-    }).__NEXION_TRUSTED_TASK_PROOF__;
-    if (!provider || !task.proofNonce || !task.proofExpiresAt) {
-      throw new Error("TASK_ASSIGNMENT_TRUSTED_EXECUTOR_UNAVAILABLE");
+  function readRemoteTaskAssignments(request: RemoteAccountRequest): Promise<CanonicalTaskAssignments> {
+    const readEpoch = taskAssignmentReadEpoch;
+    const key = `${request.accountKey}:${request.epoch}:${remoteTaskForegroundEpoch}:${readEpoch}`;
+    const foregroundEpoch = remoteTaskForegroundEpoch;
+    const now = Date.now();
+    if (taskAssignmentSnapshot?.key === key
+        && now < taskAssignmentSnapshot.receivedAt + TASK_ASSIGNMENT_CACHE_MS) {
+      return Promise.resolve(taskAssignmentSnapshot.state);
     }
-    return provider({ taskNo: task.taskNo, deviceId: task.deviceId,
-      proofNonce: task.proofNonce, proofExpiresAt: task.proofExpiresAt });
-  }
-
-  // IDEMPOTENCY-FRESH-OK: 按分钟分桶:同一分钟内重试复用同一把。
-  // ⚠️ 已知上限:超过 60s 再重试就是新键。任务领取/完成走的是服务端权威状态机(claim 已被别人
-  //    领走会被拒),所以窗口内不会重复发奖;真要收紧应改成「按 taskNo 冻结」而不是按时间分桶。
-  function taskMutationKey(scope: string): string {
-    return `e18:${scope}:${Math.floor(Date.now() / 60000)}`;
+    if (taskAssignmentSnapshotInFlight?.key === key) return taskAssignmentSnapshotInFlight.request;
+    const pending = taskAssignmentApi.state().then((state) => {
+      if (!remoteAccountEpoch.isCurrent(request)) throw new Error("REMOTE_ACCOUNT_CHANGED");
+      if (foregroundEpoch !== remoteTaskForegroundEpoch) throw new Error("REMOTE_FOREGROUND_CHANGED");
+      if (readEpoch !== taskAssignmentReadEpoch) throw new Error("REMOTE_ASSIGNMENT_READ_SUPERSEDED");
+      taskAssignmentSnapshot = { key, receivedAt: Date.now(), state };
+      return state;
+    });
+    taskAssignmentSnapshotInFlight = { key, request: pending };
+    const clearInFlight = () => {
+      if (taskAssignmentSnapshotInFlight?.request === pending) taskAssignmentSnapshotInFlight = null;
+    };
+    void pending.then(clearInFlight, clearInFlight);
+    return pending;
   }
 
   async function syncRemoteTaskAssignments(): Promise<void> {
     const calledAt = Date.now();
-    if (!remoteApiEnabled || miningPaused.value || remoteTaskSyncInFlight || calledAt < remoteTaskSyncAfter) return;
+    if (!remoteApiEnabled || !remoteTaskForeground || miningPaused.value || calledAt < remoteTaskSyncAfter) return;
     const request = remoteAccountEpoch.snapshot();
-    remoteTaskSyncInFlight = true;
+    const foregroundEpoch = remoteTaskForegroundEpoch;
+    const syncKey = `${request.accountKey}:${request.epoch}:${foregroundEpoch}`;
+    if (remoteTaskSyncInFlightKey === syncKey) return;
+    remoteTaskSyncInFlightKey = syncKey;
     remoteTaskSyncAfter = calledAt + REMOTE_TASK_SYNC_MS;
+    let refreshFleetAfterStaleRead = false;
     try {
-      let state = await taskAssignmentApi.state();
-      // before applying remote task assignments, reject any response from a prior account bind.
-      if (!remoteAccountEpoch.isCurrent(request)) return;
-      devices.value = applyRemoteAssignments(devices.value, state);
-      for (const device of devices.value) {
-        if (!remoteAccountEpoch.isCurrent(request)) return;
-        const authority = state.devices.find((entry) => String(entry.deviceId) === device.id);
-        if (!authority || device.status !== "online" || device.activatedAt == null) continue;
-        if (authority.currentTask && authority.currentTask.completableAt <= state.serverNow) {
-          const proof = await trustedTaskProof(authority.currentTask);
-          if (!remoteAccountEpoch.isCurrent(request)) return;
-          await taskAssignmentApi.complete(authority.currentTask.taskNo, proof,
-            taskMutationKey(`complete:${authority.currentTask.taskNo}`));
-        } else if (!authority.currentTask && (authority.lockUntil == null || authority.lockUntil <= state.serverNow)) {
-          if (!remoteAccountEpoch.isCurrent(request)) return;
-          await taskAssignmentApi.claim(authority.deviceId, taskMutationKey(`claim:${authority.deviceId}`));
+      if (remoteTaskForeground && foregroundEpoch === remoteTaskForegroundEpoch && remoteAccountEpoch.isCurrent(request)) {
+        try {
+          await enqueuePhoneRuntimeReport(async () => {
+            // Sample only after any older POST settles. The phone may have
+            // changed battery/network state while waiting for that response.
+            if (!remoteTaskForeground || foregroundEpoch !== remoteTaskForegroundEpoch
+              || !remoteAccountEpoch.isCurrent(request)) return;
+            const signals = await collectNativePhoneRuntime().catch(() => null);
+            if (!remoteTaskForeground || foregroundEpoch !== remoteTaskForegroundEpoch
+              || !remoteAccountEpoch.isCurrent(request)) return;
+            if (!signals) {
+              // Only Android can recover a temporarily missing native sample.
+              // H5/iOS have no bridge, so their read-only refresh stays at 60s.
+              if (hasNativeAndroidPhoneRuntime()) {
+                remoteTaskSyncAfter = Math.min(remoteTaskSyncAfter, Date.now() + REMOTE_TASK_RETRY_MS);
+              }
+              return;
+            }
+            await taskAssignmentApi.reportPhoneRuntime(getDeviceId(), signals.batteryLevel,
+              signals.networkReachable, signals.isCharging);
+            if (remoteAccountEpoch.isCurrent(request)) {
+              // A concurrent page read may have captured PAUSED before this POST.
+              // Fence its cache and in-flight GET, but let a checkout mutation's
+              // fleet readback finish instead of cancelling that business flow.
+              refreshFleetAfterStaleRead = remoteFleetRefreshCoordinator.hasInFlight();
+              taskAssignmentReadEpoch += 1;
+              taskAssignmentSnapshot = null;
+              taskAssignmentSnapshotInFlight = null;
+              lastConfirmedAssignments = null;
+              if (foregroundEpoch === remoteTaskForegroundEpoch) remotePhoneBindingInvalid.value = false;
+            }
+          });
+        } catch (cause) {
+          // Retry transport/server failures before the 120-second server lease expires.
+          // A rejected local calibration binding keeps the normal 60-second cadence.
+          if (cause instanceof ApiError && (cause.code === 409 || cause.status === 409)
+            && ["TASK_ASSIGNMENT_PHONE_BINDING_INVALID", "TASK_ASSIGNMENT_DEVICE_NOT_ACTIVE"].includes(cause.message)
+            && foregroundEpoch === remoteTaskForegroundEpoch && remoteAccountEpoch.isCurrent(request)) {
+            remotePhoneBindingInvalid.value = true;
+            useSession().clearCalibrated(request.accountKey);
+          }
+          if (asApiError(cause).retryable && foregroundEpoch === remoteTaskForegroundEpoch) {
+            remoteTaskSyncAfter = Math.min(remoteTaskSyncAfter, Date.now() + REMOTE_TASK_RETRY_MS);
+          }
         }
       }
-      if (!remoteAccountEpoch.isCurrent(request)) return;
-      await refreshRemoteFleet(request);
+      if (!remoteTaskForeground || foregroundEpoch !== remoteTaskForegroundEpoch) return;
+      const [assignmentResult] = await Promise.allSettled([readRemoteTaskAssignments(request)]);
+      // before applying remote task assignments, reject any response from a prior account bind.
+      if (!remoteTaskForeground || foregroundEpoch !== remoteTaskForegroundEpoch || !remoteAccountEpoch.isCurrent(request)) return;
+      if (assignmentResult.status === "fulfilled") {
+        devices.value = applyRemoteAssignments(devices.value, assignmentResult.value);
+        lastConfirmedAssignments = { request: { ...request }, state: assignmentResult.value };
+        remoteAssignmentHasSnapshot.value = true;
+        remoteAssignmentStatus.value = "ready";
+        remoteAssignmentError.value = "";
+      } else {
+        remoteAssignmentStatus.value = "error";
+        remoteAssignmentError.value = assignmentResult.reason instanceof Error
+          ? assignmentResult.reason.message : "TASK_ASSIGNMENT_SYNC_FAILED";
+      }
+      // Dev and production clients are equally read-only. Task creation, completion,
+      // receipts and money mutations are server jobs; the App only refreshes their
+      // task, per-device earnings and Home aggregate projections.
+      await Promise.allSettled([
+        refreshRemoteFleet(request, { coalesce: true }),
+        refreshHomeTruth(request),
+      ]);
+      if (refreshFleetAfterStaleRead && remoteTaskForeground
+        && foregroundEpoch === remoteTaskForegroundEpoch && remoteAccountEpoch.isCurrent(request)) {
+        // The coalesced read began before the runtime POST. After it settles,
+        // fetch current fleet runtime without superseding its mutation caller.
+        await refreshRemoteFleet(request, { coalesce: true });
+      }
+      return;
     } catch (cause) {
-      if (remoteAccountEpoch.isCurrent(request)) {
-        remoteFleetStatus.value = "error";
-        remoteFleetError.value = cause instanceof Error ? cause.message : "TASK_ASSIGNMENT_SYNC_FAILED";
+      if (remoteTaskForeground && foregroundEpoch === remoteTaskForegroundEpoch && remoteAccountEpoch.isCurrent(request)) {
+        remoteAssignmentStatus.value = "error";
+        remoteAssignmentError.value = cause instanceof Error ? cause.message : "TASK_ASSIGNMENT_SYNC_FAILED";
       }
     } finally {
-      remoteTaskSyncInFlight = false;
+      if (remoteTaskSyncInFlightKey === syncKey) remoteTaskSyncInFlightKey = null;
     }
   }
 
@@ -804,7 +909,6 @@ export const useApp = defineStore("app", () => {
         return true;
       } catch (cause) {
         if (remoteAccountEpoch.isCurrent(request)) {
-          homeTruth.value = null;
           homeTruthStatus.value = "error";
           homeTruthError.value = cause instanceof Error ? cause.message : "APP_HOME_OVERVIEW_UNAVAILABLE";
         }
@@ -818,91 +922,146 @@ export const useApp = defineStore("app", () => {
     return refresh;
   }
 
-  async function refreshRemoteFleet(request: RemoteAccountRequest = remoteAccountEpoch.snapshot()): Promise<boolean> {
+  function invalidateRemoteFleet(request?: RemoteAccountRequest): void {
+    if (request && !remoteAccountEpoch.isCurrent(request)) return;
+    remoteFleetRefreshCoordinator.invalidate();
+    remoteFleetRefreshSequence += 1;
+  }
+
+  async function refreshRemoteFleet(
+    request: RemoteAccountRequest = remoteAccountEpoch.snapshot(),
+    options: RemoteFleetRefreshOptions = {},
+  ): Promise<boolean> {
     if (!remoteApiEnabled) return true;
     const expectedAccountKey = request.accountKey;
-    // Remote H5 deliberately drops credentials on reload. Never turn a Login
-    // page lifecycle hook or a default-account rebind into an authenticated
-    // request: its late unauthorized callback could otherwise clear a newer
-    // session created while that stale request was still settling.
-    try {
-      const activeSession = sessionVault.read();
-      if (!activeSession || expectedAccountKey !== `user:${activeSession.user.userId}`) return false;
-      const homeRefresh = refreshHomeTruth(request);
-      remoteFleetStatus.value = "loading";
-      remoteFleetError.value = "";
-      const [fleet, assignmentState] = await Promise.all([deviceE3Api.fleet(), taskAssignmentApi.state()]);
-      if (!remoteAccountEpoch.isCurrent(request)) throw new Error("REMOTE_ACCOUNT_CHANGED");
-      installCanonicalLifecycleConfig(fleet.capacitySchedule);
-      const nextDevices = applyRemoteAssignments(
-        fleet.devices.map((device) => canonicalDevice(device, fleet.serverNow)), assignmentState);
-      devices.value = nextDevices;
-      syncDeviceRuntime(nextDevices, true);
-      user.value = {
-        ...user.value,
-        joinedAt: fleet.userJoinedAt,
-        nexBalance: fleet.walletNex,
-        pendingEarnings: 0,
-        ...(mockFundsEnabled ? {} : {
-          usdtBalance: fleet.walletUsdt,
-          earningBuckets: createEarningBuckets(fleet.walletUsdt, fleet.userJoinedAt),
-        }),
-      };
-      earnings.value = {
-        today: fleet.realizedTodayUsdt,
-        todayNEX: fleet.realizedTodayNex,
-        thisWeek: 0,
-        thisMonth: 0,
-        total: 0,
-        history: [],
-      };
-      await homeRefresh;
-      if (homeTruth.value && remoteAccountEpoch.isCurrent(request)) applyHomeEarnings(homeTruth.value);
-      remoteFleetStatus.value = "ready";
-      return true;
-    } catch (cause) {
-      if (remoteAccountEpoch.isCurrent(request)) {
-        devices.value = [];
-        syncDeviceRuntime([], true);
+    const runScope = captureRuntimeRevision();
+    const scope = {
+      accountKey: request.accountKey,
+      accountEpoch: request.epoch,
+      mode: expectedApiEnvironment,
+      runId: runScope.runId,
+      runEpoch: runScope.epoch,
+    };
+    // H5 deliberately drops its access token on reload and restores it through
+    // the HttpOnly refresh cookie. Never turn a Login page lifecycle hook or a
+    // default-account rebind into an authenticated request: its late
+    // unauthorized callback could otherwise clear a newer restored session.
+    return remoteFleetRefreshCoordinator.refresh(scope, async (lease) => {
+      let refreshSequence: number | null = null;
+      const assignmentReadEpochAtStart = taskAssignmentReadEpoch;
+      try {
+        const activeSession = sessionVault.read();
+        if (!activeSession || expectedAccountKey !== `user:${activeSession.user.userId}`) return false;
+        if (!remoteAccountEpoch.isCurrent(request)) return false;
+        if (!isCurrentRuntimeRevision(runScope)) return false;
+        refreshSequence = ++remoteFleetRefreshSequence;
+        remoteFleetStatus.value = "loading";
+        remoteFleetError.value = "";
+        remoteAssignmentStatus.value = "loading";
+        remoteAssignmentError.value = "";
+        const [fleetResult, assignmentResult] = await Promise.allSettled([
+          deviceE3Api.fleet(), readRemoteTaskAssignments(request),
+        ]);
+        if (!remoteAccountEpoch.isCurrent(request)
+          || !isCurrentRuntimeRevision(runScope)
+          || !remoteFleetRefreshCoordinator.isCurrent(lease)
+          || refreshSequence !== remoteFleetRefreshSequence) {
+          throw new Error("REMOTE_FLEET_REQUEST_SUPERSEDED");
+        }
+        const assignmentReadCurrent = assignmentReadEpochAtStart === taskAssignmentReadEpoch;
+        if (assignmentReadCurrent && assignmentResult.status === "rejected") {
+          remoteAssignmentStatus.value = "error";
+          remoteAssignmentError.value = assignmentResult.reason instanceof Error
+            ? assignmentResult.reason.message : "TASK_ASSIGNMENT_STATE_UNAVAILABLE";
+        } else if (assignmentReadCurrent && assignmentResult.status === "fulfilled") {
+          remoteAssignmentStatus.value = "ready";
+          remoteAssignmentHasSnapshot.value = true;
+          lastConfirmedAssignments = { request: { ...request }, state: assignmentResult.value };
+        }
+        if (fleetResult.status === "rejected") throw fleetResult.reason;
+        const fleet = fleetResult.value;
+        slotCap.value = fleet.slotCap;
+        installCanonicalLifecycleConfig(fleet.capacitySchedule);
+        const capacitySnapshotReceivedAt = readMonotonicNowMs();
+        const canonicalDevices = fleet.devices.map((device) => canonicalDevice(
+          device,
+          fleet.serverNow,
+          capacitySnapshotReceivedAt,
+        ));
+        const confirmedAssignments = assignmentReadCurrent && assignmentResult.status === "fulfilled"
+          ? assignmentResult.value
+          : lastConfirmedAssignments?.request.accountKey === request.accountKey
+            && lastConfirmedAssignments.request.epoch === request.epoch
+            ? lastConfirmedAssignments.state
+            : null;
+        const nextDevices = confirmedAssignments
+          ? applyRemoteAssignments(canonicalDevices, confirmedAssignments)
+          : canonicalDevices;
+        devices.value = nextDevices;
+        syncDeviceRuntime(nextDevices, true);
         user.value = {
           ...user.value,
-          joinedAt: 0,
-          nexBalance: 0,
+          joinedAt: fleet.userJoinedAt,
+          nexBalance: fleet.walletNex,
           pendingEarnings: 0,
-          ...(mockFundsEnabled ? {} : {
-            usdtBalance: 0,
-            earningBuckets: createEarningBuckets(0, 0),
-          }),
+          usdtBalance: fleet.walletUsdt,
+          earningBuckets: createEarningBuckets(fleet.walletUsdt, fleet.userJoinedAt),
         };
-        remoteFleetStatus.value = "error";
-        remoteFleetError.value = cause instanceof Error ? cause.message : "E3_FLEET_UNAVAILABLE";
+        remoteFleetHasSnapshot.value = true;
+        remoteRealizedToday.value = { usdt: fleet.realizedTodayUsdt, nex: fleet.realizedTodayNex };
+        remoteWalletReceiptHasSnapshot.value = false;
+        remoteFleetStatus.value = "ready";
+        return true;
+      } catch (cause) {
+        if (remoteAccountEpoch.isCurrent(request)
+          && isCurrentRuntimeRevision(runScope)
+          && remoteFleetRefreshCoordinator.isCurrent(lease)
+          && refreshSequence != null
+          && refreshSequence === remoteFleetRefreshSequence) {
+          remoteFleetStatus.value = "error";
+          remoteFleetError.value = cause instanceof Error ? cause.message : "E3_FLEET_UNAVAILABLE";
+        }
+        return false;
       }
-      return false;
-    }
+    }, options);
   }
 
   function bindAccount(rawAccountKey: string, surface: EntrySurface = getEntrySurface()) {
     const key = normalizeAccountKey(rawAccountKey);
     if (remoteApiEnabled) {
       remoteAccountEpoch.bind(key);
+      accountBindingEpoch.value = remoteAccountEpoch.snapshot().epoch;
       const emptySnapshot = createServerEmptySnapshot(key, rawAccountKey, surface);
       accountKey.value = emptySnapshot.accountKey;
       entrySurface.value = emptySnapshot.entrySurface;
       miningPaused.value = false;
       adoptAccountSnapshot(emptySnapshot, true);
       withdrawals.value = [];
+      remoteWithdrawalListRefreshSequence += 1;
+      remoteWithdrawalListStatus.value = "idle";
+      remoteWithdrawalListHasSnapshot.value = false;
       lastCloudSnapshot = createServerEmptySnapshot(key, rawAccountKey, surface);
       remoteFleetStatus.value = "idle";
       remoteFleetError.value = "";
+      remoteFleetHasSnapshot.value = false;
+      remoteRealizedToday.value = null;
+      slotCap.value = MAX_DEVICES;
+      remoteWalletReceiptHasSnapshot.value = false;
+      remoteAssignmentStatus.value = "idle";
+      remotePhoneBindingInvalid.value = false;
+      remoteAssignmentError.value = "";
+      remoteAssignmentHasSnapshot.value = false;
+      lastConfirmedAssignments = null;
+      taskAssignmentSnapshot = null;
+      taskAssignmentSnapshotInFlight = null;
+      remoteTaskSyncAfter = 0;
+      invalidateRemoteFleet();
       homeTruth.value = null;
       homeTruthStatus.value = "idle";
       homeTruthError.value = null;
-      fundsSandboxStatus.value = mockFundsEnabled ? "idle" : "ready";
-      fundsSandboxError.value = "";
-      fundsSandboxEvidence.value = null;
-      void refreshRemoteFleet(); // 自吞降级(resilience 门);error 态由缝内落好
+      // The authenticated catalog/bootstrap helper owns the first fleet read.
+      // A bare account rebind has no authority to fetch a mixed old/new projection.
       void refreshRemoteWithdrawalList(key);
-      if (mockFundsEnabled) void refreshFundsSandboxForAccount(key);
       return;
     }
     const snapshot = hydrateSnapshotEconomics(readAccountSnapshot(key)) ?? createSeedSnapshot(key, rawAccountKey, surface);
@@ -921,16 +1080,34 @@ export const useApp = defineStore("app", () => {
 
   /** Rehydrates every historical production withdrawal after login/reload. */
   async function refreshRemoteWithdrawalList(expectedAccountKey = accountKey.value): Promise<boolean> {
-    if (!remoteApiEnabled || mockFundsEnabled || expectedAccountKey !== accountKey.value) return false;
+    if (!remoteApiEnabled || expectedAccountKey !== accountKey.value) return false;
     const request = remoteAccountEpoch.snapshot();
+    const runScope = captureRuntimeRevision();
+    const activeSession = sessionVault.read();
+    if (!activeSession || expectedAccountKey !== `user:${activeSession.user.userId}`) return false;
+    const refreshSequence = ++remoteWithdrawalListRefreshSequence;
+    remoteWithdrawalListStatus.value = "loading";
     try {
       const rows = await withdrawalApi.list();
-      if (!remoteAccountEpoch.isCurrent(request) || expectedAccountKey !== accountKey.value) return false;
+      if (!remoteAccountEpoch.isCurrent(request)
+        || !isCurrentRuntimeRevision(runScope)
+        || expectedAccountKey !== accountKey.value
+        || refreshSequence !== remoteWithdrawalListRefreshSequence) return false;
       const canonical = rows.map((row) => toCanonicalWithdrawal(row, row.targetAddress ?? "", row.createdAt));
       withdrawals.value = canonical;
       lastCloudSnapshot = { ...lastCloudSnapshot, withdrawals: canonical };
+      remoteWithdrawalListHasSnapshot.value = true;
+      remoteWithdrawalListStatus.value = "ready";
       return true;
     } catch {
+      if (remoteAccountEpoch.isCurrent(request)
+        && isCurrentRuntimeRevision(runScope)
+        && expectedAccountKey === accountKey.value
+        && refreshSequence === remoteWithdrawalListRefreshSequence) {
+        // Keep a prior same-account list readable, but make its age explicit to
+        // consumers; first-read failures have no snapshot and stay unknown.
+        remoteWithdrawalListStatus.value = "error";
+      }
       return false;
     }
   }
@@ -940,7 +1117,6 @@ export const useApp = defineStore("app", () => {
       void syncRemoteTaskAssignments();
       return;
     }
-    enforcePhoneRuntime();
     // ── Global platform stats jitter ──
     // Runs even while the personal session is paused — platform-wide figures
     // must not freeze on an individual's mining state. Symmetric BOUNDED
@@ -948,15 +1124,12 @@ export const useApp = defineStore("app", () => {
     // extrapolate (the old always-add tick implied +130k devices/day; see
     // docs/changes/2026-07-24-platform-stats-single-anchor.md). Bands clamp
     // the O(√t) drift of an unbounded symmetric walk over long dwells.
-    const devDrift = Math.random();
-    const nextDevices = global.value.activeDevices + (devDrift > 0.8 ? 1 : devDrift < 0.2 ? -1 : 0);
     const nextJobs = global.value.activeJobs + Math.floor(Math.random() * 5) - 2;
-    // 呼吸带跟配置走(运营改了舰队/在线率/抖幅,已开着的会话在带内自然漂过去)
-    const devBase = pulseOnlineBaseline();
-    const devBand = pulseJitterBand();
+    // BUG #59:公布的舰队规模是运营配置的对外口径,不是实时接入数 —— 逐字展示,
+    // 不做任何漂移(运营改了舰队/在线率,已开着的会话直接切到新基线)。
     global.value = {
       ...global.value,
-      activeDevices: Math.min(devBase + devBand, Math.max(devBase - devBand, nextDevices)),
+      activeDevices: pulseOnlineBaseline(),
       activeJobs: Math.min(ACTIVE_JOBS_SEED + 36, Math.max(ACTIVE_JOBS_SEED - 36, nextJobs)),
     };
     if (miningPaused.value) return;
@@ -974,11 +1147,6 @@ export const useApp = defineStore("app", () => {
 
       // Phone battery + network gating
       if (d.kind === "phone") {
-        const allowed = phoneExecutionAllowed(d);
-        if (allowed === null) return d;
-        if (!allowed) return stopPhoneTask(d);
-        // H5 observes fresh APP work; it never runs or completes phone tasks.
-        if (getCarrier() !== "app" || d.phoneInstallationId !== getDeviceId()) return d;
         const reason = phoneRuntimePauseReason(d);
         next.pausedReason = reason;
         if (reason !== null) {
@@ -995,22 +1163,16 @@ export const useApp = defineStore("app", () => {
           }
           next.gpuUsage = 0;
           next.miningSince = null; // paused → continuous-online run ends, stability bonus resets
-          next.lastSettledAt = null;
-          next.onlineHeartbeatAt = null;
           return next;
         }
         if (next.interruptedAt != null) {
           if (next.currentTask) {
-            if (interruptInfo(next.interruptedAt, Date.now()).expired) {
-              next.currentTask = null;
-            } else {
-              const heldMs = Date.now() - next.interruptedAt;
-              next.currentTask = { ...next.currentTask, startedAt: next.currentTask.startedAt + heldMs };
-            }
+            const heldMs = Date.now() - next.interruptedAt;
+            next.currentTask = { ...next.currentTask, startedAt: next.currentTask.startedAt + heldMs };
           }
           next.interruptedAt = null;
         }
-        // Running (sufficient battery + network): start a fresh continuity run if none.
+        // Running (battery at least 20% + online): start a fresh continuity run if none.
         if (next.miningSince == null) next.miningSince = Date.now();
       } else {
         next.pausedReason = null;
@@ -1079,7 +1241,6 @@ export const useApp = defineStore("app", () => {
     // (GET /api/me/earnings —— PRD §9.11c.1),client 不自算。
     if (remoteApiEnabled) return;
     if (miningPaused.value) return;
-    enforcePhoneRuntime();
     const cfgStore = useConfig();
     // FEAT-RISK02 异常3: 配置同步失败 → 暂停结算并由钱包显示失败态;
     // 禁止回退到前端写死默认值继续结算。
@@ -1101,8 +1262,6 @@ export const useApp = defineStore("app", () => {
       now,
       onlineBonus,
       computeShareEnabled.value,
-      residentPhoneDeviceId(),
-      !phoneBinding.value || liveAppSession(phoneBinding.value.installationId) !== null,
     );
     // Only a delta that was already backed by a fresh device heartbeat counts
     // as App online attestation. A stale reopen tick is baseline and attests 0.
@@ -1202,7 +1361,7 @@ export const useApp = defineStore("app", () => {
 
   // ⚠️ MOCK-ONLY demo helper (ported from index.ts setPhoneRuntime). Lets the
   // device card toggle isCharging / isWifiConnected / batteryLevel on a phone so
-  // reviewers can simulate low battery / losing network and watch the gating fire.
+  // reviewers can simulate unplugging / losing network and watch the gating fire.
   // Real backend pulls these from candidate POST /api/device/:id/heartbeat
   // (PRD §6.11/§12.2) — client must NOT mutate. Only patches phone-kind devices.
   function setPhoneRuntime(
@@ -1213,13 +1372,11 @@ export const useApp = defineStore("app", () => {
       if (d.id !== id || d.kind !== "phone") return d;
       const next = { ...d, ...patch };
       const pausedReason = phoneRuntimePauseReason(next);
-      return pausedReason == null && d.pausedReason == null
+      return pausedReason == null
         ? { ...next, pausedReason }
         : {
             ...next,
             pausedReason,
-            interruptedAt: pausedReason != null && next.currentTask ? next.interruptedAt ?? Date.now() : next.interruptedAt,
-            gpuUsage: pausedReason != null ? 0 : next.gpuUsage,
             miningSince: null,
             lastSettledAt: null,
             onlineHeartbeatAt: null,
@@ -1229,106 +1386,18 @@ export const useApp = defineStore("app", () => {
     persistAccountSnapshot();
   }
 
-  // Apply a calibration result to the phone device: refreshes its yield baseline
-  // + displayed NPU spec from the (deterministic, per-device) capability, and
-  // starts a fresh continuity run. Called by the onboarding/recalibration ritual
-  // after measureDeviceCapability(). PROD: GET /api/onboarding/calibrate/result
-  // returns score/tier/yield baseline; the client applies that result here.
-  function phoneActivationError(): PhoneActivationError | null {
-    if (getCarrier() === "app" && phoneBinding.value && phoneBinding.value.installationId !== getDeviceId()
-      && (cfg.syncFailed || cfg.loading)) return "config-unavailable";
-    const error = phoneReplacementError(phoneBinding.value, getDeviceId(), getCarrier(), cfg.config.phoneBinding, mockServerNow());
-    if (error) return error;
-    const live = liveAppSession(getDeviceId());
-    return live === null ? "storage-failed" : live ? null : "reauth-required";
-  }
-
-  function liveAppSession(installationId: string): boolean | null {
-    const now = Date.now();
-    const records = readAccountSessionRecordsStrict(accountKey.value);
-    if (records === null) return null;
-    return records.some((s) => s.entrySurface === "signed-app"
-      && s.deviceId === installationId && now >= s.lastSeenAt && now - s.lastSeenAt < 180000);
-  }
-
-  function residentPhoneDeviceId(): string | undefined {
-    const binding = phoneBinding.value;
-    if (!binding || binding.suspendedAt !== null || getCarrier() !== "app" || binding.installationId !== getDeviceId()) return;
-    return liveAppSession(binding.installationId) ? binding.deviceId : undefined;
-  }
-
-  function phoneExecutionAllowed(d: Device): boolean | null {
-    if (!matchesPhoneBinding(d, phoneBinding.value) || phoneBinding.value?.suspendedAt !== null) return false;
-    const live = liveAppSession(phoneBinding.value!.installationId);
-    if (live !== true) return live;
-    return d.id === residentPhoneDeviceId() || isDeviceOnline(d, Date.now());
-  }
-
-  function enforcePhoneRuntime() {
-    const latest = readAccountSnapshot(accountKey.value);
-    if (latest && JSON.stringify(latest.phoneBinding ?? null) !== JSON.stringify(phoneBinding.value)) adoptAccountSnapshot(latest);
-    else if (latest && latest.devices.some((d) => d.kind === "phone"
-      && (d.onlineHeartbeatAt ?? 0) > (devices.value.find((row) => row.id === d.id)?.onlineHeartbeatAt ?? 0))) {
-      // Adopt funds, merge base and aggregate anchors together. Importing only
-      // the phone counters would count remote earnings again as local income.
-      adoptAccountSnapshot(latest);
-    }
-    devices.value = devices.value.map((d) => {
-      if (d.kind !== "phone") return d;
-      const allowed = phoneExecutionAllowed(d);
-      if (allowed === null) return d;
-      return !allowed || (d.onlineHeartbeatAt != null && !isDeviceOnline(d, Date.now()) && d.interruptedAt == null) ? stopPhoneTask(d) : d;
-    });
-  }
-
-  // Only a completed, explicit authentication calls this. onShow/session refresh
-  // cannot clear a different-phone login suspension.
-  function acceptPhoneSignIn(): boolean {
-    const latest = readAccountSnapshot(accountKey.value);
-    if (latest) adoptAccountSnapshot(latest);
-    const binding = phoneBinding.value;
-    if (getCarrier() === "app" && binding && (binding.installationId !== getDeviceId() || binding.suspendedAt !== null)) {
-      phoneBinding.value = { ...binding, version: binding.version + 1,
-        suspendedAt: binding.installationId === getDeviceId() ? null : mockServerNow() };
-      devices.value = devices.value.map(stopPhoneTask);
-    }
-    if (getCarrier() !== "app") enforcePhoneRuntime();
-    return persistAccountSnapshot();
-  }
-
-  function applyPhoneCalibration(cap: DeviceCapability, reservedSlots = 0): PhoneActivationError | null {
-    const error = phoneActivationError();
-    if (error) return error;
-    const installationId = getDeviceId();
-    const now = mockServerNow();
-    const binding = phoneBinding.value;
-    const legacy = !binding ? devices.value.find((d) => d.kind === "phone" && !d.phoneInstallationId) : undefined;
-    const old = devices.value.find((d) => d.id === binding?.deviceId) ?? legacy;
-    const same = devices.value.find((d) => d.kind === "phone" && d.phoneInstallationId === installationId) ?? legacy;
-    // Replacing an active phone consumes its existing slot. A warehouse phone
-    // needs a genuinely free slot, including the trial's reservation.
-    const releasing = old?.activatedAt != null ? 1 : 0;
-    if (activeSlotCount.value - releasing + reservedSlots >= MAX_DEVICES) return "slots-full";
-    const device = same ?? createDevice("phone", `phone-${installationId}`);
-    const activated: Device = { ...stopPhoneTask(device), phoneInstallationId: installationId,
-      activatedAt: now, pendingDeactivate: false, status: "online", baseRate: cap.baseRateUsdt,
-      baseRateNEX: cap.baseRateNex, gpu: `Mobile NPU · ~${cap.tops} TOPS`, capabilityScore: cap.score,
-      capabilityTops: cap.tops, capabilityTier: cap.tier, miningSince: now, lastSettledAt: now };
-    devices.value = devices.value.map((d) => d.id === activated.id ? activated : d.kind === "phone"
-      ? { ...stopPhoneTask(d), activatedAt: null, pendingDeactivate: false } : d);
-    if (!same) devices.value.push(activated);
-    phoneBinding.value = { version: (binding?.version ?? 0) + 1, installationId, deviceId: activated.id,
-      changedAt: binding?.installationId === installationId ? binding.changedAt : now, suspendedAt: null };
-    return persistAccountSnapshot() ? null : "storage-failed";
-  }
-
-  // Session invalidation cancels only this installation's phone work.
-  // Purchased hardware retains its independent execution state.
+  // Session invalidated (self logged-out / admin revoked): immediately cancel
+  // every in-flight task across the fleet WITHOUT a grace window and WITHOUT
+  // issuing a receipt — the in-progress job's reward is forfeited (the
+  // "回退"/rollback), mirroring interrupt.ts cancel semantics but triggered by
+  // auth, not connectivity. Freezes mining until resumeMining().
   function interruptAllTasks(_reason: "kicked" | "logged-out") {
-    // Account browsing sessions do not own purchased hardware execution.
-    if (getCarrier() !== "app" || phoneBinding.value?.installationId !== getDeviceId()) return;
-    phoneBinding.value = { ...phoneBinding.value, version: phoneBinding.value.version + 1, suspendedAt: mockServerNow() };
-    devices.value = devices.value.map(stopPhoneTask);
+    miningPaused.value = true;
+    devices.value = devices.value.map((d) =>
+      d.activatedAt !== null
+        ? { ...d, currentTask: null, interruptedAt: null, miningSince: null, lastSettledAt: null, onlineHeartbeatAt: null }
+        : d,
+    );
     // persist-verdict-ok: 任务中断态,失败时内存已拨回;任务引擎下一 tick 复验
     persistAccountSnapshot();
   }
@@ -1405,7 +1474,7 @@ export const useApp = defineStore("app", () => {
     reason?: "disabled" | "slots-full" | "activation-failed";
   } {
     if (!computeShareEnabled.value) return { ok: false, reason: "disabled" };
-    if (activeSlotCount.value + reservedSlots >= MAX_DEVICES) return { ok: false, reason: "slots-full" };
+    if (activeSlotCount.value + reservedSlots >= slotCap.value) return { ok: false, reason: "slots-full" };
 
     const normalizedModel = gpuModel.trim() || "NVIDIA GeForce RTX 4070";
     const gpuTier = matchGpuTier(normalizedModel, cfg.config.computeShare.gpuTiers);
@@ -1430,9 +1499,8 @@ export const useApp = defineStore("app", () => {
   function activateDevice(id: string, reservedSlots = 0): boolean {
     const device = devices.value.find((d) => d.id === id);
     if (!device || device.activatedAt !== null) return false;
-    if (phoneInventoryActivationError(device)) return false;
     if (device.kind === "pc-gpu" && !computeShareEnabled.value) return false;
-    if (activeSlotCount.value + reservedSlots >= MAX_DEVICES) return false;
+    if (occupiesDeviceSlot(device.kind) && activeSlotCount.value + reservedSlots >= slotCap.value) return false;
     devices.value = devices.value.map((d) =>
       d.id === id
         ? { ...d, activatedAt: Date.now(), lastSettledAt: Date.now(), onlineHeartbeatAt: null, pendingDeactivate: false }
@@ -1440,16 +1508,6 @@ export const useApp = defineStore("app", () => {
     );
     // 落盘失败 = 没激活(内存已拨回):如实返 false,调用方按「激活未成」处置,别把幽灵激活当成功。
     return persistAccountSnapshot();
-  }
-
-  function phoneInventoryActivationError(device: Device): PhoneActivationError | null {
-    if (device.kind !== "phone") return null;
-    if (getCarrier() !== "app") return "web-only";
-    if (!matchesPhoneBinding(device, phoneBinding.value) || device.phoneInstallationId !== getDeviceId()) return "device-mismatch";
-    const live = liveAppSession(getDeviceId());
-    if (live === null) return "storage-failed";
-    if (phoneBinding.value?.suspendedAt !== null || !live) return "reauth-required";
-    return null;
   }
 
   // Clears activatedAt + zeroes runtime telemetry so the device exits earnings
@@ -1543,8 +1601,7 @@ export const useApp = defineStore("app", () => {
   }
 
   function refundFailedWithdrawals(): string[] {
-    // Production and explicit sandbox withdrawals are both server-owned. Their
-    // debit/refund facts arrive through authoritative readback; applying a local
+    // Server-backed withdrawals own their debit/refund facts. Applying a local
     // reversal would mint a second refund in the client projection.
     if (fundsServerEnabled) return [];
     const FAILED: Withdrawal["status"][] = ["review-rejected", "address-invalid", "tx-failed", "refunded"];
@@ -1620,14 +1677,8 @@ export const useApp = defineStore("app", () => {
    * PRODUCTION:整个函数消失 —— 扣款由 `POST /api/withdrawals` 同事务完成,client 只读回执。
    */
   function applyWithdrawalDebit(wd: Withdrawal): boolean {
-    // Production withdrawals are already debited atomically by the server;
-    // this local projection is sandbox/mock-only defense in depth.
+    // Server-backed withdrawals are already debited atomically.
     if (remoteApiEnabled) return false;
-    // 🔴 sandbox 轨的钱包由服务端持有:建单响应里的 `order.wallet` 已经是**扣完之后**的余额,
-    // 且 adoptFundsSandboxWallet 已经把它整体投影进来。这里再扣一次就是双计。
-    // 回 true 而不是 false:钱确实动了(在服务端),调用方不该弹「扣款失败」。
-    // 与 refundFailedWithdrawals 的 sandbox 闸成对 —— 那条轨扣与退都归服务端。
-    if (mockFundsEnabled) return true;
     const amount = wd.amount;
     if (!Number.isFinite(amount) || amount <= 0) return false;
     const key = withdrawalDebitKey(wd.id);
@@ -2028,145 +2079,55 @@ export const useApp = defineStore("app", () => {
     return true;
   }
 
-  // D5: create the withdrawal exclusively through the real backend transaction.
-  function adoptFundsSandboxWallet(wallet: FundsSandboxWallet): void {
-    const current = withDefaultEarningBuckets(user.value);
-    user.value = {
-      ...current,
-      usdtBalance: wallet.availableUsdt,
-      earningBuckets: {
-        ...current.earningBuckets,
-        withdrawableUsdt: wallet.availableUsdt,
-        policyVersion: "funds-sandbox-v1",
-        lastBucketedAt: Date.now(),
-      },
-    };
-  }
-
   /** Server auth is the only source for this display identity in remote modes. */
   function projectServerIdentity(identity: UserSession) {
     if (!remoteApiEnabled) return;
     user.value = { ...user.value, email: `${identity.countryCode}${identity.phone}` };
   }
 
-  function canonicalFundsSandboxWithdrawal(order: FundsSandboxOrder, fallback?: Withdrawal): Withdrawal {
-    if (order.kind !== "WITHDRAWAL" || !order.targetAddress) throw new Error("FUNDS_SANDBOX_ORDER_INVALID");
-    const submittedAt = Date.parse(order.createdAt);
-    const status: Withdrawal["status"] = order.status === "CONFIRMED"
-      ? "confirmed"
-      : order.status === "FAILED"
-        ? "tx-failed"
-        : "submitted";
-    return {
-      id: order.orderNo,
-      amount: order.amount,
-      network: "USDT-BEP20",
-      address: order.targetAddress,
-      fee: fallback?.fee ?? { networkConfirmUsd: 0, nexBurned: 0, actualFeeUsd: 0 },
-      status,
-      riskRoute: fallback?.riskRoute ?? "pass",
-      riskReasons: fallback?.riskReasons ?? [],
-      submittedAt,
-      // Informational only. Server modes are guarded from ETA-based finalization below.
-      estimatedCompletion: submittedAt,
-      ...(order.settledAt && status === "confirmed" ? { confirmedAt: Date.parse(order.settledAt) } : {}),
-      serverVersion: order.version,
-      source: "mock",
-      sourceEnvironment: "SANDBOX",
+  /** Apply only an authenticated Java commerce receipt when fleet readback is temporarily unavailable. */
+  function adoptCommerceWallet(
+    balanceAfterUsdt: number,
+    receiptScope: RemoteAccountRequest,
+  ): boolean {
+    if (!remoteApiEnabled || !["dev", "prod"].includes(expectedApiEnvironment)
+        || !remoteAccountEpoch.isCurrent(receiptScope)
+        || !Number.isFinite(balanceAfterUsdt) || balanceAfterUsdt < 0) return false;
+    // A committed wallet receipt must make the next fleet read bypass any
+    // earlier in-flight wallet projection.
+    invalidateRemoteFleet(receiptScope);
+    const nextBalance = +balanceAfterUsdt.toFixed(6);
+    const current = withDefaultEarningBuckets(user.value);
+    user.value = {
+      ...current,
+      usdtBalance: nextBalance,
+      earningBuckets: { ...current.earningBuckets, withdrawableUsdt: nextBalance },
     };
+    remoteWalletReceiptHasSnapshot.value = true;
+    return true;
   }
 
-  async function refreshFundsSandbox(): Promise<void> {
-    if (!mockFundsEnabled) {
-      fundsSandboxEvidence.value = null;
-      return;
-    }
-    const request = remoteAccountEpoch.snapshot();
-    const expectedAccountKey = accountKey.value;
-    const expectedScope = captureFundsSandboxRequestScope(expectedAccountKey, request.epoch);
-    fundsSandboxStatus.value = "loading";
-    fundsSandboxError.value = "";
-    fundsSandboxEvidence.value = null;
-    try {
-      const overview = await fundsSandboxApi.overview();
-      if (expectedAccountKey !== accountKey.value) throw new Error("FUNDS_SANDBOX_ACCOUNT_CHANGED");
-      if (!remoteAccountEpoch.isCurrent(request)
-          || !isCurrentFundsSandboxRequestScope(expectedScope, accountKey.value, remoteAccountEpoch.snapshot().epoch)) {
-        throw fundsSandboxStaleRequestError();
-      }
-      adoptFundsSandboxWallet(overview.wallet);
-      const existing = new Map(withdrawals.value.map((item) => [item.id, item]));
-      withdrawals.value = overview.orders
-        .filter((item) => item.kind === "WITHDRAWAL")
-        .map((item) => canonicalFundsSandboxWithdrawal(item, existing.get(item.orderNo)));
-      overview.orders
-        .filter((item) => item.kind === "WITHDRAWAL" && (item.status === "CONFIRMED" || item.status === "FAILED"))
-        .forEach((item) => finishPendingFundsMutationByOrder(expectedAccountKey, "SANDBOX", item.orderNo));
-      fundsSandboxEvidence.value = sandboxEvidenceFromOverview(overview);
-      fundsSandboxStatus.value = "ready";
-    } catch (cause) {
-      const current = remoteAccountEpoch.isCurrent(request)
-        && isCurrentFundsSandboxRequestScope(expectedScope, accountKey.value, remoteAccountEpoch.snapshot().epoch);
-      if (current && !isFundsSandboxStaleRequestError(cause)) {
-        const current = withDefaultEarningBuckets(user.value);
-        user.value = {
-          ...current,
-          usdtBalance: 0,
-          earningBuckets: { ...current.earningBuckets, withdrawableUsdt: 0 },
-        };
-        withdrawals.value = [];
-        fundsSandboxStatus.value = "error";
-        fundsSandboxError.value = cause instanceof Error ? cause.message : "FUNDS_SANDBOX_REFRESH_FAILED";
-        fundsSandboxEvidence.value = null;
-      }
-      throw current ? cause : fundsSandboxStaleRequestError();
-    }
+  /** Compatibility alias for existing Genesis receipt projections. */
+  function adoptDevelopmentCommerceWallet(
+    balanceAfterUsdt: number,
+    receiptScope: RemoteAccountRequest,
+  ): boolean {
+    return adoptCommerceWallet(balanceAfterUsdt, receiptScope);
   }
 
-  /**
-   * Login and H5 bootstrap call this after binding an account. It is purposely
-   * stricter than the API client default: a sandbox read only starts when the
-   * current server session belongs to that account and carries a Bearer token.
-   * This prevents a fresh context from briefly presenting local/zero money as
-   * a successful sandbox while its authenticated wallet authority was never
-   * actually queried.
-   */
-  function refreshFundsSandboxForAccount(rawAccountKey: string): Promise<boolean> {
-    const expectedAccountKey = normalizeAccountKey(rawAccountKey);
-    if (!mockFundsEnabled) {
-      fundsSandboxEvidence.value = null;
-      return Promise.resolve(false);
-    }
-    if (fundsSandboxBootstrapInFlight?.accountKey === expectedAccountKey) {
-      return fundsSandboxBootstrapInFlight.request;
-    }
-    const request = (async () => {
-      const session = sessionVault.read();
-      const sessionMatchesAccount = !!session
-        && session.accessToken.trim().length > 0
-        && session.tokenType.toLowerCase() === "bearer"
-        && `user:${session.user.userId}` === expectedAccountKey;
-      if (!sessionMatchesAccount || expectedAccountKey !== accountKey.value) {
-        if (expectedAccountKey === accountKey.value) {
-          fundsSandboxStatus.value = "error";
-          fundsSandboxError.value = "FUNDS_SANDBOX_BEARER_SESSION_REQUIRED";
-          fundsSandboxEvidence.value = null;
-        }
-        return false;
-      }
-      try {
-        await refreshFundsSandbox();
-        return true;
-      } catch {
-        return false;
-      }
-    })();
-    const slot = { accountKey: expectedAccountKey, request };
-    fundsSandboxBootstrapInFlight = slot;
-    void request.finally(() => {
-      if (fundsSandboxBootstrapInFlight === slot) fundsSandboxBootstrapInFlight = null;
-    });
-    return request;
+  /** Canonical Genesis receipts must stay on the server-owned business rail. */
+  function adoptDevelopmentGenesisWallet(
+    balanceAfterUsdt: number,
+    receiptScope: RemoteAccountRequest,
+    receiptSourceEnvironment: "PRODUCTION",
+  ): boolean {
+    if (receiptSourceEnvironment !== "PRODUCTION") return false;
+    return adoptDevelopmentCommerceWallet(balanceAfterUsdt, receiptScope);
+  }
+
+  /** Capture this store's own account fence for a cross-store mutation receipt. */
+  function captureRemoteAccountRequest(): RemoteAccountRequest {
+    return remoteAccountEpoch.snapshot();
   }
 
   async function submitWithdrawal(
@@ -2203,72 +2164,12 @@ export const useApp = defineStore("app", () => {
     // 有扣款无单据,追踪页深链「查无此单」。
     // 页面侧的账单行早已钉死 `snap.account`,只钉一半反而更糟:账与单分家,对账永远配不上。
     const acct = accountKey.value;
-    // Durable pending mutation keys belong only to the isolated server sandbox.
-    // 生产轨的幂等键由调用方传入(见参数头注),不在这里现造。
-    const mutation: FundsMutationIdentity | null = mockFundsEnabled ? {
-      accountKey: acct,
-      environment: "SANDBOX",
-      method: `WITHDRAWAL:${network}`,
-      fingerprint: JSON.stringify({
-        channel: "CREGIS_USDT_BEP20",
-        amount: fundsAmountFingerprint(amount),
-        targetAddress: address.trim(),
-      }),
-    } : null;
-    if (mockFundsEnabled) {
-      if (!mutation) throw new Error("FUNDS_SANDBOX_MUTATION_IDENTITY_MISSING");
-      const sandboxKey = pendingFundsMutationKey(mutation);
-      // A sandbox withdrawal is only possible after the *same* authenticated
-      // wallet read supplied an explicit isolated policy. Never borrow a
-      // production D5/J1 rule, a local seed, or a stale wallet value here.
-      const sandboxPolicy = fundsSandboxEvidence.value?.withdrawalPolicy;
-      if (!sandboxPolicy
-          || fundsSandboxStatus.value !== "ready"
-          || fundsSandboxEvidence.value?.source !== "mock"
-          || fundsSandboxEvidence.value?.sourceEnvironment !== "SANDBOX"
-          || fundsSandboxEvidence.value?.mode !== "LOCAL_SANDBOX") {
-        throw new Error("FUNDS_SANDBOX_WITHDRAWAL_POLICY_REQUIRED");
-      }
-      if (network !== sandboxPolicy.network
-          || sandboxPolicy.channel !== "CREGIS_USDT_BEP20"
-          || sandboxPolicy.withdrawalEnabled !== true
-          || sandboxPolicy.enabledNetworks.length !== 1
-          || sandboxPolicy.enabledNetworks[0] !== network) {
-        throw new Error("FUNDS_SANDBOX_WITHDRAWAL_CHANNEL_DISABLED");
-      }
-      const sandboxAvailable = user.value.usdtBalance * sandboxPolicy.balanceMaxRatio;
-      if (amount < sandboxPolicy.minAmount || amount > sandboxAvailable) {
-        throw new Error("FUNDS_SANDBOX_INSUFFICIENT_BALANCE");
-      }
-      const order = await fundsSandboxApi.createWithdrawal(amount, address, sandboxKey);
-      if (acct !== accountKey.value) throw new Error("FUNDS_SANDBOX_ACCOUNT_CHANGED");
-      if (!order.wallet) throw new Error("FUNDS_SANDBOX_WALLET_MISSING");
-      bindPendingFundsMutationOrder(mutation, sandboxKey, order.orderNo);
-      adoptFundsSandboxWallet(order.wallet);
-      const canonical = canonicalFundsSandboxWithdrawal(order, {
-        id: order.orderNo,
-        amount,
-        network,
-        address,
-        fee,
-        status: "submitted",
-        riskRoute,
-        riskReasons,
-        fastLaneApplied,
-        waivedGates,
-        submittedAt: Date.parse(order.createdAt),
-        estimatedCompletion: Date.parse(order.createdAt),
-      });
-      withdrawals.value = [canonical, ...withdrawals.value.filter((item) => item.id !== canonical.id)];
-      if (order.status === "CONFIRMED" || order.status === "FAILED") {
-        finishPendingFundsMutationByOrder(acct, "SANDBOX", order.orderNo);
-      }
-      return canonical;
-    }
+    const fleetRequest = remoteAccountEpoch.snapshot();
     // D5 real boundary: the backend re-prices the request under policyVersion and
     // commits wallet reservation, optional NEX burn, order and ledgers atomically.
     // The local store only mirrors the returned order for rendering; it never
     // debits balances or chooses a fee bucket.
+    if (network === "BANK-VND") throw new Error("BANK_WITHDRAWAL_QUOTE_REQUIRED");
     const submission = await withdrawalApi.submit(
       amount,
       network,
@@ -2278,6 +2179,9 @@ export const useApp = defineStore("app", () => {
       idempotencyKey,
     );
     const canonical = toCanonicalWithdrawal(submission, address);
+    // Submission is a committed server-side wallet mutation. Do not let the
+    // caller's mandatory readback reuse a pre-submission fleet request.
+    invalidateRemoteFleet(fleetRequest);
     // 🔴 换号了:这一单属于 acct,当前绑定的是别人。直接写进**冻结账号**的那一行,
     // 内存(现在装的是新账号的视图)一个字都不碰 —— 与 bills.addManyForAccountOnce 同一条纪律。
     // 落盘成败都要把单交还调用方:服务端已经建单,吞掉它 = 旧账号有扣款无凭证。
@@ -2374,11 +2278,11 @@ export const useApp = defineStore("app", () => {
     // 前面那笔到点了也永远推不动(列表化后这个洞自动消失)。
     const now = mockServerNow();
     const prev = withdrawals.value;
-    // 🔴 远端模式的**真判据**在 advanceArrival 里(必填 ctx):判据留在纯函数里,才有一个
-    // 能 node 直跑的落点(见 remote-authority-simulation.test.mjs)。上面那行
-    // `if (fundsServerEnabled) return []` 是远端线加的第二道同向闸(fundsServerEnabled ≡
+    // 🔴 服务端权威的**真判据**在 advanceArrival 里(必填 ctx):判据留在纯函数里,才有一个
+    // 能 node 直跑的落点。上面那行
+    // `if (fundsServerEnabled) return []` 是第二道同向闸(fundsServerEnabled ≡
     // remoteApiEnabled),行为完全重合,保留它只是为了让「客户端 ETA 永不推进服务端单据」
-    // 这件事在函数入口就一眼可见(funds-server-sandbox-contract 也钉了它)。
+    // 这件事在函数入口就一眼可见。
     const next = prev.map((w) => advanceArrival(w, now, { serverAuthoritative: remoteApiEnabled }) ?? w);
     const advancedIds = next.filter((w, i) => w !== prev[i]).map((w) => w.id);
     if (!advancedIds.length) return [];
@@ -2408,7 +2312,7 @@ export const useApp = defineStore("app", () => {
    * advanceWithdrawalArrival 同形状,供 App 层按单号结算对应账单行。
    */
   async function refreshRemoteWithdrawals(): Promise<string[]> {
-    if (!remoteApiEnabled || mockFundsEnabled) return [];
+    if (!remoteApiEnabled) return [];
     const expectedAccountKey = accountKey.value;
     // List is the durable source of truth; a fresh session may have no local rows
     // at all, so hydrate it before polling in-flight snapshots.
@@ -2520,38 +2424,18 @@ export const useApp = defineStore("app", () => {
     persistAccountSnapshot();
   }
 
-  async function applyFundsSandboxCallback(orderNo: string, status: "CONFIRMED" | "FAILED"): Promise<boolean> {
-    if (!mockFundsEnabled) return false;
-    const expectedAccountKey = accountKey.value;
-    const current = withdrawals.value.find((item) => item.id === orderNo);
-    if (!current || current.serverVersion === undefined || current.status !== "submitted") return false;
-    const eventId = `SBX-APP-${orderNo}-${status}`;
-    const order = await fundsSandboxApi.applyCallback(orderNo, status, current.serverVersion, eventId);
-    if (expectedAccountKey !== accountKey.value) throw new Error("FUNDS_SANDBOX_ACCOUNT_CHANGED");
-    if (!order.wallet) throw new Error("FUNDS_SANDBOX_WALLET_MISSING");
-    adoptFundsSandboxWallet(order.wallet);
-    const canonical = canonicalFundsSandboxWithdrawal(order, current);
-    withdrawals.value = withdrawals.value.map((item) => item.id === orderNo ? canonical : item);
-    if (order.status === "CONFIRMED" || order.status === "FAILED") {
-      finishPendingFundsMutationByOrder(expectedAccountKey, "SANDBOX", orderNo);
-    }
-    return true;
-  }
-
   return {
-    accountKey, entrySurface, accountCloudUpdatedAt,
-    user, devices, visibleDevices, slotDevices, activeSlotCount, myTotalHashrateAt, earnings, global,
+    accountKey, accountBindingEpoch, entrySurface, accountCloudUpdatedAt,
+    user, devices, visibleDevices, slotDevices, activeSlotCount, slotCap, myTotalHashrateAt, earnings, global,
     homeTruth, homeTruthStatus, homeTruthError,
-    remoteFleetStatus, remoteFleetError,
+    remoteFleetStatus, remoteFleetError, remoteFleetHasSnapshot, remoteRealizedToday, remoteWithdrawalListStatus, remoteWithdrawalListHasSnapshot, remoteWalletReceiptHasSnapshot, remoteAssignmentStatus, remoteAssignmentError, remoteAssignmentHasSnapshot, remotePhoneBindingInvalid,
     withdrawals, latestWithdrawal, inFlightWithdrawals, primaryWithdrawal, miningPaused,
-    bindAccount, projectServerIdentity, persistAccountSnapshot, refreshHomeTruth, refreshRemoteFleet, syncRemoteTaskAssignments, refreshFundsSandbox, refreshFundsSandboxForAccount,
-    fundsSandboxStatus, fundsSandboxError, fundsSandboxEvidence,
-    tick, settle, setPhoneRuntime, applyPhoneCalibration, interruptAllTasks, resumeMining,
-    phoneBinding, phoneActivationError, phoneInventoryActivationError, acceptPhoneSignIn,
+    bindAccount, projectServerIdentity, persistAccountSnapshot, refreshHomeTruth, refreshRemoteFleet, invalidateRemoteFleet, captureRemoteAccountRequest, adoptCommerceWallet, adoptDevelopmentCommerceWallet, adoptDevelopmentGenesisWallet, syncRemoteTaskAssignments, setRemoteTaskForeground, pauseLocalPhoneRuntimeBeforeSignOut,
+    tick, settle, setPhoneRuntime, interruptAllTasks, resumeMining,
     creditBalance, debitBalance, creditNex, debitNex, captureMoney, restoreMoney,
     recordDeposit, creditRewardBucket, creditRewardBucketOnce,
     submitWithdrawal, applyWithdrawalDebit, advanceWithdrawalArrival, refreshRemoteWithdrawals, refreshRemoteWithdrawalList,
-    applyFundsSandboxCallback, refundFailedWithdrawals,
+    refundFailedWithdrawals,
     _devAdvanceWithdrawal, _devGrantManualRelease,
     addDevice, discardSpawnedDevice, retireDevice, restoreDevice, patchDevice, activateDevice, deactivateDevice, scheduleDeactivation, connectComputeShareDevice,
   };

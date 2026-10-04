@@ -10,23 +10,23 @@
   color-mix. Emits join/claim to the page (which owns the store writes).
 -->
 <template>
-  <view class="relative rounded-2xl overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card relative rounded-2xl overflow-hidden" :style="cardStyle">
     <!-- left tint hairline -->
     <view aria-hidden class="absolute" :style="hairlineStyle" />
 
     <view style="padding: 14px">
       <!-- HEADER row -->
-      <view class="flex items-start flex-wrap" style="column-gap: 12px; row-gap: 4px">
+      <view class="flex items-start" style="gap: 12px">
         <view class="grid place-items-center shrink-0" :style="emojiChipStyle">
           <text style="font-size: 20px">{{ ev.emoji }}</text>
         </view>
-        <view class="min-w-0" style="flex: 1 1 calc(100% - 52px)">
+        <view class="flex-1 min-w-0">
           <text class="block font-mono-tabular" :style="kindLineStyle">{{ kindLabel }}<text v-if="ev.ribbon" style="color: var(--v5-ink-4)"> · {{ ev.ribbon }}</text></text>
-          <text class="block" :style="titleStyle">{{ ev.title }}</text>
+          <text class="block truncate" :style="titleStyle">{{ ev.title }}</text>
           <text class="block" :style="subtitleStyle">{{ ev.subtitle }}</text>
         </view>
         <!-- status chip -->
-        <view v-if="statusChip" class="shrink-0 inline-flex items-center font-mono-tabular tabular-nums" :style="{ ...chipStyle, marginLeft: '52px' }">
+        <view v-if="statusChip" class="shrink-0 inline-flex items-center font-mono-tabular tabular-nums" :style="chipStyle">
           <svg v-if="statusChip.icon === 'clock'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
           <svg v-else-if="statusChip.icon === 'check'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px"><path d="M20 6 9 17l-5-5" /></svg>
           <text>{{ statusChip.label }}</text>
@@ -48,26 +48,28 @@
       </view>
 
       <!-- ACTION row -->
-      <view v-if="showClaim" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="claimBtnStyle" role="button" tabindex="0" :aria-label="claimLabel" @click="emit('claim')">
+      <view v-if="showClaim" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="claimBtnStyle" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" :aria-label="claimLabel" @click="emitUnlessBusy('claim')">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287z" /></svg>
         <text style="font-size: 13px; font-weight: 600; color: var(--v5-on-brand); pointer-events: none">{{ claimLabel }}</text>
       </view>
-      <view v-else-if="showJoinAction" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="softTintBtnStyle" @click="emit('join')">
+      <view v-else-if="showJoinAction" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="softTintBtnStyle" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" :aria-label="ev.ctaLabel ?? t.events.joinCta" @click="emitUnlessBusy('join')">
         <text style="font-size: 13px; font-weight: 600">{{ ev.ctaLabel ?? t.events.joinCta }}</text>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px"><path d="m9 18 6-6-6-6" /></svg>
       </view>
-      <view v-else-if="ev._claimed && ev.useHref" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="claimedUseBtnStyle" role="button" tabindex="0" :aria-label="claimedAriaLabel" @click="onClaimedUse">
+      <view v-else-if="ev._claimed" class="mt-3 w-full rounded-full flex items-center justify-center transition-transform" :class="{ 'active:scale-[0.98]': !!ev.useHref }" :style="claimedUseBtnStyle" :role="ev.useHref ? 'button' : undefined" :tabindex="ev.useHref ? 0 : -1" :aria-label="claimedAriaLabel" @click="onClaimedUse">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="M20 6 9 17l-5-5" /></svg>
         <text style="font-size: 13px; font-weight: 500; color: var(--v5-ink-3); pointer-events: none">{{ t.events.claimedLabel }}</text>
-        <text style="font-size: 13px; color: var(--v5-ink-4); margin: 0 8px; pointer-events: none">·</text>
-        <text :style="{ fontSize: '13px', fontWeight: 600, color: ev.tint, pointerEvents: 'none' }">{{ t.events.useCta }}</text>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" :stroke="ev.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
+        <template v-if="ev.useHref">
+          <text style="font-size: 13px; color: var(--v5-ink-4); margin: 0 8px; pointer-events: none">·</text>
+          <text :style="{ fontSize: '13px', fontWeight: 600, color: ev.tint, pointerEvents: 'none' }">{{ t.events.useCta }}</text>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" :stroke="ev.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
+        </template>
       </view>
-      <view v-else-if="ev._trackable && ev.joined && !ev._done" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="neutralBtnStyle" @click="openHref">
+      <view v-else-if="showProgressAction" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="neutralBtnStyle" role="button" tabindex="0" :aria-label="t.events.viewProgress" @click="openHref"  @keydown.enter.prevent="openHref" @keydown.space.prevent="openHref">
         <text style="font-size: 13px; font-weight: 500; color: var(--v5-ink-2)">{{ t.events.viewProgress }}</text>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px"><path d="m9 18 6-6-6-6" /></svg>
       </view>
-      <view v-else-if="!ev._trackable && ev.status === 'ongoing' && ev.ctaLabel" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="softTintBtnStyle" @click="onDecorativeCta">
+      <view v-else-if="showDecorativeAction" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="softTintBtnStyle" role="button" tabindex="0" :aria-label="ev.ctaLabel" @click="onDecorativeCta"  @keydown.enter.prevent="onDecorativeCta" @keydown.space.prevent="onDecorativeCta">
         <text style="font-size: 13px; font-weight: 600">{{ ev.ctaLabel }}</text>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px"><path d="m9 18 6-6-6-6" /></svg>
       </view>
@@ -76,27 +78,38 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
-import { EVENT_KIND_LABEL, type NexEvent } from "@/mock/events";
+import type { NexEvent } from "@/mock/events";
+import { eventOpenTarget, shouldShowDecorativeAction, shouldShowJoinedProgressAction } from "./event-open-target";
 
 type EnrichedEvent = NexEvent & { _trackable: boolean; _done: boolean; _claimed: boolean };
 
-const props = defineProps<{ ev: EnrichedEvent; rewardNex: number }>();
+const props = withDefaults(defineProps<{ ev: EnrichedEvent; rewardNex: number; busy?: boolean }>(), { busy: false });
 const emit = defineEmits<{ (e: "join"): void; (e: "claim"): void; (e: "cta"): void }>();
 
 const t = useT();
+const busy = computed(() => props.busy);
+function emitUnlessBusy(event: "join" | "claim") {
+  if (props.busy) return;
+  if (event === "join") emit("join");
+  else emit("claim");
+}
 const { elRef: barEl, inView: barInView } = useScrollGrowProgress();
 
 const dim = computed(() => props.ev.status === "ended");
-const showClaim = computed(() => props.ev._trackable && props.ev._done && !props.ev._claimed);
+const showClaim = computed(() => props.ev.status === "ongoing" && props.ev._trackable && props.ev._done && !props.ev._claimed);
 const showJoinAction = computed(
   () => props.ev._trackable && !props.ev.joined && !props.ev._done && props.ev.status === "ongoing",
 );
-const claimLabel = computed(() => fmt(t.value.events.claimCta, { n: props.rewardNex.toLocaleString() }));
-const kindLabel = computed(() => EVENT_KIND_LABEL[props.ev.kind]);
+const openTarget = computed(() => eventOpenTarget(props.ev));
+const showProgressAction = computed(() => shouldShowJoinedProgressAction(props.ev));
+const showDecorativeAction = computed(() => shouldShowDecorativeAction(props.ev));
+const claimLabel = computed(() => fmt(t.value.events.claimRewardCta, { reward: props.ev.reward }));
+const kindLabel = computed(() => t.value.events.kind[props.ev.kind]);
 const progressPct = computed(() =>
   props.ev.progress ? Math.min(100, (props.ev.progress.current / props.ev.progress.total) * 100) : 0,
 );
@@ -131,29 +144,29 @@ const statusChip = computed<StatusChip | null>(() => {
 });
 
 function openHref() {
-  if (props.ev.href) uni.navigateTo({ url: props.ev.href, fail: () => {} });
-}
-
-// After the reward is claimed, the row offers a "Use it" link to the relevant
-// surface (discount → store, NEX reward → NEX wallet). No useHref ⇒ no row.
-const claimedAriaLabel = computed(() => `${t.value.events.claimedLabel} · ${t.value.events.useCta}`);
-function onClaimedUse() {
-  if (props.ev.useHref) uni.navigateTo({ url: props.ev.useHref, fail: () => {} });
-}
-
-// Decorative (non-trackable) ongoing CTA. The lucky-wheel ("Spin now") routes
-// to the page so it can open the Lucky Spin sheet; all others keep navigating
-// via their href (no-op when absent), matching prior behaviour.
-function onDecorativeCta() {
-  if (props.ev.kind === "wheel") {
-    emit("cta");
+  const target = openTarget.value;
+  if (target?.type === "route") {
+    navTo(target.href);
     return;
   }
+  if (target?.type === "local") emit("cta");
+}
+
+// After the reward is claimed, the row offers a "Use it" link only when the
+// event model has an explicit destination. No useHref means no actionable row.
+const claimedAriaLabel = computed(() => `${t.value.events.claimedLabel} · ${t.value.events.useCta}`);
+function onClaimedUse() {
+  if (props.ev.useHref) navTo(props.ev.useHref);
+}
+
+// A canonical backend href always wins. Mock-only wheel/discount rows without
+// one retain their local sheet/claim behaviour through the parent CTA handler.
+function onDecorativeCta() {
   openHref();
 }
 
-const cardStyle = computed<CSSProperties>(() => ({
-  background: "var(--v5-surface)",
+const cardStyle = computed<CSSProperties>(() => ({ borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   opacity: dim.value ? 0.6 : 1,
 }));
 const hairlineStyle = computed<CSSProperties>(() => ({
@@ -181,7 +194,6 @@ const titleStyle: CSSProperties = {
   marginTop: "2px",
   fontSize: "15px",
   fontWeight: 600,
-  textWrap: "balance",
   color: "var(--v5-ink)",
   lineHeight: 1.25,
 };
@@ -230,4 +242,6 @@ const claimedUseBtnStyle = computed<CSSProperties>(() => ({
   height: "44px",
   background: `color-mix(in srgb, ${props.ev.tint} 6%, transparent)`,
 }));
+
+
 </script>

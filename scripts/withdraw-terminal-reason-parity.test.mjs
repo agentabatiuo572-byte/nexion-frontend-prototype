@@ -133,7 +133,8 @@ test("状态码:后台 D2 状态表 ⇄ 客户端 canonicalStatus 闭集,逐值�
   // (单据永久停在处理中),或建单响应解析抛在入表之前(钱扣了、单号没留下)。
   // 逐个补 case 是打地鼠,判据必须是「两边逐值相等」。
   const d2 = readFileSync(join(assertAdminOps(), D2_RELATIVE), "utf8");
-  const table = d2.slice(d2.indexOf("function statusLabel"), d2.indexOf("function statusTone"));
+  const statusStart = d2.indexOf("function statusLabel");
+  const table = d2.slice(statusStart, d2.indexOf("\n}", statusStart));
   const adminStatuses = [...table.matchAll(/\b([A-Z][A-Z_]{2,})\s*:\s*"/g)].map((m) => m[1]);
   assert.ok(adminStatuses.length > 0, "后台状态表解析出 0 个码 —— 判据失效,空集全过是假绿");
 

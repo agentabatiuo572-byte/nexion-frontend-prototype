@@ -1,0 +1,57 @@
+
+.message-center { padding: 4px 20px 32px; font-family: var(--font-v5); }
+.message-center .message-nav { display: flex; justify-content: space-between; padding: 0 0 22px; }
+.message-center .message-button { position: relative; min-height: 44px; padding: 0 18px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 24px; color: var(--v5-ink-2); font-size: 13px; cursor: pointer; }
+.message-center .message-button > text, .message-center .message-button > svg { position: relative; }
+.message-center .message-button:active, .message-center .notification-row:active { opacity: .75; }
+.message-center .message-button:focus-visible, .message-center .notification-row:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+.message-center .message-button[aria-disabled="true"] { opacity: .5; }
+.message-center .message-icon-button { width: 48px; height: 48px; padding: 0; }
+.message-center .message-heading { padding-bottom: 24px; }
+.message-center .message-title { font-size: 34px; font-weight: 600; line-height: 1.25; color: var(--v5-ink); }
+.message-center .message-subtitle { display: flex; align-items: center; gap: 8px; color: var(--v5-ink-3); font-size: 13px; margin-top: 10px; }
+.message-center .message-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--v5-brand); flex-shrink: 0; }
+.message-center .message-primary-inner { padding-bottom: 12px; }
+.message-center .message-filters { margin-bottom: 12px; }
+.message-center .message-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 4px 0 10px; }
+.message-center .message-action { font-size: 13px; padding-inline: 16px; }
+.message-center .notification-item { border-bottom: 1px solid color-mix(in srgb, var(--v5-border) 55%, transparent); }
+.message-center .notification-row { display: flex; align-items: flex-start; gap: 15px; padding: 24px 0; min-height: 44px; cursor: pointer; }
+.message-center .notification-icon { flex-shrink: 0; width: 28px; padding-top: 2px; color: var(--v5-ink-2); }
+.message-center .notification-content { flex: 1; min-width: 0; }
+.message-center .notification-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.message-center .notification-title { flex: 1; min-width: 90px; color: var(--v5-ink); font-size: 15px; line-height: 1.45; font-weight: 600; overflow-wrap: anywhere; }
+.message-center .notification-important { border-radius: var(--v5-radius-s); padding: 3px 7px; background: var(--v5-brand-soft); color: var(--v5-brand); font-size: 12px; }
+.message-center .notification-time { color: var(--v5-ink-3); font-size: 12px; white-space: nowrap; }
+.message-center .notification-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; color: var(--v5-ink-3); font-size: 13px; line-height: 1.6; margin-top: 5px; }
+.message-center .notification-item--read .notification-title { color: var(--v5-ink-2); font-weight: 500; }
+.message-center .notification-detail { padding: 0 0 22px 43px; }
+.message-center .notification-body { display: block; color: var(--v5-ink-2); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+.message-center .notification-cta { margin-top: 14px; }
+.message-center .message-state { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 0; font-size: 13px; line-height: 1.6; color: var(--v5-ink-3); text-align: center; }
+.message-center .message-more { padding: 24px 0; text-align: center; }
+.message-center .message-original { padding: 22px 0 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.5; }
+.message-center .service-messages { padding-inline: 0; }
+@media (max-width: 360px) { .message-center { padding-inline: 16px; } .message-center .notification-row { gap: 10px; } .message-center .notification-title { min-width: 100%; } .message-center .notification-time { margin-left: auto; } .message-center .notification-detail { padding-left: 38px; } }
+
+.message-center.message-page { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 34px); display: flex; flex-direction: column; min-height: 0; box-sizing: border-box; padding-bottom: 0; background: var(--v5-bg); }
+.message-center .message-scroll { flex: 1; height: 0; min-height: 0; }
+.message-center .message-scroll .uni-scroll-view { overflow-anchor: none; }
+.message-center .message-nav { flex-shrink: 0; }
+.message-center .message-compact { position: absolute; top: 8px; left: 78px; right: 78px; min-height: 44px; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: 600; color: var(--v5-ink); text-align: center; cursor: pointer; opacity: 0; transform: translateY(6px); pointer-events: none; visibility: hidden; transition: opacity 180ms ease, transform 260ms cubic-bezier(.22,1,.36,1), visibility 0s 260ms; }
+.message-center .message-compact--visible { opacity: 1; transform: translateY(0); pointer-events: auto; visibility: visible; transition-delay: 0s; }
+.message-center .message-collapse { flex-shrink: 0; overflow: hidden; opacity: 1; transform: translateY(0); transition: height 260ms cubic-bezier(.22,1,.36,1), opacity 200ms ease, transform 260ms cubic-bezier(.22,1,.36,1); }
+.message-center .message-collapse--hidden { opacity: 0; transform: translateY(-6px); pointer-events: none; }
+.message-center .message-scroll-compensation { transition: height 260ms cubic-bezier(.22,1,.36,1); }
+.message-center .message-compact:focus-visible { outline: 2px solid var(--v5-brand); }
+.message-center .nx-glass-option--selected { color: var(--v5-bg); }
+.message-center .nx-liquid-glass--selection .nx-liquid-tint { background: linear-gradient(155deg, color-mix(in srgb, var(--v5-ink) 98%, var(--v5-surface)), color-mix(in srgb, var(--v5-ink) 65%, var(--v5-surface))); }
+.message-center .nx-glass-option__label { font-size: 13px; }
+.message-center .nx-glass-segments .nx-glass-option { padding-inline: 16px; }
+@media (prefers-reduced-motion: reduce) { .message-center .message-collapse, .message-center .message-compact, .message-center .message-scroll-compensation { transition: none; transform: none; } }
+
+.message-center .message-compact > text { position: relative; }
+
+.message-center .nx-liquid-glass--selection { --v5-liquid-selected: transparent; }
+.message-center .md-view-all { color: var(--v5-bg); }
+.message-center .md-view-all > svg { stroke: currentColor; }

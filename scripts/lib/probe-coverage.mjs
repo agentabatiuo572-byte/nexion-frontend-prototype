@@ -160,8 +160,12 @@ export function assertAuthGuardRoutes(actual) {
     staticReviewSameDocumentTraversal1: "/pages/earn/earn",
     staticReviewSameDocumentTraversal2: "/pages/earn/earn",
     staticReviewSameDocumentTraversal3: "/pages/earn/earn",
-    excessiveEncodingFailsClosed: "/pages/onboarding/intro",
-    aboveRootTraversalFailsClosed: "/pages/onboarding/intro",
+    // Vue Router sanitizes malformed cold-start hashes to its canonical root
+    // before App route repair can observe the raw value. For an authenticated
+    // server session, root/Home is the safe landing; the critical assertion is
+    // that neither malformed input reaches the attacker-selected Earn route.
+    excessiveEncodingFailsClosed: "/",
+    aboveRootTraversalFailsClosed: "/",
   };
   for (const [key, value] of Object.entries(expected)) {
     assertDirectPageCoverage(value, actual?.[key], key);

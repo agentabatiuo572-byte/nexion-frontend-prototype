@@ -1,6 +1,6 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
-import type { ApiResponseEnvironment } from "./runtime-config";
+import type { ApiEnvironment } from "./runtime-config";
 import { matchesRuntimeProvenance } from "./runtime-provenance";
 
 export interface ProofSnapshot {
@@ -16,7 +16,7 @@ function invalid(): never { throw new ApiError({ kind: "protocol", message: "PRO
 function row(value: unknown): Record<string, unknown> { if (!value || typeof value !== "object" || Array.isArray(value)) return invalid(); return value as Record<string, unknown>; }
 function text(value: unknown): string { if (typeof value !== "string" || !value.trim()) return invalid(); return value.trim(); }
 function optionalNum(value: unknown, integer = false): number | null { if (value === null) return null; if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || integer && !Number.isSafeInteger(value)) return invalid(); return value; }
-export function parseProofSnapshot(value: unknown, mode: ApiResponseEnvironment = "prod"): ProofSnapshot {
+export function parseProofSnapshot(value: unknown, mode: ApiEnvironment = "prod"): ProofSnapshot {
   const source = row(value);
   if (source.serverCanonical !== true || !matchesRuntimeProvenance(source, mode, "server")) return invalid();
   const environment = source.sourceEnvironment;
@@ -54,6 +54,6 @@ export function parseProofSnapshot(value: unknown, mode: ApiResponseEnvironment 
     referralCode: text(source.referralCode), referral: { invitedCount, lifetimeInviterNex }, team: { totalMembers, activeMembers },
     availability: { status, ...(availability.earnings === undefined ? {} : { earnings: text(availability.earnings) }), ...(availability.team === undefined ? {} : { team: text(availability.team) }) } };
 }
-export function createProofApi(client: ApiClient, mode: ApiResponseEnvironment = "prod") {
+export function createProofApi(client: ApiClient, mode: ApiEnvironment = "prod") {
   return { snapshot: async (): Promise<ProofSnapshot> => parseProofSnapshot(await client.request({ method: "GET", path: "/api/app/proof" }), mode) };
 }

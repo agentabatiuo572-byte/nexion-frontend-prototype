@@ -59,6 +59,18 @@ const page = await ctx.newPage();
 const errors = [];
 page.on("console", collectAppConsoleErrors(errors, BASE));
 page.on("pageerror", (e) => errors.push(String(e)));
+// This is a deterministic render probe, not an authentication integration
+// test. Return the signed-out envelope over HTTP 200 so the expected cookie
+// restore failure cannot become browser console noise and mask DOM coverage.
+await page.route("**/*", async (requestRoute) => {
+  const url = new URL(requestRoute.request().url());
+  if (!/^\/(?:api|auth)\//.test(url.pathname)) return requestRoute.continue();
+  return requestRoute.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ code: 401, message: "AUTH_REQUIRED", data: null }),
+  });
+});
 await page.goto(directAppUrl(BASE, route), { waitUntil: "networkidle", timeout: 30000 });
 await page.evaluate(() => (document.fonts ? document.fonts.ready : null)).catch(() => {});
 await page.waitForTimeout(1200);

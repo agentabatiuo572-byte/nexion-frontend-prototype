@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import { collectAppConsoleErrors } from "./lib/console-origin-filter.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 
 // SPEC-7 K1 上限两闸 runtime 哨兵：
 //   C. 设备上限内注册放行 + gift 随风险桶(direct 开关生效)
@@ -12,6 +13,7 @@ const baseUrl = process.env.BASE_URL || "http://127.0.0.1:5173";
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await installFormalProbeSession(page);
 const errors = [];
 page.on("console", (msg) => {
   if (msg.type() === "error") collectAppConsoleErrors(errors, baseUrl)(msg);
@@ -45,6 +47,7 @@ try {
     const maxDeviceBefore = cfg.riskCluster.maxAccountsPerDevice;
     const maxInstrumentBefore = cfg.riskCluster.maxAccountsPerPaymentInstrument;
     const pendingFromBefore = cfg.riskCluster.duplicateAccountPendingFrom;
+    const freezeFromBefore = cfg.riskCluster.duplicateAccountFreezeFrom;
     const ipCapBefore = cfg.riskCluster.maxSignupPerIp24h;
     const instrumentWeightBefore = cfg.riskScore.dimensionWeights.paymentInstrument;
     const weakThresholdBefore = cfg.riskScore.weakSignalClusterThreshold;
@@ -57,6 +60,7 @@ try {
       cfg.riskCluster.maxAccountsPerDevice = 2;
       cfg.riskCluster.maxAccountsPerPaymentInstrument = 2;
       cfg.riskCluster.duplicateAccountPendingFrom = 2;
+      cfg.riskCluster.duplicateAccountFreezeFrom = 3;
       cfg.riskCluster.maxSignupPerIp24h = 3; // A 归因对照依赖 IP 阈 > 2
       cfg.riskScore.dimensionWeights.paymentInstrument = 0.5; // B 蓝测依赖弱维单独 < 阈
       cfg.riskScore.weakSignalClusterThreshold = 0.6;
@@ -138,6 +142,7 @@ try {
       cfg.riskCluster.maxAccountsPerDevice = maxDeviceBefore;
       cfg.riskCluster.maxAccountsPerPaymentInstrument = maxInstrumentBefore;
       cfg.riskCluster.duplicateAccountPendingFrom = pendingFromBefore;
+      cfg.riskCluster.duplicateAccountFreezeFrom = freezeFromBefore;
       cfg.riskCluster.maxSignupPerIp24h = ipCapBefore;
       cfg.riskScore.dimensionWeights.paymentInstrument = instrumentWeightBefore;
       cfg.riskScore.weakSignalClusterThreshold = weakThresholdBefore;

@@ -22,11 +22,12 @@ export function useProductPhase(): ComputedRef<PhaseParams> {
   }
   return computed(() => {
     if (!remoteApiEnabled) return resolveActivePhase(app.user.joinedAt);
-    if (serverProductPhaseState.status === "ready" && serverProductPhaseState.phase) {
-      return getPhaseParams(serverProductPhaseState.phase);
-    }
-    // Remote mode must never derive a release phase from client account age.
-    // P1 is the closed-side placeholder while H1 is loading or unavailable.
+    // A background re-read keeps the last CONFIRMED phase. Collapsing to the P1
+    // placeholder while the request is in flight re-partitions every
+    // phase-locked product, so the store list unmounts ProductCards into
+    // LockedProductCards and back on each refresh (BUG 16). A failed read
+    // nulls `phase`, which still lands on the closed-side placeholder.
+    if (serverProductPhaseState.phase) return getPhaseParams(serverProductPhaseState.phase);
     return PHASES[0];
   });
 }

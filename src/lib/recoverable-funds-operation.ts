@@ -26,7 +26,13 @@ export async function runRecoverableFundsOperation<T>(
     await handlers.success(value);
     return value;
   } catch (cause) {
-    await handlers.failure(failureReason(cause, fallback));
+    // A response from another account/runtime generation is not a business failure.
+    // It is deliberately silent: showing an error/toast for a request that no
+    // longer belongs to this screen would make a late old-run result visible.
+    const message = cause instanceof Error ? cause.message : "";
+    if (message !== "VIETQR_ACCOUNT_CHANGED" && message !== "WALLET_BILLS_REQUEST_SUPERSEDED") {
+      await handlers.failure(failureReason(cause, fallback));
+    }
     return null;
   } finally {
     await handlers.settled();

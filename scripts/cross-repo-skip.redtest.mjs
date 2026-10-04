@@ -34,6 +34,7 @@ const FAKE_BACKEND_FILES = [
   "scripts/migrations/20260811_funds_persistent_sandbox.sql",
   "scripts/migrations/20260812_funds_sandbox_run_scope.sql",
   "scripts/migrations/20260811_l6_h5_active_route_catalog.sql",
+  "scripts/migrations/20260915_l6_bank_withdrawal_route.sql",
   "scripts/apply_startup_schema_migrations.ps1",
 ];
 const FAKE_PC_FILES = ["lib/admin/h-client.ts"];
@@ -78,7 +79,9 @@ function withFakeRepos(run) {
 
 // ── B 仓缺席(本机现状):只 skip 跨仓那些,本仓断言照跑,每条 skip 都有理由 ──────────────
 // 判据对「后端仓其实在场」的机器同样成立(那台机器 skipped 为空,A 段照样跑)。
-const baseline = runTargets({ NEXGRID_BACKEND_ROOT: "", NEXGRID_PC_ROOT: "" });
+// Preserve explicitly selected sibling candidates. Clearing these variables silently switched an
+// isolated cross-repo feature test back to unrelated/older checkouts; A/C below still prove fail-closed behavior.
+const baseline = runTargets({ NEXGRID_BACKEND_ROOT: process.env.NEXGRID_BACKEND_ROOT || "", NEXGRID_PC_ROOT: process.env.NEXGRID_PC_ROOT || "" });
 baseline.status === 0
   ? ok(`B 缺仓基线不红(pass ${baseline.passed.size} · skip ${baseline.skipped.size})`)
   : bad(`B 缺仓基线应为 0 fail,实际退出码 ${baseline.status};失败项:${[...baseline.failed].join(" / ") || "(解析不到)"}`);

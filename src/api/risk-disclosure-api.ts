@@ -12,8 +12,8 @@ export interface RiskDisclosureChapter {
 }
 
 export interface RiskDisclosureCurrent {
-  source: "server" | "mock";
-  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  source: "server";
+  sourceEnvironment: "PRODUCTION";
   jurisdiction: string;
   jurisdictionName: string;
   version: string;
@@ -29,6 +29,7 @@ export interface RiskDisclosureCurrent {
 
 export interface RiskDisclosureApi {
   current(): Promise<RiskDisclosureCurrent>;
+  publicCurrent(country: string): Promise<RiskDisclosureCurrent>;
   acknowledge(current: RiskDisclosureCurrent): Promise<RiskDisclosureCurrent>;
   checkGate(actionKey: string, operationId?: string): Promise<void>;
 }
@@ -73,14 +74,11 @@ function chapter(value: unknown, requireEnglish: boolean): RiskDisclosureChapter
   };
 }
 
-function current(value: unknown): RiskDisclosureCurrent {
+function current(value: unknown, publicRead = false): RiskDisclosureCurrent {
   const row = record(value);
   const source = row?.source;
   const sourceEnvironment = row?.sourceEnvironment;
-  if ((source !== "server" && source !== "mock")
-      || (sourceEnvironment !== "PRODUCTION" && sourceEnvironment !== "SANDBOX")
-      || (source === "mock" && sourceEnvironment !== "SANDBOX")
-      || (source === "server" && sourceEnvironment !== "PRODUCTION")) return invalid();
+  if (source !== "server" || sourceEnvironment !== "PRODUCTION") return invalid();
   const minimumReadingSeconds = Number(row?.minimumReadingSeconds);
   if (!row || typeof row.acknowledged !== "boolean"
       || !Array.isArray(row.chapters) || row.chapters.length !== 7
@@ -107,7 +105,9 @@ function current(value: unknown): RiskDisclosureCurrent {
     acknowledgmentTokenExpiresAt: nullableText(row.acknowledgmentTokenExpiresAt),
     minimumReadingSeconds,
   };
-  if (parsed.acknowledged) {
+  if (publicRead) {
+    if (parsed.acknowledged || parsed.acknowledgedAt || parsed.acknowledgmentToken || parsed.acknowledgmentTokenExpiresAt) return invalid();
+  } else if (parsed.acknowledged) {
     if (!parsed.acknowledgedAt || parsed.acknowledgmentToken) return invalid();
   } else if (!parsed.acknowledgmentToken || !parsed.acknowledgmentTokenExpiresAt) {
     return invalid();
@@ -121,6 +121,11 @@ export function createRiskDisclosureApi(client: ApiClient): RiskDisclosureApi {
       method: "GET",
       path: "/api/legal/risk-disclosure/current",
     })),
+    publicCurrent: async (country) => current(await client.request({
+      method: "GET",
+      path: `/api/legal/risk-disclosure/public/current?country=${encodeURIComponent(country)}`,
+      authenticated: false,
+    }), true),
     acknowledge: async (disclosure) => {
       if (disclosure.acknowledged || !disclosure.acknowledgmentToken) {
         throw new ApiError({ kind: "protocol", message: "RISK_DISCLOSURE_READ_TOKEN_REQUIRED" });

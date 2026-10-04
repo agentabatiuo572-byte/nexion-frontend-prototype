@@ -9,15 +9,15 @@
 
   Spacing: caller controls horizontal margin via inherited `class` (no internal
   mx-* — the home wrapper owns padding; avoids the double-margin pitfall).
-  Buy CTA routes to /pages/me/trial (not yet ported → nav fail swallowed).
+  Buy CTA routes to /pages/me/trial through the shared navigation fallback.
 -->
 <template>
   <view
     v-if="visible"
-    class="relative overflow-hidden rounded-2xl"
+    class="nx-glass-card relative overflow-hidden rounded-2xl"
     :style="{
-      background: 'var(--v5-surface)',
-      boxShadow: 'var(--v5-card-shadow-lift)',
+      background: 'var(--nx-glass-fill)', borderRadius: 'var(--nx-glass-radius)',
+      boxShadow: 'var(--nx-glass-edge)',
     }"
   >
     <!-- Internal aurora — brand-2 + tech-cyan glow marks the special trial device -->
@@ -34,7 +34,7 @@
 
     <view class="relative p-4">
       <!-- Header — device identity + on-trial badge + countdown -->
-      <view class="flex items-center gap-2.5">
+      <view class="flex flex-wrap items-center gap-2.5">
         <view
           class="size-9 rounded-lg grid place-items-center shrink-0"
           :style="deviceIconStyle"
@@ -49,17 +49,18 @@
           </svg>
         </view>
         <view class="flex-1 min-w-0">
-          <view class="flex items-center gap-1.5">
+          <view class="flex flex-wrap items-center gap-1.5">
             <text class="text-[13px] font-semibold truncate" :style="deviceNameStyle">UVELBox S1</text>
             <text
               class="shrink-0 text-[12px] font-mono-tabular rounded px-1.5 py-0.5"
               style="background: color-mix(in oklab, var(--v5-brand-2) 16%, transparent); color: var(--v5-brand-2-ink)"
-            >{{ t.trial.ghostBadge }}</text>
+            >{{ trialLabels.badge }}</text>
           </view>
           <text class="block text-[12px] mt-0.5" :style="{ color: tint }">{{ ribbon }}</text>
         </view>
         <text
           class="shrink-0 text-[12px] font-mono-tabular rounded-full px-2 py-1"
+          :class="{ 'w-full box-border': trial.status === 'grace' }"
           style="background: var(--v5-surface-2); color: var(--v5-ink-3)"
         >{{ etaText }}</text>
       </view>
@@ -87,7 +88,7 @@
 
       <!-- Bottom row — early-buy savings (left) + de-emphasized buy pill (right) -->
       <view class="mt-3 flex items-center justify-between gap-2">
-        <text class="text-[12px] font-medium min-w-0 truncate" style="color: var(--v5-brand-2-ink)">{{ discountText }}</text>
+        <text class="text-[12px] font-medium min-w-0" style="color: var(--v5-brand-2-ink); flex: 1; white-space: normal">{{ discountText }}</text>
         <view
           class="shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 h-9 active:scale-[0.97] transition-transform"
           style="background: var(--v5-brand-soft); color: var(--v5-brand); font-family: var(--font-v5); font-weight: 600; font-size: 13px"
@@ -104,11 +105,13 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useFreeTrial, liveShadowUSD, liveShadowNEX, remainingMs } from "@/store/free-trial";
 import { useTrialConfig, computeDiscountedPrice } from "@/store/trial-config";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import { trialCardLabels } from "@/lib/trial-card-copy";
 
 const ONE_DAY = 86_400_000;
 
@@ -128,6 +131,7 @@ onUnmounted(() => {
 });
 
 const visible = computed(() => trial.status === "active" || trial.status === "grace");
+const trialLabels = computed(() => trialCardLabels(trial.status, t.value.trial));
 
 const shadowUSD = computed(() => liveShadowUSD(now.value));
 const shadowNEX = computed(() => liveShadowNEX(now.value));
@@ -173,11 +177,13 @@ const progressPct = computed(() => {
 
 const discount = computed(() => computeDiscountedPrice(trialCfg.config).discount);
 
-const etaText = computed(() => fmt(t.value.trial.ghostEta, { eta: etaLabel.value }));
+const etaText = computed(() => fmt(trialLabels.value.etaTemplate, { eta: etaLabel.value }));
 const discountText = computed(() => fmt(t.value.trial.ghostDiscount, { amount: `$${discount.value}` }));
 const shadowNexText = computed(() => `+ ${shadowNEX.value.toLocaleString()} NEX`);
 
 function goTrial() {
-  uni.navigateTo({ url: "/pages/me/trial", fail: () => {} });
+  navTo("/pages/me/trial");
 }
+
+
 </script>

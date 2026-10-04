@@ -72,6 +72,7 @@ async function runCatch(scenario) {
     snap: { account: "acct-1" },
     clearSubmitFreeze: () => {},
     geoPolicyUserMessage: () => (scenario.isGeo ? "GEO_TEXT" : null),
+    isFundsSandboxStaleRequestError: () => false,
     isDailyLimitRejection: () => scenario.isDailyLimit === true,
     triageWithdrawFailure: (e, ctx) => { seen.ctx = ctx; return realTriage(e, ctx); },
     forgetWithdrawAttempt: () => { seen.forgot++; },

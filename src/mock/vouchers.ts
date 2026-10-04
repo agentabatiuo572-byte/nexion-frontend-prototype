@@ -46,6 +46,13 @@ export interface VoucherDef {
   claimSurfaces: VoucherSurface[];
   /** Whether this voucher participates in the Home auto-popup. */
   popupEnabled: boolean;
+  /** Server-owned popup cadence; absent only for explicit mock catalog rows. */
+  popupDelayMs?: number;
+  popupCooldownHours?: number;
+  popupMaxPerSession?: number;
+  popupCadenceEnabled?: boolean;
+  nextEligibleAt?: number;
+  popupEligible?: boolean;
   // ── 叠加 / 性质策略(后台可配)──
   /** 是否可与试用收益抵扣叠加(默认 false:二选一取最优)。 */
   stackWithTrial: boolean;
@@ -149,12 +156,7 @@ export function voucherAppliesToSku(def: VoucherDef, skuId: string): boolean {
 // Home auto-popup throttle config (后台可控 · would be served alongside the
 // catalog). Mirrors the trial system's autoPush* fields.
 export const VOUCHER_POPUP = {
-  // 首屏安顿时长,**不再决定弹出顺序**(2026-08-16 起顺序由 store/popup-arbiter 的
-  // POPUP_PRIORITY 表决定:代金券 → 试用 → 庆祝)。旧模型靠「1300 < 1500 谁小谁先」
-  // 隐式表达优先级,调延迟会不知情地改掉漏斗顺序。
-  // ⚠️ 底盘取各候选延迟的**较大值**作为统一安顿点(见 app-chassis.vue settleDelayMs),
-  // 所以单独调低这个值不会让代金券更早弹;调高到 >1500 会把试用一起推后。
-  autoPushDelayMs: 1300,
+  autoPushDelayMs: 1300, // fires BEFORE the trial auto-push (1500ms) so the voucher takes priority on Home; the trial sheet defers to it (and fills in when no voucher is claimable)
   cooldownHours: 24,
   maxPerSession: 1,
 };

@@ -3,7 +3,7 @@
 // (serialisable, action-driven, ms-epoch timestamps). The "ai" type is virtual —
 // it is backed by the existing `nova` store, so this mock only seeds the human
 // categories. A real backend returns ConvMessage.text directly; the mock instead
-// references i18n seed keys (textKey/ctaKey) so seed copy stays localized + on-brand.
+// references i18n seed keys (textKey/ctaKey) so seed copy stays bilingual + on-brand.
 
 import type { Messages } from "@/i18n/messages/en";
 

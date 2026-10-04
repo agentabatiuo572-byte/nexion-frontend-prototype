@@ -40,9 +40,9 @@ test("an optional sponsor is rejected only when it crosses environments", () => 
   assert.doesNotMatch(page, /USER_REGISTRATION_SANDBOX_SPONSOR_REQUIRED/);
   assert.match(page, /USER_REGISTRATION_SPONSOR_ENVIRONMENT_MISMATCH/);
   assert.match(page, /error\.value = registrationErrorText\(registration\.error\)/);
-  assert.match(zh, /sandboxSponsorEnvironmentMismatch:\s*"该邀请码不可用,请核对后重试"/);
+  assert.match(zh, /sponsorEnvironmentMismatch:\s*"该邀请码不可用,请核对后重试"/);
   // 同上:三语齐点。中文钉当前用户友好文案,英/越钉键存在。
   for (const [loc, src] of [["en", read("src/i18n/messages/en.ts")], ["vi", read("src/i18n/messages/vi.ts")]]) {
-    assert.match(src, /sandboxSponsorEnvironmentMismatch:/, `${loc}.ts 缺 sandboxSponsorEnvironmentMismatch`);
+    assert.match(src, /sponsorEnvironmentMismatch:/, `${loc}.ts 缺 sponsorEnvironmentMismatch`);
   }
 });

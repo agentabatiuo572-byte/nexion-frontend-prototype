@@ -101,7 +101,7 @@ NexGrid 是面向全球非中国市场(北美、欧洲、东南亚、日韩、�
 | 内部 ID | UI 显示(EN / ZH) | 进入条件 | 核心诉求 | 转化目标 |
 |---|---|---|---|---|
 | L0 | Visitor / 访客 | 未注册 | 了解平台 | 点击注册 |
-| L1 | Newbie / 新手 | 已注册,手机算力自动接入 | 看每天能赚多少 | 24h 在线 + 首笔收益 |
+| L1 | Newbie / 新手 | 已注册；手机算力可激活或暂缓 | 看每天能赚多少 | 完成激活 + 24h 在线 + 首笔收益 |
 | L2 | Active / 活跃 | 累计 $5+ 收益 | 稳定获益,尝试提现 | 首次提现成功 |
 | L3 | Upgrade-ready / 升级候选 | 主动查看硬件商城 | 寻求更高收益 | 完成设备购买 |
 | L4 | Owner / 持有者 | 已购 NexGridBox 1+ 台 | 最大化收益 | 复购 / 追加台数 |
@@ -150,7 +150,7 @@ Day 90:  活跃推广者,V2-V3 头衔追求
 | 区 | 内容 |
 |---|---|
 | Status Bar | 实时时钟 + Dynamic Island + 信号/WiFi/电量 |
-| Header App Row(仅 tab 路由) | NexGrid logo + 铃铛(打开 Nova drawer) + Locale Switcher |
+| Header App Row(仅 tab 路由) | NexGrid logo + 铃铛(进入全屏消息中心) + Locale Switcher |
 | ScrollContainer | 内容主区 |
 | TabBar(仅 tab 路由) | 5 个 tab,floating pill 样式 |
 | Home Indicator | iOS 风白条 |
@@ -284,6 +284,8 @@ TabBar:active tab 显示背景 chip 高亮。
 
 3 步极简验证码注册:
 
+**手机号国家码规则**：NexGrid 的正式使用市场为越南，生产构建默认并正式支持 `+84`；`+86` 仅保留给本地开发联调。登录、注册、验证码登录和忘记密码共用同一选择器与服务端白名单：`+84`、`+86` 可选，其余已有国家/地区保留展示但统一置灰、不可点击或键盘选择，直接篡改请求也必须由服务端拒绝。
+
 | 步骤 | 字段 | 校验规则 | 交互 |
 |---|---|---|---|
 | 1 | 国家码 + 手机号 | 6-15 位数字 | 选区号 + 输手机 + "Send code" |
@@ -292,7 +294,7 @@ TabBar:active tab 显示背景 chip 高亮。
 
 **注册成功后行为**:
 1. 自动创建 user(persist 到 localStorage)
-2. 自动 `addDevice("phone")` 接入手机算力(进入 Phase 0 多阶段揭示)
+2. 不自动创建可领奖手机设备；进入 Onboarding 后由服务端校准与激活接口完成绑定，失败时可暂缓
 3. H5 端跳转 `/register/success`(注册成功页,§4.1.1);App 壳内注册直接跳转 `/onboarding/estimator`(L0 → L1)
 
 **邀请码携带与锁定**(绑定规则详见 §4.3):
@@ -312,7 +314,7 @@ TabBar:active tab 显示背景 chip 高亮。
 | 礼包确认卡 | 金额同源 `rewards.welcomeGift`;两态:已入账(绿 chip「已入账,余额可见」)/ 风控锁定(琥珀 chip「已锁定 · 审核通过后释放」+「在 APP 保持在线可加速解锁」,对应 §4.3.5 分桶);未带码注册整卡隐藏 |
 | H5 装 APP 权益 3 行 | 仅浏览器 H5 显示:在线加速礼包与收益解锁 / 设备收益实时推送 / 更稳的连接与算力调度;App 不渲染此提醒区 |
 | H5 官网下载引导 | 提示可通过 NexGrid 官网下载 APP;读取 `share.appDownload.officialUrl` 作为唯一链接。有效 HTTPS 地址显示「前往官网下载 APP」;空值或非法地址显示「官网下载 APP 地址暂未开放」的不可点击状态,不生成死链接;App 不渲染此区 |
-| 继续出口 | 「继续」→ `/onboarding/estimator`(既有 onboarding 链),始终可用 |
+| 继续出口 | H5「继续网页版」→ 首页，始终可用；下载 APP 后使用同一账号登录，在 APP 完成手机校准与激活 |
 
 **规则**:礼包状态由注册流程的风险评估结果带入(`?gift=posted|pending|none`),本页只读展示、不发生任何入账;`officialUrl` 仅接受 HTTPS,优先在新窗口打开,弹窗被拦时改为当前页跳转;返回键视同「继续」,不可返回注册流。App 正常注册直接进入 onboarding;即使直接访问本页,也不显示 H5 安装权益与官网下载提醒。
 
@@ -412,9 +414,9 @@ TabBar:active tab 显示背景 chip 高亮。
 
 被推荐人完成订单时,推荐人按固定 10% 费率获得直接版税(Direct Royalty),其上线网络按 Network Yield Bonus 算法分得扩展版税(详见 §8.3)。
 
-#### 4.3.5 新人礼与 H5 收益的风险分桶
+#### 4.3.5 新人礼与手机任务收益的风险分桶
 
-H5 手机算力用「登记 + 服务端结算」解耦页面运行(关掉 H5 也按 `lastSettledAt` 补算收益),由此带来多手机号 / 多设备重复注册套利面。为堵套利,新人礼与 H5 托管收益不再直入可提余额,而是按账户实时风险评估分入**收益三桶**:
+新人礼与服务端确认的有效手机任务收益按账户实时风险评估分入**收益三桶**。H5 不登记、执行或结算手机任务，不产生离线托管收益；手机任务执行与停止遵循 §6.11，普通注册礼包保持独立规则，既有合法入账不因端切换而追回。
 
 | 桶 | 字段 | 入桶条件 | 可提现 |
 |---|---|---|---|
@@ -430,7 +432,7 @@ H5 手机算力用「登记 + 服务端结算」解耦页面运行(关掉 H5 也
 
 ```mermaid
 flowchart TD
-  R[注册完成 claimGift / H5 结算] --> E{账户实时风险评估}
+  R[注册礼包 / 有效手机任务结算] --> E{账户实时风险评估}
   E -->|clear| W[可提现桶 withdrawableUsdt]
   E -->|watch 多账户聚簇| P[审核中桶 pendingReviewUsdt]
   E -->|frozen 冻结簇| L[锁定奖励桶 bonusLockedUsdt]
@@ -744,83 +746,51 @@ Hero 信息层:
 
 文案合规护栏:hero 字眼禁用 "保证 / 稳赚 / 暴富";"白领 / 白嫖 / 等你领 / 手快有手慢无" 等口语化 + 紧迫感字眼可用(SKILL `nexion-design` 漏斗心理学第 4 节)。
 
-#### 4.7.2 Step 2 — `/onboarding/estimator` 收益估算
+#### 4.7.2 算力估算（estimator）
 
-读取手机 NPU 规格 → 显示移动算力档位 + 日收益基线 + NexGridBox 对比卡(117× 解锁钩)。详细规则参 §11(暂略,本次未改动)。
+手机估算只在支持的原生 APP 执行：先读取当前账号与安装的服务端校准结果；需要校准时采集原生可读取信号，由服务端按现行硬件规则匹配并保存。未匹配或缺少必需信号时保持待核验，不给默认算力或收益。页面展示服务端返回的算力、档位、双币日收益与设备收益对比。H5 访问估算页直接进入 APP 下载引导，不采集、登记或校准手机。
+
+H5 仅查看服务端手机状态，不提供手机激活、停用、任务结束后停用或强制停用入口，也不提交对应命令。已购设备继续沿用共享的管理规则。原生 APP 的能力暂不可用提示不得使用浏览器或下载 APP 的说明。
+
+已有 `CALIBRATED` 或 `ACTIVE` 结果直接复用；已有 `DEFERRED` 保留暂不开启的选择，并提供主动恢复入口。网络、会话、配置或保存异常时显示“预估暂不可用”，允许重试或显式暂不开启；不得伪造成功、收益或硬件检测结论。
 
 #### 4.7.3 Step 3 — `/onboarding/connect` 算力校准
 
-12 秒"算力校准仪式",3 项并行测试 + 结果展示 + 接单规则告知。3 阶段状态机:
+连接页展示设备算力估算结果、任务接取规则与显式启用按钮。首次注册从估算页进入时自动读取并复用已有结果，不再要求重复点击开始校准。设备仓库中的重新校准和暂不开启后的恢复先展示说明，用户点击后才提交新的观测。
 
-**Phase A · intro(explainer)**
+**Phase A · intro（主动重新校准/恢复说明）**
 
-解释为何要校准 + 列 3 项测量内容:
+解释采集范围：原生 APP 记录实际可读取的型号、SoC、GPU、物理内存、核心数及联网、供电状态。H5 直接进入下载引导；不声称已完成 NPU 跑分或散热测试。CTA 为“计算手机算力”。
 
-| icon | 测量项 | 目的 |
-|---|---|---|
-| 🧠 Cpu | NPU 性能基准 | 决定你的设备能跑哪些 AI 任务 |
-| 🌐 Globe | 网络延迟 | 通过你当前的网络(Wi-Fi 或移动数据均可)ping 三个区域推理网关 |
-| ⚡ BatteryCharging | 供电与散热 | 确认充电状态,保证长时间接单不降频 |
+**Phase B · calibrating（等待实际请求）**
 
-CTA "开始校准 · 12 秒"。
+显示“正在计算手机算力预估”与等待指示。请求完成后展示服务端结果；请求失败进入可恢复错误页。没有固定等待时长、倒计时、模拟进度或模拟数值。
 
-**Phase B · calibrating(12s 并行动画)**
+**Phase C · result（服务端结果 + 政策告知）**
 
-3 张测试卡同时跑,各自独立 progress bar + 实时 metric ticker:
+展示服务端 computeValue（平台算力）、tier、规则版本、收益配置和可用的网络/供电观测；未知观测显示“—”。待核验结果保留原因与重试入口，禁止激活；不把未知状态标为检测通过。
 
-| 测试 | 时长占比 | 模拟指标 |
-|---|---|---|
-| NPU benchmark | 0% → 45% 完成 | `matmul-mobile.fp16` 跑分,0 → 28.3 TOPS(带 jitter) |
-| 网络延迟 ping | 30% → 80% 完成 | 新加坡 38ms / 东京 42ms / 美西 156ms(带 jitter)|
-| 供电与散热 | 55% → 85% 完成 | "充电中 · 78% · 散热正常" |
-
-顶部倒计时 "校准中... 剩余 X 秒"。
-
-**Phase C · result(分数 + 政策告知)**
-
-固定结果展示(mock 阶段所有用户都通过):
-
-```
-┌─────────────────────────────┐
-│  ✓ 校准完成                  │
-│                              │
-│         87/100               │
-│    移动算力 Tier-2 合格      │
-│   预估日收益 $0.06/天 基准   │
-├─────────────────────────────┤
-│  ✓ NPU 性能基准: 28.3 TOPS  │
-│  ✓ 网络延迟: 38ms · 优秀    │
-│  ✓ 供电与散热: 就绪 · 78%   │
-├─────────────────────────────┤
-│  ⚠️ 任务接取规则             │
-│  🔋 充电是硬性门槛 —         │
-│     没插电就不会接任何任务   │
-│  🌐 网络通畅即可 —           │
-│     Wi-Fi 或移动数据都行,    │
-│     调度器分发每个任务前     │
-│     都会 ping 检测           │
-│  • 断电或断网会自动重连 ——   │
-│     短暂中断不丢任务,        │
-│     长时间未恢复才换新任务   │
-└─────────────────────────────┘
-
-       [激活手机算力 →]
-```
-
-CTA "激活手机算力 →" 路由到 `/`(Home Dashboard)。激活规则:
+CTA "激活手机算力 →" 在服务端确认绑定成功后路由到 `/`(Home Dashboard)。激活规则:
 
 1. user 进入 L1 阶段(`{ tier: "L1" }`)
-2. phone 设备已在注册时 `addDevice("phone")` + `activatedAt=purchasedAt` 接入,calibration 完成只是"告知"动作,无需额外 server 写入
+2. `POST /api/onboarding/calibrate/activate` 以校准 revision 和幂等键创建/更新 `nx_user_device` 手机设备，并把校准记录与 `user_device_id` 绑定；只有服务端回读 `activationStatus=ACTIVE` 才算激活成功
 3. UI 在 `/me/devices` 显示 phone "在线" 状态(若 `isCharging + isWifiConnected` 满足);否则按中断状态显示「重连中」或「未接单」(见 §12.2 手机算力门槛与任务中断模型)
+4. 校准检测或绑定失败时显示「重试」「暂不激活」两个按钮；重试复用原观测值/幂等指令，暂缓不阻塞注册完成
+5. 暂缓后设备仓库显示重新激活入口；手机未绑定或校准状态不是 `ACTIVE` 时，不得分配任务，也不得写收益、回执或钱包奖励
 
-**真后台对接**(endpoint TBD,候选名):
+**真后台对接**:
 
 | Endpoint | Method | Payload | 用途 |
 |---|---|---|---|
-| `/api/onboarding/calibrate/start` | POST | `{deviceFingerprint}` | 启动 server 端真实跑分 + 网络延迟探测 |
-| `/api/onboarding/calibrate/result` | GET | — | 长轮询 / SSE 拉取分数 + tier + yield baseline |
+| `/api/onboarding/phone-installation/challenge` | POST | 历史 `{deviceId}` | 已退役（superseded，2026-10-03）；返回 410，零业务副作用，不生成挑战 |
+| `/api/onboarding/phone-installation/verify` | POST | 历史 `{deviceId,certificates,signature}` | 已退役（superseded，2026-10-03）；返回 410，零业务副作用，不验证或发放资格 |
+| `/api/onboarding/phone-installation/login` | POST | `{deviceId}` | 普通认证请求检查当前账号的执行安装及换机资格；异机先停止旧手机任务 |
+| `/api/onboarding/calibrate` | POST | `{deviceId,signals,expectedRevision}` + `Idempotency-Key` | 服务端按观测值确定性派生并保存 score/tier/yield baseline |
+| `/api/onboarding/calibrate/result?deviceId=` | GET | — | 回读该账号、设备与环境下的服务端校准事实 |
+| `/api/onboarding/calibrate/activate` | POST | `{deviceId,expectedRevision}` + `Idempotency-Key` | 原子绑定 canonical 手机设备并发布 `ACTIVE` |
+| `/api/onboarding/calibrate/defer` | POST | `{deviceId,expectedRevision}` + `Idempotency-Key` | 停用已绑定手机并发布 `DEFERRED`；首次检测未落校准行时以 revision 0 持久化无能力数据的 `DEFERRED` |
 
-Mock 阶段两 endpoint 都由 client `setTimeout(12000)` 替代。Server 端真实实现时,Phase A 的"3 项测试"应映射为真后端的 benchmark 算法 + ping target gateway 集合(由后台 admin 维护)。
+估算页完成首次校准后，连接页复用服务端结果并等待用户点击启用；不以 revision 0 重复校准。设备仓库中的显式重新校准先读取当前 revision，再提交一次新观测；不自动覆盖已启用或暂不开启的决定。请求结果不明时回读服务端，重试保持原观测、revision 和幂等键；账号/设备作用域变化后丢弃旧响应。等待界面随实际请求结束，不展示固定 12 秒倒计时或模拟检测进度；业务结果始终来自服务端。当前浏览器可读取的机型、内存、CPU 核数、屏幕/WebGL、供电与联网状态属于能力观测，不等同于原生 NPU 真机 benchmark；后续接 Janus 真机执行器时可替换信号来源，但不得改变上述激活与奖励门禁。
 
 #### 4.7.4 Locale 自动匹配
 
@@ -1487,65 +1457,23 @@ getNetworkMonthlyLoss(devices)      → { totalMonthlyLossUSD, degradableCount }
 
 ### 6.10 手机算力显示规则与校准
 
-**目的**:手机的「算力」是平台呈现的能力指标(产品仿真,不真在手机跑 AI 推理)。显示规则核心要求:数值让使用者觉得**合理可信**、**排序永不翻车**(低配机不可能显示出比高配机更高的算力)、可复现,并支撑多载体会话下的新设备校准叙事(参 §4.7)。
+手机算力使用明确标注的「平台算力」指标，不等同于物理 TOPS、NPU 跑分或已完成的 AI 推理。原生 APP 采集实际可读取的型号、SoC、GPU、物理内存、核心数与联网/供电状态，服务端根据已发布硬件规则自动匹配；普通激活无需人工审批。
 
-**能力基线确定性派生**(`lib/device-capability.ts` · `measureDeviceCapability`):基线**不是随机数**,而是从真实、可廉价读取、与机型档位强相关的设备信号确定性派生 —— `uni.getSystemInfo`(机型 / 品牌 / 平台)+ `navigator.deviceMemory`(RAM)/ `hardwareConcurrency`(核数)+ WebGL renderer(GPU)+ `devicePixelRatio`×分辨率。三条保证:
+规则包含平台、可选精确型号、SoC、GPU、内存区间、平台算力值及来源说明。精确型号规则优先；同型号硬件不符不得退回泛型号规则。缺失必需信号、无匹配或规则不可用时返回 PENDING_VERIFICATION，不给假值，不允许激活；运营补充核实后的规则，持有人主动重试校准。MATCHED 返回 computeValue、tier、ruleVersion 和 ruleId；四个递增阈值划分五档，档位收益继续读取 E2 双币配置。阈值与硬件规则在 E6 经 A2 审批发布，仅影响后续校准，不回写既有设备或历史结算。
 
-1. **构造即单调**:评分 S = 各「越好越高」子分的正权重加权和,且 score→TOPS 映射严格递增 → 严格更弱的设备数学上不可能超过更强的设备。
-2. **失败取低**:任一信号读不到 → 按低值兜底,绝不取高 → 未知机 / 模拟器 / 批量廉价端落在真旗舰之下(亦为防多端薅羊毛的护城河)。
-3. **确定性 + 按 deviceId 缓存**(`nexgrid-device-baseline-v1`):同机永远同分,重新校准复现同值(建立信任而非随机);新设备(新 deviceId)按自身信号重算,自然不同 → 支撑换机重校准。
+校准结果只绑定当前账号、安装身份和环境。激活须重新检查当前生效规则、校准版本、换机资格及幂等键；规则变化要求重新校准。服务端确认 ACTIVE 后刷新设备仓库，不在客户端重写其他手机的能力值。页面等待真实请求，无模拟检测时长、随机能力值或未知硬件兜底得分。
 
-**呈现量级**:S → 评分 0–100(典型机 ≈ 87)+ TOPS(真实手机 NPU ~8–58 区间,典型机 28.3)+ 档位 Tier 1–5。
+### 6.11 APP 与 H5 的手机执行资格
 
-**手机卡片三层显示**(`/earn` 手机设备卡):
+H5 首次注册完成后进入下载引导；旧校准入口直接跳转下载页，不采集、登记或激活手机算力，不发放手机登记奖励。普通注册礼按其独立规则执行。H5 登录显示网页版无法运行手机任务的提示。
 
-1. **算力上限**(稳定 · 可比身份数):`NPU 28.3 TOPS · Tier 3`,校准时定,确定性派生,是唯一的对比数,永远排序正确;
-2. **实时有效算力**(动态):`实时 X TOPS · Y% 输出` + 迷你曲线 + 当前主导因子的**正向**标签。实时有效算力 = 上限 × 状态因子 × 抖动,状态因子均 ≤ 1,故实时值**永不超过本机上限**;曲线随时间轻微起伏(像真实测量);
-3. **产出收益**($/d + NEX):作为算力的结果呈现(沿用双币块)。
+APP 登录完成当前条款确认后，以当前安装 deviceId 调用普通手机登录核验。服务端返回 BOUND 时直接进入首页，不重新校准；明确返回 NEEDS_CALIBRATION 或 REPLACEMENT_REQUIRED 时才引导相应流程，未知或失败显示可重试错误，不称已校准或已换机。不同安装登录先停止原手机未完成任务，再判断 E6 的 allowReplacement 和 minReplacementIntervalDays；不允许或处于冷却期时明确提示，已购设备不受影响。允许时重新采集并校准，显式激活原子替换绑定及槽位，旧仓库手机不能借旧结果在新安装激活。重新校准、暂缓、退出均不重置换机冷却时间。
 
-**状态因子**(`lib/hashpower.ts` · `computeLiveHashpower`,均 ≤ 1,正向措辞):充电(满速)/ 网络(满 · 降 · 离线)/ 散热(温度)/ **连续在线稳定加成**(`ContinuityFactor`,连续在线越久越接近 1,约 2 小时封顶;会话踢出 / 换机重校准时清零 → 正向激励留在一端)/ 抖动。手机收益按这些因子做**有界**调制(充电 / 网络为硬门,非充电或离线时整机暂停接单,见 §12.2)。
+账号只允许当前执行安装领取或提交手机任务。PHONE/MOBILE 任务领取与完成以普通业务头 X-Phone-Installation-Id 与当前账号绑定匹配；心跳使用既有请求体 calibrationDeviceId 与绑定匹配，不重复添加安装头。非手机任务不受此头约束，正式 App 当前无任务领取/完成 API 入口，本次不新增。原绑定手机重新登录可恢复执行权，但只解除换机引起的暂停，保留运营或风控暂停，并等待新心跳。H5 不采集或上报原生手机运行状态；H5 登录本身不踢掉仍在线的原 APP，原 APP 离线后按服务端心跳有效期停止手机任务，不进行离线托管补收益。已购设备沿用各自运行和结算规则。
 
-**档位收益**:手机日产按校准 Tier 派生(单调,见 §13.3)—— Tier 1 $0.04 → Tier 5 $0.095,典型机 Tier 3 = $0.06(锚定营销);NEX 同步 6 → 16。各档值**运营后台可配**(后台 E2「手机算力档位收益」),前端读 backend-replaceable config `mock/phone-tiers.ts`(真后台 `GET /api/config/phone-tiers`),前后台同口径。
+2026-10-03 起采用最小业务校验：不再使用 AndroidKeyStore、挑战/签名/证书、包签名校验或证明资格有效期，不新增安全开关或资格 TTL。安装标识仅用于账号与当前手机绑定的业务匹配，不证明硬件真实性。保留 Android 原生采集与 H5/iOS 不执行手机任务的边界、服务端硬件规则匹配、canonical 结果、幂等/revision、换机资格、任务状态与收益结算校验；手机心跳超时继续沿用现有运行规则。需按真机交接清单验收后再发布。
 
-**校准仪式**(`/onboarding/connect`,首次 onboarding + 新设备 `?mode=recalibrate` 复用):12 秒三测(NPU 基准 / 网络延迟 / 供电散热)动画,结果(评分 / TOPS / Tier / 预估日产)由 `measureDeviceCapability` 真实派生(非写死),完成后写回手机设备(`applyPhoneCalibration`:更新 baseRate / NPU 文案 / 能力字段 + 重置连续在线加成)。
-
-### 6.11 载体分层与收益服务端结算
-
-**目的**:让手机算力收益与「页面是否开着」解耦——收益按账户登记的算力档位 + 真实在线时长结算,关页面 / 切后台的时段在重开 / 回前台时一次补算;同时按**设备真实在线信号(App 后台心跳)**分层计产:设备真在线获得完整在线加成,无心跳(网页查看 / App 未常驻 / 离线)只走基础托管基线,形成「升级 App 拿在线加成」的真实差。**查看方式(App / 网页)本身不改变收益,只有设备真在线才吃加成**——常驻 App 是唯一能持续上报设备心跳的载体。
-
-**登记 + 服务端结算**:
-- **激活 = 登记**:设备激活(进槽位)即记结算锚点 `lastSettledAt = now`,作为收益的起算点。
-- **结算口径(单一来源)**:`settle()` 按墙钟增量 Δ = now − lastSettledAt 累计「收益 += 登记档位 baseRate × 在线因子 × 实时状态因子 × (Δ / 一天)」,并把锚点前移到 now;所有收益累积只走此一处,无第二条旁路。
-- **触发**:进前台 / 客户端 tick 调 `settle()`;关页面或切后台期间的 Δ 在重开 / 回前台时一次补算(原型为客户端 mock 服务端 tick,正式环境由服务端按同一 `lastSettledAt` 结算下推)。
-- **冻结不回溯**:设备未激活 / 会话失效冻结时锚点清空,恢复时按当前时刻重锚,冻结期不计产、不补发。
-
-**在线分层(算力显示与收益同口径)**:
-
-| 设备在线态 | 判定 | 计产口径 |
-|---|---|---|
-| 真在线(有新鲜心跳)| 设备 `onlineHeartbeatAt` 在超时窗口内(常驻 App 后台持续上报心跳)| 基线 × 充电 × 散热 × 连续在线 × 抖动(完整在线加成;连续在线达满额时长后稳定加成至 1.0)|
-| 离线(无 / 陈旧心跳)| 无心跳:网页查看、App 未常驻 / 被杀、心跳超时、离线 | 基线 × `h5BaseFactor`(基础托管,默认 0.6)× 在线 × 抖动(无常驻上报,不可测充电 / 散热、不可累计连续在线,故走基础托管基线)|
-
-在线态只看是否收到设备心跳,与「用 App 还是网页查看」无关——只有常驻 App 能持续产生心跳,故拿加成的实质是「设备真在后台在线」。非手机设备(S1 / Pro / Rack / Cloud)在线因子恒为 1,不受影响。
-
-**叙事**:无心跳(离线)设备的手机算力卡标「基础托管模式 · 登记算力网络」,并给「升级 App 拿在线加成」弱引导(仅常驻 App 能上报设备心跳);不出现「模拟 / 网页挖矿」等字眼(真平台口径)。
-
-**运营可配**:在线因子由在线加成系数配置驱动(`onlineBonus`:`h5BaseFactor` / `continuityFullHours`),运营在后台「算力与设备配置」调整,与后台 compute-config 同 key;改后对全网生效、不回溯已结算收益、以服务端为准。
-
-```mermaid
-flowchart TD
-  A[激活设备] -->|登记| B[记锚点 lastSettledAt = now]
-  B --> C{触发结算}
-  C -->|tick / 回前台 onShow| D["settle:Δ = now − lastSettledAt"]
-  D --> E{设备在线态}
-  E -->|有心跳·真在线| F["收益 += 档位baseRate × 充电×散热×连续在线×抖动 × Δ/天"]
-  E -->|无心跳·离线/网页| G["收益 += 档位baseRate × 基础托管0.6 × 在线×抖动 × Δ/天"]
-  F --> H[重锚 lastSettledAt = now]
-  G --> H
-  H -. 关页面期间累积 .-> C
-```
-
-**数据**:Device 有 `lastSettledAt`(登记 / 结算锚点)+ `onlineHeartbeatAt`(设备在线心跳戳,决定在线因子档)(§12.2);在线加成系数读自平台配置 `onlineBonus`(§13.3)。设备心跳经 `/api/device/:id/heartbeat` 上报,服务端持 `lastHeartbeatAt` + 超时判定下推在线态(客户端只读结论,永不用查看载体定因子)。
+历史方案（superseded，2026-10-03）：原生证明挑战绑定账号、会话与安装，一次性且两分钟过期；通过 Android 硬件密钥证书、应用包名、签名及设备启动状态验证后发放十五分钟资格。此方案仅留作历史背景，不再作为当前执行或验收要求。
 
 ---
 
@@ -2103,7 +2031,8 @@ flowchart LR
   R -->|领取 CTA 自动带码| G[注册 ?ref 锁定<br/>§4.1]
   R -.中途离开.-> P[pendingRefCode 暂存] -.此后任意入口注册.-> G
   G -->|bind first-wins + 礼包分桶 §4.3.2/4.3.5| S[注册成功页 · 仅 H5<br/>§4.1.1]
-  S -->|下载 APP / 继续网页版| O[onboarding]
+  S -->|下载 APP 后登录| O[APP onboarding]
+  S -->|继续网页版| H[H5 首页]
 ```
 
 **关键参数**:
@@ -4041,57 +3970,21 @@ DAO 治理功能本期**仅作为持有人权益的文字承诺**(在 Perks 列�
 
 浮动 bubble + Drawer 聊天面板。
 
-### 11.0A Nova AI 顾问系统
+### 11.0A 自动通知与人工服务边界
 
-**目的**:chassis-level 漂浮 AI 顾问。浮动 bubble 跨页存在,负责自动 push 与未读聚合;点击进入统一会话中心(§11.8.4),Nova 作为其中「AI 顾问」会话类型,承载自动 push 通道与 AI 对话。请求人工时切换到会话中心的「普通客服」会话类型(§11.0A.3)。
+当前整合版关闭 Nova AI 会话入口。浮标只提供人工顾问/客服快捷入口；铃铛与 Me 消息中心包含通知和服务两个分区，具体契约见 §11.2、§11.8.4。
 
-**作用域**:本节(§11.0A.1 - §11.0A.3)定义 Nova 的所有 channel + 切换规则。`§11.0A` 编号作为 §11.0 Me 主页 下的子区段,与 §11.1 我的设备 在层级上同辈但范围正交(Nova 跨页 / 设备只在 /me)。
+#### 11.0A.1 自动通知
 
-**代码标识符保留**:文件路径 `app/components/stella/*` / `lib/v3/_config/stella-cadence.ts` / `lib/mock/stella-templates.ts`、zustand store `useStella`、内部状态值 `mode === "stella"`、admin endpoint `/admin/stella/*` 全部保留 `stella` 字符——重命名仅作用于 UI / 产品文案层。
+后端现有 Nova 命名的业务频道作为自动通知来源保留；只有已真实生成且可送达的通知进入通知分区。频道启停、频率、受众、账户语言和去重由后端决定，客户端不制造收益、交易或活动事实。
 
-#### 11.0A.1 5 个基础 push channels
+#### 11.0A.2 展示分类
 
-| Channel | 默认频率 | 内容 |
-|---|---|---|
-| welcome | 注册 8s 后 / 24h cd | 欢迎语 + 解释玩法 |
-| market-event | 12 min tick / 30 min cd | 全网算力波动 / AI workload 价格变动 |
-| upgrade-nudge | 15 min tick / 60 min cd | 基于用户当前 fleet 推荐升级 |
-| risk-alert | 异常事件 | 设备掉线 / 任务失败 |
-| daily-summary | 每 25 完成任务 / 25 min cd | 当日收益总结 |
+服务端原始 kind 保留，按资金、设备、团队、活动奖励、系统五组展示。频道名称不决定人工消息归属；未知通知安全归入系统。未读、保留与优先级见 §11.2。
 
-> **频率全部 server-controllable**:每条 channel 的 `{enabled, tickMs, cooldownMs}` 由 `GET /api/admin/stella/cadence-config`(§9.11c.1)拉取(endpoint 路径保留 `/stella/*` 命名作为代码契约),运营按 cohort / phase / 风险态势在线调整;`enabled=false` = 单 channel kill-switch。客户端常量(`lib/v3/_config/stella-cadence.ts`)只是真后台未接入前的默认 fallback,数值与本表保持一致。
+#### 11.0A.3 人工服务
 
-#### 11.0A.2 3 个 v3 业务 channels
-
-| Channel | 频率 | 内容示例 |
-|---|---|---|
-| team_event | 90s tick / 70s cd | "Sarah K. just bought Pro · +$89.90 USDT credited" |
-| staking_event | 4 min tick / 5 min cd | "180-day vault APY just rose from 80% → 95%" |
-| market_event | 6 min tick / 7 min cd | "$NEX broke $0.178 +20.4% in 24h" |
-
-每条 push 带 CTA chip 直跳目标路由。
-
-#### 11.0A.2a Sprint 2 / 3 / A-2 增量 channels
-
-| Channel | 默认频率 | 触发条件 / 内容 |
-|---|---|---|
-| tradein-nudge | 15 min tick / 60 min cooldown | 车队(参与递减设备)平均产能 < 65% 且持有可置换设备时触发;文案钩子 = 当前产能 / 月度差额 + 该设备实时可抵额,CTA `查看置换选项 →` 跳 /me/devices 置换入口;无 phase 分档(代际窗口叙事已删) |
-| monthly-task-lock | 30 min tick / 30 d cd(P1-P2)/ 7 d cd(P3-P4)/ 3.5 d cd(P5-P6) | Sprint 2 收尾(Gap D)— 月度任务锁定累计推送,phase-keyed 节奏。读 `getTaskLockSummary(joinedAt)` 取 thisMonthUSD,`getLockedTeasers(maxVram, 1)[0]` 取最佳 model 名。文案三 variant(early/mid/late phase bucket):early `Heads up — $N premium tasks (model) unaccepted this month. NexGridBox would clear most.` → /store;mid `Premium queue's running hot — missed $N this month (model pool). Pro v2 catches 2.5× throughput.` → /me/devices;late `**Final upgrade window.** Lost ~$N this month on model alone, plus fleet degrading. Rack P2 trade-in closes when this window does.` → /me/devices(Batch E 迁移)|
-| social-event | 20 min tick / 30 min cd | Sprint A-2 / A.5 — 5 类全网"真实事件"等概率派发:大额提现走推荐网络 30% / V 级升级 25% / Genesis 二级成交 20% / AI 客户月 NEX 消费 +18-50% 15% / 网络小时新增 10%。文案严守真实平台叙事风,无 PM 内部术语 |
-| quest-grace-reminder | 5 min tick / 7 day cd(一次性) | Sprint Quest-A+B — 用户首日任务进 grace 窗口(24-72h)且未 claim 时 push,CTA → `/` 回 Home 继续。详 §5.15.5 |
-| quest-final-expired | 5 min tick / 7 day cd(一次性) | Sprint Quest-A+B — 用户首日任务彻底过期(72h+)且未 claim 时 push,CTA → `/me/achievements` 查看 badge 状态。详 §5.15.5 |
-| weekly-quest-refresh | 进入新 ISO 周时一次 / cooldown key 基于 `weekKey` 永不重复 | Sprint Q-1 — 每周一新 Weekly Quests 上线时 push,CTA → `/missions` Mission Center。文案 `🎯 New week, new quests. 5 tasks unlocked — top reward +X NEX`。详 §11.13.9 |
-| event-claimable | 15 min tick / 60 min cd | Sprint Q-3 — 当存在 trackable + done + 未 claimed 的 event 时 push 催领。文案 `🎁 You've earned a reward. {topEventName} is done (and N more) — claim +X NEX before it expires.` CTA → `/events`。topEventName 取奖励最大的那个,total NEX 为所有 claimable 奖励之和。详 §11.10.7 |
-
-> **整体节奏 v3 收敛**:相较 v2,ambient 噪声类 channel(market / upgrade / dailySummary / tradein / social / eventClaim)cooldown 拉长 5-6× → 30 分钟主动浏览只触发 1-3 次 AI 推送。事件触发类(quest grace / expired / weekly refresh / wrapped)节奏不变 — 它们由日历滚动 / 状态机推动,不是 ambient noise。所有节奏由 §9.11c.1 `GET /api/admin/stella/cadence-config` 控制。
-
-#### 11.0A.3 人工客服切换(Handoff)
-
-用户在 Nova(AI 顾问)会话请求人工客服时,不在 Nova 会话内就地切换坐席,而是路由到统一会话中心(§11.8.4)的「普通客服」会话类型,由真人客服线程接管;Nova 会话保持 AI 语义不变。
-
-- **切换入口**:Nova 会话头部「人工客服」按钮 → 打开会话中心的普通客服会话(无可用会话时回会话中心列表)。
-- **人工客服语义**:发送 / 回复、坐席身份、回复模板见 §11.8.4。
-- **AI auto-push 与人工对话互不干扰**:team / staking / market 等自动 push 始终注入 Nova(AI)会话;人工客服是独立会话类型,无需静默 AI 通道,Nova 自身不再有「live-agent 就地模式」与无响应自动切回逻辑。
+人工顾问、普通客服与工单进入服务分区，复用服务端会话和工单。打开列表不清除未读，进入具体线程并成功确认已读后同步角标；旧 AI 链接返回现有服务入口。
 
 ### 11.0B 个人资料 `/me/profile`
 
@@ -4149,74 +4042,67 @@ flowchart LR
 
 **安全声明**:取消激活不影响硬件归属(设备仍在用户库存),不影响购买记录与 lifetime 收益历史。重新激活时 tick 在下一帧 pickRandomTask,任务恢复接取。
 
-### 11.2 通知中心 `/me/notifications`
+### 11.2 消息中心 `/me/notifications`
 
-汇总所有事件历史(Nova 推送 + 佣金 + 质押到期 + Genesis 销售 + 系统通知)。
+统一查看业务通知、人工顾问/客服会话和工单回复。通知、会话、工单各保留原数据与已读协议，中心只聚合展示，不复制人工消息为系统通知。NOVA/AI 入口关闭，AI 未读不计入。
 
 #### 11.2.1 类型
 
-| Kind | 来源 |
+一级分区为通知、服务。通知原始 `rawKind` 保留后端来源，展示使用共同映射：
+
+| 展示分组 | 来源 |
 |---|---|
-| commission | Unilevel / Binary / Peer / Cultivation / Leadership 任一类佣金 |
-| team | Sponsorship / Spillover / Rank progress |
-| staking | APY 变化 / Maturity / Lock reminder |
-| market | NEX 价 / TVL milestone / Listing 新闻 |
-| genesis | 销售 ticker / 二级市场动态 |
-| system | KYC / 维护通知 / 监管 |
+| finance 资金 | 充值、提现、支付方式、订单、佣金、锁仓和行情通知 |
+| device 设备 | 设备状态及运行收益通知 |
+| team 团队 | 团队业务事件 |
+| rewards 活动 | 活动、任务奖励、Genesis 及对应已启用业务提醒 |
+| system 系统 | 安全、维护、风险披露与未知类型 |
 
-#### 11.2.2 UI
+分组不改变旧六键通知偏好协议。未知类型必须可读、可执行原 CTA。服务分区按最近更新时间展示 advisor/support 会话及工单，可按顾问、客服、工单筛选。
 
-- iOS nav 顶部 + unread 数 badge + Mark all read + Clear read 操作
-- 6 个 filter pills(All + 5 类,只显示有内容的)
-- 时间线列表:
-  - 未读 dot + 加粗标题
-  - 已读态
-  - tap 自动 markRead + 跳 CTA href
-- 200 条 cap,LRU 滚动
+#### 11.2.2 未读与读取
+
+- 总未读 = 服务端通知全量未读 + 可见人工会话未读 + 全部工单未读；人工浮标仅显示人工会话未读。
+- 通知分页返回的 `unread` 是全量值，不能按已加载列表重新计数。单条/CTA 已读确认成功后仅减一次；清理已读不减少其他未读；批量已读后补拉服务端状态。
+- 通知与服务分区分别展示完整未读数量。通知接口的 `unreadByKind` 按原始类型汇总同账号全部可见未读，合计等于 `unread`，不受游标、页大小或当前筛选影响；客户端按既有五组映射生成分类提醒，未知类型归入系统。旧接口缺少摘要时仅可显示已加载记录中确定存在的提醒，不能声明分类已全部读完。服务分类分别采用可见顾问会话、普通客服会话及工单的全量未读。
+- 展开通知才确认该条已读；打开中心、切换分类不读会话或工单。“通知全部已读”仅影响通知。
+- 人工与工单只在实际详情内容展示后按现有版本读确认协议更新；有新回复冲突时刷新，不能吞掉未看过的内容。
+- 加载、失败、无记录及当前页无匹配但还有下一页分别展示；失败保留已有快照并提供重试，不把失败当零未读。
+- 周期补拉保留已加载历史和游标。账户退出/重绑后清除旧快照，旧请求不得回写。
+- 浏览长列表时收起大标题与一级分区、保留末级筛选和当前分区上下文；明显回滑恢复一级切换，回到顶部恢复标题，轻微滚动不反复切换。
 
 #### 11.2.2a Swipe-to-action(conversion-tied)
 
-每行 row 由 `<SwipeRow>` 通用组件包。用户左滑暴露 conversion 路径 + 管理 actions,**第一个 action 与 NotifKind 联动**,把通知 → 直达入金页:
+通知 CTA 与既有左滑导航均由服务端确认动作后返回路由，前端不能猜测已到账、代发资金操作或改变业务权限。重复动作按原幂等键查询；主动作成功但附属读确认失败，仍保留已确认路由并允许后续读状态对账。
 
-| NotifKind | Swipe action 1(conversion)| 跳转 | Action 2 | Action 3 |
-|---|---|---|---|---|
-| commission | 复投 | `/me/wallet/repurchase` | 已读 | 删除 |
-| team | 团队 | `/team` | 已读 | 删除 |
-| staking | Stake | `/staking` | 已读 | 删除 |
-| market | 行情 | `/market` | 已读 | 删除 |
-| genesis | Genesis | `/genesis/marketplace` | 已读 | 删除 |
-| system | — | — | 已读 | 删除 |
-
-设计目的:绕过 list-tap → detail-tap → 入金-tap 三步漏斗,让用户拿到 commission 通知后**左滑直跳复投页**,把通知从被动事件流升级为主动 conversion 漏斗入口。
-
-**store action**:`useNotifications.removeOne(id)` 单条删除(swipe-to-delete),复用现有 `markRead(id)` 单条已读。
+清理已读须确认，只删除服务端允许清理的记录，保留 critical 消息。正式模式不提供客户端单条删除；通知与业务记录不是同一对象，清理通知不删除订单、资金或会话历史。
 
 #### 11.2.3 入口
 
-- Me 页 Earn extras section 第一行 row(显示 unread badge)
-- Header bell 当前打开 Nova drawer(保留独立角色)
+- 主页面和子页面右上角铃铛：直接进入 `/pages/me/notifications` 全屏消息中心，显示总未读，页内提供通知设置入口；无侧边抽屉和遮罩。`section=notifications/service` 指定初始分区，未指定时保留当前分区；已在中心时不重复压栈。返回恢复来源页面，冷启动进入时返回 Me。
+- Me「消息中心」：进入 `/pages/me/notifications`，显示相同总未读。
+- 人工浮标和客服渠道“在线会话”：进入 `/pages/me/notifications?section=service`，直接显示服务分区；浮标保留人工未读，不恢复 AI。点会话进入现有全屏聊天。
+- 会话详情 `/pages/support/chat?cid=`；工单详情 `/pages/me/support-tickets?ticket=`，复用原归属、权限和已读协议。
+- 工单详情提供“查看工单列表”快捷入口，回到现有工单列表；返回操作继续沿用来源页面返回规则。
+- 已登录前台由一个全局循环补拉通知与工单，目标间隔15秒；人工保留 WebSocket 及既有断连轮询。回前台立即补拉，退后台/退出停止。首次加载不重放历史为新提醒。
+- 原生系统级离线推送须完成应用标识、厂商配置、设备令牌和真机验收后单独启用；前台刷新不等于后台或杀进程推送。
 
-#### 11.2.4 通知优先级队列
+#### 11.2.4 优先级、保留与送达
 
 | Priority | 适用类型 | 保留策略 |
 |---|---|---|
-| `critical` | 提现冻结 / KYC 拒绝 / 风控异常 / 合规要求 re-acknowledge / 资金账户异动 | **永不淘汰**(`CAP_CRITICAL = Infinity`)|
-| `high` | 试用即将到期 / 高质量延长资格 / staking maturity / 大额收益结算 | tier 内 LIFO,`CAP_HIGH = 50` |
-| `normal` | Nova v3 频道社交事件 / 邀请奖励到账 / 设备状态变化 | tier 内 LIFO,`CAP_NORMAL = 200` |
-| `low` | 节庆活动 / 周月任务 / 推荐已知 / 营销 promo | tier 内 LIFO,`CAP_LOW = 30`(真后台对接后改 24-48h 自动淘汰)|
+| `critical` | 服务端认定的资金冻结、安全或风险披露通知 | 不参与自动淘汰及清理已读 |
+| `high` | 重要业务进展或需要处理的通知 | 按后台配置保留最新记录，超出淘汰最旧记录 |
+| `normal` | 常规业务与设备、团队事件 | 按后台配置保留最新记录，超出淘汰最旧记录 |
+| `low` | 非关键活动提醒 | 按后台配置保留最新记录，并淘汰超过48小时的记录 |
 
-**前端实现(已完成,Round 7)**:`lib/v3/notifications.ts` 加 `priority: NotifPriority` 字段;`push()` 默认 `"normal"` 保持向后兼容;`applyPriorityRetention()` 按 tier 单独 cap,critical 永不丢失。所有 callsite 旧调用无需改动,显式优先级仅在新调用点声明(如风控类系统通知应明确传 `priority: "critical"`)。
-
-**Priority 升级路径**(MVP-D 抓到的边界):同一 notification id 后续以更高 priority 重新出现(例如 `normal` 试用提醒被升级为 `critical` 风控告警)时:
-- 客户端 mock 已实现 in-place 升级(`lib/v3/notifications.ts:push` existing-id 分支检 `priorityRank` 后 update),并清 `readAt` + bump `unread`,保证升级事件重新进入未读队列浮顶
-- 升级时 `ts` 重置为 now,触发 surface-newest-critical 排序语义
-- 真后台等价行为:server 检测 priority 变化后,在新事件上 emit 一条 canonical 记录(同 id,新 priority + 新 ts + readAt=null),client 通过 SSE / cursor refresh 重读;**client 不直接 PATCH**,改由 server 主动推送
+优先级、排序与保留由服务端决定；前端展示 critical/high 的重要标识，不自行重置已读或提升优先级。低优先级过期由服务端执行，客户端不作为权威消息仓库。资金、安全和风险披露必收规则由后端执行，不能仅靠禁用开关实现。
 
 **真后台接口契约**:
 - `GET /api/notifications?cursor=&limit=&priority=` — 分页拉取,支持按优先级过滤
 - `POST /api/notifications/:id/read` — server-side 标读
-- SSE `/api/notifications/stream`(候选)— server 主动推 priority 升级 / 新通知
-- `client.useNotifications` 改为 cursor-based fetch,LIFO cap 仅作为 UI 显示窗口,**不再是权威数据源**
+- `POST /api/notifications/read-all`、`DELETE /api/notifications/read` — 批量已读、清理已读；服务端校验账户归属与保留规则。
+- 客户端通过游标及前台补拉对账，不宣称存在未接入的通知 SSE。
 
 #### 11.2.5 支付方式生命周期推送模板(银行卡解绑 / 换绑引导)
 
@@ -4224,11 +4110,11 @@ flowchart LR
 
 | 模板 | 触发事件(server) | Kind | Priority | CTA 深链 | 文案要点 |
 |---|---|---|---|---|---|
-| 银行卡已解绑 | `card.unbound`(后台解绑 / 用户自解绑同一事件) | system | normal(风控发起的解绑,server 可按 §11.2.4 升级 critical「资金账户异动」档) | `/pages/me/wallet-cards`(§9.10 我的银行卡) | 告知「{brand} •••• {last4} 已解除绑定」;自动扣款随之失效;引导需要时重新绑卡 |
-| 请更换试用担保卡 | `card.rebind_notified`(后台 C1 发送换绑通知动作) | system | high(试用担保连带,对齐 §11.2.4 high 档) | `/pages/me/wallet-cards` | 告知当前担保卡不再适用,引导绑定新卡以保障试用结束时顺利完成购买;担保卡换绑成功前旧卡保持生效 |
+| 银行卡已解绑 | `card.unbound`(真实解绑完成) | payment_method | high | `/pages/me/wallet-cards`(§9.10 我的银行卡) | 说明解除绑定，提示查看当前支付方式 |
+| 支付卡换绑提醒 | `card.rebind_notified`(后台换绑提醒动作) | payment_method | high | `/pages/me/wallet-cards` | 说明需要查看或更新支付方式，不宣称已完成换绑 |
 
 - 触发时机与担保规则权威在后台侧(担保中的卡不可被后台静默解绑,仅可收到本换绑引导;用户自解绑担保卡经挽留流程仍可达,见 §9.11 试用担保)。
-- 文案双语走 i18n(`notifs.cardUnbound* / notifs.cardRebind*` 六键镜像);模板实现为 builder 形态(`src/mock/card-notifications.ts`),PRODUCTION 由后端事件桥调用,mock 期不自动注入静态样例(避免与实时卡状态矛盾)。
+- 文案由后端按账户语言提供中/英/越，已发消息保留原文；本地 builder 仅适用于 mock，正式模式不伪造通知。
 
 ### 11.3 信任中心 `/trust`
 
@@ -4470,64 +4356,78 @@ FAQ accordion,分类:Account / Earnings / Hardware / Payment / Security。
 
 #### 11.8.3 工单系统 `/me/support/tickets`
 
-私密 1:1 客服对话系统,对标 Binance Customer Service / Coinbase Help Tickets / Crypto.com Support。
-**单页 3 view mode**(本地 React state 切换,无路由跳转):
+**目的与入口**：提供仅本人可访问的客服工单、历史消息与后续回复。UniApp 页面为 `/pages/me/support-tickets`，包含列表、创建、详情三种状态；`?mode=create&cat={category}` 可预选合法分类，`?ticket={ticketNo}` 可进入指定工单。消息中心“服务”分区聚合工单提醒，客服渠道页可直接进入创建页。
 
-**A. List mode(默认)**:
-- Subtitle + 3 stats 卡:`OPEN` / `AWAITING YOU` / `RESOLVED lifetime`
-- `+ New ticket` CTA
-- `Median first response · 12 min` chip
-- 4 tabs:All / Open / Resolved / Closed
-- 工单行:status icon + `STATUS · CATEGORY · TK-ID` chip + 未读 chip(`N new`)+ 标题 + 相对时间 + msg count
+**列表与详情**：列表支持全部、进行中、已解决、已关闭筛选，展示服务端返回的工单号、分类、状态、标题、更新时间、消息数和未读数。详情读取真实消息线程，支持加载较早消息；成功读取并提交已读回执后更新未读。仅查看服务总览不标记工单已读。响应时限读取服务端分类 SLA 目标，不将目标当作历史平均响应统计。
 
-**B. Detail mode**(点列表行):
-- Meta 卡:status / category / 标题 / Created {when} / Last update {when}
-- 消息线程:用户消息靠右,客服消息靠左,顶行带名字 + 时间
-- 回复 textarea + `Send reply` + `Mark closed` 双按钮(已 closed / resolved 状态隐藏)
+**创建输入与数据**：
 
-**C. Create mode**(点 New ticket):
-- 8 个分类 chip:Withdrawal / Deposit / KYC / Hardware / Account / Earnings / Technical / Other
-- Subject 输入 + Description textarea
-- Cancel / Submit ticket 双按钮 + 空字段校验
+| 字段 | 约束 |
+|---|---|
+| 分类 | `account` / `withdrawal` / `deposit` / `hardware` / `earnings` / `genesis` / `technical` / `other`，共 8 类 |
+| 标题 | 去除首尾空白后必填，1–160 字符 |
+| 描述 | 去除首尾空白后必填，1–2000 字符 |
+| 优先级 | 数据枚举为 `low` / `normal` / `high` / `urgent`；App 新建固定为 `normal`，不由表单自行升级 |
 
-**TicketStatus 枚举与颜色**:
-| status | label | color |
-|---|---|---|
-| open          | Open          | #FFC83D |
-| in_progress   | In progress   | #3DA9FF |
-| pending_user  | Awaiting you  | #FF6B35 |
-| resolved      | Resolved      | #C6FF3A |
-| closed        | Closed        | #5F6A7E |
+创建页按当前语言和分类读取相关 FAQ。工单包含编号、标题、分类、状态、优先级、版本、创建及更新时间、消息数、未读数；详情另含消息作者、正文、时间和历史分页游标。正式数据经 `src/api/support-api.ts` 读写，不由本地示例工单生成。
 
-**TicketCategory 枚举**:account / withdrawal / deposit / kyc / hardware / earnings / genesis / technical / other。
-**TicketPriority 枚举**:low / normal / high / urgent。
+**专属客服归属**：四类创建入口都由服务端读取当前有效的客服绑定，自动确定工单负责人；App 不选择或上送任意负责人。未绑定时仍可提交，进入既有待分配流程。首次绑定或正式转绑时，同事务同步该账号全部未删除工单（含已关闭及归档）的当前负责人，历史消息作者保持原样。客服忙碌、离线或停用不自动改派，交接沿用主管客户分配流程；工单不能独立转给其他客服。后台回复仍验证当前绑定与既有权限，工单归属变化不扩大私聊副本的阅读范围。
 
-**Mock 数据**(`lib/mock/tickets.ts`):7 个工单(2 进行中 / 1 等用户 / 1 处理中 / 2 已解决 / 1 已关闭),每个含完整消息线程(2-5 条对话)。
+**建单规则**：同一账号的 App 建单、App 会话转工单、后台建单及后台会话转工单共用服务端限制，提交时重新判定，客户端预检查不保留名额。
 
-i18n keys 在 `tickets.*` namespace,~40 keys。
+| 规则 | 默认值与判定 |
+|---|---|
+| 相邻新单冷却 | 60 秒 |
+| 滚动建单总量 | 任意连续 24 小时最多 10 单；关闭、归档或软删除不返还该窗口内的次数 |
+| 活跃工单数量 | 已有 3 张未软删除的工单处于 `open` / `in_progress` / `pending_user` 时禁止新建；仅归档不释放活跃名额 |
+| 重复内容 | 24 小时内，同账号、分类、标题与首条正文相同则不再建单，返回已有工单号供继续处理；标题和正文先做 Unicode NFC 及空白规范化，分类忽略首尾空白与大小写 |
+
+三个数量参数由服务端 `support.ticket.creation.cooldown_seconds`、`support.ticket.creation.max_per_24h`、`support.ticket.creation.max_active` 控制，App 以接口返回值为准。建单限制不阻断既有工单的合法回复或重开。
+
+**状态与动作**：
+
+| 状态 | App 可用动作 |
+|---|---|
+| `open` 待处理 | 回复、关闭 |
+| `in_progress` 处理中 | 回复后回到 `open`；可关闭 |
+| `pending_user` 待补充 | 回复后回到 `open`；可关闭 |
+| `resolved` 已解决 | 可回复，回复后重开为 `open`；页面不显示关闭按钮 |
+| `closed` 已关闭 | 只读历史，不可回复 |
+
+归档工单不可回复。回复、关闭和已读写入携带预期状态与版本；并发冲突应读取服务端最新结果，不覆盖较新状态。
+
+详情按服务端消息顺序和日期展示记录；长记录可展开与收起且保留完整原文，折叠状态按账号、工单和消息隔离，历史作者仅显示消息公开署名或通用客服称谓。
+
+**接口与异常**：`GET /api/app/support/tickets/creation-policy` 返回当前可建单状态、限制原因、重试时间和可继续处理的工单号。策略读取中、读取失败或内容不合法时禁用新建提交，保留当前表单输入并提供重试。`POST /api/app/support/tickets` 成功后进入真实工单详情；暂时拒绝保留输入，提示何时重试或查看已有工单，重复内容以 409 返回旧工单号，其他建单限制以 429 返回策略。
+
+创建和回复使用 `Idempotency-Key` 标识同一提交意图：成功重试返回原结果，不新增工单或消息；暂时拒绝可在限制解除后以原键重试。结果未知时查询原命令或同键重试，不因刷新或网络失败另建同一工单。换账号清除前一账号的页面输入与策略状态。
+
+**验收**：空白及超长输入被拒；八类均可按合法参数提交；并发建单不突破限制；关闭后不能绕过 24 小时次数限制；重复内容可定位旧单；策略失败保留当前输入并停止提交；`resolved` 回复可重开，`closed` 不可回复；详情返回消息中心后仍在服务分区。文案使用 `tickets.*`，覆盖中、英、越三种语言。
 
 ### 11.8.4 统一会话中心 `/support/messages` + `/support/chat`
 
-**目的**:把人工客服与 AI 顾问统一到一个会话中心。人工客服支持**多类别**,用户可在不同类别的客服会话间主动切换。区别于工单系统(异步 / 私密 1:1 / 有状态机)——会话中心是即时聊天形态。
+**目的**:在统一消息中心“服务”分区提供人工会话入口；人工消息由当前专属顾问接续。§11.2 聚合人工与工单提醒，原会话/工单详情继续承担读取和回复，会话管理页保留新建、分类历史与移除列表功能。
 
 **会话类别(`ConversationType`,可扩展)**:
 
 | 类别 | 角色 | 会话语义 |
 |---|---|---|
-| `advisor` 专属顾问 | 增长顾问 | **顾问主动触达**:预置带转化 CTA 的引导消息(如「设备闲置 ~30%,升级 Pro 多赚」→ `/store`;「180 天锁仓 95% APY」→ `/staking`),以未读呈现,引导购买 NexGridBox / 锁仓 / 复投 |
-| `support` 普通客服 | 客服支持 | **用户发起**:处理售前 / 售后问题(账户 / 提现 / 订单等);用户发消息 → 真人客服回复 |
-| `ai` Nova | AI 算力顾问 | §11.0A Nova 作为 AI 类型并入;保留 quick-prompt + 自动 push 通道;会话头部「人工客服」入口路由到 `support` 会话(§11.0A.3) |
+| `advisor` 专属顾问 | 当前专属顾问 | 顾问与客户的私聊；未分配时客户可留言等待分配 |
+| `support` 普通客服 | 当前专属顾问 | 用户发起求助；未分配时客户可留言等待分配 |
+| `ai` Nova | 兼容类型 | 当前入口关闭；不展示、不计入总未读，旧 AI 路由回到可用的人工入口 |
 
 **入口与路由**:
-- `/support/messages` — 会话中心:按类别分组列出会话,用户主动切换类别查看该类别会话。
-- `/support/chat?cid={id}` — 人工类别会话聊天线程;`/support/chat?type=ai` — Nova 聊天线程。
-- 入口:Nova 浮动 bubble(点击进会话中心)、客服渠道枢纽 `/me/support`「在线会话」行(§11.8.2)、Home 的 Nova 卡(进 AI 会话)。
+- `/me/notifications?section=service` — 人工服务统一入口；会话行直接进入全屏聊天。
+- `/support/messages` — 会话管理:按类别查看历史、发起新会话和移除列表；保留旧链接与聊天异常回退。
+- `/support/chat?cid={id}` — 人工类别会话聊天线程；旧 `/support/chat?type=ai` 链接按当前关闭状态返回服务入口，不创建 Nova 聊天线程。
+- 入口:人工服务浮标、客服渠道枢纽 `/me/support`「在线会话」行(§11.8.2)统一到消息中心“服务”分区；分区内“会话管理”进入管理页。
 
 **业务规则**:
-- `advisor` 会话默认带未读(主动触达),作为常驻转化触点;进入会话清零该会话未读。
-- `support` 为用户发起线程,用户发送后由真人客服按类别模板回复。
-- `ai`(Nova)承载所有自动 push;Nova bubble 未读徽标聚合**全部类别**未读(AI + 人工)。
-- 人工 / 顾问回复为按类别循环模板(真后台接入后替换为真实坐席消息流)。
+- 人工 `advisor` / `support` 均采用当前归属；客户端读取 `GET /api/app/support/advisor` 的当前顾问、归属状态和可用性。未分配、顾问停用或忙碌均可留言，界面说明实际状态；未知在线状态不显示在线。
+- 客户只可读取和发送自己的会话。归属变更后，服务端按当前归属授权，客户端清除旧会话缓存、图片和待发草稿，再取新快照；历史作者保持原身份，不以旧名称充当当前顾问。
+- 人工浮标仅显示 advisor/support 的可见未读；铃铛和 Me 消息中心将人工、工单和通知合计。AI 隐藏不影响已有后台业务通知，业务通知按来源归类。
+- 人工消息可为 TEXT 或 IMAGE。图片先按服务端策略选择 PNG/JPEG、私有上传成为 READY，再随同一条消息提交；未提交图片仅上传者可见。已发图片每次通过鉴权接口读取，不使用公开 URL。上传失败、过期、撤权可重选；页面离开或换账号清理私有图片内存 URL。
+- 草稿按账号和会话隔离；明确发送失败可编辑、重试或放弃，发送结果未知只能按原命令查询或同键重试。图片和文字随同一发送意图恢复，不因刷新或重试生成第二条消息。
 - **发送频控**:单会话发送限流,两道独立闸——滚动窗口(每 15 秒最多 5 条)+ 相邻两条最小间隔(至少隔 1 秒),防连点刷屏;两闸都放行才发出,超限提示的重试秒数取两者较长值。超限提示同一时刻只显示一条,连续触发刷新该条不叠加;被拦下的这条消息文本回填输入框,不丢失。规则覆盖三类会话的自由输入与快捷提问(chip)。真后台以 HTTP 429 + Retry-After 镜像同一策略。
 - **消息回执与状态**:用户发出的消息显示「已送达 / 已读」回执;坐席回复前依「已读 → 正在输入…(气泡)→ 回复」节奏推进(约 2 秒),使接待过程可感知。真后台接入后由消息已读事件与 typing 事件驱动。
 - **消息定位**:进入会话、发送或收到新消息后,线程自动滚动定位到最新一条。
@@ -4736,8 +4636,8 @@ Events 分两大类:
 #### 11.12.4 偏好设置 `/me/preferences`(Sprint P-full / P8 + P9)
 
 - **目的**:音效 / 触感 / 通知 6 类偏好的统一切换中心
-- **2 组 toggle**:Feedback(sound + haptics)+ Notifications(6 种 NotifKind 各自 mute)
-- **Store**:`usePreferences` zustand persist(`nexgrid-preferences-v1`)
+- **2 组设置**:Feedback(sound + haptics)保存在本机；Notifications 保留 commission/team/staking/market/genesis/system 六键。系统必收不可关闭，资金/安全关键消息由后端强制送达。
+- **Store**:`usePreferences` 通过 `GET/PATCH /api/me/notification-preferences` 读取、保存通知偏好；服务器未成功返回前不显示假状态，失败保留错误与重试。五个通知展示分组不等于偏好协议键。
 - **i18n**:`preferences.*` namespace ~14 keys
 
 #### 11.12.5 全局搜索 `/search`(Sprint P-full / P6)
@@ -5017,7 +4917,7 @@ Events 分两大类:
 - `scheduleDeactivation(id)` — **优雅出槽位**:若 `currentTask !== null` 则只设 `pendingDeactivate=true`(等任务完成);若 `currentTask === null` 则立即执行 `deactivateDevice` 等效行为
 - `tick()` 守卫:`activatedAt === null` 的设备不参与 earnings / task 累计;任务完成处理时检查 `pendingDeactivate=true` → 自动执行 deactivate(清零 telemetry + `activatedAt=null`,不再 pickRandomTask)
 
-**初始 seed**:onboarding 完成后,phone 自动 `activatedAt = purchasedAt`(强制激活,无 skip)。用户进 APP 后可在 `/me/devices` 取消激活,使手机进入库存状态。
+**初始设备**:注册与普通 onboarding 完成均不生成本地 phone seed。只有 `POST /api/onboarding/calibrate/activate` 返回 canonical `ACTIVE` 后，服务端才创建/更新并绑定 phone `nx_user_device`；检测或绑定失败可选 `DEFERRED` 完成注册，设备仓库保留重新激活入口，未激活期间不发手机相关奖励。
 
 ### 12.3 Order(useOrders,persist key `nexgrid-orders-v4`)
 
@@ -5145,6 +5045,8 @@ MyListing = { tokenId: number, askPriceUSDT: number, listedAt: number }
 {
   id: string;
   kind: "commission" | "team" | "staking" | "market" | "genesis" | "system";
+  rawKind?: string; // 服务端原始类型，用于五组展示分类；kind 保留六键兼容
+  priority: "critical" | "high" | "normal" | "low";
   title: string;
   body?: string;
   ctaLabel?: string;
@@ -5156,7 +5058,7 @@ MyListing = { tokenId: number, askPriceUSDT: number, listedAt: number }
 
 ### 12.9a Conversation(useConversations)
 
-统一会话中心(§11.8.4)的人工客服会话。`ai`(Nova)类型由 `useStella` 承载,不在此 store。Session 态(非持久,每会话从 mock seed 重建,使顾问主动未读常驻);真后台接入后由会话 API 提供并持久化。
+统一消息中心服务分区(§11.8.4)的人工会话由 `useConversations` 管理，服务端会话、消息、归属和附件为权威数据；`ai` 类型仅保留兼容，不进入当前入口与未读汇总。
 
 **ConversationType**:`"ai" | "advisor" | "support"`(可扩展)。
 
@@ -5166,7 +5068,10 @@ ConvMessage:
 {
   id: string;
   sender: "user" | "agent";
-  text?: string;        // 运行时 / 真后台消息正文
+  text?: string;        // TEXT 正文；IMAGE 可为空
+  kind?: "TEXT" | "IMAGE";
+  attachmentId?: string; // 私有附件，仅经鉴权读取
+  authorName?: string;   // 历史原作者，不充当当前顾问
   textKey?: string;     // mock 预置消息的 i18n seed key(渲染时解析,保双语)
   ctaKey?: string;      // 预置消息 CTA 文案 i18n key
   ctaHref?: string;     // CTA 目标(逻辑路由,经路由映射层跳转)
@@ -5189,7 +5094,7 @@ Conversation:
 }
 ```
 
-派生:`byType(type)` 按类别取会话、`totalUnread` 人工侧未读合计(Nova 未读由 `useStella.unread` 提供,bubble 在页面层合并)。`typingIds` 记录各会话「坐席正在输入」瞬态(非持久,真后台由 typing 事件驱动)。
+派生:`byType(type)` 按类别取会话、`totalUnread` 人工侧未读合计(Nova 未读在页面层合并)。`typingIds` 和在线状态仅来自当前授权会话的实时事件；断线、未知和归属失效时清空，不推断为在线。待发命令保留同一幂等键，账号/归属边界清除本地草稿和私有图片。
 
 ### 12.10 Exchange Cap(useExchangeV3)
 
@@ -5675,7 +5580,7 @@ progressPct = avg(checks);
 | phone→S1 倍数 | 117× | round(7 / 0.06);营销文案与计算徽章统一此单一派生值(§7.1 / §13.2a),不另行圆整 |
 | 手机算力档位收益 | T1 $0.04 / 6 NEX · T2 $0.05 / 8 · T3 $0.06 / 10 · T4 $0.08 / 13 · T5 $0.095 / 16 | 手机按校准能力 Tier 的日产(USDT / NEX),单调;运营可配(`mock/phone-tiers.ts` → `GET /api/config/phone-tiers`,后台 E2),见 §6.10 |
 | 手机算力典型锚点 | 评分 87 · 28.3 TOPS · Tier 3 · $0.06 | 未校准 / 典型机的呈现锚点(`fallbackCapability`,§6.10)|
-| 在线加成系数 · `h5BaseFactor` | 0.6 | H5 非常驻载体基础托管系数:H5 手机算力 = 基线 × 此值 × 在线 × 抖动,不叠充电 / 散热 / 连续在线(§6.11);运营可配(`onlineBonus`,后台「算力与设备配置」),与后台 compute-config 同 key |
+| 历史兼容字段 · `h5BaseFactor` | 旧配置值保留 | 不参与 H5 手机执行、收益或离线补算；H5 仅展示服务端当前 APP 状态，手机执行资格以 §6.11 为准 |
 | 在线加成系数 · `continuityFullHours`(`CONTINUITY_FULL_MS`)| 2h(7,200,000ms) | App 连续在线稳定加成达满所需时长(0.85→1.0 线性,`lib/hashpower.ts`,§6.10 / §6.11);会话踢出 / 换机重校准清零;运营可配(`onlineBonus`) |
 | 提现冷却 | 30 天 | unilevel + binary 佣金 |
 | Direct Royalty 费率 | 固定 10% | 单一来源 `UNILEVEL_USDT[1]`,不随 Partner Status 变动 |

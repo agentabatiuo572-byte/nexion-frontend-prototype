@@ -4,8 +4,8 @@ import type { AuthApi, RegistrationRequest } from "@/api/auth-api";
 import { registerAndLogin } from "./registration-auto-login";
 
 const request: RegistrationRequest = {
-  countryCode: "+81",
-  phone: "81987654321",
+  countryCode: "+84",
+  phone: "912345678",
   challengeNo: "REG-0123456789abcdef0123456789abcdef",
   code: "123456",
   password: "NexPass9a",
@@ -19,9 +19,11 @@ function api(overrides: Partial<AuthApi>): AuthApi {
     sendLoginOtp: vi.fn(),
     completeOtpLogin: vi.fn(),
     sendPasswordResetOtp: vi.fn(),
+    verifyPasswordResetOtp: vi.fn(),
     completePasswordReset: vi.fn(),
     completeTwoFactor: vi.fn(),
     sendRegistrationOtp: vi.fn(),
+    verifyRegistrationOtp: vi.fn(),
     oauthExchange: vi.fn(),
     restore: vi.fn(),
     discardSessionIfCurrent: vi.fn(),
@@ -31,7 +33,7 @@ function api(overrides: Partial<AuthApi>): AuthApi {
   };
 }
 
-test("successful registration revokes its bootstrap session then calls password login", async () => {
+test("successful registration keeps the single server-issued session without a cookie-clearing login race", async () => {
   const receipt = {
     sponsorCode: "NXAB12CD34EF",
     sponsorDisplayName: "A•••",
@@ -43,26 +45,17 @@ test("successful registration revokes its bootstrap session then calls password 
   const authApi = api({
     register: vi.fn().mockResolvedValue({
       kind: "authenticated",
-      user: { userId: 7101, countryCode: "+81", phone: "81987654321", nickname: "New" },
+      user: { userId: 7101, countryCode: "+84", phone: "912345678", nickname: "New" },
       vaultRevision: 4,
       registrationReceipt: receipt,
-    }),
-    login: vi.fn().mockResolvedValue({
-      kind: "authenticated",
-      user: { userId: 7101, countryCode: "+81", phone: "81987654321", nickname: "New" },
-      vaultRevision: 6,
     }),
   });
 
   const result = await registerAndLogin(authApi, request, () => true);
 
-  expect(authApi.discardSessionIfCurrent).toHaveBeenCalledWith(4);
-  expect(authApi.login).toHaveBeenCalledWith({
-    countryCode: "+81",
-    phone: "81987654321",
-    password: "NexPass9a",
-  });
-  expect(result).toMatchObject({ kind: "authenticated", vaultRevision: 6, registrationReceipt: receipt });
+  expect(authApi.discardSessionIfCurrent).not.toHaveBeenCalled();
+  expect(authApi.login).not.toHaveBeenCalled();
+  expect(result).toMatchObject({ kind: "authenticated", vaultRevision: 4, registrationReceipt: receipt });
 });
 
 test("unknown registration outcome performs one authoritative password-login recovery", async () => {
@@ -74,7 +67,7 @@ test("unknown registration outcome performs one authoritative password-login rec
     })),
     login: vi.fn().mockResolvedValue({
       kind: "authenticated",
-      user: { userId: 7102, countryCode: "+81", phone: "81987654321", nickname: "Recovered" },
+      user: { userId: 7102, countryCode: "+84", phone: "912345678", nickname: "Recovered" },
       vaultRevision: 1,
     }),
   });
@@ -85,12 +78,15 @@ test("unknown registration outcome performs one authoritative password-login rec
   expect(result).toMatchObject({ kind: "authenticated", registrationMayBeCommitted: true });
 });
 
-test("authoritative registration rejection stays on the form and never calls login", async () => {
+test.each([
+  { status: 422, message: "USER_REGISTRATION_OTP_INVALID" },
+  { status: 409, message: "USER_REGISTRATION_K1_IP_LIMIT" },
+])("authoritative registration rejection $status $message never calls login", async ({ status, message }) => {
   const failure = new ApiError({
     kind: "http",
-    message: "USER_REGISTRATION_OTP_INVALID",
-    status: 422,
-    code: 422,
+    message,
+    status,
+    code: status,
   });
   const authApi = api({ register: vi.fn().mockRejectedValue(failure) });
 
@@ -104,7 +100,7 @@ test("a stale registration flow discards only its issued session and does not lo
   const authApi = api({
     register: vi.fn().mockResolvedValue({
       kind: "authenticated",
-      user: { userId: 7103, countryCode: "+81", phone: "81987654321", nickname: "Stale" },
+      user: { userId: 7103, countryCode: "+84", phone: "912345678", nickname: "Stale" },
       vaultRevision: 9,
     }),
   });
@@ -116,16 +112,16 @@ test("a stale registration flow discards only its issued session and does not lo
   expect(result).toEqual({ kind: "stale" });
 });
 
-test("an unexpected login challenge never claims the App as signed in", async () => {
+test("an unexpected recovery-login challenge never claims the App as signed in", async () => {
   const authApi = api({
-    register: vi.fn().mockResolvedValue({
-      kind: "authenticated",
-      user: { userId: 7104, countryCode: "+81", phone: "81987654321", nickname: "Challenge" },
-      vaultRevision: 2,
-    }),
+    register: vi.fn().mockRejectedValue(new ApiError({
+      kind: "network",
+      message: "NETWORK_UNAVAILABLE",
+      retryable: true,
+    })),
     login: vi.fn().mockResolvedValue({
       kind: "challenge",
-      user: { userId: 7104, countryCode: "+81", phone: "81987654321", nickname: "Challenge" },
+      user: { userId: 7104, countryCode: "+84", phone: "912345678", nickname: "Challenge" },
       challengeNo: "LOGIN-0123456789abcdef0123456789abcdef",
       deliveryHint: "***4321",
     }),

@@ -9,7 +9,7 @@
 -->
 <template>
   <!-- Active-state row -->
-  <view v-if="isActive" class="block active:opacity-90" :style="activeRowStyle" role="button" tabindex="0" :aria-label="activeTitle" @click="goTrial">
+  <view v-if="isActive" class="nx-glass-card block active:opacity-90" :style="activeRowStyle" data-me-action="trial" role="button" tabindex="0" :aria-label="activeTitle" @click="goTrial"  @keydown.enter.prevent="goTrial" @keydown.space.prevent="goTrial">
     <view style="flex: 1; min-width: 0">
       <text class="block" style="font-family: var(--font-v5); font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ activeTitle }}</text>
       <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px; font-family: var(--font-jet-mono), ui-monospace, monospace">{{ t.trial.entryDeviceName }}</text>
@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -37,20 +38,24 @@ const isActive = computed(() => status.value === "active" || status.value === "g
 const stateLabel = computed(() =>
   status.value === "grace" ? t.value.trial.activeStateGrace : t.value.trial.activeStateActive,
 );
-const activeTitle = computed(() => fmt(t.value.trial.activeTitle, { state: stateLabel.value }));
+const activeTitle = computed(() => status.value === "grace"
+  ? `${t.value.trial.endedTitle} · ${stateLabel.value}`
+  : fmt(t.value.trial.activeTitle, { state: stateLabel.value }));
 
 function goTrial() {
-  uni.navigateTo({ url: "/pages/me/trial", fail: () => {} });
+  navTo("/pages/me/trial");
 }
 
 // ── styles ──
-const activeRowStyle: CSSProperties = {
+const activeRowStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "10px",
   padding: "14px 16px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   display: "flex",
   alignItems: "center",
   gap: "12px",
 };
+
+
 </script>

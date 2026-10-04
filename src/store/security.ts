@@ -21,8 +21,11 @@ interface Persisted {
 }
 
 function hydrate(accountKey: string): Persisted {
+  if (remoteApiEnabled) {
+    return { passwordChangedAt: 0, twoFactorEnabled: false };
+  }
   const row = readAccountRow<Persisted>(ACCOUNTS_KEY, accountKey);
-  const mockState = remoteApiEnabled ? null : mockAuthSecurityState(accountKey);
+  const mockState = mockAuthSecurityState(accountKey);
   if (row && typeof row.twoFactorEnabled === "boolean") {
     return {
       passwordChangedAt: row.passwordChangedAt,
@@ -43,6 +46,7 @@ export const useSecurity = defineStore("security", () => {
   const twoFactorEnabled = ref(init.twoFactorEnabled);
 
   function persist() {
+    if (remoteApiEnabled) return;
     writeAccountRow<Persisted>(ACCOUNTS_KEY, boundKey, {
       passwordChangedAt: passwordChangedAt.value,
       twoFactorEnabled: twoFactorEnabled.value,
@@ -63,18 +67,19 @@ export const useSecurity = defineStore("security", () => {
   function changePassword(currentPassword: string, newPassword?: string) {
     const desired = newPassword ?? "";
     if (remoteApiEnabled) {
-      // Remote pages call accountApi directly; retain a no-op-compatible
-      // branch for legacy callers without pretending local state is authority.
       if (!desired) throw new ApiError({ kind: "business", message: "USER_INVALID_CREDENTIALS" });
-    } else {
-      changeMockAuthPassword(boundKey, currentPassword, desired);
+      // Remote pages call accountApi directly. This legacy method must not
+      // turn a successful command into a local security snapshot.
+      return;
     }
+    changeMockAuthPassword(boundKey, currentPassword, desired);
     passwordChangedAt.value = Date.now();
     persist();
   }
 
   function setTwoFactor(on: boolean, currentPassword = "") {
-    if (!remoteApiEnabled) setMockAuthTwoFactor(boundKey, on, currentPassword);
+    if (remoteApiEnabled) return;
+    setMockAuthTwoFactor(boundKey, on, currentPassword);
     twoFactorEnabled.value = on;
     persist();
   }

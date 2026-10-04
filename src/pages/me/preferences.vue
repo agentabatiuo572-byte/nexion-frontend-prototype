@@ -5,13 +5,19 @@
 -->
 <template>
   <AppChassis active="me">
-    <view style="padding-bottom: 24px">
+    <view class="message-family" style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/me" />
+      <view v-if="prefs.error" class="mx-4" style="margin-bottom: 12px; color: var(--v5-danger);" data-testid="notification-preferences-error">
+        <text>{{ preferenceError }}</text>
+        <view class="family-control preferences-retry" role="button" tabindex="0" :aria-label="t.ui.retry" @click="prefs.refreshRemote()">
+          <LiquidGlass :radius="24" /><text>{{ t.ui.retry }}</text>
+        </view>
+      </view>
 
       <!-- Sound + haptics -->
       <view class="mx-4">
         <text class="block" :style="headingStyle">{{ w.feedbackHeading }}</text>
-        <view :style="cardStyle">
+        <view class="nx-glass-card" :style="cardStyle">
           <ToggleRow :label="w.soundLabel" :hint="w.soundHint" :value="prefs.soundEnabled" @toggle="prefs.toggleSound">
             <template #icon>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" /><path d="M16 9a5 5 0 0 1 0 6" /><path d="M19.364 18.364a9 9 0 0 0 0-12.728" /></svg>
@@ -28,13 +34,16 @@
       <!-- Notification kinds -->
       <view class="mx-4" style="margin-top: 20px">
         <text class="block" :style="headingStyle">{{ w.notifHeading }}</text>
-        <view :style="cardStyle">
+        <text v-if="!prefs.remoteReady && !prefs.error" class="block" role="status" aria-live="polite">{{ w.loading }}</text>
+        <view v-if="prefs.remoteReady" class="nx-glass-card" :style="cardStyle">
           <ToggleRow
             v-for="(k, i) in notifKinds"
             :key="k"
             :label="w.notifKinds[k]"
             :value="prefs.notifPrefs[k]"
             :last="i === notifKinds.length - 1"
+            :locked="isMandatoryNotifKind(k)"
+            :hint="isMandatoryNotifKind(k) ? w.notifMandatoryHint : undefined"
             @toggle="prefs.toggleNotifKind(k)"
           >
             <template #icon>
@@ -52,13 +61,18 @@
 import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import ToggleRow from "@/components/me/preference-toggle-row.vue";
 import { useT } from "@/i18n/use-t";
-import { usePreferences, type NotifKind } from "@/store/preferences";
+import { isMandatoryNotifKind, usePreferences, type NotifKind } from "@/store/preferences";
 
 const t = useT();
 const w = computed(() => t.value.preferences);
 const prefs = usePreferences();
+const preferenceError = computed(() => {
+  const labels = t.value.preferences as typeof t.value.preferences & Record<"updateFailed" | "unavailable", string>;
+  return prefs.error === "updateFailed" ? labels.updateFailed : labels.unavailable;
+});
 
 const notifKinds: NotifKind[] = ["commission", "team", "staking", "market", "genesis", "system"];
 const NOTIF_COLOR: Record<NotifKind, string> = {
@@ -86,9 +100,9 @@ const headingStyle: CSSProperties = {
 };
 // Settings group (form b): single surface container, no border — the toggle rows
 // carry their own internal hairline dividers (PreferenceToggleRow `last` prop).
-const cardStyle: CSSProperties = {
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   overflow: "hidden",
 };
 const footerStyle: CSSProperties = {
@@ -97,4 +111,12 @@ const footerStyle: CSSProperties = {
   color: "var(--v5-ink-4)",
   lineHeight: 1.625,
 };
+
+
 </script>
+
+<style scoped>
+.preferences-retry { margin-top: 8px; }
+</style>
+
+<style src="@/styles/message-family.css"></style>

@@ -9,7 +9,7 @@
     <view style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/wallet-bills" />
 
-      <view v-if="remoteApiEnabled" class="mx-4" data-testid="tx-detail-hold" :style="holdStyle">
+      <view v-if="remoteApiEnabled" class="nx-glass-card mx-4" data-testid="tx-detail-hold" :style="holdStyle">
         <text class="block" :style="holdTitleStyle">{{ w.detailUnavailableTitle }}</text>
         <text class="block" :style="holdBodyStyle">{{ w.detailUnavailableBody }}</text>
       </view>
@@ -17,7 +17,7 @@
       <template v-else>
 
       <!-- Status hero — single-record container (form b: surface fill, no border) -->
-      <view class="mx-4" :style="heroStyle">
+      <view class="nx-glass-card mx-4" :style="heroStyle">
         <view class="flex items-center" style="gap: 8px; margin-bottom: 8px">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
           <text :style="confirmedStyle">{{ w.confirmed }}</text>
@@ -35,7 +35,7 @@
       </view>
 
       <!-- Tx details -->
-      <view class="mx-4" :style="detailsCardStyle">
+      <view class="nx-glass-card mx-4" :style="detailsCardStyle">
         <Row :label="w.from" :value="trunc(fromAddr)" mono />
         <Row :label="w.to" :value="trunc(toAddr)" mono />
         <Row :label="w.contract" :value="trunc(contract)" mono />
@@ -226,10 +226,10 @@ onUnmounted(() => {
 // border (all hardcoded hex) are dropped — the tx record now sits in a flat
 // surface container (form b). "Confirmed" reads from the green check + label +
 // success-tinted confirmations stat, no decorative aura needed.
-const heroStyle: CSSProperties = {
-  borderRadius: "16px",
+const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
 const confirmedStyle: CSSProperties = { fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", letterSpacing: "0.16em", color: "var(--v5-success)" };
 const hashStyle: CSSProperties = { fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", color: "var(--v5-ink-3)", wordBreak: "break-all" };
@@ -249,7 +249,7 @@ const copyBtnStyle: CSSProperties = {
 };
 // Tx fields — single-record container (form b: surface fill, no border); the
 // TxRow hairlines are the internal dividers.
-const detailsCardStyle: CSSProperties = { marginTop: "12px", borderRadius: "16px", background: "var(--v5-surface)", overflow: "hidden" };
+const detailsCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", marginTop: "12px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)", overflow: "hidden" };
 // External-explorer explainer — de-carded to the page floor (ancillary guidance,
 // not part of the receipt); content aligns to the mx-4 gutter, buttons take the
 // surface fill (L1 = the layer that sits on the page floor).
@@ -265,7 +265,9 @@ const extBtnStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
 };
 const footerStyle: CSSProperties = { marginTop: "16px", fontSize: "12px", color: "var(--v5-ink-4)", lineHeight: 1.625 };
-const holdStyle: CSSProperties = { padding: "16px", borderRadius: "16px", background: "var(--v5-surface)" };
+const holdStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "16px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
 const holdTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
 const holdBodyStyle: CSSProperties = { marginTop: "6px", fontSize: "13px", lineHeight: "19px", color: "var(--v5-ink-3)" };
+
+
 </script>

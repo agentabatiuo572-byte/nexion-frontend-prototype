@@ -10,7 +10,7 @@
   tasks banner below it on /earn.
 -->
 <template>
-  <view class="mx-4">
+  <view class="nx-earn-market-board nx-glass-card mx-4 p-4">
     <view class="flex items-center justify-between mb-2 px-0">
       <text style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.market.title }}</text>
       <view class="flex items-center gap-1" style="font-size: 12px; color: var(--v5-ink-3)">
@@ -32,8 +32,8 @@
         <view class="flex items-center gap-2.5">
           <view class="flex-1 min-w-0">
             <view class="flex items-baseline gap-1.5">
-            <text class="truncate" style="font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ w.name ?? t.market.workloads[w.code].label }}</text>
-              <text class="truncate" style="font-size: 12px; color: var(--v5-ink-4)">{{ w.unit ?? "—" }}</text>
+              <text class="truncate" style="font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ workloadCopy(w).name }}</text>
+              <text class="truncate" style="font-size: 12px; color: var(--v5-ink-4)">{{ workloadCopy(w).unit }}</text>
             </view>
             <text v-if="w.flagshipDelta !== null" class="block truncate" style="font-size: 12px; color: var(--v5-warning-ink); margin-top: 2px">↳ {{ t.market.flagshipRow }} <text class="tabular-nums" style="font-family: var(--font-v5)">↑{{ w.flagshipDelta.toFixed(1) }}%</text></text>
           </view>
@@ -56,11 +56,13 @@
         class="flex items-center gap-3 py-2.5"
         :class="d.kind ? 'active:opacity-70 transition-opacity' : ''"
         :style="{ borderTop: i !== 0 ? '1px solid color-mix(in srgb, var(--v5-border) 60%, transparent)' : 'none' }"
+        :role="d.kind ? 'link' : undefined"
+        :tabindex="d.kind ? 0 : undefined"
         v-on="d.kind ? { click: () => d.kind && goDetail(d.kind) } : {}"
       >
         <view class="flex-1 min-w-0">
-          <text class="block truncate" :style="{ fontSize: '15px', color: d.isPhone ? 'var(--v5-ink-3)' : 'var(--v5-ink-2)', fontWeight: d.isPhone ? 400 : 600 }">{{ d.name ?? t.market.yourPhone }}<text v-if="d.rank === 1" style="margin-left: 6px; font-size: 12px; color: var(--v5-warning-ink)">{{ t.uiChrome.best }}</text></text>
-          <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 2px">{{ bestForText(d.bestFor) }}</text>
+          <text class="block truncate" :style="{ fontSize: '15px', color: d.isPhone ? 'var(--v5-ink-3)' : 'var(--v5-ink-2)', fontWeight: d.isPhone ? 400 : 600 }">{{ d.name ?? t.market.yourPhone }}</text>
+          <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 2px">#{{ d.rank }}<template v-if="d.bestFor"> · {{ d.bestFor }}</template></text>
         </view>
         <text class="tabular-nums shrink-0" :style="{ fontFamily: 'var(--font-v5)', fontSize: '14.5px', fontWeight: 400, color: 'var(--v5-warning-ink)' }">{{ d.dailyEarn === null ? "—" : `$${d.dailyEarn.toFixed(2)}/d` }}</text>
         <svg v-if="d.kind" class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
@@ -70,12 +72,15 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed } from "vue";
 import type { CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import type { DeviceKind, TaskCategory } from "@/store/types";
 import { useApp } from "@/store/app";
 import { remoteApiEnabled } from "@/api/runtime";
+import { nexGridBrandText } from "@/lib/brand-copy";
+import { marketWorkloadCopy } from "@/lib/workload-label";
 
 interface WorkloadPrice {
   code: TaskCategory;
@@ -88,7 +93,7 @@ interface WorkloadPrice {
 }
 
 interface DeviceRanking {
-  rank: 1 | 2 | 3 | 4 | 5;
+  rank: number;
   /** 商品品牌名(不翻译);手机档没有商品名,走 t.market.yourPhone。 */
   name?: string;
   bestFor: string | null;
@@ -116,23 +121,16 @@ const DEVICE_RANKINGS: DeviceRanking[] = [
   { rank: 1, name: "UVELRack P1", dailyEarn: 45, bestFor: "rackP1", kind: "stellarrack-p1" },
   { rank: 2, name: "UVELBox Pro", dailyEarn: 13, bestFor: "boxPro", kind: "stellarbox-pro" },
   { rank: 3, name: "UVELBox S1", dailyEarn: 7, bestFor: "boxS1", kind: "stellarbox-s1" },
-  { rank: 4, name: "Inference Share", dailyEarn: 0.19, bestFor: "cloudShare", kind: "cloud-share" },
-  { rank: 5, dailyEarn: 0.06, bestFor: "phone", isPhone: true },
+  { rank: 4, dailyEarn: 0.06, bestFor: "phone", isPhone: true },
 ];
 
 const priceIndex = computed<WorkloadPrice[]>(() => remoteApiEnabled
   ? (app.homeTruth?.marketBoard.workloads ?? []).map((row) => ({ code: row.code, name: row.name, unit: row.unit, price: row.price, delta: row.deltaPct, spark: row.sparkline ?? [], flagshipDelta: row.flagshipDeltaPct }))
   : PRICE_INDEX);
+const workloadCopy = (row: WorkloadPrice) => marketWorkloadCopy(t.value, row.code, row.name, row.unit);
 const deviceRankings = computed<DeviceRanking[]>(() => remoteApiEnabled
-  ? (app.homeTruth?.marketBoard.deviceRankings ?? []).map((row) => ({ rank: Math.min(5, row.rank) as 1 | 2 | 3 | 4 | 5, name: row.name ?? undefined, dailyEarn: row.dailyUsdt, bestFor: row.bestFor, kind: row.kind && row.kind !== "phone" ? row.kind : undefined, isPhone: row.kind === "phone" }))
+  ? (app.homeTruth?.marketBoard.deviceRankings ?? []).filter((row) => row.kind !== "cloud-share").map((row) => ({ rank: row.rank, name: row.name ? nexGridBrandText(row.name) : undefined, dailyEarn: row.dailyUsdt, bestFor: row.bestFor, kind: row.kind && row.kind !== "phone" ? row.kind : undefined, isPhone: row.kind === "phone" }))
   : DEVICE_RANKINGS);
-
-function bestForText(value: string | null): string {
-  if (!value) return "—";
-  if (remoteApiEnabled) return value;
-  const labels = t.value.market.bestFor as Record<string, string>;
-  return Object.prototype.hasOwnProperty.call(labels, value) ? labels[value] : value;
-}
 
 function formatPrice(n: number): string {
   if (n >= 1) return n.toFixed(2);
@@ -158,7 +156,7 @@ function sparkPoints(data: number[]): string {
 }
 
 function goDetail(kind: Exclude<DeviceKind, "phone">) {
-  uni.navigateTo({ url: `/pages/store/detail?id=${kind}`, fail: () => {} });
+  navTo(`/pages/store/detail?id=${kind}`);
 }
 
 const sectionLabelStyle: CSSProperties = {

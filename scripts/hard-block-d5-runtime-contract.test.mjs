@@ -30,5 +30,5 @@ test("withdraw fast lane is server-owned: threshold from policy, waiver from the
   assert.match(smallLine, /canSubmit: false/);
   assert.match(smallLine, /route: "manual" as const/);
   assert.match(smallLine, /waivedGates: \[\]/);
-  assert.match(page, /remoteApiEnabled \|\| fundsSandboxEnabled/);
+  assert.match(page, /smallLineDecision = computed\(\(\) =>\s*remoteApiEnabled/);
 });

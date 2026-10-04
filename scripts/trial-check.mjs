@@ -9,6 +9,7 @@
 import { chromium } from "playwright";
 import { collectAppConsoleErrors } from "./lib/console-origin-filter.mjs";
 import { directAppUrl } from "./lib/direct-app-url.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 import {
   assertNoRuntimeErrors,
   assertDirectPageCoverage,
@@ -17,6 +18,42 @@ import {
   collectUniAppRuntimeIdentity,
 } from "./lib/probe-coverage.mjs";
 const BASE = process.env.BASE_URL || "http://localhost:5173";
+
+const trialConfig = {
+  trialDays: "3", graceDays: "7", discountRate: "0.15", discountCapUSD: "20",
+  trialOffsetCapUSD: "50", trialProductId: "stellarbox-s1", trialPriceUSD: "649",
+  shadowDailyUSD: "7", shadowDailyNEX: "40", seatsLeftToday: "47", phaseOpen: true,
+  autoPushEnabled: true, autoPushDelayMs: "1500", autoPushCooldownHours: "24",
+  autoPushMaxPerSession: "1",
+};
+const eligibleTrial = {
+  authoritative: true,
+  state: "ELIGIBLE",
+  canStart: true,
+  serverNowEpochMs: 1781700000000,
+  version: 1,
+  claimNo: null,
+  shadowUsdt: 0,
+  shadowNex: 0,
+  source: "nx_trial_claim",
+  serverCanonical: true,
+  sourceEnvironment: "PRODUCTION",
+  runId: "",
+  provenance: {
+    serverCanonical: true,
+    source: "nx_trial_claim",
+    sourceEnvironment: "PRODUCTION",
+    runId: "",
+  },
+  paymentRail: "NEXION_USDT_WALLET",
+  config: trialConfig,
+};
+const emptyVoucherState = {
+  vouchers: [],
+  source: "nx_growth_voucher + nx_growth_voucher_grant",
+  serverCanonical: true,
+  provenance: { source: "nx_growth_voucher", sourceEnvironment: "PRODUCTION", runId: "" },
+};
 
 async function check(route) {
   const ctx = await browser.newContext({ viewport: { width: 414, height: 896 }, colorScheme: "dark" });
@@ -33,6 +70,13 @@ async function check(route) {
   const errors = [];
   page.on("console", collectAppConsoleErrors(errors, BASE));
   page.on("pageerror", (e) => errors.push(String(e)));
+  await installFormalProbeSession(page, {
+    responseFor: (url) => {
+      if (url.pathname === "/api/trial/state" || url.pathname === "/api/trial/eligibility") return eligibleTrial;
+      if (url.pathname === "/api/vouchers") return emptyVoucherState;
+      return undefined;
+    },
+  });
   await page.goto(directAppUrl(BASE, route), { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2600); // > 1500ms auto-push delay
   const open = await page.evaluate(() => !!document.querySelector(".tcs-root, .tcs-panel"));

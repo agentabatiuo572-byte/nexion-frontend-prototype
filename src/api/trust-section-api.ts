@@ -1,7 +1,6 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
-import type { ApiResponseEnvironment } from "./runtime-config";
-import { captureCommerceSandboxRun } from "./order-api";
+import type { ApiEnvironment } from "./runtime-config";
 
 export type TrustLocale = "zh" | "vi" | "en";
 export type TrustSectionKey =
@@ -89,19 +88,13 @@ function section(value: unknown): PublishedTrustSection {
   };
 }
 
-const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{7,95}$/;
-
-function response(value: unknown, mode: ApiResponseEnvironment): PublishedTrustSection[] {
+function response(value: unknown, mode: ApiEnvironment): PublishedTrustSection[] {
   const body = record(value);
-  const expectedSource = mode === "dev" ? "mock" : "nx_trust_section_version:published";
+  const expectedSource = "nx_trust_section_version:published";
   if (body.serverCanonical !== true || body.source !== expectedSource
       || !Array.isArray(body.sections) || body.sections.length !== SECTION_KEYS.size) return invalid();
-  if (mode === "prod") {
+  if (mode === "prod" || mode === "dev") {
     if (body.sourceEnvironment !== "PRODUCTION" || body.runId !== "") return invalid();
-  } else if (mode === "dev") {
-    if (body.sourceEnvironment !== "SANDBOX" || typeof body.runId !== "string" || !RUN_ID.test(body.runId)) return invalid();
-    const currentRun = captureCommerceSandboxRun().runId;
-    if (currentRun === null || currentRun !== body.runId) return invalid();
   } else return invalid();
   const sections = body.sections.map(section);
   const sectionKeys = new Set(sections.map((item) => item.sectionKey));
@@ -119,7 +112,7 @@ function validSectionKey(value: string): TrustSectionKey {
   return normalized as TrustSectionKey;
 }
 
-export function createTrustSectionApi(client: ApiClient, mode: ApiResponseEnvironment = "prod"): TrustSectionApi {
+export function createTrustSectionApi(client: ApiClient, mode: ApiEnvironment = "prod"): TrustSectionApi {
   return {
     current: async () => response(await client.request({
       method: "GET",

@@ -25,13 +25,11 @@
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/wallet" title="USDT" :subtitle="t.wallet.withdraw" />
-      <FundsSandboxBadge />
-
       <view v-if="pendingAttempt" class="mx-4 mb-3 flex items-start" :style="holdBannerStyle">
         <view class="flex-1 min-w-0">
           <text class="block" style="font-size: 12px; color: var(--v5-warning); font-weight: 600">{{ t.walletV3.withdrawAmbiguousExitTitle }}</text>
           <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 3px; line-height: 1.4">{{ t.walletV3.withdrawAmbiguousExitBody }}</text>
-          <view class="inline-flex items-center active:opacity-70" style="min-height: 44px; margin-top: 4px" @click="abandonPendingAttempt">
+          <view class="inline-flex items-center active:opacity-70" style="min-height: 44px; margin-top: 4px" role="button" tabindex="0" :aria-disabled="abandoningAttempt" :aria-label="t.walletV3.withdrawAbandonAttemptCta" @click="abandonPendingAttempt"  @keydown.enter.prevent="abandonPendingAttempt" @keydown.space.prevent="abandonPendingAttempt">
             <text style="font-size: 12px; color: var(--v5-danger); text-decoration: underline">{{ abandoningAttempt ? `${t.walletV3.withdrawAbandonAttemptCta}…` : t.walletV3.withdrawAbandonAttemptCta }}</text>
           </view>
         </view>
@@ -39,7 +37,7 @@
 
       <!-- dev-only tester reset(?dev=1):清空当前账号提现地址簿,复现空态引导 -->
       <view v-if="devMode" class="mx-4 mb-3 flex items-center justify-end">
-        <view class="shrink-0 inline-flex items-center active:opacity-80" :style="resetBtnStyle" @click="handleResetAddresses">
+        <view class="shrink-0 inline-flex items-center active:opacity-80" :style="resetBtnStyle" role="button" tabindex="0" :aria-label="t.walletV3.resetAddrLabel" @click="handleResetAddresses"  @keydown.enter.prevent="handleResetAddresses" @keydown.space.prevent="handleResetAddresses">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
           <text style="margin-left: 4px">{{ t.walletV3.resetAddrLabel }}</text>
         </view>
@@ -70,21 +68,30 @@
       <view class="mx-4" style="padding: 0 2px">
         <view class="flex items-center justify-between">
           <text class="font-mono-tabular" :style="metaLabelStyle">{{ t.wallet.amountLabel }}</text>
-          <view class="inline-flex items-center active:opacity-70" style="min-height: 44px; padding: 0 10px; margin: -12px -8px -12px 0" @click="useMax">
+          <view class="inline-flex items-center active:opacity-70" style="min-height: 44px; padding: 0 10px; margin: -12px -8px -12px 0" role="button" tabindex="0" :aria-disabled="inputsLocked || !withdrawalActionsFresh" :aria-label="t.wallet.useMax" @click="useMax"  @keydown.enter.prevent="useMax" @keydown.space.prevent="useMax">
             <text style="font-size: 12px; color: var(--v5-brand)">{{ t.wallet.useMax }}</text>
           </view>
         </view>
         <view class="flex items-baseline" style="margin-top: 8px; gap: 8px">
           <text style="font-family: var(--font-v5); font-size: 26px; color: var(--v5-ink-3)" class="shrink-0">$</text>
-          <input class="flex-1 min-w-0 tabular-nums" :style="amountInputStyle" type="text" inputmode="decimal" :value="amount" placeholder="0.00" :disabled="inputsLocked" @input="onAmount" />
+          <input class="flex-1 min-w-0 tabular-nums" :style="amountInputStyle" type="text" inputmode="decimal" :value="amount" placeholder="0.00" :aria-label="t.wallet.amountLabel" :disabled="inputsLocked" @input="onAmount" />
           <text class="shrink-0" style="font-size: 12px; color: var(--v5-ink-3)">USDT</text>
         </view>
         <view class="flex items-center justify-between" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">
-          <text>{{ t.wallet.withdrawableAvailable }} <text class="tabular-nums" style="color: var(--v5-ink-2); font-family: var(--font-v5)">${{ maxWithdrawable.toFixed(2) }}</text></text>
-          <text>{{ minAmountLine }}</text>
+          <text v-if="withdrawalFactsDisplayable">{{ t.wallet.withdrawableAvailable }} <text class="tabular-nums" style="color: var(--v5-ink-2); font-family: var(--font-v5)">${{ maxWithdrawable.toFixed(2) }}</text></text>
+          <text v-else>{{ withdrawalFactsStatusText }}</text>
+          <text v-if="withdrawalFactsDisplayable">{{ minAmountLine }}</text>
+          <text v-else>—</text>
+        </view>
+        <text v-if="withdrawalFactsRefreshing" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ withdrawalFactsStatusText }}</text>
+        <text v-else-if="withdrawalFactsStale" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-warning)">{{ withdrawalFactsStatusText }}</text>
+        <view v-if="withdrawalFactsNeedsRetry" class="inline-flex items-center active:opacity-70" style="min-height: 44px; margin-top: 2px" role="button" tabindex="0" :aria-label="t.wallet.retryFunds" @click="retryWithdrawalFacts"  @keydown.enter.prevent="retryWithdrawalFacts" @keydown.space.prevent="retryWithdrawalFacts">
+          <text style="font-size: 12px; color: var(--v5-brand); text-decoration: underline">{{ t.wallet.retryFunds }}</text>
         </view>
         <!-- SPEC-7 ⑤ 默认态: 折叠展示不可提部分(审核中/锁定不参与最大值) -->
-        <text v-if="heldLine" class="block tabular-nums" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ heldLine }}</text>
+        <text v-if="withdrawalFactsDisplayable && heldLine" class="block tabular-nums" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ heldLine }}</text>
+        <text v-if="withdrawalFactsDisplayable && withdrawalRatioLine" class="block tabular-nums" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ withdrawalRatioLine }}</text>
+        <text v-if="withdrawalFactsDisplayable && withdrawalPolicy" class="block tabular-nums" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ perWithdrawalLimitText }}</text>
       </view>
 
       <!-- 🔴 小额免审快车道的正向态:免掉闸时**说出来**。走查实测,此前输 $30 页面一个字都没有,
@@ -108,7 +115,7 @@
           <!-- 🔴 反向态:说了「要审」就得给下一步。仅当降到小额线后判定真会免审时才出现,
                否则(风控闸命中,快车道免不掉)出现就是骗他白改一次金额。 -->
           <view v-if="fastLaneOverLine" class="active:opacity-70" :style="fastLaneCtaStyle" role="button" tabindex="0" :aria-label="fastLaneCta" @click.stop="useSmallAmountLine"
-            @keydown.enter.prevent="useSmallAmountLine" @keydown.space.prevent="useSmallAmountLine">
+             @keydown.enter.prevent="useSmallAmountLine" @keydown.space.prevent="useSmallAmountLine">
             <text :style="fastLaneCtaTextStyle">{{ fastLaneCta }} →</text>
           </view>
           <view
@@ -119,8 +126,8 @@
             tabindex="0"
             :aria-label="t.wallet.fastLaneUndo"
             @click.stop="undoSmallAmountLine"
-            @keydown.enter.prevent="undoSmallAmountLine"
-            @keydown.space.prevent="undoSmallAmountLine"
+
+            @keydown.enter.prevent="undoSmallAmountLine" @keydown.space.prevent="undoSmallAmountLine"
           >
             <text :style="fastLaneUndoTextStyle">{{ t.wallet.fastLaneUndo }}</text>
           </view>
@@ -130,20 +137,25 @@
       <!-- 提现网络 — 可选(每网络各有独立当前地址;RM01a ③) -->
       <view class="mx-4 mt-4" style="padding: 0 2px">
         <text class="block font-mono-tabular" :style="metaLabelStyle">{{ t.wallet.networkLabel }}</text>
-        <view class="flex" style="gap: 8px; margin-top: 8px">
+        <view class="flex" style="gap: 8px; margin-top: 8px" role="radiogroup" :aria-label="t.wallet.networkLabel">
           <view
             v-for="nw in NETWORKS"
             :key="nw.id"
-            :class="['flex-1 grid place-items-center active:opacity-85', `nx-withdraw-net-${nw.id.slice(5)}`]"
+            :class="['flex-1 grid place-items-center active:opacity-85 nx-withdraw-network-radio', `nx-withdraw-net-${nw.id.slice(5)}`]"
             :style="netChipStyle(nw.id)"
-            role="button" tabindex="0"
-            :aria-selected="network === nw.id"
+            role="radio" :tabindex="network === nw.id ? 0 : -1"
+            :aria-checked="network === nw.id"
             @click="pickNetwork(nw.id)"
+
+
+
+            @keydown.enter.prevent="pickNetwork(nw.id)" @keydown.space.prevent="pickNetwork(nw.id)" @keydown.left.prevent="moveNetwork(-1)" @keydown.right.prevent="moveNetwork(1)"
           >
             <text :style="netChipLabelStyle(nw.id)">{{ nw.label }}</text>
           </view>
         </view>
         <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-4); line-height: 1.4">{{ networkHint(network) }}</text>
+        <text v-if="withdrawalChannelStatusText" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4); line-height: 1.4">{{ withdrawalChannelStatusText }}</text>
       </view>
 
       <!-- 提现地址(RM01a ⑤:当前网络地址掩码中段 + 「管理」入口;未设置 → 内联引导卡,不是拦截态) -->
@@ -157,7 +169,10 @@
             class="nx-withdraw-manage-entry grid place-items-center shrink-0 active:opacity-80"
             :style="manageEntryStyle"
             role="button" tabindex="0"
+            :aria-label="t.addrRebind.manageCta"
             @click="goManage"
+
+            @keydown.enter.prevent="goManage" @keydown.space.prevent="goManage"
           >
             <text :style="manageEntryTextStyle">{{ t.addrRebind.manageCta }}</text>
           </view>
@@ -173,7 +188,7 @@
               <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.4">{{ t.addrRebind.emptyGuideBody }}</text>
             </view>
           </view>
-          <view class="nx-withdraw-add-address-cta mt-3 w-full grid place-items-center active:opacity-85" :style="addrGuideCtaStyle" role="button" tabindex="0" @click="goManage">
+          <view class="nx-withdraw-add-address-cta mt-3 w-full grid place-items-center active:opacity-85" :style="addrGuideCtaStyle" role="button" tabindex="0" :aria-label="t.addrRebind.addCta" @click="goManage"  @keydown.enter.prevent="goManage" @keydown.space.prevent="goManage">
             <text style="font-family: var(--font-v5); font-size: 13px; font-weight: 600">{{ t.addrRebind.addCta }}</text>
           </view>
         </view>
@@ -192,12 +207,15 @@
           <view :style="feeSkeletonValueStyle" />
         </view>
       </view>
+      <view v-else-if="withdrawalPolicyCurrent && NETWORKS.length === 0" class="mx-4 mt-4" style="padding: 0 2px">
+        <text style="font-size: 12px; color: var(--v5-warning)">{{ t.wallet.withdrawalChannelsClosed }}</text>
+      </view>
       <view v-else-if="!feeConfigUsable" class="mx-4 mt-4" style="padding: 0 2px">
         <view class="flex items-center justify-between">
           <text style="font-size: 12px; color: var(--v5-warning)">{{ t.walletV3.feeConfigUnavailableTitle }}</text>
           <view class="inline-flex items-center active:opacity-70" style="min-height: 44px; padding: 0 10px; margin: -12px -8px"
             role="button" tabindex="0" :aria-label="t.walletV3.feeConfigRetry" @click="retryFeeConfig"
-            @keydown.enter.prevent="retryFeeConfig" @keydown.space.prevent="retryFeeConfig">
+             @keydown.enter.prevent="retryFeeConfig" @keydown.space.prevent="retryFeeConfig">
             <text style="font-size: 12px; color: var(--v5-brand)">{{ t.walletV3.feeConfigRetry }}</text>
           </view>
         </view>
@@ -221,7 +239,7 @@
         <view class="flex items-center justify-between">
           <view class="inline-flex items-center" style="gap: 2px">
             <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.walletV3.feeConfirmRow }}</text>
-            <view class="grid place-items-center active:opacity-60" style="min-width: 32px; min-height: 32px; margin: -10px 0" role="button" tabindex="0" :aria-label="t.walletV3.feeWhyTitle" @click="feeWhyOpen = true">
+            <view class="grid place-items-center active:opacity-60" style="min-width: 32px; min-height: 32px; margin: -10px 0" role="button" tabindex="0" :aria-label="t.walletV3.feeWhyTitle" @click="feeWhyOpen = true"  @keydown.enter.prevent="feeWhyOpen = true" @keydown.space.prevent="feeWhyOpen = true">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>
             </view>
           </view>
@@ -258,12 +276,18 @@
                  上方并没有任何手续费可言;而这正是打开提现页的落地首屏,看的人最多。
                  分隔空格用 {{ ' ' }} 显式写,直接写在标签间的前导空格会被编译器吃掉
                  (实测渲染成 `$20.The fee…` 粘在一起)。 -->
-            <text class="block">{{ minWithdrawNoteText }}<text v-if="feeConfigUsable && amountNum > 0 && !quoteBlocked">{{ t.wallet.minWithdrawNoteOffset }}</text></text>
+            <text v-if="withdrawalPolicyCurrent" class="block">{{ minWithdrawNoteText }}<text v-if="feeConfigUsable && amountNum > 0 && !quoteBlocked">{{ t.wallet.minWithdrawNoteOffset }}</text></text>
+            <text v-else class="block">{{ t.help.loadingMore }}</text>
             <!-- 🔴 这句只在**闸真的会拦**时才出现:limitCount ≤0 = 服务端没配 / policy 拉不到,
                  判定层按「不限制」走,这时再说一句「每日限额:0 笔/日」就是当场撒谎
                  (实景实测:后端不可达时它真的渲染成 0 笔/日)。
                  「有没有这句话」与「闸生不生效」从此是同一个条件,不会再各走各的。 -->
-            <text v-if="dailyFacts.limitCount > 0" class="block">{{ dailyLimitNoteText }}</text>
+            <text v-if="dailyFactsDisplayable && limitFacts.dailyLimitConfigured" class="block">{{ dailyUsageText }}</text>
+            <text v-else-if="dailyFactsDisplayable && withdrawalPolicy" class="block">{{ t.wallet.dailyWithdrawalCountNotSet }}</text>
+            <text v-else class="block">{{ dailyFactsStatusText }}</text>
+            <text v-if="dailyFactsDisplayable && withdrawalPolicy" class="block">{{ t.wallet.dailyWithdrawalAmountNotSet }}</text>
+            <text v-if="dailyFactsRefreshing" class="block" style="margin-top: 2px; color: var(--v5-ink-4)">{{ dailyFactsStatusText }}</text>
+            <text v-else-if="dailyFactsState === 'stale'" class="block" style="margin-top: 2px; color: var(--v5-warning)">{{ dailyFactsStatusText }}</text>
           </view>
         </view>
       </view>
@@ -293,8 +317,8 @@
             tabindex="0"
             :style="switchHitStyle"
             @click="toggleOffset"
-            @keydown.enter.prevent="toggleOffset"
-            @keydown.space.prevent="toggleOffset"
+
+            @keydown.enter.prevent="toggleOffset" @keydown.space.prevent="toggleOffset"
           >
             <view :style="switchTrackStyle">
               <view :style="switchKnobStyle" />
@@ -303,19 +327,19 @@
         </view>
         <text class="block" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.4">{{ offsetHintText }}</text>
         <!-- NEX=0:开关置灰 + 去赚 NEX 入口(复用 earn 路由;去了再回来,页面实例保留,开关状态不丢) -->
-        <view v-if="offsetToggleDisabled" class="inline-flex items-center active:opacity-70" style="min-height: 44px; margin-top: 2px" role="button" tabindex="0" :aria-label="t.walletV3.earnNexCta" @click="goEarnNex">
+        <view v-if="offsetToggleDisabled" class="inline-flex items-center active:opacity-70" style="min-height: 44px; margin-top: 2px" role="button" tabindex="0" :aria-label="t.walletV3.earnNexCta" @click="goEarnNex"  @keydown.enter.prevent="goEarnNex" @keydown.space.prevent="goEarnNex">
           <text style="font-size: 12px; font-weight: 500; color: var(--v5-brand)">{{ t.walletV3.earnNexCta }} →</text>
         </view>
       </view>
 
       <!-- 费用说明半屏(规格 ⑥ 新增):仅网络确认费含义 + NEX 抵扣规则,无按金额比例的旧费率段落。
            范式同 device-deactivate-sheet(scrim z79 + slide-up panel z80,safe-area padding)。 -->
-      <view v-if="feeWhyOpen">
+      <view v-if="feeWhyOpen" class="nx-withdraw-fee-dialog" role="dialog" aria-modal="true" :aria-label="t.walletV3.feeWhyTitle">
         <view class="nx-sheet-fade-in" :style="feeWhyScrimStyle" @click="feeWhyOpen = false" />
-        <view class="nx-sheet-slide-up" :style="feeWhySheetStyle">
+        <view class="nx-glass-sheet nx-sheet-slide-up" :style="feeWhySheetStyle">
           <view class="flex items-start justify-between" style="gap: 12px">
             <text class="block" :style="feeWhyTitleStyle">{{ t.walletV3.feeWhyTitle }}</text>
-            <view class="grid place-items-center shrink-0 active:opacity-60" :style="feeWhyCloseStyle" role="button" tabindex="0" :aria-label="t.walletV3.feeWhyClose" @click="feeWhyOpen = false">
+            <view class="grid place-items-center shrink-0 active:opacity-60" :style="feeWhyCloseStyle" role="button" tabindex="0" :aria-label="t.walletV3.feeWhyClose" @click="feeWhyOpen = false"  @keydown.enter.prevent="feeWhyOpen = false" @keydown.space.prevent="feeWhyOpen = false">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
             </view>
           </view>
@@ -329,7 +353,7 @@
       <!-- Sticky submit -->
       <view class="mx-4 mt-4" style="padding-bottom: 12px">
         <!-- 未设地址/金额不合法时按不动:显式 aria-disabled + 可提交时给按下反馈(《05》§6.1 + 《08》§2) -->
-        <view class="nx-withdraw-submit-cta w-full grid place-items-center" :class="{ 'active:opacity-90 transition-opacity': canSubmit }" role="button" tabindex="0" :aria-disabled="canSubmit ? 'false' : 'true'" :style="submitBtnStyle" @click="handleSubmit">
+        <view class="nx-withdraw-submit-cta w-full grid place-items-center" :class="{ 'active:opacity-90 transition-opacity': canSubmit }" role="button" tabindex="0" :aria-disabled="canSubmit ? 'false' : 'true'" :aria-busy="submitting" :style="submitBtnStyle" @click="handleSubmit"  @keydown.enter.prevent="handleSubmit" @keydown.space.prevent="handleSubmit">
           <view class="inline-flex items-center" style="gap: 8px">
             <template v-if="submitting">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
@@ -353,46 +377,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
+import { ref, computed, nextTick, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import { platformDayIndex } from "@/store/withdrawal-eligibility-core";
-import { onLoad, onShow } from "@dcloudio/uni-app";
+import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
 import StakeAlternativeCard from "@/components/me/stake-alternative-card.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import {
-  forgetWithdrawAttempt,
-  newWithdrawKey,
-  readWithdrawAttempt,
-  rememberWithdrawAttempt,
-} from "@/lib/withdraw-attempt";
+import { forgetWithdrawAttempt, newWithdrawKey, readWithdrawAttempt, rememberWithdrawAttempt } from "@/lib/withdraw-attempt";
 import { navTo } from "@/lib/route";
 import { normalizeSlaHours } from "@/store/withdrawal-arrival-core";
+import { computeWithdrawalMaximum, formatWithdrawalRatioPercent, resolveWithdrawalUseMax } from "@/lib/withdrawal-use-max";
+import { withdrawalLimitFacts } from "@/lib/withdrawal-limit-facts";
+import { financialFactState, shouldRequestWithdrawalEligibility, withdrawalFactsActionsFresh } from "@/lib/withdrawal-facts-state";
+import { isCurrentWithdrawalFactsRequest } from "@/lib/withdrawal-facts-request-fence";
 import { riskReasonLines, waivedGateLines } from "@/lib/risk-reason-text";
 import { useApp } from "@/store/app";
-import { earningsReleaseSnapshot } from "@/store/earning-release";
+import { earningsReleaseHasSnapshot, earningsReleaseSnapshot, earningsReleaseStatus, refreshEarningsReleaseStatus } from "@/store/earning-release";
 // 账单不再直连 useBills:提现的钱由服务端扣,只补收据 —— 走 postReceiptForAccount
 // (postMoneyBill 会照 draft 符号再扣一次本地余额)。分录形状由 withdrawalBillDrafts 单源构造。
 import { postReceiptForAccount } from "@/lib/money-receipt";
 import { withdrawalBillDrafts } from "@/lib/withdrawal-bill-drafts";
 import { usePayoutAddress } from "@/store/payout-address";
-import { mockFundsEnabled, fundsServerEnabled, remoteApiEnabled } from "@/api/runtime";
+import { fundsServerEnabled, remoteApiEnabled, sessionVault, withdrawalApi } from "@/api/runtime";
+import { binarySessionReady } from "@/lib/binary-session-ready";
+import { useAuth } from "@/store/auth";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { formatClock, freezeRemainingMs, fromWithdrawNetwork, maskAddressMid } from "@/store/payout-address-core";
 import { mockServerNow } from "@/store/server-time";
-import {
-  evaluateWithdrawal,
-  requestWithdrawalEligibility,
-  type WithdrawalEligibility,
-} from "@/store/withdrawal-eligibility";
+import { evaluateWithdrawal, requestWithdrawalEligibility, type WithdrawalEligibility } from "@/store/withdrawal-eligibility";
 import { computeWithdrawFee, isWithdrawalFeeSnapshotValid, type WithdrawNetworkKey } from "@/store/nex-faucet";
 import { useRiskDisclosure } from "@/store/risk-disclosure";
 import { useProductPhase } from "@/composables/use-product-phase";
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { confirm as uiConfirm, toast } from "@/store/ui";
 import type { Withdrawal, WithdrawalFeeSnapshot } from "@/store/types";
-import { withdrawalApi } from "@/api/runtime";
+type CryptoNetwork = Exclude<Withdrawal["network"], "BANK-VND">;
+
 // 🔴 不再 import isAmbiguousOutcome:本页改用 isSettledRejection + isIdempotencyConflict 分诊。
 // 那行 import 曾经是**全文件唯一**的 isAmbiguousOutcome 出现处(零调用),却正好喂饱了
 // selfcheck-fastlane 的一格字符串针 —— 门以为页面在用它,实际一次没调过。
@@ -401,7 +424,7 @@ import { ApiError } from "@/api/errors";
 import { triageWithdrawFailure } from "@/lib/withdraw-failure-triage";
 import type { WithdrawalPolicy } from "@/api/withdrawal-api";
 
-const ALL_NETWORKS: { id: Withdrawal["network"]; label: string }[] = [
+const ALL_NETWORKS: { id: CryptoNetwork; label: string }[] = [
   { id: "USDT-TRC20", label: "TRC20" },
   { id: "USDT-BEP20", label: "BEP20" },
   { id: "USDT-ERC20", label: "ERC20" },
@@ -409,12 +432,14 @@ const ALL_NETWORKS: { id: Withdrawal["network"]; label: string }[] = [
 
 const t = useT();
 const app = useApp();
+const auth = useAuth();
 const payout = usePayoutAddress();
 const risk = useRiskDisclosure();
 const phase = useProductPhase();
 const withdrawalPolicy = ref<WithdrawalPolicy | null>(null);
 const withdrawalPolicyLoading = ref(false);
 const withdrawalPolicyError = ref("");
+let withdrawalPolicyRefreshSequence = 0;
 const pendingAttempt = ref(readWithdrawAttempt(app.accountKey));
 const abandoningAttempt = ref(false);
 
@@ -423,19 +448,24 @@ function refreshPendingAttempt() {
 }
 
 async function abandonPendingAttempt() {
-  const pending = readWithdrawAttempt(app.accountKey);
+  const accountKey = app.accountKey;
+  const bindingEpoch = app.accountBindingEpoch;
+  const runtimeScope = captureRuntimeRevision();
+  const scopeIsCurrent = () => app.accountKey === accountKey
+    && app.accountBindingEpoch === bindingEpoch && isCurrentRuntimeRevision(runtimeScope);
+  const pending = readWithdrawAttempt(accountKey);
   if (!pending || abandoningAttempt.value || submitting.value || confirmingSubmit.value) return;
-  const confirmed = await uiConfirm({
-    title: t.value.walletV3.withdrawAbandonAttemptTitle,
-    message: t.value.walletV3.withdrawAbandonAttemptBody,
-    danger: true,
-    icon: "warn",
-    confirmLabel: t.value.walletV3.withdrawAbandonAttemptCta,
-  });
-  if (!confirmed) return;
   abandoningAttempt.value = true;
   try {
-    if (remoteApiEnabled && !mockFundsEnabled) {
+    const confirmed = await uiConfirm({
+      title: t.value.walletV3.withdrawAbandonAttemptTitle,
+      message: t.value.walletV3.withdrawAbandonAttemptBody,
+      danger: true,
+      icon: "warn",
+      confirmLabel: t.value.walletV3.withdrawAbandonAttemptCta,
+    });
+    if (!confirmed || !scopeIsCurrent()) return;
+    if (remoteApiEnabled) {
       const result = await withdrawalApi.abandonAttempt({
         idempotencyKey: pending.key,
         amount: pending.amount,
@@ -444,102 +474,185 @@ async function abandonPendingAttempt() {
         policyVersion: pending.policyVersion,
         useNexFeeOffset: pending.offset,
       });
-      forgetWithdrawAttempt(app.accountKey);
+      if (!scopeIsCurrent()) return;
+      forgetWithdrawAttempt(accountKey);
       refreshPendingAttempt();
       if (result.state === "COMMITTED") {
         toast.info(t.value.walletV3.withdrawAbandonAlreadyCommitted);
         await app.refreshRemoteFleet();
-        uni.navigateTo({ url: `/pages/me/wallet-withdraw-tracking?id=${encodeURIComponent(result.withdrawal.withdrawalNo)}`, fail: () => {} });
+        if (!scopeIsCurrent()) return;
+        navTo(`/pages/me/wallet-withdraw-tracking?id=${encodeURIComponent(result.withdrawal.withdrawalNo)}`);
       } else {
         toast.info(t.value.walletV3.withdrawAbandonSuccess);
       }
     } else {
-      // Explicit local funds sandbox has no production money side effect.
-      forgetWithdrawAttempt(app.accountKey);
+      if (!scopeIsCurrent()) return;
+      forgetWithdrawAttempt(accountKey);
       refreshPendingAttempt();
       toast.info(t.value.walletV3.withdrawAbandonSuccess);
     }
   } catch {
+    if (!scopeIsCurrent()) return;
     toast.error(t.value.walletV3.withdrawOutcomeUnknownTitle, t.value.walletV3.withdrawOutcomeUnknownBody);
   } finally {
     abandoningAttempt.value = false;
   }
 }
-// The production withdrawal policy is deliberately irrelevant in an explicit
-// funds sandbox. Only the strict, authenticated wallet overview may project
-// this rail; a missing or contradictory policy leaves the page closed.
-const sandboxWithdrawalPolicy = computed(() => {
-  const evidence = app.fundsSandboxEvidence;
-  const policy = evidence?.withdrawalPolicy;
-  return mockFundsEnabled
-    && app.fundsSandboxStatus === "ready"
-    && evidence?.source === "mock"
-    && evidence.sourceEnvironment === "SANDBOX"
-    && evidence.mode === "LOCAL_SANDBOX"
-    && policy?.source === "mock"
-    && policy.sourceEnvironment === "SANDBOX"
-    && policy.mode === "LOCAL_SANDBOX"
-    && policy.withdrawalEnabled === true
-    && policy.network === "USDT-BEP20"
-    && policy.channel === "CREGIS_USDT_BEP20"
-    && policy.enabledNetworks.length === 1
-    && policy.enabledNetworks[0] === "USDT-BEP20"
-    ? policy
-    : null;
-});
-// The funds sandbox backend supports only its isolated Cregis BEP20 rail.  In
-// production server mode the policy response is the network allow-list; local
-// mock keeps its historical three-network fixture.
-const NETWORKS = computed<{ id: Withdrawal["network"]; label: string }[]>(() => mockFundsEnabled ? [{ id: "USDT-BEP20", label: "BEP20" }] :
-  fundsServerEnabled
+// Server policy owns the network allow-list; local mock keeps its fixture.
+const NETWORKS = computed<{ id: CryptoNetwork; label: string }[]>(() => fundsServerEnabled
     ? ALL_NETWORKS.filter((item) => withdrawalPolicy.value?.enabledNetworks.includes(item.id))
     : ALL_NETWORKS);
 
+function isCurrentWithdrawalFactsScope(
+  accountKey: string,
+  accountBindingEpoch: number,
+  runtimeEpoch: number,
+  sequence: number,
+  currentSequence: number,
+): boolean {
+  return isCurrentWithdrawalFactsRequest(
+    { accountKey, accountBindingEpoch, runtimeEpoch, sequence },
+    {
+      accountKey: app.accountKey,
+      accountBindingEpoch: app.accountBindingEpoch,
+      runtimeEpoch: captureRuntimeRevision().epoch,
+      sequence: currentSequence,
+    },
+  );
+}
+
 async function loadWithdrawalPolicy(): Promise<void> {
-  if (withdrawalPolicyLoading.value) return;
+  const requestedAccountKey = app.accountKey;
+  const requestedAccountBindingEpoch = app.accountBindingEpoch;
+  const runScope = captureRuntimeRevision();
+  const refreshSequence = ++withdrawalPolicyRefreshSequence;
   withdrawalPolicyLoading.value = true;
   withdrawalPolicyError.value = "";
   try {
-    if (mockFundsEnabled) {
-      const sandboxPolicy = sandboxWithdrawalPolicy.value;
-      if (!sandboxPolicy) throw new Error("FUNDS_SANDBOX_WITHDRAWAL_POLICY_REQUIRED");
-      withdrawalPolicy.value = {
-        minAmount: sandboxPolicy.minAmount,
-        dailyLimitCount: sandboxPolicy.dailyLimitCount,
-        balanceMaxRatio: sandboxPolicy.balanceMaxRatio,
-        smallAmountThresholdUsd: sandboxPolicy.smallAmountThresholdUsd,
-        strongReviewThresholdUsdt: sandboxPolicy.smallAmountThresholdUsd,
-        payoutSlaHours: sandboxPolicy.payoutSlaHours,
-        networkConfirmFeeUsd: { ...sandboxPolicy.networkConfirmFeeUsd },
-        nexFeeOffsetRate: sandboxPolicy.nexFeeOffsetRate,
-        policyVersion: sandboxPolicy.policyVersion,
-        cooldownDays: sandboxPolicy.cooldownDays,
-        complianceHoldEnabled: sandboxPolicy.complianceHoldEnabled,
-        withdrawalEnabled: sandboxPolicy.withdrawalEnabled,
-        enabledNetworks: [...sandboxPolicy.enabledNetworks],
-        currentPhase: "LOCAL_SANDBOX",
-        currentMonth: 1,
-        gateSource: "FUNDS_SANDBOX",
-        source: "FUNDS_SANDBOX",
-      };
-      return;
-    }
-    withdrawalPolicy.value = await withdrawalApi.policy();
+    const policy = await withdrawalApi.policy();
+    if (!isCurrentWithdrawalFactsScope(
+      requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, refreshSequence, withdrawalPolicyRefreshSequence,
+    )) return;
+    withdrawalPolicy.value = policy;
     if (!NETWORKS.value.some((item) => item.id === network.value) && NETWORKS.value[0]) {
       network.value = NETWORKS.value[0].id;
     }
   } catch (cause) {
+    if (!isCurrentWithdrawalFactsScope(
+      requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, refreshSequence, withdrawalPolicyRefreshSequence,
+    )) return;
     withdrawalPolicy.value = null;
     // 焦虑文案收口(2026-08-15):原始 message/错误码只进日志,用户面一律人话。
     console.warn("[withdraw] policy fetch failed:", cause);
     withdrawalPolicyError.value = t.value.walletV3.submitReasonServiceUnavailable;
   } finally {
-    withdrawalPolicyLoading.value = false;
+    if (isCurrentWithdrawalFactsScope(
+      requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, refreshSequence, withdrawalPolicyRefreshSequence,
+    )) withdrawalPolicyLoading.value = false;
   }
 }
 
-watch(sandboxWithdrawalPolicy, () => {
-  if (mockFundsEnabled) void loadWithdrawalPolicy();
+const withdrawalPolicyStatus = computed<"idle" | "loading" | "ready" | "error">(() => {
+  if (withdrawalPolicyLoading.value) return "loading";
+  if (withdrawalPolicyError.value) return "error";
+  return withdrawalPolicy.value ? "ready" : "idle";
+});
+const withdrawalPolicyCurrent = computed(() => withdrawalPolicyStatus.value === "ready");
+const withdrawalFactsState = computed(() => financialFactState(remoteApiEnabled, [
+  { hasSnapshot: app.remoteFleetHasSnapshot, status: app.remoteFleetStatus },
+  { hasSnapshot: earningsReleaseHasSnapshot.value, status: earningsReleaseStatus.value },
+  { hasSnapshot: withdrawalPolicy.value !== null, status: withdrawalPolicyStatus.value },
+]));
+const dailyFactsState = computed(() => financialFactState(remoteApiEnabled, [
+  { hasSnapshot: app.remoteFleetHasSnapshot, status: app.remoteFleetStatus },
+  { hasSnapshot: earningsReleaseHasSnapshot.value, status: earningsReleaseStatus.value },
+  { hasSnapshot: withdrawalPolicy.value !== null, status: withdrawalPolicyStatus.value },
+  { hasSnapshot: app.remoteWithdrawalListHasSnapshot, status: app.remoteWithdrawalListStatus },
+]));
+const withdrawalFactsDisplayable = computed(() => withdrawalFactsState.value === "ready" || withdrawalFactsState.value === "refreshing");
+const withdrawalFactsFresh = computed(() => withdrawalFactsState.value === "ready");
+const withdrawalFactsRefreshing = computed(() => withdrawalFactsState.value === "refreshing");
+const withdrawalFactsStale = computed(() => withdrawalFactsState.value === "stale");
+const withdrawalFactsNeedsRetry = computed(() =>
+  withdrawalFactsState.value === "stale"
+  || withdrawalFactsState.value === "unavailable"
+  || dailyFactsState.value === "stale"
+  || dailyFactsState.value === "unavailable",
+);
+const dailyFactsDisplayable = computed(() => dailyFactsState.value === "ready" || dailyFactsState.value === "refreshing");
+const dailyFactsRefreshing = computed(() => dailyFactsState.value === "refreshing");
+const withdrawalQuoteRefreshing = computed(() => withdrawalFactsRefreshing.value || dailyFactsRefreshing.value);
+const withdrawalActionsFresh = computed(() => withdrawalFactsActionsFresh(
+  withdrawalFactsState.value,
+  dailyFactsState.value,
+));
+function factsStatusText(state: "ready" | "loading" | "refreshing" | "stale" | "unavailable"): string {
+  if (state === "loading" || state === "refreshing") return t.value.help.loadingMore;
+  if (state === "stale") return t.value.wallet.fundsStaleBody;
+  return t.value.wallet.fundsUnavailableTitle;
+}
+const withdrawalFactsStatusText = computed(() => factsStatusText(withdrawalFactsState.value));
+const dailyFactsStatusText = computed(() => factsStatusText(dailyFactsState.value));
+const withdrawalActionStatusText = computed(() => withdrawalFactsFresh.value ? dailyFactsStatusText.value : withdrawalFactsStatusText.value);
+
+// Same cold-session fence the F3 pages use (binary / daily / unilevel): the
+// H5 vault binds only after its HttpOnly-cookie restore, and a protected read
+// issued before that returns AUTH_REQUIRED.
+const remoteSessionReady = computed(() => binarySessionReady({
+  remote: remoteApiEnabled,
+  authenticated: auth.isAuthenticated,
+  accountId: auth.accountId,
+  appAccountKey: app.accountKey,
+  sessionUserId: sessionVault.read()?.user.userId ?? null,
+}));
+
+async function retryWithdrawalFacts(): Promise<void> {
+  // A cold H5 load drops the access token and restores it through the refresh
+  // cookie; a protected read started before that restore returns AUTH_REQUIRED
+  // and left this page permanently on "钱包暂时无法刷新". Wait for the same
+  // account binding the other F3 pages wait for, then read.
+  if (remoteApiEnabled && !remoteSessionReady.value) return;
+  const accountKey = app.accountKey;
+  await Promise.allSettled([
+    app.refreshRemoteFleet(),
+    refreshEarningsReleaseStatus(accountKey),
+    app.refreshRemoteWithdrawalList(accountKey),
+    loadWithdrawalPolicy(),
+  ]);
+}
+
+function invalidateWithdrawalFacts(): void {
+  // A retained policy/eligibility belongs to the previous account or bearer
+  // generation. Clear it before the new reads start so neither Use Max nor a
+  // submit preflight can act on an old account's financial projection.
+  withdrawalPolicyRefreshSequence += 1;
+  withdrawalPolicy.value = null;
+  withdrawalPolicyError.value = "";
+  withdrawalPolicyLoading.value = false;
+  remoteEligibilityEpoch += 1;
+  remoteEligibility.value = null;
+  remoteEligibilityFailed.value = false;
+  remoteSmallLineEligibilityEpoch += 1;
+  remoteSmallLineEligibility.value = null;
+  refreshedConflictVersion = "";
+}
+
+watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
+  invalidateWithdrawalFacts();
+  void retryWithdrawalFacts();
+});
+
+// The cold-load read is deferred until restore binds this account; without
+// this trigger the page would sit on "loading" with no second read.
+watch(remoteSessionReady, (ready, wasReady) => {
+  if (!ready || wasReady) return;
+  if (remoteApiEnabled) void payout.refreshRemote();
+  void retryWithdrawalFacts();
+}, { flush: "post" });
+
+const stopWithdrawalFactsRuntimeWatch = subscribeRuntimeRevision(() => {
+  invalidateWithdrawalFacts();
+  void retryWithdrawalFacts();
 });
 
 // 2026-07-31 规则变更:充值本金也可提(按标准费率收费),故可提上限 = 总余额。
@@ -548,22 +661,26 @@ watch(sandboxWithdrawalPolicy, () => {
 // 已随 c37e642 的本地扣款链一并移除 —— **提交路径**上客户端不再扣款,超额请求由本
 // computed 的 fail-closed 上限拦 + 服务端 reservation 拒;别再指望 app.ts 的提交函数里
 // 有总余额门(建单**成功之后**的 applyWithdrawalDebit 另有一道扣款闸,那是另一段链)。
-const maxWithdrawable = computed(() => {
-  const sandboxPolicy = sandboxWithdrawalPolicy.value;
-  if (mockFundsEnabled) {
-    // The wallet GET is the sandbox balance authority. Do not require the
-    // production earnings-release projection (which is intentionally absent
-    // from this isolated ledger) and do not show a local fallback on failure.
-    return sandboxPolicy ? Math.max(0, app.user.usdtBalance * sandboxPolicy.balanceMaxRatio) : 0;
-  }
+const preRatioWithdrawable = computed(() => {
   if (earningsReleaseSnapshot.value?.clusterRestricted) return 0;
   const buckets = earningsReleaseSnapshot.value?.buckets;
   if (!buckets) return 0;
-  const serverWithdrawable = Math.max(0,
-    app.user.usdtBalance - buckets.pending_review - buckets.bonus_locked);
-  return serverWithdrawable * (withdrawalPolicy.value?.balanceMaxRatio ?? 0);
+  return Math.max(0, app.user.usdtBalance - buckets.pending_review - buckets.bonus_locked);
+});
+const maxWithdrawable = computed(() => {
+  const ratio = withdrawalPolicy.value?.balanceMaxRatio ?? 0;
+  return computeWithdrawalMaximum(preRatioWithdrawable.value, ratio);
 });
 const minWithdrawable = computed(() => withdrawalPolicy.value?.minAmount ?? 0);
+const withdrawalRatioLine = computed(() => {
+  const ratio = withdrawalPolicy.value?.balanceMaxRatio ?? 0;
+  const held = Math.max(0, preRatioWithdrawable.value - maxWithdrawable.value);
+  if (ratio <= 0 || ratio >= 0.999999 || held <= 0.000001) return "";
+  return fmt(t.value.wallet.withdrawalRatioLine, {
+    pct: formatWithdrawalRatioPercent(ratio),
+    held: held.toFixed(2),
+  });
+});
 /**
  * 🔴 日限的两件事实**只从这一个地方取**,文案与闸共用它 —— 说的那个 N 和拦人用的 N
  * 必须字面同源。此前文案取服务端 policy、判定取本地 config.withdrawRules(远端同步
@@ -580,7 +697,27 @@ const dailyFacts = computed(() => ({
   limitCount: withdrawalPolicy.value?.dailyLimitCount ?? 0,
   withdrawals: app.withdrawals,
 }));
-const dailyLimitNoteText = computed(() => fmt(t.value.wallet.dailyLimitNote, { n: String(dailyFacts.value.limitCount) }));
+const limitFacts = computed(() => withdrawalLimitFacts({
+  perWithdrawalMaximum: maxWithdrawable.value,
+  dailyLimitCount: dailyFacts.value.limitCount,
+  withdrawals: dailyFacts.value.withdrawals,
+  now: nowTick.value,
+}));
+const perWithdrawalLimitText = computed(() => fmt(t.value.wallet.perWithdrawalLimit, {
+  amount: limitFacts.value.perWithdrawalMaximum.toFixed(2),
+}));
+const dailyUsageText = computed(() => fmt(t.value.wallet.dailyWithdrawalUsage, {
+  used: String(limitFacts.value.dailyUsedCount),
+  remaining: String(limitFacts.value.dailyRemainingCount ?? 0),
+  limit: String(dailyFacts.value.limitCount),
+}));
+const withdrawalChannelStatusText = computed(() => {
+  const policy = withdrawalPolicy.value;
+  if (!policy) return "";
+  if (!policy.withdrawalEnabled || policy.enabledNetworks.length === 0) return t.value.wallet.withdrawalChannelsClosed;
+  const channels = policy.enabledNetworks.map((item) => item.replace("USDT-", "")).join(" · ");
+  return fmt(t.value.wallet.withdrawalChannelsAvailable, { channels });
+});
 /**
  * 🔴🔴 同一笔提现意图的幂等键(跨重试复用)。
  *
@@ -650,14 +787,14 @@ const minAmountLine = computed(() => fmt(t.value.wallet.minAmountDynamic, { n: m
 const devMode = ref(false);
 onLoad((options) => {
   devMode.value = import.meta.env.DEV && options?.dev === "1";
-  // 默认选中后端允许且已设地址的网络；sandbox 永远只会得到 BEP20。
+  // 默认选中后端允许且已设地址的网络。
   const withAddr = NETWORKS.value.find((n) => payout.currentFor(fromWithdrawNetwork(n.id)));
   if (withAddr) network.value = withAddr.id;
 });
 
 const amount = ref("");
 // 提现网络可选;地址 = 该网络当前提现地址(payout-address store 单源,RM01a)。
-const network = ref<Withdrawal["network"]>("USDT-BEP20");
+const network = ref<CryptoNetwork>("USDT-BEP20");
 const chainNetwork = computed(() => fromWithdrawNetwork(network.value));
 const boundAddress = computed(() => payout.currentFor(chainNetwork.value)?.address ?? "");
 // 掩码中段:与地址管理页共用 core.maskAddressMid 同一实现,不各写一份。
@@ -665,27 +802,66 @@ const boundAddressShort = computed(() => (boundAddress.value ? maskAddressMid(bo
 
 const amountNum = computed(() => parseFloat(amount.value) || 0);
 const remoteEligibility = ref<WithdrawalEligibility | null>(null);
+const remoteEligibilityFailed = ref(false);
+let refreshedConflictVersion = "";
 let remoteEligibilityEpoch = 0;
-watch([amountNum, network, boundAddress, () => app.accountKey], async () => {
-  if (!remoteApiEnabled || mockFundsEnabled || amountNum.value <= 0 || boundAddress.value.length <= 10) {
-    remoteEligibility.value = null;
+watch([amountNum, network, boundAddress, maxWithdrawable, dailyFacts, withdrawalActionsFresh, () => app.accountKey, () => withdrawalPolicy.value?.policyVersion], async () => {
+  // A changed amount/network/address invalidates the previous server decision
+  // immediately. Keeping the old accepted decision visible until the next
+  // request settles can briefly re-enable submit for inputs the server has
+  // never approved.
+  const epoch = ++remoteEligibilityEpoch;
+  const requestedAccountKey = app.accountKey;
+  const requestedAccountBindingEpoch = app.accountBindingEpoch;
+  const runScope = captureRuntimeRevision();
+  remoteEligibility.value = null;
+  remoteEligibilityFailed.value = false;
+  const policyVersion = withdrawalPolicy.value?.policyVersion;
+  if (!policyVersion || NETWORKS.value.length === 0 || !shouldRequestWithdrawalEligibility({
+    remote: remoteApiEnabled,
+    factsFresh: withdrawalActionsFresh.value,
+    policyVersion,
+    amount: amountNum.value,
+    addressLength: boundAddress.value.length,
+  })) {
     return;
   }
-  const epoch = ++remoteEligibilityEpoch;
   try {
-    const snapshot = await requestWithdrawalEligibility(app.accountKey, network.value, boundAddress.value,
-      maxWithdrawable.value, dailyFacts.value, amountNum.value);
-    if (epoch === remoteEligibilityEpoch && app.accountKey) remoteEligibility.value = snapshot;
-  } catch {
-    if (epoch === remoteEligibilityEpoch) remoteEligibility.value = null;
+    const snapshot = await requestWithdrawalEligibility(requestedAccountKey, network.value, boundAddress.value,
+      maxWithdrawable.value, dailyFacts.value, amountNum.value, policyVersion);
+    if (isCurrentWithdrawalFactsScope(requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, epoch, remoteEligibilityEpoch)) {
+      remoteEligibility.value = snapshot;
+    }
+  } catch (cause) {
+    if (!isCurrentWithdrawalFactsScope(requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, epoch, remoteEligibilityEpoch)) return;
+    remoteEligibilityFailed.value = true;
+    // Refresh once for a rejected version. A new version reruns this watcher;
+    // an unchanged version must not create an endless retry loop.
+    if (cause instanceof ApiError && cause.message === "WITHDRAWAL_POLICY_VERSION_CONFLICT"
+      && refreshedConflictVersion !== policyVersion) {
+      refreshedConflictVersion = policyVersion;
+      await loadWithdrawalPolicy();
+      if (!isCurrentWithdrawalFactsScope(requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, epoch, remoteEligibilityEpoch)) return;
+    }
   }
 }, { immediate: true });
 
 // 网络也是报价/地址的输入 —— 提交在途一律冻结,与 useMax/useSmallAmountLine/toggleOffset
 // 同一纪律(审计 P2:评估窗口内切网络会让本可成功的提交被确认后校验无谓拒绑)。
-function pickNetwork(id: Withdrawal["network"]) {
+function pickNetwork(id: CryptoNetwork) {
   if (inputsLocked.value) return;
   network.value = id;
+}
+
+function moveNetwork(delta: number) {
+  if (inputsLocked.value || NETWORKS.value.length < 2) return;
+  const index = NETWORKS.value.findIndex((item) => item.id === network.value);
+  const next = NETWORKS.value[(index + delta + NETWORKS.value.length) % NETWORKS.value.length];
+  if (!next) return;
+  pickNetwork(next.id);
+  void nextTick(() => {
+    if (typeof document !== "undefined") document.querySelector<HTMLElement>(".nx-withdraw-network-radio[tabindex=\"0\"]")?.focus();
+  });
 }
 
 // ── 地址管理入口 + 换址后 24h 冻结(RM01a ⑤)──────────────────────
@@ -697,20 +873,28 @@ function goManage() {
 // 冻结倒计时(server 时钟 1s tick;归零自然放行)。
 const nowTick = ref(mockServerNow());
 let freezeTimer: ReturnType<typeof setInterval> | undefined;
+function stopFreezeTimer() {
+  if (freezeTimer !== undefined) clearInterval(freezeTimer);
+  freezeTimer = undefined;
+}
 onMounted(() => {
-  if (remoteApiEnabled) void payout.refreshRemote();
-  void loadWithdrawalPolicy();
-  freezeTimer = setInterval(() => (nowTick.value = mockServerNow()), 1000);
+  if (remoteApiEnabled && remoteSessionReady.value) void payout.refreshRemote();
+  void retryWithdrawalFacts();
 });
 // 🔴 回前台 / 返回本页时重取策略。上一轮我把这条补给了追踪页,**加错页了**:
 // 真正靠日限与最低额拦人的是**这一页**,而 App 端页面进栈后不销毁,不补拉就可能拿着
 // 好几天前的限额判人(R2 跨端镜头点名)。loader 自带在途守卫,重复触发是安全的。
 onShow(() => {
+  stopFreezeTimer();
+  nowTick.value = mockServerNow();
+  freezeTimer = setInterval(() => (nowTick.value = mockServerNow()), 1000);
   refreshPendingAttempt();
-  void loadWithdrawalPolicy();
+  void retryWithdrawalFacts();
 });
+onHide(stopFreezeTimer);
 onUnmounted(() => {
-  if (freezeTimer) clearInterval(freezeTimer);
+  stopFreezeTimer();
+  stopWithdrawalFactsRuntimeWatch();
 });
 const freezeLeftMs = computed(() => freezeRemainingMs(payout.stateFor(chainNetwork.value).freezeUntil, nowTick.value));
 const frozenNow = computed(() => freezeLeftMs.value > 0);
@@ -735,7 +919,7 @@ const nexFeeOffsetRate = computed(() => withdrawalPolicy.value?.nexFeeOffsetRate
 /** FEAT-WD02:NEX 抵扣开关(规格 ③:默认关;server 侧无此意图永不烧 NEX)。 */
 const offsetWithNex = ref(false);
 /** 按当前绑定网络取网络确认费键(网络派生自 pairing 响应式 —— 换绑回本页即时刷新)。 */
-const NETWORK_FEE_KEY: Record<Withdrawal["network"], WithdrawNetworkKey> = {
+const NETWORK_FEE_KEY: Record<CryptoNetwork, WithdrawNetworkKey> = {
   "USDT-TRC20": "trc20",
   "USDT-BEP20": "bep20",
   "USDT-ERC20": "erc20",
@@ -761,7 +945,7 @@ const feeCalc = computed(() =>
  * 不冲突:快照供扣款,活值只供判「要不要拒单」。反过来用冻结费率复验冻结报价,
  * 等式恒成立、判据恒为真 = 这道门等于没有。
  */
-function quoteStillValid(fee: WithdrawalFeeSnapshot, offset: boolean, net: Withdrawal["network"]): boolean {
+function quoteStillValid(fee: WithdrawalFeeSnapshot, offset: boolean, net: CryptoNetwork): boolean {
   return isWithdrawalFeeSnapshotValid(
     fee,
     offset,
@@ -850,12 +1034,12 @@ const eligibilityClock = computed(() => {
 });
 const eligibility = computed(() => {
   void eligibilityClock.value; // 建立对「时间边界」的依赖,不参与计算
-  if (remoteApiEnabled && !mockFundsEnabled) {
+  if (remoteApiEnabled) {
     return remoteEligibility.value ?? {
-      canSubmit: true,
-      maxWithdrawableUsdt: maxWithdrawable.value,
-      route: "pass" as const,
-      riskReasons: [], fastLaneApplied: false, waivedGates: [], dailyLimitReached: false,
+      canSubmit: false,
+      maxWithdrawableUsdt: 0,
+      route: "manual" as const,
+      riskReasons: ["server-eligibility-pending"], fastLaneApplied: false, waivedGates: [], dailyLimitReached: false,
       dailyCountResetAt: Date.now(), configVersion: "remote-pending",
     };
   }
@@ -864,6 +1048,7 @@ const eligibility = computed(() => {
 // 冻结期不重复挂风控横幅(专属冻结横幅已在顶部,避免双横幅噪声)。
 const withdrawalRiskNotice = computed(
   () =>
+    (!remoteApiEnabled || remoteEligibility.value !== null) &&
     !frozenNow.value &&
     boundAddress.value.length > 10 &&
     eligibility.value.route !== "pass" &&
@@ -910,23 +1095,36 @@ const heldLine = computed(() => {
  * 快车道不生效而 CTA 判据仍成立 → 一个点多少次都没反应、也永不消失的按钮。
  * 向下取整(不是四舍五入)才不会越线。
  */
-// WD01 is a server-owned policy value in remote mode (and the isolated sandbox
-// snapshot in sandbox mode). Never fall back to the old client rule/config.
+// WD01 is a server-owned policy value in remote mode.
 const smallAmountLine = computed(() => withdrawalPolicy.value?.smallAmountThresholdUsd ?? 0);
 const remoteSmallLineEligibility = ref<WithdrawalEligibility | null>(null);
-let remoteSmallLineEpoch = 0;
-watch([smallAmountLine, network, boundAddress, () => app.accountKey], async () => {
-  if (!remoteApiEnabled || mockFundsEnabled || smallAmountLine.value <= 0 || boundAddress.value.length <= 10) {
-    remoteSmallLineEligibility.value = null;
+let remoteSmallLineEligibilityEpoch = 0;
+watch([smallAmountLine, network, boundAddress, maxWithdrawable, dailyFacts, withdrawalActionsFresh, () => app.accountKey, () => withdrawalPolicy.value?.policyVersion], async () => {
+  const epoch = ++remoteSmallLineEligibilityEpoch;
+  const requestedAccountKey = app.accountKey;
+  const requestedAccountBindingEpoch = app.accountBindingEpoch;
+  const runScope = captureRuntimeRevision();
+  remoteSmallLineEligibility.value = null;
+  const policyVersion = withdrawalPolicy.value?.policyVersion;
+  if (!policyVersion || NETWORKS.value.length === 0 || !shouldRequestWithdrawalEligibility({
+    remote: remoteApiEnabled,
+    factsFresh: withdrawalActionsFresh.value,
+    policyVersion,
+    amount: smallAmountLine.value,
+    addressLength: boundAddress.value.length,
+  })) {
     return;
   }
-  const epoch = ++remoteSmallLineEpoch;
   try {
-    const snapshot = await requestWithdrawalEligibility(app.accountKey, network.value, boundAddress.value,
-      maxWithdrawable.value, dailyFacts.value, smallAmountLine.value);
-    if (epoch === remoteSmallLineEpoch && app.accountKey) remoteSmallLineEligibility.value = snapshot;
+    const snapshot = await requestWithdrawalEligibility(requestedAccountKey, network.value, boundAddress.value,
+      maxWithdrawable.value, dailyFacts.value, smallAmountLine.value, policyVersion);
+    if (isCurrentWithdrawalFactsScope(requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, epoch, remoteSmallLineEligibilityEpoch)) {
+      remoteSmallLineEligibility.value = snapshot;
+    }
   } catch {
-    if (epoch === remoteSmallLineEpoch) remoteSmallLineEligibility.value = null;
+    if (isCurrentWithdrawalFactsScope(requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, epoch, remoteSmallLineEligibilityEpoch)) {
+      remoteSmallLineEligibility.value = null;
+    }
   }
 }, { immediate: true });
 /**
@@ -957,7 +1155,7 @@ const fastLaneOn = computed(
  * 直接把小额线代进同一个判定函数问一次,答案是什么就说什么。
  */
 const smallLineDecision = computed(() =>
-  remoteApiEnabled && !mockFundsEnabled
+  remoteApiEnabled
     ? remoteSmallLineEligibility.value ?? {
       canSubmit: false,
       maxWithdrawableUsdt: maxWithdrawable.value,
@@ -988,7 +1186,18 @@ const fastLaneBody = computed(() => fmt(t.value.wallet.fastLaneOnBody, { g: waiv
  * 覆盖低于最低额 / 超过可提余额 / 今日笔数用完 / 换绑冻结 / 费率不可用等全部原因。
  * (金额为空由前一个分支的占位说明接管,不走这里。)
  */
-const quoteBlocked = computed(() => amountNum.value > 0 && submitDisabledReason.value !== "");
+// A background revalidation invalidates the action gate, never the already
+// confirmed display quote. The next submit still requires fresh facts and a
+// server eligibility round-trip below. Initial/failed reads have no readable
+// snapshot and therefore remain blocked from numeric quote rendering.
+const quoteDisplayBlocked = computed(() =>
+  amountNum.value > 0
+  && !withdrawalQuoteRefreshing.value
+  && submitDisabledReason.value !== "",
+);
+const quoteBlocked = computed(() =>
+  quoteDisplayBlocked.value || !withdrawalFactsDisplayable.value || !dailyFactsDisplayable.value,
+);
 const firstTimeReviewApplies = computed(() => eligibility.value.riskReasons.includes("first-withdrawal-review"));
 /**
  * 🔴 这里**不给时间承诺**。
@@ -1048,18 +1257,25 @@ const riskNoticeBody = computed(() => {
  * 两个判据只要不是同一个源,迟早漂移。这里收成一个。
  */
 function disabledReasonFor(amount: number, decision: WithdrawalEligibility): string {
+  if (!withdrawalActionsFresh.value) return withdrawalActionStatusText.value;
   if (withdrawalPolicyError.value) return withdrawalPolicyError.value;
+  if (NETWORKS.value.length === 0) return t.value.wallet.withdrawalChannelsClosed;
   // 费率可读与通道开放是两个独立事实。总开关关闭时仍展示服务端报价，
   // 但提交必须明确说明通道关闭，不能伪装成费率拉取失败。
   if (!feeConfigUsable.value) return t.value.walletV3.submitReasonFeeConfigUnavailable;
   if (withdrawalPolicy.value?.withdrawalEnabled !== true) return t.value.walletV3.submitReasonWithdrawalClosed;
   // RM01a:该网络未设提现地址 → 最根本的前置,先说它(页面上方是引导卡,不是报错)。
   if (boundAddress.value.trim().length <= 10) return t.value.walletV3.submitReasonAddressRequired;
+  // No eligibility request is made until these inputs exist. Missing input is
+  // not an in-flight request and must never be presented as perpetual loading.
+  if (amount <= 0) return t.value.walletV3.submitReasonAmountRequired;
+  if (remoteApiEnabled && decision.configVersion === "remote-pending") {
+    return remoteEligibilityFailed.value ? t.value.walletV3.submitReasonServiceUnavailable : t.value.help.loadingMore;
+  }
   // 换址冻结:24h 内提交按钮置灰(横幅带真倒计时)。
   if (frozenNow.value) return t.value.addrRebind.submitFrozenReason;
   // FEAT-WD01b:今日笔数用完 → 置灰 + 告知何时重置(不建单不扣款)
   if (decision.dailyLimitReached) return dailyLimitReachedText.value;
-  if (amount <= 0) return t.value.walletV3.submitReasonAmountRequired;
   if (amount < minWithdrawable.value) {
     return fmt(t.value.walletV3.submitReasonMinAmount, { n: minWithdrawable.value.toFixed(0) });
   }
@@ -1077,7 +1293,7 @@ function fmtNex(n: number): string {
 
 const canSubmit = computed(() => submitDisabledReason.value === "");
 
-function networkHint(id: Withdrawal["network"]): string {
+function networkHint(id: CryptoNetwork): string {
   switch (id) {
     case "USDT-TRC20":
       return t.value.wallet.networkHintTrc20;
@@ -1101,12 +1317,24 @@ function onAmount(e: Event) {
 }
 function useMax() {
   if (inputsLocked.value) return;
-  amount.value = maxWithdrawable.value.toFixed(2);
+  if (!withdrawalActionsFresh.value) {
+    toast.info(withdrawalActionStatusText.value);
+    return;
+  }
+  const decision = resolveWithdrawalUseMax(maxWithdrawable.value, minWithdrawable.value);
+  if (decision.reason === "below-minimum") {
+    toast.info(fmt(t.value.wallet.useMaxBelowMinimum, {
+      max: maxWithdrawable.value.toFixed(2),
+      min: minWithdrawable.value.toFixed(2),
+    }));
+    return;
+  }
+  amount.value = decision.amount ?? "";
 }
 
 function goEarnNex() {
   // NEX 主来源 = 设备算力任务;引导去赚更多 NEX 才能解锁更大额提现
-  uni.navigateTo({ url: "/pages/earn/earn", fail: () => {} });
+  navTo("/pages/earn/earn");
 }
 
 async function handleResetAddresses() {
@@ -1148,7 +1376,7 @@ async function handleSubmit() {
   }
   if (!risk.accepted) {
     // Source pushes to the risk-disclosure page (not yet ported) and returns.
-    uni.navigateTo({ url: "/pages/me/risk-disclosure?return=/pages/me/wallet-withdraw", fail: () => {} });
+    navTo("/pages/me/risk-disclosure?return=/pages/me/wallet-withdraw");
     return;
   }
   // 🔴 **一份提交快照收全族**(2026-08-04 R2 三条 P1 同一个根:跨 await 的状态漂移)。
@@ -1244,7 +1472,7 @@ async function handleSubmit() {
   } catch (cause) {
     clearSubmitFreeze();
     if (cause instanceof ApiError && cause.message === "RISK_DISCLOSURE_ACK_REQUIRED") {
-      uni.navigateTo({ url: "/pages/me/risk-disclosure?return=/pages/me/wallet-withdraw", fail: () => {} });
+      navTo("/pages/me/risk-disclosure?return=/pages/me/wallet-withdraw");
     } else {
       toast.error(t.value.riskDisclosure.gateUnavailable);
     }
@@ -1266,9 +1494,18 @@ async function handleSubmit() {
         snap.maxWithdrawable,
         snap.daily,
         snap.amount,
+        snap.policyVersion,
       );
     } catch (err) {
       clearSubmitFreeze();
+      if (err instanceof ApiError && err.message === "WITHDRAWAL_POLICY_VERSION_CONFLICT") {
+        remoteEligibilityEpoch += 1;
+        remoteEligibility.value = null;
+        remoteEligibilityFailed.value = true;
+        await loadWithdrawalPolicy();
+        toast.info(t.value.walletV3.withdrawFeeStale);
+        return;
+      }
       // The eligibility call is the one server round-trip on this path, so a region
       // refusal surfaces here as a rejection. Translate it; `null` = not a region
       // refusal, so keep the existing timeout message rather than mislabelling a
@@ -1387,7 +1624,7 @@ async function handleSubmit() {
       toast.info(t.value.wallet.withdrawSubmittedOtherAccountTitle, t.value.wallet.withdrawSubmittedOtherAccountBody);
       return;
     }
-    uni.navigateTo({ url: `/pages/me/wallet-withdraw-tracking?id=${wd.id}`, fail: () => {} });
+    navTo(`/pages/me/wallet-withdraw-tracking?id=${wd.id}`);
     return;
   } catch (err) {
     clearSubmitFreeze();
@@ -1462,7 +1699,7 @@ const addrGuideCtaStyle: CSSProperties = {
   color: "var(--v5-on-brand)",
 };
 // 网络 chips(与地址管理页同语汇;选中 brand-soft,未选 surface)。
-function netChipStyle(id: Withdrawal["network"]): CSSProperties {
+function netChipStyle(id: CryptoNetwork): CSSProperties {
   const on = network.value === id;
   return {
     minHeight: "44px",
@@ -1471,7 +1708,7 @@ function netChipStyle(id: Withdrawal["network"]): CSSProperties {
     background: on ? "var(--v5-brand-soft)" : "var(--v5-surface)",
   };
 }
-function netChipLabelStyle(id: Withdrawal["network"]): CSSProperties {
+function netChipLabelStyle(id: CryptoNetwork): CSSProperties {
   return {
     fontSize: "13px",
     fontWeight: 600,
@@ -1604,16 +1841,16 @@ const feeWhyScrimStyle: CSSProperties = {
   background: "rgba(8,8,12,0.45)",
   backdropFilter: "blur(8px) saturate(150%)",
 };
-const feeWhySheetStyle: CSSProperties = {
+const feeWhySheetStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius) var(--nx-glass-radius) 0 0", boxShadow: "var(--nx-glass-edge)",
   position: "fixed",
   left: 0,
   right: 0,
   bottom: 0,
   zIndex: 800,
-  borderTopLeftRadius: "16px",
-  borderTopRightRadius: "16px",
-  background: "var(--v5-surface)",
-  borderTop: "1px solid var(--v5-border)",
+  borderTopLeftRadius: "var(--nx-glass-radius)",
+  borderTopRightRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
+  borderTop: "none",
   padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)",
 };
 const feeWhyTitleStyle: CSSProperties = {
@@ -1640,9 +1877,9 @@ const feeWhyBodyStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
   lineHeight: 1.5,
 };
+useDialogA11y(computed(() => feeWhyOpen.value), ".nx-withdraw-fee-dialog", () => { feeWhyOpen.value = false; });
 const submitBtnStyle = computed<CSSProperties>(() => ({
-  minHeight: "48px",
-  padding: "8px 16px",
+  height: "48px",
   borderRadius: "999px",
   background: canSubmit.value ? "var(--v5-brand)" : "var(--v5-surface-2)",
   // 🔴 页面主 CTA。用 --v5-ink 实测对比度 **1.54:1**(暗色主题下亮绿底配浅色字),
@@ -1652,7 +1889,8 @@ const submitBtnStyle = computed<CSSProperties>(() => ({
   fontSize: "15px",
   fontWeight: 600,
 }));
-// 快车道提示 —— 品牌色浅底(正向信息,不用告警色);超线时那条 CTA 独占一行撑 44px 热区
+
+// 快车道提示 —— 品牌色浅底(正向信息,不用告警色);超线时那条 CTA 独占一行撑 44px 热区
 const fastLaneBoxStyle: CSSProperties = {
   padding: "12px",
   borderRadius: "16px",
@@ -1667,6 +1905,8 @@ const fastLaneCtaStyle: CSSProperties = { display: "inline-flex", alignItems: "c
 const fastLaneCtaTextStyle: CSSProperties = { fontSize: "12px", fontWeight: 500, color: "var(--v5-brand)" };
 // 撤销是次要动作:同样可点,但视觉权重明显弱于那条建议(转化场景 cancel 必须弱于主 CTA)。
 const fastLaneUndoTextStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)" };
+
+
 
 
 </script>

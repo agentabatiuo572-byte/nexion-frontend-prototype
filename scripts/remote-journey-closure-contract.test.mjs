@@ -8,14 +8,18 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("card binding is unavailable outside explicit sandbox", async () => {
+test("legacy payment cards are development-only; formal binding uses bank beneficiaries", async () => {
   const runtime = await source("src/api/runtime.ts");
   const list = await source("src/pages/me/wallet-cards.vue");
   const form = await source("src/pages/me/wallet-cards-new.vue");
-  assert.match(runtime, /paymentSandboxEnabled/);
+  assert.match(runtime, /developmentPaymentEnabled/);
   assert.match(list, /cardBindingAvailable/);
   assert.match(form, /cardBindingAvailable/);
-  assert.match(form, /paymentSandboxEnabled/);
+  assert.match(form, /developmentPaymentEnabled/);
+  assert.match(form, /<BankAccountBinding v-if="!cardBindingAvailable"/);
+  const binding = await source("src/components/me/bank-account-binding.vue");
+  assert.match(binding, /createBankWithdrawalApi\(apiClient\)/);
+  assert.doesNotMatch(binding, /paymentMethodApi|HostedCardVault|cardsStore\.add/);
 });
 
 test("remote daily, orders, quota and bills expose retryable refresh failures", async () => {
@@ -28,7 +32,6 @@ test("remote daily, orders, quota and bills expose retryable refresh failures", 
     assert.match(page, /onShow/);
     assert.match(page, /retry/i);
   }
-  assert.match(detail, /commercePaymentApi\.confirm/);
   assert.match(detail, /refreshRemote/);
 });
 

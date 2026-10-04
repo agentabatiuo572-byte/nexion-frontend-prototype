@@ -21,11 +21,10 @@ test("home earnings and live feed have a server-backed remote branch", () => {
   const earnings = read("src/components/home/earnings-ledger-card.vue");
   const feed = read("src/components/home/live-feed-card.vue");
   assert.match(earnings, /remoteApiEnabled/);
-  assert.match(earnings, /visibleDevices/);
-  assert.match(earnings, /recentTasks/);
-  assert.match(feed, /remoteApiEnabled/);
-  assert.match(feed, /visibleDevices/);
-  assert.match(feed, /recentTasks/);
+  assert.match(earnings, /app\.homeTruth\?\.earningsLedger/);
+  assert.match(earnings, /app\.refreshHomeTruth\(\)/);
+  assert.match(feed, /buildCanonicalHomeFeed\(app\.homeTruth\?\.earningsLedger \?\? \[\]\)/);
+  assert.match(feed, /app\.refreshHomeTruth\(\)/);
   const app = read("src/store/app.ts");
   assert.match(app, /createRemoteAccountEpoch/);
   assert.match(app, /isCurrent\(/);
@@ -58,8 +57,8 @@ test("remote market board renders only the server-owned home truth rows", () => 
   const board = read("src/components/home/market-board-card.vue");
   assert.match(board, /homeTruth\?\.marketBoard\.workloads/);
   assert.match(board, /app\.homeTruth\?\.marketBoard\.workloads \?\? \[\]/);
-  assert.match(board, /v-if="!remoteApiEnabled"/);
   assert.match(board, /v-if="homeMarketRows\.length"/);
+  assert.doesNotMatch(board, /MOCK_MARKET|Math\.random/);
   // 🔴 2026-08-17:原断言钉的是**英文字面量** `Unavailable`,而那句话已收进 i18n(它此前在
   //    中文 / 越南语界面直出英文,由 i18n-hardcoded-en-copy-sentinel 抓出)。字面量断言与
   //    「文案必须走词典」这条不变量方向相反 —— 任何一次正确的 i18n 收编都会让它翻红,
@@ -67,7 +66,7 @@ test("remote market board renders only the server-owned home truth rows", () => 
   //    改锚 i18n key + 三语有值,守的语义(无权威时显式不可用、不编数)没变而且更强:
   //    key 被删或某语种译文被清空时也判红,字面量断言对这两种失效全瞎。
   // key 名收尾带边界:不带的话 `unavailableXX` 这种笔误 key 照样匹配,页面渲染空白而门报绿。
-  assert.match(board, /t\.uiChrome\.unavailable\b(?!\w)/);
+  assert.match(board, /t\.value\.uiChrome\.unavailable\b(?!\w)/);
   assertKeyInAllLocales(read, "uiChrome", ["unavailable"]);
 });
 
@@ -117,8 +116,8 @@ test("account-scoped event, event-page, and V-rank reads reject stale responses"
     assert.match(source, /createRemoteAccountEpoch/);
     assert.match(source, /isCurrent\(/);
   }
-  assert.match(eventsPage, /watch\(\(\) => app\.accountKey/);
-  assert.match(missionsPage, /watch\(\(\) => app\.accountKey/);
+  assert.match(eventsPage, /watch\(\[\(\) => String\(app\.accountKey\)/);
+  assert.match(missionsPage, /watch\(\[\(\) => String\(app\.accountKey\)/);
   assert.match(eventQuest, /clearRemoteFacts\(\)/);
   assert.match(vRank, /ladder\.value = \[\]/);
 });

@@ -2,6 +2,8 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { pointsApi, remoteApiEnabled } from "@/api/runtime";
 import { createAccountRowCommit } from "./account-scoped-storage";
+import { normalizeAccountKey } from "./account-cloud";
+import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 
 /**
  * Ported from Nexion-prototype/lib/store/daily-powerup.ts (zustand persist →
@@ -44,6 +46,8 @@ export const useDailyPowerUp = defineStore("dailyPowerUp", () => {
   const claimed = ref<StreakPowerUpId[]>([]);
   const claimedAt = ref<Record<string, number>>({});
   const remotePowerUpIds = ref<Record<string, number>>({});
+  let boundKey = "default";
+  const remoteAccountEpoch = createRemoteAccountEpoch(boundKey);
 
   function clearRemoteFacts() {
     claimed.value = [];
@@ -51,11 +55,13 @@ export const useDailyPowerUp = defineStore("dailyPowerUp", () => {
     remotePowerUpIds.value = {};
   }
 
-  async function refreshRemote(): Promise<boolean> {
+  async function refreshRemote(request: RemoteAccountRequest = remoteAccountEpoch.snapshot()): Promise<boolean> {
     if (!remoteApiEnabled) return true;
+    if (!remoteAccountEpoch.isCurrent(request)) return false;
     clearRemoteFacts();
     try {
       const snapshot = await pointsApi.state();
+      if (!remoteAccountEpoch.isCurrent(request)) return false;
       remotePowerUpIds.value = Object.fromEntries(snapshot.powerUps.flatMap((powerUp) => [
         [powerUp.powerUpCode, powerUp.powerUpId],
         [powerUp.powerUpCode.toLowerCase(), powerUp.powerUpId],
@@ -65,19 +71,23 @@ export const useDailyPowerUp = defineStore("dailyPowerUp", () => {
         .map((powerUp) => powerUp.powerUpCode.toLowerCase() as StreakPowerUpId);
       return true;
     } catch {
-      clearRemoteFacts();
+      if (remoteAccountEpoch.isCurrent(request)) clearRemoteFacts();
       return false;
     }
   }
 
   async function claimRemote(id: StreakPowerUpId): Promise<boolean> {
+    const request = remoteAccountEpoch.snapshot();
     const powerUpId = remotePowerUpIds.value[id];
     if (!powerUpId) return false;
     try {
       await pointsApi.activatePowerUp(powerUpId, `h5-power-up:${powerUpId}`);
-      return refreshRemote();
+      if (!remoteAccountEpoch.isCurrent(request)) return false;
+      return refreshRemote(request);
     } catch {
-      clearRemoteFacts();
+      // Keep the last canonical AVAILABLE row and id so a transient claim
+      // failure leaves the CTA retryable. A failed mutation is not evidence
+      // that the server snapshot became empty.
       return false;
     }
   }
@@ -95,12 +105,14 @@ export const useDailyPowerUp = defineStore("dailyPowerUp", () => {
 
   /** 账号切换重绑:装载该账号的增益领取态(P2-8 设备级泄漏修复)。 */
   function bindAccount(rawAccountKey: string) {
+    boundKey = normalizeAccountKey(rawAccountKey);
+    remoteAccountEpoch.bind(boundKey);
     if (remoteApiEnabled) {
       clearRemoteFacts();
-      void refreshRemote();
+      void refreshRemote(remoteAccountEpoch.snapshot());
       return;
     }
-    const row = rows.bind(rawAccountKey) ?? defaults();
+    const row = rows.bind(boundKey) ?? defaults();
     claimed.value = row.claimed;
     claimedAt.value = row.claimedAt;
   }

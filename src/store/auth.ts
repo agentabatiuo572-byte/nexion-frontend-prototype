@@ -168,7 +168,12 @@ export const useAuth = defineStore("auth", () => {
   function completeOnboarding(): boolean {
     const previous = onboardingComplete.value;
     onboardingComplete.value = true;
-    if (persist()) return true;
+    // In server mode the current authenticated session is memory-only by
+    // design. Once the backend has confirmed the final onboarding action, a
+    // browser/native cache write failure must not send the live user back to
+    // the activation error screen. A reload still starts closed and requires
+    // a fresh server login, so this does not restore authority from storage.
+    if (persist() || remoteApiEnabled) return true;
     onboardingComplete.value = previous;
     return false;
   }

@@ -10,15 +10,22 @@ async function load(relative) {
 }
 
 test("G1 intent gate coalesces double-clicks, reuses unknown keys and separates payloads", async () => {
+  let stored;
+  globalThis.uni = {
+    getStorageSync: () => stored,
+    setStorageSync: (_key, value) => { stored = value; },
+  };
   const { createRemoteIntentGate } = await load("src/lib/g-remote-intent.ts");
-  const gate = createRemoteIntentGate("G1", () => "fixed");
-  const first = gate.acquire("open", { tierKey: "usdt30d", amountUsdt: 20 });
-  const double = gate.acquire("open", { tierKey: "usdt30d", amountUsdt: 20 });
+  let sequence = 0;
+  const gate = createRemoteIntentGate("G1", () => String(++sequence));
+  const first = gate.acquire("user:7", "open", { tierKey: "usdt30d", amountUsdt: 20 });
+  const double = gate.acquire("user:7", "open", { tierKey: "usdt30d", amountUsdt: 20 });
   assert.equal(double.pending, true);
   assert.equal(double.key, first.key);
-  gate.complete(first.fingerprint, false); // unknown response: retry same request key
-  assert.equal(gate.acquire("open", { tierKey: "usdt30d", amountUsdt: 20 }).key, first.key);
-  assert.notEqual(gate.acquire("open", { tierKey: "usdt30d", amountUsdt: 21 }).key, first.key);
+  gate.complete(first, false); // unknown response: retry same request key
+  assert.equal(gate.acquire("user:7", "open", { tierKey: "usdt30d", amountUsdt: 20 }).key, first.key);
+  assert.notEqual(gate.acquire("user:7", "open", { tierKey: "usdt30d", amountUsdt: 21 }).key, first.key);
+  delete globalThis.uni;
 });
 
 test("G1/G2 malformed canonical responses fail closed before a success snapshot", async () => {

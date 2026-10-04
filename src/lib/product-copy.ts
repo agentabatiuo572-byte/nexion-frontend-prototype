@@ -10,7 +10,10 @@
 // newly added product degrades to English instead of crashing. verify.sh
 // asserts id parity so that fallback stays unreachable in practice.
 
-import type { Messages } from "@/i18n/messages/en";
+import { en, type Messages } from "@/i18n/messages/en";
+import { vi } from "@/i18n/messages/vi";
+import { zh } from "@/i18n/messages/zh";
+import type { LocaleCode } from "@/i18n";
 import type { Product } from "@/mock/products";
 import { SPEC_UNAVAILABLE } from "@/api/product-catalog-contract";
 import { fmt } from "@/i18n/format";
@@ -24,7 +27,48 @@ export interface ProductCopy {
 
 type CatalogEntry = { tagline: string; badge: string; unlocks: string };
 
-export function productCopy(t: Messages, p: Product): ProductCopy {
+const badgeSources = [en.store, vi.store, zh.store];
+
+// Match known free-text marketing labels by meaning; leave custom copy intact.
+function serverBadge(t: Messages, badge: string | undefined): string {
+  if (!badge) return "";
+  if (badgeSources.some((store) => store.bestSeller === badge || store.catalog["stellarbox-s1"].badge === badge)) return t.store.bestSeller;
+  if (badgeSources.some((store) => store.trending === badge || store.catalog["stellarbox-pro"].badge === badge)) return t.store.catalog["stellarbox-pro"].badge;
+  for (const id of Object.keys(en.store.catalog) as (keyof typeof en.store.catalog)[]) {
+    if (badgeSources.some((store) => store.catalog[id].badge === badge)) return t.store.catalog[id].badge;
+  }
+  return badge;
+}
+
+function normalizedPublishedTagline(value: string): string {
+  return value.normalize("NFKC").trim().replace(/\s*[·・]\s*/gu, "·");
+}
+
+const PRO_PUBLISHED_TAGLINE = "中端主力·AI 推理 + 挖掘";
+const VIRGINIA_DATACENTER = "美国·弗吉尼亚";
+
+/** Translate only this published place label; a SKU's actual datacenter remains server-owned. */
+export function localizedDatacenterValue(value: string | null | undefined, locale: LocaleCode): string | null | undefined {
+  if (!value || normalizedPublishedTagline(value) !== VIRGINIA_DATACENTER || locale === "zh") return value;
+  return locale === "vi" ? "Hoa Kỳ · Virginia" : "United States · Virginia";
+}
+
+function serverTagline(t: Messages, p: Product, locale?: LocaleCode): string {
+  if (p.id === "cloud-share" && normalizedPublishedTagline(p.tagline) === zh.store.cloudShareLowBarrierTagline) {
+    return t.store.cloudShareLowBarrierTagline;
+  }
+  if (p.id === "stellarbox-pro" && normalizedPublishedTagline(p.tagline) === PRO_PUBLISHED_TAGLINE && locale && locale !== "zh") {
+    return locale === "vi" ? "Dòng chủ lực tầm trung · Suy luận AI + khai thác" : "Midrange mainstay · AI inference + mining";
+  }
+  return p.tagline;
+}
+
+export function productCopy(t: Messages, p: Product, serverCatalog = false, locale?: LocaleCode): ProductCopy {
+  if (serverCatalog) return {
+    tagline: serverTagline(t, p, locale),
+    badge: serverBadge(t, p.badge),
+    unlocks: "",
+  };
   const entry = (t.store.catalog as Record<string, CatalogEntry | undefined>)[p.id];
   return {
     tagline: entry?.tagline ?? p.tagline,
@@ -42,7 +86,7 @@ export function productCopy(t: Messages, p: Product): ProductCopy {
  * Every render of those fields goes through here; `spec-sentinel-render-gate.mjs`
  * fails the build on any unwrapped read in the store render face.
  */
-export function specText(t: Messages, value: string | undefined): string {
+export function specText(t: Messages, value: string | null | undefined): string {
   return !value || value === SPEC_UNAVAILABLE ? t.store.specValueUnavailable : value;
 }
 

@@ -12,10 +12,8 @@
 
   Wrapped in <AppChassis active="me">; entrance via <CardStagger>.
 
-  Secondary settings-row display values are wired to the live ported stores
-  (security 2FA / achievements count / notifications unread / receipts / orders /
-  points), matching the source.
-  Some settings targets are not-yet-ported pages → nav fail:()=>{}.
+  Secondary settings-row display values are wired to authenticated Java
+  projections (security 2FA / notifications unread / orders).
 
   Account section's "orders" row was relocated here from store.vue's old
   bottom Orders chip (single canonical entry point, not scroll-buried);
@@ -31,20 +29,29 @@
 
       <WalletCard />
 
-      <!-- Hero slot — zero-cost trial activation right after wallet -->
+      <!-- Hero slot — zero-cost trial activation right after wallet.
+           BUG 173: 三态占位 —— 首次读取期间渲染固定高度骨架,已确认后才一次性
+           呈现最终卡片,避免卡片延迟出现把下面的模块整体推下去。 -->
+      <view v-if="!trialIsActive && trial.promoSlot === 'pending'" aria-hidden="true" :style="trialSkeletonStyle" data-me-trial-state="pending">
+        <view :style="trialSkeletonTitleStyle" />
+        <view :style="trialSkeletonSubStyle" />
+      </view>
       <TrialEntry v-if="trialIsHero" />
 
       <view v-for="section in quickSections" :key="section.key">
         <SectionHeader :title="section.title" :count="section.count" />
-        <view :style="quickGridCardStyle">
+        <view class="nx-glass-card" :style="quickGridCardStyle">
           <view class="nx-quick-grid" :style="quickGridStyle">
             <view
               v-for="item in section.items"
               :key="item.key"
               class="active:opacity-80"
               :data-quick-key="item.key"
+              role="button" tabindex="0" :aria-label="item.label"
               :style="quickItemStyle"
               @click="handleQuickItem(item)"
+
+              @keydown.enter.prevent="handleQuickItem(item)" @keydown.space.prevent="handleQuickItem(item)"
             >
               <view :style="quickIconStyle(item.tone)">
                 <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -63,10 +70,19 @@
       <!-- Active-state row once trial is running -->
       <TrialEntry v-if="trialIsActive" />
 
+      <view v-if="remoteApiEnabled && remoteOrdersLoading" class="mx-0 flex items-center" style="gap: 8px; min-height: 32px" data-me-orders-state="loading">
+        <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.orders.refreshing }}</text>
+      </view>
+      <view v-else-if="remoteApiEnabled && remoteOrdersFailed" class="mx-0 flex items-center justify-between" style="gap: 12px; min-height: 44px" data-me-orders-state="failed">
+        <text class="flex-1" style="font-size: 12px; color: var(--v5-danger)">{{ t.orders.refreshFailed }}</text>
+        <view class="shrink-0 inline-flex items-center justify-center active:opacity-80" style="min-height: 44px; padding: 0 12px; border-radius: 999px; background: var(--v5-danger-soft); color: var(--v5-danger);" data-me-action="retry-orders" role="button" tabindex="0" :aria-label="t.orders.retry" @click="refreshRemoteOrders"  @keydown.enter.prevent="refreshRemoteOrders" @keydown.space.prevent="refreshRemoteOrders">
+          <text>{{ t.orders.retry }}</text>
+        </view>
+      </view>
       <OrdersCard v-if="orderCount > 0" />
 
       <!-- Sign out -->
-      <view class="w-full inline-flex items-center justify-center active:opacity-90" :style="signOutStyle" @click="handleSignOut">
+      <view class="w-full inline-flex items-center justify-center active:opacity-90" :style="signOutStyle" data-me-action="sign-out" role="button" tabindex="0" :aria-label="t.me.signOut" @click="handleSignOut"  @keydown.enter.prevent="handleSignOut" @keydown.space.prevent="handleSignOut">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></svg>
         <text style="margin-left: 6px">{{ t.me.signOut }}</text>
       </view>
@@ -80,7 +96,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type CSSProperties } from "vue";
+import { computed, ref, watch, type CSSProperties } from "vue";
+import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import SectionHeader from "@/components/me/section-header.vue";
@@ -90,52 +107,65 @@ import TrialEntry from "@/components/me/trial-entry.vue";
 import OrdersCard from "@/components/me/orders-card.vue";
 import ThemePickerSheet from "@/components/me/theme-picker-sheet.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
-import { navTo } from "@/lib/route";
-import { isDeviceOnline } from "@/lib/hashpower";
+import { fmt, openSlotsTemplate } from "@/i18n/format";
+import { navReset, navTo } from "@/lib/route";
+import { nexGridBrandText } from "@/lib/brand-copy";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
 import { useSession } from "@/store/session";
 import { useProfile } from "@/store/profile";
-import { useReceipts } from "@/store/receipts";
+import { useDeposits } from "@/store/deposits";
 import { useOrders } from "@/store/orders";
 import { useLocaleStore } from "@/store/locale";
-import { useNexFaucet } from "@/store/nex-faucet";
 import { trialReservesSlotNow, useFreeTrial } from "@/store/free-trial";
 import { useSecurity } from "@/store/security";
 import { rebindAccountScopedStores } from "@/lib/account-scope";
 import { useNotifications } from "@/store/notifications";
-import { formatUnreadBadge } from "@/lib/unread-badge";
+import { useConversations } from "@/store/conversations";
+import { useMessageDrawer } from "@/store/message-drawer";
 import { useGenesis } from "@/store/genesis";
 import { useConfig } from "@/store/config";
-import { useAchievements } from "@/store/achievements";
 import { useVoucher } from "@/store/voucher";
 import { useRewardsSeen } from "@/store/rewards-seen";
-import { MAX_DEVICES } from "@/store/device-types";
 import { useVRank } from "@/store/v-rank";
 import { useTheme } from "@/store/theme";
-import { ACHIEVEMENTS } from "@/mock/achievements";
+import { useBills } from "@/store/bills";
+import { useMarket } from "@/store/market";
 import { confirm as uiConfirm } from "@/store/ui";
-import { authApi, remoteApiEnabled } from "@/api/runtime";
+import { accountApi, authApi, remoteApiEnabled } from "@/api/runtime";
+import type { SecurityState } from "@/api/contracts";
+import { runRemoteOrdersRefresh } from "@/lib/remote-orders-refresh";
+import { settleRemoteMeLoaders } from "@/lib/remote-me-refresh";
+import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
 
 const t = useT();
 const app = useApp();
 const auth = useAuth();
 const session = useSession();
 const profile = useProfile();
-const receipts = useReceipts();
+// These summaries only consume authenticated server projections. Explicit
+// Mock mode therefore shows unavailable instead of loading fixture stores.
+const deposits = useDeposits();
 const orders = useOrders();
 const locale = useLocaleStore();
-const faucet = useNexFaucet();
 const trial = useFreeTrial();
 const security = useSecurity();
 const notifications = useNotifications();
-const achievements = useAchievements();
+const conversations = useConversations();
+const messageCenter = useMessageDrawer();
 const voucher = useVoucher();
 const rewardsSeen = useRewardsSeen();
 const vrank = useVRank();
 const theme = useTheme();
+const bills = useBills();
+const market = useMarket();
 const themePickerOpen = ref(false);
+const remoteSecurity = ref<SecurityState | null>(null);
+const remoteOrdersLoading = ref(false);
+const remoteOrdersFailed = ref(false);
+let remoteSecurityRequest = 0;
+let remoteOrdersRequest = 0;
 
 const iconPaths = {
   network: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 7a4 4 0 1 0 0 .01", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"],
@@ -196,23 +226,18 @@ interface QuickSection {
   items: QuickItem[];
 }
 
-const profileName = computed(() => profile.displayName);
-const receiptCount = computed(() => receipts.receipts.length);
+const profileName = computed(() => nexGridBrandText(profile.displayName));
 const orderCount = computed(() => orders.orders.length);
-const streakDays = computed(() => faucet.signInStreak);
 const localeUpper = computed(() => locale.code.toUpperCase());
 const activeCount = computed(() => app.activeSlotCount);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
 const slotsUsed = computed(() => activeCount.value + trialSlot.value);
-const emptySlots = computed(() => MAX_DEVICES - slotsUsed.value);
-const onlineCount = computed(
-  () => app.visibleDevices.filter((device) => device.activatedAt !== null && isDeviceOnline(device, Date.now())).length + trialSlot.value,
-);
-const deviceSectionCount = computed(() => fmt(t.value.myDevices.sectionCount, { n: slotsUsed.value, total: MAX_DEVICES }));
-const onlineLabel = computed(() => fmt(t.value.myDevices.onlineLabel, { n: onlineCount.value }));
-const emptySlotsLabel = computed(() => fmt(t.value.myDevices.emptySlots, { n: emptySlots.value }));
-const deviceOrdersMeta = computed(() => fmt(t.value.me.deviceOrdersMeta, { n: orderCount.value }));
-const rankValue = computed(() => `V${vrank.myRank}`);
+const emptySlots = computed(() => Math.max(0, app.slotCap - slotsUsed.value));
+const deviceSectionCount = computed(() => fmt(t.value.myDevices.sectionCount, { n: slotsUsed.value, total: app.slotCap }));
+const activatedLabel = computed(() => fmt(t.value.myDevices.activatedLabel, { n: activeCount.value }));
+const emptySlotsLabel = computed(() => fmt(openSlotsTemplate(t.value.myDevices.emptySlots, emptySlots.value), { n: emptySlots.value }));
+const deviceOrdersMeta = computed(() => fmt(orderCount.value === 1 ? t.value.me.deviceOrdersMetaOne : t.value.me.deviceOrdersMeta, { n: orderCount.value }));
+const rankValue = computed(() => remoteApiEnabled && !vrank.remoteReady ? "—" : `V${vrank.myRank}`);
 const themeModeLabel = computed(() =>
   theme.mode === "system"
     ? t.value.me.themeMetaSystem
@@ -222,11 +247,13 @@ const themeModeLabel = computed(() =>
 );
 
 // Trial routing — hero slot (eligible to start) vs active row (running).
+// BUG 173: 槽位是三态,不是两态 —— 首次读取期间用固定高度骨架占位,避免
+// 卡片在数据到达时凭空插入把下面的模块整体推下去。
 const trialStatus = computed(() => trial.status);
 const trialIsActive = computed(
   () => trialStatus.value === "active" || trialStatus.value === "grace",
 );
-const trialIsHero = computed(() => !trialIsActive.value && trial.canStart());
+const trialIsHero = computed(() => !trialIsActive.value && trial.promoSlot === "visible");
 
 // Genesis row surfaces once the user actually owns a Genesis node →
 // links to the holder (holdings/dividends) page.
@@ -236,18 +263,11 @@ const ownsGenesis = computed(() => genesis.myOwned > 0);
 const myGenesisValue = computed(() => fmt(t.value.me.myGenesisNodeValue, { n: String(genesis.myOwned) }));
 
 // ── Secondary display values, wired to the live ported stores (matches source) ──
-const twoFactorEnabled = computed(() => security.twoFactorEnabled);
-const unreadNotifs = computed(() => notifications.unread);
-const achievementsUnlocked = computed(
-  () => achievements.records.filter((r) => r.unlockedAt > 0).length,
-);
-const achievementsTotal = ACHIEVEMENTS.length;
-const achievementsValue = computed(() =>
-  fmt(t.value.me.achievementsRowValue, { n: achievementsUnlocked.value, total: achievementsTotal }),
-);
-// Mock urgency — source hardcodes 9 live events (server-driven in the full app).
-const eventsLiveLabel = computed(() => fmt(t.value.me.nLive, { n: "9" }));
-
+const twoFactorEnabled = computed<boolean | null>(() => remoteApiEnabled
+  ? remoteSecurity.value?.twoFactorEnabled ?? null
+  : security.twoFactorEnabled);
+// The Me entry and both bells share the notification + human + ticket unread total.
+const messageUnread = computed(() => messageCenter.totalUnread);
 // My Rewards unread dot — unused valid vouchers keep it lit (state-based)
 // OR reward credits newer than the seen-watermark (cleared on page open).
 const rewardsDot = computed(() => voucher.claimedUnused.length > 0 || rewardsSeen.hasUnseen);
@@ -257,7 +277,7 @@ const quickSections = computed<QuickSection[]>(() => [
     title: t.value.me.myNetwork,
     items: [
       { key: "team", label: t.value.me.team, href: "/team", icon: "network", meta: t.value.me.networkOverviewMeta, tone: "brand" },
-      { key: "invite", label: t.value.me.networkInviteLabel, href: "/team", icon: "invite", meta: fmt(t.value.me.networkInviteMeta, { nex: config.config.rewards.inviterReward.nexAmount }), tone: "orange" },
+      { key: "invite", label: t.value.me.networkInviteLabel, href: "/team", icon: "invite", meta: config.config.rewards.enabled ? fmt(t.value.me.networkInviteMeta, { nex: config.config.rewards.inviterReward.nexAmount }) : t.value.me.networkInviteMetaDisabled, tone: "orange" },
       { key: "commissions", label: t.value.me.networkCommissionsLabel, href: "/team/commissions", icon: "commission", meta: t.value.me.networkCommissionsMeta, tone: "success" },
       { key: "rank", label: t.value.me.currentRank, href: "/team/rank", icon: "rank", meta: rankValue.value, tone: "purple" },
     ],
@@ -267,7 +287,7 @@ const quickSections = computed<QuickSection[]>(() => [
     title: t.value.myDevices.sectionTitle,
     count: deviceSectionCount.value,
     items: [
-      { key: "inventory", label: t.value.myDevices.inventoryTitle, href: "/me/devices", icon: "device", meta: onlineLabel.value, tone: "success" },
+      { key: "inventory", label: t.value.myDevices.inventoryTitle, href: "/me/devices", icon: "device", meta: activatedLabel.value, tone: "success" },
       { key: "add", label: t.value.me.deviceAddLabel, href: "/store", icon: "plus", meta: t.value.me.deviceAddMeta, tone: "brand" },
       { key: "slots", label: t.value.myDevices.inventorySlotsLabel, href: "/me/devices", icon: "slots", meta: emptySlotsLabel.value, tone: "purple" },
       { key: "goals", label: t.value.me.goalsRow, href: "/me/goals", icon: "target", meta: t.value.me.setTarget, tone: "orange" },
@@ -278,12 +298,12 @@ const quickSections = computed<QuickSection[]>(() => [
     title: t.value.me.secAccount,
     items: [
       { key: "rewards", label: t.value.rewards.entry, href: "/me/rewards", icon: "gift", dot: rewardsDot.value, tone: "brand" },
-      { key: "receipts", label: t.value.me.receiptsRow, href: "/me/receipts", icon: "receipt", meta: String(receiptCount.value), tone: "brand" },
-      { key: "orders", label: t.value.store.ordersChip, href: "/store/orders", icon: "package", meta: orderCount.value > 0 ? deviceOrdersMeta.value : undefined, tone: "purple" },
+      { key: "receipts", label: t.value.me.receiptsRow, href: "/me/receipts", icon: "receipt", tone: "brand" },
+      { key: "orders", label: t.value.store.ordersChip, href: "/store/orders?from=me", icon: "package", meta: orderCount.value > 0 ? deviceOrdersMeta.value : undefined, tone: "purple" },
       { key: "genesis", label: t.value.me.genesisNode, href: "/genesis/holder", icon: "crown", meta: ownsGenesis.value ? myGenesisValue.value : undefined, tone: "orange" },
       { key: "cards", label: t.value.me.walletCardsRow, href: "/me/wallet-cards", icon: "card", meta: t.value.me.walletCardsMeta, tone: "muted" },
       { key: "profile", label: t.value.me.profile, href: "/me/profile", icon: "user", meta: profileName.value, tone: "muted" },
-      { key: "security", label: t.value.me.security, href: "/me/security", icon: "lock", meta: twoFactorEnabled.value ? t.value.me.secWithPasskey : t.value.me.secNoTwoFa, tone: twoFactorEnabled.value ? "muted" : "orange" },
+      { key: "security", label: t.value.me.security, href: "/me/security", icon: "lock", meta: twoFactorEnabled.value === null ? "—" : twoFactorEnabled.value ? t.value.me.secWithPasskey : t.value.me.secNoTwoFa, tone: twoFactorEnabled.value === null ? "muted" : twoFactorEnabled.value ? "muted" : "orange" },
     ],
   },
   {
@@ -299,8 +319,9 @@ const quickSections = computed<QuickSection[]>(() => [
     key: "help",
     title: t.value.me.secHelp,
     items: [
-      { key: "messages", label: t.value.me.supportMessagesRow, href: "/support/messages", icon: "messages", badge: formatUnreadBadge(unreadNotifs.value) || undefined, tone: "purple" },
-      { key: "support", label: t.value.me.liveSupportRow, href: "/me/support", icon: "chat", meta: t.value.me.onlineChip, tone: "success" },
+      { key: "messages", label: t.value.notifs.drawerTitle, href: "/me/notifications", icon: "messages", badge: formatUnreadBadge(messageUnread.value) || undefined, tone: "purple" },
+      // This opens the support hub; availability is not inferred from a local badge.
+      { key: "support", label: t.value.me.supportHubRow, href: "/me/support", icon: "chat", meta: t.value.me.supportHubMeta, tone: "success" },
       { key: "faq", label: t.value.me.helpFaq, href: "/me/help", icon: "help", tone: "muted" },
       { key: "tickets", label: t.value.me.supportTicketsRow, href: "/me/support-tickets", icon: "ticket", tone: "orange" },
       { key: "trust", label: t.value.me.trustCenter, href: "/trust", icon: "trust", meta: t.value.me.auditsPartners, tone: "success" },
@@ -310,6 +331,74 @@ const quickSections = computed<QuickSection[]>(() => [
     ],
   },
 ]);
+
+async function refreshRemoteFunds() {
+  await deposits.refreshRemoteVietQrDeposits();
+}
+
+async function refreshRemoteOrders() {
+  if (!remoteApiEnabled) return;
+  const request = ++remoteOrdersRequest;
+  const accountKey = app.accountKey;
+  await runRemoteOrdersRefresh(
+    () => orders.refreshRemote(),
+    (state) => {
+      if (request !== remoteOrdersRequest || accountKey !== app.accountKey) return;
+      remoteOrdersLoading.value = state.loading;
+      remoteOrdersFailed.value = state.failed;
+    },
+  );
+}
+
+async function refreshRemoteSecurity() {
+  if (!remoteApiEnabled) return;
+  const request = ++remoteSecurityRequest;
+  const accountKey = app.accountKey;
+  remoteSecurity.value = null;
+  try {
+    const snapshot = await accountApi.securityOverview();
+    if (request !== remoteSecurityRequest || accountKey !== app.accountKey) return;
+    remoteSecurity.value = snapshot;
+  } catch {
+    if (request === remoteSecurityRequest && accountKey === app.accountKey) remoteSecurity.value = null;
+  }
+}
+
+async function refreshRemoteTrial() {
+  // BUG 173: 原来是 state + eligibility 两次串行 RTT —— 卡片 4.2s 才出现、
+  // 7.0s 第二次置 loading 又把它禁掉,用户看到两段抖动。
+  // GET /api/trial/state 的权威答复里已经带 canStart/eligibilityReason,
+  // 一次读取就能定态;eligibility 读取只留作 state 读失败后的修复路径。
+  if (await trial.refreshRemote(true)) return;
+  await trial.refreshEligibilityRemote();
+}
+
+async function refreshRemoteMe() {
+  if (!remoteApiEnabled) return;
+  await settleRemoteMeLoaders([
+    ["home", () => app.refreshHomeTruth()],
+    ["fleet", () => refreshRemoteFleetAfterCatalog(app.accountKey)],
+    ["funds", refreshRemoteFunds],
+    ["orders", refreshRemoteOrders],
+    ["security", refreshRemoteSecurity],
+    ["notifications", () => notifications.refreshRemote()],
+    ["conversations", () => conversations.refresh()],
+    ["trial", refreshRemoteTrial],
+    ["vouchers", () => voucher.refreshRemote()],
+    ["rank", () => vrank.refreshCanonicalVRank()],
+    ["genesis", () => genesis.syncRemote()],
+    ["bills", () => bills.refreshSummary()],
+    ["market", () => market.syncRemote()],
+    ["config", () => config.load()],
+  ]);
+}
+
+watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
+  if (remoteApiEnabled) void refreshRemoteMe();
+});
+onShow(() => {
+  if (remoteApiEnabled) void refreshRemoteMe();
+});
 
 function handleQuickItem(item: QuickItem) {
   if (item.key === "theme") {
@@ -338,10 +427,32 @@ function toneColor(tone: QuickTone = "muted"): string {
   }
 }
 
-const quickGridCardStyle: CSSProperties = {
+// BUG 173 骨架:高度对齐 TrialPromoBanner 的 18px+4px+18px 上下留白 + 两行文本,
+// 让 pending → visible 的替换不发生任何纵向位移。
+const trialSkeletonStyle: CSSProperties = {
+  padding: "18px 0",
+  display: "flex",
+  alignItems: "center",
+  gap: "14px",
+};
+const trialSkeletonTitleStyle: CSSProperties = {
+  width: "58%",
+  height: "20px",
+  borderRadius: "6px",
+  background: "color-mix(in srgb, var(--v5-ink) 8%, transparent)",
+};
+const trialSkeletonSubStyle: CSSProperties = {
+  marginLeft: "14px",
+  width: "34%",
+  height: "18px",
+  borderRadius: "6px",
+  background: "color-mix(in srgb, var(--v5-ink) 6%, transparent)",
+};
+
+const quickGridCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "18px 10px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const quickGridStyle: CSSProperties = {
   display: "grid",
@@ -397,15 +508,15 @@ const quickBadgeStyle: CSSProperties = {
   textAlign: "center",
 };
 const quickLabelStyle: CSSProperties = {
-  maxWidth: "78px",
+  maxWidth: "100%",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "clamp(10px, 3vw, 12px)",
   fontWeight: 500,
   lineHeight: 1.2,
   color: "var(--v5-ink)",
   textAlign: "center",
   whiteSpace: "normal",
-  wordBreak: "break-word",
+  wordBreak: "normal",
 };
 function quickMetaStyle(tone: QuickTone = "muted"): CSSProperties {
   return {
@@ -418,6 +529,7 @@ function quickMetaStyle(tone: QuickTone = "muted"): CSSProperties {
     textAlign: "center",
     opacity: 0.9,
     whiteSpace: "normal",
+    overflowWrap: "break-word",
   };
 }
 
@@ -430,19 +542,24 @@ async function handleSignOut() {
     confirmLabel: t.value.me.signOutConfirmLabel,
   });
   if (ok) {
-    // The server owns refresh-token revocation. authApi.logout always clears
-    // this device locally in its finally block, including an offline failure.
-    if (remoteApiEnabled) await authApi.logout();
+    conversations.discardHumanOutbox();
     // Self sign-out: void in-flight tasks (rollback) + release the shared
     // session record (other tabs see "logged-out") before clearing auth.
     app.interruptAllTasks("logged-out");
+    if (remoteApiEnabled) {
+      // Stop new heartbeats, let any healthy POST finish, then pause this phone
+      // before the authenticated session is revoked. Offline failure falls
+      // back to the server's 120-second heartbeat timeout.
+      await app.pauseLocalPhoneRuntimeBeforeSignOut();
+      await authApi.logout();
+    }
     session.signOutSession();
     auth.signOut();
     // 登出兜底:清全部账号级数据的内存残留(P2-8 纵深防御;下次登录会重绑真账号)。
     // app(余额/设备/收益,account-cloud 快照)+ 其余 28 个账号级 store 一并归 default。
     app.bindAccount("default");
     rebindAccountScopedStores("default");
-    uni.reLaunch({ url: "/pages/login/login", fail: () => {} });
+    navReset({ url: "/pages/login/login", fail: () => {} });
   }
 }
 
@@ -464,6 +581,8 @@ const signOutStyle: CSSProperties = {
   fontSize: "15px",
   letterSpacing: "-0.005em",
 };
+
+
 </script>
 
 <style scoped>

@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, useSlots, type CSSProperties } from "vue";
 
 const props = withDefaults(
@@ -38,7 +39,7 @@ const slots = useSlots();
 const hasValue = computed(() => props.value !== undefined || !!slots.value);
 
 function go() {
-  uni.navigateTo({ url: props.href, fail: () => {} });
+  navTo(props.href);
 }
 
 const rowStyle = computed<CSSProperties>(() => ({

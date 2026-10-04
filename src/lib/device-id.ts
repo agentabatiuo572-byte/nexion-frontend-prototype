@@ -5,14 +5,15 @@
  * server can tell whether this physical device differs from the calibrated
  * device even while multiple account sessions coexist.
  *
- * ⚠️ MOCK-ONLY: here we mint + persist the id client-side. PRODUCTION: the
- * server issues/confirms a device id during `POST /api/auth/signin`
- * (often bound to a push token / attestation); the client only stores it.
- * The SHAPE ({ deviceId, deviceName }) is what production reuses.
+ * The App mints and persists an installation ID locally. The authenticated
+ * server binds that same ID to a production phone calibration and resolves
+ * runtime reports against the active binding. This ID is a lookup key, not
+ * cryptographic proof of a physical device.
  */
 import { mockServerUuid } from "@/store/mock-id";
 
 const STORAGE_KEY = "nexgrid-device-id-v1";
+let runtimeIdentity: DeviceIdentity | null = null;
 
 export interface DeviceIdentity {
   /** Stable opaque id for this install/device. */
@@ -62,10 +63,12 @@ function cap(s: string): string {
  * first use. Synchronous (uni storage is sync) so stores can call it at init.
  */
 export function getDeviceIdentity(): DeviceIdentity {
+  if (runtimeIdentity) return { ...runtimeIdentity };
   try {
     const cached = uni.getStorageSync(STORAGE_KEY) as DeviceIdentity | "";
     if (cached && typeof cached === "object" && cached.deviceId) {
-      return { deviceId: cached.deviceId, deviceName: cached.deviceName || "Web device" };
+      runtimeIdentity = { deviceId: cached.deviceId, deviceName: cached.deviceName || "Web device" };
+      return { ...runtimeIdentity };
     }
   } catch {
     // first run / storage unavailable
@@ -79,7 +82,8 @@ export function getDeviceIdentity(): DeviceIdentity {
   } catch {
     // storage unavailable — identity is still valid for this session
   }
-  return identity;
+  runtimeIdentity = identity;
+  return { ...identity };
 }
 
 /** Convenience accessor for just the id. */
@@ -94,6 +98,7 @@ export function getDeviceId(): string {
  * Never called on the production path.
  */
 export function _devResetDeviceIdentity(): void {
+  runtimeIdentity = null;
   try {
     uni.removeStorageSync(STORAGE_KEY);
   } catch {

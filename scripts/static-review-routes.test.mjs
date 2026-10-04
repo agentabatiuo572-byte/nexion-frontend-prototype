@@ -3,6 +3,47 @@ import fs from "node:fs";
 import test from "node:test";
 import ts from "typescript";
 
+const navigationAllowlist = new Set([
+  "src/lib/route.ts",
+  // Search owns a richer inline failure state with an explicit retry action.
+  "src/pages/search/search.vue",
+]);
+
+function sourceFiles(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const file = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) return sourceFiles(file);
+    return /\.(?:ts|vue)$/.test(entry.name) && !entry.name.endsWith(".test.ts") ? [file] : [];
+  });
+}
+
+function usesRawNavigateTo(source, fileName = "source.ts") {
+  const scriptSource = fileName.endsWith(".vue")
+    ? [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => match[1]).join("\n")
+    : source;
+  const parsed = ts.createSourceFile(fileName, scriptSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  let found = false;
+  function visit(node) {
+    // Forbid the raw API symbol regardless of receiver/alias shape. This also
+    // catches globalThis.uni, optional chains, destructuring and comment gaps.
+    if (ts.isIdentifier(node) && node.text === "navigateTo") {
+      found = true;
+      return;
+    }
+    if (
+      ts.isElementAccessExpression(node)
+      && ts.isStringLiteralLike(node.argumentExpression)
+      && node.argumentExpression.text === "navigateTo"
+    ) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(parsed);
+  return found;
+}
+
 const source = fs.readFileSync("src/lib/static-review-routes.ts", "utf8");
 const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
@@ -51,7 +92,7 @@ test("App repairs non-canonical H5 hashes instead of leaving an authenticated wh
   assert.match(app, /canonicalH5RouteUrl\(/);
   assert.match(app, /routeFromH5Location\(/);
   assert.match(app, /pendingCanonicalRouteRepair/);
-  assert.match(app, /uni\.reLaunch\(\{\s*url:\s*canonicalUrl/);
+  assert.match(app, /navReset\(\{\s*url:\s*canonicalUrl/);
   assert.match(app, /ROUTE_REPAIR_RETRY_MS/);
   assert.match(app, /pendingCanonicalRouteRepairAt/);
   assert.match(app, /canonicalH5RouteUrl\(hashRoute\)\s*\|\|\s*INVALID_H5_ROUTE_FALLBACK/);
@@ -84,4 +125,38 @@ test("exactly sixteen encoding layers are accepted while deeper input fails clos
 test("real static review routes remain whitelisted", () => {
   assert.equal(isStaticReviewRoute("#/pages/entry-surfaces/index"), true);
   assert.equal(isStaticReviewRoute("pages/entry-surfaces/white?entry=white-app"), true);
+});
+
+test("page navigation is routed through the shared failure-handling helper", () => {
+  const offenders = sourceFiles("src")
+    .filter((file) => !navigationAllowlist.has(file))
+    .filter((file) => usesRawNavigateTo(fs.readFileSync(file, "utf8"), file));
+
+  assert.deepEqual(offenders, []);
+});
+
+test("raw-navigation gate catches whitespace and bracket notation", () => {
+  assert.equal(usesRawNavigateTo("uni . navigateTo({ url })"), true);
+  assert.equal(usesRawNavigateTo("uni['navigateTo']({ url })"), true);
+  assert.equal(usesRawNavigateTo("uni?.navigateTo({ url })"), true);
+  assert.equal(usesRawNavigateTo("uni?.['navigateTo']({ url })"), true);
+  assert.equal(usesRawNavigateTo("uni/* gap */.navigateTo({ url })"), true);
+  assert.equal(usesRawNavigateTo("uni./* gap */navigateTo({ url })"), true);
+  assert.equal(usesRawNavigateTo("globalThis.uni.navigateTo({ url })"), true);
+  assert.equal(usesRawNavigateTo("globalThis.uni['navigateTo']({ url })"), true);
+  assert.equal(usesRawNavigateTo("const { navigateTo } = uni; navigateTo({ url })"), true);
+  assert.equal(usesRawNavigateTo("navTo(url)"), false);
+});
+
+test("search keeps its richer raw-navigation failure visible, retryable, and ordered", () => {
+  const searchPage = fs.readFileSync("src/pages/search/search.vue", "utf8");
+  assert.match(searchPage, /import \{ beginNavigationAttempt, completeNavigationAttempt \} from "@\/lib\/navigation-attempt"/);
+  assert.match(searchPage, /const navigationState = ref\(\{ attempt: 0, pendingUrl: "", hasError: false \}\)/);
+  assert.match(searchPage, /const navigationError = computed\(\(\) => navigationState\.value\.hasError\)/);
+  assert.match(searchPage, /const started = beginNavigationAttempt\(navigationState\.value, url\);\s*navigationState\.value = started;/);
+  assert.match(searchPage, /success:\s*\(\)\s*=>\s*\{\s*navigationState\.value = completeNavigationAttempt\(navigationState\.value, started\.attempt, "success"\);\s*\}/);
+  assert.match(searchPage, /fail:\s*\(\)\s*=>\s*\{\s*navigationState\.value = completeNavigationAttempt\(navigationState\.value, started\.attempt, "failure"\);\s*\}/);
+  assert.match(searchPage, /if \(pendingNavigationUrl\.value\) navigateWithFeedback\(pendingNavigationUrl\.value\)/);
+  assert.match(searchPage, /v-if="navigationError"/);
+  assert.match(searchPage, /retryNavigation/);
 });

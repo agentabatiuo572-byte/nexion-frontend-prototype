@@ -440,7 +440,7 @@ function diskRev() {
 {
   const callers = [
     ["质押半屏 stake-sheet", path.join(root, "src", "components", "staking", "stake-sheet.vue"), "async function submit()", "submit"],
-    ["复投页 wallet-repurchase", path.join(root, "src", "pages", "me", "wallet-repurchase.vue"), "function handleRepurchase()", "handleRepurchase"],
+    ["复投页 wallet-repurchase", path.join(root, "src", "pages", "me", "wallet-repurchase.vue"), "async function handleRepurchase()", "handleRepurchase"],
   ];
   samples.callers = callers.length;
   for (const [label, file, needle, fnName] of callers) {
@@ -479,10 +479,12 @@ function diskRev() {
     };
     const env = {
       props: { term: 30 }, term: 30,
-      amount: { value: AMT },
+      amount: { value: AMT }, minAmount: { value: STAKING_MIN },
       selectedPool: { value: undefined }, remotePending: { value: false }, remoteIntent: { value: null },
+      isRemote: { value: false }, isSandboxHold: { value: false }, remoteReady: { value: false }, isMounted: { value: true },
+      repurchase: { open: async () => { throw new Error("REMOTE_STUB_UNUSED"); } },
       intentKey: () => "MOCK_INTENT_UNUSED",
-      canSubmit: { value: true },
+      canOpen: { value: true }, canSubmit: { value: true },
       user: { value: app.user },
       STAKING_MIN, STAKING_APY,
       app, staking, postMoneyBill, geoPolicyUserMessage,

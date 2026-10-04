@@ -44,6 +44,15 @@ const activeState = {
   shadowUsdt: "12.5",
   shadowNex: 20,
   source: "nx_trial_claim + nx_user_wallet",
+  serverCanonical: true,
+  sourceEnvironment: "PRODUCTION",
+  runId: "",
+  provenance: {
+    serverCanonical: true,
+    source: "nx_trial_claim + nx_user_wallet",
+    sourceEnvironment: "PRODUCTION",
+    runId: "",
+  },
   paymentRail: "NEXION_USDT_WALLET",
   config: {
     trialDays: "3", graceDays: "7", extensionDays: "3", discountRate: "0.15",
@@ -51,7 +60,7 @@ const activeState = {
     highQualityThresholdUSD: "100", trialProductId: "stellarbox-s1", trialPriceUSD: "1299",
     shadowDailyUSD: "38.52", shadowDailyNEX: "65", cooldownDays: "30", phaseOpen: "true",
     autoPushEnabled: "true", autoPushDelayMs: "1500", autoPushCooldownHours: "24",
-    autoPushMaxPerSession: "1",
+    autoPushMaxPerSession: "1", seatsLeftToday: "47",
   },
 };
 
@@ -111,7 +120,12 @@ test("trial conversion posts the product and stable idempotency key and validate
   const client = clientReturning({
     orderNo: "TRC-ABC123", productNo: "stellarbox-s1", amountUsdt: 1200,
     discountUsdt: 99, paymentStatus: "PENDING", orderStatus: "PENDING_PAYMENT",
-    sourceEnvironment: "PRODUCTION",
+    source: "nx_trial_claim + nx_order + nx_order_item",
+    serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    provenance: {
+      source: "nx_trial_claim + nx_order + nx_order_item",
+      serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    },
   });
   // 客户端报价是**独立契约字段**(4c32a50 起 convert 签名为 productNo/expectedAmountUsdt/idempotencyKey,
   // 真实调用方 store/free-trial.ts 传 `expectedAmountUsdt ?? null`)。传真值而不是 null,
@@ -139,9 +153,21 @@ test("eligible first-time users retain a visible H2 claim entry which opens the 
   const hero = read("src/components/trial-hero-banner.vue");
   const sheet = read("src/components/trial-claim-sheet.vue");
   assert.match(earn, /<TrialHeroBanner class="w-full"/);
-  assert.match(hero, /trial\.status === "none" && trial\.canStart\(\)/);
+  // Display retains the bound account's confirmed offer during a refresh;
+  // opening the sheet still requires the current detailed eligibility result.
+  // The store's product-unavailable offer discloses stock without permitting a claim.
+  assert.match(hero, /const eligibility = computed\(\(\) => trial\.eligibility\(\)\);/);
+  // BUG 173:已确认可领取的快照在后台重拉期间保持可点 —— 此前只看 eligibility.value.ok,
+  // 于是每次刷新都会把已展示的卡片短暂禁用(报告里 7.0s 那一段)。
+  // 首帧(无确认快照)仍不可点,领取本身仍由 start() 走权威校验。
+  assert.match(hero, /const canClaim = computed\(\(\) => trial\.status === "none"\s+&& \(eligibility\.value\.ok \|\| trial\.confirmedOfferState\(\) === "claimable"\)\);/);
+  assert.match(hero, /const visible = computed\(\(\) => trial\.status === "none"\s+&& trialCfg\.config\.seatsLeftToday > 0\s+&& trial\.showHeroPromo\(\)\);/);
+  const trialStore = read("src/store/free-trial.ts");
+  assert.match(trialStore, /confirmedHeroVisible\.value = next\.status === "none"\s+&& \(next\.canStart \|\| next\.eligibilityReason === "product-unavailable"\)/);
+  assert.match(trialStore, /confirmedHeroVisible\.value = false/);
+  assert.match(trialStore, /authorityStatus\.value !== "ready"\) return \{ ok: false, reason: "unknown" \}/);
   assert.match(hero, /@click="onClick"/);
-  assert.match(hero, /claimSheet\.show\(\)/);
+  assert.match(hero, /function onClick\(\) \{\s+if \(!canClaim\.value\) return;\s+claimSheet\.show\(\);/);
   assert.match(sheet, /await freeTrial\.start\(\)/);
 });
 
@@ -172,7 +198,7 @@ test("remote free-trial store never persists or locally advances an authoritativ
   assert.match(source, /refreshInFlightAccount === boundKey/);
   assert.match(source, /reason: "unknown"/);
   const configSource = read("src/store/trial-config.ts");
-  assert.match(configSource, /mode !== "mock"/);
+  assert.match(configSource, /const remoteAuthority = true/);
   assert.match(configSource, /function reset\(\) \{\s+if \(remoteAuthority\) return;/);
   assert.match(configSource, /device-trial-standard/);
   assert.match(configSource, /TRIAL_PRODUCT_DEVICE_NAMES/);
@@ -182,6 +208,10 @@ test("remote free-trial store never persists or locally advances an authoritativ
   assert.match(apiSource, /start:\s*\(idempotencyKey, deviceName\)/);
   assert.match(apiSource, /body:\s*\{ deviceName \}/);
   const storeSource = read("src/store/free-trial.ts");
-  assert.match(storeSource, /resolveTrialDeviceName\(useTrialConfig\(\)\.config\.trialProductId\)/);
+  // The authoritative E1 name is now carried with the authoritative product
+  // id. Require both fields and the fail-closed branch before a command can
+  // reach the remote start endpoint; do not pin the former inline expression.
+  assert.match(storeSource, /const trialConfig = useTrialConfig\(\)\.config;\s+const deviceName = resolveTrialDeviceName\(trialConfig\.trialProductId, trialConfig\.trialProductName\);/);
+  assert.match(storeSource, /if \(!deviceName\) \{\s+clearRemoteFacts\("error", "TRIAL_CONFIG_RESPONSE_INVALID"\);\s+return \{ ok: false, reason: "unknown" \};/);
   assert.match(storeSource, /trialApi\.start\(pendingStartKey, deviceName\)/);
 });

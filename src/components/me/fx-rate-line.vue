@@ -29,6 +29,8 @@
       <view
         class="shrink-0 grid place-items-center"
         :style="infoHitStyle"
+        role="button"
+        tabindex="0"
         :aria-label="t.fx.infoAria"
         @click="sheetOpen = true"
       >
@@ -40,12 +42,12 @@
 
     <!-- 「牌价说明」半屏 -->
     <view v-if="sheetOpen">
-      <view class="nx-sheet-fade-in" :style="scrimStyle" @click="sheetOpen = false" />
-      <view class="nx-sheet-slide-up" :style="sheetStyle">
+      <view class="nx-sheet-fade-in" :style="scrimStyle" @click="closeSheet" />
+      <view class="nx-fx-sheet-root nx-glass-sheet nx-sheet-slide-up" :style="sheetStyle" role="dialog" aria-modal="true" :aria-label="t.fx.sheetTitle" @click.stop>
         <text class="block" :style="titleStyle">{{ t.fx.sheetTitle }}</text>
         <text class="block" :style="bodyStyle">{{ sheetBody1 }}</text>
         <text class="block" :style="bodyStyle">{{ t.fx.sheetBody2 }}</text>
-        <view class="w-full flex items-center justify-center transition active:scale-[0.98]" :style="okBtnStyle" @click="sheetOpen = false">
+        <view class="w-full flex items-center justify-center transition active:scale-[0.98]" :style="okBtnStyle" role="button" tabindex="0" :aria-label="t.fx.sheetOk" @click="closeSheet">
           <text :style="okLabelStyle">{{ t.fx.sheetOk }}</text>
         </view>
       </view>
@@ -55,6 +57,7 @@
 
 <script setup lang="ts">
 import { computed, ref, type CSSProperties } from "vue";
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useFx } from "@/store/fx";
@@ -66,6 +69,8 @@ const fx = useFx();
 void fx.load();
 
 const sheetOpen = ref(false);
+function closeSheet(): void { sheetOpen.value = false; }
+useDialogA11y(computed(() => sheetOpen.value), ".nx-fx-sheet-root", closeSheet);
 
 // 4 态判定:失败/异常数据 → unavailable;拉取中 → loading;从未返回 → empty。
 const status = computed<"loading" | "empty" | "unavailable" | "ready">(() => {
@@ -116,16 +121,16 @@ const scrimStyle: CSSProperties = {
   background: "rgba(8,8,12,0.45)",
   backdropFilter: "blur(8px) saturate(150%)",
 };
-const sheetStyle: CSSProperties = {
+const sheetStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   position: "fixed",
   left: 0,
   right: 0,
   bottom: 0,
   zIndex: 800,
-  borderTopLeftRadius: "16px",
-  borderTopRightRadius: "16px",
-  background: "var(--v5-surface)",
-  borderTop: "1px solid var(--v5-border)",
+  borderTopLeftRadius: "var(--nx-glass-radius)",
+  borderTopRightRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
+  borderTop: "none",
   padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)",
 };
 const titleStyle: CSSProperties = {
@@ -153,6 +158,8 @@ const okLabelStyle: CSSProperties = {
   fontWeight: 600,
   color: "var(--v5-on-brand)",
 };
+
+
 </script>
 
 <style scoped>

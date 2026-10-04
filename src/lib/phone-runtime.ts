@@ -1,11 +1,11 @@
 import type { Device } from "@/store/types";
 
-/** Unknown battery stays permissive; the existing network requirement wins when both gates fail. */
+/** The device can work on battery; only low charge and lost network pause it. */
 export function phoneRuntimePauseReason(
   device: Pick<Device, "batteryLevel" | "isWifiConnected">,
-): "no-network" | "low-battery" | null {
-  if (!device.isWifiConnected) return "no-network";
-  return device.batteryLevel != null && Number.isFinite(device.batteryLevel) && device.batteryLevel < 20
+): "low-battery" | "no-network" | null {
+  if (device.isWifiConnected === false) return "no-network";
+  return typeof device.batteryLevel === "number" && Number.isFinite(device.batteryLevel) && device.batteryLevel < 20
     ? "low-battery"
     : null;
 }

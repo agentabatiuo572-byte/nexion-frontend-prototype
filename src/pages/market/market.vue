@@ -27,40 +27,32 @@
             </view>
             <view class="text-right">
               <text class="block font-display tabular-nums" :style="nexPriceStyle">{{ nexPriceText }}</text>
-              <text v-if="market.isMockMode || market.remoteReady" class="block font-mono-tabular tabular-nums" :style="nexChangeStyle">
-                {{ nexDirection }} {{ Math.abs(nex.change24h).toFixed(2) }}% (24h)
+              <text v-if="marketAuthorityStatus === 'loading'" class="block" :style="nexChangeStyle" role="status" aria-live="polite">{{ t.marketPage.nexHero.loading }}</text>
+              <text v-else-if="marketAuthorityStatus === 'unavailable'" class="block" :style="nexChangeStyle">{{ t.exchange.remoteNotProvided }}</text>
+              <text v-else class="block font-mono-tabular tabular-nums" :style="nexChangeStyle">
+                {{ market.change24hAvailable ? `${nexDirection} ${Math.abs(nex.change24h).toFixed(2)}%` : "—" }} (24h)
               </text>
             </view>
           </view>
 
           <!-- Timeframe — SegmentedControl (HIG 44pt, brand indicator) -->
-          <view class="grid" :style="segWrapStyle">
-            <view
-              v-for="f in TIMEFRAMES"
-              :key="f"
-              class="grid place-items-center active:opacity-70"
-              :style="segItemStyle(f === tf)"
-              @click="tf = f"
-            >
-              <text :style="segLabelStyle(f === tf)">{{ f }}</text>
-            </view>
-          </view>
+          <GlassSegments :label="t.marketPage.nexHero.timeframeLabel" v-model="tf" :options="timeframeOptions" style="margin-top: 12px"  />
 
           <!-- chart -->
           <view v-if="nexChartData.length >= 2" class="rounded-xl overflow-hidden" :style="chartBoxStyle">
             <NexChart :data="nexChartData" :up="nexUp" />
           </view>
           <view v-else class="rounded-xl flex items-center justify-center" :style="chartBoxStyle">
-            <text class="active:opacity-70" :style="marketHoldBodyStyle" @click="retryMarkets">{{ market.remoteError ? t.ui.retry : t.home.networkStatUpdating }}</text>
+            <text class="active:opacity-70" :style="marketHoldBodyStyle" role="button" tabindex="0" :aria-label="market.remoteError ? t.ui.retry : historyUnavailableText" @click="retryMarkets">{{ market.remoteError ? t.ui.retry : historyUnavailableText }}</text>
           </view>
 
           <!-- buy / sell CTAs -->
           <view class="grid grid-cols-2" :style="ctaRowStyle">
-            <view class="rounded-full flex items-center justify-center nx-press" :style="buyBtnStyle" @click="goExchange">
+            <view class="rounded-full flex items-center justify-center nx-press" :style="buyBtnStyle" role="button" tabindex="0" :aria-label="t.marketPage.nexHero.buy" @click="goExchange('usdt2nex')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5l-5-5L2 17" /><path d="M16 7h6v6" /></svg>
               <text :style="buyTextStyle">{{ t.marketPage.nexHero.buy }}</text>
             </view>
-            <view class="rounded-xl flex items-center justify-center nx-press" :style="sellBtnStyle" @click="goExchange">
+            <view class="rounded-xl flex items-center justify-center nx-press" :style="sellBtnStyle" role="button" tabindex="0" :aria-label="t.marketPage.nexHero.sell" @click="goExchange('nex2usdt')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17 13.5 8.5l-5 5L2 7" /><path d="M16 17h6v-6" /></svg>
               <text :style="sellTextStyle">{{ t.marketPage.nexHero.sell }}</text>
             </view>
@@ -68,7 +60,7 @@
         </view>
 
         <!-- ───────── STATS GRID ───────── -->
-        <view class="rounded-2xl" :style="cardStyle">
+        <view class="nx-glass-card rounded-2xl" :style="cardStyle">
           <view class="grid grid-cols-3" style="row-gap: 12px; column-gap: 8px">
             <view v-for="cell in statCells" :key="cell.label">
               <text class="block" :style="statLabelStyle">{{ cell.label }}</text>
@@ -77,10 +69,11 @@
           </view>
           <view class="flex items-center justify-between border-t" :style="athRowStyle">
             <text :style="{ color: 'var(--v5-ink-3)' }">{{ t.marketPage.stats.ath }}</text>
-            <text class="font-mono-tabular tabular-nums" :style="{ color: 'var(--v5-ink-2)' }">
-              {{ nex.ath > 0 ? fmtPrice(nex.ath) : "—" }}
+            <text v-if="nex.ath > 0" class="font-mono-tabular tabular-nums" :style="{ color: 'var(--v5-ink-2)' }">
+              {{ fmtPrice(nex.ath) }}
               <text :style="{ color: 'var(--v5-brand-2)' }">({{ athDeltaPct.toFixed(1) }}% {{ t.marketPage.stats.athFromNow }})</text>
             </text>
+            <text v-else class="font-mono-tabular tabular-nums" :style="{ color: 'var(--v5-ink-2)' }">—</text>
           </view>
         </view>
 
@@ -90,18 +83,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { ref, computed, onMounted, nextTick, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import NexChart from "@/components/market/nex-chart.vue";
 import { useT } from "@/i18n/use-t";
 import { useMarket } from "@/store/market";
+import { selectMarketHistoryWindow, type MarketTimeframe } from "@/lib/market-history-window";
+import { fmt } from "@/i18n/format";
+import { remoteApiEnabled } from "@/api/runtime";
+import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 
 const t = useT();
 const market = useMarket();
+const marketAuthorityStatus = computed(() => remoteAuthorityStatus({
+  remoteApiEnabled,
+  hasSnapshot: market.remoteReady,
+  hasError: market.remoteError !== null,
+}));
 
-type Timeframe = "1H" | "24H" | "7D" | "1M" | "ALL";
-const TIMEFRAMES: Timeframe[] = ["1H", "24H", "7D", "1M", "ALL"];
+type Timeframe = MarketTimeframe;
+const TIMEFRAMES: Timeframe[] = ["1H", "24H", "7D", "1M", "1Y"];
 const nex = computed(() => ({
   rank: market.isMockMode ? 247 : "—",
   priceUSD: market.nexPriceUSDT,
@@ -120,29 +123,44 @@ onMounted(() => { if (!market.isMockMode) void market.syncRemote(); });
 
 const tf = ref<Timeframe>("24H");
 
+/** tablist 的左右方向键:选中相邻周期并把焦点带过去(roving tabindex 的标准行为)。 */
+function cycleTimeframe(delta: number): void {
+  const at = TIMEFRAMES.indexOf(tf.value);
+  const next = TIMEFRAMES[((at + delta) % TIMEFRAMES.length + TIMEFRAMES.length) % TIMEFRAMES.length];
+  if (next === undefined) return;
+  tf.value = next;
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('.nx-timeframe-tab[tabindex="0"]')?.focus();
+  });
+}
+
 function retryMarkets() {
   void market.syncRemote();
 }
 
-const nexChartData = computed(() =>
-  tf.value === "1M" || tf.value === "ALL" ? nex.value.spark30d : nex.value.spark24h,
-);
+const nexChartData = computed(() => {
+  if (market.isMockMode) return tf.value === "1M" || tf.value === "1Y" ? nex.value.spark30d : nex.value.spark24h;
+  if (tf.value === "24H") return market.klineHourly;
+  return selectMarketHistoryWindow(market.historySamples, tf.value).map((sample) => sample.price);
+});
+const historyUnavailableText = computed(() => fmt(t.value.marketPage.nexHero.historyUnavailable, { range: tf.value }));
 const nexUp = computed(() => nex.value.change24h >= 0);
 const nexDirection = computed(() => nex.value.change24h > 0 ? "▲" : nex.value.change24h < 0 ? "▼" : "•");
 const athDeltaPct = computed(() => nex.value.ath > 0 ? ((nex.value.priceUSD - nex.value.ath) / nex.value.ath) * 100 : 0);
 
 function fmtPrice(n: number): string {
-  if (n >= 1000) return `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-  if (n >= 1) return `$${n.toFixed(2)}`;
-  if (n >= 0.01) return `$${n.toFixed(3)}`;
-  return `$${n.toFixed(4)}`;
+  if (n >= 1000) return `${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  if (n >= 1) return `${n.toFixed(2)}`;
+  if (n >= 0.01) return `${n.toFixed(3)}`;
+  return `${n.toFixed(4)}`;
 }
 function fmtBig(n: number): string {
   if (n <= 0) return "—";
-  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-  return `$${n.toFixed(0)}`;
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return `${n.toFixed(0)}`;
 }
 function fmtNumber(n: number): string {
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`;
@@ -160,8 +178,8 @@ const statCells = computed(() => [
   { label: t.value.marketPage.stats.rank, value: nex.value.rank === "—" ? "—" : `#${nex.value.rank}` },
 ]);
 
-function goExchange() {
-  uni.navigateTo({ url: "/pages/me/wallet-exchange", fail: () => {} });
+function goExchange(direction: "usdt2nex" | "nex2usdt") {
+  navTo(`/pages/me/wallet-exchange?direction=${direction}`);
 }
 
 // ─── styles ───
@@ -232,9 +250,9 @@ const sellBtnStyle: CSSProperties = {
 const sellTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
 
 // De-carded form-b stats container (single surface, no border).
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
 };
 const statLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
@@ -251,6 +269,9 @@ const athRowStyle: CSSProperties = {
   fontSize: "12px",
 };
 const marketHoldBodyStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", lineHeight: "18px", color: "var(--v5-ink-3)" };
+
+import GlassSegments from "@/components/glass-segments.vue";
+const timeframeOptions = TIMEFRAMES.map(value => ({ value, label: value }));
 </script>
 
 <style scoped>

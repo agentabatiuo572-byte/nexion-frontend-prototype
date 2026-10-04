@@ -18,9 +18,8 @@ export type DeviceStatus = "online" | "offline";
 
 export type ThermalState = "nominal" | "fair" | "serious" | "critical";
 
-// Mobile tasks pause below 20% battery or without a reachable network
-// (Wi-Fi and cellular both qualify). Charging is telemetry, never a task gate.
-// The shared policy lives in lib/phone-runtime.ts.
+// Mobile task pickup pauses below 20% battery or when the network is lost.
+// Charging remains telemetry and does not decide the pause state.
 
 // 6 AI workload categories per design doc §5.2.4
 export type TaskCategory = "IG" | "VG" | "LL" | "FT" | "EM" | "SP";
@@ -44,6 +43,10 @@ export interface CurrentTask {
   totalSec: number;
   startedAt: number;   // epoch ms
   reward: number;      // USDT
+  /** Server status is present only for the remote authority projection. */
+  status?: "CLAIMED" | "RUNNING" | "PAUSED" | "COMPLETED";
+  /** Server-issued estimated completion time; it never certifies settlement. */
+  completableAt?: number | null;
 }
 
 export interface CompletedTask extends CurrentTask {
@@ -54,10 +57,10 @@ export interface CompletedTask extends CurrentTask {
 
 export interface Device {
   id: string;
-  /** Mock installation ownership; production comes from authenticated server identity. */
-  phoneInstallationId?: string;
   /** Server CAS version. Remote mutations must send this exact value. */
   rowVersion?: number;
+  /** Independent server runtime fact; absent on local simulation rows. */
+  runtimeStatus?: "ONLINE" | "OFFLINE" | "UNKNOWN";
   kind: DeviceKind;
   name: string;
   gpu: string;
@@ -67,6 +70,23 @@ export interface Device {
   basePower: number; // W
   baseRate: number; // daily USDT (full-efficiency baseline; see lib/store/device-lifecycle.ts for current effective rate)
   baseRateNEX: number; // daily NEX (platform token, §8.1 80% of static yield)
+  /** E3 capacity projection source. Remote rows are display-only server facts;
+   * mock rows intentionally omit this marker and keep the local simulation. */
+  capacitySource?: "server" | "mock";
+  capacityPct?: number | null;
+  capacityAgeMonths?: number | null;
+  capacitySubsidized?: boolean | null;
+  capacitySubsidyDays?: number | null;
+  capacitySubsidyRemainingDays?: number | null;
+  capacitySubsidyEndsAt?: number | null;
+  /** Fleet snapshot clock paired with the server capacity projection. */
+  serverNow?: number | null;
+  /** Task-state snapshot clock; kept separate so it cannot replace the paired E3 fleet clock. */
+  taskServerNow?: number | null;
+  /** Monotonic receive anchor paired only with the task-state snapshot clock. */
+  taskServerNowReceivedAt?: number | null;
+  /** Monotonic receive anchor used to advance the signed server deadline while the card stays open. */
+  capacitySnapshotReceivedAt?: number | null;
   // Lifecycle (Sprint 2): set on device creation; drives the monthly efficiency
   // degradation curve in lib/store/device-lifecycle.ts. Cloud Share / phone are
   // exempt from degradation (compute is rented or co-located).
@@ -74,8 +94,12 @@ export interface Device {
   // Activation lifecycle (Sprint #146-1): null = purchased but inactive (not consuming a slot,
   // not contributing earnings/quest progress/promo variables);
   // number = epoch ms when user activated this device into one of the 6 slots.
-  // Phone is auto-activated on signup; other devices start inactive and require user opt-in.
+  // Every device, including the phone, stays inactive until the corresponding
+  // server-authoritative activation command succeeds.
   activatedAt: number | null;
+  /** The server returned an active lifecycle code without its required activation time.
+   * Keep the record visible for support, but never expose it as activatable inventory. */
+  activationUnconfirmed?: boolean;
   // PRD §6.11 登记锚点: epoch ms of the last earnings settlement. Set on
   // activation (= registration), advanced by app.ts settle() on each accrual.
   // Earnings accrue by wall-clock (now - lastSettledAt), NOT by accumulated tick
@@ -131,7 +155,7 @@ export interface Device {
   // Computed each tick from runtime power/network state.
   // null = eligible (earnings accruing); string = paused, with the reason
   // surfaced in the device card status pill. Mirror "real" distributed-
-  // compute apps which gate workload pickup on battery + network conditions.
+  // compute apps which gate workload pickup on charge + network conditions.
   pausedReason?: "low-battery" | "no-network" | null;
   /** Epoch ms when the current power/network interruption began while a task
    *  was in flight; null/undefined = not interrupted. Drives the reconnect
@@ -271,7 +295,7 @@ export interface WithdrawalFeeSnapshot {
 export interface Withdrawal {
   id: string;
   amount: number;
-  network: "USDT-TRC20" | "USDT-BEP20" | "USDT-ERC20";
+  network: "USDT-TRC20" | "USDT-BEP20" | "USDT-ERC20" | "BANK-VND";
   address: string;
   fee: WithdrawalFeeSnapshot;
   status: WithdrawalStatus;
@@ -390,9 +414,9 @@ export interface DepositIntent {
   /** = round(usdtAmount × fxRate),精确到盾不凑整千;server 计算。 */
   vndAmount: number;
   /** server mint `NX-` + 6 位大写字母数字;在途期内全局唯一。 */
-  memoCode: string;
+  memoCode?: string;
   /** 收款账户池按轮换策略分配;server 派发(用户需完整账号转账,不脱敏)。 */
-  bankAccount: { accountName: string; accountNumber: string; bankName: string };
+  bankAccount?: { accountName: string; accountNumber: string; bankName: string };
   /** Optional server/provider-signed QR payload. Never synthesized by the client. */
   qrPayload?: string;
   status: DepositIntentStatus;
@@ -405,6 +429,10 @@ export interface DepositIntent {
   receivedVnd?: number;
   /** 回单匹配时间(ms epoch)。 */
   matchedAt?: number;
+  /** Provider-hosted bank payment page. Manual account fields stay compatibility-only. */
+  paymentMode?: "manual" | "hosted";
+  paymentUrl?: string;
+  providerStatus?: "created" | "pending" | "submit_unknown" | "rejected" | "not_submitted";
 }
 
 export interface AppState {

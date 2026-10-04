@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
 import { paymentMethodApi, remoteApiEnabled } from "@/api/runtime";
@@ -61,6 +62,7 @@ function hydrate(accountKey: string): PersistShape {
 export const useCards = defineStore("cards", () => {
   // 账号维度。boot 期落 "default";账号确定后由 lib/account-scope 统一重绑(P-031 store 不互 import)。
   let boundKey = "default";
+  const remoteAccountEpoch = createRemoteAccountEpoch(boundKey);
   const init = remoteApiEnabled ? { cards: [], defaultTokenId: null } : hydrate(boundKey);
   const cards = ref<SavedCard[]>(init.cards);
   const defaultTokenId = ref<string | null>(init.defaultTokenId);
@@ -71,22 +73,27 @@ export const useCards = defineStore("cards", () => {
   }
 
   function clearRemoteFacts() { cards.value = []; defaultTokenId.value = null; }
-  async function refreshRemote(): Promise<boolean> {
+  async function refreshRemote(request: RemoteAccountRequest = remoteAccountEpoch.snapshot()): Promise<boolean> {
     if (!remoteApiEnabled) return true;
     try {
       const remote = await paymentMethodApi.list();
-      const nextCards = remote.map((card) => ({ tokenId: card.tokenId, brand: card.brand, last4: card.last4, expiry: "--/--", holder: card.holder, boundAt: Date.parse(card.boundAt), status: card.status, version: card.version }));
+      if (!remoteAccountEpoch.isCurrent(request)) return true;
+      const nextCards = remote.map((card) => ({ tokenId: card.tokenId, brand: card.brand, last4: card.last4, expiry: card.expiry, holder: card.holder, boundAt: Date.parse(card.boundAt), status: card.status, version: card.version }));
       const nextDefaultTokenId = remote.find((card) => card.isDefault)?.tokenId ?? null;
       cards.value = nextCards;
       defaultTokenId.value = nextDefaultTokenId;
       return true;
-    } catch { return false; }
+    } catch {
+      // A response from a superseded account is not an error for the current account.
+      return !remoteAccountEpoch.isCurrent(request);
+    }
   }
 
   /** 账号切换重绑:装载该账号绑定的银行卡(P2-8 设备级泄漏修复;绑卡=金融凭证,必按账号)。 */
   function bindAccount(rawAccountKey: string) {
     boundKey = normalizeAccountKey(rawAccountKey);
-    if (remoteApiEnabled) { clearRemoteFacts(); void refreshRemote(); return; }
+    remoteAccountEpoch.bind(boundKey);
+    if (remoteApiEnabled) { clearRemoteFacts(); void refreshRemote(remoteAccountEpoch.snapshot()); return; }
     const next = hydrate(boundKey);
     cards.value = next.cards;
     defaultTokenId.value = next.defaultTokenId;
@@ -120,8 +127,15 @@ export const useCards = defineStore("cards", () => {
     if (remoteApiEnabled) {
       const card = cards.value.find((item) => item.tokenId === tokenId);
       if (!card || card.version === undefined) throw new Error("PAYMENT_METHOD_VERSION_REQUIRED");
-      await paymentMethodApi.unbind({ tokenId, expectedVersion: card.version, idempotencyKey: `app-card-unbind-${tokenId}-${card.version}` });
-      if (!(await refreshRemote())) throw new Error("PAYMENT_METHOD_READBACK_FAILED");
+      const request = remoteAccountEpoch.snapshot();
+      try {
+        await paymentMethodApi.unbind({ tokenId, expectedVersion: card.version, idempotencyKey: `app-card-unbind-${tokenId}-${card.version}` });
+      } catch (cause) {
+        if (!remoteAccountEpoch.isCurrent(request)) return;
+        throw cause;
+      }
+      if (!remoteAccountEpoch.isCurrent(request)) return;
+      if (!(await refreshRemote(request))) throw new Error("PAYMENT_METHOD_READBACK_FAILED");
       return;
     }
     const next = cards.value.filter((c) => c.tokenId !== tokenId);
@@ -136,8 +150,15 @@ export const useCards = defineStore("cards", () => {
     if (remoteApiEnabled) {
       const card = cards.value.find((item) => item.tokenId === tokenId);
       if (!card || card.version === undefined) throw new Error("PAYMENT_METHOD_VERSION_REQUIRED");
-      await paymentMethodApi.setDefault({ tokenId, expectedVersion: card.version, idempotencyKey: `app-card-default-${tokenId}-${card.version}` });
-      if (!(await refreshRemote())) throw new Error("PAYMENT_METHOD_READBACK_FAILED");
+      const request = remoteAccountEpoch.snapshot();
+      try {
+        await paymentMethodApi.setDefault({ tokenId, expectedVersion: card.version, idempotencyKey: `app-card-default-${tokenId}-${card.version}` });
+      } catch (cause) {
+        if (!remoteAccountEpoch.isCurrent(request)) return;
+        throw cause;
+      }
+      if (!remoteAccountEpoch.isCurrent(request)) return;
+      if (!(await refreshRemote(request))) throw new Error("PAYMENT_METHOD_READBACK_FAILED");
       return;
     }
     if (cards.value.some((c) => c.tokenId === tokenId)) {
@@ -150,6 +171,6 @@ export const useCards = defineStore("cards", () => {
     return cards.value.find((c) => c.tokenId === tokenId) ?? null;
   }
 
-  if (remoteApiEnabled) void refreshRemote();
+  if (remoteApiEnabled) void refreshRemote(remoteAccountEpoch.snapshot());
   return { cards, defaultTokenId, add, remove, setDefault, getCard, bindAccount, refreshRemote };
 });

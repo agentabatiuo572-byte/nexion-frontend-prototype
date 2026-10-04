@@ -1,9 +1,22 @@
+<!--
+  Agent — ported from Nexion-prototype/app/(main)/team/agent/page.tsx.
+  Regional Ambassador dashboard (V5+ gated), de-carded: floor hero →
+  eligibility tint banner (eligible / locked + path CTA) → 4 reimbursable
+  buckets (transparent hairline rows) → application form on the floor
+  (recessed fields, gated submit) → approved-case rows. Sub-page →
+  <AppChassis active="team"> with in-page back row. Reuses v-rank store +
+  v-badge. lucide → inline SVG; <input>→uni input; toast via store/ui.
+-->
 <template>
   <AppChassis active="team">
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/team" :title="t.headerTitles.teamAgent" />
 
-      <view class="px-4" style="display: flex; flex-direction: column; gap: 12px; padding-top: 18px">
+      <view v-if="remoteApiEnabled && pageReadState !== 'ready'" class="px-4 text-center" style="padding-top: 32px" role="status" aria-live="polite" :aria-busy="pageReadState === 'loading'">
+        <text class="block" style="font-size: 13px; color: var(--v5-ink-2)">{{ pageReadState === 'loading' ? t.agent.loading : t.agent.loadError }}</text>
+        <view v-if="pageReadState === 'error'" role="button" tabindex="0" style="padding: 14px; color: var(--v5-brand)" @click="retryAgentPage" @keydown.enter.prevent="retryAgentPage" @keydown.space.prevent="retryAgentPage"><text>{{ t.agent.retry }}</text></view>
+      </view>
+      <view v-else class="px-4" style="display: flex; flex-direction: column; gap: 12px; padding-top: 18px">
         <!-- hero — de-carded: sits on the page floor (radial glow deleted outright) -->
         <view :style="heroStyle">
           <view class="flex items-center" style="gap: 10px">
@@ -15,7 +28,7 @@
               <text class="block font-display" :style="heroHeadlineStyle">{{ t.agent.heroHeadline }}</text>
             </view>
           </view>
-          <text class="block" :style="heroBodyStyle">{{ t.agent.heroBody }}</text>
+          <text class="block" :style="heroBodyStyle">{{ fmt(t.agent.heroBody, { rank: requiredRankLabel }) }}</text>
         </view>
 
         <!-- eligibility -->
@@ -29,20 +42,21 @@
                 <text :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ t.agent.eligible }}</text>
                 <VBadge :v="myRank" size="sm" :show-title="false" />
               </view>
-              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.agent.annualBudget }}</text>
+              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.agent.budgetReviewHint }}</text>
             </view>
           </view>
         </view>
         <view v-else class="rounded-2xl" :style="lockedStyle">
-          <view class="nx-agent-locked-row flex items-center" style="gap: 12px">
+          <view class="flex items-center" style="gap: 12px">
             <view class="rounded-xl grid place-items-center" :style="lockedIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             </view>
             <view class="flex-1">
-              <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ t.publicCopy.participationUnavailable }}</text>
+              <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ fmt(t.agent.lockedReq, { rank: requiredRankLabel }) }}</text>
+              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ lockedSubText }}</text>
             </view>
-            <view class="nx-agent-locked-cta shrink-0 rounded-full flex items-center active:scale-95" :style="pathCtaStyle" @click="go('/pages/support/messages')">
-              <text>{{ t.publicCopy.contactSupport }}</text>
+            <view class="shrink-0 rounded-full flex items-center active:scale-95" :style="pathCtaStyle" role="button" tabindex="0" @click="go('/pages/team/rank')">
+              <text>{{ t.agent.pathCta }}</text>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </view>
           </view>
@@ -87,6 +101,7 @@
               </view>
               <input
                 v-model="date"
+                :aria-label="t.agent.fieldEventDate"
                 type="text"
                 :disabled="!unlocked"
                 placeholder="YYYY-MM-DD"
@@ -101,6 +116,7 @@
               </view>
               <input
                 v-model="city"
+                :aria-label="t.agent.fieldCity"
                 type="text"
                 :disabled="!unlocked"
                 :placeholder="t.agent.cityPlaceholder"
@@ -117,33 +133,35 @@
                 <text class="font-display" :style="{ fontSize: '13px', color: 'var(--v5-ink-3)', marginRight: '4px' }">$</text>
                 <input
                   v-model="budgetText"
-                  type="number"
+                  :aria-label="t.agent.fieldBudget"
+                  type="text"
+                  inputmode="decimal"
                   :disabled="!unlocked"
                   :style="budgetInputStyle"
-                  @input="onBudgetInput"
                 />
               </view>
             </view>
           </view>
 
-          <view class="rounded-full flex items-center justify-center active:scale-[0.98]" :style="submitStyle" @click="submit">
+          <view class="rounded-full flex items-center justify-center active:scale-[0.98]" :style="submitStyle" role="button" tabindex="0" :aria-disabled="unlocked ? 'false' : 'true'" @click="submit">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="unlocked ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
             <text>{{ unlocked ? t.agent.submitForReview : t.agent.lockedV5 }}</text>
           </view>
 
-          <text v-if="!unlocked" class="block text-center" :style="previewOnlyStyle">{{ t.agent.previewOnly }}</text>
+          <text v-if="!unlocked" class="block text-center" :style="previewOnlyStyle">{{ fmt(t.agent.previewOnly, { rank: requiredRankLabel }) }}</text>
         </view>
 
         <!-- approved cases — transparent hairline rows -->
-        <view v-if="remoteApiEnabled && latestApplication.status !== 'NONE'" :style="casesBlockStyle">
+        <view v-if="remoteApiEnabled && applications.length > 0" :style="casesBlockStyle">
           <text class="block font-mono-tabular" :style="approvedCapStyle">{{ t.agent.serverApplication }}</text>
           <view :style="casesGroupStyle">
-            <view :style="caseRowStyle(true)">
+            <view v-for="(application, index) in applications" :key="application.applicationId ?? index" :style="caseRowStyle(index === applications.length - 1)">
               <view class="flex items-start justify-between">
                 <view>
-                  <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ latestApplication.city }} · {{ latestApplication.eventDate }}</text>
+                  <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ application.city }} · {{ application.eventDate }}</text>
+                  <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ applicationProof(application) }}</text>
                 </view>
-                <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-brand)' }">{{ applicationStatusText }}</text>
+                <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-brand)' }">{{ applicationStatusText(application) }}</text>
               </view>
             </view>
           </view>
@@ -169,70 +187,70 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { navTo } from "@/lib/route";
+import { ref, computed, watch, type CSSProperties } from "vue";
+import { onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import VBadge from "@/components/team/v-badge.vue";
 import { useVRank } from "@/store/v-rank";
+import { rankTitle, rankLabel } from "@/lib/v-rank-copy";
+import { useLocaleStore } from "@/store/locale";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { ambassadorApplicationApi, remoteApiEnabled } from "@/api/runtime";
-import type { AmbassadorApplication, AmbassadorApplicationInput } from "@/api/ambassador-application-api";
+import type { AmbassadorApplication, AmbassadorApplicationInput, AmbassadorPolicy,
+  AmbassadorPolicyBucket } from "@/api/ambassador-application-api";
 import { isSettledRejection } from "@/api/errors";
 import { acquireAmbassadorCommandKey, finishAmbassadorCommand } from "@/lib/ambassador-command-key";
+import {
+  isCurrentTeamP31718Request,
+  ambassadorSubmitErrorRecovery,
+  parseAmbassadorApplicationDraft,
+  successfulAmbassadorApplicationState,
+  type AmbassadorAgentFormState,
+  type TeamP31718Request,
+} from "@/lib/team-p3-17-18-request-scope";
 
 const t = useT();
 const vrank = useVRank();
+const locale = useLocaleStore();
 const app = useApp();
 
 const myRank = computed(() => vrank.myRank);
-const unlocked = computed(() => vrank.myRank >= 5);
+const rankReady = computed(() => vrank.remoteReady);
+const requiredRankLabel = computed(() => rankLabel(5, locale.code, vrank.ladder));
+const unlocked = computed(() => rankReady.value && vrank.myRank >= 5);
 
 interface Bucket {
-  id: string;
+  id: AmbassadorPolicyBucket["id"];
   title: string;
   range: string;
   rule: string;
   tint: string;
   paths: string[];
 }
-const BUCKETS = computed<Bucket[]>(() => [
-  {
-    id: "venue",
-    title: t.value.agent.buckets.venue.title,
-    range: "$1,000 — $10,000",
-    rule: t.value.agent.buckets.venue.rule,
-    tint: "var(--v5-brand)",
-    paths: ["M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z", "M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2", "M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2", "M10 6h4M10 10h4M10 14h4M10 18h4"],
-  },
-  {
-    id: "kol",
-    title: t.value.agent.buckets.kol.title,
-    range: t.value.agent.bucketRangeFlat,
-    rule: t.value.agent.buckets.kol.rule,
-    tint: "var(--v5-tech-cyan)",
-    paths: ["m3 11 18-5v12L3 14v-3z", "M11.6 16.8a3 3 0 1 1-5.8-1.6"],
-  },
-  {
-    id: "print",
-    title: t.value.agent.buckets.print.title,
-    range: t.value.agent.bucketRangeQuota,
-    rule: t.value.agent.buckets.print.rule,
-    tint: "var(--v5-warning)",
-    paths: ["M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2", "M6 9V2h12v7", "M6 14h12v8H6z"],
-  },
-  {
-    id: "dev",
-    title: t.value.agent.buckets.dev.title,
-    range: t.value.agent.bucketRangeHourly,
-    rule: t.value.agent.buckets.dev.rule,
-    tint: "var(--v5-tech-cyan)",
-    paths: ["m16 18 6-6-6-6", "m8 6-6 6 6 6"],
-  },
-]);
+const BUCKET_VISUALS: Record<AmbassadorPolicyBucket["id"], Pick<Bucket, "tint" | "paths">> = {
+  venue: { tint: "var(--v5-brand)", paths: ["M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z", "M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2", "M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2", "M10 6h4M10 10h4M10 14h4M10 18h4"] },
+  kol: { tint: "var(--v5-tech-cyan)", paths: ["m3 11 18-5v12L3 14v-3z", "M11.6 16.8a3 3 0 1 1-5.8-1.6"] },
+  print: { tint: "var(--v5-warning)", paths: ["M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2", "M6 9V2h12v7", "M6 14h12v8H6z"] },
+  dev: { tint: "var(--v5-tech-cyan)", paths: ["m16 18 6-6-6-6", "m8 6-6 6 6 6"] },
+};
+const policy = ref<AmbassadorPolicy | null>(null);
+const pageReadState = ref<"loading" | "ready" | "error">(remoteApiEnabled ? "loading" : "ready");
+// Bucket ids are a closed server enum (venue/kol/print/dev) but the policy rows
+// carry only the operator's English title/rule. Resolve the visible name and
+// rule from the locale dictionary; the server copy stays the fallback for any
+// id a future release adds before its translation ships.
+const BUCKETS = computed<Bucket[]>(() => (policy.value?.buckets ?? []).map((bucket) => {
+  const copy = t.value.agent.buckets[bucket.id];
+  return {
+    id: bucket.id, title: copy?.title || bucket.title, range: bucket.range, rule: copy?.rule || bucket.rule,
+    ...BUCKET_VISUALS[bucket.id],
+  };
+}));
 
 interface ApprovedCase {
   name: string;
@@ -248,7 +266,6 @@ const APPROVED_CASES: ApprovedCase[] = [
 
 const date = ref("");
 const city = ref("");
-const budget = ref(3000);
 const budgetText = ref("3000");
 const selectedBucketTitle = ref("");
 const selectedBucketId = ref<AmbassadorApplicationInput["bucket"] | "">("");
@@ -256,13 +273,57 @@ const submitting = ref(false);
 const latestApplication = ref<AmbassadorApplication>({ applicationId: null, status: "NONE", city: null,
   eventDate: null, budgetUsdt: null, bucket: null, submittedAt: null, source: "server",
   sourceEnvironment: "PRODUCTION", runId: "" });
+const applications = ref<AmbassadorApplication[]>([]);
 
-const applicationStatusText = computed(() => t.value.agent.applicationStatuses[latestApplication.value.status]);
-function onBudgetInput() {
-  const n = Math.max(0, parseInt(budgetText.value.replace(/\D/g, "")) || 0);
-  budget.value = n;
+const applicationStatusText = (application: AmbassadorApplication) => t.value.agent.applicationStatuses[application.status];
+const applicationProof = (application: AmbassadorApplication) => `${application.sourceEnvironment} · ${application.source}`;
+
+let agentMounted = true;
+let agentRequestGeneration = 0;
+function emptyApplication(): AmbassadorApplication {
+  return { applicationId: null, status: "NONE", city: null, eventDate: null, budgetUsdt: null, bucket: null,
+    submittedAt: null, source: "server", sourceEnvironment: "PRODUCTION", runId: "" };
+}
+function captureAgentRequest(): TeamP31718Request {
+  return {
+    accountKey: app.accountKey,
+    accountEpoch: app.accountBindingEpoch,
+    generation: agentRequestGeneration,
+  };
+}
+function requestIsCurrent(request: TeamP31718Request): boolean {
+  return isCurrentTeamP31718Request(request, {
+    mounted: agentMounted,
+    accountKey: app.accountKey,
+    accountEpoch: app.accountBindingEpoch,
+    generation: agentRequestGeneration,
+  });
+}
+function invalidateAgentRequests(): void {
+  agentRequestGeneration += 1;
+}
+function clearAgentFormState(form: AmbassadorAgentFormState = {
+  date: "", city: "", budgetText: "3000", bucketId: "", bucketTitle: "",
+}): void {
+  date.value = form.date;
+  city.value = form.city;
+  budgetText.value = form.budgetText;
+  selectedBucketId.value = form.bucketId;
+  selectedBucketTitle.value = form.bucketTitle;
+}
+function resetAgentPageState(): void {
+  invalidateAgentRequests();
+  pageReadState.value = remoteApiEnabled ? "loading" : "ready";
+  clearAgentFormState();
+  latestApplication.value = emptyApplication();
+  applications.value = [];
+  policy.value = null;
+  submitting.value = false;
 }
 
+const lockedSubText = computed(() =>
+  fmt(t.value.agent.lockedSub, { n: rankReady.value ? vrank.myRank : "—", title: rankReady.value ? rankTitle(vrank.myRank, locale.code, vrank.ladder) : "—" }),
+);
 function hostedByText(c: ApprovedCase): string {
   return fmt(t.value.agent.hostedBy, { name: c.host, attendees: c.attendees });
 }
@@ -273,91 +334,146 @@ function selectBucket(b: Bucket) {
 }
 
 function payloadIdentity(input: AmbassadorApplicationInput): string {
-  return JSON.stringify([input.eventDate, input.city.trim(), input.budgetUsdt, input.bucket]);
+  return JSON.stringify([input.eventDate, input.city, input.budgetUsdt, input.bucket]);
 }
 
-function matches(input: AmbassadorApplicationInput, value: AmbassadorApplication): boolean {
-  return value.status !== "NONE" && value.eventDate === input.eventDate && value.city === input.city.trim()
-    && value.budgetUsdt === input.budgetUsdt && value.bucket === input.bucket;
-}
-
-async function refreshLatest(expectedAccount = app.accountKey): Promise<AmbassadorApplication> {
+async function refreshLatest(requestScope = captureAgentRequest()): Promise<AmbassadorApplication> {
   const value = await ambassadorApplicationApi.latest();
-  if (app.accountKey === expectedAccount) latestApplication.value = value;
+  if (requestIsCurrent(requestScope)) latestApplication.value = value;
+  return value;
+}
+
+async function refreshHistory(requestScope = captureAgentRequest()): Promise<AmbassadorApplication[]> {
+  const value = await ambassadorApplicationApi.history();
+  if (requestIsCurrent(requestScope)) applications.value = value;
   return value;
 }
 
 async function submit() {
   if (!unlocked.value) {
-    toast.error(t.value.agent.toastV5Required, t.value.agent.toastV5RequiredSub);
+    toast.error(t.value.agent.toastV5Required, fmt(t.value.agent.toastV5RequiredSub, { rank: requiredRankLabel.value }));
     return;
   }
-  if (!date.value || !city.value) {
-    toast.error(t.value.agent.toastMissingFields, t.value.agent.toastMissingFieldsSub);
+  const input = parseAmbassadorApplicationDraft({
+    eventDate: date.value,
+    city: city.value,
+    budgetText: budgetText.value,
+    bucket: selectedBucketId.value,
+  });
+  if (!input) {
+    toast.error(t.value.agent.invalidFormTitle, t.value.agent.invalidFormBody);
     return;
   }
-  if (!selectedBucketId.value) {
-    toast.error(t.value.agent.toastMissingFields, t.value.agent.toastBucketRequired);
+  const activeBucket = policy.value?.buckets.find((bucket) => bucket.id === input.bucket);
+  if (remoteApiEnabled && (!activeBucket || input.budgetUsdt < activeBucket.minBudgetUsdt
+      || input.budgetUsdt > activeBucket.maxBudgetUsdt)) {
+    toast.error(t.value.agent.invalidFormTitle, t.value.agent.invalidFormBody);
     return;
   }
   if (remoteApiEnabled) {
     if (submitting.value) return;
-    const input: AmbassadorApplicationInput = { eventDate: date.value, city: city.value.trim(),
-      budgetUsdt: budget.value, bucket: selectedBucketId.value };
     const identity = payloadIdentity(input);
-    const expectedAccount = app.accountKey;
-    const key = acquireAmbassadorCommandKey(expectedAccount, identity);
+    // A page-load read may still be in flight. It must not replace this POST's
+    // authoritative receipt when it settles later.
+    invalidateAgentRequests();
+    const requestScope = captureAgentRequest();
+    let key: string;
+    try {
+      key = acquireAmbassadorCommandKey(requestScope.accountKey, identity);
+    } catch {
+      toast.error(t.value.agent.toastRemoteFailed, t.value.agent.submitUnconfirmedBody);
+      return;
+    }
     submitting.value = true;
     try {
       const result = await ambassadorApplicationApi.submit(input, key);
-      if (app.accountKey !== expectedAccount) return;
+      if (!requestIsCurrent(requestScope)) return;
       latestApplication.value = result;
-      finishAmbassadorCommand(expectedAccount, identity);
+      finishAmbassadorCommand(requestScope.accountKey, identity);
+      void refreshHistory(requestScope).catch(() => undefined);
     } catch (error) {
-      if (app.accountKey !== expectedAccount) return;
+      if (!requestIsCurrent(requestScope)) return;
+      const recovery = ambassadorSubmitErrorRecovery(isSettledRejection(error));
       try {
-        const authoritative = await refreshLatest(expectedAccount);
-        if (matches(input, authoritative)) {
-          finishAmbassadorCommand(expectedAccount, identity);
-        } else if (isSettledRejection(error)) {
-          finishAmbassadorCommand(expectedAccount, identity);
-          throw error;
-        } else {
-          throw error;
-        }
+        if (recovery.refreshLatestForDisplay) await refreshLatest(requestScope);
+        if (!requestIsCurrent(requestScope)) return;
       } catch {
-        if (isSettledRejection(error)) finishAmbassadorCommand(expectedAccount, identity);
-        toast.error(t.value.agent.toastRemoteFailed, t.value.publicCopy.applicationUnknown);
-        return;
+        if (!requestIsCurrent(requestScope)) return;
       }
+      if (!requestIsCurrent(requestScope)) return;
+      if (recovery.finishCommand) finishAmbassadorCommand(requestScope.accountKey, identity);
+      toast.error(t.value.agent.toastRemoteFailed, t.value.agent.submitUnconfirmedBody);
+      return;
     } finally {
-      submitting.value = false;
+      if (requestIsCurrent(requestScope)) submitting.value = false;
     }
   }
   toast.success(
     t.value.agent.toastSubmitted,
-    fmt(t.value.agent.toastSubmittedSub, { city: city.value, budget: budget.value.toLocaleString() }),
+    fmt(t.value.agent.toastSubmittedSub, { city: input.city, budget: input.budgetUsdt.toLocaleString() }),
   );
-  date.value = "";
-  city.value = "";
-  budget.value = 3000;
-  budgetText.value = "3000";
-  selectedBucketId.value = "";
-  selectedBucketTitle.value = "";
+  const settled = successfulAmbassadorApplicationState(latestApplication.value);
+  latestApplication.value = settled.receipt;
+  clearAgentFormState(settled.form);
 }
 
+function refreshAgentPage(): void {
+  if (!remoteApiEnabled) return;
+  const requestScope = captureAgentRequest();
+  pageReadState.value = "loading";
+  // 🔴 本页的契约是三条大使读取(policy / latest / history),**不是**等级阶梯(zentao #204)。
+  // 此前就绪判据写成 `vrank.remoteReady && policy.value`,而等级读挂在另一个端点、另一份契约上:
+  // 那边一有风吹草动(响应缺字段、契约漂移、服务端尚未部署),整页就报「无法读取大使信息」——
+  // 预算规则、活动类型、申请记录全都读到了也照样不显示,而且重试永远复现,因为重试跑的是同一组读。
+  // 现在:三条大使读取成功即就绪;等级失败只降级「资格横幅」(unlocked 仍要求 rankReady,
+  // rankReady=false 时渲染未知态),不再吃掉整页。
+  void Promise.all([
+    refreshLatest(requestScope),
+    refreshHistory(requestScope),
+    ambassadorApplicationApi.policy().then((value) => {
+      if (!requestIsCurrent(requestScope)) return;
+      policy.value = value;
+      budgetText.value = String(value.defaultBudgetUsdt);
+    }),
+    // 等级读单独吞掉自己的失败:它只喂资格横幅(rankReady/unlocked),失败由 store 记进
+    // remoteError、由横幅渲染未知态。挂在这里是为了让「等级不是本页的就绪前提」成为本页
+    // 自己的显式契约,而不是依赖 store 恰好不 rethrow 这个内部细节。
+    vrank.refreshCanonicalVRank().catch(() => undefined),
+  ]).then(() => {
+    if (requestIsCurrent(requestScope)) pageReadState.value = policy.value ? "ready" : "error";
+  }).catch(() => {
+    if (requestIsCurrent(requestScope)) pageReadState.value = "error";
+  });
+}
+
+function retryAgentPage(): void {
+  resetAgentPageState();
+  refreshAgentPage();
+}
+
+watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
+  resetAgentPageState();
+  if (agentMounted) refreshAgentPage();
+});
+
 onShow(() => {
-  if (remoteApiEnabled) {
-    const expectedAccount = app.accountKey;
-    void Promise.all([
-      refreshLatest(expectedAccount).catch(() => undefined),
-      vrank.refreshCanonicalVRank(),
-    ]);
-  }
+  agentMounted = true;
+  resetAgentPageState();
+  refreshAgentPage();
+});
+
+onHide(() => {
+  agentMounted = false;
+  resetAgentPageState();
+});
+
+onUnload(() => {
+  agentMounted = false;
+  resetAgentPageState();
 });
 
 function go(url: string) {
-  uni.navigateTo({ url, fail: () => {} });
+  navTo(url);
 }
 
 // ─── styles ───
@@ -492,10 +608,3 @@ function caseRowStyle(isLast: boolean): CSSProperties {
   };
 }
 </script>
-
-<style scoped>
-@media (max-width: 420px) {
-  .nx-agent-locked-row { display: grid; grid-template-columns: 40px minmax(0, 1fr); }
-  .nx-agent-locked-cta { grid-column: 2; justify-self: start; }
-}
-</style>

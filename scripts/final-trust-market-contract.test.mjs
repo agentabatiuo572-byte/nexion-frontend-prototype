@@ -24,12 +24,15 @@ test("NEX market page remains server-backed after comparable tokens retire", () 
   assert.doesNotMatch(page, /TokenRow|externalQuotes|CATEGORIES/);
 });
 
-test("product and Trust Center consume published Trust fields", () => {
+test("product shows linked proof only and Trust Center uses measured figures", () => {
   const detail = read("src/pages/store/detail.vue");
   const trust = read("src/pages/trust/trust.vue");
   assert.match(detail, /product-trust-material/);
-  assert.match(detail, /productComplianceRows/);
+  assert.match(detail, /productAuditRows/);
+  assert.match(detail, /\.filter\(\(row\) => safeTrustUrl\(row\.Url\)\)/);
+  assert.doesNotMatch(detail, /productComplianceRows/);
   assert.match(trust, /trustNumberedRows/);
-  assert.match(trust, /tvlOnChain/);
+  assert.match(trust, /cfg\.config\.verifiedStats/);
+  assert.doesNotMatch(trust, /trustFieldValue\([^\n]*"tvlOnChain"/);
   assert.doesNotMatch(trust, /v-if="false"/);
 });

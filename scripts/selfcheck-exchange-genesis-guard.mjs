@@ -36,9 +36,11 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const EXCHANGE = path.join(root, "src", "pages", "me", "wallet-exchange.vue");
 const SHEET = path.join(root, "src", "components", "genesis", "purchase-sheet.vue");
 const RECEIPT = path.join(root, "src", "lib", "money-receipt.ts");
+const EXCHANGE_INPUT = path.join(root, "src", "lib", "exchange-input-amount.ts");
 const exRaw = readFileSync(EXCHANGE, "utf8");
 const shRaw = readFileSync(SHEET, "utf8");
 const receiptRaw = readFileSync(RECEIPT, "utf8");
+const exchangeInputRaw = readFileSync(EXCHANGE_INPUT, "utf8");
 
 let pass = 0;
 let fail = 0;
@@ -103,19 +105,25 @@ const ts2js = (src) => transformSync(src, { loader: "ts" }).code;
  * MONEY_SRC 单独拎出来是因为 quoteTo 与 handleConfirm 都依赖它,注入哪边都得带上。
  */
 const MONEY_SRC = ts2js(grabStatement(exRaw, "const money = "));
+const EXCHANGE_INPUT_SRC = ts2js([
+  grabBlock(exchangeInputRaw, "export function sanitizeExchangeAmountInput(").replace(/^export /, ""),
+  grabBlock(exchangeInputRaw, "export function canonicalExchangeAmount(").replace(/^export /, ""),
+].join("\n"));
 const pageMath = new Function(
+  "remoteApiEnabled",
   `${MONEY_SRC}\n${ts2js([
     grabStatement(exRaw, "const amtLabel = "),
     grabBlock(exRaw, "function quoteTo("),
     grabBlock(exRaw, "function swapLine("),
   ].join("\n"))}\n; return { money, amtLabel, quoteTo, swapLine };`,
-)();
+)(false);
+const remoteAmountLabel = new Function("remoteApiEnabled", `${ts2js(grabStatement(exRaw, "const amtLabel = "))}; return amtLabel;`)(true);
 
 console.log("selfcheck-exchange-genesis-guard — 兑换成交快照单源化 + 创世购买重入守卫");
 
 // ══ A. 兑换页 handleConfirm 的快照纪律(结构) ═══════════════════════════════
 const confirmBody = strip(grabBlock(strip(exRaw), "async function handleConfirm()"));
-const iGuard = confirmBody.indexOf("if (submitting.value) return");
+const iGuard = confirmBody.indexOf("if (submitting.value || !exchangeSubmissionAllowed.value) return");
 const iSnap = confirmBody.indexOf("const snap = {");
 const iLock = confirmBody.indexOf("submitting.value = true");
 const iAwait = confirmBody.indexOf("await ");
@@ -175,7 +183,7 @@ const iDebit = Math.min(
     `gate@${iRateGate} await@${iAwait} debit@${iDebit}`);
   check("A② 复验与页面展示共用同一个报价公式 quoteTo(报价实现全文只此一处)",
     /function quoteTo\(/.test(strip(exRaw))
-    && /const toAmount = computed\(\(\) => quoteTo\(/.test(strip(exRaw))
+    && strip(exRaw).includes('const toAmount = computed(() => remoteApiEnabled ? (remoteQuote.value?.toAmount ?? 0) : quoteTo(direction.value, fromAmount.value, rate.value))')
     && (strip(exRaw).match(/return money\(dir === "usdt2nex" \? from \/ r : from \* r\);/g) || []).length === 1);
   // 同上:钉「活账号 vs 快照账号的比较」这件事,不钉某一个运算符方向(否则同一处漂移会再咬一次)。
   const iAcctCmp = confirmBody.search(/app\.accountKey\s*[!=]==\s*snap\.account|snap\.account\s*[!=]==\s*app\.accountKey/);
@@ -184,7 +192,7 @@ const iDebit = Math.min(
     && confirmBody.indexOf("!v3.canExchange(snap.usd).ok") < iDebit,
     `acctCmp@${iAcctCmp} await@${iAwait} debit@${iDebit}`);
   check("A③ 守卫复位在 finally(所有出口统一解锁,不会有分支漏掉 → 不会永久锁死)",
-    /finally \{[\s\S]{0,200}submitting\.value = false;[\s\S]{0,40}\}/.test(confirmBody));
+    /finally \{\s*submitting\.value = false;\s*pendingExchangeRevision\.value \+= 1;\s*\}/.test(confirmBody));
   check("A③ 结算延迟写成 await(setTimeout 回调版守卫在函数返回时就复位了 = 等于没守)",
     /await new Promise\(\(r\) => setTimeout\(r, 900\)\)/.test(confirmBody));
   // 🔴 守的是**性质**(成交入参必须来自快照),不是「调用了哪个函数」。
@@ -217,11 +225,13 @@ const iDebit = Math.min(
     && /return money\(dir === "usdt2nex" \? from \/ r : from \* r\);/.test(ex));
   check("A④ 用户输入进入资金链路时就归到账本精度(否则账单记 1.2345 而账本只动 1.23)",
     /const fromAmount = computed\(\(\) => \{[\s\S]{0,120}return isNaN\(n\) \? 0 : money\(n\);/.test(ex));
-  check("A④ 展示口径固定 2 位(min=max 同时钉死;只钉 max 会被 toLocaleString 的默认 min=0 放过)",
-    /const amtLabel = [\s\S]{0,160}minimumFractionDigits: 2, maximumFractionDigits: 2/.test(ex));
+  check("A④ Mock 保持两位账本精度，真实服务端金额保留六位精度",
+    /minimumFractionDigits: 2, maximumFractionDigits: remoteApiEnabled \? 6 : 2/.test(ex)
+    && pageMath.amtLabel(1.123456) === (1.12).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    && remoteAmountLabel(1.123456) === (1.123456).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }));
   // 🔴 四个展示口逐个点名 —— 「新写法在不在」是弱判据,四处**全部**经由 amtLabel 才算数。
   const SITES = [
-    ["收款卡", /const toAmountLabel = computed\(\(\) => amtLabel\(toAmount\.value\)\)/],
+    ["收款卡", /const toAmountLabel = computed\(\(\) => !exchangeSnapshotReady\.value \|\| feeInvalid\.value \? "—" : amtLabel\(toAmount\.value\)\)/],
     ["确认弹窗", /message: `\$\{snap\.fromSym\} \$\{amtLabel\(snap\.fromAmount\)\} → \$\{snap\.toSym\} \$\{amtLabel\(snap\.toAmount\)\}`/],
     ["成功 toast", /\.replace\("\{fromAmt\}", amtLabel\(snap\.fromAmount\)\)[\s\S]{0,80}\.replace\("\{toAmt\}", amtLabel\(snap\.toAmount\)\)/],
     ["历史行", /return `\$\{amtLabel\(h\.fromAmount\)\} \$\{h\.fromSym\} → \$\{amtLabel\(h\.toAmount\)\} \$\{h\.toSym\}`/],
@@ -383,7 +393,7 @@ function makeV3(capUsd = 50) {
 
 /** 把兑换页的 quoteTo + handleConfirm 原文注入执行(改坏它这里必红)。 */
 function buildHandleConfirm(env) {
-  const src = `${MONEY_SRC}\n${ts2js(grabBlock(exRaw, "function quoteTo("))}\n${ts2js(grabBlock(exRaw, "async function handleConfirm()"))}\n; return handleConfirm;`;
+  const src = `${MONEY_SRC}\n${EXCHANGE_INPUT_SRC}\n${ts2js(grabBlock(exRaw, "function quoteTo("))}\n${ts2js(grabBlock(exRaw, "async function handleConfirm()"))}\n; return handleConfirm;`;
   const names = Object.keys(env);
   // eslint-disable-next-line no-new-func — 正主代码块原文注入执行
   return new Function(...names, src)(...names.map((n) => env[n]));
@@ -433,9 +443,21 @@ function exchangeFixture({ onConfirm, direction: dir = "nex2usdt", from = 100, r
     //    无条件求值,而 harness 没有这个桩。远端分支本身仍由另一套契约覆盖(见上一行注释),
     //    这里只补上「无条件被读到」的那两个 ref,不把远端路径拉进本 harness。
     remoteState: { value: null },
+    remoteQuote: { value: null },
     remoteError: { value: null },
+    // The page now freezes the backend acceptance-run scope before either the
+    // remote or explicit local-mock branch. Keep this legacy harness on one
+    // stable sandbox run; cross-run rejection is covered by the order/exchange
+    // authority contract tests.
+    captureCommerceSandboxRun: () => ({ environment: "SANDBOX", runId: "legacy-exchange-guard" }),
+    captureExchangeScope: () => ({ accountKey: app.accountKey, epoch: 0, pageEpoch: 0 }),
+    captureRuntimeRevision: () => ({ revision: 1 }),
+    remoteScopeCurrent: () => true,
+    toastIfRemoteScopeCurrent: (_scope, _runScope, action) => action(),
     exchangeApi: { fetchState: async () => { throw new Error("REMOTE_STUB_UNUSED"); }, swap: async () => { throw new Error("REMOTE_STUB_UNUSED"); } },
     geoPolicyUserMessage,
+    exchangeSubmissionAllowed: { value: true },
+    pendingExchangeRevision: { value: 0 },
     submitting: { value: false },
     valid: { value: true },
     direction, fromAmount, toAmount, rate, swapUSDValue,
@@ -689,6 +711,7 @@ function genesisFixture({ usdt = 50000, capRemaining = 5, mint = { ok: true }, b
     // 不喂这个桩,注入执行会在 `if (!remoteApiEnabled)` 处抛 ReferenceError,
     // 表现成「什么都没发生」(debits=0 minted=[] bills=0)—— 看着像缺陷,其实是 harness 缺桩。
     remoteApiEnabled: false,
+    useGenesisConfig: () => ({ refresh: async () => {} }),
     purchasing,
     qty: { value: 1 },
     price: { value: 9999 },
@@ -703,6 +726,7 @@ function genesisFixture({ usdt = 50000, capRemaining = 5, mint = { ok: true }, b
     postMoneyBill: buildPostMoneyBill(app, bills, toast),
     toast,
     emitClose: () => closes.push(1),
+    showConfirmedSuccess: () => toast.success("purchase confirmed"),
     GENESIS_ELIGIBILITY_POLICY: { maxPerUser: 5 },
   };
   return { env, app, minted, billRows, toasts, closes, purchasing, handlePurchase: buildHandlePurchase(env) };
@@ -712,11 +736,11 @@ function genesisFixture({ usdt = 50000, capRemaining = 5, mint = { ok: true }, b
   // 🔴 连点的语义 = **不等前一次结束就再点**,所以三次都不 await 地发出去,再统一 settle。
   //   逐个 await 会变成串行,守卫永远不会被触发,这一格就成了空转。
   const clicks = [f.handlePurchase(), f.handlePurchase(), f.handlePurchase()];
-  await Promise.allSettled(clicks);
+  const outcomes = await Promise.allSettled(clicks);
   check("C④ 双击/三击只买 1 台:1 次扣款 · 1 次铸造 · 1 行账单 · 1 次关闭",
     f.app.calls.filter((c) => c[0] === "debitBalance").length === 1
     && f.minted.length === 1 && f.minted[0] === 1 && f.billRows.length === 1 && f.closes.length === 1,
-    `debits=${f.app.calls.length} minted=${JSON.stringify(f.minted)} bills=${f.billRows.length}`);
+    `debits=${f.app.calls.length} minted=${JSON.stringify(f.minted)} bills=${f.billRows.length} rejected=${outcomes.filter((x) => x.status === "rejected").map((x) => String(x.reason))}`);
   check("C④ 只扣一台的钱($50000 − $9999 = $40001,不是扣两三台)",
     f.app.user.usdtBalance === 40001, `usdt=${f.app.user.usdtBalance}`);
   check("C④ 成交后继续持锁(面板正在关闭,解锁就是给双击留窗口)", f.purchasing.value === true);

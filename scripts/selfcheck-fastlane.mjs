@@ -24,10 +24,11 @@ import path from "node:path";
 import { transformSync } from "esbuild";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-/** 全 src 的 .ts/.vue 扫描面。两处消费:扣款调用点集合等式、日限消费点集合等式。 */
+/** Production .ts/.vue only; vitest.config.ts owns the .test.ts fixtures under src. */
+const isProductionSource = (name) => /\.(ts|vue)$/.test(name) && !name.endsWith(".test.ts");
 const walkSrc = (dir = path.join(root, "src")) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
   const p = path.join(dir, e.name);
-  return e.isDirectory() ? walkSrc(p) : (/\.(ts|vue)$/.test(e.name) ? [p] : []);
+  return e.isDirectory() ? walkSrc(p) : (isProductionSource(e.name) ? [p] : []);
 });
 const src = readFileSync(path.join(root, "src", "store", "withdrawal-eligibility-core.ts"), "utf8");
 const { code } = transformSync(src, { loader: "ts", format: "esm" });
@@ -48,6 +49,9 @@ function check(name, cond, detail) {
 }
 
 const NOW = 1_800_000_000_000;
+check("production source scan excludes only Vitest test files, never test-named runtime consumers",
+  !isProductionSource("withdrawal-eligibility.test.ts")
+    && ["withdrawal-eligibility.ts", "new-consumer.vue", "test-wallet.ts", "wallet.spec.ts", "wallet.test.vue"].every(isProductionSource));
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 
@@ -794,10 +798,10 @@ function functionBody(src, opener) {
     const PAGE_DEBITS_LOCALLY = withdrawPageCode.includes("app.applyWithdrawalDebit(wd)");
     // 🔴 远端档标志的**等价类**,从 runtime.ts 解析出来 —— 不手写名字。
     //    手写的那一刻它就只是个字符串,而实现随时能换个同义词绕过去,且绕过去的方式恰好是**报绿**。
-    //    今为 remoteApiEnabled / fundsServerEnabled(两者同为 `mode !== "mock"`,app.ts 亦注明「≡」)。
+    //    正式 App 的远端档可直接钉成字面量 true；旧分支也可能仍由 `mode !== "mock"` 派生。
     //    解析面为空 = 判据失效,由下面的 `REMOTE_RAIL.length > 0` fail-closed 判红。
     const REMOTE_RAIL = [...readSrc("src/api/runtime.ts")
-      .matchAll(/export const (\w+) = apiRuntimeConfig\.mode !== "mock";/g)].map((m) => m[1]);
+      .matchAll(/export const (\w+) = (?:apiRuntimeConfig\.mode !== "mock"|true);/g)].map((m) => m[1]);
     // 「这条腿被远端档闸挡住了吗」——钉**正向定型串** `if (<flag>) return`,不用词元正则:
     // 词元式对「守卫被取反」和「只剩装饰性提及」双双判绿(P-104),而这里两种都要抓。
     const railGated = (code) => REMOTE_RAIL.some((flag) => code.includes(`if (${flag}) return`));
@@ -1142,10 +1146,14 @@ function functionBody(src, opener) {
     check("🔴 提现页:日限事实来自服务端 policy + app.withdrawals,且文案与闸共用同一个数",
       pgCode.includes("limitCount: withdrawalPolicy.value?.dailyLimitCount ?? 0,")
         && pgCode.includes("withdrawals: app.withdrawals,")
-        && pgCode.includes("fmt(t.value.wallet.dailyLimitNote, { n: String(dailyFacts.value.limitCount) })")
-        // 🔴 说不说这句 ⟺ 闸拦不拦。limitCount ≤0 时判定按「不限制」走,这句必须消失 ——
-        // 否则后端不可达时页面会写「每日限额:0 笔/日」(实景实测过的原话)。
-        && pgCode.includes('<text v-if="dailyFacts.limitCount > 0" class="block">{{ dailyLimitNoteText }}</text>'));
+        && pgCode.includes("const limitFacts = computed(() => withdrawalLimitFacts({")
+        && pgCode.includes("dailyLimitCount: dailyFacts.value.limitCount,")
+        && pgCode.includes("withdrawals: dailyFacts.value.withdrawals,")
+        && pgCode.includes("limit: String(dailyFacts.value.limitCount),")
+        // 🔴 说不说使用量 ⟺ 服务端是否配置了计数闸；未配置时必须明确显示未设，
+        // 不能把 0 伪装成每日额度。
+        && pgCode.includes('<text v-if="dailyFactsDisplayable && limitFacts.dailyLimitConfigured" class="block">{{ dailyUsageText }}</text>')
+        && pgCode.includes('<text v-else-if="dailyFactsDisplayable && withdrawalPolicy" class="block">{{ t.wallet.dailyWithdrawalCountNotSet }}</text>'));
     check("🔴 提现页:显示 / 降额 CTA / 提交前复检均走服务端事实或冻结快照",
       (() => {
         // mock 轨的纯函数评估必须吃 dailyFacts；remote 轨的显示与降额 CTA 使用
@@ -1218,7 +1226,8 @@ function functionBody(src, opener) {
     // 🔴🔴 族 C(「抄一半」)的三条回归门。R2 跨端镜头点名:我照着现成写法改,
     //     却没把那处写法的**全部约束**一起带过来 —— 守卫抄丢了、钩子只挂了一半、还加错了页。
     check("🔴 两个页面**都**在 onShow 重取 policy(真正靠限额拦人的是提现页 —— 上一版只给了追踪页)",
-      /onShow\([\s\S]{0,300}?loadWithdrawalPolicy\(\);/.test(pgCode)
+      (functionBody(pgCode, "onShow(") ?? "").includes("retryWithdrawalFacts();")
+        && (functionBody(pgCode, "async function retryWithdrawalFacts(") ?? "").includes("loadWithdrawalPolicy(),")
         && /onShow\([\s\S]{0,400}?loadWithdrawalPolicy\(\);/.test(trackCode));
     check("🔴 追踪页的 loader 有在途守卫(抄提现页那份时漏抄 → 重复发请求 + 后到的覆盖先到的)",
       trackCode.includes("if (withdrawalPolicyLoading.value) return;")
@@ -1226,9 +1235,9 @@ function functionBody(src, opener) {
     check("🔴 policy 取数失败**不清空**已拿到的好值(清空 = 网络抖一下就把闸放开,与仓内钱路径惯例相反)",
       !/catch\s*\{[^}]*withdrawalPolicy\.value = null/.test(trackCode));
     check("🔴 60s 时钟起停 onShow/onHide **成对**(仓内硬规则 P-063:页面保活时 onUnmounted 不触发 → 定时器泄漏)",
-      trackCode.includes("onHide(stopDayTimer);")
+      (functionBody(trackCode, "onHide(") ?? "").includes("stopDayTimer();")
         && /onShow\([\s\S]{0,300}?setInterval\(/.test(trackCode)
-        && trackCode.includes("onUnmounted(stopDayTimer);"));
+        && (functionBody(trackCode, "onUnmounted(") ?? "").includes("stopDayTimer();"));
 
     // 🗑🗑 【C·判据已迁移】幂等键 / 意图签名 / 失败分诊接线 3 格(2026-08-13 判决)。
     //
@@ -1401,7 +1410,7 @@ function functionBody(src, opener) {
       // 2026-08-11 幂等 P0:金额的来源多了一个 —— 未收口的上一次尝试(重放要发的是那一笔的
       // 金额,不是当前输入)。判据只放行这一个前缀,别的来源照红;「await 之后不许再读活值」
       // 这半条一字不改。
-      const code = body.split("\r\n").filter((l) => !l.trim().startsWith("//")).join("\r\n");
+      const code = body.split(/\r?\n/).filter((l) => !l.trim().startsWith("//")).join("\n");
       const s = code.search(/amount: (pending\?\.amount \?\? )?amountNum\.value,/);
       const a = code.indexOf("await ");
       if (s < 0 || a < 0 || s > a) return false;

@@ -20,10 +20,19 @@ test("K1 restricted cluster is visibly non-withdrawable before the server submit
   assert.match(withdraw, /earningsReleaseSnapshot\.value\?\.clusterRestricted\) return 0/);
 });
 
-test("K1 release snapshot is cleared on account rebind and stale responses cannot cross accounts", () => {
+test("K1 release snapshot is cleared on account rebind, rejects stale callers, and drops stale responses", () => {
   assert.match(releaseStore, /export function bindEarningsReleaseAccount\(accountKey: string\)/);
   assert.match(releaseStore, /earningsReleaseSnapshot\.value = null/);
-  assert.match(releaseStore, /if \(activeEarningsReleaseAccountKey !== requestedAccountKey\) return status/);
+  assert.match(
+    releaseStore,
+    /if \(activeEarningsReleaseAccountKey !== requestedAccountKey\) \{\s*throw new Error\("EARNINGS_RELEASE_ACCOUNT_CHANGED"\);\s*\}/,
+    "an obsolete account must be rejected before it can start a financial read",
+  );
+  assert.match(
+    releaseStore,
+    /if \(activeEarningsReleaseAccountKey !== requestedAccountKey\s*\|\|\s*!isCurrentRuntimeRevision\(runScope\)\s*\|\|\s*refreshSequence !== earningsReleaseRefreshSequence\) return status;/,
+    "a response that becomes stale after dispatch must not replace the current account snapshot",
+  );
   assert.match(accountScope, /bindEarningsReleaseAccount\(accountKey\)/);
 });
 

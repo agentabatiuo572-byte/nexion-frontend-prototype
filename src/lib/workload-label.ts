@@ -24,3 +24,13 @@ export function workloadLabel(t: Messages, category: LabelCategory): string {
     ? t.receipt.typeWalletPairing
     : t.market.workloads[category].label;
 }
+
+export function marketWorkloadCopy(t: Messages, code: string, serverName: string | null, serverUnit: string | null) {
+  const local = Object.prototype.hasOwnProperty.call(t.market.workloads, code)
+    ? t.market.workloads[code as TaskCategory]
+    : null;
+  return {
+    name: local?.label ?? (serverName?.trim() || code || "—"),
+    unit: local?.unit ?? (serverUnit?.trim() || "—"),
+  };
+}

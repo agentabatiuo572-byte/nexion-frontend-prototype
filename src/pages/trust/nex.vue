@@ -9,14 +9,27 @@
     <view style="padding-bottom: 32px">
       <SubPageHeader back="/pages/trust/trust" />
 
-      <HowHero :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="nex" />
+      <view v-if="narrative.state === 'loading'" class="mx-4" :style="stateCardStyle">
+        <text class="block" :style="stateTextStyle">{{ t.trust.nexNarrativeLoading }}</text>
+      </view>
+      <view v-else-if="narrative.state === 'error'" class="mx-4" :style="stateCardStyle">
+        <text class="block" :style="stateTextStyle">{{ t.trust.nexNarrativeError }}</text>
+        <text class="block active:opacity-70" :style="retryStyle" role="button" tabindex="0" @click="loadNarrative(true)">{{ t.ui.retry }}</text>
+      </view>
+      <view v-else-if="narrative.state === 'unpublished'" class="mx-4" :style="stateCardStyle">
+        <text class="block" :style="stateTextStyle">{{ t.trust.nexNarrativeUnavailable }}</text>
+        <text class="block active:opacity-70" :style="retryStyle" role="button" tabindex="0" @click="loadNarrative(true)">{{ t.ui.retry }}</text>
+      </view>
+
+      <template v-else>
+      <HowHero :label="`${w.heroLabel} · ${narrative.version}`" :title="narrative.hero" :sub="narrative.subhero ?? ''" accent="nex" />
 
       <HowSection :title="w.s1Title" accent="nex">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
         </template>
         <text class="block" :style="paraStyle">{{ w.s1Para1 }}</text>
-        <view :style="tableStyle">
+        <view class="nx-glass-card" :style="tableStyle">
           <view class="flex" :style="tableHeadStyle">
             <text class="text-left" :style="thWhat">{{ w.colWhat }}</text>
             <text class="text-left" :style="thCell">USDT</text>
@@ -87,20 +100,23 @@
       </HowSection>
 
       <view class="mx-4" style="margin-top: 24px; display: flex; flex-direction: column; gap: 10px">
-        <view class="flex items-center justify-center active:scale-[0.98]" :style="ctaExchangeStyle" @click="goExchange">
+        <view class="flex items-center justify-center active:scale-[0.98]" :style="ctaExchangeStyle" role="button" tabindex="0" @click="goExchange"  @keydown.enter.prevent="goExchange" @keydown.space.prevent="goExchange">
           <text>{{ w.ctaExchange }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
-        <view class="flex items-center justify-center active:scale-[0.98]" :style="ctaBackStyle" @click="goBack">
+        <view class="flex items-center justify-center active:scale-[0.98]" :style="ctaBackStyle" role="button" tabindex="0" @click="goBack"  @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack">
           <text>{{ w.ctaBack }}</text>
         </view>
       </view>
+      </template>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { navBack, navReplace, navTo } from "@/lib/route";
+import { computed, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import HowHero from "@/components/how/how-hero.vue";
@@ -109,49 +125,112 @@ import HowFaqRow from "@/components/how/how-faq-row.vue";
 import IconRow from "@/components/how/how-icon-row.vue";
 import CalloutBox from "@/components/how/how-callout-box.vue";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
 import { useConfig } from "@/store/config";
+import { useMarket } from "@/store/market";
+import { recordPublishedTrustViews, usePublishedTrust } from "@/composables/use-published-trust";
+import { subscribeRuntimeRevision } from "@/api/order-api";
+import type { TrustLocale } from "@/api/trust-section-api";
+import { resolvePublishedNexNarrative } from "@/lib/nex-published-content";
 
 const t = useT();
 const w = computed(() => t.value.nexHowItWorks);
+const locale = useLocaleStore();
+const language = computed<TrustLocale>(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code as TrustLocale : "en");
+const { sections, status, refresh } = usePublishedTrust();
+const narrative = computed(() => resolvePublishedNexNarrative(sections.value, status.value, language.value));
+
+let narrativePageVisible = false;
+let narrativeVisibleEpoch = 0;
+let narrativeReadRequest = 0;
+
+function invalidateNarrativePageRead(): void {
+  narrativeVisibleEpoch += 1;
+}
+
+async function loadNarrative(force = false): Promise<boolean> {
+  if (!narrativePageVisible) return false;
+  const visibleEpoch = narrativeVisibleEpoch;
+  const request = ++narrativeReadRequest;
+  const loaded = await refresh(force);
+  if (
+    narrativePageVisible
+    && visibleEpoch === narrativeVisibleEpoch
+    && request === narrativeReadRequest
+    && loaded
+    && narrative.value.state === "ready"
+  ) recordPublishedTrustViews(["nexNarrative"], language.value);
+  return loaded;
+}
+
+const unsubscribeNarrativeRuntime = subscribeRuntimeRevision(() => {
+  if (narrativePageVisible) void loadNarrative(true);
+});
+onShow(() => {
+  narrativePageVisible = true;
+  invalidateNarrativePageRead();
+  void loadNarrative(true);
+});
+onHide(() => {
+  narrativePageVisible = false;
+  invalidateNarrativePageRead();
+});
+onUnmounted(() => {
+  narrativePageVisible = false;
+  invalidateNarrativePageRead();
+  unsubscribeNarrativeRuntime();
+});
 const cfg = useConfig();
+const market = useMarket();
+onMounted(() => { if (!market.isMockMode) void market.syncRemote(); });
+
 // 礼包 NEX 数量单源派生自 platform config。
 const src4Body = computed(() => fmt(w.value.src4Body, { nex: cfg.config.rewards.welcomeGift.nexAmount }));
 
 const tableRows = computed(() => [
   { k: w.value.rowType, usdt: w.value.usdtType, nex: w.value.nexType },
-  { k: w.value.rowPrice, usdt: `$1.00 (${w.value.fixed})`, nex: `$0.17 (${w.value.variable})` },
+  { k: w.value.rowPrice, usdt: `$1.00 (${w.value.fixed})`, nex: `${nexPriceText.value} (${w.value.variable})` },
   { k: w.value.rowVolatility, usdt: w.value.usdtVolatility, nex: w.value.nexVolatility },
   { k: w.value.rowUse, usdt: w.value.usdtUse, nex: w.value.nexUse },
 ]);
 
+const nexPriceText = computed(() => market.remoteReady && market.nexPriceUSDT > 0
+  ? `${market.nexPriceUSDT.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+  : "—");
+
 function goExchange() {
-  uni.navigateTo({ url: "/pages/me/wallet-exchange", fail: () => {} });
+  navTo("/pages/me/wallet-exchange");
 }
-function goBack() {
-  uni.navigateTo({ url: "/pages/trust/trust", fail: () => {} });
+function goBack(event?: KeyboardEvent | PointerEvent) {
+  if (event && "repeat" in event && event.repeat) return;
+  try { navBack("/pages/trust/trust"); }
+  catch { void navReplace("/pages/trust/trust"); }
 }
 
+const stateCardStyle: CSSProperties = { marginTop: "16px", padding: "16px", borderRadius: "16px", background: "var(--v5-surface)" };
+const stateTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.6 };
+const retryStyle: CSSProperties = { marginTop: "8px", minHeight: "44px", display: "inline-flex", alignItems: "center", fontSize: "13px", color: "var(--v5-brand)" };
 const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
-const tableStyle: CSSProperties = {
+const tableStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "12px",
-  borderRadius: "12px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   overflow: "hidden",
 };
 const tableHeadStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.14em", color: "var(--v5-ink-3)" };
-const thWhat: CSSProperties = { flex: "1.2", padding: "8px", fontWeight: 500 };
-const thCell: CSSProperties = { flex: "1", padding: "8px", fontWeight: 500 };
+const thWhat: CSSProperties = { flex: "1.2", padding: "8px 12px", fontWeight: 500 };
+const thCell: CSSProperties = { flex: "1", padding: "8px 12px", fontWeight: 500 };
 function tableRowStyle(isFirst: boolean): CSSProperties {
   return {
     fontSize: "12px",
     borderTop: isFirst ? "none" : "1px solid color-mix(in srgb, var(--v5-border) 60%, transparent)",
   };
 }
-const tdWhat: CSSProperties = { flex: "1.2", padding: "8px", color: "var(--v5-ink-3)" };
-const tdUsdt: CSSProperties = { flex: "1", padding: "8px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)" };
-const tdNex: CSSProperties = { flex: "1", padding: "8px", color: "var(--v5-nex)" };
+const tdWhat: CSSProperties = { flex: "1.2", padding: "8px 12px", color: "var(--v5-ink-3)" };
+const tdUsdt: CSSProperties = { flex: "1", padding: "8px 12px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)" };
+const tdNex: CSSProperties = { flex: "1", padding: "8px 12px", color: "var(--v5-nex)" };
 const demandBoxStyle: CSSProperties = {
   marginTop: "12px",
   borderRadius: "12px",
@@ -189,4 +268,6 @@ const ctaBackStyle: CSSProperties = {
   fontSize: "13px",
   fontWeight: 500,
 };
+
+
 </script>

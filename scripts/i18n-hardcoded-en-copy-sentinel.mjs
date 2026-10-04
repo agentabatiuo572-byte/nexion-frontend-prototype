@@ -39,7 +39,6 @@ import { stripComments, templateRegion, styleRegions } from "./lib/sfc-strip-com
 // 把它们按**词**授权,`<text>Node Type</text>` / `<text>Level II</text>` 这种真文案就整句放行了
 // (独立审计实测)。所以整串授权,拆开的单词不放行。
 const TECH_PHRASES = [
-  { id: "cert-name", why: "合规认证与支付标准的注册名,证书上就是这么印的;拆词授权会让 Type / Level / Node 这类普通名词全局放行", phrases: ["SOC 2 Type II", "PCI DSS Level 1", "3DS 2.2"] },
   { id: "product-name", why: "产品全名(创世节点),`Genesis` / `Node` 单独作为词不授权", phrases: ["Genesis Node"] },
 ];
 
@@ -56,17 +55,13 @@ const TECH_TOKENS = [
     why: "币种代码 / 品牌名 / 产品型号 / 支付服务商名:全球单一写法,翻译过去反而是错的",
     // 🔴 `CertiK` 曾在这里,被本门自己的「0 命中即失效」判据赶走 —— 那行原文是 `CertiK audited`,
     //    `audited` 是要翻译的动词,整句收进 t.ref.certikAudited 之后判定面上再没有这个词。
-    tokens: ["NEX", "USDT", "UVEL", "UVELBox", "Cregis", "BEP", "GEN", "REF", "RunID", "Visa", "Mastercard"],
-  },
-  {
-    id: "cert-acronym",
-    why: "认证机构 / 法规的缩写(ISO 27001 · GDPR · MSB):都是不翻译的专有缩写,且不与任何普通英文词同形",
-    tokens: ["ISO", "GDPR", "MSB"],
+    // VND is the ISO currency code for bank payout amounts, identical in all shipped locales.
+    tokens: ["NEX", "USDT", "VND", "UVEL", "UVELBox", "REF", "Visa", "Mastercard", "Passkey", "Google", "Apple", "Telegram"],
   },
   {
     id: "unit-abbrev",
-    why: "行业通用的计量 / 技术缩写(显存 GB · 算力 TOPS · 年化 APY · VRAM · 毫秒 ms · 文字方向 RTL):各语言技术语境里都直接用原文",
-    tokens: ["GB", "TOPS", "APY", "VRAM", "ms", "RTL"],
+    why: "行业通用的计量 / 技术缩写(显存 GB · 算力 TOPS · 年化 APY · VRAM · 毫秒 ms):各语言技术语境里都直接用原文",
+    tokens: ["GB", "APY", "VRAM", "ms"],
   },
   {
     id: "input-format-mask",
@@ -111,20 +106,27 @@ const NON_COPY_ATTRS = [
     id: "style-hook",
     why: "样式挂载点:class 名与内联 CSS / CSS 变量,值来自设计系统词汇表(`flex` / `truncate` / `var(--v5-ink-4)`),不是给人读的句子",
     names: ["class", "style", "font-family", "font-size", "font-weight", "letter-spacing", "text-anchor", "dominant-baseline",
-      "placeholder-class", "placeholder-style", "input-style", "icon-bg", "tint", "accent", "previous-margin", "next-margin"],
+      "placeholder-class", "placeholder-style", "input-style", "icon-bg", "tint", "accent", "previous-margin", "next-margin", "backdrop", "layout", "semantics"],
   },
   {
     id: "svg-geometry",
     why: "SVG 几何 / 绘制 / SMIL 动画属性:坐标 · 路径 · 颜色 · 描边与动画枚举(`round` / `indefinite` / `SourceAlpha`),与语言无关",
     names: ["d", "points", "viewBox", "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "width", "height", "fill", "fill-opacity", "stroke", "stroke-width", "stroke-opacity", "stroke-linecap", "stroke-linejoin", "stroke-dasharray", "transform", "opacity", "offset", "stop-color", "stop-opacity", "filter", "preserveAspectRatio",
-      "attributeName", "repeatCount", "dur", "begin", "values", "keyTimes", "from", "to", "rotate", "path", "in", "stdDeviation", "focusable"],
+      "attributeName", "repeatCount", "dur", "begin", "values", "keyTimes", "from", "to", "rotate", "path", "stdDeviation", "focusable"],
   },
   {
     id: "element-mechanics",
     why: "元素机制类属性:类型 / 模式 / 资源地址 / 表单取值 / 画布 id / 无障碍**状态**(取值是 ARIA 规定的枚举,不是文案)",
-    names: ["type", "mode", "name", "id", "src", "href", "value", "min", "maxlength", "rows", "role", "tabindex", "inputmode", "canvas-id",
-      "aria-hidden", "aria-live", "aria-modal", "aria-expanded", "aria-selected", "aria-checked", "aria-disabled", "aria-describedby", "aria-atomic", "aria-haspopup", "aria-busy",
-      "disabled", "checked", "scroll-into-view", "cursor-spacing", "confirm-type", "focus"],
+    // autocomplete 是浏览器填充策略,aria-required 是读屏必填状态;两者都不是翻译文案。
+    names: ["type", "mode", "name", "id", "src", "href", "value", "min", "maxlength", "rows", "role", "tabindex", "inputmode", "canvas-id", "autocomplete", "aria-required",
+      "aria-hidden", "aria-live", "aria-modal", "aria-expanded", "aria-selected", "aria-checked", "aria-disabled", "aria-describedby", "aria-controls", "aria-labelledby", "aria-atomic", "aria-haspopup", "aria-busy",
+      // aria-invalid 是 ARIA 规定的校验态枚举("true"/"false"/"grammar"/"spelling"),aria-orientation
+      // 是方向枚举("horizontal"/"vertical")。两者都是无障碍**状态**,取值来自规范而不是文案 ——
+      // 与上面同族的 aria-required / aria-disabled 同理。
+      // aria-errormessage 的值是**指向错误元素 id 的引用**(与 aria-describedby / aria-controls
+      // 同族),不是给人读的文案;文案本身仍在被引用的 <text> 里走 i18n。
+      "aria-invalid", "aria-orientation", "aria-errormessage", "aria-current",
+      "disabled", "checked", "preload", "scroll-into-view", "cursor-spacing", "confirm-type", "focus"],
   },
   {
     id: "data-hook",
@@ -142,7 +144,7 @@ const NON_COPY_ATTRS = [
     why: "本仓组件的**枚举型 / 路由型** prop(色调 · 变体 · 对齐 · 图标名 · 当前 tab · 目标路由):取值来自组件自身的联合类型或 pages.json 的路径,不是文案",
     // `to` 归到上面的 SMIL 动画组(那才是它在本仓的真实用途);这里不再重复列,
     // 否则逐名存活判定对它失效(跨组重复 = 永不判死)。
-    names: ["tone", "kind", "icon", "color", "accent-bg", "accent-text", "size", "status", "back", "link", "active", "surface", "context"],
+    names: ["tone", "kind", "icon", "color", "accent-bg", "accent-text", "size", "status", "back", "link", "active", "surface", "context", "content-key", "variant"],
   },
 ];
 
@@ -627,8 +629,10 @@ function selftest() {
     ["🔴 跨行文本节点逐行判(两行各一条)", P, "<template><text>\nTask lock\nCooling down\n</text></template>", 2],
     ["合法:纯插值不含字面文案", P, "<template><text>{{ t.wallet.slots }}</text></template>", 0],
     ["合法:授权 ticker", P, "<template><text>{{ n }} USDT</text></template>", 0],
+    ["合法:提现币种代码不是英文文案", P, '<template><WalletActionBtn sub="USDT / VND" /></template>', 0],
+    ["🔴 币种代码不能豁免同行普通英文文案", P, '<template><text>Withdraw VND</text></template>', 1],
     ["合法:授权单位缩写", P, "<template><text>{{ n }}GB VRAM</text></template>", 0],
-    ["合法:授权短语整串(PCI DSS Level 1 · 3DS 2.2)", P, "<template><text>PCI DSS Level 1 · 3DS 2.2</text></template>", 0],
+    ["已移除未展示认证名称的授权", P, "<template><text>PCI DSS Level 1 · 3DS 2.2</text></template>", 1],
     ["🔴 短语拆开的普通名词不放行(Type / Level / Node 单独出现照判)", P, "<template><text>Node Type</text><text>Level II</text></template>", 2],
     ["合法:单字母图示标签不算词(A/B/L/R)", P, "<template><text>L 3</text><text>R 4</text></template>", 0],
     ["合法:档位编号不算词", P, "<template><text>V3</text><text>P1</text></template>", 0],
@@ -670,6 +674,10 @@ function selftest() {
     ["合法:v-if 条件里的枚举不判", P, "<template><view v-if=\"status === 'ready'\" /></template>", 0],
     ["合法:授权的格式掩码", P, '<template><input placeholder="MM/YY" /></template>', 0],
     ["合法:ARIA 状态属性取值是规范枚举", P, '<template><view aria-live="polite" aria-hidden="true" role="status" /></template>', 0],
+    ["合法:表单填充策略和必填状态不是文案", P, '<template><input autocomplete="off" aria-required="true" /></template>', 0],
+    ["合法:绑定形式的表单机制保持相同语义", P, "<template><input :autocomplete=\"'off'\" :aria-required=\"'true'\" /></template>", 0],
+    ["🔴 机制属性不豁免相邻读屏文案", P, '<template><input autocomplete="off" aria-required="true" aria-label="Enter account" /></template>', 1],
+    ["🔴 机制枚举不成为全局词豁免", P, '<template><text>off true</text></template>', 1],
     ["🔴 :class 与 class 同宽严(加个冒号不逃逸 → 都不判)", P, "<template><view :class=\"ok ? 'nx-on' : 'nx-off'\" /></template>", 0],
     // ── I:插值里的展示位字面量 ────────────────────────────────────────────
     ["🔴 三元分支里的英文文案", P, '<template><text>{{ legacy ? "Wallet Verification (legacy)" : "Proof of Compute" }}</text></template>', 2],

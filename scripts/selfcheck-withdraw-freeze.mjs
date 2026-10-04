@@ -10,7 +10,6 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const pageRaw = readFileSync(path.join(root, "src", "pages", "me", "wallet-withdraw.vue"), "utf8");
 const appRaw = readFileSync(path.join(root, "src", "store", "app.ts"), "utf8");
 const apiRaw = readFileSync(path.join(root, "src", "api", "withdrawal-api.ts"), "utf8");
-const mutationRaw = readFileSync(path.join(root, "src", "lib", "funds-mutation-key.ts"), "utf8");
 const strip = (source) => source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
 
 function grabBlock(source, needle) {
@@ -40,7 +39,6 @@ console.log("selfcheck-withdraw-freeze — D5 server-authoritative submission bo
 const page = strip(pageRaw);
 const app = strip(appRaw);
 const api = strip(apiRaw);
-const mutation = strip(mutationRaw);
 const submit = grabBlock(page, "async function handleSubmit()");
 const appSubmit = grabBlock(app, "async function submitWithdrawal(");
 const snapAt = submit.indexOf("const snap = {");
@@ -52,16 +50,10 @@ check("提交意图在首个 await 前冻结", snapAt >= 0 && firstAwaitAt > sna
 check("快照包含账号、网络、地址、金额、抵扣意图与 policyVersion；幂等键由持久意图注册表生成",
   ["account:", "network:", "address:", "amount:", "offset:", "policyVersion:"]
     .every((key) => submit.slice(snapAt, snapAt + 900).includes(key))
-  // 🔴 幂等键分两轨(2026-08-12 双向分叉合并收口,原判据只认沙箱那一轨):
-  //   · 沙箱轨:持久意图注册表(nexgrid-funds-pending-mutations-v1)。它的
-  //     normalized() 对 environment !== "SANDBOX" 直接抛 —— **生产档根本用不了它**,
-  //     原判据要求生产提交也走它,等于要求一条会抛错的路。
-  //   · 生产轨:页面按「账号|网络|金额|地址|抵扣」签名冻结一把键,意图不变则重试沿用
+  // 页面按「账号|网络|金额|地址|抵扣」签名冻结一把键,意图不变则重试沿用
   //     (wallet-withdraw.vue currentIdempotencyKey)。这比「每次现造一把」强得多 ——
   //     现造会让「提交超时 → 用户重试」在服务端眼里变成两个请求 = 第二笔真出账。
-  // 两轨都守:沙箱走注册表 · 生产不在 store 内现造键(负向断言钉死那条工厂)。
-  && /pendingFundsMutationKey\(mutation\)/.test(appSubmit)
-  && /nexgrid-funds-pending-mutations-v1/.test(mutation)
+  // 唯一 canonical 轨不在 store 内现造键(负向断言钉死那条工厂)。
   && !/createProductionFundsRequestKey\(\)/.test(appSubmit));
 check("确认后先复核账号/网络/地址，再调用真实提交", identityAt >= 0 && realSubmitAt > identityAt);
 check("页面按快照提交 policyVersion 与抵扣意图",
@@ -110,7 +102,7 @@ check("页面提交路径没有本地扣 USDT、烧 NEX 或伪造提现账单",
   !/app\.(?:debitBalance|debitNex)\(/.test(submit)
   && !/bills\.(?:add|addForAccount)\(/.test(submit));
 check("policy 只从真实 GET /api/withdrawals/policy 获取且失败置空",
-  /withdrawalPolicy\.value\s*=\s*await withdrawalApi\.policy\(\)/.test(page)
+  /const policy = await withdrawalApi\.policy\(\);\s*if \(!isCurrentWithdrawalFactsScope\(\s*requestedAccountKey, requestedAccountBindingEpoch, runScope\.epoch, refreshSequence, withdrawalPolicyRefreshSequence,\s*\)\) return;\s*withdrawalPolicy\.value = policy;/.test(page)
   && /withdrawalPolicy\.value\s*=\s*null/.test(page)
   && /method:\s*"GET",\s*path:\s*"\/api\/withdrawals\/policy"/.test(api));
 check("POST 只发用户意图与版本，不接受客户端费用金额",

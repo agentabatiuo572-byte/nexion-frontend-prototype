@@ -4,6 +4,7 @@ import depositsCoreSource from "../store/deposits-core.ts?raw";
 import {
   appendVietQrReceipts,
   buildVietQrTransferSteps,
+  isPayableVietQrCreateStatus,
   remoteGenerationMatches,
 } from "./vietqr-remote-safety";
 
@@ -47,6 +48,16 @@ describe("VietQR remote safety helpers", () => {
     });
     expect(appendVietQrReceipts([receipt("r-1")], [receipt("r-1"), receipt("r-2")])
       .map((item) => item.receiptNo)).toEqual(["r-1", "r-2"]);
+  });
+
+  it("treats only an awaiting-payment create replay as a usable new bank order", () => {
+    expect(isPayableVietQrCreateStatus("awaiting_payment")).toBe(true);
+    for (const status of [
+      "credited", "expired", "cancelled", "receipt_review", "mismatch_review",
+      "late_review", "return_pending", "returned",
+    ] as const) {
+      expect(isPayableVietQrCreateStatus(status)).toBe(false);
+    }
   });
 
   it("does not expose the removed fake QR generator to remote code", () => {

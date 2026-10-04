@@ -19,15 +19,16 @@ export interface LeadershipHowVoteRow {
 export function leadershipHowRows(
   snapshot: RemoteLeadershipPoolProjection,
   ranks: readonly number[],
+  configuredVotes: ReadonlyMap<number, number>,
 ): LeadershipHowVoteRow[] {
   const byRank = new Map(snapshot.distribution.map((row) => [row.vRank, row]));
   return ranks.map((rank) => {
     const row = byRank.get(rank);
-    const votes = row?.votes ?? null;
+    const votes = row?.votes ?? configuredVotes.get(rank) ?? null;
     return {
       rank,
       votes,
-      sharePct: votes !== null && snapshot.totalVotes > 0 ? (votes / snapshot.totalVotes) * 100 : null,
+      sharePct: row && snapshot.totalVotes > 0 ? (row.votes / snapshot.totalVotes) * 100 : null,
     };
   });
 }

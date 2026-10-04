@@ -73,7 +73,9 @@ function allSources(dir = SRC, out = []) {
     const p = path.join(dir, name);
     const st = statSync(p);
     if (st.isDirectory()) allSources(p, out);
-    else if (/\.(ts|vue)$/.test(name)) out.push(path.relative(root, p).replaceAll("\\", "/"));
+    else if (/\.(ts|vue)$/.test(name) && !/\.(test|spec)\.ts$/.test(name)) {
+      out.push(path.relative(root, p).replaceAll("\\", "/"));
+    }
   }
   return out;
 }
@@ -192,6 +194,8 @@ function producedKinds(src) {
     ["src/store/genesis.ts", "genesisPurchaseBlock"],
     // 观测消费者(非闸):周任务的报警器也必须从**本单源**取判定,不许自己读 config 再判一套。
     ["src/components/home/weekly-quest-hero.vue", "useGenesisSaleGate"],
+    // BUG 195:连签增益依赖创世的档位必须问闸,不许只看签到天数。
+    ["src/components/daily/streak-power-ups.vue", "useGenesisSaleGate"],
   ];
   for (const [f, sym] of CONSUMERS) {
     check(`⑤ ${f.split("/").pop()} 接线到单源`, strip(readFileSync(path.join(root, f), "utf8"), true).includes(sym), "没接线 = 它在自己判");
@@ -227,7 +231,25 @@ function producedKinds(src) {
   //     「关闭态不派买创世」这条不变量**仍然没有任何执行方**,客户端只能看见并喊。
   //   机器门:`scripts/selfcheck-quest-genesis-tripwire.mjs`(报警判定 + 接线数据流 +
   //     「任务面新增跳创世入口必须问闸」的反向钉,13 条红测)。
-  const EXPECTED_GATE_CONSUMERS = 10;
+  //   ✅ 2026-09-20 10→11:weekly-quest-list.vue 接闸(BUG 127/155:二级市场
+  //     「逛创世二级市场」的 Tier2 任务行在关闭态仍可点进市场)。入口可用性本就
+  //     同源于二级闸(genesisSecondaryBlock,售罄档仍放行),列表行必须读同一个值,
+  //     否则同页 hero 说停、列表说走。#123 的入口禁用也是这条线。
+  //     🔴 与 hero 那条不同:这条是**真闸不是报警** —— 只在 PENDING 行上撤 CTA,
+  //     已挣到的 COMPLETED/CLAIMABLE 一律不碰(见 lib/quest-business-availability.ts)。
+  //   ✅ 2026-09-20 11→12:streak-power-ups.vue 接闸(BUG 195:连签 60 天承诺解锁
+  //     「Genesis 资格入口」,而创世无 ACTIVE 系列/市场关闭时该入口不可用 ——
+  //     用户投入 60 天后撞墙)。**真闸不是报警**:停用档撤掉「激活」入口并说明原因,
+  //     已激活的档不动。主售与二级各读各的闸(genesisPrimaryClosed /
+  //     genesisSecondaryClosed),不共用一句「创世关了」——二级卖的是存量,主售售罄
+  //     不妨碍转让,合并判断会在售罄时误停二级。
+  //   ✅ 2026-09-20 12→13:conversion-banner.vue(首页周任务卡)接闸(BUG 127/155)。
+  //     与 weekly-quest-hero/list 同一个缺陷面:hero 与列表早就在关闭态撤 CTA,而首页
+  //     这张卡仍直接 navTo(actionRoute) —— 同一屏三处对同一条任务给出两种结论,用户点进
+  //     一个明说「已暂停」的页面。**真闸不是报警**:目标业务整体不可用时撤掉 CTA、
+  //     去掉 button 角色并说明原因,已挣到的 CLAIMABLE 不在此组件内处理。
+  //     判据与 hero/list 同源(useQuestTargetAvailability + 创世闸),不新增第二份读数。
+  const EXPECTED_GATE_CONSUMERS = 13;
   check(`🔴 ⑤ 闸消费者基数 = ${EXPECTED_GATE_CONSUMERS}(实测 ${actual})`, actual === EXPECTED_GATE_CONSUMERS,
     `数量变了就同步改这个数并说明:新增了消费者,还是有人把闸摘了`);
 }

@@ -70,7 +70,7 @@ export function createPurchaseEligibilityStore(
     entry.error = "";
     const request = api.get(normalized)
       .then((snapshot) => {
-        if (!scope.isCurrent(requestScope)) return false;
+        if (!scope.isCurrent(requestScope) || inFlight.get(key) !== request) return false;
         entry.status = "ready";
         entry.snapshot = snapshot;
         entry.eligible = snapshot.eligible;
@@ -78,7 +78,7 @@ export function createPurchaseEligibilityStore(
         return snapshot.eligible;
       })
       .catch((error: unknown) => {
-        if (!scope.isCurrent(requestScope)) return false;
+        if (!scope.isCurrent(requestScope) || inFlight.get(key) !== request) return false;
         entry.status = "error";
         entry.eligible = false;
         entry.snapshot = null;
@@ -112,18 +112,27 @@ export const purchaseEligibilityStore = createPurchaseEligibilityStore(
 export function useRemotePurchaseEligibility(
   productNo: Ref<string> | (() => string),
 ) {
+  return bindPurchaseEligibility(productNo, purchaseEligibilityStore, remoteApiEnabled);
+}
+
+export function bindPurchaseEligibility(
+  productNo: Ref<string> | (() => string),
+  store: ReturnType<typeof createPurchaseEligibilityStore>,
+  enabled: boolean,
+) {
   const product = computed(() => typeof productNo === "function" ? productNo() : productNo.value);
-  const eligibility = computed(() => purchaseEligibilityStore.state(product.value));
+  const eligibility = computed(() => store.state(product.value));
 
   // `watch` is intentionally kept out of the store so a shared cache does not
-  // acquire component lifecycle ownership. Vue's computed Map dependency also
-  // makes account rebind/clear immediately visible to mounted pages.
-  watch(product, (value) => {
-    if (remoteApiEnabled && value) void purchaseEligibilityStore.ensure(value);
+  // acquire component lifecycle ownership. An account rebind clears the Map;
+  // mounted pages must reload its new idle entry even if the SKU is unchanged.
+  // Errors wait for an explicit retry, so persistent failures cannot poll.
+  watch([product, () => eligibility.value.status], ([value, status]) => {
+    if (enabled && value && status === "idle") void store.ensure(value);
   }, { immediate: true });
 
   function retry(): Promise<boolean> {
-    return purchaseEligibilityStore.ensure(product.value, true);
+    return enabled ? store.ensure(product.value, true) : Promise.resolve(false);
   }
 
   return { eligibility, retry };

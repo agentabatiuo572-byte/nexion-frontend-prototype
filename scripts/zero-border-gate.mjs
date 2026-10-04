@@ -26,6 +26,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { scopeRoutes, mapRoutes, settleNetwork } from "./lib/probe-routes.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -211,22 +212,48 @@ async function sweep() {
   //   原来 checkout 页弹开的支付面板(.tis-panel)会留在 DOM 里被记到后面 74 条路由名下(基线 159 条里 73 条是它);
   //   现在只归属它真正所在的路由,hit 少 46% 全是这一类假归属,没丢覆盖(full 3 条逐字一致,并行 3 与串行 1 逐字节一致)。
   //   基线里那 73 条从此稳定「消失」(partial 只报不拦),用不带 PROBE_ROUTES 的 --update-baseline 收缩。
-  const perRoute = await mapRoutes(browser, SCAN, async (page, route, i, lanes) => {
-    try {
-      await page.goto(`${BASE}/?nx_device=off&zb=${i}#${route}`, { waitUntil: "networkidle", timeout: 20000 });
-    } catch { return { route, failed: true, raws: [] }; }
-    await page.waitForTimeout(700);
-    const raws = [];
-    for (const theme of ["dark", "light"]) {
-      await page.evaluate((m) => document.querySelector("#app")?.__vue_app__?.config?.globalProperties?.$pinia?._s?.get("theme")?.setMode(m), theme);
-      await page.waitForTimeout(300);
-      await page.evaluate(() => { const s = document.querySelector(".nx-scroll"); if (s) s.scrollTop = s.scrollHeight; });
-      await settleNetwork(page, 3000, lanes); // 包 ax:滚到底可能触发懒加载;并行时 dev server 忙,先等本页网络空闲(有界);实际 1 lane 时空转(R2-03)
-      await page.waitForTimeout(300);
-      raws.push(...await page.evaluate(PROBE));
-    }
-    return { route, failed: false, raws };
-  }, { context: { viewport: { width: 390, height: 844 }, locale: "en-US" } });
+  // 登录/注册必须以匿名态扫描,否则正式会话会把页面正确地重定向走,导致基线覆盖静默消失。
+  const publicAuth = new Set(["/pages/login/login", "/pages/register/register", "/pages/register/success"]);
+  const scanRoutes = async (routes, authenticated) => {
+    const sessionReady = new WeakSet();
+    return mapRoutes(browser, routes, async (page, route, i, lanes) => {
+      if (authenticated && !sessionReady.has(page)) {
+        await installFormalProbeSession(page);
+        sessionReady.add(page);
+      }
+      let navigated = false;
+      // 全量门会并行扫描近百条路由，Vite 偶发一次 navigation timeout 不能直接把
+      // “未完成扫描”误报成产品描边缺陷。仅对同一路由做一次有界重试；两次都失败仍
+      // fail closed，绝不把漏扫当通过。
+      for (let attempt = 0; attempt < 2 && !navigated; attempt++) {
+        try {
+          await page.goto(`${BASE}/?nx_device=off&zb=${i}&zba=${attempt}#${route}`, {
+            waitUntil: "domcontentloaded",
+            timeout: 20000,
+          });
+          navigated = true;
+        } catch {
+          if (attempt === 0) await page.waitForTimeout(300);
+        }
+      }
+      if (!navigated) return { route, failed: true, raws: [] };
+      await page.waitForTimeout(700);
+      const raws = [];
+      for (const theme of ["dark", "light"]) {
+        await page.evaluate((m) => document.querySelector("#app")?.__vue_app__?.config?.globalProperties?.$pinia?._s?.get("theme")?.setMode(m), theme);
+        await page.waitForTimeout(300);
+        await page.evaluate(() => { const s = document.querySelector(".nx-scroll"); if (s) s.scrollTop = s.scrollHeight; });
+        await settleNetwork(page, 3000, lanes); // 包 ax:滚到底可能触发懒加载;并行时 dev server 忙,先等本页网络空闲(有界);实际 1 lane 时空转(R2-03)
+        await page.waitForTimeout(300);
+        raws.push(...await page.evaluate(PROBE));
+      }
+      return { route, failed: false, raws };
+    }, { context: { viewport: { width: 390, height: 844 }, locale: "en-US" } });
+  };
+  const perRoute = [
+    ...await scanRoutes(SCAN.filter((route) => publicAuth.has(route)), false),
+    ...await scanRoutes(SCAN.filter((route) => !publicAuth.has(route)), true),
+  ];
   for (const r of perRoute) {
     if (!r || r.error) { failed.push(r?.route ?? "?"); continue; }
     if (r.failed) { failed.push(r.route); continue; }

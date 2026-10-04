@@ -1,6 +1,8 @@
 import type {
   GpuTier,
   OnlineBonus,
+  PlatformVerifiedAggregate,
+  PlatformVerifiedStats,
   PublicStatsConfig,
   RewardsConfig,
   ShareChannelDef,
@@ -10,7 +12,7 @@ import type {
 } from "@/store/config-types";
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
-import type { ApiResponseEnvironment } from "./runtime-config";
+import type { ApiEnvironment } from "./runtime-config";
 
 export interface PlatformComputeConfigSnapshot {
   featureFlags: {
@@ -20,6 +22,11 @@ export interface PlatformComputeConfigSnapshot {
   };
   publicStats: PublicStatsConfig;
   publicStatsAuthority: PlatformPublicStatsAuthority;
+  /**
+   * 服务端可核验聚合。对外「在线设备 / 账号数」这类事实必须读它,不得再由
+   * 运营配置值派生(zentao #59)。沙箱为 null。
+   */
+  verifiedStats: PlatformVerifiedStats | null;
   onlineBonus: OnlineBonus;
   computeShare: {
     downloadUrl: string;
@@ -43,6 +50,7 @@ export interface PlatformPublicStatsAuthority {
   runId: string;
   version: number;
 }
+
 
 export interface PlatformConfigApi {
   platformConfig(): Promise<PlatformComputeConfigSnapshot>;
@@ -81,20 +89,62 @@ function optionalString(value: unknown): string {
   return value === undefined || value === null ? "" : string(value).trim();
 }
 
+function httpUrlParts(value: string): { protocol: string; hostname: string; username: string; password: string } | null {
+  if (typeof URL === "function") {
+    try {
+      return new URL(value);
+    } catch {
+      return null;
+    }
+  }
+  // App Plus service JS has no browser URL constructor. Validate the same
+  // absolute HTTP(S) boundary before accepting server-owned outbound URLs.
+  const match = /^(https?):\/\/([^/?#]+)(?:[/?][^#]*)?$/i.exec(value);
+  const authority = match?.[2] ?? "";
+  const host = /^(\[[\da-f:.]+\]|[a-z\d.-]+)(?::(\d{1,5}))?$/i.exec(authority);
+  const hostname = host?.[1] ?? "";
+  const validHost = hostname.startsWith("[")
+    ? hostname.slice(1, -1).includes(":") && !hostname.includes(":::")
+    : hostname.split(".").every((label) => /^[a-z\d](?:[a-z\d-]*[a-z\d])?$/i.test(label));
+  if (!host || !validHost
+      || (host[2] && Number(host[2]) > 65535)) return null;
+  return { protocol: `${match![1].toLowerCase()}:`, hostname, username: "", password: "" };
+}
+
 function safeUrl(value: unknown, required: boolean, allowHttp: boolean): string {
   const url = optionalString(value);
   if (!url && !required) return "";
   if (!url || /[\s#@]/.test(url)) return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
-  try {
-    const parsed = new URL(url);
-    if ((!allowHttp && parsed.protocol !== "https:") || (allowHttp && !["https:", "http:"].includes(parsed.protocol))) {
-      return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
-    }
-    if (!parsed.hostname || parsed.username || parsed.password) return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
-  } catch {
+  const parsed = httpUrlParts(url);
+  if (!parsed || (!allowHttp && parsed.protocol !== "https:")
+      || (allowHttp && !["https:", "http:"].includes(parsed.protocol))
+      || !parsed.hostname || parsed.username || parsed.password) {
     return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
   }
   return url;
+}
+
+function safeShareUrlTemplate(key: ShareChannelKey, intentType: ShareIntentType, value: unknown): string {
+  const template = optionalString(value);
+  if (!template) {
+    if (intentType === "web") return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
+    return "";
+  }
+  if (intentType !== "web" || (!template.includes("{link}") && !template.includes("{text}")) || /[\s#]/.test(template)) {
+    return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
+  }
+  const resolved = template
+    .replace(/\{link\}/g, "https%3A%2F%2Fnexgrid.invalid%2Fref%2Fcode")
+    .replace(/\{text\}/g, "share-text");
+  if (key === "sms") {
+    if (!/^sms:\?body=[^#]*$/i.test(resolved)) return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
+  } else {
+    const parsed = httpUrlParts(resolved);
+    if (!parsed || parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password) {
+      return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
+    }
+  }
+  return template;
 }
 
 function parsePlatformShareConfig(value: unknown): ShareConfig {
@@ -113,12 +163,8 @@ function parsePlatformShareConfig(value: unknown): ShareConfig {
     keys.add(key);
     const enabled = row.enabled;
     if (typeof enabled !== "boolean") return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
-    const urlTemplate = optionalString(row.urlTemplate);
+    const urlTemplate = safeShareUrlTemplate(key as ShareChannelKey, intentType as ShareIntentType, row.urlTemplate);
     const textTemplate = optionalString(row.textTemplate);
-    if (urlTemplate && !urlTemplate.includes("{link}") && !urlTemplate.includes("{text}")) {
-      return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
-    }
-    if (intentType === "web" && !urlTemplate) return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
     if (enabled && intentType !== "copy" && intentType !== "poster" && intentType !== "system" && !textTemplate) {
       return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
     }
@@ -207,6 +253,11 @@ function positiveNumber(value: unknown): number {
   return parsed > 0 ? parsed : invalid();
 }
 
+function nonNegativeNumber(value: unknown): number {
+  const parsed = finiteNumber(value);
+  return parsed >= 0 ? parsed : invalid();
+}
+
 function rewardAmount(value: unknown): number {
   const text = typeof value === "number" ? String(value) : typeof value === "string" ? value.trim() : "";
   if (!/^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(text)) {
@@ -258,55 +309,55 @@ function parseGpuTiers(value: unknown): GpuTier[] {
   });
 }
 
-function parsePublicStats(value: unknown): PublicStatsConfig {
-  const projection = record(value);
-  const version = finiteNumber(projection.version);
-  const values = record(projection.values);
-  const fleetDevices = finiteNumber(values.fleetDevices);
-  const onlineRatePct = finiteNumber(values.onlineRatePct);
-  const onlineJitter = finiteNumber(values.onlineJitter);
-  const registeredUsersBase = finiteNumber(values.registeredUsersBase);
-  const registeredUsersMonthlyGrowthPct = finiteNumber(values.registeredUsersMonthlyGrowthPct);
-  const registeredUsersAnchorAt = finiteNumber(values.registeredUsersAnchorAt);
-  const virtualUserCount = finiteNumber(values.virtualUserCount);
-  const realUserCount = finiteNumber(projection.realUserCount);
-  if (!Number.isInteger(version) || version < 0
-      || !Number.isInteger(fleetDevices) || fleetDevices < 1_000 || fleetDevices > 1_000_000
-      || onlineRatePct < 50 || onlineRatePct > 100
-      || !Number.isInteger(onlineJitter) || onlineJitter < 0 || onlineJitter > 500
-      || !Number.isInteger(registeredUsersBase) || registeredUsersBase < 0 || registeredUsersBase > 100_000_000
-      || registeredUsersMonthlyGrowthPct < 0 || registeredUsersMonthlyGrowthPct > 50
-      || !Number.isInteger(registeredUsersAnchorAt) || registeredUsersAnchorAt <= 0
-      || !Number.isInteger(virtualUserCount) || virtualUserCount < 0 || virtualUserCount > 10_000_000
-      || !Number.isInteger(realUserCount) || realUserCount < 0 || realUserCount > 100_000_000
-      || !Array.isArray(values.hashratePercentileTable) || values.hashratePercentileTable.length < 2) invalid("H9_PUBLIC_STATS_RESPONSE_INVALID");
-  let previousTops = -1;
-  let previousPct = -1;
-  const hashratePercentileTable = values.hashratePercentileTable.map((raw) => {
-    const row = record(raw);
-    const tops = finiteNumber(row.tops);
-    const cumPct = finiteNumber(row.cumPct);
-    if (tops < 0 || tops <= previousTops || cumPct < previousPct || cumPct < 0 || cumPct > 100) {
-      return invalid("H9_PUBLIC_STATS_RESPONSE_INVALID");
-    }
-    previousTops = tops;
-    previousPct = cumPct;
-    return { tops, cumPct };
-  });
+/**
+ * 解析服务端可核验聚合。整段缺席(null)是**合法**状态(沙箱 / 旧后端),不是协议错误 ——
+ * 消费方据此走「不可用」占位,而不是退回配置值。
+ */
+function parseVerifiedStats(value: unknown): PlatformVerifiedStats | null {
+  if (value === null || value === undefined) return null;
+  const row = record(value);
+  const aggregate = (key: string, integral = true): PlatformVerifiedAggregate => {
+    const item = record(row[key]);
+    const v = finiteNumber(item.value);
+    if (v < 0 || (integral && !Number.isInteger(v))) return invalid("H9_VERIFIED_AGGREGATE_INVALID");
+    return { value: v, definition: nonEmptyString(item.definition), kind: nonEmptyString(item.kind) };
+  };
+  const capturedAt = nonEmptyString(row.capturedAt);
+  if (Number.isNaN(Date.parse(capturedAt))) return invalid("H9_VERIFIED_AGGREGATE_INVALID");
   return {
-    fleetDevices,
-    onlineRatePct,
-    onlineJitter,
-    registeredUsersBase,
-    registeredUsersMonthlyGrowthPct,
-    registeredUsersAnchorAt,
-    realUserCount,
-    virtualUserCount,
-    hashratePercentileTable,
+    activeAccounts: aggregate("activeAccounts"),
+    registeredAccounts: aggregate("registeredAccounts"),
+    installedDevices: aggregate("installedDevices"),
+    onlineDevices: aggregate("onlineDevices"),
+    // 金额聚合不是整数,单独放行小数(USDT 精度)。
+    completedPayoutUsdt: aggregate("completedPayoutUsdt", false),
+    capturedAt,
   };
 }
 
-export function parsePlatformPublicStats(value: unknown, mode: ApiResponseEnvironment = "prod"): {
+function parsePublicStats(value: unknown): PublicStatsConfig {
+  const projection = record(value);
+  const realUserCount = finiteNumber(projection.realUserCount);
+  if (!Number.isInteger(realUserCount) || realUserCount < 0 || realUserCount > 100_000_000) {
+    return invalid("H9_PUBLIC_STATS_RESPONSE_INVALID");
+  }
+  // Legacy servers may still send operator-configured values. Never install them
+  // into the public store: old surfaces could render them as measured facts.
+  // Invalid sentinels keep every H9-derived public display unavailable.
+  return {
+    fleetDevices: 0,
+    onlineRatePct: 0,
+    onlineJitter: -1,
+    registeredUsersBase: 0,
+    registeredUsersMonthlyGrowthPct: -1,
+    registeredUsersAnchorAt: 0,
+    realUserCount,
+    virtualUserCount: -1,
+    hashratePercentileTable: [],
+  };
+}
+
+export function parsePlatformPublicStats(value: unknown, mode: ApiEnvironment = "prod"): {
   config: PublicStatsConfig;
   authority: PlatformPublicStatsAuthority;
 } {
@@ -317,9 +368,7 @@ export function parsePlatformPublicStats(value: unknown, mode: ApiResponseEnviro
   const runId = typeof projection.runId === "string" ? projection.runId.trim() : "";
   const production = sourceEnvironment === "PRODUCTION"
     && source === "server:nx_config_item,nx_user" && runId === "";
-  const sandbox = sourceEnvironment === "SANDBOX" && source === "mock"
-    && /^[A-Za-z0-9][A-Za-z0-9._-]{7,95}$/.test(runId);
-  const expectedAuthority = mode === "prod" ? production : mode === "dev" ? sandbox : false;
+  const expectedAuthority = mode === "prod" || mode === "dev" ? production : false;
   if (projection.serverCanonical !== true || !Number.isInteger(version) || version < 0
       || !expectedAuthority) {
     return invalid("H9_PUBLIC_STATS_RESPONSE_INVALID");
@@ -335,7 +384,7 @@ export function parsePlatformPublicStats(value: unknown, mode: ApiResponseEnviro
   };
 }
 
-export function parsePlatformComputeConfig(value: unknown, mode: ApiResponseEnvironment = "prod"): PlatformComputeConfigSnapshot {
+export function parsePlatformComputeConfig(value: unknown, mode: ApiEnvironment = "prod"): PlatformComputeConfigSnapshot {
   const root = record(value);
   const featureFlags = record(root.featureFlags);
   const publicStatsProjection = parsePlatformPublicStats(root.publicStats, mode);
@@ -348,7 +397,7 @@ export function parsePlatformComputeConfig(value: unknown, mode: ApiResponseEnvi
       || typeof featureFlags.homeWeeklyPromoEnabled !== "boolean"
       || compute.domain !== "E6") return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
   const experience = parsePlatformExperienceConfig(value);
-  const h5BaseFactor = positiveNumber(onlineBonus.h5BaseFactor);
+  const h5BaseFactor = nonNegativeNumber(onlineBonus.h5BaseFactor);
   const continuityFullHours = positiveNumber(onlineBonus.continuityFullHours);
   if (h5BaseFactor > 1) return invalid();
 
@@ -365,7 +414,10 @@ export function parsePlatformComputeConfig(value: unknown, mode: ApiResponseEnvi
   const flag = flags[0];
   if (typeof flag.enabled !== "boolean" || flag.enabled !== featureFlags.computeShareEnabled) return invalid();
   const coefficientValues = Object.fromEntries(
-    coefficients.map((row) => [nonEmptyString(row.key), positiveNumber(row.value)]),
+    coefficients.map((row) => {
+      const key = nonEmptyString(row.key);
+      return [key, key === "h5BaseFactor" ? nonNegativeNumber(row.value) : positiveNumber(row.value)];
+    }),
   ) as Record<string, number>;
   if (
     coefficientValues.h5BaseFactor !== h5BaseFactor
@@ -383,6 +435,8 @@ export function parsePlatformComputeConfig(value: unknown, mode: ApiResponseEnvi
     featureFlags: experience.featureFlags,
     publicStats: publicStatsProjection.config,
     publicStatsAuthority: publicStatsProjection.authority,
+    verifiedStats: parseVerifiedStats(root.publicStats && typeof root.publicStats === "object"
+      ? (root.publicStats as Record<string, unknown>).verified : null),
     onlineBonus: { h5BaseFactor, continuityFullHours },
     computeShare: {
       downloadUrl,
@@ -396,6 +450,8 @@ export function parsePlatformComputeConfig(value: unknown, mode: ApiResponseEnvi
     },
     // H8 is fetched from its own bounded context and merged by createPlatformConfigApi.
     rewards: {
+      enabled: false,
+      effectiveAt: null,
       welcomeGift: { lockMode: "risk_bucket", usdtAmount: 0, nexAmount: 0 },
       inviterReward: { nexAmount: 0 },
     },
@@ -419,6 +475,9 @@ export function parseReferralRewardConfig(value: unknown): ReferralRewardConfigS
     const root = record(value);
     const welcomeGift = record(root.welcomeGift);
     const inviterReward = record(root.inviterReward);
+    if (typeof root.enabled !== "boolean") {
+      return invalid("H8_REFERRAL_REWARD_CONFIG_RESPONSE_INVALID");
+    }
     const lockMode = string(welcomeGift.lockMode);
     if (lockMode !== "risk_bucket" && lockMode !== "direct") {
       return invalid("H8_REFERRAL_REWARD_CONFIG_RESPONSE_INVALID");
@@ -435,15 +494,23 @@ export function parseReferralRewardConfig(value: unknown): ReferralRewardConfigS
     if (!sources.includes("nx_user.sponsor_user_id")) {
       return invalid("H8_REFERRAL_REWARD_CONFIG_RESPONSE_INVALID");
     }
+    const welcomeUsdt = rewardAmount(welcomeGift.usdtAmount);
+    const welcomeNex = rewardAmount(welcomeGift.nexAmount);
+    const inviterNex = rewardAmount(inviterReward.nexAmount);
+    if (!root.enabled && (welcomeUsdt !== 0 || welcomeNex !== 0 || inviterNex !== 0)) {
+      return invalid("H8_REFERRAL_REWARD_CONFIG_RESPONSE_INVALID");
+    }
     return {
       rewards: {
+        enabled: root.enabled,
+        effectiveAt: isoInstant(root.effectiveAt),
         welcomeGift: {
           lockMode,
-          usdtAmount: rewardAmount(welcomeGift.usdtAmount),
-          nexAmount: rewardAmount(welcomeGift.nexAmount),
+          usdtAmount: welcomeUsdt,
+          nexAmount: welcomeNex,
         },
         inviterReward: {
-          nexAmount: rewardAmount(inviterReward.nexAmount),
+          nexAmount: inviterNex,
         },
       },
       rhythmMonth,
@@ -457,7 +524,7 @@ export function parseReferralRewardConfig(value: unknown): ReferralRewardConfigS
   }
 }
 
-export function createPlatformConfigApi(client: ApiClient, mode: ApiResponseEnvironment = "prod"): PlatformConfigApi {
+export function createPlatformConfigApi(client: ApiClient, mode: ApiEnvironment = "prod"): PlatformConfigApi {
   return {
     platformConfig: async () => {
       const [computeRaw, referralRaw] = await Promise.all([

@@ -60,10 +60,6 @@ export type AuthAccountActivation =
   | { ok: true; account: AuthAccountRecord; alreadyActive: boolean }
   | { ok: false; error: "reservation_missing" | "account_directory_unavailable" };
 
-export type MockPreviewAuthAccountProvision =
-  | { ok: true; account: AuthAccountRecord }
-  | { ok: false; error: "invalid_phone" | "account_directory_unavailable" };
-
 const PHONE_RE = /^\+\d{6,15}$/;
 const LEGACY_ACCOUNT_RE = /^(\+\d{6,15})@demo\.nexgrid\.ai$/;
 
@@ -340,34 +336,6 @@ export function markAuthAccountOnboardingComplete(rawAccountId: string): boolean
     byPhone: { ...registry.byPhone, [phoneE164]: { ...account, onboardingComplete: true } },
   };
   return writeRegistry(next);
-}
-
-/**
- * Fixed high-fidelity preview recovery only. Unlike the production-shaped
- * registration path, this may replace an obsolete/corrupt local directory so
- * a browser carrying old prototype storage is not forced through sign-up.
- */
-export function provisionMockPreviewAuthAccount(
-  rawPhone: string,
-  registration: AuthRegistrationContext,
-): MockPreviewAuthAccountProvision {
-  const phoneE164 = normalizeAuthPhone(rawPhone);
-  if (!phoneE164 || !isRegistrationContext(registration)) return { ok: false, error: "invalid_phone" };
-  const current = readRegistry();
-  const base: AuthAccountRegistry = current ?? { schema: 2, migratedLegacy: true, byPhone: {} };
-  const previous = base.byPhone[phoneE164];
-  const account: AuthAccountRecord = {
-    accountId: authAccountKeyForPhone(phoneE164) as string,
-    phoneE164,
-    createdAt: previous?.createdAt ?? Date.now(),
-    status: "active",
-    onboardingComplete: true,
-    registration: previous?.registration ?? registration,
-  };
-  if (!writeRegistry({ ...base, byPhone: { ...base.byPhone, [phoneE164]: account } })) {
-    return { ok: false, error: "account_directory_unavailable" };
-  }
-  return { ok: true, account };
 }
 
 /** DEV/runtime 验收只读口。 */

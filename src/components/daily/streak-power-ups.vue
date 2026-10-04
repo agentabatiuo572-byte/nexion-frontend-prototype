@@ -11,7 +11,7 @@
   store in this sample).
 -->
 <template>
-  <view class="overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card overflow-hidden" :style="cardStyle">
     <view class="px-4 flex items-center justify-between" style="padding-top: 12px; padding-bottom: 8px">
       <text class="inline-flex items-center" :style="headLabelStyle">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
@@ -41,10 +41,15 @@
               <text class="tabular-nums" :style="thresholdChipStyle(p)">{{ thresholdText(p.threshold) }}</text>
               <text :style="labelStyle(p)">{{ p.labelText ?? w[`${p.key}_label`] }}</text>
             </view>
-            <text class="block" :style="descStyle">{{ isUnlocked(p) ? (p.descText ?? w[`${p.key}_desc`]) : daysToUnlockText(p.threshold) }}</text>
+            <text class="block" :style="descStyle">{{ isClaimed(p.id) ? (p.descText ?? w[`${p.key}_desc`]) : isBusinessSuspended(p) ? w.suspendedDesc : isBusinessPending(p) ? w.pendingDesc : isUnlocked(p) ? (p.descText ?? w[`${p.key}_desc`]) : daysToUnlockText(p.threshold) }}</text>
+            <text v-if="isClaimed(p.id) && !isBusinessReady(p)" class="block" :style="descStyle">{{ isBusinessSuspended(p) ? w.suspendedDesc : w.pendingDesc }}</text>
           </view>
           <!-- activated badge / activate CTA / locked label -->
           <text v-if="isClaimed(p.id)" :style="activatedBadgeStyle">{{ w.activated }}</text>
+          <!-- BUG 195:该档指向的业务当前整体停用(质押整池熔断/Genesis 未开放)时,
+               不能继续给「激活」入口 —— 用户投入 30/60 天后会撞上一个不可用的页面。
+               改为明确说明暂停,并保留档位可见(不隐藏已获得的权益说明)。 -->
+          <text v-else-if="!isBusinessReady(p)" :style="lockedLabelStyle">{{ isBusinessSuspended(p) ? w.suspended : w.pending }}</text>
           <view v-else-if="isUnlocked(p)" class="inline-flex items-center active:opacity-85" :style="activateBtnStyle(p)" @click="handleClaim(p)">
             <text>{{ w.activate }}</text>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 3px"><path d="m9 18 6-6-6-6" /></svg>
@@ -59,20 +64,22 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="nextUnclaimedUnlocked.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
       <text :style="{ fontWeight: 600, color: nextUnclaimedUnlocked.tint }">{{ footerReadyText }}</text>
     </view>
-    <view v-else-if="nextLocked" class="mx-2 flex items-center" :style="footerNextStyle">
+    <view v-else-if="nextLocked" class="nx-glass-inset mx-2 flex items-center" :style="footerNextStyle">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
       <text style="color: var(--v5-ink-2)">{{ footerNextText }}</text>
     </view>
-    <view v-else class="mx-2 flex items-center" :style="footerAllStyle">
+    <view v-else-if="powerUps.length > 0 && powerUps.every((p) => isClaimed(p.id))" class="mx-2 flex items-center" :style="footerAllStyle">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
       <text style="color: var(--v5-success); font-weight: 600">{{ footerAllText }}</text>
     </view>
+    <text v-else-if="powerUps.length > 0" class="block px-4" :style="footerNoteStyle">{{ w.footerWait }}</text>
 
     <text class="block px-4" :style="footerNoteStyle">{{ w.footer }}</text>
   </view>
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -80,6 +87,11 @@ import { useNexFaucet } from "@/store/nex-faucet";
 import { useDailyPowerUp, type StreakPowerUpId } from "@/store/daily-powerup";
 import { toast } from "@/store/ui";
 import { remoteApiEnabled } from "@/api/runtime";
+import { canonicalPowerUpTarget } from "@/lib/remote-powerup-target";
+import { useQuestTargetAvailability } from "@/composables/use-quest-target-availability";
+import { questActionDomain } from "@/lib/quest-business-availability";
+import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
+import { genesisBlockIsKnownUnavailable } from "@/store/genesis-config";
 
 interface PowerUp {
   id: StreakPowerUpId;
@@ -90,6 +102,8 @@ interface PowerUp {
   labelText?: string;
   descText?: string;
   status?: "LOCKED" | "AVAILABLE" | "ACTIVATED";
+  /** 服务端下发的可用性;null = 不适用,undefined = 旧服务端未声明。 */
+  serverBusinessAvailable?: boolean | null;
 }
 
 const t = useT();
@@ -110,17 +124,12 @@ const powerUps = computed<PowerUp[]>(() => remoteApiEnabled
       id: item.powerUpCode.toLowerCase() as StreakPowerUpId,
       threshold: item.unlockStreakDays,
       tint: "var(--v5-success)", key: item.powerUpCode.toLowerCase() as PowerUp["key"], href: item.targetPath,
-      labelText: item.name, descText: benefitDescription(item.powerUpCode, item.effectValue, item.status),
+      labelText: item.name, descText: `${item.effectType}: ${item.effectValue}`,
       status: item.status,
+      // 服务端的可用性判定是权威:它读的是各域自己的读模型,比客户端本地推断更准。
+      serverBusinessAvailable: item.businessAvailable,
     }))
   : POWERUPS);
-
-function benefitDescription(code: string, value: string, status: PowerUp["status"]): string {
-  if (POWERUPS.some((item) => item.id === code.toLowerCase()) && /^\d+(?:\.\d+)?(?:%|×|x| NEX| USDT)?$/.test(value.trim())) {
-    return fmt(t.value.publicCopy.benefitAmount, { value: value.trim().replace(/x$/, "×") });
-  }
-  return status === "ACTIVATED" ? w.value.activated : status === "LOCKED" ? w.value.locked : t.value.publicCopy.benefitAvailable;
-}
 
 const streak = computed(() => faucet.signInStreak);
 
@@ -136,9 +145,40 @@ function isClaimed(id: StreakPowerUpId): boolean {
 }
 
 const nextUnclaimedUnlocked = computed(() =>
-  powerUps.value.find((p) => isUnlocked(p) && !isClaimed(p.id)),
+  powerUps.value.find((p) => isBusinessReady(p) && isUnlocked(p) && !isClaimed(p.id)),
 );
-const nextLocked = computed(() => powerUps.value.find((p) => !isUnlocked(p)));
+const nextLocked = computed(() => powerUps.value.find((p) => !isUnlocked(p) && isBusinessReady(p)));
+
+// BUG 195:连签增益指向的业务整体停用时,不再承诺「激活后可用」。
+// 判据复用任务面那套**唯一读数入口**(与周任务报警器同源):质押走 useStaking 的远程
+// 方案快照,Genesis 走销售闸 —— 不在这里另写一份开关判断。
+// 🔴 与任务面同一原则:「还不知道」不算停用(false),不能把一次网络抖动说成业务关闭。
+const availability = useQuestTargetAvailability();
+const genesisGate = useGenesisSaleGate();
+// 主售与二级在闸上不是同一档:二级卖的是别人手里的存量,主售售罄不妨碍转让。
+// 所以两档各用各的判据,而不是共用「创世关了」这一个结论。
+const genesisPrimaryClosed = computed(() => genesisBlockIsKnownUnavailable(genesisGate.block.value));
+const genesisSecondaryClosed = computed(() => genesisBlockIsKnownUnavailable(genesisGate.secondaryBlock.value));
+function isBusinessSuspended(p: PowerUp): boolean {
+  // 服务端三态字段优先：null 是未知，只有旧服务端未返回字段时才回退本地判据。
+  if (p.serverBusinessAvailable !== undefined) return p.serverBusinessAvailable === false;
+  // 未声明(旧服务端)时才退回客户端判据,且同样遵守「不知道就别说」。
+  switch (questActionDomain(p.href)) {
+    case "staking": return availability.value.stakingClosed;
+    case "genesis-primary": return genesisPrimaryClosed.value;
+    case "genesis-secondary": return genesisSecondaryClosed.value;
+    default: return false;
+  }
+}
+function isManagedBusiness(p: PowerUp): boolean {
+  return remoteApiEnabled && (p.href === "/wallet/staking" || p.href === "/market/genesis");
+}
+function isBusinessPending(p: PowerUp): boolean {
+  return isManagedBusiness(p) && p.serverBusinessAvailable == null;
+}
+function isBusinessReady(p: PowerUp): boolean {
+  return !isBusinessSuspended(p) && !isBusinessPending(p);
+}
 const activatedCount = computed(() => powerUps.value.filter((p) => isClaimed(p.id)).length);
 
 const streakStatText = computed(() => fmt(w.value.streakStat, { n: streak.value }));
@@ -162,9 +202,14 @@ const footerNextText = computed(() =>
 const footerAllText = computed(() => fmt(w.value.footerAll, { n: activatedCount.value }));
 
 async function handleClaim(p: PowerUp) {
+  if (!isBusinessReady(p)) return;
   if (remoteApiEnabled) {
     if (await powerUp.claimRemote(p.id)) {
       toast.success(fmt(w.value.toastTitle, { name: p.labelText ?? w.value[`${p.key}_label`] }), p.descText ?? w.value.toastBody);
+      // Remote targetPath is the server canonical href. Navigate only after
+      // activation is confirmed; a failed claim remains retryable in the store.
+      const target = canonicalPowerUpTarget(p.href);
+      if (target) navTo(target);
     } else {
       toast.error(t.value.authOtp.errorServiceUnavailable);
     }
@@ -178,15 +223,15 @@ async function handleClaim(p: PowerUp) {
     toast.warn(t.value.errors.staleTitle, t.value.errors.staleMsg);
   }
   // Route into the deeper linked touchpoint (no-op if not yet ported).
-  uni.navigateTo({ url: p.href, fail: () => {} });
+  navTo(p.href);
 }
 
 // ── styles ──
 // Form-b: filled container, no border — game rows (tinted icons, activate CTAs,
 // dynamic footer) keep their full visual weight inside.
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const headLabelStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
@@ -280,7 +325,6 @@ const footerNextStyle: CSSProperties = {
   padding: "8px 12px",
   borderRadius: "10px",
   gap: "6px",
-  background: "var(--v5-surface-2)",
   fontSize: "12px",
   marginBottom: "8px",
 };
@@ -298,4 +342,6 @@ const footerNoteStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
   lineHeight: 1.5,
 };
+
+
 </script>

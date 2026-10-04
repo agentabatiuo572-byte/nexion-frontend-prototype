@@ -3,7 +3,6 @@ import type { Device, DeviceKind } from "@/store/types";
 import { useApp } from "@/store/app";
 import { useVRank } from "@/store/v-rank";
 import { useNetwork } from "@/store/network";
-import { MAX_DEVICES } from "@/store/device-types";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import {
   checkEligibility,
@@ -69,7 +68,7 @@ export function useDeviceEligibility(
   );
   const canTradeIn = computed(() => tradeInSources.value.length > 0);
   const reservedSlots = computed(() => (trialReservesSlotNow() ? 1 : 0));
-  const capped = computed(() => app.activeSlotCount + reservedSlots.value >= MAX_DEVICES);
+  const capped = computed(() => app.activeSlotCount + reservedSlots.value >= app.slotCap);
 
   return { result, canTradeIn, tradeInSources, capped };
 }

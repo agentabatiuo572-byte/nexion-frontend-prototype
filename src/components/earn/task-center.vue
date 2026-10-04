@@ -2,16 +2,15 @@
   TaskCenter — ported from Nexion-prototype/app/components/task-center.tsx.
   Single merged view (no tabs): "Upgrade Unlocks" locked-tier teasers
   (VRAM-gated, route to /store) on top, followed by the task History list
-  (last 20 completed across devices). The currently-processing section and the
+  (last 10 completed across devices). The currently-processing section and the
   Current/History tab switcher were removed per product direction.
 
-  Receipt detail: each completed row has a "view receipt" icon (Proof of Compute)
-  that opens the ported ReceiptModal (components/me/receipt-modal.vue), looked up
-  by task id via useReceipts().byId() — receipts are minted on task completion in
-  store/app.ts (generateReceipt sets receipt.id = task.id).
+  Receipt detail: each completed row and its document icon open the ported
+  ReceiptModal. Formal remote mode resolves receiptNo through the authenticated
+  Java receipt-detail endpoint; prototype mode keeps its local receipt lookup.
 -->
 <template>
-  <view class="mx-4 pt-3" style="border-top: 1px solid var(--v5-border)">
+  <view class="nx-earn-task-center nx-glass-card mx-4 p-4">
     <view class="flex items-center justify-between mb-2.5 px-0">
       <text style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.earn.taskCenter }}</text>
       <view class="flex items-center gap-1" style="font-size: 12px; color: var(--v5-ink-3)">
@@ -42,10 +41,9 @@
           </view>
           <view class="flex-1 min-w-0">
             <text class="block truncate" style="font-size: 13px; font-weight: 500; color: var(--v5-ink-2)">{{ teaser.model }}<text style="color: var(--v5-ink-4); margin: 0 4px">·</text><text style="color: var(--v5-ink-3)">{{ workloadLabel(teaser.category) }}</text></text>
-            <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 2px">{{ t.earn.requires }} <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-tech-cyan-ink)">{{ teaser.minVRAM }}GB VRAM</text> · {{ teaser.unlockTier }}</text>
+            <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 2px">{{ t.earn.requires }} <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-tech-cyan-ink)">{{ teaser.minVRAM }}GB VRAM</text><template v-if="!remoteApiEnabled"> · {{ teaser.unlockTier }}</template></text>
           </view>
           <view class="text-right shrink-0">
-            <text class="block tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-warning-ink); font-weight: 600; line-height: 1">+${{ teaser.dailyPotentialUSD.toLocaleString() }}<text style="font-size: 12px; color: var(--v5-ink-3); font-weight: 400; margin-left: 2px">/d</text></text>
             <view class="flex items-center justify-end gap-0.5" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 4px">
               <text>{{ t.earn.upgradeNow }}</text>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg>
@@ -59,26 +57,56 @@
     <view class="pt-3 pb-2" :style="historyHeadStyle">
       <view class="flex items-center justify-between">
         <text style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-ink-3)">{{ t.taskHistory.tabHistory }}</text>
-        <view class="flex items-center active:opacity-60" style="gap: 2px; padding: 0 0 0 16px; min-height: 44px" @click="goReceipts">
+        <view class="earn-history-all flex items-center active:opacity-60" style="gap: 2px; padding: 0 0 0 16px; min-height: 44px" role="button" tabindex="0" @click="goReceipts"  @keydown.enter.stop.prevent="goReceipts" @keydown.space.stop.prevent="goReceipts">
           <text style="font-size: 12px; font-weight: 500; color: var(--v5-brand)">{{ t.taskHistory.viewAll }}</text>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </view>
       </view>
       <text class="block" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 2px">{{ historyHintText }}</text>
     </view>
-    <view v-if="allRecent.length === 0" class="pb-4">
+    <view
+      v-if="remoteApiEnabled && app.remoteAssignmentStatus === 'error'"
+      class="mb-3 rounded-xl"
+      style="padding: 12px; background: var(--v5-danger-soft); color: var(--v5-danger)"
+    >
+      <text class="block" style="font-size: 12px; font-weight: 600">{{ t.wallet.assignmentsUnavailableTitle }}</text>
+      <text class="block" style="font-size: 12px; margin-top: 4px">{{ t.wallet.assignmentsUnavailableBody }}</text>
+      <view
+        class="inline-flex items-center active:opacity-70"
+        style="min-height: 44px; margin-top: 4px; color: var(--v5-brand)"
+        role="button"
+        tabindex="0"
+        @click="retryAssignments"
+      >
+        <text>{{ t.tradein.errPleaseRetry }}</text>
+      </view>
+    </view>
+    <view
+      v-else-if="remoteApiEnabled && (app.remoteAssignmentStatus === 'idle' || (app.remoteAssignmentStatus === 'loading' && !app.remoteAssignmentHasSnapshot))"
+      class="pb-4" role="status" aria-live="polite"
+    >
+      <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.taskHistory.loading }}</text>
+    </view>
+    <view v-else-if="allRecent.length === 0" class="pb-4">
       <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.taskHistory.historyEmpty }}</text>
     </view>
-    <view v-else class="pb-3 space-y-1.5">
-      <view v-for="(task, i) in allRecent" :key="i" class="flex items-center justify-between gap-2" style="font-size: 12px">
+    <view v-else class="earn-history-list pb-3 space-y-1.5">
+      <view
+        v-for="task in allRecent"
+        :key="task.id"
+        class="earn-history-row flex items-center justify-between gap-2 active:opacity-80"
+        :data-task-id="task.id" style="font-size: 12px"
+        :role="canOpenTaskReceipt(task) ? 'button' : undefined"
+        :tabindex="canOpenTaskReceipt(task) ? 0 : undefined"
+        @click.stop="openTaskReceipt(task)"
+
+        @keydown.enter.stop.prevent="openTaskReceipt(task)" @keydown.space.stop.prevent="openTaskReceipt(task)"
+      >
         <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
         <text class="flex-1 truncate min-w-0" style="color: var(--v5-ink-2)">{{ task.model }}<text style="color: var(--v5-ink-4); margin: 0 4px">·</text><text style="color: var(--v5-ink-3)">{{ workloadLabel(task.category) }}</text></text>
         <text class="tabular-nums shrink-0" style="font-family: var(--font-v5); color: var(--v5-warning-ink)">+${{ task.reward.toFixed(3) }}</text>
         <text class="text-right shrink-0" style="font-size: 12px; color: var(--v5-ink-3); width: 48px">{{ shortTime(task.completedAt) }}</text>
-        <view v-if="remoteApiEnabled && task.receiptNo" class="shrink-0 grid place-items-center" style="width: 22px; height: 22px; border-radius: 6px; color: var(--v5-brand)" :title="task.receiptNo">
-          <text style="font-size: 12px; font-weight: 600">R</text>
-        </view>
-        <view v-else-if="!remoteApiEnabled && receiptFor(task.id)" class="shrink-0 grid place-items-center active:opacity-60" style="width: 22px; height: 22px; border-radius: 6px; color: var(--v5-ink-4)" @click="openReceipt = receiptFor(task.id) ?? null">
+        <view v-if="canOpenTaskReceipt(task)" class="shrink-0 grid place-items-center" style="width: 22px; height: 22px; border-radius: 6px; color: var(--v5-ink-4)" :title="task.receiptNo ?? task.id" @click.stop="openTaskReceipt(task)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" /></svg>
         </view>
         <view v-else class="shrink-0" style="width: 22px; height: 22px" />
@@ -89,31 +117,86 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { taskRelativeTime } from "@/lib/task-relative-time";
 import { useApp } from "@/store/app";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
 import { prepareEarnConfig, useEarnConfig } from "@/store/earn-config";
-import type { TaskCategory } from "@/store/types";
+import type { TaskCategory, CompletedTask } from "@/store/types";
 import { workloadLabel as resolveWorkloadLabel } from "@/lib/workload-label";
 import ReceiptModal from "@/components/me/receipt-modal.vue";
 import { useReceipts } from "@/store/receipts";
 import type { Receipt } from "@/mock/receipt";
-import { remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled, taskAssignmentApi } from "@/api/runtime";
+import type { CanonicalComputeReceipt } from "@/api/task-assignment-api";
+
+import { toast } from "@/store/ui";
 
 const app = useApp();
 const t = useT();
+const relativeNow = ref(Date.now());
+let relativeTimer: ReturnType<typeof setInterval> | undefined;
+onMounted(() => { relativeTimer = setInterval(() => { relativeNow.value = Date.now(); }, 30000); });
 const receipts = remoteApiEnabled ? null : useReceipts();
-const openReceipt = ref<Receipt | null>(null);
+const openReceipt = ref<Receipt | CanonicalComputeReceipt | null>(null);
+let receiptRequestEpoch = 0;
 prepareEarnConfig();
 const earnConfig = useEarnConfig();
+/**
+ * The Home overview reports `activeJobs` as `null` when the period has no
+ * settled receipts — "no value" — while the fleet snapshot defines the same
+ * day's realized total as a genuine 0. When that snapshot proves today
+ * realized exactly 0 USDT and 0 NEX, the null job count is the confirmed 0
+ * rather than unknown, so the header agrees with the device cards. #128
+ */
 const activeJobsText = computed(() => {
-  const value = remoteApiEnabled ? app.homeTruth?.onGrid.activeJobs ?? null : app.global.activeJobs;
-  return value === null ? "—" : value.toLocaleString();
+  if (!remoteApiEnabled) return app.global.activeJobs.toLocaleString();
+  const value = app.homeTruth?.onGrid.activeJobs ?? null;
+  if (value !== null) return value.toLocaleString();
+  const fleet = app.remoteRealizedToday;
+  return fleet && fleet.usdt === 0 && fleet.nex === 0 ? "0" : "—";
 });
 function receiptFor(id: string): Receipt | undefined {
   return receipts?.byId(id);
 }
+
+function canOpenTaskReceipt(task: CompletedTask): boolean {
+  return remoteApiEnabled ? !!task.receiptNo : !!receiptFor(task.id);
+}
+
+async function openTaskReceipt(task: CompletedTask): Promise<void> {
+  if (!remoteApiEnabled) {
+    openReceipt.value = receiptFor(task.id) ?? null;
+    return;
+  }
+  if (!task.receiptNo) return;
+  const requestEpoch = ++receiptRequestEpoch;
+  const expectedAccountKey = app.accountKey;
+  const expectedBindingEpoch = app.accountBindingEpoch;
+  try {
+    const detail = await taskAssignmentApi.receipt(task.receiptNo);
+    if (requestEpoch === receiptRequestEpoch
+      && expectedAccountKey === app.accountKey
+      && expectedBindingEpoch === app.accountBindingEpoch) openReceipt.value = detail;
+  } catch {
+    if (requestEpoch === receiptRequestEpoch
+      && expectedAccountKey === app.accountKey
+      && expectedBindingEpoch === app.accountBindingEpoch) {
+      toast.error(t.value.wallet.receiptsUnavailableTitle, t.value.wallet.receiptsUnavailableBody);
+    }
+  }
+}
+
+watch(() => app.accountBindingEpoch, () => {
+  receiptRequestEpoch += 1;
+  openReceipt.value = null;
+});
+
+onUnmounted(() => {
+  receiptRequestEpoch += 1;
+  if (relativeTimer) clearInterval(relativeTimer);
+});
 
 // Model names are proper nouns (untranslated); the workload half is copy.
 // Resolved from `category` at render — the baked `task.type` string is English.
@@ -129,7 +212,13 @@ const allRecent = computed(() =>
     .slice(0, 20),
 );
 
-const maxVram = computed(() => app.visibleDevices.reduce((m, d) => Math.max(m, d.vramTotal), 0));
+// Cloud Share has no user-owned physical VRAM, but the server routes its
+// rented pool as an 8 GB equivalent for task eligibility and claim execution.
+const CLOUD_SHARE_ROUTING_VRAM_GB = 8;
+const maxVram = computed(() => app.visibleDevices.reduce(
+  (m, d) => Math.max(m, d.kind === "cloud-share" ? CLOUD_SHARE_ROUTING_VRAM_GB : d.vramTotal),
+  0,
+));
 const lockedTeasers = computed(() => earnConfig.lockedTeasers(maxVram.value, 3));
 watch(maxVram, (value) => { void earnConfig.refreshRoute(value); }, { immediate: true });
 
@@ -158,17 +247,20 @@ function categoryIconPath(category: TaskCategory): string {
 }
 
 function goStore() {
-  uni.navigateTo({ url: "/pages/store/store", fail: () => {} });
+  navTo("/pages/store/store");
 }
 
 function goReceipts() {
-  uni.navigateTo({ url: "/pages/me/receipts", fail: () => {} });
+  navTo("/pages/me/receipts");
+}
+
+function retryAssignments() {
+  void app.refreshRemoteFleet().catch(() => undefined);
 }
 
 function shortTime(ts: number): string {
-  const m = Math.floor((Date.now() - ts) / 60000);
-  if (m < 1) return t.value.taskHistory.timeJustNow;
-  if (m < 60) return fmt(t.value.taskHistory.timeMinutesAgo, { n: m });
-  return fmt(t.value.taskHistory.timeHoursAgo, { n: Math.floor(m / 60) });
+  return taskRelativeTime(ts, relativeNow.value, t.value.security);
 }
+
+
 </script>

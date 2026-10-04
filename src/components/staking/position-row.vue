@@ -6,7 +6,7 @@
   Claim / early-withdraw emit to the page (cross-store composition lives there).
 -->
 <template>
-  <view :style="cardStyle">
+  <view class="nx-glass-card" :style="cardStyle">
     <!-- row1: principal + term-chip -->
     <view class="flex items-baseline justify-between">
       <text class="block tabular-nums" :style="principalStyle">${{ amountText }}</text>
@@ -42,15 +42,15 @@
 
       <!-- Actions -->
       <view class="flex" style="margin-top: 12px; gap: 8px">
-        <view v-if="isMatured" class="flex-1 inline-flex items-center justify-center active:opacity-85" :style="claimBtnStyle" role="button" tabindex="0" @click="emit('claim')">
+        <view v-if="isMatured" class="flex-1 inline-flex items-center justify-center active:opacity-85" :style="claimBtnStyle" role="button" tabindex="0" @click="emit('claim')"  @keydown.enter.prevent="emit('claim')" @keydown.space.prevent="emit('claim')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M20 6 9 17l-5-5" /></svg>
           <text>{{ claimText }}</text>
         </view>
         <template v-else>
-          <view class="flex-1 active:opacity-80 inline-flex items-center justify-center" :style="earlyBtnStyle" role="button" tabindex="0" @click="emit('earlyWithdraw')">
+          <view class="flex-1 active:opacity-80 inline-flex items-center justify-center" :style="earlyBtnStyle" role="button" tabindex="0" @click="emit('earlyWithdraw')"  @keydown.enter.prevent="emit('earlyWithdraw')" @keydown.space.prevent="emit('earlyWithdraw')">
             <text>{{ t.stakingV3.position.earlyWithdraw }}</text>
           </view>
-          <view class="flex-1 inline-flex items-center justify-center active:opacity-85" :style="trackBtnStyle" role="button" tabindex="0" @click="onTrack">
+          <view class="flex-1 inline-flex items-center justify-center active:opacity-85" :style="trackBtnStyle" role="button" tabindex="0" @click="onTrack"  @keydown.enter.prevent="onTrack" @keydown.space.prevent="onTrack">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
             <text>{{ t.stakingV3.position.track }}</text>
           </view>
@@ -66,6 +66,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
@@ -89,7 +90,7 @@ const isClaimed = computed(() => props.p.status === "claimed");
 const isEarlyOut = computed(() => props.p.status === "early-withdrawn");
 
 const amountText = computed(() => props.p.amountUSDT.toLocaleString());
-const apyPct = computed(() => (props.p.apy * 100).toFixed(0));
+const apyPct = computed(() => formatStakingPercentage(props.p.apy));
 const daysIn = computed(() => Math.floor(elapsed.value / ONE_DAY_MS));
 const accruedText = computed(() => accrued.value.toFixed(2));
 const claimText = computed(() => fmt(t.value.stakingV3.position.claim, { amount: (props.p.amountUSDT + accrued.value).toFixed(2) }));
@@ -99,9 +100,9 @@ function onTrack() {
   toast.info(t.value.stakingV3.position.autoClaimToast, fmt(t.value.stakingV3.position.autoClaimSubtitle, { n: remainingDays.value }));
 }
 
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "14px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "14px",
 };
 const principalStyle: CSSProperties = {
@@ -205,4 +206,6 @@ const closedNoteStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
 };
+
+
 </script>

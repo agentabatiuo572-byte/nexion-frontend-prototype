@@ -5,7 +5,7 @@ import { zh } from "./messages/zh";
 import type { LocaleCode } from "./index";
 import { useLocaleStore } from "@/store/locale";
 import { useI18nRuntime } from "@/store/i18n-runtime";
-import { containsLegacyBrand } from "@/lib/brand";
+import { nexGridBrandText } from "@/lib/brand-copy";
 
 // Ported from Nexion-prototype/lib/i18n/use-t.ts (zustand → Pinia).
 // Only locales with real dictionaries are listed; everything else falls back
@@ -23,8 +23,10 @@ function applyRuntimeMessages<T>(bundled: T, runtime: Readonly<Record<string, st
       if (typeof key !== "string") return Reflect.get(target, key, receiver);
       const currentPath = path ? `${path}.${key}` : key;
       const remote = runtime[currentPath];
-      // A published translation must not restore contact details from the old brand.
-      if (typeof remote === "string" && !containsLegacyBrand(remote)) return remote;
+      // Server-published copy is a display boundary: retired brand names stored
+      // in older rows are normalized on the way out (see lib/brand-copy.ts), the
+      // same way product/device copy is. The stored value is never rewritten.
+      if (typeof remote === "string") return nexGridBrandText(remote);
       const value = Reflect.get(target, key, receiver);
       return value && typeof value === "object" ? applyRuntimeMessages(value, runtime, currentPath) : value;
     },

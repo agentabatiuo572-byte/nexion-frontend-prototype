@@ -336,6 +336,43 @@ export function countWithdrawalsOnPlatformDay(
   return count;
 }
 
+export interface WithdrawalLimitFactsInput {
+  perWithdrawalMaximum: number;
+  dailyLimitCount: number;
+  withdrawals: ReadonlyArray<{ submittedAt: number }> | null | undefined;
+  now: number;
+}
+
+export interface WithdrawalLimitFacts {
+  perWithdrawalMaximum: number;
+  dailyLimitConfigured: boolean;
+  dailyUsedCount: number;
+  dailyRemainingCount: number | null;
+  /** The current server policy has no monetary daily-cap field. */
+  dailyAmountLimitConfigured: false;
+}
+
+/**
+ * Presentation facts derived from the same daily counter used by the submit
+ * gate. A per-request maximum and a daily count allowance stay separate.
+ */
+export function withdrawalLimitFacts(input: WithdrawalLimitFactsInput): WithdrawalLimitFacts {
+  const perWithdrawalMaximum = Number.isFinite(input.perWithdrawalMaximum)
+    ? Math.max(0, input.perWithdrawalMaximum)
+    : 0;
+  const dailyUsedCount = countWithdrawalsOnPlatformDay(input.withdrawals, input.now);
+  const dailyLimitConfigured = Number.isFinite(input.dailyLimitCount) && input.dailyLimitCount > 0;
+  return {
+    perWithdrawalMaximum,
+    dailyLimitConfigured,
+    dailyUsedCount,
+    dailyRemainingCount: dailyLimitConfigured
+      ? Math.max(0, input.dailyLimitCount - dailyUsedCount)
+      : null,
+    dailyAmountLimitConfigured: false,
+  };
+}
+
 /**
  * 🔴 「今日额度用满没有」的**唯一**判据。上限 ≤0 / 非法(含被下发成字符串)= 运营未配置
  * → 不限制(坏配置不该把提现锁死),但计数照记。

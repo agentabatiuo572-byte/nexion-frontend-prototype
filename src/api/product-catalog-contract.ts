@@ -1,13 +1,15 @@
 import type { Product, PurchaseGate } from "@/mock/products";
 import type { PhaseId } from "@/store/product-phase";
 
+export type CatalogProduct = Product;
+
 export interface ProductCatalogSnapshot {
   source: string;
   serverCanonical: true;
   revision: string | null;
-  products: Product[];
-  sourceEnvironment?: "SANDBOX";
-  runId?: string;
+  products: CatalogProduct[];
+  sourceEnvironment: "PRODUCTION";
+  runId: "";
 }
 
 export class ProductCatalogContractError extends Error {
@@ -22,7 +24,8 @@ const PHASES = new Set<PhaseId>(["P1", "P2", "P3", "P4", "P5", "P6"]);
 const LIFECYCLES = new Set<NonNullable<Product["status"]>>(["active", "legacy"]);
 const GATE_MODES = new Set<PurchaseGate["mode"]>(["all", "either"]);
 const GATE_PERIODS = new Set<NonNullable<PurchaseGate["quotaPeriod"]>>(["month", "lifetime"]);
-const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{7,95}$/;
+const PRODUCT_TYPES = new Set<NonNullable<Product["productType"]>>(["DEVICE", "SHARE"]);
+const INVENTORY_MODES = new Set<NonNullable<Product["inventoryMode"]>>(["FINITE", "UNLIMITED"]);
 
 function invalid(): never {
   throw new ProductCatalogContractError();
@@ -80,10 +83,10 @@ export const SPEC_UNAVAILABLE = "unavailable";
  * 🔴 This used to be `nonEmptyString`, i.e. all eight spec fields were mandatory.
  * That was fatal rather than strict: the parser throws for the WHOLE payload, so
  * one absent spec emptied the entire store. And absence is the normal case —
- * `uptime` / `warranty` / `phoneDailyEarn` / `phoneDailyEarnNEX` have no column,
- * no operator input and no PRD entry on the server side at all, while the four
- * that do exist (`gpu` / `vram` / `power` / `datacenter`) are nullable there and
- * the console sends `undefined` for any field an operator leaves blank.
+ * The managed-service fields (`uptime` / `warranty` / `phoneDailyEarn` /
+ * `phoneDailyEarnNEX`) are optional server-owned projections just like the
+ * nullable hardware fields (`gpu` / `vram` / `power` / `datacenter`). The
+ * console sends `undefined` for any field an operator leaves blank.
  * Spec incompleteness already has a graceful, purpose-built channel —
  * `purchaseBlocked` + `purchaseBlockedReason` — so hard-failing here was a second,
  * catastrophic implementation of the same concern.
@@ -92,6 +95,21 @@ function displayString(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
   const normalized = requiredString(value).trim();
   return normalized || undefined;
+}
+
+function productMediaUrl(value: unknown): string | undefined {
+  const raw = optionalString(value);
+  if (!raw) return undefined;
+  try {
+    const parsed = new URL(raw);
+    if ((parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      || parsed.username || parsed.password || parsed.hash) return undefined;
+    return parsed.toString();
+  } catch {
+    // An invalid optional image must not blank the whole canonical catalogue.
+    // The renderer shows a neutral placeholder instead.
+    return undefined;
+  }
 }
 
 function booleanValue(value: unknown): boolean {
@@ -144,7 +162,7 @@ function phase(value: unknown): PhaseId | undefined {
   return canonical as PhaseId;
 }
 
-function product(value: unknown): Product {
+function product(value: unknown): CatalogProduct {
   const source = record(value);
   const tier = nonEmptyString(source.tier);
   if (!TIERS.has(tier as Product["tier"])) return invalid();
@@ -155,6 +173,15 @@ function product(value: unknown): Product {
   const purchaseBlocked = source.purchaseBlocked === undefined ? false : booleanValue(source.purchaseBlocked);
   const purchaseBlockedReason = optionalString(source.purchaseBlockedReason);
   if (purchaseBlocked && !purchaseBlockedReason) return invalid();
+  const productType = nonEmptyString(source.productType) as NonNullable<Product["productType"]>;
+  const inventoryMode = nonEmptyString(source.inventoryMode) as NonNullable<Product["inventoryMode"]>;
+  if (!PRODUCT_TYPES.has(productType) || !INVENTORY_MODES.has(inventoryMode)) return invalid();
+  if (inventoryMode === "UNLIMITED" && (productType !== "SHARE" || source.stock != null)) return invalid();
+  if (inventoryMode === "FINITE" && source.stock == null) return invalid();
+  const shareYieldMin = optionalNumber(source.shareYieldMin);
+  const shareYieldMax = optionalNumber(source.shareYieldMax);
+  if (productType === "SHARE" && ((shareYieldMin === undefined) !== (shareYieldMax === undefined)
+    || (shareYieldMin !== undefined && (shareYieldMin <= 0 || shareYieldMax! < shareYieldMin)))) return invalid();
 
   return {
     id: nonEmptyString(source.id),
@@ -172,8 +199,14 @@ function product(value: unknown): Product {
     warranty: displayString(source.warranty),
     dailyEarn: finiteNumber(source.dailyEarn),
     dailyEarnNEX: finiteNumber(source.dailyEarnNEX),
+    shareYieldMin,
+    shareYieldMax,
     price: finiteNumber(source.price, Number.EPSILON),
     sold: integer(source.sold),
+    imageUrl: productMediaUrl(source.imageUrl),
+    videoUrl: productMediaUrl(source.videoUrl),
+    productType,
+    inventoryMode,
     stock: optionalInteger(source.stock),
     features: [...source.features],
     ai: ai(source.ai),
@@ -194,19 +227,15 @@ export function parseProductCatalogPayload(payload: unknown): ProductCatalogSnap
   if (source.serverCanonical !== true) return invalid();
   if (source.revision !== null && typeof source.revision !== "string") return invalid();
   if (!Array.isArray(source.products)) return invalid();
-  const sourceEnvironment = source.sourceEnvironment;
-  const runId = source.runId;
-  const isSandbox = sourceEnvironment !== undefined || runId !== undefined;
-  // Mock data is valid only when the caller explicitly identifies a sandbox run.
-  if (catalogSource === "mock" && !isSandbox) return invalid();
-  if (isSandbox && (catalogSource !== "mock" || sourceEnvironment !== "SANDBOX"
-      || typeof runId !== "string" || !RUN_ID.test(runId))) return invalid();
-  if (!isSandbox && catalogSource !== "nx_product") return invalid();
+  if (catalogSource !== "nx_product" || source.sourceEnvironment !== "PRODUCTION" || source.runId !== "") {
+    return invalid();
+  }
   return {
     source: catalogSource,
     serverCanonical: true,
+    sourceEnvironment: "PRODUCTION",
+    runId: "",
     revision: source.revision as string | null,
     products: source.products.map(product),
-    ...(isSandbox ? { sourceEnvironment: "SANDBOX" as const, runId: runId as string } : {}),
   };
 }

@@ -5,13 +5,14 @@
 -->
 <template>
   <view
-    class="relative overflow-hidden grid items-center"
+    class="nx-glass-card relative overflow-hidden grid items-center"
     :style="rootStyle"
   >
     <view aria-hidden :style="auroraStyle" />
     <view class="relative min-w-0">
       <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-brand-2-ink)">{{ t.store.heroEyebrow }}</text>
-      <text class="block" :style="titleStyle">{{ t.store.heroTitlePre }} <text style="color: var(--v5-brand-2-ink)">{{ t.store.heroTitleMult }}</text> {{ t.store.heroTitlePost }}</text>
+      <text v-if="multiplier !== null" class="block" :style="titleStyle">{{ t.store.heroTitlePre }} <text style="color: var(--v5-brand-2-ink)">{{ multiplierText }}</text> {{ t.store.heroTitlePost }}</text>
+      <text v-else class="block" :style="titleStyle">{{ t.store.secMoreTiers }}</text>
       <text class="block" style="margin-top: 8px; font-size: 13px; color: var(--v5-ink-3); line-height: 1.45">{{ t.store.heroSub }}</text>
     </view>
     <view class="relative">
@@ -35,18 +36,20 @@
 </template>
 
 <script setup lang="ts">
-import type { CSSProperties } from "vue";
+import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 
 const t = useT();
+const props = defineProps<{ multiplier: number | null }>();
+const multiplierText = computed(() => props.multiplier === null ? "—×" : `${props.multiplier}×`);
 
 const rootStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "20px",
   gridTemplateColumns: "minmax(0,1fr) 100px",
   gap: "12px",
-  boxShadow: "var(--v5-card-shadow-lift-strong)",
+  boxShadow: "var(--nx-glass-edge)",
 };
 
 const auroraStyle: CSSProperties = {
@@ -71,4 +74,6 @@ const titleStyle: CSSProperties = {
   letterSpacing: "-0.024em",
   lineHeight: 1.1,
 };
+
+
 </script>

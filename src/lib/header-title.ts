@@ -95,6 +95,16 @@ export interface ResolvedTitle {
 }
 
 /**
+ * Read the visible UniApp page from an H5 hash. On a direct deep-link or hash
+ * refresh, getCurrentPages() can still expose the previous page for one render;
+ * the URL is the authoritative visible route in that environment.
+ */
+export function routeFromH5Hash(hash: string): string {
+  const route = String(hash ?? "").replace(/^#\/?/, "").split("?")[0];
+  return route.startsWith("pages/") ? route : "";
+}
+
+/**
  * Resolve a uni flat route (e.g. "pages/me/wallet-bills") to its headerTitles
  * key, mirroring the prototype getHeaderTitleKey + how-it-works handling.
  * Unmapped routes return { key: null, howItWorks: false } → no title (prototype

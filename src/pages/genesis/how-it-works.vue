@@ -6,7 +6,8 @@
 -->
 <template>
   <AppChassis active="me">
-    <view style="padding-bottom: 32px">
+    <HowPublishedContent v-if="remoteApiEnabled" content-key="genesis-how" back="/pages/genesis/genesis" />
+    <view v-if="!remoteApiEnabled" style="padding-bottom: 32px">
       <SubPageHeader back="/pages/genesis/genesis" />
 
       <HowHero :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="amber" />
@@ -42,6 +43,7 @@
           <HowStepRow :n="2" :title="w.s3Step2Title" :body="w.s3Step2Body" accent="amber" />
           <HowStepRow :n="3" :title="w.s3Step3Title" :body="w.s3Step3Body" accent="amber" />
         </view>
+        <CalloutBox :title="`💡 ${w.s3HintTitle}`" :body="w.s3HintBody" tone="purple" />
       </HowSection>
 
       <HowSection :title="w.s4Title">
@@ -89,8 +91,11 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
+import HowPublishedContent from "@/components/how/how-published-content.vue";
+import { remoteApiEnabled } from "@/api/runtime";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import HowHero from "@/components/how/how-hero.vue";
 import HowSection from "@/components/how/how-section.vue";
@@ -106,10 +111,10 @@ const w = computed(() => t.value.genesisHowItWorks);
 const flowItems = computed(() => [w.value.s4Flow1, w.value.s4Flow2, w.value.s4Flow3, w.value.s4Flow4]);
 
 function goGenesis() {
-  uni.navigateTo({ url: "/pages/genesis/genesis", fail: () => {} });
+  navTo("/pages/genesis/genesis");
 }
 function goMarketplace() {
-  uni.navigateTo({ url: "/pages/genesis/marketplace", fail: () => {} });
+  navTo("/pages/genesis/marketplace");
 }
 
 const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2

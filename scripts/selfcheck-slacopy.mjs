@@ -40,6 +40,11 @@ const SLA_KEYS = [
   "riskDisclosure.s4Body",
   "riskDisclosure.s4BodyLargeAmount",
   "terms.s6Body",
+  // 🔴 2026-09-21(zentao #207):商城页脚对购买决策作出的量化服务承诺此前不在白名单内 ——
+  // 「全程托管 · 零物流 · 99.9% 在线 SLA」是写死文案,而服务端只有 nx_admin_device_sku.uptime
+  // 一列自由文本,没有口径/统计周期/例外/补偿条款,也没有适用 SKU 的已发布 SLA。门开着,缺陷就活到了验收。
+  // 详情页那处(store.specUptimeValue)已整体删除,故不进白名单 —— 本哨兵要求白名单 key 必须存在。
+  "store.pageFooter",
 ];
 
 for (const l of LOCALES) {
@@ -81,7 +86,7 @@ const rd = stripComments(read("src/pages/me/risk-disclosure.vue"));
 // 换钉远端渲染源三合取,逐项独立断言(各自可红):
 check("🔴 披露正文渲染源 = 远端 chapters(disclosure.value?.chapters 真进渲染管线)",
   rd.includes("disclosure.value?.chapters"));
-check("🔴 进页真的拉远端披露(risk.refresh())", rd.includes("risk.refresh()"));
+check("🔴 进页真的拉远端披露(risk.refresh())", rd.includes("risk.refresh(publicCountry.value)"));
 check("🔴 拉取失败有失败态出口(loadError 提示 + 重试)", rd.includes("loadError"));
 
 // z1 判决(2026-08-10):terms §06 的插值机制(normalizeSlaHours + payoutSlaHours +

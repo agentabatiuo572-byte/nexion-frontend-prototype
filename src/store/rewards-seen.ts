@@ -4,6 +4,7 @@ import { mockServerNow } from "./server-time";
 import { useBills, isRewardBill } from "./bills";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
+import { fundsServerEnabled } from "@/api/runtime";
 
 /**
  * Rewards seen-watermark — the last time the user opened My Rewards
@@ -11,12 +12,9 @@ import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
  * posted after this watermark (the voucher half of the dot is state-based
  * and lives in the voucher store, not here).
  *
- * Persistence: MOCK-ONLY local mirror (nexgrid-rewards-seen-v1). Real backend
- * owns the watermark on the user profile (`rewardsSeenAt`): the page open
- * fires PATCH /api/me/rewards/seen (server stamps the time — client clocks
- * are not trusted) and GET /api/users/me returns it. This store mirrors that exact
- * shape so cutover is a fetch swap; default 0 = everything unread, which is
- * the correct first-run behavior (seeded credits surface the page).
+ * Persistence: account-scoped local acknowledgement. In production the value
+ * is stamped from the summary's authoritative `asOf` clock, not device time;
+ * no unimplemented PATCH endpoint is claimed. Default 0 = everything unread.
  */
 
 // 旧设备级单键 "nexgrid-rewards-seen-v1" 废弃(存量无账号归属,mock 可重建);已读水位线按账号分行。
@@ -37,7 +35,11 @@ export const useRewardsSeen = defineStore("rewards-seen", () => {
 
   /** Called when /me/rewards is shown — everything posted so far becomes read. */
   function markSeen(): void {
-    seenAt.value = mockServerNow();
+    // Production uses the wallet summary's remote clock, never this device's
+    // Date.now(). The caller refreshes the summary first and only marks a ready,
+    // account-scoped snapshot as seen.
+    if (fundsServerEnabled && (bills.summaryStatus !== "ready" || !bills.summary)) return;
+    seenAt.value = fundsServerEnabled ? bills.summary!.asOf : mockServerNow();
     writeAccountRow<{ seenAt: number }>(ACCOUNTS_KEY, boundKey, { seenAt: seenAt.value });
   }
 
@@ -48,7 +50,9 @@ export const useRewardsSeen = defineStore("rewards-seen", () => {
   }
 
   /** Reward credits posted after the user last opened My Rewards. */
-  const hasUnseen = computed(() => bills.bills.some((b) => isRewardBill(b) && b.ts > seenAt.value));
+  const hasUnseen = computed(() => fundsServerEnabled
+    ? bills.summaryStatus === "ready" && (bills.summary?.latestRewardAt ?? 0) > seenAt.value
+    : bills.bills.some((b) => isRewardBill(b) && b.ts > seenAt.value));
 
   return { seenAt, markSeen, hasUnseen, bindAccount };
 });

@@ -1,7 +1,10 @@
+@import "./glass-surfaces.css";
+@import "./fonts.css";
+
 /* NexGrid design tokens + global utility classes / animations
    Ported from Nexion-prototype/app/globals.css with Tailwind v4 directives
    (@import tailwindcss + @theme inline) stripped.
-   :root = light theme; html[data-theme=dark] = dark theme.
+   :root defines light tokens; an unset theme defaults to dark.
    The ~3219 [var(--*)] arbitrary-value classes + 1889 inline var() refs in
    ported pages resolve against these custom properties. */
 
@@ -45,6 +48,7 @@
      migrated module-by-module. Adopt v5 prefix to avoid mass-cascade. */
   --v5-bg: #F4F1E9;          /* warm cream page */
   --v5-surface: #FFFFFF;
+  --v5-content-surface: #FFFFFF;
   --v5-surface-2: #FAF7F0;
   --v5-surface-3: #F0EBE0;
   --v5-border: #E5DFD0;
@@ -112,8 +116,16 @@
   --v5-sticky-bar-bg: linear-gradient(180deg, rgba(244,241,233,0.45) 0%, rgba(244,241,233,0.78) 60%, rgba(244,241,233,0.92) 100%);
   --v5-sticky-bar-border: rgba(213,205,184,0.55);
   --v5-tabbar-bg: rgba(255,255,255,0.20);
+  --v5-tabbar-ink-halo: rgba(255,255,255,0.95);
   --v5-tabbar-border: rgba(255,255,255,0.60);
   --v5-tabbar-shadow: 0 8px 24px rgba(20,16,8,0.06), inset 0 1px 0 rgba(255,255,255,0.80);
+  --v5-liquid-tint: rgba(255,255,255,0.82);
+  --v5-liquid-selected: color-mix(in srgb, var(--v5-brand) 9%, transparent);
+  --v5-liquid-rim: rgba(255,255,255,0.36);
+  --v5-liquid-highlight: rgba(255,255,255,0.60);
+  --v5-liquid-bottom: rgba(28,24,16,0.12);
+  --v5-liquid-shadow: 0 8px 24px rgba(28,24,16,0.10), 0 2px 5px rgba(28,24,16,0.05);
+  --v5-liquid-selection-shadow: 0 3px 10px rgba(28,24,16,0.12);
   --v5-home-indicator: rgba(19,20,26,0.55);
 
   /* Spotlight / ambient tokens — glow that exists only in dark mode. All default
@@ -263,20 +275,20 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   Dark mode — applied when <html data-theme="dark">.
+   Dark mode — default until a saved light preference reaches the page WebView.
    Overrides v5 light tokens to a desaturated obsidian palette while
    keeping brand identity (brand / brand-2 / success / warning) hue-anchored.
    Soft variants get slight transparency for proper layering on dark surfaces.
    ───────────────────────────────────────────────────────────────────── */
 /* ─────────────────────────────────────────────────────────────────────
-   Dark mode — applied when <html data-theme="dark">.
+   Dark mode — default until a saved light preference reaches the page WebView.
    Per SKILL-nexgrid-v5-dark-design-system.md: v4 obsidian + lemon-green
    identity. Pure black page, #0F0F0F cards, #9EDC1D lemon brand, #FF6B35
    orange brand-2, #7C5CFF purple tech accent, #FFBE3D amber warning.
    All non-color v5 rules (typography / spacing / nesting / sheets /
    buttons / home indicator) remain identical — see the light SKILL.
    ───────────────────────────────────────────────────────────────────── */
-html[data-theme="dark"] {
+:root:not([data-theme="light"]) {
   /* Surface ladder — neutral obsidian, NO hue tint. Wider luminance steps
      than v4 baseline so cards visibly LIFT off the page floor (×1.5 step
      so 95% of users register hierarchy at first glance).
@@ -286,6 +298,7 @@ html[data-theme="dark"] {
   --v5-bg: #000000;             /* pure black page floor */
   --v5-bg-color-mask: rgba(0, 0, 0, 0.62);  /* 纯黑底上遮罩需更重才压得住 */
   --v5-surface: #141414;        /* card surface — +8% lift */
+  --v5-content-surface: var(--v5-surface); /* flat content shares the neutral card surface */
   --v5-surface-2: #1F1F1F;      /* nested chip / pill bg — +12% */
   --v5-surface-3: #2A2A2A;      /* recessed input / inset — +16% */
   --v5-border: rgba(255,255,255,0.06);          /* micro-bright card edge */
@@ -396,8 +409,16 @@ html[data-theme="dark"] {
   --v5-sticky-bar-bg: linear-gradient(180deg, rgba(28,28,28,0.50) 0%, rgba(28,28,28,0.88) 60%, rgba(28,28,28,0.96) 100%);
   --v5-sticky-bar-border: rgba(255,255,255,0.10);
   --v5-tabbar-bg: rgba(12,12,14,0.22);
+  --v5-tabbar-ink-halo: rgba(0,0,0,0.95);
   --v5-tabbar-border: rgba(255,255,255,0.10);
   --v5-tabbar-shadow: 0 12px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10);
+  --v5-liquid-tint: rgba(24,24,28,0.82);
+  --v5-liquid-selected: color-mix(in srgb, var(--v5-brand) 10%, transparent);
+  --v5-liquid-rim: rgba(255,255,255,0.16);
+  --v5-liquid-highlight: rgba(255,255,255,0.30);
+  --v5-liquid-bottom: rgba(0,0,0,0.30);
+  --v5-liquid-shadow: 0 10px 30px rgba(0,0,0,0.32), 0 2px 8px rgba(0,0,0,0.20);
+  --v5-liquid-selection-shadow: 0 3px 12px rgba(0,0,0,0.22);
   --v5-home-indicator: rgba(255,255,255,0.55);
 
   /* quest 文字档 / 创世金:暗主题沿用设计原色(暗底实测 6.18 / 6.50 / 8.84 / 16.83 全达标),
@@ -432,7 +453,7 @@ body {
    referenced Tailwind class strings, which Tailwind v4 mis-extracted
    into `bg-[var(--v5-surface)` and emitted `var(--*)` invalid CSS).
    Cards needing lift now add either inline `boxShadow` or `data-v5-lift`. */
-html[data-theme="dark"] [data-v5-lift] {
+:root:not([data-theme="light"]) [data-v5-lift] {
   box-shadow: var(--v5-card-shadow-lift);
 }
 
@@ -903,6 +924,33 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .nx-sheet-slide-up { animation: nx-sheet-fade-in 200ms ease both; }
+}
+
+/* Flat content keeps its press feedback on decoration, leaving text stationary. */
+.nx-home-glass-item { position: relative; isolation: isolate; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.nx-home-glass-panel {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  transition: transform 540ms cubic-bezier(.2, 1.65, .3, 1); transform-origin: center;
+  background: var(--nx-glass-fill);
+  box-shadow: var(--nx-glass-edge);
+}
+.nx-home-glass-item:active > .nx-home-glass-panel { transform: scale(.97, .955); transition: transform 100ms ease-out; }
+.nx-home-glass-item:focus-visible, .nx-home-pill:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+.nx-home-pill { position: relative; display: flex; justify-content: center; align-items: center; min-height: 44px; border-radius: var(--v5-radius-full); font-family: var(--font-v5); font-weight: 600; color: var(--v5-on-brand); text-align: center; cursor: pointer; }
+.nx-home-pill::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--v5-brand); transition: transform 500ms cubic-bezier(.2, 1.65, .3, 1); }
+.nx-home-pill > * { position: relative; }
+.nx-home-glass-item:active .nx-home-pill::before, .nx-home-pill:active::before { transform: scale(.97, .95); transition: transform 100ms ease-out; }
+.nx-home-art { background-image: url('/static/img/home-glass-20260928/coupon.webp'); background-size: 100% 100%; background-repeat: no-repeat; }
+.nx-home-art-float { animation: nx-home-art-drift 6s ease-in-out var(--home-art-delay, 0s) infinite; }
+@keyframes nx-home-art-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.nx-home-arrow { display: grid; place-items: center; border-radius: var(--v5-radius-full); background: var(--v5-surface-2); color: var(--v5-ink-2); box-shadow: inset 0 0 0 .5px var(--v5-liquid-rim), inset 0 1px 1px var(--v5-liquid-highlight); }
+.nx-home-empty-plinth { position: absolute; width: 92%; height: 26px; bottom: 14px; left: 4%; border-radius: 50%; background: linear-gradient(175deg, color-mix(in srgb, var(--v5-ink) 5%, transparent), var(--v5-liquid-rim) 48%, color-mix(in srgb, var(--v5-surface-3) 30%, transparent) 56%, transparent); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--v5-ink-3) 40%, transparent), inset 0 1px 1px var(--v5-liquid-highlight), inset 0 -3px 1px var(--v5-liquid-rim), 0 8px 12px color-mix(in srgb, var(--v5-ink) 8%, transparent); }
+@media (prefers-reduced-motion: reduce) {
+  .nx-home-art-float { animation: none; }
+  .nx-home-glass-item:active > .nx-home-glass-panel, .nx-home-glass-item:active .nx-home-pill::before, .nx-home-pill:active::before { transform: none; }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .nx-home-glass-panel { background: var(--v5-surface); }
 }
 
 /* ── Reduced Motion 全局兜底(《08》§3 原文落地;B0 2026-07-22)──

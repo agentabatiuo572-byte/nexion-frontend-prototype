@@ -27,13 +27,19 @@ test("remote NEX wallet does not render synthetic mining history", () => {
 });
 
 test("remote trust and storefront surfaces do not expose static endorsements", () => {
-  const trust = read("src/components/trust/nex-anchor-section.vue");
+  const retiredTrustFixture = path.join(root, "src/components/trust/nex-anchor-section.vue");
+  const trust = read("src/pages/trust/trust.vue");
   const homeTrust = read("src/components/home/trust-chip-wall.vue");
   const referral = read("src/pages/ref/code.vue");
   const detail = read("src/pages/store/detail.vue");
-  assert.match(trust, /v-if="!remoteApiEnabled"/);
-  assert.match(homeTrust, /v-if="!remoteApiEnabled"/);
-  assert.match(referral, /v-if="!remoteApiEnabled"/);
+  assert.equal(fs.existsSync(retiredTrustFixture), false);
+  assert.match(trust, /usePublishedTrust/);
+  assert.match(homeTrust, /trustSnapshotUnavailable/);
+  assert.doesNotMatch(homeTrust, /summary\.chips|summary\.reserveProof|trust-chip-/);
+  assert.doesNotMatch(homeTrust, /MOCK_CHIPS/);
+  assert.doesNotMatch(homeTrust, /summary\?\.hero/);
+  assert.doesNotMatch(homeTrust, /trustSnapshotTvl/);
+  assert.doesNotMatch(referral.split("</template>")[0], /PARTNER_LOGOS|SOC 2 Type II|ISO 27001|certikAudited/);
   assert.match(detail, /v-if="!remoteApiEnabled"/);
   assert.match(referral, /remotePreview/);
   assert.match(referral, /remoteApiEnabled && !remotePreview/);
@@ -53,7 +59,8 @@ test("remote onboarding and trial surfaces fail closed on local business constan
   assert.match(quest, /quest\.remoteStatus/);
   assert.match(quest, /rewardText/);
   assert.doesNotMatch(quest, /18 \* 3600_000/);
-  assert.match(trial, /v-if="!remoteApiEnabled"/);
+  assert.match(trial, /const visible = computed\(\(\) => trial\.status === "none"/);
+  assert.match(trial, /trialCfg\.config\.seatsLeftToday > 0/);
   assert.doesNotMatch(trial, /const trialsLeft = 47/);
 });
 
@@ -64,6 +71,7 @@ test("remote proof and team finance pages expose unavailable instead of zero def
   const unilevel = read("src/pages/team/unilevel.vue");
   assert.match(proof, /remoteError/);
   assert.match(proof, /remoteApiEnabled && remoteError/);
+  assert.match(proof, /remoteApiEnabled && !vRank\.remoteReady \? null/);
   assert.match(proof, /=== null \? "—"/);
   assert.match(commissions, /commission\.eventsStatus/);
   assert.match(binary, /commission\.binaryStatus/);
@@ -82,4 +90,28 @@ test("remote static partner wall and telemetry/mining/rank defaults are gated", 
   assert.match(wallet, /todayNEX.*number \| null/);
   assert.match(network, /myRankText/);
   assert.match(team, /const extendedCountText[\s\S]*if \(remoteApiEnabled/);
+});
+
+test("server runtimes never hydrate or mutate the legacy local receipt store", () => {
+  const page = read("src/pages/me/receipts.vue");
+  const store = read("src/store/receipts.ts");
+  const deposits = read("src/store/deposits.ts");
+  assert.match(page, /const remoteReceiptsMode = remoteApiEnabled/);
+  assert.doesNotMatch(page, /remoteApiEnabled\s*&&\s*!developmentFundsEnabled/);
+  assert.match(store, /remoteApiEnabled \? \[\] : hydrate\(boundKey\)/);
+  assert.match(store, /if \(remoteApiEnabled\) return false/);
+  assert.match(page, /depositsStore\.refreshRemoteVietQrDeposits\(\)/);
+  assert.match(deposits, /paymentApi\.listVietQrReceipts\(50, 0\)/);
+  assert.match(deposits, /succeedVietQrReceiptPageRead\([\s\S]*receiptPage\.items/);
+});
+
+test("VietQR limits, availability and fees stay server-configured in sandbox and production", () => {
+  const pane = read("src/components/me/deposit-bank-pane.vue");
+  const fx = read("src/store/fx.ts");
+  assert.match(pane, /remoteApiEnabled \? fx\.minDepositUsdt : MIN_DEPOSIT_USDT/);
+  assert.match(pane, /remoteApiEnabled \? fx\.maxDepositUsdt : BANK_MAX_DEPOSIT_USDT/);
+  assert.match(pane, /remoteApiEnabled \? fx\.vietQrEnabled : dep\.bankRailAvailable/);
+  assert.match(pane, /usdt < minDeposit\.value \|\| usdt > maxDeposit\.value/);
+  assert.match(fx, /paymentApi\.config\(\)/);
+  assert.match(fx, /paymentApi\.fxQuote\(\)/);
 });

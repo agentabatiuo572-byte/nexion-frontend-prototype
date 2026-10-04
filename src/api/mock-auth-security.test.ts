@@ -15,9 +15,9 @@ beforeEach(() => {
 });
 
 describe("mock auth security lifecycle", () => {
-  const countryCode = "+1";
-  const phone = "5551234567";
-  const accountId = "+15551234567@demo.nexgrid.ai";
+  const countryCode = "+86";
+  const phone = "13800138000";
+  const accountId = "+8613800138000@demo.nexgrid.ai";
 
   it("validates the old password and persists the new credential", async () => {
     const api = createMockAuthApi(createSessionVault());

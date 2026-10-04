@@ -27,6 +27,7 @@
           v-if="featured"
           :ev="featured"
           :reward-nex="rewardNexOf(featured)"
+          :busy="commandBusy === featured.id"
           @join="handleJoin(featured)"
           @claim="handleClaim(featured)"
           @cta="handleCta(featured)"
@@ -35,11 +36,7 @@
         <!-- Tabs — shared SegmentedControl spec (segmented-control.tsx): p-1 / gap
              0.5 / rounded-2xl container, h-11 rounded-[10px] segments, brand fill
              + on-brand text on active (no shadow), label v5 12.5/500/-0.005em. -->
-        <view class="flex" :style="segWrapStyle">
-          <view v-for="id in TABS" :key="id" class="flex-1 relative grid place-items-center active:opacity-70" :style="pillStyle(id)" @click="tab = id">
-            <text :style="pillLabelStyle(id)">{{ t.events.tabs[id] }}</text>
-          </view>
-        </view>
+        <GlassSegments :label="t.events.categoryGroupLabel" v-model="tab" :options="tabOptions" layout="scroll"  />
 
         <!-- Event list -->
         <EmptyState
@@ -48,6 +45,8 @@
           :title="t.events.loadErrorTitle"
           :desc="t.events.loadErrorBody"
           :cta-label="t.events.retry"
+          :cta-disabled="remoteEventsLoading"
+          :cta-busy="remoteEventsLoading"
           @cta="retryRemoteEvents"
         />
         <EmptyState v-else-if="filtered.length === 0 && emptyKey" kind="no-filter-results" :title="t.empty.filterTitle" :desc="t.empty.filterDesc" />
@@ -57,6 +56,7 @@
             :key="ev.id"
             :ev="ev"
             :reward-nex="rewardNexOf(ev)"
+            :busy="commandBusy === ev.id"
             @join="handleJoin(ev)"
             @claim="handleClaim(ev)"
             @cta="handleCta(ev)"
@@ -71,7 +71,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, type CSSProperties } from "vue";
+import { ref, computed, nextTick, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -85,10 +86,17 @@ import type { CanonicalEvent } from "@/api/events-api";
 import { postMoneyBillsOnce } from "@/lib/money-receipt";
 import { useEventQuest } from "@/store/event-quest";
 import { useApp } from "@/store/app";
-import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
+import { useLocaleStore } from "@/store/locale";
+import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
+import { bindPageVisibilityRefresh, createPageVisibilityRefresh } from "@/lib/page-visibility-refresh";
+import { createRemotePageRequestFence } from "@/lib/remote-page-request-fence";
+import { createRemotePageCommandFence } from "@/lib/remote-page-command-fence";
 import { useLuckySpin } from "@/store/lucky-spin";
 import { toast } from "@/store/ui";
 import { EVENTS, type EventStatus, type NexEvent } from "@/mock/events";
+import { remoteEventView, type EventActionLabels } from "./remote-event-view";
+import { runRemoteEventAction } from "./remote-event-action";
+import { registerActivePageRefresh } from "@/lib/active-page-refresh";
 
 type TabId = "all" | EventStatus | "joined";
 type EnrichedEvent = NexEvent & { _trackable: boolean; _done: boolean; _claimed: boolean };
@@ -99,71 +107,109 @@ const t = useT();
 const eventQuest = useEventQuest();
 const luckySpin = useLuckySpin();
 const app = useApp();
+const locale = useLocaleStore();
+const language = computed(() => locale.code);
 
 const tab = ref<TabId>("ongoing");
 const remoteEvents = ref<CanonicalEvent[]>([]);
 const remoteEventsError = ref(false);
+const remoteEventsLoading = ref(remoteApiEnabled);
+const commandBusy = ref<string | null>(null);
 const remoteAccountEpoch = createRemoteAccountEpoch(app.accountKey);
-
-function remoteEventView(event: CanonicalEvent): NexEvent {
-  const tintByKind: Record<CanonicalEvent["kind"], string> = {
-    discount: "#FFC83D", referral: "#7DD3FC", wheel: "#C4B5FD", regional: "#FB7185",
-    boost: "#86EFAC", seasonal: "#F9A8D4", holding: "#93C5FD", onboarding: "#FDE68A",
-  };
-  return {
-    id: event.eventCode,
-    kind: event.kind,
-    status: event.state,
-    title: event.title,
-    subtitle: event.subtitle,
-    emoji: "✦",
-    tint: tintByKind[event.kind],
-    reward: `${event.rewardAmount} ${event.rewardName}`,
-    progress: event.trackable ? { current: event.progressValue, total: event.targetValue, label: "progress" } : null,
-    joined: ["JOINED", "CLAIMABLE", "CLAIMED"].includes(event.userStatus),
-    href: event.href || undefined,
-    featured: event.featured,
-    trackable: event.trackable,
-    done: ["CLAIMABLE", "CLAIMED"].includes(event.userStatus),
-    rewardNEX: event.rewardType === "NEX" ? event.rewardAmount : 0,
-  };
+let mounted = false;
+const remoteRequestFence = createRemotePageRequestFence(remoteAccountEpoch, () => mounted);
+const remoteCommandFence = createRemotePageCommandFence(remoteAccountEpoch, () => mounted);
+let releaseActiveRefresh = () => {};
+function activatePageRefresh() {
+  releaseActiveRefresh();
+  releaseActiveRefresh = registerActivePageRefresh(loadRemoteEvents);
 }
 
-async function loadRemoteEvents(request: RemoteAccountRequest = remoteAccountEpoch.snapshot()) {
+const eventActionLabels = computed<EventActionLabels>(() => ({
+  claimDiscount: t.value.events.action.claimDiscount,
+  checkIn: t.value.events.action.checkIn,
+  reinvest: t.value.events.action.reinvest,
+  spin: t.value.events.action.spin,
+  leaderboard: t.value.events.action.leaderboard,
+  viewDetails: t.value.events.action.viewDetails,
+  progress: t.value.events.progress.label,
+  wheelPool: t.value.events.wheelPool,
+}));
+
+async function loadRemoteEvents() {
   if (!remoteApiEnabled) return;
+  const scope = remoteRequestFence.capture();
+  remoteEventsLoading.value = true;
   try {
-    const snapshot = await eventsApi.state();
-    if (!remoteAccountEpoch.isCurrent(request)) return;
+    const snapshot = await eventsApi.state(language.value);
+    if (!remoteRequestFence.isCurrent(scope)) return;
     remoteEvents.value = snapshot.events;
     remoteEventsError.value = false;
   } catch {
-    if (remoteAccountEpoch.isCurrent(request)) {
+    if (remoteRequestFence.isCurrent(scope)) {
       remoteEvents.value = [];
       remoteEventsError.value = true;
     }
+  } finally {
+    if (remoteRequestFence.isCurrent(scope)) remoteEventsLoading.value = false;
   }
 }
 function retryRemoteEvents() {
   void loadRemoteEvents();
 }
-onMounted(() => {
+
+const eventVisibility = createPageVisibilityRefresh((reason) => {
   if (!remoteApiEnabled) return;
   remoteAccountEpoch.bind(app.accountKey);
-  remoteEvents.value = [];
-  remoteEventsError.value = false;
+  if (reason === "initial") {
+    remoteEvents.value = [];
+    remoteEventsError.value = false;
+    remoteEventsLoading.value = true;
+  }
   void loadRemoteEvents();
 });
-watch(() => app.accountKey, (accountKey) => {
+bindPageVisibilityRefresh(eventVisibility, {
+  mounted: (callback) => onMounted(() => {
+    mounted = true;
+    activatePageRefresh();
+    callback();
+  }),
+  shown: (callback) => onShow(() => {
+    mounted = true;
+    activatePageRefresh();
+    callback();
+  }),
+  hidden: (callback) => onHide(() => {
+    mounted = false;
+    releaseActiveRefresh();
+    remoteRequestFence.invalidate();
+    remoteCommandFence.invalidate();
+    callback();
+  }),
+});
+onUnmounted(() => {
+  mounted = false;
+  releaseActiveRefresh();
+  remoteRequestFence.invalidate();
+  remoteCommandFence.invalidate();
+});
+watch([() => String(app.accountKey), () => app.accountBindingEpoch, () => language.value], ([accountKey]) => {
+  remoteCommandFence.invalidate();
   if (!remoteApiEnabled) return;
   remoteAccountEpoch.bind(accountKey);
+  remoteRequestFence.invalidate();
   remoteEvents.value = [];
   remoteEventsError.value = false;
+  remoteEventsLoading.value = true;
   void loadRemoteEvents();
 });
 
 // Enrich each event with live join/claim state from the store.
 const enrichedEvents = computed<EnrichedEvent[]>(() =>
-  (remoteApiEnabled ? remoteEvents.value.map(remoteEventView) : EVENTS).map((ev) => {
+  (remoteApiEnabled
+    ? remoteEvents.value.map((event) => remoteEventView(event, eventActionLabels.value))
+    : EVENTS.map((event) => ({ ...event, runtimeSource: "mock" as const }))
+  ).map((ev) => {
     const trackable = ev.trackable === true;
     const remoteStatus = remoteApiEnabled
       ? remoteEvents.value.find((event) => event.eventCode === ev.id)?.userStatus
@@ -217,20 +263,26 @@ function rewardNexOf(ev: EnrichedEvent): number {
 }
 
 async function handleJoin(ev: EnrichedEvent) {
-  if (!ev._trackable) return;
-  if (remoteApiEnabled) {
-    if (await eventQuest.joinRemote(ev.id)) {
-      await loadRemoteEvents();
-      toast.success(t.value.events.toast.joinedTitle.replace("{name}", ev.title), t.value.events.toast.joinedBody);
-    } else {
-      toast.error(t.value.authOtp.errorServiceUnavailable);
+  if (!ev._trackable || commandBusy.value === ev.id) return;
+  commandBusy.value = ev.id;
+  try {
+    if (remoteApiEnabled) {
+      await runRemoteEventAction({
+      fence: remoteCommandFence,
+      command: () => eventQuest.joinRemote(ev.id),
+      refresh: loadRemoteEvents,
+      onSuccess: () => toast.success(t.value.events.toast.joinedTitle.replace("{name}", ev.title), t.value.events.toast.joinedBody),
+      onFailure: () => toast.error(t.value.authOtp.errorServiceUnavailable),
+      });
+      return;
     }
-    return;
-  }
-  const joined = eventQuest.join(ev.id);
-  if (joined) {
-    toast.success(t.value.events.toast.joinedTitle.replace("{name}", ev.title), t.value.events.toast.joinedBody);
-    return;
+    const joined = eventQuest.join(ev.id);
+    if (joined) {
+      toast.success(t.value.events.toast.joinedTitle.replace("{name}", ev.title), t.value.events.toast.joinedBody);
+      return;
+    }
+  } finally {
+    if (commandBusy.value === ev.id) commandBusy.value = null;
   }
   // 🔴 join() 返回 false **只有一种含义:这个活动已经加入过**(幂等短路),不是失败。
   // 2026-08-07 第四轮验收 F1:我上一版把它当失败弹「没能把你加进这个活动」——
@@ -242,23 +294,26 @@ async function handleJoin(ev: EnrichedEvent) {
 }
 
 async function handleClaim(ev: EnrichedEvent) {
-  if (!ev._trackable || !ev._done || ev._claimed) return;
-  if (remoteApiEnabled) {
-    if (await eventQuest.claimRemote(ev.id)) {
-      await loadRemoteEvents();
-      toast.success(t.value.events.toast.claimedTitle.replace("{n}", rewardNexOf(ev).toLocaleString()), ev.title);
-    } else {
-      toast.error(t.value.authOtp.errorServiceUnavailable);
+  if (!ev._trackable || !ev._done || ev._claimed || commandBusy.value === ev.id) return;
+  commandBusy.value = ev.id;
+  try {
+    if (remoteApiEnabled) {
+      await runRemoteEventAction({
+      fence: remoteCommandFence,
+      command: () => eventQuest.claimRemote(ev.id),
+      refresh: loadRemoteEvents,
+      onSuccess: () => toast.success(t.value.events.claimedReward.replace("{reward}", ev.reward), ev.title),
+      onFailure: () => toast.error(t.value.authOtp.errorServiceUnavailable),
+      });
+      return;
     }
-    return;
-  }
-  const reward = rewardNexOf(ev);
+    const reward = rewardNexOf(ev);
   // MOCK-ONLY NON-ATOMIC: PROD event-claim endpoint TBD must claim, credit,
   // and emit the matching bill in one idempotent transaction.
   // 🔴 顺序 = 先发钱(幂等)→ 后消费资格(2026-08-04 对抗审计 B-P1-3):原来先 claim 消费掉,
   // 发钱失败就 return,资格没了奖归零。ref 去掉时间戳改成活动 id(活动只能领一次,天然稳定)——
   // 带时间戳的 ref 判重永不命中,幂等出口会退化成普通出口。
-  const paid = reward > 0
+    const paid = reward > 0
     ? postMoneyBillsOnce([{
       type: "achievement",
       symbol: "NEX",
@@ -271,14 +326,17 @@ async function handleClaim(ev: EnrichedEvent) {
   // 领奖这一跳就是上面那个待定的 event-claim endpoint —— 地区拒绝以它的结果回来
   // (join 那条路径已一并接上 —— 见 handleJoin 的说明)。
   // 🔴 `null` = 普通结果,原样走下面的 `!== "ok"` 出口,发钱失败不许被说成地区受限。
-  const geo = geoPolicyUserMessage(paid, t.value.geoPolicy);
-  if (geo) {
-    toast.error(geo);
-    return;
+    const geo = geoPolicyUserMessage(paid, t.value.geoPolicy);
+    if (geo) {
+      toast.error(geo);
+      return;
+    }
+    if (paid !== "ok") return;
+    if (!eventQuest.claim(ev.id)) return;
+    toast.success(t.value.events.toast.claimedTitle.replace("{n}", reward.toLocaleString()), ev.title);
+  } finally {
+    if (commandBusy.value === ev.id) commandBusy.value = null;
   }
-  if (paid !== "ok") return;
-  if (!eventQuest.claim(ev.id)) return; // 消费失败:钱已幂等落定,重试命中同一 ref 不会再发
-  toast.success(t.value.events.toast.claimedTitle.replace("{n}", reward.toLocaleString()), ev.title);
 }
 
 // Decorative (non-trackable) CTA. The lucky-wheel event opens the Lucky Spin
@@ -293,7 +351,7 @@ function handleCta(ev: EnrichedEvent) {
     return;
   }
   if (ev.kind === "wheel") {
-    luckySpin.openSheet();
+      luckySpin.openSheet(ev.id);
   }
 }
 
@@ -313,14 +371,23 @@ function pillStyle(id: TabId): CSSProperties {
     background: on ? "var(--v5-brand)" : "transparent",
   };
 }
+/** roving tabindex 的标准行为:左右方向键移一格并选上,焦点跟到新选中项。 */
+function moveTab(index: number, delta: number): void {
+  const next = TABS[(index + delta + TABS.length) % TABS.length];
+  if (!next) return;
+  tab.value = next;
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
+  });
+}
 function pillLabelStyle(id: TabId): CSSProperties {
   const on = tab.value === id;
   return {
     fontFamily: "var(--font-v5)",
-    fontSize: "clamp(12px, 3.4vw, 13px)",
+    fontSize: "13px",
     fontWeight: 500,
     letterSpacing: "-0.005em",
-    whiteSpace: "nowrap",
     color: on ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
   };
 }
@@ -328,4 +395,7 @@ const emptyStyle: CSSProperties = {
   border: "1px dashed var(--v5-border-strong)",
   padding: "32px",
 };
+
+import GlassSegments from "@/components/glass-segments.vue";
+const tabOptions = computed(() => TABS.map(value => ({ value, label: t.value.events.tabs[value] })));
 </script>

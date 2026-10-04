@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 2,
+  "id": "phone-calibration-app-20260928-r3",
+  "title": "正式 APP 原生校准与界面接入",
+  "repo": "..",
+  "base": "a39c32924208d54775e665b1f161e20f0205e08c",
+  "mode": "implement",
+  "risk": "high",
+  "owner": "/root",
+  "outOfScope": [
+    "真机验收交接同事",
+    "远端部署",
+    "原型修改"
+  ],
+  "inputs": [
+    "phone-calibration-requirements.md"
+  ],
+  "steps": [
+    {
+      "id": "app-core",
+      "title": "原生采集、证明与服务端结果契约",
+      "dependsOn": [],
+      "scope": [
+        "docs/phone-calibration*",
+        "src/**",
+        "scripts/verify-phone-calibration*"
+      ],
+      "acceptance": [
+        {
+          "id": "native-contract",
+          "description": "原生硬件采集与证明不回退浏览器，服务端待核验结果保留，写操作重试不重复；未知硬件禁止激活，重试重新采集，激活后只读取服务器设备列表",
+          "source": {
+            "input": "phone-calibration-requirements.md",
+            "locator": "功能与数据 4-6"
+          },
+          "kind": "behavior",
+          "checks": [
+            "app-core/contract"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "id": "contract",
+          "argv": [
+            "node",
+            "node_modules/vitest/vitest.mjs",
+            "run",
+            "src/lib/device-signals.test.ts",
+            "src/lib/native-phone-runtime.test.ts",
+            "src/lib/native-phone-proof.test.ts",
+            "src/api/onboarding-calibration-api.test.ts",
+            "src/lib/phone-calibration-flow.test.ts",
+            "src/pages/onboarding/phone-calibration-pages.test.ts",
+            "src/api/task-assignment-api.test.ts"
+          ],
+          "kind": "exit",
+          "timeoutMs": 600000
+        }
+      ],
+      "reviewRequired": true
+    }
+  ],
+  "integration": {
+    "id": "integration",
+    "title": "原生核心契约整体验证",
+    "scope": [
+      "docs/phone-calibration*",
+      "src/**"
+    ],
+    "dependsOn": [
+      "app-core"
+    ],
+    "acceptance": [
+      {
+        "id": "native-integrated",
+        "description": "新增边界与既有校准幂等、设备采集测试兼容",
+        "source": {
+          "input": "phone-calibration-requirements.md",
+          "locator": "分步验收"
+        },
+        "kind": "behavior",
+        "checks": [
+          "app-core/contract"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "id": "types",
+        "argv": [
+          "node",
+          "node_modules/vue-tsc/bin/vue-tsc.js",
+          "--noEmit"
+        ],
+        "kind": "exit",
+        "timeoutMs": 600000
+      }
+    ],
+    "reviewRequired": true
+  }
+}

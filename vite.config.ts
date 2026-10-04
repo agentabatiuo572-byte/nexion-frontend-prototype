@@ -1,6 +1,9 @@
-import { defineConfig } from "vite";
+import { readFileSync } from "node:fs";
+import { defineConfig, loadEnv } from "vite";
 import uniPlugin from "@dcloudio/vite-plugin-uni";
 import UnoCSS from "unocss/vite";
+import { nativeSvgIcons } from "./scripts/native-svg-icons.mjs";
+import { mustBlockDevelopmentOAuthProxy } from "./src/lib/dev-preview-auth-boundary";
 
 // @dcloudio/vite-plugin-uni ships as CJS. With "type":"module" in package.json
 // (required so the ESM-only unocss/vite plugin can be imported), Vite loads
@@ -15,15 +18,28 @@ const uni = (uniPlugin as unknown as { default?: typeof uniPlugin }).default ?? 
 // (P-096 的 OOM 会回来)。真要搬到那种路径,照 vite 拉黑 cacheDir 的做法先 escapePath。
 const selfDir = __dirname.replace(/\\/g, "/");
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "VITE_");
+  // The dev server, rather than the browser bundle, owns the loopback target.
+  // This makes H5 -> /api same-origin and avoids localhost/127.0.0.1 identity
+  // splits. A production bundle must provide its own HTTPS gateway explicitly.
+  const apiPreviewTarget = env.VITE_NEXGRID_API_PREVIEW_TARGET?.trim() || "http://127.0.0.1:8110";
+  const apiPreviewEdgeCountry = env.VITE_NEXGRID_API_PREVIEW_EDGE_COUNTRY?.trim().toUpperCase();
+  if (apiPreviewEdgeCountry && !/^[A-Z]{2}$/.test(apiPreviewEdgeCountry)) {
+    throw new Error("VITE_NEXGRID_API_PREVIEW_EDGE_COUNTRY must be a two-letter ISO country code");
+  }
+  const apiPreviewHeaders = apiPreviewEdgeCountry
+    ? { "X-Nexion-Edge-Country": apiPreviewEdgeCountry }
+    : undefined;
+
   return {
-    plugins: [uni(), UnoCSS()],
+    plugins: [nativeSvgIcons(), uni(), UnoCSS(), { name: "liquid-glass-notices", generateBundle() { this.emitFile({ type: "asset", fileName: "LIQUID-GLASS-NOTICES.txt", source: readFileSync(new URL("./docs/LIQUID-GLASS-NOTICES.txt", import.meta.url), "utf8") }); } }],
     // 只被懒编译页面引用的依赖必须在这里显式预打包:uni 的按需编译让启动扫描
     // 抓不到它们,首个访客触发运行时依赖重打包 → 在途模块请求 500 + 整页 reload,
     // uni 异步页面组件等满 60s 直接弹「连接服务器超时」。入口链上的依赖
     // (vue/pinia/vue-i18n)启动即扫到,无需列出。
     optimizeDeps: {
-      include: ["qrcode-generator"], // 仅 proof.vue / share-poster-sheet.vue 引用
+      include: ["qrcode-generator", "@lollipopkit/liquid-glass", "simple-liquid-glass/webgl"], // 仅 proof.vue / share-poster-sheet.vue 引用
     },
     server: {
     // 🔴 双栈监听(2026-08-05 结构性反思第 1 步)。此前默认只绑 [::1]:
@@ -34,7 +50,7 @@ export default defineConfig(() => {
     //   修在服务端一处,不追着改 N 个脚本里写死的地址(那是散弹枪,新脚本必复发)。
     host: true,
     port: 5175,
-      strictPort: true, // 高保真固定 5174；端口占用时直接失败，不静默漂移
+      strictPort: true, // 5173 被占就明着炸,不许静默换端口把 verify 全家变假红
       // 🔴 .claude/worktrees 与 admin 仓互挂 junction(跨仓门取材面),构成双向环:
       //   uniapp/.claude/worktrees/nexion-ops-console → admin-ops/.claude/worktrees/Nexion-uniapp → 回本仓。
       //   chokidar 跟随 junction 在环里无限递归,监视路径每圈翻倍,4GB 堆 ~2.5h 吃穿
@@ -51,6 +67,46 @@ export default defineConfig(() => {
       //   worktree 只拉黑自己的 .claude,源码恢复可见。
       watch: {
         ignored: [`${selfDir}/.claude/**`, "**/dist/**", "**/.trash/**"],
+      },
+      proxy: {
+        '/ws/conversations': { target: apiPreviewTarget, ws: true, changeOrigin: true },
+        // The real H5 UI calls /auth/users/* from its same-origin base URL.
+        // The backend intentionally owns that same path, so proxy it without
+        // rewriting. Backend-native configuration routes continue under /api.
+        "/auth": {
+          target: apiPreviewTarget,
+          changeOrigin: true,
+          headers: apiPreviewHeaders,
+          bypass: (req, res) => {
+            if (!mustBlockDevelopmentOAuthProxy(req.url, req.socket.remoteAddress)) return;
+            res.statusCode = 403;
+            res.setHeader("Content-Type", "application/json; charset=utf-8");
+            res.setHeader("Cache-Control", "no-store");
+            res.end(JSON.stringify({ code: 403, message: "DEVELOPMENT_OAUTH_LOOPBACK_REQUIRED", data: null }));
+            return false;
+          },
+          configure: (proxy) => {
+            proxy.on("proxyReq", (proxyReq, req) => {
+              const authorization = req.headers.authorization;
+              if (typeof authorization === "string" && authorization.trim()) {
+                proxyReq.setHeader("Authorization", authorization);
+              }
+            });
+          },
+        },
+        "/api": {
+          target: apiPreviewTarget,
+          changeOrigin: true,
+          headers: apiPreviewHeaders,
+          configure: (proxy) => {
+            proxy.on("proxyReq", (proxyReq, req) => {
+              const authorization = req.headers.authorization;
+              if (typeof authorization === "string" && authorization.trim()) {
+                proxyReq.setHeader("Authorization", authorization);
+              }
+            });
+          },
+        },
       },
     },
   };

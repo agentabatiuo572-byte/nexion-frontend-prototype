@@ -6,7 +6,7 @@
          同理 `e.target.closest()` 也不存在。改用全站既有写法(country-code-sheet /
          slot-action-sheet / purchase-sheet):遮罩单独一层,点卡片根本到不了它。 -->
     <view class="cs-mask" @click="onCancel" />
-    <view class="cs-card">
+    <view class="nx-glass-sheet cs-card">
       <view class="cs-head">
         <view class="cs-head__txt">
           <text class="cs-title">{{ t.authOtp.captchaTitle }}</text>
@@ -27,6 +27,9 @@
           </view>
         </template>
         <!-- ⑤ 报错/极限态:题面加载或校验网络失败 → 层内失败态 + 重试,不静默关闭 -->
+        <view v-else-if="providerHold" class="cs-fail" role="status">
+          <text class="cs-fail__t">{{ t.authOtp.captchaProviderUnavailable }}</text>
+        </view>
         <view v-else-if="loadFailed" class="cs-fail">
           <text class="cs-fail__t">{{ t.authOtp.captchaLoadFailed }}</text>
           <view class="cs-fail__btn" role="button" tabindex="0" @click="onRetry"><text class="cs-fail__btn-t">{{ t.authOtp.captchaRetry }}</text></view>
@@ -34,7 +37,7 @@
       </view>
 
       <!-- 滑轨 -->
-      <view id="cs-track" class="cs-track" :class="trackCls">
+      <view v-if="!providerHold" id="cs-track" class="cs-track" :class="trackCls">
         <view class="cs-fill" :style="{ width: curX + 24 + 'px' }" />
         <view v-if="showHint" class="cs-hintwrap"><text class="cs-hint">{{ t.authOtp.captchaTrackHint }}</text></view>
         <!-- 🔴 滑柄此前只绑触摸与鼠标 —— 纯键盘用户拖不动它,而滑块是登录 / 注册 /
@@ -62,7 +65,7 @@
         </view>
       </view>
 
-      <view class="cs-meta">
+      <view v-if="!providerHold" class="cs-meta">
         <text class="cs-meta__fail">{{ failText }}</text>
         <text v-if="hintText" class="cs-meta__hint" :class="{ 'cs-meta__hint--err': hintIsError }">{{ hintText }}</text>
       </view>
@@ -78,7 +81,7 @@ import { toast } from "@/store/ui";
 import { captchaChallenge, captchaVerify, MAX_CAPTCHA_FAILS, type CaptchaChallenge, type CaptchaVerifyResult } from "@/store/auth-otp";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 
-const props = defineProps<{ phone: string }>();
+const props = defineProps<{ phone: string; providerHold?: boolean }>();
 const emit = defineEmits<{ (e: "success", ticket: string): void; (e: "close"): void }>();
 
 const t = useT();
@@ -131,6 +134,15 @@ function clearSkeleton() {
 // mock 的 captchaChallenge 不会 reject,此分支为 PROD 真滑块 SDK 的网络失败预留。
 async function loadChallenge() {
   if (busy.value) return;
+  // Remote OTP flows must never turn this mock slider's locally minted value
+  // into a production assertion. Until a vendor SDK is wired, remain visibly
+  // unavailable and let the server fail closed.
+  if (props.providerHold) {
+    challenge.value = null;
+    loadFailed.value = false;
+    clearSkeleton();
+    return;
+  }
   challenge.value = null;
   loadFailed.value = false;
   clearSkeleton();
@@ -273,6 +285,8 @@ onUnmounted(() => {
   }
   if (skeletonTimer) clearTimeout(skeletonTimer);
 });
+
+
 </script>
 
 <style scoped>
@@ -312,7 +326,7 @@ onUnmounted(() => {
    重叠,压在滑块上不影响任何操作。 */
 .cs-layer { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .cs-mask { position: absolute; inset: 0; background: var(--v5-bg-color-mask); backdrop-filter: blur(4px); }
-.cs-card { position: relative; width: 100%; max-width: 340px; background: var(--v5-surface); border: 1px solid var(--v5-surface-2); border-radius: 20px; padding: 18px; }
+.cs-card { border-radius: var(--nx-glass-radius); box-shadow: var(--nx-glass-edge); position: relative; width: 100%; max-width: 340px; background: var(--nx-glass-fill); border: none;  padding: 18px; }
 .cs-head { display: flex; align-items: flex-start; justify-content: space-between; }
 .cs-head__txt { display: flex; flex-direction: column; gap: 3px; }
 .cs-title { font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); }

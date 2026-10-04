@@ -8,22 +8,22 @@
 <template>
   <view>
     <SectionHeader :title="t.orders.title" />
-    <view class="relative overflow-hidden" :style="cardStyle">
+    <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
       <view v-if="latestOrder" class="flex items-center justify-between" style="gap: 8px">
         <view class="min-w-0">
-          <text class="block truncate" style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ brandProductName(latestOrder.productName) }}</text>
+          <text class="block truncate" style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ nexGridBrandText(latestOrder.productName) }}</text>
           <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">${{ latestOrder.total.toFixed(0) }} · {{ latestOrder.dataCenter }}</text>
         </view>
-        <text class="shrink-0 font-mono-tabular" :style="statusPillStyle(latestOrder.status)">{{ orderStatusText(t.orders, latestOrder.status) }}</text>
+        <text class="shrink-0 font-mono-tabular" :style="statusPillStyle(latestOrder.status)">{{ statusLabel(latestOrder.status) }}</text>
       </view>
       <view v-else class="flex items-center justify-between" style="gap: 12px">
         <text class="flex-1 min-w-0" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.orders.empty }}</text>
-        <view class="shrink-0 inline-flex items-center justify-center active:opacity-90" :style="browseBtnStyle" @click="goStore">
+        <view class="shrink-0 inline-flex items-center justify-center active:opacity-90" :style="browseBtnStyle" data-me-action="browse-orders" role="button" tabindex="0" :aria-label="t.orders.browseStore" @click="goStore"  @keydown.enter.prevent="goStore" @keydown.space.prevent="goStore">
           <text>{{ t.orders.browseStore }}</text>
         </view>
       </view>
 
-      <view class="flex items-center justify-between active:opacity-70" :style="footerStyle" @click="goOrders">
+      <view class="flex items-center justify-between active:opacity-70" :style="footerStyle" data-me-action="view-all-orders" role="button" tabindex="0" :aria-label="t.me.viewAllOrders" @click="goOrders"  @keydown.enter.prevent="goOrders" @keydown.space.prevent="goOrders">
         <text style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ t.me.viewAllOrders }}</text>
         <view class="inline-flex items-center gap-0.5">
           <text v-if="orderCount > 0" class="font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink-3)">{{ orderCount }}</text>
@@ -35,24 +35,25 @@
 </template>
 
 <script setup lang="ts">
-import { brandProductName } from "@/lib/brand";
+import { navReset, navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import SectionHeader from "@/components/me/section-header.vue";
 import { useT } from "@/i18n/use-t";
 import { useOrders } from "@/store/orders";
-import { orderStatusText } from "@/components/store/order-status-copy";
+import { latestOrder as selectLatestOrder } from "@/lib/latest-order";
+import { nexGridBrandText } from "@/lib/brand-copy";
 
 const t = useT();
 const orders = useOrders();
 
 const orderCount = computed(() => orders.orders.length);
-const latestOrder = computed(() => orders.orders[orders.orders.length - 1] ?? null);
+const latestOrder = computed(() => selectLatestOrder(orders.orders));
 
 function goStore() {
-  uni.reLaunch({ url: "/pages/store/store", fail: () => {} });
+  navReset({ url: "/pages/store/store", fail: () => {} });
 }
 function goOrders() {
-  uni.navigateTo({ url: "/pages/store/orders", fail: () => {} });
+  navTo("/pages/store/orders?from=me");
 }
 
 const ORDER_STATUS_STYLE: Record<string, { color: string; bg: string; border: string }> = {
@@ -74,11 +75,26 @@ function statusPillStyle(status: string): CSSProperties {
     fontWeight: 500,
   };
 }
+function statusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    placed: t.value.orders.statusPlaced,
+    paid: t.value.orders.statusPaid,
+    provisioning: t.value.orders.statusProvisioning,
+    activated: t.value.orders.statusActivated,
+    payment_failed: t.value.orders.statusPaymentFailed,
+    expired: t.value.orders.statusExpired,
+    provisioning_failed: t.value.orders.statusProvisioningFailed,
+    refunded: t.value.orders.statusRefunded,
+    chargeback: t.value.orders.statusChargeback,
+    cancelled: t.value.orders.statusFailedShort,
+  };
+  return labels[status] ?? t.value.orders.statusFailedShort;
+}
 
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "14px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const browseBtnStyle: CSSProperties = {
   minHeight: "44px",
@@ -94,4 +110,6 @@ const footerStyle: CSSProperties = {
   // 去线(主人 2026-08-17 全站令):分组靠留白,总间距沿用有线时代的 12+12。
   marginTop: "24px",
 };
+
+
 </script>

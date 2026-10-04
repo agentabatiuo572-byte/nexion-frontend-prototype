@@ -21,19 +21,22 @@
           <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.network.projectionErrorDesc }}</text>
           <view role="button" tabindex="0" :style="retryStyle" @click="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text></view>
         </view>
-        <!-- Top metrics — filled stat tiles, no border (single visual difference) -->
+        <!-- Top metrics — filled stat tiles, no border (single visual difference).
+             A background re-read keeps the last confirmed snapshot, so the tiles
+             only show the unavailable placeholder when nothing was ever read
+             (BUG 63: flipping every figure to "—" mid-refresh blanked the page). -->
         <view class="grid grid-cols-3" style="gap: 8px">
-          <view class="rounded-2xl text-center" :style="metricCardStyle">
+          <view class="nx-glass-card rounded-2xl text-center" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.network.members }}</text>
-            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : members.length }}</text>
+            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink)')">{{ metricsUnavailable ? '—' : members.length }}</text>
           </view>
-          <view class="rounded-2xl text-center" :style="metricCardStyle">
+          <view class="nx-glass-card rounded-2xl text-center" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.network.activeNow }}</text>
-            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : activeCount }}</text>
+            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ metricsUnavailable ? '—' : activeCount }}</text>
           </view>
-          <view class="rounded-2xl text-center" :style="metricCardStyle">
+          <view class="nx-glass-card rounded-2xl text-center" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.network.direct }}</text>
-            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-tech-cyan)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : directCount }}</text>
+            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-tech-cyan)')">{{ metricsUnavailable ? '—' : directCount }}</text>
           </view>
         </view>
 
@@ -43,6 +46,50 @@
              it would strand the wash on the page floor → conservative keep,
              neutral token border. -->
         <view class="relative overflow-hidden rounded-2xl" :style="orbCardStyle">
+          <!-- APP-vue creates template SVG as HTML unknown elements. Keep this
+               interactive graph in supported view/text nodes with the same 360
+               coordinate system; do not broaden the small-icon SVG adapter. -->
+          <!-- #ifdef APP-PLUS -->
+          <view class="nx-net-native" style="position: relative; width: 100%; height: 0; padding-top: 100%">
+            <view class="nx-net-native-orbit" :style="nativeOrbitStyle(DIRECT_RADIUS, false)" />
+            <view class="nx-net-native-orbit" :style="nativeOrbitStyle(132, true)" />
+            <view :style="{ ...nativePosition(CENTER, CENTER), width: '28%', height: '28%', borderRadius: '50%', background: 'radial-gradient(circle, var(--v5-brand-soft), transparent)', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }" />
+            <view v-for="p in directPlotted" :key="`conn-${p.m.id}`" class="nx-net-native-connection" :style="nativeConnectionStyle(p)" />
+            <view
+              v-for="p in plotted"
+              :key="p.m.id"
+              class="nx-net-node cursor-pointer"
+              role="button"
+              tabindex="0"
+              :aria-label="nodeLabel(p)"
+              :style="nativeNodeStyle(p.x, p.y)"
+              @click="selected = p.m"
+
+              @keydown.enter.prevent="selected = p.m" @keydown.space.prevent="selected = p.m"
+            >
+              <view v-if="pulseId === p.m.id" class="nx-net-native-pulse" :style="{ borderColor: p.kind === 'direct' ? DIRECT_COLOR : EXTENDED_COLOR }" />
+              <view :style="{ width: p.kind === 'direct' ? '10px' : '7px', height: p.kind === 'direct' ? '10px' : '7px', borderRadius: '50%', background: p.m.status === 'offline' ? 'var(--v5-ink-4)' : (p.kind === 'direct' ? DIRECT_COLOR : EXTENDED_COLOR), opacity: p.m.status === 'offline' ? 0.6 : 0.95 }" />
+            </view>
+            <view
+              class="nx-net-node cursor-pointer"
+              role="button"
+              tabindex="0"
+              :aria-label="selfNodeLabel"
+              :style="nativeNodeStyle(CENTER, CENTER, 44)"
+              @click="openSelf"
+
+              @keydown.enter.prevent="openSelf" @keydown.space.prevent="openSelf"
+            >
+              <view style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--v5-brand)">
+                <text style="font-family: var(--font-v5); font-weight: 600; font-size: 12px; color: var(--v5-on-brand)">{{ t.network.diagramYou }}</text>
+              </view>
+            </view>
+            <text :style="nativeLabelStyle(158, 'var(--v5-brand)', 9)">{{ myRankText }}</text>
+            <text :style="nativeLabelStyle(118, 'var(--v5-brand)', 7)">{{ t.network.badgeDirect }}</text>
+            <text :style="nativeLabelStyle(8, 'var(--v5-nex)', 7)">{{ t.network.badgeExtended }}</text>
+          </view>
+          <!-- #endif -->
+          <!-- #ifndef APP-PLUS -->
           <svg viewBox="0 0 360 360" class="block w-full" preserveAspectRatio="xMidYMid meet" style="width: 100%">
             <defs>
               <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
@@ -70,8 +117,23 @@
               stroke-width="0.6"
             />
 
-            <!-- member nodes -->
-            <g v-for="p in plotted" :key="p.m.id" class="cursor-pointer" @click="selected = p.m">
+            <!-- member nodes — each is a real focusable button. The orb graphic stays
+                 the layout; role/tabindex/aria-label + explicit keydown make every node
+                 reachable and named. (SVGElement has no .click(), so the shared
+                 activation layer cannot synthesize activation here — globe.vue's
+                 established pattern: hand-written keydown with .prevent, which makes
+                 the platform layer yield via ev.defaultPrevented.) -->
+            <g
+              v-for="p in plotted"
+              :key="p.m.id"
+              class="nx-net-node cursor-pointer"
+              role="button"
+              tabindex="0"
+              :aria-label="nodeLabel(p)"
+              @click="selected = p.m"
+
+              @keydown.enter.prevent="selected = p.m" @keydown.space.prevent="selected = p.m"
+            >
               <circle v-if="pulseId === p.m.id" :cx="p.x" :cy="p.y" r="10">
                 <animate attributeName="r" values="4;18;4" dur="1s" repeatCount="1" />
                 <animate attributeName="opacity" values="0.6;0;0.6" dur="1s" repeatCount="1" />
@@ -86,8 +148,20 @@
               />
             </g>
 
-            <!-- center YOU node -->
-            <g>
+            <!-- center YOU node — also a real focusable control. The member orbs
+                 were named, but the root node stayed a bare graphic: with 0 members
+                 it is the only node on screen, so a keyboard/screen-reader user
+                 could not reach the page's declared core action at all (BUG 96).
+                 Same SVGElement constraint as the orbs: hand-written keydown. -->
+            <g
+              class="nx-net-node cursor-pointer"
+              role="button"
+              tabindex="0"
+              :aria-label="selfNodeLabel"
+              @click="openSelf"
+
+              @keydown.enter.prevent="openSelf" @keydown.space.prevent="openSelf"
+            >
               <circle cx="180" cy="180" r="14" fill="var(--v5-brand)" />
               <SvgText x="180" y="181" text-anchor="middle" dominant-baseline="middle" font-family="var(--font-v5)" font-weight="600" font-size="11" fill="var(--v5-on-brand)">{{ t.network.diagramYou }}</SvgText>
               <SvgText x="180" y="158" text-anchor="middle" font-family="var(--font-v5)" font-weight="600" font-size="9" fill="color-mix(in srgb, var(--v5-brand) 85%, transparent)" letter-spacing="1.5">{{ myRankText }}</SvgText>
@@ -97,6 +171,7 @@
             <SvgText x="180" y="118" text-anchor="middle" font-family="var(--font-jet-mono)" font-size="7" fill="color-mix(in srgb, var(--v5-brand) 85%, transparent)" letter-spacing="1.5">{{ t.network.badgeDirect }}</SvgText>
             <SvgText x="180" y="8" text-anchor="middle" font-family="var(--font-jet-mono)" font-size="7" fill="color-mix(in srgb, var(--v5-nex) 85%, transparent)" letter-spacing="1.5">{{ t.network.badgeExtended }}</SvgText>
           </svg>
+          <!-- #endif -->
 
           <!-- Legend -->
           <view class="flex items-center justify-center" :style="legendWrapStyle">
@@ -121,7 +196,7 @@
       <!-- Member detail bottom sheet -->
       <view v-if="selected" class="nx-net-sheet-wrap" role="dialog" aria-modal="true">
         <view class="nx-net-scrim" @click="selected = null" />
-        <view class="nx-net-sheet" :style="sheetStyle">
+        <view class="nx-glass-sheet nx-net-sheet" :style="sheetStyle">
           <view class="flex items-start justify-between">
             <view class="flex items-center" style="gap: 12px">
               <view class="rounded-full grid place-items-center" :style="sheetAvatarStyle">
@@ -136,7 +211,7 @@
                 </view>
               </view>
             </view>
-            <view class="grid place-items-center active:opacity-60" :style="sheetCloseStyle" @click="selected = null">
+            <view class="grid place-items-center active:opacity-60" :style="sheetCloseStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="selected = null"  @keydown.enter.prevent="selected = null" @keydown.space.prevent="selected = null">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </view>
           </view>
@@ -158,7 +233,7 @@
             <text>{{ t.network.title }}: </text>
             <text :style="{ color: 'var(--v5-ink)' }">{{ memberRankTitle(selected) }}</text>
             <text> · {{ t.network.status }}: </text>
-            <text :style="{ color: statusColor(selected.status) }">{{ memberStatusText(selected.status) }}</text>
+            <text :style="{ color: statusColor(selected.status) }">{{ selected.status }}</text>
           </view>
         </view>
       </view>
@@ -176,10 +251,12 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNetwork, type NetworkMember, type MemberStatus } from "@/store/network";
 import { useVRank } from "@/store/v-rank";
-import { rankTitle } from "@/lib/v-rank-copy";
+import { rankTitle, rankLabel } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { remoteApiEnabled } from "@/api/runtime";
+import { onShow } from "@dcloudio/uni-app";
+import { navTo } from "@/lib/route";
 
 const VIEW = 360;
 const CENTER = VIEW / 2;
@@ -199,12 +276,14 @@ interface Plotted {
 const t = useT();
 const network = useNetwork();
 const vRank = useVRank();
-const vState = vRank;
-const isZh = computed(() => useLocaleStore().code === "zh");
+const locale = useLocaleStore();
 
 const members = computed(() => network.members);
 const myRank = computed(() => vRank.myRank);
-const myRankText = computed(() => remoteApiEnabled && vRank.ladder.length === 0 ? "—" : `V${myRank.value}`);
+// Unavailable only when this account has never produced a projection. A
+// background re-read keeps the confirmed snapshot on screen (BUG 63).
+const metricsUnavailable = computed(() => remoteApiEnabled && !network.hasRemoteSnapshot);
+const myRankText = computed(() => remoteApiEnabled && !vRank.remoteReady ? "—" : `V${myRank.value}`);
 const selected = ref<NetworkMember | null>(null);
 const pulseId = ref<string | null>(null);
 let pulseTimer: ReturnType<typeof setInterval> | null = null;
@@ -213,7 +292,7 @@ let pulseCursor = 0;
 // page-level interval (P-034): deterministic decorative pulse every 1.2s.
 // It never fabricates a member or metric and does not use client randomness.
 onMounted(() => {
-  if (remoteApiEnabled) void network.refreshCanonicalNetwork();
+  if (remoteApiEnabled) void network.ensureCanonicalNetwork();
   pulseTimer = setInterval(() => {
     const pool = members.value.filter((m) => m.status === "active");
     if (pool.length === 0) return;
@@ -221,6 +300,9 @@ onMounted(() => {
     pulseCursor += 1;
     pulseId.value = pick.id;
   }, 1200);
+});
+onShow(() => {
+  if (remoteApiEnabled) void network.ensureCanonicalNetwork();
 });
 onUnmounted(() => {
   if (pulseTimer) clearInterval(pulseTimer);
@@ -248,6 +330,26 @@ const plotted = computed<Plotted[]>(() => {
 });
 const directPlotted = computed(() => plotted.value.filter((p) => p.kind === "direct"));
 
+// #ifdef APP-PLUS
+function nativePosition(x: number, y: number): CSSProperties {
+  return { position: "absolute", left: `${x / VIEW * 100}%`, top: `${y / VIEW * 100}%` };
+}
+function nativeNodeStyle(x: number, y: number, size = 32): CSSProperties {
+  return { ...nativePosition(x, y), width: `${size}px`, height: `${size}px`, display: "flex", alignItems: "center", justifyContent: "center", transform: "translate(-50%, -50%)" };
+}
+function nativeOrbitStyle(radius: number, extended: boolean): CSSProperties {
+  const diameter = `${radius * 2 / VIEW * 100}%`;
+  return { ...nativePosition(CENTER, CENTER), width: diameter, height: diameter, borderRadius: "50%", border: `1px ${extended ? "dashed" : "solid"} ${extended ? EXTENDED_COLOR : DIRECT_COLOR}`, opacity: 0.18, transform: "translate(-50%, -50%)", pointerEvents: "none" };
+}
+function nativeConnectionStyle(p: Plotted): CSSProperties {
+  const dx = p.x - CENTER, dy = p.y - CENTER;
+  return { ...nativePosition(CENTER, CENTER), width: `${Math.hypot(dx, dy) / VIEW * 100}%`, height: "1px", background: p.m.status === "active" ? DIRECT_COLOR : "var(--v5-ink-4)", opacity: p.m.status === "active" ? 0.3 : 0.06, transform: `rotate(${Math.atan2(dy, dx)}rad)`, transformOrigin: "0 50%", pointerEvents: "none" };
+}
+function nativeLabelStyle(y: number, color: string, size: number): CSSProperties {
+  return { ...nativePosition(CENTER, y), transform: "translate(-50%, -100%)", color, fontSize: `${size}px`, fontFamily: "var(--font-jet-mono)", letterSpacing: "1.5px", whiteSpace: "nowrap", pointerEvents: "none" };
+}
+// #endif
+
 const directCount = computed(() => members.value.filter((m) => m.layer === 1).length);
 const activeCount = computed(() => members.value.filter((m) => m.status === "active").length);
 const idleCount = computed(() => members.value.filter((m) => m.status === "idle").length);
@@ -257,23 +359,34 @@ const idleSuffixText = computed(() => fmt(t.value.network.idleSuffix, { n: idleC
 function daysJoined(m: NetworkMember): number {
   return Math.floor((Date.now() - m.joinedAt) / 86400000);
 }
-// 头衔显示名收在 lib/v-rank-copy(中文界面用中文头衔;档位表由 store 给,不直读 MOCK-ONLY 的 V_RANKS)
+// 头衔显示名收在 lib/v-rank-copy，档位表只读取 canonical store projection。
 function memberRankTitle(m: NetworkMember): string {
-  return rankTitle(m.vRank, isZh.value, vState.ladder);
+  return rankTitle(m.vRank, locale.code, vRank.ladder);
+}
+// Orb nodes are the only way into a member's detail sheet; name each one with the
+// member, their rank and the relation (direct / extended) so a screen reader user
+// can pick a node without seeing the graphic. rankLabel always carries `V{n}` —
+// rankTitle alone renders empty when the ladder has not loaded (remote mode).
+// 中心「你」节点的可访问名称与激活行为。它不打开成员详情(自己没有 NetworkMember 行),
+// 而是进入「我的等级」——这是根节点在页面上唯一有意义的动作。名称里的 {n} 是**完整的**
+// 等级文本(myRankText 已含 V 前缀);词典里不得再写 V{n},否则读屏会把 V0 念成 VV0
+// (zentao #222)。等级未就绪时用 — 占位,绝不产出空名(空 aria-label 等于没有可访问名称)。
+const selfNodeLabel = computed(() => fmt(t.value.network.selfNodeLabel, { n: myRankText.value }));
+function openSelf() {
+  void navTo("/pages/team/rank");
+}
+
+function nodeLabel(p: Plotted): string {
+  const relation = p.kind === "direct" ? t.value.network.badgeDirect : t.value.network.badgeExtended;
+  return `${p.m.name} · ${rankLabel(p.m.vRank, locale.code, vRank.ladder)} · ${relation}`;
 }
 function statusColor(status: MemberStatus): string {
   return status === "active" ? "var(--v5-brand)" : status === "idle" ? "var(--v5-warning)" : "var(--v5-ink-4)";
 }
-function memberStatusText(status: MemberStatus): string {
-  return status === "active" ? t.value.network.activeNow
-    : status === "idle" ? t.value.publicCopy.memberIdle
-    : status === "offline" ? t.value.earn.offline
-    : t.value.uiChrome.unavailable;
-}
 
 // ─── styles ───
 // Filled stat tile, no border (single visual difference).
-const metricCardStyle: CSSProperties = { background: "var(--v5-surface)", borderRadius: "16px", padding: "12px" };
+const metricCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderRadius: "var(--nx-glass-radius)", padding: "12px" };
 const errorStateStyle: CSSProperties = { padding: "14px", borderRadius: "14px", background: "var(--v5-warning-soft)", color: "var(--v5-ink)" };
 const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "grid", placeItems: "center", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink-2)" };
 const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
@@ -303,12 +416,12 @@ const legendWrapStyle: CSSProperties = { padding: "4px 12px 12px", gap: "16px", 
 // SKILL leading-relaxed = 1.625 (原版 .text-[12px] leading-relaxed; was 1.6)
 const footerStyle: CSSProperties = { padding: "0 4px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
 
-const sheetStyle: CSSProperties = {
+const sheetStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   width: "100%",
-  background: "var(--v5-surface)",
-  borderRadius: "16px 16px 0 0",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius) var(--nx-glass-radius) 0 0",
   padding: "16px",
-  borderTop: "1px solid var(--v5-border)",
+  borderTop: "none",
 };
 const sheetAvatarStyle: CSSProperties = { width: "48px", height: "48px", background: "var(--v5-surface-2)" };
 function sheetBadgeStyle(m: NetworkMember): CSSProperties {
@@ -332,9 +445,26 @@ function sheetStatValStyle(color: string): CSSProperties {
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。
 useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () => { selected.value = null; });
+
+
 </script>
 
 <style scoped>
+/* #ifdef APP-PLUS */
+.nx-net-native-pulse {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 1px solid;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: nx-net-native-pulse 1s;
+}
+@keyframes nx-net-native-pulse {
+  0%, 100% { transform: scale(0.4); opacity: 0.6; }
+  50% { transform: scale(1.8); opacity: 0; }
+}
+/* #endif */
 .nx-net-sheet-wrap {
   position: fixed;
   inset: 0;
@@ -352,5 +482,15 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () 
 .nx-net-sheet {
   position: relative;
   z-index: 1;
+}
+/* Orb nodes are focusable buttons now. outline follows the node's bounding box,
+   so the focused member is visible without redrawing the graphic. */
+.nx-net-node {
+  outline: none;
+}
+.nx-net-node:focus,
+.nx-net-node:focus-visible {
+  outline: 2px solid var(--v5-brand);
+  outline-offset: 3px;
 }
 </style>

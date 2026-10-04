@@ -18,7 +18,7 @@
   <view v-if="spin.open" class="lss-root" role="dialog" aria-modal="true">
     <view class="lss-backdrop nx-sheet-fade-in" @click="onBackdrop" />
 
-    <view class="lss-panel nx-sheet-slide-up" @click.stop>
+    <view class="nx-glass-sheet lss-panel nx-sheet-slide-up" @click.stop>
       <!-- header -->
       <view class="lss-head">
         <view class="lss-head-l">
@@ -145,13 +145,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onUnmounted, watch } from "vue";
-import type { CSSProperties } from "vue";
-import {
-  useLuckySpin,
-  SPIN_PRIZES,
-  type SpinPrize,
-} from "@/store/lucky-spin";
+import { navTo } from "@/lib/route";
+import { computed, ref, onUnmounted, watch, type CSSProperties } from "vue";
+
+import { useLuckySpin, SPIN_PRIZES, type SpinPrize } from "@/store/lucky-spin";
 import { postMoneyBill } from "@/lib/money-receipt";
 import { mockServerNow } from "@/store/server-time";
 import { toast, confirm, netError } from "@/store/ui";
@@ -160,6 +157,7 @@ import { fmt } from "@/i18n/format";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useApp } from "@/store/app";
+import { escapeSvgText } from "@/lib/svg-text";
 
 const R = 94; // wheel radius (viewBox 200)
 const CX = 100;
@@ -242,7 +240,7 @@ const slicesSvg = computed(() =>
         `<g opacity="${s.dim ? 0.32 : 1}">` +
         `<path d="${s.path}" fill="${s.fill}" stroke="var(--v5-bg)" stroke-width="1.5" />` +
         `<text x="${s.mid.x}" y="${s.mid.y}" text-anchor="middle" dominant-baseline="middle" ` +
-        `style="font-size:12px;font-weight:600;fill:var(--v5-ink);font-family:var(--font-v5);">${lsShort(s.sp)}</text>` +
+        `style="font-size:12px;font-weight:600;fill:var(--v5-ink);font-family:var(--font-v5);">${escapeSvgText(lsShort(s.sp))}</text>` +
         `</g>`,
     )
     .join(""),
@@ -349,9 +347,18 @@ function onWheelTransitionEnd(e: Event) {
   settleSpin();
 }
 
+const spinSubmitting = ref(false);
 async function doSpin(skipConfirm = false) {
+  if (spinSubmitting.value) return;
+  spinSubmitting.value = true;
+  try { await executeSpin(skipConfirm); }
+  finally { spinSubmitting.value = false; }
+}
+
+async function executeSpin(skipConfirm = false) {
   if (spin.availableSpins() <= 0) return;
   const generation = accountGeneration;
+  const eventCode = spin.activeEventCode;
   const usingBonus = !spin.hasFreeSpinToday();
 
   // bonus 票为稀缺资源 → 二次确认;免费次数零门槛不弹(转化优先)。
@@ -383,9 +390,9 @@ async function doSpin(skipConfirm = false) {
   }
 
   if (remoteApiEnabled) {
-    const key = pendingSpinKey ?? createSpinIdempotencyKey();
-    pendingSpinKey = key;
-    const result = await spin.spinRemote("evt-spring-spin", key);
+    const key = pendingSpinKeys.get(eventCode) ?? createSpinIdempotencyKey();
+    pendingSpinKeys.set(eventCode, key);
+    const result = await spin.spinRemote(eventCode, key);
     if (generation !== accountGeneration) return;
     if (result.stale) return;
     if (!result.ok) {
@@ -400,7 +407,7 @@ async function doSpin(skipConfirm = false) {
       });
       return;
     }
-    pendingSpinKey = null;
+    pendingSpinKeys.delete(eventCode);
     clearSettleTimer();
     settleTimer = setTimeout(() => {
       settleTimer = null;
@@ -427,12 +434,17 @@ async function doSpin(skipConfirm = false) {
   }, 3650);
 }
 
-let pendingSpinKey: string | null = null;
+const pendingSpinKeys = new Map<string, string>();
 watch(() => app.accountKey, () => {
   accountGeneration += 1;
-  pendingSpinKey = null;
+  pendingSpinKeys.clear();
   clearSettleTimer();
 });
+watch(() => [spin.activeEventCode, spin.open], () => {
+  accountGeneration += 1;
+  clearSettleTimer();
+  netError.hide();
+}, { flush: "sync" });
 let spinKeySequence = 0;
 function createSpinIdempotencyKey(): string {
   const randomUuid = globalThis.crypto?.randomUUID;
@@ -468,7 +480,7 @@ function onBackdrop() {
 
 function goEarnTicket() {
   spin.closeSheet();
-  uni.navigateTo({ url: "/pages/daily/daily", fail: () => {} });
+  navTo("/pages/daily/daily");
 }
 
 // 卸载时清兜底 timer,防 setState on unmounted(组件级 → onUnmounted,P-021)
@@ -477,6 +489,8 @@ onUnmounted(() => clearSettleTimer());
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。
 useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
+
+
 </script>
 
 <style scoped>
@@ -492,7 +506,7 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
   backdrop-filter: blur(10px) saturate(150%);
   -webkit-backdrop-filter: blur(10px) saturate(150%);
 }
-.lss-panel {
+.lss-panel { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge);
   position: absolute;
   left: 0;
   right: 0;
@@ -500,10 +514,10 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
   z-index: 800;
   max-height: calc(100% - 24px);
   overflow-y: auto;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  background: var(--v5-surface);
-  border-top: 1px solid var(--v5-border);
+
+
+  background: var(--nx-glass-fill);
+  border: none;
   padding: 18px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 32px);
 }

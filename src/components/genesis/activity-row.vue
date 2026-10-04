@@ -13,7 +13,7 @@
     </view>
     <view class="flex-1 min-w-0">
       <view class="flex items-center" style="gap: 6px">
-        <text v-if="e.tokenId !== undefined" :style="tokenStyle">#{{ e.tokenId }}</text>
+        <text v-if="e.tokenId !== undefined" :style="tokenStyle" :title="String(e.tokenId)" :aria-label="String(e.tokenId)">#{{ displayGenesisHoldingId(e.tokenId) }}</text>
         <text :style="kindBadgeStyle">{{ kindLabel }}</text>
       </view>
       <text class="block truncate" :style="addrStyle">{{ e.description ?? `${fromLabel} → ${toLabel}` }}</text>
@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -36,7 +37,7 @@ import { fmt } from "@/i18n/format";
 export interface ActivityEvent {
   id: string;
   kind: "sale" | "list" | "transfer" | "mint";
-  tokenId?: number;
+  tokenId?: string | number;
   priceUSDT?: number;
   from: string;
   to: string;

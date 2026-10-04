@@ -8,13 +8,13 @@
 <template>
   <text class="nx-vbadge font-mono-tabular" :style="badgeStyle">
     <text :style="vTextStyle">V{{ v }}</text>
-    <text v-if="showTitle" class="font-display" :style="titleStyle">{{ rankTitle(v, isZh, vState.ladder) }}</text>
+    <text v-if="showTitle && vRank.remoteReady" class="font-display" :style="titleStyle">{{ rankTitle(v, locale.code, vRank.ladder) }}</text>
   </text>
 </template>
 
 <script setup lang="ts">
 import { computed, type CSSProperties } from "vue";
-import { V_RANKS, useVRank, type VRank } from "@/store/v-rank";
+import { useVRank, type VRank } from "@/store/v-rank";
 import { rankTitle } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
 
@@ -59,10 +59,8 @@ const SIZES = {
   lg: { padding: "4px 10px", fontSize: "13px", gap: "6px" },
 } as const;
 
-// 颜色档位仍取本地表(纯视觉,与权威数据无关);**显示名**走 store 的 ladder + 语言
-const def = computed(() => V_RANKS[props.v]);
-const vState = useVRank();
-const isZh = computed(() => useLocaleStore().code === "zh");
+const vRank = useVRank();
+const locale = useLocaleStore();
 const c = computed(() => COLORS[props.v]);
 const sz = computed(() => SIZES[props.size]);
 const isGradient = computed(() => c.value.bg.startsWith("linear"));

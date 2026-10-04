@@ -4,7 +4,7 @@
   tab-switched → a share card (brand + profile + VBadge + variant hero stat +
   secondary stats + achievement chips + referral code/QR) → native-share CTA →
   6 destination buttons → poster tip. Reads app (user/earnings/devices),
-  profile (displayName), v-rank (myRank + V_RANKS), network (totalMembers),
+  profile (displayName), v-rank (myRank + canonical ladder), network (totalMembers),
   points (streaks). Reuses team/v-badge.vue. navigator.share → uni.share? +
   setClipboardData fallback (P-028). Gradient literals → token color-mix.
   SetPageHeader → SubPageHeader. SSR mounted-guard dropped. Wrapped in
@@ -18,34 +18,22 @@
         <view v-if="remoteApiEnabled && remoteError" :style="remoteErrorStyle">
           <text class="block" style="font-weight: 600">{{ t.network.projectionErrorTitle }}</text>
           <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.network.projectionErrorDesc }}</text>
-          <view role="button" tabindex="0" :style="remoteRetryStyle" @click="refreshRemoteProof"><text>{{ t.network.retry }}</text></view>
+          <view role="button" tabindex="0" :style="remoteRetryStyle" @click="refreshRemoteProof"  @keydown.enter.stop.prevent="refreshRemoteProof" @keydown.space.stop.prevent="refreshRemoteProof"><text>{{ t.network.retry }}</text></view>
         </view>
 
       <view :style="bodyStyle">
         <!-- Variant tabs -->
         <view>
           <text class="block font-mono-tabular" :style="variantLabelStyle">{{ t.proof.variantLabel }}</text>
-          <view class="grid grid-cols-3" :style="variantTabsStyle">
-            <view
-              v-for="v in VARIANTS"
-              :key="v"
-              class="grid place-items-center active:scale-[0.97]"
-              :style="variantPillStyle(v)"
-              role="button"
-              tabindex="0"
-              :aria-label="t.proof.variants[v]"
-              @click="variant = v"
-            >
-              <text :style="variantPillTextStyle(v)" style="pointer-events: none">{{ t.proof.variants[v] }}</text>
-            </view>
-          </view>
+          <GlassSegments semantics="radio" v-model="variant" :options="variantOptions" :label="t.proof.variantLabel" style="margin-top: 8px" />
         </view>
 
         <!-- Share card -->
-        <view v-if="!remoteApiEnabled || remoteSnapshot" class="relative overflow-hidden" :style="shareCardStyle">
+        <view v-if="!remoteApiEnabled || remoteSnapshot" class="nx-glass-card relative overflow-hidden" :style="shareCardStyle">
+          <text v-if="!remoteApiEnabled || remoteSnapshot?.sourceEnvironment === 'SANDBOX'" class="block" style="margin-bottom: 12px; font-size: 12px; color: var(--v5-ink-3)">{{ t.proof.shareDemo }}</text>
           <!-- brand -->
           <view class="flex items-center" style="gap: 8px">
-            <BrandLockup />
+            <BrandLockup :height="40" />
             <text style="margin-left: auto; font-size: 12px; letter-spacing: 0.18em; color: var(--v5-ink-3)">{{ t.uiChrome.proofOfContribution }}</text>
           </view>
 
@@ -65,14 +53,13 @@
           <view v-if="variant === 'earnings'" style="margin-top: 16px">
             <text class="block font-mono-tabular" :style="heroKickerStyle('var(--v5-brand)')">{{ t.proof.totalEarned }}</text>
             <text class="block font-display tabular-nums" :style="heroBigStyle">${{ earningsTotalText }}</text>
-            <ProofSparkline />
           </view>
           <view v-else-if="variant === 'streak'" style="margin-top: 16px">
             <text class="block font-mono-tabular" :style="heroKickerStyle('var(--v5-brand-2)')">{{ t.proof.longestStreak }}</text>
             <view class="flex items-baseline" style="margin-top: 4px; gap: 6px">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>
-              <text class="font-display tabular-nums" :style="heroBigInlineStyle">{{ longestOrCurrent }}</text>
-              <text :style="heroUnitStyle">{{ t.proof.daysShort }}</text>
+              <text class="font-display tabular-nums" :style="heroBigInlineStyle">{{ streakHeroValue }}</text>
+              <text v-if="longestOrCurrent !== null" :style="heroUnitStyle">{{ t.proof.daysShort }}</text>
             </view>
           </view>
           <view v-else style="margin-top: 16px">
@@ -84,7 +71,7 @@
           </view>
 
           <!-- secondary stats -->
-          <view class="grid nx-proof-stats" style="margin-top: 16px; gap: 8px">
+          <view class="grid grid-cols-3" style="margin-top: 16px; gap: 8px">
             <view :style="miniStatStyle">
               <text class="block truncate" :style="miniLabelStyle">{{ t.proof.activeDays }}</text>
               <text class="block font-display tabular-nums" :style="miniValueStyle">{{ activeDays === null ? "—" : activeDays }}</text>
@@ -93,7 +80,7 @@
               <text class="block truncate" :style="miniLabelStyle">{{ t.proof.devices }}</text>
               <text class="block font-display tabular-nums" :style="miniValueStyle">{{ onlineDevices === null ? "—" : onlineDevices }}</text>
             </view>
-            <view class="nx-proof-rank-stat" :style="miniStatStyle">
+            <view :style="miniStatStyle">
               <text class="block truncate" :style="miniLabelStyle">{{ topPctLabel }}</text>
               <text class="block font-display tabular-nums" :style="miniValueSmallStyle">{{ topPctText }}</text>
             </view>
@@ -114,7 +101,7 @@
           <view class="flex items-center" :style="refBlockStyle">
             <view class="flex-1 min-w-0">
               <text class="block" :style="refLabelStyle">{{ t.proof.refCodeLabel }}</text>
-              <text class="block font-display" :style="refCodeStyle">{{ displayReferralCode(refCode) }}</text>
+              <text class="block font-display" :style="refCodeStyle">{{ refCode }}</text>
               <view
                 class="inline-flex items-center active:opacity-70 font-mono-tabular"
                 :style="refLinkStyle"
@@ -122,12 +109,14 @@
                 tabindex="0"
                 :aria-label="t.proof.shareDestinations.copy"
                 @click="copyLink"
+
+                @keydown.enter.stop.prevent="copyLink" @keydown.space.stop.prevent="copyLink"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-                <text style="margin-left: 4px; pointer-events: none">{{ t.share.copyLink }}</text>
+                <text style="margin-left: 4px; pointer-events: none">{{ referralLink }}</text>
               </view>
             </view>
-            <view v-if="referralLink" class="grid place-items-center shrink-0" :style="qrBoxStyle">
+            <view class="grid place-items-center shrink-0" :style="qrBoxStyle">
               <view class="grid" :style="qrGridStyle">
                 <view v-for="(on, i) in qrCells" :key="i" :style="qrCellStyle(on)" />
               </view>
@@ -144,6 +133,8 @@
             tabindex="0"
             :aria-label="t.proof.shareNative"
             @click="nativeShare"
+
+            @keydown.enter.stop.prevent="nativeShare" @keydown.space.stop.prevent="nativeShare"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></svg>
             <text style="margin-left: 8px; pointer-events: none" :style="nativeBtnTextStyle">{{ t.proof.shareNative }}</text>
@@ -162,6 +153,8 @@
             tabindex="0"
             :aria-label="d.label"
             @click="d.onClick"
+
+            @keydown.enter.stop.prevent="d.onClick" @keydown.space.stop.prevent="d.onClick"
           >
             <view class="grid place-items-center" :style="destIconStyle(d.color)" style="pointer-events: none">
               <view v-html="d.icon" />
@@ -190,21 +183,20 @@
 </template>
 
 <script setup lang="ts">
-import BrandLockup from "@/components/brand-lockup.vue";
-import { displayReferralCode, loadPosterBrand } from "@/lib/brand";
-import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onUnload } from "@dcloudio/uni-app";
 import qrcode from "qrcode-generator";
 import AppChassis from "@/components/app-chassis.vue";
+import BrandLockup from "@/components/brand-lockup.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import VBadge from "@/components/team/v-badge.vue";
-import ProofSparkline from "@/components/me/proof-sparkline.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { useProfile } from "@/store/profile";
 import { buildShareLink } from "@/lib/share";
+import { nexGridBrandText } from "@/lib/brand-copy";
 import { isDeviceOnline } from "@/lib/hashpower";
 import { useVRank } from "@/store/v-rank";
 import { rankTitle } from "@/lib/v-rank-copy";
@@ -214,12 +206,9 @@ import { useNexFaucet } from "@/store/nex-faucet";
 import { proofApi, remoteApiEnabled } from "@/api/runtime";
 import type { ProofSnapshot } from "@/api/proof-api";
 import { proofStreakFacts } from "@/lib/proof-streak";
+import { proofPosterText } from "@/lib/proof-poster-values";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
-import {
-  captureCommerceSandboxRun,
-  isCurrentCommerceSandboxScope,
-  subscribeCurrentCommerceSandboxRun,
-} from "@/api/order-api";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
 type Variant = "earnings" | "streak" | "network";
 const VARIANTS: Variant[] = ["earnings", "streak", "network"];
@@ -228,11 +217,21 @@ const t = useT();
 const app = useApp();
 const profile = useProfile();
 const vRank = useVRank();
-const isZh = computed(() => useLocaleStore().code === "zh");
+const locale = useLocaleStore();
 const network = useNetwork();
 const faucet = useNexFaucet();
 
 const variant = ref<Variant>("earnings");
+/** 单选组的左右方向键:移一格并选上,焦点跟到新选中项(zentao #94,与 earn.vue moveRange 同形)。 */
+function moveVariant(index: number, delta: number): void {
+  const next = VARIANTS[(index + delta + VARIANTS.length) % VARIANTS.length];
+  if (!next) return;
+  variant.value = next;
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus();
+  });
+}
 const exportingPoster = ref(false);
 const remoteSnapshot = ref<ProofSnapshot | null>(null);
 const remoteError = ref(false);
@@ -256,11 +255,11 @@ async function refreshRemoteProof() {
   remoteError.value = false;
   const expectedAccount = app.accountKey;
   const accountScope = captureAccountScope();
-  const runScope = captureCommerceSandboxRun();
+  const runScope = captureRuntimeRevision();
   const current = () => remoteMounted && request === remoteRequest
     && expectedAccount === app.accountKey
     && isCurrentAccountScope(accountScope)
-    && isCurrentCommerceSandboxScope(runScope);
+    && isCurrentRuntimeRevision(runScope);
   try {
     const value = await proofApi.snapshot();
     if (current()) remoteSnapshot.value = value;
@@ -276,7 +275,7 @@ watch(() => String(app.accountKey), () => {
   remoteError.value = false;
   void refreshRemoteProof();
 });
-const unsubscribeProofRun = subscribeCurrentCommerceSandboxRun(() => {
+const unsubscribeProofRun = subscribeRuntimeRevision(() => {
   if (!remoteApiEnabled || !remoteMounted) return;
   clearRemoteProof();
   void refreshRemoteProof();
@@ -297,8 +296,8 @@ const onlineDevices = computed(
   () => remoteApiEnabled ? remoteSnapshot.value?.onlineDevices ?? null
     : app.visibleDevices.filter((d) => d.activatedAt !== null && isDeviceOnline(d, Date.now())).length,
 );
-const profileName = computed(() => profile.displayName);
-const myRank = computed(() => remoteApiEnabled && vRank.ladder.length === 0 ? null : vRank.myRank);
+const profileName = computed(() => nexGridBrandText(profile.displayName));
+const myRank = computed(() => remoteApiEnabled && !vRank.remoteReady ? null : vRank.myRank);
 const totalMembers = computed<number | null>(() => remoteApiEnabled ? remoteSnapshot.value?.team.totalMembers ?? null : network.totalMembers);
 const streakFacts = computed(() => proofStreakFacts(
   remoteApiEnabled,
@@ -309,6 +308,11 @@ const streakFacts = computed(() => proofStreakFacts(
 const streak = computed<number | null>(() => streakFacts.value.current);
 const longestStreak = computed<number | null>(() => streakFacts.value.longest);
 const longestOrCurrent = computed<number | null>(() => streakFacts.value.display);
+// A streak card is a public artifact: an unavailable server fact must read as
+// unavailable rather than rendering the unit alone ("d" with no number).
+const streakHeroValue = computed(() => longestOrCurrent.value === null
+  ? t.value.proof.valueUnavailable
+  : String(longestOrCurrent.value));
 
 const joined = computed(() => {
   const raw = remoteApiEnabled ? remoteSnapshot.value?.joinedAt : app.user.joinedAt;
@@ -324,30 +328,28 @@ const refCode = computed(() => remoteApiEnabled ? remoteSnapshot.value?.referral
 const referralLink = computed(() => refCode.value === "—" ? "" : buildShareLink(refCode.value));
 
 const topPct = computed(() => remoteApiEnabled ? remoteSnapshot.value?.topPercentile ?? null : null);
-const topPctText = computed(() => topPct.value === null ? "Top —" : `Top ${topPct.value}%`);
+const topPctText = computed(() => topPct.value === null ? "—" : `Top ${topPct.value}%`);
 
 const shareText = computed(() => {
   if (variant.value === "streak")
-    return `🔥 ${longestOrCurrent.value ?? "—"}-day streak on UVEL. Daily check-ins = passive NEX. Join me: ${referralLink.value}`;
+    return longestOrCurrent.value === null
+      ? `🔥 My UVEL streak is not available right now. Daily check-ins = passive NEX. Join me: ${referralLink.value}`
+      : `🔥 ${longestOrCurrent.value}-day streak on UVEL. Daily check-ins = passive NEX. Join me: ${referralLink.value}`;
   if (variant.value === "network")
-    return `🌐 My UVEL network is ${totalMembers.value ?? "—"} strong across 7 layers. Compound earnings from each. Join: ${referralLink.value}`;
-  return `💸 Earned $${earningsTotalText.value} on UVEL in ${activeDays.value ?? "—"} days. Join my network: ${referralLink.value}`;
+    return `🌐 My UVEL network has ${totalMembers.value ?? "—"} members. Explore UVEL: ${referralLink.value}`;
+  return `💸 Earned ${earningsTotalText.value} on UVEL in ${activeDays.value ?? "—"} days. Join my network: ${referralLink.value}`;
 });
 
 // ── derived labels ──
 const memberSinceText = computed(() => fmt(t.value.proof.memberSince, { m: joined.value }));
-const topPctLabel = computed(() => topPct.value === null ? t.value.proof.topPct.replace("{n}", "—") : t.value.proof.topPct.replace("{n}", String(topPct.value)));
-const vRankChip = computed(() => myRank.value === null ? "V—" : fmt(t.value.proof.badges.vRank, { n: String(myRank.value), title: rankTitle(myRank.value, isZh.value, vRank.ladder) }));
+const topPctLabel = computed(() => topPct.value === null ? t.value.proof.topPctUnavailable : t.value.proof.topPct.replace("{n}", String(topPct.value)));
+const vRankChip = computed(() => myRank.value === null ? "V—" : fmt(t.value.proof.badges.vRank, { n: String(myRank.value), title: rankTitle(myRank.value, locale.code, vRank.ladder) }));
 const streakChip = computed(() => fmt(t.value.proof.badges.streak, { n: String(longestOrCurrent.value ?? "—") }));
 const devicesChip = computed(() => fmt(t.value.proof.badges.devices, { n: String(onlineDevices.value ?? "—") }));
 const daysActiveChip = computed(() => fmt(t.value.proof.badges.daysActive, { n: String(activeDays.value ?? "—") }));
 
 // ── share actions (P-028: uni.share? + setClipboardData fallback) ──
 function nativeShare() {
-  if (!referralLink.value) {
-    toast.info(t.value.share.linkUnavailable);
-    return;
-  }
   const share = (uni as { share?: (o: unknown) => void }).share;
   if (typeof share === "function") {
     share({
@@ -364,17 +366,9 @@ function nativeShare() {
   }
 }
 function copyLink() {
-  if (!referralLink.value) {
-    toast.info(t.value.share.linkUnavailable);
-    return;
-  }
   copyText(referralLink.value, t.value.proof.copiedToast);
 }
 function copyShareText(networkName: string) {
-  if (!referralLink.value) {
-    toast.info(t.value.share.linkUnavailable);
-    return;
-  }
   copyText(shareText.value, t.value.proof.sharedToast, `Open ${networkName} and paste`);
 }
 const POSTER_WIDTH = 1080;
@@ -382,25 +376,15 @@ const POSTER_HEIGHT = 1350;
 
 async function downloadPng() {
   if (exportingPoster.value) return;
-  if (!referralLink.value) {
-    toast.info(t.value.share.linkUnavailable);
-    return;
-  }
-  const link = referralLink.value;
   exportingPoster.value = true;
   try {
-    await drawProofPoster(link);
+    await drawProofPoster();
     const tempFilePath = await exportProofCanvas();
-    if (referralLink.value !== link) {
-      toast.info(t.value.share.linkUnavailable);
-      return;
-    }
     if (typeof document !== "undefined") downloadProofOnH5(tempFilePath);
     else await saveProofToAlbum(tempFilePath);
     toast.success(t.value.proof.downloadToast, "");
   } catch {
-    if (referralLink.value !== link) toast.info(t.value.share.linkUnavailable);
-    else toast.error(t.value.proof.downloadErrorToast);
+    toast.error(t.value.proof.downloadErrorToast);
   } finally {
     exportingPoster.value = false;
   }
@@ -410,34 +394,33 @@ function copyText(data: string, title: string, desc = "") {
   toast.success(title, desc);
 }
 
-// ── QR payload remains the exact referral URL copied/shared by the actions. ──
+// ── QR payload is the exact referral URL shown beside it. ──
 const qrCode = computed(() => {
-  if (!referralLink.value) return null;
   const code = qrcode(0, "M");
   code.addData(referralLink.value, "Byte");
   code.make();
   return code;
 });
-const qrModuleCount = computed(() => qrCode.value?.getModuleCount() ?? 0);
+const qrModuleCount = computed(() => qrCode.value.getModuleCount());
 const qrCells = computed<boolean[]>(() => {
-  const code = qrCode.value;
-  if (!code) return [];
   const modules: boolean[] = [];
   for (let row = 0; row < qrModuleCount.value; row += 1) {
-    for (let col = 0; col < qrModuleCount.value; col += 1) modules.push(code.isDark(row, col));
+    for (let col = 0; col < qrModuleCount.value; col += 1) modules.push(qrCode.value.isDark(row, col));
   }
   return modules;
 });
 
-async function drawProofPoster(link: string): Promise<void> {
-  const logo = await loadPosterBrand();
-  if (referralLink.value !== link || !qrCode.value) throw new Error("SHARE_LINK_UNAVAILABLE");
+function drawProofPoster(): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
       const ctx = uni.createCanvasContext("proofPosterCanvas");
       ctx.setFillStyle("#07101f");
       ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
-      ctx.drawImage(logo, 72, 62, 264, 264 * 246 / 712);
+      ctx.setFillStyle("#b7ff3c");
+      ctx.fillRect(72, 72, 18, 76);
+      ctx.setFillStyle("#f7fbff");
+      ctx.setFontSize(54);
+      ctx.fillText("UVEL", 116, 128);
       ctx.setFillStyle("#9cabbd");
       ctx.setFontSize(24);
       ctx.fillText("PROOF OF CONTRIBUTION", 72, 204);
@@ -460,9 +443,9 @@ async function drawProofPoster(link: string): Promise<void> {
 
       ctx.setFillStyle("#9cabbd");
       ctx.setFontSize(24);
-      ctx.fillText(`${t.value.proof.activeDays}: ${activeDays.value}`, 124, 660);
-      ctx.fillText(`${t.value.proof.devices}: ${onlineDevices.value}`, 124, 706);
-      ctx.fillText(`${t.value.proof.teamMembers}: ${totalMembers.value}`, 124, 752);
+      ctx.fillText(`${t.value.proof.activeDays}: ${proofPosterText(activeDays.value)}`, 124, 660);
+      ctx.fillText(`${t.value.proof.devices}: ${proofPosterText(onlineDevices.value)}`, 124, 706);
+      ctx.fillText(`${t.value.proof.teamMembers}: ${proofPosterText(totalMembers.value)}`, 124, 752);
 
       drawPosterQr(ctx, 634, 438, 300);
       ctx.setFillStyle("#b7ff3c");
@@ -470,10 +453,10 @@ async function drawProofPoster(link: string): Promise<void> {
       ctx.fillText(t.value.proof.refCodeLabel, 124, 874);
       ctx.setFillStyle("#f7fbff");
       ctx.setFontSize(44);
-      ctx.fillText(displayReferralCode(refCode.value).slice(0, 32), 124, 930);
+      ctx.fillText(refCode.value.slice(0, 32), 124, 930);
       ctx.setFillStyle("#9cabbd");
       ctx.setFontSize(22);
-      ctx.fillText(t.value.share.scanTip, 124, 986);
+      ctx.fillText(referralLink.value.slice(0, 68), 124, 986);
       ctx.setFillStyle("#d9e4f2");
       ctx.setFontSize(24);
       ctx.fillText(t.value.proof.qrHint, 124, 1106);
@@ -491,14 +474,14 @@ function posterMetricLabel(): string {
 }
 
 function posterMetricValue(): string {
-  if (variant.value === "streak") return `${longestOrCurrent.value} ${t.value.proof.daysShort}`;
-  if (variant.value === "network") return String(totalMembers.value);
-  return `$${earningsTotalText.value}`;
+  if (variant.value === "streak") return longestOrCurrent.value === null
+    ? t.value.proof.valueUnavailable
+    : `${proofPosterText(longestOrCurrent.value)} ${t.value.proof.daysShort}`;
+  if (variant.value === "network") return proofPosterText(totalMembers.value);
+  return `${earningsTotalText.value}`;
 }
 
 function drawPosterQr(ctx: UniApp.CanvasContext, x: number, y: number, size: number) {
-  const code = qrCode.value;
-  if (!code) return;
   const quietModules = 4;
   const count = qrModuleCount.value;
   const moduleSize = Math.floor(size / (count + quietModules * 2));
@@ -508,7 +491,7 @@ function drawPosterQr(ctx: UniApp.CanvasContext, x: number, y: number, size: num
   ctx.setFillStyle("#07101f");
   for (let row = 0; row < count; row += 1) {
     for (let col = 0; col < count; col += 1) {
-      if (code.isDark(row, col)) {
+      if (qrCode.value.isDark(row, col)) {
         ctx.fillRect(x + (col + quietModules) * moduleSize, y + (row + quietModules) * moduleSize, moduleSize, moduleSize);
       }
     }
@@ -534,7 +517,7 @@ function exportProofCanvas(): Promise<string> {
 function downloadProofOnH5(tempFilePath: string) {
   const anchor = document.createElement("a");
   anchor.href = tempFilePath;
-  anchor.download = `uvel-proof-${displayReferralCode(refCode.value).replace(/[^A-Za-z0-9-]/g, "").replace(/^-+/, "") || "member"}.png`;
+  anchor.download = `nexgrid-proof-${refCode.value || "member"}.png`;
   anchor.rel = "noopener";
   document.body.appendChild(anchor);
   anchor.click();
@@ -601,21 +584,7 @@ function variantPillTextStyle(v: Variant): CSSProperties {
   const on = variant.value === v;
   return { fontSize: "12px", fontWeight: 600, color: on ? "var(--v5-on-brand)" : "var(--v5-ink-3)" };
 }
-const shareCardStyle = computed<CSSProperties>(() => {
-  // Proof "certificate" — single container (form b): the gradient fill is the
-  // poster look; the accent border is dropped (filled = no border). Gradient
-  // literals → token color-mix (lemon brand / tech-cyan / brand-2 / warning over
-  // a near-black surface; matches source intent, token-disciplined).
-  const grad: Record<Variant, string> = {
-    earnings:
-      "linear-gradient(135deg, color-mix(in srgb, var(--v5-brand) 18%, transparent) 0%, color-mix(in srgb, var(--v5-on-brand) 95%, transparent) 60%, color-mix(in srgb, var(--v5-tech-cyan) 16%, transparent) 100%)",
-    streak:
-      "linear-gradient(135deg, color-mix(in srgb, var(--v5-brand-2) 20%, transparent) 0%, color-mix(in srgb, var(--v5-on-brand) 95%, transparent) 60%, color-mix(in srgb, var(--v5-warning) 18%, transparent) 100%)",
-    network:
-      "linear-gradient(135deg, color-mix(in srgb, var(--v5-tech-cyan) 20%, transparent) 0%, color-mix(in srgb, var(--v5-on-brand) 95%, transparent) 60%, color-mix(in srgb, var(--v5-brand) 16%, transparent) 100%)",
-  };
-  return { marginTop: "12px", borderRadius: "16px", padding: "20px", background: grad[variant.value] };
-});
+const shareCardStyle: CSSProperties = { marginTop: "12px", padding: "20px" };
 const profileNameStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, color: "var(--v5-ink)" };
 const memberSinceStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
 function heroKickerStyle(color: string): CSSProperties {
@@ -637,7 +606,7 @@ const miniStatStyle: CSSProperties = {
   padding: "8px",
   textAlign: "center",
 };
-const miniLabelStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.02em", color: "var(--v5-ink-3)" };
+const miniLabelStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.16em", color: "var(--v5-ink-3)" };
 const miniValueStyle: CSSProperties = { marginTop: "2px", fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
 const miniValueSmallStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", fontWeight: 600, color: "var(--v5-ink)" };
 const chipsLabelStyle: CSSProperties = {
@@ -730,11 +699,7 @@ const tipBodyStyle: CSSProperties = {
   color: "color-mix(in srgb, var(--v5-warning) 85%, transparent)",
   lineHeight: 1.625,
 };
+
+import GlassSegments from "@/components/glass-segments.vue";
+const variantOptions = computed(() => VARIANTS.map(value => ({ value, label: t.value.proof.variants[value] })));
 </script>
-<style scoped>
-.nx-proof-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (max-width: 420px) {
-  .nx-proof-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .nx-proof-rank-stat { grid-column: span 2; }
-}
-</style>

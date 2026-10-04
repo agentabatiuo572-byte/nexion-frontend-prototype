@@ -1,17 +1,17 @@
-<!-- Show current purchase availability without exposing internal eligibility thresholds. -->
+<!-- 创世认购资格：只展示服务端新策略，不在客户端拼装资格条件。 -->
 <template>
-  <view v-if="open">
+  <view v-if="open" class="nx-elig-root" role="dialog" aria-modal="true" :aria-label="t.genesisEligibility.title">
     <transition name="nx-elig-fade">
-      <view v-if="open" class="nx-elig-backdrop" role="dialog" aria-modal="true" @click="emitClose" />
+      <view v-if="open" class="nx-elig-backdrop" @click="emitClose" />
     </transition>
     <transition name="nx-elig-slide">
-      <view v-if="open" class="nx-elig-panel" :style="panelStyle" @click.stop>
+      <view v-if="open" class="nx-glass-sheet nx-elig-panel" :style="panelStyle" @click.stop>
         <view class="flex items-start justify-between" style="margin-bottom: 14px">
           <view>
             <text class="block" :style="titleStyle">{{ t.genesisEligibility.title }}</text>
             <text class="block" :style="subtitleStyle">{{ t.genesisEligibility.subtitlePolicy }}</text>
           </view>
-          <view class="inline-flex items-center justify-center active:opacity-60" :style="closeBtnStyle" @click="emitClose">
+          <view class="inline-flex items-center justify-center active:opacity-60" :style="closeBtnStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="emitClose"  @keydown.enter.prevent="emitClose" @keydown.space.prevent="emitClose">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
           </view>
         </view>
@@ -27,21 +27,31 @@
         </view>
 
         <view :style="ruleListStyle">
+          <template v-if="hasPolicyFacts">
+          <view :style="ruleRowStyle">
+            <text :style="ruleLabelStyle">{{ t.genesisEligibility.accountAgeRule }}</text>
+            <text :style="ruleValueStyle">{{ accountAgeDays }} / {{ minAccountAgeDays }} {{ t.genesisEligibility.daysUnit }}</text>
+          </view>
           <view :style="ruleRowStyle">
             <text :style="ruleLabelStyle">{{ t.genesisEligibility.holdingCapRule }}</text>
             <text :style="ruleValueStyle">{{ ownedCount }} / {{ maxPerUser }}</text>
           </view>
+          </template>
           <view v-for="reason in visibleReasons" :key="reason" :style="reasonRowStyle">
             <text :style="reasonTextStyle">{{ reasonText(reason) }}</text>
           </view>
         </view>
 
-        <text v-if="gate.capReached" class="block" :style="capNoteStyle">{{ capNoteText }}</text>
+        <text v-if="hasPolicyFacts && gate.capReached" class="block" :style="capNoteStyle">{{ capNoteText }}</text>
         <view
           v-if="gate.eligible && !gate.capReached"
-          class="w-full inline-flex items-center justify-center active:opacity-85"
-          :style="subscribeStyle"
-          @click="emitSubscribe"
+           class="w-full inline-flex items-center justify-center active:opacity-85"
+           :style="subscribeStyle"
+           role="button"
+           tabindex="0"
+           @click="emitSubscribe"
+
+           @keydown.enter.prevent="emitSubscribe" @keydown.space.prevent="emitSubscribe"
         >
           <text>{{ t.genesisEligibility.unlockedCta }}</text>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
@@ -66,12 +76,19 @@ const t = useT();
 const genesis = useGenesis();
 const { gate } = useGenesisEligibility();
 
+const minAccountAgeDays = computed(() => remoteApiEnabled
+  ? genesis.remoteEligibility?.minAccountAgeDays ?? 0
+  : GENESIS_ELIGIBILITY_POLICY.minAccountAgeDays);
+const accountAgeDays = computed(() => remoteApiEnabled
+  ? genesis.remoteEligibility?.accountAgeDays ?? 0
+  : 0);
 const maxPerUser = computed(() => remoteApiEnabled
   ? genesis.remoteEligibility?.maxPerUser ?? 0
   : GENESIS_ELIGIBILITY_POLICY.maxPerUser);
 const ownedCount = computed(() => remoteApiEnabled
   ? genesis.remoteEligibility?.ownedCount ?? genesis.myOwned
   : genesis.myOwned);
+const hasPolicyFacts = computed(() => !remoteApiEnabled || genesis.remoteEligibility !== null);
 const visibleReasons = computed(() => [...new Set(gate.value.reasons)]);
 const capNoteText = computed(() => fmt(t.value.genesisEligibility.capReachedNote, { n: maxPerUser.value }));
 
@@ -85,6 +102,7 @@ function reasonText(reason: string): string {
     PRESALE_NOT_OPEN: copy.reasonPresaleClosed,
     USER_CAP_REACHED: copy.reasonCapReached,
     MARKET_DISABLED: copy.reasonMarketDisabled,
+    GENESIS_ELIGIBILITY_UNAVAILABLE: copy.reasonServiceUnavailable,
   };
   return byCode[reason] ?? copy.reasonUnavailable;
 }
@@ -92,7 +110,7 @@ function reasonText(reason: string): string {
 function emitClose() { emit("update:open", false); }
 function emitSubscribe() { emit("subscribe"); }
 
-const panelStyle: CSSProperties = { background: "var(--v5-surface)", borderTop: "1px solid var(--v5-border)", padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)" };
+const panelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderTop: "none", padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)" };
 const titleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "20px", fontWeight: 600, letterSpacing: "-0.018em", color: "var(--v5-ink)", lineHeight: 1.2 };
 const subtitleStyle: CSSProperties = { marginTop: "4px", fontFamily: "var(--font-v5)", fontSize: "13px", color: "var(--v5-ink-3)" };
 const closeBtnStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "999px", color: "var(--v5-ink-3)" };
@@ -108,7 +126,9 @@ const reasonTextStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-
 const capNoteStyle: CSSProperties = { marginTop: "12px", fontSize: "12px", color: "var(--v5-ink-3)", textAlign: "center", lineHeight: 1.45 };
 const subscribeStyle: CSSProperties = { marginTop: "14px", height: "50px", padding: "0 28px", borderRadius: "999px", gap: "6px", background: "var(--v5-brand)", boxShadow: "var(--v5-spotlight-brand)", color: "var(--v5-on-brand)", fontFamily: "var(--font-v5)", fontWeight: 500, fontSize: "15px" };
 
-useDialogA11y(computed(() => props.open), ".nx-elig-backdrop", emitClose);
+useDialogA11y(computed(() => props.open), ".nx-elig-root", emitClose);
+
+
 </script>
 
 <style scoped>

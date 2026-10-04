@@ -10,13 +10,13 @@
   海报,不随 app 主题变),全部颜色为画稿常量,不读运行时 token。
 -->
 <template>
-  <view v-if="open">
+  <view v-if="open" class="ps-root" role="dialog" aria-modal="true" :aria-label="t.share.posterTitle">
     <view class="ps-mask" @click="emit('close')" />
-    <view class="ps-sheet no-scrollbar">
+    <view class="nx-glass-sheet ps-sheet">
       <view class="ps-grab" />
       <view class="ps-head">
         <text class="ps-head__t">{{ t.share.posterTitle }}</text>
-        <view class="ps-head__x active:opacity-70" @click="emit('close')">
+        <view tabindex="0" class="ps-head__x active:opacity-70" role="button"  :aria-label="t.ui.close" @click="emit('close')"  @keydown.enter.prevent="emit('close')" @keydown.space.prevent="emit('close')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
       </view>
@@ -30,7 +30,7 @@
         <view v-else-if="genState === 'failed'" class="ps-fail">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
           <text class="ps-fail__t">{{ t.share.genFailed }}</text>
-          <view class="ps-fail__btn active:opacity-80" @click="regenerate">
+          <view tabindex="0" class="ps-fail__btn active:opacity-80" role="button"  @click="regenerate"  @keydown.enter.prevent="regenerate" @keydown.space.prevent="regenerate">
             <text class="ps-fail__btn-t">{{ t.share.retry }}</text>
           </view>
         </view>
@@ -40,39 +40,29 @@
       </view>
 
       <!-- 模板轮播(yield 无设备自动隐藏,异常3) -->
-      <view class="ps-thumbs">
-        <view
-          v-for="tp in availableTpls"
-          :key="tp.key"
-          class="ps-thumb active:scale-95"
-          :class="{ 'ps-thumb--on': tpl === tp.key }"
-          @click="pickTpl(tp.key)"
-        >
-          <view class="ps-thumb__dot" :style="{ background: tp.tint }" />
-          <text class="ps-thumb__t">{{ tp.label }}</text>
-        </view>
-      </view>
+      <GlassSegments :model-value="tpl" :options="templateOptions" class="ps-thumbs" :label="t.share.posterTitle" @select="pickTpl" />
 
       <view class="ps-reward">
         <text class="ps-reward__t">{{ posterRewardLine }}</text>
+        <text v-if="rewardEffectiveAtText" class="ps-reward__t">{{ rewardEffectiveAtText }}</text>
       </view>
 
       <view class="ps-toggle">
         <text class="ps-toggle__lb">{{ t.share.showUsername }}</text>
-        <view class="ps-sw active:opacity-70" :class="{ 'ps-sw--on': showUsername }" @click="toggleUsername">
+        <view class="ps-sw active:opacity-70" :class="{ 'ps-sw--on': showUsername }" role="switch" tabindex="0" :aria-checked="showUsername" :aria-label="t.share.showUsername" @click="toggleUsername"  @keydown.enter.prevent="toggleUsername" @keydown.space.prevent="toggleUsername">
           <view class="ps-sw__knob" />
         </view>
       </view>
 
       <!-- 渠道行:保存 / 复制 + 链接渠道(与渠道面板同一 intent 实现) -->
       <view class="ps-chrow">
-        <view class="ps-ch active:scale-95" :class="{ 'ps-ch--off': genState !== 'ready' }" @click="saveImage">
+        <view class="ps-ch active:scale-95"   :aria-disabled="genState !== 'ready'" :class="{ 'ps-ch--off': genState !== 'ready' }" role="button" :tabindex="genState === 'ready' ? 0 : -1" @click="saveImage"  @keydown.enter.prevent="saveImage" @keydown.space.prevent="saveImage">
           <view class="ps-ch__ic ps-ch__ic--hl">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3" /><path d="m7 10 5 5 5-5" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /></svg>
           </view>
           <text class="ps-ch__lb">{{ t.share.saveImage }}</text>
         </view>
-        <view class="ps-ch active:scale-95" :class="{ 'ps-ch--off': genState !== 'ready' }" @click="copyLinkAction">
+        <view class="ps-ch active:scale-95"   :aria-disabled="genState !== 'ready'" :class="{ 'ps-ch--off': genState !== 'ready' }" role="button" :tabindex="genState === 'ready' ? 0 : -1" @click="copyLinkAction"  @keydown.enter.prevent="copyLinkAction" @keydown.space.prevent="copyLinkAction">
           <view class="ps-ch__ic ps-ch__ic--hl">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
           </view>
@@ -82,8 +72,15 @@
           v-for="c in linkChannels"
           :key="c.key"
           class="ps-ch active:scale-95"
+
+
+          :aria-disabled="genState !== 'ready'"
           :class="{ 'ps-ch--off': genState !== 'ready' }"
+          role="button"
+          :tabindex="genState === 'ready' ? 0 : -1"
           @click="onChannel(c)"
+
+          @keydown.enter.prevent="onChannel(c)" @keydown.space.prevent="onChannel(c)"
         >
           <view class="ps-ch__ic">
             <view v-html="channelIcon(c.key)" />
@@ -96,17 +93,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, nextTick, ref, watch } from "vue";
-import { displayReferralCode, loadPosterBrand } from "@/lib/brand";
+import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from "vue";
 import qrcode from "qrcode-generator";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
+import { nexGridBrandText } from "@/lib/brand-copy";
+import { remoteApiEnabled } from "@/api/runtime";
+import { isActiveSlotDevice } from "@/lib/device-slot-policy";
 import { useApp } from "@/store/app";
 import { useConfig } from "@/store/config";
 import { useProfile } from "@/store/profile";
 import { toast } from "@/store/ui";
-import { activateChannel, buildShareLink, copyText, currentShareReferralCode, recordShareEvent } from "@/lib/share";
+import { activateChannel, buildShareLink, copyText, currentShareReferralCode, notifyUnavailableShareLink } from "@/lib/share";
 import type { ShareChannelDef, ShareChannelKey } from "@/store/config-types";
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -120,21 +120,48 @@ const inst = getCurrentInstance();
 type TplKey = "gift" | "yield" | "brand";
 type GenState = "idle" | "generating" | "ready" | "failed";
 
-const tpl = ref<TplKey>("gift");
+const tpl = ref<TplKey>("brand");
 const showUsername = ref(true);
 const genState = ref<GenState>("idle");
 const imgSrc = ref("");
+const generatedLink = ref("");
 
-const giftUsdt = computed(() => cfg.config.rewards.welcomeGift.usdtAmount);
-const giftNex = computed(() => cfg.config.rewards.welcomeGift.nexAmount);
-const posterRewardLine = computed(() => fmt(t.value.share.posterRewardLine, { usd: giftUsdt.value, nex: giftNex.value }));
+const rewardEnabled = computed(() => cfg.config.rewards.enabled);
+const giftUsdt = computed(() => rewardEnabled.value ? cfg.config.rewards.welcomeGift.usdtAmount : 0);
+const giftNex = computed(() => rewardEnabled.value ? cfg.config.rewards.welcomeGift.nexAmount : 0);
+const posterRewardLine = computed(() => rewardEnabled.value
+  ? fmt(t.value.share.posterRewardLine, { usd: giftUsdt.value, nex: giftNex.value })
+  : t.value.team.sharingStillAvailable);
+const rewardEffectiveAtText = computed(() => {
+  if (!rewardEnabled.value || !cfg.config.rewards.effectiveAt) return "";
+  const at = new Date(cfg.config.rewards.effectiveAt);
+  if (Number.isNaN(at.getTime())) return "";
+  return fmt(t.value.share.posterRewardEffectiveAt, { date: at.toLocaleDateString(dateLocale()) });
+});
 
-// yield 模板依赖用户真设备数据;无设备自动隐藏(异常3),gift/brand 恒可用。
+// 与 Earn 的设备位口径一致；远端设备清单未确认时不展示产出模板。
+const fleetReady = computed(() => !remoteApiEnabled || app.remoteFleetStatus === "ready");
+const runningDevices = computed(() => fleetReady.value
+  ? app.visibleDevices.filter(isActiveSlotDevice).length : 0);
+const yieldTodayUsdt = computed(() => {
+  if (!remoteApiEnabled) return app.earnings.today;
+  if (app.homeTruthStatus !== "ready") return null;
+  const period = app.homeTruth?.earnings.today;
+  if (!period) return null;
+  if (period.usdt === null && period.nex === null && period.jobCount === null) return 0;
+  return period.usdt ?? app.remoteRealizedToday?.usdt ?? null;
+});
+const yieldAuthorityReady = computed(() => fleetReady.value
+  && (!remoteApiEnabled || app.homeTruthStatus === "ready"));
+const yieldExportReady = computed(() => yieldAuthorityReady.value
+  && runningDevices.value > 0 && yieldTodayUsdt.value !== null);
+
+// yield 模板依赖用户真设备数据；gift 模板仅在 H8 奖励开启时可用。
 const availableTpls = computed(() => {
-  const list: { key: TplKey; label: string; tint: string }[] = [
-    { key: "gift", label: t.value.share.tplGift, tint: "var(--v5-brand)" },
-  ];
-  if (app.devices.length > 0) list.push({ key: "yield", label: t.value.share.tplYield, tint: "var(--v5-tech-cyan)" });
+  const list: { key: TplKey; label: string; tint: string }[] = [];
+  if (rewardEnabled.value) list.push({ key: "gift", label: t.value.share.tplGift, tint: "var(--v5-brand)" });
+  // A refresh can suspend the facts without revoking this account's selection.
+  if (yieldExportReady.value || (tpl.value === "yield" && !yieldAuthorityReady.value)) list.push({ key: "yield", label: t.value.share.tplYield, tint: "var(--v5-tech-cyan)" });
   list.push({ key: "brand", label: t.value.share.tplBrand, tint: "var(--v5-warning)" });
   return list;
 });
@@ -181,6 +208,24 @@ const H = 460;
 // 海报 = 恒定深色画稿:全部颜色为画稿常量,不读运行时主题 token
 // (主人 2026-07-08 拍板浅/深模式同一张海报;canvas 本就不解析 CSS var)。
 const BRAND_ON_DARK = "#9EDC1D";
+
+// 海报是深底,取品牌包的深底横版(与 App 内 BrandLockup 同一份资产)。
+// canvas 画不了 <image> 组件,只能 drawImage;路径要先过 getImageInfo 拿本地 path(跨端一致做法),
+// 拿到后**模块级缓存**,免得每次生成海报都重来一遍。
+const BRAND_LOGO_SRC = "/static/img/brand/header-logo-dark.png";
+let brandLogoPath = "";
+
+/** 确保标已就绪。拿不到就 resolve —— 海报照出,品牌行走文字兜底,不因为一张图卡死。 */
+function ensureBrandLogo(): Promise<void> {
+  if (brandLogoPath) return Promise.resolve();
+  return new Promise((resolve) => {
+    uni.getImageInfo({
+      src: BRAND_LOGO_SRC,
+      success: (r) => { brandLogoPath = r.path; resolve(); },
+      fail: () => resolve(),
+    });
+  });
+}
 const ON_BRAND_DARK = "#0A0A0A";
 const CYAN_ON_DARK = "#8E72FF";
 const INK_ON_DARK = "#F5F7FA";
@@ -272,7 +317,7 @@ function ts(): string {
   return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-function paint(link: string, myToken: number, logo: string) {
+function paint(link: string, myToken: number) {
   const ctx = uni.createCanvasContext("sharePosterCv", inst?.proxy);
   const brand = BRAND_ON_DARK;
   const cyan = CYAN_ON_DARK;
@@ -309,12 +354,19 @@ function paint(link: string, myToken: number, logo: string) {
   ctx.setFillStyle("rgba(245, 247, 250, 0.08)");
   ctx.fillRect(16, H - 112, W - 32, 1);
 
-  // 品牌行
-  ctx.drawImage(logo, 16, 12, 104, 104 * 246 / 712);
+  // 品牌行 —— 官方横版标(与 App 内 BrandLockup 同一份资产)。canvas 只能 drawImage,
+  // 图没就绪就退回字标文字:海报照出、品牌名仍在,不因为一张图开天窗。
+  if (brandLogoPath) {
+    ctx.drawImage(brandLogoPath, 16, 12, 120, 40);
+  } else {
+    ctx.setFillStyle(INK_ON_DARK);
+    ctx.setFontSize(15);
+    ctx.fillText("UVEL", 16, 38);
+  }
   ctx.setFillStyle(FAINT_ON_DARK);
   ctx.setFontSize(9);
   ctx.setTextAlign("right");
-  ctx.fillText(ts(), W - 16, 27);
+  ctx.fillText(ts(), W - 16, 36);
   ctx.setTextAlign("left");
 
   // 模板中段
@@ -335,6 +387,8 @@ function paint(link: string, myToken: number, logo: string) {
     ctx.fillText(t.value.share.posterGiftSub1, 20, 272);
     ctx.fillText(t.value.share.posterGiftSub2, 20, 290);
   } else if (tpl.value === "yield") {
+    const today = yieldTodayUsdt.value;
+    if (today === null) throw new Error("POSTER_YIELD_UNAVAILABLE");
     ctx.setFillStyle(brand);
     ctx.setFontSize(10);
     ctx.fillText(t.value.share.posterYieldCap, 20, 158);
@@ -343,16 +397,24 @@ function paint(link: string, myToken: number, logo: string) {
     ctx.fillText(t.value.share.posterYieldSub, 20, 184);
     ctx.setFillStyle(brand);
     ctx.setFontSize(38);
-    ctx.fillText(`+$${app.earnings.today.toFixed(2)}`, 20, 232);
+    ctx.fillText(`+${today.toFixed(2)}`, 20, 232);
     ctx.setFillStyle(FAINT_ON_DARK);
     ctx.setFontSize(9.5);
     ctx.fillText(t.value.share.posterYieldDevices, 20, 262);
-    ctx.fillText(t.value.share.posterYieldYou, 110, 262);
+    ctx.fillText(
+      rewardEnabled.value ? t.value.share.posterYieldYou : t.value.share.posterYieldInviteNoReward,
+      110,
+      262,
+    );
     ctx.setFillStyle(INK_ON_DARK);
     ctx.setFontSize(12.5);
-    ctx.fillText(fmt(t.value.share.posterYieldUnit, { n: app.devices.length }), 20, 280);
+    ctx.fillText(fmt(t.value.share.posterYieldUnit, { n: runningDevices.value }), 20, 280);
     ctx.setFillStyle(brand);
-    ctx.fillText(`$${usd} + ${nex} NEX`, 110, 280);
+    ctx.fillText(
+      rewardEnabled.value ? `${usd} + ${nex} NEX` : t.value.share.posterYieldInviteValueNoReward,
+      110,
+      280,
+    );
   } else {
     ctx.setFillStyle(cyan);
     ctx.setFontSize(10);
@@ -363,7 +425,13 @@ function paint(link: string, myToken: number, logo: string) {
     ctx.fillText(t.value.share.posterBrandTitle2, 20, 240);
     ctx.setFillStyle(MUTED_ON_DARK);
     ctx.setFontSize(11);
-    ctx.fillText(fmt(t.value.share.posterBrandSub, { usd, nex }), 20, 270);
+    ctx.fillText(
+      rewardEnabled.value
+        ? fmt(t.value.share.posterBrandSub, { usd, nex })
+        : t.value.share.posterBrandSubNoReward,
+      20,
+      270,
+    );
   }
 
   // 底栏:用户名(可关)+ 邀请码 + 扫码提示 + 真二维码
@@ -372,15 +440,16 @@ function paint(link: string, myToken: number, logo: string) {
     ctx.setFillStyle(INK_ON_DARK);
     ctx.setFontSize(12);
     // 18 = 词库昵称最长组合("Quantum Circuit 99");QR 前可用宽 ~250px,12 号字放得下,仅防异常超长。
-    const name = profile.displayName.length > 18 ? `${profile.displayName.slice(0, 18)}…` : profile.displayName;
+    const brandedName = nexGridBrandText(profile.displayName);
+    const name = brandedName.length > 18 ? `${brandedName.slice(0, 18)}…` : brandedName;
     ctx.fillText(name, 20, footY + 18);
   }
   ctx.setFillStyle(BRAND_ON_DARK);
   ctx.setFontSize(11);
-  ctx.fillText(displayReferralCode(currentShareReferralCode()), 20, footY + 40);
+  ctx.fillText(currentShareReferralCode(), 20, footY + 40);
   ctx.setFillStyle(FAINT_ON_DARK);
   ctx.setFontSize(8.5);
-  ctx.fillText(t.value.share.scanTip, 20, footY + 58);
+  ctx.fillText(rewardEnabled.value ? t.value.share.scanTip : t.value.share.scanTipNoReward, 20, footY + 58);
   paintQr(ctx, W - 94, footY - 2, 74, link);
 
   ctx.draw(false, () => {
@@ -391,8 +460,10 @@ function paint(link: string, myToken: number, logo: string) {
         destHeight: 1000,
         fileType: "png",
         success: (res) => {
-          if (myToken !== genToken) return;
+          if (myToken !== genToken || !props.open || link !== buildShareLink()
+              || (tpl.value === "yield" && !yieldExportReady.value)) return;
           imgSrc.value = res.tempFilePath;
+          generatedLink.value = link;
           genState.value = "ready";
         },
         fail: () => {
@@ -411,32 +482,39 @@ let genToken = 0;
 function regenerate() {
   const link = buildShareLink();
   if (!link) {
-    ++genToken;
-    genState.value = "idle";
-    imgSrc.value = "";
-    toast.info(currentShareReferralCode() ? t.value.share.linkUnavailable : t.value.share.noCodeYet);
+    notifyUnavailableShareLink();
     emit("close");
     return;
   }
   const myToken = ++genToken;
   genState.value = "generating";
+  imgSrc.value = "";
+  generatedLink.value = "";
+  if (tpl.value === "yield" && !yieldExportReady.value) {
+    if (app.remoteFleetStatus === "error" || app.homeTruthStatus === "error") genState.value = "failed";
+    return;
+  }
   void nextTick(() => {
     // canvas 挂载/尺寸就绪缓冲;绘制异常一律落 failed(异常1,不白屏)。
-    setTimeout(async () => {
+    setTimeout(() => {
       if (myToken !== genToken || !props.open) return;
-      try {
-        const logo = await loadPosterBrand();
-        if (myToken !== genToken || !props.open) return;
-        paint(link, myToken, logo);
-      } catch {
-        if (myToken === genToken) genState.value = "failed";
-      }
+      // 标先备好再画:paint 是同步的,中途插异步会打乱绘制顺序。
+      // 异步回来要重新核 token —— 这期间用户可能已经切模板/关面板(沿用既有防竞态口径)。
+      void ensureBrandLogo().then(() => {
+        if (myToken !== genToken || !props.open || link !== buildShareLink()) return;
+        try {
+          paint(link, myToken);
+        } catch {
+          if (myToken === genToken) genState.value = "failed";
+        }
+      });
     }, 80);
   });
 }
 
 watch(
-  [() => props.open, tpl, showUsername, () => buildShareLink()],
+  () => [props.open, tpl.value, showUsername.value, buildShareLink(), runningDevices.value, yieldTodayUsdt.value,
+    app.remoteFleetStatus, app.homeTruthStatus] as const,
   ([open]) => {
     if (open) {
       regenerate();
@@ -444,85 +522,112 @@ watch(
       // 关面板即作废在途生成,防复开时旧回调闪写。
       genToken++;
       genState.value = "idle";
+      generatedLink.value = "";
     }
   },
 );
-// 打开时若 yield 模板已不可用(设备清空),回落 gift。
-watch(availableTpls, (list) => {
-  if (!list.some((x) => x.key === tpl.value)) tpl.value = "gift";
+watch(() => props.open, (open) => {
+  if (!open || !remoteApiEnabled) return;
+  void app.refreshRemoteFleet(undefined, { coalesce: true });
+  void app.refreshHomeTruth();
 });
+// 当前模板失效时回落到仍可用的首个模板。
+watch(availableTpls, (list) => {
+  if (!list.some((x) => x.key === tpl.value)) tpl.value = list[0]?.key ?? "brand";
+});
+function invalidatePoster() {
+  genToken++;
+  genState.value = "idle";
+  imgSrc.value = "";
+  generatedLink.value = "";
+}
+watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
+  invalidatePoster();
+  tpl.value = "brand";
+  if (props.open) emit("close");
+}, { flush: "sync" });
+onUnmounted(invalidatePoster);
 
 // ── 动作 ────────────────────────────────────────────────────────────────
+function posterLinkReady(): boolean {
+  if (!props.open || genState.value !== "ready"
+      || (tpl.value === "yield" && !yieldExportReady.value)) return false;
+  const link = buildShareLink();
+  if (!link) {
+    notifyUnavailableShareLink();
+    return false;
+  }
+  if (link !== generatedLink.value) {
+    regenerate();
+    return false;
+  }
+  return true;
+}
 let saving = false;
 function saveImage() {
-  if (genState.value !== "ready" || saving) return;
-  if (!buildShareLink()) {
-    toast.info(t.value.share.linkUnavailable);
-    return;
-  }
+  if (!posterLinkReady() || saving) return;
+  const operation = { token: genToken, accountKey: app.accountKey, epoch: app.accountBindingEpoch,
+    link: generatedLink.value, image: imgSrc.value };
+  const isCurrentSave = () => operation.token === genToken && operation.accountKey === app.accountKey
+    && operation.epoch === app.accountBindingEpoch && operation.link === generatedLink.value
+    && operation.image === imgSrc.value && posterLinkReady();
   saving = true;
   setTimeout(() => (saving = false), 900);
   // #ifdef H5
   void (async () => {
     try {
-      const blob = await (await fetch(imgSrc.value)).blob();
+      const blob = await (await fetch(operation.image)).blob();
+      if (!isCurrentSave()) return;
       const u = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = u;
-      a.download = `uvel-invite-${Date.now()}.png`;
+      a.download = `nexgrid-invite-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(u), 4000);
       toast.success(t.value.share.saved);
-      recordShareEvent("poster", "poster_sheet");
     } catch {
       // 异常2:下载受限 → 长按引导
-      toast.info(t.value.share.saveLongPress);
+      if (isCurrentSave()) toast.info(t.value.share.saveLongPress);
     }
   })();
   // #endif
   // #ifndef H5
   uni.saveImageToPhotosAlbum({
-    filePath: imgSrc.value,
+    filePath: operation.image,
     success: () => {
-      toast.success(t.value.share.saved);
-      recordShareEvent("poster", "poster_sheet");
+      if (isCurrentSave()) toast.success(t.value.share.saved);
     },
-    fail: () => toast.info(t.value.share.saveLongPress),
+    fail: () => { if (isCurrentSave()) toast.info(t.value.share.saveLongPress); },
   });
   // #endif
 }
 
 async function copyLinkAction() {
-  if (genState.value !== "ready") return;
-  const link = buildShareLink();
-  if (!link) {
-    toast.info(t.value.share.linkUnavailable);
-    return;
-  }
-  const ok = await copyText(link);
+  if (!posterLinkReady()) return;
+  const ok = await copyText(generatedLink.value);
   if (ok) {
     toast.success(t.value.team.inviteLinkCopied);
-    recordShareEvent("copy", "poster_sheet");
   } else {
     toast.info(t.value.share.copyFailed);
   }
 }
 
 async function onChannel(c: ShareChannelDef) {
-  if (genState.value !== "ready") return;
-  if (!buildShareLink()) {
-    toast.info(t.value.share.linkUnavailable);
-    return;
-  }
+  if (!posterLinkReady()) return;
   await activateChannel(c, "poster_sheet", channelLabel(c.key));
 }
+
+useDialogA11y(computed(() => props.open), ".ps-root", () => emit("close"));
+
+import GlassSegments from "@/components/glass-segments.vue";
+const templateOptions = computed(() => availableTpls.value.map(item => ({ value: item.key, label: item.label, className: "ps-thumb" })));
 </script>
 
 <style scoped>
 .ps-mask { position: fixed; inset: 0; background: var(--v5-bg-color-mask); backdrop-filter: blur(3px); z-index: 8000; }
-.ps-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001; background: var(--v5-surface); border-top: 1px solid var(--v5-border-strong); border-radius: 22px 22px 0 0; max-height: 92vh; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 38px); animation: ps-up 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+.ps-sheet { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge); position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001; background: var(--nx-glass-fill); border: none;  max-height: 92vh; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 38px); animation: ps-up 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes ps-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .ps-grab { width: 40px; height: 4px; border-radius: 9999px; background: var(--v5-surface-3); margin: 10px auto 0; }
 .ps-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 0; }
@@ -541,25 +646,22 @@ async function onChannel(c: ShareChannelDef) {
 .ps-skeleton__t { font-size: 12px; color: var(--v5-ink-4); }
 .ps-fail { aspect-ratio: 3 / 4; border-radius: 16px; background: var(--v5-surface-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
 .ps-fail__t { font-size: 13px; color: var(--v5-ink-3); }
-.ps-fail__btn { min-height: 36px; padding: 0 18px; border-radius: 9999px; background: var(--v5-surface-3); display: flex; align-items: center; }
+.ps-fail__btn { min-height: 44px; padding: 0 18px; border-radius: 9999px; background: var(--v5-surface-3); display: flex; align-items: center; }
 .ps-fail__btn-t { font-size: 13px; color: var(--v5-ink); }
-.ps-thumbs { display: flex; justify-content: center; gap: 8px; margin-top: 12px; padding: 0 16px; }
-.ps-thumb { display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 6px 12px; border-radius: 9999px; background: var(--v5-surface-2); opacity: 0.6; }
-.ps-thumb--on { opacity: 1; outline: 2px solid var(--v5-brand); outline-offset: 1px; }
-.ps-thumb__dot { width: 8px; height: 8px; border-radius: 9999px; }
-.ps-thumb__t { font-size: 12px; color: var(--v5-ink-2); }
+.ps-thumbs { margin: 12px 16px 0; }
 .ps-reward { margin-top: 10px; text-align: center; padding: 0 16px; }
 .ps-reward__t { font-size: 12px; color: var(--v5-ink-3); text-wrap: pretty; }
-.ps-toggle { display: flex; align-items: center; justify-content: space-between; margin: 10px 18px 0; min-height: 32px; }
+.ps-toggle { display: flex; align-items: center; justify-content: space-between; margin: 10px 18px 0; min-height: 44px; }
 .ps-toggle__lb { font-size: 13px; color: var(--v5-ink-2); }
 .ps-sw { width: 44px; height: 26px; border-radius: 9999px; background: var(--v5-surface-3); position: relative; transition: background 0.18s; }
 .ps-sw--on { background: var(--v5-brand); }
 .ps-sw__knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 9999px; background: var(--v5-surface); transition: left 0.18s; }
 .ps-sw--on .ps-sw__knob { left: 21px; }
-.ps-chrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 6px; padding: 14px 16px 2px; }
-.ps-ch { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; min-height: 44px; }
+.ps-chrow { display: flex; gap: 14px; overflow-x: auto; padding: 14px 16px 2px; }
+.ps-ch { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 56px; min-height: 44px; }
 .ps-ch--off { opacity: 0.4; pointer-events: none; }
 .ps-ch__ic { width: 48px; height: 48px; border-radius: 9999px; background: var(--v5-surface-2); color: var(--v5-ink-2); display: flex; align-items: center; justify-content: center; }
 .ps-ch__ic--hl { background: color-mix(in srgb, var(--v5-brand) 14%, transparent); color: var(--v5-brand); }
-.ps-ch__lb { font-size: 12px; color: var(--v5-ink-3); width: 100%; text-align: center; line-height: 1.3; overflow-wrap: anywhere; }
+.ps-ch__lb { font-size: 12px; color: var(--v5-ink-3); max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-sheet []:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 </style>

@@ -5,7 +5,7 @@
   Taps through to /me/profile.
 -->
 <template>
-  <view class="flex items-center active:opacity-90" style="gap: 14px; padding: 4px 0" @click="goProfile">
+  <view class="flex items-center active:opacity-90" style="gap: 14px; padding: 4px 0" data-me-action="profile" role="button" tabindex="0" :aria-label="t.me.profile" @click="goProfile" @keydown.enter.prevent="goProfile" @keydown.space.prevent="goProfile">
     <view class="grid place-items-center shrink-0" :style="avatarStyle">
       <text :style="avatarTextStyle">{{ initial }}</text>
     </view>
@@ -22,12 +22,14 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { useProfile } from "@/store/profile";
 import { remoteApiEnabled } from "@/api/runtime";
+import { nexGridBrandText } from "@/lib/brand-copy";
 
 const ONE_DAY_MS = 86400 * 1000;
 
@@ -35,7 +37,7 @@ const t = useT();
 const app = useApp();
 const profile = useProfile();
 
-const name = computed(() => profile.displayName);
+const name = computed(() => nexGridBrandText(profile.displayName));
 // Server mode deliberately never turns its internal user:<id> account key
 // into a visible identity. The auth response projects name/phone above; when
 // it is unavailable this remains a neutral empty-state avatar.
@@ -52,7 +54,7 @@ const daysJoined = computed(() => Math.max(1, Math.floor((Date.now() - app.user.
 const joinedLabel = computed(() => fmt(t.value.me.profileJoinedDay, { n: daysJoined.value }));
 
 function goProfile() {
-  uni.navigateTo({ url: "/pages/me/profile", fail: () => {} });
+  navTo("/pages/me/profile");
 }
 
 const avatarStyle: CSSProperties = {

@@ -1,5 +1,7 @@
 import { orderApi, remoteApiEnabled } from "@/api/runtime";
 import { useContentCopy } from "@/store/content-copy";
+import { remoteAccountScope } from "@/lib/remote-account-epoch";
+import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
 
 let refreshInFlight: Promise<boolean> | null = null;
 
@@ -11,12 +13,15 @@ let refreshInFlight: Promise<boolean> | null = null;
 export function refreshCanonicalOrders(force = false): Promise<boolean> {
   if (!remoteApiEnabled) return Promise.resolve(true);
   if (!force && refreshInFlight) return refreshInFlight;
+  const accountScope = remoteAccountScope.snapshot();
+  const runScope = captureRuntimeRevision();
   const request = orderApi.list()
     .then((snapshot) => {
+      if (!remoteAccountScope.isCurrent(accountScope) || !isCurrentRuntimeRevision(runScope)) return false;
       const orderNos = snapshot.orders
         .filter((order) => ["paid", "provisioning", "activated"].includes(order.canonicalStatus))
         .map((order) => order.orderNo);
-      void useContentCopy().reportOrderConversions(orderNos);
+      void useContentCopy().reportOrderConversions(orderNos, accountScope);
       return true;
     })
     .catch(() => false)

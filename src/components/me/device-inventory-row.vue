@@ -6,7 +6,7 @@
   greys the action. lucide Smartphone/Server/Power/PowerOff/Clock → inline svg.
 -->
 <template>
-  <view class="overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card overflow-hidden" :style="cardStyle">
     <view class="flex items-center" style="gap: 12px; padding: 12px 16px">
       <view class="grid place-items-center shrink-0" :style="iconBoxStyle">
         <!-- Smartphone -->
@@ -16,7 +16,7 @@
       </view>
       <view class="flex-1 min-w-0">
         <text class="block truncate" :style="nameStyle">{{ deviceName(t, device) }}</text>
-        <text class="block" :style="specStyle">${{ device.baseRate.toFixed(2) }}/d · {{ deviceGpuLabel(t, device) }}</text>
+        <text class="block truncate" :style="specStyle">{{ device.kind === "cloud-share" ? `${device.baseRateNEX} NEX${t.store.cardPerDaySuffix}` : `$${device.baseRate.toFixed(2)}${t.store.cardPerDaySuffix}` }} · {{ deviceGpuLabel(t, device) }}</text>
         <view v-if="device.pendingDeactivate" class="inline-flex items-center" :style="pendingChipStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
           <text>{{ pendingChipLabel }}</text>
@@ -27,15 +27,15 @@
          无更高价目标时右侧置灰原因(业务链必有禁用原因)。点击绑在带 padding 的
          wrapper view 上,左右可点区实高 ≥44px(text 裸 padding 只有 ~29px,虚标教训)。 -->
     <view v-if="tradeinCreditText || tradeinDisabledText" class="w-full flex items-center justify-between" :style="tradeinStripStyle">
-      <view v-if="tradeinCreditText" class="flex-1 active:opacity-70" :style="tradeinTapLeftStyle" @click.stop="emit('ladder')">
+      <view v-if="tradeinCreditText" class="flex-1 active:opacity-70" :style="tradeinTapLeftStyle" role="button" tabindex="0" @click.stop="emit('ladder')"  @keydown.enter.prevent.stop="emit('ladder')" @keydown.space.prevent.stop="emit('ladder')">
         <text :style="tradeinChipStyle">{{ tradeinCreditText }} ›</text>
       </view>
       <text v-else :style="tradeinMutedStyle">{{ tradeinDisabledText }}</text>
-      <view v-if="tradeinCtaLabel" class="active:opacity-70" :style="tradeinTapRightStyle" @click.stop="emit('tradein')">
+      <view v-if="tradeinCtaLabel" class="active:opacity-70" :style="tradeinTapRightStyle" role="button" tabindex="0" @click.stop="emit('tradein')"  @keydown.enter.prevent.stop="emit('tradein')" @keydown.space.prevent.stop="emit('tradein')">
         <text :style="tradeinCtaStyle">{{ tradeinCtaLabel }}</text>
       </view>
     </view>
-    <view class="w-full flex items-center justify-center transition" :class="{ 'active:bg-[var(--v5-surface-2)]': !actionDisabled }" :style="actionStyle" @click="onAction">
+    <view v-if="showAction" class="w-full flex items-center justify-center transition" :class="{ 'active:bg-[var(--v5-surface-2)]': !actionDisabled }" :style="actionStyle" role="button" :tabindex="actionDisabled ? -1 : 0" :aria-disabled="actionDisabled ? 'true' : 'false'" @click="onAction"  @keydown.enter.prevent="onAction" @keydown.space.prevent="onAction">
       <svg v-if="active" width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="actionColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64A9 9 0 0 1 20.77 15" /><path d="M6.16 6.16a9 9 0 1 0 12.68 12.68" /><path d="M12 2v4" /><line x1="2" x2="22" y1="2" y2="22" /></svg>
       <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="actionColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.77.04" /></svg>
       <text :style="actionLabelStyle">{{ actionLabel }}</text>
@@ -55,8 +55,11 @@ const props = withDefaults(
   defineProps<{
     device: Device;
     active: boolean;
+    showAction?: boolean;
     disabled?: boolean;
     actionDisabled?: boolean;
+    /** Replaces the disabled action label when the server needs reconciliation. */
+    disabledLabel?: string;
     activateLabel: string;
     deactivateLabel: string;
     slotsFullLabel: string;
@@ -66,7 +69,7 @@ const props = withDefaults(
     tradeinCtaLabel?: string;
     tradeinDisabledText?: string;
   }>(),
-  { disabled: false, actionDisabled: false },
+  { disabled: false, actionDisabled: false, showAction: true },
 );
 
 const emit = defineEmits<{ (e: "toggle"): void; (e: "tradein"): void; (e: "ladder"): void }>();
@@ -78,18 +81,18 @@ const actionColor = computed(() =>
   actionDisabled.value ? "var(--v5-ink-4)" : props.active ? "var(--v5-brand-2)" : "var(--v5-brand)",
 );
 const actionLabel = computed(() =>
-  props.active ? props.deactivateLabel : props.disabled ? props.slotsFullLabel : props.activateLabel,
+  props.active ? props.deactivateLabel : props.disabled ? props.disabledLabel ?? props.slotsFullLabel : props.activateLabel,
 );
 
 function onAction() {
-  if (actionDisabled.value) return;
+  if (!props.showAction || actionDisabled.value) return;
   emit("toggle");
 }
 
 // De-carded device card (form b): filled surface, no border (single visual diff).
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const iconBoxStyle = computed<CSSProperties>(() => ({
   width: "40px",
@@ -107,7 +110,6 @@ const nameStyle: CSSProperties = {
 };
 const specStyle: CSSProperties = {
   marginTop: "2px",
-  textWrap: "pretty",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
   color: "var(--v5-ink-3)",
@@ -163,4 +165,6 @@ const actionLabelStyle = computed<CSSProperties>(() => ({
   fontWeight: 500,
   color: actionColor.value,
 }));
+
+
 </script>

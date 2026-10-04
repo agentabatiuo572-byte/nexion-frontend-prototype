@@ -9,9 +9,9 @@
   dropped (rows already hairline-separated inside).
 -->
 <template>
-  <view class="rounded-2xl overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card rounded-2xl overflow-hidden" :style="cardStyle">
     <view class="flex items-center active:opacity-90" :style="headerStyle" @click="emit('toggle')">
-      <text class="nx-roster-badge rounded-xl grid place-items-center font-display" :style="badgeStyle">{{ badge }}</text>
+      <text class="rounded-xl grid place-items-center font-display" :style="badgeStyle">{{ badge }}</text>
       <view class="flex-1 text-left min-w-0">
         <text class="block" :style="titleStyle">{{ title }}</text>
         <text class="block font-mono-tabular" :style="subtitleStyle">{{ subtitle }}</text>
@@ -28,7 +28,7 @@
         <view
           v-for="(m, i) in sortedMembers"
           :key="m.id"
-          class="nx-roster-row flex items-center"
+          class="flex items-center"
           :style="rowStyle(i === sortedMembers.length - 1)"
         >
           <view class="rounded-full grid place-items-center shrink-0" :style="avatarStyle">
@@ -44,9 +44,9 @@
               <text :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ m.city }} · {{ fmt(t.uiChrome.joinedDaysAgo, { n: daysAgo(m.joinedAt) }) }}</text>
             </view>
           </view>
-          <view class="nx-roster-value text-right shrink-0">
+          <view class="text-right shrink-0">
             <text v-if="showContribution" class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: accentText }">+${{ contribution(m).toFixed(2) }}</text>
-            <text class="block font-mono-tabular tabular-nums whitespace-nowrap" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ fmt(t.uiChrome.volumeShort, { amount: `$${m.monthVolumeUSD}` }) }}</text>
+            <text class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ fmt(t.uiChrome.volumeShort, { amount: `$${m.monthVolumeUSD}` }) }}</text>
           </view>
         </view>
       </view>
@@ -95,11 +95,13 @@ function statusColor(status: MemberStatus): string {
 // ─── styles ───
 // Row container: fill only, no border (radius via rounded-2xl class;
 // overflow-hidden kept — it clips row corners inside the rounded fill).
-const cardStyle: CSSProperties = { background: "var(--v5-surface)" };
+const cardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)" };
 const headerStyle: CSSProperties = { width: "100%", padding: "12px 16px", gap: "12px" };
 const badgeStyle = computed<CSSProperties>(() => ({
+  width: "36px",
   height: "36px",
   fontWeight: 600,
+  fontSize: "12px",
   background: props.accentBg,
   color: props.accentText,
   letterSpacing: "0.06em",
@@ -114,12 +116,6 @@ const avatarStyle: CSSProperties = { width: "36px", height: "36px", background: 
 function statusDotStyle(status: MemberStatus): CSSProperties {
   return { width: "6px", height: "6px", background: statusColor(status) };
 }
+
+
 </script>
-<style scoped>
-.nx-roster-badge { width: 36px; font-size: 12px; }
-@media (max-width: 420px) {
-  .nx-roster-badge { width: 64px; font-size: 10px; white-space: nowrap; }
-  .nx-roster-row { flex-wrap: wrap; }
-  .nx-roster-value { width: calc(100% - 48px); margin-left: 48px; display: flex; justify-content: space-between; text-align: left; }
-}
-</style>

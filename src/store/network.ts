@@ -3,9 +3,9 @@ import { onScopeDispose, ref } from "vue";
 import type { VRank } from "./v-rank";
 import { remoteApiEnabled, teamNetworkApi } from "@/api/runtime";
 import {
-  captureCommerceSandboxRun,
-  isCurrentCommerceSandboxScope,
-  subscribeCurrentCommerceSandboxRun,
+  captureRuntimeRevision,
+  isCurrentRuntimeRevision,
+  subscribeRuntimeRevision,
 } from "@/api/order-api";
 
 /**
@@ -137,8 +137,10 @@ export const useNetwork = defineStore("network", () => {
   const totalMonthVolumeUSD = ref(initial.reduce((s, m) => s + m.monthVolumeUSD, 0));
   const totalAllTimeVolumeUSD = ref<number | null>(initial.reduce((s, m) => s + (m.totalVolumeUSD ?? 0), 0));
   const remoteStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
+  const hasRemoteSnapshot = ref(false);
   let accountEpoch = 0;
   let refreshSequence = 0;
+  let inFlight: { epoch: number; runtime: ReturnType<typeof captureRuntimeRevision>; promise: Promise<boolean> } | null = null;
 
   function clearRemoteNetwork(): void {
     refreshSequence += 1;
@@ -147,21 +149,39 @@ export const useNetwork = defineStore("network", () => {
     totalMonthVolumeUSD.value = 0;
     totalAllTimeVolumeUSD.value = null;
     remoteStatus.value = "idle";
+    hasRemoteSnapshot.value = false;
   }
 
-  const unsubscribeCommerceRun = subscribeCurrentCommerceSandboxRun(() => {
+  const unsubscribeCommerceRun = subscribeRuntimeRevision(() => {
     if (!remoteApiEnabled) return;
-    clearRemoteNetwork();
+    // The commerce runtime moved (catalogue/order revision). Re-read the
+    // projection, but keep the last confirmed snapshot mounted: clearing it
+    // blanked the whole influence-network page mid-refresh (BUG 63).
     void refreshCanonicalNetwork();
   });
   onScopeDispose(unsubscribeCommerceRun);
 
-  async function refreshCanonicalNetwork(): Promise<boolean> {
+  function ensureCanonicalNetwork(): Promise<boolean> {
+    return inFlight && inFlight.epoch === accountEpoch && isCurrentRuntimeRevision(inFlight.runtime)
+      ? inFlight.promise : refreshCanonicalNetwork();
+  }
+
+  function refreshCanonicalNetwork(): Promise<boolean> {
+    const epoch = accountEpoch;
+    const runtime = captureRuntimeRevision();
+    const promise = readCanonicalNetwork();
+    inFlight = { epoch, runtime, promise };
+    const clear = () => { if (inFlight?.promise === promise) inFlight = null; };
+    void promise.then(clear, clear);
+    return promise;
+  }
+
+  async function readCanonicalNetwork(): Promise<boolean> {
     if (!remoteApiEnabled) return true;
     const epoch = accountEpoch;
     const request = ++refreshSequence;
-    const runScope = captureCommerceSandboxRun();
-    const current = () => epoch === accountEpoch && request === refreshSequence && isCurrentCommerceSandboxScope(runScope);
+    const runScope = captureRuntimeRevision();
+    const current = () => epoch === accountEpoch && request === refreshSequence && isCurrentRuntimeRevision(runScope);
     remoteStatus.value = "loading";
     try {
       const snapshot = await teamNetworkApi.snapshot();
@@ -179,6 +199,7 @@ export const useNetwork = defineStore("network", () => {
       totalMonthVolumeUSD.value = snapshot.monthVolumeUsdt;
       totalAllTimeVolumeUSD.value = snapshot.lifetimeVolumeUsdt;
       remoteStatus.value = "ready";
+      hasRemoteSnapshot.value = true;
       return true;
     } catch {
       if (!current()) return false;
@@ -267,6 +288,6 @@ export const useNetwork = defineStore("network", () => {
   return {
     members, totalMembers, totalMonthVolumeUSD, totalAllTimeVolumeUSD,
     byLayer, byBinary, leftVolumeMonth, rightVolumeMonth,
-    binaryMatchToday, vDownlineCounts, addSpillover, remoteStatus, refreshCanonicalNetwork, bindAccount,
+    binaryMatchToday, vDownlineCounts, addSpillover, remoteStatus, hasRemoteSnapshot, refreshCanonicalNetwork, ensureCanonicalNetwork, bindAccount,
   };
 });

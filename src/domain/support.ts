@@ -25,6 +25,10 @@ export interface Ticket {
   unread: number;
   owner: string;
   messages: TicketMessage[];
+  /** True when the server intentionally returned only the newest message window. */
+  historyTruncated?: boolean;
+  /** Opaque-to-the-view cursor for the next older server-owned ticket page. */
+  historyNextCursor?: number | null;
 }
 
 export const CATEGORY_LABEL: Record<TicketCategory, string> = {
@@ -43,6 +47,7 @@ export const PRIORITY_LABEL: Record<TicketPriority, string> = {
 };
 
 export type ConversationType = "ai" | "advisor" | "support";
+export type ConversationCategoryAvailability = Record<ConversationType, boolean>;
 export type ConvRoleKey = "roleAi" | "roleAdvisor" | "roleSupport";
 export type ConvSessionStatus = "active" | "closed";
 export interface ConvMessage {
@@ -51,6 +56,9 @@ export interface ConvMessage {
   status?: "sent" | "read";
   text: string;
   ts: number;
+  kind?: "TEXT" | "IMAGE";
+  attachmentId?: string;
+  authorName?: string;
 }
 export interface Conversation {
   id: string;
@@ -63,8 +71,16 @@ export interface Conversation {
   messages: ConvMessage[];
   unread: number;
   lastTs: number;
+  /** Server maximum public message ID; list rows do not contain the transcript. */
+  lastPublicMessageId?: number;
+  /** Optional server provenance for a generated idle-close preview. */
+  lastMessageKind?: "IDLE_TIMEOUT_CLOSE" | null;
   lastMessage: string;
   sessionStatus: ConvSessionStatus;
+  /** True when the server intentionally returned only the newest message window. */
+  historyTruncated?: boolean;
+  /** Opaque-to-the-view cursor for the next older server-owned conversation page. */
+  historyNextCursor?: number | null;
 }
 
 export interface SupportFaq {
@@ -76,4 +92,12 @@ export interface SupportFaq {
   sortOrder: number;
   version: number;
   updatedAt: number;
+}
+
+/** A configured M4 service target. It is deliberately separate from historical response statistics. */
+export interface SupportSlaTarget {
+  category: TicketCategory;
+  firstResponseMins: number;
+  resolutionHours: number;
+  statisticsAvailable: boolean;
 }

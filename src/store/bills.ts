@@ -1,18 +1,16 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { mockServerId } from "./mock-id";
 import { mockServerNow } from "./server-time";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
-import { fundsSandboxApi, mockFundsEnabled, fundsServerEnabled, referralRewardApi, walletBillsApi } from "@/api/runtime";
-import type { FundsSandboxLedgerEntry } from "@/api/funds-sandbox-api";
-import type { WalletBillRow } from "@/api/wallet-bills-api";
-import { projectFundsSandboxLedger } from "./funds-sandbox-ledger";
-import { projectReferralRewardBills } from "./referral-reward-bills";
+import { fundsServerEnabled, walletBillsApi } from "@/api/runtime";
+import type { WalletBillRow, WalletBillFilters, WalletBillsSummary } from "@/api/wallet-bills-api";
+import { createWalletLedgerPager, type LedgerLoadStatus, type WalletLedgerPager } from "./wallet-ledger-pager";
 
 // Ported from Nexion-prototype/lib/store/bills.ts (zustand → Pinia).
-// MOCK-ONLY: 30-day history fabricated client-side; production replaces seed
-// with GET /api/bills and lets the server own ids + balanceAfter.
+// MOCK-ONLY seed below. Real account history uses demand-paged canonical ledger
+// rows; totals always come from the independent server summary, never this page.
 export type BillType =
   | "earn" | "refer" | "bonus" | "topup" | "withdraw"
   | "purchase" | "swap" | "verification" | "stake" | "unstake" | "achievement" | "other";
@@ -43,9 +41,6 @@ export interface Bill {
   network?: "TRC20" | "ERC20" | "BEP20";
   balanceAfter?: number;
   reservedAfter?: number;
-  source?: "mock";
-  sourceEnvironment?: "SANDBOX";
-  entryRole?: string;
 }
 
 /**
@@ -185,130 +180,223 @@ export const useBills = defineStore("bills", () => {
   // 账号维度。boot 期落 "default";账号确定后由 lib/account-scope 的
   // rebindAccountScopedStores 统一重绑(P-031 store 不互 import)。
   let boundKey = "default";
-  const bills = ref<Bill[]>(fundsServerEnabled ? [] : hydrate(boundKey));
-  const serverStatus = ref<"idle" | "loading" | "ready" | "error">(mockFundsEnabled ? "idle" : "ready");
-  const serverError = ref("");
+  const localBills = ref<Bill[]>(fundsServerEnabled ? [] : hydrate(boundKey));
+  let requestGeneration = 0;
+  const ledgers = new Map<string, WalletLedgerPager>();
+  function getLedger(filters: WalletBillFilters = {}): WalletLedgerPager {
+    const key = `${filters.asset ?? ""}|${filters.direction ?? ""}|${filters.category ?? ""}`;
+    let pager = ledgers.get(key);
+    if (!pager) {
+      const stableFilters = { ...filters };
+      pager = createWalletLedgerPager((page, cursor) => walletBillsApi.list(page, 50, { ...stableFilters, cursor }), productionBill);
+      ledgers.set(key, pager);
+    }
+    return pager;
+  }
+  const defaultLedger = getLedger();
+  const bills = computed<Bill[]>({
+    get: () => fundsServerEnabled ? defaultLedger.rows : localBills.value,
+    set: rows => { if (fundsServerEnabled) defaultLedger.rows = rows; else localBills.value = rows; },
+  });
+  const serverStatus = computed(() => fundsServerEnabled ? defaultLedger.status : "ready");
+  const serverError = computed(() => fundsServerEnabled ? defaultLedger.error : "");
+  const summary = ref<(Omit<WalletBillsSummary, "recentNexBills"> & { recentNexBills: Bill[] }) | null>(null);
+  const summaryStatus = ref<LedgerLoadStatus>("idle");
+  const summaryError = ref("");
+  let summaryFlight: Promise<void> | null = null;
+  let summaryGeneration = 0;
 
   function persist(): boolean {
     if (fundsServerEnabled) return false;
     return writeAccountRow<{ bills: Bill[] }>(ACCOUNTS_KEY, boundKey, { bills: bills.value });
   }
 
-  /** Replace, never merge: server projections are the complete authoritative view. */
-  function adoptFundsSandboxLedger(
-    expectedAccountKey: string,
-    sourceEnvironment: "SANDBOX",
-    entries: FundsSandboxLedgerEntry[],
-    referralBills: Bill[] = [],
-  ): boolean {
-    if (!mockFundsEnabled || sourceEnvironment !== "SANDBOX"
-        || normalizeAccountKey(expectedAccountKey) !== boundKey) return false;
-    bills.value = recomputeBalance([...projectFundsSandboxLedger(entries), ...referralBills]);
-    serverStatus.value = "ready";
-    serverError.value = "";
-    return true;
-  }
-
-  async function refreshFundsSandboxLedger(): Promise<void> {
-    if (!mockFundsEnabled) {
-      if (fundsServerEnabled) return refreshProductionLedger();
-      return;
-    }
-    const expectedAccountKey = boundKey;
-    serverStatus.value = "loading";
-    serverError.value = "";
-    try {
-      const [overview, referralSnapshot] = await Promise.all([
-        fundsSandboxApi.overview(),
-        referralRewardApi.snapshot(),
-      ]);
-      const referralBills = projectReferralRewardBills(referralSnapshot);
-      if (!adoptFundsSandboxLedger(expectedAccountKey, overview.sourceEnvironment, overview.ledger, referralBills)) {
-        throw new Error("FUNDS_SANDBOX_ACCOUNT_CHANGED");
-      }
-    } catch (cause) {
-      if (expectedAccountKey === boundKey) {
-        bills.value = [];
-        serverStatus.value = "error";
-        serverError.value = cause instanceof Error ? cause.message : "FUNDS_SANDBOX_LEDGER_REFRESH_FAILED";
-      }
-      // 权威不可达是常态输入,不 reject(resilience 门);页面横幅走 serverError 双源。
-    }
-  }
-
   function productionBill(row: WalletBillRow): Bill {
     const amount = row.direction === "IN" ? row.amount : -row.amount;
+    const legacy = legacyPresentation(row.bizType);
+    const type = row.category ?? legacy?.type ?? "other";
+    const projectedMemoKey = presentationCode(row.presentationCode);
+    // Older projections identify every withdrawal leg as generic `withdraw`.
+    // A known legacy component is more specific; new component codes still win.
+    const memoKey = projectedMemoKey === "bonus" && row.bizType === "LEARNING_REWARD"
+      ? "learningReward"
+      : projectedMemoKey === "withdraw" && legacy?.memoKey !== undefined && legacy.memoKey !== "withdraw"
+      ? legacy.memoKey
+      : projectedMemoKey ?? legacy?.memoKey ?? categoryMemoKey(type);
     return {
       id: row.id,
-      type: productionBillType(row.bizType, row.direction),
+      type,
       amount,
       symbol: row.asset,
       status: row.status === "SUCCESS" ? "posted" : row.status === "PENDING" ? "pending" : "failed",
       ts: row.createdAt,
-      memo: row.remark || row.bizType,
-      ref: row.bizNo,
+      // `remark` and `bizNo` are ledger internals. A new server supplies controlled
+      // projection fields; the exact legacy allowlist keeps older servers readable.
+      memo: "",
+      memoKey,
+      ref: row.publicReference ?? legacyPublicReference(row.bizType, row.bizNo, legacy?.publicReference),
       balanceAfter: row.balanceAfter,
     };
   }
 
-  function productionBillType(bizType: string, direction: WalletBillRow["direction"]): BillType {
-    const value = bizType.toUpperCase();
-    if (/(DEPOSIT|TOPUP|RECHARGE)/.test(value)) return "topup";
-    if (/(WITHDRAW|PAYOUT)/.test(value)) return "withdraw";
-    if (/(REFERRAL|COMMISSION|UNILEVEL|BINARY|LEADERSHIP)/.test(value)) return "refer";
-    if (/(STAKE|STAKING)/.test(value)) return direction === "IN" ? "unstake" : "stake";
-    if (/(EXCHANGE|SWAP)/.test(value)) return "swap";
-    if (/(PURCHASE|ORDER|REPURCHASE|GENESIS|TRADE_IN)/.test(value)) return direction === "IN" ? "earn" : "purchase";
-    if (/(ACHIEVEMENT|MILESTONE|QUEST)/.test(value)) return "achievement";
-    if (/(EARN|REWARD|RELEASE|TASK|TRIAL)/.test(value)) return "earn";
-    return "other";
+  type LegacyPublicReference = "direct" | "withdrawalComponent";
+  type LegacyPresentation = { type: BillType; memoKey: string; publicReference?: LegacyPublicReference };
+  const LEGACY_PRESENTATIONS: Record<string, LegacyPresentation> = {
+    COMPUTE_TASK_REWARD: { type: "earn", memoKey: "computeTaskReward" },
+    DAILY_CHECK_IN: { type: "bonus", memoKey: "dailyCheckIn" },
+    TRIAL_CHARGE: { type: "purchase", memoKey: "trialCharge" },
+    TRIAL_BONUS: { type: "bonus", memoKey: "trialBonus" },
+    QUEST_REWARD: { type: "achievement", memoKey: "questReward" },
+    PURCHASE_REWARD: { type: "bonus", memoKey: "purchaseReward" },
+    // 课程奖励(zentao #219):自己的码位,与其它 bonus 区分开。
+    LEARNING_REWARD: { type: "bonus", memoKey: "learningReward" },
+    ORDER_PURCHASE: { type: "purchase", memoKey: "purchase", publicReference: "direct" },
+    GENESIS_PURCHASE: { type: "purchase", memoKey: "purchase", publicReference: "direct" },
+    WITHDRAWAL: { type: "withdraw", memoKey: "withdraw", publicReference: "direct" },
+    WITHDRAW_PAYOUT: { type: "withdraw", memoKey: "withdraw", publicReference: "direct" },
+    // Each current withdrawal writer emits one immutable component row.  The
+    // value before ':' is the withdrawal number; suffixes identify internal
+    // accounting legs and must never become the user-facing tracking id.
+    WITHDRAW_NET_PRINCIPAL: { type: "withdraw", memoKey: "withdrawPrincipal", publicReference: "withdrawalComponent" },
+    WITHDRAW_NETWORK_FEE: { type: "withdraw", memoKey: "withdrawNetworkFee", publicReference: "withdrawalComponent" },
+    WITHDRAW_PENALTY_FEE: { type: "withdraw", memoKey: "withdrawPenaltyFee", publicReference: "withdrawalComponent" },
+    WITHDRAW_FEE_OFFSET: { type: "withdraw", memoKey: "withdrawFeeOffset", publicReference: "withdrawalComponent" },
+    WITHDRAW_PAYOUT_REFUND: { type: "withdraw", memoKey: "withdrawPayoutRefund", publicReference: "withdrawalComponent" },
+    WITHDRAW_PAYOUT_NEX_REFUND: { type: "withdraw", memoKey: "withdrawPayoutNexRefund", publicReference: "withdrawalComponent" },
+    WITHDRAW_REFUND: { type: "withdraw", memoKey: "withdrawRefund", publicReference: "withdrawalComponent" },
+    WITHDRAW_FEE_OFFSET_REFUND: { type: "withdraw", memoKey: "withdrawFeeOffsetRefund", publicReference: "withdrawalComponent" },
+    DEPOSIT: { type: "topup", memoKey: "topup", publicReference: "direct" },
+    TOPUP: { type: "topup", memoKey: "topup", publicReference: "direct" },
+    RECHARGE: { type: "topup", memoKey: "topup", publicReference: "direct" },
+    VIETQR_DEPOSIT: { type: "topup", memoKey: "topup", publicReference: "direct" },
+    EXCHANGE_SELL: { type: "swap", memoKey: "swap" },
+    EXCHANGE_BUY: { type: "swap", memoKey: "swap" },
+  };
+  const PRESENTATION_CODES: Record<string, string> = {
+    computeTaskReward: "computeTaskReward",
+    dailyCheckIn: "dailyCheckIn",
+    trialCharge: "trialCharge",
+    trialBonus: "trialBonus",
+    questReward: "questReward",
+    purchaseReward: "purchaseReward",
+    learningReward: "learningReward",
+    earn: "earn",
+    refer: "refer",
+    bonus: "bonus",
+    topup: "topup",
+    withdraw: "withdraw",
+    withdrawPrincipal: "withdrawPrincipal",
+    withdrawNetworkFee: "withdrawNetworkFee",
+    withdrawPenaltyFee: "withdrawPenaltyFee",
+    withdrawFeeOffset: "withdrawFeeOffset",
+    withdrawPayoutRefund: "withdrawPayoutRefund",
+    withdrawPayoutNexRefund: "withdrawPayoutNexRefund",
+    withdrawRefund: "withdrawRefund",
+    withdrawFeeOffsetRefund: "withdrawFeeOffsetRefund",
+    purchase: "purchase",
+    swap: "swap",
+    verification: "verification",
+    stake: "stake",
+    unstake: "unstake",
+    achievement: "achievement",
+    other: "other",
+  };
+  const CATEGORY_MEMO_KEYS: Record<BillType, string> = {
+    earn: "earn", refer: "refer", bonus: "bonus", topup: "topup", withdraw: "withdraw", purchase: "purchase",
+    swap: "swap", verification: "verification", stake: "stake", unstake: "unstake", achievement: "achievement", other: "other",
+  };
+  function legacyPresentation(bizType: string) {
+    return LEGACY_PRESENTATIONS[bizType.trim().toUpperCase()];
   }
-
-  async function refreshProductionLedger(): Promise<void> {
-    const expectedAccountKey = boundKey;
-    serverStatus.value = "loading";
-    serverError.value = "";
-    try {
-      const pages: WalletBillRow[] = [];
-      let page = 1;
-      let nextPage: number | null = 1;
-      while (nextPage !== null && pages.length < 1000) {
-        const snapshot = await walletBillsApi.list(page, 50);
-        pages.push(...snapshot.bills);
-        nextPage = snapshot.nextPage;
-        page = nextPage ?? page;
-      }
-      if (expectedAccountKey !== boundKey) throw new Error("WALLET_BILLS_ACCOUNT_CHANGED");
-      bills.value = recomputeBalance(pages.map(productionBill));
-      serverStatus.value = "ready";
-    } catch (cause) {
-      if (expectedAccountKey === boundKey) {
-        bills.value = [];
-        serverStatus.value = "error";
-        serverError.value = cause instanceof Error ? cause.message : "WALLET_BILLS_REFRESH_FAILED";
-      }
-      throw cause;
+  function legacyPublicReference(bizType: string, bizNo: string, kind: LegacyPublicReference | undefined): string | undefined {
+    if (bizType === "LEARNING_REWARD") {
+      const match = /^LEARN:[1-9][0-9]*:([a-z0-9][a-z0-9-]{2,80}):([A-Za-z0-9][A-Za-z0-9._-]{0,31})$/.exec(bizNo);
+      return match ? `${match[1]}@${match[2]}` : undefined;
+    }
+    if (kind === "direct") return bizNo;
+    if (kind !== "withdrawalComponent") return undefined;
+    const value = bizType.trim().toUpperCase();
+    if (value === "WITHDRAW_REFUND") return validWithdrawalNo(trimKnownPrefix(bizNo, "D2-REFUND-"));
+    if (value === "WITHDRAW_FEE_OFFSET_REFUND") return validWithdrawalNo(trimKnownPrefix(bizNo, "D2-NEX-REFUND-"));
+    const suffix = withdrawalComponentSuffix(value);
+    return suffix ? validWithdrawalNo(trimKnownComponentSuffix(bizNo, suffix)) : undefined;
+  }
+  function trimKnownPrefix(value: string, prefix: string): string | undefined {
+    if (!value.startsWith(prefix)) return undefined;
+    const reference = value.slice(prefix.length);
+    return reference || undefined;
+  }
+  function withdrawalComponentSuffix(bizType: string): string | undefined {
+    switch (bizType) {
+      case "WITHDRAW_NET_PRINCIPAL": return ":USDT:PRINCIPAL";
+      case "WITHDRAW_NETWORK_FEE": return ":USDT:NETWORK_FEE";
+      case "WITHDRAW_PENALTY_FEE": return ":USDT:PENALTY_FEE";
+      case "WITHDRAW_FEE_OFFSET": return ":NEX:OFFSET";
+      case "WITHDRAW_PAYOUT_REFUND": return ":PAYOUT:USDT:REFUND";
+      case "WITHDRAW_PAYOUT_NEX_REFUND": return ":PAYOUT:NEX:REFUND";
+      default: return undefined;
     }
   }
+  function trimKnownComponentSuffix(value: string, suffix: string): string | undefined {
+    if (!value.endsWith(suffix)) return undefined;
+    const reference = value.slice(0, -suffix.length);
+    return reference || undefined;
+  }
+  function validWithdrawalNo(value: string | undefined): string | undefined {
+    // AppWithdrawalService emits WD- plus an upper-case UUID without hyphens.
+    if (!value?.startsWith("WD-") || value.length !== 35) return undefined;
+    for (let index = 3; index < value.length; index += 1) {
+      const char = value.charCodeAt(index);
+      const digit = char >= 48 && char <= 57;
+      const upperHex = char >= 65 && char <= 70;
+      if (!digit && !upperHex) return undefined;
+    }
+    return value;
+  }
+  function presentationCode(code: string | undefined): string | undefined {
+    return code && Object.prototype.hasOwnProperty.call(PRESENTATION_CODES, code) ? PRESENTATION_CODES[code] : undefined;
+  }
+  function categoryMemoKey(type: BillType): string {
+    return CATEGORY_MEMO_KEYS[type];
+  }
 
-  async function refreshServerLedger(): Promise<void> {
-    if (!fundsServerEnabled) return;
-    return mockFundsEnabled ? refreshFundsSandboxLedger() : refreshProductionLedger();
+  function refreshServerLedger(options: { force?: boolean } = {}): Promise<void> {
+    return fundsServerEnabled ? defaultLedger.refresh(options) : Promise.resolve();
+  }
+
+  /** Coalesce only active reads; a later read must see newly posted financial events. */
+  function refreshSummary(options: { force?: boolean } = {}): Promise<void> {
+    if (!fundsServerEnabled) return Promise.resolve();
+    if (summaryFlight && !options.force) return summaryFlight;
+    const expectedAccount = requestGeneration;
+    const expected = ++summaryGeneration;
+    summaryStatus.value = "loading"; summaryError.value = "";
+    const request = walletBillsApi.summary().then(snapshot => {
+      if (expectedAccount !== requestGeneration || expected !== summaryGeneration) throw new Error("WALLET_SUMMARY_REQUEST_SUPERSEDED");
+      summary.value = { ...snapshot, recentNexBills: snapshot.recentNexBills.map(productionBill) };
+      summaryStatus.value = "ready";
+    }).catch(cause => {
+      if (expectedAccount === requestGeneration && expected === summaryGeneration) {
+        summary.value = null;
+        summaryStatus.value = "error";
+        summaryError.value = cause instanceof Error ? cause.message : "WALLET_SUMMARY_REFRESH_FAILED";
+      }
+      throw cause;
+    }).finally(() => { if (expectedAccount === requestGeneration && expected === summaryGeneration) summaryFlight = null; });
+    summaryFlight = request;
+    return request;
   }
 
   /** 账号切换重绑:装载该账号的账单行(变更处处即时 persist,旧账号无需先落盘)。 */
   function bindAccount(rawAccountKey: string) {
+    requestGeneration += 1;
     boundKey = normalizeAccountKey(rawAccountKey);
     if (fundsServerEnabled) {
-      const expectedAccountKey = boundKey;
-      bills.value = [];
-      serverStatus.value = "idle";
-      serverError.value = "";
-      void refreshServerLedger().catch((cause) => {
-        if (expectedAccountKey === boundKey && !serverError.value) {
-          serverError.value = cause instanceof Error ? cause.message : "WALLET_BILLS_REFRESH_FAILED";
-        }
-      });
+      for (const pager of ledgers.values()) pager.reset();
+      summaryGeneration++; summaryFlight = null;
+      summary.value = null; summaryStatus.value = "idle"; summaryError.value = "";
+      // Binding must not fetch the entire ledger (or any detail page).
+      if (boundKey !== "default") void refreshSummary().catch(() => { /* summaryError owns the visible failure */ });
       return;
     }
     bills.value = hydrate(boundKey);
@@ -353,7 +441,7 @@ export const useBills = defineStore("bills", () => {
     atMs?: number,
   ): Bill[] | null {
     // 🔴 服务端账本档下一条都不写(远端线焊在 addForAccount 上的同一道闸,本地线把它改名成了多腿版)。
-    // 分录归服务端在同一事务里写,client 只消费投影(adoptFundsSandboxLedger);这里再写一条就是伪造账本。
+    // 分录归服务端在同一事务里写,client 只消费权威投影;这里再写一条就是伪造账本。
     // 代价说清楚:提现提交后的本地补写因此只在 mock 档生效(runtime 门 withdraw-bill-runtime 正是跑在 mock),
     // 服务端档下那两条分录得由服务端账本给出。
     if (fundsServerEnabled) return null;
@@ -494,7 +582,8 @@ export const useBills = defineStore("bills", () => {
 
   return {
     bills, serverStatus, serverError,
+    summary, summaryStatus, summaryError, refreshSummary, getLedger,
     add, addMany, addManyForAccountOnce, addOnce, seed, settleByRef, bindAccount,
-    adoptFundsSandboxLedger, refreshFundsSandboxLedger, refreshServerLedger,
+    refreshServerLedger,
   };
 });

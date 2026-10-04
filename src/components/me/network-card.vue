@@ -3,7 +3,7 @@
   V-rank ladder progress toward the next rank: aspiration star anchor + "Toward V{n}
   {title} · {gap}" line + perk-unlock line + scroll-grow progress bar (≥80% =
   warning "hot" state). Max-rank reached → collapses to a single dignity row.
-  Reads useVRank + nextRankGap; locale fallback shows cnTitle only for `zh`.
+  Reads useVRank + nextRankGap; published rank names follow the active locale.
   Taps through to /team (not yet ported → nav fail:()=>{}).
 -->
 <template>
@@ -11,7 +11,7 @@
     <SectionHeader :title="t.me.myNetwork" link="/pages/team/team" :link-label="t.me.team" />
 
     <!-- Max-rank end state -->
-    <view v-if="!gap.next" class="block active:opacity-90" :style="maxCardStyle" @click="goTeam">
+    <view v-if="!gap.next" class="nx-glass-card block active:opacity-90" :style="maxCardStyle" @click="goTeam">
       <view :style="maxIconStyle" :aria-label="maxRankLine">
         <text style="font-size: 20px">{{ maxPrizeIcon }}</text>
       </view>
@@ -22,7 +22,7 @@
     </view>
 
     <!-- In-progress state -->
-    <view v-else class="block active:opacity-90" :style="cardStyle" @click="goTeam">
+    <view v-else class="nx-glass-card block active:opacity-90" :style="cardStyle" @click="goTeam">
       <!-- Aspiration hero anchor(实物奖已删) -->
       <view :style="prizeHeroStyle" :aria-label="towardLine">
         <text style="font-size: 26px">{{ prizeHeroIcon }}</text>
@@ -57,17 +57,13 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import SectionHeader from "@/components/me/section-header.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useLocaleStore } from "@/store/locale";
-import {
-  useVRank,
-  nextRankGap,
-  type PrimaryGap,
-  type PerkUnlock,
-} from "@/store/v-rank";
+import { useVRank, nextRankGap, type PrimaryGap, type PerkUnlock } from "@/store/v-rank";
 import { rankTitle } from "@/lib/v-rank-copy";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
@@ -76,13 +72,12 @@ const vrank = useVRank();
 const locale = useLocaleStore();
 const { elRef, inView } = useScrollGrowProgress();
 
-const isZh = computed(() => locale.code === "zh");
 const myRank = computed(() => vrank.myRank);
 const gap = computed(() => nextRankGap(vrank));
 
 // 头衔的中英取舍收在 lib/v-rank-copy(主人 2026-08-17 拍板 V3 = 舰长;此前三处各写一份判断,
 // 中文界面出现「舰长 / 队长 / Captain」三种写法)
-const titleOf = (v: number): string => rankTitle(v, isZh.value, vrank.ladder);
+const titleOf = (v: number): string => vrank.remoteReady ? rankTitle(v, locale.code, vrank.ladder) : "—";
 
 // ── Max-rank end state ──(实物奖已删 → 用通用「已达成」图标作 dignity 锚点)
 const maxPrizeIcon = "✓";
@@ -146,14 +141,14 @@ const perkLine = computed(() =>
 );
 
 function goTeam() {
-  uni.navigateTo({ url: "/pages/team/team", fail: () => {} });
+  navTo("/pages/team/team");
 }
 
 // ── styles ──
-const maxCardStyle: CSSProperties = {
+const maxCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "14px 18px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   display: "flex",
   alignItems: "center",
   gap: "12px",
@@ -167,10 +162,10 @@ const maxIconStyle: CSSProperties = {
   placeItems: "center",
   flexShrink: 0,
 };
-const cardStyle: CSSProperties = {
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "16px 18px",
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   display: "flex",
   alignItems: "center",
   gap: "14px",
@@ -206,4 +201,6 @@ const pctStyle = computed<CSSProperties>(() => ({
   minWidth: "30px",
   textAlign: "right",
 }));
+
+
 </script>

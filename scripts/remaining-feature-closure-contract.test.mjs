@@ -9,20 +9,31 @@ test("bundle editor uses the real remote order lifecycle with stable command rec
     read("src/pages/store/bundle.vue"),
     read("src/api/bundle-order-api.ts"),
   ]);
-  assert.match(page, /if \(remoteApiEnabled\)[\s\S]{0,900}bundleOrderApi\.create/);
-  assert.match(page, /acquireBundleKey\(list, accountKey\)/);
-  assert.match(page, /if \(!isAmbiguousOutcome\(error\)\) retireBundleKey/);
-  assert.match(page, /checkoutUnavailable = computed\(\(\) => submitting\.value \|\| products\.value\.length < 2\)/);
+  const checkoutStart = page.indexOf("async function onCheckout()");
+  const checkoutEnd = page.indexOf("const cardStyle", checkoutStart);
+  assert.ok(checkoutStart >= 0 && checkoutEnd > checkoutStart, "bundle checkout source slice must exist");
+  const checkout = page.slice(checkoutStart, checkoutEnd);
+  const remoteBranch = checkout.indexOf("if (remoteApiEnabled)");
+  const createOrder = checkout.indexOf("bundleOrderApi.create");
+  const payOrder = checkout.indexOf("orderApi.pay", createOrder);
+  const activatedReadback = checkout.indexOf('settled.status !== "activated"', payOrder);
+  assert.ok(remoteBranch >= 0 && createOrder > remoteBranch, "remote branch must create the canonical bundle order");
+  assert.ok(payOrder > createOrder && activatedReadback > payOrder,
+    "bundle order must be paid and read back as activated before success");
+  assert.match(page, /acquireBundleCommand\(list, accountKey, quotedTotal\)/);
+  assert.match(page, /bundleOrderApi\.create\(\s*command\.productNos, latestPolicy\.policyVersion, command\.expectedAmountUsdt, command\.key\)/);
+  assert.match(page, /if \(!canonicalOrderCommitted && !idempotencyPayloadMismatch\s*&& \(policyStale \|\| quoteStale \|\| !isAmbiguousOutcome\(error\)\)\)/);
+  assert.match(page, /const checkoutUnavailable = computed\(\(\) => submitting\.value \|\| walletRefreshing\.value \|\| products\.value\.length < 2[\s\S]*entry\.status !== "ready" \|\| !entry\.eligible/);
   assert.match(api, /\/api\/orders\/bundle/);
   assert.match(api, /idSource !== "server"/);
 });
 
 test("compute enrollment preserves the account-scoped command and rejects late account replies", async () => {
   const page = await read("src/pages/compute-share/download.vue");
-  assert.match(page, /storageScope\(accountKey: string\)/);
-  assert.match(page, /expectedGeneration !== accountGeneration/);
-  assert.match(page, /readPending\(accountKey\) \?\? undefined/);
-  assert.match(page, /fundsSandboxEnabled[\s\S]{0,120}sandboxHold/);
+  assert.match(page, /enrollmentJournal\.read\(expectedAccount\)/);
+  assert.match(page, /function isCurrent\([\s\S]*expectedGeneration === accountGeneration/);
+  assert.match(page, /runComputeShareEnrollmentFlow\([\s\S]*journal: enrollmentJournal/);
+  assert.match(page, /if \(!isCurrent\(expectedAccount, expectedGeneration, expectedLifecycle\)\) return/);
 });
 
 test("remote team projection never turns errors into zero or local royalty money", async () => {
@@ -33,17 +44,18 @@ test("remote team projection never turns errors into zero or local royalty money
   assert.match(page, /projectionErrorTitle/);
 });
 
-test("global search always offers the real Nova route and carries the query", async () => {
+test("global search offers Help Center and old AI links return to the inbox", async () => {
   const [search, chat] = await Promise.all([
     read("src/pages/search/search.vue"),
     read("src/pages/support/chat.vue"),
   ]);
   assert.match(search, /group: "help"/);
-  assert.match(search, /type=ai&prompt=/);
+  assert.match(search, /href: "\/pages\/me\/help"/);
+  assert.doesNotMatch(search, /type=ai/);
   assert.match(search, /refreshProductCatalog/);
   assert.match(search, /refreshCanonicalNetwork/);
-  assert.match(chat, /initialPrompt/);
-  assert.match(chat, /key: "search-query"/);
+  assert.match(chat, /if \(!NOVA_SUPPORT_VISIBLE\) \{/);
+  assert.match(chat, /navReplace\("\/pages\/support\/messages"\)/);
 });
 
 test("remote device activation and deactivation use server CAS and verify the fleet before success", async () => {
@@ -125,17 +137,26 @@ test("remote leaderboard, leadership pool, and commission pages use self-scoped 
   assert.match(runtime, /createTeamInsightsApi/);
   assert.match(leaderboard, /teamInsightsApi\.leaderboard/);
   assert.match(leaderboard, /remoteApiEnabled/);
-  assert.match(leaderboard, /accountKey !== app\.accountKey/);
+  assert.match(leaderboard, /const runScope = captureRuntimeRevision\(\)/);
+  assert.match(leaderboard, /accountKey === app\.accountKey[\s\S]*isCurrentAccountScope\(accountScope\)[\s\S]*isCurrentRuntimeRevision\(runScope\)/);
   assert.match(leaderboard, /remoteState !== 'ready'/);
   assert.match(leaderboard, /remoteState\.value = "error"/);
   assert.doesNotMatch(leaderboard, /myRank:\s*remoteSnapshot\.value\?\.myRank \?\? 0/);
   assert.match(pool, /teamInsightsApi\.leadershipPool/);
-  assert.match(pool, /accountKey !== app\.accountKey/);
+  assert.match(pool, /const runScope = captureRuntimeRevision\(\)/);
+  assert.match(pool, /accountKey === app\.accountKey[\s\S]*isCurrentAccountScope\(accountScope\)[\s\S]*isCurrentRuntimeRevision\(runScope\)/);
   assert.match(pool, /remoteState !== 'ready'/);
-  assert.match(pool, /remoteState\.value = "error"/);
+  assert.match(pool, /remoteState\.value = leadershipPoolFailureState\(cause\)/);
+  const poolFailure = await read("src/lib/leadership-pool-state.ts");
+  assert.match(poolFailure, /cause instanceof ApiError/);
+  assert.match(poolFailure, /cause\.message === "F4_LEADERSHIP_POOL_HOLD"/);
+  assert.match(poolFailure, /\? "hold" : "error"/);
   assert.match(commission, /teamInsightsApi\.commissions/);
   assert.match(commission, /bindingEpoch \+= 1/);
-  assert.match(commission, /if \(!isCurrentScope\(scope\)\) return/);
+  for (const generation of ["binaryRefreshGeneration", "eventsRefreshGeneration"]) {
+    assert.match(commission, new RegExp(`if \\(generation !== ${generation} \\|\\| !isCurrentScope\\(scope\\)\\) return`));
+    assert.match(commission, new RegExp(`generation === ${generation} && isCurrentScope\\(scope\\)`));
+  }
 });
 
 test("remote unilevel page renders only the server cycle/source/layer/split projection", async () => {
@@ -147,9 +168,15 @@ test("remote unilevel page renders only the server cycle/source/layer/split proj
   assert.match(api, /cycle/);
   assert.match(api, /amountUSDT/);
   assert.match(page, /teamInsightsApi\.unilevel/);
-  assert.match(page, /remoteSnapshot\?\.events/);
-  assert.match(page, /remoteState === 'error'/);
-  assert.match(page, /accountKey !== app\.accountKey/);
+  assert.match(page, /const remoteFilteredEvents = computed\(\(\) => \(remoteSnapshot\.value\?\.events \?\? \[\]\)\.filter/);
+  assert.match(page, /filter\.value === "all" \|\| \(filter\.value === "direct" \? event\.layer === 1 : event\.layer > 1\)/);
+  assert.match(page, /v-for="\(event, i\) in remoteFilteredEvents"/);
+  assert.match(page, /v-if="remoteFilteredEvents\.length === 0"/);
+  assert.match(page, /remoteState\.value === "error"/);
+  assert.match(page, /v-if="remoteApiEnabled && unilevelLoadError"/);
+  assert.match(page, /const unilevelLoadError = computed\(\(\) => network\.remoteStatus === "error"[\s\S]*remoteState\.value === "error" \|\| commission\.configStatus === "error"/);
+  assert.match(page, /const runScope = captureRuntimeRevision\(\)/);
+  assert.match(page, /accountKey === app\.accountKey[\s\S]*isCurrentAccountScope\(accountScope\)[\s\S]*isCurrentRuntimeRevision\(runScope\)/);
   assert.doesNotMatch(page, /remoteApiEnabled[\s\S]{0,220}Math\.log10/);
 });
 
@@ -176,7 +203,9 @@ test("production wallet bills come from the authenticated server ledger", async 
   assert.match(store, /walletBillsApi\.list/);
   assert.match(store, /refreshServerLedger/);
   assert.doesNotMatch(store, /FUNDS_BILLS_PROVIDER_NOT_CONFIGURED/);
-  assert.match(page, /refreshServerLedger/);
+  assert.match(page, /getLedger/);
+  assert.match(page, /activePager\.value\.refresh/);
+  assert.doesNotMatch(page, /refreshServerLedger/);
 });
 
 test("remote Genesis holder renders server holdings and emission ledger without fabricated ranks or token ids", async () => {
@@ -200,11 +229,11 @@ test("remote globe and search refresh when account or canonical catalog changes"
     read("src/pages/globe/globe.vue"),
     read("src/pages/search/search.vue"),
   ]);
-  assert.match(globe, /watch\(\(\) => String\(app\.accountKey\)/);
+  assert.match(globe, /watch\(\(\) => \[String\(app\.accountKey\), app\.accountBindingEpoch\]/);
   assert.match(globe, /networkProjection\.value = null/);
   assert.match(globe, /void loadRegions\(\)/);
   assert.match(search, /productCatalogState/);
   assert.match(search, /productCatalogState\.status === "ready"/);
-  assert.match(search, /@keydown\.enter\.prevent="openNova\(''\)"/);
-  assert.match(search, /@keydown\.space\.prevent="openNova\(''\)"/);
+  assert.match(search, /@keydown\.enter\.prevent="openHelp"/);
+  assert.match(search, /@keydown\.space\.prevent="openHelp"/);
 });

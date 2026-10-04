@@ -10,7 +10,7 @@
   <view v-if="sheet.open" class="vcs-root" role="dialog" aria-modal="true">
     <view class="vcs-backdrop" @click="hide" />
 
-    <view class="vcs-panel" @click.stop>
+    <view class="nx-glass-sheet vcs-panel" @click.stop>
       <!-- header -->
       <view class="vcs-head">
         <view class="vcs-head-l">
@@ -37,7 +37,7 @@
             <text v-if="condText(v)" class="vcs-cond">{{ condText(v) }}</text>
           </view>
           <view class="vcs-card-r">
-            <text class="vcs-name">{{ voucherName(v) }}</text>
+            <text class="vcs-name">{{ v.name }}</text>
             <text class="vcs-scope">{{ scopeText(v) }}</text>
             <text class="vcs-expiry">{{ expiryText(v) }}</text>
             <view
@@ -68,6 +68,7 @@ import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { useVoucher } from "@/store/voucher";
 import { getProduct } from "@/mock/products";
 import { isSingleSkuVoucher, listVouchers, type VoucherDef } from "@/mock/vouchers";
+import { visibleVoucherCatalog } from "@/lib/voucher-sheet-authority";
 import { toast } from "@/store/ui";
 import { useT } from "@/i18n/use-t";
 import { remoteApiEnabled } from "@/api/runtime";
@@ -82,19 +83,13 @@ const t = useT();
 // Showable = claimable (unclaimed) ∪ claimed-unused (ready to use), in stable
 // catalog order so a card never jumps position when its CTA flips claim→use.
 const vouchers = computed<VoucherDef[]>(() => {
-  const showable = new Set<string>([
-    ...voucher.claimableVouchers.map((v) => v.id),
-    ...voucher.claimedUnused.map((v) => v.id),
-  ]);
-  return (remoteApiEnabled ? voucher.catalog : listVouchers()).filter((v) => showable.has(v.id));
+  return visibleVoucherCatalog(
+    remoteApiEnabled ? voucher.catalog : listVouchers(),
+    voucher.claimableVouchers,
+    voucher.claimedUnused,
+    sheet.surface,
+  );
 });
-
-function voucherName(v: VoucherDef): string {
-  // ponytail: only local seed campaigns have translated names; remote campaigns need operator-provided locales.
-  if (!remoteApiEnabled && v.id === "vc-newuser-50") return t.value.voucher.newUserGiftName;
-  if (!remoteApiEnabled && v.id === "vc-activity-8pct") return t.value.voucher.summerActivityName;
-  return v.name;
-}
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -134,7 +129,7 @@ function hide() {
 }
 async function onClaim(v: VoucherDef) {
   if (remoteApiEnabled) {
-    if (await voucher.claimRemote(v.id)) toast.success(t.value.voucher.claimedToast);
+    if (await voucher.claimRemote(v.id, sheet.surface)) toast.success(t.value.voucher.claimedToast);
     else toast.error(t.value.authOtp.errorServiceUnavailable);
     return;
   }
@@ -159,6 +154,8 @@ function onUse(v: VoucherDef) {
 
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮)。
 useDialogA11y(computed(() => sheet.open), ".vcs-root", hide);
+
+
 </script>
 
 <style scoped>
@@ -175,16 +172,16 @@ useDialogA11y(computed(() => sheet.open), ".vcs-root", hide);
   -webkit-backdrop-filter: blur(8px) saturate(150%);
   animation: vcs-fade 0.24s ease-out;
 }
-.vcs-panel {
+.vcs-panel { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge);
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 800;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  background: var(--v5-surface);
-  border-top: 1px solid var(--v5-border);
+
+
+  background: var(--nx-glass-fill);
+  border: none;
   padding: 20px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 38px);
   animation: vcs-slide-up 0.36s cubic-bezier(0.16, 1, 0.3, 1);

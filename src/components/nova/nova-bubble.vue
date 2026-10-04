@@ -18,10 +18,10 @@
 -->
 <template>
   <view>
-    <view v-if="visible" class="nx-nova-bubble nova-float" :class="{ 'nx-nova-bubble--dimmed': dimmed }" @click="open">
-      <view class="nx-nova-btn nova-pulse">
-        <NovaAvatar :size="36" pulse />
-        <view v-if="showUnreadBadge" class="nx-nova-badge"><text class="nx-nova-badge-t">{{ unreadLabel }}</text></view>
+    <view v-if="visible" class="nx-nova-bubble"    :class="{ 'nx-nova-bubble--dimmed': dimmed }" role="button" tabindex="0" :aria-label="t.conversations.title" @click="open"  @keydown.enter.prevent="open" @keydown.space.prevent="open">
+      <view class="nx-nova-btn nx-nova-motion">
+        <NovaAvatar :size="36" :pulse="showUnreadBadge && !dimmed" class="nx-nova-avatar" />
+        <view v-if="showUnreadBadge" :key="totalUnread" class="nx-nova-badge"><text class="nx-nova-badge-t">{{ unreadLabel }}</text></view>
       </view>
     </view>
   </view>
@@ -32,15 +32,16 @@ import { computed, onMounted, onUnmounted } from "vue";
 import { useNova } from "@/store/nova";
 import { useConversations } from "@/store/conversations";
 import { useNotifications, type NotifKind } from "@/store/notifications";
-import { formatUnreadBadge } from "@/lib/unread-badge";
 import { remoteApiEnabled } from "@/api/runtime";
 import { welcomeMessage } from "@/mock/nova-templates";
 import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
-import { navTo } from "@/lib/route";
+import { useMessageDrawer } from "@/store/message-drawer";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import NovaAvatar from "./nova-avatar.vue";
+import { NOVA_SUPPORT_VISIBLE } from "@/lib/nova-visibility";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 
 // dimmed:chassis 在页面滚动期间置真 —— 浮标横在内容上,滚动时先让路(淡出 +
 // 不吃点击),停下由 chassis 复位再淡回。不传 = 旧行为(undefined 即 falsy)。
@@ -51,23 +52,26 @@ defineProps<{ dimmed?: boolean }>();
 const t = useT();
 const nova = useNova();
 const conversations = useConversations();
+const messageCenter = useMessageDrawer();
 const notifications = useNotifications();
 // 创世闸(P1-2):推送前判紧迫感是否被允许;声明见 stakingEventMessage 内注释。
 const genesisCfg = useGenesisConfig();
 const { showUrgency: genesisUrgencyOk } = useGenesisSaleGate();
 
-// Bubble badge reflects ALL unread — Nova pushes + human-category conversations
-// (the advisor's proactive seed shows immediately as a conversion hook). Tapping
-// opens the unified conversation center; unread clears per-thread on open there.
-const totalUnread = computed(() =>
-  remoteApiEnabled ? nova.unread : nova.unread + conversations.totalUnread,
+// The floating shortcut retains only unread human advisor/support replies.
+// Notification and ticket counts belong to the unified message center.
+const humanUnread = computed(() =>
+  [...conversations.byType("advisor"), ...conversations.byType("support")]
+    .reduce((sum, row) => sum + row.unread, 0),
 );
-const visible = computed(() => remoteApiEnabled || totalUnread.value > 0);
+const totalUnread = computed(() => humanUnread.value);
+const visible = computed(() => !NOVA_SUPPORT_VISIBLE || remoteApiEnabled || totalUnread.value > 0);
 const showUnreadBadge = computed(() => totalUnread.value > 0);
 const unreadLabel = computed(() => formatUnreadBadge(totalUnread.value));
 
+// Human support uses the same full-page center as the bell, opening Service.
 function open() {
-  navTo("/pages/support/messages");
+  messageCenter.show("service");
 }
 
 // ── focused trigger port (nova-triggers welcome + nova-triggers-v3 channels)
@@ -163,8 +167,10 @@ const intervals: ReturnType<typeof setInterval>[] = [];
 onMounted(() => {
   if (remoteApiEnabled) {
     void notifications.refreshRemote();
+    void conversations.refresh().catch(() => undefined);
     return;
   }
+  if (!NOVA_SUPPORT_VISIBLE) return;
   timers.push(setTimeout(() => {
     nova.push(welcomeMessage(t.value), { cooldownKey: "welcome", cooldownMs: WELCOME_COOLDOWN });
   }, WELCOME_DELAY));
@@ -187,6 +193,8 @@ onUnmounted(() => {
   timers.forEach(clearTimeout);
   intervals.forEach(clearInterval);
 });
+
+
 </script>
 
 <style scoped>
@@ -195,7 +203,7 @@ onUnmounted(() => {
   right: 16px;
   bottom: 100px;
   z-index: 40;
-  transition: opacity 0.15s;
+  transition: opacity 150ms, transform 120ms cubic-bezier(.2,.8,.2,1);
   /* 命中区跟着视觉走。这层是 48×48 的**方框**,而看得见的球是内切圆 —— 四角那
      22% 面积是透明的却照样截走点击(实测 144 点网格:144 点全被吃,只有 112 点
      在圆内)。实付:赚取页「添加设备」按钮左上角约 1/4 面积点下去开的是 Nova。
@@ -203,11 +211,9 @@ onUnmounted(() => {
      角标都不受影响(角标是子元素,不被父级圆角裁剪)。 */
   border-radius: 999px;
 }
-/* 《08》§2 按下反馈。全站五个 tab 都能看到这个球,原先按下去毫无变化。
-   只动 opacity 不动 transform —— .nova-float 的 animation 一直在写 transform,
-   普通声明压不过 animation,写了也不会生效。 */
+/* Press belongs to the outer hit target; idle float belongs to the inner visual. */
 .nx-nova-bubble:active {
-  opacity: 0.7;
+  transform: scale(.94);
 }
 /* 滚动让路态。注意它压不过上面的 :active(带伪类,特异性更高)—— 靠的是
    pointer-events:none 让 :active 根本无从成立,不是靠选择器权重或书写顺序。
@@ -224,11 +230,15 @@ onUnmounted(() => {
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: var(--v5-bg);
-  border: 1px solid color-mix(in srgb, var(--v5-brand) 45%, transparent);
+  background: var(--v5-surface);
 }
+/* Float the avatar and badge together while keeping the outer hit target stationary. */
+.nx-nova-motion { position: relative; z-index: 1; animation: nx-nova-float 3.4s ease-in-out infinite; }
+@keyframes nx-nova-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.nx-nova-bubble--dimmed .nx-nova-motion { animation-play-state: paused; }
 .nx-nova-badge {
   position: absolute;
+  z-index: 2;
   top: -4px;
   right: -4px;
   min-width: 18px;
@@ -239,12 +249,21 @@ onUnmounted(() => {
   display: grid;
   place-items: center;
   border: 1px solid var(--v5-bg);
+  animation: nx-nova-unread 420ms cubic-bezier(.2,1.5,.3,1) both;
 }
+@keyframes nx-nova-unread { from { transform: scale(.65); } to { transform: scale(1); } }
 .nx-nova-badge-t {
   font-size: 12px;
   font-weight: 600;
   font-family: var(--font-v5);
   color: var(--v5-on-brand-2);
   line-height: 1;
+}
+.nx-nova-avatar { position: relative; z-index: 1; }
+.nx-nova-bubble:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .nx-nova-bubble { transition: none; }
+  .nx-nova-bubble:active { transform: none; }
+  .nx-nova-motion, .nx-nova-badge { animation: none; }
 }
 </style>

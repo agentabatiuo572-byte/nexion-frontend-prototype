@@ -19,11 +19,11 @@
           <view style="flex: 1">
             <text class="block" :style="heroLabelStyle">{{ w.progress }}</text>
             <view class="flex items-baseline" style="gap: 4px">
-              <text :style="heroCountStyle">{{ unlocked }}</text>
-              <text :style="heroTotalStyle">/ {{ total }}</text>
+              <text :style="heroCountStyle">{{ unlocked ?? "—" }}</text>
+              <text :style="heroTotalStyle">/ {{ total === null ? "—" : total }}</text>
             </view>
           </view>
-          <text :style="heroPctStyle">{{ percent }}%</text>
+          <text :style="heroPctStyle">{{ percentLabel }}</text>
         </view>
         <view :style="barTrackStyle">
           <view :style="barFillStyle" />
@@ -32,19 +32,19 @@
 
       <!-- Real-backend milestones. Remote mode never derives rewards from mock stores. -->
       <view v-if="remoteApiEnabled" style="margin-top: 20px; display: flex; flex-direction: column; gap: 24px">
-        <view v-if="remoteLoading && !remoteSnapshot" class="mx-4" :style="listStyle">
+        <view v-if="remoteLoading && !remoteSnapshot" class="nx-glass-card mx-4" :style="listStyle">
           <text class="block" style="padding: 18px; font-size: 13px; color: var(--v5-ink-3)">{{ w.remoteLoading }}</text>
         </view>
-        <view v-else-if="remoteError && !remoteSnapshot" class="mx-4" :style="listStyle">
+        <view v-else-if="remoteError" class="nx-glass-card mx-4" :style="listStyle">
           <text class="block" style="padding: 18px 18px 6px; font-size: 13px; color: var(--v5-ink-3)">{{ w.remoteUnavailable }}</text>
           <view class="active:opacity-80" :style="retryBtnStyle" role="button" tabindex="0" :aria-label="w.retry" @click="refreshRemote">
             <text>{{ w.retry }}</text>
           </view>
         </view>
-        <template v-else>
+        <template v-if="remoteSnapshot">
           <view v-for="grp in remoteGroups" :key="grp.key" class="mx-4">
             <text class="block" :style="catHeadStyle">{{ grp.label }}</text>
-            <view :style="listStyle">
+            <view class="nx-glass-card" :style="listStyle">
               <view
                 v-for="(row, i) in grp.rows"
                 :key="row.key"
@@ -86,7 +86,7 @@
       <view v-else style="margin-top: 20px; display: flex; flex-direction: column; gap: 24px">
         <view v-for="grp in groups" :key="grp.cat" class="mx-4">
           <text class="block" :style="catHeadStyle">{{ catLabel(grp.cat) }}</text>
-          <view :style="listStyle">
+          <view class="nx-glass-card" :style="listStyle">
             <view
               v-for="(a, i) in grp.list"
               :key="a.id"
@@ -128,19 +128,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import { dailyMilestoneRewardText, dailyRewardLabels } from "@/pages/daily/daily-reward-view";
 import { useT } from "@/i18n/use-t";
+import { fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { postMoneyBillsOnce, type ReceiptDraft } from "@/lib/money-receipt";
 import { useAchievements } from "@/store/achievements";
 import { isPurchasedHardwareKind } from "@/store/device-types";
 import { ACHIEVEMENTS, type AchievementCategory, type AchievementDef } from "@/mock/achievements";
-import { pointsApi, remoteApiEnabled } from "@/api/runtime";
-import type { DailySnapshot, DailyMilestoneStatus, EarningMilestoneStatus } from "@/api/points-api";
+import { pointsApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import type { BadgeAchievementStatus, DailySnapshot, DailyMilestoneStatus, EarningMilestoneStatus } from "@/api/points-api";
+import { readAchievementsForCurrentSession, type AchievementRemoteReadFailure } from "./achievements-remote-read";
 
 const t = useT();
 const w = computed(() => t.value.achievements);
@@ -149,12 +152,34 @@ const ach = useAchievements();
 const remoteSnapshot = ref<DailySnapshot | null>(null);
 const remoteLoading = ref(false);
 const remoteError = ref(false);
+// Safe diagnostic class only: never expose a server response/body or token in UI/logs.
+const remoteFailure = ref<AchievementRemoteReadFailure | null>(null);
 const remoteBusy = ref("");
+let accountGeneration = 0;
+let readGeneration = 0;
+let pageVisible = true;
+let disposed = false;
+function invalidateRemote() {
+  accountGeneration += 1;
+  readGeneration += 1;
+  remoteLoading.value = false;
+  remoteError.value = false;
+  remoteFailure.value = null;
+  remoteBusy.value = "";
+}
+function isCurrentRemote(account: number): boolean {
+  return !disposed && pageVisible && account === accountGeneration;
+}
+watch(() => [app.accountKey, app.accountBindingEpoch], () => {
+  invalidateRemote();
+  remoteSnapshot.value = null;
+  if (remoteApiEnabled && pageVisible && !disposed) void refreshRemote();
+}, { flush: "sync" });
 
-type RemoteStatus = DailyMilestoneStatus | EarningMilestoneStatus;
+type RemoteStatus = DailyMilestoneStatus | EarningMilestoneStatus | BadgeAchievementStatus;
 interface RemoteMilestoneRow {
   key: string;
-  kind: "daily" | "earning";
+  kind: "daily" | "earning" | "badge";
   id: number | string;
   label: string;
   description: string;
@@ -194,34 +219,57 @@ function evaluate() {
   if (earningsTotal > 0) ach.unlock("first_contribution");
 }
 async function refreshRemote() {
-  if (!remoteApiEnabled || remoteLoading.value) return;
+  if (!remoteApiEnabled || !pageVisible || disposed) return;
+  const account = accountGeneration;
+  const request = ++readGeneration;
+  const isCurrent = () => isCurrentRemote(account) && request === readGeneration;
   remoteLoading.value = true;
   remoteError.value = false;
-  try {
-    remoteSnapshot.value = await pointsApi.state();
-  } catch {
+  remoteFailure.value = null;
+  const result = await readAchievementsForCurrentSession({
+    accountKey: () => app.accountKey,
+    session: () => sessionVault.read(),
+    isCurrent,
+    read: () => pointsApi.state(),
+  });
+  if (!isCurrent() || result.kind === "stale") return;
+  if (result.kind === "success") {
+    remoteSnapshot.value = result.snapshot;
+  } else {
+    remoteFailure.value = result.failure;
     remoteError.value = true;
     if (remoteSnapshot.value) toast.warn(w.value.remoteUnavailable);
-  } finally {
-    remoteLoading.value = false;
   }
+  remoteLoading.value = false;
 }
 
 onShow(() => {
+  if (disposed) return;
+  pageVisible = true;
   if (remoteApiEnabled) void refreshRemote();
   else evaluate();
+});
+onHide(() => {
+  pageVisible = false;
+  invalidateRemote();
+});
+onUnmounted(() => {
+  disposed = true;
+  pageVisible = false;
+  invalidateRemote();
 });
 
 const remoteGroups = computed(() => {
   const snapshot = remoteSnapshot.value;
   if (!snapshot) return [];
+  const rewardLabels = dailyRewardLabels(t.value.daily.milestones);
   const daily: RemoteMilestoneRow[] = snapshot.dailyMilestones.map((row) => ({
     key: `daily:${row.milestoneId}`,
     kind: "daily",
     id: row.milestoneId,
     label: `${w.value.dailyMilestone} ${row.milestoneDay}`,
     description: `${w.value.streakProgress}: ${snapshot.streak.currentStreak}/${row.milestoneDay}`,
-    reward: `+${row.rewardAmount} ${row.rewardType}`,
+    reward: dailyMilestoneRewardText(row, rewardLabels),
     status: row.status,
     iconId: "power_user",
   }));
@@ -229,15 +277,26 @@ const remoteGroups = computed(() => {
     key: `earning:${row.milestoneId}`,
     kind: "earning",
     id: row.milestoneId,
-    label: `${w.value.earningMilestone} $${row.thresholdUsdt.toLocaleString()}`,
-    description: `${w.value.lifetimeEarnings}: $${row.lifetimeEarningsUsdt.toLocaleString()}`,
+    label: `${w.value.earningMilestone} ${row.thresholdUsdt.toLocaleString()}`,
+    description: `${w.value.lifetimeEarnings}: ${row.lifetimeEarningsUsdt.toLocaleString()}`,
     reward: `+${row.rewardNex} NEX`,
     status: row.status,
     iconId: "first_dollar",
   }));
+  const badges: RemoteMilestoneRow[] = snapshot.badgeAchievements.map((row) => ({
+    key: `badge:${row.achievementCode}`,
+    kind: "badge",
+    id: row.achievementCode,
+    label: row.name,
+    description: row.description,
+    reward: row.rewardPoints > 0 ? fmt(w.value.pointsReward, { n: row.rewardPoints }) : badgeCategoryLabel(row.category),
+    status: row.status,
+    iconId: row.iconKey || "power_user",
+  }));
   return [
     { key: "daily", label: w.value.serverDailyMilestones, rows: daily },
     { key: "earning", label: w.value.serverEarningMilestones, rows: earnings },
+    { key: "badges", label: w.value.serverBadgeAchievements, rows: badges },
   ].filter((group) => group.rows.length > 0);
 });
 
@@ -248,29 +307,50 @@ const groups = computed(() => {
     .filter((g) => g.list.length > 0);
 });
 
-const unlocked = computed(() => remoteApiEnabled
-  ? remoteGroups.value.flatMap((group) => group.rows).filter((row) => row.status === "CLAIMED" || row.status === "FIRED").length
+const unlocked = computed<number | null>(() => remoteApiEnabled
+  ? remoteSnapshot.value
+    ? remoteGroups.value.flatMap((group) => group.rows).filter((row) => row.status === "CLAIMED" || row.status === "FIRED" || row.status === "UNLOCKED").length
+    : null
   : ach.records.length);
-const total = computed(() => remoteApiEnabled
-  ? remoteGroups.value.reduce((sum, group) => sum + group.rows.length, 0)
+const total = computed<number | null>(() => remoteApiEnabled
+  ? remoteSnapshot.value
+    ? remoteGroups.value.reduce((sum, group) => sum + group.rows.length, 0)
+    : null
   : ACHIEVEMENTS.length);
-const percent = computed(() => total.value > 0 ? Math.round((unlocked.value / total.value) * 100) : 0);
+const percent = computed<number | null>(() => total.value === null || unlocked.value === null
+  ? null
+  : total.value > 0 ? Math.round((unlocked.value / total.value) * 100) : 0);
+const percentLabel = computed(() => percent.value === null ? "—" : `${percent.value}%`);
 
 async function claimRemote(row: RemoteMilestoneRow) {
-  if (!remoteApiEnabled || row.status !== "CLAIMABLE" || remoteBusy.value) return;
+  if (!remoteApiEnabled || !pageVisible || disposed || row.status !== "CLAIMABLE" || remoteBusy.value) return;
   remoteBusy.value = row.key;
+  const account = accountGeneration;
   try {
     if (row.kind === "daily") {
-      await pointsApi.claimMilestone(Number(row.id), `h5-achievement-daily:${row.id}`);
+      const receipt = await pointsApi.claimMilestone(Number(row.id), `h5-achievement-daily:${row.id}`);
+      if (!isCurrentRemote(account)) return;
+      if (remoteSnapshot.value) remoteSnapshot.value = {
+        ...remoteSnapshot.value,
+        dailyMilestones: remoteSnapshot.value.dailyMilestones.map((item) => item.milestoneId === receipt.milestoneId
+          ? { ...item, status: "CLAIMED" } : item),
+      };
     } else {
-      await pointsApi.evaluateEarningMilestones(`h5-achievement-earning:${row.id}`);
+      const receipt = await pointsApi.evaluateEarningMilestones(`h5-achievement-earning:${row.id}`, String(row.id));
+      if (!isCurrentRemote(account)) return;
+      if (remoteSnapshot.value) remoteSnapshot.value = {
+        ...remoteSnapshot.value,
+        earningMilestones: remoteSnapshot.value.earningMilestones.map((item) => receipt.fired.some((fired) => fired.milestoneId === item.milestoneId)
+          ? { ...item, status: "FIRED" } : item),
+      };
     }
-    remoteSnapshot.value = await pointsApi.state();
+    readGeneration += 1;
     toast.success(w.value.claimToast);
+    await refreshRemote();
   } catch {
-    toast.error(w.value.remoteUnavailable);
+    if (isCurrentRemote(account)) toast.error(w.value.remoteUnavailable);
   } finally {
-    remoteBusy.value = "";
+    if (isCurrentRemote(account)) remoteBusy.value = "";
   }
 }
 
@@ -300,6 +380,20 @@ function catLabel(c: AchievementCategory): string {
       return w.value.catHardware;
   }
 }
+// `nx_achievement.category` is operator-set and uppercased by the API parser.
+// A category with no shipped label must degrade to a neutral word, never print
+// the stored code.
+function badgeCategoryLabel(category: string): string {
+  switch (category.trim().toLowerCase()) {
+    case "streak": return w.value.catStreak;
+    case "firsts": return w.value.catFirsts;
+    case "earnings": return w.value.catEarnings;
+    case "social": return w.value.catSocial;
+    case "loyalty": return w.value.catLoyalty;
+    case "hardware": return w.value.catHardware;
+    default: return w.value.catOther;
+  }
+}
 function label(a: AchievementDef): string {
   return (w.value as unknown as Record<string, string>)[`a_${a.i18nKey}`] ?? a.id;
 }
@@ -308,7 +402,7 @@ function desc(a: AchievementDef): string {
 }
 function rewardLabel(a: AchievementDef): string {
   if (a.rewardNex) return `+${a.rewardNex} NEX`;
-  if (a.rewardUsdt) return `+$${a.rewardUsdt}`;
+  if (a.rewardUsdt) return `+${a.rewardUsdt}`;
   return "VIP badge";
 }
 function relativeWhen(ms: number): string {
@@ -352,7 +446,7 @@ const heroPctStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "2
 const barTrackStyle: CSSProperties = { marginTop: "12px", height: "8px", borderRadius: "999px", background: "var(--v5-surface-2)", overflow: "hidden" };
 const barFillStyle = computed<CSSProperties>(() => ({
   height: "100%",
-  width: `${percent.value}%`,
+  width: percent.value === null ? "0%" : `${percent.value}%`,
   background: "linear-gradient(90deg, var(--v5-warning), var(--v5-brand))",
   transition: "width 700ms ease",
 }));
@@ -385,9 +479,9 @@ function remoteIconBoxStyle(status: RemoteStatus): CSSProperties {
 }
 // Badge list keeps a filled tile identity (achievement/badge semantic, de-card
 // white-list) — the single visual difference is the fill; outer border dropped.
-const listStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const listStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   overflow: "hidden",
 };
 function rowStyle(divider: boolean): CSSProperties {
@@ -436,4 +530,6 @@ function claimBtnStyle(claimed: boolean): CSSProperties {
     color: claimed ? "var(--v5-ink-4)" : "var(--v5-on-brand)",
   };
 }
+
+
 </script>

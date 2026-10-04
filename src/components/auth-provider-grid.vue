@@ -1,5 +1,5 @@
 <template>
-  <view class="auth-provider-grid" aria-label="Alternative sign-in methods">
+  <view class="auth-provider-grid" :aria-label="t.authOtp.alternativeSignInMethods">
     <view class="auth-provider" data-provider="Passkey" role="button" tabindex="0" :aria-label="ariaLabel('Passkey')" :aria-disabled="busy" @click="activate('Passkey')" @keydown.enter.prevent="activate('Passkey')" @keydown.space.prevent="activate('Passkey')">
       <view class="auth-provider__icon auth-provider__icon--ink">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="10" r="5" /><path d="M13 10h8M17 10v4M20 10v3" /></svg>
@@ -31,15 +31,20 @@
 </template>
 
 <script setup lang="ts">
+import { fmt } from "@/i18n/format";
+import { useT } from "@/i18n/use-t";
+
 type AuthProviderLabel = "Passkey" | "Google" | "Apple" | "Telegram";
 
-const props = withDefaults(defineProps<{ busy?: boolean }>(), {
+const t = useT();
+const props = withDefaults(defineProps<{ busy?: boolean; development?: boolean }>(), {
   busy: false,
+  development: false,
 });
 const emit = defineEmits<{ (event: "select", provider: AuthProviderLabel): void }>();
 
 function ariaLabel(provider: AuthProviderLabel): string {
-  return provider;
+  return props.development ? fmt(t.value.authOtp.developmentProviderLabel, { provider }) : provider;
 }
 
 function activate(provider: AuthProviderLabel) {

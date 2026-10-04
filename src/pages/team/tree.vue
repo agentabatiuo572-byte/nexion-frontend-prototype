@@ -22,49 +22,54 @@
         <!-- Top metrics — stat tiles: fill only, borders dropped (single
              visual difference; ticket-stat-box idiom). -->
         <view class="grid grid-cols-2" style="gap: 8px">
-          <view class="rounded-2xl" :style="metricCardStyle">
+          <view class="nx-glass-card rounded-2xl" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.tree.totalNetwork }}</text>
             <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : members.length }}</text>
             <text class="block" :style="metricSuffixStyle">{{ members.length === 1 ? t.tree.member : t.tree.membersPlural }}</text>
           </view>
-          <view class="rounded-2xl" :style="metricCardStyle">
+          <view class="nx-glass-card rounded-2xl" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.tree.monthlyVolume }}</text>
             <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : `$${(totalVol / 1000).toFixed(1)}K` }}</text>
             <text class="block" :style="metricSuffixStyle">{{ t.tree.acrossNetwork }}</text>
           </view>
         </view>
 
-        <!-- Direct section -->
-        <TeamRosterSection
-          color="var(--v5-brand)"
-          :title="t.tree.directTitle"
-          :subtitle="directSubtitle"
-          accent-bg="color-mix(in srgb, var(--v5-brand) 12%, transparent)"
-          accent-text="var(--v5-brand)"
-          :badge="t.tree.badgeDirect"
-          :members="direct"
-          :is-open="expanded.direct"
-          :empty-label="t.tree.emptyDirect"
-          kind="direct"
-          :show-contribution="!remoteApiEnabled"
-          @toggle="expanded.direct = !expanded.direct"
-        />
+        <template v-if="!remoteApiEnabled || network.remoteStatus === 'ready'">
+          <!-- Direct section -->
+          <TeamRosterSection
+            color="var(--v5-brand)"
+            :title="t.tree.directTitle"
+            :subtitle="directSubtitle"
+            accent-bg="color-mix(in srgb, var(--v5-brand) 12%, transparent)"
+            accent-text="var(--v5-brand)"
+            :badge="t.tree.badgeDirect"
+            :members="direct"
+            :is-open="expanded.direct"
+            :empty-label="t.tree.emptyDirect"
+            kind="direct"
+            :show-contribution="!remoteApiEnabled"
+            @toggle="expanded.direct = !expanded.direct"
+          />
 
-        <!-- Extended section -->
-        <TeamRosterSection
-          color="var(--v5-tech-cyan)"
-          :title="t.tree.extendedTitle"
-          :subtitle="extendedSubtitle"
-          accent-bg="color-mix(in srgb, var(--v5-tech-cyan) 14%, transparent)"
-          accent-text="var(--v5-tech-cyan)"
-          :badge="t.tree.badgeExtended"
-          :members="extended"
-          :is-open="expanded.extended"
-          :empty-label="t.tree.emptyExtended"
-          kind="extended"
-          :show-contribution="!remoteApiEnabled"
-          @toggle="expanded.extended = !expanded.extended"
-        />
+          <!-- Extended section -->
+          <TeamRosterSection
+            color="var(--v5-tech-cyan)"
+            :title="t.tree.extendedTitle"
+            :subtitle="extendedSubtitle"
+            accent-bg="color-mix(in srgb, var(--v5-tech-cyan) 14%, transparent)"
+            accent-text="var(--v5-tech-cyan)"
+            :badge="t.tree.badgeExtended"
+            :members="extended"
+            :is-open="expanded.extended"
+            :empty-label="t.tree.emptyExtended"
+            kind="extended"
+            :show-contribution="!remoteApiEnabled"
+            @toggle="expanded.extended = !expanded.extended"
+          />
+        </template>
+        <view v-else-if="remoteApiEnabled && (network.remoteStatus === 'idle' || network.remoteStatus === 'loading')" :style="readStateStyle" role="status" aria-busy="true">
+          <text>{{ t.network.projectionLoadingTitle }}</text>
+        </view>
       </view>
     </view>
   </AppChassis>
@@ -72,6 +77,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, type CSSProperties } from "vue";
+import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import TeamRosterSection from "@/components/team/team-roster-section.vue";
@@ -83,7 +89,8 @@ import { remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
 const network = useNetwork();
-onMounted(() => { if (remoteApiEnabled) void network.refreshCanonicalNetwork(); });
+onMounted(() => { if (remoteApiEnabled) void network.ensureCanonicalNetwork(); });
+onShow(() => { if (remoteApiEnabled) void network.ensureCanonicalNetwork(); });
 
 const members = computed(() => network.members);
 const direct = computed(() => members.value.filter((m) => m.layer === 1));
@@ -112,12 +119,15 @@ const expanded = reactive<Record<"direct" | "extended", boolean>>({ direct: true
 
 // ─── styles ───
 // Stat tile: fill only, no border (radius via rounded-2xl class).
-const metricCardStyle: CSSProperties = { background: "var(--v5-surface)", padding: "14px" };
+const metricCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", padding: "14px" };
 const errorStateStyle: CSSProperties = { padding: "14px", borderRadius: "14px", background: "var(--v5-warning-soft)", color: "var(--v5-ink)" };
 const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "grid", placeItems: "center", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink-2)" };
+const readStateStyle: CSSProperties = { minHeight: "88px", display: "grid", placeItems: "center", borderRadius: "14px", background: "var(--v5-surface)", color: "var(--v5-ink-3)", fontSize: "13px" };
 const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 function metricValueStyle(color: string): CSSProperties {
   return { fontSize: "20px", fontWeight: 600, marginTop: "4px", lineHeight: 1, color };
 }
 const metricSuffixStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)" };
+
+
 </script>

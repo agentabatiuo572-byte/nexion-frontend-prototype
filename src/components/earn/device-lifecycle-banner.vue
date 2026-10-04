@@ -13,8 +13,8 @@
   (P-022). Interval re-render keeps monthsOwned / efficiency ticking.
 -->
 <template>
-  <view v-if="degradableDevices.length > 0" class="mx-4">
-    <view class="block relative overflow-hidden rounded-2xl" :style="rootStyle" @click="goDevices">
+  <view v-if="summaries.length > 0" class="mx-4">
+    <view class="nx-glass-card block relative overflow-hidden rounded-2xl" :style="rootStyle" @click="goDevices">
       <view class="absolute inset-0 pointer-events-none" :style="glowStyle" />
 
       <view class="relative flex items-center gap-1.5" :style="labelStyle">
@@ -46,9 +46,10 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { useApp } from "@/store/app";
-import { getLifecycleSummary, getNetworkMonthlyLoss, isDegradable } from "@/store/device-lifecycle";
+import { getLifecycleSummary, getNetworkMonthlyLoss, hasServerLifecycleProjection, isDegradable } from "@/store/device-lifecycle";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 
@@ -70,7 +71,12 @@ onUnmounted(() => {
 
 const degradableDevices = computed(() => app.visibleDevices.filter((d) => isDegradable(d.kind)));
 
-const summaries = computed(() => degradableDevices.value.map((d) => getLifecycleSummary(d, now.value)));
+// In remote mode an absent canonical projection is unavailable, not a signal
+// to run the local age curve. Keep the banner hidden until a fresh projection
+// is present, so account refresh/switch cannot show the previous account's data.
+const summaries = computed(() => degradableDevices.value
+  .filter((device) => device.capacitySource !== "server" || hasServerLifecycleProjection(device))
+  .map((d) => getLifecycleSummary(d, now.value)));
 const avgEfficiency = computed(() => {
   const list = summaries.value;
   if (list.length === 0) return 1;
@@ -91,7 +97,7 @@ const accent = computed(() =>
       : "var(--v5-brand-2)",
 );
 
-const subtitleText = computed(() => fmt(t.value.earn.lifecycleSubtitle, { n: degradableDevices.value.length }));
+const subtitleText = computed(() => fmt(t.value.earn.lifecycleSubtitle, { n: summaries.value.length }));
 const monthsLabel = computed(() => {
   const o = oldest.value;
   if (!o) return "";
@@ -100,9 +106,9 @@ const monthsLabel = computed(() => {
     : fmt(t.value.earn.lifecycleMonths, { n: o.monthsOwned.toFixed(1) });
 });
 
-const rootStyle = computed<CSSProperties>(() => ({
-  border: `1px solid color-mix(in srgb, ${accent.value} 33%, transparent)`,
-  background: `linear-gradient(160deg, color-mix(in srgb, ${accent.value} 12%, transparent) 0%, var(--v5-surface) 70%)`,
+const rootStyle = computed<CSSProperties>(() => ({ borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  border: "none",
+  background: "var(--nx-glass-fill)",
   padding: "16px",
 }));
 const glowStyle = computed<CSSProperties>(() => ({
@@ -132,6 +138,8 @@ const ctaLabelStyle: CSSProperties = {
 };
 
 function goDevices() {
-  uni.navigateTo({ url: "/pages/me/devices", fail: () => {} });
+  navTo("/pages/me/devices");
 }
+
+
 </script>

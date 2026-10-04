@@ -71,6 +71,10 @@ export function publicStatsHealth(ps: PublicStatsShape | undefined | null): {
 
 /** 舰队规模(配置本体;非法回种子由调用方按各自面的规矩决定,这里不吞)。 */
 export function fleetDevicesOf(ps: PublicStatsShape): number { return ps.fleetDevices; }
+/** Online fleet is distinct from the total installed fleet. */
+export function onlineDevicesOf(ps: Pick<PublicStatsShape, "fleetDevices" | "onlineRatePct">): number {
+  return Math.round(ps.fleetDevices * ps.onlineRatePct / 100);
+}
 /** 公布日产(USD/日)= 配置舰队 × 公布档。 */
 export function dailyPayoutUsdOf(ps: PublicStatsShape): number { return ps.fleetDevices * FLEET_AVG_DAILY_USD; }
 /** 每秒支付流(USD/s)。 */

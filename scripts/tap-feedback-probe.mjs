@@ -18,6 +18,8 @@
 //   node scripts/tap-feedback-probe.mjs --update-ledger   # 人工审阅后重建基线
 import { chromium } from "playwright";
 import { scopeRoutes, mapRoutes } from "./lib/probe-routes.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
+import { captureTapRouteErrors, measureTapRoute } from "./lib/tap-route-coverage.mjs";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 // 端口来源:UNI_BASE_URL 优先,再退 BASE_URL(verify.sh 统一名)——只认前者会在非 5173 端口静默打到别的工程树。
@@ -127,27 +129,29 @@ const readStyle = ([idx, props]) => {
   return o;
 };
 
-async function probeRoute(page, cdp, route, idx) {
+async function probeRoute(page, cdp, route, idx, errors) {
   // 🔴 query 里带一个每轮变化的值,强制**整页重载**。SPA 只改 hash 不会重载,
   //    一次弹出的 sheet / celebration overlay 会跟着后面所有路由跑,
   //    首跑就因此把一个 tradein 关闭按钮记进 68 个路由、milestone 卡片记进 75 个。
   //    重载同时让 addInitScript 的 hook 重新注入,__tapList 不跨路由累积。
   const url = `${BASE}/?nx_device=off&r=${idx}#/${route}`;
+  errors.consoleErrors.length = 0;
+  errors.pageErrors.length = 0;
   await page.goto(url, { waitUntil: "domcontentloaded" });
   // 包 ax:这里**不加** settleNetwork —— 多等 1-2s 会跨过 App.vue 4s 轮询弹出的 milestone 庆祝层,把它的元素算进 tap 目标,
   //   目标数随时序抖(包 az 后奖牌卡已不挂 click,不再进集合;但庆祝层本身仍会改变页面上可见的目标集);
   //   原 1200ms 窗口下并行 3 路实测目标数与串行一致(165),不需要补等。
   await page.waitForTimeout(1200);
   await page.addStyleTag({ content: NO_TRANSITION });
-  const targets = await page.evaluate(markTargets, TAP_MIN);
-  if (!targets.length) return { route, targets: [], noFeedback: [], tooSmall: [] };
-
-  const noFeedback = [];
-  for (const t of targets) {
-    if (!t.leaf || t.disabled || t.scrim) continue;
-    if (!(await hasFeedback(page, cdp, t.i))) noFeedback.push(t);
-  }
-  return { route, targets, noFeedback, tooSmall: targets.filter((t) => t.tooSmall) };
+  return measureTapRoute(page, route, async () => {
+    const targets = await page.evaluate(markTargets, TAP_MIN);
+    const noFeedback = [];
+    for (const t of targets) {
+      if (!t.leaf || t.disabled || t.scrim) continue;
+      if (!(await hasFeedback(page, cdp, t.i))) noFeedback.push(t);
+    }
+    return { targets, noFeedback, tooSmall: targets.filter((t) => t.tooSmall) };
+  }, errors);
 }
 
 // 元素自身有 :active 变化 → 有反馈;没有再看祖先链。
@@ -337,15 +341,19 @@ const failedRoutes = [];
 {
   const warm = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "en-US" });
   const wp = await warm.newPage(); wp.setDefaultTimeout(15000);
+  await installFormalProbeSession(wp);
   for (const [i, r] of routes.entries()) { try { await wp.goto(`${BASE}/?nx_device=off&warm=${i}#/${r}`, { waitUntil: "networkidle" }); } catch { /* 热身失败不判红,正式测量会再走一遍 */ } }
   await warm.close();
 }
 // 包 ax:N 条 lane(各自独立 context / 渲染进程)并行各扫一条路由(PROBE_CONCURRENCY,默认 3);每个 lane page 自带 HOOK 注入 + 独立 CDP 会话,
 //   每条路由仍是「整页重载 → 1200ms → 逐目标 :active 判定」的原口径;结果按路由原顺序合并。
 const laneCdp = new WeakMap();
+const laneErrors = new WeakMap();
 const laneReady = async (lane) => {
   if (laneCdp.has(lane)) return laneCdp.get(lane);
   lane.setDefaultTimeout(15000);
+  laneErrors.set(lane, captureTapRouteErrors(lane, BASE));
+  await installFormalProbeSession(lane);
   await lane.addInitScript(HOOK);
   const c = await lane.context().newCDPSession(lane);
   await c.send("DOM.enable");
@@ -355,7 +363,7 @@ const laneReady = async (lane) => {
 };
 const perRoute = await mapRoutes(browser, routes, async (lane, r) => {
   const c = await laneReady(lane);
-  return await probeRoute(lane, c, r, allRoutes.indexOf(r));
+  return await probeRoute(lane, c, r, allRoutes.indexOf(r), laneErrors.get(lane));
 }, { context: { viewport: { width: 390, height: 844 }, locale: "en-US" } });
 perRoute.forEach((res, k) => {
   if (!res || res.error) { console.error(`  ! ${routes[k]}: ${String(res?.error ?? "unknown").split("\n")[0]}`); failedRoutes.push(routes[k]); return; }
@@ -415,7 +423,9 @@ if (UPDATE) {
 
 const REPORT = args.includes("--report") ? args[args.indexOf("--report") + 1] : null;
 if (REPORT) {
-  writeFileSync(REPORT, JSON.stringify({ scannedRoutes: routes.length, totalTargets: total, findings: [...found.values()] }, null, 1) + "\n");
+  writeFileSync(REPORT, JSON.stringify({ scannedRoutes: routes.length, totalTargets: total,
+    routeCoverage: results.map(({ route, targets, coverage }) => ({ route, targetCount: targets.length, ...coverage })),
+    findings: [...found.values()] }, null, 1) + "\n");
   console.log(`完整清单已写 ${REPORT}(${found.size} 条)`);
 }
 

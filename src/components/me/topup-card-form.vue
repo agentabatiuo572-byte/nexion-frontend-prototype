@@ -16,43 +16,38 @@
        把状态放 vault 的原因。vault 渲染 <slot/> 零 DOM,space-y-3 的子元素间距不受影响。 -->
   <HostedCardVault ref="vaultRef" @change="onCardChange">
   <view class="mx-4 space-y-3">
-    <FundsSandboxBadge />
     <!-- Header row -->
     <view class="flex items-center justify-between" style="padding: 0 4px">
       <text class="font-mono-tabular" style="font-size: 12px; font-weight: 500; letter-spacing: 0.06em; color: var(--v5-ink-3)">Visa / Mastercard</text>
       <!-- 授权进行中不可中断:此时切走会卸载本组件,但计时中的授权仍会落账 ——
            入口留着等于把「无取消出口」伪装成有,故只在可操作的两态显示。 -->
-      <text v-if="phase === 'form' || phase === 'fail'" style="font-size: 12px; color: var(--v5-ink-3)" @click="emit('changeChannel')">{{ t.topupChrome.change }}</text>
+      <text v-if="phase === 'form' || phase === 'fail'" style="font-size: 12px; color: var(--v5-ink-3)" role="button" tabindex="0" :aria-label="t.topupChrome.change" @click="emit('changeChannel')"  @keydown.enter.prevent="emit('changeChannel')" @keydown.space.prevent="emit('changeChannel')">{{ t.topupChrome.change }}</text>
     </view>
     <!-- Processing / 3DS -->
-    <view v-if="phase === 'processing' || phase === '3ds'" class="rounded-2xl text-center" :style="centerCardStyle">
+    <view v-if="phase === 'processing' || phase === '3ds'" class="nx-glass-card text-center" :style="centerCardStyle" role="status" aria-live="polite" aria-busy="true">
       <view :style="spinnerStyle" />
       <text class="block" :style="centerTitleStyle">{{ phase === 'processing' ? t.topupChrome.authorizingCard : t.topupChrome.secureVerification }}</text>
       <text class="block" :style="centerBodyStyle">{{ phase === 'processing' ? t.topupChrome.submittingToBank : t.topupChrome.bankMayText }}</text>
-      <view class="inline-flex items-center font-mono-tabular" :style="pciChipStyle">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></svg>
-        <text style="margin-left: 6px">PCI DSS Level 1 · 3DS 2.2</text>
-      </view>
     </view>
 
     <!-- Success -->
-    <view v-else-if="phase === 'success'" class="rounded-2xl text-center" :style="centerCardStyle">
+    <view v-else-if="phase === 'success'" class="nx-glass-card text-center" :style="centerCardStyle">
       <view :style="successIconStyle">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
       </view>
       <text class="block" :style="successTitleStyle">{{ t.topupChrome.paySuccess }}</text>
       <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.topupChrome.creditedToWallet, { amount: usdtAmount.toFixed(2) }) }}</text>
       <text class="block font-mono-tabular" style="margin-top: 12px; font-size: 12px; color: var(--v5-ink-4)">{{ receiptLine }}</text>
-      <view class="inline-block w-full text-center active:opacity-90" :style="successBtnStyle" @click="goWallet"><text>{{ t.topupChrome.backToWallet }}</text></view>
+      <view class="inline-block w-full text-center active:opacity-90" :style="successBtnStyle" role="button" tabindex="0" :aria-label="t.topupChrome.backToWallet" @click="goWallet"  @keydown.enter.prevent="goWallet" @keydown.space.prevent="goWallet"><text>{{ t.topupChrome.backToWallet }}</text></view>
     </view>
 
     <!-- Fail -->
-    <view v-else-if="phase === 'fail'" class="rounded-2xl text-center" :style="centerCardStyle">
+    <view v-else-if="phase === 'fail'" class="nx-glass-card text-center" :style="centerCardStyle">
       <view :style="failIconStyle"><text style="font-size: 32px">⚠️</text></view>
       <text class="block" :style="failTitleStyle">{{ t.topupChrome.payDeclined }}</text>
       <text class="block font-mono-tabular break-all" style="margin-top: 8px; font-size: 12px; color: var(--v5-brand-2)">{{ t.topupChrome.payDeclinedReason }}</text>
       <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.625; max-width: 280px; margin-left: auto; margin-right: auto">{{ t.topupChrome.contactIssuer }}</text>
-      <view class="w-full grid place-items-center active:opacity-70" :style="tryAgainBtnStyle" @click="retry"><text>{{ t.ui.retry }}</text></view>
+      <view class="w-full grid place-items-center active:opacity-70" :style="tryAgainBtnStyle" role="button" tabindex="0" :aria-label="t.ui.retry" @click="retry"  @keydown.enter.prevent="retry" @keydown.space.prevent="retry"><text>{{ t.ui.retry }}</text></view>
     </view>
 
     <!-- Form -->
@@ -62,7 +57,7 @@
         <text class="block font-mono-tabular" style="font-size: 12px; font-weight: 500; color: var(--v5-ink-3); letter-spacing: 0.06em">{{ t.topupChrome.youReceive }}</text>
         <view class="flex items-baseline" style="margin-top: 4px; gap: 6px">
           <text style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink-3)">$</text>
-          <input class="flex-1 min-w-0 tabular-nums" :style="amountInputStyle" type="text" inputmode="decimal" :value="amount" placeholder="0.00" @input="onAmount" />
+          <input class="flex-1 min-w-0 tabular-nums" :style="amountInputStyle" type="text" inputmode="decimal" :value="amount" placeholder="0.00" :aria-label="t.topupChrome.youReceive" @input="onAmount" />
           <text class="font-mono-tabular" style="font-size: 15px; color: var(--v5-ink-3)">USDT</text>
         </view>
         <view class="grid grid-cols-2" :style="feeRowStyle">
@@ -98,26 +93,26 @@
 
         <view :style="fieldStyle">
           <text class="block font-mono-tabular" :style="fieldLabelStyle">{{ t.wallet.ffCardholder }}</text>
-          <input class="w-full" :style="[fieldInputStyle, { letterSpacing: '0.04em' }]" type="text" :value="holder" :placeholder="t.wallet.cardNamePlaceholder" @input="onHolder" />
+          <input class="w-full" :style="[fieldInputStyle, { letterSpacing: '0.04em' }]" type="text" :value="holder" :placeholder="t.wallet.cardNamePlaceholder" :aria-label="t.wallet.ffCardholder" @input="onHolder" />
         </view>
 
         <view class="grid" style="grid-template-columns: 1fr 120px; gap: 8px">
           <view :style="fieldStyle">
             <text class="block font-mono-tabular" :style="fieldLabelStyle">{{ t.wallet.ffCountry }}</text>
-            <picker mode="selector" :range="COUNTRY_LABELS" :value="countryIdx" @change="onCountry">
+            <picker mode="selector" :range="COUNTRY_LABELS" :value="countryIdx" :aria-label="t.wallet.ffCountry" @change="onCountry">
               <text class="block" :style="[fieldInputStyle, { marginTop: '2px' }]">{{ COUNTRY_LABELS[countryIdx] }}</text>
             </picker>
           </view>
           <view :style="fieldStyle">
             <text class="block font-mono-tabular" :style="fieldLabelStyle">{{ t.wallet.ffZip }}</text>
-            <input class="font-mono-tabular w-full" :style="fieldInputStyle" type="text" :value="zip" placeholder="10001" @input="onZip" />
+            <input class="font-mono-tabular w-full" :style="fieldInputStyle" type="text" :value="zip" placeholder="10001" :aria-label="t.wallet.ffZip" @input="onZip" />
           </view>
         </view>
       </view>
 
       <!-- Submit -->
       <!-- 禁用态不给按压反馈:否则死按钮假装自己活着(点了没反应还闪一下)。 -->
-      <view class="w-full flex items-center justify-center" :class="isValid ? 'active:opacity-90' : ''" :style="submitBtnStyle" @click="handleSubmit">
+      <view class="w-full flex items-center justify-center" :class="isValid ? 'active:opacity-90' : ''" :style="submitBtnStyle" role="button" tabindex="0" :aria-disabled="isValid ? 'false' : 'true'" @click="handleSubmit"  @keydown.enter.prevent="handleSubmit" @keydown.space.prevent="handleSubmit">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="isValid ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></svg>
         <text style="margin-left: 6px">{{ fmt(t.topupChrome.payCta, { amount: `$${chargeUSD.toFixed(2)}` }) }}</text>
       </view>
@@ -133,19 +128,12 @@
 </template>
 
 <script setup lang="ts">
+import { navReset } from "@/lib/route";
 import { ref, computed, type CSSProperties } from "vue";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useDeposits } from "@/store/deposits";
-import { mockFundsEnabled } from "@/api/runtime";
-import {
-  MAX_CARD_DEPOSIT_USDT,
-  MIN_CARD_DEPOSIT_USDT,
-  cardChargeUsd,
-  cardFeeRateLabel,
-  cardFeeUsd,
-} from "@/store/deposits-core";
+import { MAX_CARD_DEPOSIT_USDT, MIN_CARD_DEPOSIT_USDT, cardChargeUsd, cardFeeRateLabel, cardFeeUsd } from "@/store/deposits-core";
 import CardBrandBadge from "@/components/me/card-brand-badge.vue";
 import HostedCardVault from "@/components/me/hosted-card-vault.vue";
 import HostedCardField from "@/components/me/hosted-card-field.vue";
@@ -201,8 +189,8 @@ const chargeUSD = computed(() => cardChargeUsd(usdtAmount.value));
 const feeRateLabel = computed(() => cardFeeRateLabel());
 const limitHint = computed(() =>
   fmt(t.value.topupChrome.cardLimitHint, {
-    min: `$${MIN_CARD_DEPOSIT_USDT}`,
-    max: `$${MAX_CARD_DEPOSIT_USDT.toLocaleString("en-US")}`,
+    min: `${MIN_CARD_DEPOSIT_USDT}`,
+    max: `${MAX_CARD_DEPOSIT_USDT.toLocaleString("en-US")}`,
   }),
 );
 /** 越界(高于上限 / 低于下限但已填了金额)→ 提示转警示色,当禁用原因用。 */
@@ -273,9 +261,7 @@ async function handleSubmit() {
       await new Promise((r) => setTimeout(r, 2400));
       // 授权 + 落入金单 + 记账 + 写账单全部由 deposits store 扮演的服务端完成;
       // 组件只提交并按结果切展示态,不写任何资金状态(status server-canonical)。
-      const rec = mockFundsEnabled
-        ? await deposits.createSandboxTopup("CARD", usdtAmount.value, acct)
-        : deposits.submitCardPayment(usdtAmount.value, acct);
+      const rec = deposits.submitCardPayment(usdtAmount.value, acct);
       if (!rec) throw new Error(t.value.topupChrome.payDeclinedReason);
       return rec;
     }, {
@@ -297,13 +283,12 @@ function retry() {
 }
 
 function goWallet() {
-  uni.reLaunch({ url: "/pages/me/wallet", fail: () => {} });
+  navReset({ url: "/pages/me/wallet", fail: () => {} });
 }
 
 // ── styles ──
 // Filled state card — bg only, no border (single visual difference).
 const centerCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
   padding: "24px",
 };
 const spinnerStyle: CSSProperties = {
@@ -456,4 +441,6 @@ const submitBtnStyle = computed<CSSProperties>(() => ({
 const trustFootStyle: CSSProperties = {
   padding: "2px 6px 0",
 };
+
+
 </script>

@@ -48,7 +48,7 @@ export function isPreSale(saleStartAt: number | null, now: number): boolean {
 export type GenesisPurchaseBlock =
   | "configUnavailable" // 配置未知 → 保守锁购(异常3:禁在配置未知时放行)
   | "marketClosed"      // 运营把市场设为暂未开放
-  | "halted"            // 熔断(J 域既有闸;见下方注释:前端尚无生产者)
+  | "halted"            // J1 Genesis kill-switch projection
   | "soldOut"           // 售罄 → 引导二级市场
   | "preSale"           // 预售未到 → 倒计时锁
   | null;
@@ -57,13 +57,8 @@ export interface GenesisPurchaseInput {
   /** 配置是否已成功拉到。false = 未知,走保守锁购。 */
   configLoaded: boolean;
   marketOpenState: "open" | "closed";
-  /** 熔断是否生效。
-   *
-   *  🔴 **今天恒为 false,因为前端还没有这个信号的生产者** —— 后台 J1 有 `genesis` 熔断闸,
-   *  但它与 uniapp 之间没有接线(实测:前端全仓无任何消费熔断闸的代码)。这是**既有缺口**,
-   *  不是 FEAT-GEN10 引入的;而规格 §⑦ 明写「熔断闸沿用 J 域既有键,本规格不新增 kill 闸、
-   *  不改闸数」,所以这里**只留槽位不造闸**:类型齐全、优先级已排好,接线落地当天把它接上即可。
-   *  🔴 别把它删掉「简化」—— 删了之后接线的人会重新在别处判一套,正是本函数要防的事。 */
+  /** 熔断是否生效。远程模式由 Genesis public state 的 J1 投影提供；
+   * mock 模式才使用显式本地值。 */
   halted: boolean;
   /** 剩余可售名额。 */
   remaining: number;
@@ -172,6 +167,10 @@ export const GENESIS_CLOSED_NOTICE_KEYS = ["default", "maintenance", "phase_cont
 export type GenesisClosedNoticeKey = (typeof GENESIS_CLOSED_NOTICE_KEYS)[number];
 
 export interface GenesisConfig {
+  /** J1 Genesis kill-switch projection; remote mode is server authoritative. */
+  halted: boolean;
+  killSwitchRevision: string;
+  killSwitchSource: string;
   // 阶梯定价
   tiers: GenesisTier[];
   /** 市场状态(规格 FEAT-GEN10):`closed` = 页面照常可看、但一律不可购买。
@@ -206,12 +205,15 @@ const HOUR = 3600_000;
 const DAY = 86400_000;
 
 export const DEFAULT_GENESIS_CONFIG: GenesisConfig = {
+  halted: false,
+  killSwitchRevision: "mock-local",
+  killSwitchSource: "mock-local",
   tiers: GENESIS_TIERS_DEFAULT.map((t) => ({ ...t })),
-  marketOpenState: "open", // mock default; the store stays closed until refresh succeeds
+  marketOpenState: "closed", // fail-closed until the server state is available
   closedNoticeKey: "default",
   saleStartAt: null, // 默认已开售(不阻断现状)
   showCountdown: true,
-  showcaseEnabled: true,
+  showcaseEnabled: false,
   perks: emptyPerks(),
   // 运营挂单默认用高位 token 段(≥900)避免与用户持仓 token 撞号。
   opsListings: [
@@ -360,11 +362,13 @@ export const useGenesisConfig = defineStore("genesisConfig", () => {
   initial.opsListings = [];
   initial.fomoActivity = [];
   initial.fomoEnabled = false;
+  initial.showcaseEnabled = false;
   const config = ref<GenesisConfig>(initial);
   /** 配置是否可用 —— 由**最近一次读源的真实结果**驱动,不写死。
    *  false 时 `genesisPurchaseBlock` 返回 `configUnavailable` 保守锁购;
    *  `refresh()` 成功即恢复(= 规格异常3 的「重试」)。 */
   const loaded = ref(false);
+  let refreshGeneration = 0;
 
   /**
    * 🔴 重新读配置源。这是关闭态能约束**已打开会话**的关键(独立验收 P0→P1):
@@ -377,22 +381,26 @@ export const useGenesisConfig = defineStore("genesisConfig", () => {
    *      判定读的不再是构造时的内存快照,而是当下的权威源。
    */
   async function refresh() {
-    // mock 期的配置源是 uni storage；默认开市，但每次都要重读运营写入的关闭态。
+    const generation = ++refreshGeneration;
+    // 🔴🔴 mock 模式没有服务端可读,而下面的 catch 是 **fail-closed**(把市场钉成 closed、
+    //   loaded 置 false)。少了这个分支,mock 下 refresh 必然走进 catch ⇒
+    //   `genesisPurchaseBlock` 先判 `!configLoaded → configUnavailable`,创世**整条流程**
+    //   (购买 / 挂单 / 承接 / 展示)全被钉死在「市场暂未开放」。
+    //   mock 期的「服务端」就是内置默认配置:标记就绪 + 开市,其余字段沿用 DEFAULT_GENESIS_CONFIG。
+    //   fail-closed 只对**真的有服务端却读不到**的情形成立;没有服务端的构建不适用。
     if (!remoteApiEnabled) {
-      const source = hydrate();
-      config.value = {
-        ...config.value,
-        tiers: source.config.tiers,
-        marketOpenState: source.config.marketOpenState,
-        closedNoticeKey: source.config.closedNoticeKey,
-      };
-      loaded.value = source.ok;
+      config.value = { ...config.value, marketOpenState: "open" };
+      loaded.value = true;
       return;
     }
     try {
       const state = await genesisApi.state();
+      if (generation !== refreshGeneration) return;
       config.value = {
         ...config.value,
+        halted: state.halted,
+        killSwitchRevision: state.revision,
+        killSwitchSource: state.source,
         tiers: state.tiers.map((tier) => ({ ...tier })),
         marketOpenState: state.marketOpenState,
         closedNoticeKey: GENESIS_CLOSED_NOTICE_KEYS.includes(state.closedNoticeKey as GenesisClosedNoticeKey)
@@ -400,10 +408,20 @@ export const useGenesisConfig = defineStore("genesisConfig", () => {
           : "default",
         saleStartAt: state.sale.startAt,
         showCountdown: state.sale.showCountdown,
+        showcaseEnabled: state.showcaseEnabled,
       };
       loaded.value = true;
     } catch {
-      config.value = { ...config.value, marketOpenState: "closed", tiers: [] };
+      if (generation !== refreshGeneration) return;
+      config.value = {
+        ...config.value,
+        halted: true,
+        killSwitchRevision: "unavailable",
+        killSwitchSource: "remote-unavailable",
+        marketOpenState: "closed",
+        tiers: [],
+        showcaseEnabled: false,
+      };
       loaded.value = false;
     }
   }

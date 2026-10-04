@@ -1,5 +1,6 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
 
 export type DailyMilestoneStatus = "LOCKED" | "CLAIMABLE" | "CLAIMED";
 
@@ -31,6 +32,13 @@ export interface CanonicalDailyPowerUp {
   effectType: string;
   effectValue: string;
   status: DailyPowerUpStatus;
+  /**
+   * 该权益指向的业务当前是否对客可用;null = 该档不依赖受管业务。
+   *
+   * 服务端在业务停用(质押整池熔断 / Genesis 未开放)时给 false,客户端据此不再
+   * 向用户承诺「激活后可用」。可选:旧服务端不返回该字段时为 null(= 不适用)。
+   */
+  businessAvailable: boolean | null;
 }
 
 export interface CanonicalTopStreaker {
@@ -50,6 +58,20 @@ export interface CanonicalEarningMilestone {
   achievedAt: string | null;
 }
 
+export type BadgeAchievementStatus = "LOCKED" | "UNLOCKED";
+
+export interface CanonicalBadgeAchievement {
+  achievementCode: string;
+  name: string;
+  description: string;
+  category: string;
+  iconKey: string;
+  accentColor: string;
+  rewardPoints: number;
+  status: BadgeAchievementStatus;
+  unlockedAt: string | null;
+}
+
 export interface DailySnapshot {
   rewardAsset: "NEX";
   serverDate: string;
@@ -57,10 +79,14 @@ export interface DailySnapshot {
   streak: DailyStreakState;
   dailyMilestones: CanonicalDailyMilestone[];
   earningMilestones: CanonicalEarningMilestone[];
+  badgeAchievements: CanonicalBadgeAchievement[];
   powerUps: CanonicalDailyPowerUp[];
   rules: Array<{ key: string; value: string }>;
   topStreakers: CanonicalTopStreaker[];
   source: string;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
 }
 
 export interface DailyCheckInResult {
@@ -70,6 +96,9 @@ export interface DailyCheckInResult {
   streakBonusNex: number;
   multiplier: number;
   streakDays: number;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
 }
 
 export interface DailyMilestoneClaimResult {
@@ -79,12 +108,18 @@ export interface DailyMilestoneClaimResult {
   rewardAmount: number;
   badgeCode: string | null;
   spinTickets: number;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
 }
 
 export interface StreakSaverResult {
   restoredStreak: number;
   streakSavers: number;
   effectiveLastCheckInDate: string;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
 }
 
 export interface DailyPowerUpActivationResult {
@@ -92,11 +127,17 @@ export interface DailyPowerUpActivationResult {
   powerUpCode: string;
   badgeCode: string | null;
   status: "ACTIVATED";
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
 }
 
 export interface EarningMilestoneEvaluationResult {
   fired: Array<{ milestoneId: string; thresholdUsd: number; rewardNex: number; lifetimeEarningsUsd: number }>;
   count: number;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
 }
 
 export interface PointsApi {
@@ -105,7 +146,7 @@ export interface PointsApi {
   claimMilestone(milestoneId: number, idempotencyKey: string): Promise<DailyMilestoneClaimResult>;
   useSaver(idempotencyKey: string): Promise<StreakSaverResult>;
   activatePowerUp(powerUpId: number, idempotencyKey: string): Promise<DailyPowerUpActivationResult>;
-  evaluateEarningMilestones(idempotencyKey: string): Promise<EarningMilestoneEvaluationResult>;
+  evaluateEarningMilestones(idempotencyKey: string, milestoneId?: string): Promise<EarningMilestoneEvaluationResult>;
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -137,6 +178,25 @@ function bool(value: unknown): boolean | null {
 
 function invalid(message = "DAILY_RESPONSE_INVALID"): never {
   throw new ApiError({ kind: "protocol", message });
+}
+
+function validAuthority(row: Record<string, unknown>, _mode: ApiEnvironment): boolean {
+  return row.serverCanonical === true
+    && row.sourceEnvironment === "PRODUCTION"
+    && row.runId === "";
+}
+
+function authority(row: Record<string, unknown> | null, mode: ApiEnvironment, message: string): {
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
+} {
+  if (!row || !validAuthority(row, mode)) return invalid(message);
+  return {
+    serverCanonical: true,
+    sourceEnvironment: row.sourceEnvironment as "PRODUCTION" | "SANDBOX",
+    runId: row.runId as string,
+  };
 }
 
 function requiredKey(value: string): string {
@@ -181,6 +241,8 @@ function parsePowerUp(value: unknown): CanonicalDailyPowerUp {
   const effectType = text(row?.effectType);
   const effectValue = typeof row?.effectValue === "string" ? row.effectValue : null;
   const status = text(row?.status)?.toUpperCase() as DailyPowerUpStatus;
+  // 可选布尔:缺失/非布尔一律 null(= 该档不依赖受管业务),不把未知说成停用。
+  const businessAvailable = typeof row?.businessAvailable === "boolean" ? row.businessAvailable : null;
   if (!row || powerUpId === null || !powerUpCode || !name || unlockStreakDays === null
       || !targetPath || !effectType || effectValue === null
       || !["LOCKED", "AVAILABLE", "ACTIVATED"].includes(status)) {
@@ -192,6 +254,7 @@ function parsePowerUp(value: unknown): CanonicalDailyPowerUp {
     name,
     unlockStreakDays,
     targetPath,
+    businessAvailable,
     effectType,
     effectValue,
     status,
@@ -225,8 +288,30 @@ function parseEarningMilestone(value: unknown): CanonicalEarningMilestone {
   return { milestoneId, thresholdUsdt, rewardNex, lifetimeEarningsUsdt, status, achievedAt };
 }
 
-function parseSnapshot(value: unknown): DailySnapshot {
+function parseBadgeAchievement(value: unknown): CanonicalBadgeAchievement {
   const row = record(value);
+  const achievementCode = text(row?.achievementCode);
+  const name = text(row?.name);
+  const description = typeof row?.description === "string" ? row.description : null;
+  const category = text(row?.category)?.toUpperCase();
+  const iconKey = typeof row?.iconKey === "string" ? row.iconKey : null;
+  const accentColor = typeof row?.accentColor === "string" ? row.accentColor : null;
+  const rewardPoints = whole(row?.rewardPoints);
+  const status = text(row?.status)?.toUpperCase() as BadgeAchievementStatus;
+  const unlockedAt = optionalText(row?.unlockedAt);
+  if (!row || !achievementCode || !name || description === null || !category
+      || iconKey === null || accentColor === null || rewardPoints === null
+      || !["LOCKED", "UNLOCKED"].includes(status)
+      || (unlockedAt !== null && Number.isNaN(Date.parse(unlockedAt)))) {
+    return invalid("BADGE_ACHIEVEMENT_RESPONSE_INVALID");
+  }
+  return { achievementCode, name, description, category, iconKey, accentColor, rewardPoints, status, unlockedAt };
+}
+
+function parseSnapshot(value: unknown, mode: ApiEnvironment): DailySnapshot {
+  const row = record(value);
+  if (!row) return invalid("DAILY_RESPONSE_INVALID");
+  const provenance = authority(row, mode, "DAILY_RESPONSE_INVALID");
   const streak = record(row?.streak);
   const currentStreak = whole(streak?.currentStreak);
   const longestStreak = whole(streak?.longestStreak);
@@ -235,11 +320,12 @@ function parseSnapshot(value: unknown): DailySnapshot {
   const serverDate = text(row?.serverDate);
   const nextResetAtUtc = text(row?.nextResetAtUtc);
   const source = text(row?.source);
-  if (!row || row.rewardAsset !== "NEX" || !streak || currentStreak === null
+  if (row.rewardAsset !== "NEX" || !streak || currentStreak === null
       || longestStreak === null || streakSavers === null || checkedInToday === null
       || !serverDate || Number.isNaN(Date.parse(`${serverDate}T00:00:00Z`))
       || !nextResetAtUtc || Number.isNaN(Date.parse(nextResetAtUtc))
-      || !Array.isArray(row.dailyMilestones) || !Array.isArray(row.earningMilestones) || !Array.isArray(row.powerUps)
+      || !Array.isArray(row.dailyMilestones) || !Array.isArray(row.earningMilestones)
+      || !Array.isArray(row.badgeAchievements) || !Array.isArray(row.powerUps)
       || !Array.isArray(row.topStreakers) || !source) {
     return invalid();
   }
@@ -266,6 +352,10 @@ function parseSnapshot(value: unknown): DailySnapshot {
   if (new Set(earningMilestones.map((item) => item.milestoneId)).size !== earningMilestones.length) {
     return invalid("EARNING_MILESTONE_DUPLICATED");
   }
+  const badgeAchievements = row.badgeAchievements.map(parseBadgeAchievement);
+  if (new Set(badgeAchievements.map((item) => item.achievementCode)).size !== badgeAchievements.length) {
+    return invalid("BADGE_ACHIEVEMENT_DUPLICATED");
+  }
   return {
     rewardAsset: "NEX",
     serverDate,
@@ -279,36 +369,42 @@ function parseSnapshot(value: unknown): DailySnapshot {
     },
     dailyMilestones,
     earningMilestones,
+    badgeAchievements,
     powerUps,
     rules,
     topStreakers,
     source,
+    ...provenance,
   };
 }
 
-function parseCheckIn(value: unknown): DailyCheckInResult {
+function parseCheckIn(value: unknown, mode: ApiEnvironment): DailyCheckInResult {
   const row = record(value);
+  if (!row) return invalid("DAILY_CHECK_IN_RESPONSE_INVALID");
+  const provenance = authority(row, mode, "DAILY_CHECK_IN_RESPONSE_INVALID");
   const checkInDate = text(row?.checkInDate);
   const baseNex = number(row?.baseNex);
   const rewardNex = number(row?.rewardNex);
   const streakBonusNex = number(row?.streakBonusNex);
   const multiplier = number(row?.multiplier, 1);
   const streakDays = whole(row?.streakDays, 1);
-  if (!row || !checkInDate || baseNex === null || rewardNex === null
+  if (!checkInDate || baseNex === null || rewardNex === null
       || streakBonusNex === null || multiplier === null || streakDays === null) {
     return invalid("DAILY_CHECK_IN_RESPONSE_INVALID");
   }
-  return { checkInDate, baseNex, rewardNex, streakBonusNex, multiplier, streakDays };
+  return { checkInDate, baseNex, rewardNex, streakBonusNex, multiplier, streakDays, ...provenance };
 }
 
-function parseClaim(value: unknown): DailyMilestoneClaimResult {
+function parseClaim(value: unknown, mode: ApiEnvironment): DailyMilestoneClaimResult {
   const row = record(value);
+  if (!row) return invalid("DAILY_MILESTONE_CLAIM_RESPONSE_INVALID");
+  const provenance = authority(row, mode, "DAILY_MILESTONE_CLAIM_RESPONSE_INVALID");
   const milestoneId = whole(row?.milestoneId, 1);
   const milestoneDay = whole(row?.milestoneDay, 1);
   const rewardType = text(row?.rewardType)?.toUpperCase();
   const rewardAmount = number(row?.rewardAmount);
   const spinTickets = whole(row?.spinTickets);
-  if (!row || milestoneId === null || milestoneDay === null || !rewardType
+  if (milestoneId === null || milestoneDay === null || !rewardType
       || rewardAmount === null || spinTickets === null) {
     return invalid("DAILY_MILESTONE_CLAIM_RESPONSE_INVALID");
   }
@@ -319,25 +415,30 @@ function parseClaim(value: unknown): DailyMilestoneClaimResult {
     rewardAmount,
     badgeCode: optionalText(row.badgeCode),
     spinTickets,
+    ...provenance,
   };
 }
 
-function parseSaver(value: unknown): StreakSaverResult {
+function parseSaver(value: unknown, mode: ApiEnvironment): StreakSaverResult {
   const row = record(value);
+  if (!row) return invalid("DAILY_STREAK_SAVER_RESPONSE_INVALID");
+  const provenance = authority(row, mode, "DAILY_STREAK_SAVER_RESPONSE_INVALID");
   const restoredStreak = whole(row?.restoredStreak, 1);
   const streakSavers = whole(row?.streakSavers);
   const effectiveLastCheckInDate = text(row?.effectiveLastCheckInDate);
-  if (!row || restoredStreak === null || streakSavers === null || !effectiveLastCheckInDate) {
+  if (restoredStreak === null || streakSavers === null || !effectiveLastCheckInDate) {
     return invalid("DAILY_STREAK_SAVER_RESPONSE_INVALID");
   }
-  return { restoredStreak, streakSavers, effectiveLastCheckInDate };
+  return { restoredStreak, streakSavers, effectiveLastCheckInDate, ...provenance };
 }
 
-function parsePowerUpActivation(value: unknown): DailyPowerUpActivationResult {
+function parsePowerUpActivation(value: unknown, mode: ApiEnvironment): DailyPowerUpActivationResult {
   const row = record(value);
+  if (!row) return invalid("DAILY_POWER_UP_ACTIVATION_RESPONSE_INVALID");
+  const provenance = authority(row, mode, "DAILY_POWER_UP_ACTIVATION_RESPONSE_INVALID");
   const powerUpId = whole(row?.powerUpId, 1);
   const powerUpCode = text(row?.powerUpCode);
-  if (!row || powerUpId === null || !powerUpCode || row.status !== "ACTIVATED") {
+  if (powerUpId === null || !powerUpCode || row.status !== "ACTIVATED") {
     return invalid("DAILY_POWER_UP_ACTIVATION_RESPONSE_INVALID");
   }
   return {
@@ -345,13 +446,16 @@ function parsePowerUpActivation(value: unknown): DailyPowerUpActivationResult {
     powerUpCode,
     badgeCode: optionalText(row.badgeCode),
     status: "ACTIVATED",
+    ...provenance,
   };
 }
 
-function parseEarningEvaluation(value: unknown): EarningMilestoneEvaluationResult {
+function parseEarningEvaluation(value: unknown, mode: ApiEnvironment): EarningMilestoneEvaluationResult {
   const row = record(value);
+  if (!row) return invalid("EARNING_MILESTONE_EVALUATION_RESPONSE_INVALID");
+  const provenance = authority(row, mode, "EARNING_MILESTONE_EVALUATION_RESPONSE_INVALID");
   const count = whole(row?.count);
-  if (!row || count === null || !Array.isArray(row.fired) || count !== row.fired.length) {
+  if (count === null || !Array.isArray(row.fired) || count !== row.fired.length) {
     return invalid("EARNING_MILESTONE_EVALUATION_RESPONSE_INVALID");
   }
   const fired = row.fired.map((value) => {
@@ -365,17 +469,17 @@ function parseEarningEvaluation(value: unknown): EarningMilestoneEvaluationResul
     }
     return { milestoneId, thresholdUsd, rewardNex, lifetimeEarningsUsd };
   });
-  return { fired, count };
+  return { fired, count, ...provenance };
 }
 
-export function createPointsApi(client: ApiClient): PointsApi {
+export function createPointsApi(client: ApiClient, mode: ApiEnvironment = "prod"): PointsApi {
   return {
-    state: async () => parseSnapshot(await client.request({ method: "GET", path: "/api/points/state" })),
+    state: async () => parseSnapshot(await client.request({ method: "GET", path: "/api/points/state" }), mode),
     checkIn: async (idempotencyKey) => parseCheckIn(await client.request({
       method: "POST",
       path: "/api/points/sign-in",
       idempotencyKey: requiredKey(idempotencyKey),
-    })),
+    }), mode),
     claimMilestone: async (milestoneId, idempotencyKey) => {
       if (!Number.isSafeInteger(milestoneId) || milestoneId <= 0) {
         throw new ApiError({ kind: "protocol", message: "DAILY_MILESTONE_ID_REQUIRED" });
@@ -384,13 +488,13 @@ export function createPointsApi(client: ApiClient): PointsApi {
         method: "POST",
         path: `/api/points/milestones/${milestoneId}/claim`,
         idempotencyKey: requiredKey(idempotencyKey),
-      }));
+      }), mode);
     },
     useSaver: async (idempotencyKey) => parseSaver(await client.request({
       method: "POST",
       path: "/api/points/streak-saver/use",
       idempotencyKey: requiredKey(idempotencyKey),
-    })),
+    }), mode),
     activatePowerUp: async (powerUpId, idempotencyKey) => {
       if (!Number.isSafeInteger(powerUpId) || powerUpId <= 0) {
         throw new ApiError({ kind: "protocol", message: "DAILY_POWER_UP_ID_REQUIRED" });
@@ -399,12 +503,13 @@ export function createPointsApi(client: ApiClient): PointsApi {
         method: "POST",
         path: `/api/points/power-ups/${powerUpId}/activate`,
         idempotencyKey: requiredKey(idempotencyKey),
-      }));
+      }), mode);
     },
-    evaluateEarningMilestones: async (idempotencyKey) => parseEarningEvaluation(await client.request({
+    evaluateEarningMilestones: async (idempotencyKey, milestoneId) => parseEarningEvaluation(await client.request({
       method: "POST",
       path: "/api/earnings/milestones/evaluate",
+      body: milestoneId ? { milestoneId } : undefined,
       idempotencyKey: requiredKey(idempotencyKey),
-    })),
+    }), mode),
   };
 }

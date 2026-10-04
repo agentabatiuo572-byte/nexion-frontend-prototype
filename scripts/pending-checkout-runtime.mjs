@@ -21,6 +21,7 @@
  * Usage: BASE_URL=http://127.0.0.1:<port> node scripts/pending-checkout-runtime.mjs
  */
 import { chromium } from "playwright";
+import fs from "node:fs";
 import { collectAppConsoleErrors } from "./lib/console-origin-filter.mjs";
 import { directAppUrl } from "./lib/direct-app-url.mjs";
 import { assertNoRuntimeErrors } from "./lib/probe-coverage.mjs";
@@ -36,6 +37,71 @@ const NO_ADVANCE_WAIT_MS = 15_000;
 function fail(msg) { throw new Error(`pending-checkout-runtime: ${msg}`); }
 
 const browser = await chromium.launch();
+
+// The formal UniApp no longer has a browser-selected funds sandbox. Keep the
+// old seven-scenario harness below only as a tripwire should that retired rail
+// ever be re-enabled; the active runtime proof now verifies that an anonymous
+// deep link cannot manufacture a local invoice or expose checkout controls.
+const formalRuntimeSource = fs.readFileSync(new URL("../src/api/runtime.ts", import.meta.url), "utf8");
+const formalFundsRailDisabled = !/\bdevelopmentFundsEnabled\s*=/.test(formalRuntimeSource)
+  || /developmentFundsEnabled\s*=\s*false/.test(formalRuntimeSource);
+if (formalFundsRailDisabled) {
+  const ctx = await browser.newContext({ viewport: { width: 414, height: 896 }, colorScheme: "dark" });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("console", collectAppConsoleErrors(errors, BASE));
+  page.on("pageerror", (error) => errors.push(String(error)));
+  await page.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/auth/users/refresh") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ code: 401, message: "AUTH_REQUIRED", data: null }),
+      });
+    }
+    if (/^\/(?:api|auth)\//.test(url.pathname)) {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ code: 0, message: "OK", data: {} }),
+      });
+    }
+    return route.continue();
+  });
+  await page.goto(directAppUrl(BASE, CHECKOUT), { waitUntil: "load", timeout: 30000 });
+  // The isolated H5 runner starts several Chromium probes together. Wait for
+  // the guard's observable destination instead of assuming its startup tick
+  // always runs within 2.5s on a busy Windows host.
+  await page.waitForFunction(
+    () => location.hash.includes("/pages/onboarding/intro"),
+    undefined,
+    { timeout: 12_000 },
+  ).catch(() => {});
+  const witness = await page.evaluate((pendingKey) => {
+    let sessions = [];
+    try {
+      const rows = Object.values(JSON.parse(localStorage.getItem(pendingKey) || "null")?.data ?? {});
+      sessions = rows.flatMap((row) => row?.sessions ?? []);
+    } catch { sessions = []; }
+    return {
+      hash: location.hash,
+      sessions: sessions.length,
+      checkoutButtons: document.querySelectorAll('uni-page[data-page="pages/store/checkout"] [role="button"]').length,
+    };
+  }, PENDING_KEY);
+  if (!witness.hash.includes("/pages/onboarding/intro")) {
+    fail(`formal anonymous checkout did not fail closed (${witness.hash})`);
+  }
+  if (witness.sessions !== 0 || witness.checkoutButtons !== 0) {
+    fail(`formal anonymous checkout exposed a local invoice/control: ${JSON.stringify(witness)}`);
+  }
+  assertNoRuntimeErrors(errors, "formal pending checkout");
+  await ctx.close();
+  await browser.close();
+  console.log("PENDING-CHECKOUT-RUNTIME: PASS (formal App has no client funds sandbox; anonymous deep link creates 0 invoices and exposes 0 checkout controls)");
+  process.exit(0);
+}
 
 async function openPage(initScript) {
   const ctx = await browser.newContext({ viewport: { width: 414, height: 896 }, colorScheme: "dark" });

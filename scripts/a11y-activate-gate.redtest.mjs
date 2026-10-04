@@ -24,6 +24,8 @@ import { join } from "node:path";
 const ROOT = process.cwd();
 const GATE = join(ROOT, "scripts", "a11y-activate-gate.mjs");
 const BEHAVIOR = join(ROOT, "scripts", "a11y-activate-behavior.test.mjs");
+// Keep the ID projection's adversarial tests on the existing gate chain.
+execFileSync(process.execPath, ["--test", join(ROOT, "scripts", "lib", "glass-segments-id-projection.test.mjs")], { stdio: "inherit" });
 // 探针名带 pid:两条门链(verify.sh 与 npm run test:a11y-activate)都会调本脚本,
 // 固定路径在并发下会互删探针,让双方的结论同时失真。
 const PROBE = join(ROOT, "src", `__a11y-redtest-probe-${process.pid}.vue`);
@@ -64,8 +66,8 @@ function runBehavior() {
  * 模板类判据:把违例写进一个**临时新建**的 .vue,断言门变红且命中指定判据。
  * 真源文件全程不动。
  */
-function redtestTemplate(name, tag, templateBody) {
-  writeFileSync(PROBE, `<template>\n${templateBody}\n</template>\n\n<script setup lang="ts">\nfunction noop() {}\n</script>\n`);
+function redtestTemplate(name, tag, templateBody, scriptBody = "function noop() {}") {
+  writeFileSync(PROBE, `<template>\n${templateBody}\n</template>\n\n<script setup lang="ts">\n${scriptBody}\n</script>\n`);
   try {
     const { failed, out } = runGate();
     if (!failed) return `✗ ${name}: 注入违例后门仍然是绿的 —— 这条判据是死的`;
@@ -74,6 +76,14 @@ function redtestTemplate(name, tag, templateBody) {
   } finally {
     cleanup();
   }
+}
+
+function greentestTemplate(name, templateBody, scriptBody) {
+  writeFileSync(PROBE, `<template>\n${templateBody}\n</template>\n<script setup lang="ts">\n${scriptBody}\n</script>\n`);
+  try {
+    const { failed, out } = runGate();
+    return failed ? `✗ ${name}: 合法共用组件 ID 仍被判红\n${out}` : `✓ ${name}: 真实绑定的共用组件 ID 能被引用`;
+  } finally { cleanup(); }
 }
 
 /**
@@ -124,6 +134,7 @@ if (baseline.failed) {
   process.exit(1);
 }
 
+const segmentsImport = 'import GlassSegments from "@/components/glass-segments.vue"; import { computed } from "vue";';
 const results = [
   // ── 模板类:注入临时新建文件(同时证明「新文件会被扫到」)──
   redtestTemplate("A 有 role 无 tabindex", "A", `  <view role="button" @click="noop">x</view>`),
@@ -146,6 +157,18 @@ const results = [
   redtestTemplate("G 弹层无焦点管理", "G", `  <view v-if="open" style="position: fixed; inset: 0">panel</view>`),
   redtestTemplate("E 悬空 aria 引用", "E", `  <view role="button" tabindex="0" aria-describedby="nope" @click="noop">x</view>`),
   redtestTemplate("E 同文件 id 重复", "E", `  <view><text id="dup">a</text><text id="dup">b</text></view>`),
+  greentestTemplate("E computed 共用组件 ID 正例", `<view><GlassSegments :options="tabs" /><view aria-labelledby="projected-tab" /></view>`,
+    `${segmentsImport} const tabs = computed(() => [{ value: "tab", label: "Tab", id: "projected-tab" }]);`),
+  redtestTemplate("E 共用组件 ID 与静态 ID 重复", "E", `<view><GlassSegments :options="tabs" /><text id="projected-dup" /></view>`,
+    `${segmentsImport} const tabs = [{ value: "tab", label: "Tab", id: "projected-dup" }];`),
+  redtestTemplate("E 共用组件 options 内 ID 重复", "E", `<GlassSegments :options="tabs" />`,
+    `${segmentsImport} const tabs = [{ id: "projected-dup" }, { id: "projected-dup" }];`),
+  redtestTemplate("E 共用组件没有的 ID 仍悬空", "E", `<view><GlassSegments :options="tabs" /><view aria-labelledby="missing-tab" /></view>`,
+    `${segmentsImport} const tabs = [{ value: "tab", label: "Tab", id: "present-tab" }];`),
+  redtestTemplate("E 不支持的 computed 条件表达式不冒认 ID", "E", `<view><GlassSegments :options="tabs" /><view aria-labelledby="uncertain-tab" /></view>`,
+    `${segmentsImport} const tabs = computed(() => ok ? [{ id: "uncertain-tab" }] : []);`),
+  redtestTemplate("E 条件隐藏的共用组件不冒认 ID", "E", `<view><GlassSegments v-if="false" :options="tabs" /><view aria-labelledby="uncertain-tab" /></view>`,
+    `${segmentsImport} const tabs = [{ id: "uncertain-tab" }];`),
 
   // ── 源码类:平台层本身 ──
   redtestSource("D 平台层未挂载", "D", "src/App.vue",
@@ -185,4 +208,4 @@ if (bad.length) {
   console.error(`\n  a11y gate REDTEST FAILED: ${bad.length}/${results.length} 条判据未被证明有效\n`);
   process.exit(1);
 }
-console.log(`  ✓ a11y gate redtest: ${results.length}/${results.length} 条判据均已证明会红,且还原后门复绿`);
+console.log(`  ✓ a11y gate redtest: ${results.length}/${results.length} 条正反例通过,违例会红且还原后门复绿`);

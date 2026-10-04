@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   Checkout — ported from Nexion-prototype/app/(main)/store/checkout/page.tsx.
   Reads ?product=<id> (default stellarbox-s1) &/or ?id= via onLoad. Buy flow
   state machine, top→bottom: stepper → AnimatePresence step card.
@@ -66,7 +66,7 @@
              不许盖住本页正在展示的活票(地址 / 金额 / 倒计时 / 取消都在被它压掉的那一支里):
              恢复行是持久行,resume 进来的票会被它整页遮蔽而全站失联(审计 R5 P0)—— 有活票先付票,
              票结清 / 作废后这张卡再露出来。 -->
-        <view v-if="receiptWriteFailure && !activeSession" class="mx-4 rounded-2xl text-center nx-step-in" :style="receiptFailureCardStyle">
+        <view v-if="receiptWriteFailure && !activeSession" class="nx-glass-card mx-4 rounded-2xl text-center nx-step-in" :style="receiptFailureCardStyle">
           <text class="block" :style="centerTitleStyle">{{ t.errors.billMissingTitle }}</text>
           <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3)">{{ t.errors.billMissingMsg }}</text>
           <view class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: 16px" :aria-disabled="receiptRetrying" @click.stop="retryReceiptWrite">
@@ -75,7 +75,7 @@
         </view>
 
         <!-- === select-payment === -->
-        <view v-else-if="step === 'select-payment'" class="mx-4 rounded-2xl overflow-hidden nx-step-in" :style="surfaceCardStyle">
+        <view v-else-if="step === 'select-payment'" class="nx-glass-card mx-4 rounded-2xl overflow-hidden nx-step-in" :style="surfaceCardStyle">
           <view class="border-b" :style="payHeadStyle">
             <view class="flex items-center justify-between">
               <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.coTotal }}</text>
@@ -103,10 +103,10 @@
             <view v-if="hasTradein" class="flex items-center" style="gap: 5px; margin-top: 6px">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m16 12-4-4-4 4" /><path d="M12 16V8" /></svg>
               <text class="flex-1" style="font-size: 12px; color: var(--v5-success)">{{ tradeinChipText }}</text>
-              <text v-if="!remoteTradeinRecoveryRequired" style="font-size: 12px; color: var(--v5-ink-3); text-decoration: underline; padding: 14px 4px 14px 14px" @click="removeTradein">{{ t.tradein.checkoutRemove }}</text>
+	              <text v-if="!remoteTradeinRecoveryRequired" style="font-size: 12px; color: var(--v5-ink-3); text-decoration: underline; padding: 14px 4px 14px 14px" role="button" tabindex="0" @click="removeTradein"  @keydown.enter.prevent="onKeyboardActivate($event, removeTradein)" @keydown.space.prevent="onKeyboardActivate($event, removeTradein)">{{ t.tradein.checkoutRemove }}</text>
             </view>
             <view v-else-if="removedTradein" class="flex items-center" style="gap: 5px; margin-top: 6px">
-              <text style="font-size: 12px; color: var(--v5-brand); text-decoration: underline; padding: 10px 4px 10px 0" @click="reAddTradein">{{ t.tradein.checkoutReAdd }}</text>
+	              <text style="font-size: 12px; color: var(--v5-brand); text-decoration: underline; padding: 10px 4px 10px 0" role="button" tabindex="0" @click="reAddTradein"  @keydown.enter.prevent="onKeyboardActivate($event, reAddTradein)" @keydown.space.prevent="onKeyboardActivate($event, reAddTradein)">{{ t.tradein.checkoutReAdd }}</text>
             </view>
           </view>
           <view style="padding: 12px">
@@ -147,13 +147,13 @@
         </view>
 
         <!-- === confirm === -->
-        <view v-else-if="step === 'confirm'" class="mx-4 rounded-2xl nx-step-in" :style="confirmCardStyle">
+        <view v-else-if="step === 'confirm'" class="nx-glass-card mx-4 rounded-2xl nx-step-in" :style="confirmCardStyle">
           <text class="block font-mono-tabular" style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.coReviewOrder }}</text>
           <view style="margin-top: 12px">
-            <CheckoutRow :label="t.store.coRowProduct" :value="product.name" />
+            <CheckoutRow :label="t.store.coRowProduct" :value="nexGridBrandText(product.name)" />
             <CheckoutRow :label="t.store.coRowQuantity" value="1" />
             <CheckoutRow :label="t.store.coRowPayment" :value="paymentLabel" />
-            <CheckoutRow :label="t.store.coRowShipping" :value="t.store.coShippingValue" />
+            <CheckoutRow v-if="!remoteApiEnabled" :label="t.store.coRowShipping" :value="t.store.coShippingValue" />
             <!-- Subtotal revealed when any deduction applies (to anchor the
                  discount rows) or when a card fee applies. -->
             <CheckoutRow v-if="hasVoucher || isCard || hasTradein || trialConversionMode" :label="t.store.coRowSubtotal" :value="`$${priceText}`" />
@@ -162,7 +162,7 @@
             <CheckoutRow v-if="hasVoucher" :label="t.voucher.checkoutRowLabel" :value="`−$${voucherDiscountText}`" />
             <CheckoutRow v-if="hasTradein" :label="t.tradein.checkoutRowLabel" :value="`−$${tradeinCreditText}`" />
             <CheckoutRow v-if="isCard" :label="fmt(t.store.coRowCardFee, { rate: cardFeeRateLabel() })" :value="`$${cardFeeText}`" />
-            <CheckoutRow v-else :label="t.store.coRowNetworkFee" :value="t.store.coFeeFree" />
+            <CheckoutRow v-else-if="!remoteApiEnabled" :label="t.store.coRowNetworkFee" :value="t.store.coFeeFree" />
             <view style="height: 1px; background: var(--v5-border); margin: 4px 0" />
             <CheckoutRow :label="t.store.coRowTotal" :value="`$${confirmTotalText}`" big />
             <!-- 异常4: $0 due keeps the explicit confirm; surplus never refunds -->
@@ -183,22 +183,19 @@
         </view>
 
         <!-- === awaiting === -->
-        <view v-else-if="step === 'awaiting'" class="mx-4 rounded-2xl text-center nx-step-in" :style="centerCardStyle">
+        <view v-else-if="step === 'awaiting'" class="nx-glass-card mx-4 rounded-2xl text-center nx-step-in" :style="centerCardStyle">
           <view v-if="!remoteOrderFailure" class="mx-auto grid place-items-center nx-spin" :style="spinnerWrapStyle">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
           </view>
           <text class="block" :style="centerTitleStyle">{{ remoteOrderFailure ? t.tradein.errPurchaseFailed : t.store.coAwaiting }}</text>
-          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.4; padding: 0 8px">{{ remoteOrderFailure ? orderStatusText(t.orders, remoteOrderFailure) : remoteApiEnabled ? t.store.coAwaitingServer : isCard ? t.store.coAwaitingCard : t.store.coAwaitingChain }}</text>
-          <view v-if="remoteApiEnabled && remoteOrderPollError && !remoteOrderFailure" class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: 14px" @click.stop="restartRemoteOrderPolling">
-            <text>{{ t.store.coRetryStatus }}</text>
-          </view>
+          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.4; padding: 0 8px">{{ remoteOrderFailure ? t.store.coRecoverOriginalOrder : remoteApiEnabled ? t.store.coAwaitingServer : isCard ? t.store.coAwaitingCard : t.store.coAwaitingChain }}</text>
           <view v-if="orderId" class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: 14px" :aria-label="t.store.coTrackOrder" @click.stop="goTrack">
             <text>{{ t.store.coTrackOrder }}</text>
           </view>
         </view>
 
         <!-- === confirmed === -->
-        <view v-else-if="step === 'confirmed'" class="mx-4 rounded-2xl text-center relative overflow-hidden nx-pop-in" :style="centerCardStyle">
+        <view v-else-if="step === 'confirmed'" class="nx-glass-card mx-4 rounded-2xl text-center relative overflow-hidden nx-pop-in" :style="centerCardStyle">
           <template v-if="firstOrderCelebrating">
             <view aria-hidden :style="celebrateGlowStyle" />
             <view class="relative">
@@ -223,7 +220,7 @@
         </view>
 
         <!-- === activating === -->
-        <view v-else-if="step === 'activating'" class="mx-4 rounded-2xl text-center nx-step-in" :style="centerCardStyle">
+        <view v-else-if="step === 'activating'" class="nx-glass-card mx-4 rounded-2xl text-center nx-step-in" :style="centerCardStyle">
           <view class="mx-auto grid place-items-center nx-spin" :style="spinnerWrapStyle">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
           </view>
@@ -238,7 +235,7 @@
         </view>
 
         <!-- === live === -->
-        <view v-else-if="step === 'live'" class="mx-4 rounded-2xl text-center nx-pop-in" :style="liveCardStyle">
+        <view v-else-if="step === 'live'" class="nx-glass-card mx-4 rounded-2xl text-center nx-pop-in" :style="liveCardStyle">
           <view class="mx-auto grid place-items-center" :style="liveSpinnerWrapStyle">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></svg>
           </view>
@@ -267,6 +264,7 @@ import ChainPayment from "@/components/store/chain-payment.vue";
 import CardPayment from "@/components/store/card-payment.vue";
 import { useT } from "@/i18n/use-t";
 import { deviceName } from "@/lib/device-copy";
+import { nexGridBrandText } from "@/lib/brand-copy";
 import { fmt } from "@/i18n/format";
 import { cardFeeRateLabel, cardFeeUsd } from "@/store/deposits-core";
 import { getProduct, type Product } from "@/mock/products";
@@ -276,29 +274,30 @@ import { getMonthsSince, tradeInEarlyWindowOk } from "@/store/product-phase";
 import { useProductPhase } from "@/composables/use-product-phase";
 import { voucherAppliesToSku } from "@/mock/vouchers";
 import { useApp } from "@/store/app";
-import { useOrders, type Order, type OrderStatus } from "@/store/orders";
-import { orderStatusText } from "@/components/store/order-status-copy";
+import { useOrders, type Order } from "@/store/orders";
 import { useAuth } from "@/store/auth";
-import { readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
+import { acquireAccountCommandKey, readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
+import { rememberCheckoutOrder, recoverCheckoutOrder, forgetCheckoutOrder } from "@/lib/checkout-order-recovery";
+import { CheckoutRouteFence, type CheckoutRouteScope } from "@/lib/checkout-route-fence";
 import { postMoneyBill, postReceiptOnce, postReceiptOnly, reportStuckFunds, type ReceiptDraft } from "@/lib/money-receipt";
 import { useVoucher } from "@/store/voucher";
 import { useTradeinSheet } from "@/store/tradein-sheet";
 import type { PurchaseEligibilitySnapshot } from "@/api/purchase-eligibility-api";
 import { trialReservesSlotNow, useFreeTrial } from "@/store/free-trial";
-import { useTrialConfig, computeDiscountedPrice, computeTrialOffset } from "@/store/trial-config";
+import { useTrialConfig, computeDiscountedPrice, computeTrialOffset, resolveTrialCheckoutProductId } from "@/store/trial-config";
 import { resolveTrialAt, accruedShadow } from "@/store/trial-boundary";
 import { mockServerNow } from "@/store/server-time";
 import { useDeviceEligibility } from "@/composables/use-device-eligibility";
 import { usePurchaseGate } from "@/composables/use-purchase-gate";
 import { useSetPageHeader } from "@/composables/use-page-header";
-import { navBack, navTo } from "@/lib/route";
+import { navReplace, navBack, navTo } from "@/lib/route";
 import type { DeviceKind } from "@/store/types";
 import { confirm, toast, useUI } from "@/store/ui";
-import { commercePaymentApi, deviceE3Api, mockFundsEnabled, orderApi, purchaseEligibilityApi, remoteApiEnabled } from "@/api/runtime";
-import { isCanonicalPaidOrder } from "@/api/order-readback";
+import { deviceE3Api, orderApi, purchaseEligibilityApi, remoteApiEnabled } from "@/api/runtime";
 import { asApiError } from "@/api/errors";
 import { resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-copy";
 import { completeVerifiedMutation, handleNoActiveDeviceDecision, RemoteCapacityGate, StableCommandKey } from "@/domain/e20-capacity-coordinator";
+import { resolveTradeinCheckoutPreflight } from "@/domain/tradein-checkout-preflight";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
 import { refreshServerProductPhase } from "@/store/server-product-phase";
@@ -307,7 +306,6 @@ import { usePendingCheckout } from "@/store/pending-checkout";
 import { formatCountdown, PENDING_CHECKOUT_WINDOW_MIN, reconcileInvoiceQuote, type PendingCheckoutMethod, type PendingCheckoutSession } from "@/store/pending-checkout-core";
 
 // cap applies to ACTIVE slots, not inventory (source Sprint #146-1).
-const MAX_DEVICES = 6;
 
 type Step =
   | "select-payment"
@@ -337,10 +335,13 @@ const voucher = useVoucher();
 const WALLET_PATH = "M21 12V7H5a2 2 0 0 1 0-4h14v4";
 const WALLET_PATH2 = "M3 5v14a2 2 0 0 0 2 2h16v-5";
 const PAYMENT_METHODS = computed<PaymentMethod[]>(() => {
-  if (mockFundsEnabled) {
-    return [{ id: "sandbox-wallet", label: t.value.store.coSandboxWallet,
-      hint: t.value.store.coHintSandboxWallet, iconPath: WALLET_PATH, iconPath2: WALLET_PATH2 }];
-  }
+  if (remoteApiEnabled) return [{
+    id: "nexgrid-wallet",
+    label: t.value.wallet.title,
+    hint: walletBalanceHint.value,
+    iconPath: WALLET_PATH,
+    iconPath2: WALLET_PATH2,
+  }];
   const methods: PaymentMethod[] = [
     { id: "usdt-trc20", label: "USDT (TRC20)", hint: t.value.store.coHintTrc20, iconPath: WALLET_PATH, iconPath2: WALLET_PATH2 },
     { id: "usdt-bep20", label: "USDT (BEP20)", hint: t.value.store.coHintBep20, iconPath: WALLET_PATH, iconPath2: WALLET_PATH2 },
@@ -377,21 +378,89 @@ function mintDialogOwner(): string {
 }
 
 const productId = ref("stellarbox-s1");
+const checkoutRouteFence = new CheckoutRouteFence();
+let purchaseEligibilityRequestSequence = 0;
+let activeCheckoutLoad: CheckoutRouteScope | null = null;
+let checkoutRouteInitialized = false;
+type PurchaseEligibilityResult = "eligible" | "ineligible" | "stale";
+let trialCheckoutSource = false;
 const remotePurchaseEligibility = ref<PurchaseEligibilitySnapshot | null>(null);
 const remotePurchaseEligibilityStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
+const checkoutWalletRefreshing = ref(false);
+let checkoutWalletRefreshSequence = 0;
+// The wallet payment row must state the server-confirmed available USDT before
+// the user continues, with the same readability rule the wallet page uses
+// (a receipt-only balance stays readable). Server re-validates at submit.
+const checkoutWalletReadable = computed(() => !remoteApiEnabled
+  || app.remoteFleetHasSnapshot || app.remoteWalletReceiptHasSnapshot);
+const walletBalanceHint = computed(() => {
+  if (!remoteApiEnabled) return "";
+  if (!checkoutWalletReadable.value) {
+    return checkoutWalletRefreshing.value || app.remoteFleetStatus === "idle" || app.remoteFleetStatus === "loading"
+      ? t.value.help.loadingMore : t.value.wallet.fundsUnavailableTitle;
+  }
+  return `${t.value.wallet.usdtBalance} · $${app.user.usdtBalance.toFixed(2)}`;
+});
 
-async function refreshPurchaseEligibility(): Promise<boolean> {
-  if (!remoteApiEnabled) return !purchaseGate.value.blocked;
+function checkoutRouteIdentity() {
+  const account = captureAccountScope();
+  return { accountKey: account.accountKey, accountEpoch: account.epoch, productNo: productId.value };
+}
+
+function beginCheckoutRoute(): CheckoutRouteScope {
+  return checkoutRouteFence.begin(checkoutRouteIdentity());
+}
+
+function captureCheckoutRoute(): CheckoutRouteScope {
+  return checkoutRouteFence.capture(checkoutRouteIdentity());
+}
+
+function invalidateCheckoutRoute(): void {
+  checkoutRouteFence.invalidate();
+  activeCheckoutLoad = null;
+}
+
+function isCurrentCheckoutRoute(scope: CheckoutRouteScope): boolean {
+  return pageAlive
+    && pageVisible
+    && checkoutRouteFence.isCurrent(scope, checkoutRouteIdentity());
+}
+
+function clearRemotePurchaseEligibility(): void {
+  purchaseEligibilityRequestSequence += 1;
+  remotePurchaseEligibility.value = null;
+  remotePurchaseEligibilityStatus.value = "idle";
+}
+
+async function refreshCheckoutWallet(): Promise<void> {
+  if (!remoteApiEnabled) return;
+  const request = app.captureRemoteAccountRequest();
+  const sequence = ++checkoutWalletRefreshSequence;
+  checkoutWalletRefreshing.value = true;
+  try {
+    await app.refreshRemoteFleet(request);
+  } finally {
+    if (sequence === checkoutWalletRefreshSequence) checkoutWalletRefreshing.value = false;
+  }
+}
+
+/** A stale response is not a denial and must not drive a navigation or mutation. */
+async function refreshPurchaseEligibility(scope = captureCheckoutRoute()): Promise<PurchaseEligibilityResult> {
+  if (!remoteApiEnabled) return purchaseGate.value.blocked ? "ineligible" : "eligible";
+  const sequence = ++purchaseEligibilityRequestSequence;
+  if (!isCurrentCheckoutRoute(scope)) return "stale";
   remotePurchaseEligibilityStatus.value = "loading";
   try {
-    const snapshot = await purchaseEligibilityApi.get(productId.value);
+    const snapshot = await purchaseEligibilityApi.get(scope.productNo);
+    if (sequence !== purchaseEligibilityRequestSequence || !isCurrentCheckoutRoute(scope)) return "stale";
     remotePurchaseEligibility.value = snapshot;
     remotePurchaseEligibilityStatus.value = "ready";
-    return snapshot.eligible;
+    return snapshot.eligible ? "eligible" : "ineligible";
   } catch {
+    if (sequence !== purchaseEligibilityRequestSequence || !isCurrentCheckoutRoute(scope)) return "stale";
     remotePurchaseEligibility.value = null;
     remotePurchaseEligibilityStatus.value = "error";
-    return false;
+    return "ineligible";
   }
 }
 
@@ -415,63 +484,94 @@ function purchaseEligibilityFailureCopy(): string {
 
 onLoad(async (options) => {
   const o = (options || {}) as Record<string, string>;
-  // accept ?product= (canonical) or ?id= (per task spec)
-  if (o.product) productId.value = o.product;
-  else if (o.id) productId.value = o.id;
+  trialCheckoutSource = o.source === "trial";
+  // accept ?product= (canonical) or ?id= via the one canonical product resolver.
+  if (o.product) productId.value = resolveTrialCheckoutProductId(o.product) ?? o.product;
+  else if (o.id) productId.value = resolveTrialCheckoutProductId(o.id) ?? o.id;
   resumeSessionId = o.resume || null;
-  const [catalogReady] = await Promise.all([
-    refreshProductCatalog(true),
-    refreshServerProductPhase(true),
-  ]);
-  // Remote 商品授权只取 catalog.available；H1 节奏镜像失败不能跳过商城发布门。
-  if (!catalogReady) return;
-  // 上架节奏门(FEAT-DEV02b,深链防线,先于购买门):未正式上架 SKU 仅当
-  // 「携置换上下文 + 抢先购窗口(开关默认关)」才放行;商城正门不受抢先购影响。
-  const pp = getProduct(productId.value);
-  // 三道跳转门任一命中且带 ?resume=:这张票在这个 SKU 上暂时付不了。**不销毁**它 —— 用户可能已经按地址转账,
-  // 静默删票 = 地址与金额从本地消失、资金孤儿化(审计 R9 P1;R3 曾为断「浮动条→门→弹回」循环而删票,方向反了)。
-  // 处置:票保留在册,明确告知「待支付订单已保留 / 已转账请联系客服」;到点自然作废,或用户从扫码步取消。
-  const dropResumeInvoice = () => {
-    if (!resumeSessionId) return;
-    if (pending.get(resumeSessionId)?.productId === productId.value) toast.warn(t.value.store.pendingResumeBlocked);
-    resumeSessionId = null;
-  };
-  if (pp?.purchaseBlocked) {
-    dropResumeInvoice();
-    uni.showToast({ title: t.value.store.specUnavailable, icon: "none" });
-    navTo("/store");
-    return;
-  }
-  if (pp && !isProductAvailable(pp, phase.value)) {
-    const viaTradeIn = tradein.appliedTradein?.targetKind === pp.id;
-    const mockEarlyWindow = pp.available === undefined && pp.unlocksAtPhase
-      && viaTradeIn && tradeInEarlyWindowOk(pp.unlocksAtPhase, getMonthsSince(app.user.joinedAt));
-    if (!mockEarlyWindow) {
+  const routeScope = beginCheckoutRoute();
+  checkoutRouteInitialized = true;
+  activeCheckoutLoad = routeScope;
+  try {
+    // A durable server order is a recovery route, never a fresh purchase. It has
+    // priority over catalog/eligibility gates so a newly denied purchase cannot
+    // hide an already committed original order.
+    if (remoteApiEnabled && await resumeServerOrder(routeScope)) return;
+    if (!isCurrentCheckoutRoute(routeScope)) return;
+
+    const [catalogReady] = await Promise.all([
+      refreshProductCatalog(true),
+      refreshServerProductPhase(true),
+    ]);
+    // Remote 商品授权只取 catalog.available；H1 节奏镜像失败不能跳过商城发布门。
+    if (!isCurrentCheckoutRoute(routeScope) || !catalogReady) return;
+    // 上架节奏门(FEAT-DEV02b,深链防线,先于购买门):未正式上架 SKU 仅当
+    // 「携置换上下文 + 抢先购窗口(开关默认关)」才放行;商城正门不受抢先购影响。
+    const pp = getProduct(routeScope.productNo);
+    // 三道跳转门任一命中且带 ?resume=:这张票在这个 SKU 上暂时付不了。**不销毁**它 —— 用户可能已经按地址转账,
+    // 静默删票 = 地址与金额从本地消失、资金孤儿化(审计 R9 P1;R3 曾为断「浮动条→门→弹回」循环而删票,方向反了)。
+    // 处置:票保留在册,明确告知「待支付订单已保留 / 已转账请联系客服」;到点自然作废,或用户从扫码步取消。
+    const dropResumeInvoice = () => {
+      if (!resumeSessionId) return;
+      if (pending.get(resumeSessionId)?.productId === routeScope.productNo) toast.warn(t.value.store.pendingResumeBlocked);
+      resumeSessionId = null;
+    };
+    if (!pp) {
       dropResumeInvoice();
-      uni.showToast({ title: t.value.store.releaseComingToast, icon: "none" });
+      const unavailableCopy = trialCheckoutSource ? t.value.store.trialProductUnavailable : t.value.store.productUnavailable;
+      if (trialCheckoutSource) navBack("/pages/me/trial");
+      else navTo("/store");
+      setTimeout(() => { uni.showToast({ title: unavailableCopy, icon: "none", duration: 2600 }); }, 120);
+      return;
+    }
+    if (pp.inventoryMode === "FINITE" && (pp.stock ?? 0) <= 0) {
+      dropResumeInvoice();
+      const unavailableCopy = trialCheckoutSource ? t.value.store.trialProductUnavailable : t.value.store.temporarilyOutOfStock;
+      if (trialCheckoutSource) navBack("/pages/me/trial");
+      else navTo("/store");
+      setTimeout(() => { uni.showToast({ title: unavailableCopy, icon: "none", duration: 2600 }); }, 120);
+      return;
+    }
+    const trialConversion = trialQuoteAt(mockServerNow()).applied;
+    if (!trialConversion && pp.purchaseBlocked) {
+      dropResumeInvoice();
+      uni.showToast({ title: t.value.store.specUnavailable, icon: "none" });
       navTo("/store");
       return;
     }
+    if (!trialConversion && !isProductAvailable(pp, phase.value)) {
+      const viaTradeIn = tradein.appliedTradein?.targetKind === pp.id;
+      const mockEarlyWindow = pp.available === undefined && pp.unlocksAtPhase
+        && viaTradeIn && tradeInEarlyWindowOk(pp.unlocksAtPhase, getMonthsSince(app.user.joinedAt));
+      if (!mockEarlyWindow) {
+        dropResumeInvoice();
+        uni.showToast({ title: t.value.store.releaseComingToast, icon: "none" });
+        navTo("/store");
+        return;
+      }
+    }
+    const eligibility = trialConversion ? "eligible" : await refreshPurchaseEligibility(routeScope);
+    if (!isCurrentCheckoutRoute(routeScope) || eligibility === "stale") return;
+    if (eligibility === "ineligible") {
+      dropResumeInvoice();
+      uni.showToast({ title: purchaseEligibilityFailureCopy(), icon: "none" });
+      if (resolvePurchaseEligibilityMessage(remotePurchaseEligibilityStatus.value, remotePurchaseEligibility.value) === "quotaDepleted") {
+        navTo(`/pages/store/detail?id=${routeScope.productNo}`);
+      } else {
+        navTo("/pages/team/quota");
+      }
+      return;
+    }
+    // Resuming a local pending invoice is not a new checkout and remains after
+    // the server-order recovery branch above.
+    if (resumeSessionId && resumePendingSession(resumeSessionId)) return;
+    if (!isCurrentCheckoutRoute(routeScope)) return;
+    fireTradeinIntercept();
+  } finally {
+    if (activeCheckoutLoad?.generation === routeScope.generation
+      && activeCheckoutLoad.accountKey === routeScope.accountKey
+      && activeCheckoutLoad.productNo === routeScope.productNo) activeCheckoutLoad = null;
   }
-  // Hard purchase gate (等级门/锁额): refuse checkout for ineligible / sold-out
-  // SKUs — deep-link defense (store cards & detail already redirect blocked users
-  // to /team/quota). Server re-checks on POST /api/orders (server-canonical).
-  if (!(await refreshPurchaseEligibility())) {
-    dropResumeInvoice();
-    uni.showToast({
-      title: purchaseEligibilityFailureCopy(),
-      icon: "none",
-    });
-    navTo("/pages/team/quota");
-    return;
-  }
-  // Resuming a pending session (floating bar / collision "continue that one")
-  // is not a new checkout: no trade-in intercept, straight back to the pay step.
-  if (resumeSessionId && resumePendingSession(resumeSessionId)) return;
-  // Trade-in intercept must run AFTER productId resolves (so the eligibility
-  // composable gets the real device kind). onLoad fires before onMounted in
-  // uni pages, so this is the single earliest point the kind is known.
-  fireTradeinIntercept();
 });
 
 const catalogStatus = computed(() => productCatalogState.status);
@@ -519,7 +619,8 @@ const NO_TRIAL: TrialQuote = { applied: false, promo: 0, offsetUSD: 0, remainder
 function trialQuoteAt(now: number): TrialQuote {
   const cfg = trialCfg.value;
   const r = resolveTrialAt(freeTrial.snapshot(), now, cfg);
-  if ((r.status !== "active" && r.status !== "grace") || productId.value !== cfg.trialProductId) return NO_TRIAL;
+  const trialProductId = resolveTrialCheckoutProductId(cfg.trialProductId);
+  if ((r.status !== "active" && r.status !== "grace") || !trialProductId || productId.value !== trialProductId) return NO_TRIAL;
   // 影子口径与 free-trial.liveShadow* 同一条规则(active 按冻结窗口累计 /
   // grace 取边界定格值),但锚在本次解析出的行上,不再各读各的时钟。
   const acc = accruedShadow(r, now, cfg);
@@ -562,7 +663,7 @@ const voucherMatch = computed(() => {
   if (!p) return null;
   // Canonical E3 submit owns the complete quote and wallet debit. Client-side
   // voucher stacking is not part of that command and therefore fails closed.
-  if (remoteApiEnabled && (tradein.appliedTradein?.canonicalQuote || mockFundsEnabled)) return null;
+  if (remoteApiEnabled && tradein.appliedTradein?.canonicalQuote) return null;
   return voucher.bestVoucherFor(p.id, p.price, trialConversionMode.value ? { stackWithTrial: true } : undefined);
 });
 const voucherDiscount = computed(() => voucherMatch.value?.discountUSD ?? 0);
@@ -665,8 +766,9 @@ const expiredVoucherForSku = computed(() => {
 });
 
 // ─── Trade-in intercept (one-shot) ───────────────────────────────────────
-// FEAT-DEV02: every catalog SKU is a real DeviceKind now (v2/P2 included), so
-// all device checkouts intercept. Fire on first mount only: skip when a retire
+// FEAT-DEV02: physical catalog SKUs (v2/P2 included) use the device trade-in
+// capacity preflight. SHARE products are services, not device slots, and must
+// never call the physical-device capacity APIs. Fire on first mount only: skip when a retire
 // context already targets this SKU (arrived from the devices-page flow) →
 // choice (owns ≥1 retirable device) → slot-full replace → normal payment.
 const KNOWN_KINDS: DeviceKind[] = [
@@ -676,24 +778,25 @@ const KNOWN_KINDS: DeviceKind[] = [
   "stellarbox-pro-v2",
   "stellarrack-p1",
   "stellarrack-p2",
-  "cloud-share",
 ];
 let interceptFired = false;
 const remoteCapacityGate = new RemoteCapacityGate();
-watch(() => app.accountKey, () => {
+watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   interceptFired = false;
   remoteCapacityGate.reset();
+  checkoutWalletRefreshSequence += 1;
+  checkoutWalletRefreshing.value = false;
+  invalidateCheckoutRoute();
+  clearRemotePurchaseEligibility();
   // Checkout progress is money state owned by one account. Clear every
   // projection immediately so a late response cannot expose account A's order
   // after the session has switched to account B.
-  stopRemoteOrderPolling();
   confirming = false;
   orderId.value = null;
   remoteOrderFailure.value = null;
   receiptWriteFailure.value = null;
   receiptRetrying.value = false;
   restoreReceiptRecovery();
-  remoteOrderPollError.value = false;
   remoteTradeinRecoveryRequired.value = false;
   remoteOrderCommandKey.clear();
   activeSession.value = null;
@@ -710,24 +813,30 @@ function fireTradeinIntercept() {
   // upgrade off an old unit. Normal (non-trial) checkouts intercept as before.
   if (trialConversionMode.value) return;
   const p = getProduct(productId.value);
-  if (!p || !KNOWN_KINDS.includes(p.id as DeviceKind)) return;
+  if (!p) return;
+  if (p.productType === "SHARE") return;
+  if (!KNOWN_KINDS.includes(p.id as DeviceKind)) return;
   const kind = p.id as DeviceKind;
   if (tradein.appliedTradein?.targetKind === kind) return;
   if (remoteApiEnabled) {
     const requestScope = captureAccountScope();
-    void Promise.all([
+    // Capacity is the mandatory server safety gate; trade-in eligibility is an
+    // optional enhancement. A transient eligibility failure must not reject an
+    // otherwise ordinary purchase, matching the prototype's local flow where
+    // the absence of a trade-in candidate simply continues to payment.
+    void resolveTradeinCheckoutPreflight(
       deviceE3Api.eligibility(kind),
       remoteCapacityGate.resolve(
         () => deviceE3Api.capacityQuote(kind),
         () => {},
         () => isCurrentAccountScope(requestScope),
       ),
-    ]).then(async ([eligibility, quote]) => {
+    ).then(async ({ eligibility, capacity: quote }) => {
       if (!isCurrentAccountScope(requestScope)) return;
-      const sourceIds = eligibility.sources.filter((source) => source.eligible)
-        .map((source) => String(source.sourceDeviceId));
+      const sourceIds = eligibility?.sources.filter((source) => source.eligible)
+        .map((source) => String(source.sourceDeviceId)) ?? [];
       if (quote.decision === "REPLACE_REQUIRED") {
-        if (eligibility.eligible && sourceIds.length > 0) {
+        if (eligibility?.eligible && sourceIds.length > 0) {
           tradein.showChoice(kind, p.price, sourceIds);
         } else {
           tradein.showCanonicalReplace(kind, quote.payableUsdt, quote);
@@ -748,7 +857,7 @@ function fireTradeinIntercept() {
       }
       // CAPACITY_AVAILABLE: server says the checkout is not capped; continue
       // through the ordinary server order path without opening a local sheet.
-      if (eligibility.eligible && sourceIds.length > 0) {
+      if (eligibility?.eligible && sourceIds.length > 0) {
         if (!isCurrentAccountScope(requestScope)) return;
         tradein.showChoice(kind, p.price, sourceIds);
       }
@@ -782,10 +891,9 @@ useSetPageHeader(() => ({
 }));
 
 const step = ref<Step>("select-payment");
-const payment = ref<string>(mockFundsEnabled ? "sandbox-wallet" : "usdt-trc20");
+const payment = ref<string>(remoteApiEnabled ? "nexgrid-wallet" : "usdt-trc20");
 const orderId = ref<string | null>(null);
-const remoteOrderFailure = ref<OrderStatus | null>(null);
-const remoteOrderPollError = ref(false);
+const remoteOrderFailure = ref<string | null>(null);
 const CHECKOUT_RECEIPT_RECOVERY_KEY = "nexgrid-checkout-receipt-recovery-v1";
 type CheckoutReceiptRecovery = { accountKey: string; draft: ReceiptDraft; orderId: string; productId?: string };
 const receiptWriteFailure = ref<CheckoutReceiptRecovery | null>(null);
@@ -855,13 +963,14 @@ function retryReceiptWrite() {
 
 const isCard = computed(() => payment.value === "card");
 const reservedSlots = computed(() => (trialReservesSlotNow() ? 1 : 0));
-const cappedRaw = computed(() => app.activeSlotCount + reservedSlots.value >= MAX_DEVICES);
+const cappedRaw = computed(() => app.activeSlotCount + reservedSlots.value >= app.slotCap);
+const targetOccupiesPhysicalSlot = computed(() => product.value?.productType !== "SHARE");
 // Conversion order = the trial's own reserved slot converts into the real
 // device (slot exchange) — don't scare the user with a slots-full warning that
 // counts the very slot this purchase frees (only warn when real actives cap).
-const capped = computed(() =>
-  trialConversionMode.value ? app.activeSlotCount >= MAX_DEVICES : cappedRaw.value,
-);
+const capped = computed(() => targetOccupiesPhysicalSlot.value && (
+  trialConversionMode.value ? app.activeSlotCount >= app.slotCap : cappedRaw.value
+));
 
 // ── derived text ──
 const priceText = computed(() => (product.value?.price ?? 0).toLocaleString());
@@ -875,7 +984,7 @@ const cardFee = computed(() => (remoteApiEnabled && appliedTradeinView.value?.ca
 const cardFeeText = computed(() => cardFee.value.toLocaleString());
 const confirmTotalText = computed(() => (netPrice.value + cardFee.value).toLocaleString());
 const paymentLabel = computed(() => PAYMENT_METHODS.value.find((m) => m.id === payment.value)?.label ?? "");
-const slotsFullText = computed(() => fmt(t.value.store.coSlotsFull, { max: MAX_DEVICES }));
+const slotsFullText = computed(() => fmt(t.value.store.coSlotsFull, { max: app.slotCap }));
 const activatingSubText = computed(() => {
   const p = product.value;
   const dc = p?.tier === "Flagship" ? t.value.store.coDcFrankfurt : t.value.store.coDcSingapore;
@@ -940,29 +1049,6 @@ async function goAwaiting() {
     goConfirm();
     return;
   }
-  // Explicit local-sandbox payment is a server command: only the backend may
-  // debit the run-scoped sandbox wallet and issue the durable payment number.
-  // Remote/production deliberately remains provider-backed and never falls
-  // back to this mock rail.
-  if (mockFundsEnabled) {
-    const orderNo = orderId.value;
-    if (!orderNo) {
-      step.value = "confirm";
-      toast.warn(t.value.tradein.errPurchaseFailed);
-      return;
-    }
-    try {
-      const account = auth.accountId;
-      const receipt = await commercePaymentApi.confirm(orderNo, `payment:${orderNo}`);
-      if (account !== auth.accountId || receipt.orderNo !== orderNo) return;
-      step.value = "awaiting";
-      restartRemoteOrderPolling();
-    } catch {
-      step.value = "confirm";
-      toast.warn(t.value.tradein.errPurchaseFailed);
-    }
-    return;
-  }
   step.value = "awaiting";
 }
 
@@ -986,19 +1072,23 @@ let quotedTradeIn: { deviceId: string } | null = null;
 let pendingVoucherRelease: string | null = null;
 
 async function onConfirmPay() {
-  if (confirming || step.value !== "confirm") return;
+  if (confirming || checkoutWalletRefreshing.value || step.value !== "confirm") return;
   confirming = true;
+  const recoveryScope = captureCheckoutRoute();
+  if (remoteApiEnabled) {
+    const recovering = await resumeServerOrder(recoveryScope);
+    if (recovering || !isCurrentCheckoutRoute(recoveryScope)) { confirming = false; return; }
+  }
   trialQuote = trialView.value;
   quotedTotal = +(netPrice.value + cardFee.value).toFixed(2);
   voucherQuote = { id: voucherMatch.value?.def.id ?? null, discount: voucherDiscount.value };
   quotedTradeIn = appliedTradeinView.value ? { deviceId: appliedTradeinView.value.device.id } : null;
   if (remoteApiEnabled) {
     // Trial conversion is already a backend transaction (trial lock + wallet
-    // debit + order creation). It must run before the ordinary order path;
-    // otherwise an explicit local-sandbox session would create a second,
-    // permanently pending order and never close the trial.
+    // debit + order creation). It must run before the ordinary order path so
+    // the checkout cannot create a second, permanently pending order.
     if (trialQuote.applied) {
-      const confirmationScope = captureAccountScope();
+      const confirmationScope = captureCheckoutRoute();
       const p = product.value;
       const payQuote = trialQuoteAt(mockServerNow());
       if (!p || !payQuote.applied) {
@@ -1014,37 +1104,17 @@ async function onConfirmPay() {
         return;
       }
       const conversion = await freeTrial.convert(p.id, quotedTotal);
-      if (!isCurrentAccountScope(confirmationScope)) return;
+      if (!isCurrentCheckoutRoute(confirmationScope)) { confirming = false; return; }
       confirming = false;
       if (!conversion.ok || !conversion.orderNo) {
         toast.warn(t.value.store.coTrialQuoteChanged);
         step.value = "select-payment";
         return;
       }
-      if (mockFundsEnabled) {
-        try {
-          const readback = (await orderApi.list()).orders.find((order) => order.orderNo === conversion.orderNo);
-          if (!isCurrentAccountScope(confirmationScope)) {
-            confirming = false;
-            return;
-          }
-          if (!isCanonicalPaidOrder(readback, conversion.orderNo)) {
-            confirming = false;
-            toast.warn(t.value.tradein.errPleaseRetry);
-            step.value = "select-payment";
-            return;
-          }
-        } catch {
-          confirming = false;
-          toast.warn(t.value.tradein.errPleaseRetry);
-          step.value = "select-payment";
-          return;
-        }
-      }
       orderId.value = conversion.orderNo;
       // Replace checkout with the canonical order URL. A browser refresh now
       // reloads the paid server order instead of reopening a fresh purchase.
-      uni.redirectTo({ url: `/pages/store/order-detail?id=${encodeURIComponent(conversion.orderNo)}` });
+      navReplace({ url: `/pages/store/order-detail?id=${encodeURIComponent(conversion.orderNo)}` });
       return;
     }
     await submitRemoteOrder();
@@ -1078,7 +1148,7 @@ function adoptSession(s: PendingCheckoutSession) {
   // (券折扣 / 试用促销与抵扣)**不能原样当扣款算术**(审计 R3 P0:篡改 voucher.discount 成 648
   // 可用 $1 买 $649 设备)。规则 = **逐项取 min(此刻现算值, 发票记录值)**:
   //   · 现算值封顶 → 发票改大没用(扣的不超过现算);
-  //   · 发票值封顶 → 窗内新到的券 / 多累计的试用收益不参与这一单 —— 二维码告诉用户转 X,
+  //   · 发票值封顶 → 窗内新到的券 / 多累计的试用抵扣金不参与这一单 —— 二维码告诉用户转 X,
   //     本单就恰好按 X 成交(支付时刻另有「实扣 = 票面」闸;审计 R4 P1:此前现算值可低于票面,
   //     QR 说转 649 却按 600 入账,差额无账目落点)。
   //   · 现算比发票少(券失效 / 试用结束 / 试用未再挂上)→ 实扣高于票面 → 支付时刻拒单重报价。
@@ -1237,25 +1307,16 @@ function cancelCheckout() {
 
 // IDEMPOTENCY-FRESH-OK: 下面 738-740 行先读**持久化**的 durable 键(readAccountRow),命中就直接返回 ——
 // 这把钥匙跨 App 重启都稳,是全仓最强的一处;现铸分支只在「这个 intent 头一次」时走到。
-function remoteOrderKey(): string {
+function remoteOrderIntent(): string {
   const p = product.value;
-  const intent = [p?.id ?? "unknown", voucherQuote.id ?? "", payment.value,
+  return [p?.id ?? "unknown", voucherQuote.id ?? "", payment.value,
     tradein.appliedTradein?.canonicalQuote?.sourceDeviceId ?? "ordinary"].join("|");
+}
+
+function remoteOrderKey(): string {
+  const intent = remoteOrderIntent();
   const accountKey = orders.currentAccountKey();
-  const persisted = readAccountRow<RemoteCheckoutCommands>(REMOTE_CHECKOUT_COMMANDS_KEY, accountKey);
-  const durable = persisted?.commands?.[intent];
-  if (durable) return durable;
-  const key = remoteOrderCommandKey.get(() => {
-    const suffix = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    return `h7-order:${suffix}`;
-  });
-  // persist-verdict-ok: 远端命令键的耐久性归远端幂等设计(页内内存键仍在;跨刷新丢键须服务端按 intent 幂等,见 HANDOFF U-21)
-  writeAccountRow<RemoteCheckoutCommands>(REMOTE_CHECKOUT_COMMANDS_KEY, accountKey, {
-    commands: { ...(persisted?.commands ?? {}), [intent]: key },
-  });
-  return key;
+  return acquireAccountCommandKey(REMOTE_CHECKOUT_COMMANDS_KEY, accountKey, intent, "h7-order");
 }
 
 function retireRemoteOrderKey(): void {
@@ -1273,21 +1334,77 @@ function retireRemoteOrderKey(): void {
   remoteOrderCommandKey.clear();
 }
 
+let serverOrderRecovery: { key: string; promise: Promise<boolean> } | null = null;
+function resumeServerOrder(routeScope = captureCheckoutRoute()): Promise<boolean> {
+  if (!remoteApiEnabled || !isCurrentCheckoutRoute(routeScope)) return Promise.resolve(false);
+  const key = JSON.stringify([routeScope.accountKey, routeScope.accountEpoch, routeScope.productNo, routeScope.generation]);
+  if (serverOrderRecovery?.key === key) return serverOrderRecovery.promise;
+  const promise = recoverCheckoutOrder(routeScope.accountKey, routeScope.productNo, {
+    list: orderApi.list,
+    isCurrent: () => isCurrentCheckoutRoute(routeScope),
+    navigate: (url) => isCurrentCheckoutRoute(routeScope) ? navReplace(url) : Promise.resolve(false),
+  }).finally(() => { if (serverOrderRecovery?.key === key) serverOrderRecovery = null; });
+  serverOrderRecovery = { key, promise };
+  return promise;
+}
+
+function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
+  if (event.repeat) return;
+  action();
+}
+
+async function offerWalletTopup(requiredUsdt: number, routeScope = captureCheckoutRoute()): Promise<void> {
+  dialogsOpen += 1;
+  const accepted = await confirm({
+    title: t.value.errors.insufficientBalanceTitle,
+    message: fmt(t.value.errors.insufficientBalanceMsg, { amt: requiredUsdt.toLocaleString() }),
+    confirmLabel: t.value.me.topup,
+    cancelLabel: t.value.store.coCancel,
+    icon: "warn",
+    owner: dialogOwner,
+  });
+  dialogsOpen = Math.max(0, dialogsOpen - 1);
+  if (accepted && isCurrentCheckoutRoute(routeScope)) navTo("/pages/me/wallet-topup");
+}
+
 async function submitRemoteOrder(): Promise<void> {
-  const submissionScope = captureAccountScope();
-  const scopeIsCurrent = () => isCurrentAccountScope(submissionScope);
+  const submissionScope = captureCheckoutRoute();
+  const scopeIsCurrent = () => isCurrentCheckoutRoute(submissionScope);
+  const walletReceiptScope = app.captureRemoteAccountRequest();
   const p = product.value;
   const requestedVoucherId = voucherQuote.id;
   if (!p || purchaseUnavailable.value) {
     confirming = false;
     return;
   }
-  if (!(await refreshPurchaseEligibility())) {
+  if (!Number.isFinite(quotedTotal) || quotedTotal < 0) {
     confirming = false;
-    toast.warn(purchaseEligibilityFailureCopy());
+    toast.warn(t.value.store.coTotalQuoteChanged);
     step.value = "select-payment";
     return;
   }
+  if (app.user.usdtBalance + 0.000001 < quotedTotal) {
+    confirming = false;
+    await offerWalletTopup(quotedTotal, submissionScope);
+    return;
+  }
+  const eligibility = await refreshPurchaseEligibility(submissionScope);
+  if (eligibility !== "eligible") {
+    confirming = false;
+    if (eligibility === "ineligible" && scopeIsCurrent()) {
+      toast.warn(purchaseEligibilityFailureCopy());
+      step.value = "select-payment";
+    }
+    return;
+  }
+  // Eligibility is account/SKU/page scoped. A late result cannot create an
+  // order after an account change, product change, or page exit.
+  if (!scopeIsCurrent()) {
+    confirming = false;
+    return;
+  }
+  let canonicalOrderCommitted = false;
+  let recoveryOrderNo: string | null = null;
   try {
     const tradeinContext = appliedTradeinView.value;
     if (tradein.appliedTradein && !tradeinContext) {
@@ -1363,6 +1480,13 @@ async function submitRemoteOrder(): Promise<void> {
       idempotencyKey: remoteOrderKey(),
     });
     if (!scopeIsCurrent()) return;
+    canonicalOrderCommitted = true;
+    recoveryOrderNo = created.orderNo;
+    // Persist the known server identity BEFORE payment. Refresh, lower balance,
+    // consumed vouchers and full capacity must recover this order, not create another.
+    rememberCheckoutOrder(orders.currentAccountKey(), {
+      productNo: p.id, orderNo: created.orderNo, intent: remoteOrderIntent(), commandKey: remoteOrderKey(),
+    });
     const receipt = created.voucherRedemption;
     // A claimed voucher changes its UI state only after the order's explicit,
     // server-issued redemption receipt. Missing/mismatched receipts fail closed.
@@ -1377,61 +1501,61 @@ async function submitRemoteOrder(): Promise<void> {
     }
     const persisted = (await orderApi.list()).orders.find((order) => order.orderNo === created.orderNo);
     if (!scopeIsCurrent()) return;
-    const sandboxPaidReplay = mockFundsEnabled && persisted?.canonicalStatus === "paid"
+    const alreadySettled = persisted?.canonicalStatus === "activated"
       && persisted.paymentStatus.toUpperCase() === "PAID"
-      && persisted.orderStatus.toUpperCase() === "PAID";
+      && persisted.orderStatus.toUpperCase() === "COMPLETED"
+      && persisted.activationStatus.toUpperCase() === "ACTIVATED";
     if (!persisted || persisted.productNo !== p.id || persisted.quantity !== 1
-        || (!sandboxPaidReplay && (persisted.canonicalStatus !== "placed"
+        || (!alreadySettled && (persisted.canonicalStatus !== "placed"
           || persisted.paymentStatus.toUpperCase() !== "PENDING"
-          || persisted.orderStatus.toUpperCase() !== "PENDING_PAYMENT"))
-        || persisted.activationStatus.toUpperCase() !== (sandboxPaidReplay ? "WAITING_PROVISIONING" : "WAITING_PAYMENT")
-        || created.paymentStatus.toUpperCase() !== "PENDING"
-        || created.orderStatus.toUpperCase() !== "PENDING_PAYMENT"
+          || persisted.orderStatus.toUpperCase() !== "PENDING_PAYMENT"
+          || persisted.activationStatus.toUpperCase() !== "WAITING_PAYMENT"
+          || created.paymentStatus.toUpperCase() !== "PENDING"
+          || created.orderStatus.toUpperCase() !== "PENDING_PAYMENT"))
         || Math.abs(persisted.amountUsdt - created.amountUsdt) > 0.000001
         || Math.abs(persisted.discountUsdt - created.discountUsdt) > 0.000001) {
       throw new Error("E20_CAPACITY_AVAILABLE_ORDER_READBACK_MISMATCH");
     }
+    if (alreadySettled) { await resumeServerOrder(submissionScope); return; }
+    canonicalOrderCommitted = true;
+    const paid = await orderApi.pay(created.orderNo, `wallet-pay:${created.orderNo}`);
+    if (!scopeIsCurrent()) return;
+    if (paid.orderNo !== created.orderNo) {
+      throw new Error("WALLET_PAYMENT_RECEIPT_ORDER_MISMATCH");
+    }
+    if (paid.paymentMethod === "WALLET"
+        && (paid.walletBalanceAfterUsdt === null
+          || !app.adoptCommerceWallet(paid.walletBalanceAfterUsdt, walletReceiptScope))) {
+      throw new Error("WALLET_PAYMENT_RECEIPT_ACCOUNT_MISMATCH");
+    }
     orderId.value = created.orderNo;
     remoteOrderFailure.value = null;
-    remoteOrderPollError.value = false;
     if (requestedVoucherId) await voucher.refreshRemote();
     if (!scopeIsCurrent()) return;
     await orders.refreshRemote();
     if (!scopeIsCurrent()) return;
-    // PENDING_PAYMENT has not created or activated a device yet. Fleet refresh
-    // is authoritative only after the ACTIVATED readback below; making it part
-    // of order creation turns an unrelated fleet outage into a false purchase
-    // failure after the server has already committed the order.
-    // Retire the durable key only after the server order readback above and
-    // account-scoped order refresh both succeeded; unknown outcomes reuse it.
-    if (mockFundsEnabled) {
-      // The user's confirm click is the explicit payment action in
-      // local-sandbox. Settlement remains entirely server-side and is accepted
-      // only after both the mock provenance receipt and canonical order readback
-      // agree. Production never enters this branch.
-      const paymentReceipt = await commercePaymentApi.confirm(created.orderNo, `payment:${created.orderNo}`);
-      if (!scopeIsCurrent()) return;
-      if (paymentReceipt.orderNo !== created.orderNo) throw new Error("COMMERCE_PAYMENT_ORDER_MISMATCH");
-      const paidSnapshot = await orderApi.list();
-      if (!scopeIsCurrent()) return;
-      const paidOrder = paidSnapshot.orders.find((order) => order.orderNo === created.orderNo);
-      if (!paidOrder || paidOrder.canonicalStatus !== "paid"
-          || paidOrder.paymentStatus.toUpperCase() !== "PAID"
-          || paidOrder.orderStatus.toUpperCase() !== "PAID") {
-        throw new Error("COMMERCE_PAYMENT_READBACK_MISMATCH");
-      }
-      await orders.refreshRemote();
-      if (!scopeIsCurrent()) return;
-      retireRemoteOrderKey();
-      uni.redirectTo({ url: `/pages/store/order-detail?id=${encodeURIComponent(created.orderNo)}` });
-    } else {
-      // A canonical PENDING_PAYMENT receipt proves only creation. It is not
-      // provisioning or activation; wait for a real provider callback/readback.
-      retireRemoteOrderKey();
-      step.value = "awaiting";
+    const settled = orders.orders.find((order) => order.id === created.orderNo);
+    if (!settled || settled.status !== "activated") {
+      throw new Error("WALLET_PAYMENT_ORDER_READBACK_MISMATCH");
     }
+    // Fleet refresh is best effort after the authoritative paid receipt and
+    // order readback. A temporary projection outage must not re-submit payment.
+    void app.refreshRemoteFleet(walletReceiptScope);
+    retireRemoteOrderKey();
+    forgetCheckoutOrder(orders.currentAccountKey(), p.id, created.orderNo);
+    step.value = "live";
   } catch (error) {
     if (!scopeIsCurrent()) return;
+    if (recoveryOrderNo) {
+      // A timeout is not a failed purchase. The canonical order page reads the
+      // current status and reuses wallet-pay:<orderNo> only if payment is pending.
+      toast.warn(t.value.store.coRecoverOriginalOrder);
+      step.value = "awaiting";
+      if (!(await navReplace(`/pages/store/order-detail?id=${encodeURIComponent(recoveryOrderNo)}`)) && scopeIsCurrent()) {
+        step.value = "confirm";
+      }
+      return;
+    }
     // Keep only outcome-unknown errors: transport, malformed response, 5xx and
     // the server's explicit unknown-result fence. Structured API facts—not text
     // matching—decide whether a business rejection can mint a new attempt.
@@ -1439,89 +1563,21 @@ async function submitRemoteOrder(): Promise<void> {
     const keepForReadback = apiError.kind === "network" || apiError.kind === "protocol"
       || (apiError.kind === "http" && (apiError.status ?? 0) >= 500)
       || apiError.message === "IDEMPOTENCY_RESULT_UNKNOWN";
-    if (!keepForReadback) retireRemoteOrderKey();
+    if (!keepForReadback && !canonicalOrderCommitted) retireRemoteOrderKey();
+    if (apiError.message === "ACCOUNT_COMMAND_STORAGE_UNAVAILABLE") {
+      toast.error(t.value.errors.txNotSavedTitle, t.value.errors.txNotSavedMsg);
+    } else if (apiError.message === "ORDER_WALLET_INSUFFICIENT") {
+      await offerWalletTopup(quotedTotal, submissionScope);
+    } else if (["ORDER_MONTHLY_QUOTA_PAUSED", "ORDER_MONTHLY_QUOTA_EXHAUSTED"].includes(apiError.message)) {
+      toast.warn(t.value.quota.stockUnavailable);
+    } else {
+      toast.warn(t.value.tradein.errPurchaseFailed);
+    }
     // No local order, balance debit, or voucher redemption mirror in remote mode.
     step.value = "confirm";
-    toast.warn(t.value.tradein.errPurchaseFailed);
   } finally {
     confirming = false;
   }
-}
-
-// Remote checkout follows only the canonical server state. The recursive
-// timeout is single-flight for one page epoch; hide/account changes invalidate
-// late responses before they can mutate the visible checkout.
-let remoteOrderPollTimer: ReturnType<typeof setTimeout> | undefined;
-let remoteOrderPollEpoch = 0;
-let remoteOrderPageVisible = false;
-
-function stopRemoteOrderPolling() {
-  remoteOrderPollEpoch += 1;
-  if (remoteOrderPollTimer) {
-    clearTimeout(remoteOrderPollTimer);
-    remoteOrderPollTimer = undefined;
-  }
-}
-
-function scheduleRemoteOrderPoll(requestEpoch: number, delayMs: number) {
-  if (requestEpoch !== remoteOrderPollEpoch || !remoteOrderPageVisible) return;
-  remoteOrderPollTimer = setTimeout(() => { void pollRemoteOrder(requestEpoch); }, delayMs);
-}
-
-async function pollRemoteOrder(requestEpoch: number) {
-  const requestOrderNo = orderId.value;
-  const requestAccount = auth.accountId;
-  if (!remoteApiEnabled || !remoteOrderPageVisible || !requestOrderNo
-      || requestEpoch !== remoteOrderPollEpoch) return;
-  try {
-    const snapshot = await orderApi.list();
-    if (requestAccount !== auth.accountId || requestEpoch !== remoteOrderPollEpoch
-        || requestOrderNo !== orderId.value || !remoteOrderPageVisible) return;
-    const authoritative = snapshot.orders.find((row) => row.orderNo === requestOrderNo);
-    if (!authoritative) throw new Error("REMOTE_ORDER_READBACK_NOT_FOUND");
-    remoteOrderPollError.value = false;
-    switch (authoritative.canonicalStatus) {
-      case "placed":
-        scheduleRemoteOrderPoll(requestEpoch, 5000);
-        return;
-      case "paid":
-        step.value = "confirmed";
-        return;
-      case "provisioning":
-        step.value = "activating";
-        return;
-      case "activated":
-        stopRemoteOrderPolling();
-        step.value = "live";
-        void orders.refreshRemote().catch(() => undefined); // orders 契约保持 reject;此处纯展示刷新
-        void app.refreshRemoteFleet();
-        return;
-      case "payment_failed":
-      case "expired":
-      case "provisioning_failed":
-      case "refunded":
-      case "chargeback":
-      case "cancelled":
-        remoteOrderFailure.value = authoritative.canonicalStatus;
-        stopRemoteOrderPolling();
-        return;
-    }
-  } catch {
-    if (requestAccount !== auth.accountId || requestEpoch !== remoteOrderPollEpoch
-        || requestOrderNo !== orderId.value || !remoteOrderPageVisible) return;
-    remoteOrderPollError.value = true;
-    scheduleRemoteOrderPoll(requestEpoch, 5000);
-  }
-}
-
-function restartRemoteOrderPolling() {
-  stopRemoteOrderPolling();
-  remoteOrderPollError.value = false;
-  if (!remoteApiEnabled || !remoteOrderPageVisible || !orderId.value
-      || !["awaiting", "confirmed", "activating"].includes(step.value)
-      || remoteOrderFailure.value) return;
-  const requestEpoch = remoteOrderPollEpoch;
-  scheduleRemoteOrderPoll(requestEpoch, 0);
 }
 
 // ── 抵扣上下文的页级镜像(审计 R5 P0)──
@@ -1543,8 +1599,8 @@ function reassertTradeinContext() {
 }
 
 onShow(() => {
-  remoteOrderPageVisible = true;
   pageVisible = true;
+  if (checkoutRouteInitialized && !activeCheckoutLoad) void resumeServerOrder();
   reassertTradeinContext();
   // 页面重新可见 → 先回灌磁盘:这张票若已在别处结算 / 取消,本页不能继续展示一张死票。
   if (activeSession.value) {
@@ -1559,15 +1615,14 @@ onShow(() => {
   }
   void refreshServerProductPhase(true);
   void refreshProductCatalog(true);
+  void refreshCheckoutWallet();
   restoreReceiptRecovery();
-  restartRemoteOrderPolling();
 });
 onHide(() => {
-  remoteOrderPageVisible = false;
   pageVisible = false;
+  invalidateCheckoutRoute();
   // 页面被别的页压住(前向导航)时,让浮动条在上面那页露出这张发票;回来 onShow 再收起。
   if (activeSession.value && pending.viewingId === activeSession.value.id) pending.setViewing(null);
-  stopRemoteOrderPolling();
 });
 
 // ── state-machine timers (mirror source useEffect auto-advance chain) ──
@@ -1583,13 +1638,9 @@ watch(step, async (s) => {
   // 两个地址同时催付、落单后旧票成孤儿继续拉人二次付款(独立审计 P0 族)。单一咽喉,
   // 不在十来处回弹点各写一遍。
   if ((s === "select-payment" || s === "confirm") && activeSession.value) dropActiveSession();
-  // Remote checkout is a server-state machine. Never turn elapsed time into a
-  // payment, provisioning, or activation result; only authoritative readback
-  // may advance it. Local mock retains the guided timer demonstration.
-  if (remoteApiEnabled && (s === "awaiting" || s === "confirmed" || s === "activating")) {
-    restartRemoteOrderPolling();
-    return;
-  }
+  // Remote wallet payment is completed synchronously by the Java transaction;
+  // only the local mock keeps the guided timer demonstration below.
+  if (remoteApiEnabled && (s === "awaiting" || s === "confirmed" || s === "activating")) return;
   if (s === "awaiting") {
     advanceTimer = setTimeout(() => { step.value = "confirmed"; }, 2400);
     return;
@@ -1640,7 +1691,10 @@ watch(step, async (s) => {
       // 上架节奏门支付时复验(与 onLoad 同谓词):未正式上架 SKU 必须在支付
       // 瞬间仍「携有效抵扣上下文 ∧ 抢先购窗口」——堵住「过门后移除抵扣 →
       // 全价买未上架机」的旁路(对抗审查 F1)。
-      if (!isProductAvailable(p, phase.value)) {
+      // Trial conversion is authorized by /api/trial/convert, not by the
+      // Pro/Rack hardware-quota policy used for a new store purchase. Use the
+      // confirmed quote snapshot here; the live quote is revalidated below.
+      if (!trialQuote.applied && !isProductAvailable(p, phase.value)) {
         const mockEarlyWindow = p.available === undefined && p.unlocksAtPhase
           && ti && tradeInEarlyWindowOk(p.unlocksAtPhase, getMonthsSince(app.user.joinedAt));
         if (!mockEarlyWindow) {
@@ -1657,7 +1711,7 @@ watch(step, async (s) => {
       const purchaseBlockedNow = remoteApiEnabled
         ? remotePurchaseEligibility.value?.eligible !== true
         : purchaseGate.value.blocked;
-      if (purchaseBlockedNow) {
+      if (!trialQuote.applied && purchaseBlockedNow) {
         toast.warn(purchaseEligibilityFailureCopy());
         step.value = "select-payment";
         return;
@@ -1720,7 +1774,7 @@ watch(step, async (s) => {
       // trial and catalogue row, creates the order, and closes the trial. Do
       // not debit local mock money or mint a second local order in this branch.
       if (applyTrial && remoteApiEnabled) {
-        const conversion = await freeTrial.convert(p.id);
+        const conversion = await freeTrial.convert(p.id, chargeTotal);
         if (!conversion.ok) {
           toast.warn(t.value.store.coTrialQuoteChanged);
           step.value = "select-payment";
@@ -1958,9 +2012,8 @@ function goTrack() {
 function cleanup() {
   if (!pageAlive) return;
   clearAdvance();
-  remoteOrderPageVisible = false;
   pageVisible = false;
-  stopRemoteOrderPolling();
+  invalidateCheckoutRoute();
   tradein.clearApplied(tradeinOwner); // 只清本页 owner 的那份;在世实例的上下文不动
   // 本页拉起的置换 / 槽位 sheet 是 chassis 级全局层,不随页面卸载自动收 —— 不收会跟到落地页,
   // 整屏 backdrop 把浮动条与页面一起挡死(T3 黑盒 P1-2)。
@@ -1993,7 +2046,7 @@ function stepFillStyle(i: number): CSSProperties {
   const w = i < stepDisplay.value ? "100%" : i === stepDisplay.value ? "50%" : "0%";
   return { width: w, background: "var(--v5-brand)", transition: "width 0.5s" };
 }
-const surfaceCardStyle: CSSProperties = { background: "var(--v5-surface)" };
+const surfaceCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)" };
 const payHeadStyle: CSSProperties = { padding: "16px 20px", borderColor: "color-mix(in srgb, var(--v5-border) 70%, transparent)" };
 const payTotalStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -2046,8 +2099,8 @@ const ghostCancelStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
   fontSize: "13px",
 };
-const confirmCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+const confirmCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "20px",
 };
 const confirmCtaStyle: CSSProperties = {
@@ -2068,8 +2121,8 @@ const changePayBtnStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
   fontSize: "13px",
 };
-const centerCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+const centerCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "24px",
 };
 // awaiting / activating / confirmed-check spinner — brand 15% (source).
@@ -2105,11 +2158,11 @@ const medalStyle: CSSProperties = {
   borderRadius: "50%",
   background: "var(--v5-brand-soft)",
 };
-const liveCardStyle: CSSProperties = {
+const liveCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   // Source: bg-gradient-to-br from-brand/15 via-#0F0F0F to-brand/10. Middle stop
   // uses --v5-surface (not the source's hardcoded #0F0F0F) for dual-theme safety.
   background:
-    "linear-gradient(to bottom right, color-mix(in srgb, var(--v5-brand) 15%, transparent), var(--v5-surface), color-mix(in srgb, var(--v5-brand) 10%, transparent))",
+    "var(--nx-glass-fill)",
   padding: "24px",
 };
 const liveTitleStyle: CSSProperties = {
@@ -2136,10 +2189,12 @@ const doneBtnStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
   fontSize: "13px",
 };
-const receiptFailureCardStyle: CSSProperties = {
+const receiptFailureCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   padding: "24px 20px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
+
+
 </script>
 
 <style scoped>

@@ -26,9 +26,13 @@ test("H3 and M distinguish an unavailable authority read from a real empty resul
   const weekly = read("src/components/home/weekly-quest-list.vue");
   const help = read("src/pages/me/help.vue");
   assert.match(weekly, /mounted && wq\.error/);
-  assert.ok(weekly.indexOf("Weekly quests unavailable") < weekly.indexOf("{{ completedCount }} / {{ tier2Quests.length }}"));
+  // Failure must win over the honest empty state. The localized copy is
+  // deliberately indirect (`w.loadError`), so test the render branches rather
+  // than an obsolete English literal.
+  assert.ok(weekly.indexOf("mounted && wq.error") < weekly.indexOf("mounted && !wq.snapshot"));
+  assert.ok(weekly.indexOf("mounted && !wq.snapshot") < weekly.indexOf("tier2Quests.length === 0"));
   assert.match(help, /faqLoadError/);
   assert.match(help, /@cta="loadFaqs"/);
-  assert.match(help, /supportApi\.faqs/);
+  assert.match(help, /supportApi\.faqPage/);
   assert.doesNotMatch(help, /@\/mock\/faq/);
 });

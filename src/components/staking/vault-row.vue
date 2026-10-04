@@ -4,7 +4,7 @@
   Click → emits `open` so the page opens the stake sheet for this term.
 -->
 <template>
-  <view :class="['nx-staking-vault-row', `nx-staking-vault-row-${term}`, 'active:opacity-70']" :style="rowStyle" role="button" tabindex="0" @click="emit('open')">
+  <view :class="['nx-staking-vault-row', `nx-staking-vault-row-${term}`, 'active:opacity-70']" :style="rowStyle" role="button" :aria-disabled="disabled" :tabindex="disabled ? -1 : 0" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
     <!-- Tier code-tag -->
     <text :style="tierChipStyle">{{ term }}D</text>
 
@@ -15,8 +15,8 @@
         <text :style="apyUnitStyle">APY</text>
         <text v-if="ribbon" :style="ribbonStyle">{{ ribbon.label }}</text>
       </view>
-      <text class="block" :style="blurbStyle">{{ blurb }}</text>
-      <text class="block tabular-nums" :style="metaStyle">{{ fmt(t.stakingV3.vaultMin, { amount: `$${minText}` }) }} · {{ penaltyPct }}% <text class="whitespace-nowrap">{{ penaltySuffix }}</text></text>
+      <text class="block" :style="blurbStyle">{{ disabled ? t.home.quickStakeStopped : blurb }}</text>
+      <text class="block tabular-nums" :style="metaStyle">{{ fmt(t.stakingV3.vaultMin, { amount: `$${minText}` }) }} · {{ penaltyPct }}% {{ penaltySuffix }}</text>
     </view>
 
     <!-- Arrow -->
@@ -25,6 +25,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { computed, type CSSProperties } from "vue";
 import type { StakingTerm } from "@/store/staking";
 import { useT } from "@/i18n/use-t";
@@ -49,8 +50,10 @@ const props = defineProps<{
   penaltySuffix: string;
   ribbon?: Ribbon;
   isLast: boolean;
+  disabled?: boolean;
 }>();
 const emit = defineEmits<{ open: [] }>();
+function open() { if (!props.disabled) emit("open"); }
 const t = useT();
 
 const TIER_TONES: Record<StakingTerm, TierTone> = {
@@ -61,8 +64,8 @@ const TIER_TONES: Record<StakingTerm, TierTone> = {
 };
 
 const tone = computed(() => TIER_TONES[props.term]);
-const apyPct = computed(() => (props.apy * 100).toFixed(0));
-const penaltyPct = computed(() => (props.penalty * 100).toFixed(0));
+const apyPct = computed(() => formatStakingPercentage(props.apy));
+const penaltyPct = computed(() => formatStakingPercentage(props.penalty));
 const minText = computed(() => props.min.toLocaleString());
 
 const rowStyle = computed<CSSProperties>(() => ({

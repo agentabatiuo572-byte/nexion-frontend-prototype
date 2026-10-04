@@ -537,13 +537,10 @@ const JULY = Date.parse("2026-07-03T09:00:00.000Z");
 const AUGUST = Date.parse("2026-08-05T11:30:00.000Z");
 
 /**
- * 账单页的分月键 —— **从页面源码抠那一行出来跑**,不在门里重写一份口径。
+ * 账单页的分月键 —— 从页面源码确认调用,再抠账单专用 helper 的实现来跑。
  * (时区、locale、粒度任一处漂移,门与页面就会各说各话 —— 本门 ⑧ 正是栽在「重写一份」上。)
  *
- * 🔴 语言钉死成英文,与页面**当前**取语言的方式解耦。抠出来的表达式里那个「取语言」的调用
- * (2026-08-16 P-096 起是 `dateLocale()`,此前是 `localeTag.value`)由本门注入 ——
- * 本门断言的是**分月粒度**,与显示成哪种语言无关,钉死才可重复。
- * 两个形参都给:页面写哪一种都跑得起来,改名不必跟着改门。
+ * 🔴 分组键仅取本地年月,与语言无关。保留旧形参以兼容本门其余调用。
  *
  * 🔴 抠不到 / 跑不起来时**不抛**,回 null 让下面的哨兵值去判红。
  * module 级一抛会把它**后面**十几格断言整片带走 —— 门的输出就只剩一条堆栈,
@@ -556,11 +553,14 @@ const monthKeyFn = (() => {
   // 一段不是真在跑的代码上,而抠出来的东西照样能跑、照样全绿。
   const page = readFileSync(path.join(SRC, "pages", "me", "wallet-bills.vue"), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
-  const m = page.match(/const key = d\.toLocaleDateString\(([\s\S]*?)\);/);
+  const m = page.match(/const key = (walletBillMonthKey\(b\.ts\));/);
   if (!m) { monthKeyErr = "抠不出 wallet-bills 的分月键"; return null; }
   try {
+    const helper = readFileSync(path.join(SRC, "lib", "wallet-bill-date.ts"), "utf8");
+    const source = helper.match(/export function walletBillMonthKey\(ts: number\): string \{([\s\S]*?)\n\}/);
+    if (!source) throw new Error("walletBillMonthKey implementation missing");
     const fn = new Function("ts", "dateLocale", "localeTag",
-      `const d = new Date(ts); return d.toLocaleDateString(${m[1]});`);
+      `const walletBillMonthKey = (ts) => {${source[1]}}; return ${m[1].replace("b.ts", "ts")};`);
     // 构造成功 ≠ 跑得起来:表达式里引用了本门没注入的名字时,`new Function` 不报错,
     // 第一次调用才 ReferenceError。当场试跑一次,把「判据已失效」提前到这里认出来。
     fn(0, () => PINNED_DATE_LOCALE, { value: PINNED_DATE_LOCALE });

@@ -11,8 +11,8 @@
          (→ replace if slot-full, else dismiss + caller proceeds).
     1.5  retire  — FEAT-DEV02 devices-page entry: pick a higher-priced upgrade
          target for the chosen device (select list, no free input) → tradein.
-    2.   tradein — confirm card (old device / credit / estimated payable).
-         Confirm writes the checkout credit context
+    2.   tradein — confirm card (lifetime output / ladder band / credit / est.
+         payable). Confirm writes the checkout credit context
          (sheet.applyTradein) and routes to checkout — money + device mutation
          happen atomically in checkout's persist block, not here.
     3.   replace — Path B slot-full prompt. Demote the lowest-yield active
@@ -41,14 +41,16 @@
     - Path B replace:   POST /api/devices/deactivate + POST /api/orders
                         (deactivate 见 PRD §9.11c.1 composer endpoints,PRD 原文
                         标 "TBD; candidates";下单仍走 POST /api/orders)
-    - Path B keep+buy:  POST /api/orders (new device lands inactive)
+    - Path B keep+buy:  POST /api/app/trade-in/capacity-keep
+                        (wallet debit + paid order + inactive inventory device,
+                        one server transaction)
 -->
 <template>
-  <view v-if="state.kind !== 'none'" class="tis-root" role="dialog" aria-modal="true">
+  <view v-if="state.kind !== 'none'" class="tis-root" role="dialog" aria-modal="true" :aria-label="t.tradein.choiceTitle">
     <view class="tis-backdrop" @click="hide" />
 
-    <view class="tis-panel" @click.stop>
-      <view class="tis-close" @click="hide">
+    <view class="nx-glass-sheet tis-panel" @click.stop>
+      <view class="tis-close" role="button" tabindex="0" :aria-label="t.ui.close" @click="hide"  @keydown.enter.prevent="hide" @keydown.space.prevent="hide">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
       </view>
 
@@ -62,12 +64,19 @@
             v-for="src in choiceSources"
             :key="src.id"
             class="tis-opt"
+            :class="{ 'tis-cta-disabled': quoteLoading }"
+            role="button"
+            :tabindex="quoteLoading ? -1 : 0"
+            :aria-disabled="quoteLoading"
+            :aria-busy="quoteLoading"
             @click="onChooseTradein(src.id)"
+
+            @keydown.enter.prevent="onKeyboardActivate($event, () => onChooseTradein(src.id))" @keydown.space.prevent="onKeyboardActivate($event, () => onChooseTradein(src.id))"
           >
             <svg class="tis-opt-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4" /><path d="M20 7H4" /><path d="m8 21-4-4 4-4" /><path d="M4 17h16" /></svg>
             <text class="tis-opt-text">{{ src.label }}</text>
           </view>
-          <view class="tis-opt" @click="onChooseFullPrice">
+          <view class="tis-opt" :class="{ 'tis-cta-disabled': quoteLoading }" role="button" :tabindex="quoteLoading ? -1 : 0" :aria-disabled="quoteLoading" :aria-busy="quoteLoading" @click="onChooseFullPrice"  @keydown.enter.prevent="onKeyboardActivate($event, onChooseFullPrice)" @keydown.space.prevent="onKeyboardActivate($event, onChooseFullPrice)">
             <svg class="tis-opt-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18 8 4A2 2 0 0 1 22 8v8a2 2 0 0 1-1.17 1.82l-8 4a2 2 0 0 1-1.66 0l-8-4A2 2 0 0 1 2 16V8a2 2 0 0 1 1.17-1.82l8-4a2 2 0 0 1 1.66 0z" /><path d="m7 4.5 10 5" /></svg>
             <text class="tis-opt-text">{{ t.tradein.choiceFullPriceOption }}</text>
           </view>
@@ -81,12 +90,12 @@
           <text class="tis-subtitle">{{ retireView.subtitle }}</text>
         </view>
         <view class="tis-opt-list">
-          <view v-for="p in retireView.targets" :key="p.id" class="tis-opt" @click="onPickTarget(p.id)">
+          <view v-for="p in retireView.targets" :key="p.id" class="tis-opt" :class="{ 'tis-cta-disabled': quoteLoading }" role="button" :tabindex="quoteLoading ? -1 : 0" :aria-disabled="quoteLoading" :aria-busy="quoteLoading" @click="onPickTarget(p.id)"  @keydown.enter.prevent="onKeyboardActivate($event, () => onPickTarget(p.id))" @keydown.space.prevent="onKeyboardActivate($event, () => onPickTarget(p.id))">
             <svg class="tis-opt-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /></svg>
             <text class="tis-opt-text">{{ p.label }}</text>
           </view>
         </view>
-        <view class="tis-ghost" @click="hide">
+        <view class="tis-ghost" role="button" tabindex="0" @click="hide"  @keydown.enter.prevent="onKeyboardActivate($event, hide)" @keydown.space.prevent="onKeyboardActivate($event, hide)">
           <text class="tis-ghost-text">{{ t.tradein.sheetCancel }}</text>
         </view>
       </template>
@@ -97,11 +106,19 @@
           <text class="tis-title">{{ tradeinView.title }}</text>
         </view>
 
-        <!-- 旧机 / 抵扣 / 预计应付 — soft surface card, no border -->
+        <!-- 旧机 / 累计产出 / 档位 / 抵扣 / 预计应付 — soft surface card, no border -->
         <view class="tis-card">
           <view class="tis-row">
             <text class="tis-row-label">{{ t.tradein.sheetOldDeviceLabel }}</text>
             <text class="tis-row-value">{{ tradeinView.oldDeviceText }}</text>
+          </view>
+          <view class="tis-row">
+            <text class="tis-row-label">{{ t.tradein.sheetEarnedLabel }}</text>
+            <text class="tis-row-value tis-num">${{ tradeinView.earned }}</text>
+          </view>
+          <view class="tis-row">
+            <text class="tis-row-label">{{ t.tradein.sheetBandLabel }}</text>
+            <text class="tis-row-value">{{ tradeinView.bandText }}</text>
           </view>
           <view class="tis-row">
             <text class="tis-row-label">{{ t.tradein.sheetCreditLabel }}</text>
@@ -116,10 +133,10 @@
 
         <text class="tis-disclaimer">{{ t.tradein.sheetDisclaimer }}</text>
 
-        <view class="tis-cta" :style="ctaHalo" @click="onConfirmTradein">
+        <view class="tis-cta" :style="ctaHalo" role="button" :tabindex="confirming ? -1 : 0" :aria-disabled="confirming" :aria-busy="confirming" @click="onConfirmTradein"  @keydown.enter.prevent="onKeyboardActivate($event, onConfirmTradein)" @keydown.space.prevent="onKeyboardActivate($event, onConfirmTradein)">
           <text class="tis-cta-text">{{ tradeinView.ctaText }}</text>
         </view>
-        <view class="tis-ghost" @click="hide">
+        <view class="tis-ghost" role="button" tabindex="0" @click="hide"  @keydown.enter.prevent="onKeyboardActivate($event, hide)" @keydown.space.prevent="onKeyboardActivate($event, hide)">
           <text class="tis-ghost-text">{{ t.tradein.sheetCancel }}</text>
         </view>
       </template>
@@ -138,19 +155,31 @@
 
         <view
           class="tis-cta"
-          :class="{ 'tis-cta-disabled': replaceView.insufficient }"
+          :class="{ 'tis-cta-disabled': replaceView.insufficient || confirming }"
+          role="button"
+          :tabindex="replaceView.insufficient || confirming ? -1 : 0"
+          :aria-disabled="replaceView.insufficient || confirming"
+          :aria-busy="confirming"
           @click="onReplace"
+
+          @keydown.enter.prevent="onReplace" @keydown.space.prevent="onReplace"
         >
           <text class="tis-cta-text">{{ replaceView.replaceCta }}</text>
         </view>
         <view
           class="tis-secondary"
-          :class="{ 'tis-cta-disabled': replaceView.insufficient }"
+          :class="{ 'tis-cta-disabled': replaceView.insufficient || confirming }"
+          role="button"
+          :tabindex="replaceView.insufficient || confirming ? -1 : 0"
+          :aria-disabled="replaceView.insufficient || confirming"
+          :aria-busy="confirming"
           @click="onKeepBuy"
+
+          @keydown.enter.prevent="onKeepBuy" @keydown.space.prevent="onKeepBuy"
         >
           <text class="tis-secondary-text">{{ replaceView.keepCta }}</text>
         </view>
-        <view class="tis-ghost" @click="hide">
+        <view class="tis-ghost" role="button" tabindex="0" @click="hide"  @keydown.enter.prevent="onKeyboardActivate($event, hide)" @keydown.space.prevent="onKeyboardActivate($event, hide)">
           <text class="tis-ghost-text">{{ t.tradein.replaceCancel }}</text>
         </view>
       </template>
@@ -162,7 +191,7 @@
           <text class="tis-title">{{ t.tradein.errReplaceUnavailable }}</text>
           <text class="tis-subtitle">{{ t.tradein.errPleaseRetry }}</text>
         </view>
-        <view class="tis-ghost" @click="hide">
+        <view class="tis-ghost" role="button" tabindex="0" @click="hide"  @keydown.enter.prevent="onKeyboardActivate($event, hide)" @keydown.space.prevent="onKeyboardActivate($event, hide)">
           <text class="tis-ghost-text">{{ t.tradein.sheetCancel }}</text>
         </view>
       </template>
@@ -179,22 +208,22 @@
 
         <!-- retire 阻断:等任务完成即可下架 → 查看任务 / 知道了(无 force,规格 DEV02A 异常2) -->
         <template v-if="state.origin === 'retire'">
-          <view class="tis-cta" @click="onGoTasks">
+          <view class="tis-cta" role="button" tabindex="0" @click="onGoTasks"  @keydown.enter.prevent="onKeyboardActivate($event, onGoTasks)" @keydown.space.prevent="onKeyboardActivate($event, onGoTasks)">
             <text class="tis-cta-text">{{ t.tradein.retireBlockViewTask }}</text>
           </view>
-          <view class="tis-ghost" @click="hide">
+          <view class="tis-ghost" role="button" tabindex="0" @click="hide"  @keydown.enter.prevent="onKeyboardActivate($event, hide)" @keydown.space.prevent="onKeyboardActivate($event, hide)">
             <text class="tis-ghost-text">{{ t.tradein.retireBlockOk }}</text>
           </view>
         </template>
         <template v-else>
-          <view class="tis-cta" @click="onWait">
+          <view class="tis-cta" role="button" tabindex="0" @click="onWait"  @keydown.enter.prevent="onKeyboardActivate($event, onWait)" @keydown.space.prevent="onKeyboardActivate($event, onWait)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg>
             <text class="tis-cta-text">{{ t.tradein.blockWaitCta }}</text>
           </view>
-          <view class="tis-warn-ghost" @click="onForce">
+          <view class="tis-warn-ghost" role="button" :tabindex="confirming ? -1 : 0" :aria-disabled="confirming" :aria-busy="confirming" @click="onForce"  @keydown.enter.prevent="onKeyboardActivate($event, onForce)" @keydown.space.prevent="onKeyboardActivate($event, onForce)">
             <text class="tis-warn-ghost-text">{{ t.tradein.blockForceCta }}</text>
           </view>
-          <view class="tis-ghost" @click="hide">
+          <view class="tis-ghost" role="button" tabindex="0" @click="hide"  @keydown.enter.prevent="onKeyboardActivate($event, hide)" @keydown.space.prevent="onKeyboardActivate($event, hide)">
             <text class="tis-ghost-text">{{ t.tradein.blockCancel }}</text>
           </view>
         </template>
@@ -212,20 +241,15 @@ import { usePendingCheckout } from "@/store/pending-checkout";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { toast } from "@/store/ui";
 import { getProduct, PRODUCTS } from "@/mock/products";
-import {
-  MAX_DEVICES,
-  DEVICE_SPECS,
-  createDevice,
-} from "@/store/device-types";
-import { computeTradeInCredit, TRADEIN_LADDER_RULES } from "@/mock/tradein-config";
+import { DEVICE_SPECS, createDevice } from "@/store/device-types";
+import { computeTradeInCredit, ladderBandFor, TRADEIN_LADDER_RULES } from "@/mock/tradein-config";
 import { isDeviceTaskBlocked } from "@/mock/eligibility";
 import { getMonthsSince, isPhaseReached, isTradeInTargetAvailable } from "@/store/product-phase";
 import { useProductPhase } from "@/composables/use-product-phase";
-import { navTo } from "@/lib/route";
+import { navReset, navTo } from "@/lib/route";
 import type { DeviceKind, Device } from "@/store/types";
 import { useT } from "@/i18n/use-t";
 import { deviceName, deviceNameByKind } from "@/lib/device-copy";
-import { brandProductName } from "@/lib/brand";
 import { fmt } from "@/i18n/format";
 import { deviceE3Api, orderApi, remoteApiEnabled } from "@/api/runtime";
 import type { CanonicalCapacityReplaceQuote, CanonicalTradeinConfig, CanonicalTradeinQuote } from "@/api/device-e3-api";
@@ -235,6 +259,7 @@ import { useOrders } from "@/store/orders";
 import { completeVerifiedMutation, handleNoActiveDeviceDecision } from "@/domain/e20-capacity-coordinator";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
+import { acquireAccountCommandKey, releaseAccountCommandKey } from "@/store/account-scoped-storage";
 
 const sheet = useTradeinSheet();
 const app = useApp();
@@ -255,20 +280,35 @@ const reservedSlots = computed(() => (trialReservesSlotNow() ? 1 : 0));
 const confirming = ref(false);
 const canonicalQuote = ref<CanonicalTradeinQuote | null>(null);
 const canonicalTradeinConfig = ref<CanonicalTradeinConfig | null>(null);
+const remoteRetireEligibleTargets = ref<Set<string>>(new Set());
+const remoteRetireTargetsReady = ref(!remoteApiEnabled);
 const capacityCommandKey = ref<string | null>(null);
+const CAPACITY_COMMAND_TABLE = "nexgrid-e3-capacity-commands-accounts-v1";
+const quoteRequestGeneration = ref(0);
+const quoteLoading = ref(false);
+let remoteRetireRequest = 0;
 watch(() => app.accountKey, () => {
+  quoteRequestGeneration.value += 1;
   canonicalQuote.value = null;
   canonicalTradeinConfig.value = null;
+  remoteRetireEligibleTargets.value = new Set();
+  remoteRetireTargetsReady.value = !remoteApiEnabled;
+  remoteRetireRequest += 1;
   capacityCommandKey.value = null;
+  quoteLoading.value = false;
+  void loadCanonicalTradeinConfig();
 });
-onMounted(() => {
+async function loadCanonicalTradeinConfig() {
   if (!remoteApiEnabled) return;
   const requestScope = captureAccountScope();
-  void deviceE3Api.tradeinConfig().then((value) => {
+  await deviceE3Api.tradeinConfig().then((value) => {
     if (isCurrentAccountScope(requestScope)) canonicalTradeinConfig.value = value;
   }).catch(() => {
     if (isCurrentAccountScope(requestScope)) canonicalTradeinConfig.value = null;
   });
+}
+onMounted(() => {
+  void loadCanonicalTradeinConfig();
 });
 
 // ───────────────────────── helpers ─────────────────────────
@@ -297,13 +337,20 @@ const ctaHalo = computed(() => ({
 }));
 
 function hide() {
+  quoteRequestGeneration.value += 1;
+  quoteLoading.value = false;
   sheet.hide();
+}
+
+function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
+  if (event.repeat) return;
+  action();
 }
 
 // ── deferred route past the sheet's exit so it doesn't flash on /me/devices ──
 function goDevices() {
   setTimeout(() => {
-    uni.reLaunch({ url: "/pages/me/devices", fail: () => {} });
+    navReset({ url: "/pages/me/devices", fail: () => {} });
   }, 260);
 }
 
@@ -325,32 +372,39 @@ const choiceSources = computed(() => {
 });
 
 async function openTradeinQuote(oldDevice: Device, targetKind: DeviceKind, newPrice: number): Promise<void> {
+  if (quoteLoading.value) return;
+  const requestGeneration = ++quoteRequestGeneration.value;
   if (!remoteApiEnabled) {
     canonicalQuote.value = null;
     sheet.showTradein(oldDevice.id, targetKind, newPrice);
     return;
   }
+  quoteLoading.value = true;
   const requestScope = captureAccountScope();
+  const requestIsCurrent = () => requestGeneration === quoteRequestGeneration.value
+    && isCurrentAccountScope(requestScope);
   try {
     const eligibility = await deviceE3Api.eligibility(targetKind);
-    if (!isCurrentAccountScope(requestScope)) return;
+    if (!requestIsCurrent()) return;
     const sourceAllowed = eligibility.sources.some((source) => source.eligible
       && source.sourceDeviceId === Number(oldDevice.id));
     if (!eligibility.eligible || !sourceAllowed) throw new Error("TRADEIN_SOURCE_NOT_ELIGIBLE");
     const quote = await deviceE3Api.quote(Number(oldDevice.id), targetKind);
-    if (!isCurrentAccountScope(requestScope)) return;
+    if (!requestIsCurrent()) return;
     canonicalQuote.value = quote;
     sheet.showTradein(oldDevice.id, targetKind, newPrice);
   } catch {
-    if (!isCurrentAccountScope(requestScope)) return;
+    if (!requestIsCurrent()) return;
     canonicalQuote.value = null;
     toast.warn(t.value.tradein.errPleaseRetry);
+  } finally {
+    if (requestIsCurrent()) quoteLoading.value = false;
   }
 }
 
 function onChooseTradein(deviceId: string) {
   const s = state.value;
-  if (s.kind !== "choice") return;
+  if (s.kind !== "choice" || quoteLoading.value) return;
   const oldDevice = app.devices.find((d) => d.id === deviceId) ?? null;
   if (!oldDevice) {
     // Race: device disappeared between hint computation and click. Bail out
@@ -362,37 +416,44 @@ function onChooseTradein(deviceId: string) {
   void openTradeinQuote(oldDevice, s.targetKind, s.newPrice);
 }
 
-function onChooseFullPrice() {
+async function onChooseFullPrice() {
   const s = state.value;
-  if (s.kind !== "choice") return;
+  if (s.kind !== "choice" || quoteLoading.value) return;
   if (remoteApiEnabled) {
+    const requestGeneration = ++quoteRequestGeneration.value;
     const requestScope = captureAccountScope();
-    void deviceE3Api.capacityQuote(s.targetKind).then(async (quote) => {
-      if (!isCurrentAccountScope(requestScope)) return;
+    const requestIsCurrent = () => requestGeneration === quoteRequestGeneration.value
+      && isCurrentAccountScope(requestScope);
+    quoteLoading.value = true;
+    try {
+      const quote = await deviceE3Api.capacityQuote(s.targetKind);
+      if (!requestIsCurrent()) return;
       if (quote.decision === "REPLACE_REQUIRED") {
         sheet.showCanonicalReplace(s.targetKind, quote.payableUsdt, quote);
         return;
       }
-      hide();
       if (quote.decision === "NO_ACTIVE_DEVICE") {
         await handleNoActiveDeviceDecision({
           notify: () => {
-            if (isCurrentAccountScope(requestScope)) toast.warn(t.value.tradein.errNoActiveDevice);
+            if (requestIsCurrent()) toast.warn(t.value.tradein.errNoActiveDevice);
           },
           refreshFleet: async () => {
-            if (!isCurrentAccountScope(requestScope)) return;
+            if (!requestIsCurrent()) return;
             await app.refreshRemoteFleet();
           }, // best-effort:失败自吞
         });
       }
-    }).catch(() => {
-      if (isCurrentAccountScope(requestScope)) toast.warn(t.value.tradein.errPleaseRetry);
-    });
+      if (requestIsCurrent()) hide();
+    } catch {
+      if (requestIsCurrent()) toast.warn(t.value.tradein.errPleaseRetry);
+    } finally {
+      if (requestIsCurrent()) quoteLoading.value = false;
+    }
     return;
   }
   // If slot full, hand off to the replace sheet; else just dismiss (caller's
   // checkout flow proceeds normally to payment).
-  if (app.activeSlotCount + reservedSlots.value >= MAX_DEVICES) {
+  if (app.activeSlotCount + reservedSlots.value >= app.slotCap) {
     sheet.showReplace(s.targetKind, s.newPrice);
   } else {
     hide();
@@ -401,11 +462,68 @@ function onChooseFullPrice() {
 
 // ───────────────────── 1.5 retire — 主动下架:选升级目标 ─────────────────────
 
+const remoteRetireLoadKey = computed(() => {
+  const current = state.value;
+  if (current.kind !== "retire") return "closed";
+  const config = canonicalTradeinConfig.value;
+  return [app.accountKey, current.oldDeviceId, productCatalogState.status,
+    config?.enabled, config?.requireHigherPrice, config?.earlyAccessEnabled,
+    config?.earlyAccessLeadDays].join("|");
+});
+
+async function loadRemoteRetireTargets() {
+  const current = state.value;
+  if (!remoteApiEnabled || current.kind !== "retire") return;
+  const config = canonicalTradeinConfig.value;
+  const source = app.devices.find((device) => device.id === current.oldDeviceId);
+  if (!config || !source || productCatalogState.status !== "ready") {
+    remoteRetireEligibleTargets.value = new Set();
+    remoteRetireTargetsReady.value = false;
+    return;
+  }
+  if (!config.enabled) {
+    remoteRetireEligibleTargets.value = new Set();
+    remoteRetireTargetsReady.value = true;
+    return;
+  }
+
+  const request = ++remoteRetireRequest;
+  const requestScope = captureAccountScope();
+  remoteRetireTargetsReady.value = false;
+  const paid = source.paidPriceUsdt ?? 0;
+  const candidates = PRODUCTS.filter((product) => !config.requireHigherPrice || product.price > paid);
+  const results = await Promise.allSettled(candidates.map(async (product) => ({
+    id: product.id,
+    eligibility: await deviceE3Api.eligibility(product.id),
+  })));
+  if (request !== remoteRetireRequest || !isCurrentAccountScope(requestScope)
+      || state.value.kind !== "retire" || state.value.oldDeviceId !== current.oldDeviceId) return;
+  if (results.some((result) => result.status === "rejected")) {
+    remoteRetireEligibleTargets.value = new Set();
+    remoteRetireTargetsReady.value = false;
+    return;
+  }
+  remoteRetireEligibleTargets.value = new Set(results.flatMap((result) => {
+    if (result.status !== "fulfilled") return [];
+    const { id, eligibility } = result.value;
+    return eligibility.eligible && eligibility.sources.some((candidate) => candidate.eligible
+      && candidate.sourceDeviceId === Number(current.oldDeviceId)) ? [id] : [];
+  }));
+  remoteRetireTargetsReady.value = true;
+}
+
+watch(remoteRetireLoadKey, () => {
+  remoteRetireEligibleTargets.value = new Set();
+  remoteRetireTargetsReady.value = !remoteApiEnabled;
+  void loadRemoteRetireTargets();
+}, { immediate: true });
+
 const retireView = computed(() => {
   const s = state.value;
   if (s.kind !== "retire") return null;
   if (remoteApiEnabled && (productCatalogState.status !== "ready"
-      || !canonicalTradeinConfig.value || !canonicalTradeinConfig.value.enabled)) {
+      || !canonicalTradeinConfig.value || !canonicalTradeinConfig.value.enabled
+      || !remoteRetireTargetsReady.value)) {
     return {
       title: t.value.tradein.retireTitle,
       subtitle: t.value.tradein.errPleaseRetry,
@@ -421,11 +539,12 @@ const retireView = computed(() => {
     (p) =>
       (!(remoteApiEnabled ? canonicalTradeinConfig.value?.requireHigherPrice !== false : TRADEIN_LADDER_RULES.requireHigherPrice) || p.price > paid) &&
       (remoteApiEnabled
-        ? isProductAvailable(p, phase.value)
+        ? remoteRetireEligibleTargets.value.has(p.id)
         : isTradeInTargetAvailable(p.unlocksAtPhase, phase.value, monthsSinceJoin.value)),
   ).map((p) => {
     // 抢先购窗口内的未正式上架目标,行尾加「抢先升级」标(默认关闭时零渲染)。
-    const early = !!p.unlocksAtPhase && !isPhaseReached(phase.value, p.unlocksAtPhase);
+    const early = !!p.unlocksAtPhase && !isPhaseReached(phase.value, p.unlocksAtPhase)
+      && (!remoteApiEnabled || canonicalTradeinConfig.value?.earlyAccessEnabled === true);
     const net = remoteApiEnabled ? "—" : Math.max(0, +(p.price - previewCredit(device, p.price)).toFixed(2)).toLocaleString();
     const base = fmt(t.value.tradein.retireTargetOption, {
       name: p.name,
@@ -442,7 +561,7 @@ const retireView = computed(() => {
 
 function onPickTarget(productId: string) {
   const s = state.value;
-  if (s.kind !== "retire") return;
+  if (s.kind !== "retire" || quoteLoading.value) return;
   const device = app.devices.find((d) => d.id === s.oldDeviceId) ?? null;
   const p = getProduct(productId);
   if (!device || !p) {
@@ -463,7 +582,10 @@ const tradeinView = computed(() => {
   const remoteQuote = remoteApiEnabled ? canonicalQuote.value : null;
   if (remoteApiEnabled && (!remoteQuote || remoteQuote.sourceDeviceId !== Number(oldDevice.id)
       || remoteQuote.targetProductNo !== s.newKind)) return null;
+  const paid = remoteQuote?.sourceActualPaidUsdt ?? oldDevice.paidPriceUsdt ?? 0;
+  const earned = remoteQuote?.cumulativeOutputUsdt ?? Math.max(0, oldDevice.cumulativeEarningsUsdt ?? 0);
   const credit = remoteQuote?.discountUsdt ?? previewCredit(oldDevice, s.newPrice);
+  const band = remoteQuote ? null : ladderBandFor(paid, earned);
   const estNet = remoteQuote?.payableUsdt ?? Math.max(0, +(s.newPrice - credit).toFixed(2));
   return {
     title: fmt(t.value.tradein.sheetTitle, {
@@ -471,7 +593,13 @@ const tradeinView = computed(() => {
       to: kindLabel(s.newKind),
     }),
     // 只给设备名——内部 id 是工程标识,禁止渲染(页面文案禁字段名/枚举值)。
-    oldDeviceText: deviceName(t.value, oldDevice),
+    oldDeviceText: oldDevice.name,
+    earned: earned.toFixed(2),
+    bandText: remoteQuote
+      ? fmt(t.value.tradein.sheetBandText, { band: t.value.tradein.remoteQuoteBandLabel, pct: remoteQuote.creditRatePct })
+      : band
+      ? fmt(t.value.tradein.sheetBandText, { band: band.band, pct: band.creditPct })
+      : "—",
     credit: credit.toFixed(2),
     estNet: estNet.toFixed(2),
     ctaText: fmt(t.value.tradein.sheetCta, { amount: estNet.toFixed(2) }),
@@ -490,7 +618,7 @@ function onConfirmTradein() {
   // 入口后任务才开始的竞态:退回阻断提示(规格 DEV02A 异常2)。判定单源
   // isDeviceTaskBlocked——库存机的出厂任务不在跑,不阻断。
   if (isDeviceTaskBlocked(oldDevice)) {
-    sheet.showRetireBlock(oldDevice.id, deviceName(t.value, oldDevice));
+    sheet.showRetireBlock(oldDevice.id, oldDevice.name);
     return;
   }
   confirming.value = true;
@@ -532,7 +660,7 @@ const replaceView = computed(() => {
   return {
     warning: fmt(t.value.tradein.replaceWarning, { newKind: kindLabel(s.newKind) }),
     lowestText: fmt(t.value.tradein.replaceLowestText, {
-      name: deviceName(t.value, lowest),
+      name: lowest.name,
       earn: lowest.todayEarnings.toFixed(2),
     }),
     insufficient,
@@ -541,28 +669,60 @@ const replaceView = computed(() => {
   };
 });
 
-function canonicalCapacityKey(quote: CanonicalCapacityReplaceQuote): string {
-  if (capacityCommandKey.value) return capacityCommandKey.value;
-  capacityCommandKey.value = `e3-capacity:${quote.sourceDeviceId}:${quote.targetProductNo}:${Date.now()}`;
-  return capacityCommandKey.value;
+function capacityIntent(operation: "replace" | "keep", quote: CanonicalCapacityReplaceQuote): string {
+  return [operation, quote.sourceDeviceId ?? "none", quote.targetProductNo, quote.targetProductId,
+    quote.targetPriceUsdt, quote.payableUsdt, quote.maxActiveDevices].join("|");
+}
+
+function canonicalCapacityKey(
+  operation: "replace" | "keep",
+  quote: CanonicalCapacityReplaceQuote,
+  accountKey: string,
+): string {
+  const key = acquireAccountCommandKey(
+    CAPACITY_COMMAND_TABLE,
+    accountKey,
+    capacityIntent(operation, quote),
+    operation === "replace" ? "e3-capacity" : "e3-capacity-keep",
+  );
+  capacityCommandKey.value = key;
+  return key;
 }
 
 async function submitCanonicalCapacityReplacement(
   quote: CanonicalCapacityReplaceQuote,
   newKind: DeviceKind,
 ): Promise<void> {
+  const requestScope = captureAccountScope();
+  const intent = capacityIntent("replace", quote);
+  let commandKey = "";
+  const requireCurrentAccount = () => {
+    if (!isCurrentAccountScope(requestScope)) throw new Error("ACCOUNT_SCOPE_CHANGED");
+  };
   try {
     if (quote.decision !== "REPLACE_REQUIRED" || quote.sourceDeviceId == null
         || quote.targetProductNo !== newKind || quote.decisionSource !== "server") {
       throw new Error("CAPACITY_REPLACEMENT_QUOTE_INVALID");
     }
     await completeVerifiedMutation({
-      submit: () => deviceE3Api.capacityReplace(
-        quote.sourceDeviceId!, quote.targetProductNo, canonicalCapacityKey(quote), quote,
-      ),
-      readback: async (submitted) => (await orderApi.list()).orders
-        .find((order) => order.orderNo === submitted.orderNo),
+      submit: async () => {
+        requireCurrentAccount();
+        commandKey = canonicalCapacityKey("replace", quote, requestScope.accountKey);
+        const submitted = await deviceE3Api.capacityReplace(
+          quote.sourceDeviceId!, quote.targetProductNo, commandKey, quote,
+        );
+        requireCurrentAccount();
+        return submitted;
+      },
+      readback: async (submitted) => {
+        requireCurrentAccount();
+        const persisted = (await orderApi.list()).orders
+          .find((order) => order.orderNo === submitted.orderNo);
+        requireCurrentAccount();
+        return persisted;
+      },
       verifyOrder(submitted, persisted) {
+        requireCurrentAccount();
         if (!persisted || persisted.sourceDeviceId !== submitted.sourceDeviceId
             || persisted.targetDeviceId !== submitted.targetDeviceId
             || persisted.tradeinNo !== submitted.tradeinNo
@@ -575,12 +735,19 @@ async function submitCanonicalCapacityReplacement(
           throw new Error("CAPACITY_REPLACEMENT_READBACK_MISMATCH");
         }
       },
-      refreshOrders: () => orders.refreshRemote(),
+      refreshOrders: async () => {
+        requireCurrentAccount();
+        await orders.refreshRemote();
+        requireCurrentAccount();
+      },
       // refreshRemoteFleet 自吞不 reject(resilience 门);适配层升回 throw 保住验证链语义。
       refreshFleet: async () => {
+        requireCurrentAccount();
         if (!(await app.refreshRemoteFleet())) throw new Error("E3_FLEET_REFRESH_UNAVAILABLE");
+        requireCurrentAccount();
       },
       verifyFleet(submitted) {
+        requireCurrentAccount();
         const target = app.devices.find((device) => device.id === String(submitted.targetDeviceId));
         const source = app.devices.find((device) => device.id === String(submitted.sourceDeviceId));
         if (!target || target.activatedAt == null || (source && source.activatedAt != null)) {
@@ -588,6 +755,10 @@ async function submitCanonicalCapacityReplacement(
         }
       },
       commit() {
+        requireCurrentAccount();
+        if (!releaseAccountCommandKey(CAPACITY_COMMAND_TABLE, requestScope.accountKey, intent, commandKey)) {
+          throw new Error("CAPACITY_COMMAND_RELEASE_FAILED");
+        }
         capacityCommandKey.value = null;
         toast.success(fmt(t.value.tradein.replaceSuccessToast, {
           newKind: kindLabel(newKind),
@@ -598,6 +769,7 @@ async function submitCanonicalCapacityReplacement(
       },
     });
   } catch {
+    if (!isCurrentAccountScope(requestScope)) return;
     toast.warn(t.value.tradein.errPleaseRetry);
   } finally {
     confirming.value = false;
@@ -607,6 +779,7 @@ async function submitCanonicalCapacityReplacement(
 function onReplace() {
   const s = state.value;
   if (s.kind !== "replace" || confirming.value) return;
+  if (replaceView.value?.insufficient) return;
   if (remoteApiEnabled) {
     if (!s.canonicalCapacityQuote) {
       toast.warn(t.value.tradein.errPleaseRetry);
@@ -625,7 +798,7 @@ function onReplace() {
   // Pending-task gate: refuse if a task is in-flight; user must choose
   // Force/Wait in the block sheet before reaching this path.
   if (lowest.currentTask !== null) {
-    sheet.showBlock(lowest.id, deviceName(t.value, lowest), s.newKind, s.newPrice);
+    sheet.showBlock(lowest.id, lowest.name, s.newKind, s.newPrice);
     confirming.value = false;
     return;
   }
@@ -636,7 +809,7 @@ function onReplace() {
   }
   // 先算再动:停掉旧机后新机能不能占到槽,用同一个谓词事先判(审计 R9 P1:事后失败再回滚,回滚里的再激活撞的是
   // 同一个槽位谓词,必然连环失败,把一台已付费旧机甩进库存)。
-  if (app.activeSlotCount - 1 + reservedSlots.value >= MAX_DEVICES) {
+  if (app.activeSlotCount - 1 + reservedSlots.value >= app.slotCap) {
     toast.warn(t.value.tradein.errReplaceSlotConflict);
     confirming.value = false;
     return;
@@ -693,20 +866,81 @@ function onReplace() {
   goDevices();
 }
 
-async function submitCanonicalKeepBuy(newKind: DeviceKind): Promise<void> {
+async function submitCanonicalKeepBuy(
+  newKind: DeviceKind,
+  quote: CanonicalCapacityReplaceQuote,
+): Promise<void> {
+  const requestScope = captureAccountScope();
+  const intent = capacityIntent("keep", quote);
+  let key = "";
+  const requireCurrentAccount = () => {
+    if (!isCurrentAccountScope(requestScope)) throw new Error("ACCOUNT_SCOPE_CHANGED");
+  };
   try {
-    const key = capacityCommandKey.value ?? `e3-capacity-keep:${newKind}:${Date.now()}`;
-    capacityCommandKey.value = key;
-    const created = await orderApi.create({ productNo: newKind, quantity: 1, idempotencyKey: key });
-    const persisted = (await orderApi.list()).orders.find((order) => order.orderNo === created.orderNo);
-    if (!persisted || persisted.productNo !== newKind) throw new Error("CAPACITY_KEEP_ORDER_READBACK_MISMATCH");
-    await orders.refreshRemote();
-    if (!(await app.refreshRemoteFleet())) throw new Error("E3_FLEET_REFRESH_UNAVAILABLE");
-    capacityCommandKey.value = null;
-    toast.success(fmt(t.value.tradein.keepBuySuccessToast, { newKind: kindLabel(newKind) }));
-    hide();
-    goDevices();
+    if (quote.decision !== "REPLACE_REQUIRED" || quote.targetProductNo !== newKind
+        || quote.decisionSource !== "server") {
+      throw new Error("CAPACITY_KEEP_QUOTE_INVALID");
+    }
+    await completeVerifiedMutation({
+      submit: async () => {
+        requireCurrentAccount();
+        key = canonicalCapacityKey("keep", quote, requestScope.accountKey);
+        const submitted = await deviceE3Api.capacityKeep(newKind, key, quote);
+        requireCurrentAccount();
+        return submitted;
+      },
+      readback: async (submitted) => {
+        requireCurrentAccount();
+        const persisted = (await orderApi.list()).orders
+          .find((order) => order.orderNo === submitted.orderNo);
+        requireCurrentAccount();
+        return persisted;
+      },
+      verifyOrder(submitted, persisted) {
+        requireCurrentAccount();
+        if (!persisted || persisted.productNo !== newKind
+            || persisted.orderType.toUpperCase() !== "CAPACITY_KEEP"
+            || persisted.canonicalStatus !== "paid"
+            || persisted.paymentStatus.toUpperCase() !== "PAID"
+            || persisted.orderStatus.toUpperCase() !== "PAID"
+            || persisted.activationStatus.toUpperCase() !== "WAITING_PROVISIONING"
+            || persisted.targetDeviceId !== submitted.targetDeviceId
+            || !persisted.targetDeviceInstanceNo
+            || Math.abs(persisted.amountUsdt - submitted.walletDebitUsdt) > 0.000001
+            || Math.abs(persisted.discountUsdt) > 0.000001) {
+          throw new Error("CAPACITY_KEEP_ORDER_READBACK_MISMATCH");
+        }
+      },
+      refreshOrders: async () => {
+        requireCurrentAccount();
+        await orders.refreshRemote();
+        requireCurrentAccount();
+      },
+      refreshFleet: async () => {
+        requireCurrentAccount();
+        if (!(await app.refreshRemoteFleet())) throw new Error("E3_FLEET_REFRESH_UNAVAILABLE");
+        requireCurrentAccount();
+      },
+      verifyFleet(submitted) {
+        requireCurrentAccount();
+        const target = app.devices.find((device) => device.id === String(submitted.targetDeviceId));
+        if (!target || target.activatedAt !== null) {
+          throw new Error("CAPACITY_KEEP_FLEET_READBACK_MISMATCH");
+        }
+      },
+      commit() {
+        requireCurrentAccount();
+        if (!releaseAccountCommandKey(CAPACITY_COMMAND_TABLE, requestScope.accountKey, intent, key)) {
+          throw new Error("CAPACITY_COMMAND_RELEASE_FAILED");
+        }
+        capacityCommandKey.value = null;
+        toast.success(fmt(t.value.tradein.keepBuySuccessToast, { newKind: kindLabel(newKind) }));
+        hide();
+        goDevices();
+      },
+    });
   } catch {
+    if (!isCurrentAccountScope(requestScope)) return;
     toast.warn(t.value.tradein.errPleaseRetry);
   } finally {
     confirming.value = false;
@@ -716,9 +950,14 @@ async function submitCanonicalKeepBuy(newKind: DeviceKind): Promise<void> {
 function onKeepBuy() {
   const s = state.value;
   if (s.kind !== "replace" || confirming.value) return;
+  if (replaceView.value?.insufficient) return;
   if (remoteApiEnabled) {
+    if (!s.canonicalCapacityQuote) {
+      toast.warn(t.value.tradein.errPleaseRetry);
+      return;
+    }
     confirming.value = true;
-    void submitCanonicalKeepBuy(s.newKind);
+    void submitCanonicalKeepBuy(s.newKind, s.canonicalCapacityQuote);
     return;
   }
   confirming.value = true;
@@ -761,7 +1000,7 @@ function onKeepBuy() {
 const blockTitle = computed(() => {
   const s = state.value;
   if (s.kind !== "block") return "";
-  return fmt(t.value.tradein.blockTitle, { deviceName: brandProductName(s.oldDeviceName) });
+  return fmt(t.value.tradein.blockTitle, { deviceName: s.oldDeviceName });
 });
 
 function onWait() {
@@ -805,7 +1044,7 @@ function onForce() {
   //   activate(new) → postMoneyBill(扣款 ⊗ 记账,单次落盘)。Each failure restores the old device's task.
   const taskSnapshot = lowest.currentTask;
   // 先算再动:停掉旧机后新机能不能占到槽,用同一个谓词事先判(与 onReplace 同一条;审计 R9 P1)。
-  if (app.activeSlotCount - 1 + reservedSlots.value >= MAX_DEVICES) {
+  if (app.activeSlotCount - 1 + reservedSlots.value >= app.slotCap) {
     toast.warn(t.value.tradein.errReplaceSlotConflict);
     confirming.value = false;
     return;
@@ -876,6 +1115,8 @@ function onForce() {
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。
 useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
+
+
 </script>
 
 <style scoped>
@@ -892,16 +1133,16 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
   -webkit-backdrop-filter: blur(8px) saturate(150%);
   animation: tradein-fade 0.24s ease-out;
 }
-.tis-panel {
+.tis-panel { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge);
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 800;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  background: var(--v5-surface);
-  border-top: 1px solid var(--v5-border);
+
+
+  background: var(--nx-glass-fill);
+  border: none;
   padding: 18px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 38px);
   animation: tradein-slide-up 0.36s cubic-bezier(0.16, 1, 0.3, 1);

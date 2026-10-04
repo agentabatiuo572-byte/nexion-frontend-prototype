@@ -6,9 +6,11 @@
 // stored string freezes whatever language the device was created in. Resolve
 // from the stable `kind` at render time instead.
 //
-// Descriptive strings follow the locale. Known legacy SKU labels use the current
-// brand at the display boundary; persisted records, custom names and hardware
-// models remain unchanged.
+// Only descriptive strings resolve. SKU names (NexGridBox S1, NexGridRack P1,
+// Cloud Share — all sold under those names in the store) and hardware models
+// (4× RTX 4090, 8× NVIDIA A100, the user's own "RTX 4070 · 240 TOPS") are brand
+// marks and proper nouns: they stay as stored in every locale, matching how
+// lib/product-copy.ts leaves Product.name alone.
 //
 // Anything we cannot resolve falls back to the stored English rather than
 // rendering blank — a new DeviceKind degrades, it does not break the card.
@@ -16,20 +18,24 @@
 import type { Messages } from "@/i18n/messages/en";
 import type { Device, DeviceKind } from "@/store/types";
 import { fmt } from "@/i18n/format";
-import { brandProductName } from "@/lib/brand";
+import { nexGridBrandText } from "@/lib/brand-copy";
 
 /** A linked computer carries the user's own GPU model → its stored strings are
- *  proper nouns. Without a tier match it holds the generic English spec. */
-function isTieredPcGpu(d: Device): boolean {
+ *  proper nouns. Without a tier match it holds the generic English spec.
+ *  Takes the structural subset so callers holding a Device projection (e.g. the
+ *  store's upgrade comparison) resolve the same label without a cast. */
+type DeviceLabelSource = Pick<Device, "kind" | "name"> & Partial<Pick<Device, "gpuModel">>;
+
+function isTieredPcGpu(d: DeviceLabelSource): boolean {
   return d.kind === "pc-gpu" && !!d.gpuModel;
 }
 
-export function deviceName(t: Messages, d: Device): string {
+export function deviceName(t: Messages, d: DeviceLabelSource): string {
   if (d.kind === "phone") return t.earn.yourPhone;
   if (d.kind === "pc-gpu") {
     return isTieredPcGpu(d) ? t.device.nameSharedComputer : t.device.nameComputerGpu;
   }
-  return brandProductName(d.name);
+  return nexGridBrandText(d.name); // Persisted SKU names may use the previous brand.
 }
 
 /** Promo copy names a device by kind before one exists — no Device to pass. */
@@ -37,7 +43,7 @@ export function deviceNameByKind(t: Messages, kind: DeviceKind | null, stored: s
   if (kind === null) return t.device.promoNoActive;
   if (kind === "phone") return t.earn.yourPhone;
   if (kind === "pc-gpu") return t.device.nameComputerGpu;
-  return brandProductName(stored);
+  return nexGridBrandText(stored); // Display only; protocol IDs stay unchanged.
 }
 
 /** Same, for a name dropped mid-sentence. The standalone names are label-cased
@@ -47,7 +53,7 @@ export function deviceNameInline(t: Messages, kind: DeviceKind | null, stored: s
   if (kind === null) return t.device.promoNoActive;
   if (kind === "phone") return t.device.namePhoneInline;
   if (kind === "pc-gpu") return t.device.nameComputerGpuInline;
-  return brandProductName(stored);
+  return nexGridBrandText(stored); // Display only.
 }
 
 export function deviceGpuLabel(t: Messages, d: Device): string {
@@ -69,8 +75,10 @@ export function deviceGpuLabel(t: Messages, d: Device): string {
  *  the stored `location?: string` the card already treats as optional. */
 export function deviceLocation(t: Messages, d: Device): string {
   if (!d.location) return "";
-  if (d.kind === "pc-gpu") return t.device.locLinkedComputer;
-  if (d.kind.startsWith("stellarrack")) return t.device.locFrankfurtDc;
-  if (d.kind.startsWith("stellarbox")) return t.device.locSingaporeDc;
+  if (d.location === "User device") return t.device.locUserDevice;
+  if (d.location === "Linked computer") return t.device.locLinkedComputer;
+  // Translate a known place name, never infer a physical location from a SKU.
+  if (d.location === "Frankfurt Data Center") return t.device.locFrankfurtDc;
+  if (d.location === "Singapore Data Center") return t.device.locSingaporeDc;
   return d.location;
 }

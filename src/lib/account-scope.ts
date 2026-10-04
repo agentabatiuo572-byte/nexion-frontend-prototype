@@ -7,6 +7,7 @@ import { useDeposits } from "@/store/deposits";
 import { useStaking } from "@/store/staking";
 import { useCommission } from "@/store/commission";
 import { useVoucher } from "@/store/voucher";
+import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { useFreeTrial } from "@/store/free-trial";
 import { useExchange } from "@/store/exchange";
 import { useExchangeV3 } from "@/store/exchange-v3";
@@ -22,6 +23,8 @@ import { useGoals } from "@/store/goals";
 import { useLuckySpin } from "@/store/lucky-spin";
 import { useDailyPowerUp } from "@/store/daily-powerup";
 import { useNotifications } from "@/store/notifications";
+import { useMessageDrawer } from "@/store/message-drawer";
+import { usePreferences } from "@/store/preferences";
 import { useReceipts } from "@/store/receipts";
 import { useTickets } from "@/store/tickets";
 import { useCart } from "@/store/cart";
@@ -40,11 +43,13 @@ import { useReferralReward } from "@/store/referral-reward";
 import { useRepurchase } from "@/store/repurchase";
 import { useNetwork } from "@/store/network";
 import { prepareProductCatalog } from "@/store/product-catalog";
-import { prepareServerProductPhase } from "@/store/server-product-phase";
+import { prepareServerProductPhase, refreshServerProductPhase } from "@/store/server-product-phase";
+import { remoteApiEnabled } from "@/api/runtime";
 import { purchaseEligibilityStore } from "@/store/purchase-eligibility";
 import { useTradeinSheet } from "@/store/tradein-sheet";
 import { useContentCopy } from "@/store/content-copy";
 import { remoteAccountScope, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
+import { captureRuntimeRevision } from "@/api/order-api";
 
 /** Snapshot the account generation before starting an account-sensitive request. */
 export function captureAccountScope(): RemoteAccountRequest {
@@ -74,11 +79,23 @@ export function isCurrentAccountScope(request: RemoteAccountRequest): boolean {
  * sponsorship 的推荐归因也按账号重绑，避免同设备不同账号串展示/串礼。
  */
 export function rebindAccountScopedStores(accountKey: string): void {
+  useMessageDrawer().bindAccount();
   remoteAccountScope.bind(accountKey);
+  const accountScope = remoteAccountScope.snapshot();
+  const commerceScope = captureRuntimeRevision();
+  useVoucherClaimSheet().bindScope({
+    accountKey: accountScope.accountKey,
+    accountEpoch: accountScope.epoch,
+    runId: commerceScope.runId,
+    runEpoch: commerceScope.epoch,
+  });
   // Server-authoritative financial buckets are never shared across accounts;
   // the successful sign-in flow refreshes this cleared slot immediately.
   prepareProductCatalog();
   prepareServerProductPhase();
+  if (remoteApiEnabled && accountKey !== "default") {
+    void refreshServerProductPhase(true);
+  }
   // Eligibility snapshots are server decisions scoped to the active account;
   // clear them before any next-account commerce request can start.
   purchaseEligibilityStore.clear();
@@ -105,7 +122,7 @@ export function rebindAccountScopedStores(accountKey: string): void {
   useWeeklyQuest().bindAccount(accountKey);
   useReferralReward().bindAccount(accountKey);
   useNetwork().bindAccount(accountKey);
-  useRepurchase().bindAccount();
+  useRepurchase().bindAccount(accountKey);
   useRankSnapshot().bindAccount(accountKey); // 首页排名 24h 快照:换号必换行,否则看到别人的昨日名次
   useGenesisPoints().bindAccount(accountKey);
   useNetworkRank().bindAccount(accountKey);
@@ -116,6 +133,7 @@ export function rebindAccountScopedStores(accountKey: string): void {
   useLuckySpin().bindAccount(accountKey);
   useDailyPowerUp().bindAccount(accountKey);
   useNotifications().bindAccount(accountKey);
+  usePreferences().bindAccount(accountKey);
   useReceipts().bindAccount(accountKey);
   useTickets().bindAccount(accountKey);
   useCart().bindAccount(accountKey);

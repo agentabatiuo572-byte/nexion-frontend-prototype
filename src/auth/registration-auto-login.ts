@@ -13,11 +13,12 @@ export type RegistrationAutoLoginResult =
 /**
  * Register first, then authenticate through the ordinary password-login API.
  *
- * The current registration endpoint also returns a bootstrap session. That
- * session is consumed and revoked before password login so this flow cannot
- * leave two active sessions for one click. If the registration response is
- * outcome-unknown, password login doubles as the one safe authoritative read:
- * it succeeds only when the account was actually committed with this password.
+ * The registration endpoint already returns the one authoritative session, so
+ * a successful response is used directly. Starting a logout and password login
+ * back-to-back is unsafe for H5: a delayed cookie-clearing response can erase
+ * the new refresh cookie. If registration is outcome-unknown, password login
+ * remains the one safe authoritative read because it succeeds only when the
+ * account was actually committed with this password.
  */
 export async function registerAndLogin(
   authApi: AuthApi,
@@ -33,8 +34,15 @@ export async function registerAndLogin(
         error: new ApiError({ kind: "protocol", message: "REGISTRATION_SESSION_INVALID" }),
       };
     }
-    registrationReceipt = registration.registrationReceipt ?? null;
-    authApi.discardSessionIfCurrent(registration.vaultRevision);
+    if (!isCurrent()) {
+      authApi.discardSessionIfCurrent(registration.vaultRevision);
+      return { kind: "stale" };
+    }
+    return {
+      ...registration,
+      registrationReceipt: registration.registrationReceipt ?? null,
+      registrationMayBeCommitted: true,
+    };
   } catch (error) {
     if (!isRegistrationOutcomeUnknown(error)) {
       return { kind: "registration_error", error };

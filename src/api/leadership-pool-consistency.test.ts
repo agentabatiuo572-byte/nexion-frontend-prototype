@@ -20,6 +20,9 @@ function response(overrides: Record<string, unknown> = {}) {
     ],
     history: [],
     nextPayoutAt: "2026-08-24T00:00:00Z",
+    unlockRank: 3,
+    injectRate: 0.05,
+    topN: 3,
     ...overrides,
   };
 }
@@ -47,6 +50,9 @@ describe("leadership pool server-fact consistency", () => {
     ["wrong member votes", { myVotes: 10 }],
     ["wrong share", { mySharePct: 0.25 }],
     ["wrong payout", { projectedPayoutUSDT: 499 }],
+    ["missing concentration scope", { topN: undefined }],
+    ["negative concentration scope", { topN: -1 }],
+    ["fractional concentration scope", { topN: 1.5 }],
   ])("rejects %s instead of rendering contradictory data", async (_label, overrides) => {
     await expect(read(response(overrides))).rejects.toMatchObject({
       message: "TEAM_INSIGHTS_RESPONSE_INVALID",

@@ -1,5 +1,9 @@
 import type { ApiClient } from "./api-client";
+import { parseHistorySnapshotId, historySnapshotQuery } from "./history-snapshot";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
+import { matchesRuntimeProvenance } from "./runtime-provenance";
+import { parseServerTimestamp } from "./server-time";
 
 export type RepurchaseStatus =
   | "PENDING_LOCK"
@@ -23,6 +27,8 @@ export interface RepurchaseConfig {
   currentNexPriceUsdt: number;
   g4LotteryCapacity: number;
   g4TicketsIssuedThisMonth: number;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
 }
 
 export interface RepurchaseOrder {
@@ -39,6 +45,7 @@ export interface RepurchaseOrder {
 
 export interface RepurchaseSnapshot {
   orders: RepurchaseOrder[];
+  ordersPage: { total: number; pageNum: number; pageSize: number; snapshotId?: string };
   walletBalanceUsdt: number;
   serverTime: number;
   focusOrderNo?: string;
@@ -46,6 +53,8 @@ export interface RepurchaseSnapshot {
   receiptId?: string;
   creditedUsdt?: number;
   penaltyUsdt?: number;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
 }
 
 export interface RepurchaseApi {
@@ -89,10 +98,7 @@ function integer(value: unknown, min = 0): number | null {
 }
 
 function timestamp(value: unknown): number | null {
-  const raw = text(value);
-  if (!raw) return null;
-  const parsed = Date.parse(raw.replace(" ", "T"));
-  return Number.isFinite(parsed) ? parsed : null;
+  return parseServerTimestamp(value);
 }
 
 function optionalText(row: Record<string, unknown>, key: string): string | undefined {
@@ -105,7 +111,7 @@ function optionalMoney(row: Record<string, unknown>, key: string): number | unde
   return number(row[key]) ?? invalid();
 }
 
-function parseConfig(value: unknown): RepurchaseConfig {
+function parseConfig(value: unknown, mode: ApiEnvironment): RepurchaseConfig {
   const row = record(value);
   const apyPct = number(row?.apyPct);
   const lockDays = integer(row?.lockDays, 1);
@@ -122,8 +128,10 @@ function parseConfig(value: unknown): RepurchaseConfig {
   const presets = Array.isArray(rawPresets)
     ? rawPresets.map((entry) => number(entry, Number.EPSILON))
     : [];
+  const expectedSource = "nx_repurchase_product + nx_config_item + nx_emergency_control_setting";
   if (!row || row.product !== "repurchase" || row.asset !== "USDT"
-      || row.serverCanonical !== true || row.pointsReward !== false
+      || row.serverCanonical !== true || !matchesRuntimeProvenance(row, mode, expectedSource)
+      || row.pointsReward !== false
       || apyPct === null || apyPct > 300 || lockDays === null
       || nurtureMultiplier === null || nurtureMultiplier > 10
       || h1ReinvestMultiplier === null || h1ReinvestMultiplier > 10
@@ -156,6 +164,8 @@ function parseConfig(value: unknown): RepurchaseConfig {
     currentNexPriceUsdt,
     g4LotteryCapacity,
     g4TicketsIssuedThisMonth,
+    sourceEnvironment: row.sourceEnvironment,
+    runId: row.runId,
   };
 }
 
@@ -190,20 +200,29 @@ function parseOrder(value: unknown): RepurchaseOrder {
   };
 }
 
-function parseSnapshot(value: unknown): RepurchaseSnapshot {
+function parseSnapshot(value: unknown, mode: ApiEnvironment): RepurchaseSnapshot {
   const row = record(value);
   const walletBalanceUsdt = number(row?.walletBalanceUsdt);
   const serverTime = timestamp(row?.serverTime);
   const rawOrders = row?.orders;
-  if (!row || row.serverCanonical !== true || !Array.isArray(rawOrders)
+  const expectedSource = "nx_repurchase_product + nx_config_item + nx_emergency_control_setting";
+  if (!row || row.serverCanonical !== true || !matchesRuntimeProvenance(row, mode, expectedSource)
+      || !Array.isArray(rawOrders)
       || walletBalanceUsdt === null || serverTime === null) {
     return invalid();
   }
   const validRow = row;
   const orders = rawOrders.map(parseOrder);
+  const page = record(row.ordersPage);
+  const total = integer(page?.total);
+  const pageNum = integer(page?.pageNum, 1);
+  const pageSize = integer(page?.pageSize, 1);
   if (new Set(orders.map((order) => order.orderNo)).size !== orders.length) return invalid();
+  if (!page || total === null || pageNum === null || pageSize === null
+      || orders.length > pageSize || orders.length > total) return invalid();
   return {
     orders,
+    ordersPage: { total, pageNum, pageSize, snapshotId: parseHistorySnapshotId(page.snapshotId) },
     walletBalanceUsdt,
     serverTime,
     focusOrderNo: optionalText(validRow, "focusOrderNo"),
@@ -211,6 +230,8 @@ function parseSnapshot(value: unknown): RepurchaseSnapshot {
     receiptId: optionalText(validRow, "receiptId"),
     creditedUsdt: optionalMoney(validRow, "creditedUsdt"),
     penaltyUsdt: optionalMoney(validRow, "penaltyUsdt"),
+    sourceEnvironment: row.sourceEnvironment,
+    runId: row.runId,
   };
 }
 
@@ -220,35 +241,55 @@ function requireKey(value: string): string {
   return key;
 }
 
-export function createRepurchaseApi(client: ApiClient): RepurchaseApi {
+export function createRepurchaseApi(client: ApiClient, mode: ApiEnvironment = "prod"): RepurchaseApi {
+  const fetchAllOrders = async (): Promise<RepurchaseSnapshot> => {
+    const first = parseSnapshot(await client.request({
+      method: "GET", path: "/api/repurchase/orders?pageNum=1&pageSize=50",
+    }), mode);
+    if (first.ordersPage.pageNum !== 1 || first.ordersPage.pageSize !== 50) return invalid();
+    const orders = [...first.orders];
+    const ids = new Set(orders.map((order) => order.orderNo));
+    let pageNum = first.ordersPage.pageNum;
+    while (orders.length < first.ordersPage.total) {
+      pageNum += 1;
+      const next = parseSnapshot(await client.request({
+        method: "GET", path: `/api/repurchase/orders?pageNum=${pageNum}&pageSize=${first.ordersPage.pageSize}${historySnapshotQuery(first.ordersPage.snapshotId)}`,
+      }), mode);
+      if (next.ordersPage.snapshotId !== first.ordersPage.snapshotId || next.ordersPage.pageNum !== pageNum || next.ordersPage.pageSize !== first.ordersPage.pageSize
+          || next.ordersPage.total !== first.ordersPage.total || next.orders.length === 0) return invalid();
+      for (const order of next.orders) {
+        if (ids.has(order.orderNo)) return invalid();
+        ids.add(order.orderNo);
+        orders.push(order);
+      }
+    }
+    return { ...first, orders, ordersPage: { ...first.ordersPage, pageNum } };
+  };
   return {
     fetchConfig: async () => parseConfig(await client.request({
       method: "GET",
       path: "/api/config/repurchase",
       authenticated: false,
-    })),
-    fetchOrders: async () => parseSnapshot(await client.request({
-      method: "GET",
-      path: "/api/repurchase/orders",
-    })),
+    }), mode),
+    fetchOrders: fetchAllOrders,
     open: async (amountUsdt, idempotencyKey) => parseSnapshot(await client.request({
       method: "POST",
       path: "/api/repurchase/orders",
       body: { amountUsdt },
       idempotencyKey: requireKey(idempotencyKey),
       timeoutMs: 30_000,
-    })),
+    }), mode),
     claim: async (orderNo, idempotencyKey) => parseSnapshot(await client.request({
       method: "POST",
       path: `/api/repurchase/orders/${encodeURIComponent(orderNo)}/claim`,
       idempotencyKey: requireKey(idempotencyKey),
       timeoutMs: 30_000,
-    })),
+    }), mode),
     earlyWithdraw: async (orderNo, idempotencyKey) => parseSnapshot(await client.request({
       method: "POST",
       path: `/api/repurchase/orders/${encodeURIComponent(orderNo)}/early-withdraw`,
       idempotencyKey: requireKey(idempotencyKey),
       timeoutMs: 30_000,
-    })),
+    }), mode),
   };
 }

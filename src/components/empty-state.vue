@@ -19,11 +19,13 @@
       class="nx-empty__cta active:opacity-90 transition-opacity"
       :style="ctaStyle"
       role="button"
-      tabindex="0"
+      :tabindex="ctaDisabled || ctaBusy ? -1 : 0"
       :aria-label="ctaLabel"
-      @click="emit('cta')"
-      @keydown.enter.prevent="emit('cta')"
-      @keydown.space.prevent="emit('cta')"
+      :aria-disabled="ctaDisabled || ctaBusy ? 'true' : 'false'"
+      :aria-busy="ctaBusy ? 'true' : 'false'"
+      @click="activateCta()"
+      @keydown.enter.prevent="activateCta($event)"
+      @keydown.space.prevent="activateCta($event)"
     >
       <text :style="ctaTextStyle">{{ ctaLabel }}</text>
     </view>
@@ -50,15 +52,22 @@ const props = withDefaults(
     title: string;
     desc?: string;
     ctaLabel?: string;
+    ctaDisabled?: boolean;
+    ctaBusy?: boolean;
     /** 转化型状态(no-owned-asset)把 CTA 做成实心品牌色,其余用 L1 surface 底(缺省页坐在页面底上) */
     emphasis?: boolean;
     /** 嵌在卡片/小容器里时收窄纵向留白 */
     compact?: boolean;
   }>(),
-  { emphasis: false, compact: false },
+  { emphasis: false, compact: false, ctaDisabled: false, ctaBusy: false },
 );
 
 const emit = defineEmits<{ (e: "cta"): void }>();
+
+function activateCta(event?: KeyboardEvent) {
+  if (event?.repeat || props.ctaDisabled || props.ctaBusy) return;
+  emit("cta");
+}
 
 const theme = useTheme();
 const artSrc = computed(() => `/static/img/empty/${theme.resolved}/${props.kind}.png`);
@@ -68,6 +77,7 @@ const rootStyle = computed<CSSProperties>(() => ({
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
+  opacity: props.ctaDisabled || props.ctaBusy ? 0.55 : 1,
   textAlign: "center",
   padding: props.compact ? "24px 24px" : "40px 24px",
 }));

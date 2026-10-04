@@ -1,7 +1,9 @@
-import { reactive } from "vue";
+import { reactive, shallowRef, shallowReadonly } from "vue";
+import type { ProductCatalogSnapshot } from "@/api/product-catalog-api";
 import { productCatalogApi, remoteApiEnabled } from "@/api/runtime";
-import { setCurrentCommerceSandboxRun } from "@/api/order-api";
+import { advanceRuntimeRevision } from "@/api/order-api";
 import { clearProductCatalog, replaceProductCatalog } from "@/mock/products";
+import { nexGridBrandText } from "@/lib/brand-copy";
 
 // "mock" 变体已删:它曾是 mock 模式的初值,而全仓消费方只认 "ready" —— 留着这个变体
 // 等于给「下次有人再把 mock 设成它」留了门。删掉后 tsc 会证明没有第二处在用。
@@ -11,6 +13,9 @@ export const productCatalogState = reactive<{
   status: ProductCatalogStatus;
   error: string;
   source: string;
+  sourceEnvironment: "PRODUCTION" | "";
+  runId: "";
+  serverCanonical: boolean;
   revision: string | null;
 }>({
   // 🔴🔴 mock 模式下必须直接是 "ready",不能是一个只有这里用的 "mock" 状态值 ——
@@ -24,11 +29,18 @@ export const productCatalogState = reactive<{
   status: remoteApiEnabled ? "loading" : "ready",
   error: "",
   source: remoteApiEnabled ? "" : "mock/products",
+  sourceEnvironment: "",
+  runId: "",
+  serverCanonical: false,
   revision: null,
 });
 
 let refreshInFlight: Promise<boolean> | null = null;
 let catalogEpoch = 0;
+// Display only. Purchase authority remains productCatalogState + a fresh
+// eligibility response; a failed read still clears the compatibility catalog.
+const presentation = shallowRef<ProductCatalogSnapshot | null>(null);
+export const productCatalogPresentation = shallowReadonly(presentation);
 
 export function prepareProductCatalog(): void {
   if (!remoteApiEnabled) return;
@@ -38,17 +50,29 @@ export function prepareProductCatalog(): void {
   // account can immediately start its own request.
   catalogEpoch += 1;
   refreshInFlight = null;
+  presentation.value = null;
   clearProductCatalog();
   productCatalogState.status = "loading";
   productCatalogState.error = "";
   productCatalogState.source = "";
+  productCatalogState.sourceEnvironment = "";
+  productCatalogState.runId = "";
+  productCatalogState.serverCanonical = false;
   productCatalogState.revision = null;
-  setCurrentCommerceSandboxRun(null);
+  advanceRuntimeRevision(null);
 }
 
 export function refreshProductCatalog(force = false): Promise<boolean> {
   if (!remoteApiEnabled) return Promise.resolve(true);
   if (!force && productCatalogState.status === "ready") return Promise.resolve(true);
+
+  // A visible-page refresh is a newer observation, not merely another caller
+  // waiting for an older request. Advance the epoch so its late success/failure
+  // cannot overwrite the newer catalog snapshot.
+  if (force) {
+    catalogEpoch += 1;
+    refreshInFlight = null;
+  }
   if (refreshInFlight) return refreshInFlight;
 
   productCatalogState.status = "loading";
@@ -58,10 +82,17 @@ export function refreshProductCatalog(force = false): Promise<boolean> {
     .then((snapshot) => {
       if (requestEpoch !== catalogEpoch) return false;
       replaceProductCatalog(snapshot.products);
+      presentation.value = {
+        ...snapshot,
+        products: snapshot.products.map((product) => ({ ...product, name: nexGridBrandText(product.name) })),
+      };
       productCatalogState.status = "ready";
       productCatalogState.source = snapshot.source;
+      productCatalogState.sourceEnvironment = snapshot.sourceEnvironment;
+      productCatalogState.runId = snapshot.runId;
+      productCatalogState.serverCanonical = snapshot.serverCanonical;
       productCatalogState.revision = snapshot.revision;
-      setCurrentCommerceSandboxRun(snapshot.sourceEnvironment === "SANDBOX" ? snapshot.runId ?? null : null);
+      advanceRuntimeRevision(null);
       return true;
     })
     .catch((error: unknown) => {
@@ -70,8 +101,11 @@ export function refreshProductCatalog(force = false): Promise<boolean> {
       productCatalogState.status = "error";
       productCatalogState.error = error instanceof Error ? error.message : "PRODUCT_CATALOG_UNAVAILABLE";
       productCatalogState.source = "";
+      productCatalogState.sourceEnvironment = "";
+      productCatalogState.runId = "";
+      productCatalogState.serverCanonical = false;
       productCatalogState.revision = null;
-      setCurrentCommerceSandboxRun(null);
+      advanceRuntimeRevision(null);
       return false;
     })
     .finally(() => {

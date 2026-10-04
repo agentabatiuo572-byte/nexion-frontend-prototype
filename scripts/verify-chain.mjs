@@ -17,12 +17,16 @@
 // 读那一行,不读本文件;本文件只负责「怎么跑」。
 // 产物:.verify-cache/last-run.json(mode/tree/steps/verdict,给 Stop hook / 合并守卫读)、
 //       .verify-chain.code(第 1 行退出码,第 2 行摘要;老读法一个字不用改)、.verify-cache/logs/<step>.log。
+//       同一时间只允许一条链写这些固定路径；后来者在写入前以 exit 2 退出，避免假绿/假红。
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { ROOT, CACHE_DIR, LAST_RUN_PATH, loadManifest, plan, treeFingerprint, h5ProbeRoutesMap } from "./lib/verify-scope.mjs";
 import { ensureServer } from "./lib/dev-server-pool.mjs";
 import { findBash } from "./lib/find-bash.mjs";
+import { acquireVerifyRunLock } from "./lib/verify-run-lock.mjs";
+import { loadKnownRed, applyKnownRedToSteps } from "./lib/known-red.mjs";
+import { captureCommitCandidate, verifiedCommitCandidate } from "../.githooks/commit-verification.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (f) => argv.includes(f);
@@ -31,6 +35,17 @@ const requestedMode = flag("--static") ? "static" : flag("--scoped") ? "scoped" 
 const only = (opt("--only") || "").split(",").map((s) => s.trim()).filter(Boolean);
 const forceTypecheck = flag("--force-typecheck");
 const usePool = flag("--pool"); // 默认关:见头注释 ③
+const runLock = acquireVerifyRunLock(ROOT);
+if (!runLock.acquired) {
+  const owner = runLock.owner;
+  console.error(`VERIFY_CHAIN_BUSY: 已有 verify-chain 正在持有互斥锁${owner ? ` (pid=${owner.pid}, startedAt=${owner.startedAt || "?"})` : ""}；为防止覆写 .verify-cache/last-run.json、.verify-chain.code 与 logs，本次未执行。`);
+  process.exit(2);
+}
+// exit 回调是同步的；SIGKILL/断电留下的锁会由下一次基于已死 PID 的恢复逻辑接管。
+process.once("exit", () => runLock.release());
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+  process.once(signal, () => process.exit(130));
+}
 const LOG_DIR = path.join(CACHE_DIR, "logs");
 fs.mkdirSync(LOG_DIR, { recursive: true });
 
@@ -49,10 +64,12 @@ const manifest = loadManifest();
 const P = plan({ mode: requestedMode, manifest });
 const mode = P.mode;
 const fpStart = treeFingerprint();
+const commitStart = captureCommitCandidate(ROOT);
 // 🔴 开跑即写 verdict:"running" 占位:半路崩掉时,守卫不许拿**上一轮**的 pass 记录放行(headTree 没变时完全对得上)。
 try { fs.writeFileSync(LAST_RUN_PATH, JSON.stringify({ mode, verdict: "running", startedAt: new Date().toISOString(), tree: null, headTree: null, dirty: fpStart?.dirty ?? null, head: fpStart?.head || null, steps: [] }, null, 1)); } catch { /* 写不了占位不影响跑 */ }
 say(`${C.c}━━ verify-chain · mode=${mode}${P.upgraded ? `(请求 ${P.requested} → ${P.upgraded})` : ""} · ${STEPS.length} 步 · tree ${fpStart ? fpStart.fingerprint.slice(0, 10) : "?"}${fpStart?.dirty ? "(dirty)" : ""} ━━${C.n}`);
 if (P.changed) say(`${C.d}  改动集 ${P.changed.files.length} 个文件(base ${P.changed.base.slice(0, 10)} · ${P.changed.baseReason})${P.changed.files.length ? ":" + P.changed.files.slice(0, 12).join(", ") + (P.changed.files.length > 12 ? " …" : "") : ""}${C.n}`);
+if (P.additiveExempt && P.additiveExempt.length) say(`${C.d}  全局清单命中但只增不删(globalsAdditiveOk,i18n 纯加 key):${P.additiveExempt.join(", ")} → 不升档,只跑声明了它们为输入的门${C.n}`);
 
 // ── 子探针缩范围(h5Probes)────────────────────────────────────────────────────
 const h5Only = mode === "scoped"
@@ -60,26 +77,29 @@ const h5Only = mode === "scoped"
   : [];
 // 路由级范围(包 ax):scoped 时 h5 子探针各自的 PROBE_ROUTES 由 H5_PROBE_ROUTES(JSON,脚本名 → 路由串)下发,
 //   verify-h5-runtime.mjs 起子进程时逐个设;verify.sh 里的 route 类门由它自己的 plan 算(SCOPE_ROUTES_FOR[id])。
-//   缩范围变量一律清空 —— 外层 shell 残留值绝不能让 full 悄悄变半量。
+//   PROBE_ROUTES 本身一律清空 —— 外层 shell 残留的 PROBE_ROUTES 绝不能让 full 悄悄变半量。
 const h5OnlyEnv = mode === "scoped"
   ? { H5_RUNTIME_ONLY: h5Only.join(",") || "__none__", H5_PROBE_ROUTES: JSON.stringify(h5ProbeRoutesMap(P)), PROBE_ROUTES: "" }
-  : { H5_RUNTIME_ONLY: "", H5_PROBE_ROUTES: "", PROBE_ROUTES: "" };
+  : { H5_PROBE_ROUTES: "", PROBE_ROUTES: "" };
 if (mode === "scoped" && P.routes) say(`${C.d}  路由范围 ${P.routes.affected === "*" ? "全部" : `${P.routes.affected.length}/${P.routes.all.length}`}(${P.routes.reason});route 类探针只扫「这些 ∩ 探针射程」,门自身输入变了仍全扫${P.routes.affected !== "*" && P.routes.affected.length ? ":" + P.routes.affected.slice(0, 8).join(", ") + (P.routes.affected.length > 8 ? " …" : "") : ""}${C.n}`);
 
-// ── 起服(只在需要时、只起固定 mock server)──────────────────────────────────
+// ── 起服(只在需要时、只起一对)────────────────────────────────────────────────
 const NEEDS_SERVER = new Set(["test:h5-runtime", "test:legacy-suite"]);
 let pool = null;
 async function ensurePool() {
   if (pool || mode === "static" || !usePool) return pool;
   const t0 = Date.now();
-  const mock = await ensureServer({ root: ROOT, log: (m) => say(`${C.d}  pool: ${m}${C.n}`) });
-  pool = { mock, bootMs: Date.now() - t0 };
-  say(`${C.d}  pool: fixed mock ${mock.baseUrl}(起服 ${(pool.bootMs / 1000).toFixed(1)}s)${C.n}`);
+  const [development, production] = await Promise.all([
+    ensureServer({ root: ROOT, environment: "development", log: (m) => say(`${C.d}  pool: ${m}${C.n}`) }),
+    ensureServer({ root: ROOT, environment: "production", log: (m) => say(`${C.d}  pool: ${m}${C.n}`) }),
+  ]);
+  pool = { development, production, bootMs: Date.now() - t0 };
+  say(`${C.d}  pool: development ${development.baseUrl} · production ${production.baseUrl}(起服 ${(pool.bootMs / 1000).toFixed(1)}s)${C.n}`);
   return pool;
 }
 const poolEnv = () => pool ? {
-  H5_RUNTIME_REUSE_MOCK_URL: pool.mock.baseUrl,
-  LEGACY_SUITE_REUSE_MOCK_URL: pool.mock.baseUrl,
+  H5_RUNTIME_REUSE_DEV_URL: pool.development.baseUrl, H5_RUNTIME_REUSE_PROD_URL: pool.production.baseUrl,
+  LEGACY_SUITE_REUSE_DEV_URL: pool.development.baseUrl, LEGACY_SUITE_REUSE_PROD_URL: pool.production.baseUrl,
 } : {};
 
 // ── 单步执行 ─────────────────────────────────────────────────────────────────
@@ -87,10 +107,7 @@ const npmCli = [process.env.npm_execpath, path.join(path.dirname(process.execPat
 function runCommand(cmd, args, env, logFile) {
   return new Promise((resolve) => {
     const t0 = Date.now();
-    const childEnv = { ...process.env };
-    delete childEnv.BASE_URL;
-    delete childEnv.UNI_BASE_URL;
-    const child = spawn(cmd, args, { cwd: ROOT, env: { ...childEnv, ...env }, stdio: ["ignore", "pipe", "pipe"], shell: false });
+    const child = spawn(cmd, args, { cwd: ROOT, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"], shell: false });
     // 日志边跑边落盘(长步骤如 legacy-suite 十几分钟,`tail -f .verify-cache/logs/<step>.log` 能看进度),内存里只留尾巴给摘要用
     const stream = fs.createWriteStream(logFile, { flags: "w" });
     let out = "";
@@ -168,10 +185,28 @@ for (const step of STEPS) {
     (picked.length ? picked : tail.slice(-12)).forEach((l) => say(`    ${C.d}${l.slice(0, 200)}${C.n}`));
   }
 }
-if (pool) pool.mock.stop();
+if (pool) { try { pool.development.stop(); } catch { /* 起服子进程可能已退出 */ } try { pool.production.stop(); } catch { /* 同上 */ } }
 
 // ── 汇总 + 产物 ──────────────────────────────────────────────────────────────
+// The sibling checkout can change without this repository's fingerprint moving.
+// Recheck parity before publishing a full green receipt, using the same strong gate.
+const syncResult = results.find((result) => result.step === "test:app-h5-sync");
+if (mode === "full" && syncResult?.status === "PASS") {
+  const parity = await runCommand(process.execPath, [path.join(ROOT, "scripts", "app-h5-sync.mjs"), "check"], {}, path.join(LOG_DIR, "app-h5-sync-final.log"));
+  syncResult.ms += parity.ms;
+  syncResult.finalParity = parity.code === 0 ? "PASS" : "FAIL";
+  if (parity.code !== 0) {
+    syncResult.status = "FAIL";
+    syncResult.code = parity.code;
+    syncResult.reason = `Final APP/H5 parity failed: ${parity.out.trim().split(/\r?\n/).at(-1)}`;
+  }
+}
 const fpEnd = treeFingerprint();
+const commitEnd = captureCommitCandidate(ROOT);
+// 已知红(Tier 1-C):FAIL 步命中 scripts/known-red.json 未到期条目 → KNOWN-RED,不进 verdict;到期 → 仍 FAIL 并写明;清单本身坏了 → 追加一条 FAIL(门的门)。
+const knownRed = loadKnownRed();
+if (knownRed.problems.length) results.push({ step: "known-red.json", status: "FAIL", ms: 0, code: 2, reason: `已知红清单不可用:${knownRed.problems[0]}(node scripts/lib/known-red.mjs lint 看全部)` });
+else applyKnownRedToSteps(results, knownRed.steps);
 const count = (s) => results.filter((r) => r.status === s).length;
 const totalMs = results.reduce((a, r) => a + r.ms, 0);
 const treeMoved = !!(fpStart && fpEnd && fpStart.fingerprint !== fpEnd.fingerprint);
@@ -179,22 +214,25 @@ const failed = results.filter((r) => r.status === "FAIL" || r.status === "NOT-RU
 const verdict = failed.length ? "fail" : "pass";
 say(`\n${C.c}━━ verify-chain result · mode=${mode} · ${(totalMs / 1000 / 60).toFixed(1)} min ━━${C.n}`);
 for (const r of results) {
-  const col = r.status === "PASS" || r.status === "CACHED" ? C.g : r.status === "FAIL" || r.status === "NOT-RUN" ? C.r : C.y;
+  const col = r.status === "PASS" || r.status === "CACHED" ? C.g : r.status === "FAIL" || r.status === "NOT-RUN" ? C.r : C.y; // KNOWN-RED / SCOPED-SKIP 黄
   say(`  ${col}${r.status.padEnd(11)}${C.n} ${r.step.padEnd(34)} ${r.ms ? (r.ms / 1000).toFixed(1).padStart(7) + "s" : "".padStart(8)}${r.reason ? `  ${C.d}${String(r.reason).split(/\r?\n/)[0].slice(0, 120)}${C.n}` : ""}`);
 }
-say(`  ${C.g}PASS ${count("PASS")}${C.n} · ${C.g}CACHED ${count("CACHED")}${C.n} · ${C.r}FAIL ${count("FAIL")}${C.n} · ${C.y}SCOPED-SKIP ${count("SCOPED-SKIP")}${C.n} · ${C.r}NOT-RUN ${count("NOT-RUN")}${C.n} / ${STEPS.length} 步` +
+say(`  ${C.g}PASS ${count("PASS")}${C.n} · ${C.g}CACHED ${count("CACHED")}${C.n} · ${C.r}FAIL ${count("FAIL")}${C.n} · ${C.y}KNOWN-RED ${count("KNOWN-RED")}${C.n} · ${C.y}SCOPED-SKIP ${count("SCOPED-SKIP")}${C.n} · ${C.r}NOT-RUN ${count("NOT-RUN")}${C.n} / ${STEPS.length} 步` +
+    (count("KNOWN-RED") ? `${C.y} —— ${count("KNOWN-RED")} 步是已知红(scripts/known-red.json 有理由有到期日,不进 verdict;到期未清自动回红)${C.n}` : "") +
     (mode !== "full" ? `${C.y} —— 这是 ${mode} 档,不等于全量绿;宣布 done / 合并主线前仍须 full 一次${C.n}` : "") +
     (treeMoved ? `${C.r} —— ⚠ 跑的过程中工作树变了(${fpStart.fingerprint.slice(0, 10)} → ${fpEnd.fingerprint.slice(0, 10)}),本次结论不锚定任何一棵树,合并守卫不认${C.n}` : ""));
 
 const record = {
   mode, requestedMode: P.requested, upgraded: P.upgraded, verdict, treeMoved,
+  commitCandidate: verifiedCommitCandidate(commitStart, commitEnd, { mode, verdict, treeMoved }),
   startedTree: fpStart, endedTree: fpEnd,
   tree: !treeMoved && fpEnd ? fpEnd.fingerprint : null, headTree: !treeMoved && fpEnd ? fpEnd.headTree : null, dirty: fpEnd ? fpEnd.dirty : null,
   head: fpEnd?.head || null, at: new Date().toISOString(), totalMs,
   changed: P.changed ? { base: P.changed.base, count: P.changed.files.length } : null,
+  knownRed: results.filter((r) => r.status === "KNOWN-RED").map((r) => ({ step: r.step, until: r.knownRed?.until, why: r.knownRed?.why })),
   steps: results,
 };
 fs.writeFileSync(LAST_RUN_PATH, JSON.stringify(record, null, 1));
 const exitCode = verdict === "pass" ? 0 : 1;
-fs.writeFileSync(path.join(ROOT, ".verify-chain.code"), `${exitCode}\nmode=${mode} pass=${count("PASS") + count("CACHED")} fail=${count("FAIL")} scoped_skip=${count("SCOPED-SKIP")} not_run=${count("NOT-RUN")} tree=${record.tree || "moved"}\n`);
+fs.writeFileSync(path.join(ROOT, ".verify-chain.code"), `${exitCode}\nmode=${mode} pass=${count("PASS") + count("CACHED")} fail=${count("FAIL")} scoped_skip=${count("SCOPED-SKIP")} not_run=${count("NOT-RUN")} known_red=${count("KNOWN-RED")} tree=${record.tree || "moved"}\n`);
 process.exit(exitCode);

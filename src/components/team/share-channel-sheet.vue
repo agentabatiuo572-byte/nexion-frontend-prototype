@@ -3,17 +3,17 @@
   规格: PRD/specs/FEAT-SHARE01-invite-chain.md [FEAT-SHARE3]。
   渠道表来自 platform config(share.channels,顺序即展示序);intent 分派走
   lib/share.activateChannel(web 直开 / scheme 复制降级 / copy / system),poster
-  项切到海报面板(emit)。配置为空时兜底「复制+海报」两项,面板永不空(异常1)。
+  项切到海报面板(emit)。渠道只读服务端配置。
   cancel 为 ghost 弱权重(转化场景 cancel 必弱于渠道,nexgrid-design)。
 -->
 <template>
-  <view v-if="open">
+  <view v-if="open" class="ss-root" role="dialog" aria-modal="true" :aria-label="t.share.channelTitle">
     <view class="ss-mask" @click="emit('close')" />
-    <view class="ss-sheet">
+    <view class="nx-glass-sheet ss-sheet" role="dialog" aria-modal="true" :aria-label="t.share.channelTitle">
       <view class="ss-grab" />
       <view class="ss-head">
         <text class="ss-head__t">{{ t.share.channelTitle }}</text>
-        <view class="ss-head__x active:opacity-70" @click="emit('close')">
+        <view class="ss-head__x active:opacity-70" role="button" tabindex="0" :aria-label="t.ui.close" @click="emit('close')"  @keydown.enter.prevent="emit('close')" @keydown.space.prevent="emit('close')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
       </view>
@@ -21,12 +21,12 @@
         <text class="ss-reward__t">{{ rewardLineText }}</text>
       </view>
       <view class="ss-grid">
-        <view v-for="c in channels" :key="c.key" class="ss-ch active:scale-95" @click="onChannel(c)">
+        <view v-for="c in channels" :key="c.key" class="ss-ch active:scale-95" role="button" :tabindex="channelBusy ? -1 : 0" :aria-busy="channelBusy" :aria-disabled="channelBusy" @click="onChannel(c)"  @keydown.enter.prevent="onChannel(c)" @keydown.space.prevent="onChannel(c)">
           <view class="ss-ch__ic" :class="{ 'ss-ch__ic--hl': c.intentType === 'copy' || c.intentType === 'poster' }" v-html="channelMeta(c.key).svg" />
           <text class="ss-ch__lb">{{ channelMeta(c.key).label }}</text>
         </view>
       </view>
-      <view class="ss-cancel active:opacity-70" @click="emit('close')">
+      <view class="ss-cancel active:opacity-70" role="button" tabindex="0" @click="emit('close')"  @keydown.enter.prevent="emit('close')" @keydown.space.prevent="emit('close')">
         <text class="ss-cancel__t">{{ t.share.cancel }}</text>
       </view>
     </view>
@@ -34,32 +34,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, nextTick } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-import { toast } from "@/store/ui";
 import { useProductPhase } from "@/composables/use-product-phase";
-import { activateChannel, buildShareLink, INVITER_REWARD_USDT_ESTIMATE, visibleChannels } from "@/lib/share";
+import { activateChannel, INVITER_REWARD_USDT_ESTIMATE, visibleChannels } from "@/lib/share";
 import type { ShareChannelDef, ShareChannelKey } from "@/store/config-types";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useReferralReward } from "@/store/referral-reward";
+import { useConfig } from "@/store/config";
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
 
-defineProps<{ open: boolean }>();
+const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void; (e: "openPoster"): void }>();
 
 const t = useT();
 const phase = useProductPhase();
 const rewards = useReferralReward();
+const cfg = useConfig();
 
 // §8.1.1 口径:估值 × 阶段倍率(与邀请卡同一单源常量,F4)。
 const dollarReward = computed(() => Math.round(INVITER_REWARD_USDT_ESTIMATE * phase.value.inviteBonusMultiplier));
 const rewardLineText = computed(() => {
   if (remoteApiEnabled) {
+    if (rewards.snapshot?.rewardEnabled === false) return t.value.team.referralRewardsDisabled;
     const nex = rewards.snapshot?.inviterRewardNex;
     return nex === undefined
-      ? "Server invitation reward unavailable"
-      : `Server-set reward: ${nex.toLocaleString()} NEX per settled invitation`;
+      ? t.value.team.settlementUnavailable
+      : `${nex.toLocaleString()} NEX · ${t.value.team.serverRewardPerSettlement}`;
   }
+  if (!cfg.config.rewards.enabled) return t.value.team.referralRewardsDisabled;
   const base = fmt(t.value.share.rewardLine, { usd: dollarReward.value });
   const m = phase.value.inviteBonusMultiplier;
   if (m <= 1) return base;
@@ -67,15 +71,7 @@ const rewardLineText = computed(() => {
   return `${base} · ${promo}`;
 });
 
-// 渠道配置空 → 兜底两项,面板永不空(异常1)。
-const FALLBACK: ShareChannelDef[] = [
-  { key: "copy", intentType: "copy", enabled: true },
-  { key: "poster", intentType: "poster", enabled: true },
-];
-const channels = computed<ShareChannelDef[]>(() => {
-  const list = visibleChannels();
-  return list.length || remoteApiEnabled ? list : FALLBACK;
-});
+const channels = computed<ShareChannelDef[]>(() => visibleChannels());
 
 interface ChannelMeta {
   label: string;
@@ -108,36 +104,45 @@ function channelMeta(key: ShareChannelKey): ChannelMeta {
   }
 }
 
+const channelBusy = ref(false);
 async function onChannel(c: ShareChannelDef) {
-  if (!buildShareLink()) {
-    toast.info(t.value.share.linkUnavailable);
-    return;
-  }
+  if (channelBusy.value) return;
   if (c.intentType === "poster") {
     emit("openPoster");
     return;
   }
-  await activateChannel(c, "share_sheet", channelMeta(c.key).label);
+  channelBusy.value = true;
+  try {
+    await activateChannel(c, "share_sheet", channelMeta(c.key).label);
+  } finally {
+    channelBusy.value = false;
+  }
 }
+
+useDialogA11y(computed(() => props.open), ".ss-root", () => emit("close"));
+
+
 </script>
 
 <style scoped>
 .ss-mask { position: fixed; inset: 0; background: var(--v5-bg-color-mask); backdrop-filter: blur(3px); z-index: 8000; }
-.ss-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001; background: var(--v5-surface); border-top: 1px solid var(--v5-border-strong); border-radius: 22px 22px 0 0; max-height: 80vh; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 38px); animation: ss-up 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+.ss-sheet { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge); position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001; background: var(--nx-glass-fill); border: none;  max-height: 80vh; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 38px); animation: ss-up 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes ss-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .ss-grab { width: 40px; height: 4px; border-radius: 9999px; background: var(--v5-surface-3); margin: 10px auto 0; }
 .ss-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 0; }
 .ss-head__t { font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); }
 /* 44×44 点按区(移动端最小触控标准,对齐 tradein-ladder-sheet 既有修法)。 */
 .ss-head__x { width: 44px; height: 44px; border-radius: 9999px; background: var(--v5-surface-2); display: flex; align-items: center; justify-content: center; }
-.ss-reward { margin: 10px 16px 0; border-radius: 12px; background: color-mix(in srgb, var(--v5-brand) 8%, transparent); padding: 10px 12px; }
+.ss-reward { margin: 10px 16px 0; min-height: 65px; box-sizing: border-box; border-radius: 12px; background: color-mix(in srgb, var(--v5-brand) 8%, transparent); padding: 10px 12px; display: flex; align-items: center; }
 .ss-reward__t { font-size: 12px; color: var(--v5-ink-2); line-height: 1.55; text-wrap: pretty; }
-.ss-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 6px; padding: 14px 16px 4px; }
-.ss-ch { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; min-height: 44px; }
+.ss-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; padding: 14px 16px 4px; }
+.ss-ch { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 44px; }
 .ss-ch__ic { width: 48px; height: 48px; border-radius: 9999px; background: var(--v5-surface-2); color: var(--v5-ink-2); display: flex; align-items: center; justify-content: center; }
 .ss-ch__ic--hl { background: color-mix(in srgb, var(--v5-brand) 14%, transparent); color: var(--v5-brand); }
-.ss-ch__lb { font-size: 12px; color: var(--v5-ink-3); width: 100%; text-align: center; line-height: 1.3; overflow-wrap: anywhere; }
+.ss-ch__lb { font-size: 12px; color: var(--v5-ink-3); max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 转化场景 cancel 必须弱于主操作:ghost、font-normal、ink-3。 */
 .ss-cancel { margin: 8px 16px 16px; min-height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 .ss-cancel__t { font-size: 13px; font-weight: 400; color: var(--v5-ink-3); }
+.ss-sheet [tabindex="0"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .ss-sheet { animation: none; } }
 </style>

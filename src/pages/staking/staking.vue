@@ -18,7 +18,7 @@
            ③ 与下面的 remoteError 分支解耦成独立 v-if:挂在同一条 v-else-if 链上时,这道闸一旦为假
            就会把 remoteError 分支放出来,是个只等某天 mock 下写了 remoteError 就会炸的暗雷。
            i18n-en-ok: 工程话诊断横幅,仅 DEV + mock 档渲染 -->
-      <text v-if="isDevBuild && staking.isMockMode" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)">{{ t.publicCopy.experienceMode }}</text>
+      <text v-if="isDevBuild && staking.isMockMode" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)">Dev build · mock data</text>
       <text v-if="staking.remoteError" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-danger)">{{ t.staking.remoteUnavailableClosed }}</text>
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
@@ -33,7 +33,7 @@
               <text :style="metaLabelStyle">{{ t.stakingV3.totalLocked }}</text>
               <view class="flex items-center" style="gap: 8px">
                 <text v-if="activePositions.length > 0" :style="earningChipStyle">{{ t.stakingV3.earningChip }}</text>
-                <view class="inline-flex items-center shrink-0 active:opacity-80" :style="howPillStyle" @click="goHowItWorks">
+                <view class="inline-flex items-center shrink-0 active:opacity-80" :style="howPillStyle" role="link" tabindex="0" :aria-label="t.stakingV3.howItWorksEntry" @click="goHowItWorks">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
                   <text style="margin: 0 6px">{{ t.stakingV3.howItWorksEntry }}</text>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
@@ -73,21 +73,23 @@
         <view class="flex items-center" :style="secHeaderStyle">
           <text :style="secTitleStyle">{{ t.stakingV3.stakePlans }}</text>
         </view>
-        <view :style="vaultCardStyle">
+        <view v-if="stakingConfigAvailable" class="nx-glass-card" :style="vaultCardStyle">
           <VaultRow
             v-for="(term, i) in TERMS"
             :key="term"
             :term="term"
-            :apy="staking.pools.find((pool) => pool.termDays === term)?.apy ?? (staking.isMockMode ? STAKING_APY[term] : 0)"
-            :penalty="staking.pools.find((pool) => pool.termDays === term)?.penalty ?? (staking.isMockMode ? STAKING_PENALTY[term] : 0)"
-            :min="staking.pools.find((pool) => pool.termDays === term)?.minAmountUsdt ?? (staking.isMockMode ? STAKING_MIN[term] : 0)"
+            :apy="poolForTerm(term)?.apy ?? 0"
+            :penalty="poolForTerm(term)?.penalty ?? 0"
+            :min="poolForTerm(term)?.minAmountUsdt ?? 0"
             :blurb="t.stakingV3.blurb[term]"
             :penalty-suffix="t.stakingV3.penaltySuffix"
             :ribbon="RIBBONS[term]"
             :is-last="i === TERMS.length - 1"
+            :disabled="!canOpenPool(term)"
             @open="openSheet(term)"
           />
         </view>
+        <view v-else :style="noticeStyle"><text>{{ t.staking.remoteUnavailableClosed }}</text></view>
 
         <!-- CompoundCalculator -->
         <CompoundCalculator />
@@ -98,8 +100,9 @@
         </view>
         <view style="display: flex; flex-direction: column; gap: 10px">
           <!-- 《06》no-owned-asset:无持仓是转化型空态。不给 CTA —— 方案列表就在这块的正上方,
-               再放一个按钮等于让用户往回点,反而多余;文案直接指路。 -->
-          <EmptyState v-if="positions.length === 0" kind="no-owned-asset" :title="t.empty.stakingTitle" :desc="t.empty.stakingDesc" compact />
+               再放一个按钮等于让用户往回点,反而多余;文案直接指路。
+               一个可售方案都没有时不能再承诺「锁定 USDT,睡觉也在赚」:那笔收益此刻买不到。 -->
+          <EmptyState v-if="positions.length === 0" kind="no-owned-asset" :title="t.empty.stakingTitle" :desc="anyPlanSellable ? t.empty.stakingDesc : stakingConfigAvailable ? t.home.quickStakeStopped : t.staking.remoteUnavailableClosed" compact />
           <StakePositionRow
             v-for="p in positions"
             v-else
@@ -122,6 +125,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatStakingPercentage } from "@/lib/staking-percentage";
+import { navTo } from "@/lib/route";
 import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -136,15 +141,10 @@ import { fmt } from "@/i18n/format";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { postMoneyBill, reportStuckFunds } from "@/lib/money-receipt";
 import { useApp } from "@/store/app";
-import {
-  useStaking,
-  STAKING_APY,
-  STAKING_PENALTY,
-  STAKING_MIN,
-  type StakingTerm,
-  type StakingPosition,
-} from "@/store/staking";
+import { useStaking, STAKING_APY, STAKING_PENALTY, STAKING_MIN, type StakingTerm, type StakingPosition } from "@/store/staking";
 import { confirm as uiConfirm, toast } from "@/store/ui";
+import { canOpenStakingPool, resolvePositionPenalty, resolveStakingPool } from "@/lib/staking-canonical";
+import { createRemoteIntentGate } from "@/lib/g-remote-intent";
 
 const ONE_DAY_MS = 86400 * 1000;
 const TERMS: StakingTerm[] = [30, 90, 180, 365];
@@ -157,31 +157,43 @@ const RIBBONS = computed<Partial<Record<StakingTerm, { label: string; tone: "cya
 }));
 const staking = useStaking();
 const app = useApp(); // 仅用于 reportStuckFunds 取当前资金快照(入待对账队列)
+const stakingConfigAvailable = computed(() => staking.isMockMode || staking.remoteReady);
+function canOpenPool(term: StakingTerm) {
+  return canOpenStakingPool(staking, term);
+}
+/** 当前是否有**可售**方案(与方案行的 disabled 同源)。空态文案与计算器都以它为准。 */
+const anyPlanSellable = computed(() => TERMS.some((term) => canOpenPool(term)));
+
+function poolForTerm(term: StakingTerm) {
+  return resolveStakingPool(
+    { isMockMode: staking.isMockMode, remoteReady: staking.remoteReady, pools: staking.pools },
+    term,
+    { apy: STAKING_APY[term], penalty: STAKING_PENALTY[term], minAmountUsdt: STAKING_MIN[term] },
+  );
+}
 
 const sheetOpen = ref(false);
 const sheetTerm = ref<StakingTerm | null>(null);
 const pendingRemoteMutations = ref(new Set<string>());
-const remoteMutationKeys = new Map<string, string>();
-
-function intentKey(kind: "claim" | "early", positionNo: string) {
-  const intent = `${kind}:${positionNo}`;
-  const existing = remoteMutationKeys.get(intent);
-  if (existing) return { intent, key: existing };
-  const key = `G1-${kind.toUpperCase()}-${positionNo}-${Date.now().toString(36)}`;
-  remoteMutationKeys.set(intent, key);
-  return { intent, key };
-}
+const remoteMutationGate = createRemoteIntentGate("G1");
 
 async function runRemoteMutation(kind: "claim" | "early", positionNo: string) {
-  const { intent, key } = intentKey(kind, positionNo);
+  let lease;
+  try {
+    lease = remoteMutationGate.acquire(app.accountKey, kind, { positionNo });
+  } catch {
+    return false;
+  }
+  const intent = lease.fingerprint;
   if (pendingRemoteMutations.value.has(intent)) return false;
   pendingRemoteMutations.value = new Set([...pendingRemoteMutations.value, intent]);
   try {
-    if (kind === "claim") await staking.claimRemote(positionNo, key);
-    else await staking.earlyWithdrawRemote(positionNo, key);
-    remoteMutationKeys.delete(intent);
+    if (kind === "claim") await staking.claimRemote(positionNo, lease.key);
+    else await staking.earlyWithdrawRemote(positionNo, lease.key);
+    remoteMutationGate.complete(lease, true);
     return true;
   } catch {
+    remoteMutationGate.complete(lease, false);
     // The request may have reached the service even when its response is unknown.
     await staking.syncRemote();
     return false;
@@ -198,8 +210,14 @@ let timer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
   if (!staking.isMockMode) {
     // syncRemote 自吞不 reject(resilience 门);失败信号走返回值。
-    void staking.syncRemote().then((ok) => { if (!ok) toast.error(t.value.stakingV3.toast.staleTitle); });
-    timer = setInterval(() => { void staking.syncRemote(); }, 4000);
+    void staking.syncRemote().then((ok) => {
+      nowTs.value = staking.currentTime();
+      if (!ok) toast.error(t.value.stakingV3.toast.staleTitle);
+    });
+    timer = setInterval(() => {
+      nowTs.value = staking.currentTime();
+      void staking.syncRemote().then(() => { nowTs.value = staking.currentTime(); });
+    }, 4000);
     return;
   }
   staking.markMatured();
@@ -218,12 +236,11 @@ const maturedCount = computed(() => positions.value.filter((p) => p.status === "
 const totalLocked = computed(() => activePositions.value.reduce((s, p) => s + p.amountUSDT, 0));
 
 const totalAccrued = computed(() => {
-  void nowTs.value;
-  const now = Date.now();
+  const now = nowTs.value;
   return positions.value
     .filter((p) => p.status === "active" || p.status === "matured")
     .reduce((s, p) => {
-      const elapsed = Math.min(now, p.unlockTs) - p.startTs;
+      const elapsed = Math.max(0, Math.min(now, p.unlockTs) - p.startTs);
       const yrs = elapsed / (365 * ONE_DAY_MS);
       return s + p.amountUSDT * p.apy * yrs;
     }, 0);
@@ -238,14 +255,15 @@ const avgAPY = computed(() => {
 const totalLockedText = computed(() => totalLocked.value.toFixed(2));
 const todayAccruedText = computed(() => todayAccrued.value.toFixed(2));
 const totalAccruedText = computed(() => totalAccrued.value.toFixed(2));
-const avgApyText = computed(() => (totalLocked.value > 0 ? `${(avgAPY.value * 100).toFixed(1)}%` : "—"));
+const avgApyText = computed(() => (totalLocked.value > 0 ? `${formatStakingPercentage(avgAPY.value)}%` : "—"));
 
 function openSheet(term: StakingTerm) {
+  if (!canOpenPool(term)) return;
   sheetTerm.value = term;
   sheetOpen.value = true;
 }
 function goHowItWorks() {
-  uni.navigateTo({ url: "/pages/staking/how-it-works", fail: () => {} });
+  navTo("/pages/staking/how-it-works");
 }
 
 /**
@@ -287,13 +305,17 @@ function reportStakingFailure(reason: unknown, fallbackTitle: string) {
 }
 
 async function handleEarlyWithdraw(p: StakingPosition) {
-  const penaltyRate = STAKING_PENALTY[p.termDays];
+  const penaltyRate = resolvePositionPenalty(p, staking.isMockMode, STAKING_PENALTY[p.termDays]);
+  if (penaltyRate === null) {
+    reportStakingFailure(null, t.value.staking.remoteUnavailableClosed);
+    return;
+  }
   const penalty = (p.amountUSDT * penaltyRate).toFixed(2);
   const refund = (p.amountUSDT * (1 - penaltyRate)).toFixed(2);
   const ok = await uiConfirm({
     title: t.value.stakingV3.toast.earlyConfirmTitle,
     message: fmt(t.value.stakingV3.toast.earlyConfirmMessage, {
-      penaltyPct: (penaltyRate * 100).toFixed(0),
+      penaltyPct: formatStakingPercentage(penaltyRate),
       penalty,
       refund,
     }),
@@ -325,7 +347,7 @@ async function handleEarlyWithdraw(p: StakingPosition) {
       symbol: "USDT",
       amount: r.refund,
       status: "posted",
-      memo: `Stake early withdraw · ${p.id} (penalty $${r.penalty.toFixed(2)})`,
+      memo: `Stake early withdraw · ${p.id} (penalty ${r.penalty.toFixed(2)})`,
       ref: `STAKE-EW-${p.id}`,
     }, { silentFailure: true });
     if (out === "failed") reportStuckFunds(app.captureMoney(), `STAKE-EW-${p.id}`);
@@ -370,7 +392,7 @@ async function handleClaim(p: StakingPosition) {
       symbol: "USDT",
       amount: r.principal + r.interest,
       status: "posted",
-      memo: `Stake claim · ${p.id} (interest $${r.interest.toFixed(2)})`,
+      memo: `Stake claim · ${p.id} (interest ${r.interest.toFixed(2)})`,
       ref: `STAKE-CLAIM-${p.id}`,
     }, { silentFailure: true });
     if (out === "failed") reportStuckFunds(app.captureMoney(), `STAKE-CLAIM-${p.id}`);
@@ -481,9 +503,9 @@ const countStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
 };
 // Form-b: single filled container, no border — VaultRow supplies internal hairlines.
-const vaultCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const vaultCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "0 16px",
 };
 // Empty state — dashed outline, no fill (de-card empty-state idiom).
@@ -503,4 +525,6 @@ const noticeStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
   lineHeight: 1.45,
 };
+
+
 </script>

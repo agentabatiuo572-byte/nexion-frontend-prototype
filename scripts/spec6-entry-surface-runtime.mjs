@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 import { collectAppConsoleErrors } from "./lib/console-origin-filter.mjs";
 import { directAppUrl } from "./lib/direct-app-url.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 import { scopeRoutes, concurrencyFromEnv } from "./lib/probe-routes.mjs";
 import {
   assertDirectPageCoverage,
@@ -70,6 +71,7 @@ async function checkRoute(browser, route) {
     const consoleErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     page.on("console", collectAppConsoleErrors(consoleErrors, baseUrl));
+    await installFormalProbeSession(page, { authenticated: false });
     await page.addInitScript((keys) => {
       for (const key of keys) localStorage.removeItem(key);
     }, businessStorageKeys);
@@ -79,6 +81,15 @@ async function checkRoute(browser, route) {
     });
     await page.locator("body").waitFor({ state: "visible", timeout: 10000 });
     await page.waitForTimeout(4700);
+    // A cold route transform can outlast the fixed stability pause when the
+    // full verification suite loads the same machine. Require rendered text
+    // before taking the direct-page witness; the assertions below still check
+    // the expected route, UniApp identity, and semantic page selector.
+    await page.waitForFunction(
+      () => (document.body?.innerText || "").trim().length > 0,
+      undefined,
+      { timeout: 30_000 },
+    );
     const text = await page.locator("body").innerText({ timeout: 5000 });
     const requiredSelector = requiredSelectors.get(route.split("?", 1)[0]);
     if (!requiredSelector) throw new Error(`${route} has no semantic identity selector`);

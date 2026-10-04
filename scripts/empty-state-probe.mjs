@@ -11,10 +11,121 @@
 import { chromium } from "playwright";
 import { scopeRoutes, mapRoutes, settleNetwork } from "./lib/probe-routes.mjs";
 import { collectAppConsoleErrors, isThirdPartyResourceError } from "./lib/console-origin-filter.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 
 // 端口来源:UNI_BASE_URL 优先,再退 BASE_URL(verify.sh 统一名)——只认前者会在非 5173 端口静默打到别的工程树。
 const BASE = process.env.UNI_BASE_URL || process.env.BASE_URL || "http://localhost:5173";
 const THEME = process.argv.includes("--theme") ? process.argv[process.argv.indexOf("--theme") + 1] : "dark";
+
+function formalEmptyResponse(url) {
+  if (url.pathname === "/api/withdrawals/bank/config") return { enabled: false, banks: [], beneficiary: null, bankRoutingVerified: false };
+  // An empty commission history is a successful canonical read. The page
+  // also needs valid policy and member projections before showing its empty state.
+  if (url.pathname === "/api/config/commission/rates") return {
+    source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: null,
+    unilevel: [10, 5, 3, 2, 1, 0.5, 0.5].map((usdtPct, i) => ({ level: `L${i + 1}`, usdtPct, nexReward: 0 })),
+    unilevelPaused: Object.fromEntries(Array.from({ length: 7 }, (_, i) => [`L${i + 1}`, false])),
+    partnerTiersJson: JSON.stringify({ standard: 0, verified: 5000, premium: 50000, diamond: 500000 }),
+    influenceClampMin: 1, influenceClampMax: 5, coolingDays: 12, promoMultiplier: 1,
+  };
+  if (url.pathname === "/api/app/team/network") return {
+    source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    totalMembers: 0, directMembers: 0, activeMembers: 0, monthVolumeUsdt: 0, lifetimeVolumeUsdt: null,
+    members: [], generatedAt: "2026-09-14T00:00:00Z", nextCursor: null,
+  };
+  if (url.pathname === "/api/app/team/insights/unilevel") return {
+    source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    period: "month", page: 1, pageSize: 20, totalRows: 0, events: [],
+    split: { direct: { amountUSDT: 0, amountNEX: 0, count: 0 }, extended: { amountUSDT: 0, amountNEX: 0, count: 0 } },
+    generatedAt: "2026-09-14T00:00:00Z", snapshotAt: "2026-09-14T00:00:00Z",
+  };
+  // An unavailable exchange read is not an empty history. Supply the complete
+  // canonical response so this probe exercises the actual empty-list branch.
+  if (url.pathname === "/api/exchange") {
+    const caps = { asset: "NEX", currency: "USDT", currentPrice: 0.125,
+      userDailyCapUsdt: 50, platformDailyCapUsdt: 20000, feePct: 0, feeMinUsdt: 0.5,
+      minUsdt: 3, minNex: 42, queueMode: "QUEUE", swapEnabled: false,
+      serverCanonical: true, source: "G2/G3 server configuration", sourceEnvironment: "PRODUCTION", runId: "" };
+    return { ...caps, caps, wallet: { usdtAvailable: 0, nexAvailable: 0 },
+      todayUserUsedUsdt: 0, todayPlatformUsedUsdt: 0, lifetimeExchangedUsdt: 0,
+      orders: [], ordersPage: { total: 0, pageNum: 1, pageSize: 20 } };
+  }
+  if (url.pathname === "/api/notifications") return { items: [], nextCursor: null, unread: 0 };
+  // Voucher emptiness requires a successful canonical catalog, not an empty
+  // object that the production parser correctly treats as an unavailable read.
+  if (url.pathname === "/api/vouchers") return {
+    source: "nx_growth_voucher + nx_growth_voucher_grant", serverCanonical: true, vouchers: [],
+    provenance: { source: "nx_growth_voucher", sourceEnvironment: "PRODUCTION", runId: "" },
+  };
+  // History reads have a page envelope, not the account/public-state envelope.
+  // A malformed fixture must not turn a valid empty list into an outage screen.
+  if ((url.pathname === "/api/genesis/account" && ["orders", "emissions"].includes(url.searchParams.get("history")))
+      || (url.pathname === "/api/genesis/state" && ["listings", "transactions"].includes(url.searchParams.get("history")))) {
+    return { serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "", items: [], nextCursor: null };
+  }
+  const eligibility = {
+    eligible: false,
+    reasons: ["NO_ACTIVE_HOLDINGS"],
+    qualificationReasonCodes: ["NO_ACTIVE_HOLDINGS"],
+    ownedCount: 0,
+    maxPerUser: 20,
+    remainingCap: 20,
+    minAccountAgeDays: 0,
+    accountAgeDays: 1,
+    halted: false,
+    status: "NOT_ELIGIBLE",
+    reservedAllocation: 0,
+    reservedAllocationUnit: "NEX",
+    priorityRank: null,
+    priorityTier: "NONE",
+    policyVersion: "formal-empty-v1",
+    effectiveAt: "2026-09-01T00:00:00Z",
+    asOf: "2026-09-02T00:00:00Z",
+    serverTime: "2026-09-02T00:00:01Z",
+    provenance: { source: "nx_genesis_holding+nx_config_item", environment: "PRODUCTION", runId: "" },
+    serverCanonical: true,
+    source: "nx_genesis_holding+nx_config_item",
+    sourceEnvironment: "PRODUCTION",
+    runId: "",
+  };
+  if (url.pathname === "/api/app/wallet/bills") return {
+    source: "server", sourceEnvironment: "PRODUCTION", bills: [], page: 1, pageSize: 50, total: 0, nextPage: null, nextCursor: null,
+  };
+  if (url.pathname === "/api/app/wallet/bills/summary") return {
+    source: "server", sourceEnvironment: "PRODUCTION", timeZone: "UTC", asOf: "2026-09-02T00:00:00Z",
+    rewardsUsdt: 0, rewardsNex: 0, latestRewardAt: null, todayNexEarn: 0, pendingNex: 0, monthBillCount: 0, recentNexBills: [],
+  };
+  if (url.pathname === "/api/orders") return {
+    source: "server", sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true, orders: [],
+  };
+  if (url.pathname === "/api/genesis/account") return {
+    sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true, source: "nx_genesis_holding+nx_config_item",
+    series: { seriesCode: "GENESIS-MAIN", name: "Genesis", totalSupply: 1000, soldSupply: 0, remainingSupply: 1000, priceUsdt: 10, royaltyPct: 0, dailyEmissionRatePct: 0 },
+    sale: { serverCanonical: true, available: false, eligibilityEnabled: true, maxPerUser: 20, minAccountAgeDays: 0, presaleEnabled: false, showCountdown: false, unitPriceUsdt: 10, open: false },
+    marketEnabled: false, emissionOpen: false, holdings: [], emissions: [], orders: [], walletBalanceUsdt: 0, eligibility,
+  };
+  if (url.pathname === "/api/genesis/eligibility") return eligibility;
+  if (url.pathname === "/api/genesis/state") return {
+    serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "", halted: false, revision: "formal-empty-v1",
+    source: "nx_emergency_control_setting:killswitch.genesis",
+    series: { seriesCode: "genesis-main", name: "Genesis", totalSupply: 1000, soldSupply: 0, remainingSupply: 1000, priceUsdt: 10, royaltyPct: 0, dailyEmissionRatePct: 0 },
+    market: { enabled: false }, emission: { open: false },
+    sale: { serverCanonical: true, available: false, eligibilityEnabled: true, maxPerUser: 20, minAccountAgeDays: 0, presaleEnabled: false, showCountdown: false, unitPriceUsdt: 10, open: false },
+    listings: [], transactions: [], tiers: [{ id: "tier-1", from: 0, to: 1000, priceUSDT: 10 }], tiersVersion: 1,
+    marketOpenState: "closed", marketOpenStateVersion: 1, closedNoticeKey: "default", showcaseEnabled: true,
+    catalogAvailable: true, tradeAvailable: false, tradeBlockedReason: "SALE_POLICY_UNAVAILABLE",
+    marketStats: { floorUsdt: null, volume24hUsdt: null, owners: null, floorDeltaPct: null, lastSaleUsdt: null },
+  };
+  if (url.pathname === "/api/store/catalog") return {
+    source: "nx_product", sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true, revision: null, products: [],
+  };
+  if (url.pathname === "/api/store/bundle-discount") return {
+    source: "server", serverCanonical: true, policyVersion: 1,
+    tiers: [{ minItems: 2, rate: 0.05 }, { minItems: 3, rate: 0.08 }, { minItems: 4, rate: 0.1 }],
+  };
+  if (url.pathname === "/api/product/phase") return { phase: "P1", source: "H1_GROWTH_RHYTHM", devOverrideAllowed: false };
+  return undefined;
+}
 
 // 接了 EmptyState 的页面(与 docs/changes/2026-07-23-c5-empty-states.md 的映射表一致)
 // 多数页面的列表数据在 pinia store 里,清空数组就够。但有几个页面的数据源是**代码常量**
@@ -37,7 +148,10 @@ const ROUTES = [
   { r: "pages/events/events", unreachable: "按 tab 过滤 EVENTS 常量,需切到无结果的 tab" },
   { r: "pages/team/commissions" },
   { r: "pages/me/help", type: TYPE_JUNK },
-  { r: "pages/me/wallet-cards" },
+  // Both existing entries open the account/holder binding form. No saved-card
+  // state or successful binding may be invented while its adapter is absent.
+  { r: "pages/me/wallet-cards", cardEntry: true },
+  { r: "pages/me/wallet-cards-new", cardEntry: true },
   { r: "pages/store/orders" },
   { r: "pages/me/notifications" },
   { r: "pages/me/receipts" },
@@ -124,10 +238,14 @@ const SCOPE = scopeRoutes(ROUTES, "空状态探针", (spec) => spec.r);
 const SPECS = SCOPE.routes;
 // 包 ax:N 条 lane(各自独立 context / 渲染进程)并行各扫一页(PROBE_CONCURRENCY,默认 3);每页仍是原节奏,判据不动;console error 按 lane page 各记各的。
 const errorsOf = new WeakMap();
+const formalSessionSet = new WeakSet();
 const consoleErrorsFor = (page) => {
   if (!errorsOf.has(page)) {
     const arr = []; errorsOf.set(page, arr);
     page.setDefaultTimeout(20000);
+    // Cold Vite transforms can delay navigation without changing the empty
+    // state assertion. Keep element/action waits bounded separately above.
+    page.setDefaultNavigationTimeout(60000);
     page.on("console", (m) => {
       if (m.type() === "error" && !/favicon/i.test(m.text()) && !isThirdPartyResourceError(m.text(), m.location?.().url, BASE)) arr.push(m.text().slice(0, 90));
     });
@@ -136,14 +254,64 @@ const consoleErrorsFor = (page) => {
 };
 
 const rows = await mapRoutes(browser, SPECS, async (page, spec, _i, lanes) => {
+  if (!formalSessionSet.has(page)) { await installFormalProbeSession(page, { responseFor: formalEmptyResponse }); formalSessionSet.add(page); }
   const i = ROUTES.indexOf(spec);
   const route = spec.r;
   const consoleErrors = consoleErrorsFor(page);
   const before = consoleErrors.length;
+  const cardRequests = [];
+  const recordCardRequest = request => {
+    // App boot already reads the server's saved-card projection. Reads are not
+    // binding; no card mutation or field-bearing request may leave this form.
+    if (/\/api\/payment-methods(?:\/|$|\?)/.test(request.url()) && request.method() !== "GET") cardRequests.push(request.method());
+    if (/\/api\/withdrawals\/bank(?:\/|$|\?)/.test(request.url()) && request.method() !== "GET") cardRequests.push("BANK_MUTATION");
+    if (/\/(api|auth)\//.test(request.url()) && /00123456789|TEST USER/.test(request.postData() || "")) cardRequests.push("FIELD_DATA");
+  };
+  if (spec.cardEntry) page.on("request", recordCardRequest);
   try {
     await page.goto(`${BASE}/?nx_device=off&es=${i}#/${route}`, { waitUntil: "domcontentloaded" });
     await settleNetwork(page, 5000, lanes); // 包 ax:并行时 dev server 忙,先等本页网络空闲(有界),再走原来的固定等待;实际 1 lane 时空转(F-04 / R2-03)
     await page.waitForTimeout(1300);
+    if (spec.cardEntry) {
+      await page.waitForURL(url => url.hash.split("?")[0] === "#/pages/me/wallet-cards-new");
+      await page.evaluate(theme => document.querySelector("#app")?.__vue_app__?.config?.globalProperties?.$pinia?._s.get("theme")?.setMode(theme), THEME);
+      await page.getByTestId("bank-account-binding").waitFor({ state: "visible" });
+      const form = page.getByTestId("bank-account-binding");
+      const fields = form.locator("input"), account = form.locator('[data-testid="bank-account"] input'), holder = form.locator('[data-testid="bank-holder"] input');
+      if (await fields.count() !== 2 || await account.count() !== 1 || await holder.count() !== 1) throw new Error("Bank binding must contain only account and holder inputs");
+      for (const field of [account, holder]) if (await field.isEditable()) throw new Error("Unverified bank routing must disable account/holder input");
+      if (!await form.locator(".error-note").isVisible()) throw new Error("Unverified bank routing notice is missing");
+      if (await form.locator('[data-testid="bank-expiry"], [data-testid="bank-cvv"]').count()) throw new Error("Bank binding must not display expiry or CVV placeholders");
+      const backButtons = page.getByRole("button", { name: "Back", exact: true });
+      if (await backButtons.count() !== 1) throw new Error("Original header exit missing or duplicated");
+      const back = backButtons.first();
+      await back.waitFor({ state: "visible" });
+      await back.click({ trial: true }); // Measure after the page entrance animation, without navigating.
+      const bounds = await back.boundingBox();
+      if (!bounds || bounds.height < 44 || bounds.width < 44) throw new Error("Header exit smaller than 44px");
+      if (await back.getAttribute("tabindex") !== "0") throw new Error("Header exit is not keyboard reachable");
+      const forbidden = page.locator('.nx-empty, [data-testid="card-simulation-badge"], [data-testid="wallet-card-set-default"], [data-testid="wallet-card-unbind"], [data-testid="wallet-cards-retry"]');
+      if (await forbidden.count()) throw new Error("Card entry invents simulation or saved-card state");
+      if (await page.getByText(/Bank-card binding is not available yet|Local development simulation:|Test cards only verify bind/).count()) throw new Error("Card entry shows the removed hold or simulation copy");
+      const overflow = await page.evaluate(() => document.scrollingElement.scrollWidth > document.scrollingElement.clientWidth + 1);
+      if (overflow) throw new Error("Card form overflows horizontally");
+      const submit = page.getByTestId("bank-bind-continue");
+      if (await submit.getAttribute("aria-disabled") !== "true") throw new Error("Empty form can submit");
+      const submitBounds = await submit.boundingBox();
+      if (!submitBounds || submitBounds.height < 44 || await submit.getAttribute("tabindex") !== "0") throw new Error("Submit touch/keyboard target regressed");
+      if (await submit.getAttribute("aria-disabled") !== "true") throw new Error("Missing direct-binding capability must prevent submission");
+      await submit.press("Enter");
+      if (await page.locator('[data-testid="bank-otp"], [data-testid="bank-select"]').count()) throw new Error("BANKQR must not show bank selection or OTP");
+      if (cardRequests.length) throw new Error("Entry requested/sent card data with no real adapter");
+      await back.press("Enter");
+      await page.waitForURL(url => url.hash.split("?")[0] === "#/pages/me/wallet");
+      await page.getByText("My bank cards", { exact: true }).click();
+      await page.waitForURL(url => url.hash.split("?")[0] === "#/pages/me/wallet-cards-new");
+      await account.waitFor({ state: "visible" });
+      for (const field of [account, holder]) if (await field.inputValue() !== "") throw new Error("Bank account draft survives leaving the page");
+      if (cardRequests.length) throw new Error("Leaving the form requested/sent card data");
+      return { route, cardEntry: true, exitVerified: true, tabs: 0, newErrors: consoleErrors.length - before };
+    }
     // 常量数据源的页面:往搜索框打不可能命中的词
     if (spec.type) {
       await page.evaluate((junk) => {
@@ -200,7 +368,10 @@ const rows = await mapRoutes(browser, SPECS, async (page, spec, _i, lanes) => {
     const tabRes = res.empty ? await page.evaluate(TAB_SWEEP) : { tabs: 0, note: "落地屏已判红,跳过页签" };
     return { route, unreachable: spec.unreachable, ...res, ...tabRes, newErrors: consoleErrors.length - before };
   } catch (e) {
+    if (spec.cardEntry) console.error(`${route}: ${e.message}`);
     return { route, err: e.message.split("\n")[0].slice(0, 60) };
+  } finally {
+    if (spec.cardEntry) page.off("request", recordCardRequest);
   }
 }, { context: { viewport: { width: 390, height: 844 }, locale: "en-US" } }).then((rs) => rs.map((r, k) => r && !r.error ? r : { route: SPECS[k].r, err: String(r?.error ?? "unknown").slice(0, 60) }));
 await browser.close();
@@ -216,6 +387,10 @@ for (const r of rows) {
   const bad = [];
   if (r.unreachable) { console.log(`skip  ${r.route.padEnd(30)} 探针够不着:${r.unreachable}`); continue; }
   if (r.err) bad.push("异常:" + r.err);
+  else if (r.cardEntry) {
+    if (!r.exitVerified) bad.push("绑卡表单返回与草稿清理未验证");
+    if (r.newErrors) bad.push(`console error ×${r.newErrors}`);
+  }
   else if (!r.empty) bad.push("清空数组后仍未渲染 .nx-empty");
   else {
     if (!r.artOk) bad.push("插画没加载出来(路径错或文件缺)");
@@ -227,7 +402,7 @@ for (const r of rows) {
   if (bad.length) fail++;
   // 🔴 tabs=N 恒打印:认不出页签(0)也要显形。静默跳过 = 判据失效却看不出来。
   const tabInfo = r.tabs === undefined ? "" : r.tabs > 0 ? ` [页签 ${r.tabs}: ${(r.tabLabels || []).join("/")}]` : " [无页签]";
-  console.log(`${bad.length ? "FAIL" : "ok  "}  ${r.route.padEnd(30)} ${r.empty ? `${r.box} ${r.artSrc} "${r.title}"` : ""}${tabInfo} ${bad.join(" · ")}`);
+  console.log(`${bad.length ? "FAIL" : "ok  "}  ${r.route.padEnd(30)} ${r.cardEntry ? "account + holder only · no expiry/CVV · no simulated binding · exit clears draft" : r.empty ? `${r.box} ${r.artSrc} "${r.title}"` : ""}${tabInfo} ${bad.join(" · ")}`);
 }
 const withTabs = rows.filter((r) => r.tabs > 0).length;
 console.log(`\n${rows.length - fail}/${rows.length} 通过 · 其中 ${withTabs} 页做了页签遍历`);

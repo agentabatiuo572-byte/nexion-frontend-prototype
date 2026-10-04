@@ -6,24 +6,18 @@
 -->
 <template>
   <view class="w-full active:opacity-70" :style="rowStyle" role="button" tabindex="0" :aria-label="openLabel" @click="emit('open')">
-    <view class="flex items-start" style="gap: 12px">
-      <view class="grid place-items-center shrink-0" :style="iconBoxStyle">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="statusColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></svg>
-      </view>
-      <view class="min-w-0" style="flex: 1">
-        <view class="flex items-center" style="gap: 6px">
-          <text :style="statusStyle">{{ statusLabel }}</text>
-          <text :style="sepStyle">·</text>
-          <text :style="metaStyle">{{ categoryLabel }}</text>
-          <text :style="sepStyle">·</text>
-          <text :style="idStyle">{{ tk.id }}</text>
-          <text v-if="tk.unread > 0" :style="unreadChipStyle">{{ unreadLabel }}</text>
-        </view>
-        <text class="block" :style="subjectStyle">{{ tk.subject }}</text>
-        <text class="block" :style="timeStyle">{{ relWhen(tk.updatedAt) }} · {{ messageCountLabel }}</text>
-      </view>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 4px"><path d="m9 18 6-6-6-6" /></svg>
+    <view class="ticket-row-top">
+      <text :style="subjectStyle">{{ tk.subject }}</text>
+      <text :style="statusStyle">{{ statusLabel }}</text>
+      <text v-if="tk.unread > 0" :style="unreadChipStyle">{{ unreadLabel }}</text>
+      <svg class="ticket-row-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="1.6"><path d="m9 18 6-6-6-6" /></svg>
     </view>
+    <view class="ticket-row-meta">
+      <text :style="metaStyle">{{ categoryLabel }}</text>
+      <text :style="timeStyle">{{ relWhen(tk.updatedAt) }}</text>
+      <text :style="metaStyle">{{ messageCountLabel }}</text>
+    </view>
+    <text class="block" :style="idStyle">{{ tk.id }}</text>
   </view>
 </template>
 
@@ -31,8 +25,8 @@
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-import { formatUnreadBadge } from "@/lib/unread-badge";
 import { STATUS_COLOR, type Ticket } from "@/domain/support";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 
 const props = withDefaults(defineProps<{ tk: Ticket; divider?: boolean }>(), { divider: true });
 const emit = defineEmits<{ open: [] }>();
@@ -56,34 +50,35 @@ function relWhen(ts: number): string {
 // Transparent hairline row (was one card per ticket) — parent opens the group
 // with a border-top; the last row drops its divider.
 const rowStyle = computed<CSSProperties>(() => ({
-  padding: "13px 0",
+  padding: "20px 0",
   borderBottom: props.divider ? "1px solid var(--v5-border)" : "none",
 }));
-const iconBoxStyle = computed<CSSProperties>(() => ({
-  width: "36px",
-  height: "36px",
-  borderRadius: "8px",
-  background: `color-mix(in srgb, ${statusColor.value} 12%, transparent)`,
-}));
 const statusStyle = computed<CSSProperties>(() => ({
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontFamily: "var(--font-v5)",
+  padding: "3px 7px",
+  borderRadius: "999px",
+  background: `color-mix(in srgb, ${statusColor.value} 10%, transparent)`,
   fontSize: "12px",
-  letterSpacing: "0.05em",
   fontWeight: 600,
   color: statusColor.value,
 }));
-const sepStyle: CSSProperties = { color: "var(--v5-ink-4)", fontSize: "12px" };
-const metaStyle: CSSProperties = { fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", color: "var(--v5-ink-3)" };
-const idStyle: CSSProperties = { fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", color: "var(--v5-ink-3)" };
+const metaStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "12px", color: "var(--v5-ink-3)" };
+const idStyle: CSSProperties = { marginTop: "6px", overflowWrap: "anywhere", fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", color: "var(--v5-ink-3)" };
 const unreadChipStyle: CSSProperties = {
   marginLeft: "auto",
   padding: "2px 6px",
   borderRadius: "999px",
   fontSize: "12px",
   fontWeight: 600,
-  background: "var(--v5-brand)",
-  color: "var(--v5-on-brand)",
+  background: "var(--v5-brand-soft)",
+  color: "var(--v5-brand)",
 };
-const subjectStyle: CSSProperties = { marginTop: "4px", fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.4 };
+const subjectStyle: CSSProperties = { flex: "1 1 120px", overflowWrap: "anywhere", fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.4 };
 const timeStyle: CSSProperties = { marginTop: "4px", fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", color: "var(--v5-ink-3)" };
 </script>
+
+<style scoped>
+.ticket-row-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ticket-row-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-top: 7px; }
+.ticket-row-chevron { flex-shrink: 0; margin-left: auto; }
+</style>

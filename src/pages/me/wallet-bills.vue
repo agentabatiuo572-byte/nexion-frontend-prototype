@@ -15,32 +15,24 @@
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/wallet" :title="t.bills.title" />
-      <FundsSandboxBadge />
 
       <!-- Tabs -->
-      <view class="flex" :style="segWrapStyle">
-        <view
-          v-for="tb in TABS"
-          :key="tb"
-          class="flex-1 grid place-items-center active:opacity-70"
-          :style="pillStyle(tb)"
-          @click="tab = tb"
-        >
-          <text :style="pillLabelStyle(tb)">{{ tabLabel(tb) }}</text>
-        </view>
-      </view>
+      <GlassSegments :label="t.bills.tabGroupLabel" semantics="radio" v-model="tab" :options="tabOptions" style="margin: 0 16px 12px"  />
 
-      <view v-if="ledgerError" :style="ledgerErrorStyle">
+      <view v-if="initialError" :style="ledgerErrorStyle">
         <view class="flex items-center justify-between" style="gap: 12px">
           <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
-          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" :aria-disabled="ledgerRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="refreshLedger">
+          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshLedger">
             <text>{{ t.store.catalogRetry }}</text>
           </view>
         </view>
       </view>
 
       <!-- Empty -->
-      <EmptyState v-else-if="filtered.length === 0" kind="empty-list" :title="t.empty.billsTitle" :desc="t.empty.billsDesc" />
+      <view v-else-if="initialLoading" :style="loadingStyle" role="status" aria-live="polite" aria-busy="true"><text>{{ t.wallet.loadingTransactions }}</text></view>
+      <!-- 空态按当前筛选说人话(zentao #220):「支出」筛到空时不能说「充值和到账」——
+           那是收入语义,会让用户以为筛选没生效。 -->
+      <EmptyState v-else-if="filtered.length === 0" kind="empty-list" :title="t.empty.billsTitle" :desc="emptyDesc" />
 
       <!-- Grouped list -->
       <view v-else :style="listWrapStyle">
@@ -65,11 +57,13 @@
                 <text class="truncate" :style="typeLabelStyle">{{ typeLabel(b.type) }}</text>
                 <text :style="statusBadgeStyle(b.status)">{{ statusLabel(b.status) }}</text>
               </view>
-              <view class="truncate" :style="memoStyle">
+              <view :class="b.memoKey === 'learningReward' ? '' : 'truncate'" :style="memoStyle">
                 <text>{{ billMemo(b) }}</text>
-                <text v-if="showRef(b)" style="color: var(--v5-ink-4); margin: 0 4px">·</text>
-                <text v-if="showRef(b)" class="font-mono-tabular">{{ b.ref }}</text>
+                <text v-if="b.ref && b.memoKey !== 'learningReward'" style="color: var(--v5-ink-4); margin: 0 4px">·</text>
+                <text v-if="b.ref && b.memoKey !== 'learningReward'" class="font-mono-tabular">{{ b.ref }}</text>
               </view>
+              <text v-if="b.memoKey === 'learningReward' && b.ref" class="block active:opacity-70" style="color: var(--v5-ink-3); font-size: 12px; margin-top: 4px" role="button" tabindex="0" :aria-label="sourceRefOpen === b.id ? t.rewards.hideSourceId : t.rewards.showSourceId" @click="toggleSourceRef(b.id)"  @keydown.enter.prevent="toggleSourceRef(b.id)" @keydown.space.prevent="toggleSourceRef(b.id)">{{ sourceRefOpen === b.id ? t.rewards.hideSourceId : t.rewards.showSourceId }}</text>
+              <text v-if="sourceRefOpen === b.id && b.memoKey === 'learningReward'" class="block" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
               <text class="block" :style="timeStyle">{{ fmtTime(b.ts) }}</text>
             </view>
             <view class="text-right shrink-0" style="margin-left: 8px">
@@ -85,6 +79,23 @@
             </view>
           </view>
         </view>
+        <view ref="scrollAnchor" style="height: 1px" />
+        <view v-if="fundsServerEnabled && activePager.loadingMore" :style="loadingStyle" role="status" aria-live="polite" aria-busy="true"><text>{{ t.wallet.loadingTransactions }}</text></view>
+        <view v-if="refreshErrorWithRows" :style="appendErrorStyle">
+          <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
+          <view class="inline-flex items-center active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshLedger">
+            <text>{{ t.store.catalogRetry }}</text>
+          </view>
+        </view>
+        <view v-else-if="appendError" :style="appendErrorStyle">
+          <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
+          <view class="inline-flex items-center active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="loadMore">
+            <text>{{ t.store.catalogRetry }}</text>
+          </view>
+        </view>
+        <view v-if="showManualLoadMore" class="inline-flex items-center active:opacity-70" :style="manualLoadMoreStyle" role="button" tabindex="0" @click="loadMore">
+          <text>{{ t.receipt.loadMore }}</text>
+        </view>
       </view>
 
       <text class="block" :style="footerStyle">{{ t.bills.footer }}</text>
@@ -93,46 +104,83 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type CSSProperties } from "vue";
+import { computed, nextTick, ref, watch, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import BillTypeIcon from "@/components/me/bill-type-icon.vue";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
+import { walletBillMonthKey, walletBillMonthLabel, walletBillTimeLabel } from "@/lib/wallet-bill-date";
+import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
+import { useCourseRewardTitles } from "@/composables/use-course-reward-titles";
 import { useBills, type Bill, type BillType, type BillStatus } from "@/store/bills";
+import { useApp } from "@/store/app";
+import { useAuth } from "@/store/auth";
 import { useDeposits, CHAIN_NET_SHORT } from "@/store/deposits";
 import { mockServerNow } from "@/store/server-time";
 import { navTo } from "@/lib/route";
-import { fundsServerEnabled } from "@/api/runtime";
+import { fundsServerEnabled, sessionVault } from "@/api/runtime";
+import { binarySessionReady } from "@/lib/binary-session-ready";
+import { useManualScrollLoadMore } from "@/composables/use-manual-scroll-load-more";
 
 const t = useT();
+const app = useApp();
+const auth = useAuth();
 const billsStore = useBills();
+const courseTitles = useCourseRewardTitles();
+const sourceRefOpen = ref("");
+watch(() => app.accountBindingEpoch, () => { sourceRefOpen.value = ""; });
 const deposits = useDeposits();
-const refreshError = ref("");
-const ledgerRefreshing = ref(false);
-const ledgerError = computed(() => refreshError.value || billsStore.serverError);
-
-async function refreshLedger() {
-  if (!fundsServerEnabled) return;
-  if (ledgerRefreshing.value) return;
-  ledgerRefreshing.value = true;
-  refreshError.value = "";
-  try {
-    await billsStore.refreshServerLedger();
-  } catch (cause) {
-    refreshError.value = cause instanceof Error ? cause.message : "FUNDS_SANDBOX_LEDGER_REFRESH_FAILED";
-  } finally {
-    ledgerRefreshing.value = false;
-  }
-}
-onShow(() => { void refreshLedger(); });
+const remoteSessionReady = computed(() => binarySessionReady({
+  remote: fundsServerEnabled,
+  authenticated: auth.isAuthenticated,
+  accountId: auth.accountId,
+  appAccountKey: app.accountKey,
+  sessionUserId: sessionVault.read()?.user.userId ?? null,
+}));
 
 type Tab = "all" | "in" | "out";
 const TABS: Tab[] = ["all", "in", "out"];
 const tab = ref<Tab>("all");
+const allPager = billsStore.getLedger();
+const inPager = billsStore.getLedger({ direction: "IN" });
+const outPager = billsStore.getLedger({ direction: "OUT" });
+const activePager = computed(() => tab.value === "in" ? inPager : tab.value === "out" ? outPager : allPager);
+// 空态描述跟筛选走(zentao #220)。「支出」筛到空时不能复用收入口径的
+// 「每一笔充值和到账都会记在这里」—— 充值/到账是进账,与当前筛选自相矛盾。
+const emptyDesc = computed(() => tab.value === "out" ? t.value.empty.billsOutDesc
+  : tab.value === "in" ? t.value.empty.billsInDesc
+    : t.value.empty.billsDesc);
+const scrollAnchor = ref<unknown>(null);
+
+async function refreshLedger() {
+  if (!fundsServerEnabled || !remoteSessionReady.value) return;
+  try { await activePager.value.refresh(); } catch { /* pager owns recoverable state */ }
+}
+async function loadMore() {
+  if (!fundsServerEnabled) return;
+  try { await activePager.value.loadMore(); } catch { /* retain rows; render retry */ }
+}
+onShow(() => { void refreshLedger(); });
+watch(tab, () => { void refreshLedger(); });
+// Cookie restore and same-page account rebind both reset the active ledger.
+watch([remoteSessionReady, () => app.accountBindingEpoch], ([ready, epoch], [wasReady, previousEpoch]) => {
+  if (ready && (!wasReady || epoch !== previousEpoch)) void refreshLedger();
+});
+useManualScrollLoadMore(scrollAnchor, {
+  enabled: () => fundsServerEnabled && !activePager.value.error,
+  hasMore: () => activePager.value.hasMore,
+  loading: () => activePager.value.loadingMore || activePager.value.status === "loading",
+  loadMore,
+});
+const initialLoading = computed(() => fundsServerEnabled && !activePager.value.rows.length
+  && (!remoteSessionReady.value || activePager.value.status === "idle" || activePager.value.status === "loading"));
+const initialError = computed(() => fundsServerEnabled && activePager.value.status === "error" && activePager.value.rows.length === 0);
+const refreshErrorWithRows = computed(() => fundsServerEnabled && activePager.value.status === "error" && activePager.value.rows.length > 0);
+const appendError = computed(() => fundsServerEnabled && activePager.value.status === "ready" && activePager.value.rows.length > 0 && Boolean(activePager.value.error));
+const showManualLoadMore = computed(() => fundsServerEnabled && activePager.value.status === "ready" && activePager.value.hasMore && !activePager.value.loadingMore && !appendError.value && !refreshErrorWithRows.value);
 
 // Type accent colours. Most map to tokens; refer/topup use official accents
 // (like the card-brand colours) kept literal on purpose.
@@ -167,6 +215,7 @@ function typeColor(type: BillType): string {
 // 判据回到本工程自己的规矩:**指不出单源的数字,要么接单源,要么别显示**。
 // mock 期 balanceAfter 恒为 undefined → 这一列不渲染;接上真后端自动出现,零改动。
 const filtered = computed<Bill[]>(() => {
+  if (fundsServerEnabled) return activePager.value.rows;
   if (tab.value === "all") return billsStore.bills;
   if (tab.value === "in") return billsStore.bills.filter((b) => b.amount > 0);
   return billsStore.bills.filter((b) => b.amount < 0);
@@ -175,14 +224,13 @@ const filtered = computed<Bill[]>(() => {
 const grouped = computed<Array<{ month: string; rows: Bill[] }>>(() => {
   const map = new Map<string, Bill[]>();
   for (const b of filtered.value) {
-    const d = new Date(b.ts);
-    // 🔴 跟**应用**语言,不跟浏览器语言 —— undefined 会让越南语用户看到中文月份表头。
-    const key = d.toLocaleDateString(dateLocale(), { year: "numeric", month: "long" });
+    const key = walletBillMonthKey(b.ts);
     const arr = map.get(key) ?? [];
     arr.push(b);
     map.set(key, arr);
   }
-  return Array.from(map.entries()).map(([month, rows]) => ({ month, rows }));
+  const locale = dateLocale();
+  return Array.from(map.values()).map((rows) => ({ month: walletBillMonthLabel(rows[0].ts, locale), rows }));
 });
 
 function typeLabel(type: BillType): string {
@@ -195,37 +243,25 @@ function statusLabel(s: BillStatus): string {
   return t.value.bills.statusFailed;
 }
 function monthLabel(month: string, n: number): string {
-  return t.value.bills.monthLabel.replace("{month}", month).replace("{n}", String(n));
+  return fmt(n === 1 ? t.value.bills.monthLabelOne : t.value.bills.monthLabel, { month, n });
 }
 /**
  * 账单文案:有 memoKey 就**渲染时翻译**,没有才回落到写入时那句(存量 / 未迁移调用方)。
  * 之前种子行是英文硬串,越南语用户会在同一个列表里看到中文表头 + 英文摘要 + 越南语新行,三种语言。
  */
 function billMemo(b: Bill): string {
-  if (b.ref?.startsWith("QST-")) return t.value.bills.typeBonus;
-  const dict = t.value.bills.memo as Record<string, string> | undefined;
-  const s = b.memoKey ? dict?.[b.memoKey] : undefined;
-  if (s) return b.memoParams ? fmt(s, b.memoParams) : s;
-  const legacyMilestone = b.type === "achievement" ? /^Earnings milestone · \$(\d+(?:\.\d+)?)$/.exec(b.memo) : null;
-  return legacyMilestone ? fmt(t.value.bills.memo.earningsMilestone, { threshold: legacyMilestone[1] }) : b.memo;
+  return resolveWalletBillMemo(b, t.value.bills.memo as Record<string, string>, courseTitles.value);
 }
-function showRef(b: Bill): boolean {
-  return Boolean(b.ref && !b.ref.startsWith("QST-") && !b.ref.startsWith("MILESTONE-"));
-}
+function toggleSourceRef(id: string) { sourceRefOpen.value = sourceRefOpen.value === id ? "" : id; }
 function runningBalanceLabel(bal: number): string {
-  return `${t.value.bills.runningBalance}: $${bal.toFixed(2)}`;
+  return `${t.value.bills.runningBalance}: ${bal.toFixed(2)}`;
 }
 function fmtAmount(b: Bill): string {
   const abs = Math.abs(b.amount);
   return b.symbol === "USDT" ? abs.toFixed(4) : abs.toLocaleString();
 }
 function fmtTime(ts: number): string {
-  return new Date(ts).toLocaleString(dateLocale(), {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return walletBillTimeLabel(ts, dateLocale());
 }
 function billHash(b: Bill): string {
   // 冲正分录的 ref 带 `-REV` 后缀(与原扣款分录分开幂等键,见 marketplace / stake-sheet 等)。
@@ -341,6 +377,16 @@ function tabLabel(tb: Tab): string {
   if (tb === "in") return t.value.bills.tabIn;
   return t.value.bills.tabOut;
 }
+/** 类型单选组的左右方向键:移一格并选上,焦点跟到新选中项(roving tabindex 的标准行为)。 */
+function moveTab(index: number, delta: number): void {
+  const next = TABS[(index + delta + TABS.length) % TABS.length];
+  if (!next || next === tab.value) return;
+  tab.value = next;
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('.nx-bills-type-radio[tabindex="0"]')?.focus();
+  });
+}
 
 // Empty state (de-card white-list): dashed outline, no fill.
 const emptyStyle: CSSProperties = {
@@ -368,6 +414,13 @@ const retryBtnStyle: CSSProperties = {
   background: "var(--v5-surface-2)",
   color: "var(--v5-ink)",
   fontSize: "12px",
+};
+const loadingStyle: CSSProperties = { margin: "0 16px", padding: "32px", textAlign: "center", color: "var(--v5-ink-3)" };
+const appendErrorStyle: CSSProperties = {
+  marginTop: "8px", padding: "10px 0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", color: "var(--v5-danger)", fontSize: "12px",
+};
+const manualLoadMoreStyle: CSSProperties = {
+  minHeight: "40px", margin: "4px 0 0", padding: "0 14px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "12px",
 };
 // Transparent hairline group per month: container border-top opens it, the mono
 // month header + rows carry their own dividers (first row = no top border).
@@ -436,4 +489,7 @@ const footerStyle: CSSProperties = {
   color: "var(--v5-ink-4)",
   lineHeight: 1.625,
 };
+
+import GlassSegments from "@/components/glass-segments.vue";
+const tabOptions = computed(() => TABS.map(value => ({ value, label: tabLabel(value) })));
 </script>

@@ -7,20 +7,25 @@ import { resolveSiblingRepo } from "./lib/sibling-repo.mjs";
 const pages = JSON.parse(readFileSync(new URL("../src/pages.json", import.meta.url), "utf8"));
 // 原先兄弟仓写死 `../nexion-backend`,连 NEXGRID_BACKEND_ROOT 都不认;缺仓时整条目录门 ENOENT。
 const { root: backendRoot, missing: backendMissing } = resolveSiblingRepo("nexion-backend", "NEXGRID_BACKEND_ROOT");
-const migrationPath = resolve(backendRoot, "scripts", "migrations", "20260811_l6_h5_active_route_catalog.sql");
+// Published migration checksums are immutable. New routes belong in additive migrations.
+const migrationPaths = [
+  "20260811_l6_h5_active_route_catalog.sql",
+  "20260915_l6_bank_withdrawal_route.sql",
+  "20260916_l6_withdrawal_method_route.sql",
+].map((name) => resolve(backendRoot, "scripts", "migrations", name));
 
 function manifestRoutes() {
   return pages.pages.map(({ path }) => `/${path}`).sort();
 }
 
 function catalogRoutes(sql) {
-  return [...sql.matchAll(/^\('\/pages\/[^']+'(?:,[^\n]*)?\),?$/gm)]
-    .map(([line]) => line.match(/^\('([^']+)'/)[1])
+  return [...sql.matchAll(/^(?:VALUES )?\('(\/pages\/[^']+)'[^\n]*\),?\r?$/gm)]
+    .map(([, route]) => route)
     .sort();
 }
 
 test("every normalized UniApp business page route has one tracked backend catalog row", { skip: backendMissing }, () => {
-  const migration = readFileSync(migrationPath, "utf8");
+  const migration = migrationPaths.map((file) => readFileSync(file, "utf8")).join("\n");
   assert.deepEqual(catalogRoutes(migration), manifestRoutes());
   assert.match(migration, /ON DUPLICATE KEY UPDATE[\s\S]*tracked=1[\s\S]*is_deleted=0/);
 });

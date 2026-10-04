@@ -5,11 +5,11 @@
 //   真出事那次也一样被无视)。
 //
 // 当前状态(2026-08-13 实测 2 pass / 5 fail,红在**前提格**不是结论格):
-//   · 「quest 端点真的被请求了」实测 0 次 —— 靶子跑在 mock 档,而报警器只在 remote 档有意义;
+//   · 「quest 端点真的被请求了」实测 0 次 —— 当时靶子运行链未接到 Java 服务;
 //   · 「下发的任务真的渲染出来了」页面停在登录页,任务面根本没进去。
 //   两条都是**起点没立住**,此时后面 3 格无论红绿都不说明任何事。
 //
-// 差什么才算完成:① 以 remote/sandbox 档起服务(不是 mock);② 先把登录态注入到位、
+// 差什么才算完成:① 以 development 启动 H5 并连接 Java dev profile;② 先把登录态注入到位、
 //   走到任务面;③ 前提两格转绿之后,结论格才有判别力。届时再挂进 verify.sh。
 // 🔴 在那之前**不许**因为「它红着不好看」就把前提格删掉 —— 那正是把门改成假绿的做法。
 /**
@@ -20,25 +20,24 @@
  *    这个 watch 在真浏览器里**跑不跑**。组件挂不挂载、Pinia 的 ref 透过 store 代理
  *    还响不响应,都不是文本判据看得见的。「渲染分支存在 ≠ 有生产者」同型。
  *
- * 🔴 需要**非 mock** 模式的 dev server:mock 模式下 remoteApiEnabled=false,
- *    周任务 store 直接置空并报 WEEKLY_QUEST_SERVER_REQUIRED,报警器天然没有输入 ——
- *    在 mock 靶子上跑本探针会全绿,而那是「测了个寂寞」。所以本探针**不进 verify 主链**
- *    (主链靶子是 mock),走具名出口 `npm run test:quest-tripwire`,与
+ * 🔴 需要连接 Java dev profile 的 development server,否则周任务接口没有权威输入。
+ *    在断开后端的靶子上跑本探针会全绿,而那是「测了个寂寞」。所以本探针**不进 verify 主链**,
+ *    走具名出口 `npm run test:quest-tripwire`,与
  *    `test:production-boundaries` / `test:cross-repo` 同款处置。
  *
  * ⚠️⚠️ 【本探针今天跑不绿,原因写在这里,不是没人管的红】(2026-08-13)
- *    差**一个已登录的 sandbox 会话**,而这一步不是 seed 一下 localStorage 就行的:
+ *    差**一个已登录的 dev 会话**,而这一步不是 seed 一下 localStorage 就行的:
  *    `src/store/auth.ts` 的 hydrate() 在 remoteApiEnabled 为真时**无条件返回未登录**
  *    (注释写明:浏览器里的 auth 记录只是路由提示,重建不了内存里的 Bearer 会话)。
- *    于是 sandbox 靶子上 /pages/missions/missions 一律被守卫弹回登录页,报警器没机会跑。
+ *    于是 development 靶子上 /pages/missions/missions 一律被守卫弹回登录页,报警器没机会跑。
  *    要跑绿必须连 `POST /auth/users/login` 的 envelope + token + user 会话形状一起桩上,
  *    那是**造一个假认证后端**,已超出本次改动的范围,单独立项做。
  *    🔴 在那之前请如实理解:「watch 在真浏览器里会不会跑」这最后一段**尚无运行时证据**,
  *    静态门 selfcheck-quest-genesis-tripwire.mjs 证到的是纯判定 + 接线数据流为止。
  *    本文件保留而不删,是因为删了这句交底就没了,而它正是那条未证链路的唯一记录。
  *
- * 用法(先起一个 sandbox 模式的 H5):
- *   VITE_NEXGRID_API_MODE=sandbox npx vite --port 5411 --strictPort
+ * 用法(先起一个 development H5,并确保 Java 服务使用 dev profile):
+ *   npm run dev:h5 -- --mode development --port 5411 --strictPort
  *   QUEST_TRIPWIRE_BASE_URL=http://localhost:5411 node scripts/quest-genesis-tripwire-runtime.mjs
  *
  * 🔴 注入用 uni 包装格式 `{type:"object",data:{…}}` —— 裸 localStorage 写进去
@@ -114,8 +113,8 @@ try {
   await seedGenesis(CLOSED);
   reset();
   await go();
-  check("前提:quest 端点真的被请求了(remoteApiEnabled 为真 = 靶子不是 mock 模式)",
-    questHits > 0, `实测 ${questHits} 次 —— 0 次 = 跑在 mock 靶子上,本探针全部结论作废`);
+  check("前提:quest 端点真的被请求了(development H5 已连接 Java dev profile)",
+    questHits > 0, `实测 ${questHits} 次 —— 0 次 = 后端权威链未建立,本探针全部结论作废`);
   const bodyText = await page.evaluate(() => document.body.innerText);
   check("前提:下发的任务真的渲染出来了(报警器的输入确实到达了页面)",
     /Genesis Node/i.test(bodyText), `页面里找不到任务标题:${bodyText.slice(0, 160)}`);

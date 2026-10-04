@@ -38,22 +38,27 @@ function matchSystemLocale(): LocaleCode | null {
   return null;
 }
 
-function hydrate(): Persisted {
+function hydrate(): Persisted & { restored: boolean } {
   try {
     const saved = uni.getStorageSync(STORAGE_KEY) as Persisted | "";
     if (saved && saved.code && LOCALES.some((locale) => locale.code === saved.code)) {
-      return { code: saved.code, userSet: !!saved.userSet };
+      return { code: saved.code, userSet: !!saved.userSet, restored: true };
     }
   } catch {
     // ignore — first run
   }
-  return { code: DEFAULT_LOCALE, userSet: false };
+  return { code: DEFAULT_LOCALE, userSet: false, restored: false };
 }
 
 export const useLocaleStore = defineStore("locale", () => {
   const init = hydrate();
   const code = ref<LocaleCode>(init.code);
   const userSet = ref<boolean>(init.userSet);
+  let localeResolved = init.restored;
+  // This changes only for a deliberate picker/onboarding selection. Server
+  // hydration and device detection must never be mistaken for an account
+  // preference that should be written back.
+  const explicitRevision = ref(0);
 
   function persist() {
     try {
@@ -64,14 +69,23 @@ export const useLocaleStore = defineStore("locale", () => {
   }
 
   function setLocale(next: LocaleCode) {
-    code.value = next;
+    code.value = LOCALES.some((locale) => locale.code === next) ? next : DEFAULT_LOCALE;
     userSet.value = true;
+    explicitRevision.value += 1;
     persist();
   }
 
-  // Auto-detect once on first entry. No-op after the user explicitly picks.
+  function applyServerLocale(next: LocaleCode) {
+    localeResolved = true;
+    code.value = LOCALES.some((locale) => locale.code === next) ? next : DEFAULT_LOCALE;
+    persist();
+  }
+
+  // Resolve before the first screen. Home must not replace an account language
+  // after its legal document has already been presented and acknowledged.
   function ensureSystemDetected() {
-    if (userSet.value) return;
+    if (userSet.value || localeResolved) return;
+    localeResolved = true;
     const match = matchSystemLocale();
     if (match && match !== code.value) {
       code.value = match;
@@ -79,5 +93,6 @@ export const useLocaleStore = defineStore("locale", () => {
     }
   }
 
-  return { code, userSet, setLocale, ensureSystemDetected };
+  ensureSystemDetected();
+  return { code, userSet, explicitRevision, setLocale, applyServerLocale, ensureSystemDetected };
 });

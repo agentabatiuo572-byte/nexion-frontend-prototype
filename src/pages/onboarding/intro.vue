@@ -24,6 +24,8 @@
         tabindex="0"
         :aria-label="t.language.pageTitle"
         @click="langOpen = true"
+
+        @keydown.enter.prevent="langOpen = true" @keydown.space.prevent="langOpen = true"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="10" />
@@ -87,12 +89,11 @@
             <circle cx="120" cy="120" r="56" fill="url(#orb-core)" />
 
           </svg>
-          <!-- App icon badge(官方品牌资产,双主题成对切换 —— 与 app-chassis 的 header logo 同机制)。
+          <!-- 中心品牌标(走 BrandLockup,全站 logo 的唯一出口)。
                🔴 不能放进上面的 SVG:uni 编译器会把 <image> 劫持成 uni-image 组件,落在 SVG 命名空间里
                完全不渲染(实测 0×0)。改为容器内绝对定位叠加,60/240 = 25% 居中。 -->
           <view class="orb-appicon-wrap">
-            <image class="orb-appicon orb-appicon--light" src="/static/img/brand/app-icon-light.png" mode="aspectFit" />
-            <image class="orb-appicon orb-appicon--dark" src="/static/img/brand/app-icon-dark.png" mode="aspectFit" />
+            <BrandLockup variant="mark" :height="60" />
           </view>
         </view>
       </view>
@@ -104,30 +105,33 @@
         <view class="intro-stats anim-stats">
           <view class="stat-item">
             <view class="stat-dot" />
-            <text class="stat-num">{{ fmtNum(devices) }}</text>
+            <text class="stat-num">{{ fmtNum(visibleDevices) }}</text>
             <text class="stat-label">{{ t.intro.statsDevices }}</text>
           </view>
-          <view class="stat-sep" />
-          <view class="stat-item">
-            <text class="stat-num stat-num--brand">${{ fmtNum(paid) }}</text>
+          <view v-if="visiblePaid !== null" class="stat-sep" />
+          <view v-if="visiblePaid !== null" class="stat-item">
+            <text class="stat-num stat-num--brand">{{ visiblePaid === null ? t.intro.publicStatsUnavailable : `$${fmtNum(visiblePaid)}` }}</text>
             <text class="stat-label">{{ t.intro.statsPaidTotal }}</text>
           </view>
         </view>
+        <text v-if="verifiedScope" class="stat-label">{{ verifiedScope }}</text>
       </view>
 
       <view class="intro-cta anim-cta">
-        <view class="cta-primary active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="goRegister" @keydown.enter.prevent="goRegister" @keydown.space.prevent="goRegister">
+        <view class="cta-primary active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="goRegister"  @keydown.enter.prevent="goRegister" @keydown.space.prevent="goRegister">
           <text class="cta-primary__t">{{ t.intro.getStarted }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
           </svg>
         </view>
-        <view class="cta-secondary active:scale-[0.98]" role="button" tabindex="0" @click="goLogin" @keydown.enter.prevent="goLogin" @keydown.space.prevent="goLogin">
+        <view class="cta-secondary active:scale-[0.98]" role="button" tabindex="0" @click="goLogin"  @keydown.enter.prevent="goLogin" @keydown.space.prevent="goLogin">
           <text class="cta-secondary__t">{{ t.intro.signIn }}</text>
         </view>
         <view class="intro-terms">
           <text class="terms-left">{{ t.intro.termsLeft }} </text>
-          <text class="terms-link active:opacity-70" role="link" tabindex="0" @click="goTerms" @keydown.enter.prevent="goTerms" @keydown.space.prevent="goTerms">{{ t.intro.termsLink }}</text>
+          <text class="terms-link active:opacity-70" role="link" tabindex="0" @click="goTerms" @keydown.enter.prevent="goTerms">{{ t.intro.termsLink }}</text>
+          <text aria-hidden="true"> · </text>
+          <text class="terms-link active:opacity-70" role="link" tabindex="0" @click="goPrivacy" @keydown.enter.prevent="goPrivacy">{{ t.privacy.title }}</text>
         </view>
       </view>
     </view>
@@ -135,7 +139,7 @@
     <!-- Language sheet(vcs-root 同型:dialog 角色在包裹层,遮罩是其子元素) -->
     <view v-if="langOpen" class="intro-lang-root" role="dialog" aria-modal="true" :aria-label="t.language.pageTitle">
       <view class="intro-lang-mask" role="presentation" aria-hidden="true" @click="closeLang" />
-      <view class="intro-lang-sheet">
+      <view class="nx-glass-sheet intro-lang-sheet">
       <view class="intro-lang-sheet__grab" />
       <text class="intro-lang-sheet__title">{{ t.language.pageTitle }}</text>
       <scroll-view scroll-y :show-scrollbar="false" class="intro-lang-list">
@@ -147,6 +151,8 @@
           tabindex="0"
           :aria-label="l.nativeName"
           @click="pick(l.code)"
+
+          @keydown.enter.prevent="pick(l.code)" @keydown.space.prevent="pick(l.code)"
         >
           <text class="intro-lang-row__flag">{{ l.flag }}</text>
           <view class="intro-lang-row__names">
@@ -165,15 +171,17 @@
 </template>
 
 <script setup lang="ts">
+import { navReset, navTo } from "@/lib/route";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
+import BrandLockup from "@/components/brand-lockup.vue";
 import { useT } from "@/i18n/use-t";
+import { fmt } from "@/i18n/format";
 import { LOCALES, type LocaleCode } from "@/i18n";
 import { useLocaleStore } from "@/store/locale";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
-import { fleetDevicesOf, paidCumulativeNow, publicStatsHealth } from "@/lib/platform-stats";
+import { paidCumulativeNow } from "@/lib/platform-stats";
 import { useConfig } from "@/store/config";
-import { useApp } from "@/store/app";
 import { remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
@@ -187,24 +195,34 @@ function pick(code: LocaleCode) {
   langOpen.value = false;
 }
 useDialogA11y(computed(() => langOpen.value), ".intro-lang-root", closeLang);
-// 🔴 累计支付与舰队数走**配置派生**(2026-08-06 审计 P1:规格 ③「其它页面舰队数字
-//   继续从它派生」)。配置坏回种子锚(本页不在异常3 占位管辖面)。
-//   cumulative 仍是 time-anchored derive-not-accumulate,不随访问回退;
-//   rationale 见 docs/changes/2026-07-24-intro-stats-cumulative.md。
 const cfg = useConfig();
-const app = useApp();
-const fleetOk = () => {
-  const ps = cfg.config.publicStats;
-  return !!ps && publicStatsHealth(ps).fleetOk;
+const fleetNow = () => {
+  return cfg.syncFailed ? null : cfg.config.verifiedStats?.onlineDevices.value ?? null;
 };
-const fleetNow = () => (fleetOk() && !cfg.syncFailed ? fleetDevicesOf(cfg.config.publicStats) : null);
 // 🔴 累计支付**不跟配置走**(第二次结构反思·族B,R2 审计 C5):它是时间积分,背着历史 ——
 //   拿「当前参数 × 全段 elapsed」派生,运营调低舰队它就整段回退,而「不回退」是本数字的
 //   硬承诺。mock 无参数变更时点存储,沉淀段以编译期锚斜率计;PROD 由服务端累计。
 //   速率类($/sec、日产、月付)跟配置走是对的 —— 它们是「现在」,不背历史。
-const paidNow = () => remoteApiEnabled ? app.homeTruth?.onboarding.cumulativePaidUsdt ?? null : paidCumulativeNow();
+// No public payout projection exists. Private purchase totals are not payouts;
+// omit this unsupported metric rather than expose an account-dependent amount.
+// 🔴 远程模式下的「累计已发放」只能是可核验的提现完成额(zentao #59):
+//   此前这里是 `null`(直接隐藏),服务端也没有对应聚合。现在读 verified 聚合;
+//   沙箱/旧后端没有该聚合 → 继续不显示,绝不用配置值编造一个财务事实。
+const paidNow = () => {
+  if (!remoteApiEnabled) return paidCumulativeNow();
+  const v = cfg.syncFailed ? null : cfg.config.verifiedStats;
+  return v ? Math.round(v.completedPayoutUsdt.value) : null;
+};
 const paid = ref(paidNow());
-const devices = ref(remoteApiEnabled ? app.homeTruth?.onboarding.activeDevices ?? null : fleetNow());
+const visiblePaid = computed(() => remoteApiEnabled ? paidNow() : paid.value);
+const verifiedScope = computed(() => {
+  const v = cfg.syncFailed ? null : cfg.config.verifiedStats;
+  return v ? fmt(t.value.intro.verifiedScope, { at: v.capturedAt.slice(0, 16).replace("T", " ") }) : "";
+});
+// Intro is public and often shown before a user session exists. Its public
+// device count comes from the verified server aggregate.
+const devices = ref(fleetNow());
+const visibleDevices = computed(() => remoteApiEnabled ? fleetNow() : devices.value);
 
 function fmtNum(n: number | null): string {
   return n === null ? "—" : n.toLocaleString("en-US");
@@ -245,18 +263,10 @@ onMounted(() => {
     // Recompute from the time anchor (~$14/1.8s) instead of accumulating random
     // steps, so a reload can never show a smaller total than a longer session.
     paid.value = paidNow();
-    if (remoteApiEnabled) {
-      devices.value = app.homeTruth?.onboarding.activeDevices ?? null;
-      return;
-    }
-    const drift = Math.random();
-    // ±24 band, same rationale as the store tick (bounded symmetric wobble),
-    // 带心随配置派生的舰队数走(审计 P1 的「其它页面舰队数字」半场)。
-    const base = remoteApiEnabled ? app.homeTruth?.onboarding.activeDevices ?? null : fleetNow();
-    if (base === null) { devices.value = null; return; }
-    const current = devices.value ?? base;
-    if (drift > 0.75) devices.value = Math.min(base + 24, current + 1);
-    else if (drift < 0.25) devices.value = Math.max(base - 24, current - 1);
+    // BUG #59: the published fleet figure is an operator-owned aggregate, not a
+    // live measurement. It must not drift while the page is open — a wobbling
+    // number reads as a real-time feed. Display the configured value verbatim.
+    devices.value = fleetNow();
   }, 1800);
 });
 onUnmounted(() => {
@@ -264,14 +274,19 @@ onUnmounted(() => {
 });
 
 function goRegister() {
-  uni.reLaunch({ url: "/pages/register/register", fail: () => {} });
+  navReset({ url: "/pages/register/register", fail: () => {} });
 }
 function goLogin() {
-  uni.reLaunch({ url: "/pages/login/login", fail: () => {} });
+  navReset({ url: "/pages/login/login", fail: () => {} });
 }
 function goTerms() {
-  uni.navigateTo({ url: "/pages/onboarding/terms", fail: () => {} });
+  navTo("/pages/onboarding/terms");
 }
+function goPrivacy() {
+  navTo("/pages/onboarding/privacy?return=%2Fpages%2Fonboarding%2Fintro");
+}
+
+
 </script>
 
 <style scoped>
@@ -330,24 +345,7 @@ function goTerms() {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 25%;
-  height: 25%;
   pointer-events: none;
-}
-.orb-appicon {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-.orb-appicon--dark {
-  display: none;
-}
-html[data-theme="dark"] .orb-appicon--light {
-  display: none;
-}
-html[data-theme="dark"] .orb-appicon--dark {
-  display: block;
 }
 
 /* Language entry + in-place sheet(bg 填充零 border;字号取 9 档;tap ≥44) */
@@ -380,14 +378,14 @@ html[data-theme="dark"] .orb-appicon--dark {
   inset: 0;
   background: var(--v5-bg-color-mask);
 }
-.intro-lang-sheet {
+.intro-lang-sheet { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0;
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 800;
-  background: var(--v5-surface);
-  border-radius: 24px 24px 0 0;
+  background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge);
+
   padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 38px);
   display: flex;
   flex-direction: column;

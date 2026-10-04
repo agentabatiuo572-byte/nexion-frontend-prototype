@@ -1,18 +1,17 @@
 <!--
   DepositUsdtPane — 充值页「USDT 链上」通道段(PAY-规格 [FEAT-PAY01] ⑤⑥)。
-  三网络 chip(TRC20 主推)→ 专属地址 QR + 复制 + 费/最低额/确认数(全部由
-  deposits-core 常量派生,单源)→ 常驻错网络警示 → 指引/工单入口 → 最近入金
+  正式模式仅 BEP20 → 专属地址 QR + 复制 + 服务端费/最低额/确认数
+  → 常驻错网络警示 → 指引/工单入口 → 最近入金
   列表(confirming n/N 实时进度 · credited / dust_hold / returned 态)。
   4 态:骨架(匹配形状)/ 空列表 / 通道停用置灰 / 断网 inline 重试。
   数据纯展示:状态 server-canonical(mock 引擎在 deposits store),本组件零写状态。
 -->
 <template>
   <view class="mx-4" style="padding: 0 2px">
-    <FundsSandboxBadge />
     <!-- ── 加载骨架(chip 行 / QR 区 / 入口区,匹配真实形状)── -->
     <view v-if="phase === 'loading'">
       <view class="flex" style="gap: 8px">
-        <view v-for="i in 3" :key="i" class="flex-1 nx-dep-sk" style="height: 56px" />
+        <view v-for="i in NETWORKS.length" :key="i" class="flex-1 nx-dep-sk" style="height: 56px" />
       </view>
       <view class="nx-dep-sk" style="height: 300px; margin-top: 16px" />
       <view class="nx-dep-sk" style="height: 96px; margin-top: 16px" />
@@ -24,7 +23,7 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
       </view>
       <view><text class="block text-center" style="margin-top: 10px; font-size: 12px; color: var(--v5-ink-3)">{{ t.topupChrome.addrLoadFailed }}</text></view>
-      <view class="nx-dep-retry-cta grid place-items-center active:opacity-80" :style="retryBtnStyle" role="button" tabindex="0" @click="load">
+      <view class="nx-dep-retry-cta grid place-items-center active:opacity-80" :style="retryBtnStyle" role="button" tabindex="0" @click="load()">
         <text style="font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ t.ui.retry }}</text>
       </view>
     </view>
@@ -43,14 +42,14 @@
         >
           <text :style="chipLabelStyle(nw.id)">{{ nw.label }}</text>
           <text v-if="nw.id === 'usdt-trc20'" :style="chipTagStyle">{{ t.topupChrome.netRecommended }}</text>
-          <text v-else :style="chipSubStyle" style="white-space: nowrap">{{ fmt(t.topupChrome.netFee, { fee: CHAIN_DEPOSIT_FEE_USDT[nw.id] }) }}</text>
+          <text v-else :style="chipSubStyle" style="white-space: nowrap">{{ fmt(t.topupChrome.netFee, { fee: fundsServerEnabled ? feeUsdt : CHAIN_DEPOSIT_FEE_USDT[nw.id] }) }}</text>
         </view>
       </view>
 
       <!-- ── 专属地址 + QR(所选网络启用时)── -->
       <view v-if="activeNet" style="margin-top: 18px">
         <view><text class="font-mono-tabular" :style="metaLabelStyle">{{ fmt(t.topupChrome.sendVia, { network: activeLabel }) }}</text></view>
-        <view :style="qrBoxStyle">
+        <view v-if="address" class="nx-dep-qr-box" :style="qrBoxStyle">
           <view :style="qrGridStyle" aria-hidden>
             <view v-for="(d, i) in qrCells" :key="i" :style="d ? qrDarkCellStyle : undefined" />
           </view>
@@ -60,36 +59,16 @@
           <view class="flex-1 min-w-0">
             <text class="font-mono" style="font-size: 12px; color: color-mix(in srgb, var(--v5-ink) 90%, transparent); white-space: nowrap">{{ shortAddr }}</text>
           </view>
-          <view class="nx-dep-copy-address-cta grid place-items-center shrink-0 active:opacity-80" :style="copyBtnStyle" role="button" tabindex="0" @click="copyAddr">
+          <view class="nx-dep-copy-address-cta grid place-items-center shrink-0 active:opacity-80" :style="copyBtnStyle" role="button" tabindex="0" :aria-label="copied ? t.topupChrome.addrCopied : t.topupChrome.copyAddress" @click="copyAddr">
             <svg v-if="copied" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
             <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
           </view>
         </view>
         <!-- 费用/最低额/确认数 — deposits-core 常量单源派生 -->
         <view class="flex items-center justify-between" style="margin-top: 12px; gap: 8px">
-          <view><text :style="metaCapStyle">{{ t.topupChrome.minDeposit }} <text :style="metaValStyle">${{ MIN_DEPOSIT_USDT }}</text></text></view>
-          <view><text :style="metaCapStyle">{{ t.topupChrome.fee }} <text :style="metaValStyle">{{ CHAIN_DEPOSIT_FEE_USDT[activeNet] }} USDT</text></text></view>
-          <view><text :style="metaCapStyle">{{ t.topupChrome.confirmationsLabel }} <text :style="metaValStyle">{{ CHAIN_REQUIRED_CONFIRMATIONS[activeNet] }}</text></text></view>
-        </view>
-        <view v-if="mockFundsEnabled" class="flex items-center" :style="sandboxTopupStyle">
-          <view class="flex-1 min-w-0">
-            <text class="block" :style="warnTextStyle">{{ t.publicCopy.experienceMode }}</text>
-            <view class="flex items-center" style="margin-top: 6px; gap: 6px">
-              <input
-                v-model="sandboxAmount"
-                class="font-mono-tabular flex-1 min-w-0"
-                :style="sandboxAmountInputStyle"
-                type="text"
-                inputmode="decimal"
-                :disabled="sandboxSubmitting"
-                :aria-label="t.bankPane.amountLabel"
-              />
-              <text style="font-size: 12px; color: var(--v5-ink-3)">USDT</text>
-            </view>
-          </view>
-          <view class="grid place-items-center active:opacity-80" :style="sandboxSubmitStyle" role="button" tabindex="0" @click="simulateSandboxTopup">
-            <text style="font-size: 12px; color: var(--v5-brand)">{{ sandboxSubmitting ? t.wallet.processing : t.wallet.topUp }}</text>
-          </view>
+          <view><text :style="metaCapStyle">{{ t.topupChrome.minDeposit }} <text :style="metaValStyle">${{ minDeposit }}</text></text></view>
+          <view><text :style="metaCapStyle">{{ t.topupChrome.fee }} <text :style="metaValStyle">{{ feeUsdt }} USDT</text></text></view>
+          <view><text :style="metaCapStyle">{{ t.topupChrome.confirmationsLabel }} <text :style="metaValStyle">{{ confirmations }}</text></text></view>
         </view>
       </view>
 
@@ -164,31 +143,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
+import qrcode from "qrcode-generator";
+import { cregisDepositApi, fundsServerEnabled, sessionVault } from "@/api/runtime";
+import { binarySessionReady } from "@/lib/binary-session-ready";
+import { useApp } from "@/store/app";
+import { useAuth } from "@/store/auth";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { navTo } from "@/lib/route";
 import { toast } from "@/store/ui";
-import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { useDeposits } from "@/store/deposits";
 import { mockServerNow } from "@/store/server-time";
 import {
   CHAIN_DEPOSIT_FEE_USDT,
   CHAIN_REQUIRED_CONFIRMATIONS,
   MIN_DEPOSIT_USDT,
-  fnv1a,
   isChainChannel,
-  mulberry32,
 } from "@/store/deposits-core";
 import type { ChainDepositChannel, DepositChannel, DepositRecord } from "@/store/types";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
-import { mockFundsEnabled } from "@/api/runtime";
 
 const t = useT();
 const dep = useDeposits();
+const app = useApp();
+const auth = useAuth();
+const remoteSessionReady = computed(() => binarySessionReady({
+  remote: fundsServerEnabled,
+  authenticated: auth.isAuthenticated,
+  accountId: auth.accountId,
+  appAccountKey: app.accountKey,
+  sessionUserId: sessionVault.read()?.user.userId ?? null,
+}));
 
 // ── 网络 chip(标签为链名专有名词,非文案)──
-const NETWORKS: { id: ChainDepositChannel; label: string }[] = [
+const NETWORKS: { id: ChainDepositChannel; label: string }[] = fundsServerEnabled ? [
+  { id: "usdt-bep20", label: "BEP20" },
+] : [
   { id: "usdt-trc20", label: "TRC20" },
   { id: "usdt-bep20", label: "BEP20" },
   { id: "usdt-erc20", label: "ERC20" },
@@ -203,27 +193,91 @@ const CHANNEL_SHORT: Record<DepositChannel, string> = {
 /** confirming 超过 30 分钟未走满 → 「网络拥堵」提示([FEAT-PAY01] ② 异常3)。 */
 const CONFIRM_DELAY_NOTE_MS = 30 * 60 * 1000;
 
-// ── 加载态(ponytail: mock 地址/通道配置拉取。PROD 换 GET /api/deposits/address
-// + /api/config/deposit-channels;拉取失败禁回退写死值,error 态只给重试)──
+// ── 正式模式从服务端获取地址与记录；失败时只显示重试，不回退到模拟地址。──
 const phase = ref<"loading" | "error" | "ready">("loading");
 let loadTimer: ReturnType<typeof setTimeout> | undefined;
-function load() {
-  phase.value = "loading";
+let pollTimer: ReturnType<typeof setInterval> | undefined;
+let loadGeneration = 0;
+const serverAddress = ref("");
+const serverEnabled = ref(false);
+const serverRecords = ref<(DepositRecord & { reviewHold?: boolean })[]>([]);
+const copied = ref(false);
+const minDeposit = ref(MIN_DEPOSIT_USDT);
+const feeUsdt = ref(0);
+const confirmations = ref(CHAIN_REQUIRED_CONFIRMATIONS["usdt-bep20"]);
+function load(background = false) {
+  if (fundsServerEnabled && !remoteSessionReady.value) return;
+  if (!background) phase.value = "loading";
   if (loadTimer) clearTimeout(loadTimer);
+  if (fundsServerEnabled) {
+    const generation = ++loadGeneration;
+    const account = app.accountKey;
+    const bindingEpoch = app.accountBindingEpoch;
+    void (async () => {
+      try {
+        const snapshot = await cregisDepositApi.address();
+        const deposits = await cregisDepositApi.list();
+        if (generation !== loadGeneration || account !== app.accountKey
+            || bindingEpoch !== app.accountBindingEpoch || !remoteSessionReady.value) return;
+        serverEnabled.value = snapshot.enabled;
+        serverAddress.value = snapshot.enabled ? snapshot.address ?? "" : "";
+        minDeposit.value = snapshot.minDepositUsdt ?? MIN_DEPOSIT_USDT;
+        feeUsdt.value = snapshot.feeUsdt ?? 0;
+        confirmations.value = snapshot.confirmations ?? CHAIN_REQUIRED_CONFIRMATIONS["usdt-bep20"];
+        serverRecords.value = deposits.map((row) => ({
+          depositId: row.depositId, channel: "usdt-bep20", txHash: row.txHash,
+          address: row.address, grossAmountUsdt: row.grossAmountUsdt,
+          feeUsdt: row.status === "CREDITED" ? row.grossAmountUsdt - row.creditedUsdt : 0,
+          creditedUsdt: row.status === "CREDITED" ? Number(row.creditedUsdt) : 0,
+          confirmations: row.confirmations, requiredConfirmations: confirmations.value,
+          reviewHold: row.status === "REVIEW_HOLD",
+          status: row.status === "CREDITED" ? "credited"
+            : row.status === "CONFIRMING" ? "confirming" : "dust_hold",
+          createdAt: row.createdAt, creditedAt: row.creditedAt ?? undefined,
+        }));
+        phase.value = "ready";
+      } catch {
+        if (generation === loadGeneration && account === app.accountKey
+            && bindingEpoch === app.accountBindingEpoch && remoteSessionReady.value) {
+          serverAddress.value = "";
+          serverEnabled.value = false;
+          phase.value = "error";
+        }
+      }
+    })();
+    return;
+  }
   loadTimer = setTimeout(() => {
     const offline = typeof navigator !== "undefined" && navigator.onLine === false;
     phase.value = offline ? "error" : "ready";
   }, 650);
 }
-onMounted(load);
+watch([remoteSessionReady, () => app.accountKey, () => app.accountBindingEpoch], ([ready]) => {
+  if (!fundsServerEnabled) return;
+  loadGeneration++;
+  serverAddress.value = "";
+  serverEnabled.value = false;
+  serverRecords.value = [];
+  copied.value = false;
+  phase.value = "loading";
+  if (ready) load();
+}, { immediate: true, flush: "sync" });
+onMounted(() => {
+  if (!fundsServerEnabled) load();
+  if (fundsServerEnabled) pollTimer = setInterval(() => {
+    if (phase.value === "ready") load(true);
+  }, 30_000);
+});
 onUnmounted(() => {
+  loadGeneration++;
   if (loadTimer) clearTimeout(loadTimer);
+  if (pollTimer) clearInterval(pollTimer);
 });
 
 // ── 网络选择(停用 chip 不可选;所选被停用时回落到首个启用网络)──
-const net = ref<ChainDepositChannel>("usdt-trc20");
+const net = ref<ChainDepositChannel>(fundsServerEnabled ? "usdt-bep20" : "usdt-trc20");
 function isEnabled(id: ChainDepositChannel): boolean {
-  if (mockFundsEnabled) return id === "usdt-bep20";
+  if (fundsServerEnabled) return id === "usdt-bep20" && serverEnabled.value && !!serverAddress.value;
   return dep.chainChannelEnabled[id] === true;
 }
 const activeNet = computed<ChainDepositChannel | null>(() => {
@@ -241,12 +295,12 @@ function pickNet(id: ChainDepositChannel) {
 }
 
 // ── 专属地址(同账号同网络恒定;中段省略防溢出,复制取全量)──
-const address = computed(() => (activeNet.value ? dep.depositAddress(activeNet.value) : ""));
+const address = computed(() => fundsServerEnabled ? serverAddress.value
+  : activeNet.value ? dep.depositAddress(activeNet.value) : "");
 const shortAddr = computed(() => {
   const a = address.value;
   return a.length > 24 ? `${a.slice(0, 12)}…${a.slice(-8)}` : a;
 });
-const copied = ref(false);
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
 function copyAddr() {
   if (!address.value) return;
@@ -264,50 +318,16 @@ function copyAddr() {
   });
 }
 
-const sandboxSubmitting = ref(false);
-const sandboxAmount = ref("25");
-async function simulateSandboxTopup() {
-  if (!mockFundsEnabled || sandboxSubmitting.value) return;
-  const amount = Number(sandboxAmount.value.trim());
-  if (!Number.isFinite(amount) || amount < MIN_DEPOSIT_USDT) {
-    toast.info(`${t.value.topupChrome.minDeposit} ${MIN_DEPOSIT_USDT} USDT`);
-    return;
-  }
-  sandboxSubmitting.value = true;
-  try {
-    const record = await dep.createSandboxTopup("CREGIS_USDT_BEP20", amount, dep.currentAccountKey());
-    if (record) toast.success(fmt(t.value.publicCopy.experienceDepositCredited, { amount: amount.toFixed(2) }));
-  } catch (cause) {
-    toast.info(geoPolicyUserMessage(cause, t.value.geoPolicy) ?? t.value.topupChrome.topupNotCreditedYet);
-  } finally {
-    sandboxSubmitting.value = false;
-  }
-}
-
-// ── QR 点阵:21×21 确定性伪随机 + 三角定位块,seed = 专属地址 → 切网络图案随之变。
-// ponytail: 装饰性拟真非真 QR 编码;PROD 接真地址后换 QR 库渲染,本段删除。
-const QR_N = 21;
-/** 标准定位块图形:7×7 外环暗 + 中环亮 + 3×3 内心暗(dx/dy ∈ [0,7))。 */
-function finderDark(dx: number, dy: number): boolean {
-  const ring = Math.max(Math.abs(dx - 3), Math.abs(dy - 3));
-  return ring === 3 || ring <= 1;
-}
-const qrCells = computed<boolean[]>(() => {
-  const rnd = mulberry32(fnv1a(address.value || "nexgrid"));
-  const cells: boolean[] = [];
-  for (let cy = 0; cy < QR_N; cy++) {
-    for (let cx = 0; cx < QR_N; cx++) {
-      const inTL = cx < 7 && cy < 7;
-      const inTR = cx >= QR_N - 7 && cy < 7;
-      const inBL = cx < 7 && cy >= QR_N - 7;
-      if (inTL) cells.push(finderDark(cx, cy));
-      else if (inTR) cells.push(finderDark(cx - (QR_N - 7), cy));
-      else if (inBL) cells.push(finderDark(cx, cy - (QR_N - 7)));
-      else cells.push(rnd() > 0.52);
-    }
-  }
-  return cells;
+const qr = computed(() => {
+  if (!address.value) return { size: 1, cells: [] as boolean[] };
+  const code = qrcode(0, "M");
+  code.addData(address.value);
+  code.make();
+  const size = code.getModuleCount();
+  return { size, cells: Array.from({ length: size * size }, (_, i) =>
+    code.isDark(Math.floor(i / size), i % size)) };
 });
+const qrCells = computed(() => qr.value.cells);
 
 // ── 入口 ──
 function goGuide() {
@@ -319,7 +339,8 @@ function goSupport() {
 }
 
 // ── 最近入金(纯展示;状态由 store mock 引擎推进,server-canonical)──
-const sortedRecords = computed(() => [...dep.records].sort((a, b) => b.createdAt - a.createdAt));
+const sortedRecords = computed(() => [...(fundsServerEnabled ? serverRecords.value : dep.records)]
+  .sort((a, b) => b.createdAt - a.createdAt));
 /** 法币轨(VietQR / 银行卡)入账后与链上记录同列此区,标题按通道分流。
  *  全键 Record 而非三元表达式:新增通道时 TS 强制补齐,不会静默落进 USDT 文案 ——
  *  卡轨接入本列表时正是先踩了这个(旧写法「非银行轨即 USDT」会把卡入金标成 USDT 充值)。 */
@@ -335,7 +356,8 @@ function rowTitle(r: DepositRecord): string {
   return titles[r.channel];
 }
 function rowAmount(r: DepositRecord): string {
-  return (r.creditedUsdt > 0 ? r.creditedUsdt : r.grossAmountUsdt).toFixed(2);
+  const value = r.creditedUsdt > 0 ? r.creditedUsdt : r.grossAmountUsdt;
+  return fundsServerEnabled ? value.toFixed(6).replace(/0+$/, "").replace(/\.$/, "") : value.toFixed(2);
 }
 function netShort(c: DepositChannel): string {
   return CHANNEL_SHORT[c];
@@ -355,7 +377,8 @@ function stateText(r: DepositRecord): string {
 }
 function noteText(r: DepositRecord): string {
   const tc = t.value.topupChrome;
-  if (r.status === "dust_hold") return tc.dustHoldNote;
+  if ("reviewHold" in r && r.reviewHold) return tc.reviewHoldNote;
+  if (r.status === "dust_hold") return fundsServerEnabled ? tc.dustHoldServerNote : tc.dustHoldNote;
   if (r.status === "confirming" && mockServerNow() - r.createdAt > CONFIRM_DELAY_NOTE_MS) return tc.confirmDelayed;
   return "";
 }
@@ -382,7 +405,8 @@ function goRecord(r: DepositRecord) {
   // 网络、确认数、专属收款地址、发生时间——tx 页入参优先,防种子假数据与本笔矛盾。
   const p = new URLSearchParams({
     hash: r.txHash ?? r.depositId,
-    amount: r.grossAmountUsdt.toFixed(2),
+    amount: fundsServerEnabled ? r.grossAmountUsdt.toFixed(6).replace(/0+$/, "").replace(/\.$/, "")
+      : r.grossAmountUsdt.toFixed(2),
     net: CHANNEL_SHORT[r.channel],
     confs: String(r.confirmations ?? 0),
     age: String(Math.max(1, Math.round((mockServerNow() - r.createdAt) / 60_000))),
@@ -403,7 +427,6 @@ function chipStyle(id: ChainDepositChannel): CSSProperties {
   const on = activeNet.value === id;
   return {
     minHeight: "56px",
-    minWidth: 0,
     borderRadius: "16px",
     gap: "2px",
     padding: "8px 6px",
@@ -419,11 +442,8 @@ function chipLabelStyle(id: ChainDepositChannel): CSSProperties {
   };
 }
 const chipTagStyle: CSSProperties = {
-  display: "block",
-  width: "100%",
-  fontSize: "11px",
+  fontSize: "12px",
   fontWeight: 600,
-  whiteSpace: "nowrap",
   color: "var(--v5-brand)",
   textAlign: "center",
   lineHeight: 1.3,
@@ -433,25 +453,24 @@ const chipSubStyle: CSSProperties = {
   color: "var(--v5-ink-4)",
 };
 const qrBoxStyle: CSSProperties = {
-  width: "160px",
-  height: "160px",
+  width: "192px",
+  height: "192px",
   margin: "16px auto 0",
   borderRadius: "16px",
   background: "#ffffff",
-  padding: "8px",
+  padding: "24px",
   display: "grid",
   placeItems: "center",
 };
-const qrGridStyle: CSSProperties = {
+const qrGridStyle = computed<CSSProperties>(() => ({
   width: "100%",
   height: "100%",
   display: "grid",
-  gridTemplateColumns: `repeat(${QR_N}, 1fr)`,
-  gridTemplateRows: `repeat(${QR_N}, 1fr)`,
-};
+  gridTemplateColumns: `repeat(${qr.value.size}, 1fr)`,
+  gridTemplateRows: `repeat(${qr.value.size}, 1fr)`,
+}));
 const qrDarkCellStyle: CSSProperties = {
   background: "rgba(0,0,0,0.85)", // QR 物理黑,白卡内固定色(同旧点阵先例)
-  borderRadius: "1px",
 };
 const addressRowStyle: CSSProperties = {
   marginTop: "16px",
@@ -485,25 +504,6 @@ const warnTextStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-warning)",
   lineHeight: 1.45,
-};
-const sandboxTopupStyle: CSSProperties = {
-  ...warnlineStyle,
-  gap: "12px",
-};
-const sandboxAmountInputStyle: CSSProperties = {
-  height: "34px",
-  padding: "0 10px",
-  borderRadius: "8px",
-  background: "var(--v5-surface)",
-  color: "var(--v5-ink)",
-  fontSize: "13px",
-};
-const sandboxSubmitStyle: CSSProperties = {
-  minWidth: "64px",
-  height: "44px",
-  padding: "0 10px",
-  borderRadius: "10px",
-  background: "var(--v5-surface-3)",
 };
 const linkRowStyle: CSSProperties = {
   minHeight: "48px",

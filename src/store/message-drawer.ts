@@ -1,32 +1,89 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { remoteApiEnabled } from "@/api/runtime";
+import { useNotifications } from "./notifications";
+import { useConversations } from "./conversations";
+import { useTickets } from "./tickets";
+import { navTo } from "@/lib/route";
 
-/**
- * Message (notification) drawer visibility store. NEW small Pinia store —
- * deliberately separate from the shared src/store/ui.ts (which already carries a
- * messageDrawerOpen flag) so this chassis overlay owns its own open state without
- * touching ui.ts. Mirrors the prototype's useUI.messageDrawerOpen role for the
- * MessageDrawer, but scoped to a dedicated store.
- *
- * The chassis header BELL opens it (orchestrator wires goNotifications →
- * useMessageDrawer().show()); the always-mounted <MessageDrawer> reads `open`
- * and slides in from the chassis right.
- *
- * NOTE on the API: the state ref is named `open` (boolean), so the opener method
- * is `show()` — a setup store can't expose both a `open` ref and an `open()`
- * method (object-literal duplicate key). This matches every other sheet store in
- * this codebase (trial-claim-sheet: `open` + show()/hide()). Setup store with NO
- * explicit return annotation so Pinia infers the unwrapped shape (P-017).
- */
+export type MessageSection = "notifications" | "service";
 export const useMessageDrawer = defineStore("messageDrawer", () => {
-  const open = ref(false);
+  const section = ref<MessageSection>("notifications");
+  const notifications = useNotifications(), conversations = useConversations(), tickets = useTickets();
+  const advisorUnread = computed(() => conversations.byType("advisor").reduce((sum, row) => sum + row.unread, 0));
+  const supportUnread = computed(() => conversations.byType("support").reduce((sum, row) => sum + row.unread, 0));
+  const humanUnread = computed(() => advisorUnread.value + supportUnread.value);
+  const ticketUnread = computed(() => tickets.tickets.reduce((sum, ticket) => sum + ticket.unread, 0));
+  const serviceUnread = computed(() => humanUnread.value + ticketUnread.value);
+  const totalUnread = computed(() => notifications.unread + serviceUnread.value);
+  const loading = computed(() => notifications.loading || conversations.loading || tickets.loading);
+  const error = computed(() => notifications.error || conversations.error || tickets.error
+    || (conversations.categoryAvailabilityStatus === "failed" ? "SUPPORT_CATEGORIES_UNAVAILABLE" : null));
+  let epoch = 0;
+  let running = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let inFlight: { human: boolean; promise: Promise<void> } | undefined;
+  let opening: Promise<boolean> | undefined;
 
-  function show() {
-    open.value = true;
-  }
-  function close() {
-    open.value = false;
+  function show(initialSection?: MessageSection) {
+    if (opening) return opening;
+    if (initialSection) section.value = initialSection;
+    try {
+      const pages = getCurrentPages();
+      if (pages[pages.length - 1]?.route === "pages/me/notifications") return Promise.resolve(true);
+    } catch { /* Startup navigation may not yet expose a page stack. */ }
+    return opening = navTo(`/pages/me/notifications?section=${section.value}`)
+      .finally(() => { opening = undefined; });
   }
 
-  return { open, show, close };
+  async function refresh(includeHuman = true): Promise<void> {
+    const requestEpoch = epoch;
+    const active = () => requestEpoch === epoch;
+    if (inFlight) {
+      const previous = inFlight;
+      await previous.promise;
+      if (active() && includeHuman && !previous.human) await refresh();
+      return;
+    }
+    const work = async () => {
+      const requests: Promise<unknown>[] = [];
+      // A page-triggered request already supplies this snapshot; do not race pagination.
+      if (!notifications.loading) requests.push(notifications.refreshRemote(undefined, active));
+      if (!tickets.loading) requests.push(tickets.refresh(active));
+      if (includeHuman) requests.push(conversations.refresh(active), conversations.refreshCategories(active));
+      await Promise.allSettled(requests);
+    };
+    const job = { human: includeHuman, promise: work() };
+    inFlight = job;
+    try { await job.promise; }
+    finally { if (inFlight === job) inFlight = undefined; }
+  }
+
+  function startRefresh() {
+    if (running || !remoteApiEnabled) return;
+    running = true;
+    const requestEpoch = epoch;
+    const tick = async () => {
+      if (!running || requestEpoch !== epoch) return;
+      await refresh(false);
+      if (running && requestEpoch === epoch) timer = setTimeout(() => { void tick(); }, 15_000);
+    };
+    void tick();
+  }
+  function stopRefresh() {
+    running = false;
+    epoch += 1;
+    clearTimeout(timer);
+    timer = undefined;
+    inFlight = undefined;
+    notifications.cancelRefresh();
+    tickets.cancelRefresh();
+  }
+  function bindAccount() {
+    stopRefresh();
+    section.value = "notifications";
+  }
+
+  return { section, show, advisorUnread, supportUnread, humanUnread, ticketUnread, serviceUnread, totalUnread,
+    loading, error, refresh, startRefresh, stopRefresh, bindAccount };
 });

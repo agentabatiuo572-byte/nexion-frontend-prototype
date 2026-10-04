@@ -89,7 +89,7 @@ export function buildThemeVaryingTable(css) {
     }
   };
   grab(/:root\s*\{([\s\S]*?)\n\}/g, "light");
-  grab(/html\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/g, "dark");
+  grab(/(?:html\[data-theme="dark"\]|:root:not\(\[data-theme="light"\]\))\s*\{([\s\S]*?)\n\}/g, "dark");
 
   const table = new Map(); // rgbKey -> [{token, theme}]
   for (const theme of ["light", "dark"]) {
@@ -193,7 +193,7 @@ function sampleThemeConstant(css) {
     }
   };
   grab(/:root\s*\{([\s\S]*?)\n\}/g, "light");
-  grab(/html\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/g, "dark");
+  grab(/(?:html\[data-theme="dark"\]|:root:not\(\[data-theme="light"\]\))\s*\{([\s\S]*?)\n\}/g, "dark");
   // 优先取「非真灰」的同值 token(排除原因唯一 = 同值);没有则退而取真灰同值的
   // (它同时满足两个排除条件,断言仍成立,只是原因不唯一 —— 注明即可)。
   let fallback = null;

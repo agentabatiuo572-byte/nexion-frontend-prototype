@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
 vi.mock("@/api/runtime", () => ({
-  fundsServerEnabled: false, remoteApiEnabled: false, mockFundsEnabled: false,
+  fundsServerEnabled: false, remoteApiEnabled: false, developmentFundsEnabled: false,
   voucherApi: {}, orderApi: {}, accountApi: {}, walletApi: {},
 }));
 

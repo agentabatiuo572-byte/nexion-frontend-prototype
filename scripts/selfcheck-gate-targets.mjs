@@ -117,6 +117,9 @@ const EXCEPTIONS = {
     "残余引号 = DEVICE_ONLY 排除清单(逐条带理由 + 存在性断言)与 phone/S1 副行锚,定点引用非枚举",
   "r7-device-detail-runtime.mjs:机型面":
     "runtime 走查:按种子设备取样跑真页面,不声称机型集合覆盖;种子结构变了它运行时自己会断",
+  "ui-consistency-runtime.mjs:机型面":
+    "UI 视觉取样:四行 fleet 与单个 catalog fixture 填充卡片、列表和设备详情,非机型全集枚举;" +
+    "Earn 实景断言固定四行且 summary 明示前端 fixture 边界,不声称设备规格或八机型业务覆盖",
   "release-gate-walkthrough.mjs:机型面": "同上:发布走查按种子取样,非集合枚举",
   "selfcheck-checkout-trial-quote.mjs:机型面":
     "试用报价的定义性 fixtures —— 试用 SKU 与升级目标是规格点名的具体两台,非集合枚举",

@@ -1,5 +1,9 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
+import { readGenesisHistoryPages } from "./genesis-history-pages";
+
+export type GenesisSourceEnvironment = "PRODUCTION";
 
 export interface GenesisSalePolicy {
   available: boolean;
@@ -15,6 +19,8 @@ export interface GenesisSalePolicy {
 }
 
 export interface GenesisEligibility {
+  sourceEnvironment: GenesisSourceEnvironment;
+  runId: string;
   eligible: boolean;
   reasons: string[];
   ownedCount: number;
@@ -23,6 +29,17 @@ export interface GenesisEligibility {
   minAccountAgeDays: number;
   accountAgeDays: number;
   halted?: boolean;
+  holderStatus: "READY" | "NOT_ELIGIBLE" | "CONFIG_UNAVAILABLE" | "NOT_EFFECTIVE";
+  reservedAllocation: number | null;
+  reservedAllocationUnit: "NEX";
+  priorityRank: number | null;
+  priorityTier: "TOP_1" | "TOP_3" | "TOP_5" | "STANDARD" | "NONE";
+  qualificationReasonCodes: string[];
+  policyVersion: string | null;
+  effectiveAt: number | null;
+  asOf: number;
+  serverTime: number;
+  provenance: { source: string; environment: GenesisSourceEnvironment; runId: string };
 }
 
 export interface GenesisSeries {
@@ -80,16 +97,24 @@ export interface GenesisTier {
 }
 
 export interface GenesisPublicState {
+  secondaryCommandProtocol?: number;
+  sourceEnvironment: GenesisSourceEnvironment;
+  runId: string;
+  halted: boolean;
+  revision: string;
+  source: string;
   series: GenesisSeries;
   sale: GenesisSalePolicy;
   marketEnabled: boolean;
   emissionOpen: boolean;
   listings: GenesisListing[];
   transactions: GenesisTransaction[];
+  transactionsNextCursor?: string | null;
   tiers: GenesisTier[];
   tiersVersion: number;
   marketOpenState: "open" | "closed";
   marketOpenStateVersion: number;
+  showcaseEnabled: boolean;
   closedNoticeKey: string;
   catalogAvailable: boolean;
   tradeAvailable: boolean;
@@ -105,14 +130,22 @@ export interface GenesisMarketStats {
   lastSaleUsdt: number | null;
 }
 
+export type GenesisCommandStatus = "SUCCEEDED" | "FAILED" | "PROCESSING" | "UNKNOWN" | "NOT_FOUND" | "MISMATCH";
+
 export interface GenesisAccountState {
-  series: GenesisSeries;
-  sale: GenesisSalePolicy;
+  sourceEnvironment: GenesisSourceEnvironment;
+  runId: string;
+  series: GenesisSeries | null;
+  sale: GenesisSalePolicy | null;
   marketEnabled: boolean;
   emissionOpen: boolean;
   holdings: GenesisHolding[];
   emissions: GenesisEmission[];
-  eligibility: GenesisEligibility;
+  orders: GenesisTransaction[];
+  ordersNextCursor?: string | null;
+  emissionsNextCursor?: string | null;
+  emissionTotals?: { paidUsdt: number; pendingUsdt: number } | null;
+  eligibility: GenesisEligibility | null;
   walletBalanceUsdt: number;
   billNo?: string;
   receiptId?: string;
@@ -142,10 +175,21 @@ function integer(value: unknown, min = 0): number | null {
   return parsed !== null && Number.isInteger(parsed) ? parsed : null;
 }
 
+function validAuthority(
+  row: Record<string, unknown> | null,
+  _mode: ApiEnvironment,
+): boolean {
+  return Boolean(row && row.serverCanonical === true
+    && row.sourceEnvironment === "PRODUCTION" && row.runId === "");
+}
+
 function timestamp(value: unknown, nullable = false): number | null {
   if (value == null && nullable) return null;
   const raw = text(value);
   if (!raw) return nullable ? null : invalid();
+  // API timestamps must identify an instant. A timezone-less LocalDateTime is
+  // ambiguous and made Shanghai rows render one hour early on Tokyo devices.
+  if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw)) return invalid();
   const parsed = Date.parse(raw);
   return Number.isFinite(parsed) ? parsed : invalid();
 }
@@ -190,18 +234,40 @@ function parseSale(value: unknown): GenesisSalePolicy {
   };
 }
 
-function parseEligibility(value: unknown): GenesisEligibility {
+function parseEligibility(value: unknown, mode: ApiEnvironment): GenesisEligibility {
   const row = record(value);
   const ownedCount = integer(row?.ownedCount);
   const maxPerUser = integer(row?.maxPerUser);
   const remainingCap = integer(row?.remainingCap);
   const minAccountAgeDays = integer(row?.minAccountAgeDays);
   const accountAgeDays = integer(row?.accountAgeDays);
-  if (!row || row.serverCanonical !== true || typeof row.eligible !== "boolean"
+  const holderStatus = text(row?.status);
+  const reservedAllocation = row?.reservedAllocation == null ? null : number(row.reservedAllocation);
+  const priorityRank = row?.priorityRank == null ? null : integer(row.priorityRank, 1);
+  const priorityTier = text(row?.priorityTier);
+  const policyVersion = row?.policyVersion == null ? null : text(row.policyVersion);
+  const effectiveAt = row?.effectiveAt == null ? null : timestamp(row.effectiveAt, true);
+  const asOf = timestamp(row?.asOf);
+  const serverTime = timestamp(row?.serverTime);
+  const provenance = record(row?.provenance);
+  if (!row || !validAuthority(row, mode) || typeof row.eligible !== "boolean"
       || !Array.isArray(row.reasons) || !row.reasons.every((reason) => typeof reason === "string")
       || ownedCount === null || maxPerUser === null || remainingCap === null
-      || minAccountAgeDays === null || accountAgeDays === null) return invalid();
+      || minAccountAgeDays === null || accountAgeDays === null
+      || !holderStatus || !["READY", "NOT_ELIGIBLE", "CONFIG_UNAVAILABLE", "NOT_EFFECTIVE"].includes(holderStatus)
+      || (row.reservedAllocation != null && reservedAllocation === null)
+      || (row.priorityRank != null && priorityRank === null)
+      || !["TOP_1", "TOP_3", "TOP_5", "STANDARD", "NONE"].includes(priorityTier ?? "")
+      || (row.policyVersion != null && !policyVersion)
+      || asOf === null || serverTime === null || !provenance
+      || text(provenance.source) === null
+      || provenance.environment !== row.sourceEnvironment || provenance.runId !== row.runId
+      || row.reservedAllocationUnit !== "NEX"
+      || !Array.isArray(row.qualificationReasonCodes)
+      || !row.qualificationReasonCodes.every((reason) => typeof reason === "string" && reason.trim())) return invalid();
   return {
+    sourceEnvironment: row.sourceEnvironment as GenesisSourceEnvironment,
+    runId: row.runId as string,
     eligible: row.eligible,
     reasons: [...row.reasons] as string[],
     ownedCount,
@@ -210,6 +276,17 @@ function parseEligibility(value: unknown): GenesisEligibility {
     minAccountAgeDays,
     accountAgeDays,
     halted: typeof row.halted === "boolean" ? row.halted : undefined,
+    holderStatus: holderStatus as GenesisEligibility["holderStatus"],
+    reservedAllocation,
+    reservedAllocationUnit: "NEX",
+    priorityRank,
+    priorityTier: priorityTier as GenesisEligibility["priorityTier"],
+    qualificationReasonCodes: row.qualificationReasonCodes.map((reason) => String(reason).trim()),
+    policyVersion,
+    effectiveAt,
+    asOf,
+    serverTime,
+    provenance: { source: text(provenance.source)!, environment: provenance.environment as GenesisSourceEnvironment, runId: provenance.runId as string },
   };
 }
 
@@ -233,7 +310,11 @@ function parseHolding(value: unknown): GenesisHolding {
   const row = record(value);
   const holdingNo = text(row?.holdingNo);
   const seriesCode = text(row?.seriesCode);
-  const acquiredPriceUsdt = number(row?.acquiredPriceUsdt, 0.000001);
+  // Sandbox acceptance fixtures may represent a server-confirmed holding
+  // without a purchase price. Zero is a valid canonical value here; the
+  // holder allocation/eligibility projection remains the authority for the
+  // visible benefit, while negative prices are still rejected by `number`.
+  const acquiredPriceUsdt = number(row?.acquiredPriceUsdt, 0);
   const status = text(row?.status);
   if (!row || !holdingNo || !seriesCode || acquiredPriceUsdt === null
       || (status !== "ACTIVE" && status !== "LISTED")) return invalid();
@@ -299,7 +380,7 @@ function parseTier(value: unknown): GenesisTier {
   return { id, from, to, priceUSDT };
 }
 
-export function parseGenesisPublicState(value: unknown): GenesisPublicState {
+export function parseGenesisPublicState(value: unknown, mode: ApiEnvironment = "prod"): GenesisPublicState {
   const row = record(value);
   const market = record(row?.market);
   const emission = record(row?.emission);
@@ -308,11 +389,15 @@ export function parseGenesisPublicState(value: unknown): GenesisPublicState {
   const marketOpenStateVersion = integer(row?.marketOpenStateVersion);
   const closedNoticeKey = text(row?.closedNoticeKey);
   const tradeBlockedReason = typeof row?.tradeBlockedReason === "string" ? row.tradeBlockedReason : null;
-  if (!row || row.serverCanonical !== true || !market || !emission
+  const revision = text(row?.revision);
+  const source = text(row?.source);
+  if (!row || !validAuthority(row, mode) || !market || !emission
+      || typeof row.halted !== "boolean" || !revision || !source
       || typeof market.enabled !== "boolean" || typeof emission.open !== "boolean"
       || !Array.isArray(row.listings) || !Array.isArray(row.transactions) || !Array.isArray(row.tiers)
       || (marketOpenState !== "open" && marketOpenState !== "closed")
       || tiersVersion === null || marketOpenStateVersion === null || !closedNoticeKey
+      || typeof row.showcaseEnabled !== "boolean"
       || typeof row.catalogAvailable !== "boolean" || typeof row.tradeAvailable !== "boolean"
       || tradeBlockedReason === null
       || (marketOpenState === "closed" && market.enabled)) return invalid();
@@ -326,6 +411,11 @@ export function parseGenesisPublicState(value: unknown): GenesisPublicState {
   if (row.catalogAvailable && (!tiers.length || boundary < series.soldSupply)) return invalid();
   if (!row.catalogAvailable && (tiers.length || market.enabled || row.tradeAvailable)) return invalid();
   return {
+    sourceEnvironment: row.sourceEnvironment as GenesisSourceEnvironment,
+    runId: row.runId as string,
+    halted: row.halted,
+    revision,
+    source,
     series,
     sale: parseSale(row.sale),
     marketEnabled: market.enabled,
@@ -336,66 +426,137 @@ export function parseGenesisPublicState(value: unknown): GenesisPublicState {
     tiersVersion,
     marketOpenState,
     marketOpenStateVersion,
+    showcaseEnabled: row.showcaseEnabled,
     closedNoticeKey,
     catalogAvailable: row.catalogAvailable,
     tradeAvailable: row.tradeAvailable,
     tradeBlockedReason,
+    secondaryCommandProtocol: row.secondaryCommandProtocol === 2 ? 2 : 0,
     marketStats: parseMarketStats(row.marketStats),
   };
 }
 
-export function parseGenesisAccountState(value: unknown): GenesisAccountState {
+export function parseGenesisAccountState(
+  value: unknown,
+  mode: ApiEnvironment = "prod",
+): GenesisAccountState {
   const row = record(value);
-  const series = parseSeries(row?.series);
-  const sale = parseSale(row?.sale);
+  const noSeries = row?.series === null && row.sale === null && row.eligibility === null;
+  const series = noSeries ? null : parseSeries(row?.series);
+  const sale = noSeries ? null : parseSale(row?.sale);
   const walletBalanceUsdt = number(row?.walletBalanceUsdt);
-  if (!row || row.serverCanonical !== true || typeof row.marketEnabled !== "boolean"
+  const orders = row?.orders;
+  if (!row || !validAuthority(row, mode) || (noSeries && row.marketEnabled !== false)
+      || typeof row.marketEnabled !== "boolean"
       || typeof row.emissionOpen !== "boolean" || !Array.isArray(row.holdings)
-      || !Array.isArray(row.emissions) || walletBalanceUsdt === null) return invalid();
+      || !Array.isArray(row.emissions) || !Array.isArray(orders) || walletBalanceUsdt === null) return invalid();
   return {
+    sourceEnvironment: row.sourceEnvironment as GenesisSourceEnvironment,
+    runId: row.runId as string,
     series,
     sale,
     marketEnabled: row.marketEnabled,
     emissionOpen: row.emissionOpen,
     holdings: row.holdings.map(parseHolding),
     emissions: row.emissions.map(parseEmission),
-    eligibility: parseEligibility(row.eligibility),
+    orders: orders.map(parseTransaction),
+    emissionTotals: row.emissionTotals == null ? null : {
+      paidUsdt: number(record(row.emissionTotals)?.paidUsdt) ?? invalid(),
+      pendingUsdt: number(record(row.emissionTotals)?.pendingUsdt) ?? invalid(),
+    },
+    eligibility: noSeries ? null : parseEligibility(row.eligibility, mode),
     walletBalanceUsdt,
     billNo: text(row.billNo) ?? undefined,
     receiptId: text(row.receiptId) ?? undefined,
   };
 }
 
-export function createGenesisApi(client: ApiClient) {
+export function createGenesisApi(client: ApiClient, mode: ApiEnvironment = "prod") {
+  async function accountHistoryPage<T>(kind: "orders" | "emissions", parser: (v: unknown) => T, cursor?: string) {
+    if (cursor !== undefined && !/^[1-9][0-9]{0,18}$/.test(cursor)) return invalid();
+    const row = record(await client.request({ method: "GET", authenticated: true,
+      path: `/api/genesis/account?history=${kind}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}` }));
+    if (!row || !validAuthority(row, mode) || !Array.isArray(row.items)
+        || !(row.nextCursor === null || (typeof row.nextCursor === "string" && /^[1-9][0-9]{0,18}$/.test(row.nextCursor)))) return invalid();
+    return { items: row.items.map(parser), nextCursor: row.nextCursor as string | null };
+  }
+  async function transactionPage(cursor?: string) {
+    if (cursor !== undefined && !/^[1-9][0-9]{0,18}$/.test(cursor)) return invalid();
+    const row = record(await client.request({ method: "GET", authenticated: false,
+      path: `/api/genesis/state?history=transactions${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
+    }));
+    if (!row || !validAuthority(row, mode) || !Array.isArray(row.items)
+        || !(row.nextCursor === null || (typeof row.nextCursor === "string" && /^[1-9][0-9]{0,18}$/.test(row.nextCursor)))) return invalid();
+    return { items: row.items.map(parseTransaction), nextCursor: row.nextCursor as string | null };
+  }
+  async function history<T>(kind: string, parser: (value: unknown) => T): Promise<T[]> {
+    const authenticated = kind === "orders" || kind === "emissions";
+    return readGenesisHistoryPages(async (cursor) => {
+      const basePath = authenticated ? "/api/genesis/account" : "/api/genesis/state";
+      const query = `?history=${kind}` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : "");
+      const row = record(await client.request({ method: "GET", authenticated,
+        path: basePath + query,
+      }));
+      if (!row || !validAuthority(row, mode) || !Array.isArray(row.items)
+          || !(row.nextCursor === null || (typeof row.nextCursor === "string" && /^[1-9][0-9]{0,18}$/.test(row.nextCursor)))) return invalid();
+      return { items: row.items.map(parser), nextCursor: row.nextCursor as string | null };
+    });
+  }
   return {
-    state: async () => parseGenesisPublicState(await client.request({
+    transactionPage,
+    orderPage: (cursor?: string) => accountHistoryPage("orders", parseTransaction, cursor),
+    emissionPage: (cursor?: string) => accountHistoryPage("emissions", parseEmission, cursor),
+    state: async () => {
+      const state = parseGenesisPublicState(await client.request({
       method: "GET", path: "/api/genesis/state", authenticated: false,
-    })),
-    account: async () => parseGenesisAccountState(await client.request({
-      method: "GET", path: "/api/genesis/account",
-    })),
+      }), mode);
+      const [listings, transactions] = await Promise.all([history("listings", parseListing), transactionPage()]);
+      return { ...state, listings, transactions: transactions.items, transactionsNextCursor: transactions.nextCursor };
+    },
+    account: async () => {
+      const state = parseGenesisAccountState(await client.request({
+      method: "GET", path: "/api/genesis/account", authenticated: true,
+      }), mode);
+      const [orders, emissions] = await Promise.all([
+        accountHistoryPage("orders", parseTransaction), accountHistoryPage("emissions", parseEmission)]);
+      return { ...state, orders: orders.items, emissions: emissions.items,
+        ordersNextCursor: orders.nextCursor, emissionsNextCursor: emissions.nextCursor };
+    },
     eligibility: async () => parseEligibility(await client.request({
-      method: "GET", path: "/api/genesis/eligibility",
-    })),
+      method: "GET", path: "/api/genesis/eligibility", authenticated: true,
+    }), mode),
+    commandStatus: async (operation: "list" | "cancel" | "buy", holdingNo: string, idempotencyKey: string,
+      priceUsdt: number | null): Promise<GenesisCommandStatus> => {
+      const row = record(await client.request({ method: "GET", authenticated: true, idempotencyKey,
+        path: `/api/genesis/holdings/${encodeURIComponent(holdingNo)}/commands/${operation}`
+          + (priceUsdt === null ? "" : `?priceUsdt=${encodeURIComponent(priceUsdt.toFixed(6))}`),
+      }));
+      if (!row || row.secondaryCommandProtocol !== 2 || !["SUCCEEDED", "FAILED", "PROCESSING", "UNKNOWN", "NOT_FOUND", "MISMATCH"].includes(String(row.status))) return invalid();
+      return row.status as GenesisCommandStatus;
+    },
     purchase: async (quantity: number, idempotencyKey: string) => parseGenesisAccountState(await client.request({
-      method: "POST", path: "/api/genesis/purchase", idempotencyKey, body: { quantity },
-    })),
+      method: "POST", path: "/api/genesis/purchase", authenticated: true, idempotencyKey, body: { quantity },
+    }), mode),
     list: async (holdingNo: string, askPriceUsdt: number, idempotencyKey: string) =>
       parseGenesisAccountState(await client.request({
         method: "POST",
         path: `/api/genesis/holdings/${encodeURIComponent(holdingNo)}/listing`,
+        authenticated: true,
         idempotencyKey,
         body: { askPriceUsdt },
-      })),
+      }), mode),
     cancel: async (holdingNo: string, idempotencyKey: string) => parseGenesisAccountState(await client.request({
       method: "DELETE",
       path: `/api/genesis/holdings/${encodeURIComponent(holdingNo)}/listing`,
+      authenticated: true,
       idempotencyKey,
-    })),
-    buy: async (holdingNo: string, idempotencyKey: string) => parseGenesisAccountState(await client.request({
+    }), mode),
+    buy: async (holdingNo: string, expectedPriceUsdt: number, idempotencyKey: string) => parseGenesisAccountState(await client.request({
       method: "POST",
       path: `/api/genesis/listings/${encodeURIComponent(holdingNo)}/buy`,
+      authenticated: true,
       idempotencyKey,
-    })),
+      body: { expectedPriceUsdt },
+    }), mode),
   };
 }

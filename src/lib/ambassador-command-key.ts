@@ -11,13 +11,26 @@ function fingerprint(value: string): string {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
-function read(): PendingCommand | null {
+function isPendingCommand(value: unknown): value is PendingCommand {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Partial<PendingCommand>;
+  return typeof row.slot === "string" && !!row.slot && typeof row.key === "string" && !!row.key;
+}
+
+function read(): PendingCommand[] {
   try {
     const value = uni.getStorageSync(STORAGE_KEY) as unknown;
-    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-    const row = value as Partial<PendingCommand>;
-    return typeof row.slot === "string" && typeof row.key === "string" && row.key ? row as PendingCommand : null;
-  } catch { return null; }
+    if (value === undefined || value === null || value === "") return [];
+    const entries = (value as { entries?: unknown }).entries;
+    if (Array.isArray(entries) && entries.every(isPendingCommand)) return entries;
+    if (entries === undefined && isPendingCommand(value)) return [value];
+    throw new Error("Invalid pending commands");
+  } catch { throw new Error("AMBASSADOR_COMMAND_STORAGE_UNAVAILABLE"); }
+}
+
+function write(entries: PendingCommand[]): void {
+  if (!entries.length) uni.removeStorageSync(STORAGE_KEY);
+  else uni.setStorageSync(STORAGE_KEY, { ...entries[entries.length - 1], version: 2, entries });
 }
 
 function commandSlot(accountKey: string, payload: string): string {
@@ -26,35 +39,21 @@ function commandSlot(accountKey: string, payload: string): string {
   return `${fingerprint(account)}:${fingerprint(payload)}`;
 }
 
-// 🔴 落盘失败的分档语义(命令发出**之前**抛 / **之后**只回布尔)见 lib/funds-mutation-key.ts
-// 那一整段头注 —— 同一条家规。本文件的键是**随机**的,比那边更不能放行:写没落盘却把键
-// 交出去,下次重试铸的是另一把键,服务端认不出同一次意图 → 直接受理**第二份申请**。
-/** 写盘。true = 真落盘了;false = 存储写不进去(配额满 / 站点数据被禁)。 */
-function persisted(write: () => void): boolean {
-  try {
-    write();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** 🔴 提交**之前**:键落不了盘就抛,这一次不许提交(fail closed)。 */
 export function acquireAmbassadorCommandKey(accountKey: string, payload: string): string {
   const slot = commandSlot(accountKey, payload);
   const pending = read();
-  if (pending?.slot === slot) return pending.key;
+  const existing = pending.find((entry) => entry.slot === slot);
+  if (existing) return existing.key;
   const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   const key = `app-ambassador:${id}`;
-  if (!persisted(() => uni.setStorageSync(STORAGE_KEY, { slot, key } satisfies PendingCommand))) {
-    throw new Error("AMBASSADOR_COMMAND_KEY_UNPERSISTED");
-  }
+  // Uncertain operations from other drafts/accounts must retain their replay key.
+  write([...pending, { slot, key }]);
   return key;
 }
 
-/** 提交**之后**:false = 没退役。不抛 —— 申请可能已经受理,抛出去会把它报成失败。 */
-export function finishAmbassadorCommand(accountKey: string, payload: string): boolean {
+export function finishAmbassadorCommand(accountKey: string, payload: string): void {
   const pending = read();
-  if (pending?.slot !== commandSlot(accountKey, payload)) return false;
-  return persisted(() => uni.removeStorageSync(STORAGE_KEY));
+  const slot = commandSlot(accountKey, payload);
+  if (!pending.some((entry) => entry.slot === slot)) return;
+  write(pending.filter((entry) => entry.slot !== slot));
 }

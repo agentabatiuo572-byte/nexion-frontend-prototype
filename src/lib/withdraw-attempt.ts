@@ -1,5 +1,6 @@
 import { readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
 import type { Withdrawal } from "@/store/types";
+type CryptoNetwork = Exclude<Withdrawal["network"], "BANK-VND">;
 
 /**
  * 未确认的提现提交尝试(幂等键 + 冻结的请求体),按账号落盘。
@@ -25,7 +26,7 @@ export interface WithdrawAttempt {
   key: string;
   /** 以下五项 = POST /api/withdrawals 的请求体,重放时逐字段原样重发。 */
   amount: number;
-  network: Withdrawal["network"];
+  network: CryptoNetwork;
   address: string;
   policyVersion: string;
   offset: boolean;
@@ -33,7 +34,7 @@ export interface WithdrawAttempt {
 
 const TABLE_KEY = "nexgrid-withdraw-attempt-accounts-v1"; // { [accountKey]: WithdrawAttempt }
 
-const NETWORKS: ReadonlyArray<Withdrawal["network"]> = ["USDT-TRC20", "USDT-BEP20", "USDT-ERC20"];
+const NETWORKS: ReadonlyArray<CryptoNetwork> = ["USDT-TRC20", "USDT-BEP20", "USDT-ERC20"];
 
 /** 读未收口的尝试。形状不完整一律当没有 —— 宁可多铸一个新键,也不拿半个 body 去重放。 */
 export function readWithdrawAttempt(accountKey: string): WithdrawAttempt | null {
@@ -42,11 +43,11 @@ export function readWithdrawAttempt(accountKey: string): WithdrawAttempt | null 
   const { key, amount, network, address, policyVersion, offset } = row;
   if (typeof key !== "string" || !key) return null;
   if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) return null;
-  if (typeof network !== "string" || !NETWORKS.includes(network as Withdrawal["network"])) return null;
+  if (typeof network !== "string" || !NETWORKS.includes(network as CryptoNetwork)) return null;
   if (typeof address !== "string" || !address) return null;
   if (typeof policyVersion !== "string" || !policyVersion) return null;
   if (typeof offset !== "boolean") return null;
-  return { key, amount, network: network as Withdrawal["network"], address, policyVersion, offset };
+  return { key, amount, network: network as CryptoNetwork, address, policyVersion, offset };
 }
 
 /**

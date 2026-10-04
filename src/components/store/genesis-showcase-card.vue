@@ -14,14 +14,15 @@
 -->
 <template>
   <view>
-    <view class="relative overflow-hidden active:scale-[0.98]" :style="cardStyle" @click="onCardTap">
+    <view class="nx-glass-card relative overflow-hidden active:scale-[0.98]" :style="cardStyle" role="button" tabindex="0" :aria-label="ctaText" :aria-busy="supplyRetrying ? 'true' : 'false'" @click="onCardTap">
       <!-- Gold aurora wash（装饰,卡内合法光晕:bg+overflow-hidden）-->
       <view aria-hidden :style="auroraStyle" />
 
       <view class="relative" style="z-index: 1">
+        <GenesisArtwork style="border-radius: 12px; margin-bottom: 14px" />
         <!-- Eyebrow -->
-        <view class="flex items-center justify-between" style="gap: 10px">
-          <view class="inline-flex items-center" style="gap: 6px; color: var(--v5-genesis-gold)">
+        <view class="flex flex-wrap items-center justify-between" style="gap: 10px">
+          <view class="inline-flex items-center" style="gap: 6px; min-width: 0; color: var(--v5-genesis-gold)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" /><path d="M5 20h14" /></svg>
             <text class="font-mono-tabular" :style="eyebrowStyle">{{ eyebrowText }}</text>
           </view>
@@ -58,9 +59,10 @@
         </view>
 
         <!-- Locked state line（资格未达:可见不藏,克制表述）-->
-        <view v-if="locked" :style="lockRowStyle">
+        <view class="nx-glass-inset" v-if="locked" :style="lockRowStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
           <text :style="lockTextStyle">{{ lockedLineText }}</text>
+          <text v-if="lockedMetText" class="font-mono-tabular tabular-nums nowrap" :style="lockMetStyle">{{ lockedMetText }}</text>
         </view>
       </view>
     </view>
@@ -71,23 +73,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { ref, computed, onUnmounted, type CSSProperties } from "vue";
 import GenesisEligibilitySheet from "@/components/genesis/eligibility-sheet.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useGenesis } from "@/store/genesis";
+import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisEligibility } from "@/composables/use-genesis-eligibility";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { toast } from "@/store/ui";
+import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { resolveGenesisEligibilityCardCopy, resolveGenesisPrimaryCta } from "@/lib/genesis-primary-cta";
 
 const t = useT();
 const genesis = useGenesis();
+const cfg = useGenesisConfig();
 const { gate, eligible } = useGenesisEligibility();
 const { block, blockText, showUrgency, preSale, showTime, countdownDays, countdownClock } = useGenesisSaleGate();
 
 const eligSheetOpen = ref(false);
+const supplyRetrying = ref(false);
+let retryGeneration = 0;
+onUnmounted(() => { retryGeneration += 1; });
 
-const soldOut = computed(() => genesis.totalSlots - genesis.soldSlots <= 0);
+// Remote bootstrap/failure intentionally uses the numeric 0/0 sentinel.  It is
+// not a confirmed exhausted series, so the showcase must never turn it into a
+// "sold out" market claim or a visible "Limited 0" count.
+const supplyKnown = computed(() => genesis.remoteSupplyKnown);
+const soldOut = computed(() => supplyKnown.value && genesis.totalSlots - genesis.soldSlots <= 0);
 /** 「硬阻断」= 市场关闭 / 熔断 / 配置未知。**售罄与预售不算** —— 那两态本来就有各自的
  *  展示语言(售罄字样 / 倒计时),不该被这条规则连坐。与创世页 dock 的取舍一致。 */
 const hardBlocked = computed(() => {
@@ -105,35 +119,77 @@ const countdownDisplay = computed(() => {
   return `${dayPart}${countdownClock.value}`;
 });
 const priceText = computed(() => genesis.unitPriceUSDT.toLocaleString());
-const eyebrowText = computed(() => fmt(t.value.store.genesisCardEyebrow, { n: genesis.totalSlots.toLocaleString() }));
+const eyebrowText = computed(() =>
+  supplyKnown.value ? fmt(t.value.store.genesisCardEyebrow, { n: genesis.totalSlots.toLocaleString() }) : "",
+);
 // 🔴 闸放在**值本身**,不是放在模板的 v-if 上:值到哪都安全,不必指望每个渲染点
 //   都记得加条件。上一版闸在模板里、定义在这里,两处相隔几十行 —— 机器门看不出关联,
 //   人也容易在新增渲染点时漏掉(这正是「还剩一处没收」的温床)。
 const leftText = computed(() =>
   showUrgency.value ? fmt(t.value.store.genesisCardLeft, { n: genesis.totalSlots - genesis.soldSlots }) : "",
 );
-const lockedLineText = computed(() => t.value.genesisEligibility.cardLockedLine);
+const lockedCopy = computed(() => resolveGenesisEligibilityCardCopy(gate.value.reasons, {
+  policyRejected: t.value.genesisEligibility.cardLockedLine,
+  policyManaged: t.value.genesisEligibility.cardPolicyManaged,
+  serviceUnavailable: t.value.genesisEligibility.reasonServiceUnavailable,
+  policyUnavailable: t.value.genesisEligibility.reasonPolicyUnavailable,
+}));
+const lockedLineText = computed(() => lockedCopy.value.line);
+const lockedMetText = computed(() => lockedCopy.value.meta);
 const ctaText = computed(() => {
   // 🔴 阻断态一律问 `block` 单源(FEAT-GEN10 ④),与创世页同一出口 —— 关闭市场 ≠ 下架,
   //   卡片照常展示(showcaseEnabled 另管),只是不能买。
-  // 三档阻断说明走 blockText 唯一出口(P1-3 收口);售罄档是本卡自己的 CTA 词汇
-  //   (「去二级市场」,与创世页的「已售罄」刻意不同),留在本地。
-  const blocked = blockText.value;
-  if (blocked !== null) return blocked;
-  if (block.value === "soldOut") return t.value.store.genesisCardCtaMarket;
-  if (block.value === "preSale") return t.value.genesisEligibility.comingSoon;
-  if (locked.value) return t.value.genesisEligibility.cardCtaLocked;
-  return t.value.genesisEligibility.cardCta;
+  // 账号资格只决定点击后进资格 sheet 还是详情页，不再把主售 CTA 改回“查看认购资格”。
+  return resolveGenesisPrimaryCta({
+    block: block.value,
+    // Unknown public supply offers an in-place recovery, so expose that action
+    // on the card itself instead of hiding retry only in a later toast.
+    blockedText: block.value === "configUnavailable" ? t.value.genesis.marketClosed.retryCta : blockText.value,
+    soldOut: t.value.store.genesisCardCtaMarket,
+    comingSoon: t.value.genesisEligibility.comingSoon,
+    reserve: t.value.genesisEligibility.cardCta,
+  });
 });
 
 function goGenesis() {
   eligSheetOpen.value = false;
-  uni.navigateTo({ url: "/pages/genesis/genesis", fail: () => {} });
+  navTo("/pages/genesis/genesis");
 }
-function onCardTap() {
+async function retryGenesisState(): Promise<void> {
+  if (supplyRetrying.value) return;
+  supplyRetrying.value = true;
+  const accountScope = captureAccountScope();
+  const generation = retryGeneration;
+  const current = () => generation === retryGeneration && isCurrentAccountScope(accountScope);
+  try {
+    // Configuration and supply have separate consumers of the public Genesis
+    // projection.  Retry both, while the store's request generation keeps a
+    // stale same-scope response from committing after a newer read.
+    await cfg.refresh();
+    // A config response can complete after route leave or account rebinding.
+    // Do not turn that old user intent into a new public read or a toast.
+    if (!current()) return;
+    await genesis.syncRemote();
+    if (!current()) return;
+    if (block.value === "configUnavailable") {
+      toast.info(ctaText.value, t.value.genesis.marketClosed.retryHint);
+    } else {
+      toast.success(t.value.genesis.marketClosed.retryOk);
+    }
+  } catch {
+    if (current()) toast.info(ctaText.value, t.value.genesis.marketClosed.retryHint);
+  } finally {
+    supplyRetrying.value = false;
+  }
+}
+async function onCardTap() {
   // 🔴 与 ctaText 同问 `block` 一处,顺序不在此重排(FEAT-GEN10 ④)。
   if (block.value === "soldOut") {
-    uni.navigateTo({ url: "/pages/genesis/marketplace", fail: () => {} });
+    navTo("/pages/genesis/marketplace");
+    return;
+  }
+  if (block.value === "configUnavailable") {
+    await retryGenesisState();
     return;
   }
   if (block.value !== null) {
@@ -149,9 +205,9 @@ function onCardTap() {
 }
 
 // ── styles（金色 = genesis 域例外,见文件头;其余走 --v5-* token,零 border 卡）──
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "18px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "18px 16px 16px",
 };
 const auroraStyle: CSSProperties = {
@@ -179,7 +235,7 @@ const leftChipStyle: CSSProperties = {
 const titleStyle: CSSProperties = {
   marginTop: "10px",
   fontFamily: "var(--font-v5)",
-  fontSize: "20px",
+  fontSize: "26px",
   fontWeight: 600,
   letterSpacing: "-0.016em",
   color: "var(--v5-ink)",
@@ -228,7 +284,6 @@ const lockRowStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "6px",
-  background: "var(--v5-surface-2)",
   borderRadius: "11px",
   padding: "9px 12px",
 };
@@ -240,4 +295,7 @@ const lockTextStyle: CSSProperties = {
   lineHeight: 1.4,
   textWrap: "pretty" as CSSProperties["textWrap"],
 };
+const lockMetStyle: CSSProperties = { flexShrink: 0, fontSize: "12px", color: "var(--v5-genesis-gold)" };
+
+import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 </script>

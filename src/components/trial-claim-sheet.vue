@@ -9,7 +9,7 @@
   <view v-if="sheet.open" class="tcs-root" role="dialog" aria-modal="true">
     <view class="tcs-backdrop" @click="hide" />
 
-    <view class="tcs-panel" @click.stop>
+    <view class="nx-glass-sheet tcs-panel" @click.stop>
       <!-- header -->
       <view class="tcs-head">
         <view class="tcs-head-l">
@@ -93,7 +93,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useTrialClaimSheet } from "@/store/trial-claim-sheet";
-import { useTrialConfig } from "@/store/trial-config";
+import { useTrialConfig, computeTrialOffset } from "@/store/trial-config";
 import { useFreeTrial, type TrialIneligibleReason } from "@/store/free-trial";
 import { toast } from "@/store/ui";
 import { useT } from "@/i18n/use-t";
@@ -106,7 +106,10 @@ const freeTrial = useFreeTrial();
 const t = useT();
 
 const cfg = computed(() => trialConfig.config);
-const shadowTotal = computed(() => (cfg.value.shadowDailyUSD * cfg.value.trialDays).toFixed(0));
+// Same capped offset every other trial surface quotes (BUG 78): the raw
+// days × shadowDailyUSD accrual overstates what the user can actually offset.
+const trialOffset = computed(() => computeTrialOffset(cfg.value, cfg.value.shadowDailyUSD * cfg.value.trialDays));
+const shadowTotal = computed(() => trialOffset.value.offsetUSD.toFixed(0));
 const perDay = computed(() => fmt(t.value.trial.sheetPerDay, { amount: cfg.value.shadowDailyUSD.toFixed(2) }));
 const totalSuffix = computed(() => fmt(t.value.trial.sheetTotalSuffix, { days: String(cfg.value.trialDays) }));
 const prop1Sub = computed(() => fmt(t.value.trial.sheetProp1Sub, { days: String(cfg.value.trialDays) }));
@@ -129,7 +132,9 @@ function reasonText(reason: TrialIneligibleReason | undefined): string {
   if (reason === "converted") return w.eligReasonConverted;
   if (reason === "used") return w.eligReasonUsed;
   if (reason === "in-progress") return w.eligReasonInProgress;
+  if (reason === "quota-exhausted") return w.eligReasonQuota;
   if (reason === "risk") return w.eligReasonRisk;
+  if (reason === "product-unavailable") return t.value.store.trialProductUnavailable;
   if (reason === "unknown") return w.eligReasonUnknown;
   return w.eligReasonClosed;
 }
@@ -165,6 +170,8 @@ async function onClaim() {
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。
 useDialogA11y(computed(() => sheet.open), ".tcs-root", hide);
+
+
 </script>
 
 <style scoped>
@@ -181,16 +188,16 @@ useDialogA11y(computed(() => sheet.open), ".tcs-root", hide);
   -webkit-backdrop-filter: blur(8px) saturate(150%);
   animation: tcs-fade 0.24s ease-out;
 }
-.tcs-panel {
+.tcs-panel { border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-shadow: var(--nx-glass-edge);
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 800;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  background: var(--v5-surface);
-  border-top: 1px solid var(--v5-border);
+
+
+  background: var(--nx-glass-fill);
+  border: none;
   padding: 20px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 38px);
   animation: tcs-slide-up 0.36s cubic-bezier(0.16, 1, 0.3, 1);

@@ -172,13 +172,16 @@ export function requestWithdrawalEligibility(
   address: string,
   withdrawableUsdt: number,
   daily: WithdrawalDailyFacts,
-  requestedUsdt?: number,
+  requestedUsdt: number | undefined,
+  policyVersion: string,
 ): Promise<WithdrawalEligibility> {
+  if (network === "BANK-VND") return Promise.reject(new Error("BANK_WITHDRAWAL_QUOTE_REQUIRED"));
   if (remoteApiEnabled) {
     return withdrawalApi.eligibility({
       amount: requestedUsdt ?? 0,
       chain: network,
       address,
+      policyVersion,
     }).then((snapshot) => ({
       canSubmit: snapshot.canSubmit,
       maxWithdrawableUsdt: snapshot.maxWithdrawableUsdt,

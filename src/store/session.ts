@@ -2,7 +2,9 @@ import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { getDeviceIdentity, _devResetDeviceIdentity } from "@/lib/device-id";
 import { getEntrySurface, type EntrySurface } from "@/lib/entry-surface";
+import { nexGridBrandText } from "@/lib/brand-copy";
 import { normalizeAccountKey } from "@/store/account-cloud";
+import { remoteApiEnabled } from "@/api/runtime";
 import { mockServerUuid } from "./mock-id";
 
 /**
@@ -24,6 +26,7 @@ import { mockServerUuid } from "./mock-id";
 const SESSION_REGISTRY_KEY = "nexgrid-account-sessions-v1";
 const LEGACY_ACTIVE_KEY = "nexgrid-active-session-v1";
 const CALIBRATED_KEY = "nexgrid-calibrated-device-v1"; // { [accountKey]: deviceId }
+const DEFERRED_PHONE_ACTIVATION_KEY = "nexgrid-deferred-phone-activation-v1"; // { [accountKey]: deviceId }
 
 export type SessionStatus = "active" | "kicked" | "logged-out";
 export type KickReason = "kicked" | "logged-out" | null;
@@ -56,17 +59,14 @@ export interface SessionListItem {
   entrySurface: EntrySurface;
 }
 
-function readRegistryStrict(): SessionRegistry | null {
+function readRegistry(): SessionRegistry {
   try {
     const r = uni.getStorageSync(SESSION_REGISTRY_KEY) as SessionRegistry | "";
-    if (!r) return { schema: 1, sessions: {} };
-    if (typeof r === "object" && r.schema === 1 && r.sessions && !Array.isArray(r.sessions)
-      && typeof r.sessions === "object" && Object.values(r.sessions).every(s => s && typeof s.accountKey === "string"
-        && typeof s.deviceId === "string" && typeof s.entrySurface === "string" && Number.isFinite(s.lastSeenAt))) return r;
+    if (r && typeof r === "object" && r.schema === 1 && r.sessions) return r;
   } catch {
-    // Unknown is not evidence that an existing APP session was revoked.
+    // first run
   }
-  return null;
+  return { schema: 1, sessions: {} };
 }
 
 function writeRegistry(registry: SessionRegistry): void {
@@ -85,38 +85,52 @@ function forgetLegacyActiveRecord(): void {
   }
 }
 
-function readCalibratedMap(): Record<string, string> {
+function readDeviceMap(storageKey: string): Record<string, string> {
   try {
-    const m = uni.getStorageSync(CALIBRATED_KEY) as Record<string, string> | "";
-    if (m && typeof m === "object") return m;
+    const m = uni.getStorageSync(storageKey) as Record<string, string> | "";
+    if (m && typeof m === "object") return { ...m };
   } catch {
     // ignore
   }
   return {};
 }
 
-export function readCalibratedInstallation(accountKey: string): string | null {
-  const id = readCalibratedMap()[normalizeAccountKey(accountKey)];
-  return typeof id === "string" && id.length > 0 ? id : null;
-}
-
-function writeCalibratedMap(m: Record<string, string>): void {
+function writeDeviceMap(storageKey: string, m: Record<string, string>): boolean {
   try {
-    uni.setStorageSync(CALIBRATED_KEY, m);
+    uni.setStorageSync(storageKey, m);
+    return true;
   } catch {
-    // ignore
+    return false;
   }
 }
 
-export function readAccountSessionRecords(accountKey: string): AccountSessionRecord[] {
-  return readAccountSessionRecordsStrict(accountKey) ?? [];
+function readCalibratedMap(): Record<string, string> {
+  return readDeviceMap(CALIBRATED_KEY);
 }
 
-export function readAccountSessionRecordsStrict(accountKey: string): AccountSessionRecord[] | null {
+function readDeferredPhoneActivationMap(): Record<string, string> {
+  return readDeviceMap(DEFERRED_PHONE_ACTIVATION_KEY);
+}
+
+/**
+ * The calibrated/deferred markers form one local state machine. Persist both or
+ * restore the old calibrated map so a partial storage failure cannot turn an
+ * explicit deferral into a forced-recalibration loop on the next session guard.
+ */
+function writePhoneActivationMaps(
+  calibrated: Record<string, string>,
+  deferred: Record<string, string>,
+  previousCalibrated: Record<string, string>,
+): boolean {
+  if (!writeDeviceMap(CALIBRATED_KEY, calibrated)) return false;
+  if (writeDeviceMap(DEFERRED_PHONE_ACTIVATION_KEY, deferred)) return true;
+  writeDeviceMap(CALIBRATED_KEY, previousCalibrated);
+  return false;
+}
+
+export function readAccountSessionRecords(accountKey: string): AccountSessionRecord[] {
   const key = normalizeAccountKey(accountKey);
-  const registry = readRegistryStrict();
-  if (!registry) return null;
-  return Object.values(registry.sessions)
+  return Object.values(readRegistry().sessions)
     .filter((s) => s.accountKey === key && !s.endedAt && !s.killedAt)
     .sort((a, b) => b.lastSeenAt - a.lastSeenAt);
 }
@@ -167,8 +181,8 @@ export const useSession = defineStore("session", () => {
     void sessionRevision.value;
     return readAccountSessionRecords(accountKey.value).map((s) => ({
       id: s.sessionId,
-      deviceName: s.deviceName,
-      device: s.deviceName,
+      deviceName: nexGridBrandText(s.deviceName),
+      device: nexGridBrandText(s.deviceName),
       location: "",
       ip: "",
       lastActiveMs: s.lastSeenAt,
@@ -182,20 +196,13 @@ export const useSession = defineStore("session", () => {
   }
 
   function writeSession(rec: AccountSessionRecord): void {
-    const registry = readRegistryStrict();
-    if (!registry) return;
+    const registry = readRegistry();
     registry.sessions[rec.sessionId] = rec;
     writeRegistry(registry);
     bump();
   }
 
   function claim(rawAccountKey: string, surface: EntrySurface = getEntrySurface()): { requiresRecalibration: boolean } {
-    const registry = readRegistryStrict();
-    if (!registry) {
-      sessionId.value = "";
-      status.value = "logged-out";
-      return { requiresRecalibration: false };
-    }
     forgetLegacyActiveRecord();
     const id = getDeviceIdentity();
     const key = normalizeAccountKey(rawAccountKey);
@@ -210,6 +217,7 @@ export const useSession = defineStore("session", () => {
     status.value = "active";
     kickedReason.value = null;
 
+    const registry = readRegistry();
     endSameDeviceSessions(registry, key, id.deviceId, surface, sid, now);
     registry.sessions[sid] = {
       sessionId: sid,
@@ -237,8 +245,7 @@ export const useSession = defineStore("session", () => {
     forgetLegacyActiveRecord();
     const id = getDeviceIdentity();
     const key = normalizeAccountKey(rawAccountKey);
-    const registry = readRegistryStrict();
-    if (!registry) return { requiresRecalibration: requiresRecalibration.value, status: status.value };
+    const registry = readRegistry();
     const matches = Object.values(registry.sessions)
       .filter((s) => s.accountKey === key && s.deviceId === id.deviceId && s.entrySurface === surface)
       .sort((a, b) => sessionSeenAt(b) - sessionSeenAt(a));
@@ -278,11 +285,21 @@ export const useSession = defineStore("session", () => {
 
   function validate(): SessionStatus {
     if (!sessionId.value) {
-      status.value = "active";
-      return "active";
+      if (!remoteApiEnabled) {
+        // The standalone mock runtime intentionally boots with its demo
+        // profile before a carrier session is created.
+        status.value = "active";
+        return "active";
+      }
+      // An authenticated route must always have a carrier session. Treat a
+      // missing id as a lost restore rather than silently accepting the page;
+      // otherwise a tab transition can render protected UI in the short
+      // window before the server session has been re-established.
+      status.value = "logged-out";
+      kickedReason.value = "logged-out";
+      return "logged-out";
     }
-    const registry = readRegistryStrict();
-    if (!registry) return status.value;
+    const registry = readRegistry();
     const rec = registry.sessions[sessionId.value];
     if (!rec) {
       status.value = "logged-out";
@@ -306,18 +323,60 @@ export const useSession = defineStore("session", () => {
     return "active";
   }
 
-  function markCalibrated(rawAccountKey: string): void {
+  function markCalibrated(rawAccountKey: string): boolean {
     const key = normalizeAccountKey(rawAccountKey);
-    const map = readCalibratedMap();
-    map[key] = deviceId.value;
-    writeCalibratedMap(map);
+    const previousCalibrated = readCalibratedMap();
+    const calibrated = { ...previousCalibrated, [key]: deviceId.value };
+    const deferred = readDeferredPhoneActivationMap();
+    delete deferred[key];
+    if (!writePhoneActivationMaps(calibrated, deferred, previousCalibrated)) return false;
     requiresRecalibration.value = false;
+    bump();
+    return true;
+  }
+
+  function clearCalibrated(rawAccountKey: string): boolean {
+    const key = normalizeAccountKey(rawAccountKey);
+    const previousCalibrated = readCalibratedMap();
+    const calibrated = { ...previousCalibrated };
+    const deferred = readDeferredPhoneActivationMap();
+    delete calibrated[key];
+    delete deferred[key];
+    if (!writePhoneActivationMaps(calibrated, deferred, previousCalibrated)) return false;
+    requiresRecalibration.value = true;
+    bump();
+    return true;
+  }
+
+  function markPhoneActivationDeferred(rawAccountKey: string): boolean {
+    const key = normalizeAccountKey(rawAccountKey);
+    const previousCalibrated = readCalibratedMap();
+    const calibrated = { ...previousCalibrated };
+    const deferred = readDeferredPhoneActivationMap();
+    delete calibrated[key];
+    deferred[key] = deviceId.value;
+    if (!writePhoneActivationMaps(calibrated, deferred, previousCalibrated)) return false;
+    requiresRecalibration.value = false;
+    bump();
+    return true;
+  }
+
+  function isCurrentDeviceCalibrated(rawAccountKey: string): boolean {
+    void sessionRevision.value;
+    const key = normalizeAccountKey(rawAccountKey);
+    return readCalibratedMap()[key] === deviceId.value;
+  }
+
+  function isCurrentDevicePhoneActivationDeferred(rawAccountKey: string): boolean {
+    void sessionRevision.value;
+    const key = normalizeAccountKey(rawAccountKey);
+    return readDeferredPhoneActivationMap()[key] === deviceId.value;
   }
 
   function signOutSession(): void {
-    const registry = readRegistryStrict();
-    const rec = registry?.sessions[sessionId.value];
-    if (registry && rec) {
+    const registry = readRegistry();
+    const rec = registry.sessions[sessionId.value];
+    if (rec) {
       registry.sessions[sessionId.value] = { ...rec, endedAt: Date.now() };
       writeRegistry(registry);
     }
@@ -328,8 +387,7 @@ export const useSession = defineStore("session", () => {
   }
 
   function revokeSession(id: string): void {
-    const registry = readRegistryStrict();
-    if (!registry) return;
+    const registry = readRegistry();
     const rec = registry.sessions[id];
     if (!rec || rec.accountKey !== accountKey.value) return;
     registry.sessions[id] = { ...rec, killedAt: Date.now() };
@@ -338,8 +396,7 @@ export const useSession = defineStore("session", () => {
   }
 
   function revokeAllOtherSessions(): void {
-    const registry = readRegistryStrict();
-    if (!registry) return;
+    const registry = readRegistry();
     Object.entries(registry.sessions).forEach(([id, rec]) => {
       if (rec.accountKey === accountKey.value && id !== sessionId.value && !rec.endedAt && !rec.killedAt) {
         registry.sessions[id] = { ...rec, killedAt: Date.now() };
@@ -383,7 +440,9 @@ export const useSession = defineStore("session", () => {
   return {
     sessionId, accountKey, deviceId, deviceName, entrySurface, status, kickedReason,
     requiresRecalibration, activeSessions,
-    claim, resumeOrClaim, validate, markCalibrated, signOutSession, revokeSession, revokeAllOtherSessions, kick,
+    claim, resumeOrClaim, validate, markCalibrated, clearCalibrated, markPhoneActivationDeferred,
+    isCurrentDeviceCalibrated, isCurrentDevicePhoneActivationDeferred,
+    signOutSession, revokeSession, revokeAllOtherSessions, kick,
     _devSimulateOtherDeviceLogin, _devRevokeCurrentSession, _devForgetDevice,
   };
 });

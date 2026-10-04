@@ -151,14 +151,15 @@ function evaluate(text) {
 function evaluateConfig(text) {
   const load = functionBody(text, "load");
   assert.match(text, /import\s*\{\s*platformConfigApi\s*,\s*remoteApiEnabled\s*\}\s*from\s*["']@\/api\/runtime["']/,
-    "config store must use the selected API runtime mode");
-  assert.match(load, /if\s*\(!remoteApiEnabled\)/,
-    "local-mock config loading must not call the remote platform endpoint");
-  assert.match(load, /syncFailed\.value\s*=\s*false[\s\S]*return;/,
-    "local-mock config loading must make the in-memory seed eligible for settlement and return");
-  const branch = load.match(/if\s*\(!remoteApiEnabled\)\s*\{([\s\S]*?)\}/)?.[1] || "";
-  assert.doesNotMatch(branch, /platformConfigApi\.platformConfig\(/,
-    "local-mock branch must not fetch the Vite HTML fallback as platform config");
+    "config store must use the formal API runtime");
+  assert.doesNotMatch(load, /if\s*\(!remoteApiEnabled\)/,
+    "formal App config loading must not retain a browser-local authority branch");
+  assert.match(load, /await platformConfigApi\.platformConfig\(\)/,
+    "formal App config loading must fetch Java's authoritative platform projection");
+  assert.match(load, /sourceEnvironment !== "PRODUCTION"[\s\S]*runId !== ""/,
+    "formal App must fail closed on a non-production-shaped Java projection");
+  assert.doesNotMatch(load, /mockConfig/,
+    "formal App must not fall back to client mock config inside the authority load path");
 }
 
 function evaluateDeposits(text) {
@@ -292,12 +293,15 @@ for (const mutation of depositMutations) {
   );
 }
 
-const configMutation = configSource.replace("if (!remoteApiEnabled)", "if (remoteApiEnabled)");
-assert.notEqual(configMutation, configSource, "stale mutation: invert local-mock runtime guard");
+const configMutation = configSource.replace(
+  "await platformConfigApi.platformConfig()",
+  "await Promise.resolve(mockConfig)",
+);
+assert.notEqual(configMutation, configSource, "stale mutation: replace Java platform authority with browser mock config");
 assert.throws(
   () => evaluateConfig(configMutation),
   undefined,
-  "mutation escaped: local-mock platform config fetched the remote endpoint",
+  "mutation escaped: browser mock config replaced Java platform authority",
 );
 
 console.log(`business-loop-liveness: PASS (contract 1 + mutation red checks ${mutations.length + 2 + depositMutations.length})`);

@@ -3,6 +3,7 @@ import { createPaymentMethodApi } from "./payment-method-api";
 
 const card = {
   tokenId: "12", version: 3, brand: "visa", last4: "4242", holder: "ALEX NEX",
+  expiry: "12/30",
   status: "BOUND", isDefault: true, boundAt: "2026-08-15T00:00:00Z",
   source: "mock", sandbox: true, providerCanonical: false,
 };
@@ -30,4 +31,27 @@ test("rejects a payment method response without an optimistic-concurrency versio
   const { version: _version, ...withoutVersion } = card;
   const api = createPaymentMethodApi({ request: async () => ({ serverCanonical: true, cards: [withoutVersion] }) } as never);
   await expect(api.list()).rejects.toMatchObject({ kind: "protocol", message: "PAYMENT_METHOD_RESPONSE_INVALID" });
+});
+
+test("binds and reads back the PSP-returned expiry without exposing PAN or CVV", async () => {
+  const requests: any[] = [];
+  const api = createPaymentMethodApi({ request: async (request: any) => {
+    requests.push(request);
+    return {
+      serverCanonical: true, receipt: "CARD_BOUND", source: "mock", sandbox: true,
+      providerCanonical: false, card,
+    };
+  }} as never);
+
+  await expect(api.bind({
+    providerToken: "tok_0123456789abcdef01234567", source: "mock", brand: "visa",
+    last4: "4242", expiry: "12/30", holder: "ALEX NEX", makeDefault: true,
+    idempotencyKey: "bind-expiry",
+  })).resolves.toMatchObject({ expiry: "12/30" });
+  expect(requests[0].body).toEqual({
+    providerToken: "tok_0123456789abcdef01234567", source: "mock", brand: "visa",
+    last4: "4242", expiry: "12/30", holder: "ALEX NEX", makeDefault: true,
+  });
+  expect(requests[0].body).not.toHaveProperty("pan");
+  expect(requests[0].body).not.toHaveProperty("cvv");
 });

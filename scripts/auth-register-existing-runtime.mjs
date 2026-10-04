@@ -6,24 +6,24 @@ const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 // argv 优先于环境变量：WSL 调用 node.exe 时临时环境变量可能不会跨进 Windows
 // 进程，而 argv 能稳定保留 EN/ZH 两轮运行时回归的目标语言。
 const locale = process.argv[2] === "zh" || (process.argv[2] !== "en" && process.env.AUTH02_LOCALE === "zh") ? "zh" : "en";
-const phoneDigits = `650${String(Date.now()).slice(-7)}`;
-const fullPhone = `+1${phoneDigits}`;
+const phoneDigits = `1390${String(Date.now()).slice(-7)}`;
+const fullPhone = `+86${phoneDigits}`;
 const accountId = `${fullPhone}@demo.nexgrid.ai`;
 const referralCode = "NEXGRID-AB12";
 const registeredTitle = locale === "zh" ? "该手机号已注册" : "This number is already registered";
 const registeredBody = locale === "zh" ? "验证通过,正在登录…" : "Verification complete. Signing you in…";
 const successDownloadHint = locale === "zh"
-  ? "浏览器版可通过 UVEL 官网下载 APP"
-  : "Download the APP from UVEL's website in your browser";
+  ? "浏览器版可通过 NexGrid 官网下载 APP"
+  : "Download the APP from NexGrid's website in your browser";
 const successDownloadPending = locale === "zh"
   ? "官网下载 APP 地址暂未开放"
   : "APP download link unavailable";
 const successDownloadLink = locale === "zh"
   ? "前往官网下载 APP"
-  : "Download the APP from UVEL";
+  : "Download the APP from NexGrid";
 const successTitle = locale === "zh" ? "注册成功" : "You're in";
-const successSub = locale === "zh" ? "欢迎加入 UVEL" : "Welcome to UVEL";
-const successTeamPrefix = locale === "zh" ? "欢迎加入 UVEL," : "Welcome to UVEL — you joined ";
+const successSub = locale === "zh" ? "欢迎加入 NexGrid" : "Welcome to NexGrid";
+const successTeamPrefix = locale === "zh" ? "欢迎加入 NexGrid," : "Welcome to NexGrid — you joined ";
 const successBenefits = locale === "zh"
   ? ["APP 在线时长可加速礼包与收益解锁", "设备收益实时推送,睡醒先看进账", "更稳的连接与算力调度"]
   : ["APP online hours speed up gift & yield release", "Real-time yield alerts — wake up to earnings", "Steadier connection & compute scheduling"];
@@ -135,14 +135,14 @@ async function solveCaptchaSlider(frame, phone) {
 }
 
 async function enterPhoneAndSend(frame, digits = phoneDigits) {
-  // 包 zm T4/T5 配套:区号随语言预置(zh 默认 +86)且按国别位数校验 —— 本门夹具全是 +1 十位号,
-  // 输号前显式选回 +1,否则 zh 轮 CTA 被位数闸禁用、门恒红。选区号本身也是真实用户步骤。
-  if ((await frame.locator(".rg-phone__cc-t").innerText()).trim() !== "+1") {
+  // 正式环境默认 +84，开发环境默认 +86；本运行时夹具统一使用开发专用的 +86 号码。
+  // 显式选择 +86，既覆盖真实选择步骤，也避免测试依赖运行环境默认值。
+  if ((await frame.locator(".rg-phone__cc-t").innerText()).trim() !== "+86") {
     await frame.locator(".rg-phone__cc").click();
-    const row = frame.locator(".cc-row", { hasText: "+1" }).first();
+    const row = frame.locator(".cc-row", { hasText: "+86" }).first();
     await row.waitFor({ state: "visible", timeout: 10_000 });
     await row.click();
-    await waitUntil(async () => (await frame.locator(".rg-phone__cc-t").innerText()).trim() === "+1", "country code did not switch to +1");
+    await waitUntil(async () => (await frame.locator(".rg-phone__cc-t").innerText()).trim() === "+86", "country code did not switch to +86");
   }
   await frame.locator(".rg-phone__in input").fill(digits);
   await frame.locator(".rg-cta").click();
@@ -160,7 +160,7 @@ async function enterPhoneAndSend(frame, digits = phoneDigits) {
     return false;
   }, "neither the OTP step nor the captcha layer appeared after send");
   if (sawCaptcha) {
-    await solveCaptchaSlider(frame, `+1${digits}`);
+    await solveCaptchaSlider(frame, `+86${digits}`);
     await frame.locator(".rg-step2").waitFor({ state: "visible", timeout: 10_000 });
   }
 }
@@ -364,7 +364,7 @@ async function assertRegistrationSuccessUi(frame, expectGift, expectRouteEntryFo
   await page.context().route(officialUrl, (route) => route.fulfill({
     status: 200,
     contentType: "text/html",
-    body: "<!doctype html><title>UVEL download</title><p>official download test</p>",
+    body: "<!doctype html><title>NexGrid download</title><p>official download test</p>",
   }));
   await frame.evaluate(async (url) => {
     const { useConfig } = await import("/src/store/config.ts");
@@ -435,15 +435,15 @@ async function assertRegistrationSuccessUi(frame, expectGift, expectRouteEntryFo
 
 async function assertAuthDirectorySchemaBarrier(frame) {
   const suffix = String(Date.now()).slice(-7);
-  const legacyPhone = `+1655${suffix}`;
+  const legacyPhone = `+861355${suffix}`;
   const legacyAccount = `${legacyPhone}@demo.nexgrid.ai`;
-  const recoveryPhone = `+1658${suffix}`;
+  const recoveryPhone = `+861358${suffix}`;
   const recoveryAccount = `${recoveryPhone}@demo.nexgrid.ai`;
-  const cleanupPhone = `+1659${suffix}`;
+  const cleanupPhone = `+861359${suffix}`;
   const cleanupAccount = `${cleanupPhone}@demo.nexgrid.ai`;
-  const pendingPhone = `+1656${suffix}`;
+  const pendingPhone = `+861356${suffix}`;
   const pendingAccount = `${pendingPhone}@demo.nexgrid.ai`;
-  const freshPhone = `+1657${suffix}`;
+  const freshPhone = `+861357${suffix}`;
   const result = await frame.evaluate(async ({ legacyPhone, legacyAccount, recoveryPhone, recoveryAccount, cleanupPhone, cleanupAccount, pendingPhone, pendingAccount, freshPhone }) => {
     const { buildCandidateRecord, readRiskRecordsStrict } = await import("/src/store/risk-identity.ts");
     const {
@@ -626,7 +626,10 @@ async function assertAuthDirectorySchemaBarrier(frame) {
     result.pendingReserve?.stage !== "auth03-gate" && result.freshReserve?.stage !== "auth03-gate",
     `AUTH03 gate probe failed: bare register send did not return captcha_required (pending=${JSON.stringify(result.pendingReserve?.gateProbe ?? null)} fresh=${JSON.stringify(result.freshReserve?.gateProbe ?? null)})`,
   );
-  assert(result.pendingReserve?.ok && result.pendingRiskCommitted, "pending reservation did not reach persisted K1 state");
+  assert(
+    result.pendingReserve?.ok && result.pendingRiskCommitted,
+    `pending reservation did not reach persisted K1 state: ${JSON.stringify({ reserve: result.pendingReserve, committed: result.pendingRiskCommitted })}`,
+  );
   assert(result.pendingBeforeDelete?.ok && result.pendingBeforeDelete.account?.status === "pending", "pending reservation was not preserved before deletion");
   assert(result.pendingRisk?.ok && result.pendingRisk.sourceSchema === 2, "pending K1 persistence did not seal risk storage to schema2");
   assert(!result.pendingAfterDeletePhone?.ok && result.pendingAfterDeletePhone.error === "account_directory_unavailable", "pending phone became resolvable after directory deletion");
@@ -775,7 +778,7 @@ try {
     const { useAuth } = await import("/src/store/auth.ts");
     const result = completeSignIn({ identity: `${phone}@demo.nexgrid.ai` });
     return { result, accountId: useAuth().accountId, expectedAccount };
-  }, { expectedAccount: accountId, phone: `+1651${String(Date.now()).slice(-7)}` });
+  }, { expectedAccount: accountId, phone: `+861351${String(Date.now()).slice(-7)}` });
   assert(unregisteredGuard.result?.ok === false && unregisteredGuard.result.error === "account_not_found", "unregistered phone bypassed the account directory");
   assert(unregisteredGuard.accountId === unregisteredGuard.expectedAccount, "rejected sign-in changed the active account");
 
@@ -784,6 +787,14 @@ try {
   await signOutToDefault(frame, fullPhone);
   let loginFrame = await gotoLogin("stale-login");
   await loginFrame.locator(".lg-switch").click();
+  // 登录页同样显式选择开发专用的 +86，避免依赖语言或构建环境默认值。
+  if ((await loginFrame.locator(".lg-phone__cc-t").innerText()).trim() !== "+86") {
+    await loginFrame.locator(".lg-phone__cc").click();
+    const row = loginFrame.locator(".cc-row", { hasText: "+86" }).first();
+    await row.waitFor({ state: "visible", timeout: 10_000 });
+    await row.click();
+    await waitUntil(async () => (await loginFrame.locator(".lg-phone__cc-t").innerText()).trim() === "+86", "login country code did not switch to +86");
+  }
   await loginFrame.locator(".lg-phone__in input").fill(phoneDigits);
   await loginFrame.locator(".lg-cta").click();
   await loginFrame.locator(".lg-otp").waitFor({ state: "visible", timeout: 10_000 });
@@ -817,8 +828,8 @@ try {
     return completeSignIn({ identity });
   }, accountId);
   assert(resumeOldForRollback?.ok, "could not restore the existing account before rollback test");
-  const rollbackDigits = `653${String(Date.now()).slice(-7)}`;
-  const rollbackPhone = `+1${rollbackDigits}`;
+  const rollbackDigits = `1363${String(Date.now()).slice(-7)}`;
+  const rollbackPhone = `+86${rollbackDigits}`;
   const rollbackAccount = `${rollbackPhone}@demo.nexgrid.ai`;
   frame = await gotoRegister("risk-rollback");
   await enterPhoneAndSend(frame, rollbackDigits);
@@ -876,8 +887,8 @@ try {
   assert(afterRollbackRetry.bonusBills.length === 2 && afterRollbackRetry.giftClaimed && afterRollbackRetry.giftMirror, "retry after K1 failure duplicated or lost welcome-gift side effects");
 
   // 验码请求尚未返回时改号，旧响应不能污染新号码步骤或生成账号。
-  const stalePhoneDigits = `652${String(Date.now()).slice(-7)}`;
-  const stalePhone = `+1${stalePhoneDigits}`;
+  const stalePhoneDigits = `1362${String(Date.now()).slice(-7)}`;
+  const stalePhone = `+86${stalePhoneDigits}`;
   frame = await gotoRegister("stale", false);
   await enterPhoneAndSend(frame, stalePhoneDigits);
   await enterOtp(frame);

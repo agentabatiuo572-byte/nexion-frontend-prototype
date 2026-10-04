@@ -58,20 +58,3 @@ export function phoneTierYield(tier: number): { baseRateUsdt: number; baseRateNe
   const hit = cfg.find((c) => c.tier === tier) ?? cfg[cfg.length - 1] ?? { baseRateUsdt: 0, baseRateNex: 0 };
   return { baseRateUsdt: hit.baseRateUsdt, baseRateNex: hit.baseRateNex };
 }
-
-/**
- * The tier marketing copy speaks for — "a typical phone" — per the invariant
- * documented above. Store pages compare against THIS tier, not the visitor's own
- * calibrated device: the store is browsed before any device is calibrated, and a
- * comparison that shifted per visitor would make the advertised multiple unstable.
- */
-export const TYPICAL_PHONE_TIER = 3;
-
-/**
- * Phone daily USDT the store compares boxes against. 0 means the operator config
- * is unavailable (empty table) — callers must degrade, never substitute a guess:
- * a fabricated baseline would misstate the advertised multiple.
- */
-export function typicalPhoneDailyUsdt(): number {
-  return phoneTierYield(TYPICAL_PHONE_TIER).baseRateUsdt;
-}

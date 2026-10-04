@@ -1,13 +1,9 @@
 <!-- ListingCard — marketplace listing tile + Buy CTA (marketplace/page.tsx ListingCard). -->
 <template>
-  <view class="overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card overflow-hidden" :style="cardStyle">
     <!-- NFT visual -->
     <view class="relative flex items-center justify-center" :style="artStyle">
-      <view class="text-center">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" /><path d="M5 20h14" /></svg>
-        <text class="block tabular-nums" :style="tokenIdStyle">#{{ l.tokenId }}</text>
-        <text class="block" :style="founderStyle">{{ t.marketplace.founderLabel }}</text>
-      </view>
+      <GenesisArtwork context="holding" :serial="l.holdingNo ?? l.tokenId" style="position: absolute; inset: 0" />
       <view class="mc-pulse" :style="dotStyle" />
     </view>
     <!-- Meta -->
@@ -29,12 +25,13 @@
 </template>
 
 <script setup lang="ts">
+import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 
 export interface Listing {
-  tokenId: number;
+  tokenId: string | number;
   holdingNo?: string;
   priceUSDT: number;
   lastSaleUSDT: number | null;
@@ -55,19 +52,17 @@ const deltaPct = computed<string | null>(() =>
     : null,
 );
 const isUp = computed(() => delta.value > 0);
-const priceText = computed(() => props.l.priceUSDT.toLocaleString());
+const priceText = computed(() => props.l.priceUSDT.toLocaleString(undefined, { maximumFractionDigits: 6 }));
 const lastSaleText = computed(() => props.l.lastSaleUSDT === null
   ? "—" : fmt(t.value.marketplace.lastSale, { k: (props.l.lastSaleUSDT / 1000).toFixed(1) }));
 
 // Collectible tile — filled surface, no border (single visual difference).
-const cardStyle: CSSProperties = {
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const artStyle: CSSProperties = {
   aspectRatio: "1 / 1",
-  background:
-    "radial-gradient(80% 80% at 50% 30%, color-mix(in srgb, var(--v5-quest-ember) 18%, transparent) 0%, transparent 65%), linear-gradient(135deg, #1F1408 0%, var(--v5-on-brand) 100%)",
 };
 const tokenIdStyle: CSSProperties = {
   marginTop: "4px",
@@ -141,4 +136,6 @@ const buyBtnStyle: CSSProperties = {
   fontSize: "13px",
   letterSpacing: "-0.005em",
 };
+
+import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 </script>

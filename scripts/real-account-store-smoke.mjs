@@ -16,12 +16,20 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
 const page = await context.newPage();
 const pageErrors = [];
-const failedResponses = [];
+const failedResponseReads = [];
 const authFailures = [];
 const stateTrace = [];
 page.on("pageerror", (error) => pageErrors.push(error.message));
 page.on("response", (response) => {
-  if (response.status() >= 500) failedResponses.push(`${response.status()} ${new URL(response.url()).pathname}`);
+  if (response.status() >= 500) {
+    failedResponseReads.push(response.json().then((body) => ({
+      status: response.status(),
+      path: new URL(response.url()).pathname,
+      message: typeof body?.message === "string" ? body.message : "",
+    })).catch(() => ({
+      status: response.status(), path: new URL(response.url()).pathname, message: "",
+    })));
+  }
   if (response.status() === 401 || response.status() === 403) {
     const entry = {
       status: response.status(),
@@ -62,28 +70,15 @@ try {
   });
   await page.goto(`${baseUrl}/?nx_device=off#/pages/login/login`, { waitUntil: "domcontentloaded" });
   async function captureRuntimeState(label) {
-    const state = await page.evaluate(async () => {
-      const [{ sessionVault }, { useAuth }, { useSession }, { useApp }] = await Promise.all([
-        import("/src/api/runtime.ts"),
-        import("/src/store/auth.ts"),
-        import("/src/store/session.ts"),
-        import("/src/store/app.ts"),
-      ]);
-      const vault = sessionVault.read();
-      const auth = useAuth();
-      const session = useSession();
-      const app = useApp();
-      return {
-        hasVault: !!vault,
-        vaultRevision: sessionVault.revision(),
-        authAuthenticated: auth.isAuthenticated,
-        authOnboarded: auth.onboardingComplete,
-        authMatchesVault: !!vault && auth.accountId === `user:${vault.user.userId}`,
-        appMatchesAuth: app.accountKey === auth.accountId,
-        localSessionStatus: session.status,
-        localSessionMatchesAuth: session.accountKey === auth.accountId,
-      };
-    }).catch((error) => ({ stateReadError: error instanceof Error ? error.message : String(error) }));
+    // Never import the source runtime from the test page. After Vite HMR adds a
+    // cache-busting query to the app graph, a bare dynamic import can create a
+    // second in-memory session vault and turn a healthy UI session into a false
+    // AUTH_SESSION_REQUIRED failure. The real UI requests below are the session
+    // authority proof; this trace is deliberately limited to visible state.
+    const state = {
+      visibleTabs: await page.locator(".nx-tab:visible").count(),
+      visibleProducts: await page.getByText(/StellarBox Pro|NexionBox Pro v2/, { exact: true }).count(),
+    };
     stateTrace.push({ label, url: new URL(page.url()).hash, ...state });
   }
   async function login() {
@@ -102,6 +97,8 @@ try {
   async function openStoreFromVisibleTab() {
     const catalogResponsePromise = page.waitForResponse((response) =>
       response.url().includes("/api/store/catalog") && response.request().method() === "GET");
+    const eligibilityResponsePromise = page.waitForResponse((response) =>
+      response.url().includes("/api/store/purchase-eligibility") && response.request().method() === "GET");
     await page.locator(".nx-tab").filter({ hasText: /Store|商城|Cửa hàng/i }).click();
     const catalogResponse = await catalogResponsePromise;
     assert.equal(catalogResponse.status(), 200, "store catalog must return HTTP 200");
@@ -109,6 +106,19 @@ try {
     assert.equal(catalogPayload?.code, 0, "store catalog must return a successful API envelope");
     assert.equal(catalogPayload?.data?.sourceEnvironment, "SANDBOX");
     assert.equal(catalogPayload?.data?.source, "mock");
+    const eligibilityResponse = await eligibilityResponsePromise;
+    const productNo = new URL(eligibilityResponse.url()).searchParams.get("productNo");
+    assert.equal(typeof productNo, "string", "eligibility request must carry a server product identifier");
+    assert.ok(catalogPayload?.data?.products?.some((product) => product?.id === productNo),
+      "eligibility must evaluate a product from the same server catalog");
+    assert.equal(eligibilityResponse.status(), 200, "purchase eligibility must return HTTP 200");
+    const eligibilityPayload = await eligibilityResponse.json();
+    assert.equal(eligibilityPayload?.code, 0, "purchase eligibility must return a successful API envelope");
+    const eligibility = eligibilityPayload.data;
+    assert.equal(eligibility.productNo, productNo);
+    assert.equal(eligibility.sourceEnvironment, "SANDBOX");
+    assert.equal(eligibility.runId, catalogPayload.data.runId);
+    assert.equal(eligibility.serverCanonical, true);
     await page.getByText("StellarBox Pro", { exact: true }).waitFor({ state: "visible" });
     await page.getByText("NexionBox Pro v2", { exact: true }).waitFor({ state: "visible" });
     await captureRuntimeState("store-products-visible");
@@ -139,13 +149,31 @@ try {
   const realUncaught = uncaught.filter((entry) => !navCancelled(entry));
   const realPageErrors = pageErrors.filter((message) => message !== "Object");
   const flattenedNavigationErrors = pageErrors.filter((message) => message === "Object");
+  const failedResponses = await Promise.all(failedResponseReads);
+  const expectedSandboxHolds = new Map([
+    ["/api/devices/earnings", "CANONICAL_DEVICE_SANDBOX_UNAVAILABLE"],
+    ["/api/tasks/assignments", "TASK_ASSIGNMENT_RUNTIME_UNSUPPORTED"],
+    ["/api/config/staking/pools", "STAKING_PROFILE_INVALID"],
+    ["/api/stakes", "STAKING_PROFILE_INVALID"],
+    ["/api/vouchers", "GROWTH_SANDBOX_SCOPE_UNAVAILABLE"],
+    ["/api/events", "GROWTH_SANDBOX_SCOPE_UNAVAILABLE"],
+    ["/api/app/team/network", "TEAM_NETWORK_SANDBOX_FACTS_UNAVAILABLE"],
+    ["/api/config/repurchase", "REPURCHASE_PROFILE_INVALID"],
+    ["/api/repurchase/orders", "REPURCHASE_PROFILE_INVALID"],
+    ["/api/app/network/rank", "NETWORK_RANK_RUNTIME_UNSUPPORTED"],
+    ["/api/storefront/activity", "STOREFRONT_ACTIVITY_UNAVAILABLE"],
+  ]);
+  const intentionalHoldResponses = failedResponses.filter((entry) =>
+    entry.status === 503 && expectedSandboxHolds.get(entry.path) === entry.message);
+  const unexpectedFailedResponses = failedResponses.filter((entry) =>
+    !(entry.status === 503 && expectedSandboxHolds.get(entry.path) === entry.message));
   assert.ok(
     flattenedNavigationErrors.length <= navigationNoise.length,
     `unclassified flattened page errors: ${flattenedNavigationErrors.length}; navigation cancellations: ${navigationNoise.length}`,
   );
   assert.deepEqual(realUncaught, [], `uncaught errors: ${JSON.stringify(realUncaught)}`);
   assert.deepEqual(realPageErrors, [], `page errors: ${realPageErrors.join(" | ")}`);
-  assert.deepEqual(failedResponses, [], `5xx responses: ${failedResponses.join(" | ")}`);
+  assert.deepEqual(unexpectedFailedResponses, [], `unexpected 5xx responses: ${JSON.stringify(unexpectedFailedResponses)}`);
   if (evidenceDir) {
     await mkdir(evidenceDir, { recursive: true });
     await page.screenshot({ path: path.join(evidenceDir, "store-after-refresh.png"), fullPage: true });
@@ -153,7 +181,7 @@ try {
       result: "PASS",
       executedAt: new Date().toISOString(),
       baseUrl,
-      flow: ["visible login", "visible Store tab", "catalog readback", "refresh", "relogin", "Store readback"],
+      flow: ["visible login", "visible Store tab", "catalog readback", "purchase eligibility", "refresh", "relogin", "Store readback"],
       catalog: {
         source: "mock",
         sourceEnvironment: "SANDBOX",
@@ -161,11 +189,12 @@ try {
         phaseGatedProduct: "NexionBox Pro v2",
       },
       classifiedNavigationCancellations: navigationNoise.length,
+      intentionalHoldResponses,
       pageErrors: realPageErrors,
-      failedResponses,
+      failedResponses: unexpectedFailedResponses,
     }, null, 2)}\n`, "utf8");
   }
-  console.log(`REAL-ACCOUNT-STORE-SMOKE PASS — login · catalog · available SKU · phase-gated SKU · refresh · ${navigationNoise.length} classified navigation cancellations`);
+  console.log(`REAL-ACCOUNT-STORE-SMOKE PASS — login · catalog · server eligibility · available SKU · phase-gated SKU · refresh · ${intentionalHoldResponses.length} explicit sandbox HOLD responses · ${navigationNoise.length} classified navigation cancellations`);
 } catch (error) {
   if (evidenceDir) {
     await mkdir(evidenceDir, { recursive: true });

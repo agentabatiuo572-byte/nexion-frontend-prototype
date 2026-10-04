@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /*
- * git pre-push 门:推主线(UniApp)前,这棵树必须有一次 **full** verify 全绿。
+ * git pre-push 门:推主线前,这棵树必须有一次 **full** verify 全绿(仓级参数见同目录 config.json)。
  *
- * 为什么焊在 git 层(2026-08-19 主人拍板):
+ * 为什么焊在 git 层(2026-08-19 主人拍板;2026-09-02 Tier 1-B 重挂并接管 Claude 侧合并守卫):
  *   主线在一夜之间收到 6 个没过 full 的外来提交(Codex 线按 AGENTS.md「任务完成即 push」直推),full 当场红 4 步。
- *   Claude 侧的合并守卫(PLAN/.claude/hooks/verify-fresh-before-merge.mjs)只在 Claude Code 会话里生效,
- *   Codex / 别的机器 / 手工 push 都绕开了它。任何工具、任何机器,只要 push 就必经 git 的 pre-push —— 门就焊在这。
+ *   Claude 侧的合并守卫(PLAN/.claude/hooks/verify-fresh-before-merge.mjs)只在 Claude Code 会话里生效,且靠解析 shell 文本,
+ *   `git fetch origin && git merge x` 这种链式写法直接绕过(2026-09-02 本机复现)。任何工具、任何机器,只要 push 就必经 pre-push。
  *
- * 判据(与 verify-fresh-before-merge.mjs 完全一致):
+ * 判据:
  *   .verify-cache/last-run.json 里 mode=full · verdict=pass · 跑的过程树没动 · 工作树干净 · headTree == 要推的那个提交的树。
- *   只拦推到 refs/heads/UniApp 的更新;推别的分支(pkg/* · claude/* · codex/*)不管;删分支不管。
+ *   只拦推到 refs/heads/<mainline> 的更新;推别的分支(pkg/* · claude/* · codex/*)不管;删分支不管。
+ *   (verdict=pass 的含义由 verify 链定义:FAIL/NOT-RUN 为 0;KNOWN-RED 不计红 —— 见 scripts/known-red.json。)
  *
  * 输入(git 约定):argv = [remote 名, url];stdin 每行 `<local ref> <local sha> <remote ref> <remote sha>`。
  * 逃生阀:环境变量 ALLOW_UNVERIFIED_PUSH=<原因>(留痕 .verify-cache/push-valve.log;仅主人明令时用)。
@@ -24,8 +25,13 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const MAINLINE = process.env.PRE_PUSH_MAINLINE || "UniApp";
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+function loadConfig() {
+  try { return JSON.parse(readFileSync(path.join(HERE, "config.json"), "utf8")); } catch { return {}; }
+}
+const MAINLINE = process.env.PRE_PUSH_MAINLINE || loadConfig().mainline || "main";
 const git = (args, cwd) => {
   try { return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; }
 };
@@ -34,12 +40,12 @@ const git = (args, cwd) => {
 if (process.argv.includes("--install")) {
   if (git(["rev-parse", "--is-inside-work-tree"]) !== "true") process.exit(0);
   const cur = git(["config", "--get", "core.hooksPath"]);
-  if (cur && cur !== ".githooks") { console.log(`[githooks] core.hooksPath 已是 ${cur},不覆盖;要用本仓的 pre-push 门:git config core.hooksPath .githooks`); process.exit(0); }
-  if (cur !== ".githooks") { git(["config", "core.hooksPath", ".githooks"]); console.log("[githooks] core.hooksPath → .githooks(pre-push full 门已挂上)"); }
+  if (cur && cur !== ".githooks") { console.log(`[githooks] core.hooksPath 已是 ${cur},不覆盖;要用本仓的门:git config core.hooksPath .githooks`); process.exit(0); }
+  if (cur !== ".githooks") { git(["config", "core.hooksPath", ".githooks"]); console.log("[githooks] core.hooksPath → .githooks(pre-commit 本机验证自动提交门 + pre-push full 门已挂上)"); }
   process.exit(0);
 }
 
-/** 与 verify-fresh-before-merge.mjs 同判据。返回 {ok, why}。 */
+/** 判据(曾与 PLAN 合并守卫 verify-fresh-before-merge.mjs 同源)。返回 {ok, why}。 */
 export function judge(repoDir, refTree) {
   const file = path.join(repoDir, ".verify-cache", "last-run.json");
   if (!existsSync(file)) return { ok: false, why: `没有 .verify-cache/last-run.json —— 这棵树从没跑过 npm run verify(full)` };
@@ -50,7 +56,7 @@ export function judge(repoDir, refTree) {
   if (rec.treeMoved) return { ok: false, why: `最近一次 full 跑的过程中工作树变了(${rec.at}),结论不锚定任何一棵树` };
   if (rec.dirty !== false) return { ok: false, why: `最近一次 full 跑时工作树不干净(${rec.at})—— 绿的是「HEAD + 未提交改动」,不是任何一个提交` };
   if (!rec.headTree || rec.headTree !== refTree) return { ok: false, why: `最近一次 full 绿的树 ${String(rec.headTree || "?").slice(0, 10)} ≠ 要推的树 ${String(refTree || "?").slice(0, 10)}(${rec.at})—— 跑绿之后又有提交,重跑 full` };
-  return { ok: true, why: `full 绿匹配:tree ${rec.headTree.slice(0, 10)} @ ${rec.at}` };
+  return { ok: true, why: `full 绿匹配:tree ${rec.headTree.slice(0, 10)} @ ${rec.at}${Array.isArray(rec.knownRed) && rec.knownRed.length ? `(含 ${rec.knownRed.length} 条已知红,见 scripts/known-red.json)` : ""}` };
 }
 
 function main() {
@@ -81,8 +87,8 @@ function main() {
       `🚫 [pre-push] 推 ${lref.replace(/^refs\/heads\//, "")} → 主线 ${MAINLINE} 被拦:${v.why}\n` +
       `   仓:${top}\n` +
       `   规矩(主人 2026-08-17 拍板 Q2A;2026-08-19 焊到 git 层):推主线前,要推的那个提交必须有一次 **full** 档全量绿(scoped/static 只买内循环速度)。\n` +
-      `   怎么做:在最后一次提交之后、工作树干净时跑 npm run verify(= scripts/verify-chain.mjs --full),绿了再推;\n` +
-      `          本环境跑不了 full(没浏览器 / 没依赖)→ 推到 codex/<topic> 或 pkg/<名> 分支(不拦),由能跑 full 的机器合并进主线;\n` +
+      `   怎么做:在最后一次提交之后、工作树干净时跑 npm run verify(= full),绿了再推;\n` +
+      `          本环境跑不了 full(没浏览器 / 没依赖)→ 保留本地改动并说明阻碍，不自动创建分支或跳过验证;\n` +
       `          主人明令凭证据链推 → ALLOW_UNVERIFIED_PUSH="<原因>" git push …(会留痕);--no-verify 不留痕,别用。\n`,
     );
     process.exit(1);

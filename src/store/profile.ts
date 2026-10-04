@@ -76,9 +76,19 @@ export const useProfile = defineStore("profile", () => {
   /** Ephemeral server projection: authentication, not local storage, owns it. */
   function projectServerIdentity(identity: UserSession) {
     if (!remoteApiEnabled) return;
+    // 🔴 这里存服务端原值,不做品牌归一:displayName 是昵称改写的 CAS 期望值
+    //    (setDisplayName 发 expectedNickname,后端按 nickname=#{expected} 匹配),改一个字符
+    //    就等于改名永远失败。旧品牌归一放在**渲染**层 —— 见 lib/brand-copy.ts 与调用点。
     displayName.value = identity.nickname;
     avatarSeed.value = `user:${identity.userId}`;
     phoneE164.value = `${identity.countryCode}${identity.phone}`;
+  }
+
+  /** Reconcile the mutable profile projection with an authoritative GET. */
+  function projectServerNickname(nickname: string) {
+    if (!remoteApiEnabled) return;
+    const normalized = nickname.trim();
+    if (normalized) displayName.value = normalized;
   }
 
   async function refreshNicknameCandidates(): Promise<boolean> {
@@ -127,6 +137,7 @@ export const useProfile = defineStore("profile", () => {
 
   return {
     displayName, avatarSeed, phoneE164, nicknameCandidates,
-    setDisplayName, regenerateAvatar, bindAccount, projectServerIdentity, refreshNicknameCandidates,
+    setDisplayName, regenerateAvatar, bindAccount, projectServerIdentity, projectServerNickname,
+    refreshNicknameCandidates,
   };
 });

@@ -22,6 +22,7 @@
       <SubPageHeader back="/pages/me/me" />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
+        <GenesisArtwork style="border-radius: 18px" />
         <!-- ════ HERO — dark obsidian gold ════ -->
         <view class="relative overflow-hidden" :style="heroStyle">
           <!-- Gold dust particles -->
@@ -53,8 +54,10 @@
             <!-- Title — punchy, restrained (high-end OG seat, not a bark) -->
             <text class="block" :style="titleStyle">{{ t.genesis.heroTitle }}</text>
 
-            <!-- Sub + disclaimer -->
-            <text class="block" :style="heroSubStyle">{{ t.genesis.heroSub }}</text>
+            <!-- Sub + disclaimer。🔴 heroSub 是**稀缺性/紧迫感**文案(「限量 1000 · 售完即止」),
+                 与同页其它紧迫感元素同源判定:市场关闭 / 熔断 / 配置未知时不得渲染 ——
+                 否则页面一边说「暂未开放」一边催「售完即止」(zentao #190)。 -->
+            <text v-if="showUrgency" class="block" :style="heroSubStyle">{{ t.genesis.heroSub }}</text>
             <text class="block" :style="heroDiscStyle">{{ t.genesis.heroDisc }}</text>
 
             <!-- Sales bar -->
@@ -65,16 +68,43 @@
                 </view>
               </view>
               <view class="flex items-center justify-between tabular-nums" :style="barMetaStyle">
-                <text>
-                  <text>{{ soldText }}</text>
-                  <text style="color: var(--v5-genesis-gold-on-dark); font-weight: 500"> / {{ totalText }} {{ t.genesis.soldOf }}</text>
+                <text v-if="supplyDisplay.known">
+                  <text>{{ supplyDisplay.summary }}</text>
+                  <text style="color: var(--v5-genesis-gold-on-dark); font-weight: 500"> {{ t.genesis.soldOf }}</text>
                 </text>
+                <text v-else>—</text>
                 <!-- 🔴 关闭态 / 售罄态不展示剩余名额紧迫文案(规格 FEAT-GEN10 ④:
                      不对不可购买的东西制造紧迫感)。判据来自 showUrgency 单源,不在此处自判。 -->
                 <text v-if="showUrgency" class="gen-anim" :style="urgentStyle">{{ remaining }} {{ t.genesis.leftSuffix }}</text>
               </view>
             </view>
           </view>
+        </view>
+
+        <!-- ════ Live social proof ════ -->
+        <!-- ════ Tier ladder — 售罄跳价 ════ -->
+        <view class="flex items-center justify-between" :style="secHeaderStyle">
+          <text :style="secTitleStyle">{{ t.genesis.tier.title }}</text>
+        </view>
+        <view :style="ladderCardStyle">
+          <view v-for="tr in tiers" :key="tr.id" class="flex items-center" :style="tierRowStyle(tr.state)">
+            <view class="flex-1 min-w-0">
+              <view class="flex items-center" style="gap: 8px">
+                <text :style="tierNameStyle">{{ t.genesis.tier[tr.labelKey] }}</text>
+                <text v-if="tr.state === 'current' && dockActive" :style="tierChipLiveStyle">{{ t.genesis.tier.live }}</text>
+                <text v-else-if="tr.state === 'sold'" :style="tierChipSoldStyle">{{ t.genesis.tier.soldOut }}</text>
+              </view>
+              <!-- 🔴 「还剩 N 席」也是名额紧迫文案,与 hero 那处同一条规则(FEAT-GEN10 ④)。
+                   独立验收 P1-4:上次只关了 hero,这里漏了,关闭态实测仍显示「Live · 153 left」。
+                   阻断态改显总席位数(中性事实),不显剩余。 -->
+              <text class="block" :style="tierMetaStyle">{{ tr.state === 'current' && showUrgency ? fmt(t.genesis.tier.left, { n: tr.left }) : fmt(t.genesis.tier.seats, { n: tr.seatsTotal }) }}</text>
+            </view>
+            <view class="text-right shrink-0">
+              <text class="block tabular-nums" :style="tierPriceStyle">${{ tr.priceText }}</text>
+              <text v-if="tr.state === 'current'" class="block" :style="tierCurrentStyle">{{ t.genesis.tier.current }}</text>
+            </view>
+          </view>
+          <text class="block" :style="tierPremiumStyle">{{ t.genesis.tier.premium }}</text>
         </view>
 
         <!-- ════ Value / perks ════ -->
@@ -86,9 +116,11 @@
         </view>
 
         <!-- ════ Live market ════ -->
-        <view class="flex items-center justify-between active:opacity-80" :style="secHeaderStyle" role="button" tabindex="0" :aria-label="t.genesis.viewMarketplace" @click="goMarketplace">
+        <!-- 入口可用性同源于二级市场闸:市场未开放 / 熔断 / 配置未知时禁用入口,
+             而不是把用户送进一个只会说「暂未开放」的页面。 -->
+        <view class="flex items-center justify-between" :class="marketplaceEntryBlocked ? '' : 'active:opacity-80'" :style="secHeaderStyle" :role="marketplaceEntryBlocked ? undefined : 'button'" :tabindex="marketplaceEntryBlocked ? -1 : 0" :aria-disabled="marketplaceEntryBlocked ? 'true' : undefined" :aria-label="marketplaceEntryBlocked ? undefined : t.genesis.viewMarketplace" @click="openMarketplaceEntry"  @keydown.enter.prevent="openMarketplaceEntry" @keydown.space.prevent="openMarketplaceEntry">
           <text :style="secTitleStyle">{{ t.genesis.secLiveMarket }}</text>
-          <text :style="secLinkStyle" style="pointer-events: none">{{ t.genesis.viewMarketplace }}</text>
+          <text :style="secLinkStyle" style="pointer-events: none">{{ marketplaceEntryLabel }}</text>
         </view>
         <view class="grid grid-cols-2" style="gap: 10px">
           <NftCard v-for="n in liveMarket" :key="n.id" :id="n.id" :price="n.price" :ago="n.ago" />
@@ -101,7 +133,7 @@
               <text style="color: var(--v5-ink); font-weight: 600">Q.</text>
               <text> {{ t.genesis.faq[k] }}</text>
             </text>
-            <text class="block" :style="faqAStyle">{{ t.genesis.faq[answerKey(k)] }}</text>
+            <text class="block" :style="faqAStyle">{{ faqAnswer(k) }}</text>
           </view>
         </view>
 
@@ -114,11 +146,7 @@
         class="relative w-full overflow-hidden"
         :class="dockDisabled ? '' : 'active:scale-[0.98]'"
         :style="dockBtnStyle"
-        role="button"
-        tabindex="0"
         @click="openSheet"
-        @keydown.enter.prevent="openSheet"
-        @keydown.space.prevent="openSheet"
       >
         <!-- 装饰(高光 / 描边 / 流光)只在**可购买**时出现:置灰按钮不该还在发光。 -->
         <template v-if="dockActive">
@@ -136,8 +164,8 @@
             <view :style="dockDividerStyle" />
             <text class="tabular-nums">{{ countdownDisplay }}</text>
           </template>
-          <!-- 价格只在**真能买**时露出:阻断态显示价格等于对着买不到的东西报价。 -->
-          <template v-else-if="dockActive && eligible">
+          <!-- 价格跟随主售是否开放；账号资格只决定点击后的分流，不覆盖主售报价。 -->
+          <template v-else-if="dockShowsPrice">
             <view :style="dockDividerStyle" />
             <text class="tabular-nums">${{ priceText }}</text>
           </template>
@@ -156,8 +184,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { navTo } from "@/lib/route";
+import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import PerkRow from "@/components/genesis/perk-row.vue";
@@ -175,19 +204,67 @@ import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { toast } from "@/store/ui";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 import { remoteApiEnabled } from "@/api/runtime";
+import { subscribeRuntimeRevision } from "@/api/order-api";
+import { deriveGenesisTierRows, type GenesisTierDisplayState } from "@/lib/genesis-tier-display";
+import { resolveGenesisPrimaryCta, showGenesisPrimaryPrice } from "@/lib/genesis-primary-cta";
+import { genesisSupplyDisplay } from "@/lib/genesis-supply-display";
+import { presentGenesisRoyalty } from "@/lib/genesis-marketplace-presentation";
 
 const t = useT();
 const genesis = useGenesis();
 const cfg = useGenesisConfig();
+let refreshInFlight: Promise<void> | null = null;
+let genesisPageVisible = false;
+let refreshRequested = false;
+
+function refreshGenesisPage(recheck = false): Promise<void> {
+  if (!genesisPageVisible) return Promise.resolve();
+  if (refreshInFlight) {
+    if (recheck) refreshRequested = true;
+    return refreshInFlight;
+  }
+  const operation = (async () => {
+    do {
+      refreshRequested = false;
+      await cfg.refresh();
+      if (!genesisPageVisible) return;
+      await genesis.syncRemote();
+    } while (refreshRequested && genesisPageVisible);
+  })();
+  refreshInFlight = operation;
+  void operation.finally(() => {
+    if (refreshInFlight === operation) refreshInFlight = null;
+  });
+  return operation;
+}
+
+// A direct H5 hash-route load can mount this page without emitting uni-app's
+// page-level onShow hook. Mount must therefore bootstrap the public Genesis
+// projection; onShow remains the refresh path when navigating back later.
+function showGenesisPage() {
+  const returning = !genesisPageVisible;
+  genesisPageVisible = true;
+  void refreshGenesisPage(returning);
+}
+onMounted(showGenesisPage);
 // 🔴 页面每次露出都重读配置(hydrate-once 修复):navigateBack 回到本页不触发
 //   onMounted,只有 onShow 能接住「去了一趟别处、运营已切状态」的情形。
-onShow(async () => {
-  await cfg.refresh();
-  await genesis.syncRemote();
+onShow(showGenesisPage);
+onHide(() => {
+  genesisPageVisible = false;
+  refreshRequested = false;
+});
+const stopGenesisRevision = subscribeRuntimeRevision(() => {
+  if (remoteApiEnabled && genesisPageVisible) void refreshGenesisPage(true);
+});
+onUnmounted(() => {
+  genesisPageVisible = false;
+  refreshRequested = false;
+  stopGenesisRevision();
 });
 const locale = useLocaleStore();
 const { eligible, gate } = useGenesisEligibility();
-const { block, marketClosed, showUrgency, blockText, preSale, showTime, countdownDays, countdownClock } =
+const { block, marketClosed, secondaryBlock, showUrgency, blockText, preSale, showTime, countdownDays, countdownClock } =
   useGenesisSaleGate();
 
 const sheetOpen = ref(false);
@@ -218,12 +295,20 @@ const faqKeys = ["q1", "q2", "q3"] as const;
 function answerKey(k: "q1" | "q2" | "q3"): "a1" | "a2" | "a3" {
   return k === "q1" ? "a1" : k === "q2" ? "a2" : "a3";
 }
+function faqAnswer(k: "q1" | "q2" | "q3"): string {
+  const answer = t.value.genesis.faq[answerKey(k)];
+  if (k !== "q2") return answer;
+  if (remoteApiEnabled && genesis.remotePublicError === "GENESIS_SERIES_UNAVAILABLE")
+    return t.value.genesis.marketClosed.seriesUnavailable;
+  const royalty = presentGenesisRoyalty(genesis.remoteRoyaltyPct);
+  return royalty === null ? t.value.genesis.royaltyUnavailable : fmt(answer, { royalty });
+}
 
 const sold = computed(() => genesis.soldSlots);
 const total = computed(() => genesis.totalSlots);
 const price = computed(() => genesis.unitPriceUSDT);
 const remaining = computed(() => total.value - sold.value);
-const soldPct = computed(() => (sold.value / total.value) * 100);
+const supplyDisplay = computed(() => genesisSupplyDisplay(sold.value, total.value, genesis.remoteSupplyKnown));
 const liveMarket = computed(() => remoteApiEnabled
   ? genesis.remoteListings.slice(0, 2).map((listing) => ({
       id: listing.tokenId,
@@ -238,17 +323,17 @@ function ageText(ts: number): string {
 
 // Dock 文案:**阻断原因来自唯一派生 `block`**(composable),本页不再自排优先级。
 // 顺序由 genesisPurchaseBlock 定:配置未知 > 市场关闭 > 熔断 > 售罄 > 预售;
-// 运营闸放行后再消费服务端当前资格投影。
+// 资格门仍在 openSheet 和服务端执行；主售文案不用账号资格覆盖。
 const dockCtaText = computed(() => {
-  // 三档阻断说明走 blockText 唯一出口(P1-3 收口:此前这段 switch 在 4 处各写一份)。
-  // 售罄 / 预售是本页自己的 CTA 词汇,不属于「阻断说明」,留在本地。
-  const blocked = blockText.value;
-  if (blocked !== null) return blocked;
-  if (block.value === "soldOut") return t.value.genesis.ctaSoldOut;
-  if (block.value === "preSale") return t.value.genesisEligibility.comingSoon;
-  if (!eligible.value) return t.value.genesisEligibility.dockLocked;
-  return t.value.genesis.ctaReserve;
+  return resolveGenesisPrimaryCta({
+    block: block.value,
+    blockedText: blockText.value,
+    soldOut: t.value.genesis.ctaSoldOut,
+    comingSoon: t.value.genesisEligibility.comingSoon,
+    reserve: t.value.genesis.ctaReserve,
+  });
 });
+const dockShowsPrice = computed(() => showGenesisPrimaryPrice(block.value));
 /** 主按钮是否处于「可购买」外观(金色高光)。任一阻断态都退到中性面 —— 复用原本
  *  只给售罄用的那套中性样式,不另造 disabled 皮。 */
 const dockActive = computed(() => block.value === null);
@@ -256,7 +341,8 @@ const dockActive = computed(() => block.value === null);
 const dockDisabled = computed(() => block.value !== null && block.value !== "soldOut");
 /** 阻断态的副说明(toast 第二行)。配置未知给「可重试」,其余给「持仓不受影响」定心。 */
 const blockHintSub = computed(() => {
-  if (block.value === "configUnavailable") return t.value.genesis.marketClosed.retryHint;
+  if (block.value === "configUnavailable") return genesis.remotePublicError === "GENESIS_SERIES_UNAVAILABLE"
+    ? t.value.genesis.marketClosed.seriesUnavailable : t.value.genesis.marketClosed.retryHint;
   if (block.value === "preSale") return "";
   return t.value.genesis.marketClosed.holdingsSafe;
 });
@@ -267,9 +353,25 @@ const countdownDisplay = computed(() => {
   return `${t.value.genesisEligibility.countdownLabel} ${dayPart}${countdownClock.value}`;
 });
 
-const totalText = computed(() => total.value.toLocaleString());
-const soldText = computed(() => sold.value.toLocaleString());
 const priceText = computed(() => price.value.toLocaleString());
+
+// 阶梯档展示：累计售出决定各档 售罄/当前 态。档位读 live config(运营 G4 可配、可增删)。
+// labelKey 按位置派生(不按 id 硬编码):首档=wl / 末档=Final tier / 中间=Public Tier —
+// 运营增删档(t3/t4…)标签不错位、末档恒为 Final(修 id 硬编码致 label 错位)。
+type TierLabelKey = "wl" | "t1" | "tail";
+const tiers = computed(() =>
+  deriveGenesisTierRows(cfg.config.tiers, sold.value).map((tier, i, arr) => {
+    const labelKey: TierLabelKey = i === 0 ? "wl" : i === arr.length - 1 ? "tail" : "t1";
+    return {
+      id: tier.id,
+      labelKey,
+      priceText: tier.priceUSDT.toLocaleString(),
+      state: tier.state,
+      left: tier.left,
+      seatsTotal: tier.to - tier.from,
+    };
+  }),
+);
 
 const { elRef: salesBarRef, inView: salesBarInView } = useScrollGrowProgress();
 
@@ -298,7 +400,7 @@ async function openSheet() {
     //   重读配置源,成功即当场解锁;仍失败则给「可重试」说明。
     //   结果判定问派生 `block`,不摸原料 `.loaded`(④b 门):refresh 写共享 store,
     //   computed 同步失效,下一行读到的已是重读后的判定。
-    await cfg.refresh();
+    await refreshGenesisPage(true);
     if (block.value !== "configUnavailable") {
       toast.success(t.value.genesis.marketClosed.retryOk);
     } else {
@@ -336,10 +438,22 @@ function onEligSubscribe() {
   }, 260);
 }
 function goHowItWorks() {
-  uni.navigateTo({ url: "/pages/genesis/how-it-works", fail: () => {} });
+  navTo("/pages/genesis/how-it-works");
+}
+/**
+ * 二级市场入口与 marketClosed 同源:市场关闭 / 熔断 / 配置未知时不给入口,
+ * 免得落地页同时说「暂未开放」又给重试按钮,让用户分不清是没开放还是网络坏了。
+ * 售罄不在其中 —— 二级卖的是别人手里的存量,主售售罄恰恰是它该承接的场景。
+ */
+const marketplaceEntryBlocked = computed(() => secondaryBlock.value !== null);
+const marketplaceEntryLabel = computed(() =>
+  marketplaceEntryBlocked.value ? t.value.genesis.marketClosed.default : t.value.genesis.viewMarketplace);
+function openMarketplaceEntry() {
+  if (marketplaceEntryBlocked.value) return;
+  goMarketplace();
 }
 function goMarketplace() {
-  uni.navigateTo({ url: "/pages/genesis/marketplace", fail: () => {} });
+  navTo("/pages/genesis/marketplace");
 }
 
 // ── styles ──
@@ -458,7 +572,7 @@ const barTrackStyle: CSSProperties = {
 };
 const barFillStyle = computed<CSSProperties>(() => ({
   height: "100%",
-  width: `${salesBarInView.value ? soldPct.value : 0}%`,
+  width: salesBarInView.value ? supplyDisplay.value.progressWidth : "0%",
   background: "linear-gradient(90deg, #B5894A 0%, #E2C97C 50%, var(--v5-genesis-gold-on-dark) 100%)",
   borderRadius: "2px",
   boxShadow: "0 0 8px color-mix(in srgb, var(--v5-genesis-gold-on-dark) 50%, transparent)",
@@ -519,6 +633,74 @@ const perksCardStyle: CSSProperties = {
   padding: "0 2px",
   borderTop: "1px solid var(--v5-border)",
 };
+// ── Tier ladder — de-carded: floor hairline group (rows sit on the page). ──
+const ladderCardStyle: CSSProperties = {
+  padding: "0 2px",
+  borderTop: "1px solid var(--v5-border)",
+};
+function tierRowStyle(state: GenesisTierDisplayState): CSSProperties {
+  return {
+    gap: "12px",
+    padding: "12px 0",
+    borderBottom: "1px solid var(--v5-border)",
+    opacity: state === "current" ? 1 : state === "sold" ? 0.6 : 0.85,
+  };
+}
+const tierNameStyle: CSSProperties = {
+  fontFamily: "var(--font-v5)",
+  fontSize: "13px",
+  fontWeight: 600,
+  color: "var(--v5-ink)",
+  letterSpacing: "-0.008em",
+};
+const tierChipLiveStyle: CSSProperties = {
+  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontSize: "12px",
+  fontWeight: 500,
+  padding: "1px 7px",
+  borderRadius: "999px",
+  background: "color-mix(in srgb, var(--v5-warning) 16%, transparent)",
+  color: "var(--v5-warning)",
+  letterSpacing: "0.02em",
+  whiteSpace: "nowrap",
+};
+const tierChipSoldStyle: CSSProperties = {
+  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontSize: "12px",
+  fontWeight: 500,
+  padding: "1px 7px",
+  borderRadius: "999px",
+  background: "color-mix(in srgb, var(--v5-surface-2) 60%, transparent)",
+  color: "var(--v5-ink-4)",
+  letterSpacing: "0.02em",
+  whiteSpace: "nowrap",
+};
+const tierMetaStyle: CSSProperties = {
+  marginTop: "3px",
+  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontSize: "12px",
+  color: "var(--v5-ink-3)",
+};
+const tierPriceStyle: CSSProperties = {
+  fontFamily: "var(--font-v5)",
+  fontSize: "15px",
+  fontWeight: 600,
+  color: "var(--v5-ink)",
+  letterSpacing: "-0.014em",
+};
+const tierCurrentStyle: CSSProperties = {
+  marginTop: "2px",
+  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontSize: "12px",
+  // 这行落在**跟主题的页面底**上(不是曜石 hero):原金亮主题实测 1.85 → 走跟主题的深金档
+  color: "var(--v5-genesis-gold)",
+  letterSpacing: "0.02em",
+};
+const tierPremiumStyle: CSSProperties = {
+  marginTop: "10px",
+  fontSize: "12px",
+  color: "var(--v5-ink-3)",
+};
 // De-carded: floor hairline group + typed Q/A layering (title ink, body ink-2).
 const faqWrapStyle: CSSProperties = {
   padding: "0 2px",
@@ -538,7 +720,6 @@ const faqQStyle: CSSProperties = {
 };
 const faqAStyle: CSSProperties = {
   marginTop: "5px",
-  textWrap: "pretty",
   fontSize: "13px",
   color: "var(--v5-ink-2)",
   lineHeight: 1.62,
@@ -629,10 +810,11 @@ const dockDividerStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-genesis-gold-on-dark) 40%, transparent)",
   margin: "0 4px",
 };
+
+import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 </script>
 
 <style scoped>
-.nx-genesis-dock [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -4px; }
 .nx-genesis-dock {
   position: fixed;
   left: 0;

@@ -1,17 +1,21 @@
+import { navReset } from "@/lib/route";
 import { useAuth } from "@/store/auth";
 import { useApp } from "@/store/app";
 import { readAccountSessionRecords, useSession } from "@/store/session";
 import { useSponsorship } from "@/store/sponsorship";
-import { rebindAccountScopedStores } from "@/lib/account-scope";
-import { safeReturnTo } from "@/routing/safe-return-to";
+import { rebindAccountScopedStores, captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { isPhoneAuthAccountId, resolveAuthAccountById } from "@/store/auth-account";
 import { refreshEarningsReleaseStatus } from "@/store/earning-release";
 import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
 import { useProfile } from "@/store/profile";
-import { authApi, remoteApiEnabled } from "@/api/runtime";
-import type { UserSession } from "@/api/contracts";
-import { getCarrier } from "@/lib/carrier";
+import { authApi, onboardingCalibrationApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
 import { getDeviceId } from "@/lib/device-id";
+import { hydrateCurrentProfileLocale } from "@/lib/locale-profile-sync-runtime";
+import { afterLegalTermsAcknowledged, hasPendingLegalTermsRequirement, scheduleLegalTermsGate } from "@/lib/legal-terms-gate-runtime";
+import type { UserSession } from "@/api/contracts";
+import type { LocaleCode } from "@/i18n";
+import { resolvePostSignInRoute } from "@/auth/post-sign-in-route";
 
 interface CompleteSignInOptions {
   identity: string;
@@ -25,6 +29,8 @@ interface CompleteSignInOptions {
   serverSessionRevision?: number;
   /** Registration needs to show its success interstitial before onboarding routing. */
   deferNavigation?: boolean;
+  /** Only a registration uses its form language to initialize the new profile. */
+  registrationLocale?: LocaleCode;
 }
 
 interface CompletedSignIn {
@@ -58,7 +64,8 @@ export function _devHasCompletedSignIn(idempotencyKey: string): boolean {
  * first-wins 并返回 canonical session；client 只消费该结果。mock 顺序：先写
  * auth，再绑定 app 与所有账号域 store，再 claim/resume session，最后绑定 sponsor；
  * 任一持久化校验失败都会清 session/auth 并重绑 default，绝不保留半登录态，然后
- * 才按 onboarding/recalibration/returnTo 路由。内存 idempotency key 仅防响应重试
+ * 才按 recalibration/returnTo 路由。注册成功与 onboarding 由注册入口独立负责，
+ * 不能由登录时的 onboarding 状态触发。内存 idempotency key 仅防响应重试
  * 重复 claim session，不替代服务端事务。
  */
 export function completeSignIn(options: CompleteSignInOptions): CompleteSignInResult {
@@ -145,7 +152,6 @@ export function completeSignIn(options: CompleteSignInOptions): CompleteSignInRe
     if (!readAccountSessionRecords(options.identity).some((record) => record.sessionId === session.sessionId)) {
       return abortSignIn();
     }
-    if (!remoteApiEnabled && !completed && !app.acceptPhoneSignIn()) return abortSignIn();
     if (!remoteApiEnabled && options.sponsorCode && !sponsorship?.bind(options.sponsorCode)) {
       return abortSignIn();
     }
@@ -163,39 +169,52 @@ export function completeSignIn(options: CompleteSignInOptions): CompleteSignInRe
   if (remoteApiEnabled && options.serverProfile) {
     app.projectServerIdentity(options.serverProfile);
     useProfile().projectServerIdentity(options.serverProfile);
+    // Account language is hydrated before any server write. An explicit picker
+    // selection made during this read wins; a device default never overwrites
+    // the account preference merely because the user signed in.
+    hydrateCurrentProfileLocale(options.registrationLocale);
+    // Logout disarms the phone poll. A same-process login can reLaunch without
+    // another App.onShow, so rearm only after this server session is accepted.
+    app.setRemoteTaskForeground(true);
   }
-  // App.onShow is not guaranteed after an H5 reLaunch. Complete the fleet
-  // bootstrap here as well. The catalog is the RunID authority for every
-  // isolated sandbox store, so the wallet read must start only after that
-  // attempt settles; firing both in parallel can make a valid first-login
-  // wallet response stale and leave every Sandbox badge hidden until reload.
-  if (remoteApiEnabled) {
-    void refreshRemoteFleetAfterCatalog(options.identity).finally(() => {
-      // authApi persisted this matching Bearer session before completeSignIn.
-      // The store still rejects a failed/missing catalog or mismatched account.
-      void app.refreshFundsSandboxForAccount(options.identity);
+  // Login completion is a re-ack checkpoint. The helper fences its request to
+  // this exact bearer/account and only starts business reads after the server
+  // confirms the current version is acknowledged.
+  if (remoteApiEnabled && options.serverProfile) {
+    const expectedUserId = options.serverProfile.userId;
+    afterLegalTermsAcknowledged(async () => {
+      const current = sessionVault.read();
+      if (!current || current.user.userId !== expectedUserId) return;
+      if (hasPendingLegalTermsRequirement()) return false;
+      if (hasNativeAndroidPhoneRuntime()) {
+        const phoneScope = captureAccountScope();
+        let phoneStatus = "UNAVAILABLE";
+        try { phoneStatus = await onboardingCalibrationApi.phoneLogin(getDeviceId()); } catch { /* The phone screen owns retry; other assets remain available. */ }
+        const latest = sessionVault.read();
+        if (!isCurrentAccountScope(phoneScope) || !latest || latest.user.userId !== expectedUserId) return;
+        if (hasPendingLegalTermsRequirement()) return false;
+        if (phoneStatus === "BOUND") session.markCalibrated(options.identity);
+        if (phoneStatus !== "BOUND" && !options.deferNavigation) {
+          void navReset({ url: "/pages/onboarding/connect?mode=login", fail: () => {} });
+        }
+      }
+      // App.onShow is not guaranteed after an H5 reLaunch. Complete the
+      // canonical catalogue/fleet bootstrap only after the legal boundary.
+      void app.refreshHomeTruth();
+      void refreshRemoteFleetAfterCatalog(options.identity);
+      // A failed request leaves the snapshot unavailable and withdrawal still
+      // fails closed at the server endpoint.
+      void refreshEarningsReleaseStatus(options.identity).catch(() => {});
     });
+    void scheduleLegalTermsGate(options.returnTo ?? "/pages/index/index");
   }
-  // reLaunch does not reliably emit App.onShow in an existing H5 document.
-  // Fetch the new account's server buckets here; a failed request leaves the
-  // snapshot unavailable and the withdrawal endpoint still fails closed.
-  void refreshEarningsReleaseStatus(options.identity).catch(() => {});
-  if (options.deferNavigation) return { ok: true };
-  if (getCarrier() === "app" && !auth.onboardingComplete) {
-    uni.reLaunch({
-      url: "/pages/onboarding/estimator",
-      fail: () => uni.reLaunch({ url: "/pages/onboarding/intro", fail: () => {} }),
-    });
-    return { ok: true };
-  }
-  if (getCarrier() === "app" && (requiresRecalibration || !app.phoneBinding || app.phoneBinding.installationId !== getDeviceId())) {
-    uni.reLaunch({
-      url: "/pages/onboarding/connect?mode=recalibrate",
-      fail: () => uni.reLaunch({ url: "/pages/index/index", fail: () => {} }),
-    });
-    return { ok: true };
-  }
-  const dest = safeReturnTo(options.returnTo ?? null, "/pages/index/index");
-  uni.reLaunch({ url: dest, fail: () => uni.reLaunch({ url: "/pages/index/index", fail: () => {} }) });
+  const dest = resolvePostSignInRoute({
+    onboardingComplete: auth.onboardingComplete,
+    requiresRecalibration,
+    returnTo: options.returnTo,
+    deferNavigation: options.deferNavigation,
+  });
+  if (!dest) return { ok: true };
+  void navReset(dest);
   return { ok: true };
 }

@@ -27,8 +27,11 @@ test("remote storefront mirrors H1 product phase instead of deriving it from acc
 
 test("remote phase failure stays fail-closed and never falls back to a fresh account P1 claim", () => {
   assert.match(phaseStore, /status:\s*remoteApiEnabled \? "loading" : "ready"/);
-  assert.match(composable, /serverProductPhaseState\.status === "ready"/);
+  // In remote mode the only two paths are the last confirmed phase or the
+  // closed-side placeholder: a failed read must not re-derive from account age.
+  assert.match(composable, /if \(serverProductPhaseState\.phase\) return getPhaseParams\(serverProductPhaseState\.phase\)/);
   assert.match(composable, /return PHASES\[0\]/);
+  assert.doesNotMatch(composable, /if \(remoteApiEnabled\) return resolveActivePhase/);
 });
 
 test("account switching invalidates catalog snapshots and ignores stale responses", () => {
@@ -41,17 +44,20 @@ test("account switching invalidates catalog snapshots and ignores stale response
   assert.match(phaseStore, /requestEpoch !== phaseEpoch/);
 });
 
-test("store detail and checkout refresh the server phase when they become visible", () => {
-  assert.match(detail, /onShow\([\s\S]*refreshServerProductPhase\(true\)/);
+test("store detail refreshes catalog before its scope-guarded phase and Trust reads when visible", () => {
+  assert.match(detail, /async function refreshDetailFacts\(\): Promise<void> \{[\s\S]*await refreshProductCatalog\(true\)[\s\S]*if \(readEpoch !== detailFactsEpoch \|\| !isCurrentAccountScope\(accountScope\)\) return;[\s\S]*refreshServerProductPhase\(true\)[\s\S]*refreshTrust\(true\)/);
+  assert.match(detail, /onShow\(\(\) => \{[\s\S]*void refreshDetailFacts\(\)/);
   assert.match(checkout, /onShow\([\s\S]*refreshServerProductPhase\(true\)/);
 });
 
-test("product locks retain server availability without exposing internal phase decisions", () => {
+test("remote product locks display the server E1 decision without deriving H1 progress", () => {
   assert.match(productAvailability, /typeof product\.available === "boolean"[\s\S]*return product\.available/);
   assert.match(productCatalogContract, /releaseState:\s*optionalString\(source\.releaseState\)/);
   assert.match(productCatalogContract, /releasePhaseId:\s*optionalString\(source\.releasePhaseId\)/);
-  assert.match(lockedProductCard, /t\.store\.comingSoonHeading/);
-  assert.doesNotMatch(lockedProductCard, /server-release-reason|releasePhaseId|releaseState|lockedPhaseBody|phaseProgress/);
+  // The approved locked card uses a neutral customer label, not internal release codes.
+  assert.doesNotMatch(lockedProductCard.split("</template>")[0], /serverReleaseReason|releaseState|releasePhaseId/);
+  assert.match(lockedProductCard, /comingSoonHeading/);
+  assert.match(lockedProductCard, /props\.product\.available === false && props\.product\.releasePhaseId/);
   assert.match(lockedProductCard, /props\.product\.available === undefined && props\.product\.unlocksAtPhase/);
   assert.doesNotMatch(lockedProductCard, /available === false[^\n]*isPhaseReached/);
 });

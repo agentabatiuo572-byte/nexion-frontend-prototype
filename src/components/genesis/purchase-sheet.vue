@@ -10,21 +10,21 @@
   client never pre-debits the wallet or writes a synthetic receipt.
 -->
 <template>
-  <view v-if="open">
+  <view v-if="open" class="nx-genesis-purchase-root" role="dialog" aria-modal="true" :aria-label="t.genesis.confirmTitle">
     <!-- Backdrop -->
     <transition name="nx-sheet-fade">
-      <view v-if="open" class="nx-sheet-backdrop" role="dialog" aria-modal="true" @click="emitClose" />
+      <view v-if="open" class="nx-sheet-backdrop" @click="emitClose" />
     </transition>
     <!-- Panel -->
     <transition name="nx-sheet-slide">
-      <view v-if="open" class="nx-sheet-panel" :style="panelStyle" @click.stop>
+      <view v-if="open" class="nx-glass-sheet nx-sheet-panel" :style="panelStyle" @click.stop>
         <!-- Title row -->
         <view class="flex items-start justify-between" style="margin-bottom: 16px">
           <view>
             <text class="block" :style="titleStyle">{{ t.genesis.confirmTitle }}</text>
             <text class="block" :style="subtitleStyle">{{ subtitleText }}</text>
           </view>
-          <view class="inline-flex items-center justify-center active:opacity-60" :style="closeBtnStyle" @click="emitClose">
+          <view class="inline-flex items-center justify-center active:opacity-60" :style="closeBtnStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="emitClose"  @keydown.enter.prevent="emitClose" @keydown.space.prevent="emitClose">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
           </view>
         </view>
@@ -89,31 +89,22 @@
       </view>
     </transition>
   </view>
-  <view v-if="successOpen" class="genesis-purchase-success" role="dialog" aria-modal="true" :aria-label="t.genesis.purchaseSuccessTitle" @click="closeSuccess">
-    <view class="genesis-purchase-success__panel" @click.stop>
-      <view class="genesis-purchase-success__close" role="button" tabindex="0" :aria-label="t.ui.close" @click="closeSuccess" @keydown.enter.prevent="closeSuccess" @keydown.space.prevent="closeSuccess">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
-      </view>
-      <view class="genesis-purchase-success__mark" aria-hidden="true">
-        <view class="genesis-purchase-success__check"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg></view>
-        <BrandLockup mark-only />
-      </view>
-      <HolderBadge />
-      <text class="genesis-purchase-success__title">{{ t.genesis.purchaseSuccessTitle }}</text>
-      <text class="genesis-purchase-success__body">{{ t.genesis.purchaseSuccessBody }}</text>
-      <view class="genesis-purchase-success__cta" role="button" tabindex="0" @click="viewHoldings" @keydown.enter.prevent="viewHoldings" @keydown.space.prevent="viewHoldings">{{ t.genesis.viewMyNodes }}</view>
+  <view v-if="showSuccess" class="nx-genesis-success fixed inset-0 grid place-items-center" style="z-index: 920; padding: 20px; background: var(--v5-bg-color-mask)" role="dialog" aria-modal="true" :aria-label="successTitle">
+    <view style="width: 100%; max-width: 360px; padding: 28px 22px; border-radius: 24px; background: var(--v5-surface); text-align: center; box-shadow: var(--v5-card-shadow-lift-strong)">
+      <text class="block" style="font-size: 26px; color: var(--v5-genesis-gold-on-dark)" aria-hidden="true">✦</text>
+      <text class="block" style="margin-top: 10px; font-size: 20px; font-weight: 650; color: var(--v5-ink)">{{ successTitle }}</text>
+      <text class="block" style="margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3)">{{ t.genesis.purchaseSubtitle }}</text>
+      <view class="active:opacity-85" role="button" tabindex="0" style="margin-top: 22px; padding: 12px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand); font-weight: 600" @click="viewHolder"  @keydown.enter.prevent="viewHolder" @keydown.space.prevent="viewHolder"><text>{{ t.genesis.purchaseViewHolder }}</text></view>
+      <view class="active:opacity-70" role="button" tabindex="0" style="margin-top: 10px; padding: 10px; color: var(--v5-ink-3)" @click="closeSuccess"  @keydown.enter.prevent="closeSuccess" @keydown.space.prevent="closeSuccess"><text>{{ t.ui.close }}</text></view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, type CSSProperties } from "vue";
-import BrandLockup from "@/components/brand-lockup.vue";
-import HolderBadge from "@/components/genesis/holder-badge.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useGenesis, GENESIS_ELIGIBILITY_POLICY } from "@/store/genesis";
-import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisEligibility } from "@/composables/use-genesis-eligibility";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { toast } from "@/store/ui";
@@ -123,13 +114,14 @@ import { remoteApiEnabled } from "@/api/runtime";
 import { useApp } from "@/store/app";
 import { postMoneyBill } from "@/lib/money-receipt";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
+import { useGenesisConfig } from "@/store/genesis-config";
+import { navTo } from "@/lib/route";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ "update:open": [boolean] }>();
 
 const t = useT();
 const genesis = useGenesis();
-const cfg = useGenesisConfig();
 const { gate } = useGenesisEligibility();
 // 🔴 半屏必须**自己**接闸(独立验收 P1-7)。此前它完全不知道市场状态:
 //   用户已打开半屏、运营此刻切关闭 → 走完扣款才被 store 拒 → 冲正 → 一句 toast,
@@ -138,6 +130,26 @@ const { gate } = useGenesisEligibility();
 const { block, blockText } = useGenesisSaleGate();
 
 const qty = ref(1);
+const showSuccess = ref(false);
+const successfulQuantity = ref(0);
+const successTitle = computed(() => fmt(t.value.genesis.purchaseSuccess, { n: successfulQuantity.value, s: successfulQuantity.value > 1 ? "s" : "" }));
+function closeSuccess() { showSuccess.value = false; }
+function viewHolder() { closeSuccess(); navTo("/pages/genesis/holder"); }
+function showConfirmedSuccess() {
+  successfulQuantity.value = qty.value;
+  showSuccess.value = true;
+}
+// Keep one focus lifecycle across the sheet → success-dialog handoff. The
+// original trigger regains focus only after the success dialog closes.
+const dialogOpen = computed(() => props.open || showSuccess.value);
+useDialogA11y(dialogOpen, () => typeof document === "undefined" ? null
+  : document.querySelector<HTMLElement>(showSuccess.value ? ".nx-genesis-success" : ".nx-genesis-purchase-root"),
+  () => { if (showSuccess.value) closeSuccess(); else emitClose(); });
+watch(showSuccess, async (open) => {
+  if (!open || typeof document === "undefined") return;
+  await nextTick();
+  document.querySelector<HTMLElement>('.nx-genesis-success [tabindex="0"]')?.focus();
+});
 /**
  * 🔴 成交在途守卫。`emitClose()` 只是把 open 传给父级,面板要等下一次渲染才真卸载 ——
  * 移动端快速双击会在这个窗口里第二次进到 handlePurchase,扣两笔钱、铸两份额度。
@@ -147,21 +159,6 @@ const qty = ref(1);
  * 所有创世购买永久锁死。复位交给 finally + 下面的 open watcher 兜底。
  */
 const purchasing = ref(false);
-const successOpen = ref(false);
-
-function closeSuccess() {
-  successOpen.value = false;
-}
-function viewHoldings() {
-  // Keep the receipt visible if navigation fails, so the action can be retried.
-  uni.navigateTo({ url: "/pages/genesis/holder", success: closeSuccess });
-}
-async function showPurchaseSuccess() {
-  emit("update:open", false);
-  // Let the purchase sheet restore focus before the success dialog takes it.
-  await nextTick();
-  successOpen.value = true;
-}
 
 /** 半屏是否已被阻断(市场关闭 / 熔断 / 配置未知)。**售罄与预售不在此列** ——
  *  半屏只在可购买时才被打开,那两态由调用方拦在门外;这里管的是「开着的时候翻脸」。 */
@@ -202,7 +199,7 @@ function inc() {
   qty.value = Math.min(maxQty, qty.value + 1);
 }
 function emitClose() {
-  if (!purchasing.value) emit("update:open", false);
+  emit("update:open", false);
 }
 
 async function handlePurchase() {
@@ -231,9 +228,9 @@ async function handlePurchase() {
     //   这一段是原实现原样恢复,只多套一层 `!remoteApiEnabled`;远端模式一行都不走。
     //   顺序不可调:扣款⊗记账(一次提交)→ 铸席位 → 失败冲正。理由见 money-receipt.ts。
     if (!remoteApiEnabled) {
-      await cfg.refresh();
-      if (sheetBlocked.value) {
-        toast.error(sheetBlockText.value, t.value.genesis.marketClosed.holdingsSafe);
+      await useGenesisConfig().refresh();
+      if (sheetBlocked.value || !gate.value.eligible) {
+        toast.error(sheetBlocked.value ? sheetBlockText.value : t.value.genesisEligibility.toastIneligible);
         return;
       }
       const cost = qty.value * price.value;
@@ -244,7 +241,7 @@ async function handlePurchase() {
         symbol: "USDT",
         amount: -cost,
         status: "posted",
-        memo: `Genesis primary · ${qty.value} slot${qty.value > 1 ? "s" : ""} @ $${price.value}`,
+        memo: `Genesis primary · ${qty.value} slot${qty.value > 1 ? "s" : ""} @ ${price.value}`,
         ref: billRef,
       });
       const geo = geoPolicyUserMessage(paid, t.value.geoPolicy);
@@ -279,32 +276,59 @@ async function handlePurchase() {
         return;
       }
       committed = true;
-      await showPurchaseSuccess();
+      emitClose();
+      showConfirmedSuccess();
       return;
     }
+    // The Genesis store and App wallet store have independent epoch counters.
+    // Capture the wallet store's fence before the mutation so its own receipt
+    // validator can project the canonical balance immediately.
+    const walletReceiptScope = app.captureRemoteAccountRequest();
     const result = await genesis.purchase(qty.value);
     if (!result.ok) {
       // 🔴 「够不着服务端」必须和「服务端说不卖」分开讲:混在一起的话,一次网络抖动
       //   会被讲成「活动已关闭」,用户以为错过了活动就走了,而不是重试一下。
       //   store 侧用全仓统一的 isSettledRejection 判这件事,页面只负责选文案。
-      const copy = result.reason === "unavailable"
-        ? [t.value.genesis.purchaseUnavailable, t.value.genesis.purchaseUnavailableSub]
-        : result.reason === "market-closed"
-          ? [sheetBlockText.value, t.value.genesis.marketClosed.holdingsSafe]
-          : [t.value.genesis.purchaseError, t.value.genesis.reduceQty];
+      const copy = result.reason === "insufficient-funds"
+        ? [t.value.genesis.purchaseInsufficient, fmt(t.value.genesis.purchaseInsufficientSub, {
+          cost: (qty.value * price.value).toLocaleString(), balance: app.user.usdtBalance.toFixed(2),
+        })]
+        : result.reason === "run-conflict"
+          ? [t.value.genesis.purchaseRunConflict, t.value.genesis.purchaseRunConflictSub]
+          : result.reason === "unavailable"
+            ? [t.value.genesis.purchaseUnavailable, t.value.genesis.purchaseUnavailableSub]
+            : result.reason === "not-eligible"
+              ? [t.value.genesisEligibility.toastIneligible, t.value.genesisEligibility.toastIneligibleSub]
+              : result.reason === "market-closed"
+                ? [sheetBlockText.value, t.value.genesis.marketClosed.holdingsSafe]
+                : result.reason === "cap"
+                  ? [t.value.genesisEligibility.toastCapReached,
+                    fmt(t.value.genesisEligibility.toastCapReachedSub, { n: genesis.remoteEligibility?.maxPerUser ?? 0 })]
+                  : [t.value.genesis.tier.soldOut, t.value.genesis.reduceQty];
       toast.error(copy[0], copy[1]);
       return;
     }
+    // The Java receipt and App wallet page now share nx_user_wallet as their
+    // authority. Project the confirmed balance immediately; wallet bills will
+    // read the matching nx_wallet_ledger OUT row on entry.
+    if (result.walletBalanceUsdt !== undefined && result.walletReceiptSourceEnvironment !== undefined) {
+      app.adoptDevelopmentGenesisWallet(
+        result.walletBalanceUsdt,
+        walletReceiptScope,
+        result.walletReceiptSourceEnvironment,
+      );
+    }
     committed = true;
-    await showPurchaseSuccess();
+    emitClose();
+    showConfirmedSuccess();
   } finally {
     if (!committed) purchasing.value = false;
   }
 }
 
-const panelStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderTop: "1px solid var(--v5-border)",
+const panelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderTop: "none",
   padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)",
 };
 const titleStyle: CSSProperties = {
@@ -423,23 +447,11 @@ const submitStyle = computed<CSSProperties>(() => ({
 
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。
-useDialogA11y(computed(() => props.open), ".nx-sheet-panel", emitClose);
-useDialogA11y(successOpen, ".genesis-purchase-success", closeSuccess);
+
+
 </script>
 
 <style scoped>
-.genesis-purchase-success { position: fixed; inset: 0; z-index: 810; padding: 24px; display: flex; align-items: center; justify-content: center; background: var(--v5-bg-color-mask); backdrop-filter: blur(8px); }
-.genesis-purchase-success__panel { position: relative; width: 100%; max-width: 360px; max-height: calc(100dvh - 48px); overflow-y: auto; padding: 32px 20px 24px; border-radius: var(--v5-radius-2xl); background: var(--v5-surface); color: var(--v5-ink); font-family: var(--font-v5); text-align: center; }
-.genesis-purchase-success__close { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: var(--v5-radius-full); background: var(--v5-surface-2); color: var(--v5-ink-2); }
-.genesis-purchase-success__mark { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 16px 0; }
-.genesis-purchase-success__check { width: 56px; height: 56px; border-radius: var(--v5-radius-full); display: grid; place-items: center; background: var(--v5-success-soft); color: var(--v5-success-ink); }
-.genesis-purchase-success__mark :deep(.uvel-brand) { width: 48px; height: 48px; }
-.genesis-purchase-success__title { display: block; margin-top: 16px; font-size: var(--v5-type-h3); line-height: 1.4; font-weight: 600; }
-.genesis-purchase-success__body { display: block; margin-top: 8px; font-size: var(--v5-type-body-s); line-height: 1.5; color: var(--v5-ink-3); }
-.genesis-purchase-success__cta { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 16px; margin-top: 24px; border-radius: var(--v5-radius-full); background: var(--v5-brand); color: var(--v5-on-brand); font-size: var(--v5-type-button); line-height: 1.5; font-weight: 600; }
-.genesis-purchase-success [role="button"] { cursor: pointer; }
-.genesis-purchase-success [role="button"]:active { opacity: 0.8; }
-.genesis-purchase-success [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .nx-sheet-backdrop {
   position: fixed;
   inset: 0;

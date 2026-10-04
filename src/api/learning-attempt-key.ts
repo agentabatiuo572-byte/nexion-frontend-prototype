@@ -4,16 +4,17 @@ export interface LearningAttemptIdentity {
   version: string;
 }
 
-interface PendingLearningAttempt extends LearningAttemptIdentity { key: string; }
+export interface LearningPendingAttempt { key: string; answers: number[] | null; }
+interface PendingLearningAttempt extends LearningAttemptIdentity, LearningPendingAttempt {}
 interface LearningAttemptState {
-  schema: 1;
+  schema: 2;
   pending: Record<string, PendingLearningAttempt>;
   generations: Record<string, number>;
 }
 export interface LearningAttemptStorage { read(): unknown; write(value: LearningAttemptState): void; }
 
 const STORAGE_KEY = "nexgrid-learning-pending-attempts-v1";
-const empty = (): LearningAttemptState => ({ schema: 1, pending: {}, generations: {} });
+const empty = (): LearningAttemptState => ({ schema: 2, pending: {}, generations: {} });
 
 function normalize(value: LearningAttemptIdentity): LearningAttemptIdentity {
   const accountKey = value.accountKey.trim().toLowerCase();
@@ -23,6 +24,15 @@ function normalize(value: LearningAttemptIdentity): LearningAttemptIdentity {
   return { accountKey, courseId, version };
 }
 function scopeOf(value: LearningAttemptIdentity): string { const item = normalize(value); return JSON.stringify([item.accountKey, item.courseId, item.version]); }
+function normalizeAnswers(answers: number[]): number[] {
+  if (!Array.isArray(answers) || answers.some((answer) => !Number.isSafeInteger(answer) || answer < 0)) {
+    throw new Error("LEARNING_ATTEMPT_ANSWERS_INVALID");
+  }
+  return [...answers];
+}
+function sameAnswers(left: number[], right: number[]): boolean {
+  return left.length === right.length && left.every((answer, index) => answer === right[index]);
+}
 function hash53(value: string, seed: number): string {
   let h1 = 0xdeadbeef ^ seed; let h2 = 0x41c6ce57 ^ seed;
   for (let index = 0; index < value.length; index += 1) { const code = value.charCodeAt(index); h1 = Math.imul(h1 ^ code, 2654435761); h2 = Math.imul(h2 ^ code, 1597334677); }
@@ -32,64 +42,72 @@ function hash53(value: string, seed: number): string {
 }
 function key(scope: string, generation: number): string { return `learning-quiz-${hash53(`${scope}\u0000${generation}`, 0)}${hash53(`${scope}\u0000${generation}`, 0x9e3779b9)}`; }
 function state(value: unknown): LearningAttemptState {
-  const candidate = value && typeof value === "object" ? value as Partial<LearningAttemptState> : null;
-  if (!candidate || candidate.schema !== 1 || !candidate.pending || !candidate.generations || typeof candidate.pending !== "object" || typeof candidate.generations !== "object") return empty();
+  const candidate = value && typeof value === "object"
+    ? value as { schema?: unknown; pending?: unknown; generations?: unknown }
+    : null;
+  if (!candidate || (candidate.schema !== 1 && candidate.schema !== 2) || !candidate.pending || !candidate.generations || typeof candidate.pending !== "object" || typeof candidate.generations !== "object") return empty();
   const pending: Record<string, PendingLearningAttempt> = {};
-  for (const [scope, item] of Object.entries(candidate.pending)) {
+  const retiredScopes = new Set<string>();
+  for (const [scope, item] of Object.entries(candidate.pending as Record<string, unknown>)) {
     if (!item || typeof item !== "object") continue;
     const row = item as Partial<PendingLearningAttempt>;
     if (typeof row.key !== "string" || typeof row.accountKey !== "string" || typeof row.courseId !== "string" || typeof row.version !== "string") continue;
-    pending[scope] = { key: row.key, accountKey: row.accountKey, courseId: row.courseId, version: row.version };
+    const answers = Array.isArray(row.answers)
+      && row.answers.every((answer) => Number.isSafeInteger(answer) && Number(answer) >= 0)
+      ? row.answers.map(Number)
+      : null;
+    // Schema 1 stored only a key. Keep it until the server proves the original
+    // attempt is absent/failed; discarding an in-flight key can double-count.
+    if (candidate.schema === 1 && row.answers == null) {
+      pending[scope] = { key: row.key, accountKey: row.accountKey, courseId: row.courseId, version: row.version, answers: null };
+      continue;
+    }
+    if (!answers?.length) {
+      retiredScopes.add(scope);
+      continue;
+    }
+    pending[scope] = { key: row.key, accountKey: row.accountKey, courseId: row.courseId, version: row.version, answers };
   }
   const generations: Record<string, number> = {};
-  for (const [scope, generation] of Object.entries(candidate.generations)) if (Number.isSafeInteger(generation) && Number(generation) >= 0) generations[scope] = Number(generation);
-  return { schema: 1, pending, generations };
-}
-
-// 🔴 落盘失败的分档语义(提交**之前**抛 / **之后**只回布尔)见 lib/funds-mutation-key.ts
-// 那一整段头注 —— 同一条家规。这里不是钱面,但**不能降级成「照发」**,理由与钱面不同:
-// 本表的键对同一 (账号, 课程, 版本) 是确定性的,只有 finish 推进 generation 才会换新键。
-// 写不进去 = generation 永远停在原处 = 用户重做这门测验时拿到**同一把键**,服务端按幂等
-// 契约原样重放第一次的卷面 —— 成绩与 NEX 奖励就此**永久**锁死在第一次误交的那份上。
-// 那正是 pages/learn/course.vue 头注里被独立审计判为 P0 的同一个形状。相比之下「存储满时
-// 这一次交不上卷、给出错误让用户腾空间再交」没有任何不可逆后果,所以照样 fail closed。
-//
-// ⚠️ 本模块当前**没有任何生产调用方**(全仓 sweep 2026-08-19:只有它自己的单测)。
-// course.vue 交卷用的是它自己现造的一次性键(`learning-quiz:<id>:<version>:<Date.now>`),
-// 正是上面那次 P0 之后改的。谁要把本模块接上去,先读 course.vue 那段头注 ——
-// 「跨重做恒定不变的键」是被推翻过的设计,不是可选项。
-
-/** 写盘。true = 真落盘了;false = 存储写不进去(配额满 / 站点数据被禁)。 */
-function persisted(write: () => void): boolean {
-  try { write(); return true; } catch { return false; }
-}
-/** 读盘。null = 存储读不出来(≠「表里没有这一条」)。 */
-function readState(storage: LearningAttemptStorage): LearningAttemptState | null {
-  try { return state(storage.read()); } catch { return null; }
+  for (const [scope, generation] of Object.entries(candidate.generations as Record<string, unknown>)) if (Number.isSafeInteger(generation) && Number(generation) >= 0) generations[scope] = Number(generation);
+  for (const scope of retiredScopes) generations[scope] = (generations[scope] ?? 0) + 1;
+  return { schema: 2, pending, generations };
 }
 
 export class LearningAttemptKeyRegistry {
   constructor(private readonly storage: LearningAttemptStorage) {}
-  /** 🔴 交卷**之前**:键落不了盘就抛,这一次不许交(fail closed,理由见上)。 */
-  getOrCreate(identity: LearningAttemptIdentity): string {
-    const item = normalize(identity); const scope = scopeOf(item); const current = state(this.storage.read());
-    if (current.pending[scope]) return current.pending[scope].key;
-    const value = key(scope, current.generations[scope] ?? 0);
-    current.pending[scope] = { ...item, key: value };
-    if (!persisted(() => this.storage.write(current))) throw new Error("LEARNING_ATTEMPT_KEY_UNPERSISTED");
-    return state(this.storage.read()).pending[scope]?.key ?? value;
+  currentAttempt(identity: LearningAttemptIdentity): LearningPendingAttempt | null {
+    const scope = scopeOf(identity);
+    const pending = state(this.storage.read()).pending[scope];
+    return pending ? { key: pending.key, answers: pending.answers ? [...pending.answers] : null } : null;
   }
-  /** 交卷**之后**:false = 没退役(表里没有 / 存储读不出 / 写不进)。不抛 —— 卷已经判完了。 */
+  getOrCreateAttempt(identity: LearningAttemptIdentity, answers: number[]): LearningPendingAttempt {
+    const item = normalize(identity); const scope = scopeOf(item); const current = state(this.storage.read());
+    const normalizedAnswers = normalizeAnswers(answers);
+    const existing = current.pending[scope];
+    if (existing) {
+      if (!existing.answers) throw new Error("LEARNING_ATTEMPT_ANSWERS_UNKNOWN");
+      if (existing.answers.length && normalizedAnswers.length && !sameAnswers(existing.answers, normalizedAnswers)) {
+        throw new Error("LEARNING_ATTEMPT_ANSWERS_CONFLICT");
+      }
+      return { key: existing.key, answers: [...existing.answers] };
+    }
+    const value = key(scope, current.generations[scope] ?? 0);
+    current.pending[scope] = { ...item, key: value, answers: normalizedAnswers }; this.storage.write(current);
+    const stored = state(this.storage.read()).pending[scope];
+    return stored && stored.answers
+      ? { key: stored.key, answers: [...stored.answers] }
+      : { key: value, answers: normalizedAnswers };
+  }
   finish(identity: LearningAttemptIdentity, attemptKey: string): boolean {
-    const scope = scopeOf(identity); const current = readState(this.storage);
-    if (!current) return false;
+    const scope = scopeOf(identity); const current = state(this.storage.read());
     if (!current.pending[scope] || current.pending[scope].key !== attemptKey) return false;
-    delete current.pending[scope]; current.generations[scope] = (current.generations[scope] ?? 0) + 1;
-    return persisted(() => this.storage.write(current));
+    delete current.pending[scope]; current.generations[scope] = (current.generations[scope] ?? 0) + 1; this.storage.write(current); return true;
   }
 }
 
 const storage: LearningAttemptStorage = { read: () => uni.getStorageSync(STORAGE_KEY), write: (value) => uni.setStorageSync(STORAGE_KEY, value) };
 const registry = new LearningAttemptKeyRegistry(storage);
-export function pendingLearningAttemptKey(identity: LearningAttemptIdentity): string { return registry.getOrCreate(identity); }
+export function currentPendingLearningAttempt(identity: LearningAttemptIdentity): LearningPendingAttempt | null { return registry.currentAttempt(identity); }
+export function pendingLearningAttempt(identity: LearningAttemptIdentity, answers: number[]): LearningPendingAttempt { return registry.getOrCreateAttempt(identity, answers); }
 export function finishPendingLearningAttempt(identity: LearningAttemptIdentity, key: string): boolean { return registry.finish(identity, key); }

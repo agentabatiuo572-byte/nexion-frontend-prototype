@@ -4,7 +4,7 @@
   Mounted as a direct chassis child (absolute positioning) so it stays inside
   the device bezel and respects overflow:hidden + rounded corners.
     · renders only when store.cta !== null
-    · Link → <view @click> + uni.navigateTo (P-036: no native <button>/<a>)
+    · Link → <view @click> + shared navTo (P-036: no native <button>/<a>)
     · lucide ArrowRight → inline <svg stroke="currentColor">
     · useHaptic("medium") → uni.vibrateShort
     · frosted gradient via existing --v5-sticky-bar-bg / -border tokens
@@ -29,7 +29,16 @@
         <text v-if="cta.amountSubtext" class="scb-subtext" :style="subtextStyle">{{ cta.amountSubtext }}</text>
       </view>
 
-      <view class="scb-cta" :style="ctaStyle" @click="onTap">
+      <view
+        class="scb-cta"
+        :style="ctaStyle"
+        role="button"
+        :tabindex="cta.disabled ? -1 : 0"
+        :aria-disabled="cta.disabled ? 'true' : 'false'"
+        @click="onTap"
+        @keydown.enter.prevent="onTap"
+        @keydown.space.prevent="onTap"
+      >
         <text class="scb-cta-t">{{ cta.buttonLabel }}</text>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
@@ -38,6 +47,7 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { useStickyCTA } from "@/store/sticky-cta-bar";
@@ -71,9 +81,9 @@ const subtextStyle = computed<CSSProperties>(() => ({ color: subColor.value }));
 const ctaStyle = computed<CSSProperties>(() => ({ background: accentColor.value }));
 
 function onTap() {
+  if (!cta.value || cta.value.disabled) return;
   uni.vibrateShort({ fail: () => {} });
-  if (!cta.value) return;
-  uni.navigateTo({ url: cta.value.href, fail: () => {} });
+  navTo(cta.value.href);
 }
 </script>
 
@@ -144,6 +154,13 @@ function onTap() {
 }
 .scb-cta:active {
   opacity: 0.85;
+}
+.scb-cta[aria-disabled="true"] {
+  background: var(--v5-surface-2) !important;
+  opacity: 1;
+}
+.scb-cta[aria-disabled="true"] .scb-cta-t {
+  color: var(--v5-ink-4);
 }
 .scb-cta-t {
   font-family: var(--font-v5);

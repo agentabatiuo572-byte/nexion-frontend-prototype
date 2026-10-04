@@ -22,45 +22,80 @@
     <view class="pb-8" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/me" :title="t.myDevices.inventoryTitle" />
 
-      <view class="mx-4" :style="slotCaptionStyle">
+      <view v-if="inventoryLoading" class="mx-4" role="status" aria-live="polite" style="padding: 24px 2px">
+        <text>{{ t.earn.deviceLoading }}</text>
+      </view>
+      <EmptyState
+        v-else-if="inventoryError"
+        class="mx-4"
+        kind="recoverable-error"
+        :title="t.empty.errorTitle"
+        :desc="t.empty.errorDesc"
+        :cta-label="t.empty.errorCta"
+        emphasis
+        @cta="retryInventory"
+      />
+      <view v-if="inventoryStale" class="mx-4" role="status" style="padding: 12px; border-radius: 12px; background: var(--v5-danger-soft); color: var(--v5-danger)">
+        <text class="block" style="font-size: 13px">{{ t.myDevices.inventoryStaleWarning }}</text>
+        <view class="inline-flex items-center" style="min-height: 44px; color: var(--v5-brand)" role="button" tabindex="0" @click="retryInventory"  @keydown.enter.prevent="retryInventory" @keydown.space.prevent="retryInventory">
+          <text>{{ t.empty.errorCta }}</text>
+        </view>
+      </view>
+      <view v-if="inventoryReady" class="mx-4" :style="slotCaptionStyle">
         <text class="block" :style="subtitleStyle">{{ slotMeterLabel }}</text>
       </view>
 
-      <view class="mx-4">
+      <view v-if="inventoryReady" class="mx-4">
         <!-- Slot meter — de-carded: sits on the page floor. -->
         <view :style="meterBlockStyle">
           <view class="flex items-center justify-between">
             <text :style="meterLabelStyle">{{ t.myDevices.inventorySlotsLabel }}</text>
             <view class="flex items-baseline" style="gap: 4px">
               <text :style="meterCountStyle">{{ slotsUsed }}</text>
-              <text :style="meterMaxStyle">/ {{ MAX_DEVICES }}</text>
+              <text :style="meterMaxStyle">/ {{ app.slotCap }}</text>
             </view>
           </view>
           <view class="flex" style="gap: 6px; margin-top: 8px">
-            <view v-for="i in MAX_DEVICES" :key="i" :style="segStyle(i - 1)" />
+            <view v-for="i in app.slotCap" :key="i" :style="segStyle(i - 1)" />
           </view>
         </view>
 
         <ComputeShareEntry context="devices" />
 
-        <!-- Trial device — NexGridBox S1 on free trial (shadow, not a real device).
+        <view v-if="phoneNeedsActivation" :style="phoneActivationCardStyle">
+          <view class="flex items-start" style="gap: 12px">
+            <view class="grid place-items-center shrink-0" :style="phoneActivationIconStyle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" /><path d="M12 18h.01" /></svg>
+            </view>
+            <view class="flex-1 min-w-0">
+              <text class="block" :style="phoneActivationTitleStyle">{{ phoneActivationGuidance.title }}</text>
+              <text class="block" :style="phoneActivationBodyStyle">{{ phoneActivationGuidance.body }}</text>
+              <text class="block" :style="phoneActivationRewardStyle">{{ t.myDevices.phoneActivationRewardGate }}</text>
+            </view>
+          </view>
+          <view v-if="nativePhoneAvailable" class="flex items-center justify-center active:scale-[0.98]" :style="phoneActivationCtaStyle" role="button" tabindex="0" @click="goPhoneActivation"  @keydown.enter.prevent="goPhoneActivation" @keydown.space.prevent="goPhoneActivation">
+            <text :style="phoneActivationCtaLabelStyle">{{ t.myDevices.phoneActivationCta }}</text>
+          </view>
+        </view>
+
+        <!-- Trial device — UVELBox S1 on free trial (shadow, not a real device).
              Cancel-trial lives here in device management. -->
-        <view v-if="trialActive" class="overflow-hidden" :style="trialCardStyle">
+        <view v-if="trialActive" class="nx-glass-card overflow-hidden" :style="trialCardStyle">
           <view class="flex items-center" style="gap: 12px; padding: 12px 16px">
             <view class="grid place-items-center shrink-0" :style="trialIconBoxStyle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2" /><rect width="20" height="8" x="2" y="14" rx="2" ry="2" /><line x1="6" x2="6.01" y1="6" y2="6" /><line x1="6" x2="6.01" y1="18" y2="18" /></svg>
             </view>
             <view class="flex-1 min-w-0">
-              <view class="flex items-center" style="gap: 6px">
+              <view class="flex flex-wrap items-center" style="gap: 6px">
                 <text class="truncate" :style="trialNameStyle">UVELBox S1</text>
-                <text :style="trialBadgeStyle">{{ t.trial.ghostBadge }}</text>
+                <text :style="trialBadgeStyle">{{ trialLabels.badge }}</text>
               </view>
-              <text class="block" :style="trialSubStyle">{{ t.trial.deviceRowSub }}</text>
+              <text class="block" :style="trialSubStyle">{{ trial.status === 'grace' ? t.trial.ghostRibbonGrace : t.trial.deviceRowSub }}</text>
             </view>
           </view>
           <!-- Spec ④: user cancel exists on the active edge only — grace has
                nothing running to cancel (production already stopped). -->
-          <view v-if="trial.status === 'active'" class="w-full flex items-center justify-center active:opacity-80" :style="trialCancelStyle" @click="handleCancelTrial">
+          <view v-if="trial.status === 'active'" class="w-full flex items-center justify-center active:opacity-80" :style="trialCancelStyle" role="button" tabindex="0" @click="handleCancelTrial"  @keydown.enter.prevent="handleCancelTrial" @keydown.space.prevent="handleCancelTrial">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m4.9 4.9 14.2 14.2" /></svg>
             <text :style="trialCancelLabelStyle">{{ t.trial.cancelCta }}</text>
           </view>
@@ -78,6 +113,7 @@
               :key="d.id"
               :device="d"
               :active="true"
+              :show-action="canControlDevice(d)"
               :activate-label="t.myDevices.inventoryRowActivate"
               :deactivate-label="t.myDevices.inventoryRowDeactivate"
               :slots-full-label="t.myDevices.inventoryRowSlotsFull"
@@ -103,7 +139,8 @@
               :key="d.id"
               :device="d"
               :active="false"
-              :disabled="slotsFull"
+              :show-action="canControlDevice(d)"
+              :disabled="slotsFull && occupiesDeviceSlot(d.kind)"
               :activate-label="t.myDevices.inventoryRowActivate"
               :deactivate-label="t.myDevices.inventoryRowDeactivate"
               :slots-full-label="t.myDevices.inventoryRowSlotsFull"
@@ -114,9 +151,33 @@
               @ladder="ladderDevice = d"
             />
           </view>
-          <view v-if="slotsFull" class="flex items-center" :style="slotsFullWarnStyle">
+          <view v-if="slotsFull && inactiveDevices.some((d) => occupiesDeviceSlot(d.kind))" class="flex items-center" :style="slotsFullWarnStyle">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
             <text>{{ t.myDevices.inventorySlotsFullWarning }}</text>
+          </view>
+        </view>
+
+        <!-- Remote active lifecycle without activation time: support-visible, never activatable. -->
+        <view v-if="unconfirmedDevices.length > 0" style="margin-top: 12px">
+          <view class="flex items-center justify-between" style="padding: 0 4px; margin-bottom: 8px">
+            <text :style="sectionTitleStyle">{{ t.myDevices.inventorySectionActivationUnconfirmed }}</text>
+            <text :style="sectionCountStyle">{{ unconfirmedDevices.length }}</text>
+          </view>
+          <view style="display: flex; flex-direction: column; gap: 8px">
+            <DeviceInventoryRow
+              v-for="d in unconfirmedDevices"
+              :key="d.id"
+              :device="d"
+              :active="false"
+              :show-action="canControlDevice(d)"
+              disabled
+              :disabled-label="t.myDevices.inventoryActivationUnconfirmed"
+              :activate-label="t.myDevices.inventoryRowActivate"
+              :deactivate-label="t.myDevices.inventoryRowDeactivate"
+              :slots-full-label="t.myDevices.inventoryRowSlotsFull"
+              :pending-chip-label="t.myDevices.inventoryPendingDeactivateChip"
+              v-bind="tradeinStrip(d)"
+            />
           </view>
         </view>
 
@@ -133,7 +194,7 @@
         />
 
         <!-- Add-device CTA -->
-        <view v-else class="flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" style="margin-top: 12px" @click="goStore">
+        <view v-else class="flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" style="margin-top: 12px" role="button" tabindex="0" @click="goStore"  @keydown.enter.prevent="goStore" @keydown.space.prevent="goStore">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
           <text :style="ctaLabelStyle">{{ t.myDevices.inventoryCtaGoStore }}</text>
         </view>
@@ -151,6 +212,7 @@
 </template>
 
 <script setup lang="ts">
+import { navReset, navTo } from "@/lib/route";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -161,13 +223,15 @@ import TradeinLadderSheet from "@/components/me/tradein-ladder-sheet.vue";
 import ComputeShareEntry from "@/components/earn/compute-share-entry.vue";
 import { useT } from "@/i18n/use-t";
 import { deviceName } from "@/lib/device-copy";
+import { trialCardLabels } from "@/lib/trial-card-copy";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
-import { getCarrier } from "@/lib/carrier";
-import { getDeviceId } from "@/lib/device-id";
+import { useSession } from "@/store/session";
+import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
+import { resolvePhoneActivationGuidance } from "@/lib/phone-activation-guidance";
+import { canControlDevice } from "@/lib/device-control-platform";
 import { useFreeTrial } from "@/store/free-trial";
 import { useTradeinSheet } from "@/store/tradein-sheet";
-import { MAX_DEVICES } from "@/store/device-types";
 import { PRODUCTS } from "@/mock/products";
 import { computeTradeInCredit, TRADEIN_LADDER_RULES, DEFAULT_TRADEIN_CONFIG } from "@/mock/tradein-config";
 import { isDeviceTaskBlocked } from "@/mock/eligibility";
@@ -175,17 +239,38 @@ import { getMonthsSince, isTradeInTargetAvailable } from "@/store/product-phase"
 import { useProductPhase } from "@/composables/use-product-phase";
 import type { Device } from "@/store/types";
 import { confirm as uiConfirm, toast } from "@/store/ui";
-import { deviceE3Api, remoteApiEnabled } from "@/api/runtime";
+import { apiRuntimeConfig, deviceE3Api, remoteApiEnabled } from "@/api/runtime";
 import { isSettledRejection } from "@/api/errors";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { acquireDeviceCommandKey, finishDeviceCommand } from "@/lib/device-command-key";
 import { isProductAvailable } from "@/store/product-availability";
-import { refreshProductCatalog } from "@/store/product-catalog";
+import { productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
+import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
+import { isActivatableInventoryDevice, occupiesDeviceSlot, requiresActivationConfirmation } from "@/lib/device-slot-policy";
 
 const t = useT();
 const app = useApp();
+const session = useSession();
+const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
+const phoneActivationGuidance = computed(() => resolvePhoneActivationGuidance(nativePhoneAvailable, t.value.myDevices));
 const trial = useFreeTrial();
 const deferredCommandInFlight = ref<Set<string>>(new Set());
+
+// A fleet snapshot alone cannot establish the slot count: an active trial
+// reserves another slot. Keep the first render pending until both reads settle.
+const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"
+  || (trial.authorityStatus === "loading" && trial.authorityServerState !== null));
+const inventoryReady = computed(() => !remoteApiEnabled || (app.remoteFleetHasSnapshot && trialReady.value));
+const inventoryError = computed(() => !inventoryReady.value && (app.remoteFleetStatus === "error"
+  || trial.authorityStatus === "error"
+  || (apiRuntimeConfig.environment === "dev" && productCatalogState.status === "error")));
+const inventoryLoading = computed(() => !inventoryReady.value && !inventoryError.value);
+const inventoryStale = computed(() => inventoryReady.value && remoteApiEnabled && app.remoteFleetStatus === "error");
+
+function retryInventory() {
+  void refreshRemoteFleetAfterCatalog(app.accountKey).catch(() => undefined);
+  void trial.poll(Date.now());
+}
 
 function deferredCommandSlot(device: Device, accountKey: string, version: number): string {
   return `${accountKey.trim().toLowerCase()}:deactivate-after-task:${device.id}:${version}`;
@@ -199,17 +284,27 @@ function deferredCommandBusy(device: Device): boolean {
 // Typed against TrialStatus so a future enum change fails tsc here instead of
 // silently widening to string[] (FEAT-TRIAL02 audit trap).
 const trialActive = computed(() => trial.status === "active" || trial.status === "grace");
+const trialLabels = computed(() => trialCardLabels(trial.status, t.value.trial));
 const activeDevices = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null));
-const inactiveDevices = computed(() => app.visibleDevices.filter((d) => d.activatedAt === null));
-const inventoryEmpty = computed(() => activeDevices.value.length === 0 && inactiveDevices.value.length === 0);
+const inactiveDevices = computed(() => app.visibleDevices.filter(isActivatableInventoryDevice));
+const unconfirmedDevices = computed(() => app.visibleDevices.filter(requiresActivationConfirmation));
+const inventoryEmpty = computed(() => activeDevices.value.length === 0
+  && inactiveDevices.value.length === 0
+  && unconfirmedDevices.value.length === 0);
+const phoneNeedsActivation = computed(() => {
+  const phones = app.visibleDevices.filter((device) => device.kind === "phone");
+  if (phones.some(requiresActivationConfirmation)) return true;
+  return !phones.some((device) => device.activatedAt !== null)
+    || app.remotePhoneBindingInvalid || !session.isCurrentDeviceCalibrated(app.accountKey);
+});
 
 // Trial reserves a slot too (shadow device, not in devices[]).
 const trialReserved = computed(() => (trialActive.value ? 1 : 0));
 const slotsUsed = computed(() => app.activeSlotCount + trialReserved.value);
-const slotsFull = computed(() => slotsUsed.value >= MAX_DEVICES);
+const slotsFull = computed(() => slotsUsed.value >= app.slotCap);
 
 const slotMeterLabel = computed(() =>
-  fmt(t.value.myDevices.inventorySlotMeter, { active: slotsUsed.value, max: MAX_DEVICES }),
+  fmt(t.value.myDevices.inventorySlotMeter, { active: slotsUsed.value, max: app.slotCap }),
 );
 
 // Deactivate sheet (running-task branch) — page-driven (no chassis store).
@@ -282,6 +377,7 @@ function tradeinStrip(d: Device): {
 }
 
 function handleTradein(d: Device) {
+  if (!canControlDevice(d)) return;
   // 激活中且任务运行:阻断层(完成后可下架,查看任务/知道了),不硬拆(规格
   // DEV02A 异常2)。库存机的出厂任务不在跑,不阻断——判定单源 isDeviceTaskBlocked。
   if (isDeviceTaskBlocked(d)) {
@@ -292,14 +388,17 @@ function handleTradein(d: Device) {
 }
 
 async function handleActivate(d: Device) {
-  if (d.kind === "phone") {
-    if (getCarrier() === "h5") { toast.warn(t.value.phonePolicy.errors["web-only"]); return; }
-    if (!app.phoneBinding) { uni.navigateTo({ url: "/pages/onboarding/connect" }); return; }
-    const phoneError = app.phoneInventoryActivationError(d);
-    if (phoneError) { toast.warn(t.value.phonePolicy.errors[phoneError]); return; }
+  if (!canControlDevice(d)) return;
+  if (requiresActivationConfirmation(d)) {
+    toast.warn(t.value.myDevices.inventoryActivationUnconfirmed);
+    return;
   }
-  if (slotsFull.value) {
-    toast.warn(fmt(t.value.myDevices.inventoryToastSlotsFull, { max: MAX_DEVICES }));
+  if (d.kind === "phone") {
+    goPhoneActivation();
+    return;
+  }
+  if (occupiesDeviceSlot(d.kind) && slotsFull.value) {
+    toast.warn(fmt(t.value.myDevices.inventoryToastSlotsFull, { max: app.slotCap }));
     return;
   }
   if (remoteApiEnabled) {
@@ -311,11 +410,12 @@ async function handleActivate(d: Device) {
   if (ok) {
     toast.success(fmt(t.value.myDevices.inventoryToastActivated, { deviceName: deviceName(t.value, d) }));
   } else {
-    toast.warn(fmt(t.value.myDevices.inventoryToastSlotsFull, { max: MAX_DEVICES }));
+    toast.warn(fmt(t.value.myDevices.inventoryToastSlotsFull, { max: app.slotCap }));
   }
 }
 
 async function handleDeactivate(d: Device) {
+  if (!canControlDevice(d)) return;
   if (remoteApiEnabled && deferredCommandBusy(d)) return;
   if (remoteApiEnabled && d.pendingDeactivate) {
     toast.info(fmt(t.value.deactivateSheet.toastScheduled, { name: deviceName(t.value, d) }));
@@ -341,7 +441,7 @@ async function handleDeactivate(d: Device) {
 
 function onSheetWait() {
   const d = sheetDevice.value;
-  if (!d) return;
+  if (!d || !canControlDevice(d)) return;
   if (remoteApiEnabled) {
     void runRemoteDeferredCommand(d);
     return;
@@ -351,7 +451,13 @@ function onSheetWait() {
   sheetDevice.value = null;
 }
 
+function goPhoneActivation() {
+  if (!nativePhoneAvailable) return;
+  navTo("/pages/onboarding/connect?mode=recalibrate");
+}
+
 async function runRemoteDeferredCommand(d: Device): Promise<boolean> {
+  if (!canControlDevice(d)) return false;
   if (!Number.isSafeInteger(d.rowVersion) || Number(d.rowVersion) < 0) {
     toast.error(t.value.myDevices.inventoryRemoteMutationFailed);
     return false;
@@ -421,7 +527,7 @@ async function runRemoteDeferredCommand(d: Device): Promise<boolean> {
 
 async function onSheetForce() {
   const d = sheetDevice.value;
-  if (!d) return;
+  if (!d || !canControlDevice(d)) return;
   if (remoteApiEnabled) await runRemoteDeviceCommand(d, "deactivate");
   else if (app.deactivateDevice(d.id)) {
     toast.warn(fmt(t.value.deactivateSheet.toastForced, { name: deviceName(t.value, d) }));
@@ -446,6 +552,7 @@ async function handleCancelTrial() {
 }
 
 async function runRemoteDeviceCommand(d: Device, operation: "activate" | "deactivate"): Promise<boolean> {
+  if (!canControlDevice(d)) return false;
   if (!Number.isSafeInteger(d.rowVersion) || Number(d.rowVersion) < 0) {
     toast.error(t.value.myDevices.inventoryRemoteMutationFailed);
     return false;
@@ -461,7 +568,7 @@ async function runRemoteDeviceCommand(d: Device, operation: "activate" | "deacti
   };
   try {
     if (operation === "activate") {
-      await deviceE3Api.activate(Number(d.id), version, MAX_DEVICES, key);
+      await deviceE3Api.activate(Number(d.id), version, app.slotCap, key);
     } else {
       await deviceE3Api.deactivate(Number(d.id), version, key);
     }
@@ -496,7 +603,7 @@ async function runRemoteDeviceCommand(d: Device, operation: "activate" | "deacti
 }
 
 function goStore() {
-  uni.reLaunch({ url: "/pages/store/store", fail: () => {} });
+  navReset({ url: "/pages/store/store", fail: () => {} });
 }
 
 // ── styles ──
@@ -540,10 +647,10 @@ const meterMaxStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
 };
 // De-carded device card (form b): filled surface, no border.
-const trialCardStyle: CSSProperties = {
+const trialCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "12px",
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const trialIconBoxStyle: CSSProperties = {
   width: "40px",
@@ -642,4 +749,51 @@ const ctaLabelStyle: CSSProperties = {
   fontWeight: 500,
   color: "var(--v5-on-brand)",
 };
+const phoneActivationCardStyle: CSSProperties = {
+  marginTop: "12px",
+  borderRadius: "16px",
+  border: "1px solid color-mix(in oklab, var(--v5-brand) 35%, var(--v5-border))",
+  background: "color-mix(in oklab, var(--v5-brand) 8%, var(--v5-surface))",
+  padding: "14px",
+};
+const phoneActivationIconStyle: CSSProperties = {
+  width: "40px",
+  height: "40px",
+  borderRadius: "12px",
+  background: "color-mix(in oklab, var(--v5-brand) 13%, var(--v5-surface))",
+};
+const phoneActivationTitleStyle: CSSProperties = {
+  fontFamily: "var(--font-v5)",
+  fontSize: "15px",
+  fontWeight: 600,
+  color: "var(--v5-ink)",
+};
+const phoneActivationBodyStyle: CSSProperties = {
+  marginTop: "4px",
+  fontFamily: "var(--font-v5)",
+  fontSize: "12px",
+  lineHeight: 1.5,
+  color: "var(--v5-ink-3)",
+};
+const phoneActivationRewardStyle: CSSProperties = {
+  marginTop: "6px",
+  fontFamily: "var(--font-v5)",
+  fontSize: "12px",
+  lineHeight: 1.5,
+  color: "var(--v5-warning)",
+};
+const phoneActivationCtaStyle: CSSProperties = {
+  marginTop: "12px",
+  minHeight: "44px",
+  borderRadius: "999px",
+  background: "var(--v5-brand)",
+};
+const phoneActivationCtaLabelStyle: CSSProperties = {
+  fontFamily: "var(--font-v5)",
+  fontSize: "13px",
+  fontWeight: 600,
+  color: "var(--v5-on-brand)",
+};
+
+
 </script>

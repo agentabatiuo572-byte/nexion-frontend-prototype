@@ -72,6 +72,27 @@ const ALIAS_DECL_PLAIN = /\bconst\s+([A-Za-z0-9_]+)\s*=\s*t\.value\.([A-Za-z0-9_
 /** 逃生阀:同行写 `i18n-raw-ok` 说明理由(如「原文另处再 fmt」)。 */
 const ESCAPE = "i18n-raw-ok";
 
+// A placeholder may be one arm of an expression inside fmt(), for example
+// `fmt(n === 1 ? t.value.x.one : t.value.x.many, { n })`. Looking only at the
+// four characters before the reference mistakes that real formatting for a raw
+// render. Match the enclosing call instead; a completed earlier fmt() cannot
+// cover a later reference because its closing parenthesis is before that ref.
+function fmtWrapsReference(text, index) {
+  const calls = /\bfmt\s*\(/g;
+  for (const call of text.matchAll(calls)) {
+    const open = call.index + call[0].lastIndexOf("(");
+    let depth = 0;
+    for (let i = open; i < text.length; i++) {
+      if (text[i] === "(") depth++;
+      else if (text[i] === ")" && --depth === 0) {
+        if (open < index && index < i) return true;
+        break;
+      }
+    }
+  }
+  return false;
+}
+
 const violations = [];
 let refsChecked = 0;
 let aliasDecls = 0;
@@ -111,7 +132,7 @@ for (const file of listFiles(path.join(root, "src"))) {
     let i = m.index - 1;
     while (i >= 0 && /\s/.test(text[i])) i--;
     const before = text.slice(Math.max(0, i - 3), i + 1);
-    if (before.endsWith("fmt(")) continue;                                  // (a)
+    if (before.endsWith("fmt(") || fmtWrapsReference(text, m.index)) continue; // (a)
     // (b) 同一表达式里自己处理。允许中间夹 `|| "兜底"`、右括号等
     //     (工程里真实写法:`(t.value.x.y || "{s}s").replace("{s}", …)`),故给 80 字窗口。
     const after = text.slice(m.index + m.raw.length, m.index + m.raw.length + 80);

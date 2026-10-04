@@ -1,12 +1,7 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 import type { DeviceKind, TaskCategory } from "@/store/types";
-import type { ApiMode } from "./runtime-config";
-import {
-  captureCommerceSandboxRun,
-  isCurrentCommerceSandboxRun,
-  isCurrentCommerceSandboxScope,
-} from "./order-api";
+import type { ApiEnvironment } from "./runtime-config";
 
 /** Server projection consumed by the authenticated Home/Earn surfaces. */
 export interface AppHomePeriod {
@@ -41,6 +36,14 @@ export interface AppHomeOnGridClient {
   gpus: number | null;
 }
 
+export interface AppHomeDoTheMath {
+  basis: "OWNED_DEVICE_TO_NEXT_CATALOG_PRODUCT";
+  base: { kind: DeviceKind; name: string; dailyUsdt: number };
+  target: { productNo: string; kind: DeviceKind; name: string; dailyUsdt: number; priceUsdt: number };
+  multiplier: number;
+  paybackDays: number;
+}
+
 export interface AppHomeEarningsLedgerRow {
   id: string;
   client: string;
@@ -51,14 +54,21 @@ export interface AppHomeEarningsLedgerRow {
 }
 
 export interface AppHomeOverview {
-  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  sourceEnvironment: "PRODUCTION";
   runId: string;
   generatedAt: string;
   accountScope: string;
-  earnings: { today: AppHomePeriod; week: AppHomePeriod; month: AppHomePeriod; all: AppHomePeriod };
-  earningsLedgerMode: "SETTLED" | "SANDBOX_QUOTE_EXAMPLES";
+  earnings: {
+    today: AppHomePeriod;
+    todayVsYesterdayPct: number | null;
+    week: AppHomePeriod;
+    month: AppHomePeriod;
+    all: AppHomePeriod;
+  };
+  earningsLedgerMode: "SETTLED";
   earningsLedger: AppHomeEarningsLedgerRow[];
   marketBoard: { workloads: AppHomeWorkload[]; deviceRankings: AppHomeDeviceRanking[] };
+  doTheMath: AppHomeDoTheMath | null;
   weeklyPromo: {
     status: "active" | "paused";
     rewardNex: number | null;
@@ -72,8 +82,7 @@ export interface AppHomeOverview {
 }
 
 type Row = Record<string, unknown>;
-const APP_HOME_SOURCE = "server:nx_compute_receipt,nx_compute_task,nx_user_device,nx_product,nx_growth_promo_banner";
-const APP_HOME_SANDBOX_SOURCE = "server:sandbox-run-projection:nx_config_item,nx_admin_device_task,nx_product,nx_compute_sandbox_reward";
+const APP_HOME_SOURCE = "server:nx_compute_receipt,nx_compute_task,nx_user_device,nx_compute_datacenter,nx_product,nx_growth_promo_banner";
 const APP_HOME_ACCOUNT_SCOPE = "authenticated-account";
 const TASKS = new Set<TaskCategory>(["IG", "VG", "LL", "FT", "EM", "SP"]);
 const DEVICE_KINDS = new Set<DeviceKind>(["phone", "cloud-share", "pc-gpu", "stellarbox-s1", "stellarbox-pro", "stellarbox-pro-v2", "stellarrack-p1", "stellarrack-p2"]);
@@ -87,6 +96,8 @@ const integer = (v: unknown): number | null => {
   const n = nonNegative(v);
   return n !== null && Number.isSafeInteger(n) ? n : null;
 };
+const finiteNumber = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v) ? v : null;
 const nullableIso = (v: unknown): string | null => {
   if (v === null || v === undefined) return null;
   const s = text(v);
@@ -128,6 +139,32 @@ function client(v: unknown): AppHomeOnGridClient {
   if (!text(v.id) || (v.gpus != null && gpus === null)) return invalid();
   return { id: text(v.id)!, name: text(v.name), model: text(v.model), city: text(v.city), gpus };
 }
+function doTheMath(v: unknown): AppHomeDoTheMath | null {
+  if (v === null || v === undefined) return null;
+  if (!isRow(v) || v.basis !== "OWNED_DEVICE_TO_NEXT_CATALOG_PRODUCT"
+      || !isRow(v.base) || !isRow(v.target)) return invalid();
+  const baseKind = typeof v.base.kind === "string" && DEVICE_KINDS.has(v.base.kind as DeviceKind)
+    ? v.base.kind as DeviceKind : null;
+  const targetKind = typeof v.target.kind === "string" && DEVICE_KINDS.has(v.target.kind as DeviceKind)
+    ? v.target.kind as DeviceKind : null;
+  const baseName = text(v.base.name); const targetName = text(v.target.name);
+  const productNo = text(v.target.productNo);
+  const baseDaily = nonNegative(v.base.dailyUsdt); const targetDaily = nonNegative(v.target.dailyUsdt);
+  const priceUsdt = nonNegative(v.target.priceUsdt);
+  const multiplier = integer(v.multiplier); const paybackDays = integer(v.paybackDays);
+  if (!baseKind || !targetKind || !baseName || !targetName || !productNo
+      || baseDaily === null || baseDaily <= 0 || targetDaily === null || targetDaily <= baseDaily
+      || priceUsdt === null || priceUsdt <= 0 || multiplier === null || multiplier < 1
+      || paybackDays === null || paybackDays < 1
+      || multiplier !== Math.round(targetDaily / baseDaily)
+      || paybackDays !== Math.round(priceUsdt / targetDaily)) return invalid();
+  return {
+    basis: v.basis,
+    base: { kind: baseKind, name: baseName, dailyUsdt: baseDaily },
+    target: { productNo, kind: targetKind, name: targetName, dailyUsdt: targetDaily, priceUsdt },
+    multiplier, paybackDays,
+  };
+}
 
 function ledgerRow(v: unknown): AppHomeEarningsLedgerRow {
   if (!isRow(v)) return invalid();
@@ -140,26 +177,28 @@ function ledgerRow(v: unknown): AppHomeEarningsLedgerRow {
   return { id, client: clientName, model, rewardUsdt, completedAt, synthetic: v.synthetic };
 }
 
-export function parseAppHomeOverview(value: unknown, mode: ApiMode = "remote"): AppHomeOverview {
+export function parseAppHomeOverview(value: unknown, mode: ApiEnvironment = "prod"): AppHomeOverview {
   const row = isRow(value) ? value : invalid();
   const generatedAt = nullableIso(row.generatedAt);
   const accountScope = text(row.accountScope);
   const source = text(row.source);
   const e = isRow(row.earnings) ? row.earnings : null;
   const market = isRow(row.marketBoard) ? row.marketBoard : null;
+  const calculator = doTheMath(row.doTheMath);
   const onboarding = isRow(row.onboarding) ? row.onboarding : null;
   const grid = isRow(row.onGrid) ? row.onGrid : null;
-  const production = mode === "remote" && row.sourceEnvironment === "PRODUCTION"
+  const production = (mode === "prod" || mode === "dev") && row.sourceEnvironment === "PRODUCTION"
     && row.runId === "" && source === APP_HOME_SOURCE;
-  const sandbox = mode === "sandbox" && row.sourceEnvironment === "SANDBOX"
-    && source === APP_HOME_SANDBOX_SOURCE && isCurrentCommerceSandboxRun(row.runId);
   const ledgerMode = row.earningsLedgerMode;
-  if (!generatedAt || (!production && !sandbox)
+  const todayVsYesterdayPct = e?.todayVsYesterdayPct === null
+    ? null
+    : finiteNumber(e?.todayVsYesterdayPct);
+  if (!generatedAt || !production
       || accountScope !== APP_HOME_ACCOUNT_SCOPE
       || row.serverCanonical !== true || !e || !market || !onboarding || !grid
-      || !["SETTLED", "SANDBOX_QUOTE_EXAMPLES"].includes(String(ledgerMode))
-      || (production && ledgerMode !== "SETTLED")
+      || ledgerMode !== "SETTLED"
       || !isRow(e.today) || !isRow(e.week) || !isRow(e.month) || !isRow(e.all)
+      || (e.todayVsYesterdayPct !== null && todayVsYesterdayPct === null)
       || !Array.isArray(row.earningsLedger) || row.earningsLedger.length > 20
       || !Array.isArray(market.workloads) || !Array.isArray(market.deviceRankings) || !Array.isArray(grid.clients)) return invalid();
   const promoRow = row.weeklyPromo;
@@ -183,28 +222,28 @@ export function parseAppHomeOverview(value: unknown, mode: ApiMode = "remote"): 
   if ((onboarding.cumulativePaidUsdt != null && onboardingPaid === null) || (onboarding.activeDevices != null && onboardingDevices === null)
       || (grid.activeDevices != null && activeDevices === null) || (grid.activeJobs != null && activeJobs === null) || (grid.perSecUsdt != null && perSecUsdt === null)) return invalid();
   const earningsLedger = row.earningsLedger.map(ledgerRow);
-  if ((ledgerMode === "SETTLED" && earningsLedger.some((entry) => entry.synthetic))
-      || (ledgerMode === "SANDBOX_QUOTE_EXAMPLES" && earningsLedger.some((entry) => !entry.synthetic))) return invalid();
+  if (earningsLedger.some((entry) => entry.synthetic)) return invalid();
   return {
     sourceEnvironment: row.sourceEnvironment as AppHomeOverview["sourceEnvironment"],
     runId: row.runId as string, generatedAt, accountScope,
-    earnings: { today: period(e.today), week: period(e.week), month: period(e.month), all: period(e.all) },
+    earnings: {
+      today: period(e.today), todayVsYesterdayPct,
+      week: period(e.week), month: period(e.month), all: period(e.all),
+    },
     earningsLedgerMode: ledgerMode as AppHomeOverview["earningsLedgerMode"], earningsLedger,
     marketBoard: { workloads: market.workloads.map(workload), deviceRankings: market.deviceRankings.map(ranking) },
+    doTheMath: calculator,
     weeklyPromo, onboarding: { cumulativePaidUsdt: onboardingPaid, activeDevices: onboardingDevices },
     onGrid: { clients: grid.clients.map(client), activeDevices, activeJobs, perSecUsdt }, source,
   };
 }
 
-export function createAppHomeApi(client: ApiClient, mode: ApiMode = "remote") {
+export function createAppHomeApi(client: ApiClient, mode: ApiEnvironment = "prod") {
   return {
     fetch: async () => {
-      const runScope = captureCommerceSandboxRun();
-      const parsed = parseAppHomeOverview(
+      return parseAppHomeOverview(
         await client.request({ method: "GET", path: "/api/app/home/overview" }), mode,
       );
-      if (mode === "sandbox" && !isCurrentCommerceSandboxScope(runScope)) return invalid();
-      return parsed;
     },
   };
 }

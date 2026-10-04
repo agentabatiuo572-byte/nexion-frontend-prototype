@@ -37,6 +37,10 @@
       "style": { "navigationStyle": "custom" }
     },
     {
+      "path": "pages/onboarding/privacy",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
       "path": "pages/register/register",
       "style": { "navigationStyle": "custom" }
     },
@@ -102,6 +106,14 @@
     },
     {
       "path": "pages/me/wallet-withdraw",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-withdraw-bank",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/me/wallet-withdraw-method",
       "style": { "navigationStyle": "custom" }
     },
     {
@@ -367,6 +379,7 @@
   ],
   "globalStyle": {
     "navigationStyle": "custom",
+    "navigationBarTextStyle": "white",
     "navigationBarTitleText": "UVEL",
     "backgroundColor": "#000000",
     "backgroundColorContent": "#000000"

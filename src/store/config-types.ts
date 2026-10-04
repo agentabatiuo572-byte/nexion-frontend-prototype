@@ -40,8 +40,7 @@ export interface ComputeShareContent {
 // 原 mock 寄存器 lib/mock/admin/compute-config.ts 已死,admin 已 server-canonical)。
 // PROD wires server→client; value authority lives in the real backend.
 export interface OnlineBonus {
-  // 无新鲜设备心跳时的基础托管系数(沿用 h5BaseFactor 配置键)∈(0,1]:
-  // effectiveTops = baseline × h5BaseFactor × network × jitter.
+  // 已退役的 H5 基础系数，后端固定为 0；保留此字段以校验 E6 两处投影一致。
   h5BaseFactor: number;
   // App 连续在线满额时长(小时): continuity 因子在此时长达到满额 1.0(此前自 0.85 线性爬升)。
   continuityFullHours: number;
@@ -111,6 +110,10 @@ export interface WithdrawRulesConfig {
 export type WelcomeGiftLockMode = "risk_bucket" | "direct";
 
 export interface RewardsConfig {
+  // H8 总闸门；关闭时分享功能保留，但所有公开金额必须为 0，服务端拒绝结算。
+  enabled: boolean;
+  // 服务端奖励政策的起算时间。null 仅用于本地 mock/远端配置未就绪的 fail-closed 状态。
+  effectiveAt: string | null;
   welcomeGift: {
     lockMode: WelcomeGiftLockMode;
     // 注册礼包金额(运营可调;admin K.rewards.welcomeGift.* 同键,CGM-F-020)。
@@ -205,7 +208,7 @@ export interface ShareConfig {
     apkUrl: string;
     version: string;
     releaseNotes: { zh: string; en: string };
-    source: "official" | "mock" | "unavailable";
+    source: "official" | "unavailable";
   };
 }
 
@@ -239,10 +242,40 @@ export interface PublicStatsConfig {
   hashratePercentileTable: { tops: number; cumPct: number }[];
 }
 
+/**
+ * 服务端可核验事实聚合(zentao #59)。
+ *
+ * `publicStats` 里的 fleetDevices / registeredUsersBase 是**运营手填的展示配置**,
+ * 据此派生「已付 / 收入 / 在线」这类事实性指标,就是把配置当实测对外发布。
+ * 这里的每个数都来自真实表聚合,自带口径(definition)与统计时刻(capturedAt)。
+ *
+ * 🔴 沙箱环境没有真实数据,整段为 null —— 「不知道」不能变成 0,也不能退回配置值。
+ */
+export interface PlatformVerifiedAggregate {
+  value: number;
+  definition: string;
+  kind: string;
+}
+
+export interface PlatformVerifiedStats {
+  activeAccounts: PlatformVerifiedAggregate;
+  registeredAccounts: PlatformVerifiedAggregate;
+  installedDevices: PlatformVerifiedAggregate;
+  onlineDevices: PlatformVerifiedAggregate;
+  /** 累计已完成提现(USDT)。金额聚合,保留小数。 */
+  completedPayoutUsdt: PlatformVerifiedAggregate;
+  capturedAt: string;
+}
+
 export interface PlatformConfig {
-  phoneBinding?: { allowReplacement: boolean; minReplacementIntervalDays: number };
   featureFlags: FeatureFlags;
   publicStats: PublicStatsConfig;
+  /**
+   * 服务端可核验聚合(zentao #59)。与 `publicStats` 的区别是**数据性质**:
+   * `publicStats` 是运营手填的展示配置,`verifiedStats` 是真实表聚合。
+   * 对外「在线设备 / 账号数」这类事实表述必须读这里;沙箱为 null。
+   */
+  verifiedStats: PlatformVerifiedStats | null;
   onlineBonus: OnlineBonus;
   riskCluster: RiskClusterConfig;
   withdrawRules: WithdrawRulesConfig;
@@ -269,8 +302,10 @@ type RuntimeWithdrawRuleKey =
  * Runtime consumers always receive a complete `PlatformConfig`; the config
  * store supplies newly required fields outside the Mock dataset boundary.
  */
-export type PlatformConfigSeed = Omit<PlatformConfig, "publicStats" | "withdrawRules" | "otpGate"> & {
+export type PlatformConfigSeed = Omit<PlatformConfig, "publicStats" | "verifiedStats" | "withdrawRules" | "otpGate"> & {
   publicStats?: PublicStatsConfig;
+  /** 本地 mock 没有可核验聚合;compat 会补 null。 */
+  verifiedStats?: PlatformVerifiedStats | null;
   withdrawRules: Omit<WithdrawRulesConfig, RuntimeWithdrawRuleKey> &
     Partial<Pick<WithdrawRulesConfig, RuntimeWithdrawRuleKey>>;
   otpGate: Omit<OtpGateConfig, "captchaAlwaysScenes"> &

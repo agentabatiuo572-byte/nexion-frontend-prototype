@@ -12,16 +12,27 @@ import path from "node:path";
 // PLAIN:裸 { value } —— 配 `defineStore = (_id, setup) => setup` 直取 setup 返回值的脚本。
 export const VUE_STUB_PLAIN = `export const ref = (v) => ({ value: v });
 export const shallowRef = ref;
-export const computed = (f) => ({ get value() { return f(); } });
+export const computed = (fn) => ({
+  get value() { return typeof fn === "function" ? fn() : fn.get(); },
+  set value(v) { if (typeof fn !== "function" && fn.set) fn.set(v); },
+});
 export const watch = () => {};
-export const reactive = (v) => v;`;
+export const onScopeDispose = () => {};
+export const reactive = (v) => v;
+export const shallowReactive = reactive;`;
 
 // NXREF:带 __nxRef 标记 —— 配 Proxy 解包版 pinia-stub 的脚本。
 export const VUE_STUB_NXREF = `export const ref = (v) => ({ __nxRef: true, value: v });
 export const shallowRef = ref;
-export const computed = (fn) => ({ __nxRef: true, get value() { return typeof fn === "function" ? fn() : fn.get(); } });
+export const computed = (fn) => ({
+  __nxRef: true,
+  get value() { return typeof fn === "function" ? fn() : fn.get(); },
+  set value(v) { if (typeof fn !== "function" && fn.set) fn.set(v); },
+});
 export const reactive = (v) => v;
-export const watch = () => {};`;
+export const shallowReactive = reactive;
+export const watch = () => {};
+export const onScopeDispose = () => {};`;
 
 // runtime-stub 不手列导出 —— 从 src/api/runtime.ts 磁盘真相扫出口清单,新增 API 永不掉队
 // (手列清单正是本次 pointsApi / i18nApi 掉队的根因)。
@@ -41,7 +52,7 @@ export function runtimeStub(root) {
     // 于是「if (fundsServerEnabled) return」这类闸在整个 selfcheck 家族里恒触发,
     // 门测的就不再是 mock 语义(2026-08-12 合并收口实测:withdraw-failpaths 直接崩)。
     fundsServerEnabled: 'export const fundsServerEnabled = false;',
-    fundsSandboxEnabled: 'export const fundsSandboxEnabled = false;',
+    developmentFundsEnabled: 'export const developmentFundsEnabled = false;',
     // Session storage is a local synchronous dependency, not an API client.
     // A truthy async Proxy here creates an unhandled rejected Promise when
     // refresh seams call read() during a remote-mode self-check.

@@ -67,6 +67,16 @@ const validResult = {
   walletBalanceAfterUsdt: 500,
 };
 
+const validKeepResult = {
+  operationNo: "CPK-1",
+  orderNo: "CKO-1",
+  targetDeviceId: 44,
+  deviceStatus: "INACTIVE",
+  orderStatus: "PAID",
+  walletDebitUsdt: 1000,
+  walletBalanceAfterUsdt: 500,
+};
+
 const validFleet = {
   dailyUsdt: 12.5,
   dailyNex: 3.2,
@@ -80,6 +90,9 @@ const validFleet = {
   slotCap: 3,
   capacitySchedule: { capacityBand1DeltaPct: "-3" },
   source: "nx_user_device + nx_compute_receipt + nx_compute_e3_config",
+  sourceEnvironment: "PRODUCTION",
+  runId: "",
+  serverCanonical: true,
   devices: [{
     id: 9,
     rowVersion: 1,
@@ -104,6 +117,8 @@ const validFleet = {
     capacityConfigKey: "capacityApplyToS1",
     capacitySubsidized: false,
     capacitySubsidyDays: 0,
+    capacitySubsidyRemainingDays: 0,
+    capacitySubsidyEndsAt: 1750000000000,
     actualPaidUsdt: 649,
     cumulativeOutputUsdt: 200,
   }],
@@ -206,6 +221,35 @@ test("E20 accepts a terminal replacement result only when every quote-linked fie
   assert.equal(accepted.walletBalanceAfterUsdt, 500);
 });
 
+test("E20 keep-and-buy uses the atomic capacity endpoint and validates the quoted debit", async () => {
+  let request;
+  const api = createDeviceE3Api({ request: async (options) => {
+    request = options;
+    return structuredClone(validKeepResult);
+  } });
+
+  const accepted = await api.capacityKeep("stellarbox-pro-v2", "keep-key", validCapacityQuote);
+
+  assert.equal(request.path, "/api/app/trade-in/capacity-keep");
+  assert.deepEqual(request.body, { targetProductNo: "stellarbox-pro-v2", expectedPayableUsdt: 1000 });
+  assert.equal(request.idempotencyKey, "keep-key");
+  assert.equal(accepted.deviceStatus, "INACTIVE");
+  assert.equal(accepted.targetDeviceId, 44);
+});
+
+test("E20 keep-and-buy rejects a pending order or a result whose debit drifted", async () => {
+  await assert.rejects(
+    apiReturning({ ...validKeepResult, orderStatus: "PENDING_PAYMENT" })
+      .capacityKeep("stellarbox-pro-v2", "keep-key", validCapacityQuote),
+    /E3_CANONICAL_RESPONSE_INVALID/,
+  );
+  await assert.rejects(
+    apiReturning({ ...validKeepResult, walletDebitUsdt: 999 })
+      .capacityKeep("stellarbox-pro-v2", "keep-key", validCapacityQuote),
+    /E3_CAPACITY_KEEP_RESULT_QUOTE_MISMATCH/,
+  );
+});
+
 test("E20 rejects terminal replacement results with source or balance drift", async () => {
   await assert.rejects(
     apiReturning({ ...validResult, sourceDeviceId: 12 }).capacityReplace(
@@ -236,6 +280,7 @@ const activatedOrder = {
   productNo: "stellarbox-pro-v2",
   productName: "StellarBox Pro v2",
   quantity: 1,
+  subtotalUsdt: 1000,
   unitPriceUsdt: 1000,
   discountUsdt: 0,
   amountUsdt: 1000,
@@ -246,17 +291,23 @@ const activatedOrder = {
   canonicalStatus: "activated",
   orderType: "TRADE_IN",
   placedAt: 1,
+  expiresAt: null,
   paidAt: 2,
   activatedAt: 3,
+  refundedAt: null,
+  refundAmountUsdt: null,
+  refundChannel: null,
+  refundBillNo: null,
   dataCenter: null,
   tradeinNo: "CPR-1",
   sourceDeviceId: 11,
   targetDeviceId: 33,
   targetDeviceInstanceNo: "DEV-33",
+  itemCount: 1,
 };
 
 test("E20 order readback accepts only a coherent paid and activated terminal", async () => {
-  const api = createOrderApi({ request: async () => ({ source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [activatedOrder] }) });
+  const api = createOrderApi({ request: async () => ({ serverCanonical: true, source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [activatedOrder] }) });
   const response = await api.list();
   assert.equal(response.orders[0].canonicalStatus, "activated");
 });
@@ -268,7 +319,7 @@ test("E20 order readback rejects contradictory or coerced HTTP 200 terminals", a
     { ...activatedOrder, paidAt: null },
     { ...activatedOrder, amountUsdt: "1000" },
   ]) {
-    const api = createOrderApi({ request: async () => ({ source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [malformed] }) });
+    const api = createOrderApi({ request: async () => ({ serverCanonical: true, source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [malformed] }) });
     await assert.rejects(api.list(), /ORDER_RESPONSE_INVALID/);
   }
 });
@@ -281,6 +332,7 @@ const placedOrder = {
   activationStatus: "WAITING_PAYMENT",
   canonicalStatus: "placed",
   orderType: "SINGLE",
+  expiresAt: 1_000,
   paidAt: null,
   activatedAt: null,
   tradeinNo: null,
@@ -302,7 +354,7 @@ const createdOrder = {
 };
 
 test("E20 ordinary order accepts only the canonical placed state triplet", async () => {
-  const listApi = createOrderApi({ request: async () => ({ source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [placedOrder] }) });
+  const listApi = createOrderApi({ request: async () => ({ serverCanonical: true, source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [placedOrder] }) });
   assert.equal((await listApi.list()).orders[0].canonicalStatus, "placed");
 
   for (const malformed of [
@@ -311,7 +363,7 @@ test("E20 ordinary order accepts only the canonical placed state triplet", async
     { ...placedOrder, activationStatus: "ACTIVATED" },
     { ...placedOrder, paidAt: 2 },
   ]) {
-    const api = createOrderApi({ request: async () => ({ source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [malformed] }) });
+    const api = createOrderApi({ request: async () => ({ serverCanonical: true, source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [malformed] }) });
     await assert.rejects(api.list(), /ORDER_RESPONSE_INVALID/);
   }
 });
@@ -334,7 +386,7 @@ test("E20 order readback accepts every backend-authored canonical state matrix r
       orderStatus: "CHARGEBACK", activationStatus: "DEACTIVATED" },
     { ...placedOrder, canonicalStatus: "cancelled", paymentStatus: "CANCELLED", orderStatus: "CANCELLED" },
   ];
-  const api = createOrderApi({ request: async () => ({ source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: validStates }) });
+  const api = createOrderApi({ request: async () => ({ serverCanonical: true, source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: validStates }) });
   assert.deepEqual((await api.list()).orders.map((order) => order.canonicalStatus), [
     "placed", "paid", "provisioning", "activated", "payment_failed", "expired",
     "provisioning_failed", "refunded", "chargeback", "cancelled",
@@ -362,7 +414,7 @@ test("E20 paid and provisioning rows require the backend payment timestamp and a
     { ...placedOrder, canonicalStatus: "provisioning", paymentStatus: "PAID", orderStatus: "PROVISIONING",
       activationStatus: "PROVISIONING", paidAt: null },
   ]) {
-    const api = createOrderApi({ request: async () => ({ source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [malformed] }) });
+    const api = createOrderApi({ request: async () => ({ serverCanonical: true, source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [malformed] }) });
     await assert.rejects(api.list(), /ORDER_RESPONSE_INVALID/);
   }
 });

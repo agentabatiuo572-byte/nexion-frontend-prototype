@@ -37,7 +37,10 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /></svg>
           <text :style="sectionTitleStyle">{{ t.missions.todayHeading }}</text>
         </view>
-        <view class="mx-4 flex items-center active:opacity-80" :style="rowStyle" @click="go('/pages/daily/daily')">
+        <!-- 三张带箭头的入口卡原先只是带 @click 的 container:读屏念不出、Tab 也到不了
+             (实测 tab 序只有 Back/Notifications/重试,三张卡全被跳过)。改 role="button"
+             + tabindex + aria-label,键盘激活由平台层合成(Enter/Space),名称含入口用途。 -->
+        <view class="nx-glass-action mx-4 flex items-center active:opacity-80 nx-mission-entry" :style="rowStyle" role="button" tabindex="0" :aria-label="todayEntryLabel" @click="go('/pages/daily/daily')">
           <view class="grid place-items-center shrink-0" :style="rowIconBox('var(--v5-brand-2)')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /></svg>
           </view>
@@ -59,6 +62,14 @@
         <WeeklyQuestList />
       </view>
 
+      <!-- Day One — entry-time snapshot conditions unlock one server-owned group reward. -->
+      <view :style="sectionStyle">
+        <view class="mx-4 flex items-center" :style="sectionHeadStyle">
+          <text :style="sectionTitleStyle">{{ t.home.dayOneFirstDayReward }}</text>
+        </view>
+        <view class="mx-4"><DayOneQuestCard v-model:expanded="dayOneExpanded" /></view>
+      </view>
+
       <!-- Events -->
       <view :style="sectionStyle">
         <view class="mx-4 flex items-center" :style="sectionHeadStyle">
@@ -66,7 +77,7 @@
           <text :style="sectionTitleStyle">{{ t.missions.eventsHeading }}</text>
         </view>
         <EmptyState
-          v-if="remoteEventsError"
+          v-if="remoteEventProjection.state === 'error'"
           class="mx-4"
           kind="recoverable-error"
           :title="t.missions.eventsUnavailableTitle"
@@ -74,16 +85,16 @@
           :cta-label="t.missions.retry"
           @cta="retryRemoteEvents"
         />
-        <view v-else class="mx-4 flex items-center active:opacity-80" :style="rowStyle" @click="go('/pages/events/events')">
+        <view v-else class="nx-glass-action mx-4 flex items-center active:opacity-80 nx-mission-entry" :style="rowStyle" role="button" tabindex="0" :aria-label="eventsEntryLabel" @click="go('/pages/events/events')">
           <view class="grid place-items-center shrink-0" :style="rowIconBox('var(--v5-warning)')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /></svg>
           </view>
           <view class="flex-1 min-w-0">
             <view class="flex items-center" style="gap: 6px">
               <text :style="rowLabelStyle">{{ t.missions.eventsLabel }}</text>
-              <text v-if="eventStats.claimable > 0" class="inline-flex items-center justify-center tabular-nums font-mono-tabular" :style="badgeStyle">{{ eventStats.claimable }}</text>
+              <text v-if="eventStats && eventStats.claimable > 0" class="inline-flex items-center justify-center tabular-nums font-mono-tabular" :style="badgeStyle">{{ eventStats.claimable }}</text>
             </view>
-            <text class="block" :style="rowValueStyle">{{ eventStatText }}</text>
+            <text class="block truncate" :style="rowValueStyle">{{ eventStatText }}</text>
           </view>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
@@ -95,7 +106,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0z" /></svg>
           <text :style="sectionTitleStyle">{{ t.missions.achievementsHeading }}</text>
         </view>
-        <view class="mx-4 flex items-center active:opacity-80" :style="rowStyle" @click="go('/pages/me/achievements')">
+        <view class="nx-glass-action mx-4 flex items-center active:opacity-80 nx-mission-entry" :style="rowStyle" role="button" tabindex="0" :aria-label="achievementsEntryLabel" @click="go('/pages/me/achievements')">
           <view class="grid place-items-center shrink-0" :style="rowIconBox('var(--v5-success)')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0z" /></svg>
           </view>
@@ -111,13 +122,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import EmptyState from "@/components/empty-state.vue";
 import WeeklyQuestHero from "@/components/home/weekly-quest-hero.vue";
 import WeeklyQuestList from "@/components/home/weekly-quest-list.vue";
+import DayOneQuestCard from "@/components/home/day-one-quest-card.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useEventQuest } from "@/store/event-quest";
@@ -125,57 +139,101 @@ import { EVENTS } from "@/mock/events";
 import { eventsApi, remoteApiEnabled } from "@/api/runtime";
 import type { CanonicalEvent } from "@/api/events-api";
 import { useApp } from "@/store/app";
-import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
+import { useQuest } from "@/store/quest";
+import { useLocaleStore } from "@/store/locale";
+import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
+import { bindPageVisibilityRefresh, createPageVisibilityRefresh } from "@/lib/page-visibility-refresh";
+import { createRemotePageRequestFence } from "@/lib/remote-page-request-fence";
+import { registerActivePageRefresh } from "@/lib/active-page-refresh";
+import { projectMissionRemoteEvents, type MissionRemoteEventsReadState } from "./mission-events-state";
 
 const t = useT();
 const eventQuest = useEventQuest();
 const app = useApp();
+const quest = useQuest();
+const dayOneExpanded = ref(true);
+const locale = useLocaleStore();
+const language = computed(() => locale.code);
 const remoteEvents = ref<CanonicalEvent[]>([]);
-const remoteEventsError = ref(false);
+const remoteEventsReadState = ref<MissionRemoteEventsReadState>("initial");
 const remoteAccountEpoch = createRemoteAccountEpoch(app.accountKey);
-async function refreshRemoteEvents(request: RemoteAccountRequest = remoteAccountEpoch.snapshot()): Promise<void> {
+let mounted = false;
+const remoteRequestFence = createRemotePageRequestFence(remoteAccountEpoch, () => mounted);
+let releaseActiveRefresh = () => {};
+function activatePageRefresh() {
+  releaseActiveRefresh();
+  releaseActiveRefresh = registerActivePageRefresh(async () => {
+    await Promise.all([refreshRemoteEvents(), quest.refreshRemote()]);
+  });
+}
+async function refreshRemoteEvents(): Promise<void> {
   if (!remoteApiEnabled) return;
+  const scope = remoteRequestFence.capture();
+  remoteEventsReadState.value = remoteEventsReadState.value === "ready" ? "refreshing" : "initial";
   try {
-    const snapshot = await eventsApi.state();
-    if (remoteAccountEpoch.isCurrent(request)) {
+    const snapshot = await eventsApi.state(language.value);
+    if (remoteRequestFence.isCurrent(scope)) {
       remoteEvents.value = snapshot.events;
-      remoteEventsError.value = false;
+      remoteEventsReadState.value = "ready";
     }
   } catch {
-    if (remoteAccountEpoch.isCurrent(request)) {
+    if (remoteRequestFence.isCurrent(scope)) {
       remoteEvents.value = [];
-      remoteEventsError.value = true;
+      remoteEventsReadState.value = "error";
     }
   }
 }
 function retryRemoteEvents() {
   void refreshRemoteEvents();
 }
-onMounted(() => {
+const missionVisibility = createPageVisibilityRefresh((reason) => {
   if (!remoteApiEnabled) return;
   remoteAccountEpoch.bind(app.accountKey);
-  remoteEvents.value = [];
-  remoteEventsError.value = false;
+  if (reason === "initial") {
+    remoteEvents.value = [];
+    remoteEventsReadState.value = "initial";
+  }
   void refreshRemoteEvents();
+  void quest.refreshRemote();
 });
-watch(() => app.accountKey, (accountKey) => {
+bindPageVisibilityRefresh(missionVisibility, {
+  mounted: (callback) => onMounted(() => {
+    mounted = true;
+    activatePageRefresh();
+    callback();
+  }),
+  shown: (callback) => onShow(() => {
+    mounted = true;
+    activatePageRefresh();
+    callback();
+  }),
+  hidden: (callback) => onHide(() => {
+    mounted = false;
+    releaseActiveRefresh();
+    remoteRequestFence.invalidate();
+    callback();
+  }),
+});
+onUnmounted(() => {
+  mounted = false;
+  releaseActiveRefresh();
+  remoteRequestFence.invalidate();
+});
+watch([() => String(app.accountKey), () => app.accountBindingEpoch, () => language.value], ([accountKey]) => {
   if (!remoteApiEnabled) return;
   remoteAccountEpoch.bind(accountKey);
+  remoteRequestFence.invalidate();
   remoteEvents.value = [];
-  remoteEventsError.value = false;
+  remoteEventsReadState.value = "initial";
   void refreshRemoteEvents();
 });
 
 // Live Events row stat — ongoing / joined / claimable from the ported mock +
 // store (claimable = trackable + done + not yet claimed).
+const remoteEventProjection = computed(() => projectMissionRemoteEvents(remoteEventsReadState.value, remoteEvents.value));
 const eventStats = computed(() => {
   if (remoteApiEnabled) {
-    const current = remoteEvents.value;
-    return {
-      ongoing: current.filter((event) => event.state === "ongoing").length,
-      joined: current.filter((event) => event.state !== "ended" && ["JOINED", "CLAIMABLE", "CLAIMED"].includes(event.userStatus)).length,
-      claimable: current.filter((event) => event.userStatus === "CLAIMABLE").length,
-    };
+    return remoteEventProjection.value.stats;
   }
   const ongoing = EVENTS.filter((ev) => ev.status === "ongoing").length;
   let joined = 0;
@@ -189,17 +247,31 @@ const eventStats = computed(() => {
   return { ongoing, joined, claimable };
 });
 
-const eventStatText = computed(() =>
-  fmt(t.value.missions.eventsStat, {
-    ongoing: eventStats.value.ongoing,
-    joined: eventStats.value.joined,
-    claimable: eventStats.value.claimable,
-  }),
-);
+const eventStatText = computed(() => {
+  if (remoteApiEnabled) {
+    if (remoteEventProjection.value.state === "initial") return t.value.missions.eventsLoading;
+    if (remoteEventProjection.value.state === "refreshing") return t.value.missions.eventsRefreshing;
+    if (remoteEventProjection.value.state === "error") return "";
+    if (remoteEventProjection.value.empty) return t.value.missions.eventsEmpty;
+  }
+  const stats = eventStats.value;
+  return stats ? fmt(t.value.missions.eventsStat, {
+    ongoing: stats.ongoing,
+    joined: stats.joined,
+    claimable: stats.claimable,
+  }) : "";
+});
 
 function go(url: string) {
-  uni.navigateTo({ url, fail: () => {} });
+  navTo(url);
 }
+
+// 入口卡的可访问名 = 卡面标签(与 team.vue 的 nx-team-*-link 同一写法)。
+// 卡面是「标签 + 数值」两行,只给 container 时读屏念不出这是什么,也不知道能进哪里;
+// 名称取入口用途那一行,三张卡各自稳定唯一。
+const todayEntryLabel = computed(() => t.value.missions.todayLabel);
+const eventsEntryLabel = computed(() => t.value.missions.eventsLabel);
+const achievementsEntryLabel = computed(() => t.value.missions.achievementsLabel);
 
 // ── styles ──
 // De-carded hero — content on the page floor (2px optical inset); surface/border
@@ -246,8 +318,8 @@ const sectionTitleStyle: CSSProperties = {
 const rowStyle: CSSProperties = {
   gap: "12px",
   padding: "12px 14px",
-  borderRadius: "12px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "transparent",
 };
 function rowIconBox(tint: string): CSSProperties {
   return {
@@ -279,4 +351,15 @@ const badgeStyle: CSSProperties = {
   fontSize: "12px",
   fontWeight: 500,
 };
+
+
 </script>
+
+<style scoped>
+/* 三张入口卡现在可聚焦(role=button + tabindex),必须有可见焦点环:
+   卡片是圆角 surface 块,默认 outline 贴着圆角被裁,键盘用户看不出焦点落在哪一张。 */
+.nx-mission-entry:focus-visible {
+  outline: 2px solid var(--v5-brand);
+  outline-offset: 2px;
+}
+</style>

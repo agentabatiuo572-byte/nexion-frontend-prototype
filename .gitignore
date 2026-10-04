@@ -16,12 +16,14 @@ dist
 .env
 .env.*
 !.env.example
-!.env.acceptance-h5
+!.env.development
+!.env.production
 
 # tooling / temp artifacts
 .trash/
 .playwright-mcp/
 .playwright-cli/
+artifacts/
 # 🔴 .claude/ 整体不入库,但**质量门本身要跟着代码走版本**(2026-08-11):
 #   verify 的 Stop 门外壳 + 接线以前是本机本树专有,6 棵树各拿一份、改一处要手拷 5 次,
 #   靠手动同步的守卫迟早漂移失效 —— 所以精确豁免这两项。
@@ -62,13 +64,3 @@ scripts/.baseline/_check/sticky-frost.png
 # verify 三档制(包 ar):runner 产物 —— 缓存 / 日志 / 上次运行记录 / 链退出码哨兵,外部判定读文件不读管道
 .verify-cache/
 .verify-chain.code
-
-# Local runtime and test artifacts
-.codex-run/
-.codex-runtime/
-coverage/
-test-results*/
-artifacts/
-.tmp*/
-*.out
-*.err

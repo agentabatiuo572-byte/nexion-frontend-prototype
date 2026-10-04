@@ -3,10 +3,8 @@
  * (zustand persist → Pinia + uni storage).
  *
  * Lets the user add multiple Store products into a single bundle for tiered
- * discounts:
- *   2 items  → 5% off total
- *   3 items  → 8% off total
- *   4+ items → 12% off total
+ * discounts. The formal remote checkout supplies the live server-owned ladder;
+ * the legacy constants below are retained only for isolated local store tests.
  *
  * Cart is persisted (uni storage) so users can compose bundles across sessions.
  * Backend-replaceable: items[] is a plain serializable string[] of product ids.
@@ -28,8 +26,11 @@ export const BUNDLE_DISCOUNT_TIERS: ReadonlyArray<BundleDiscountTier> = [
   { minItems: 2, pct: 0.05 },
 ];
 
-export function bundleDiscountForCount(count: number): number {
-  for (const tier of BUNDLE_DISCOUNT_TIERS) {
+export function bundleDiscountForCount(
+  count: number,
+  tiers: ReadonlyArray<BundleDiscountTier> = BUNDLE_DISCOUNT_TIERS,
+): number {
+  for (const tier of [...tiers].sort((left, right) => right.minItems - left.minItems)) {
     if (count >= tier.minItems) return tier.pct;
   }
   return 0;

@@ -1,8 +1,6 @@
 <!--
   WalletTopup — 充值页(PAY-规格 [FEAT-PAY01] ⑤ 信息架构,参照 pay-vn-rails.html)。
-  顶部 segmented 通道切换 —「USDT 链上」= <DepositUsdtPane>(三网络 chip + 专属地址
-  QR + 最近入金);「银行转账」= <DepositBankPane>(VietQR 意向单流,[FEAT-PAY02]);
-  「银行卡」= <TopupCardForm> 原样接入。
+  正式模式提供 USDT-BEP20 与银行转账两个入口；本地非正式模式仍可展示旧卡片原型。
 
   Wrapped in <AppChassis active="me">. Header is the shared sticky <SubPageHeader>
   (back=/pages/me/wallet).
@@ -11,62 +9,54 @@
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/wallet" :title="t.wallet.addFunds" :subtitle="t.wallet.topUp" />
-      <FundsSandboxBadge />
 
-      <!-- Remote production: only VietQR has a real server authority. Explicit
-           Sandbox exposes the isolated simulated chain/bank/card rails below. -->
-      <DepositBankPane v-if="remoteApiEnabled && !mockFundsEnabled" />
+      <GlassSegments :label="t.wallet.chooseMethod" v-model="seg" :options="segmentOptions" style="margin: 0 16px 16px"  />
 
-      <!-- 通道 segmented(A4 在 SEGMENTS 中段插「银行转账」+ pane 分支) -->
-      <view v-else class="flex" :style="segWrapStyle">
-        <view
-          v-for="s in SEGMENTS"
-          :key="s.id"
-          :class="['flex-1 grid place-items-center active:opacity-70', `nx-topup-seg-${s.id}`]"
-          :style="segPillStyle(s.id)"
-          role="tab" tabindex="0"
-          :aria-selected="seg === s.id"
-          @click="seg = s.id"
-        >
-          <text :style="segLabelStyle(s.id)">{{ segLabel(s.id) }}</text>
-        </view>
-      </view>
-
-      <template v-if="!remoteApiEnabled || mockFundsEnabled">
-        <!-- USDT 链上通道段 -->
-        <DepositUsdtPane v-if="seg === 'crypto'" />
-
-        <!-- 银行转账段(VietQR,[FEAT-PAY02]) -->
-        <DepositBankPane v-else-if="seg === 'bank'" />
-
-        <!-- 银行卡段 — 现有卡表单原样接入(Change → 回 USDT 段) -->
-        <TopupCardForm v-else @change-channel="seg = 'crypto'" />
-      </template>
+      <DepositUsdtPane v-if="seg === 'crypto'" />
+      <DepositBankPane v-else-if="seg === 'bank'" />
+      <TopupCardForm v-else @change-channel="seg = 'crypto'" />
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { ref, type CSSProperties } from "vue";
+import { ref, nextTick, type CSSProperties, computed } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
 import TopupCardForm from "@/components/me/topup-card-form.vue";
 import DepositUsdtPane from "@/components/me/deposit-usdt-pane.vue";
 import DepositBankPane from "@/components/me/deposit-bank-pane.vue";
 import { useT } from "@/i18n/use-t";
-import { mockFundsEnabled, remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled } from "@/api/runtime";
 import { useDeposits } from "@/store/deposits";
 
 // ── 通道 segmented(USDT 链上 / 银行转账 / 银行卡)──
 type Seg = "crypto" | "bank" | "card";
 const SEGMENTS: { id: Seg }[] = [{ id: "crypto" }, { id: "bank" }, { id: "card" }];
-const seg = ref<Seg>(remoteApiEnabled && !mockFundsEnabled ? "bank" : "crypto");
+const segments = remoteApiEnabled ? SEGMENTS.filter((item) => item.id !== "card") : SEGMENTS;
+const seg = ref<Seg>(remoteApiEnabled ? "bank" : "crypto");
 function segLabel(id: Seg): string {
   const tc = t.value.topupChrome;
   if (id === "crypto") return tc.segUsdt;
   if (id === "bank") return t.value.bankPane.segBank;
   return tc.segCard;
+}
+/**
+ * 通道 tablist 的左右方向键:移一格并选上,焦点跟到新选中项(roving tabindex 的标准行为)。
+ *
+ * 这里比别处多一道必要判断:通道切换会**卸载/挂载不同的 pane 组件**(USDT/银行/银行卡
+ * 三段是 v-if/v-else-if/v-else),所以方向键移过去之后原焦点节点可能已被移除。
+ * 若不在下一帧重新聚焦新选中的 tab,焦点会掉到 body,键盘用户被踢回页面开头 ——
+ * 这恰恰是「方向键动了但焦点没动」那类复验失败的成因,必须在 nextTick 之后聚焦。
+ */
+function moveSeg(index: number, delta: number): void {
+  const next = segments[(index + delta + segments.length) % segments.length];
+  if (!next || next.id === seg.value) return;
+  seg.value = next.id;
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('.nx-topup-seg[tabindex="0"]')?.focus();
+  });
 }
 
 const t = useT();
@@ -99,4 +89,10 @@ function segLabelStyle(id: Seg): CSSProperties {
     color: seg.value === id ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
   };
 }
+
+import GlassSegments from "@/components/glass-segments.vue";
+const segmentOptions = computed(() => segments.map(({ id }) => ({
+  value: id, label: segLabel(id), className: `nx-topup-seg-${id}`,
+  dimmed: id === "bank" && !dep.bankRailAvailable,
+})));
 </script>

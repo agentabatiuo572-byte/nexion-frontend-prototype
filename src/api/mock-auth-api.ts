@@ -61,13 +61,11 @@ function loadRegistry(): MockUserRegistry {
   return { schema: 1, users: {} };
 }
 
-function saveRegistry(reg: MockUserRegistry): boolean {
+function saveRegistry(reg: MockUserRegistry): void {
   try {
     uni.setStorageSync(REGISTRY_KEY, reg);
-    return true;
   } catch {
     // storage unavailable — session survives in memory via vault only
-    return false;
   }
 }
 
@@ -97,7 +95,7 @@ function snapshotFor(user: UserSession): SessionSnapshot {
 }
 
 function sessionUser(countryCode: string, phone: string, rec: MockUserRecord): UserSession {
-  return { userId: rec.userId, countryCode, phone, nickname: rec.nickname };
+  return { userId: rec.userId, countryCode, phone, nickname: rec.nickname, onboardingComplete: true };
 }
 
 function accountIdForIdentity(identity: string): string {
@@ -177,20 +175,6 @@ export function registerMockAuthCredential(countryCode: string, phone: string, p
   saveRegistry(reg);
 }
 
-/**
- * Fixed-preview seed: restore a deterministic local credential and remove any
- * optional 2FA challenge so the reusable account can never strand the demo at
- * registration/login. This is deliberately separate from normal registration,
- * which must preserve a user's 2FA choice.
- */
-export function provisionMockAuthCredential(countryCode: string, phone: string, password: string): boolean {
-  const reg = loadRegistry();
-  const rec = ensureUser(reg, countryCode, phone);
-  rec.password = password;
-  rec.twoFactorEnabled = false;
-  return saveRegistry(reg);
-}
-
 export function createMockAuthApi(vault: SessionVault): AuthApi {
   const issueChallenge = () => ({
     challengeNo: `MOCK-CH-${++challengeSeq}`,
@@ -242,6 +226,10 @@ export function createMockAuthApi(vault: SessionVault): AuthApi {
     async sendPasswordResetOtp(request) {
       return { ...issueChallenge(), deliveryHint: maskedHint(request.phone) };
     },
+    async verifyPasswordResetOtp(request) {
+      assertSixDigit(request.code);
+      return { status: "PASSWORD_RESET_OTP_VERIFIED" };
+    },
     async completePasswordReset(request) {
       assertSixDigit(request.code);
       const reg = loadRegistry();
@@ -268,6 +256,10 @@ export function createMockAuthApi(vault: SessionVault): AuthApi {
     },
     async sendRegistrationOtp(request) {
       return { ...issueChallenge(), deliveryHint: maskedHint(request.phone) };
+    },
+    async verifyRegistrationOtp(request) {
+      assertSixDigit(request.code);
+      return { status: "REGISTRATION_OTP_VERIFIED" };
     },
     async register(request) {
       assertSixDigit(request.code);

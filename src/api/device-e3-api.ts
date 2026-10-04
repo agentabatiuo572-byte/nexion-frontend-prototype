@@ -1,5 +1,9 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
+import { matchesRuntimeProvenance } from "./runtime-provenance";
+
+const E3_FLEET_SOURCE = "nx_user_device + nx_compute_receipt + nx_compute_e3_config";
 
 export interface CanonicalE3Device {
   id: number;
@@ -9,14 +13,20 @@ export interface CanonicalE3Device {
   deviceType: string;
   productCode: string;
   status: string;
+  runtimeStatus?: "ONLINE" | "OFFLINE" | "UNKNOWN";
   pendingDeactivate: boolean;
   activatedAt: number | null;
+  /** Absent in older backend responses; the parser normalizes it to null. */
+  deactivatedAt: number | null;
   purchasedAt: number | null;
   dailyUsdt: number;
   dailyNex: number;
   todayEarningsUsdt: number;
   todayEarningsNex: number;
   gpuModel: string;
+  /** Server-calibrated phone throughput; absent on older fleet responses. */
+  capabilityTops: number | null;
+  capabilityTier: number | null;
   vramTotalGb: number;
   basePowerW: number;
   location: string;
@@ -25,6 +35,8 @@ export interface CanonicalE3Device {
   capacityConfigKey: string;
   capacitySubsidized: boolean;
   capacitySubsidyDays: number;
+  capacitySubsidyRemainingDays: number;
+  capacitySubsidyEndsAt: number | null;
   actualPaidUsdt: number;
   cumulativeOutputUsdt: number;
 }
@@ -43,6 +55,9 @@ export interface CanonicalE3Fleet {
   devices: CanonicalE3Device[];
   capacitySchedule: Record<string, string>;
   source: string;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
+  serverCanonical: true;
 }
 
 export interface CanonicalTradeinConfig {
@@ -52,6 +67,8 @@ export interface CanonicalTradeinConfig {
   creditRatesPct: number[];
   requireHigherPrice: boolean;
   maxDevicesPerOrder: number;
+  earlyAccessEnabled: boolean;
+  earlyAccessLeadDays: number;
   source: string;
 }
 
@@ -108,6 +125,16 @@ export interface CanonicalTradeinResult {
   walletBalanceAfterUsdt: number;
 }
 
+export interface CanonicalCapacityKeepResult {
+  operationNo: string;
+  orderNo: string;
+  targetDeviceId: number;
+  deviceStatus: "INACTIVE";
+  orderStatus: "PAID";
+  walletDebitUsdt: number;
+  walletBalanceAfterUsdt: number;
+}
+
 export interface CanonicalDeviceCommandResult {
   deviceId: number;
   instanceNo: string;
@@ -146,6 +173,11 @@ export interface DeviceE3Api {
     idempotencyKey: string,
     expectedQuote: CanonicalCapacityReplaceQuote,
   ): Promise<CanonicalTradeinResult>;
+  capacityKeep(
+    targetProductNo: string,
+    idempotencyKey: string,
+    expectedQuote: CanonicalCapacityReplaceQuote,
+  ): Promise<CanonicalCapacityKeepResult>;
   submit(
     sourceDeviceId: number,
     targetProductNo: string,
@@ -195,6 +227,11 @@ function timestamp(value: unknown): number | null {
   return invalid();
 }
 
+function integerTimestamp(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  return integer(value);
+}
+
 function numberArray(value: unknown, length: number): number[] {
   if (!Array.isArray(value) || value.length !== length) return invalid();
   return value.map((entry) => number(entry));
@@ -212,6 +249,11 @@ function stringMap(value: unknown): Record<string, string> {
 
 function device(value: unknown): CanonicalE3Device {
   const source = record(value);
+  if (!Object.prototype.hasOwnProperty.call(source, "capacitySubsidyEndsAt")) return invalid();
+  const capacityPct = number(source.capacityPct);
+  if (capacityPct > 100) return invalid();
+  const capabilityTier = source.capabilityTier == null ? null : integer(source.capabilityTier, 1);
+  if (capabilityTier !== null && capabilityTier > 5) return invalid();
   return {
     id: integer(source.id, 1),
     rowVersion: integer(source.rowVersion),
@@ -220,32 +262,56 @@ function device(value: unknown): CanonicalE3Device {
     deviceType: string(source.deviceType),
     productCode: string(source.productCode),
     status: string(source.status).toUpperCase(),
+    runtimeStatus: source.runtimeStatus === "ONLINE" || source.runtimeStatus === "OFFLINE" ? source.runtimeStatus : "UNKNOWN",
     pendingDeactivate: boolean(source.pendingDeactivate),
     activatedAt: timestamp(source.activatedAt),
+    deactivatedAt: timestamp(source.deactivatedAt),
     purchasedAt: timestamp(source.purchasedAt),
     dailyUsdt: number(source.dailyUsdt),
     dailyNex: number(source.dailyNex),
     todayEarningsUsdt: number(source.todayEarningsUsdt),
     todayEarningsNex: number(source.todayEarningsNex),
     gpuModel: string(source.gpuModel),
+    capabilityTops: source.capabilityTops == null ? null : number(source.capabilityTops, Number.MIN_VALUE),
+    capabilityTier,
     vramTotalGb: integer(source.vramTotalGb),
     basePowerW: number(source.basePowerW),
     location: string(source.location),
-    capacityPct: number(source.capacityPct),
+    capacityPct,
     capacityAgeMonths: integer(source.capacityAgeMonths),
     capacityConfigKey: string(source.capacityConfigKey),
     capacitySubsidized: boolean(source.capacitySubsidized),
     capacitySubsidyDays: integer(source.capacitySubsidyDays),
+    capacitySubsidyRemainingDays: integer(source.capacitySubsidyRemainingDays),
+    capacitySubsidyEndsAt: integerTimestamp(source.capacitySubsidyEndsAt),
     actualPaidUsdt: number(source.actualPaidUsdt),
     cumulativeOutputUsdt: number(source.cumulativeOutputUsdt),
   };
 }
 
-function fleet(value: unknown): CanonicalE3Fleet {
+const SUBSIDY_DAY_MS = 86_400_000;
+
+function fleet(value: unknown, mode: ApiEnvironment): CanonicalE3Fleet {
   const source = record(value);
   if (!Array.isArray(source.devices)) return invalid();
+  const sourceEnvironment = string(source.sourceEnvironment).toUpperCase();
+  const runId = typeof source.runId === "string" ? source.runId.trim() : invalid();
+  const provenanceMatches = source.serverCanonical === true
+    && matchesRuntimeProvenance({ ...source, sourceEnvironment, runId }, mode, E3_FLEET_SOURCE);
+  if (!provenanceMatches) return invalid("E3_FLEET_PROVENANCE_INVALID");
+  const serverNow = integer(source.serverNow);
   const devices = source.devices.map(device);
   if (new Set(devices.map((entry) => entry.id)).size !== devices.length) return invalid();
+  if (devices.some((entry) => {
+    const canonicalRemainingDays = entry.capacitySubsidyEndsAt !== null
+      && entry.capacitySubsidyEndsAt > serverNow
+      ? Math.ceil((entry.capacitySubsidyEndsAt - serverNow) / SUBSIDY_DAY_MS)
+      : 0;
+    const hasLiveDeadline = canonicalRemainingDays > 0;
+    return entry.capacitySubsidyRemainingDays > entry.capacitySubsidyDays
+      || entry.capacitySubsidyRemainingDays !== canonicalRemainingDays
+      || entry.capacitySubsidized !== hasLiveDeadline;
+  })) return invalid();
   return {
     dailyUsdt: number(source.dailyUsdt),
     dailyNex: number(source.dailyNex),
@@ -254,12 +320,15 @@ function fleet(value: unknown): CanonicalE3Fleet {
     walletUsdt: number(source.walletUsdt),
     walletNex: number(source.walletNex),
     userJoinedAt: integer(source.userJoinedAt),
-    serverNow: integer(source.serverNow),
+    serverNow,
     timezone: string(source.timezone),
     slotCap: integer(source.slotCap, 1),
     devices,
     capacitySchedule: stringMap(source.capacitySchedule),
     source: string(source.source),
+    sourceEnvironment: sourceEnvironment as "PRODUCTION" | "SANDBOX",
+    runId,
+    serverCanonical: true,
   };
 }
 
@@ -269,6 +338,8 @@ function config(value: unknown): CanonicalTradeinConfig {
   const credits = numberArray(source.creditRatesPct, 5);
   if (!cuts.every((entry, index) => index === 0 || cuts[index - 1] < entry)) return invalid();
   if (!credits.every((entry, index) => index === 0 || credits[index - 1] > entry)) return invalid();
+  const earlyAccessLeadDays = integer(source.earlyAccessLeadDays, 7);
+  if (![7, 14, 30, 60, 90].includes(earlyAccessLeadDays)) return invalid();
   return {
     enabled: boolean(source.enabled),
     eligibility: string(source.eligibility),
@@ -276,6 +347,8 @@ function config(value: unknown): CanonicalTradeinConfig {
     creditRatesPct: credits,
     requireHigherPrice: boolean(source.requireHigherPrice),
     maxDevicesPerOrder: integer(source.maxDevicesPerOrder, 1),
+    earlyAccessEnabled: boolean(source.earlyAccessEnabled),
+    earlyAccessLeadDays,
     source: string(source.source),
   };
 }
@@ -329,6 +402,22 @@ function result(value: unknown): CanonicalTradeinResult {
   };
   if (parsed.applicationStatus !== "COMPLETED" || parsed.orderStatus !== "COMPLETED") return invalid();
   return parsed;
+}
+
+function capacityKeepResult(value: unknown): CanonicalCapacityKeepResult {
+  const source = record(value);
+  const deviceStatus = string(source.deviceStatus).toUpperCase();
+  const orderStatus = string(source.orderStatus).toUpperCase();
+  if (deviceStatus !== "INACTIVE" || orderStatus !== "PAID") return invalid();
+  return {
+    operationNo: string(source.operationNo),
+    orderNo: string(source.orderNo),
+    targetDeviceId: integer(source.targetDeviceId, 1),
+    deviceStatus: "INACTIVE",
+    orderStatus: "PAID",
+    walletDebitUsdt: number(source.walletDebitUsdt),
+    walletBalanceAfterUsdt: number(source.walletBalanceAfterUsdt),
+  };
 }
 
 function eligibility(value: unknown): CanonicalTradeinEligibility {
@@ -486,10 +575,10 @@ function validTargetNo(value: string): string {
   return normalized;
 }
 
-export function createDeviceE3Api(client: ApiClient): DeviceE3Api {
+export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "prod"): DeviceE3Api {
   return {
     async fleet() {
-      return fleet(await client.request<unknown>({ path: "/api/devices/earnings" }));
+      return fleet(await client.request<unknown>({ path: "/api/devices/earnings" }), mode);
     },
     async tradeinConfig() {
       return config(await client.request<unknown>({ path: "/api/app/trade-in/config" }));
@@ -539,6 +628,30 @@ export function createDeviceE3Api(client: ApiClient): DeviceE3Api {
         payableUsdt: expectedQuote.payableUsdt,
         walletBalanceUsdt: expectedQuote.walletBalanceUsdt,
       });
+    },
+    async capacityKeep(targetProductNo, idempotencyKey, expectedQuote) {
+      const key = idempotencyKey.trim();
+      if (!key) throw new ApiError({ kind: "configuration", message: "IDEMPOTENCY_KEY_REQUIRED" });
+      if (expectedQuote.decision !== "REPLACE_REQUIRED"
+          || expectedQuote.targetProductNo !== targetProductNo
+          || expectedQuote.decisionSource !== "server") {
+        throw new ApiError({ kind: "configuration", message: "CAPACITY_KEEP_QUOTE_CONTEXT_INVALID" });
+      }
+      const parsed = capacityKeepResult(await client.request<unknown>({
+        method: "POST",
+        path: "/api/app/trade-in/capacity-keep",
+        body: {
+          targetProductNo: validTargetNo(targetProductNo),
+          expectedPayableUsdt: number(expectedQuote.payableUsdt),
+        },
+        idempotencyKey: key,
+      }));
+      if (!sameMoney(parsed.walletDebitUsdt, expectedQuote.payableUsdt)
+          || !sameMoney(parsed.walletBalanceAfterUsdt,
+            expectedQuote.walletBalanceUsdt - expectedQuote.payableUsdt)) {
+        return invalid("E3_CAPACITY_KEEP_RESULT_QUOTE_MISMATCH");
+      }
+      return parsed;
     },
     async submit(sourceDeviceId, targetProductNo, idempotencyKey, expectedQuote) {
       const key = idempotencyKey.trim();

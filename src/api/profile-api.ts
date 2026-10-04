@@ -1,10 +1,12 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import type { LocaleCode } from "@/i18n";
 
 export interface ProfileApi {
   profile(): Promise<ProfileProjection>;
   nicknameCandidates(): Promise<string[]>;
   updateNickname(expectedNickname: string, nickname: string, idempotencyKey: string): Promise<string>;
+  updateLanguage(language: string): Promise<string>;
   uploadAvatar(filePath: string, idempotencyKey: string): Promise<ProfileAvatar>;
 }
 
@@ -12,6 +14,7 @@ export interface ProfileProjection {
   nickname: string;
   avatarUrl: string;
   avatarRevision: string;
+  language: LocaleCode;
 }
 
 export interface ProfileAvatar {
@@ -39,11 +42,25 @@ function key(value: string): string {
   return normalized;
 }
 
+const PROFILE_LANGUAGES = new Set<LocaleCode>(["en", "vi", "zh", "ja", "ko", "ru", "es", "pt", "ar", "de", "fr"]);
+
+function isProfileLanguage(value: unknown): value is LocaleCode {
+  return typeof value === "string" && PROFILE_LANGUAGES.has(value as LocaleCode);
+}
+
+function language(value: string): LocaleCode {
+  if (!isProfileLanguage(value)) {
+    throw new ApiError({ kind: "protocol", message: "PROFILE_LANGUAGE_INVALID" });
+  }
+  return value;
+}
+
 function parseProjection(value: unknown): ProfileProjection {
   const row = record(value);
   if (!row || !validExistingNickname(row.nickname)
       || typeof row.avatarUrl !== "string"
       || typeof row.avatarRevision !== "string"
+      || !isProfileLanguage(row.language)
       || (!!row.avatarUrl && !/^https?:\/\//i.test(row.avatarUrl))) {
     throw new ApiError({ kind: "protocol", message: "PROFILE_RESPONSE_INVALID" });
   }
@@ -51,6 +68,7 @@ function parseProjection(value: unknown): ProfileProjection {
     nickname: row.nickname,
     avatarUrl: row.avatarUrl,
     avatarRevision: row.avatarRevision,
+    language: row.language,
   };
 }
 
@@ -87,6 +105,18 @@ export function createProfileApi(client: ApiClient): ProfileApi {
         throw new ApiError({ kind: "protocol", message: "PROFILE_UPDATE_RESPONSE_INVALID" });
       }
       return row.nickname;
+    },
+    updateLanguage: async (nextLanguage) => {
+      const expected = language(nextLanguage);
+      const row = record(await client.request({
+        method: "PUT",
+        path: "/api/app/profile/language",
+        body: { language: expected },
+      }));
+      if (!row || row.language !== expected || Object.keys(row).some((entry) => entry !== "language" && entry !== "status")) {
+        throw new ApiError({ kind: "protocol", message: "PROFILE_LANGUAGE_RESPONSE_INVALID" });
+      }
+      return expected;
     },
     uploadAvatar: async (filePath, idempotencyKey) => parseAvatar(await client.upload({
       path: "/api/app/profile/avatar",

@@ -193,19 +193,8 @@ export interface LockedTeaser {
   model: string;       // most attractive locked model in this category
   minVRAM: number;     // VRAM the user lacks
   rewardHint: string;  // e.g. "$0.18-$1.80" — per-task range (used in Nova copy)
-  /**
-   * Daily earnings potential in USD if the user owned the unlocked hardware.
-   * Formula: (24h capacity × ~35% queue saturation) × avg reward per task.
-   * Used in Task Center "Upgrade Unlocks" row to drive FOMO — concrete dollar
-   * amounts convert better than per-task ranges.
-   */
-  dailyPotentialUSD: number;
   unlockTier: string;  // e.g. "UVELBox S1 (96GB)"
 }
-
-// Realistic queue saturation. A real shared GPU pool isn't pegged at 100%
-// — operators compete for jobs. 35% is the spec's reference figure.
-const QUEUE_SATURATION = 0.35;
 
 // Map a VRAM requirement to the cheapest device tier that satisfies it.
 function unlockTierFor(minVRAM: number): string {
@@ -228,17 +217,12 @@ export function getLockedTeasers(maxVram: number, count = 3): LockedTeaser[] {
     const top = lockedModels.reduce((best, m) =>
       m.minVRAM > best.minVRAM ? m : best
     );
-    const avgSec = (tpl.minSec + tpl.maxSec) / 2;
-    const avgReward = (tpl.minReward + tpl.maxReward) / 2;
-    const dailyTasks = (86400 / avgSec) * QUEUE_SATURATION;
-    const dailyPotentialUSD = Math.max(1, Math.round(dailyTasks * avgReward));
     teasers.push({
       category: tpl.category,
       type: TASK_CATEGORY_LABEL[tpl.category],
       model: top.name,
       minVRAM: top.minVRAM,
       rewardHint: `$${tpl.minReward.toFixed(3)}-$${tpl.maxReward.toFixed(2)}`,
-      dailyPotentialUSD,
       unlockTier: unlockTierFor(top.minVRAM),
     });
   }

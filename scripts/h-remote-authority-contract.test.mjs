@@ -43,8 +43,11 @@ test("H3 shared completion never treats a route visit or share as a remote compl
     assert.match(source, /remoteApiEnabled/);
   }
   const cards = read("src/pages/me/wallet-cards-new.vue");
-  assert.match(cards, /paymentMethodApi\.bind/);
-  assert.match(cards, /cardsStore\.refreshRemote/);
+  assert.match(cards, /<BankAccountBinding v-if="!cardBindingAvailable"/);
+  const binding = read("src/lib/bank-binding-form.ts");
+  assert.match(binding, /api\.bind/);
+  assert.match(binding, /sameBeneficiary\(config\.beneficiary, operation\.receipt\)/);
+  assert.doesNotMatch(binding, /claimRemote|quest|reward/i);
 });
 
 test("H4 remote event cards are projected from eventsApi.state rather than mock rows", () => {
@@ -67,8 +70,11 @@ test("H5 power-up and H7 order redemption require server confirmation", () => {
 
 test("H3 remote cards and missions have no local-authority fallback", () => {
   const cards = read("src/pages/me/wallet-cards-new.vue");
-  assert.match(cards, /paymentMethodApi\.bind/);
-  assert.match(cards, /refreshRemote/);
+  assert.match(cards, /<BankAccountBinding v-if="!cardBindingAvailable"/);
+  const binding = read("src/lib/bank-binding-form.ts");
+  assert.match(binding, /await api\.bind\(\{ \.\.\.operation\.body \}, operation\.key\)/);
+  assert.match(binding, /await api\.config\(\)/);
+  assert.doesNotMatch(binding, /localStorage|cardsStore\.add|claimRemote\(/);
   assert.doesNotMatch(cards, /claimRemote\("bind_bank_card"\)/);
   const missions = read("src/pages/missions/missions.vue");
   assert.match(missions, /eventsApi\.state\(\)/);
@@ -83,19 +89,19 @@ test("H3 authority sentinels reject mutated local fallback paths", () => {
     }
   };
   const requireCardReceiptReadback = (source) => {
-    if (!/paymentMethodApi\.bind/.test(source) || !/cardsStore\.refreshRemote/.test(source) || /claimRemote\("bind_bank_card"\)/.test(source)) {
+    if (!/await api\.bind/.test(source) || !/sameBeneficiary\(config\.beneficiary, operation\.receipt\)/.test(source) || /claimRemote\("bind_bank_card"\)/.test(source)) {
       throw new Error("H3_REMOTE_CARD_RECEIPT_REQUIRED");
     }
   };
   const missions = read("src/pages/missions/missions.vue");
-  const cards = read("src/pages/me/wallet-cards-new.vue");
+  const cards = read("src/lib/bank-binding-form.ts");
   requireRemoteMissionSnapshot(missions);
   requireCardReceiptReadback(cards);
   assert.throws(() => requireRemoteMissionSnapshot(missions.replace("eventsApi.state()", "localEvents()")), /H3_REMOTE_MISSION_SNAPSHOT_REQUIRED/);
-  assert.throws(() => requireCardReceiptReadback(cards.replace("cardsStore.refreshRemote", "cardsStore.add")), /H3_REMOTE_CARD_RECEIPT_REQUIRED/);
+  assert.throws(() => requireCardReceiptReadback(cards.replace("sameBeneficiary(config.beneficiary, operation.receipt)", "true")), /H3_REMOTE_CARD_RECEIPT_REQUIRED/);
 });
 
-test("H3 remote card receipt rejects stale UNBOUND and empty-readback mutations", () => {
+test("legacy payment-card rail still rejects stale UNBOUND and empty-readback mutations", () => {
   const api = read("src/api/payment-method-api.ts");
   const bindPage = read("src/pages/me/wallet-cards-new.vue");
   const cardsStore = read("src/store/cards.ts");

@@ -2,7 +2,7 @@
 <template>
   <view
     id="home-newcomer-task-card"
-    class="newcomer-task"
+    class="nx-glass-card newcomer-task"
     :class="{ 'newcomer-task--expanded': expanded }"
     :style="rootStyle"
     :aria-hidden="!props.active"
@@ -10,7 +10,7 @@
     <view class="newcomer-task__summary">
       <view style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
         <view style="min-width: 0">
-          <view style="display: flex; align-items: center; gap: 7px">
+          <view style="display: flex; align-items: center; flex-wrap: wrap; gap: 7px">
             <view class="newcomer-task__mark" aria-hidden="true">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m13 2-9 12h8l-1 8 9-12h-8z" />
@@ -20,13 +20,13 @@
             <text class="newcomer-task__count">{{ taskCountText }}</text>
           </view>
           <view class="newcomer-task__reward">
-            <text class="newcomer-task__reward-value">+{{ rewardText }}</text>
+            <text class="newcomer-task__reward-value">{{ rewardText === "—" ? "—" : `+${rewardText}` }}</text>
             <text style="font-size: 13px; color: var(--v5-nex); font-family: var(--font-jet-mono), ui-monospace, monospace; font-weight: 500; margin-left: 2px">NEX</text>
           </view>
         </view>
-        <view style="text-align: right">
-          <text class="block" style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; color: var(--v5-ink-4); letter-spacing: 0.04em">{{ t.home.dayOneEndsIn }}</text>
-          <text class="block" style="margin-top: 4px; font-family: var(--font-jet-mono), ui-monospace, monospace; font-weight: 500; font-size: 15px; color: var(--v5-quest-violet-ink); font-variant-numeric: tabular-nums; line-height: 1">{{ remainingLabel }}</text>
+        <view v-if="!questUnavailable && (!remoteApiEnabled || dayOneWindow)" style="text-align: right; flex-shrink: 0">
+          <text v-if="!dayOneExpired" class="block" style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; color: var(--v5-ink-4); letter-spacing: 0.04em">{{ t.home.dayOneEndsIn }}</text>
+          <text class="block" :style="{ marginTop: dayOneExpired ? '0' : '4px' }" style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-weight: 500; font-size: 15px; color: var(--v5-quest-violet-ink); font-variant-numeric: tabular-nums; line-height: 1" :aria-label="dayOneExpired ? t.home.dayOneExpired : undefined">{{ dayOneExpired ? t.quest.expired : remainingLabel }}</text>
         </view>
       </view>
 
@@ -35,8 +35,12 @@
           <view :style="barStyle" />
         </view>
         <view style="margin-top: 5px; display: flex; justify-content: space-between; font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px">
-          <text style="color: var(--v5-ink-4)"><text style="color: var(--v5-ink); font-weight: 500">{{ completedCount }}</text>/{{ total }} {{ t.home.dayOneDoneSuffix }}</text>
-          <text style="color: var(--v5-nex); font-variant-numeric: tabular-nums">{{ nexEarnedText === "—" ? "—" : `+${nexEarnedText}` }} {{ t.home.dayOneEarnedSuffix }}</text>
+          <text v-if="questUnavailable" style="color: var(--v5-ink-4)">{{ unavailableLabel }}</text>
+          <template v-else>
+            <text style="color: var(--v5-ink-4)"><text style="color: var(--v5-ink); font-weight: 500">{{ completedCount }}</text>/{{ total }} {{ t.home.dayOneDoneSuffix }}</text>
+            <text v-if="remoteApiEnabled" style="color: var(--v5-nex)">{{ claimState.empty ? t.home.dayOneNoActiveTasks : claimState.claimed ? t.home.dayOneRewardClaimed : claimState.unverified ? t.home.dayOneSnapshotUnverified : t.home.dayOneRewardUnclaimed }}</text>
+            <text v-else style="color: var(--v5-nex); font-variant-numeric: tabular-nums">{{ nexEarnedText === "—" ? "—" : `+${nexEarnedText}` }} {{ t.home.dayOneEarnedSuffix }}</text>
+          </template>
         </view>
       </view>
 
@@ -45,14 +49,14 @@
         <view
           v-for="task in tasks"
           :key="task.id"
-          :class="isDone(task) ? '' : 'active:scale-[0.98] active:opacity-80 transition-transform'"
+          :class="isActionable(task) ? 'active:scale-[0.98] active:opacity-80 transition-transform' : ''"
           :style="rowStyle(task)"
           role="button"
-          :tabindex="props.active && !isDone(task) ? 0 : -1"
-          :aria-disabled="isDone(task)"
+          :tabindex="props.active && isActionable(task) ? 0 : -1"
+          :aria-disabled="!isActionable(task)"
           @click="onRowTap(task)"
-          @keydown.enter.prevent="onRowTap(task)"
-          @keydown.space.prevent="onRowTap(task)"
+
+          @keydown.enter.prevent="onRowTap(task)" @keydown.space.prevent="onRowTap(task)"
         >
           <view :style="circleStyle(task)">
             <!-- 勾色按填充色配对(task.onColor),不能一刀切:quest 两色双主题恒浅
@@ -70,7 +74,7 @@
           </view>
           <text :style="rewardStyle(task)">{{ task.nex === null ? "—" : `+${task.nex} NEX` }}<text v-if="task.usdt" :style="{ color: isDone(task) ? 'var(--v5-ink-4)' : 'var(--v5-brand-2)', marginLeft: '4px' }">+${{ task.usdt }}</text></text>
           <view>
-            <svg v-if="!isDone(task)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7">
+            <svg v-if="isActionable(task)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7">
               <path d="M9 18l6-6-6-6" />
             </svg>
           </view>
@@ -78,19 +82,31 @@
       </view>
     </view>
 
+    <view v-if="remoteApiEnabled && !questUnavailable && !claimState.empty && (claimState.claimCode || quest.dayOneClaiming)"
+      class="newcomer-task__claim" role="button"
+      :tabindex="props.active && !quest.dayOneClaiming ? 0 : -1"
+      :aria-disabled="!props.active || quest.dayOneClaiming"
+      @click="onClaim"  @keydown.enter.prevent="onClaim" @keydown.space.prevent="onClaim">
+      <text>{{ quest.dayOneClaiming ? t.home.dayOneClaiming : t.home.dayOneClaimReward }}</text>
+    </view>
+    <text v-if="remoteApiEnabled && quest.dayOneClaimError" role="status" class="newcomer-task__claim-error">
+      {{ quest.claimNotice ? t.questClaim[quest.claimNotice] : t.home.dayOneClaimUnconfirmed }}
+    </text>
+
     <view
-      class="newcomer-task__toggle"
+      class="nx-glass-action newcomer-task__toggle"
       :style="toggleStyle"
       role="button"
-      :tabindex="props.active ? 0 : -1"
+      :tabindex="props.active && (!questUnavailable || questLoadError) ? 0 : -1"
       :aria-expanded="expanded"
-      :aria-label="expanded ? t.home.dayOneHideTasks : viewTasksText"
+      :aria-disabled="questUnavailable && !questLoadError"
+      :aria-label="toggleLabel"
       @click="toggleExpanded"
-      @keydown.enter.prevent="toggleExpanded"
-      @keydown.space.prevent="toggleExpanded"
+
+      @keydown.enter.prevent="toggleExpanded" @keydown.space.prevent="toggleExpanded"
     >
-      <text style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-ink-3)">{{ expanded ? t.home.dayOneHideTasks : viewTasksText }}</text>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <text style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-ink-3)">{{ toggleLabel }}</text>
+      <svg v-if="!questUnavailable" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path :d="expanded ? 'M19 15l-7-7-7 7' : 'M5 9l7 7 7-7'" />
       </svg>
     </view>
@@ -98,16 +114,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { computed, watch, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNow } from "@/composables/use-now";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
-import { useQuest, type QuestTaskId } from "@/store/quest";
+import { useQuest } from "@/store/quest";
 import { remoteApiEnabled } from "@/api/runtime";
+import type { QuestTaskCategory } from "@/api/quest-api";
+import { selectHomeQuestRows } from "./home-quest-source";
+import { dayOneClaimState } from "@/lib/day-one-claim-state";
+import { nexGridBrandText } from "@/lib/brand-copy";
 
 interface QuestTask {
-  id: QuestTaskId;
+  id: string;
   order: number;
   label: string;
   nex: number | null;
@@ -118,6 +139,7 @@ interface QuestTask {
   /** 该填充色之上的前景色(勾/序号)。quest 两色恒浅 → on-quest 恒深墨;
    *  brand 随主题翻转 → 必须配同样翻转的 on-brand。用错会在某一主题糊掉。 */
   onColor: string;
+  eligible: boolean;
 }
 
 const props = withDefaults(defineProps<{ active?: boolean; expanded?: boolean }>(), {
@@ -126,6 +148,7 @@ const props = withDefaults(defineProps<{ active?: boolean; expanded?: boolean }>
 });
 const emit = defineEmits<{
   (event: "update:expanded", value: boolean): void;
+  (event: "content-resize"): void;
 }>();
 const expanded = computed({
   get: () => props.expanded,
@@ -138,52 +161,123 @@ const { elRef, inView } = useScrollGrowProgress();
 const quest = useQuest();
 const mockReward = 500;
 
-const tasks = computed<QuestTask[]>(() => [
-  { id: "bind_bank_card", order: 1, label: t.value.home.dayOneTaskBindCard, nex: remoteApiEnabled ? quest.rewardFor("bind_bank_card") : 50, href: "/pages/me/wallet-cards-new", cat: t.value.home.dayOneCatWallet, color: "var(--v5-quest-violet)", onColor: "var(--v5-on-quest)" },
-  { id: "visit_earn", order: 2, label: t.value.home.dayOneTaskVisitEarn, nex: remoteApiEnabled ? quest.rewardFor("visit_earn") : 30, href: "/pages/earn/earn", cat: t.value.home.dayOneCatExplore, color: "var(--v5-quest-ember)", onColor: "var(--v5-on-quest)" },
-  { id: "visit_store", order: 3, label: t.value.home.dayOneTaskVisitStore, nex: remoteApiEnabled ? quest.rewardFor("visit_store") : 50, href: "/pages/store/store", cat: t.value.home.dayOneCatExplore, color: "var(--v5-quest-ember)", onColor: "var(--v5-on-quest)" },
-  { id: "view_product_roi", order: 4, label: t.value.home.dayOneTaskSeeRoi, nex: remoteApiEnabled ? quest.rewardFor("view_product_roi") : 100, href: "/pages/store/detail?id=stellarbox-s1", cat: t.value.home.dayOneCatRecommend, color: "var(--v5-brand)", onColor: "var(--v5-on-brand)" },
-  { id: "setup_profile", order: 5, label: t.value.home.dayOneTaskSetupProfile, nex: remoteApiEnabled ? quest.rewardFor("setup_profile") : 80, href: "/pages/me/profile", cat: t.value.home.dayOneCatIdentity, color: "var(--v5-quest-violet)", onColor: "var(--v5-on-quest)" },
-  { id: "invite_friend", order: 6, label: t.value.home.dayOneTaskInviteFriend, nex: remoteApiEnabled ? quest.rewardFor("invite_friend") : 200, usdt: remoteApiEnabled ? undefined : 1, href: "/pages/team/team", cat: t.value.home.dayOneCatSocial, color: "var(--v5-quest-ember)", onColor: "var(--v5-on-quest)" },
+const categoryLabel = (category: QuestTaskCategory): string => ({
+  wallet: t.value.home.dayOneCatWallet,
+  explore: t.value.home.dayOneCatExplore,
+  recommend: t.value.home.dayOneCatRecommend,
+  identity: t.value.home.dayOneCatIdentity,
+  social: t.value.home.dayOneCatSocial,
+})[category];
+
+const fallbackTasks = computed<QuestTask[]>(() => [
+  { id: "bind_bank_card", order: 1, label: t.value.home.dayOneTaskBindCard, nex: 50, href: "/pages/me/wallet-cards-new", cat: t.value.home.dayOneCatWallet, color: "var(--v5-quest-violet)", onColor: "var(--v5-on-quest)", eligible: true },
+  { id: "visit_earn", order: 2, label: t.value.home.dayOneTaskVisitEarn, nex: 30, href: "/pages/earn/earn", cat: t.value.home.dayOneCatExplore, color: "var(--v5-quest-ember)", onColor: "var(--v5-on-quest)", eligible: true },
+  { id: "visit_store", order: 3, label: t.value.home.dayOneTaskVisitStore, nex: 50, href: "/pages/store/store", cat: t.value.home.dayOneCatExplore, color: "var(--v5-quest-ember)", onColor: "var(--v5-on-quest)", eligible: true },
+  { id: "view_product_roi", order: 4, label: t.value.home.dayOneTaskSeeRoi, nex: 100, href: "/pages/store/detail?id=stellarbox-s1", cat: t.value.home.dayOneCatRecommend, color: "var(--v5-brand)", onColor: "var(--v5-on-brand)", eligible: true },
+  { id: "setup_profile", order: 5, label: t.value.home.dayOneTaskSetupProfile, nex: 80, href: "/pages/me/profile", cat: t.value.home.dayOneCatIdentity, color: "var(--v5-quest-violet)", onColor: "var(--v5-on-quest)", eligible: true },
+  { id: "invite_friend", order: 6, label: t.value.home.dayOneTaskInviteFriend, nex: 200, usdt: 1, href: "/pages/team/team", cat: t.value.home.dayOneCatSocial, color: "var(--v5-quest-ember)", onColor: "var(--v5-on-quest)", eligible: true },
 ]);
+const remoteTasks = computed<QuestTask[]>(() => {
+  const palette = [
+    { color: "var(--v5-quest-violet)", onColor: "var(--v5-on-quest)" },
+    { color: "var(--v5-quest-ember)", onColor: "var(--v5-on-quest)" },
+    { color: "var(--v5-brand)", onColor: "var(--v5-on-brand)" },
+  ];
+  return quest.remoteQuests
+    .filter((row) => row.layer === "DAY_ONE")
+    .map((row, index) => ({
+      id: row.questCode,
+      order: index + 1,
+      label: nexGridBrandText(row.name),
+      nex: null,
+      href: row.actionRoute,
+      cat: categoryLabel(row.category),
+      eligible: row.eligible,
+      ...palette[index % palette.length],
+    }));
+});
+const questUnavailable = computed(() => remoteApiEnabled && quest.remoteStatus !== "ready");
+const questLoadError = computed(() => remoteApiEnabled && quest.remoteStatus === "error");
+const unavailableLabel = computed(() => questLoadError.value
+  ? t.value.home.dayOneUnavailable : t.value.home.dayOneLoading);
+const tasks = computed<QuestTask[]>(() => selectHomeQuestRows(
+  remoteApiEnabled,
+  quest.remoteStatus === "ready",
+  remoteTasks.value,
+  fallbackTasks.value,
+));
 
 const total = computed(() => tasks.value.length);
-const completedCount = computed(() => tasks.value.filter((task) => quest.isComplete(task.id)).length);
-const progressPct = computed(() => (completedCount.value / total.value) * 100);
+const claimState = computed(() => dayOneClaimState(
+  quest.remoteQuests, quest.dayOneRequiredTaskCount, quest.dayOneSnapshotStatus, nowTick.value * 1000,
+));
+watch(() => [expanded.value, props.active, claimState.value.claimCode, claimState.value.empty, quest.dayOneClaiming,
+  quest.dayOneClaimError, tasks.value.length, t.value.home.dayOneClaimReward, t.value.home.dayOneClaimUnconfirmed,
+  t.value.home.dayOneNoActiveTasks, t.value.home.dayOneFirstDayReward],
+  () => emit("content-resize"), { flush: "post", immediate: true });
+const completedCount = computed(() => tasks.value.filter(isDone).length);
+const progressPct = computed(() => total.value > 0 ? (completedCount.value / total.value) * 100 : 0);
 const nexEarned = computed(() => {
   const completed = tasks.value.filter((task) => quest.isComplete(task.id));
-  if (remoteApiEnabled && (quest.remoteStatus !== "ready" || completed.some((task) => task.nex === null))) return null;
+  if (remoteApiEnabled && quest.remoteStatus !== "ready") return null;
+  if (remoteApiEnabled) return total.value > 0 && completed.length === total.value ? quest.dayOneRewardNex : 0;
   return completed.reduce((sum, task) => sum + (task.nex ?? 0), 0);
 });
 const nexEarnedText = computed(() => nexEarned.value === null ? "—" : String(nexEarned.value));
 const viewTasksText = computed(() => fmt(t.value.home.dayOneViewTasks, { n: total.value }));
-const taskCountText = computed(() => fmt(t.value.home.dayOneTaskCount, { n: total.value }));
+const taskCountText = computed(() => questUnavailable.value
+  ? unavailableLabel.value
+  : fmt(t.value.home.dayOneTaskCount, { n: total.value }));
+const toggleLabel = computed(() => questLoadError.value
+  ? t.value.home.dayOneRetryLoad
+  : questUnavailable.value ? t.value.home.dayOneLoading
+  : expanded.value ? t.value.home.dayOneHideTasks : viewTasksText.value);
 const rewardText = computed(() => {
   if (!remoteApiEnabled) return String(mockReward);
   if (quest.remoteStatus !== "ready") return "—";
-  const totalReward = tasks.value.reduce((sum, task) => sum + (task.nex ?? 0), 0);
-  return totalReward > 0 ? String(totalReward) : "—";
+  return quest.dayOneRewardNex > 0 ? String(quest.dayOneRewardNex) : "—";
 });
+const dayOneWindow = computed(() => quest.remoteQuests.find((row) => row.layer === "DAY_ONE") ?? null);
 
+const remainingMs = computed(() => remoteApiEnabled
+    ? Date.parse(dayOneWindow.value?.eligibleUntil ?? "") - nowTick.value * 1000
+    : 18 * 60 * 60 * 1000 + 24 * 60 * 1000 - ((nowTick.value * 1000) % 60_000));
+const dayOneExpired = computed(() => remoteApiEnabled && Number.isFinite(remainingMs.value) && remainingMs.value <= 0);
+watch(dayOneExpired, () => emit("content-resize"), { flush: "post" });
 const remainingLabel = computed(() => {
-  if (remoteApiEnabled) return "—";
-  const remainingMs = 18 * 60 * 60 * 1000 + 24 * 60 * 1000 - ((nowTick.value * 1000) % 60_000);
-  const hours = Math.floor(remainingMs / 3600_000);
-  const minutes = Math.floor((remainingMs % 3600_000) / 60_000);
-  const seconds = Math.floor((remainingMs % 60_000) / 1000);
+  const remaining = remainingMs.value;
+  if (!Number.isFinite(remaining)) return "—";
+  if (remaining <= 0) return t.value.home.dayOneExpired;
+  const hours = Math.floor(remaining / 3600_000);
+  const minutes = Math.floor((remaining % 3600_000) / 60_000);
+  const seconds = Math.floor((remaining % 60_000) / 1000);
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 });
 
 function isDone(task: QuestTask) {
-  return quest.isComplete(task.id);
+  return remoteApiEnabled ? claimState.value.completedCodes.includes(task.id) : quest.isComplete(task.id);
+}
+
+function onClaim() {
+  if (!props.active || questUnavailable.value || !claimState.value.claimCode || quest.dayOneClaiming) return;
+  void quest.claimDayOne();
+}
+
+function isActionable(task: QuestTask) {
+  return task.eligible && !dayOneExpired.value && !isDone(task);
 }
 
 function onRowTap(task: QuestTask) {
-  if (isDone(task)) return;
-  uni.navigateTo({ url: task.href, fail: () => {} });
+  if (!isActionable(task)) return;
+  navTo(task.href);
 }
 
 function toggleExpanded() {
+  if (questLoadError.value) {
+    void quest.refreshRemote();
+    return;
+  }
+  if (questUnavailable.value) return;
   expanded.value = !expanded.value;
 }
 
@@ -204,7 +298,7 @@ function rowStyle(task: QuestTask): CSSProperties {
     gap: "10px",
     alignItems: "center",
     padding: "8px 0",
-    cursor: isDone(task) ? "default" : "pointer",
+    cursor: isActionable(task) ? "pointer" : "default",
   };
 }
 
@@ -254,13 +348,13 @@ function rewardStyle(task: QuestTask): CSSProperties {
   };
 }
 
-const rootStyle = computed<CSSProperties>(() => ({
+const rootStyle = computed<CSSProperties>(() => ({ boxShadow: "var(--nx-glass-edge)",
   position: "relative",
   boxSizing: "border-box",
-  height: expanded.value ? "auto" : "var(--home-task-card-height, 184px)",
+  height: "auto",
   minHeight: "var(--home-task-card-height, 184px)",
-  borderRadius: "16px",
-  background: "radial-gradient(50% 60% at 0% 0%, var(--v5-brand-soft), transparent 70%), var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   overflow: "hidden",
   color: "var(--v5-ink)",
   display: "flex",
@@ -271,16 +365,29 @@ const toggleStyle: CSSProperties = {
   margin: "14px 16px",
   width: "auto",
   minHeight: "44px",
-  borderRadius: "12px",
-  background: "var(--v5-surface-2)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "transparent",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   gap: "5px",
 };
+
+
 </script>
 
 <style scoped>
+.newcomer-task__claim {
+  margin: 12px 16px 0;
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
+  background: var(--v5-brand);
+  color: var(--v5-on-brand);
+  cursor: pointer;
+}
+.newcomer-task__claim[aria-disabled="true"] { opacity: 0.6; }
+.newcomer-task__claim-error { margin: 8px 16px 0; font-size: 12px; color: var(--v5-ink-3); }
 .newcomer-task__summary {
   box-sizing: border-box;
   min-height: 112px;

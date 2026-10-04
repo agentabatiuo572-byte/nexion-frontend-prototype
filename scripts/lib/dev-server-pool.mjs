@@ -2,7 +2,8 @@
 //
 // 为什么:一轮 `npm run verify` 里 dev server 被各步各自起了 6-7 次(session-reload / h5-runtime /
 // withdraw-mirror / legacy-suite×2 / verify.sh 末尾 h5 门 / 提现账单行远端档),每次 10-40s。
-// runner 只起固定 mock server 并传下去；各步骤先核源码树与固定 mock 身份再复用。
+// runner 起一对(development + production)传下去,各步骤**先核身份再复用**;身份不对就照旧自己起 ——
+// 复用永远不许换来「验错对象」(树身份 + 构建环境判据与 verify.sh [2.5] / verify-on-stop 同源)。
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import fs from "node:fs";
@@ -30,31 +31,30 @@ export function normTreePath(p) {
     .replace(/^\//, "").replace(/^([a-z]):/, "$1").replace(/\/+/g, "/").replace(/\/$/, "");
 }
 
-/** 探一台 server 是不是「本树 + 固定 mock」的 Vite dev。 */
-export async function identify(baseUrl, { root }) {
+const assertViteEnvironment = (environment) => {
+  if (environment !== "development" && environment !== "production") {
+    throw new Error(`不支持的 Vite environment:${environment};只允许 development/production`);
+  }
+  return environment;
+};
+
+/** 探一台 server 是不是「本树 + 指定 dev/prod 构建环境」的 Vite server。 */
+export async function identify(baseUrl, { root, environment }) {
   let text = "";
   try {
     const res = await fetch(`${baseUrl}/src/api/runtime-config.ts`, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return { ok: false, why: `${baseUrl} 回 ${res.status}` };
-    text = await res.text();
+    text = (await res.text()).split("\n").slice(0, 2).join("\n");
   } catch (e) {
     return { ok: false, why: `${baseUrl} 连不上(${e?.message || e})` };
   }
-  let servedRoot = (text.match(/"VITE_ROOT_DIR": *"([^"]*)"/) || [])[1] || "";
-  if (!servedRoot) {
-    const encodedMap = (text.match(/sourceMappingURL=data:application\/json;base64,([A-Za-z0-9+/=]+)/) || [])[1];
-    try {
-      const source = encodedMap ? JSON.parse(Buffer.from(encodedMap, "base64").toString("utf8")).sources?.[0] : "";
-      if (source) servedRoot = path.resolve(path.dirname(source), "..", "..");
-    } catch { /* malformed source map is rejected by the empty-root check below */ }
-  }
-  if (!servedRoot) return { ok: false, why: `${baseUrl} 缺少可验证的源码树身份` };
-  if (normTreePath(servedRoot) !== normTreePath(root)) return { ok: false, why: `${baseUrl} 服的是别的树:${servedRoot}(本树 ${root})`, servedRoot };
-  if (!/return\s*\{\s*environment:\s*"mock",\s*baseUrl:\s*""\s*\}/.test(text)
-      || /VITE_NEXGRID_API_MODE|modeExplicit|"sandbox"|"remote"/.test(text)) {
-    return { ok: false, why: `${baseUrl} 不是固定 mock 运行时`, servedRoot };
-  }
-  return { ok: true, why: "fixed-mock identity ok", servedRoot };
+  const servedRoot = (text.match(/"VITE_ROOT_DIR": *"([^"]*)"/) || [])[1] || "";
+  const servedMode = (text.match(/"MODE": *"([^"]*)"/) || [])[1] || "";
+  const expectedMode = assertViteEnvironment(environment);
+  if (!servedRoot) return { ok: false, why: `${baseUrl} 的 env 里没有 VITE_ROOT_DIR` };
+  if (normTreePath(servedRoot) !== normTreePath(root)) return { ok: false, why: `${baseUrl} 服的是别的树:${servedRoot}(本树 ${root})`, servedRoot, mode: servedMode };
+  if (servedMode !== expectedMode) return { ok: false, why: `${baseUrl} 是 ${servedMode || "?"} 环境,要的是 ${expectedMode}`, servedRoot, mode: servedMode };
+  return { ok: true, why: "identity ok", servedRoot, mode: servedMode };
 }
 
 async function waitForServer(url, child, tail, timeoutMs) {
@@ -68,13 +68,14 @@ async function waitForServer(url, child, tail, timeoutMs) {
 }
 
 /**
- * ensureServer({root, reuseUrl}) → { baseUrl, reused, stop() }
- * reuseUrl 给了且身份核对通过 → 复用；否则起本树固定 mock server。
+ * ensureServer({root, environment, reuseUrl}) → { baseUrl, reused, stop() }
+ * reuseUrl 给了且身份核对通过 → 复用(stop 为空操作);否则以 environment 起本树的隔离 server。
  */
-export async function ensureServer({ root, reuseUrl = null, timeoutMs = 180_000, log = () => {} }) {
+export async function ensureServer({ root, environment = "development", reuseUrl = null, timeoutMs = 180_000, log = () => {} }) {
+  assertViteEnvironment(environment);
   if (reuseUrl) {
-    const id = await identify(reuseUrl, { root });
-    if (id.ok) { log(`复用 fixed-mock server ${reuseUrl}(身份核对通过)`); return { baseUrl: reuseUrl, reused: true, stop() {} }; }
+    const id = await identify(reuseUrl, { root, environment });
+    if (id.ok) { log(`复用 ${environment} server ${reuseUrl}(身份核对通过:本树 + ${environment})`); return { baseUrl: reuseUrl, reused: true, stop() {} }; }
     log(`不复用 ${reuseUrl}:${id.why} → 自己起`);
   }
   const port = await freePort();
@@ -82,15 +83,16 @@ export async function ensureServer({ root, reuseUrl = null, timeoutMs = 180_000,
   const npmCli = [process.env.npm_execpath, path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js")].find((c) => c && fs.existsSync(c));
   const child = spawn(
     npmCli ? process.execPath : (process.platform === "win32" ? "npm.cmd" : "npm"),
-    [...(npmCli ? [npmCli] : []), "run", "dev:h5", "--", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
+    [...(npmCli ? [npmCli] : []), "run", "dev:h5", "--", "--mode", environment,
+      "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
     { cwd: root, env: { ...process.env }, shell: false, stdio: ["ignore", "pipe", "pipe"] },
   );
   let out = "";
   child.stdout.on("data", (c) => { out = (out + c).slice(-12_000); });
   child.stderr.on("data", (c) => { out = (out + c).slice(-12_000); });
   await waitForServer(`${baseUrl}/?nx_device=off`, child, () => out, timeoutMs);
-  const id = await identify(baseUrl, { root });
+  const id = await identify(baseUrl, { root, environment });
   if (!id.ok) { stopTree(child); throw new Error(`自起的 server 身份核对失败:${id.why}`); }
-  log(`起 fixed-mock server ${baseUrl}(本树隔离)`);
+  log(`起 ${environment} server ${baseUrl}(本树隔离)`);
   return { baseUrl, reused: false, child, stop() { stopTree(child); } };
 }

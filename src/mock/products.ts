@@ -3,6 +3,7 @@
 // + 2 pure helpers; copied faithfully so the store page renders the same 6 tiers).
 
 import type { PhaseId } from "@/store/product-phase";
+import { nexGridBrandText } from "@/lib/brand-copy";
 
 // AI workload throughput per device — replaces "MH/s" hash rate in the
 // hero spec card, drives the v3.1 "you can power LLM 70B inference" narrative.
@@ -37,35 +38,36 @@ export interface Product {
   tier: "Entry" | "Pro" | "Flagship" | "Share";
   tagline: string;
   badge?: string;
-  // 🔴 服务端显示规格一律可选:后端这几列本就可空(运营在后台表单留空即不下发)。
-  // 缺失在渲染层降级成本地化占位串(lib/product-copy.ts 的 specText),不是解析失败——
-  // 解析失败会连整份目录一起作废(P-110)。
+  // 🔴 全部服务端显示规格一律可选:后端字段可空(运营在后台表单留空即不下发)。
+  // 缺失在渲染层降级成本地化占位串 (lib/product-copy.ts 的 specText)，
+  // 不是解析失败——解析失败会连整份目录一起作废。
   gpu?: string;
   vram?: string;
   hashRate?: string;
   power?: string;
   /** Server-owned managed-service specification; explicit "unavailable" is valid. */
   datacenter?: string;
-  /**
-   * 质保期,**月数**。单位由前端按语言拼(与 ai.* 同一模式),因此天然三语;
-   * 各 SKU 不同(整机 24 个月、Pro v2 / Rack P1 五年、Rack P2 十年),不是平台常量。
-   * 🔴 曾经是自由串 `warranty?: string` 且后端无此列,于是详情页恒显示英文兜底;
-   * 更早还曾对**所有** SKU 一律显示「24 个月」——对 10 年质保的机型是假承诺。
-   * 在线率 SLA 与手机日收益已从本模型移除:前者是平台统一承诺(走 i18n 文案),
-   * 后者是平台手机档位配置(走 mock/phone-tiers 的 typicalPhoneDailyUsdt),都不是商品属性。
-   */
-  /** Server-authored per-SKU warranty terms for canonical remote catalogs. */
+  uptime?: string;
   warranty?: string;
-  warrantyMonths?: number;
-  dailyEarn: number;        // USDT/day
+  phoneDailyEarn?: string;
+  phoneDailyEarnNEX?: string;
+  dailyEarn: number;        // USDT/day for DEVICE; zero protocol placeholder for SHARE
   dailyEarnNEX: number;     // NEX/day (spec §3.1)
-  // Q9: annual ROI is DERIVED, not stored — see annualRoiPct() below. A stored
-  // value drifted out of sync with dailyEarn/price; deriving from one source
-  // keeps ROI and payback mathematically consistent and impossible to drift.
+  /** E1 reference annual range for SHARE; this is not a settlement guarantee. */
+  shareYieldMin?: number;
+  shareYieldMax?: number;
   price: number;
   monthlyPrice?: number;
   installMonths?: number;
   sold: number;
+  /** Short-lived server-issued URL for the SKU's approved main image. */
+  imageUrl?: string;
+  /** Short-lived server-issued URL for an approved SKU detail video. */
+  videoUrl?: string;
+  /** 服务端商品形态；SHARE 是可交付的数字份额，不占实物设备库存。 */
+  productType?: "DEVICE" | "SHARE";
+  /** FINITE 扣减实际库存；UNLIMITED 成交只累计销量。 */
+  inventoryMode?: "FINITE" | "UNLIMITED";
   stock?: number;
   // ponytail: NOT rendered anywhere today — deliberately left untranslated so we
   // don't carry 72 dead key-pairs across en/zh/vi. If a spec sheet ever renders
@@ -106,7 +108,6 @@ export const PRODUCTS: Product[] = [
     vram: "96GB VRAM",
     hashRate: "1,240 MH/s",
     power: "1,200W TDP",
-    warrantyMonths: 24,
     dailyEarn: 7,
     dailyEarnNEX: 40,
     price: 649,
@@ -116,7 +117,6 @@ export const PRODUCTS: Product[] = [
     stock: 47,
     features: [
       "Fully managed by UVEL",
-      "99.9% uptime SLA",
       "Real-time remote monitoring",
       "Free shipping & installation",
     ],
@@ -140,7 +140,6 @@ export const PRODUCTS: Product[] = [
     vram: "192GB VRAM",
     hashRate: "2,480 MH/s",
     power: "2,400W TDP",
-    warrantyMonths: 24,
     dailyEarn: 13,
     dailyEarnNEX: 80,
     price: 1199,
@@ -153,7 +152,6 @@ export const PRODUCTS: Product[] = [
     features: [
       "8× RTX 4090 GPUs",
       "Priority task allocation",
-      "99.9% uptime SLA",
       "Hardware insurance included",
     ],
     ai: {
@@ -161,7 +159,7 @@ export const PRODUCTS: Product[] = [
       llmTokensPerSec: 38000,        // at 70B; ~4,200 at 405B
       videoMinPerHour: 12,           // 4K
       fineTuneMins: 20,              // LoRA-70B
-      unlocks: "Flagship compute pool (Fine-tune + 405B inference)",
+      unlocks: "Tasks matched to device VRAM and current requirements",
       bestForCategory: ["LL", "FT", "VG"],
     },
     status: "legacy",
@@ -176,7 +174,6 @@ export const PRODUCTS: Product[] = [
     vram: "256GB VRAM",
     hashRate: "5,120 MH/s",
     power: "2,200W TDP",
-    warrantyMonths: 60,
     dailyEarn: 14,
     dailyEarnNEX: 90,
     price: 1319,
@@ -211,7 +208,6 @@ export const PRODUCTS: Product[] = [
     vram: "640GB VRAM",
     hashRate: "3,840 MH/s",
     power: "3,200W TDP",
-    warrantyMonths: 60,
     dailyEarn: 45,
     dailyEarnNEX: 300,
     price: 4499,
@@ -247,7 +243,6 @@ export const PRODUCTS: Product[] = [
     vram: "1,024GB VRAM",
     hashRate: "9,600 MH/s",
     power: "4,000W TDP",
-    warrantyMonths: 120,
     dailyEarn: 75,
     dailyEarnNEX: 500,
     price: 7499,
@@ -276,22 +271,26 @@ export const PRODUCTS: Product[] = [
     id: "cloud-share",
     name: "Cloud Share",
     tier: "Share",
+    productType: "SHARE",
+    inventoryMode: "UNLIMITED",
     tagline: "No hardware needed — buy a slice of the network.",
     badge: "Low Barrier",
     gpu: "Distributed",
     vram: "—",
-    dailyEarn: 0.19,
+    dailyEarn: 0,
     dailyEarnNEX: 3,
+    shareYieldMin: 8,
+    shareYieldMax: 12,
     price: 19.9,
     sold: 12483,
     features: [
       "Instant activation",
       "Buy as little as $19.9",
-      "Fixed-income style returns",
+      "Reference annual range; returns are not guaranteed",
       "Distributed across global data centers",
     ],
     ai: {
-      unlocks: "Fractional access to network's IG + EM + SP pools",
+      unlocks: "Task allocation follows current compute eligibility",
       bestForCategory: ["IG", "EM", "SP"],
     },
     status: "active",
@@ -305,18 +304,16 @@ export function clearProductCatalog(): void {
 
 /** Replace the legacy read surface with the already validated server catalog. */
 export function replaceProductCatalog(products: readonly Product[]): void {
-  PRODUCTS.splice(0, PRODUCTS.length, ...products.map((product) => ({ ...product })));
+  // 服务端目录的 SKU 显示名可能是改名前的存量值("NexionBox Pro v2");这里是**展示**目录,
+  // 归一后再进渲染面。协议侧不受影响:下单按 productNo(order-api 的 create 只发 productNo)。
+  PRODUCTS.splice(0, PRODUCTS.length, ...products.map((product) => ({ ...product, name: nexGridBrandText(product.name) })));
 }
 
 export function getProduct(id: string): Product | undefined {
   return PRODUCTS.find((p) => p.id === id);
 }
 
-/**
- * Q9 single source of truth: annual gross ROI %, derived from the same basis
- * as the payback estimate (price / dailyEarn). Deriving guarantees ROI and
- * payback can never disagree. Share-tier (no hardware) lands at ~13%.
- */
+/** Daily USD based ROI is only meaningful for DEVICE SKUs, never Cloud Share. */
 export function annualRoiPct(p: Pick<Product, "dailyEarn" | "price">): number {
   return Math.round(((p.dailyEarn * 365) / p.price) * 100);
 }

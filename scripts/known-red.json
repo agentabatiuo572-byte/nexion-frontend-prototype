@@ -1,0 +1,5 @@
+{
+  "$comment": "已知红清单(Tier 1-C,2026-09-02)。每条必须有 why + since + until(≤ since+90 天);未到期的链步骤 / verify.sh 格记 KNOWN-RED 不进 fail,到期未清自动回红。改本文件 = 改门定义(在 manifest.globals 里)。格式与校验见 scripts/lib/known-red.mjs;`node scripts/lib/known-red.mjs lint` 守格式。续期规则:改 until 必须同时改 since 并把新理由写进 why。",
+  "steps": [],
+  "cells": []
+}

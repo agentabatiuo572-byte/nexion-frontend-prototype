@@ -2,7 +2,7 @@
   Wallet Cards — ported from Nexion-prototype/app/(main)/me/wallet/cards/page.tsx.
   Saved bank cards list + management. Each card: brand + •••• last4, default
   badge, "Set as default" + "Unbind" actions. Empty state + "Add a new card"
-  CTA + PCI disclaimer. Reads the new useCards store; remove is destructive →
+  CTA + explicit local-simulation disclosure. Reads the new useCards store; remove is destructive →
   confirm() (P: destructive → confirm). Cards are fully decoupled from the
   free trial (FEAT-TRIAL02 异常5): unbinding any card never touches the trial —
   no retention sheet, no trial cancel. SetPageHeader → SubPageHeader.
@@ -11,21 +11,22 @@
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/wallet" :title="t.cards.listTitle" :subtitle="t.cards.listSubtitle" />
-      <FundsSandboxBadge />
+      <SubPageHeader back="/pages/me/wallet" :title="t.cards.listTitle" :subtitle="cardBindingAvailable ? t.cards.listSubtitle : t.cards.newTitle" />
+      <CardSimulationBadge />
 
       <view :style="bodyStyle">
-        <view v-if="remoteCardsError" data-testid="wallet-cards-refresh-error" class="mb-3 rounded-2xl" :style="refreshErrorStyle">
-          <text class="block" :style="refreshErrorTextStyle">{{ t.security.opFailed }}</text>
-          <view class="inline-flex items-center justify-center active:opacity-80" :style="refreshRetryStyle" role="button" tabindex="0" :aria-disabled="remoteCardsRefreshing" data-testid="wallet-cards-retry" @click="refreshCards">
-            <text>{{ remoteCardsRefreshing ? t.store.catalogLoadingTitle : t.store.catalogRetry }}</text>
+        <template v-if="cardBindingAvailable">
+          <view v-if="remoteCardsError" data-testid="wallet-cards-refresh-error" class="mb-3 rounded-2xl" :style="refreshErrorStyle">
+            <text class="block" :style="refreshErrorTextStyle">{{ t.security.opFailed }}</text>
+            <view class="inline-flex items-center justify-center active:opacity-80" :style="refreshRetryStyle" role="button" tabindex="0" :aria-disabled="remoteCardsRefreshing" data-testid="wallet-cards-retry" @click="refreshCards">
+              <text>{{ remoteCardsRefreshing ? t.store.catalogLoadingTitle : t.store.catalogRetry }}</text>
+            </view>
           </view>
-        </view>
-        <!-- Empty -->
-        <EmptyState v-if="cards.length === 0" kind="empty-list" :title="t.empty.cardsTitle" :desc="t.empty.cardsDesc" :cta-label="cardBindingAvailable ? t.empty.cardsCta : undefined" @cta="goNew" />
+          <!-- Empty -->
+          <EmptyState v-if="cards.length === 0" kind="empty-list" :title="t.empty.cardsTitle" :desc="t.empty.cardsDesc" :cta-label="t.empty.cardsCta" @cta="goNew" />
 
-        <!-- Card rows -->
-        <view v-for="card in cards" :key="card.tokenId" :style="cardRowStyle">
+          <!-- Card rows -->
+          <view class="nx-glass-card" v-for="card in cards" :key="card.tokenId" :style="cardRowStyle">
           <view class="flex items-center" :style="cardRowHeadStyle">
             <view class="grid place-items-center shrink-0" :style="cardIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
@@ -42,34 +43,43 @@
             </view>
           </view>
           <view class="flex" :style="cardActionsStyle">
-            <view v-if="card.tokenId !== defaultTokenId" class="flex-1 grid place-items-center active:bg-[var(--v5-surface-2)]" :style="actionBtnStyle" @click="setDefault(card.tokenId)">
+            <view v-if="card.tokenId !== defaultTokenId" class="flex-1 grid place-items-center active:bg-[var(--v5-surface-2)]" :style="actionBtnStyle" role="button" tabindex="0" data-testid="wallet-card-set-default" @click="setDefault(card.tokenId)" @keydown.enter.prevent="setDefault(card.tokenId)">
               <view class="inline-flex items-center" style="gap: 6px">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                 <text :style="actionDefaultTextStyle">{{ t.cards.setDefault }}</text>
               </view>
             </view>
-            <view class="flex-1 grid place-items-center active:bg-[var(--v5-surface-2)]" :style="actionBtnStyle" @click="handleRemove(card)">
+            <view class="flex-1 grid place-items-center active:bg-[var(--v5-surface-2)]" :style="actionBtnStyle" role="button" tabindex="0" data-testid="wallet-card-unbind" @click="handleRemove(card)" @keydown.enter.prevent="handleRemove(card)">
               <view class="inline-flex items-center" style="gap: 6px">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
                 <text :style="actionUnbindTextStyle">{{ t.cards.unbind }}</text>
               </view>
             </view>
           </view>
+          </view>
+
+          <!-- Add new -->
+          <view class="flex items-center justify-center active:scale-[0.98]" :style="addBtnStyle" @click="goNew">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+            <text style="margin-left: 6px" :style="addBtnTextStyle">{{ t.cards.addNew }}</text>
+          </view>
+        </template>
+        <view v-else :style="unavailableStyle">
+          <text class="block" :style="unavailableTitleStyle">{{ t.cards.newTitle }}</text>
+          <text class="block" :style="unavailableBodyStyle">{{ t.cards.bindingEntryNote }}</text>
+          <view class="flex items-center justify-center active:opacity-80" :style="unavailableCtaStyle" role="button" tabindex="0" @click="goNew"  @keydown.enter.prevent="goNew" @keydown.space.prevent="goNew">
+            <text :style="unavailableCtaTextStyle">{{ t.cards.addNew }}</text>
+          </view>
         </view>
 
-        <!-- Add new -->
-        <view v-if="cardBindingAvailable" class="flex items-center justify-center active:scale-[0.98]" :style="addBtnStyle" @click="goNew">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-          <text style="margin-left: 6px" :style="addBtnTextStyle">{{ t.cards.addNew }}</text>
-        </view>
-
-        <text class="block" :style="disclaimerStyle">{{ t.cards.listDisclaimer }}</text>
+        <text v-if="cardBindingAvailable && developmentPaymentEnabled" class="block" :style="disclaimerStyle">{{ t.cards.listDisclaimer }}</text>
       </view>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
+import { navBack, navTo, navReplace } from "@/lib/route";
 import { computed, ref, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -81,13 +91,13 @@ import { confirm, toast } from "@/store/ui";
 import { useCards, brandLabel, type SavedCard } from "@/store/cards";
 import { useNotifications } from "@/store/notifications";
 import { cardUnboundNotification } from "@/mock/card-notifications";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
-import { remoteApiEnabled, mockPaymentEnabled } from "@/api/runtime";
+import CardSimulationBadge from "@/components/me/card-simulation-badge.vue";
+import { remoteApiEnabled, developmentPaymentEnabled } from "@/api/runtime";
 
 const t = useT();
 const cardsStore = useCards();
 const notifs = useNotifications();
-const cardBindingAvailable = computed(() => !remoteApiEnabled || mockPaymentEnabled);
+const cardBindingAvailable = computed(() => !remoteApiEnabled || developmentPaymentEnabled);
 
 const cards = computed(() => cardsStore.cards);
 const defaultTokenId = computed(() => cardsStore.defaultTokenId);
@@ -95,7 +105,7 @@ const remoteCardsError = ref(false);
 const remoteCardsRefreshing = ref(false);
 
 async function refreshCards() {
-  if (!remoteApiEnabled || remoteCardsRefreshing.value) return;
+  if (!cardBindingAvailable.value || !remoteApiEnabled || remoteCardsRefreshing.value) return;
   remoteCardsRefreshing.value = true;
   try {
     remoteCardsError.value = !(await cardsStore.refreshRemote());
@@ -104,7 +114,11 @@ async function refreshCards() {
   }
 }
 
-onShow(() => { void refreshCards(); });
+function openCards() {
+  if (!cardBindingAvailable.value) { navReplace("/pages/me/wallet-cards-new"); return; }
+  void refreshCards();
+}
+onShow(openCards);
 
 function rowMeta(card: SavedCard): string {
   return fmt(t.value.cards.rowMeta, { expiry: card.expiry, holder: card.holder });
@@ -134,8 +148,11 @@ async function handleRemove(card: SavedCard) {
 }
 
 function goNew() {
-  if (!cardBindingAvailable.value) return;
-  uni.navigateTo({ url: "/pages/me/wallet-cards-new", fail: () => {} });
+  navTo("/pages/me/wallet-cards-new");
+}
+
+function returnToWallet() {
+  navBack("/pages/me/wallet");
 }
 
 // ── styles ──
@@ -161,10 +178,10 @@ const emptyHintStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", colo
 // Each saved card keeps its card-face identity as a filled surface; the outer
 // border is dropped (filled = single visual difference). The head→actions
 // hairline divider stays as the internal separator.
-const cardRowStyle: CSSProperties = {
+const cardRowStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginBottom: "12px",
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   overflow: "hidden",
 };
 const cardRowHeadStyle: CSSProperties = { padding: "16px 20px", gap: "12px" };
@@ -196,6 +213,11 @@ const disclaimerStyle: CSSProperties = {
   color: "var(--v5-ink-4)",
   lineHeight: 1.625,
 };
+const unavailableStyle: CSSProperties = { padding: "4px 2px" };
+const unavailableTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const unavailableBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
+const unavailableCtaStyle: CSSProperties = { minHeight: "44px", marginTop: "16px", borderRadius: "999px", background: "var(--v5-surface-2)" };
+const unavailableCtaTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink-2)" };
 const refreshErrorStyle: CSSProperties = {
   padding: "12px 14px",
   background: "color-mix(in srgb, var(--v5-warning) 10%, var(--v5-surface))",
@@ -211,4 +233,6 @@ const refreshRetryStyle: CSSProperties = {
   color: "var(--v5-on-brand)",
   fontSize: "12px",
 };
+
+
 </script>

@@ -111,39 +111,16 @@ const CAPTCHA_TOLERANCE_RATIO = 0.02;
 export const MAX_CAPTCHA_FAILS = 5;
 const MOCK_LATENCY_MS = 300;
 
-// 🔴 storage 写失败必须**就地降级**,不许冒泡 —— 这三张表是本文件全部写入的咽喉。
-// 冒泡会怎样(2026-08-19 实景复现):注册每次发码都强制过滑块
-// (captchaAlwaysScenes 含 "register"),而 captchaChallenge 落地的第一件事就是把题面
-// 写进 storage;写一抛,captcha-slider 的 loadChallenge 只有一个 catch,把任何异常
-// 都讲成网络失败 → 弹「加载失败,请检查网络后重试」+ 重试按钮。而抛的原因
-// (localStorage 满 / 站点数据被浏览器禁掉)重试改不掉 → 注册**永久**卡死在这层。
-// 同一条咽喉上 otpSend 还写 SEND_LOG/ACTIVE,那条路 register.vue 连 catch 都没有,
-// 会变成 unhandled rejection + CTA 永远转圈。
-// 谁会撞上:本仓 mock 把账本 / 账号云 / 订单整套塞 localStorage,长期 dev/demo profile
-// 撑满 5MB 后,最先写不进去的就是最晚出现的这条小记录。
-// 降级为什么安全:这三张表都是 mock 的 **server 侧**状态,不是用户资产,掉了刷新重来即可;
-// 与本文件 verifyTokens 用内存 Map 的契约同源(PROD 由认证服务持有,本文件整体废弃)。
-// 🔴 别照抄到钱 / 订单那类写入:那边写失败必须判失败并回退(见 orders.ts 与
-// orders.persist.test.ts「不留内存孤儿单」),语义按「字段驱动什么」分档,不是一刀切降级。
-const memoryMaps = new Map<string, string>();
-
 function readMap<T>(key: string): Record<string, T> {
   try {
-    // 某个 key 一旦降级,内存就是它的最新值(降级那刻 = 磁盘旧值 + 本次更新),优先于磁盘。
-    const raw = memoryMaps.get(key) ?? uni.getStorageSync(key);
-    return raw ? (JSON.parse(raw as string) as Record<string, T>) : {};
+    const raw = uni.getStorageSync(key);
+    return raw ? (JSON.parse(raw) as Record<string, T>) : {};
   } catch {
     return {};
   }
 }
 function writeMap<T>(key: string, map: Record<string, T>) {
-  const raw = JSON.stringify(map);
-  try {
-    uni.setStorageSync(key, raw);
-    memoryMaps.delete(key); // 写回磁盘成功 → 撤下内存影子,免得它反过来盖住磁盘
-  } catch {
-    memoryMaps.set(key, raw);
-  }
+  uni.setStorageSync(key, JSON.stringify(map));
 }
 
 /** Mock account deletion cleanup; production OTP state is server-owned. */
@@ -404,7 +381,10 @@ export function registerVerifiedPhone(
   if (!token || token.nextAction !== "continue_registration") return { ok: false, error: "verify_token_invalid" };
   const accountId = authAccountKeyForPhone(phone);
   if (!accountId) return { ok: false, error: "account_directory_unavailable" };
-  const gift = useConfig().config.rewards.welcomeGift;
+  const rewards = useConfig().config.rewards;
+  const gift = rewards.enabled
+    ? rewards.welcomeGift
+    : { lockMode: "risk_bucket" as const, usdtAmount: 0, nexAmount: 0 };
   // 不信任页面调用方：冻结到 pending 目录前再次裁掉任意字符串邀请码。
   const sponsorCode = normalizeRefCode(input.sponsorCode);
   const result = reserveAuthAccount(phone, {

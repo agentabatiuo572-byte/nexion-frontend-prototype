@@ -9,6 +9,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    env: {
+      VITE_NEXGRID_API_DEV_BASE_URL: "http://127.0.0.1:8110",
+    },
     include: ["src/**/*.test.ts"],
     coverage: {
       provider: "v8",

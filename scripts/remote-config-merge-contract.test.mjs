@@ -27,9 +27,7 @@ import { VUE_STUB_NXREF } from "./lib/harness-stubs.mjs";
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SRC = path.join(root, "src");
 
-// ── 服务端载荷:契约合法,且每个值都**不可能来自别处** ────────────────────────
-// fleetDevices 刻意取 31337(既非哨兵 0,也非编译期锚 28,432)—— store 里出现这个数
-// 只可能是「从这份载荷流过来的」,断言因此是构造性的,不靠「看起来变了」。
+// ── 服务端载荷:旧后端仍可能携带运营手填的 H9 数值,客户端必须忽略它们 ──
 const SERVED_PLATFORM = {
   featureFlags: {
     computeShareEnabled: true,
@@ -38,6 +36,10 @@ const SERVED_PLATFORM = {
   },
   publicStats: {
     version: 7,
+    serverCanonical: true,
+    source: "server:nx_config_item,nx_user",
+    sourceEnvironment: "PRODUCTION",
+    runId: "",
     realUserCount: 214_000,
     values: {
       fleetDevices: 31_337,
@@ -53,6 +55,16 @@ const SERVED_PLATFORM = {
         { tops: 640, cumPct: 92 },
         { tops: 2_400, cumPct: 100 },
       ],
+    },
+    // 可核验聚合(zentao #59)。值同样**刻意偏离任何本地默认**(本地一律 null),
+    // 使「合并了」与「漏合并」可区分 —— 与上面 31337 / 0.45 同一个反空过理由。
+    verified: {
+      activeAccounts: { value: 18_402, definition: "nx_user.status=ACTIVE", kind: "COUNT" },
+      registeredAccounts: { value: 21_377, definition: "nx_user.is_deleted=0", kind: "COUNT" },
+      installedDevices: { value: 9_918, definition: "nx_user_device.is_deleted=0", kind: "COUNT" },
+      onlineDevices: { value: 7_731, definition: "OWNED+ACTIVATED 且 runtime ONLINE", kind: "COUNT" },
+      completedPayoutUsdt: { value: 1_234_567.89, definition: "nx_withdrawal_order COMPLETED 合计", kind: "SUM_USDT" },
+      capturedAt: "2026-08-11T00:00:00Z",
     },
   },
   // 🔴 0.45 / 3 是**刻意偏离种子**(种子是 0.6 / 2)。首版 fixture 照抄了种子值,
@@ -98,6 +110,7 @@ const SERVED_PLATFORM = {
 };
 
 const SERVED_REFERRAL = {
+  enabled: true,
   welcomeGift: { lockMode: "risk_bucket", usdtAmount: 3, nexAmount: 30 },
   inviterReward: { nexAmount: 12 },
   rhythmMonth: 3,
@@ -206,14 +219,14 @@ test("远端快照落库前:H9 不得暴露可用的生产事实", () => {
   assert.equal(beforeLoad.publicStats.realUserCount, 0);
 });
 
-test("服务端 publicStats 有路径进 store(z1 P0-3 的直接回归门)", () => {
+test("服务端 H9 虚拟指标不会进入 store,实测人口仍有路径", () => {
   assert.equal(store.syncFailed, false, "load() 没成功,后面的断言全是空过");
-  // 构造性判据:31337 这个值全仓只存在于本门的载荷里
-  assert.equal(store.config.publicStats.fleetDevices, 31_337);
+  assert.equal(store.config.publicStats.fleetDevices, 0);
+  assert.equal(store.config.publicStats.realUserCount, 214_000);
   assert.deepEqual(store.config.publicStats, delivered.publicStats);
   const health = publicStatsHealth(store.config.publicStats);
   for (const [dim, ok] of Object.entries(health)) {
-    assert.equal(ok, true, `服务端投影已落库,但 ${dim} 仍判不可用`);
+    assert.equal(ok, false, `运营手填指标在 ${dim} 被误判为可用`);
   }
 });
 

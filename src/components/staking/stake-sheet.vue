@@ -7,19 +7,19 @@
   postMoneyBill,见 lib/money-receipt.ts),不在 store 里;不裸调资金原语 / 账单写入。
 -->
 <template>
-  <view v-if="open && term !== null">
+  <view v-if="open && term !== null && selectedPool" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.staking.title">
     <transition name="nx-sheet-fade">
-      <view v-if="open" class="nx-sheet-backdrop" role="dialog" aria-modal="true" @click="emitClose" />
+      <view v-if="open" class="nx-sheet-backdrop" @click="emitClose" />
     </transition>
     <transition name="nx-sheet-slide">
-      <view v-if="open" class="nx-sheet-panel" :style="panelStyle" @click.stop>
+      <view v-if="open" class="nx-glass-sheet nx-sheet-panel" :style="panelStyle" @click.stop>
         <!-- Title row -->
         <view class="flex items-start justify-between" style="margin-bottom: 16px">
           <view>
             <text class="block" :style="titleStyle">{{ titleText }}</text>
             <text class="block" :style="subtitleStyle">{{ subtitleText }}</text>
           </view>
-          <view class="inline-flex items-center justify-center active:opacity-60" :style="closeBtnStyle" @click="emitClose">
+          <view class="inline-flex items-center justify-center active:opacity-60" :style="closeBtnStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="emitClose"  @keydown.enter.prevent="emitClose" @keydown.space.prevent="emitClose">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
           </view>
         </view>
@@ -29,12 +29,12 @@
           <text class="block" :style="amountLabelStyle">{{ t.stakingV3.sheet.amount }}</text>
           <view class="flex items-baseline" style="margin-top: 8px; gap: 8px">
             <text class="shrink-0" :style="dollarStyle">$</text>
-            <input class="nx-staking-sheet-amount-input flex-1 min-w-0 tabular-nums" :style="inputStyle" type="text" inputmode="decimal" :value="String(amount)" @input="onAmountInput" />
+            <input class="nx-staking-sheet-amount-input flex-1 min-w-0 tabular-nums" :style="inputStyle" type="text" inputmode="decimal" :aria-label="t.stakingV3.sheet.amount" :value="String(amount)" @input="onAmountInput" />
             <text class="shrink-0" :style="usdtStyle">USDT</text>
           </view>
           <!-- Presets -->
           <view class="grid grid-cols-4" style="margin-top: 16px; gap: 8px">
-            <view v-for="p in PRESETS" :key="p" class="active:opacity-80" :style="presetStyle(p)" @click="amount = p">
+            <view v-for="p in PRESETS" :key="p" class="active:opacity-80" :style="presetStyle(p)" role="button" tabindex="0" @click="amount = p"  @keydown.enter.prevent="amount = p" @keydown.space.prevent="amount = p">
               <text>${{ p.toLocaleString() }}</text>
             </view>
           </view>
@@ -44,7 +44,7 @@
               <text>{{ t.stakingV3.sheet.balance }} </text>
               <text style="color: var(--v5-ink); font-weight: 500">${{ balanceText }}</text>
             </text>
-            <text class="nx-staking-sheet-max-cta" :style="maxStyle" @click="setMax">{{ t.stakingV3.sheet.max }}</text>
+            <text class="nx-staking-sheet-max-cta" :style="maxStyle" role="button" tabindex="0" @click="setMax"  @keydown.enter.prevent="setMax" @keydown.space.prevent="setMax">{{ t.stakingV3.sheet.max }}</text>
           </view>
         </view>
 
@@ -70,29 +70,45 @@
         </view>
 
         <!-- Submit -->
-        <view class="nx-staking-sheet-submit-cta w-full inline-flex items-center justify-center active:opacity-85" :style="submitStyle" @click="submit">
+        <view class="nx-staking-sheet-submit-cta w-full inline-flex items-center justify-center active:opacity-85" :style="submitStyle" role="button" :aria-disabled="!canOpen || remotePending" :tabindex="!canOpen || remotePending ? -1 : 0" @click="submit"  @keydown.enter.prevent="submit" @keydown.space.prevent="submit">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-          <text>{{ ctaText }}</text>
+          <text>{{ canOpen ? ctaText : t.home.quickStakeStopped }}</text>
         </view>
         <text class="block text-center" :style="noticeStyle">{{ lockedNoticeText }}</text>
       </view>
     </transition>
   </view>
+  <view v-else-if="open && term !== null" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.staking.remoteUnavailableClosed">
+    <view class="nx-sheet-backdrop" @click="emitClose" />
+    <view class="nx-staking-sheet-panel" :style="panelStyle" @click.stop>
+      <view class="flex items-start justify-between" style="gap: 12px">
+        <text class="block" :style="titleStyle">{{ t.staking.remoteUnavailableClosed }}</text>
+        <view class="inline-flex items-center justify-center active:opacity-60" :style="closeBtnStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="emitClose"  @keydown.enter.prevent="emitClose" @keydown.space.prevent="emitClose">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+        </view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup lang="ts">
+import { formatStakingPercentage } from "@/lib/staking-percentage";
+import { navTo } from "@/lib/route";
 import { ref, computed, watch, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
-import { dateLocale, fmt } from "@/i18n/format";
+import { fmt } from "@/i18n/format";
+import { formatTrialDate } from "@/lib/trial-date";
 import { useApp } from "@/store/app";
 import { postMoneyBill } from "@/lib/money-receipt";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import { createRemoteIntentGate } from "@/lib/g-remote-intent";
+import { createRemoteIntentGate, type RemoteIntentLease } from "@/lib/g-remote-intent";
 import { useStaking, STAKING_APY, STAKING_PENALTY, STAKING_MIN, type StakingTerm } from "@/store/staking";
 import { toast } from "@/store/ui";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { useRiskDisclosure } from "@/store/risk-disclosure";
 import { ApiError } from "@/api/errors";
+import { canOpenStakingPool, resolveStakingPool } from "@/lib/staking-canonical";
+import { formatCommandAmount, normalizeCommandAmount } from "@/lib/command-amount";
 
 const PRESETS = [100, 500, 1000, 5000];
 const ONE_DAY_MS = 86400 * 1000;
@@ -107,23 +123,30 @@ const risk = useRiskDisclosure();
 
 const amount = ref(0);
 const remotePending = ref(false);
-const remoteIntent = ref<{ fingerprint: string; key: string } | null>(null);
+const canOpen = computed(() => canOpenStakingPool(staking, props.term));
 const remoteGate = createRemoteIntentGate("G1");
-const selectedPool = computed(() => props.term === null ? undefined : staking.pools.find((pool) => pool.termDays === props.term));
+const selectedPool = computed(() => props.term === null ? null : resolveStakingPool(
+  { isMockMode: staking.isMockMode, remoteReady: staking.remoteReady, pools: staking.pools },
+  props.term,
+  props.term === null ? undefined : {
+    apy: STAKING_APY[props.term],
+    penalty: STAKING_PENALTY[props.term],
+    minAmountUsdt: STAKING_MIN[props.term],
+  },
+));
+const apyRate = computed(() => selectedPool.value?.apy ?? 0);
+const penaltyRate = computed(() => selectedPool.value?.penalty ?? 0);
+const minAmount = computed(() => selectedPool.value?.minAmountUsdt ?? 0);
 
-function intentKey(tierKey: string, amountUsdt: number) {
-  const fingerprint = `${tierKey}:${amountUsdt.toFixed(2)}`;
-  if (remoteIntent.value?.fingerprint === fingerprint) return remoteIntent.value.key;
-  const key = remoteGate.acquire("open", { tierKey, amountUsdt: amountUsdt.toFixed(2) }).key;
-  remoteIntent.value = { fingerprint, key };
-  return key;
+function intentLease(tierKey: string, amountUsdt: number): RemoteIntentLease {
+  return remoteGate.acquire(app.accountKey, "open", { tierKey, amountUsdt });
 }
 
 // Seed the amount to the term's minimum each time the sheet opens.
 watch(
   () => [props.open, props.term] as const,
   ([o, term]) => {
-    if (o && term !== null) amount.value = selectedPool.value?.minAmountUsdt ?? STAKING_MIN[term];
+    if (o && term !== null) amount.value = minAmount.value;
   },
 );
 
@@ -131,8 +154,8 @@ const titleText = computed(() => (props.term !== null ? fmt(t.value.stakingV3.sh
 const subtitleText = computed(() =>
   props.term !== null
     ? fmt(t.value.stakingV3.sheet.subtitle, {
-        apy: ((selectedPool.value?.apy ?? STAKING_APY[props.term]) * 100).toFixed(0),
-        penalty: ((selectedPool.value?.penalty ?? STAKING_PENALTY[props.term]) * 100).toFixed(0),
+        apy: formatStakingPercentage(apyRate.value),
+        penalty: formatStakingPercentage(penaltyRate.value),
       })
     : "",
 );
@@ -140,65 +163,78 @@ const interestLabel = computed(() =>
   props.term !== null ? fmt(t.value.stakingV3.sheet.interest, { n: props.term }) : "",
 );
 const balanceText = computed(() => (staking.isMockMode ? app.user.usdtBalance : staking.walletBalanceUsdt).toFixed(2));
-const principalText = computed(() => amount.value.toFixed(2));
+const principalText = computed(() => formatCommandAmount(amount.value));
 const interestText = computed(() =>
-  props.term !== null ? (amount.value * (selectedPool.value?.apy ?? STAKING_APY[props.term]) * (props.term / 365)).toFixed(2) : "0.00",
+  props.term !== null ? (amount.value * apyRate.value * (props.term / 365)).toFixed(2) : "0.00",
 );
 const unlockDateText = computed(() =>
-  props.term !== null ? new Date(Date.now() + props.term * ONE_DAY_MS).toLocaleDateString(dateLocale()) : "",
+  props.term !== null ? formatTrialDate(Date.now() + props.term * ONE_DAY_MS) : "",
 );
 const totalText = computed(() =>
-  props.term !== null ? (amount.value * (1 + (selectedPool.value?.apy ?? STAKING_APY[props.term]) * (props.term / 365))).toFixed(2) : "0.00",
+  props.term !== null ? (amount.value * (1 + apyRate.value * (props.term / 365))).toFixed(2) : "0.00",
 );
 const ctaText = computed(() =>
-  props.term !== null ? fmt(t.value.stakingV3.sheet.cta, { amount: amount.value.toFixed(2), n: props.term }) : "",
+  props.term !== null ? fmt(t.value.stakingV3.sheet.cta, { amount: formatCommandAmount(amount.value), n: props.term }) : "",
 );
 const lockedNoticeText = computed(() =>
   props.term !== null
-    ? fmt(t.value.stakingV3.sheet.lockedNotice, { penalty: (STAKING_PENALTY[props.term] * 100).toFixed(0) })
+    ? fmt(t.value.stakingV3.sheet.lockedNotice, { penalty: formatStakingPercentage(penaltyRate.value) })
     : "",
 );
 
 function onAmountInput(e: Event) {
   const raw = (e as unknown as { detail: { value: string } }).detail.value;
-  amount.value = parseFloat(raw) || 0;
+  amount.value = normalizeCommandAmount(raw);
 }
 function setMax() {
-  amount.value = Math.floor(staking.isMockMode ? app.user.usdtBalance : staking.walletBalanceUsdt);
+  amount.value = normalizeCommandAmount(staking.isMockMode ? app.user.usdtBalance : staking.walletBalanceUsdt);
 }
 function emitClose() {
   emit("update:open", false);
 }
 
 async function submit() {
+  if (!canOpen.value || remotePending.value) return;
   const term = props.term;
   if (term === null) return;
-  const min = selectedPool.value?.minAmountUsdt ?? STAKING_MIN[term];
+  const min = minAmount.value;
   if (amount.value < min) {
     toast.error(t.value.stakingV3.toast.minAmount, fmt(t.value.stakingV3.toast.minAmountTerm, { min, n: term }));
     return;
   }
   if (!staking.isMockMode) {
     if (remotePending.value) return;
-    const pool = selectedPool.value;
+    const pool = props.term === null
+      ? undefined
+      : staking.pools.find((candidate) => candidate.termDays === props.term);
     if (!pool || !pool.enabled || pool.killed) {
       toast.error(t.value.stakingV3.toast.openFailedTitle);
       return;
     }
     remotePending.value = true;
+    const submittedAmount = normalizeCommandAmount(amount.value);
+    const expectedAccountKey = app.accountKey;
+    const expectedBindingEpoch = app.accountBindingEpoch;
+    let lease: RemoteIntentLease | null = null;
     try {
-      const key = intentKey(pool.tierKey, amount.value);
-      await risk.checkGate("staking", key);
-      await staking.openRemote(pool.tierKey, amount.value, key);
-      remoteIntent.value = null;
-      remoteGate.complete(`${"open"}:${JSON.stringify({ tierKey: pool.tierKey, amountUsdt: amount.value.toFixed(2) })}`, true);
+      lease = intentLease(pool.tierKey, submittedAmount);
+      await risk.checkGate("staking", lease.key);
+      if (expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch) {
+        remoteGate.complete(lease, false);
+        return;
+      }
+      await staking.openRemote(pool.tierKey, submittedAmount, lease.key);
+      remoteGate.complete(lease, true);
+      if (expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch) return;
       toast.success(t.value.stakingV3.toast.stakeSuccess);
       emitClose();
     } catch (cause) {
+      if (lease) remoteGate.complete(lease, false);
+      if (expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch) return;
       // Unknown timeout/result: read the authority before allowing a retry with the same key.
       await staking.syncRemote();
       if (cause instanceof ApiError && cause.message === "RISK_DISCLOSURE_ACK_REQUIRED") {
-        uni.navigateTo({ url: "/pages/me/risk-disclosure?return=/pages/staking/staking", fail: () => {} });
+        navTo("/pages/me/risk-disclosure?return=/pages/staking/staking");
         return;
       }
       toast.error(t.value.stakingV3.toast.openFailedTitle);
@@ -264,14 +300,14 @@ async function submit() {
   }
   toast.success(
     t.value.stakingV3.toast.stakeSuccess,
-    fmt(t.value.stakingV3.toast.stakeSubtitle, { amount: amount.value, apy: STAKING_APY[term] * 100, n: term }),
+    fmt(t.value.stakingV3.toast.stakeSubtitle, { amount: amount.value, apy: formatStakingPercentage(apyRate.value), n: term }),
   );
   emitClose();
 }
 
-const panelStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderTop: "1px solid var(--v5-border)",
+const panelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderTop: "none",
   padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)",
 };
 const titleStyle: CSSProperties = {
@@ -384,7 +420,9 @@ const noticeStyle: CSSProperties = { marginTop: "12px", fontSize: "12px", color:
 
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。
-useDialogA11y(computed(() => props.open), ".nx-sheet-backdrop", emitClose);
+useDialogA11y(computed(() => props.open), ".nx-staking-sheet-root", emitClose);
+
+
 </script>
 
 <style scoped>

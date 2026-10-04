@@ -1,12 +1,15 @@
 import type { ApiClient } from "./api-client";
 import { isRegistrationReceipt, isUserSession, type AuthSessionResponse, type RegistrationReceipt, type UserSession } from "./contracts";
 import { ApiError, asApiError } from "./errors";
-import type { SessionSnapshot, SessionVault } from "./session-vault";
+import type { RefreshCredentialMode, SessionSnapshot, SessionVault } from "./session-vault";
+import { discardRotationNonce } from "./session-rotation-nonce";
 
 export interface PasswordLoginRequest {
   countryCode: string;
   phone: string;
   password: string;
+  /** Opaque server-issued/provider assertion used only when the OTP gate requests it. */
+  captchaTicket?: string;
 }
 
 export interface TwoFactorLoginRequest extends PasswordLoginRequest {
@@ -17,6 +20,8 @@ export interface TwoFactorLoginRequest extends PasswordLoginRequest {
 export interface RegistrationOtpRequest {
   countryCode: string;
   phone: string;
+  /** Opaque server-issued/provider assertion; never generated or signed by this client. */
+  captchaTicket?: string;
 }
 
 export interface RegistrationOtpResult {
@@ -42,22 +47,23 @@ export interface RegistrationRequest extends RegistrationOtpRequest {
   code: string;
   password: string;
   sponsorCode: string | null;
+  language?: string;
 }
 
 export type OAuthProvider = "GOOGLE" | "APPLE" | "PASSKEY" | "TELEGRAM";
-export type OAuthExchangeMode = "SANDBOX_MOCK" | "PROVIDER";
 export interface OAuthExchangeRequest {
   provider: OAuthProvider;
-  mode: OAuthExchangeMode;
-  /** Provider-verified subject/credential placeholder; never used by Sandbox. */
-  externalSubject?: string;
   displayName?: string;
+}
+
+export interface PasswordResetOtpVerifyResult {
+  status: "PASSWORD_RESET_OTP_VERIFIED";
 }
 export interface OAuthExchangeResult {
   user: UserSession;
   vaultRevision: number;
-  source: "mock";
-  sandbox: true;
+  source: "development" | "provider";
+  sandbox: false;
 }
 
 export type LoginResult =
@@ -69,6 +75,10 @@ export interface AuthApi {
   sendLoginOtp(request: RegistrationOtpRequest): Promise<LoginOtpResult>;
   completeOtpLogin(request: RegistrationOtpRequest & { challengeNo: string; code: string }): Promise<LoginResult>;
   sendPasswordResetOtp(request: RegistrationOtpRequest): Promise<PasswordResetOtpResult>;
+  verifyPasswordResetOtp(request: RegistrationOtpRequest & {
+    challengeNo: string;
+    code: string;
+  }): Promise<PasswordResetOtpVerifyResult>;
   completePasswordReset(request: RegistrationOtpRequest & {
     challengeNo: string;
     code: string;
@@ -76,6 +86,10 @@ export interface AuthApi {
   }): Promise<{ status: "PASSWORD_RESET"; revokedSessionCount: number }>;
   completeTwoFactor(request: TwoFactorLoginRequest): Promise<LoginResult>;
   sendRegistrationOtp(request: RegistrationOtpRequest): Promise<RegistrationOtpResult>;
+  verifyRegistrationOtp(request: RegistrationOtpRequest & {
+    challengeNo: string;
+    code: string;
+  }): Promise<{ status: "REGISTRATION_OTP_VERIFIED" }>;
   register(request: RegistrationRequest): Promise<LoginResult>;
   oauthExchange(request: OAuthExchangeRequest): Promise<OAuthExchangeResult>;
   restore(): Promise<SessionSnapshot | null>;
@@ -147,23 +161,26 @@ function registrationOtpFromResponse(value: unknown): RegistrationOtpResult {
   return data as RegistrationOtpResult;
 }
 
-function sessionFromResponse(data: AuthSessionResponse): SessionSnapshot | null {
+function sessionFromResponse(data: AuthSessionResponse, refreshCredentialMode: RefreshCredentialMode): SessionSnapshot | null {
   if (
     !data
     || typeof data !== "object"
     || typeof data.accessToken !== "string"
     || data.accessToken.length === 0
-    || typeof data.refreshToken !== "string"
-    || data.refreshToken.length === 0
+    || (refreshCredentialMode === "cookie"
+      ? data.refreshToken !== null
+      : typeof data.refreshToken !== "string" || data.refreshToken.length === 0)
     || typeof data.tokenType !== "string"
     || data.tokenType.toLowerCase() !== "bearer"
     || !isUserSession(data.user)
   ) return null;
   return {
     accessToken: data.accessToken,
-    refreshToken: data.refreshToken,
+    refreshToken: refreshCredentialMode === "cookie" ? "" : data.refreshToken as string,
     tokenType: data.tokenType,
     user: data.user,
+    refreshCredentialMode,
+    sessionSyncKey: typeof data.sessionSyncKey === "string" ? data.sessionSyncKey : undefined,
   };
 }
 
@@ -171,6 +188,7 @@ function consumeLoginResponse(
   data: AuthSessionResponse,
   vault: SessionVault,
   expectedRevision: number,
+  refreshCredentialMode: RefreshCredentialMode,
 ): LoginResult {
   if (
     data
@@ -190,7 +208,7 @@ function consumeLoginResponse(
       deliveryHint: data.deliveryHint || "",
     };
   }
-  const session = sessionFromResponse(data);
+  const session = sessionFromResponse(data, refreshCredentialMode);
   if (!session) throw new ApiError({ kind: "protocol", message: "AUTH_RESPONSE_INVALID" });
   const registrationReceipt = data.registrationReceipt ?? null;
   if (registrationReceipt !== null && !isRegistrationReceipt(registrationReceipt)) {
@@ -199,53 +217,90 @@ function consumeLoginResponse(
   if (!vault.saveIfUnchanged(session, expectedRevision)) {
     throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_AUTH" });
   }
+  if (refreshCredentialMode === "cookie") discardRotationNonce();
   // saveIfUnchanged advances the vault exactly once. Returning that epoch lets
   // the UI discard this issuance without ever clearing a later account's vault.
   return { kind: "authenticated", user: session.user, vaultRevision: expectedRevision + 1, registrationReceipt };
 }
 
-function oauthExchangeFromResponse(value: unknown, vault: SessionVault, expectedRevision: number): OAuthExchangeResult {
+function oauthExchangeFromResponse(
+  value: unknown,
+  vault: SessionVault,
+  expectedRevision: number,
+  refreshCredentialMode: RefreshCredentialMode,
+): OAuthExchangeResult {
   if (!value || typeof value !== "object") {
     throw new ApiError({ kind: "protocol", message: "OAUTH_RESPONSE_INVALID" });
   }
   const data = value as Record<string, unknown>;
   if (typeof data.accessToken !== "string" || data.accessToken.length === 0
-      || typeof data.refreshToken !== "string" || data.refreshToken.length === 0
+      || (refreshCredentialMode === "cookie"
+        ? data.refreshToken !== null
+        : typeof data.refreshToken !== "string" || data.refreshToken.length === 0)
       || data.tokenType !== "Bearer" || !isUserSession(data.user)
-      || data.source !== "mock" || data.sandbox !== true) {
+      || (data.source !== "development" && data.source !== "provider") || data.sandbox !== false) {
     throw new ApiError({ kind: "protocol", message: "OAUTH_RESPONSE_INVALID" });
   }
   const session: SessionSnapshot = {
     accessToken: data.accessToken,
-    refreshToken: data.refreshToken,
+    refreshToken: refreshCredentialMode === "cookie" ? "" : data.refreshToken as string,
     tokenType: data.tokenType,
     user: data.user,
+    refreshCredentialMode,
+    sessionSyncKey: typeof data.sessionSyncKey === "string" ? data.sessionSyncKey : undefined,
   };
   if (!vault.saveIfUnchanged(session, expectedRevision)) {
     throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_AUTH" });
   }
-  return { user: data.user, vaultRevision: expectedRevision + 1, source: "mock", sandbox: true };
+  if (refreshCredentialMode === "cookie") discardRotationNonce();
+  return {
+    user: data.user,
+    vaultRevision: expectedRevision + 1,
+    source: data.source as "development" | "provider",
+    sandbox: false,
+  };
 }
 
-function oauthSandboxChallengeFromResponse(value: unknown): string {
+function passwordResetOtpVerifyFromResponse(value: unknown): PasswordResetOtpVerifyResult {
+  if (!value || typeof value !== "object"
+      || (value as Record<string, unknown>).status !== "PASSWORD_RESET_OTP_VERIFIED") {
+    throw new ApiError({ kind: "protocol", message: "PASSWORD_RESET_OTP_VERIFY_RESPONSE_INVALID" });
+  }
+  return { status: "PASSWORD_RESET_OTP_VERIFIED" };
+}
+
+function oauthDevelopmentChallengeFromResponse(value: unknown): string {
   if (!value || typeof value !== "object") {
-    throw new ApiError({ kind: "protocol", message: "OAUTH_SANDBOX_CHALLENGE_INVALID" });
+    throw new ApiError({ kind: "protocol", message: "OAUTH_DEVELOPMENT_CHALLENGE_INVALID" });
   }
   const data = value as Record<string, unknown>;
   if (typeof data.challengeNo !== "string" || !/^OAUTH-[a-f0-9]{32}$/.test(data.challengeNo)
       || !Number.isSafeInteger(data.expiresInSec) || Number(data.expiresInSec) < 1
       || Number(data.expiresInSec) > 600) {
-    throw new ApiError({ kind: "protocol", message: "OAUTH_SANDBOX_CHALLENGE_INVALID" });
+    throw new ApiError({ kind: "protocol", message: "OAUTH_DEVELOPMENT_CHALLENGE_INVALID" });
   }
   return data.challengeNo;
 }
 
-export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
+export function createAuthApi(
+  client: ApiClient,
+  vault: SessionVault,
+  options: { refreshCredentialMode?: RefreshCredentialMode; clientSurface?: "APP" } = {},
+): AuthApi {
+  const refreshCredentialMode = options.refreshCredentialMode ?? "token";
+  let restoreInFlight: Promise<SessionSnapshot | null> | null = null;
+  const cookieHeaders = refreshCredentialMode === "cookie"
+    ? { "X-Nexion-Refresh-Mode": "cookie" }
+    : undefined;
+  const sessionIssuanceHeaders = options.clientSurface === "APP"
+    ? { ...cookieHeaders, "X-NexGrid-Client-Surface": "APP" }
+    : cookieHeaders;
   const revokeRefreshTokenBestEffort = (refreshToken: string) => {
     void client.request({
       path: "/auth/users/logout",
       method: "POST",
-      body: { refreshToken },
+      ...(refreshCredentialMode === "token" ? { body: { refreshToken } } : {}),
+      ...(cookieHeaders ? { headers: cookieHeaders } : {}),
       authenticated: false,
     }).catch(() => {
       // The local vault was already consumed. Server revocation is best-effort.
@@ -269,19 +324,23 @@ export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
   };
   return {
     async login(request) {
+      // Set-Cookie from a bootstrap restore must settle before a new login.
+      // Do not initiate a refresh merely because the user pressed Sign in.
+      if (restoreInFlight) await restoreInFlight;
       const revision = vault.revision();
       const data = await client.request<AuthSessionResponse>({
         path: "/auth/users/login",
         method: "POST",
         body: request,
         authenticated: false,
+        ...(sessionIssuanceHeaders ? { headers: sessionIssuanceHeaders } : {}),
         acceptedResponses: [{
           status: 428,
           code: 428,
           message: "USER_TWO_FACTOR_VERIFICATION_REQUIRED",
         }],
       });
-      return consumeLoginResponse(data, vault, revision);
+      return consumeLoginResponse(data, vault, revision, refreshCredentialMode);
     },
     async sendLoginOtp(request) {
       return loginOtpFromResponse(await client.request<unknown>({
@@ -298,8 +357,9 @@ export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
         method: "POST",
         body: request,
         authenticated: false,
+        ...(sessionIssuanceHeaders ? { headers: sessionIssuanceHeaders } : {}),
       });
-      const result = consumeLoginResponse(data, vault, revision);
+      const result = consumeLoginResponse(data, vault, revision, refreshCredentialMode);
       if (result.kind !== "authenticated") {
         throw new ApiError({ kind: "protocol", message: "LOGIN_OTP_SESSION_INVALID" });
       }
@@ -308,6 +368,14 @@ export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
     async sendPasswordResetOtp(request) {
       return passwordResetOtpFromResponse(await client.request<unknown>({
         path: "/auth/users/password-reset/otp/send",
+        method: "POST",
+        body: request,
+        authenticated: false,
+      }));
+    },
+    async verifyPasswordResetOtp(request) {
+      return passwordResetOtpVerifyFromResponse(await client.request<unknown>({
+        path: "/auth/users/password-reset/otp/verify",
         method: "POST",
         body: request,
         authenticated: false,
@@ -337,8 +405,9 @@ export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
         method: "POST",
         body: request,
         authenticated: false,
+        ...(sessionIssuanceHeaders ? { headers: sessionIssuanceHeaders } : {}),
       });
-      return consumeLoginResponse(data, vault, revision);
+      return consumeLoginResponse(data, vault, revision, refreshCredentialMode);
     },
     async sendRegistrationOtp(request) {
       const data = await client.request<unknown>({
@@ -349,6 +418,19 @@ export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
       });
       return registrationOtpFromResponse(data);
     },
+    async verifyRegistrationOtp(request) {
+      const data = await client.request<unknown>({
+        path: "/auth/users/register/otp/verify",
+        method: "POST",
+        body: request,
+        authenticated: false,
+      });
+      if (!data || typeof data !== "object"
+          || (data as Record<string, unknown>).status !== "REGISTRATION_OTP_VERIFIED") {
+        throw new ApiError({ kind: "protocol", message: "REGISTRATION_OTP_VERIFY_RESPONSE_INVALID" });
+      }
+      return { status: "REGISTRATION_OTP_VERIFIED" };
+    },
     async register(request) {
       const revision = vault.revision();
       const data = await client.request<AuthSessionResponse>({
@@ -356,8 +438,9 @@ export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
         method: "POST",
         body: request,
         authenticated: false,
+        ...(sessionIssuanceHeaders ? { headers: sessionIssuanceHeaders } : {}),
       });
-      const result = consumeLoginResponse(data, vault, revision);
+      const result = consumeLoginResponse(data, vault, revision, refreshCredentialMode);
       if (result.kind !== "authenticated") {
         throw new ApiError({ kind: "protocol", message: "REGISTRATION_SESSION_INVALID" });
       }
@@ -365,30 +448,51 @@ export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
     },
     async oauthExchange(request) {
       const revision = vault.revision();
-      const body = request.mode === "SANDBOX_MOCK"
-        ? {
-            provider: request.provider,
-            mode: request.mode,
-            displayName: request.displayName,
-            challengeNo: oauthSandboxChallengeFromResponse(await client.request<unknown>({
-              path: "/auth/users/oauth/sandbox/challenge",
-              method: "POST",
-              body: { provider: request.provider },
-              authenticated: false,
-            })),
-          }
-        : request;
+      // Only the local development Passkey uses a server-issued one-time
+      // challenge. Real providers go directly to their configured adapter.
+      const challengeNo = request.provider === "PASSKEY"
+        ? oauthDevelopmentChallengeFromResponse(await client.request<unknown>({
+          path: "/auth/users/oauth/development/passkey/challenge",
+          method: "POST",
+          body: { provider: request.provider },
+          authenticated: false,
+        }))
+        : undefined;
+      const body = {
+        provider: request.provider,
+        displayName: request.displayName,
+        ...(challengeNo ? { challengeNo } : {}),
+      };
       const data = await client.request<unknown>({
         path: "/auth/users/oauth/exchange",
         method: "POST",
         body,
         authenticated: false,
+        ...(sessionIssuanceHeaders ? { headers: sessionIssuanceHeaders } : {}),
       });
-      return oauthExchangeFromResponse(data, vault, revision);
+      return oauthExchangeFromResponse(data, vault, revision, refreshCredentialMode);
     },
-    async restore() {
-      if (!vault.read()?.refreshToken) return null;
-      return client.refreshSession();
+    restore() {
+      if (refreshCredentialMode === "token" && !vault.read()?.refreshToken) return Promise.resolve(null);
+      if (!restoreInFlight) {
+        // Bootstrap and ordinary token renewal share one rotation request.
+        restoreInFlight = client.refreshSession().catch((error: unknown) => {
+          // Only an authoritative rejection means that no session can be
+          // restored. Transport/protocol failures must remain retryable, and
+          // a rejected older request cannot invalidate a newer login.
+          if (error instanceof ApiError
+              && (error.kind === "auth" || error.status === 401 || error.status === 403)
+              && error.message !== "SESSION_CHANGED_DURING_REFRESH"
+              && !vault.read()) {
+            discardRotationNonce();
+            return null;
+          }
+          throw error;
+        }).finally(() => {
+          restoreInFlight = null;
+        });
+      }
+      return restoreInFlight;
     },
     discardSessionIfCurrent(expectedRevision) {
       discardSessionIfCurrent(expectedRevision);
@@ -400,11 +504,12 @@ export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
       const revision = vault.revision();
       const refreshToken = vault.read()?.refreshToken;
       try {
-        if (refreshToken) {
+        if (refreshCredentialMode === "cookie" || refreshToken) {
           await client.request({
             path: "/auth/users/logout",
             method: "POST",
-            body: { refreshToken },
+            ...(refreshCredentialMode === "token" ? { body: { refreshToken } } : {}),
+            ...(cookieHeaders ? { headers: cookieHeaders } : {}),
             authenticated: false,
           });
         }
@@ -412,6 +517,7 @@ export function createAuthApi(client: ApiClient, vault: SessionVault): AuthApi {
         // Local logout is authoritative for this device even when offline.
       } finally {
         vault.clearIfUnchanged(revision);
+        if (refreshCredentialMode === "cookie") discardRotationNonce();
       }
     },
   };

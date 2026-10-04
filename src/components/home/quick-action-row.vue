@@ -9,9 +9,13 @@
     <view
       v-for="c in chips"
       :key="c.href"
-      class="text-center active:opacity-70"
-      :style="chipStyle(c.tone)"
+      class="nx-glass-action text-center"
+      style="width: 100%; min-width: 0; aspect-ratio: 1; min-height: 76px; box-sizing: border-box; padding: 8px 4px; display: flex; flex-direction: column; justify-content: center"
+      role="link"
+      tabindex="0"
+      :aria-label="c.label"
       @click="go(c.href)"
+	      @keydown.enter.prevent="onKeyboardActivate($event, () => go(c.href))"
     >
       <view class="grid place-items-center" style="height: 24px">
         <!-- 质押 — gem (lucide) -->
@@ -36,23 +40,36 @@
           <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
         </svg>
       </view>
-      <text class="block mt-1 whitespace-nowrap" style="font-family: var(--font-v5); font-weight: 600; font-size: clamp(11px, 3.1vw, 12px); color: var(--v5-ink)">{{ c.label }}</text>
-      <text class="block font-mono-tabular" :style="{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: iconColor(c.tone), marginTop: '1px' }">{{ c.sub }}</text>
+      <text class="block mt-1" style="font-family: var(--font-v5); font-weight: 600; font-size: 12px; color: var(--v5-ink)">{{ c.label }}</text>
+      <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: iconColor(c.tone), marginTop: '1px' }">{{ c.sub }}</text>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { computed, onMounted, ref, type CSSProperties } from "vue";
+import { onShow } from "@dcloudio/uni-app";
+import { useNow } from "@/composables/use-now";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNexFaucet } from "@/store/nex-faucet";
 import { useGenesis } from "@/store/genesis";
+import { useQuest } from "@/store/quest";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
+import { remoteApiEnabled, stakingApi } from "@/api/runtime";
+import { highestLiveStakingApyPct } from "./home-staking-rate";
+import { quickNumericFact, quickMissionFact, type QuickFact } from "./quick-action-facts";
 
 const t = useT();
 const faucet = useNexFaucet();
 const genesis = useGenesis();
+const quest = useQuest();
+const stakingApyPct = ref<number | null>(null);
+const stakingLoading = ref(true);
+const stakingFailed = ref(false);
+const now = useNow();
+let stakingRequest = 0;
 // 🔴 首页快捷入口的「剩 N 席」也是名额紧迫文案(独立验收 P2-14):创世页与商城卡都关了,
 //   这里没关,关闭态下首页仍在催「仅剩 153 席」。判据走同一个 composable,不另写。
 // 🔴 阻断说明走 blockText **唯一出口**(独立验收 P1-3):上一版这里写死 `.default`,
@@ -60,11 +77,61 @@ const genesis = useGenesis();
 //   同刻互相矛盾且首页是事实错误。售罄档落 `ctaSoldOut`(blockText 只管三档阻断说明)。
 const { showUrgency: genesisUrgencyOk, blockText: genesisBlockText } = useGenesisSaleGate();
 
+async function refreshStakingRate() {
+  if (!remoteApiEnabled) return;
+  const request = ++stakingRequest;
+  stakingLoading.value = true;
+  try {
+    const rate = highestLiveStakingApyPct(await stakingApi.fetchStakingPools());
+    if (request !== stakingRequest) return;
+    stakingApyPct.value = rate;
+    stakingFailed.value = false;
+  } catch {
+    if (request !== stakingRequest) return;
+    stakingApyPct.value = null;
+    stakingFailed.value = true;
+  } finally {
+    if (request === stakingRequest) stakingLoading.value = false;
+  }
+}
+onMounted(refreshStakingRate);
+onShow(refreshStakingRate);
+
+const stakingSubtitle = computed(() => {
+  if (!remoteApiEnabled) return t.value.home.quickStakeApy;
+  if (stakingLoading.value) return t.value.home.quickStakeUnavailable;
+  if (stakingFailed.value) return t.value.home.quickStakeFailed;
+  if (stakingApyPct.value === null) return t.value.home.quickStakeStopped;
+  return fmt(t.value.home.quickStakeApyFormat, { n: stakingApyPct.value.toLocaleString() });
+});
+
+function factSubtitle(fact: QuickFact, format: (value: number) => string): string {
+  if (fact.state === "loading") return t.value.home.quickFactsLoading;
+  if (fact.state === "error") return t.value.home.quickFactsFailed;
+  return format(fact.value);
+}
+const missionsSubtitle = computed(() => factSubtitle(
+  quickMissionFact(remoteApiEnabled, quest.remoteStatus, quest.remoteQuests, now.value * 1000),
+  n => fmt(t.value.home.quickMissionsCount, { n }),
+));
+const dailySubtitle = computed(() => factSubtitle(
+  quickNumericFact(remoteApiEnabled, faucet.remoteReadState, faucet.signInStreak), n => fmt(t.value.home.quickDailyStreak, { n }),
+));
+const genesisSubtitle = computed(() => {
+  const supply = quickNumericFact(remoteApiEnabled,
+    genesis.remoteSupplyKnown ? genesis.remotePublicReadState
+      : genesis.remotePublicReadState === "ready" ? "unavailable" : genesis.remotePublicReadState,
+    genesis.totalSlots - genesis.soldSlots);
+  if (supply.state !== "ready") return factSubtitle(supply, n => fmt(t.value.home.quickGenesisLeft, { n }));
+  return genesisUrgencyOk.value ? fmt(t.value.home.quickGenesisLeft, { n: supply.value })
+    : (genesisBlockText.value ?? t.value.genesis.ctaSoldOut);
+});
+
 const chips = computed(() => [
-  { href: "/pages/staking/staking", icon: "gem", label: t.value.home.quickStake, sub: t.value.home.quickStakeApy, tone: "brand" as const },
-  { href: "/pages/genesis/genesis", icon: "crown", label: t.value.home.quickGenesisLabel, sub: genesisUrgencyOk.value ? fmt(t.value.home.quickGenesisLeft, { n: genesis.totalSlots - genesis.soldSlots }) : (genesisBlockText.value ?? t.value.genesis.ctaSoldOut), tone: "warm" as const },
-  { href: "/pages/missions/missions", icon: "target", label: t.value.home.quickMissions, sub: t.value.home.quickMissionsActive, tone: "brand" as const },
-  { href: "/pages/daily/daily", icon: "flame", label: t.value.home.quickDaily, sub: fmt(t.value.home.quickDailyStreak, { n: faucet.signInStreak }), tone: "warm" as const },
+  { href: "/pages/staking/staking", icon: "gem", label: t.value.home.quickStake, sub: stakingSubtitle.value, tone: "brand" as const },
+  { href: "/pages/genesis/genesis", icon: "crown", label: t.value.home.quickGenesisLabel, sub: genesisSubtitle.value, tone: "warm" as const },
+  { href: "/pages/missions/missions", icon: "target", label: t.value.home.quickMissions, sub: missionsSubtitle.value, tone: "brand" as const },
+  { href: "/pages/daily/daily", icon: "flame", label: t.value.home.quickDaily, sub: dailySubtitle.value, tone: "warm" as const },
 ]);
 
 function iconColor(tone: "brand" | "warm"): string {
@@ -73,12 +140,19 @@ function iconColor(tone: "brand" | "warm"): string {
 function chipStyle(tone: "brand" | "warm"): CSSProperties {
   const accent = tone === "warm" ? "var(--v5-brand-2)" : "var(--v5-brand)";
   return {
-    padding: "10px 4px",
+    padding: "10px 8px",
     background: `color-mix(in srgb, ${accent} 14%, var(--v5-surface))`,
     borderRadius: "12px",
   };
 }
 function go(href: string) {
-  uni.navigateTo({ url: href, fail: () => {} });
+  navTo(href);
 }
+
+function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
+  if (event.repeat) return;
+  action();
+}
+
+
 </script>

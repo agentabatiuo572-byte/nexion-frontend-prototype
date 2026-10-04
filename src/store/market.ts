@@ -1,7 +1,8 @@
+import { market24hSummary } from "@/lib/market-24h-summary";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { marketApi, remoteApiEnabled } from "@/api/runtime";
-import { subscribeCurrentCommerceSandboxRun } from "@/api/order-api";
+import type { NexMarketSnapshot } from "@/api/market-api";
 
 // Local curves are deliberately available only when VITE_API_MODE=mock. Remote
 // mode starts empty: an unavailable authority must never be rendered as a quote.
@@ -21,6 +22,7 @@ export const useMarket = defineStore("market", () => {
   const high24h = ref(isMockMode ? 0.178 : 0);
   const low24h = ref(isMockMode ? 0.139 : 0);
   const change24hPct = ref(isMockMode ? 20.4 : 0);
+  const change24hAvailable = ref(isMockMode);
   // The G3 endpoint does not authorise volume/supply. Zero means unavailable,
   // not a client estimate.
   const volume24hUSDT = ref(0);
@@ -28,11 +30,12 @@ export const useMarket = defineStore("market", () => {
   const costBasis = ref(isMockMode ? 0.085 : 0);
   const klineHourly = ref<number[]>(isMockMode ? [...HOURLY_SEED] : []);
   const klineDaily = ref<number[]>(isMockMode ? [...DAILY_SEED] : []);
+  const historySamples = ref<NexMarketSnapshot["history"]>([]);
   const lastTickTs = ref(0);
   const remoteError = ref<string | null>(null);
   const remoteReady = ref(isMockMode);
   const marketRunId = ref<string | null>(null);
-  let authorityGeneration = 0;
+  let lastRemoteFetchAt = 0;
   let nexGeneration = 0;
   let syncInFlight: Promise<boolean> | null = null;
   const marketCap = computed(() => nexPriceUSDT.value * circulating.value);
@@ -43,27 +46,29 @@ export const useMarket = defineStore("market", () => {
     high24h.value = 0;
     low24h.value = 0;
     change24hPct.value = 0;
+    change24hAvailable.value = false;
     volume24hUSDT.value = 0;
     circulating.value = 0;
     costBasis.value = 0;
     klineHourly.value = [];
     klineDaily.value = [];
+    historySamples.value = [];
     lastTickTs.value = 0;
     remoteReady.value = false;
   }
 
   function commitNex(snapshot: Awaited<ReturnType<typeof marketApi.fetch>>) {
-    const history = snapshot.history24h.map((point) => point.price);
-    const series = history.length ? history : snapshot.sparkline;
-    const open = series[0] ?? snapshot.currentPrice;
+    const summary = market24hSummary(snapshot.history, snapshot.currentPrice);
     nexPriceUSDT.value = snapshot.currentPrice;
     costBasis.value = snapshot.costBasis;
-    open24h.value = open;
-    high24h.value = Math.max(...series, snapshot.currentPrice);
-    low24h.value = Math.min(...series, snapshot.currentPrice);
-    change24hPct.value = ((snapshot.currentPrice - open) / open) * 100;
-    klineHourly.value = series;
+    open24h.value = summary?.open ?? 0;
+    high24h.value = summary?.high ?? 0;
+    low24h.value = summary?.low ?? 0;
+    change24hPct.value = summary?.changePct ?? 0;
+    change24hAvailable.value = summary !== null;
+    klineHourly.value = summary?.prices ?? [];
     klineDaily.value = snapshot.sparkline;
+    historySamples.value = snapshot.history;
     lastTickTs.value = Date.now();
     remoteError.value = null;
     remoteReady.value = true;
@@ -74,17 +79,18 @@ export const useMarket = defineStore("market", () => {
   function syncRemote(): Promise<boolean> {
     if (!remoteApiEnabled) return Promise.resolve(true);
     if (syncInFlight) return syncInFlight;
-    const authority = authorityGeneration;
+    if (remoteReady.value && Date.now() - lastRemoteFetchAt < 30_000) return Promise.resolve(true);
+    lastRemoteFetchAt = Date.now();
     const generation = ++nexGeneration;
     const operation = (async () => {
       try {
         const snapshot = await marketApi.fetch();
-        if (authority !== authorityGeneration || generation !== nexGeneration) return false;
+        if (generation !== nexGeneration) return false;
         marketRunId.value = snapshot.runId;
         commitNex(snapshot);
         return true;
       } catch {
-        if (authority !== authorityGeneration || generation !== nexGeneration) return false;
+        if (generation !== nexGeneration) return false;
         marketRunId.value = null;
         clearRemoteState();
         remoteError.value = "G3_REMOTE_AUTHORITY_UNAVAILABLE";
@@ -96,25 +102,6 @@ export const useMarket = defineStore("market", () => {
       if (syncInFlight === operation) syncInFlight = null;
     });
     return operation;
-  }
-
-  if (remoteApiEnabled) {
-    subscribeCurrentCommerceSandboxRun((scope) => {
-      authorityGeneration += 1;
-      nexGeneration += 1;
-      // Detach the prior Run's flight before mounted NEX surfaces retry.
-      // The old promise still settles, but its generation can no longer commit
-      // and its finally block cannot clear a newer flight.
-      syncInFlight = null;
-      marketRunId.value = null;
-      remoteError.value = null;
-      clearRemoteState();
-      // The catalogue can establish the Sandbox Run while the first NEX market
-      // request is still in flight. Start the replacement here so mounted
-      // cards cannot remain in an endless loading state waiting for a watch
-      // transition that never occurs (marketRunId was still null).
-      if (scope.runId !== null) void syncRemote();
-    });
   }
 
   function tickPrice() {
@@ -133,8 +120,8 @@ export const useMarket = defineStore("market", () => {
   }
 
   return {
-    isMockMode, nexPriceUSDT, open24h, high24h, low24h, change24hPct, volume24hUSDT,
-    circulating, costBasis, klineHourly, klineDaily, lastTickTs, marketCap, remoteError, remoteReady,
+    isMockMode, nexPriceUSDT, open24h, high24h, low24h, change24hPct, change24hAvailable, volume24hUSDT,
+    circulating, costBasis, klineHourly, klineDaily, historySamples, lastTickTs, marketCap, remoteError, remoteReady,
     marketRunId, syncRemote, tickPrice,
   };
 });

@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useTrialConfig, computeDiscountedPrice, computeTrialOffset, resolveTrialDeviceName } from "./trial-config";
 import { mockServerNow, ONE_DAY_MS } from "./server-time";
 import { normalizeAccountKey } from "./account-cloud";
@@ -52,7 +52,7 @@ export type { TrialStatus } from "./trial-boundary";
 /** Why the trial can't start right now (spec 异常2 — concrete reasons, no generic error).
  *  "risk" = spec 异常2 第三具名原因(风控命中)。MOCK 无风控引擎,本地 eligibility()
  *  无触发路径;生产由后端 GET /api/trial/eligibility 下发该 reason。 */
-export type TrialIneligibleReason = "in-progress" | "converted" | "used" | "phase-closed" | "risk" | "unknown";
+export type TrialIneligibleReason = "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "unknown";
 
 /** Persisted row shape — single source lives in trial-boundary.ts (resolver 同型)。 */
 type FreeTrialState = TrialRowSnapshot;
@@ -167,8 +167,13 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   const authoritativeShadowUSD = ref(0);
   const authoritativeShadowNEX = ref(0);
   const remoteCanStart = ref(false);
+  // Presentation only: keep the last confirmed promotion mounted during reads.
+  // Never use this retained value to authorize a claim; canStart stays fail-closed.
+  const confirmedPromoVisible = ref(false);
+  const confirmedHeroVisible = ref(false);
   const remoteEligibilityReason = ref<TrialIneligibleReason>("unknown");
   const authorityClaimNo = ref<string | null>(null);
+  const authorityServerState = ref<TrialAuthorityState["serverState"] | null>(null);
   const authorityVersion = ref(0);
   let refreshInFlight: Promise<boolean> | null = null;
   let refreshInFlightAccount: string | null = null;
@@ -226,6 +231,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     remoteCanStart.value = false;
     remoteEligibilityReason.value = "unknown";
     authorityClaimNo.value = null;
+    authorityServerState.value = null;
     authorityVersion.value = 0;
     authorityStatus.value = nextStatus;
     authorityError.value = error;
@@ -240,7 +246,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       status: next.status,
       startedAt: next.startedAt,
       expiresAt: next.expiresAt,
-      graceEndsAt: next.graceEndsAt,
+      graceEndsAt: next.serverState === "EXTENDED" ? next.extendedEndsAt ?? null : next.graceEndsAt,
       finishedAt: next.finishedAt,
       // Remote shadow values are server projections, never locally accrued facts.
       shadowFrozenAtUSD: next.shadowUSD,
@@ -250,8 +256,12 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     authoritativeShadowUSD.value = next.shadowUSD;
     authoritativeShadowNEX.value = next.shadowNEX;
     remoteCanStart.value = next.canStart;
+    confirmedPromoVisible.value = next.canStart && next.status === "none";
+    confirmedHeroVisible.value = next.status === "none"
+      && (next.canStart || next.eligibilityReason === "product-unavailable");
     remoteEligibilityReason.value = next.eligibilityReason ?? "unknown";
     authorityClaimNo.value = next.claimNo;
+    authorityServerState.value = next.serverState;
     authorityVersion.value = next.version;
     useTrialConfig().applyAuthoritative(next.config);
     authorityStatus.value = "ready";
@@ -313,8 +323,12 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     boundKey = normalizeAccountKey(rawAccountKey);
     if (remoteApiEnabled) {
       lastAppliedSequence = ++authorityRequestSequence;
+      confirmedPromoVisible.value = false;
+      confirmedHeroVisible.value = false;
       clearRemoteFacts();
-      void refreshRemote();
+      // A rebind invalidates even same-key responses. Start this generation's
+      // own read instead of deduplicating onto the request we just invalidated.
+      void refreshRemote(true);
       return;
     }
     load(hydrate(boundKey, useTrialConfig().config));
@@ -344,6 +358,48 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     return eligibility().ok;
   }
 
+  function showPromo(): boolean {
+    return remoteApiEnabled ? confirmedPromoVisible.value : canStart();
+  }
+
+  function showHeroPromo(): boolean {
+    return remoteApiEnabled ? confirmedHeroVisible.value
+      : status.value === "none" && (canStart() || eligibility().reason === "product-unavailable");
+  }
+
+  /**
+   * 试用推广槽位的三态(BUG 173)。只有「显示/不显示」两态时,remoteApiEnabled 下
+   * 首帧恒等于「不显示」——卡片整块不渲染,等首次读取回来才凭空插入,把下面所有
+   * 模块整体推下去。页面必须能区分「还没问过服务器」(pending,渲染固定高度骨架)
+   * 与「服务器说没有」(hidden,真正不占位)。
+   * 已确认过的可领取快照在后台重拉期间保持 visible,不回退成 pending/hidden。
+   */
+  const promoSlot = computed<"pending" | "visible" | "hidden">(() => {
+    if (confirmedPromoVisible.value) return "visible";
+    if (!remoteApiEnabled) return canStart() ? "visible" : "hidden";
+    return authorityStatus.value === "loading" || authorityStatus.value === "unknown"
+      ? "pending" : "hidden";
+  });
+
+  /**
+   * Offer state for the promotional surfaces, retaining the LAST CONFIRMED
+   * answer while a background read is in flight. Both banners key their action
+   * label off this so a re-read cannot change the button width/structure
+   * (BUG 14 / 56: "正在核实资格" ↔ "马上领取" churn). It never authorizes a
+   * claim — canStart() stays fail-closed during every read.
+   */
+  function confirmedOfferState(): "claimable" | "unavailable" | "checking" | "error" {
+    if (authorityStatus.value === "error") return "error";
+    if (authorityStatus.value === "ready") return remoteCanStart.value ? "claimable" : "unavailable";
+    // loading / unknown: keep the last confirmed state when we have one, so the
+    // card neither unmounts nor rewrites its action mid-read. No confirmed
+    // snapshot (first read, or a rebind) → an honest checking placeholder.
+    if (confirmedPromoVisible.value || confirmedHeroVisible.value) {
+      return remoteEligibilityReason.value === "product-unavailable" ? "unavailable" : "claimable";
+    }
+    return "checking";
+  }
+
   // PRODUCTION: POST /api/trial/start (no card token — cardless claim, spec ③).
   // Idempotent: a second call while ineligible is a no-op (spec 异常3 — one
   // trial per account, concurrent taps produce exactly one).
@@ -352,7 +408,8 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       if (!await refreshEligibilityRemote()) return { ok: false, reason: "unknown" };
       const remoteEligibility = eligibility();
       if (!remoteEligibility.ok) return { ok: false, reason: remoteEligibility.reason };
-      const deviceName = resolveTrialDeviceName(useTrialConfig().config.trialProductId);
+      const trialConfig = useTrialConfig().config;
+      const deviceName = resolveTrialDeviceName(trialConfig.trialProductId, trialConfig.trialProductName);
       if (!deviceName) {
         clearRemoteFacts("error", "TRIAL_CONFIG_RESPONSE_INVALID");
         return { ok: false, reason: "unknown" };
@@ -537,7 +594,9 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       case "TRIAL_ALREADY_ACTIVE": return "in-progress";
       case "TRIAL_ALREADY_REDEEMED": return "converted";
       case "TRIAL_COOLDOWN_ACTIVE": return "used";
+      case "TRIAL_QUOTA_EXHAUSTED": return "quota-exhausted";
       case "TRIAL_CYCLE_RISK_BLOCKED": return "risk";
+      case "TRIAL_PRODUCT_NOT_AVAILABLE": return "product-unavailable";
       case "TRIAL_PHASE_CLOSED":
       case "TRIAL_KILL_SWITCH_DISABLED": return "phase-closed";
       default: return "unknown";
@@ -548,8 +607,10 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     status, startedAt, expiresAt, graceEndsAt, finishedAt,
     shadowFrozenAtUSD, shadowFrozenAtNEX, legacyCardMigrated,
     authorityStatus, authorityError, authoritativeShadowUSD, authoritativeShadowNEX,
-    authorityClaimNo, authorityVersion,
-    eligibility, canStart, start, convert, cancel, poll, bindAccount, snapshot,
+    authorityClaimNo, authorityVersion, authorityServerState,
+    eligibility, canStart, showPromo, showHeroPromo, confirmedOfferState,
+    promoSlot,
+    start, convert, cancel, poll, bindAccount, snapshot,
     refreshRemote, refreshEligibilityRemote,
   };
 });
@@ -592,6 +653,12 @@ const SLOT_RESERVING_STATUSES: TrialStatus[] = ["active", "grace"];
 /** Non-reactive variant for store actions (e.g. useApp.activateDevice slot cap). */
 export function trialReservesSlotNow(): boolean {
   return SLOT_RESERVING_STATUSES.includes(useFreeTrial().status);
+}
+
+/** Reserved capacity is not proof that a trial is producing. */
+export function trialProducesNow(): boolean {
+  const trial = useFreeTrial();
+  return trial.status === "active" && (!remoteApiEnabled || trial.authorityStatus === "ready" || trial.authorityStatus === "loading");
 }
 
 export { computeDiscountedPrice, computeTrialOffset };

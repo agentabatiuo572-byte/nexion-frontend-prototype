@@ -15,7 +15,8 @@
 
   结算分两档:
   - mock:余额直付——保留原型体验。
-  - 远端:POST /api/orders/bundle，由服务端锁库存、计算阶梯折扣并创建一张 BUNDLE 订单；
+  - 远端:POST /api/orders/bundle 由服务端锁库存、计算阶梯折扣并创建一张 BUNDLE 订单；
+    随后只能通过 UVEL 钱包扣款接口完成支付与设备激活，不拉起第三方收银台。
     客户端只展示预估，最终金额以服务器回执为准，结果未知时复用同一幂等键。
 -->
 <template>
@@ -29,23 +30,23 @@
       <!-- Remote and explicit sandbox catalogs start empty. Do not render the
            compatibility PRODUCTS array until the authoritative snapshot is
            ready; a cold first frame must never look like a real quote. -->
-      <view v-if="catalogStatus === 'loading'" data-testid="bundle-catalog-loading" class="mx-4" :style="catalogStateStyle">
+      <view v-if="catalogStatus === 'loading' || policyStatus === 'loading'" data-testid="bundle-catalog-loading" class="nx-glass-card mx-4" :style="catalogStateStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogLoadingTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogLoadingBody }}</text>
       </view>
-      <view v-else-if="catalogStatus === 'error'" data-testid="bundle-catalog-error" class="mx-4" :style="catalogStateStyle">
+      <view v-else-if="catalogStatus === 'error' || policyStatus === 'error'" data-testid="bundle-catalog-error" class="nx-glass-card mx-4" :style="catalogStateStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogErrorTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogErrorBody }}</text>
-        <view class="inline-flex mt-3 active:opacity-70" role="button" tabindex="0" :style="catalogRetryStyle" @click="retryCatalog">
+        <view class="inline-flex mt-3 active:opacity-70" role="button" tabindex="0" :style="catalogRetryStyle" @click="retryCatalog" @keydown="activate($event, retryCatalog)">
           <text>{{ t.store.catalogRetry }}</text>
         </view>
       </view>
       <template v-else>
 
-      <view v-if="receiptWriteFailure" class="mx-4 rounded-2xl text-center" :style="receiptFailureCardStyle">
+      <view v-if="receiptWriteFailure" class="nx-glass-card mx-4 rounded-2xl text-center" :style="receiptFailureCardStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.errors.billMissingTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.errors.billMissingMsg }}</text>
-        <view class="inline-flex mt-3 active:opacity-70" role="button" tabindex="0" :style="catalogRetryStyle" :aria-disabled="receiptRetrying" @click="retryReceiptWrite">
+        <view class="inline-flex mt-3 active:opacity-70" role="button" tabindex="0" :style="catalogRetryStyle" :aria-disabled="receiptRetrying" @click="retryReceiptWrite" @keydown="activate($event, retryReceiptWrite)">
           <text>{{ receiptRetrying ? t.store.catalogLoadingTitle : t.store.catalogRetry }}</text>
         </view>
       </view>
@@ -53,7 +54,7 @@
 
       <!-- Hero — filled commercial spotlight (border dropped; aurora stays clipped
            inside the surface + overflow-hidden, so it's not a page-floor glow). -->
-      <view class="mx-4 relative overflow-hidden" :style="heroStyle">
+      <view class="nx-glass-card mx-4 relative overflow-hidden" :style="heroStyle">
         <view aria-hidden :style="heroAuroraStyle" />
         <view class="relative">
           <view class="flex items-center" style="gap: 6px; margin-bottom: 8px">
@@ -71,10 +72,10 @@
       </view>
 
       <!-- Items -->
-      <view class="mx-4 mt-3 overflow-hidden" :style="cardStyle">
+      <view class="nx-glass-card mx-4 mt-3 overflow-hidden" :style="cardStyle">
         <view class="px-4 py-2.5 flex items-center justify-between" style="border-bottom: 1px solid var(--v5-border)">
           <text :style="itemsHeadingStyle">{{ t.bundle.itemsHeading }}</text>
-          <text v-if="products.length > 0" class="active:opacity-70" style="font-size: 12px; color: var(--v5-ink-3)" role="button" tabindex="0" :aria-label="t.bundle.clear" @click.stop="clear">{{ t.bundle.clear }}</text>
+          <text v-if="products.length > 0" class="active:opacity-70" style="font-size: 12px; color: var(--v5-ink-3)" role="button" tabindex="0" :aria-label="t.bundle.clear" @click.stop="clear" @keydown="activate($event, clear)">{{ t.bundle.clear }}</text>
         </view>
 
         <!-- Empty state -->
@@ -89,12 +90,15 @@
           :style="{ borderBottom: i === products.length - 1 ? 'none' : '1px solid var(--v5-border)' }"
         >
           <view class="flex-1 min-w-0">
-            <text class="block truncate" :style="itemNameStyle">{{ p.name }}</text>
+            <text class="block truncate" :style="itemNameStyle">{{ nexGridBrandText(p.name) }}</text>
             <text class="block" :style="itemMetaStyle">
-              <text style="color: var(--v5-ink-4)">{{ t.uiChrome.price }} </text>${{ p.price.toLocaleString() }}<text style="color: var(--v5-ink-4)"> · </text><text style="color: var(--v5-success)">{{ fmt(t.uiChrome.earnsPerDay, { amount: `+$${p.dailyEarn.toFixed(2)}` }) }}</text>
+              <text style="color: var(--v5-ink-4)">{{ t.uiChrome.price }} </text>${{ p.price.toLocaleString() }}<text style="color: var(--v5-ink-4)"> · </text><text style="color: var(--v5-success)">{{ bundleProductYieldText(p) }}</text>
             </text>
+            <text v-if="p.productType === 'SHARE'" class="block" :style="itemMetaStyle">{{ t.store.shareYieldDisclaimer }}</text>
+            <text v-if="remoteApiEnabled && purchaseEligibilityStore.state(p.id).status !== 'ready'" class="block" :style="itemMetaStyle">{{ purchaseEligibilityStore.state(p.id).status === 'error' ? t.store.purchaseEligibilityError : t.store.purchaseEligibilityLoading }}</text>
+            <text v-else-if="remoteApiEnabled && !purchaseEligibilityStore.state(p.id).eligible" class="block" :style="itemMetaStyle">{{ t.store.purchaseEligibilityIneligible }}</text>
           </view>
-          <view class="shrink-0 rounded-full grid place-items-center active:opacity-70" style="width: 28px; height: 28px; background: var(--v5-surface-2)" role="button" tabindex="0" :aria-label="fmt(t.uiChrome.removeItem, { name: p.name })" @click.stop="remove(p.id)">
+          <view class="shrink-0 rounded-full grid place-items-center active:opacity-70" style="width: 28px; height: 28px; background: var(--v5-surface-2)" role="button" tabindex="0" :aria-label="fmt(t.uiChrome.removeItem, { name: nexGridBrandText(p.name) })" @click.stop="remove(p.id)" @keydown="activate($event, () => remove(p.id))">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
           </view>
         </view>
@@ -103,7 +107,7 @@
       <!-- Suggestions -->
       <view v-if="suggestions.length > 0" class="mx-4 mt-3">
         <text class="block" :style="suggestionsHeadingStyle">{{ t.bundle.suggestionsHeading }}</text>
-        <view class="overflow-hidden" :style="cardStyle">
+        <view class="nx-glass-card overflow-hidden" :style="cardStyle">
           <view
             v-for="(p, i) in suggestions"
             :key="p.id"
@@ -111,35 +115,40 @@
             :style="suggestionRowStyle(i === suggestions.length - 1)"
             role="button"
             tabindex="0"
-            :aria-label="fmt(t.uiChrome.addItem, { name: p.name })"
+            :aria-label="remoteApiEnabled && purchaseEligibilityStore.state(p.id).status === 'ready' && !purchaseEligibilityStore.state(p.id).eligible
+              ? `${nexGridBrandText(p.name)} · ${t.store.gateBlockedToast}` : fmt(t.uiChrome.addItem, { name: nexGridBrandText(p.name) })"
             @click.stop="onAddSuggestion(p)"
+            @keydown="activate($event, () => onAddSuggestion(p))"
           >
             <view class="flex-1 min-w-0 text-left">
-              <text class="block truncate" :style="suggestionNameStyle">{{ p.name }}</text>
+              <text class="block truncate" :style="suggestionNameStyle">{{ nexGridBrandText(p.name) }}</text>
               <text class="block" :style="itemMetaStyle">
                 <text style="color: var(--v5-ink-4)">{{ t.uiChrome.price }} </text>${{ p.price.toLocaleString() }}<text style="color: var(--v5-ink-4)"> · </text><text style="color: var(--v5-success)">{{ fmt(t.uiChrome.earnsPerDay, { amount: `+$${p.dailyEarn.toFixed(2)}` }) }}</text>
               </text>
+              <text v-if="remoteApiEnabled && purchaseEligibilityStore.state(p.id).status !== 'ready'" class="block" :style="itemMetaStyle">{{ purchaseEligibilityStore.state(p.id).status === 'error' ? t.store.purchaseEligibilityError : t.store.purchaseEligibilityLoading }}</text>
+              <text v-else-if="remoteApiEnabled && !purchaseEligibilityStore.state(p.id).eligible" class="block" :style="itemMetaStyle">{{ t.store.gateBlockedToast }}</text>
             </view>
             <view class="shrink-0 rounded-full grid place-items-center" style="width: 28px; height: 28px; background: var(--v5-brand-soft); color: var(--v5-brand)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+              <svg v-if="remoteApiEnabled && purchaseEligibilityStore.state(p.id).status === 'ready' && !purchaseEligibilityStore.state(p.id).eligible" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
             </view>
           </view>
         </view>
       </view>
 
       <!-- Total summary -->
-      <view v-if="products.length > 0" class="mx-4 mt-3 relative overflow-hidden" :style="heroStyle">
+      <view v-if="products.length > 0" class="nx-glass-card mx-4 mt-3 relative overflow-hidden" :style="heroStyle">
         <view aria-hidden :style="totalAuroraStyle" />
         <view class="relative">
           <!-- Subtotal -->
           <view class="flex items-center justify-between" style="min-height: 24px">
             <text :style="rowLabelStyle(false)">{{ t.bundle.subtotal }}</text>
-            <text class="tabular-nums" :style="rowValueStyle()">${{ subtotal.toLocaleString() }}</text>
+            <text class="tabular-nums" :style="rowValueStyle()">${{ formatBundleUsdt(subtotal) }}</text>
           </view>
           <!-- Discount -->
           <view v-if="discountPct > 0" class="flex items-center justify-between" style="min-height: 24px">
             <text :style="rowLabelStyle(false)">{{ discountLabel }}</text>
-            <text class="tabular-nums" :style="rowValueStyle('var(--v5-success)')">−${{ discountUSD.toFixed(0) }}</text>
+            <text class="tabular-nums" :style="rowValueStyle('var(--v5-success)')">−${{ formatBundleUsdt(discountUSD) }}</text>
           </view>
           <!-- Divider -->
           <view style="height: 1px; background: var(--v5-border); margin-top: 10px; margin-bottom: 10px" />
@@ -164,6 +173,7 @@
             :aria-disabled="checkoutUnavailable"
             :aria-label="ctaText"
             @click.stop="onCheckout"
+            @keydown="activate($event, onCheckout)"
           >
             <svg v-if="!checkoutUnavailable" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" /><path d="M5 10l7-7 7 7" /><path d="M5 21h14" /></svg>
             <text :style="ctaLabelStyle">{{ ctaText }}</text>
@@ -186,18 +196,24 @@ import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-import { useCart, bundleDiscountForCount, BUNDLE_DISCOUNT_TIERS, type BundleDiscountTier } from "@/store/cart";
+import { nexGridBrandText } from "@/lib/brand-copy";
+import { useCart, bundleDiscountForCount, type BundleDiscountTier } from "@/store/cart";
 import { PRODUCTS, getProduct, evaluatePurchaseGate, type Product } from "@/mock/products";
 import { useSetPageHeader } from "@/composables/use-page-header";
+// 🔴 zentao #244:线上模式必须问**服务端**资格,本地门仅 mock 用 —— 与 detail.vue 同一口径。
+import { purchaseEligibilityStore } from "@/store/purchase-eligibility";
 import { isProductAvailable } from "@/store/product-availability";
 import { useProductPhase } from "@/composables/use-product-phase";
 import { productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
 import { bundleCatalogReady } from "@/store/bundle-catalog-guard";
 import { refreshServerProductPhase } from "@/store/server-product-phase";
-import { toast } from "@/store/ui";
-import { bundleOrderApi, commercePaymentApi, mockFundsEnabled, orderApi, remoteApiEnabled } from "@/api/runtime";
-import { isCanonicalPaidOrder } from "@/api/order-readback";
-import { isAmbiguousOutcome } from "@/api/errors";
+import { confirm, toast } from "@/store/ui";
+import { bundleDiscountApi, bundleOrderApi, orderApi, remoteApiEnabled } from "@/api/runtime";
+import { matchesBundleQuote, normalizeBundleExpectedAmountUsdt } from "@/api/bundle-order-api";
+import { quoteBundleAmountUsdt } from "@/api/bundle-quote";
+import { restoreBundleCommand, type PendingBundleCommand } from "@/api/bundle-command";
+import type { BundleDiscountSnapshot } from "@/api/bundle-discount-api";
+import { ApiError, asApiError, isAmbiguousOutcome } from "@/api/errors";
 import { useApp } from "@/store/app";
 import { useOrders, type Order } from "@/store/orders";
 import { usePendingCheckout } from "@/store/pending-checkout";
@@ -205,7 +221,8 @@ import { postReceiptOnce, postReceiptOnly, reportStuckFunds, type ReceiptDraft }
 import { navTo } from "@/lib/route";
 import { useVRank } from "@/store/v-rank";
 import { useNetwork } from "@/store/network";
-import { readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
+import { acquireAccountCommandKey, readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
+import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 
 const t = useT();
 const cart = useCart();
@@ -215,15 +232,31 @@ const orders = useOrders();
 const pending = usePendingCheckout();
 
 const catalogStatus = computed(() => productCatalogState.status);
-const catalogReady = computed(() => bundleCatalogReady(remoteApiEnabled, catalogStatus.value));
+const policy = ref<BundleDiscountSnapshot | null>(null);
+const policyStatus = ref<"loading" | "ready" | "error">("loading");
+const catalogReady = computed(() => bundleCatalogReady(remoteApiEnabled, catalogStatus.value)
+  && policyStatus.value === "ready" && policy.value?.serverCanonical === true);
+
+async function refreshBundlePolicy(): Promise<void> {
+  policyStatus.value = "loading";
+  try {
+    policy.value = await bundleDiscountApi.current();
+    policyStatus.value = "ready";
+  } catch {
+    policy.value = null;
+    policyStatus.value = "error";
+  }
+}
 
 onLoad(async () => {
-  await Promise.all([refreshProductCatalog(true), refreshServerProductPhase(true)]);
+  await Promise.all([refreshProductCatalog(true), refreshServerProductPhase(true), refreshBundlePolicy()]);
 });
 
 onShow(() => {
   void refreshProductCatalog(true);
   void refreshServerProductPhase(true);
+  void refreshBundlePolicy();
+  void refreshBundleWallet();
   restoreReceiptRecovery();
 });
 
@@ -243,11 +276,22 @@ const products = computed<Product[]>(() =>
       .filter((p) => isProductAvailable(p, phase.value))
     : [],
 );
-const subtotal = computed(() => products.value.reduce((s, p) => s + p.price, 0));
-const discountPct = computed(() => bundleDiscountForCount(products.value.length));
-const discountUSD = computed(() => subtotal.value * discountPct.value);
-const total = computed(() => subtotal.value - discountUSD.value);
-const cumulativeDailyEarn = computed(() => products.value.reduce((s, p) => s + p.dailyEarn, 0));
+const activeDiscountTiers = computed<ReadonlyArray<BundleDiscountTier>>(() => policy.value?.tiers ?? []);
+const discountPct = computed(() => bundleDiscountForCount(products.value.length, activeDiscountTiers.value));
+const bundleQuote = computed(() => quoteBundleAmountUsdt(
+  products.value.map((product) => product.price), discountPct.value,
+));
+const subtotal = computed(() => bundleQuote.value?.subtotalUsdt ?? Number.NaN);
+const discountUSD = computed(() => bundleQuote.value?.discountUsdt ?? Number.NaN);
+const total = computed(() => bundleQuote.value?.amountUsdt ?? Number.NaN);
+const cumulativeDailyEarn = computed(() => products.value.reduce((s, p) => s + (p.productType === "SHARE" ? 0 : p.dailyEarn), 0));
+function bundleProductYieldText(p: Product): string {
+  if (p.productType !== "SHARE") return fmt(t.value.uiChrome.earnsPerDay, { amount: `+${p.dailyEarn.toFixed(2)}` });
+  const range = p.shareYieldMin != null && p.shareYieldMax != null
+    ? `${p.shareYieldMin}%–${p.shareYieldMax}%`
+    : t.value.store.shareAnnualUnavailable;
+  return `${t.value.store.shareReferenceAnnual}: ${range}`;
+}
 
 // 未正式上架的 SKU 不进组合建议(bundle 是可购组合面,走商城正门口径;审查 F12)。
 const suggestions = computed(() =>
@@ -255,14 +299,21 @@ const suggestions = computed(() =>
     ? PRODUCTS.filter(
       (p) =>
         !cart.items.includes(p.id) &&
-        p.tier !== "Share" &&
+        p.productType !== "SHARE" &&
         isProductAvailable(p, phase.value),
     ).slice(0, 3)
     : [],
 );
+watch([() => products.value.map((p) => p.id).join("|"),
+  () => suggestions.value.map((p) => p.id).join("|"), () => app.accountKey], () => {
+  if (remoteApiEnabled) void Promise.all([...products.value, ...suggestions.value]
+    .map((p) => purchaseEligibilityStore.ensure(p.id, true)));
+}, { immediate: true });
 
 function retryCatalog() {
   void refreshProductCatalog(true);
+  void refreshServerProductPhase(true);
+  void refreshBundlePolicy();
 }
 
 function retryReceiptWrite() {
@@ -288,17 +339,52 @@ function retryReceiptWrite() {
   }
 }
 
-const tiersReversed = computed(() => BUNDLE_DISCOUNT_TIERS.slice().reverse());
+const tiersReversed = computed(() => activeDiscountTiers.value.slice().reverse());
 
-const totalText = computed(() => total.value.toLocaleString(undefined, { maximumFractionDigits: 0 }));
+function activate(event: KeyboardEvent, action: () => void | Promise<void>) {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  void action();
+}
+
+function formatBundleUsdt(value: number): string {
+  return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 6 });
+}
+const totalText = computed(() => formatBundleUsdt(total.value));
 const discountLabel = computed(() => fmt(t.value.bundle.bundleDiscount, { pct: (discountPct.value * 100).toFixed(0) }));
 const checkoutCtaText = computed(() => fmt(t.value.bundle.checkoutCta, { total: totalText.value }));
 const submitting = ref(false);
-const checkoutUnavailable = computed(() => submitting.value || products.value.length < 2);
+const walletRefreshing = ref(false);
+let walletRefreshSequence = 0;
+
+async function refreshBundleWallet(): Promise<void> {
+  if (!remoteApiEnabled) return;
+  const request = app.captureRemoteAccountRequest();
+  const sequence = ++walletRefreshSequence;
+  walletRefreshing.value = true;
+  try {
+    await app.refreshRemoteFleet(request);
+  } finally {
+    if (sequence === walletRefreshSequence) walletRefreshing.value = false;
+  }
+}
+
+const checkoutUnavailable = computed(() => submitting.value || walletRefreshing.value || products.value.length < 2
+  || (remoteApiEnabled && products.value.some((p) => {
+    const entry = purchaseEligibilityStore.state(p.id);
+    return entry.status !== "ready" || !entry.eligible;
+  })));
 const ctaText = computed(() => (
-  submitting.value ? "…" : products.value.length < 2 ? t.value.bundle.checkoutUnavailableCta : checkoutCtaText.value
+  submitting.value || walletRefreshing.value ? "…" : checkoutUnavailable.value ? t.value.bundle.checkoutUnavailableCta : checkoutCtaText.value
 ));
-const checkoutHint = computed(() => products.value.length < 2 ? t.value.bundle.checkoutUnavailableHint : "");
+const checkoutHint = computed(() => {
+  if (products.value.length < 2) return t.value.bundle.checkoutUnavailableHint;
+  if (!remoteApiEnabled) return "";
+  const entries = products.value.map((p) => purchaseEligibilityStore.state(p.id));
+  if (entries.some((entry) => entry.status === "error")) return t.value.store.purchaseEligibilityError;
+  if (entries.some((entry) => entry.status !== "ready")) return t.value.store.purchaseEligibilityLoading;
+  return entries.some((entry) => !entry.eligible) ? t.value.store.purchaseEligibilityIneligible : "";
+});
 const BUNDLE_RECEIPT_RECOVERY_KEY = "nexgrid-bundle-receipt-recovery-v1";
 type BundleReceiptRecovery = { accountKey: string; draft: ReceiptDraft; orderIds: string[] };
 const receiptWriteFailure = ref<BundleReceiptRecovery | null>(null);
@@ -324,7 +410,18 @@ function clearReceiptRecovery(accountKey = orders.currentAccountKey()) {
   writeAccountRow<BundleReceiptRecovery | null>(BUNDLE_RECEIPT_RECOVERY_KEY, accountKey, null);
 }
 
-watch(() => app.accountKey, restoreReceiptRecovery);
+watch(() => app.accountKey, () => {
+  restoreReceiptRecovery();
+  void refreshBundleWallet();
+  // A direct H5 reload reaches onLoad/onShow before cookie session restore.
+  // The account rebind clears the pre-auth failure back to "loading"; retry
+  // these reads once the restored account owns a bearer session.
+  if (remoteApiEnabled && app.accountKey !== "default") {
+    void refreshProductCatalog(true);
+    void refreshServerProductPhase(true);
+    void refreshBundlePolicy();
+  }
+});
 
 function tierIsActive(tier: BundleDiscountTier): boolean {
   return products.value.length >= tier.minItems;
@@ -339,71 +436,211 @@ function remove(id: string) {
 function clear() {
   cart.clear();
 }
-function onAddSuggestion(p: Product) {
+async function onAddSuggestion(p: Product) {
+  if (remoteApiEnabled) {
+    if (purchaseEligibilityStore.state(p.id).status === "ready" && !purchaseEligibilityStore.state(p.id).eligible) {
+      navTo(`/pages/store/detail?id=${encodeURIComponent(p.id)}`);
+      return;
+    }
+    const scope = captureAccountScope();
+    const eligible = await purchaseEligibilityStore.ensure(p.id, true);
+    if (!isCurrentAccountScope(scope)) return;
+    if (!eligible) {
+      if (purchaseEligibilityStore.state(p.id).status === "error") toast.warn(t.value.store.purchaseEligibilityError);
+      else navTo(`/pages/store/detail?id=${encodeURIComponent(p.id)}`);
+      return;
+    }
+  }
+  if (!catalogReady.value || !isProductAvailable(p, phase.value) || cart.has(p.id)) return;
   cart.add(p.id);
-  toast.success(fmt(t.value.bundle.addedToBundle, { name: p.name }));
+  toast.success(fmt(t.value.bundle.addedToBundle, { name: nexGridBrandText(p.name) }));
 }
-interface PendingBundleCommands { commands: Record<string, string> }
+interface PendingBundleCommands { commands: Record<string, PendingBundleCommand | string> }
 const BUNDLE_COMMAND_KEY = "nexgrid-bundle-order-command-v1";
+const BUNDLE_COMMAND_LEGACY_RECOVERY_REQUIRED = "BUNDLE_COMMAND_LEGACY_RECOVERY_REQUIRED";
 function bundleFingerprint(list: Product[]): string {
   return list.map((item) => item.id).sort().join("|");
 }
-function acquireBundleKey(list: Product[], accountKey: string): string {
+function acquireBundleCommand(list: Product[], accountKey: string, expectedAmountUsdt: number): PendingBundleCommand {
   const fingerprint = bundleFingerprint(list);
-  const row = readAccountRow<PendingBundleCommands>(BUNDLE_COMMAND_KEY, accountKey);
+  const productNos = list.map((item) => item.id);
+  const row = readAccountRow<PendingBundleCommands>(BUNDLE_COMMAND_KEY, accountKey, true);
   const existing = row?.commands?.[fingerprint];
-  if (existing) return existing;
-  const suffix = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const key = `bundle:${suffix}`;
-  // persist-verdict-ok: 远端命令键耐久性归远端幂等设计(见 HANDOFF U-21)
-  writeAccountRow(BUNDLE_COMMAND_KEY, accountKey, {
-    commands: { ...(row?.commands ?? {}), [fingerprint]: key },
-  });
-  return key;
+  const restored = restoreBundleCommand(existing);
+  if (restored && "recoveryKey" in restored) throw new Error(BUNDLE_COMMAND_LEGACY_RECOVERY_REQUIRED);
+  if (restored) return restored.command;
+  const normalizedAmount = normalizeBundleExpectedAmountUsdt(expectedAmountUsdt);
+  if (normalizedAmount === null) throw new Error("BUNDLE_QUOTE_INVALID");
+  // A legacy string is a prior durable command key. Reuse it for recovery, but
+  // record the quote before issuing any request from this App version.
+  const key = acquireAccountCommandKey(BUNDLE_COMMAND_KEY, accountKey, fingerprint, "bundle");
+  const command = { key, expectedAmountUsdt: normalizedAmount, productNos };
+  const commands = { ...(readAccountRow<PendingBundleCommands>(BUNDLE_COMMAND_KEY, accountKey, true)?.commands ?? {}), [fingerprint]: command };
+  if (!writeAccountRow<PendingBundleCommands>(BUNDLE_COMMAND_KEY, accountKey, { commands })) {
+    throw new Error("ACCOUNT_COMMAND_STORAGE_UNAVAILABLE");
+  }
+  const committed = readAccountRow<PendingBundleCommands>(BUNDLE_COMMAND_KEY, accountKey, true)?.commands?.[fingerprint];
+  const committedCommand = restoreBundleCommand(committed);
+  if (!committedCommand || "recoveryKey" in committedCommand || committedCommand.command.key !== command.key
+      || committedCommand.command.expectedAmountUsdt !== command.expectedAmountUsdt
+      || committedCommand.command.productNos.join("|") !== command.productNos.join("|")) {
+    throw new Error("ACCOUNT_COMMAND_STORAGE_UNAVAILABLE");
+  }
+  return committedCommand.command;
 }
-function retireBundleKey(list: Product[], accountKey: string): void {
+function retireBundleKey(list: Product[], accountKey: string, expectedKey: string): void {
   const row = readAccountRow<PendingBundleCommands>(BUNDLE_COMMAND_KEY, accountKey);
   const commands = { ...(row?.commands ?? {}) };
+  const current = commands[bundleFingerprint(list)];
+  const currentKey = typeof current === "string"
+    ? current
+    : current && typeof current === "object" && typeof (current as PendingBundleCommand).key === "string"
+      ? (current as PendingBundleCommand).key
+      : undefined;
+  if (currentKey !== expectedKey) return;
   delete commands[bundleFingerprint(list)];
   // persist-verdict-ok: 远端命令键耐久性归远端幂等设计(见 HANDOFF U-21)
   writeAccountRow(BUNDLE_COMMAND_KEY, accountKey, { commands });
 }
 
+async function offerBundleWalletTopup(requiredUsdt: number): Promise<void> {
+  const accountScope = captureAccountScope();
+  const accepted = await confirm({
+    title: t.value.errors.insufficientBalanceTitle,
+    message: fmt(t.value.errors.insufficientBalanceMsg, { amt: requiredUsdt.toLocaleString() }),
+    confirmLabel: t.value.me.topup,
+    cancelLabel: t.value.store.coCancel,
+    icon: "warn",
+  });
+  if (accepted && isCurrentAccountScope(accountScope)) navTo("/pages/me/wallet-topup");
+}
+
 async function onCheckout() {
   const list = products.value;
-  if (list.length < 2 || submitting.value) return;
+  if (list.length < 2 || submitting.value || walletRefreshing.value) return;
   if (remoteApiEnabled) {
+    const submissionScope = captureAccountScope();
     const accountKey = orders.currentAccountKey();
+    const scopeIsCurrent = () => isCurrentAccountScope(submissionScope)
+      && orders.currentAccountKey() === accountKey;
+    const walletReceiptScope = app.captureRemoteAccountRequest();
+    const quotedTotal = normalizeBundleExpectedAmountUsdt(total.value);
+    if (quotedTotal === null) {
+      toast.warn(t.value.store.coTotalQuoteChanged);
+      return;
+    }
     submitting.value = true;
-    const key = acquireBundleKey(list, accountKey);
     try {
-      const created = await bundleOrderApi.create(list.map((item) => item.id), key);
-      if (mockFundsEnabled) {
-        const payment = await commercePaymentApi.confirm(created.orderNo, `payment:${created.orderNo}`);
-        if (payment.orderNo !== created.orderNo || payment.sourceEnvironment !== "SANDBOX") {
-          throw new Error("COMMERCE_PAYMENT_READBACK_INVALID");
+      const decisions = await Promise.all(list.map((p) => purchaseEligibilityStore.ensure(p.id, true)));
+      if (!scopeIsCurrent()) return;
+      const firstBlocked = decisions.findIndex((eligible) => !eligible);
+      if (firstBlocked >= 0) {
+        toast.warn(purchaseEligibilityStore.state(list[firstBlocked].id).status === "error"
+          ? t.value.store.purchaseEligibilityError : t.value.store.gateBlockedToast);
+        return;
+      }
+      const latestPolicy = await bundleDiscountApi.current();
+      if (!scopeIsCurrent()) return;
+      if (!policy.value || latestPolicy.policyVersion !== policy.value.policyVersion) {
+        policy.value = latestPolicy;
+        policyStatus.value = "ready";
+        toast.warn(t.value.bundle.policyChanged);
+        return;
+      }
+      const command = acquireBundleCommand(list, accountKey, quotedTotal);
+      if (app.user.usdtBalance + 0.000001 < command.expectedAmountUsdt) {
+        await offerBundleWalletTopup(command.expectedAmountUsdt);
+        return;
+      }
+      let canonicalOrderCommitted = false;
+      let paymentConfirmed = false;
+      let confirmedOrderNo = "";
+      let createdOrderNo = "";
+      try {
+        const created = await bundleOrderApi.create(
+          command.productNos, latestPolicy.policyVersion, command.expectedAmountUsdt, command.key);
+        if (!scopeIsCurrent()) return;
+        canonicalOrderCommitted = true;
+        createdOrderNo = created.orderNo;
+        if (!matchesBundleQuote(created, command.productNos, command.expectedAmountUsdt)) {
+          throw new ApiError({ kind: "protocol", message: "BUNDLE_QUOTE_RECEIPT_MISMATCH" });
         }
-        const readback = (await orderApi.list()).orders.find((order) => order.orderNo === created.orderNo);
-        if (!isCanonicalPaidOrder(readback, created.orderNo, created.itemCount)) {
-          throw new Error("COMMERCE_PAYMENT_READBACK_INVALID");
+        const paid = await orderApi.pay(created.orderNo, `wallet-pay:${created.orderNo}`);
+        if (!scopeIsCurrent()) return;
+        if (paid.orderNo !== created.orderNo
+            || (paid.paymentMethod === "WALLET"
+              && (paid.walletBalanceAfterUsdt === null
+                || !app.adoptCommerceWallet(paid.walletBalanceAfterUsdt, walletReceiptScope)))) {
+          throw new Error("BUNDLE_WALLET_PAYMENT_RECEIPT_INVALID");
+        }
+        paymentConfirmed = true;
+        confirmedOrderNo = created.orderNo;
+        retireBundleKey(list, accountKey, command.key);
+        cart.clear();
+        await orders.refreshRemote();
+        if (!scopeIsCurrent()) return;
+        const settled = orders.orders.find((order) => order.id === created.orderNo);
+        if (!settled || settled.status !== "activated") {
+          throw new Error("BUNDLE_WALLET_PAYMENT_READBACK_MISMATCH");
+        }
+        // Order + wallet receipt are already canonical. Fleet projection is
+        // best effort and must never cause a second payment submission.
+        void app.refreshRemoteFleet(walletReceiptScope);
+        const successBody = t.value.bundle.checkoutSuccessBody;
+        toast.success(t.value.bundle.checkoutSuccessTitle,
+          fmt(successBody, { count: created.itemCount }));
+        navTo("/pages/store/orders");
+      } catch (error) {
+        const policyStale = error instanceof ApiError && error.message === "BUNDLE_DISCOUNT_POLICY_STALE";
+        const quoteStale = error instanceof ApiError && error.message === "BUNDLE_QUOTE_STALE";
+        const idempotencyPayloadMismatch = error instanceof ApiError && error.message === "IDEMPOTENCY_KEY_PAYLOAD_MISMATCH";
+        const apiError = asApiError(error);
+        if (!canonicalOrderCommitted && !idempotencyPayloadMismatch
+            && (policyStale || quoteStale || !isAmbiguousOutcome(error))) {
+          retireBundleKey(list, accountKey, command.key);
+        }
+        if (!scopeIsCurrent()) return;
+        if (paymentConfirmed) {
+          toast.warn(t.value.orders.walletPaymentConfirmedRefreshPending);
+          if (confirmedOrderNo) navTo(`/pages/store/order-detail?id=${encodeURIComponent(confirmedOrderNo)}`);
+          return;
+        }
+        if (policyStale || quoteStale) {
+          await Promise.all([refreshBundlePolicy(), refreshProductCatalog(true)]);
+          toast.warn(quoteStale ? t.value.store.coTotalQuoteChanged : t.value.bundle.policyChanged);
+          return;
+        }
+        if (idempotencyPayloadMismatch) {
+          toast.warn(t.value.bundle.checkoutOutcomeUnknown);
+          navTo("/pages/store/orders");
+          return;
+        }
+        if (apiError.message === "BUNDLE_QUOTE_RECEIPT_MISMATCH") {
+          toast.warn(t.value.bundle.checkoutOutcomeUnknown);
+          if (createdOrderNo) navTo(`/pages/store/order-detail?id=${encodeURIComponent(createdOrderNo)}`);
+          else navTo("/pages/store/orders");
+          return;
+        }
+        if (apiError.message === "ACCOUNT_COMMAND_STORAGE_UNAVAILABLE") {
+          toast.error(t.value.errors.txNotSavedTitle, t.value.errors.txNotSavedMsg);
+        } else if (apiError.message === "ORDER_WALLET_INSUFFICIENT") {
+          await offerBundleWalletTopup(quotedTotal);
+        } else if (["ORDER_MONTHLY_QUOTA_PAUSED", "ORDER_MONTHLY_QUOTA_EXHAUSTED"].includes(apiError.message)) {
+          toast.warn(t.value.quota.stockUnavailable);
+        } else {
+          toast.warn(isAmbiguousOutcome(error)
+            ? t.value.bundle.checkoutOutcomeUnknown
+            : t.value.tradein.errPurchaseFailed);
         }
       }
-      retireBundleKey(list, accountKey);
-      if (orders.currentAccountKey() !== accountKey) return;
-      cart.clear();
-      const successBody = mockFundsEnabled
-        ? t.value.bundle.checkoutSuccessBody
-        : t.value.bundle.checkoutPendingBody;
-      toast.success(t.value.bundle.checkoutSuccessTitle,
-        fmt(successBody, { count: created.itemCount }));
-      navTo("/pages/store/orders");
     } catch (error) {
-      if (!isAmbiguousOutcome(error)) retireBundleKey(list, accountKey);
-      if (orders.currentAccountKey() !== accountKey) return;
-      toast.warn(isAmbiguousOutcome(error)
-        ? t.value.bundle.checkoutOutcomeUnknown
-        : t.value.tradein.errPurchaseFailed);
+      if (error instanceof Error && error.message === BUNDLE_COMMAND_LEGACY_RECOVERY_REQUIRED) {
+        toast.warn(t.value.bundle.checkoutOutcomeUnknown);
+        navTo("/pages/store/orders");
+        return;
+      }
+      policyStatus.value = "error";
+      toast.warn(t.value.store.catalogErrorBody);
     } finally {
       submitting.value = false;
     }
@@ -490,10 +727,10 @@ async function onCheckout() {
 }
 
 // ───── style objects ─────
-const catalogStateStyle: CSSProperties = {
+const catalogStateStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "18px 16px",
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const catalogStateTitleStyle: CSSProperties = {
   fontSize: "15px",
@@ -515,14 +752,14 @@ const catalogRetryStyle: CSSProperties = {
   fontSize: "13px",
   fontWeight: 600,
 };
-const receiptFailureCardStyle: CSSProperties = {
+const receiptFailureCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   padding: "24px 20px",
-  background: "var(--v5-surface)",
+  background: "var(--nx-glass-fill)",
 };
-const heroStyle: CSSProperties = {
+const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "18px",
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const heroAuroraStyle: CSSProperties = {
   position: "absolute",
@@ -591,9 +828,9 @@ function tierPctStyle(tier: BundleDiscountTier): CSSProperties {
 
 // Shared form-b container (items list + suggestions list): surface, no border,
 // internal hairline rows. overflow-hidden on the element clips the row corners.
-const cardStyle: CSSProperties = {
-  borderRadius: "16px",
-  background: "var(--v5-surface)",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const itemsHeadingStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
@@ -691,4 +928,6 @@ const ctaHintStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
   textWrap: "pretty",
 };
+
+
 </script>

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
+import { nextTick, watch } from "vue";
 import type { CanonicalOrder, CanonicalOrderList } from "@/api/order-api";
-import { setCurrentCommerceSandboxRun } from "@/api/order-api";
+import { advanceRuntimeRevision } from "@/api/order-api";
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
@@ -23,10 +24,12 @@ function deferred<T>() {
 function list(label: string): CanonicalOrderList {
   const order: CanonicalOrder = {
     orderNo: `ORD-${label}`, productId: 1, productNo: "stellarbox-pro", productName: label,
-    quantity: 1, unitPriceUsdt: 100, discountUsdt: 0, amountUsdt: 100,
+    quantity: 1, subtotalUsdt: 100, unitPriceUsdt: 100, discountUsdt: 0, amountUsdt: 100,
     paymentMethod: "USDT", paymentStatus: "PENDING", orderStatus: "PENDING_PAYMENT",
     activationStatus: "WAITING_PAYMENT", canonicalStatus: "placed", orderType: "SINGLE",
-    placedAt: 1, paidAt: null, activatedAt: null, dataCenter: null, tradeinNo: null,
+    placedAt: 1, expiresAt: 2, paidAt: null, activatedAt: null,
+    refundedAt: null, refundAmountUsdt: null, refundChannel: null, refundBillNo: null,
+    dataCenter: null, tradeinNo: null,
     sourceDeviceId: null, targetDeviceId: null, targetDeviceInstanceNo: null, itemCount: null,
   };
   return { source: "server", sourceEnvironment: "PRODUCTION", runId: null, orders: [order] };
@@ -34,12 +37,39 @@ function list(label: string): CanonicalOrderList {
 
 beforeEach(() => {
   setActivePinia(createPinia());
-  setCurrentCommerceSandboxRun(null);
+  advanceRuntimeRevision(null);
   remote.orderApi.list.mockReset();
   remote.orderApi.cancel.mockReset();
 });
 
 describe("orders consume only the current request scope", () => {
+  it("reactively publishes a completed cold-start account rebind", async () => {
+    const store = useOrders();
+    const observed: string[] = [];
+    const stop = watch(() => store.currentAccountKey(), (accountKey) => observed.push(accountKey));
+
+    store.bindAccount("user:restored");
+    await nextTick();
+
+    expect(observed).toEqual(["user:restored"]);
+    stop();
+  });
+
+  it("publishes a new binding revision when the same restored account is rebound", async () => {
+    const store = useOrders();
+    const initialRevision = store.currentAccountBindingRevision();
+    const observed: number[] = [];
+    const stop = watch(() => store.currentAccountBindingRevision(), (revision) => observed.push(revision));
+
+    store.bindAccount("user:restored");
+    await nextTick();
+    store.bindAccount("user:restored");
+    await nextTick();
+
+    expect(observed).toEqual([initialRevision + 1, initialRevision + 2]);
+    stop();
+  });
+
   it("drops an older same-account refresh after a newer response wins", async () => {
     const oldRequest = deferred<CanonicalOrderList>();
     const newRequest = deferred<CanonicalOrderList>();
@@ -69,15 +99,15 @@ describe("orders consume only the current request scope", () => {
     expect(store.orders).toEqual([]);
   });
 
-  it("drops a late response after the commerce RunID changes", async () => {
-    setCurrentCommerceSandboxRun("run-20260816");
+  it("drops a late response after the runtime revision changes", async () => {
+    advanceRuntimeRevision("run-20260816");
     const stale = deferred<CanonicalOrderList>();
     remote.orderApi.list.mockReturnValue(stale.promise);
     const store = useOrders();
     store.bindAccount("A");
     const pending = store.refreshRemote();
-    setCurrentCommerceSandboxRun("run-20260817");
-    stale.resolve({ ...list("old"), source: "mock", sourceEnvironment: "SANDBOX", runId: "run-20260816" });
+    advanceRuntimeRevision("run-20260817");
+    stale.resolve(list("old"));
     await pending;
     expect(store.orders).toEqual([]);
   });

@@ -11,8 +11,8 @@
  *
  * 两个正交断言(缺一不可):
  *   ① 阶梯序:登录/注册页**同时挂载**的 6 个浮层必须严格递增(值解析不到 = 红,不许假绿)。
- *   ② 全局天花板:滑块必须是业务面最高层 —— 全站扫一遍 z-index,除模拟设备 chrome
- *      白名单外不许有人 ≥ 滑块。①只遍历已知成员,新加一个 9600 的浮层它看不见;②才看得见。
+ *   ② 全局天花板:两种滑块验证码都是同级最高的安全控件 —— 全站扫一遍 z-index,除模拟设备
+ *      chrome 白名单外不许有人 ≥ 验证码。①只遍历已知成员,新加一个 9600 的浮层它看不见;②才看得见。
  *
  * 用法:node scripts/zindex-order.mjs [--selftest]
  */
@@ -29,21 +29,26 @@ export const stripComments = (s) =>
     .replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, " "))
     .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
 
-/** 规则块取 z-index;选择器写死 pin,解析不到返回 null(调用方必须判 null) */
-export function zOf(text, selector) {
+/** 规则块取 z-index 及其源码偏移;注释以空格替换后偏移仍和原文件一致。 */
+export function zHitOf(text, selector) {
   const src = stripComments(text);
-  const m = src.match(new RegExp(selector.replace(/\./g, "\\.") + "\\s*\\{[^}]*?z-index:\\s*(\\d+)", "s"));
-  return m ? parseInt(m[1], 10) : null;
+  const m = new RegExp(selector.replace(/\./g, "\\.") + "\\s*\\{[^}]*?z-index:\\s*(\\d+)", "s").exec(src);
+  return m ? { z: parseInt(m[1], 10), offset: m.index + m[0].lastIndexOf("z-index") } : null;
 }
 
-/** 全站扫 z-index 数值(含内联 style),返回 {file,line,z} */
+/** 规则块取 z-index;选择器写死 pin,解析不到返回 null(调用方必须判 null) */
+export function zOf(text, selector) {
+  return zHitOf(text, selector)?.z ?? null;
+}
+
+/** 全站扫 z-index 数值(含内联 style),返回 {file,line,z,offset}。 */
 export function scanAll(files) {
   const hits = [];
   for (const { rel, text } of files) {
     const src = stripComments(text);
     const re = /z-index:\s*(\d+)/g;
     let m;
-    while ((m = re.exec(src))) hits.push({ file: rel, line: src.slice(0, m.index).split("\n").length, z: parseInt(m[1], 10) });
+    while ((m = re.exec(src))) hits.push({ file: rel, line: src.slice(0, m.index).split("\n").length, z: parseInt(m[1], 10), offset: m.index });
   }
   return hits;
 }
@@ -60,6 +65,15 @@ export const LADDER = [
   { file: "src/components/device/standalone-page-shell.vue", sel: ".nx-standalone-home", role: "模拟设备 chrome(硬件层,pointer-events:none)" },
 ];
 
+/*
+ * 本地和服务端验证码是同一个发码阻断点的两种运行实现。它们允许同层,但必须同值:
+ * 若把其中一个排除出天花板却不钉住同级关系,业务浮层也能借这个口子逃逸。
+ */
+export const CAPTCHA_SECURITY_CONTROLS = [
+  { file: "src/components/captcha-slider.vue", sel: ".cs-layer", role: "本地滑块验证码" },
+  { file: "src/components/server-captcha-slider.vue", sel: ".cs-layer", role: "服务端滑块验证码" },
+];
+
 /* ── 契约 ③:庆祝浮层必须低于全部业务浮层 ──────────────────────────────────
    秩序表(captcha-slider.vue 单源)原文:「里程碑庆祝 —— 必须在业务 UI 之下」。
    业务浮层带 = 秩序表里 790/800 业务半屏 → 900 说明半屏 → 8000/8001 分享半屏 这一段;
@@ -69,14 +83,14 @@ export const LADDER = [
    **付款半屏**漏在窗外 —— stake-sheet / genesis purchase-sheet / eligibility-sheet
    当时是 79/80(比秩序表记的 790/800 少一位数),庆祝 780 压在它们之上并**吃掉
    「锁仓」按钮的点击**(elementFromPoint 实测命中 .ms-backdrop)。那三张已归位到
-   790/800。2026-08-17 三处残留(消息抽屉 110/120 · opensea 弹窗 120 · PC 设备卡长按
+   790/800。2026-08-17 三处残留(消息抽屉 110/120 · OpenSea 弹窗 120 · PC 设备卡长按
    菜单 200)也已迁入 790/800,下沿随之降到 111 = 底盘常驻件最高值(模拟设备状态栏
    110)+1;此后 111 以上任何新浮层都在扫描面内。 */
 export const BUSINESS_BAND_FLOOR = 111; // 仅供文档/红测引用;判据已改为结构式,不再按数值取带
 
 /**
  * 结构判据的**显式欠账清单** —— 空 = 目标状态(2026-08-17 三条全部清掉:消息抽屉
- * 110/120 · opensea 弹窗 120 · PC 设备卡长按菜单 200,均已迁入 790/800 业务半屏带)。
+ * 110/120 · OpenSea 弹窗 120 · PC 设备卡长按菜单 200,均已迁入 790/800 业务半屏带)。
  * 🔴 这是**记账不是豁免**:清单在这里就是为了让下一个人看见它、而不是让门装作没看见。
  * 清掉一条就从这里删一条;新增任何一条都必须在这里写明理由,否则等于把缺陷藏进门里。
  *
@@ -85,19 +99,17 @@ export const BUSINESS_BAND_FLOOR = 111; // 仅供文档/红测引用;判据已�
  * fixed)、设备卡写的是内联 style(判据只扫 <style> 块)。所以本轮同时:
  *   · 抽屉改写成 fixed 满屏遮罩,与其余 19 个同形 → 自然落进扫描面;
  *   · 判据补扫 <template> 里的内联 style(见 scanFullScreenScrims);
- *   · 加 BAND_ANCHOR 钉住这三处,防「改回 absolute」这类绕过扫描面的回退。
+ *   · 加 BAND_ANCHOR 钉住仍存活的两处,防「改回 absolute」这类绕过扫描面的回退。
  */
 export const SCRIM_EXEMPT = [];
 
 /**
- * 回退锚 —— 这三处是 2026-08-17 从 110/120/200 迁进业务带的,必须一直**被扫描面看得见**。
+ * 回退锚 —— 仍存活的设备卡菜单必须一直**被扫描面看得见**；消息中心已改为普通全屏页面。
  * 与 SCRIM_EXEMPT 极性相反:那张是「别管这些」,这张是「这些必须在管辖内」。
  * why:光靠数值判据挡不住「把 position 改回 absolute」——形态一变判据就看不见它,
  * 于是 z 掉回 110 也全绿(这正是本轮之前的真实状态)。锚按文件断言,改名/删除同样红。
  */
 export const BAND_ANCHOR = [
-  "src/components/message-drawer.vue",
-  "src/components/genesis/opensea-modal.vue",
   "src/components/earn/device-card-pc.vue",
 ];
 
@@ -267,14 +279,30 @@ export function evaluate(files = readVueFiles()) {
           `形态一改(absolute / 挪写法)判据就看不见它,z 掉回去也不会红`,
       );
 
-  // ② 天花板
+  // ② 天花板。两种验证码都必须解析到，且严格保持同级；它们是唯一允许等于安全天花板的组件。
   const capt = rungs.find((r) => r.sel === ".cs-layer");
+  const captchaControls = CAPTCHA_SECURITY_CONTROLS.map((control) => {
+    const hit = byRel.has(control.file) ? zHitOf(byRel.get(control.file), control.sel) : null;
+    return { ...control, hit, z: hit?.z ?? null };
+  });
+  for (const control of captchaControls) {
+    if (control.z === null)
+      problems.push(`验证码安全层级解析不到:${control.file} ${control.sel} —— 被删/改名/改写法都算红`);
+    else if (capt?.z != null && control.z !== capt.z)
+      problems.push(`验证码安全层级不一致:${control.role}(${control.z}) 必须 = 本地滑块验证码(${capt.z})`);
+  }
   const exemptFiles = new Set(CEILING_EXEMPT.map((e) => e.file));
-  const over = capt?.z == null ? [] : scanAll(files).filter((h) => h.z >= capt.z && !exemptFiles.has(h.file) && h.file !== "src/components/captcha-slider.vue");
+  // 只豁免验证码规则内**那一个** z-index 声明，不能按文件排除：同组件中新加的业务
+  // 浮层即使也写 9500，仍会在这里被抓住。
+  const captchaRuleOffsets = new Map(captchaControls.filter((control) => control.hit).map((control) => [control.file, control.hit.offset]));
+  const ceilingHits = scanAll(files);
+  const over = capt?.z == null ? [] : ceilingHits.filter((h) =>
+    h.z >= capt.z && !exemptFiles.has(h.file) && captchaRuleOffsets.get(h.file) !== h.offset,
+  );
   for (const h of over)
     problems.push(`天花板破了:${h.file}:${h.line} z-index ${h.z} ≥ 滑块 ${capt.z} —— 滑块是阻断式安全控件,不许有业务浮层压在它上面`);
 
-  return { rungs, problems, scanned: files.length, ceilingScanned: scanAll(files).length };
+  return { rungs, problems, scanned: files.length, ceilingScanned: ceilingHits.length };
 }
 
 /* ── 红测:每个合取项单独隔离破坏,一次只坏一项 ───────────────────────────── */
@@ -371,7 +399,7 @@ function selftest() {
   {
     // 事故现场:说明型半屏(原子类定位)退回 90 —— 补这条轴之前它退回去也不会红。
     const files = patch("src/components/earn/capacity-explainer-sheet.vue",
-      (t) => t.replace(/(class="fixed inset-0" style="z-index: )900/, "$190"));
+      (t) => t.replace(/(class="[^"]*\bfixed\b[^"]*\binset-0\b[^"]*" style="z-index: )900/, "$190"));
     p("红测③-原子类事故现场 说明半屏退回 90 必红(补轴前它是判据外的)",
       evaluate(files).problems.some((x) => x.startsWith("庆祝压在业务 UI 之上")),
       evaluate(files).problems.join(" / "));
@@ -385,25 +413,23 @@ function selftest() {
       evaluate(files).problems.join(" / "));
   }
   {
-    // 🔴 轴「形态回退」:把抽屉改回 position:absolute —— 数值判据看不见它了,
+    // 🔴 轴「形态回退」:把设备菜单改回 position:absolute —— 数值判据看不见它了,
     //    此时 z 掉回 110 也不会红。锚必须抓住「扫描面少了成员」这件事本身。
-    const files = patch("src/components/message-drawer.vue",
-      (t) => t.replace(/(\.md-root\s*\{[^}]*?)position:\s*fixed/s, "$1position: absolute"));
-    p("红测③-锚 抽屉改回 position:absolute 必红(形态一变判据就失明)",
+    const files = patch("src/components/earn/device-card-pc.vue",
+      (t) => t.replace("position: fixed; inset: 0", "position: absolute; inset: 0"));
+    p("红测③-锚 设备菜单改回 position:absolute 必红(形态一变判据就失明)",
       evaluate(files).problems.some((x) => x.startsWith("扫描面丢了成员")),
       evaluate(files).problems.join(" / "));
   }
   {
     // 锚的另一面:文件整体消失(删除 / 改名)也必须红,不许静默少守一处。
-    const files = clone().filter((f) => f.rel !== "src/components/genesis/opensea-modal.vue");
+    const files = clone().filter((f) => f.rel !== BAND_ANCHOR[0]);
     p("红测③-锚-消失 锚定文件被删/改名必红(不许因遍历不到而放行)",
       evaluate(files).problems.some((x) => x.startsWith("扫描面丢了成员")));
   }
   {
-    // 三处迁入后的数值本身:任一处掉回庆祝之下必红(锚管形态,这条管数值)。
+    // 存活锚的数值掉回庆祝之下必红(锚管形态,这条管数值)。
     for (const [rel, from, to] of [
-      ["src/components/message-drawer.vue", /(\.md-root\s*\{[^}]*?z-index:\s*)\d+/s, "$1110"],
-      ["src/components/genesis/opensea-modal.vue", /(\.nx-os-overlay\s*\{[^}]*?z-index:\s*)\d+/s, "$1120"],
       ["src/components/earn/device-card-pc.vue", /(position: fixed; inset: 0; z-index: )\d+/, "$1200"],
     ]) {
       const files = patch(rel, (t) => t.replace(from, to));
@@ -435,6 +461,25 @@ function selftest() {
     files.push({ rel: "src/components/device/standalone-page-shell.vue.bak", text: ".x { z-index: 10050; }" });
     p("红测②-反向 白名单外的 10050 也必红(白名单按文件不按数值)", evaluate(files).problems.some((x) => x.startsWith("天花板破了")));
   }
+  {
+    const securityProblems = evaluate(base).problems.filter((x) => x.startsWith("验证码安全层级"));
+    p("验证码正测 两种验证码同为 9500 的同级安全控件", securityProblems.length === 0, securityProblems.join(" / "));
+  }
+  {
+    const files = patch("src/components/server-captcha-slider.vue", (t) => t.replace(/(\.cs-layer\s*\{[^}]*?z-index:\s*)\d+/s, "$19499"));
+    p("验证码红测 服务端验证码降到 9499 必红(不得被业务层压住)",
+      evaluate(files).problems.some((x) => x.startsWith("验证码安全层级不一致")));
+  }
+  {
+    const files = patch("src/components/server-captcha-slider.vue", (t) => t.replace(/(\.cs-layer\s*\{[^}]*?z-index:\s*)\d+/s, "$19501"));
+    p("验证码红测 服务端验证码升到 9501 必红(不得抬高安全天花板)",
+      evaluate(files).problems.some((x) => x.startsWith("验证码安全层级不一致")));
+  }
+  for (const z of [9500, 9600]) {
+    const files = patch("src/components/server-captcha-slider.vue", (t) => `${t}\n<style scoped>\n.business { z-index: ${z}; }\n</style>`);
+    p(`验证码红测 同组件新增业务层 ${z} 仍必红(只放行 .cs-layer 的准确声明)`,
+      evaluate(files).problems.some((x) => x.startsWith("天花板破了")));
+  }
 
   // 判据本身:注释里的层级表不许被当成代码(否则本文件的说明注释会自伤)
   p("阴性 注释里的 z-index 不计数", scanAll([{ rel: "a.vue", text: "/* z-index: 99999 */\n<!-- z-index: 88888 -->" }]).length === 0);
@@ -454,7 +499,7 @@ if (res.problems.length) {
   console.error(`层级秩序: ${res.problems.length} 处违例\n`);
   for (const m of res.problems.slice(0, 10)) console.error("  " + m);
   if (res.problems.length > 10) console.error(`  …另有 ${res.problems.length - 10} 处同类(多为滑块被压低后「全世界都在它上面」的连带)`);
-  console.error(`\n秩序表见 src/components/captcha-slider.vue 顶部注释(单源)。确属例外 → 改本脚本的 LADDER / CEILING_EXEMPT 并写 reason。`);
+  console.error(`\n秩序表见 src/components/captcha-slider.vue 顶部注释(单源)。验证码同级实现只能改 CAPTCHA_SECURITY_CONTROLS；业务例外才可改 CEILING_EXEMPT 并写 reason。`);
   process.exit(1);
 }
 console.log(

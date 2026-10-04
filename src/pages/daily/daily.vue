@@ -15,32 +15,40 @@
     <CardStagger style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/wallet" />
 
-      <view v-if="remoteApiEnabled && remoteRefreshError" class="mx-4 rounded-2xl" :style="remoteErrorStyle">
+      <view v-if="remoteApiEnabled && (remoteRefreshError || faucet.remoteReadState === 'error')" class="mx-4 rounded-2xl" :style="remoteErrorStyle">
         <view class="flex items-center justify-between" style="gap: 12px">
           <text :style="{ color: 'var(--v5-warning)', fontSize: '12px', lineHeight: '1.5' }">{{ t.authOtp.errorServiceUnavailable }}</text>
-          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" :aria-disabled="remoteRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="refreshDaily">
+          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" :aria-disabled="remoteRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="refreshDaily"  @keydown.enter.prevent="refreshDaily" @keydown.space.prevent="refreshDaily">
             <text>{{ t.store.catalogRetry }}</text>
           </view>
         </view>
       </view>
 
+      <view v-if="remoteInitialLoading || (remoteApiEnabled && ['idle', 'loading'].includes(faucet.remoteReadState))" class="px-4" role="status" aria-live="polite">
+        <text class="block text-center" style="padding: 48px 16px; color: var(--v5-ink-3); font-size: 13px">{{ t.daily.loading }}</text>
+      </view>
+
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
+        <template v-if="dailyFactsReady">
         <!-- Streak hero -->
-        <view class="relative overflow-hidden text-center" :style="heroStyle">
+        <view class="nx-glass-card relative overflow-hidden text-center" :style="heroStyle">
           <text aria-hidden :style="fireStyle">🔥</text>
           <view class="relative">
             <text class="block tabular-nums" :style="streakNumStyle">{{ streak }}</text>
             <text class="block" :style="streakLblStyle">{{ t.daily.activeStreak }}</text>
             <text class="block" :style="streakPointsStyle">{{ heroLineText }}</text>
             <!-- Sign-in button -->
-            <view class="w-full inline-flex items-center justify-center active:opacity-90" :style="signInBtnStyle" @click="handleCheckIn">
+            <view class="w-full inline-flex items-center justify-center active:opacity-90" :style="signInBtnStyle" role="button" tabindex="0" :aria-disabled="lastSignedToday || remoteRefreshing || checkInSubmitting || !checkInStateConfirmed ? 'true' : 'false'" @click="handleCheckIn"  @keydown.enter.prevent="handleCheckIn" @keydown.space.prevent="handleCheckIn">
               <template v-if="lastSignedToday">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px"><path d="M20 6 9 17l-5-5" /></svg>
                 <text>{{ t.daily.checkedInToday }}</text>
               </template>
+              <template v-else-if="!checkInStateConfirmed">
+                <text>{{ t.daily.checkInUnconfirmed }}</text>
+              </template>
               <template v-else>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>
-                <text>{{ t.daily.checkInCta }}</text>
+                <text>{{ checkInCtaText }}</text>
               </template>
             </view>
             <view v-if="lastSignedToday" class="inline-flex items-center" :style="nextClaimStyle">
@@ -51,7 +59,7 @@
         </view>
 
         <!-- Lucky multiplier hint -->
-        <text class="text-center" :style="luckyHintStyle">{{ t.daily.luckyHint }}</text>
+        <text class="text-center" :style="luckyHintStyle">{{ luckyHint }}</text>
 
         <!-- Milestone rewards -->
         <view :style="milestoneCardStyle">
@@ -78,7 +86,7 @@
                 </view>
                 <text class="block" v-if="!isMilestoneUnlocked(m)" :style="milestoneLeftStyle">{{ daysLeftText(m.day) }}</text>
               </view>
-              <view class="active:opacity-80 transition-opacity" :style="milestoneBtnStyle(m)" @click="handleClaimMilestone(m)">
+              <view class="active:opacity-80 transition-opacity" :style="milestoneBtnStyle(m)" role="button" tabindex="0" :aria-disabled="!isMilestoneUnlocked(m) || isMilestoneClaimed(m) ? 'true' : 'false'" @click="handleClaimMilestone(m)"  @keydown.enter.prevent="handleClaimMilestone(m)" @keydown.space.prevent="handleClaimMilestone(m)">
                 <text>{{ isMilestoneClaimed(m) ? t.daily.milestones.claimed : t.daily.milestones.claim }}</text>
               </view>
             </view>
@@ -89,7 +97,7 @@
         <StreakPowerUps />
 
         <!-- Streak Saver -->
-        <view :style="saverCardStyle">
+        <view class="nx-glass-card" :style="saverCardStyle">
           <view class="flex items-start" style="gap: 12px">
             <view class="grid place-items-center shrink-0" :style="saverIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
@@ -99,14 +107,14 @@
               <text class="block" :style="saverHeadlineStyle">{{ saverHeadlineText }}</text>
               <text class="block" :style="saverCountStyle">{{ saverCountText }}</text>
             </view>
-            <view class="active:opacity-80 transition-opacity" :style="saverBtnStyle" @click="handleUseSaver">
+            <view class="active:opacity-80 transition-opacity" :style="saverBtnStyle" role="button" tabindex="0" :aria-disabled="!streakBroken || remoteRefreshing || saverSubmitting ? 'true' : 'false'" @click="handleUseSaver"  @keydown.enter.prevent="handleUseSaver" @keydown.space.prevent="handleUseSaver">
               <text>{{ t.daily.saver.use }}</text>
             </view>
           </view>
         </view>
 
         <!-- Top Streakers -->
-        <view class="overflow-hidden" :style="leaderCardStyle">
+        <view class="nx-glass-card overflow-hidden" :style="leaderCardStyle">
           <view class="px-4 flex items-center justify-between" style="padding-top: 12px; padding-bottom: 8px">
             <text :style="leaderLabelStyle">{{ t.daily.topStreakers.label }}</text>
             <text :style="leaderBestStyle">{{ yourBestText }}</text>
@@ -125,11 +133,12 @@
           <text class="block px-4" :style="leaderSubStyle">{{ t.daily.topStreakers.sub }}</text>
         </view>
 
+        </template>
         <!-- Stats grid -->
         <view class="grid grid-cols-3" style="gap: 8px">
           <view class="text-center" :style="statStyle">
             <text class="block" :style="statLabelStyle">{{ t.daily.balance }}</text>
-            <text class="block tabular-nums" :style="statValStyle('var(--v5-success)')">{{ app.user.nexBalance }}</text>
+            <text class="block tabular-nums" :style="statValStyle('var(--v5-success)')">{{ !remoteApiEnabled || app.remoteFleetHasSnapshot ? app.user.nexBalance : '—' }}</text>
             <text class="block" :style="statSubStyle">{{ t.daily.points }}</text>
           </view>
           <view class="text-center" :style="statStyle">
@@ -144,8 +153,17 @@
           </view>
         </view>
 
+        <text v-if="remoteApiEnabled" class="block" :style="statSubStyle">{{ t.daily.ledgerScope }}</text>
+        <view v-if="remoteApiEnabled && app.remoteFleetStatus === 'error'" role="status">
+          <text class="block" :style="statSubStyle">{{ app.remoteFleetHasSnapshot ? t.wallet.fundsStaleBody : t.wallet.fundsUnavailableBody }}</text>
+          <view class="inline-flex active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshBalance(false)"  @keydown.enter.prevent="refreshBalance(false)" @keydown.space.prevent="refreshBalance(false)">
+            <text>{{ t.wallet.retryFunds }}</text>
+          </view>
+        </view>
+        <text v-if="remoteApiEnabled && bills.summaryStatus === 'ready' && (bills.summary?.settledRewardsNex == null || bills.summary?.withdrawalOffsetNexSpent == null)" class="block" :style="statSubStyle">{{ t.home.quickFactsFailed }}</text>
+
         <!-- Withdrawal context -->
-        <view :style="withdrawCardStyle" class="active:scale-[0.98]" @click="goWithdraw">
+        <view :style="withdrawCardStyle" class="nx-glass-card active:scale-[0.98]" role="button" tabindex="0" @click="goWithdraw"  @keydown.enter.prevent="goWithdraw" @keydown.space.prevent="goWithdraw">
           <view class="flex items-center" style="gap: 12px">
             <view class="grid place-items-center" :style="withdrawIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
@@ -160,8 +178,14 @@
         <!-- History -->
         <view>
           <text class="block px-1" :style="historyLabelStyle">{{ t.daily.recent }}</text>
-          <view class="overflow-hidden" :style="historyCardStyle">
-            <EmptyState v-if="faucet.history.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" compact />
+          <view class="nx-glass-card overflow-hidden" :style="historyCardStyle">
+            <view v-if="remoteApiEnabled && bills.summaryStatus !== 'ready'" class="p-4">
+              <text>{{ bills.summaryStatus === 'error' ? t.home.quickFactsFailed : t.home.quickFactsLoading }}</text>
+              <view v-if="bills.summaryStatus === 'error'" class="inline-flex active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshLedger()"  @keydown.enter.prevent="refreshLedger()" @keydown.space.prevent="refreshLedger()">
+                <text>{{ t.store.catalogRetry }}</text>
+              </view>
+            </view>
+            <EmptyState v-else-if="historyRows.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" compact />
             <view
               v-for="(h, i) in historyRows"
               v-else
@@ -170,7 +194,7 @@
               :style="historyRowStyle(i === historyRows.length - 1)"
             >
               <view>
-                <text class="block" :style="historyReasonStyle">{{ historyReason(h.reason) }}</text>
+                <text class="block" :style="historyReasonStyle">{{ h.reason }}</text>
                 <text class="block" :style="historyTimeStyle">{{ formatTs(h.ts) }}</text>
               </view>
               <text class="block tabular-nums" :style="historyDeltaStyle(h.delta)">{{ h.delta > 0 ? "+" : "" }}{{ h.delta }}</text>
@@ -183,7 +207,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -191,14 +216,23 @@ import CardStagger from "@/components/card-stagger.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import StreakPowerUps from "@/components/daily/streak-power-ups.vue";
 import { useT } from "@/i18n/use-t";
-import { dateLocale, fmt } from "@/i18n/format";
+import { fmt } from "@/i18n/format";
+import { formatTrialDateTime } from "@/lib/trial-date";
 import { useNexFaucet } from "@/store/nex-faucet";
 import { useApp } from "@/store/app";
+import { useBills } from "@/store/bills";
+import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import { remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { useAuth } from "@/store/auth";
+import { binarySessionReady as accountSessionReady } from "@/lib/binary-session-ready";
+import { createScopedReadCoalescer } from "@/lib/binary-read-coalescer";
+import { captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { postMoneyBillsOnce } from "@/lib/money-receipt";
 import { useLuckySpin } from "@/store/lucky-spin";
 import { toast } from "@/store/ui";
+import { dailyBaseReward, dailyLuckyHint, dailyMilestoneRewardText, dailyRewardLabels, dailyUpcomingMilestone } from "./daily-reward-view";
+import { dailyCheckInSuccessCopy } from "./daily-success-copy";
 
 const ONE_DAY_MS = 86400 * 1000;
 
@@ -236,16 +270,40 @@ const MOCK_TOP_STREAKERS = [
 
 const t = useT();
 const faucet = useNexFaucet();
+const dailyFactsReady = computed(() => !remoteApiEnabled || faucet.remoteReadState === 'ready');
 const app = useApp();
+const auth = useAuth();
+const remoteSessionReady = computed(() => accountSessionReady({
+  remote: remoteApiEnabled, authenticated: auth.isAuthenticated,
+  accountId: auth.accountId, appAccountKey: app.accountKey,
+  sessionUserId: sessionVault.read()?.user.userId ?? null,
+}));
+let pageActive = true;
+let readCoalescer = createScopedReadCoalescer();
+let dailyPageScope: string | null = null;
+const bills = useBills();
+async function refreshBalance(coalesce = true) {
+  if (remoteApiEnabled && remoteSessionReady.value && pageActive) await app.refreshRemoteFleet(undefined, { coalesce }).catch(() => false);
+}
+async function refreshLedger(force = false) {
+  if (remoteApiEnabled && remoteSessionReady.value && pageActive) await bills.refreshSummary({ force }).catch(() => {});
+}
 const luckySpin = useLuckySpin();
+const luckyHint = computed(() => dailyLuckyHint(faucet.remoteRules, t.value.daily.luckyHint));
+const checkInCtaText = computed(() => {
+  if (!remoteApiEnabled) return t.value.daily.checkInCta;
+  const base = dailyBaseReward(faucet.remoteRules);
+  return base === null ? t.value.daily.checkInAction : fmt(t.value.daily.checkInBase, { n: base });
+});
 const leaderRows = computed(() => remoteApiEnabled ? faucet.topStreakers : MOCK_TOP_STREAKERS);
+const milestoneRewardLabels = computed(() => dailyRewardLabels(t.value.daily.milestones));
 const milestones = computed<Milestone[]>(() => remoteApiEnabled
   ? faucet.remoteMilestones.map((m) => ({
       day: m.milestoneDay,
       rewardKey: "reward3",
       labelKey: "day3",
-      labelText: fmt(t.value.daily.milestones.locked, { n: m.milestoneDay }),
-      rewardText: rewardLabel(m.rewardType, m.rewardAmount),
+      labelText: fmt(t.value.daily.milestones.dayLabel, { n: m.milestoneDay }),
+      rewardText: dailyMilestoneRewardText(m, milestoneRewardLabels.value),
       status: m.status,
       reward: { type: (m.rewardType.toLowerCase() === "usdt" ? "usdt" : m.rewardType.toLowerCase() === "spin" ? "spin" : m.rewardType.toLowerCase() === "badge" ? "badge" : "nex") as Milestone["reward"]["type"], amount: m.rewardAmount },
       tint: "var(--v5-nex)", iconPath: "m12 3v18M3 12h18",
@@ -254,28 +312,74 @@ const milestones = computed<Milestone[]>(() => remoteApiEnabled
 
 const remoteRefreshError = ref(false);
 const remoteRefreshing = ref(false);
+const checkInSubmitting = ref(false);
+const saverSubmitting = ref(false);
+const remoteInitialLoading = ref(remoteApiEnabled);
+// 🔴 签到写闸(BUG 154)。`faucet.remoteReadState === 'ready'` 只说明**曾经**读到过账号状态:
+// 刷新失败时它按设计保持 ready(nex-faucet-remote-resilience.test.ts「keeps the last
+// confirmed daily state when a state refresh fails」——已确认的快照不许被一次失败清空)。
+// 而签到的前置事实是「今天还没签」,它**只有一次成功的读取能证明**;读取失败时
+// remoteCheckedInToday 停在 false,于是"未知"被当成"未签"——正是这个 bug。
+// 所以写闸必须同时确认**承载这份快照的这次读取真的跑成了**:
+//   · remoteRefreshError —— 本轮 refreshDaily 的读取失败(页面已挂错误条 + 重试);
+//   · remoteSessionReady  —— 冷会话/未恢复:refreshDaily 会提前 return,连错误条都不会置,
+//     这正是「重新同步后仍无法确认状态」那条路径,必须一起 fail-closed。
+// 冷会话围栏复用 lib/binary-session-ready,不另造第二套。
+const checkInStateConfirmed = computed(() => !remoteApiEnabled
+  || (remoteSessionReady.value && faucet.remoteReadState === 'ready' && !remoteRefreshError.value));
 let dailyRefreshRequest = 0;
 async function refreshDaily() {
-  if (!remoteApiEnabled || remoteRefreshing.value) return;
+  if (!remoteApiEnabled || !remoteSessionReady.value || !pageActive || remoteRefreshing.value) return;
   const request = ++dailyRefreshRequest;
   remoteRefreshing.value = true;
   remoteRefreshError.value = false;
   try {
-    const ok = await faucet.refreshRemote();
+    const ok = await faucet.ensureRemote();
     if (request === dailyRefreshRequest && !ok) remoteRefreshError.value = true;
   } catch {
     if (request === dailyRefreshRequest) remoteRefreshError.value = true;
   } finally {
-    if (request === dailyRefreshRequest) remoteRefreshing.value = false;
+    if (request === dailyRefreshRequest) {
+      remoteRefreshing.value = false;
+      remoteInitialLoading.value = false;
+    }
   }
 }
-onShow(() => { void refreshDaily(); });
+function readDailyPage() {
+  if (!remoteApiEnabled || !pageActive) return;
+  const runtime = captureRuntimeRevision();
+  const scope = {accountKey: app.accountKey, accountBindingEpoch: app.accountBindingEpoch, runtime};
+  const scopeKey = remoteSessionReady.value
+    ? JSON.stringify([scope.accountKey, scope.accountBindingEpoch, runtime.runId, runtime.epoch]) : null;
+  if (dailyPageScope !== scopeKey) {
+    dailyPageScope = scopeKey;
+    dailyRefreshRequest += 1;
+    remoteRefreshing.value = false;
+    remoteRefreshError.value = false;
+    remoteInitialLoading.value = true;
+    readCoalescer = createScopedReadCoalescer();
+  }
+  if (scopeKey === null) return;
+  void readCoalescer.run(scope, () => Promise.all([refreshDaily(), refreshLedger(), refreshBalance()]).then(() => undefined));
+}
+watch(() => [app.accountKey, app.accountBindingEpoch] as const, readDailyPage);
+watch(remoteSessionReady, readDailyPage, { immediate: true, flush: 'post' });
+// Catalog preparation publishes before the remaining account-scoped stores bind.
+const unsubscribeDailyRuntime = subscribeRuntimeRevision(() => { void nextTick(readDailyPage); });
+onShow(readDailyPage);
+onUnmounted(() => { pageActive = false; dailyRefreshRequest += 1; unsubscribeDailyRuntime(); });
 
 // Per-second tick for the countdown.
 const tick = ref(0);
 let timer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
-  timer = setInterval(() => (tick.value += 1), 1000);
+  timer = setInterval(() => {
+    tick.value += 1;
+    if (remoteApiEnabled && faucet.remoteNextResetAt > 0
+        && Date.now() >= faucet.remoteNextResetAt && tick.value % 30 === 0 && !remoteRefreshing.value) {
+      void refreshDaily();
+    }
+  }, 1000);
   // 🔴 这里曾挂过一个 reconcileFaucetBills()「签到/里程碑发币没落盘就补发」——**已撤销**。
   // 实景走查当场证伪:判据是「有领取状态、无对应账单行 ⇒ 补发」,它分不清
   //   ① 从没发过(该补)与 ② 发过了但账单行丢了(不该补)。
@@ -311,7 +415,8 @@ function formatCountdown(ms: number): string {
 }
 
 const streak = computed(() => faucet.signInStreak);
-const lastSignedToday = computed(() => faucet.lastSignedInAt > 0 && isSameDay(faucet.lastSignedInAt, Date.now()));
+const lastSignedToday = computed(() => remoteApiEnabled ? faucet.remoteCheckedInToday
+  : faucet.lastSignedInAt > 0 && isSameDay(faucet.lastSignedInAt, Date.now()));
 const claimedSet = computed(() => new Set(faucet.claimedMilestones));
 
 function isMilestoneClaimed(m: Milestone): boolean {
@@ -324,13 +429,13 @@ function isMilestoneUnlocked(m: Milestone): boolean {
     : streak.value >= m.day;
 }
 
-const nextMilestone = computed(() =>
-  streak.value === 0 ? milestones.value[0]?.day ?? 0 : milestones.value.find((m) => m.day > streak.value)?.day ?? milestones.value.at(-1)?.day ?? 0,
-);
-const daysToMilestone = computed(() => Math.max(1, nextMilestone.value - streak.value));
+const nextMilestone = computed(() => dailyUpcomingMilestone(streak.value, milestones.value.map(m => ({
+  day: m.day, rewardText: m.rewardText ?? t.value.daily.milestones[m.rewardKey], claimed: isMilestoneClaimed(m),
+}))));
 
 const nextResetMs = computed(() => {
   void tick.value;
+  if (remoteApiEnabled) return Math.max(0, faucet.remoteNextResetAt - Date.now());
   const next = today();
   next.setDate(next.getDate() + 1);
   return next.getTime() - Date.now();
@@ -344,10 +449,11 @@ const streakBroken = computed(() => {
 const heroLineText = computed(() =>
   streak.value === 0
     ? t.value.daily.startStreak
-    : fmt(t.value.daily.daysToBonus, {
-        n: daysToMilestone.value,
-        unit: daysToMilestone.value === 1 ? t.value.daily.dayShort : t.value.daily.daysShort,
-      }),
+    : nextMilestone.value ? fmt(t.value.daily.daysToReward, {
+        n: nextMilestone.value.remainingDays,
+        unit: nextMilestone.value.remainingDays === 1 ? t.value.daily.dayShort : t.value.daily.daysShort,
+        reward: nextMilestone.value.rewardText,
+      }) : t.value.daily.noNextMilestone,
 );
 const nextClaimText = computed(() => fmt(t.value.daily.nextClaimIn, { time: formatCountdown(nextResetMs.value) }));
 const saverHeadlineText = computed(() => fmt(t.value.daily.saver.headline, { n: streak.value || "0" }));
@@ -357,34 +463,29 @@ const saverCountText = computed(() =>
 const yourBestText = computed(() =>
   fmt(t.value.daily.topStreakers.yourBest, { n: faucet.longestStreak || streak.value || 0 }),
 );
-const pointsUnlockText = computed(() => fmt(t.value.daily.pointsUnlockHint, { n: (app.user.nexBalance * 10).toFixed(0) }));
+const pointsUnlockText = computed(() => t.value.daily.pointsUnlockHint);
 const lifetimeEarned = computed(() =>
-  String(faucet.history.reduce((s, h) => s + (h.delta > 0 ? h.delta : 0), 0)),
+  remoteApiEnabled ? bills.summaryStatus === 'ready' && bills.summary?.settledRewardsNex != null
+    ? String(bills.summary.settledRewardsNex) : '—'
+    : String(faucet.history.reduce((s, h) => s + (h.delta > 0 ? h.delta : 0), 0)),
 );
 const lifetimeSpent = computed(() =>
-  String(-faucet.history.reduce((s, h) => s + (h.delta < 0 ? h.delta : 0), 0)),
+  remoteApiEnabled ? bills.summaryStatus === 'ready' && bills.summary?.withdrawalOffsetNexSpent != null
+    ? String(bills.summary.withdrawalOffsetNexSpent) : '—'
+    : String(-faucet.history.reduce((s, h) => s + (h.delta < 0 ? h.delta : 0), 0)),
 );
-const historyRows = computed(() => faucet.history.slice(0, 10));
-function rewardLabel(type: string, amount: number): string {
-  switch (type.toUpperCase()) {
-    case "NEX": return `+${amount} NEX`;
-    case "USDT": return `+${amount} USDT`;
-    case "SPIN": return fmt(t.value.publicCopy.rewardSpin, { n: amount });
-    case "BADGE": return fmt(t.value.publicCopy.rewardBadge, { n: amount });
-    default: return fmt(t.value.publicCopy.rewardOther, { n: amount });
-  }
-}
-function historyReason(reason: string): string {
-  const milestone = /^Milestone Day-(\d+):/.exec(reason);
-  if (milestone) return fmt(t.value.publicCopy.dailyMilestone, { n: milestone[1] });
-  if (reason === "Streak saver used") return t.value.daily.saver.restored;
-  return t.value.publicCopy.dailyHistory;
-}
+const historyRows = computed(() => remoteApiEnabled
+  ? (bills.summaryStatus === 'ready' ? bills.summary?.recentNexBills ?? [] : []).map(b => ({
+      ts: b.ts, delta: b.amount,
+      reason: resolveWalletBillMemo(b, t.value.bills.memo as Record<string, string>)
+        + (b.status === 'pending' ? ` · ${t.value.wallet.pending}` : ''),
+    }))
+  : faucet.history.slice(0, 10));
 function daysLeftText(day: number): string {
   return fmt(t.value.daily.milestones.daysLeft, { n: day - streak.value });
 }
 function formatTs(ts: number): string {
-  return new Date(ts).toLocaleString(dateLocale());
+  return Number.isFinite(new Date(ts).getTime()) ? formatTrialDateTime(ts) : "—";
 }
 
 /** 签到分录的稳定幂等键 = 当天日期(签到一天一次)。带时间戳的话判重永不命中 = 假幂等。 */
@@ -397,20 +498,40 @@ function signInRef(ts: number): string {
 
 
 async function handleCheckIn() {
+  if (!dailyFactsReady.value) return;
+  // 写闸:账号今日签到状态**本次已确认**才允许发写请求(见 checkInStateConfirmed)。
+  // 只靠 aria-disabled 不够——键盘合成 click、程序化调用都会绕过属性闸。
+  if (!checkInStateConfirmed.value) {
+    toast.error(t.value.authOtp.errorServiceUnavailable);
+    return;
+  }
+  if (lastSignedToday.value || remoteRefreshing.value || checkInSubmitting.value) return;
   if (remoteApiEnabled) {
-    const remote = await faucet.checkInRemote();
-    if (!remote.ok) {
-      toast.error(t.value.authOtp.errorServiceUnavailable);
-      return;
+    const walletAccountKey = app.accountKey;
+    const walletAccountEpoch = app.accountBindingEpoch;
+    checkInSubmitting.value = true;
+    try {
+      const remote = await faucet.checkInRemote();
+      if (!remote.ok) {
+        toast.error(t.value.authOtp.errorServiceUnavailable);
+        return;
+      }
+      const successCopy = dailyCheckInSuccessCopy(remote, t.value.daily);
+      toast.success(successCopy.title, successCopy.body);
+      void refreshLedger(true);
+      if (app.accountKey === walletAccountKey && app.accountBindingEpoch === walletAccountEpoch) {
+        void refreshBalance(false);
+      }
+    } finally {
+      checkInSubmitting.value = false;
     }
-    toast.success(`+${remote.gained} NEX`, fmt(t.value.daily.streakSummary, { n: remote.streak }));
     return;
   }
   const r = faucet.signIn();
   if (!r.ok) {
     // conflict = 别的标签页刚签过(store 已刷新到最新);否则就是本页自己今天已签。
     if (r.conflict) toast.warn(t.value.errors.staleTitle, t.value.errors.staleMsg);
-    else toast.info(t.value.daily.checkedInToday, t.value.daily.alreadyCheckedToast);
+    else toast.info("Already checked in today", "Come back tomorrow for more NEX.");
     return;
   }
   // Faucet store tracks streak only; crediting NEX to the wallet is composed here
@@ -440,15 +561,16 @@ async function handleCheckIn() {
     // vibrate unavailable
   }
   if (r.multiplier > 1) {
-    toast.success(`${fmt(t.value.daily.luckyToday, { x: r.multiplier })} · +${r.gained} NEX`, fmt(t.value.daily.streakSummary, { n: r.streak }));
+    toast.success(`🎲 Lucky ×${r.multiplier}! +${r.gained} NEX`, `${r.streak}-day streak`);
   } else if (r.gained > 2) {
-    toast.success(fmt(t.value.daily.streakBonus, { n: r.streak, p: r.gained }), t.value.daily.bonusUnlocked);
+    toast.success(`🔥 ${r.streak}-day streak! +${r.gained} NEX`, "Day-7 bonus unlocked");
   } else {
-    toast.success(`+${r.gained} NEX`, fmt(t.value.daily.streakSummary, { n: r.streak }));
+    toast.success(`+${r.gained} NEX`, `${r.streak}-day streak`);
   }
 }
 
 async function handleClaimMilestone(m: Milestone) {
+  if (!dailyFactsReady.value) return;
   if (isMilestoneClaimed(m)) {
     toast.info(t.value.daily.milestones.claimedToast, "");
     return;
@@ -462,7 +584,10 @@ async function handleClaimMilestone(m: Milestone) {
       toast.error(t.value.authOtp.errorServiceUnavailable);
       return;
     }
-    toast.success(m.rewardText ?? rewardLabel(m.reward.type, m.reward.amount), t.value.daily.milestones.claimedToast);
+    toast.success(m.rewardText ?? dailyMilestoneRewardText(
+      { rewardType: m.reward.type, rewardAmount: m.reward.amount, badgeCode: null }, milestoneRewardLabels.value,
+    ), fmt(t.value.daily.milestones.claimedDay, { n: m.day }));
+    void refreshLedger(true);
     return;
   }
   const gainedNex = m.reward.type === "nex" ? m.reward.amount : 0;
@@ -510,13 +635,20 @@ async function handleClaimMilestone(m: Milestone) {
     luckySpin.openSheet();
   }
   // spin / badge milestones are non-currency unlocks → claim (+ spin sheet above).
-  toast.success(rewardDisplay, t.value.daily.milestones.claimedToast);
+  toast.success(rewardDisplay, fmt(t.value.daily.milestones.claimedDay, { n: m.day }));
 }
 
 async function handleUseSaver() {
+  if (!dailyFactsReady.value) return;
+  if (!streakBroken.value || remoteRefreshing.value || saverSubmitting.value) return;
   if (remoteApiEnabled) {
-    if (await faucet.useSaverRemote()) toast.success(t.value.daily.saver.restored, "");
-    else toast.error(t.value.authOtp.errorServiceUnavailable);
+    saverSubmitting.value = true;
+    try {
+      if (await faucet.useSaverRemote()) toast.success(t.value.daily.saver.restored, "");
+      else toast.error(t.value.authOtp.errorServiceUnavailable);
+    } finally {
+      saverSubmitting.value = false;
+    }
     return;
   }
   const r = faucet.useSaver();
@@ -530,14 +662,14 @@ async function handleUseSaver() {
 }
 
 function goWithdraw() {
-  uni.navigateTo({ url: "/pages/me/wallet-withdraw", fail: () => {} });
+  navTo("/pages/me/wallet-withdraw-method");
 }
 
 // ── styles ──
-const heroStyle: CSSProperties = {
+const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "22px 20px",
-  borderRadius: "18px",
-  background: "linear-gradient(135deg, #FFCB94 0%, var(--v5-brand-2) 100%)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   color: "var(--v5-ink)",
 };
 const fireStyle: CSSProperties = {
@@ -560,25 +692,31 @@ const streakLblStyle: CSSProperties = {
   marginTop: "6px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
-  color: "rgba(255,255,255,0.82)",
+  color: "var(--v5-ink-2)",
   letterSpacing: "0.06em",
 };
-const streakPointsStyle: CSSProperties = { marginTop: "14px", fontSize: "13px", color: "rgba(255,255,255,0.92)" };
-const signInBtnStyle = computed<CSSProperties>(() => ({
-  marginTop: "18px",
-  height: "54px",
-  borderRadius: "14px",
-  background: lastSignedToday.value ? "rgba(255,255,255,0.42)" : "var(--v5-ink)",
-  color: lastSignedToday.value ? "rgba(255,255,255,0.65)" : "var(--v5-brand-2)",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "15px",
-}));
+const streakPointsStyle: CSSProperties = { marginTop: "14px", fontSize: "13px", color: "var(--v5-ink-2)" };
+const disabledSignInColor = "var(--v5-ink-3)";
+const signInBtnStyle = computed<CSSProperties>(() => {
+  // Both "already signed in" and "state not confirmed" are non-actionable, so they
+  // share the dimmed treatment; the label says which one it is.
+  const inert = lastSignedToday.value || !checkInStateConfirmed.value;
+  return {
+    marginTop: "18px",
+    height: "54px",
+    borderRadius: "14px",
+    background: inert ? "var(--v5-surface-2)" : "var(--v5-brand)",
+    color: inert ? disabledSignInColor : "var(--v5-on-brand)",
+    fontFamily: "var(--font-v5)",
+    fontWeight: 600,
+    fontSize: "15px",
+  };
+});
 const nextClaimStyle: CSSProperties = {
   marginTop: "10px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
-  color: "rgba(255,255,255,0.85)",
+  color: "var(--v5-ink-3)",
 };
 const luckyHintStyle: CSSProperties = {
   marginTop: "-4px",
@@ -624,8 +762,6 @@ const milestoneDayStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
   color: "var(--v5-ink-3)",
-  whiteSpace: "nowrap",
-  flexShrink: 0,
 };
 const milestoneRewardStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -654,7 +790,7 @@ function milestoneBtnStyle(m: Milestone): CSSProperties {
     flexShrink: 0,
   };
 }
-const saverCardStyle: CSSProperties = { padding: "16px", borderRadius: "16px", background: "var(--v5-brand-2-soft)" };
+const saverCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "16px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
 const saverIconStyle: CSSProperties = {
   width: "40px",
   height: "40px",
@@ -695,9 +831,9 @@ const saverBtnStyle = computed<CSSProperties>(() => ({
   flexShrink: 0,
 }));
 // Form-b: filled container, no border — the social streak list stays grouped.
-const leaderCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const leaderCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const leaderLabelStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
@@ -766,10 +902,10 @@ function statValStyle(tint: string): CSSProperties {
 }
 const statSubStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)" };
 // Soft brand-2-tinted clickable callout, no border (tap affordance = tint + active-scale).
-const withdrawCardStyle: CSSProperties = {
-  borderRadius: "16px",
+const withdrawCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "14px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 8%, transparent)",
+  background: "var(--nx-glass-fill)",
 };
 const withdrawIconStyle: CSSProperties = {
   width: "40px",
@@ -788,9 +924,9 @@ const historyLabelStyle: CSSProperties = {
   letterSpacing: "0.06em",
 };
 // Form-b: filled container, no border — rows already hairline-separated.
-const historyCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "16px",
+const historyCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
 };
 const historyEmptyStyle: CSSProperties = { padding: "24px", fontSize: "13px", color: "var(--v5-ink-3)" };
 function historyRowStyle(isLast: boolean): CSSProperties {
@@ -824,4 +960,6 @@ const retryBtnStyle: CSSProperties = {
   color: "var(--v5-ink)",
   fontSize: "12px",
 };
+
+
 </script>

@@ -1,37 +1,15 @@
 import { defineStore } from "pinia";
-import { reactive, ref } from "vue";
+import { reactive, ref, watch } from "vue";
 import { questApi, remoteApiEnabled } from "@/api/runtime";
+import type { CanonicalQuest, DayOneSnapshotStatus } from "@/api/quest-api";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
+import { useLocaleStore } from "./locale";
+import { questClaimNoticeFor, type QuestClaimNotice } from "@/lib/quest-claim-notice";
+import { dayOneClaimState } from "@/lib/day-one-claim-state";
 
-/**
- * Quest store — ported from Nexion-prototype/lib/store/quest.ts + lib/mock/quest.ts
- * (zustand persist → Pinia + uni storage).
- *
- * First-day onboarding quest: route-/action-based tasks, each unlocking an
- * incremental NEX (and optionally USDT) micro-reward on FIRST completion.
- * This store owns only the *data + reward* side of the quest:
- *   - the canonical task definitions (id / i18nKey / href / rewards / order)
- *   - which task ids have been completed (persisted, idempotent)
- *   - markComplete(id) → tells the caller whether this was a first completion
- *     and how much to credit. It does NOT touch balances or bills — by
- *     architecture rule, stores don't import each other; cross-store
- *     orchestration (creditNex + bills + toast) is composed at the call site:
- *     App.vue route watcher (visit tasks), lib/share.ts (invite_friend), or
- *     the acting page (bind_bank_card in wallet-cards-new.vue). Each calls
- *     markComplete here, then credits + toasts on { firstTime: true }.
- *
- * The card display side (day-one-quest-card.vue on the protected home page)
- * currently renders a HARD-CODED `done` set and is intentionally NOT wired to
- * this store — see flag returned to the owner. Only the watcher/reward side
- * (globally safe) is built here.
- *
- * Backend-replaceable: task defs come from the same canonical shape the real
- * backend would serve (GET /api/quest); markComplete maps to
- * POST /api/quest/complete which returns { firstTime, rewardNex, rewardUsdt }
- * + the canonical balance/ledger rows. Swapping the local Record for an API
- * call requires zero changes to callers.
- */
+/** Formal mode reads server task facts and explicitly claims the DayOne group.
+ * Local completion/reward persistence is retained only for non-remote previews. */
 
 export type QuestTaskId =
   | "bind_bank_card"
@@ -54,8 +32,8 @@ export interface QuestTaskDef {
 }
 
 /**
- * Canonical task table — mirrors Nexion-prototype/lib/mock/quest.ts QUEST_TASKS
- * (same ids / rewards / order). Frozen so callers can't mutate the seed.
+ * Legacy non-remote fallback table. Formal server mode never uses it for task
+ * presentation or route completion; PC H3 and nx_mission remain authoritative.
  */
 export const QUEST_TASKS: readonly QuestTaskDef[] = [
   { id: "bind_bank_card", i18nKey: "bind_bank_card", href: "/me/wallet/cards/new", nexReward: 50, order: 1 },
@@ -99,14 +77,47 @@ export const useQuest = defineStore("quest", () => {
   let accountEpoch = 0;
   let refreshSequence = 0;
   let claimSequence = 0;
+  let eligibilityTimer: ReturnType<typeof setTimeout> | null = null;
+  let hasRemoteSnapshot = false;
   const completedMap = reactive<Record<string, boolean>>({});
   const rewardMap = reactive<Record<string, number>>({});
+  const remoteQuests = ref<CanonicalQuest[]>([]);
+  const claimNotice = ref<QuestClaimNotice | null>(null);
+  const dayOneClaiming = ref(false);
+  const dayOneClaimError = ref(false);
+  const dayOneRewardNex = ref(0);
+  const dayOneRequiredTaskCount = ref<number | null>(null);
+  const dayOneSnapshotStatus = ref<DayOneSnapshotStatus>("LEGACY_UNVERIFIED");
   const remoteStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
   if (!remoteApiEnabled) for (const id of hydrate(boundKey)) completedMap[id] = true;
 
   function clearRemoteFacts() {
+    if (eligibilityTimer) clearTimeout(eligibilityTimer);
+    eligibilityTimer = null;
     for (const key of Object.keys(completedMap)) delete completedMap[key];
     for (const key of Object.keys(rewardMap)) delete rewardMap[key];
+    remoteQuests.value = [];
+    dayOneRewardNex.value = 0;
+    dayOneRequiredTaskCount.value = null;
+    dayOneSnapshotStatus.value = "LEGACY_UNVERIFIED";
+  }
+
+  function scheduleEligibilityRefresh(rows: CanonicalQuest[]) {
+    if (eligibilityTimer) clearTimeout(eligibilityTimer);
+    eligibilityTimer = null;
+    const nextBoundary = rows
+      .filter((row) => row.eligible)
+      .map((row) => Date.parse(row.eligibleUntil))
+      .filter(Number.isFinite)
+      .reduce((earliest, value) => Math.min(earliest, value), Number.POSITIVE_INFINITY);
+    if (!Number.isFinite(nextBoundary)) return;
+    const delay = Math.min(Math.max(nextBoundary - Date.now() + 250, 250), 2_147_000_000);
+    eligibilityTimer = setTimeout(() => void refreshRemote(), delay);
+  }
+
+  function discardRemoteSnapshot() {
+    hasRemoteSnapshot = false;
+    clearRemoteFacts();
   }
 
   async function refreshRemote(): Promise<boolean> {
@@ -114,39 +125,118 @@ export const useQuest = defineStore("quest", () => {
     const epoch = accountEpoch;
     const requestSequence = ++refreshSequence;
     const isCurrentRequest = () => epoch === accountEpoch && requestSequence === refreshSequence;
-    remoteStatus.value = "loading";
-    clearRemoteFacts();
+    claimNotice.value = null;
+    // Background refreshes use stale-while-revalidate semantics: a route or
+    // module switch must not erase the last server-confirmed task catalogue.
+    // Account changes explicitly discard it in bindAccount() below.
+    if (!hasRemoteSnapshot) remoteStatus.value = "loading";
     try {
-      const snapshot = await questApi.state();
+      const snapshot = await questApi.state(useLocaleStore().code);
       if (!isCurrentRequest()) return false;
-      clearRemoteFacts();
+      const nextQuests = snapshot.quests.map((quest) => ({ ...quest }));
+      const nextRewards: Record<string, number> = {};
+      const nextCompleted: Record<string, boolean> = {};
       for (const quest of snapshot.quests) {
-        rewardMap[quest.questCode] = quest.rewardNex;
-        if (quest.status === "CLAIMED") completedMap[quest.questCode] = true;
+        nextRewards[quest.questCode] = quest.rewardNex;
+        if (quest.status === "CLAIMED") nextCompleted[quest.questCode] = true;
       }
+
+      // Build and validate the complete replacement before touching the
+      // visible snapshot. A malformed response must not partially clear it.
+      clearRemoteFacts();
+      remoteQuests.value = nextQuests;
+      dayOneRewardNex.value = snapshot.dayOneRewardNex;
+      dayOneRequiredTaskCount.value = snapshot.dayOneRequiredTaskCount;
+      dayOneSnapshotStatus.value = snapshot.dayOneSnapshotStatus;
+      Object.assign(rewardMap, nextRewards);
+      Object.assign(completedMap, nextCompleted);
+      hasRemoteSnapshot = true;
       remoteStatus.value = "ready";
+      scheduleEligibilityRefresh(nextQuests);
       return true;
     } catch {
-      // Do not leave a previous account's progress visible after an authority
-      // failure. A retry may refill this map only from the server snapshot.
-      if (isCurrentRequest()) { clearRemoteFacts(); remoteStatus.value = "error"; }
+      if (isCurrentRequest()) {
+        if (hasRemoteSnapshot) {
+          remoteStatus.value = "ready";
+        } else {
+          discardRemoteSnapshot();
+          remoteStatus.value = "error";
+        }
+      }
       return false;
     }
   }
 
-  async function claimRemote(id: QuestTaskId): Promise<boolean> {
+  watch(
+    () => useLocaleStore().code,
+    () => {
+      // The home carousel consumes this store directly. Refresh an already
+      // confirmed server catalogue so a deliberate language switch never
+      // leaves it showing a previous locale's authored task name.
+      if (remoteApiEnabled && hasRemoteSnapshot) void refreshRemote();
+    },
+  );
+
+  async function claimRemote(id: string): Promise<boolean> {
     if (!remoteApiEnabled) return false;
+    const currentQuest = remoteQuests.value.find((quest) => quest.questCode === id);
+    if (!currentQuest?.eligible || Date.parse(currentQuest.eligibleUntil) <= Date.now()
+        || !["COMPLETED", "CLAIMABLE"].includes(currentQuest.status)) return false;
     const epoch = accountEpoch;
     const requestSequence = ++claimSequence;
     const isCurrentRequest = () => epoch === accountEpoch && requestSequence === claimSequence;
+    claimNotice.value = null;
     try {
-      const result = await questApi.claim(id, `h3-quest-claim:${id}`);
+      const result = await questApi.claim(
+        id,
+        `h3-quest-claim:${id}:${currentQuest.instanceKey}`,
+        currentQuest.instanceKey,
+      );
       if (!isCurrentRequest()) return false;
-      if (result.status !== "CLAIMED") return false;
+      if (result.status !== "CLAIMED" || result.instanceKey !== currentQuest.instanceKey) return false;
       return refreshRemote();
-    } catch {
-      if (isCurrentRequest()) clearRemoteFacts();
+    } catch (cause) {
+      // A failed route-triggered claim is not evidence that the last confirmed
+      // task snapshot became invalid. Leave the read model untouched.
+      const notice = questClaimNoticeFor(cause);
+      if (notice) {
+        await refreshRemote();
+        if (isCurrentRequest()) claimNotice.value = notice;
+      }
       return false;
+    }
+  }
+
+  async function claimDayOne(): Promise<boolean> {
+    if (!remoteApiEnabled || remoteStatus.value !== "ready" || dayOneClaiming.value) return false;
+    const code = dayOneClaimState(
+      remoteQuests.value, dayOneRequiredTaskCount.value, dayOneSnapshotStatus.value, Date.now(),
+    ).claimCode;
+    if (!code) return false;
+    const instanceKey = remoteQuests.value.find(row => row.questCode === code)?.instanceKey;
+    const epoch = accountEpoch;
+    dayOneClaiming.value = true;
+    dayOneClaimError.value = false;
+    try {
+      const refreshed = await refreshRemote();
+      if (epoch !== accountEpoch) return false;
+      if (!refreshed || dayOneClaimState(
+        remoteQuests.value, dayOneRequiredTaskCount.value, dayOneSnapshotStatus.value, Date.now(),
+      ).claimCode !== code
+          || remoteQuests.value.find(row => row.questCode === code)?.instanceKey !== instanceKey) {
+        dayOneClaimError.value = true;
+        return false;
+      }
+      const accepted = await claimRemote(code);
+      const claimed = accepted && dayOneClaimState(
+        remoteQuests.value, dayOneRequiredTaskCount.value, dayOneSnapshotStatus.value, Date.now(),
+      ).claimed
+        && remoteQuests.value.some(row => row.questCode === code
+        && row.instanceKey === instanceKey && row.status === "CLAIMED");
+      if (epoch === accountEpoch) dayOneClaimError.value = !claimed;
+      return epoch === accountEpoch && claimed;
+    } finally {
+      if (epoch === accountEpoch) dayOneClaiming.value = false;
     }
   }
 
@@ -162,7 +252,10 @@ export const useQuest = defineStore("quest", () => {
     refreshSequence += 1;
     claimSequence += 1;
     boundKey = normalizeAccountKey(rawAccountKey);
-    clearRemoteFacts();
+    dayOneClaiming.value = false;
+    dayOneClaimError.value = false;
+    claimNotice.value = null;
+    discardRemoteSnapshot();
     remoteStatus.value = remoteApiEnabled ? "idle" : "ready";
     if (remoteApiEnabled) {
       void refreshRemote();
@@ -171,11 +264,11 @@ export const useQuest = defineStore("quest", () => {
     for (const id of hydrate(boundKey)) completedMap[id] = true;
   }
 
-  function isComplete(id: QuestTaskId): boolean {
+  function isComplete(id: string): boolean {
     return completedMap[id] === true;
   }
 
-  function rewardFor(id: QuestTaskId): number | null {
+  function rewardFor(id: string): number | null {
     return typeof rewardMap[id] === "number" ? rewardMap[id] : null;
   }
 
@@ -211,12 +304,13 @@ export const useQuest = defineStore("quest", () => {
 
   function reset() {
     if (remoteApiEnabled) {
-      clearRemoteFacts();
+      discardRemoteSnapshot();
+      remoteStatus.value = "idle";
       return;
     }
     for (const k of Object.keys(completedMap)) delete completedMap[k];
     persist();
   }
 
-  return { completedMap, QUEST_TASKS, isComplete, rewardFor, markComplete, reset, bindAccount, refreshRemote, claimRemote, remoteStatus };
+  return { completedMap, remoteQuests, dayOneRewardNex, dayOneRequiredTaskCount, dayOneSnapshotStatus, QUEST_TASKS, isComplete, rewardFor, markComplete, reset, bindAccount, refreshRemote, claimRemote, remoteStatus, claimNotice, claimDayOne, dayOneClaiming, dayOneClaimError };
 });

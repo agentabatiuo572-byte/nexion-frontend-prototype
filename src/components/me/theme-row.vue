@@ -14,12 +14,12 @@
     <text class="flex-1 truncate" :style="labelStyle">{{ t.me.themeRow }}</text>
 
     <!-- 2-segment pill -->
-    <view class="shrink-0 inline-flex items-center" :style="pillWrapStyle">
-      <view class="inline-flex items-center active:opacity-80" :style="segStyle('light')" @click="set('light')">
+    <view class="shrink-0 inline-flex items-center" :style="pillWrapStyle" role="radiogroup" :aria-label="t.me.themeRow">
+      <view class="inline-flex items-center active:opacity-80" :style="segStyle('light')" data-theme-mode="light" role="radio" :tabindex="mode === 'light' ? 0 : -1" :aria-checked="mode === 'light'" :aria-label="t.me.themeLight" @click="set('light')" @keydown.enter.prevent="set('light')" @keydown.space.prevent="set('light')" @keydown.left.prevent="set('dark')" @keydown.right.prevent="set('dark')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="mode === 'light' ? 'var(--v5-ink)' : 'var(--v5-ink-3)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>
         <text style="margin-left: 4px">{{ t.me.themeLight }}</text>
       </view>
-      <view class="inline-flex items-center active:opacity-80" :style="segStyle('dark')" @click="set('dark')">
+      <view class="inline-flex items-center active:opacity-80" :style="segStyle('dark')" data-theme-mode="dark" role="radio" :tabindex="mode === 'dark' ? 0 : -1" :aria-checked="mode === 'dark'" :aria-label="t.me.themeDark" @click="set('dark')" @keydown.enter.prevent="set('dark')" @keydown.space.prevent="set('dark')" @keydown.left.prevent="set('light')" @keydown.right.prevent="set('light')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="mode === 'dark' ? 'var(--v5-ink)' : 'var(--v5-ink-3)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
         <text style="margin-left: 4px">{{ t.me.themeDark }}</text>
       </view>
@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { computed, nextTick, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { useTheme, type ThemeMode } from "@/store/theme";
 
@@ -38,6 +38,9 @@ const mode = computed(() => theme.mode);
 
 function set(next: ThemeMode) {
   theme.setMode(next);
+  void nextTick(() => {
+    if (typeof document !== "undefined") document.querySelector<HTMLElement>(`[data-theme-mode="${next}"]`)?.focus();
+  });
 }
 
 const rowStyle: CSSProperties = {

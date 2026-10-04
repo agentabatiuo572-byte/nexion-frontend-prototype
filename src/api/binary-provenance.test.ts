@@ -1,13 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ApiClient } from "./api-client";
 import { createCommissionConfigApi } from "./commission-config-api";
-import { setCurrentCommerceSandboxRun } from "./order-api";
 
 const payload = {
   source: "server",
   serverCanonical: true,
-  sourceEnvironment: "SANDBOX",
-  runId: "binary-run-20260819",
+  sourceEnvironment: "PRODUCTION",
+  runId: null,
   asOfDate: "2026-08-19",
   trackA: 100,
   trackB: 200,
@@ -29,25 +28,23 @@ const payload = {
 };
 
 describe("binary projection provenance", () => {
-  it("accepts only the current explicit Sandbox RunID", async () => {
-    setCurrentCommerceSandboxRun("binary-run-20260819");
+  it("accepts the Java canonical production projection in development", async () => {
     const request = vi.fn().mockResolvedValue(payload);
     const api = createCommissionConfigApi({ request } as unknown as ApiClient, "dev");
     await expect(api.binary()).resolves.toMatchObject({
       source: "server",
       serverCanonical: true,
-      sourceEnvironment: "SANDBOX",
-      runId: "binary-run-20260819",
+      sourceEnvironment: "PRODUCTION",
+      runId: null,
     });
   });
 
-  it("rejects a missing, stale, or cross-environment proof", async () => {
-    setCurrentCommerceSandboxRun("binary-run-20260819");
+  it("rejects missing authority, mock data, and retired Sandbox provenance", async () => {
     for (const invalid of [
       { ...payload, serverCanonical: undefined },
       { ...payload, source: "mock" },
-      { ...payload, runId: "binary-run-20260818" },
-      { ...payload, sourceEnvironment: "PRODUCTION", runId: null },
+      { ...payload, sourceEnvironment: "SANDBOX", runId: "binary-run-20260819" },
+      { ...payload, runId: "binary-run-20260819" },
     ]) {
       const api = createCommissionConfigApi({ request: vi.fn().mockResolvedValue(invalid) } as unknown as ApiClient, "dev");
       await expect(api.binary()).rejects.toMatchObject({ message: "COMMISSION_CONFIG_RESPONSE_INVALID" });

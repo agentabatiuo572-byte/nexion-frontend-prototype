@@ -22,8 +22,14 @@
 
       <!-- ── Vouchers (ticket-style cards: value stub + perforation + body) ── -->
       <template v-if="cat === 'voucher'">
-        <!-- Empty -->
-        <EmptyState v-if="available.length === 0 && expired.length === 0" kind="empty-list" :title="t.empty.rewardsTitle" :desc="t.empty.rewardsDesc" />
+        <view v-if="voucherInitialLoading" :style="loadingStyle"><text>{{ t.home.networkStatUpdating }}</text></view>
+        <template v-else>
+          <view v-if="voucherReadError" class="flex items-center justify-between" :style="remoteErrorStyle">
+            <text>{{ t.authOtp.errorServiceUnavailable }}</text>
+            <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="retryVouchers"><text>{{ t.ui.retry }}</text></view>
+          </view>
+          <!-- An empty voucher wallet is a definite conclusion only after its current remote read. -->
+          <EmptyState v-if="voucherKnownEmpty" kind="empty-list" :title="t.empty.rewardsTitle" :desc="t.empty.rewardsDesc" />
 
         <template v-else>
           <view v-if="available.length > 0">
@@ -41,7 +47,7 @@
               </view>
               <view class="flex-1 min-w-0 flex items-center" style="padding: 14px; gap: 10px">
                 <view class="flex-1 min-w-0">
-                  <text class="block truncate" :style="ticketNameStyle">{{ voucherName(v) }}</text>
+                  <text class="block truncate" :style="ticketNameStyle">{{ v.name }}</text>
                   <text class="block truncate" :style="rowSubStyle">{{ scopeText(v) }}</text>
                   <text class="block truncate" :style="rowSubTightStyle">{{ expiryText(v) }}</text>
                 </view>
@@ -68,7 +74,7 @@
               </view>
               <view class="flex-1 min-w-0 flex items-center" style="padding: 14px; gap: 10px">
                 <view class="flex-1 min-w-0">
-                  <text class="block truncate" :style="ticketNameExpiredStyle">{{ voucherName(v) }}</text>
+                  <text class="block truncate" :style="ticketNameExpiredStyle">{{ v.name }}</text>
                   <text class="block truncate" :style="rowSubStyle">{{ scopeText(v) }}</text>
                 </view>
                 <view class="shrink-0 inline-flex" :style="expiredBadgeStyle"><text>{{ t.rewards.expiredBadge }}</text></view>
@@ -76,11 +82,17 @@
             </view>
           </view>
         </template>
+        </template>
       </template>
 
       <!-- ── USDT / NEX reward records (paginated) ── -->
       <template v-else>
-        <EmptyState v-if="records.length === 0" kind="empty-list" :title="t.empty.rewardsTitle" :desc="t.empty.rewardsDesc" />
+        <view v-if="initialError" class="flex items-center justify-between" :style="remoteErrorStyle">
+          <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
+          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshRecords"><text>{{ t.store.catalogRetry }}</text></view>
+        </view>
+        <view v-else-if="initialLoading" :style="loadingStyle"><text>…</text></view>
+        <EmptyState v-else-if="records.length === 0" kind="empty-list" :title="t.empty.rewardsTitle" :desc="fmt(t.empty.rewardsTokenDesc, { asset: symbol })" />
 
         <view v-else :style="recordListStyle">
           <view v-for="(b, i) in visibleRecords" :key="b.id" class="flex items-center" :style="recordRowStyle(i)">
@@ -89,7 +101,11 @@
             </view>
             <view class="flex-1 min-w-0">
               <text class="block truncate" :style="rowTitleStyle">{{ rewardTypeLabel(b.type) }}</text>
-              <text class="block truncate" :style="rowSubStyle">{{ b.memo }}</text>
+              <text v-if="b.ref && b.memoKey !== 'learningReward'" class="block truncate" :style="rowSubStyle">{{ b.memo }} · {{ b.ref }}</text>
+              <text v-else :class="b.memoKey === 'learningReward' ? 'block' : 'block truncate'" :style="rowSubStyle">{{ b.memo }}</text>
+              <text v-if="courseRewardId(b)" class="block active:opacity-70" style="color: var(--v5-brand); font-size: 12px; margin-top: 4px" role="link" tabindex="0" :aria-label="t.rewards.courseDetail" @click="openCourseReward(b)" @keydown.enter.prevent="onKeyboardActivate($event, () => openCourseReward(b))">{{ t.rewards.courseDetail }} ›</text>
+              <text v-if="b.memoKey === 'learningReward' && b.ref" class="block active:opacity-70" style="color: var(--v5-ink-3); font-size: 12px; margin-top: 4px" role="button" tabindex="0" :aria-label="sourceRefOpen === b.id ? t.rewards.hideSourceId : t.rewards.showSourceId" @click="toggleSourceRef(b.id)" @keydown.enter.prevent="onKeyboardActivate($event, () => toggleSourceRef(b.id))" @keydown.space.prevent="onKeyboardActivate($event, () => toggleSourceRef(b.id))">{{ sourceRefOpen === b.id ? t.rewards.hideSourceId : t.rewards.showSourceId }}</text>
+              <text v-if="sourceRefOpen === b.id && b.memoKey === 'learningReward'" class="block" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
             </view>
             <view class="text-right shrink-0" style="margin-left: 8px">
               <text class="block tabular-nums" :style="rewardAmountStyle">+{{ b.amount.toLocaleString() }} {{ b.symbol }}</text>
@@ -98,43 +114,76 @@
           </view>
         </view>
 
-        <!-- Always mounted so the observer attaches at first mount (receipts idiom). -->
-        <view ref="loadMoreSentinel" style="height: 1px" />
+        <!-- Mock keeps its prototype sentinel pagination; production binds only
+             to an intentional downward scroll on AppChassis' real container. -->
+        <view v-if="!fundsServerEnabled" ref="loadMoreSentinel" style="height: 1px" />
+        <view v-else ref="scrollAnchor" style="height: 1px" />
+        <view v-if="fundsServerEnabled && activePager.loadingMore" :style="loadingStyle" aria-live="polite" aria-busy="true"><text>…</text></view>
+        <view v-if="refreshErrorWithRows" class="flex items-center justify-between" :style="remoteErrorStyle">
+          <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
+          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshRecords"><text>{{ t.store.catalogRetry }}</text></view>
+        </view>
+        <view v-else-if="appendError" class="flex items-center justify-between" :style="remoteErrorStyle">
+          <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
+          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="loadMoreRecords"><text>{{ t.store.catalogRetry }}</text></view>
+        </view>
+        <view v-if="showManualLoadMore" class="inline-flex items-center active:opacity-70" :style="manualLoadMoreStyle" role="button" tabindex="0" @click="loadMoreRecords"><text>{{ t.receipt.loadMore }}</text></view>
       </template>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watchEffect, type CSSProperties } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { computed, ref, watch, watchEffect, type CSSProperties } from "vue";
+import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
+import { useCourseRewardTitles } from "@/composables/use-course-reward-titles";
 import { useVoucher } from "@/store/voucher";
-import { useBills, isRewardBill, type BillType } from "@/store/bills";
+import { useBills, isRewardBill, type Bill, type BillType } from "@/store/bills";
+import { courseRewardId, rewardsListCategory, type RewardsCat } from "./course-reward-link";
+import { courseRewardHref } from "@/pages/learn/course-navigation";
 import { getProduct } from "@/mock/products";
 import { isSingleSkuVoucher, type VoucherDef } from "@/mock/vouchers";
-import { navTo } from "@/lib/route";
-import { remoteApiEnabled } from "@/api/runtime";
+import { navTo, takeNavigationQuery } from "@/lib/route";
 import { useScrollGrowProgress } from "@/composables/use-scroll-grow-progress";
+import { useManualScrollLoadMore } from "@/composables/use-manual-scroll-load-more";
+import { fundsServerEnabled, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { useApp } from "@/store/app";
+import { useAuth } from "@/store/auth";
+import { binarySessionReady } from "@/lib/binary-session-ready";
 
 // Mirrors L1's RewardsCat (pages/me/rewards.vue); unknown values fall back.
-type RewardsCat = "voucher" | "usdt" | "nex";
 // One screen's worth per load (receipts idiom — mock slices locally, real
 // backend pages via cursor+limit with the same size).
 const PAGE_SIZE = 10;
 
 const t = useT();
+const app = useApp();
+const auth = useAuth();
 const voucher = useVoucher();
 const bills = useBills();
+const courseTitles = useCourseRewardTitles();
+const sourceRefOpen = ref("");
+watch(() => app.accountBindingEpoch, () => { sourceRefOpen.value = ""; });
+// The voucher/reward reads are protected; on a cold H5 load they must wait for
+// the cookie restore to bind this account, otherwise AUTH_REQUIRED surfaces as
+// "暂时无法确认账号状态" even though the same account's summary read succeeded.
+const remoteSessionReady = computed(() => binarySessionReady({
+  remote: remoteApiEnabled,
+  authenticated: auth.isAuthenticated,
+  accountId: auth.accountId,
+  appAccountKey: app.accountKey,
+  sessionUserId: sessionVault.read()?.user.userId ?? null,
+}));
 
 const cat = ref<RewardsCat>("voucher");
 onLoad((options) => {
-  const o = (options || {}) as Record<string, string>;
-  cat.value = o.cat === "usdt" || o.cat === "nex" ? o.cat : "voucher";
+  cat.value = rewardsListCategory(options, takeNavigationQuery("/pages/me/rewards-list"));
 });
 
 const pageTitle = computed(() =>
@@ -144,24 +193,68 @@ const pageTitle = computed(() =>
 // ── vouchers ──
 const available = computed<VoucherDef[]>(() => voucher.claimedUnused);
 const expired = computed<VoucherDef[]>(() => voucher.expiredVouchers);
-function voucherName(v: VoucherDef): string {
-  if (!remoteApiEnabled && v.id === "vc-newuser-50") return t.value.voucher.newUserGiftName;
-  if (!remoteApiEnabled && v.id === "vc-activity-8pct") return t.value.voucher.summerActivityName;
-  return v.name;
-}
+const voucherInitialLoading = computed(() => remoteApiEnabled
+  && (voucher.remoteStatus === "idle" || voucher.remoteStatus === "loading")
+  && available.value.length === 0 && expired.value.length === 0);
+const voucherReadError = computed(() => remoteApiEnabled && voucher.remoteStatus === "error");
+const voucherKnownEmpty = computed(() => (!remoteApiEnabled || voucher.remoteStatus === "ready")
+  && available.value.length === 0 && expired.value.length === 0);
+function retryVouchers() { void voucher.refreshRemote(); }
 
 // ── reward records (per-symbol, newest-first from the ledger) ──
 const symbol = computed(() => (cat.value === "nex" ? "NEX" : "USDT"));
-const records = computed(() => bills.bills.filter((b) => isRewardBill(b) && b.symbol === symbol.value));
+const usdtRewardsPager = bills.getLedger({ asset: "USDT", category: "REWARD" });
+const nexRewardsPager = bills.getLedger({ asset: "NEX", category: "REWARD" });
+const activePager = computed(() => cat.value === "nex" ? nexRewardsPager : usdtRewardsPager);
+const records = computed(() => fundsServerEnabled
+  ? activePager.value.rows
+  : bills.bills.filter((b) => isRewardBill(b) && b.symbol === symbol.value));
 const visibleCount = ref(PAGE_SIZE);
-const visibleRecords = computed(() => records.value.slice(0, visibleCount.value));
-const hasMore = computed(() => visibleCount.value < records.value.length);
+const visibleRecords = computed(() => (fundsServerEnabled ? records.value : records.value.slice(0, visibleCount.value))
+  .map((bill) => ({ ...bill, memo: resolveWalletBillMemo(bill, t.value.bills.memo as Record<string, string>, courseTitles.value) })));
+const hasMore = computed(() => fundsServerEnabled ? activePager.value.hasMore : visibleCount.value < records.value.length);
+const scrollAnchor = ref<unknown>(null);
+const initialLoading = computed(() => fundsServerEnabled && activePager.value.status === "loading" && records.value.length === 0);
+const initialError = computed(() => fundsServerEnabled && activePager.value.status === "error" && records.value.length === 0);
+const refreshErrorWithRows = computed(() => fundsServerEnabled && activePager.value.status === "error" && records.value.length > 0);
+const appendError = computed(() => fundsServerEnabled && activePager.value.status === "ready" && records.value.length > 0 && Boolean(activePager.value.error));
+const showManualLoadMore = computed(() => fundsServerEnabled && activePager.value.status === "ready" && activePager.value.hasMore && !activePager.value.loadingMore && !appendError.value && !refreshErrorWithRows.value);
+
+async function refreshRecords() {
+  if (!fundsServerEnabled || cat.value === "voucher") return;
+  if (!remoteSessionReady.value) return;
+  try { await activePager.value.refresh(); } catch { /* the pager retains rows and exposes the error */ }
+}
+async function loadMoreRecords() {
+  if (fundsServerEnabled) {
+    try { await activePager.value.loadMore(); } catch { /* keep loaded rows visible for retry */ }
+    return;
+  }
+  if (hasMore.value) visibleCount.value = Math.min(records.value.length, visibleCount.value + PAGE_SIZE);
+}
+onShow(() => {
+  void refreshRecords();
+  if (cat.value === "voucher") retryVouchers();
+});
+// onShow can run before the cookie restore binds the account; start the
+// deferred protected reads here so no page settles on an account-state error.
+watch(remoteSessionReady, (ready, wasReady) => {
+  if (!ready || wasReady) return;
+  void refreshRecords();
+  if (cat.value === "voucher") retryVouchers();
+});
+useManualScrollLoadMore(scrollAnchor, {
+  enabled: () => fundsServerEnabled && cat.value !== "voucher" && !activePager.value.error,
+  hasMore: () => activePager.value.hasMore,
+  loading: () => activePager.value.loadingMore || activePager.value.status === "loading",
+  loadMore: loadMoreRecords,
+});
 
 // Tail sentinel auto-load — same mechanics (and same ponytail caveats) as
 // receipts.vue: watchEffect re-checks on every dependency change.
 const { elRef: loadMoreSentinel, inView: loadMoreInView } = useScrollGrowProgress({ threshold: 0 });
 watchEffect(() => {
-  if (cat.value !== "voucher" && loadMoreInView.value && hasMore.value) {
+  if (!fundsServerEnabled && cat.value !== "voucher" && loadMoreInView.value && hasMore.value) {
     visibleCount.value = Math.min(records.value.length, visibleCount.value + PAGE_SIZE);
   }
 });
@@ -199,6 +292,12 @@ function rewardTypeLabel(type: BillType): string {
   if (type === "refer") return t.value.rewards.typeRefer;
   if (type === "achievement") return t.value.rewards.typeAchievement;
   return t.value.rewards.typeBonus;
+}
+function onKeyboardActivate(event: KeyboardEvent, action: () => void) { if (!event.repeat) action(); }
+function toggleSourceRef(id: string) { sourceRefOpen.value = sourceRefOpen.value === id ? "" : id; }
+function openCourseReward(bill: Bill) {
+  const id = courseRewardId(bill);
+  if (id) navTo(courseRewardHref(id));
 }
 function onUse(v: VoucherDef) {
   if (isSingleSkuVoucher(v)) {
@@ -339,4 +438,8 @@ const emptyStyle: CSSProperties = {
 };
 const emptyTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "13px", color: "var(--v5-ink-2)" };
 const emptyHintStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.6 };
+const remoteErrorStyle: CSSProperties = { margin: "0 16px 12px", padding: "10px 12px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-danger) 10%, transparent)", color: "var(--v5-danger)", fontSize: "12px", gap: "12px" };
+const retryBtnStyle: CSSProperties = { minHeight: "32px", padding: "0 10px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink)", fontSize: "12px" };
+const loadingStyle: CSSProperties = { margin: "0 16px", padding: "32px", textAlign: "center", color: "var(--v5-ink-3)" };
+const manualLoadMoreStyle: CSSProperties = { minHeight: "40px", margin: "8px 16px 0", padding: "0 14px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "12px" };
 </script>

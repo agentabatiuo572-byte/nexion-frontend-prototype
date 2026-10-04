@@ -106,10 +106,26 @@ for (const k of RC_KEYS) {
   else ok(`${k} seed=${v} ∈ admin 域 [${dom.min},${dom.max}]`);
 }
 
-// ── otpGate 5 键:∈ 域(admin 键名带 otpGate. 前缀)────────────────────────
+// ── otpGate:正式服务端共用键锚 admin 域;本地滑块模拟键锚客户端安全域 ────────
+// `captchaAfterSends` / `captchaTicketTtlSeconds` 只驱动非 remote 的本地滑块
+// 模拟器。正式注册/登录由 Java 的 dayLimit 与验证码策略执行,PC 不应出现一组
+// 看似可写、实则不被 Java 消费的假参数。因此这两项在 App 内按安全域验种子,
+// 其余键继续要求 PC 活源存在并落入同一值域。
 for (const k of OG_KEYS) {
   const raw = seedOg[k];
   if (raw == null) { bad(`otpGate.${k} uniapp 种子缺失`); continue; }
+  const clientOnlyDomain = k === "captchaAfterSends"
+    ? { min: 1, max: 10 }
+    : k === "captchaTicketTtlSeconds" ? { min: 30, max: 600 } : null;
+  if (clientOnlyDomain) {
+    const v = Number(raw);
+    if (!Number.isInteger(v) || v < clientOnlyDomain.min || v > clientOnlyDomain.max) {
+      bad(`otpGate.${k} seed=${raw} 越出本地滑块安全域 [${clientOnlyDomain.min},${clientOnlyDomain.max}]`);
+    } else {
+      ok(`otpGate.${k} seed=${v} ∈ 本地滑块安全域 [${clientOnlyDomain.min},${clientOnlyDomain.max}]`);
+    }
+    continue;
+  }
   const dom = inlineDomain(kClient, `otpGate.${k}`);
   if (!dom) { bad(`otpGate.${k} admin 值域提取失败(形状变了必红)`); continue; }
   const v = Number(raw);

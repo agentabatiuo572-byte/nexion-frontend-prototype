@@ -14,7 +14,7 @@
     <view class="flex items-end gap-2.5">
       <NovaAvatar :size="44" pulse />
 
-      <view class="flex-1 min-w-0 relative overflow-hidden" style="padding: 12px 14px; background: var(--v5-surface); border-radius: 18px 18px 18px 4px">
+      <view class="nx-glass-card flex-1 min-w-0 relative overflow-hidden" style="padding: 12px 14px; background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius)">
         <!-- Flowing aurora blobs (clipped by parent overflow-hidden) -->
         <view class="pointer-events-none absolute" :style="blob1" />
         <view class="pointer-events-none absolute" :style="blob2" />
@@ -26,7 +26,7 @@
             <text style="color: var(--v5-ink-4)">· {{ t.novaCard.senderRole }}</text>
           </view>
           <view class="mt-1.5" style="font-family: var(--font-v5); font-size: 15px; line-height: 1.45; color: var(--v5-ink); font-weight: 500">
-            <text>{{ t.novaCard.messageWithPercent }}</text>
+            <text>{{ msgBefore }}</text><text class="tabular-nums" style="color: var(--v5-brand); font-weight: 600">{{ yieldPct }}</text><text>{{ msgAfter }}</text>
           </view>
           <view class="mt-2 inline-flex items-center gap-1" style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-brand)">
             <text style="color: var(--v5-brand)">{{ t.novaCard.openChatCta }}</text>
@@ -49,6 +49,18 @@ const t = useT();
 const nova = useNova();
 
 const unread = computed(() => nova.unread);
+const yieldPct = "0.16";
+
+const msgBefore = computed(() => {
+  const tpl = t.value.novaCard.messageWithPercent;
+  const idx = tpl.indexOf("{pct}");
+  return idx >= 0 ? tpl.slice(0, idx) : tpl;
+});
+const msgAfter = computed(() => {
+  const tpl = t.value.novaCard.messageWithPercent;
+  const idx = tpl.indexOf("{pct}");
+  return idx >= 0 ? tpl.slice(idx + 5) : "";
+});
 
 function open() {
   navTo("/pages/support/chat?type=ai");
@@ -57,4 +69,6 @@ function open() {
 const blob1: CSSProperties = { left: "0", top: "0", width: "140px", height: "140px", borderRadius: "50%", background: "radial-gradient(circle, color-mix(in oklab, var(--v5-brand) 35%, transparent) 0%, transparent 65%)", filter: "blur(14px)", animation: "v5-nova-blob-1 9s ease-in-out infinite" };
 const blob2: CSSProperties = { left: "0", top: "0", width: "120px", height: "120px", borderRadius: "50%", background: "radial-gradient(circle, color-mix(in oklab, var(--v5-brand-2) 30%, transparent) 0%, transparent 65%)", filter: "blur(16px)", animation: "v5-nova-blob-2 12s ease-in-out -3s infinite" };
 const blob3: CSSProperties = { left: "0", top: "0", width: "100px", height: "100px", borderRadius: "50%", background: "radial-gradient(circle, color-mix(in oklab, var(--v5-tech-cyan) 28%, transparent) 0%, transparent 65%)", filter: "blur(14px)", animation: "v5-nova-blob-3 14s ease-in-out -6s infinite" };
+
+
 </script>

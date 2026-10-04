@@ -46,6 +46,7 @@ export const useEventQuest = defineStore("eventQuest", () => {
   const joinedMap = reactive<Record<string, boolean>>({});
   const claimedMap = reactive<Record<string, boolean>>({});
   const remoteAccountEpoch = createRemoteAccountEpoch(boundKey);
+  let refreshGeneration = 0;
   for (const id of init.joined) joinedMap[id] = true;
   for (const id of init.claimed) claimedMap[id] = true;
 
@@ -56,17 +57,17 @@ export const useEventQuest = defineStore("eventQuest", () => {
 
   async function refreshRemote(request: RemoteAccountRequest = remoteAccountEpoch.snapshot()): Promise<boolean> {
     if (!remoteApiEnabled) return true;
-    clearRemoteFacts();
+    const generation = ++refreshGeneration;
     try {
       const snapshot = await eventsApi.state();
-      if (!remoteAccountEpoch.isCurrent(request)) return false;
+      if (!remoteAccountEpoch.isCurrent(request) || generation !== refreshGeneration) return false;
+      clearRemoteFacts();
       for (const event of snapshot.events) {
         if (["JOINED", "CLAIMABLE", "CLAIMED"].includes(event.userStatus)) joinedMap[event.eventCode] = true;
         if (event.userStatus === "CLAIMED") claimedMap[event.eventCode] = true;
       }
       return true;
     } catch {
-      if (remoteAccountEpoch.isCurrent(request)) clearRemoteFacts();
       return false;
     }
   }
@@ -76,9 +77,11 @@ export const useEventQuest = defineStore("eventQuest", () => {
     const request = remoteAccountEpoch.snapshot();
     try {
       await eventsApi.join(id, `h4-event-join:${id}`);
-      return remoteAccountEpoch.isCurrent(request) && refreshRemote(request);
+      if (!remoteAccountEpoch.isCurrent(request)) return false;
+      joinedMap[id] = true;
+      await refreshRemote(request);
+      return remoteAccountEpoch.isCurrent(request);
     } catch {
-      if (remoteAccountEpoch.isCurrent(request)) clearRemoteFacts();
       return false;
     }
   }
@@ -88,9 +91,12 @@ export const useEventQuest = defineStore("eventQuest", () => {
     const request = remoteAccountEpoch.snapshot();
     try {
       await eventsApi.claim(id, `h4-event-claim:${id}`);
-      return remoteAccountEpoch.isCurrent(request) && refreshRemote(request);
+      if (!remoteAccountEpoch.isCurrent(request)) return false;
+      joinedMap[id] = true;
+      claimedMap[id] = true;
+      await refreshRemote(request);
+      return remoteAccountEpoch.isCurrent(request);
     } catch {
-      if (remoteAccountEpoch.isCurrent(request)) clearRemoteFacts();
       return false;
     }
   }

@@ -20,6 +20,10 @@ export function fmt(
   );
 }
 
+export function openSlotsTemplate(s: string, open: number): string {
+  return open === 1 ? s.replace("slots open", "slot open") : s;
+}
+
 /**
  * BCP-47 tag for Date#toLocale{Date,Time}String / toLocaleString — must follow
  * the language the UI actually renders, never the device locale (`undefined`

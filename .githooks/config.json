@@ -1,0 +1,4 @@
+{
+  "$comment": "2026-09-11：mainline 及 detached 候选提交经本机 full 验证匹配后自动放行，不再按文件数或未推送提交要求人工授权；pre-push 仍要求最终提交的干净工作树 full 验证。",
+  "mainline": "H5"
+}

@@ -40,6 +40,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { isThirdPartyResourceError } from "./lib/console-origin-filter.mjs";
 import { analyzeTemplate, listVueFiles } from "./lib/svg-text-predicate.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BASE = process.env.UNI_BASE_URL || process.env.BASE_URL || "http://localhost:5173";
@@ -50,10 +51,10 @@ const TOL = 2;
 /** 含 SVG 文字候选的源文件 → 承载它的路由。min/whyMin 只在静态计数不适用(v-for)时覆盖。 */
 export const ROUTE_MAP = {
   "src/pages/team/network.vue": { route: "pages/team/network" },
-  "src/pages/team/binary-how.vue": { route: "pages/team/binary-how" },
+  // Formal mode displays published content, never the historical illustration.
+  // Verify that boundary first, then render the illustration in an explicit local-mode fixture.
+  "src/pages/team/binary-how.vue": { route: "pages/team/binary-how", publishedContentKey: "team-binary-how" },
   "src/pages/globe/globe.vue": { route: "pages/globe/globe" },
-  // 组件:商品详情 Cloud Share 档才走抽象云图(硬件档是照片 + HTML 叠字);2 丝印 + v-for 4 芯片 = 6
-  "src/components/store/product-render.vue": { route: "pages/store/detail?id=cloud-share", min: 6, whyMin: "静态 3 处里 1 处是 v-for 4 个芯片(GPU/CPU/RAM/SSD),提案 Done-when 钉 6" },
   // lucky-spin 转盘:v-html 字符串画的真 SVG text(P-121 追记点名保留的先例)。它是 sheet 里的内容,不在任何路由首屏,
   // 由 sheet 自己的走查覆盖;这里登记为不探(route:null)但写明理由,不让它静默逃出清单。
   "src/components/lucky-spin-sheet.vue": { route: null, whyMin: "转盘 sheet 内 v-html 真 SVG text,需点开 sheet 才在 DOM 里;不在本门探,登记只为不静默" },
@@ -179,6 +180,20 @@ export function judgeSnapshot(snap, min, tol = TOL) {
 
 const isVueResolveWarn = (text) => /\[Vue warn\].*(Failed to resolve component|custom element|Unknown custom element|Failed to resolve directive)/i.test(text);
 
+/** Formal content must remain remote-owned in both success and failure states. */
+export function judgePublishedHowSnapshot(snap, state) {
+  const hits = [];
+  if (!snap.onRoute) hits.push({ tag: "published-route", msg: "Published-content witness left its requested page" });
+  if (snap.localSvgCount !== 0) hits.push({ tag: "published-local-fallback", msg: "Formal published content exposed the local SVG illustration" });
+  if (state === "ready" && (!snap.publishedVisible || snap.errorVisible)) {
+    hits.push({ tag: "published-content", msg: "The fixture's published content is not visibly rendered" });
+  }
+  if (state === "failed" && (!snap.errorVisible || !snap.retryVisible || snap.publishedVisible)) {
+    hits.push({ tag: "published-recovery", msg: "Failed published content must show an error and retry without stale content" });
+  }
+  return hits;
+}
+
 // ── selftest(合成页面,不需要 dev server)─────────────────────────────────────
 async function selftest() {
   const browser = await chromium.launch({ headless: true });
@@ -264,6 +279,17 @@ async function selftest() {
   const files = svgLabelFiles();
   say(Object.keys(files).length >= 1, "判定面:仓内至少 1 个 svg 内有文字候选的文件(0 = 门瞎了)", Object.keys(files).length, "≥1");
   say(judgeRegistry(files).length === 0, "判定面:仓内候选文件全部已登记且登记项合法", judgeRegistry(files).length, 0);
+  const readyHow = { onRoute: true, localSvgCount: 0, publishedVisible: true, errorVisible: false, retryVisible: false };
+  const failedHow = { ...readyHow, publishedVisible: false, errorVisible: true, retryVisible: true };
+  say(judgePublishedHowSnapshot(readyHow, "ready").length === 0, "正式发布内容可见且无本地图", true, true);
+  say(judgePublishedHowSnapshot(failedHow, "failed").length === 0, "正式发布失败保持错误与重试", true, true);
+  for (const [name, snap, state, tag] of [
+    ["远端失败回退本地图", { ...failedHow, localSvgCount: 5 }, "failed", "published-local-fallback"],
+    ["发布内容未渲染", { ...readyHow, publishedVisible: false }, "ready", "published-content"],
+    ["错误没有恢复入口", { ...failedHow, retryVisible: false }, "failed", "published-recovery"],
+    ["失败后展示旧内容", { ...failedHow, publishedVisible: true }, "failed", "published-recovery"],
+    ["跳转离开目标页面", { ...readyHow, onRoute: false }, "ready", "published-route"],
+  ]) say(judgePublishedHowSnapshot(snap, state).some(hit => hit.tag === tag), `🔴 ${name}必须判红`, true, true);
   await browser.close();
   console.log(`svg-text-render-probe selftest: ${pass}/${pass + fail} 格通过`);
   process.exit(fail ? 1 : 0);
@@ -284,6 +310,49 @@ async function main() {
     try { localStorage.setItem("nexgrid-locale-v1", JSON.stringify({ type: "object", data: { code, userSet: true } })); } catch {}
   }, LANG);
   const page = await context.newPage();
+  let localHowMode = false;
+  let localModeLoads = 0;
+  await installFormalProbeSession(page, { responseFor: (url) => {
+    if (url.pathname === "/api/app/network/regions") return {
+      source: "server",
+      generatedAt: "2026-09-02T00:00:00Z",
+      activeNodes: 12,
+      activeJobs: 4,
+      countryCount: 1,
+      regions: [{ id: "probe-user-region", displayName: "Probe region", location: "Probe DC", activeNodes: 12, activeJobs: 4, jobsPerHour: 8, latitude: 1.35, longitude: 103.82, isUserRegion: true }],
+    };
+    if (url.pathname === "/api/store/catalog") return {
+      source: "nx_product", sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true, revision: null,
+      products: [{
+        id: "cloud-share", name: "Cloud Share", tier: "Share", tagline: "Distributed compute", badge: null,
+        productType: "SHARE", inventoryMode: "UNLIMITED", gpu: null, vram: null, power: null, datacenter: null,
+        warranty: null, hashRate: null, dailyEarn: 0.19, dailyEarnNEX: 3, price: 19.9, sold: 0, stock: null,
+        features: [], ai: null, status: "active", available: true, releaseState: null, releasePhaseId: null,
+        unlocksAtPhase: null, purchaseGate: null,
+      }],
+    };
+    return undefined;
+  } });
+  // Register after the HTTP catch-all. This override is used only in the separately
+  // reloaded local illustration witness; formal witnesses use the actual selector.
+  await page.route((url) => url.pathname === "/src/lib/team-how-content-mode.ts", (route) => {
+    if (!localHowMode) return route.continue();
+    localModeLoads++;
+    return route.fulfill({ contentType: "application/javascript", body: 'export function howContentMode() { return "local"; }' });
+  });
+  const publishedMarker = "SVG probe published content";
+  let publishedFailure = false;
+  let publishedReads = 0;
+  await page.route((url) => url.pathname === "/api/content/how-it-works/team-binary-how", (route) => {
+    publishedReads++;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(publishedFailure
+      ? { code: 503, message: "HOW_CONTENT_UNAVAILABLE", data: null }
+      : { code: 0, message: "OK", data: {
+        contentKey: "team-binary-how", version: "svg-probe-v1", locale: LANG, status: "PUBLISHED",
+        source: "server", sourceEnvironment: "PRODUCTION", runId: "",
+        blocks: [{ id: "published-probe", kind: "text", title: publishedMarker, body: "Published content fixture; no local reward illustration." }],
+      } }) });
+  });
   const consoleErrors = [];
   page.on("console", (m) => {
     const text = m.text();
@@ -297,25 +366,67 @@ async function main() {
     if (!/uni-app|<div id="app">/i.test(home)) { console.log(`FAIL [target] ${BASE} 不像 uni H5 dev server`); process.exit(1); }
   } catch (e) { console.log(`FAIL [target] 探不到 ${BASE}:${String(e).slice(0, 80)} —— 独立跑请 UNI_BASE_URL 指向本树 mock server`); process.exit(1); }
   let routes = 0, texts = 0;
+  let publishedWitnesses = 0;
   for (const [file, cfg] of Object.entries(ROUTE_MAP)) {
     if (!files[file]) { console.log(`WARN ${file} 已不含 svg 文字候选(ROUTE_MAP 里的登记可以删了)`); continue; }
     if (cfg.route === null) { console.log(`SKIP ${file}(不探:${cfg.whyMin})`); continue; }
     const min = cfg.min ?? files[file].svgText;
     const [p, q] = cfg.route.split("?");
+    const routeUrl = `${BASE}/?nx_device=off#/${p}${q ? "?" + q : ""}`;
+    if (cfg.publishedContentKey) {
+      const recordPublished = async (state) => {
+        const snap = {
+          onRoute: await page.evaluate((route) => location.hash.split("?")[0] === `#/${route}`, p),
+          localSvgCount: await page.locator("svg text[data-svgtext], svg uni-text").count(),
+          publishedVisible: await page.getByText(publishedMarker, { exact: true }).isVisible(),
+          errorVisible: await page.locator('[role="alert"]').isVisible(),
+          retryVisible: await page.locator('[role="alert"] [role="button"]').isVisible(),
+        };
+        const hits = judgePublishedHowSnapshot(snap, state);
+        if (consoleErrors.length) hits.push({ tag: "console", msg: consoleErrors.join(" | ") });
+        if (hits.length) { fail += hits.length; for (const hit of hits) console.log(`FAIL ${cfg.route} [${hit.tag}] ${hit.msg}`); }
+        else console.log(`PASS ${cfg.route} formal ${state}: published authority · local SVG 0 · console 0`);
+        publishedWitnesses++;
+      };
+      localHowMode = false;
+      publishedFailure = false;
+      consoleErrors.length = 0;
+      await page.goto(routeUrl, { waitUntil: "domcontentloaded" });
+      await page.getByText(publishedMarker, { exact: true }).waitFor({ state: "visible" });
+      await recordPublished("ready");
+      publishedFailure = true;
+      consoleErrors.length = 0;
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.locator('[role="alert"] [role="button"]').waitFor({ state: "visible" });
+      await recordPublished("failed");
+      const readsBeforeRetry = publishedReads;
+      publishedFailure = false;
+      consoleErrors.length = 0;
+      await page.locator('[role="alert"] [role="button"]').click();
+      await page.getByText(publishedMarker, { exact: true }).waitFor({ state: "visible" });
+      if (publishedReads <= readsBeforeRetry) { fail++; console.log(`FAIL ${cfg.route} [published-recovery] retry did not fetch published content`); }
+      await recordPublished("ready");
+      // Only now select the dormant local branch to retain its full SVG rendering coverage.
+      localHowMode = true;
+    }
     consoleErrors.length = 0;
-    await page.goto(`${BASE}/?nx_device=off#/${p}${q ? "?" + q : ""}`, { waitUntil: "domcontentloaded" });
+    const localLoadsBefore = localModeLoads;
+    if (cfg.publishedContentKey) await page.reload({ waitUntil: "domcontentloaded" });
+    else await page.goto(routeUrl, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(2200);
     const snap = await page.evaluate(snapshotScript());
     const hits = judgeSnapshot(snap, min);
+    if (cfg.publishedContentKey && localModeLoads <= localLoadsBefore) hits.push({ tag: "local-fixture", msg: "Local illustration witness did not load its explicit mode fixture" });
+    localHowMode = false;
     if (consoleErrors.length) hits.push({ tag: "console", msg: `console error/Vue warn ${consoleErrors.length}:${consoleErrors[0]}` });
     routes++; texts += snap.texts.length;
     if (hits.length) { fail += hits.length; console.log(`FAIL ${cfg.route}(${file})`); for (const h of hits) console.log(`  [${h.tag}] ${h.msg}`); }
-    else console.log(`PASS ${cfg.route}  svg text ${snap.texts.length}(带标记 ${snap.markedCount} ≥ ${min})· 全部 bbox>0 · 可见 · 呈现属性未被劫持(跳过比不了的 ${snap.attrSkipped})· uni-text 0 · console 0 —— ${snap.texts.map((t) => t.text).join(" / ")}`);
+    else console.log(`PASS ${cfg.route}${cfg.publishedContentKey ? " [explicit local illustration fixture]" : ""}  svg text ${snap.texts.length}(带标记 ${snap.markedCount} ≥ ${min})· 全部 bbox>0 · 可见 · 呈现属性未被劫持(跳过比不了的 ${snap.attrSkipped})· uni-text 0 · console 0 —— ${snap.texts.map((t) => t.text).join(" / ")}`);
   }
   await browser.close();
   if (routes === 0 || texts === 0) { fail++; console.log(`FAIL [coverage] 探到 ${routes} 条路由 / ${texts} 个 svg 文字 —— 0 覆盖不算绿(A2 P1-3)`); }
   if (fail) { console.log(`svg-text-render-probe: ${fail} 条不通过(lang=${LANG})`); process.exit(1); }
-  console.log(`svg-text-render-probe: ${routes} 路由 ${texts} 个 SVG 文字全部真渲染且可见(lang=${LANG};bbox>0 · 可见 · svg 盒内 · 呈现属性=计算值 · svg 内 uni-text 0 · console/Vue warn 0)`);
+  console.log(`svg-text-render-probe: ${routes} 路由 ${texts} 个 SVG 文字全部真渲染且可见; formal published witnesses ${publishedWitnesses}(lang=${LANG};bbox>0 · 可见 · svg 盒内 · 呈现属性=计算值 · svg 内 uni-text 0 · console/Vue warn 0)`);
 }
 
 // 只在直接执行时跑(被 import 取判定函数时不动;A1 P2-4)

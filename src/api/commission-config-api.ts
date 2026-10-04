@@ -1,14 +1,17 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
-import type { ApiResponseEnvironment } from "./runtime-config";
-import { isCurrentCommerceSandboxRun } from "./order-api";
+import type { ApiEnvironment } from "./runtime-config";
 
 export type CommissionSourceEnvironment = "PRODUCTION" | "SANDBOX";
 
 export interface CanonicalCommissionConfig {
   source: string;
+  serverCanonical: true;
+  sourceEnvironment: CommissionSourceEnvironment;
+  runId: string | null;
   unilevelUsdt: Record<number, number>;
   unilevelNex: Record<number, number>;
+  unilevelPaused: Record<number, boolean>;
   partnerThresholds: {
     standard: number;
     verified: number;
@@ -17,7 +20,7 @@ export interface CanonicalCommissionConfig {
   };
   influenceClampMin: number;
   influenceClampMax: number;
-  coolingDays: number;
+  coolingDays: number | null;
   promoMultiplier: number;
 }
 
@@ -27,7 +30,7 @@ export type CanonicalBinaryResidualPolicy = "monthlyClear" | "perPairClear" | "c
 export interface CanonicalBinaryMatch {
   id: string;
   amountUsdt: number;
-  status: "cooling" | "unlocked" | "withdrawn";
+  status: "cooling" | "unlocked" | "withdrawn" | "frozen" | "reversed" | "rejected";
   createdAt: number;
   unlockAt: number;
 }
@@ -124,9 +127,14 @@ function parsePartnerThresholds(value: unknown): CanonicalCommissionConfig["part
   return thresholds;
 }
 
-function parse(value: unknown): CanonicalCommissionConfig {
+function parse(value: unknown, mode: ApiEnvironment): CanonicalCommissionConfig {
   const source = record(value);
-  if (typeof source.source !== "string" || !source.source.trim() || !Array.isArray(source.unilevel)) return invalid();
+  const sourceEnvironment = typeof source.sourceEnvironment === "string" ? source.sourceEnvironment.trim().toUpperCase() : "";
+  const runId = source.runId;
+  const production = (mode === "dev" || mode === "prod") && source.serverCanonical === true
+    && sourceEnvironment === "PRODUCTION" && runId === null;
+  if (typeof source.source !== "string" || !source.source.trim() || !Array.isArray(source.unilevel)
+      || !production) return invalid();
   const unilevelUsdt: Record<number, number> = {};
   const unilevelNex: Record<number, number> = {};
   for (const raw of source.unilevel) {
@@ -139,6 +147,14 @@ function parse(value: unknown): CanonicalCommissionConfig {
     unilevelNex[layer] = number(row.nexReward, 0);
   }
   if (Object.keys(unilevelUsdt).length !== 7) return invalid();
+  const pausedSource = record(source.unilevelPaused);
+  const unilevelPaused: Record<number, boolean> = {};
+  for (let layer = 1; layer <= 7; layer += 1) {
+    const value = pausedSource[`L${layer}`];
+    if (typeof value !== "boolean") return invalid();
+    unilevelPaused[layer] = value;
+  }
+  if (Object.keys(pausedSource).length !== 7) return invalid();
   if (Math.abs(unilevelUsdt[1] - 0.1) > 0.0000001) return invalid();
   const totalPct = Object.values(unilevelUsdt).reduce((sum, rate) => sum + rate, 0) * 100;
   if (totalPct > 25.000001) return invalid();
@@ -147,37 +163,43 @@ function parse(value: unknown): CanonicalCommissionConfig {
   if (influenceClampMin > influenceClampMax) return invalid();
   return {
     source: source.source.trim(),
+    serverCanonical: true,
+    sourceEnvironment: sourceEnvironment as CommissionSourceEnvironment,
+    runId: null,
     unilevelUsdt,
     unilevelNex,
+    unilevelPaused,
     partnerThresholds: parsePartnerThresholds(source.partnerTiersJson),
     influenceClampMin,
     influenceClampMax,
-    coolingDays: number(source.coolingDays, 0, 90),
+    coolingDays: source.coolingDays === null ? null : number(source.coolingDays, 0, 90),
     promoMultiplier: number(source.promoMultiplier, 1, 3),
   };
 }
 
 function binaryStatus(value: unknown): CanonicalBinaryMatch["status"] {
   const status = text(value).toUpperCase();
-  if (["PENDING", "COOLING"].includes(status)) return "cooling";
-  if (["PAID", "SETTLED", "UNLOCKED"].includes(status)) return "unlocked";
-  if (status === "WITHDRAWN") return "withdrawn";
+  if (["PENDING", "COOLING", "LOCKED"].includes(status)) return "cooling";
+  if (["UNLOCKED", "AVAILABLE"].includes(status)) return "unlocked";
+  if (["PAID", "SETTLED", "WITHDRAWN"].includes(status)) return "withdrawn";
+  if (status === "FROZEN") return "frozen";
+  if (["REVERSED", "ROLLBACK"].includes(status)) return "reversed";
+  if (status === "REJECTED") return "rejected";
   return invalid();
 }
 
-function parseBinary(value: unknown, mode: ApiResponseEnvironment): CanonicalBinaryState {
+function parseBinary(value: unknown, mode: ApiEnvironment): CanonicalBinaryState {
   const source = record(value);
   const sourceEnvironment = typeof source.sourceEnvironment === "string" ? source.sourceEnvironment.trim().toUpperCase() : "";
   const runId = source.runId;
-  const production = source.source === "server" && mode === "prod" && source.serverCanonical === true
+  const production = source.source === "server" && (mode === "dev" || mode === "prod")
+    && source.serverCanonical === true
     && sourceEnvironment === "PRODUCTION" && runId === null;
-  const sandbox = source.source === "server" && mode === "dev" && source.serverCanonical === true
-    && sourceEnvironment === "SANDBOX" && isCurrentCommerceSandboxRun(runId);
   if (!Array.isArray(source.recentMatches)
       || typeof source.spilloverEnabled !== "boolean"
       || typeof source.paused !== "boolean"
       || typeof source.blockedReason !== "string"
-      || (!production && !sandbox)) return invalid();
+      || !production) return invalid();
   const settlePeriod = text(source.settlePeriod) as CanonicalBinarySettlePeriod;
   const residualPolicy = text(source.residualPolicy) as CanonicalBinaryResidualPolicy;
   if (!["daily", "weekly", "monthly"].includes(settlePeriod)
@@ -206,7 +228,7 @@ function parseBinary(value: unknown, mode: ApiResponseEnvironment): CanonicalBin
     source: text(source.source),
     serverCanonical: true,
     sourceEnvironment: sourceEnvironment as CommissionSourceEnvironment,
-    runId: sandbox ? runId as string : null,
+    runId: null,
     asOfDate: isoDate(source.asOfDate),
     trackA,
     trackB,
@@ -228,14 +250,14 @@ function parseBinary(value: unknown, mode: ApiResponseEnvironment): CanonicalBin
   };
 }
 
-export function createCommissionConfigApi(client: ApiClient, mode: ApiResponseEnvironment = "prod"): CommissionConfigApi {
+export function createCommissionConfigApi(client: ApiClient, mode: ApiEnvironment = "prod"): CommissionConfigApi {
   return {
     async rates() {
       return parse(await client.request<unknown>({
         method: "GET",
         path: "/api/config/commission/rates",
         authenticated: false,
-      }));
+      }), mode);
     },
     async binary() {
       return parseBinary(await client.request<unknown>({

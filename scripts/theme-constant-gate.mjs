@@ -77,7 +77,7 @@ export function themeConstantTokenValues(css) {
     }
   };
   grab(/:root\s*\{([\s\S]*?)\n\}/g, "light");
-  grab(/html\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/g, "dark");
+  grab(/(?:html\[data-theme="dark"\]|:root:not\(\[data-theme="light"\]\))\s*\{([\s\S]*?)\n\}/g, "dark");
   const out = new Set();
   for (const [t, v] of defs.light) {
     const d = defs.dark.get(t);

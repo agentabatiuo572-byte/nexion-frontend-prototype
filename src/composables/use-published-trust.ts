@@ -1,14 +1,14 @@
 import { ref } from "vue";
 import { trustSectionApi } from "@/api/runtime";
 import type { PublishedTrustSection, TrustLocale } from "@/api/trust-section-api";
-import { subscribeCurrentCommerceSandboxRun } from "@/api/order-api";
+import { subscribeRuntimeRevision } from "@/api/order-api";
 
 const sections = ref<PublishedTrustSection[]>([]);
 const status = ref<"idle" | "loading" | "ready" | "error">("idle");
 let inflight: Promise<boolean> | null = null;
 let authorityGeneration = 0;
 
-subscribeCurrentCommerceSandboxRun(() => {
+subscribeRuntimeRevision(() => {
   authorityGeneration += 1;
   inflight = null;
   sections.value = [];

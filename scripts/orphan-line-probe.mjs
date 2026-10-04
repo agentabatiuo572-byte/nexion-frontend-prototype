@@ -121,6 +121,9 @@ const routes = SCOPE.routes;
 
 let totalMultiline = 0, failedRoutes = 0;
 const hits = [];
+// Cold Vite transforms on the withdrawal page can outlast 20s; keep the
+// assertion intact while using the same navigation budget as page probes.
+const NAVIGATION_TIMEOUT_MS = 60_000;
 await page.close();
 // 包 ax:按语言分批,每批 N 条 lane(各自独立 context / 渲染进程,localStorage 天然隔离,语言注入不互相踩)并行各扫一条路由
 //   (PROBE_CONCURRENCY,默认 3);每条路由仍是 goto → 注入 → reload → 900ms 的原节奏,判据不动。
@@ -128,12 +131,12 @@ for (const locale of LOCALES) {
   // tester-F R2-01:并行 3 lane 时首页/我的页布局晚稳定,多行文案分母稳定少 2/40 段(= 那 2 段没被查孤字),而 full 走的就是默认档;
   //   并行本来只省 ~4s,不值得赌检出力 → 固定 concurrency 1(与 theme 门同款);路由级范围化保留。
   const results = await mapRoutes(browser, routes, async (p, route) => {
-    await p.goto(`${BASE}/?nx_device=off#/${route}`, { waitUntil: "domcontentloaded", timeout: 20000 });
+    await p.goto(`${BASE}/?nx_device=off#/${route}`, { waitUntil: "domcontentloaded", timeout: NAVIGATION_TIMEOUT_MS });
     // uni storage 的 H5 形态是 {type,data} —— 少 type 会被当字符串读回,语言注入静默失效
     await p.evaluate((code) => {
       localStorage.setItem("nexgrid-locale-v1", JSON.stringify({ type: "object", data: { code, userSet: true } }));
     }, locale);
-    await p.reload({ waitUntil: "domcontentloaded", timeout: 20000 });
+    await p.reload({ waitUntil: "domcontentloaded", timeout: NAVIGATION_TIMEOUT_MS });
     await settleNetwork(p, 5000, 1); // 本门固定串行(R2-01)→ 空转;留调用点是为了将来若再开并行时不忘等
     await p.waitForTimeout(900);
     return await p.evaluate(scanOrphans);

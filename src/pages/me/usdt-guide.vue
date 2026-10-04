@@ -52,7 +52,7 @@ import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
-import { navBack } from "@/lib/route";
+import { navReplace } from "@/lib/route";
 
 const t = useT();
 
@@ -67,7 +67,7 @@ const steps = computed(() => {
 });
 
 function goBack() {
-  navBack("/pages/me/wallet-topup");
+  navReplace("/pages/me/wallet-topup");
 }
 
 // ── styles ──

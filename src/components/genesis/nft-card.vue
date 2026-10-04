@@ -1,10 +1,7 @@
-<!-- NFTCard — .nft-card: gradient art + mono id + price/ago (genesis/page.tsx NFTCard live-market). -->
+<!-- Live Genesis listing artwork keeps the supplied token identity. -->
 <template>
-  <view class="relative overflow-hidden" :style="cardStyle">
-    <view class="flex items-center justify-center" :style="artStyle">
-      <text>#{{ id }}</text>
-    </view>
-    <text class="block" :style="idLineStyle">NEX-GEN-{{ paddedId }}</text>
+  <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
+    <GenesisArtwork context="holding" :serial="id" style="border-radius: 10px" />
     <view class="flex items-baseline justify-between" style="margin-top: 6px">
       <text class="tabular-nums" :style="priceStyle">${{ price }}K</text>
       <text :style="agoStyle">{{ agoText }}</text>
@@ -13,21 +10,21 @@
 </template>
 
 <script setup lang="ts">
+import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 
-const props = defineProps<{ id: number; price: number; ago: string }>();
+const props = defineProps<{ id: string | number; price: number; ago: string }>();
 
 const t = useT();
-const paddedId = computed(() => props.id.toString().padStart(4, "0"));
 const agoText = computed(() => fmt(t.value.genesis.agoLabel, { t: props.ago }));
 
 // Collectible tile — filled surface, no border (single visual difference); the
 // gradient art is the NFT's own visual identity.
-const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "14px",
+const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
+  borderRadius: "var(--nx-glass-radius)",
   padding: "12px",
 };
 const artStyle: CSSProperties = {
@@ -61,4 +58,6 @@ const agoStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-4)",
 };
+
+import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 </script>

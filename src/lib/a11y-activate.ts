@@ -38,9 +38,7 @@
  * 键的分配照规范来,不是一律 Enter+Space:link 只认 Enter(在链接上按 Space
  * 是翻页,拦掉会把页面滚动吃了);radio 只认 Space(Enter 在单选组里是提交)。
  *
- * 注:仓内有 6 处 role="link" 自己手写了 `@keydown.space.prevent`(login/register/terms/intro)。
- * 那不是与本表冲突 —— 它们手写在先,本层遇 defaultPrevented 直接让路。本表定的是**默认**,
- * 控件要额外收 Space 是它自己的选择,本层不覆盖也不干预。
+ * 页面控件也遵守同一语义:role="link" 不额外拦截 Space。
  */
 const ACTIVATION_KEYS: Readonly<Record<string, readonly string[]>> = {
   button: ["Enter", " "],

@@ -17,11 +17,16 @@ test("checkout maps remote denial/error copy from server eligibility state only"
   assert.match(page, /remotePurchaseEligibilityStatus\.value = "error"/);
   assert.match(page, /function remotePurchaseEligibilityFailureCopy\(\)/);
 
-  const onLoadGate = slice(page, "if (!(await refreshPurchaseEligibility()))", "// Trade-in intercept");
+  const onLoadGate = slice(page, "const eligibility = trialConversion ? \"eligible\" : await refreshPurchaseEligibility(routeScope);", "// Resuming a local pending invoice");
+  assert.match(onLoadGate, /eligibility === \"stale\"/);
   assert.match(onLoadGate, /purchaseEligibilityFailureCopy\(\)/);
+  assert.match(onLoadGate, /quotaDepleted/);
+  assert.match(onLoadGate, /pages\/store\/detail/);
   assert.doesNotMatch(onLoadGate, /purchaseGate\.value\.soldOut/);
 
-  const submitGate = slice(page, "async function submitRemoteOrder()", "try {");
+  const submitGate = slice(page, "async function submitRemoteOrder()", "let canonicalOrderCommitted");
+  assert.match(submitGate, /refreshPurchaseEligibility\(submissionScope\)/);
+  assert.match(submitGate, /eligibility === \"ineligible\"/);
   assert.match(submitGate, /purchaseEligibilityFailureCopy\(\)/);
   assert.doesNotMatch(submitGate, /purchaseGate\.value\.soldOut/);
 });

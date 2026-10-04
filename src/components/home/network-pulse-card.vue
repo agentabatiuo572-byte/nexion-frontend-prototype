@@ -3,17 +3,17 @@
   三格:注册用户 / 在线设备 / 你的排名 —— 全部由展示配置与真实派生驱动,零写死值。
 -->
 <template>
-  <view>
+  <view data-home-section="network-pulse">
     <view class="flex items-center justify-between" style="margin: 8px 2px 10px">
       <text style="font-family: var(--font-v5); font-weight: 600; font-size: 15px; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.networkPulseTitle }}</text>
-      <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-tech-cyan-ink)">{{ t.home.networkLive }}</text>
+      <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-tech-cyan-ink)">{{ t.home.networkPublished }}</text>
     </view>
 
-    <view style="background: var(--v5-surface); border-radius: 16px; overflow: hidden">
-      <view class="px-3.5 py-2.5 flex justify-between items-center font-mono-tabular" style="border-bottom: 1px solid var(--v5-border); background: var(--v5-surface-2); font-size: 12px; color: var(--v5-ink-3)">
+    <view class="nx-glass-card" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); overflow: hidden">
+      <view class="nx-glass-inset px-3.5 py-2.5 flex justify-between items-center font-mono-tabular" style="border-bottom: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-3)">
         <view class="inline-flex items-center gap-1.5">
           <PulseDot color="var(--v5-tech-cyan)" />
-          <text>{{ t.home.networkGlobalGrid }}</text>
+          <text>{{ cfg.config.verifiedStats && !cfg.syncFailed ? fmt(t.home.networkVerifiedScope, { at: cfg.config.verifiedStats.capturedAt.slice(0, 16).replace('T', ' ') }) : t.home.networkStatUnverifiedHint }}</text>
         </view>
         <!-- 条头右侧刻意留空:实时支付流数字已删(FEAT-HOME02 定案,与「今日支付」同一笔钱两种表达)。 -->
       </view>
@@ -28,7 +28,7 @@
           :tabindex="m.tap ? 0 : undefined"
           :style="{ gridTemplateColumns: '1fr', padding: '12px', borderRight: i < metrics.length - 1 ? '1px solid var(--v5-border)' : 'none', minWidth: 0 }"
           v-on="m.tap ? { click: m.tap } : {}"
-          @keydown.enter.stop.prevent="activate(m.tap)"
+
           @keydown.space.stop.prevent="activate(m.tap)"
         >
           <view class="min-w-0">
@@ -52,8 +52,8 @@
               tabindex="0"
               :style="{ fontSize: '12px', color: m.subTone ?? 'var(--v5-ink-4)', padding: '14px 0', margin: '-14px 0' }"
               @click.stop="m.subTap()"
-              @keydown.enter.stop.prevent="activate(m.subTap)"
-              @keydown.space.stop.prevent="activate(m.subTap)"
+
+              @keydown.enter.stop.prevent="activate(m.subTap)" @keydown.space.stop.prevent="activate(m.subTap)"
             >{{ m.sub }}</text>
             <text
               v-else
@@ -80,7 +80,7 @@ import { useRankSnapshot } from "@/store/rank-snapshot";
 import { useNetworkRank } from "@/store/network-rank";
 import { remoteApiEnabled } from "@/api/runtime";
 import { computeRank } from "@/lib/network-rank";
-import { derivedRegisteredUsers, publicStatsHealth, compactNumber as compact } from "@/lib/platform-stats";
+import { publicStatsHealth, compactNumber as compact } from "@/lib/platform-stats";
 import { toast } from "@/store/ui";
 import { navTo } from "@/lib/route";
 import PulseDot from "./pulse-dot.vue";
@@ -91,6 +91,8 @@ const app = useApp();
 const cfg = useConfig();
 const snap = useRankSnapshot();
 const remoteRank = useNetworkRank();
+const rankSnapshotStale = computed(() => remoteApiEnabled
+  && remoteRank.status === "error" && remoteRank.snapshot !== null);
 
 // 🔴 时间锚的真实机制(2026-08-06 审计纠正,上一版注释说的「下拉刷新带动重渲」不成立):
 //   挂载取一次 + **配置重拉完成沿再取一次**(下拉刷新会触发 cfg.load,见 store/refresh.ts)。
@@ -150,14 +152,12 @@ const ramp = (v: number) => Array.from({ length: 8 }, (_, i) => v * (0.997 + i *
 
 // 健康度共享一份(三格 + 排名入参守卫同源)
 const health = computed(() => publicStatsHealth(cfg.config.publicStats));
-// ── 格 1:注册用户(公布基数按月增速从锚点推算，仅作展示)──
-const registered = computed(() => derivedRegisteredUsers(cfg.config.publicStats, nowTs.value));
 // ── 格 3:名次(每次渲染由当下算力 + 当下配置现算,禁缓存名次)──
 //   🔴 入参守卫(R2 P2):分母吃服务端真实账号数，营销公布基数不参与资格排名。
 //   是它自己的输入坏了,同判 unavailable;ps 整段缺席(机器门最小桩)同理,不裸解引。
 const rank = computed(() => {
   if (remoteApiEnabled) {
-    if (remoteRank.status !== "ready" || remoteRank.snapshot === null) return { kind: "unavailable" } as const;
+    if (remoteRank.snapshot === null) return { kind: "unavailable" } as const;
     return remoteRank.snapshot.currentRank === null
       ? { kind: "unranked" } as const
       : { kind: "ranked", rank: remoteRank.snapshot.currentRank } as const;
@@ -198,7 +198,24 @@ function activate(action?: () => void) {
 }
 
 /** 配置失败的占位格(规格异常2:骨架→「数据更新中」+ 重试;禁回退写死数字)。 */
-function placeholderCell(label: string): Cell {
+/**
+ * 「没有可核验来源」态:数值位不给数字,说明为什么没有。
+ * 与 placeholderCell(读取失败/更新中)区分开 —— 这里不是暂时读不到,而是**平台没有
+ * 对外可核验的实测口径**,所以既不显示配置派生量,也不提供重试。
+ */
+function unverifiedCell(label: string): Cell {
+  return {
+    k: label,
+    v: t.value.home.networkStatUnverified,
+    vSize: "12.5px",
+    tone: "var(--v5-ink-3)",
+    sub: t.value.home.networkStatUnverifiedHint,
+    subTone: "var(--v5-ink-4)",
+    data: null,
+    color: "var(--v5-ink-4)",
+  };
+}
+function placeholderCell(label: string, retry?: () => void, skeleton = showSkeleton.value): Cell {
   return {
     k: label,
     v: t.value.home.networkStatUpdating,
@@ -207,8 +224,8 @@ function placeholderCell(label: string): Cell {
     sub: t.value.home.networkStatRetry,
     subTone: "var(--v5-tech-cyan-ink)",
     data: null,
-    skeleton: showSkeleton.value,
-    tap: () => { void cfg.load(); },
+    skeleton,
+    tap: retry ?? (() => { void cfg.load(); }),
   };
 }
 
@@ -219,37 +236,57 @@ const metrics = computed<Cell[]>(() => {
   //   在线率越域 / 增速为负 / 虚拟人口为负都算非法 → 对应格占位,禁拿回退锚冒充真数据。
   const h = health.value;
 
-  // 格 1 注册用户 —— 单项非法只坏本格(规格异常3)
-  const membersBad = failed || !h.membersOk || !Number.isFinite(registered.value) || registered.value < 0;
-  const members: Cell = membersBad
-    ? placeholderCell(t.value.home.networkMembers)
-    : {
-        k: t.value.home.networkMembers,
-        v: compact(registered.value),
-        tone: "var(--v5-ink)",
-        sub: fmt(t.value.home.networkMembersSub, { n: ps.registeredUsersMonthlyGrowthPct }),
-        data: ramp(registered.value),
-        color: "var(--v5-brand)",
-      };
+  // 🔴 服务端可核验聚合优先(zentao #59)。`ps` 里的 fleetDevices / registeredUsersBase
+  //   是运营手填的**展示配置**,拿它们当「注册用户 / 在线设备」的事实陈述,就是把配置
+  //   当实测对外发布。`verified` 存在时这两格改读真实表聚合,并标注为服务端实测。
+  //   沙箱没有真实数据 → 保持原有的「平台公布口径」标注,不冒充实测。
+  const verified = cfg.config.verifiedStats;
+  const verifiedAt = verified ? verified.capturedAt.slice(0, 16).replace("T", " ") : "";
 
-  // 格 2 在线设备 —— 值来自 store 的呼吸态(基线与带宽都由配置驱动,见 app.ts)
-  const devicesBad = failed || !h.devicesOk;
-  const devices: Cell = devicesBad
-    ? placeholderCell(t.value.home.networkDevices)
-    : {
-        k: t.value.home.networkDevices,
-        v: compact(app.global.activeDevices),
-        tone: "var(--v5-ink)",
-        sub: t.value.home.networkDevicesSub,
-        data: ramp(app.global.activeDevices),
-        color: "var(--v5-tech-cyan-ink)",
-      };
+  // 🔴 没有服务端可核验聚合时,**不拿运营配置值充当对外事实**(zentao #59)。
+  //   后端 `GrowthPublicStatsService.verifiedAggregates` 明确写着「不知道不能变成 0,
+  //   也不能退回运营配置值」;沙箱/未接聚合时 verified 整体缺席,此时两格只能如实说
+  //   「无实测口径」,而不是把 registeredUsersBase×增长率、或 activeDevices 这类配置
+  //   派生量当作「注册用户 / 在线设备」发布出去 —— 那正是本单要消除的混淆。
+  const noVerifiedSource = !verified;
+
+  // 格 1 注册用户 —— 单项非法只坏本格(规格异常3)
+  const membersBad = failed;
+  const members: Cell = noVerifiedSource
+    ? unverifiedCell(t.value.home.networkMembers)
+    : membersBad
+      ? placeholderCell(t.value.home.networkMembers)
+      : {
+          k: t.value.home.networkMembers,
+          v: compact(verified.registeredAccounts.value),
+          tone: "var(--v5-ink)",
+          sub: fmt(t.value.home.networkVerifiedMembers, { at: verifiedAt }),
+          data: ramp(verified.registeredAccounts.value),
+          color: "var(--v5-brand)",
+        };
+
+  // 格 2 在线设备 —— 同上:只认服务端实测的在线设备数。
+  const devicesBad = failed;
+  const devices: Cell = noVerifiedSource
+    ? unverifiedCell(t.value.home.networkEstimatedDevices)
+    : devicesBad
+      ? placeholderCell(t.value.home.networkEstimatedDevices)
+      : {
+          k: t.value.home.networkDevices,
+          v: compact(verified.onlineDevices.value),
+          tone: "var(--v5-ink)",
+          sub: fmt(t.value.home.networkVerifiedDevices, { at: verifiedAt }),
+          data: ramp(verified.onlineDevices.value),
+          color: "var(--v5-tech-cyan-ink)",
+        };
 
   // 格 3 你的排名 —— 三态(规格 ⑤/异常1/异常2);rankOk 缺失同走占位
   const r = rank.value;
   let rankCell: Cell;
-  if (failed || !h.rankOk || r.kind === "unavailable") {
-    rankCell = placeholderCell(t.value.home.networkYourRank);
+  if (r.kind === "unavailable" || (!remoteApiEnabled && (failed || !h.rankOk))) {
+    rankCell = remoteApiEnabled
+      ? placeholderCell(t.value.home.networkYourRank, () => { void remoteRank.refresh(); }, remoteRank.status === "loading")
+      : placeholderCell(t.value.home.networkYourRank);
   } else if (r.kind === "unranked") {
     rankCell = {
       k: t.value.home.networkYourRank,
@@ -268,7 +305,8 @@ const metrics = computed<Cell[]>(() => {
       k: t.value.home.networkYourRank,
       v: `#${compact(r.rank)}`,
       tone: "var(--v5-brand)",
-      sub: displayDelta.value !== null ? fmt(t.value.home.networkRankUp24h, { n: displayDelta.value }) : "",
+       sub: rankSnapshotStale.value ? t.value.home.networkStale
+         : displayDelta.value !== null ? fmt(t.value.home.networkRankUp24h, { n: displayDelta.value }) : "",
       // 名次越小越好:走势画成向下缓坡(视觉「在前进」),数据仍是确定性装饰
       data: Array.from({ length: 8 }, (_, i) => -r.rank * (1 + (7 - i) * 0.0004)),
       color: "var(--v5-brand)",
@@ -278,4 +316,6 @@ const metrics = computed<Cell[]>(() => {
 
   return [members, devices, rankCell];
 });
+
+
 </script>

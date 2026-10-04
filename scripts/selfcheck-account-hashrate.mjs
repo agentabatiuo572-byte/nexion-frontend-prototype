@@ -5,9 +5,13 @@
 // 守四件事,前三件是规格对这个入参的定义,第四件是它凭什么可信:
 //   ① **多台求和**:总算力 = 每台有效算力之和(不是只取一台、不是取平均、不是重复计)。
 //   ② **未激活不计**:activatedAt === null 的设备一台都不许进和。
-//   ③ **不在产不计 / 无设备为 0**:未激活、离线或暂停的设备不贡献算力。
-//      手机电量低于 20% 或断网时贡献为 0,充电状态不影响算力。
-//      cloud-share 收益另路、算力在网(排名照算 G2 兜底 90)。
+//   ③ **不在产不计 / 无设备为 0**:参照系 = settleDevice 那张不结算清单,它实际是
+//      **5 条**(store/app.ts:234-240:未激活 / status 非 online / cloud-share /
+//      pausedReason 非空 / 手机低电量或无网络)。排名的在产判据只取其中 3 条
+//      (未激活 / 非 online / pausedReason),差出来的两条是**刻意取舍**,别当 bug 修:
+//      · cloud-share:收益另路、算力在网(排名照算 G2 兜底 90);
+//      · 手机充电状态只作遥测,不影响结算或排名;低电量由 pausedReason 阻断。
+//        断网由既有模型 network 因子归 0。
 //      🔴 **心跳过期 ≠ 不在产**:H5 上没有常驻
 //      App 心跳的手机照样按 hosted 档真给钱、设备卡照样显示 TOPS,排名里必须同样有数,
 //      判成 0 就会对一个正在赚钱的用户说「未上榜,激活设备就上榜」。
@@ -126,7 +130,7 @@ function hw(kind, over = {}) {
 {
   // 期望值不走被测函数:直接问既有单台模型要两台的数,再自己加。
   const live = (tops) => computeLiveHashpower({
-    baselineTops: tops, online: true, batteryLevel: 78, isOnline: true,
+    baselineTops: tops, online: true, isCharging: true, isOnline: true,
     thermalState: "nominal", continuityMs: 10 * HOUR, nowSeed: 0, onlineBonus: BONUS,
   }).effectiveTops;
 
@@ -164,8 +168,8 @@ function hw(kind, over = {}) {
   const active = phone(30);
   check("③ 硬件 status=offline → 0", one(hw("stellarbox-s1", { status: "offline" })) === 0);
   check("③ 手机 status=offline → 0", one(phone(30, { status: "offline" })) === 0);
-  check("③ 手机因低电量暂停 → 0",
-    one(phone(30, { batteryLevel: 19, pausedReason: "low-battery" })) === 0);
+  check("③ 手机被 tick 挂起(pausedReason 非空,拔电/断网)→ 0",
+    one(phone(30, { pausedReason: "no-charger" })) === 0);
   check("③ 硬件被挂起(pausedReason 非空)→ 0",
     one(hw("stellarbox-s1", { pausedReason: "no-network" })) === 0);
   check("③ 离线设备不进和",
@@ -182,7 +186,7 @@ function hw(kind, over = {}) {
   //   排名判它 0,首页就会对着一个正在赚钱的用户说「未上榜,激活设备就上榜」。
   const staleBeat = phone(30, { onlineHeartbeatAt: NOW - 10 * 60_000 });
   const hostedExpected = computeLiveHashpower({
-    baselineTops: 30, online: false, batteryLevel: 78, isOnline: true,
+    baselineTops: 30, online: false, isCharging: true, isOnline: true,
     thermalState: "nominal", continuityMs: 10 * HOUR, nowSeed: 0, onlineBonus: BONUS,
   }).effectiveTops;
   check("🔴 ③ 心跳过期的手机(H5 / App 被杀)贡献 > 0,不是被判成不在产",
@@ -197,16 +201,16 @@ function hw(kind, over = {}) {
 {
   const p = phone(33.3);
   const expected = computeLiveHashpower({
-    baselineTops: 33.3, online: true, batteryLevel: 78, isOnline: true,
+    baselineTops: 33.3, online: true, isCharging: true, isOnline: true,
     thermalState: "nominal", continuityMs: 10 * HOUR, nowSeed: 0, onlineBonus: BONUS,
   }).effectiveTops;
   check("🔴 ④ 手机单台 = computeLiveHashpower 的输出(改成自己算就红)",
     near(one(p), expected, 1e-9), `得到 ${one(p)},既有模型给 ${expected}`);
   check("④ 手机天花板取标定值 capabilityTops,不走日产反推",
     ceiling(p) === 33.3, `得到 ${ceiling(p)}`);
-  check("④ 手机电量 20% 可贡献算力,充电状态不影响数值",
-    one(phone(30, { batteryLevel: 20, isCharging: false })) === one(phone(30, { batteryLevel: 20, isCharging: true }))
-      && one(phone(30, { batteryLevel: 20, isCharging: false })) > 0);
+  check("④ 充电状态仅作遥测,同一手机的算力不随充电线变化",
+    near(one(phone(30, { isCharging: false })), one(phone(30)), 1e-9)
+      && one(phone(30, { isCharging: false })) > 0);
   check("④ 手机断网时贡献为 0(既有模型的 network 因子)",
     one(phone(30, { isWifiConnected: false })) === 0);
 
@@ -439,8 +443,9 @@ function hw(kind, over = {}) {
   check("🔴 H5 种子账号(没补过心跳)每台已激活设备仍有正贡献",
     h5Seed.filter((d) => d.activatedAt !== null).every((d) => one(d) > 0),
     h5Seed.filter((d) => d.activatedAt !== null).map((d) => `${d.kind}=${one(d).toFixed(1)}`).join(" | "));
-  check("🔴 H5 种子账号那台手机单独看也 > 0(它正在按 hosted 档真给钱)",
-    !!h5Phone && one(h5Phone) > 0, `手机 = ${h5Phone ? one(h5Phone) : "找不到"}`);
+  check("🔴 H5 种子账号的待激活手机单独看 = 0(服务端激活前不能产出)",
+    !!h5Phone && h5Phone.activatedAt === null && one(h5Phone) === 0,
+    `手机 = ${h5Phone ? `activatedAt:${h5Phone.activatedAt}, power:${one(h5Phone)}` : "找不到"}`);
 }
 
 // ── 🔴 ⑥ publicStats 合成种子 = 故意非法哨兵;名次固定靶改喂 fixture 表 ────────
@@ -453,8 +458,7 @@ function hw(kind, over = {}) {
 //   b) 名次固定靶不缩水:改用 **fixture 表**喂真纯函数(表与人口基数 = 819a6da 删掉的
 //      那份 10 档种子,逐字抄进本脚本;fixture 是「合法表长什么样」的行为固定靶,
 //      不是断言线上种子仍长这样);
-//   c) 表合法性校验已上移 src/api/platform-config-api.ts(parsePublicStats:<2 档抛
-//      H9_PUBLIC_STATS_RESPONSE_INVALID)—— 钉住该分支存在。
+//   c) 公网解析边界不读取运营表,仍返回空分位表与不可用哨兵。
 // ⚠️ 舰队取 8 个**算力互不相同**的形态:Pro / Pro v2 / Rack P1 / Rack P2 四 SKU 天花板
 //   并列 5280(G6 收同档 = 已知天花板①,见 account-hashrate.ts 文件头)——同算力必
 //   同名次(规格③确定性),那不是分位表能解的,靠 Pro 一档代表 + 机架台数拉开量级。
@@ -535,19 +539,20 @@ function hw(kind, over = {}) {
     beyond.kind === "ranked" && beyond.rank > 1 && beyond.rank <= ranks[ranks.length - 1],
     JSON.stringify(beyond));
 
-  // c) 合法性校验的新宿主。parsePublicStats 未导出(只能经 parsePlatformComputeConfig
-  //    全量 payload 走到,合法 payload fixture 又脆又重)—— 结构钉,剥注释后判:
-  //    <2 档分支必须与 H9_PUBLIC_STATS_RESPONSE_INVALID 同语句;逐行单调墙同错误码。
+  // c) 公网边界不消费运营表。保留本地纯函数对 fixture 分位表的校验,
+  //    但旧后端即使仍送 values,客户端也只能安装空表与不可用哨兵。
   const apiSrc = readFileSync(path.join(SRC, "api", "platform-config-api.ts"), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^[ \t]*\/\/.*$/gm, "")
     .replace(/[ \t]\/\/.*$/gm, "");
-  check("🔴 ⑥c platform-config-api 拒绝 <2 档分位表(!Array.isArray || length < 2 → 抛 H9_PUBLIC_STATS_RESPONSE_INVALID)",
-    /!Array\.isArray\(values\.hashratePercentileTable\)\s*\|\|\s*values\.hashratePercentileTable\.length\s*<\s*2\)[\s\S]{0,40}?invalid\("H9_PUBLIC_STATS_RESPONSE_INVALID"\)/.test(apiSrc),
-    "platform-config-api.ts 里找不到该分支(校验被删/改弱?)");
-  check("⑥c 逐行校验墙也在:tops 严格升序 / cumPct 单调不减,违例抛同一错误码",
-    /tops\s*<=\s*previousTops[\s\S]{0,160}?invalid\("H9_PUBLIC_STATS_RESPONSE_INVALID"\)/.test(apiSrc),
-    "逐行单调校验缺失或错误码漂移");
+  check("🔴 ⑥c platform-config-api 不读取公网运营分位表",
+    !/record\(projection\.values\)/.test(apiSrc)
+    && !/values\.hashratePercentileTable/.test(apiSrc),
+    "platform-config-api.ts 重新读取了运营 values/分位表");
+  check("🔴 ⑥c 公网解析仅安装空分位表与非法哨兵",
+    /hashratePercentileTable:\s*\[\]/.test(apiSrc)
+    && /virtualUserCount:\s*-1/.test(apiSrc),
+    "公网解析恢复了可用的虚拟排名分母或分位表");
 }
 
 // ── 接线门:纯函数对 ≠ 有人在用 ─────────────────────────────────────────────

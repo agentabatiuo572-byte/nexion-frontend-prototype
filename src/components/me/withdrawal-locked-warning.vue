@@ -12,7 +12,7 @@
     <view class="flex-1 min-w-0">
       <text class="block" :style="titleStyle">{{ t.me.withdrawalLocked }}</text>
       <text class="block" :style="bodyStyle">{{ bodyLine }}</text>
-      <view class="inline-flex items-center" :style="linkStyle" @click="goStore">
+      <view class="inline-flex items-center active:opacity-90" :style="linkStyle" data-me-action="browse-devices" role="button" tabindex="0" :aria-label="t.me.withdrawalLockedBrowse" @click="goStore" @keydown.enter.prevent="goStore" @keydown.space.prevent="goStore">
         <text>{{ t.me.withdrawalLockedBrowse }}</text>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
       </view>
@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+import { navReset } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -34,14 +35,13 @@ const shortBy = computed(() => (MIN_WITHDRAWAL_USD - props.balance).toFixed(2));
 const bodyLine = computed(() => fmt(t.value.me.withdrawalLockedBody, { min: MIN_WITHDRAWAL_USD, short: shortBy.value }));
 
 function goStore() {
-  uni.reLaunch({ url: "/pages/store/store", fail: () => {} });
+  navReset({ url: "/pages/store/store", fail: () => {} });
 }
 
 const rowStyle: CSSProperties = {
   gap: "10px",
   padding: "14px",
   background: "var(--v5-warning-soft)",
-  border: "1px solid color-mix(in srgb, var(--v5-warning) 20%, transparent)",
   borderRadius: "12px",
 };
 const iconStyle: CSSProperties = {
@@ -72,6 +72,8 @@ const bodyStyle: CSSProperties = {
 const linkStyle: CSSProperties = {
   gap: "4px",
   marginTop: "8px",
+  minHeight: "44px",
+  paddingRight: "12px",
   color: "var(--v5-brand)",
   fontFamily: "var(--font-v5)",
   fontWeight: 500,

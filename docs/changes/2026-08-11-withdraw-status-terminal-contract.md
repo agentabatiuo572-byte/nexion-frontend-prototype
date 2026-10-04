@@ -18,7 +18,7 @@
 回源反而暴露了三个**主线上真实存在**的缺口：
 
 1. **门守错了层**。全仓唯一守这条链的断言是 `typeof app.refreshRemoteWithdrawals === "function"`
-   （`remote-authority-simulation.test.mjs`）。它只证「函数存在」，不证「真被调用、返回值真被消费」。
+   （现已删除的旧行为门）。它只证「函数存在」，不证「真被调用、返回值真被消费」。
    **红测实测**：把 `App.vue` 的调用行换成 `void Promise.resolve([])`，contract-suite 仍 40 pass / 0 fail。
    调用点被摘掉 = 在途单永不终结 → 换绑入口与下一笔提现被永久拦死，而所有门全绿。
 2. **状态映射漏了后台真会产生的终态**。后台 D2 的状态表含 `TX_ORPHANED` / `DEAD`（孤块/死亡信件），

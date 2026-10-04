@@ -10,9 +10,13 @@ import { toast } from "@/store/ui";
 import { fmt } from "@/i18n/format";
 import { useT } from "@/i18n/use-t";
 import type { ShareChannelDef } from "@/store/config-types";
-import { remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled, shareEventApi } from "@/api/runtime";
 import { useReferralReward } from "@/store/referral-reward";
-import { containsLegacyBrand, isLegacyBrandUrl } from "@/lib/brand";
+import type { ShareEventChannel } from "@/api/share-event-api";
+import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { requireCryptoUuid } from "@/lib/secure-command-id";
+import { runShareEventFlight } from "@/lib/share-event-flight";
+import { referralShareText } from "@/lib/referral-reward-gate";
 
 // §8.1.1 邀请人回报口径:每注册好友 lifetime 贡献估值(展示用)× 阶段倍率。
 // 单一常量源 — invite-earn-card 与渠道面板共用,禁再写局部镜像(F4)。
@@ -29,6 +33,10 @@ export interface ShareEventRecord {
 
 const EVENTS_KEY = "nexgrid-share-events-v1";
 const EVENTS_CAP = 50;
+const SHARE_EVENT_CHANNELS = new Set<ShareEventChannel>([
+  "telegram", "zalo", "whatsapp", "messenger", "sms", "x",
+  "copy", "poster", "system", "code", "link",
+]);
 
 // 单源分享链接:服务端模式只能取 H8 当前用户投影中的邀请码；该投影缺失时
 // 返回空串而不是回退到浏览器 demo 身份。mock 模式仍保持原有本地演示行为。
@@ -37,42 +45,37 @@ export function currentShareReferralCode(): string {
   return useApp().user.referralCode.trim();
 }
 
-// 配置了 baseUrl 用短链;空(mock/dev)回退运行时 origin 直连 hash 路由。
-// 无码返回空串，全部分享入口据此 fail closed。
+// 服务端模式只使用已加载的分享基址；本地演示可回退到 H5 origin。
+// 无码或无服务端基址返回空串，全部分享入口据此 fail closed。
 export function buildShareLink(referralCode = currentShareReferralCode()): string {
   const code = referralCode.trim();
   if (!code) return "";
-  // Remote H8 gives us the invite code, but the public platform projection does
-  // not own a share-channel/base-url policy.  Do not compose a link from the
-  // mock seed in that mode; the current H5 origin is the only non-business
-  // transport fallback and contains no reward or channel policy.
+  if (remoteApiEnabled && useConfig().configStatus !== "ready") return "";
   const base = useConfig().config.share.baseUrl;
-  // Until an approved UVEL share host is configured, do not send an old-brand URL.
-  if (base) return isLegacyBrandUrl(base) ? "" : `${base}${code}`;
-  if (remoteApiEnabled) {
-    // A missing server base URL has no business fallback; the current origin
-    // is transport-only and is never composed from a mock domain.
-    // #ifdef H5
-    if (typeof location !== "undefined" && !isLegacyBrandUrl(location.origin)) {
-      return `${location.origin}${location.pathname}#/pages/ref/code?code=${code}`;
-    }
-    // #endif
-    return "";
-  }
+  if (base) return `${base}${code}`;
+  if (remoteApiEnabled) return "";
   // #ifdef H5
-  if (typeof location !== "undefined" && !isLegacyBrandUrl(location.origin)) {
+  if (typeof location !== "undefined") {
     return `${location.origin}${location.pathname}#/pages/ref/code?code=${code}`;
   }
   // #endif
-  // Non-H5 has no browser origin to fall back to; wait for a configured host.
-  return "";
+  // 非 H5 且未配置 → canonical 域名兜底(F1 域名单源)。
+  return `https://nexgrid.ai/ref/${code}`;
+}
+
+export function notifyUnavailableShareLink(): void {
+  const t = useT();
+  toast.info(currentShareReferralCode() ? t.value.share.linkUnavailable : t.value.share.noCodeYet);
+  if (remoteApiEnabled && useConfig().configStatus === "failed") void useConfig().ensureLoaded();
 }
 
 // 邀请文案(渠道预填):礼包金额 config 派生,en/zh 镜像模板。
 export function buildShareText(): string {
   if (remoteApiEnabled) return "";
   const t = useT();
-  const gift = useConfig().config.rewards.welcomeGift;
+  const rewards = useConfig().config.rewards;
+  if (!rewards.enabled) return `${t.value.team.sharingStillAvailable} ${buildShareLink()}`.trim();
+  const gift = rewards.welcomeGift;
   return fmt(t.value.share.shareText, { usd: gift.usdtAmount, nex: gift.nexAmount, link: buildShareLink() });
 }
 
@@ -108,32 +111,48 @@ export function copyText(data: string): Promise<boolean> {
   });
 }
 
-export function hasLegacyShareTemplate(def: ShareChannelDef, remoteMode = remoteApiEnabled): boolean {
-  if (def.intentType === "copy" || def.intentType === "poster") return false;
-  if (def.intentType === "web") {
-    const template = def.urlTemplate ?? "";
-    if (containsLegacyBrand(template) || isLegacyBrandUrl(template.replace(/\{(?:link|text)\}/g, "x"))) return true;
-  }
-  return (def.intentType === "web" || remoteMode) && containsLegacyBrand(def.textTemplate ?? "");
-}
-
 // 渠道激活(渠道面板 + 海报面板共用,单一实现):按 intentType 分派 —
 // web 直开 intent(拦截失败降级复制,异常3);scheme 复制引导(异常4);
 // copy 复制链接(失败禁误报,FEAT-SHARE1 异常3);system 走 navigator.share。
 // poster 型由组件层自行处理(切面板),这里 no-op。
+/**
+ * 哪些渠道意图**本身**算一次分享。
+ *
+ * 🔴 zentao #199:判据必须有单一宿主 —— 上一轮只在 `invite-earn-card.vue` 里按这条原则
+ * 修掉了「复制链接」,而 `activateChannel` 的 `copy` 分支仍记事件,于是同一个缺陷从
+ * 「立即分享」面板那条路径又漏了出来。
+ *
+ * · `copy`   —— 否。只是把文本放进剪贴板,用户没有把内容发到任何渠道。
+ * · `poster` —— 否。海报产物留在本地,没有发出去。
+ * · `scheme` —— 否。当前实现只复制文本,尚无渠道确认。
+ * · `web` / `system` —— 是。真的打开了目标渠道 / 走完了系统分享面板。
+ */
+export function shareIntentRecordsEvent(intentType: ShareChannelDef["intentType"]): boolean {
+  return intentType === "web" || intentType === "system";
+}
+
 export async function activateChannel(def: ShareChannelDef, surface: ShareSurface, label: string): Promise<void> {
   const t = useT();
   const link = buildShareLink();
-  if (!link || hasLegacyShareTemplate(def)) {
-    toast.info(currentShareReferralCode() ? t.value.share.linkUnavailable : t.value.share.noCodeYet);
+  if (!link) {
+    notifyUnavailableShareLink();
     return;
   }
+  const remoteRewardEnabled = useReferralReward().snapshot?.rewardEnabled === true;
   const text = remoteApiEnabled
-    ? (def.textTemplate?.replace("{link}", link) ?? "")
+    ? referralShareText(
+      remoteRewardEnabled,
+      def.textTemplate ?? "{link}",
+      `${t.value.team.sharingStillAvailable} {link}`,
+      link,
+    )
     : buildShareText();
+  const effectiveDef = remoteApiEnabled && !remoteRewardEnabled
+    ? { ...def, textTemplate: undefined }
+    : def;
   switch (def.intentType) {
     case "web": {
-      const url = channelIntentUrl(def, link, text);
+      const url = channelIntentUrl(effectiveDef, link, text);
       if (!url) return;
       let opened = false;
       // #ifdef H5
@@ -152,13 +171,12 @@ export async function activateChannel(def: ShareChannelDef, surface: ShareSurfac
       }
       // #endif
       if (opened) {
-        recordShareEvent(def.key, surface);
+        await recordShareEvent(def.key, surface);
       } else {
         // 异常3:intent 被拦 → 复制降级;复制也失败则禁误报、不计事件(防白耗一次性任务奖励)。
         const ok = await copyText(text);
         if (ok) {
           toast.info(fmt(t.value.share.openFailedCopied, { channel: label }));
-          recordShareEvent(def.key, surface);
         } else {
           toast.info(t.value.share.copyFailed);
         }
@@ -166,21 +184,25 @@ export async function activateChannel(def: ShareChannelDef, surface: ShareSurfac
       break;
     }
     case "scheme": {
-      // 异常4:复制成功才算一次分享;失败禁误报(FEAT-SHARE1 异常3)。
+      // 当前 scheme 渠道只提供复制引导,并未确认内容已发送。
       const ok = await copyText(text);
       if (ok) {
         toast.info(fmt(t.value.share.schemeCopied, { channel: label }));
-        recordShareEvent(def.key, surface);
       } else {
         toast.info(t.value.share.copyFailed);
       }
       break;
     }
     case "copy": {
+      // 🔴 zentao #199:「复制链接」**不是分享事件**。它只是把文本放进剪贴板,用户并没有
+      //   把内容发到任何渠道。此前这里也调了 recordShareEvent,于是点一次复制就会打
+      //   `POST /api/share/event`,任务校验不通过时后端回 422,用户先看到「链接已复制」、
+      //   紧接着又看到「分享已发出,但服务端暂时无法验证任务,未发放奖励」——
+      //   一次纯本地操作被说成了一次失败的分享。
+      //   scheme 和 web 拦截后的复制降级同样不能证明内容已发送。
       const ok = await copyText(link);
       if (ok) {
         toast.success(t.value.team.inviteLinkCopied);
-        recordShareEvent(def.key, surface);
       } else {
         toast.info(t.value.share.copyFailed);
       }
@@ -190,7 +212,7 @@ export async function activateChannel(def: ShareChannelDef, surface: ShareSurfac
       // #ifdef H5
       try {
         await navigator.share({ title: "UVEL", text, url: link });
-        recordShareEvent(def.key, surface);
+        await recordShareEvent(def.key, surface);
       } catch {
         // 取消与真实失败在此均静默不计事件:取消不该报错;AbortError 与其它
         // 异常无法可靠区分,宁可少计不误报(诊断依赖后端 share.performed 对账)。
@@ -216,13 +238,34 @@ function readEvents(): ShareEventRecord[] {
 // 分享事件:client 追加记录(PROD: POST /api/share/event),并幂等触发首日任务
 // invite_friend——quest store 只记完成,入账 + 账单 + toast 在这里组合
 // (对齐 quest.ts 头注的调用层组合约定)。
-export function recordShareEvent(channel: string, surface: ShareSurface) {
+export async function recordShareEvent(channel: string, surface: ShareSurface): Promise<boolean> {
+  // Clipboard and local poster actions never complete a share, even if a
+  // configured channel routes through another intent branch.
+  if (channel === "copy" || channel === "code" || channel === "link" || channel === "poster") return false;
   if (remoteApiEnabled) {
-    // A client-side share intent is not proof of a server mission completion.
-    // Do not write a local event row that a different session could mistake for
-    // a canonical H8 fact.
-    void useQuest().refreshRemote();
-    return;
+    if (!SHARE_EVENT_CHANNELS.has(channel as ShareEventChannel)) return false;
+    const accountScope = captureAccountScope();
+    const sourceEnvironment = "PRODUCTION" as const;
+    const runId = "";
+    const current = () => isCurrentAccountScope(accountScope);
+    return runShareEventFlight({
+      send: async () => {
+        const eventId = `share-${requireCryptoUuid()}`;
+        await shareEventApi.record({
+          eventId,
+          channel: channel as ShareEventChannel,
+          surface,
+          sourceEnvironment,
+          runId,
+        }, `share-event:${eventId}`);
+      },
+      isCurrent: current,
+      refresh: () => useQuest().refreshRemote(),
+      onFailure: () => {
+        const t = useT();
+        toast.info(t.value.share.eventFailed);
+      },
+    });
   }
   try {
     const next = [...readEvents(), { channel, surface, sharedAt: Date.now() }].slice(-EVENTS_CAP);
@@ -234,16 +277,17 @@ export function recordShareEvent(channel: string, surface: ShareSurface) {
   // 三处漏改)。原来是先 markComplete 消费掉,发钱失败就 return —— 任务标记已置、奖归零,
   // 而 quest 是一次性的,再也拿不到。奖励从静态表就能查到,顺序反得过来。
   const quest = useQuest();
-  if (quest.isComplete("invite_friend")) return;
+  if (quest.isComplete("invite_friend")) return true;
   const task = quest.QUEST_TASKS.find((tk) => tk.id === "invite_friend");
-  if (!task) return;
+  if (!task) return false;
   const t = useT();
   const ref = `QST-invite_friend`; // 稳定 ref:任务一次性,带时间戳会让判重永不命中
   // 同一次任务完成的两腿一次落盘 —— 入账由收据的 amount/symbol 派生,不再单独 credit*。
   const drafts: ReceiptDraft[] = [];
   if (task.usdtReward) drafts.push({ type: "bonus", symbol: "USDT", amount: task.usdtReward, status: "posted", memo: t.value.share.questRewardMemo, ref });
   if (task.nexReward) drafts.push({ type: "bonus", symbol: "NEX", amount: task.nexReward, status: "posted", memo: t.value.share.questRewardMemo, ref });
-  if (drafts.length && postMoneyBillsOnce(drafts) !== "ok") return;
-  if (!useQuest().markComplete("invite_friend").firstTime) return; // 消费失败:重试命中同 ref 不再发
+  if (drafts.length && postMoneyBillsOnce(drafts) !== "ok") return false;
+  if (!useQuest().markComplete("invite_friend").firstTime) return false; // 消费失败:重试命中同 ref 不再发
   toast.success(`+${task.nexReward} NEX · +$${task.usdtReward ?? 0}`, t.value.share.questRewardToast);
+  return true;
 }

@@ -5,7 +5,17 @@
 -->
 <template>
   <AppChassis active="me">
-    <view style="padding-bottom: 32px">
+    <HowPublishedContent v-if="remoteApiEnabled && exchangeAvailable === true" content-key="wallet-exchange-how" back="/pages/me/wallet-exchange" />
+    <view v-else-if="remoteApiEnabled" style="padding-bottom: 32px">
+      <SubPageHeader back="/pages/me/wallet-exchange" />
+      <view class="mx-4" role="status" aria-live="polite" style="padding: 24px 2px; color: var(--v5-ink-2)">
+        <text class="block" style="font-size: 15px; font-weight: 600">{{ exchangeAvailable === false ? w.pausedTitle : exchangeLoading ? t.howPublished.loading : t.howPublished.unavailableTitle }}</text>
+        <text class="block" style="margin-top: 8px; font-size: 13px; line-height: 1.6">{{ exchangeAvailable === false ? w.pausedBody : exchangeLoading ? '' : t.exchange.remoteUnavailableClosed }}</text>
+        <view v-if="!exchangeLoading && exchangeAvailable === null" role="button" tabindex="0" style="margin-top: 16px; color: var(--v5-brand)" @click="loadExchangeCaps"  @keydown.enter.prevent="loadExchangeCaps" @keydown.space.prevent="loadExchangeCaps"><text>{{ t.ui.retry }}</text></view>
+        <view v-if="exchangeAvailable === false" role="button" tabindex="0" style="margin-top: 16px; color: var(--v5-brand)" @click="goBack"  @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack"><text>{{ w.ctaBack }}</text></view>
+      </view>
+    </view>
+    <view v-if="!remoteApiEnabled" style="padding-bottom: 32px">
       <SubPageHeader back="/pages/me/wallet-exchange" />
 
       <HowHero :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="purple" />
@@ -36,7 +46,9 @@
         <text class="block" :style="introStyle">{{ w.s3Intro }}</text>
         <view style="display: flex; flex-direction: column; gap: 10px">
           <IconRow emoji="📅" :label="w.lim1Label" :body="w.lim1Body" />
+          <IconRow emoji="🌐" :label="w.lim2Label" :body="w.lim2Body" />
         </view>
+        <CalloutBox :title="`💡 ${w.s3HintTitle}`" :body="w.s3HintBody" tone="amber" />
       </HowSection>
 
       <HowSection :title="w.s4Title">
@@ -44,7 +56,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
         </template>
         <text class="block" :style="introStyle">{{ w.s4Intro }}</text>
-        <view :style="stepsBoxStyle">
+        <view class="nx-glass-card" :style="stepsBoxStyle">
           <view class="flex items-start" style="gap: 8px">
             <text class="shrink-0" :style="stepNumStyle">1.</text>
             <text :style="stepBodyStyle">{{ w.s4Step1 }}</text>
@@ -84,8 +96,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { onShow } from "@dcloudio/uni-app";
+import { navBack } from "@/lib/route";
+import { computed, onUnmounted, ref, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
+import HowPublishedContent from "@/components/how/how-published-content.vue";
+import { exchangeApi, remoteApiEnabled } from "@/api/runtime";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import HowHero from "@/components/how/how-hero.vue";
 import HowSection from "@/components/how/how-section.vue";
@@ -97,17 +113,37 @@ import { useT } from "@/i18n/use-t";
 
 const t = useT();
 const w = computed(() => t.value.exchangeHowItWorks);
+const exchangeAvailable = ref<boolean | null>(null);
+const exchangeLoading = ref(remoteApiEnabled);
+let capsRequest = 0;
+
+async function loadExchangeCaps() {
+  if (!remoteApiEnabled) return;
+  const request = ++capsRequest;
+  exchangeAvailable.value = null;
+  exchangeLoading.value = true;
+  try {
+    const caps = await exchangeApi.fetchCaps();
+    if (request === capsRequest) exchangeAvailable.value = caps.swapEnabled;
+  } catch {
+    // Unknown is not open: the guide must not claim swaps can be submitted.
+  } finally {
+    if (request === capsRequest) exchangeLoading.value = false;
+  }
+}
+onShow(() => { void loadExchangeCaps(); });
+onUnmounted(() => { capsRequest += 1; });
 
 function goBack() {
-  uni.navigateTo({ url: "/pages/me/wallet-exchange", fail: () => {} });
+  navBack("/pages/me/wallet-exchange");
 }
 
 const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
-const stepsBoxStyle: CSSProperties = {
+const stepsBoxStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "12px",
-  borderRadius: "12px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   padding: "12px",
   display: "flex",
   flexDirection: "column",
@@ -128,4 +164,6 @@ const ctaStyle: CSSProperties = {
   fontSize: "15px",
   letterSpacing: "-0.005em",
 };
+
+
 </script>

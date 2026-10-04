@@ -27,15 +27,19 @@
         </view>
       </view>
 
-      <!-- Order not found -->
-      <view v-if="!order" class="text-center" style="padding: 20px">
+      <view v-if="showRemoteOrderLoading" class="text-center" role="status" aria-live="polite" style="padding: 20px">
+        <text class="block" style="font-size: 13px; color: var(--v5-ink-3)">{{ t.orders.refreshing }}</text>
+      </view>
+
+      <!-- Order not found only after the scoped remote read settles. -->
+      <view v-else-if="showOrderNotFound" class="text-center" style="padding: 20px">
         <text class="block" style="font-size: 13px; color: var(--v5-ink-3); margin-bottom: 12px">{{ t.orders.notFound }}</text>
         <view class="inline-flex items-center justify-center active:opacity-90" :style="notFoundBtnStyle" role="button" tabindex="0" :aria-label="t.orders.title" @click.stop="goOrders">
           <text>{{ t.orders.title }} →</text>
         </view>
       </view>
 
-      <template v-else>
+      <template v-else-if="order">
         <!-- Hero status — filled status-tint tile (accent border dropped). -->
         <view class="mx-4 rounded-2xl" :style="heroStyle">
           <view class="flex items-center" style="gap: 12px">
@@ -45,21 +49,21 @@
             </view>
             <view class="flex-1 min-w-0">
               <text class="block" :style="heroLabelStyle">{{ statusLabel(order.status) }}</text>
-              <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ brandProductName(order.productName) }}</text>
+              <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ nexGridBrandText(order.productName) }}</text>
             </view>
           </view>
 
           <view v-if="order.status !== 'cancelled'" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--v5-border)">
             <view class="flex items-center justify-between" style="font-size: 12px">
               <text style="color: var(--v5-ink-3)">{{ t.orders.dataCenter }}</text>
-              <text class="tabular-nums" style="color: var(--v5-ink)">{{ order.dataCenter }}</text>
+              <text class="tabular-nums" style="color: var(--v5-ink)">{{ dataCenterLabel }}</text>
             </view>
-            <text v-if="order.status === 'provisioning' || order.status === 'activated'" class="block" :style="{ fontSize: '12px', marginTop: '8px', lineHeight: '1.5', color: statusColor }">{{ dynamicHint }}</text>
+            <text v-if="order.status === 'provisioning'" class="block" :style="{ fontSize: '12px', marginTop: '8px', lineHeight: '1.5', color: statusColor }">{{ dynamicHint }}</text>
           </view>
         </view>
 
         <!-- Activated → Earn jump -->
-        <view v-if="order.status === 'activated'" class="mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
+        <view v-if="order.status === 'activated'" class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
           <view class="flex items-center" style="gap: 12px">
             <view class="grid place-items-center" :style="earnIconStyle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2" /><rect width="6" height="6" x="9" y="9" rx="1" /><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2" /></svg>
@@ -74,22 +78,46 @@
         </view>
 
         <!-- Order summary -->
-        <view class="mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
+        <view class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
           <text class="block" :style="sectionLabelStyle">{{ t.orders.orderSummary }}</text>
           <DetailRow :label="t.orders.orderIdLabel" :value="order.id" mono />
           <DetailRow :label="t.orders.quantity" :value="`${order.itemCount ?? order.quantity}`" />
-          <DetailRow :label="t.orders.unitPrice" :value="`$${order.unitPrice.toLocaleString()}`" />
+          <view v-if="order.lineItems?.length" style="margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--v5-border); border-bottom: 1px solid var(--v5-border)">
+            <view v-for="item in order.lineItems" :key="item.sku" class="flex items-center justify-between" style="padding: 4px 0; gap: 12px">
+              <view class="flex-1 min-w-0">
+                <text class="block truncate" style="font-size: 12px; color: var(--v5-ink)">{{ nexGridBrandText(item.name) }}</text>
+                <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × ${{ item.unitPriceUsdt.toLocaleString() }}</text>
+              </view>
+              <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">${{ item.lineAmountUsdt.toLocaleString() }}</text>
+            </view>
+          </view>
+          <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="`$${order.unitPrice.toLocaleString()}`" />
           <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`-$${order.discount.toLocaleString()}`" brand />
           <!-- FEAT-TRIAL02 conversion order: promo + trial credit as their own
                rows (never folded into the voucher line). -->
           <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`-$${(order.promoDiscountUSD ?? 0).toLocaleString()}`" brand />
           <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`-$${(order.trialOffsetUSD ?? 0).toLocaleString()}`" brand />
-          <DetailRow :label="t.orders.subtotal" :value="`$${(order.unitPrice * order.quantity).toLocaleString()}`" />
+          <DetailRow :label="t.orders.subtotal" :value="`$${order.subtotal.toLocaleString()}`" />
           <DetailRow :label="t.orders.total" :value="`$${order.total.toLocaleString()}`" big />
+          <template v-if="order.status === 'refunded'">
+            <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="`$${order.refundAmountUsdt.toLocaleString()}`" brand />
+            <DetailRow v-if="order.refundChannel" :label="t.orders.refundChannel" :value="order.refundChannel" />
+            <DetailRow v-if="order.refundBillNo" :label="t.orders.refundBillNo" :value="order.refundBillNo" mono />
+            <view v-if="!order.refundedAt && order.refundAmountUsdt == null && !order.refundBillNo" role="status" style="padding: 8px 0; color: var(--v5-ink-3); font-size: 12px">
+              <text>{{ t.orders.refundDetailsUnavailable }}</text>
+            </view>
+          </template>
+          <view v-if="fullyVoucherSettled" role="status" aria-live="polite" style="margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--v5-brand-soft); color: var(--v5-ink-2)">
+            <text class="block" style="font-size: 12px; line-height: 1.5">{{ t.orders.voucherSettledNoWalletDebit }}</text>
+          </view>
           <view class="grid" :style="tsGridStyle">
             <view>
               <text class="block" style="font-size: 12px; color: var(--v5-ink-4)">{{ t.orders.placedAt }}</text>
               <text class="block" style="font-size: 12px; color: var(--v5-ink-2); margin-top: 2px">{{ dt(order.placedAt) }}</text>
+            </view>
+            <view v-if="order.status === 'placed' && order.expiresAt">
+              <text class="block" style="font-size: 12px; color: var(--v5-ink-4)">{{ t.orders.expiresAt }}</text>
+              <text class="block" style="font-size: 12px; color: var(--v5-warning); margin-top: 2px">{{ dt(order.expiresAt) }}</text>
             </view>
             <view v-if="order.paidAt">
               <text class="block" style="font-size: 12px; color: var(--v5-ink-4)">{{ t.orders.paidAt }}</text>
@@ -99,23 +127,15 @@
               <text class="block" style="font-size: 12px; color: var(--v5-ink-4)">{{ t.orders.activatedAt }}</text>
               <text class="block" style="font-size: 12px; color: var(--v5-ink-2); margin-top: 2px">{{ dt(order.activatedAt) }}</text>
             </view>
-          </view>
-        </view>
-
-        <view v-if="sandboxPaymentAvailable" class="mx-4 rounded-2xl" :style="sandboxPayCardStyle">
-          <view class="flex items-center justify-between" style="gap: 12px">
-            <view class="flex-1 min-w-0">
-              <text class="block" :style="sandboxPayTitleStyle">{{ t.orders.sandboxPayCta }}</text>
-              <text class="block" :style="sandboxPayHintStyle">{{ t.orders.sandboxPayHint }}</text>
-            </view>
-            <view class="shrink-0 active:opacity-80" :style="sandboxPayBtnStyle" :aria-disabled="sandboxPaying ? 'true' : 'false'" role="button" tabindex="0" @click.stop="handleSandboxPay">
-              <text>{{ sandboxPaying ? t.orders.sandboxPayBusy : t.orders.sandboxPayCta }}</text>
+            <view v-if="order.refundedAt">
+              <text class="block" style="font-size: 12px; color: var(--v5-ink-4)">{{ t.orders.refundedAt }}</text>
+              <text class="block" style="font-size: 12px; color: var(--v5-ink-2); margin-top: 2px">{{ dt(order.refundedAt) }}</text>
             </view>
           </view>
         </view>
 
         <!-- Timeline -->
-        <view class="mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
+        <view class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
           <text class="block" :style="sectionLabelStyle">{{ t.orders.timelineTitle }}</text>
           <view class="relative" :style="timelineWrapStyle">
             <view v-for="(stage, i) in stages" :key="stage" :style="{ marginTop: i !== 0 ? '12px' : '0' }">
@@ -129,9 +149,32 @@
           </view>
         </view>
 
-        <!-- Cancel action (only while placed) -->
+        <!-- Pending remote orders can retry only the idempotent UVEL wallet debit. -->
         <view v-if="cancellable" class="mx-4" style="margin-top: 12px; margin-bottom: 24px">
-          <view class="w-full grid place-items-center active:opacity-80" :style="cancelBtnStyle" role="button" tabindex="0" :aria-label="t.orders.cancelOrder" @click.stop="handleCancel">
+          <view
+            v-if="canPayFromWallet"
+            class="w-full grid place-items-center active:opacity-80"
+            :style="walletPaymentBtnStyle"
+            role="button"
+            tabindex="0"
+            :aria-disabled="payingFromWallet ? 'true' : 'false'"
+            :aria-label="t.store.coPayNow"
+            @click.stop="handleWalletPayment"
+
+            @keydown.enter.prevent.stop="handleWalletPayment" @keydown.space.prevent.stop="handleWalletPayment"
+          >
+            <text @click.stop="handleWalletPayment">{{ t.store.coPayNow }}</text>
+          </view>
+          <view
+            class="w-full grid place-items-center active:opacity-80"
+            :style="cancelBtnStyle"
+            role="button"
+            tabindex="0"
+            :aria-label="t.orders.cancelOrder"
+            @click.stop="handleCancel"
+
+            @keydown.enter.prevent.stop="handleCancel" @keydown.space.prevent.stop="handleCancel"
+          >
             <text>{{ t.orders.cancelOrder }}</text>
           </view>
         </view>
@@ -142,53 +185,143 @@
 </template>
 
 <script setup lang="ts">
-import { brandProductName } from "@/lib/brand";
-import { orderStatusText } from "@/components/store/order-status-copy";
-import { ref, computed, onUnmounted, type CSSProperties } from "vue";
+import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import DetailRow from "@/components/store/order-detail-row.vue";
 import { useT } from "@/i18n/use-t";
-import { dateLocale } from "@/i18n/format";
+import { formatTrialDateTime } from "@/lib/trial-date";
+import { nexGridBrandText } from "@/lib/brand-copy";
 import { useOrders, type OrderStatus, timelineFor } from "@/store/orders";
+import { useApp } from "@/store/app";
+import { useAuth } from "@/store/auth";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { confirm as uiConfirm, toast } from "@/store/ui";
 import { useSetPageHeader } from "@/composables/use-page-header";
 import { navTo } from "@/lib/route";
-import { commercePaymentApi, mockFundsEnabled, remoteApiEnabled } from "@/api/runtime";
+import { orderApi, remoteApiEnabled } from "@/api/runtime";
+import { asApiError } from "@/api/errors";
+import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 
 const t = useT();
 const orders = useOrders();
+const app = useApp();
+const auth = useAuth();
 
 const id = ref("");
+let detailMounted = true;
+let detailEpoch = 0;
+
+interface DetailRequestScope {
+  pageEpoch: number;
+  orderNo: string;
+  accountScope: ReturnType<typeof captureAccountScope>;
+}
+
+function captureDetailScope(): DetailRequestScope {
+  return { pageEpoch: detailEpoch, orderNo: id.value, accountScope: captureAccountScope() };
+}
+
+function isCurrentDetailScope(scope: DetailRequestScope): boolean {
+  return detailMounted
+    && detailEpoch === scope.pageEpoch
+    && id.value === scope.orderNo
+    && isCurrentAccountScope(scope.accountScope);
+}
+
 onLoad((options) => {
   const o = (options || {}) as Record<string, string>;
-  if (o.id) id.value = o.id;
+  id.value = o.id || "";
+  remoteOrderAttempted.value = false;
+  remoteOrderError.value = false;
 });
 const remoteOrderError = ref(false);
 const remoteOrderRefreshing = ref(false);
+const remoteOrderAttempted = ref(false);
+let remoteOrderRefreshSequence = 0;
+let activeRemoteOrderScope: DetailRequestScope | null = null;
+const walletRefreshing = ref(false);
+let walletRefreshSequence = 0;
+async function refreshOrderWallet() {
+  if (!remoteApiEnabled) return;
+  const scope = captureDetailScope();
+  const sequence = ++walletRefreshSequence;
+  walletRefreshing.value = true;
+  try {
+    await app.refreshRemoteFleet(scope.accountScope);
+  } finally {
+    if (sequence === walletRefreshSequence) walletRefreshing.value = false;
+  }
+}
 async function refreshOrder() {
-  if (!remoteApiEnabled || remoteOrderRefreshing.value) return;
+  if (!remoteApiEnabled || !id.value.trim() || !remoteOrderBoundAccount.value) return;
+  if (remoteOrderRefreshing.value && activeRemoteOrderScope
+    && isCurrentDetailScope(activeRemoteOrderScope)) return;
+  const scope = captureDetailScope();
+  const sequence = ++remoteOrderRefreshSequence;
+  activeRemoteOrderScope = scope;
+  remoteOrderAttempted.value = true;
   remoteOrderRefreshing.value = true;
   remoteOrderError.value = false;
   try {
-    await orders.refreshRemote();
+    await orders.ensureRemoteOrder(id.value);
   } catch {
+    if (sequence !== remoteOrderRefreshSequence || !isCurrentDetailScope(scope)) return;
     remoteOrderError.value = true;
   } finally {
-    remoteOrderRefreshing.value = false;
+    if (sequence === remoteOrderRefreshSequence && isCurrentDetailScope(scope)) {
+      remoteOrderRefreshing.value = false;
+      activeRemoteOrderScope = null;
+    }
   }
 }
-onShow(() => { void refreshOrder(); });
+onShow(() => {
+  detailMounted = true;
+  detailEpoch += 1;
+  void refreshOrder();
+  void refreshOrderWallet();
+});
 
 const order = computed(() => orders.orders.find((o) => o.id === id.value));
+const hasOrderId = computed(() => Boolean(id.value.trim()));
+const remoteOrderBinding = computed(() => {
+  const accountKey = auth.isAuthenticated ? auth.accountId : "";
+  const boundAccountKey = orders.currentAccountKey();
+  return {
+    accountKey: remoteApiEnabled && accountKey !== "default" && boundAccountKey === accountKey
+      ? accountKey
+      : "",
+    revision: orders.currentAccountBindingRevision(),
+  };
+});
+const remoteOrderBoundAccount = computed(() => remoteOrderBinding.value.accountKey);
+const showRemoteOrderLoading = computed(() => remoteApiEnabled
+  && hasOrderId.value
+  && !order.value
+  && (!remoteOrderBoundAccount.value || !remoteOrderAttempted.value || remoteOrderRefreshing.value));
+const showOrderNotFound = computed(() => !order.value && (!remoteApiEnabled
+  || !hasOrderId.value
+  || (remoteOrderBoundAccount.value && remoteOrderAttempted.value
+    && !remoteOrderRefreshing.value && !remoteOrderError.value)));
+watch(remoteOrderBinding, (binding, previousBinding) => {
+  if (!binding.accountKey || binding.revision === previousBinding.revision || !id.value.trim()) return;
+  remoteOrderAttempted.value = false;
+  remoteOrderError.value = false;
+  void refreshOrder();
+});
+const fullyVoucherSettled = computed(() => order.value != null
+  && order.value.total === 0
+  && order.value.paymentMethod?.toUpperCase() === "VOUCHER"
+  && order.value.status !== "placed");
 
 // Sticky chassis nav header — back + order-id title + "Order ID" subtitle
 // (mirrors the prototype's <SetPageHeader title={order.id} subtitle={t.orders.orderId}
 // backHref="/store/orders"/>). Getter form: title resolves once the order loads
 // (onLoad); falls back to "not found" before then / for a bad id.
 useSetPageHeader(() => ({
-  title: order.value ? order.value.id : t.value.orders.notFound,
+  title: order.value
+    ? order.value.id
+    : (showRemoteOrderLoading.value || remoteOrderError.value ? t.value.orders.title : t.value.orders.notFound),
   subtitle: order.value ? t.value.orders.orderId : undefined,
   backHref: "/store/orders",
 }));
@@ -197,10 +330,12 @@ useSetPageHeader(() => ({
 // visibly. The global ORDER_TICK loop (App.vue, 6s) also advances orders; this
 // faster local tick just gives the detail view a tighter feel.
 let tickTimer: ReturnType<typeof setInterval> | undefined;
+const detailNow = ref(Date.now());
 const reservedSlots = computed(() => (trialReservesSlotNow() ? 1 : 0));
 function startTick() {
   if (tickTimer) clearInterval(tickTimer);
   tickTimer = setInterval(() => {
+    detailNow.value = Date.now();
     if (id.value) orders.advanceOrder(id.value, reservedSlots.value);
   }, 3000);
 }
@@ -210,30 +345,22 @@ const stages = computed(() => (order.value ? timelineFor(order.value.productId) 
 const currentIdx = computed(() => (order.value ? stages.value.indexOf(order.value.status) : -1));
 // Cancellable ONLY before payment settles ("placed"). Checkout settles to
 // "paid", so in practice no order rests at "placed" — kept faithful to source.
-const cancellable = computed(() => order.value?.status === "placed");
-const isProvisioning = computed(() => order.value?.status === "provisioning");
-const sandboxPaymentAvailable = computed(() => mockFundsEnabled && !remoteOrderError.value && order.value?.status === "placed");
-const sandboxPaying = ref(false);
-
-async function handleSandboxPay() {
-  const current = order.value;
-  if (!mockFundsEnabled || !current || current.status !== "placed" || sandboxPaying.value) return;
-  sandboxPaying.value = true;
-  try {
-    await commercePaymentApi.confirm(current.id, `h5-order-pay:${current.id}`);
-    await orders.refreshRemote();
-    const readBack = orders.orders.find((item) => item.id === current.id);
-    if (readBack?.status !== "paid" && readBack?.status !== "provisioning" && readBack?.status !== "activated") {
-      throw new Error("ORDER_PAYMENT_READBACK_MISMATCH");
-    }
-    toast.success(t.value.orders.statusPaid);
-  } catch {
-    toast.error(t.value.authOtp.errorServiceUnavailable);
-  } finally {
-    sandboxPaying.value = false;
-  }
+const walletPaymentConfirmed = ref(false);
+const payingFromWallet = ref(false);
+const cancellingOrder = ref(false);
+let cancelAttemptSequence = 0;
+function canCancelCurrentOrder(): boolean {
+  return order.value?.status === "placed"
+    && !walletPaymentConfirmed.value
+    && !payingFromWallet.value;
 }
-
+const cancellable = computed(() => canCancelCurrentOrder()
+  && !cancellingOrder.value);
+const paymentExpired = computed(() => order.value?.expiresAt != null
+  && order.value.expiresAt <= detailNow.value);
+const canPayFromWallet = computed(() => remoteApiEnabled
+  && cancellable.value && !walletRefreshing.value && !paymentExpired.value);
+const isProvisioning = computed(() => order.value?.status === "provisioning");
 const STATUS_COLORS: Record<OrderStatus, string> = {
   placed: "var(--v5-ink-3)",
   paid: "var(--v5-brand)",
@@ -269,17 +396,36 @@ function stageIcon(stage: OrderStatus): string[] {
 }
 
 function statusLabel(s: OrderStatus): string {
-  return orderStatusText(t.value.orders, s);
+  switch (s) {
+    case "placed": return t.value.orders.statusPlaced;
+    case "paid": return t.value.orders.statusPaid;
+    case "provisioning": return t.value.orders.statusProvisioning;
+    case "activated": return t.value.orders.statusActivated;
+    case "cancelled": return t.value.orders.cancelStatus;
+    case "payment_failed": return t.value.orders.statusPaymentFailed;
+    case "expired": return t.value.orders.statusExpired;
+    case "provisioning_failed": return t.value.orders.statusProvisioningFailed;
+    case "refunded": return t.value.orders.statusRefunded;
+    case "chargeback": return t.value.orders.statusChargeback;
+  }
 }
 
+const dataCenterLabel = computed(() => {
+  const dc = order.value?.dataCenter?.trim();
+  if (!dc) return "—";
+  const name = dc.toLowerCase();
+  if (name === "frankfurt" || name === "frankfurt dc") return t.value.store.coDcFrankfurt;
+  if (name === "singapore" || name === "singapore dc") return t.value.store.coDcSingapore;
+  return dc;
+});
 const dynamicHint = computed(() => {
   const o = order.value;
   if (!o) return "";
   const tmpl = o.status === "provisioning" ? t.value.orders.provisioningHint : t.value.orders.activatedHint;
-  return tmpl.replace("{dc}", o.dataCenter);
+  return tmpl.replace("{dc}", () => dataCenterLabel.value);
 });
 const activatedHint = computed(() =>
-  order.value ? t.value.orders.activatedHint.replace("{dc}", order.value.dataCenter) : "",
+  order.value ? t.value.orders.activatedHint.replace("{dc}", () => dataCenterLabel.value) : "",
 );
 
 function eventFor(stage: OrderStatus) {
@@ -288,32 +434,103 @@ function eventFor(stage: OrderStatus) {
 function eventText(stage: OrderStatus): string {
   const evt = eventFor(stage);
   if (!evt) return "";
-  const note = evt.note === "Waiting for an empty device slot"
-    ? t.value.publicCopy.orderWaitingSlot
-    : statusLabel(evt.status);
-  return `${dt(evt.ts)} · ${note}`;
+  return dt(evt.ts);
 }
 
 function dt(ts: number): string {
-  return new Date(ts).toLocaleString(dateLocale());
+  return Number.isFinite(ts) && Number.isFinite(new Date(ts).getTime())
+    ? formatTrialDateTime(ts)
+    : "—";
 }
 
 async function handleCancel() {
-  const ok = await uiConfirm({
-    title: t.value.orders.cancelOrder,
-    message: t.value.orders.cancelConfirm,
-    danger: true,
-    icon: "warn",
-  });
-  if (ok && order.value) {
+  if (!cancellable.value) return;
+  const scope = captureDetailScope();
+  const cancelAttempt = ++cancelAttemptSequence;
+  cancellingOrder.value = true;
+  try {
+    const ok = await uiConfirm({
+      title: t.value.orders.cancelOrder,
+      message: t.value.orders.cancelConfirm,
+      danger: true,
+      icon: "warn",
+    });
+    if (!ok || !canCancelCurrentOrder() || !isCurrentDetailScope(scope) || !order.value) return;
+    const orderNo = order.value.id;
     const cancelled = remoteApiEnabled
-      ? await orders.cancelOrderRemote(order.value.id)
-      : orders.cancelOrder(order.value.id);
+      ? await orders.cancelOrderRemote(orderNo)
+      : orders.cancelOrder(orderNo);
+    if (!isCurrentDetailScope(scope)) return;
     if (cancelled) {
       toast.warn(t.value.orders.cancelDoneToast);
     } else {
       toast.warn(t.value.orders.cancelPendingServer);
     }
+  } finally {
+    if (cancelAttempt === cancelAttemptSequence) cancellingOrder.value = false;
+  }
+}
+
+async function offerWalletTopup(requiredUsdt: number): Promise<void> {
+  const scope = captureDetailScope();
+  const accepted = await uiConfirm({
+    title: t.value.errors.insufficientBalanceTitle,
+    message: t.value.errors.insufficientBalanceMsg.replace("{amt}", requiredUsdt.toLocaleString()),
+    confirmLabel: t.value.me.topup,
+    cancelLabel: t.value.store.coCancel,
+    icon: "warn",
+  });
+  if (accepted && isCurrentDetailScope(scope)) navTo("/pages/me/wallet-topup");
+}
+
+async function handleWalletPayment() {
+  if (!canPayFromWallet.value || payingFromWallet.value || !order.value) return;
+  const scope = captureDetailScope();
+  const requestOrderNo = order.value.id;
+  const requestAmountUsdt = order.value.total;
+  const receiptScope = app.captureRemoteAccountRequest();
+  if (app.user.usdtBalance + 0.000001 < requestAmountUsdt) {
+    await offerWalletTopup(requestAmountUsdt);
+    return;
+  }
+  payingFromWallet.value = true;
+  let paymentConfirmed = false;
+  try {
+    const receipt = await orderApi.pay(requestOrderNo, `wallet-pay:${requestOrderNo}`);
+    if (!isCurrentDetailScope(scope)) return;
+    if (receipt.orderNo !== requestOrderNo) {
+      throw new Error("WALLET_PAYMENT_RECEIPT_ORDER_MISMATCH");
+    }
+    if (receipt.paymentMethod === "WALLET"
+        && (receipt.walletBalanceAfterUsdt === null
+          || !app.adoptCommerceWallet(receipt.walletBalanceAfterUsdt, receiptScope))) {
+      throw new Error("WALLET_PAYMENT_RECEIPT_ACCOUNT_MISMATCH");
+    }
+    paymentConfirmed = true;
+    walletPaymentConfirmed.value = true;
+    await orders.ensureRemoteOrder(requestOrderNo);
+    if (!isCurrentDetailScope(scope)) return;
+    if (order.value?.status !== "activated") {
+      throw new Error("WALLET_PAYMENT_ORDER_READBACK_MISMATCH");
+    }
+    void app.refreshRemoteFleet(receiptScope);
+  } catch (error) {
+    if (!isCurrentDetailScope(scope)) return;
+    if (paymentConfirmed) {
+      remoteOrderError.value = true;
+      toast.warn(t.value.orders.walletPaymentConfirmedRefreshPending);
+    } else if (asApiError(error).message === "ORDER_WALLET_INSUFFICIENT") {
+      await offerWalletTopup(requestAmountUsdt);
+    } else if (["ORDER_MONTHLY_QUOTA_PAUSED", "ORDER_MONTHLY_QUOTA_EXHAUSTED"].includes(asApiError(error).message)) {
+      toast.warn(t.value.quota.stockUnavailable);
+    } else if (asApiError(error).message === "ORDER_PAYMENT_EXPIRED") {
+      toast.warn(t.value.orders.statusExpired);
+      await orders.ensureRemoteOrder(requestOrderNo);
+    } else {
+      toast.warn(t.value.tradein.errPurchaseFailed);
+    }
+  } finally {
+    if (isCurrentDetailScope(scope)) payingFromWallet.value = false;
   }
 }
 
@@ -325,6 +542,8 @@ function goEarn() {
 }
 
 function cleanup() {
+  detailMounted = false;
+  detailEpoch += 1;
   if (tickTimer) clearInterval(tickTimer);
 }
 onUnload(() => cleanup());
@@ -362,8 +581,8 @@ const heroLabelStyle = computed<CSSProperties>(() => ({
 }));
 // Order summary / timeline / earn-jump — form-b single containers (surface, no
 // border). Internal hairlines (timestamp divider, timeline rail) do the parceling.
-const summaryCardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+const summaryCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
+  background: "var(--nx-glass-fill)",
   padding: "16px",
 };
 const earnIconStyle: CSSProperties = {
@@ -425,16 +644,24 @@ const cancelBtnStyle: CSSProperties = {
   fontSize: "13px",
   fontWeight: 500,
 };
+const walletPaymentBtnStyle: CSSProperties = {
+  height: "44px",
+  marginBottom: "8px",
+  borderRadius: "12px",
+  background: "var(--v5-brand)",
+  color: "var(--v5-on-brand)",
+  fontSize: "13px",
+  fontWeight: 600,
+  boxShadow: "var(--v5-spotlight-brand)",
+};
 const remoteErrorStyle: CSSProperties = {
   marginBottom: "12px",
   padding: "10px 12px",
   background: "color-mix(in srgb, var(--v5-warning) 8%, transparent)",
 };
 const retryBtnStyle: CSSProperties = { minHeight: "32px", padding: "0 10px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink)", fontSize: "12px" };
-const sandboxPayCardStyle: CSSProperties = { marginTop: "12px", padding: "14px 16px", background: "color-mix(in srgb, var(--v5-warning) 9%, transparent)" };
-const sandboxPayTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
-const sandboxPayHintStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", lineHeight: 1.4, color: "var(--v5-ink-3)" };
-const sandboxPayBtnStyle: CSSProperties = { minHeight: "40px", padding: "0 12px", borderRadius: "999px", background: "var(--v5-warning)", color: "var(--v5-on-warning, #11131A)", fontSize: "12px", fontWeight: 600 };
+
+
 </script>
 
 <style scoped>

@@ -6,7 +6,7 @@
     TrialHeroBanner / TrialGhostSlot
     → PillTabs (Today/Week/Month/All) + TotalEarnedCard (range total + breakdown)
     → MissedIncomeBanner
-    → "My Devices" header + slot rail + DeviceCardPC × N + add-device CTA
+    → "My Devices" header + compact DeviceCardPC rows + add-device CTA
     → MarketBoard
     → TaskCenter.
 
@@ -44,12 +44,7 @@
       </view>
       <!-- ===== HERO: pill tabs ===== -->
       <view class="mx-4">
-        <!-- 轨道贴页面底:surface-2 与页面底同色不可辨(亮色 ΔE 2.2),改 L1 surface;选中 pill 已是 brand-soft,不撞色 -->
-        <view class="flex gap-0.5" style="background: var(--v5-surface); border-radius: 12px; padding: 3px">
-          <view v-for="r in RANGES" :key="r" class="flex-1 grid place-items-center active:opacity-70" :style="pillStyle(r)" @click="range = r">
-            <text :style="pillLabelStyle(r)">{{ rangeLabel(r) }}</text>
-          </view>
-        </view>
+        <GlassSegments :label="t.earn.rangeGroupLabel" semantics="radio" v-model="range" :options="rangeOptions"  />
       </view>
 
       <!-- ===== HERO: total earned card ===== -->
@@ -72,6 +67,21 @@
             </view>
             <text class="block mt-2 font-mono-tabular tabular-nums" style="font-size: 15px; color: var(--v5-nex); font-weight: 600">+{{ nexFmt }} <text style="font-size: 12px; font-weight: 500; letter-spacing: 0.06em">NEX</text></text>
             <text class="block mt-2 font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink-3)">{{ jobsText }}</text>
+            <!-- 只有**确实请求失败**时才说不可用并给重试;零值已在上面显示为 0(#128)。 -->
+            <view v-if="remoteApiEnabled && app.homeTruthStatus === 'error'" class="mt-2" role="status" aria-live="polite">
+              <text class="block" style="font-size: 12px; font-weight: 600; color: var(--v5-danger)">{{ t.earn.summaryUnavailableTitle }}</text>
+              <text class="block" style="font-size: 12px; margin-top: 2px; color: var(--v5-ink-3)">{{ t.earn.summaryUnavailableBody }}</text>
+              <view
+                class="inline-flex items-center active:opacity-70"
+                style="min-height: 44px; margin-top: 2px; color: var(--v5-brand); font-size: 12px; font-weight: 600"
+                role="button" tabindex="0"
+                @click="retrySummary"
+
+                @keydown.enter.prevent="retrySummary" @keydown.space.prevent="retrySummary"
+              >
+                <text>{{ t.tradein.errPleaseRetry }}</text>
+              </view>
+            </view>
           </view>
         </view>
       </view>
@@ -83,7 +93,7 @@
       </view>
       <!-- FEAT-DEV01: 任务池升级提示线(信息态 · 行内展开;详情入口 → W-CAP1 说明弹层) -->
       <!-- 仅 @click:uni 编译器在小程序端将 click 映射为 tap;H5 下 @tap+@click 双绑会双触发(本页实测,开关类必单绑) -->
-      <view class="mx-4 mb-2 rounded-xl active:opacity-90" style="background: var(--v5-tech-cyan-soft); padding: 9px 12px; min-height: 44px; display: flex; flex-direction: column; justify-content: center" @click="taskPoolOpen = !taskPoolOpen">
+      <view class="mx-4 mb-2 rounded-xl active:opacity-90" style="background: var(--v5-tech-cyan-soft); padding: 9px 12px; min-height: 44px; display: flex; flex-direction: column; justify-content: center" role="button" tabindex="0" :aria-label="t.earn.taskPoolLineTitle" :aria-expanded="taskPoolOpen" @click="taskPoolOpen = !taskPoolOpen">
         <view class="flex items-center justify-between gap-2">
           <view class="flex items-center gap-1.5 min-w-0">
             <svg class="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
@@ -93,11 +103,11 @@
         </view>
         <view v-if="taskPoolOpen" style="margin-top: 6px">
           <text style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.55">{{ t.earn.taskPoolLineBody }}</text>
-          <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-brand); font-weight: 600" @click.stop="openExplainer">{{ t.earn.capExplainTitle }} →</text>
+          <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-brand); font-weight: 600" role="button" tabindex="0" :aria-label="t.earn.capExplainTitle" @click.stop="openExplainer">{{ t.earn.capExplainTitle }} →</text>
         </view>
       </view>
       <!-- Device pool — one card, accordion rows (one detail open at a time) -->
-      <EmptySlotsHint>
+      <EmptySlotsHint v-if="fleetReady">
         <DeviceCardPC v-for="(d, i) in devices" :key="d.id" :device="d" :expanded="expandedId === d.id" :divider="i !== 0" @toggle="toggleDevice(d.id)" />
       </EmptySlotsHint>
 
@@ -113,8 +123,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onUnmounted, computed, nextTick, ref, watch, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import TrialHeroBanner from "@/components/trial-hero-banner.vue";
@@ -131,7 +141,10 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useCapacityExplainer } from "@/composables/use-capacity-explainer";
 import { useFreeTrial } from "@/store/free-trial";
-import { remoteApiEnabled } from "@/api/runtime";
+import { dayOnePageObservationApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { isActiveSlotDevice } from "@/lib/device-slot-policy";
+import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { authenticatedPageObservationReporter } from "@/lib/authenticated-page-observation";
 
 type Range = "Today" | "Week" | "Month" | "All";
 const RANGES: Range[] = ["Today", "Week", "Month", "All"];
@@ -140,15 +153,67 @@ const app = useApp();
 const t = useT();
 const range = ref<Range>("Today");
 const freeTrial = useFreeTrial();
+let earnPageVisible = false;
+let earnObservationEpoch = 0;
 
 // The banner is the first discoverable H2 entry. Do not make a new user wait
 // for the global poll before we know whether the server has made it eligible.
 onShow(() => {
-  if (remoteApiEnabled) void freeTrial.refreshRemote(true);
+  earnPageVisible = true;
+  if (remoteApiEnabled) {
+    void freeTrial.refreshRemote(true);
+    void app.refreshRemoteFleet(undefined, { coalesce: true }).catch(() => undefined);
+    void app.refreshHomeTruth().catch(() => undefined);
+    void observeDayOneEarnPage();
+  }
+});
+
+onHide(() => {
+  earnPageVisible = false;
+  earnObservationEpoch += 1;
+});
+onUnmounted(() => {
+  earnPageVisible = false;
+  earnObservationEpoch += 1;
+});
+
+async function observeDayOneEarnPage(): Promise<void> {
+  if (!remoteApiEnabled || !earnPageVisible || app.homeTruthStatus !== "ready"
+    || app.remoteFleetStatus !== "ready" || !app.homeTruth) return;
+  const scope = captureAccountScope();
+  const pageEpoch = earnObservationEpoch;
+  await nextTick();
+  if (!earnPageVisible || pageEpoch !== earnObservationEpoch || app.homeTruthStatus !== "ready"
+    || app.remoteFleetStatus !== "ready" || !app.homeTruth) return;
+  void authenticatedPageObservationReporter.report({
+    subject: "day-one:visit-earn",
+    scope,
+    session: sessionVault.read(),
+    visible: () => earnPageVisible && pageEpoch === earnObservationEpoch,
+    isCurrent: isCurrentAccountScope,
+    submit: () => dayOnePageObservationApi.earnPage(),
+    accepted: (result) => result.recorded,
+  });
+}
+
+watch([() => app.homeTruthStatus, () => app.remoteFleetStatus, () => app.homeTruth], () => {
+  void observeDayOneEarnPage();
 });
 
 function retryFleet() { void app.refreshRemoteFleet().catch(() => undefined); }
+/** Retry the summary read itself (Home overview), not just the fleet. */
+function retrySummary() { void app.refreshHomeTruth().catch(() => undefined); }
 function rangeLabel(r: Range): string { return r === "Today" ? t.value.earn.rangeToday : r === "Week" ? t.value.earn.rangeWeek : r === "Month" ? t.value.earn.rangeMonth : t.value.earn.rangeAll; }
+/** 单选组的左右方向键:移一格并选上,焦点跟到新选中项(roving tabindex 的标准行为)。 */
+function moveRange(index: number, delta: number): void {
+  const next = RANGES[(index + delta + RANGES.length) % RANGES.length];
+  if (!next) return;
+  range.value = next;
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus();
+  });
+}
 
 // FEAT-DEV01: 任务池提示线展开态 + W-CAP1 弹层入口。
 const taskPoolOpen = ref(false);
@@ -165,25 +230,60 @@ function toggleDevice(id: string) {
 
 // Earn shows ACTIVE fleet only (inventory lives in /me/devices).
 const devices = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null));
-const fleetCountText = computed(() => fmt(t.value.home.fleetOfMax, { n: devices.value.length }));
+// A background refresh remains authoritative only for fresh mutations. For
+// read-only presentation, keep the bound account's last confirmed fleet visible
+// until the next response resolves; a first read and every error stay unknown.
+const fleetReady = computed(() => !remoteApiEnabled
+  || app.remoteFleetStatus === "ready"
+  || (app.remoteFleetStatus === "loading" && app.remoteFleetHasSnapshot));
+const fleetCountText = computed(() => fleetReady.value ? fmt(t.value.home.fleetOfMax, {
+  n: devices.value.filter(isActiveSlotDevice).length,
+  max: app.slotCap,
+}) : "— / —");
 
 // ── HERO total earned ──
 const serverPeriod = computed(() => {
+  // Keep a confirmed snapshot during loading, but hide figures after a failed read.
+  if (remoteApiEnabled && app.homeTruthStatus !== "ready" && app.homeTruthStatus !== "loading") return null;
   const e = app.homeTruth?.earnings;
   if (!e) return null;
   return range.value === "Today" ? e.today : range.value === "Week" ? e.week : range.value === "Month" ? e.month : e.all;
+});
+/**
+ * A successful Home overview encodes an empty settled-receipt period as three
+ * nulls. That is a confirmed zero for every range; a failed/absent overview has
+ * no period and stays unknown with the existing retry state. For a partial
+ * Today projection, the device snapshot remains the zero-safe fallback. #249
+ */
+const serverPeriodValue = computed(() => {
+  const period = serverPeriod.value;
+  if (!period) return null;
+  if (period.usdt === null && period.nex === null && period.jobCount === null) {
+    return { usdt: 0, nex: 0, jobCount: 0 };
+  }
+  if (range.value !== "Today") return period;
+  const fleet = app.remoteRealizedToday;
+  return {
+    ...period,
+    usdt: period.usdt ?? fleet?.usdt ?? null,
+    nex: period.nex ?? fleet?.nex ?? null,
+    jobCount: period.jobCount ?? (fleet && fleet.usdt === 0 && fleet.nex === 0 ? 0 : null),
+  };
 });
 const mockTotal = computed(() => {
   const e = app.earnings;
   return range.value === "Today" ? e.today : range.value === "Week" ? e.thisWeek : range.value === "Month" ? e.thisMonth : e.total;
 });
-const total = computed(() => remoteApiEnabled ? serverPeriod.value?.usdt ?? null : mockTotal.value);
+const total = computed(() => remoteApiEnabled ? serverPeriodValue.value?.usdt ?? null : mockTotal.value);
 const totalKnown = computed(() => total.value !== null);
 const totalInt = computed(() => total.value === null ? "—" : Math.floor(total.value).toLocaleString());
 const totalCents = computed(() => total.value === null ? "" : String(Math.floor(total.value * 100) % 100).padStart(2, "0"));
-const nexTotal = computed(() => remoteApiEnabled ? serverPeriod.value?.nex ?? null : (() => { const e = app.earnings; const ratio = e.today > 0 ? e.todayNEX / e.today : 0; return mockTotal.value * ratio; })());
+const nexTotal = computed(() => remoteApiEnabled ? serverPeriodValue.value?.nex ?? null : (() => { const e = app.earnings; const ratio = e.today > 0 ? e.todayNEX / e.today : 0; return mockTotal.value * ratio; })());
 const nexFmt = computed(() => nexTotal.value === null ? "—" : nexTotal.value.toLocaleString(undefined, { maximumFractionDigits: 1 }));
-const jobsCount = computed(() => remoteApiEnabled ? serverPeriod.value?.jobCount ?? null : (range.value === "Today" ? 14 : range.value === "Week" ? 98 : range.value === "Month" ? 412 : 1247));
+const jobsCount = computed(() => {
+  if (!remoteApiEnabled) return range.value === "Today" ? 14 : range.value === "Week" ? 98 : range.value === "Month" ? 412 : 1247;
+  return serverPeriodValue.value?.jobCount ?? null;
+});
 const jobsText = computed(() => jobsCount.value === null ? "—" : fmt(t.value.earn.jobsCount, { n: jobsCount.value.toLocaleString() }));
 
 // drifting hero dots
@@ -241,4 +341,7 @@ const usdtTagStyle: CSSProperties = {
   letterSpacing: "0.04em",
   whiteSpace: "nowrap",
 };
+
+import GlassSegments from "@/components/glass-segments.vue";
+const rangeOptions = computed(() => RANGES.map(value => ({ value, label: rangeLabel(value) })));
 </script>

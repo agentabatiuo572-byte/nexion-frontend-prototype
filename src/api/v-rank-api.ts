@@ -1,5 +1,18 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
+
+export interface VRankProvenance {
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
+}
+
+/** 服务端能力位:某类收益今天是否真的会派发。与佣金指南同源,同一份事实。 */
+export interface CommissionCapabilities {
+  peer: boolean;
+  genesis: boolean;
+}
 
 export interface CanonicalVRankRow {
   v: number;
@@ -15,16 +28,51 @@ export interface CanonicalVRankRow {
   peerBonus: number;
   leadershipVotes: number;
   cultivationBonus: number;
+  rewards: CanonicalVRankReward[];
   visible: boolean;
 }
 
+export interface MonetaryVRankReward {
+  type: "USDT" | "NEX";
+  amount: number;
+  voucherId?: string;
+  skuId?: string;
+  customLabel?: string;
+}
+
+export interface EntitlementVRankReward {
+  type: "VOUCHER" | "SKU" | "CUSTOM";
+  amount?: number;
+  voucherId?: string;
+  skuId?: string;
+  customLabel?: string;
+  displayName?: string;
+}
+
+export type CanonicalVRankReward = MonetaryVRankReward | EntitlementVRankReward;
+
 export interface CanonicalVRankLadder {
   source: string;
+  prizeName: string;
+  /**
+   * 服务端能力位:某类收益今天是否真的会派发。
+   *
+   * 🔴 等级阶梯里的 peerBonus 是「该等级配置的比例」,不是「现在会发」。没有这个
+   *   能力位,App 只能把配置比例当成已生效权益展示(V3–V12 逐级「平级 5%」),
+   *   与玩法说明的「未开放」自相矛盾(zentao #79)。
+   */
+  capabilities: CommissionCapabilities;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
   ranks: CanonicalVRankRow[];
 }
 
 export interface CanonicalVRankState {
   source: string;
+  serverCanonical: true;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
   rankCode: string;
   progress: {
     selfBuyUSD: number;
@@ -70,6 +118,25 @@ function integer(value: unknown, minimum = 0): number {
   return parsed;
 }
 
+function optionalText(value: unknown): string | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
+  return text(value);
+}
+
+function reward(value: unknown): CanonicalVRankReward {
+  const source = record(value);
+  const type = text(source.type).toUpperCase();
+  if (type !== "USDT" && type !== "NEX" && type !== "VOUCHER" && type !== "SKU" && type !== "CUSTOM") return invalid();
+  if (type === "USDT" || type === "NEX") {
+    return { type, amount: number(source.amount), voucherId: optionalText(source.voucherId),
+      skuId: optionalText(source.skuId), customLabel: optionalText(source.customLabel) };
+  }
+  const amount = optionalNumber(source.amount);
+  const displayName = optionalText(source.displayName);
+  return { type, ...(displayName === undefined ? {} : { displayName }), ...(amount === undefined ? {} : { amount }), voucherId: optionalText(source.voucherId),
+    skuId: optionalText(source.skuId), customLabel: optionalText(source.customLabel) };
+}
+
 function rankRow(value: unknown): CanonicalVRankRow {
   const source = record(value);
   const v = integer(source.v);
@@ -77,6 +144,7 @@ function rankRow(value: unknown): CanonicalVRankRow {
   const requiredRank = source.requiredDownlineRank == null || source.requiredDownlineRank === ""
     ? undefined
     : integer(String(source.requiredDownlineRank).replace(/^V/i, ""));
+  if (!Array.isArray(source.rewards)) return invalid();
   return {
     v,
     title: text(source.title),
@@ -91,20 +159,45 @@ function rankRow(value: unknown): CanonicalVRankRow {
     peerBonus: number(source.peerBonus),
     leadershipVotes: integer(source.leadershipVotes),
     cultivationBonus: number(source.cultivationBonus),
+    rewards: source.rewards.map(reward),
     visible: source.visible,
   };
 }
 
-function ladder(value: unknown): CanonicalVRankLadder {
+function provenance(source: Record<string, unknown>, mode: ApiEnvironment): VRankProvenance {
+  const sourceEnvironment = source.sourceEnvironment;
+  const runId = source.runId;
+  if ((mode !== "dev" && mode !== "prod") || source.serverCanonical !== true
+      || sourceEnvironment !== "PRODUCTION" || runId !== "") {
+    return invalid();
+  }
+  return { serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "" };
+}
+
+function ladder(value: unknown, mode: ApiEnvironment): CanonicalVRankLadder {
   const source = record(value);
+  const proof = provenance(source, mode);
   if (!Array.isArray(source.ranks)) return invalid();
   const ranks = source.ranks.map(rankRow).sort((left, right) => left.v - right.v);
   if (ranks.length !== 13 || ranks.some((rank, index) => rank.v !== index)) return invalid();
-  return { source: text(source.source), ranks };
+  // 旧后端(尚未下发能力位)不能让整个阶梯判非法 —— 那会把等级页变成「数据不可用」,
+  // 连配置比例都读不到。缺字段一律**失败关闭**为「不派发」:宁可少承诺,不能把配置
+  // 比例写成已生效权益(#79)。字段在但类型不对属于协议违规,仍判非法。
+  let capabilities: CommissionCapabilities = { peer: false, genesis: false };
+  if (source.capabilities !== undefined && source.capabilities !== null) {
+    const raw = record(source.capabilities);
+    if (typeof raw.peer !== "boolean" || typeof raw.genesis !== "boolean") return invalid();
+    capabilities = { peer: raw.peer, genesis: raw.genesis };
+  }
+  return {
+    source: text(source.source), prizeName: text(source.prizeName),
+    capabilities, ...proof, ranks,
+  };
 }
 
-function current(value: unknown): CanonicalVRankState {
+function current(value: unknown, mode: ApiEnvironment): CanonicalVRankState {
   const source = record(value);
+  const proof = provenance(source, mode);
   const progress = record(source.progress);
   const rawCounts = record(progress.vDownlineCounts);
   const counts: Record<string, number> = {};
@@ -116,6 +209,7 @@ function current(value: unknown): CanonicalVRankState {
   if (!/^V(?:[0-9]|1[0-2])$/.test(rankCode)) return invalid();
   return {
     source: text(source.source),
+    ...proof,
     rankCode,
     progress: {
       selfBuyUSD: number(progress.selfBuyUSD),
@@ -126,20 +220,20 @@ function current(value: unknown): CanonicalVRankState {
   };
 }
 
-export function createVRankApi(client: ApiClient): VRankApi {
+export function createVRankApi(client: ApiClient, mode: ApiEnvironment = "prod"): VRankApi {
   return {
     async ladder() {
       return ladder(await client.request<unknown>({
         method: "GET",
         path: "/api/config/v-ranks",
         authenticated: false,
-      }));
+      }), mode);
     },
     async current() {
       return current(await client.request<unknown>({
         method: "GET",
         path: "/api/team/rank",
-      }));
+      }), mode);
     },
   };
 }

@@ -1,22 +1,36 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import type { ApiEnvironment } from "./runtime-config";
+import { matchesRuntimeProvenance } from "./runtime-provenance";
+import { validateHostedPaymentUrl } from "@/lib/hosted-payment";
 
 export interface VietQrPaymentConfig {
   enabled: boolean;
   minDepositUsdt: number;
   maxDepositUsdt: number;
+  todayRemainingDepositUsdt: number;
+  todayRemainingVnd: number;
   toleranceVnd: number;
   graceMinutes: number;
   version: number;
   feeVnd: number;
   feeUsdt: number;
+  paymentMode?: "manual" | "hosted";
+  dailyCapacityKnown?: boolean;
 }
 
-export interface PaymentConfig {
+interface PaymentProvenance {
+  serverCanonical: true;
+  source: string;
+  sourceEnvironment: "PRODUCTION" | "SANDBOX";
+  runId: string;
+}
+
+export interface PaymentConfig extends PaymentProvenance {
   vietQr: VietQrPaymentConfig;
 }
 
-export interface FxQuoteSnapshot {
+export interface FxQuoteSnapshot extends PaymentProvenance {
   baseRateVndPerUsdt: number;
   buySpreadPct: number;
   quoteRateVndPerUsdt: number;
@@ -41,8 +55,8 @@ export interface VietQrIntentSnapshot {
   usdtAmount: number;
   fxRate: number;
   vndAmount: number;
-  memoCode: string;
-  bankAccount: {
+  memoCode?: string;
+  bankAccount?: {
     accountName: string;
     accountNumber: string;
     bankName: string;
@@ -57,6 +71,9 @@ export interface VietQrIntentSnapshot {
   receivedVnd?: number;
   matchedAt?: string;
   createdAt?: string;
+  paymentMode?: "manual" | "hosted";
+  paymentUrl?: string;
+  providerStatus?: "created" | "pending" | "submit_unknown" | "rejected" | "not_submitted";
 }
 
 export interface VietQrReceiptSnapshot {
@@ -123,11 +140,32 @@ function date(value: unknown): string | null {
   return typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : null;
 }
 
-function parseConfig(value: unknown): PaymentConfig {
+function parseProvenance(
+  source: Record<string, unknown> | null,
+  mode: ApiEnvironment,
+  expectedSource: string,
+  message: string,
+): PaymentProvenance {
+  if (!source || !matchesRuntimeProvenance(source, mode, expectedSource)) {
+    throw new ApiError({ kind: "protocol", message });
+  }
+  return {
+    serverCanonical: true,
+    source: source.source,
+    sourceEnvironment: source.sourceEnvironment,
+    runId: source.runId,
+  };
+}
+
+function parseConfig(value: unknown, mode: ApiEnvironment): PaymentConfig {
   const source = record(value);
+  const proof = parseProvenance(source, mode, "nx_vietqr_config", "PAYMENT_CONFIG_RESPONSE_INVALID");
   const vietQr = record(source?.vietQr);
   const minDepositUsdt = number(vietQr?.minDepositUsdt, { min: 0 });
   const maxDepositUsdt = number(vietQr?.maxDepositUsdt, { min: 0 });
+  const todayRemainingDepositUsdt = number(vietQr?.todayRemainingDepositUsdt, { min: 0 });
+  const todayRemainingVnd = number(vietQr?.todayRemainingVnd, { min: 0 });
+  const dailyCapacityKnown = vietQr?.dailyCapacityKnown === undefined ? true : vietQr.dailyCapacityKnown;
   const toleranceVnd = number(vietQr?.toleranceVnd, { min: 0 });
   const graceMinutes = number(vietQr?.graceMinutes, { min: 0, integer: true });
   const version = number(vietQr?.version, { min: 0, integer: true });
@@ -139,6 +177,9 @@ function parseConfig(value: unknown): PaymentConfig {
     || minDepositUsdt === null
     || maxDepositUsdt === null
     || maxDepositUsdt < minDepositUsdt
+    || todayRemainingDepositUsdt === null
+    || todayRemainingVnd === null
+    || typeof dailyCapacityKnown !== "boolean"
     || toleranceVnd === null
     || graceMinutes === null
     || version === null
@@ -148,10 +189,16 @@ function parseConfig(value: unknown): PaymentConfig {
     throw new ApiError({ kind: "protocol", message: "PAYMENT_CONFIG_RESPONSE_INVALID" });
   }
   return {
+    ...proof,
     vietQr: {
       enabled: vietQr.enabled,
+      ...(vietQr.paymentMode === "manual" || vietQr.paymentMode === "hosted"
+        ? { paymentMode: vietQr.paymentMode } : {}),
       minDepositUsdt,
       maxDepositUsdt,
+      todayRemainingDepositUsdt,
+      todayRemainingVnd,
+      dailyCapacityKnown,
       toleranceVnd,
       graceMinutes,
       version,
@@ -161,8 +208,9 @@ function parseConfig(value: unknown): PaymentConfig {
   };
 }
 
-function parseFxQuote(value: unknown): FxQuoteSnapshot {
+function parseFxQuote(value: unknown, mode: ApiEnvironment): FxQuoteSnapshot {
   const source = record(value);
+  const proof = parseProvenance(source, mode, "nx_finance_fx_quote_config", "FX_QUOTE_RESPONSE_INVALID");
   const baseRateVndPerUsdt = number(source?.baseRateVndPerUsdt, { min: 1 });
   const buySpreadPct = number(source?.buySpreadPct, { min: 0 });
   const quoteRateVndPerUsdt = number(source?.quoteRateVndPerUsdt, { min: 1 });
@@ -193,6 +241,7 @@ function parseFxQuote(value: unknown): FxQuoteSnapshot {
     throw new ApiError({ kind: "protocol", message: "FX_QUOTE_RESPONSE_INVALID" });
   }
   return {
+    ...proof,
     baseRateVndPerUsdt,
     buySpreadPct,
     quoteRateVndPerUsdt,
@@ -227,17 +276,31 @@ function parseIntent(value: unknown): VietQrIntentSnapshot {
     : number(source.receivedVnd, { min: 1 }) ?? null;
   const matchedAt = source?.matchedAt === undefined ? undefined : date(source.matchedAt);
   const createdAt = source?.createdAt === undefined ? undefined : date(source.createdAt);
+  const paymentMode = source?.paymentMode === undefined || source.paymentMode === "manual"
+    ? "manual"
+    : source.paymentMode === "hosted" ? "hosted" : null;
+  const paymentUrl = source?.paymentUrl === undefined || typeof source.paymentUrl !== "string"
+    ? undefined : validateHostedPaymentUrl(source.paymentUrl) ?? undefined;
+  const providerStatuses = new Set(["created", "pending", "submit_unknown", "rejected", "not_submitted"]);
+  const providerStatusText = source?.providerStatus === undefined ? undefined : text(source.providerStatus);
+  const providerStatus = providerStatusText && providerStatuses.has(providerStatusText)
+    ? providerStatusText as VietQrIntentSnapshot["providerStatus"] : undefined;
+  const manualFieldsValid = Boolean(account && memoCode && accountName && accountNumber && bankName);
+  const hostedSensitiveFieldsAbsent = source?.memoCode === undefined
+    && source?.bankAccount === undefined
+    && source?.qrPayload === undefined;
+  const hostedStateValid = paymentMode === "hosted"
+    && Boolean(providerStatus)
+    && hostedSensitiveFieldsAbsent
+    && (providerStatus === "created"
+      ? (status === "awaiting_payment" ? Boolean(paymentUrl) : !paymentUrl)
+      : !paymentUrl);
   if (
     !source
-    || !account
     || !intentNo
     || usdtAmount === null
     || fxRate === null
     || vndAmount === null
-    || !memoCode
-    || !accountName
-    || !accountNumber
-    || !bankName
     || !status
     || !expiresAt
     || creditedUsdt === null
@@ -248,6 +311,11 @@ function parseIntent(value: unknown): VietQrIntentSnapshot {
     || receivedVnd === null
     || (source.matchedAt !== undefined && !matchedAt)
     || (source.createdAt !== undefined && !createdAt)
+    || paymentMode === null
+    || (source.paymentUrl !== undefined && !paymentUrl)
+    || (source.providerStatus !== undefined && !providerStatus)
+    || (paymentMode === "manual" && (!manualFieldsValid || paymentUrl || providerStatus))
+    || (paymentMode === "hosted" && !hostedStateValid)
   ) {
     throw new ApiError({ kind: "protocol", message: "VIETQR_INTENT_RESPONSE_INVALID" });
   }
@@ -256,8 +324,10 @@ function parseIntent(value: unknown): VietQrIntentSnapshot {
     usdtAmount,
     fxRate,
     vndAmount,
-    memoCode,
-    bankAccount: { accountName, accountNumber, bankName },
+    ...(paymentMode === "manual" ? {
+      memoCode: memoCode!,
+      bankAccount: { accountName: accountName!, accountNumber: accountNumber!, bankName: bankName! },
+    } : {}),
     status,
     expiresAt,
     creditedUsdt,
@@ -268,6 +338,9 @@ function parseIntent(value: unknown): VietQrIntentSnapshot {
     ...(receivedVnd === undefined ? {} : { receivedVnd }),
     ...(matchedAt ? { matchedAt } : {}),
     ...(createdAt ? { createdAt } : {}),
+    ...(paymentMode === "hosted" ? { paymentMode } : {}),
+    ...(paymentUrl ? { paymentUrl } : {}),
+    ...(providerStatus ? { providerStatus } : {}),
   };
 }
 
@@ -317,16 +390,16 @@ function parseIntentList(value: unknown): VietQrIntentSnapshot[] {
   return source.items.map(parseIntent);
 }
 
-export function createPaymentApi(client: ApiClient): PaymentApi {
+export function createPaymentApi(client: ApiClient, mode: ApiEnvironment = "prod"): PaymentApi {
   return {
     config: async () => parseConfig(await client.request({
       method: "GET",
       path: "/api/app/payments/config",
-    })),
+    }), mode),
     fxQuote: async () => parseFxQuote(await client.request({
       method: "GET",
       path: "/api/app/payments/fx-quote?fiat=VND&asset=USDT",
-    })),
+    }), mode),
     createVietQrIntent: async (usdtAmount, idempotencyKey) =>
       parseIntent(await client.request({
         method: "POST",

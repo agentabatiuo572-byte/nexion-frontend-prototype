@@ -1,9 +1,11 @@
 <!--
   Receipts — ported from Nexion-prototype/app/(main)/me/receipts/page.tsx.
-  Proof-of-Compute receipt list: horizontally-scrollable category tabs (All / IG
-  / VG / LL / FT / EM / SP / KY) with per-tab counts + clear-all destructive
-  action → month-agnostic row list → tap opens the ReceiptModal detail. Reads
-  the existing useReceipts store (already ported) + filterByCategory. clear →
+  Remote mode separates Proof-of-Compute from VietQR top-up receipts and keeps
+  loading, error, empty, and pagination state scoped to the selected kind.
+  Local fallback is a Proof-of-Compute receipt list with horizontally-scrollable
+  category tabs (All / IG / VG / LL / FT / EM / SP / KY), a clear-all action,
+  and a month-agnostic row list that opens the ReceiptModal detail.
+  clear →
   confirm() (destructive). Long-press a row copies its signature (uni.
   setClipboardData, P-028). SetPageHeader → SubPageHeader. Wrapped in
   <AppChassis active="me">.
@@ -11,61 +13,109 @@
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/me" :title="t.receipt.title" />
+      <SubPageHeader back="/pages/me/me" :title="remoteReceiptsMode ? remoteReceiptTitle : t.receipt.title" />
 
       <view v-if="remoteReceiptsMode" style="margin: 0 16px">
-        <EmptyState v-if="remoteReceiptItems.length === 0 && remoteComputeReceiptItems.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" />
-        <view v-else :style="listStyle">
-          <view v-for="r in remoteComputeReceiptItems" :key="`compute:${r.receiptNo}`" class="flex items-center" :style="rowStyle(0)">
-            <view class="flex-1 min-w-0">
-              <text class="block truncate" :style="rowTitleStyle">{{ r.receiptNo }}</text>
-              <text class="block truncate" :style="rowSubStyle">{{ t.receipt.title }} · {{ r.model }}</text>
-            </view>
-            <view class="text-right shrink-0" style="margin-left: 8px">
-              <text class="block tabular-nums" :style="remoteAmountStyle">+${{ r.reward.toFixed(3) }}</text>
-              <text class="block" :style="rowDateStyle">{{ shortDate(r.completedAt) }}</text>
-            </view>
-          </view>
-          <view v-for="r in remoteReceiptItems" :key="r.receiptNo" class="flex items-center" :style="rowStyle(0)">
-            <view class="flex-1 min-w-0">
-              <text class="block truncate" :style="rowTitleStyle">{{ r.receiptNo }}</text>
-              <text class="block truncate" :style="rowSubStyle">{{ r.intentNo }} · {{ r.viewType }}</text>
-            </view>
-            <view class="text-right shrink-0" style="margin-left: 8px">
-              <text class="block tabular-nums" :style="remoteAmountStyle">+${{ r.creditedUsdt.toFixed(2) }}</text>
-              <text class="block" :style="rowDateStyle">{{ shortDate(Date.parse(r.createdAt)) }}</text>
-            </view>
+        <!-- 推理收据／充值收据是互斥类型切换(选一个另一个必然取消),不是可多选的开关。
+             role="button" + aria-pressed 会让浏览器按「切换按钮/复选框」朗读 —— 用户以为能两个都选。
+             改成 tablist/tab + aria-selected,与页面本身的"类型切换"语义一致。 -->
+        <view class="flex items-center" :style="remoteTabsRowStyle" role="tablist" :aria-label="t.receipt.kindGroupLabel">
+          <view
+            v-for="(kind, kindIndex) in REMOTE_RECEIPT_KINDS"
+            :key="kind"
+            class="flex-1 grid place-items-center active:opacity-70"
+            :style="remoteTabStyle(kind)"
+            role="tab"
+            :tabindex="remoteReceiptKind === kind ? 0 : -1"
+            :aria-label="remoteReceiptKindLabel(kind)"
+            :aria-selected="remoteReceiptKind === kind ? 'true' : 'false'"
+            @click="selectRemoteReceiptKind(kind)"
+
+
+
+            @keydown.enter.prevent="selectRemoteReceiptKind(kind)" @keydown.space.prevent="selectRemoteReceiptKind(kind)" @keydown.left.prevent="moveRemoteReceiptKind(kindIndex, -1)" @keydown.right.prevent="moveRemoteReceiptKind(kindIndex, 1)"
+          >
+            <text :style="remoteTabLabelStyle(kind)">{{ remoteReceiptKindLabel(kind) }}</text>
           </view>
         </view>
+        <EmptyState
+          v-if="showRemoteReceiptInitialError"
+          kind="recoverable-error"
+          :title="t.empty.errorTitle"
+          :desc="t.empty.errorDesc"
+          :cta-label="t.empty.errorCta"
+          emphasis
+          @cta="retryRemoteReceipts"
+        />
+        <EmptyState v-else-if="!remoteReceiptLoading && remoteReceiptItems.length === 0" kind="empty-list" :title="remoteReceiptEmptyTitle" :desc="remoteReceiptEmptyHint" />
+        <view v-else :style="listStyle">
+          <template v-if="remoteReceiptKind === 'compute'">
+            <view
+              v-for="r in remoteComputeReceiptItems"
+              :key="`compute:${r.receiptNo}`"
+              class="flex items-center active:opacity-80"
+              :style="rowStyle(0)"
+              role="button"
+              tabindex="0"
+              @click.stop="openRemoteComputeReceipt(r)"
+
+              @keydown.enter.stop.prevent="openRemoteComputeReceipt(r)" @keydown.space.stop.prevent="openRemoteComputeReceipt(r)"
+            >
+              <view class="flex-1 min-w-0">
+                <text class="block truncate" :style="rowTitleStyle">{{ r.receiptNo }}</text>
+                <text class="block truncate" :style="rowSubStyle">{{ t.receipt.computeTitle }} · {{ r.model }}</text>
+              </view>
+              <view class="text-right shrink-0" style="margin-left: 8px">
+                <text class="block tabular-nums" :style="remoteAmountStyle">+${{ r.rewardUsdt.toFixed(3) }}</text>
+                <text class="block" :style="rowDateStyle">{{ shortDate(r.completedAt) }}</text>
+              </view>
+            </view>
+          </template>
+          <template v-if="remoteReceiptKind === 'deposit'">
+            <view v-for="r in remoteVietQrReceiptItems" :key="r.receiptNo" class="flex items-center" :style="rowStyle(0)">
+              <view class="flex-1 min-w-0">
+                <text class="block truncate" :style="rowTitleStyle">{{ r.receiptNo }}</text>
+                <text class="block truncate" :style="rowSubStyle">{{ r.intentNo }} · {{ remoteReceiptStatus(r) }}</text>
+              </view>
+              <view class="text-right shrink-0" style="margin-left: 8px">
+                <text class="block tabular-nums" :style="remoteReceiptAmountStyle(r)">{{ remoteReceiptAmount(r) }}</text>
+                <text class="block" :style="rowDateStyle">{{ shortDate(Date.parse(r.createdAt)) }}</text>
+              </view>
+            </view>
+          </template>
+        </view>
         <view
-          v-if="depositsStore.remoteReceiptNextOffset !== null"
+          v-if="showRemoteReceiptInlineError"
+          class="flex items-center justify-center active:opacity-70"
+          style="min-height: 44px; margin: 8px 0"
+          role="button"
+          tabindex="0"
+          :aria-label="t.empty.errorCta"
+          @click="retryRemoteReceipts"
+
+          @keydown.enter.stop.prevent="retryRemoteReceipts" @keydown.space.stop.prevent="retryRemoteReceipts"
+        >
+          <text :style="rowSubStyle">{{ t.empty.errorDesc }} · {{ t.empty.errorCta }}</text>
+        </view>
+        <view
+          v-if="remoteReceiptHasMore"
           class="grid place-items-center active:opacity-70"
           style="min-height: 44px; margin: 8px 0 16px"
           role="button"
           tabindex="0"
-          @click="loadMoreRemoteReceipts"
+          :aria-disabled="remoteMoreLoading"
+          @click="loadSelectedMoreRemoteReceipts"
+
+          @keydown.enter.stop.prevent="loadSelectedMoreRemoteReceipts" @keydown.space.stop.prevent="loadSelectedMoreRemoteReceipts"
         >
-          <text :style="rowSubStyle">{{ t.receipt.loadMore }}</text>
+          <text :style="rowSubStyle">{{ remoteMoreLoading ? "…" : t.receipt.loadMore }}</text>
         </view>
       </view>
 
       <!-- Tabs + clear-all -->
       <view v-if="!remoteReceiptsMode" class="flex items-center" :style="tabsRowStyle">
-        <scroll-view scroll-x class="flex-1 min-w-0" :show-scrollbar="false" style="white-space: nowrap">
-          <view class="inline-flex" style="gap: 6px; padding: 0 1px 4px">
-            <view
-              v-for="c in TAB_ORDER"
-              :key="c"
-              class="inline-flex items-center shrink-0 active:opacity-70"
-              :style="tabPillStyle(c)"
-              @click="tab = c"
-            >
-              <text :style="tabLabelStyle(c)">{{ tabLabel(c) }}</text>
-              <text v-if="counts[c] > 0" class="font-mono-tabular tabular-nums" :style="tabCountStyle">{{ counts[c] }}</text>
-            </view>
-          </view>
-        </scroll-view>
-        <view v-if="receipts.length > 0" class="grid place-items-center shrink-0 active:opacity-70" :style="clearBtnStyle" @click="handleClearAll">
+        <GlassSegments :label="t.receipt.categoryGroupLabel" v-model="tab" :options="categoryOptions" layout="scroll" class="flex-1 min-w-0"  />
+        <view v-if="receipts.length > 0" class="grid place-items-center shrink-0 active:opacity-70" :style="clearBtnStyle" role="button" tabindex="0" :aria-label="t.receipt.clearAll" @click="handleClearAll" @keydown.enter.prevent="handleClearAll" @keydown.space.prevent="handleClearAll">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
         </view>
       </view>
@@ -80,7 +130,12 @@
           :key="`${r.signature}-${i}`"
           class="flex items-center active:opacity-80"
           :style="rowStyle(i)"
+          role="button"
+          tabindex="0"
+          :aria-label="`${r.model} ${typeLabel(r)}`"
           @click="open = r"
+
+          @keydown.enter.prevent="open = r" @keydown.space.prevent="open = r"
           @longpress="copySig(r)"
         >
           <view class="grid place-items-center shrink-0" :style="rowIconStyle(r)">
@@ -111,13 +166,14 @@
 
       <text v-if="!remoteReceiptsMode" class="block" :style="footerStyle">{{ t.receipt.footerNote }}</text>
 
-      <ReceiptModal v-if="!remoteReceiptsMode" :receipt="open" @close="open = null" />
+      <ReceiptModal :receipt="open" @close="open = null" />
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watchEffect, watch, onMounted, type CSSProperties } from "vue";
+import { computed, nextTick, ref, watchEffect, watch, onUnmounted, type CSSProperties } from "vue";
+import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -130,30 +186,79 @@ import { useReceipts, filterByCategory } from "@/store/receipts";
 import type { Receipt, ReceiptCategory } from "@/mock/receipt";
 import { confirm, toast } from "@/store/ui";
 import { useScrollGrowProgress } from "@/composables/use-scroll-grow-progress";
-import { remoteApiEnabled, mockFundsEnabled } from "@/api/runtime";
-import { useDeposits } from "@/store/deposits";
+import { remoteApiEnabled, taskAssignmentApi } from "@/api/runtime";
+import type { CanonicalComputeReceipt, CanonicalComputeReceiptSummary } from "@/api/task-assignment-api";
+import { useDeposits, type ServerReceiptListItem } from "@/store/deposits";
 import { useApp } from "@/store/app";
-import type { VietQrReceiptSnapshot } from "@/api/payment-api";
-import type { CompletedTask } from "@/store/types";
+
+import { presentVietQrReceipt } from "@/lib/vietqr-receipt-presentation";
+import { createReceiptsPageRequestFence } from "./receipts-page-request-fence";
+import { canLoadRemoteComputeMore } from "./receipts-page-pagination";
 
 type Tab = "ALL" | ReceiptCategory;
+type RemoteReceiptKind = "compute" | "deposit";
 const TAB_ORDER: Tab[] = ["ALL", "IG", "VG", "LL", "FT", "EM", "SP", "KY"];
+const REMOTE_RECEIPT_KINDS: RemoteReceiptKind[] = ["compute", "deposit"];
 // One screen's worth per load — reduces initial render + (future) server load.
 const PAGE_SIZE = 10;
 
 const t = useT();
 const app = useApp();
 const depositsStore = useDeposits();
-const remoteReceiptsMode = remoteApiEnabled && !mockFundsEnabled;
-const remoteReceiptItems = computed<VietQrReceiptSnapshot[]>(() => depositsStore.remoteReceipts);
-const remoteComputeReceiptItems = computed<CompletedTask[]>(() => remoteApiEnabled
-  ? app.visibleDevices.flatMap((device) => device.recentTasks)
-    .filter((task) => !!task.receiptNo)
-    .sort((a, b) => b.completedAt - a.completedAt)
-  : []);
+const receiptsPageFence = createReceiptsPageRequestFence(
+  () => app.accountKey,
+  () => app.accountBindingEpoch,
+);
+// Remote mode owns the entire receipt surface. Never construct
+// the local store in a remote session: its setup reads account-scoped localStorage.
+const remoteReceiptsMode = remoteApiEnabled;
+const remoteReceiptKind = ref<RemoteReceiptKind>("compute");
+const remoteComputeReceiptItems = ref<CanonicalComputeReceiptSummary[]>([]);
+const remoteComputeReceiptNextOffset = ref<number | null>(null);
+const remoteComputeReceiptNextCursor = ref<string | null>(null);
+const remoteComputeReceiptLoading = ref(remoteReceiptsMode);
+const remoteComputeInitialLoading = ref(remoteReceiptsMode);
+const remoteComputeReceiptStatus = ref<"loading" | "ready" | "error">(
+  remoteReceiptsMode ? "loading" : "ready",
+);
+const failedComputeReceiptRequest = ref<{ offset: number; cursor: string | null; append: boolean } | null>(null);
+const remoteComputeMoreLoading = ref(false);
+const remoteDepositMoreLoading = ref(false);
+const remoteVietQrReceiptItems = computed<ServerReceiptListItem[]>(() => depositsStore.remoteReceipts);
+const remoteVietQrInitialLoading = computed(() => depositsStore.remoteReceiptInitialStatus === "loading");
+const remoteReceiptItems = computed(() => remoteReceiptKind.value === "compute"
+  ? remoteComputeReceiptItems.value
+  : remoteVietQrReceiptItems.value);
+const remoteReceiptLoading = computed(() => remoteReceiptKind.value === "compute"
+  ? remoteComputeReceiptLoading.value
+  : remoteVietQrInitialLoading.value);
+const remoteReceiptInitialStatus = computed(() => remoteReceiptKind.value === "compute"
+  ? remoteComputeReceiptStatus.value
+  : depositsStore.remoteReceiptInitialStatus);
+const remoteReceiptMoreStatus = computed(() => remoteReceiptKind.value === "compute"
+  ? remoteComputeReceiptStatus.value
+  : depositsStore.remoteReceiptMoreStatus);
+const remoteMoreLoading = computed(() => remoteReceiptKind.value === "compute"
+  ? remoteComputeMoreLoading.value
+  : remoteDepositMoreLoading.value);
+const remoteReceiptHasMore = computed(() => remoteReceiptKind.value === "compute"
+  ? remoteComputeReceiptNextCursor.value !== null || remoteComputeReceiptNextOffset.value !== null
+  : depositsStore.remoteReceiptNextOffset !== null);
+const showRemoteReceiptInitialError = computed(() => remoteReceiptInitialStatus.value === "error" && remoteReceiptItems.value.length === 0);
+const showRemoteReceiptInlineError = computed(() => remoteReceiptMoreStatus.value === "error" && remoteReceiptItems.value.length > 0);
+const remoteReceiptTitle = computed(() => remoteReceiptKind.value === "compute"
+  ? t.value.receipt.computeTitle
+  : t.value.receipt.depositTitle);
+const remoteReceiptEmptyTitle = computed(() => remoteReceiptKind.value === "compute"
+  ? t.value.receipt.computeEmptyTitle
+  : t.value.receipt.depositEmptyTitle);
+const remoteReceiptEmptyHint = computed(() => remoteReceiptKind.value === "compute"
+  ? t.value.receipt.computeEmptyHint
+  : t.value.receipt.depositEmptyHint);
 const receiptsStore = remoteReceiptsMode ? null : useReceipts();
 const tab = ref<Tab>("ALL");
-const open = ref<Receipt | null>(null);
+const open = ref<Receipt | CanonicalComputeReceipt | null>(null);
+let receiptRequestEpoch = 0;
 const visibleCount = ref(PAGE_SIZE);
 watch(tab, () => { visibleCount.value = PAGE_SIZE; });
 
@@ -162,13 +267,220 @@ const filtered = computed(() => filterByCategory(receipts.value, tab.value));
 const visibleReceipts = computed(() => filtered.value.slice(0, visibleCount.value));
 const hasMore = computed(() => visibleCount.value < filtered.value.length);
 
-onMounted(() => {
-  if (remoteReceiptsMode) void depositsStore.refreshRemoteVietQrDeposits();
+function remoteReceiptAmount(receipt: ServerReceiptListItem): string {
+  return presentVietQrReceipt(receipt.status, receipt.creditedUsdt).amountText;
+}
+
+function remoteReceiptStatus(receipt: ServerReceiptListItem): string {
+  const presentation = presentVietQrReceipt(receipt.status, receipt.creditedUsdt);
+  return t.value.receipt.vietQrStatus[presentation.statusKey];
+}
+
+function remoteReceiptAmountStyle(receipt: ServerReceiptListItem): CSSProperties {
+  const presentation = presentVietQrReceipt(receipt.status, receipt.creditedUsdt);
+  return {
+    ...remoteAmountStyle,
+    color: presentation.credited ? "var(--v5-brand-2)" : "var(--v5-ink-3)",
+  };
+}
+
+let receiptPageRequestEpoch = 0;
+async function loadRemoteComputeReceipts(offset: number, append: boolean, cursor: string | null = null): Promise<void> {
+  if (!remoteReceiptsMode || !receiptsPageFence.isVisible()) return;
+  const requestEpoch = ++receiptPageRequestEpoch;
+  const requestScope = receiptsPageFence.capture("compute");
+  const expectedAccountKey = app.accountKey;
+  const expectedBindingEpoch = app.accountBindingEpoch;
+  if (!append) {
+    remoteComputeInitialLoading.value = true;
+    remoteComputeReceiptNextOffset.value = null;
+    remoteComputeReceiptNextCursor.value = null;
+  }
+  remoteComputeReceiptLoading.value = true;
+  remoteComputeReceiptStatus.value = "loading";
+  failedComputeReceiptRequest.value = null;
+  try {
+    const page = await taskAssignmentApi.receipts(offset, 20, cursor);
+    if (requestEpoch !== receiptPageRequestEpoch
+      || !receiptsPageFence.isCurrent(requestScope)
+      || expectedAccountKey !== app.accountKey
+      || expectedBindingEpoch !== app.accountBindingEpoch) return;
+    if (append && cursor !== null && page.nextCursor === cursor) {
+      throw new Error("TASK_RECEIPT_CURSOR_NOT_ADVANCING");
+    }
+    remoteComputeReceiptItems.value = append
+      ? [...remoteComputeReceiptItems.value, ...page.items]
+      : page.items;
+    remoteComputeReceiptNextOffset.value = page.nextOffset;
+    remoteComputeReceiptNextCursor.value = page.nextCursor;
+    remoteComputeReceiptStatus.value = "ready";
+  } catch {
+    if (requestEpoch === receiptPageRequestEpoch
+      && receiptsPageFence.isCurrent(requestScope)
+      && expectedAccountKey === app.accountKey
+      && expectedBindingEpoch === app.accountBindingEpoch) {
+      failedComputeReceiptRequest.value = { offset, cursor, append };
+      remoteComputeReceiptStatus.value = "error";
+      toast.error(t.value.wallet.receiptsUnavailableTitle, t.value.wallet.receiptsUnavailableBody);
+    }
+  } finally {
+    if (requestEpoch === receiptPageRequestEpoch
+      && receiptsPageFence.isCurrent(requestScope)
+      && expectedAccountKey === app.accountKey
+      && expectedBindingEpoch === app.accountBindingEpoch) {
+        remoteComputeReceiptLoading.value = false;
+        if (!append) remoteComputeInitialLoading.value = false;
+      }
+  }
+}
+
+async function loadSelectedMoreRemoteReceipts(): Promise<void> {
+  if (!remoteReceiptsMode || remoteMoreLoading.value || !receiptsPageFence.isVisible()) return;
+  if (remoteReceiptKind.value === "compute") {
+    if (!canLoadRemoteComputeMore({
+      initialLoading: remoteComputeInitialLoading.value,
+      moreLoading: remoteComputeMoreLoading.value,
+      nextOffset: remoteComputeReceiptNextOffset.value,
+      nextCursor: remoteComputeReceiptNextCursor.value,
+    })) return;
+    const cursor = remoteComputeReceiptNextCursor.value;
+    const offset = remoteComputeReceiptNextOffset.value;
+    if (offset === null && cursor === null) return;
+    const requestScope = receiptsPageFence.capture("compute-more");
+    remoteComputeMoreLoading.value = true;
+    try {
+      await loadRemoteComputeReceipts(offset ?? 0, true, cursor);
+    } finally {
+      if (receiptsPageFence.isCurrent(requestScope)) remoteComputeMoreLoading.value = false;
+    }
+    return;
+  }
+  if (depositsStore.remoteReceiptNextOffset === null) return;
+  const requestScope = receiptsPageFence.capture("deposit-more");
+  remoteDepositMoreLoading.value = true;
+  try {
+    await depositsStore.loadMoreRemoteVietQrReceipts();
+  } finally {
+    if (receiptsPageFence.isCurrent(requestScope)) remoteDepositMoreLoading.value = false;
+  }
+}
+
+function retryRemoteReceipts(): void {
+  if (remoteReceiptKind.value === "compute" && remoteComputeReceiptStatus.value === "error") {
+    const failed = failedComputeReceiptRequest.value ?? { offset: 0, cursor: null, append: false };
+    if (failed.append) void loadSelectedMoreRemoteReceipts();
+    else void loadRemoteComputeReceipts(failed.offset, false, failed.cursor);
+    return;
+  }
+  if (remoteReceiptKind.value === "deposit" && depositsStore.remoteReceiptInitialStatus === "error") {
+    void depositsStore.refreshRemoteVietQrDeposits();
+    return;
+  }
+  if (remoteReceiptKind.value === "deposit" && depositsStore.remoteReceiptMoreStatus === "error") {
+    void loadSelectedMoreRemoteReceipts();
+  }
+}
+
+function loadSelectedRemoteReceipts(): void {
+  if (!remoteReceiptsMode || !receiptsPageFence.isVisible()) return;
+  if (remoteReceiptKind.value === "compute") {
+    void loadRemoteComputeReceipts(0, false);
+    return;
+  }
+  void depositsStore.refreshRemoteVietQrDeposits();
+}
+
+function selectRemoteReceiptKind(kind: RemoteReceiptKind): void {
+  if (remoteReceiptKind.value === kind) return;
+  invalidateRemoteReceiptsPage();
+  remoteReceiptKind.value = kind;
+  loadSelectedRemoteReceipts();
+}
+/** roving tabindex 的标准行为:左右方向键移一格并选上,焦点跟到新选中项。 */
+function moveRemoteReceiptKind(index: number, delta: number): void {
+  const next = REMOTE_RECEIPT_KINDS[(index + delta + REMOTE_RECEIPT_KINDS.length) % REMOTE_RECEIPT_KINDS.length];
+  if (!next) return;
+  selectRemoteReceiptKind(next);
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
+  });
+}
+
+async function openRemoteComputeReceipt(task: CanonicalComputeReceiptSummary): Promise<void> {
+  if (!remoteReceiptsMode || !receiptsPageFence.isVisible()) return;
+  const requestEpoch = ++receiptRequestEpoch;
+  const requestScope = receiptsPageFence.capture("detail");
+  const expectedAccountKey = app.accountKey;
+  const expectedBindingEpoch = app.accountBindingEpoch;
+  try {
+    const detail = await taskAssignmentApi.receipt(task.receiptNo);
+    if (requestEpoch === receiptRequestEpoch
+      && receiptsPageFence.isCurrent(requestScope)
+      && expectedAccountKey === app.accountKey
+      && expectedBindingEpoch === app.accountBindingEpoch) open.value = detail;
+  } catch {
+    if (requestEpoch === receiptRequestEpoch
+      && receiptsPageFence.isCurrent(requestScope)
+      && expectedAccountKey === app.accountKey
+      && expectedBindingEpoch === app.accountBindingEpoch) {
+      toast.error(t.value.wallet.receiptsUnavailableTitle, t.value.wallet.receiptsUnavailableBody);
+    }
+  }
+}
+
+watch(
+  () => [app.accountKey, app.accountBindingEpoch] as const,
+  () => {
+    if (!remoteReceiptsMode) return;
+    invalidateRemoteReceiptsPage();
+    remoteComputeReceiptItems.value = [];
+    remoteComputeReceiptNextOffset.value = null;
+    remoteComputeReceiptNextCursor.value = null;
+    if (receiptsPageFence.isVisible()) refreshRemoteReceiptsPage();
+  },
+  { immediate: true },
+);
+
+function invalidateRemoteReceiptsPage(): void {
+  receiptRequestEpoch += 1;
+  receiptPageRequestEpoch += 1;
+  receiptsPageFence.invalidate();
+  remoteComputeMoreLoading.value = false;
+  remoteDepositMoreLoading.value = false;
+  remoteComputeReceiptLoading.value = false;
+  remoteComputeInitialLoading.value = false;
+  remoteComputeReceiptStatus.value = remoteReceiptsMode ? "loading" : "ready";
+  failedComputeReceiptRequest.value = null;
+  open.value = null;
+  depositsStore.invalidateRemoteVietQrReceiptReads();
+}
+
+function refreshRemoteReceiptsPage(): void {
+  loadSelectedRemoteReceipts();
+}
+
+onLoad((options) => {
+  remoteReceiptKind.value = options?.kind === "deposit" ? "deposit" : "compute";
 });
 
-function loadMoreRemoteReceipts() {
-  void depositsStore.loadMoreRemoteVietQrReceipts();
-}
+onShow(() => {
+  if (!remoteReceiptsMode) return;
+  receiptsPageFence.show();
+  loadSelectedRemoteReceipts();
+});
+
+onHide(() => {
+  if (!remoteReceiptsMode) return;
+  receiptsPageFence.hide();
+  invalidateRemoteReceiptsPage();
+});
+
+onUnmounted(() => {
+  if (!remoteReceiptsMode) return;
+  receiptsPageFence.hide();
+  invalidateRemoteReceiptsPage();
+});
 
 // Sentinel row (always mounted so the observer attaches from the start —
 // hasMore can flip true later as receipts arrive) sits at the list end;
@@ -202,6 +514,17 @@ const counts = computed<Record<Tab, number>>(() => {
   return c;
 });
 
+/** roving tabindex 的标准行为:左右方向键移一格并选上,焦点跟到新选中项。 */
+function moveCategoryTab(index: number, delta: number): void {
+  const next = TAB_ORDER[(index + delta + TAB_ORDER.length) % TAB_ORDER.length];
+  if (!next) return;
+  tab.value = next;
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
+  });
+}
+
 function tabLabel(c: Tab): string {
   const map: Record<Tab, string> = {
     ALL: t.value.receipt.tabAll,
@@ -214,6 +537,10 @@ function tabLabel(c: Tab): string {
     KY: t.value.receipt.catKY,
   };
   return map[c];
+}
+
+function remoteReceiptKindLabel(kind: RemoteReceiptKind): string {
+  return kind === "compute" ? t.value.receipt.computeTab : t.value.receipt.depositTab;
 }
 
 async function handleClearAll() {
@@ -242,7 +569,7 @@ function copySig(r: Receipt) {
 }
 
 function rowAmount(r: Receipt): string {
-  return r.category === "KY" ? `✓ $${r.netPaid.toFixed(2)}` : `+$${r.netPaid.toFixed(4)}`;
+  return r.category === "KY" ? `✓ ${r.netPaid.toFixed(2)}` : `+${r.netPaid.toFixed(4)}`;
 }
 function shortDate(ts: number): string {
   const d = new Date(ts);
@@ -256,6 +583,22 @@ function shortDate(ts: number): string {
 
 // ── styles ──
 const tabsRowStyle: CSSProperties = { margin: "0 16px 12px", gap: "8px" };
+const remoteTabsRowStyle: CSSProperties = { marginBottom: "12px", gap: "8px" };
+function remoteTabStyle(kind: RemoteReceiptKind): CSSProperties {
+  const selected = remoteReceiptKind.value === kind;
+  return {
+    minHeight: "40px",
+    borderRadius: "999px",
+    background: selected ? "color-mix(in srgb, var(--v5-brand) 15%, transparent)" : "var(--v5-surface)",
+  };
+}
+function remoteTabLabelStyle(kind: RemoteReceiptKind): CSSProperties {
+  return {
+    fontSize: "13px",
+    fontWeight: 500,
+    color: remoteReceiptKind.value === kind ? "var(--v5-brand)" : "var(--v5-ink-3)",
+  };
+}
 function tabPillStyle(c: Tab): CSSProperties {
   const on = tab.value === c;
   // Filter chip — filled tint (active) vs L1 surface (idle), no border: the fill
@@ -341,4 +684,7 @@ const footerStyle: CSSProperties = {
   color: "var(--v5-ink-4)",
   lineHeight: 1.625,
 };
+
+import GlassSegments from "@/components/glass-segments.vue";
+const categoryOptions = computed(() => TAB_ORDER.map(value => ({ value, label: tabLabel(value), count: counts.value[value] || undefined })));
 </script>

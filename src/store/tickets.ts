@@ -4,23 +4,15 @@ import { supportApi } from "@/api/runtime";
 import { remoteApiEnabled } from "@/api/runtime";
 import { asApiError } from "@/api/errors";
 import type { Ticket, TicketCategory } from "@/domain/support";
+import { opaqueSupportIntentSlot } from "@/lib/support-intent-slot";
+import { restoreSupportPending, persistSupportPending } from "@/lib/support-pending-storage";
 
 function mutationKey(scope: string): string {
   const label = scope.split(":", 1)[0].replace(/[^a-z0-9-]/gi, "").slice(0, 24) || "command";
   return `support-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
-const PENDING_STORAGE = "support-pending-commands";
-const pendingStorageKey = (accountKey: string, runId: string) => `${PENDING_STORAGE}:${accountKey}:${runId}:tickets`;
-async function opaqueIntentSlot(intent: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(intent));
-  return `sha256:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("")}`;
-}
-function restorePending(accountKey: string, runId: string): Map<string, string> {
-  try { return new Map(Object.entries(JSON.parse(localStorage.getItem(pendingStorageKey(accountKey, runId)) ?? "{}") as Record<string, string>).filter(([slot, key]) => /^sha256:[a-f0-9]{64}$/.test(slot) && /^support-[a-z0-9-]+-/.test(key))); } catch { return new Map(); }
-}
-function persistPending(accountKey: string, runId: string, values: Map<string, string>) {
-  try { localStorage.setItem(pendingStorageKey(accountKey, runId), JSON.stringify(Object.fromEntries(values))); } catch { /* H5 storage can be unavailable */ }
-}
+const restorePending = (accountKey: string, runId: string) => restoreSupportPending(accountKey, runId, "tickets");
+const persistPending = (accountKey: string, runId: string, values: Map<string, string>) => persistSupportPending(accountKey, runId, "tickets", values);
 type CommandScope = { accountKey: string; epoch: number; runId: string; pending: Map<string, string>; inFlight: Map<string, Promise<unknown>> };
 type SnapshotScope = { accountKey: string; epoch: number; runId: string };
 
@@ -40,11 +32,12 @@ export const useTickets = defineStore("tickets", () => {
   async function preparePendingRun(): Promise<void> {
     const accountKey = accountKeyValue;
     const epoch = accountEpoch;
-    const runId = await supportApi.acceptanceRunId();
+    const runId = await supportApi.authorityRevision();
     if (epoch !== accountEpoch || accountKey !== accountKeyValue) return;
     if (runId === pendingRunId) return;
+    const restored = restorePending(accountKey, runId);
     pendingRunId = runId;
-    pendingKeys = restorePending(accountKey, runId);
+    pendingKeys = restored;
   }
 
   function scopeIsCurrent(scope: CommandScope): boolean {
@@ -62,12 +55,13 @@ export const useTickets = defineStore("tickets", () => {
     const startingRunId = pendingRunId;
     const startingPending = pendingKeys;
     const startingInFlight = inFlight;
-    const runId = await supportApi.acceptanceRunId();
-    if (epoch !== accountEpoch || accountKey !== accountKeyValue || startingRunId !== pendingRunId
-      || startingPending !== pendingKeys || startingInFlight !== inFlight) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+    const runId = await supportApi.authorityRevision();
+    if (epoch !== accountEpoch || accountKey !== accountKeyValue || startingInFlight !== inFlight) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
     if (runId !== pendingRunId) {
+      if (startingRunId !== pendingRunId || startingPending !== pendingKeys) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+      const restored = restorePending(accountKey, runId);
       pendingRunId = runId;
-      pendingKeys = restorePending(accountKey, runId);
+      pendingKeys = restored;
     }
     return { accountKey, epoch, runId, pending: pendingKeys, inFlight };
   }
@@ -77,9 +71,16 @@ export const useTickets = defineStore("tickets", () => {
     return error.status === 409 || (error.status ?? 0) >= 500 || error.kind === "network" || error.kind === "protocol";
   }
 
+  function completePending(scope: CommandScope, fingerprint: string): void {
+    const next = new Map(scope.pending);
+    next.delete(fingerprint);
+    persistPending(scope.accountKey, scope.runId, next);
+    scope.pending.delete(fingerprint);
+  }
+
   async function command<T>(intent: string, action: (key: string) => Promise<T>, recover?: (key: string) => Promise<T | null>): Promise<T> {
     const scope = await commandScope();
-    const fingerprint = await opaqueIntentSlot(intent);
+    const fingerprint = opaqueSupportIntentSlot(intent);
     if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
     const running = scope.inFlight.get(fingerprint) as Promise<T> | undefined;
     if (running) return running;
@@ -87,28 +88,31 @@ export const useTickets = defineStore("tickets", () => {
     scope.pending.set(fingerprint, key);
     persistPending(scope.accountKey, scope.runId, scope.pending);
     if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
-    const promise = action(key);
+    const promise = Promise.resolve().then(async () => {
+      try {
+        if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+        const result = await action(key);
+        if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+        completePending(scope, fingerprint);
+        return result;
+      } catch (cause) {
+        if (recover && mustReadBack(cause) && scopeIsCurrent(scope)) {
+          const adopted = await recover(key);
+          if (adopted !== null) {
+            if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+            completePending(scope, fingerprint);
+            return adopted;
+          }
+        }
+        throw cause;
+      } finally {
+        scope.inFlight.delete(fingerprint);
+        if (scopeIsCurrent(scope)) mutating.value = scope.inFlight.size > 0;
+      }
+    });
     scope.inFlight.set(fingerprint, promise);
     if (scopeIsCurrent(scope)) mutating.value = true;
-    try {
-      const result = await promise;
-      scope.pending.delete(fingerprint);
-      persistPending(scope.accountKey, scope.runId, scope.pending);
-      return result;
-    } catch (cause) {
-      if (recover && mustReadBack(cause) && scopeIsCurrent(scope)) {
-        const adopted = await recover(key);
-        if (adopted !== null) {
-          scope.pending.delete(fingerprint);
-          persistPending(scope.accountKey, scope.runId, scope.pending);
-          return adopted;
-        }
-      }
-      throw cause;
-    } finally {
-      scope.inFlight.delete(fingerprint);
-      if (scopeIsCurrent(scope)) mutating.value = scope.inFlight.size > 0;
-    }
+    return promise;
   }
 
   function replace(ticket: Ticket) {
@@ -119,30 +123,49 @@ export const useTickets = defineStore("tickets", () => {
   }
 
   /** A delayed page is allowed to fill gaps, never to erase or regress a newer local snapshot. */
-  function mergeTickets(items: Ticket[]) { for (const ticket of items) replace(ticket); }
+  function mergeTickets(items: Ticket[]) {
+    for (const ticket of items) {
+      const prior = tickets.value.find(row => row.id === ticket.id);
+      // List headers must not erase a detail window opened before the background refresh.
+      replace(prior ? { ...ticket, messages: prior.messages,
+        historyTruncated: prior.historyTruncated, historyNextCursor: prior.historyNextCursor } : ticket);
+    }
+  }
 
-  async function refresh(): Promise<void> {
+  /** Older pages only extend the visible timeline; a stale response cannot regress its header. */
+  function prependHistory(current: Ticket, older: Ticket): Ticket {
+    const messages = [...older.messages, ...current.messages]
+      .sort((left, right) => left.ts - right.ts || Number(left.id) - Number(right.id))
+      .filter((message, index, all) => index === 0 || all[index - 1].id !== message.id);
+    return { ...current, messages, historyTruncated: older.historyTruncated,
+      historyNextCursor: older.historyNextCursor ?? null };
+  }
+
+  async function refresh(active: () => boolean = () => true): Promise<void> {
+    if (!active()) return;
     const epoch = accountEpoch;
+    const requestGeneration = ++listRequestGeneration;
+    const current = () => epoch === accountEpoch && requestGeneration === listRequestGeneration && active();
     loading.value = true;
     error.value = null;
     try {
       await preparePendingRun();
       const scope = snapshotScope();
-      if (scope.epoch !== epoch) return;
-      const requestGeneration = ++listRequestGeneration;
-      await reconcilePending();
-      if (!snapshotIsCurrent(scope) || requestGeneration !== listRequestGeneration) return;
+      if (!current()) return;
+      await reconcilePending(current);
+      if (!snapshotIsCurrent(scope) || !current()) return;
       const items = (await supportApi.tickets()).items;
-      if (snapshotIsCurrent(scope) && requestGeneration === listRequestGeneration) mergeTickets(items);
+      if (snapshotIsCurrent(scope) && current()) mergeTickets(items);
     } catch (cause) {
-      if (epoch === accountEpoch) {
+      if (current()) {
         error.value = cause instanceof Error ? cause.message : "SUPPORT_TICKETS_LOAD_FAILED";
       }
       throw cause;
     } finally {
-      if (epoch === accountEpoch) loading.value = false;
+      if (epoch === accountEpoch && requestGeneration === listRequestGeneration) loading.value = false;
     }
   }
+  function cancelRefresh() { listRequestGeneration += 1; loading.value = false; }
 
   async function load(id: string): Promise<Ticket> {
     const epoch = accountEpoch;
@@ -153,8 +176,48 @@ export const useTickets = defineStore("tickets", () => {
     const requestGeneration = (ticketRequestGeneration.get(id) ?? 0) + 1;
     ticketRequestGeneration.set(id, requestGeneration);
     const ticket = await supportApi.ticket(id);
-    if (snapshotIsCurrent(scope) && ticketRequestGeneration.get(id) === requestGeneration) replace(ticket);
+    if (!snapshotIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+    if (ticketRequestGeneration.get(id) !== requestGeneration) throw new Error("SUPPORT_TICKET_REQUEST_SUPERSEDED");
+    replace(ticket);
     return ticket;
+  }
+
+  async function loadEarlier(id: string): Promise<Ticket | undefined> {
+    const current = tickets.value.find(ticket => ticket.id === id);
+    const beforeMessageId = current?.historyNextCursor;
+    if (!current || !beforeMessageId) return current;
+    const epoch = accountEpoch;
+    const accountKey = accountKeyValue;
+    await preparePendingRun();
+    if (epoch !== accountEpoch || accountKey !== accountKeyValue) return tickets.value.find(ticket => ticket.id === id);
+    const scope = snapshotScope();
+    const requestGeneration = (ticketRequestGeneration.get(id) ?? 0) + 1;
+    ticketRequestGeneration.set(id, requestGeneration);
+    const older = await supportApi.ticket(id, beforeMessageId);
+    if (!snapshotIsCurrent(scope) || ticketRequestGeneration.get(id) !== requestGeneration) return tickets.value.find(ticket => ticket.id === id);
+    const latest = tickets.value.find(ticket => ticket.id === id);
+    if (!latest) return older;
+    const merged = prependHistory(latest, older);
+    replace(merged);
+    return merged;
+  }
+
+  async function markRead(ticket: Ticket): Promise<void> {
+    if (ticket.unread === 0) return;
+    const scope = snapshotScope();
+    const current = tickets.value.find(row => row.id === ticket.id);
+    if (!current || current.version !== ticket.version) return;
+    let result: Ticket;
+    try {
+      result = await supportApi.markTicketRead(ticket);
+    } catch (cause) {
+      // Reading is a best-effort acknowledgement, but a stale header means a
+      // newer agent reply may have arrived. Refresh that ticket before the page
+      // decides what unread state to render; never apply the old acknowledgement.
+      if (mustReadBack(cause)) await reconcile(ticket.id, scope.epoch);
+      throw cause;
+    }
+    if (snapshotIsCurrent(scope)) replace(result);
   }
 
   async function reconcile(id: string, epoch: number): Promise<void> {
@@ -239,21 +302,24 @@ export const useTickets = defineStore("tickets", () => {
     }
   }
 
-  async function reconcilePending(): Promise<void> {
+  async function reconcilePending(active: () => boolean = () => true): Promise<void> {
     const scope: CommandScope = { accountKey: accountKeyValue, epoch: accountEpoch, runId: pendingRunId, pending: pendingKeys, inFlight };
     for (const [fingerprint, key] of [...scope.pending]) {
+      if (!scopeIsCurrent(scope) || !active()) return;
+      if (scope.inFlight.has(fingerprint)) continue;
       try {
         const result = await supportApi.commandResult(key);
+        if (!scopeIsCurrent(scope) || !active()) return;
+        if (scope.inFlight.has(fingerprint)) continue;
         if (result?.kind !== "ticket") continue;
-        if (scopeIsCurrent(scope)) replace(result.ticket);
-        scope.pending.delete(fingerprint);
-        persistPending(scope.accountKey, scope.runId, scope.pending);
+        replace(result.ticket);
+        completePending(scope, fingerprint);
       } catch { /* unknown remains durable until the authoritative readback succeeds */ }
     }
   }
 
   function clearAccount() {
-    accountEpoch += 1; tickets.value = []; error.value = null;
+    accountEpoch += 1; tickets.value = []; error.value = null; loading.value = false;
     listRequestGeneration += 1; ticketRequestGeneration.clear();
     inFlight = new Map(); mutating.value = false;
   }
@@ -265,9 +331,9 @@ export const useTickets = defineStore("tickets", () => {
     // 启动预热是 fire-and-forget:权威不可达自吞(resilience 门)。pendingRunId 留
     // "unverified",首次 refresh()/load() 重走 preparePendingRun 并按各自路径报错;
     // preparePendingRun 本身保持 reject 契约(refresh/load/reconcile 靠它报错)。
-    if (remoteApiEnabled) void preparePendingRun().then(reconcilePending).catch(() => undefined);
+    if (remoteApiEnabled) void preparePendingRun().then(() => reconcilePending()).catch(() => undefined);
   }
   function reset() { clearAccount(); pendingKeys = new Map(); }
 
-  return { tickets, loading, mutating, error, refresh, load, createTicket, reply, close, reset, bindAccount };
+  return { tickets, loading, mutating, error, refresh, cancelRefresh, load, loadEarlier, markRead, createTicket, reply, close, reset, bindAccount };
 });

@@ -15,7 +15,7 @@
  * 为什么先有这支:「同档」那格 2026-08-16 因**同义别名**假绿被修过一轮。上一版判据写的是
  * 「退款腿保持模式无关」,并警告「别顺手加一道会把 mock 轨退款打死的闸」——
  * 可那道闸早就在了(`refundFailedWithdrawals` 首行 `if (fundsServerEnabled) return [];`,
- * 而 runtime.ts 里它与 `remoteApiEnabled` 同为 `mode !== "mock"`)。判据只认后者的字面量,
+ * 而正式 App 的 runtime.ts 把它与 `remoteApiEnabled` 都钉成 `true`)。判据只认后者的字面量,
  * 于是在退款腿实际已被整条关掉的情况下**一路报绿**。
  * 修法是让判据按**等价类**认标志(从 runtime.ts 解析)并钉**正向定型串**。
  * 关系型 + 解析型判据比字面量判据更容易在重构里悄悄失去牙齿,所以每条都要有变异证明。
@@ -121,10 +121,12 @@ const TARGETS = [
     gate: G_SAME_RAIL,
     file: RUNTIME,
     plain: [
-      ['export const remoteApiEnabled = apiRuntimeConfig.mode !== "mock";',
+      ['export const remoteApiEnabled = true;',
         "export const remoteApiEnabled = !isMockMode(apiRuntimeConfig);"],
-      ['export const fundsServerEnabled = apiRuntimeConfig.mode !== "mock";',
+      ['export const fundsServerEnabled = true;',
         "export const fundsServerEnabled = !isMockMode(apiRuntimeConfig);"],
+      ['export const payoutAddressServerEnabled = true;',
+        "export const payoutAddressServerEnabled = !isMockMode(apiRuntimeConfig);"],
     ],
   },
   // ══ 以下四靶钉的是 P-105 重锚时新立的三格 —— 它们落地时**没有任何红测**,

@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import type { CSSProperties } from "vue";
 
 type MenuTone = "brand" | "orange" | "success" | "neutral" | "warning";
@@ -54,7 +55,7 @@ const emit = defineEmits<{ select: [item: MeMenuItem] }>();
 
 function activate(item: MeMenuItem) {
   emit("select", item);
-  if (item.href) uni.navigateTo({ url: item.href, fail: () => {} });
+  if (item.href) navTo(item.href);
 }
 
 function iconBoxStyle(tone: MenuTone): CSSProperties {

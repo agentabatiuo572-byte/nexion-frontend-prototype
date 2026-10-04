@@ -1,16 +1,14 @@
-import type { ApiResponseEnvironment } from "./runtime-config";
-import { isCurrentCommerceSandboxRun } from "./order-api";
+import type { ApiEnvironment } from "./runtime-config";
 
-export type ServerSourceEnvironment = "PRODUCTION" | "SANDBOX";
+export type ServerSourceEnvironment = "PRODUCTION";
 
 /**
- * A remote API response is accepted only on the rail that created it.  In an
- * explicit App sandbox, the catalogue is the authority for the active RunID;
- * a well-shaped but different RunID is still stale data.
+ * Development and production both consume backend-canonical data. The build
+ * mode selects the Java endpoint only; it never selects a client-side data rail.
  */
 export function matchesRuntimeProvenance(
   source: Record<string, unknown>,
-  mode: ApiResponseEnvironment,
+  mode: ApiEnvironment,
   expectedSource: string,
 ): source is Record<string, unknown> & {
   source: string;
@@ -18,7 +16,6 @@ export function matchesRuntimeProvenance(
   runId: string;
 } {
   if (source.source !== expectedSource || typeof source.sourceEnvironment !== "string" || typeof source.runId !== "string") return false;
-  if (mode === "prod") return source.sourceEnvironment === "PRODUCTION" && source.runId === "";
-  if (mode === "dev") return source.sourceEnvironment === "SANDBOX" && isCurrentCommerceSandboxRun(source.runId);
+  if (mode === "prod" || mode === "dev") return source.sourceEnvironment === "PRODUCTION" && source.runId === "";
   return false;
 }

@@ -13,6 +13,7 @@ import { chromium } from "playwright";
 import { scopeRoutes, mapRoutes, settleNetwork } from "./lib/probe-routes.mjs";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { assertSweepCoverage } from "./lib/probe-coverage.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 
 // 端口来源:UNI_BASE_URL 优先,再退 BASE_URL(verify.sh 与其余运行时探针的统一名)——
 // 只认前者时,`BASE_URL=<非 5173> bash scripts/verify.sh`(worktree 自测必需)会静默打到 5173 上的**别的工程树**。
@@ -195,34 +196,43 @@ if (MODE === "selftest") {
   const pageErrors = {};
   // 包 ax:N 条 lane(各自独立 context / 渲染进程)并行各扫一条路由(PROBE_CONCURRENCY,默认 3);每条路由仍是 goto → 1400ms → probe 的原节奏,判据不动;结果按路由原顺序合并。
   const timeoutSet = new WeakSet();
+  const formalSessionSet = new WeakSet();
   const perRoute = await mapRoutes(browser, routes, async (lane, route, _i, lanes) => {
     if (!timeoutSet.has(lane)) { lane.setDefaultTimeout(10000); timeoutSet.add(lane); }
+    if (!formalSessionSet.has(lane)) { await installFormalProbeSession(lane); formalSessionSet.add(lane); }
     const url = `${BASE}/?nx_device=off#/${route}`;
     const routePageErrors = [];
     const onPageError = (error) => routePageErrors.push(String(error));
     lane.on("pageerror", onPageError);
     try {
-      await lane.goto(url, { waitUntil: "domcontentloaded" });
-      await settleNetwork(lane, 5000, lanes); // 包 ax:并行时 dev server 忙,先等本页网络空闲(有界),再走原来的固定等待;实际 1 lane 时空转(R2-03)
-      await lane.waitForTimeout(1400); // 渲染/动效落定
-      const ui = await landedFrame(lane);
-      const landed = (await lane.evaluate(() => location.hash)).replace(/^#\//, "").split("?")[0];
-      const res = await ui.evaluate(probe);
-      const witness = await ui.evaluate(() => ({
-        appChildren: document.querySelector("#app")?.childElementCount ?? 0,
-        iframeCount: document.querySelectorAll("iframe").length,
-        bodyElements: document.querySelectorAll("body *").length,
-        bodyTextLength: (document.body?.innerText || "").trim().length,
-      }));
-      let debug = null;
-      if (process.env.DOM_QA_DEBUG) {
-        const g = res.filter((f) => f.sev === "gate").length, i = res.length - g;
-        const nodes = await ui.evaluate(() => document.querySelectorAll("body *").length);
-        debug = `  ${route} → landed=${landed} nodes=${nodes} gate=${g} info=${i}`;
+      let lastError = "unknown";
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          await lane.goto(url, { waitUntil: "domcontentloaded" });
+          await settleNetwork(lane, 5000, lanes); // 包 ax:并行时 dev server 忙,先等本页网络空闲(有界),再走原来的固定等待;实际 1 lane 时空转(R2-03)
+          await lane.waitForTimeout(1400); // 渲染/动效落定
+          const ui = await landedFrame(lane);
+          const landed = (await lane.evaluate(() => location.hash)).replace(/^#\//, "").split("?")[0];
+          const res = await ui.evaluate(probe);
+          const witness = await ui.evaluate(() => ({
+            appChildren: document.querySelector("#app")?.childElementCount ?? 0,
+            iframeCount: document.querySelectorAll("iframe").length,
+            bodyElements: document.querySelectorAll("body *").length,
+            bodyTextLength: (document.body?.innerText || "").trim().length,
+          }));
+          let debug = null;
+          if (process.env.DOM_QA_DEBUG) {
+            const g = res.filter((f) => f.sev === "gate").length, i = res.length - g;
+            const nodes = await ui.evaluate(() => document.querySelectorAll("body *").length);
+            debug = `  ${route} → landed=${landed} nodes=${nodes} gate=${g} info=${i}${attempt ? " (route retry)" : ""}`;
+          }
+          return { route, ok: true, landed, res, witness, routePageErrors, debug };
+        } catch (error) {
+          lastError = String(error);
+          if (attempt === 0) await lane.waitForTimeout(500);
+        }
       }
-      return { route, ok: true, landed, res, witness, routePageErrors, debug };
-    } catch (e) {
-      return { route, ok: false, err: String(e).slice(0, 120) };
+      return { route, ok: false, err: lastError.slice(0, 240) };
     } finally {
       lane.off("pageerror", onPageError);
     }
@@ -248,6 +258,9 @@ if (MODE === "selftest") {
     coverageFailed = true;
     exitCode = 1;
     console.error(`DOM-QA COVERAGE FAIL:${error.message}`);
+    for (const row of perRoute.filter((item) => item?.error || item?.ok === false)) {
+      console.error(`  ${row?.route ?? "?"}: ${String(row?.err ?? row?.error ?? "unknown")}`);
+    }
     console.error("探针覆盖失败时禁止写入 ledger；修复服务器/路由/探针后重跑。");
   }
   // 按指纹去重(多路由 redirect 落同页)

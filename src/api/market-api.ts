@@ -1,14 +1,14 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
-import type { ApiResponseEnvironment } from "./runtime-config";
+import type { ApiEnvironment } from "./runtime-config";
 import type { ServerSourceEnvironment } from "./runtime-provenance";
-import { captureCommerceSandboxRun } from "./order-api";
 
 export interface NexMarketSnapshot {
   currentPrice: number;
   costBasis: number;
   sparkline: number[];
-  history24h: Array<{ price: number; sampledAt: string }>;
+  history: Array<{ price: number; sampledAt: string; sampledAtEpochMs?: number }>;
+  historyMaxDays: number;
   source: string;
   sourceEnvironment: ServerSourceEnvironment;
   runId: string;
@@ -52,51 +52,63 @@ function sampledAt(value: unknown): string | null {
   return normalized;
 }
 
-function expectedSource(mode: ApiResponseEnvironment, production: string): string {
-  return mode === "dev" ? "mock" : production;
+function epochMilliseconds(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{7,95}$/;
-
-function provenance(data: Record<string, unknown>, mode: ApiResponseEnvironment, productionSource: string): boolean {
-  if (data.serverCanonical !== true || mode === "mock" || data.source !== expectedSource(mode, productionSource)) return false;
-  if (mode === "prod") return data.sourceEnvironment === "PRODUCTION" && data.runId === "";
-  if (data.sourceEnvironment !== "SANDBOX" || typeof data.runId !== "string" || !RUN_ID.test(data.runId)) return false;
-  const currentRun = captureCommerceSandboxRun().runId;
-  return currentRun !== null && currentRun === data.runId;
+function positiveInteger(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-export function parseNexMarketSnapshot(value: unknown, mode: ApiResponseEnvironment = "prod"): NexMarketSnapshot {
+function expectedSource(mode: ApiEnvironment, production: string): readonly string[] {
+  return [production, "G3 weekly_curve + nx_price_index 24h history"];
+}
+
+function provenance(data: Record<string, unknown>, mode: ApiEnvironment, productionSource: string): boolean {
+  if (data.serverCanonical !== true || !expectedSource(mode, productionSource).includes(String(data.source))) return false;
+  return (mode === "prod" || mode === "dev")
+    && data.sourceEnvironment === "PRODUCTION" && data.runId === "";
+}
+
+export function parseNexMarketSnapshot(value: unknown, mode: ApiEnvironment = "prod"): NexMarketSnapshot {
   const data = row(value);
   const currentPrice = positive(data?.currentPrice);
   const costBasis = positive(data?.costBasis);
+  const historyMaxDays = positiveInteger(data?.historyMaxDays);
+  const historyPayload = Array.isArray(data?.history) ? data?.history : data?.history24h;
   if (!data || data.asset !== "NEX" || data.currency !== "USDT"
-      || !provenance(data, mode, "G3 weekly_curve + nx_price_index 24h history")
-      || currentPrice === null || costBasis === null
-      || !Array.isArray(data.sparkline) || !Array.isArray(data.history24h)) {
+      || !provenance(data, mode, "G3 weekly_curve + nx_price_index sampled history")
+      || currentPrice === null || costBasis === null || historyMaxDays === null
+      || !Array.isArray(data.sparkline) || !Array.isArray(historyPayload)) {
     return invalid();
   }
   const sparkline = data.sparkline.map(positive);
   if (sparkline.some((point) => point === null) || sparkline.length !== 7) return invalid();
-  const history24h = data.history24h.map((item) => {
+  const history = historyPayload.map((item) => {
     const point = row(item);
     const price = positive(point?.price);
     const at = sampledAt(point?.sampledAt);
     if (!point || price === null || !at) return invalid();
-    return { price, sampledAt: at };
+    if (point.sampledAtEpochMs === undefined) return { price, sampledAt: at };
+    const atEpochMs = epochMilliseconds(point.sampledAtEpochMs);
+    if (atEpochMs === null) return invalid();
+    return { price, sampledAt: at, sampledAtEpochMs: atEpochMs };
   });
   return {
     currentPrice,
     costBasis,
     sparkline: sparkline as number[],
-    history24h,
+    history,
+    historyMaxDays,
     source: data.source as string,
     sourceEnvironment: data.sourceEnvironment as ServerSourceEnvironment,
     runId: data.runId as string,
   };
 }
 
-export function createMarketApi(client: ApiClient, mode: ApiResponseEnvironment = "prod") {
+export function createMarketApi(client: ApiClient, mode: ApiEnvironment = "prod") {
   return {
     fetch: async () => parseNexMarketSnapshot(await client.request({
       method: "GET", path: "/api/config/market/nex", authenticated: false,

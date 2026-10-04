@@ -17,6 +17,7 @@
 //   node scripts/i18n-hardcoded-cjk-sentinel.mjs --selftest   红测(判据自证有效)
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 
 // 字符集:汉字基本区 + 扩展 A + CJK 标点 + 全角形式。只判汉字块的话,纯标点文案
 // (「」、。—— 之类)与全角标点整段免疫(独立审计 P2 实证)。
@@ -47,9 +48,52 @@ const FILE_EXEMPTIONS = [
     why: "mock 后端载荷:真后台会按 language 下发本地化文本(platform-config 的 zhTitle/zhGuide),faq 是中文查询词匹配,都不是客户端文案",
     match: (file) => file.startsWith("src/mock/"),
   },
+  {
+    id: "test-fixtures",
+    why: "Vitest/contract test 的输入、断言与用例标题不进入生产包；仅按 .test.ts 文件类别放行，生产源码仍逐字检查",
+    match: (file) => file.endsWith(".test.ts"),
+  },
+  {
+    id: "localized-content-builders",
+    why: "两份纯函数同时维护 zh/en/vi 状态词表并按 locale 选择，业务正文仍只读服务端发布内容；精确文件作用域避免扩大豁免",
+    match: (file) => ["src/lib/commissions-how-content.ts", "src/lib/rank-how-content.ts"].includes(file),
+  },
 ];
 
 const VALUE_EXEMPTIONS = [
+  {
+    id: "published-pro-tagline-source-token",
+    why: "已发布商品中文标语只在此处与服务端原值精确比对；用户看到的是按 locale 选取的英文、越文或服务端中文",
+    files: ["src/lib/product-copy.ts"],
+    strip: (line) => line.replace(/^(\s*const PRO_PUBLISHED_TAGLINE = )("中端主力·AI 推理 \+ 挖掘")(\s*;\s*)$/, (_m, prefix, _value, suffix) => `${prefix}""${suffix}`),
+  },
+  {
+    id: "virginia-datacenter-source-token",
+    why: "机房位置中文只在此处识别服务端原值，物理位置仍取服务端；展示层按 locale 翻译已知地名",
+    files: ["src/lib/product-copy.ts"],
+    strip: (line) => line.replace(/^(\s*const VIRGINIA_DATACENTER = )("美国·弗吉尼亚")(\s*;\s*)$/, (_m, prefix, _value, suffix) => `${prefix}""${suffix}`),
+  },
+  {
+    id: "cloud-share-promo-alias-token",
+    why: "旧服务端周促销目标的简繁中文别名只用于识别商品类型并隐藏旧日产，不作为页面文案展示",
+    files: ["src/api/quest-api.ts"],
+    strip: (line) => line.replace(/^(\s*\|\| \(productType == null && \/cloud\[\\s_-\]\*share\|)云共享\|雲共享(\/i\.test\(targetDevice \?\? ""\)\);)$/, "$1$2"),
+  },
+  {
+    id: "quota-annualized-source-token",
+    why: "服务端配额权益里的年化是待过滤的数据标识，不是客户端展示文案；只授权此识别表达式中的该词",
+    files: ["src/lib/quota-perk.ts"],
+    strip: (line) => line.replace(/^(\s*return\s+\/\(\?:)年化(?=\|annual\|)/, "$1"),
+  },
+  {
+    id: "support-unassigned-token",
+    why: "后端备勤池代理名仅用于未分配状态比较，显示文案仍由三语词典提供；限定文件、变量及严格相等比较位置",
+    files: ["src/pages/support/chat.vue"],
+    // Only the final boolean operand of the real predicate is allowed. Anchors
+    // keep this token out of template text, string contents, assignments, and
+    // values passed to a rendering function.
+    strip: (line) => line.replace(/^(\s*return\b[^;\r\n]*\bnormalized\s*===\s*)(["'])备勤池\2(\s*;?\s*)$/, (_m, prefix, quote, suffix) => `${prefix}${quote}${quote}${suffix}`),
+  },
   {
     id: "cn-title-field",
     why: "cnTitle 是 API 声明字段(src/api/v-rank-api.ts),本地 V_RANKS 是它的离线镜像;豁免只给**定义面**这两个文件",
@@ -77,6 +121,18 @@ const VALUE_EXEMPTIONS = [
         LEGACY_CONFIG_TOKENS.includes(inner) ? `${q}${q}` : m
       ),
   },
+  {
+    id: "support-idle-close-source-token",
+    why: "后端闲置关闭系统消息的原文字节仅用于严格识别；展示内容由三语词典生成，授权范围限于该正则取值",
+    files: ["src/lib/support-idle-message.ts"],
+    strip: (line) => line.replace(/^(\s*const closed = )\/\^会话已因用户闲置 \(\[1-9\]\\d\*\) 分钟自动结束,可重新发起会话。\$\/(\.exec\(text\);)/, "$1/^([1-9]\\d*)$/$2"),
+  },
+  {
+    id: "fullwidth-percent-token",
+    why: "服务端奖励文案兼容解析的全角百分号字节，不是客户端展示文案；仅在归一化函数定义面授权该 token",
+    files: ["src/pages/daily/daily-reward-view.ts"],
+    strip: (line) => line.replace(/％/g, "%"),
+  },
 ];
 
 // 与上面 legacy-config-token 配对的授权取值表。单独提出来是为了让「授权了哪几个值」
@@ -92,9 +148,30 @@ const LEGACY_CONFIG_TOKENS = ["开", "开放", "关", "关闭"];
 export { stripComments } from "./lib/sfc-strip-comments.mjs";
 import { stripComments } from "./lib/sfc-strip-comments.mjs";
 
+function supportIdleRegexLines(source) {
+  const parsed = ts.createSourceFile("support-idle-message.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const lines = new Set();
+  const expected = String.raw`/^会话已因用户闲置 ([1-9]\d*) 分钟自动结束,可重新发起会话。$/`;
+  function visit(node) {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === "closed") {
+      const call = node.initializer;
+      const access = call && ts.isCallExpression(call) && ts.isPropertyAccessExpression(call.expression) ? call.expression : null;
+      const regex = access?.expression;
+      if (access?.name.text === "exec" && regex && ts.isRegularExpressionLiteral(regex) && regex.text === expected
+          && call.arguments.length === 1 && ts.isIdentifier(call.arguments[0]) && call.arguments[0].text === "text") {
+        lines.add(parsed.getLineAndCharacterOfPosition(regex.getStart(parsed)).line + 1);
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(parsed);
+  return lines;
+}
+
 export function scanSource(file, src) {
   const stripped = decodeEscapes(stripComments(src, file.endsWith(".vue")));
   const fileRule = FILE_EXEMPTIONS.find((rule) => rule.match(file));
+  const idleRegexLines = file === "src/lib/support-idle-message.ts" ? supportIdleRegexLines(src) : null;
   const hits = [];
   stripped.split(/\r?\n/).forEach((line, idx) => {
     if (!CJK.test(line)) return;
@@ -104,6 +181,7 @@ export function scanSource(file, src) {
     const used = [];
     for (const rule of VALUE_EXEMPTIONS) {
       if (!rule.files.includes(file)) continue;
+      if (rule.id === "support-idle-close-source-token" && !idleRegexLines?.has(idx + 1)) continue;
       const next = rule.strip(rest);
       if (cjkCount(next) < cjkCount(rest)) used.push(rule.id);
       rest = next;
@@ -199,17 +277,42 @@ function selftest() {
     ["豁免:i18n 层放行(en.ts —— 英文词典里也可能存在中文品牌名/语言名)", "src/i18n/messages/en.ts", 'export const en = { a: "简体中文" };', 0],
     ["豁免:i18n 层放行(vi.ts)", "src/i18n/messages/vi.ts", 'export const vi = { a: "简体中文" };', 0],
     ["豁免:mock 载荷放行", "src/mock/platform-config.ts", 'const a = { zhTitle: "电脑显卡算力共享" };', 0],
+    ["豁免:test fixture 不进入生产包", "src/lib/example.test.ts", 'expect(value).toBe("测试值");', 0],
+    ["🔴 test 豁免不扩到生产源码", "src/lib/example.ts", 'const value = "测试值";', 1],
+    ["豁免:精确作用域三语内容构建器", "src/lib/rank-how-content.ts", 'const copy = { zh: "等级说明", en: "Rank guide" };', 0],
+    ["🔴 内容构建器豁免不扩到普通文件", "src/lib/other-content.ts", 'const copy = { zh: "等级说明" };', 1],
     ["豁免:cnTitle 字段在定义面放行", "src/store/v-rank.ts", 'v: 0, title: "Cadet", cnTitle: "学员",', 0],
     ["豁免:cnTitle 单引号写法同样放行(宽严不许取决于引号风格)", "src/store/v-rank.ts", "cnTitle: '学员',", 0],
     ["同文件里非 cnTitle 的中文照抓", "src/store/v-rank.ts", 'v: 0, title: "学员", cnTitle: "学员",', 1],
     ["🔴 cnTitle 豁免带文件作用域:消费面塞文案照抓", "src/pages/product/detail.vue", 'const o = { cnTitle: "立即购买" };', 1],
+    ["support token comparison allowed", "src/pages/support/chat.vue", 'return !normalized || normalized.toLowerCase() === "unassigned" || normalized === "备勤池";', 0],
+    ["support token single quote allowed", "src/pages/support/chat.vue", "return normalized === '备勤池';", 0],
+    ["support token display rejected", "src/pages/support/chat.vue", '<template><text>备勤池</text></template>', 1],
+    ["support token assignment rejected", "src/pages/support/chat.vue", 'const label = "备勤池";', 1],
+    ["support token fake comparison inside a string rejected", "src/pages/support/chat.vue", 'const source = "normalized === \\"备勤池\\"";', 1],
+    ["support token template comparison rejected", "src/pages/support/chat.vue", '<template><text>{{ normalized === "备勤池" }}</text></template>', 1],
+    ["support token wrapped rendering expression rejected", "src/pages/support/chat.vue", 'return render(normalized === "备勤池");', 1],
+    ["support token other file rejected", "src/pages/x/a.vue", 'return normalized === "备勤池";', 1],
+    ["support token substring rejected", "src/pages/support/chat.vue", 'return normalized === "备勤池客服";', 1],
     // legacy-config-token —— 阴阳两面各测一遍:只测 true 那行会让 "关"/"关闭" 半边判据无人验证。
+    ["豁免:已发布 Pro 标语原值仅作匹配", "src/lib/product-copy.ts", 'const PRO_PUBLISHED_TAGLINE = "中端主力·AI 推理 + 挖掘";', 0],
+    ["豁免:弗吉尼亚机房原值仅作匹配", "src/lib/product-copy.ts", 'const VIRGINIA_DATACENTER = "美国·弗吉尼亚";', 0],
+    ["🔴 同文件的商品显示文案仍被抓", "src/lib/product-copy.ts", 'const title = "中端主力·AI 推理 + 挖掘";', 1],
+    ["🔴 同文件的其他机房仍被抓", "src/lib/product-copy.ts", 'const VIRGINIA_DATACENTER = "美国·纽约";', 1],
+    ["🔴 已发布标语豁免带文件作用域", "src/pages/store/detail.vue", '<template><text>中端主力·AI 推理 + 挖掘</text></template>', 1],
     ["豁免:legacy 配置取值放行(true 侧)", "src/lib/trial-config-enum.ts", 'if (["true", "1", "enabled", "on", "开", "开放"].includes(v)) return true;', 0],
     ["豁免:legacy 配置取值放行(false 侧)", "src/lib/trial-config-enum.ts", 'if (["false", "0", "disabled", "off", "关", "关闭"].includes(v)) return false;', 0],
     // 下面三格证明这条豁免**不是**整文件放行、也不是「含授权字就放行」:
     ["🔴 同文件里非授权取值的中文照抓(不是整文件豁免)", "src/lib/trial-config-enum.ts", 'throw new Error("试用配置无效");', 1],
     ["🔴 只认整串相等:授权 token 作子串不逃逸", "src/lib/trial-config-enum.ts", 'const a = "开放试用";', 1],
     ["🔴 legacy 豁免带文件作用域:消费面写同样的字照抓", "src/pages/x/a.vue", "<template><view>开放</view></template>", 1],
+    ["豁免:后端闲置关闭原文字节仅作匹配", "src/lib/support-idle-message.ts", 'const closed = /^会话已因用户闲置 ([1-9]\\d*) 分钟自动结束,可重新发起会话。$/.exec(text);', 0],
+    ["🔴 闲置关闭匹配旁的用户文案仍须翻译", "src/lib/support-idle-message.ts", 'const closed = /^会话已因用户闲置 ([1-9]\\d*) 分钟自动结束,可重新发起会话。$/.exec(text); const title = "会话结束";', 1],
+    ["🔴 闲置关闭原文藏进调试字符串仍被拦", "src/lib/support-idle-message.ts", 'const debug = "const closed = /^会话已因用户闲置 ([1-9]\\d*) 分钟自动结束,可重新发起会话。$/.exec(text);";', 1],
+    ["🔴 闲置关闭原文藏进多行模板字符串仍被拦", "src/lib/support-idle-message.ts", 'const title = `\nconst closed = /^会话已因用户闲置 ([1-9]\\d*) 分钟自动结束,可重新发起会话。$/.exec(text);\n`;', 1],
+    ["🔴 闲置关闭原文的显示面仍被拦", "src/pages/support/chat.vue", 'const title = "会话已因用户闲置 5 分钟自动结束,可重新发起会话。";', 1],
+    ["豁免:全角百分号只作解析 token", "src/pages/daily/daily-reward-view.ts", 'const sign = text.endsWith("％") ? "％" : "%";', 0],
+    ["🔴 全角百分号豁免带文件作用域", "src/pages/x/a.vue", '<template><text>％</text></template>', 1],
     ["🔴 \\u 转义绕过被解码后照抓", "src/pages/x/a.ts", 'const a = "\\u6559\\u7a0b\\u4e2d\\u5fc3";', 1],
     ["🔴 纯 CJK 标点文案照抓(只判汉字块会整段免疫)", "src/pages/x/a.vue", "<template><view>「」、。</view></template>", 1],
     ["pages.json 的导航栏标题是用户可见文案面", "src/pages.json", '{"path":"pages/x/a","style":{"navigationBarTitleText":"教程中心"}}', 1],

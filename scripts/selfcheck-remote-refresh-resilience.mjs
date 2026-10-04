@@ -77,6 +77,32 @@ function functionBodyAt(src, from) {
   return src.slice(open);
 }
 
+// A direct `void genesisApi.state().then(...).catch(...)` is a protected
+// runtime call, not a local function named `state`. Read one complete statement
+// before deciding whether its rejection is handled: callback bodies may contain
+// semicolons, so a simple search to the first one is not sound.
+function statementAt(src, from) {
+  let paren = 0, brace = 0, bracket = 0, quote = "", escaped = false;
+  for (let i = from; i < src.length; i++) {
+    const ch = src[i];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === quote) quote = "";
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") { quote = ch; continue; }
+    if (ch === "(") paren++;
+    else if (ch === ")") paren--;
+    else if (ch === "{") brace++;
+    else if (ch === "}") brace--;
+    else if (ch === "[") bracket++;
+    else if (ch === "]") bracket--;
+    else if (ch === ";" && paren === 0 && brace === 0 && bracket === 0) return src.slice(from, i + 1);
+  }
+  return src.slice(from);
+}
+
 const walkFiles = (dir, test) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
   const abs = path.join(dir, e.name);
   return e.isDirectory() ? walkFiles(abs, test) : test(e.name) ? [abs] : [];
@@ -87,8 +113,10 @@ const declRe = (fn) => new RegExp(
   `(?:async function ${fn}\\s*\\(`
   + `|(?:const|let)\\s+${fn}\\s*=\\s*async\\s*\\(`
   + `|\\b${fn}\\s*:\\s*async\\s*\\(`
-  + `|function ${fn}\\s*\\([^)]*\\)\\s*:\\s*Promise`
-  + `|(?:const|let)\\s+${fn}\\s*=\\s*\\([^)]*\\)\\s*:\\s*Promise)`);
+  // 参数默认值可以含调用表达式（例如 epoch.snapshot()）；用同一行内的贪婪参数面
+  // 找最后一个右括号，避免 [^)]* 在内层调用处提前截断而把真实刷新缝漏掉。
+  + `|function ${fn}\\s*\\([^\\n]*\\)\\s*:\\s*Promise`
+  + `|(?:const|let)\\s+${fn}\\s*=\\s*\\([^\\n]*\\)\\s*:\\s*Promise)`);
 // 宽判据:本文件以任何形式声明过这个标识符。只用来**交叉验 declRe 的表达力**,不参与选缝 ——
 // 宽的命中而四族没命中 = 出现了第五族写法,必红(而不是像 ② 那样静默漏掉一条缝)。
 const looseDeclRe = (fn) => new RegExp(
@@ -99,6 +127,7 @@ const declGap = [];      // 本文件声明了、四族却认不出 —— 判�
 const crossModule = [];  // 本文件压根没声明(如 useContentCopy().x())—— 构造性排除
 const noRuntimeUse = []; // 声明了但函数体不碰任何 runtime 导入 —— 构造性排除(不是远端缝)
 const unsupportedImport = []; // 引了 runtime 但不是具名花括号写法 —— 取不到名单,必红
+const uncaughtDirectRuntimeCalls = []; // 直接 void runtime API 也必须有终态 catch,不许静默跳过
 for (const abs of walkFiles(SRC, (n) => n.endsWith(".ts"))) {
   const rel = "src/" + path.relative(SRC, abs).split(path.sep).join("/");
   const raw = readFileSync(abs, "utf8");
@@ -118,6 +147,14 @@ for (const abs of walkFiles(SRC, (n) => n.endsWith(".ts"))) {
   // 🔴 只吃到**第一个左括号**为止:早期版本允许跨过 `()` 再取一段,于是
   //    `void refreshRemote().catch(...)` 被读成 `.catch`,payout-address 那条缝整条漏掉。
   for (const m of src.matchAll(/void\s+([\w$.]+)\s*\(/g)) {
+    const receiver = m[1].split(".")[0];
+    if (m[1].includes(".") && runtimeIdents.includes(receiver)) {
+      // API member names (for example genesisApi.state) are not declarations
+      // in this module. They remain covered by a stricter local catch check.
+      const statement = statementAt(src, m.index);
+      if (!/\.catch\s*\(/.test(statement)) uncaughtDirectRuntimeCalls.push(`${rel}#${m[1]}`);
+      continue;
+    }
     const fn = m[1].split(".").pop();
     if (!fn || fn === "0") continue;
     const key = `${rel}#${fn}`;
@@ -143,6 +180,8 @@ check(`🔴 扫描判据未塌陷(实扫 ${uniq.length} 条缝)`, uniq.length > 
 // ③ import 写法全部取得到名单:出现取不到的写法就红,不许整文件静默消失。
 check(`🔴 runtime import 写法全部可解析(取不到具名清单的文件:${dedup(unsupportedImport).length} 个)`,
   unsupportedImport.length === 0, dedup(unsupportedImport).join(", "));
+check(`🔴 direct void runtime API 调用必须终态 .catch()(未兜底:${dedup(uncaughtDirectRuntimeCalls).length} 条)`,
+  uncaughtDirectRuntimeCalls.length === 0, dedup(uncaughtDirectRuntimeCalls).join(", "));
 // 两个构造性排除桶**逐条打印**,不静默:人 review 日志时能直接看见谁被排除了、为什么。
 console.log(`  ....  构造性排除 · 跨模块调用(本文件无声明)${dedup(crossModule).length} 条:${dedup(crossModule).join(", ")}`);
 console.log(`  ....  构造性排除 · 函数体不碰 runtime 导入 ${dedup(noRuntimeUse).length} 条:${dedup(noRuntimeUse).join(", ")}`);
@@ -186,12 +225,17 @@ globalThis.uni = {
   setStorageSync(k, v) { disk.set(k, JSON.stringify(v)); },
   removeStorageSync(k) { disk.delete(k); },
   getSystemInfoSync() { return { language: "en" }; },
+  // Authenticated legal verification masks the page before making its request.
+  // Supply platform UI boundaries so the probe reaches the throwing API.
+  showLoading() {},
+  hideLoading() {},
+  reLaunch(options) { options.success?.({ errMsg: "reLaunch:ok" }); },
 };
 
 // runtime-stub 手写成「remote 开 + 全 API 抛」:这是本门的靶态,与共享 runtimeStub
 // (mock 关)语义相反,不能复用。导出清单仍从磁盘扫,防新 API 掉队。
 // 🔴 布尔旗标禁 Proxy 化(2026-08-14 harness 缺口修复):Proxy 恒 truthy,
-//    `if (fundsSandboxEnabled) return;` 这类守卫在探针里恒早退,缝被静默挡在门外
+//    `if (developmentFundsEnabled) return;` 这类守卫在探针里恒早退,缝被静默挡在门外
 //    (VietQR 缝当初就是这么漏进 UNREACHABLE 登记的)。判据构造性:初始化式**只引用
 //    apiRuntimeConfig / 字面量**的导出 = 配置旗标,把源码表达式原样搬进 stub,
 //    用 stub 的 apiRuntimeConfig 按本轮 mode 求值 —— 与真 runtime.ts 同式同值,
@@ -211,14 +255,15 @@ function throwingRuntimeStub(mode) {
   if (!flagExprs.has("remoteApiEnabled")) throw new Error("旗标搬运判据失效(连 remoteApiEnabled 都没认出)—— 必红");
   // apiRuntimeConfig 本体给靶态值(special 优先于搬运;搬运表达式全都读它求值)。
   // 字段结构 = runtime-config.ts 的 ApiRuntimeConfig 接口;modeExplicit 置 true,
-  // sandbox 轮的 fundsSandboxEnabled 表达式才能按真语义判真。
+  // sandbox 轮的 developmentFundsEnabled 表达式才能按真语义判真。
   const special = {
-    apiRuntimeConfig: `export const apiRuntimeConfig = { mode: ${JSON.stringify(mode)}, modeExplicit: true, baseUrl: "http://unreachable.invalid" };`,
+    apiRuntimeConfig: `export const apiRuntimeConfig = { mode: ${JSON.stringify(mode)}, environment: ${JSON.stringify(mode === "remote" ? "prod" : "dev")}, modeExplicit: true, baseUrl: "http://unreachable.invalid" };`,
+    expectedApiEnvironment: `export const expectedApiEnvironment = apiRuntimeConfig.environment;`,
     // app#refreshRemoteFleet now correctly refuses a USER read without a
     // matching in-memory session. Give the harness a coherent non-secret
     // identity so this remains an authority-unavailable test instead of a
     // caller-precondition test; bindAccount below uses the same user:42 key.
-    sessionVault: `export const sessionVault = { read: () => ({ accessToken: "probe", refreshToken: "probe", tokenType: "Bearer", user: { userId: 42, countryCode: "+1", phone: "0000000000", nickname: "probe" } }), revision: () => 1, clear: () => {}, clearIfUnchanged: () => true, save: () => {}, saveIfUnchanged: () => true };`,
+    sessionVault: `export const sessionVault = { read: () => ({ accessToken: "probe", refreshToken: "probe", tokenType: "Bearer", user: { userId: 42, countryCode: "+86", phone: "13800138000", nickname: "probe" } }), revision: () => 1, clear: () => {}, clearIfUnchanged: () => true, save: () => {}, saveIfUnchanged: () => true };`,
   };
   const body = names
     // 🔴 每次 API 调用记一笔:这是「这条缝真的跑了」的唯一硬凭据(z1 R2 对抗审计:
@@ -248,6 +293,7 @@ const rejections = [];
 process.on("unhandledRejection", (err) => { rejections.push(String(err?.message ?? err)); });
 
 async function loadEntry(contents, runtimeStub, mode) {
+  const production = mode === "remote";
   const out = await build({
     stdin: { contents, resolveDir: root, loader: "ts" },
     bundle: true, write: false, format: "esm", platform: "neutral",
@@ -256,8 +302,9 @@ async function loadEntry(contents, runtimeStub, mode) {
     //    define 全部 env 键。三个已知键给靶态值;再兜一个 "import.meta.env": "{}"
     //    (esbuild 最长匹配优先),未来新增的 env 键读到 undefined 而不是崩。
     define: {
-      "import.meta.env.PROD": "false", "import.meta.env.DEV": "true", "import.meta.env.MODE": '"test"',
-      "import.meta.env.VITE_NEXGRID_API_MODE": JSON.stringify(mode),
+      "import.meta.env.PROD": JSON.stringify(production),
+      "import.meta.env.DEV": JSON.stringify(!production),
+      "import.meta.env.MODE": JSON.stringify(production ? "production" : "development"),
       "import.meta.env.VITE_NEXGRID_API_BASE_URL": '"http://unreachable.invalid"',
       "import.meta.env.VITE_NEXGRID_API_DEV_BASE_URL": '""',
       "import.meta.env": "{}",
@@ -283,7 +330,7 @@ async function loadEntry(contents, runtimeStub, mode) {
 //    如 joinRemote(eventId))。这类必须**显式登记原因**,不许混在「已触发」里充数;
 //    未登记又没真打 API 的,一律红。判据 = 每条缝的 API 调用计数真的涨了。
 // (2026-08-14 缺口收口:此处原登记 deposits#refreshRemoteVietQrDeposits ——
-//  旧 stub 把 fundsSandboxEnabled 做成 truthy Proxy,该缝首行守卫恒早退。
+//  旧 stub 把 developmentFundsEnabled 做成 truthy Proxy,该缝首行守卫恒早退。
 //  探针两轮化后它在 remote 轮拿到 API 凭据,登记按 stale 断言的红删除。)
 // 在此登记 `"file#fn": "为什么门外触发不到"`;
 // 登记了却其实能触发的(陈旧登记)由下面的 stale 断言顶回来 —— 登记表本身也要被守。
@@ -292,8 +339,8 @@ async function loadEntry(contents, runtimeStub, mode) {
 const UNREACHABLE = {};
 // ── 两轮探针:mode ∈ {remote, sandbox},覆盖取并集 ─────────────────────────────
 // 🔴 为什么两轮而不是把某个旗标钉死:deposits 两条缝是对偶守卫 ——
-//    refreshRemoteVietQrDeposits 首行 `if (fundsSandboxEnabled) return;`,
-//    refreshFundsSandboxDeposits 首行 `if (!fundsSandboxEnabled) return;`。
+//    refreshRemoteVietQrDeposits 首行 `if (developmentFundsEnabled) return;`,
+//    refreshFundsSandboxDeposits 首行 `if (!developmentFundsEnabled) return;`。
 //    钉 false 只是把覆盖缺口从前者挪给后者;真 runtime 里旗标随 mode 走,
 //    探针照两个 mode 各跑一遍,谁在哪个 mode 可达就在哪轮拿 API 调用凭据。
 //    缝的去重集合来自磁盘扫描,与轮数无关 —— 基数台账不因两轮而变。

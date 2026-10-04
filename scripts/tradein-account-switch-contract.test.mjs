@@ -22,7 +22,7 @@ test("a late checkout eligibility or capacity response cannot open account B's s
   const checkout = read("src/pages/store/checkout.vue");
   const intercept = checkout.slice(checkout.indexOf("function fireTradeinIntercept"));
   assert.match(checkout, /const requestScope = captureAccountScope\(\);/);
-  assert.match(checkout, /Promise\.all\(\[[\s\S]{0,260}isCurrentAccountScope\(requestScope\)/);
+  assert.match(checkout, /resolveTradeinCheckoutPreflight\([\s\S]{0,360}isCurrentAccountScope\(requestScope\)/);
   assert.ok(intercept.indexOf("if (!isCurrentAccountScope(requestScope)) return;")
     < intercept.indexOf("tradein.showChoice"));
   assert.ok(intercept.indexOf("if (!isCurrentAccountScope(requestScope)) return;")
@@ -33,8 +33,49 @@ test("a late checkout eligibility or capacity response cannot open account B's s
 test("a late trade-in eligibility or quote response cannot write account B's canonical quote", () => {
   const sheets = read("src/components/tradein-sheets.vue");
   assert.match(sheets, /const requestScope = captureAccountScope\(\);/);
-  assert.match(sheets, /deviceE3Api\.eligibility\(targetKind\)[\s\S]{0,180}isCurrentAccountScope\(requestScope\)/);
-  assert.match(sheets, /deviceE3Api\.quote\(Number\(oldDevice\.id\), targetKind\)[\s\S]{0,180}isCurrentAccountScope\(requestScope\)/);
-  assert.match(sheets, /isCurrentAccountScope\(requestScope\)[\s\S]{0,100}canonicalQuote\.value = null/);
-  assert.match(sheets, /capacityQuote\(s\.targetKind\)[\s\S]{0,180}isCurrentAccountScope\(requestScope\)/);
+  assert.match(sheets, /deviceE3Api\.eligibility\(targetKind\)[\s\S]{0,180}requestIsCurrent\(\)/);
+  assert.match(sheets, /deviceE3Api\.quote\(Number\(oldDevice\.id\), targetKind\)[\s\S]{0,180}requestIsCurrent\(\)/);
+  assert.match(sheets, /requestIsCurrent\(\)[\s\S]{0,100}canonicalQuote\.value = null/);
+  assert.match(sheets, /capacityQuote\(s\.targetKind\)[\s\S]{0,180}requestIsCurrent\(\)/);
+  assert.match(sheets, /watch\(\(\) => app\.accountKey,[\s\S]{0,420}loadCanonicalTradeinConfig\(\)/);
+});
+
+test("a superseded quote for source A cannot overwrite the later source B selection", () => {
+  const sheets = read("src/components/tradein-sheets.vue");
+  assert.match(sheets, /const quoteRequestGeneration = ref\(0\)/);
+  assert.match(sheets, /const requestGeneration = \+\+quoteRequestGeneration\.value/);
+  assert.match(sheets, /requestGeneration === quoteRequestGeneration\.value/);
+  assert.match(sheets, /if \(!requestIsCurrent\(\)\) return;[\s\S]{0,120}canonicalQuote\.value = quote/);
+});
+
+test("capacity replacement suppresses stale account readback and notifications", () => {
+  const sheets = read("src/components/tradein-sheets.vue");
+  const submit = sheets.slice(sheets.indexOf("async function submitCanonicalCapacityReplacement"));
+  assert.match(submit, /const requestScope = captureAccountScope\(\)/);
+  assert.match(submit, /ACCOUNT_SCOPE_CHANGED/);
+  assert.match(submit, /readback:[\s\S]{0,240}requireCurrentAccount\(\)/);
+  assert.match(submit, /commit\(\) \{\s*requireCurrentAccount\(\)/);
+  assert.match(submit, /catch \{\s*if \(!isCurrentAccountScope\(requestScope\)\) return;/);
+});
+
+test("keep-and-buy also suppresses stale account readback and notifications", () => {
+  const sheets = read("src/components/tradein-sheets.vue");
+  const start = sheets.indexOf("async function submitCanonicalKeepBuy");
+  const end = sheets.indexOf("function onKeepBuy", start);
+  const submit = sheets.slice(start, end);
+  assert.match(submit, /const requestScope = captureAccountScope\(\)/);
+  assert.match(submit, /ACCOUNT_SCOPE_CHANGED/);
+  assert.match(submit, /deviceE3Api\.capacityKeep[\s\S]{0,180}requireCurrentAccount\(\)/);
+  assert.doesNotMatch(submit, /orderApi\.create/);
+  assert.match(submit, /catch \{\s*if \(!isCurrentAccountScope\(requestScope\)\) return;/);
+});
+
+test("learning failures are announced and retry remains keyboard reachable", () => {
+  const courses = read("src/pages/learn/courses.vue");
+  const course = read("src/pages/learn/course.vue");
+  for (const page of [courses, course]) {
+    assert.match(page, /v-else-if="error"[^>]*role="alert"[^>]*aria-live="assertive"/);
+    assert.match(page, /role="button"[^>]*tabindex="0"/);
+  }
+  assert.match(courses, /@keydown\.enter\.prevent="onKeyboardActivate\(\$event, load\)"/);
 });

@@ -1,9 +1,12 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { remoteApiEnabled, vRankApi } from "@/api/runtime";
+import type { CanonicalVRankLadder, CanonicalVRankState } from "@/api/v-rank-api";
+import { asApiError } from "@/api/errors";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import { normalizeAccountKey } from "@/store/account-cloud";
 import { readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
 
 /**
  * Ported from Nexion-prototype/lib/v3/v-rank.ts (zustand persist → Pinia + uni storage).
@@ -36,98 +39,118 @@ export interface VRankDef {
   peerBonus: number;          // 平级奖比例
   leadershipVotes: number;    // 领导池票数(单源,与 leadership-pool.ts V_VOTES 一致)
   cultivationBonus: number;   // 培育至此 V,上线拿 NEX
+  rewards: VRankReward[];     // F1 权威奖励投影；只展示，不触发派发
 }
+
+export interface MonetaryVRankReward {
+  type: "USDT" | "NEX";
+  amount: number;
+  voucherId?: string;
+  skuId?: string;
+  customLabel?: string;
+}
+
+export interface EntitlementVRankReward {
+  type: "VOUCHER" | "SKU" | "CUSTOM";
+  amount?: number;
+  voucherId?: string;
+  skuId?: string;
+  customLabel?: string;
+  displayName?: string;
+}
+
+export type VRankReward = MonetaryVRankReward | EntitlementVRankReward;
 
 export const V_RANKS: VRankDef[] = [
   {
     v: 0, title: "Cadet", cnTitle: "学员",
     conditions: {}, directBonus: 0.05, unilevelDepth: 1,
     peerBonus: 0, leadershipVotes: 0,
-    cultivationBonus: 0,
+    cultivationBonus: 0, rewards: [],
   },
   {
     v: 1, title: "Pilot", cnTitle: "飞行员",
     conditions: { selfBuyUSD: 299, directRefs: 3 },
     directBonus: 0.10, unilevelDepth: 2,
     peerBonus: 0, leadershipVotes: 0,
-    cultivationBonus: 500,
+    cultivationBonus: 500, rewards: [],
   },
   {
     v: 2, title: "Operator", cnTitle: "操作员",
     conditions: { teamVolumeUSD: 5000 },
     directBonus: 0.10, unilevelDepth: 3,
     peerBonus: 0, leadershipVotes: 0,
-    cultivationBonus: 2000,
+    cultivationBonus: 2000, rewards: [],
   },
   {
     v: 3, title: "Captain", cnTitle: "舰长",
     conditions: { teamVolumeUSD: 20_000, vDownlines: { 1: 2 } },
     directBonus: 0.10, unilevelDepth: 4,
     peerBonus: 0.05, leadershipVotes: 1,
-    cultivationBonus: 10_000,
+    cultivationBonus: 10_000, rewards: [],
   },
   {
     v: 4, title: "Commander", cnTitle: "指挥官",
     conditions: { teamVolumeUSD: 50_000, vDownlines: { 2: 3 } },
     directBonus: 0.10, unilevelDepth: 5,
     peerBonus: 0.05, leadershipVotes: 2,
-    cultivationBonus: 50_000,
+    cultivationBonus: 50_000, rewards: [],
   },
   {
     v: 5, title: "Wing Leader", cnTitle: "翼领",
     conditions: { teamVolumeUSD: 150_000, vDownlines: { 3: 4 } },
     directBonus: 0.10, unilevelDepth: 6,
     peerBonus: 0.05, leadershipVotes: 4,
-    cultivationBonus: 200_000,
+    cultivationBonus: 200_000, rewards: [],
   },
   {
     v: 6, title: "Squadron", cnTitle: "中队长",
     conditions: { teamVolumeUSD: 500_000, vDownlines: { 4: 5 } },
     directBonus: 0.10, unilevelDepth: 7,
     peerBonus: 0.05, leadershipVotes: 8,
-    cultivationBonus: 800_000,
+    cultivationBonus: 800_000, rewards: [],
   },
   {
     v: 7, title: "Fleet Cmdr", cnTitle: "舰队司令",
     conditions: { teamVolumeUSD: 1_000_000, vDownlines: { 5: 6 } },
     directBonus: 0.10, unilevelDepth: 8,
     peerBonus: 0.05, leadershipVotes: 16,
-    cultivationBonus: 3_200_000,
+    cultivationBonus: 3_200_000, rewards: [],
   },
   {
     v: 8, title: "Star Admiral", cnTitle: "星上将",
     conditions: { teamVolumeUSD: 3_000_000, vDownlines: { 6: 7 } },
     directBonus: 0.10, unilevelDepth: 9,
     peerBonus: 0.05, leadershipVotes: 32,
-    cultivationBonus: 10_000_000,
+    cultivationBonus: 10_000_000, rewards: [],
   },
   {
     v: 9, title: "Galaxy Lord", cnTitle: "星河领主",
     conditions: { teamVolumeUSD: 10_000_000 },
     directBonus: 0.10, unilevelDepth: 10,
     peerBonus: 0.05, leadershipVotes: 64,
-    cultivationBonus: 0,
+    cultivationBonus: 0, rewards: [],
   },
   {
     v: 10, title: "UVEL Founder", cnTitle: "联合创始",
     conditions: { teamVolumeUSD: 30_000_000 },
     directBonus: 0.10, unilevelDepth: 99,
     peerBonus: 0.05, leadershipVotes: 128,
-    cultivationBonus: 0,
+    cultivationBonus: 0, rewards: [],
   },
   {
     v: 11, title: "Cosmic Sovereign", cnTitle: "宇宙至尊",
     conditions: { teamVolumeUSD: 100_000_000 },
     directBonus: 0.10, unilevelDepth: 99,
     peerBonus: 0.05, leadershipVotes: 256,
-    cultivationBonus: 0,
+    cultivationBonus: 0, rewards: [],
   },
   {
     v: 12, title: "Singularity", cnTitle: "奇点",
     conditions: { teamVolumeUSD: 500_000_000 },
     directBonus: 0.10, unilevelDepth: 99,
     peerBonus: 0.05, leadershipVotes: 512,
-    cultivationBonus: 0,
+    cultivationBonus: 0, rewards: [],
   },
 ];
 
@@ -148,7 +171,7 @@ export type VRankProgressPatch = Partial<Omit<VRankData, "myRank">>;
 
 const EMPTY_V_RANK: VRankDef = {
   v: 0, title: "", cnTitle: "", conditions: {}, directBonus: 0,
-  unilevelDepth: 0, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0,
+  unilevelDepth: 0, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0, rewards: [],
 };
 
 function canonicalRank(row: Awaited<ReturnType<typeof vRankApi.ladder>>["ranks"][number]): VRankDef {
@@ -162,7 +185,7 @@ function canonicalRank(row: Awaited<ReturnType<typeof vRankApi.ladder>>["ranks"]
   return {
     v: row.v as VRank, title: row.title, cnTitle: row.cnTitle, conditions,
     directBonus: row.directBonus, unilevelDepth: row.unilevelDepth, peerBonus: row.peerBonus,
-    leadershipVotes: row.leadershipVotes, cultivationBonus: row.cultivationBonus,
+    leadershipVotes: row.leadershipVotes, cultivationBonus: row.cultivationBonus, rewards: row.rewards,
   };
 }
 
@@ -179,6 +202,12 @@ const DEFAULT_V_RANK: VRankData = {
   teamVolumeUSD: 5_240,    // 刚过 V2 门槛
   vDownlineCounts: { 1: 3 }, // 下面有 3 个 V1
 };
+
+type VRankRemoteRequest = RemoteAccountRequest;
+
+function captureVRankRequest(epoch: ReturnType<typeof createRemoteAccountEpoch>): VRankRemoteRequest {
+  return epoch.snapshot();
+}
 
 function hydrate(accountKey: string): VRankData {
   const row = readAccountRow<Partial<VRankData>>(ACCOUNTS_KEY, accountKey);
@@ -199,6 +228,13 @@ export const useVRank = defineStore("vRank", () => {
   const teamVolumeUSD = ref(init.teamVolumeUSD);
   const vDownlineCounts = ref<Partial<Record<VRank, number>>>(init.vDownlineCounts);
   const ladder = ref<VRankDef[]>(remoteApiEnabled ? [] : V_RANKS);
+  // 服务端能力位:某类收益今天是否真的会派发(与佣金指南同源)。等级阶梯里的
+  // peerBonus 是「配置比例」,不是「已生效权益」—— 渲染时必须靠这个位区分(#79)。
+  // 本地(mock)模式没有服务端能力位,按「会派发」处理,与 V_RANKS 的展示一致。
+  const capabilities = ref<{ peer: boolean; genesis: boolean }>({ peer: true, genesis: true });
+  const prizeName = ref(remoteApiEnabled ? "" : "UVEL V-Rank");
+  const remoteReady = ref(!remoteApiEnabled);
+  const remoteError = ref<string | null>(null);
   const remoteAccountEpoch = createRemoteAccountEpoch(boundKey);
 
   function clearRemoteFacts(): void {
@@ -208,6 +244,9 @@ export const useVRank = defineStore("vRank", () => {
     teamVolumeUSD.value = 0;
     vDownlineCounts.value = {};
     ladder.value = [];
+    capabilities.value = { peer: false, genesis: false };
+    prizeName.value = "";
+    remoteReady.value = false;
   }
 
   function persist() {
@@ -227,7 +266,7 @@ export const useVRank = defineStore("vRank", () => {
     if (remoteApiEnabled) {
       remoteAccountEpoch.bind(boundKey);
       clearRemoteFacts();
-      void refreshCanonicalVRank(remoteAccountEpoch.snapshot());
+      void refreshCanonicalVRank(captureVRankRequest(remoteAccountEpoch));
       return;
     }
     const next = hydrate(boundKey);
@@ -238,12 +277,29 @@ export const useVRank = defineStore("vRank", () => {
     vDownlineCounts.value = next.vDownlineCounts;
   }
 
-  async function refreshCanonicalVRank(request: RemoteAccountRequest = remoteAccountEpoch.snapshot()) {
+  let refreshGeneration = 0;
+  // H5 cold restore enters the page before the bearer is bound to this account.
+  // That local precondition must not surface as a server-unavailable error the
+  // user has to clear by hand: wait (bounded) for the session to match, then
+  // read, and retry once when the first attempt fails transiently.
+  const SESSION_BIND_RETRY_MILLISECONDS = 500;
+  async function refreshCanonicalVRank(
+    request: VRankRemoteRequest = captureVRankRequest(remoteAccountEpoch),
+    runScope: RuntimeRevisionScope = captureRuntimeRevision(),
+  ) {
     if (!remoteApiEnabled) return;
-    try {
-      const [remoteLadder, remoteCurrent] = await Promise.all([vRankApi.ladder(), vRankApi.current()]);
-      if (!remoteAccountEpoch.isCurrent(request)) return;
+    const generation = ++refreshGeneration;
+    const isCurrent = () => generation === refreshGeneration
+      && remoteAccountEpoch.isCurrent(request)
+      && isCurrentRuntimeRevision(runScope);
+    if (isCurrent()) {
+      remoteReady.value = false;
+      remoteError.value = null;
+    }
+    const apply = (remoteLadder: CanonicalVRankLadder, remoteCurrent: CanonicalVRankState) => {
       ladder.value = remoteLadder.ranks.map(canonicalRank);
+      prizeName.value = remoteLadder.prizeName;
+      capabilities.value = remoteLadder.capabilities;
       myRank.value = Number(remoteCurrent.rankCode.slice(1)) as VRank;
       selfBuyUSD.value = remoteCurrent.progress.selfBuyUSD;
       directRefs.value = remoteCurrent.progress.directRefs;
@@ -251,8 +307,33 @@ export const useVRank = defineStore("vRank", () => {
       vDownlineCounts.value = Object.fromEntries(
         Object.entries(remoteCurrent.progress.vDownlineCounts).map(([rank, count]) => [Number(rank) as VRank, count]),
       ) as Partial<Record<VRank, number>>;
-    } catch {
-      if (remoteAccountEpoch.isCurrent(request)) clearRemoteFacts();
+      remoteReady.value = true;
+      remoteError.value = null;
+    };
+    try {
+      const [remoteLadder, remoteCurrent] = await Promise.all([vRankApi.ladder(), vRankApi.current()]);
+      if (!isCurrent()) return;
+      apply(remoteLadder, remoteCurrent);
+    } catch (error) {
+      if (!isCurrent()) return;
+      // H5 cold restore enters this page before the bearer is bound to the
+      // account; the request layer reports that local precondition as an auth
+      // failure. One bounded retry keeps a recoverable first-request failure
+      // from being shown as a server error the user must clear by hand.
+      if (asApiError(error).kind === "auth") {
+        await new Promise<void>((resolve) => setTimeout(resolve, SESSION_BIND_RETRY_MILLISECONDS));
+        if (!isCurrent()) return;
+        try {
+          const [remoteLadder, remoteCurrent] = await Promise.all([vRankApi.ladder(), vRankApi.current()]);
+          if (!isCurrent()) return;
+          apply(remoteLadder, remoteCurrent);
+          return;
+        } catch {
+          if (!isCurrent()) return;
+        }
+      }
+      clearRemoteFacts();
+      remoteError.value = "V_RANK_REMOTE_AUTHORITY_UNAVAILABLE";
     }
   }
 
@@ -270,7 +351,12 @@ export const useVRank = defineStore("vRank", () => {
     persist();
   }
 
-  return { myRank, selfBuyUSD, directRefs, teamVolumeUSD, vDownlineCounts, ladder, setMyRank, setProgress, bindAccount, refreshCanonicalVRank };
+  return {
+    myRank, selfBuyUSD, directRefs, teamVolumeUSD, vDownlineCounts, ladder, prizeName,
+    capabilities,
+    remoteReady, remoteError,
+    setMyRank, setProgress, bindAccount, refreshCanonicalVRank,
+  };
 });
 
 /**
@@ -290,7 +376,7 @@ export type RankGap =
   | { kind: "vDownlines"; n: number; vLevel: number };
 
 /** 计算到下一阶的进度(0-1) */
-export function nextRankProgress(state: VRankData, ladder: VRankDef[] = V_RANKS): {
+export function nextRankProgress(state: VRankData, ladder: VRankDef[] = []): {
   next: VRankDef | null;
   progressPct: number;
   missing: RankGap[];
@@ -365,7 +451,7 @@ const PERK_WEIGHT: Record<PerkUnlock["kind"], number> = {
 
 const TOP_UNLOCKS_CAP = 2; // UI keeps perk line single-line at 414w mobile
 
-export function nextRankGap(state: VRankData, ladder: VRankDef[] = V_RANKS): NextRankGapInfo {
+export function nextRankGap(state: VRankData, ladder: VRankDef[] = []): NextRankGapInfo {
   const current = ladder[state.myRank] ?? EMPTY_V_RANK;
   const next = ladder[state.myRank + 1];
   if (!next) {

@@ -1,8 +1,10 @@
 import { isUserSession, type ApiResult, type AuthSessionResponse } from "./contracts";
 import { ApiError, asApiError } from "./errors";
-import type { SessionSnapshot, SessionVault } from "./session-vault";
+import type { RefreshCredentialMode, SessionSnapshot, SessionVault } from "./session-vault";
+import { withSessionCookieLock } from "./session-cookie-lock";
+import { acquireRotationNonce, clearRotationNonce, discardRotationNonce } from "./session-rotation-nonce";
 
-export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface HttpRequest {
   url: string;
@@ -11,6 +13,7 @@ export interface HttpRequest {
   body?: unknown;
   timeoutMs: number;
   signal?: AbortSignal;
+  withCredentials?: boolean;
 }
 
 export interface HttpResponse {
@@ -22,12 +25,21 @@ export interface HttpResponse {
 export interface HttpTransport {
   request(request: HttpRequest): Promise<HttpResponse>;
   upload?(request: HttpUploadRequest): Promise<HttpResponse>;
+  download?(request: HttpDownloadRequest): Promise<{ status: number; filePath?: string; blob?: Blob }>;
 }
 
 export interface HttpUploadRequest {
   url: string;
   filePath: string;
   name: string;
+  headers: Record<string, string>;
+  timeoutMs: number;
+  signal?: AbortSignal;
+  formData?: Record<string, string>;
+}
+
+export interface HttpDownloadRequest {
+  url: string;
   headers: Record<string, string>;
   timeoutMs: number;
   signal?: AbortSignal;
@@ -40,6 +52,7 @@ export interface ApiRequest {
   authenticated?: boolean;
   idempotencyKey?: string;
   timeoutMs?: number;
+  headers?: Record<string, string>;
   signal?: AbortSignal;
   acceptedResponses?: ReadonlyArray<{
     status: number;
@@ -49,8 +62,11 @@ export interface ApiRequest {
 }
 
 export interface ApiClient {
+  /** Holds the current authentication identity across a multi-request operation. */
+  captureSessionGuard?(): () => void;
   request<T>(request: ApiRequest): Promise<T>;
   upload<T>(request: ApiUploadRequest): Promise<T>;
+  download?(request: { path: string; signal?: AbortSignal }): Promise<string>;
   refreshSession(): Promise<SessionSnapshot>;
 }
 
@@ -62,6 +78,7 @@ export interface ApiUploadRequest {
   idempotencyKey?: string;
   timeoutMs?: number;
   signal?: AbortSignal;
+  formData?: Record<string, string>;
 }
 
 interface ApiClientOptions {
@@ -69,21 +86,29 @@ interface ApiClientOptions {
   transport: HttpTransport;
   vault: SessionVault;
   onUnauthorized?: () => void | Promise<void>;
+  onSessionRefreshed?: () => void;
   allowInsecureHttp?: boolean;
+  refreshCredentialMode?: RefreshCredentialMode;
 }
 
 function normalizeBaseUrl(value: string, allowInsecureHttp: boolean): string {
   const baseUrl = value.trim().replace(/\/+$/, "");
-  let parsed: URL;
-  try {
-    parsed = new URL(baseUrl);
-  } catch {
+  let protocol = "";
+  if (typeof URL === "function") {
+    try {
+      protocol = new URL(baseUrl).protocol;
+    } catch {
+      // Keep the same configuration error in browser runtimes.
+    }
+  } else {
+    // App Plus service JS does not provide the browser URL constructor.
+    const match = /^(https?):\/\/(?:\[[\da-f:.]+\]|[a-z\d.-]+)(?::(\d{1,5}))?(?:\/[^\s?#]*)?$/i.exec(baseUrl);
+    if (match && (!match[2] || Number(match[2]) <= 65535)) protocol = `${match[1].toLowerCase()}:`;
+  }
+  if (protocol !== "https:" && protocol !== "http:") {
     throw new ApiError({ kind: "configuration", message: "API_BASE_URL_INVALID" });
   }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new ApiError({ kind: "configuration", message: "API_BASE_URL_INVALID" });
-  }
-  if (parsed.protocol === "http:" && !allowInsecureHttp) {
+  if (protocol === "http:" && !allowInsecureHttp) {
     throw new ApiError({ kind: "configuration", message: "API_HTTPS_REQUIRED" });
   }
   return baseUrl;
@@ -105,21 +130,28 @@ function decodeTransportData(value: unknown): unknown {
 }
 
 function authFailure(status: number, code?: number, message = ""): boolean {
+  if (terminalAuthFailure(status, code, message)) return true;
   if (status !== 401 && code !== 401) return false;
   return /^(AUTH_REQUIRED|USER_AUTH_REQUIRED|TOKEN_|USER_REFRESH_TOKEN_|REFRESH_)/.test(message);
 }
 
-function authenticatedSession(value: unknown): value is AuthSessionResponse & {
+/** A blocklisted account is a terminal server decision, never a refreshable token expiry. */
+function terminalAuthFailure(status: number, code?: number, message = ""): boolean {
+  return (status === 403 || code === 403)
+    && (message === "ACCOUNT_BLOCKLISTED" || message === "USER_REFRESH_NOT_ALLOWED");
+}
+
+function authenticatedSession(value: unknown, credentialMode: RefreshCredentialMode): value is AuthSessionResponse & {
   accessToken: string;
-  refreshToken: string;
 } {
   if (!value || typeof value !== "object") return false;
   const session = value as Partial<AuthSessionResponse>;
   return (
     typeof session.accessToken === "string"
     && session.accessToken.length > 0
-    && typeof session.refreshToken === "string"
-    && session.refreshToken.length > 0
+    && (credentialMode === "cookie"
+      ? session.refreshToken === null
+      : typeof session.refreshToken === "string" && session.refreshToken.length > 0)
     && typeof session.tokenType === "string"
     && session.tokenType.toLowerCase() === "bearer"
     && isUserSession(session.user)
@@ -128,6 +160,7 @@ function authenticatedSession(value: unknown): value is AuthSessionResponse & {
 
 export function createApiClient(options: ApiClientOptions): ApiClient {
   const baseUrl = normalizeBaseUrl(options.baseUrl, options.allowInsecureHttp ?? true);
+  const refreshCredentialMode = options.refreshCredentialMode ?? "token";
   let refreshInFlight: Promise<SessionSnapshot> | null = null;
 
   async function execute<T>(
@@ -136,7 +169,15 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   ): Promise<T> {
     let response: HttpResponse;
     try {
-      response = await options.transport.request(request);
+      const send = () => options.transport.request(request);
+      response = refreshCredentialMode === "cookie" && request.method === "POST"
+        && request.url.startsWith(`${baseUrl}/auth/users/`)
+        && request.url !== `${baseUrl}/auth/users/refresh`
+        // Logout revokes the whole refresh chain even if another tab rotates
+        // concurrently. It must remain available if Web Locks is disabled.
+        && request.url !== `${baseUrl}/auth/users/logout`
+        ? await withSessionCookieLock(send)
+        : await send();
     } catch (error) {
       throw asApiError(error);
     }
@@ -179,40 +220,65 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     return envelope.data as T;
   }
 
-  async function expireSession(expectedRevision: number): Promise<never> {
+  async function terminateSession(
+    expectedRevision: number,
+    message = "SESSION_EXPIRED",
+    status = 401,
+    code = 401,
+  ): Promise<never> {
     if (!options.vault.clearIfUnchanged(expectedRevision)) {
       throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REFRESH" });
     }
+    if (refreshCredentialMode === "cookie") discardRotationNonce();
     await options.onUnauthorized?.();
-    throw new ApiError({ kind: "auth", message: "SESSION_EXPIRED", status: 401, code: 401 });
+    throw new ApiError({ kind: "auth", message, status, code });
   }
 
-  async function refreshNow(): Promise<SessionSnapshot> {
+  async function expireSession(expectedRevision: number): Promise<never> {
+    return terminateSession(expectedRevision);
+  }
+
+  async function refreshNow(rotationNonce?: string): Promise<SessionSnapshot> {
     const revision = options.vault.revision();
     const current = options.vault.read();
-    if (!current?.refreshToken) return expireSession(revision);
+    if (refreshCredentialMode === "token" && !current?.refreshToken) return expireSession(revision);
     try {
       const data = await execute<AuthSessionResponse>({
         url: `${baseUrl}/auth/users/refresh`,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: { refreshToken: current.refreshToken },
+        headers: {
+          "Content-Type": "application/json",
+          ...(refreshCredentialMode === "cookie" ? { "X-Nexion-Refresh-Mode": "cookie" } : {}),
+          ...(rotationNonce ? { "X-NexGrid-Rotation-Key": rotationNonce } : {}),
+        },
+        ...(refreshCredentialMode === "token" ? { body: { refreshToken: current!.refreshToken } } : {}),
         timeoutMs: 12_000,
+        withCredentials: refreshCredentialMode === "cookie",
       });
-      if (!authenticatedSession(data)) {
+      if (!authenticatedSession(data, refreshCredentialMode)) {
         throw new ApiError({ kind: "protocol", message: "AUTH_RESPONSE_INVALID" });
       }
-      if (data.user.userId !== current.user.userId) {
-        throw new ApiError({ kind: "protocol", message: "REFRESH_USER_MISMATCH" });
+      if (current && data.user.userId !== current.user.userId) {
+        return expireSession(revision);
       }
       const next: SessionSnapshot = {
         accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
+        refreshToken: refreshCredentialMode === "cookie" ? "" : data.refreshToken as string,
         tokenType: data.tokenType,
         user: data.user,
+        refreshCredentialMode,
+        sessionSyncKey: typeof data.sessionSyncKey === "string" ? data.sessionSyncKey : undefined,
       };
-      if (!options.vault.saveIfUnchanged(next, revision)) {
+      const commitRevision = options.vault.revision();
+      if (commitRevision !== revision && !options.vault.isRefreshContinuation(revision)) {
         throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REFRESH" });
+      }
+      const previousAccessToken = options.vault.read()?.accessToken;
+      if (!options.vault.refreshIfUnchanged(next, commitRevision)) {
+        throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REFRESH" });
+      }
+      if (current && next.accessToken !== previousAccessToken) {
+        try { options.onSessionRefreshed?.(); } catch { /* The accepted session remains committed. */ }
       }
       return next;
     } catch (error) {
@@ -221,14 +287,46 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         && (error.message === "SESSION_EXPIRED" || error.message === "SESSION_CHANGED_DURING_REFRESH")
       ) throw error;
       const apiError = asApiError(error);
-      if (apiError.kind === "auth") return expireSession(revision);
+      // A denial from the refresh endpoint is terminal, unlike a resource's
+      // ordinary permission 403. Never evict a newer revision or an empty boot.
+      if (current && (apiError.kind === "auth" || apiError.status === 401 || apiError.status === 403
+          || apiError.code === 401 || apiError.code === 403)) return expireSession(revision);
       throw apiError;
     }
   }
 
   function refreshSession(): Promise<SessionSnapshot> {
     if (!refreshInFlight) {
-      refreshInFlight = refreshNow().finally(() => {
+      const revision = options.vault.revision();
+      const refresh = refreshCredentialMode === "cookie"
+        ? withSessionCookieLock(async () => {
+          const nonce = acquireRotationNonce();
+          let session: SessionSnapshot;
+          try {
+            session = await refreshNow(nonce);
+          } catch (error) {
+            if (asApiError(error).message !== "USER_REFRESH_ROTATION_SUPERSEDED") throw error;
+            // Another tab may still be installing the newer shared cookie.
+            await new Promise(resolve => setTimeout(resolve, 100));
+            try {
+              session = await refreshNow(nonce);
+            } catch (retryError) {
+              if (asApiError(retryError).message === "USER_REFRESH_ROTATION_SUPERSEDED") {
+                return terminateSession(revision);
+              }
+              throw retryError;
+            }
+          }
+          clearRotationNonce(nonce);
+          return session;
+        }) : refreshNow();
+      refreshInFlight = refresh.catch(async (error: unknown) => {
+        const apiError = asApiError(error);
+        if ((apiError.message === "COOKIE_LOCK_UNAVAILABLE"
+            || apiError.message === "COOKIE_ROTATION_STORAGE_UNAVAILABLE") && options.vault.read()
+            && options.vault.clearIfUnchanged(revision)) await options.onUnauthorized?.();
+        throw apiError;
+      }).finally(() => {
         refreshInFlight = null;
       });
     }
@@ -238,6 +336,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   async function request<T>(apiRequest: ApiRequest): Promise<T> {
     const authenticated = apiRequest.authenticated !== false;
     let session = options.vault.read();
+    const sessionRevision = options.vault.revision();
     if (authenticated && !session?.accessToken) {
       // A protected prefetch started from Login has no authority to mutate the
       // global auth lifecycle. Treat the missing vault as a local caller-state
@@ -247,7 +346,10 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       throw new ApiError({ kind: "auth", message: "AUTH_SESSION_REQUIRED" });
     }
 
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      ...(apiRequest.headers ?? {}),
+      "Content-Type": "application/json",
+    };
     if (authenticated && session?.accessToken) {
       headers.Authorization = `${session.tokenType || "Bearer"} ${session.accessToken}`;
     }
@@ -259,6 +361,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       headers,
       timeoutMs: apiRequest.timeoutMs ?? 12_000,
       signal: apiRequest.signal,
+      withCredentials: refreshCredentialMode === "cookie",
     };
     if (apiRequest.body !== undefined) httpRequest.body = apiRequest.body;
 
@@ -267,23 +370,39 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     } catch (error) {
       const apiError = asApiError(error);
       if (!authenticated || apiError.kind !== "auth") throw apiError;
+      if (terminalAuthFailure(apiError.status ?? 0, apiError.code, apiError.message)) {
+        return terminateSession(sessionRevision, apiError.message, apiError.status ?? 403, apiError.code ?? 403);
+      }
       const latest = options.vault.read();
-      if (!session || !latest || latest.user.userId !== session.user.userId) {
+      if (!session || !latest || latest.user.userId !== session.user.userId
+          || (options.vault.revision() !== sessionRevision && !options.vault.isRefreshContinuation(sessionRevision))) {
         throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REQUEST" });
       }
       const refreshed = latest?.accessToken && latest.accessToken !== session?.accessToken
         ? latest
         : await refreshSession();
-      return execute<T>(
-        {
-          ...httpRequest,
-          headers: {
-            ...httpRequest.headers,
-            Authorization: `${refreshed.tokenType || "Bearer"} ${refreshed.accessToken}`,
+      if (options.vault.revision() !== sessionRevision && !options.vault.isRefreshContinuation(sessionRevision)) {
+        throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REQUEST" });
+      }
+      const retryRevision = options.vault.revision();
+      try {
+        return await execute<T>(
+          {
+            ...httpRequest,
+            headers: {
+              ...httpRequest.headers,
+              Authorization: `${refreshed.tokenType || "Bearer"} ${refreshed.accessToken}`,
+            },
           },
-        },
-        apiRequest.acceptedResponses,
-      );
+          apiRequest.acceptedResponses,
+        );
+      } catch (retryError) {
+        const rejected = asApiError(retryError);
+        if (rejected.kind === "auth" && options.vault.revision() === retryRevision) {
+          return terminateSession(retryRevision, rejected.message, rejected.status ?? 401, rejected.code ?? 401);
+        }
+        throw rejected;
+      }
     }
   }
 
@@ -293,6 +412,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     }
     const authenticated = apiRequest.authenticated !== false;
     let session = options.vault.read();
+    const sessionRevision = options.vault.revision();
     if (authenticated && !session?.accessToken) {
       throw new ApiError({ kind: "auth", message: "AUTH_SESSION_REQUIRED" });
     }
@@ -308,6 +428,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       headers,
       timeoutMs: apiRequest.timeoutMs ?? 30_000,
       signal: apiRequest.signal,
+      formData: apiRequest.formData,
     };
     const executeUpload = () => options.transport.upload!(uploadRequest)
       .then((response) => executeResponse<T>(response));
@@ -316,15 +437,62 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     } catch (error) {
       const apiError = asApiError(error);
       if (!authenticated || apiError.kind !== "auth") throw apiError;
+      if (terminalAuthFailure(apiError.status ?? 0, apiError.code, apiError.message)) {
+        return terminateSession(sessionRevision, apiError.message, apiError.status ?? 403, apiError.code ?? 403);
+      }
       const latest = options.vault.read();
-      if (!session || !latest || latest.user.userId !== session.user.userId) {
+      if (!session || !latest || latest.user.userId !== session.user.userId
+          || (options.vault.revision() !== sessionRevision && !options.vault.isRefreshContinuation(sessionRevision))) {
         throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REQUEST" });
       }
       const refreshed = latest.accessToken && latest.accessToken !== session.accessToken
         ? latest : await refreshSession();
+      if (options.vault.revision() !== sessionRevision && !options.vault.isRefreshContinuation(sessionRevision)) {
+        throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REQUEST" });
+      }
+      const retryRevision = options.vault.revision();
       uploadRequest.headers.Authorization = `${refreshed.tokenType || "Bearer"} ${refreshed.accessToken}`;
-      return executeUpload();
+      try {
+        return await executeUpload();
+      } catch (retryError) {
+        const rejected = asApiError(retryError);
+        if (rejected.kind === "auth" && options.vault.revision() === retryRevision) {
+          return terminateSession(retryRevision, rejected.message, rejected.status ?? 401, rejected.code ?? 401);
+        }
+        throw rejected;
+      }
     }
+  }
+
+  async function download(apiRequest: { path: string; signal?: AbortSignal }): Promise<string> {
+    if (!options.transport.download) throw new ApiError({ kind: "configuration", message: "FILE_DOWNLOAD_TRANSPORT_UNAVAILABLE" });
+    const session = options.vault.read();
+    if (!session?.accessToken) throw new ApiError({ kind: "auth", message: "AUTH_SESSION_REQUIRED" });
+    const sessionRevision = options.vault.revision();
+    const run = (token: string) => options.transport.download!({
+      url: `${baseUrl}/${apiRequest.path.replace(/^\/+/, "")}`,
+      headers: { Authorization: `${session.tokenType || "Bearer"} ${token}`, "Cache-Control": "no-store" },
+      timeoutMs: 30_000,
+      signal: apiRequest.signal,
+    });
+    let expectedRevision = sessionRevision;
+    let result = await run(session.accessToken);
+    if (result.status === 401 && options.vault.revision() === sessionRevision) {
+      const renewed = await refreshSession();
+      if (!renewed?.accessToken || renewed.user.userId !== session.user.userId) throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REQUEST" });
+      expectedRevision = options.vault.revision();
+      result = await run(renewed.accessToken);
+    }
+    if (apiRequest.signal?.aborted) throw new ApiError({ kind: "network", message: "REQUEST_ABORTED", retryable: false });
+    captureSessionGuardForDownload(session.user.userId, expectedRevision);
+    if (result.status < 200 || result.status >= 300) throw new ApiError({ kind: result.status === 401 ? "auth" : "http", message: `HTTP_${result.status}`, status: result.status });
+    if (result.blob) return URL.createObjectURL(result.blob);
+    if (result.filePath) return result.filePath;
+    throw new ApiError({ kind: "protocol", message: "FILE_DOWNLOAD_INVALID" });
+  }
+
+  function captureSessionGuardForDownload(userId: number, revision: number): void {
+    if (options.vault.revision() !== revision || options.vault.read()?.user.userId !== userId) throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REQUEST" });
   }
 
   async function executeResponse<T>(response: HttpResponse): Promise<T> {
@@ -349,7 +517,18 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     return envelope.data as T;
   }
 
-  return { request, upload, refreshSession };
+  function captureSessionGuard(): () => void {
+    const original = options.vault.read();
+    const revision = options.vault.revision();
+    return () => {
+      const current = options.vault.read();
+      if (!original || !current || current.user.userId !== original.user.userId
+          || (options.vault.revision() !== revision && !options.vault.isRefreshContinuation(revision))) {
+        throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REQUEST" });
+      }
+    };
+  }
+  return { request, upload, download, refreshSession, captureSessionGuard };
 }
 
 export function createUniHttpTransport(): HttpTransport {
@@ -386,18 +565,20 @@ export function createUniHttpTransport(): HttpTransport {
         request.signal?.addEventListener("abort", onAbort, { once: true });
         task = uni.request({
           url: request.url,
-          method: request.method,
+          method: request.method as UniNamespace.RequestOptions["method"],
           header: request.headers,
           data: request.body as UniNamespace.RequestOptions["data"],
           timeout: request.timeoutMs,
+          withCredentials: request.withCredentials,
           success: (response) => resolveOnce({
             status: response.statusCode,
             data: response.data,
             headers: response.header as Record<string, string>,
           }),
-          fail: () => rejectOnce(request.signal?.aborted
+          fail: (error) => rejectOnce(request.signal?.aborted
             ? new ApiError({ kind: "network", message: "REQUEST_ABORTED", retryable: false })
-            : new ApiError({ kind: "network", message: "NETWORK_UNAVAILABLE", retryable: true })),
+            : new ApiError({ kind: "network", message: /timeout/i.test(error.errMsg ?? "")
+              ? "REQUEST_TIMEOUT" : "NETWORK_UNAVAILABLE", retryable: true })),
         });
       });
     },
@@ -425,6 +606,7 @@ export function createUniHttpTransport(): HttpTransport {
           url: request.url,
           filePath: request.filePath,
           name: request.name,
+          formData: request.formData,
           header: request.headers,
           timeout: request.timeoutMs,
           success: (response) => finish(() => resolve({
@@ -437,6 +619,49 @@ export function createUniHttpTransport(): HttpTransport {
             : new ApiError({ kind: "network", message: "NETWORK_UNAVAILABLE", retryable: true }))),
         });
       });
+    },
+    download(request) {
+      // #ifdef H5
+      return (async () => {
+        if (request.signal?.aborted) throw new ApiError({ kind: "network", message: "REQUEST_ABORTED", retryable: false });
+        const controller = new AbortController();
+        let timedOut = false;
+        const onAbort = () => controller.abort();
+        request.signal?.addEventListener("abort", onAbort, { once: true });
+        const timer = setTimeout(() => { timedOut = true; controller.abort(); }, request.timeoutMs);
+        try {
+          const response = await fetch(request.url, {
+            method: "GET", headers: request.headers, cache: "no-store", signal: controller.signal,
+          });
+          if (!response.ok) return { status: response.status };
+          const blob = await response.blob();
+          if (request.signal?.aborted || timedOut) throw new ApiError({ kind: "network", message: request.signal?.aborted ? "REQUEST_ABORTED" : "REQUEST_TIMEOUT", retryable: !request.signal?.aborted });
+          return { status: response.status, blob };
+        } catch (cause) {
+          if (cause instanceof ApiError) throw cause;
+          throw new ApiError({ kind: "network", message: request.signal?.aborted ? "REQUEST_ABORTED" : timedOut ? "REQUEST_TIMEOUT" : "NETWORK_UNAVAILABLE", retryable: !request.signal?.aborted });
+        } finally {
+          clearTimeout(timer);
+          request.signal?.removeEventListener("abort", onAbort);
+        }
+      })();
+      // #endif
+      // #ifndef H5
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        let task: { abort?: () => void } | undefined;
+        const cleanup = () => request.signal?.removeEventListener("abort", onAbort);
+        const finish = (action: () => void) => { if (!settled) { settled = true; cleanup(); action(); } };
+        const onAbort = () => { task?.abort?.(); finish(() => reject(new ApiError({ kind: "network", message: "REQUEST_ABORTED", retryable: false }))); };
+        if (request.signal?.aborted) { onAbort(); return; }
+        request.signal?.addEventListener("abort", onAbort, { once: true });
+        task = uni.downloadFile({
+          url: request.url, header: request.headers, timeout: request.timeoutMs,
+          success: response => finish(() => resolve({ status: response.statusCode, filePath: response.tempFilePath })),
+          fail: () => finish(() => reject(new ApiError({ kind: "network", message: "NETWORK_UNAVAILABLE", retryable: true }))),
+        });
+      });
+      // #endif
     },
   };
 }

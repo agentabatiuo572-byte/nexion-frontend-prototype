@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import { navReset } from "@/lib/route";
+import { ApiError } from "@/api/errors";
+import { watch } from "vue";
 import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
 import { useApp } from "@/store/app";
+import { useConversations } from '@/store/conversations';
+import { useMessageDrawer } from "@/store/message-drawer";
 import {
   useFreeTrial,
   liveShadowUSD,
@@ -20,13 +25,16 @@ import { useProfile } from "@/store/profile";
 import { useTheme } from "@/store/theme";
 import { toast } from "@/store/ui";
 import { useT } from "@/i18n/use-t";
-import { dateLocale, fmt } from "@/i18n/format";
+import { fmt } from "@/i18n/format";
+import { formatTrialDateTime } from "@/lib/trial-date";
 import {
   canonicalH5RouteUrl,
   isStaticReviewRoute,
   normalizeRoute,
   routeFromH5Location,
 } from "@/lib/static-review-routes";
+import { isPublicAuthRoute } from "@/lib/auth-route-visibility";
+import { resolveBootstrapAccountKey } from "@/lib/bootstrap-account-key";
 import { resolveRetiredRoute } from "@/lib/retired-route-migrations";
 import { rebindAccountScopedStores } from "@/lib/account-scope";
 import { useConfig } from "@/store/config";
@@ -38,12 +46,30 @@ import {
   startBehaviorAnalytics,
 } from "@/services/behavior-analytics";
 import { useDeposits } from "@/store/deposits";
-import { mockFundsEnabled, remoteApiEnabled, sessionVault, setRemoteUnauthorizedHandler } from "@/api/runtime";
-import { prepareProductCatalog } from "@/store/product-catalog";
+import {
+  apiRuntimeConfig,
+  apiClient,
+  authApi,
+  h5RefreshCookieEnabled,
+  remoteApiEnabled,
+  sessionVault,
+  setRemoteUnauthorizedHandler,
+} from "@/api/runtime";
+import { completeSignIn } from "@/auth/complete-sign-in";
+import { prepareProductCatalog, refreshProductCatalog } from "@/store/product-catalog";
 import { installKeyboardActivation } from "@/lib/a11y-activate";
+import { installFieldNaming } from "@/lib/a11y-field-label";
 import { refreshEarnConfig } from "@/store/earn-config";
+import { refreshServerProductPhase } from "@/store/server-product-phase";
+import { useI18nRuntime } from "@/store/i18n-runtime";
+import { useLocaleStore } from "@/store/locale";
 import { useMarket } from "@/store/market";
-import { provisionMockPreviewAccount } from "@/api/mock-preview-account";
+import {
+  enforcePendingLegalTermsGate,
+  hasPendingLegalTermsRequirement,
+  scheduleLegalTermsGate,
+} from "@/lib/legal-terms-gate-runtime";
+import { isLegalTermsGateExemptRoute } from "@/lib/legal-terms-gate";
 
 // Simulation tick driver (ports SimulationProvider). Runs the client-side
 // earnings/device simulation while the app is visible; pauses in background.
@@ -56,6 +82,16 @@ let devBusinessTimeoutRuns = 0;
 let pendingCanonicalRouteRepair = "";
 let pendingCanonicalRouteRepairAt = 0;
 let pendingServerSessionRecovery = false;
+type ServerSessionRestoreState = "idle" | "restoring" | "ready" | "failed";
+let serverSessionRestoreState: ServerSessionRestoreState = h5RefreshCookieEnabled ? "idle" : "ready";
+let serverSessionRestoreInFlight: Promise<boolean> | null = null;
+const SERVER_SESSION_RESTORE_RETRY_MS = 15_000;
+let serverSessionRestoreRetryAt = 0;
+let serverSessionRestoreNoticeShown = false;
+let secureBrowserUnsupported = false;
+const SERVER_SESSION_PROBE_MIN_MS = 60_000;
+let serverSessionProbeAt = 0;
+let serverSessionProbeInFlight: Promise<boolean> | null = null;
 // Capture the non-secret trace before any startup request can reject and clear
 // its persisted shell. It is consumed on the first recovery redirect.
 let serverAuthenticatedAccountTraceAtBoot = remoteApiEnabled && readServerAuthenticatedAccountTrace();
@@ -114,7 +150,6 @@ let arrivalTimer: ReturnType<typeof setInterval> | undefined;
  * store 之间不互相 import(P-031),所以这个跨 store 编排放在 App 层。
  */
 function advanceArrivalAndSettleBill() {
-  if (mockFundsEnabled) return;
   const app = useApp();
   // 🔴 按**本次真正推进的那几笔**逐个结算,不能问「最新一笔是谁」——
   // 推进是全表扫,最新那笔未必是刚到账的那笔(独立验收实测:双向都会结算错单)。
@@ -152,7 +187,6 @@ function advanceArrivalAndSettleBill() {
  * 单据是终态、账单行还没跟上,就是待办。这样刷新、换设备、隔一周回来都能自愈,零额外存储。
  */
 function reconcileBills() {
-  if (mockFundsEnabled) return;
   const app = useApp();
   const bills = useBills();
   // ⓪ 🔴 单据在、账单缺 → **补写**(z4 R2,两路独立审计各自命中)。
@@ -188,10 +222,9 @@ function reconcileBills() {
   //     别再照 ⓪ 的样子在这里无条件遍历 app.withdrawals 补扣。两条独立证据(都已回源坐实):
   //     ① 那一版的立论前提是错的 —— app.ts applyWithdrawalDebit 头注称「全仓没有余额端点、
   //        余额的唯一持有者就是本 store」,而 refreshRemoteFleet 在
-  //        `remoteApiEnabled && !mockFundsEnabled` 时用服务端 `fleet.walletUsdt`
+  //        remote 模式下用服务端 `fleet.walletUsdt`
   //        **整体覆写** usdtBalance 与 earningBuckets(app.ts:700-723);
-  //        按 api/runtime-config.ts,生产无 env→remote、开发无 env→sandbox 但非显式,
-  //        这两档 mockFundsEnabled 都是 false —— 正是补扣会跑且真扣本地余额的档。
+  //        开发与生产都服从这一服务端权威余额。
   //        ⇒ 服务端值已含这笔则**双扣**;不含则补扣的 −N 被下一拍重投影抹掉、而幂等键已置位
   //        ⇒ **永不重试**。两种都比不修更坏。
   //     ② docs/changes/2026-08-11-z5-out-of-scope-findings.md B 段早已明令:
@@ -235,7 +268,6 @@ function reconcileBills() {
 }
 
 function startArrivalPoll() {
-  if (mockFundsEnabled) return;
   stopArrivalPoll();
   arrivalTimer = setInterval(() => {
     if (!ensureBusinessLoopsAllowed()) return;
@@ -280,7 +312,7 @@ async function pollTrial() {
     if (after === "grace") {
       // Production stopped; the credit stays usable until graceEndsAt — always
       // hand the user the exact time + next step (spec ④).
-      const until = freeTrial.graceEndsAt !== null ? new Date(freeTrial.graceEndsAt).toLocaleString(dateLocale()) : "";
+      const until = freeTrial.graceEndsAt !== null ? formatTrialDateTime(freeTrial.graceEndsAt) : "";
       toast.info(fmt(t.trial.graceStartToast, { time: until }));
       urgencyFired.grace24h = false;
       urgencyFired.grace1h = false;
@@ -397,8 +429,6 @@ function pollMilestones() {
     amount: step.nexReward,
     status: "posted",
     memo: `Earnings milestone · $${step.thresholdUSD}`,
-    memoKey: "earningsMilestone",
-    memoParams: { threshold: step.thresholdUSD },
     ref: `MILESTONE-${step.id}`,
   }) !== "ok") return;
   m.markFired(step.id);
@@ -431,20 +461,11 @@ function stopMilestonePoll() {
 // (no loop). Runs every route tick + on app show. Never edits the 5 tab pages.
 // Production: replace the local auth store with the real session (the guard
 // logic is identical against GET /api/auth/session).
-const AUTH_WHITELIST_PREFIXES = [
-  "pages/onboarding/",
-  "pages/login/",
-  "pages/register/",
-  "pages/ref/",
-  "pages/tx/",
-  "pages/session/", // kicked screen — never auth/session-redirect away from it
-];
 function isAuthWhitelisted(route: string): boolean {
   // 🔴 两个判据必须同形:normalizeRoute 吃得下 `pages/x` 与冷启动时的 `#/pages/x?q=1`。
   //    原来后半段直接 startsWith,喂 hash 形态时白名单判不中 —— 守卫会在 intro 页
   //    自己把自己踢回 intro(死循环),所以下面 checkAuthGuard 敢回退到 hash 的前提就是这里。
-  const r = normalizeRoute(route);
-  return isStaticReviewRoute(route) || AUTH_WHITELIST_PREFIXES.some((p) => r.startsWith(p));
+  return isPublicAuthRoute(route);
 }
 
 /**
@@ -466,9 +487,53 @@ function hasServerAuthenticatedAccountTrace(auth: ReturnType<typeof useAuth>): b
  * login and evict that new session.
  */
 function canRefreshRemoteAccount(auth: ReturnType<typeof useAuth>): boolean {
-  if (!remoteApiEnabled || !auth.isAuthenticated || !auth.onboardingComplete) return false;
+  if (!remoteApiEnabled || !auth.isAuthenticated) return false;
   const serverSession = sessionVault.read();
   return !!serverSession && auth.accountId === `user:${serverSession.user.userId}`;
+}
+
+/**
+ * A formal-App session can be revoked while the user is idle. The local
+ * registry is a mock-only convenience and must never decide remote authority.
+ * Probe the server at most once per foreground minute; the API client owns the
+ * single-flight refresh and routes an authoritative 401/403 through the safe
+ * logout handler. Transport failures deliberately retain the visible session.
+ */
+function probeServerSession(): Promise<boolean> {
+  const auth = useAuth();
+  if (!canRefreshRemoteAccount(auth)) return Promise.resolve(false);
+  if (serverSessionProbeInFlight) return serverSessionProbeInFlight;
+  const now = Date.now();
+  if (now - serverSessionProbeAt < SERVER_SESSION_PROBE_MIN_MS) return Promise.resolve(true);
+  const accountId = auth.accountId;
+  const revision = sessionVault.revision();
+  serverSessionProbeAt = now;
+  const probe = apiClient.refreshSession()
+    .then((session) => auth.isAuthenticated
+      && auth.accountId === accountId
+      && sessionVault.revision() >= revision
+      && session.user.userId === Number(accountId.replace("user:", "")))
+    .catch(() => false)
+    .finally(() => {
+      if (serverSessionProbeInFlight === probe) serverSessionProbeInFlight = null;
+    });
+  serverSessionProbeInFlight = probe;
+  return probe;
+}
+
+/**
+ * Sandbox E3 provenance is issued by the authenticated product catalog. Never
+ * start a fleet request against the cleared RunID during cold start/login;
+ * await (and retry) catalog loading first.
+ */
+async function refreshAuthenticatedRemoteFleet(): Promise<boolean> {
+  const auth = useAuth();
+  if (!canRefreshRemoteAccount(auth)) return false;
+  if (apiRuntimeConfig.environment === "dev" && !(await refreshProductCatalog())) return false;
+  // A cold-start fleet read must follow the local phone's runtime report, so
+  // a stale PAUSED assignment cannot be projected ahead of its resume POST.
+  await useApp().syncRemoteTaskAssignments();
+  return true;
 }
 
 function readServerAuthenticatedAccountTrace(): boolean {
@@ -484,6 +549,96 @@ function readServerAuthenticatedAccountTrace(): boolean {
   }
 }
 
+function beginServerSessionRestore(): Promise<boolean> {
+  if (!remoteApiEnabled || !h5RefreshCookieEnabled) {
+    serverSessionRestoreState = "ready";
+    return Promise.resolve(true);
+  }
+  if (serverSessionRestoreInFlight) return serverSessionRestoreInFlight;
+  if (serverSessionRestoreRetryAt && canRefreshRemoteAccount(useAuth())) {
+    // A successful explicit login is stronger evidence than an older retry.
+    serverSessionRestoreState = "ready";
+    serverSessionRestoreRetryAt = 0;
+    serverSessionRestoreNoticeShown = false;
+    return Promise.resolve(true);
+  }
+  if (Date.now() < serverSessionRestoreRetryAt) return Promise.resolve(false);
+  serverSessionRestoreState = "restoring";
+  serverSessionRestoreInFlight = (async () => {
+    const restored = await authApi.restore();
+    if (!restored) {
+      const hadServerAccount = hasServerAuthenticatedAccountTrace(useAuth());
+      pendingServerSessionRecovery = pendingServerSessionRecovery || hadServerAccount;
+      serverAuthenticatedAccountTraceAtBoot = false;
+      // The API client's unauthorized callback may already have cleaned up.
+      // An anonymous static entry has no account stores to initialize/reset.
+      if (hadServerAccount) clearInvalidRemoteSessionState(useAuth());
+      serverSessionRestoreState = "failed";
+      return false;
+    }
+    const currentSession = sessionVault.read();
+    if (!currentSession || currentSession.accessToken !== restored.accessToken
+        || currentSession.user.userId !== restored.user.userId) {
+      // Another sign-in/logout won after the refresh response. Never apply
+      // the old profile using the newer vault's revision as its proof.
+      serverSessionRestoreState = canRefreshRemoteAccount(useAuth()) ? "ready" : "idle";
+      return false;
+    }
+    const route = readCurrentRoute();
+    // Public privacy remains readable during cookie restoration, including
+    // its query return target. Login/onboarding entries keep their usual reset.
+    const preserveCurrentRoute = !!route && (!isAuthWhitelisted(route)
+      || route === "pages/onboarding/privacy");
+    const completed = completeSignIn({
+      identity: `user:${restored.user.userId}`,
+      returnTo: preserveCurrentRoute ? `/${route}` : "/pages/index/index",
+      onboardingComplete: restored.user.onboardingComplete,
+      serverProfile: restored.user,
+      serverSessionRevision: sessionVault.revision(),
+      deferNavigation: preserveCurrentRoute,
+    });
+    if (!completed.ok) {
+      pendingServerSessionRecovery = true;
+      serverSessionRestoreState = "failed";
+      return false;
+    }
+    pendingServerSessionRecovery = false;
+    serverAuthenticatedAccountTraceAtBoot = false;
+    serverSessionRestoreState = "ready";
+    serverSessionRestoreRetryAt = 0;
+    serverSessionRestoreNoticeShown = false;
+    serverSessionProbeAt = Date.now();
+    return true;
+  })().catch((error: unknown) => {
+    if (error instanceof ApiError && (error.message === "COOKIE_LOCK_UNAVAILABLE"
+        || error.message === "COOKIE_ROTATION_STORAGE_UNAVAILABLE")) {
+      secureBrowserUnsupported = true;
+      serverSessionRestoreState = "failed";
+      clearInvalidRemoteSessionState(useAuth());
+      navReset({ url: "/pages/login/login?notice=secure-browser-unsupported" });
+      return false;
+    }
+    if (canRefreshRemoteAccount(useAuth())) {
+      serverSessionRestoreState = "ready";
+      serverSessionRestoreRetryAt = 0;
+      serverSessionRestoreNoticeShown = false;
+      return false;
+    }
+    // No authentication verdict was received. Keep the account shell, stop
+    // short of authenticated work, and let the foreground guard retry.
+    serverSessionRestoreState = "idle";
+    serverSessionRestoreRetryAt = Date.now() + SERVER_SESSION_RESTORE_RETRY_MS;
+    if (!serverSessionRestoreNoticeShown) {
+      serverSessionRestoreNoticeShown = true;
+      toast.warn(useT().value.session.restoreRetryNotice);
+    }
+    return false;
+  }).finally(() => {
+    serverSessionRestoreInFlight = null;
+  });
+  return serverSessionRestoreInFlight;
+}
+
 // Returns true if it redirected (callers bail so they don't act on a route the
 // user is being kicked off of).
 function checkAuthGuard(): boolean {
@@ -495,6 +650,16 @@ function checkAuthGuard(): boolean {
   //    只修 ① 的状态在实景里与不修同果 —— verify 绿 ≠ 渲染 OK 的活例。
   const route = readCurrentRoute();
   if (!route) return false; // no route yet
+  if (secureBrowserUnsupported) {
+    if (route.startsWith("pages/login/")) return false;
+    navReset({ url: "/pages/login/login?notice=secure-browser-unsupported" });
+    return true;
+  }
+  if (remoteApiEnabled && serverSessionRestoreState === "idle") {
+    void beginServerSessionRestore();
+    return false;
+  }
+  if (remoteApiEnabled && serverSessionRestoreState === "restoring") return false;
   if (isAuthWhitelisted(route)) {
     // Once login is visible, consume the recovery latch before any periodic
     // guard retry. Re-launching the same login route resets in-progress input.
@@ -516,13 +681,12 @@ function checkAuthGuard(): boolean {
       pendingServerSessionRecovery = false;
       serverAuthenticatedAccountTraceAtBoot = false;
     } else {
-      uni.reLaunch({ url: "/pages/login/login?notice=server-session-reload" });
+      navReset({ url: "/pages/login/login?notice=server-session-reload" });
       return true;
     }
   }
-  // Server modes cannot accept a historical localStorage sign-in as authority.
-  // The runtime vault is deliberately in-memory, so refresh/restart means a
-  // clean sign-in instead of a stale local identity issuing sandbox commands.
+  // A persisted UI shell is never authentication authority. H5 reaches this
+  // branch only after its HttpOnly-cookie restore has failed.
   if (remoteApiEnabled && (!serverSession || auth.accountId !== `user:${serverSession.user.userId}`)) {
     const requiresServerSessionRecovery = !serverSession && hasServerAuthenticatedAccountTrace(auth);
     serverAuthenticatedAccountTraceAtBoot = false;
@@ -530,10 +694,8 @@ function checkAuthGuard(): boolean {
     // startup requests can reject together; a later callback must not replace
     // this recovery redirect with first-time onboarding.
     pendingServerSessionRecovery = requiresServerSessionRecovery;
-    sessionVault.clear();
-    useSession().signOutSession();
-    auth.signOut();
-    uni.reLaunch({
+    clearInvalidRemoteSessionState(auth);
+    navReset({
       url: requiresServerSessionRecovery
         ? "/pages/login/login?notice=server-session-reload"
         : "/pages/onboarding/intro",
@@ -541,21 +703,35 @@ function checkAuthGuard(): boolean {
     return true;
   }
   if (!auth.isAuthenticated) {
-    uni.reLaunch({ url: "/pages/onboarding/intro" });
+    navReset({ url: "/pages/onboarding/intro" });
     return true;
   }
-  // First-login guidance is handled once by completeSignIn. Declining phone
-  // activation must leave the rest of the account accessible on both platforms.
   return false;
 }
 
-// ── Account session guard + new-device recalibration redirect ──
+/**
+ * Clears this carrier only after a confirmed remote authentication failure.
+ * Server task and settlement state stays untouched and is read after sign-in.
+ */
+function clearInvalidRemoteSessionState(auth: ReturnType<typeof useAuth>): void {
+  useConversations().suspendForReauthentication();
+  sessionVault.clear();
+  useSession().signOutSession();
+  auth.signOut();
+  const app = useApp();
+  app.bindAccount("default");
+  // Rebinding increments the account epoch so old-account responses are stale.
+  rebindAccountScopedStores("default");
+  stopBusinessLoops();
+}
+
+// ── Account session guard ──
 // Mirrors GET /api/auth/session: each 1s tick (and instantly via the cross-tab
 // storage event) checks THIS session record. SPEC-4 allows the same account to
 // stay active across signed App / H5 / white-app carriers; only self sign-out,
-// deleted session, or ops revoke (killedAt) evicts this carrier. If a new device
-// needs recalibration (different deviceId from the account's calibrated device)
-// → reLaunch to the calibration ritual in recalibrate mode.
+// deleted session, or ops revoke (killedAt) evicts this carrier. A device
+// recalibration flag is business state, not authority to hijack login routing;
+// the explicit device-management action owns that UI.
 // Returns true if it redirected (caller bails). Production: identical logic
 // against the server session endpoint; the storage event becomes an SSE/push.
 function checkSession(): boolean {
@@ -563,6 +739,10 @@ function checkSession(): boolean {
   if (!route || isAuthWhitelisted(route)) return false; // flow pages exempt
   const auth = useAuth();
   if (!auth.isAuthenticated) return false; // auth guard handles unauth
+  if (remoteApiEnabled) {
+    void probeServerSession();
+    return false;
+  }
   const session = useSession();
   const st = session.validate();
   if (st === "kicked" || st === "logged-out") {
@@ -573,14 +753,13 @@ function checkSession(): boolean {
     // 踢出兜底:清全部账号级数据内存残留(P2-8 纵深防御)。app + 28 store 归 default。
     useApp().bindAccount("default");
     rebindAccountScopedStores("default");
-    uni.reLaunch({ url: "/pages/session/kicked" });
+    navReset({ url: "/pages/session/kicked" });
     return true;
   }
   // Active session → ensure mining is running (resumes after a fresh re-login
   // that follows an eviction).
   const app = useApp();
   if (app.miningPaused) app.resumeMining();
-  // A persistent home action offers calibration without trapping every route.
   return false;
 }
 
@@ -620,6 +799,20 @@ function detachSessionWatch() {
 const QUEST_TICK_MS = 1000;
 let questTimer: ReturnType<typeof setInterval> | undefined;
 let lastQuestRoute = "";
+let lastLegalTermsGateRoute = "";
+let lastLegalTermsGateLocale = "";
+
+// An explicit language change can change the account's required legal document
+// without navigating. Close the gate synchronously before the profile write.
+watch(() => useLocaleStore().code, () => {
+  if (!remoteApiEnabled || !questTimer || !canRefreshRemoteAccount(useAuth())) return;
+  const route = readCurrentRoute();
+  if (!route || isStaticReviewRoute(route)) return;
+  lastLegalTermsGateRoute = route;
+  lastLegalTermsGateLocale = useLocaleStore().code;
+  void scheduleLegalTermsGate(`/${route}`);
+  if (hasPendingLegalTermsRequirement()) stopBusinessLoops();
+}, { flush: "sync" });
 
 // 🔴 本文件**唯一**的路由读取口 —— 不要加第二个(verify 哨兵 app-route-single-reader 盯着)。
 //
@@ -655,7 +848,7 @@ function readCurrentRoute(): string {
     if (canonicalUrl !== comparableRawUrl && repairRetryDue) {
       pendingCanonicalRouteRepair = canonicalUrl;
       pendingCanonicalRouteRepairAt = Date.now();
-      uni.reLaunch({
+      navReset({
         url: canonicalUrl,
         fail: () => {
           if (pendingCanonicalRouteRepair === canonicalUrl) {
@@ -684,10 +877,21 @@ function bootstrapAccountSession() {
   // 自愈路径对该标签的余生失效(登出态被踢到引导页那一拍正好烧掉它)。
   // 今天没有可达危害(两个认证入口各自 claim),但那是巧合,不是设计。
   if (auth.isAuthenticated) {
-    const key = auth.email || auth.accountId || "default";
     const app = useApp();
     const session = useSession();
     const serverSession = remoteApiEnabled ? sessionVault.read() : null;
+    // A persisted email is only a local-mode scope key. Remote account state
+    // must be bound to the current server session user, otherwise the fleet
+    // and withdrawal-list session fences correctly reject their own refreshes.
+    const key = resolveBootstrapAccountKey({
+      remote: remoteApiEnabled,
+      email: auth.email,
+      accountId: auth.accountId,
+      sessionUserId: serverSession?.user.userId,
+    });
+    // Keep this bootstrap eligible to retry after session restore. Binding a
+    // mismatched remote session would let one account project into another.
+    if (!key) return;
     // completeSignIn already binds every account-scoped store and claims this
     // carrier before it navigates away from Login. The periodic guard can reach
     // this one-shot bootstrap a moment later. Rebinding again would clear the
@@ -723,7 +927,7 @@ function bootstrapAccountSession() {
       // 踢出兜底:清全部账号级数据内存残留(P2-8 纵深防御)。app + 28 store 归 default。
       app.bindAccount("default");
       rebindAccountScopedStores("default");
-      uni.reLaunch({ url: "/pages/session/kicked" });
+      navReset({ url: "/pages/session/kicked" });
     }
   }
 }
@@ -765,7 +969,7 @@ function checkQuestRoute() {
   const retiredRoute = resolveRetiredRoute(route);
   if (retiredRoute) {
     stopBusinessLoops();
-    uni.reLaunch({ url: retiredRoute });
+    navReset({ url: retiredRoute });
     return;
   }
   if (isStaticReviewRoute(route)) {
@@ -785,21 +989,38 @@ function checkQuestRoute() {
   // register/ref/tx/session)都返回 false,所以在这些页上同样会走到这里。这没问题
   // (认领是幂等的,未认证时不消耗一次性资格),但别照着旧注释的错误前提推理。
   bootstrapAccountSession();
-  if (checkSession()) return; // evicted / needs recalibration → redirected
+  if (checkSession()) return; // evicted/invalid session → redirected; recalibration is explicit device management only
+  if (route !== lastLegalTermsGateRoute || useLocaleStore().code !== lastLegalTermsGateLocale) {
+    lastLegalTermsGateRoute = route;
+    lastLegalTermsGateLocale = useLocaleStore().code;
+    if (canRefreshRemoteAccount(useAuth())) scheduleLegalTermsGate(`/${route}`);
+  }
+  if (enforcePendingLegalTermsGate(`/${route}`)) {
+    stopBusinessLoops();
+    return;
+  }
+  // Risk disclosure remains readable from the required Terms page, but it is
+  // still a legal-only surface: no earnings, orders, trials or analytics may
+  // run until the current account acknowledges the authoritative version.
+  if (hasPendingLegalTermsRequirement()) {
+    stopBusinessLoops();
+    return;
+  }
   // H5 站内路由不会重发 App.onShow。静态评审页会按安全边界停掉业务循环，
   // 所以离开评审页后必须由仍存活的守卫在这一拍重新校验并恢复；放在同路由短路前，
   // 才能覆盖「路由已经切回业务页、lastQuestRoute 也已更新」的时序。
   if (!ensureBusinessLoopsRunning()) return;
   if (route === lastQuestRoute) return; // only act on route change
   lastQuestRoute = route;
-  const id = questIdForRoute(route);
-  if (!id) return;
   if (remoteApiEnabled) {
-    // Visiting a tracked screen is the H3 completion event. The server claim
-    // decides eligibility and reward; the client never credits locally.
-    if (!useQuest().isComplete(id)) void useQuest().claimRemote(id);
+    // In formal server mode, task identity, completion facts and reward state
+    // all come from the backend. A route visit only triggers a fresh readback;
+    // the legacy task-code table below is never consulted.
+    void useQuest().refreshRemote();
     return;
   }
+  const id = questIdForRoute(route);
+  if (!id) return;
   // 🔴 与领奖族同一套顺序:先发钱(幂等)→ 后消费资格(2026-08-04 独立验收指出 quest 族
   // 三处漏改)。原来先 markComplete 消费掉,发钱失败就 return —— 任务标记已置、奖归零,
   // 而 quest 是一次性的,再也拿不到。奖励从静态表查得到,顺序反得过来。
@@ -828,6 +1049,8 @@ function startQuestWatch() {
   // 播种置空,故意不预填当前页:quest 一次性 + 发钱/markComplete 幂等,重放无害;
   // 冷启深链落地页要记一次访问(112b9d0 以此作实证基线),预填会把这一次吞掉。
   lastQuestRoute = "";
+  lastLegalTermsGateRoute = "";
+  lastLegalTermsGateLocale = "";
   questTimer = setInterval(checkQuestRoute, QUEST_TICK_MS);
 }
 function stopQuestWatch() {
@@ -877,6 +1100,8 @@ function installBusinessLoopProbe(): void {
 // 🔴 不变量:守卫只随前台/后台成对开关 —— onShow 起、onHide 停,其余任何时候都活着。
 // 它在白名单页由自身前两行(checkAuthGuard/checkSession 的白名单短路)保持惰性,常开无业务副作用。
 function stopBusinessLoops() {
+  useMessageDrawer().stopRefresh();
+  useConversations().stopRealtime();
   businessLoopsRunning = false;
   stopBusinessTimeouts();
   useDeposits().pauseMockEngine();
@@ -890,9 +1115,12 @@ function stopBusinessLoops() {
 
 function canRunBusinessLoops(): boolean {
   const route = readCurrentRoute();
-  if (!route || isAuthWhitelisted(route)) return false;
+  if (!route || isAuthWhitelisted(route) || isLegalTermsGateExemptRoute(`/${route}`)) return false;
   const auth = useAuth();
-  if (!auth.isAuthenticated || !auth.onboardingComplete) return false;
+  if (!auth.isAuthenticated) return false;
+  // Formal App authority is the server session. The local carrier registry is
+  // retained only for mock mode and cannot keep remote business loops alive.
+  if (remoteApiEnabled) return canRefreshRemoteAccount(auth);
   return useSession().validate() === "active";
 }
 
@@ -921,6 +1149,8 @@ function ensureBusinessLoopsAllowed(): boolean {
  */
 function ensureBusinessLoopsRunning(): boolean {
   if (!ensureBusinessLoopsAllowed()) return false;
+  useConversations().startRealtime();
+  useMessageDrawer().startRefresh();
   if (businessLoopsRunning) return true;
 
   useApp().settle();
@@ -947,18 +1177,11 @@ onLaunch(() => {
   // ⚠️ 2026-08-12 这行被一次并发合并冲掉过一次(平台层文件还在、门也在,唯独没人调用它,
   //    等于功能是死的)。门的 D 判据专门守这一行,别再删。
   installKeyboardActivation();
-  // This checkout is the fixed 5174 local mock. Seed the reusable preview
-  // identity before route guards run so cold-start paths never require sign-up.
-  const previewAccount = provisionMockPreviewAccount();
+  // 输入控件的可访问名补齐层:uni 的 <input> 把 aria-label 落在 <uni-input> 宿主上,
+  // 真 textbox 拿不到名字(见 lib/a11y-field-label.ts 的实测记录)。与上一行同因同层,
+  // 同样必须在 early return 之前挂 —— 退役路由 / 静态评审页也有输入框。
+  installFieldNaming();
   const auth = useAuth();
-  if (!previewAccount.ok) {
-    // Never fall back to auth.ts's demo-friendly default identity when the
-    // named preview account cannot be made durable. Keep the app closed on the
-    // login surface until browser storage is available again.
-    auth.signOut();
-    uni.reLaunch({ url: "/pages/login/login", fail: () => {} });
-    return;
-  }
   if (remoteApiEnabled) {
     setRemoteUnauthorizedHandler(() => {
       // Preserve only the non-secret trace long enough to choose the login explanation.
@@ -966,13 +1189,10 @@ onLaunch(() => {
         || (!sessionVault.read() && hasServerAuthenticatedAccountTrace(auth));
       serverAuthenticatedAccountTraceAtBoot = false;
       pendingServerSessionRecovery = requiresServerSessionRecovery;
-      sessionVault.clear();
-      useSession().signOutSession();
-      auth.signOut();
-      stopBusinessLoops();
+      clearInvalidRemoteSessionState(auth);
       const route = readCurrentRoute();
       if (route && !isAuthWhitelisted(route)) {
-        uni.reLaunch({
+        navReset({
           url: requiresServerSessionRecovery
             ? "/pages/login/login?notice=server-session-reload"
             : "/pages/onboarding/intro",
@@ -981,7 +1201,7 @@ onLaunch(() => {
     });
   }
   configureBehaviorAnalyticsContext(() => ({
-    enabled: remoteApiEnabled && auth.isAuthenticated && auth.onboardingComplete,
+    enabled: remoteApiEnabled && auth.isAuthenticated,
     subject: auth.accountId,
   }));
   installBusinessLoopProbe();
@@ -997,9 +1217,13 @@ onLaunch(() => {
     // unauthenticated launch must not turn its expected 401 into a fake catalog
     // failure before the user has even signed in.
     prepareProductCatalog();
-    if (canRefreshRemoteAccount(auth)) void useApp().refreshRemoteFleet();
+    void beginServerSessionRestore();
+    if (canRefreshRemoteAccount(auth)) {
+      void useApp().refreshHomeTruth();
+      void refreshAuthenticatedRemoteFleet();
+    }
   }
-  // NexGrid defaults dark, but the persisted user choice drives H5 after launch.
+  // UVEL defaults dark, but the persisted user choice drives H5 after launch.
   // `resolved` collapses the light/dark/system choice to the concrete theme
   // (system → OS scheme). Instantiating the store here also registers its live
   // OS-scheme listener for "system" mode.
@@ -1009,7 +1233,7 @@ onLaunch(() => {
   const retiredRoute = resolveRetiredRoute(readCurrentRoute());
   if (retiredRoute) {
     stopBusinessLoops();
-    uni.reLaunch({ url: retiredRoute, fail: () => {} });
+    navReset({ url: retiredRoute, fail: () => {} });
     return;
   }
   if (isStaticReviewRoute(readCurrentRoute())) {
@@ -1019,7 +1243,24 @@ onLaunch(() => {
   scheduleAccountSessionBootstrap();
 });
 onShow(() => {
+  // #ifdef APP-PLUS
+  useTheme().refreshSystemTheme();
+  // #endif
   attachSessionWatch();
+  if (remoteApiEnabled) {
+    useApp().setRemoteTaskForeground(true);
+    void useConfig().load();
+    // PC-managed runtime configuration must converge when the App returns to
+    // foreground; a launch-only fetch leaves pricing, phase and translations
+    // stale for an entire long-lived session.
+    void refreshEarnConfig().catch(() => undefined);
+    void refreshServerProductPhase(true).catch(() => false);
+    void useI18nRuntime().refresh(useLocaleStore().code, true).catch(() => undefined);
+  }
+  const termsGateRoute = readCurrentRoute();
+  if (termsGateRoute && !isAuthWhitelisted(termsGateRoute) && canRefreshRemoteAccount(useAuth())) {
+    scheduleLegalTermsGate(`/${termsGateRoute}`);
+  }
   // 🔴 守卫轮询必须无条件启动(2026-08-07 实景抓到的残留洞):冷启动那一拍守卫虽已看见
   // 未登录+业务页并发起 reLaunch,但首次导航还在进行中,那一枪会被吞掉;守卫返回「已跳转」
   // → onShow 提前收工 → 轮询没启动 → 再无第二枪,登出态照样停在业务页(与修复前同果)。
@@ -1027,11 +1268,25 @@ onShow(() => {
   // 未登录/流程页上它短路在任何业务写入之前,常开无副作用。
   // 这里是守卫**唯一**的起点(停点唯一在 onHide),与 stopBusinessLoops 上方的不变量成对。
   startQuestWatch();
-  if (canRefreshRemoteAccount(useAuth())) void useApp().refreshRemoteFleet();
+  // startQuestWatch resets the route marker. Seed it with the check just
+  // scheduled above so the first one-second tick does not duplicate the same
+  // current-terms request; a real route change still schedules immediately.
+  lastLegalTermsGateRoute = termsGateRoute;
+  lastLegalTermsGateLocale = useLocaleStore().code;
+  if (termsGateRoute && (enforcePendingLegalTermsGate(`/${termsGateRoute}`)
+    || hasPendingLegalTermsRequirement())) {
+    stopBusinessLoops();
+    return;
+  }
+  if (canRefreshRemoteAccount(useAuth())) {
+    void probeServerSession();
+  }
   if (!ensureBusinessLoopsRunning()) return; // no business writes on auth/session flow pages
+  if (remoteApiEnabled) void useApp().syncRemoteTaskAssignments();
   void refreshEarningsReleaseStatus().catch(() => undefined);
 });
 onHide(() => {
+  if (remoteApiEnabled) useApp().setRemoteTaskForeground(false);
   detachSessionWatch();
   stopBusinessLoops();
   // 守卫与前台成对:这里是它**唯一**的停点(见 stopBusinessLoops 上方的不变量)。

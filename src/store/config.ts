@@ -6,7 +6,6 @@ import { isNetworkFeeConfigUsable } from "@/store/nex-faucet";
 import { completePlatformConfigSeed } from "@/lib/platform-config-compat";
 import { platformConfigApi, remoteApiEnabled } from "@/api/runtime";
 import type { PlatformPublicStatsAuthority } from "@/api/platform-config-api";
-import { captureCommerceSandboxRun, subscribeCurrentCommerceSandboxRun } from "@/api/order-api";
 
 const IS_PRODUCTION = import.meta.env.PROD;
 
@@ -76,6 +75,8 @@ export const useConfig = defineStore("config", () => {
       networkConfirmFeeUsd: { trc20: 0, bep20: 0, erc20: 0 },
     },
     rewards: {
+      enabled: false,
+      effectiveAt: null,
       welcomeGift: { lockMode: "risk_bucket", usdtAmount: 0, nexAmount: 0 },
       inviterReward: { nexAmount: 0 },
     },
@@ -120,13 +121,13 @@ export const useConfig = defineStore("config", () => {
   };
   const config = ref<PlatformConfig>(remoteApiEnabled ? unavailableServerConfig : mockConfig);
   const publicStatsAuthority = ref<PlatformPublicStatsAuthority | null>(null);
+  const configStatus = ref<"idle" | "loading" | "ready" | "failed">(remoteApiEnabled ? "idle" : "ready");
 
   // SPEC-7 FEAT-RISK02 异常3: 配置拉取失败态。true = 结算暂停、钱包显示
   // 「收益结算稍后同步」;禁止回退到前端写死默认值继续结算。
   // PROD: GET /api/config/platform 失败/超时时由请求层置位。
   // 配置重拉的合成延迟(mock)。对齐 refresh.ts 的 REFRESH_LATENCY_MS 量级 ——
   // 必须 > 0 且够长到能画出一帧骨架,否则加载态是死 UI。
-  const CONFIG_LOAD_LATENCY_MS = 600;
 
   const syncFailed = ref(true);
 
@@ -160,6 +161,7 @@ export const useConfig = defineStore("config", () => {
    */
   const loading = ref(false);
   let reloadAfterCurrentFlight = false;
+  let currentLoad: Promise<void> | null = null;
 
   function clearRemotePlatformAuthority() {
     if (!remoteApiEnabled) return;
@@ -167,27 +169,36 @@ export const useConfig = defineStore("config", () => {
     config.value = {
       ...config.value,
       publicStats: { ...unavailableServerConfig.publicStats },
+      verifiedStats: null,
+      rewards: {
+        enabled: false,
+        effectiveAt: null,
+        welcomeGift: { ...unavailableServerConfig.rewards.welcomeGift },
+        inviterReward: { ...unavailableServerConfig.rewards.inviterReward },
+      },
+      share: unavailableServerConfig.share,
     };
     syncFailed.value = true;
   }
 
-  async function load(): Promise<void> {
-    if (loading.value) {
+  function load(): Promise<void> {
+    if (currentLoad) {
       reloadAfterCurrentFlight = true;
-      return;
+      return currentLoad;
     }
     loading.value = true;
-    try {
-      if (!remoteApiEnabled) {
-        await new Promise<void>((resolve) => setTimeout(resolve, CONFIG_LOAD_LATENCY_MS));
-        syncFailed.value = false;
-        return;
-      }
-      const remote = await platformConfigApi.platformConfig();
-      if (remote.publicStatsAuthority.sourceEnvironment !== "PRODUCTION") {
-        throw new Error("H9_PUBLIC_STATS_ENVIRONMENT_MISMATCH");
-      }
-      config.value = {
+    configStatus.value = "loading";
+    let flight!: Promise<void>;
+    // Start in a microtask so even a synchronous API mock/adapter throw cannot
+    // run finally before currentLoad has received this flight.
+    flight = Promise.resolve().then(async () => {
+      try {
+        const remote = await platformConfigApi.platformConfig();
+        if (remote.publicStatsAuthority.sourceEnvironment !== "PRODUCTION"
+            || remote.publicStatsAuthority.runId !== "") {
+          throw new Error("H9_PUBLIC_STATS_ENVIRONMENT_MISMATCH");
+        }
+        config.value = {
         // The server snapshot is authoritative for every field it provides.
         // Keep only the client-only structural branches that are not part of
         // this bounded context; no fetched field is allowed to fall back to a
@@ -203,37 +214,35 @@ export const useConfig = defineStore("config", () => {
         //   本行由 scripts/remote-config-merge-contract.test.mjs 的覆盖等式钉着:
         //   解析器返回的每个属于 PlatformConfig 的字段都必须在这里落地,漏一个即红。
         publicStats: remote.publicStats,
+        verifiedStats: remote.verifiedStats,
         onlineBonus: remote.onlineBonus,
         rewards: remote.rewards,
         computeShare: remote.computeShare,
         share: remote.share,
-      };
-      publicStatsAuthority.value = remote.publicStatsAuthority;
-      syncFailed.value = false;
-    } catch {
-      clearRemotePlatformAuthority();
-    } finally {
-      loading.value = false;
-      if (reloadAfterCurrentFlight && captureCommerceSandboxRun().runId !== null) {
-        reloadAfterCurrentFlight = false;
-        void load();
+        };
+        publicStatsAuthority.value = remote.publicStatsAuthority;
+        syncFailed.value = false;
+        configStatus.value = "ready";
+      } catch {
+        clearRemotePlatformAuthority();
+        configStatus.value = "failed";
+      } finally {
+        loading.value = false;
+        if (currentLoad === flight) currentLoad = null;
+        if (reloadAfterCurrentFlight) {
+          reloadAfterCurrentFlight = false;
+          void load();
+        }
       }
-    }
+    });
+    currentLoad = flight;
+    return flight;
   }
 
-  if (remoteApiEnabled) {
-    subscribeCurrentCommerceSandboxRun((scope) => {
-      if (scope.runId === null) {
-        reloadAfterCurrentFlight = false;
-        clearRemotePlatformAuthority();
-        return;
-      }
-      if (publicStatsAuthority.value?.sourceEnvironment === "SANDBOX"
-          && publicStatsAuthority.value.runId === scope.runId) return;
-      clearRemotePlatformAuthority();
-      if (loading.value) reloadAfterCurrentFlight = true;
-      else void load();
-    });
+  /** Join startup work without turning a page's wait into an extra reload. */
+  function ensureLoaded(): Promise<void> {
+    if (currentLoad) return currentLoad;
+    return configStatus.value === "ready" ? Promise.resolve() : load();
   }
 
   // ⚠️ DEV/DEMO-ONLY: 模拟配置拉取失败,演 FEAT-RISK02 异常3。
@@ -265,7 +274,7 @@ export const useConfig = defineStore("config", () => {
     };
   }
 
-  return { config, publicStatsAuthority, syncFailed, loading, load, feeConfigValid, isEnabled, _devSetFlag, _devSetComputeShareContent, _devSetConfigSyncFailed };
+  return { config, publicStatsAuthority, configStatus, syncFailed, loading, load, ensureLoaded, feeConfigValid, isEnabled, _devSetFlag, _devSetComputeShareContent, _devSetConfigSyncFailed };
 });
 
 // currentNetworkConfirmFeeUsd(权威网络费跨 store 纯函数)已随 c37e642 的 D5 policy

@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { remoteApiEnabled } from "@/api/runtime";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
 
@@ -19,6 +20,7 @@ export interface AchievementRecord {
 const ACCOUNTS_KEY = "nexgrid-achievements-accounts-v1"; // { [accountKey]: { records: AchievementRecord[] } }
 
 function hydrate(accountKey: string): AchievementRecord[] {
+  if (remoteApiEnabled) return [];
   const row = readAccountRow<{ records?: AchievementRecord[] }>(ACCOUNTS_KEY, accountKey);
   if (row && Array.isArray(row.records)) return row.records;
   return [];
@@ -30,6 +32,7 @@ export const useAchievements = defineStore("achievements", () => {
   const records = ref<AchievementRecord[]>(hydrate(boundKey));
 
   function persist() {
+    if (remoteApiEnabled) return;
     writeAccountRow<{ records: AchievementRecord[] }>(ACCOUNTS_KEY, boundKey, { records: records.value });
   }
 
@@ -41,6 +44,7 @@ export const useAchievements = defineStore("achievements", () => {
 
   /** Returns true if newly unlocked. */
   function unlock(id: string): boolean {
+    if (remoteApiEnabled) return false;
     if (records.value.find((r) => r.id === id)) return false;
     records.value = [...records.value, { id, unlockedAt: Date.now(), claimed: false }];
     persist();
@@ -49,6 +53,7 @@ export const useAchievements = defineStore("achievements", () => {
 
   /** Returns true if newly claimed. */
   function claim(id: string): boolean {
+    if (remoteApiEnabled) return false;
     const rec = records.value.find((r) => r.id === id);
     if (!rec || rec.claimed) return false;
     records.value = records.value.map((r) => (r.id === id ? { ...r, claimed: true } : r));

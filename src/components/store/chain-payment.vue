@@ -11,7 +11,7 @@
   state: address hidden, no way to complete, single exit `restart`.
 -->
 <template>
-  <view class="rounded-2xl overflow-hidden" :style="cardStyle">
+  <view class="nx-glass-card rounded-2xl overflow-hidden" :style="cardStyle">
     <!-- Header -->
     <view class="flex items-center border-b" :style="headerStyle">
       <view class="grid place-items-center shrink-0" :style="iconBoxStyle">
@@ -180,7 +180,7 @@ const qrCells = computed<{ i: number; x: number; y: number }[]>(() => {
 
 // ─── styles ───
 // bg-filled card → zero border(带 bg 的容器不加边框,2026-07-09 终裁);层级靠 surface 微差。
-const cardStyle: CSSProperties = { background: "var(--v5-surface)" };
+const cardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)" };
 const headerStyle: CSSProperties = { padding: "16px 20px", gap: "12px", borderColor: "color-mix(in srgb, var(--v5-border) 70%, transparent)" };
 const iconBoxStyle: CSSProperties = { width: "36px", height: "36px", borderRadius: "8px", background: "color-mix(in srgb, var(--v5-brand) 15%, transparent)" };
 const headerTitleStyle: CSSProperties = {
@@ -232,4 +232,6 @@ const expiredTitleStyle: CSSProperties = {
   fontWeight: 600,
   color: "var(--v5-ink)",
 };
+
+
 </script>

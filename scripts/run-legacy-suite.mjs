@@ -3,16 +3,16 @@
 //   node scripts/run-legacy-suite.mjs
 //
 // 为什么要这层壳(z1 收口,2026-08-10):
-//   `scripts/verify.sh` 里的运行时探针要一个**跑在 mock 模式**的 dev server。
+//   `scripts/verify.sh` 里的运行时探针要一台本树 development server。
 //   以前靠「你自己先起一个 5173」这个口头约定,于是两种翻车都真发生过:
 //     ① 忘了起 → 探针整片 SKIP/红,或(更糟)打到别人的 checkout 上验错了对象;
-//     ② 起了但没 mock → app 走 remote 分支,注册等流程整条绕开被测代码,门静默失效。
-//   这层壳照 verify-h5-runtime.mjs 的家法:自己挑空闲端口、以 mock 模式起**本工作树**的
+//     ② 起了但构建环境不对 → 被测分支与验收目标不一致,门静默失效。
+//   这层壳照 verify-h5-runtime.mjs 的家法:自己挑空闲端口、以 development 起**本工作树**的
 //   server、把 BASE_URL 交给 sh、跑完连进程树一起收掉。套件从此对外部环境零依赖,
 //   接进官方门链才不会互相踩(多个 worktree 会话并发时尤其重要 —— 各起各的端口)。
 //
-// 起服走 lib/dev-server-pool.mjs；runner 的 fixed-mock server 可经
-//   LEGACY_SUITE_REUSE_MOCK_URL 传进来，并在复用前核对本树与固定 mock 身份。
+// 包 ar(2026-08-17):起服走 lib/dev-server-pool.mjs;runner 已起的一对 server 可经
+//   LEGACY_SUITE_REUSE_DEV_URL / LEGACY_SUITE_REUSE_PROD_URL 传进来 —— **先核身份(本树 + 构建环境)再复用**,
 //   核不过照旧自己起。VERIFY_MODE(full|scoped|static)原样透传给 verify.sh;static 档不该走本壳
 //   (不需要 server,runner 直接裸跑 verify.sh)。
 import { spawnSync } from "node:child_process";
@@ -26,17 +26,21 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 
 const log = (m) => console.log(`legacy-suite:${m}`);
-const server = await ensureServer({ root, reuseUrl: process.env.LEGACY_SUITE_REUSE_MOCK_URL || null, log });
+const [server, productionServer] = await Promise.all([
+  ensureServer({ root, environment: "development", reuseUrl: process.env.LEGACY_SUITE_REUSE_DEV_URL || null, log }),
+  ensureServer({ root, environment: "production", reuseUrl: process.env.LEGACY_SUITE_REUSE_PROD_URL || null, log }),
+]);
 const baseUrl = server.baseUrl;
+const remoteBaseUrl = productionServer.baseUrl;
 
 let code = 1;
 try {
-  log(`fixed-mock server ${baseUrl}(${server.reused ? "复用" : "隔离自起"})，开始跑 scripts/verify.sh(VERIFY_MODE=${process.env.VERIFY_MODE || "full"})`);
+  log(`development server ${baseUrl}(${server.reused ? "复用" : "隔离自起"})· production 资金边界 server ${remoteBaseUrl}(${productionServer.reused ? "复用" : "隔离自起"}),开始跑 scripts/verify.sh(VERIFY_MODE=${process.env.VERIFY_MODE || "full"})`);
   const bash = findBash();
   if (!bash) throw new Error("BASH_RUNTIME_NOT_FOUND:请安装 Git Bash 或设置 BASH_EXE");
   const res = spawnSync(bash, ["scripts/verify.sh"], {
     cwd: root,
-    env: { ...process.env, BASE_URL: baseUrl },
+    env: { ...process.env, BASE_URL: baseUrl, REMOTE_BASE_URL: remoteBaseUrl },
     stdio: "inherit",
     shell: false,
   });
@@ -83,5 +87,6 @@ try {
   }
 } finally {
   server.stop();
+  productionServer.stop();
 }
 process.exit(code);

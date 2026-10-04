@@ -1,4 +1,5 @@
 import { normalizeAccountKey } from "@/store/account-cloud";
+import { requireCryptoUuid } from "@/lib/secure-command-id";
 
 /**
  * 按账号分行的 uni storage 表(P2-8 存储作用域债修复)。
@@ -6,7 +7,7 @@ import { normalizeAccountKey } from "@/store/account-cloud";
  * 写入走「现读现改现写」,与 account-cloud 表同款语义(窄竞态,多端各写各行)。
  * 真后台:行数据即 per-user 服务端资源,accountKey 即用户主键 —— 结构 backend-replaceable。
  */
-export function readAccountRow<T>(tableKey: string, accountKey: string): T | null {
+export function readAccountRow<T>(tableKey: string, accountKey: string, throwOnReadError = false): T | null {
   try {
     const table = uni.getStorageSync(tableKey) as Record<string, T> | "";
     if (table && typeof table === "object") {
@@ -14,6 +15,7 @@ export function readAccountRow<T>(tableKey: string, accountKey: string): T | nul
       if (row && typeof row === "object") return row;
     }
   } catch {
+    if (throwOnReadError) throw new Error("ACCOUNT_COMMAND_STORAGE_UNAVAILABLE");
     // storage unavailable
   }
   return null;
@@ -30,6 +32,70 @@ export function writeAccountRow<T>(tableKey: string, accountKey: string, row: T)
     // storage unavailable
     return false;
   }
+}
+
+interface AccountCommandRow {
+  commands: Record<string, string>;
+}
+
+/**
+ * Acquire a replay key only after it has been durably stored for this account
+ * and business intent. A remote mutation must never start with a memory-only
+ * key: if the response is lost and the App then restarts, that would mint a
+ * second key and could create a duplicate order.
+ */
+export function acquireAccountCommandKey(
+  tableKey: string,
+  accountKey: string,
+  intent: string,
+  prefix: string,
+  createId: () => string = requireCryptoUuid,
+): string {
+  const normalizedIntent = intent.trim();
+  const normalizedPrefix = prefix.trim();
+  if (!tableKey.trim() || !normalizedIntent || !normalizedPrefix) {
+    throw new Error("ACCOUNT_COMMAND_SCOPE_INVALID");
+  }
+  // An unreadable command row is unknown, never proof that no prior key exists.
+  const persisted = readAccountRow<AccountCommandRow>(tableKey, accountKey, true);
+  const commands = persisted?.commands && typeof persisted.commands === "object"
+    ? persisted.commands
+    : {};
+  const existing = commands[normalizedIntent];
+  if (typeof existing === "string" && existing.trim()) return existing;
+
+  const generatedId = createId().trim();
+  if (!generatedId) throw new Error("ACCOUNT_COMMAND_ID_UNAVAILABLE");
+  const key = `${normalizedPrefix}:${generatedId}`;
+  if (!writeAccountRow<AccountCommandRow>(tableKey, accountKey, {
+    commands: { ...commands, [normalizedIntent]: key },
+  })) {
+    throw new Error("ACCOUNT_COMMAND_STORAGE_UNAVAILABLE");
+  }
+  // Read-after-write also converges same-intent races on the key that is
+  // actually recoverable after a restart.
+  const committed = readAccountRow<AccountCommandRow>(tableKey, accountKey, true)?.commands?.[normalizedIntent];
+  if (typeof committed !== "string" || !committed.trim()) {
+    throw new Error("ACCOUNT_COMMAND_STORAGE_UNAVAILABLE");
+  }
+  return committed;
+}
+
+/** Forget a completed command without deleting a newer retry. */
+export function releaseAccountCommandKey(
+  tableKey: string,
+  accountKey: string,
+  intent: string,
+  expectedKey: string,
+): boolean {
+  const normalizedIntent = intent.trim();
+  if (!tableKey.trim() || !normalizedIntent || !expectedKey.trim()) return false;
+  const persisted = readAccountRow<AccountCommandRow>(tableKey, accountKey);
+  if (persisted?.commands?.[normalizedIntent] !== expectedKey) return false;
+  const commands = { ...persisted.commands };
+  delete commands[normalizedIntent];
+  if (!writeAccountRow<AccountCommandRow>(tableKey, accountKey, { commands })) return false;
+  return readAccountRow<AccountCommandRow>(tableKey, accountKey)?.commands?.[normalizedIntent] === undefined;
 }
 
 /**
@@ -76,7 +142,8 @@ export function removeAccountScopedPersistentState(rawAccountKey: string): boole
         continue;
       }
 
-      if (tableKey === "nexgrid-calibrated-device-v1" && accountKey in value) {
+      if (["nexgrid-calibrated-device-v1", "nexgrid-deferred-phone-activation-v1"].includes(tableKey)
+          && accountKey in value) {
         const next = { ...value };
         delete next[accountKey];
         uni.setStorageSync(tableKey, next);

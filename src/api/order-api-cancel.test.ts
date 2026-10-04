@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ApiClient } from "./api-client";
-import { createOrderApi, setCurrentCommerceSandboxRun } from "./order-api";
+import { createOrderApi, advanceRuntimeRevision } from "./order-api";
 
 describe("order cancellation API", () => {
-  afterEach(() => setCurrentCommerceSandboxRun(null));
+  afterEach(() => advanceRuntimeRevision(null));
 
   it("sends the authenticated idempotent cancel command and parses server state", async () => {
     const request = vi.fn().mockResolvedValue({
@@ -30,21 +30,21 @@ describe("order cancellation API", () => {
     await expect(api.cancel("ORD-1", "cancel-key")).rejects.toMatchObject({ kind: "protocol" });
   });
 
-  it("accepts only the current catalog run for sandbox cancellation", async () => {
-    setCurrentCommerceSandboxRun("run-20260816");
+  it("rejects retired sandbox cancellation even when the catalog run matches", async () => {
+    advanceRuntimeRevision("run-20260816");
     const request = vi.fn().mockResolvedValue({
       orderNo: "ORD-1", orderStatus: "CANCELLED", paymentStatus: "CANCELLED",
       source: "mock", sourceEnvironment: "SANDBOX", runId: "run-20260816",
       serverCanonical: true, idempotent: true,
     });
     const api = createOrderApi({ request } as unknown as ApiClient, "dev");
-    await expect(api.cancel("ORD-1", "cancel-key")).resolves.toMatchObject({
-      source: "mock", sourceEnvironment: "SANDBOX", runId: "run-20260816", serverCanonical: true,
+    await expect(api.cancel("ORD-1", "cancel-key")).rejects.toMatchObject({
+      kind: "protocol", message: "ORDER_RESPONSE_INVALID",
     });
   });
 
   it("rejects a sandbox cancellation from a different catalog run", async () => {
-    setCurrentCommerceSandboxRun("run-20260816");
+    advanceRuntimeRevision("run-20260816");
     const request = vi.fn().mockResolvedValue({
       orderNo: "ORD-1", orderStatus: "CANCELLED", paymentStatus: "CANCELLED",
       source: "mock", sourceEnvironment: "SANDBOX", runId: "run-20260815",

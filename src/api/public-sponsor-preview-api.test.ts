@@ -21,6 +21,15 @@ describe("public sponsor preview", () => {
     expect(parsePublicSponsorPreview(valid)).toEqual(valid);
   });
 
+  it("accepts a disabled reward projection only with zero amounts", () => {
+    const disabled = { ...valid, gift: { status: "DISABLED", usdtAmount: 0, nexAmount: 0 } };
+    expect(parsePublicSponsorPreview(disabled)).toEqual(disabled);
+    expect(() => parsePublicSponsorPreview({
+      ...disabled,
+      gift: { ...disabled.gift, nexAmount: 10 },
+    })).toThrowError(new ApiError({ kind: "protocol", message: "REFERRAL_PREVIEW_RESPONSE_INVALID" }));
+  });
+
   it("rejects raw identity fields or client supplied gift fields", () => {
     expect(() => parsePublicSponsorPreview({
       ...valid,

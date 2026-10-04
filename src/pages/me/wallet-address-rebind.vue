@@ -13,27 +13,22 @@
     <view style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/wallet-withdraw" :title="t.addrRebind.title" :subtitle="t.addrRebind.subtitle" />
 
-      <view
-        v-if="payoutAddressMockEnabled"
-        data-testid="payout-address-mock-source"
-        class="mx-4"
-        style="margin-bottom: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(245, 158, 11, 0.08)"
-      >
-        <text class="block" style="font-size: 12px; line-height: 1.5; color: var(--v5-warning)">{{ t.addrRebind.sandboxMockNotice }}</text>
-      </view>
-
       <!-- ── 网络切换(与提现页同语汇)── -->
       <view class="mx-4" style="padding: 0 2px">
         <view><text class="font-mono-tabular" :style="metaLabelStyle">{{ t.addrRebind.networkLabel }}</text></view>
-        <view class="flex" style="gap: 8px; margin-top: 8px">
+        <view class="flex" style="gap: 8px; margin-top: 8px" role="radiogroup" :aria-label="t.addrRebind.networkLabel">
           <view
             v-for="nw in NETWORKS"
             :key="nw.id"
-            :class="['flex-1 flex flex-col items-center justify-center active:opacity-85', `nx-rebind-net-${nw.label.toLowerCase()}`]"
+            :class="['flex-1 flex flex-col items-center justify-center active:opacity-85 nx-rebind-network-radio', `nx-rebind-net-${nw.label.toLowerCase()}`]"
             :style="netChipStyle(nw.id)"
-            role="button" tabindex="0"
-            :aria-selected="network === nw.id"
+            role="radio" :tabindex="network === nw.id ? 0 : -1"
+            :aria-checked="network === nw.id"
             @click="switchNetwork(nw.id)"
+
+
+
+            @keydown.enter.prevent="switchNetwork(nw.id)" @keydown.space.prevent="switchNetwork(nw.id)" @keydown.left.prevent="moveNetwork(-1)" @keydown.right.prevent="moveNetwork(1)"
           >
             <text :style="netChipLabelStyle(nw.id)">{{ nw.label }}</text>
             <text v-if="nw.id === 'usdt-trc20'" :style="netChipTagStyle">{{ t.topupChrome.netRecommended }}</text>
@@ -78,6 +73,7 @@
           maxlength="6"
           :value="otpCode"
           :placeholder="t.addrRebind.otpPlaceholder"
+          :aria-label="t.addrRebind.otpPlaceholder"
           @input="onOtpInput"
         />
         <view v-if="otpError"><text class="block" :style="errorTextStyle">{{ otpError }}</text></view>
@@ -116,9 +112,13 @@
           type="text"
           :value="newAddress"
           :placeholder="addressPlaceholder"
+          :aria-label="t.addrRebind.newAddressLabel"
+          aria-required="true"
+          :aria-invalid="addrError ? 'true' : 'false'"
+          :aria-describedby="addrError ? 'rebind-address-error' : undefined"
           @input="onAddressInput"
         />
-        <view v-if="addrError"><text class="block" :style="errorTextStyle">{{ addrError }}</text></view>
+        <view v-if="addrError"><text id="rebind-address-error" class="block" :style="errorTextStyle">{{ addrError }}</text></view>
 
         <!-- 安全提示:添加/更换均冻结 24h;每 7 天最多设置一次。 -->
         <view v-if="mode === 'change'" class="flex" :style="warnlineStyle">
@@ -161,7 +161,7 @@
         </view>
 
         <view style="margin-top: 16px"><text class="font-mono-tabular" :style="metaLabelStyle">{{ t.addrRebind.currentLabel }}</text></view>
-        <view class="mt-2" :style="currentCardStyle">
+        <view class="nx-glass-card mt-2" :style="currentCardStyle">
           <view class="flex items-center" style="gap: 8px">
             <text class="font-mono flex-1 min-w-0" style="font-size: 13px; color: var(--v5-ink); white-space: nowrap">{{ maskAddressMid(current?.address ?? '') }}</text>
             <view v-if="current?.source === 'migrated'" class="shrink-0 grid place-items-center" :style="migratedBadgeStyle">
@@ -188,6 +188,24 @@
         <view v-else-if="changeBlock === 'cooldown'" class="mt-3 flex" :style="blockBoxStyle">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" style="margin-top: 1px"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
           <view class="flex-1 min-w-0"><text :style="warnTextStyle">{{ cooldownUntilText }}</text></view>
+        </view>
+        <view v-else-if="changeBlock === 'time-unknown'" class="mt-3 flex" :style="blockBoxStyle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" style="margin-top: 1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+          <view class="flex-1 min-w-0">
+            <text class="block" :style="warnTextStyle">{{ t.addrRebind.timeStatusUnavailable }}</text>
+            <view
+              class="nx-rebind-refresh-time inline-flex items-center active:opacity-70"
+              :class="{ 'opacity-50': remoteRefreshPending }"
+              style="min-height: 44px"
+              role="button" tabindex="0"
+              :aria-disabled="remoteRefreshPending ? 'true' : 'false'"
+              @click="retryRemoteSnapshot"
+
+              @keydown.enter.prevent="retryRemoteSnapshot" @keydown.space.prevent="retryRemoteSnapshot"
+            >
+              <text style="font-size: 12px; font-weight: 500; color: var(--v5-brand)">{{ remoteRefreshPending ? t.addrRebind.refreshingStatus : t.addrRebind.refreshTimeStatusCta }}</text>
+            </view>
+          </view>
         </view>
         <view
           v-else
@@ -222,10 +240,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, type CSSProperties } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
+import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
 import { asApiError } from "@/api/errors";
-import { payoutAddressMockEnabled, payoutAddressServerEnabled } from "@/api/runtime";
+import { payoutAddressServerEnabled } from "@/api/runtime";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import CaptchaSlider from "@/components/captcha-slider.vue";
@@ -238,12 +257,8 @@ import { useConfig } from "@/store/config";
 import { usePayoutAddress } from "@/store/payout-address";
 import { mockServerNow } from "@/store/server-time";
 import { otpSend, otpVerify } from "@/store/auth-otp";
-import {
-  formatClock,
-  freezeRemainingMs,
-  isChainAddressValid,
-  maskAddressMid,
-} from "@/store/payout-address-core";
+import { formatClock, isChainAddressValid, maskAddressMid } from "@/store/payout-address-core";
+import { advanceMonotonicHighWater, deadlineRemainingMs, projectServerNow, readTrustedMonotonicNowMs } from "@/lib/server-deadline-clock";
 import type { ChainDepositChannel } from "@/store/types";
 
 const t = useT();
@@ -291,6 +306,15 @@ function switchNetwork(id: ChainDepositChannel) {
   addrError.value = "";
   historyOpen.value = false;
 }
+function moveNetwork(delta: number) {
+  const index = NETWORKS.findIndex((item) => item.id === network.value);
+  const next = NETWORKS[(index + delta + NETWORKS.length) % NETWORKS.length];
+  if (!next) return;
+  switchNetwork(next.id);
+  void nextTick(() => {
+    if (typeof document !== "undefined") document.querySelector<HTMLElement>(".nx-rebind-network-radio[tabindex=\"0\"]")?.focus();
+  });
+}
 
 // ── 表单 ──
 const newAddress = ref("");
@@ -308,8 +332,7 @@ const effectiveMode = computed<"add" | "change">(() => (current.value ? mode.val
 
 // ── 拦截判定(store 单一判据:在途单 > 频控;页面不自算)──
 const changeBlock = computed(() => {
-  void nowTick.value; // 频控是时间函数,跨过 nextChangeAt 边界要重算
-  return payout.changeBlockReason(network.value);
+  return payout.changeBlockReason(network.value, projectedServerNow.value);
 });
 function startChange() {
   // 双门:入口判一次,store.changeAddress 落库前再判一次(与提交同款纪律)。
@@ -539,22 +562,97 @@ function backToBase() {
   addrError.value = "";
 }
 
-// ── 冻结 / 频控展示(server 时钟 1s tick)──
-const nowTick = ref(mockServerNow());
+// ── 冻结 / 频控展示(server snapshot + monotonic elapsed)──
+// Remote time never uses the device wall clock. A legacy response without its
+// anchor leaves time gates closed and shows a retry state instead of a fake clock.
+const mockNow = ref(mockServerNow());
+const monotonicNow = ref<number | null>(readTrustedMonotonicNowMs());
+const clockFault = ref(false);
+const remoteRefreshPending = ref(false);
 let tickTimer: ReturnType<typeof setInterval> | undefined;
+let pageVisible = true;
+let refreshGeneration = 0;
+
+// A fresh server anchor is the recovery boundary after losing the clock. Reset
+// the high-water mark too: an old clock origin must not advance a new snapshot.
+watch(() => payout.serverClock, (anchor) => {
+  const now = readTrustedMonotonicNowMs();
+  monotonicNow.value = now;
+  clockFault.value = now === null || !anchor || now < anchor.receivedMonotonicAt;
+}, { immediate: true, flush: "sync" });
+
+async function retryRemoteSnapshot() {
+  if (!payoutAddressServerEnabled || !pageVisible || remoteRefreshPending.value) return;
+  const generation = ++refreshGeneration;
+  const accountKey = app.accountKey;
+  const accountEpoch = app.accountBindingEpoch;
+  const runtime = captureRuntimeRevision();
+  const isCurrent = () => pageVisible && generation === refreshGeneration
+    && accountKey === app.accountKey && accountEpoch === app.accountBindingEpoch
+    && isCurrentRuntimeRevision(runtime);
+  remoteRefreshPending.value = true;
+  try {
+    if (!await payout.refreshRemote() && isCurrent()) toast.error(t.value.addrRebind.startFailed);
+  } catch {
+    if (isCurrent()) toast.error(t.value.addrRebind.startFailed);
+  } finally {
+    if (generation === refreshGeneration) remoteRefreshPending.value = false;
+  }
+}
+function invalidatePageRefresh() {
+  refreshGeneration += 1;
+  remoteRefreshPending.value = false;
+}
+onShow(() => {
+  pageVisible = true;
+  void retryRemoteSnapshot();
+});
+onHide(() => {
+  pageVisible = false;
+  invalidatePageRefresh();
+});
+watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
+  invalidatePageRefresh();
+  void retryRemoteSnapshot();
+}, { flush: "sync" });
 onMounted(() => {
-  // refreshRemote 自吞不 reject(resilience 门);失败信号走返回值。
-  if (payoutAddressServerEnabled) void payout.refreshRemote().then((ok) => { if (!ok) toast.error(t.value.addrRebind.startFailed); });
-  tickTimer = setInterval(() => (nowTick.value = mockServerNow()), 1000);
+  void retryRemoteSnapshot();
+  tickTimer = setInterval(() => {
+    mockNow.value = mockServerNow();
+    const now = readTrustedMonotonicNowMs();
+    if (now === null || (payout.serverClock && now < payout.serverClock.receivedMonotonicAt)) {
+      clockFault.value = true;
+      monotonicNow.value = null;
+    } else if (!clockFault.value) {
+      monotonicNow.value = advanceMonotonicHighWater(monotonicNow.value ?? now, now);
+    }
+  }, 1000);
 });
 onUnmounted(() => {
+  pageVisible = false;
+  invalidatePageRefresh();
   if (tickTimer) clearInterval(tickTimer);
   if (resendTimer) clearInterval(resendTimer);
 });
-const freezeLeftMs = computed(() => freezeRemainingMs(payout.stateFor(network.value).freezeUntil, nowTick.value));
-const frozenNow = computed(() => freezeLeftMs.value > 0);
+const projectedServerNow = computed<number | null>(() => {
+  if (!payoutAddressServerEnabled) return mockNow.value;
+  if (clockFault.value || monotonicNow.value === null) return null;
+  const anchor = payout.serverClock;
+  return anchor
+    ? projectServerNow(anchor.serverNowEpochMs, anchor.receivedMonotonicAt, monotonicNow.value)
+    : null;
+});
+const freezeLeftMs = computed<number | null>(() => {
+  const now = projectedServerNow.value;
+  return now === null ? null : deadlineRemainingMs(payout.stateFor(network.value).freezeUntil ?? now, now);
+});
+const freezeTimeUnknown = computed(() => projectedServerNow.value === null
+  && payout.stateFor(network.value).freezeUntil !== null);
+const frozenNow = computed(() => freezeTimeUnknown.value || (freezeLeftMs.value ?? 0) > 0);
 const freezeBannerText = computed(() =>
-  fmt(t.value.addrRebind.freezeBanner, { t: formatClock(freezeLeftMs.value, { hours: true }) }),
+  freezeTimeUnknown.value
+    ? t.value.addrRebind.timeStatusUnavailable
+    : fmt(t.value.addrRebind.freezeBanner, { t: formatClock(freezeLeftMs.value ?? 0, { hours: true }) }),
 );
 const cooldownDays = computed(() => payout.changeCooldownDays ?? cfg.config.withdrawRules.rebindCooldownDays);
 function fmtStamp(ts: number): string {
@@ -574,7 +672,8 @@ const holdNoteText = computed(() => fmt(t.value.addrRebind.holdNote, { h: holdHo
 const holdActive = computed(() => {
   const c = current.value;
   if (!c || c.source !== "user") return false;
-  return nowTick.value - c.addedAt < holdHours.value * 3600 * 1000;
+  const now = projectedServerNow.value;
+  return now !== null && now - c.addedAt < holdHours.value * 3600 * 1000;
 });
 
 // ── 动作 ──
@@ -628,11 +727,8 @@ function netChipLabelStyle(id: ChainDepositChannel): CSSProperties {
   };
 }
 const netChipTagStyle: CSSProperties = {
-  display: "block",
-  width: "100%",
-  fontSize: "11px",
+  fontSize: "12px",
   fontWeight: 600,
-  whiteSpace: "nowrap",
   color: "var(--v5-brand)",
   textAlign: "center",
   lineHeight: 1.3,
@@ -655,10 +751,10 @@ const blockBoxStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-warning) 8%, transparent)",
   gap: "8px",
 };
-const currentCardStyle: CSSProperties = {
+const currentCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   padding: "12px",
-  borderRadius: "12px",
-  background: "var(--v5-surface)",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
 };
 const migratedBadgeStyle: CSSProperties = {
   padding: "3px 8px",
@@ -750,6 +846,8 @@ const successRowValStyle: CSSProperties = {
   fontSize: "13px",
   color: "var(--v5-ink)",
 };
+
+
 </script>
 
 <style scoped>

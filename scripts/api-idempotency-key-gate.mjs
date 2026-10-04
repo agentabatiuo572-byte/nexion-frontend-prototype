@@ -81,6 +81,16 @@ function isMemoized(body) {
     const holder = m[1].replace(/[.$]/g, "\\$&");
     if (new RegExp(`return\\s+${holder}\\b`).test(body.slice(0, m.index))) return true;
   }
+  // Map-backed intent memory: `const intent = holder.get(key) ?? fresh; holder.set(key, intent)`.
+  // This is the same freeze invariant as the early-return form, expressed as a nullish cache fill.
+  const cached = body.match(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$.]*)\.get\(([^)]+)\)\s*\?\?/);
+  if (cached) {
+    const [, value, holder, key] = cached;
+    const escapedHolder = holder.replace(/[.$]/g, "\\$&");
+    const escapedValue = value.replace(/[$]/g, "\\$&");
+    const escapedKey = key.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`${escapedHolder}\\.set\\(\\s*${escapedKey}\\s*,\\s*${escapedValue}\\s*\\)`).test(body)) return true;
+  }
   return false;
 }
 
@@ -112,6 +122,13 @@ for (const rel of apiFiles) {
     while (name === "async" || name === "function") {
       head = head.slice(0, head.lastIndexOf(name));
       name = head.match(/([A-Za-z_$][\w$]*)\s*[:=]?\s*$/)?.[1];
+    }
+    // Calls such as `.map(({ idempotencyKey }) => ...)` are callback parameter
+    // lists, not API method declarations. Treating `map` as an idempotent API
+    // method makes every unrelated Array.map call look like a fresh key site.
+    if (name) {
+      const nameAt = head.lastIndexOf(name);
+      if (head.slice(0, nameAt).trimEnd().endsWith(".")) continue;
     }
     if (name) sigs.set(name, commas);
   }

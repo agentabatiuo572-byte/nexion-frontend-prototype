@@ -1,6 +1,17 @@
 <template>
   <AppChassis active="earn">
-    <view v-if="enabled" class="pb-8" style="color: var(--v5-ink)">
+    <view v-if="gatePhase === 'pending'" class="mx-4" style="padding-top: 24px; color: var(--v5-ink)" role="status" aria-live="polite" aria-busy="true" data-proof="compute-share-config-pending">
+      <text class="block" :style="headlineStyle">{{ t.computeShare.configLoadingTitle }}</text>
+      <text class="block" :style="bodyStyle">{{ t.computeShare.configLoadingBody }}</text>
+    </view>
+    <view v-else-if="gatePhase === 'failed'" class="mx-4" style="padding-top: 24px; color: var(--v5-ink)" role="status" aria-live="assertive" data-proof="compute-share-config-failed">
+      <text class="block" :style="headlineStyle">{{ t.computeShare.configUnavailableTitle }}</text>
+      <text class="block" :style="bodyStyle">{{ t.computeShare.configUnavailableBody }}</text>
+      <view :style="devicesButtonStyle" role="button" tabindex="0" :aria-label="t.computeShare.configRetryCta" @click="retryConfigGate" @keydown.enter.prevent="retryConfigGate" @keydown.space.prevent="retryConfigGate">
+        <text>{{ t.computeShare.configRetryCta }}</text>
+      </view>
+    </view>
+    <view v-else-if="enabled" class="pb-8" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/devices" :title="downloadTitle" />
 
       <view class="mx-4" :style="heroStyle" data-proof="compute-share-download-page">
@@ -14,10 +25,10 @@
         </view>
 
         <view class="flex items-center" style="gap: 8px; margin-top: 12px">
-          <view :style="downloadButtonStyle" @click="copyDownloadUrl">
+          <view :style="downloadButtonStyle" role="button" tabindex="0" :aria-label="t.computeShare.downloadCta" @click="copyDownloadUrl">
             <text>{{ downloadUrl ? t.computeShare.downloadCta : t.computeShare.downloadPending }}</text>
           </view>
-          <view :style="devicesButtonStyle" @click="goDevices">
+          <view :style="devicesButtonStyle" role="button" tabindex="0" :aria-label="t.computeShare.goDevicesCta" @click="goDevices">
             <text>{{ t.computeShare.goDevicesCta }}</text>
           </view>
         </view>
@@ -34,12 +45,23 @@
         </view>
 
         <text class="block" :style="modelLabelStyle">{{ t.computeShare.modelLabel }}</text>
-        <view class="grid" style="grid-template-columns: 1fr 1fr; gap: 8px">
+        <!-- 显卡型号是互斥单选(选一个,其余取消)。原先 role="button" + aria-pressed 被浏览器
+             当 toggle button,读屏按复选框朗读(zentao #94)。改 radiogroup/radio + aria-checked
+             + roving tabindex + 左右方向键。 -->
+        <view class="grid" style="grid-template-columns: 1fr 1fr; gap: 8px" role="radiogroup" :aria-label="t.computeShare.modelLabel">
           <view
-            v-for="model in GPU_MODEL_PRESETS"
+            v-for="(model, mi) in GPU_MODEL_PRESETS"
             :key="model"
             :style="modelButtonStyle(model)"
+            role="radio"
+            :tabindex="selectedModel === model ? 0 : -1"
+            :aria-label="model"
+            :aria-checked="selectedModel === model ? 'true' : 'false'"
             @click="selectedModel = model"
+            @keydown.enter.prevent="selectedModel = model"
+            @keydown.space.prevent="selectedModel = model"
+            @keydown.left.prevent="moveModel(mi, -1)"
+            @keydown.right.prevent="moveModel(mi, 1)"
           >
             <text>{{ model }}</text>
           </view>
@@ -50,21 +72,27 @@
         </view>
 
         <view v-if="remoteApiEnabled && enrollment" class="mt-3" :style="pairingStyle" data-proof="compute-share-server-pairing">
-          <view v-if="enrollment.pairingCode" class="flex items-center justify-between" style="gap: 12px">
+          <view class="flex items-center justify-between" style="gap: 12px">
             <view class="min-w-0">
               <text class="block" :style="pairingLabelStyle">{{ t.computeShare.pairingLabel }}</text>
-              <text class="block" :style="pairingCodeStyle">{{ enrollment.pairingCode }}</text>
+              <text v-if="enrollment.pairingCode" class="block" :style="pairingCodeStyle">{{ enrollment.pairingCode }}</text>
+              <text v-else class="block" :style="pairingCodeStyle">{{ pairingStatusLabel }}</text>
             </view>
-            <view :style="copyCodeStyle" @click="copyPairingCode">
+            <view v-if="enrollment.pairingCode" :style="copyCodeStyle" role="button" tabindex="0" :aria-label="t.computeShare.copyPairingCode" @click="copyPairingCode">
               <text>{{ t.computeShare.copyPairingCode }}</text>
             </view>
           </view>
           <text class="block" :style="pairingBodyStyle">{{ pairingStatusText }}</text>
+          <text class="block" :style="pairingNoStyle">{{ enrollment.enrollmentNo }}</text>
         </view>
 
         <view
           :style="connectButtonStyle"
-          :data-disabled="mockFundsEnabled || slotsFull || connecting || enrollment?.status === 'PENDING'"
+          :data-disabled="slotsFull || connecting || enrollment?.status === 'PENDING'"
+          role="button"
+          tabindex="0"
+          :aria-disabled="slotsFull || connecting || enrollment?.status === 'PENDING' ? 'true' : 'false'"
+          :aria-label="connectButtonText"
           data-proof="compute-share-demo-connect"
           @click="connectDemoComputer"
         >
@@ -76,22 +104,30 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { navReplace, navTo } from "@/lib/route";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useApp } from "@/store/app";
 import { useConfig } from "@/store/config";
 import { useLocaleStore } from "@/store/locale";
-import { MAX_DEVICES } from "@/store/device-types";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { toast } from "@/store/ui";
 import { matchGpuTier } from "@/lib/gpu-tiers";
-import { containsLegacyBrand, isLegacyBrandUrl } from "@/lib/brand";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-import { computeShareApi, mockFundsEnabled, remoteApiEnabled } from "@/api/runtime";
+import { computeShareApi, remoteApiEnabled } from "@/api/runtime";
 import type { ComputeShareEnrollment } from "@/api/compute-share-api";
 import { isAmbiguousOutcome } from "@/api/errors";
+import { createComputeShareEnrollmentJournal } from "./enrollment-recovery";
+import { enrollmentStatusLabel } from "./enrollment-status-view";
+import { createComputeSharePairingHandoff } from "./pairing-handoff";
+import {
+  preserveInMemoryPairingCode,
+  runComputeShareEnrollmentFlow,
+  type InMemoryComputeSharePairingCode,
+} from "./enrollment-flow";
+import { createComputeShareDownloadGate, type ComputeShareDownloadGatePhase } from "./download-gate";
 
 const GPU_MODEL_PRESETS = [
   "Intel Iris Xe",
@@ -106,24 +142,49 @@ const locale = useLocaleStore();
 const t = useT();
 
 const selectedModel = ref(GPU_MODEL_PRESETS[2]);
+/** 单选组的左右方向键:移一格并选上,焦点跟到新选中项(zentao #94,与 earn.vue moveRange 同形)。 */
+function moveModel(index: number, delta: number): void {
+  const next = GPU_MODEL_PRESETS[(index + delta + GPU_MODEL_PRESETS.length) % GPU_MODEL_PRESETS.length];
+  if (!next) return;
+  selectedModel.value = next;
+  void nextTick(() => {
+    if (typeof document === "undefined") return;
+    document.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus();
+  });
+}
 const enrollment = ref<ComputeShareEnrollment | null>(null);
 const connecting = ref(false);
+const gatePhase = ref<ComputeShareDownloadGatePhase>("pending");
 let accountGeneration = 0;
+let lifecycleGeneration = 0;
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
-const enabled = computed(() => cfg.isEnabled("computeShareEnabled"));
-const downloadUrl = computed(() => {
-  const raw = cfg.config.computeShare.downloadUrl.trim();
-  return isLegacyBrandUrl(raw) ? "" : raw;
+let inMemoryPairingCode: InMemoryComputeSharePairingCode | null = null;
+const enrollmentJournal = createComputeShareEnrollmentJournal({
+  read: () => uni.getStorageSync("nexgrid.compute-share.enrollment.v1"),
+  write: (value) => uni.setStorageSync("nexgrid.compute-share.enrollment.v1", value),
+  remove: () => uni.removeStorageSync("nexgrid.compute-share.enrollment.v1"),
 });
+const downloadUrl = computed(() => cfg.config.computeShare.downloadUrl.trim());
+function isComputeShareReady(featureEnabled: boolean, installerUrl: string): boolean {
+  if (!featureEnabled || !installerUrl.startsWith("https://")) return false;
+  try {
+    const parsed = new URL(installerUrl);
+    return parsed.protocol === "https:" && Boolean(parsed.hostname)
+      && !parsed.username && !parsed.password && !parsed.hash;
+  } catch {
+    return false;
+  }
+}
+const enabled = computed(() => isComputeShareReady(cfg.isEnabled("computeShareEnabled"), downloadUrl.value));
 const downloadTitle = computed(() => {
   const content = cfg.config.computeShare.content;
   const configured = (locale.code === "zh" ? content.zhTitle : content.enTitle).trim();
-  return configured && !containsLegacyBrand(configured) ? configured : t.value.computeShare.downloadTitle;
+  return configured || t.value.computeShare.downloadTitle;
 });
 const downloadGuide = computed(() => {
   const content = cfg.config.computeShare.content;
   const configured = (locale.code === "zh" ? content.zhGuide : content.enGuide).trim();
-  return configured && !containsLegacyBrand(configured) ? configured : t.value.computeShare.downloadBody;
+  return configured || t.value.computeShare.downloadBody;
 });
 const selectedTier = computed(() => matchGpuTier(selectedModel.value, cfg.config.computeShare.gpuTiers));
 const tierLabels = computed(() => ({
@@ -136,7 +197,7 @@ const tierLabels = computed(() => ({
 }));
 const selectedTierLabel = computed(() => tierLabels.value[selectedTier.value.id]);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
-const slotsFull = computed(() => app.activeSlotCount + trialSlot.value >= MAX_DEVICES);
+const slotsFull = computed(() => app.activeSlotCount + trialSlot.value >= app.slotCap);
 const tierSummary = computed(() =>
   fmt(t.value.computeShare.tierSummary, {
     tier: selectedTierLabel.value,
@@ -148,37 +209,74 @@ const pairingStatusText = computed(() => enrollment.value?.status === "CONNECTED
   : enrollment.value?.status === "EXPIRED"
     ? t.value.computeShare.pairingExpired
     : t.value.computeShare.pairingPending);
+const pairingStatusLabel = computed(() => enrollment.value
+  ? enrollmentStatusLabel(enrollment.value.status, t.value.computeShare)
+  : "");
 const connectButtonText = computed(() => {
-  if (mockFundsEnabled) return t.value.computeShare.sandboxHoldCta;
   if (slotsFull.value) return t.value.computeShare.slotsFullCta;
   if (connecting.value) return t.value.computeShare.connectingCta;
   if (enrollment.value?.status === "PENDING") return t.value.computeShare.waitingPairCta;
   return t.value.computeShare.connectCta;
 });
 
-function guardDisabled() {
-  if (enabled.value) return;
+function clearPolling() {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = null;
+}
+
+function suspendRemoteWork() {
+  lifecycleGeneration += 1;
+  // A late create flow is scoped out by the increment. Clear its visual lock
+  // now so a later authoritative config recovery can resume the retained,
+  // idempotent journal instead of staying permanently "connecting".
+  connecting.value = false;
+  clearPolling();
+}
+
+function closeDisabled() {
+  inMemoryPairingCode = null;
   toast.info(t.value.computeShare.disabledToast);
-  uni.redirectTo({ url: "/pages/me/devices", fail: () => uni.reLaunch({ url: "/pages/me/devices", fail: () => {} }) });
+  navReplace("/pages/me/devices");
+}
+
+const downloadGate = createComputeShareDownloadGate({
+  status: () => cfg.configStatus,
+  enabled: () => enabled.value,
+  settle: () => cfg.ensureLoaded(),
+  setPhase: (phase) => { gatePhase.value = phase; },
+  suspend: suspendRemoteWork,
+  redirectDisabled: closeDisabled,
+  resume: () => {
+    if (remoteApiEnabled) void resumeRemoteEnrollment(String(app.accountKey), accountGeneration, lifecycleGeneration);
+  },
+});
+
+function retryConfigGate() {
+  if (gatePhase.value === "failed") void downloadGate.retry();
 }
 
 onMounted(() => {
-  guardDisabled();
-  if (remoteApiEnabled && !mockFundsEnabled) void resumeRemoteEnrollment(String(app.accountKey), accountGeneration);
+  lifecycleGeneration += 1;
+  void downloadGate.mount();
 });
 onUnmounted(() => {
-  if (pollTimer) clearTimeout(pollTimer);
-  pollTimer = null;
+  suspendRemoteWork();
+  downloadGate.unmount();
+  inMemoryPairingCode = null;
 });
-watch(enabled, guardDisabled);
+watch(() => [cfg.configStatus, enabled.value] as const, () => {
+  downloadGate.reconcile();
+});
 watch(() => String(app.accountKey), (next, previous) => {
   if (next === previous) return;
   accountGeneration += 1;
   connecting.value = false;
   enrollment.value = null;
-  if (pollTimer) clearTimeout(pollTimer);
-  pollTimer = null;
-  if (remoteApiEnabled && !mockFundsEnabled) void resumeRemoteEnrollment(next, accountGeneration);
+  inMemoryPairingCode = null;
+  clearPolling();
+  if (remoteApiEnabled && gatePhase.value === "ready" && enabled.value) {
+    void resumeRemoteEnrollment(next, accountGeneration, lifecycleGeneration);
+  }
 });
 
 function copyDownloadUrl() {
@@ -197,99 +295,110 @@ function copyDownloadUrl() {
   });
 }
 
-function storageScope(accountKey: string): string {
-  return `nexgrid.compute-share.enrollment.${accountKey}`;
-}
-
-function readPending(accountKey: string): { requestedGpuModel: string; idempotencyKey: string } | null {
-  try {
-    const value = JSON.parse(localStorage.getItem(storageScope(accountKey)) ?? "null") as Record<string, unknown> | null;
-    if (!value || typeof value.requestedGpuModel !== "string" || typeof value.idempotencyKey !== "string") return null;
-    if (!value.requestedGpuModel.trim() || !value.idempotencyKey.trim()) return null;
-    return { requestedGpuModel: value.requestedGpuModel.trim(), idempotencyKey: value.idempotencyKey.trim() };
-  } catch {
-    return null;
-  }
-}
-
-function writePending(accountKey: string, value: { requestedGpuModel: string; idempotencyKey: string }) {
-  try { localStorage.setItem(storageScope(accountKey), JSON.stringify(value)); } catch { /* storage may be unavailable */ }
-}
-
-function clearPending(accountKey: string) {
-  try { localStorage.removeItem(storageScope(accountKey)); } catch { /* storage may be unavailable */ }
-}
-
-// IDEMPOTENCY-FRESH-OK: 仅在账号当前没有同型号 pending 意图时铸键，随后持久化并跨重试复用。
+// IDEMPOTENCY-FRESH-OK: 仅在账号当前没有 pending 意图时铸键，随后持久化并跨重试复用。
 function newEnrollmentKey(): string {
   const suffix = globalThis.crypto?.randomUUID?.()
     ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   return `compute-share-${suffix}`;
 }
 
-async function adoptEnrollment(next: ComputeShareEnrollment, expectedAccount: string, expectedGeneration: number) {
-  if (expectedAccount !== String(app.accountKey) || expectedGeneration !== accountGeneration) return;
+function isCurrent(expectedAccount: string, expectedGeneration: number, expectedLifecycle: number): boolean {
+  return expectedAccount === String(app.accountKey)
+    && expectedGeneration === accountGeneration
+    && expectedLifecycle === lifecycleGeneration;
+}
+
+async function adoptEnrollment(
+  candidate: ComputeShareEnrollment,
+  expectedAccount: string,
+  expectedGeneration: number,
+  expectedLifecycle: number,
+) {
+  if (!isCurrent(expectedAccount, expectedGeneration, expectedLifecycle)) return;
+  const preserved = preserveInMemoryPairingCode(candidate, inMemoryPairingCode, expectedAccount);
+  const next = preserved.enrollment;
+  inMemoryPairingCode = preserved.pairingCode;
   enrollment.value = next;
   if (next.status === "CONNECTED") {
-    clearPending(expectedAccount);
+    enrollmentJournal.clear(expectedAccount);
     if (pollTimer) clearTimeout(pollTimer);
     pollTimer = null;
     await app.refreshRemoteFleet();
-    if (expectedAccount !== String(app.accountKey) || expectedGeneration !== accountGeneration) return;
+    if (!isCurrent(expectedAccount, expectedGeneration, expectedLifecycle)) return;
     toast.success(fmt(t.value.computeShare.connectedToast, { tier: selectedTierLabel.value }));
-    uni.navigateTo({ url: "/pages/me/devices", fail: () => {} });
+    navTo("/pages/me/devices");
     return;
   }
   if (next.status === "EXPIRED") {
-    clearPending(expectedAccount);
+    enrollmentJournal.clear(expectedAccount);
     return;
   }
-  scheduleStatusPoll(next.enrollmentNo, expectedAccount, expectedGeneration);
+  scheduleStatusPoll(next.enrollmentNo, expectedAccount, expectedGeneration, expectedLifecycle);
 }
 
-function scheduleStatusPoll(enrollmentNo: string, expectedAccount: string, expectedGeneration: number) {
+function scheduleStatusPoll(
+  enrollmentNo: string,
+  expectedAccount: string,
+  expectedGeneration: number,
+  expectedLifecycle: number,
+) {
   if (pollTimer) clearTimeout(pollTimer);
   pollTimer = setTimeout(async () => {
-    if (expectedAccount !== String(app.accountKey) || expectedGeneration !== accountGeneration) return;
+    if (!isCurrent(expectedAccount, expectedGeneration, expectedLifecycle)) return;
     try {
-      await adoptEnrollment(await computeShareApi.status(enrollmentNo), expectedAccount, expectedGeneration);
+      await adoptEnrollment(
+        await computeShareApi.status(enrollmentNo), expectedAccount, expectedGeneration, expectedLifecycle,
+      );
     } catch {
-      if (expectedAccount === String(app.accountKey) && expectedGeneration === accountGeneration) {
-        scheduleStatusPoll(enrollmentNo, expectedAccount, expectedGeneration);
+      if (isCurrent(expectedAccount, expectedGeneration, expectedLifecycle)) {
+        scheduleStatusPoll(enrollmentNo, expectedAccount, expectedGeneration, expectedLifecycle);
       }
     }
   }, 3_000);
 }
 
-async function resumeRemoteEnrollment(expectedAccount: string, expectedGeneration: number) {
-  const pending = readPending(expectedAccount);
-  if (!pending || connecting.value) return;
-  selectedModel.value = pending.requestedGpuModel;
-  await createRemoteEnrollment(pending, expectedAccount, expectedGeneration);
+async function resumeRemoteEnrollment(expectedAccount: string, expectedGeneration: number, expectedLifecycle: number) {
+  if (!isCurrent(expectedAccount, expectedGeneration, expectedLifecycle) || !enabled.value || connecting.value) return;
+  const stored = enrollmentJournal.read(expectedAccount);
+  if (stored.kind !== "ok" || !stored.pending) return;
+  selectedModel.value = stored.pending.requestedGpuModel;
+  await createRemoteEnrollment(expectedAccount, expectedGeneration, expectedLifecycle);
 }
 
 async function createRemoteEnrollment(
-  pending?: { requestedGpuModel: string; idempotencyKey: string },
   expectedAccount = String(app.accountKey),
   expectedGeneration = accountGeneration,
+  expectedLifecycle = lifecycleGeneration,
 ) {
-  if (connecting.value) return;
-  const requestedGpuModel = selectedModel.value.trim();
-  const retained = readPending(expectedAccount);
-  const intent = pending
-    ?? (retained?.requestedGpuModel === requestedGpuModel ? retained : null)
-    ?? { requestedGpuModel, idempotencyKey: newEnrollmentKey() };
-  writePending(expectedAccount, intent);
+  if (connecting.value || !isCurrent(expectedAccount, expectedGeneration, expectedLifecycle) || !enabled.value) return;
   connecting.value = true;
   try {
-    await adoptEnrollment(await computeShareApi.create(intent.requestedGpuModel, intent.idempotencyKey), expectedAccount, expectedGeneration);
+    const result = await runComputeShareEnrollmentFlow({
+      accountKey: expectedAccount,
+      requestedGpuModel: selectedModel.value,
+      journal: enrollmentJournal,
+      createKey: newEnrollmentKey,
+      isCurrent: () => isCurrent(expectedAccount, expectedGeneration, expectedLifecycle),
+      isEnabled: () => enabled.value,
+      create: computeShareApi.create,
+      status: computeShareApi.status,
+    });
+    if (result.kind === "enrollment") {
+      await adoptEnrollment(result.enrollment, expectedAccount, expectedGeneration, expectedLifecycle);
+    } else if (isCurrent(expectedAccount, expectedGeneration, expectedLifecycle) && enabled.value) {
+      toast.warn(result.kind === "recovery-required" ? t.value.computeShare.recoveryRequired : t.value.computeShare.pairingFailed);
+    }
   } catch (cause) {
-    if (expectedAccount !== String(app.accountKey) || expectedGeneration !== accountGeneration) return;
-    if (!isAmbiguousOutcome(cause)) clearPending(expectedAccount);
+    if (!isCurrent(expectedAccount, expectedGeneration, expectedLifecycle)) return;
+    // Once an enrollment number is known, recovery must query it; otherwise replay the retained key.
+    const stored = enrollmentJournal.read(expectedAccount);
+    if (!isAmbiguousOutcome(cause) && stored.kind === "ok" && !stored.pending?.enrollmentNo) {
+      enrollmentJournal.clear(expectedAccount);
+    }
     console.warn("[compute-share] pairing failed:", cause);
     toast.warn(t.value.computeShare.pairingFailed);
   } finally {
-    if (expectedAccount === String(app.accountKey) && expectedGeneration === accountGeneration) connecting.value = false;
+    if (isCurrent(expectedAccount, expectedGeneration, expectedLifecycle)) connecting.value = false;
   }
 }
 
@@ -299,11 +408,7 @@ function connectDemoComputer() {
     return;
   }
   if (slotsFull.value) {
-    toast.warn(fmt(t.value.computeShare.slotsFullToast, { max: MAX_DEVICES }));
-    return;
-  }
-  if (mockFundsEnabled) {
-    toast.info(t.value.computeShare.sandboxHoldBody);
+    toast.warn(fmt(t.value.computeShare.slotsFullToast, { max: app.slotCap }));
     return;
   }
   if (connecting.value || enrollment.value?.status === "PENDING") return;
@@ -312,29 +417,41 @@ function connectDemoComputer() {
     if (!result.ok) {
       const msg = result.reason === "disabled"
         ? t.value.computeShare.disabledToast
-        : fmt(t.value.computeShare.slotsFullToast, { max: MAX_DEVICES });
+        : fmt(t.value.computeShare.slotsFullToast, { max: app.slotCap });
       toast.warn(msg);
       return;
     }
     toast.success(fmt(t.value.computeShare.connectedToast, { tier: selectedTierLabel.value }));
-    uni.navigateTo({ url: "/pages/me/devices", fail: () => {} });
+    navTo("/pages/me/devices");
     return;
   }
   const accountKey = String(app.accountKey);
-  void createRemoteEnrollment(readPending(accountKey) ?? undefined, accountKey, accountGeneration);
+  void createRemoteEnrollment(accountKey, accountGeneration, lifecycleGeneration);
 }
 
 function copyPairingCode() {
   if (!enrollment.value?.pairingCode) return;
+  let payload = "";
+  try {
+    payload = createComputeSharePairingHandoff({
+      enrollmentNo: enrollment.value.enrollmentNo,
+      pairingCode: enrollment.value.pairingCode,
+      requestedGpuModel: enrollment.value.requestedGpuModel,
+      expiresAt: enrollment.value.expiresAt,
+    });
+  } catch {
+    toast.warn(t.value.computeShare.pairingFailed);
+    return;
+  }
   uni.setClipboardData({
-    data: enrollment.value.pairingCode,
+    data: payload,
     success: () => toast.success(t.value.computeShare.pairingCodeCopied),
-    fail: () => toast.info(enrollment.value?.pairingCode ?? ""),
+    fail: () => toast.info(payload),
   });
 }
 
 function goDevices() {
-  uni.navigateTo({ url: "/pages/me/devices", fail: () => {} });
+  navTo("/pages/me/devices");
 }
 
 // De-carded: download hero sits on the page floor (accent border + tint
@@ -495,6 +612,13 @@ const pairingBodyStyle: CSSProperties = {
   lineHeight: 1.5,
   color: "var(--v5-ink-2)",
 };
+const pairingNoStyle: CSSProperties = {
+  marginTop: "6px",
+  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontSize: "12px",
+  color: "var(--v5-ink-4)",
+  wordBreak: "break-all",
+};
 const copyCodeStyle: CSSProperties = {
   flexShrink: 0,
   padding: "8px 10px",
@@ -510,9 +634,9 @@ const connectButtonStyle = computed<CSSProperties>(() => ({
   borderRadius: "999px",
   display: "grid",
   placeItems: "center",
-  background: mockFundsEnabled || slotsFull.value || connecting.value || enrollment.value?.status === "PENDING"
+  background: slotsFull.value || connecting.value || enrollment.value?.status === "PENDING"
     ? "var(--v5-surface-3)" : "var(--v5-brand)",
-  color: mockFundsEnabled || slotsFull.value || connecting.value || enrollment.value?.status === "PENDING"
+  color: slotsFull.value || connecting.value || enrollment.value?.status === "PENDING"
     ? "var(--v5-ink-4)" : "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
   fontSize: "13px",

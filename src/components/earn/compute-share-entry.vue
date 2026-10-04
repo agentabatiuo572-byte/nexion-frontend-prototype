@@ -1,5 +1,5 @@
 <template>
-  <view v-if="enabled" class="mx-4" :style="rootStyle" data-proof="compute-share-entry">
+  <view v-if="enabled" class="nx-glass-card mx-4" :style="rootStyle" data-proof="compute-share-entry">
     <view :style="iconStyle">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="12" rx="2" />
@@ -24,10 +24,10 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useApp } from "@/store/app";
 import { useConfig } from "@/store/config";
-import { MAX_DEVICES } from "@/store/device-types";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { useT } from "@/i18n/use-t";
 
@@ -39,19 +39,19 @@ const t = useT();
 
 const enabled = computed(() => cfg.isEnabled("computeShareEnabled"));
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
-const slotsFull = computed(() => app.activeSlotCount + trialSlot.value >= MAX_DEVICES);
+const slotsFull = computed(() => app.activeSlotCount + trialSlot.value >= app.slotCap);
 
 function goDownload() {
-  uni.navigateTo({ url: "/pages/compute-share/download", fail: () => {} });
+  navTo("/pages/compute-share/download");
 }
 
-const rootStyle: CSSProperties = {
+const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   display: "flex",
   alignItems: "center",
   gap: "12px",
   marginTop: "12px",
-  borderRadius: "12px",
-  background: "color-mix(in srgb, var(--v5-tech-cyan) 8%, var(--v5-surface))",
+  borderRadius: "var(--nx-glass-radius)",
+  background: "var(--nx-glass-fill)",
   padding: "12px",
 };
 const iconStyle: CSSProperties = {
@@ -97,4 +97,6 @@ const ctaStyle: CSSProperties = {
   fontWeight: 600,
   flexShrink: 0,
 };
+
+
 </script>

@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import { collectAppConsoleErrors } from "./lib/console-origin-filter.mjs";
+import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
 
 const baseUrl = process.env.BASE_URL || "http://127.0.0.1:5173";
 const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -24,6 +25,39 @@ async function waitUntil(check, message, timeoutMs = 30_000) {
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+let coldFleetReads = 0;
+let coldFleetFixture = false;
+let coldNavigation = 0;
+await installFormalProbeSession(page, { responseFor(url, request) {
+  if (!coldFleetFixture || request.method() !== "GET") return undefined;
+  const authority = { sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true };
+  if (url.pathname === "/api/devices/earnings") {
+    coldFleetReads += 1;
+    return { ...authority, source: "nx_user_device + nx_compute_receipt + nx_compute_e3_config",
+      dailyUsdt: 0, dailyNex: 0, realizedTodayUsdt: 0, realizedTodayNex: 0,
+      walletUsdt: 0, walletNex: 0, userJoinedAt: Date.now() - 86400000,
+      serverNow: Date.now(), timezone: "UTC", slotCap: 6, devices: [{
+        id: 701, rowVersion: 1, instanceNo: "R7-INACTIVE-701", name: "StellarBox Pro V2",
+        deviceType: "STELLARBOX_PRO_V2", productCode: "stellarbox-pro-v2", status: "INACTIVE",
+        runtimeStatus: "OFFLINE", pendingDeactivate: false, activatedAt: null, deactivatedAt: null,
+        purchasedAt: Date.now() - 86400000, dailyUsdt: 0, dailyNex: 0,
+        todayEarningsUsdt: 0, todayEarningsNex: 0, gpuModel: "Fixture GPU", vramTotalGb: 8,
+        basePowerW: 100, location: "Fixture inventory", capacityPct: 100, capacityAgeMonths: 0,
+        capacityConfigKey: "pro-v2", capacitySubsidized: false, capacitySubsidyDays: 0,
+        capacitySubsidyRemainingDays: 0, capacitySubsidyEndsAt: null, actualPaidUsdt: 0,
+        cumulativeOutputUsdt: 0,
+      }],
+      capacitySchedule: { stageEarlyEnd: "3", stageMidEnd: "8", capacityFloorPct: "22",
+        capacitySubsidyDays: "30", capacityBand1DeltaPct: "-4", capacityBand2DeltaPct: "-6",
+        capacityBand3DeltaPct: "-23.7", capacityApplyToPhone: "false", capacityApplyToCloudShare: "false",
+        capacityApplyToPcGpu: "false", capacityApplyToS1: "true", capacityApplyToPro: "true",
+        capacityApplyToProV2: "true", capacityApplyToRackP1: "true", capacityApplyToRackP2: "true" } };
+  }
+  if (url.pathname === "/api/tasks/assignments") {
+    return { ...authority, source: "server", serverNow: Date.now(), devices: [] };
+  }
+  return undefined;
+} });
 // 🔴 首页 1300ms 会自动弹代金券领取层(z=800 全屏遮罩),本探针随后要点首页设备格 ——
 // 谁先到全看机器负载:空闲时探针先点到(绿),套件满载时弹层先弹出(红)。这不是断言
 // 该管的变量,与上面 12s→30s 那次同源。按 chrome-baseline / trial-check 的既有家法预置
@@ -61,7 +95,8 @@ async function resolveAppFrame(selector) {
 }
 
 async function goto(route, selector) {
-  await page.goto(`${baseUrl}/?nx_device=off&r7detail=${runId}${route}`, { waitUntil: "domcontentloaded" });
+  const coldQuery = coldFleetFixture ? `&cold=${++coldNavigation}` : "";
+  await page.goto(`${baseUrl}/?nx_device=off&r7detail=${runId}${coldQuery}${route}`, { waitUntil: "domcontentloaded" });
   let frame;
   try {
     frame = await resolveAppFrame(selector);
@@ -75,7 +110,7 @@ async function goto(route, selector) {
 }
 
 try {
-  const home = await goto("#/pages/index/index", ".nx-device-slot");
+  const home = await goto("#/pages/index/index", ".nx-page-enter");
   const logic = await home.evaluate(async () => {
     const { createDevice } = await import("/src/store/device-types.ts");
     const { settleDeviceBatch, useApp } = await import("/src/store/app.ts");
@@ -93,6 +128,8 @@ try {
     const bonus = { h5BaseFactor: 0.6, continuityFullHours: 2 };
     const makePhone = (beat) => ({
       ...createDevice("phone", `r7-${beat ?? "none"}`),
+      baseRate: 0.06,
+      baseRateNEX: 10,
       activatedAt: now - sixHours,
       purchasedAt: now - sixHours,
       miningSince: now - sixHours,
@@ -158,16 +195,45 @@ try {
       check(hardwareA.todayEarnings === hardwareB.todayEarnings, "non-phone earnings depended on heartbeat");
 
       const offlineLive = computeLiveHashpower({
-        baselineTops: 30, online: false, batteryLevel: 78, isOnline: true,
+        baselineTops: 30, online: false, isCharging: true, isOnline: true,
         thermalState: "nominal", continuityMs: sixHours, nowSeed: now, onlineBonus: bonus,
       });
       const onlineLive = computeLiveHashpower({
-        baselineTops: 30, online: true, batteryLevel: 78, isOnline: true,
+        baselineTops: 30, online: true, isCharging: true, isOnline: true,
         thermalState: "nominal", continuityMs: sixHours, nowSeed: now, onlineBonus: bonus,
       });
       check(onlineLive.effectiveTops > offlineLive.effectiveTops, "online display factor did not exceed hosted baseline");
 
       const app = useApp();
+      if (app.visibleDevices.length < 2) {
+        const uiNow = Date.now();
+        const activePatch = {
+          activatedAt: uiNow - sixHours,
+          purchasedAt: uiNow - sixHours,
+          miningSince: uiNow - sixHours,
+          lastSettledAt: uiNow - sixHours,
+          todayEarnings: 0,
+          todayEarningsNEX: 0,
+          cumulativeEarningsUsdt: 0,
+          status: "online",
+          pausedReason: null,
+          thermalState: "nominal",
+        };
+        app.$patch({
+          devices: [
+            {
+              ...createDevice("phone", "r7-ui-phone"),
+              ...activePatch,
+              onlineHeartbeatAt: uiNow - ONLINE_HEARTBEAT_TIMEOUT_MS - 1,
+            },
+            {
+              ...createDevice("stellarbox-s1", "r7-ui-hardware"),
+              ...activePatch,
+              onlineHeartbeatAt: null,
+            },
+          ],
+        });
+      }
       const seed = clone(app.visibleDevices[0]);
       const snapshot = (beat) => ({
         schema: 1,
@@ -250,41 +316,36 @@ try {
   await detail.locator(".nx-device-card__details").waitFor({ state: "visible" });
   assert((await detail.locator(".nx-device-card").getAttribute("data-online")) === "false", "stale phone detail advertised true-online");
   assert(
-    /基础托管模式|Base hosting mode/.test(await detail.locator(".nx-device-status-label").innerText()),
-    "stale phone detail did not label base-hosting mode",
+    /请在 Android App 中激活手机算力|Activate phone compute in the Android App/.test(await detail.locator(".nx-device-status-label").innerText()),
+    "H5 phone detail did not direct activation to the Android App",
   );
+  assert(!(await detail.locator(".nx-device-card").innerText()).includes("TOPS"),
+    "H5 phone detail displayed another phone's compute capacity");
   const cardHeader = detail.locator(".nx-device-card__header");
   await cardHeader.focus();
   await cardHeader.press("Shift+F10");
   await detail.locator(".nx-device-quick-menu").waitFor({ state: "visible" });
-  assert(
-    await detail.locator(".nx-device-quick-stats").evaluate((element) => element === document.activeElement),
-    "keyboard-opened device quick menu did not move focus inside",
-  );
-  await detail.locator(".nx-device-quick-stats").press("Shift+Tab");
+  assert(await detail.locator(".nx-device-quick-stats").count() === 0,
+    "H5 phone detail exposed another phone's stats shortcut");
+  const firstMenuAction = detail.locator(".nx-device-quick-menu [tabindex='0']").first();
+  assert(await firstMenuAction.evaluate((element) => element === document.activeElement),
+    "keyboard-opened device quick menu did not move focus inside");
+  await firstMenuAction.press("Shift+Tab");
   assert(
     await detail.locator(".nx-device-quick-menu [tabindex='0']").last().evaluate((element) => element === document.activeElement),
     "device quick menu Shift+Tab escaped instead of wrapping to the last action",
   );
   await detail.locator(".nx-device-quick-menu [tabindex='0']").last().press("Tab");
-  assert(
-    await detail.locator(".nx-device-quick-stats").evaluate((element) => element === document.activeElement),
-    "device quick menu Tab escaped instead of wrapping to the first action",
-  );
-  await detail.locator(".nx-device-quick-stats").press("Escape");
+  assert(await firstMenuAction.evaluate((element) => element === document.activeElement),
+    "device quick menu Tab escaped instead of wrapping to the first action");
+  await firstMenuAction.press("Escape");
   await detail.locator(".nx-device-quick-menu").waitFor({ state: "detached" });
   assert(await cardHeader.evaluate((element) => element === document.activeElement), "device quick menu did not restore header focus");
 
-  const helpButton = detail.locator(".nx-device-help");
-  await helpButton.focus();
-  await helpButton.press("Enter");
-  assert((await helpButton.getAttribute("aria-expanded")) === "true", "device help did not open from keyboard");
-  const networkSwitch = detail.locator(".nx-device-network-toggle");
-  const networkBefore = await networkSwitch.getAttribute("aria-checked");
-  await networkSwitch.focus();
-  await networkSwitch.press("Space");
-  assert((await networkSwitch.getAttribute("aria-checked")) !== networkBefore, "device network switch ignored keyboard activation");
-  await networkSwitch.press("Space");
+  assert(await detail.locator(".nx-device-help, .nx-device-charger-toggle, .nx-device-network-toggle").count() === 0,
+    "remote device detail exposed mock heartbeat controls");
+  assert(!(await detail.locator(".nx-device-card").innerText()).includes("ping 失败"),
+    "remote device detail claimed an unobserved network failure");
 
   const homeForHardware = await goto("#/pages/index/index", ".nx-device-slot");
   await homeForHardware.locator(".nx-device-slot").nth(1).click();
@@ -306,13 +367,23 @@ try {
   await firstRow.press("Enter");
   await waitUntil(() => page.url().includes(`/pages/earn/device-detail?id=${encodeURIComponent(logic.activeIds[0])}`), "device row did not open instance detail");
 
+  // A cold remote detail may conclude "not found" only after its account's
+  // fleet GET succeeds. These fixtures replace the local lifecycle seed for
+  // the two cold routes; they are not evidence of a real backend read.
+  coldFleetFixture = true;
   const inactive = await goto(
-    `#/pages/earn/device-detail?id=${encodeURIComponent(logic.inactiveId)}`,
+    "#/pages/earn/device-detail?id=701",
     ".nx-device-detail__empty",
   );
   assert((await inactive.locator(".nx-device-card__details").count()) === 0, "inactive inventory device rendered as earning detail");
+  assert(coldFleetReads > 0, "cold inactive route skipped its canonical fleet GET");
+  assert(await inactive.evaluate(async () => (await import("/src/store/app.ts")).useApp().remoteFleetStatus === "ready"), "inactive route concluded before fleet ready");
+  assert(await inactive.evaluate(async () => (await import("/src/store/app.ts")).useApp().devices.some(device => device.id === "701" && device.activatedAt === null)), "inactive fixture was dropped instead of retained in inventory");
 
+  const readsBeforeMissing = coldFleetReads;
   const missing = await goto("#/pages/earn/device-detail?id=missing-sentinel", ".nx-device-detail__empty");
+  assert(coldFleetReads > readsBeforeMissing, "cold missing route reused an earlier fleet verdict");
+  assert(await missing.evaluate(async () => (await import("/src/store/app.ts")).useApp().remoteFleetStatus === "ready"), "missing route concluded before fleet ready");
   const back = missing.locator(".nx-device-detail__back");
   await back.focus();
   await back.press("Enter");

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { FLEET_DEVICES } from "@/lib/platform-stats";
 import { parsePlatformPublicStats } from "./platform-config-api";
 
 const values = {
-  fleetDevices: 28_432,
+  fleetDevices: FLEET_DEVICES,
   onlineRatePct: 100,
   onlineJitter: 20,
   registeredUsersBase: 1_420_000,
@@ -31,18 +32,25 @@ describe("H9 public stats provenance", () => {
       runId: "",
       version: 3,
     });
+    expect(parsePlatformPublicStats(production, "prod").config).toMatchObject({
+      fleetDevices: 0,
+      onlineJitter: -1,
+      registeredUsersMonthlyGrowthPct: -1,
+      virtualUserCount: -1,
+      realUserCount: 4_321,
+    });
+    expect(parsePlatformPublicStats({ ...production, values: undefined }, "prod").config.fleetDevices).toBe(0);
   });
 
-  it("accepts an explicit Sandbox run projection", () => {
+  it("development consumes the same PC-backed canonical projection", () => {
     expect(parsePlatformPublicStats({
       ...production,
-      source: "mock",
-      sourceEnvironment: "SANDBOX",
-      runId: "home-public-stats-20260819",
+      sourceEnvironment: "PRODUCTION",
+      runId: "",
     }, "dev").authority).toMatchObject({
-      source: "mock",
-      sourceEnvironment: "SANDBOX",
-      runId: "home-public-stats-20260819",
+      source: "server:nx_config_item,nx_user",
+      sourceEnvironment: "PRODUCTION",
+      runId: "",
     });
   });
 
@@ -56,13 +64,12 @@ describe("H9 public stats provenance", () => {
   });
 
   it("rejects a projection from the opposite runtime environment", () => {
-    expect(() => parsePlatformPublicStats(production, "dev")).toThrow("H9_PUBLIC_STATS_RESPONSE_INVALID");
+    expect(parsePlatformPublicStats(production, "dev").authority.sourceEnvironment).toBe("PRODUCTION");
     expect(() => parsePlatformPublicStats({
       ...production,
       source: "mock",
       sourceEnvironment: "SANDBOX",
       runId: "home-public-stats-20260819",
-    }, "prod")).toThrow("H9_PUBLIC_STATS_RESPONSE_INVALID");
-    expect(() => parsePlatformPublicStats(production, "mock")).toThrow("H9_PUBLIC_STATS_RESPONSE_INVALID");
+    }, "dev")).toThrow("H9_PUBLIC_STATS_RESPONSE_INVALID");
   });
 });

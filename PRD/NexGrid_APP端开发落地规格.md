@@ -74,7 +74,7 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 
 | 路由 | 页面 | 职责 | 数据依赖 | 关键交互·状态 | §锚点 |
 |---|---|---|---|---|---|
-| `/register` | 注册 | 3 步验证码注册 | `POST /api/auth/otp/{send,verify}`;`sponsorship.bind`、`claimGift()` | OTP 满 6 位自动确认;成功 `addDevice("phone")`+跳 `/onboarding/estimator`;gift 仅一次 | §4.1 |
+| `/register` | 注册 | 3 步验证码注册 | `POST /auth/users/register/otp/send`、`POST /auth/users/register` | OTP 满 6 位自动确认；成功仅创建账号并跳 `/onboarding/estimator`，不预造手机设备；手机须在 `/onboarding/connect` 经服务端校准与激活后才入设备仓库和奖励资格 | §4.1 |
 | `/login` | 登录(双模式) | password/OTP 登录 + reset 入口 | `POST /api/auth/login`、`/otp/*` | 双模式切换;`?ref` 静默绑定不发 gift;成功跳 `/` | §4.2 |
 | `/login`(reset) | 忘记密码 | 3 步重置(手机→OTP→新密码) | `POST /api/auth/password/reset` | 逐步退栈;成功自动登录 | §4.2.3 |
 | `/login/2fa` | 2FA challenge | 一因子后输 TOTP/recovery | `POST /api/auth/2fa/verify` | challenge 5min 过期;输错并入锁定计数 | §4.5.1 |
@@ -83,7 +83,7 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 | `/me/security/kyc-express` | KYC-Express 说明 | 零基础说明降抗拒 | i18n `kycExpress.*` | CTA→`/me/wallet/topup?kyc=1` | §4.4.4 |
 | `/onboarding/intro` | Onboarding 1 | Hero 价值主张(无 Skip) | `navigator.language` auto-detect | 主 CTA 进下一步;禁跳过 | §4.7.1 |
 | `/onboarding/estimator` | Onboarding 2 | 手机 NPU 档→日收益基线+对比 | 设备 NPU 规格(详 §11) | 进 connect;L0→L1 | §4.7.2 |
-| `/onboarding/connect` | Onboarding 3 | 12s 校准 3 阶段状态机+接单规则 | `POST /api/onboarding/calibrate/start`、`GET /result`(mock setTimeout 12s) | intro→calibrating→result;CTA→`/`;进 L1 | §4.7.3 |
+| `/onboarding/connect` | Onboarding 3 | 12s 校准 + 激活/暂缓 + 接单规则 | `POST /api/onboarding/calibrate`、`GET /result`、`POST /activate|defer` | intro→calibrating→result；失败→error（重试/暂不激活）；ACTIVE 后才具备手机奖励资格 | §4.7.3 |
 
 ### 1.3 Home Dashboard(`/`,§5;单页多卡,path 同 `/`)
 
@@ -390,7 +390,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 | `DELETE /api/account` | DELETE | 注销账户 | server 清记录 | §4.5 |
 | `/api/sponsorship/bind` | POST | 绑 sponsor(反多账户三层检测,first-wins) | gift 按 userId.created 幂等 | §9.11e.1 |
 | `/api/kyc/status` | GET | KYC 状态单源(提现 endpoint 二次 enforce) | SC | §9.11d.2 |
-| `/api/onboarding/calibrate/{start,result}` | POST/GET | 算力校准(benchmark+ping,长轮询/SSE) | SC;mock setTimeout 12s | §4.7.3 |
+| `/api/onboarding/calibrate` · `/result` · `/activate` · `/defer` | POST/GET | 保存/回读服务端校准事实，幂等绑定或暂缓手机设备 | SC + revision/CAS + Idempotency-Key；奖励写入复核 ACTIVE 校准与绑定设备 | §4.7.3 |
 
 ### 4.2 设备(§12.2)
 | Endpoint | Method | 用途 | 权威/IK | §锚点 |
@@ -507,7 +507,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 - **Notification**(§11.2,client UI 态):`unread→read`(tap markRead);200 cap LRU。
 - **Event**(§11.10):`upcoming→ongoing→ended`;trackable 子机 `(未join)→joined→done→claimed`。
 - **KYC-Express**(§4.4):未验证→已验证(付 $1→记地址→walletPaired=true);提现地址须与 KYC 地址一致。
-- **校准**(§4.7.3,client):`intro→calibrating(12s)→result`→进 L1。
+- **校准与激活**(§4.7.3):`intro→calibrating(12s)→result→ACTIVE`；检测/绑定失败进入 `error`，可用同一意图重试或 `DEFERRED` 暂缓。首次检测尚未写入校准行时，服务端以 revision 0 持久化不含能力数据的 `DEFERRED`；完成注册不等于获得手机奖励资格。
 
 ### 5.13 横切守卫清单
 1. server canonical:Trial/Order/Withdrawal/Staking/Device 激活/Commission/Genesis/Phase 一律服务端权威;client 可推进仅 Day-One Quest/Notification UI/Device 衰减展示。
@@ -610,7 +610,7 @@ namespace 含:tabs/headerTitles(60+ 路由)/headerSubtitles(23)/home/earn/store/
 - **任务 `avgSec`/`avgReward` 逐类型明细**:仅给公式,数值在 `lib/mock/tasks.ts`,PRD 正文未列表。
 - **NEX 价格游走完整模型**(baseline drift/回撤):仅给 `isPump=0.08`/±3%,完整曲线在 `lib/v3/market.ts`。
 - **Leadership Pool mid-week 达 V3 按比例计入**:仅文字描述,未给系数。
-- **校准跑分→tier→yield baseline 映射**:mock 为 setTimeout(12s),真实算法 TBD(§4.7.3)。
+- **原生 NPU 真机 benchmark**:当前 H5/PC 使用服务端对浏览器可读观测值的确定性映射；Janus 真机执行器接入前，原生 NPU 指标来源仍为替换点，但激活、设备绑定与奖励门禁已闭环(§4.7.3)。
 
 ### 7.5 状态机缺失态(真后台必须扩展,§9.11f)
 - **Order** +`payment_failed/expired/refunded/chargeback/provisioning_failed`(当前 `cancelled` collapses 所有失败)。

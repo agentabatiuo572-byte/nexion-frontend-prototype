@@ -11,14 +11,25 @@ test("server catalog loading, failure, and empty states stay visible instead of 
   assert.match(page, /data-testid="store-catalog-loading"/);
   assert.match(page, /data-testid="store-catalog-error"/);
   assert.match(page, /data-testid="store-catalog-empty"/);
-  assert.match(page, /return status === "ready" && PRODUCTS\.length > 0/);
+  assert.match(page, /const catalogHasProducts = computed\(\(\) => displayProducts\.value\.length > 0\)/);
+  assert.match(page, /catalogStatus === 'loading' && !catalogHasProducts/);
+  assert.match(page, /catalogStatus === 'error' && !catalogHasProducts/);
+  assert.match(page, /v-if="catalogHasProducts"/);
 });
 
 test("remote catalog replacement invalidates Store computed listings", () => {
   const page = read("src/pages/store/store.vue");
 
   assert.match(page, /productCatalogState\.status/);
-  assert.match(page, /PRODUCTS\.filter/);
+  assert.match(page, /displayProducts\.value\.filter/);
+  assert.match(page, /remoteApiEnabled \? productCatalogPresentation\.value : null/);
+  const store = read("src/store/product-catalog.ts");
+  assert.match(store, /presentation\.value = \{/);
+  assert.match(store, /name: nexGridBrandText\(product\.name\)/);
+  assert.match(store, /presentation\.value = null/);
+  const card = read("src/components/store/product-card.vue");
+  assert.match(card, /const buyUnavailable = computed\(\(\) => stockUnavailable\.value \|\| catalogUnavailable\.value/);
+  assert.match(card, /function onBuy\(\) \{\s*if \(buyUnavailable\.value\) return/);
 });
 
 test("app launch does not consume the authenticated catalog before a user session exists", () => {

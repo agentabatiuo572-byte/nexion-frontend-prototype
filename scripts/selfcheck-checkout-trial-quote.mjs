@@ -118,6 +118,8 @@ if (typeof resolveTrialAt !== "function" || typeof accruedShadow !== "function")
 // ── 载入真实现 2:trial-config.ts 的两个纯价格函数(源码切片)──
 const cfgSrc = readSrc("src", "store", "trial-config.ts");
 const priceSlices = [
+  sliceDecl(cfgSrc, "const TRIAL_CHECKOUT_PRODUCT_IDS", "trial-config.ts"),
+  sliceDecl(cfgSrc, "export function resolveTrialCheckoutProductId", "trial-config.ts"),
   sliceDecl(cfgSrc, "export function computeDiscountedPrice", "trial-config.ts"),
   sliceDecl(cfgSrc, "export function computeTrialOffset", "trial-config.ts"),
 ].join("\n");

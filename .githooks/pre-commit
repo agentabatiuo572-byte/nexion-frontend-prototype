@@ -1,0 +1,4 @@
+#!/bin/sh
+# 本机 full 验证与待提交树匹配后自动提交，无须逐次人工授权。
+# 挂载：git config core.hooksPath .githooks（prepare 自动安装）。
+exec node "$(dirname "$0")/guard-mainline-commit.mjs" "$@"

@@ -1,5 +1,5 @@
 <!--
-  HostedCardVault — 收单方托管卡字段的上下文容器。
+  HostedCardVault — 开发态页面内存卡字段的上下文容器。
 
   🔴 信任边界(逐字段说清,别笼统写「卡信息不外泄」):
     · **卡号 / CVV** —— 明文在前端只存在于本组件与 <HostedCardField> 之内,
@@ -10,16 +10,16 @@
       有效期属持卡人数据但不属敏感认证数据(SAD),与 PAN/CVV 不同级。
       ⚠️ 曾把它写进「只存在于组件内」的列表里 —— 过度声明,会让人误以为它像
       卡号一样不可见。审计已纠(2026-07-28)。
-  产品文案承诺的也正是这个范围(充值页 trustFootnote「UVEL 不会接触你的完整
-  卡号」· 绑卡页 formSecurityNote「PCI DSS Level 1 token 化」——都只承诺卡号)。
+  绑卡页会明确披露：这是本地开发模拟，并非真实 PSP/收单环境；卡号与 CVV 只在
+  当前页面内存里用于生成模拟 token，不会发送到 Java 后端或写入数据库。
 
   形状照 Stripe Elements:一个 elements 容器 + 若干 element 子项,容器负责
   createToken,change 事件带 complete + brand。渲染 <slot/>(零 DOM),
   调用方的布局 / 标签 / 样式**一行不动** —— 视觉零变化因此是结构保证,
   不靠改完再肉眼比对。
 
-  PROD 切换:本文件与 hosted-card-field.vue 内部换成收单方 SDK 挂载(文案已点名
-  Checkout.com;Stripe / Adyen 同形)。**调用方基本零改动,但有一个已知例外**:
+  PROD 切换:本文件与 hosted-card-field.vue 内部换成已签约收单方 SDK 挂载。
+  **调用方基本零改动,但有一个已知例外**:
   change 事件里的 cvvLength 是 mock 才给得出的信号(真 SDK 的 CVV 活在跨域
   iframe 里,change 只吐 complete / empty / error,不吐逐键位数)。结账页
   card-payment.vue 的「n/4」计数器依赖它 —— 接真 SDK 时那个计数器要么改成
@@ -105,6 +105,11 @@ function tokenizeCvv(): HostedCvvToken | null {
   return { cvvToken: mintToken("cvv") };
 }
 
-// 只暴露这两个 —— 明文没有任何出口。
-defineExpose({ tokenize, tokenizeCvv });
+// 页面离开或账号变化时清除草稿；不向调用方返回任何明文字段。
+function clear() {
+  pan.value = "";
+  expiry.value = "";
+  cvv.value = "";
+}
+defineExpose({ tokenize, tokenizeCvv, clear });
 </script>

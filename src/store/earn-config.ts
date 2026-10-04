@@ -21,28 +21,47 @@ let loadVersion = 0;
 // /api/config/phone-tiers response is allowed to repopulate it.
 if (remoteApiEnabled) applyCanonicalPhoneTierYields([]);
 
-function unlockTierFor(minVRAM: number): string {
-  if (minVRAM <= 24) return "RTX 4090 PC (24GB)";
-  if (minVRAM <= 96) return "UVELBox S1 (96GB)";
-  if (minVRAM <= 192) return "UVELBox Pro (192GB)";
-  return "UVELRack P1 (640GB)";
-}
-
 export async function refreshEarnConfig(): Promise<void> {
   if (!remoteApiEnabled) return;
   const version = ++loadVersion;
   status.value = "loading";
   error.value = "";
   try {
-    const [nextPricing, nextTiers] = await Promise.all([
+    // 🔴 两份**互不相干**的权威文档,不许用 Promise.all 绑成一次全有或全无
+    //    (zentao #28)。task-pricing 是任务定价,phone-tiers 是手机档位收益基准;
+    //    前者读失败(例如老后端没有 nx_admin_device_task 行、或 6 类任务数对不上)
+    //    此前会把 phoneTiers 一起清空,于是商城主列表仍显示「你的手机 $0.06/天」
+    //    (那个数来自用户自己的设备投影),详情页的「你的手机」却变成「暂无数据」——
+    //    同一基准跨页矛盾,而根因只是一个不相干的请求失败。
+    //    与 E5 同款修法:各读各的,单面失败只降级那一面。
+    const [pricingResult, tiersResult] = await Promise.allSettled([
       earnConfigApi.taskPricing(),
       earnConfigApi.phoneTiers(),
     ]);
     if (version !== loadVersion) return;
-    taskPricing.value = nextPricing;
-    phoneTiers.value = nextTiers;
-    applyCanonicalPhoneTierYields(nextTiers.tiers);
-    status.value = "ready";
+    if (pricingResult.status === "fulfilled") {
+      taskPricing.value = pricingResult.value;
+    } else {
+      taskPricing.value = null;
+    }
+    if (tiersResult.status === "fulfilled") {
+      phoneTiers.value = tiersResult.value;
+      applyCanonicalPhoneTierYields(tiersResult.value.tiers);
+    } else {
+      phoneTiers.value = null;
+      applyCanonicalPhoneTierYields([]);
+    }
+    // 只有两面都读到才算 ready;单面失败仍报错,但**另一面的数据保留在内存里**,
+    // 消费方据此各自降级,而不是被一起清空。
+    const failures = [pricingResult, tiersResult].filter((r) => r.status === "rejected");
+    if (failures.length === 0) {
+      status.value = "ready";
+      error.value = "";
+    } else {
+      status.value = "error";
+      const first = failures[0] as PromiseRejectedResult;
+      error.value = first.reason instanceof Error ? first.reason.message : "E2_CONFIG_UNAVAILABLE";
+    }
   } catch (cause) {
     if (version !== loadVersion) return;
     taskPricing.value = null;
@@ -82,8 +101,7 @@ function lockedTeasers(maxVram: number, count = 3): LockedTeaser[] {
       model: row.models[0] || row.taskName,
       minVRAM: row.minVRAM,
       rewardHint: `$${row.minReward.toFixed(3)}-$${row.maxReward.toFixed(2)}`,
-      dailyPotentialUSD: Math.max(0, Math.round(row.dailyPotential)),
-      unlockTier: unlockTierFor(row.minVRAM),
+      unlockTier: `${row.minVRAM}GB VRAM`,
     }));
 }
 

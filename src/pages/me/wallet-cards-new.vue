@@ -5,21 +5,22 @@
   default" toggle. On submit: validate, derive brand + last4, persist via
   useCards.add() (PAN/CVV NEVER stored), navigate back to the cards list.
 
-  Cards serve MALL PAYMENT only — the free trial is cardless (FEAT-TRIAL02
-  spec ⑦: the claim flow never routes here and no trial disclosure renders).
+  Development cards only exercise the server-owned bind/default/unbind lifecycle;
+  they are not offered as a checkout rail. The free trial remains cardless.
   useSearchParams → onLoad(query). safeReturnTo → inline relative-path guard
   (open-redirect defense). <input type=checkbox> → custom tap toggle (uni).
   router.push(returnTo) → uni.redirectTo. Wrapped in <AppChassis active="me">.
 -->
 <template>
   <AppChassis active="me">
-    <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/wallet-cards" :title="t.cards.newTitle" />
-      <FundsSandboxBadge />
+    <BankAccountBinding v-if="!cardBindingAvailable" :active="bankFormVisible" :return-to="returnTo" />
+    <view v-else style="color: var(--v5-ink)">
+      <SubPageHeader :back="cardBindingAvailable ? '/pages/me/wallet-cards' : '/pages/me/wallet'" :title="t.cards.newTitle" />
+      <CardSimulationBadge />
 
       <view :style="bodyStyle">
         <!-- Form card -->
-        <view v-if="cardBindingAvailable" :style="formCardStyle">
+        <view :style="formCardStyle">
           <view class="flex items-center" :style="formHeadStyle">
             <view class="grid place-items-center shrink-0" :style="formHeadIconStyle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
@@ -28,14 +29,14 @@
               <text class="block" :style="formHeadTitleStyle">{{ t.cards.formCardType }}</text>
               <view class="flex items-center" :style="formHeadNoteStyle">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                <text style="margin-left: 6px">{{ t.cards.formSecurityNote }}</text>
+                <text style="margin-left: 6px">{{ cardBindingAvailable ? t.cards.formSecurityNote : t.cards.bindingEntryNote }}</text>
               </view>
             </view>
             <text v-if="brand !== 'unknown'" class="font-mono-tabular shrink-0" :style="brandChipStyle">{{ brandLabel(brand) }}</text>
           </view>
 
-          <!-- 卡号/有效期/CVV 归 <HostedCardVault>(收单方托管,本页拿不到明文);
-               持卡人姓名是账单信息不是卡数据,照旧由本页收。 -->
+          <!-- 开发态卡号/有效期/CVV 归 <HostedCardVault> 页面内存管理；
+               持卡人姓名是展示信息，照旧由本页收。 -->
           <HostedCardVault ref="vaultRef" @change="onCardChange">
           <view :style="formFieldsStyle">
             <view>
@@ -54,7 +55,7 @@
             </view>
             <view>
               <text class="block" :style="labelStyle">{{ t.cards.formHolderLabel }}</text>
-              <input class="w-full" :style="[inputStyle, { textTransform: 'uppercase' }]" type="text" :value="holder" :placeholder="t.cards.formHolderPlaceholder" @input="onHolder" />
+              <input class="w-full" :style="[inputStyle, { textTransform: 'uppercase' }]" type="text" :value="holder" :placeholder="t.cards.formHolderPlaceholder" :aria-label="t.cards.formHolderLabel" @input="onHolder" />
             </view>
 
             <checkbox-group @change="onDefaultGroupChange">
@@ -75,44 +76,53 @@
           </HostedCardVault>
         </view>
 
-        <view v-else :style="formCardStyle">
-          <text class="block" :style="providerHoldTitleStyle">{{ t.authOtp.errorServiceUnavailable }}</text>
-          <text class="block" :style="providerHoldBodyStyle">{{ t.walletV3.submitReasonServiceUnavailable }}</text>
-        </view>
-
         <!-- Submit -->
         <!-- 字段没填全时点了没用 → 显式 aria-disabled(《05》§6.1),别只靠「没有按下反馈」暗示 -->
-        <view v-if="cardBindingAvailable" class="grid place-items-center" :class="{ 'active:scale-[0.98]': canSubmit }" :style="submitStyle" role="button" tabindex="0" :aria-disabled="canSubmit ? 'false' : 'true'" :aria-label="canSubmit ? t.cards.formSubmit : t.cards.formSubmitDisabled" @click.stop="handleBind">
+        <view class="grid place-items-center" :class="{ 'active:scale-[0.98]': canSubmit }" :style="submitStyle" role="button" tabindex="0" data-testid="card-bind-submit" :aria-disabled="canSubmit ? 'false' : 'true'" :aria-label="canSubmit ? t.cards.formSubmit : t.cards.formSubmitDisabled" @click.stop="handleBind" @keydown.enter.prevent="handleBind" @keydown.space.prevent="handleBind">
           <text :style="submitTextStyle">{{ canSubmit ? t.cards.formSubmit : t.cards.formSubmitDisabled }}</text>
         </view>
 
-        <text class="block" :style="disclaimerStyle">{{ t.cards.formDisclaimer }}</text>
+        <text class="block" :style="disclaimerStyle">{{ cardBindingAvailable ? t.cards.formDisclaimer : t.cards.bindingEntryDisclaimer }}</text>
       </view>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type CSSProperties } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
-import { navBack } from "@/lib/route";
+import { computed, ref, watch, type CSSProperties } from "vue";
+import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
+import { navReplace, navBack } from "@/lib/route";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import BankAccountBinding from "@/components/me/bank-account-binding.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
 import { useCards, brandLabel } from "@/store/cards";
-import FundsSandboxBadge from "@/components/me/funds-sandbox-badge.vue";
+import CardSimulationBadge from "@/components/me/card-simulation-badge.vue";
 import type { CardBrand } from "@/store/cards-core";
 import HostedCardVault from "@/components/me/hosted-card-vault.vue";
 import HostedCardField from "@/components/me/hosted-card-field.vue";
 import { useQuest } from "@/store/quest";
 import { postMoneyBillsOnce, type ReceiptDraft } from "@/lib/money-receipt";
-import { paymentMethodApi, remoteApiEnabled, mockPaymentEnabled } from "@/api/runtime";
+import { paymentMethodApi, remoteApiEnabled, developmentPaymentEnabled } from "@/api/runtime";
+import { useApp } from "@/store/app";
+import { subscribeRuntimeRevision } from "@/api/order-api";
 
 const t = useT();
 const cardsStore = useCards();
-const cardBindingAvailable = computed(() => !remoteApiEnabled || mockPaymentEnabled);
+const app = useApp();
+const cardBindingAvailable = computed(() => !remoteApiEnabled || developmentPaymentEnabled);
+const bankFormVisible = ref(true);
+// Native App sends page onHide when opening the SMS app. Preserve the in-memory
+// challenge and pending request then; actual page navigation still clears them.
+let appInBackground = false;
+const bankAppHide = () => { appInBackground = true; };
+const bankAppShow = () => { appInBackground = false; };
+uni.onAppHide(bankAppHide);
+uni.onAppShow(bankAppShow);
+onShow(() => { bankFormVisible.value = true; });
+onHide(() => { if (!appInBackground) bankFormVisible.value = false; });
 
 // Query (onLoad — page-level): ?returnTo=<relative path> for post-bind
 // navigation (open-redirect guarded). Initialize from the H5 URL hash query
@@ -144,8 +154,8 @@ function safeReturnTo(raw: string | undefined, fallback: string): string {
   return fallback;
 }
 
-// 🔴 卡号 / 有效期 / CVV 不在本页 —— 归 <HostedCardVault>,本页只收到 ready 与
-// brand,绑定时经 tokenize() 拿 token + 后四位 + 有效期落库。
+// 开发态卡号 / CVV 只在 <HostedCardVault> 的页面内存中用于生成模拟 token，
+// 本页只收到 ready 与 brand；绑定命令仅发送 token、后四位与有效期等非明文字段。
 const vaultRef = ref<InstanceType<typeof HostedCardVault> | null>(null);
 const cardReady = ref(false);
 const brand = ref<CardBrand>("unknown");
@@ -156,6 +166,20 @@ function onCardChange(e: { ready: boolean; brand: CardBrand }) {
 const holder = ref("");
 const setAsDefault = ref(true);
 const isBinding = ref(false);
+
+// Opening the original form does not enable the legacy development payment rail.
+// Sensitive draft fields live only in this page and clear on leave/account/runtime change.
+function clearForm() {
+  vaultRef.value?.clear(); holder.value = ""; cardReady.value = false; brand.value = "unknown";
+  setAsDefault.value = true; isBinding.value = false;
+}
+watch(() => [app.accountKey, app.accountBindingEpoch] as const, clearForm);
+const stopCardRuntime = subscribeRuntimeRevision(clearForm);
+onHide(clearForm);
+onUnload(() => {
+  uni.offAppHide(bankAppHide); uni.offAppShow(bankAppShow);
+  stopCardRuntime(); clearForm();
+});
 
 // uni input event → e.detail.value (typed Event; mirrors topup-card-form).
 function detailVal(e: Event): string {
@@ -169,16 +193,24 @@ function onDefaultGroupChange(e: Event) {
   setAsDefault.value = value.includes("default");
 }
 
+function returnFromUnavailable() {
+  navBack(returnTo.value);
+}
+
 const validHolder = computed(() => holder.value.trim().length >= 2);
 const valid = computed(() => cardReady.value && validHolder.value);
-const canSubmit = computed(() => cardBindingAvailable.value && valid.value && !isBinding.value);
+const canSubmit = computed(() => valid.value && !isBinding.value);
 const defaultStateLabel = computed(() => (setAsDefault.value ? t.value.cards.formDefaultOn : t.value.cards.formDefaultOff));
 
 async function handleBind() {
-  if (!cardBindingAvailable.value || !canSubmit.value) return;
-  // 明文由 <HostedCardVault> 交给收单方换 token(真实现 = SDK createToken)。
-  // 本页拿到的是 token / 后四位 / 卡组织 / 有效期四样,连同本页自己收的持卡人姓名
-  // 共五个字段落库 —— 卡号与 CVV 不在其中,明文无从写入(SavedCard 根本没这两个字段)。
+  if (!canSubmit.value) return;
+  if (!cardBindingAvailable.value) {
+    toast.error(t.value.cards.bindingConnectionPending);
+    return;
+  }
+  // 当前开发态由 <HostedCardVault> 在浏览器内存中生成模拟 token；没有真实 PSP。
+  // 本页拿到 token / 后四位 / 卡组织 / 有效期，再加持卡人姓名发送给 Java。
+  // 卡号与 CVV 不在请求或 SavedCard 模型中，不会发送到后端或写入数据库。
   const card = vaultRef.value?.tokenize();
   if (!card) return;
   isBinding.value = true;
@@ -187,7 +219,7 @@ async function handleBind() {
     // projects the subsequent authoritative GET and never persists this card.
     try {
       const bound = await paymentMethodApi.bind({ providerToken: card.token, source: card.source, brand: card.brand, last4: card.last4,
-        holder: holder.value.trim().toUpperCase(), makeDefault: setAsDefault.value,
+        expiry: card.expiry, holder: holder.value.trim().toUpperCase(), makeDefault: setAsDefault.value,
         idempotencyKey: `h3-card-bind:${card.token}` });
       if (!await cardsStore.refreshRemote()) throw new Error("CARD_BIND_READBACK_FAILED");
       const readBack = cardsStore.cards.find((item) => item.tokenId === bound.tokenId
@@ -199,7 +231,7 @@ async function handleBind() {
       return;
     }
     toast.success(fmt(t.value.cards.bindToast, { brand: brandLabel(card.brand), last4: card.last4 }));
-    uni.redirectTo({
+    navReplace({
       url: returnTo.value,
       fail: () => { isBinding.value = false; navBack(returnTo.value); },
     });
@@ -234,7 +266,7 @@ async function handleBind() {
   } else {
     toast.success(fmt(t.value.cards.bindToast, { brand: brandLabel(card.brand), last4: card.last4 }));
   }
-  uni.redirectTo({
+  navReplace({
     url: returnTo.value,
     fail: () => { isBinding.value = false; navBack(returnTo.value); },
   });
@@ -244,6 +276,8 @@ async function handleBind() {
 const bodyStyle: CSSProperties = { padding: "0 16px" };
 const providerHoldTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
 const providerHoldBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
+const providerHoldCtaStyle: CSSProperties = { minHeight: "44px", marginTop: "16px", borderRadius: "999px", background: "var(--v5-surface-2)" };
+const providerHoldCtaTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink-2)" };
 
 // De-carded form wrapper — the head + recessed input fields sit on the page
 // floor. Input controls (PAN/expiry/CVV/holder) are untouched; only the

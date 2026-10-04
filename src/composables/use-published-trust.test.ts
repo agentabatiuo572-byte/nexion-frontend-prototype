@@ -11,7 +11,7 @@ vi.mock("@/api/runtime", () => ({
 }));
 
 vi.mock("@/api/order-api", () => ({
-  subscribeCurrentCommerceSandboxRun: vi.fn((listener) => {
+  subscribeRuntimeRevision: vi.fn((listener) => {
     runListeners.add(listener);
     return () => runListeners.delete(listener);
   }),

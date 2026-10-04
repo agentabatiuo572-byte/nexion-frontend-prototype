@@ -6,7 +6,7 @@ test("registration response preserves the server-owned receipt", async () => {
   const api = createAuthApi({
     request: async () => ({
       accessToken: "access", refreshToken: "refresh", tokenType: "Bearer",
-      user: { userId: 7101, countryCode: "+81", phone: "81987654321", nickname: "New" },
+      user: { userId: 7101, countryCode: "+84", phone: "912345671", nickname: "New", onboardingComplete: false },
       registrationReceipt: {
         sponsorCode: "NXAB12CD34EF", sponsorDisplayName: "A•••", sourceEnvironment: "PRODUCTION",
         giftStatus: "PENDING_REVIEW", giftUsdt: 1.25, giftNex: 20,
@@ -15,7 +15,7 @@ test("registration response preserves the server-owned receipt", async () => {
   } as never, createSessionVault());
 
   const result = await api.register({
-    countryCode: "+81", phone: "81987654321", challengeNo: "REG-0123456789abcdef0123456789abcdef",
+    countryCode: "+84", phone: "912345671", challengeNo: "REG-0123456789abcdef0123456789abcdef",
     code: "123456", password: "NexPass9a", sponsorCode: "NXAB12CD34EF",
   });
 
@@ -28,7 +28,7 @@ test("registration receipt accepts legacy canonical codes without an NX prefix",
   const api = createAuthApi({
     request: async () => ({
       accessToken: "access", refreshToken: "refresh", tokenType: "Bearer",
-      user: { userId: 7102, countryCode: "+81", phone: "81987654322", nickname: "New" },
+      user: { userId: 7102, countryCode: "+84", phone: "912345672", nickname: "New", onboardingComplete: false },
       registrationReceipt: {
         sponsorCode: "AB12CD34", sponsorDisplayName: "A•••", sourceEnvironment: "PRODUCTION",
         giftStatus: "PENDING_REVIEW", giftUsdt: 1.25, giftNex: 20,
@@ -37,7 +37,7 @@ test("registration receipt accepts legacy canonical codes without an NX prefix",
   } as never, createSessionVault());
 
   await expect(api.register({
-    countryCode: "+81", phone: "81987654322", challengeNo: "REG-0123456789abcdef0123456789abcdef",
+    countryCode: "+84", phone: "912345672", challengeNo: "REG-0123456789abcdef0123456789abcdef",
     code: "123456", password: "NexPass9a", sponsorCode: "AB12CD34",
   })).resolves.toMatchObject({ kind: "authenticated", registrationReceipt: {
     sponsorCode: "AB12CD34",
@@ -51,7 +51,7 @@ test.each([
   const api = createAuthApi({
     request: async () => ({
       accessToken: "access", refreshToken: "refresh", tokenType: "Bearer",
-      user: { userId: 7103, countryCode: "+81", phone: "81987654323", nickname: "New" },
+      user: { userId: 7103, countryCode: "+84", phone: "912345673", nickname: "New", onboardingComplete: false },
       registrationReceipt: {
         sponsorCode: "NXAB12CD34", sponsorDisplayName: "A•••", sourceEnvironment: "PRODUCTION",
         giftStatus: "PENDING_REVIEW", giftUsdt: 1.25, giftNex: 20,
@@ -61,7 +61,7 @@ test.each([
   } as never, createSessionVault());
 
   await expect(api.register({
-    countryCode: "+81", phone: "81987654323", challengeNo: "REG-0123456789abcdef0123456789abcdef",
+    countryCode: "+84", phone: "912345673", challengeNo: "REG-0123456789abcdef0123456789abcdef",
     code: "123456", password: "NexPass9a", sponsorCode: "NXAB12CD34",
   })).rejects.toThrow("AUTH_REGISTRATION_RECEIPT_INVALID");
 });
