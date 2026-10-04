@@ -111,4 +111,20 @@ describe("H5 HttpOnly refresh-cookie session", () => {
     await auth.logout();
     expect(acquireRotationNonce()).not.toBe(newProof);
   });
+
+  it("clears the original cookie chain after a concurrent accepted refresh", async () => {
+    const vault = createSessionVault();
+    vault.save({ ...cookieSession, refreshToken: "", refreshCredentialMode: "cookie" });
+    const revision = vault.revision();
+    let finish!: () => void;
+    const request = vi.fn((input: { url: string }) => input.url.endsWith("/logout")
+      ? new Promise<{ status: number; data: unknown; headers: {} }>(resolve => { finish = () => resolve({ status: 200, data: { code: 0, message: "SYNTHETIC_RESPONSE", data: null }, headers: {} }); })
+      : Promise.resolve({ status: 200, data: { code: 0, message: "SYNTHETIC_RESPONSE", data: { ...cookieSession, accessToken: "synthetic-rotated-cookie-access" } }, headers: {} }));
+    const api = createApiClient({ baseUrl: "https://example.test", vault, transport: { request }, refreshCredentialMode: "cookie" });
+    const auth = createAuthApi(api, vault, { refreshCredentialMode: "cookie" });
+    const logout = auth.logout(); await api.refreshSession();
+    expect(vault.isRefreshContinuation(revision)).toBe(true);
+    finish(); await logout;
+    expect(vault.read()).toBeNull();
+  });
 });

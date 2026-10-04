@@ -50,7 +50,8 @@ import {
   apiRuntimeConfig,
   apiClient,
   authApi,
-  h5RefreshCookieEnabled,
+  serverSessionRestoreEnabled,
+  prepareSessionVault,
   remoteApiEnabled,
   sessionVault,
   setRemoteUnauthorizedHandler,
@@ -83,7 +84,7 @@ let pendingCanonicalRouteRepair = "";
 let pendingCanonicalRouteRepairAt = 0;
 let pendingServerSessionRecovery = false;
 type ServerSessionRestoreState = "idle" | "restoring" | "ready" | "failed";
-let serverSessionRestoreState: ServerSessionRestoreState = h5RefreshCookieEnabled ? "idle" : "ready";
+let serverSessionRestoreState: ServerSessionRestoreState = serverSessionRestoreEnabled ? "idle" : "ready";
 let serverSessionRestoreInFlight: Promise<boolean> | null = null;
 const SERVER_SESSION_RESTORE_RETRY_MS = 15_000;
 let serverSessionRestoreRetryAt = 0;
@@ -489,7 +490,7 @@ function hasServerAuthenticatedAccountTrace(auth: ReturnType<typeof useAuth>): b
 function canRefreshRemoteAccount(auth: ReturnType<typeof useAuth>): boolean {
   if (!remoteApiEnabled || !auth.isAuthenticated) return false;
   const serverSession = sessionVault.read();
-  return !!serverSession && auth.accountId === `user:${serverSession.user.userId}`;
+  return !!serverSession?.accessToken && auth.accountId === `user:${serverSession.user.userId}`;
 }
 
 /**
@@ -550,7 +551,7 @@ function readServerAuthenticatedAccountTrace(): boolean {
 }
 
 function beginServerSessionRestore(): Promise<boolean> {
-  if (!remoteApiEnabled || !h5RefreshCookieEnabled) {
+  if (!remoteApiEnabled || !serverSessionRestoreEnabled) {
     serverSessionRestoreState = "ready";
     return Promise.resolve(true);
   }
@@ -563,8 +564,10 @@ function beginServerSessionRestore(): Promise<boolean> {
     return Promise.resolve(true);
   }
   if (Date.now() < serverSessionRestoreRetryAt) return Promise.resolve(false);
+  const restoreRevision = sessionVault.revision();
   serverSessionRestoreState = "restoring";
   serverSessionRestoreInFlight = (async () => {
+    await prepareSessionVault();
     const restored = await authApi.restore();
     if (!restored) {
       const hadServerAccount = hasServerAuthenticatedAccountTrace(useAuth());
@@ -610,6 +613,25 @@ function beginServerSessionRestore(): Promise<boolean> {
     serverSessionProbeAt = Date.now();
     return true;
   })().catch((error: unknown) => {
+    if (error instanceof ApiError && error.message === "NATIVE_SESSION_STORAGE_UNAVAILABLE") {
+      // Native hydration can throw before this Promise catch runs. A newer
+      // server-accepted login has authority; a refresh-only candidate does not.
+      if (sessionVault.revision() !== restoreRevision && sessionVault.read()?.accessToken) {
+        serverSessionRestoreState = "ready";
+        serverSessionRestoreRetryAt = 0;
+        serverSessionRestoreNoticeShown = false;
+        return false;
+      }
+      clearInvalidRemoteSessionState(useAuth());
+      serverSessionRestoreState = "idle";
+      serverSessionRestoreRetryAt = Date.now() + SERVER_SESSION_RESTORE_RETRY_MS;
+      if (!serverSessionRestoreNoticeShown) {
+        serverSessionRestoreNoticeShown = true;
+        toast.warn(useT().value.session.nativeStorageFailure);
+      }
+      navReset({ url: "/pages/login/login" });
+      return false;
+    }
     if (error instanceof ApiError && (error.message === "COOKIE_LOCK_UNAVAILABLE"
         || error.message === "COOKIE_ROTATION_STORAGE_UNAVAILABLE")) {
       secureBrowserUnsupported = true;
@@ -715,7 +737,12 @@ function checkAuthGuard(): boolean {
  */
 function clearInvalidRemoteSessionState(auth: ReturnType<typeof useAuth>): void {
   useConversations().suspendForReauthentication();
-  sessionVault.clear();
+  try {
+    sessionVault.clear();
+  } catch {
+    serverSessionRestoreNoticeShown = true;
+    toast.warn(useT().value.session.nativeStorageFailure);
+  }
   useSession().signOutSession();
   auth.signOut();
   const app = useApp();

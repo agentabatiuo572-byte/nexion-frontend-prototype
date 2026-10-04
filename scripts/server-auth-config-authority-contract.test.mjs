@@ -37,7 +37,12 @@ test("server mode starts unauthenticated and only retains a non-secret recovery 
   assert.match(auth, /function hydrate\(\): Persisted \{[\s\S]*?if \(remoteApiEnabled\) \{[\s\S]*?isAuthenticated: false[\s\S]*?accountId: "default"/);
   assert.match(auth, /hasPersistedServerAuthenticatedAccountTrace[\s\S]*?startsWith\("user:"\)/);
   const runtimeVault = fnBlock(vault, "createRuntimeSessionVault");
-  assert.match(runtimeVault, /const vault = createSessionVault\(\);/);
+  assert.match(runtimeVault, /const vault = createSessionVault\(storage, \{ deferHydration: !!storage \}\);/);
+  assert.match(runtimeVault, /if \(storage\) return vault;/);
+  const runtime = read("src/api/runtime.ts");
+  assert.match(runtime, /\/\/ #ifdef APP-PLUS\s+if \(!h5RefreshCookieEnabled\) \{\s+nativeSessionStorage = createNativeSessionStorage\([^\n]+\);\s+\}\s+\/\/ #endif/,
+    "the native encrypted adapter must remain APP-PLUS only");
+  assert.match(runtime, /await nativeSessionStorage\.ready\(\);\s+sessionVault\.hydrate\(\);/);
   assert.doesNotMatch(runtimeVault, /(?:window\.)?localStorage\.(?:setItem|getItem)|uni\.setStorageSync|storage\.set\(/,
     "cross-tab access-token continuity must remain in memory");
   assert.doesNotMatch(fnBlock(vault, "persistAndCommit"), /accessToken:\s*snapshot\.accessToken/,

@@ -516,7 +516,9 @@ export function createAuthApi(
       } catch {
         // Local logout is authoritative for this device even when offline.
       } finally {
-        vault.clearIfUnchanged(revision);
+        // A rotation continues the chain being signed out; a new login starts
+        // a different identity revision and must retain its own session.
+        vault.clearIfUnchanged(vault.isRefreshContinuation(revision) ? vault.revision() : revision);
         if (refreshCredentialMode === "cookie") discardRotationNonce();
       }
     },

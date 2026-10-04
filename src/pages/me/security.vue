@@ -169,7 +169,7 @@ import { useSession, type SessionListItem } from "@/store/session";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { confirm as uiConfirm, toast, useUI } from "@/store/ui";
 import { isPasswordOk, PASSWORD_MAX_LENGTH } from "@/auth/password-rules";
-import { accountApi, authApi, apiRuntimeConfig, remoteApiEnabled } from "@/api/runtime";
+import { accountApi, authApi, apiRuntimeConfig, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import { apiEnvironmentBadgeLabel } from "@/api/runtime-config";
 import { deleteMockAuthAccount } from "@/api/mock-auth-api";
 import type { SecurityState } from "@/api/contracts";
@@ -782,10 +782,21 @@ async function handleDeleteAccount() {
           releaseAccountCommandKey(SECURITY_COMMAND_TABLE, accountKey, intent, deletionCommandKey.value);
           toast.success(t.value.security.deleteAccountToast, request.requestNo);
           deletionCommandKey.value = "";
+          const logoutRevision = sessionVault.revision();
           app.interruptAllTasks("logged-out");
           await app.pauseLocalPhoneRuntimeBeforeSignOut();
-          await authApi.logout();
+          if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)
+              || (sessionVault.revision() !== logoutRevision && !sessionVault.isRefreshContinuation(logoutRevision))) return;
+          try {
+            await authApi.logout();
+          } catch {
+            if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+            // Remote deletion is already accepted. Clear this shell even when
+            // native cleanup needs another startup, while reporting failure.
+            toast.warn(t.value.session.nativeStorageFailure);
+          }
           if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+          if (sessionVault.read()) return; // A newer login won the logout CAS.
         } catch (cause) {
           if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
           toast.error(securityErrorMessage(cause));

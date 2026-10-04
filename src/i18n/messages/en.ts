@@ -2953,6 +2953,7 @@ scoreLabel: "Estimated score",
 },
   session: {
     restoreRetryNotice: "Unable to restore your session right now. Retrying automatically.",
+    nativeStorageFailure: "Session storage is unavailable. Account activity has stopped. Local session cleanup is not confirmed; reopen the app to retry.",
     secureBrowserUnsupported: "This browser cannot securely sign in or restore your session. Please update your browser and try again.",
     kickedTitle: "Session ended",
     kickedBodyKicked: "This sign-in has ended. Sign in again to view your task and settlement records.",

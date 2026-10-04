@@ -2860,6 +2860,7 @@ scoreLabel: "Điểm ước tính",
 },
   session: {
     restoreRetryNotice: "Tạm thời chưa thể khôi phục phiên đăng nhập. Đang tự động thử lại.",
+    nativeStorageFailure: "Bộ nhớ phiên đăng nhập tạm thời không khả dụng. Hoạt động tài khoản đã dừng. Chưa xác nhận hoàn tất xóa phiên cục bộ; hãy mở lại ứng dụng để thử lại.",
     secureBrowserUnsupported: "Trình duyệt này không hỗ trợ đăng nhập hoặc khôi phục phiên an toàn. Vui lòng cập nhật trình duyệt rồi thử lại.",
     kickedTitle: "Phiên đã kết thúc",
     kickedBodyKicked: "Phiên đăng nhập này đã kết thúc. Hãy đăng nhập lại để xem các bản ghi tác vụ và quyết toán.",

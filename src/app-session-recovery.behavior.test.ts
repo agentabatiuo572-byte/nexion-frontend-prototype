@@ -3,7 +3,7 @@ import ts from "typescript";
 import source from "./App.vue?raw";
 import { createApiClient } from "./api/api-client";
 import { createAuthApi } from "./api/auth-api";
-import { createSessionVault } from "./api/session-vault";
+import { createSessionVault, type KeyValueStorage } from "./api/session-vault";
 import { ApiError } from "./api/errors";
 import { createRemoteAccountEpoch } from "./lib/remote-account-epoch";
 import { isPublicAuthRoute } from "./lib/auth-route-visibility";
@@ -31,8 +31,8 @@ function appEntryPoints() {
   return ts.transpileModule(parts.join("\n") + "\n" + unauthorized, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
 }
 
-function harness(request = vi.fn(), route = "pages/earn/earn") {
-  const vault = createSessionVault();
+function harness(request = vi.fn(), route = "pages/earn/earn", native?: { storage: KeyValueStorage; ready?: () => Promise<void> }) {
+  const vault = createSessionVault(native?.storage, native ? { deferHydration: true } : undefined);
   const appEpoch = createRemoteAccountEpoch("user:7101");
   const storesEpoch = createRemoteAccountEpoch("user:7101");
   const auth = { isAuthenticated: true, accountId: "user:7101", signOut: vi.fn(() => { auth.isAuthenticated = false; auth.accountId = "default"; }) };
@@ -42,8 +42,9 @@ function harness(request = vi.fn(), route = "pages/earn/earn") {
   const nav = vi.fn();
   const toast = { warn: vi.fn() };
   let onUnauthorized: () => void = () => {};
-  const api = createApiClient({ baseUrl: "https://example.test", transport: { request }, vault, refreshCredentialMode: "cookie", onUnauthorized: () => onUnauthorized() });
-  const authApi = createAuthApi(api, vault, { refreshCredentialMode: "cookie" });
+  const refreshCredentialMode = native ? "token" : "cookie";
+  const api = createApiClient({ baseUrl: "https://example.test", transport: { request }, vault, refreshCredentialMode, onUnauthorized: () => onUnauthorized() });
+  const authApi = createAuthApi(api, vault, { refreshCredentialMode });
   const complete = vi.fn((input: { identity: string }) => { auth.isAuthenticated = true; auth.accountId = input.identity; return { ok: true }; });
   const deps = {
     authApi, sessionVault: vault, useAuth: () => auth, useApp: () => app,
@@ -54,12 +55,13 @@ function harness(request = vi.fn(), route = "pages/earn/earn") {
     hasServerAuthenticatedAccountTrace: () => auth.isAuthenticated && auth.accountId.startsWith("user:"),
     readCurrentRoute: () => route, isAuthWhitelisted: isPublicAuthRoute,
     setRemoteUnauthorizedHandler: (fn: () => void) => { onUnauthorized = fn; },
-    toast, ApiError, useT: () => ({ value: { session: { restoreRetryNotice: "Session restore unavailable; retrying" } } }),
+    prepareSessionVault: async () => { if (native) { await native.ready?.(); vault.hydrate(); } },
+    toast, ApiError, useT: () => ({ value: { session: { restoreRetryNotice: "Session restore unavailable; retrying", nativeStorageFailure: "Session storage unavailable; reopen to retry cleanup" } } }),
   };
   const compiled = new Function("deps", `
     const { ${Object.keys(deps).join(",")} } = deps;
     const auth = useAuth();
-    const remoteApiEnabled = true, h5RefreshCookieEnabled = true;
+    const remoteApiEnabled = true, h5RefreshCookieEnabled = ${!native}, serverSessionRestoreEnabled = true;
     const SERVER_SESSION_RESTORE_RETRY_MS = 15000;
     let serverSessionRestoreState = 'idle', serverSessionRestoreInFlight = null;
     let serverSessionRestoreRetryAt = 0, serverSessionRestoreNoticeShown = false;
@@ -67,9 +69,9 @@ function harness(request = vi.fn(), route = "pages/earn/earn") {
     let pendingServerSessionRecovery = false, serverAuthenticatedAccountTraceAtBoot = false, serverSessionProbeAt = 0;
     ${appEntryPoints()}
     return { restore: beginServerSessionRestore, guard: checkAuthGuard, cleanup: clearInvalidRemoteSessionState,
-      state: () => serverSessionRestoreState };
-  `)(deps) as { restore(): Promise<boolean>; guard(): boolean; cleanup(auth: unknown): void; state(): string };
-  return { ...compiled, vault, appEpoch, storesEpoch, auth, app, api, request, stop, nav, toast, complete, suspendForReauthentication };
+      state: () => serverSessionRestoreState, canRefresh: () => canRefreshRemoteAccount(auth) };
+  `)(deps) as { restore(): Promise<boolean>; guard(): boolean; cleanup(auth: unknown): void; state(): string; canRefresh(): boolean };
+  return { ...compiled, vault, appEpoch, storesEpoch, auth, app, api, authApi, request, stop, nav, toast, complete, suspendForReauthentication };
 }
 
 afterEach(() => vi.useRealTimers());
@@ -212,7 +214,7 @@ describe("App cookie restoration and expired account isolation", () => {
     const request = vi.fn(() => new Promise<ReturnType<typeof response>>(done => { resolve = done; }));
     const h = harness(request);
     const pending = h.restore();
-    await Promise.resolve();
+    await vi.waitFor(() => expect(request).toHaveBeenCalledOnce());
     h.vault.save(session(7102));
     h.auth.accountId = "user:7102";
     resolve(response(401));
@@ -230,5 +232,135 @@ describe("App cookie restoration and expired account isolation", () => {
     await expect(h.api.request({ path: "/api/example" })).rejects.toThrow();
     expect(h.auth.signOut).not.toHaveBeenCalled();
     expect(h.vault.read()?.user.userId).toBe(7101);
+  });
+});
+
+describe("App native restoration from server accepted identity", () => {
+  const persisted = { schema: 1, refreshToken: "synthetic-cold-refresh", tokenType: "Bearer", user };
+  const storage = () => ({ get: vi.fn(() => persisted), set: vi.fn(), remove: vi.fn() });
+  const nativeSession = (userId = 7101) => ({ ...session(userId), refreshToken: "synthetic-rotated-refresh", refreshCredentialMode: "token" as const });
+
+  it("waits for platform readiness, then refreshes and projects only the accepted server identity", async () => {
+    let ready!: () => void;
+    const request = vi.fn().mockResolvedValue(response(200, nativeSession()));
+    const backing = storage();
+    const h = harness(request, "pages/earn/earn", { storage: backing, ready: () => new Promise<void>(resolve => { ready = resolve; }) });
+    const restoring = h.restore();
+    expect(request).not.toHaveBeenCalled();
+    expect(backing.get).not.toHaveBeenCalled();
+    expect(h.canRefresh()).toBe(false);
+    ready();
+    await expect(restoring).resolves.toBe(true);
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ body: expect.objectContaining({ refreshToken: persisted.refreshToken }) }));
+    expect(h.complete).toHaveBeenCalledWith(expect.objectContaining({ identity: "user:7101" }));
+    expect(backing.set).toHaveBeenCalledWith(expect.objectContaining({ refreshToken: "synthetic-rotated-refresh" }));
+    expect(backing.set.mock.calls[0][0]).not.toHaveProperty("accessToken");
+    expect(h.canRefresh()).toBe(true);
+  });
+
+  it.each([401, 403])("removes a rejected native credential at %s and clears account generations", async status => {
+    const backing = storage();
+    const h = harness(vi.fn().mockResolvedValue(response(status)), "pages/earn/earn", { storage: backing });
+    const old = h.storesEpoch.snapshot();
+    await h.restore(); h.guard();
+    expect(h.vault.read()).toBeNull();
+    expect(backing.remove).toHaveBeenCalled();
+    expect(h.complete).not.toHaveBeenCalled();
+    expect(h.auth.isAuthenticated).toBe(false);
+    expect(h.storesEpoch.isCurrent(old)).toBe(false);
+  });
+
+  it("retains the encrypted refresh candidate on transport failure without granting business access", async () => {
+    const backing = storage();
+    const h = harness(vi.fn().mockRejectedValue(new Error("offline")), "pages/earn/earn", { storage: backing });
+    await h.restore();
+    expect(h.vault.read()?.refreshToken).toBe(persisted.refreshToken);
+    expect(h.canRefresh()).toBe(false);
+    expect(h.complete).not.toHaveBeenCalled();
+    expect(backing.remove).not.toHaveBeenCalled();
+    expect(h.state()).toBe("idle");
+  });
+
+  it("rejects a refresh for a different owner", async () => {
+    const backing = storage();
+    const h = harness(vi.fn().mockResolvedValue(response(200, nativeSession(7102))), "pages/earn/earn", { storage: backing });
+    await h.restore();
+    expect(h.complete).not.toHaveBeenCalled();
+    expect(h.vault.read()).toBeNull();
+    expect(backing.remove).toHaveBeenCalled();
+  });
+
+  it.each([200, 401])("does not apply or delete old native owner state after a newer login (late %s)", async status => {
+    let finish!: (value: ReturnType<typeof response>) => void;
+    const request = vi.fn(() => new Promise<ReturnType<typeof response>>(resolve => { finish = resolve; }));
+    const backing = storage(), h = harness(request, "pages/earn/earn", { storage: backing });
+    const restoring = h.restore();
+    await vi.waitFor(() => expect(request).toHaveBeenCalledOnce());
+    h.vault.save(nativeSession(7102)); h.auth.accountId = "user:7102";
+    const removes = backing.remove.mock.calls.length;
+    finish(response(status, status === 200 ? nativeSession() : null)); await restoring; h.guard();
+    expect(h.vault.read()?.user.userId).toBe(7102);
+    expect(h.auth.accountId).toBe("user:7102");
+    expect(h.auth.signOut).not.toHaveBeenCalled();
+    expect(h.complete).not.toHaveBeenCalled();
+    expect(backing.remove).toHaveBeenCalledTimes(removes);
+  });
+
+  it("retries a failed cold native refresh and persists the accepted rotation", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-05T00:00:00Z"));
+    const request = vi.fn().mockRejectedValueOnce(new Error("offline")).mockResolvedValue(response(200, nativeSession()));
+    const backing = storage(), h = harness(request, "pages/earn/earn", { storage: backing });
+    await h.restore(); await h.restore();
+    expect(request).toHaveBeenCalledTimes(1); expect(h.canRefresh()).toBe(false);
+    vi.advanceTimersByTime(15_000);
+    await expect(h.restore()).resolves.toBe(true);
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(backing.get).toHaveBeenCalledOnce();
+    expect(h.canRefresh()).toBe(true);
+    expect(backing.set).toHaveBeenCalledWith(expect.objectContaining({ refreshToken: "synthetic-rotated-refresh" }));
+  });
+
+  it("blocks account work and surfaces a bridge readiness failure", async () => {
+    const backing = storage(), request = vi.fn();
+    const h = harness(request, "pages/earn/earn", { storage: backing, ready: async () => { throw new ApiError({ kind: "configuration", message: "NATIVE_SESSION_STORAGE_UNAVAILABLE" }); } });
+    await expect(h.restore()).resolves.toBe(false);
+    expect(request).not.toHaveBeenCalled(); expect(h.canRefresh()).toBe(false);
+    expect(h.auth.isAuthenticated).toBe(false); expect(h.stop).toHaveBeenCalled();
+    expect(h.toast.warn).toHaveBeenCalled();
+    expect(h.nav).toHaveBeenCalledWith({ url: "/pages/login/login" });
+  });
+
+  it.each([7101, 7102])("preserves a server-accepted login for %s before an older synchronous native error catch", async userId => {
+    const order: string[] = [];
+    const backing = { get: vi.fn(() => { order.push("native-get-threw"); throw new ApiError({ kind: "configuration", message: "NATIVE_SESSION_STORAGE_UNAVAILABLE" }); }),
+      set: vi.fn(() => order.push("server-accepted-save")), remove: vi.fn(() => order.push("native-catch-cleanup")) };
+    const request = vi.fn().mockResolvedValue(response(200, nativeSession(userId)));
+    const h = harness(request, "pages/earn/earn", { storage: backing });
+    // Real ApiClient/AuthApi awaits put acceptance between hydrate's sync
+    // failure and App's catch; this is not a mocked restore error callback.
+    const login = h.authApi.login({ countryCode: "+86", phone: user.phone, password: "SYNTHETIC-LOCAL-ONLY" });
+    const restoring = h.restore();
+    const accepted = await login;
+    expect(accepted.kind).toBe("authenticated");
+    h.complete({ identity: `user:${userId}` });
+    await restoring;
+    expect(order.slice(0, 2)).toEqual(["native-get-threw", "server-accepted-save"]);
+    expect(backing.remove).not.toHaveBeenCalled();
+    expect(h.vault.read()?.user.userId).toBe(userId);
+    expect(h.vault.read()?.accessToken).toBe(nativeSession(userId).accessToken);
+    expect(h.auth.signOut).not.toHaveBeenCalled(); expect(h.app.bindAccount).not.toHaveBeenCalled();
+    expect(h.canRefresh()).toBe(true);
+    expect(h.nav).not.toHaveBeenCalled(); expect(h.toast.warn).not.toHaveBeenCalled();
+  });
+
+  it("clears the shell and business authority even if durable removal fails", () => {
+    const h = harness(vi.fn(), "pages/earn/earn", { storage: { ...storage(), remove: () => { throw new ApiError({ kind: "configuration", message: "NATIVE_SESSION_STORAGE_UNAVAILABLE" }); } } });
+    h.vault.save(nativeSession());
+    h.cleanup(h.auth);
+    expect(h.vault.read()).toBeNull();
+    expect(h.auth.isAuthenticated).toBe(false);
+    expect(h.app.accountKey).toBe("default");
+    expect(h.stop).toHaveBeenCalled();
+    expect(h.toast.warn).toHaveBeenCalled();
   });
 });

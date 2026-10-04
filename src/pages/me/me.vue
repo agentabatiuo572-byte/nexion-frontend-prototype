@@ -132,8 +132,8 @@ import { useVRank } from "@/store/v-rank";
 import { useTheme } from "@/store/theme";
 import { useBills } from "@/store/bills";
 import { useMarket } from "@/store/market";
-import { confirm as uiConfirm } from "@/store/ui";
-import { accountApi, authApi, remoteApiEnabled } from "@/api/runtime";
+import { confirm as uiConfirm, toast } from "@/store/ui";
+import { accountApi, authApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import type { SecurityState } from "@/api/contracts";
 import { runRemoteOrdersRefresh } from "@/lib/remote-orders-refresh";
 import { settleRemoteMeLoaders } from "@/lib/remote-me-refresh";
@@ -542,17 +542,30 @@ async function handleSignOut() {
     confirmLabel: t.value.me.signOutConfirmLabel,
   });
   if (ok) {
+    const logoutAccount = auth.accountId;
+    const logoutRevision = sessionVault.revision();
     conversations.discardHumanOutbox();
     // Self sign-out: void in-flight tasks (rollback) + release the shared
     // session record (other tabs see "logged-out") before clearing auth.
     app.interruptAllTasks("logged-out");
-    if (remoteApiEnabled) {
-      // Stop new heartbeats, let any healthy POST finish, then pause this phone
-      // before the authenticated session is revoked. Offline failure falls
-      // back to the server's 120-second heartbeat timeout.
-      await app.pauseLocalPhoneRuntimeBeforeSignOut();
-      await authApi.logout();
+    try {
+      if (remoteApiEnabled) {
+        // Stop new heartbeats, let any healthy POST finish, then pause this phone
+        // before the authenticated session is revoked. Offline failure falls
+        // back to the server's 120-second heartbeat timeout.
+        await app.pauseLocalPhoneRuntimeBeforeSignOut();
+        if (auth.accountId !== logoutAccount || (sessionVault.revision() !== logoutRevision
+            && !sessionVault.isRefreshContinuation(logoutRevision))) return;
+        await authApi.logout();
+      }
+    } catch {
+      // Local shell cleanup still runs. A native deletion marker is retried
+      // by platform preparation on the next startup; do not claim success.
+      toast.warn(t.value.session.nativeStorageFailure);
     }
+    // The vault's logout CAS protects a newer login; its page shell must obey
+    // the same result after the awaited remote request.
+    if (remoteApiEnabled && (sessionVault.read() || auth.accountId !== logoutAccount)) return;
     session.signOutSession();
     auth.signOut();
     // 登出兜底:清全部账号级数据的内存残留(P2-8 纵深防御;下次登录会重绑真账号)。

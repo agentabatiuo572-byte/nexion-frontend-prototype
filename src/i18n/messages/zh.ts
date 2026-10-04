@@ -2883,6 +2883,7 @@ scoreLabel: "估算评分",
 },
   session: {
     restoreRetryNotice: "暂时无法恢复登录，正在自动重试。",
+    nativeStorageFailure: "本机登录存储暂时不可用，已停止账号操作。本机登录凭据清理未确认完成，请重新打开 App 重试。",
     secureBrowserUnsupported: "此浏览器不支持安全登录或会话恢复。请更新浏览器后重试。",
     kickedTitle: "登录已结束",
     kickedBodyKicked: "当前登录已结束。请重新登录后查看任务和结算记录。",

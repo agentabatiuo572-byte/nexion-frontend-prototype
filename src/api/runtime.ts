@@ -69,6 +69,8 @@ import { readApiRuntimeConfig, type ApiEnvironment } from "./runtime-config";
 import { createRuntimeApiClient } from "./runtime-client";
 import { createRuntimeSessionVault } from "./session-vault";
 import type { RefreshCredentialMode } from "./session-vault";
+import { createNativeSessionStorage, type NativeSessionStorage } from "./native-session-storage";
+import { getDeviceId } from "@/lib/device-id";
 
 export const apiRuntimeConfig = readApiRuntimeConfig();
 export const expectedApiEnvironment: ApiEnvironment = apiRuntimeConfig.environment;
@@ -81,16 +83,28 @@ export const fundsServerEnabled = true;
 // Payout addresses are server-owned in both dev and prod.
 export const payoutAddressServerEnabled = true;
 export const payoutAddressMockEnabled = false;
-export const sessionVault = createRuntimeSessionVault();
 let refreshCredentialMode: RefreshCredentialMode = "token";
 // #ifdef H5
 refreshCredentialMode = "cookie";
 // #endif
+export const h5RefreshCookieEnabled = refreshCredentialMode === "cookie";
+let nativeSessionStorage: NativeSessionStorage | undefined;
+// #ifdef APP-PLUS
+if (!h5RefreshCookieEnabled) {
+  nativeSessionStorage = createNativeSessionStorage({ baseUrl: apiRuntimeConfig.baseUrl, installationId: getDeviceId });
+}
+// #endif
+export const sessionVault = createRuntimeSessionVault(nativeSessionStorage);
+export async function prepareSessionVault(): Promise<void> {
+  if (!nativeSessionStorage) return;
+  await nativeSessionStorage.ready();
+  sessionVault.hydrate();
+}
 let clientSurface: "APP" | undefined;
 // #ifdef APP-PLUS
 clientSurface = "APP";
 // #endif
-export const h5RefreshCookieEnabled = refreshCredentialMode === "cookie";
+export const serverSessionRestoreEnabled = h5RefreshCookieEnabled || !!nativeSessionStorage;
 let unauthorizedHandler: (() => void | Promise<void>) | undefined;
 
 function isLoopbackSameOriginPreview(baseUrl: string): boolean {

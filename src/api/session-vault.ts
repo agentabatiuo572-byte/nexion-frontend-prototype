@@ -26,6 +26,8 @@ export interface KeyValueStorage {
 }
 
 export interface SessionVault {
+  /** Deferred native hydration runs only after the platform bridge is ready. */
+  hydrate(): void;
   read(): SessionSnapshot | null;
   revision(): number;
   save(snapshot: SessionSnapshot): void;
@@ -51,27 +53,33 @@ function parsePersisted(value: unknown): PersistedSession | null {
   return persisted as PersistedSession;
 }
 
-export function createSessionVault(storage?: KeyValueStorage): SessionVault {
+export function createSessionVault(storage?: KeyValueStorage, options?: { deferHydration?: boolean }): SessionVault {
   let current: SessionSnapshot | null = null;
   let revision = 0;
   let identityRevision = 0;
-  if (storage) {
+  let hydrated = !storage;
+  function hydrate(): void {
+    if (hydrated || revision !== 0 || !storage) return;
+    const storedValue = storage.get();
+    const persisted = parsePersisted(storedValue);
+    if (persisted) {
+      current = {
+        accessToken: "",
+        refreshToken: persisted.refreshToken,
+        tokenType: persisted.tokenType,
+        user: persisted.user,
+      };
+    } else if (storedValue !== undefined && storedValue !== null && storedValue !== "") {
+      storage.remove();
+    }
+    hydrated = true;
+  }
+  if (!options?.deferHydration) {
     try {
-      const storedValue = storage.get();
-      const persisted = parsePersisted(storedValue);
-      if (persisted) {
-        current = {
-          accessToken: "",
-          refreshToken: persisted.refreshToken,
-          tokenType: persisted.tokenType,
-          user: persisted.user,
-        };
-      } else if (storedValue !== undefined && storedValue !== null && storedValue !== "") {
-        storage.remove();
-      }
+      hydrate();
     } catch {
       try {
-        storage.remove();
+        storage?.remove();
       } catch {
         // A broken storage adapter must not create an authenticated state.
       }
@@ -92,6 +100,7 @@ export function createSessionVault(storage?: KeyValueStorage): SessionVault {
   }
 
   function persistAndCommit(snapshot: SessionSnapshot, refresh = false): void {
+    hydrated = true;
     const sameIdentity = current?.user.userId === snapshot.user.userId;
     const next = { ...snapshot, user: { ...snapshot.user } };
     if (storage) {
@@ -124,18 +133,16 @@ export function createSessionVault(storage?: KeyValueStorage): SessionVault {
   }
 
   function clearAndAdvance(): void {
+    hydrated = true;
     current = null;
     revision += 1;
     identityRevision = revision;
     if (!storage) return;
-    try {
-      storage.remove();
-    } catch {
-      // Memory is already cleared; never resurrect a failed local logout.
-    }
+    storage.remove();
   }
 
   return {
+    hydrate,
     read() {
       return current ? { ...current, user: { ...current.user } } : null;
     },
@@ -174,13 +181,13 @@ export function createSessionVault(storage?: KeyValueStorage): SessionVault {
 }
 
 /**
- * All targets deliberately receive an in-memory vault. H5 needs an HttpOnly
- * cookie and native targets need Keychain/Keystore before refresh credentials
- * may survive a process restart. Plain localStorage/uni storage is not an
- * acceptable credential store. Access tokens always remain in memory.
+ * H5 uses an HttpOnly cookie and in-memory access tokens. APP-PLUS may supply
+ * an OS-encrypted refresh adapter, hydrated after plusready. Access tokens
+ * never enter the persisted session format.
  */
-export function createRuntimeSessionVault(): SessionVault {
-  const vault = createSessionVault();
+export function createRuntimeSessionVault(storage?: KeyValueStorage): SessionVault {
+  const vault = createSessionVault(storage, { deferHydration: !!storage });
+  if (storage) return vault;
   if (typeof window === "undefined" || typeof BroadcastChannel === "undefined"
       || !globalThis.crypto?.subtle) return vault;
 
