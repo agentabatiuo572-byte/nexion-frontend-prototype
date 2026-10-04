@@ -108,7 +108,7 @@
               <text v-if="sourceRefOpen === b.id && b.memoKey === 'learningReward'" class="block" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
             </view>
             <view class="text-right shrink-0" style="margin-left: 8px">
-              <text class="block tabular-nums" :style="rewardAmountStyle">+{{ b.amount.toLocaleString() }} {{ b.symbol }}</text>
+              <text class="block tabular-nums" :style="rewardAmountStyle">{{ b.amount >= 0 ? '+' : '' }}{{ formatHowNumber(b.amount, locale.code) }} {{ b.symbol }}</text>
               <text class="block" :style="rowDateStyle">{{ shortDate(b.ts) }}</text>
             </view>
           </view>
@@ -142,6 +142,7 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
+import { formatHowNumber } from "@/lib/rank-how-content";
 import { useCourseRewardTitles } from "@/composables/use-course-reward-titles";
 import { useVoucher } from "@/store/voucher";
 import { useBills, isRewardBill, type Bill, type BillType } from "@/store/bills";
@@ -154,6 +155,7 @@ import { useScrollGrowProgress } from "@/composables/use-scroll-grow-progress";
 import { useManualScrollLoadMore } from "@/composables/use-manual-scroll-load-more";
 import { fundsServerEnabled, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import { useApp } from "@/store/app";
+import { useLocaleStore } from "@/store/locale";
 import { useAuth } from "@/store/auth";
 import { binarySessionReady } from "@/lib/binary-session-ready";
 
@@ -163,6 +165,7 @@ import { binarySessionReady } from "@/lib/binary-session-ready";
 const PAGE_SIZE = 10;
 
 const t = useT();
+const locale = useLocaleStore();
 const app = useApp();
 const auth = useAuth();
 const voucher = useVoucher();

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\app-finance-input-recovery-w73-20261005",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-rewards-precision-w75-20261005",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "d16ce382be47740039eb77b064830cba9e75ce91",
-  "sourceRef": "d16ce382be47740039eb77b064830cba9e75ce91",
+  "sourceHead": "a6566c32751c4a9f92d3a1419319dfc60ceb2324",
+  "sourceRef": "a6566c32751c4a9f92d3a1419319dfc60ceb2324",
   "sourceRefKind": "commit",
-  "sourceTree": "5ba42111a6ea83bec06dd9137a9422e069251f32",
+  "sourceTree": "7775542d7babbf1582ef38a41d055a454b6ab416",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -13060,11 +13060,18 @@
       "targetSha256": "6a1443df4a03df4941b04ff905c75f5392fc88cafbdadb7bd76b1b252d819f52",
       "mode": "100644"
     },
+    "src/pages/me/rewards-list-precision.behavior.test.ts": {
+      "sourceBlob": "aa1de5a74e7b3cd4b4615f409d0e7ab5d6a5faf6",
+      "sourceSha256": "da63dde4e78d94ceb4cb60ad36dee8004f9c46bbfff0fbfb640e723bb056ec62",
+      "targetBlob": "aa1de5a74e7b3cd4b4615f409d0e7ab5d6a5faf6",
+      "targetSha256": "da63dde4e78d94ceb4cb60ad36dee8004f9c46bbfff0fbfb640e723bb056ec62",
+      "mode": "100644"
+    },
     "src/pages/me/rewards-list.vue": {
-      "sourceBlob": "af2164ba28a59d8eb275e60f7fbd3b85ab8366e5",
-      "sourceSha256": "104c382a23fb50fd0e14ff7d0efb48f3d050c57ad280ad52696371c1607913a2",
-      "targetBlob": "af2164ba28a59d8eb275e60f7fbd3b85ab8366e5",
-      "targetSha256": "104c382a23fb50fd0e14ff7d0efb48f3d050c57ad280ad52696371c1607913a2",
+      "sourceBlob": "084874ad044321b0a4e1a535fedc6b7791b46d57",
+      "sourceSha256": "7ef66b0b4caa590739ca6c1954147313faa0161d05551dc3b5e4761ea64705a1",
+      "targetBlob": "084874ad044321b0a4e1a535fedc6b7791b46d57",
+      "targetSha256": "7ef66b0b4caa590739ca6c1954147313faa0161d05551dc3b5e4761ea64705a1",
       "mode": "100644"
     },
     "src/pages/me/rewards-voucher-read-state.test.ts": {
