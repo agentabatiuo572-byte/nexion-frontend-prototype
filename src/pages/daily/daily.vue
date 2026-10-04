@@ -209,7 +209,7 @@
 <script setup lang="ts">
 import { navTo } from "@/lib/route";
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import CardStagger from "@/components/card-stagger.vue";
@@ -279,6 +279,7 @@ const remoteSessionReady = computed(() => accountSessionReady({
   sessionUserId: sessionVault.read()?.user.userId ?? null,
 }));
 let pageActive = true;
+let pageVisit = 0;
 let readCoalescer = createScopedReadCoalescer();
 let dailyPageScope: string | null = null;
 const bills = useBills();
@@ -366,7 +367,8 @@ watch(() => [app.accountKey, app.accountBindingEpoch] as const, readDailyPage);
 watch(remoteSessionReady, readDailyPage, { immediate: true, flush: 'post' });
 // Catalog preparation publishes before the remaining account-scoped stores bind.
 const unsubscribeDailyRuntime = subscribeRuntimeRevision(() => { void nextTick(readDailyPage); });
-onShow(readDailyPage);
+onHide(() => { pageActive = false; pageVisit += 1; });
+onShow(() => { pageActive = true; readDailyPage(); });
 onUnmounted(() => { pageActive = false; dailyRefreshRequest += 1; unsubscribeDailyRuntime(); });
 
 // Per-second tick for the countdown.
@@ -498,7 +500,7 @@ function signInRef(ts: number): string {
 
 
 async function handleCheckIn() {
-  if (!dailyFactsReady.value) return;
+  if (!pageActive || !dailyFactsReady.value) return;
   // 写闸:账号今日签到状态**本次已确认**才允许发写请求(见 checkInStateConfirmed)。
   // 只靠 aria-disabled 不够——键盘合成 click、程序化调用都会绕过属性闸。
   if (!checkInStateConfirmed.value) {
@@ -509,11 +511,17 @@ async function handleCheckIn() {
   if (remoteApiEnabled) {
     const walletAccountKey = app.accountKey;
     const walletAccountEpoch = app.accountBindingEpoch;
+    const submittingVisit = pageVisit;
     checkInSubmitting.value = true;
     try {
       const remote = await faucet.checkInRemote();
+      if (!pageActive || pageVisit !== submittingVisit || app.accountKey !== walletAccountKey || app.accountBindingEpoch !== walletAccountEpoch) return;
       if (!remote.ok) {
-        toast.error(t.value.authOtp.errorServiceUnavailable);
+        toast.error(remote.reason === "B1_COVERAGE_BELOW_REDLINE"
+          ? t.value.binary.blockReasons.COVERAGE_BELOW_REDLINE
+          : remote.reason === "B1_COVERAGE_DATA_UNAVAILABLE"
+            ? t.value.binary.blockReasons.B1_COVERAGE_UNRELIABLE
+            : t.value.authOtp.errorServiceUnavailable);
         return;
       }
       const successCopy = dailyCheckInSuccessCopy(remote, t.value.daily);

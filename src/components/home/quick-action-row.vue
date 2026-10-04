@@ -10,14 +10,14 @@
       v-for="c in chips"
       :key="c.href"
       class="nx-glass-action text-center"
-      style="width: 100%; min-width: 0; aspect-ratio: 1; min-height: 76px; box-sizing: border-box; padding: 8px 4px; display: flex; flex-direction: column; justify-content: center"
+      style="width: 100%; min-width: 0; min-height: 76px; box-sizing: border-box; padding: 8px 4px; display: flex; flex-direction: column; justify-content: center"
       role="link"
       tabindex="0"
       :aria-label="c.label"
       @click="go(c.href)"
 	      @keydown.enter.prevent="onKeyboardActivate($event, () => go(c.href))"
     >
-      <view class="grid place-items-center" style="height: 24px">
+      <view class="grid place-items-center" style="height: 24px; flex-shrink: 0">
         <!-- 质押 — gem (lucide) -->
         <svg v-if="c.icon === 'gem'" width="22" height="22" viewBox="0 0 24 24" fill="none" :stroke="iconColor(c.tone)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 3h12l4 6-10 13L2 9Z" />
@@ -41,7 +41,7 @@
         </svg>
       </view>
       <text class="block mt-1" style="font-family: var(--font-v5); font-weight: 600; font-size: 12px; color: var(--v5-ink)">{{ c.label }}</text>
-      <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: iconColor(c.tone), marginTop: '1px' }">{{ c.sub }}</text>
+      <text class="block font-mono-tabular" :style="{ fontSize: '12px', lineHeight: '1.25', maxWidth: '100%', overflowWrap: 'anywhere', color: iconColor(c.tone), marginTop: '1px' }">{{ c.sub }}</text>
     </view>
   </view>
 </template>

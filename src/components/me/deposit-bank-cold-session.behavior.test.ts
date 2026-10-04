@@ -12,13 +12,15 @@ import { createSessionVault } from "@/api/session-vault";
 import { ApiError } from "@/api/errors";
 import { fmt } from "@/i18n/format";
 import { zh } from "@/i18n/messages/zh";
+import { en } from "@/i18n/messages/en";
+import { vi as vietnamese } from "@/i18n/messages/vi";
 import { computeQuoteRate, fmtVnd, vndForUsdt } from "@/store/fx-core";
 import { binarySessionReady } from "@/lib/binary-session-ready";
 import { remoteAccountScope } from "@/lib/remote-account-epoch";
-import { findResumablePaymentIntent } from "@/lib/hosted-payment";
+import { findResumablePaymentIntent, validateHostedPaymentUrl } from "@/lib/hosted-payment";
 import { runRecoverableFundsOperation } from "@/lib/recoverable-funds-operation";
 import { buildVietQrTransferSteps } from "@/lib/vietqr-remote-safety";
-import type { DepositIntent } from "@/store/types";
+import type { DepositIntent, DepositRecord } from "@/store/types";
 
 const runtime = vi.hoisted(() => ({ remoteApiEnabled: true, sessionVault: { read: vi.fn() },
   paymentApi: { config: vi.fn(), fxQuote: vi.fn() } }));
@@ -71,9 +73,12 @@ const renderer = Vue.createRenderer<HostNode, HostNode>({
   nextSibling: target => target.parent?.children[target.parent.children.indexOf(target) + 1] ?? null,
 });
 const textOf = (target: HostNode): string => (target.kind === "#comment" ? "" : target.text) + target.children.map(textOf).join("");
+const nodesOf = (target: HostNode): HostNode[] => [target, ...target.children.flatMap(nodesOf)];
+const control = (root: HostNode, className: string) => nodesOf(root).find(target => String(target.props.class).split(" ").includes(className));
 
 function harness(options: { warm?: boolean; quoteFailure?: boolean; existing?: boolean;
-  deferFirstQuote?: boolean; firstIntentFailure?: boolean } = {}) {
+  deferFirstQuote?: boolean; firstIntentFailure?: boolean; initialIntents?: DepositIntent[];
+  cachedIntents?: DepositIntent[]; deferFirstIntentRead?: boolean; translations?: typeof zh } = {}) {
   const vault = createSessionVault(), auth = Vue.reactive({ isAuthenticated: false, accountId: "user:7" });
   const app = Vue.reactive({ accountKey: "default", accountBindingEpoch: 0 });
   runtime.sessionVault.read.mockImplementation(() => vault.read());
@@ -82,11 +87,14 @@ function harness(options: { warm?: boolean; quoteFailure?: boolean; existing?: b
     releaseFirstQuote = fail => fail ? reject(new Error("OLD_ACCOUNT_QUOTE_FAILED")) : resolve();
   });
   let intentReads = 0;
+  let releaseFirstIntentRead!: () => void;
+  const firstIntentRead = new Promise<void>(resolve => { releaseFirstIntentRead = resolve; });
   const snapshot = (userId = 7) => ({ accessToken: "test-access", refreshToken: "test-refresh", tokenType: "Bearer",
     user: { userId, countryCode: "+86", phone: "13800000007", nickname: "Test", onboardingComplete: true } });
   const original: DepositIntent = { intentId: "VQR-existing-10", usdtAmount: 10, fxRate: quoteRate,
     vndAmount: vndForUsdt(10, quoteRate), status: "awaiting_payment", createdAt: now, expireAt: now + 30 * 60_000,
     paymentMode: "hosted", providerStatus: "created", paymentUrl: "https://api.hdpayadmin.com/pay?id=existing" };
+  let canonicalIntents = options.initialIntents ?? (options.existing === false ? [] : [original]);
   const transport = vi.fn(async (request: { method: string; url: string }) => {
     if (request.method !== "GET") throw new Error("Unexpected payment mutation");
     const path = new URL(request.url).pathname;
@@ -105,10 +113,12 @@ function harness(options: { warm?: boolean; quoteFailure?: boolean; existing?: b
         baseRateVndPerUsdt: baseRate, buySpreadPct: 1.5, quoteRateVndPerUsdt: computeQuoteRate(baseRate, 1.5), lockWindowMinutes: 30, version: 1,
         asOf: new Date(now).toISOString() };
     } else if (path.endsWith("/deposits/vietqr/intents")) {
-      if (++intentReads === 1 && options.firstIntentFailure) {
+      const firstRead = ++intentReads === 1;
+      if (firstRead && options.deferFirstIntentRead) await firstIntentRead;
+      if (firstRead && options.firstIntentFailure) {
         return { status: 503, data: { code: 503, message: "READ_FAILED", data: null }, headers: {} };
       }
-      data = { items: options.existing === false ? [] : [original] };
+      data = { items: canonicalIntents.map(item => ({ ...item })) };
     }
     else throw new Error(`Unexpected payment read: ${path}`);
     return { status: 200, data: { code: 0, message: "OK", data }, headers: {} };
@@ -117,27 +127,32 @@ function harness(options: { warm?: boolean; quoteFailure?: boolean; existing?: b
   const api = createPaymentApi(client, "dev");
   runtime.paymentApi.config.mockImplementation(() => api.config());
   runtime.paymentApi.fxQuote.mockImplementation(() => api.fxQuote());
-  const dep = Vue.reactive({ intents: [] as DepositIntent[], records: [], serverStatus: "idle", serverError: "",
+  const dep = Vue.reactive({ intents: options.cachedIntents ?? [] as DepositIntent[], records: [] as DepositRecord[],
+    remoteReceipts: [] as Array<{ intentNo: string }>, serverStatus: options.cachedIntents ? "ready" : "idle", serverError: "",
+    remoteReceiptInitialStatus: options.cachedIntents ? "ready" : "idle", remoteReceiptMoreStatus: "idle",
     currentAccountKey: () => app.accountKey, createRemoteBankIntent: vi.fn(), startRemoteVietQrPolling: vi.fn(),
     stopRemoteVietQrPolling: vi.fn(), refreshRemoteVietQrDeposits: vi.fn(async (): Promise<void> => {
+      dep.remoteReceiptInitialStatus = "loading";
+      dep.serverStatus = "loading";
       try {
         const result = await client.request<{ items: DepositIntent[] }>({ path: "/api/app/deposits/vietqr/intents" });
-        dep.intents = result.items; dep.serverStatus = "ready"; dep.serverError = "";
-      } catch (cause) { dep.serverStatus = "error"; dep.serverError = cause instanceof Error ? cause.message : "READ_FAILED"; }
+        dep.intents = result.items; dep.remoteReceiptInitialStatus = "ready"; dep.serverStatus = "ready"; dep.serverError = "";
+      } catch (cause) { dep.remoteReceiptInitialStatus = "error"; dep.serverStatus = "error";
+        dep.serverError = cause instanceof Error ? cause.message : "READ_FAILED"; }
     }) });
   const fx = useFx(), open = vi.fn(), navTo = vi.fn();
   const modules: Record<string, unknown> = {
     vue: Vue, "@/store/fx": { useFx: () => fx }, "@/store/app": { useApp: () => app },
     "@/store/auth": { useAuth: () => auth }, "@/store/deposits": { useDeposits: () => dep },
     "@/api/runtime": { remoteApiEnabled: true, sessionVault: vault }, "@/api/errors": { ApiError },
-    "@/lib/binary-session-ready": { binarySessionReady }, "@/i18n/use-t": { useT: () => Vue.ref(zh) },
+    "@/lib/binary-session-ready": { binarySessionReady }, "@/i18n/use-t": { useT: () => Vue.ref(options.translations ?? zh) },
     "@/i18n/format": { fmt }, "@/store/fx-core": { fmtVnd, vndForUsdt },
     "@/composables/use-dialog-a11y": { useDialogA11y: () => {} }, "@/components/me/fx-rate-line.vue": {},
     "@/lib/route": { navBack: vi.fn(), navTo }, "@/store/ui": { toast: { error: vi.fn(), warn: vi.fn(), success: vi.fn() }, confirm: vi.fn() },
     "@/store/server-time": { mockServerNow: () => now }, "@/store/deposits-core": { BANK_MAX_DEPOSIT_USDT: 5000, MIN_DEPOSIT_USDT: 10 },
     "@/lib/recoverable-funds-operation": { runRecoverableFundsOperation },
     "@/lib/vietqr-remote-safety": { buildVietQrTransferSteps },
-    "@/lib/hosted-payment": { findResumablePaymentIntent, openHostedPaymentPage: open },
+    "@/lib/hosted-payment": { findResumablePaymentIntent, validateHostedPaymentUrl, openHostedPaymentPage: open },
   };
   const line = component(fxSource, modules), pane = component(paneSource, modules, { FxRateLine: line.definition });
   const restore = (userId = 7, boundUserId = 7) => { vault.save(snapshot(userId)); auth.isAuthenticated = true;
@@ -149,7 +164,8 @@ function harness(options: { warm?: boolean; quoteFailure?: boolean; existing?: b
   let disposed = false;
   const unmount = () => { if (!disposed) { disposed = true; mounted.unmount(); } };
   cleanups.push(unmount);
-  return { app, auth, vault, restore, dep, fx, open, transport, client, releaseFirstQuote,
+  return { root, app, auth, vault, restore, dep, fx, open, transport, client, releaseFirstQuote, releaseFirstIntentRead,
+    setCanonicalIntents: (items: DepositIntent[]) => { canonicalIntents = items; },
     state: pane.state, text: () => textOf(root), unmount };
 }
 
@@ -290,4 +306,179 @@ test("an invalidated session removes only the stale read banner and keeps the ac
   expect((h.state().readError as Vue.Ref<string>).value).toBe("");
   expect((h.state().createError as Vue.Ref<string>).value).toBe(createError);
   expect(h.transport).toHaveBeenCalledTimes(readCount); expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled();
+});
+
+const oldAttempt: DepositIntent = { intentId: "VQR-old-4998", usdtAmount: 4998, fxRate: quoteRate,
+  vndAmount: vndForUsdt(4998, quoteRate), status: "awaiting_payment", createdAt: now, expireAt: now + 30 * 60_000,
+  paymentMode: "hosted", providerStatus: "rejected" };
+const oldExpired: DepositIntent = { ...oldAttempt, status: "expired", expireAt: now - 1 };
+const existing20: DepositIntent = { intentId: "VQR-existing-20", usdtAmount: 20, fxRate: quoteRate,
+  vndAmount: vndForUsdt(20, quoteRate), status: "awaiting_payment", createdAt: now, expireAt: now + 30 * 60_000,
+  paymentMode: "hosted", providerStatus: "created", paymentUrl: "https://api.hdpayadmin.com/pay?id=existing20" };
+async function expiredView(translations: typeof zh = zh) {
+  const h = harness({ warm: true, initialIntents: [oldAttempt], translations });
+  await vi.waitFor(() => expect(h.fx.configReady && h.dep.serverStatus === "ready").toBe(true)); await Vue.nextTick();
+  expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(oldAttempt.intentId);
+  h.setCanonicalIntents([existing20, oldExpired]); await h.dep.refreshRemoteVietQrDeposits(); await Vue.nextTick();
+  expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(oldAttempt.intentId);
+  return h;
+}
+const existingControl = (h: ReturnType<typeof harness>) => control(h.root, "nx-bank-existing-order-cta");
+
+test.each([zh, en, vietnamese])("a fresh canonical list offers an explicit existing order choice in the actual locale (%#), without replacing or creating an order", async messages => {
+  const h = await expiredView(messages), choice = existingControl(h)!;
+  expect(h.text()).toContain(messages.bankPane.expiredTitle); expect(choice.props["aria-disabled"]).toBe(false);
+  expect(textOf(choice)).toBe(`${messages.store.viewDetails} · ${messages.store.pendingBarLabel} · 20.00 USDT`);
+  expect(h.text()).toContain(messages.topupChrome.depositNotArrived);
+  const before = h.dep.intents.map(item => ({ ...item })), readCount = h.transport.mock.calls.length;
+  const saveSession = vi.spyOn(h.vault, "save"), clearSession = vi.spyOn(h.vault, "clear");
+  (h.state().createError as Vue.Ref<string>).value = messages.bankPane.hostedRejectedNote;
+  (choice.props.onClick as () => void)(); await Vue.nextTick();
+  expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(existing20.intentId);
+  expect(h.text()).toContain(fmtVnd(existing20.vndAmount)); expect(h.text()).toContain(messages.bankPane.hostedContinueCta);
+  expect(h.text()).not.toContain(messages.bankPane.expiredTitle); expect(existingControl(h)).toBeUndefined();
+  expect((h.state().createError as Vue.Ref<string>).value).toBe(""); expect(h.dep.intents).toEqual(before);
+  expect(h.dep.records).toEqual([]); expect(h.dep.remoteReceipts).toEqual([]);
+  expect(h.transport).toHaveBeenCalledTimes(readCount); expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled();
+  expect(h.open).not.toHaveBeenCalled(); expect(h.transport.mock.calls.every(([request]) => request.method === "GET")).toBe(true);
+  expect(saveSession).not.toHaveBeenCalled(); expect(clearSession).not.toHaveBeenCalled();
+});
+
+test("cached orders and a pending first canonical read cannot offer an existing-order choice", async () => {
+  const h = harness({ warm: true, cachedIntents: [oldAttempt, existing20],
+    initialIntents: [existing20, oldExpired], deferFirstIntentRead: true });
+  await Vue.nextTick(); h.dep.intents[0] = oldExpired; await Vue.nextTick();
+  expect(h.dep.serverStatus).toBe("loading"); expect(h.text()).toContain(zh.bankPane.expiredTitle);
+  expect(existingControl(h)).toBeUndefined(); expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled();
+  h.releaseFirstIntentRead(); await vi.waitFor(() => expect(h.dep.serverStatus).toBe("ready")); await Vue.nextTick();
+  expect(existingControl(h)?.props["aria-disabled"]).toBe(false); expect(h.open).not.toHaveBeenCalled();
+});
+
+test("an in-flight early return cannot promote cached ready orders into a fresh canonical choice", async () => {
+  const h = harness({ warm: true, cachedIntents: [oldAttempt, existing20], initialIntents: [existing20, oldExpired] });
+  h.dep.refreshRemoteVietQrDeposits.mockImplementationOnce(async () => {});
+  await Vue.nextTick(); h.dep.intents[0] = oldExpired; await Vue.nextTick();
+  expect(h.dep.serverStatus).toBe("ready"); expect(existingControl(h)).toBeUndefined();
+  await h.dep.refreshRemoteVietQrDeposits(); await Vue.nextTick();
+  expect(existingControl(h)?.props["aria-disabled"]).toBe(false);
+  expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled(); expect(h.open).not.toHaveBeenCalled();
+});
+
+test("a receipt-only loading/ready transition cannot reauthorize the existing choice without a new intent list", async () => {
+  const h = await expiredView(), choice = existingControl(h)!;
+  h.dep.serverStatus = "loading"; await Vue.nextTick();
+  h.dep.serverStatus = "ready"; await Vue.nextTick();
+  expect(existingControl(h)).toBe(choice); expect(choice.props["aria-disabled"]).toBe(true);
+  (choice.props.onClick as () => void)();
+  expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(oldAttempt.intentId);
+  await h.dep.refreshRemoteVietQrDeposits(); await Vue.nextTick();
+  expect(existingControl(h)?.props["aria-disabled"]).toBe(false);
+  expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled(); expect(h.open).not.toHaveBeenCalled();
+});
+
+test.each(["CREATE", "CANCEL", "GET_CONFLICT"] as const)("receipt-only ready cannot authorize a choice after a concurrent %s readback replaces intents", async command => {
+  const h = await expiredView(), choice = existingControl(h)!;
+  const unrelated: DepositIntent = { ...oldAttempt, intentId: "VQR-other-command", usdtAmount: 25,
+    vndAmount: vndForUsdt(25, quoteRate), paymentMode: "manual", providerStatus: undefined };
+  if (command !== "CREATE") h.dep.intents.push(unrelated);
+  h.dep.remoteReceiptMoreStatus = "loading"; h.dep.serverStatus = "loading"; await Vue.nextTick();
+  expect(h.dep.remoteReceiptInitialStatus).toBe("ready"); expect(choice.props["aria-disabled"]).toBe(true);
+  const before = h.dep.intents;
+  // Apply the actual Store's command boundary semantics, without duplicating the pane's decision logic.
+  h.dep.intents = command === "CREATE" ? [{ ...unrelated, paymentMode: "hosted", providerStatus: "created",
+    paymentUrl: "https://api.hdpayadmin.com/pay?id=other" }, ...h.dep.intents]
+    : h.dep.intents.map(item => item.intentId === unrelated.intentId
+      ? { ...item, status: command === "CANCEL" ? "cancelled" as const : "credited" as const } : item);
+  expect(h.dep.intents).not.toBe(before);
+  h.dep.remoteReceiptMoreStatus = "ready"; h.dep.serverStatus = "ready"; await Vue.nextTick();
+  const currentChoice = existingControl(h)!;
+  expect(currentChoice).toBe(choice); expect(currentChoice.props["aria-disabled"]).toBe(true);
+  const readCount = h.transport.mock.calls.length;
+  (currentChoice.props.onClick as () => void)();
+  expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(oldAttempt.intentId);
+  expect(h.transport).toHaveBeenCalledTimes(readCount);
+  h.setCanonicalIntents([existing20, ...h.dep.intents.filter(item => item.intentId !== existing20.intentId)]);
+  await h.dep.refreshRemoteVietQrDeposits(); await Vue.nextTick();
+  const freshChoice = existingControl(h)!;
+  expect(freshChoice.props["aria-disabled"]).toBe(false);
+  (freshChoice.props.onClick as () => void)(); await Vue.nextTick();
+  expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(existing20.intentId);
+  expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled(); expect(h.open).not.toHaveBeenCalled();
+});
+
+test.each(["loading", "error", "creating", "opening"] as const)("the existing choice remains in place but refuses a click while %s", async state => {
+  const h = await expiredView(), choice = existingControl(h)!, click = choice.props.onClick as () => void;
+  const support = control(h.root, "nx-bank-support-link")!, supportIndex = support.parent!.children.indexOf(support);
+  const readCount = h.transport.mock.calls.length;
+  if (state === "loading" || state === "error") h.dep.serverStatus = state;
+  if (state === "creating") (h.state().creating as Vue.Ref<boolean>).value = true;
+  if (state === "opening") (h.state().openingHosted as Vue.Ref<boolean>).value = true;
+  await Vue.nextTick(); expect(existingControl(h)).toBe(choice); expect(choice.props["aria-disabled"]).toBe(true);
+  expect(support.parent!.children.indexOf(support)).toBe(supportIndex);
+  click(); await Vue.nextTick(); expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(oldAttempt.intentId);
+  expect(h.transport).toHaveBeenCalledTimes(readCount); expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled(); expect(h.open).not.toHaveBeenCalled();
+});
+
+test.each(["expired", "credited", "mismatch", "unknown", "pending", "missing", "url", "url-change", "amount", "deadline", "received", "matched", "record", "receipt"] as const)(
+  "a captured existing-order click rechecks the current canonical %s fact", async change => {
+    const h = await expiredView(), click = existingControl(h)!.props.onClick as () => void;
+    const readCount = h.transport.mock.calls.length;
+    if (change === "missing") h.dep.intents = [oldExpired];
+    else if (change === "record") h.dep.records = [{ depositId: existing20.intentId, channel: "bank-vietqr", grossAmountUsdt: 20,
+      feeUsdt: 0, creditedUsdt: 20, status: "credited", createdAt: now }];
+    else if (change === "receipt") h.dep.remoteReceipts = [{ intentNo: existing20.intentId }];
+    else h.dep.intents[0] = { ...existing20, ...(change === "expired" ? { status: "expired" as const }
+      : change === "credited" ? { status: "credited" as const }
+      : change === "mismatch" ? { status: "mismatch_review" as const }
+      : change === "unknown" ? { providerStatus: "submit_unknown" as const }
+      : change === "pending" ? { providerStatus: "pending" as const }
+      : change === "url" ? { paymentUrl: "https://untrusted.example/pay" }
+      : change === "url-change" ? { paymentUrl: "https://api.hdpayadmin.com/pay?id=replaced" }
+      : change === "amount" ? { usdtAmount: 21 }
+      : change === "deadline" ? { expireAt: now }
+      : change === "received" ? { receivedVnd: existing20.vndAmount }
+      : { matchedAt: now }) };
+    click(); await Vue.nextTick(); expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(oldAttempt.intentId);
+    expect(h.transport).toHaveBeenCalledTimes(readCount); expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled(); expect(h.open).not.toHaveBeenCalled();
+  });
+
+test.each(["awaiting", "unknown", "credited", "mismatch", "refund", "cancelled", "paid", "received", "matched", "record", "receipt", "form"] as const)(
+  "a successful list never overwrites the current %s view or its receipt state", async state => {
+    const h = await expiredView();
+    let old = { ...oldExpired };
+    if (state === "awaiting") old = { ...oldAttempt, providerStatus: "created", paymentUrl: existing20.paymentUrl };
+    if (state === "unknown") old = { ...oldExpired, providerStatus: "submit_unknown" };
+    if (state === "credited") old.status = "credited";
+    if (state === "mismatch") old.status = "mismatch_review";
+    if (state === "refund") old.status = "return_pending";
+    if (state === "cancelled") old.status = "cancelled";
+    if (state === "received") old.receivedVnd = old.vndAmount;
+    if (state === "matched") old.matchedAt = now;
+    if (state === "record") h.dep.records = [{ depositId: old.intentId, channel: "bank-vietqr", grossAmountUsdt: old.usdtAmount,
+      feeUsdt: 0, creditedUsdt: old.usdtAmount, status: "credited", createdAt: now }];
+    if (state === "paid") (h.state().paidPressed as Vue.Ref<boolean>).value = true;
+    if (state === "receipt") h.dep.remoteReceipts = [{ intentNo: old.intentId }];
+    if (state === "form") (h.state().startNewTopup as () => void)();
+    h.setCanonicalIntents([existing20, old]); await h.dep.refreshRemoteVietQrDeposits(); await Vue.nextTick();
+    expect(existingControl(h)).toBeUndefined();
+    expect((h.state().viewIntentId as Vue.Ref<string | null>).value).toBe(state === "form" ? null : old.intentId);
+    if (state === "received") { expect(h.text()).toContain(zh.bankPane.lateNote); expect(h.text()).toContain(zh.topupChrome.depositNotArrived); }
+    expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled(); expect(h.open).not.toHaveBeenCalled();
+  });
+
+test.each(["epoch", "account-return", "session", "unmount"] as const)("a previously rendered choice cannot be applied after %s", async change => {
+  const h = await expiredView(), click = existingControl(h)!.props.onClick as () => void;
+  if (change === "epoch") h.app.accountBindingEpoch++;
+  if (change === "account-return") { h.restore(8, 8); h.restore(7, 7); }
+  if (change === "session") h.auth.isAuthenticated = false;
+  if (change === "unmount") h.unmount();
+  click(); expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(oldAttempt.intentId);
+  await Vue.nextTick();
+  if (change === "epoch" || change === "account-return") {
+    await vi.waitFor(() => expect(h.dep.serverStatus).toBe("ready")); await Vue.nextTick();
+    const readCount = h.transport.mock.calls.length;
+    click(); expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(oldAttempt.intentId);
+    expect(h.transport).toHaveBeenCalledTimes(readCount);
+  }
+  expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled(); expect(h.open).not.toHaveBeenCalled();
 });

@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
+import { createApiClient, type HttpRequest } from "@/api/api-client";
+import { createPointsApi } from "@/api/points-api";
+import { createSessionVault } from "@/api/session-vault";
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
@@ -57,6 +60,19 @@ function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => { resolve = done; });
   return { promise, resolve };
+}
+
+function checkInWire(status: number, message: string, gate?: Promise<void>) {
+  const vault = createSessionVault();
+  vault.save({ accessToken: "unit-access", refreshToken: "unit-refresh", tokenType: "Bearer",
+    user: { userId: 1, countryCode: "+86", phone: "13800000001", nickname: "Test", onboardingComplete: true } });
+  const request = vi.fn(async (input: HttpRequest) => {
+    if (input.method !== "POST" || new URL(input.url).pathname !== "/api/points/sign-in") throw new Error("Unexpected points request");
+    if (gate) await gate;
+    return { status, headers: {}, data: { code: 422, message, data: null } };
+  });
+  const api = createPointsApi(createApiClient({ baseUrl: "https://example.test", vault, transport: { request } }));
+  return { api, request };
 }
 
 beforeEach(() => {
@@ -133,6 +149,52 @@ describe("NEX faucet remote failure resilience", () => {
     expect(store.signInStreak).toBe(3);
     expect(store.remoteMilestones).toHaveLength(1);
     expect(store.remoteRules).toEqual([{ key: "baseNex", value: "2" }]);
+  });
+
+  const coverageCases = [422, 200].flatMap(status =>
+    ["B1_COVERAGE_BELOW_REDLINE", "B1_COVERAGE_DATA_UNAVAILABLE"].map(reason => [status, reason] as const));
+  it.each(coverageCases)("preserves the settled HTTP %s %s reason without changing confirmed daily facts", async (status, reason) => {
+    remote.pointsApi.state.mockResolvedValue(dailySnapshot());
+    const store = createBoundStore(); await flush();
+    const wire = checkInWire(status, reason);
+    remote.pointsApi.checkIn.mockImplementation(wire.api.checkIn);
+    const before = { streak: store.signInStreak, checked: store.remoteCheckedInToday, last: store.lastSignedInAt };
+    await expect(store.checkInRemote()).resolves.toEqual({ ok: false, gained: 0, streak: 0, multiplier: 1, reason });
+    expect({ streak: store.signInStreak, checked: store.remoteCheckedInToday, last: store.lastSignedInAt }).toEqual(before);
+    expect(store.remoteReadState).toBe("ready");
+    expect(wire.request).toHaveBeenCalledOnce();
+    expect(wire.request.mock.calls[0][0].headers["Idempotency-Key"]).toBe("h5-check-in:2026-08-22");
+  });
+
+  it.each([[503, "B1_COVERAGE_BELOW_REDLINE"], [422, "OTHER_REJECTION"]] as const)("does not approve unknown HTTP %s %s as a coverage block", async (status, message) => {
+    remote.pointsApi.state.mockResolvedValue(dailySnapshot());
+    const store = createBoundStore(); await flush();
+    const wire = checkInWire(status, message);
+    remote.pointsApi.checkIn.mockImplementation(wire.api.checkIn);
+    await expect(store.checkInRemote()).resolves.toEqual({ ok: false, gained: 0, streak: 0, multiplier: 1 });
+    expect(store.signInStreak).toBe(3); expect(store.remoteCheckedInToday).toBe(false);
+    expect(wire.request).toHaveBeenCalledOnce();
+  });
+
+  it("does not classify an untyped matching error string as a settled coverage block", async () => {
+    remote.pointsApi.state.mockResolvedValue(dailySnapshot());
+    const store = createBoundStore(); await flush();
+    remote.pointsApi.checkIn.mockRejectedValue(new Error("B1_COVERAGE_BELOW_REDLINE"));
+    await expect(store.checkInRemote()).resolves.toEqual({ ok: false, gained: 0, streak: 0, multiplier: 1 });
+    expect(store.signInStreak).toBe(3); expect(store.remoteCheckedInToday).toBe(false);
+  });
+
+  it("does not carry a late coverage rejection into another bound account", async () => {
+    remote.pointsApi.state.mockResolvedValue(dailySnapshot());
+    const store = createBoundStore(); await flush();
+    const gate = deferred<void>(), wire = checkInWire(422, "B1_COVERAGE_BELOW_REDLINE", gate.promise);
+    remote.pointsApi.checkIn.mockImplementation(wire.api.checkIn);
+    const result = store.checkInRemote(); await flush();
+    expect(wire.request).toHaveBeenCalledOnce();
+    remote.sessionUserId = 2; remote.pointsApi.state.mockResolvedValue(dailySnapshot(8)); store.bindAccount("user:2");
+    await flush(); gate.resolve();
+    await expect(result).resolves.toEqual({ ok: false, gained: 0, streak: 0, multiplier: 1 });
+    expect(store.signInStreak).toBe(8); expect(store.remoteReadState).toBe("ready");
   });
 
   it("keeps the last confirmed daily state when a state refresh fails", async () => {

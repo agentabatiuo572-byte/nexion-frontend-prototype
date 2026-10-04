@@ -5,6 +5,7 @@ import type { CanonicalTopStreaker, CanonicalDailyMilestone, CanonicalDailyPower
 import { createAccountRowCommit } from "./account-scoped-storage";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import { captureRuntimeRevision } from "@/api/order-api";
+import { ApiError } from "@/api/errors";
 
 /**
  * NEX 水龙头 + 提现闸 — 由旧 points.ts 演化(积分系统下线,NEX 接管)。
@@ -179,7 +180,8 @@ export const useNexFaucet = defineStore("nexFaucet", () => {
     }
   }
 
-  async function checkInRemote(): Promise<{ ok: boolean; gained: number; streak: number; multiplier: number }> {
+  async function checkInRemote(): Promise<{ ok: boolean; gained: number; streak: number; multiplier: number;
+    reason?: "B1_COVERAGE_BELOW_REDLINE" | "B1_COVERAGE_DATA_UNAVAILABLE" }> {
     if (!remoteApiEnabled) return { ok: false, gained: 0, streak: 0, multiplier: 1 };
     const request = remoteAccountEpoch.snapshot();
     try {
@@ -202,7 +204,12 @@ export const useNexFaucet = defineStore("nexFaucet", () => {
       // 写命令的 canonical 响应已经证明成功；后续读刷新失败不能把成功降级成失败，也不能清空旧快照。
       await refreshRemote(request);
       return { ok: true, gained: result.rewardNex, streak: result.streakDays, multiplier: result.multiplier };
-    } catch {
+    } catch (cause) {
+      if (remoteAccountEpoch.isCurrent(request) && cause instanceof ApiError && cause.code === 422
+          && (cause.kind === "business" || (cause.kind === "http" && cause.status === 422))
+          && (cause.message === "B1_COVERAGE_BELOW_REDLINE" || cause.message === "B1_COVERAGE_DATA_UNAVAILABLE")) {
+        return { ok: false, gained: 0, streak: 0, multiplier: 1, reason: cause.message };
+      }
       return { ok: false, gained: 0, streak: 0, multiplier: 1 };
     }
   }

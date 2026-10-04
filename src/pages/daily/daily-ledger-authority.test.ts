@@ -63,7 +63,7 @@ function commands(bills: ReturnType<typeof useBills>, accepted: boolean) {
     compilerOptions: { target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const deps = {
-    bills, remoteApiEnabled: true, pageActive: true, remoteSessionReady: ref(true),
+    bills, remoteApiEnabled: true, pageActive: true, pageVisit: 0, remoteSessionReady: ref(true),
     refreshBalance: vi.fn(),
     app: { accountKey: "user:607", accountBindingEpoch: 1 },
     dailyFactsReady: ref(true), checkInStateConfirmed: ref(true),
@@ -147,10 +147,10 @@ async function mountedDaily() {
     advanceRuntimeRevision("account catalog preparation"); faucet.bindAccount(auth.accountId);
   };
   bind(607);
-  const toast = { success: vi.fn(), error: vi.fn(), warn: vi.fn(), info: vi.fn() }, shows: Array<() => void> = [];
+  const toast = { success: vi.fn(), error: vi.fn(), warn: vi.fn(), info: vi.fn() }, shows: Array<() => void> = [], hides: Array<() => void> = [];
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
   const deps: Record<string, unknown> = {
-    vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => void) => shows.push(fn) },
+    vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => void) => shows.push(fn), onHide: (fn: () => void) => hides.push(fn) },
     "@/api/runtime": remote, "@/store/app": { useApp: () => app }, "@/store/nex-faucet": { useNexFaucet: () => faucet },
     "@/store/bills": { useBills: () => bills }, "@/store/auth": { useAuth: () => auth }, "@/store/lucky-spin": { useLuckySpin: () => ({}) },
     "@/store/ui": { toast }, "@/i18n/use-t": { useT: () => ref(en) }, "@/i18n/format": { fmt, dateLocale: () => "en-US" },
@@ -181,7 +181,8 @@ async function mountedDaily() {
     expect(faucet.remoteCheckedInToday).toBe(true); expect(primary(root).props["aria-disabled"]).toBe("true");
     expect(toast.success).toHaveBeenCalledOnce();
   };
-  return { root, app, faucet, bills, auth, pointReads, writes, wallets, request, toast, bind, close, success, show: () => shows.forEach(fn => fn()) };
+  return { root, app, faucet, bills, auth, pointReads, writes, wallets, request, toast, bind, close, success,
+    show: () => shows.forEach(fn => fn()), hide: () => hides.forEach(fn => fn()) };
 }
 
 describe("Daily actual SFC post-reward balance", () => {

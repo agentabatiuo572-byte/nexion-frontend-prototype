@@ -6,10 +6,14 @@ import ts from "typescript";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import source from "./daily.vue?raw";
 import { createPointsApi } from "@/api/points-api";
+import { createApiClient, type HttpRequest } from "@/api/api-client";
+import { createSessionVault } from "@/api/session-vault";
 import { advanceRuntimeRevision, captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { binarySessionReady } from "@/lib/binary-session-ready";
 import { createScopedReadCoalescer } from "@/lib/binary-read-coalescer";
 import { en } from "@/i18n/messages/en";
+import { zh } from "@/i18n/messages/zh";
+import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import { formatTrialDateTime } from "@/lib/trial-date";
 import * as rewards from "./daily-reward-view";
@@ -46,8 +50,9 @@ const renderer = Vue.createRenderer<Host, Host>({
 const all = (root: Host): Host[] => [root, ...root.children.flatMap(all)];
 const text = (root: Host): string => root.text + root.children.map(text).join("");
 const buttons = (root: Host) => all(root).filter(item => item.props.role === "button");
-const checkInButton = (root: Host) => buttons(root).find(item =>
-  [en.daily.checkInUnconfirmed, fmt(en.daily.checkInBase, { n: 2 }), en.daily.checkedInToday].includes(text(item)));
+type Messages = typeof en | typeof zh | typeof vietnamese;
+const checkInButton = (root: Host, messages: Messages = en) => buttons(root).find(item =>
+  [messages.daily.checkInUnconfirmed, fmt(messages.daily.checkInBase, { n: 2 }), messages.daily.checkedInToday].includes(text(item)));
 function deferred<T>() {
   let resolve!: (value: T) => void, reject!: (reason: Error) => void;
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
@@ -71,7 +76,7 @@ beforeEach(() => {
 });
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.useRealTimers(); });
 
-async function page() {
+async function page(messages: Messages = en) {
   const reads: Array<ReturnType<typeof deferred<unknown>>> = [];
   const request = vi.fn((input: { method: string; path: string }) => {
     if (input.method !== "GET" || input.path !== "/api/points/state") throw new Error("Unexpected points write");
@@ -92,10 +97,13 @@ async function page() {
   });
   const toast = { error: vi.fn(), success: vi.fn(), warn: vi.fn(), info: vi.fn() };
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
-  const shows: Array<() => void> = [];
+  const shows: Array<() => void> = [], hides: Array<() => void> = [];
   const dependencies: Record<string, unknown> = {
-    vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
-    "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(en) },
+    vue: Vue, "@dcloudio/uni-app": {
+      onShow: (callback: () => void) => shows.push(callback),
+      onHide: (callback: () => void) => hides.push(callback),
+    },
+    "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(messages) },
     "@/i18n/format": { fmt, dateLocale: () => "en-US" }, "@/store/nex-faucet": { useNexFaucet: () => faucet },
     "@/lib/trial-date": { formatTrialDateTime },
     "@/store/app": { useApp: () => app }, "@/store/auth": { useAuth: () => auth },
@@ -127,8 +135,136 @@ async function page() {
     advanceRuntimeRevision("cold account catalog preparation");
     faucet.bindAccount(app.accountKey);
   };
-  return { root, faucet, app, auth, toast, request, reads, bind, memberRead, close, show: () => shows.forEach(callback => callback()) };
+  return { root, faucet, app, auth, bills, toast, request, reads, bind, memberRead, close,
+    show: () => shows.forEach(callback => callback()), hide: () => hides.forEach(callback => callback()) };
 }
+
+function pointsWrite(status: number, message: string, code = 422, gate?: Promise<void>) {
+  const vault = createSessionVault();
+  vault.save({ accessToken: "unit-access", refreshToken: "unit-refresh", tokenType: "Bearer",
+    user: { userId: 607, countryCode: "+86", phone: "13800000607", nickname: "Test", onboardingComplete: true } });
+  const request = vi.fn(async (input: HttpRequest) => {
+    if (input.method !== "POST" || new URL(input.url).pathname !== "/api/points/sign-in") throw new Error("Unexpected points request");
+    if (gate) await gate;
+    if (status === 0) throw new Error("temporary network failure");
+    return { status, headers: {}, data: { code, message, data: code === 0 ? {
+      checkInDate: "2026-10-01", baseNex: 2, rewardNex: 2, streakBonusNex: 0, multiplier: 1, streakDays: 4,
+      serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    } : null } };
+  });
+  const api = createPointsApi(createApiClient({ baseUrl: "https://example.test", vault, transport: { request } }));
+  remote.pointsApi.checkIn.mockImplementation(api.checkIn);
+  return request;
+}
+
+async function readyPage(messages: Messages = en) {
+  const p = await page(messages); p.bind(); await flush();
+  p.reads[0].resolve(snapshot(3)); p.memberRead.resolve(true); await flush();
+  expect(checkInButton(p.root, messages)?.props["aria-disabled"]).toBe("false");
+  return p;
+}
+
+const coverageCopies = [en, zh, vietnamese].flatMap(messages =>
+  ["B1_COVERAGE_BELOW_REDLINE", "B1_COVERAGE_DATA_UNAVAILABLE"].map(reason => [messages, reason] as const));
+test.each(coverageCopies)("a current decoded coverage block uses the approved locale copy (%#)", async (messages, reason) => {
+  const p = await readyPage(messages), wire = pointsWrite(422, reason);
+  const walletReads = p.app.refreshRemoteFleet.mock.calls.length, ledgerReads = p.bills.refreshSummary.mock.calls.length;
+  const button = checkInButton(p.root, messages)!;
+  const submission = button.props.onClick();
+  await button.props.onClick(); await flush();
+  expect(wire).not.toHaveBeenCalled();
+  p.reads[1].resolve(snapshot(3)); await submission; await flush();
+  const copy = reason === "B1_COVERAGE_BELOW_REDLINE"
+    ? messages.binary.blockReasons.COVERAGE_BELOW_REDLINE : messages.binary.blockReasons.B1_COVERAGE_UNRELIABLE;
+  expect(p.toast.error).toHaveBeenCalledExactlyOnceWith(copy);
+  expect(p.toast.error).not.toHaveBeenCalledWith(messages.authOtp.errorServiceUnavailable);
+  expect(p.toast.success).not.toHaveBeenCalled();
+  expect(wire).toHaveBeenCalledOnce();
+  expect(wire.mock.calls[0][0].headers["Idempotency-Key"]).toBe("h5-check-in:2026-10-01");
+  expect(p.faucet.signInStreak).toBe(3); expect(p.faucet.remoteCheckedInToday).toBe(false);
+  expect(p.app.user.nexBalance).toBe(124);
+  expect(p.app.refreshRemoteFleet).toHaveBeenCalledTimes(walletReads);
+  expect(p.bills.refreshSummary).toHaveBeenCalledTimes(ledgerReads);
+  expect(checkInButton(p.root, messages)?.props["aria-disabled"]).toBe("false");
+  expect(p.reads).toHaveLength(2);
+});
+
+test.each([[503, "B1_COVERAGE_BELOW_REDLINE"], [422, "OTHER_REJECTION"], [0, "network"]] as const)("unknown HTTP %s %s keeps the generic failure and performs no local credit", async (status, reason) => {
+  const p = await readyPage(), wire = pointsWrite(status, reason);
+  const submission = checkInButton(p.root)!.props.onClick(); await flush();
+  p.reads[1].resolve(snapshot(3)); await submission; await flush();
+  expect(p.toast.error).toHaveBeenCalledExactlyOnceWith(en.authOtp.errorServiceUnavailable);
+  expect(p.toast.success).not.toHaveBeenCalled(); expect(wire).toHaveBeenCalledOnce();
+  expect(p.faucet.signInStreak).toBe(3); expect(p.faucet.remoteCheckedInToday).toBe(false);
+  expect(p.app.user.nexBalance).toBe(124);
+});
+
+test.each(["account", "epoch", "unmount"] as const)("a pending coverage rejection after %s is silent", async change => {
+  const p = await readyPage(), gate = deferred<void>(), wire = pointsWrite(422, "B1_COVERAGE_BELOW_REDLINE", 422, gate.promise);
+  const submission = checkInButton(p.root)!.props.onClick(); await flush();
+  p.reads[1].resolve(snapshot(3)); await flush(); expect(wire).toHaveBeenCalledOnce();
+  if (change === "account") p.bind(608);
+  if (change === "epoch") p.bind();
+  if (change === "unmount") p.close();
+  await flush(); gate.resolve(); await submission; await flush();
+  expect(p.toast.error).not.toHaveBeenCalled(); expect(p.toast.success).not.toHaveBeenCalled();
+  expect(p.app.user.nexBalance).toBe(124); expect(wire).toHaveBeenCalledOnce();
+});
+
+test.each([["hide", "rejection"], ["hide", "success"], ["hide-show", "rejection"], ["hide-show", "success"]] as const)(
+  "a keep-alive page %s silences the previous visit's late %s and preserves the pending single-flight", async (change, outcome) => {
+    const p = await readyPage(), gate = deferred<void>();
+    const wire = pointsWrite(outcome === "success" ? 200 : 422,
+      outcome === "success" ? "OK" : "B1_COVERAGE_BELOW_REDLINE", outcome === "success" ? 0 : 422, gate.promise);
+    const previousButton = checkInButton(p.root)!;
+    const submission = previousButton.props.onClick(); await flush();
+    p.reads[1].resolve(snapshot(3)); await flush(); expect(wire).toHaveBeenCalledOnce();
+    p.hide(); await flush();
+    expect(p.root.children.length).toBeGreaterThan(0);
+    const readsBeforeReturn = p.reads.length;
+    if (change === "hide-show") {
+      p.show(); await flush(); expect(p.reads).toHaveLength(readsBeforeReturn + 1);
+      p.reads[readsBeforeReturn].resolve(snapshot(3)); await flush();
+      expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("true");
+      await checkInButton(p.root)!.props.onClick(); await flush();
+      expect(p.reads).toHaveLength(readsBeforeReturn + 1); expect(wire).toHaveBeenCalledOnce();
+    } else {
+      await previousButton.props.onClick(); await flush();
+      expect(p.reads).toHaveLength(readsBeforeReturn); expect(wire).toHaveBeenCalledOnce();
+    }
+    const walletReads = p.app.refreshRemoteFleet.mock.calls.length, ledgerReads = p.bills.refreshSummary.mock.calls.length;
+    const readbackIndex = p.reads.length;
+    gate.resolve(); await flush();
+    if (outcome === "success") {
+      expect(p.reads).toHaveLength(readbackIndex + 1);
+      p.reads[readbackIndex].resolve(snapshot(4, true));
+    }
+    await submission; await flush();
+    expect(p.toast.error).not.toHaveBeenCalled(); expect(p.toast.success).not.toHaveBeenCalled();
+    expect(p.app.user.nexBalance).toBe(124); expect(wire).toHaveBeenCalledOnce();
+    expect(p.app.refreshRemoteFleet).toHaveBeenCalledTimes(walletReads);
+    expect(p.bills.refreshSummary).toHaveBeenCalledTimes(ledgerReads);
+    expect(p.faucet.remoteCheckedInToday).toBe(outcome === "success");
+    expect(p.faucet.signInStreak).toBe(outcome === "success" ? 4 : 3);
+    if (change === "hide-show" && outcome === "rejection") {
+      expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("false");
+      const currentSubmission = checkInButton(p.root)!.props.onClick(); await flush();
+      p.reads[readbackIndex].resolve(snapshot(3)); await currentSubmission; await flush();
+      expect(wire).toHaveBeenCalledTimes(2);
+      expect(p.toast.error).toHaveBeenCalledExactlyOnceWith(en.binary.blockReasons.COVERAGE_BELOW_REDLINE);
+      expect(p.toast.success).not.toHaveBeenCalled();
+    }
+  });
+
+test("a canonical POST success keeps its success copy when the following state read fails", async () => {
+  const p = await readyPage(), wire = pointsWrite(200, "OK", 0);
+  const submission = checkInButton(p.root)!.props.onClick(); await flush();
+  p.reads[1].resolve(snapshot(3)); await flush(); expect(wire).toHaveBeenCalledOnce();
+  expect(p.faucet.remoteCheckedInToday).toBe(true); expect(p.faucet.signInStreak).toBe(4);
+  p.reads[2].reject(new Error("readback unavailable")); await submission; await flush();
+  expect(p.toast.success).toHaveBeenCalledOnce(); expect(p.toast.error).not.toHaveBeenCalled();
+  expect(p.app.user.nexBalance).toBe(124);
+});
 
 test("cold catalog revision waits for faucet binding; a current decoded success enables Check in without another retry", async () => {
   const p = await page();

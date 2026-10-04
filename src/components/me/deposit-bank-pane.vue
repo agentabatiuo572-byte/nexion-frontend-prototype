@@ -237,6 +237,17 @@
       <view class="nx-bank-support-link w-full grid place-items-center active:opacity-70" :style="ghostBtnStyle" role="button" tabindex="0" @click="goSupport">
         <text :style="ghostTextStyle">{{ t.topupChrome.depositNotArrived }}</text>
       </view>
+      <view
+        v-for="choice in existingPaymentChoices" :key="choice.intentId"
+        class="nx-bank-existing-order-cta w-full grid place-items-center"
+        :style="ghostBtnStyle" role="button" tabindex="0"
+        :aria-disabled="!canSelectExistingPayment(choice)"
+        @click="selectExistingPayment(choice)"
+        @keydown.enter.prevent="selectExistingPayment(choice)"
+        @keydown.space.prevent="selectExistingPayment(choice)"
+      >
+        <text :style="ghostTextStyle">{{ t.store.viewDetails }} · {{ t.store.pendingBarLabel }} · {{ choice.usdtAmount.toFixed(2) }} USDT</text>
+      </view>
     </template>
 
     <!-- ── 金额不符(mismatch_review 黄警示态)── -->
@@ -291,7 +302,7 @@ import { remoteApiEnabled, sessionVault } from "@/api/runtime";
 import { ApiError } from "@/api/errors";
 import { runRecoverableFundsOperation } from "@/lib/recoverable-funds-operation";
 import { buildVietQrTransferSteps } from "@/lib/vietqr-remote-safety";
-import { findResumablePaymentIntent, openHostedPaymentPage } from "@/lib/hosted-payment";
+import { findResumablePaymentIntent, openHostedPaymentPage, validateHostedPaymentUrl } from "@/lib/hosted-payment";
 
 const t = useT();
 const fx = useFx();
@@ -316,6 +327,11 @@ const autoResumePending = ref(true);
 const openingHosted = ref(false);
 const pageActive = ref(false);
 const readError = ref("");
+type PaymentReadScope = { accountKey: string; bindingEpoch: number };
+type ExistingPaymentChoice = PaymentReadScope & { intentId: string; usdtAmount: number; expireAt: number; paymentUrl: string };
+let pendingPaymentRead: (PaymentReadScope & { intents: DepositIntent[] }) | null = null;
+const successfulPaymentRead = ref<PaymentReadScope | null>(null);
+const existingPaymentChoice = ref<ExistingPaymentChoice | null>(null);
 
 const intent = computed<DepositIntent | null>(
   () => dep.intents.find((i) => i.intentId === viewIntentId.value) ?? null,
@@ -364,9 +380,38 @@ watch(
   { immediate: true, flush: "post" },
 );
 watch(
-  () => dep.serverStatus,
-  (status) => {
-    if (pageActive.value && paymentSessionReady.value && status === "ready") readError.value = "";
+  () => [dep.serverStatus, pageActive.value, paymentSessionReady.value, app.accountKey, app.accountBindingEpoch, dep.remoteReceiptInitialStatus] as const,
+  ([status, active, ready, accountKey, bindingEpoch, initialStatus], previous) => {
+    if (previous && (previous[3] !== accountKey || previous[4] !== bindingEpoch)) {
+      pendingPaymentRead = null;
+      successfulPaymentRead.value = null;
+      existingPaymentChoice.value = null;
+      if (status === "loading" && previous[0] === "loading") return;
+    }
+    if (!remoteApiEnabled || !active || !ready || dep.currentAccountKey() !== accountKey) {
+      pendingPaymentRead = null;
+      successfulPaymentRead.value = null;
+      existingPaymentChoice.value = null;
+      return;
+    }
+    if (status === "loading") {
+      pendingPaymentRead = initialStatus === "loading" ? { accountKey, bindingEpoch, intents: dep.intents } : null;
+      successfulPaymentRead.value = null;
+    } else if (status === "ready") {
+      readError.value = "";
+      // Only a full initial read can authorize another order; command readbacks
+      // also replace intents while receipt-only pagination is in flight.
+      if (initialStatus !== "ready" || pendingPaymentRead?.accountKey !== accountKey || pendingPaymentRead.bindingEpoch !== bindingEpoch
+        || pendingPaymentRead.intents === dep.intents) return;
+      successfulPaymentRead.value = { accountKey, bindingEpoch };
+      pendingPaymentRead = null;
+      const candidate = dep.intents.find(item => item.intentId !== viewIntentId.value && isExistingPaymentPayable(item));
+      existingPaymentChoice.value = candidate ? { accountKey, bindingEpoch, intentId: candidate.intentId,
+        usdtAmount: candidate.usdtAmount, expireAt: candidate.expireAt, paymentUrl: candidate.paymentUrl! } : null;
+    } else {
+      pendingPaymentRead = null;
+      successfulPaymentRead.value = null;
+    }
   },
   { flush: "post" },
 );
@@ -607,6 +652,39 @@ const hostedRejected = computed(() => intent.value?.paymentMode === "hosted"
 const hostedCanOpen = computed(() => intent.value?.paymentMode === "hosted"
   && intent.value.providerStatus === "created"
   && Boolean(intent.value.paymentUrl));
+const existingPaymentChoices = computed(() => {
+  const choice = existingPaymentChoice.value;
+  void nowTick.value;
+  return choice && remoteApiEnabled && pageActive.value && paymentSessionReady.value && paneView.value === "expired"
+    && !paidPressed.value && !intent.value?.receivedVnd && !intent.value?.matchedAt
+    && intent.value?.providerStatus !== "pending" && intent.value?.providerStatus !== "submit_unknown"
+    && !dep.records.some(record => record.depositId === viewIntentId.value && record.creditedUsdt > 0)
+    && !dep.remoteReceipts.some(receipt => receipt.intentNo === viewIntentId.value)
+    && choice.accountKey === app.accountKey && choice.bindingEpoch === app.accountBindingEpoch
+    && choice.intentId !== viewIntentId.value && choice.expireAt > mockServerNow() ? [choice] : [];
+});
+function isExistingPaymentPayable(item: DepositIntent) {
+  return item.status === "awaiting_payment" && item.paymentMode === "hosted" && item.providerStatus === "created"
+    && item.expireAt > mockServerNow() && Boolean(item.paymentUrl && validateHostedPaymentUrl(item.paymentUrl))
+    && !item.receivedVnd && !item.matchedAt
+    && !dep.records.some(record => record.depositId === item.intentId && record.creditedUsdt > 0)
+    && !dep.remoteReceipts.some(receipt => receipt.intentNo === item.intentId);
+}
+function canSelectExistingPayment(choice: ExistingPaymentChoice) {
+  const current = dep.intents.find(item => item.intentId === choice.intentId);
+  return existingPaymentChoices.value[0] === choice && !creating.value && !openingHosted.value
+    && dep.serverStatus === "ready" && dep.currentAccountKey() === choice.accountKey
+    && successfulPaymentRead.value?.accountKey === choice.accountKey
+    && successfulPaymentRead.value.bindingEpoch === choice.bindingEpoch
+    && Boolean(current && current.usdtAmount === choice.usdtAmount && current.expireAt === choice.expireAt
+      && current.paymentUrl === choice.paymentUrl && isExistingPaymentPayable(current));
+}
+function selectExistingPayment(choice: ExistingPaymentChoice) {
+  if (!canSelectExistingPayment(choice)) return;
+  viewIntentId.value = choice.intentId;
+  paidPressed.value = false;
+  createError.value = "";
+}
 
 // ── 展示派生 ──
 /** 成功态入账额读关联 DepositRecord(差额核销/迟到补入账时 ≠ 原下单额);

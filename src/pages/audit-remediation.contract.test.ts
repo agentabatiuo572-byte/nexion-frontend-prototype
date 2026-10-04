@@ -51,7 +51,8 @@ describe("read-only audit remediation contracts", () => {
     expect(source).toContain("!remoteApiEnabled || faucet.remoteReadState === 'ready'");
     expect(source).toContain("['idle', 'loading'].includes(faucet.remoteReadState)");
     for (const handler of ["handleCheckIn", "handleClaimMilestone", "handleUseSaver"]) {
-      expect(source).toMatch(new RegExp(`async function ${handler}\\([^)]*\\) \\{\\s*if \\(!dailyFactsReady.value\\) return;`));
+      const guard = handler === "handleCheckIn" ? "!pageActive \\|\\| !dailyFactsReady\\.value" : "!dailyFactsReady\\.value";
+      expect(source).toMatch(new RegExp(`async function ${handler}\\([^)]*\\) \\{\\s*if \\(${guard}\\) return;`));
     }
     expect(source).toContain('role="button" tabindex="0" :aria-disabled="lastSignedToday || remoteRefreshing || checkInSubmitting || !checkInStateConfirmed ? \'true\' : \'false\'"');
     expect(source).toContain('@keydown.enter.prevent="handleCheckIn"');
