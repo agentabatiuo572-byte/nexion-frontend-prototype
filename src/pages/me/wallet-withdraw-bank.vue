@@ -104,7 +104,7 @@ import { createBankWithdrawalApi, hasVerifiedBankIdentity, type BankConfig, type
 import { parseServerTimestamp } from "@/api/server-time";
 import { formatBankDateTime } from "@/lib/bank-date";
 import { bankAccountNotice, bankBeneficiaryReady, bankCanQuote, bankOrderOutcome, bankAmountError, bankMaximumAmount } from "@/lib/bank-withdrawal-state";
-import { navBack, navTo } from "@/lib/route";
+import { navBack, navTo, takeNavigationQuery } from "@/lib/route";
 
 const c = computed(() => useTranslations.value.bankWithdrawal);
 const useTranslations = useT();
@@ -121,9 +121,10 @@ const formStep = ref<"account" | "amount">("account");
 const accepted = ref(false);
 const now = ref(Date.now());
 let timer: ReturnType<typeof setInterval> | undefined;
-let requestedOrder = "";
+let requestedOrder: string | null = null;
 let lastCapacityResetRead = "";
 let revision = 0;
+let inFlight: { current: () => boolean; orderNo: string | null } | null = null;
 let alive = true;
 let visible = false;
 const pendingKey = () => `nexgrid.bank-withdraw.pending:${app.accountKey}`;
@@ -168,14 +169,17 @@ function report(_err: unknown) { error.value = c.value.error; }
 async function run(action: (current: () => boolean) => Promise<void>) {
   if (busy.value) return;
   const current = scope(); busy.value = true; error.value = "";
+  inFlight = { current, orderNo: requestedOrder ?? order.value?.withdrawalNo ?? null };
   try { await action(current); } catch (err) { if (current()) report(err); }
-  finally { if (current()) busy.value = false; }
+  finally { if (inFlight?.current === current) inFlight = null; if (current()) busy.value = false; }
 }
 async function load() {
   await run(async current => {
     config.value = null; accepted.value = false;
-    if (requestedOrder || order.value) {
-      const loadedOrder = await api.get(requestedOrder || order.value!.withdrawalNo);
+    if (requestedOrder !== null || order.value) {
+      const orderNo = requestedOrder ?? order.value!.withdrawalNo;
+      if (!/^WD-[A-Z0-9]+$/.test(orderNo)) throw new Error("BANK_ORDER_ROUTE_INVALID");
+      const loadedOrder = await api.get(orderNo);
       if (current()) { order.value = loadedOrder; uncertain.value = false; }
       return;
     }
@@ -246,16 +250,21 @@ async function abandon() {
 }
 function startNew() {
   if (!terminal.value || busy.value) return;
-  order.value = null; quote.value = null; requestedOrder = ""; amount.value = ""; formStep.value = "account"; accepted.value = false; void load();
+  order.value = null; quote.value = null; requestedOrder = null; amount.value = ""; formStep.value = "account"; accepted.value = false; void load();
 }
 function invalidate() {
+  if (busy.value && inFlight?.current() && inFlight.orderNo === (requestedOrder ?? order.value?.withdrawalNo ?? null)) return;
   revision++; config.value = null; quote.value = null; order.value = null; busy.value = false; error.value = ""; uncertain.value = false;
-  amount.value = ""; requestedOrder = ""; formStep.value = "account"; accepted.value = false; lastCapacityResetRead = "";
+  amount.value = ""; formStep.value = "account"; accepted.value = false; lastCapacityResetRead = "";
   if (alive && visible) void load();
 }
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, invalidate);
 const stopRuntime = subscribeRuntimeRevision(invalidate);
-onLoad(params => { if (typeof params?.order === "string" && /^WD-[A-Z0-9]+$/.test(params.order)) requestedOrder = params.order; });
+onLoad(params => {
+  const fallback = new URLSearchParams(takeNavigationQuery("/pages/me/wallet-withdraw-bank")).get("order");
+  const value = params?.order ?? fallback;
+  requestedOrder = value == null ? null : typeof value === "string" ? value : "";
+});
 watch(now, () => {
   const resetAt = config.value?.capacity?.dailyCountResetAt;
   if (!visible || busy.value || quote.value || order.value || uncertain.value || !resetAt || lastCapacityResetRead === resetAt) return;

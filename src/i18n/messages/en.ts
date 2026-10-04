@@ -6500,6 +6500,7 @@ openSeaErrorPool: {
   bankPane: {
     segBank: "Bank transfer",
     amountLabel: "Top-up amount (USDT)",
+    amountFormatError: "Enter a positive decimal amount with up to 2 decimal places.",
     approx: "≈ {vnd}",
     limitError: "Minimum {min} · maximum {max} per order",
     minimumLimitExceeded: "Minimum top-up {min}",

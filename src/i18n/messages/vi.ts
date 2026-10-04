@@ -6346,6 +6346,7 @@ openSeaErrorPool: {
   bankPane: {
     segBank: "Chuyển khoản",
     amountLabel: "Số tiền nạp (USDT)",
+    amountFormatError: "Nhập số tiền dương dạng thập phân, tối đa 2 chữ số sau dấu chấm.",
     approx: "≈ {vnd}",
     limitError: "Nạp tối thiểu {min}, tối đa {max} mỗi lệnh",
     minimumLimitExceeded: "Số tiền nạp tối thiểu là {min}",

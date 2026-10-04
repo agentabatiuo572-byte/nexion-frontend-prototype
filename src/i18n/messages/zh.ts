@@ -6339,6 +6339,7 @@ openSeaErrorPool: {
   bankPane: {
     segBank: "银行转账",
     amountLabel: "充值金额(USDT)",
+    amountFormatError: "请输入正数金额，最多两位小数。",
     approx: "≈ {vnd}",
     limitError: "最低充值 {min},单笔上限 {max}",
     minimumLimitExceeded: "最低充值 {min}",

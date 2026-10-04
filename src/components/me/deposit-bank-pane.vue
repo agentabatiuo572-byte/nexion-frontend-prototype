@@ -42,7 +42,7 @@
               inputmode="decimal"
               :value="amount"
               placeholder="0.00"
-              :disabled="!fxUsable || dailyCapacityExhausted"
+              :disabled="creating || !fxUsable || dailyCapacityExhausted"
               :aria-label="t.bankPane.amountLabel"
               @input="onAmount"
             />
@@ -436,16 +436,14 @@ watch(
 // ── 金额输入(USDT 主位 + 实时 ≈VND 副显)──
 const amount = ref("25");
 function onAmount(e: Event) {
-  // uni input 事件取 e.detail.value(同 topup-card-form 惯用法);
-  // 数字 + 单小数点 + 两位小数(输入中的尾点「25.」保留,正则可选组吃掉)
-  const raw = ((e as unknown as { detail?: { value?: string } }).detail?.value ?? "").replace(/[^\d.]/g, "");
-  const m = raw.match(/^(\d*)(?:\.(\d{0,2}))?/);
-  amount.value = m ? m[1] + (m[2] !== undefined ? `.${m[2]}` : "") : "";
+  if (creating.value) return;
+  // 保留原输入；非法符号或超精度必须提示，不能静默变成另一笔金额。
+  amount.value = (e as unknown as { detail?: { value?: string } }).detail?.value ?? "";
 }
-const amountNum = computed(() => {
-  const n = parseFloat(amount.value);
-  return Number.isFinite(n) ? n : 0;
-});
+// 沿用两位充值精度，允许普通十进制编辑态「25.」和「.5」。
+const amountValid = computed(() => /^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(amount.value)
+  && Number.isFinite(Number(amount.value)));
+const amountNum = computed(() => amountValid.value ? Number(amount.value) : 0);
 const minDeposit = computed(() => remoteApiEnabled ? fx.minDepositUsdt : MIN_DEPOSIT_USDT);
 const maxDeposit = computed(() => remoteApiEnabled ? fx.maxDepositUsdt : BANK_MAX_DEPOSIT_USDT);
 const dailyCapacityKnown = computed(() => !remoteApiEnabled || fx.dailyCapacityKnown);
@@ -456,7 +454,7 @@ const dailyCapacityExhausted = computed(() =>
   fxUsable.value && dailyCapacityKnown.value && todayRemainingDeposit.value < minDeposit.value,
 );
 const inRange = computed(() =>
-  amountNum.value >= minDeposit.value
+  amountValid.value && amountNum.value >= minDeposit.value
   && amountNum.value <= maxDeposit.value
   && (!dailyCapacityKnown.value || amountNum.value <= todayRemainingDeposit.value),
 );
@@ -481,7 +479,8 @@ const feeNote = computed(() => {
     : fmt(t.value.bankPane.feeConfigured, { usdt });
 });
 const amountError = computed(() => {
-  if (amount.value === "" || dailyCapacityExhausted.value) return "";
+  if (amount.value === "" || amount.value === "." || dailyCapacityExhausted.value) return "";
+  if (!amountValid.value) return t.value.bankPane.amountFormatError;
   if (amountNum.value < minDeposit.value) {
     return fmt(t.value.bankPane.minimumLimitExceeded, { min: minLabel.value });
   }
@@ -507,7 +506,8 @@ const createError = ref("");
 let createTimer: ReturnType<typeof setTimeout> | undefined;
 function createOrder(presetUsdt?: number) {
   const usdt = presetUsdt ?? amountNum.value;
-  if (creating.value || !fxUsable.value || usdt < minDeposit.value
+  if ((presetUsdt === undefined && !amountValid.value) || !Number.isFinite(usdt)
+    || creating.value || !fxUsable.value || usdt < minDeposit.value
     || usdt > maxDeposit.value || (dailyCapacityKnown.value && usdt > todayRemainingDeposit.value)) return;
   creating.value = true;
   if (presetUsdt === undefined) createError.value = "";
