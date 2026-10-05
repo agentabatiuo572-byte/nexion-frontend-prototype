@@ -13,23 +13,16 @@ assert.match(howPage, /unsubscribeRemotePoolRun/);
 assert.match(howPage, /remotePool\.value = null/);
 assert.match(howPage, /void loadRemotePool\(\)/);
 assert.match(howPage, /import \{ remoteApiEnabled, teamInsightsApi \} from "@\/api\/runtime"/);
-assert.match(howPage, /useLeadershipPool, V_VOTES/);
 assert.match(howPage, /remoteApiEnabled \? "loading" : "ready"/);
 assert.match(howPage, /if \(!remoteApiEnabled\) return;/);
-assert.match(howPage, /pool\.totalVotes\(\)/);
-// The local fallback was moved behind the shared row derivation; assert the
-// data inputs and derivation rather than its former inline loop variable.
-assert.match(howPage, /localDistribution\[vRank\] \?\? 0/);
-assert.match(howPage, /localVotes\[vRank\] \?\? 0/);
-assert.match(howPage, /leadershipHowRows\(snapshot, ranks, remoteApiEnabled \? configuredVotes\.value/);
-for (const [locale, configured, participants] of [
-  ["zh", "当前配置的等级票权", "实际参与"],
-  ["en", "configured vote weights", "actual participants"],
-  ["vi", "trọng số phiếu theo hạng", "người thực sự tham gia"],
-]) {
+assert.match(howPage, /rank: facts\.value\.unlockRank/);
+assert.match(howPage, /new Date\(facts\.value\.nextPayoutAt\)/);
+assert.doesNotMatch(howPage, /voteRows|V_VOTES|leadershipHowRows|leadershipHowRanks|injectRatePct/);
+for (const locale of ["zh", "en", "vi"]) {
   const messages = source(`../src/i18n/messages/${locale}.ts`);
-  const intro = messages.match(/poolHowItWorks: \{[\s\S]*?s2Intro: "([^"]+)"/)?.[1] ?? "";
-  assert.ok(intro.includes(configured) && intro.includes(participants), `${locale} pool vote explanation`);
+  const rules = messages.match(/poolHowItWorks: \{[\s\S]*?currentRules: "([^"]+)"/)?.[1] ?? "";
+  assert.ok(rules.includes("{rank}"), `${locale} pool eligibility`);
+  assert.doesNotMatch(rules, /\{rate\}|票权|votes|phiếu/i, `${locale} pool explanation keeps formulas private`);
 }
 
 const homeCard = source("../src/components/home/leadership-pool-card.vue");

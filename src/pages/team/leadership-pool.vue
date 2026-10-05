@@ -136,7 +136,6 @@ const payoutClock = createPayoutClock({
 
 const myRank = computed(() => (remoteApiEnabled ? remotePool.value?.myRank ?? 0 : vState.myRank) as VRank);
 const poolUnlockRank = computed(() => (remoteApiEnabled ? remotePool.value?.unlockRank ?? 3 : 3) as VRank);
-const poolInjectRate = computed(() => remoteApiEnabled ? remotePool.value?.injectRate ?? 0 : 0.05);
 const unlocked = computed(() => remoteApiEnabled ? (remotePool.value?.myVotes ?? 0) > 0 : myRank.value >= poolUnlockRank.value);
 const dist = computed(() => {
   if (!remoteApiEnabled) return pool.globalVDistribution;
@@ -167,8 +166,7 @@ const hoursToPayout = computed(() => Math.max(0, Math.ceil((nextPayoutTs.value -
 
 const weeklyDescText = computed(() => {
   const n = daysToPayout.value > 0 ? `${daysToPayout.value}${t.value.pool.daysShort}` : `${hoursToPayout.value}${t.value.pool.hoursShort}`;
-  const rate = `${(poolInjectRate.value * 100).toFixed(2).replace(/\\.00$/, "")}%`;
-  return fmt(t.value.pool.weeklyDesc, { rate, n });
+  return fmt(t.value.pool.weeklyDesc, { n });
 });
 const locale = useLocaleStore();
 const rankReady = computed(() => vState.remoteReady);
