@@ -69,6 +69,9 @@ function action(target: HostNode, name: string): HostNode | undefined {
   return String(target.props.class ?? "").split(/\s+/).includes(name)
     ? target : target.children.map(child => action(child, name)).find(Boolean);
 }
+function input(target: HostNode): HostNode | undefined {
+  return target.kind === "input" ? target : target.children.map(input).find(Boolean);
+}
 function errorBanner(target: HostNode): HostNode | undefined {
   return (target.props.style as { background?: unknown } | undefined)?.background === "var(--v5-danger-soft)"
     ? target : target.children.map(errorBanner).find(Boolean);
@@ -95,7 +98,7 @@ function memoryStorage(): VietQrCommandStorage {
   let value: unknown;
   return { read: () => value, write: next => { value = structuredClone(next); } };
 }
-function creationFlow(dep: { intents: DepositIntent[] }, responses: number[], storage = memoryStorage(), accountKey = "user:7", responseGate?: Promise<void>, rejectionData?: unknown) {
+function creationFlow(dep: { intents: DepositIntent[] }, responses: number[], storage = memoryStorage(), accountKey = "user:7", responseGate?: Promise<void>, rejectionData?: unknown, rejectionMessage?: string) {
   const registry = new VietQrCommandKeyRegistry(storage, () => "unit-install-0001");
   const vault = createSessionVault();
   vault.save({ accessToken: "unit-access", refreshToken: "unit-refresh", tokenType: "Bearer",
@@ -108,7 +111,7 @@ function creationFlow(dep: { intents: DepositIntent[] }, responses: number[], st
     const status = responses.shift() ?? 503;
     const usdtAmount = (request.body as { usdtAmount: number }).usdtAmount;
     return { status, headers: {}, data: { code: status === 200 ? 0 : status,
-      message: status === 200 ? "OK" : status === 503 ? "HDPAY_ORDER_SUBMIT_UNKNOWN" : "HDPAY_ORDER_CREATE_REJECTED",
+      message: status === 200 ? "OK" : rejectionMessage ?? (status === 503 ? "HDPAY_ORDER_SUBMIT_UNKNOWN" : "HDPAY_ORDER_CREATE_REJECTED"),
       data: status === 200 ? { intentNo: "VQR-new", usdtAmount, fxRate: quoteRate,
         vndAmount: vndForUsdt(usdtAmount, quoteRate), status: "awaiting_payment",
         createdAt: new Date(now).toISOString(), expiresAt: new Date(now + 30 * 60_000).toISOString(),
@@ -143,23 +146,28 @@ interface PaneState extends Record<string, unknown> {
   goCreateRecovery: () => void;
 }
 
-function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", translations: Messages = zh) {
+function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", translations: Messages = zh, shared?: { dep: unknown; app: unknown; auth?: unknown }) {
   const original: DepositIntent = {
     intentId: "VQR-existing", usdtAmount: 5000, fxRate: quoteRate, vndAmount: vndForUsdt(5000, quoteRate),
     status: "awaiting_payment", createdAt: now, expireAt: now + 6 * 60_000,
     paymentMode: "hosted", providerStatus,
     ...(providerStatus === "created" ? { paymentUrl: "https://api.hdpayadmin.com/pay?id=existing" } : {}),
   };
-  const dep = Vue.reactive({
+  const freshDep = Vue.reactive({
     intents: [original], records: [], serverStatus: "ready", serverError: "",
-    currentAccountKey: () => "user:7", createRemoteBankIntent: vi.fn(async (_amount: number, _account: string): Promise<DepositIntent> => original),
+    bankRecoveryDraft: null as { accountKey: string; amount: string } | null,
+    currentAccountKey: () => app.accountKey, createRemoteBankIntent: vi.fn(async (_amount: number, _account: string): Promise<DepositIntent> => original),
     refreshRemoteVietQrDeposits: vi.fn(async () => {}),
     startRemoteVietQrPolling: vi.fn(), stopRemoteVietQrPolling: vi.fn(),
   });
+  const dep = (shared?.dep ?? freshDep) as typeof freshDep;
   const fx = Vue.reactive({ fxAvailable: true, configReady: true, vietQrEnabled: true, dailyCapacityKnown: false,
     minDepositUsdt: 10, maxDepositUsdt: 5000, todayRemainingDepositUsdt: 0,
     quoteRate, feeUsdt: 0, feeVnd: 0, lockWindowMin: 30, load: vi.fn(async () => {}) });
-  const app = Vue.reactive({ accountKey: "user:7", accountBindingEpoch: 1 });
+  const freshApp = Vue.reactive({ accountKey: "user:7", accountBindingEpoch: 1 });
+  const app = (shared?.app ?? freshApp) as typeof freshApp;
+  const freshAuth = Vue.reactive({ isAuthenticated: true, accountId: "user:7" });
+  const auth = (shared?.auth ?? freshAuth) as typeof freshAuth;
   const navTo = vi.fn(), open = vi.fn(() => true), toast = { error: vi.fn(), success: vi.fn(), warn: vi.fn() };
   const mounted: Array<() => void> = [], unmounted: Array<() => void> = [];
   const modules: Record<string, unknown> = {
@@ -170,11 +178,11 @@ function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", tran
     "@/store/ui": { toast, confirm: vi.fn() }, "@/store/deposits": { useDeposits: () => dep },
     "@/store/fx": { useFx: () => fx },
     "@/store/app": { useApp: () => app },
-    "@/store/auth": { useAuth: () => ({ isAuthenticated: true, accountId: "user:7" }) },
+    "@/store/auth": { useAuth: () => auth },
     "@/lib/binary-session-ready": { binarySessionReady: accountSessionReady },
     "@/store/fx-core": { fmtVnd, vndForUsdt }, "@/store/server-time": { mockServerNow: () => now },
     "@/store/deposits-core": { BANK_MAX_DEPOSIT_USDT: 5000, MIN_DEPOSIT_USDT: 10 },
-    "@/api/runtime": { remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: 7 } }) } },
+    "@/api/runtime": { remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: Number(auth.accountId.slice(5)) } }) } },
     "@/api/errors": { ApiError },
     "@/lib/recoverable-funds-operation": { runRecoverableFundsOperation },
     "@/lib/vietqr-remote-safety": { buildVietQrTransferSteps },
@@ -188,15 +196,16 @@ function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", tran
     }, {},
   )) as PaneState;
   mounted.forEach(callback => callback());
-  cleanups.push(() => { unmounted.forEach(callback => callback()); scope.stop(); });
+  const dispose = () => { unmounted.forEach(callback => callback()); scope.stop(); };
+  cleanups.push(dispose);
   const definition = () => ({
     components: { FxRateLine: { render: () => null } }, setup: () => ({ ...state, fmt, fmtVnd }), render,
   });
-  return { state, dep, fx, app, navTo, open, toast, html: () => renderToString(Vue.createSSRApp(definition())),
+  return { state, dep, fx, app, auth, navTo, open, toast, html: () => renderToString(Vue.createSSRApp(definition())),
     mount: () => {
       const root = node("root"), app = renderer.createApp(definition());
       app.mount(root); cleanups.push(() => app.unmount());
-      return { root, retry: () => action(root, "nx-bank-regen-cta") };
+      return { root, retry: () => action(root, "nx-bank-regen-cta"), unmount: () => { app.unmount(); dispose(); } };
     } };
 }
 
@@ -285,6 +294,90 @@ test.each([zh, en, vietnamese])("precise onboarding/terms 428 renders a normal r
     expect(view.open).not.toHaveBeenCalled();
   }
 });
+test.each([
+  ["USER_ONBOARDING_REQUIRED", "/pages/register/success?setup=1"],
+  ["LEGAL_TERMS_ACK_REQUIRED", "/pages/onboarding/terms"],
+])("428 recovery preserves 20 through an actual pane unmount/remount: %s", async (reason, route) => {
+  const first = pane(); first.dep.intents = [];
+  first.state.amount.value = "20";
+  first.dep.createRemoteBankIntent.mockRejectedValue(new ApiError({ kind: "http", status: 428, code: 428, message: reason }));
+  const mounted = first.mount();
+  await first.state.completeCreateOrder(20, "user:7"); await Vue.nextTick();
+  click(action(mounted.root, "nx-bank-setup-recovery")!);
+  expect(first.navTo).toHaveBeenCalledExactlyOnceWith(route);
+  mounted.unmount();
+  const returned = pane("rejected", zh, first), remounted = returned.mount();
+  await vi.advanceTimersByTimeAsync(1200); await Vue.nextTick();
+  expect(returned.state.amount.value).toBe("20");
+  expect(await returned.html()).toContain('value="20"');
+  expect(action(remounted.root, "nx-bank-setup-recovery")).toBeUndefined();
+  expect(first.dep.createRemoteBankIntent).toHaveBeenCalledOnce();
+  expect(returned.open).not.toHaveBeenCalled();
+});
+
+test.each(["20.00", "20.", "20.001"])("recovery keeps the raw edited amount %s through remount without changing command keys", async rawAmount => {
+  const first = pane(); first.dep.intents = [];
+  const flow = creationFlow(first.dep, [428, 200], memoryStorage(), "user:7", undefined, undefined, "USER_ONBOARDING_REQUIRED");
+  first.dep.createRemoteBankIntent.mockImplementation(flow.create);
+  const mounted = first.mount();
+  (input(mounted.root)!.props.onInput as (event: unknown) => void)({ detail: { value: "20" } });
+  await first.state.completeCreateOrder(20, "user:7"); await Vue.nextTick();
+  (input(mounted.root)!.props.onInput as (event: unknown) => void)({ detail: { value: rawAmount } });
+  click(action(mounted.root, "nx-bank-setup-recovery")!);
+  const beforeReturn = structuredClone(flow.storage.read());
+  mounted.unmount();
+  const returned = pane("rejected", zh, first), remounted = returned.mount();
+  await vi.advanceTimersByTimeAsync(1200); await Vue.nextTick();
+  expect(input(remounted.root)!.props.value).toBe(rawAmount);
+  expect(flow.storage.read()).toEqual(beforeReturn);
+  expect(flow.requests).toHaveBeenCalledOnce();
+  expect(returned.dep.intents).toEqual([]);
+  if (rawAmount === "20.001") {
+    expect(returned.state.amountError).toMatchObject({ value: zh.bankPane.amountFormatError });
+  } else {
+    click(action(remounted.root, "nx-bank-create-cta")!);
+    await vi.advanceTimersByTimeAsync(600); await Vue.nextTick();
+    expect(flow.requests).toHaveBeenCalledTimes(2);
+    expect(flow.requests.mock.calls[1][0].body).toMatchObject({ usdtAmount: 20 });
+    expect(returned.dep.bankRecoveryDraft).toBeNull();
+  }
+});
+
+test("account changes clear the visible recovery input and reject another account's remount draft", async () => {
+  const first = pane(); first.dep.intents = [];
+  first.state.amount.value = "20";
+  first.dep.createRemoteBankIntent.mockRejectedValue(new ApiError({ kind: "http", status: 428, code: 428, message: "USER_ONBOARDING_REQUIRED" }));
+  const mounted = first.mount();
+  await first.state.completeCreateOrder(20, "user:7"); await Vue.nextTick();
+  click(action(mounted.root, "nx-bank-setup-recovery")!);
+  first.auth.accountId = "user:8"; first.app.accountKey = "user:8"; first.app.accountBindingEpoch++;
+  await Vue.nextTick();
+  expect(input(mounted.root)!.props.value).toBe("25");
+  first.state.goCreateRecovery();
+  expect(first.navTo).toHaveBeenCalledOnce();
+  mounted.unmount();
+  const returned = pane("rejected", zh, first), remounted = returned.mount();
+  expect(input(remounted.root)!.props.value).toBe("25");
+  expect(first.dep.createRemoteBankIntent).toHaveBeenCalledOnce();
+});
+
+test("the real deposit binding keeps a same-account recovery draft and clears it on switch/logout", () => {
+  const bankRecoveryDraft = Vue.ref<{ accountKey: string; amount: string } | null>({ accountKey: "user:7", amount: "20" });
+  const state = { bankRecoveryDraft, normalizeAccountKey, fundsServerEnabled: true, timers: new Map(),
+    remoteGeneration: 0, remotePollTimer: undefined, serverAccountKey: "user:7", records: Vue.ref([]), intents: Vue.ref([]),
+    resetRemoteReceiptPage: vi.fn(), serverStatus: Vue.ref("ready"), serverError: Vue.ref(""),
+    refreshRemoteVietQrDeposits: vi.fn(), remotePollingActive: false, startRemoteVietQrPolling: vi.fn() };
+  const bindingScript = ts.transpileModule(storeMethods.get("bindAccount")!, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const bind = new Function("state", `let { ${Object.keys(state).join(", ")} } = state;\n${bindingScript}\nreturn bindAccount;`)(state) as (account: string) => void;
+  bind("user:7"); expect(bankRecoveryDraft.value?.amount).toBe("20");
+  bind("user:8"); expect(bankRecoveryDraft.value).toBeNull();
+  bankRecoveryDraft.value = { accountKey: "user:8", amount: "30" };
+  bind("default"); expect(bankRecoveryDraft.value).toBeNull();
+  bind("user:7"); expect(bankRecoveryDraft.value).toBeNull();
+});
+
 test.each([
   { kind: "http" as const, status: 503, code: 428, message: "USER_ONBOARDING_REQUIRED" },
   { kind: "http" as const, status: 428, code: 999, message: "USER_ONBOARDING_REQUIRED" },

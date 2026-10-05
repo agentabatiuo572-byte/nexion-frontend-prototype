@@ -92,9 +92,72 @@ function platformHarness() {
 }
 const persisted = { schema: 1, refreshToken: "synthetic-only-refresh", tokenType: "Bearer",
   user: { userId: 7101, countryCode: "+86", phone: "13800007101", nickname: "测试 · Việt · 🌏", onboardingComplete: true } };
+const androidOpenStages = ["PLATFORM_ANDROID", "SDK_IMPORT_BEGIN", "SDK_IMPORTED", "SDK_READY",
+  "ACTIVITY_READY", "HOST_READY", "INSTALLATION_READ_BEGIN", "STORAGE_READY"];
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Android OS-encrypted native refresh persistence", () => {
+  it("orders fixed open milestones around the original calls without repeating native reads", async () => {
+    const h = platformHarness(), trace: string[] = [];
+    const importClass = h.android.importClass, runtimeMainActivity = h.android.runtimeMainActivity;
+    const imports = vi.spyOn(h.android, "importClass").mockImplementation(name => {
+      if (name === "android.os.Build$VERSION") trace.push("sdk-import");
+      return importClass(name);
+    });
+    Object.defineProperty(h.classes["android.os.Build$VERSION"], "SDK_INT", { get: () => { trace.push("sdk-read"); return 36; } });
+    const activity = vi.spyOn(h.android, "runtimeMainActivity").mockImplementation(() => {
+      trace.push("activity"); return runtimeMainActivity();
+    });
+    const invoke = h.android.invoke.getMockImplementation()!;
+    h.android.invoke.mockImplementation((target, method, ...args) => {
+      if (target === "android.util.Log") trace.push(`stage:${args[1]}`);
+      else if (method === "getPackageName") trace.push("host");
+      return invoke(target, method, ...args);
+    });
+    const installationId = vi.fn(() => { trace.push("installation"); return "synthetic-install-A"; });
+    const adapter = createNativeSessionStorage({ baseUrl: "https://example.test", installationId, platform: async () => h.platform });
+    await Promise.all([adapter.ready(), adapter.ready()]);
+    expect(trace).toEqual(["stage:PLATFORM_ANDROID", "stage:SDK_IMPORT_BEGIN", "sdk-import", "stage:SDK_IMPORTED", "sdk-read",
+      "stage:SDK_READY", "activity", "stage:ACTIVITY_READY", "host", "stage:HOST_READY", "stage:INSTALLATION_READ_BEGIN",
+      "installation", "stage:STORAGE_READY"]);
+    expect(h.stages).toEqual(androidOpenStages);
+    expect(imports.mock.calls.map(args => args[0])).toEqual(["android.os.Build$VERSION", "android.security.keystore.KeyProperties", "javax.crypto.Cipher", "android.util.Base64"]);
+    expect(activity).toHaveBeenCalledOnce(); expect(installationId).toHaveBeenCalledOnce();
+    expect(h.android.invoke.mock.calls.filter(args => args[0] !== "android.util.Log").map(args => args[1]))
+      .toEqual(["getPackageName", "getSharedPreferences", "getInstance", "load"]);
+    expect(h.android.invoke.mock.calls.filter(args => args[0] === "android.util.Log"))
+      .toEqual(androidOpenStages.map(stage => ["android.util.Log", "i", "UvelAuth", stage]));
+    await adapter.ready(); expect(h.stages).toEqual(androidOpenStages);
+    expect(JSON.stringify(h.stages)).not.toContain("synthetic");
+  });
+
+  it.each(["sdk-import", "sdk-value", "activity", "host", "installation"] as const)("keeps the original ready rejection at %s with only completed milestones", async failure => {
+    const h = platformHarness(), privateError = new Error("synthetic-private-native-failure");
+    const importClass = h.android.importClass, runtimeMainActivity = h.android.runtimeMainActivity;
+    vi.spyOn(h.android, "importClass").mockImplementation(name => {
+      if (failure === "sdk-import" && name === "android.os.Build$VERSION") throw privateError;
+      return importClass(name);
+    });
+    if (failure === "sdk-value") Object.defineProperty(h.classes["android.os.Build$VERSION"], "SDK_INT", { get: () => { throw privateError; } });
+    vi.spyOn(h.android, "runtimeMainActivity").mockImplementation(() => {
+      if (failure === "activity") throw privateError; return runtimeMainActivity();
+    });
+    const invoke = h.android.invoke.getMockImplementation()!;
+    h.android.invoke.mockImplementation((target, method, ...args) => {
+      if (failure === "host" && method === "getPackageName") throw privateError;
+      return invoke(target, method, ...args);
+    });
+    const installationId = vi.fn(() => { if (failure === "installation") throw privateError; return "synthetic-install-A"; });
+    const adapter = createNativeSessionStorage({ baseUrl: "https://example.test", installationId, platform: async () => h.platform });
+    await expect(adapter.ready()).rejects.toThrow("NATIVE_SESSION_STORAGE_UNAVAILABLE");
+    expect(h.stages).toEqual([...androidOpenStages.slice(0, { "sdk-import": 2, "sdk-value": 3, activity: 4, host: 5, installation: 7 }[failure]), "STORAGE_READY_FAILED"]);
+    expect(() => adapter.get()).toThrow("NATIVE_SESSION_STORAGE_UNAVAILABLE");
+    expect(h.preferences.size).toBe(0); expect(h.keys.size).toBe(0);
+    expect(JSON.stringify(h.stages)).not.toContain("synthetic");
+    expect(h.android.invoke.mock.calls.filter(args => args[0] === "android.util.Log"))
+      .toEqual(h.stages.map(stage => ["android.util.Log", "i", "UvelAuth", stage]));
+  });
+
   it.each(["absent", "revoked", "key-absent", "decrypted", "read-failed"])("distinguishes cold storage %s using fixed stages and unchanged reads", async reason => {
     const h = platformHarness(), adapter = h.adapter(); await adapter.ready();
     if (reason !== "absent") adapter.set(persisted);
@@ -148,8 +211,8 @@ describe("Android OS-encrypted native refresh persistence", () => {
     const client = createApiClient({ baseUrl: "https://example.test", vault: cold, transport: { request } });
     await Promise.all([client.refreshSession(), client.refreshSession()]);
     expect(request).toHaveBeenCalledTimes(1);
-    expect(h.stages).toEqual(["PLATFORM_ANDROID", "STORAGE_READY", "STORAGE_READ_BEGIN", "STORAGE_RECORD_ABSENT", "PERSIST_VERIFIED",
-      "PLATFORM_ANDROID", "STORAGE_READY", "STORAGE_READ_BEGIN", "STORAGE_READ_DECRYPTED", "REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED", "PERSIST_VERIFIED", "REFRESH_COMMITTED"]);
+    expect(h.stages).toEqual([...androidOpenStages, "STORAGE_READ_BEGIN", "STORAGE_RECORD_ABSENT", "PERSIST_VERIFIED",
+      ...androidOpenStages, "STORAGE_READ_BEGIN", "STORAGE_READ_DECRYPTED", "REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED", "PERSIST_VERIFIED", "REFRESH_COMMITTED"]);
     expect(h.android.invoke.mock.calls.filter(args => args[0] === "android.util.Log"))
       .toEqual(h.stages.map(stage => ["android.util.Log", "i", "UvelAuth", stage]));
     expect(JSON.stringify(h.stages)).not.toContain("synthetic");

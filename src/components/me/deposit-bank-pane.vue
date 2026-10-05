@@ -449,7 +449,13 @@ watch(
 );
 
 // ── 金额输入(USDT 主位 + 实时 ≈VND 副显)──
-const amount = ref("25");
+function recoveryAmount(): string {
+  const draft = dep.bankRecoveryDraft;
+  return paymentSessionReady.value && dep.currentAccountKey() === app.accountKey
+    && draft?.accountKey === app.accountKey ? draft.amount : "25";
+}
+const amount = ref(recoveryAmount());
+watch(() => [app.accountKey, paymentSessionReady.value], () => { amount.value = recoveryAmount(); });
 function onAmount(e: Event) {
   if (creating.value) return;
   // 保留原输入；非法符号或超精度必须提示，不能静默变成另一笔金额。
@@ -520,10 +526,11 @@ const creating = ref(false);
 const createError = ref("");
 const createRecovery = ref<"onboarding" | "terms" | null>(null);
 function goCreateRecovery() {
-  if (!paymentSessionReady.value || creating.value) return;
+  if (!paymentSessionReady.value || creating.value || dep.currentAccountKey() !== app.accountKey) return;
+  if (createRecovery.value !== "terms" && createRecovery.value !== "onboarding") return;
+  dep.bankRecoveryDraft = { accountKey: app.accountKey, amount: amount.value };
   if (createRecovery.value === "terms") { navTo("/pages/onboarding/terms"); return; }
-  if (createRecovery.value !== "onboarding") return;
-  // Keep this page/amount on the stack; returning never submits another order.
+  // Restore only the input if navigation rebuilds the page; never replay CREATE.
   // #ifdef H5
   navTo("/pages/register/success?setup=1");
   // #endif
@@ -630,6 +637,7 @@ async function completeCreateOrder(usdt: number, expectedAccountKey: string) {
         if (!stillCurrent()) return;
         createError.value = "";
         createRecovery.value = null;
+        dep.bankRecoveryDraft = null;
         autoResumePending.value = false;
         viewIntentId.value = it.intentId;
         paidPressed.value = false;

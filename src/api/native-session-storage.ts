@@ -8,6 +8,7 @@ export interface NativeSessionStorage extends KeyValueStorage { ready(): Promise
 
 const SESSION_DIAGNOSTIC_STAGES = [
   "PLATFORM_ANDROID", "PLATFORM_UNINITIALIZED", "PLATFORM_UNSUPPORTED",
+  "SDK_IMPORT_BEGIN", "SDK_IMPORTED", "SDK_READY", "ACTIVITY_READY", "HOST_READY", "INSTALLATION_READ_BEGIN",
   "STORAGE_READY", "STORAGE_MEMORY_ONLY", "STORAGE_READY_FAILED", "PERSIST_VERIFIED", "PERSIST_FAILED",
   "RESTORE_BEGIN", "HYDRATE_CANDIDATE", "HYDRATE_EMPTY", "REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED",
   "REFRESH_COMMITTED", "REFRESH_RESPONSE_INVALID", "REFRESH_DENIED", "REFRESH_SUPERSEDED", "REFRESH_FAILED",
@@ -75,11 +76,18 @@ export function createNativeSessionStorage(options: {
       synchronous(() => android.invoke(target, method, ...args));
     const object = (name: string, ...args: unknown[]) => present(synchronous(() => android.newObject(name, ...args)));
     const constants = (name: string) => present(synchronous(() => android.importClass(name))) as PlusAndroidClassObject & Record<string, unknown>;
-    const sdk = constants("android.os.Build$VERSION").SDK_INT;
+    reportNativeSessionStage("SDK_IMPORT_BEGIN");
+    const version = constants("android.os.Build$VERSION");
+    reportNativeSessionStage("SDK_IMPORTED");
+    const sdk = version.SDK_INT;
     requireValue(typeof sdk === "number" && Number.isInteger(sdk));
     if (sdk < 23) { reportNativeSessionStage("PLATFORM_UNSUPPORTED"); return undefined; }
+    reportNativeSessionStage("SDK_READY");
     const activity = present(synchronous(() => android.runtimeMainActivity()));
+    reportNativeSessionStage("ACTIVITY_READY");
     const host = call(activity, "getPackageName");
+    reportNativeSessionStage("HOST_READY");
+    reportNativeSessionStage("INSTALLATION_READ_BEGIN");
     const install = options.installationId();
     requireValue(typeof host === "string" && host.length > 0 && typeof install === "string" && install.length > 0);
     let origin: string;

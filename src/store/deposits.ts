@@ -127,6 +127,8 @@ export const useDeposits = defineStore("deposits", () => {
   // rebindAccountScopedStores 统一重绑(P-031 store 不互 import 的编排收口)。
   const records = ref<DepositRecord[]>([]);
   const intents = ref<DepositIntent[]>([]);
+  // UI-only recovery input survives page remounts, never a payment command.
+  const bankRecoveryDraft = ref<{ accountKey: string; amount: string } | null>(null);
   const serverStatus = ref<"idle" | "loading" | "ready" | "error">("ready");
   const serverError = ref("");
   const remoteReceiptPage = createVietQrReceiptPageState<ServerReceiptListItem>();
@@ -229,6 +231,7 @@ export const useDeposits = defineStore("deposits", () => {
   /** 账号切换重绑:装载该账号分行,停掉上一账号的在途引擎定时器,
    *  再对新账号在途意向单做一次 server 状态收敛(过期落地 + 定时器重武装)。 */
   function bindAccount(rawAccountKey: string) {
+    if (bankRecoveryDraft.value?.accountKey !== normalizeAccountKey(rawAccountKey)) bankRecoveryDraft.value = null;
     timers.forEach((t) => clearTimeout(t));
     timers.clear();
     if (fundsServerEnabled) {
@@ -1160,6 +1163,7 @@ export const useDeposits = defineStore("deposits", () => {
   return {
     records,
     intents,
+    bankRecoveryDraft,
     serverStatus,
     serverError,
     remoteReceipts,

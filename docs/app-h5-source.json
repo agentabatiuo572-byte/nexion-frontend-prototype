@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\app-hdpay-reason-w84-20261005",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "eaf98fc3bc78a780b257b3ab9496357777e64b0a",
-  "sourceRef": "eaf98fc3bc78a780b257b3ab9496357777e64b0a",
+  "sourceHead": "1bc623d3d6314c093438d0ce24938e7e413b282d",
+  "sourceRef": "1bc623d3d6314c093438d0ce24938e7e413b282d",
   "sourceRefKind": "commit",
-  "sourceTree": "849614726db3a8a8315e6bfeb68f83b1192554f7",
+  "sourceTree": "f11de87606f1cddbc3c1120b3d2cfaae08f29649",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -6299,17 +6299,17 @@
       "mode": "100644"
     },
     "src/api/native-session-storage.behavior.test.ts": {
-      "sourceBlob": "b2490afccf8be0419572790dff9e6bbc2eaa799f",
-      "sourceSha256": "140a1ae022ec528d153efe997ddf6f887248d9b581eaaa4e5356002b87519cf0",
-      "targetBlob": "b2490afccf8be0419572790dff9e6bbc2eaa799f",
-      "targetSha256": "140a1ae022ec528d153efe997ddf6f887248d9b581eaaa4e5356002b87519cf0",
+      "sourceBlob": "a985e1e04bf0d6d3a283a02320f472014a21fc00",
+      "sourceSha256": "d87ff25a6e95301aa100ecf534cbc0056161d86ee3bcc7b8cca18b68dafc95df",
+      "targetBlob": "a985e1e04bf0d6d3a283a02320f472014a21fc00",
+      "targetSha256": "d87ff25a6e95301aa100ecf534cbc0056161d86ee3bcc7b8cca18b68dafc95df",
       "mode": "100644"
     },
     "src/api/native-session-storage.ts": {
-      "sourceBlob": "4d9c360cd191c20d05677fbc7eee606f2b6f3c70",
-      "sourceSha256": "b6d6bac1f27cfea50df66c932f09fa26e703de1762f1303e302b1af7ed8b2eb1",
-      "targetBlob": "4d9c360cd191c20d05677fbc7eee606f2b6f3c70",
-      "targetSha256": "b6d6bac1f27cfea50df66c932f09fa26e703de1762f1303e302b1af7ed8b2eb1",
+      "sourceBlob": "523f1c23f9c4fa76f201e80a8792c1e43efc0ea3",
+      "sourceSha256": "f815014f6a1de44708efd2152884af991a0d65b28856b8048147a7c3e5b1d986",
+      "targetBlob": "523f1c23f9c4fa76f201e80a8792c1e43efc0ea3",
+      "targetSha256": "f815014f6a1de44708efd2152884af991a0d65b28856b8048147a7c3e5b1d986",
       "mode": "100644"
     },
     "src/api/network-rank-api.test.ts": {
@@ -8042,10 +8042,10 @@
       "mode": "100644"
     },
     "src/components/me/deposit-bank-hosted-capacity.behavior.test.ts": {
-      "sourceBlob": "6037f64056786c7a5fe0196ed49f806d9acc9d32",
-      "sourceSha256": "655cf7bb6b0465df6b287371559e013fc8802c69c00652ecbaecc16f5317c218",
-      "targetBlob": "6037f64056786c7a5fe0196ed49f806d9acc9d32",
-      "targetSha256": "655cf7bb6b0465df6b287371559e013fc8802c69c00652ecbaecc16f5317c218",
+      "sourceBlob": "79b3edebeb36e7b1b840cc1639c0921d89939ad9",
+      "sourceSha256": "563f27a624c7307eb0262960693a7ae90b469514efe130a4a483177f945e6514",
+      "targetBlob": "79b3edebeb36e7b1b840cc1639c0921d89939ad9",
+      "targetSha256": "563f27a624c7307eb0262960693a7ae90b469514efe130a4a483177f945e6514",
       "mode": "100644"
     },
     "src/components/me/deposit-bank-hosted-payment.contract.test.ts": {
@@ -8056,17 +8056,17 @@
       "mode": "100644"
     },
     "src/components/me/deposit-bank-pane.vue": {
-      "sourceBlob": "87ce6ab611b51feca348a93e167583a7255030d5",
-      "sourceSha256": "e3e6982a9b7bccc7df1437f810a651eeacc5ce4a0194ce456cacb7f5ccf49a75",
-      "targetBlob": "87ce6ab611b51feca348a93e167583a7255030d5",
-      "targetSha256": "e3e6982a9b7bccc7df1437f810a651eeacc5ce4a0194ce456cacb7f5ccf49a75",
+      "sourceBlob": "8c0aec1609f34acd5590fe714b3533ca44bd3601",
+      "sourceSha256": "05b49a300f94f9d17512ff4d1aa6f8345c1d47d23d85fdf356f614d5d53e9ca9",
+      "targetBlob": "8c0aec1609f34acd5590fe714b3533ca44bd3601",
+      "targetSha256": "05b49a300f94f9d17512ff4d1aa6f8345c1d47d23d85fdf356f614d5d53e9ca9",
       "mode": "100644"
     },
     "src/components/me/deposit-bank-rejected.behavior.test.ts": {
-      "sourceBlob": "0f8c5fdee9d4490adf0c073efc0236a51494520c",
-      "sourceSha256": "e2d0bd0f2f71467615b6a45f8ea93a1ec10c02547e6060af811dedcb486d5d3c",
-      "targetBlob": "0f8c5fdee9d4490adf0c073efc0236a51494520c",
-      "targetSha256": "e2d0bd0f2f71467615b6a45f8ea93a1ec10c02547e6060af811dedcb486d5d3c",
+      "sourceBlob": "405ee8d770f81fde0643848a74ad2c8249c872b4",
+      "sourceSha256": "cc2d3e79ac5e3dbb9bbc458d6a7ebea12107a319be170799b6b1c36ba0f46dd5",
+      "targetBlob": "405ee8d770f81fde0643848a74ad2c8249c872b4",
+      "targetSha256": "cc2d3e79ac5e3dbb9bbc458d6a7ebea12107a319be170799b6b1c36ba0f46dd5",
       "mode": "100644"
     },
     "src/components/me/deposit-usdt-pane.behavior.test.ts": {
@@ -15175,10 +15175,10 @@
       "mode": "100644"
     },
     "src/store/deposits.ts": {
-      "sourceBlob": "8ae8f58cb58e0ddbf0dff827aa8b238002357c4f",
-      "sourceSha256": "db7f1cd173ec9dc1074091b1b2abd3d696d287946f7869509496079bb468f71e",
-      "targetBlob": "8ae8f58cb58e0ddbf0dff827aa8b238002357c4f",
-      "targetSha256": "db7f1cd173ec9dc1074091b1b2abd3d696d287946f7869509496079bb468f71e",
+      "sourceBlob": "f29b75388ca3ea5df8ac80114f63927185157dae",
+      "sourceSha256": "420018fce74720b243ab0c760f8dc436217a80103a13905bff041f51aebc7a56",
+      "targetBlob": "f29b75388ca3ea5df8ac80114f63927185157dae",
+      "targetSha256": "420018fce74720b243ab0c760f8dc436217a80103a13905bff041f51aebc7a56",
       "mode": "100644"
     },
     "src/store/device-lifecycle-server-authority.test.ts": {

@@ -42,7 +42,7 @@ function install(response = config()) {
 }
 
 function pane(fx: ReturnType<typeof useFx>) {
-  const start = source.indexOf('const amount = ref("25")');
+  const start = source.indexOf('function recoveryAmount()');
   const end = source.indexOf('function regen()', start);
   expect(start).toBeGreaterThan(0); expect(end).toBeGreaterThan(start);
   const code = ts.transpileModule(source.slice(start, end) + `
