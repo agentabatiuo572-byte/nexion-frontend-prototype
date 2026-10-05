@@ -1,10 +1,11 @@
 import type { HowContentDocument } from "@/api/how-content-api";
 import type { CommissionGuideRates, CommissionGuideRules } from "@/api/commission-guide-api";
+import type { DirectReferralPolicy, DirectReferralRule } from "@/api/direct-referral-api";
 import type { CanonicalVRankRow } from "@/api/v-rank-api";
 import { formatHowNumber } from "./rank-how-content";
 
-export interface CommissionsHowSnapshot { document: HowContentDocument; rates: CommissionGuideRates; guide: CommissionGuideRules; ranks: CanonicalVRankRow[] }
-// Public summaries keep settlement facts without reproducing internal reward formulas.
+export interface CommissionsHowSnapshot { document: HowContentDocument; rates?: CommissionGuideRates; directPolicy: DirectReferralPolicy; guide: CommissionGuideRules; ranks: CanonicalVRankRow[] }
+// Keep public settlement facts; current direct policy values come from the server.
 const COPY = {
   zh: {
     loading: "正在读取最新说明与佣金规则…", unavailable: "说明或规则暂不可用，请重新加载。", missing: "未配置或配置无效，请以实际事件记录为准", none: "暂无已配置权益", retry: "重新加载",
@@ -14,6 +15,7 @@ const COPY = {
     network: "网络奖励的金额和到账状态以实际结算记录及钱包账单为准。", records: "奖励金额和到账状态以实际结算记录及钱包账单为准。", cultivation: "培育奖励请按实际奖励记录核对接收人和到账金额。",
     exampleScope: "以下金额仅作算例，不代表个人收益。假设订单基数：", exampleNetwork: "网络奖励算例", exampleCultivation: "培育奖励算例，不代表个人到账金额",
     noTotal: "非实际收益合计", pendingAmount: "需实际结算", unknownAmount: "—", base: "假设订单基数", configured: "配置额", notOpen: "未开放", notConfigured: "未配置",
+    purchase: "直属购买", deviceEarning: "直属设备收益", totalRate: "总分成", split: "奖励拆分", directOnly: "仅直接邀请成员；平台额外支付，成员原收益不扣减", priceUnavailable: "NEX价格暂不可用，等待有效价格后处理",
   },
   en: {
     loading: "Loading the latest explanation and commission rules…", unavailable: "Explanation or rules unavailable. Please reload.", missing: "Missing or invalid configuration; check actual event records", none: "No configured benefits", retry: "Reload",
@@ -23,6 +25,7 @@ const COPY = {
     network: "Check settlement records and wallet statements for network reward amounts and payment status.", records: "Check settlement records and wallet statements for reward amounts and payment status.", cultivation: "Check cultivation reward records for the recipient and amount received.",
     exampleScope: "These amounts are illustrations, not personal earnings. Hypothetical order base:", exampleNetwork: "Network reward illustration", exampleCultivation: "Cultivation reward illustration, not a personal payment",
     noTotal: "Not an earnings total", pendingAmount: "Requires settlement", unknownAmount: "—", base: "Hypothetical order base", configured: "Configured amount", notOpen: "Not available", notConfigured: "Not configured",
+    purchase: "Direct purchase", deviceEarning: "Direct device earnings", totalRate: "Total reward", split: "Reward split", directOnly: "Directly invited members only; the platform pays extra and members keep their original earnings", priceUnavailable: "NEX price unavailable; awaiting a valid price",
   },
   vi: {
     loading: "Đang tải hướng dẫn và quy tắc hoa hồng mới nhất…", unavailable: "Chưa có hướng dẫn hoặc quy tắc. Vui lòng tải lại.", missing: "Cấu hình thiếu hoặc không hợp lệ; xem bản ghi thực tế", none: "Chưa có quyền lợi được cấu hình", retry: "Tải lại",
@@ -32,28 +35,12 @@ const COPY = {
     network: "Xem bản ghi quyết toán và sao kê ví để kiểm tra số tiền thưởng mạng lưới và trạng thái chi trả.", records: "Xem bản ghi quyết toán và sao kê ví để kiểm tra số tiền thưởng và trạng thái chi trả.", cultivation: "Xem bản ghi thưởng phát triển để kiểm tra người nhận và số tiền đã nhận.",
     exampleScope: "Các số tiền chỉ để minh họa, không phải thu nhập cá nhân. Cơ sở đơn hàng giả định:", exampleNetwork: "Minh họa thưởng mạng lưới", exampleCultivation: "Minh họa thưởng phát triển, không phải khoản cá nhân đã nhận",
     noTotal: "Không phải tổng thu nhập", pendingAmount: "Cần quyết toán", unknownAmount: "—", base: "Cơ sở đơn hàng giả định", configured: "Số tiền cấu hình", notOpen: "Chưa mở", notConfigured: "Chưa cấu hình",
+    purchase: "Mua trực tiếp", deviceEarning: "Thu nhập thiết bị trực tiếp", totalRate: "Tổng thưởng", split: "Phân chia thưởng", directOnly: "Chỉ thành viên được mời trực tiếp; nền tảng trả thêm, thành viên giữ nguyên thu nhập", priceUnavailable: "Giá NEX chưa khả dụng; đang chờ giá hợp lệ",
   },
 };
 
 export const COMMISSIONS_HOW_SLOTS = ["hero", "overview", "channels", "network", "binary", "peer", "cultivation", "leadership", "genesis", "lifecycle", "cooling", "unlocked", "withdrawn", "cooling-note", "example", "example-day", "example-network", "example-cultivation", "example-peer", "example-leadership", "example-total", "example-note", "faq", "faq-order", "faq-withdraw", "faq-reversal", "faq-cultivation", "footer"];
 
-// Decimal multiplication of the validated non-negative inputs. Integer division implements
-// six-place HALF_UP without binary floating-point epsilon or invented precision.
-function exampleMultiply(a: number, b: number): number | null {
-  const decimal = (value: number) => {
-    const [mantissa, exponent = "0"] = String(value).split("e");
-    const [whole, fraction = ""] = mantissa.split(".");
-    return { digits: BigInt(whole + fraction), scale: fraction.length - Number(exponent) };
-  };
-  const left = decimal(a), right = decimal(b), shift = 6 - left.scale - right.scale;
-  let micros = left.digits * right.digits;
-  if (shift >= 0) micros *= BigInt(10) ** BigInt(shift);
-  else {
-    const divisor = BigInt(10) ** BigInt(-shift);
-    micros = (micros * BigInt(2) + divisor) / (divisor * BigInt(2));
-  }
-  return micros <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(micros) / 1e6 : null;
-}
 
 export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | null, locale: string) {
   const language = locale.split("-")[0] as keyof typeof COPY;
@@ -64,13 +51,15 @@ export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | nu
   const publicBodies: Record<string, string> = {};
   const amounts = { network: copy.unknownAmount, cultivation: copy.unknownAmount, peer: copy.unknownAmount, leadership: copy.unknownAmount };
   if (snapshot) {
-    const { guide, rates } = snapshot;
+    const { guide, directPolicy } = snapshot;
     const ranks = snapshot.ranks.filter(r => r.visible).sort((a, b) => a.v - b.v);
     const b = guide.binary, l = guide.leadership;
-    tokens.networkRates = copy.network;
-    tokens.networkNex = copy.network;
-    tokens.networkGate = "";
-    tokens.exitCap = "";
+    const describe = (rule: DirectReferralRule) => !directPolicy.configured ? copy.notConfigured : !rule.enabled ? copy.paused
+      : `${copy.totalRate} ${number(rule.totalRatePct)}% · ${copy.split}: USDT ${number(rule.usdtSharePct)}% / NEX ${number(100 - rule.usdtSharePct)}% · ${number(rule.coolingDays)} ${copy.days}`;
+    tokens.directPurchaseRules = describe(directPolicy.purchase);
+    tokens.directDeviceRules = describe(directPolicy.deviceEarning);
+    tokens.directScope = copy.directOnly;
+    tokens.directPrice = directPolicy.nexUsdtPrice === null ? copy.priceUnavailable : `${money(directPolicy.nexUsdtPrice)} / NEX`;
     tokens.coolingDays = guide.coolingDays === null ? copy.missing : `${number(guide.coolingDays)} ${copy.days}`;
     tokens.binaryRules = b ? `${copy.dailyCap} ${money(b.dailyCap)} · ${copy.settlementPeriod}: ${copy[b.settlePeriod]} · ${copy.residualHandling}: ${copy[b.residualPolicy]} · ${b.paused ? copy.paused : copy.unpaused}` : copy.missing;
     tokens.peerRules = copy.records;
@@ -81,20 +70,13 @@ export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | nu
     tokens.genesisStatus = guide.capabilities.genesis ? copy.supported : copy.unsupported;
     // A unit illustration, not a purchase, account estimate, or settlement: no fictional named orders.
     tokens.exampleBase = money(100);
-    const rate = rates.unilevelUsdt[1];
-    const nexFactor = rates.unilevelNex[1];
-    if (rate !== undefined && nexFactor !== undefined) {
-      const usdt = exampleMultiply(100, rate);
-      const nex = usdt === null ? null : exampleMultiply(usdt, nexFactor);
-      if (usdt !== null && nex !== null) amounts.network = `${money(usdt)} + ${money(nex, "NEX")}`;
-    }
+    amounts.network = directPolicy.configured && directPolicy.purchase.enabled && directPolicy.nexUsdtPrice !== null ? copy.pendingAmount : copy.notConfigured;
     const cultivation = ranks.find(r => r.cultivationBonus > 0);
     tokens.exampleRank = cultivation ? `V${cultivation.v}` : copy.none;
     amounts.cultivation = cultivation ? `${money(cultivation.cultivationBonus, "NEX")} (${copy.configured})` : copy.none;
     amounts.peer = guide.capabilities.peer ? copy.pendingAmount : copy.notOpen;
     amounts.leadership = l ? copy.pendingAmount : copy.notConfigured;
     Object.assign(publicBodies, {
-      network: copy.network,
       binary: `${copy.records} ${tokens.binaryRules}`,
       peer: `${copy.records} ${tokens.peerStatus}`,
       cultivation: copy.cultivation,
@@ -105,7 +87,11 @@ export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | nu
       "example-leadership": copy.pendingAmount,
     });
   }
-  const blocks = new Map(snapshot?.document.blocks.map(block => [block.id, block]));
+  // Old publications can remain in the CMS for audit; never present their seven-layer
+  // promises as the current direct-referral policy while waiting for republication.
+  const directBody = snapshot?.document.blocks.find(block => block.id === "network")?.body ?? "";
+  const currentPublication = directBody.includes("{directPurchaseRules}") && directBody.includes("{directDeviceRules}");
+  const blocks = new Map(currentPublication ? snapshot?.document.blocks.map(block => [block.id, block]) : []);
   function section(id: string, fallbackTitle = copy.unavailable) {
     const block = blocks.get(id);
     let available = Boolean(block);

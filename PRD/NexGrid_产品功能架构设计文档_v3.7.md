@@ -192,8 +192,8 @@ TabBar:active tab 显示背景 chip 高亮。
 /team                            Team 主页
 /team/rank                       V 级头衔进度
 /team/rank/how-it-works          等级体系新人说明页
-/team/unilevel                   影响力网络版税(Influence Network Royalty)
-/team/unilevel/how-it-works      影响力网络版税玩法说明页
+/team/unilevel                   直属购买与设备收益双币分成
+/team/unilevel/how-it-works      直属分成说明页
 /team/binary                     双轨对碰
 /team/binary/how-it-works        双轨玩法新人说明页
 /team/leadership-pool            全球领导奖池
@@ -412,7 +412,7 @@ TabBar:active tab 显示背景 chip 高亮。
 
 #### 4.3.4 推荐人收益
 
-被推荐人完成订单时,推荐人按固定 10% 费率获得直接版税(Direct Royalty),其上线网络按 Network Yield Bonus 算法分得扩展版税(详见 §8.3)。
+被推荐人完成合格设备购买或真实设备收益入账时，仅直接邀请人按生效政策获得 USDT 与 NEX 分成，详见 §8.3；注册礼及其他团队奖励独立结算。
 
 #### 4.3.5 新人礼与手机任务收益的风险分桶
 
@@ -2012,7 +2012,7 @@ ProgramRow 右侧 value 按内容自动分类,影响视觉强度:
 1. **邀请码展示 + 复制**:展示 `user.referralCode`(如 `NEXGRID-8K9X`),配复制按钮 · 点击调 `navigator.clipboard.writeText(code)` + toast `Copied {code}` + 1.6s 内反馈 Check
 
 2. **双向奖励**:
-   - You get(邀请人):`$200 + 200 NEX` / `per friend signup · 10% direct royalty`(佣金费率单一来源 §4.3.4 / §8.3.1)
+   - 邀请人注册奖励读取注册奖励政策；直属购买与设备收益分成读取 §8.3 的独立政策，不展示固定购买费率或未来收入估算。
    - They get(被邀人):welcome gift 同源 `rewards.welcomeGift`(默认 `$5 + 20 NEX`,§4.3.2),不另设常量
    - **发放规则**:邀请人奖励不直入余额——被邀人注册成功计一笔,入账按邀请人**当时风险评估分桶**(与新人礼同口径,§4.3.5 三桶);被邀新号与邀请人命中同一多账户风险簇(自推链)时,该笔奖励进锁定桶或停发(SPEC-7 §4 反自推链口径,阈值后台可配)
 
@@ -2120,7 +2120,7 @@ flowchart LR
 | V11 | Cosmic Sovereign 宇宙至尊 | $100M | 无限扩展 1% | 5% | 256 |
 | V12 | Singularity 奇点 | $500M | 无限扩展 1.5% | 5% | 512 |
 
-> "扩展度"= 数学层 unilevelDepth 字段值,内部按 `UNILEVEL_USDT` 数组结算;UI 层只展示"直推 / 扩展版税"二态,不暴露具体度数。
+> unilevelDepth 保留为历史等级配置与关系网络数据；新直属分成不读取该字段决定资格、层数或金额，也不向成员承诺间接层继续产奖。
 
 #### 8.2.2 升级判定规则
 
@@ -2198,90 +2198,29 @@ flowchart LR
 - 升至下一阶进度条(`Math.round(progressPct × 100)%`)
 - Missing 条件清单(`nextRankProgress().missing` 数组逐条列出)
 - 13 阶完整列表(已达成 / CURRENT / 锁定 3 状态)
-- 每阶展示:升级条件 + 直推奖 + unilevel 深度 + 平级 + 领导池票数 + 培育奖
+- 每阶展示升级条件与已开放权益；历史深度参数不构成新直属分成的发放条件。
 
-### 8.3 影响力网络版税 `/team/unilevel`
+### 8.3 直属分成 `/team/unilevel`
 
-**用户端命名**:Influence Network Royalty(中文"影响力网络版税")。对标主流 Partner Program 范式:Amazon Associates / Stripe Partners / Crypto.com Affiliate。
+#### 8.3.1 来源与计算
 
-#### 8.3.1 版税规则
+直属购买分成以直接成员已付款设备订单的实付 USDT 为基数，覆盖普通、组合、换购、容量替换、保留旧购新及试用转正；充值、赠送、券抵扣和零实付不计。直属设备收益分成以已经入账的真实设备结算凭证为准，基数为凭证 USDT 加 NEX 按当笔有效价格折算的 USDT；包括免费手机真实合格任务，不包括试用影子、注册礼、活动、邀请佣金、其他团队奖励或开发测试产出。
 
-用户月度版税由**两个组件**叠加而成:
+A 直接邀请 B、B 邀请 C 时，两类来源分别只奖励直接邀请人；C 的购买和设备收益不给 A，B 收到的佣金也不能再触发 A 的设备收益分成。平台额外支付奖励，不扣 B 原收益。今日对碰、V 等级、培育奖、领导池、邀请注册礼保持各自原规则。
 
-**A. 直接版税(Direct Royalty)**
-- 你直接邀请的朋友(L1)产生的每一笔订单(首购 / 复投 / 商城升级 / Cloud Share 充值)按**固定 10% 费率**结算。
-- 公式:`Direct Royalty = Σ(L1 直推朋友月订单额) × 10%`
-- 直推费率为固定 10%(数学层单一来源 `UNILEVEL_USDT[1]`),不随网络活跃度变动;月度活跃度只决定 Partner Status 等级及其权益(见 §8.3.2),不改变费率。
+当前政策来自 `GET /api/config/commission/direct-referral`：两类规则分别含 `enabled`、`totalRatePct`、`usdtSharePct`、`coolingDays`；NEX 占比为 `100-usdtSharePct`。启用时总比例大于0且不超过100，拆分严格处于0与100之间，等待期为0..365整天；未配置为禁用占位0/50/0，不构成奖励承诺。
 
-**B. 网络收益奖金(Network Yield Bonus)**
-- 扩展网络(L2-L7,实现层保留)的月度算力活跃度产生的算法奖金,不向用户暴露层级数字。
-- 公式:`Network Bonus = Σ(扩展网络各层订单额 × UNILEVEL_USDT[layer]) × InfluenceScore`
-- `UNILEVEL_USDT[L1..L7] = [10%, 5%, 3%, 2%, 1%, 0.5%, 0.5%]`(数学层常量,与原 7 层 Unilevel 计算逻辑一致,仅 L1 折算入 Direct Royalty,L2-L7 合并入 Network Yield Bonus)。
-- `InfluenceScore = clamp(1 + log10(monthlyNetworkVolume / 100), 1.0, 5.0)`。
+令 Q 为合格基数、r=总比例/100、s=USDT占比/100、p 为有效 NEX 价格：`USDT=floor6(Q*r*s)`，`NEX=floor6(Q*r*(1-s)/p)`。价格不可用或任一币舍入为零时不伪造双币到账。服务端保存来源、受益人、政策版本、价格及两币金额快照，重试不重算、不重复发放，政策调整只作用于对应生效时间的来源。
 
-**Partner Status 等级表**(基于过去 30 天本人网络总活跃度自动评定,逐月重评):
+#### 8.3.2 查询与状态
 
-| Partner Status | 月度网络活跃度门槛 | 解锁权益 |
-|---|---|---|
-| Standard | $0+ | 基础权益 |
-| Verified | $5,000+ | 优先客服支持 |
-| Elite | $50,000+ | 新品优先购 |
-| Diamond | $500,000+ | 创始人 AMA + VIP |
+`GET /api/app/team/insights/direct-referral` 支持 today/week/month/all、分页和 snapshotAt；split.purchase/deviceEarning 为整个期间的双币聚合，不能由当前页累加代替。每个来源显示一条双币记录、脱敏成员名、订单或收益凭证编号、等待/到账状态及待追回双币金额。
 
-Partner Status 仅决定权益(perks),**不改变直推版税费率**——任何等级下直推费率恒为 10%。
+加载、空列表、失败重试和返回均须可达；未配置、关闭或价格暂缺给出明确状态，历史已发生奖励仍可查，不回退固定10%或七层数据。切期间重置分页；切账号清除旧快照并丢弃晚返回请求。冷却/冻结两币均不提前进入可用钱包；退款取消或实际追回双币，余额不足显示待追回，不能仅改状态冒充追回。
 
-**示例**:用户处于 Verified 等级(月活跃 $5K+),直推朋友买 $1,199 Pro → Direct Royalty = $1,199 × 10% = +$119.90;同月扩展网络活跃 → 算法计 Network Yield Bonus +$92.50 → 本月总版税 +$212.40。
+#### 8.3.3 说明与兼容
 
-NEX 双币奖励规则不变:每笔订单的版税同时按 `UNILEVEL_NEX[layer]` 派发 NEX(50 / 20 / 10 / 5 / 2.5 / 1 / 1 NEX per $)。
-
-#### 8.3.2 UI 规格
-
-页面结构(自上而下):
-
-1. **顶部 entry chip**:`📖 How the Royalty Program works →` 链 `/team/unilevel/how-it-works`。
-2. **Hero 卡**:月度总版税金额(大字号)+ 当前 Partner Status chip(等级名 + 固定 10% 费率)。
-3. **Direct Royalty 组件**:
-   - 大字号金额(当前月 Direct Royalty)
-   - 当前费率(`{rate}% royalty rate`)
-   - 直推朋友数(`{n} direct friends contributing`)
-4. **Network Yield Bonus 组件**:
-   - 大字号金额(当前月 Network Bonus)
-   - Influence Score(1.00 – 5.00)
-   - Network activity($)
-   - 算法奖金说明(`Calculated by the platform's influence algorithm…`)
-5. **Partner Status 进度**:
-   - 4 档 Partner Status 卡片横排(Standard / Verified / Elite / Diamond,各档解锁权益 + 门槛 + 当前档位高亮,不显示费率)
-   - 进度条:`${current} / ${nextThreshold}` + 文案 `再积累 $X 月度活跃度即可升到 {next}`
-   - 已达 Diamond 时显示 Crown + `已达最高合伙人等级 · Diamond`
-6. **Member list filter**:三按钮 `全部 / 直推 / 扩展`(无层级数字)。
-7. **Member 列表**:每个 member 卡 = 头像 + 名字 + 状态 dot + V 级 chip + 月业绩 + 本月版税贡献 + 二分类 badge(`直推 DIRECT` / `扩展 EXTENDED`)。
-
-#### 8.3.3 玩法说明页 `/team/unilevel/how-it-works`
-
-零基础说明页,对应入口 entry chip。
-
-**页面结构**(自上而下):
-1. iOS nav back + 标题 `How Influence Network Royalty works`
-2. Hero + 标签 `ROYALTY PROGRAM` + 大标题 `Earn royalty on every order in your influence network.`
-3. **§1 What is Influence Network Royalty?**:2 段说明
-   - §1.1 双组件结构(Direct Royalty + Network Yield Bonus)
-   - §1.2 行业对标(Amazon Associates / Stripe Partners / Crypto.com Affiliate / YouTube AdSense)
-4. **§2 Partner Status Tiers**:4 行表(Status / Monthly network activity / Perk unlocked)+ 脚注"直推费率在每个等级恒为 10%,版税来自平台利润,朋友支付金额不变"
-5. **§3 Network Yield Bonus 计算原理**:2 个信号卡(Network activity / Influence Score)+ 提示卡描述算法公式
-6. **§4 数字示例**:
-   - 场景:Verified 等级 × $1,199 直推订单(固定 10% 费率)+ 扩展网络
-   - 拆解:Direct Royalty +$119.90 / Network Yield Bonus +$92.50
-   - 合计本月版税:$212.40
-7. **§5 How to grow your royalty 3 杠杆**:
-   - 直推更多朋友
-   - 帮直推激活扩展网络
-   - 推月度活跃度冲刺更高 Partner Status(解锁权益)
-8. **§6 FAQ 4 问**:
-   - 朋友是否多付钱
-   - 终身上限
-   - Partner Status 月度重评(费率恒定 10%)
-   - 是否需要主动 claim
-9. 底部 CTA 回 `/team/unilevel`
+既有 `/team/unilevel/how-it-works` 与佣金说明读取服务端已发布正文，解释两类直接来源、总分成拆双币、平台承担、等待期与退款；比例来自生效配置。三语言 zh/en/vi 同步。旧 network/unilevel 记录留在总佣金列表，关系网络保留，不暗示间接层继续产生这两类新分成。
 
 ### 8.4 双轨平衡匹配 `/team/binary`
 
@@ -2291,7 +2230,7 @@ NEX 双币奖励规则不变:每笔订单的版税同时按 `UNILEVEL_NEX[layer]
 
 ##### 8.4.0.1 在团队体系中的角色
 
-双轨平衡匹配与影响力网络版税(§8.3)并行:网络版税提供横向 Direct + Extended 双组件分润,双轨提供纵向持续增长入口。两者叠加形成完整团队激励矩阵,使用户在 V 级扩展覆盖封顶后仍有继续邀请的回报路径。
+双轨平衡匹配与直属分成(§8.3)并行；对碰按原业绩及结算规则执行，直属分成只来自直接成员的合格购买与真实设备收益，两者互不替代。
 
 ##### 8.4.0.2 4 个核心机制要点
 
@@ -2502,24 +2441,26 @@ flowchart TD
 
 i18n keys 在 `poolHowItWorks.*` namespace(en + zh 双语镜像)~40 keys。
 
-### 8.6 5 类佣金事件 `/team/commissions`
+### 8.6 佣金事件 `/team/commissions`
 
 | 类别 | 触发 | 结算 | 备注 |
 |---|---|---|---|
-| 网络版税(Network royalty) | 被推荐人订单 — 数学层 7 层(L1 Direct,L2-L7 Extended) | 实时 | USDT + NEX,30 天冷却 |
+| 直属购买分成 | 直接成员实付设备订单 | 由当笔政策决定等待期 | USDT + NEX，同一结算组 |
+| 直属设备收益分成 | 直接成员真实已入账设备凭证 | 由当笔政策决定等待期 | USDT + NEX，同一结算组 |
+| 历史网络奖励 | 历史 network/unilevel 记录 | 保留原规则处置 | 不再由新购买生成七层佣金 |
 | 平衡匹配(Balance Match) | 双轨对碰条件满足 | 每日 | USDT,30 天冷却 |
 | Peer | 同 V 级团员业绩 5% | 每月 | USDT |
 | Cultivation | 下属升 V 一次性 NEX | 实时 | V1 500 / V2 2K / V3 10K / V4 50K / V5 200K NEX |
 | Leadership | 领导池周分红 | 每周 | USDT(V3+ 解锁) |
 | Genesis | 创世节点持有人排放 | 上所后 | $NEX(创世持有人,vesting 释放) |
 
-UI:返回按钮同行 `📖 新手?了解 6 类佣金 →` chip 链 `/team/commissions/how-it-works` + 6 类汇总 grid + filter pills(全部 / 网络版税 / 平衡匹配 / 平级 / 培育 / 领导池 / 创世)+ 时间线 + 每条状态(冷却 N 天 / Ready / Withdrawn)+ tap 详情。
+列表支持两类直属分成、历史网络、对碰、平级、培育、领导池、创世八类筛选和服务端全量分类汇总。总佣金保持单币账项模型，两币同组计两条账项，不称人数或奖励组数；直属页面按来源组同时展示两币。状态包含冷却/已到账/已支取/冻结/撤销/拒绝/待追回；待追回显示尚未追回的两币金额，不能作为可提现收益。
 
 **Commission row layer chip 二分类显示**:Row 内紧跟 `sourceUserName` 显示来源 chip,基于数学层 `e.layer` 字段二分类:
 - `layer === 1` → **直推**(`commissions.directBadge`)
 - `layer >= 2` → **扩展**(`commissions.extendedBadge`)
 
-不再暴露 `L{N}` 层级编号(已废弃 MLM 语汇)。数学层 `UNILEVEL_USDT[layer]` × 月业绩计算逻辑不动,只 UI 表达层去层级化。
+层级标签仅用于区分历史记录来源。新分成只认真实直属来源，不按网络层级或客户端月业绩推算。
 
 #### 8.6.1 玩法说明页 `/team/commissions/how-it-works`
 
@@ -2527,18 +2468,18 @@ UI:返回按钮同行 `📖 新手?了解 6 类佣金 →` chip 链 `/team/commi
 
 **页面结构**:
 1. iOS nav back + 标题 `How commissions work`
-2. Hero + 标签 `ALL 6 COMMISSION TYPES` + 大标题 `Six different ways money lands in your wallet.`
-3. §1 Why six?(简介一段)
-4. §2 6 个 channel IconRow(emoji + label + 一句目的 + 解锁条件):
-   - 👥 Network royalty · Direct + Extended
+2. 说明佣金来源及历史兼容，所有正文由服务端发布。
+3. 当前直属规则与其他独立奖励的边界。
+4. 渠道说明：
+   - 直属购买与直属设备收益；比例、双币拆分和等待期取当前生效政策，历史网络仅查询。
    - ⚖️ Binary · Balance Match Bonus
    - 🤝 Peer · same-rank bonus(V3 解锁)
    - 🌱 Cultivation · sponsor bonus (NEX)
    - 👑 Leadership · weekly pool share(V3 解锁)
    - 💎 Genesis · founder dividend(创世持有人)
-5. §3 结算生命周期 3 个 status pill:`COOLING`(30d)→ `UNLOCKED` → `WITHDRAWN` + CalloutBox 解释为什么有冷却期
-6. §4 典型一天案例:4 笔不同 channel 收益累加 → $79.00 + 2,000 NEX 日合计
-7. §5 FAQ 4 问(为什么没看到佣金 / 能立即提现吗 / 降级失去什么 / Cultivation 和 Unilevel 区别)
+5. 结算生命周期按真实事件解释等待、到账、冻结、撤销与待追回；不能预设固定等待期。
+6. 规则演示以当前配置和有效价格为输入，只作说明，不当实际收益合计；缺配置不展示数值承诺。
+7. FAQ说明有效来源、提现状态、退款及独立培育奖励。
 8. 底部 CTA 回 `/team/commissions`
 
 ### 8.7 影响力网络 `/team/network`
@@ -2566,7 +2507,7 @@ Direct / Extended 二分类可折叠列表:
 - **Extended section**(EXT badge,默认展开):
   - Header subtitle:`{n} members · ~$X/mo Network Yield Bonus`
   - member row 按 monthVolume 降序
-- member row:头像 + V 级 + 状态点 + city + 入网天数 + 本月版税贡献(数学层 `UNILEVEL_USDT[layer]` × 月业绩,直推用 10% 直接版税)
+- 成员记录保留关系、等级、活跃状态与入网信息；收益只读服务端结算记录，不按成员月业绩或旧层级费率推算。
 - 不展示 7 层 sections / 左右翼 filter / Spillover badge
 
 ### 8.9 硬件配额解锁 `/team/quota`
@@ -3613,7 +3554,7 @@ interface TrialConfig {
 - Genesis:slot price $24.08、年化 87.9%、royalty/dividend、一级/二级市场开关。
 - 设备任务产能:递减 -4% / -6% / -23.7%, floor 22%, 产出阶梯抵扣公式。
 - 商品与收益:SKU price、daily earning、route threshold、trial price。
-- Team:unilevel 7 层、V Rank 条件、binary cap、leadership pool rule。
+- Team:两类直属分成政策、V Rank 条件、binary cap、leadership pool rule；历史网络关系保留。
 - Wallet:withdraw min / fee / cap / KYC gate。
 
 任何端修改上述数字必须同步更新机读 canon source,否则验收失败。
@@ -4970,17 +4911,23 @@ OrderTimelineEvent = { status: OrderStatus; ts: number; note?: string }
 ```
 {
   id: string;
-  kind: "unilevel" | "binary" | "peer" | "cultivation" | "leadership" | "genesis";
-  sourceUserId: string;
+  kind: "direct_purchase" | "direct_device_earning" | "unilevel" | "binary" | "peer" | "cultivation" | "leadership" | "genesis";
   sourceUserName: string;
   layer?: number;               // 仅 unilevel
   orderId?: string;
   orderAmountUSD?: number;
+  sourceRef?: string;           // 总佣金可选；直属专页必有订单或设备收益凭证
+  sourceDeviceId?: string | null;
+  policyVersion?: number;
+  basisUsdt?: number;
+  nexUsdtPrice?: number | null; // 未派发记录可能没有有效价格
+  recoveryPendingUSDT?: number;
+  recoveryPendingNEX?: number;
   amountUSDT: number;
   amountNEX: number;
   ts: number;
-  unlockAt: number;             // 30 天后
-  status: "cooling" | "unlocked" | "withdrawn";
+  unlockAt: number;             // 服务端当笔政策时间戳
+  status: "cooling" | "unlocked" | "withdrawn" | "frozen" | "reversed" | "rejected" | "recovery_pending";
 }
 ```
 
@@ -5583,7 +5530,7 @@ progressPct = avg(checks);
 | 历史兼容字段 · `h5BaseFactor` | 旧配置值保留 | 不参与 H5 手机执行、收益或离线补算；H5 仅展示服务端当前 APP 状态，手机执行资格以 §6.11 为准 |
 | 在线加成系数 · `continuityFullHours`(`CONTINUITY_FULL_MS`)| 2h(7,200,000ms) | App 连续在线稳定加成达满所需时长(0.85→1.0 线性,`lib/hashpower.ts`,§6.10 / §6.11);会话踢出 / 换机重校准清零;运营可配(`onlineBonus`) |
 | 提现冷却 | 30 天 | unilevel + binary 佣金 |
-| Direct Royalty 费率 | 固定 10% | 单一来源 `UNILEVEL_USDT[1]`,不随 Partner Status 变动 |
+| 直属两类总比例、USDT拆分、等待期 | 服务端生效政策；未配置为禁用 | `/api/config/commission/direct-referral`；NEX为拆分余数，公式见§8.3.1 |
 | Partner Status Standard | $0+ | 基础权益(月度网络活跃度起步档)|
 | Partner Status Verified | $5,000+ | 优先客服支持 |
 | Partner Status Premium | $50,000+ | 新品优先购 |

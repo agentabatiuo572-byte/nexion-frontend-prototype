@@ -72,8 +72,8 @@ function leaderboard(value: unknown, mode: ApiEnvironment): TeamLeaderboardSnaps
   const myRank=source.myRank===null?null:num(source.myRank,true);if(myRank!==null&&(myRank<1||myRank>totalRows)) return invalid();return {...proof,period,rows,myRank,gapToNext:num(source.gapToNext),poolUsd:num(source.poolUsd),topN:num(source.topN,true),page,pageSize,totalRows,generatedAt,snapshotAt:snapshotAt(source),snapshotVersion:snapshotVersion(source)};
 }
 
-const KINDS=new Set(["unilevel","binary","peer","cultivation","leadership","genesis"]);
-const STATUSES=new Set(["cooling","unlocked","withdrawn","frozen","reversed","rejected"]);
+const KINDS=new Set(["direct_purchase","direct_device_earning","unilevel","binary","peer","cultivation","leadership","genesis"]);
+const STATUSES=new Set(["cooling","unlocked","withdrawn","frozen","reversed","rejected","recovery_pending"]);
 function settlement(v: Record<string, unknown>): { settlementState?: "CANONICAL"; withdrawable?: boolean } {
   if (v.settlementState !== undefined && v.settlementState !== "CANONICAL") return invalid();
   if (v.withdrawable !== undefined && typeof v.withdrawable !== "boolean") return invalid();
@@ -96,12 +96,15 @@ function commissions(value: unknown, mode: ApiEnvironment): TeamCommissionSnapsh
   if (source.factStatus !== undefined && source.factStatus !== "CANONICAL") return invalid();
   if (source.withdrawable !== undefined && typeof source.withdrawable !== "boolean") return invalid();
   if (source.payoutStatus !== undefined && source.payoutStatus !== "CANONICAL") return invalid();
-  const events=source.events.map((item):CommissionEvent=>{const v=row(item);const rawStatus=String(v.status);if(Object.prototype.hasOwnProperty.call(v,"sourceUserId")||!KINDS.has(String(v.kind))||!STATUSES.has(rawStatus)) return invalid();const ts=num(v.ts,true),unlockAt=num(v.unlockAt,true);const state=settlement(v);return {id:text(v.id),kind:v.kind as CommissionEvent["kind"],sourceUserName:text(v.sourceUserName),layer:v.layer===null||v.layer===undefined?undefined:num(v.layer,true),orderId:v.orderId===null||v.orderId===undefined?undefined:text(v.orderId),orderAmountUSD:v.orderAmountUSD===null||v.orderAmountUSD===undefined?undefined:num(v.orderAmountUSD),amountUSDT:num(v.amountUSDT),amountNEX:num(v.amountNEX),ts,unlockAt,status:rawStatus as CommissionEvent["status"],...state};});
+  const events=source.events.map((item):CommissionEvent=>{const v=row(item);const rawStatus=String(v.status);if(Object.prototype.hasOwnProperty.call(v,"sourceUserId")||!KINDS.has(String(v.kind))||!STATUSES.has(rawStatus)) return invalid();const ts=num(v.ts,true),unlockAt=num(v.unlockAt,true);const state=settlement(v);return {id:text(v.id),kind:v.kind as CommissionEvent["kind"],sourceUserName:text(v.sourceUserName),layer:v.layer===null||v.layer===undefined?undefined:num(v.layer,true),orderId:v.orderId===null||v.orderId===undefined?undefined:text(v.orderId),orderAmountUSD:v.orderAmountUSD===null||v.orderAmountUSD===undefined?undefined:num(v.orderAmountUSD),sourceRef:v.sourceRef==null?undefined:text(v.sourceRef),sourceDeviceId:v.sourceDeviceId===null||v.sourceDeviceId===undefined?undefined:text(v.sourceDeviceId),recoveryPendingUSDT:v.recoveryPendingUSDT==null?undefined:num(v.recoveryPendingUSDT),recoveryPendingNEX:v.recoveryPendingNEX==null?undefined:num(v.recoveryPendingNEX),amountUSDT:num(v.amountUSDT),amountNEX:num(v.amountNEX),ts,unlockAt,status:rawStatus as CommissionEvent["status"],...state};});
   const aggregate=row(source.aggregate);
   const rawKinds=row(aggregate.byKind);
   const byKind = {} as TeamCommissionSnapshot["aggregate"]["byKind"];
   for (const key of KINDS) {
-    const bucket=row(rawKinds[key]);
+    // Older snapshots predate the new categories. A missing bucket is zero only
+    // when no event claims that category; aggregate reconciliation still applies.
+    const bucket=row(rawKinds[key] ?? ((key === "direct_purchase" || key === "direct_device_earning")
+      && !events.some(event => event.kind === key) ? { usdt: 0, nex: 0, count: 0 } : undefined));
     byKind[key as CommissionEvent["kind"]] = {usdt:num(bucket.usdt),nex:num(bucket.nex),count:num(bucket.count,true)};
   }
   const totals = { monthUSDT:num(aggregate.monthUSDT), monthNEX:num(aggregate.monthNEX), todayUSDT:num(aggregate.todayUSDT),

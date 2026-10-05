@@ -68,6 +68,7 @@ const LEDGER = {
   "GET /api/config/gpu-tiers": "PRD §9.11c.1",
   "GET /api/config/release-gates": "PRD §9.11c.1",
   "/api/config/commission/guide": "BACKEND: AppCommissionGuideController 已实现;佣金说明发布投影,PC 管理内容后由 App 读取",
+  "/api/config/commission/direct-referral": "PRD §8.3.1(直属购买与设备收益分成政策)",
   "/api/config/v-rank-policy": "BACKEND: PublishedRankHowPolicyController 已实现;V 等级说明策略由 PC 管理后下发",
 
   // ── genesis ───────────────────────────────────────────────────────────
@@ -247,6 +248,7 @@ const LEDGER = {
   "/api/app/trade-in/submit": "TBD-NAME: 同上(提交置换单)",
   "/api/app/team/ambassador-applications": "TBD-NAME: /api/app/* 族,推广大使申请的用户自助资源;前端 PRD 待同步",
   "/api/app/team/insights": "TBD-NAME: /api/app/* 族,当前账号团队榜单/佣金/领导池权威投影;前端 PRD 待同步",
+  "/api/app/team/insights/direct-referral": "PRD §8.3.2(直属购买与设备收益双币聚合、分页与状态)",
   "/api/app/team/network": "TBD-NAME: /api/app/* 族,当前账号团队网络权威投影;前端 PRD 待同步",
   "/api/app/team/quota": "TBD-NAME: BACKEND AppTeamQuotaController 已实现;/api/app/* 族硬件配额解锁的服务端快照(team-quota-api.snapshot:达标事实 + 逐档 productId);概念见 PRD §8.9(那里定义的是页面路由 /team/quota),该 API 路径待同步",
   "/api/app/network/regions": "TBD-NAME: /api/app/* 族,当前账号网络地域权威投影;前端 PRD 待同步",

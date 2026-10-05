@@ -111,7 +111,7 @@
                 </view>
                 <text class="block font-mono-tabular" :style="eventMetaStyle">{{ eventMeta(e) }}</text>
               </view>
-              <view class="text-right">
+              <view class="text-right" style="max-width: 48%; overflow-wrap: anywhere">
                 <text v-if="e.amountUSDT > 0" class="block font-mono-tabular tabular-nums" :style="commissionAmountStyle(e, 'usdt')">{{ commissionAmountLabel(e) }}</text>
                 <text v-if="e.amountNEX > 0" class="block font-mono-tabular tabular-nums" :style="commissionAmountStyle(e, 'nex')">{{ commissionNexLabel(e) }}</text>
                 <text v-if="e.status === 'cooling'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-warning)', marginTop: '2px' }">{{ coolingTag(e) }}</text>
@@ -120,6 +120,8 @@
                 <text v-else-if="e.status === 'frozen'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-tech-cyan)', marginTop: '2px' }">{{ t.commissions.frozenTag }}</text>
                 <text v-else-if="e.status === 'reversed'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-4)', marginTop: '2px' }">{{ t.commissions.reversedTag }}</text>
                 <text v-else-if="e.status === 'rejected'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-danger)', marginTop: '2px' }">{{ t.commissions.rejectedTag }}</text>
+                <text v-else-if="e.status === 'recovery_pending'" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.recoveryPending }}</text>
+                <text v-if="e.status === 'recovery_pending' && e.recoveryPendingUSDT !== undefined && e.recoveryPendingNEX !== undefined" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: e.recoveryPendingUSDT, nex: e.recoveryPendingNEX }) }}</text>
               </view>
             </view>
             <view
@@ -150,6 +152,7 @@ import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
+import { formatHowNumber } from "@/lib/rank-how-content";
 import { useCommission, type CommissionEvent, type CommissionKind } from "@/store/commission";
 import { remoteApiEnabled } from "@/api/runtime";
 
@@ -159,13 +162,15 @@ const commission = useCommission();
 type Filter = "all" | CommissionKind;
 const filter = ref<Filter>("all");
 
-const KIND_ORDER: CommissionKind[] = ["unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
+const KIND_ORDER: CommissionKind[] = ["direct_purchase", "direct_device_earning", "unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
 
 interface KindSpec {
   color: string;
   paths: string[];
 }
 const KIND: Record<CommissionKind, KindSpec> = {
+  direct_purchase: { color: "var(--v5-brand)", paths: ["M3 3h2l3 12h11l2-8H6", "M9 20h.01M18 20h.01"] },
+  direct_device_earning: { color: "var(--v5-brand-2)", paths: ["M4 3h16v14H4z", "M8 21h8M12 17v4"] },
   unilevel: { color: "var(--v5-brand)", paths: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"] },
   binary: { color: "var(--v5-warning)", paths: ["M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"] },
   peer: { color: "var(--v5-tech-cyan)", paths: ["m11 17 2 2a1 1 0 1 0 3-3", "m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4", "M21 3v9h-9"] },
@@ -204,7 +209,7 @@ const noKindText = computed(() =>
 
 function eventMeta(e: CommissionEvent): string {
   const kindLabel = t.value.commissions.kind[e.kind];
-  const order = e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${e.orderAmountUSD}` : "";
+  const order = e.sourceRef ? ` · ${e.kind === "direct_purchase" ? t.value.directReferral.order : t.value.directReferral.receipt} ${e.sourceRef}` : e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${e.orderAmountUSD}` : "";
   const date = new Date(e.ts).toLocaleDateString(dateLocale());
   return `${kindLabel}${order} · ${date}`;
 }
@@ -214,16 +219,16 @@ function coolingTag(e: CommissionEvent): string {
 }
 
 function commissionAmountLabel(e: CommissionEvent): string {
-  const amount = `${e.amountUSDT.toFixed(2)}`;
+  const amount = `${formatHowNumber(e.amountUSDT, dateLocale())} USDT`;
   if (e.status === "reversed") return `−${amount}`;
-  if (e.status === "frozen" || e.status === "rejected") return amount;
+  if (e.status === "frozen" || e.status === "rejected" || e.status === "recovery_pending") return amount;
   return `+${amount}`;
 }
 
 function commissionNexLabel(e: CommissionEvent): string {
-  const amount = `${e.amountNEX.toLocaleString()} NEX`;
+  const amount = `${formatHowNumber(e.amountNEX, dateLocale())} NEX`;
   if (e.status === "reversed") return `−${amount}`;
-  if (e.status === "frozen" || e.status === "rejected") return amount;
+  if (e.status === "frozen" || e.status === "rejected" || e.status === "recovery_pending") return amount;
   return `+${amount}`;
 }
 

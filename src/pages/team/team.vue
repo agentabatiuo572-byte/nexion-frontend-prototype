@@ -79,7 +79,7 @@
               </view>
               <view class="flex-1 min-w-0">
                 <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.sevenLayerNetwork }}</text>
-                <text class="block" :style="quickRowMetaStyle">{{ t.teamV3.directLabel }} · {{ directCountText }}  /  {{ t.teamV3.extendedLabel }} · {{ extendedCountText }}</text>
+                <text class="block" :style="quickRowMetaStyle">{{ t.directReferral.purchase }} · {{ t.directReferral.deviceEarning }}</text>
               </view>
             </view>
             <view :style="quickRowValueWrapStyle">
@@ -285,7 +285,7 @@ const ledger = computed(() => {
     if (e.status === "unlocked") uU += e.amountUSDT;
     if (e.status === "cooling") cU += e.amountUSDT;
     tU += e.amountUSDT;
-    if (e.kind === "unilevel" && e.layer === 1) dU += e.amountUSDT;
+    if (e.kind === "direct_purchase" || e.kind === "direct_device_earning" || (e.kind === "unilevel" && e.layer === 1)) dU += e.amountUSDT;
     else eU += e.amountUSDT;
   }
   if (remoteApiEnabled) {

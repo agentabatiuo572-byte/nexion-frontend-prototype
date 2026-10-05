@@ -18,6 +18,18 @@ const BASE = process.env.UNI_BASE_URL || process.env.BASE_URL || "http://localho
 const THEME = process.argv.includes("--theme") ? process.argv[process.argv.indexOf("--theme") + 1] : "dark";
 
 function formalEmptyResponse(url) {
+  if (url.pathname === "/api/config/commission/direct-referral") return {
+    source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    configured: false, policyVersion: 0, effectiveAt: null, nexUsdtPrice: null,
+    purchase: { enabled: false, totalRatePct: 0, usdtSharePct: 50, coolingDays: 0 },
+    deviceEarning: { enabled: false, totalRatePct: 0, usdtSharePct: 50, coolingDays: 0 },
+  };
+  if (url.pathname === "/api/app/team/insights/direct-referral") return {
+    source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    period: url.searchParams.get("period"), page: 1, pageSize: 20, totalRows: 0, events: [],
+    split: { purchase: { amountUSDT: 0, amountNEX: 0, count: 0 }, deviceEarning: { amountUSDT: 0, amountNEX: 0, count: 0 } },
+    generatedAt: "2026-10-05T00:00:00Z", snapshotAt: "2026-10-05T00:00:00Z",
+  };
   if (url.pathname === "/api/withdrawals/bank/config") return { enabled: false, banks: [], beneficiary: null, bankRoutingVerified: false };
   // An empty commission history is a successful canonical read. The page
   // also needs valid policy and member projections before showing its empty state.

@@ -35,9 +35,10 @@ test("the commission guide reads its published document with the canonical commi
   const source = fs.readFileSync(path.join(root, "src/pages/team/commissions-how.vue"), "utf8");
   assert.doesNotMatch(source, /HowPublishedContent|publishedContentUnavailable/);
   assert.match(source, /howContentApi\.published\("team-commissions-how", language\)/);
-  assert.match(source, /commissionGuideApi\.rates\(\), commissionGuideApi\.read\(\), vRankApi\.ladder\(\)/);
+  assert.match(source, /directReferralApi\.policy\(\), commissionGuideApi\.read\(\), vRankApi\.ladder\(\)/);
   assert.match(source, /createCommissionsHowResource/);
   assert.match(source, /v-if="state\.loading \|\| state\.error \|\| content\.incomplete"/);
+  assert.match(source, /<template v-if="!state\.loading && !state\.error && !content\.incomplete">/);
   assert.match(source, /watch\(\(\) => locale\.code, reload\)/);
   assert.doesNotMatch(source, /apiRuntimeConfig\.mode/);
 });

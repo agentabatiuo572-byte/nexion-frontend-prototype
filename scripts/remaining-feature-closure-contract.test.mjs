@@ -39,8 +39,9 @@ test("compute enrollment preserves the account-scoped command and rejects late a
 test("remote team projection never turns errors into zero or local royalty money", async () => {
   const [store, page] = await Promise.all([read("src/store/network.ts"), read("src/pages/team/unilevel.vue")]);
   assert.doesNotMatch(store, /catch \{[\s\S]{0,260}totalMembers\.value = 0/);
-  assert.match(page, /remoteTotalUSDT\.toFixed\(2\)/);
-  assert.match(page, /v-if="!remoteApiEnabled"/);
+  assert.match(page, /amount\(remoteTotalUSDT\)/);
+  assert.match(page, /v-else-if="remoteState === 'ready' && remoteSnapshot"/);
+  assert.doesNotMatch(page, /totalRoyalty|UNILEVEL_USDT/);
   assert.match(page, /projectionErrorTitle/);
 });
 
@@ -159,25 +160,24 @@ test("remote leaderboard, leadership pool, and commission pages use self-scoped 
   }
 });
 
-test("remote unilevel page renders only the server cycle/source/layer/split projection", async () => {
+test("direct referral page renders only canonical paired source projections", async () => {
   const [api, page] = await Promise.all([
-    read("src/api/team-insights-api.ts"), read("src/pages/team/unilevel.vue"),
+    read("src/api/direct-referral-api.ts"), read("src/pages/team/unilevel.vue"),
   ]);
-  assert.match(api, /TeamUnilevelSnapshot/);
-  assert.match(api, /const root="\/api\/app\/team\/insights"[\s\S]*root}\/unilevel/);
-  assert.match(api, /cycle/);
+  assert.match(api, /DirectReferralSnapshot/);
+  assert.match(api, /\/api\/app\/team\/insights\/direct-referral/);
+  assert.match(api, /\/api\/config\/commission\/direct-referral/);
   assert.match(api, /amountUSDT/);
-  assert.match(page, /teamInsightsApi\.unilevel/);
+  assert.match(page, /directApi\.snapshot/);
   assert.match(page, /const remoteFilteredEvents = computed\(\(\) => \(remoteSnapshot\.value\?\.events \?\? \[\]\)\.filter/);
-  assert.match(page, /filter\.value === "all" \|\| \(filter\.value === "direct" \? event\.layer === 1 : event\.layer > 1\)/);
-  assert.match(page, /v-for="\(event, i\) in remoteFilteredEvents"/);
+  assert.match(page, /filter\.value === "all" \|\| event\.kind === filter\.value/);
+  assert.match(page, /v-for="event in remoteFilteredEvents"/);
   assert.match(page, /v-if="remoteFilteredEvents\.length === 0"/);
-  assert.match(page, /remoteState\.value === "error"/);
-  assert.match(page, /v-if="remoteApiEnabled && unilevelLoadError"/);
-  assert.match(page, /const unilevelLoadError = computed\(\(\) => network\.remoteStatus === "error"[\s\S]*remoteState\.value === "error" \|\| commission\.configStatus === "error"/);
-  assert.match(page, /const runScope = captureRuntimeRevision\(\)/);
+  assert.match(page, /remoteState === 'error'/);
+  assert.match(page, /policyState === 'error'/);
+  assert.match(page, /runScope = captureRuntimeRevision\(\)/);
   assert.match(page, /accountKey === app\.accountKey[\s\S]*isCurrentAccountScope\(accountScope\)[\s\S]*isCurrentRuntimeRevision\(runScope\)/);
-  assert.doesNotMatch(page, /remoteApiEnabled[\s\S]{0,220}Math\.log10/);
+  assert.doesNotMatch(page, /Math\.log10|teamInsightsApi\.unilevel|UNILEVEL_USDT/);
 });
 
 test("proof cards render a decodable QR and only confirm PNG after a real canvas export", async () => {

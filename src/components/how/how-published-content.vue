@@ -85,6 +85,7 @@ async function load() {
   try {
     const next = await howContentApi.published(props.contentKey, locale.code);
     if (!requestFence.isCurrent(generation)) return;
+    if (props.contentKey === "team-unilevel-how" && !next.blocks.some(block => block.id === "direct-referral-scope")) throw new Error("DIRECT_REFERRAL_PUBLICATION_REQUIRED");
     content.value = next;
   } catch {
     if (!requestFence.isCurrent(generation)) return;

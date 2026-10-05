@@ -9,6 +9,7 @@ import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
+import { formatHowNumber } from "@/lib/rank-how-content";
 import { buildCommissionsHowContent, createCommissionsHowResource, COMMISSIONS_HOW_SLOTS, type CommissionsHowSnapshot } from "@/lib/commissions-how-content";
 import type { CommissionEvent, CommissionKind } from "@/store/commission";
 
@@ -75,6 +76,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
       `@/components/how/how-${name}.vue`, { default: copyComponent(name) },
     ])),
     "@/i18n/format": { fmt, dateLocale: () => "en-US" },
+    "@/lib/rank-how-content": { formatHowNumber },
     "@/lib/commissions-how-content": { buildCommissionsHowContent, createCommissionsHowResource },
   };
   new Function("require", "exports", code)((id: string) => {
@@ -96,7 +98,7 @@ function deferred<T>() {
 async function flush() { for (let i = 0; i < 12; i++) await Promise.resolve(); await Vue.nextTick(); }
 const dictionaries = { en, zh, vi: vietnamese };
 type Locale = keyof typeof dictionaries;
-const kinds: CommissionKind[] = ["unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
+const kinds: CommissionKind[] = ["direct_purchase", "direct_device_earning", "unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
 const event = (kind: CommissionKind): CommissionEvent => ({
   id: `fixture-${kind}`, kind, sourceUserName: `Event ${kind}`, amountUSDT: 7, amountNEX: 0,
   ts: 1790812800000, unlockAt: 1790812800000, status: "unlocked",
@@ -125,14 +127,15 @@ async function commissions(code: Locale = "en") {
 }
 function guideSnapshot(): CommissionsHowSnapshot {
   const bodies: Record<string, string> = {
-    network: "{networkRates} {networkGate}", binary: "{binaryRules}", cooling: "{coolingDays}",
+    network: "{directPurchaseRules} {directDeviceRules}", binary: "{binaryRules}", cooling: "{coolingDays}",
     peer: "{peerRules} {peerStatus}", genesis: "{genesisStatus}", leadership: "{leadershipRules}",
   };
   return {
     document: { contentKey: "team-commissions-how", version: "fixture-current", versionSource: "ENTRY", status: "PUBLISHED",
       source: "server", sourceEnvironment: "PRODUCTION", runId: "", locale: "en",
       blocks: COMMISSIONS_HOW_SLOTS.map(id => ({ id, kind: "text", title: `Published ${id}`, body: bodies[id] ?? `Body ${id}` })) },
-    rates: { unilevelUsdt: { 1: .13 }, unilevelNex: { 1: 2 } },
+    directPolicy: { configured: true, policyVersion: 1, effectiveAt: "2026-10-01T00:00:00Z", nexUsdtPrice: .01,
+      purchase: { enabled: true, totalRatePct: 13, usdtSharePct: 60, coolingDays: 7 }, deviceEarning: { enabled: false, totalRatePct: 0, usdtSharePct: 50, coolingDays: 0 } },
     guide: { source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: null,
       coolingDays: null, network: { depthGateLayer: 5, depthGateRank: 4, exitCapRate: null },
       binary: null, leadership: null, capabilities: { peer: false, genesis: false } }, ranks: [],
@@ -153,8 +156,9 @@ async function guide(code: Locale = "en") {
     "@/api/runtime": { apiClient: {}, expectedApiEnvironment: "PRODUCTION", howContentApi: { published },
       vRankApi: { ladder: () => current.promise.then(facts => ({ ranks: facts.ranks })) } },
     "@/api/commission-guide-api": { createCommissionGuideApi: () => ({
-      rates: () => current.promise.then(facts => facts.rates), read: () => current.promise.then(facts => facts.guide),
+      read: () => current.promise.then(facts => facts.guide),
     }) },
+    "@/api/direct-referral-api": { createDirectReferralApi: () => ({ policy: () => current.promise.then(facts => facts.directPolicy) }) },
   });
   return { ...page, locale, reads, published, navBack };
 }
@@ -252,6 +256,6 @@ test("guide refresh hides prior published rules while pending and preserves inco
   const copy = buildCommissionsHowContent(incomplete, "en").copy;
   expect(text(page.root)).toContain(copy.unavailable);
   expect(buttons(page.root).some(item => text(item) === copy.retry)).toBe(true);
-  expect(text(page.root)).toContain(copy.missing); expect(text(page.root)).toContain(copy.unsupported);
+  expect(all(page.root).some(item => item.props["data-component"] === "hero" || item.props["data-component"] === "section")).toBe(false);
   expect(text(page.root)).not.toContain("13 USDT"); // Incomplete published context still suppresses amounts.
 });

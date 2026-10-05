@@ -1,48 +1,17 @@
-import { describe, expect, it } from "vitest";
-
-const source = (import.meta.glob("./unilevel.vue", { query: "?raw", import: "default", eager: true })["./unilevel.vue"] ?? "") as string;
-
-describe("unilevel canonical commission consumer contract", () => {
-  it("uses the commission store config in server-backed and local prototype display/calculation paths", () => {
-    expect(source).toContain("commission.config");
-    expect(source).toContain("commission.configStatus");
-    expect(source).toContain("commission.unilevelRate");
-    expect(source).not.toContain("UNILEVEL_USDT");
-  });
-
-  it("does not render remote content while commission config is loading or failed", () => {
-    expect(source).toContain("commission.configStatus === 'ready'");
-    expect(source).toContain('commission.configStatus === "error"');
-    expect(source).toContain('commission.configStatus !== "ready"');
-  });
-
-  it("reloads the page-local projection after a runtime revision invalidates it", () => {
-    expect(source).toContain("subscribeRuntimeRevision");
-    expect(source).toContain("const unsubscribeRuntimeRevision");
-    expect(source).toMatch(/subscribeRuntimeRevision\(\(\) => \{\s*retryRemote\(\);/);
-    expect(source).toContain("commission.ensureCanonicalConfig(), network.ensureCanonicalNetwork(), loadRemote()");
-    expect(source).toContain("if (!current()) return;");
-    expect(source).not.toContain('remoteState.value = "error"; } return;');
-  });
-
-  it("keeps canonical F2 policy visible without exposing provenance internals or inventing earnings", () => {
-    expect(source).not.toContain("F2 canonical rules · server source");
-    expect(source).not.toContain("commission.config.sourceEnvironment");
-    expect(source).not.toContain("commission.config.runId");
-    expect(source).toContain("remoteState === 'ready'");
-    expect(source).toContain('v-else-if="!remoteApiEnabled"');
-    expect(source).toContain("canonicalPolicyText");
-    expect(source).not.toContain("t.unilevel.serverRewardHold");
-    expect(source).toContain("t.network.projectionErrorDesc");
-  });
-
-  it("explains paused accrual without exposing settlement layer numbers", () => {
-    expect(source).toContain("commission.config?.unilevelPaused");
-    expect(source).toContain("pausedLayersText");
-    expect(source).toContain("t.unilevel.pausedLayersTitle");
-    expect(source).toContain(["t.value.unilevel.", "pausedLayersDesc"].join(""));
-    expect(source).toContain("commission.configStatus === 'ready' && pausedLayers.length");
-    expect(source).toContain("computed(() => t.value.unilevel.pausedLayersDesc)");
-    expect(source).not.toContain('join(", ")');
-  });
+import { expect, test, vi } from "vitest";
+import { directPage, deferred, flush, text, click, policyFixture, snapshotFixture } from "./direct-referral.test-support";
+test("loads direct rules independently and keeps history when policy is unavailable", async () => {
+  const rules = deferred<ReturnType<typeof policyFixture>>();
+  const api = { policy: vi.fn().mockReturnValueOnce(rules.promise), snapshot: vi.fn().mockResolvedValue(snapshotFixture()) };
+  const page = await directPage({ api }); await flush();
+  expect(text(page.root)).toContain("Member one"); expect(text(page.root)).toContain("Loading");
+  rules.reject(new Error("policy failed")); await flush();
+  expect(text(page.root)).toContain("Reward rules could not be loaded"); expect(text(page.root)).toContain("4,000 NEX");
+  api.policy.mockResolvedValueOnce(policyFixture());
+  await click(page.root, "Retry"); expect(text(page.root)).toContain("12.3456%");
+});
+test("unconfigured and disabled policies never manufacture old royalty values", async () => {
+  const p = policyFixture(); p.configured = false; p.purchase.enabled = false; p.deviceEarning.enabled = false;
+  const page = await directPage({ api: { policy: vi.fn().mockResolvedValue(p), snapshot: vi.fn().mockResolvedValue(snapshotFixture([])) } }); await flush();
+  expect(text(page.root)).toContain("not configured"); expect(text(page.root)).not.toContain("10%"); expect(text(page.root)).not.toContain("L7");
 });

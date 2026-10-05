@@ -4,14 +4,14 @@
     <view class="pb-8" style="color: var(--v5-ink)">
       <SubPageHeader :title="t.headerTitles.teamCommissions + t.headerTitles.howItWorksSuffix" back="/pages/team/commissions" />
 
-      <HowHero v-if="!state.loading && !state.error" :label="w.heroLabel" :title="s(sectionId.hero).title" :sub="s(sectionId.hero).body" accent="lemon" />
+      <HowHero v-if="!state.loading && !state.error && !content.incomplete" :label="w.heroLabel" :title="s(sectionId.hero).title" :sub="s(sectionId.hero).body" accent="lemon" />
 
       <view v-if="state.loading || state.error || content.incomplete" class="mx-4 rounded-xl" style="padding: 14px; background: var(--v5-surface-2)" aria-live="polite">
         <text class="block" :style="paraStyle">{{ state.loading ? content.copy.loading : content.copy.unavailable }}</text>
         <view v-if="!state.loading" role="button" tabindex="0" style="margin-top: 10px; color: var(--v5-brand); cursor: pointer" @click="reload" @keydown.enter.prevent="reload" @keydown.space.prevent="reload"><text>{{ content.copy.retry }}</text></view>
       </view>
 
-      <template v-if="!state.loading && !state.error">
+      <template v-if="!state.loading && !state.error && !content.incomplete">
       <HowSection :title="s(sectionId.overview).title" accent="lemon">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
@@ -135,6 +135,7 @@ import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { apiClient, expectedApiEnvironment, howContentApi, vRankApi } from "@/api/runtime";
 import { createCommissionGuideApi } from "@/api/commission-guide-api";
+import { createDirectReferralApi } from "@/api/direct-referral-api";
 import { buildCommissionsHowContent, createCommissionsHowResource, type CommissionsHowState } from "@/lib/commissions-how-content";
 import { navBack } from "@/lib/route";
 
@@ -143,13 +144,14 @@ const w = computed(() => t.value.commissionsHowItWorks);
 const locale = useLocaleStore();
 const state = ref<CommissionsHowState>({ loading: true, error: false, snapshot: null });
 const commissionGuideApi = createCommissionGuideApi(apiClient, expectedApiEnvironment);
+const directReferralApi = createDirectReferralApi(apiClient, expectedApiEnvironment);
 const resource = createCommissionsHowResource({
   async read(language) {
-    const [document, rates, guide, ladder] = await Promise.all([
+    const [document, directPolicy, guide, ladder] = await Promise.all([
       howContentApi.published("team-commissions-how", language),
-      commissionGuideApi.rates(), commissionGuideApi.read(), vRankApi.ladder(),
+      directReferralApi.policy(), commissionGuideApi.read(), vRankApi.ladder(),
     ]);
-    return { document, rates, guide, ranks: ladder.ranks };
+    return { document, directPolicy, guide, ranks: ladder.ranks };
   },
   apply: next => { state.value = next; },
 });

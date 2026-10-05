@@ -17,6 +17,8 @@ import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevis
  */
 
 export type CommissionKind =
+  | "direct_purchase"
+  | "direct_device_earning"
   | "unilevel"
   | "binary"
   | "peer"
@@ -24,7 +26,7 @@ export type CommissionKind =
   | "leadership"
   | "genesis";
 
-export type CommissionStatus = "cooling" | "unlocked" | "withdrawn" | "frozen" | "reversed" | "rejected" | "simulated";
+export type CommissionStatus = "cooling" | "unlocked" | "withdrawn" | "frozen" | "reversed" | "rejected" | "recovery_pending" | "simulated";
 
 export interface CommissionEvent {
   id: string;
@@ -34,6 +36,13 @@ export interface CommissionEvent {
   layer?: number;             // 仅 unilevel
   orderId?: string;
   orderAmountUSD?: number;
+  sourceRef?: string;
+  sourceDeviceId?: string | null;
+  policyVersion?: number;
+  basisUsdt?: number;
+  nexUsdtPrice?: number | null;
+  recoveryPendingUSDT?: number;
+  recoveryPendingNEX?: number;
   amountUSDT: number;
   amountNEX: number;
   ts: number;
@@ -435,7 +444,7 @@ export const useCommission = defineStore("commission", () => {
   }
 
   function byKind(): Record<CommissionKind, { usdt: number; nex: number; count: number }> {
-    const kinds: CommissionKind[] = ["unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
+    const kinds: CommissionKind[] = ["direct_purchase", "direct_device_earning", "unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
     const out = {} as Record<CommissionKind, { usdt: number; nex: number; count: number }>;
     for (const k of kinds) out[k] = { usdt: 0, nex: 0, count: 0 };
     if (remoteApiEnabled) return eventsEvidence.value?.aggregate.byKind ?? out;
