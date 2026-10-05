@@ -12,6 +12,11 @@
     <FxRateLine v-if="paymentSessionReady" :key="app.accountBindingEpoch" />
     <view v-if="createError || readError" style="margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--v5-danger-soft)">
       <text class="block break-all" style="font-size: 12px; line-height: 1.5; color: var(--v5-danger)">{{ createError || readError }}</text>
+      <view v-if="createRecovery" class="nx-bank-setup-recovery active-press" role="button" tabindex="0"
+        @click="goCreateRecovery" @keydown.enter.prevent="goCreateRecovery" @keydown.space.prevent="goCreateRecovery"
+        style="min-height: 44px; display: flex; align-items: center; color: var(--v5-brand)">
+        <text>{{ createRecovery === 'terms' ? t.bankPane.termsRecoveryCta : t.bankPane.onboardingRecoveryCta }}</text>
+      </view>
     </view>
 
     <!-- ── 下单前:金额输入 + 生成付款单 ── -->
@@ -89,6 +94,7 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="5" rx="2" /><path d="M3 10h18" /><path d="M7 15h.01" /></svg>
             </view>
             <text class="block text-center" style="margin-top: 10px; font-size: 13px; color: var(--v5-ink-2); line-height: 1.55">{{ hostedRejected ? t.bankPane.hostedRejectedNote : hostedCanOpen ? t.bankPane.hostedSecureNote : t.bankPane.hostedPendingNote }}</text>
+            <text v-if="hostedRejected && intent.providerReason" class="block text-center break-all" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-2); line-height: 1.55">{{ fmt(t.bankPane.providerReason, { reason: intent.providerReason }) }}</text>
           </view>
           <view v-if="hostedCanOpen" class="nx-bank-hosted-continue-cta w-full grid place-items-center active:opacity-90" :style="paidBtnStyle" role="button" tabindex="0" @click="openHostedOrder(intent)">
             <text>{{ t.bankPane.hostedContinueCta }}</text>
@@ -512,6 +518,23 @@ const ctaEnabled = computed(() => fxUsable.value && inRange.value && !creating.v
 // ── 生成付款单(mock ~600ms 延迟演加载态:按钮内联 spinner「生成中…」)──
 const creating = ref(false);
 const createError = ref("");
+const createRecovery = ref<"onboarding" | "terms" | null>(null);
+function goCreateRecovery() {
+  if (!paymentSessionReady.value || creating.value) return;
+  if (createRecovery.value === "terms") { navTo("/pages/onboarding/terms"); return; }
+  if (createRecovery.value !== "onboarding") return;
+  // Keep this page/amount on the stack; returning never submits another order.
+  // #ifdef H5
+  navTo("/pages/register/success?setup=1");
+  // #endif
+  // #ifndef H5
+  navTo("/pages/onboarding/estimator");
+  // #endif
+}
+watch(() => app.accountBindingEpoch, () => {
+  if (createRecovery.value) createError.value = "";
+  createRecovery.value = null;
+});
 let createTimer: ReturnType<typeof setTimeout> | undefined;
 function createOrder(presetUsdt?: number) {
   const usdt = presetUsdt ?? amountNum.value;
@@ -519,6 +542,7 @@ function createOrder(presetUsdt?: number) {
     || creating.value || !fxUsable.value || usdt < minDeposit.value
     || usdt > maxDeposit.value || (dailyCapacityKnown.value && usdt > todayRemainingDeposit.value)) return;
   creating.value = true;
+  createRecovery.value = null;
   if (presetUsdt === undefined) createError.value = "";
   const expectedAccountKey = dep.currentAccountKey();
   createTimer = setTimeout(() => { void completeCreateOrder(usdt, expectedAccountKey); }, 600);
@@ -574,8 +598,18 @@ async function completeCreateOrder(usdt: number, expectedAccountKey: string) {
       if (!it) throw new Error(t.value.fx.updating);
       return it;
     } catch (cause) {
+      if (cause instanceof ApiError && cause.kind === "http" && cause.status === 428 && cause.code === 428) {
+        if (cause.message === "USER_ONBOARDING_REQUIRED") {
+          approvedBusinessFailureCopy = t.value.bankPane.onboardingRequired;
+          if (stillCurrent()) createRecovery.value = "onboarding";
+        } else if (cause.message === "LEGAL_TERMS_ACK_REQUIRED") {
+          approvedBusinessFailureCopy = t.value.bankPane.termsRequired;
+          if (stillCurrent()) createRecovery.value = "terms";
+        }
+      }
       if (cause instanceof ApiError && cause.message === "HDPAY_ORDER_CREATE_REJECTED") {
         approvedBusinessFailureCopy = t.value.bankPane.hostedRejectedNote;
+        if (cause.providerReason) approvedBusinessFailureCopy += `\n${fmt(t.value.bankPane.providerReason, { reason: cause.providerReason })}`;
       }
       // Another payment can consume the last daily capacity after our preflight.
       // The server remains the final authority; translate this settled 422 into
@@ -595,6 +629,7 @@ async function completeCreateOrder(usdt: number, expectedAccountKey: string) {
       success: (it) => {
         if (!stillCurrent()) return;
         createError.value = "";
+        createRecovery.value = null;
         autoResumePending.value = false;
         viewIntentId.value = it.intentId;
         paidPressed.value = false;

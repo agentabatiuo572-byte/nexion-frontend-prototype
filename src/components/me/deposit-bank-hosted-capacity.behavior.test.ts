@@ -48,11 +48,11 @@ function pane(fx: ReturnType<typeof useFx>) {
   const code = ts.transpileModule(source.slice(start, end) + `
     return { amount, minLabel, maxLabel, limitLine, dailyCapacityKnown, todayRemainingLabel, todayRemainingLine, feeNote, amountError,
       vndPreview, dailyCapacityExhausted, bankRailAvailable, fxUsable, inRange, ctaEnabled,
-      creating, createError, createOrder, completeCreateOrder, onAmount };
+      creating, createError, createRecovery, goCreateRecovery, createOrder, completeCreateOrder, onAmount };
   `, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const dep = { currentAccountKey: () => "user:7", createRemoteBankIntent: vi.fn(async () => ({ intentId: "owned-intent" })) };
   const toast = { error: vi.fn() };
-  const args = { ref: Vue.ref, computed: Vue.computed, fx, paymentSessionReady: Vue.ref(true), remoteApiEnabled: true, MIN_DEPOSIT_USDT: 10,
+  const args = { ref: Vue.ref, computed: Vue.computed, watch: Vue.watch, fx, paymentSessionReady: Vue.ref(true), remoteApiEnabled: true, MIN_DEPOSIT_USDT: 10,
     BANK_MAX_DEPOSIT_USDT: 5000, dep, toast, t: Vue.ref(en), fmt, fmtVnd, vndForUsdt,
     runRecoverableFundsOperation, ApiError, autoResumePending: Vue.ref(false), viewIntentId: Vue.ref(null),
     paidPressed: Vue.ref(false), pageActive: Vue.ref(true), openHostedOrder: vi.fn(),

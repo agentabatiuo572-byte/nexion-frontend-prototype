@@ -199,12 +199,17 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       });
     }
     if ((response.status < 200 || response.status >= 300) && !explicitlyAccepted) {
+      const providerDenial = request.method === "POST" && request.url === `${baseUrl}/api/app/deposits/vietqr/intents`
+        && response.status === 422 && envelope?.code === 422 && envelope.message === "HDPAY_ORDER_CREATE_REJECTED"
+        && envelope.data && typeof envelope.data === "object" && !Array.isArray(envelope.data)
+        ? envelope.data as { providerReason?: unknown } : null;
       throw new ApiError({
         kind: "http",
         message: envelope?.message || `HTTP_${response.status}`,
         status: response.status,
         code: envelope?.code,
         retryable: response.status >= 500,
+        providerReason: typeof providerDenial?.providerReason === "string" ? providerDenial.providerReason : undefined,
       });
     }
     if (!envelope) {

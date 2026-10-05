@@ -46,9 +46,9 @@ describe("existing web download guide", () => {
     const code = ts.transpileModule(`${load.getText(ast)}\n${gift.getText(ast)}\nreturn giftState;`, {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
     }).outputText;
-    const giftState = new Function("onLoad", "downloadOnly", "remoteReceipt", "auth", "consumeRemoteRegistrationReceipt", "computed", "remoteApiEnabled", code)(
+    const giftState = new Function("onLoad", "downloadOnly", "setupOnly", "remoteReceipt", "auth", "consumeRemoteRegistrationReceipt", "computed", "remoteApiEnabled", code)(
       (callback: (options: Record<string, string>) => void) => callback(query), downloadOnly,
-      remoteReceipt, { accountId: "user:42" }, consume, (fn: () => unknown) => ({ get value() { return fn(); } }), true,
+      { value: false }, remoteReceipt, { accountId: "user:42" }, consume, (fn: () => unknown) => ({ get value() { return fn(); } }), true,
     ) as { value: string };
     return { downloadOnly, consume, giftState };
   }

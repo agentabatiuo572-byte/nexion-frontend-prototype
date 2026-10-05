@@ -24,7 +24,9 @@ import { buildVietQrTransferSteps, isPayableVietQrCreateStatus, remoteGeneration
 import { binarySessionReady as accountSessionReady } from "@/lib/binary-session-ready";
 
 const descriptor = parse(source).descriptor;
-const setupSource = descriptor.scriptSetup!.content;
+const setupSource = descriptor.scriptSetup!.content
+  .replace(/\/\/ #ifdef H5\r?\n([\s\S]*?)\/\/ #endif/g, (_all, body: string) => body)
+  .replace(/\/\/ #ifndef H5\r?\n([\s\S]*?)\/\/ #endif/g, "");
 const ast = ts.createSourceFile("deposit-bank-pane.ts", setupSource, ts.ScriptTarget.ES2022, true);
 const exposed = ast.statements.flatMap((statement) => {
   if (ts.isFunctionDeclaration(statement)) return statement.name ? [statement.name.text] : [];
@@ -93,7 +95,7 @@ function memoryStorage(): VietQrCommandStorage {
   let value: unknown;
   return { read: () => value, write: next => { value = structuredClone(next); } };
 }
-function creationFlow(dep: { intents: DepositIntent[] }, responses: number[], storage = memoryStorage(), accountKey = "user:7", responseGate?: Promise<void>) {
+function creationFlow(dep: { intents: DepositIntent[] }, responses: number[], storage = memoryStorage(), accountKey = "user:7", responseGate?: Promise<void>, rejectionData?: unknown) {
   const registry = new VietQrCommandKeyRegistry(storage, () => "unit-install-0001");
   const vault = createSessionVault();
   vault.save({ accessToken: "unit-access", refreshToken: "unit-refresh", tokenType: "Bearer",
@@ -111,7 +113,7 @@ function creationFlow(dep: { intents: DepositIntent[] }, responses: number[], st
         vndAmount: vndForUsdt(usdtAmount, quoteRate), status: "awaiting_payment",
         createdAt: new Date(now).toISOString(), expiresAt: new Date(now + 30 * 60_000).toISOString(),
         creditedUsdt: 0, feeVnd: 0, feeUsdt: 0, version: 1, paymentMode: "hosted",
-        providerStatus: "created", paymentUrl: "https://api.hdpayadmin.com/pay?id=new" } : null } };
+        providerStatus: "created", paymentUrl: "https://api.hdpayadmin.com/pay?id=new" } : rejectionData ?? null } };
   });
   const client = createApiClient({ baseUrl: "https://example.test", vault, transport: { request: requests } });
   const context = { remoteApiEnabled: true, serverAccountKey: accountKey, remoteGeneration: 1,
@@ -130,12 +132,15 @@ interface PaneState extends Record<string, unknown> {
   hostedRejected: Vue.ComputedRef<boolean>;
   hostedCanOpen: Vue.ComputedRef<boolean>;
   createError: Vue.Ref<string>;
+  createRecovery: Vue.Ref<"onboarding" | "terms" | null>;
+  amount: Vue.Ref<string>;
   creating: Vue.Ref<boolean>;
   pageActive: Vue.Ref<boolean>;
   completeCreateOrder: (amount: number, account: string) => Promise<void>;
   openHostedOrder: (intent: DepositIntent) => void;
   goSupport: () => void;
   regen: () => void;
+  goCreateRecovery: () => void;
 }
 
 function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", translations: Messages = zh) {
@@ -197,6 +202,111 @@ function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", tran
 
 beforeEach(() => { vi.useFakeTimers(); vi.spyOn(console, "warn").mockImplementation(() => {}); });
 afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); vi.useRealTimers(); vi.restoreAllMocks(); });
+
+test.each([zh, en, vietnamese])("a bounded CREATE provider reason keeps explicit source and original retry behavior", async messages => {
+  const view = pane("rejected", messages), mounted = view.mount();
+  const providerReason = "充值金额不正确：请输入整数";
+  const flow = creationFlow(view.dep, [422], memoryStorage(), "user:7", undefined, { providerReason });
+  view.dep.createRemoteBankIntent.mockImplementation(flow.create);
+  click(mounted.retry()!);
+  await vi.advanceTimersByTimeAsync(600); await Vue.nextTick();
+  expect(view.state.createError.value).toContain(providerReason);
+  const copy = `${messages.bankPane.hostedRejectedNote}\n${fmt(messages.bankPane.providerReason, { reason: providerReason })}`;
+  expect(view.state.createError.value).toBe(copy);
+  expect(await view.html()).toContain(fmt(messages.bankPane.providerReason, { reason: providerReason }));
+  expect(view.toast.error).toHaveBeenCalledExactlyOnceWith(copy);
+  expect(view.state.creating.value).toBe(false); expect(flow.requests).toHaveBeenCalledOnce();
+  expect(mounted.retry()?.props["aria-disabled"]).toBe(false);
+  expect(view.state.intent.value?.intentId).toBe("VQR-existing");
+  expect(view.open).not.toHaveBeenCalled(); expect(view.navTo).not.toHaveBeenCalled();
+  const scope = JSON.stringify(["user:7", "CREATE", "5000.000000"]);
+  expect((flow.storage.read() as { pending: Record<string, unknown> }).pending[scope]).toBeUndefined();
+});
+
+test.each([zh, en, vietnamese])("a fresh pane reads the provider reason through real GET/list parser and store projection", async messages => {
+  const view = pane("rejected", messages);
+  const original = view.dep.intents[0];
+  const snapshot = { intentNo: original.intentId, usdtAmount: original.usdtAmount, fxRate: original.fxRate,
+    vndAmount: original.vndAmount, status: original.status, expiresAt: new Date(original.expireAt).toISOString(),
+    createdAt: new Date(original.createdAt).toISOString(), creditedUsdt: 0, feeVnd: 0, feeUsdt: 0, version: 1,
+    paymentMode: "hosted", providerStatus: "rejected", providerReason: "金额必须为整数" };
+  const request = vi.fn(async (input: HttpRequest) => ({ status: 200, headers: {},
+    data: { code: 0, message: "OK", data: input.url.includes("?limit=") ? { items: [snapshot] } : snapshot } }));
+  const api = createPaymentApi(createApiClient({ baseUrl: "https://example.test", vault: (() => {
+    const vault = createSessionVault(); vault.save({ accessToken: "unit-access", refreshToken: "unit-refresh", tokenType: "Bearer",
+      user: { userId: 7, countryCode: "+86", phone: "13800000007", nickname: "Test", onboardingComplete: true } }); return vault;
+  })(), transport: { request } }));
+  const rows = await api.listVietQrIntents(), readback = await api.getVietQrIntent(snapshot.intentNo);
+  expect(readback.providerReason).toBe(snapshot.providerReason);
+  const project = new Function("snapshot", `${storeScript}; return remoteVietQrIntent(snapshot);`);
+  view.dep.intents = rows.map(item => project(item));
+  const copy = fmt(messages.bankPane.providerReason, { reason: snapshot.providerReason });
+  expect(await view.html()).toContain(copy);
+  expect(view.state.createError.value).toBe("");
+  expect(request.mock.calls.every(args => args[0].method === "GET")).toBe(true);
+  expect(view.dep.createRemoteBankIntent).not.toHaveBeenCalled(); expect(view.open).not.toHaveBeenCalled();
+});
+
+test.each([undefined, null, "", "a. ".repeat(86), "<script>alert(1)</script>", "amount\nprivate"])("an absent or unsafe CREATE reason retains generic guidance: %j", async providerReason => {
+  const view = pane(), mounted = view.mount();
+  const flow = creationFlow(view.dep, [422], memoryStorage(), "user:7", undefined, { providerReason });
+  view.dep.createRemoteBankIntent.mockImplementation(flow.create);
+  click(mounted.retry()!);
+  await vi.advanceTimersByTimeAsync(600); await Vue.nextTick();
+  expect(view.state.createError.value).toBe(zh.bankPane.hostedRejectedNote);
+  expect(view.toast.error).toHaveBeenCalledExactlyOnceWith(zh.bankPane.hostedRejectedNote);
+  expect(flow.requests).toHaveBeenCalledOnce(); expect(view.open).not.toHaveBeenCalled();
+});
+
+test.each([zh, en, vietnamese])("precise onboarding/terms 428 renders a normal recovery control and keeps the amount without replay", async messages => {
+  for (const [reason, recovery, route, copy] of [
+    ["USER_ONBOARDING_REQUIRED", "onboarding", "/pages/register/success?setup=1", messages.bankPane.onboardingRequired],
+    ["LEGAL_TERMS_ACK_REQUIRED", "terms", "/pages/onboarding/terms", messages.bankPane.termsRequired],
+  ] as const) {
+    const view = pane("rejected", messages);
+    view.dep.intents = [];
+    view.state.amount.value = "20";
+    view.dep.createRemoteBankIntent.mockRejectedValue(new ApiError({ kind: "http", status: 428, code: 428, message: reason }));
+    const mounted = view.mount();
+    await view.state.completeCreateOrder(20, "user:7");
+    await Vue.nextTick();
+    expect(view.state.createError.value).toBe(copy);
+    expect(view.state.createRecovery.value).toBe(recovery);
+    expect(view.state.amount.value).toBe("20");
+    expect(view.dep.intents).toEqual([]);
+    expect(view.navTo).not.toHaveBeenCalled();
+    const control = action(mounted.root, "nx-bank-setup-recovery")!;
+    expect(control).toBeDefined();
+    click(control);
+    expect(view.navTo).toHaveBeenCalledExactlyOnceWith(route);
+    await vi.advanceTimersByTimeAsync(1200);
+    expect(view.dep.createRemoteBankIntent).toHaveBeenCalledOnce();
+    expect(view.state.amount.value).toBe("20");
+    expect(view.open).not.toHaveBeenCalled();
+  }
+});
+test.each([
+  { kind: "http" as const, status: 503, code: 428, message: "USER_ONBOARDING_REQUIRED" },
+  { kind: "http" as const, status: 428, code: 999, message: "USER_ONBOARDING_REQUIRED" },
+  { kind: "http" as const, status: 428, code: 428, message: "OTHER_PRECONDITION" },
+  { kind: "business" as const, status: 409, code: 409, message: "RISK_DISCLOSURE_ACK_REQUIRED" },
+])("does not misclassify another rejection %s as onboarding or terms", async error => {
+  const view = pane(); view.dep.intents = [];
+  view.dep.createRemoteBankIntent.mockRejectedValue(new ApiError(error));
+  await view.state.completeCreateOrder(20, "user:7");
+  expect(view.state.createRecovery.value).toBeNull();
+  expect(view.navTo).not.toHaveBeenCalled();
+});
+test("a recovery control cannot navigate after an account epoch changes", async () => {
+  const view = pane(); view.dep.intents = [];
+  view.dep.createRemoteBankIntent.mockRejectedValue(new ApiError({ kind: "http", status: 428, code: 428, message: "USER_ONBOARDING_REQUIRED" }));
+  await view.state.completeCreateOrder(20, "user:7");
+  view.app.accountBindingEpoch++;
+  await Vue.nextTick();
+  view.state.goCreateRecovery();
+  expect(view.state.createRecovery.value).toBeNull();
+  expect(view.navTo).not.toHaveBeenCalled();
+});
 
 test.each([zh, en, vietnamese])("a resumed rejected order offers explicit retry, new top-up and support without automatic payment or POST", async (messages) => {
   const view = pane("rejected", messages);

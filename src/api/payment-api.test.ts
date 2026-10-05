@@ -1,5 +1,8 @@
 import { expect, test } from "vitest";
 import { createPaymentApi } from "./payment-api";
+import { createApiClient } from "./api-client";
+import { createSessionVault } from "./session-vault";
+import { isAmbiguousOutcome } from "./errors";
 
 test.each(["manual", "hosted"])("preserves %s mode without deriving capacity knowledge from it", async (paymentMode) => {
   const api = createPaymentApi({ request: async () => ({
@@ -48,6 +51,71 @@ const intent = {
   feeUsdt: 0,
   version: 0,
 };
+
+test.each([
+  ["金额必须为整数", "金额必须为整数"],
+  ["Amount must be between 10000 and 5000000 VND.", "Amount must be between 10000 and 5000000 VND."],
+  ["a. ".repeat(85) + "a", "a. ".repeat(85) + "a"],
+  ["  金额必须为整数  ", "金额必须为整数"],
+])("retains a bounded provider CREATE rejection reason: %s", async (providerReason, expectedReason) => {
+  const requests: unknown[] = [];
+  const client = createApiClient({ baseUrl: "https://example.test", vault: createSessionVault(),
+    transport: { request: async request => {
+      requests.push(request);
+      return { status: 422, headers: {}, data: { code: 422, message: "HDPAY_ORDER_CREATE_REJECTED", data: { providerReason } } };
+    } } });
+  const cause = await client.request({ method: "POST", path: "/api/app/deposits/vietqr/intents", authenticated: false }).catch(error => error);
+  expect(cause).toMatchObject({ kind: "http", status: 422, code: 422, message: "HDPAY_ORDER_CREATE_REJECTED", providerReason: expectedReason });
+  expect(isAmbiguousOutcome(cause)).toBe(false);
+  expect(requests).toHaveLength(1);
+});
+
+test.each([
+  undefined, null, 500, {}, "", " ", "a. ".repeat(85) + "ab", "<script>alert(1)</script>", "amount\nprivate", "{data: malformed}",
+])("omits an absent or unsafe provider reason from CREATE and rejected order reads: %j", async providerReason => {
+  const response = { code: 422, message: "HDPAY_ORDER_CREATE_REJECTED", data: { providerReason } };
+  const client = createApiClient({ baseUrl: "https://example.test", vault: createSessionVault(),
+    transport: { request: async () => ({ status: 422, headers: {}, data: response }) } });
+  const cause = await client.request({ method: "POST", path: "/api/app/deposits/vietqr/intents", authenticated: false }).catch(error => error);
+  expect(cause).toMatchObject({ kind: "http", status: 422 });
+  expect(cause).toHaveProperty("providerReason", undefined);
+  const { memoCode: _memo, bankAccount: _account, ...base } = intent;
+  const api = createPaymentApi({ request: async () => ({ ...base, paymentMode: "hosted", providerStatus: "rejected", providerReason }) } as never);
+  await expect(api.getVietQrIntent(intent.intentNo)).resolves.not.toHaveProperty("providerReason");
+});
+
+test.each([
+  { status: 503, code: 422, message: "HDPAY_ORDER_CREATE_REJECTED", method: "POST", path: "/api/app/deposits/vietqr/intents" },
+  { status: 422, code: 500, message: "HDPAY_ORDER_CREATE_REJECTED", method: "POST", path: "/api/app/deposits/vietqr/intents" },
+  { status: 422, code: 422, message: "HDPAY_ORDER_SUBMIT_UNKNOWN", method: "POST", path: "/api/app/deposits/vietqr/intents" },
+  { status: 422, code: 422, message: "HDPAY_ORDER_CREATE_REJECTED", method: "GET", path: "/api/app/deposits/vietqr/intents" },
+  { status: 422, code: 422, message: "HDPAY_ORDER_CREATE_REJECTED", method: "POST", path: "/api/other" },
+  { status: 200, code: 422, message: "HDPAY_ORDER_CREATE_REJECTED", method: "POST", path: "/api/app/deposits/vietqr/intents" },
+])("keeps other error contracts unchanged: %j", async ({ status, code, message, method, path }) => {
+  const client = createApiClient({ baseUrl: "https://example.test", vault: createSessionVault(),
+    transport: { request: async () => ({ status, headers: {}, data: { code, message, data: { providerReason: "金额必须为整数" } } }) } });
+  const cause = await client.request({ method: method as "POST", path, authenticated: false }).catch(error => error);
+  expect(cause).toMatchObject({ kind: status === 200 ? "business" : "http", status, code, message });
+  expect(cause).toHaveProperty("providerReason", undefined);
+});
+
+test("projects the same bounded reason from GET and list rejected orders", async () => {
+  const { memoCode: _memo, bankAccount: _account, ...base } = intent;
+  const rejected = { ...base, paymentMode: "hosted", providerStatus: "rejected", providerReason: "金额必须为整数" };
+  const api = createPaymentApi({ request: async (request: { path: string }) =>
+    request.path.endsWith("limit=20") ? { items: [rejected] } : rejected } as never);
+  await expect(api.getVietQrIntent(intent.intentNo)).resolves.toMatchObject({ providerStatus: "rejected", providerReason: rejected.providerReason });
+  await expect(api.listVietQrIntents()).resolves.toEqual([expect.objectContaining({ providerReason: rejected.providerReason })]);
+});
+
+test.each(["pending", "submit_unknown", "created", "manual"])("does not project a rejection reason onto %s", async state => {
+  const { memoCode: _memo, bankAccount: _account, ...base } = intent;
+  const snapshot = state === "manual" ? { ...intent, providerReason: "金额必须为整数" }
+    : { ...base, paymentMode: "hosted", providerStatus: state, providerReason: "金额必须为整数",
+      ...(state === "created" ? { paymentUrl: "https://api.hdpayadmin.com/pay?id=existing" } : {}) };
+  const api = createPaymentApi({ request: async () => snapshot } as never);
+  await expect(api.getVietQrIntent(intent.intentNo)).resolves.not.toHaveProperty("providerReason");
+});
 
 test("requires server fee fields on VietQR intent responses", async () => {
   const api = createPaymentApi({ request: async () => intent } as never);

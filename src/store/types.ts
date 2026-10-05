@@ -433,6 +433,7 @@ export interface DepositIntent {
   paymentMode?: "manual" | "hosted";
   paymentUrl?: string;
   providerStatus?: "created" | "pending" | "submit_unknown" | "rejected" | "not_submitted";
+  providerReason?: string;
 }
 
 export interface AppState {

@@ -1,5 +1,5 @@
 import type { ApiClient } from "./api-client";
-import { ApiError } from "./errors";
+import { ApiError, readProviderReason } from "./errors";
 import type { ApiEnvironment } from "./runtime-config";
 import { matchesRuntimeProvenance } from "./runtime-provenance";
 import { validateHostedPaymentUrl } from "@/lib/hosted-payment";
@@ -74,6 +74,7 @@ export interface VietQrIntentSnapshot {
   paymentMode?: "manual" | "hosted";
   paymentUrl?: string;
   providerStatus?: "created" | "pending" | "submit_unknown" | "rejected" | "not_submitted";
+  providerReason?: string;
 }
 
 export interface VietQrReceiptSnapshot {
@@ -285,6 +286,8 @@ function parseIntent(value: unknown): VietQrIntentSnapshot {
   const providerStatusText = source?.providerStatus === undefined ? undefined : text(source.providerStatus);
   const providerStatus = providerStatusText && providerStatuses.has(providerStatusText)
     ? providerStatusText as VietQrIntentSnapshot["providerStatus"] : undefined;
+  const providerReason = paymentMode === "hosted" && providerStatus === "rejected"
+    ? readProviderReason(source?.providerReason) : undefined;
   const manualFieldsValid = Boolean(account && memoCode && accountName && accountNumber && bankName);
   const hostedSensitiveFieldsAbsent = source?.memoCode === undefined
     && source?.bankAccount === undefined
@@ -341,6 +344,7 @@ function parseIntent(value: unknown): VietQrIntentSnapshot {
     ...(paymentMode === "hosted" ? { paymentMode } : {}),
     ...(paymentUrl ? { paymentUrl } : {}),
     ...(providerStatus ? { providerStatus } : {}),
+    ...(providerReason ? { providerReason } : {}),
   };
 }
 

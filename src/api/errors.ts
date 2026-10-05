@@ -6,6 +6,14 @@ interface ApiErrorOptions {
   status?: number;
   code?: number;
   retryable?: boolean;
+  providerReason?: string;
+}
+
+/** Optional ordinary prose already selected by the provider-facing backend. */
+export function readProviderReason(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const reason = value.trim();
+  return reason && reason.length <= 256 && !/[\u0000-\u001f\u007f<>{}\[\]]/.test(reason) ? reason : undefined;
 }
 
 export class ApiError extends Error {
@@ -13,6 +21,7 @@ export class ApiError extends Error {
   readonly status?: number;
   readonly code?: number;
   readonly retryable: boolean;
+  readonly providerReason?: string;
 
   constructor(options: ApiErrorOptions) {
     super(options.message);
@@ -21,6 +30,7 @@ export class ApiError extends Error {
     this.status = options.status;
     this.code = options.code;
     this.retryable = options.retryable ?? false;
+    this.providerReason = readProviderReason(options.providerReason);
   }
 }
 

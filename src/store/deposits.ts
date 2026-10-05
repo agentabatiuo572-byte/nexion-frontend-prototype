@@ -929,6 +929,7 @@ export const useDeposits = defineStore("deposits", () => {
       ...(snapshot.paymentMode ? { paymentMode: snapshot.paymentMode } : {}),
       ...(snapshot.paymentUrl ? { paymentUrl: snapshot.paymentUrl } : {}),
       ...(snapshot.providerStatus ? { providerStatus: snapshot.providerStatus } : {}),
+      ...(snapshot.providerReason ? { providerReason: snapshot.providerReason } : {}),
     };
   }
 
