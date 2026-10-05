@@ -103,7 +103,7 @@
             <view class="rounded-full grid place-items-center shrink-0" :style="memberAvatarStyle"><text style="font-size: 15px">↗</text></view>
             <view class="flex-1 min-w-0">
               <text class="block truncate" :style="{ fontSize: '13px', fontWeight: 500, color: 'var(--v5-ink)' }">{{ event.sourceUserName }}</text>
-              <text class="block font-mono-tabular" :style="{ marginTop: '2px', fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ event.cycle }} · L{{ event.layer }} · {{ event.currency }}</text>
+              <text class="block font-mono-tabular" :style="{ marginTop: '2px', fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ event.cycle }} · {{ event.layer === 1 ? t.unilevel.memberBadgeDirect : t.unilevel.memberBadgeExtended }} · {{ event.currency }}</text>
             </view>
             <view class="text-right"><text class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-brand)' }">+${{ event.amountUSDT.toFixed(2) }}</text><text v-if="event.amountNEX > 0" class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-brand-2)' }">+{{ event.amountNEX.toLocaleString() }} NEX</text></view>
           </view>
@@ -369,9 +369,7 @@ const canonicalPeriodText = computed(() => remoteSnapshot.value
 const pausedLayers = computed(() => commission.config
   ? ([1, 2, 3, 4, 5, 6, 7] as const).filter((layer) => commission.config?.unilevelPaused[layer])
   : []);
-const pausedLayersText = computed(() => fmt(t.value.unilevel.pausedLayersDesc, {
-  layers: pausedLayers.value.map((layer) => `L${layer}`).join(", "),
-}));
+const pausedLayersText = computed(() => t.value.unilevel.pausedLayersDesc);
 const filteredMembers = computed<PlottedMember[]>(() => {
   if (filter.value === "all") {
     return [

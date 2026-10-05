@@ -5,9 +5,9 @@ import { useAuth } from "@/store/auth";
 
 /**
  * Complete-sign-in runs before an H5 reLaunch is guaranteed to emit App.onShow.
- * In the explicit sandbox, issue the catalog RunID first and only then ask the
- * App store to read E3. A missing/stale server session or catalog stays
- * fail-closed; no local fleet is synthesized as a fallback.
+ * Every remote account rebind clears the catalog, so start its replacement
+ * here as well. Development fleet reads still wait for the catalog; production
+ * fleet reads remain independent. A missing/stale session stays fail-closed.
  */
 export async function refreshRemoteFleetAfterCatalog(accountKey: string): Promise<boolean> {
   const auth = useAuth();
@@ -16,6 +16,7 @@ export async function refreshRemoteFleetAfterCatalog(accountKey: string): Promis
       || accountKey !== `user:${serverSession.user.userId}`) {
     return false;
   }
+  if (apiRuntimeConfig.environment !== "dev") void refreshProductCatalog();
   if (apiRuntimeConfig.environment === "dev" && !(await refreshProductCatalog())) return false;
   return useApp().refreshRemoteFleet(undefined, { coalesce: true });
 }

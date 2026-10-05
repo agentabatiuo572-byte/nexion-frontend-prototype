@@ -21,22 +21,21 @@ const snapshot = (): CommissionsHowSnapshot => ({
 });
 describe("commissions-how presentation", () => {
   it.each([
-    ["zh", "6,789", "876.123456", "12.3456%"],
-    ["en", "6,789", "876.123456", "12.3456%"],
-    ["vi", "6.789", "876,123456", "12,3456%"],
-  ])("preserves localized server values with Intl available in %s", (locale, cap, threshold, rate) => {
+    ["zh", "6,789"],
+    ["en", "6,789"],
+    ["vi", "6.789"],
+  ])("preserves localized settlement limits with Intl available in %s", (locale, cap) => {
     expect(typeof Intl.NumberFormat).toBe("function");
     const view = buildCommissionsHowContent(snapshot(), locale);
     expect(view.section("binary").body).toContain(`${cap} USDT`);
-    expect(view.section("binary").body).toContain(`${threshold} USDT`);
-    expect(view.section("network").body).toContain(rate);
+    expect(view.section("network").body).toBe(view.copy.network);
     expect(view.incomplete).toBe(false);
   });
   it.each([
-    ["zh", "6,789", "876.123456", "12.3456%", "16.666667 NEX"],
-    ["en", "6,789", "876.123456", "12.3456%", "16.666667 NEX"],
-    ["vi", "6.789", "876,123456", "12,3456%", "16,666667 NEX"],
-  ])("renders rules and recovers in a native process with Intl deleted in %s", (locale, cap, threshold, rate, rounded) => {
+    ["zh", "6,789", "16.666667 NEX"],
+    ["en", "6,789", "16.666667 NEX"],
+    ["vi", "6.789", "16,666667 NEX"],
+  ])("renders settlement facts and recovers in a native process with Intl deleted in %s", (locale, cap, rounded) => {
     const moduleUrl = new URL("./commissions-how-content.ts", import.meta.url).href;
     const loader = new URL("../../scripts/lib/ts-ext-resolve.mjs", import.meta.url).href;
     const script = `
@@ -50,8 +49,7 @@ describe("commissions-how presentation", () => {
       const view = build(facts, locale);
       assert.equal(view.incomplete, false);
       assert.ok(view.section("binary").body.includes(${JSON.stringify(`${cap} USDT`)}));
-      assert.ok(view.section("binary").body.includes(${JSON.stringify(`${threshold} USDT`)}));
-      assert.ok(view.section("network").body.includes(${JSON.stringify(rate)}));
+      assert.equal(view.section("network").body, view.copy.network);
       facts.rates.unilevelUsdt[1] = .11111111;
       facts.rates.unilevelNex[1] = 1.5;
       assert.ok(build(facts, locale).amounts.network.endsWith(${JSON.stringify(rounded)}));
@@ -64,7 +62,7 @@ describe("commissions-how presentation", () => {
       const zero = build(facts, locale);
       assert.ok(zero.section("cooling").body.includes("0"));
       assert.ok(zero.section("binary").body.includes("0 USDT"));
-      assert.ok(zero.section("binary").body.includes("0%"));
+      assert.ok(!zero.section("binary").body.includes("0%"));
       assert.equal(zero.amounts.network, "0 USDT + 0 NEX");
       facts.guide.coolingDays = null;
       facts.guide.binary = null;
@@ -98,18 +96,16 @@ describe("commissions-how presentation", () => {
     expect(child.status, child.stderr || child.stdout).toBe(0);
     expect(child.stdout).toContain(`retry verified: ${locale}`);
   });
-  it("uses changed canonical rates, cooldown and eligibility rather than prototype constants", () => {
+  it("keeps canonical settlement limits and cooldown without tier rules", () => {
     const view = buildCommissionsHowContent(snapshot(), "zh");
-    expect(view.section("network").body).toContain("12.3456%");
-    expect(view.section("network").body).toContain("L5");
-    expect(view.section("network").body).toContain("V4");
-    expect(view.section("binary").body).toContain("876.123456");
-    expect(view.section("binary").body).toContain("13.75%");
+    expect(view.section("network").body).toBe(view.copy.network);
+    expect(view.section("binary").body).toContain("6,789 USDT");
+    expect(view.section("binary").body).not.toMatch(/876\.123456|13\.75%/);
     expect(view.section("binary").body).toContain("每周");
     expect(view.section("cooling").body).toContain("17");
     expect(view.section("cooling").body).not.toContain("30");
-    expect(view.section("peer").body).toContain("3.75%");
-    expect(view.section("cultivation").body).toContain("321.123456 NEX");
+    expect(view.section("peer").body).toContain(view.copy.records);
+    expect(view.section("cultivation").body).toBe(view.copy.cultivation);
   });
   it("marks missing rules and unsupported payout paths explicitly", () => {
     const facts = snapshot(); facts.guide.coolingDays = null; facts.guide.binary = null;
@@ -137,9 +133,10 @@ describe("commissions-how presentation", () => {
     facts.guide.leadership = { rate: .0375, minRank: 4, monthlyCap: 4500.123456 };
     facts.guide.binary!.paused = true; facts.guide.binary!.settlePeriod = "monthly";
     const view = buildCommissionsHowContent(facts, "zh");
-    expect(view.section("leadership").body).toContain("3.75%");
+    expect(view.section("leadership").body).not.toContain("3.75%");
+    expect(view.section("leadership").body).toContain("V4");
     expect(view.section("leadership").body).toContain("4,500.123456");
-    expect(view.section("leadership").body).toContain("9 票");
+    expect(view.section("leadership").body).not.toContain("9 票");
     expect(view.section("binary").body).toContain("已暂停");
     expect(view.amounts.network).toBe("12.3456 USDT + 30.864 NEX");
     expect(view.amounts.cultivation).toContain("配置额");
@@ -152,23 +149,23 @@ describe("commissions-how presentation", () => {
     facts.guide.leadership = { rate: 0, minRank: 12, monthlyCap: 0 };
     facts.ranks = []; facts.rates.unilevelUsdt = {}; facts.rates.unilevelNex = {};
     const view = buildCommissionsHowContent(facts, "fr");
-    expect(view.section("network").body).toContain("Missing or invalid");
-    expect(view.section("leadership").body).toContain("No configured benefits");
+    expect(view.section("network").body).toBe(view.copy.network);
+    expect(view.section("leadership").body).toContain("entry rank V12");
+    expect(view.section("leadership").body).toContain("monthly cap 0 USDT");
     expect(view.amounts.network).toBe("—");
     expect(view.amounts.peer).toBe("Requires settlement");
     expect(view.section("peer").body).toContain("actual events");
   });
   it.each([
-    ["zh", "深度门槛", "总出口上限", "当前不开放结算"],
-    ["en", "Depth gate", "Total payout cap", "settlement is not open"],
-    ["vi", "Ngưỡng chiều sâu", "Giới hạn tổng chi", "chưa mở quyết toán"],
-  ])("labels unavailable network facts and gives one leadership hold in %s", (locale, gate, exitCap, leadershipHold) => {
+    ["zh", "当前不开放结算"],
+    ["en", "settlement is not open"],
+    ["vi", "chưa mở quyết toán"],
+  ])("omits unavailable internal network rules and gives one leadership hold in %s", (locale, leadershipHold) => {
     const facts = snapshot();
     facts.guide.network = { depthGateLayer: null, depthGateRank: null, exitCapRate: null };
     const body = buildCommissionsHowContent(facts, locale).section("network").body;
     const leadership = buildCommissionsHowContent(facts, locale).section("leadership").body;
-    expect(body).toContain(gate);
-    expect(body).toContain(exitCap);
+    expect(body).toBe(buildCommissionsHowContent(facts, locale).copy.network);
     expect(leadership.match(new RegExp(leadershipHold, "g"))?.length).toBe(1);
     expect(`${body} ${leadership}`).not.toMatch(/team\.ui|configVersion|INVALID_RATE/);
   });
@@ -187,15 +184,35 @@ describe("commissions-how presentation", () => {
     expect(body).toContain(reset);
   });
   it.each([
-    ["zh", "按合格周期业务量形成奖池，并依据参与等级、票权及个人上限分配。当前规则：{leadershipRules}。票权：{leadershipVotes}。配置完整不等于已结算，最终份额须等待当期结算记录。", "按合格周期业务量形成奖池，并依据参与等级、票权及个人上限分配。当前规则：领导池当前不开放结算。配置完整不等于已结算，最终份额须等待当期结算记录。"],
-    ["en", "Qualifying period volume funds a pool distributed by eligibility, votes and individual caps. Current rules: {leadershipRules}. Votes: {leadershipVotes}. Complete configuration is not completed settlement; actual shares require the period's settlement records.", "Qualifying period volume funds a pool distributed by eligibility, votes and individual caps. Current rules: Leadership pool settlement is not open. Complete configuration is not completed settlement; actual shares require the period's settlement records."],
-    ["vi", "Doanh số hợp lệ theo kỳ tạo quỹ, chia theo điều kiện, phiếu và giới hạn cá nhân. Quy tắc: {leadershipRules}. Phiếu: {leadershipVotes}. Cấu hình đầy đủ không có nghĩa đã quyết toán; phần thực nhận cần bản ghi của kỳ.", "Doanh số hợp lệ theo kỳ tạo quỹ, chia theo điều kiện, phiếu và giới hạn cá nhân. Quy tắc: Quỹ lãnh đạo hiện chưa mở quyết toán. Cấu hình đầy đủ không có nghĩa đã quyết toán; phần thực nhận cần bản ghi của kỳ."],
-  ])("removes the empty leadership vote clause from the published %s paragraph", (locale, template, expected) => {
+    ["zh", "按合格周期业务量形成奖池，并依据参与等级、票权及个人上限分配。当前规则：{leadershipRules}。票权：{leadershipVotes}。配置完整不等于已结算，最终份额须等待当期结算记录。"],
+    ["en", "Qualifying period volume funds a pool distributed by eligibility, votes and individual caps. Current rules: {leadershipRules}. Votes: {leadershipVotes}. Complete configuration is not completed settlement; actual shares require the period's settlement records."],
+    ["vi", "Doanh số hợp lệ theo kỳ tạo quỹ, chia theo điều kiện, phiếu và giới hạn cá nhân. Quy tắc: {leadershipRules}. Phiếu: {leadershipVotes}. Cấu hình đầy đủ không có nghĩa đã quyết toán; phần thực nhận cần bản ghi của kỳ."],
+  ])("replaces published vote formulas with records and settlement status in %s", (locale, template) => {
     const facts = snapshot();
     facts.document.blocks.find(block => block.id === "leadership")!.body = template;
-    const body = buildCommissionsHowContent(facts, locale).section("leadership").body;
-    expect(body).toBe(expected);
-    expect(body).not.toMatch(/票权：。|Votes: \./u);
+    const view = buildCommissionsHowContent(facts, locale);
+    const body = view.section("leadership").body;
+    expect(body).toBe(`${view.copy.records} ${view.copy.hold}`);
+    expect(body).not.toMatch(/票权|votes|phiếu/iu);
+  });
+  it.each(["zh", "en", "vi"])("keeps layer tables and formula labels out of every public guide section in %s", locale => {
+    const facts = snapshot();
+    facts.guide.leadership = { rate: .0375, minRank: 4, monthlyCap: 4500.123456 };
+    for (let level = 1; level <= 7; level++) {
+      facts.rates.unilevelUsdt[level] = .0123456 * level;
+      facts.rates.unilevelNex[level] = level;
+    }
+    for (const id of ["network", "binary", "peer", "cultivation", "leadership", "example-day", "example-network", "example-cultivation", "example-leadership"]) {
+      facts.document.blocks.find(block => block.id === id)!.body += " L1–L7 / V4 9 votes / depth gate / pool contribution / 匹配比例 / 票权 / hệ số";
+    }
+    for (const id of ["faq-withdraw", "faq-reversal"]) facts.document.blocks.find(block => block.id === id)!.body = `Published ${id}: fees, refunds and payment consequences`;
+    const view = buildCommissionsHowContent(facts, locale);
+    const body = COMMISSIONS_HOW_SLOTS.map(id => `${view.section(id).title} ${view.section(id).body}`).join(" ");
+    expect(view.incomplete).toBe(false);
+    expect(body).not.toMatch(/\bL[1-7]\b|depth gate|pool contribution|\bvotes\b|匹配比例|票权|hệ số/iu);
+    expect(view.section("leadership").body).toContain("V4");
+    expect(view.section("cooling").body).toContain("17");
+    for (const id of ["faq-withdraw", "faq-reversal"]) expect(view.section(id).body).toBe(`Published ${id}: fees, refunds and payment consequences`);
   });
   it("rounds example amounts half-up at six places like network settlement", () => {
     const facts = snapshot(); facts.rates.unilevelUsdt[1] = .11111111; facts.rates.unilevelNex[1] = 1.5;
