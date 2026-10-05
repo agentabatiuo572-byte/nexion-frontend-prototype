@@ -25,8 +25,8 @@ const script = compileScript(descriptor, { id: "bank-reload", inlineTemplate: tr
 const code = ts.transpileModule(script.content, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
-type Host = { tag: string; text: string; props: Record<string, any>; parent: Host | null; children: Host[]; addEventListener: () => void };
-const node = (tag = "", text = ""): Host => ({ tag, text, props: {}, parent: null, children: [], addEventListener: () => {} });
+type Host = { tag: string; text: string; props: Record<string, any>; parent: Host | null; children: Host[]; addEventListener: () => void; getRootNode: () => { activeElement: Host | null }; value?: string };
+const node = (tag = "", text = ""): Host => ({ tag, text, props: {}, parent: null, children: [], addEventListener: () => {}, getRootNode: () => ({ activeElement: null }) });
 const renderer = Vue.createRenderer<Host, Host>({
   createElement: tag => node(tag), createText: text => node("#text", text), createComment: () => node("#comment"),
   setText: (target, text) => { target.text = text; },
@@ -71,7 +71,7 @@ function mount(options: { params?: Record<string, unknown>; hash?: string; boots
   const firstRead = new Promise((resolve, reject) => { release = resolve; rejectFirst = reject; });
   const response = options.pending ? { ...paid, withdrawal: { ...paid.withdrawal, status: "PROCESSING" }, providerState: "PENDING", settlementEvidence: undefined } : paid;
   let orderReads = 0;
-  const request = vi.fn(async (input: { path: string; method?: string }) => {
+  const request = vi.fn(async (input: { path: string; method?: string; body?: unknown; idempotencyKey?: string }) => {
     if (input.method && input.method !== "GET") throw new Error("Unexpected funds mutation");
     if (input.path === "/api/withdrawals/bank/config") return { ...config, beneficiary: options.unbound ? null : config.beneficiary };
     if (input.path === `/api/withdrawals/bank/orders/${orderNo}`) {
@@ -107,12 +107,15 @@ function mount(options: { params?: Record<string, unknown>; hash?: string; boots
   component.mount(root); hooks.onLoad(options.params ?? {});
   cleanups.push(() => { hooks.onUnload(); component.unmount(); });
   const find = (id: string) => nodesOf(root).find(target => target.props["data-testid"] === id);
-  return { app, request, release, rejectFirst, root, find, text: () => textOf(root), show: () => hooks.onShow(),
+  return { app, request, release, rejectFirst, storage, root, find, text: () => textOf(root), show: () => hooks.onShow(),
     scope: () => ({ owner: app.accountKey, epoch: app.accountBindingEpoch, runtime: runtimeRevision }),
     runtime: () => { runtimeRevision++; invalidateRuntime(); },
     click: async (id: string) => { const target = find(id); if (!target) throw new Error(`Missing control: ${id}`); target.props.onClick(); await settle(); } };
 }
-beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-05T12:00:00Z")); });
+beforeEach(() => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-05T12:00:00Z"));
+  vi.stubGlobal("Document", class {}); vi.stubGlobal("ShadowRoot", class {});
+});
 afterEach(() => { cleanups.splice(0).forEach(fn => fn()); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("bank order tracking reload", () => {
@@ -235,5 +238,118 @@ describe("bank order tracking reload", () => {
     expect(s.request.mock.calls.map(([input]) => input.path)).toEqual([
       `/api/withdrawals/bank/orders/${orderNo}`, "/api/withdrawals/bank/config", "/api/withdrawals/bank/config",
     ]);
+  });
+});
+
+// Explicit opt-in quote fixture; the original tracking fixture still rejects all non-GET requests.
+function quoteFlow(s: ReturnType<typeof mount>, actions: {
+  abandon: () => Promise<unknown>; recover?: () => unknown; submit?: () => Promise<unknown>;
+}) {
+  let intent: unknown = null;
+  s.request.mockImplementation(async input => {
+    if (input.path === "/api/withdrawals/bank/config" && !input.method) return { ...config, unresolvedIntent: intent };
+    if (input.path === "/api/withdrawals/bank/quotes" && input.method === "POST") {
+      expect(input.body).toEqual({ amountUsdt: "21" });
+      intent = { state: "NOT_SUBMITTED", quoteNo: bank.quoteNo, withdrawalNo: null,
+        intents: [{ state: "NOT_SUBMITTED", quoteNo: bank.quoteNo, withdrawalNo: null, expiresAt: bank.expiresAt, providerState: null }] };
+      return bank;
+    }
+    if (input.path === `/api/withdrawals/bank/quotes/${bank.quoteNo}/abandon` && input.method === "POST") {
+      const receipt = await actions.abandon();
+      if ((receipt as { state: string }).state === "ABANDONED" || (receipt as { state: string }).state === "EXPIRED") intent = null;
+      return receipt;
+    }
+    if (input.path === `/api/withdrawals/bank/quotes/${bank.quoteNo}` && !input.method)
+      return actions.recover?.() ?? { state: "NOT_SUBMITTED", quote: bank };
+    if (input.path === "/api/withdrawals/bank/orders" && input.method === "POST" && actions.submit) {
+      expect(input.body).toEqual({ quoteNo: bank.quoteNo });
+      expect(input.idempotencyKey).toBe(`bank-submit:${bank.quoteNo}`);
+      expect(s.storage.get("nexgrid.bank-withdraw.pending:user:7")).toBe(bank.quoteNo);
+      return actions.submit();
+    }
+    throw new Error(`Unexpected quote fixture request: ${input.method ?? "GET"} ${input.path}`);
+  });
+}
+async function showQuote(s: ReturnType<typeof mount>) {
+  s.show(); await settle(); await s.click("bank-continue");
+  s.find("bank-amount")!.props["onUpdate:modelValue"]("21"); await settle();
+  await s.click("bank-quote");
+  expect(s.find("bank-consent")?.props["aria-checked"]).toBe(false);
+  expect(s.find("bank-submit")?.props["aria-disabled"]).toBe(true);
+}
+function press(control: Host, key: string) {
+  const handlers = control.props.onKeydown;
+  for (const handler of Array.isArray(handlers) ? handlers : [handlers]) handler({ key, preventDefault() {} });
+}
+const pathsOf = (s: ReturnType<typeof mount>) => s.request.mock.calls.map(([input]) => input.path);
+
+describe("bank quote cancellation loading", () => {
+  it.each(["ABANDONED", "EXPIRED"])("shows only loading while cancellation is pending, then restores the amount for %s", async state => {
+    const s = mount(); quoteFlow(s, { abandon: () => new Promise(resolve => { s.release = resolve; }) });
+    await showQuote(s); const cancel = s.find("bank-abandon")!;
+    await s.click("bank-abandon");
+    expect(s.text()).toContain(en.bankWithdrawal.loading);
+    expect(s.text()).not.toContain(en.bankWithdrawal.unknown);
+    expect(s.find("bank-refresh")?.props["aria-disabled"]).toBe(true);
+    expect(s.find("bank-submit")).toBeUndefined(); expect(s.find("bank-quote")).toBeUndefined();
+    const beforeRepeatedActivation = pathsOf(s);
+    cancel.props.onClick(); press(cancel, "Enter"); press(cancel, " "); await s.click("bank-refresh");
+    expect(pathsOf(s)).toEqual(beforeRepeatedActivation);
+    s.release({ state }); await settle();
+    expect(s.find("bank-amount")?.value).toBe("21");
+    expect(s.find("bank-quote")?.props["aria-disabled"]).toBe(false);
+    expect(s.text()).not.toContain(en.bankWithdrawal.unknown);
+    expect(pathsOf(s)).toEqual(["/api/withdrawals/bank/config", "/api/withdrawals/bank/quotes",
+      `/api/withdrawals/bank/quotes/${bank.quoteNo}/abandon`, "/api/withdrawals/bank/config"]);
+    expect(s.storage.size).toBe(0);
+  });
+
+  it("lets the committed original order win a cancellation race without creating another order", async () => {
+    const s = mount(); quoteFlow(s, { abandon: () => new Promise(resolve => { s.release = resolve; }) });
+    await showQuote(s); await s.click("bank-abandon");
+    s.release(paid); await settle();
+    expect(textOf(s.find("bank-order-status")!)).toBe(en.bankWithdrawal.paid);
+    expect(s.text()).toContain(orderNo); expect(s.find("bank-amount")).toBeUndefined();
+    expect(s.find("bank-submit")).toBeUndefined();
+    expect(pathsOf(s)).toEqual(["/api/withdrawals/bank/config", "/api/withdrawals/bank/quotes",
+      `/api/withdrawals/bank/quotes/${bank.quoteNo}/abandon`]);
+  });
+
+  it.each(["NOT_SUBMITTED", "COMMITTED"])("keeps a failed cancellation fenced and reads back the same quote as %s", async state => {
+    const s = mount(); quoteFlow(s, { abandon: () => new Promise((_resolve, reject) => { s.rejectFirst = reject; }),
+      recover: () => state === "COMMITTED" ? paid : { state: "NOT_SUBMITTED", quote: bank } });
+    await showQuote(s); await s.click("bank-abandon");
+    s.rejectFirst(new ApiError({ kind: "network", message: "CANCEL_RECEIPT_LOST", retryable: true })); await settle();
+    expect(s.text()).toContain(en.bankWithdrawal.error); expect(s.text()).toContain(en.bankWithdrawal.unknown);
+    expect(s.find("bank-refresh")?.props["aria-disabled"]).toBe(false);
+    expect(s.find("bank-quote")).toBeUndefined(); expect(s.find("bank-submit")).toBeUndefined();
+    await s.click("bank-refresh");
+    expect(pathsOf(s)).toEqual(["/api/withdrawals/bank/config", "/api/withdrawals/bank/quotes",
+      `/api/withdrawals/bank/quotes/${bank.quoteNo}/abandon`, "/api/withdrawals/bank/config",
+      `/api/withdrawals/bank/quotes/${bank.quoteNo}`]);
+    if (state === "COMMITTED") {
+      expect(s.text()).toContain(orderNo); expect(s.find("bank-amount")).toBeUndefined();
+    } else {
+      expect(s.find("bank-consent")?.props["aria-checked"]).toBe(false);
+      expect(s.find("bank-submit")?.props["aria-disabled"]).toBe(true);
+    }
+    expect(s.storage.size).toBe(0);
+  });
+
+  it("retains true submit uncertainty and the durable original quote/key after a lost receipt", async () => {
+    const s = mount(); quoteFlow(s, { abandon: async () => { throw new Error("Unexpected cancellation"); },
+      submit: () => new Promise((_resolve, reject) => { s.rejectFirst = reject; }), recover: () => paid });
+    await showQuote(s); await s.click("bank-consent");
+    const submit = s.find("bank-submit")!; await s.click("bank-submit");
+    expect(s.storage.get("nexgrid.bank-withdraw.pending:user:7")).toBe(bank.quoteNo);
+    submit.props.onClick(); press(submit, "Enter"); press(submit, " "); await settle();
+    expect(pathsOf(s).filter(path => path === "/api/withdrawals/bank/orders")).toHaveLength(1);
+    s.rejectFirst(new ApiError({ kind: "network", message: "SUBMIT_RECEIPT_LOST", retryable: true })); await settle();
+    expect(s.text()).toContain(en.bankWithdrawal.unknown); expect(s.find("bank-submit")).toBeUndefined();
+    expect(s.storage.get("nexgrid.bank-withdraw.pending:user:7")).toBe(bank.quoteNo);
+    await s.click("bank-refresh");
+    expect(s.text()).toContain(orderNo); expect(s.storage.size).toBe(0);
+    expect(pathsOf(s)).toEqual(["/api/withdrawals/bank/config", "/api/withdrawals/bank/quotes",
+      "/api/withdrawals/bank/orders", `/api/withdrawals/bank/quotes/${bank.quoteNo}`]);
   });
 });

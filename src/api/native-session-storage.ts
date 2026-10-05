@@ -6,6 +6,30 @@ type AndroidBridge = Pick<PlusAndroid, "invoke" | "newObject" | "importClass" | 
 type NativePlatform = { os?: { name?: string }; android?: AndroidBridge };
 export interface NativeSessionStorage extends KeyValueStorage { ready(): Promise<void> }
 
+const SESSION_DIAGNOSTIC_STAGES = [
+  "PLATFORM_ANDROID", "PLATFORM_UNINITIALIZED", "PLATFORM_UNSUPPORTED",
+  "STORAGE_READY", "STORAGE_MEMORY_ONLY", "STORAGE_READY_FAILED", "PERSIST_VERIFIED", "PERSIST_FAILED",
+  "RESTORE_BEGIN", "HYDRATE_CANDIDATE", "HYDRATE_EMPTY", "REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED",
+  "REFRESH_COMMITTED", "REFRESH_RESPONSE_INVALID", "REFRESH_DENIED", "REFRESH_SUPERSEDED", "REFRESH_FAILED",
+  "RESTORE_NO_SESSION", "RESTORE_SUPERSEDED", "RESTORE_STORAGE_FAILED", "RESTORE_FAILED",
+  "RESTORE_NEW_LOGIN_PRESERVED", "UI_COMPLETE_OK", "UI_COMPLETE_FAILED",
+  "INSTALLATION_REUSED", "INSTALLATION_CREATED", "INSTALLATION_WRITE_THREW",
+] as const;
+
+/** Fixed, non-secret service stages. Observability must never decide auth. */
+export function reportNativeSessionStage(stage: typeof SESSION_DIAGNOSTIC_STAGES[number]): void {
+  // #ifdef APP-PLUS
+  if (!(SESSION_DIAGNOSTIC_STAGES as readonly string[]).includes(stage)) return;
+  try {
+    if (typeof plus !== "undefined" && typeof plus.android?.invoke === "function") {
+      plus.android.invoke("android.util.Log", "i", ...["UvelAuth", stage]);
+      return;
+    }
+  } catch { /* Fall back without exposing bridge exceptions. */ }
+  try { console.info("UvelAuth", stage); } catch { /* Logging is best-effort. */ }
+  // #endif
+}
+
 function unavailable(): ApiError {
   // Never expose native exception text, ciphertext, or credential values.
   return new ApiError({ kind: "configuration", message: "NATIVE_SESSION_STORAGE_UNAVAILABLE", retryable: true });
@@ -37,7 +61,11 @@ export function createNativeSessionStorage(options: {
   let initialized = false;
   let inFlight: Promise<void> | undefined;
   function open(platform: NativePlatform): KeyValueStorage | undefined {
-    if (platform.os?.name !== "Android") return undefined;
+    if (platform.os?.name !== "Android") {
+      reportNativeSessionStage(platform.os?.name ? "PLATFORM_UNSUPPORTED" : "PLATFORM_UNINITIALIZED");
+      return undefined;
+    }
+    reportNativeSessionStage("PLATFORM_ANDROID");
     const android = present(platform.android);
     const call = (target: Parameters<AndroidBridge["invoke"]>[0], method: string, ...args: unknown[]) =>
       synchronous(() => android.invoke(target, method, ...args));
@@ -45,7 +73,7 @@ export function createNativeSessionStorage(options: {
     const constants = (name: string) => present(synchronous(() => android.importClass(name))) as PlusAndroidClassObject & Record<string, unknown>;
     const sdk = constants("android.os.Build$VERSION").SDK_INT;
     requireValue(typeof sdk === "number" && Number.isInteger(sdk));
-    if (sdk < 23) return undefined;
+    if (sdk < 23) { reportNativeSessionStage("PLATFORM_UNSUPPORTED"); return undefined; }
     const activity = present(synchronous(() => android.runtimeMainActivity()));
     const host = call(activity, "getPackageName");
     const install = options.installationId();
@@ -146,11 +174,18 @@ export function createNativeSessionStorage(options: {
       if (initialized) return Promise.resolve();
       if (!inFlight) inFlight = (options.platform ?? waitForPlus)().then(platform => {
         storage = open(platform); initialized = true;
-      }).catch(() => { throw unavailable(); }).finally(() => { inFlight = undefined; });
+        reportNativeSessionStage(storage ? "STORAGE_READY" : "STORAGE_MEMORY_ONLY");
+      }).catch(() => { reportNativeSessionStage("STORAGE_READY_FAILED"); throw unavailable(); }).finally(() => { inFlight = undefined; });
       return inFlight;
     },
     get() { requireValue(initialized); return synchronous(() => storage?.get()); },
-    set(value) { requireValue(initialized); synchronous(() => storage?.set(value)); },
+    set(value) {
+      requireValue(initialized);
+      try {
+        synchronous(() => storage?.set(value));
+        if (storage) reportNativeSessionStage("PERSIST_VERIFIED");
+      } catch (error) { reportNativeSessionStage("PERSIST_FAILED"); throw error; }
+    },
     remove() { requireValue(initialized); synchronous(() => storage?.remove()); },
   };
 }

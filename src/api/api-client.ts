@@ -3,6 +3,7 @@ import { ApiError, asApiError } from "./errors";
 import type { RefreshCredentialMode, SessionSnapshot, SessionVault } from "./session-vault";
 import { withSessionCookieLock } from "./session-cookie-lock";
 import { acquireRotationNonce, clearRotationNonce, discardRotationNonce } from "./session-rotation-nonce";
+import { reportNativeSessionStage } from "./native-session-storage";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -243,6 +244,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     const current = options.vault.read();
     if (refreshCredentialMode === "token" && !current?.refreshToken) return expireSession(revision);
     try {
+      reportNativeSessionStage("REFRESH_BEGIN");
       const data = await execute<AuthSessionResponse>({
         url: `${baseUrl}/auth/users/refresh`,
         method: "POST",
@@ -256,11 +258,14 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         withCredentials: refreshCredentialMode === "cookie",
       });
       if (!authenticatedSession(data, refreshCredentialMode)) {
+        reportNativeSessionStage("REFRESH_RESPONSE_INVALID");
         throw new ApiError({ kind: "protocol", message: "AUTH_RESPONSE_INVALID" });
       }
       if (current && data.user.userId !== current.user.userId) {
+        reportNativeSessionStage("REFRESH_DENIED");
         return expireSession(revision);
       }
+      reportNativeSessionStage("REFRESH_SERVER_ACCEPTED");
       const next: SessionSnapshot = {
         accessToken: data.accessToken,
         refreshToken: refreshCredentialMode === "cookie" ? "" : data.refreshToken as string,
@@ -277,6 +282,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       if (!options.vault.refreshIfUnchanged(next, commitRevision)) {
         throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REFRESH" });
       }
+      reportNativeSessionStage("REFRESH_COMMITTED");
       if (current && next.accessToken !== previousAccessToken) {
         try { options.onSessionRefreshed?.(); } catch { /* The accepted session remains committed. */ }
       }
@@ -285,12 +291,19 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       if (
         error instanceof ApiError
         && (error.message === "SESSION_EXPIRED" || error.message === "SESSION_CHANGED_DURING_REFRESH")
-      ) throw error;
+      ) {
+        reportNativeSessionStage(error.message === "SESSION_EXPIRED" ? "REFRESH_DENIED" : "REFRESH_SUPERSEDED");
+        throw error;
+      }
       const apiError = asApiError(error);
       // A denial from the refresh endpoint is terminal, unlike a resource's
       // ordinary permission 403. Never evict a newer revision or an empty boot.
       if (current && (apiError.kind === "auth" || apiError.status === 401 || apiError.status === 403
-          || apiError.code === 401 || apiError.code === 403)) return expireSession(revision);
+          || apiError.code === 401 || apiError.code === 403)) {
+        reportNativeSessionStage("REFRESH_DENIED");
+        return expireSession(revision);
+      }
+      reportNativeSessionStage("REFRESH_FAILED");
       throw apiError;
     }
   }

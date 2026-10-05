@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { navReset } from "@/lib/route";
 import { ApiError } from "@/api/errors";
+import { reportNativeSessionStage } from "@/api/native-session-storage";
 import { watch } from "vue";
 import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
 import { useApp } from "@/store/app";
@@ -566,10 +567,13 @@ function beginServerSessionRestore(): Promise<boolean> {
   if (Date.now() < serverSessionRestoreRetryAt) return Promise.resolve(false);
   const restoreRevision = sessionVault.revision();
   serverSessionRestoreState = "restoring";
+  reportNativeSessionStage("RESTORE_BEGIN");
   serverSessionRestoreInFlight = (async () => {
     await prepareSessionVault();
+    reportNativeSessionStage(sessionVault.read()?.refreshToken ? "HYDRATE_CANDIDATE" : "HYDRATE_EMPTY");
     const restored = await authApi.restore();
     if (!restored) {
+      reportNativeSessionStage("RESTORE_NO_SESSION");
       const hadServerAccount = hasServerAuthenticatedAccountTrace(useAuth());
       pendingServerSessionRecovery = pendingServerSessionRecovery || hadServerAccount;
       serverAuthenticatedAccountTraceAtBoot = false;
@@ -582,6 +586,7 @@ function beginServerSessionRestore(): Promise<boolean> {
     const currentSession = sessionVault.read();
     if (!currentSession || currentSession.accessToken !== restored.accessToken
         || currentSession.user.userId !== restored.user.userId) {
+      reportNativeSessionStage("RESTORE_SUPERSEDED");
       // Another sign-in/logout won after the refresh response. Never apply
       // the old profile using the newer vault's revision as its proof.
       serverSessionRestoreState = canRefreshRemoteAccount(useAuth()) ? "ready" : "idle";
@@ -601,10 +606,12 @@ function beginServerSessionRestore(): Promise<boolean> {
       deferNavigation: preserveCurrentRoute,
     });
     if (!completed.ok) {
+      reportNativeSessionStage("UI_COMPLETE_FAILED");
       pendingServerSessionRecovery = true;
       serverSessionRestoreState = "failed";
       return false;
     }
+    reportNativeSessionStage("UI_COMPLETE_OK");
     pendingServerSessionRecovery = false;
     serverAuthenticatedAccountTraceAtBoot = false;
     serverSessionRestoreState = "ready";
@@ -614,9 +621,11 @@ function beginServerSessionRestore(): Promise<boolean> {
     return true;
   })().catch((error: unknown) => {
     if (error instanceof ApiError && error.message === "NATIVE_SESSION_STORAGE_UNAVAILABLE") {
+      reportNativeSessionStage("RESTORE_STORAGE_FAILED");
       // Native hydration can throw before this Promise catch runs. A newer
       // server-accepted login has authority; a refresh-only candidate does not.
       if (sessionVault.revision() !== restoreRevision && sessionVault.read()?.accessToken) {
+        reportNativeSessionStage("RESTORE_NEW_LOGIN_PRESERVED");
         serverSessionRestoreState = "ready";
         serverSessionRestoreRetryAt = 0;
         serverSessionRestoreNoticeShown = false;
@@ -632,6 +641,7 @@ function beginServerSessionRestore(): Promise<boolean> {
       navReset({ url: "/pages/login/login" });
       return false;
     }
+    reportNativeSessionStage("RESTORE_FAILED");
     if (error instanceof ApiError && (error.message === "COOKIE_LOCK_UNAVAILABLE"
         || error.message === "COOKIE_ROTATION_STORAGE_UNAVAILABLE")) {
       secureBrowserUnsupported = true;

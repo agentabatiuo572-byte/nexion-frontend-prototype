@@ -3,7 +3,10 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 // @ts-expect-error This local bridge test runs in Node; App types omit Node.
 import { Buffer } from "node:buffer";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createNativeSessionStorage } from "./native-session-storage";
+import { createNativeSessionStorage, reportNativeSessionStage } from "./native-session-storage";
+import nativeSource from "./native-session-storage.ts?raw";
+import ts from "typescript";
+import { initPreContext, preJs } from "@dcloudio/uni-cli-shared/dist/preprocess";
 import { createSessionVault } from "./session-vault";
 import { createApiClient } from "./api-client";
 import { createAuthApi } from "./auth-api";
@@ -17,7 +20,9 @@ function platformHarness() {
     base64ToArrayBuffer: (text: string) => Uint8Array.from(Buffer.from(text, "base64")).buffer });
   const preferences = new Map<string, Map<string, string>>();
   const keys = new Map<string, Uint8Array>();
-  const fail = { deleteKey: false, commit: false, reads: false, spec: false, asyncMethod: "" };
+  const fail = { deleteKey: false, commit: false, reads: false, spec: false, logs: false, asyncMethod: "" };
+  const stages: string[] = [];
+  let logAttempts = 0;
   let host = "io.dcloud.HBuilder";
   const classes: Record<string, unknown> = {
     "android.os.Build$VERSION": { SDK_INT: 36 },
@@ -50,6 +55,11 @@ function platformHarness() {
       } };
   }
   const statics: Record<string, Record<string, (...args: any[]) => unknown>> = {
+    "android.util.Log": { i: (tag: string, stage: string) => {
+      logAttempts += 1;
+      if (fail.logs) throw new Error("synthetic-secret-native-log-failure");
+      expect(tag).toBe("UvelAuth"); stages.push(stage); return 0;
+    } },
     "java.security.KeyStore": { getInstance: () => store },
     "android.text.TextUtils": { split: (value: string, pattern: string) => value.split(pattern) },
     "android.util.Base64": { decode: (text: string) => Buffer.from(text, "base64"), encodeToString: (bytes: Uint8Array) => Buffer.from(bytes).toString("base64") },
@@ -76,14 +86,88 @@ function platformHarness() {
     },
   };
   const platform = { os: { name: "Android" }, android } as unknown as Awaited<ReturnType<NonNullable<Parameters<typeof createNativeSessionStorage>[0]["platform"]>>>;
+  vi.stubGlobal("plus", platform);
   const adapter = (baseUrl = "https://example.test", installation = "synthetic-install-A") => createNativeSessionStorage({ baseUrl, installationId: () => installation, platform: async () => platform });
-  return { adapter, platform, preferences, keys, fail, android, classes, setHost: (value: string) => { host = value; } };
+  return { adapter, platform, preferences, keys, fail, android, classes, stages, logAttempts: () => logAttempts, setHost: (value: string) => { host = value; } };
 }
 const persisted = { schema: 1, refreshToken: "synthetic-only-refresh", tokenType: "Bearer",
   user: { userId: 7101, countryCode: "+86", phone: "13800007101", nickname: "测试 · Việt · 🌏", onboardingComplete: true } };
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Android OS-encrypted native refresh persistence", () => {
+  it("records fixed service stages around real persistence, cold hydration and one shared refresh", async () => {
+    const h = platformHarness(), adapter = h.adapter(); await adapter.ready();
+    const vault = createSessionVault(adapter, { deferHydration: true }); vault.hydrate();
+    vault.save({ ...persisted, accessToken: "synthetic-original-access" });
+    const coldAdapter = h.adapter(); await coldAdapter.ready();
+    const cold = createSessionVault(coldAdapter, { deferHydration: true }); cold.hydrate();
+    const request = vi.fn().mockResolvedValue({ status: 200, data: { code: 0, message: "synthetic-secret-response", data: {
+      ...persisted, refreshToken: "synthetic-rotated-refresh", accessToken: "synthetic-rotated-access",
+    } }, headers: {} });
+    const client = createApiClient({ baseUrl: "https://example.test", vault: cold, transport: { request } });
+    await Promise.all([client.refreshSession(), client.refreshSession()]);
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(h.stages).toEqual(["PLATFORM_ANDROID", "STORAGE_READY", "PERSIST_VERIFIED",
+      "PLATFORM_ANDROID", "STORAGE_READY", "REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED", "PERSIST_VERIFIED", "REFRESH_COMMITTED"]);
+    expect(h.android.invoke.mock.calls.filter(args => args[0] === "android.util.Log"))
+      .toEqual(h.stages.map(stage => ["android.util.Log", "i", "UvelAuth", stage]));
+    expect(JSON.stringify(h.stages)).not.toContain("synthetic");
+    expect(JSON.stringify(h.stages)).not.toContain(persisted.user.nickname);
+    const reopened = h.adapter(); await reopened.ready(); expect(reopened.get()).toMatchObject({ refreshToken: "synthetic-rotated-refresh" });
+  });
+
+  it("keeps persistence and its original failure when both log channels throw", async () => {
+    const h = platformHarness(); h.fail.logs = true;
+    vi.spyOn(console, "info").mockImplementation(() => { throw new Error("synthetic-secret-console-failure"); });
+    const adapter = h.adapter(); await adapter.ready(); adapter.set(persisted);
+    const reopened = h.adapter(); await reopened.ready(); expect(reopened.get()).toEqual(persisted);
+    h.fail.commit = true;
+    expect(() => adapter.set(persisted)).toThrow("NATIVE_SESSION_STORAGE_UNAVAILABLE");
+    expect(h.logAttempts()).toBeGreaterThan(0);
+  });
+
+  it.each([false, true])("rejects non-whitelisted payloads and uses only fixed INFO fallback with bridge missing=%s", missing => {
+    const h = platformHarness(), info = vi.spyOn(console, "info").mockImplementation(() => {});
+    reportNativeSessionStage("synthetic-secret-not-a-stage" as Parameters<typeof reportNativeSessionStage>[0]);
+    expect(h.logAttempts()).toBe(0); expect(info).not.toHaveBeenCalled();
+    h.fail.logs = true;
+    if (missing) vi.stubGlobal("plus", undefined);
+    reportNativeSessionStage("RESTORE_BEGIN");
+    expect(info.mock.calls).toEqual([["UvelAuth", "RESTORE_BEGIN"]]);
+    expect(JSON.stringify(info.mock.calls)).not.toContain("synthetic-secret");
+  });
+
+  it("compiles the real diagnostic function to a H5 no-op with the installed Uni preprocessor", () => {
+    const h = platformHarness(), info = vi.spyOn(console, "info").mockImplementation(() => {});
+    initPreContext("h5");
+    const ast = ts.createSourceFile("native-session-storage.ts", preJs(nativeSource, "native-session-storage.ts"), ts.ScriptTarget.Latest, true);
+    const logger = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "reportNativeSessionStage")!;
+    const code = ts.transpileModule(logger.getText(ast).replace(/^export /, ""), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+    const log = new Function(`${code}; return reportNativeSessionStage;`)() as typeof reportNativeSessionStage;
+    log("REFRESH_BEGIN");
+    expect(h.logAttempts()).toBe(0); expect(info).not.toHaveBeenCalled();
+  });
+
+  it.each(["denied", "protocol", "persist"])("separates %s refresh failure without logging response or credential values", async failure => {
+    const h = platformHarness(), adapter = h.adapter(); await adapter.ready();
+    const vault = createSessionVault(adapter, { deferHydration: true }); vault.hydrate();
+    vault.save({ ...persisted, accessToken: "synthetic-original-access" }); h.stages.length = 0;
+    h.fail.commit = failure === "persist";
+    const data = failure === "protocol" ? { accessToken: "synthetic-invalid-response" }
+      : { ...persisted, accessToken: "synthetic-successor-access", refreshToken: "synthetic-successor-refresh" };
+    const request = vi.fn().mockResolvedValue({ status: failure === "denied" ? 401 : 200,
+      data: { code: failure === "denied" ? 401 : 0, message: "synthetic-secret-response", data }, headers: {} });
+    const unauthorized = vi.fn(), client = createApiClient({ baseUrl: "https://example.test", vault, transport: { request }, onUnauthorized: unauthorized });
+    await expect(client.refreshSession()).rejects.toThrow(failure === "denied" ? "SESSION_EXPIRED"
+      : failure === "protocol" ? "AUTH_RESPONSE_INVALID" : "NATIVE_SESSION_STORAGE_UNAVAILABLE");
+    expect(h.stages).toEqual(failure === "denied" ? ["REFRESH_BEGIN", "REFRESH_DENIED"]
+      : failure === "protocol" ? ["REFRESH_BEGIN", "REFRESH_RESPONSE_INVALID", "REFRESH_FAILED"]
+      : ["REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED", "PERSIST_FAILED", "REFRESH_FAILED"]);
+    expect(unauthorized).toHaveBeenCalledTimes(failure === "denied" ? 1 : 0);
+    expect(vault.read()?.accessToken ?? null).toBe(failure === "protocol" ? "synthetic-original-access" : null);
+    expect(JSON.stringify(h.stages)).not.toContain("synthetic");
+  });
+
   it("persists only encrypted refresh data and reopens it in a fresh vault with no access token", async () => {
     const h = platformHarness(), adapter = h.adapter();
     expect(() => adapter.get()).toThrow("NATIVE_SESSION_STORAGE_UNAVAILABLE");

@@ -11,6 +11,7 @@
  * cryptographic proof of a physical device.
  */
 import { mockServerUuid } from "@/store/mock-id";
+import { reportNativeSessionStage } from "@/api/native-session-storage";
 
 const STORAGE_KEY = "nexgrid-device-id-v1";
 let runtimeIdentity: DeviceIdentity | null = null;
@@ -68,6 +69,7 @@ export function getDeviceIdentity(): DeviceIdentity {
     const cached = uni.getStorageSync(STORAGE_KEY) as DeviceIdentity | "";
     if (cached && typeof cached === "object" && cached.deviceId) {
       runtimeIdentity = { deviceId: cached.deviceId, deviceName: cached.deviceName || "Web device" };
+      reportNativeSessionStage("INSTALLATION_REUSED");
       return { ...runtimeIdentity };
     }
   } catch {
@@ -77,9 +79,11 @@ export function getDeviceIdentity(): DeviceIdentity {
     deviceId: mockServerUuid(),
     deviceName: deriveDeviceName(readSystemInfo()),
   };
+  reportNativeSessionStage("INSTALLATION_CREATED");
   try {
     uni.setStorageSync(STORAGE_KEY, identity);
   } catch {
+    reportNativeSessionStage("INSTALLATION_WRITE_THREW");
     // storage unavailable — identity is still valid for this session
   }
   runtimeIdentity = identity;

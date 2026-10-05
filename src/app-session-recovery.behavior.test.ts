@@ -5,6 +5,7 @@ import { createApiClient } from "./api/api-client";
 import { createAuthApi } from "./api/auth-api";
 import { createSessionVault, type KeyValueStorage } from "./api/session-vault";
 import { ApiError } from "./api/errors";
+import { reportNativeSessionStage } from "./api/native-session-storage";
 import { createRemoteAccountEpoch } from "./lib/remote-account-epoch";
 import { isPublicAuthRoute } from "./lib/auth-route-visibility";
 
@@ -47,6 +48,7 @@ function harness(request = vi.fn(), route = "pages/earn/earn", native?: { storag
   const authApi = createAuthApi(api, vault, { refreshCredentialMode });
   const complete = vi.fn((input: { identity: string }) => { auth.isAuthenticated = true; auth.accountId = input.identity; return { ok: true }; });
   const deps = {
+    reportNativeSessionStage,
     authApi, sessionVault: vault, useAuth: () => auth, useApp: () => app,
     useSession: () => ({ signOutSession: vi.fn() }),
     useConversations: () => ({ suspendForReauthentication }),
@@ -74,7 +76,40 @@ function harness(request = vi.fn(), route = "pages/earn/earn", native?: { storag
   return { ...compiled, vault, appEpoch, storesEpoch, auth, app, api, authApi, request, stop, nav, toast, complete, suspendForReauthentication };
 }
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+it.each(["success", "empty", "hydrate-failed", "completion-failed"])("records actual App %s recovery stages without secret payloads", async state => {
+  const stages: string[] = [];
+  vi.stubGlobal("plus", { android: { invoke: (target: string, method: string, tag: string, stage: string) => {
+    expect([target, method, tag]).toEqual(["android.util.Log", "i", "UvelAuth"]); stages.push(stage); return 0;
+  } } });
+  const request = vi.fn().mockResolvedValue(response(200, { ...session(), refreshToken: "synthetic-successor-refresh" }));
+  const h = harness(request, "pages/index/index", { storage: {
+    get: () => {
+      if (state === "hydrate-failed") throw new ApiError({ kind: "configuration", message: "NATIVE_SESSION_STORAGE_UNAVAILABLE" });
+      return state === "empty" ? null : { schema: 1, refreshToken: "synthetic-refresh", tokenType: "Bearer", user };
+    }, set: vi.fn(), remove: vi.fn(),
+  } });
+  if (state === "completion-failed") h.complete.mockReturnValue({ ok: false });
+  await expect(h.restore()).resolves.toBe(state === "success");
+  expect(stages).toEqual(state === "empty" ? ["RESTORE_BEGIN", "HYDRATE_EMPTY", "RESTORE_NO_SESSION"]
+    : state === "hydrate-failed" ? ["RESTORE_BEGIN", "RESTORE_STORAGE_FAILED"]
+    : ["RESTORE_BEGIN", "HYDRATE_CANDIDATE", "REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED", "REFRESH_COMMITTED",
+      state === "success" ? "UI_COMPLETE_OK" : "UI_COMPLETE_FAILED"]);
+  expect(request).toHaveBeenCalledTimes(state === "empty" || state === "hydrate-failed" ? 0 : 1);
+  expect(JSON.stringify(stages)).not.toContain("synthetic"); expect(JSON.stringify(stages)).not.toContain(user.phone);
+});
+
+it("retains the actual App restore result and authority when both diagnostic channels throw", async () => {
+  const invoke = vi.fn(() => { throw new Error("synthetic-secret-bridge-failure"); });
+  vi.stubGlobal("plus", { android: { invoke } });
+  vi.spyOn(console, "info").mockImplementation(() => { throw new Error("synthetic-secret-console-failure"); });
+  const request = vi.fn().mockResolvedValue(response(200, { ...session(), refreshToken: "synthetic-successor-refresh" }));
+  const h = harness(request, "pages/index/index", { storage: { get: () => ({ schema: 1, refreshToken: "synthetic-refresh", tokenType: "Bearer", user }), set: vi.fn(), remove: vi.fn() } });
+  await expect(h.restore()).resolves.toBe(true);
+  expect(h.state()).toBe("ready"); expect(h.auth.isAuthenticated).toBe(true);
+  expect(request).toHaveBeenCalledTimes(1); expect(invoke).toHaveBeenCalled();
+});
 
 describe("App cookie restoration and expired account isolation", () => {
   it.each([

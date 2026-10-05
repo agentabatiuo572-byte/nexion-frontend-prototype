@@ -25,7 +25,7 @@
 
       <template v-else-if="uncertain || multipleIntents.length || (config && config.unresolvedIntent === undefined)">
         <text class="screen-title">{{ c.title }}</text>
-        <view class="notice" role="alert"><text>{{ multipleIntents.length ? c.multipleIntents : uncertain ? c.unknown : c.recoveryUnavailable }}</text></view>
+        <view v-if="!busy || !uncertain" class="notice" role="alert"><text>{{ multipleIntents.length ? c.multipleIntents : uncertain ? c.unknown : c.recoveryUnavailable }}</text></view>
         <view v-for="intent in multipleIntents" :key="intent.quoteNo" class="action secondary" role="button" tabindex="0" :aria-disabled="busy" @click="openIntent(intent)" @keydown.enter.prevent="openIntent(intent)" @keydown.space.prevent="openIntent(intent)"><text>{{ intent.withdrawalNo || intent.quoteNo }}</text></view>
         <view class="action primary" role="button" tabindex="0" data-testid="bank-refresh" :aria-disabled="busy" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.reload }}</text></view>
       </template>
