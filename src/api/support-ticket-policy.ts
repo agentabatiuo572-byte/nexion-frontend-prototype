@@ -24,11 +24,22 @@ export interface TicketCreationPolicy {
   activeTickets: number;
 }
 
+/** BASIC describes the delivered POST capability, not admission for a draft. */
+export type TicketCreationCapability = { mode: 'BASIC' } | TicketCreationPolicy;
+
+export function parseTicketCreationCapability(value: unknown): TicketCreationCapability {
+  if (value && typeof value === 'object' && 'mode' in value) {
+    if (!Array.isArray(value) && value.mode === 'BASIC' && Object.keys(value).length === 1) return { mode: 'BASIC' };
+    throw new ApiError({ kind: 'protocol', message: 'SUPPORT_TICKET_POLICY_INVALID' });
+  }
+  return parseTicketCreationPolicy(value);
+}
+
 export function parseTicketCreationPolicy(value: unknown): TicketCreationPolicy {
   const v = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
   const counts = ['retryAfterSeconds', 'cooldownSeconds', 'windowHours', 'maxCreatedInWindow', 'maxActiveTickets', 'createdInWindow', 'activeTickets'];
   const positive = ['cooldownSeconds', 'windowHours', 'maxCreatedInWindow', 'maxActiveTickets'];
-  if (!v || typeof v.allowed !== 'boolean'
+  if (!v || 'mode' in v || typeof v.allowed !== 'boolean'
     || counts.some(key => typeof v[key] !== 'number' || !Number.isSafeInteger(v[key]) || (v[key] as number) < 0)
     || positive.some(key => (v[key] as number) < 1)
     || (v.allowed ? v.reasonCode !== null : !ticketCreationReasons.includes(v.reasonCode as TicketCreationReason))

@@ -15,6 +15,25 @@ function apiFor(status: number, code: number, message: string, data: unknown) {
   return { api: createSupportApi(createApiClient({ baseUrl: 'http://127.0.0.1:8110', vault, transport: { request } })), request };
 }
 describe('server ticket creation admission', () => {
+  it('reads the delivered BASIC capability without inventing admission or limits', async () => {
+    const { api, request } = apiFor(200, 0, 'OK', { mode: 'BASIC' });
+    expect(await api.ticketCreationPolicy()).toEqual({ mode: 'BASIC' });
+    expect(request.mock.calls[0]?.[0]).toMatchObject({ method: 'GET', url: 'http://127.0.0.1:8110/api/app/support/tickets/creation-policy' });
+  });
+  it.each([null, {}, { mode: 'UNKNOWN' }, { mode: 'basic' }, { mode: 'BASIC', allowed: true },
+    { mode: 'BASIC', cooldownSeconds: 60 }, { ...policy, mode: 'BASIC', allowed: false, reasonCode: 'SUPPORT_TICKET_CREATE_DUPLICATE' }])
+    ('rejects malformed or mixed capability responses', async value => {
+      const { api } = apiFor(200, 0, 'OK', value);
+      await expect(api.ticketCreationPolicy()).rejects.toThrow('SUPPORT_TICKET_POLICY_INVALID');
+    });
+  it.each([401, 403, 404, 429, 500])('does not turn HTTP %s into BASIC capability', async status => {
+    const { api } = apiFor(status, status, status === 404 ? 'SUPPORT_TICKET_NOT_FOUND' : 'UNAVAILABLE', { mode: 'BASIC' });
+    await expect(api.ticketCreationPolicy()).rejects.toThrow();
+  });
+  it('does not confuse BASIC capability with a created ticket', async () => {
+    const { api } = apiFor(200, 0, 'OK', { mode: 'BASIC' });
+    await expect(api.createTicket({ category: 'technical', subject: 'Test', body: 'Test' }, 'fixture-key')).rejects.toThrow();
+  });
   it.each([
     [409, 'SUPPORT_REPLY_REQUIRED', true],
     [409, 'SUPPORT_COMMAND_FAILED_RETRYABLE', false],

@@ -1,6 +1,6 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
-import { parseTicketCreationPolicy, requireTicketCreationResult, ticketCreationDenials, type TicketCreationPolicy } from './support-ticket-policy';
+import { parseTicketCreationCapability, requireTicketCreationResult, ticketCreationDenials, type TicketCreationCapability } from './support-ticket-policy';
 import { parseServerTimestamp } from "./server-time";
 import type { Conversation, ConversationCategoryAvailability, ConvMessage, SupportFaq, SupportSlaTarget, Ticket, TicketCategory, TicketMessage, TicketPriority, TicketStatus } from "@/domain/support";
 
@@ -30,7 +30,7 @@ export interface SupportApi {
   authorityRevision(): Promise<string>;
   advisor(): Promise<CurrentAdvisor>;
   tickets(): Promise<Page<Ticket>>;
-  ticketCreationPolicy(): Promise<TicketCreationPolicy>;
+  ticketCreationPolicy(): Promise<TicketCreationCapability>;
   ticket(id: string, beforeMessageId?: number): Promise<Ticket>;
   markTicketRead(ticket: Ticket): Promise<Ticket>;
   createTicket(input: TicketInput, key: string): Promise<Ticket>;
@@ -267,7 +267,7 @@ export function createSupportApi(client: ApiClient): SupportApi {
     authorityRevision: async () => "canonical-v1",
     advisor: async () => parseCurrentAdvisor(await client.request({ method: "GET", path: `${supportRoot}/advisor` })),
     tickets: allTickets,
-    ticketCreationPolicy: async () => parseTicketCreationPolicy(await client.request({ method: 'GET', path: await supportPath('/tickets/creation-policy') })),
+    ticketCreationPolicy: async () => parseTicketCreationCapability(await client.request({ method: 'GET', path: await supportPath('/tickets/creation-policy') })),
     ticket: async (id, beforeMessageId) => parseTicketDetail(await client.request({ method: "GET", path: `${await supportPath(`/tickets/${pathId(id)}`)}${pathCursor(beforeMessageId)}` })),
     markTicketRead: async ticket => parseTicketDetail(await client.request({ method: "POST", path: await supportPath(`/tickets/${pathId(ticket.id)}/read`), body: { expectedStatus: ticket.status.toUpperCase(), expectedVersion: ticket.version } })),
     createTicket: async (input, key) => parseTicketDetail(requireTicketCreationResult(await client.request({ method: "POST", path: await supportPath("/tickets"), idempotencyKey: requiredKey(key), body: { category: input.category, title: input.subject.trim(), body: input.body.trim(), clientMessageId: key }, acceptedResponses: ticketCreationDenials }))),

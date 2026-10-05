@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\app-rewards-precision-w75-20261005",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-ticket-basic-w81-20261005",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "f5b6e087db8ed7a8e68c314b8182cadcf7ebe213",
-  "sourceRef": "f5b6e087db8ed7a8e68c314b8182cadcf7ebe213",
+  "sourceHead": "cc9b073742a84a5f0c8dc9adebe61abdbe411995",
+  "sourceRef": "cc9b073742a84a5f0c8dc9adebe61abdbe411995",
   "sourceRefKind": "commit",
-  "sourceTree": "3c9488eec6de35b8d5f67687bbe2309e988c7cf1",
+  "sourceTree": "e7d841e466ec6b766ee251607f2faeb311b99de6",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -3240,10 +3240,10 @@
       "mode": "100644"
     },
     "docs/message-system-ux.md": {
-      "sourceBlob": "f03a1042d3c8b42f20bc755f8d354ebb2e6e71cc",
-      "sourceSha256": "7a22faa734ddced492ec6f0256361939a30481763d8976e59ddb7e72d6e894de",
-      "targetBlob": "f03a1042d3c8b42f20bc755f8d354ebb2e6e71cc",
-      "targetSha256": "7a22faa734ddced492ec6f0256361939a30481763d8976e59ddb7e72d6e894de",
+      "sourceBlob": "96cd8cd12d24d97527de98b058255d46eb77d31a",
+      "sourceSha256": "e55684e8b9e9ad4a4c7c3ea2a6956f067619dfcc391d2f719c9f6b9306ba736b",
+      "targetBlob": "96cd8cd12d24d97527de98b058255d46eb77d31a",
+      "targetSha256": "e55684e8b9e9ad4a4c7c3ea2a6956f067619dfcc391d2f719c9f6b9306ba736b",
       "mode": "100644"
     },
     "docs/phone-calibration-core-plan-r2.json": {
@@ -6880,10 +6880,10 @@
       "mode": "100644"
     },
     "src/api/support-api.ts": {
-      "sourceBlob": "507a08f4be3e277f238ad0b5be464b5700a5afc4",
-      "sourceSha256": "9e8942a2fb390046f5b1e732c19f63012758ce34884605592dfeb5c9acb2c33c",
-      "targetBlob": "507a08f4be3e277f238ad0b5be464b5700a5afc4",
-      "targetSha256": "9e8942a2fb390046f5b1e732c19f63012758ce34884605592dfeb5c9acb2c33c",
+      "sourceBlob": "c7454eb2b15079f773db7198a0752f52a25103a7",
+      "sourceSha256": "6efb77396714782ae57b84e92cee31ef7821eaa08facf7b7ade8f6802ae768f1",
+      "targetBlob": "c7454eb2b15079f773db7198a0752f52a25103a7",
+      "targetSha256": "6efb77396714782ae57b84e92cee31ef7821eaa08facf7b7ade8f6802ae768f1",
       "mode": "100644"
     },
     "src/api/support-category.test.ts": {
@@ -6922,17 +6922,17 @@
       "mode": "100644"
     },
     "src/api/support-ticket-policy.test.ts": {
-      "sourceBlob": "8d8e96a6c53b8abb061fca269bc0890d261ec0ad",
-      "sourceSha256": "1c63cd0dd0304e8ac11e89bd30203102cd9c8ee25f5c0860a0c75e12441cc05e",
-      "targetBlob": "8d8e96a6c53b8abb061fca269bc0890d261ec0ad",
-      "targetSha256": "1c63cd0dd0304e8ac11e89bd30203102cd9c8ee25f5c0860a0c75e12441cc05e",
+      "sourceBlob": "7c6365a5752c1f67ba80a95842947076a1b6b137",
+      "sourceSha256": "15f8b9a683b45bb6ac60cc4b91cd2dd12084682479c13439a032ad35f89c5ab6",
+      "targetBlob": "7c6365a5752c1f67ba80a95842947076a1b6b137",
+      "targetSha256": "15f8b9a683b45bb6ac60cc4b91cd2dd12084682479c13439a032ad35f89c5ab6",
       "mode": "100644"
     },
     "src/api/support-ticket-policy.ts": {
-      "sourceBlob": "b0049a129da23c1e4b0dc5b3f2b88ed593094ba4",
-      "sourceSha256": "da412144b30edf5ac3790da9cc0e513d060d6c518d29e94f292eef3fce29f334",
-      "targetBlob": "b0049a129da23c1e4b0dc5b3f2b88ed593094ba4",
-      "targetSha256": "da412144b30edf5ac3790da9cc0e513d060d6c518d29e94f292eef3fce29f334",
+      "sourceBlob": "b0a2af093d3f539e8e9fa97f80373be32a02c8eb",
+      "sourceSha256": "b913b614c72024a4a50eac896251a4a6ebe58c582824dc194ff426c190cd8a59",
+      "targetBlob": "b0a2af093d3f539e8e9fa97f80373be32a02c8eb",
+      "targetSha256": "b913b614c72024a4a50eac896251a4a6ebe58c582824dc194ff426c190cd8a59",
       "mode": "100644"
     },
     "src/api/task-assignment-api.test.ts": {
@@ -12893,10 +12893,10 @@
       "mode": "100644"
     },
     "src/pages/me/me-ui-parity.contract.test.ts": {
-      "sourceBlob": "01091c33b3665c1e30cbb9fa81fdbf4eab74d138",
-      "sourceSha256": "142b33ed0f8a9c4f19d011f9bd46c2be5adfa34ff3224e45d97cce72e9e5bbba",
-      "targetBlob": "01091c33b3665c1e30cbb9fa81fdbf4eab74d138",
-      "targetSha256": "142b33ed0f8a9c4f19d011f9bd46c2be5adfa34ff3224e45d97cce72e9e5bbba",
+      "sourceBlob": "f619031b314ccd2bdf7a60b5a10d32e57fe48ef9",
+      "sourceSha256": "d35c40d950775457a7bc3aa092b7f8440382f84713197ea6328b174649e453c6",
+      "targetBlob": "f619031b314ccd2bdf7a60b5a10d32e57fe48ef9",
+      "targetSha256": "d35c40d950775457a7bc3aa092b7f8440382f84713197ea6328b174649e453c6",
       "mode": "100644"
     },
     "src/pages/me/me.vue": {
@@ -13151,6 +13151,13 @@
       "targetSha256": "5d82efa917a6e4a7423cb81340b56af14a46e946d8b00e0cf1615f579e733ed6",
       "mode": "100644"
     },
+    "src/pages/me/support-ticket-creation.behavior.test.ts": {
+      "sourceBlob": "50bb56fa6e0591540bca45d615800606951ff0e8",
+      "sourceSha256": "bc489e760f1bb1a85b13346f4d1b60e269b1b8dd897f067cbc2c339e40265222",
+      "targetBlob": "50bb56fa6e0591540bca45d615800606951ff0e8",
+      "targetSha256": "bc489e760f1bb1a85b13346f4d1b60e269b1b8dd897f067cbc2c339e40265222",
+      "mode": "100644"
+    },
     "src/pages/me/support-ticket-faq-race.contract.test.ts": {
       "sourceBlob": "01cbba136ec0ff203e0f9abff47882a9b8d8b930",
       "sourceSha256": "3767ea0a02d9d8f741d88f3b5146843de5d9d26d5a263027f4fdbffde3a9b107",
@@ -13159,10 +13166,10 @@
       "mode": "100644"
     },
     "src/pages/me/support-tickets.vue": {
-      "sourceBlob": "57cc6d6cfd178cf1146b3adf2e8e283eadd20feb",
-      "sourceSha256": "490ad9c72368c7a20b0f587bd108d46516ad55ea350800f6bd920c8535f5d8a5",
-      "targetBlob": "57cc6d6cfd178cf1146b3adf2e8e283eadd20feb",
-      "targetSha256": "490ad9c72368c7a20b0f587bd108d46516ad55ea350800f6bd920c8535f5d8a5",
+      "sourceBlob": "bf7afbcc0ae4c030d32b4abae656c39d27f8df35",
+      "sourceSha256": "b86329eb7d4b4ca1fcafad979a08767d7fe5cf6b2ab7c2327b8a2cf775cdd520",
+      "targetBlob": "bf7afbcc0ae4c030d32b4abae656c39d27f8df35",
+      "targetSha256": "b86329eb7d4b4ca1fcafad979a08767d7fe5cf6b2ab7c2327b8a2cf775cdd520",
       "mode": "100644"
     },
     "src/pages/me/support.vue": {

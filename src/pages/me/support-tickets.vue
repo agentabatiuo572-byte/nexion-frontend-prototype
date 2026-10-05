@@ -58,10 +58,10 @@
       <view v-else-if="mode.kind === 'create'" class="px-4" style="display: flex; flex-direction: column; gap: 16px">
         <view class="ticket-creation-notice" role="status" aria-live="polite">
           <text>{{ creationNotice }}</text>
-          <text v-if="creationPolicy && !creationPolicy.allowed && creationPolicy.retryAfterSeconds > 0" class="block">{{ fmt(t.tickets.policyRetryAfter, { n: Math.max(1, Math.ceil(creationPolicy.retryAfterSeconds / 60)) }) }}</text>
+          <text v-if="enforcedCreationPolicy && !enforcedCreationPolicy.allowed && enforcedCreationPolicy.retryAfterSeconds > 0" class="block">{{ fmt(t.tickets.policyRetryAfter, { n: Math.max(1, Math.ceil(enforcedCreationPolicy.retryAfterSeconds / 60)) }) }}</text>
           <view class="ticket-creation-notice-actions">
-            <view v-if="creationPolicy?.existingTicketNo" class="family-control" role="button" tabindex="0" @click="openTicket(creationPolicy.existingTicketNo)"><LiquidGlass :radius="24" /><text>{{ t.tickets.policyViewTicket }}</text></view>
-            <view v-if="remoteApiEnabled && !creationPolicyLoading && (creationPolicyError || creationPolicy?.allowed === false)" class="family-control" role="button" tabindex="0" @click="loadCreationPolicy"><LiquidGlass :radius="24" /><text>{{ t.ui.retry }}</text></view>
+            <view v-if="enforcedCreationPolicy?.existingTicketNo" class="family-control" role="button" tabindex="0" @click="openTicket(enforcedCreationPolicy.existingTicketNo)"><LiquidGlass :radius="24" /><text>{{ t.tickets.policyViewTicket }}</text></view>
+            <view v-if="remoteApiEnabled && !creationPolicyLoading && (creationPolicyError || enforcedCreationPolicy?.allowed === false)" class="family-control" role="button" tabindex="0" @click="loadCreationPolicy"><LiquidGlass :radius="24" /><text>{{ t.ui.retry }}</text></view>
           </view>
         </view>
         <view>
@@ -191,7 +191,7 @@ import { useAuth } from "@/store/auth";
 import { binarySessionReady as accountSessionReady } from "@/lib/binary-session-ready";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { supportApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
-import { TicketCreationDenied, type TicketCreationPolicy } from '@/api/support-ticket-policy';
+import { TicketCreationDenied, type TicketCreationCapability } from '@/api/support-ticket-policy';
 import { useLocaleStore } from "@/store/locale";
 import { navReplace } from "@/lib/route";
 import { STATUS_COLOR, type Ticket, type TicketCategory, type TicketStatus, type SupportSlaTarget, type SupportFaq } from "@/domain/support";
@@ -247,7 +247,8 @@ const DESC_MAX = 2000;
 const submitAttempted = ref(false);
 const subjectInvalid = computed(() => submitAttempted.value && !subject.value.trim());
 const descInvalid = computed(() => submitAttempted.value && !desc.value.trim());
-const creationPolicy = ref<TicketCreationPolicy | null>(null);
+const creationPolicy = ref<TicketCreationCapability | null>(null);
+const enforcedCreationPolicy = computed(() => creationPolicy.value && !('mode' in creationPolicy.value) ? creationPolicy.value : null);
 const creationPolicyLoading = ref(false);
 const creationPolicyError = ref(false);
 const createSubmitting = ref(false);
@@ -255,12 +256,14 @@ let creationPolicyGeneration = 0;
 let createRequest = 0;
 let creationRetryTimer: ReturnType<typeof setTimeout> | null = null;
 const creationDisabled = computed(() => !supportSessionReady.value || ticketsStore.mutating || createSubmitting.value
-  || (remoteApiEnabled && (creationPolicyLoading.value || creationPolicyError.value || creationPolicy.value?.allowed !== true)));
+  || (remoteApiEnabled && (creationPolicyLoading.value || creationPolicyError.value || !creationPolicy.value
+    || ('mode' in creationPolicy.value ? creationPolicy.value.mode !== 'BASIC' : creationPolicy.value.allowed !== true))));
 const creationNotice = computed(() => {
   if (!remoteApiEnabled) return t.value.tickets.policyHint;
   if (creationPolicyError.value) return t.value.tickets.policyUnavailable;
   if (creationPolicyLoading.value || !creationPolicy.value) return t.value.tickets.policyChecking;
   const policy = creationPolicy.value;
+  if ('mode' in policy) return t.value.tickets.policyHint;
   switch (policy.reasonCode) {
     case 'SUPPORT_TICKET_CREATE_ACTIVE_LIMIT': return fmt(t.value.tickets.policyActiveLimit, { n: policy.activeTickets });
     case 'SUPPORT_TICKET_CREATE_DAILY_LIMIT': return fmt(t.value.tickets.policyDailyLimit, { hours: policy.windowHours });
@@ -273,11 +276,11 @@ function clearCreationRetry() {
   if (creationRetryTimer !== null) clearTimeout(creationRetryTimer);
   creationRetryTimer = null;
 }
-function acceptCreationPolicy(policy: TicketCreationPolicy) {
+function acceptCreationPolicy(policy: TicketCreationCapability) {
   clearCreationRetry();
   creationPolicy.value = policy;
   creationPolicyError.value = false;
-  if (!policy.allowed && policy.retryAfterSeconds > 0 && mode.value.kind === 'create') {
+  if (!('mode' in policy) && !policy.allowed && policy.retryAfterSeconds > 0 && mode.value.kind === 'create') {
     creationRetryTimer = setTimeout(() => { creationRetryTimer = null; void loadCreationPolicy(); }, Math.min(policy.retryAfterSeconds * 1000 + 250, 2_147_000_000));
   }
 }
@@ -303,7 +306,7 @@ function resetCreationPolicy() {
 watch(() => app.accountBindingEpoch, () => { resetCreationPolicy(); createRequest++; createSubmitting.value = false; }, { flush: 'sync' });
 watch(() => mode.value.kind, kind => { resetCreationPolicy(); if (kind === 'create') void loadCreationPolicy(); });
 watch([subject, desc, newCat], () => {
-  if (creationPolicy.value?.reasonCode === 'SUPPORT_TICKET_CREATE_DUPLICATE') { resetCreationPolicy(); void loadCreationPolicy(); }
+  if (creationPolicy.value && !('mode' in creationPolicy.value) && creationPolicy.value.reasonCode === 'SUPPORT_TICKET_CREATE_DUPLICATE') { resetCreationPolicy(); void loadCreationPolicy(); }
 });
 // An account switch must drop the previous account's draft, but it must not
 // discard the intent the address carries: a reload of ?mode=create has to keep
