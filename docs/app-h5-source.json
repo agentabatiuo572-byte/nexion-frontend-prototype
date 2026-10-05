@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\app-ticket-basic-w81-20261005",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "cc9b073742a84a5f0c8dc9adebe61abdbe411995",
-  "sourceRef": "cc9b073742a84a5f0c8dc9adebe61abdbe411995",
+  "sourceHead": "bf8a1202962e741b3f03b63ff784007fd3cee4ea",
+  "sourceRef": "bf8a1202962e741b3f03b63ff784007fd3cee4ea",
   "sourceRefKind": "commit",
-  "sourceTree": "e7d841e466ec6b766ee251607f2faeb311b99de6",
+  "sourceTree": "f774b0ed5b9295f120d610efebba5345a851b774",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -8056,17 +8056,17 @@
       "mode": "100644"
     },
     "src/components/me/deposit-bank-pane.vue": {
-      "sourceBlob": "302527c10f3f1982df1e003ab40cea341a48ce75",
-      "sourceSha256": "334c9e9c83273a4366b61cdd5ea945960788d179745f025f35eeacbb14dacb8e",
-      "targetBlob": "302527c10f3f1982df1e003ab40cea341a48ce75",
-      "targetSha256": "334c9e9c83273a4366b61cdd5ea945960788d179745f025f35eeacbb14dacb8e",
+      "sourceBlob": "bd3fcfe412f0e559adedfa8c24fde35bf7fae940",
+      "sourceSha256": "7e934706dc4f234d6601464a4a4c523510e6f1a3ff8f754b81c4373aaaf652e5",
+      "targetBlob": "bd3fcfe412f0e559adedfa8c24fde35bf7fae940",
+      "targetSha256": "7e934706dc4f234d6601464a4a4c523510e6f1a3ff8f754b81c4373aaaf652e5",
       "mode": "100644"
     },
     "src/components/me/deposit-bank-rejected.behavior.test.ts": {
-      "sourceBlob": "32c4650390263832582ff4b752ccb05f937987d4",
-      "sourceSha256": "9373e37e439a97ab0e3003da7c1d978510a2d59ddb8feff3d46e90b215193133",
-      "targetBlob": "32c4650390263832582ff4b752ccb05f937987d4",
-      "targetSha256": "9373e37e439a97ab0e3003da7c1d978510a2d59ddb8feff3d46e90b215193133",
+      "sourceBlob": "fe83228e2ce5413fbb24c17edb590c738b0d8470",
+      "sourceSha256": "ed2b95c30a281c32f940c3c498b04b944295035a5639fcf435ed1f8f5b60e8a2",
+      "targetBlob": "fe83228e2ce5413fbb24c17edb590c738b0d8470",
+      "targetSha256": "ed2b95c30a281c32f940c3c498b04b944295035a5639fcf435ed1f8f5b60e8a2",
       "mode": "100644"
     },
     "src/components/me/deposit-usdt-pane.behavior.test.ts": {

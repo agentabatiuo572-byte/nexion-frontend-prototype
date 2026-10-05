@@ -106,6 +106,15 @@
               <text>{{ creating ? t.bankPane.creating : t.bankPane.regenCta }}</text>
             </view>
           </view>
+          <view
+            v-if="hostedRejected"
+            :class="['nx-bank-new-topup-cta w-full grid place-items-center', creating ? '' : 'active:opacity-70']"
+            :style="ghostBtnStyle" role="button" tabindex="0"
+            :aria-disabled="creating"
+            @click="hostedRejected && paneView === 'order' && !creating && startNewTopup()"
+          >
+            <text :style="ghostTextStyle">{{ t.bankPane.newTopupCta }}</text>
+          </view>
           <view v-if="hostedRejected" class="nx-bank-support-link w-full grid place-items-center active:opacity-70" :style="ghostBtnStyle" role="button" tabindex="0" @click="goSupport">
             <text :style="ghostTextStyle">{{ t.help.contactSupport }}</text>
           </view>
@@ -623,6 +632,7 @@ function startNewTopup() {
   autoResumePending.value = false;
   viewIntentId.value = null;
   paidPressed.value = false;
+  createError.value = "";
 }
 
 // ── 真倒计时(派生自 expireAt,与 store 过期引擎同源;到点 store 翻 expired 视图自换)──

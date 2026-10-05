@@ -104,10 +104,11 @@ function creationFlow(dep: { intents: DepositIntent[] }, responses: number[], st
     }
     if (responseGate) await responseGate;
     const status = responses.shift() ?? 503;
+    const usdtAmount = (request.body as { usdtAmount: number }).usdtAmount;
     return { status, headers: {}, data: { code: status === 200 ? 0 : status,
       message: status === 200 ? "OK" : status === 503 ? "HDPAY_ORDER_SUBMIT_UNKNOWN" : "HDPAY_ORDER_CREATE_REJECTED",
-      data: status === 200 ? { intentNo: "VQR-new", usdtAmount: 5000, fxRate: quoteRate,
-        vndAmount: vndForUsdt(5000, quoteRate), status: "awaiting_payment",
+      data: status === 200 ? { intentNo: "VQR-new", usdtAmount, fxRate: quoteRate,
+        vndAmount: vndForUsdt(usdtAmount, quoteRate), status: "awaiting_payment",
         createdAt: new Date(now).toISOString(), expiresAt: new Date(now + 30 * 60_000).toISOString(),
         creditedUsdt: 0, feeVnd: 0, feeUsdt: 0, version: 1, paymentMode: "hosted",
         providerStatus: "created", paymentUrl: "https://api.hdpayadmin.com/pay?id=new" } : null } };
@@ -197,7 +198,7 @@ function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", tran
 beforeEach(() => { vi.useFakeTimers(); vi.spyOn(console, "warn").mockImplementation(() => {}); });
 afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); vi.useRealTimers(); vi.restoreAllMocks(); });
 
-test.each([zh, en, vietnamese])("a resumed rejected order offers explicit retry and support without automatic payment or POST", async (messages) => {
+test.each([zh, en, vietnamese])("a resumed rejected order offers explicit retry, new top-up and support without automatic payment or POST", async (messages) => {
   const view = pane("rejected", messages);
   expect(view.state.intent.value?.intentId).toBe("VQR-existing");
   expect(view.state.paneView.value).toBe("order");
@@ -207,9 +208,11 @@ test.each([zh, en, vietnamese])("a resumed rejected order offers explicit retry 
   expect(messages.help.contactSupport).toBeTypeOf("string");
   expect(html).toContain(messages.help.contactSupport);
   expect(html).toContain(messages.bankPane.regenCta);
+  expect(html).toContain(messages.bankPane.newTopupCta);
   expect(html).not.toContain(messages.bankPane.hostedPendingNote);
   expect(html).not.toContain(fmt(messages.bankPane.countdown, { time: "06:00" }));
   expect(html).toContain("nx-bank-regen-cta");
+  expect(html).toContain("nx-bank-new-topup-cta");
   expect(html).not.toMatch(/nx-bank-(?:create|hosted-continue|cancel)-cta/);
   view.state.goSupport();
   expect(view.navTo).toHaveBeenCalledExactlyOnceWith("/pages/me/support-tickets?mode=create&cat=deposit");
@@ -218,13 +221,75 @@ test.each([zh, en, vietnamese])("a resumed rejected order offers explicit retry 
   expect(view.dep.intents[0]).toMatchObject({ intentId: "VQR-existing", status: "awaiting_payment", providerStatus: "rejected" });
 });
 
-test.each(["pending", "submit_unknown", "not_submitted"] as const)("%s continues to show the existing pending guidance", async (status) => {
-  const view = pane(status), html = await view.html();
+test.each(["pending", "submit_unknown", "not_submitted", undefined] as const)("%s continues to show the existing pending guidance without a new top-up entry", async (status) => {
+  const view = pane(status ?? "pending");
+  view.dep.intents[0].providerStatus = status;
+  const html = await view.html();
   expect(html).toContain(zh.bankPane.hostedPendingNote);
   expect(html).toContain(fmt(zh.bankPane.countdown, { time: "06:00" }));
   expect(html).not.toContain(zh.bankPane.hostedRejectedNote);
   expect(html).not.toContain("nx-bank-regen-cta");
+  expect(html).not.toContain("nx-bank-new-topup-cta");
   expect(view.dep.createRemoteBankIntent).not.toHaveBeenCalled();
+});
+
+test.each(["submit_unknown", "pending"] as const)("a queued rejected-order new top-up click stays on the order after polling changes it to %s", async (status) => {
+  const view = pane(), mounted = view.mount();
+  view.state.createError.value = zh.bankPane.hostedRejectedNote;
+  await Vue.nextTick();
+  const newTopup = action(mounted.root, "nx-bank-new-topup-cta")!;
+  expect(newTopup).toBeDefined();
+  view.dep.intents[0].providerStatus = status;
+  const original = { ...view.dep.intents[0] };
+  expect(action(mounted.root, "nx-bank-new-topup-cta")).toBe(newTopup);
+  click(newTopup);
+  expect(view.state.paneView.value).toBe("order");
+  expect(view.state.intent.value?.intentId).toBe(original.intentId);
+  expect(view.state.createError.value).toBe(zh.bankPane.hostedRejectedNote);
+  await Vue.nextTick();
+  expect(action(mounted.root, "nx-bank-new-topup-cta")).toBeUndefined();
+  await vi.advanceTimersByTimeAsync(3000);
+  expect(view.dep.intents).toEqual([original]);
+  expect(view.dep.createRemoteBankIntent).not.toHaveBeenCalled();
+  expect(view.open).not.toHaveBeenCalled();
+});
+
+test("the rejected-order new top-up entry preserves the order and creates a different amount only after Generate", async () => {
+  const view = pane(), mounted = view.mount(), original = { ...view.dep.intents[0] };
+  const flow = creationFlow(view.dep, [200]);
+  view.dep.createRemoteBankIntent.mockImplementation(flow.create);
+  view.state.createError.value = zh.bankPane.hostedRejectedNote;
+  await Vue.nextTick();
+  const newTopup = action(mounted.root, "nx-bank-new-topup-cta");
+  expect(newTopup).toBeDefined();
+  click(newTopup!);
+  await Vue.nextTick();
+  expect(view.state.paneView.value).toBe("form");
+  expect(view.state.createError.value).toBe("");
+  expect(errorBanner(mounted.root)).toBeUndefined();
+  expect(view.dep.intents).toEqual([original]);
+  const amountInput = action(mounted.root, "tabular-nums")!;
+  expect(amountInput.kind).toBe("input");
+  (amountInput.props.onInput as (event: unknown) => void)({ detail: { value: "26" } });
+  view.dep.intents = [{ ...original }, { ...original, intentId: "VQR-older", status: "expired" }];
+  await vi.advanceTimersByTimeAsync(3000);
+  await Vue.nextTick();
+  expect(view.state.paneView.value).toBe("form");
+  expect(amountInput.props.value).toBe("26");
+  expect(view.dep.intents[0]).toEqual(original);
+  expect(view.dep.createRemoteBankIntent).not.toHaveBeenCalled();
+  expect(flow.requests).not.toHaveBeenCalled();
+  expect(view.open).not.toHaveBeenCalled();
+  const generate = action(mounted.root, "nx-bank-create-cta")!;
+  expect(generate.props["aria-disabled"]).toBe(false);
+  click(generate);
+  await vi.advanceTimersByTimeAsync(600);
+  await Vue.nextTick();
+  expect(view.dep.createRemoteBankIntent).toHaveBeenCalledExactlyOnceWith(26, "user:7");
+  expect(flow.requests).toHaveBeenCalledOnce();
+  expect(flow.requests.mock.calls[0][0].body).toEqual({ usdtAmount: 26 });
+  expect(view.state.intent.value).toMatchObject({ intentId: "VQR-new", usdtAmount: 26, providerStatus: "created" });
+  expect(view.dep.intents.find(item => item.intentId === original.intentId)).toEqual(original);
 });
 
 test("the rejected-order template retries its original amount and blocks duplicate clicks until the result settles", async () => {
@@ -241,6 +306,10 @@ test("the rejected-order template retries its original amount and blocks duplica
   click(mounted.retry()!);
   await Vue.nextTick();
   expect(mounted.retry()?.props["aria-disabled"]).toBe(true);
+  const newTopup = action(mounted.root, "nx-bank-new-topup-cta")!;
+  expect(newTopup.props["aria-disabled"]).toBe(true);
+  click(newTopup);
+  expect(view.state.paneView.value).toBe("order");
   expect(view.dep.createRemoteBankIntent).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(600);
   expect(view.dep.createRemoteBankIntent).toHaveBeenCalledExactlyOnceWith(5000, "user:7");
@@ -545,6 +614,7 @@ test("a refreshed created URL restores payment on the same order without creatin
   await Vue.nextTick();
   const html = await view.html();
   expect(html).toContain("nx-bank-hosted-continue-cta");
+  expect(html).not.toContain("nx-bank-new-topup-cta");
   expect(html).toContain(zh.bankPane.hostedSecureNote);
   expect(html).not.toContain(zh.bankPane.hostedRejectedNote);
   view.state.openHostedOrder(view.state.intent.value!);
