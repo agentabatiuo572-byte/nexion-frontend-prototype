@@ -72,7 +72,9 @@ export function getDeviceIdentity(): DeviceIdentity {
       reportNativeSessionStage("INSTALLATION_REUSED");
       return { ...runtimeIdentity };
     }
+    reportNativeSessionStage(cached === "" || cached === null || cached === undefined ? "INSTALLATION_READ_EMPTY" : "INSTALLATION_READ_INVALID");
   } catch {
+    reportNativeSessionStage("INSTALLATION_READ_THREW");
     // first run / storage unavailable
   }
   const identity: DeviceIdentity = {

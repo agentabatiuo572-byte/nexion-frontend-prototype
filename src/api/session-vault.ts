@@ -1,4 +1,5 @@
 import { isUserSession, type UserSession } from "./contracts";
+import { reportNativeSessionStage } from "./native-session-storage";
 
 export type RefreshCredentialMode = "token" | "cookie";
 
@@ -70,6 +71,7 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
         user: persisted.user,
       };
     } else if (storedValue !== undefined && storedValue !== null && storedValue !== "") {
+      reportNativeSessionStage("HYDRATE_PAYLOAD_REJECTED");
       storage.remove();
     }
     hydrated = true;

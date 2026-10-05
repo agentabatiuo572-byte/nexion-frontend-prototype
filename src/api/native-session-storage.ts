@@ -14,6 +14,10 @@ const SESSION_DIAGNOSTIC_STAGES = [
   "RESTORE_NO_SESSION", "RESTORE_SUPERSEDED", "RESTORE_STORAGE_FAILED", "RESTORE_FAILED",
   "RESTORE_NEW_LOGIN_PRESERVED", "UI_COMPLETE_OK", "UI_COMPLETE_FAILED",
   "INSTALLATION_REUSED", "INSTALLATION_CREATED", "INSTALLATION_WRITE_THREW",
+  "INSTALLATION_READ_EMPTY", "INSTALLATION_READ_INVALID", "INSTALLATION_READ_THREW",
+  "STORAGE_READ_BEGIN", "STORAGE_REVOKED", "STORAGE_RECORD_ABSENT", "STORAGE_KEY_ABSENT",
+  "STORAGE_READ_DECRYPTED", "STORAGE_READ_FAILED", "HYDRATE_PAYLOAD_REJECTED",
+  "STORAGE_REMOVE_BEGIN", "STORAGE_REMOVE_COMPLETE", "STORAGE_REMOVE_FAILED",
 ] as const;
 
 /** Fixed, non-secret service stages. Observability must never decide auth. */
@@ -138,19 +142,26 @@ export function createNativeSessionStorage(options: {
     const remove = () => {
       // A confirmed tombstone or deleted key prevents restoration after a
       // partial delete. Keep the tombstone until a new accepted login commits.
+      reportNativeSessionStage("STORAGE_REMOVE_BEGIN");
       let failed = false;
       try { commit([["revoked", "1"]]); } catch { failed = true; }
       try { call(store, "deleteEntry", alias); requireValue(!exists()); } catch { failed = true; }
       try { commit([["record", null]]); } catch { failed = true; }
-      if (failed) throw unavailable();
+      if (failed) { reportNativeSessionStage("STORAGE_REMOVE_FAILED"); throw unavailable(); }
+      reportNativeSessionStage("STORAGE_REMOVE_COMPLETE");
     };
     return {
       get() {
-        if (get("revoked") === "1") { remove(); return null; }
-        const record = get("record");
-        if (record === null) return null;
-        if (!exists()) { remove(); return null; }
-        return decrypt(record);
+        reportNativeSessionStage("STORAGE_READ_BEGIN");
+        try {
+          if (get("revoked") === "1") { reportNativeSessionStage("STORAGE_REVOKED"); remove(); return null; }
+          const record = get("record");
+          if (record === null) { reportNativeSessionStage("STORAGE_RECORD_ABSENT"); return null; }
+          if (!exists()) { reportNativeSessionStage("STORAGE_KEY_ABSENT"); remove(); return null; }
+          const value = decrypt(record);
+          reportNativeSessionStage("STORAGE_READ_DECRYPTED");
+          return value;
+        } catch (error) { reportNativeSessionStage("STORAGE_READ_FAILED"); throw error; }
       },
       set(value) {
         if (get("revoked") === "1") remove();

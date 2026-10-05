@@ -95,6 +95,47 @@ const persisted = { schema: 1, refreshToken: "synthetic-only-refresh", tokenType
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Android OS-encrypted native refresh persistence", () => {
+  it.each(["absent", "revoked", "key-absent", "decrypted", "read-failed"])("distinguishes cold storage %s using fixed stages and unchanged reads", async reason => {
+    const h = platformHarness(), adapter = h.adapter(); await adapter.ready();
+    if (reason !== "absent") adapter.set(persisted);
+    const prefs = [...h.preferences.values()][0];
+    if (reason === "revoked") prefs.set("revoked", "1");
+    if (reason === "key-absent") h.keys.clear();
+    if (reason === "read-failed") h.fail.reads = true;
+    h.stages.length = 0; h.android.invoke.mockClear();
+    if (reason === "read-failed") expect(() => adapter.get()).toThrow("NATIVE_SESSION_STORAGE_UNAVAILABLE");
+    else expect(adapter.get()).toEqual(reason === "decrypted" ? persisted : null);
+    const expected = reason === "read-failed" ? ["STORAGE_READ_BEGIN", "STORAGE_READ_FAILED"]
+      : reason === "decrypted" ? ["STORAGE_READ_BEGIN", "STORAGE_READ_DECRYPTED"]
+      : reason === "absent" ? ["STORAGE_READ_BEGIN", "STORAGE_RECORD_ABSENT"]
+      : ["STORAGE_READ_BEGIN", reason === "revoked" ? "STORAGE_REVOKED" : "STORAGE_KEY_ABSENT", "STORAGE_REMOVE_BEGIN", "STORAGE_REMOVE_COMPLETE"];
+    expect(h.stages).toEqual(expected);
+    // Original getString operations only; logging must not inspect a value twice.
+    expect(h.android.invoke.mock.calls.filter(args => args[1] === "getString").map(args => args[2]))
+      .toEqual(reason === "read-failed" ? ["revoked"] : reason === "decrypted" || reason === "absent" ? ["revoked", "record"]
+        : reason === "revoked" ? ["revoked", "revoked", "record"] : ["revoked", "record", "revoked", "record"]);
+    expect(JSON.stringify(h.stages)).not.toContain("synthetic");
+  });
+
+  it("distinguishes storage removal failure and never suppresses its original error", async () => {
+    const h = platformHarness(), adapter = h.adapter(); await adapter.ready(); adapter.set(persisted);
+    h.stages.length = 0; h.fail.deleteKey = true;
+    expect(() => adapter.remove()).toThrow("NATIVE_SESSION_STORAGE_UNAVAILABLE");
+    expect(h.stages).toEqual(["STORAGE_REMOVE_BEGIN", "STORAGE_REMOVE_FAILED"]);
+    h.fail.logs = true;
+    vi.spyOn(console, "info").mockImplementation(() => { throw new Error("synthetic-private-log-failure"); });
+    expect(() => adapter.remove()).toThrow("NATIVE_SESSION_STORAGE_UNAVAILABLE");
+  });
+
+  it("distinguishes a rejected persisted payload at the real vault hydration branch", async () => {
+    const h = platformHarness(), adapter = h.adapter(); await adapter.ready();
+    adapter.set({ schema: 1, refreshToken: "synthetic-invalid-payload" }); h.stages.length = 0;
+    const cold = createSessionVault(adapter, { deferHydration: true }); cold.hydrate();
+    expect(cold.read()).toBeNull();
+    expect(h.stages).toEqual(["STORAGE_READ_BEGIN", "STORAGE_READ_DECRYPTED", "HYDRATE_PAYLOAD_REJECTED", "STORAGE_REMOVE_BEGIN", "STORAGE_REMOVE_COMPLETE"]);
+    expect(h.keys.size).toBe(0);
+  });
+
   it("records fixed service stages around real persistence, cold hydration and one shared refresh", async () => {
     const h = platformHarness(), adapter = h.adapter(); await adapter.ready();
     const vault = createSessionVault(adapter, { deferHydration: true }); vault.hydrate();
@@ -107,8 +148,8 @@ describe("Android OS-encrypted native refresh persistence", () => {
     const client = createApiClient({ baseUrl: "https://example.test", vault: cold, transport: { request } });
     await Promise.all([client.refreshSession(), client.refreshSession()]);
     expect(request).toHaveBeenCalledTimes(1);
-    expect(h.stages).toEqual(["PLATFORM_ANDROID", "STORAGE_READY", "PERSIST_VERIFIED",
-      "PLATFORM_ANDROID", "STORAGE_READY", "REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED", "PERSIST_VERIFIED", "REFRESH_COMMITTED"]);
+    expect(h.stages).toEqual(["PLATFORM_ANDROID", "STORAGE_READY", "STORAGE_READ_BEGIN", "STORAGE_RECORD_ABSENT", "PERSIST_VERIFIED",
+      "PLATFORM_ANDROID", "STORAGE_READY", "STORAGE_READ_BEGIN", "STORAGE_READ_DECRYPTED", "REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED", "PERSIST_VERIFIED", "REFRESH_COMMITTED"]);
     expect(h.android.invoke.mock.calls.filter(args => args[0] === "android.util.Log"))
       .toEqual(h.stages.map(stage => ["android.util.Log", "i", "UvelAuth", stage]));
     expect(JSON.stringify(h.stages)).not.toContain("synthetic");
@@ -160,9 +201,9 @@ describe("Android OS-encrypted native refresh persistence", () => {
     const unauthorized = vi.fn(), client = createApiClient({ baseUrl: "https://example.test", vault, transport: { request }, onUnauthorized: unauthorized });
     await expect(client.refreshSession()).rejects.toThrow(failure === "denied" ? "SESSION_EXPIRED"
       : failure === "protocol" ? "AUTH_RESPONSE_INVALID" : "NATIVE_SESSION_STORAGE_UNAVAILABLE");
-    expect(h.stages).toEqual(failure === "denied" ? ["REFRESH_BEGIN", "REFRESH_DENIED"]
+    expect(h.stages).toEqual(failure === "denied" ? ["REFRESH_BEGIN", "REFRESH_DENIED", "STORAGE_REMOVE_BEGIN", "STORAGE_REMOVE_COMPLETE"]
       : failure === "protocol" ? ["REFRESH_BEGIN", "REFRESH_RESPONSE_INVALID", "REFRESH_FAILED"]
-      : ["REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED", "PERSIST_FAILED", "REFRESH_FAILED"]);
+      : ["REFRESH_BEGIN", "REFRESH_SERVER_ACCEPTED", "PERSIST_FAILED", "STORAGE_REMOVE_BEGIN", "STORAGE_REMOVE_FAILED", "REFRESH_FAILED"]);
     expect(unauthorized).toHaveBeenCalledTimes(failure === "denied" ? 1 : 0);
     expect(vault.read()?.accessToken ?? null).toBe(failure === "protocol" ? "synthetic-original-access" : null);
     expect(JSON.stringify(h.stages)).not.toContain("synthetic");

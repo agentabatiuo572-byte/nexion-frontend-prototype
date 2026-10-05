@@ -15,7 +15,7 @@ it.each([true, false])("uses original installation storage operations and fixed 
   vi.stubGlobal("uni", { getStorageSync: get, setStorageSync: set, removeStorageSync: vi.fn(), getSystemInfoSync: () => ({ brand: "Samsung", model: "Synthetic" }) });
   const first = getDeviceIdentity(), second = getDeviceIdentity();
   expect(first).toEqual(second); expect(get).toHaveBeenCalledTimes(1); expect(set).toHaveBeenCalledTimes(reused ? 0 : 1);
-  expect(stages).toEqual([reused ? "INSTALLATION_REUSED" : "INSTALLATION_CREATED"]);
+  expect(stages).toEqual(reused ? ["INSTALLATION_REUSED"] : ["INSTALLATION_READ_EMPTY", "INSTALLATION_CREATED"]);
   expect(JSON.stringify(invoke.mock.calls)).not.toContain("synthetic");
 });
 
@@ -27,7 +27,7 @@ it("keeps the original fail-soft installation identity when native and console l
   vi.stubGlobal("uni", { getStorageSync: get, setStorageSync: set, removeStorageSync: vi.fn(), getSystemInfoSync: () => ({ brand: "Samsung", model: "Synthetic" }) });
   expect(getDeviceIdentity()).toEqual(getDeviceIdentity());
   expect(get).toHaveBeenCalledTimes(1); expect(set).toHaveBeenCalledTimes(1);
-  expect(invoke.mock.calls.map(args => args[3])).toEqual(["INSTALLATION_CREATED", "INSTALLATION_WRITE_THREW"]);
+  expect(invoke.mock.calls.map(args => args[3])).toEqual(["INSTALLATION_READ_EMPTY", "INSTALLATION_CREATED", "INSTALLATION_WRITE_THREW"]);
 });
 
 it("keeps one installation ID during a run when native storage reads and writes fail", () => {
@@ -42,4 +42,18 @@ it("keeps one installation ID during a run when native storage reads and writes 
   expect(first.deviceId).toBeTruthy();
   expect(second).toEqual(first);
   expect(second).not.toBe(first);
+});
+
+it.each(["empty", "invalid", "throws"])("distinguishes installation storage %s without reading or writing again", reason => {
+  const stages: string[] = [], invoke = vi.fn((_target, _method, _tag, stage) => { stages.push(stage); return 0; });
+  vi.stubGlobal("plus", { android: { invoke } });
+  const get = vi.fn(() => {
+    if (reason === "throws") throw new Error("synthetic-private-storage-error");
+    return reason === "empty" ? "" : { deviceName: "synthetic-private-device-name" };
+  }), set = vi.fn();
+  vi.stubGlobal("uni", { getStorageSync: get, setStorageSync: set, removeStorageSync: vi.fn(), getSystemInfoSync: () => ({}) });
+  expect(getDeviceIdentity()).toEqual(getDeviceIdentity());
+  expect(get).toHaveBeenCalledTimes(1); expect(set).toHaveBeenCalledTimes(1);
+  expect(stages).toEqual([reason === "throws" ? "INSTALLATION_READ_THREW" : reason === "empty" ? "INSTALLATION_READ_EMPTY" : "INSTALLATION_READ_INVALID", "INSTALLATION_CREATED"]);
+  expect(JSON.stringify(invoke.mock.calls)).not.toContain("synthetic");
 });
