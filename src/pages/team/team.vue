@@ -79,7 +79,7 @@
               </view>
               <view class="flex-1 min-w-0">
                 <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.sevenLayerNetwork }}</text>
-                <text class="block" :style="quickRowMetaStyle">{{ t.directReferral.purchase }} · {{ t.directReferral.deviceEarning }}</text>
+                <text class="block" :style="quickRowMetaStyle">{{ t.directReferral.purchase }} · {{ t.directReferral.networkPurchase }} · {{ t.directReferral.deviceEarning }}</text>
               </view>
             </view>
             <view :style="quickRowValueWrapStyle">

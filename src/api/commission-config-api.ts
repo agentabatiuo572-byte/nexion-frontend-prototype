@@ -255,7 +255,7 @@ export function createCommissionConfigApi(client: ApiClient, mode: ApiEnvironmen
     async rates() {
       return parse(await client.request<unknown>({
         method: "GET",
-        path: "/api/config/commission/rates",
+        path: "/api/config/commission/rates?schemaVersion=2",
         authenticated: false,
       }), mode);
     },

@@ -27,9 +27,14 @@ export interface TeamUnilevelEvent {
   orderId: string | null; orderAmountUSD: number; amountUSDT: number; amountNEX: number;
   currency: string; status: CommissionEvent["status"]; ts: number; unlockAt: number;
   settlementState?: "SIMULATED" | "CANONICAL"; withdrawable?: boolean;
+  kind?: "direct_purchase" | "unilevel"; sourceRef?: string; policyVersion?: number;
+  nexUsdtPrice?: number | null; recoveryPendingUSDT?: number; recoveryPendingNEX?: number;
+  statusUSDT?: CommissionEvent["status"]; statusNEX?: CommissionEvent["status"];
 }
 export interface TeamUnilevelSplit { amountUSDT: number; amountNEX: number; count: number }
 export interface TeamUnilevelSnapshot extends TeamProvenance {
+  schemaVersion?: 2; settlementMode?: "LEGACY_7" | "DIRECT_ONLY_V1" | "SEVEN_V2"; filter?: "all" | "direct" | "extended";
+  summary?: { amountUSDT: number; amountNEX: number; count: number; creditedUSDT: number; creditedNEX: number; pendingUSDT: number; pendingNEX: number };
   period: LeaderPeriod; events: TeamUnilevelEvent[];
   split: { direct: TeamUnilevelSplit; extended: TeamUnilevelSplit };
   page: number; pageSize: number; totalRows: number; generatedAt: string; snapshotAt: string | null;
@@ -45,7 +50,7 @@ export interface TeamLeadershipPoolSnapshot extends TeamProvenance {
 export interface TeamInsightsApi {
   leaderboard(period: LeaderPeriod, page?: number, pageSize?: number, snapshotAt?: string | null, snapshotVersion?: string | null): Promise<TeamLeaderboardSnapshot>;
   commissions(page?: number, pageSize?: number, snapshotAt?: string | null): Promise<TeamCommissionSnapshot>;
-  unilevel(period: LeaderPeriod, page?: number, pageSize?: number, snapshotAt?: string | null): Promise<TeamUnilevelSnapshot>;
+  unilevel(period: LeaderPeriod, page?: number, pageSize?: number, snapshotAt?: string | null, filter?: "all" | "direct" | "extended"): Promise<TeamUnilevelSnapshot>;
   leadershipPool(): Promise<TeamLeadershipPoolSnapshot>;
 }
 
@@ -73,7 +78,7 @@ function leaderboard(value: unknown, mode: ApiEnvironment): TeamLeaderboardSnaps
 }
 
 const KINDS=new Set(["direct_purchase","direct_device_earning","unilevel","binary","peer","cultivation","leadership","genesis"]);
-const STATUSES=new Set(["cooling","unlocked","withdrawn","frozen","reversed","rejected","recovery_pending"]);
+const STATUSES=new Set(["waiting_calculation","cooling","unlocked","withdrawn","frozen","reversed","rejected","recovery_pending"]);
 function settlement(v: Record<string, unknown>): { settlementState?: "CANONICAL"; withdrawable?: boolean } {
   if (v.settlementState !== undefined && v.settlementState !== "CANONICAL") return invalid();
   if (v.withdrawable !== undefined && typeof v.withdrawable !== "boolean") return invalid();
@@ -121,7 +126,52 @@ function commissions(value: unknown, mode: ApiEnvironment): TeamCommissionSnapsh
 }
 
 function split(value: unknown): TeamUnilevelSplit { const source=row(value); return { amountUSDT:num(source.amountUSDT), amountNEX:num(source.amountNEX), count:num(source.count,true) }; }
-function unilevel(value: unknown, mode: ApiEnvironment): TeamUnilevelSnapshot { const source=row(value);const proof=provenance(source, mode);const period=source.period;if(period!=="today"&&period!=="week"&&period!=="month"&&period!=="all")return invalid();if(!Array.isArray(source.events))return invalid();const events=source.events.map((item):TeamUnilevelEvent=>{const v=row(item);if(Object.prototype.hasOwnProperty.call(v,"sourceUserId"))return invalid();const layer=num(v.layer,true);if(layer<1||layer>7)return invalid();const rawStatus=String(v.status);if(!STATUSES.has(rawStatus))return invalid();const ts=num(v.ts,true),unlockAt=num(v.unlockAt,true);const state=settlement(v);return {id:text(v.id),source:text(v.source),sourceUserName:text(v.sourceUserName),cycle:text(v.cycle),layer,orderId:v.orderId===null||v.orderId===undefined?null:text(v.orderId),orderAmountUSD:num(v.orderAmountUSD),amountUSDT:num(v.amountUSDT),amountNEX:num(v.amountNEX),currency:text(v.currency),status:rawStatus as CommissionEvent["status"],ts,unlockAt,...state};});const rawSplit=row(source.split);const generatedAt=text(source.generatedAt);if(!Number.isFinite(Date.parse(generatedAt)))return invalid();return {...proof,period,events,...paging(source,events.length),split:{direct:split(rawSplit.direct),extended:split(rawSplit.extended)},generatedAt,snapshotAt:snapshotAt(source)}; }
+function unilevel(value: unknown, mode: ApiEnvironment, expectedFilter: "all" | "direct" | "extended"): TeamUnilevelSnapshot {
+  const source = row(value), proof = provenance(source, mode), period = source.period;
+  if (!["today", "week", "month", "all"].includes(String(period)) || !Array.isArray(source.events)) return invalid();
+  const events = source.events.map((item): TeamUnilevelEvent => {
+    const v = row(item), layer = num(v.layer, true);
+    if (Object.prototype.hasOwnProperty.call(v, "sourceUserId") || layer < 1 || layer > 7
+      || (expectedFilter === "direct" && layer !== 1) || (expectedFilter === "extended" && layer === 1)
+      || !STATUSES.has(String(v.status))) return invalid();
+    if (v.kind !== undefined && v.kind !== "direct_purchase" && v.kind !== "unilevel") return invalid();
+    if (v.kind === "direct_purchase" && layer !== 1) return invalid();
+    if ((v.statusUSDT !== undefined && !STATUSES.has(String(v.statusUSDT))) || (v.statusNEX !== undefined && !STATUSES.has(String(v.statusNEX)))) return invalid();
+    return { id: text(v.id), source: text(v.source), sourceUserName: text(v.sourceUserName), cycle: text(v.cycle), layer,
+      orderId: v.orderId == null ? null : text(v.orderId), orderAmountUSD: num(v.orderAmountUSD),
+      amountUSDT: num(v.amountUSDT), amountNEX: num(v.amountNEX), currency: text(v.currency),
+      status: v.status as CommissionEvent["status"], ts: num(v.ts, true), unlockAt: num(v.unlockAt, true), ...settlement(v),
+      ...(v.kind === undefined ? {} : { kind: v.kind as "direct_purchase" | "unilevel" }),
+      ...(v.sourceRef == null ? {} : { sourceRef: text(v.sourceRef) }),
+      ...(v.policyVersion == null ? {} : { policyVersion: num(v.policyVersion, true) }),
+      ...(v.nexUsdtPrice === undefined ? {} : { nexUsdtPrice: v.nexUsdtPrice === null ? null : num(v.nexUsdtPrice) }),
+      ...(v.recoveryPendingUSDT == null ? {} : { recoveryPendingUSDT: num(v.recoveryPendingUSDT) }),
+      ...(v.recoveryPendingNEX == null ? {} : { recoveryPendingNEX: num(v.recoveryPendingNEX) }),
+      ...(v.statusUSDT === undefined ? {} : { statusUSDT: v.statusUSDT as CommissionEvent["status"] }),
+      ...(v.statusNEX === undefined ? {} : { statusNEX: v.statusNEX as CommissionEvent["status"] }),
+    };
+  });
+  if (new Set(events.map(event => event.id)).size !== events.length) return invalid();
+  const rawSplit = row(source.split), splits = { direct: split(rawSplit.direct), extended: split(rawSplit.extended) };
+  const page = paging(source, events.length);
+  const count = expectedFilter === "all" ? splits.direct.count + splits.extended.count : splits[expectedFilter].count;
+  if (count !== page.totalRows) return invalid();
+  const generatedAt = text(source.generatedAt);
+  if (!Number.isFinite(Date.parse(generatedAt))) return invalid();
+  let v2: Pick<TeamUnilevelSnapshot, "schemaVersion" | "settlementMode" | "summary" | "filter"> = {};
+  if (source.schemaVersion !== undefined) {
+    if (source.schemaVersion !== 2 || source.filter !== expectedFilter
+      || !["LEGACY_7", "DIRECT_ONLY_V1", "SEVEN_V2"].includes(String(source.settlementMode))) return invalid();
+    const s = row(source.summary);
+    const summary = { amountUSDT: num(s.amountUSDT), amountNEX: num(s.amountNEX), count: num(s.count, true),
+      creditedUSDT: num(s.creditedUSDT), creditedNEX: num(s.creditedNEX), pendingUSDT: num(s.pendingUSDT), pendingNEX: num(s.pendingNEX) };
+    const sum = expectedFilter === "all" ? { amountUSDT: splits.direct.amountUSDT + splits.extended.amountUSDT,
+      amountNEX: splits.direct.amountNEX + splits.extended.amountNEX } : splits[expectedFilter];
+    if (summary.count !== count || !almostEqual(summary.amountUSDT, sum.amountUSDT) || !almostEqual(summary.amountNEX, sum.amountNEX)) return invalid();
+    v2 = { schemaVersion: 2, filter: expectedFilter, settlementMode: source.settlementMode as TeamUnilevelSnapshot["settlementMode"], summary };
+  }
+  return { ...proof, period: period as LeaderPeriod, events, ...page, split: splits, generatedAt, snapshotAt: snapshotAt(source), ...v2 };
+}
 
 function almostEqual(actual: number, expected: number): boolean {
   return Math.abs(actual - expected) <= Math.max(1e-9, Math.abs(expected) * 1e-9);
@@ -184,4 +234,4 @@ function pool(value: unknown, mode: ApiEnvironment): TeamLeadershipPoolSnapshot 
 }
 
 function validPaging(page:number,pageSize:number){return Number.isSafeInteger(page)&&page>=1&&Number.isSafeInteger(pageSize)&&pageSize>=1&&pageSize<=100;}
-export function createTeamInsightsApi(client: ApiClient, mode: ApiEnvironment = "prod"): TeamInsightsApi {const root="/api/app/team/insights";const snap=(value:string|null|undefined)=>value?`&snapshotAt=${encodeURIComponent(value)}`:"";const version=(value:string|null|undefined)=>value?`&snapshotVersion=${encodeURIComponent(value)}`:"";return {leaderboard:async(period,page=1,pageSize=100,snapshotAt=null,snapshotVersion=null)=>{if(!validPaging(page,pageSize))return invalid();return leaderboard(await client.request<unknown>({path:`${root}/leaderboard?period=${encodeURIComponent(period)}&page=${page}&pageSize=${pageSize}${snap(snapshotAt)}${version(snapshotVersion)}`}), mode);},commissions:async(page=1,pageSize=20,snapshotAt=null)=>{if(!validPaging(page,pageSize))return invalid();return commissions(await client.request<unknown>({path:`${root}/commissions?page=${page}&pageSize=${pageSize}${snap(snapshotAt)}`}), mode);},unilevel:async(period,page=1,pageSize=20,snapshotAt=null)=>{if(!validPaging(page,pageSize))return invalid();return unilevel(await client.request<unknown>({path:`${root}/unilevel?period=${encodeURIComponent(period)}&page=${page}&pageSize=${pageSize}${snap(snapshotAt)}`}), mode);},leadershipPool:async()=>pool(await client.request<unknown>({path:`${root}/leadership-pool`}), mode)};}
+export function createTeamInsightsApi(client: ApiClient, mode: ApiEnvironment = "prod"): TeamInsightsApi {const root="/api/app/team/insights";const snap=(value:string|null|undefined)=>value?`&snapshotAt=${encodeURIComponent(value)}`:"";const version=(value:string|null|undefined)=>value?`&snapshotVersion=${encodeURIComponent(value)}`:"";return {leaderboard:async(period,page=1,pageSize=100,snapshotAt=null,snapshotVersion=null)=>{if(!validPaging(page,pageSize))return invalid();return leaderboard(await client.request<unknown>({path:`${root}/leaderboard?period=${encodeURIComponent(period)}&page=${page}&pageSize=${pageSize}${snap(snapshotAt)}${version(snapshotVersion)}`}), mode);},commissions:async(page=1,pageSize=20,snapshotAt=null)=>{if(!validPaging(page,pageSize))return invalid();return commissions(await client.request<unknown>({path:`${root}/commissions?page=${page}&pageSize=${pageSize}${snap(snapshotAt)}`}), mode);},unilevel:async(period,page=1,pageSize=20,snapshotAt=null,filter="all")=>{if(!validPaging(page,pageSize))return invalid();return unilevel(await client.request<unknown>({path:`${root}/unilevel?period=${encodeURIComponent(period)}&page=${page}&pageSize=${pageSize}${snap(snapshotAt)}&schemaVersion=2&filter=${filter}`}), mode, filter);},leadershipPool:async()=>pool(await client.request<unknown>({path:`${root}/leadership-pool`}), mode)};}

@@ -26,7 +26,7 @@ export type CommissionKind =
   | "leadership"
   | "genesis";
 
-export type CommissionStatus = "cooling" | "unlocked" | "withdrawn" | "frozen" | "reversed" | "rejected" | "recovery_pending" | "simulated";
+export type CommissionStatus = "waiting_calculation" | "cooling" | "unlocked" | "withdrawn" | "frozen" | "reversed" | "rejected" | "recovery_pending" | "simulated";
 
 export interface CommissionEvent {
   id: string;

@@ -37,7 +37,7 @@
           </view>
           <view class="grid grid-cols-2" style="gap: 12px">
             <view>
-              <text class="block font-mono-tabular" :style="overviewCapStyle">{{ t.uiChrome.withdrawable }}</text>
+              <text class="block font-mono-tabular" :style="overviewCapStyle">{{ t.directReferral.creditedTotal }}</text>
               <text class="block tabular-nums" :style="overviewBigStyle('var(--v5-brand)')">${{ commission.unlockedUSDT().toFixed(2) }}</text>
               <text class="block font-mono-tabular" :style="overviewSmallStyle">{{ commission.unlockedNEX().toLocaleString() }} NEX</text>
             </view>
@@ -120,6 +120,7 @@
                 <text v-else-if="e.status === 'frozen'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-tech-cyan)', marginTop: '2px' }">{{ t.commissions.frozenTag }}</text>
                 <text v-else-if="e.status === 'reversed'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-4)', marginTop: '2px' }">{{ t.commissions.reversedTag }}</text>
                 <text v-else-if="e.status === 'rejected'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-danger)', marginTop: '2px' }">{{ t.commissions.rejectedTag }}</text>
+                <text v-else-if="e.status === 'waiting_calculation'" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.waitingCalculation }}</text>
                 <text v-else-if="e.status === 'recovery_pending'" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.recoveryPending }}</text>
                 <text v-if="e.status === 'recovery_pending' && e.recoveryPendingUSDT !== undefined && e.recoveryPendingNEX !== undefined" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: e.recoveryPendingUSDT, nex: e.recoveryPendingNEX }) }}</text>
               </view>

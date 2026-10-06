@@ -8,6 +8,7 @@ export interface CommissionsHowSnapshot { document: HowContentDocument; rates?: 
 // Keep public settlement facts; current direct policy values come from the server.
 const COPY = {
   zh: {
+    purchaseBudget: "原直属购买预算", purchaseReplacement: "拆分NEX替代该笔旧额外NEX", purchaseOriginal: "直属购买恢复原奖励构成；网络购买继续原规则", networkPurchase: "网络购买继续原规则及原额外NEX，金额以实际结算为准", deviceScope: "设备收益仅奖励直接邀请人；平台额外支付，成员原收益不扣减",
     loading: "正在读取最新说明与佣金规则…", unavailable: "说明或规则暂不可用，请重新加载。", missing: "未配置或配置无效，请以实际事件记录为准", none: "暂无已配置权益", retry: "重新加载",
     days: "天", dailyCap: "日封顶", settlementPeriod: "结算周期", residualHandling: "剩余业绩处理", minRank: "参与起点", monthlyCap: "月上限",
     daily: "每日", weekly: "每周", monthly: "每月", monthlyClear: "每月清零", perPairClear: "每次对碰清零", carryForward: "转结", paused: "已暂停", unpaused: "未暂停；仍须满足实际结算资格",
@@ -18,6 +19,7 @@ const COPY = {
     purchase: "直属购买", deviceEarning: "直属设备收益", totalRate: "总分成", split: "奖励拆分", directOnly: "仅直接邀请成员；平台额外支付，成员原收益不扣减", priceUnavailable: "NEX价格暂不可用，等待有效价格后处理",
   },
   en: {
+    purchaseBudget: "Original direct purchase budget", purchaseReplacement: "Split NEX replaces the previous extra NEX for this source", purchaseOriginal: "Direct purchases use the original reward composition; network purchases keep the original rules", networkPurchase: "Network purchases keep the original rules and extra NEX; check actual settlement records", deviceScope: "Device earnings reward only the direct inviter; the platform pays extra and members keep their original earnings",
     loading: "Loading the latest explanation and commission rules…", unavailable: "Explanation or rules unavailable. Please reload.", missing: "Missing or invalid configuration; check actual event records", none: "No configured benefits", retry: "Reload",
     days: "days", dailyCap: "daily cap", settlementPeriod: "Settlement period", residualHandling: "Remaining volume handling", minRank: "entry rank", monthlyCap: "monthly cap",
     daily: "daily", weekly: "weekly", monthly: "monthly", monthlyClear: "monthly reset", perPairClear: "reset per match", carryForward: "carry forward", paused: "paused", unpaused: "not paused; actual settlement eligibility still applies",
@@ -28,6 +30,7 @@ const COPY = {
     purchase: "Direct purchase", deviceEarning: "Direct device earnings", totalRate: "Total reward", split: "Reward split", directOnly: "Directly invited members only; the platform pays extra and members keep their original earnings", priceUnavailable: "NEX price unavailable; awaiting a valid price",
   },
   vi: {
+    purchaseBudget: "Ngân sách mua trực tiếp gốc", purchaseReplacement: "NEX được chia thay thế NEX bổ sung cũ của nguồn này", purchaseOriginal: "Mua trực tiếp dùng cơ cấu thưởng gốc; mua trong mạng lưới giữ quy tắc gốc", networkPurchase: "Mua trong mạng lưới giữ quy tắc gốc và NEX bổ sung; xem bản ghi quyết toán thực tế", deviceScope: "Thu nhập thiết bị chỉ thưởng người mời trực tiếp; nền tảng trả thêm và thành viên giữ nguyên thu nhập",
     loading: "Đang tải hướng dẫn và quy tắc hoa hồng mới nhất…", unavailable: "Chưa có hướng dẫn hoặc quy tắc. Vui lòng tải lại.", missing: "Cấu hình thiếu hoặc không hợp lệ; xem bản ghi thực tế", none: "Chưa có quyền lợi được cấu hình", retry: "Tải lại",
     days: "ngày", dailyCap: "giới hạn ngày", settlementPeriod: "Chu kỳ quyết toán", residualHandling: "Xử lý doanh số còn lại", minRank: "hạng tham gia", monthlyCap: "giới hạn tháng",
     daily: "hằng ngày", weekly: "hằng tuần", monthly: "hằng tháng", monthlyClear: "xóa theo tháng", perPairClear: "xóa sau mỗi đối ứng", carryForward: "chuyển tiếp", paused: "đã tạm dừng", unpaused: "chưa tạm dừng; vẫn cần đáp ứng điều kiện quyết toán",
@@ -57,8 +60,16 @@ export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | nu
     const describe = (rule: DirectReferralRule) => !directPolicy.configured ? copy.notConfigured : !rule.enabled ? copy.paused
       : `${copy.totalRate} ${number(rule.totalRatePct)}% · ${copy.split}: USDT ${number(rule.usdtSharePct)}% / NEX ${number(100 - rule.usdtSharePct)}% · ${number(rule.coolingDays)} ${copy.days}`;
     tokens.directPurchaseRules = describe(directPolicy.purchase);
+    if (directPolicy.settlementMode === "SEVEN_V2") {
+      const split = directPolicy.purchaseSplit, reference = directPolicy.sevenLayerReference;
+      tokens.directPurchaseRules = !directPolicy.configured || !split || !reference || directPolicy.purchaseSplitConfigured === false
+        || reference.baseRatePct === null || reference.coolingDays === null ? copy.notConfigured
+        : split.enabled ? `${copy.purchaseBudget} ${number(reference.baseRatePct)}% · ${copy.split}: USDT ${number(split.usdtSharePct)}% / NEX ${number(100 - split.usdtSharePct)}% · ${copy.purchaseReplacement}`
+        : copy.purchaseOriginal;
+    }
+    tokens.networkPurchaseRules = copy.networkPurchase;
     tokens.directDeviceRules = describe(directPolicy.deviceEarning);
-    tokens.directScope = copy.directOnly;
+    tokens.directScope = directPolicy.settlementMode === "SEVEN_V2" ? copy.deviceScope : copy.directOnly;
     tokens.directPrice = directPolicy.nexUsdtPrice === null ? copy.priceUnavailable : `${money(directPolicy.nexUsdtPrice)} / NEX`;
     tokens.coolingDays = guide.coolingDays === null ? copy.missing : `${number(guide.coolingDays)} ${copy.days}`;
     tokens.binaryRules = b ? `${copy.dailyCap} ${money(b.dailyCap)} · ${copy.settlementPeriod}: ${copy[b.settlePeriod]} · ${copy.residualHandling}: ${copy[b.residualPolicy]} · ${b.paused ? copy.paused : copy.unpaused}` : copy.missing;
@@ -87,10 +98,11 @@ export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | nu
       "example-leadership": copy.pendingAmount,
     });
   }
-  // Old publications can remain in the CMS for audit; never present their seven-layer
-  // promises as the current direct-referral policy while waiting for republication.
+  // The template must match the actual settlement generation, including both purchase groups.
   const directBody = snapshot?.document.blocks.find(block => block.id === "network")?.body ?? "";
-  const currentPublication = directBody.includes("{directPurchaseRules}") && directBody.includes("{directDeviceRules}");
+  const currentPublication = directBody.includes("{directPurchaseRules}") && directBody.includes("{directDeviceRules}")
+    && (snapshot?.directPolicy.settlementMode !== "SEVEN_V2" || (snapshot.document.schemaVersion === 2
+      && snapshot.document.templateId === "commissions-v2" && directBody.includes("{networkPurchaseRules}")));
   const blocks = new Map(currentPublication ? snapshot?.document.blocks.map(block => [block.id, block]) : []);
   function section(id: string, fallbackTitle = copy.unavailable) {
     const block = blocks.get(id);

@@ -85,7 +85,8 @@ async function load() {
   try {
     const next = await howContentApi.published(props.contentKey, locale.code);
     if (!requestFence.isCurrent(generation)) return;
-    if (props.contentKey === "team-unilevel-how" && !next.blocks.some(block => block.id === "direct-referral-scope")) throw new Error("DIRECT_REFERRAL_PUBLICATION_REQUIRED");
+    if (props.contentKey === "team-unilevel-how" && (!next.blocks.some(block => block.id === "direct-referral-scope")
+      || (next.schemaVersion === 2 && (next.templateId !== "unilevel-v2" || !next.blocks.some(block => block.id === "seven-layer-scope"))))) throw new Error("TEAM_PUBLICATION_REQUIRED");
     content.value = next;
   } catch {
     if (!requestFence.isCurrent(generation)) return;

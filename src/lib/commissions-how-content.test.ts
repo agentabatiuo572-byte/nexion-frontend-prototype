@@ -18,6 +18,20 @@ const snapshot = (): CommissionsHowSnapshot => ({
   ranks: [{ v: 4, title: "Live", cnTitle: "Live", directBonus: .123456, unilevelDepth: 7, peerBonus: .0375, leadershipVotes: 9, cultivationBonus: 321.123456, rewards: [], visible: true }],
 });
 describe("published direct and independent reward explanations", () => {
+  it.each(["en", "zh", "vi"])("accepts a matching seven-layer v2 publication and refuses incomplete semantics in %s", locale => {
+    const facts = snapshot();
+    Object.assign(facts.directPolicy, { schemaVersion: 2, settlementMode: "SEVEN_V2", purchaseSplit: { enabled: true, usdtSharePct: 60 },
+      sevenLayerReference: { revision: 9, baseRatePct: 10, coolingDays: 7, legacyNexPerUsd: 2 } });
+    facts.document.schemaVersion = 2; facts.document.templateId = "commissions-v2";
+    facts.document.blocks.find(b => b.id === "network")!.body = "{directPurchaseRules} {networkPurchaseRules} {directDeviceRules} {directScope} {directPrice}";
+    const content = buildCommissionsHowContent(facts, locale);
+    expect(content.incomplete).toBe(false);
+    expect(content.section("network").body).toContain(content.copy.purchaseReplacement);
+    expect(content.section("network").body).toContain(content.copy.networkPurchase);
+    expect(content.section("network").body).not.toContain("12.3456%");
+    facts.document.blocks.find(b => b.id === "network")!.body = "{directPurchaseRules} {directDeviceRules}";
+    expect(buildCommissionsHowContent(facts, locale).incomplete).toBe(true);
+  });
   it.each([["en", "12.3456%", "6,789"], ["zh", "12.3456%", "6,789"], ["vi", "12,3456%", "6.789"]])("renders configured direct splits and preserves public limits in %s", (locale, rate, cap) => {
     const view = buildCommissionsHowContent(snapshot(), locale);
     expect(view.incomplete).toBe(false);

@@ -138,10 +138,10 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 |---|---|---|---|---|
 | `/team` | 团队主页 | 汇总枢纽(ReferralHero/TeamLedger/5-track/Leaderboard preview) | `useCommission`、`useNetwork`、`useApp.wallet`、`useVRank`、`useProductPhase` | §8.1 |
 | `/team/rank` | V 级头衔体系 | 13 阶 V 级阶梯+进度+实物奖领取 | `useVRank`、`nextRankProgress()`、`useAchievements` | §8.2 |
-| `/team/unilevel` | 直属分成 | 直属购买与真实设备收益的双币奖励 | `/api/config/commission/direct-referral`、`/api/app/team/insights/direct-referral` | §8.3 |
+| `/team/unilevel` | 网络版税 | 七层购买、L1拆分与直属设备收益三类 | v2政策、unilevel购买聚合、direct-referral设备筛选 | §8.3 |
 | `/team/binary` | 双轨平衡匹配 | Balance Match=`min(A,B)×10%` 日上限 $5K | `useNetwork.left/rightVolumeMonth()` | §8.4 |
 | `/team/leadership-pool` | 全球领导奖池 | 周 5% 平台交易额按 V 票数分配(V3+) | V_VOTES、GLOBAL_V_DISTRIBUTION、周交易额 | §8.5 |
-| `/team/commissions` | 8 类佣金流水 | 两类直属分成、历史网络与其他奖励 | `useCommission.events`、服务端分类汇总 | §8.6 |
+| `/team/commissions` | 8 类佣金流水 | 直属购买、网络购买、直属设备与其他奖励 | `useCommission.events`、服务端账项汇总 | §8.6 |
 | `/team/network` | 影响力网络 | 2 圈轨道可视化 | `useNetwork`(members+layer) | §8.7 |
 | `/team/tree` | 族谱树 | Direct/Extended 二分类列表 | `useNetwork`、`UNILEVEL_USDT[layer]` | §8.8 |
 | `/team/quota` | 硬件配额解锁 | 邀请数/团队业绩解锁高阶设备 | 邀请数、团队月业绩、月库存 | §8.9 |
@@ -224,7 +224,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 
 ### 2.3 资金/收益域(业务 store · `lib/v3/`)
 - **`useStaking`(USDT 锁仓)**:`positions[]{id,amountUSDT,termDays:enum{30,90,180,365},apy,startTs,unlockTs,status:enum{active,matured,early-withdrawn,claimed}}`;APY 权威 `GET /api/config/staking/pools`(30d12%/90d35%/180d80%/365d180%,penalty 5/15/30/50%);**⚠️ withdraw 页第三套 APY 是 mismatch,收敛单源**。另 NEX 池 APY 5/12/20/35% minStake 1k/5k/10k/20k。§12.6/§13.3.1
-- **`useCommission`**:`events[]{id,kind:enum{direct_purchase,direct_device_earning,unilevel,binary,peer,cultivation,leadership,genesis},sourceUserName,layer?(仅历史unilevel),sourceRef?,sourceDeviceId?,policyVersion?,basisUsdt?,nexUsdtPrice?,amountUSDT,amountNEX,ts,unlockAt,status:enum{cooling,unlocked,withdrawn,frozen,reversed,rejected,recovery_pending},recoveryPendingUSDT?,recoveryPendingNEX?}`。公开禁止原始成员ID；双币、状态和聚合均由服务端提供。§12.5
+- **`useCommission`**:`events[]{id,kind:enum{direct_purchase,direct_device_earning,unilevel,binary,peer,cultivation,leadership,genesis},sourceUserName,layer?(购买相对层级),sourceRef?,sourceDeviceId?,policyVersion?,basisUsdt?,nexUsdtPrice?,amountUSDT,amountNEX,ts,unlockAt,status:enum{waiting_calculation,cooling,unlocked,withdrawn,frozen,reversed,rejected,recovery_pending},recoveryPendingUSDT?,recoveryPendingNEX?}`。公开禁止原始成员ID；双币、状态和聚合均由服务端提供。§12.5
 - **`useExchangeV3`**:`todayUserUsedUSD`(≤50)、`todayPlatformUsedUSD`(≤20,000)、`dayKey`、`lifetimeExchangedUSD`(≥100 触发 KYC)、`kycVerified`、`queue`(QueuedExchange 未定义形态)。SC。§12.10
 
 ### 2.4 设备/试用域
@@ -279,22 +279,22 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 - **月损失** = `(dailyRateAtFull − dailyRateNow) × 30`。
 
 ### 3.C 团队佣金— §8.3/§8.4/§8.5/§8.6
-- **直属购买**：直接成员已付款设备订单实付USDT为基数，覆盖普通/组合/换购/容量替换/保留旧购新/试用转正；零实付、充值、赠送、券抵扣不计。
-- **直属设备收益**：已入账真实设备凭证USDT加NEX按当笔有效价格折算；包括免费手机真实任务，排除影子、测试、注册礼、活动、佣金与其他团队奖励。A→B→C只奖励直接上级，B收到C佣金不能再奖A；B原收益不扣。
-- **双币公式**：Q为基数，r=totalRatePct/100，s=usdtSharePct/100，p=nexUsdtPrice；USDT=floor6(Q*r*s)，NEX=floor6(Q*r*(1-s)/p)。每笔保存政策/归属/价格快照；两币同事务，任一币为零或价格缺失不伪造到账。
-- **政策**：`GET /api/config/commission/direct-referral`包含configured、policyVersion、effectiveAt、nexUsdtPrice及purchase/deviceEarning恒在的两规则对象。规则enabled、totalRatePct(0..100)、usdtSharePct(0..100，启用严格0..100之间)、coolingDays(0..365整数)；未配置禁用占位0/50/0，不回退七层。
-- **查询**：`GET /api/app/team/insights/direct-referral?period=month&page=1&pageSize=20`，today/week/month/all，snapshotAt固定分页，split.purchase/deviceEarning为整个期间聚合；切期间清分页，切账号丢弃旧请求。失败重试、空列表、等待/冻结/到账/撤销/待追回及两币均可见，三语双主题窄屏验收。旧network仅作历史查询。
-- **Balance Match(双轨)** = `min(A,B) × 10%`,日上限 `binaryDailyCapUSD`(默认 $5,000,phase 派发);**门槛**:Track A≥$1,000 且 B≥$1,000 才领否则当月归零;`A/B=left/rightVolumeMonth()` 遍历 members 累加 `monthVolumeUSD`。
+- **七层购买**：权威实付订单按原资格/层位/倍率/Influence/封顶冻结一次整链预算。A→B→C时，A从B取得L1、从C取得L2；普通/组合/置换/试用转正同一来源只计一次。
+- **L1拆分**：原基础预算10%不变；U1为原引擎最终L1预算，USDT=floor6(U1*s)，NEX=floor6(U1*(1-s)/p)。拆分NEX替代该新来源旧L1额外NEX；L2–L7原USDT与额外NEX保持。关闭拆分恢复未来L1原构成，七层继续；历史不重算。
+- **直属设备收益**：合格已入账设备凭证Q=USDT+NEX*p，USDT=floor6(Q*r*s)，NEX=floor6(Q*r*(1-s)/p)。仅直接邀请人，平台承担、不减本人；排除影子/开发测试/注册礼/活动/佣金等非设备收益，H5无原生执行权限。
+- **政策**：`/api/config/commission/direct-referral?schemaVersion=2`包含schemaVersion、实际settlementMode、purchaseSplit(enabled/usdtSharePct)、deviceEarning(enabled/totalRatePct/usdtSharePct/coolingDays)、sevenLayerReference(revision/baseRatePct/coolingDays/legacyNexPerUsd)。购买唯一预算与冷却只读引用，设备独立配置；切换前保留旧代际真实规则，不误读旧独立购买比例。
+- **查询**：购买唯一读`/api/app/team/insights/unilevel?schemaVersion=2&filter=all|direct|extended`，设备只读`/api/app/team/insights/direct-referral?schemaVersion=2&kind=device_earning`；服务端先过滤再统计分页。三组同一snapshotAt、期间today/week/month/all；购买hero只用unilevel两类split，设备hero只用deviceEarning，禁止L1重复聚合。
+- **状态/计数**：奖励组/账项/贡献成员分别计数；等待计算、冷却、冻结、已到账、已支取、拒绝、撤销、待追回可查。净奖励排除无效终态；累计已到账不等于可提现，钱包权威。切账号/环境/期间丢弃旧请求，分页去重；USDT榜单不加入NEX估值。三语双主题320px及大数回归。
 - **Peer 平级奖** = 同 V 级团员业绩 × 5%(仅 V≥3);月结。
 - **Cultivation 培育奖**(下属升 V 一次性 NEX):V1 500/V2 2,000/V3 10,000/V4 50,000/V5 200,000 NEX。
 - **Leadership Pool**:周池 = 平台周交易额 × 5%;`用户分红 = 周池 × (用户票数/全网总票数)`;V3+ 解锁;周一 00:00 UTC 开池/周日 23:59 快照。
 - **票数权重**:V3=1,V4=2,V5=4,…V12=512(每升一级翻倍)。
-- **佣金冷却**：两类直属分成各取政策coolingDays，冷却/冻结时两币均不提前进入钱包。退款按原快照取消或实际双币追回，余额不足保留待追回。历史unilevel、binary沿用其原规则；等级、培育、领导池和注册礼独立保留。
+- **佣金冷却/退款**：购买自首次整链准备时间加原七层冷却，设备自凭证确认时间加设备冷却；缺价不重置，两币均不得提前进钱包。SEVEN_V2全额退款取消/追回L1–L7及合法补发谱系，余额不足逐受益人/币记欠额。有效历史设备收益不因设备后来退款而自动撤销；旧账不重算。
 
 ### 3.D V 级升等(V-Rank)— §8.2/§13.2
 - **升级进度** = `avg(每条件 min(1, have/required))`(client preview,server 二次判定权威)。
 - **13 阶条件**:V1 自买≥$299+直推3 · V2 团队$5K · V3 $20K+2×V1 · V4 $50K+3×V2 · V5 $150K+4×V3 · V6 $500K+5×V4 · V7 $1M+6×V5 · V8 $3M+7×V6 · V9 $10M · V10 $30M · V11 $100M · V12 $500M。
-- **历史深度字段**：保留 unilevelDepth 等既有等级数据；新直属分成不依赖层数或等级，不承诺间接层继续产生新购买奖励。
+- **深度字段**：unilevelDepth及购买资格继续由原七层引擎解释；设备收益分成不按深度推算。
 - **primaryGap**:取 `progress=have/required` 比例最远 blocker(非 raw remaining)。
 - **条件计入**:selfBuyUSD 仅本人下单(复投/兑换/赠送不计,退款扣);directRefs 注册+KYC 去重;teamVolumeUSD L1-L7 累加;vDownlines ≥Vn 直推数。
 

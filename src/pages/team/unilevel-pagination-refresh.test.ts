@@ -18,11 +18,11 @@ test("period switches discard an older first page and retain selection on retry"
   const page = await directPage({ api }); await click(page.root, "Today");
   old.resolve(snapshotFixture([eventFixture("old-month")])); await flush();
   expect(text(page.root)).not.toContain("Member old-month"); expect(text(page.root)).toContain("Retry");
-  await click(page.root, "Retry"); expect(api.snapshot).toHaveBeenLastCalledWith("today"); expect(text(page.root)).toContain("Member today");
+  await click(page.root, "Retry"); expect(api.snapshot).toHaveBeenLastCalledWith("today", 1, 20, null); expect(text(page.root)).toContain("Member today");
 });
 test("paired recovery amounts and every state remain readable", async () => {
   const events = ["cooling", "unlocked", "frozen", "reversed", "rejected", "recovery_pending"].map((status, i) => ({ ...eventFixture(String(i)), status, recoveryPendingUSDT: 2, recoveryPendingNEX: 3 }));
   const page = await directPage({ api: { policy: vi.fn().mockResolvedValue(policyFixture()), snapshot: vi.fn().mockResolvedValue(snapshotFixture(events)) } }); await flush();
-  for (const status of ["cooling", "Ready", "Frozen", "Reversed", "Rejected", "Recovery pending"]) expect(text(page.root)).toContain(status);
+  for (const status of ["cooling", "Credited", "Frozen", "Reversed", "Rejected", "Recovery pending"]) expect(text(page.root)).toContain(status);
   expect(text(page.root)).toContain("2 USDT + 3 NEX");
 });

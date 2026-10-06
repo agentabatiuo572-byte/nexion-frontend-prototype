@@ -58,9 +58,9 @@ function parse(value: unknown, mode: ApiEnvironment): CommissionGuideRules {
 }
 export function createCommissionGuideApi(client: ApiClient, mode: ApiEnvironment = "prod") {
   return {
-    read: async () => parse(await client.request<unknown>({ method: "GET", path: "/api/config/commission/guide", authenticated: false }), mode),
+    read: async () => parse(await client.request<unknown>({ method: "GET", path: "/api/config/commission/guide?schemaVersion=2", authenticated: false }), mode),
     async rates(): Promise<CommissionGuideRates> {
-      const row = record(await client.request<unknown>({ method: "GET", path: "/api/config/commission/rates", authenticated: false }));
+      const row = record(await client.request<unknown>({ method: "GET", path: "/api/config/commission/rates?schemaVersion=2", authenticated: false }));
       if (!["dev", "prod"].includes(mode) || !["server", "nx_commission_rule + nx_config_item"].includes(row.source as string)
         || row.serverCanonical !== true || row.sourceEnvironment !== "PRODUCTION" || row.runId !== null
         || !Array.isArray(row.unilevel)) return invalid();

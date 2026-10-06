@@ -329,3 +329,9 @@ me 子页（**devices/goals/profile/security/kyc ✅** · wallet-bills/wallet-ex
 - **恢复取舍**:`.trash/20260715-000945-revert-codex-untracked` 的 53 项中，24 项为已废弃 / 已替代旧文件；2 项产品功能恢复到正本；27 项半成品不移植（0 项进入正本），其中 11 项只在 Git 快照 `fa1a5ee` 留作设计参考、16 项淘汰。R7 原提交仍由 `d63c813` 保留，`.trash` 到期不造成源码丢失。
 - **邻接审计**:质押罚金披露对齐 5% / 15% / 30% / 50%；钱包 KYC reset 补页面 DEV + store PROD 双 guard；用户可见 mock / 内部阶段文案清理；跨 store 领奖写明 canonical endpoint 或诚实 TBD。
 - **验证**:`npm run type-check`、i18n 4040-key mirror、`scripts/r7-device-detail-runtime.mjs`、`bash scripts/verify.sh` 与多轮 `nexion-audit` 全绿；最终计数以本批收尾报告为准。
+
+### 七层购买与直属拆分
+
+- 来源：已批准七层直属拆分DESIGN与app-royalty-v2.png；实现范围为现行App/H5共享Team入口、网络版税、佣金、v2 API与发布说明。七层购买预算唯一，设备分成独立；原Team其他功能与H5手机权限边界保留。
+- 购买查询由unilevel按direct/extended筛选，设备按kind=device_earning筛选后分页；累计到账不作为可提现。nullable七层引用与等待价格的NEX-only来源保留可读状态。
+- 实景前端证据：`.verify-cache/seven-layer-runtime-final/report.json`，25组、82截图、三语暗亮320/390及完整金额单行；transport fixture不证明后端资金。双端full、真实API联调与独立审查按当前报告另验。

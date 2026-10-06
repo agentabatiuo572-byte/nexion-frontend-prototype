@@ -23,8 +23,11 @@ test("an empty first-user notification surface stays honest and does not invent 
 test("team detail pages keep both How entries as direct keyboard-accessible targets", () => {
   const binary = read("src/pages/team/binary.vue");
   const unilevel = read("src/pages/team/unilevel.vue");
+  const header = read("src/components/sub-page-header.vue");
   assert.match(binary, /role="button" tabindex="0"[\s\S]*@click="go\('\/pages\/team\/binary-how'\)"/);
-  assert.match(unilevel, /role="button" tabindex="0"[\s\S]*@click="go\('\/pages\/team\/unilevel-how'\)"/);
+  assert.match(unilevel, /<SubPageHeader[^>]*:action-label="t\.unilevel\.howItWorksEntry"[^>]*:action="openRules"/);
+  assert.match(unilevel, /function openRules\(\)\s*\{\s*go\('\/pages\/team\/unilevel-how'\)/);
+  assert.match(header, /v-if="actionLabel && action"[^>]*role="button"[^>]*tabindex="0"[^>]*@click="action"[^>]*@keydown\.enter\.prevent="onKeyboardActivate\(\$event, action\)"[^>]*@keydown\.space\.prevent="onKeyboardActivate\(\$event, action\)"/);
 });
 
 test("back navigation also closes transient overlays before popping the stack", () => {

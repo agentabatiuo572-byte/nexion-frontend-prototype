@@ -25,7 +25,7 @@ describe("how content API", () => {
       const request = vi.fn().mockResolvedValue(base(contentKey));
       const value = await createHowContentApi({ request } as never, "prod").published(contentKey, "en");
       expect(value.contentKey).toBe(contentKey);
-      expect(request).toHaveBeenCalledWith(expect.objectContaining({ path: `/api/content/how-it-works/${contentKey}?locale=en` }));
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ path: `/api/content/how-it-works/${contentKey}?locale=en${contentKey === "team-unilevel-how" || contentKey === "team-commissions-how" ? "&schemaVersion=2" : ""}` }));
     }
   });
 

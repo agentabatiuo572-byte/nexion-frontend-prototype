@@ -40,7 +40,8 @@ test("remote team projection never turns errors into zero or local royalty money
   const [store, page] = await Promise.all([read("src/store/network.ts"), read("src/pages/team/unilevel.vue")]);
   assert.doesNotMatch(store, /catch \{[\s\S]{0,260}totalMembers\.value = 0/);
   assert.match(page, /amount\(remoteTotalUSDT\)/);
-  assert.match(page, /v-else-if="remoteState === 'ready' && remoteSnapshot"/);
+  assert.match(page, /v-else-if="remoteState !== 'ready'"/);
+  assert.match(page, /v-if="remoteState === 'ready' && remoteSnapshot"/);
   assert.doesNotMatch(page, /totalRoyalty|UNILEVEL_USDT/);
   assert.match(page, /projectionErrorTitle/);
 });
@@ -160,7 +161,7 @@ test("remote leaderboard, leadership pool, and commission pages use self-scoped 
   }
 });
 
-test("direct referral page renders only canonical paired source projections", async () => {
+test("royalty page separates canonical purchase and device queries before pagination", async () => {
   const [api, page] = await Promise.all([
     read("src/api/direct-referral-api.ts"), read("src/pages/team/unilevel.vue"),
   ]);
@@ -169,15 +170,16 @@ test("direct referral page renders only canonical paired source projections", as
   assert.match(api, /\/api\/config\/commission\/direct-referral/);
   assert.match(api, /amountUSDT/);
   assert.match(page, /directApi\.snapshot/);
-  assert.match(page, /const remoteFilteredEvents = computed\(\(\) => \(remoteSnapshot\.value\?\.events \?\? \[\]\)\.filter/);
-  assert.match(page, /filter\.value === "all" \|\| event\.kind === filter\.value/);
-  assert.match(page, /v-for="event in remoteFilteredEvents"/);
-  assert.match(page, /v-if="remoteFilteredEvents\.length === 0"/);
+  assert.match(page, /directApi\.snapshot\(period\.value, page, pageSize, querySnapshotAt, "device_earning"\)/);
+  assert.match(page, /purchaseApi\.unilevel\(period\.value, page, pageSize, querySnapshotAt, filter\.value\)/);
+  assert.match(page, /v-for="event in remoteSnapshot\.events"/);
+  assert.match(page, /v-if="remoteSnapshot\.totalRows === 0"/);
+  assert.doesNotMatch(page, /\.filter\([^;\n]*event\.(?:kind|layer)/);
   assert.match(page, /remoteState === 'error'/);
   assert.match(page, /policyState === 'error'/);
   assert.match(page, /runScope = captureRuntimeRevision\(\)/);
   assert.match(page, /accountKey === app\.accountKey[\s\S]*isCurrentAccountScope\(accountScope\)[\s\S]*isCurrentRuntimeRevision\(runScope\)/);
-  assert.doesNotMatch(page, /Math\.log10|teamInsightsApi\.unilevel|UNILEVEL_USDT/);
+  assert.doesNotMatch(page, /Math\.log10|UNILEVEL_USDT/);
 });
 
 test("proof cards render a decodable QR and only confirm PNG after a real canvas export", async () => {

@@ -23,6 +23,8 @@ export interface HowContentBlock {
   ref?: HowContentRuleRef;
 }
 export interface HowContentDocument {
+  schemaVersion?: 2;
+  templateId?: string;
   contentKey: HowContentKey;
   version: string;
   /**
@@ -80,12 +82,14 @@ function parse(value: unknown, expectedKey: string, mode: ApiEnvironment): HowCo
     : row.versionSource;
   if (versionSource !== "ENTRY" && versionSource !== "DOCUMENT_FALLBACK") return invalid();
   const blocks = row.blocks.map(parseBlock);
+  if (row.schemaVersion !== undefined && (row.schemaVersion !== 2 || typeof row.templateId !== "string" || !row.templateId.trim())) return invalid();
   if (new Set(blocks.map((block) => block.id)).size !== blocks.length) return invalid();
   if (!matchesRuntimeProvenance(row, mode, "server")) return invalid();
-  return { contentKey: expectedKey as HowContentKey, version: row.version.trim(), versionSource, locale: row.locale.trim(), status: "PUBLISHED", blocks, source: "server", sourceEnvironment: row.sourceEnvironment as "PRODUCTION" | "SANDBOX", runId: row.runId as string };
+  return { contentKey: expectedKey as HowContentKey, version: row.version.trim(), versionSource, locale: row.locale.trim(), status: "PUBLISHED", blocks, source: "server", sourceEnvironment: row.sourceEnvironment as "PRODUCTION" | "SANDBOX", runId: row.runId as string,
+    ...(row.schemaVersion === 2 ? { schemaVersion: 2 as const, templateId: row.templateId as string } : {}) };
 }
 
 export interface HowContentApi { published(contentKey: HowContentKey, locale: string): Promise<HowContentDocument> }
 export function createHowContentApi(client: ApiClient, mode: ApiEnvironment = "prod"): HowContentApi {
-  return { published: async (contentKey, locale) => parse(await client.request<unknown>({ method: "GET", authenticated: false, path: `/api/content/how-it-works/${encodeURIComponent(contentKey)}?locale=${encodeURIComponent(locale)}` }), contentKey, mode) };
+  return { published: async (contentKey, locale) => parse(await client.request<unknown>({ method: "GET", authenticated: false, path: `/api/content/how-it-works/${encodeURIComponent(contentKey)}?locale=${encodeURIComponent(locale)}${contentKey === "team-unilevel-how" || contentKey === "team-commissions-how" ? "&schemaVersion=2" : ""}` }), contentKey, mode) };
 }

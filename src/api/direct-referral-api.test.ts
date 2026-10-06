@@ -15,6 +15,50 @@ export const snapshot = (events = [directEvent()]) => ({ source: "server", serve
   generatedAt: "2026-10-05T00:00:00Z", snapshotAt: "2026-10-05T00:00:00Z" });
 const api = (payload: unknown) => createDirectReferralApi({ request: vi.fn().mockResolvedValue(payload) } as unknown as ApiClient);
 describe("direct referral public boundary", () => {
+  it("reads the unique seven-layer L1 budget without adding the legacy NEX coefficient", async () => {
+    const payload = { ...policy(), schemaVersion: 2, settlementMode: "SEVEN_V2", purchase: undefined,
+      purchaseSplit: { enabled: true, usdtSharePct: 60 }, sevenLayerReference: { revision: 7, baseRatePct: 10, coolingDays: 5, legacyNexPerUsd: 2 } };
+    const result = await api(payload).policy();
+    expect(result.purchase).toEqual({ enabled: true, totalRatePct: 10, usdtSharePct: 60, coolingDays: 5 });
+    expect(result.sevenLayerReference?.legacyNexPerUsd).toBe(2);
+  });
+  it("keeps the pre-cutover independent purchase rule in a v2 legacy projection", async () => {
+    const payload = { ...policy(), schemaVersion: 2, settlementMode: "DIRECT_ONLY_V1",
+      purchaseSplit: { enabled: false, usdtSharePct: 60 }, sevenLayerReference: { revision: 7, baseRatePct: 10, coolingDays: 5, legacyNexPerUsd: 2 } };
+    expect((await api(payload).policy()).purchase.totalRatePct).toBe(12.3456);
+  });
+  it("filters device groups on the server before paging and does not add historical purchases", async () => {
+    const payload = snapshot([directEvent("device", "direct_device_earning")]);
+    payload.split.deviceEarning = { amountUSDT: .33, amountNEX: 22, count: 1 };
+    payload.split.purchase = { amountUSDT: 600, amountNEX: 40000, count: 100 };
+    const request = vi.fn().mockResolvedValue(payload);
+    const result = await createDirectReferralApi({ request } as unknown as ApiClient).snapshot("month", 1, 20, null, "device_earning");
+    expect(result.totalRows).toBe(1);
+    expect(result.split.deviceEarning.amountUSDT).toBe(.33);
+    expect(request.mock.calls[0][0].path).toContain("schemaVersion=2&kind=device_earning");
+    payload.events[0] = directEvent();
+    await expect(createDirectReferralApi({ request } as unknown as ApiClient).snapshot("month", 1, 20, null, "device_earning")).rejects.toMatchObject({ kind: "protocol" });
+  });
+  it("keeps a frozen source budget while awaiting price, without inventing paid money", () => {
+    const pending = { ...directEvent(), status: "waiting_calculation", amountUSDT: 0, amountNEX: 0, nexUsdtPrice: null };
+    expect(parseDirectReferralEvent(pending)).toMatchObject({ status: "waiting_calculation", basisUsdt: 1000, nexUsdtPrice: null });
+    expect(() => parseDirectReferralEvent({ ...pending, amountUSDT: 60 })).toThrow();
+    expect(parseDirectReferralEvent({ ...pending, basisUsdt: 0, kind: "direct_device_earning", sourceDeviceId: "NEX-ONLY-DEVICE" })).toMatchObject({ basisUsdt: 0, status: "waiting_calculation" });
+  });
+  it("keeps a legacy device policy readable when the seven-layer reference is unconfigured", async () => {
+    const payload = { ...policy(), schemaVersion: 2, settlementMode: "DIRECT_ONLY_V1", policySchemaVersion: 1, purchaseSplitConfigured: false,
+      purchaseSplit: { enabled: false, usdtSharePct: 50 }, sevenLayerReference: { revision: 0, baseRatePct: null, coolingDays: null, legacyNexPerUsd: null } };
+    const result = await api(payload).policy();
+    expect(result.deviceEarning.totalRatePct).toBe(5); expect(result.purchase.totalRatePct).toBe(12.3456);
+    expect(result.sevenLayerReference?.baseRatePct).toBeNull(); expect(result.purchaseSplitConfigured).toBe(false);
+  });
+  it("does not promote a v1 purchase placeholder to an active v2 split", async () => {
+    const payload = { ...policy(), purchase: undefined, schemaVersion: 2, settlementMode: "SEVEN_V2", policySchemaVersion: 1, purchaseSplitConfigured: false,
+      purchaseSplit: { enabled: false, usdtSharePct: 50 }, sevenLayerReference: { revision: 0, baseRatePct: null, coolingDays: null, legacyNexPerUsd: null } };
+    const result = await api(payload).policy();
+    expect(result.purchase.enabled).toBe(false); expect(result.deviceEarning.enabled).toBe(true);
+    expect(result.purchaseSplitConfigured).toBe(false);
+  });
   it("rejects a group count that disagrees with totalRows without summing gross event money into net", async () => {
     const payload = snapshot(); payload.split.purchase.count = 2;
     await expect(api(payload).snapshot("month")).rejects.toMatchObject({kind: "protocol"});

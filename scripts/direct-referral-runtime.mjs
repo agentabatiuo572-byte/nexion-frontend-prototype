@@ -1,6 +1,6 @@
 // UI witness only: every HTTP/WS business read is intercepted. This does not
 // prove backend allocation, wallet postings, treasury debits, or refund recovery.
-// node scripts/direct-referral-runtime.mjs --base http://127.0.0.1:5426 --output <directory> --content-fixture <backend/policies/commissions-how-2026.10.05.json>
+// node scripts/direct-referral-runtime.mjs --base http://127.0.0.1:5426 --output <directory> --content-fixture <backend/policies/commissions-how-2026.10.06.json>
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
@@ -36,7 +36,8 @@ for (const locale of ["en", "zh", "vi"]) {
 const ISO = "2026-10-05T12:00:00.000Z", NOW = Date.parse(ISO);
 const proof = { source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "" };
 const policy = { ...proof, configured: true, policyVersion: 3, effectiveAt: ISO, nexUsdtPrice: .01,
-  purchase: { enabled: true, totalRatePct: 12.3456, usdtSharePct: 60, coolingDays: 7 },
+  schemaVersion: 2, settlementMode: "SEVEN_V2", purchaseSplit: { enabled: true, usdtSharePct: 60 },
+  sevenLayerReference: { revision: 7, baseRatePct: 10, coolingDays: 7, legacyNexPerUsd: 2 },
   deviceEarning: { enabled: true, totalRatePct: 5, usdtSharePct: 70, coolingDays: 0 } };
 const kinds = ["direct_purchase", "direct_device_earning", "unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
 const statuses = ["unlocked", "cooling", "frozen", "reversed", "recovery_pending", "rejected"];
@@ -58,13 +59,28 @@ const guide = { ...proof, runId: null, coolingDays: 17, network: { depthGateLaye
 function fixture(url, locale, state) {
   const p = url.pathname;
   if (p === "/api/app/profile") return { nickname: "Direct fixture", avatarUrl: "", avatarRevision: "", language: locale };
-  if (p === "/api/config/commission/direct-referral") return state.policy === "unconfigured" ? { ...policy, configured: false, policyVersion: 0, effectiveAt: null, purchase: { enabled: false, totalRatePct: 0, usdtSharePct: 50, coolingDays: 0 }, deviceEarning: { enabled: false, totalRatePct: 0, usdtSharePct: 50, coolingDays: 0 } }
-    : state.policy === "no-price" ? { ...policy, nexUsdtPrice: null } : state.policy === "disabled" ? { ...policy, purchase: { ...policy.purchase, enabled: false }, deviceEarning: { ...policy.deviceEarning, enabled: false } } : policy;
-  if (p === "/api/app/team/insights/direct-referral") {
+  if (p === "/api/config/commission/direct-referral") return state.policy === "unconfigured" ? { ...policy, configured: false, policyVersion: 0, effectiveAt: null, purchaseSplit: { enabled: false, usdtSharePct: 50 }, deviceEarning: { enabled: false, totalRatePct: 0, usdtSharePct: 50, coolingDays: 0 } }
+    : state.policy === "no-price" ? { ...policy, nexUsdtPrice: null } : state.policy === "disabled" ? { ...policy, purchaseSplit: { ...policy.purchaseSplit, enabled: false }, deviceEarning: { ...policy.deviceEarning, enabled: false } } : policy;
+  if (p === "/api/app/team/insights/direct-referral" || p === "/api/app/team/insights/unilevel") {
     const page = Number(url.searchParams.get("page")), pageSize = Number(url.searchParams.get("pageSize"));
-    state.reads.push({ page, snapshotAt: url.searchParams.get("snapshotAt"), period: url.searchParams.get("period") });
-    return { ...proof, page, pageSize, period: url.searchParams.get("period"), totalRows: state.empty ? 0 : 21,
-      events: state.empty ? [] : events.slice((page - 1) * pageSize, page * pageSize), split: state.empty ? { purchase: emptySplit(), deviceEarning: emptySplit() } : split, generatedAt: ISO, snapshotAt: ISO };
+    state.reads.push({ page, kind: url.searchParams.get("kind"), filter: url.searchParams.get("filter"), snapshotAt: url.searchParams.get("snapshotAt"), period: url.searchParams.get("period") });
+    const filter = url.searchParams.get("filter") || "all";
+    const kind = url.searchParams.get("kind") || "all";
+    const purchases = Array.from({ length: 27 }, (_, i) => ({ ...events[i % events.length], id: `PURCHASE-${i}`,
+      kind: i < 21 ? "direct_purchase" : "unilevel", source: i < 21 ? "direct_purchase" : "network", cycle: "2026-10",
+      layer: i < 21 ? 1 : i - 19, orderId: `ORDER-${i}`, sourceRef: `ORDER-${i}`, orderAmountUSD: 100,
+      currency: "DUAL", ...(i === 21 ? { status: "reversed", statusUSDT: "reversed", statusNEX: "unlocked" } : {}) }));
+    const devices = Array.from({ length: 21 }, (_, i) => ({ ...events[i], kind: "direct_device_earning",
+      sourceRef: `RECEIPT-${i}`, sourceDeviceId: `DEVICE-${i}` }));
+    const total = rows => ({ amountUSDT: rows.filter(e => !["reversed", "rejected", "recovery_pending"].includes(e.statusUSDT ?? e.status)).reduce((s,e) => s + e.amountUSDT, 0),
+      amountNEX: rows.filter(e => !["reversed", "rejected", "recovery_pending"].includes(e.statusNEX ?? e.status)).reduce((s,e) => s + e.amountNEX, 0), count: rows.length });
+    const all = state.empty ? [] : p.endsWith("/unilevel") ? purchases : devices;
+    const selected = p.endsWith("/unilevel") ? all.filter(e => filter === "all" || (filter === "direct" ? e.layer === 1 : e.layer > 1)) : all;
+    const sums = p.endsWith("/unilevel") ? { direct: total(all.filter(e => e.layer === 1)), extended: total(all.filter(e => e.layer > 1)) }
+      : { purchase: emptySplit(), deviceEarning: total(all) };
+    return { ...proof, schemaVersion: 2, settlementMode: "SEVEN_V2", filter, page, pageSize, period: url.searchParams.get("period"), totalRows: selected.length,
+      events: selected.slice((page - 1) * pageSize, page * pageSize), split: sums,
+      summary: { ...total(selected), creditedUSDT: 0, creditedNEX: 0, pendingUSDT: 0, pendingNEX: 0 }, generatedAt: ISO, snapshotAt: ISO };
   }
   if (p === "/api/config/commission/guide") return guide;
   if (p === "/api/config/commission/rates") return { ...proof, runId: null,
@@ -82,7 +98,8 @@ function fixture(url, locale, state) {
   if (p.startsWith("/api/content/how-it-works/")) {
     const contentKey = p.split("/").at(-1), entry = contentKey === "team-unilevel-how" ? publication.unilevelEntry : publication.entry;
     const blocks = state.cms === "old" ? [{ id: "hero", kind: "text", title: "Old publication", body: "Seven layers L1 10%" }] : entry.locales[locale].blocks;
-    return { ...proof, contentKey, version: entry.version, versionSource: "ENTRY", locale, status: "PUBLISHED", blocks };
+    return { ...proof, contentKey, version: entry.version, versionSource: "ENTRY", locale, status: "PUBLISHED", blocks,
+      schemaVersion: 2, templateId: contentKey === "team-unilevel-how" ? "unilevel-v2" : "commissions-v2" };
   }
 }
 await mkdir(output, { recursive: true });
@@ -106,6 +123,11 @@ async function capture(page, name) {
   trace.push({ assertion: "six bundled brand fonts loaded", fonts });
   const overflow = await page.evaluate(() => [...document.querySelectorAll("uni-page .nx-content")].filter(el => el.getBoundingClientRect().height > 0).some(el => el.scrollWidth > el.clientWidth + 1));
   assert.equal(overflow, false, `Horizontal overflow: ${name}`);
+  const amountLayout = await page.locator('.nx-direct-amount').evaluateAll(elements => elements.map(el => ({
+    text: el.textContent, whiteSpace: getComputedStyle(el).whiteSpace, width: el.clientWidth, scrollWidth: el.scrollWidth,
+  })));
+  assert(amountLayout.every(amount => amount.whiteSpace === 'nowrap' && amount.scrollWidth <= amount.width + 1), `Split or overflowing monetary value: ${name}`);
+  trace.push({ assertion: 'complete monetary values stay on one line', amountLayout });
   const filename = `${name}.png`; await page.screenshot({ path: path.join(output, filename), fullPage: true }); report.screenshots.push(filename); trace.push({ assertion: "no horizontal overflow", screenshot: filename });
 }
 async function scenario(name, run) {
@@ -114,9 +136,9 @@ async function scenario(name, run) {
   catch (e) { report.checks.push({ name, passed: false, error: e.message, evidence }); console.error(name, e.message); }
   await writeFile(path.join(output, evidence[0]), JSON.stringify({ name, frontendOnly: true, trace }, null, 2));
 }
-async function session(locale = "en", theme = "dark", width = 390) {
+async function session(locale = "en", theme = "dark", width = 390, authDelayMs = 0) {
   const context = await browser.newContext({ viewport: { width, height: 844 }, reducedMotion: "reduce" }); const page = await context.newPage();
-  const state = { reads: [], policy: "normal", cms: "new", empty: false, fail: "", hold: null };
+  const state = { reads: [], policy: "normal", cms: "new", empty: false, fail: "", hold: null, holdEntered: null, heldReads: [], loggedOut: false };
   page.on("pageerror", e => report.errors.push({ scenario: current, message: e.message }));
   page.on("console", message => { if (message.type() === "error") report.errors.push({ scenario: current, message: message.text(), location: message.location() }); });
   page.on("requestfailed", request => trace.push({ failedRequest: request.url(), error: request.failure()?.errorText }));
@@ -126,12 +148,25 @@ async function session(locale = "en", theme = "dark", width = 390) {
     for (const key of ["nexgrid-voucher-claim-sheet-v1", "nexgrid-trial-claim-sheet-v1"]) localStorage.setItem(key, JSON.stringify({ type: "object", data: { lastClosedAt: 9999999999999 } }));
   }, { locale, theme });
   await installFormalProbeSession(page, { responseFor: url => fixture(url, locale, state) });
+  await page.route("**/auth/users/**", async route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname === "/auth/users/logout") state.loggedOut = true;
+    if (pathname === "/auth/users/refresh") {
+      if (state.loggedOut) return route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ code: 401, message: "AUTH_REQUIRED", data: null }) });
+      if (authDelayMs) await new Promise(resolve => setTimeout(resolve, authDelayMs));
+    }
+    return route.fallback();
+  });
   await page.route(/^https:\/\/(?:api\.fontshare\.com\/v2\/css|fonts\.googleapis\.com\/css2)(?:\?|$)/, route => route.fulfill({ status: 200, contentType: "text/css", body: fontCss }));
   await page.route("**/api/**", async route => {
     const url = new URL(route.request().url());
     trace.push({ request: url.pathname + url.search, method: route.request().method(), injectedFailure: Boolean(state.fail && url.pathname.includes(state.fail)) });
     if (state.fail && url.pathname.includes(state.fail)) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ code: 503, message: "Fixture unavailable", data: null }) });
-    if (state.hold && url.pathname.endsWith("insights/direct-referral")) await state.hold;
+    if (state.hold && /insights\/(direct-referral|unilevel)$/.test(url.pathname)) {
+      state.heldReads.push({ path: url.pathname, query: url.search });
+      state.holdEntered?.();
+      await state.hold;
+    }
     return route.fallback();
   });
   return { context, page, state };
@@ -140,29 +175,34 @@ try {
   for (const locale of ["en", "zh", "vi"]) for (const theme of ["dark", "light"]) for (const width of [320, 390]) await scenario(`matrix-${locale}-${theme}-${width}`, async () => {
     const { context, page } = await session(locale, theme, width); try {
       await visit(page, "unilevel"); const copy = dictionaries[locale];
-      await contains(page, copy.directReferral.platformPays); await contains(page, "ORDER-0");
+      await contains(page, "ORDER-0");
       const body = await page.locator("body").innerText(); assert(body.includes(copy.directReferral.purchase) && body.includes(copy.directReferral.deviceEarning));
       assert(body.includes("USDT") && body.includes("NEX")); assert(!/\bL[1-7]\b/.test(body));
-      assert(body.includes(locale === "vi" ? "12,3456%" : "12.3456%"));
+      assert(body.includes("60%") && body.includes("40%")); assert(!/Nex(?:ion|Grid)/i.test(body));
       assert.equal(await page.locator(".nx-direct-event").count(), 20);
       for (const row of await page.locator(".nx-direct-event").allTextContents()) assert(row.includes("USDT") && row.includes("NEX"));
-      const rejected = page.locator(".nx-direct-event").filter({ hasText: "RECEIPT-5" });
+      const rejected = page.locator(".nx-direct-event").filter({ hasText: "ORDER-5" });
       assert.match(await rejected.innerText(), /0 USDT[\s\S]*0 NEX/);
       await contains(page, copy.directReferral.recoveryPending);
       await capture(page, `direct-${locale}-${theme}-${width}`);
+      await page.getByRole("tab", { name: copy.directReferral.deviceEarning, exact: true }).click(); await contains(page, copy.directReferral.platformPays);
+      await contains(page, "RECEIPT-0"); await capture(page, `device-${locale}-${theme}-${width}`);
+      await page.getByRole("tab", { name: copy.directReferral.networkPurchase, exact: true }).click(); await contains(page, "ORDER-21");
+      await contains(page, `USDT ${copy.commissions.reversedTag} · NEX ${copy.commissions.readyTag}`);
+      await capture(page, `network-${locale}-${theme}-${width}`);
     } finally { await context.close(); }
   });
   await scenario("pagination-filter-period-retry", async () => {
     const { context, page, state } = await session(); try {
       await visit(page, "unilevel"); await contains(page, "ORDER-0");
-      state.fail = "insights/direct-referral"; await page.locator(".nx-unilevel-load-more").click(); await contains(page, dictionaries.en.network.retry);
+      state.fail = "insights/unilevel"; await page.locator(".nx-unilevel-load-more").click(); await contains(page, dictionaries.en.network.retry);
       state.fail = ""; await page.locator(".nx-unilevel-load-more").click(); await contains(page, "ORDER-20");
       assert.equal(await page.locator(".nx-direct-event").count(), 21); assert.equal(state.reads.at(-1).snapshotAt, ISO);
       await page.getByRole("tab", { name: dictionaries.en.directReferral.deviceEarning, exact: true }).click();
-      assert.equal(await page.locator(".nx-direct-event").count(), 10);
+      await contains(page, "RECEIPT-0"); assert.equal(await page.locator(".nx-direct-event").count(), 20);
       assert(!(await page.locator(".nx-direct-event").allTextContents()).some(text => text.includes("ORDER-")));
       await page.getByRole("tab", { name: dictionaries.en.unilevel.periods.week, exact: true }).click();
-      await page.waitForFunction(() => document.querySelectorAll(".nx-direct-event").length === 10);
+      await page.waitForFunction(() => document.querySelectorAll(".nx-direct-event").length === 20);
       assert.equal(state.reads.at(-1).page, 1); assert.equal(state.reads.at(-1).snapshotAt, null); assert.equal(state.reads.at(-1).period, "week");
       await capture(page, "pagination-filter-period");
       await page.reload(); await contains(page, "ORDER-0"); assert.equal(await page.locator(".nx-direct-event").count(), 20);
@@ -173,23 +213,55 @@ try {
   await scenario("rules-and-record-failures-remain-independent", async () => {
     const { context, page, state } = await session(); try {
       state.fail = "config/commission/direct-referral"; await visit(page, "unilevel"); await contains(page, dictionaries.en.directReferral.policyError); await contains(page, "ORDER-0");
-      state.fail = ""; await page.getByRole("button", { name: dictionaries.en.network.retry, exact: true }).click(); await contains(page, dictionaries.en.directReferral.platformPays);
-      state.fail = "insights/direct-referral"; await page.reload(); await contains(page, dictionaries.en.network.projectionErrorTitle);
+      state.fail = ""; await page.getByRole("button", { name: dictionaries.en.network.retry, exact: true }).click(); await contains(page, "60%");
+      state.fail = "insights/unilevel"; await page.reload(); await contains(page, dictionaries.en.network.projectionErrorTitle);
       assert.equal(await page.locator(".nx-direct-event").count(), 0); state.fail = "";
       await page.getByRole("button", { name: dictionaries.en.network.retry, exact: true }).click(); await contains(page, "ORDER-0");
-      for (const mode of ["unconfigured", "disabled", "no-price"]) { state.policy = mode; await page.reload(); await contains(page, "ORDER-0"); await contains(page, mode === "unconfigured" ? dictionaries.en.directReferral.unconfigured : mode === "disabled" ? dictionaries.en.directReferral.disabled : dictionaries.en.directReferral.priceUnavailable); await capture(page, mode); }
+      for (const mode of ["unconfigured", "disabled", "no-price"]) { state.policy = mode; await page.reload(); await contains(page, "ORDER-0"); await contains(page, mode === "unconfigured" ? dictionaries.en.directReferral.unconfigured : mode === "disabled" ? dictionaries.en.directReferral.originalPurchaseRule : dictionaries.en.directReferral.priceUnavailable); await capture(page, mode); }
       state.empty = true; await page.reload(); await contains(page, dictionaries.en.directReferral.empty); await contains(page, dictionaries.en.directReferral.invite); await capture(page, "empty");
     } finally { await context.close(); }
   });
   await scenario("loading-and-account-invalidation-reject-late-reply", async () => {
-    const { context, page, state } = await session(); let release;
-    try {
-      state.hold = new Promise(resolve => { release = resolve; }); await visit(page, "unilevel"); await contains(page, dictionaries.en.network.projectionLoadingTitle);
-      assert.equal(await page.locator(".nx-direct-event").count(), 0);
-      await page.evaluate(() => document.querySelector("#app").__vue_app__.config.globalProperties.$pinia._s.get("app").bindAccount("default"));
-      state.hold = null; release(); await page.waitForLoadState("networkidle"); assert.equal(await page.locator(".nx-direct-event").count(), 0);
-      await capture(page, "old-account-reply-discarded");
-    } finally { release?.(); await context.close(); }
+    for (const authDelayMs of [0, 700]) {
+      const { context, page, state } = await session("en", "dark", 390, authDelayMs); let release;
+      try {
+        const entered = new Promise(resolve => { state.holdEntered = resolve; });
+        state.hold = new Promise(resolve => { release = resolve; }); await visit(page, "unilevel");
+        await Promise.race([entered, new Promise((_resolve, reject) => { setTimeout(() => reject(new Error("OLD_ACCOUNT_REQUEST_NOT_HELD")), 12000).unref(); })]);
+        assert(state.heldReads.some(read => read.path.endsWith("/unilevel")), "The old account must have a real unilevel request in flight");
+        const account = await page.evaluate(async () => {
+          // Use the page's exact Vite module URLs, including HMR timestamps:
+          // importing the bare runtime URL can create a second, empty vault.
+          const loaded = path => {
+            const url = performance.getEntriesByType("resource").find(entry => new URL(entry.name).pathname === path)?.name;
+            if (!url) throw new Error(`PAGE_MODULE_NOT_LOADED: ${path}`);
+            return import(url);
+          };
+          const { useApp } = await loaded("/src/store/app.ts"), { useAuth } = await loaded("/src/store/auth.ts");
+          const { sessionVault } = await loaded("/src/api/runtime.ts");
+          return { app: useApp().accountKey, auth: useAuth().accountId, authenticated: useAuth().isAuthenticated, sessionUserId: sessionVault.read()?.user.userId };
+        });
+        assert.deepEqual(account, { app: "user:900001", auth: "user:900001", authenticated: true, sessionUserId: 900001 });
+        assert.equal(await page.locator(".nx-direct-event").count(), 0);
+        const signedOut = await page.evaluate(async () => {
+          const loaded = path => {
+            const url = performance.getEntriesByType("resource").find(entry => new URL(entry.name).pathname === path)?.name;
+            if (!url) throw new Error(`PAGE_MODULE_NOT_LOADED: ${path}`);
+            return import(url);
+          };
+          const { useApp } = await loaded("/src/store/app.ts"), { useAuth } = await loaded("/src/store/auth.ts"), { useSession } = await loaded("/src/store/session.ts");
+          const { authApi, sessionVault } = await loaded("/src/api/runtime.ts"), { rebindAccountScopedStores } = await loaded("/src/lib/account-scope.ts");
+          await authApi.logout(); useSession().signOutSession(); useAuth().signOut(); useApp().bindAccount("default"); rebindAccountScopedStores("default");
+          return { app: useApp().accountKey, authenticated: useAuth().isAuthenticated, hasSession: Boolean(sessionVault.read()) };
+        });
+        assert.deepEqual(signedOut, { app: "default", authenticated: false, hasSession: false }); assert.equal(state.loggedOut, true);
+        state.hold = null; release(); await page.waitForLoadState("networkidle");
+        assert.equal(await page.locator(".nx-direct-event").count(), 0);
+        assert(!(await page.locator("body").innerText()).includes("ORDER-0"));
+        trace.push({ assertion: "authenticated old request was held before complete logout; delayed reply cannot render old rewards", authDelayMs, account, signedOut, heldReads: state.heldReads });
+        await capture(page, `old-account-reply-discarded-${authDelayMs}`);
+      } finally { release?.(); await context.close(); }
+    }
   });
   await scenario("keyboard-activation-rules-retry-invite-pagination", async () => {
     const { context, page, state } = await session();
@@ -202,10 +274,10 @@ try {
         await contains(page, publication.unilevelEntry.locales.en.blocks[0].title);
         state.fail = "config/commission/direct-referral"; await visit(page, "unilevel"); await contains(page, dictionaries.en.directReferral.policyError);
         state.fail = ""; await activate(page.getByRole("button", { name: dictionaries.en.network.retry, exact: true }), key);
-        await contains(page, dictionaries.en.directReferral.platformPays);
+        await contains(page, "60%");
         await activate(page.locator(".nx-unilevel-load-more"), key); await contains(page, "ORDER-20");
         assert.equal(await page.locator(".nx-direct-event").count(), 21);
-        state.fail = "insights/direct-referral"; await page.reload(); await contains(page, dictionaries.en.network.projectionErrorTitle);
+        state.fail = "insights/unilevel"; await page.reload(); await contains(page, dictionaries.en.network.projectionErrorTitle);
         state.fail = ""; await activate(page.getByRole("button", { name: dictionaries.en.network.retry, exact: true }), key); await contains(page, "ORDER-0");
         state.empty = true; await page.reload(); await contains(page, dictionaries.en.directReferral.empty);
         await activate(page.getByRole("button", { name: dictionaries.en.directReferral.invite, exact: true }), key);

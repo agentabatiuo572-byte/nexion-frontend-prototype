@@ -16,7 +16,7 @@ describe("commission guide narrow rate contract", () => {
     const result = await createCommissionGuideApi({ request } as never).rates();
     expect(result.unilevelUsdt[1]).toBeCloseTo(.123456);
     expect(result.unilevelNex[7]).toBe(2.5);
-    expect(request).toHaveBeenCalledWith({ method: "GET", path: "/api/config/commission/rates", authenticated: false });
+    expect(request).toHaveBeenCalledWith({ method: "GET", path: "/api/config/commission/rates?schemaVersion=2", authenticated: false });
     expect(result).not.toHaveProperty("coolingDays");
   });
   it.each(["missing", "duplicate", "malformed", "environment", "negative"])("rejects %s rate data without defaults", async fault => {
@@ -34,7 +34,7 @@ describe("commission guide public API", () => {
     const request = vi.fn().mockResolvedValue({ ...guideFixture, privateField: "never expose" });
     const data = await createCommissionGuideApi({ request } as never, "dev").read();
     expect(data).toEqual(guideFixture);
-    expect(request).toHaveBeenCalledWith({ method: "GET", path: "/api/config/commission/guide", authenticated: false });
+    expect(request).toHaveBeenCalledWith({ method: "GET", path: "/api/config/commission/guide?schemaVersion=2", authenticated: false });
   });
   it("preserves missing configuration as null and legitimate zero values as zero", async () => {
     const fixture = { ...guideFixture, coolingDays: 0, binary: null, leadership: { rate: 0, minRank: 1, monthlyCap: 0 }, network: { depthGateLayer: null, depthGateRank: null, exitCapRate: null } };

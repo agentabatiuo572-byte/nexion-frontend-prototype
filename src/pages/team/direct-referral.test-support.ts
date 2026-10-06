@@ -33,6 +33,9 @@ export const all = (root: Host): Host[] => [root, ...root.children.flatMap(all)]
 export const text = (root: Host): string => root.text + root.children.map(text).join("");
 const unmounts: Array<() => void> = [];
 const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
+const header = Vue.defineComponent({ props: ["actionLabel", "action"], setup: props => () => Vue.h("view", [
+  props.actionLabel ? Vue.h("view", { role: "button", onClick: props.action }, String(props.actionLabel)) : null,
+]) });
 const copyComponent = (name: string) => Vue.defineComponent({
   props: ["label", "title", "sub", "body", "q", "a"],
   setup: (props, { slots }) => () => Vue.h("view", { "data-component": name }, [
@@ -66,7 +69,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const defaults: Record<string, unknown> = {
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
-    "@/components/sub-page-header.vue": { default: slot },
+    "@/components/sub-page-header.vue": { default: header },
     "@/components/empty-state.vue": { default: emptyState },
     "@/components/glass-segments.vue": { default: segments },
     ...Object.fromEntries(["hero", "section", "icon-row", "callout-box", "faq-row"].map(name => [
@@ -107,7 +110,7 @@ export const eventFixture = (id = "one", kind = "direct_purchase") => ({ id, kin
 export const snapshotFixture = (events = [eventFixture()]) => ({ period: "month", page: 1, pageSize: 20, totalRows: events.length, events,
   split: { purchase: { amountUSDT: 60, amountNEX: 4000, count: 1 }, deviceEarning: { amountUSDT: .3, amountNEX: 20, count: 1 } },
   generatedAt: "2026-10-05T00:00:00Z", snapshotAt: "2026-10-05T00:00:00Z" });
-export async function directPage(options: { locale?: keyof typeof dictionaries; ready?: boolean; api?: { snapshot: any; policy: any } } = {}) {
+export async function directPage(options: { locale?: keyof typeof dictionaries; ready?: boolean; api?: { snapshot: any; policy: any }; purchaseApi?: { unilevel: any } } = {}) {
   const ready = options.ready !== false;
   const app = Vue.reactive({ accountKey: ready ? "user:607" : "default", accountBindingEpoch: 1 });
   const auth = Vue.reactive({ isAuthenticated: ready, accountId: ready ? "user:607" : "default" });
@@ -115,12 +118,19 @@ export async function directPage(options: { locale?: keyof typeof dictionaries; 
   let runtimeEpoch = 1;
   const runtimeCallbacks: Array<() => void> = [];
   const api = options.api ?? { snapshot: vi.fn().mockResolvedValue(snapshotFixture()), policy: vi.fn().mockResolvedValue(policyFixture()) };
+  const purchaseApi = options.purchaseApi ?? { unilevel: async (...args: any[]) => {
+    const source = await api.snapshot(...args.slice(0, 4));
+    const events = source.events.filter((event: any) => event.kind === "direct_purchase").map((event: any) => ({ ...event, layer: 1, orderId: event.sourceRef }));
+    return { ...source, events, totalRows: source.events.length === 0 ? 0 : source.totalRows,
+      split: { direct: source.split.purchase, extended: { amountUSDT: 0, amountNEX: 0, count: 0 } } };
+  } };
   const navTo = vi.fn();
   const page = await mount(directSource, {
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.value]) },
     "@/i18n/format": { fmt, dateLocale: () => locale.value === "vi" ? "vi-VN" : locale.value === "zh" ? "zh-CN" : "en-US" },
     "@/store/app": { useApp: () => app }, "@/store/auth": { useAuth: () => auth },
     "@/api/direct-referral-api": { createDirectReferralApi: () => api },
+    "@/api/team-insights-api": { createTeamInsightsApi: () => purchaseApi },
     "@/api/runtime": { apiClient: {}, expectedApiEnvironment: "prod", remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: Number(app.accountKey.split(":")[1] || 607) } }) } },
     "@/lib/binary-session-ready": { binarySessionReady }, "@/lib/binary-read-coalescer": { createScopedReadCoalescer },
     "@/lib/account-scope": { captureAccountScope: () => app.accountBindingEpoch, isCurrentAccountScope: (epoch: number) => epoch === app.accountBindingEpoch },
@@ -128,7 +138,7 @@ export async function directPage(options: { locale?: keyof typeof dictionaries; 
       subscribeRuntimeRevision: (fn: () => void) => { runtimeCallbacks.push(fn); return () => {}; } },
     "@/lib/route": { navTo },
   });
-  return { ...page, app, auth, api, locale, navTo, revision: () => { runtimeEpoch++; runtimeCallbacks.forEach(fn => fn()); } };
+  return { ...page, app, auth, api, purchaseApi, locale, navTo, revision: () => { runtimeEpoch++; runtimeCallbacks.forEach(fn => fn()); } };
 }
 export const click = async (root: Host, label: string) => {
   const target = all(root).find(item => item.props.onClick && text(item) === label);

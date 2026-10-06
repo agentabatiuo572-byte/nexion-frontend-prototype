@@ -19,8 +19,9 @@ describe("public team copy keeps internal layers private", () => {
       } });
       await flush();
       const output = text(page.root);
-      expect(output).toContain(copy.commissions.kind.direct_purchase);
-      expect(output).toContain(copy.commissions.kind.direct_device_earning);
+      expect(output).toContain(copy.directReferral.purchase);
+      expect(output).toContain(copy.directReferral.networkPurchase);
+      expect(output).toContain(copy.directReferral.deviceEarning);
       expect(output).toContain("USDT"); expect(output).toContain("NEX");
       expect(output).not.toMatch(/\bL[1-7]\b|L2–L7|L2-L7/);
     });

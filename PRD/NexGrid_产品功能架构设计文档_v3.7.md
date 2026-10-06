@@ -193,7 +193,7 @@ TabBar:active tab 显示背景 chip 高亮。
 /team/rank                       V 级头衔进度
 /team/rank/how-it-works          等级体系新人说明页
 /team/unilevel                   直属购买与设备收益双币分成
-/team/unilevel/how-it-works      直属分成说明页
+/team/unilevel/how-it-works      网络版税说明页
 /team/binary                     双轨对碰
 /team/binary/how-it-works        双轨玩法新人说明页
 /team/leadership-pool            全球领导奖池
@@ -2060,10 +2060,10 @@ flowchart LR
 4. **Direct / Extended 拆分**:
    - Split bar:Direct(brand)+ Extended(brand-2)按 lifetime USDT 比例
    - 2-cell 数额:`Direct · N% · $X.XX` / `Extended · N% · $X.XX`
-   - 数据源:`directUSDT` = L1 累计;`extendedUSDT` = L2-L7 累计
+   - 总佣金directUSDT/extendedUSDT保留原分类；extended包含其他奖种，不等于网络购买。购买两类只读unilevel聚合
 
 5. **流动性 2-cell**:
-   - Withdrawable:`unlockedUSDT`(已解锁可提现额)
+   - 累计已到账:`unlockedUSDT`来源累计，不代表当前可提现；当前可提现余额由钱包及提现政策提供
    - Cooling (30d):`coolingUSDT`(30 天冷却中)
    - 注:原 lifetime cell 已上移到累计摘要行,此处删除以消重
 
@@ -2120,7 +2120,7 @@ flowchart LR
 | V11 | Cosmic Sovereign 宇宙至尊 | $100M | 无限扩展 1% | 5% | 256 |
 | V12 | Singularity 奇点 | $500M | 无限扩展 1.5% | 5% | 512 |
 
-> unilevelDepth 保留为历史等级配置与关系网络数据；新直属分成不读取该字段决定资格、层数或金额，也不向成员承诺间接层继续产奖。
+> unilevelDepth与购买资格继续由原七层引擎解释；设备收益分成只认真实直属来源，不按深度推算。
 
 #### 8.2.2 升级判定规则
 
@@ -2198,29 +2198,35 @@ flowchart LR
 - 升至下一阶进度条(`Math.round(progressPct × 100)%`)
 - Missing 条件清单(`nextRankProgress().missing` 数组逐条列出)
 - 13 阶完整列表(已达成 / CURRENT / 锁定 3 状态)
-- 每阶展示升级条件与已开放权益；历史深度参数不构成新直属分成的发放条件。
+- 每阶展示升级条件与已开放权益；购买资格沿原七层规则，设备直属奖励资格独立。
 
-### 8.3 直属分成 `/team/unilevel`
+### 8.3 网络版税 `/team/unilevel`
 
 #### 8.3.1 来源与计算
 
-直属购买分成以直接成员已付款设备订单的实付 USDT 为基数，覆盖普通、组合、换购、容量替换、保留旧购新及试用转正；充值、赠送、券抵扣和零实付不计。直属设备收益分成以已经入账的真实设备结算凭证为准，基数为凭证 USDT 加 NEX 按当笔有效价格折算的 USDT；包括免费手机真实合格任务，不包括试用影子、注册礼、活动、邀请佣金、其他团队奖励或开发测试产出。
+购买奖励沿用原七层订单预算、资格、层位、活动倍率、Influence与整链封顶；直属购买为该订单L1，网络购买为L2–L7，资格不符或暂停不压缩层级。A→B→C时，B购买给A原L1预算，C购买分别给B的L1与A的L2。普通、组合、换购、容量替换、保留旧购新和试用转正均按权威实付订单一次计佣；零基数不发奖。
 
-A 直接邀请 B、B 邀请 C 时，两类来源分别只奖励直接邀请人；C 的购买和设备收益不给 A，B 收到的佣金也不能再触发 A 的设备收益分成。平台额外支付奖励，不扣 B 原收益。今日对碰、V 等级、培育奖、领导池、邀请注册礼保持各自原规则。
+原L1基础预算率固定10%，不是拆分后的USDT现金率。令U1为原引擎最终L1预算、s为购买USDT占比、p为锁定价格：`USDT=floor6(U1*s)`，`NEX=floor6(U1*(1-s)/p)`。拆分NEX替代该新来源的旧L1额外NEX；L2–L7原USDT及额外NEX不变。拆分关闭时未来L1恢复原发放构成，七层购买不停，已锁定来源不重算。
 
-当前政策来自 `GET /api/config/commission/direct-referral`：两类规则分别含 `enabled`、`totalRatePct`、`usdtSharePct`、`coolingDays`；NEX 占比为 `100-usdtSharePct`。启用时总比例大于0且不超过100，拆分严格处于0与100之间，等待期为0..365整天；未配置为禁用占位0/50/0，不构成奖励承诺。
+直属设备收益以已入账合格设备凭证为准：Q=凭证USDT+凭证NEX×p，r为设备总比例，s为设备USDT占比；`USDT=floor6(Q*r*s)`，`NEX=floor6(Q*r*(1-s)/p)`。只奖励直接邀请人，平台额外支付，设备本人两币不减少。包括合格免费手机真实任务，排除影子、开发测试、注册礼、活动、佣金及其他团队奖励；H5不获原生手机执行权限。对碰、V等级、培育、领导池、注册礼保持各自原规则。
 
-令 Q 为合格基数、r=总比例/100、s=USDT占比/100、p 为有效 NEX 价格：`USDT=floor6(Q*r*s)`，`NEX=floor6(Q*r*(1-s)/p)`。价格不可用或任一币舍入为零时不伪造双币到账。服务端保存来源、受益人、政策版本、价格及两币金额快照，重试不重算、不重复发放，政策调整只作用于对应生效时间的来源。
+v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，包含实际settlementMode、purchaseSplit(enabled/usdtSharePct)、deviceEarning(enabled/totalRatePct/usdtSharePct/coolingDays)与只读sevenLayerReference(revision/baseRatePct/coolingDays/legacyNexPerUsd)。购买总预算与冷却只引用原七层，设备可独立配置。启用拆分严格0..100之间；空配置不伪造正式费率。切换前v2读取旧代际真实规则，不将旧独立购买比例改解释为七层L1。
+
+服务端冻结来源、受益人、整链预算、规则、政策与价格；缺价显示等待计算，已预留预算不转赠深层。新两币向下六位且同组原子到账；任一币舍入为零不伪造另一币到账。购买冷却自首次整链准备起算，设备冷却自凭证确认起算；缺价重试不重置。新七层订单全额退款撤销/追回整链两币，余额不足保留每位受益人每币欠额；设备后来退款不自动撤销有效历史设备收益分成。历史无证据不补算或扩层。
 
 #### 8.3.2 查询与状态
 
-`GET /api/app/team/insights/direct-referral` 支持 today/week/month/all、分页和 snapshotAt；split.purchase/deviceEarning 为整个期间的双币聚合，不能由当前页累加代替。每个来源显示一条双币记录、脱敏成员名、订单或收益凭证编号、等待/到账状态及待追回双币金额。
+同页显示直属购买、网络购买、直属设备收益三个分组。购买列表、全期间两币汇总与组数的唯一来源是 `GET /api/app/team/insights/unilevel?schemaVersion=2&filter=direct|extended|all`；设备只读 `GET /api/app/team/insights/direct-referral?schemaVersion=2&kind=device_earning`，不得再把该接口的历史purchase聚合加到购买总额。服务端先按类别筛选再汇总、计数与分页，不能以当前页无匹配冒充全期间空。
 
-加载、空列表、失败重试和返回均须可达；未配置、关闭或价格暂缺给出明确状态，历史已发生奖励仍可查，不回退固定10%或七层数据。切期间重置分页；切账号清除旧快照并丢弃晚返回请求。冷却/冻结两币均不提前进入可用钱包；退款取消或实际追回双币，余额不足显示待追回，不能仅改状态冒充追回。
+期间today/week/month/all，分页沿同一snapshotAt；新组id为稳定settlementNo，旧无组账项保持原标识。奖励组数、总佣金账项数与贡献成员数分别计数。金额汇总为服务器有效净额；撤销、拒绝、待追回不计有效收入但仍在可查组数中。已到账累计不等于当前可提现，当前可提现只认可钱包及提现政策；榜单保留实际已解锁USDT口径，不增加NEX估值排名。
+
+等待计算、冷却、冻结、到账、已支取、拒绝、撤销与待追回均有可读状态；价格暂缺、空列表、加载和接口失败提供重试与返回。切期间/账号/环境清除旧快照，晚返回不串状态；切分组服务端重新查询并沿原快照，加载更多去重。未配置、暂停仍保留历史可查。
+
+网络购买组保留逐币状态statusUSDT/statusNEX；两币不同时分别显示可读状态，如USDT已撤销、NEX已到账。记录保留原gross金额，有效净汇总按每币实际事实计算，不因一币被冲正而隐藏另一币。旧响应缺逐币状态时保留原组状态显示。
 
 #### 8.3.3 说明与兼容
 
-既有 `/team/unilevel/how-it-works` 与佣金说明读取服务端已发布正文，解释两类直接来源、总分成拆双币、平台承担、等待期与退款；比例来自生效配置。三语言 zh/en/vi 同步。旧 network/unilevel 记录留在总佣金列表，关系网络保留，不暗示间接层继续产生这两类新分成。
+规则页与佣金说明读取已发布且模板版本及语义匹配的三语正文，七层购买继续现行、L1拆分替代旧额外NEX、设备奖励平台承担。业务切换后受影响Team旧版读取返回明确更新提示，不发送误导金额；账户、钱包、本人设备收益原接口继续。已发布运营自定义正文只走正常发布流程，不自动覆盖。APP共享UI与业务同轮受控同步H5，保留网页手机权限边界。
 
 ### 8.4 双轨平衡匹配 `/team/binary`
 
@@ -2447,20 +2453,20 @@ i18n keys 在 `poolHowItWorks.*` namespace(en + zh 双语镜像)~40 keys。
 |---|---|---|---|
 | 直属购买分成 | 直接成员实付设备订单 | 由当笔政策决定等待期 | USDT + NEX，同一结算组 |
 | 直属设备收益分成 | 直接成员真实已入账设备凭证 | 由当笔政策决定等待期 | USDT + NEX，同一结算组 |
-| 历史网络奖励 | 历史 network/unilevel 记录 | 保留原规则处置 | 不再由新购买生成七层佣金 |
+| 网络购买奖励 | 网络成员实付设备订单 | 原七层冷却规则 | L2–L7保留原USDT及额外NEX；历史原账保留 |
 | 平衡匹配(Balance Match) | 双轨对碰条件满足 | 每日 | USDT,30 天冷却 |
 | Peer | 同 V 级团员业绩 5% | 每月 | USDT |
 | Cultivation | 下属升 V 一次性 NEX | 实时 | V1 500 / V2 2K / V3 10K / V4 50K / V5 200K NEX |
 | Leadership | 领导池周分红 | 每周 | USDT(V3+ 解锁) |
 | Genesis | 创世节点持有人排放 | 上所后 | $NEX(创世持有人,vesting 释放) |
 
-列表支持两类直属分成、历史网络、对碰、平级、培育、领导池、创世八类筛选和服务端全量分类汇总。总佣金保持单币账项模型，两币同组计两条账项，不称人数或奖励组数；直属页面按来源组同时展示两币。状态包含冷却/已到账/已支取/冻结/撤销/拒绝/待追回；待追回显示尚未追回的两币金额，不能作为可提现收益。
+列表支持直属购买、网络购买、直属设备收益、对碰、平级、培育、领导池、创世八类筛选和服务端账项汇总。总佣金两币同组计两条账项，不称成员或奖励组数；网络版税页按来源组同时展示两币。状态包含等待计算/冷却/已到账/已支取/冻结/撤销/拒绝/待追回；待追回两币金额不能作为可提现收益。
 
 **Commission row layer chip 二分类显示**:Row 内紧跟 `sourceUserName` 显示来源 chip,基于数学层 `e.layer` 字段二分类:
 - `layer === 1` → **直推**(`commissions.directBadge`)
 - `layer >= 2` → **扩展**(`commissions.extendedBadge`)
 
-层级标签仅用于区分历史记录来源。新分成只认真实直属来源，不按网络层级或客户端月业绩推算。
+层级标签区分购买的直属/网络来源；设备分成只认服务端真实直属来源，不按客户端月业绩推算。
 
 #### 8.6.1 玩法说明页 `/team/commissions/how-it-works`
 
@@ -2471,7 +2477,7 @@ i18n keys 在 `poolHowItWorks.*` namespace(en + zh 双语镜像)~40 keys。
 2. 说明佣金来源及历史兼容，所有正文由服务端发布。
 3. 当前直属规则与其他独立奖励的边界。
 4. 渠道说明：
-   - 直属购买与直属设备收益；比例、双币拆分和等待期取当前生效政策，历史网络仅查询。
+   - 直属购买、网络购买与直属设备收益；购买预算/资格与冷却沿原七层，L1拆分及设备规则取生效政策。
    - ⚖️ Binary · Balance Match Bonus
    - 🤝 Peer · same-rank bonus(V3 解锁)
    - 🌱 Cultivation · sponsor bonus (NEX)
@@ -3554,7 +3560,7 @@ interface TrialConfig {
 - Genesis:slot price $24.08、年化 87.9%、royalty/dividend、一级/二级市场开关。
 - 设备任务产能:递减 -4% / -6% / -23.7%, floor 22%, 产出阶梯抵扣公式。
 - 商品与收益:SKU price、daily earning、route threshold、trial price。
-- Team:两类直属分成政策、V Rank 条件、binary cap、leadership pool rule；历史网络关系保留。
+- Team:七层购买、L1拆分与设备分成政策、V Rank条件、binary cap、leadership pool rule；关系网络保留。
 - Wallet:withdraw min / fee / cap / KYC gate。
 
 任何端修改上述数字必须同步更新机读 canon source,否则验收失败。
@@ -4913,7 +4919,7 @@ OrderTimelineEvent = { status: OrderStatus; ts: number; note?: string }
   id: string;
   kind: "direct_purchase" | "direct_device_earning" | "unilevel" | "binary" | "peer" | "cultivation" | "leadership" | "genesis";
   sourceUserName: string;
-  layer?: number;               // 仅 unilevel
+  layer?: number;               // 购买奖励相对层位
   orderId?: string;
   orderAmountUSD?: number;
   sourceRef?: string;           // 总佣金可选；直属专页必有订单或设备收益凭证
@@ -4927,7 +4933,7 @@ OrderTimelineEvent = { status: OrderStatus; ts: number; note?: string }
   amountNEX: number;
   ts: number;
   unlockAt: number;             // 服务端当笔政策时间戳
-  status: "cooling" | "unlocked" | "withdrawn" | "frozen" | "reversed" | "rejected" | "recovery_pending";
+  status: "waiting_calculation" | "cooling" | "unlocked" | "withdrawn" | "frozen" | "reversed" | "rejected" | "recovery_pending";
 }
 ```
 
@@ -5530,7 +5536,7 @@ progressPct = avg(checks);
 | 历史兼容字段 · `h5BaseFactor` | 旧配置值保留 | 不参与 H5 手机执行、收益或离线补算；H5 仅展示服务端当前 APP 状态，手机执行资格以 §6.11 为准 |
 | 在线加成系数 · `continuityFullHours`(`CONTINUITY_FULL_MS`)| 2h(7,200,000ms) | App 连续在线稳定加成达满所需时长(0.85→1.0 线性,`lib/hashpower.ts`,§6.10 / §6.11);会话踢出 / 换机重校准清零;运营可配(`onlineBonus`) |
 | 提现冷却 | 30 天 | unilevel + binary 佣金 |
-| 直属两类总比例、USDT拆分、等待期 | 服务端生效政策；未配置为禁用 | `/api/config/commission/direct-referral`；NEX为拆分余数，公式见§8.3.1 |
+| L1拆分与设备收益比例/拆分/等待期 | 服务端v2政策，购买总预算原10%，冷却引用七层；设备独立配置 | `/api/config/commission/direct-referral?schemaVersion=2`；公式见§8.3.1 |
 | Partner Status Standard | $0+ | 基础权益(月度网络活跃度起步档)|
 | Partner Status Verified | $5,000+ | 优先客服支持 |
 | Partner Status Premium | $50,000+ | 新品优先购 |

@@ -151,7 +151,26 @@ describe("team unilevel API", () => {
     await expect(api.unilevel("week")).resolves.toMatchObject({
       period: "week", events: [{ cycle: "2026-W33", layer: 1 }], split: { direct: { count: 1 } },
     });
-    expect(request).toHaveBeenCalledWith({ path: "/api/app/team/insights/unilevel?period=week&page=1&pageSize=20" });
+    expect(request).toHaveBeenCalledWith({ path: "/api/app/team/insights/unilevel?period=week&page=1&pageSize=20&schemaVersion=2&filter=all" });
+  });
+  it("keeps server-wide direct and network totals while filtering a paired purchase group before pagination", async () => {
+    const payload = { source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "", period: "month",
+      schemaVersion: 2, settlementMode: "SEVEN_V2", filter: "direct", page: 2, pageSize: 20, totalRows: 21,
+      events: [{ id: "SETTLE-21", kind: "direct_purchase", source: "direct_purchase", sourceUserName: "B***", cycle: "2026-10", layer: 1,
+        orderId: "ORDER-21", orderAmountUSD: 1000, amountUSDT: 60, amountNEX: 4000, currency: "DUAL", status: "unlocked", ts: 1, unlockAt: 1 }],
+      split: { direct: { amountUSDT: 1260, amountNEX: 84000, count: 21 }, extended: { amountUSDT: 50, amountNEX: 100, count: 1 } },
+      summary: { amountUSDT: 1260, amountNEX: 84000, count: 21, creditedUSDT: 60, creditedNEX: 4000, pendingUSDT: 1200, pendingNEX: 80000 },
+      generatedAt: "2026-10-06T00:00:00Z", snapshotAt: "2026-10-06T00:00:00Z" };
+    const request = vi.fn().mockResolvedValue(payload);
+    const api = createTeamInsightsApi({ request } as unknown as ApiClient);
+    const result = await api.unilevel("month", 2, 20, payload.snapshotAt, "direct");
+    expect(result.split.extended.count).toBe(1); expect(result.summary?.count).toBe(21);
+    expect(result.events[0].currency).toBe("DUAL");
+    Object.assign(payload.events[0], { statusUSDT: "reversed", statusNEX: "unlocked" });
+    expect((await api.unilevel("month", 2, 20, payload.snapshotAt, "direct")).events[0]).toMatchObject({ statusUSDT: "reversed", statusNEX: "unlocked" });
+    expect(request.mock.calls[0][0].path).toContain("schemaVersion=2&filter=direct");
+    payload.events[0].layer = 2;
+    await expect(api.unilevel("month", 2, 20, payload.snapshotAt, "direct")).rejects.toMatchObject({ kind: "protocol" });
   });
 
   it("rejects unilevel events that expose source user ids", async () => {
