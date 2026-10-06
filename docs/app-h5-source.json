@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\app-hdpay-reason-w84-20261005",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-reward-state-w84-20261006",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "f8437fb78b4d89c78db7e6129d4ab9c4fbadd5b4",
-  "sourceRef": "f8437fb78b4d89c78db7e6129d4ab9c4fbadd5b4",
+  "sourceHead": "c0c85ce0b57f025bd9d3b2c2ca9bc8bd1919fa52",
+  "sourceRef": "c0c85ce0b57f025bd9d3b2c2ca9bc8bd1919fa52",
   "sourceRefKind": "commit",
-  "sourceTree": "cc25fb3d8c9c746394bca32d615d3b6f46eccbe9",
+  "sourceTree": "de8343db5e73e417060fa22ead09cb553b267d58",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -9169,10 +9169,10 @@
       "mode": "100644"
     },
     "src/i18n/messages/en.ts": {
-      "sourceBlob": "00b913666617439d4e978db95f491d29f216bdcb",
-      "sourceSha256": "a7368f8ae299426abaa78b2b3e7cf9999b4e7fe9a2539334d4e6f366ce1d777a",
-      "targetBlob": "00b913666617439d4e978db95f491d29f216bdcb",
-      "targetSha256": "a7368f8ae299426abaa78b2b3e7cf9999b4e7fe9a2539334d4e6f366ce1d777a",
+      "sourceBlob": "eccc11f7d6b5b6c5858919b6940acb3023d8f860",
+      "sourceSha256": "8e48c8b410f93bdfb8f1a7393ec5fdd249d67a82c8f08d6c8f71f85b2b9dfd5c",
+      "targetBlob": "eccc11f7d6b5b6c5858919b6940acb3023d8f860",
+      "targetSha256": "8e48c8b410f93bdfb8f1a7393ec5fdd249d67a82c8f08d6c8f71f85b2b9dfd5c",
       "mode": "100644"
     },
     "src/i18n/messages/genesis-cta-copy.test.ts": {
@@ -9183,17 +9183,17 @@
       "mode": "100644"
     },
     "src/i18n/messages/vi.ts": {
-      "sourceBlob": "523918613149791deb592a52de3a51cd9ebe34e4",
-      "sourceSha256": "87b08d4084df8f86099a7725347853c564778a695982ed1fa878d2697233af6f",
-      "targetBlob": "523918613149791deb592a52de3a51cd9ebe34e4",
-      "targetSha256": "87b08d4084df8f86099a7725347853c564778a695982ed1fa878d2697233af6f",
+      "sourceBlob": "d33da4536aff2987c59def54b7234d4b5f79c49d",
+      "sourceSha256": "229110cc8e79993ebe8fe59c28ace9cf13170b8634bf2f9ff04f1c98129aeabb",
+      "targetBlob": "d33da4536aff2987c59def54b7234d4b5f79c49d",
+      "targetSha256": "229110cc8e79993ebe8fe59c28ace9cf13170b8634bf2f9ff04f1c98129aeabb",
       "mode": "100644"
     },
     "src/i18n/messages/zh.ts": {
-      "sourceBlob": "aaffcde4c7ace778e893f17a6697d52eb2738ddc",
-      "sourceSha256": "3e8a91d5b23256aaf4b3865de2b139b33d10d1fc511de670da75e7a52dfaca73",
-      "targetBlob": "aaffcde4c7ace778e893f17a6697d52eb2738ddc",
-      "targetSha256": "3e8a91d5b23256aaf4b3865de2b139b33d10d1fc511de670da75e7a52dfaca73",
+      "sourceBlob": "f016da461134275eb9f3f35e22de0f32db1b2bbb",
+      "sourceSha256": "00ce9c9ce45bbf000819815f13f5bb104ed4828bd356a871555932b5db534635",
+      "targetBlob": "f016da461134275eb9f3f35e22de0f32db1b2bbb",
+      "targetSha256": "00ce9c9ce45bbf000819815f13f5bb104ed4828bd356a871555932b5db534635",
       "mode": "100644"
     },
     "src/i18n/open-slots.test.ts": {
@@ -13138,10 +13138,17 @@
       "mode": "100644"
     },
     "src/pages/me/rewards-list.vue": {
-      "sourceBlob": "084874ad044321b0a4e1a535fedc6b7791b46d57",
-      "sourceSha256": "7ef66b0b4caa590739ca6c1954147313faa0161d05551dc3b5e4761ea64705a1",
-      "targetBlob": "084874ad044321b0a4e1a535fedc6b7791b46d57",
-      "targetSha256": "7ef66b0b4caa590739ca6c1954147313faa0161d05551dc3b5e4761ea64705a1",
+      "sourceBlob": "eabef255a6aa76b9fea4235c6c242dab6f55ccca",
+      "sourceSha256": "f94916187301202082c7a31ca9eb5bd7ac5df203ad6d4c835f10140d42be0a34",
+      "targetBlob": "eabef255a6aa76b9fea4235c6c242dab6f55ccca",
+      "targetSha256": "f94916187301202082c7a31ca9eb5bd7ac5df203ad6d4c835f10140d42be0a34",
+      "mode": "100644"
+    },
+    "src/pages/me/rewards-state.behavior.test.ts": {
+      "sourceBlob": "478f404a876e5d8c62f7319cce0fef0f41d3edce",
+      "sourceSha256": "37e8776bef5a041f7857df4cc22f7ce210a523ec47c5c683538ce697c9ab8337",
+      "targetBlob": "478f404a876e5d8c62f7319cce0fef0f41d3edce",
+      "targetSha256": "37e8776bef5a041f7857df4cc22f7ce210a523ec47c5c683538ce697c9ab8337",
       "mode": "100644"
     },
     "src/pages/me/rewards-voucher-read-state.test.ts": {

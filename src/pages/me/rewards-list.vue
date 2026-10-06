@@ -109,6 +109,7 @@
             </view>
             <view class="text-right shrink-0" style="margin-left: 8px">
               <text class="block tabular-nums" :style="rewardAmountStyle">{{ b.amount >= 0 ? '+' : '' }}{{ formatHowNumber(b.amount, locale.code) }} {{ b.symbol }}</text>
+              <text class="block" :style="rowDateStyle">{{ rewardStatusLabel(b.status) }}</text>
               <text class="block" :style="rowDateStyle">{{ shortDate(b.ts) }}</text>
             </view>
           </view>
@@ -214,7 +215,9 @@ const records = computed(() => fundsServerEnabled
   : bills.bills.filter((b) => isRewardBill(b) && b.symbol === symbol.value));
 const visibleCount = ref(PAGE_SIZE);
 const visibleRecords = computed(() => (fundsServerEnabled ? records.value : records.value.slice(0, visibleCount.value))
-  .map((bill) => ({ ...bill, memo: resolveWalletBillMemo(bill, t.value.bills.memo as Record<string, string>, courseTitles.value) })));
+  .map((bill) => ({ ...bill, memo: bill.type === "refer" && bill.status !== "posted"
+    ? t.value.rewards.typeRefer
+    : resolveWalletBillMemo(bill, t.value.bills.memo as Record<string, string>, courseTitles.value) })));
 const hasMore = computed(() => fundsServerEnabled ? activePager.value.hasMore : visibleCount.value < records.value.length);
 const scrollAnchor = ref<unknown>(null);
 const initialLoading = computed(() => fundsServerEnabled && activePager.value.status === "loading" && records.value.length === 0);
@@ -295,6 +298,11 @@ function rewardTypeLabel(type: BillType): string {
   if (type === "refer") return t.value.rewards.typeRefer;
   if (type === "achievement") return t.value.rewards.typeAchievement;
   return t.value.rewards.typeBonus;
+}
+function rewardStatusLabel(status: Bill["status"]): string {
+  if (status === "posted") return t.value.bills.statusPosted;
+  if (status === "pending") return t.value.bills.statusPending;
+  return t.value.bills.statusFailed;
 }
 function onKeyboardActivate(event: KeyboardEvent, action: () => void) { if (!event.repeat) action(); }
 function toggleSourceRef(id: string) { sourceRefOpen.value = sourceRefOpen.value === id ? "" : id; }
