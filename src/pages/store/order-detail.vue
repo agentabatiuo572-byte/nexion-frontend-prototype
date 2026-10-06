@@ -186,7 +186,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
-import { onLoad, onShow, onUnload } from "@dcloudio/uni-app";
+import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import DetailRow from "@/components/store/order-detail-row.vue";
 import { useT } from "@/i18n/use-t";
@@ -202,6 +202,7 @@ import { navTo } from "@/lib/route";
 import { orderApi, remoteApiEnabled } from "@/api/runtime";
 import { asApiError } from "@/api/errors";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
 const t = useT();
 const orders = useOrders();
@@ -210,23 +211,27 @@ const auth = useAuth();
 
 const id = ref("");
 let detailMounted = true;
+let detailVisible = false;
 let detailEpoch = 0;
 
 interface DetailRequestScope {
   pageEpoch: number;
   orderNo: string;
   accountScope: ReturnType<typeof captureAccountScope>;
+  runtimeScope: ReturnType<typeof captureRuntimeRevision>;
 }
 
 function captureDetailScope(): DetailRequestScope {
-  return { pageEpoch: detailEpoch, orderNo: id.value, accountScope: captureAccountScope() };
+  return { pageEpoch: detailEpoch, orderNo: id.value, accountScope: captureAccountScope(), runtimeScope: captureRuntimeRevision() };
 }
 
 function isCurrentDetailScope(scope: DetailRequestScope): boolean {
   return detailMounted
+    && detailVisible
     && detailEpoch === scope.pageEpoch
     && id.value === scope.orderNo
-    && isCurrentAccountScope(scope.accountScope);
+    && isCurrentAccountScope(scope.accountScope)
+    && isCurrentRuntimeRevision(scope.runtimeScope);
 }
 
 onLoad((options) => {
@@ -277,9 +282,14 @@ async function refreshOrder() {
 }
 onShow(() => {
   detailMounted = true;
+  detailVisible = true;
   detailEpoch += 1;
   void refreshOrder();
   void refreshOrderWallet();
+});
+onHide(() => {
+  detailVisible = false;
+  detailEpoch += 1;
 });
 
 const order = computed(() => orders.orders.find((o) => o.id === id.value));
@@ -304,7 +314,15 @@ const showOrderNotFound = computed(() => !order.value && (!remoteApiEnabled
   || (remoteOrderBoundAccount.value && remoteOrderAttempted.value
     && !remoteOrderRefreshing.value && !remoteOrderError.value)));
 watch(remoteOrderBinding, (binding, previousBinding) => {
-  if (!binding.accountKey || binding.revision === previousBinding.revision || !id.value.trim()) return;
+  if (!detailVisible || !binding.accountKey || binding.revision === previousBinding.revision || !id.value.trim()) return;
+  remoteOrderAttempted.value = false;
+  remoteOrderError.value = false;
+  void refreshOrder();
+});
+// Catalogue refresh clears the shared remote orders without rebinding the
+// account. The visible detail must read again under the new runtime revision.
+const unsubscribeRuntimeRevision = subscribeRuntimeRevision(() => {
+  if (!detailMounted || !detailVisible || !remoteOrderBoundAccount.value || !id.value.trim()) return;
   remoteOrderAttempted.value = false;
   remoteOrderError.value = false;
   void refreshOrder();
@@ -530,7 +548,8 @@ async function handleWalletPayment() {
       toast.warn(t.value.tradein.errPurchaseFailed);
     }
   } finally {
-    if (isCurrentDetailScope(scope)) payingFromWallet.value = false;
+    // This handler owns the private lock; stale results still finish its attempt.
+    payingFromWallet.value = false;
   }
 }
 
@@ -543,7 +562,9 @@ function goEarn() {
 
 function cleanup() {
   detailMounted = false;
+  detailVisible = false;
   detailEpoch += 1;
+  unsubscribeRuntimeRevision();
   if (tickTimer) clearInterval(tickTimer);
 }
 onUnload(() => cleanup());

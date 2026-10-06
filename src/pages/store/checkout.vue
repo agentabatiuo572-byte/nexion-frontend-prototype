@@ -1345,6 +1345,7 @@ function resumeServerOrder(routeScope = captureCheckoutRoute()): Promise<boolean
   const promise = recoverCheckoutOrder(routeScope.accountKey, routeScope.productNo, {
     list: orderApi.list,
     isCurrent: () => isCurrentCheckoutRoute(routeScope),
+    isCurrentAccount: () => isCurrentAccountScope({ accountKey: routeScope.accountKey, epoch: routeScope.accountEpoch }),
     navigate: (url) => isCurrentCheckoutRoute(routeScope) ? navReplace(url) : Promise.resolve(false),
   }).finally(() => { if (serverOrderRecovery?.key === key) serverOrderRecovery = null; });
   serverOrderRecovery = { key, promise };

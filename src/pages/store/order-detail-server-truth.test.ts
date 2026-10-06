@@ -6,7 +6,7 @@ import ts from "typescript";
 import * as Vue from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CanonicalOrder, CanonicalOrderList } from "@/api/order-api";
-import { advanceRuntimeRevision } from "@/api/order-api";
+import { advanceRuntimeRevision, captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { formatTrialDateTime } from "@/lib/trial-date";
 import { en } from "@/i18n/messages/en";
@@ -71,9 +71,9 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
   const copyRef = Vue.ref(copy);
   const navTo = vi.fn();
   const load = (id: string) => {
-    if (id === "vue") return { ...Vue, onUnmounted: () => {} };
+    if (id === "vue") return { ...Vue, onUnmounted: Vue.onScopeDispose };
     if (id === "@dcloudio/uni-app") return {
-      onLoad: (callback: typeof onLoad) => { onLoad = callback; }, onShow: () => {}, onUnload: () => {},
+      onLoad: (callback: typeof onLoad) => { onLoad = callback; }, onShow: () => {}, onHide: () => {}, onUnload: () => {},
     };
     if (id === "@/store/orders") return { useOrders: () => orders, timelineFor };
     if (id === "@/store/app") return { useApp: () => ({}) };
@@ -87,6 +87,7 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
     if (id === "@/composables/use-page-header") return { useSetPageHeader: () => {} };
     if (id === "@/lib/route") return { navTo };
     if (id === "@/api/runtime") return remote;
+    if (id === "@/api/order-api") return { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision };
     if (id.endsWith(".vue")) return { __esModule: true, default: {} };
     throw new Error(`Unexpected order-detail script import: ${id}`);
   };
