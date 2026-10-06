@@ -88,7 +88,7 @@ const VALUE_EXEMPTIONS = [
   {
     id: "support-unassigned-token",
     why: "后端备勤池、待分配代理名仅用于未分配状态比较；限定文件、真实 isWaitingForAgent 返回判据、normalized 变量及严格相等比较，展示中文仍逐字检查",
-    files: ["src/pages/support/chat.vue"],
+    files: ["src/pages/support/chat.vue", "src/pages/support/messages.vue"],
     // Only the known comparison tail of the actual predicate is authorized.
     strip: (line) => /^\s*return\s+(?:!normalized\s*\|\|\s*normalized\.toLowerCase\(\)\s*===\s*(["'])unassigned\1\s*\|\|\s*)?normalized\s*===\s*(["'])备勤池\2(?:\s*\|\|\s*normalized\s*===\s*(["'])待分配\3)?\s*;?\s*$/.test(line)
       ? line.replace(/(["'])(?:备勤池|待分配)\1/g, (_m, quote) => `${quote}${quote}`) : line,
@@ -196,7 +196,7 @@ export function scanSource(file, src) {
   const stripped = decodeEscapes(stripComments(src, file.endsWith(".vue")));
   const fileRule = FILE_EXEMPTIONS.find((rule) => rule.match(file));
   const idleRegexLines = file === "src/lib/support-idle-message.ts" ? supportIdleRegexLines(src) : null;
-  const unassignedTokenLines = file === "src/pages/support/chat.vue" ? supportUnassignedTokenLines(src) : null;
+  const unassignedTokenLines = ["src/pages/support/chat.vue", "src/pages/support/messages.vue"].includes(file) ? supportUnassignedTokenLines(src) : null;
   const hits = [];
   stripped.split(/\r?\n/).forEach((line, idx) => {
     if (!CJK.test(line)) return;
@@ -332,6 +332,10 @@ function selftest() {
     ["support waiting token other file rejected", "src/pages/x/a.vue", supportPredicate('return normalized === "备勤池" || normalized === "待分配";'), 1],
     ["support waiting token wrong predicate rejected", "src/pages/support/chat.vue", supportPredicate('return normalized === "备勤池" || normalized === "待分配";').replace('function isWaitingForAgent', 'function displayAgentName'), 1],
     ["support waiting token fake multiline predicate rejected", "src/pages/support/chat.vue", '<script setup lang="ts">\nconst source = `\nfunction isWaitingForAgent(name: string): boolean {\n  const normalized = name.trim();\n  return normalized === "备勤池" || normalized === "待分配";\n}\n`;\n</script>', 1],
+    ["support list known comparison pair allowed", "src/pages/support/messages.vue", supportPredicate('return !normalized || normalized.toLowerCase() === "unassigned" || normalized === "备勤池" || normalized === "待分配";'), 0],
+    ["support list token display rejected", "src/pages/support/messages.vue", '<template><text>待分配</text></template>', 1],
+    ["support list wrong predicate rejected", "src/pages/support/messages.vue", supportPredicate('return normalized === "备勤池" || normalized === "待分配";').replace('function isWaitingForAgent', 'function displayAgentName'), 1],
+    ["support list token extra display operand rejected", "src/pages/support/messages.vue", supportPredicate('return "备勤池" || normalized === "备勤池" || normalized === "待分配";'), 1],
     // legacy-config-token —— 阴阳两面各测一遍:只测 true 那行会让 "关"/"关闭" 半边判据无人验证。
     ["豁免:已发布 Pro 标语原值仅作匹配", "src/lib/product-copy.ts", 'const PRO_PUBLISHED_TAGLINE = "中端主力·AI 推理 + 挖掘";', 0],
     ["豁免:弗吉尼亚机房原值仅作匹配", "src/lib/product-copy.ts", 'const VIRGINIA_DATACENTER = "美国·弗吉尼亚";', 0],

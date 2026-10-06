@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\app-checkout-stage-integrated-w84-20261006",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-messages-closed-label-r1365-20261006",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "470fa7d1d199d47215db4b7d3877e18db20d5043",
-  "sourceRef": "470fa7d1d199d47215db4b7d3877e18db20d5043",
+  "sourceHead": "81e636dce6c2d9eb67e5f432880b752502b4d925",
+  "sourceRef": "81e636dce6c2d9eb67e5f432880b752502b4d925",
   "sourceRefKind": "commit",
-  "sourceTree": "d9436c9b32999371e28a2709a0b66c8d3841618e",
+  "sourceTree": "e9f44ebae64729f036c968045d01154097dfe0ad",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -4206,10 +4206,10 @@
       "mode": "100644"
     },
     "scripts/i18n-hardcoded-cjk-sentinel.mjs": {
-      "sourceBlob": "6bf98a7f16952e0454436f3a83556c6941c6c47f",
-      "sourceSha256": "d3ddbf2da7688b31d99067f5054ac8307846ee0a7ca3d50dee412b67aa7a2153",
-      "targetBlob": "6bf98a7f16952e0454436f3a83556c6941c6c47f",
-      "targetSha256": "d3ddbf2da7688b31d99067f5054ac8307846ee0a7ca3d50dee412b67aa7a2153",
+      "sourceBlob": "ab964d0452d54f6127e8934a04b5bbabf4954dd4",
+      "sourceSha256": "4d93de86cb7fb485c1c7d5a19505ae682818c9e0db4a1af2b13770b7eb902ee9",
+      "targetBlob": "ab964d0452d54f6127e8934a04b5bbabf4954dd4",
+      "targetSha256": "4d93de86cb7fb485c1c7d5a19505ae682818c9e0db4a1af2b13770b7eb902ee9",
       "mode": "100644"
     },
     "scripts/i18n-hardcoded-en-copy-sentinel.mjs": {
@@ -4556,10 +4556,10 @@
       "mode": "100644"
     },
     "scripts/m-support-authority-contract.test.mjs": {
-      "sourceBlob": "cbbc5edc81c5ae71f2edc13515d3692393c2d8f4",
-      "sourceSha256": "8e314b8c7cc8a0cb1c871769d8a7a5bd0c97e25ce8aaee95b2cc2ff0b1476180",
-      "targetBlob": "cbbc5edc81c5ae71f2edc13515d3692393c2d8f4",
-      "targetSha256": "8e314b8c7cc8a0cb1c871769d8a7a5bd0c97e25ce8aaee95b2cc2ff0b1476180",
+      "sourceBlob": "ff0fdca4442e6c53188b7c6e89cf47f97c26e556",
+      "sourceSha256": "7457cc58ade656d77e7ac04f70b23e88175cdabf75c7f82294f3dc46757f5e0c",
+      "targetBlob": "ff0fdca4442e6c53188b7c6e89cf47f97c26e556",
+      "targetSha256": "7457cc58ade656d77e7ac04f70b23e88175cdabf75c7f82294f3dc46757f5e0c",
       "mode": "100644"
     },
     "scripts/market-board-visual-contract.test.mjs": {
@@ -14097,10 +14097,10 @@
       "mode": "100644"
     },
     "src/pages/support/messages-history-kind.test.ts": {
-      "sourceBlob": "3f471c3be7c76b77da86435ca2d0ef909208fd99",
-      "sourceSha256": "d9ab21cbcd6afc513f6a8fdc31ad13418687f384622ac2076f94575a783c403d",
-      "targetBlob": "3f471c3be7c76b77da86435ca2d0ef909208fd99",
-      "targetSha256": "d9ab21cbcd6afc513f6a8fdc31ad13418687f384622ac2076f94575a783c403d",
+      "sourceBlob": "c941034378618adb401fc775f79bb543e1431fc7",
+      "sourceSha256": "d5f9fae34294a42b158adad314ed85bc7ddfdcf90684853ae40bb4bdb9427ac0",
+      "targetBlob": "c941034378618adb401fc775f79bb543e1431fc7",
+      "targetSha256": "d5f9fae34294a42b158adad314ed85bc7ddfdcf90684853ae40bb4bdb9427ac0",
       "mode": "100644"
     },
     "src/pages/support/messages-refresh.contract.test.ts": {
@@ -14118,10 +14118,10 @@
       "mode": "100644"
     },
     "src/pages/support/messages.vue": {
-      "sourceBlob": "96f3b7512db3f66971c0f0559e004dec6610ea07",
-      "sourceSha256": "d69bd7a4253b6bc0246ceac864c8a0f067a8d8aad3c8f1bbc29b51f52be8bad2",
-      "targetBlob": "96f3b7512db3f66971c0f0559e004dec6610ea07",
-      "targetSha256": "d69bd7a4253b6bc0246ceac864c8a0f067a8d8aad3c8f1bbc29b51f52be8bad2",
+      "sourceBlob": "cf374acae6020118fe8aa518662dd694ff6fe452",
+      "sourceSha256": "622cde93c0c04d6f45765314afb61c758eb58ceedac5540263fd2d0f2e172849",
+      "targetBlob": "cf374acae6020118fe8aa518662dd694ff6fe452",
+      "targetSha256": "622cde93c0c04d6f45765314afb61c758eb58ceedac5540263fd2d0f2e172849",
       "mode": "100644"
     },
     "src/pages/support/nova-handoff-lifecycle.test.ts": {

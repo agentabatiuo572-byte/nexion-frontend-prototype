@@ -244,7 +244,7 @@ test("conversation list and detail localize an unassigned server owner after ref
     read("src/i18n/messages/zh.ts"),
   ]);
   assert.match(messages, /convStore\.refresh\(\)/);
-  assert.match(messages, /displayAgentName\(c\.agentName\)/);
+  assert.match(messages, /displayAgentName\(c\.agentName, c\.status\)/);
   assert.match(messages, /t\.value\.conversations\.unassignedAgent/);
   assert.match(chat, /displayAgentName\(conv\.value\.agentName\)/);
   assert.match(chat, /t\.value\.conversations\.unassignedAgent/);

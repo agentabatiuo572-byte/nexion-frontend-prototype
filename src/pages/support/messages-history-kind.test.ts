@@ -85,7 +85,7 @@ describe("human list identity follows each conversation kind and status", () => 
       lastMessage: "会话已因用户闲置 5 分钟自动结束,可重新发起会话。", lastMessageKind: "IDLE_TIMEOUT_CLOSE" as const }));
     const current = mount("support", entry === "warm" ? rows : []);
     if (entry === "cold") { current.store.conversations = rows; await Vue.nextTick(); }
-    current.expectNames(rows.map(row => row.agentName));
+    current.expectNames(rows.map(() => zh.conversations.sessionEnded));
     expect(current.nodes("nx-conv-rowprev").map(node => node.text)).toEqual(rows.map(row => localizedIdleClose(row.lastMessage, zh.conversations)));
     expect(current.nodes("nx-conv-rowtime").map(node => node.text)).toEqual(rows.map(() => fmt(zh.conversations.tDayAgo, { n: 4 })));
     expect(current.nodes("nx-conv-unread-t").map(node => node.children[0]?.text || node.text)).toEqual(rows.map(() => "2"));
@@ -118,8 +118,40 @@ describe("human list identity follows each conversation kind and status", () => 
       const owners = ["", "Unassigned", "  unassigned  ", "待分配", "备勤池", "  Named owner  "];
       const current = mount("support", owners.map((owner, index) => conversation("support", status, owner, `CV-owner-${index}`)), messages);
       current.store.advisor = null; await Vue.nextTick();
-      current.expectNames([messages.conversations.unassignedAgent, messages.conversations.unassignedAgent, messages.conversations.unassignedAgent,
-        "待分配", "备勤池", "Named owner"]);
+      current.expectNames(status === "closed"
+        ? [...Array(5).fill(messages.conversations.sessionEnded), "Named owner"]
+        : [messages.conversations.unassignedAgent, messages.conversations.unassignedAgent, messages.conversations.unassignedAgent,
+          "待分配", "备勤池", "Named owner"]);
     }
+  });
+
+  it.each([zh, en, vietnamese])("distinguishes one waiting session from seven ended sessions without changing actions", async messages => {
+    const rows = Array.from({ length: 8 }, (_, index) => conversation("support", index === 0 ? "open" : "closed", "待分配", `CV-${3169 - index}`));
+    const current = mount("support", rows, messages);
+    current.expectNames(["待分配", ...Array(7).fill(messages.conversations.sessionEnded)]);
+    expect(current.nodes("nx-conv-contact")).toHaveLength(0);
+    current.nodes("nx-conv-row")[1]!.props.onClick();
+    expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-3168");
+    await current.nodes("nx-conv-remove")[1]!.props.onClick();
+    expect(current.store.dismissConversation).toHaveBeenCalledExactlyOnceWith("CV-3168");
+    expect(current.nodes("nx-conv-row")).toHaveLength(8);
+
+    Object.assign(current.store.conversations[0]!, { status: "closed", sessionStatus: "closed" });
+    await Vue.nextTick();
+    current.expectNames(Array(8).fill(messages.conversations.sessionEnded));
+    expect(current.nodes("nx-conv-contact")).toHaveLength(1);
+    current.nodes("nx-conv-contact")[0]!.props.onClick();
+    expect(current.navTo).toHaveBeenLastCalledWith("/pages/support/chat?start=support");
+  });
+
+  it("keeps an unassigned ended advisor independent of current assignment and preserves a later historical owner", async () => {
+    const current = mount("advisor", [conversation("advisor", "closed", "Unassigned")]);
+    for (const state of advisorStates) {
+      Object.assign(current.store, state); await Vue.nextTick();
+      current.expectNames([zh.conversations.sessionEnded]);
+    }
+    current.store.conversations[0]!.agentName = "Historical owner";
+    await Vue.nextTick();
+    current.expectNames(["Historical owner"]);
   });
 });

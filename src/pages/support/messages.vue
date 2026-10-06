@@ -290,8 +290,16 @@ function msgText(m: ConvMessage, c: Conversation): string {
     ? localizedIdleClose(m.text, t.value.conversations) ?? m.text : m.text;
 }
 
-function displayAgentName(name: string): string {
+function isWaitingForAgent(name: string): boolean {
   const normalized = name.trim();
+  return !normalized || normalized.toLowerCase() === "unassigned" || normalized === "备勤池" || normalized === "待分配";
+}
+
+function displayAgentName(name: string, status: Conversation["status"]): string {
+  const normalized = name.trim();
+  if (status === "closed" && isWaitingForAgent(name)) {
+    return t.value.conversations.sessionEnded;
+  }
   return normalized && normalized.toLowerCase() !== "unassigned"
     ? normalized
     : t.value.conversations.unassignedAgent;
@@ -342,7 +350,7 @@ const rows = computed<Row[]>(() => {
           : convStore.advisorError || !convStore.advisor ? t.value.conversations.image.advisorUnavailable
             : convStore.advisor.assignmentState === "UNBOUND" ? t.value.conversations.image.unassigned
               : convStore.advisor.currentAdvisorName ?? t.value.conversations.image.advisorUnavailable
-        : displayAgentName(c.agentName),
+        : displayAgentName(c.agentName, c.status),
       preview: typing ? t.value.conversations.agentTyping : cleanPreview(latestText) || t.value.conversations[c.roleKey],
       time: relTime(c.lastTs),
       unread: c.unread,
