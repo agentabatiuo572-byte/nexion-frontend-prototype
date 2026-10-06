@@ -46,6 +46,62 @@ describe("conversation list refresh generation fence", () => {
     messages: [], unread: 0, agentName: "Agent", roleKey: "roleSupport", avatarTint: "blue",
     lastMessage: "Confirmed history", sessionStatus: "active" });
 
+  it.each(["success", "failure"])("settles list loading when create recovery supersedes its owner (%s)", async outcome => {
+    const older = deferred<any>(), recovered = deferred<any>();
+    runtime.supportApi.conversations.mockReturnValueOnce(older.promise).mockReturnValueOnce(recovered.promise);
+    runtime.supportApi.startConversation.mockRejectedValueOnce(new ApiError({ kind: "network", message: "unknown" }));
+    const store = useConversations(); await store.refreshCategories();
+    const first = store.refresh(); await vi.waitFor(() => expect(runtime.supportApi.conversations).toHaveBeenCalledTimes(1));
+    const create = store.startConversation("support", "new request").catch(cause => cause);
+    await vi.waitFor(() => expect(runtime.supportApi.conversations).toHaveBeenCalledTimes(2));
+    if (outcome === "success") recovered.resolve({ items: [human()] }); else recovered.reject(new Error("recovery unavailable"));
+    expect(await create).toMatchObject({ kind: "network" });
+    older.resolve({ items: [{ ...human(), id: "CV-stale" }] }); await first;
+    expect(store.loading).toBe(false); expect(store.conversations.map(row => row.id)).toEqual(outcome === "success" ? ["CV-cold"] : []);
+    expect(store.error).toBe(outcome === "success" ? null : "recovery unavailable");
+    runtime.supportApi.conversations.mockResolvedValueOnce({ items: [human()] }); await store.refresh();
+    expect(store.loading).toBe(false); expect(store.get("CV-cold")?.lastMessage).toBe("Confirmed history");
+  });
+
+  it.each(["success", "failure"])("does not let old recovery %s alter a newer refresh loading, error or list", async outcome => {
+    const older = deferred<any>(), recovered = deferred<any>(), newer = deferred<any>();
+    runtime.supportApi.conversations.mockReturnValueOnce(older.promise).mockReturnValueOnce(recovered.promise).mockReturnValueOnce(newer.promise);
+    runtime.supportApi.startConversation.mockRejectedValueOnce(new ApiError({ kind: "network", message: "unknown" }));
+    const store = useConversations(); await store.refreshCategories();
+    const first = store.refresh(); await vi.waitFor(() => expect(runtime.supportApi.conversations).toHaveBeenCalledTimes(1));
+    const create = store.startConversation("support", "new request").catch(cause => cause);
+    await vi.waitFor(() => expect(runtime.supportApi.conversations).toHaveBeenCalledTimes(2));
+    const latest = store.refresh(); await vi.waitFor(() => expect(runtime.supportApi.conversations).toHaveBeenCalledTimes(3));
+    if (outcome === "success") recovered.resolve({ items: [{ ...human(), id: "CV-recovery-stale" }] }); else recovered.reject(new Error("stale recovery failure"));
+    await create;
+    older.resolve({ items: [{ ...human(), id: "CV-first-stale" }] }); await first;
+    expect(store.loading).toBe(true); expect(store.error).toBeNull(); expect(store.conversations).toEqual([]);
+    newer.resolve({ items: [human()] }); await latest;
+    expect(store.loading).toBe(false); expect(store.conversations.map(row => row.id)).toEqual(["CV-cold"]);
+  });
+
+  it.each(["success", "failure"])("fences an old-account recovery failure while the current account read ends in %s", async outcome => {
+    const older = deferred<any>(), recovered = deferred<any>(), current = deferred<any>();
+    runtime.supportApi.conversations.mockReturnValueOnce(older.promise).mockReturnValueOnce(recovered.promise).mockReturnValueOnce(current.promise);
+    const originalFailure = new ApiError({ kind: "network", message: "original command failure" });
+    runtime.supportApi.startConversation.mockRejectedValueOnce(originalFailure);
+    const store = useConversations(); store.bindAccount("user:A"); await store.refreshCategories();
+    const first = store.refresh(); await vi.waitFor(() => expect(runtime.supportApi.conversations).toHaveBeenCalledTimes(1));
+    const create = store.startConversation("support", "new request").catch(cause => cause);
+    await vi.waitFor(() => expect(runtime.supportApi.conversations).toHaveBeenCalledTimes(2));
+    store.bindAccount("user:B"); const latest = store.refresh().catch(cause => cause);
+    await vi.waitFor(() => expect(runtime.supportApi.conversations).toHaveBeenCalledTimes(3));
+    if (outcome === "failure") { current.reject(new Error("current account failure")); await latest; }
+    recovered.reject(new Error("old account failure")); expect(await create).toBe(originalFailure);
+    older.resolve({ items: [{ ...human(), id: "CV-old-account" }] }); await first;
+    expect(store.conversations).toEqual([]);
+    if (outcome === "success") {
+      expect(store.loading).toBe(true); expect(store.error).toBeNull(); current.resolve({ items: [human()] }); await latest;
+    }
+    expect(store.loading).toBe(false); expect(store.error).toBe(outcome === "success" ? null : "current account failure");
+    expect(store.conversations.map(row => row.id)).toEqual(outcome === "success" ? ["CV-cold"] : []);
+  });
+
   it("creates one support conversation for concurrent identical sends without Web Crypto", async () => {
     vi.stubGlobal("crypto", undefined);
     vi.stubGlobal("TextEncoder", undefined);

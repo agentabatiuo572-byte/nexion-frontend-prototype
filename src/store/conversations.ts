@@ -220,7 +220,7 @@ export const useConversations = defineStore("conversations", () => {
         scopeInvalidated.value += 1;
         startRealtime();
         if (watched) watchRealtime(watched);
-        void Promise.allSettled([refreshAdvisor(), refresh().then(() => watched ? open(watched) : undefined)]);
+        void Promise.allSettled([refreshAdvisor(), refreshCategories(), refresh().then(() => watched ? open(watched) : undefined)]);
       },
     });
     realtime=instance; setAppConversationRealtime(instance); instance.watch(watchedId); instance.start();
@@ -505,17 +505,25 @@ export const useConversations = defineStore("conversations", () => {
 
   async function reconcileAll(account: AccountScope): Promise<void> {
     if (!accountScopeIsCurrent(account)) return;
+    let requestGeneration: number | undefined;
     try {
       await preparePendingRun();
       if (!accountScopeIsCurrent(account)) return;
       const scope = snapshotScope();
-      const requestGeneration = ++listRequestGeneration;
+      requestGeneration = ++listRequestGeneration;
+      loading.value = true;
+      error.value = null;
       const [page, dismissals] = await Promise.all([supportApi.conversations(), supportApi.conversationDismissals()]);
       if (snapshotIsCurrent(scope) && requestGeneration === listRequestGeneration) {
         mergeConversations(page.items); mergeDismissals(dismissals);
       }
-    } catch {
-      // The original failure remains authoritative; reconciliation is best effort.
+    } catch (cause) {
+      if (accountScopeIsCurrent(account) && requestGeneration === listRequestGeneration) {
+        error.value = cause instanceof Error ? cause.message : "SUPPORT_CONVERSATIONS_LOAD_FAILED";
+      }
+      // The original command failure remains authoritative for its caller.
+    } finally {
+      if (accountScopeIsCurrent(account) && requestGeneration === listRequestGeneration) loading.value = false;
     }
   }
 

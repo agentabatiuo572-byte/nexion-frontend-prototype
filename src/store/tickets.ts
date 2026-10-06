@@ -289,16 +289,24 @@ export const useTickets = defineStore("tickets", () => {
   }
 
   async function reconcileAll(epoch: number): Promise<void> {
+    const accountKey = accountKeyValue;
+    let requestGeneration: number | undefined;
     try {
-      const accountKey = accountKeyValue;
       await preparePendingRun();
       if (epoch !== accountEpoch || accountKey !== accountKeyValue) return;
       const scope = snapshotScope();
-      const requestGeneration = ++listRequestGeneration;
+      requestGeneration = ++listRequestGeneration;
+      loading.value = true;
+      error.value = null;
       const items = (await supportApi.tickets()).items;
       if (snapshotIsCurrent(scope) && requestGeneration === listRequestGeneration) mergeTickets(items);
-    } catch {
-      // The original failure remains authoritative; reconciliation is best effort.
+    } catch (cause) {
+      if (epoch === accountEpoch && accountKey === accountKeyValue && requestGeneration === listRequestGeneration) {
+        error.value = cause instanceof Error ? cause.message : "SUPPORT_TICKETS_LOAD_FAILED";
+      }
+      // The original command failure remains authoritative for its caller.
+    } finally {
+      if (epoch === accountEpoch && accountKey === accountKeyValue && requestGeneration === listRequestGeneration) loading.value = false;
     }
   }
 

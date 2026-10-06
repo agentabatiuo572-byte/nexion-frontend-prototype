@@ -49,6 +49,22 @@ beforeEach(() => {
 });
 
 describe("conversation realtime lifecycle", () => {
+  it.each(["success", "failure"])("restores category authority after a same-account invalidation (%s)", async outcome => {
+    runtime.supportApi.conversationCategories.mockResolvedValue({ advisor: true, support: true, ai: false });
+    runtime.supportApi.conversations.mockResolvedValue({ items: [] });
+    const store = useConversations(); store.bindAccount("user:1"); await store.refreshCategories(); store.startRealtime();
+    if (outcome === "failure") runtime.supportApi.conversationCategories.mockRejectedValueOnce(new Error("REQUEST_TIMEOUT"));
+    harness.instances[0].options.scopeInvalidated(1);
+    await vi.waitFor(() => expect(store.categoryLoading).toBe(false));
+    expect(store.categoryAvailabilityStatus).toBe(outcome === "success" ? "ready" : "failed");
+    expect(store.loading).toBe(false); expect(store.conversations).toEqual([]);
+    expect(store.categoryEnabled("support")).toBe(outcome === "success");
+    if (outcome === "failure") {
+      await store.refreshCategories(); expect(store.categoryAvailabilityStatus).toBe("ready");
+      expect(store.categoryLoading).toBe(false); expect(store.categoryEnabled("support")).toBe(true);
+    }
+    store.stopRealtime();
+  });
   it("restores an in-flight human payload after a store reload", () => {
     const first = useConversations();
     first.bindAccount("user:1");

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\app-messages-closed-label-r1365-20261006",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-service-loading-reviewed-r1761-20261007",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "81e636dce6c2d9eb67e5f432880b752502b4d925",
-  "sourceRef": "81e636dce6c2d9eb67e5f432880b752502b4d925",
+  "sourceHead": "22c78c076a15fc9161fe7fedb49a22477a3c9ce2",
+  "sourceRef": "22c78c076a15fc9161fe7fedb49a22477a3c9ce2",
   "sourceRefKind": "commit",
-  "sourceTree": "e9f44ebae64729f036c968045d01154097dfe0ad",
+  "sourceTree": "1d9c0e78dc0b13efb1f93518deff251537d1a3cf",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12991,10 +12991,10 @@
       "mode": "100644"
     },
     "src/pages/me/notifications.vue": {
-      "sourceBlob": "ee04d2f7121567b2ae81dcc7058778577ccfcd8a",
-      "sourceSha256": "8aaeaa4b9c77d023a924635b86fc2456f61901cdfdfc8adcc8ee441456f71235",
-      "targetBlob": "ee04d2f7121567b2ae81dcc7058778577ccfcd8a",
-      "targetSha256": "8aaeaa4b9c77d023a924635b86fc2456f61901cdfdfc8adcc8ee441456f71235",
+      "sourceBlob": "6e8fc880061edb5fdb1491ab290b99fd497306be",
+      "sourceSha256": "9cbc302a1721505854f152be2c8f4cc15402ba02f27253a935add24a676b2306",
+      "targetBlob": "6e8fc880061edb5fdb1491ab290b99fd497306be",
+      "targetSha256": "9cbc302a1721505854f152be2c8f4cc15402ba02f27253a935add24a676b2306",
       "mode": "100644"
     },
     "src/pages/me/p3-18-account-page-fence.test.ts": {
@@ -15203,17 +15203,17 @@
       "mode": "100644"
     },
     "src/store/conversations-page-lifecycle.test.ts": {
-      "sourceBlob": "1b4cdc3e84b203d4764834148c200f86cd8797b9",
-      "sourceSha256": "b4dd95b9342d3e28fdb10a4fc40ec531bdc3624fd1b7f9f8ce19082a0d899e56",
-      "targetBlob": "1b4cdc3e84b203d4764834148c200f86cd8797b9",
-      "targetSha256": "b4dd95b9342d3e28fdb10a4fc40ec531bdc3624fd1b7f9f8ce19082a0d899e56",
+      "sourceBlob": "3be1508a2199fe995a0cb5bd66af6a5fd6cfa8e8",
+      "sourceSha256": "6d3ef7c88175ba8460c429d4daa6965f2e3d9239b3110e991b9d590ac07bb6d0",
+      "targetBlob": "3be1508a2199fe995a0cb5bd66af6a5fd6cfa8e8",
+      "targetSha256": "6d3ef7c88175ba8460c429d4daa6965f2e3d9239b3110e991b9d590ac07bb6d0",
       "mode": "100644"
     },
     "src/store/conversations-realtime.test.ts": {
-      "sourceBlob": "47c2063d1572ec72347de4a7604ae3baa0460597",
-      "sourceSha256": "8e8dc9490c438667b3c56f847e708a62bf5528d4dace82649bfe2fa6f6d7e2fe",
-      "targetBlob": "47c2063d1572ec72347de4a7604ae3baa0460597",
-      "targetSha256": "8e8dc9490c438667b3c56f847e708a62bf5528d4dace82649bfe2fa6f6d7e2fe",
+      "sourceBlob": "653bb453110a5d8bfb4ba4556fa0529a734a0ee8",
+      "sourceSha256": "33911c8dc9bce3cda9e00dc738b981fe1d529e91155c033107b86fc94dec2efe",
+      "targetBlob": "653bb453110a5d8bfb4ba4556fa0529a734a0ee8",
+      "targetSha256": "33911c8dc9bce3cda9e00dc738b981fe1d529e91155c033107b86fc94dec2efe",
       "mode": "100644"
     },
     "src/store/conversations-reauth-recovery.test.ts": {
@@ -15224,17 +15224,17 @@
       "mode": "100644"
     },
     "src/store/conversations-refresh-race.test.ts": {
-      "sourceBlob": "df3c58e1914e886fbd5ecc86cf65a98b161a12c9",
-      "sourceSha256": "64bf34c66993b7c3baa0d2979198eaed7cfef59c86e7bb58c8c1a0c738997526",
-      "targetBlob": "df3c58e1914e886fbd5ecc86cf65a98b161a12c9",
-      "targetSha256": "64bf34c66993b7c3baa0d2979198eaed7cfef59c86e7bb58c8c1a0c738997526",
+      "sourceBlob": "86cac03674d3daee8cd957bb4830f4212fe49f98",
+      "sourceSha256": "e4eb150f493fd6951c39329f48f6e06923dbd658f969371a03fddaab07b96ca8",
+      "targetBlob": "86cac03674d3daee8cd957bb4830f4212fe49f98",
+      "targetSha256": "e4eb150f493fd6951c39329f48f6e06923dbd658f969371a03fddaab07b96ca8",
       "mode": "100644"
     },
     "src/store/conversations.ts": {
-      "sourceBlob": "e8b9868e7badfb9a11bcc062346d9baced527fd1",
-      "sourceSha256": "dbb6e00b576b8c1612e5126e46ceacf457028787603946886e521f768a0ec9f5",
-      "targetBlob": "e8b9868e7badfb9a11bcc062346d9baced527fd1",
-      "targetSha256": "dbb6e00b576b8c1612e5126e46ceacf457028787603946886e521f768a0ec9f5",
+      "sourceBlob": "07af080e514cee7deea7e35d9581cc04e1326a46",
+      "sourceSha256": "4ffd4ddc4c8715ce56ff218d3e5d2a3aa394db8544957c20f92b3bcaf847dcdd",
+      "targetBlob": "07af080e514cee7deea7e35d9581cc04e1326a46",
+      "targetSha256": "4ffd4ddc4c8715ce56ff218d3e5d2a3aa394db8544957c20f92b3bcaf847dcdd",
       "mode": "100644"
     },
     "src/store/daily-powerup-remote-scope.test.ts": {
@@ -16071,17 +16071,17 @@
       "mode": "100644"
     },
     "src/store/tickets-read-acknowledgement.test.ts": {
-      "sourceBlob": "7208361096bbb4383252cd8da17378c1aaaaa228",
-      "sourceSha256": "ba8545f13efd5b4f09dcfac23e566fe40fd7c75256153890d2a513192664b4c9",
-      "targetBlob": "7208361096bbb4383252cd8da17378c1aaaaa228",
-      "targetSha256": "ba8545f13efd5b4f09dcfac23e566fe40fd7c75256153890d2a513192664b4c9",
+      "sourceBlob": "f9ce17f01ee57b06bd80fc5c839d4b18f1cb7095",
+      "sourceSha256": "6a89454796bb5dab149bb31b3b02f94f6522f4ebb91a2a62151342c2024215da",
+      "targetBlob": "f9ce17f01ee57b06bd80fc5c839d4b18f1cb7095",
+      "targetSha256": "6a89454796bb5dab149bb31b3b02f94f6522f4ebb91a2a62151342c2024215da",
       "mode": "100644"
     },
     "src/store/tickets.ts": {
-      "sourceBlob": "7e0a6da11ae1863ff9b4c6b27fa32ff7d9e26a2e",
-      "sourceSha256": "fcc8e6d10112deb374572f7a0154666744496c9b20869019697562ecb075f6a9",
-      "targetBlob": "7e0a6da11ae1863ff9b4c6b27fa32ff7d9e26a2e",
-      "targetSha256": "fcc8e6d10112deb374572f7a0154666744496c9b20869019697562ecb075f6a9",
+      "sourceBlob": "4f599828cdb80823179503936f14ac83076e5f37",
+      "sourceSha256": "927d849cc03437780d9c977e9a7e4823a7e09d5964220da02b4ad5b5ede15aae",
+      "targetBlob": "4f599828cdb80823179503936f14ac83076e5f37",
+      "targetSha256": "927d849cc03437780d9c977e9a7e4823a7e09d5964220da02b4ad5b5ede15aae",
       "mode": "100644"
     },
     "src/store/tradein-sheet.ts": {

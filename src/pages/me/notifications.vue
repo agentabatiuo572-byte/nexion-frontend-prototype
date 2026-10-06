@@ -124,7 +124,10 @@ const emptyTitle = computed(() => notifs.items.length === 0 ? t.value.notifs.emp
 function toggle(n: Notification) { void notifs.markRead(n.id); expandedId.value = expandedId.value === n.id ? null : n.id; }
 const markingAll = ref(false);
 async function markAll() { if (markingAll.value) return; markingAll.value = true; try { await notifs.markAllRead(); } finally { markingAll.value = false; } }
-watch(() => app.accountBindingEpoch, () => { expandedId.value = null; filter.value = "all"; serviceFilter.value = "all"; resetHeader(); });
+watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
+  expandedId.value = null; filter.value = "all"; serviceFilter.value = "all"; resetHeader();
+  if (!disposed && pageVisible) void center.refresh();
+});
 
 function timeAgo(ts: number): string {
   const mins = Math.max(1, Math.floor((Date.now() - ts) / 60_000));

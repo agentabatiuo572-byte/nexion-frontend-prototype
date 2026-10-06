@@ -56,6 +56,60 @@ beforeEach(() => {
 });
 
 describe("ticket read acknowledgement", () => {
+  it.each(["success", "failure"])("settles list loading when create recovery supersedes its owner (%s)", async outcome => {
+    const older = deferred<any>(), recovered = deferred<any>();
+    remote.supportApi.tickets.mockReturnValueOnce(older.promise).mockReturnValueOnce(recovered.promise);
+    remote.supportApi.createTicket.mockRejectedValueOnce(new ApiError({ kind: "network", message: "unknown" }));
+    const store = useTickets();
+    const first = store.refresh(); await vi.waitFor(() => expect(remote.supportApi.tickets).toHaveBeenCalledTimes(1));
+    const create = store.createTicket({ category: "technical", subject: "New", body: "Details" }).catch(cause => cause);
+    await vi.waitFor(() => expect(remote.supportApi.tickets).toHaveBeenCalledTimes(2));
+    if (outcome === "success") recovered.resolve({ items: [ticket("TK-current", 1, 0)], total: 1 }); else recovered.reject(new Error("recovery unavailable"));
+    expect(await create).toMatchObject({ kind: "network" });
+    older.resolve({ items: [ticket("TK-stale", 1, 0)], total: 1 }); await first;
+    expect(store.loading).toBe(false); expect(store.tickets.map(row => row.id)).toEqual(outcome === "success" ? ["TK-current"] : []);
+    expect(store.error).toBe(outcome === "success" ? null : "recovery unavailable");
+    remote.supportApi.tickets.mockResolvedValueOnce({ items: [ticket("TK-current", 2, 0)], total: 1 }); await store.refresh();
+    expect(store.loading).toBe(false); expect(store.tickets[0].version).toBe(2);
+  });
+
+  it.each(["success", "failure"])("does not let old recovery %s alter a newer refresh loading, error or list", async outcome => {
+    const older = deferred<any>(), recovered = deferred<any>(), newer = deferred<any>();
+    remote.supportApi.tickets.mockReturnValueOnce(older.promise).mockReturnValueOnce(recovered.promise).mockReturnValueOnce(newer.promise);
+    remote.supportApi.createTicket.mockRejectedValueOnce(new ApiError({ kind: "network", message: "unknown" }));
+    const store = useTickets();
+    const first = store.refresh(); await vi.waitFor(() => expect(remote.supportApi.tickets).toHaveBeenCalledTimes(1));
+    const create = store.createTicket({ category: "technical", subject: "New", body: "Details" }).catch(cause => cause);
+    await vi.waitFor(() => expect(remote.supportApi.tickets).toHaveBeenCalledTimes(2));
+    const latest = store.refresh(); await vi.waitFor(() => expect(remote.supportApi.tickets).toHaveBeenCalledTimes(3));
+    if (outcome === "success") recovered.resolve({ items: [ticket("TK-recovery-stale", 1, 0)], total: 1 }); else recovered.reject(new Error("stale recovery failure"));
+    await create;
+    older.resolve({ items: [ticket("TK-first-stale", 1, 0)], total: 1 }); await first;
+    expect(store.loading).toBe(true); expect(store.error).toBeNull(); expect(store.tickets).toEqual([]);
+    newer.resolve({ items: [ticket("TK-current", 1, 0)], total: 1 }); await latest;
+    expect(store.loading).toBe(false); expect(store.tickets.map(row => row.id)).toEqual(["TK-current"]);
+  });
+  it.each(["success", "failure"])("fences an old-account recovery failure while the current account read ends in %s", async outcome => {
+    const older = deferred<any>(), recovered = deferred<any>(), current = deferred<any>();
+    remote.supportApi.tickets.mockReturnValueOnce(older.promise).mockReturnValueOnce(recovered.promise).mockReturnValueOnce(current.promise);
+    const originalFailure = new ApiError({ kind: "network", message: "original command failure" });
+    remote.supportApi.createTicket.mockRejectedValueOnce(originalFailure);
+    const store = useTickets(); store.bindAccount("user:A");
+    const first = store.refresh(); await vi.waitFor(() => expect(remote.supportApi.tickets).toHaveBeenCalledTimes(1));
+    const create = store.createTicket({ category: "technical", subject: "New", body: "Details" }).catch(cause => cause);
+    await vi.waitFor(() => expect(remote.supportApi.tickets).toHaveBeenCalledTimes(2));
+    store.bindAccount("user:B"); const latest = store.refresh().catch(cause => cause);
+    await vi.waitFor(() => expect(remote.supportApi.tickets).toHaveBeenCalledTimes(3));
+    if (outcome === "failure") { current.reject(new Error("current account failure")); await latest; }
+    recovered.reject(new Error("old account failure")); expect(await create).toBe(originalFailure);
+    older.resolve({ items: [ticket("TK-old-account", 1, 0)], total: 1 }); await first;
+    expect(store.tickets).toEqual([]);
+    if (outcome === "success") {
+      expect(store.loading).toBe(true); expect(store.error).toBeNull(); current.resolve({ items: [ticket("TK-current", 1, 0)], total: 1 }); await latest;
+    }
+    expect(store.loading).toBe(false); expect(store.error).toBe(outcome === "success" ? null : "current account failure");
+    expect(store.tickets.map(row => row.id)).toEqual(outcome === "success" ? ["TK-current"] : []);
+  });
   it("preserves an open detail window and older cursor when background headers refresh", async () => {
     const store = useTickets();
     const opened = { ...ticket("TK-A", 3, 1), messages: [{ id: "4", ts: 4, author: "agent" as const, body: "A real reply" }],
