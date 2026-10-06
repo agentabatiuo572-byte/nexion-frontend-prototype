@@ -11,10 +11,27 @@ export const directEvent = (id = "source-1", kind = "direct_purchase") => ({ id,
   amountUSDT: 60, amountNEX: 4000, ts: 1790812800000, unlockAt: 1790812800000, status: "unlocked", recoveryPendingUSDT: 0, recoveryPendingNEX: 0 });
 export const snapshot = (events = [directEvent()]) => ({ source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
   period: "month", page: 1, pageSize: 20, totalRows: events.length, events,
-  split: { purchase: { amountUSDT: 60, amountNEX: 4000, count: 1 }, deviceEarning: { amountUSDT: .3, amountNEX: 20, count: 1 } },
+  split: { purchase: { amountUSDT: 60, amountNEX: 4000, count: events.filter(event => event.kind === "direct_purchase").length }, deviceEarning: { amountUSDT: 0, amountNEX: 0, count: events.filter(event => event.kind === "direct_device_earning").length } },
   generatedAt: "2026-10-05T00:00:00Z", snapshotAt: "2026-10-05T00:00:00Z" });
 const api = (payload: unknown) => createDirectReferralApi({ request: vi.fn().mockResolvedValue(payload) } as unknown as ApiClient);
 describe("direct referral public boundary", () => {
+  it("rejects a group count that disagrees with totalRows without summing gross event money into net", async () => {
+    const payload = snapshot(); payload.split.purchase.count = 2;
+    await expect(api(payload).snapshot("month")).rejects.toMatchObject({kind: "protocol"});
+  });
+  it("rejects a continuation that changes the issued snapshot cutoff", async () => {
+    await expect(api(snapshot()).snapshot("month", 1, 20, "2026-10-04T00:00:00Z")).rejects.toMatchObject({kind: "protocol"});
+  });
+  it("accepts server net zero while retaining all terminal groups in the counts", async () => {
+    const payload = snapshot([directEvent("recovery"), directEvent("reversed"), directEvent("rejected")]);
+    payload.events[0].status = "recovery_pending"; payload.events[0].recoveryPendingUSDT = 10;
+    payload.events[1].status = "reversed";
+    Object.assign(payload.events[2], {status: "rejected", amountUSDT: 0, amountNEX: 0});
+    payload.split.purchase.amountUSDT = 0; payload.split.purchase.amountNEX = 0;
+    const result = await api(payload).snapshot("month");
+    expect(result.totalRows).toBe(3); expect(result.split.purchase).toEqual({amountUSDT: 0, amountNEX: 0, count: 3});
+    expect(result.events[0].amountUSDT).toBe(60);
+  });
   it("accepts independent configured rates without a fixed L1 rule", async () => {
     await expect(api(policy()).policy()).resolves.toMatchObject({ purchase: { totalRatePct: 12.3456 }, deviceEarning: { usdtSharePct: 70 } });
   });
@@ -31,7 +48,8 @@ describe("direct referral public boundary", () => {
     await expect(api({ ...policy(), ...mutation }).policy()).rejects.toMatchObject({ kind: "protocol" });
   });
   it("keeps the complete aggregate independently of page data and carries snapshotAt", async () => {
-    const payload = { ...snapshot([directEvent("last")]), page: 2, totalRows: 21 };
+    const payload = { ...snapshot([directEvent("last")]), page: 2, totalRows: 21,
+      split: {purchase: {amountUSDT: 60, amountNEX: 4000, count: 21}, deviceEarning: {amountUSDT: 0, amountNEX: 0, count: 0}} };
     const request = vi.fn().mockResolvedValue(payload);
     const result = await createDirectReferralApi({ request } as unknown as ApiClient).snapshot("month", 2, 20, payload.snapshotAt);
     expect(result.split.purchase.amountNEX).toBe(4000);

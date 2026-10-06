@@ -210,8 +210,9 @@ const noKindText = computed(() =>
 function eventMeta(e: CommissionEvent): string {
   const kindLabel = t.value.commissions.kind[e.kind];
   const order = e.sourceRef ? ` · ${e.kind === "direct_purchase" ? t.value.directReferral.order : t.value.directReferral.receipt} ${e.sourceRef}` : e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${e.orderAmountUSD}` : "";
+  const device = e.sourceDeviceId ? ` · ${t.value.directReferral.device}: ${e.sourceDeviceId}` : "";
   const date = new Date(e.ts).toLocaleDateString(dateLocale());
-  return `${kindLabel}${order} · ${date}`;
+  return `${kindLabel}${order}${device} · ${date}`;
 }
 function coolingTag(e: CommissionEvent): string {
   const days = Math.max(0, Math.ceil((e.unlockAt - Date.now()) / 86400000));

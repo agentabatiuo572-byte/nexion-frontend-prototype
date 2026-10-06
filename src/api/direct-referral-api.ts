@@ -97,8 +97,13 @@ export function createDirectReferralApi(client: ApiClient, mode: ApiEnvironment 
       if (events.length !== Math.min(pageSize, Math.max(0, totalRows - (page - 1) * pageSize))
         || new Set(events.map(event => event.id)).size !== events.length) return invalid();
       const totals = row(source.split);
-      return { period, page, pageSize, totalRows, events, split: { purchase: split(totals.purchase), deviceEarning: split(totals.deviceEarning) },
-        generatedAt: date(source.generatedAt), snapshotAt: source.snapshotAt === null ? null : date(source.snapshotAt) };
+      const purchase = split(totals.purchase), deviceEarning = split(totals.deviceEarning);
+      const responseSnapshotAt = source.snapshotAt === null ? null : date(source.snapshotAt);
+      if (purchase.count + deviceEarning.count !== totalRows || (snapshotAt !== null && responseSnapshotAt !== snapshotAt)) return invalid();
+      // Server split is NET across every group and page. Terminal rows retain
+      // gross amounts, so reconcile counts without reconstructing money here.
+      return { period, page, pageSize, totalRows, events, split: { purchase, deviceEarning },
+        generatedAt: date(source.generatedAt), snapshotAt: responseSnapshotAt };
     },
     async policy(): Promise<DirectReferralPolicy> {
       const source = row(await client.request<unknown>({ method: "GET", path: "/api/config/commission/direct-referral", authenticated: false }));

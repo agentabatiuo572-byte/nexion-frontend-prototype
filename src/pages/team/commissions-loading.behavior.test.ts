@@ -165,6 +165,15 @@ async function guide(code: Locale = "en") {
 const buttons = (root: Host) => all(root).filter(item => item.props.role === "button");
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); });
 
+test.each(["en", "zh", "vi"] as const)("commissions %s retains real device source and paired pending recovery fields", async code => {
+  const page = await commissions(code); await page.show();
+  page.reads[0].resolve([{...event("direct_device_earning"), sourceRef: "EARN-REAL-7", sourceDeviceId: "DEVICE-REAL-7",
+    status: "recovery_pending", recoveryPendingUSDT: 1.5, recoveryPendingNEX: 80}]); await flush();
+  expect(text(page.root)).toContain("EARN-REAL-7"); expect(text(page.root)).toContain("DEVICE-REAL-7");
+  expect(text(page.root)).toContain(dictionaries[code].directReferral.recoveryPending);
+  expect(text(page.root)).toContain("80"); expect(text(page.root)).not.toContain("+7.00");
+});
+
 test.each(["en", "zh", "vi"] as const)("commissions %s idle and pending are loading, never projection failure or zero result", async code => {
   const page = await commissions(code), copy = dictionaries[code];
   for (const phase of ["idle", "loading"]) {

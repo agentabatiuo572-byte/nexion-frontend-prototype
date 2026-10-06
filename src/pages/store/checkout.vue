@@ -299,7 +299,7 @@ import { resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-co
 import { completeVerifiedMutation, handleNoActiveDeviceDecision, RemoteCapacityGate, StableCommandKey } from "@/domain/e20-capacity-coordinator";
 import { resolveTradeinCheckoutPreflight } from "@/domain/tradein-checkout-preflight";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
-import { productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
+import { productCatalogPresentation, productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
 import { refreshServerProductPhase } from "@/store/server-product-phase";
 import { isProductAvailable } from "@/store/product-availability";
 import { usePendingCheckout } from "@/store/pending-checkout";
@@ -575,7 +575,10 @@ onLoad(async (options) => {
 });
 
 const catalogStatus = computed(() => productCatalogState.status);
-const product = computed<Product | undefined>(() => getProduct(productId.value));
+const product = computed<Product | undefined>(() => !productId.value || (remoteApiEnabled && catalogStatus.value !== "ready") ? undefined
+  : remoteApiEnabled
+    ? productCatalogPresentation.value?.products.find((entry) => entry.id === productId.value)
+    : getProduct(productId.value));
 const purchaseUnavailable = computed(() => product.value?.purchaseBlocked === true);
 // Hard purchase gate (等级门 + 锁额) — single source via usePurchaseGate.
 const { gate: purchaseGate } = usePurchaseGate(product);

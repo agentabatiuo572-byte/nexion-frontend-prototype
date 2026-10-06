@@ -16,6 +16,8 @@
         <view v-else-if="policy" style="display: flex; flex-direction: column; gap: 12px">
           <text v-if="!policy.configured" class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.directReferral.unconfigured }}</text>
           <text v-else-if="policy.nexUsdtPrice === null" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.priceUnavailable }}</text>
+          <text class="block" style="font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ policy.configured ? t.directReferral.configured : t.directReferral.unconfigured }} · {{ t.directReferral.policyVersion }}: {{ policy.policyVersion }} · {{ t.directReferral.effectiveAt }}: {{ policy.effectiveAt ?? '—' }}</text>
+          <text class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.directReferral.price }}: {{ policy.nexUsdtPrice ?? '—' }} USDT</text>
           <view v-for="rule in ruleRows" :key="rule.key" style="padding: 14px; border-radius: 14px; background: var(--v5-surface)">
             <text class="block" style="font-size: 13px; font-weight: 600">{{ rule.title }}</text>
             <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ rule.enabled ? rule.description : t.directReferral.disabled }}</text>
@@ -29,14 +31,16 @@
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.directReferral.total }}</text>
             <text class="block font-display tabular-nums nx-direct-amount" style="font-size: 26px; font-weight: 600">{{ amount(remoteTotalUSDT) }} USDT</text>
             <text class="block font-mono-tabular nx-direct-amount" style="margin-top: 4px; color: var(--v5-brand-2)">{{ amount(remoteTotalNEX) }} NEX</text>
+            <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ remoteSnapshot.totalRows }} {{ t.directReferral.settlementGroups }}</text>
           </view>
           <view v-for="row in summaryRows" :key="row.kind" style="display: flex; justify-content: space-between; gap: 12px; font-size: 12px">
-            <text style="flex: 1; min-width: 0">{{ row.title }} · {{ row.count }}</text>
+            <text style="flex: 1; min-width: 0">{{ row.title }} · {{ row.count }} {{ t.directReferral.settlementGroups }}</text>
             <view style="max-width: 58%; text-align: right">
               <text class="block font-mono-tabular nx-direct-amount">{{ amount(row.amountUSDT) }} USDT</text>
               <text class="block font-mono-tabular nx-direct-amount">{{ amount(row.amountNEX) }} NEX</text>
             </view>
           </view>
+          <text class="block" style="font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ t.directReferral.netHint }}</text>
           <GlassSegments :label="t.directReferral.source" v-model="filter" :options="filterOptions" layout="wrap" />
           <view style="border-top: 1px solid var(--v5-border)">
             <view v-for="event in remoteFilteredEvents" :key="event.id" class="nx-direct-event" style="padding: 14px 0; border-bottom: 1px solid var(--v5-border)">
@@ -46,11 +50,14 @@
                   <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.commissions.kind[event.kind] }}</text>
                 </view>
                 <view style="max-width: 58%; text-align: right">
+                  <text class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.directReferral.originalReward }}</text>
                   <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-brand)">{{ amount(event.amountUSDT) }} USDT</text>
                   <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-brand-2)">{{ amount(event.amountNEX) }} NEX</text>
                 </view>
               </view>
               <text class="block" style="margin-top: 6px; font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ sourceLabel(event) }} · {{ event.sourceRef }}</text>
+              <text v-if="event.sourceDeviceId" class="block" style="margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ t.directReferral.device }}: {{ event.sourceDeviceId }}</text>
+              <text class="block" style="margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ t.directReferral.settlement }}: {{ event.id }} · {{ t.directReferral.policyVersion }}: {{ event.policyVersion }} · {{ t.directReferral.price }}: {{ event.nexUsdtPrice ?? '—' }} USDT</text>
               <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-2)">{{ statusLabel(event) }}</text>
               <text v-if="event.status === 'recovery_pending'" class="block nx-direct-amount" style="margin-top: 4px; font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: amount(event.recoveryPendingUSDT), nex: amount(event.recoveryPendingNEX) }) }}</text>
             </view>
@@ -88,7 +95,7 @@ const t = useT();
 const app = useApp();
 const auth = useAuth();
 const directApi = createDirectReferralApi(apiClient, expectedApiEnvironment);
-const readCoalescer = createScopedReadCoalescer();
+let readCoalescer = createScopedReadCoalescer();
 const period = ref<DirectReferralPeriod>("month");
 const filter = ref<"all" | DirectReferralKind>("all");
 const remoteSnapshot = ref<DirectReferralSnapshot | null>(null);
@@ -140,10 +147,11 @@ function retryRemote() {
 }
 function invalidate() {
   remoteRequest++; remoteSnapshot.value = null; policy.value = null; remoteState.value = "loading"; policyState.value = "loading"; remoteLoadMoreStatus.value = "idle";
+  readCoalescer = createScopedReadCoalescer();
 }
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => { invalidate(); retryRemote(); }, { flush: "sync" });
 watch(remoteSessionReady, ready => { if (ready) retryRemote(); else invalidate(); }, { immediate: true, flush: "post" });
-watch(period, () => { invalidate(); void loadRemote(); });
+watch(period, () => { invalidate(); retryRemote(); });
 const unsubscribeRuntimeRevision = subscribeRuntimeRevision(() => { invalidate(); retryRemote(); });
 onMounted(retryRemote);
 onShow(retryRemote);
