@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { computed, ref } from "vue";
 
-import { en } from "@/i18n/messages/en";
+import { en, type Messages } from "@/i18n/messages/en";
 import { vi } from "@/i18n/messages/vi";
 import { zh } from "@/i18n/messages/zh";
-import { normalizeQuestActionRoute, weeklyQuestDisplayName } from "./quest-presentation";
+import { dayOneQuestDisplayName, normalizeQuestActionRoute, weeklyQuestDisplayName } from "./quest-presentation";
 
 describe("normalizeQuestActionRoute", () => {
   it.each([
@@ -46,5 +47,78 @@ describe("weeklyQuestDisplayName", () => {
       .toBe("Ưu đãi 邀请 bạn bè");
     expect(weeklyQuestDisplayName({ questCode: "custom_quest", name: "自定义任务" }, "vi", vi))
       .toBe("自定义任务");
+  });
+});
+
+describe("dayOneQuestDisplayName", () => {
+  const defaults = [
+    ["bind_bank_card", "绑定银行卡", "Link bank card", "Liên kết thẻ ngân hàng"],
+    ["visit_earn", "访问收益页", "Visit Earn tab", "Vào tab Sinh lời"],
+    ["visit_store", "访问商城", "Visit Store", "Vào Cửa hàng"],
+    ["view_product_roi", "查看 UVELBox S1 ROI", "See UVELBox S1 ROI", "Xem ROI của UVELBox S1"],
+    ["setup_profile", "设置个人资料", "Set up profile", "Thiết lập hồ sơ"],
+    ["invite_friend", "邀请好友", "Invite a friend", "Mời bạn bè"],
+  ] as const;
+
+  it.each(defaults)("localizes only the known Chinese default for %s", (questCode, name, english, vietnamese) => {
+    const quest = { questCode, name, layer: "DAY_ONE" as const };
+    expect(dayOneQuestDisplayName(quest, "en", en)).toBe(english);
+    expect(dayOneQuestDisplayName(quest, "vi", vi)).toBe(vietnamese);
+    expect(dayOneQuestDisplayName(quest, "zh", zh)).toBe(name);
+  });
+
+  it.each(defaults)("preserves authored and already localized names for %s", (questCode, _, english, vietnamese) => {
+    for (const name of ["特别的新手任务", "Ưu đãi 邀请朋友", english, vietnamese]) {
+      const quest = { questCode, name, layer: "DAY_ONE" as const };
+      expect(dayOneQuestDisplayName(quest, "en", en)).toBe(name);
+      expect(dayOneQuestDisplayName(quest, "vi", vi)).toBe(name);
+    }
+  });
+
+  it.each(["custom_quest", "__proto__", "constructor", "bind_bank_card "])("preserves unknown code %s even with a default name", (questCode) => {
+    expect(dayOneQuestDisplayName({ questCode, name: "绑定银行卡", layer: "DAY_ONE" }, "vi", vi))
+      .toBe("绑定银行卡");
+  });
+
+  it("preserves other ROI targets and non-Day-One rows", () => {
+    expect(dayOneQuestDisplayName({ questCode: "view_product_roi", name: "查看 UVELBox Pro ROI", layer: "DAY_ONE" }, "en", en))
+      .toBe("查看 UVELBox Pro ROI");
+    expect(dayOneQuestDisplayName({ questCode: "visit_earn", name: "访问收益页", layer: "WEEKLY_T1" }, "vi", vi))
+      .toBe("访问收益页");
+  });
+
+  it.each([undefined, null, 42, "", "   "])("preserves the server name when translation is missing or invalid: %s", (value) => {
+    const messages = { ...en, home: { ...en.home, dayOneTaskVisitEarn: value } } as unknown as Messages;
+    expect(dayOneQuestDisplayName({ questCode: "visit_earn", name: "访问收益页", layer: "DAY_ONE" }, "en", messages))
+      .toBe("访问收益页");
+  });
+
+  it("uses current runtime copy for an exact default and retains display-only brand normalization", () => {
+    const messages = { ...en, home: { ...en.home, dayOneTaskVisitEarn: "Explore earnings" } };
+    expect(dayOneQuestDisplayName({ questCode: "visit_earn", name: "访问收益页", layer: "DAY_ONE" }, "en", messages))
+      .toBe("Explore earnings");
+    expect(dayOneQuestDisplayName({ questCode: "view_product_roi", name: "查看 Nex" + "GridBox S1 ROI", layer: "DAY_ONE" }, "vi", vi))
+      .toBe("Xem ROI của UVELBox S1");
+    expect(dayOneQuestDisplayName({ questCode: "custom_quest", name: "Nex" + "Grid 自定义任务", layer: "DAY_ONE" }, "vi", vi))
+      .toBe("UVEL 自定义任务");
+  });
+
+  it("updates the label on locale changes without mutating frozen server facts", () => {
+    const quest = Object.freeze({
+      questCode: "visit_earn", name: "访问收益页", layer: "DAY_ONE" as const,
+      instanceKey: "DAY_ONE:immutable", status: "COMPLETED", category: "explore",
+      actionRoute: "/pages/earn/earn", rewardNex: 30, eligible: true,
+      eligibleFrom: "2026-10-07T01:00:00Z", eligibleUntil: "2026-10-09T01:00:00Z",
+    });
+    const original = { ...quest };
+    const locale = ref<"en" | "vi" | "zh">("en");
+    const messages = { en, vi, zh };
+    const label = computed(() => dayOneQuestDisplayName(quest, locale.value, messages[locale.value]));
+    expect(label.value).toBe("Visit Earn tab");
+    locale.value = "vi";
+    expect(label.value).toBe("Vào tab Sinh lời");
+    locale.value = "zh";
+    expect(label.value).toBe(original.name);
+    expect(quest).toEqual(original);
   });
 });

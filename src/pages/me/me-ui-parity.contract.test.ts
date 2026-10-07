@@ -77,7 +77,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "support.vue": "9a89c364bbc52d36f0218752b5bb69ffbba692fd113feaf285e7d0273180bad0",
   "trial.vue": "9ba1ff2296064a5ccf0c750018c06c722853136431dc2f8e14ffa0ef7bd20d2e",
   "wallet-address-rebind.vue": "64f22ae20b3725ff6df6c516a9f99a6714efd94834cc5b02734c146e377e9e32",
-  "wallet-bills.vue": "66562e30900e2169f5ff8bc8bbf6651293d8f33294663b7f90f3b97b249edf0f",
+  // Reviewed #465: refund references wrap on their own read-only line; other bill rows retain their layout.
+  "wallet-bills.vue": "c5e47e15570a7722235aeea6b1e32172ea19a3adcd3af605b4e27ea7392d2aab",
   "wallet-cards-new.vue": "6af630a5acf97669826202e3842042a8b28af8813f0657da0a6085336f7a3fc2",
   "wallet-cards.vue": "4ba7080a2d1b7c9ce4d56c4ea90b5fed3614c689aaeccaf3811d166f08391692",
   "wallet-exchange-how.vue": "53a85b180c00d4a33e73d101a628e8f786924b2e23c48f045147b9f15cb8b9b0",

@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
+import type { ApiClient } from "../api/api-client";
+import { createWalletBillsApi } from "../api/wallet-bills-api";
 
 const remote = vi.hoisted(() => ({ fundsServerEnabled: true, walletBillsApi: { list: vi.fn(), summary: vi.fn() } }));
 vi.mock("@/api/runtime", () => remote);
-const { useBills } = await import("./bills");
+const { useBills, isRewardBill } = await import("./bills");
 const row = (id: string) => ({ id, bizNo: id, bizType: "QUEST_REWARD", asset: "NEX", direction: "IN", amount: 2, balanceAfter: 9, status: "SUCCESS", remark: id, createdAt: 1000 });
 const page = (ids: string[], nextCursor: string | null = null, current = 1) => ({ source: "server", sourceEnvironment: "PRODUCTION", bills: ids.map(row), page: current, pageSize: 50, total: 1101, nextPage: nextCursor ? current + 1 : null, nextCursor });
 const summary = (amount = 2202) => ({ source: "server", sourceEnvironment: "PRODUCTION", asOf: 2000, timeZone: "Asia/Shanghai", rewardsUsdt: 0, rewardsNex: amount, latestRewardAt: 1000, todayNexEarn: 800, pendingNex: 120, monthBillCount: 1101, recentNexBills: [row("recent")] });
@@ -59,6 +61,74 @@ describe("wallet ledger demand pagination and authoritative summaries", () => {
     });
     const pager = useBills().getLedger(); await pager.refresh();
     expect(pager.rows[0]).toMatchObject({ type: "purchase", amount: -1249, memo: "", memoKey: "trialCharge", ref: undefined });
+  });
+  it.each([
+    { category: "refund", presentationCode: "orderRefund", publicReference: "ORD-8EB83D7802F0458DA6CD797F2D99A746" },
+    { category: "earn", presentationCode: "earn", publicReference: null },
+    {},
+  ])("identifies the original order refund with current or older projections %j", async projection => {
+    const orderNo = "ORD-8EB83D7802F0458DA6CD797F2D99A746";
+    const refund = { ...row("WL-842924"), createdAt: "2026-10-07T04:46:45Z", bizNo: `E4-REFUND-${orderNo}`, bizType: "ORDER_REFUND",
+      asset: "USDT", amount: 1299, balanceAfter: 1299, remark: "internal operator/reason/key", ...projection };
+    const request = vi.fn().mockResolvedValueOnce({ ...page([], " c1 "), total: 2, bills: [refund] })
+      .mockResolvedValueOnce({ ...page([], null, 2), total: 2, bills: [refund, { ...row("reward"), createdAt: "2026-10-07T04:46:45Z" }] });
+    remote.walletBillsApi.list.mockImplementation(createWalletBillsApi({ request } as unknown as ApiClient).list);
+    const pager = useBills().getLedger({ direction: "IN" }); await pager.refresh(); await pager.loadMore();
+    expect(pager.rows.map(bill => bill.id)).toEqual(["WL-842924", "reward"]);
+    expect(pager.rows[0]).toMatchObject({ type: "refund", memoKey: "orderRefund", memo: "", ref: orderNo,
+      symbol: "USDT", amount: 1299, balanceAfter: 1299, status: "posted" });
+    expect(isRewardBill(pager.rows[0])).toBe(false);
+    expect(isRewardBill(pager.rows[1])).toBe(true);
+    expect(remote.walletBillsApi.list.mock.calls[0]).toEqual([1, 50, { direction: "IN", cursor: "start" }]);
+    expect(remote.walletBillsApi.list.mock.calls[1]).toEqual([2, 50, { direction: "IN", cursor: " c1 " }]);
+    expect(new URL(request.mock.calls[1][0].path, "http://local").searchParams.get("cursor")).toBe(" c1 ");
+  });
+  it.each([
+    { category: "refund", presentationCode: "orderRefund", publicReference: null },
+    { category: "earn", presentationCode: "earn", publicReference: null },
+  ])("rejects raw malformed refund references through API parser and store %j", async projection => {
+    const orderNo = "ORD-8EB83D7802F0458DA6CD797F2D99A746";
+    const malformed = [" ", "\n", "\r\n"].flatMap(whitespace => [
+      { bizNo: `${whitespace}E4-REFUND-${orderNo}` }, { bizNo: `E4-REFUND-${orderNo}${whitespace}` },
+      { publicReference: `${whitespace}${orderNo}` }, { publicReference: `${orderNo}${whitespace}` },
+    ]);
+    malformed.push(...["", " ", "\n", "PRIVATE-LEDGER-KEY", orderNo.toLowerCase(), `${orderNo}:PRIVATE`]
+      .map(publicReference => ({ publicReference })));
+    const request = vi.fn().mockResolvedValue({ ...page([], null), total: malformed.length, bills: malformed.map((fields, index) => ({
+      ...row(`raw-invalid-${index}`), createdAt: "2026-10-07T04:46:45Z", bizNo: `E4-REFUND-${orderNo}`, bizType: " order_refund ",
+      asset: "USDT", amount: 1299, balanceAfter: 1299, remark: "internal operator/reason/key", ...projection, ...fields,
+    })) });
+    remote.walletBillsApi.list.mockImplementation(createWalletBillsApi({ request } as unknown as ApiClient).list);
+    const pager = useBills().getLedger({ direction: "IN" }); await pager.refresh();
+    expect(pager.rows).toHaveLength(malformed.length);
+    for (const refund of pager.rows) {
+      expect(refund).toMatchObject({ type: "refund", memo: "", memoKey: "orderRefund", ref: undefined,
+        symbol: "USDT", amount: 1299, balanceAfter: 1299, status: "posted" });
+      expect(isRewardBill(refund)).toBe(false);
+    }
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+  it("does not publish malformed or private refund references or reclassify real earnings", async () => {
+    const orderNo = "ORD-0123456789ABCDEF0123456789ABCDEF";
+    const invalid = ["E4-REFUND-ORD-42", `E4-BILL-${orderNo}`, `PRIVATE-${orderNo}`,
+      `E4-REFUND-${orderNo.toLowerCase()}`, `E4-REFUND-${orderNo}:PRIVATE`, `E4-REFUND-${orderNo} `, `E4-REFUND-${orderNo}\n`,
+      "E4-REFUND-ORD-Z123456789ABCDEF0123456789ABCDEF"];
+    remote.walletBillsApi.list.mockResolvedValue({ ...page([], null), total: invalid.length + 3, bills: [
+      ...invalid.map((bizNo, index) => ({ ...row(`invalid-${index}`), bizType: "ORDER_REFUND", bizNo,
+        category: "earn", presentationCode: "earn" })),
+      { ...row("invalid-public-ref"), bizType: "ORDER_REFUND", bizNo: `E4-REFUND-${orderNo}`, category: "refund",
+        presentationCode: "orderRefund", publicReference: "PRIVATE-LEDGER-KEY" },
+      { ...row("compute"), bizType: "COMPUTE_TASK_REWARD", category: "earn", presentationCode: "computeTaskReward" },
+      { ...row("future"), bizType: "FUTURE_ORDER_REFUND", category: "earn", presentationCode: "earn" },
+    ] });
+    const pager = useBills().getLedger(); await pager.refresh();
+    for (const refund of pager.rows.slice(0, invalid.length + 1)) {
+      expect(refund).toMatchObject({ type: "refund", memo: "", memoKey: "orderRefund", ref: undefined });
+    }
+    expect(pager.rows.slice(-2)).toMatchObject([
+      { type: "earn", memoKey: "computeTaskReward", ref: undefined },
+      { type: "earn", memoKey: "earn", ref: undefined },
+    ]);
   });
   it.each(["constructor", "toString", "__proto__"])("treats inherited presentation code %s as unknown", async (presentationCode) => {
     remote.walletBillsApi.list.mockResolvedValue({

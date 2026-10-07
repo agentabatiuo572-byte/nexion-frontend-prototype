@@ -121,11 +121,12 @@ import { fmt } from "@/i18n/format";
 import { useNow } from "@/composables/use-now";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 import { useQuest } from "@/store/quest";
+import { useLocaleStore } from "@/store/locale";
 import { remoteApiEnabled } from "@/api/runtime";
 import type { QuestTaskCategory } from "@/api/quest-api";
 import { selectHomeQuestRows } from "./home-quest-source";
 import { dayOneClaimState } from "@/lib/day-one-claim-state";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { dayOneQuestDisplayName } from "@/lib/quest-presentation";
 
 interface QuestTask {
   id: string;
@@ -156,6 +157,7 @@ const expanded = computed({
 });
 
 const t = useT();
+const locale = useLocaleStore();
 const nowTick = useNow();
 const { elRef, inView } = useScrollGrowProgress();
 const quest = useQuest();
@@ -188,7 +190,7 @@ const remoteTasks = computed<QuestTask[]>(() => {
     .map((row, index) => ({
       id: row.questCode,
       order: index + 1,
-      label: nexGridBrandText(row.name),
+      label: dayOneQuestDisplayName(row, locale.code, t.value),
       nex: null,
       href: row.actionRoute,
       cat: categoryLabel(row.category),

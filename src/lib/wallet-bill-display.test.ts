@@ -22,7 +22,7 @@ describe("resolveWalletBillMemo", () => {
   it.each([["en", en], ["vi", vi], ["zh", zh]] as const)("ships specific wallet descriptions in %s", (_, messages) => {
     const codes = ["computeTaskReward", "dailyCheckIn", "trialCharge", "trialBonus", "questReward", "purchaseReward",
       "withdrawPrincipal", "withdrawNetworkFee", "withdrawPenaltyFee", "withdrawFeeOffset", "withdrawPayoutRefund",
-      "withdrawPayoutNexRefund", "withdrawRefund", "withdrawFeeOffsetRefund"];
+      "withdrawPayoutNexRefund", "withdrawRefund", "withdrawFeeOffsetRefund", "orderRefund"];
     const published = messages.bills.memo;
     for (const memoKey of codes) {
       const description = resolveWalletBillMemo({ memo: "private ledger note", memoKey }, published);
@@ -30,5 +30,13 @@ describe("resolveWalletBillMemo", () => {
       expect(description.trim()).not.toBe("");
       expect(description).not.toBe(published.other);
     }
+  });
+  it.each([["en", en], ["vi", vi], ["zh", zh]] as const)("distinguishes order refunds from earnings in %s", (_, messages) => {
+    expect(resolveWalletBillMemo({ memo: "internal operator/reason/key", memoKey: "orderRefund" }, messages.bills.memo))
+      .not.toBe(messages.bills.memo.earn);
+    expect(messages.bills).toHaveProperty("typeRefund");
+    const refundLabel = (messages.bills as Record<string, unknown>).typeRefund;
+    expect(refundLabel).toBeTypeOf("string");
+    expect(refundLabel).not.toBe(messages.bills.typeEarn);
   });
 });

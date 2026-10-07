@@ -59,9 +59,10 @@
               </view>
               <view :class="b.memoKey === 'learningReward' ? '' : 'truncate'" :style="memoStyle">
                 <text>{{ billMemo(b) }}</text>
-                <text v-if="b.ref && b.memoKey !== 'learningReward'" style="color: var(--v5-ink-4); margin: 0 4px">·</text>
-                <text v-if="b.ref && b.memoKey !== 'learningReward'" class="font-mono-tabular">{{ b.ref }}</text>
+                <text v-if="b.ref && b.memoKey !== 'learningReward' && b.type !== 'refund'" style="color: var(--v5-ink-4); margin: 0 4px">·</text>
+                <text v-if="b.ref && b.memoKey !== 'learningReward' && b.type !== 'refund'" class="font-mono-tabular">{{ b.ref }}</text>
               </view>
+              <text v-if="b.type === 'refund' && b.ref" class="block font-mono-tabular" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
               <text v-if="b.memoKey === 'learningReward' && b.ref" class="block active:opacity-70" style="color: var(--v5-ink-3); font-size: 12px; margin-top: 4px" role="button" tabindex="0" :aria-label="sourceRefOpen === b.id ? t.rewards.hideSourceId : t.rewards.showSourceId" @click="toggleSourceRef(b.id)"  @keydown.enter.prevent="toggleSourceRef(b.id)" @keydown.space.prevent="toggleSourceRef(b.id)">{{ sourceRefOpen === b.id ? t.rewards.hideSourceId : t.rewards.showSourceId }}</text>
               <text v-if="sourceRefOpen === b.id && b.memoKey === 'learningReward'" class="block" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
               <text class="block" :style="timeStyle">{{ fmtTime(b.ts) }}</text>
@@ -191,6 +192,7 @@ const TYPE_COLOR: Record<BillType, string> = {
   topup: "#3DA9FF",
   withdraw: "var(--v5-brand-2)",
   purchase: "var(--v5-tech-cyan)",
+  refund: "var(--v5-tech-cyan)",
   swap: "var(--v5-brand)",
   verification: "var(--v5-tech-cyan)",
   stake: "var(--v5-warning)",

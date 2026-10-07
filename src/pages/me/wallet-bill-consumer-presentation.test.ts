@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
+import { vi } from "@/i18n/messages/vi";
 
 function section(file: string, start: string, end: string): string {
   const source = readFileSync(new URL(file, import.meta.url), "utf8");
@@ -36,6 +37,24 @@ function rewardsView(memoKey?: string) {
 }
 
 describe("controlled wallet descriptions on every consumer", () => {
+  it("retranslates a read-only order refund on the wallet bill page", () => {
+    const t = ref(en);
+    const labelCode = section("./wallet-bills.vue", "function typeLabel(", "function statusLabel(");
+    const typeLabel = new Function("t", `${labelCode}; return typeLabel;`)(t);
+    const clickCode = section("./wallet-bills.vue", "function billClickable(", "function billRowOn(");
+    const billClickable = new Function("txParamsForTopup", `${clickCode}; return billClickable;`)(() => {
+      throw new Error("A refund must not route to a chain transaction");
+    });
+    const refund = { ...row("orderRefund"), type: "refund", symbol: "USDT", amount: 1299,
+      ref: "ORD-8EB83D7802F0458DA6CD797F2D99A746" };
+    const rendered = computed(() => `${typeLabel(refund.type)} · ${resolveWalletBillMemo(refund, t.value.bills.memo)} · ${refund.ref}`);
+    for (const [messages, expected] of [[en, "Refund · Order refund"], [vi, "Hoàn tiền · Hoàn tiền đơn hàng"], [zh, "退款 · 订单退款"]] as const) {
+      t.value = messages;
+      expect(rendered.value).toBe(`${expected} · ${refund.ref}`);
+      expect(billClickable(refund)).toBe(false);
+    }
+    expect(refund.memo).toBe("");
+  });
   it("renders and retranslates NEX activity without exposing the internal category", () => {
     const s = nexView();
     expect(s.view.value[0].label).toBe(en.bills.memo.questReward);

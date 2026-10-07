@@ -4,7 +4,7 @@ import { ApiError } from "./errors";
 export type WalletBillAsset = "USDT" | "NEX";
 export type WalletBillDirection = "IN" | "OUT";
 export type WalletBillStatus = "SUCCESS" | "PENDING" | "FAILED";
-export type WalletBillCategory = "earn" | "refer" | "bonus" | "topup" | "withdraw" | "purchase" | "swap" | "verification" | "stake" | "unstake" | "achievement" | "other";
+export type WalletBillCategory = "earn" | "refer" | "bonus" | "topup" | "withdraw" | "purchase" | "refund" | "swap" | "verification" | "stake" | "unstake" | "achievement" | "other";
 
 export interface WalletBillRow {
   id: string;
@@ -91,9 +91,11 @@ function bill(value: unknown): WalletBillRow {
       || (direction !== "IN" && direction !== "OUT") || amount === null || balanceAfter === null
       || (status !== "SUCCESS" && status !== "PENDING" && status !== "FAILED")
       || !Number.isFinite(createdAt)) return invalid();
+  // Refund identifiers must reach the strict consumer guard without whitespace normalization.
+  const orderRefund = bizType.toUpperCase() === "ORDER_REFUND";
   return {
     id,
-    bizNo,
+    bizNo: orderRefund && typeof row.bizNo === "string" ? row.bizNo : bizNo,
     bizType,
     asset,
     direction,
@@ -104,7 +106,7 @@ function bill(value: unknown): WalletBillRow {
     createdAt,
     category: category(row.category),
     presentationCode: optionalText(row.presentationCode),
-    publicReference: optionalText(row.publicReference),
+    publicReference: orderRefund && typeof row.publicReference === "string" ? row.publicReference : optionalText(row.publicReference),
   };
 }
 
@@ -131,7 +133,7 @@ function optionalText(value: unknown): string | undefined {
 
 function category(value: unknown): WalletBillCategory | undefined {
   const candidate = optionalText(value);
-  return candidate && ["earn", "refer", "bonus", "topup", "withdraw", "purchase", "swap", "verification", "stake", "unstake", "achievement", "other"].includes(candidate)
+  return candidate && ["earn", "refer", "bonus", "topup", "withdraw", "purchase", "refund", "swap", "verification", "stake", "unstake", "achievement", "other"].includes(candidate)
     ? candidate as WalletBillCategory : undefined;
 }
 

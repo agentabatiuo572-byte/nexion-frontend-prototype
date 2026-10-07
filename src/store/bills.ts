@@ -13,7 +13,7 @@ import { createWalletLedgerPager, type LedgerLoadStatus, type WalletLedgerPager 
 // rows; totals always come from the independent server summary, never this page.
 export type BillType =
   | "earn" | "refer" | "bonus" | "topup" | "withdraw"
-  | "purchase" | "swap" | "verification" | "stake" | "unstake" | "achievement" | "other";
+  | "purchase" | "refund" | "swap" | "verification" | "stake" | "unstake" | "achievement" | "other";
 export type BillStatus = "posted" | "pending" | "failed";
 
 export interface Bill {
@@ -214,15 +214,18 @@ export const useBills = defineStore("bills", () => {
   function productionBill(row: WalletBillRow): Bill {
     const amount = row.direction === "IN" ? row.amount : -row.amount;
     const legacy = legacyPresentation(row.bizType);
-    const type = row.category ?? legacy?.type ?? "other";
+    const orderRefund = legacy?.type === "refund";
+    const type = orderRefund ? "refund" : row.category ?? legacy?.type ?? "other";
     const projectedMemoKey = presentationCode(row.presentationCode);
     // Older projections identify every withdrawal leg as generic `withdraw`.
     // A known legacy component is more specific; new component codes still win.
-    const memoKey = projectedMemoKey === "bonus" && row.bizType === "LEARNING_REWARD"
+    const memoKey = orderRefund ? "orderRefund"
+      : projectedMemoKey === "bonus" && row.bizType === "LEARNING_REWARD"
       ? "learningReward"
       : projectedMemoKey === "withdraw" && legacy?.memoKey !== undefined && legacy.memoKey !== "withdraw"
       ? legacy.memoKey
       : projectedMemoKey ?? legacy?.memoKey ?? categoryMemoKey(type);
+    const publicReference = row.publicReference ?? legacyPublicReference(row.bizType, row.bizNo, legacy?.publicReference);
     return {
       id: row.id,
       type,
@@ -234,12 +237,12 @@ export const useBills = defineStore("bills", () => {
       // projection fields; the exact legacy allowlist keeps older servers readable.
       memo: "",
       memoKey,
-      ref: row.publicReference ?? legacyPublicReference(row.bizType, row.bizNo, legacy?.publicReference),
+      ref: orderRefund ? validOrderNo(publicReference) : publicReference,
       balanceAfter: row.balanceAfter,
     };
   }
 
-  type LegacyPublicReference = "direct" | "withdrawalComponent";
+  type LegacyPublicReference = "direct" | "withdrawalComponent" | "orderRefund";
   type LegacyPresentation = { type: BillType; memoKey: string; publicReference?: LegacyPublicReference };
   const LEGACY_PRESENTATIONS: Record<string, LegacyPresentation> = {
     COMPUTE_TASK_REWARD: { type: "earn", memoKey: "computeTaskReward" },
@@ -252,6 +255,7 @@ export const useBills = defineStore("bills", () => {
     LEARNING_REWARD: { type: "bonus", memoKey: "learningReward" },
     ORDER_PURCHASE: { type: "purchase", memoKey: "purchase", publicReference: "direct" },
     GENESIS_PURCHASE: { type: "purchase", memoKey: "purchase", publicReference: "direct" },
+    ORDER_REFUND: { type: "refund", memoKey: "orderRefund", publicReference: "orderRefund" },
     WITHDRAWAL: { type: "withdraw", memoKey: "withdraw", publicReference: "direct" },
     WITHDRAW_PAYOUT: { type: "withdraw", memoKey: "withdraw", publicReference: "direct" },
     // Each current withdrawal writer emits one immutable component row.  The
@@ -294,6 +298,7 @@ export const useBills = defineStore("bills", () => {
     withdrawRefund: "withdrawRefund",
     withdrawFeeOffsetRefund: "withdrawFeeOffsetRefund",
     purchase: "purchase",
+    orderRefund: "orderRefund",
     swap: "swap",
     verification: "verification",
     stake: "stake",
@@ -302,7 +307,7 @@ export const useBills = defineStore("bills", () => {
     other: "other",
   };
   const CATEGORY_MEMO_KEYS: Record<BillType, string> = {
-    earn: "earn", refer: "refer", bonus: "bonus", topup: "topup", withdraw: "withdraw", purchase: "purchase",
+    earn: "earn", refer: "refer", bonus: "bonus", topup: "topup", withdraw: "withdraw", purchase: "purchase", refund: "orderRefund",
     swap: "swap", verification: "verification", stake: "stake", unstake: "unstake", achievement: "achievement", other: "other",
   };
   function legacyPresentation(bizType: string) {
@@ -314,6 +319,7 @@ export const useBills = defineStore("bills", () => {
       return match ? `${match[1]}@${match[2]}` : undefined;
     }
     if (kind === "direct") return bizNo;
+    if (kind === "orderRefund") return validOrderNo(trimKnownPrefix(bizNo, "E4-REFUND-"));
     if (kind !== "withdrawalComponent") return undefined;
     const value = bizType.trim().toUpperCase();
     if (value === "WITHDRAW_REFUND") return validWithdrawalNo(trimKnownPrefix(bizNo, "D2-REFUND-"));
@@ -352,6 +358,9 @@ export const useBills = defineStore("bills", () => {
       if (!digit && !upperHex) return undefined;
     }
     return value;
+  }
+  function validOrderNo(value: string | undefined): string | undefined {
+    return value?.length === 36 && /^ORD-[0-9A-F]{32}$/.test(value) ? value : undefined;
   }
   function presentationCode(code: string | undefined): string | undefined {
     return code && Object.prototype.hasOwnProperty.call(PRESENTATION_CODES, code) ? PRESENTATION_CODES[code] : undefined;

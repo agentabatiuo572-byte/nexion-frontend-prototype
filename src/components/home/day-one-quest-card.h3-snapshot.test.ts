@@ -64,8 +64,8 @@ function renderCard(
 }
 
 describe("DayOneQuestCard H3 snapshot presentation", () => {
-  it("brands server task names only at the day-one and weekly display boundary", () => {
-    expect(dayOneCardSource).toContain("label: nexGridBrandText(row.name)");
+  it("localizes default server names only at the day-one and weekly display boundary", () => {
+    expect(dayOneCardSource).toContain("label: dayOneQuestDisplayName(row, locale.code, t.value)");
     expect(dayOneCardSource).toContain("id: row.questCode");
     expect(dayOneCardSource).toContain("href: row.actionRoute");
     expect(weeklyQuestListSource).toContain("return weeklyQuestDisplayName(q, locale.code, t.value)");

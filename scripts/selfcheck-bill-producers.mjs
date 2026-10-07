@@ -96,6 +96,9 @@ const LEDGER = {
   //   type=purchase,ref 加 `-REV` 后缀分开,否则 addOnce 会把冲正误判成重复)。
   //   远端模式下这两条一行都不走 —— 但静态门数的是**生产者**不是执行次数,照数。
   purchase: ["USDT-×6", "USDT+"],
+  // ORDER_REFUND is produced by the backend E4 settlement (USDT/IN).
+  // The App only projects server ledger rows; no local draft or mock seed exists.
+  refund: [],
   // KYC 机制已于包 E 整体删除(pkg/e-kyc-rm),不再有任何生产者;
   // 渲染分支 + `(legacy)` 文案保留,只为显示用户盘上的历史行。
   verification: [],
@@ -385,7 +388,7 @@ function selftest() {
   cases.push(["④ 删掉 NEX 退还冲正行(NEX+)", { [DRAFTS_TS]: noRefund }, noRefund !== draftsSrc]);
 
   // ⑤ 新增类型未登记台账 → 必须红(不许悄悄多出一种没人管生产者的行)。
-  const newType = billsSrc.replace('| "purchase" | "swap"', '| "purchase" | "swap" | "airdrop"');
+  const newType = billsSrc.replace(/(export type BillType\s*=[\s\S]*?);/, '$1 | "airdrop";');
   cases.push(["⑤ BillType 新增却没登记台账", { [BILLS_TS]: newType }, newType !== billsSrc]);
 
   // ⑥ 种子里的类型被删 → seed 面同样受守(只守 runtime 会让种子悄悄消失)。

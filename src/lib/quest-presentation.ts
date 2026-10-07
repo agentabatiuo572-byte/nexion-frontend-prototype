@@ -31,6 +31,35 @@ export function normalizeQuestActionRoute(value: string): string {
   }
   return route;
 }
+
+const DAY_ONE_TITLE_KEYS = new Map<string, keyof Messages["home"]>([
+  ["bind_bank_card", "dayOneTaskBindCard"],
+  ["visit_earn", "dayOneTaskVisitEarn"],
+  ["visit_store", "dayOneTaskVisitStore"],
+  ["view_product_roi", "dayOneTaskSeeRoi"],
+  ["setup_profile", "dayOneTaskSetupProfile"],
+  ["invite_friend", "dayOneTaskInviteFriend"],
+]);
+
+/** Localize exact frozen defaults at display time, preserving authored snapshot names. */
+export function dayOneQuestDisplayName(
+  quest: Pick<CanonicalQuest, "questCode" | "name" | "layer">,
+  locale: LocaleCode,
+  t: Messages,
+): string {
+  const name = nexGridBrandText(quest.name);
+  if (locale === "zh" || quest.layer !== "DAY_ONE") return name;
+  const key = DAY_ONE_TITLE_KEYS.get(quest.questCode);
+  if (!key) return name;
+  const translated = t.home[key];
+  const fallback = zh.home[key];
+  return typeof translated === "string" && translated.trim().length > 0
+    && typeof fallback === "string"
+    && name === nexGridBrandText(fallback)
+    ? translated
+    : name;
+}
+
 /** Use bundled copy only for the exact old server default, preserving configured titles. */
 export function weeklyQuestDisplayName(
   quest: Pick<CanonicalQuest, "questCode" | "name">,
