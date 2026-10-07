@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\app-service-loading-reviewed-r1761-20261007",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "e7f471b69d3d12b68ce1328c2bdab9938b1d0304",
-  "sourceRef": "e7f471b69d3d12b68ce1328c2bdab9938b1d0304",
+  "sourceHead": "a3e0a4169126ed75e0559f644fee0b00d8e26a8f",
+  "sourceRef": "a3e0a4169126ed75e0559f644fee0b00d8e26a8f",
   "sourceRefKind": "commit",
-  "sourceTree": "8bf52c627c19381da693f4106c3da53ab25de670",
+  "sourceTree": "f0bd5c1b38ccd8f66352593550b39da72256ac9f",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12655,10 +12655,10 @@
       "mode": "100644"
     },
     "src/pages/index/index.vue": {
-      "sourceBlob": "26743670644cba1e4b541f1502e2f3fb88c98c74",
-      "sourceSha256": "2b70f2407efe2dd5e08d744fb48cc39edfe69cabb7129d3f31550f99a905eb5e",
-      "targetBlob": "26743670644cba1e4b541f1502e2f3fb88c98c74",
-      "targetSha256": "2b70f2407efe2dd5e08d744fb48cc39edfe69cabb7129d3f31550f99a905eb5e",
+      "sourceBlob": "e7d1b8075321493e356be14ed46e2eede7025026",
+      "sourceSha256": "a00f8d9da7ef182476c9e5db9820a8cf411b43d4cf3496a602d766a844701c3c",
+      "targetBlob": "e7d1b8075321493e356be14ed46e2eede7025026",
+      "targetSha256": "a00f8d9da7ef182476c9e5db9820a8cf411b43d4cf3496a602d766a844701c3c",
       "mode": "100644"
     },
     "src/pages/learn/course-failure-dispatch.contract.test.ts": {

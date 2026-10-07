@@ -50,7 +50,7 @@
           :disable-touch="!hasTaskCarousel"
           previous-margin="0px"
           next-margin="0px"
-          @change="onTaskSlideChange"
+          @animationfinish="onTaskSlideChange"
           @touchstart="onTaskTouchStart"
           @touchmove="onTaskTouchMove"
           @touchend="resetTaskTouch"
