@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { navReset } from "@/lib/route";
 import { ApiError } from "@/api/errors";
-import { reportNativeSessionStage } from "@/api/native-session-storage";
+import { reportNativeSessionStage, reportNativeSessionTiming } from "@/api/native-session-storage";
 import { watch } from "vue";
 import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
 import { useApp } from "@/store/app";
@@ -552,6 +552,9 @@ function readServerAuthenticatedAccountTrace(): boolean {
 }
 
 function beginServerSessionRestore(): Promise<boolean> {
+  // #ifdef APP-PLUS
+  reportNativeSessionTiming("RESTORE_ENTER");
+  // #endif
   if (!remoteApiEnabled || !serverSessionRestoreEnabled) {
     serverSessionRestoreState = "ready";
     return Promise.resolve(true);
@@ -1209,6 +1212,9 @@ function ensureBusinessLoopsRunning(): boolean {
 }
 
 onLaunch(() => {
+  // #ifdef APP-PLUS
+  reportNativeSessionTiming("ON_LAUNCH_ENTER");
+  // #endif
   // 🔴 必须在下面任何 early return 之前挂:退役路由 / 静态评审页同样有自造按钮,
   // 晚一步挂 = 那些页面整页没有键盘可达性。
   // ⚠️ 2026-08-12 这行被一次并发合并冲掉过一次(平台层文件还在、门也在,唯独没人调用它,

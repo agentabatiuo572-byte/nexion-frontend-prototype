@@ -5,6 +5,7 @@ import { createSSRApp, watch } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
 // #ifdef APP-PLUS
+import { reportNativeSessionTiming } from "./api/native-session-storage";
 import NativeSvg from "./components/native-svg.vue";
 import { useTheme } from "./store/theme";
 // #endif
@@ -31,6 +32,9 @@ const UNIAPP_RUNTIME_MARKER = "NEXGRID_UNIAPP_RUNTIME_20260809_V1";
 const ShellHost = { render: () => null };
 
 export function createApp() {
+  // #ifdef APP-PLUS
+  reportNativeSessionTiming("CREATE_APP_ENTER");
+  // #endif
   const isDeviceShellHost = typeof window !== "undefined" && window.__NX_DEVICE_SHELL__;
   if (typeof window !== "undefined" && !isDeviceShellHost) {
     // Runtime probes verify both this value and the same marker in the module

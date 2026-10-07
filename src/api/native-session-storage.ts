@@ -21,13 +21,55 @@ const SESSION_DIAGNOSTIC_STAGES = [
   "STORAGE_REMOVE_BEGIN", "STORAGE_REMOVE_COMPLETE", "STORAGE_REMOVE_FAILED",
 ] as const;
 
+const SESSION_ENTRY_STAGES = ["CREATE_APP_ENTER", "ON_LAUNCH_ENTER", "RESTORE_ENTER"] as const;
+const SESSION_TIMING_POINTS = ["ENTRY", "BEFORE", "AFTER", "THREW"] as const;
+
+function nativeDiagnosticMillis(): number | undefined {
+  // #ifdef APP-PLUS
+  try {
+    const millis = Date.now();
+    if (Number.isSafeInteger(millis) && millis >= 0) return millis;
+  } catch { /* A diagnostic clock must not affect the session. */ }
+  // #endif
+}
+
+/** Public JS wall-clock observations, not the earliest JS/module entry. */
+export function reportNativeSessionTiming(
+  stage: typeof SESSION_DIAGNOSTIC_STAGES[number] | typeof SESSION_ENTRY_STAGES[number],
+  point: typeof SESSION_TIMING_POINTS[number] = "ENTRY",
+  invokeStartedAt?: number,
+): void {
+  // #ifdef APP-PLUS
+  try {
+    if (!(SESSION_DIAGNOSTIC_STAGES as readonly string[]).includes(stage)
+      && !(SESSION_ENTRY_STAGES as readonly string[]).includes(stage)) return;
+    if (!(SESSION_TIMING_POINTS as readonly string[]).includes(point)) return;
+    const millis = nativeDiagnosticMillis();
+    if (millis === undefined) return;
+    if (invokeStartedAt === undefined) console.info("UvelAuthTiming", stage, point, millis);
+    else if (Number.isSafeInteger(invokeStartedAt) && invokeStartedAt >= 0) {
+      console.info("UvelAuthTiming", stage, point, millis, invokeStartedAt);
+    }
+  } catch { /* No exception text or session data; logging is best-effort. */ }
+  // #endif
+}
+
 /** Fixed, non-secret service stages. Observability must never decide auth. */
 export function reportNativeSessionStage(stage: typeof SESSION_DIAGNOSTIC_STAGES[number]): void {
   // #ifdef APP-PLUS
   if (!(SESSION_DIAGNOSTIC_STAGES as readonly string[]).includes(stage)) return;
   try {
     if (typeof plus !== "undefined" && typeof plus.android?.invoke === "function") {
-      plus.android.invoke("android.util.Log", "i", ...["UvelAuth", stage]);
+      reportNativeSessionTiming(stage, "BEFORE");
+      // Read after the BEFORE console call to exclude its cost from this span.
+      const invokeStartedAt = nativeDiagnosticMillis();
+      let returned = false;
+      try {
+        plus.android.invoke("android.util.Log", "i", ...["UvelAuth", stage]);
+        returned = true;
+      } finally {
+        reportNativeSessionTiming(stage, returned ? "AFTER" : "THREW", invokeStartedAt);
+      }
       return;
     }
   } catch { /* Fall back without exposing bridge exceptions. */ }

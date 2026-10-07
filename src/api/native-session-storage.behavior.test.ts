@@ -3,8 +3,10 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 // @ts-expect-error This local bridge test runs in Node; App types omit Node.
 import { Buffer } from "node:buffer";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createNativeSessionStorage, reportNativeSessionStage } from "./native-session-storage";
+import { createNativeSessionStorage, reportNativeSessionStage, reportNativeSessionTiming } from "./native-session-storage";
 import nativeSource from "./native-session-storage.ts?raw";
+import appSource from "../App.vue?raw";
+import mainSource from "../main.ts?raw";
 import ts from "typescript";
 import { initPreContext, preJs } from "@dcloudio/uni-cli-shared/dist/preprocess";
 import { createSessionVault } from "./session-vault";
@@ -237,19 +239,115 @@ describe("Android OS-encrypted native refresh persistence", () => {
     h.fail.logs = true;
     if (missing) vi.stubGlobal("plus", undefined);
     reportNativeSessionStage("RESTORE_BEGIN");
-    expect(info.mock.calls).toEqual([["UvelAuth", "RESTORE_BEGIN"]]);
+    expect(info.mock.calls.filter(args => args[0] === "UvelAuth")).toEqual([["UvelAuth", "RESTORE_BEGIN"]]);
+    expect(info.mock.calls.filter(args => args[0] === "UvelAuthTiming").map(args => args.slice(0, 3)))
+      .toEqual(missing ? [] : [["UvelAuthTiming", "RESTORE_BEGIN", "BEFORE"], ["UvelAuthTiming", "RESTORE_BEGIN", "THREW"]]);
     expect(JSON.stringify(info.mock.calls)).not.toContain("synthetic-secret");
   });
 
-  it("compiles the real diagnostic function to a H5 no-op with the installed Uni preprocessor", () => {
+  it.each([false, true])("measures a slow synchronous bridge, excluding BEFORE console cost, with throw=%s", throws => {
+    const h = platformHarness(), trace: string[] = [];
+    let millis = 1000;
+    vi.spyOn(Date, "now").mockImplementation(() => millis);
+    const info = vi.spyOn(console, "info").mockImplementation((tag, _stage, point) => {
+      if (tag === "UvelAuthTiming") {
+        trace.push(String(point));
+        if (point === "BEFORE") millis += 30;
+      }
+    });
+    const invoke = h.android.invoke.getMockImplementation()!;
+    h.android.invoke.mockImplementation((target, method, ...args) => {
+      if (target === "android.util.Log") { trace.push("invoke"); millis += 250; }
+      return invoke(target, method, ...args);
+    });
+    h.fail.logs = throws;
+    expect(() => reportNativeSessionStage("RESTORE_BEGIN")).not.toThrow();
+    expect(trace).toEqual(["BEFORE", "invoke", throws ? "THREW" : "AFTER"]);
+    expect(info.mock.calls.filter(args => args[0] === "UvelAuthTiming"))
+      .toEqual([["UvelAuthTiming", "RESTORE_BEGIN", "BEFORE", 1000],
+        ["UvelAuthTiming", "RESTORE_BEGIN", throws ? "THREW" : "AFTER", 1280, 1030]]);
+    expect(h.android.invoke.mock.calls).toEqual([["android.util.Log", "i", "UvelAuth", "RESTORE_BEGIN"]]);
+    expect(info.mock.calls.filter(args => args[0] === "UvelAuth")).toEqual(throws ? [["UvelAuth", "RESTORE_BEGIN"]] : []);
+    expect(JSON.stringify(info.mock.calls)).not.toContain("synthetic-secret");
+  });
+
+  it("keeps persistence, refresh and logout when bridge logs, console and diagnostic clock throw", async () => {
+    const h = platformHarness(); h.fail.logs = true;
+    vi.spyOn(console, "info").mockImplementation(() => { throw new Error("synthetic-secret-console-failure"); });
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => { throw new Error("synthetic-secret-clock-failure"); });
+    try {
+      const adapter = h.adapter(); await adapter.ready();
+      const vault = createSessionVault(adapter, { deferHydration: true }); vault.hydrate();
+      vault.save({ ...persisted, accessToken: "synthetic-original-access" });
+      const reopened = h.adapter(); await reopened.ready(); expect(reopened.get()).toEqual(persisted);
+      const request = vi.fn((input: { url: string }) => Promise.resolve({ status: 200,
+        data: { code: 0, message: "SYNTHETIC_RESPONSE", data: input.url.endsWith("/logout") ? null
+          : { ...persisted, accessToken: "synthetic-rotated-access", refreshToken: "synthetic-rotated-refresh" } }, headers: {} }));
+      const client = createApiClient({ baseUrl: "https://example.test", vault, transport: { request } });
+      await client.refreshSession(); expect(vault.read()?.accessToken).toBe("synthetic-rotated-access");
+      await createAuthApi(client, vault).logout();
+      expect(vault.read()).toBeNull(); expect(reopened.get()).toBeNull();
+      expect(h.keys.size).toBe(0); expect(request).toHaveBeenCalledTimes(2);
+      h.fail.commit = true;
+      expect(() => adapter.set(persisted)).toThrow("NATIVE_SESSION_STORAGE_UNAVAILABLE");
+      expect(h.logAttempts()).toBeGreaterThan(0);
+    } finally { clock.mockRestore(); }
+  });
+
+  it("allows only fixed timing labels and finite safe milliseconds", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {}), clock = vi.spyOn(Date, "now").mockReturnValue(1700000000000);
+    for (const stage of ["CREATE_APP_ENTER", "ON_LAUNCH_ENTER", "RESTORE_ENTER"] as const) reportNativeSessionTiming(stage);
+    expect(info.mock.calls).toEqual(["CREATE_APP_ENTER", "ON_LAUNCH_ENTER", "RESTORE_ENTER"]
+      .map(stage => ["UvelAuthTiming", stage, "ENTRY", 1700000000000]));
+    info.mockClear(); clock.mockClear();
+    reportNativeSessionTiming("synthetic-secret" as Parameters<typeof reportNativeSessionTiming>[0]);
+    reportNativeSessionTiming("RESTORE_BEGIN", "synthetic-secret" as Parameters<typeof reportNativeSessionTiming>[1]);
+    expect(clock).not.toHaveBeenCalled();
+    for (const value of [NaN, Infinity, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      clock.mockReturnValue(value); reportNativeSessionTiming("RESTORE_ENTER");
+      clock.mockReturnValue(1000); reportNativeSessionTiming("RESTORE_BEGIN", "AFTER", value);
+    }
+    expect(info).not.toHaveBeenCalled();
+  });
+
+  it("places App Plus entry markers before function initialization and removes H5 call sites", () => {
+    const script = appSource.match(/<script[^>]*>([\s\S]*?)<\/script>/)![1];
+    initPreContext("app-plus");
+    const main = ts.createSourceFile("main.ts", preJs(mainSource, "main.ts"), ts.ScriptTarget.Latest, true);
+    const app = ts.createSourceFile("App.ts", preJs(script, "App.vue"), ts.ScriptTarget.Latest, true);
+    const create = main.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "createApp") as ts.FunctionDeclaration;
+    const restore = app.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "beginServerSessionRestore") as ts.FunctionDeclaration;
+    const launch = app.statements.find(node => ts.isExpressionStatement(node) && ts.isCallExpression(node.expression)
+      && node.expression.expression.getText(app) === "onLaunch") as ts.ExpressionStatement;
+    const callback = (launch.expression as ts.CallExpression).arguments[0] as ts.ArrowFunction;
+    expect(create.body!.statements[0].getText(main)).toBe('reportNativeSessionTiming("CREATE_APP_ENTER");');
+    expect(restore.body!.statements[0].getText(app)).toBe('reportNativeSessionTiming("RESTORE_ENTER");');
+    expect((callback.body as ts.Block).statements[0].getText(app)).toBe('reportNativeSessionTiming("ON_LAUNCH_ENTER");');
+    initPreContext("h5");
+    for (const [source, name] of [[mainSource, "main.ts"], [script, "App.vue"]]) {
+      expect(preJs(source, name)).not.toMatch(/reportNativeSessionTiming\s*\(/);
+    }
+  });
+
+  it("compiles the real diagnostic functions to H5 no-ops with the installed Uni preprocessor", () => {
     const h = platformHarness(), info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => { throw new Error("H5 diagnostic clock must not run"); });
     initPreContext("h5");
     const ast = ts.createSourceFile("native-session-storage.ts", preJs(nativeSource, "native-session-storage.ts"), ts.ScriptTarget.Latest, true);
-    const logger = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "reportNativeSessionStage")!;
-    const code = ts.transpileModule(logger.getText(ast).replace(/^export /, ""), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
-    const log = new Function(`${code}; return reportNativeSessionStage;`)() as typeof reportNativeSessionStage;
-    log("REFRESH_BEGIN");
-    expect(h.logAttempts()).toBe(0); expect(info).not.toHaveBeenCalled();
+    const names = ["nativeDiagnosticMillis", "reportNativeSessionTiming", "reportNativeSessionStage"];
+    const functions = ast.statements.filter(node => ts.isFunctionDeclaration(node) && names.includes(node.name?.text ?? "")) as ts.FunctionDeclaration[];
+    expect(functions).toHaveLength(3);
+    for (const fn of functions) expect(fn.body!.statements).toHaveLength(0);
+    const code = ts.transpileModule(functions.map(fn => fn.getText(ast).replace(/^export /, "")).join("\n"),
+      { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+    const noop = new Function(`${code}; return { ${names.join(", ")} };`)() as {
+      nativeDiagnosticMillis: () => number | undefined; reportNativeSessionTiming: typeof reportNativeSessionTiming;
+      reportNativeSessionStage: typeof reportNativeSessionStage;
+    };
+    noop.reportNativeSessionStage("REFRESH_BEGIN"); noop.reportNativeSessionTiming("CREATE_APP_ENTER");
+    noop.reportNativeSessionTiming("RESTORE_BEGIN", "BEFORE");
+    expect(noop.nativeDiagnosticMillis()).toBeUndefined();
+    expect(h.logAttempts()).toBe(0); expect(info).not.toHaveBeenCalled(); expect(clock).not.toHaveBeenCalled();
   });
 
   it.each(["denied", "protocol", "persist"])("separates %s refresh failure without logging response or credential values", async failure => {

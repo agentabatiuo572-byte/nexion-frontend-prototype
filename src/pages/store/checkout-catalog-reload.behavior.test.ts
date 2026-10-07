@@ -94,7 +94,7 @@ async function harness(seedSession = false) {
   }, "const completedSignIns = new Map(); const IDEMPOTENCY_TTL_MS = 600000;", "completeSignIn");
   const restore = execute(declarations(appSource, ["beginServerSessionRestore"]), {
     remoteApiEnabled: true, serverSessionRestoreEnabled: true, sessionVault: vault, authApi, completeSignIn,
-    prepareSessionVault: async () => vault.hydrate(), reportNativeSessionStage: vi.fn(), useAuth: () => auth,
+    prepareSessionVault: async () => vault.hydrate(), reportNativeSessionStage: vi.fn(), reportNativeSessionTiming: vi.fn(), useAuth: () => auth,
     canRefreshRemoteAccount: () => auth.isAuthenticated && !!vault.read()?.accessToken,
     readCurrentRoute: () => "pages/store/checkout", isAuthWhitelisted: () => false,
     hasServerAuthenticatedAccountTrace: () => true, clearInvalidRemoteSessionState: vi.fn(),

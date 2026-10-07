@@ -5,7 +5,7 @@ import { createApiClient } from "./api/api-client";
 import { createAuthApi } from "./api/auth-api";
 import { createSessionVault, type KeyValueStorage } from "./api/session-vault";
 import { ApiError } from "./api/errors";
-import { reportNativeSessionStage } from "./api/native-session-storage";
+import { reportNativeSessionStage, reportNativeSessionTiming } from "./api/native-session-storage";
 import { createRemoteAccountEpoch } from "./lib/remote-account-epoch";
 import { isPublicAuthRoute } from "./lib/auth-route-visibility";
 
@@ -48,7 +48,7 @@ function harness(request = vi.fn(), route = "pages/earn/earn", native?: { storag
   const authApi = createAuthApi(api, vault, { refreshCredentialMode });
   const complete = vi.fn((input: { identity: string }) => { auth.isAuthenticated = true; auth.accountId = input.identity; return { ok: true }; });
   const deps = {
-    reportNativeSessionStage,
+    reportNativeSessionStage, reportNativeSessionTiming,
     authApi, sessionVault: vault, useAuth: () => auth, useApp: () => app,
     useSession: () => ({ signOutSession: vi.fn() }),
     useConversations: () => ({ suspendForReauthentication }),
