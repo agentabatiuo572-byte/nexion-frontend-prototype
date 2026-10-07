@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\app-service-loading-reviewed-r1761-20261007",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "22c78c076a15fc9161fe7fedb49a22477a3c9ce2",
-  "sourceRef": "22c78c076a15fc9161fe7fedb49a22477a3c9ce2",
+  "sourceHead": "e7f471b69d3d12b68ce1328c2bdab9938b1d0304",
+  "sourceRef": "e7f471b69d3d12b68ce1328c2bdab9938b1d0304",
   "sourceRefKind": "commit",
-  "sourceTree": "1d9c0e78dc0b13efb1f93518deff251537d1a3cf",
+  "sourceTree": "8bf52c627c19381da693f4106c3da53ab25de670",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -13544,10 +13544,10 @@
       "mode": "100644"
     },
     "src/pages/me/wallet.vue": {
-      "sourceBlob": "e31daf5e3fbac9486e336d937ba44cb32eadd62d",
-      "sourceSha256": "a5ec1d7c5abad19da2d0bf32bba5927f3812b8f6caf9efd466895d6e21f637f7",
-      "targetBlob": "e31daf5e3fbac9486e336d937ba44cb32eadd62d",
-      "targetSha256": "a5ec1d7c5abad19da2d0bf32bba5927f3812b8f6caf9efd466895d6e21f637f7",
+      "sourceBlob": "da4464440e21e130e7e24fabe53ee323e9f9b90e",
+      "sourceSha256": "211b2d9a752d90e4bd25e758dbfeae884ed5bd6ace451dea5b7ae96111024caa",
+      "targetBlob": "da4464440e21e130e7e24fabe53ee323e9f9b90e",
+      "targetSha256": "211b2d9a752d90e4bd25e758dbfeae884ed5bd6ace451dea5b7ae96111024caa",
       "mode": "100644"
     },
     "src/pages/me/withdrawal-warning-intent.test.ts": {

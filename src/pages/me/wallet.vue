@@ -84,7 +84,9 @@
       </view>
 
       <!-- Activity list -->
-      <WalletListRow icon-bg="var(--v5-brand-2-soft)" :label="t.repurchase.ordersTitle" chevron href="/pages/me/wallet-repurchase" />
+      <WalletListRow icon-bg="var(--v5-brand-2-soft)" :label="t.repurchase.ordersTitle" chevron href="/pages/me/wallet-repurchase">
+        <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg></template>
+      </WalletListRow>
       <text class="block" :style="listTitleStyle">{{ t.wallet.activitySection }}</text>
       <view :style="listCardStyle">
         <WalletListRow icon-bg="var(--v5-brand-2-soft)" :first="true" :label="t.wallet.dailyCheckin" :sublabel="t.wallet.dailyCheckinSub" chevron href="/pages/daily/daily">
