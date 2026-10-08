@@ -20,7 +20,7 @@ function goal(id = "goal-1") {
 type RecommendationState = {
   status: "loading" | "ready" | "error";
   error: string | null;
-  recommendation: { purchaseRequired: boolean } | null;
+  recommendation: { purchaseRequired: boolean; targetUsdt?: number; days?: number; requiredDaily?: number } | null;
 };
 
 async function show(
@@ -46,6 +46,7 @@ async function show(
       fmt: (template: string, params: Record<string, string>) =>
         template.replace(/\{(\w+)\}/g, (_m, key: string) => params[key] ?? ""),
       target: 1000, days: 90, savePending: false, editorBlocked: status !== "ready", saveBlocked: status !== "ready",
+      editorHasSnapshot: status === "ready",
       PRESET_TARGETS: [500], PRESET_DEADLINES_DAYS: [30],
       goalsStore: { status, error: status === "error" ? "temporary" : "", goals, lifetimeEarningsUsdt: 25,
         recommendationStatus: recommendationState.status, recommendationError: recommendationState.error,
@@ -65,9 +66,10 @@ async function show(
 }
 
 describe("earning-goal read recovery", () => {
-  it("locks the default editor until the server goal has loaded", async () => {
+  it("shows loading instead of default editor values until the server goal has loaded", async () => {
     const html = await show("loading", []);
-    expect(html).toMatch(/<input[^>]*disabled/);
+    expect(html).not.toContain("<input");
+    expect(html).toContain("Loading");
     expect(html).toContain('aria-disabled="true"');
     expect(html).not.toMatch(/<text[^>]*>Recommendation<\/text>/);
   });
@@ -76,6 +78,84 @@ describe("earning-goal read recovery", () => {
     const html = await show("error", [goal()]);
     expect(html).toContain("$500");
     expect(html).toContain("Retry");
+  });
+
+  it("does not combine a new default editor with an old purchasable recommendation during reentry", async () => {
+    const html = await show("loading", [{ ...goal("29"), targetUSDT: 100 }], {
+      status: "ready", error: null,
+      recommendation: { purchaseRequired: true, targetUsdt: 100, days: 180, requiredDaily: 100 / 180 },
+    });
+    expect(html).toContain("$100");
+    expect(html).toContain("Loading");
+    expect(html).not.toContain('value="1000"');
+    expect(html).not.toContain('aria-checked="true"');
+    expect(html).not.toContain("Shop");
+  });
+
+  it("retains the saved goal and retry after list failure without offering the old purchase intent", async () => {
+    const html = await show("error", [{ ...goal("29"), targetUSDT: 100 }], {
+      status: "ready", error: null,
+      recommendation: { purchaseRequired: true, targetUsdt: 100, days: 180, requiredDaily: 100 / 180 },
+    });
+    expect(html).toContain("$100");
+    expect(html).toContain("Read unavailable");
+    expect(html).toContain("Retry");
+    expect(html).not.toContain('value="1000"');
+    expect(html).not.toContain("Shop");
+  });
+
+  it("does not offer a ready recommendation for a different editor amount", async () => {
+    const html = await show("ready", [], {
+      status: "ready", error: null,
+      recommendation: { purchaseRequired: true, targetUsdt: 100, days: 180, requiredDaily: 100 / 180 },
+    });
+    expect(html).not.toContain("Shop");
+  });
+
+  it("keeps the purchase CTA available for a ready recommendation matching the editor", async () => {
+    const html = await show("ready", [], {
+      status: "ready", error: null,
+      recommendation: { purchaseRequired: true, targetUsdt: 1000, days: 90, requiredDaily: 1000 / 90 },
+    });
+    expect(html).toContain('value="1000"');
+    expect(html).toContain("Shop");
+  });
+
+  it("fences the store navigation handler while reading or after the recommendation input changes", () => {
+    const start = source.indexOf("function goStore()");
+    const end = source.indexOf("// ── styles", start);
+    const implementation = ts.transpileModule(source.slice(start, end), {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+    }).outputText;
+    const editorBlocked = Vue.ref(true);
+    const target = Vue.ref(100);
+    const store = { recommendationStatus: "ready", recommendation: { purchaseRequired: true, targetUsdt: 100, productNo: "sku-s1" } };
+    const navigate = vi.fn();
+    const go = new Function("remoteApiEnabled", "editorBlocked", "goalsStore", "target", "recommendation", "navReset",
+      `${implementation}; return goStore;`)(true, editorBlocked, store, target, { value: { tier: "S1" } }, navigate);
+    go();
+    expect(navigate).not.toHaveBeenCalled();
+    editorBlocked.value = false;
+    target.value = 1000;
+    go();
+    expect(navigate).not.toHaveBeenCalled();
+    target.value = 100;
+    go();
+    expect(navigate).toHaveBeenCalledExactlyOnceWith({ url: "/pages/store/store?focus=sku-s1&focusName=S1", fail: expect.any(Function) });
+  });
+
+  it("formats the recommendation amount, term and daily rate from the same server response", () => {
+    const start = source.indexOf("const recPathLine = computed");
+    const end = source.indexOf("function detailVal", start);
+    const implementation = ts.transpileModule(source.slice(start, end), {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+    }).outputText;
+    const format = (text: string, params: Record<string, string | number>) =>
+      text.replace(/\{(\w+)\}/g, (_m, key: string) => String(params[key] ?? ""));
+    const read = new Function("computed", "fmt", "t", "target", "days", "goalsStore", "recommendation", `${implementation}; return recPathLine.value;`);
+    expect(read(Vue.computed, format, { value: { goals: { recPath: "{target}|{days}|{perDay}|{tier}" } } },
+      Vue.ref(1000), Vue.ref(90), { recommendation: { targetUsdt: 100, days: 180, requiredDaily: 100 / 180 } },
+      { value: { tier: "S1" } })).toBe("100|180|0.56|S1");
   });
 
   it("offers retry on an initial list failure without inventing an active goal", async () => {
@@ -119,6 +199,7 @@ describe("earning-goal read recovery", () => {
     const saveBlocked = Vue.computed(() => restoredGoal.value !== null
       && target.value === restoredGoal.value.targetUSDT && days.value === restoredGoal.value.days);
     const savePending = Vue.ref(false);
+    const editorReadPending = Vue.ref(false);
     const older = { ...goal("older"), targetUSDT: 1000, createdAt: Date.now() - 2 * 86_400_000 };
     const stored = { ...goal("newer"), deadlineMs: Date.now() + 89 * 86_400_000,
       createdAt: Date.now() - 86_400_000 };
@@ -127,11 +208,13 @@ describe("earning-goal read recovery", () => {
       ensure: vi.fn().mockResolvedValue(undefined), refresh: vi.fn().mockResolvedValue(undefined),
       refreshRecommendation: vi.fn().mockResolvedValue(undefined),
     };
-    const execute = new Function("remoteApiEnabled", "goalsStore", "target", "days", "restoredGoal", "savePending", "ONE_DAY_MS", "onMounted", "onShow", "watch", "app", `let editorReadEpoch = 0; let restoringEditor = false; ${ts.transpileModule(implementation, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText}; return { refreshRemoteGoals, retryGoals };`);
+    const execute = new Function("remoteApiEnabled", "goalsStore", "target", "days", "restoredGoal", "savePending", "editorReadPending", "ONE_DAY_MS", "onMounted", "onShow", "watch", "app", `let editorReadEpoch = 0; let restoringEditor = false; ${ts.transpileModule(implementation, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText}; return { refreshRemoteGoals, retryGoals };`);
     const scope = Vue.effectScope();
-    const page = scope.run(() => execute(true, goalsStore, target, days, restoredGoal, savePending, 86_400_000, (hook: () => void) => mount.push(hook), (hook: () => void) => showHooks.push(hook), Vue.watch, app));
+    const page = scope.run(() => execute(true, goalsStore, target, days, restoredGoal, savePending, editorReadPending, 86_400_000, (hook: () => void) => mount.push(hook), (hook: () => void) => showHooks.push(hook), Vue.watch, app));
     expect(mount).toHaveLength(1);
     expect(showHooks).toHaveLength(1);
+    expect(target.value).toBe(500);
+    expect(days.value).toBe(90);
     await page.refreshRemoteGoals();
     expect(target.value).toBe(500);
     expect(days.value).toBe(90);
@@ -153,6 +236,29 @@ describe("earning-goal read recovery", () => {
     expect(target.value).toBe(1000);
     expect(days.value).toBe(90);
     expect(saveBlocked.value).toBe(false);
+
+    const saved = { ...goal("29"), targetUSDT: 100, createdAt: Date.now(), deadlineMs: Date.now() + 180 * 86_400_000 };
+    goalsStore.goals = [saved];
+    let release!: () => void;
+    goalsStore.refresh.mockImplementationOnce(() => {
+      goalsStore.status = "loading";
+      return new Promise<void>((resolve) => { release = resolve; });
+    });
+    const reading = page.refreshRemoteGoals(true);
+    expect(editorReadPending.value).toBe(true);
+    goalsStore.status = "ready";
+    release();
+    await reading;
+    expect(editorReadPending.value).toBe(false);
+    expect(target.value).toBe(100);
+    expect(days.value).toBe(180);
+    expect(saveBlocked.value).toBe(true);
+    expect(goalsStore.refreshRecommendation).toHaveBeenLastCalledWith(100, saved.deadlineMs);
+
+    goalsStore.refresh.mockImplementationOnce(async () => { goalsStore.status = "error"; });
+    await page.refreshRemoteGoals(true);
+    expect(editorReadPending.value).toBe(false);
+    expect(goalsStore.goals).toEqual([saved]);
     scope.stop();
   });
 });

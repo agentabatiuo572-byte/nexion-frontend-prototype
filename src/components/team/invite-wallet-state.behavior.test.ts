@@ -9,6 +9,7 @@ import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt, openSlotsTemplate } from "@/i18n/format";
+import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 import type { ReferralRewardSnapshot } from "@/api/referral-reward-api";
 
 // Run the production SFC scripts and templates. These isolated read states
@@ -191,24 +192,35 @@ test("restored sharing tools retain clipboard failure feedback and all empty-cod
   expect(card.recordShareEvent).not.toHaveBeenCalled();
 });
 
-async function wallet(copy = en, initialBalance = 11) {
+async function wallet(copy = en, initialBalance = 11, confirmed = true) {
   const market = Vue.reactive({ isMockMode: false, remoteReady: true, nexPriceUSDT: 0.124,
     change24hAvailable: false, change24hPct: 0 });
   const navTo = vi.fn();
   const navReset = vi.fn();
   const app = Vue.reactive({ user: { usdtBalance: initialBalance, nexBalance: 124,
-    earningBuckets: { pendingReviewUsdt: 0, bonusLockedUsdt: 0 } }, activeSlotCount: 0, slotCap: 0 });
+    earningBuckets: { pendingReviewUsdt: 0, bonusLockedUsdt: 0 } }, activeSlotCount: 0, slotCap: 0,
+    remoteFleetHasSnapshot: confirmed, remoteFleetStatus: confirmed ? "ready" : "idle",
+    remoteWalletReceiptHasSnapshot: false });
+  const trial = Vue.reactive({ authorityStatus: confirmed ? "ready" : "unknown",
+    authorityServerState: confirmed ? "ELIGIBLE" as string | null : null });
+  const release = {
+    earningsReleaseHasSnapshot: Vue.ref(confirmed),
+    earningsReleaseStatus: Vue.ref(confirmed ? "ready" : "idle"),
+    earningsReleaseSnapshot: Vue.ref<{ serverCanonical: boolean; buckets: { pending_review: number; bonus_locked: number } } | null>(
+      confirmed ? { serverCanonical: true, buckets: { pending_review: 0, bonus_locked: 0 } } : null),
+  };
   const root = await mount(walletSource, {
     "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt, openSlotsTemplate },
     "@/store/app": { useApp: () => app },
-    "@/store/earning-release": { earningsReleaseSnapshot: Vue.ref(null) },
+    "@/store/earning-release": release,
+    "@/lib/remote-authority-display": { remoteAuthorityStatus },
     "@/store/bills": { useBills: () => ({ summaryStatus: "ready", summary: { monthBillCount: 0 } }) },
-    "@/store/market": { useMarket: () => market }, "@/api/runtime": { fundsServerEnabled: true },
-    "@/store/free-trial": { trialReservesSlotNow: () => false },
+    "@/store/market": { useMarket: () => market }, "@/api/runtime": { fundsServerEnabled: true, remoteApiEnabled: true },
+    "@/store/free-trial": { trialReservesSlotNow: () => false, useFreeTrial: () => trial },
     "@/store/slot-action-sheet": { useSlotActionSheet: () => ({}) },
     "@/lib/route": { navTo, navReset },
   });
-  return { root, app, market, navTo, navReset };
+  return { root, app, market, trial, release, navTo, navReset };
 }
 
 const balanceDisplays = [
@@ -240,6 +252,58 @@ async function checkWalletBalance(copy: typeof en) {
 
 test.each([en, zh, vietnamese])("wallet balance uses detail-page rounding, two decimals and comma grouping", async copy => {
   await checkWalletBalance(copy);
+});
+
+test.each([en, zh, vietnamese])("wallet fixtures keep unknown reads separate from confirmed zero and refresh snapshots", async copy => {
+  const { root, app, trial, release } = await wallet(copy, 0, false);
+  app.user.nexBalance = 0; app.slotCap = 6;
+  await Vue.nextTick();
+  const pending = (review: string, locked: string) => fmt(copy.me.walletBucketsHint, { review, locked });
+  const assertUnknown = () => {
+    expect(text(find(root, "nx-wallet-amount"))).toBe("—");
+    expect(text(find(root, "nx-wallet-nex"))).toContain("— NEX");
+    expect(text(find(root, "nx-wallet-pending"))).toBe(pending("—", "—"));
+    expect(find(root, "nx-wallet-slot-block")).toBeUndefined();
+  };
+  assertUnknown();
+  app.remoteFleetStatus = "error";
+  await Vue.nextTick(); assertUnknown();
+
+  app.remoteWalletReceiptHasSnapshot = true;
+  await Vue.nextTick();
+  expect(text(find(root, "nx-wallet-amount"))).toBe("0.00");
+  expect(text(find(root, "nx-wallet-nex"))).toContain("— NEX");
+  expect(text(find(root, "nx-wallet-pending"))).toBe(pending("—", "—"));
+  expect(find(root, "nx-wallet-slot-block")).toBeUndefined();
+
+  app.remoteFleetHasSnapshot = true; app.remoteFleetStatus = "ready";
+  await Vue.nextTick();
+  expect(text(find(root, "nx-wallet-nex"))).toContain("0 NEX");
+  expect(find(root, "nx-wallet-slot-block")).toBeUndefined();
+  for (const status of ["idle", "loading", "error"]) {
+    release.earningsReleaseStatus.value = status;
+    await Vue.nextTick();
+    expect(text(find(root, "nx-wallet-pending"))).toBe(pending("—", "—"));
+  }
+  trial.authorityStatus = "ready"; trial.authorityServerState = "ELIGIBLE";
+  release.earningsReleaseHasSnapshot.value = true;
+  release.earningsReleaseSnapshot.value = { serverCanonical: true, buckets: { pending_review: 0, bonus_locked: 0 } };
+  release.earningsReleaseStatus.value = "ready";
+  await Vue.nextTick();
+  expect(text(find(root, "nx-wallet-pending"))).toBe(pending("0.00", "0.00"));
+  expect(find(root, "nx-wallet-slot-block")).toBeDefined();
+  app.remoteFleetStatus = "loading"; trial.authorityStatus = "loading";
+  release.earningsReleaseStatus.value = "loading";
+  await Vue.nextTick();
+  expect(text(find(root, "nx-wallet-amount"))).toBe("0.00");
+  expect(text(find(root, "nx-wallet-pending"))).toBe(pending("0.00", "0.00"));
+  expect(find(root, "nx-wallet-slot-block")).toBeDefined();
+
+  app.remoteFleetHasSnapshot = false; app.remoteWalletReceiptHasSnapshot = false;
+  trial.authorityStatus = "unknown"; trial.authorityServerState = null;
+  release.earningsReleaseHasSnapshot.value = false; release.earningsReleaseSnapshot.value = null;
+  release.earningsReleaseStatus.value = "idle";
+  await Vue.nextTick(); assertUnknown();
 });
 
 test.each([en, zh, vietnamese].flatMap(copy => [false, true].map(withoutIntl => ({ copy, withoutIntl }))))(

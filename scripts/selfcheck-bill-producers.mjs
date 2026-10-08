@@ -117,15 +117,16 @@ const LEDGER = {
 const read = (rel) => readFileSync(path.join(root, rel), "utf8");
 
 /**
- * 取材面 = src 下的 .ts / .vue,**排除 `.d.ts`**。
+ * 取材面 = src 下的 .ts / .vue,排除 `.d.ts` 与 Vitest 的 `.test.ts`。
  * 🔴 `.d.ts` 里的一段对象字面量曾经就能冒充生产者(独立审计实测:把提现两条腿全废掉、
  * 只在 `src/env.d.ts` 追加一个同形对象,门照样全绿)。声明文件不产出运行时行为。
+ * `vitest.config.ts` 的 include 匹配 src 下所有 `.test.ts`;测试断言/夹具不属于生产源。
  */
 function sourceFiles(dir = SRC, out = []) {
   for (const name of readdirSync(dir)) {
     const full = path.join(dir, name);
     if (statSync(full).isDirectory()) sourceFiles(full, out);
-    else if (/\.(ts|vue)$/.test(name) && !name.endsWith(".d.ts")) out.push(full);
+    else if (/\.(ts|vue)$/.test(name) && !name.endsWith(".d.ts") && !name.endsWith(".test.ts")) out.push(full);
   }
   return out;
 }
@@ -415,9 +416,24 @@ function selftest() {
   const neg = evaluate({ [DRAFTS_TS]: irrelevant });
   check("红测 负控:无关改动不判红", irrelevant !== draftsSrc && neg.mismatches.length === 0, neg.mismatches.join(" | "));
 
+  // Vitest 的断言对象即使 import Bill、带完整金额/币种,也不是生产者。
+  const fixture = "src/lib/wallet-bill-display.test.ts";
+  const fixtureSrc = read(fixture) + '\nimport type { Bill } from "@/store/bills";\n'
+    + 'expect(bill).toMatchObject({ type: "refer", symbol: "USDT", amount: direction === "OUT" ? -1 : 1 });\n';
+  const fixtureOnly = evaluate({ [fixture]: fixtureSrc });
+  check("红测 负控:Vitest 断言不改变生产者", isLedgerFile(fixture, fixtureSrc) && fixtureOnly.mismatches.length === 0,
+    fixtureOnly.mismatches.join(" | "));
+
+  // 删掉真实主行后,把同形分录塞进 test 的断言也不能补回 USDT-。
+  const fixtureRepair = evaluate({ [DRAFTS_TS]: noMain, [fixture]: fixtureSrc
+    + 'expect(bill).toMatchObject({ type: "withdraw", symbol: "USDT", amount: -1 });\n' });
+  check("红测 主行删掉、Vitest 断言冒充仍判缺失", noMain !== draftsSrc
+    && !fixtureRepair.found.withdraw["USDT-"] && fixtureRepair.mismatches.some((m) => m.startsWith("withdraw:")),
+    fixtureRepair.mismatches.join(" | "));
+
   // 🔴 样本量当判据,不只打印(独立审计实测:删掉 8 条注入里的 7 条,--selftest 仍 exit 0
   // 且输出「1 pass / 0 fail」,verify 照打 ok —— 那是一道「跑过了」而不是「在守」的门)。
-  const EXPECTED = 12; // 11 条注入 + 1 条负控
+  const EXPECTED = 14; // 12 条注入 + 2 条负控
   check(`红测 样本量 = ${EXPECTED}(注入被删掉也必须响)`, pass + fail === EXPECTED, `实跑 ${pass + fail} 条`);
 }
 

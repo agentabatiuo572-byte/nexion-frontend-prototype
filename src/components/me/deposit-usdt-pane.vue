@@ -82,8 +82,8 @@
         <view><text class="block text-center" style="margin-top: 10px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.45; max-width: 260px">{{ t.topupChrome.allNetworksPaused }}</text></view>
       </view>
 
-      <!-- ── 常驻警示:专属地址恒定 + 错网络不可找回(规格 ⑦ 语义)── -->
-      <view class="flex" :style="warnlineStyle">
+      <!-- ── 可用专属地址警示:地址恒定 + 错网络不可找回(规格 ⑦ 语义)── -->
+      <view v-if="activeNet && address" class="flex" :style="warnlineStyle">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" style="margin-top: 1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
         <view class="flex-1 min-w-0"><text :style="warnTextStyle">{{ t.topupChrome.depositAddrNote }}</text></view>
       </view>

@@ -114,20 +114,22 @@ describe("home task carousel", () => {
     expect(conversionBannerSource).not.toContain("serverPromo");
   });
 
-  it("keeps the high-fidelity countdown and daily-rate slots for a real weekly quest", () => {
-    const source = selectHomeWeeklySource([weeklyQuest], pausedPromo);
+  it.each([pausedPromo, { ...pausedPromo, status: "active" as const }, null])("keeps weekly quest fields independent of promo presentation: %j", (promo) => {
+    const source = selectHomeWeeklySource([weeklyQuest], promo);
 
-    expect(presentHomeWeeklyCard(source, pausedPromo, 1, Date.parse("2026-09-05T00:00:00+08:00"))).toEqual({
+    const original = JSON.stringify({ quest: weeklyQuest, promo });
+    expect(presentHomeWeeklyCard(source, promo, 1, Date.parse("2026-09-05T00:00:00+08:00"))).toEqual({
       multiplier: 1,
       rewardNex: 30,
       countdownDays: 2,
       countdownHours: 0,
-      subtitle: "Complete a learning course · UVELBox Pro",
-      targetDevice: "UVELBox Pro",
-      targetDaily: 1.5,
+      subtitle: "Complete a learning course",
+      targetDevice: null,
+      targetDaily: null,
       category: "explore",
       actionRoute: "/pages/learn/courses",
     });
+    expect(JSON.stringify({ quest: weeklyQuest, promo })).toBe(original);
     expect(conversionBannerSource).not.toContain('v-if="!weeklyQuest"');
   });
 
@@ -140,15 +142,37 @@ describe("home task carousel", () => {
     expect(rawQuest.name).toBe("查看 NexGridBox S1 ROI");
   });
 
-  it("shows the localized mission name and current SKU name without changing the quest", () => {
+  it("shows the localized mission name without attaching an independent SKU", () => {
     const quest = { ...weeklyQuest, questCode: "weekly_t2_invite_friend", name: "邀请 1 位朋友注册" };
     const view = presentHomeWeeklyCard(
       { kind: "quest", quest }, pausedPromo, 1, Date.parse("2026-09-05T00:00:00+08:00"),
       "Mời 1 người bạn đăng ký",
     );
-    expect(view.subtitle).toBe("Mời 1 người bạn đăng ký · UVELBox Pro");
-    expect(view.targetDevice).toBe("UVELBox Pro");
+    expect(view.subtitle).toBe("Mời 1 người bạn đăng ký");
+    expect(view.targetDevice).toBeNull();
+    expect(view.targetDaily).toBeNull();
     expect(quest.name).toBe("邀请 1 位朋友注册");
+  });
+
+  it("keeps zero quest rewards and uses only the selected promo's fields for fallback", () => {
+    const zeroQuest = { ...weeklyQuest, rewardNex: 0 };
+    const activePromo = { ...pausedPromo, status: "active" as const };
+    const source = selectHomeWeeklySource([zeroQuest], activePromo);
+    expect(source?.kind).toBe("quest");
+    expect(presentHomeWeeklyCard(source, activePromo, 1).rewardNex).toBe(0);
+    for (const quests of [[], [{ ...weeklyQuest, status: "CLAIMED" as const }]]) {
+      expect(presentHomeWeeklyCard(selectHomeWeeklySource(quests, activePromo), null, 7)).toEqual({
+        multiplier: 1.5, rewardNex: 1200, countdownDays: 4, countdownHours: 12,
+        subtitle: "UVELBox Pro", targetDevice: "UVELBox Pro", targetDaily: 1.5,
+        category: null, actionRoute: "/pages/store/store",
+      });
+      for (const promo of [pausedPromo, null]) {
+        expect(presentHomeWeeklyCard(selectHomeWeeklySource(quests, promo), promo, 1)).toEqual({
+          multiplier: null, rewardNex: null, countdownDays: null, countdownHours: null,
+          subtitle: null, targetDevice: null, targetDaily: null, category: null, actionRoute: null,
+        });
+      }
+    }
   });
 
   it("does not invent weekly display metadata when PC H3 has no presentation row", () => {

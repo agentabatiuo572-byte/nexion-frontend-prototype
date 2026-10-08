@@ -40,7 +40,7 @@ import HowHero from "@/components/how/how-hero.vue";
 import HowSection from "@/components/how/how-section.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-import { dateLocale } from "@/i18n/format";
+import { formatTrialDateTime } from "@/lib/trial-date";
 import { navBack } from "@/lib/route";
 import { remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
 import type { TeamLeadershipPoolSnapshot } from "@/api/team-insights-api";
@@ -63,9 +63,11 @@ const facts = computed(() => remotePool.value ? leadershipHowFacts(remotePool.va
 const currentRulesText = computed(() => facts.value
   ? fmt(w.value.currentRules, { rank: facts.value.unlockRank })
   : w.value.localRules);
-const nextPayoutText = computed(() => facts.value
-  ? fmt(w.value.nextPayout, { time: new Date(facts.value.nextPayoutAt).toLocaleString(dateLocale()) })
-  : "");
+const nextPayoutText = computed(() => {
+  if (!facts.value) return "";
+  const timestamp = facts.value.nextPayoutAt ? new Date(facts.value.nextPayoutAt).getTime() : NaN;
+  return fmt(w.value.nextPayout, { time: Number.isFinite(timestamp) ? formatTrialDateTime(timestamp) : "—" });
+});
 async function loadRemotePool() {
   if (!remoteApiEnabled) return;
   const request = ++remoteRequest;

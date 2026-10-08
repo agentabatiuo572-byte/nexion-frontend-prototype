@@ -113,12 +113,12 @@ export function selectHomeWeeklySource(
 
 /**
  * Keeps the 5174 weekly-card slot structure while preserving server authority.
- * Mission countdown follows its actual eligibility deadline; product-yield
- * presentation metadata comes from PC H3's nx_growth_promo_banner row.
+ * Mission fields belong to the selected quest. Independent product-yield
+ * metadata belongs only to the selected promo fallback.
  */
 export function presentHomeWeeklyCard(
   source: HomeWeeklySource | null,
-  presentation: CanonicalPromoBanner | null,
+  _presentation: CanonicalPromoBanner | null,
   questBonusMultiplier: number,
   now = Date.now(),
   displayQuestName?: string,
@@ -137,9 +137,6 @@ export function presentHomeWeeklyCard(
     };
   }
 
-  const metadata = source.kind === "promo" ? source.promo : presentation;
-  const targetDevice = metadata?.targetDevice === "StellarBox Pro"
-    ? "UVELBox Pro" : metadata?.targetDevice ?? null;
   if (source.kind === "quest") {
     const remaining = Math.max(0, Date.parse(source.quest.eligibleUntil) - now);
     const hours = Number.isFinite(remaining) ? Math.floor(remaining / 3600000) : null;
@@ -151,16 +148,16 @@ export function presentHomeWeeklyCard(
       rewardNex: Math.round(source.quest.rewardNex * multiplier),
       countdownDays: hours === null ? null : Math.floor(hours / 24),
       countdownHours: hours === null ? null : hours % 24,
-      subtitle: nexGridBrandText(targetDevice
-        ? `${displayQuestName ?? source.quest.name} · ${targetDevice}`
-        : displayQuestName ?? source.quest.name),
-      targetDevice,
-      targetDaily: metadata?.targetDaily ?? null,
+      subtitle: nexGridBrandText(displayQuestName ?? source.quest.name),
+      targetDevice: null,
+      targetDaily: null,
       category: source.quest.category,
       actionRoute: source.quest.actionRoute,
     };
   }
 
+  const targetDevice = source.promo.targetDevice === "StellarBox Pro"
+    ? "UVELBox Pro" : source.promo.targetDevice;
   return {
     multiplier: source.promo.multiplier,
     rewardNex: Math.round(source.promo.baseReward * source.promo.multiplier),
