@@ -68,8 +68,9 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "profile.vue": "67bb87df27035ea1a2f8a374d3653b44d7c2623bc002ff054d412eb6fccc9e95",
   "proof.vue": "956e804b2c96dced42cc10cb0dd757e7abd5c4a6a3596c56bca63490e93f3616",
   "receipts.vue": "ee45b67eef9b7054af4c16b095d1adc9c5c1c48e979469f37dbc41f0f03c613f",
-  "rewards-list.vue": "75c2e5fa485fda8e0bf6dbc742b3333f7b70cf3e2788dc5923edf50038bc1218",
-  "rewards.vue": "2d899c2643e74a74e5ad4102a8d7c6b328d539cd5368dfe977fe1529c167a782",
+  // Approved promotion category reuses the existing reward hub and list.
+  "rewards-list.vue": "450f0917d2ba2af0b8215ad9ea8e0f126357a6858ead54038f226700278a1da9",
+  "rewards.vue": "720da0cce42564baaa4451ee4002b6e92f83be5e1ab0317963e22490927e59ef",
   "risk-disclosure.vue": "5f1d1f52b62559b79785d91fd28fd9e4de6597cf91b9174a87191740c95ba2bf",
   "security.vue": "277a220c6aeb77b2c7316ee00dcb945a43d6e63ddb1891888958b19a7cf8e164",
   // Reviewed #439: BASIC retains the existing hint; enhanced policy owns retry timing and existing-ticket/retry actions.
@@ -79,7 +80,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "trial.vue": "9ba1ff2296064a5ccf0c750018c06c722853136431dc2f8e14ffa0ef7bd20d2e",
   "wallet-address-rebind.vue": "64f22ae20b3725ff6df6c516a9f99a6714efd94834cc5b02734c146e377e9e32",
   // Reviewed #465: refund references wrap on their own read-only line; other bill rows retain their layout.
-  "wallet-bills.vue": "c5e47e15570a7722235aeea6b1e32172ea19a3adcd3af605b4e27ea7392d2aab",
+  // Promotion receipt deep links retain the existing refund row and bill layout.
+  "wallet-bills.vue": "c3f827ee5d16ffc31e373c1e79567ae8e8a8affbacc1f34646399d015dd16ba7",
   "wallet-cards-new.vue": "6af630a5acf97669826202e3842042a8b28af8813f0657da0a6085336f7a3fc2",
   "wallet-cards.vue": "4ba7080a2d1b7c9ce4d56c4ea90b5fed3614c689aaeccaf3811d166f08391692",
   "wallet-exchange-how.vue": "53a85b180c00d4a33e73d101a628e8f786924b2e23c48f045147b9f15cb8b9b0",

@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { ref } from "vue";
+import { reactive, ref, watch } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { deviceDetailBackHref } from "./device-detail-navigation";
 import { takeNavigationQuery } from "./route";
@@ -17,9 +17,12 @@ const handler = ts.transpileModule(detail.slice(start, end), {
 function loadPage(options: Record<string, string>) {
   let load: (options: Record<string, string>) => void = () => {};
   let show: () => void = () => {};
-  const page = new Function("ref", "onLoad", "onShow", "takeNavigationQuery", "deviceDetailBackHref",
+  const page = new Function("ref", "watch", "app", "retryFleet", "onLoad", "onShow", "takeNavigationQuery", "deviceDetailBackHref",
     `${handler}\nreturn { id, backHref };`)(
     ref,
+    watch,
+    reactive({ accountBindingEpoch: 0 }),
+    vi.fn(),
     (callback: typeof load) => { load = callback; },
     (callback: typeof show) => { show = callback; },
     takeNavigationQuery,

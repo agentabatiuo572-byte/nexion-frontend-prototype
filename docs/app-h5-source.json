@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\growth-promotions-prd-20261007-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "b634a2f8cea2ea274e0bd41395a436437b372541",
-  "sourceRef": "b634a2f8cea2ea274e0bd41395a436437b372541",
+  "sourceHead": "bde7cc28bbea80691e088e4bea1c6030a77e9523",
+  "sourceRef": "bde7cc28bbea80691e088e4bea1c6030a77e9523",
   "sourceRefKind": "commit",
-  "sourceTree": "3ee463c235823e6703075c306bf5f43f12745fbc",
+  "sourceTree": "a52629d011e5ad4c4e924a5cb43f074dccd529b1",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -9890,10 +9890,10 @@
       "mode": "100644"
     },
     "src/lib/device-detail-navigation.test.ts": {
-      "sourceBlob": "218e8bf67e05076394d073b6b0f038106f24d7af",
-      "sourceSha256": "2880ce88083e913aa773dc06f5e945785d659dea878574d04c94f770f6cc05fe",
-      "targetBlob": "218e8bf67e05076394d073b6b0f038106f24d7af",
-      "targetSha256": "2880ce88083e913aa773dc06f5e945785d659dea878574d04c94f770f6cc05fe",
+      "sourceBlob": "898088af255b402a9bb1993b037bf51b09eba593",
+      "sourceSha256": "fddda00f86546de5e0bef6a537bbb346b50d0670c36228fe1e91f85b030ea3ae",
+      "targetBlob": "898088af255b402a9bb1993b037bf51b09eba593",
+      "targetSha256": "fddda00f86546de5e0bef6a537bbb346b50d0670c36228fe1e91f85b030ea3ae",
       "mode": "100644"
     },
     "src/lib/device-detail-navigation.ts": {
@@ -13215,10 +13215,10 @@
       "mode": "100644"
     },
     "src/pages/me/me-ui-parity.contract.test.ts": {
-      "sourceBlob": "3240dfa1a0ee483e9351568f6fc4780d3205c3ef",
-      "sourceSha256": "b0ea3b2aac725e58f9b770e8191f7461f1f78a8c9ee16118daaec3925466516a",
-      "targetBlob": "3240dfa1a0ee483e9351568f6fc4780d3205c3ef",
-      "targetSha256": "b0ea3b2aac725e58f9b770e8191f7461f1f78a8c9ee16118daaec3925466516a",
+      "sourceBlob": "1a1c2c4d7863baad300eecb0479a40a53f8208af",
+      "sourceSha256": "3ae26ce699d239b9def241332644d07d72c4d12a8310ab989fcc4469bc80810f",
+      "targetBlob": "1a1c2c4d7863baad300eecb0479a40a53f8208af",
+      "targetSha256": "3ae26ce699d239b9def241332644d07d72c4d12a8310ab989fcc4469bc80810f",
       "mode": "100644"
     },
     "src/pages/me/me.vue": {
@@ -13558,10 +13558,10 @@
       "mode": "100644"
     },
     "src/pages/me/wallet-bills-account-rebind.test.ts": {
-      "sourceBlob": "b7a26db886a49d18528f199bbd9c19b37a6847cb",
-      "sourceSha256": "d5b0ab9a503526a6e8506cfe9ccfae2e4270618e77e77a3445dc1391d8e4fc1d",
-      "targetBlob": "b7a26db886a49d18528f199bbd9c19b37a6847cb",
-      "targetSha256": "d5b0ab9a503526a6e8506cfe9ccfae2e4270618e77e77a3445dc1391d8e4fc1d",
+      "sourceBlob": "2064b371c6b584ad3e7e1c74deab28abfdaed7b0",
+      "sourceSha256": "348aebef7cca8bb30de2c2747f598e5ba44989fe8592efc72abefee05a752587",
+      "targetBlob": "2064b371c6b584ad3e7e1c74deab28abfdaed7b0",
+      "targetSha256": "348aebef7cca8bb30de2c2747f598e5ba44989fe8592efc72abefee05a752587",
       "mode": "100644"
     },
     "src/pages/me/wallet-bills-precision.behavior.test.ts": {

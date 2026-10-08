@@ -6,7 +6,7 @@ import pageSource from "./wallet-bills.vue?raw";
 const start = pageSource.indexOf("watch([remoteSessionReady, () => app.accountBindingEpoch]");
 const end = pageSource.indexOf("useManualScrollLoadMore(scrollAnchor", start);
 if (start < 0 || end < start) throw new Error("wallet bills account watcher missing");
-const watcher = ts.transpileModule(pageSource.slice(start, end), {
+const watcher = ts.transpileModule(`let lookupGeneration = 0; const locatingReceipt = ref(true);\n${pageSource.slice(start, end)}\nreturn { locatingReceipt, generation: () => lookupGeneration };`, {
   compilerOptions: { target: ts.ScriptTarget.ES2020 },
 }).outputText;
 
@@ -18,8 +18,8 @@ describe("wallet bills account rebind", () => {
       const remoteSessionReady = ref(true);
       const pager = reactive({ rows: ["A-1"] });
       const refreshLedger = vi.fn(() => { pager.rows = ["B-1"]; });
-      scope.run(() => new Function("watch", "remoteSessionReady", "app", "refreshLedger", watcher)(
-        watch, remoteSessionReady, app, refreshLedger,
+      const state = scope.run(() => new Function("watch", "ref", "remoteSessionReady", "app", "refreshLedger", watcher)(
+        watch, ref, remoteSessionReady, app, refreshLedger,
       ));
 
       // The store clears all account pagers during rebind; no page navigation occurs.
@@ -28,6 +28,8 @@ describe("wallet bills account rebind", () => {
       await nextTick();
       expect(refreshLedger).toHaveBeenCalledTimes(1);
       expect(pager.rows).toEqual(["B-1"]);
+      expect(state.generation()).toBe(1);
+      expect(state.locatingReceipt.value).toBe(false);
 
       pager.rows = [];
       app.accountBindingEpoch += 1;
@@ -45,13 +47,15 @@ describe("wallet bills account rebind", () => {
       const app = reactive({ accountBindingEpoch: 0 });
       const remoteSessionReady = ref(false);
       const refreshLedger = vi.fn();
-      scope.run(() => new Function("watch", "remoteSessionReady", "app", "refreshLedger", watcher)(
-        watch, remoteSessionReady, app, refreshLedger,
+      const state = scope.run(() => new Function("watch", "ref", "remoteSessionReady", "app", "refreshLedger", watcher)(
+        watch, ref, remoteSessionReady, app, refreshLedger,
       ));
       remoteSessionReady.value = true;
       app.accountBindingEpoch = 1;
       await nextTick();
       expect(refreshLedger).toHaveBeenCalledTimes(1);
+      expect(state.generation()).toBe(1);
+      expect(state.locatingReceipt.value).toBe(false);
     } finally {
       scope.stop();
     }
