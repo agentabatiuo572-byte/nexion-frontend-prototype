@@ -155,7 +155,7 @@
         </view>
 
         <view v-if="canReply(detailTicket)" class="ticket-reply" :style="replyCardStyle">
-          <textarea :value="reply" :placeholder="t.tickets.detail.replyPlaceholder" :aria-label="t.tickets.detail.replyPlaceholder" placeholder-class="ph" :style="replyTextareaStyle" @input="onReply" />
+          <textarea :value="reply" :cursor-spacing="72" :placeholder="t.tickets.detail.replyPlaceholder" :aria-label="t.tickets.detail.replyPlaceholder" placeholder-class="ph" :style="replyTextareaStyle" @input="onReply" />
           <view class="grid grid-cols-2 ticket-reply-actions">
             <view v-if="canClose(detailTicket)" class="family-control" :style="{ ...closeBtnStyle, opacity: !supportSessionReady || ticketsStore.mutating ? 0.55 : 1 }" role="button" tabindex="0" :aria-disabled="!supportSessionReady || ticketsStore.mutating" :aria-label="t.tickets.detail.closeBtn" @click="closeTicket">
             <LiquidGlass :radius="24" />

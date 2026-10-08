@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\native-session-causal-r2770-20261008",
+  "sourcePath": "D:\\workspace\\.worktrees\\native-ticket-ime-r3020-20261008",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "56e8292ace2afa01387b623832001f257e196ffc",
-  "sourceRef": "56e8292ace2afa01387b623832001f257e196ffc",
+  "sourceHead": "4993cd601de0ddf3e8a91cbf8d8a19c121281724",
+  "sourceRef": "4993cd601de0ddf3e8a91cbf8d8a19c121281724",
   "sourceRefKind": "commit",
-  "sourceTree": "9f2cf594124cd7961f067ee89ad3d204fbfad26d",
+  "sourceTree": "04e8f6a168ee47cc53d843fd0fa395b51a408a65",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12949,10 +12949,10 @@
       "mode": "100644"
     },
     "src/pages/me/me-ui-parity.contract.test.ts": {
-      "sourceBlob": "91c9d148bd1e2abe62ebb51ffac6a267641f6b0b",
-      "sourceSha256": "651b065a8285c891dbf8fbf6baa6f8c81e5ac1f10d48130f494b8e84a7423dbc",
-      "targetBlob": "91c9d148bd1e2abe62ebb51ffac6a267641f6b0b",
-      "targetSha256": "651b065a8285c891dbf8fbf6baa6f8c81e5ac1f10d48130f494b8e84a7423dbc",
+      "sourceBlob": "3240dfa1a0ee483e9351568f6fc4780d3205c3ef",
+      "sourceSha256": "b0ea3b2aac725e58f9b770e8191f7461f1f78a8c9ee16118daaec3925466516a",
+      "targetBlob": "3240dfa1a0ee483e9351568f6fc4780d3205c3ef",
+      "targetSha256": "b0ea3b2aac725e58f9b770e8191f7461f1f78a8c9ee16118daaec3925466516a",
       "mode": "100644"
     },
     "src/pages/me/me.vue": {
@@ -13229,10 +13229,10 @@
       "mode": "100644"
     },
     "src/pages/me/support-tickets.vue": {
-      "sourceBlob": "bf7afbcc0ae4c030d32b4abae656c39d27f8df35",
-      "sourceSha256": "b86329eb7d4b4ca1fcafad979a08767d7fe5cf6b2ab7c2327b8a2cf775cdd520",
-      "targetBlob": "bf7afbcc0ae4c030d32b4abae656c39d27f8df35",
-      "targetSha256": "b86329eb7d4b4ca1fcafad979a08767d7fe5cf6b2ab7c2327b8a2cf775cdd520",
+      "sourceBlob": "cc8731f8b1d8ef2f5f6153390cd2cc377823bdce",
+      "sourceSha256": "38c91ba544f9c07dd84bebbdcc9f799b253749b1e1fbb3cd5efd64f7be547efd",
+      "targetBlob": "cc8731f8b1d8ef2f5f6153390cd2cc377823bdce",
+      "targetSha256": "38c91ba544f9c07dd84bebbdcc9f799b253749b1e1fbb3cd5efd64f7be547efd",
       "mode": "100644"
     },
     "src/pages/me/support.vue": {
