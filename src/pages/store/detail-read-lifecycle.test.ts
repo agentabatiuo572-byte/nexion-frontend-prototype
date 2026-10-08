@@ -31,7 +31,7 @@ function setup() {
   const app = reactive({ accountKey: "default", accountBindingEpoch: 1 });
   let currentAccountScope = { accountKey: "user:1", epoch: 1 };
   const value = new Function(
-    "ref", "computed", "watch", "app", "Promise", "refreshProductCatalog", "refreshServerProductPhase", "remoteApiEnabled", "refreshTrust", "onLoad", "onShow", "captureAccountScope", "isCurrentAccountScope", "productCatalogState", "observeCanonicalProductDetail", "takeNavigationQuery",
+    "ref", "computed", "watch", "app", "Promise", "refreshProductCatalog", "refreshServerProductPhase", "remoteApiEnabled", "refreshTrust", "onLoad", "onShow", "captureAccountScope", "isCurrentAccountScope", "productCatalogState", "observeCanonicalProductDetail", "takeNavigationQuery", "sessionVault", "usePromotionContext",
     lifecycleCode,
   )(ref, computed, watch, app, Promise, catalog, phase, true, trust,
     (callback: (options?: Record<string, string>) => Promise<void>) => loaded.push(callback),
@@ -39,6 +39,8 @@ function setup() {
     () => currentAccountScope,
     (scope: typeof currentAccountScope) => scope === currentAccountScope,
     productCatalogState, observe, () => "?id=stellarbox-pro",
+    { read: () => ({ user: { userId: 1 } }) },
+    () => ({ activity: ref(null), status: ref("idle"), available: ref(false), refresh: vi.fn() }),
   ) as {
     id: { value: string };
     catalogRetrying: { value: boolean };
@@ -68,16 +70,21 @@ describe("store detail canonical read lifecycle", () => {
       { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } },
     ).outputText;
     const id = ref("stellarbox-pro");
+    const publicOnly = ref(false);
     const catalogStatus = ref<"loading" | "ready" | "error">("loading");
     const presentation = shallowRef<{ products: Array<{ id: string; name: string }> } | null>(null);
     const legacyProducts: Array<{ id: string; name: string }> = [];
-    const product = new Function("computed", "id", "catalogStatus", "remoteApiEnabled", "productCatalogPresentation", "getProduct", productCode)(
+    const product = new Function("computed", "id", "catalogStatus", "remoteApiEnabled", "productCatalogPresentation", "getProduct", "publicOnly", productCode)(
       computed, id, catalogStatus, true, presentation, (key: string) => legacyProducts.find((entry) => entry.id === key),
+      publicOnly,
     ) as { value?: { id: string; name: string } };
     expect(product.value).toBeUndefined();
     presentation.value = { products: [{ id: "stellarbox-pro", name: "StellarBox Pro" }] };
     catalogStatus.value = "ready";
     expect(product.value?.name).toBe("StellarBox Pro");
+    publicOnly.value = true;
+    expect(product.value).toBeUndefined();
+    publicOnly.value = false;
     catalogStatus.value = "error";
     expect(product.value).toBeUndefined();
   });
@@ -99,12 +106,14 @@ describe("store detail canonical read lifecycle", () => {
       "purchaseUnavailable", "stockUnavailable", "priceText", "dailyEarnText", "paybackLabel",
       "purchaseGate", "eligibility", "purchaseEligibilityMessage", "sticky", "stickyOwner",
       "remoteApiEnabled", "t", "paybackDays", "fmt", "purchaseEligibilityUnlockHref",
+      "activityId", "promotionStatus", "promotionAvailable", "activity", "qty",
       ctaCode,
     )(
       watch, ref(true), catalogStatus, product, ref(false), ref(false), ref(false), ref(false),
       ref("1199"), ref("13"), ref("93"), ref({ blocked: false }), ref({ status: "ready", eligible: true }),
       ref(""), sticky, Symbol("detail"), true, ref({ store: { cardBuyNow: "Buy", detPaybackUnavailableNote: "Unavailable" } }),
       ref(null), vi.fn(), vi.fn(),
+      ref(""), ref("idle"), ref(false), ref(null), ref(1),
     );
     expect(sticky.show).toHaveBeenCalledOnce();
     catalogStatus.value = "loading";

@@ -27,7 +27,8 @@ export interface CanonicalOrder {
   subtotalUsdt: number;
   unitPriceUsdt: number;
   discountUsdt: number;
-  amountUsdt: number;
+  amountUsdt: number | string;
+  promotionQuoteId?: string;
   paymentMethod: string | null;
   paymentStatus: string;
   orderStatus: string;
@@ -175,6 +176,15 @@ function finiteNumber(value: unknown, minimum = 0): number {
   return value;
 }
 
+function historyAmount(source: Record<string, unknown>): number | string {
+  if (typeof source.promotionQuoteId === 'string' && source.promotionQuoteId.trim()) {
+    const value=source.amountUsdt;
+    if(typeof value!=='string'||!/^(0|[1-9]\d{0,11})(\.\d{1,6})?$/.test(value))return invalid();
+    return value;
+  }
+  return finiteNumber(source.amountUsdt);
+}
+
 function integer(value: unknown, minimum = 0): number {
   const parsed = finiteNumber(value, minimum);
   if (!Number.isSafeInteger(parsed)) return invalid();
@@ -213,7 +223,8 @@ function canonicalOrder(value: unknown): CanonicalOrder {
     subtotalUsdt: finiteNumber(source.subtotalUsdt),
     unitPriceUsdt: finiteNumber(source.unitPriceUsdt),
     discountUsdt: finiteNumber(source.discountUsdt),
-    amountUsdt: finiteNumber(source.amountUsdt),
+    amountUsdt: historyAmount(source),
+    ...(source.promotionQuoteId ? { promotionQuoteId: nonEmptyString(source.promotionQuoteId) } : {}),
     paymentMethod: nullableString(source.paymentMethod),
     paymentStatus: nonEmptyString(source.paymentStatus),
     orderStatus: nonEmptyString(source.orderStatus),

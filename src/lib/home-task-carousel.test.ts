@@ -76,6 +76,19 @@ describe("home task carousel", () => {
     })).toEqual([]);
   });
 
+  it("adds distinct promotion slides to the existing carousel independently of weekly configuration", () => {
+    const flags = { homeNewcomerTasksEnabled: true, homeWeeklyPromoEnabled: true };
+    expect(deriveHomeTaskCards(false, flags, ["gift-A", "gift-A", "cash-B"]))
+      .toEqual(["newcomer", "weekly", "promotion:gift-A", "promotion:cash-B"]);
+    expect(deriveHomeTaskCards(true, flags, ["gift-A"]))
+      .toEqual(["promotion:gift-A"]);
+    const template = homePageSource.slice(homePageSource.indexOf("<template>"), homePageSource.indexOf("</template>"));
+    const slide = template.slice(template.indexOf("<swiper-item"), template.indexOf("</swiper-item>"));
+    expect(slide).toContain('<PromotionEntry v-else mode="home" :active="taskSlide === index"');
+    expect(template.match(/<PromotionEntry\b/g)).toHaveLength(1);
+    expect(template.match(/<QuickActionRow\b/g)).toHaveLength(1);
+  });
+
   it("renders the configured weekly mission instead of a paused upsell banner", () => {
     expect(selectHomeWeeklySource([weeklyQuest], pausedPromo)).toEqual({
       kind: "quest",

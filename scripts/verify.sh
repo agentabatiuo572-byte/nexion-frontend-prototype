@@ -2908,7 +2908,7 @@ need(!ts.isBlock(visible.body), "visibleTaskCards must delegate to the tested de
 need(compact(visible.body.getText(source)) === compact(`deriveHomeTaskCards(platformConfig.syncFailed, {
   homeNewcomerTasksEnabled: platformConfig.isEnabled("homeNewcomerTasksEnabled"),
   homeWeeklyPromoEnabled: platformConfig.isEnabled("homeWeeklyPromoEnabled"),
-})`), "visibleTaskCards no longer derives exact 0/1/2 state from sync failure + both flags");
+}, homePromotions.value.map(activity => activity.activityId))`), "visibleTaskCards no longer derives configured task slots and promotion slides from server activity IDs");
 
 const cardinality = computedCallback("hasTaskCarousel");
 need(
@@ -2992,9 +2992,12 @@ const itemChildren = meaningfulChildren(swiperChildren[0]);
 need(itemChildren.length === 1 && itemChildren[0].tag === "view", "swiper item must contain only the task slide wrapper");
 const slideChildren = meaningfulChildren(itemChildren[0]);
 need(
-  slideChildren.length === 2 && slideChildren[0].tag === "DayOneQuestCard" && slideChildren[1].tag === "ConversionBanner",
-  "task slide gained visible content outside the two original cards",
+  slideChildren.length === 3 && slideChildren[0].tag === "DayOneQuestCard" && slideChildren[1].tag === "ConversionBanner" && slideChildren[2].tag === "PromotionEntry",
+  "task slide must contain the original cards and the server-controlled promotion entry only",
 );
+need(attr(slideChildren[2], "mode") === "home", "promotion slide must use the homepage carousel variant");
+need(slideChildren[2].props.some(prop => prop.type === NodeTypes.DIRECTIVE && prop.name === "bind" && prop.arg?.content === "active" && prop.exp?.content === "taskSlide === index"), "offscreen promotion slides must not be active");
+need(slideChildren[2].props.some(prop => prop.type === NodeTypes.DIRECTIVE && prop.name === "bind" && prop.arg?.content === "activities" && prop.exp?.content === "homePromotions.filter(activity => card === 'promotion:'+activity.activityId)"), "promotion slide must show only its server activity");
 const statusNode = carouselChildren[1];
 need(attr(statusNode, "class") === "home-task-carousel__status" && attr(statusNode, "aria-live") === "polite", "only the hidden screen-reader status may follow swiper");
 const statusChildren = meaningfulChildren(statusNode);

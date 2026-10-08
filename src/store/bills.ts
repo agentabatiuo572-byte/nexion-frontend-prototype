@@ -20,6 +20,7 @@ export interface Bill {
   id: string;
   type: BillType;
   amount: number; // signed: +credit, -debit
+  amountExact?: string; // signed exact server decimal, retained for display
   symbol: "USDT" | "NEX";
   status: BillStatus;
   ts: number; // epoch ms
@@ -35,11 +36,14 @@ export interface Bill {
   memoKey?: string;
   memoParams?: Record<string, string | number>;
   ref?: string;
+  /** Exact server receipt lookup only; never used as the public display reference. */
+  ledgerBizNo?: string;
   /** 链上转账条目的网络短码。🔴 必须大写(tx 页 `options.net in NET_LINES` 白名单,小写静默丢弃)。
    *  memo 正迁 memoKey(语言码位),网络不能永远靠 memo 文案正则反解 —— 这个字段就是网络的码位;
    *  非链上条目(奖励/兑换/NEX 等)不填。 */
   network?: "TRC20" | "ERC20" | "BEP20";
   balanceAfter?: number;
+  balanceAfterExact?: string;
   reservedAfter?: number;
 }
 
@@ -47,7 +51,7 @@ export interface Bill {
  * 账单入参 —— **落盘的是 `Bill`,不是它**:`id` / `ts` / `balanceAfter` 由 store 与服务端时钟负责,
  * `atMs` 是**构造期字段**,只用来决定这一行的 `ts`,写盘前必须被解构掉(见 `addMany`)。
  */
-export type BillDraft = Omit<Bill, "id" | "ts" | "balanceAfter"> & {
+export type BillDraft = Omit<Bill, "id" | "ts" | "balanceAfter" | "balanceAfterExact"> & {
   /**
    * 🔴 这**一条**分录自己的事件时刻,覆盖整批的 `atMs`。不传 = 跟整批走(绝大多数分录本来就同时发生)。
    *
@@ -171,7 +175,7 @@ function hydrate(accountKey: string): Bill[] {
     // (实测盘上就有 balanceAfter: 60.3065,而真实余额是两万四)。现在这个字段只认服务端下发,
     // 不剥的话页面会把那批旧错值原样渲染出来 —— 等于把已修的 P0 换个方式放回去。
     // 顺带过一次排序:读盘这条路径原本直接 return,倒序只是「上次写盘时碰巧排过」的巧合。
-    return recomputeBalance(row.bills.map(({ balanceAfter: _drop, ...rest }) => rest as Bill));
+    return recomputeBalance(row.bills.map(({ balanceAfter: _drop, balanceAfterExact: _dropExact, ...rest }) => rest as Bill));
   }
   return recomputeBalance(seedBills());
 }
@@ -230,6 +234,8 @@ export const useBills = defineStore("bills", () => {
       id: row.id,
       type,
       amount,
+      amountExact: row.amountExact === undefined ? undefined
+        : `${row.direction === "OUT" && /[1-9]/.test(row.amountExact) ? "-" : ""}${row.amountExact}`,
       symbol: row.asset,
       status: row.status === "SUCCESS" ? "posted" : row.status === "PENDING" ? "pending" : "failed",
       ts: row.createdAt,
@@ -238,7 +244,9 @@ export const useBills = defineStore("bills", () => {
       memo: "",
       memoKey,
       ref: orderRefund ? validOrderNo(publicReference) : publicReference,
+      ledgerBizNo: row.bizNo,
       balanceAfter: row.balanceAfter,
+      balanceAfterExact: row.balanceAfterExact,
     };
   }
 

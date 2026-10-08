@@ -38,7 +38,7 @@
       >
         <view class="flex-1 min-w-0">
           <text class="block truncate" :style="catTitleStyle">{{ c.label }}</text>
-          <view class="flex items-baseline" style="white-space: nowrap; margin-top: 10px; gap: 6px">
+          <view v-if="c.big" class="flex items-baseline" style="white-space: nowrap; margin-top: 10px; gap: 6px">
             <text class="font-mono-tabular" :style="bigNumStyle">{{ c.big }}</text>
             <text :style="unitStyle">{{ c.unit }}</text>
           </view>
@@ -69,9 +69,7 @@ import { useApp } from "@/store/app";
 import { navTo } from "@/lib/route";
 import { fundsServerEnabled, remoteApiEnabled } from "@/api/runtime";
 import { remoteAccountScope } from "@/lib/remote-account-epoch";
-
-// L2 category param — mirrored by pages/me/rewards-list.vue (invalid → voucher).
-type RewardsCat = "voucher" | "usdt" | "nex";
+import type { RewardsCat } from "./course-reward-link";
 
 const t = useT();
 const voucher = useVoucher();
@@ -174,11 +172,28 @@ const cats = computed<CatCard[]>(() => [
     unit: "NEX",
     desc: t.value.rewards.catNexDesc,
   },
+  {
+    key: "promotion",
+    label: t.value.promotion.rewardCategory,
+    big: "",
+    unit: "",
+    desc: t.value.promotion.rewardCategoryDesc,
+  },
 ]);
 
 function openCat(cat: RewardsCat) {
   navTo(`/me/rewards/list?cat=${cat}`);
 }
+
+// Preserve known figures only within one account binding. A new binding must
+// wait for its own voucher/summary reads instead of showing the former account.
+watch(() => [app.accountKey, app.accountBindingEpoch], () => {
+  rewardViewRequest++;
+  lastAvailableCount.value = null;
+  lastExpiredCount.value = null;
+  lastUsdtTotal.value = null;
+  lastNexTotal.value = null;
+}, { flush: "sync" });
 
 // ── styles ── (stat-card identity — filled surface, no border, big value as
 // the visual hero; round ink circle = the rest-state affordance, OKX idiom)

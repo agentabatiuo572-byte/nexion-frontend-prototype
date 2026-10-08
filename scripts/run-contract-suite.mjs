@@ -51,6 +51,7 @@ const REGISTRY = {
   "server-product-phase-catalog-contract.test.mjs": { how: "chain" },
   "social-facts-authority-contract.test.mjs": { how: "chain" },
   "store-catalog-deeplink-contract.test.mjs": { how: "chain" },
+  "i18n-load.test.mjs": { how: "chain" },
   "tradein-account-switch-contract.test.mjs": { how: "chain" },
   "tradein-remote-authority-contract.test.mjs": { how: "chain" },
   "external-market-removal-contract.test.mjs": { how: "chain" },

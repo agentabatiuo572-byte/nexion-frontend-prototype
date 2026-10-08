@@ -14,25 +14,16 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { transformSync } from "esbuild";
+import { loadMessages } from "./lib/i18n-load.mjs";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 // ── 1. 取出所有「带占位符」的 key 路径 ──────────────────
 // 🔴 三语取**并集**,不能只读 zh:占位符名在三语之间可以不同(mirror 只把这种情况报
 //    INFO 不拦),只读一份的话「只在 en 带占位符」的 key 会整条漏掉。
-async function loadLocale(locale) {
-  const src = readFileSync(path.join(root, "src", "i18n", "messages", `${locale}.ts`), "utf8")
-    .replace(/^import type .*$/m, "")
-    .replace(new RegExp(`export const ${locale}: Messages =`), `export const msg =`)
-    .replace(new RegExp(`export const ${locale} =`), `export const msg =`);
-  const { code } = transformSync(src, { loader: "ts", format: "esm" });
-  const m = await import("data:text/javascript;base64," + Buffer.from(code, "utf8").toString("base64"));
-  return m.msg;
-}
 const locales = ["zh", "en", "vi"];
 const messagesByLocale = [];
-for (const l of locales) messagesByLocale.push(await loadLocale(l));
+for (const l of locales) messagesByLocale.push(await loadMessages(l));
 
 const PLACEHOLDER = /\{[A-Za-z0-9_]+\}/;
 /** key 路径(如 wallet.trackEtaPending)→ 该文案含占位符 */

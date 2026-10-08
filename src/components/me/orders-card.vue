@@ -12,7 +12,7 @@
       <view v-if="latestOrder" class="flex items-center justify-between" style="gap: 8px">
         <view class="min-w-0">
           <text class="block truncate" style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ nexGridBrandText(latestOrder.productName) }}</text>
-          <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">${{ latestOrder.total.toFixed(0) }} · {{ latestOrder.dataCenter }}</text>
+          <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">${{ typeof latestOrder.total === 'string' ? latestOrder.total : latestOrder.total.toFixed(0) }} · {{ latestOrder.dataCenter }}</text>
         </view>
         <text class="shrink-0 font-mono-tabular" :style="statusPillStyle(latestOrder.status)">{{ statusLabel(latestOrder.status) }}</text>
       </view>

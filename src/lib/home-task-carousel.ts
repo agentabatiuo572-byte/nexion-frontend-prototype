@@ -2,7 +2,7 @@ import type { CanonicalPromoBanner, CanonicalQuest, QuestSnapshot, QuestTaskCate
 import { isCurrentQuest } from "./actionable-quest";
 import { nexGridBrandText } from "./brand-copy";
 
-export type HomeTaskCardId = "newcomer" | "weekly";
+export type HomeTaskCardId = "newcomer" | "weekly" | `promotion:${string}`;
 
 export const HOME_TASK_CARD_COLLAPSED_HEIGHT = 184;
 
@@ -30,12 +30,12 @@ export interface HomeWeeklyCardView {
 export function deriveHomeTaskCards(
   syncFailed: boolean,
   flags: HomeTaskFeatureFlags,
+  promotionIds: readonly string[] = [],
 ): HomeTaskCardId[] {
-  if (syncFailed) return [];
-
   const cards: HomeTaskCardId[] = [];
-  if (flags.homeNewcomerTasksEnabled) cards.push("newcomer");
-  if (flags.homeWeeklyPromoEnabled) cards.push("weekly");
+  if (!syncFailed && flags.homeNewcomerTasksEnabled) cards.push("newcomer");
+  if (!syncFailed && flags.homeWeeklyPromoEnabled) cards.push("weekly");
+  for (const id of new Set(promotionIds)) cards.push(`promotion:${id}`);
   return cards;
 }
 

@@ -277,7 +277,9 @@
       "style": { "navigationStyle": "custom" }
     },
     {
-      "path": "pages/events/events",
+      "path": "pages/events/promotion-rewards", "style":{"navigationStyle":"custom"}},
+    {"path":"pages/events/promotion-reward-detail","style":{"navigationStyle":"custom"}},
+    {"path": "pages/events/events",
       "style": { "navigationStyle": "custom" }
     },
     {

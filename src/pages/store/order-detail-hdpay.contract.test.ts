@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import detailSource from "./order-detail.vue?raw";
+import ts from "typescript";
 
 describe("wallet payment for a pending commerce order", () => {
   it("lets a placed remote order retry the idempotent wallet debit", () => {
@@ -35,7 +36,7 @@ describe("wallet payment for a pending commerce order", () => {
   });
 
   it("blocks cancellation while wallet payment is in flight or confirmed but readback is pending", () => {
-    expect(detailSource.replace(/\r\n/g, "\n")).toContain('return order.value?.status === "placed"\n    && !walletPaymentConfirmed.value\n    && !payingFromWallet.value;');
+    expect(detailSource.replace(/\r\n/g, "\n")).toContain('return order.value?.status === "placed"\n    && !order.value.promotionQuoteId\n    && !walletPaymentConfirmed.value\n    && !payingFromWallet.value;');
     expect(detailSource).toContain("const cancellingOrder = ref(false);");
     expect(detailSource).toContain("let cancelAttemptSequence = 0;");
     expect(detailSource).toContain("&& !cancellingOrder.value");
@@ -46,6 +47,26 @@ describe("wallet payment for a pending commerce order", () => {
     expect(detailSource).toContain("if (cancelAttempt === cancelAttemptSequence) cancellingOrder.value = false;");
     expect(detailSource).toContain('@keydown.enter.prevent.stop="handleCancel"');
     expect(detailSource).toContain('@keydown.space.prevent.stop="handleCancel"');
+  });
+
+  it("keeps ordinary cancellation available while quoted promotion orders use their own command flow", () => {
+    const script = detailSource.split('<script setup lang="ts">')[1].split("</script>")[0];
+    const source = ts.createSourceFile("order-detail.ts", script, ts.ScriptTarget.Latest, true);
+    const declaration = source.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "canCancelCurrentOrder");
+    expect(declaration).toBeDefined();
+    const code = ts.transpileModule(declaration!.getText(source), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+    for (const [status, promotionQuoteId, confirmed, paying, expected] of [
+      ["placed", null, false, false, true],
+      ["placed", "quote-1", false, false, false],
+      ["placed", null, true, false, false],
+      ["placed", null, false, true, false],
+      ["paid", null, false, false, false],
+    ]) {
+      const result = new Function("order", "walletPaymentConfirmed", "payingFromWallet", `${code}; return canCancelCurrentOrder();`)(
+        { value: { status, promotionQuoteId } }, { value: confirmed }, { value: paying },
+      );
+      expect(result).toBe(expected);
+    }
   });
 
   it("explains full voucher settlement without implying a wallet debit", () => {

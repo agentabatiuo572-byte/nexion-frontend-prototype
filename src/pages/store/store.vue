@@ -12,18 +12,39 @@
 <template>
   <AppChassis active="store">
     <CardStagger class="px-4 pt-3 pb-4 space-y-6" style="color: var(--v5-ink)">
-      <StoreHero :multiplier="upgrade?.multiplier ?? null" />
-      <ClusterLadder :authority="yieldAuthority" :owned="ownedHardware" />
-      <VsPhoneHero v-if="upgrade" :authority="yieldAuthority" :comparison="upgrade" />
+      <view v-if="activityId" class="promotion store-promotion-scope" data-testid="store-promotion-scope">
+        <view class="store-promotion-actions">
+          <text class="promotion-badge">{{ t.promotion.activityProducts }}</text>
+          <view class="promotion-link" role="button" tabindex="0" @click="clearPromotion"><text>{{ t.promotion.scopeClear }}</text></view>
+        </view>
+        <text class="promotion-title">{{ activity ? localized(activity.title,locale.code) : t.promotion.events }}</text>
+        <text v-if="promotionStatus==='loading'||promotionStatus==='idle'" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
+        <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
+        <text v-else-if="!promotionAvailable" class="promotion-copy">{{ localized(activity?.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
+        <text v-else class="promotion-copy">{{ t.promotion.promoSub }}</text>
+        <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId))"><text>{{ t.promotion.bundle }}</text></view>
+      </view>
+      <template v-else-if="!publicOnly">
+        <StoreHero :multiplier="upgrade?.multiplier ?? null" />
+        <PromotionEntry mode="home" />
+        <ClusterLadder :authority="yieldAuthority" :owned="ownedHardware" />
+        <VsPhoneHero v-if="upgrade" :authority="yieldAuthority" :comparison="upgrade" />
+      </template>
+
+      <view v-if="publicOnly" class="promotion" data-testid="promotion-public-store">
+        <template v-if="activity"><PromotionProduct v-for="productNo in activity.productNos" :key="productNo" :activity="activity" :product-no="productNo" public-only /></template>
+        <view class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionStoreHref(activityId)))"><text>{{ t.promotion.signIn }}</text></view>
+      </view>
+      <template v-else>
 
       <!-- Sprint 2 finale — phase + legacy-ownership trade-in window -->
-      <TradeinWindowBanner />
+      <TradeinWindowBanner v-if="!activityId" />
 
       <!-- Goal-recommendation context (BUG 71). Arriving from an earning goal
            carries `focus`; the card locates the recommended SKU instead of
            silently featuring the generic first product, and names the change
            when the recommendation is no longer purchasable. -->
-      <view v-if="focusProductId" data-testid="store-goal-focus" class="rounded-2xl" :style="goalFocusCardStyle">
+      <view v-if="focusProductId&&!activityId" data-testid="store-goal-focus" class="rounded-2xl" :style="goalFocusCardStyle">
         <text class="block" :style="goalFocusTitleStyle">{{ t.store.goalFocusTitle }}</text>
         <text class="block mt-1" :style="goalFocusBodyStyle">{{ goalFocusBody }}</text>
         <view v-if="!focusFeatured" class="inline-flex mt-3 active:opacity-70" role="button" tabindex="0" :style="goalFocusRetryStyle" @click="retryCatalog">
@@ -44,12 +65,13 @@
           <text>{{ t.store.catalogRetry }}</text>
         </view>
       </view>
-      <view class="nx-glass-card" v-if="catalogStatus === 'ready' && !catalogHasProducts" data-testid="store-catalog-empty" :style="catalogStateStyle">
+      <view class="nx-glass-card" v-if="!activityId && catalogStatus === 'ready' && !catalogHasProducts" data-testid="store-catalog-empty" :style="catalogStateStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogEmptyTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogEmptyBody }}</text>
       </view>
+      <view v-if="activityId&&promotionStatus==='ready'&&catalogStatus==='ready'&&!unlockedProducts.length" class="promotion-flat"><text class="promotion-copy">{{ t.promotion.noMatchingProducts }}</text><view class="promotion-link" role="button" tabindex="0" @click="clearPromotion"><text>{{ t.promotion.allProducts }}</text></view></view>
       <template v-if="catalogHasProducts">
-        <SectionHeader :title="t.store.secRecommended" style="height: 44px">
+        <SectionHeader v-if="!activityId" :title="t.store.secRecommended" style="height: 44px">
           <template #right>
             <view style="height: 44px; max-width: 65%; display: flex; align-items: center; overflow: hidden">
               <text v-if="catalogStatus === 'loading'" role="status" style="font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ t.store.catalogLoadingTitle }}</text>
@@ -64,12 +86,12 @@
             </view>
           </template>
         </SectionHeader>
-        <ProductCard v-if="featured" :key="featured.id" :product="featured" featured />
+        <ProductCard v-if="featured" :key="featured.id" :product="featured" :promotion="activity" :activity-id="activityId" :promotion-ready="promotionStatus==='ready'" featured />
 
-        <PurchaseTicker />
+        <PurchaseTicker v-if="!activityId" />
 
-        <SectionHeader v-if="restProducts.length > 0" :title="t.store.secMoreTiers" />
-        <ProductCard v-for="p in restProducts" :key="p.id" :product="p" />
+        <SectionHeader v-if="restProducts.length > 0&&!activityId" :title="t.store.secMoreTiers" />
+        <ProductCard v-for="p in restProducts" :key="p.id" :product="p" :promotion="activity" :activity-id="activityId" :promotion-ready="promotionStatus==='ready'" />
 
         <!-- "Coming soon" — gen-2 phase-locked -->
         <view v-if="lockedProducts.length > 0">
@@ -87,13 +109,14 @@
       <!-- 尊享席位 — Genesis 独立金融 SKU 入口(升级阶梯压轴;规格 FEAT-GEN07,
            非设备目录成员,经济模型与当前服务端资格投影在 store/genesis.ts)。
            showcaseEnabled 运营开关(FEAT-GEN09):关=整区隐藏,预售页/二级不受影响。-->
-      <view v-if="genesisCfg.config.showcaseEnabled">
+      <view v-if="!activityId&&genesisCfg.config.showcaseEnabled">
         <SectionHeader :title="t.store.secGenesis" />
         <GenesisShowcaseCard />
       </view>
 
       <!-- 《02》§7:Mono 仅限 <5 词短标签/数字;这是 8 词促销 callout 整句,改正文字体 -->
       <text class="block text-center" style="margin-top: 20px; padding-bottom: 8px; font-size: 12px; line-height: 16px; color: var(--v5-ink-3)">{{ t.store.pageFooter }}</text>
+      </template>
     </CardStagger>
   </AppChassis>
 </template>
@@ -108,6 +131,13 @@ import ClusterLadder from "@/components/store/cluster-ladder.vue";
 import VsPhoneHero from "@/components/store/vs-phone-hero.vue";
 import TradeinWindowBanner from "@/components/store/tradein-window-banner.vue";
 import ProductCard from "@/components/store/product-card.vue";
+import PromotionEntry from '@/components/promotion/promotion-entry.vue';
+import PromotionProduct from '@/components/promotion/promotion-product.vue';
+import { usePromotionContext } from '@/composables/use-promotion-context';
+import { promotionBundleHref,promotionStoreHref } from '@/lib/promotion-entry';
+import { localized } from '@/lib/promotion-display';
+import { useLocaleStore } from '@/store/locale';
+import { navTo,takeNavigationQuery } from '@/lib/route';
 import PurchaseTicker from "@/components/store/purchase-ticker.vue";
 import LockedProductCard from "@/components/store/locked-product-card.vue";
 import GenesisShowcaseCard from "@/components/store/genesis-showcase-card.vue";
@@ -133,6 +163,15 @@ import { behaviorTracker, createStoreViewEvent } from "@/services/behavior-analy
 
 const t = useT();
 const app = useApp();
+const locale=useLocaleStore();
+const activityId=ref('');
+const publicOnly=computed(()=>{void app.accountKey;void app.accountBindingEpoch;return !sessionVault.read();});
+const {activity,status:promotionStatus,available:promotionAvailable,refresh:refreshPromotion}=usePromotionContext(activityId);
+function readPromotionQuery(query:Record<string,string|undefined>){
+  if(query.scope==='all')activityId.value='';
+  else if(query.activityId)activityId.value=query.activityId.trim();
+}
+function clearPromotion(){activityId.value='';void navTo(promotionStoreHref());}
 // The fleet store clears this flag on every account binding. Retained devices
 // are presentation only and never supply purchase eligibility.
 const ownedDevices = computed(() => app.remoteFleetHasSnapshot ? app.visibleDevices : []);
@@ -157,7 +196,10 @@ let storeViewAttempt: { scopeKey: string; userId: number; event: ReturnType<type
 //   注意 `showcaseEnabled` 由 false→true 时卡片本身不挂载,composable 的 onMounted 够不着,
 //   只有页面级 onShow 能把它翻回来。
 onShow(() => {
+  const pending=takeNavigationQuery('/pages/store/store');
+  if(pending){const query=new URLSearchParams(pending);readPromotionQuery({scope:query.get('scope')??undefined,activityId:query.get('activityId')??undefined});}
   storePageVisible = true;
+  if(publicOnly.value)return;
   genesisCfg.refresh();
   // G4's public state owns supply independently of the configuration fields.
   // Re-read it whenever the store becomes visible so a prior failed 0/0
@@ -245,7 +287,11 @@ watch(catalogStatus, () => {
   void observeDayOneStorePage();
 });
 const displayCatalog = computed(() => remoteApiEnabled ? productCatalogPresentation.value : null);
-const displayProducts = computed(() => remoteApiEnabled ? displayCatalog.value?.products ?? [] : PRODUCTS);
+const displayProducts = computed(() => {
+  const products=remoteApiEnabled ? displayCatalog.value?.products ?? [] : PRODUCTS;
+  if(publicOnly.value)return [];
+  return activityId.value ? products.filter(p=>activity.value?.productNos.includes(p.id)) : products;
+});
 const catalogHasProducts = computed(() => displayProducts.value.length > 0);
 const yieldAuthority = computed(() => buildStoreYieldAuthority(
   displayProducts.value,
@@ -276,6 +322,7 @@ const upgrade = computed(() => storeUpgrade(unlockedProducts.value, ownedDevices
 // lifecycle hooks that clear it.
 onLoad((options) => {
   const query = (options || {}) as Record<string, string | undefined>;
+  readPromotionQuery(query);
   focusProductId.value = (query.focus ?? "").trim();
   focusProductName.value = (query.focusName ?? "").trim();
 });
@@ -303,7 +350,7 @@ const goalFocusBody = computed(() => {
 // Feature a real upgrade when one is available; a goal-recommended SKU outranks
 // it; the full catalogue remains browsable.
 const featured = computed(
-  () => focusFeatured.value
+  () => (activityId.value ? undefined : focusFeatured.value)
     ?? unlockedProducts.value.find((p) => p.id === upgrade.value?.target.id)
     ?? unlockedProducts.value[0],
 );
@@ -390,3 +437,8 @@ const goalFocusRetryStyle: CSSProperties = {
 
 
 </script>
+<style src="@/components/promotion/promotion.css"></style>
+<style scoped>
+.store-promotion-scope { display:flex;flex-direction:column;gap:12px; }
+.store-promotion-actions { display:flex;align-items:center;justify-content:space-between;gap:12px; }
+</style>

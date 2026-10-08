@@ -59,6 +59,7 @@ async function mount(localeCode: "zh" | "en" | "vi", rows: Bill[]) {
       onShow: (callback: () => void) => shown.push(callback) },
     "@/components/app-chassis.vue": { default: chassis }, "@/components/empty-state.vue": { default: Vue.defineComponent(() => () => Vue.h("empty")) },
     "@/components/sub-page-header.vue": { default: Vue.defineComponent(() => () => Vue.h("header")) },
+    "@/components/promotion/promotion-reward-list.vue": { default: Vue.defineComponent(() => () => Vue.h("promotion-rewards")) },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dicts[locale.code as keyof typeof dicts]) },
     "@/i18n/format": { fmt }, "@/store/locale": { useLocaleStore }, "@/lib/rank-how-content": { formatHowNumber },
     "@/lib/wallet-bill-display": { resolveWalletBillMemo }, "@/composables/use-course-reward-titles": { useCourseRewardTitles: () => Vue.ref({}) },

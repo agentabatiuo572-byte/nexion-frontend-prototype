@@ -1,11 +1,16 @@
 import type { Bill } from "@/store/bills";
 
-export type RewardsCat = "voucher" | "usdt" | "nex";
+export type RewardsCat = "voucher" | "usdt" | "nex" | "promotion";
+
+function isRewardsCat(value: string | null | undefined): value is RewardsCat {
+  return value === "voucher" || value === "usdt" || value === "nex" || value === "promotion";
+}
 
 export function rewardsListCategory(options: Record<string, string> | undefined, queryString: string): RewardsCat {
   const fromQuery = new URLSearchParams(queryString).get("cat");
-  const value = options?.cat === "usdt" || options?.cat === "nex" ? options.cat : fromQuery;
-  return value === "usdt" || value === "nex" ? value : "voucher";
+  const fromOptions = options?.cat;
+  const value = isRewardsCat(fromOptions) ? fromOptions : fromQuery;
+  return isRewardsCat(value) ? value : "voucher";
 }
 
 /** Only the server-projected course reference may become a learning deep link. */

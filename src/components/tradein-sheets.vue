@@ -730,6 +730,7 @@ async function submitCanonicalCapacityReplacement(
             || persisted.paymentStatus.toUpperCase() !== "PAID"
             || persisted.orderStatus.toUpperCase() !== "COMPLETED"
             || persisted.activationStatus.toUpperCase() !== "ACTIVATED"
+            || typeof persisted.amountUsdt !== "number"
             || Math.abs(persisted.amountUsdt - submitted.walletDebitUsdt) > 0.000001
             || Math.abs(persisted.discountUsdt - submitted.discountUsdt) > 0.000001) {
           throw new Error("CAPACITY_REPLACEMENT_READBACK_MISMATCH");
@@ -906,6 +907,7 @@ async function submitCanonicalKeepBuy(
             || persisted.activationStatus.toUpperCase() !== "WAITING_PROVISIONING"
             || persisted.targetDeviceId !== submitted.targetDeviceId
             || !persisted.targetDeviceInstanceNo
+            || typeof persisted.amountUsdt !== "number"
             || Math.abs(persisted.amountUsdt - submitted.walletDebitUsdt) > 0.000001
             || Math.abs(persisted.discountUsdt) > 0.000001) {
           throw new Error("CAPACITY_KEEP_ORDER_READBACK_MISMATCH");

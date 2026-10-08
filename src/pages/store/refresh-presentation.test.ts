@@ -32,9 +32,10 @@ describe("actual page presentation remains separate from authority", () => {
     const state = reactive({ status: "ready" });
     const eligibility = ref({ status: "ready", eligible: true });
     const stockUnavailable = ref(false), gate = ref({ soldOut: false });
+    const promotionUnavailable = ref(false), promotionSignIn = ref(false);
     const goCheckout = vi.fn(), goDetail = vi.fn(), retryEligibility = vi.fn();
     const { buyUnavailable, onBuy } = actual(card, ["catalogUnavailable", "buyUnavailable", "onBuy"], {
-      computed, remoteApiEnabled: true, productCatalogState: state, eligibility, stockUnavailable, gate, goCheckout, goDetail, retryEligibility,
+      computed, remoteApiEnabled: true, productCatalogState: state, eligibility, stockUnavailable, gate, promotionUnavailable, promotionSignIn, goCheckout, goDetail, retryEligibility,
     });
     for (const status of ["loading", "error"]) { state.status = status; expect(buyUnavailable.value).toBe(true); onBuy(); }
     expect(goCheckout).not.toHaveBeenCalled();
@@ -50,6 +51,9 @@ describe("actual page presentation remains separate from authority", () => {
     expect(goDetail).toHaveBeenCalledOnce();
     gate.value.soldOut = false;
     eligibility.value.eligible = true; onBuy();
+    expect(goCheckout).toHaveBeenCalledOnce();
+    stockUnavailable.value = false;
+    promotionUnavailable.value = true; expect(buyUnavailable.value).toBe(true); onBuy();
     expect(goCheckout).toHaveBeenCalledOnce();
     stockUnavailable.value = true; expect(buyUnavailable.value).toBe(true); onBuy();
     expect(goCheckout).toHaveBeenCalledOnce();

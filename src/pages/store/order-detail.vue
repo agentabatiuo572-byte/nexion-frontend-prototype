@@ -15,6 +15,7 @@
 -->
 <template>
   <AppChassis active="store">
+    <OrderRewards v-if="remoteApiEnabled && id" :order-no="id" />
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
     <view style="color: var(--v5-ink); padding-top: 24px">
@@ -101,7 +102,7 @@
           <DetailRow :label="t.orders.total" :value="`$${order.total.toLocaleString()}`" big />
           <template v-if="order.status === 'refunded'">
             <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="`$${order.refundAmountUsdt.toLocaleString()}`" brand />
-            <DetailRow v-if="order.refundChannel" :label="t.orders.refundChannel" :value="order.refundChannel" />
+            <DetailRow v-if="order.refundChannel" :label="t.orders.refundChannel" :value="refundChannelLabel" />
             <DetailRow v-if="order.refundBillNo" :label="t.orders.refundBillNo" :value="order.refundBillNo" mono />
             <view v-if="!order.refundedAt && order.refundAmountUsdt == null && !order.refundBillNo" role="status" style="padding: 8px 0; color: var(--v5-ink-3); font-size: 12px">
               <text>{{ t.orders.refundDetailsUnavailable }}</text>
@@ -185,6 +186,7 @@
 </template>
 
 <script setup lang="ts">
+import OrderRewards from '@/components/promotion/order-rewards.vue';
 import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -293,6 +295,8 @@ onHide(() => {
 });
 
 const order = computed(() => orders.orders.find((o) => o.id === id.value));
+const refundChannelLabel = computed(() => order.value?.refundChannel === "WALLET"
+  ? t.value.promotion.wallet : t.value.orders.refundDetailsUnavailable);
 const hasOrderId = computed(() => Boolean(id.value.trim()));
 const remoteOrderBinding = computed(() => {
   const accountKey = auth.isAuthenticated ? auth.accountId : "";
@@ -369,6 +373,7 @@ const cancellingOrder = ref(false);
 let cancelAttemptSequence = 0;
 function canCancelCurrentOrder(): boolean {
   return order.value?.status === "placed"
+    && !order.value.promotionQuoteId
     && !walletPaymentConfirmed.value
     && !payingFromWallet.value;
 }
@@ -503,6 +508,7 @@ async function offerWalletTopup(requiredUsdt: number): Promise<void> {
 
 async function handleWalletPayment() {
   if (!canPayFromWallet.value || payingFromWallet.value || !order.value) return;
+  if (typeof order.value.total !== 'number') return; // Promoted orders resume through their original-command checkout above.
   const scope = captureDetailScope();
   const requestOrderNo = order.value.id;
   const requestAmountUsdt = order.value.total;

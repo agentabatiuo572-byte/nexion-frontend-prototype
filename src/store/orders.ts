@@ -58,7 +58,8 @@ export interface Order {
   promoDiscountUSD?: number;
   /** FEAT-TRIAL02 试用抵扣金(USDT)——仅结算抵减;服务端在同一订单事务里复算并 convert。 */
   trialOffsetUSD?: number;
-  total: number;            // USDT = unitPrice − discount − tradeInCredit − promoDiscountUSD − trialOffsetUSD
+  total: number | string;   // Promoted history preserves the server's exact decimal string.
+  promotionQuoteId?: string;
   paymentMethod: string;    // "usdt-trc20" etc
   status: OrderStatus;
   placedAt: number;
@@ -224,6 +225,7 @@ export const useOrders = defineStore("orders", () => {
       discount: row.tradeinNo ? 0 : row.discountUsdt,
       ...(row.tradeinNo && { tradeInCredit: row.discountUsdt, tradeInDeviceId: String(row.sourceDeviceId) }),
       total: row.amountUsdt,
+      ...(row.promotionQuoteId && { promotionQuoteId: row.promotionQuoteId }),
       paymentMethod: row.paymentMethod ?? "wallet",
       status,
       placedAt: row.placedAt,
@@ -409,6 +411,7 @@ export const useOrders = defineStore("orders", () => {
     if (next === "activated") {
       const app = useApp() as unknown as DeviceSpawnApp;
       if (!spawnedDeviceId && typeof app.addDevice === "function") {
+        if (typeof cur.total !== 'number') return; // Exact remote receipts never enter local fulfillment.
         // FEAT-DEV02:阶梯抵扣基数 = 实付净额(order.total 已扣券与置换抵扣),
         // 不是目录价——否则券/抵扣买入的设备下一跳置换基数被系统性高估。
         spawnedDeviceId = app.addDevice(cur.productId, { paidPriceUsdt: cur.total }) ?? undefined;

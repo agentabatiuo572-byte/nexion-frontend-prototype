@@ -71,7 +71,8 @@
                 @update:expanded="onNewcomerExpandedChange"
                 @content-resize="onNewcomerContentResize(index)"
               />
-              <ConversionBanner v-else :active="taskSlide === index" />
+              <ConversionBanner v-else-if="card === 'weekly'" :active="taskSlide === index" />
+              <PromotionEntry v-else mode="home" :active="taskSlide === index" :activities="homePromotions.filter(activity => card === 'promotion:'+activity.activityId)" />
             </view>
           </swiper-item>
         </swiper>
@@ -108,7 +109,7 @@
 
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { onLoad, onShow } from "@dcloudio/uni-app";
+import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
 import { useGenesisConfig } from "@/store/genesis-config";
 import AppChassis from "@/components/app-chassis.vue";
@@ -117,6 +118,7 @@ import GreetingHeader from "@/components/home/greeting-header.vue";
 import TechMoneyCard from "@/components/home/tech-money-card.vue";
 import TrialGhostSlot from "@/components/trial-ghost-slot.vue";
 import ConversionBanner from "@/components/home/conversion-banner.vue";
+import PromotionEntry from "@/components/promotion/promotion-entry.vue";
 import DayOneQuestCard from "@/components/home/day-one-quest-card.vue";
 import LiveFeedCard from "@/components/home/live-feed-card.vue";
 import FeaturedLearningCard from "@/components/home/featured-learning-card.vue";
@@ -137,7 +139,9 @@ import { fmt } from "@/i18n/format";
 import { useConfig } from "@/store/config";
 import { useLocaleStore } from "@/store/locale";
 import { useWeeklyQuest } from "@/store/weekly-quest";
-import { remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled, promotionApi, sessionVault } from "@/api/runtime";
+import type { PublicPromotion } from "@/api/promotion-contracts";
+import { createPromotionReadFence } from "@/lib/promotion-entry";
 import { useApp } from "@/store/app";
 import { useSession } from "@/store/session";
 import { navTo } from "@/lib/route";
@@ -165,6 +169,26 @@ const locale = useLocaleStore();
 const platformConfig = useConfig();
 const weeklyQuestStore = useWeeklyQuest();
 const instance = getCurrentInstance();
+const homePromotions = ref<PublicPromotion[]>([]);
+const promotionReadFence = createPromotionReadFence();
+let promotionHomeVisible = true;
+async function refreshHomePromotions() {
+  const request = promotionReadFence.next();
+  const identity = `${app.accountKey}:${app.accountBindingEpoch}`;
+  if (!remoteApiEnabled) { homePromotions.value = []; return; }
+  try {
+    const page = await promotionApi.list({ limit:20, placement:'home.purchase-promotion' }, !!sessionVault.read());
+    if (promotionHomeVisible && promotionReadFence.current(request) && identity === `${app.accountKey}:${app.accountBindingEpoch}`) homePromotions.value = page.items;
+  } catch {
+    if (promotionHomeVisible && promotionReadFence.current(request)) homePromotions.value = [];
+  }
+}
+onShow(() => { promotionHomeVisible = true; void refreshHomePromotions(); });
+onHide(() => { promotionHomeVisible = false; promotionReadFence.invalidate(); });
+watch([() => app.accountKey, () => app.accountBindingEpoch, () => locale.code], () => {
+  promotionReadFence.invalidate(); homePromotions.value = [];
+  if (promotionHomeVisible) void refreshHomePromotions();
+});
 
 // PC 端更新任务配置后，用户回到首页即可读取最新投影，无需杀掉 App 重开。
 onShow(() => {
@@ -187,7 +211,7 @@ const visibleTaskCards = computed<TaskCardId[]>(() =>
   deriveHomeTaskCards(platformConfig.syncFailed, {
     homeNewcomerTasksEnabled: platformConfig.isEnabled("homeNewcomerTasksEnabled"),
     homeWeeklyPromoEnabled: platformConfig.isEnabled("homeWeeklyPromoEnabled"),
-  }),
+  }, homePromotions.value.map(activity => activity.activityId)),
 );
 
 const taskCardSignature = computed(() => visibleTaskCards.value.join("-"));
@@ -202,7 +226,7 @@ const shouldAutoplay = computed(
 );
 
 function taskCardTitle(card: TaskCardId) {
-  return card === "newcomer" ? t.value.home.dayOneFirstDayReward : t.value.home.weeklyQuestEyebrow;
+  return card === "newcomer" ? t.value.home.dayOneFirstDayReward : card === "weekly" ? t.value.home.weeklyQuestEyebrow : t.value.promotion.promo;
 }
 
 function announceTaskSlide(index = taskSlide.value) {
@@ -377,6 +401,8 @@ onMounted(() => {
 onUnmounted(() => {
   uni.offWindowResize(onTaskWindowResize);
   newcomerContentResizer.invalidate();
+  promotionReadFence.invalidate();
+  promotionHomeVisible = false;
 });
 
 onLoad(() => {

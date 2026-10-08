@@ -12,8 +12,8 @@
 -->
 <template>
   <!-- 《08》§2:tap 反馈 active:scale+opacity(禁 hover 做移动端反馈) -->
-  <view class="nx-glass-card relative overflow-hidden block active:scale-[0.98] active:opacity-80" :style="cardStyle" @click="goDetail">
-    <view v-if="featured" aria-hidden :style="featuredGlowStyle" />
+  <view class="relative overflow-hidden block active:scale-[0.98] active:opacity-80" :class="promotion ? 'promotion-catalog-card' : 'nx-glass-card'" :style="promotion ? promotionCardStyle : cardStyle" @click="goDetail">
+    <view v-if="featured&&!promotion" aria-hidden :style="featuredGlowStyle" />
 
     <!-- ───── Catalog photo or neutral placeholder ───── -->
     <view class="relative overflow-hidden" :style="renderWrapStyle" role="button" tabindex="0" :aria-label="nexGridBrandText(product.name)" @click.stop="goDetail"  @keydown.enter.prevent.stop="goDetail" @keydown.space.prevent.stop="goDetail">
@@ -44,7 +44,7 @@
 
       <!-- ROI 4-line hero -->
       <!-- 去线(主人 2026-08-17 全站令):mt-6 = 原 mt-3 + pt-3 的总间距 -->
-      <view class="mt-6">
+      <view v-if="!promotion" class="mt-6">
         <!-- Eyebrow -->
         <view class="font-mono-tabular inline-flex items-center gap-1.5" :style="earnEyebrowStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
@@ -90,6 +90,7 @@
           <text class="whitespace-nowrap active:opacity-70" style="color: var(--v5-brand); font-weight: 500; font-family: var(--font-v5); min-height: 44px; display: flex; align-items: center" role="button" tabindex="0" @click.stop="goDevices">{{ t.store.cardTradeInCta }}</text>
         </view>
       </view>
+      <PromotionProduct v-if="promotion" :activity="promotion" :product-no="product.id" />
     </view>
 
     <!-- ───── Footer: price + Buy CTA ───── -->
@@ -102,7 +103,8 @@
         </view>
       </view>
       <!-- 品牌填充按钮:opacity 取 85(《08》§2 状态派生公式) -->
-      <view class="inline-flex items-center justify-center whitespace-nowrap active:scale-[0.97] active:opacity-85" :style="buyBtnDynStyle" role="button" :tabindex="buyUnavailable ? -1 : 0" :aria-disabled="buyUnavailable ? 'true' : 'false'" @click.stop="onBuy"  @keydown.enter.prevent.stop="onBuy" @keydown.space.prevent.stop="onBuy">
+      <view class="inline-flex items-center justify-center whitespace-nowrap active:scale-[0.97] active:opacity-85" :class="{'promotion-buy':!!promotion}" :style="buyBtnDynStyle" role="button" :tabindex="buyUnavailable ? -1 : 0" :aria-disabled="buyUnavailable ? 'true' : 'false'" @click.stop="onBuy"  @keydown.enter.prevent.stop="onBuy" @keydown.space.prevent.stop="onBuy">
+        <LiquidGlass v-if="promotion" :radius="999" tone="control" />
         <svg v-if="gateLockedView" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; opacity: 0.9"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
         <text>{{ buyLabel }}</text>
         <svg v-if="!gateLockedView" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px; opacity: 0.9"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
@@ -128,8 +130,12 @@ import { catalogProductImageUrl, productTierCode } from "@/lib/product-image";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useRemotePurchaseEligibility } from "@/store/purchase-eligibility";
 import { productCatalogState } from "@/store/product-catalog";
+import type { PublicPromotion } from '@/api/promotion-contracts';
+import PromotionProduct from '@/components/promotion/promotion-product.vue';
+import LiquidGlass from '@/components/liquid-glass.vue';
+import { canPreviewPromotion,promotionCheckoutHref,promotionDetailHref } from '@/lib/promotion-entry';
 
-const props = withDefaults(defineProps<{ product: Product; featured?: boolean }>(), {
+const props = withDefaults(defineProps<{ product: Product; featured?: boolean; promotion?:PublicPromotion|null; activityId?:string; promotionReady?:boolean }>(), {
   featured: false,
 });
 const t = useT();
@@ -138,6 +144,8 @@ const copy = computed(() => productCopy(t.value, props.product, remoteApiEnabled
 
 const isShare = computed(() => props.product.productType === "SHARE");
 const catalogUnavailable = computed(() => remoteApiEnabled && productCatalogState.status !== "ready");
+const promotionUnavailable=computed(()=>!!props.activityId&&(!props.promotionReady||!canPreviewPromotion(props.promotion??null)||!props.promotion?.productNos.includes(props.product.id)));
+const promotionSignIn=computed(()=>!!props.activityId&&!promotionUnavailable.value&&props.promotion?.eligibility==='SIGN_IN_REQUIRED');
 const stockUnavailable = computed(() => !isShare.value
   && props.product.inventoryMode === "FINITE"
   && (props.product.stock ?? 0) <= 0);
@@ -199,8 +207,8 @@ const gate = computed(() => stockUnavailable.value
 const gateDetailsOpen = ref(false);
 let lastGateToggleAt = 0;
 const gateLockedView = computed(() => gate.value.gated && gate.value.blocked);
-const buyUnavailable = computed(() => stockUnavailable.value || catalogUnavailable.value
-  || (remoteApiEnabled && (gate.value.soldOut || eligibility.value.status === "loading" || eligibility.value.status === "idle")));
+const buyUnavailable = computed(() => promotionUnavailable.value || stockUnavailable.value || catalogUnavailable.value
+  || (!promotionSignIn.value&&remoteApiEnabled && (gate.value.soldOut || eligibility.value.status === "loading" || eligibility.value.status === "idle")));
 const gateLabel = computed(() => {
   if (stockUnavailable.value) return t.value.store.temporarilyOutOfStock;
   if (!remoteApiEnabled) return gate.value.soldOut ? t.value.store.gateSoldOut : t.value.store.gateLockedEyebrow;
@@ -226,7 +234,7 @@ const gateProgressText = computed(() =>
   fmt(t.value.store.gateProgress, { pct: Math.round(gate.value.progressPct * 100) }),
 );
 const buyLabel = computed(() =>
-  catalogUnavailable.value
+  promotionSignIn.value ? t.value.promotion.signIn : promotionUnavailable.value ? t.value.promotion.unavailable : catalogUnavailable.value
     ? productCatalogState.status === "loading" ? t.value.store.catalogLoadingTitle : t.value.store.catalogErrorTitle
     : stockUnavailable.value
     ? t.value.store.temporarilyOutOfStock
@@ -242,6 +250,7 @@ const buyLabel = computed(() =>
 );
 function onBuy() {
   if (buyUnavailable.value) return;
+  if(promotionSignIn.value){navTo('/pages/login/login?return='+encodeURIComponent(promotionCheckoutHref([{productNo:props.product.id,quantity:1}],props.activityId)));return;}
   if (remoteApiEnabled) {
     if (eligibility.value.status === "error") void retryEligibility();
     else if (eligibility.value.status === "ready" && eligibility.value.eligible) goCheckout();
@@ -292,16 +301,17 @@ const priceText = computed(() =>
 const stockHintText = computed(() => fmt(t.value.store.cardStockCompact, { n: props.product.stock ?? 0 }));
 
 function goDetail() {
-  navTo(`/pages/store/detail?id=${props.product.id}`);
+  navTo(promotionDetailHref(props.product.id,props.activityId));
 }
 function goCheckout() {
-  navTo(`/pages/store/checkout?product=${props.product.id}`);
+  navTo(props.activityId ? promotionCheckoutHref([{productNo:props.product.id,quantity:1}],props.activityId) : `/pages/store/checkout?product=${encodeURIComponent(props.product.id)}`);
 }
 function goDevices() {
   navTo("/pages/me/devices");
 }
 
 // ───── styles ─────
+const promotionCardStyle: CSSProperties = { background:'var(--v5-surface)',borderRadius:'20px' };
 const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   background: "var(--nx-glass-fill)",
   borderRadius: "var(--nx-glass-radius)",
@@ -423,6 +433,9 @@ const priceRowStyle: CSSProperties = {
   color: "var(--v5-ink)",
 };
 const buyBtnStyle: CSSProperties = {
+  position: 'relative',
+  isolation: 'isolate',
+  overflow: 'hidden',
   height: "44px",
   padding: "0 18px",
   gap: "6px",
@@ -483,3 +496,6 @@ const gateMetaStyle: CSSProperties = {
 
 import { getProductMedia } from "@/lib/product-media";
 </script>
+<style scoped>
+.promotion-buy > text,.promotion-buy > svg { position:relative;z-index:1; }
+</style>

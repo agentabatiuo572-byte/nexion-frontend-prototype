@@ -10,6 +10,7 @@ import { createProductCatalogApi } from "@/api/product-catalog-api";
 import { createSessionVault, type SessionVault } from "@/api/session-vault";
 import { ApiError } from "@/api/errors";
 import { resolvePostSignInRoute } from "@/auth/post-sign-in-route";
+import { preserveRouteDuringSessionRestore } from "@/auth/session-restore-route";
 import type { Product } from "@/mock/products";
 
 const state = vi.hoisted(() => ({
@@ -96,7 +97,7 @@ async function harness(seedSession = false) {
     remoteApiEnabled: true, serverSessionRestoreEnabled: true, sessionVault: vault, authApi, completeSignIn,
     prepareSessionVault: async () => vault.hydrate(), reportNativeSessionStage: vi.fn(), reportNativeSessionTiming: vi.fn(), useAuth: () => auth,
     canRefreshRemoteAccount: () => auth.isAuthenticated && !!vault.read()?.accessToken,
-    readCurrentRoute: () => "pages/store/checkout", isAuthWhitelisted: () => false,
+    readCurrentRoute: () => "pages/store/checkout", isAuthWhitelisted: () => false, preserveRouteDuringSessionRestore,
     hasServerAuthenticatedAccountTrace: () => true, clearInvalidRemoteSessionState: vi.fn(),
     toast: { warn: vi.fn() }, useT: () => ({ value: { session: { restoreRetryNotice: "retry" } } }), ApiError, navReset: nav,
   }, `let serverSessionRestoreState = 'idle', serverSessionRestoreInFlight = null, serverSessionRestoreRetryAt = 0;

@@ -1,0 +1,3 @@
+import{expect,it}from'vitest';import{rewardAmount,displayDeadline}from'./promotion-display';import type{RewardSpec}from'../api/promotion-api';
+it('formats exact six decimal rewards without binary money arithmetic or mixing assets',()=>{const reward={type:'NEX',amount:'999999999999.000001'}as RewardSpec;expect(rewardAmount(reward,100)).toBe('99999999999900.0001');expect(rewardAmount({...reward,amount:'0.000001'},3)).toBe('0.000003');expect(rewardAmount({...reward,amount:'20.000000'})).toBe('20');});
+it('keeps explicit UTC in deadlines and never invents a countdown from invalid input',()=>{expect(displayDeadline('not-a-time','zh')).toBe('');expect(displayDeadline('2026-10-31T23:59:00+09:00','en')).toContain('UTC');});

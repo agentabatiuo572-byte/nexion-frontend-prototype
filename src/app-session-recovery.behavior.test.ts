@@ -8,6 +8,7 @@ import { ApiError } from "./api/errors";
 import { reportNativeSessionStage, reportNativeSessionTiming } from "./api/native-session-storage";
 import { createRemoteAccountEpoch } from "./lib/remote-account-epoch";
 import { isPublicAuthRoute } from "./lib/auth-route-visibility";
+import { preserveRouteDuringSessionRestore } from "./auth/session-restore-route";
 
 const user = { userId: 7101, countryCode: "+86", phone: "13800007101", nickname: "Test", onboardingComplete: true };
 const session = (userId = user.userId) => ({ accessToken: `token-${userId}`, refreshToken: "", tokenType: "Bearer", user: { ...user, userId }, refreshCredentialMode: "cookie" as const });
@@ -55,7 +56,7 @@ function harness(request = vi.fn(), route = "pages/earn/earn", native?: { storag
     rebindAccountScopedStores: (key: string) => storesEpoch.bind(key),
     stopBusinessLoops: stop, navReset: nav, completeSignIn: complete,
     hasServerAuthenticatedAccountTrace: () => auth.isAuthenticated && auth.accountId.startsWith("user:"),
-    readCurrentRoute: () => route, isAuthWhitelisted: isPublicAuthRoute,
+    readCurrentRoute: () => route, isAuthWhitelisted: isPublicAuthRoute, preserveRouteDuringSessionRestore,
     setRemoteUnauthorizedHandler: (fn: () => void) => { onUnauthorized = fn; },
     prepareSessionVault: async () => { if (native) { await native.ready?.(); vault.hydrate(); } },
     toast, ApiError, useT: () => ({ value: { session: { restoreRetryNotice: "Session restore unavailable; retrying", nativeStorageFailure: "Session storage unavailable; reopen to retry cleanup" } } }),

@@ -10,6 +10,7 @@ import { createWithdrawalApi } from "./withdrawal-api";
 import { createEarnConfigApi } from "./earn-config-api";
 import { createDeviceE3Api } from "./device-e3-api";
 import { createOrderApi } from "./order-api";
+import { createPromotionApi } from "./promotion-api";
 import { createPlatformConfigApi } from "./platform-config-api";
 import { createVRankApi } from "./v-rank-api";
 import { createCommissionConfigApi } from "./commission-config-api";
@@ -175,6 +176,7 @@ export const teamNetworkApi = createTeamNetworkApi(apiClient, expectedApiEnviron
 export const developerAccessApi = createDeveloperAccessApi(apiClient, expectedApiEnvironment);
 export const developerResourcesApi = createDeveloperResourcesApi(apiClient, expectedApiEnvironment);
 export const bundleOrderApi = createBundleOrderApi(apiClient);
+export const promotionApi = createPromotionApi(apiClient);
 export const bundleDiscountApi = createBundleDiscountApi(apiClient);
 export const ambassadorApplicationApi = createAmbassadorApplicationApi(
   apiClient, "PRODUCTION",

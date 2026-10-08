@@ -14,6 +14,7 @@
       <view class="px-4" style="display: flex; flex-direction: column; gap: 24px">
         <!-- Invite hero -->
         <InviteEarnCard ref="inviteCard" />
+        <ReferralProgress @share="inviteCard?.openShare()" />
 
         <TeamSummaryCard
           :status="teamSummaryStatus"
@@ -197,6 +198,7 @@
 </template>
 
 <script setup lang="ts">
+import ReferralProgress from '@/components/promotion/referral-progress.vue';
 import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";

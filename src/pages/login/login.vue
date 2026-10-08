@@ -136,7 +136,7 @@
 
 <script setup lang="ts">
 import ServerCaptchaSlider from "@/components/server-captcha-slider.vue";
-import { navReset } from "@/lib/route";
+import { navReset, takeNavigationQuery } from "@/lib/route";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -240,7 +240,8 @@ let mounted = true;
 
 onLoad((options) => {
   const o = (options || {}) as Record<string, string>;
-  if (o.return) returnParam.value = o.return;
+  const forwarded = new URLSearchParams(takeNavigationQuery("/pages/login/login")).get("return");
+  if (forwarded || o.return) returnParam.value = forwarded || o.return;
   serverSessionReloadNotice.value = o.notice === "server-session-reload";
   // #ifdef H5
   browserUnsupportedNotice.value = o.notice === "secure-browser-unsupported";

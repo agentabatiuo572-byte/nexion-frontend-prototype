@@ -1,7 +1,9 @@
+import { promotionEN } from "./promotion";
 // English message dictionary — the source of truth for all keys.
 // Messages type is exported so other locales must match its shape.
 
 export const en = {
+  promotion: promotionEN,
   pageLoad: {
     module: "Page resources could not be loaded",
     timeout: "The page is taking too long to load",

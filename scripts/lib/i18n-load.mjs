@@ -6,17 +6,17 @@
 // namespace 的同名 key、以及 `indexOf` 未命中返回 -1 喂给 slice 切出空串后**判 PASS**。
 //
 // 真解析把这一族一次全消:结构由 JS 引擎负责,判据只管语义。
-import { readFileSync } from "node:fs";
 import path from "node:path";
-import { transformSync } from "esbuild";
+import { buildSync } from "esbuild";
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "../..");
 
 /** 读一个语种的完整 messages 对象。失败直接抛 —— 候选为空必须判失败,不许静默返回 {}。 */
 export async function loadMessages(locale) {
   const file = path.join(root, `src/i18n/messages/${locale}.ts`);
-  const src = readFileSync(file, "utf8");
-  const { code } = transformSync(src, { loader: "ts", format: "esm" });
+  // Resolve split message modules before importing the in-memory bundle.
+  const { outputFiles } = buildSync({ entryPoints: [file], bundle: true, write: false, platform: "node", format: "esm" });
+  const code = outputFiles[0].text;
   const mod = await import("data:text/javascript;base64," + Buffer.from(code, "utf8").toString("base64"));
   const msgs = mod.default ?? mod[locale] ?? mod.messages;
   if (!msgs || typeof msgs !== "object") throw new Error(`[i18n-load] ${locale}: 解析不出 messages 对象`);

@@ -3,7 +3,7 @@
     <view class="nx-device-detail pb-8" style="color: var(--v5-ink)">
       <SubPageHeader :back="backHref" :title="deviceTitle" :subtitle="deviceSubtitle" />
 
-      <view v-if="device && !fleetFailed" class="nx-device-detail__surface nx-glass-card mx-4">
+      <view v-if="device && !waitingForFleet && !fleetFailed" class="nx-device-detail__surface nx-glass-card mx-4">
         <DeviceCardPC
           :device="device"
           :expanded="expanded"
@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type CSSProperties } from "vue";
+import { computed, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -76,6 +76,8 @@ const rawRouteId = ref("");
 const backHref = ref("/pages/earn/earn");
 const loaded = ref(false);
 const expanded = ref(true);
+const fleetReadStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
+let fleetReadSequence = 0;
 
 onLoad((options) => {
   const routeOptions = (options || {}) as Record<string, string>;
@@ -97,7 +99,8 @@ onLoad((options) => {
   loaded.value = true;
   preserveDeviceDetailQueryInH5();
 });
-onShow(() => { preserveDeviceDetailQueryInH5(); });
+onShow(() => { preserveDeviceDetailQueryInH5(); void retryFleet(); });
+watch(() => app.accountBindingEpoch, () => { if (loaded.value) void retryFleet(); });
 
 function preserveDeviceDetailQueryInH5() {
   // Uni H5 can drop navigateTo's visible query. Persist the selected device
@@ -130,12 +133,14 @@ const device = computed(
 const hasDeviceId = computed(() => id.value.trim().length > 0);
 const waitingForFleet = computed(() => remoteApiEnabled && hasDeviceId.value
   && loaded.value
-  && (app.remoteFleetStatus === "idle" || app.remoteFleetStatus === "loading"));
+  && (fleetReadStatus.value === "idle" || fleetReadStatus.value === "loading"
+    || (fleetReadStatus.value === "ready" && (app.remoteFleetStatus === "idle" || app.remoteFleetStatus === "loading"))));
 const fleetFailed = computed(() => remoteApiEnabled && hasDeviceId.value
   && loaded.value
-  && app.remoteFleetStatus === "error");
+  && (fleetReadStatus.value === "error" || app.remoteFleetStatus === "error"));
 const showNotFound = computed(() => loaded.value && !device.value
-  && (!remoteApiEnabled || !hasDeviceId.value || app.remoteFleetStatus === "ready"));
+  && (!remoteApiEnabled || !hasDeviceId.value
+    || (fleetReadStatus.value === "ready" && app.remoteFleetStatus === "ready")));
 const deviceTitle = computed(() =>
   device.value ? deviceName(t.value, device.value) : t.value.earn.deviceDetailTitle,
 );
@@ -148,12 +153,18 @@ function goBack() {
   navBack(backHref.value);
 }
 
-function retryFleet() {
-  if (!remoteApiEnabled || !hasDeviceId.value) return;
+async function retryFleet() {
+  if (!remoteApiEnabled || !hasDeviceId.value || !loaded.value) return;
   // The request captures the active account epoch. The store ignores every
   // late response after an account switch, and this page performs no writes.
   const request = app.captureRemoteAccountRequest();
-  void app.refreshRemoteFleet(request).catch(() => undefined);
+  const sequence = ++fleetReadSequence;
+  fleetReadStatus.value = "loading";
+  let refreshed = false;
+  try { refreshed = await app.refreshRemoteFleet(request); } catch { /* show the read-only retry */ }
+  const current = app.captureRemoteAccountRequest();
+  if (sequence !== fleetReadSequence || request.accountKey !== current.accountKey || request.epoch !== current.epoch) return;
+  fleetReadStatus.value = refreshed && app.remoteFleetStatus === "ready" ? "ready" : "error";
 }
 
 const loadingStyle: CSSProperties = {

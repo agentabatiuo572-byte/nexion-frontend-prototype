@@ -13,6 +13,8 @@ import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import type { Product } from "@/mock/products";
 import { purchaseEligibilityPolicyHasNoRestriction, purchaseEligibilityUnlockHref, resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-copy";
+import * as promotionEntry from "@/lib/promotion-entry";
+import { localized } from "@/lib/promotion-display";
 
 const { descriptor } = parse(source, { filename: "detail.vue" });
 const script = compileScript(descriptor, { id: "detail-loading-header" });
@@ -58,6 +60,8 @@ function page(copy = en, fallback = "") {
     vue: { ...Vue, onUnmounted() {} },
     "@dcloudio/uni-app": { onLoad: (callback: typeof loads[number]) => loads.push(callback), onShow() {}, onHide() {} },
     "@/lib/route": { navTo: vi.fn(), takeNavigationQuery: () => fallback },
+    "@/composables/use-promotion-context": { usePromotionContext: () => ({ activity: Vue.ref(null), status: Vue.ref("idle"), available: Vue.ref(false), refresh: vi.fn() }) },
+    "@/lib/promotion-entry": promotionEntry, "@/lib/promotion-display": { localized },
     "@/i18n/use-t": { useT: () => translations }, "@/store/locale": { useLocaleStore: () => ({ code: "en" }) },
     "@/i18n/format": { fmt }, "@/lib/brand-copy": { nexGridBrandText: (value: string) => value },
     "@/mock/products": { getProduct }, "@/composables/use-product-phase": { useProductPhase: () => Vue.ref("P1") },
@@ -72,7 +76,7 @@ function page(copy = en, fallback = "") {
     "@/store/product-catalog": { productCatalogState: catalog, productCatalogPresentation: presentation, refreshProductCatalog: refresh },
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:3778", accountBindingEpoch: 1, remoteFleetHasSnapshot: false }) },
     "@/store/server-product-phase": { refreshServerProductPhase: async () => true },
-    "@/api/runtime": { remoteApiEnabled: true }, "@/store/ui": { toast: { error: vi.fn() } },
+    "@/api/runtime": { remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: 3778 } }) } }, "@/store/ui": { toast: { error: vi.fn() } },
     "@/lib/account-scope": { captureAccountScope: () => ({}), isCurrentAccountScope: () => true },
     "@/lib/authenticated-page-observation": {}, "@/composables/use-purchase-gate": {},
     "@/store/purchase-eligibility": { useRemotePurchaseEligibility: () => ({ eligibility, retry: vi.fn() }) },
@@ -94,7 +98,7 @@ function page(copy = en, fallback = "") {
     const app = Vue.createSSRApp({ render, setup: () => Vue.proxyRefs({ ...view }) });
     const blank = { setup: () => () => null };
     app.component("AppChassis", { setup: (_: unknown, { slots }: any) => () => Vue.h("main", slots.default?.()) });
-    for (const name of ["SectionHeader", "ProductRender", "LiveSocialProof", "SpecTable", "LockedProductCard"]) app.component(name, blank);
+    for (const name of ["SectionHeader", "ProductRender", "LiveSocialProof", "SpecTable", "LockedProductCard", "PromotionProduct"]) app.component(name, blank);
     return renderToString(app);
   }
   return { catalog, presentation, translations, loads, reads, refresh, eligibility, cta, header, view, body, getProduct };

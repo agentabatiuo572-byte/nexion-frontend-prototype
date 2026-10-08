@@ -20,7 +20,7 @@ test("remote checkout resolves the canonical catalog before evaluating purchase 
 });
 
 test("bundle refreshes the canonical catalog on cold load and account return", () => {
-  assert.match(bundle, /onLoad\(async \(\) => \{[\s\S]*refreshProductCatalog\(true\)/);
+  assert.match(bundle, /onLoad\(async \(options\) => \{[\s\S]*refreshProductCatalog\(true\)/);
   assert.match(bundle, /onShow\(\(\) => \{[\s\S]*refreshProductCatalog\(true\)/);
 });
 

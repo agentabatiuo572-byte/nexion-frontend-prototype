@@ -103,6 +103,10 @@ const LEDGER = {
   "/api/store/notifications": "TBD-NAME: BACKEND AppProductNotificationController 已实现;当前账号商品到货/上架通知订阅列表与创建资源,商城 PRD 路径待同步",
   "/api/store/notifications/:param": "TBD-NAME: 同上(取消单个商品通知订阅)",
   "/api/store/bundle-discount": "BACKEND: AppCanonicalBoundaryController 已实现;PC E1 套餐折扣配置的 App 只读投影,后台 PRD v2 §176",
+  "/api/orders/quote": "BACKEND: AppPromotionController#quote 已实现;R1 购机促销的账号报价快照,报价不预留资产",
+  "/api/promotions": "BACKEND: AppPromotionController#{list,get,referral} 已实现;公开活动与当前账号直属推荐进度",
+  "/api/promotion-commands": "BACKEND: AppPromotionController#command 已实现;当前账号的促销命令结果恢复,按 operation/targetId/幂等键匹配",
+  "/api/promotion-rewards": "BACKEND: AppPromotionController#{rewards,reward} 已实现;当前账号的奖励义务分页与详情",
 
   // ── wallet / withdrawals / deposits ───────────────────────────────────
   "/api/withdrawals/bank": "BACKEND: BankWithdrawalController authenticated-user resource family; user-approved 2026-09-15 HDPay bank payout; docs/changes/2026-09-15-bank-withdrawal.md",

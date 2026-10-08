@@ -14,10 +14,10 @@
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/wallet" :title="t.bills.title" />
+      <SubPageHeader :back="ledgerBizNo ? '/pages/me/rewards-list?cat=promotion' : '/pages/me/wallet'" :title="t.bills.title" />
 
       <!-- Tabs -->
-      <GlassSegments :label="t.bills.tabGroupLabel" semantics="radio" v-model="tab" :options="tabOptions" style="margin: 0 16px 12px"  />
+      <GlassSegments v-if="!ledgerBizNo" :label="t.bills.tabGroupLabel" semantics="radio" v-model="tab" :options="tabOptions" style="margin: 0 16px 12px"  />
 
       <view v-if="initialError" :style="ledgerErrorStyle">
         <view class="flex items-center justify-between" style="gap: 12px">
@@ -68,15 +68,15 @@
               <text class="block" :style="timeStyle">{{ fmtTime(b.ts) }}</text>
             </view>
             <view class="text-right shrink-0" style="margin-left: 8px">
-              <view :style="amountStyle(b.amount)">
-                <text>{{ b.amount >= 0 ? "+" : "-" }}{{ fmtAmount(b) }}</text>
+              <view :style="amountStyle(b)">
+                <text>{{ isDebit(b) ? "-" : "+" }}{{ fmtAmount(b) }}</text>
                 <text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 4px">{{ b.symbol }}</text>
               </view>
               <text
                 v-if="b.balanceAfter !== undefined && b.symbol === 'USDT'"
                 class="block tabular-nums"
                 :style="balanceAfterStyle"
-              >{{ runningBalanceLabel(b.balanceAfter!) }}</text>
+              >{{ runningBalanceLabel(b) }}</text>
             </view>
           </view>
         </view>
@@ -105,8 +105,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { computed, nextTick, onBeforeUnmount, ref, watch, type CSSProperties } from "vue";
+import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -115,13 +115,14 @@ import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { walletBillMonthKey, walletBillMonthLabel, walletBillTimeLabel } from "@/lib/wallet-bill-date";
 import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
+import { formatHowNumber } from "@/lib/rank-how-content";
 import { useCourseRewardTitles } from "@/composables/use-course-reward-titles";
 import { useBills, type Bill, type BillType, type BillStatus } from "@/store/bills";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
 import { useDeposits, CHAIN_NET_SHORT } from "@/store/deposits";
 import { mockServerNow } from "@/store/server-time";
-import { navTo } from "@/lib/route";
+import { navTo, takeNavigationQuery } from "@/lib/route";
 import { fundsServerEnabled, sessionVault } from "@/api/runtime";
 import { binarySessionReady } from "@/lib/binary-session-ready";
 import { useManualScrollLoadMore } from "@/composables/use-manual-scroll-load-more";
@@ -133,6 +134,13 @@ const billsStore = useBills();
 const courseTitles = useCourseRewardTitles();
 const sourceRefOpen = ref("");
 watch(() => app.accountBindingEpoch, () => { sourceRefOpen.value = ""; });
+const ledgerBizNo = ref("");
+const locatingReceipt = ref(false);
+let lookupGeneration = 0, visible = true;
+onLoad(options => {
+  const query = new URLSearchParams(takeNavigationQuery("/pages/me/wallet-bills"));
+  ledgerBizNo.value = String(options?.ledgerBizNo ?? query.get("ledgerBizNo") ?? "").trim();
+});
 const deposits = useDeposits();
 const remoteSessionReady = computed(() => binarySessionReady({
   remote: fundsServerEnabled,
@@ -151,37 +159,50 @@ const outPager = billsStore.getLedger({ direction: "OUT" });
 const activePager = computed(() => tab.value === "in" ? inPager : tab.value === "out" ? outPager : allPager);
 // 空态描述跟筛选走(zentao #220)。「支出」筛到空时不能复用收入口径的
 // 「每一笔充值和到账都会记在这里」—— 充值/到账是进账,与当前筛选自相矛盾。
-const emptyDesc = computed(() => tab.value === "out" ? t.value.empty.billsOutDesc
+const emptyDesc = computed(() => ledgerBizNo.value ? t.value.promotion.unknown : tab.value === "out" ? t.value.empty.billsOutDesc
   : tab.value === "in" ? t.value.empty.billsInDesc
     : t.value.empty.billsDesc);
 const scrollAnchor = ref<unknown>(null);
 
 async function refreshLedger() {
-  if (!fundsServerEnabled || !remoteSessionReady.value) return;
-  try { await activePager.value.refresh(); } catch { /* pager owns recoverable state */ }
+  if (!fundsServerEnabled || !remoteSessionReady.value || !visible) return;
+  const request = ++lookupGeneration, account = app.accountKey, epoch = app.accountBindingEpoch;
+  const current = () => visible && request === lookupGeneration && account === app.accountKey && epoch === app.accountBindingEpoch;
+  locatingReceipt.value = Boolean(ledgerBizNo.value);
+  try {
+    await activePager.value.refresh();
+    while (current() && ledgerBizNo.value && !activePager.value.rows.some(b => b.ledgerBizNo === ledgerBizNo.value)
+        && activePager.value.hasMore && !activePager.value.error) await activePager.value.loadMore();
+  } catch { /* pager owns recoverable state */ }
+  finally { if (current()) locatingReceipt.value = false; }
 }
 async function loadMore() {
-  if (!fundsServerEnabled) return;
+  if (!fundsServerEnabled || !remoteSessionReady.value || !visible || locatingReceipt.value) return;
   try { await activePager.value.loadMore(); } catch { /* retain rows; render retry */ }
 }
-onShow(() => { void refreshLedger(); });
+function invalidateReceiptLookup() { visible = false; lookupGeneration++; locatingReceipt.value = false; }
+onShow(() => { visible = true; void refreshLedger(); });
+onHide(invalidateReceiptLookup);
+onBeforeUnmount(invalidateReceiptLookup);
 watch(tab, () => { void refreshLedger(); });
 // Cookie restore and same-page account rebind both reset the active ledger.
 watch([remoteSessionReady, () => app.accountBindingEpoch], ([ready, epoch], [wasReady, previousEpoch]) => {
+  lookupGeneration++; locatingReceipt.value = false;
   if (ready && (!wasReady || epoch !== previousEpoch)) void refreshLedger();
 });
 useManualScrollLoadMore(scrollAnchor, {
-  enabled: () => fundsServerEnabled && !activePager.value.error,
+  enabled: () => fundsServerEnabled && !ledgerBizNo.value && !activePager.value.error,
   hasMore: () => activePager.value.hasMore,
   loading: () => activePager.value.loadingMore || activePager.value.status === "loading",
   loadMore,
 });
-const initialLoading = computed(() => fundsServerEnabled && !activePager.value.rows.length
-  && (!remoteSessionReady.value || activePager.value.status === "idle" || activePager.value.status === "loading"));
-const initialError = computed(() => fundsServerEnabled && activePager.value.status === "error" && activePager.value.rows.length === 0);
+const initialLoading = computed(() => locatingReceipt.value || (fundsServerEnabled && !activePager.value.rows.length
+  && (!remoteSessionReady.value || activePager.value.status === "idle" || activePager.value.status === "loading")));
+const initialError = computed(() => fundsServerEnabled && ((Boolean(ledgerBizNo.value) && Boolean(activePager.value.error))
+  || (activePager.value.status === "error" && activePager.value.rows.length === 0)));
 const refreshErrorWithRows = computed(() => fundsServerEnabled && activePager.value.status === "error" && activePager.value.rows.length > 0);
 const appendError = computed(() => fundsServerEnabled && activePager.value.status === "ready" && activePager.value.rows.length > 0 && Boolean(activePager.value.error));
-const showManualLoadMore = computed(() => fundsServerEnabled && activePager.value.status === "ready" && activePager.value.hasMore && !activePager.value.loadingMore && !appendError.value && !refreshErrorWithRows.value);
+const showManualLoadMore = computed(() => fundsServerEnabled && !ledgerBizNo.value && activePager.value.status === "ready" && activePager.value.hasMore && !activePager.value.loadingMore && !appendError.value && !refreshErrorWithRows.value);
 
 // Type accent colours. Most map to tokens; refer/topup use official accents
 // (like the card-brand colours) kept literal on purpose.
@@ -217,6 +238,7 @@ function typeColor(type: BillType): string {
 // 判据回到本工程自己的规矩:**指不出单源的数字,要么接单源,要么别显示**。
 // mock 期 balanceAfter 恒为 undefined → 这一列不渲染;接上真后端自动出现,零改动。
 const filtered = computed<Bill[]>(() => {
+  if (ledgerBizNo.value) return activePager.value.rows.filter(b => b.ledgerBizNo === ledgerBizNo.value);
   if (fundsServerEnabled) return activePager.value.rows;
   if (tab.value === "all") return billsStore.bills;
   if (tab.value === "in") return billsStore.bills.filter((b) => b.amount > 0);
@@ -255,12 +277,23 @@ function billMemo(b: Bill): string {
   return resolveWalletBillMemo(b, t.value.bills.memo as Record<string, string>, courseTitles.value);
 }
 function toggleSourceRef(id: string) { sourceRefOpen.value = sourceRefOpen.value === id ? "" : id; }
-function runningBalanceLabel(bal: number): string {
-  return `${t.value.bills.runningBalance}: ${bal.toFixed(2)}`;
+function decimalLabel(exact: string | undefined, fallback: number): string {
+  // ponytail: old number-only servers may already have rounded the source amount.
+  if (exact === undefined) return formatHowNumber(Math.abs(fallback), dateLocale());
+  const [whole, tail = ""] = exact.replace(/^-/, "").split(".");
+  const fraction = tail.replace(/0+$/, "");
+  const vietnamese = dateLocale().startsWith("vi");
+  return whole.replace(/^0+(?=\d)/, "").replace(/\B(?=(\d{3})+(?!\d))/g, vietnamese ? "." : ",")
+    + (fraction ? `${vietnamese ? "," : "."}${fraction}` : "");
+}
+function isDebit(b: Bill): boolean {
+  return b.amountExact === undefined ? b.amount < 0 : b.amountExact.startsWith("-");
+}
+function runningBalanceLabel(b: Bill): string {
+  return `${t.value.bills.runningBalance}: ${decimalLabel(b.balanceAfterExact, b.balanceAfter!)}`;
 }
 function fmtAmount(b: Bill): string {
-  const abs = Math.abs(b.amount);
-  return b.symbol === "USDT" ? abs.toFixed(4) : abs.toLocaleString();
+  return decimalLabel(b.amountExact, b.amount);
 }
 function fmtTime(ts: number): string {
   return walletBillTimeLabel(ts, dateLocale());
@@ -474,12 +507,12 @@ function statusBadgeStyle(s: BillStatus): CSSProperties {
 }
 const memoStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const timeStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-4)" };
-function amountStyle(amount: number): CSSProperties {
+function amountStyle(b: Bill): CSSProperties {
   return {
     fontFamily: "var(--font-v5)",
     fontSize: "13px",
     fontWeight: 600,
-    color: amount >= 0 ? "var(--v5-brand)" : "var(--v5-brand-2)",
+    color: isDebit(b) ? "var(--v5-brand-2)" : "var(--v5-brand)",
     fontVariantNumeric: "tabular-nums",
   };
 }

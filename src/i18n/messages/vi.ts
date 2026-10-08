@@ -1,8 +1,10 @@
+import { promotionVI } from "./promotion";
 import type { Messages } from "./en";
 
 // Vietnamese (Tiếng Việt) — professional yet friendly register (bạn). Keys mirror en.ts exactly.
 
 export const vi: Messages = {
+  promotion: promotionVI,
   pageLoad: {
     module: "Không thể tải tài nguyên trang",
     timeout: "Trang mất quá nhiều thời gian để tải",

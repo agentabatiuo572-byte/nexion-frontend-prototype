@@ -14,6 +14,9 @@ export interface WalletBillRow {
   direction: WalletBillDirection;
   amount: number;
   balanceAfter: number;
+  /** Exact decimal companions; older numeric-only servers cannot restore lost digits. */
+  amountExact?: string;
+  balanceAfterExact?: string;
   status: WalletBillStatus;
   remark: string;
   createdAt: number;
@@ -75,6 +78,14 @@ function money(value: unknown): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function exactMoney(value: unknown, legacy: unknown, parsed: number): string | undefined {
+  if (value === undefined) {
+    return typeof legacy === "string" && /^\d+(?:\.\d+)?$/.test(legacy.trim()) ? legacy.trim() : undefined;
+  }
+  if (typeof value !== "string" || !/^\d+(?:\.\d+)?$/.test(value) || Number(value) !== parsed) return invalid();
+  return value;
+}
+
 function bill(value: unknown): WalletBillRow {
   const row = object(value);
   const id = text(row?.id);
@@ -101,6 +112,8 @@ function bill(value: unknown): WalletBillRow {
     direction,
     amount,
     balanceAfter,
+    amountExact: exactMoney(row.amountExact, row.amount, amount),
+    balanceAfterExact: exactMoney(row.balanceAfterExact, row.balanceAfter, balanceAfter),
     status,
     remark: typeof row.remark === "string" ? row.remark : "",
     createdAt,

@@ -25,3 +25,18 @@ describe("NEX reward list return", () => {
     }
   });
 });
+
+describe("reward list categories", () => {
+  it.each(["voucher", "usdt", "nex", "promotion"] as const)("keeps %s on App options and H5 cold return", category => {
+    expect(rewardsListCategory({ cat: category }, "")).toBe(category);
+    expect(rewardsListCategory(undefined, `?cat=${category}`)).toBe(category);
+    expect(rewardsListCategory({ cat: "" }, `?cat=${category}`)).toBe(category);
+  });
+
+  it("prefers a valid explicit category and defaults invalid input to vouchers", () => {
+    expect(rewardsListCategory({ cat: "promotion" }, "?cat=nex")).toBe("promotion");
+    expect(rewardsListCategory({ cat: "voucher" }, "?cat=promotion")).toBe("voucher");
+    expect(rewardsListCategory({ cat: "unknown" }, "?cat=promotion")).toBe("promotion");
+    expect(rewardsListCategory({ cat: "unknown" }, "?cat=unknown")).toBe("voucher");
+  });
+});

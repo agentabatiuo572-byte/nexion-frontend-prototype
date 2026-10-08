@@ -47,7 +47,7 @@ const body = source.slice(source.indexOf('const id = ref("");'), source.indexOf(
   + source.slice(source.indexOf("const walletPaymentConfirmed"), source.indexOf("const isProvisioning"))
   + source.slice(source.indexOf("async function offerWalletTopup"), source.indexOf("function goOrders"))
   + source.slice(source.indexOf("function cleanup()"), source.indexOf("// ─── styles"));
-const js = ts.transpileModule(body + "\nreturn { order, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable };",
+const js = ts.transpileModule(body + "\nreturn { order, refundChannelLabel, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable };",
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const disposals: (() => void)[] = [];
 async function settle() { for (let i = 0; i < 12; i++) await Promise.resolve(); await nextTick(); }
@@ -80,7 +80,7 @@ function harness(mode: "dev" | "prod" = "prod") {
     onUnload: (fn: () => void) => hooks.unload.push(fn), onUnmounted: (fn: () => void) => hooks.unmount.push(fn), tickTimer: null };
   const scope = effectScope();
   const page = scope.run(() => new Function(...Object.keys(deps), js)(...Object.values(deps))) as {
-    order: ComputedRef<unknown>; showRemoteOrderLoading: ComputedRef<boolean>;
+    order: ComputedRef<unknown>; refundChannelLabel: ComputedRef<string>; showRemoteOrderLoading: ComputedRef<boolean>;
     showOrderNotFound: ComputedRef<boolean>; remoteOrderError: Ref<boolean>;
     refreshOrder(): Promise<void>; handleWalletPayment(): Promise<void>;
     payingFromWallet: Ref<boolean>; canPayFromWallet: ComputedRef<boolean>; cancellable: ComputedRef<boolean>;
@@ -102,6 +102,16 @@ beforeEach(() => {
 afterEach(() => { disposals.splice(0).forEach(dispose => dispose()); });
 
 describe("real order detail after catalogue runtime invalidation", () => {
+  it.each(["WALLET", "FUTURE_CHANNEL"])("shows a customer label for refund channel %s", async channel => {
+    const h = harness();
+    h.requests.at(-1)!.resolve(list([{ ...original, refundChannel: channel, paymentStatus: "REFUNDED",
+      orderStatus: "REFUNDED", activationStatus: "REFUNDED", canonicalStatus: "refunded",
+      refundedAt: 3, refundAmountUsdt: 19.9, refundBillNo: "REFUND-OLD" }]));
+    await settle();
+    expect(h.page.refundChannelLabel.value).toBe(channel === "WALLET"
+      ? en.promotion.wallet : en.orders.refundDetailsUnavailable);
+    expect(h.page.refundChannelLabel.value).not.toBe(channel);
+  });
   it.each(["dev", "prod"] as const)("rereads the original in %s when catalogue completes before the pending list", async (mode) => {
     const h = harness(mode);
     const snapshot = deferred<typeof catalog>();

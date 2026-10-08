@@ -1,0 +1,41 @@
+.promotion { color:var(--v5-ink); }
+.promotion-main { padding:20px 16px 28px; display:flex; flex-direction:column; gap:20px; }
+.promotion-flat { background:var(--v5-surface); border-radius:20px; padding:18px; min-width:0; }
+.promotion-title { display:block; font-size:19px; font-weight:600; line-height:1.4; }
+.promotion-copy { display:block; font-size:13px; line-height:1.7; color:var(--v5-ink-3); overflow-wrap:anywhere; }
+.promotion-price { font-size:14px; }
+.promotion-row { display:flex; align-items:flex-start; gap:12px; padding:15px 0; border-bottom:1px solid var(--v5-border); }
+.promotion-row:last-child { border-bottom:0; }
+.promotion-grow { flex:1; min-width:0; }
+.promotion-symbol { width:36px; flex:none; color:var(--v5-brand); font-size:24px; text-align:center; }
+.promotion-action { display:flex; align-items:center; justify-content:center; text-align:center; min-height:48px; padding:12px 18px; border-radius:999px; border:1px solid var(--v5-border); background:var(--v5-glass-bg,var(--v5-surface)); backdrop-filter:blur(12px) saturate(118%); box-shadow:inset 0 1px 1px var(--v5-glass-border,transparent); font-size:14px; font-weight:600; box-sizing:border-box; }
+.promotion-action.primary { --v5-liquid-tint:transparent; background:linear-gradient(145deg,rgba(255,255,255,.48),transparent 31%,transparent 72%,rgba(255,255,255,.22)),color-mix(in srgb,var(--v5-brand) 90%,transparent); color:var(--v5-on-brand); border-color:color-mix(in srgb,var(--v5-brand) 80%,white); }
+.promotion-action.primary .nx-liquid-glass[data-glass-strategy="solid"] .nx-liquid-optics { background:var(--v5-brand); }
+.promotion-entry .entry-event .promotion-action { min-height:48px; font-size:14px; padding:12px 18px; }
+.promotion-action:active { transform:scale(.975); opacity:.86; }
+.promotion-action[aria-disabled=true] { opacity:.45; }
+.promotion-action:focus-visible,.promotion-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
+.promotion-link { display:flex; align-items:center; min-height:44px; color:var(--v5-brand); font-size:13px; }
+.promotion-link:active { opacity:.65; }
+.promotion-actions { display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+.promotion-notice { border-left:2px solid var(--v5-brand); padding:4px 0 4px 12px; font-size:13px; line-height:1.7; }
+.promotion-badge { display:inline-flex; margin-top:8px; padding:4px 8px; border-radius:8px; color:var(--v5-brand); background:color-mix(in srgb,var(--v5-brand) 10%,var(--v5-surface)); font-size:12px; }
+.promotion-summary { display:flex; justify-content:space-between; gap:18px; padding:10px 0; font-size:13px; }
+.promotion-summary > * { min-width:0; overflow-wrap:anywhere; }
+.promotion-summary > :last-child { text-align:right; }
+.promotion-filters { display:flex; flex-wrap:wrap; gap:8px; }
+.promotion-filters .promotion-action { min-height:44px; padding:9px 13px; font-size:13px; font-weight:400; }
+.promotion-section-title { display:block; font-size:17px; font-weight:600; line-height:1.4; margin-bottom:12px; }
+.promotion-summary.total { border-top:1px solid var(--v5-border); font-size:18px; font-weight:600; padding-top:15px; }
+.promotion-overlay { position:fixed; inset:0; z-index:1100; display:flex; align-items:center; justify-content:center; padding:16px; background:var(--v5-backdrop,rgba(0,0,0,.62)); }
+.promotion-overlay-dismiss { position:absolute; inset:0; }
+.promotion-modal { width:358px; max-width:100%; max-height:calc(100vh - 32px); overflow-y:auto; box-sizing:border-box; padding:24px 22px; border-radius:28px; border:1px solid var(--v5-border); background:var(--v5-glass-bg,var(--v5-surface)); backdrop-filter:blur(20px) saturate(118%); }
+.promotion-image { width:64px; height:64px; border-radius:12px; flex:none; }
+.promotion-steps { display:flex; gap:7px; }
+.promotion-steps text { flex:1; padding-top:8px; border-top:2px solid var(--v5-border); color:var(--v5-ink-3); font-size:12px; }
+.promotion-steps .active { border-color:var(--v5-brand); color:var(--v5-brand); }
+@media(prefers-reduced-transparency:reduce){.promotion-action,.promotion-modal{backdrop-filter:none;background:var(--v5-surface)}.promotion-action.primary{background:var(--v5-brand)}}
+
+
+.promotion-modal { position:relative; isolation:isolate; }
+.promotion-modal-content { position:relative; z-index:1; }

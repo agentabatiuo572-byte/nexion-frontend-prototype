@@ -1426,7 +1426,7 @@ function functionBody(src, opener) {
   // 读盘不剥的话页面会把那批旧错值(实测盘上就有 60.3065,真实余额两万四)原样渲染 ——
   // 等于把已修的 P0 换个方式放回去。
   check("🔴 读盘剥掉存量脏 balanceAfter(不剥 = 把旧错值原样渲染回去)",
-    readSrc("src/store/bills.ts").includes("balanceAfter: _drop, ...rest"));
+    readSrc("src/store/bills.ts").includes("balanceAfter: _drop, balanceAfterExact: _dropExact, ...rest"));
   check("🔴 store 不再自己算 balanceAfter(账单是**部分**流水,正推倒推都对不上)",
     !/b\.balanceAfter\s*=/.test(readSrc("src/store/bills.ts"))
       && !readSrc("src/pages/me/wallet-bills.vue").includes("const runningBalance = computed"));

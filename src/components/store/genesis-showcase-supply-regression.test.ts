@@ -95,10 +95,10 @@ function actualStoreOnShow() {
   const genesis = { syncRemote: vi.fn() };
   compile<void>(
     `let storePageVisible = false; let storeObservationEpoch = 0; ${source}; return undefined;`,
-    ["onShow", "genesisCfg", "genesis", "refreshServerProductPhase", "refreshProductCatalog", "observeDayOneStorePage"],
+    ["onShow", "genesisCfg", "genesis", "refreshServerProductPhase", "refreshProductCatalog", "observeDayOneStorePage", "takeNavigationQuery", "publicOnly"],
     [
       (callback: () => void) => callbacks.push(callback), genesisCfg, genesis,
-      vi.fn(), vi.fn(), vi.fn(),
+      vi.fn(), vi.fn(), vi.fn(), () => "", ref(false),
     ],
   );
   callbacks.forEach((callback) => callback());

@@ -13,6 +13,16 @@ function deferred<T>() { let resolve!: (v: T) => void; let reject!: (e: Error) =
 beforeEach(() => { setActivePinia(createPinia()); remote.walletBillsApi.list.mockReset(); remote.walletBillsApi.summary.mockReset().mockResolvedValue(summary()); });
 
 describe("wallet ledger demand pagination and authoritative summaries", () => {
+  it.each(["USDT", "NEX"])("retains signed exact %s text in the ledger and recent summary rows", async asset => {
+    const exact = "999999999999.999999";
+    const wire = { ...row("exact"), asset, direction: "OUT", amount: Number(exact), balanceAfter: 0.000001,
+      amountExact: exact, balanceAfterExact: "0.000001" };
+    remote.walletBillsApi.list.mockResolvedValue({ ...page([]), bills: [wire] });
+    remote.walletBillsApi.summary.mockResolvedValue({ ...summary(), recentNexBills: [{ ...wire, asset: "NEX" }] });
+    const store = useBills(); await store.refreshServerLedger(); await store.refreshSummary();
+    expect(store.bills[0]).toMatchObject({ amount: -Number(exact), amountExact: `-${exact}`, balanceAfterExact: "0.000001" });
+    expect(store.summary?.recentNexBills[0].amountExact).toBe(`-${exact}`);
+  });
   it("login loads a summary, never twenty pages; opening bills loads exactly one page", async () => {
     remote.walletBillsApi.list.mockResolvedValue(page(["1"], "cursor-1"));
     const store = useBills(); store.bindAccount("A"); await store.refreshSummary();

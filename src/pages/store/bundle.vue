@@ -21,6 +21,8 @@
 -->
 <template>
   <AppChassis active="store">
+    <PromotionBundle v-if="promotionActivityId" :key="promotionActivityId" :activity-id="promotionActivityId" :initial-items="promotionInitialItems" />
+    <template v-else>
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
     <view class="pb-6" style="color: var(--v5-ink); padding-top: 24px">
@@ -186,6 +188,7 @@
       </template>
       </template>
     </view>
+    </template>
   </AppChassis>
 </template>
 
@@ -193,6 +196,8 @@
 import { computed, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import PromotionBundle from '@/components/promotion/promotion-bundle.vue';
+import { parseEntryItems,type EntryItem } from '@/lib/promotion-entry';
 import EmptyState from "@/components/empty-state.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -218,7 +223,7 @@ import { useApp } from "@/store/app";
 import { useOrders, type Order } from "@/store/orders";
 import { usePendingCheckout } from "@/store/pending-checkout";
 import { postReceiptOnce, postReceiptOnly, reportStuckFunds, type ReceiptDraft } from "@/lib/money-receipt";
-import { navTo } from "@/lib/route";
+import { navTo,takeNavigationQuery } from "@/lib/route";
 import { useVRank } from "@/store/v-rank";
 import { useNetwork } from "@/store/network";
 import { acquireAccountCommandKey, readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
@@ -228,6 +233,8 @@ const t = useT();
 const cart = useCart();
 const phase = useProductPhase();
 const app = useApp();
+const promotionActivityId=ref('');
+const promotionInitialItems=ref<EntryItem[]>([]);
 const orders = useOrders();
 const pending = usePendingCheckout();
 
@@ -248,7 +255,11 @@ async function refreshBundlePolicy(): Promise<void> {
   }
 }
 
-onLoad(async () => {
+onLoad(async (options) => {
+  const query=(options??{}) as Record<string,string>;
+  const fallback=new URLSearchParams(takeNavigationQuery('/pages/store/bundle'));
+  promotionInitialItems.value=parseEntryItems(query.items||fallback.get('items'))??[];
+  promotionActivityId.value=(query.activityId||fallback.get('activityId')||'').trim();
   await Promise.all([refreshProductCatalog(true), refreshServerProductPhase(true), refreshBundlePolicy()]);
 });
 

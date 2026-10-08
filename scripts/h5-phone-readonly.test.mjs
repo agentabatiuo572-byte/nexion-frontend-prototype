@@ -136,6 +136,7 @@ test("native login deep-link and cookie error cannot render browser-only recover
     assert.ok(load, "actual login onLoad must exist");
     const ApiError = class extends Error {};
     const sandbox = {
+      URLSearchParams, takeNavigationQuery: () => "",
       exports: {}, onLoad: (handler) => { sandbox.load = handler; },
       returnParam: { value: null }, refOnLogin: { value: null }, serverSessionReloadNotice: { value: false },
       browserUnsupportedNotice: { value: false }, normalizeRefCode: () => null,

@@ -16,6 +16,7 @@ import { useTrialClaimSheet } from "@/store/trial-claim-sheet";
 import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { toast } from "@/store/ui";
 import { getT } from "@/i18n/use-t";
+import { requestCheckoutLeave, hasCheckoutLeaveGuard, clearCheckoutLeaveForReset } from "@/lib/promotion-leave-guard";
 
 const TAB_ROOT: Record<string, string> = {
   "/": "/pages/index/index",
@@ -71,6 +72,7 @@ type ForcedNavigationOptions = UniApp.ReLaunchOptions;
 
 /** Keep auth/terms resets as resets; never fall back to pushing a business page. */
 export function navReset(target: string | ForcedNavigationOptions): Promise<boolean> {
+  clearCheckoutLeaveForReset();
   return forceNavigation(target, false);
 }
 
@@ -132,6 +134,14 @@ function forceNavigation(target: string | ForcedNavigationOptions, replace: bool
  * cold-open ("点返回无反应"). Guard on the real stack depth instead.
  */
 export function navBack(fallbackHref?: string): void {
+  if (hasCheckoutLeaveGuard()) {
+    void requestCheckoutLeave().then(allowed => { if (allowed) performNavBack(fallbackHref); });
+    return;
+  }
+  performNavBack(fallbackHref);
+}
+
+function performNavBack(fallbackHref?: string): void {
   // Back navigation is still navigation: a Home offer may have been opened
   // just before the current page was pushed. Close only the in-memory sheets
   // before popping/replacing so their backdrop cannot consume the next tap on
@@ -225,6 +235,11 @@ function runNavigationChain(attempts: NavigationAttempt[]): Promise<boolean> {
 
 /** Navigate to a logical-or-uni href, picking reLaunch for tab roots. */
 export function navTo(href: string): Promise<boolean> {
+  if (hasCheckoutLeaveGuard()) return requestCheckoutLeave().then(allowed=>allowed?performNavTo(href):false);
+  return performNavTo(href);
+}
+
+function performNavTo(href: string): Promise<boolean> {
   // A transient Home offer must never remain above the destination page and
   // steal its first tap. Persistent cooldown state is intentionally untouched;
   // this only arbitrates the in-memory overlay before navigation.

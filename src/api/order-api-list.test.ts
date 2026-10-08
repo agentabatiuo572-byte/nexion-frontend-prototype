@@ -22,6 +22,13 @@ function api(payload: unknown, mode: "prod" | "dev") {
 afterEach(() => advanceRuntimeRevision(null));
 
 describe("order list provenance", () => {
+  it("preserves promotion decimal strings in ordinary order history without rounding", async () => {
+    const row={...order(),promotionQuoteId:'approved-quote',amountUsdt:'999999999999.999999'};
+    const envelope={source:'server',sourceEnvironment:'PRODUCTION',runId:null,serverCanonical:true,orders:[row]};
+    await expect(api(envelope,'prod').list()).resolves.toMatchObject({orders:[{amountUsdt:'999999999999.999999'}]});
+    for(const amountUsdt of ['1e3','-1.000000','1.0000001','1000000000000.000000'])await expect(api({...envelope,orders:[{...row,amountUsdt}]},'prod').list()).rejects.toMatchObject({message:'ORDER_RESPONSE_INVALID'});
+    await expect(api({...envelope,orders:[{...row,promotionQuoteId:null}]},'prod').list()).rejects.toMatchObject({message:'ORDER_RESPONSE_INVALID'});
+  });
   it("requests a bounded cursor page and exposes the next cursor", async () => {
     const request = vi.fn().mockResolvedValue({
       source: "server", sourceEnvironment: "PRODUCTION", runId: null,

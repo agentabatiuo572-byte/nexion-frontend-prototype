@@ -22,7 +22,11 @@
       <SubPageHeader back="/pages/index/index" />
 
       <view class="px-4 space-y-3">
-        <!-- Featured hero -->
+        <GlassSegments :label="t.promotion.events" v-model="eventSource" :options="sourceOptions" />
+        <PromotionEntry v-if="eventSource==='promotions'" mode="events" />
+        <view v-else-if="!signedIn" class="promotion-flat"><view class="promotion-action" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent('/pages/events/events'))"><text>{{ t.promotion.signIn }}</text></view></view>
+        <template v-else>
+        <!-- Existing join/claim events retain their own server-owned actions. -->
         <EventsFeaturedHero
           v-if="featured"
           :ev="featured"
@@ -65,6 +69,7 @@
 
         <!-- footer -->
         <text class="block text-center" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.625; padding-top: 4px">{{ t.events.note }}</text>
+        </template>
       </view>
     </CardStagger>
   </AppChassis>
@@ -79,9 +84,11 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import EventsFeaturedHero from "@/components/events/events-featured-hero.vue";
 import EventsCard from "@/components/events/events-card.vue";
+import PromotionEntry from "@/components/promotion/promotion-entry.vue";
 import { useT } from "@/i18n/use-t";
+import { navTo } from '@/lib/route';
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import { eventsApi, remoteApiEnabled } from "@/api/runtime";
+import { eventsApi, remoteApiEnabled,sessionVault } from "@/api/runtime";
 import type { CanonicalEvent } from "@/api/events-api";
 import { postMoneyBillsOnce } from "@/lib/money-receipt";
 import { useEventQuest } from "@/store/event-quest";
@@ -104,6 +111,12 @@ type EnrichedEvent = NexEvent & { _trackable: boolean; _done: boolean; _claimed:
 const TABS: TabId[] = ["all", "ongoing", "upcoming", "joined", "ended"];
 
 const t = useT();
+const eventSource=ref('promotions');
+const signedIn=computed(()=>{void app.accountKey;void app.accountBindingEpoch;return !!sessionVault.read();});
+const sourceOptions=computed(()=>[
+  {value:'promotions',label:t.value.promotion.promotionList},
+  {value:'legacy',label:t.value.promotion.legacyEvents},
+]);
 const eventQuest = useEventQuest();
 const luckySpin = useLuckySpin();
 const app = useApp();
@@ -137,7 +150,7 @@ const eventActionLabels = computed<EventActionLabels>(() => ({
 }));
 
 async function loadRemoteEvents() {
-  if (!remoteApiEnabled) return;
+  if (!remoteApiEnabled||!sessionVault.read()) return;
   const scope = remoteRequestFence.capture();
   remoteEventsLoading.value = true;
   try {

@@ -1,8 +1,10 @@
+import { promotionZH } from "./promotion";
 import type { Messages } from "./en";
 
 // Simplified Chinese — natural Mandarin phrasing. Keys mirror en.ts exactly.
 
 export const zh: Messages = {
+  promotion: promotionZH,
   pageLoad: {
     module: "页面资源加载失败",
     timeout: "页面加载时间过长",

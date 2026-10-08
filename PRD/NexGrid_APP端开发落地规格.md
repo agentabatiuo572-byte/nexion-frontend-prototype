@@ -197,6 +197,9 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 | `/me/help`·`/me/support`·`/me/support/tickets` | 帮助/客服/工单 | FAQ+渠道+1:1 工单 | `lib/mock/tickets.ts`(TicketStatus 5 态) | §11.8 |
 | `/market` | NEX 行情详情 | NEX vs 同类 token 对标 | `useMarket`、`lib/mock/tokens.ts`(15) | §11.9 |
 | `/events` | 活动中心 | 限时/邀请/抽奖活动(8 EventKind) | `lib/mock/events.ts`、`useEventQuest` | §11.10 |
+| `/pages/me/rewards-list?cat=promotion` | 活动奖励 | 原奖励记录新增类别，按状态、活动、订单分页回查本人奖励 | `promotionApi.rewards`、`promotion-reward-list.vue` | §4.12 |
+| `/pages/events/promotion-reward-detail?obligationId=` | 单项活动奖励 | 历史奖励、权益披露、本人订单、设备与对应账单 | `promotionApi.reward` | §4.12 |
+| `/pages/events/promotion-rewards` | 历史活动奖励链接 | 复用原奖励类别的同一列表及筛选 | `promotion-reward-list.vue` | §4.12 |
 | (`/events` sheet) | Lucky Spin 转盘 | wheel 玩法(8 档奖池) | `useLuckySpin`、`POST /api/events/:id/spin`(server RNG) | §11.10.9 |
 | `/learn` | 教程中心 | Learn-to-Earn(15 课) | `lib/mock/learn.ts` | §11.11 |
 | `/tx/[hash]` | 交易详情 | 伪 Etherscan(seeded PRNG) | `seeded(hashSeed)` | §11.12.2 |
@@ -459,6 +462,22 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 3. **server 单源 ID**:Order/Withdrawal/Bill/Card tokenId 全 server mint。
 4. **状态机缺失态须 server 扩展**(§9.11f):Order +`payment_failed/expired/refunded/chargeback/provisioning_failed`;Withdrawal +`review-rejected/address-invalid/tx-failed/tx-orphaned/refunded/frozen`;Staking 改 status union。
 5. **全 endpoint 定性「留接口待真实后台对接」**(§9.11a),命名候选;详见第 7 章开发缺口。
+
+### 4.12 活动购机与直属邀请奖励
+
+目的为活动获客、复购和直接邀请成交。活动资格、时间、库存、预算、奖励权益与结算以服务端活动版本为唯一来源；客户端不重算新人、无设备、老客或等级资格，不把展示资格当作可成交承诺。详细跨端规则由后台当前 `docs/PRD/growth-promotions/PRODUCT-PRD.md` 和 `APP-H5-PRD.md` 定义；本节取代该范围的历史模拟接口描述。
+
+入口沿现有首页轮播、商城商品卡、商品详情、组合购买和下单页。首页仅增加服务端 `home.purchase-promotion` 广告条目，保留原快捷入口；点击直接进入指定活动商品商城。个人中心原奖励记录保留优惠券、USDT 和 NEX 类别，增加活动奖励类别，不增加平行入口或混合资产总额。
+
+购买输入为 `activityId` 与 `items[{productNo,quantity}]`，单 SKU 可携 `voucherId`。`POST /api/orders/quote` 返回带服务端时间、失效时间、逐购买行价格、实付、资格、权益披露及预计奖励的报价；试算不预留。正式建单复用 `POST /api/orders` 或 `/api/orders/bundle` 并携 `promotionQuoteId`，失效或条件变化须重新试算确认。每行奖励通过 `lineId` 配对，支持指定赠品设备、固定 USDT 或 NEX，不合并不同资产，不将已锁定订单的名称和规则替换成当前商城内容。
+
+建单、支付、取消按账号保存原意图与幂等键。结果未知先查原命令和订单；确认终态后才能发起新购买，不因重试生成另一笔付款。活动结束不阻断已存在订单和历史奖励回读；付款截止与普通订单状态由服务端控制。
+
+未付结账主动离开只提示一次，展示真实预计赠品或已建单预留及截止时间。继续购买、ESC 或点遮罩均留在原页；确认退出执行原返回目标，离页不取消订单。明确取消订单走原取消确认及接口，结果未知查原单。支付、充值及原票据恢复不叠加营销挽留。
+
+`GET /api/promotion-rewards` 按本人、活动、订单或奖励状态分页；单项 `GET /api/promotion-rewards/{obligationId}` 保留冻结权益、发放时间及资产凭证。设备凭证定位本人设备，已回收设备保留凭证且不提供失效设备入口；币凭证通过 `ledgerBizNo` 精确定位本人账单。奖励金额保留精确十进制字符串，未知、待发放、失败、待回收与已回收分别展示，不当作已到账。直属邀请进度只读合格成交数及本人奖励，不暴露被邀请者资金和订单明细。
+
+加载、空态、读取失败、重试和返回均须可操作；切账号、同账号会话换代、页面隐藏或卸载后丢弃迟到回执。正式 APP 与 H5 共用该契约，H5 不获得手机校准、激活、心跳或手机任务权限。中文、英文、越南语同步；每个受影响页面保存运行截图并完成业务与操作验证，至少两名独立 agent 复核功能、人工操作友好及现有 APP 风格一致性。
 
 ## 第 5 章 状态机集(合法转移 + 守卫)
 

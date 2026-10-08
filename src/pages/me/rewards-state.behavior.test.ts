@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import listSource from "./rewards-list.vue?raw";
 import summarySource from "./rewards.vue?raw";
+import legacySource from "../events/promotion-rewards.vue?raw";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
@@ -27,7 +28,7 @@ function compile(source: string, filename: string) {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
 }
-const codes = { list: compile(listSource, "rewards-list.vue"), summary: compile(summarySource, "rewards.vue") };
+const codes = { list: compile(listSource, "rewards-list.vue"), summary: compile(summarySource, "rewards.vue"), legacy: compile(legacySource, "promotion-rewards.vue") };
 type HostNode = { tag: string; text: string; props: Record<string, unknown>; parent: HostNode | null; children: HostNode[] };
 const node = (text = "", tag = ""): HostNode => ({ tag, text, props: {}, parent: null, children: [] });
 function remove(child: HostNode) {
@@ -61,36 +62,42 @@ const fixture = (status: Bill["status"], type: Bill["type"] = "refer"): Bill => 
   id: "WL-840781", type, amount: 99.5, symbol: "NEX", status,
   ts: Date.parse("2026-10-05T11:48:21Z"), memo: "", memoKey: "refer", ref: "F2-NETWORK-NEX-376",
 });
-async function mount(localeCode: Locale, rows: Bill[] = [], page: keyof typeof codes = "list") {
+async function mount(localeCode: Locale, rows: Bill[] = [], page: keyof typeof codes = "list", category?: string) {
   const locale = useLocaleStore(); locale.setLocale(localeCode);
   const pager = Vue.reactive({ rows, status: "ready", hasMore: false, loadingMore: false, error: "",
     refresh: vi.fn(async () => {}), loadMore: vi.fn(async () => {}) });
-  const summary = { rewardsNex: 251.5, rewardsUsdt: 147.72 };
+  const bills = Vue.reactive({ getLedger: () => pager, bills: [], summary: { rewardsNex: 251.5, rewardsUsdt: 147.72 } as { rewardsNex: number; rewardsUsdt: number } | null,
+    summaryStatus: "ready", refreshSummary: vi.fn(async () => {}) });
+  const voucher = Vue.reactive({ claimedUnused: [] as unknown[], expiredVouchers: [] as unknown[], remoteStatus: "ready", refreshRemote: vi.fn() });
+  const account = Vue.reactive({ accountKey: "user:7", accountBindingEpoch: 1 });
   const shown: Array<() => void> = [], navTo = vi.fn();
   const modules: Record<string, unknown> = {
     vue: Vue, "@dcloudio/uni-app": {
-      onLoad: (callback: (options: { cat: string }) => void) => callback({ cat: rows[0]?.symbol === "USDT" ? "usdt" : "nex" }),
+      onLoad: (callback: (options: { cat: string; activityId: string; orderNo: string }) => void) => callback({ cat: category ?? (rows[0]?.symbol === "USDT" ? "usdt" : "nex"), activityId: "campaign-A", orderNo: "order-A" }),
       onShow: (callback: () => void) => shown.push(callback), onHide: vi.fn(),
     },
     "@/components/app-chassis.vue": { default: Vue.defineComponent({ setup: (_props, { slots }) => () => Vue.h("main", slots.default?.()) }) },
     "@/components/empty-state.vue": { default: Vue.defineComponent(() => () => Vue.h("empty")) },
     "@/components/sub-page-header.vue": { default: Vue.defineComponent({ props: ["back", "title"],
       setup: props => () => Vue.h("header", { back: props.back }, props.title) }) },
+    "@/components/promotion/promotion-reward-list.vue": { default: Vue.defineComponent({ props: ["activityId", "orderNo"],
+      setup: props => () => Vue.h("promotion-rewards", { activityId: props.activityId, orderNo: props.orderNo }) }) },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dicts[locale.code as Locale]) },
     "@/i18n/format": { fmt }, "@/store/locale": { useLocaleStore }, "@/lib/rank-how-content": { formatHowNumber },
     "@/lib/wallet-bill-display": { resolveWalletBillMemo },
     "@/composables/use-course-reward-titles": { useCourseRewardTitles: () => Vue.ref({ "intro-uvel@v1": "UVEL intro" }) },
-    "@/store/voucher": { useVoucher: () => ({ claimedUnused: [], expiredVouchers: [], remoteStatus: "ready", refreshRemote: vi.fn() }) },
-    "@/store/bills": { useBills: () => ({ getLedger: () => pager, bills: [], summary, summaryStatus: "ready", refreshSummary: vi.fn(async () => {}) }), isRewardBill: vi.fn() },
+    "@/store/voucher": { useVoucher: () => voucher },
+    "@/store/bills": { useBills: () => bills, isRewardBill: vi.fn() },
     "@/store/rewards-seen": { useRewardsSeen: () => ({ markSeen: vi.fn() }) },
-    "@/lib/remote-account-epoch": { remoteAccountScope: { snapshot: () => "user:7", isCurrent: () => true } },
+    "@/lib/remote-account-epoch": { remoteAccountScope: { snapshot: () => `${account.accountKey}:${account.accountBindingEpoch}`,
+      isCurrent: (snapshot: string) => snapshot === `${account.accountKey}:${account.accountBindingEpoch}` } },
     "./course-reward-link": { courseRewardId, rewardsListCategory }, "@/pages/learn/course-navigation": { courseRewardHref },
     "@/mock/products": { getProduct: vi.fn() }, "@/mock/vouchers": { isSingleSkuVoucher: vi.fn() },
     "@/lib/route": { navTo, takeNavigationQuery: () => "" },
     "@/composables/use-scroll-grow-progress": { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(false) }) },
     "@/composables/use-manual-scroll-load-more": { useManualScrollLoadMore: vi.fn() },
     "@/api/runtime": { fundsServerEnabled: true, remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: 7 } }) } },
-    "@/store/app": { useApp: () => ({ accountKey: "user:7", accountBindingEpoch: 1 }) },
+    "@/store/app": { useApp: () => account },
     "@/store/auth": { useAuth: () => ({ accountId: "user:7", isAuthenticated: true }) },
     "@/lib/binary-session-ready": { binarySessionReady },
   };
@@ -101,7 +108,7 @@ async function mount(localeCode: Locale, rows: Bill[] = [], page: keyof typeof c
   }, exports);
   const root = node(), app = renderer.createApp(exports.default);
   app.mount(root); cleanups.push(() => app.unmount()); shown.forEach(callback => callback()); await Vue.nextTick();
-  return { root, locale, pager, summary, navTo, text: () => textOf(root) };
+  return { root, locale, pager, summary: bills.summary, bills, voucher, account, navTo, text: () => textOf(root) };
 }
 beforeEach(() => {
   vi.stubGlobal("uni", { getStorageSync: () => "", setStorageSync: vi.fn(), getSystemInfoSync: () => ({ language: "en" }) });
@@ -110,6 +117,42 @@ beforeEach(() => {
 afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("mounted reward state presentation", () => {
+  it.each(locales)("keeps the old activity reward URL on the same category body and back route in %s", async locale => {
+    const screen = await mount(locale, [], "legacy"), header = nodes(screen.root).find(entry => entry.tag === "header");
+    expect(header?.text).toBe(dicts[locale].promotion.rewardCategory);
+    expect(header?.props.back).toBe("/pages/me/rewards");
+    expect(nodes(screen.root).find(entry => entry.tag === "promotion-rewards")?.props).toEqual({ activityId: "campaign-A", orderNo: "order-A" });
+    expect(screen.pager.refresh).not.toHaveBeenCalled(); expect(screen.pager.loadMore).not.toHaveBeenCalled();
+  });
+
+  it("keeps totals during a same-account refresh but clears all cached counts on account rebinding", async () => {
+    const screen = await mount("en", [], "summary");
+    const totals = () => nodes(screen.root).filter(entry => entry.props.class === "font-mono-tabular").map(textOf);
+    screen.voucher.claimedUnused = [{ id: "old-1" }, { id: "old-2" }]; await Vue.nextTick();
+    expect(totals()).toEqual(["2", "$147.72", "251.5"]);
+    screen.voucher.remoteStatus = "loading"; screen.voucher.claimedUnused = [];
+    screen.bills.summaryStatus = "loading"; screen.bills.summary = null; await Vue.nextTick();
+    expect(totals()).toEqual(["2", "$147.72", "251.5"]);
+    screen.account.accountBindingEpoch++; screen.account.accountKey = "user:8"; await Vue.nextTick();
+    expect(totals()).toEqual(["--", "--", "--"]);
+    screen.voucher.remoteStatus = "ready"; screen.bills.summary = { rewardsUsdt: 5, rewardsNex: 6 };
+    screen.bills.summaryStatus = "ready"; await Vue.nextTick();
+    expect(totals()).toEqual(["0", "$5.00", "6"]);
+  });
+
+  it.each(locales)("adds the activity category without mixing gifts into currency totals in %s", async locale => {
+    const summary = await mount(locale, [], "summary"), t = dicts[locale];
+    const cards = nodes(summary.root).filter(entry => entry.props.role === "button" && entry.props["aria-label"]);
+    expect(cards.map(card => card.props["aria-label"])).toEqual([t.rewards.catVouchers, t.rewards.catUsdt, t.rewards.catNex, t.promotion.rewardCategory]);
+    const promotion = cards[3]; expect(textOf(promotion)).toContain(t.promotion.rewardCategoryDesc);
+    expect(nodes(promotion).some(entry => entry.props.class === "font-mono-tabular")).toBe(false);
+    (promotion.props.onClick as () => void)(); expect(summary.navTo).toHaveBeenCalledWith("/me/rewards/list?cat=promotion");
+    const list = await mount(locale, [], "list", "promotion");
+    expect(nodes(list.root).find(entry => entry.tag === "header")?.text).toBe(t.promotion.rewardCategory);
+    expect(nodes(list.root).find(entry => entry.tag === "promotion-rewards")?.props).toEqual({ activityId: "campaign-A", orderNo: "order-A" });
+    expect(list.pager.refresh).not.toHaveBeenCalled(); expect(list.pager.loadMore).not.toHaveBeenCalled();
+  });
+
   const cases = locales.flatMap(locale => (["posted", "pending", "failed"] as const).map(status => ({ locale, status })));
   it.each(cases)("shows $status referral state without changing the row in $locale", async ({ locale, status }) => {
     const rows = [fixture(status)], before = JSON.stringify(rows), page = await mount(locale, rows), t = dicts[locale];

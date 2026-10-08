@@ -1,0 +1,6 @@
+import{afterEach,expect,it,vi}from'vitest';
+import{registerCheckoutLeaveGuard,requestCheckoutLeave,clearCheckoutLeaveForReset,hasCheckoutLeaveGuard}from'./promotion-leave-guard';
+afterEach(()=>clearCheckoutLeaveForReset());
+it('coalesces simultaneous header and native exits into one decision',async()=>{let answer!:(v:boolean)=>void;const guard=vi.fn(()=>new Promise<boolean>(resolve=>answer=resolve));registerCheckoutLeaveGuard(guard);const a=requestCheckoutLeave(),b=requestCheckoutLeave();expect(guard).toHaveBeenCalledOnce();answer(false);expect(await a).toBe(false);expect(await b).toBe(false);});
+it('forced logout removes the hook and a late confirmation cannot navigate back into the account',async()=>{let answer!:(v:boolean)=>void;registerCheckoutLeaveGuard(()=>new Promise(resolve=>answer=resolve));const pending=requestCheckoutLeave();clearCheckoutLeaveForReset();answer(true);expect(await pending).toBe(false);expect(hasCheckoutLeaveGuard()).toBe(false);expect(await requestCheckoutLeave()).toBe(true);});
+it('an older page cannot unregister the current checkout',()=>{const old=registerCheckoutLeaveGuard(async()=>true);registerCheckoutLeaveGuard(async()=>false);old();expect(hasCheckoutLeaveGuard()).toBe(true);});

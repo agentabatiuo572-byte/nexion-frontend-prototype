@@ -48,6 +48,28 @@ describe("wallet summary and paginated API contract", () => {
     }]});
     expect(parsed.bills[0]).toMatchObject({ category: "purchase", presentationCode: "purchase", publicReference: "ORD-42" });
   });
+  const billRow = () => ({ id: "WL-1", bizNo: "R-1", bizType: "PROMOTION_REWARD", asset: "USDT", direction: "IN",
+    amount: 0.000001, balanceAfter: 0.000001, status: "SUCCESS", remark: "", createdAt: "2026-10-08T00:00:00Z" });
+  it.each(["USDT", "NEX"])("keeps exact %s bill and balance text alongside compatible numbers", asset => {
+    for (const amountExact of ["0.000001", "1.000001", "999999999999.999999"]) {
+      const wire = { ...billRow(), asset, amount: Number(amountExact), balanceAfter: Number(amountExact), amountExact, balanceAfterExact: amountExact };
+      const parsed = parseWalletBillsSnapshot({ ...snapshot(), total: 1, bills: [wire] }).bills[0];
+      expect(parsed).toMatchObject({ amount: Number(amountExact), balanceAfter: Number(amountExact), amountExact, balanceAfterExact: amountExact });
+      expect(parseWalletBillsSummary({ ...summary(), recentNexBills: [{ ...wire, asset: "NEX" }] }).recentNexBills[0].amountExact).toBe(amountExact);
+    }
+  });
+  it("retains plain legacy decimal strings, while number-only older servers have no exact companion", () => {
+    const parsed = (row: unknown) => parseWalletBillsSnapshot({ ...snapshot(), total: 1, bills: [row] }).bills[0];
+    expect(parsed(billRow())).toMatchObject({ amount: 0.000001, amountExact: undefined, balanceAfterExact: undefined });
+    expect(parsed({ ...billRow(), amount: "999999999999.999999", balanceAfter: "0.000001" }))
+      .toMatchObject({ amountExact: "999999999999.999999", balanceAfterExact: "0.000001" });
+  });
+  it.each([null, "", true, "-1", "1e-6", "NaN", " 0.000001 ", "0.000002"])("rejects malformed or conflicting exact money %s", exact => {
+    for (const field of ["amountExact", "balanceAfterExact"]) {
+      expect(() => parseWalletBillsSnapshot({ ...snapshot(), total: 1, bills: [{ ...billRow(), [field]: exact }] }))
+        .toThrow("WALLET_BILLS_RESPONSE_INVALID");
+    }
+  });
   it("parses exact server totals and allows signed earnings", () => {
     expect(parseWalletBillsSummary(summary())).toMatchObject({rewardsUsdt:12.000001,rewardsNex:2202,todayNexEarn:-1,asOf:Date.parse("2026-08-31T10:00:00Z")});
   });

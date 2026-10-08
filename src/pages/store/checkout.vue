@@ -21,9 +21,10 @@
 -->
 <template>
   <AppChassis active="store">
+    <PromotionCheckout v-if="promotionRoute" :key="app.accountKey+':'+app.accountBindingEpoch" ref="promotionCheckout" :activity-id="promotionRoute.activityId" :items="promotionRoute.items" :order-no="promotionRoute.orderNo" />
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
-    <view style="color: var(--v5-ink); padding-top: 24px">
+    <view v-else style="color: var(--v5-ink); padding-top: 24px">
       <!-- Back + title now live in the sticky chassis nav header
            (useSetPageHeader below) so they pin on scroll, mirroring the
            prototype's <SetPageHeader>. -->
@@ -257,7 +258,10 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
-import { onHide, onLoad, onShow, onUnload } from "@dcloudio/uni-app";
+import { onHide, onLoad, onShow, onUnload, onBackPress } from "@dcloudio/uni-app";
+import PromotionCheckout from '@/components/promotion/promotion-checkout.vue';
+import { validatePromotionItems, type PromotionItem } from '@/api/promotion-api';
+import { takeNavigationQuery } from '@/lib/route';
 import AppChassis from "@/components/app-chassis.vue";
 import CheckoutRow from "@/components/store/checkout-row.vue";
 import ChainPayment from "@/components/store/chain-payment.vue";
@@ -326,6 +330,9 @@ interface PaymentMethod {
 
 const t = useT();
 const app = useApp();
+const promotionRoute=ref<{activityId:string;items:PromotionItem[];orderNo?:string}|null>(null);
+const promotionCheckout=ref<InstanceType<typeof PromotionCheckout>|null>(null);
+onBackPress(()=>promotionRoute.value ? (promotionCheckout.value?.back()??false) : false);
 const auth = useAuth();
 const orders = useOrders();
 const voucher = useVoucher();
@@ -483,7 +490,17 @@ function purchaseEligibilityFailureCopy(): string {
 }
 
 onLoad(async (options) => {
-  const o = (options || {}) as Record<string, string>;
+  const pendingQuery=new URLSearchParams(takeNavigationQuery('/pages/store/checkout').replace(/^\?/,''));
+  const navigationQuery:Record<string,string>={};pendingQuery.forEach((value,key)=>{navigationQuery[key]=value;});
+  const o = { ...navigationQuery, ...(options || {}) } as Record<string, string>;
+  if (o.activityId || o.promotion==='1') {
+    try {
+      const items:PromotionItem[]=o.items ? JSON.parse(o.items) : o.product ? [{productNo:o.product,quantity:Number(o.quantity??1)}] : [];
+      if(!o.orderNo)validatePromotionItems(items);
+      promotionRoute.value={activityId:o.activityId??'',items,orderNo:o.orderNo};
+    } catch { toast.warn(t.value.promotion.errorNote);void navTo('/store'); }
+    return;
+  }
   trialCheckoutSource = o.source === "trial";
   // accept ?product= (canonical) or ?id= via the one canonical product resolver.
   if (o.product) productId.value = resolveTrialCheckoutProductId(o.product) ?? o.product;
@@ -890,7 +907,7 @@ function fireTradeinIntercept() {
 // back to the store grid before the product resolves.
 useSetPageHeader(() => ({
   title: t.value.headerTitles.storeCheckout,
-  backHref: product.value ? `/pages/store/detail?id=${product.value.id}` : "/store",
+  backHref: promotionRoute.value ? '/pages/store/store'+(promotionRoute.value.activityId?'?activityId='+encodeURIComponent(promotionRoute.value.activityId):'') : product.value ? `/pages/store/detail?id=${product.value.id}` : "/store",
 }));
 
 const step = ref<Step>("select-payment");
@@ -1441,6 +1458,7 @@ async function submitRemoteOrder(): Promise<void> {
               || persisted.paymentStatus.toUpperCase() !== "PAID"
               || persisted.orderStatus.toUpperCase() !== "COMPLETED"
               || persisted.activationStatus.toUpperCase() !== "ACTIVATED"
+              || typeof persisted.amountUsdt !== "number"
               || Math.abs(persisted.amountUsdt - submitted.walletDebitUsdt) > 0.000001
               || Math.abs(persisted.discountUsdt - submitted.discountUsdt) > 0.000001) {
             throw new Error("E3_TRADEIN_READBACK_MISMATCH");
@@ -1516,6 +1534,7 @@ async function submitRemoteOrder(): Promise<void> {
           || persisted.activationStatus.toUpperCase() !== "WAITING_PAYMENT"
           || created.paymentStatus.toUpperCase() !== "PENDING"
           || created.orderStatus.toUpperCase() !== "PENDING_PAYMENT"))
+        || typeof persisted.amountUsdt !== "number"
         || Math.abs(persisted.amountUsdt - created.amountUsdt) > 0.000001
         || Math.abs(persisted.discountUsdt - created.discountUsdt) > 0.000001) {
       throw new Error("E20_CAPACITY_AVAILABLE_ORDER_READBACK_MISMATCH");
@@ -1603,6 +1622,7 @@ function reassertTradeinContext() {
 }
 
 onShow(() => {
+  if(promotionRoute.value){promotionCheckout.value?.show();return;}
   pageVisible = true;
   if (checkoutRouteInitialized && !activeCheckoutLoad) void resumeServerOrder();
   reassertTradeinContext();
@@ -1623,6 +1643,7 @@ onShow(() => {
   restoreReceiptRecovery();
 });
 onHide(() => {
+  if(promotionRoute.value){promotionCheckout.value?.hide();return;}
   pageVisible = false;
   invalidateCheckoutRoute();
   // 页面被别的页压住(前向导航)时,让浮动条在上面那页露出这张发票;回来 onShow 再收起。
