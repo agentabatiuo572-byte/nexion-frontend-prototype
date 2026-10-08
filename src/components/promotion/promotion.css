@@ -8,8 +8,8 @@
 .promotion-row:last-child { border-bottom:0; }
 .promotion-grow { flex:1; min-width:0; }
 .promotion-symbol { width:36px; flex:none; color:var(--v5-brand); font-size:24px; text-align:center; }
-.promotion-action { display:flex; align-items:center; justify-content:center; text-align:center; min-height:48px; padding:12px 18px; border-radius:999px; border:1px solid var(--v5-border); background:var(--v5-glass-bg,var(--v5-surface)); backdrop-filter:blur(12px) saturate(118%); box-shadow:inset 0 1px 1px var(--v5-glass-border,transparent); font-size:14px; font-weight:600; box-sizing:border-box; }
-.promotion-action.primary { --v5-liquid-tint:transparent; background:linear-gradient(145deg,rgba(255,255,255,.48),transparent 31%,transparent 72%,rgba(255,255,255,.22)),color-mix(in srgb,var(--v5-brand) 90%,transparent); color:var(--v5-on-brand); border-color:color-mix(in srgb,var(--v5-brand) 80%,white); }
+.promotion-action { display:flex; align-items:center; justify-content:center; text-align:center; min-height:48px; padding:12px 18px; border-radius:999px; border:0; background:var(--v5-glass-bg,var(--v5-surface)); backdrop-filter:blur(12px) saturate(118%); box-shadow:inset 0 1px 1px var(--v5-glass-border,transparent); font-size:14px; font-weight:600; box-sizing:border-box; }
+.promotion-action.primary { --v5-liquid-tint:transparent; background:linear-gradient(145deg,rgba(255,255,255,.48),transparent 31%,transparent 72%,rgba(255,255,255,.22)),color-mix(in srgb,var(--v5-brand) 90%,transparent); color:var(--v5-on-brand); }
 .promotion-action.primary .nx-liquid-glass[data-glass-strategy="solid"] .nx-liquid-optics { background:var(--v5-brand); }
 .promotion-entry .entry-event .promotion-action { min-height:48px; font-size:14px; padding:12px 18px; }
 .promotion-action:active { transform:scale(.975); opacity:.86; }

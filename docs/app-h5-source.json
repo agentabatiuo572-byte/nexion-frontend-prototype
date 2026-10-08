@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\growth-promotions-prd-20261007-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "bde7cc28bbea80691e088e4bea1c6030a77e9523",
-  "sourceRef": "bde7cc28bbea80691e088e4bea1c6030a77e9523",
+  "sourceHead": "5819ad63c3ad79f7af34d1ec286d240398a82c94",
+  "sourceRef": "5819ad63c3ad79f7af34d1ec286d240398a82c94",
   "sourceRefKind": "commit",
-  "sourceTree": "a52629d011e5ad4c4e924a5cb43f074dccd529b1",
+  "sourceTree": "5058a01f2de51c845be3c7eab0ae62e49a77129e",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -4780,10 +4780,10 @@
       "mode": "100644"
     },
     "scripts/r7-device-detail-runtime.mjs": {
-      "sourceBlob": "d920342fc9a9f6a4ea8557773cc9a890143c668f",
-      "sourceSha256": "b8f72a4a3e7f4a706e3cfcdd19726e3dfa2cdb606015bd78d20cae7fae96e123",
-      "targetBlob": "d920342fc9a9f6a4ea8557773cc9a890143c668f",
-      "targetSha256": "b8f72a4a3e7f4a706e3cfcdd19726e3dfa2cdb606015bd78d20cae7fae96e123",
+      "sourceBlob": "772e6915b017992e5727a1e0948ad57f89d363c5",
+      "sourceSha256": "7a3e1421c5c15b78e159dc629ca5f028c704e0ab07a4309e18f74f60e2faabbf",
+      "targetBlob": "772e6915b017992e5727a1e0948ad57f89d363c5",
+      "targetSha256": "7a3e1421c5c15b78e159dc629ca5f028c704e0ab07a4309e18f74f60e2faabbf",
       "mode": "100644"
     },
     "scripts/radio-group-keyboard-gate.mjs": {
@@ -8609,10 +8609,10 @@
       "mode": "100644"
     },
     "src/components/promotion/promotion.css": {
-      "sourceBlob": "4b9405f4a83640ade6dd6c233a7ac9d572f5db95",
-      "sourceSha256": "b0d363214d7ffd217104925102eef24cef52386f47c6d85d28c14b7fa9e2bb9a",
-      "targetBlob": "4b9405f4a83640ade6dd6c233a7ac9d572f5db95",
-      "targetSha256": "b0d363214d7ffd217104925102eef24cef52386f47c6d85d28c14b7fa9e2bb9a",
+      "sourceBlob": "5d0d962f3b8b3144a8f2fa127d9ff4fbddbcba9d",
+      "sourceSha256": "ed6c0a5a757b91de69fe37948f95d921dd135dd06647d931f453590c1331162e",
+      "targetBlob": "5d0d962f3b8b3144a8f2fa127d9ff4fbddbcba9d",
+      "targetSha256": "ed6c0a5a757b91de69fe37948f95d921dd135dd06647d931f453590c1331162e",
       "mode": "100644"
     },
     "src/components/promotion/referral-progress.behavior.test.ts": {

@@ -27,9 +27,10 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 let coldFleetReads = 0;
 let coldFleetFixture = false;
+let activeFleetFixture = false;
 let coldNavigation = 0;
 await installFormalProbeSession(page, { responseFor(url, request) {
-  if (!coldFleetFixture || request.method() !== "GET") return undefined;
+  if ((!coldFleetFixture && !activeFleetFixture) || request.method() !== "GET") return undefined;
   const authority = { sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true };
   if (url.pathname === "/api/devices/earnings") {
     coldFleetReads += 1;
@@ -46,7 +47,14 @@ await installFormalProbeSession(page, { responseFor(url, request) {
         capacityConfigKey: "pro-v2", capacitySubsidized: false, capacitySubsidyDays: 0,
         capacitySubsidyRemainingDays: 0, capacitySubsidyEndsAt: null, actualPaidUsdt: 0,
         cumulativeOutputUsdt: 0,
-      }],
+      }].flatMap(device => coldFleetFixture ? [device] : [
+        { ...device, id: 601, instanceNo: "R7-ACTIVE-601", name: "Fixture phone",
+          deviceType: "PHONE", productCode: "phone", status: "ACTIVE",
+          activatedAt: Date.now() - 86400000 },
+        { ...device, id: 602, instanceNo: "R7-ACTIVE-602", name: "StellarBox S1",
+          deviceType: "STELLARBOX_S1", productCode: "stellarbox-s1", status: "ACTIVE",
+          runtimeStatus: "ONLINE", activatedAt: Date.now() - 86400000 },
+      ]),
       capacitySchedule: { stageEarlyEnd: "3", stageMidEnd: "8", capacityFloorPct: "22",
         capacitySubsidyDays: "30", capacityBand1DeltaPct: "-4", capacityBand2DeltaPct: "-6",
         capacityBand3DeltaPct: "-23.7", capacityApplyToPhone: "false", capacityApplyToCloudShare: "false",
@@ -224,11 +232,13 @@ try {
             {
               ...createDevice("phone", "r7-ui-phone"),
               ...activePatch,
+              id: "601",
               onlineHeartbeatAt: uiNow - ONLINE_HEARTBEAT_TIMEOUT_MS - 1,
             },
             {
               ...createDevice("stellarbox-s1", "r7-ui-hardware"),
               ...activePatch,
+              id: "602",
               onlineHeartbeatAt: null,
             },
           ],
@@ -310,6 +320,9 @@ try {
     "stale phone row still advertised true-online",
   );
 
+  // Detail now refreshes its canonical fleet on every show; preserve these
+  // seeded UI instances through the actual GET rather than bypassing refresh.
+  activeFleetFixture = true;
   await home.locator(".nx-device-slot").first().click();
   await waitUntil(() => page.url().includes(`/pages/earn/device-detail?id=${encodeURIComponent(logic.activeIds[0])}`), "phone slot did not open instance detail");
   let detail = await resolveAppFrame(".nx-device-detail");
