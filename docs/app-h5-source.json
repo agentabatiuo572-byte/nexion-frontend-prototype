@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\growth-promotions-prd-20261007-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "b798526fe914ad5479fd5b15a01cbbebe261044c",
-  "sourceRef": "b798526fe914ad5479fd5b15a01cbbebe261044c",
+  "sourceHead": "415c49c81bb086836b15a7f4c66f88cb8b0de838",
+  "sourceRef": "415c49c81bb086836b15a7f4c66f88cb8b0de838",
   "sourceRefKind": "commit",
-  "sourceTree": "7071b23541d8aca72ac93f4611b45d1a15a5ed37",
+  "sourceTree": "0cf027a0f19b1b933bcc7514f7ffd535f83ad608",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -104,10 +104,10 @@
       "mode": "100644"
     },
     "PRD/NexGrid_APP端开发落地规格.md": {
-      "sourceBlob": "b00af2065f128d81b5031e733facad8199b7bdb4",
-      "sourceSha256": "e320926a4ddead2b5a39e3cbb9af1bd2296862e511c1a414b099bd89ea8935de",
-      "targetBlob": "b00af2065f128d81b5031e733facad8199b7bdb4",
-      "targetSha256": "e320926a4ddead2b5a39e3cbb9af1bd2296862e511c1a414b099bd89ea8935de",
+      "sourceBlob": "897a54860edf0580bcbe453b16cc17a3fec55ed2",
+      "sourceSha256": "48c8a102b00ee4bba31c534c1cb89e7088fa574312cb910b2bdac02ef78163a8",
+      "targetBlob": "897a54860edf0580bcbe453b16cc17a3fec55ed2",
+      "targetSha256": "48c8a102b00ee4bba31c534c1cb89e7088fa574312cb910b2bdac02ef78163a8",
       "mode": "100644"
     },
     "PRD/NexGrid_产品功能架构设计文档_v3.7.md": {
@@ -5473,10 +5473,10 @@
       "mode": "100644"
     },
     "scripts/verify-growth-promotions.ps1": {
-      "sourceBlob": "ad53fa36e19d061b2f08c3be336b318d07231700",
-      "sourceSha256": "728f8d9c08561de628d3937c9cd341465927eb792680b75d6760ebd3bb16d3f6",
-      "targetBlob": "ad53fa36e19d061b2f08c3be336b318d07231700",
-      "targetSha256": "728f8d9c08561de628d3937c9cd341465927eb792680b75d6760ebd3bb16d3f6",
+      "sourceBlob": "9709fe18300a18601c19bc99d4ba968de67073b3",
+      "sourceSha256": "a34fa878aea3fe55672090f6aa2ef93129ae971fed0dfd7ce11ea32ee5e6c0dc",
+      "targetBlob": "9709fe18300a18601c19bc99d4ba968de67073b3",
+      "targetSha256": "a34fa878aea3fe55672090f6aa2ef93129ae971fed0dfd7ce11ea32ee5e6c0dc",
       "mode": "100644"
     },
     "scripts/verify-h5-runtime.mjs": {
@@ -8560,10 +8560,10 @@
       "mode": "100644"
     },
     "src/components/promotion/promotion-checkout.vue": {
-      "sourceBlob": "7859eb24ce5340144f237277cfc908e46d4cbedd",
-      "sourceSha256": "6dd8053b4f544cb0145215cd0c9928168274b71448d55856664b0057a48ca558",
-      "targetBlob": "7859eb24ce5340144f237277cfc908e46d4cbedd",
-      "targetSha256": "6dd8053b4f544cb0145215cd0c9928168274b71448d55856664b0057a48ca558",
+      "sourceBlob": "277a0914572e9e5c464a93b6e131ae9c15b0bfe8",
+      "sourceSha256": "7cf9ef7bb288a82089bed9358bacf8bad0dc9bf64dd6f0d9cab57c86fc33698b",
+      "targetBlob": "277a0914572e9e5c464a93b6e131ae9c15b0bfe8",
+      "targetSha256": "7cf9ef7bb288a82089bed9358bacf8bad0dc9bf64dd6f0d9cab57c86fc33698b",
       "mode": "100644"
     },
     "src/components/promotion/promotion-entry.vue": {
@@ -8571,6 +8571,13 @@
       "sourceSha256": "8beebf07473d85520d0a5a9985c4d3f54c9f7e56dd9d6adb0915192dfa7d3bca",
       "targetBlob": "294ec6dc7b92f4aecc2d5a19a8f8399199ebb48f",
       "targetSha256": "8beebf07473d85520d0a5a9985c4d3f54c9f7e56dd9d6adb0915192dfa7d3bca",
+      "mode": "100644"
+    },
+    "src/components/promotion/promotion-leave.behavior.test.ts": {
+      "sourceBlob": "ad92d796f281493b23a0d5ef265749888c6e2bd1",
+      "sourceSha256": "487610195fffbd1c18654110763d264a5f4b5daf00f3fdc982aa13371b15bc55",
+      "targetBlob": "ad92d796f281493b23a0d5ef265749888c6e2bd1",
+      "targetSha256": "487610195fffbd1c18654110763d264a5f4b5daf00f3fdc982aa13371b15bc55",
       "mode": "100644"
     },
     "src/components/promotion/promotion-product.vue": {

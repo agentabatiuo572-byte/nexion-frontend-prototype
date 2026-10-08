@@ -97,14 +97,14 @@ const voucherId=ref(session.record.voucherId??null);const selectedVoucherName=co
 const items=computed(()=>order.value?.items??quote.value?.items??props.items);const rewards=computed(()=>order.value?.rewards??quote.value?.expectedRewards??[]);
 function disclosure(r:ExpectedReward):RewardDisclosure|null {const d=r.disclosure;return d&&[d.title,d.terms,d.refundTerms,d.benefitDescription].every(x=>x&&['zh','en','vi'].every(l=>typeof x[l as keyof LocalizedText]==='string'&&x[l as keyof LocalizedText].trim()))?d:null;}
 const disclosures=computed(()=>rewards.value.map(disclosure).filter((d):d is RewardDisclosure=>!!d));const completeTerms=computed(()=>rewards.value.length>0&&disclosures.value.length===rewards.value.length);
-let receivedAt:number|null=null;const quoteFresh=ref(false);let timer:ReturnType<typeof setInterval>|undefined;
+let receivedAt:number|null=null,promotionReceivedAt:number|null=null;const quoteFresh=ref(false);let timer:ReturnType<typeof setInterval>|undefined;
 function updateClock(){const now=readTrustedMonotonicNowMs();quoteFresh.value=!!quote.value&&receivedAt!==null&&now!==null&&projectServerNow(Date.parse(quote.value.serverTime),receivedAt,now)<Date.parse(quote.value.expiresAt);}
 const canCreate=computed(()=>!busy.value&&!unknown.value&&completeTerms.value&&(quoteFresh.value||session.retryOriginal)&&quote.value?.eligibility==='ELIGIBLE'&&session.canExecute(quote.value.items.length>1?'createBundle':'createOrder'));
 const canPay=computed(()=>!busy.value&&!unknown.value&&completeTerms.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&session.canExecute('payOrder'));
 const canCancel=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&session.canExecute('cancelOrder');});
 const canStartNew=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&!session.record.pending&&!!order.value&&['PAID','CANCELLED','EXPIRED','REFUNDED'].includes(order.value.paymentStatus);});
 async function run(action:()=>Promise<void>){if(busy.value||!current())return;busy.value=true;error.value='';try{await action();}catch(cause){if(current()){const message=asApiError(cause).message;error.value=message==='PROMOTION_NOT_ELIGIBLE_OR_UNAVAILABLE'?p.value.disabledNote:message.includes('CAPACITY_UNAVAILABLE')?p.value.capacityUnavailable:message==='PROMOTION_ACCOUNT_UNAVAILABLE'?p.value.accountUnavailable:message.includes('QUOTE_EXPIRED')||message.includes('QUOTE_INPUT_CHANGED')?p.value.quoteExpired:message.includes('INSUFFICIENT')?p.value.balanceInsufficient:p.value.errorNote;}}finally{if(current()){busy.value=false;revision.value++;}}}
-async function loadQuote(){if(openedOriginal||session.record.pending||session.record.order||!auth.isAuthenticated)return;await run(async()=>{session.invalidateQuote();revision.value++;const result=await promotionApi.quote(props.items,props.activityId||null,voucherId.value);if(!current())return;session.setQuote(result,voucherId.value);receivedAt=readTrustedMonotonicNowMs();revision.value++;updateClock();});}
+async function loadQuote(){if(openedOriginal||session.record.pending||session.record.order||!auth.isAuthenticated)return;await run(async()=>{session.invalidateQuote();revision.value++;const sampledAt=readTrustedMonotonicNowMs();const result=await promotionApi.quote(props.items,props.activityId||null,voucherId.value);if(!current())return;session.setQuote(result,voucherId.value);receivedAt=sampledAt;revision.value++;updateClock();});}
 async function chooseVoucher(){if(openedOriginal||busy.value||session.record.pending||order.value||items.value.length!==1)return;await voucher.refreshRemote();if(!current())return;const options=voucher.claimedUnused;uni.showActionSheet({itemList:[p.value.noVoucher,...options.map(v=>v.name)],success:result=>{if(!current())return;voucherId.value=result.tapIndex===0?null:options[result.tapIndex-1]?.id??null;void loadQuote();}});}
 async function createOrder(){if(!canCreate.value)return;await run(()=>session.create());}
 async function pay(){if(!canPay.value)return;await run(()=>session.pay());}
@@ -115,7 +115,14 @@ function viewOrder(){if(order.value)void navTo('/pages/store/order-detail?id='+e
 function signIn(){void navTo('/pages/login/login?return='+encodeURIComponent('/pages/store/checkout?activityId='+props.activityId+'&items='+encodeURIComponent(JSON.stringify(props.items))));}
 let leaveResolver:((allowed:boolean)=>void)|null=null;let asked='';let disposeGuard:(()=>void)|null=null;
 function finishLeave(allowed:boolean){leaveOpen.value=false;leaveResolver?.(allowed);leaveResolver=null;}
-function requestLeave():Promise<boolean>{const fingerprint=order.value?.orderNo??quote.value?.quoteId??'';if(!current()||busy.value||unknown.value||!rewards.value.length||!fingerprint||asked===fingerprint||order.value&&order.value.paymentStatus!=='PENDING'||!order.value&&!quoteFresh.value)return Promise.resolve(true);asked=fingerprint;leaveOpen.value=true;return new Promise(resolve=>{leaveResolver=resolve;});}
+function requestLeave():Promise<boolean>{
+  updateClock();
+  const now=readTrustedMonotonicNowMs(),sample=receivedAt!==null&&quote.value?{time:quote.value.serverTime,at:receivedAt}:promotionReceivedAt!==null&&promotion.value?{time:promotion.value.serverTime,at:promotionReceivedAt}:null;
+  const reserved=!!order.value&&order.value.paymentStatus==='PENDING'&&now!==null&&!!sample&&projectServerNow(Date.parse(sample.time),sample.at,now)<Date.parse(order.value.payBy??'');
+  const fingerprint=order.value?.orderNo??quote.value?.quoteId??'';
+  if(!current()||busy.value||unknown.value||!rewards.value.length||!fingerprint||asked===fingerprint||(order.value?!reserved:!quoteFresh.value||quote.value?.eligibility!=='ELIGIBLE'))return Promise.resolve(true);
+  asked=fingerprint;leaveOpen.value=true;return new Promise(resolve=>{leaveResolver=resolve;});
+}
 useDialogA11y(leaveOpen,'.promotion-leave',()=>finishLeave(false));
 // H5 browser history uses the router guard; no artificial history entry or popstate trap.
 // #ifdef H5
@@ -131,7 +138,7 @@ onMounted(async()=>{
   // Catalog and current campaign visibility cannot block an original order or
   // command receipt. Historical rewards always come from that receipt.
   if(auth.isAuthenticated)void refreshProductCatalog(true).catch(()=>{});
-  if(props.activityId)void promotionApi.get(props.activityId,auth.isAuthenticated).then(value=>{if(current())promotion.value=value;}).catch(()=>{});
+  if(props.activityId){const sampledAt=readTrustedMonotonicNowMs();void promotionApi.get(props.activityId,auth.isAuthenticated).then(value=>{if(current()){promotion.value=value;promotionReceivedAt=sampledAt;}}).catch(()=>{});}
   try {
     if(auth.isAuthenticated){
       if(props.orderNo&&!session.record.order&&!session.record.pending){
