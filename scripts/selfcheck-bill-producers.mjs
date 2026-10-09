@@ -438,7 +438,7 @@ function selftest() {
 
   // 🔴 样本量当判据,不只打印(独立审计实测:删掉 8 条注入里的 7 条,--selftest 仍 exit 0
   // 且输出「1 pass / 0 fail」,verify 照打 ok —— 那是一道「跑过了」而不是「在守」的门)。
-  const EXPECTED = 14; // 12 条注入 + 2 条负控
+  const EXPECTED = 16; // 12 条注入 + 4 条边界/负控
   check(`红测 样本量 = ${EXPECTED}(注入被删掉也必须响)`, pass + fail === EXPECTED, `实跑 ${pass + fail} 条`);
 }
 

@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\growth-promotions-prd-20261007-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "db93b0a65b04840286fc32c9a26685492702ff8f",
-  "sourceRef": "db93b0a65b04840286fc32c9a26685492702ff8f",
+  "sourceHead": "2801ef2176cfb8c7893e97152815c4583bb9b0f6",
+  "sourceRef": "2801ef2176cfb8c7893e97152815c4583bb9b0f6",
   "sourceRefKind": "commit",
-  "sourceTree": "03cced8296d3b27c35884b677360d9933d153f7c",
+  "sourceTree": "8c31b0d6ef83dd77e3a34cebba3be57c3619aa97",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -4920,10 +4920,10 @@
       "mode": "100644"
     },
     "scripts/selfcheck-bill-producers.mjs": {
-      "sourceBlob": "c629b9bbcf0f8f8eddd6673b10cb6bba3b6b9c02",
-      "sourceSha256": "a581ae897f7dcc22d33ffd11623d4db4b27900ba6891aa2c7d4cf19482d21251",
-      "targetBlob": "c629b9bbcf0f8f8eddd6673b10cb6bba3b6b9c02",
-      "targetSha256": "a581ae897f7dcc22d33ffd11623d4db4b27900ba6891aa2c7d4cf19482d21251",
+      "sourceBlob": "1fac413d7cc6b0b260ba982036c53d8ce6782e3d",
+      "sourceSha256": "81475ad474c77216c3f693f3d5771596e8088c05769c998eebf7d7603c41fec3",
+      "targetBlob": "1fac413d7cc6b0b260ba982036c53d8ce6782e3d",
+      "targetSha256": "81475ad474c77216c3f693f3d5771596e8088c05769c998eebf7d7603c41fec3",
       "mode": "100644"
     },
     "scripts/selfcheck-business-loop-liveness.mjs": {
@@ -12753,10 +12753,10 @@
       "mode": "100644"
     },
     "src/pages/earn/device-detail-capacity-explainer.behavior.test.ts": {
-      "sourceBlob": "8def9f6ca29edefbdd1805510cf26087cc655856",
-      "sourceSha256": "fb299de1f76202ac8fff2ad90e73066dabc2b2b1540a2d752472b8b777dd5fad",
-      "targetBlob": "8def9f6ca29edefbdd1805510cf26087cc655856",
-      "targetSha256": "fb299de1f76202ac8fff2ad90e73066dabc2b2b1540a2d752472b8b777dd5fad",
+      "sourceBlob": "37e2d6baacfd5b32518a31df00888dd74216b64b",
+      "sourceSha256": "58031b389a148c57de177e010b42af48deef2aea02efe1adb7e1859c7b120edf",
+      "targetBlob": "37e2d6baacfd5b32518a31df00888dd74216b64b",
+      "targetSha256": "58031b389a148c57de177e010b42af48deef2aea02efe1adb7e1859c7b120edf",
       "mode": "100644"
     },
     "src/pages/earn/device-detail-remote-fleet.contract.test.ts": {

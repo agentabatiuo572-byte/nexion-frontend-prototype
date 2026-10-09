@@ -91,14 +91,18 @@ function serverDevice(overrides: Partial<Device> = {}): Device {
 async function mount(copy: Messages, device = serverDevice()) {
   const navTo = vi.fn();
   const setPhoneRuntime = vi.fn();
-  const refreshRemoteFleet = vi.fn();
-  const app = Vue.reactive({ accountKey: "render-only", visibleDevices: [device], remoteFleetStatus: "ready",
-    remotePhoneBindingInvalid: false, setPhoneRuntime, refreshRemoteFleet, captureRemoteAccountRequest: vi.fn() });
+  const request = { accountKey: "render-only", epoch: 0 };
+  const refreshRemoteFleet = vi.fn().mockResolvedValue(true);
+  const onShow: Array<() => void> = [];
+  const app = Vue.reactive({ accountKey: request.accountKey, accountBindingEpoch: request.epoch,
+    visibleDevices: [device], remoteFleetStatus: "ready", remotePhoneBindingInvalid: false,
+    setPhoneRuntime, refreshRemoteFleet, captureRemoteAccountRequest: vi.fn(() => ({ ...request })) });
   const passthrough = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("view", slots.default?.()) });
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const sfc = (value: Component) => ({ __esModule: true, default: value });
   const dependencies: Record<string, unknown> = {
-    vue: Vue, "@dcloudio/uni-app": { onLoad: (callback: (query: object) => void) => callback({ id: device.id }), onShow: () => {} },
+    vue: Vue, "@dcloudio/uni-app": { onLoad: (callback: (query: object) => void) => callback({ id: device.id }),
+      onShow: (callback: () => void) => onShow.push(callback) },
     "@/components/app-chassis.vue": sfc(passthrough), "@/components/empty-state.vue": sfc(blank),
     "@/components/sub-page-header.vue": sfc(blank), "@/components/home/device-slot.vue": sfc(blank),
     "@/store/app": { useApp: () => app },
@@ -123,7 +127,13 @@ async function mount(copy: Messages, device = serverDevice()) {
   const instance = renderer.createApp(component(source, "device-detail-explainer", dependencies));
   instance.mount(root);
   unmounts.push(() => instance.unmount());
+  onShow.forEach(callback => callback());
+  await Promise.resolve();
+  await Promise.resolve();
   await Vue.nextTick();
+  expect(refreshRemoteFleet).toHaveBeenCalledExactlyOnceWith(request);
+  // The page's initial authority read is required; sheet interactions must not reread it.
+  refreshRemoteFleet.mockClear();
   return { root, device, navTo, setPhoneRuntime, refreshRemoteFleet };
 }
 
