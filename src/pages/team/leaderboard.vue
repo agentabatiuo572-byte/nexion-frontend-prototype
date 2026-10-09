@@ -36,8 +36,8 @@
           <view class="flex items-start justify-between">
             <view>
               <text class="block font-mono-tabular" :style="heroCapStyle('var(--v5-warning)')">{{ t.leaderboard.pool.label }} · {{ t.leaderboard.periods[period] }}</text>
-              <text class="block font-display tabular-nums" :style="heroBigStyle">{{ fmtCompactUSD(prize.poolUSD) }}</text>
-              <text v-if="prize.poolUSD > 0" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '6px' }">{{ payoutToText }}</text>
+              <text class="block font-display tabular-nums" :style="heroBigStyle">{{ snapshotAvailable ? fmtCompactUSD(prize.poolUSD) : '—' }}</text>
+              <text v-if="!paused && prize.poolUSD > 0" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '6px' }">{{ payoutToText }}</text>
             </view>
             <view class="rounded-2xl grid place-items-center" :style="heroIconStyle">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
@@ -52,6 +52,16 @@
         <!-- Period tabs -->
         <GlassSegments class="nx-leader-periods" :label="t.leaderboard.pageTitle" :model-value="period" @select="selectPeriod" :options="periodOptions" />
         <template v-if="!remoteApiEnabled || remoteState === 'ready'">
+
+        <view v-if="paused" role="status" aria-live="polite" class="text-center" style="padding: 32px 20px">
+          <text class="block" :style="{ color: 'var(--v5-ink)', fontSize: '15px', fontWeight: 600 }">{{ t.leaderboard.pausedTitle }}</text>
+          <text class="block" :style="{ color: 'var(--v5-ink-2)', fontSize: '13px', marginTop: '10px' }">{{ t.leaderboard.pausedBody }}</text>
+          <text class="block" :style="{ color: 'var(--v5-ink-2)', fontSize: '12px', marginTop: '10px' }">{{ snapshotAvailable ? `${t.leaderboard.frozenAt} · ${pauseCapturedAt}` : t.leaderboard.snapshotUnavailable }}</text>
+          <view class="inline-flex items-center justify-center active:opacity-70" style="margin-top: 14px; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--v5-brand)" role="button" tabindex="0" @click="loadRemote()" @keydown.enter.prevent="loadRemote()" @keydown.space.prevent="loadRemote()">
+            <text :style="{ color: 'var(--v5-on-brand)', fontSize: '13px', fontWeight: 600 }">{{ t.leaderboard.retry }}</text>
+          </view>
+        </view>
+        <template v-else>
 
         <!-- My rank — transparent stat row on the page floor (was a second
              glowing hero stacked right under the prize hero). -->
@@ -152,6 +162,7 @@
         <!-- footer note -->
         <text class="block text-center" :style="footerNoteStyle">{{ period === 'all' ? t.leaderboard.noteAllTime : t.leaderboard.note }}</text>
         </template>
+        </template>
       </view>
     </view>
   </AppChassis>
@@ -194,6 +205,9 @@ watch(() => app.accountKey, () => {
 });
 
 const rows = computed(() => remoteApiEnabled ? (remoteSnapshot.value?.period === period.value ? remoteSnapshot.value.rows : []) : LEADERBOARD[period.value]);
+const paused = computed(() => remoteApiEnabled && remoteSnapshot.value?.period === period.value && remoteSnapshot.value.paused === true);
+const snapshotAvailable = computed(() => !paused.value || (remoteSnapshot.value?.snapshotState === "FROZEN" && remoteSnapshot.value?.dataAvailable === true));
+const pauseCapturedAt = computed(() => remoteSnapshot.value?.pauseCapturedAt ?? "");
 const prize = computed(() => remoteApiEnabled ? { poolUSD: remoteSnapshot.value?.poolUsd ?? 0,
   topN: remoteSnapshot.value?.topN ?? 0, resetsIn: null as string | null, label: period.value }
   // Fixture rows can support layout preview, but client fixtures must never invent a cash pool.
@@ -247,9 +261,12 @@ async function loadRemote(page = 1, append = false) {
     if (append) {
       const previous = remoteSnapshot.value;
       const expectedFirstRank = previous ? previous.rows.length + 1 : -1;
-      if (!previous || previous.period !== requestedPeriod || snapshot.page !== page
+      if (!previous || previous.period !== requestedPeriod || snapshot.period !== requestedPeriod || snapshot.page !== page
         || snapshot.snapshotAt !== previous.snapshotAt
         || snapshot.snapshotVersion !== previous.snapshotVersion
+        || snapshot.paused !== previous.paused || snapshot.snapshotState !== previous.snapshotState
+        || snapshot.dataAvailable !== previous.dataAvailable
+        || snapshot.pauseSnapshotId !== previous.pauseSnapshotId || snapshot.pauseCapturedAt !== previous.pauseCapturedAt
         || snapshot.pageSize !== PAGE_SIZE || snapshot.rows[0]?.rank !== expectedFirstRank) {
         throw new Error("TEAM_LEADERBOARD_PAGE_SEQUENCE_INVALID");
       }

@@ -57,7 +57,8 @@ const EXPECTED_TEMPLATE_DIFFERENCES = [
 const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "achievements.vue": "e7cfef2560a4a60747043f2a4d76b875a0faad0383b5cbcf1fb15deeab98e60f",
   "devices.vue": "227aa03a6c8ba621deb6d5e69fa1672cd80e918fc18cf37deeac446818adb125",
-  "goals.vue": "43658431af1e6739fa4a269c4758f7a432b9e74dd33fa031f8fec5cb408e0a60",
+  // Reviewed #223: wait for the goal editor snapshot and require a matching recommendation target.
+  "goals.vue": "d1b25b9400d00972fce6b36636c2874be231a7b9e5be1b0c9702091ef72ab74d",
   "help.vue": "3eeec6995d290e03d6a008b83f3a2ba8365f702b6c59d3acb306eab055437d7d",
   "language.vue": "147e4114cec9c44704a643c833d582e043565ee17240fe474622f656ae104da9",
   // Owner requested removal of the unsolicited overview withdrawal warning.
@@ -127,6 +128,24 @@ function quickKeys(section: string): string[] {
 }
 
 describe("Me page 5174 normal-state UI parity", () => {
+  it("pins the approved goal authority gates and detects guard or normal-layout mutations", () => {
+    if (!prototypeReference) throw new Error("Goal authority fingerprint requires the approved prototype reference");
+    const goals = readFileSync(new URL("./goals.vue", import.meta.url), "utf8");
+    const prototype = prototypeReference.read("src/pages/me/goals.vue");
+    const digest = (value: string) => createHash("sha256").update(block(value, "template")).update("\0").update(block(prototype, "template")).digest("hex");
+    expect(goals).toContain('v-if="editorHasSnapshot" class="mx-4" :style="setterWrapStyle"');
+    expect(goals).toContain("goalsStore.recommendation.targetUsdt === target");
+    const expected = EXPECTED_TEMPLATE_PAIR_SHA256["goals.vue"];
+    expect(digest(goals)).toBe(expected);
+    for (const changed of [
+      goals.replace('v-if="editorHasSnapshot"', 'v-if="true"'),
+      goals.replace(" && goalsStore.recommendation.targetUsdt === target", ""),
+      goals.replace('class="mx-4" :style="setterWrapStyle"', 'class="mx-8" :style="setterWrapStyle"'),
+    ]) {
+      expect(changed).not.toBe(goals);
+      expect(digest(changed)).not.toBe(expected);
+    }
+  });
   it('includes content after nested template slots in the visual fingerprint', () => {
     const markup = '<template><view><template #option><text>label</text></template><text>tail</text></view></template>';
     expect(fullTemplate(markup)).toBe(markup);

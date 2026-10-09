@@ -52,6 +52,7 @@
         <text>{{ backLabel }}</text>
       </view>
     </view>
+    <CapacityExplainerSheet />
   </AppChassis>
 </template>
 
@@ -62,6 +63,7 @@ import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import DeviceCardPC from "@/components/earn/device-card-pc.vue";
+import CapacityExplainerSheet from "@/components/earn/capacity-explainer-sheet.vue";
 import { navBack, takeNavigationQuery } from "@/lib/route";
 import { deviceDetailBackHref } from "@/lib/device-detail-navigation";
 import { useApp } from "@/store/app";

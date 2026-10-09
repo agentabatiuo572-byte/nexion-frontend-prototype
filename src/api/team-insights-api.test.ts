@@ -19,6 +19,58 @@ function commissionEvent(id: string) {
 }
 
 describe("team unilevel API", () => {
+  it("binds leaderboard response period to the requested period", async () => {
+    const request = vi.fn().mockResolvedValue({ source: "server", serverCanonical: true,
+      sourceEnvironment: "PRODUCTION", runId: "", period: "month", page: 1, pageSize: 20,
+      totalRows: 0, rows: [], myRank: null, gapToNext: 0, poolUsd: 900, topN: 0,
+      generatedAt: "2026-10-08T00:00:00Z" });
+    await expect(createTeamInsightsApi({ request } as unknown as ApiClient).leaderboard("week"))
+      .rejects.toMatchObject({ message: "TEAM_INSIGHTS_RESPONSE_INVALID" });
+  });
+  it("cannot confirm a frozen projection whose cursor time differs from capture time", async () => {
+    const request = vi.fn().mockResolvedValue({ source: "server", serverCanonical: true,
+      sourceEnvironment: "PRODUCTION", runId: "", period: "week", page: 1, pageSize: 20,
+      totalRows: 0, rows: [], myRank: null, gapToNext: 0, poolUsd: 900, topN: 0,
+      generatedAt: "2026-10-08T00:00:00Z", snapshotAt: "2026-10-09T00:00:00Z",
+      paused: true, snapshotState: "FROZEN", dataAvailable: true,
+      pauseSnapshotId: "pause-fixture", pauseCapturedAt: "2026-10-08T00:00:00Z",
+      snapshotVersion: "a".repeat(64) });
+    await expect(createTeamInsightsApi({ request } as unknown as ApiClient).leaderboard("week"))
+      .resolves.toMatchObject({ snapshotState: "UNAVAILABLE", dataAvailable: false });
+  });
+  it("distinguishes a legacy pause without facts from a durable frozen empty board", async () => {
+    const snapshot = {
+      source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+      period: "week", page: 1, pageSize: 20, totalRows: 0, rows: [], myRank: null,
+      gapToNext: 0, poolUsd: 0, topN: 0, generatedAt: "2026-10-08T00:00:00Z", paused: true,
+    };
+    const request = vi.fn().mockResolvedValue(snapshot);
+    const api = createTeamInsightsApi({ request } as unknown as ApiClient);
+    await expect(api.leaderboard("week")).resolves.toMatchObject({ snapshotState: "UNAVAILABLE", dataAvailable: false });
+    request.mockResolvedValue({ ...snapshot, snapshotState: "FROZEN", dataAvailable: true,
+      pauseSnapshotId: "pause-fixture", pauseCapturedAt: "2026-10-08T00:00:00Z",
+      snapshotAt: "2026-10-08T00:00:00Z", snapshotVersion: "a".repeat(64) });
+    await expect(api.leaderboard("week")).resolves.toMatchObject({ snapshotState: "FROZEN", dataAvailable: true,
+      pauseSnapshotId: "pause-fixture" });
+    request.mockResolvedValue({ ...snapshot, snapshotState: "FROZEN", dataAvailable: true });
+    await expect(api.leaderboard("week")).resolves.toMatchObject({ snapshotState: "UNAVAILABLE", dataAvailable: false });
+  });
+  it("preserves an explicit pause and accepts older snapshots without the additive field", async () => {
+    const snapshot = {
+      source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+      period: "week", page: 1, pageSize: 20, totalRows: 0, rows: [], myRank: null,
+      gapToNext: 0, poolUsd: 0, topN: 0, generatedAt: "2026-10-08T00:00:00Z",
+    };
+    const request = vi.fn().mockResolvedValue({ ...snapshot, paused: true });
+    const api = createTeamInsightsApi({ request } as unknown as ApiClient);
+    await expect(api.leaderboard("week")).resolves.toMatchObject({ paused: true });
+    request.mockResolvedValue({ ...snapshot, paused: false });
+    await expect(api.leaderboard("week")).resolves.toMatchObject({ paused: false });
+    request.mockResolvedValue(snapshot);
+    await expect(api.leaderboard("week")).resolves.toMatchObject({ paused: false });
+    request.mockResolvedValue({ ...snapshot, paused: "on" });
+    await expect(api.leaderboard("week")).rejects.toMatchObject({ message: "TEAM_INSIGHTS_RESPONSE_INVALID" });
+  });
   it("requests and validates a concrete leaderboard page", async () => {
     const request = vi.fn().mockResolvedValue({
       source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",

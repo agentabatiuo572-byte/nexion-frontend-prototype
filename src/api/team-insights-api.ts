@@ -9,6 +9,12 @@ export interface TeamProvenance {
   source: "server"; sourceEnvironment: "PRODUCTION" | "SANDBOX"; runId: string; serverCanonical: true;
 }
 export interface TeamLeaderboardSnapshot extends TeamProvenance {
+  paused?: boolean;
+  snapshotState?: "LIVE" | "FROZEN" | "UNAVAILABLE";
+  dataAvailable?: boolean;
+  pauseSnapshotId?: string;
+  pauseCapturedAt?: string;
+  snapshotUnavailableReason?: string;
   period: LeaderPeriod; rows: LeaderEntry[]; myRank: number | null; gapToNext: number;
   poolUsd: number; topN: number; page: number; pageSize: number; totalRows: number; generatedAt: string; snapshotAt: string | null; snapshotVersion: string | null;
 }
@@ -65,16 +71,26 @@ function provenance(source: Record<string,unknown>, mode: ApiEnvironment): TeamP
 function snapshotAt(source: Record<string, unknown>): string | null { if (source.snapshotAt === undefined || source.snapshotAt === null) return null; const value = text(source.snapshotAt); return Number.isFinite(Date.parse(value)) ? value : invalid(); }
 function snapshotVersion(source: Record<string, unknown>): string | null { if (source.snapshotVersion === undefined || source.snapshotVersion === null) return null; const value = text(source.snapshotVersion); return /^[a-f0-9]{64}$/.test(value) ? value : invalid(); }
 
-function leaderboard(value: unknown, mode: ApiEnvironment): TeamLeaderboardSnapshot {
+function leaderboard(value: unknown, mode: ApiEnvironment, requestedPeriod: LeaderPeriod): TeamLeaderboardSnapshot {
   const source=row(value); const proof=provenance(source, mode); const period=source.period;
-  if((period!=="today"&&period!=="week"&&period!=="month"&&period!=="all")||!Array.isArray(source.rows)) return invalid();
+  if(period!==requestedPeriod||(period!=="today"&&period!=="week"&&period!=="month"&&period!=="all")||!Array.isArray(source.rows)) return invalid();
   const page=num(source.page,true);const pageSize=num(source.pageSize,true);const totalRows=num(source.totalRows,true);
   if(page<1||pageSize<1||pageSize>100||source.rows.length>pageSize||totalRows<source.rows.length) return invalid();
   const firstRank=(page-1)*pageSize+1;const seenRanks=new Set<number>();
   const rows=source.rows.map((item,index):LeaderEntry=>{const v=row(item);const rank=num(v.rank,true);const vRank=num(v.vRank,true);if(rank!==firstRank+index||rank>totalRows||seenRanks.has(rank)||vRank>12||typeof v.handle!=="string"||typeof v.flag!=="string"||typeof v.cc!=="string"||typeof v.hasDevice!=="boolean") return invalid();seenRanks.add(rank);return {rank,handle:v.handle,flag:v.flag,cc:v.cc,directs:num(v.directs,true),teamSize:num(v.teamSize,true),earnedUSDT:num(v.earnedUSDT),delta:typeof v.delta==="number"&&Number.isSafeInteger(v.delta)?v.delta:invalid(),vRank,hasDevice:v.hasDevice};});
   if((firstRank>totalRows&&rows.length!==0)||(firstRank<=totalRows&&rows.length!==Math.min(pageSize,totalRows-firstRank+1))) return invalid();
   const generatedAt=text(source.generatedAt);if(!Number.isFinite(Date.parse(generatedAt))) return invalid();
-  const myRank=source.myRank===null?null:num(source.myRank,true);if(myRank!==null&&(myRank<1||myRank>totalRows)) return invalid();return {...proof,period,rows,myRank,gapToNext:num(source.gapToNext),poolUsd:num(source.poolUsd),topN:num(source.topN,true),page,pageSize,totalRows,generatedAt,snapshotAt:snapshotAt(source),snapshotVersion:snapshotVersion(source)};
+  const paused=source.paused===undefined?false:typeof source.paused==="boolean"?source.paused:invalid();
+  if (source.snapshotState !== undefined && !["LIVE", "FROZEN", "UNAVAILABLE"].includes(String(source.snapshotState))) return invalid();
+  if (source.dataAvailable !== undefined && typeof source.dataAvailable !== "boolean") return invalid();
+  const pauseSnapshotId=typeof source.pauseSnapshotId==="string"?source.pauseSnapshotId:"";
+  const pauseCapturedAt=typeof source.pauseCapturedAt==="string"?source.pauseCapturedAt:"";
+  const frozen=paused&&source.snapshotState==="FROZEN"&&source.dataAvailable===true&&!!pauseSnapshotId
+    &&Number.isFinite(Date.parse(pauseCapturedAt))&&snapshotAt(source)===pauseCapturedAt&&snapshotVersion(source)!==null;
+  const snapshotState=paused?(frozen?"FROZEN":"UNAVAILABLE"):"LIVE";
+  const dataAvailable=!paused||frozen;
+  const snapshotUnavailableReason=typeof source.snapshotUnavailableReason==="string"?source.snapshotUnavailableReason:"";
+  const myRank=source.myRank===null?null:num(source.myRank,true);if(myRank!==null&&(myRank<1||myRank>totalRows)) return invalid();return {...proof,period,rows,myRank,paused,snapshotState,dataAvailable,pauseSnapshotId,pauseCapturedAt,snapshotUnavailableReason,gapToNext:num(source.gapToNext),poolUsd:num(source.poolUsd),topN:num(source.topN,true),page,pageSize,totalRows,generatedAt,snapshotAt:snapshotAt(source),snapshotVersion:snapshotVersion(source)};
 }
 
 const KINDS=new Set(["direct_purchase","direct_device_earning","unilevel","binary","peer","cultivation","leadership","genesis"]);
@@ -234,4 +250,4 @@ function pool(value: unknown, mode: ApiEnvironment): TeamLeadershipPoolSnapshot 
 }
 
 function validPaging(page:number,pageSize:number){return Number.isSafeInteger(page)&&page>=1&&Number.isSafeInteger(pageSize)&&pageSize>=1&&pageSize<=100;}
-export function createTeamInsightsApi(client: ApiClient, mode: ApiEnvironment = "prod"): TeamInsightsApi {const root="/api/app/team/insights";const snap=(value:string|null|undefined)=>value?`&snapshotAt=${encodeURIComponent(value)}`:"";const version=(value:string|null|undefined)=>value?`&snapshotVersion=${encodeURIComponent(value)}`:"";return {leaderboard:async(period,page=1,pageSize=100,snapshotAt=null,snapshotVersion=null)=>{if(!validPaging(page,pageSize))return invalid();return leaderboard(await client.request<unknown>({path:`${root}/leaderboard?period=${encodeURIComponent(period)}&page=${page}&pageSize=${pageSize}${snap(snapshotAt)}${version(snapshotVersion)}`}), mode);},commissions:async(page=1,pageSize=20,snapshotAt=null)=>{if(!validPaging(page,pageSize))return invalid();return commissions(await client.request<unknown>({path:`${root}/commissions?page=${page}&pageSize=${pageSize}${snap(snapshotAt)}`}), mode);},unilevel:async(period,page=1,pageSize=20,snapshotAt=null,filter="all")=>{if(!validPaging(page,pageSize))return invalid();return unilevel(await client.request<unknown>({path:`${root}/unilevel?period=${encodeURIComponent(period)}&page=${page}&pageSize=${pageSize}${snap(snapshotAt)}&schemaVersion=2&filter=${filter}`}), mode, filter);},leadershipPool:async()=>pool(await client.request<unknown>({path:`${root}/leadership-pool`}), mode)};}
+export function createTeamInsightsApi(client: ApiClient, mode: ApiEnvironment = "prod"): TeamInsightsApi {const root="/api/app/team/insights";const snap=(value:string|null|undefined)=>value?`&snapshotAt=${encodeURIComponent(value)}`:"";const version=(value:string|null|undefined)=>value?`&snapshotVersion=${encodeURIComponent(value)}`:"";return {leaderboard:async(period,page=1,pageSize=100,snapshotAt=null,snapshotVersion=null)=>{if(!validPaging(page,pageSize))return invalid();return leaderboard(await client.request<unknown>({path:`${root}/leaderboard?period=${encodeURIComponent(period)}&page=${page}&pageSize=${pageSize}${snap(snapshotAt)}${version(snapshotVersion)}`}), mode, period);},commissions:async(page=1,pageSize=20,snapshotAt=null)=>{if(!validPaging(page,pageSize))return invalid();return commissions(await client.request<unknown>({path:`${root}/commissions?page=${page}&pageSize=${pageSize}${snap(snapshotAt)}`}), mode);},unilevel:async(period,page=1,pageSize=20,snapshotAt=null,filter="all")=>{if(!validPaging(page,pageSize))return invalid();return unilevel(await client.request<unknown>({path:`${root}/unilevel?period=${encodeURIComponent(period)}&page=${page}&pageSize=${pageSize}${snap(snapshotAt)}&schemaVersion=2&filter=${filter}`}), mode, filter);},leadershipPool:async()=>pool(await client.request<unknown>({path:`${root}/leadership-pool`}), mode)};}

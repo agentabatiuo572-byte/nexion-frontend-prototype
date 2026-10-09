@@ -135,6 +135,7 @@ for (const messages of [zh, en, vietnamese]) {
     expect(controls(h.root, "nx-dep-credit-paused-note")).toHaveLength(creditEnabled === true ? 0 : 1);
     if (creditEnabled !== true) expect(h.text()).toContain(messages.topupChrome.creditPausedNote);
     expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(1);
+    expect(h.text()).toContain(messages.topupChrome.depositAddrNote);
     expect(h.text()).toContain(messages.topupChrome.amountAtSenderNote);
     expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(1);
     expect(h.text()).toContain("BEP20");
@@ -144,14 +145,50 @@ for (const messages of [zh, en, vietnamese]) {
   });
 }
 
-test("a disabled address has no QR or copy entry", async () => {
-  const h = await pane({ enabled: false, creditEnabled: false, network: "BEP20" });
-  expect(h.text()).toContain(zh.topupChrome.allNetworksPaused);
-  expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(0);
-  expect(controls(h.root, "nx-dep-qr-image")).toHaveLength(0);
-  expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(0);
-  expect(controls(h.root, "nx-dep-credit-paused-note")).toHaveLength(0);
-});
+for (const messages of [zh, en, vietnamese]) {
+  test.each([undefined, address.address])("a disabled address %s has no address promise, QR or transfer instructions", async retainedAddress => {
+    const h = await pane({ enabled: false, creditEnabled: false, network: "BEP20", address: retainedAddress }, [], messages);
+    expect(h.text()).toContain(messages.topupChrome.allNetworksPaused);
+    expect(h.text()).not.toContain(messages.topupChrome.depositAddrNote);
+    expect(h.text()).not.toContain(messages.topupChrome.scanOrCopy);
+    expect(h.text()).not.toContain(messages.topupChrome.amountAtSenderNote);
+    expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(0);
+    expect(controls(h.root, "nx-dep-qr-image")).toHaveLength(0);
+    expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(0);
+    expect(controls(h.root, "nx-dep-credit-paused-note")).toHaveLength(0);
+  });
+
+  test.each([undefined, ""])("an enabled response without a usable address %s shows a recoverable error without an address promise", async missingAddress => {
+    const h = await pane({ ...address, address: missingAddress, creditEnabled: true }, [], messages);
+    expect(h.text()).toContain(messages.topupChrome.addrLoadFailed);
+    expect(h.text()).not.toContain(messages.topupChrome.depositAddrNote);
+    expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(0);
+    expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(0);
+    expect(controls(h.root, "nx-dep-retry-cta")).toHaveLength(1);
+  });
+
+  test("loading and failed address requests withhold the address promise until retry returns a usable address", async () => {
+    let rejectAddress!: (reason: Error) => void;
+    const pending = new Promise<object>((_resolve, reject) => { rejectAddress = reject; });
+    const h = await pane(pending, [], messages);
+    expect((h.state.phase as Vue.Ref<string>).value).toBe("loading");
+    expect(h.text()).not.toContain(messages.topupChrome.depositAddrNote);
+    expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(0);
+    rejectAddress(new Error("address unavailable"));
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+    await Vue.nextTick();
+    expect(h.text()).toContain(messages.topupChrome.addrLoadFailed);
+    expect(h.text()).not.toContain(messages.topupChrome.depositAddrNote);
+    h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address")
+      ? { ...address, creditEnabled: false } : []);
+    (controls(h.root, "nx-dep-retry-cta")[0].props.onClick as () => void)();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+    await Vue.nextTick();
+    expect(h.text()).toContain(messages.topupChrome.depositAddrNote);
+    expect(h.text()).toContain(messages.topupChrome.creditPausedNote);
+    expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(1);
+  });
+}
 
 test("a risk record with no historical credit does not substitute its gross transfer amount", async () => {
   const h = await pane({ ...address, creditEnabled: true }, [{ ...rows[4], creditedUsdt: 0 }]);

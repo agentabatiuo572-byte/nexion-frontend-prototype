@@ -229,13 +229,16 @@ interface QuickSection {
 const profileName = computed(() => nexGridBrandText(profile.displayName));
 const orderCount = computed(() => orders.orders.length);
 const localeUpper = computed(() => locale.code.toUpperCase());
+const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"
+  || (trial.authorityStatus === "loading" && trial.authorityServerState !== null));
+const slotsReadable = computed(() => !remoteApiEnabled || (app.remoteFleetHasSnapshot && trialReady.value));
 const activeCount = computed(() => app.activeSlotCount);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
 const slotsUsed = computed(() => activeCount.value + trialSlot.value);
 const emptySlots = computed(() => Math.max(0, app.slotCap - slotsUsed.value));
-const deviceSectionCount = computed(() => fmt(t.value.myDevices.sectionCount, { n: slotsUsed.value, total: app.slotCap }));
-const activatedLabel = computed(() => fmt(t.value.myDevices.activatedLabel, { n: activeCount.value }));
-const emptySlotsLabel = computed(() => fmt(openSlotsTemplate(t.value.myDevices.emptySlots, emptySlots.value), { n: emptySlots.value }));
+const deviceSectionCount = computed(() => slotsReadable.value ? fmt(t.value.myDevices.sectionCount, { n: slotsUsed.value, total: app.slotCap }) : "—");
+const activatedLabel = computed(() => slotsReadable.value ? fmt(t.value.myDevices.activatedLabel, { n: activeCount.value }) : "—");
+const emptySlotsLabel = computed(() => slotsReadable.value ? fmt(openSlotsTemplate(t.value.myDevices.emptySlots, emptySlots.value), { n: emptySlots.value }) : "—");
 const deviceOrdersMeta = computed(() => fmt(orderCount.value === 1 ? t.value.me.deviceOrdersMetaOne : t.value.me.deviceOrdersMeta, { n: orderCount.value }));
 const rankValue = computed(() => remoteApiEnabled && !vrank.remoteReady ? "—" : `V${vrank.myRank}`);
 const themeModeLabel = computed(() =>

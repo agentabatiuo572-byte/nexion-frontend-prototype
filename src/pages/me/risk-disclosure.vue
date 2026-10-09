@@ -150,7 +150,7 @@ const displayLanguage = computed(() => disclosure.value
   : null);
 const languageFallback = computed(() => displayLanguage.value?.fallback ?? false);
 const disclosureContext = computed(() => disclosure.value ? fmt(w.value.publishedContext, {
-  jurisdiction: disclosure.value.jurisdictionName,
+  jurisdiction: disclosure.value.jurisdiction === "CN" ? w.value.mainlandChina : disclosure.value.jurisdictionName,
   version: disclosure.value.version,
   effectiveDate: disclosure.value.effectiveDate,
 }) : "");

@@ -12,10 +12,10 @@
 
   TickerNumber (source) → plain reactive values (interval re-render ramps them;
   uni has no tween component). Long-press uses touchstart/touchend (uni has no
-  pointer events). onPressStart/End also clear on touchcancel.
+  pointer events). Movement, touchcancel and unmount cancel the pending hold.
 -->
 <template>
-  <view class="nx-device-card select-none" :style="rowStyle" :data-device-id="device.id" :data-online="deviceOnline ? 'true' : 'false'" @touchstart="onPressStart" @touchend="onPressEnd" @touchcancel="onPressEnd">
+  <view class="nx-device-card select-none" :style="rowStyle" :data-device-id="device.id" :data-online="deviceOnline ? 'true' : 'false'" @touchstart="onPressStart" @touchmove="onPressEnd" @touchend="onPressEnd" @touchcancel="onPressEnd">
     <!-- Long-press quick menu (full-viewport bottom sheet).
          🔴 z 790 = 业务半屏带(秩序表单源见 captcha-slider.vue)。原值 200 低于里程碑
          庆祝(780),菜单开着时庆祝盖在上面并吞掉「以旧换新 / 统计」的点击。 -->
@@ -434,6 +434,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   if (timer) clearInterval(timer);
+  onPressEnd();
   if (typeof document !== "undefined") document.removeEventListener("keydown", onDocumentMenuKeydown, true);
 });
 
@@ -802,6 +803,7 @@ function onPressStart() {
   if (longPress) clearTimeout(longPress);
   pressFiredMenu.value = false;
   longPress = setTimeout(() => {
+    longPress = null;
     openMenu();
     pressFiredMenu.value = true;
   }, 480);

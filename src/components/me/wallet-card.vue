@@ -42,7 +42,7 @@
         </view>
 
         <!-- Empty-slot conversion hook -->
-        <view v-if="emptySlots > 0" class="grid items-center nx-wallet-slot-block" :style="slotBlockStyle">
+        <view v-if="slotsReadable && emptySlots > 0" class="grid items-center nx-wallet-slot-block" :style="slotBlockStyle">
           <view style="min-width: 0">
             <view class="flex items-center" style="gap: 6px">
               <view aria-hidden :style="pulseDotStyle" />
@@ -63,11 +63,12 @@ import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt, openSlotsTemplate } from "@/i18n/format";
 import { useApp } from "@/store/app";
-import { earningsReleaseSnapshot } from "@/store/earning-release";
+import { earningsReleaseHasSnapshot, earningsReleaseSnapshot, earningsReleaseStatus } from "@/store/earning-release";
 import { useBills } from "@/store/bills";
 import { useMarket } from "@/store/market";
-import { fundsServerEnabled } from "@/api/runtime";
-import { trialReservesSlotNow } from "@/store/free-trial";
+import { fundsServerEnabled, remoteApiEnabled } from "@/api/runtime";
+import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
+import { trialReservesSlotNow, useFreeTrial } from "@/store/free-trial";
 import SectionHeader from "@/components/me/section-header.vue";
 import WalletActionBtn from "@/components/me/wallet-action-btn.vue";
 
@@ -75,6 +76,16 @@ const t = useT();
 const app = useApp();
 const bills = useBills();
 const market = useMarket();
+const trial = useFreeTrial();
+const fundsReadable = computed(() => remoteAuthorityStatus({
+  remoteApiEnabled,
+  hasSnapshot: app.remoteFleetHasSnapshot,
+  hasError: app.remoteFleetStatus === "error",
+}) === "ready");
+const usdtBalanceReadable = computed(() => fundsReadable.value || app.remoteWalletReceiptHasSnapshot);
+const bucketsReadable = computed(() => !remoteApiEnabled || (earningsReleaseHasSnapshot.value
+  && earningsReleaseSnapshot.value?.serverCanonical === true
+  && (earningsReleaseStatus.value === "ready" || earningsReleaseStatus.value === "loading")));
 
 const buckets = computed(() => ({
   pendingReviewUsdt: earningsReleaseSnapshot.value?.buckets.pending_review
@@ -88,13 +99,13 @@ const intPart = computed(() => Math.floor(usdt.value).toLocaleString());
 const fracPart = computed(() => (usdt.value - Math.floor(usdt.value)).toFixed(2).slice(2));
 const pendingLine = computed(() =>
   fmt(t.value.me.walletBucketsHint, {
-    review: buckets.value.pendingReviewUsdt.toFixed(2),
-    locked: buckets.value.bonusLockedUsdt.toFixed(2),
+    review: bucketsReadable.value ? buckets.value.pendingReviewUsdt.toFixed(2) : "—",
+    locked: bucketsReadable.value ? buckets.value.bonusLockedUsdt.toFixed(2) : "—",
   }),
 );
 
 const nex = computed(() => app.user.nexBalance);
-const nexLabel = computed(() => nex.value.toLocaleString());
+const nexLabel = computed(() => fundsReadable.value ? nex.value.toLocaleString() : "—");
 const marketReady = computed(() => market.isMockMode || market.remoteReady);
 const nexChangeLabel = computed(() => {
   if (!marketReady.value || !market.change24hAvailable) return "—";
@@ -104,9 +115,12 @@ const nexChangeLabel = computed(() => {
 const nexMarketLabel = computed(() => {
   if (!marketReady.value) return "≈ — USDT · 1 NEX = — USDT";
   const price = market.nexPriceUSDT;
-  return `≈ ${(nex.value * price).toFixed(2)} USDT · 1 NEX = ${price.toFixed(3)} USDT`;
+  return `≈ ${fundsReadable.value ? (nex.value * price).toFixed(2) : "—"} USDT · 1 NEX = ${price.toFixed(3)} USDT`;
 });
 
+const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"
+  || (trial.authorityStatus === "loading" && trial.authorityServerState !== null));
+const slotsReadable = computed(() => !remoteApiEnabled || (app.remoteFleetHasSnapshot && trialReady.value));
 const activeCount = computed(() => app.activeSlotCount);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
 const emptySlots = computed(() => Math.max(0, app.slotCap - activeCount.value - trialSlot.value));
@@ -250,7 +264,7 @@ const addDeviceBtnStyle: CSSProperties = {
 
 import { useSlotActionSheet } from "@/store/slot-action-sheet";
 // Native locale formatters can ignore fraction options; match the wallet detail's display rounding.
-const usdtLabel = computed(() => usdt.value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+const usdtLabel = computed(() => usdtBalanceReadable.value ? usdt.value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "—");
 </script>
 
 <style scoped>

@@ -107,8 +107,8 @@ describe("Me button click-through parity", () => {
     const bankRoute = "pages/me/wallet-withdraw-bank";
     expect(pages.pages.filter(item => item.path === bankRoute)).toHaveLength(1);
     expect(existsSync(new URL(`${bankRoute}.vue`, formalRoot))).toBe(true);
-    const prototypeFiles = new Set(prototypeReference.files("src/pages/me"));
     // HDPay payout is a new formal capability, not a claim that the prototype implements bank payouts.
+    const prototypeFiles = new Set(prototypeReference.files("src/pages/me"));
     for (const page of pages.pages.filter((item) => item.path.startsWith("pages/me/"))) {
       if (page.path === bankRoute || page.path === "pages/me/wallet-withdraw-method") continue;
       const name = `${page.path.slice("pages/me/".length)}.vue`;
