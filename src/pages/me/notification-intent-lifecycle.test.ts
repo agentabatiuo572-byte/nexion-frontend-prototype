@@ -17,13 +17,12 @@ function deferred<T>() {
   return { promise, resolve };
 }
 const scopes: vue.EffectScope[] = [];
-afterEach(() => { for (const scope of scopes.splice(0)) scope.stop(); });
+afterEach(() => { for (const scope of scopes.splice(0)) scope.stop(); vi.unstubAllGlobals(); });
 
 // Run the actual SFC worker with controlled IO and real Vue watchers.
-function mount(remote = true, realQueue = false, navigationQuery = "") {
-  const epoch = createRemoteAccountEpoch("a");
-  const app = vue.reactive({ accountKey: "a", accountBindingEpoch: 0 });
-  const account = { ...epoch, bind(key: string) { const value = epoch.bind(key); app.accountKey = key; app.accountBindingEpoch += 1; return value; } };
+function mount(remote = true, realQueue = false, navigationQuery = "", initialAccountKey = "a") {
+  const epoch = createRemoteAccountEpoch(initialAccountKey);
+  const app = vue.reactive({ accountKey: initialAccountKey, accountBindingEpoch: 0 });
   setActivePinia(createPinia());
   const ui = useUI();
   const confirmation = deferred<boolean>();
@@ -37,6 +36,14 @@ function mount(remote = true, realQueue = false, navigationQuery = "") {
     markRead: vi.fn(() => read.promise), markAllRead: vi.fn(),
   });
   const drawer = vue.reactive({ section: "notifications", serviceUnread: 0, totalUnread: 0, refresh: () => notifs.refreshRemote() });
+  const account = { ...epoch, bind(key: string) {
+    // Actual App.bindAccount -> rebindAccountScopedStores order: epoch/key,
+    // drawer reset, then the shared remote request fence. No source logic copy.
+    app.accountBindingEpoch += 1;
+    app.accountKey = key;
+    drawer.section = "notifications";
+    return epoch.bind(key);
+  } };
   const navTo = vi.fn();
   const confirm = vi.fn((options: Parameters<typeof ui.confirm>[0]) => realQueue ? ui.confirm(options) : confirmation.promise);
   const modules: Record<string, unknown> = {
@@ -60,7 +67,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "") {
   const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
   const output = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope(); scopes.push(scope);
-  const worker = scope.run(() => new Function("require", "exports", output + ";return { confirmClearRead, onTap, onTouchStart, onTouchEnd, section, headerFocused, headerState, onMessageScroll };")((name: string) => {
+  const worker = scope.run(() => new Function("require", "exports", output + ";return { confirmClearRead, onTap, onTouchStart, onTouchEnd, section, filter, serviceFilter, expandedId, headerFocused, headerState, onMessageScroll };")((name: string) => {
     if (name.endsWith(".vue")) return {};
     if (!(name in modules)) throw new Error(`Unexpected dependency ${name}`);
     return modules[name];
@@ -161,5 +168,148 @@ describe("notification pending intent isolation", () => {
     await h.worker.confirmClearRead();
     expect(h.notifs.refreshRemote).toHaveBeenCalledTimes(1);
     expect(h.confirm).not.toHaveBeenCalled();
+  });
+});
+
+
+// Platform IO is synthetic; page onLoad/onShow/setter/watchers are the actual SFC.
+function h5Entry(href = "https://fixture.invalid/app/?outer=keep#/pages/me/notifications?section=notifications&from=me") {
+  const location = new URL(href);
+  const state = { position: 7, back: "/pages/me/me", opaque: { keep: true } };
+  const history = { state, replaceState: vi.fn((_state: unknown, _title: string, next: string) => {
+    location.href = new URL(next, location.href).href;
+  }) };
+  vi.stubGlobal("window", { location, history });
+  return { location, state, history };
+}
+const primaryQuery = (href: URL) => new URLSearchParams(href.hash.split("?")[1] ?? "").get("section");
+
+describe("message primary partition route lifecycle", () => {
+  for (const selected of ["service", "notifications"] as const) {
+    it(`mirrors ${selected}, then restores it in a fresh page through the first account bind`, async () => {
+      const browser = h5Entry();
+      const current = mount(); current.fire("load", {});
+      current.worker.section.value = "service";
+      current.worker.section.value = selected;
+      await vue.nextTick();
+      expect(primaryQuery(browser.location)).toBe(selected);
+      expect(browser.location.pathname).toBe("/app/");
+      expect(browser.location.search).toBe("?outer=keep");
+      expect(new URLSearchParams(browser.location.hash.split("?")[1]).get("from")).toBe("me");
+      expect(browser.history.replaceState).toHaveBeenCalled();
+      for (const args of browser.history.replaceState.mock.calls) expect(args[0]).toBe(browser.state);
+      expect(current.navTo).not.toHaveBeenCalled();
+      expect(current.notifs.markRead).not.toHaveBeenCalled();
+      expect(current.notifs.markAllRead).not.toHaveBeenCalled();
+      expect(current.notifs.clearRead).not.toHaveBeenCalled();
+      const query = browser.location.hash.slice(browser.location.hash.indexOf("?"));
+      current.fire("unmount");
+      const restored = mount(true, false, query, "default");
+      restored.fire("load", {}); restored.fire("show");
+      restored.account.bind("a");
+      await vue.nextTick();
+      expect(restored.worker.section.value).toBe(selected);
+      expect(primaryQuery(browser.location)).toBe(selected);
+      expect(restored.worker.serviceFilter.value).toBe("all");
+    });
+  }
+  it("keeps explicit onLoad section ahead of a conflicting pending query", async () => {
+    const browser = h5Entry();
+    const h = mount(true, false, "?section=notifications");
+    h.fire("load", { section: "service" }); await vue.nextTick();
+    expect(h.worker.section.value).toBe("service");
+    expect(primaryQuery(browser.location)).toBe("service");
+  });
+  for (const query of [{}, { section: "invalid" }, { section: "" }]) {
+    it(`keeps a legal default for absent or invalid section ${JSON.stringify(query)}`, async () => {
+      const browser = h5Entry("https://fixture.invalid/app/#/pages/me/notifications?from=me");
+      const h = mount(); h.fire("load", query); await vue.nextTick();
+      expect(h.worker.section.value).toBe("notifications");
+      expect(primaryQuery(browser.location)).toBe("notifications");
+    });
+  }
+  it("does not replace a route before onLoad consumes the existing entry query", async () => {
+    const browser = h5Entry("https://fixture.invalid/app/#/pages/me/notifications?section=service");
+    const h = mount(true, false, "?section=service", "default");
+    h.account.bind("a"); await vue.nextTick();
+    expect(browser.history.replaceState).not.toHaveBeenCalled();
+    h.fire("load", {}); await vue.nextTick();
+    expect(h.worker.section.value).toBe("service");
+    expect(primaryQuery(browser.location)).toBe("service");
+  });
+  it("retains the latest user choice during the first default-to-account hydration", async () => {
+    const browser = h5Entry();
+    const h = mount(true, false, "?section=notifications", "default");
+    h.fire("load", {}); h.worker.section.value = "service";
+    h.account.bind("a"); await vue.nextTick();
+    expect(h.worker.section.value).toBe("service");
+    expect(primaryQuery(browser.location)).toBe("service");
+  });
+  for (const key of ["a", "b"]) {
+    it(`resets the section and filters on a real ${key === "a" ? "same-account rebind" : "account switch"}`, async () => {
+      const browser = h5Entry();
+      const h = mount(true, false, "?section=service", "default");
+      h.fire("load", {}); h.account.bind("a"); await vue.nextTick();
+      h.worker.serviceFilter.value = "ticket"; h.worker.filter.value = "finance"; h.worker.expandedId.value = "old";
+      h.account.bind(key); await vue.nextTick();
+      expect(h.worker.section.value).toBe("notifications");
+      expect(primaryQuery(browser.location)).toBe("notifications");
+      expect(h.worker.serviceFilter.value).toBe("all");
+      expect(h.worker.filter.value).toBe("all");
+      expect(h.worker.expandedId.value).toBeNull();
+      h.fire("hide"); h.fire("show"); await vue.nextTick();
+      expect(h.worker.section.value).toBe("notifications");
+    });
+  }
+  for (const second of ["a", "b"]) {
+    it(`does not treat two binds in one tick (${second}) as a first restore`, async () => {
+      const browser = h5Entry();
+      const h = mount(true, false, "?section=service", "default");
+      h.fire("load", {}); h.account.bind("a"); h.account.bind(second); await vue.nextTick();
+      expect(h.worker.section.value).toBe("notifications");
+      expect(primaryQuery(browser.location)).toBe("notifications");
+    });
+  }
+  it("drops the old route intent after logout and later login", async () => {
+    const browser = h5Entry();
+    const h = mount(true, false, "?section=service"); h.fire("load", {});
+    h.account.bind("default"); await vue.nextTick();
+    h.account.bind("b"); await vue.nextTick(); h.fire("show");
+    expect(h.worker.section.value).toBe("notifications");
+    expect(primaryQuery(browser.location)).toBe("notifications");
+  });
+  it("rejects a stale entry query when a real account reset happens before onLoad", async () => {
+    const browser = h5Entry();
+    const h = mount(true, false, "?section=service");
+    h.account.bind("b"); await vue.nextTick(); h.fire("load", {}); await vue.nextTick();
+    expect(h.worker.section.value).toBe("notifications");
+    expect(primaryQuery(browser.location)).toBe("notifications");
+  });
+  it("keeps native onLoad hydration without requiring a browser", async () => {
+    vi.stubGlobal("window", undefined);
+    const h = mount(true, false, "", "default"); h.fire("load", { section: "service" });
+    h.account.bind("a"); await vue.nextTick();
+    expect(h.worker.section.value).toBe("service");
+    expect(h.navTo).not.toHaveBeenCalled();
+  });
+  it("does not rewrite hidden or foreign routes and mirrors the current state on return", async () => {
+    const browser = h5Entry(); const h = mount(); h.fire("load", {});
+    h.fire("hide"); h.drawer.section = "service"; await vue.nextTick();
+    expect(browser.history.replaceState).not.toHaveBeenCalled();
+    browser.location.hash = "#/pages/me/support-tickets?mode=list";
+    h.fire("show"); await vue.nextTick();
+    expect(browser.history.replaceState).not.toHaveBeenCalled();
+    browser.location.hash = "#/pages/me/notifications?section=notifications&from=me";
+    h.fire("show"); await vue.nextTick();
+    expect(primaryQuery(browser.location)).toBe("service");
+    h.fire("unmount"); h.drawer.section = "notifications"; await vue.nextTick();
+    expect(primaryQuery(browser.location)).toBe("service");
+  });
+  it("keeps current in-memory selection when browser history rejects the replacement", async () => {
+    const browser = h5Entry(); browser.history.replaceState.mockImplementation(() => { throw new Error("history unavailable"); });
+    const h = mount(); h.fire("load", {}); h.worker.section.value = "service"; await vue.nextTick();
+    expect(h.worker.section.value).toBe("service");
+    expect(primaryQuery(browser.location)).toBe("notifications");
+    expect(h.notifs.markRead).not.toHaveBeenCalled();
   });
 });

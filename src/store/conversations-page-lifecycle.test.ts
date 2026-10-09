@@ -143,15 +143,16 @@ function mountNotifications() {
   const hooks: Record<string, Array<() => void>> = { onMounted: [], onShow: [], onHide: [], onUnmounted: [] };
   const script = notificationsPage.split('<script setup lang="ts">')[1].split('</script>')[0];
   const ast = ts.createSourceFile('notifications.ts', script, ts.ScriptTarget.ES2022, true);
-  const variables = new Set(['pageGeneration', 'pageVisible', 'disposed', 'center', 'touchStarts', 'suppressedClick']);
+  const variables = new Set(['pageGeneration', 'pageVisible', 'disposed', 'center', 'touchStarts', 'suppressedClick',
+    'sectionLoaded', 'sectionAccountWasBound', 'initialSectionAccountEpoch', 'sectionEntryAllowed', 'initialSection', 'section']);
   const parts = ast.statements.filter(node =>
     (ts.isVariableStatement(node) && node.declarationList.declarations.some(item => variables.has(item.name.getText(ast))))
-    || (ts.isFunctionDeclaration(node) && ['invalidatePage', 'invalidatePendingIntents'].includes(node.name?.text ?? ''))
+    || (ts.isFunctionDeclaration(node) && ['invalidatePage', 'invalidatePendingIntents', 'preserveSectionInH5'].includes(node.name?.text ?? ''))
     || (ts.isExpressionStatement(node) && ts.isCallExpression(node.expression)
       && ((Object.keys(hooks).includes(node.expression.expression.getText(ast)) && /disposed|invalidatePage|center\.refresh/.test(node.getText(ast)))
         || (node.expression.expression.getText(ast) === 'watch' && node.getText(ast).includes('app.account'))))
   ).map(node => node.getText(ast));
-  const dependencies = { watch, app, useMessageDrawer: () => center, expandedId: ref(null), filter: ref('all'), serviceFilter: ref('all'),
+  const dependencies = { watch, computed, app, remoteApiEnabled: runtime.remoteApiEnabled, useMessageDrawer: () => center, expandedId: ref(null), filter: ref('all'), serviceFilter: ref('all'),
     resetHeader: vi.fn(), ui: { clearConfirmsBy: vi.fn() }, confirmOwner: 'fixture',
     ...Object.fromEntries(Object.keys(hooks).map(name => [name, (callback: () => void) => hooks[name].push(callback)])) };
   const run = (code: string, deps: Record<string, unknown>) => new Function('deps', `const {${Object.keys(deps).join(',')}}=deps;

@@ -91,11 +91,36 @@ function isCurrentIntent(intent: ReturnType<typeof captureIntent>) {
 const notifsErrorText = computed(() => notifs.error ? t.value.notifs.loadFailed : "");
 
 const center = useMessageDrawer();
-const section = computed({ get: () => center.section, set: (value: MessageSection) => { center.section = value; } });
+let sectionLoaded = false;
+let sectionAccountWasBound = app.accountKey !== "default";
+const initialSectionAccountEpoch = app.accountBindingEpoch;
+let sectionEntryAllowed = true;
+let initialSection: MessageSection | null = sectionAccountWasBound ? null : center.section;
+const section = computed({ get: () => center.section, set: (value: MessageSection) => {
+  center.section = value;
+  if (!sectionAccountWasBound && sectionEntryAllowed) initialSection = value;
+  preserveSectionInH5();
+} });
+function preserveSectionInH5() {
+  if (!sectionLoaded || disposed || !pageVisible || typeof window === "undefined"
+    || typeof window.history?.replaceState !== "function") return;
+  const hash = window.location.hash.replace(/^#/, "");
+  const question = hash.indexOf("?");
+  const path = question < 0 ? hash : hash.slice(0, question);
+  if (path !== "/pages/me/notifications") return;
+  const query = new URLSearchParams(question < 0 ? "" : hash.slice(question + 1));
+  if (query.get("section") === section.value) return;
+  query.set("section", section.value);
+  try {
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}#${path}?${query}`);
+  } catch { /* Unsupported history leaves the existing in-memory selection intact. */ }
+}
 onLoad(query => {
   const pending = takeNavigationQuery("/pages/me/notifications");
   const initial = query?.section ?? new URLSearchParams(pending).get("section");
-  if (initial === "notifications" || initial === "service") section.value = initial;
+  sectionLoaded = true;
+  if (sectionEntryAllowed && (initial === "notifications" || initial === "service")) section.value = initial;
+  else preserveSectionInH5();
 });
 const sectionOptions = computed(() => [
   { value: "notifications", label: t.value.notifs.notificationsTab, count: notifs.unread },
@@ -124,7 +149,19 @@ const emptyTitle = computed(() => notifs.items.length === 0 ? t.value.notifs.emp
 function toggle(n: Notification) { void notifs.markRead(n.id); expandedId.value = expandedId.value === n.id ? null : n.id; }
 const markingAll = ref(false);
 async function markAll() { if (markingAll.value) return; markingAll.value = true; try { await notifs.markAllRead(); } finally { markingAll.value = false; } }
-watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
+watch(() => [app.accountKey, app.accountBindingEpoch] as const, ([nextKey, nextEpoch], [previousKey]) => {
+  // Reapply only the first startup intent after the existing store reset.
+  // A second bind (including the same account) is a real reset, even in one tick.
+  const firstBinding = remoteApiEnabled && !sectionAccountWasBound && previousKey === "default"
+    && nextKey !== "default" && nextEpoch === initialSectionAccountEpoch + 1;
+  if (nextKey !== "default") sectionAccountWasBound = true;
+  if (firstBinding && initialSection) section.value = initialSection;
+  else if (!firstBinding) {
+    sectionEntryAllowed = false;
+    initialSection = null;
+    section.value = "notifications";
+  }
+  preserveSectionInH5();
   expandedId.value = null; filter.value = "all"; serviceFilter.value = "all"; resetHeader();
   if (!disposed && pageVisible) void center.refresh();
 });
@@ -211,6 +248,7 @@ onMounted(() => { if (!disposed && pageVisible) void center.refresh(); });
 onShow(() => {
   if (disposed) return;
   pageVisible = true;
+  preserveSectionInH5();
   void center.refresh();
 });
 onHide(invalidatePage);
@@ -261,7 +299,7 @@ function onMessageScroll(event: { detail: { scrollTop: number } }) {
   headerState.value = advanceMessageHeader(headerState.value, event.detail.scrollTop, headerFocused.value, now, now - lastScrollInputAt < 160);
 }
 function resetHeader() { headerState.value = createMessageHeaderState(); }
-watch(section, resetHeader);
+watch(section, () => { resetHeader(); preserveSectionInH5(); });
 </script>
 
 <style src="@/styles/message-center.css"></style>

@@ -10,7 +10,7 @@ import activation from "@/lib/a11y-activate?raw";
 describe("notification foreground and clear-read accessibility", () => {
   it("refreshes server notifications whenever the page returns to foreground", () => {
     expect(source).toMatch(/import \{[^}]*onShow[^}]*onHide[^}]*onLoad[^}]*\} from "@dcloudio\/uni-app"/);
-    expect(source).toMatch(/onShow\(\(\) => \{\s*if \(disposed\) return;\s*pageVisible = true;\s*void center.refresh\(\);/);
+    expect(source).toMatch(/onShow\(\(\) => \{\s*if \(disposed\) return;\s*pageVisible = true;\s*preserveSectionInH5\(\);\s*void center.refresh\(\);/);
   });
 
   it("gives the clear-read action an accessible label, 44px target, and confirmation", () => {
