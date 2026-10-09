@@ -242,7 +242,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import SvgText from "@/components/svg-text";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -284,7 +284,13 @@ const myRank = computed(() => vRank.myRank);
 // background re-read keeps the confirmed snapshot on screen (BUG 63).
 const metricsUnavailable = computed(() => remoteApiEnabled && !network.hasRemoteSnapshot);
 const myRankText = computed(() => remoteApiEnabled && !vRank.remoteReady ? "—" : `V${myRank.value}`);
-const selected = ref<NetworkMember | null>(null);
+const selectedId = ref<string | null>(null);
+const selected = computed<NetworkMember | null>({
+  get: () => members.value.find(member => member.id === selectedId.value) ?? null,
+  set: member => { selectedId.value = member?.id ?? null; },
+});
+// Clear invalid IDs before a later snapshot can reopen an old account's sheet.
+watch(selected, member => { if (!member) selectedId.value = null; }, { flush: "sync" });
 const pulseId = ref<string | null>(null);
 let pulseTimer: ReturnType<typeof setInterval> | null = null;
 let pulseCursor = 0;

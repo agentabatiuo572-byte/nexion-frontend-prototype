@@ -11,7 +11,15 @@ import { zh } from "@/i18n/messages/zh";
 import { vi as viMessages } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import { rankLabel, rankTitle } from "@/lib/v-rank-copy";
-import type { NetworkMember } from "@/store/network";
+import { useNetwork, type NetworkMember } from "@/store/network";
+import { createPinia, setActivePinia } from "pinia";
+
+const runtime = vi.hoisted(() => ({ snapshot: vi.fn(() => new Promise<any>(() => {})) }));
+vi.mock("@/api/runtime", () => ({ remoteApiEnabled: true, teamNetworkApi: { snapshot: runtime.snapshot } }));
+vi.mock("@/api/order-api", () => ({
+  captureRuntimeRevision: () => 0, isCurrentRuntimeRevision: () => true,
+  subscribeRuntimeRevision: () => () => {},
+}));
 
 type Host = { tag: string; text: string; props: Record<string, any>; parent: Host | null; children: Host[] };
 const node = (tag = "", text = ""): Host => ({ tag, text, props: {}, parent: null, children: [] });
@@ -48,7 +56,7 @@ const emit = (target: Host, key: string, event = {}) => {
 };
 const unmounts: Array<() => void> = [];
 
-async function mount(platform: "app" | "h5" = "app") {
+async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnType<typeof useNetwork>) {
   initPreContext(platform);
   const original = parse(raw, { filename: "network.vue" }).descriptor;
   // Reparse after Uni preprocessing: compileScript also consumes the template
@@ -60,7 +68,7 @@ async function mount(platform: "app" | "h5" = "app") {
   const code = ts.transpileModule(script.content, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
-  const network = Vue.reactive({
+  const network = canonicalNetwork ?? Vue.reactive({
     members: [] as NetworkMember[], hasRemoteSnapshot: true, remoteStatus: "ready",
     ensureCanonicalNetwork: vi.fn(), refreshCanonicalNetwork: vi.fn(),
   });
@@ -223,4 +231,63 @@ test("H5 retains SVG geometry, keyboard self/member activation, pulse and single
   vi.advanceTimersByTime(1200); await Vue.nextTick();
   expect(all(svg).filter((item) => item.tag === "animate")).toHaveLength(2);
   expect(all(svg).some((item) => item.tag === "set")).toBe(true);
+});
+
+async function selectedCanonicalPage(platform: "app" | "h5") {
+  setActivePinia(createPinia());
+  const network = useNetwork();
+  const page = await mount(platform, network);
+  unmounts.push(() => network.$dispose());
+  network.members = [member("original", 1)];
+  network.hasRemoteSnapshot = true;
+  network.remoteStatus = "ready";
+  await Vue.nextTick();
+  emit(page.controls().find(item => item.props["aria-label"].startsWith("Member original"))!, "onClick");
+  await Vue.nextTick();
+  const sheet = () => all(page.root).find(item => item.props.role === "dialog");
+  expect(text(sheet()!)).toContain("Member original");
+  return { ...page, network, sheet };
+}
+
+test.each(["app", "h5"] as const)("%s canonical account clear closes detail and cannot reopen it from a later same-ID member", async platform => {
+  const page = await selectedCanonicalPage(platform);
+  page.network.bindAccount("user:next");
+  await Vue.nextTick();
+  expect(page.network.members).toEqual([]);
+  expect(page.network.hasRemoteSnapshot).toBe(false);
+  expect(page.sheet()).toBeUndefined();
+  page.network.members = [{ ...member("original", 1), name: "New account member" }];
+  await Vue.nextTick();
+  expect(page.sheet()).toBeUndefined();
+  emit(page.controls().find(item => item.props["aria-label"].startsWith("New account member"))!, "onClick");
+  await Vue.nextTick();
+  expect(text(page.sheet()!)).toContain("New account member");
+  expect(text(page.sheet()!)).not.toContain("Member original");
+});
+
+test.each(["app", "h5"] as const)("%s canonical member removal closes detail and does not revive a removed selection", async platform => {
+  const page = await selectedCanonicalPage(platform);
+  page.network.members = [];
+  await Vue.nextTick();
+  expect(page.sheet()).toBeUndefined();
+  page.network.members = [member("original", 1)];
+  await Vue.nextTick();
+  expect(page.sheet()).toBeUndefined();
+});
+
+test.each(["app", "h5"] as const)("%s confirmed selection survives retry and reads refreshed canonical fields", async platform => {
+  const page = await selectedCanonicalPage(platform);
+  page.network.remoteStatus = "loading";
+  await Vue.nextTick();
+  expect(text(page.sheet()!)).toContain("Member original");
+  page.network.remoteStatus = "error";
+  await Vue.nextTick();
+  expect(text(page.sheet()!)).toContain("Fixture City");
+  page.network.members = [{ ...member("original", 1), name: "Updated canonical member", monthVolumeUSD: 93, city: "Updated city" }];
+  await Vue.nextTick();
+  expect(text(page.sheet()!)).toContain("Updated canonical member");
+  expect(text(page.sheet()!)).toContain("$93");
+  expect(text(page.sheet()!)).toContain("Updated city");
+  expect(text(page.sheet()!)).not.toContain("Member original");
+  expect(text(page.sheet()!)).not.toContain("Fixture City");
 });

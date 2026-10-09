@@ -180,6 +180,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   let pendingStartKey: string | null = null;
   let authorityRequestSequence = 0;
   let lastAppliedSequence = 0;
+  let accountBindingEpoch = 0;
 
   /** Current row as a plain snapshot — resolver 的唯一输入形态(生产 = GET /api/trial/state 行)。 */
   function snapshot(): FreeTrialState {
@@ -237,11 +238,20 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     authorityError.value = error;
   }
 
-  function applyAuthority(next: TrialAuthorityState, sequence: number): boolean {
-    if (sequence < lastAppliedSequence) return false;
-    if (authorityStatus.value === "ready" && authorityClaimNo.value === next.claimNo
-        && next.version < authorityVersion.value) return false;
-    lastAppliedSequence = sequence;
+  function applyAuthority(next: TrialAuthorityState, sequence: number, receiptEpoch?: number): boolean {
+    // A current-binding command receipt can outrank a read of the same known claim.
+    // Reads and unknown or different claims keep their request-sequence fence.
+    const newerCurrentReceipt = receiptEpoch === accountBindingEpoch && next.claimNo !== null
+      && next.claimNo === authorityClaimNo.value && next.version > authorityVersion.value;
+    if (sequence < lastAppliedSequence && !newerCurrentReceipt) return false;
+    if (authorityClaimNo.value === next.claimNo && next.version < authorityVersion.value) {
+      // Retain the newer canonical receipt even while a read is loading.
+      lastAppliedSequence = Math.max(lastAppliedSequence, sequence);
+      authorityStatus.value = "ready";
+      authorityError.value = null;
+      return true;
+    }
+    lastAppliedSequence = Math.max(lastAppliedSequence, sequence);
     load({
       status: next.status,
       startedAt: next.startedAt,
@@ -322,6 +332,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   function bindAccount(rawAccountKey: string) {
     boundKey = normalizeAccountKey(rawAccountKey);
     if (remoteApiEnabled) {
+      accountBindingEpoch++;
       lastAppliedSequence = ++authorityRequestSequence;
       confirmedPromoVisible.value = false;
       confirmedHeroVisible.value = false;
@@ -405,7 +416,8 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   // trial per account, concurrent taps produce exactly one).
   async function start(): Promise<{ ok: boolean; reason?: TrialIneligibleReason }> {
     if (remoteApiEnabled) {
-      if (!await refreshEligibilityRemote()) return { ok: false, reason: "unknown" };
+      const requestedEpoch = accountBindingEpoch;
+      if (!await refreshEligibilityRemote() || requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
       const remoteEligibility = eligibility();
       if (!remoteEligibility.ok) return { ok: false, reason: remoteEligibility.reason };
       const trialConfig = useTrialConfig().config;
@@ -418,9 +430,11 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       try {
         const sequence = ++authorityRequestSequence;
         const receipt = await trialApi.start(pendingStartKey, deviceName);
-        applyAuthority(receipt, sequence);
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
+        applyAuthority(receipt, sequence, requestedEpoch);
         const expectedClaimNo = receipt.claimNo;
         const confirmed = await refreshRemote(true);
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         if (!confirmed || !expectedClaimNo || authorityClaimNo.value !== expectedClaimNo
             || (status.value !== "active" && status.value !== "grace")) {
           clearRemoteFacts("unknown", "TRIAL_START_RESULT_UNKNOWN");
@@ -429,9 +443,11 @@ export const useFreeTrial = defineStore("freeTrial", () => {
         pendingStartKey = null;
         return { ok: true };
       } catch (error) {
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         const reason = commandFailureReason(error);
         authorityError.value = asApiError(error).message;
         const reconciled = await refreshRemote();
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         if (reconciled && authorityClaimNo.value
             && (status.value === "active" || status.value === "grace")) {
           pendingStartKey = null;
@@ -536,7 +552,9 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   // — grace has nothing left to cancel (production already stopped).
   async function cancel(): Promise<{ ok: boolean; reason?: TrialIneligibleReason }> {
     if (remoteApiEnabled) {
+      const requestedEpoch = accountBindingEpoch;
       if (authorityStatus.value !== "ready") await refreshRemote(true);
+      if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
       if (authorityStatus.value !== "ready" || !authorityClaimNo.value) {
         return { ok: false, reason: "unknown" };
       }
@@ -545,16 +563,20 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       try {
         const sequence = ++authorityRequestSequence;
         const receipt = await trialApi.cancel("explicit", key);
-        applyAuthority(receipt, sequence);
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
+        applyAuthority(receipt, sequence, requestedEpoch);
         const confirmed = await refreshRemote(true);
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         if (!confirmed || authorityClaimNo.value !== expectedClaimNo || status.value !== "ended") {
           clearRemoteFacts("unknown", "TRIAL_CANCEL_RESULT_UNKNOWN");
           return { ok: false, reason: "unknown" };
         }
         return { ok: true };
       } catch (error) {
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         authorityError.value = asApiError(error).message;
         const reconciled = await refreshRemote();
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         if (reconciled && authorityClaimNo.value === expectedClaimNo && status.value === "ended") {
           return { ok: true };
         }

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-holder-wallet-stock-r106-20261010",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-network-trial-integrated-r107-20261010",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "1ffb86598d36c62341a04481cb5035c92a8f51fa",
-  "sourceRef": "1ffb86598d36c62341a04481cb5035c92a8f51fa",
+  "sourceHead": "1f7f5401a3767f8c9e7ebff372b76b66469513a5",
+  "sourceRef": "1f7f5401a3767f8c9e7ebff372b76b66469513a5",
   "sourceRefKind": "commit",
-  "sourceTree": "ef09ddcaa2277f660b93a8ebe01a9a7e8360b9ff",
+  "sourceTree": "0a6aa892858e2dc02331f1d033a240e9be32b09b",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -14650,17 +14650,17 @@
       "mode": "100644"
     },
     "src/pages/team/network-native.behavior.test.ts": {
-      "sourceBlob": "bf72b729b5c593d21c47661757e6159efa17153e",
-      "sourceSha256": "e44fc5a1eac6fccfa7d66fb5444ff0bb28aebba1160f344f573b3c6644608a20",
-      "targetBlob": "bf72b729b5c593d21c47661757e6159efa17153e",
-      "targetSha256": "e44fc5a1eac6fccfa7d66fb5444ff0bb28aebba1160f344f573b3c6644608a20",
+      "sourceBlob": "7555bff1d9f6ed8d04e54c2a86d3f877c74d00a8",
+      "sourceSha256": "50318c4ae7178d0db4733dea18fcfebc20a8567a015b226d23d4572e4049ce55",
+      "targetBlob": "7555bff1d9f6ed8d04e54c2a86d3f877c74d00a8",
+      "targetSha256": "50318c4ae7178d0db4733dea18fcfebc20a8567a015b226d23d4572e4049ce55",
       "mode": "100644"
     },
     "src/pages/team/network.vue": {
-      "sourceBlob": "66668032790b5838f73406bc1be58b5146e5903e",
-      "sourceSha256": "acb387a5c14d5d2be3829b819a851e9179943fcb9a804b4c24dcda34ad9f4e9e",
-      "targetBlob": "66668032790b5838f73406bc1be58b5146e5903e",
-      "targetSha256": "acb387a5c14d5d2be3829b819a851e9179943fcb9a804b4c24dcda34ad9f4e9e",
+      "sourceBlob": "e24881261a831933ead5ef9143d431efbee78fae",
+      "sourceSha256": "75aac9498109c12964920718a2766b69571f2880c8a55f8bc2f1be21fea80139",
+      "targetBlob": "e24881261a831933ead5ef9143d431efbee78fae",
+      "targetSha256": "75aac9498109c12964920718a2766b69571f2880c8a55f8bc2f1be21fea80139",
       "mode": "100644"
     },
     "src/pages/team/quota-cold-start.test.ts": {
@@ -15756,17 +15756,17 @@
       "mode": "100644"
     },
     "src/store/free-trial.remote-errors.test.ts": {
-      "sourceBlob": "97a32ec0b5addbecb18c25271fad61e8d17e33a3",
-      "sourceSha256": "0a43f18c09da8af863108afabcaac2d81afbf21d6d62f4334fd00a9be63aa249",
-      "targetBlob": "97a32ec0b5addbecb18c25271fad61e8d17e33a3",
-      "targetSha256": "0a43f18c09da8af863108afabcaac2d81afbf21d6d62f4334fd00a9be63aa249",
+      "sourceBlob": "3778a6f98ad2577d4df59ec051af6b066adf2197",
+      "sourceSha256": "1b8c15812858283f293785e1df0d06f84b5b5447e54ffef62f4ae3e87c416665",
+      "targetBlob": "3778a6f98ad2577d4df59ec051af6b066adf2197",
+      "targetSha256": "1b8c15812858283f293785e1df0d06f84b5b5447e54ffef62f4ae3e87c416665",
       "mode": "100644"
     },
     "src/store/free-trial.ts": {
-      "sourceBlob": "db48e2db779854af504025c9dd5e405a50af5f14",
-      "sourceSha256": "7e0645352ce018fe3ff596e60cd3f095f02ed092c20e4b2190a8636ce0ed258a",
-      "targetBlob": "db48e2db779854af504025c9dd5e405a50af5f14",
-      "targetSha256": "7e0645352ce018fe3ff596e60cd3f095f02ed092c20e4b2190a8636ce0ed258a",
+      "sourceBlob": "76d2fca3efd4b05658a6c02798d9dc6ca45492f1",
+      "sourceSha256": "65afaed0a29774f6f445ee2f6e765bdb73611158b9b04fa3f709b948a42a3200",
+      "targetBlob": "76d2fca3efd4b05658a6c02798d9dc6ca45492f1",
+      "targetSha256": "65afaed0a29774f6f445ee2f6e765bdb73611158b9b04fa3f709b948a42a3200",
       "mode": "100644"
     },
     "src/store/fx-core.ts": {
