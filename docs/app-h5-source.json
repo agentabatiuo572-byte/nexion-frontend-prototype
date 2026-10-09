@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-msg07-r80-20261009",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-copylink-r94-20261010",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "0c94054624687a650244d1b61478b440597ebdab",
-  "sourceRef": "0c94054624687a650244d1b61478b440597ebdab",
+  "sourceHead": "db66c9a8f7fe3636cc2b7fca8ae6e820c88806b0",
+  "sourceRef": "db66c9a8f7fe3636cc2b7fca8ae6e820c88806b0",
   "sourceRefKind": "commit",
-  "sourceTree": "021cc2260413300afee342919dfff38cd9e9859a",
+  "sourceTree": "047b8bc5790a970d1cc8b07a01b957d6be986d80",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -13362,10 +13362,10 @@
       "mode": "100644"
     },
     "src/pages/me/proof-copy.contract.test.ts": {
-      "sourceBlob": "450b5fb4a733b136c1f4069596629655a6b58dbb",
-      "sourceSha256": "c4bfa6f2151861ee37bada786ab3fa8dcff15d4f50bbf82d64309623c8656a46",
-      "targetBlob": "450b5fb4a733b136c1f4069596629655a6b58dbb",
-      "targetSha256": "c4bfa6f2151861ee37bada786ab3fa8dcff15d4f50bbf82d64309623c8656a46",
+      "sourceBlob": "35e7ca20ebb6cf9dd1b057f88dcfadcd6a2d08c0",
+      "sourceSha256": "f64d3e35aaab826e567aeb4805d43831353f0eda1c867b352be8557fed0f623d",
+      "targetBlob": "35e7ca20ebb6cf9dd1b057f88dcfadcd6a2d08c0",
+      "targetSha256": "f64d3e35aaab826e567aeb4805d43831353f0eda1c867b352be8557fed0f623d",
       "mode": "100644"
     },
     "src/pages/me/proof-entry.test.ts": {
@@ -13383,10 +13383,10 @@
       "mode": "100644"
     },
     "src/pages/me/proof.vue": {
-      "sourceBlob": "4bdbe369a26088bc1bf91afeb6e105eaa3aa5822",
-      "sourceSha256": "1c6fd5a1e10f4256f7d520704152fe2a20ad1c964cc1f811b7a33c035ba21724",
-      "targetBlob": "4bdbe369a26088bc1bf91afeb6e105eaa3aa5822",
-      "targetSha256": "1c6fd5a1e10f4256f7d520704152fe2a20ad1c964cc1f811b7a33c035ba21724",
+      "sourceBlob": "4bf5ab404499a0cc8f8abccccf6249264634a818",
+      "sourceSha256": "878667b6247a53445a54396bc9bfe3bbcb6daf3df41d9ea68edbfe7e080a2f82",
+      "targetBlob": "4bf5ab404499a0cc8f8abccccf6249264634a818",
+      "targetSha256": "878667b6247a53445a54396bc9bfe3bbcb6daf3df41d9ea68edbfe7e080a2f82",
       "mode": "100644"
     },
     "src/pages/me/prototype-visual-reference.test.ts": {

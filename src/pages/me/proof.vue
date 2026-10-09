@@ -195,7 +195,7 @@ import { dateLocale, fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { useProfile } from "@/store/profile";
-import { buildShareLink } from "@/lib/share";
+import { buildShareLink, copyText as copyToClipboard } from "@/lib/share";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { isDeviceOnline } from "@/lib/hashpower";
 import { useVRank } from "@/store/v-rank";
@@ -389,9 +389,10 @@ async function downloadPng() {
     exportingPoster.value = false;
   }
 }
-function copyText(data: string, title: string, desc = "") {
-  uni.setClipboardData({ data, showToast: false, fail: () => {} });
-  toast.success(title, desc);
+async function copyText(data: string, title: string, desc = "") {
+  const copied = await copyToClipboard(data).catch(() => false);
+  if (copied) toast.success(title, desc);
+  else toast.info(t.value.share.copyFailed);
 }
 
 // ── QR payload is the exact referral URL shown beside it. ──
