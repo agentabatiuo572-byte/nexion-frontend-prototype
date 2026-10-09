@@ -6400,6 +6400,12 @@ openSeaErrorPool: {
   },
   // 充值页「银行转账」通道段(PAY-规格 [FEAT-PAY02]/[FEAT-PAY03] 消费面)。
   bankPane: {
+    createFailedNote: "充值申请未能完成。请先查看已有付款单，仍有疑问可联系客服。",
+    createOnboardingUnavailable: "暂时无法确认初始设置状态。当前金额已保留，请联系客服处理。",
+    createTermsUnavailable: "当前条款暂时无法读取。当前金额已保留，请联系客服处理。",
+    createFxUnavailable: "当前汇率暂不可用。当前金额已保留，请稍后查看充值页面。",
+    createBankUnavailable: "银行通道暂不可用。当前金额已保留，请联系客服处理。",
+    createServiceUnavailable: "银行充值服务暂不可用。当前金额已保留，请联系客服处理。",
     onboardingRequired: "请先完成初始设置，再确认充值。当前金额已保留，尚未创建付款单。",
     onboardingRecoveryCta: "完成初始设置",
     termsRequired: "请先阅读并确认当前条款，再确认充值。当前金额已保留，尚未创建付款单。",

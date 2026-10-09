@@ -210,7 +210,7 @@ describe("mounted bank top-up amount", () => {
     expect(requests).toHaveBeenCalledTimes(1); expect(pane.input().props.disabled).toBe(true);
     await pane.enter("-20"); expect(pane.input().props.value).toBe("25.12");
     release(); await vi.waitFor(() => expect(pane.input().props.disabled).toBe(false));
-    expect(pane.text()).toContain(en.topupChrome.depositOpFailedNote);
+    expect(pane.text()).toContain(en.bankPane.createFailedNote);
     await pane.enter("25.13"); expect(pane.input().props.value).toBe("25.13"); await pane.enter("25.12");
     await pane.click(); expect(requests).toHaveBeenCalledTimes(2);
     const [first, retry] = requests.mock.calls.map(([request]) => request);
@@ -256,7 +256,7 @@ describe("mounted bank top-up amount", () => {
   it("keeps the amount across a failed local mocked create and explicit form retry", async () => {
     const pane = await mount(); pane.dep.createRemoteBankIntent.mockRejectedValueOnce(new Error("LOCAL_ONLY_FAILURE"));
     await pane.enter("25.12"); await pane.click();
-    expect(pane.input().props.value).toBe("25.12"); expect(pane.text()).toContain(en.topupChrome.depositOpFailedNote);
+    expect(pane.input().props.value).toBe("25.12"); expect(pane.text()).toContain(en.bankPane.createFailedNote);
     expect(pane.control("nx-bank-create-cta").props["aria-disabled"]).toBe(false);
     await pane.click(); expect(pane.dep.createRemoteBankIntent.mock.calls).toEqual([[25.12, accountKey], [25.12, accountKey]]);
   });

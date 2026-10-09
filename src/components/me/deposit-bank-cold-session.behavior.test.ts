@@ -265,7 +265,7 @@ test.each(["HDPAY_ORDER_CREATE_REJECTED", "CREATE_TEMPORARILY_UNAVAILABLE"])(
     h.dep.createRemoteBankIntent.mockRejectedValue(new ApiError({ kind: "business", status: 422, message }));
     const complete = h.state().completeCreateOrder as (amount: number, account: string) => Promise<void>;
     await complete(25, "user:7"); await Vue.nextTick();
-    const expected = message === "HDPAY_ORDER_CREATE_REJECTED" ? zh.bankPane.hostedRejectedNote : zh.topupChrome.depositOpFailedNote;
+    const expected = message === "HDPAY_ORDER_CREATE_REJECTED" ? zh.bankPane.hostedRejectedNote : zh.bankPane.createFailedNote;
     expect((h.state().createError as Vue.Ref<string>).value).toBe(expected);
     await h.dep.refreshRemoteVietQrDeposits(); await Vue.nextTick();
     expect((h.state().readError as Vue.Ref<string>).value).toBe("");

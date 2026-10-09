@@ -6407,6 +6407,12 @@ openSeaErrorPool: {
   },
   // 充值页「银行转账」通道段(PAY-规格 [FEAT-PAY02]/[FEAT-PAY03] 消费面)。
   bankPane: {
+    createFailedNote: "Không thể hoàn tất yêu cầu nạp tiền. Hãy kiểm tra các đơn thanh toán hiện có trước; liên hệ hỗ trợ nếu cần trợ giúp.",
+    createOnboardingUnavailable: "Tạm thời chưa thể xác nhận trạng thái thiết lập ban đầu. Số tiền được giữ lại; hãy liên hệ hỗ trợ.",
+    createTermsUnavailable: "Tạm thời chưa thể đọc điều khoản hiện tại. Số tiền được giữ lại; hãy liên hệ hỗ trợ.",
+    createFxUnavailable: "Tỷ giá hiện tại tạm thời không khả dụng. Số tiền được giữ lại; hãy xem lại trang nạp tiền sau.",
+    createBankUnavailable: "Kênh ngân hàng tạm thời không khả dụng. Số tiền được giữ lại; hãy liên hệ hỗ trợ.",
+    createServiceUnavailable: "Dịch vụ nạp tiền qua ngân hàng tạm thời không khả dụng. Số tiền được giữ lại; hãy liên hệ hỗ trợ.",
     onboardingRequired: "Hoàn tất thiết lập ban đầu trước khi xác nhận nạp tiền. Số tiền được giữ lại; chưa tạo đơn thanh toán.",
     onboardingRecoveryCta: "Hoàn tất thiết lập ban đầu",
     termsRequired: "Đọc và xác nhận điều khoản hiện tại trước khi xác nhận nạp tiền. Số tiền được giữ lại; chưa tạo đơn thanh toán.",

@@ -150,7 +150,7 @@ test.each([false, true])("final capacity error uses daily copy only for a known 
   view.bindings.createOrder(); await vi.advanceTimersByTimeAsync(600);
   expect(view.dep.createRemoteBankIntent).toHaveBeenCalledOnce();
   expect(view.bindings.createError.value).toBe(known
-    ? fmt(en.bankPane.dailyCapacityExceeded, { max: "$50" }) : en.topupChrome.depositOpFailedNote);
+    ? fmt(en.bankPane.dailyCapacityExceeded, { max: "$50" }) : en.bankPane.createFailedNote);
   expect(view.bindings.createError.value).not.toMatch(/Infinity|∞/);
 });
 

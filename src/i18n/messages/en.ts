@@ -6561,6 +6561,12 @@ openSeaErrorPool: {
   },
   // 充值页「银行转账」通道段(PAY-规格 [FEAT-PAY02]/[FEAT-PAY03] 消费面)。
   bankPane: {
+    createFailedNote: "The top-up request could not be completed. Check your existing payment orders first, or contact support if you need help.",
+    createOnboardingUnavailable: "Your initial setup status is temporarily unavailable. Your amount is retained; contact support for help.",
+    createTermsUnavailable: "The current terms are temporarily unavailable. Your amount is retained; contact support for help.",
+    createFxUnavailable: "The current exchange rate is temporarily unavailable. Your amount is retained; check the top-up page later.",
+    createBankUnavailable: "The bank channel is temporarily unavailable. Your amount is retained; contact support for help.",
+    createServiceUnavailable: "Bank top-up service is temporarily unavailable. Your amount is retained; contact support for help.",
     onboardingRequired: "Complete initial setup before confirming this top-up. Your amount is retained; no payment order has been created.",
     onboardingRecoveryCta: "Complete initial setup",
     termsRequired: "Read and acknowledge the current terms before confirming this top-up. Your amount is retained; no payment order has been created.",

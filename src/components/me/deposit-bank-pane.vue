@@ -605,6 +605,29 @@ async function completeCreateOrder(usdt: number, expectedAccountKey: string) {
       if (!it) throw new Error(t.value.fx.updating);
       return it;
     } catch (cause) {
+      // Only translate the exact known 503 envelope; never render raw server
+      // text or use this presentation choice to classify/retire a command key.
+      if (cause instanceof ApiError && cause.kind === "http" && cause.status === 503 && cause.code === 503) {
+        switch (cause.message) {
+          case "USER_ONBOARDING_STATE_UNAVAILABLE":
+            approvedBusinessFailureCopy = t.value.bankPane.createOnboardingUnavailable;
+            break;
+          case "LEGAL_TERMS_UNAVAILABLE":
+            approvedBusinessFailureCopy = t.value.bankPane.createTermsUnavailable;
+            break;
+          case "FX_QUOTE_UNAVAILABLE":
+            approvedBusinessFailureCopy = t.value.bankPane.createFxUnavailable;
+            break;
+          case "VIETQR_BANK_RAIL_UNAVAILABLE":
+          case "VIETQR_CHANNEL_UNAVAILABLE":
+            approvedBusinessFailureCopy = t.value.bankPane.createBankUnavailable;
+            break;
+          case "HDPAY_CONFIGURATION_INCOMPLETE":
+          case "PAYMENT_CONFIG_UNAVAILABLE":
+            approvedBusinessFailureCopy = t.value.bankPane.createServiceUnavailable;
+            break;
+        }
+      }
       if (cause instanceof ApiError && cause.kind === "http" && cause.status === 428 && cause.code === 428) {
         if (cause.message === "USER_ONBOARDING_REQUIRED") {
           approvedBusinessFailureCopy = t.value.bankPane.onboardingRequired;
@@ -652,7 +675,7 @@ async function completeCreateOrder(usdt: number, expectedAccountKey: string) {
       settled: () => { creating.value = false; },
       // lib 新契约:fallback = 用户面人话(原始 cause 由 lib 进日志)。审计 R3 抓获:此处
       // 曾仍传 "VIETQR_CREATE_FAILED",lib 改版后它从「极端边界才漏出」变成「每次失败必弹」。
-    }, t.value.topupChrome.depositOpFailedNote);
+    }, t.value.bankPane.createFailedNote);
 }
 /** 拒绝/过期态显式重试保留原金额；命令键与最终结果仍由 store 决定。 */
 function regen() {

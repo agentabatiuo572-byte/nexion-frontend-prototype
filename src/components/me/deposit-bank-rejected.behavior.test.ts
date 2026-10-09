@@ -212,6 +212,75 @@ function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", tran
 beforeEach(() => { vi.useFakeTimers(); vi.spyOn(console, "warn").mockImplementation(() => {}); });
 afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); vi.useRealTimers(); vi.restoreAllMocks(); });
 
+const unavailableReasons = [
+  ["USER_ONBOARDING_STATE_UNAVAILABLE", "createOnboardingUnavailable"],
+  ["LEGAL_TERMS_UNAVAILABLE", "createTermsUnavailable"],
+  ["FX_QUOTE_UNAVAILABLE", "createFxUnavailable"],
+  ["VIETQR_BANK_RAIL_UNAVAILABLE", "createBankUnavailable"],
+  ["VIETQR_CHANNEL_UNAVAILABLE", "createBankUnavailable"],
+  ["HDPAY_CONFIGURATION_INCOMPLETE", "createServiceUnavailable"],
+  ["PAYMENT_CONFIG_UNAVAILABLE", "createServiceUnavailable"],
+] as const;
+
+test.each([zh, en, vietnamese])("precise safe 503 reasons render translated guidance without a replay or key retirement", async messages => {
+  for (const [reason, key] of unavailableReasons) {
+    const view = pane("rejected", messages); view.dep.intents = [];
+    view.state.amount.value = "4999";
+    const mounted = view.mount(), flow = creationFlow(view.dep, [503], memoryStorage(), "user:7", undefined, undefined, reason);
+    view.dep.createRemoteBankIntent.mockImplementation(flow.create);
+    click(action(mounted.root, "nx-bank-create-cta")!);
+    await vi.advanceTimersByTimeAsync(600); await Vue.nextTick();
+    const copy = messages.bankPane[key];
+    expect(copy).toBeTypeOf("string");
+    expect(view.state.createError.value).toBe(copy);
+    expect(await view.html()).toContain(copy);
+    expect(view.toast.error).toHaveBeenCalledExactlyOnceWith(copy);
+    expect(view.state.amount.value).toBe("4999"); expect(view.dep.intents).toEqual([]);
+    expect(view.state.createRecovery.value).toBeNull(); expect(view.state.creating.value).toBe(false);
+    expect(flow.requests).toHaveBeenCalledOnce();
+    const request = flow.requests.mock.calls[0][0], scope = JSON.stringify(["user:7", "CREATE", "4999.000000"]);
+    expect(request.body).toEqual({ usdtAmount: 4999 });
+    expect((flow.storage.read() as { pending: Record<string, { key: string }> }).pending[scope].key)
+      .toBe(request.headers["Idempotency-Key"]);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(flow.requests).toHaveBeenCalledOnce(); expect(view.open).not.toHaveBeenCalled(); expect(view.navTo).not.toHaveBeenCalled();
+  }
+});
+
+test.each([zh, en, vietnamese])("unknown 503 messages and raw provider text retain neutral generic guidance", async messages => {
+  for (const reason of ["HDPAY_ORDER_SUBMISSION_UNKNOWN", "HDPAY_ORDER_READ_AFTER_WRITE_FAILED", "NEW_SERVER_REASON", "<script>private-token</script>", "FX_QUOTE_UNAVAILABLE\nprivate-token"]) {
+    const view = pane("rejected", messages); view.dep.intents = [];
+    const mounted = view.mount(), flow = creationFlow(view.dep, [503], memoryStorage(), "user:7", undefined,
+      { providerReason: "private-token" }, reason);
+    view.dep.createRemoteBankIntent.mockImplementation(flow.create);
+    click(action(mounted.root, "nx-bank-create-cta")!);
+    await vi.advanceTimersByTimeAsync(600); await Vue.nextTick();
+    expect(view.state.createError.value).toBe(messages.bankPane.createFailedNote);
+    expect(await view.html()).not.toContain(reason); expect(await view.html()).not.toContain("private-token");
+    expect(view.state.createRecovery.value).toBeNull(); expect(view.dep.intents).toEqual([]);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(flow.requests).toHaveBeenCalledOnce(); expect(view.open).not.toHaveBeenCalled(); expect(view.navTo).not.toHaveBeenCalled();
+  }
+});
+
+test.each(unavailableReasons)("only the exact HTTP 503 envelope can translate %s", async reason => {
+  for (const error of [
+    new ApiError({ kind: "http", status: 503, code: 500, message: reason }),
+    new ApiError({ kind: "http", status: 502, code: 503, message: reason }),
+    new ApiError({ kind: "business", status: 200, code: 503, message: reason }),
+    new ApiError({ kind: "network", status: 503, code: 503, message: reason }),
+    new Error(reason),
+  ]) {
+    const view = pane(); view.dep.intents = [];
+    view.dep.createRemoteBankIntent.mockRejectedValue(error);
+    await view.state.completeCreateOrder(20, "user:7");
+    expect(view.state.createError.value).toBe(zh.bankPane.createFailedNote);
+    expect(view.state.createRecovery.value).toBeNull();
+    expect(view.dep.createRemoteBankIntent).toHaveBeenCalledOnce();
+    expect(view.open).not.toHaveBeenCalled(); expect(view.navTo).not.toHaveBeenCalled();
+  }
+});
+
 test.each([zh, en, vietnamese])("a bounded CREATE provider reason keeps explicit source and original retry behavior", async messages => {
   const view = pane("rejected", messages), mounted = view.mount();
   const providerReason = "充值金额不正确：请输入整数";
@@ -602,7 +671,7 @@ test.each([422, 503])("a settled HTTP %s retry updates the retained banner with 
   expect(view.state.createError.value).toBe(zh.bankPane.hostedOpenFailed);
   await vi.advanceTimersByTimeAsync(600);
   await Vue.nextTick();
-  const expected = status === 422 ? zh.bankPane.hostedRejectedNote : zh.topupChrome.depositOpFailedNote;
+  const expected = status === 422 ? zh.bankPane.hostedRejectedNote : zh.bankPane.createFailedNote;
   expect(view.state.createError.value).toBe(expected);
   expect(errorBanner(mounted.root)).toBeDefined();
   expect(view.toast.error).toHaveBeenCalledExactlyOnceWith(expected);
@@ -644,7 +713,7 @@ test.each(["cancelled", "return_pending"] as const)("a real %s form submits with
   expect(flow.requests).toHaveBeenCalledTimes(2);
   expect(flow.requests.mock.calls[1][0].body).toEqual({ usdtAmount: 25 });
   expect(view.state.intent.value).toMatchObject({ intentId: "VQR-existing", status });
-  expect(view.state.createError.value).toBe(zh.topupChrome.depositOpFailedNote);
+  expect(view.state.createError.value).toBe(zh.bankPane.createFailedNote);
   expect(view.state.creating.value).toBe(false);
   expect(view.open).not.toHaveBeenCalled();
   expect(view.navTo).not.toHaveBeenCalled();
@@ -773,7 +842,7 @@ test("an unknown 503 outcome keeps the same persisted key on an explicit retry a
   click(firstMount.retry()!);
   await vi.advanceTimersByTimeAsync(600);
   const originalKey = before.requests.mock.calls[0][0].headers["Idempotency-Key"];
-  expect(first.state.createError.value).toBe(zh.topupChrome.depositOpFailedNote);
+  expect(first.state.createError.value).toBe(zh.bankPane.createFailedNote);
   expect(first.state.creating.value).toBe(false);
   const restored = pane(), restoredMount = restored.mount();
   const after = creationFlow(restored.dep, [503], storage);
