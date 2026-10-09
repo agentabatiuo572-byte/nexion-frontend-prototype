@@ -420,9 +420,8 @@ watch([catalogStatus, () => product.value?.id], () => {
 });
 
 const isShare = computed(() => product.value?.productType === "SHARE");
-const stockUnavailable = computed(() => !isShare.value
-  && product.value?.inventoryMode === "FINITE"
-  && (product.value.stock ?? 0) <= 0);
+const stockUnavailable = computed(() => product.value?.inventoryMode === "FINITE"
+  && product.value.stock === 0);
 // Localized SKU copy (tagline / ribbon badge). Empty strings until `id` resolves —
 // both consumers are inside `v-if="product"`, so the blanks never render.
 const copy = computed(() =>

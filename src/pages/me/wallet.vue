@@ -61,6 +61,12 @@
           <text>{{ t.wallet.retryFunds }}</text>
         </view>
       </view>
+      <view v-if="releaseAuthorityUnavailable" :style="syncFailBoxStyle">
+        <text class="block" :style="syncFailBodyStyle">{{ t.wallet.releaseDetailsUnavailable }}</text>
+        <view role="button" tabindex="0" :aria-label="t.wallet.retryFunds" :style="retryFundsStyle" @click="retryReleaseAuthority" @keydown.enter.prevent="retryReleaseAuthority" @keydown.space.prevent="retryReleaseAuthority">
+          <text>{{ t.wallet.retryFunds }}</text>
+        </view>
+      </view>
 
       <!-- Earnings list -->
       <text v-if="fundsReadable" class="block" :style="listTitleStyle">{{ t.wallet.earningsSection }}</text>
@@ -71,11 +77,11 @@
         </WalletListRow>
         <WalletListRow icon-bg="var(--v5-warning-soft)" :label="t.wallet.reviewingEarnings" :sublabel="t.wallet.reviewingEarningsSub" @click="showPendingSheet">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></svg></template>
-          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">${{ pendingReview.toFixed(2) }}</text></template>
+          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">{{ bucketsReadable ? `$${pendingReview.toFixed(2)}` : "—" }}</text></template>
         </WalletListRow>
         <WalletListRow icon-bg="var(--v5-brand-2-soft)" :label="t.wallet.lockedRewards" :sublabel="t.wallet.lockedRewardsSub" @click="showLockedSheet">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg></template>
-          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">${{ lockedRewards.toFixed(2) }}</text></template>
+          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">{{ bucketsReadable ? `$${lockedRewards.toFixed(2)}` : "—" }}</text></template>
         </WalletListRow>
         <WalletListRow icon-bg="var(--v5-tech-cyan-soft)" :label="t.wallet.allTimeEarnings" :sublabel="allTimeSublabel">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z" /><path d="M3 10h18" /></svg></template>
@@ -117,7 +123,7 @@ import WalletListRow from "@/components/me/wallet-list-row.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
-import { earningsReleaseSnapshot, earningsReleaseStatus, refreshEarningsReleaseStatus, type LedgerRoute } from "@/store/earning-release";
+import { earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus, refreshEarningsReleaseStatus, type LedgerRoute } from "@/store/earning-release";
 import { useCommission } from "@/store/commission";
 import { useCards } from "@/store/cards";
 import { useConfig } from "@/store/config";
@@ -147,9 +153,17 @@ const configSyncFailed = computed(() => cfg.syncFailed);
 const fundsAuthorityUnavailable = computed(() => remoteApiEnabled && app.remoteFleetStatus === "error");
 const fundsReadable = computed(() => !remoteApiEnabled || app.remoteFleetHasSnapshot);
 const usdtBalanceReadable = computed(() => fundsReadable.value || app.remoteWalletReceiptHasSnapshot);
+const releaseAuthorityUnavailable = computed(() => remoteApiEnabled && earningsReleaseStatus.value === "error");
+const bucketsReadable = computed(() => !remoteApiEnabled || (earningsReleaseHasSnapshot.value
+  && earningsReleaseSnapshot.value?.serverCanonical === true
+  && (earningsReleaseStatus.value === "ready" || earningsReleaseStatus.value === "loading")));
 
 function retryFundsAuthority() {
   void app.refreshRemoteFleet();
+}
+function retryReleaseAuthority() {
+  if (earningsReleaseStatus.value === "loading") return;
+  void refreshEarningsReleaseStatus().catch(() => undefined);
 }
 
 // Release explanations use the same account-scoped server receipt as the

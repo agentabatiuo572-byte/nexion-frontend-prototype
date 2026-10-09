@@ -146,9 +146,8 @@ const isShare = computed(() => props.product.productType === "SHARE");
 const catalogUnavailable = computed(() => remoteApiEnabled && productCatalogState.status !== "ready");
 const promotionUnavailable=computed(()=>!!props.activityId&&(!props.promotionReady||!canPreviewPromotion(props.promotion??null)||!props.promotion?.productNos.includes(props.product.id)));
 const promotionSignIn=computed(()=>!!props.activityId&&!promotionUnavailable.value&&props.promotion?.eligibility==='SIGN_IN_REQUIRED');
-const stockUnavailable = computed(() => !isShare.value
-  && props.product.inventoryMode === "FINITE"
-  && (props.product.stock ?? 0) <= 0);
+const stockUnavailable = computed(() => props.product.inventoryMode === "FINITE"
+  && props.product.stock === 0);
 const failedImageUrl = ref("");
 watch(() => props.product.imageUrl, () => { failedImageUrl.value = ""; }, { immediate: true });
 // Product videos stay detail-only: listing cards use the catalog image

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-copylink-r94-20261010",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-holder-wallet-stock-r106-20261010",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "db66c9a8f7fe3636cc2b7fca8ae6e820c88806b0",
-  "sourceRef": "db66c9a8f7fe3636cc2b7fca8ae6e820c88806b0",
+  "sourceHead": "1ffb86598d36c62341a04481cb5035c92a8f51fa",
+  "sourceRef": "1ffb86598d36c62341a04481cb5035c92a8f51fa",
   "sourceRefKind": "commit",
-  "sourceTree": "047b8bc5790a970d1cc8b07a01b957d6be986d80",
+  "sourceTree": "ef09ddcaa2277f660b93a8ebe01a9a7e8360b9ff",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -8833,10 +8833,10 @@
       "mode": "100644"
     },
     "src/components/store/product-card.vue": {
-      "sourceBlob": "a443ed3f76f34b164eb31312dc629b01eec5dc60",
-      "sourceSha256": "54017558c79f54d10ed93fd88d5966e860a89654575b9198ba41dd1a59862969",
-      "targetBlob": "a443ed3f76f34b164eb31312dc629b01eec5dc60",
-      "targetSha256": "54017558c79f54d10ed93fd88d5966e860a89654575b9198ba41dd1a59862969",
+      "sourceBlob": "a53b0028a881d6fb62dd5e165a2449402157df3f",
+      "sourceSha256": "e31cc044e74f8819b93f2e0ef78ab4701970ec771980bd0dac0377eb748ddafc",
+      "targetBlob": "a53b0028a881d6fb62dd5e165a2449402157df3f",
+      "targetSha256": "e31cc044e74f8819b93f2e0ef78ab4701970ec771980bd0dac0377eb748ddafc",
       "mode": "100644"
     },
     "src/components/store/product-render.vue": {
@@ -12907,10 +12907,10 @@
       "mode": "100644"
     },
     "src/pages/genesis/holder.vue": {
-      "sourceBlob": "cfe3c72b75e72297913192d8828ef12bdf44b6cd",
-      "sourceSha256": "89e10f27569a989ed715adb9e0958ff3fe54c90b17c3849fcd92d4c7dd4453cc",
-      "targetBlob": "cfe3c72b75e72297913192d8828ef12bdf44b6cd",
-      "targetSha256": "89e10f27569a989ed715adb9e0958ff3fe54c90b17c3849fcd92d4c7dd4453cc",
+      "sourceBlob": "7a9dcfa16037ca9d8e7abd328f905fbb85b30257",
+      "sourceSha256": "2b97e221402905b5df3b342daf0644a139ff7ef8f7f7b5dca7b18592b9ed9ff8",
+      "targetBlob": "7a9dcfa16037ca9d8e7abd328f905fbb85b30257",
+      "targetSha256": "2b97e221402905b5df3b342daf0644a139ff7ef8f7f7b5dca7b18592b9ed9ff8",
       "mode": "100644"
     },
     "src/pages/genesis/how-it-works.vue": {
@@ -13257,10 +13257,10 @@
       "mode": "100644"
     },
     "src/pages/me/me-ui-parity.contract.test.ts": {
-      "sourceBlob": "d09a1c30d67a8f28bd1786b9600804e62637a42d",
-      "sourceSha256": "8cd0fac054b62454463916fa23e83b7da5cbe7b76d8129e983402d5f9f69ff69",
-      "targetBlob": "d09a1c30d67a8f28bd1786b9600804e62637a42d",
-      "targetSha256": "8cd0fac054b62454463916fa23e83b7da5cbe7b76d8129e983402d5f9f69ff69",
+      "sourceBlob": "d7d1271cb15b3dc9369f71ca8098049e9bd200f0",
+      "sourceSha256": "a3629236ebbc543dca8df4943913f687a312231b3ec98fe93ddbbf6c6c2ce135",
+      "targetBlob": "d7d1271cb15b3dc9369f71ca8098049e9bd200f0",
+      "targetSha256": "a3629236ebbc543dca8df4943913f687a312231b3ec98fe93ddbbf6c6c2ce135",
       "mode": "100644"
     },
     "src/pages/me/me.vue": {
@@ -13718,6 +13718,13 @@
       "targetSha256": "d33918fc5ca5eb4cf89e89207ab5d525813fb313f10f350a9f83733ed64e39bc",
       "mode": "100644"
     },
+    "src/pages/me/wallet-held-authority.behavior.test.ts": {
+      "sourceBlob": "48cff20a432c0997b7ea3522283b549abaf28a37",
+      "sourceSha256": "6ec56e788d23b5a66a49fc8c3974ace7e741cbbac597e0ae81a00d97d4ac09bc",
+      "targetBlob": "48cff20a432c0997b7ea3522283b549abaf28a37",
+      "targetSha256": "6ec56e788d23b5a66a49fc8c3974ace7e741cbbac597e0ae81a00d97d4ac09bc",
+      "mode": "100644"
+    },
     "src/pages/me/wallet-nex-balance-authority.test.ts": {
       "sourceBlob": "54393ee68408cb21e839d95b2269c361252ee646",
       "sourceSha256": "fe424b63d649db78d18ab32fd279ae0119431b29c345a6bf317a6318d4f8d402",
@@ -13866,10 +13873,10 @@
       "mode": "100644"
     },
     "src/pages/me/wallet.vue": {
-      "sourceBlob": "da4464440e21e130e7e24fabe53ee323e9f9b90e",
-      "sourceSha256": "211b2d9a752d90e4bd25e758dbfeae884ed5bd6ace451dea5b7ae96111024caa",
-      "targetBlob": "da4464440e21e130e7e24fabe53ee323e9f9b90e",
-      "targetSha256": "211b2d9a752d90e4bd25e758dbfeae884ed5bd6ace451dea5b7ae96111024caa",
+      "sourceBlob": "73c5f2a70839c3415f3e087cceeafd4efedcb649",
+      "sourceSha256": "dd0d863fb298138b8045fbd0a0e886b01ebcc1cdb6b01d348b9389ec6830da3e",
+      "targetBlob": "73c5f2a70839c3415f3e087cceeafd4efedcb649",
+      "targetSha256": "dd0d863fb298138b8045fbd0a0e886b01ebcc1cdb6b01d348b9389ec6830da3e",
       "mode": "100644"
     },
     "src/pages/me/withdrawal-warning-intent.test.ts": {
@@ -14265,10 +14272,17 @@
       "mode": "100644"
     },
     "src/pages/store/detail.vue": {
-      "sourceBlob": "5c1726d7a77d53fd2d440478e9005e285fbc5b0d",
-      "sourceSha256": "3c09f41673d637bc91f6747cb3538f7eef01a8b60c56feacff926ee57c16b39a",
-      "targetBlob": "5c1726d7a77d53fd2d440478e9005e285fbc5b0d",
-      "targetSha256": "3c09f41673d637bc91f6747cb3538f7eef01a8b60c56feacff926ee57c16b39a",
+      "sourceBlob": "03fe8cb79b94250d9d3789eaf1bdcac21263f9fc",
+      "sourceSha256": "e35b73a3a715adc5ec50b8e03ff98197b7618d33a4e596e605f3152b3e7a771f",
+      "targetBlob": "03fe8cb79b94250d9d3789eaf1bdcac21263f9fc",
+      "targetSha256": "e35b73a3a715adc5ec50b8e03ff98197b7618d33a4e596e605f3152b3e7a771f",
+      "mode": "100644"
+    },
+    "src/pages/store/finite-share-stock.behavior.test.ts": {
+      "sourceBlob": "60003fd3a843fef3b3ad26d6c251088221bf9780",
+      "sourceSha256": "31c7e5c89be1c0445a6d072424c1c8da5ecfe31a52c23e0d17116813953237a2",
+      "targetBlob": "60003fd3a843fef3b3ad26d6c251088221bf9780",
+      "targetSha256": "31c7e5c89be1c0445a6d072424c1c8da5ecfe31a52c23e0d17116813953237a2",
       "mode": "100644"
     },
     "src/pages/store/order-date-consumers.test.ts": {

@@ -374,7 +374,7 @@ const emissionFeed = computed(() => {
 });
 
 // Holdings list — 席位 + 铸造日 + 预留额度（无排放数字）。
-const holdings = computed(() => remoteApiEnabled ? genesis.remoteHoldings.slice(0, 6).map((holding) => ({
+const holdings = computed(() => remoteApiEnabled ? genesis.remoteHoldings.map((holding) => ({
   id: holding.holdingNo,
   mintedAt: holding.acquiredAt,
   allocText: `${holding.acquiredPriceUsdt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} USDT`,

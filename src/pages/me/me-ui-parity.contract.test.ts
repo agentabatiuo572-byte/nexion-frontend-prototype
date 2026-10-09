@@ -94,7 +94,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "wallet-topup.vue": "010252b7630c35defdf57a3f262d0e389c011d2b9d79ad2f5fb788e794d87768",
   "wallet-withdraw-tracking.vue": "7e295fb4b5e5bc50dcbfbbe136c6ede7bcab07ae9bb6193b666bf397acb60e9a",
   "wallet-withdraw.vue": "e3f41cf165b08b6a7813a6f1b180d3da96e5d786f1daa138e95fb4ba334ed10d",
-  "wallet.vue": "95b9805fdebe39db2a8920a235436fca6b8d21e65101df5cb866a244122a6bd5"
+  // Reviewed held-authority failure and retry UI against the fixed 710e9ee reference.
+  "wallet.vue": "02bbdb6e646a7d44131faea4d6f341f87b0528115500749c9174009fc1c01733"
 };
 const EXPECTED_STYLE_PAIR_SHA256: Record<string, string> = {
   // Approved unified center uses shared flat-row styles and fixed native scrolling.
