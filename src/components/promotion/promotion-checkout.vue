@@ -96,7 +96,7 @@ const promotion=shallowRef<PublicPromotion|null>(null),loading=ref(true),busy=re
 const voucherId=ref(session.record.voucherId??null);const selectedVoucherName=computed(()=>voucher.catalog.find(v=>v.id===voucherId.value)?.name??p.value.noVoucher);
 const items=computed(()=>order.value?.items??quote.value?.items??props.items);const rewards=computed(()=>order.value?.rewards??quote.value?.expectedRewards??[]);
 function disclosure(r:ExpectedReward):RewardDisclosure|null {const d=r.disclosure;return d&&[d.title,d.terms,d.refundTerms,d.benefitDescription].every(x=>x&&['zh','en','vi'].every(l=>typeof x[l as keyof LocalizedText]==='string'&&x[l as keyof LocalizedText].trim()))?d:null;}
-const disclosures=computed(()=>rewards.value.map(disclosure).filter((d):d is RewardDisclosure=>!!d));const completeTerms=computed(()=>rewards.value.length>0&&disclosures.value.length===rewards.value.length);
+const disclosures=computed(()=>rewards.value.map(disclosure).filter((d):d is RewardDisclosure=>!!d));const completeTerms=computed(()=>disclosures.value.length===rewards.value.length);
 let receivedAt:number|null=null,promotionReceivedAt:number|null=null;const quoteFresh=ref(false);let timer:ReturnType<typeof setInterval>|undefined;
 function updateClock(){const now=readTrustedMonotonicNowMs();quoteFresh.value=!!quote.value&&receivedAt!==null&&now!==null&&projectServerNow(Date.parse(quote.value.serverTime),receivedAt,now)<Date.parse(quote.value.expiresAt);}
 const canCreate=computed(()=>!busy.value&&!unknown.value&&completeTerms.value&&(quoteFresh.value||session.retryOriginal)&&quote.value?.eligibility==='ELIGIBLE'&&session.canExecute(quote.value.items.length>1?'createBundle':'createOrder'));

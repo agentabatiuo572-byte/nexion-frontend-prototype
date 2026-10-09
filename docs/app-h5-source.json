@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\growth-promotions-prd-20261007-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "2801ef2176cfb8c7893e97152815c4583bb9b0f6",
-  "sourceRef": "2801ef2176cfb8c7893e97152815c4583bb9b0f6",
+  "sourceHead": "2fff6c7b903d13ebc6664db25338ba240a1f5f1f",
+  "sourceRef": "2fff6c7b903d13ebc6664db25338ba240a1f5f1f",
   "sourceRefKind": "commit",
-  "sourceTree": "8c31b0d6ef83dd77e3a34cebba3be57c3619aa97",
+  "sourceTree": "3321cb1aedeb30bf021e4b961fbd3aca0ac03f7a",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -8581,10 +8581,10 @@
       "mode": "100644"
     },
     "src/components/promotion/promotion-checkout.vue": {
-      "sourceBlob": "277a0914572e9e5c464a93b6e131ae9c15b0bfe8",
-      "sourceSha256": "7cf9ef7bb288a82089bed9358bacf8bad0dc9bf64dd6f0d9cab57c86fc33698b",
-      "targetBlob": "277a0914572e9e5c464a93b6e131ae9c15b0bfe8",
-      "targetSha256": "7cf9ef7bb288a82089bed9358bacf8bad0dc9bf64dd6f0d9cab57c86fc33698b",
+      "sourceBlob": "f13d78353e09124a3b611e5335e8399de0499418",
+      "sourceSha256": "032b9a7ffe82a4704949c50e74ef56b7d032a3a67241b4f0428e1987249e6aca",
+      "targetBlob": "f13d78353e09124a3b611e5335e8399de0499418",
+      "targetSha256": "032b9a7ffe82a4704949c50e74ef56b7d032a3a67241b4f0428e1987249e6aca",
       "mode": "100644"
     },
     "src/components/promotion/promotion-entry.vue": {
@@ -8595,10 +8595,10 @@
       "mode": "100644"
     },
     "src/components/promotion/promotion-leave.behavior.test.ts": {
-      "sourceBlob": "ad92d796f281493b23a0d5ef265749888c6e2bd1",
-      "sourceSha256": "487610195fffbd1c18654110763d264a5f4b5daf00f3fdc982aa13371b15bc55",
-      "targetBlob": "ad92d796f281493b23a0d5ef265749888c6e2bd1",
-      "targetSha256": "487610195fffbd1c18654110763d264a5f4b5daf00f3fdc982aa13371b15bc55",
+      "sourceBlob": "110be73f69926c3d93f3d0157fea3034458c777a",
+      "sourceSha256": "2c38eb8af9ad527a07a14409c14a1e608263ce26467e4808b9d50503e9ee90b3",
+      "targetBlob": "110be73f69926c3d93f3d0157fea3034458c777a",
+      "targetSha256": "2c38eb8af9ad527a07a14409c14a1e608263ce26467e4808b9d50503e9ee90b3",
       "mode": "100644"
     },
     "src/components/promotion/promotion-product.vue": {
