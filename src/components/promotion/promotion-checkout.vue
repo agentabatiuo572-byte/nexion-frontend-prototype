@@ -18,7 +18,6 @@
       <view v-if="rewards.length" class="promotion-flat">
         <text class="promotion-title">{{ order ? (order.paymentStatus==='PENDING'?p.locked:p.orderRewards) : p.expected }}</text><text class="promotion-copy" style="margin-top:10px">{{ p.rewardNote }}</text>
         <RewardRows :expected="rewards" :lines="order?.items??quote?.items" />
-        <view v-if="order ? order.paymentStatus==='PENDING'&&order.payBy : promotion?.endsAt" class="promotion-row"><text aria-hidden="true">◷</text><view class="promotion-grow"><text class="promotion-copy">{{ order ? p.payBy : p.deadline }}</text><text class="promotion-copy">{{ displayDeadline(order?.payBy??promotion!.endsAt,locale.code) }}</text></view></view>
         <view class="promotion-link" role="button" tabindex="0" @click="termsOpen=true"><text>{{ p.rulesLink }}</text></view>
       </view>
       <view v-if="quote || order" class="promotion-flat">
@@ -26,6 +25,7 @@
         <view v-if="quote" class="promotion-summary"><text>{{ p.subtotal }}</text><text>{{ quote.subtotalUsdt }} USDT</text></view>
         <view v-if="quote" class="promotion-summary"><text>{{ p.discount }}</text><text>{{ quote.discountUsdt }} USDT</text></view>
         <view class="promotion-summary total"><text>{{ p.total }}</text><text>{{ order?.amountUsdt??quote?.amountUsdt }} USDT</text></view>
+        <view v-if="order ? order.paymentStatus==='PENDING'&&order.payBy : promotion?.endsAt" class="promotion-row"><text aria-hidden="true">◷</text><view class="promotion-grow"><text class="promotion-copy">{{ order ? p.payBy : p.deadline }}</text><text class="promotion-copy">{{ displayDeadline(order?.payBy??promotion!.endsAt,locale.code) }}</text></view></view>
         <text class="promotion-copy">{{ p.wallet }}</text>
         <text class="promotion-copy">{{ t.wallet.usdtBalance }} · {{ app.remoteFleetHasSnapshot ? app.user.usdtBalance.toFixed(6)+' USDT' : p.unknown }}</text>
         <view class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/wallet-topup')"><text>{{ p.topup }}</text></view>
