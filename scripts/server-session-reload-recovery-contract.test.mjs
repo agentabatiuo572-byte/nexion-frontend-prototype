@@ -38,7 +38,7 @@ test("a refreshed H5 account restores its HttpOnly-cookie session before the rou
   assert.match(login, /data-qa="server-session-reload-notice"/);
   assert.match(login, /notice === "server-session-reload"/);
   assert.match(login, /t\.login\.serverSessionReloadNotice/);
-  assert.match(zh, /页面刷新后会安全恢复服务端会话；只有会话已失效时才需要重新登录/);
+  assert.match(zh, /serverSessionReloadNotice: "请重新登录以继续使用。"/);
   // 🔴 语言面三语齐点(门的门 ① 判据):只点一种语言时,另两种可以随意漂移而本门全绿。
   // 实测过的失败形态:语言豁免表不带语言维 → vi 真丢了占位符照样绿。
   // 中文钉原文(话术是产品决定),英/越钉**键存在** —— 这条是掉线后唯一的恢复指引,缺哪种语言哪种语言的用户就无路可走。

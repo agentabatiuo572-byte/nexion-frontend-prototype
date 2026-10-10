@@ -5,6 +5,7 @@ import { compile } from "@vue/compiler-dom";
 import { parse } from "@vue/compiler-sfc";
 import * as Vue from "vue";
 import { renderToString } from "@vue/server-renderer";
+import { escapeHtml } from "@vue/shared";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi } from "@/i18n/messages/vi";
@@ -37,7 +38,7 @@ describe("leaderboard paused presentation", () => {
   for (const t of [en, zh, vi]) {
     it(`hides unknown values during a legacy pause in ${t.leaderboard.pausedTitle}`, async () => {
       const html = await page(true, "week", t, 900, false);
-      expect(html).toContain(t.leaderboard.snapshotUnavailable);
+      expect(html).toContain(escapeHtml(t.leaderboard.snapshotUnavailable));
       expect(html).not.toContain("$900");
       expect(html).not.toContain("2026-10-08T12:30:00Z");
     });
@@ -46,7 +47,7 @@ describe("leaderboard paused presentation", () => {
     const html = await page(true, "week", en, 900, true);
     expect(html).toContain("$900");
     expect(html).toContain("2026-10-08T12:30:00Z");
-    expect(html).not.toContain(en.leaderboard.snapshotUnavailable);
+    expect(html).not.toContain(escapeHtml(en.leaderboard.snapshotUnavailable));
   });
   for (const period of ["today", "week", "month", "all"]) {
     for (const t of [en, zh, vi]) {

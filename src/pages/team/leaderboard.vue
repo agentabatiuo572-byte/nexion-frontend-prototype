@@ -212,8 +212,7 @@ const prize = computed(() => remoteApiEnabled ? { poolUSD: remoteSnapshot.value?
   topN: remoteSnapshot.value?.topN ?? 0, resetsIn: null as string | null, label: period.value }
   // Fixture rows can support layout preview, but client fixtures must never invent a cash pool.
   : { poolUSD: 0, topN: 0, resetsIn: PERIOD_PRIZE[period.value].resetsIn, label: period.value });
-// The server projection carries no countdown yet, so a period without one must
-// say so instead of rendering a bare placeholder that reads as a broken value.
+// Missing countdowns stay unknown without crowding the compact value slot.
 const resetsInText = computed(() => {
   const value = prize.value.resetsIn;
   return value && value !== "—" ? value : t.value.leaderboard.pool.resetsUnavailable;

@@ -62,7 +62,10 @@ describe("notification empty-state context", () => {
       expect(label()).toBe(zh.notifs.unreadUnavailable);
       center.error = null;
       center.loading = true;
-      expect(label()).toBe(zh.help.loadingMore);
+      expect(label()).toBe("-");
+      center.totalUnread = 3;
+      expect(label()).toBe(fmt(zh.notifs.unreadCount, { n: 3 }));
+      center.totalUnread = 0;
       center.loading = false;
       expect(label()).toBe(zh.notifs.allCaughtUp);
     });

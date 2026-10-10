@@ -86,8 +86,8 @@ export function productCopy(t: Messages, p: Product, serverCatalog = false, loca
  * Every render of those fields goes through here; `spec-sentinel-render-gate.mjs`
  * fails the build on any unwrapped read in the store render face.
  */
-export function specText(t: Messages, value: string | null | undefined): string {
-  return !value || value === SPEC_UNAVAILABLE ? t.store.specValueUnavailable : value;
+export function specText(t: Messages, value: string | null | undefined, fallback = t.store.specValueUnavailable): string {
+  return !value || value === SPEC_UNAVAILABLE ? fallback : value;
 }
 
 export interface SpecRow { k: string; v: string }

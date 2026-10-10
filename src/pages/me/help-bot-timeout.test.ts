@@ -51,8 +51,7 @@ function harness(chat: (request?: { turnId: string }) => Promise<unknown>): Harn
       capture: () => ({ language: "zh", conversationId: "CV-TEST" }),
       add: (message) => { transcript.push(message); },
     };
-    const w = { value: { botTimeout: "超时", botTimeoutHint: "可以重试", remoteFailed: "服务端失败",
-      remoteSource: "来源:{source}", remoteError: "错误:{code}" } };
+    const w = { value: { botTimeout: "超时", botTimeoutHint: "可以重试", remoteFailed: "暂时无法回复，请重试" } };
     const syncBotAccountScope = () => undefined;
     const bumpScroll = () => undefined;
     const fmt = (template, params) => template.replace(/\\{(\\w+)\\}/g, (_, key) => params[key] ?? "{" + key + "}");
@@ -109,13 +108,14 @@ describe("NexGridBot remote reply deadline", () => {
     expect(h.thinking.value).toBe(false);
   });
 
-  it("reports the server reason and closes thinking on a rejected answer", async () => {
+  it("closes thinking and gives a retry message without exposing an internal error code", async () => {
     const h = harness(() => Promise.reject(new Error("NOVA_AI_UNAVAILABLE")));
     await h.sendToBot();
 
     expect(h.thinking.value).toBe(false);
     expect(h.botFailure.value).toBe("error");
-    expect(h.transcript.at(-1)).toEqual({ from: "bot", text: "服务端失败", meta: "错误:NOVA_AI_UNAVAILABLE" });
+    expect(h.transcript.at(-1)).toEqual({ from: "bot", text: "暂时无法回复，请重试" });
+    expect(JSON.stringify(h.transcript)).not.toContain("NOVA_AI_UNAVAILABLE");
   });
 
   it("retries the original turn after local timeout and follows its in-progress result", async () => {

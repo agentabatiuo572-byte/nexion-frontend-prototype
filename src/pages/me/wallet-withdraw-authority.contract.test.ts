@@ -5,6 +5,23 @@ import ts from "typescript";
 
 const source = readFileSync(new URL("./wallet-withdraw.vue", import.meta.url), "utf8");
 
+it("offers the saved-request retry independently of new-form validity, but never while busy", () => {
+  const expression = source.match(/const canSubmitAction = computed\(\(\) => ([^;]+)\);/)?.[1];
+  expect(expression).toBeDefined();
+  const available = new Function("inputsLocked", "pendingAttempt", "canSubmit", `return ${expression};`);
+  for (const busy of [false, true]) {
+    for (const pending of [null, { key: "original-request" }]) {
+      for (const freshValid of [false, true]) {
+        expect(available({ value: busy }, { value: pending }, { value: freshValid }))
+          .toBe(!busy && (!!pending || freshValid));
+      }
+    }
+  }
+  expect(source).toContain(':aria-disabled="canSubmitAction ? \'false\' : \'true\'"');
+  expect(source).toContain("pendingAttempt ? t.walletV3.withdrawResendCta : t.walletV3.submitCtaPaired");
+  expect(source).toContain("if (!pending && !canSubmit.value)");
+});
+
 describe("withdrawal authoritative-facts display", () => {
   it("keeps unknown balances and daily counts out of zero-valued projections", () => {
     expect(source).toContain('v-if="withdrawalFactsDisplayable"');

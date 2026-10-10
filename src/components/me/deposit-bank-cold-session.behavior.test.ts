@@ -244,6 +244,23 @@ test("a late read failure cannot write a banner after the pane was unmounted", a
   expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled();
 });
 
+test("a coalesced initial read still reports failure when its caller returns before the shared read", async () => {
+  const h = harness({ warm: true });
+  h.dep.refreshRemoteVietQrDeposits.mockImplementationOnce(async () => {
+    h.dep.remoteReceiptInitialStatus = "loading";
+    h.dep.serverStatus = "loading";
+  });
+  await Vue.nextTick(); await Promise.resolve(); await Vue.nextTick();
+  expect((h.state().readError as Vue.Ref<string>).value).toBe("");
+  h.dep.remoteReceiptInitialStatus = "error";
+  h.dep.serverStatus = "error";
+  h.dep.serverError = "INTENTS_READ_FAILED";
+  await Vue.nextTick();
+  expect((h.state().readError as Vue.Ref<string>).value).toBe(zh.topupChrome.depositOpFailedNote);
+  expect(h.text()).toContain(zh.topupChrome.depositOpFailedNote);
+  expect(h.dep.createRemoteBankIntent).not.toHaveBeenCalled();
+});
+
 test("the first read failure clears after a later successful read without a remount or another FX load", async () => {
   const h = harness({ warm: true, firstIntentFailure: true });
   await vi.waitFor(() => expect(h.dep.serverStatus).toBe("error")); await Vue.nextTick();

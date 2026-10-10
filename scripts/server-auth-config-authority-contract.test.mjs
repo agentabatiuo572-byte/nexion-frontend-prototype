@@ -65,9 +65,9 @@ test("registration OTP send uses the public auth route and a delivery-specific f
 
   assert.match(api, /sendRegistrationOtp[\s\S]*?path: "\/auth\/users\/register\/otp\/send"/);
   assert.match(register, /authApi\.sendRegistrationOtp[\s\S]*?errorOtpSendUnavailable/);
-  assert.match(zh, /errorOtpSendUnavailable: "验证码暂时没发出去 —— 可先用下方 Google \/ Apple \/ Telegram 直接登录,或稍等片刻再试。"/);
-  assert.match(en, /errorOtpSendUnavailable: "The code didn't go out just now — sign in with Google \/ Apple \/ Telegram below, or retry in a moment\."/);
-  assert.match(vi, /errorOtpSendUnavailable: "Mã xác minh chưa gửi được — bạn có thể đăng nhập bằng Google \/ Apple \/ Telegram bên dưới, hoặc thử lại sau ít phút\."/);
+  assert.match(zh, /errorOtpSendUnavailable: "验证码暂未发送，请稍后重试。"/);
+  assert.match(en, /errorOtpSendUnavailable: "The verification code has not been sent\. Please try again later\."/);
+  assert.match(vi, /errorOtpSendUnavailable: "Mã xác minh chưa được gửi\. Vui lòng thử lại sau\."/);
 });
 
 test("mock password reset persists through AuthApi and reuses the phone account scope", () => {

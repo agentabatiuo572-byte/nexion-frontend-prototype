@@ -126,7 +126,7 @@ const sectionOptions = computed(() => [
   { value: "notifications", label: t.value.notifs.notificationsTab, count: notifs.unread },
   { value: "service", label: t.value.notifs.serviceTab, count: center.serviceUnread },
 ]);
-const unreadLabel = computed(() => center.error ? t.value.notifs.unreadUnavailable : center.totalUnread > 0 ? fmt(t.value.notifs.unreadCount, { n: center.totalUnread }) : center.loading ? t.value.help.loadingMore : t.value.notifs.allCaughtUp);
+const unreadLabel = computed(() => center.error ? t.value.notifs.unreadUnavailable : center.totalUnread > 0 ? fmt(t.value.notifs.unreadCount, { n: center.totalUnread }) : center.loading ? t.value.notifs.unreadUnavailable : t.value.notifs.allCaughtUp);
 type Filter = "all" | NotificationCategory;
 const filter = ref<Filter>("all");
 const filterIds: Filter[] = ["all", "finance", "device", "team", "rewards", "system"];

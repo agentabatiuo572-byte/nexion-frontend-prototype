@@ -6,6 +6,7 @@ import type { TrialAuthorityState } from "@/api/trial-api";
 import hero from "@/components/trial-hero-banner.vue?raw";
 import banner from "@/components/trial-promo-banner.vue?raw";
 import ghost from "@/components/trial-ghost-slot.vue?raw";
+import trialPage from "@/pages/me/trial.vue?raw";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
@@ -171,5 +172,28 @@ describe("trial config authority feeds the shared capped-offset helper", () => {
     cfg.applyAuthoritative(authority().config);
     expect(cfg.config.trialOffsetCapUSD).toBe(50);
     expect(computeTrialOffset(cfg.config, cfg.config.trialDays * cfg.config.shadowDailyUSD).offsetUSD).toBe(50);
+  });
+
+  it("withholds an unconfirmed duration and retains a confirmed duration during polling", async () => {
+    const freeTrial = useFreeTrial();
+    const trialCfg = useTrialConfig();
+    const { idleBody } = actual(trialPage, ["idleBody"], {
+      computed, freeTrial, cfg: computed(() => trialCfg.config), w: computed(() => zh.trial), fmt,
+    });
+    expect(idleBody.value).toBe("");
+    remote.state.mockRejectedValueOnce(new Error("unavailable"));
+    await freeTrial.refreshRemote();
+    expect(idleBody.value).toBe("");
+    remote.state.mockResolvedValueOnce({ ...authority(), config: { ...authority().config, trialDays: "7" } });
+    await freeTrial.refreshRemote();
+    const confirmed = fmt(zh.trial.idleBody, { n: "7" });
+    expect(idleBody.value).toBe(confirmed);
+    freeTrial.authorityStatus = "loading";
+    expect(idleBody.value).toBe(confirmed);
+    remote.state.mockRejectedValueOnce(new Error("unavailable"));
+    await freeTrial.refreshRemote();
+    expect(idleBody.value).toBe("");
+    freeTrial.authorityStatus = "mock";
+    expect(idleBody.value).toBe(confirmed);
   });
 });

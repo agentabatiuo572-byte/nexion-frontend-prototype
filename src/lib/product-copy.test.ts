@@ -3,7 +3,16 @@ import { en } from "@/i18n/messages/en";
 import { vi } from "@/i18n/messages/vi";
 import { zh } from "@/i18n/messages/zh";
 import type { Product } from "@/mock/products";
-import { localizedDatacenterValue, productCopy } from "./product-copy";
+import { localizedDatacenterValue, productCopy, specText } from "./product-copy";
+import { SPEC_UNAVAILABLE } from "@/api/product-catalog-contract";
+
+it.each([zh, en, vi])("uses a compact placeholder without changing the full explanation or real values", dictionary => {
+  for (const value of [null, undefined, "", SPEC_UNAVAILABLE]) {
+    expect(specText(dictionary, value, "-")).toBe("-");
+    expect(specText(dictionary, value)).toBe(dictionary.store.specValueUnavailable);
+  }
+  for (const value of ["0", "24 months", "8 GB"]) expect(specText(dictionary, value, "-")).toBe(value);
+});
 
 const cloudShare = {
   id: "cloud-share", name: "Cloud Share", tier: "Share", tagline: "云算力份额·低门槛",

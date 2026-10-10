@@ -17,7 +17,6 @@
           </view>
           <view v-if="verified" class="grid text-center" :style="heroStatsStyle">
             <Stat :label="tr.activeNodes" :value="activeDevicesText" />
-            <text class="block" :style="footnoteStyle">{{ financialFootnote }}</text>
           </view>
         </view>
 
@@ -86,7 +85,6 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import SectionHeader from "@/components/trust/trust-section-header.vue";
 import Stat from "@/components/trust/trust-stat.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
 import { useLocaleStore } from "@/store/locale";
 import { useConfig } from "@/store/config";
 import { toast } from "@/store/ui";
@@ -133,9 +131,6 @@ const narrativeHero = computed(() => localizedTrustFieldValue(narrativeSection.v
 const narrativeSubhero = computed(() => localizedTrustFieldValue(narrativeSection.value?.fields ?? [], "subhero", language.value) ?? "");
 const verified = computed(() => cfg.syncFailed ? null : cfg.config.verifiedStats);
 const activeDevicesText = computed(() => verified.value?.onlineDevices.value.toLocaleString("en-US") ?? "—");
-const financialFootnote = computed(() => verified.value
-  ? fmt(tr.value.verifiedAggregateNote, { at: verified.value.capturedAt.slice(0, 16).replace("T", " ") })
-  : null);
 const financialMetrics = computed(() => {
   const v = verified.value;
   if (!v) return [];
@@ -232,7 +227,6 @@ const metricStyle: CSSProperties = { padding: "14px", borderRight: "1px solid va
 const labelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const metricValueStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, color: "var(--v5-ink)" };
 const deltaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-success)" };
-const footnoteStyle: CSSProperties = { gridColumn: "1 / -1", padding: "10px 14px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-4)" };
 const tileStyle: CSSProperties = { padding: "12px", borderRadius: "12px", background: "var(--v5-surface)" };
 const listCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", overflow: "hidden", background: "var(--nx-glass-fill)" };
 function listRowStyle(last: boolean): CSSProperties { return { display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderBottom: last ? "none" : "1px solid var(--v5-border)" }; }

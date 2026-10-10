@@ -13,5 +13,5 @@ test("loads direct rules independently and keeps history when policy is unavaila
 test("unconfigured and disabled policies never manufacture old royalty values", async () => {
   const p = policyFixture(); p.configured = false; p.purchase.enabled = false; p.deviceEarning.enabled = false;
   const page = await directPage({ api: { policy: vi.fn().mockResolvedValue(p), snapshot: vi.fn().mockResolvedValue(snapshotFixture([])) } }); await flush();
-  expect(text(page.root)).toContain("not configured"); expect(text(page.root)).not.toContain("10%"); expect(text(page.root)).not.toContain("L7");
+  expect(text(page.root)).toContain("reward rules are unavailable"); expect(text(page.root)).not.toContain("10%"); expect(text(page.root)).not.toContain("L7");
 });

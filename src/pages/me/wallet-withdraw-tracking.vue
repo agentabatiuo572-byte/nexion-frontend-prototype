@@ -290,7 +290,7 @@ const failedTitle = computed(() => {
 // 🔴 拦截/异常态一律要有客服出口。原判据只看 riskRoute,而 frozen 也可能由后台对一张
 // pass 路由的在途单事后冻结(types.ts 明写「K3 route freeze 或 D2 处置」)——
 // 那种单文案叫用户联系客服,页面上却没有客服入口。
-const routeHeld = computed(() => !!wd.value?.riskRoute && wd.value.riskRoute !== "pass");
+const routeHeld = computed(() => !isTerminalDone.value && !!wd.value?.riskRoute && wd.value.riskRoute !== "pass");
 const needsSupport = computed(() => routeHeld.value || isFrozenHold.value || isFailedEnd.value);
 // 终态:5 步全部走满,最后一步不能还转圈 —— 转圈代表「进行中」,
 // 钱都到账了还转,用户会以为卡住了。
@@ -403,7 +403,7 @@ const againReasonText = computed(() => {
   return fmt(t.value.walletV3.dailyLimitReached, { time: stamp });
 });
 // SPEC-7: freeze 路由/冻结状态用独立危险态文案;manual/delay 用审核中文案。
-const isFrozenHold = computed(() => wd.value?.riskRoute === "freeze" || wd.value?.status === "frozen");
+const isFrozenHold = computed(() => !isTerminalDone.value && (wd.value?.riskRoute === "freeze" || wd.value?.status === "frozen"));
 // 命中原因 → 业务话术(工程 reason code 不直出;R5: 展示存单快照的服务端结论)。
 const heldReasonLines = computed(() => {
   if (!routeHeld.value) return [] as string[];

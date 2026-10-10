@@ -63,11 +63,11 @@ describe("P3-14/15 audit regressions", () => {
     expect(homeSource).toContain('void wq.refresh()');
   });
 
-  it("binds all published-how loading, failure, retry, and version text to i18n", () => {
+  it("localizes loading, failure and retry without exposing publication metadata", () => {
     expect(howSource).toContain('t.howPublished.loading');
     expect(howSource).toContain('t.howPublished.unavailableTitle');
     expect(howSource).toContain('t.howPublished.unavailableBody');
-    expect(howSource).toContain(['t.howPublished.', 'versionMeta'].join(''));
+    expect(howSource).not.toContain(['t.howPublished.', 'versionMeta'].join(''));
     expect(howSource).toContain('t.ui.retry');
     expect(howSource).not.toMatch(/正在读取说明|说明暂不可用|服务端内容缺失|服务端发布版本|>重试</);
   });

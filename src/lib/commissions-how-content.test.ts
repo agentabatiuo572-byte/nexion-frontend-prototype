@@ -50,10 +50,10 @@ describe("published direct and independent reward explanations", () => {
   });
   it("handles disabled, unconfigured and absent-price rules without numeric income promises", () => {
     const facts = snapshot(); facts.directPolicy.configured = false;
-    let view = buildCommissionsHowContent(facts, "en"); expect(view.section("network").body).toContain("Not configured");
+    let view = buildCommissionsHowContent(facts, "en"); expect(view.section("network").body).toContain("Temporarily unavailable");
     facts.directPolicy.configured = true; facts.directPolicy.purchase.enabled = false; facts.directPolicy.nexUsdtPrice = null;
     view = buildCommissionsHowContent(facts, "en"); expect(view.section("network").body).toContain("paused");
-    expect(view.section("network").body).toContain("NEX price unavailable"); expect(view.amounts.network).toBe("Not configured");
+    expect(view.section("network").body).toContain("NEX price unavailable"); expect(view.amounts.network).toBe("Temporarily unavailable");
   });
   it("does not call configuration examples actual earnings or replace missing tokens", () => {
     let view = buildCommissionsHowContent(snapshot(), "en");

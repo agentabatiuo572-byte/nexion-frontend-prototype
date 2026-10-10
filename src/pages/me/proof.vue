@@ -308,8 +308,7 @@ const streakFacts = computed(() => proofStreakFacts(
 const streak = computed<number | null>(() => streakFacts.value.current);
 const longestStreak = computed<number | null>(() => streakFacts.value.longest);
 const longestOrCurrent = computed<number | null>(() => streakFacts.value.display);
-// A streak card is a public artifact: an unavailable server fact must read as
-// unavailable rather than rendering the unit alone ("d" with no number).
+// Missing streaks use the same placeholder on screen and in the shared poster.
 const streakHeroValue = computed(() => longestOrCurrent.value === null
   ? t.value.proof.valueUnavailable
   : String(longestOrCurrent.value));

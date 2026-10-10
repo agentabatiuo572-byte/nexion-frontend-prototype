@@ -170,7 +170,7 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { novaAiApi, remoteApiEnabled, supportApi } from "@/api/runtime";
 import { asApiError } from "@/api/errors";
-import { buildRemoteHelpRequest, novaHelpSource } from "@/lib/help-bot-remote";
+import { buildRemoteHelpRequest } from "@/lib/help-bot-remote";
 import { requireCryptoUuid } from "@/lib/secure-command-id";
 import { createLatestAbortableRequest } from "@/lib/nova-thinking";
 import { createHelpBotScope, type HelpBotRequest } from "@/lib/help-bot-scope";
@@ -470,7 +470,7 @@ async function sendToBot(retryPending = false) {
       if (!botRequestControl.isCurrent(control.epoch)) return;
       clearBotDeadline();
       pendingBotRequest.value = null;
-      appendBot(result.reply, fmt(w.value.remoteSource, { source: novaHelpSource(result), language: request.language.toUpperCase() }));
+      appendBot(result.reply);
     } catch (error) {
       if (!helpScope.isCurrent(request)) {
         syncBotAccountScope();
@@ -481,7 +481,7 @@ async function sendToBot(retryPending = false) {
       const failure = asApiError(error);
       if (failure.kind !== "network" && ![408, 429, 500, 502, 503, 504].includes(failure.status ?? 0)) pendingBotRequest.value = null;
       botFailure.value = "error";
-      appendBot(w.value.remoteFailed, fmt(w.value.remoteError, { code: failure.message, language: request.language.toUpperCase() }));
+      appendBot(w.value.remoteFailed);
     } finally {
       if (helpScope.isCurrent(request) && botRequestControl.isCurrent(control.epoch)) {
         thinking.value = false;

@@ -65,6 +65,21 @@ function legacyNativePage() {
 }
 
 describe("native goal save without Array.at", () => {
+  it("does not describe unread earnings as zero while loading or after a failed read", () => {
+    for (const status of ["idle", "loading", "error", "ready"]) {
+      const { context, page, scope } = legacyNativePage();
+      try {
+        context.goalsStore.status = status;
+        const subtitle = page.heroSubLine.value;
+        if (status === "ready") expect(subtitle).toContain("$0.00");
+        else {
+          expect(subtitle).not.toContain("$0.00");
+          expect(subtitle).toBe(status === "error" ? zh.goals.serverUnavailable : zh.goals.loading);
+        }
+      } finally { scope.stop(); }
+    }
+  });
+
   it("confirms one saved goal, restores its term and shows success in the actual page script", async () => {
     const { context, page, scope } = legacyNativePage();
     try {
@@ -76,7 +91,7 @@ describe("native goal save without Array.at", () => {
       await page.onSave();
       expect(context.goalsStore.saves).toHaveLength(1);
       expect(context.goalsStore.goals).toHaveLength(1);
-      expect(context.ui.toasts).toEqual([{ kind: "success", title: "目标已保存 · 30 天达成 $500" }]);
+      expect(context.ui.toasts).toEqual([{ kind: "success", title: "目标已保存：$500 / 30 天" }]);
       expect(page.restoredGoal.value).toEqual({ targetUSDT: 500, days: 30 });
       expect(page.savePending.value).toBe(false);
       expect(page.saveBlocked.value).toBe(true);
@@ -96,13 +111,14 @@ describe("native goal save without Array.at", () => {
       context.goalsStore.failNextSave = true;
       await page.onSave();
       expect(context.goalsStore.goals).toHaveLength(0);
-      expect(context.ui.toasts).toEqual([{ kind: "warn", title: "GOAL_SAVE_FAILED" }]);
+      expect(context.ui.toasts).toEqual([{ kind: "warn", title: zh.goals.serverUnavailable }]);
+      expect(JSON.stringify(context.ui.toasts)).not.toContain("GOAL_SAVE_FAILED");
       expect(page.savePending.value).toBe(false);
       await page.onSave();
       expect(context.goalsStore.saves).toHaveLength(2);
       expect(context.goalsStore.saves[1]).toEqual(context.goalsStore.saves[0]);
       expect(context.goalsStore.goals).toHaveLength(1);
-      expect(context.ui.toasts[1]).toEqual({ kind: "success", title: "目标已保存 · 30 天达成 $500" });
+      expect(context.ui.toasts[1]).toEqual({ kind: "success", title: "目标已保存：$500 / 30 天" });
     } finally { scope.stop(); }
   });
 });
@@ -149,9 +165,9 @@ describe("goal save toast placeholder contract", () => {
   it("keeps days unitless and groups default and custom amounts", () => {
     expect(source).toMatch(/savedToast, \{ amount: target\.value\.toLocaleString\("en-US"\), days: days\.value \}/);
     expect(fmt(zh.goals.savedToast, { amount: (1000).toLocaleString("en-US"), days: 90 }))
-      .toBe("目标已保存 · 90 天达成 $1,000");
+      .toBe("目标已保存：$1,000 / 90 天");
     expect(fmt(zh.goals.savedToast, { amount: (1234.56).toLocaleString("en-US"), days: 180 }))
-      .toBe("目标已保存 · 180 天达成 $1,234.56");
+      .toBe("目标已保存：$1,234.56 / 180 天");
   });
 
   it("shows both saved terms through the page-bound toast store after an async save", async () => {
@@ -185,10 +201,10 @@ describe("goal save toast placeholder contract", () => {
       { value: { goals: zh.goals } }, fmt, () => {}, 86_400_000) as () => Promise<void>;
 
     await save();
-    expect(pageUi.toasts.at(-1)?.title).toBe("目标已保存 · 90 天达成 $500");
+    expect(pageUi.toasts.at(-1)?.title).toBe("目标已保存：$500 / 90 天");
     days.value = 30;
     await save();
-    expect(pageUi.toasts.at(-1)?.title).toBe("目标已保存 · 30 天达成 $500");
+    expect(pageUi.toasts.at(-1)?.title).toBe("目标已保存：$500 / 30 天");
     expect(useUI(otherPinia).toasts).toEqual([]);
     expect(goals).toHaveLength(2);
     expect(savePending.value).toBe(false);
@@ -258,7 +274,7 @@ describe('actual goal page/store deletion feedback scope',()=>{
   });
   it('current failure remains visible and retains the confirmed row',async()=>{
     const s=await setup();remote.goalsApi.remove.mockRejectedValue(new Error('CURRENT_DELETE_FAILED'));await s.page.remove('9');
-    expect(s.ui.toasts).toHaveLength(1);expect(s.ui.toasts[0].title).toBe('CURRENT_DELETE_FAILED');expect(s.store.goals[0]?.id).toBe('9');
+    expect(s.ui.toasts).toHaveLength(1);expect(s.ui.toasts[0].title).toBe(zh.goals.serverUnavailable);expect(s.store.goals[0]?.id).toBe('9');
   });
   it('late success after account switch cannot remove the new account row',async()=>{
     const s=await setup();const response=deferred<void>();remote.goalsApi.remove.mockReturnValue(response.promise);const pending=s.page.remove('9');

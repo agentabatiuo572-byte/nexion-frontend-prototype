@@ -29,8 +29,7 @@ export interface HowContentDocument {
   version: string;
   /**
    * 简报 #49:本页版本来自哪里。`ENTRY` = 本页自己的发布修订;`DOCUMENT_FALLBACK` =
-   * 该页尚未声明独立修订,退回整份文档的共用版本。页脚据此如实说明,避免让用户
-   * 把文档级版本误当成这一页的专属修订。
+   * 该页尚未声明独立修订,退回整份文档的共用版本。仅作内部内容溯源，不在产品页展示。
    */
   versionSource: "ENTRY" | "DOCUMENT_FALLBACK";
   locale: string;

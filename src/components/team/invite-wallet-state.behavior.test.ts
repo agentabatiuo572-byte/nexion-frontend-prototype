@@ -121,7 +121,7 @@ test("the same invitation card follows server enablement, unavailable reads and 
   expect(text(find(card.root, "invite-card__header"))).toContain(fmt(en.team.settlementStatus, { settled: 1, pending: 1 }));
   card.rewards.error = "read failed"; await Vue.nextTick();
   status = text(find(card.root, "invite-card__reward"));
-  expect(status).toBe(en.team.settlementUnavailable);
+  expect(status).toBe("-");
   expect(status).not.toContain("12 NEX");
   const retry = find(card.root, "invite-card__retry");
   expect(retry.props.role).toBe("button");
@@ -139,13 +139,13 @@ test("the same invitation card follows server enablement, unavailable reads and 
   const refresh = retry.props.onClick(); await Vue.nextTick();
   expect(card.rewards.refresh).toHaveBeenCalledOnce();
   expect(find(card.root, "invite-card__retry").props["aria-busy"]).toBe(true);
-  expect(text(find(card.root, "invite-card__reward"))).toBe(en.team.rewardLoading);
+  expect(text(find(card.root, "invite-card__reward"))).toBe("-");
   resolveRead(); await refresh; await Vue.nextTick();
   expect(find(card.root, "invite-card__retry")).toBeUndefined();
   expect(text(find(card.root, "invite-card__reward"))).toContain("12 NEX");
   expect(text(find(card.root, "invite-card__reward"))).toContain(en.team.perFriendCooldown);
   card.rewards.error = ""; card.rewards.snapshot = null; card.rewards.loading = true; await Vue.nextTick();
-  expect(text(find(card.root, "invite-card__reward"))).toBe(en.team.rewardLoading);
+  expect(text(find(card.root, "invite-card__reward"))).toBe("-");
   expect(find(card.root, "nx-team-share-now").props["aria-disabled"]).toBe(true);
 });
 
@@ -155,7 +155,7 @@ test.each([en, zh, vietnamese])("H5 share emphasis only names a reward after a s
   expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12 NEX" }));
   expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.earnForEachFriend);
   card.rewards.loading = true; await Vue.nextTick();
-  expect(text(find(card.root, "invite-card__reward"))).toBe(copy.team.rewardLoading);
+  expect(text(find(card.root, "invite-card__reward"))).toBe("-");
   expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
   expect(text(card.root)).not.toContain("12 NEX");
   expect(text(card.root)).not.toContain("+7 NEX");

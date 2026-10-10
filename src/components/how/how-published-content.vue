@@ -12,7 +12,7 @@
       </view>
     </view>
     <view v-else-if="content" class="pb-8">
-      <HowHero :label="heroLabel(content.contentKey)" :title="content.blocks[0]?.title ?? content.contentKey" :sub="content.blocks[0] ? renderBody(content.blocks[0]) : ''" accent="purple" />
+      <HowHero :label="heroLabel(content.contentKey)" :title="content.blocks[0]?.title ?? heroLabel(content.contentKey)" :sub="content.blocks[0]?.body ?? ''" accent="purple" />
       <view v-if="content.blocks[0]?.items?.length" class="mx-4" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
         <view v-for="(item, itemIndex) in content.blocks[0].items" :key="itemIndex" style="display: flex; gap: 8px">
           <text style="color: var(--v5-brand);">•</text><text :style="bodyStyle">{{ item }}</text>
@@ -20,19 +20,15 @@
       </view>
       <template v-for="(block, index) in content.blocks.slice(1)" :key="block.id">
         <HowSection v-if="block.kind !== 'callout'" :title="block.title" :accent="index % 2 ? 'purple' : 'lemon'">
-          <text class="block" :style="bodyStyle">{{ renderBody(block) }}</text>
+          <text class="block" :style="bodyStyle">{{ block.body }}</text>
           <view v-if="block.items?.length" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px">
             <view v-for="item in block.items" :key="item" style="display: flex; gap: 8px">
               <text style="color: var(--v5-brand);">•</text><text :style="bodyStyle">{{ item }}</text>
             </view>
           </view>
         </HowSection>
-        <HowCalloutBox v-else class="mx-4" :title="block.title" :body="renderBody(block)" tone="purple" />
+        <HowCalloutBox v-else class="mx-4" :title="block.title" :body="block.body" tone="purple" />
       </template>
-      <view class="mx-4" style="margin-top: 24px; padding: 10px 12px; border-radius: 10px; background: var(--v5-surface-2); color: var(--v5-ink-3); font-size: 12px;">
-        <text v-if="content.versionSource !== 'DOCUMENT_FALLBACK'">{{ fmt(t.howPublished.versionMeta, { version: content.version, locale: content.locale }) }}</text>
-        <text v-else>{{ fmt(t.howPublished.versionMetaDocumentFallback, { locale: content.locale }) }}</text>
-      </view>
     </view>
   </view>
 </template>
@@ -44,10 +40,9 @@ import HowHero from "@/components/how/how-hero.vue";
 import HowSection from "@/components/how/how-section.vue";
 import HowCalloutBox from "@/components/how/how-callout-box.vue";
 import { howContentApi, remoteApiEnabled } from "@/api/runtime";
-import type { HowContentDocument, HowContentKey, HowContentBlock } from "@/api/how-content-api";
+import type { HowContentDocument, HowContentKey } from "@/api/how-content-api";
 import { useLocaleStore } from "@/store/locale";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
 import { PublishedContentRequestFence } from "./p3-14-published-request-fence";
 
 const props = defineProps<{ contentKey: HowContentKey; back: string }>();
@@ -71,10 +66,6 @@ function heroLabel(contentKey: HowContentKey): string {
   }
 }
 
-function renderBody(block: HowContentBlock): string {
-  if (block.kind !== "ruleRef" || !block.ref) return block.body;
-  return block.body.replaceAll("{value}", `${block.ref.key} · ${block.ref.version}`);
-}
 async function load() {
   const requestKey = `${props.contentKey}:${locale.code}`;
   const generation = requestFence.begin(requestKey);
@@ -85,6 +76,10 @@ async function load() {
   try {
     const next = await howContentApi.published(props.contentKey, locale.code);
     if (!requestFence.isCurrent(generation)) return;
+    // An unresolved rule is unavailable; an internal reference is never its public value.
+    if (next.blocks.some(block => [block.title, block.body, ...(block.items ?? [])].some(text => text.includes("{value}")))) {
+      throw new Error("HOW_CONTENT_RULE_VALUE_UNRESOLVED");
+    }
     if (props.contentKey === "team-unilevel-how" && (!next.blocks.some(block => block.id === "direct-referral-scope")
       || (next.schemaVersion === 2 && (next.templateId !== "unilevel-v2" || !next.blocks.some(block => block.id === "seven-layer-scope"))))) throw new Error("TEAM_PUBLICATION_REQUIRED");
     content.value = next;

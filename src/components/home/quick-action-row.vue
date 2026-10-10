@@ -99,15 +99,13 @@ onShow(refreshStakingRate);
 
 const stakingSubtitle = computed(() => {
   if (!remoteApiEnabled) return t.value.home.quickStakeApy;
-  if (stakingLoading.value) return t.value.home.quickStakeUnavailable;
-  if (stakingFailed.value) return t.value.home.quickStakeFailed;
+  if (stakingLoading.value || stakingFailed.value) return "-";
   if (stakingApyPct.value === null) return t.value.home.quickStakeStopped;
   return fmt(t.value.home.quickStakeApyFormat, { n: stakingApyPct.value.toLocaleString() });
 });
 
 function factSubtitle(fact: QuickFact, format: (value: number) => string): string {
-  if (fact.state === "loading") return t.value.home.quickFactsLoading;
-  if (fact.state === "error") return t.value.home.quickFactsFailed;
+  if (fact.state !== "ready") return "-";
   return format(fact.value);
 }
 const missionsSubtitle = computed(() => factSubtitle(

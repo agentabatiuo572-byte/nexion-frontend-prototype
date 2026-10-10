@@ -228,7 +228,7 @@ const nexEarned = computed(() => {
 const nexEarnedText = computed(() => nexEarned.value === null ? "—" : String(nexEarned.value));
 const viewTasksText = computed(() => fmt(t.value.home.dayOneViewTasks, { n: total.value }));
 const taskCountText = computed(() => questUnavailable.value
-  ? unavailableLabel.value
+  ? "-"
   : fmt(t.value.home.dayOneTaskCount, { n: total.value }));
 const toggleLabel = computed(() => questLoadError.value
   ? t.value.home.dayOneRetryLoad

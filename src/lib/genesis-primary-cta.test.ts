@@ -47,13 +47,12 @@ describe("Genesis primary-sale dock CTA", () => {
   it("does not present protected-read failures as a policy rejection", () => {
     const eligibilityCopy = {
       policyRejected: "暂不符合平台当前认购策略",
-      policyManaged: "后台统一配置",
       serviceUnavailable: "资格服务连接失败",
       policyUnavailable: "资格策略暂不可用",
     };
     expect(resolveGenesisEligibilityCardCopy(["GENESIS_ELIGIBILITY_UNAVAILABLE"], eligibilityCopy))
       .toEqual({ line: "资格服务连接失败", meta: "" });
     expect(resolveGenesisEligibilityCardCopy(["ACCOUNT_AGE_REQUIRED"], eligibilityCopy))
-      .toEqual({ line: "暂不符合平台当前认购策略", meta: "后台统一配置" });
+      .toEqual({ line: "暂不符合平台当前认购策略", meta: "" });
   });
 });

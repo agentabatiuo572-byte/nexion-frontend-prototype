@@ -10,6 +10,7 @@ import path from "node:path";
 import os from "node:os";
 import { directAppUrl } from "./lib/direct-app-url.mjs";
 import { installFormalProbeSession } from "./lib/formal-probe-session.mjs";
+import { INTERNAL_COPY_PATTERNS } from "./lib/public-copy-patterns.mjs";
 
 const BASE = process.env.UNI_BASE_URL || process.env.BASE_URL || "http://127.0.0.1:5174";
 const OUTPUT = process.env.UI_AUDIT_OUTPUT || path.join(os.tmpdir(), "ui-consistency-runtime");
@@ -24,8 +25,8 @@ const critical = ["pages/index/index", "pages/earn/earn", "pages/team/team", "pa
 // Visit these using the real anonymous rail so their own DOM is actually read.
 const anonymousRoutes = new Set(["pages/entry-surfaces/index", "pages/entry-surfaces/signed", "pages/entry-surfaces/h5", "pages/entry-surfaces/white", "pages/onboarding/intro", "pages/onboarding/terms", "pages/register/register", "pages/login/login", "pages/session/kicked", "pages/me/risk-disclosure", "pages/ref/code", "pages/tx/hash"]);
 const QUERY = { "pages/store/detail": "id=stellarbox-s1", "pages/store/checkout": "product=stellarbox-s1", "pages/store/order-detail": "id=probe-order", "pages/earn/device-detail": "id=701", "pages/learn/course": "id=probe-course", "pages/support/chat": "cid=UI-CV-1", "pages/ref/code": "code=UI-PROBE", "pages/tx/hash": "hash=0xprobe", "pages/me/wallet-withdraw-tracking": "id=probe-withdrawal" };
-// The unavailable formal bank-card adapter deliberately redirects to its entry.
-const REDIRECT = { "pages/me/wallet-cards": "pages/me/wallet-cards-new" };
+// H5 redirects native phone setup to download guidance; the bank-card adapter redirects to its entry.
+const REDIRECT = { "pages/me/wallet-cards": "pages/me/wallet-cards-new", "pages/onboarding/estimator": "pages/register/success", "pages/onboarding/connect": "pages/register/success" };
 const NOW = Date.now();
 const ISO = new Date(NOW).toISOString();
 const runId = randomUUID();
@@ -34,7 +35,7 @@ async function sourceSnapshot() {
   const files = [];
   async function walk(dir) { for (const entry of await readdir(path.join(repoRoot, dir), { withFileTypes: true })) { const name = path.join(dir, entry.name); if (entry.isDirectory()) await walk(name); else files.push(name); } }
   await walk("src");
-  files.push("scripts/ui-consistency-runtime.mjs", "scripts/lib/direct-app-url.mjs", "scripts/lib/formal-probe-session.mjs", "scripts/lib/probe-conversation-realtime.mjs");
+  files.push("scripts/ui-consistency-runtime.mjs", "scripts/lib/direct-app-url.mjs", "scripts/lib/formal-probe-session.mjs", "scripts/lib/probe-conversation-realtime.mjs", "scripts/lib/public-copy-patterns.mjs");
   const hash = createHash("sha256");
   for (const file of files.sort()) { hash.update(file.replaceAll("\\", "/")); hash.update("\0"); hash.update(await readFile(path.join(repoRoot, file))); hash.update("\0"); }
   return { head: execFileSync("git", ["rev-parse", "HEAD"], { cwd: repoRoot, encoding: "utf8" }).trim(), snapshotHash: hash.digest("hex"), files: files.length, at: new Date().toISOString() };
@@ -215,7 +216,7 @@ async function collectDOM(page) {
     const listRows = [...root.querySelectorAll(".nx-device-card,.earn-history-row,.nx-earn-market-board .py-2\\.5")].map(read);
     const all = [...root.querySelectorAll("*")].filter(visible);
     const overflow = all.filter(el => { const r = el.getBoundingClientRect(); if (!el.innerText?.trim() || r.width < 20 || r.height < 12 || (r.x >= -2 && r.right <= innerWidth + 2)) return false; let parent = el.parentElement; while (parent && parent !== root) { const cs = getComputedStyle(parent); if (!parent.classList.contains("nx-content") && ["auto", "scroll", "hidden", "clip"].includes(cs.overflowX)) return false; parent = parent.parentElement; } return !el.closest("svg,.nx-wallet-arc,.gen-anim"); }).map(read);
-    return { actualRoute: root.getAttribute("data-page"), actualTheme: document.documentElement.dataset.theme, body: root.innerText, scrollTop: scroller?.scrollTop, scrollHeight: scroller?.scrollHeight, clientHeight: scroller?.clientHeight, headers, surfaces, contentSurface, listSurfaces, listRows, overflow, devices: root.querySelectorAll(".nx-device-card").length, marketRows: root.querySelector(".nx-earn-market-board")?.innerText, historyRows: root.querySelectorAll(".earn-history-row").length, shareButtons: [...root.querySelectorAll(".invite-card__actions > [role=button]")].map(read), walletParticles: [...root.querySelectorAll("[data-wallet-particle]")].map(el => ({ ...read(el), animation: getComputedStyle(el).animationName, duration: getComputedStyle(el).animationDuration, pointerEvents: getComputedStyle(el).pointerEvents, transform: getComputedStyle(el).transform })), walletArc: [...root.querySelectorAll(".nx-wallet-arc")].map(el => { const cs = getComputedStyle(el); return { ...read(el), cssWidth: cs.width, cssHeight: cs.height, bottom: cs.bottom, right: cs.right, transform: cs.transform, animation: cs.animationName, duration: cs.animationDuration, pointerEvents: cs.pointerEvents }; }), walletGrid: root.querySelectorAll(".nx-wallet-grid").length, walletAurora: root.querySelectorAll(".nx-wallet-aurora").length };
+    return { actualRoute: root.getAttribute("data-page"), actualTheme: document.documentElement.dataset.theme, body: root.innerText, accessibilityCopy: [...root.querySelectorAll('[aria-label],[title],[placeholder],[alt]')].flatMap(el => ['aria-label', 'title', 'placeholder', 'alt'].map(name => el.getAttribute(name)).filter(Boolean)), scrollTop: scroller?.scrollTop, scrollHeight: scroller?.scrollHeight, clientHeight: scroller?.clientHeight, headers, surfaces, contentSurface, listSurfaces, listRows, overflow, devices: root.querySelectorAll(".nx-device-card").length, marketRows: root.querySelector(".nx-earn-market-board")?.innerText, historyRows: root.querySelectorAll(".earn-history-row").length, shareButtons: [...root.querySelectorAll(".invite-card__actions > [role=button]")].map(read), walletParticles: [...root.querySelectorAll("[data-wallet-particle]")].map(el => ({ ...read(el), animation: getComputedStyle(el).animationName, duration: getComputedStyle(el).animationDuration, pointerEvents: getComputedStyle(el).pointerEvents, transform: getComputedStyle(el).transform })), walletArc: [...root.querySelectorAll(".nx-wallet-arc")].map(el => { const cs = getComputedStyle(el); return { ...read(el), cssWidth: cs.width, cssHeight: cs.height, bottom: cs.bottom, right: cs.right, transform: cs.transform, animation: cs.animationName, duration: cs.animationDuration, pointerEvents: cs.pointerEvents }; }), walletGrid: root.querySelectorAll(".nx-wallet-grid").length, walletAurora: root.querySelectorAll(".nx-wallet-aurora").length };
   });
 }
 
@@ -234,6 +235,10 @@ async function visit(page, route, variant) {
     await page.goto(targetUrl.toString(), { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => document.querySelector("uni-page") && document.body.innerText.trim().length > 0, {}, { timeout: 30000 });
     await page.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
+    if (route === "pages/onboarding/intro") await page.waitForFunction(() => {
+      const cta = document.querySelector(".intro-cta");
+      return cta && getComputedStyle(cta).opacity === "1";
+    }, {}, { timeout: 5000 });
     Object.assign(record, await collectDOM(page));
     record.targetStatus = record.actualRoute === route ? "requested route rendered" : "redirect witnessed; original target surface remains unverified";
     if (process.env.UI_AUDIT_DEBUG_STATE === "1") record.debugState = await page.evaluate(async () => { const { useApp } = await import("/src/store/app.ts"); const { productCatalogState } = await import("/src/store/product-catalog.ts"); const { useBills } = await import("/src/store/bills.ts"); const { useMarket } = await import("/src/store/market.ts"); const app = useApp(), bills = useBills(), market = useMarket(); return { home: app.homeTruthStatus, homeError: app.homeTruthError, fleet: app.remoteFleetStatus, catalog: { ...productCatalogState }, bills: bills.summaryStatus, billsError: bills.summaryError, market: market.remoteReady, marketError: market.remoteError }; });
@@ -242,6 +247,8 @@ async function visit(page, route, variant) {
     check(record.actualTheme === variant.theme, `Theme was not persisted: ${record.actualTheme}`, record);
     check(record.errors.length === 0, `Browser errors: ${record.errors.join(" | ")}`, record);
     check(record.overflow.length === 0, "Unclipped text or controls overflow the viewport", record);
+    const publicText = [record.body, ...record.accessibilityCopy].join("\n");
+    check(!INTERNAL_COPY_PATTERNS.some(pattern => pattern.test(publicText)), "Internal implementation narration is visible", record);
     if (!COLLECT_ONLY) {
       for (const surface of record.surfaces) { const c = surface.bg.match(/[\d.]+/g)?.map(Number); if (c && c[3] !== 0) check(Math.max(...c.slice(0, 3)) - Math.min(...c.slice(0, 3)) <= 3, `Static card still has colored background: ${surface.class} ${surface.bg}`, record); if (route === "pages/team/team" && surface.class.split(/\s+/).includes("invite-card")) record.checks.inviteKeyDisplay = { ownerSelectedOriginalH5: true, background: surface.bg, image: surface.image, interpretation: "Original H5 invitation key display deliberately retains its decorative gradients; other static cards still use the flat-surface gate" }; else check(surface.image === "none", `Static card still paints a background image: ${surface.class}`, record); }
       for (const header of record.headers) {
@@ -335,8 +342,10 @@ async function variantRun(variant, routeSet, authenticated = true) {
 }
 
 try {
+  for (const width of (process.env.UI_AUDIT_WIDTHS || "390").split(",").map(Number))
+  for (const locale of (process.env.UI_AUDIT_LOCALES || "en").split(","))
   for (const theme of (process.env.UI_AUDIT_THEMES || "dark,light").split(",")) {
-    const variant = { width: 390, locale: "en", theme, motion: "no-preference" };
+    const variant = { width, locale, theme, motion: "no-preference" };
     await variantRun(variant, routes.filter(route => !anonymousRoutes.has(route)));
     await variantRun(variant, routes.filter(route => anonymousRoutes.has(route)), false);
   }

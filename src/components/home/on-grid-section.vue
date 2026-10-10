@@ -45,9 +45,9 @@
         <text>{{ gridStatusText }}<text v-if="app.homeTruthStatus === 'error'"> · <text style="color: var(--v5-tech-cyan-ink)">{{ t.home.networkStatRetry }}</text></text></text>
       </view>
       <view v-else class="nx-glass-inset px-4 py-2 flex items-center justify-between font-mono-tabular" style="border-top: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-3)">
-        <text v-if="devicesBad">{{ t.home.networkStatUpdating }}</text>
+          <text v-if="devicesBad">-</text>
         <text v-else><text style="color: var(--v5-ink); font-weight: 500">{{ activeDevicesText }}</text> {{ t.home.onGridOnline }}</text>
-        <text v-if="fleetBad">{{ t.home.networkStatUpdating }}</text>
+          <text v-if="fleetBad">-</text>
         <text v-else style="color: var(--v5-success-ink); font-weight: 500">{{ perSecText }}</text>
       </view>
     </view>

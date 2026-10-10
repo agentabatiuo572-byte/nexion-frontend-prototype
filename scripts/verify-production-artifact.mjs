@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { INTERNAL_COPY_PATTERNS } from "./lib/public-copy-patterns.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const output = path.join(root, "dist", "build", "h5");
@@ -30,6 +31,10 @@ for (const artifact of files) {
   for (const pattern of forbidden) {
     assert.doesNotMatch(source, pattern,
       `${path.relative(root, artifact)} leaked development-only runtime configuration`);
+  }
+  for (const pattern of INTERNAL_COPY_PATTERNS) {
+    assert.equal(pattern.test(source), false,
+      `${path.relative(root, artifact)} leaked internal implementation narration: ${pattern}`);
   }
   assert.doesNotMatch(source, /目标已保存\s*·\s*\$\{days\}/,
     `${path.relative(root, artifact)} renders the goal deadline as a currency amount`);

@@ -814,7 +814,7 @@ try {
   check("⑤ 🔴 页面上不出现原始枚举码(工程值禁直出)",
     !/RISK_HIT|risk-hit|TX_ORPHANED/.test(view.text), "页面出现了原始码");
   check("⑥ retriable=false 如实说给用户(这笔不能再发起 + 联系客服)",
-    /cannot be resubmitted|不能再次发起|Không thể gửi lại/.test(view.text),
+    /cannot be resubmitted|不可重新发起|Không thể gửi lại/.test(view.text),
     view.text.replace(/s+/g, " ").slice(0, 220));
   // 🔴 反向断言:单据级的「这笔不能重发」**不许**去禁账号级的「再提一笔」
   //(独立审计 P1:失败单永久留存 + 终态不再回查 → 一张历史废单会把入口永久锁死)。

@@ -116,7 +116,7 @@ export async function verifyBankBindingPage(page, gotoProtected) {
     // An unverified bank route cannot accept recipient details or create a binding.
     await gotoProtected("/pages/me/wallet"); await page.evaluate(()=>{window.__bindingFixture.beneficiary=null;window.__bindingFixture.routingVerified=false;});
     await gotoProtected("/pages/me/wallet-cards-new"); await page.locator(".error-note").waitFor();
-    assert.match(await page.locator(".error-note").innerText(),/routing has not been confirmed|路由方式尚未确认|Chưa xác nhận được cách định tuyến/i);
+    assert.match(await page.locator(".error-note").innerText(),/payout method has not been confirmed|收款方式尚未确认|Phương thức nhận tiền chưa được xác nhận/i);
     assert.equal(await account.isEditable(),false); assert.equal(await holder.isEditable(),false);
     assert.equal(await submit.getAttribute("aria-disabled"),"true");
     await gotoProtected("/pages/me/wallet"); await page.evaluate(()=>{window.__bindingFixture.routingVerified=true;window.__bindingFixture.loadFails=true;});

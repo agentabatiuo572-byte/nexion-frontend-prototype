@@ -26,7 +26,7 @@
             <text>💎</text><text>+{{ lifetimeEarned.toLocaleString() }} NEX</text>
           </view>
         </template>
-        <text v-else :style="cooldownStyle">{{ rewards.loading ? t.team.rewardLoading : t.team.settlementUnavailable }}</text>
+        <text v-else :style="cooldownStyle">-</text>
       </view>
 
       <view class="invite-card__actions nx-invite-actions" :class="{ 'invite-card__disabled': !referralCode }">

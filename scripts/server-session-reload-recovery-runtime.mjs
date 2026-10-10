@@ -39,7 +39,7 @@ try {
   const witness = await page.locator("[data-qa='server-session-reload-notice']");
   await witness.waitFor({ state: "visible", timeout: 8_000 });
   const text = (await witness.innerText()).trim();
-  assert.match(text, /页面刷新后会安全恢复服务端会话；只有会话已失效时才需要重新登录/);
+  assert.equal(text, "请重新登录以继续使用。");
   const phoneInput = page.locator(".lg-phone__in input");
   await phoneInput.fill("13800138000");
   // Two full guard ticks must not re-launch the already visible login page and

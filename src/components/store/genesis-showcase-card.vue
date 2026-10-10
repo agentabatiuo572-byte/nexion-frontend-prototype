@@ -62,7 +62,6 @@
         <view class="nx-glass-inset" v-if="locked" :style="lockRowStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
           <text :style="lockTextStyle">{{ lockedLineText }}</text>
-          <text v-if="lockedMetText" class="font-mono-tabular tabular-nums nowrap" :style="lockMetStyle">{{ lockedMetText }}</text>
         </view>
       </view>
     </view>
@@ -130,12 +129,10 @@ const leftText = computed(() =>
 );
 const lockedCopy = computed(() => resolveGenesisEligibilityCardCopy(gate.value.reasons, {
   policyRejected: t.value.genesisEligibility.cardLockedLine,
-  policyManaged: t.value.genesisEligibility.cardPolicyManaged,
   serviceUnavailable: t.value.genesisEligibility.reasonServiceUnavailable,
   policyUnavailable: t.value.genesisEligibility.reasonPolicyUnavailable,
 }));
 const lockedLineText = computed(() => lockedCopy.value.line);
-const lockedMetText = computed(() => lockedCopy.value.meta);
 const ctaText = computed(() => {
   // 🔴 阻断态一律问 `block` 单源(FEAT-GEN10 ④),与创世页同一出口 —— 关闭市场 ≠ 下架,
   //   卡片照常展示(showcaseEnabled 另管),只是不能买。
@@ -295,7 +292,6 @@ const lockTextStyle: CSSProperties = {
   lineHeight: 1.4,
   textWrap: "pretty" as CSSProperties["textWrap"],
 };
-const lockMetStyle: CSSProperties = { flexShrink: 0, fontSize: "12px", color: "var(--v5-genesis-gold)" };
 
 import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 </script>

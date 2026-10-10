@@ -27,7 +27,7 @@
       <view class="grid grid-cols-3" style="gap: 8px; margin-top: 12px">
         <view class="nx-glass-inset" v-for="item in specs" :key="item.label" :style="specStyle">
           <text class="block" :style="specLabelStyle">{{ item.label }}</text>
-          <text class="block" :style="specValueStyle">{{ item.value || t.home.productTrustUnavailable }}</text>
+          <text class="block" :style="specValueStyle">{{ item.value }}</text>
         </view>
       </view>
     </template>
@@ -55,9 +55,9 @@ const selected = computed(() => {
 const tagline = computed(() => selected.value
   ? productCopy(t.value, selected.value.product, remoteApiEnabled, locale.code).tagline : "");
 const specs = computed(() => selected.value ? [
-  { label: t.value.home.productTrustGpu, value: specText(t.value, selected.value.gpu) },
-  { label: t.value.home.productTrustDatacenter, value: specText(t.value, localizedDatacenterValue(selected.value.datacenter, locale.code)) },
-  { label: t.value.home.productTrustWarranty, value: specText(t.value, selected.value.warranty) },
+  { label: t.value.home.productTrustGpu, value: specText(t.value, selected.value.gpu, "-") },
+  { label: t.value.home.productTrustDatacenter, value: specText(t.value, localizedDatacenterValue(selected.value.datacenter, locale.code), "-") },
+  { label: t.value.home.productTrustWarranty, value: specText(t.value, selected.value.warranty, "-") },
 ] : []);
 
 function retry() {

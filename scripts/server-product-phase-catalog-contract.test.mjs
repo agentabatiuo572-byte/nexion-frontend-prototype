@@ -50,14 +50,13 @@ test("store detail refreshes catalog before its scope-guarded phase and Trust re
   assert.match(checkout, /onShow\([\s\S]*refreshServerProductPhase\(true\)/);
 });
 
-test("remote product locks display the server E1 decision without deriving H1 progress", () => {
+test("remote product locks keep the availability decision without exposing internal release codes", () => {
   assert.match(productAvailability, /typeof product\.available === "boolean"[\s\S]*return product\.available/);
   assert.match(productCatalogContract, /releaseState:\s*optionalString\(source\.releaseState\)/);
   assert.match(productCatalogContract, /releasePhaseId:\s*optionalString\(source\.releasePhaseId\)/);
   // The approved locked card uses a neutral customer label, not internal release codes.
   assert.doesNotMatch(lockedProductCard.split("</template>")[0], /serverReleaseReason|releaseState|releasePhaseId/);
   assert.match(lockedProductCard, /comingSoonHeading/);
-  assert.match(lockedProductCard, /props\.product\.available === false && props\.product\.releasePhaseId/);
-  assert.match(lockedProductCard, /props\.product\.available === undefined && props\.product\.unlocksAtPhase/);
+  assert.doesNotMatch(lockedProductCard, /serverReleaseReason|stageText|lockedServerMeta|lockedServerUnknown/);
   assert.doesNotMatch(lockedProductCard, /available === false[^\n]*isPhaseReached/);
 });

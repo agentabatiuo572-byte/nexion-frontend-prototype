@@ -28,7 +28,6 @@ export function showGenesisPrimaryPrice(block: GenesisPurchaseBlock): boolean {
 
 export interface GenesisEligibilityCardCopy {
   policyRejected: string;
-  policyManaged: string;
   serviceUnavailable: string;
   policyUnavailable: string;
 }
@@ -44,5 +43,5 @@ export function resolveGenesisEligibilityCardCopy(
   if (reasons.includes("SALE_POLICY_UNAVAILABLE")) {
     return { line: copy.policyUnavailable, meta: "" };
   }
-  return { line: copy.policyRejected, meta: copy.policyManaged };
+  return { line: copy.policyRejected, meta: "" };
 }

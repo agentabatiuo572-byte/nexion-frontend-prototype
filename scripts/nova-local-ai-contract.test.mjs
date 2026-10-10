@@ -27,7 +27,7 @@ test("Nova customer contract hides runtime implementation details and keeps the 
   for (const messages of [en, zh, vi]) {
     assert.doesNotMatch(messages, /localRole:\s*"[^"]*(?:Gemma|Ollama|local model|本地模型|mô hình cục bộ)[^"]*"/i);
   }
-  assert.match(en, /password[\s\S]{0,120}OTP[\s\S]{0,120}private key/i);
+  assert.match(en, /localSafetyNotice:\s*"[^"\r\n]*password[^"\r\n]*verification code[^"\r\n]*private key/i);
   for (const messages of [en, zh, vi]) {
     assert.match(messages, /localSafetyNotice/);
     assert.match(messages, /localUnavailable/);

@@ -130,7 +130,7 @@
       <view class="flex items-center justify-between gap-2">
         <text :style="sectionLabelStyle">{{ t.earn.hashCapability }}</text>
         <view class="flex items-center gap-1.5">
-          <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink-2)">{{ baselineTops == null ? t.earn.hashCapabilityUnknown : `${baselineTops} ${t.onboarding.phoneComputeUnit}` }}</text>
+          <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink-2)">{{ baselineTops == null ? '-' : `${baselineTops} ${t.onboarding.phoneComputeUnit}` }}</text>
           <text v-if="capTier != null" style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.earn.hashTier, { n: capTier }) }}</text>
         </view>
       </view>
@@ -423,7 +423,7 @@ const displayName = computed(() => deviceName(t.value, props.device));
 const phoneLocalReady = computed(() => !remoteApiEnabled || props.device.kind !== "phone"
   || (nativePhoneAvailable && session.isCurrentDeviceCalibrated(app.accountKey) && !app.remotePhoneBindingInvalid));
 const displayGpu = computed(() => phoneLocalReady.value
-  ? deviceGpuLabel(t.value, props.device) : t.value.earn.hashCapabilityUnknown);
+  ? deviceGpuLabel(t.value, props.device) : "-");
 const displayLocation = computed(() => deviceLocation(t.value, props.device));
 function goPhoneBinding() { if (nativePhoneAvailable) navTo("/pages/onboarding/connect?mode=recalibrate"); }
 

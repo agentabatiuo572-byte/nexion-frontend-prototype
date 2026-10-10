@@ -80,7 +80,7 @@ export async function verifyBankWithdrawalPage(page, gotoProtected) {
     await gotoProtected("/pages/me/wallet-withdraw-bank");
     assert.equal(await page.getByTestId("bank-continue").getAttribute("aria-disabled"),"true","account routing still needs an explicit server contract");
     assert.equal(await page.getByTestId("bank-max").count(),0);
-    assert.match(await page.locator(".bank-withdraw").innerText(),/路由方式尚未确认|routing has not been confirmed|Chưa xác nhận được cách định tuyến/i);
+    assert.match(await page.locator(".bank-withdraw").innerText(),/收款方式尚未确认|payout method has not been confirmed|Phương thức nhận tiền chưa được xác nhận/i);
     await page.evaluate(() => { window.__bankFixture.bankRoutingVerified=true; window.__bankFixture.quote.bankRoutingVerified=true; });
     assert.equal((await gotoProtected("/pages/me/wallet-withdraw-method")).landed,true);
     await page.waitForFunction(() => document.querySelector('[data-testid="withdraw-method-bank"]')?.getAttribute("aria-disabled")==="false");

@@ -93,7 +93,7 @@
       <view v-else-if="target > 0 && (!remoteApiEnabled || (!editorBlocked && goalsStore.recommendationStatus === 'ready' && goalsStore.recommendation?.purchaseRequired === true && goalsStore.recommendation.targetUsdt === target))" class="mx-4" :style="recCardStyle">
         <text class="block" :style="recHeaderStyle">{{ t.goals.recHeader }}</text>
         <text class="block" :style="recPathStyle">{{ recPathLine }}</text>
-        <text class="block" :style="recReasonStyle">{{ recommendation.reason }}</text>
+        <text v-if="recommendation.reason" class="block" :style="recReasonStyle">{{ recommendation.reason }}</text>
         <view class="inline-flex items-center active:opacity-80" :style="recCtaStyle" role="button" tabindex="0" :aria-label="t.goals.shopCta" @click="goStore"  @keydown.enter.prevent="goStore" @keydown.space.prevent="goStore">
           <text :style="recCtaLabelStyle">{{ t.goals.shopCta }}</text>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
@@ -192,7 +192,7 @@ const recommendation = computed(() => {
   if (remoteApiEnabled && goalsStore.recommendation?.purchaseRequired) {
     return {
       tier: nexGridBrandText(goalsStore.recommendation.productName ?? ""),
-      reason: fmt(t.value.goals.recReasonServer, { daily: formatGoalDailyRate(goalsStore.recommendation.dailyEarn ?? 0) }),
+      reason: "",
     };
   }
   if (remoteApiEnabled) return { tier: "", reason: "" };
@@ -202,9 +202,12 @@ const recommendation = computed(() => {
   return { tier: "UVELRack P1", reason: t.value.goals.recRack };
 });
 
-const heroSubLine = computed(() =>
-  fmt(t.value.goals.heroSubtitle, { current: lifeTimeEarnings.value.toFixed(2) }),
-);
+const heroSubLine = computed(() => {
+  if (remoteApiEnabled && goalsStore.status !== "ready") {
+    return goalsStore.status === "error" ? t.value.goals.serverUnavailable : t.value.goals.loading;
+  }
+  return fmt(t.value.goals.heroSubtitle, { current: lifeTimeEarnings.value.toFixed(2) });
+});
 const recPathLine = computed(() =>
   fmt(t.value.goals.recPath, {
     target: (goalsStore.recommendation?.targetUsdt ?? target.value).toLocaleString(),
@@ -368,7 +371,7 @@ async function onSave() {
     ui.pushToast({ kind: "success", title: fmt(t.value.goals.savedToast, { amount: target.value.toLocaleString("en-US"), days: days.value }) });
   } catch (error) {
     if (!isCurrentSave()) return;
-    ui.pushToast({ kind: "warn", title: error instanceof Error ? error.message : t.value.goals.serverUnavailable });
+    ui.pushToast({ kind: "warn", title: t.value.goals.serverUnavailable });
   } finally {
     if (isCurrentSave()) savePending.value = false;
   }
@@ -384,7 +387,7 @@ async function remove(id: string) {
   } catch (error) {
     if (!deleteFeedbackVisible || expectedGeneration !== deleteFeedbackGeneration
         || expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch) return;
-    ui.pushToast({ kind: "warn", title: error instanceof Error ? error.message : t.value.goals.serverUnavailable });
+    ui.pushToast({ kind: "warn", title: t.value.goals.serverUnavailable });
   }
 }
 

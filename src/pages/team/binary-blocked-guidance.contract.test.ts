@@ -22,18 +22,18 @@ describe("binary blocked guidance page contract", () => {
   });
 
   it("keeps all visible invite guidance conditional and non-guaranteeing", () => {
-    expect(zh).toContain('是否恢复结算以服务端后续资格判定为准');
-    expect(en).toContain('server will determine whether settlement becomes eligible');
-    expect(vi).toContain('máy chủ sẽ xác định liệu kết toán có đủ điều kiện hay không');
+    expect(zh).toContain('结算能否恢复以资格确认结果为准');
+    expect(en).toContain('Settlement can resume only if eligibility is confirmed');
+    expect(vi).toContain('Việc khôi phục quyết toán phụ thuộc vào kết quả xác nhận điều kiện');
     expect(zh).not.toContain('本月奖励即可恢复');
     expect(en).not.toContain("lift this month's payout");
     expect(vi).not.toContain('nâng khoản thưởng tháng này');
   });
 
   it("describes the smaller-track formula without implying that a member can choose a track or increase payout", () => {
-    expect(zh).toContain('成员按安置规则分配，是否结算以服务端状态为准');
-    expect(en).toContain('Members are placed by the placement rules; server status determines settlement eligibility');
-    expect(vi).toContain('Thành viên được phân theo quy tắc sắp xếp; trạng thái máy chủ quyết định điều kiện kết toán');
+    expect(zh).toContain('成员按安置规则分配，是否结算以最终确认状态为准');
+    expect(en).toContain('Members follow placement rules; settlement eligibility depends on the confirmed status');
+    expect(vi).toContain('Thành viên được phân theo quy tắc sắp xếp; điều kiện kết toán theo trạng thái đã xác nhận');
     expect(zh).not.toContain('继续邀请较小一轨提升{freq}发放');
     expect(en).not.toContain('Grow the smaller track to lift your {freq} payout');
     expect(vi).not.toContain('Bồi thêm nhánh nhỏ để nâng khoản thưởng {freq} của bạn');

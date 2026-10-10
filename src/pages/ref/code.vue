@@ -103,10 +103,7 @@
           <Stat :label="t.ref.newJoiners" :value="joinersText" tint="var(--v5-brand)" />
           <Stat :label="t.ref.paidOut" :value="paidOutText" tint="var(--v5-warning)" />
         </view>
-        <!-- BUG #59: these two figures are operator-published platform aggregates, not a
-             measured month-to-date feed. Without the scope label the card reads as a live
-             fact and the numbers carry no timestamp, basis, or source. -->
-        <text class="block" :style="proofScopeStyle">{{ verifiedScopeText }}</text>
+        <text v-if="!verified" class="block" :style="proofScopeStyle">{{ t.ref.unavailableScope }}</text>
       </view>
 
       <!-- Footer -->
@@ -171,12 +168,6 @@ const joinersText = computed(() => {
   const v = verified.value;
   if (cfg.syncFailed || !v) return "—";
   return v.registeredAccounts.value.toLocaleString("en-US");
-});
-/** 可核验聚合的统计时刻与口径,附在卡片底部;没有聚合时不显示任何「已核对」表述。 */
-const verifiedScopeText = computed(() => {
-  const v = verified.value;
-  if (!v) return t.value.ref.unavailableScope;
-  return fmt(t.value.ref.verifiedScope, { at: v.capturedAt.slice(0, 16).replace("T", " ") });
 });
 const auth = useAuth();
 const sponsorship = remoteApiEnabled ? null : useSponsorship();

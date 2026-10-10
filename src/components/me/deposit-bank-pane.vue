@@ -426,6 +426,7 @@ watch(
     } else {
       pendingPaymentRead = null;
       successfulPaymentRead.value = null;
+      if (status === "error" && initialStatus === "error") readError.value = t.value.topupChrome.depositOpFailedNote;
     }
   },
   { flush: "post" },

@@ -35,10 +35,9 @@ describe('actual homepage remote ranking is independent of H9 estimates', () => 
   it('keeps a successful real rank when public configuration fails', () => {
     const { metrics } = scenario({ failed: true, rankOk: true });
     expect(metrics[2].v).toBe('#7');
-    // #59:配置读失败且没有服务端可核验聚合时,两格不拿配置派生量充事实 ——
-    // 如实说「无实测口径」,而不是伪装成「更新中」再回落到配置值。
-    expect(metrics[0].v).toBe('networkStatUnverified');
-    expect(metrics[1].v).toBe('networkStatUnverified');
+    // Unavailable aggregates remain placeholders, never configured or invented numbers.
+    expect(metrics[0].v).toBe('-');
+    expect(metrics[1].v).toBe('-');
   });
   it('keeps an authoritative unranked state when public configuration fails', () => {
     expect(scenario({ failed: true, kind: 'unranked' }).metrics[2].v).toBe('networkRankUnranked');
@@ -55,7 +54,7 @@ describe('actual homepage remote ranking is independent of H9 estimates', () => 
   });
   it('preserves the configuration guard and retry for local estimates', () => {
     const result = scenario({ remote: false });
-    expect(result.metrics[2].v).toBe('networkStatUpdating');
+    expect(result.metrics[2].v).toBe('-');
     result.metrics[2].tap();
     expect(result.configRefresh).toHaveBeenCalledOnce();
     expect(result.rankRefresh).not.toHaveBeenCalled();

@@ -344,12 +344,9 @@ async function handleRepurchase() {
       toast.success(w.value.toastSuccess, `${formatCommandAmount(quoteAmount)} USDT`);
       const nextPreset = repurchase.config?.presets?.[0];
       amount.value = repurchase.pendingOpenAmount ?? nextPreset ?? repurchase.config?.minAmountUsdt ?? 0;
-    } catch (cause) {
+    } catch {
       if (!currentScope(generation)) return;
-      const message = cause instanceof Error && cause.message
-        ? cause.message
-        : w.value.unavailableBody;
-      toast.error(w.value.unavailableTitle, message);
+      toast.error(w.value.unavailableTitle, w.value.unavailableBody);
     }
     return;
   }

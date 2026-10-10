@@ -16,7 +16,7 @@ test("unknown remote registration results attempt one password-login recovery", 
   assert.match(page, /registerAndLogin\(authApi/);
   assert.match(recovery, /if \(!isRegistrationOutcomeUnknown\(error\)\)[\s\S]*?kind: "registration_error"/);
   assert.match(recovery, /authApi\.login\(/);
-  assert.match(zh, /registrationOutcomeUnknown:\s*"账号可能已创建，但自动登录结果未确认。请使用刚设置的手机号和密码登录"/);
+  assert.match(zh, /registrationOutcomeUnknown:\s*"账号可能已创建，自动登录结果尚未确认。请使用注册手机号和密码登录。"/);
   // 🔴 语言面必须三语齐点(门的门 ① 判据):只点一种语言时,另两种可以随意漂移而本门全绿。
   // 实测过的失败形态:语言豁免表不带语言维 → vi 真丢了占位符照样绿。
   // 中文钉**原文**(话术是产品决定),英/越只钉**键存在** —— 措辞由翻译定,但键不许缺。

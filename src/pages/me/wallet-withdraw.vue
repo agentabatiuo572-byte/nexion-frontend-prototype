@@ -353,15 +353,15 @@
       <!-- Sticky submit -->
       <view class="mx-4 mt-4" style="padding-bottom: 12px">
         <!-- 未设地址/金额不合法时按不动:显式 aria-disabled + 可提交时给按下反馈(《05》§6.1 + 《08》§2) -->
-        <view class="nx-withdraw-submit-cta w-full grid place-items-center" :class="{ 'active:opacity-90 transition-opacity': canSubmit }" role="button" tabindex="0" :aria-disabled="canSubmit ? 'false' : 'true'" :aria-busy="submitting" :style="submitBtnStyle" @click="handleSubmit"  @keydown.enter.prevent="handleSubmit" @keydown.space.prevent="handleSubmit">
+        <view class="nx-withdraw-submit-cta w-full grid place-items-center" :class="{ 'active:opacity-90 transition-opacity': canSubmitAction }" role="button" tabindex="0" :aria-disabled="canSubmitAction ? 'false' : 'true'" :aria-busy="submitting" :style="submitBtnStyle" @click="handleSubmit"  @keydown.enter.prevent="handleSubmit" @keydown.space.prevent="handleSubmit">
           <view class="inline-flex items-center" style="gap: 8px">
             <template v-if="submitting">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
               <text>{{ t.wallet.submitChecking }}</text>
             </template>
-            <template v-else-if="canSubmit">
+            <template v-else-if="canSubmitAction">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-              <text>{{ t.walletV3.submitCtaPaired }}</text>
+              <text>{{ pendingAttempt ? t.walletV3.withdrawResendCta : t.walletV3.submitCtaPaired }}</text>
             </template>
             <template v-else>
               <view class="grid place-items-center" style="gap: 2px">
@@ -1292,6 +1292,7 @@ function fmtNex(n: number): string {
 }
 
 const canSubmit = computed(() => submitDisabledReason.value === "");
+const canSubmitAction = computed(() => !inputsLocked.value && (!!pendingAttempt.value || canSubmit.value));
 
 function networkHint(id: CryptoNetwork): string {
   switch (id) {
@@ -1881,10 +1882,10 @@ useDialogA11y(computed(() => feeWhyOpen.value), ".nx-withdraw-fee-dialog", () =>
 const submitBtnStyle = computed<CSSProperties>(() => ({
   height: "48px",
   borderRadius: "999px",
-  background: canSubmit.value ? "var(--v5-brand)" : "var(--v5-surface-2)",
+  background: canSubmitAction.value ? "var(--v5-brand)" : "var(--v5-surface-2)",
   // 🔴 页面主 CTA。用 --v5-ink 实测对比度 **1.54:1**(暗色主题下亮绿底配浅色字),
   // 换成 --v5-on-brand 是 11.98:1。禁用态是灰底灰字,不走 on-brand。
-  color: canSubmit.value ? "var(--v5-on-brand)" : "var(--v5-ink-4)",
+  color: canSubmitAction.value ? "var(--v5-on-brand)" : "var(--v5-ink-4)",
   fontFamily: "var(--font-v5)",
   fontSize: "15px",
   fontWeight: 600,
