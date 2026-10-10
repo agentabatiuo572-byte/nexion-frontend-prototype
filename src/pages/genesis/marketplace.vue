@@ -82,7 +82,7 @@
             :title="t.marketplace.marketLoading" :desc="t.marketplace.marketLoadingHint" />
           <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable' && secondaryBlock === null" kind="empty-list"
             :title="t.marketplace.marketUnavailable" :desc="t.marketplace.marketUnavailableHint"
-            :cta-label="t.marketplace.retry" emphasis @cta="retryMarketplaceFacts" />
+            :cta-label="t.marketplace.retry" emphasis @cta="retryMarketplaceFacts()" />
           <template v-else-if="sortedListings.length > 0">
             <scroll-view scroll-x class="nx-sort-row">
               <view class="flex items-center" style="gap: 6px; white-space: nowrap" role="radiogroup" :aria-label="t.marketplace.sortLabel">
@@ -122,7 +122,7 @@
             :title="t.marketplace.marketLoading" :desc="t.marketplace.marketLoadingHint" />
           <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable' && secondaryBlock === null" kind="empty-list"
             :title="t.marketplace.marketUnavailable" :desc="t.marketplace.marketUnavailableHint"
-            :cta-label="t.marketplace.retry" emphasis @cta="retryMarketplaceFacts" />
+            :cta-label="t.marketplace.retry" emphasis @cta="retryMarketplaceFacts()" />
           <view v-else-if="mergedActivity.length > 0" class="nx-glass-card overflow-hidden" :style="listCardStyle">
             <ActivityRow v-for="(e, i) in mergedActivity" :key="e.id" :e="e" :is-last="i === mergedActivity.length - 1" />
           </view>
@@ -140,7 +140,7 @@
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 8px"><path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="10" /></svg>
             <text class="block" style="font-size: 13px; color: var(--v5-ink)">{{ genesis.remoteAccountReadState === 'loading' ? t.marketplace.accountLoading : t.marketplace.accountUnavailable }}</text>
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ t.marketplace.accountUnavailableHint }}</text>
-            <view v-if="genesis.remoteAccountReadState === 'unavailable'" class="inline-block active:scale-95" :style="reserveBtnStyle" @click="retryMarketplaceFacts">
+            <view v-if="genesis.remoteAccountReadState === 'unavailable'" class="inline-block active:scale-95" :style="reserveBtnStyle" @click="retryMarketplaceFacts()">
               <text>{{ t.marketplace.retry }}</text>
             </view>
           </view>
@@ -168,7 +168,7 @@
 
 <script setup lang="ts">
 import { navTo } from "@/lib/route";
-import { ref, reactive, computed, nextTick, onUnmounted, type CSSProperties } from "vue";
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -187,6 +187,7 @@ import { toast } from "@/store/ui";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { ApiError } from "@/api/errors";
 import { h3ObservationApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { subscribeRuntimeRevision } from "@/api/order-api";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { authenticatedPageObservationReporter } from "@/lib/authenticated-page-observation";
 import { registerActivePageRefresh } from "@/lib/active-page-refresh";
@@ -196,6 +197,8 @@ const t = useT();
 const genesis = useGenesis();
 const cfg = useGenesisConfig();
 let marketplacePageVisible = false;
+let refreshInFlight: Promise<boolean> | null = null;
+let refreshRequested = false;
 let marketplaceObservationEpoch = 0;
 const listingPageScope = reactive({ visible: false, epoch: 0 });
 let releaseActiveRefresh = () => {};
@@ -204,7 +207,7 @@ async function refreshMarketplaceFacts(): Promise<void> {
   if (!remoteApiEnabled || !marketplacePageVisible) return;
   const scope = captureAccountScope();
   const pageEpoch = marketplaceObservationEpoch;
-  const loaded = await genesis.syncRemote().catch(() => false);
+  const loaded = await retryMarketplaceFacts(true).catch(() => false);
   if (!loaded || genesis.remotePublicReadState !== "ready") return;
 
   await nextTick();
@@ -221,24 +224,51 @@ async function refreshMarketplaceFacts(): Promise<void> {
   });
 }
 
-async function retryMarketplaceFacts(): Promise<void> {
-  await cfg.refresh();
-  // Recovery only rehydrates projections. Page exposure retains its existing
-  // weekly observation path above, but a user retry must not create an event.
-  await genesis.syncRemote();
+async function retryMarketplaceFacts(recheck = false): Promise<boolean> {
+  if (!marketplacePageVisible) return Promise.resolve(false);
+  if (refreshInFlight) {
+    if (recheck) refreshRequested = true;
+    return refreshInFlight;
+  }
+  // Recovery only reads projections. Runtime revisions must re-read after an
+  // in-flight result is fenced out, without replaying the weekly observation.
+  const operation = (async () => {
+    try {
+      let loaded = false;
+      do {
+        refreshRequested = false;
+        await cfg.refresh();
+        if (!marketplacePageVisible) return false;
+        loaded = await genesis.syncRemote();
+      } while (refreshRequested && marketplacePageVisible);
+      return loaded;
+    } finally {
+      // Release with the final loop decision, before a queued revision can
+      // mistake a completed operation for a read that will consume its flag.
+      refreshInFlight = null;
+    }
+  })();
+  refreshInFlight = operation;
+  return operation;
 }
 
-// 页面每次露出重读配置(hydrate-once 修复;理由同 genesis.vue)。
-onShow(() => {
+// 页面每次露出重读配置；直接 H5 hash-route 可能只触发 mount。
+function showMarketplacePage() {
+  if (marketplacePageVisible) return;
   marketplacePageVisible = true;
   listingPageScope.visible = true;
   releaseActiveRefresh();
   releaseActiveRefresh = registerActivePageRefresh(retryMarketplaceFacts);
-  void cfg.refresh();
   void refreshMarketplaceFacts();
+}
+onMounted(showMarketplacePage);
+onShow(showMarketplacePage);
+const stopMarketplaceRevision = subscribeRuntimeRevision(() => {
+  if (remoteApiEnabled && marketplacePageVisible) void retryMarketplaceFacts(true).catch(() => {});
 });
 onHide(() => {
   marketplacePageVisible = false;
+  refreshRequested = false;
   listingPageScope.visible = false;
   listingPageScope.epoch += 1;
   marketplaceObservationEpoch += 1;
@@ -246,10 +276,12 @@ onHide(() => {
 });
 onUnmounted(() => {
   marketplacePageVisible = false;
+  refreshRequested = false;
   listingPageScope.visible = false;
   listingPageScope.epoch += 1;
   marketplaceObservationEpoch += 1;
   releaseActiveRefresh();
+  stopMarketplaceRevision();
 });
 const { gate, eligible, gatesSecondary } = useGenesisEligibility();
 const { marketClosed, secondaryBlock, blockText } = useGenesisSaleGate();

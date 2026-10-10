@@ -26,6 +26,12 @@ function harness(page: Page, options: { remote?: boolean; recorded?: boolean } =
   const ast = ts.createSourceFile(page.file + ".ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const fn = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === page.fn);
   if (!fn) throw new Error(`actual observer missing: ${page.file} ${page.fn}`);
+  const refreshHelper = page.fn === "refreshMarketplaceFacts"
+    ? ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "retryMarketplaceFacts") : undefined;
+  if (page.fn === "refreshMarketplaceFacts" && !refreshHelper) throw new Error("actual marketplace refresh helper missing");
+  const refreshState = refreshHelper ? ast.statements.filter(node => ts.isVariableStatement(node)
+    && node.declarationList.declarations.some(declaration => ["refreshInFlight", "refreshRequested"].includes(declaration.name.getText(ast))))
+    .map(node => node.getText(ast)).join("\n") : "";
   const lifecycle = (name: string) => ast.statements.filter(node => ts.isExpressionStatement(node)
     && ts.isCallExpression(node.expression) && node.expression.expression.getText(ast) === name)
     .map(node => (node as ts.ExpressionStatement).expression as ts.CallExpression)
@@ -42,6 +48,7 @@ function harness(page: Page, options: { remote?: boolean; recorded?: boolean } =
     catalogStatus: { value: "ready" },
     product: { value: { id: "stellarbox-s1", productType: "HARDWARE", price: 100, dailyEarn: 1 } },
     genesis: { remotePublicReadState: "ready", syncRemote: vi.fn().mockResolvedValue(true) },
+    cfg: { refresh: vi.fn(async () => {}) },
     nextTick: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     captureAccountScope: () => ({ ...currentScope }),
     isCurrentAccountScope: (scope: typeof currentScope) => scope.accountKey === currentScope.accountKey && scope.epoch === currentScope.epoch,
@@ -53,6 +60,7 @@ function harness(page: Page, options: { remote?: boolean; recorded?: boolean } =
     h3ObservationApi: createH3ObservationApi({ request } as unknown as ApiClient),
     invalidateDetailFacts: () => {}, stickyPageVisible: { value: true }, sticky: { hide: () => {} }, stickyOwner: "fixture",
     releaseActiveRefresh: () => {},
+    stopMarketplaceRevision: vi.fn(),
     listingPageScope: { visible: false, epoch: 0 },
     // store.vue clears the goal-recommendation arrival context on hide/unmount.
     focusProductId: { value: "" }, focusProductName: { value: "" },
@@ -62,6 +70,8 @@ function harness(page: Page, options: { remote?: boolean; recorded?: boolean } =
     let ${page.visible} = true, ${page.epoch} = 0;
     let storeViewReportedScope = "";
     let storeViewAttempt = null;
+    ${refreshState}
+    ${refreshHelper?.getText(ast) ?? ""}
     ${fn.getText(ast)}
     return {
       run: ${page.fn}, hide: () => [${lifecycle("onHide").join(",")}].forEach(fn => fn()),
