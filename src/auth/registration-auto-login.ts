@@ -24,9 +24,10 @@ export async function registerAndLogin(
   authApi: AuthApi,
   request: RegistrationRequest,
   isCurrent: () => boolean,
+  recoverOnly = false,
 ): Promise<RegistrationAutoLoginResult> {
   let registrationReceipt: AuthenticatedLogin["registrationReceipt"] = null;
-  try {
+  if (!recoverOnly) try {
     const registration = await authApi.register(request);
     if (registration.kind !== "authenticated") {
       return {

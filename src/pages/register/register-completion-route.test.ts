@@ -76,6 +76,7 @@ describe("remote registration completion owns its legal return target", () => {
     const registration = { kind: "authenticated", user: { userId: 7, onboardingComplete: false }, vaultRevision: 1 };
     const finish = compile(functionSource(conditionalSource, ["finish", "registrationCompletionDestination", "launchRegistrationSuccess"]), {
       completing: ref(false), error: ref(null), pwdOk: ref(true), pwdMatch: ref(true), remoteApiEnabled: true,
+      pendingRegistrationRecovery: null,
       otpRequestId: ref("challenge"), otpFlowVersion: 1, fullPhone: ref("+8619900009112"), country: ref("+86"),
       phoneClean: ref("19900009112"), codeStr: ref("123456"), password: ref("fixture-only"), authApi: {},
       currentSponsorCode: () => null, isCurrentRemoteRegistrationAttempt: () => true,

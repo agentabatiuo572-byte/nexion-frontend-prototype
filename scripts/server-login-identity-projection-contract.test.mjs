@@ -90,12 +90,15 @@ test("remote nickname and avatar mutations use server authority", () => {
   assert.doesNotMatch(page, /profile\.serverReadOnlyHold/);
 });
 
-test("remote registration calls password login and enters the App with that authoritative session", () => {
+test("remote registration uses its authoritative session and recovers only unknown outcomes", () => {
   const register = read("src/pages/register/register.vue");
   const autoLogin = read("src/auth/registration-auto-login.ts");
   const completion = read("src/auth/complete-sign-in.ts");
 
-  assert.match(register, /const registration = await registerAndLogin\(authApi, \{[\s\S]*?sponsorCode: currentSponsorCode\(\),[\s\S]*?\}, \(\) => isCurrentRemoteRegistrationAttempt\(registrationAttempt\)\);/);
+  assert.match(register, /const registrationRequest = pendingRegistrationRecovery \?\? \{[\s\S]*?sponsorCode: currentSponsorCode\(\),[\s\S]*?\};\s*completing\.value = true;\s*const registration = await registerAndLogin\(authApi, registrationRequest,\s*\(\) => isCurrentRemoteRegistrationAttempt\(registrationAttempt\), pendingRegistrationRecovery !== null\);/);
+  assert.match(autoLogin, /if \(!recoverOnly\) try \{[\s\S]*?const registration = await authApi\.register\(request\);/);
+  assert.match(autoLogin, /return \{\s*\.\.\.registration,\s*registrationReceipt: registration\.registrationReceipt \?\? null,\s*registrationMayBeCommitted: true,\s*\};\s*\} catch \(error\)/);
+  assert.match(autoLogin, /if \(!isRegistrationOutcomeUnknown\(error\)\) \{[\s\S]*?kind: "registration_error"/);
   assert.match(autoLogin, /authApi\.discardSessionIfCurrent\(registration\.vaultRevision\)/);
   assert.match(autoLogin, /authApi\.login\(\{[\s\S]*?countryCode: request\.countryCode,[\s\S]*?phone: request\.phone,[\s\S]*?password: request\.password/);
   assert.match(register, /const completed = completeSignIn\(\{[\s\S]*?identity: `user:\$\{registration\.user\.userId\}`,[\s\S]*?onboardingComplete: registration\.user\.onboardingComplete,[\s\S]*?serverProfile: registration\.user,[\s\S]*?serverSessionRevision: registration\.vaultRevision,[\s\S]*?\}\);/);
@@ -136,7 +139,7 @@ test("stale remote authentication responses discard only their issued vault epoc
 
   assert.match(login, /if \(!isCurrentPasswordAttempt\(passwordAttempt\)\) \{[\s\S]*?authApi\.discardSessionIfCurrent\(result\.vaultRevision\);[\s\S]*?return;/);
   assert.match(login, /if \(!isCurrentRemoteTwoFactorAttempt\(twoFactorAttempt\)\) \{[\s\S]*?authApi\.discardSessionIfCurrent\(result\.vaultRevision\);[\s\S]*?return;/);
-  assert.match(register, /registerAndLogin\(authApi,[\s\S]*?\(\) => isCurrentRemoteRegistrationAttempt\(registrationAttempt\)\)/);
+  assert.match(register, /registerAndLogin\(authApi, registrationRequest,\s*\(\) => isCurrentRemoteRegistrationAttempt\(registrationAttempt\), pendingRegistrationRecovery !== null\)/);
   assert.match(registrationAutoLogin, /authApi\.discardSessionIfCurrent\(registration\.vaultRevision\);[\s\S]*?if \(!isCurrent\(\)\) return \{ kind: "stale" \}/);
   assert.match(registrationAutoLogin, /if \(!isCurrent\(\)\) \{[\s\S]*?authApi\.discardSessionIfCurrent\(login\.vaultRevision\)/);
   assert.match(authApi, /if \(vault\.revision\(\) !== expectedRevision\) return;/);

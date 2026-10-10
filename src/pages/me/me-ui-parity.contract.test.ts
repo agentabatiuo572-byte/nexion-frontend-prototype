@@ -73,7 +73,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "rewards-list.vue": "450f0917d2ba2af0b8215ad9ea8e0f126357a6858ead54038f226700278a1da9",
   "rewards.vue": "720da0cce42564baaa4451ee4002b6e92f83be5e1ab0317963e22490927e59ef",
   "risk-disclosure.vue": "5f1d1f52b62559b79785d91fd28fd9e4de6597cf91b9174a87191740c95ba2bf",
-  "security.vue": "277a220c6aeb77b2c7316ee00dcb945a43d6e63ddb1891888958b19a7cf8e164",
+  // Reviewed ME41: busy save/cancel remain visible and reject keyboard/pointer re-entry.
+  "security.vue": "19d724dcc21783439730c5709bd9651afc99ed50e995c5437dab0a8cbe83c247",
   // Reviewed #439: BASIC retains the existing hint; enhanced policy owns retry timing and existing-ticket/retry actions.
   // Reviewed #470: cursor-spacing=72 on the detail reply textarea only.
   "support-tickets.vue": "4504cb6168c6e939402a4be14b5f39caeaaa8ab9deda42433c7b91eacf12fce8",

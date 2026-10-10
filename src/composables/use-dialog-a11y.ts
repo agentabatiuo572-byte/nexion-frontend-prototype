@@ -33,7 +33,7 @@ export function useDialogA11y(
   root: string | (() => HTMLElement | null | undefined),
   close?: () => void,
 ): void {
-  let previousFocus: HTMLElement | null = null;
+  let previousFocus: HTMLElement | SVGElement | null = null;
 
   const rootEl = (): HTMLElement | null | undefined =>
     typeof root === "string"
@@ -87,7 +87,7 @@ export function useDialogA11y(
     if (typeof document === "undefined") return;
     detach();
     if (isOpen) {
-      previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      previousFocus = document.activeElement instanceof HTMLElement || document.activeElement instanceof SVGElement ? document.activeElement : null;
       document.addEventListener("keydown", onKeydown, true);
       await nextTick();
       // 焦点必须真的移进来:不移的话读屏用户不知道弹层开了,键盘用户按 Tab 时

@@ -119,6 +119,7 @@
 <script setup lang="ts">
 import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import { taskRelativeTime } from "@/lib/task-relative-time";
 import { useApp } from "@/store/app";
 import { useT } from "@/i18n/use-t";
@@ -141,6 +142,17 @@ onMounted(() => { relativeTimer = setInterval(() => { relativeNow.value = Date.n
 const receipts = remoteApiEnabled ? null : useReceipts();
 const openReceipt = ref<Receipt | CanonicalComputeReceipt | null>(null);
 let receiptRequestEpoch = 0;
+let receiptPageVisible = true;
+let receiptPageEpoch = 0;
+onShow(() => {
+  receiptPageVisible = true;
+  receiptPageEpoch += 1;
+});
+onHide(() => {
+  receiptPageVisible = false;
+  receiptPageEpoch += 1;
+  receiptRequestEpoch += 1;
+});
 prepareEarnConfig();
 const earnConfig = useEarnConfig();
 /**
@@ -170,19 +182,21 @@ async function openTaskReceipt(task: CompletedTask): Promise<void> {
     openReceipt.value = receiptFor(task.id) ?? null;
     return;
   }
-  if (!task.receiptNo) return;
+  if (!task.receiptNo || !receiptPageVisible) return;
   const requestEpoch = ++receiptRequestEpoch;
+  const expectedPageEpoch = receiptPageEpoch;
   const expectedAccountKey = app.accountKey;
   const expectedBindingEpoch = app.accountBindingEpoch;
+  const isCurrent = () => receiptPageVisible
+    && expectedPageEpoch === receiptPageEpoch
+    && requestEpoch === receiptRequestEpoch
+    && expectedAccountKey === app.accountKey
+    && expectedBindingEpoch === app.accountBindingEpoch;
   try {
     const detail = await taskAssignmentApi.receipt(task.receiptNo);
-    if (requestEpoch === receiptRequestEpoch
-      && expectedAccountKey === app.accountKey
-      && expectedBindingEpoch === app.accountBindingEpoch) openReceipt.value = detail;
+    if (isCurrent()) openReceipt.value = detail;
   } catch {
-    if (requestEpoch === receiptRequestEpoch
-      && expectedAccountKey === app.accountKey
-      && expectedBindingEpoch === app.accountBindingEpoch) {
+    if (isCurrent()) {
       toast.error(t.value.wallet.receiptsUnavailableTitle, t.value.wallet.receiptsUnavailableBody);
     }
   }
@@ -194,6 +208,8 @@ watch(() => app.accountBindingEpoch, () => {
 });
 
 onUnmounted(() => {
+  receiptPageVisible = false;
+  receiptPageEpoch += 1;
   receiptRequestEpoch += 1;
   if (relativeTimer) clearInterval(relativeTimer);
 });

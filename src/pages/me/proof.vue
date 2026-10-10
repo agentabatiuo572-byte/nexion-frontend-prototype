@@ -268,7 +268,7 @@ async function refreshRemoteProof() {
   }
 }
 
-watch(() => String(app.accountKey), () => {
+watch([() => String(app.accountKey), () => app.accountBindingEpoch], () => {
   if (!remoteApiEnabled || !remoteMounted) return;
   remoteRequest += 1;
   remoteSnapshot.value = null;

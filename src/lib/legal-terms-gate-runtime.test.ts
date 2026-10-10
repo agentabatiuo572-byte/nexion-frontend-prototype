@@ -11,12 +11,18 @@ const state = vi.hoisted(() => ({
   refreshContinuation: false,
   locale: "en",
   current: vi.fn<() => Promise<LegalTermsCurrent>>(),
+  acknowledge: vi.fn<() => Promise<LegalTermsCurrent>>(),
+  retryProfileLocale: vi.fn<() => void>(),
 }));
 
 vi.mock("@/api/runtime", () => ({
   remoteApiEnabled: true,
   sessionVault: { read: () => state.session, revision: () => state.sessionRevision, isRefreshContinuation: () => state.refreshContinuation },
-  legalTermsApi: { current: () => state.current() },
+  legalTermsApi: { current: () => state.current(), acknowledge: () => state.acknowledge() },
+}));
+
+vi.mock("./locale-profile-sync-runtime", () => ({
+  retryCurrentProfileLocale: () => state.retryProfileLocale(),
 }));
 
 vi.mock("@/store/locale", () => ({
@@ -114,6 +120,8 @@ describe("legal terms runtime gate", () => {
     state.refreshContinuation = false;
     state.locale = "en";
     state.current.mockReset();
+    state.acknowledge.mockReset();
+    state.retryProfileLocale.mockReset();
     vi.stubGlobal("uni", {
       reLaunch: vi.fn(),
       showLoading: vi.fn(),
@@ -212,6 +220,7 @@ describe("legal terms runtime gate", () => {
     prompt.success?.({ confirm: true, cancel: false, errMsg: "showModal:ok" });
     await settleGate();
     expect(state.current).toHaveBeenCalledTimes(3);
+    expect(state.retryProfileLocale).not.toHaveBeenCalled();
     expect(runtime.hasPendingLegalTermsRequirement()).toBe(false);
     expect(uni.reLaunch).not.toHaveBeenCalled();
   });
@@ -331,6 +340,67 @@ describe("legal terms runtime gate", () => {
     expect(uni.reLaunch).toHaveBeenLastCalledWith(expect.objectContaining({
       url: "/pages/onboarding/terms?return=%2Fpages%2Fme%2Fme",
     }));
+  });
+
+  it.each(["PROFILE_LANGUAGE_LOAD_FAILED", "PROFILE_LANGUAGE_SYNC_FAILED"])("recovers %s through the same-session native Retry before reading Terms", async (message) => {
+    const runtime = await loadRuntime();
+    const { trackProfileLocaleHydration, pendingProfileLocaleHydration } = await import("./locale-profile-hydration");
+    const scope = { accountId: "user:7", revision: 1 };
+    runtime.recordLegalTermsAcknowledged(snapshot(true));
+    const failed = Promise.reject(new Error(message));
+    trackProfileLocaleHydration(scope, failed);
+    await expect(failed).rejects.toThrow(message);
+    state.current.mockResolvedValue(snapshot(true));
+    await runtime.scheduleLegalTermsGate("/pages/me/rewards");
+    expect(state.current).not.toHaveBeenCalled();
+    expect(runtime.hasPendingLegalTermsRequirement()).toBe(true);
+    expect(pendingProfileLocaleHydration(scope)).toBe(failed);
+    const prompt = vi.mocked(uni.showModal).mock.calls[0][0]!;
+    state.retryProfileLocale.mockImplementation(() => trackProfileLocaleHydration(scope, Promise.resolve()));
+    prompt.success?.({ confirm: true, cancel: false, errMsg: "showModal:ok" });
+    await settleGate();
+    expect(state.retryProfileLocale).toHaveBeenCalledOnce();
+    expect(state.current).toHaveBeenCalledOnce();
+    expect(state.acknowledge).not.toHaveBeenCalled();
+    expect(runtime.hasPendingLegalTermsRequirement()).toBe(false);
+    expect(pendingProfileLocaleHydration(scope)).toBeNull();
+    expect(uni.reLaunch).not.toHaveBeenCalled();
+  });
+
+  it.each(["language-failed", "terms-failed", "acknowledgement-required"])("keeps business gated after locale Retry when %s", async (outcome) => {
+    const runtime = await loadRuntime();
+    const { trackProfileLocaleHydration } = await import("./locale-profile-hydration");
+    const scope = { accountId: "user:7", revision: 1 };
+    const resumed = vi.fn(async () => {});
+    runtime.recordLegalTermsAcknowledged(snapshot(true));
+    runtime.afterLegalTermsAcknowledged(resumed);
+    const failed = Promise.reject(new Error("PROFILE_LANGUAGE_LOAD_FAILED"));
+    trackProfileLocaleHydration(scope, failed);
+    await expect(failed).rejects.toThrow("PROFILE_LANGUAGE_LOAD_FAILED");
+    await runtime.scheduleLegalTermsGate("/pages/me/rewards");
+    state.retryProfileLocale.mockImplementation(() => trackProfileLocaleHydration(scope,
+      outcome === "language-failed" ? Promise.reject(new Error("PROFILE_LANGUAGE_LOAD_FAILED")) : Promise.resolve()));
+    if (outcome === "terms-failed") state.current.mockRejectedValue(new Error("LEGAL_TERMS_RESPONSE_INVALID"));
+    else state.current.mockResolvedValue(snapshot(false));
+    vi.mocked(uni.showModal).mock.calls[0][0]!.success?.({ confirm: true, cancel: false, errMsg: "showModal:ok" });
+    await settleGate();
+    expect(state.retryProfileLocale).toHaveBeenCalledOnce();
+    expect(state.current).toHaveBeenCalledTimes(outcome === "language-failed" ? 0 : 1);
+    expect(runtime.hasPendingLegalTermsRequirement()).toBe(true);
+    expect(resumed).not.toHaveBeenCalled();
+    expect(state.acknowledge).not.toHaveBeenCalled();
+    expect(uni.reLaunch).toHaveBeenCalledTimes(outcome === "acknowledgement-required" ? 1 : 0);
+    if (outcome === "acknowledgement-required") {
+      runtime.recordLegalTermsAcknowledged(snapshot(false));
+      await settleGate();
+      expect(runtime.hasPendingLegalTermsRequirement()).toBe(true);
+      expect(resumed).not.toHaveBeenCalled();
+      runtime.recordLegalTermsAcknowledged(snapshot(true));
+      await settleGate();
+      expect(runtime.hasPendingLegalTermsRequirement()).toBe(false);
+      expect(resumed).toHaveBeenCalledOnce();
+      expect(state.acknowledge).not.toHaveBeenCalled();
+    }
   });
 
   it("waits for account language before presenting Terms and never shows the earlier default", async () => {

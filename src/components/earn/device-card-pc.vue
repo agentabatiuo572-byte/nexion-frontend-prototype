@@ -247,7 +247,7 @@
          this list only mirrors settled task previews returned for this device. -->
     <view v-if="phoneLocalReady" class="nx-device-today-completed" data-device-today-completed="true" style="padding: 0 20px 16px">
       <view class="flex items-center justify-between" style="margin-bottom: 8px">
-        <text :style="sectionLabelStyle">{{ t.earn.todayRecentCompleted }} ({{ deviceTodayCompleted.length }})</text>
+        <text :style="sectionLabelStyle">{{ t.earn.todayRecentCompleted }}<template v-if="taskHistoryReady"> ({{ deviceTodayCompleted.length }})</template></text>
         <view
           class="active:opacity-60"
           style="min-height: 44px; padding-left: 16px; display: flex; align-items: center"
@@ -260,7 +260,12 @@
           <text style="font-size: 12px; font-weight: 500; color: var(--v5-brand)">{{ t.taskHistory.viewAllAccountReceipts }}</text>
         </view>
       </view>
-      <view v-if="deviceTodayCompleted.length" class="space-y-1.5">
+      <view v-if="remoteApiEnabled && app.remoteAssignmentStatus === 'error'" role="status" aria-live="polite">
+        <text class="block" style="font-size: 12px; color: var(--v5-danger)">{{ t.wallet.assignmentsUnavailableTitle }}</text>
+        <text class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.wallet.assignmentsUnavailableBody }}</text>
+      </view>
+      <text v-else-if="!taskHistoryReady" class="block" role="status" aria-live="polite" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.taskHistory.loading }}</text>
+      <view v-else-if="deviceTodayCompleted.length" class="space-y-1.5">
         <view
           v-for="task in deviceTodayCompleted"
           :key="task.receiptNo ?? task.id"
@@ -463,6 +468,8 @@ const deviceTodayCompleted = computed(() => todayCompletedTasks(
   props.device.recentTasks,
   liveTaskNow.value,
 ));
+const taskHistoryReady = computed(() => !remoteApiEnabled || app.remoteAssignmentStatus === "ready"
+  || (app.remoteAssignmentStatus === "loading" && app.remoteAssignmentHasSnapshot));
 const taskLockRemainingMinutes = computed(() => {
   const lockUntil = props.device.taskLockUntil ?? 0;
   return lockUntil > liveTaskNow.value ? Math.max(1, Math.ceil((lockUntil - liveTaskNow.value) / 60000)) : 0;

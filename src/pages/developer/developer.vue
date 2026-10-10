@@ -803,7 +803,7 @@ onUnmounted(() => {
   resetDocsScope();
   resetResourceScope();
 });
-watch(() => String(app.accountKey), () => {
+watch([() => String(app.accountKey), () => app.accountBindingEpoch], () => {
   clearDeveloperConfirms();
   requestGeneration += 1;
   requestKey = null;

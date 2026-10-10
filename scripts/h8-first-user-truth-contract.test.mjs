@@ -68,6 +68,6 @@ test("remote registration submits the captured referral code to the server", () 
   const register = read("src/pages/register/register.vue");
   const recovery = read("src/auth/registration-auto-login.ts");
 
-  assert.match(register, /registerAndLogin\(authApi,[\s\S]*sponsorCode:\s*currentSponsorCode\(\)/);
+  assert.match(register, /const registrationRequest = pendingRegistrationRecovery \?\? \{[\s\S]*?sponsorCode:\s*currentSponsorCode\(\),[\s\S]*?\};\s*completing\.value = true;\s*const registration = await registerAndLogin\(authApi, registrationRequest,\s*\(\) => isCurrentRemoteRegistrationAttempt\(registrationAttempt\), pendingRegistrationRecovery !== null\);/);
   assert.match(recovery, /authApi\.register\(request\)/);
 });

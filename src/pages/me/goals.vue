@@ -147,8 +147,8 @@
 
 <script setup lang="ts">
 import { navReset } from "@/lib/route";
-import { computed, nextTick, onMounted, ref, watch, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import GoalProgressBar from "@/components/me/goal-progress-bar.vue";
@@ -185,6 +185,8 @@ const retryableSaveIntents = new Map<string, GoalSaveIntent>();
 let saveEpoch = 0;
 let editorReadEpoch = 0;
 let restoringEditor = false;
+let deleteFeedbackVisible = true;
+let deleteFeedbackGeneration = 0;
 
 const recommendation = computed(() => {
   if (remoteApiEnabled && goalsStore.recommendation?.purchaseRequired) {
@@ -308,8 +310,16 @@ onMounted(() => {
 });
 
 onShow(() => {
+  deleteFeedbackVisible = true;
   void refreshRemoteGoals();
 });
+
+function invalidateDeleteFeedback(): void {
+  deleteFeedbackVisible = false;
+  deleteFeedbackGeneration += 1;
+}
+onHide(invalidateDeleteFeedback);
+onUnmounted(invalidateDeleteFeedback);
 
 watch([target, days], () => {
   if (!restoringEditor && remoteApiEnabled && goalsStore.status === "ready" && target.value >= 100 && days.value > 0) {
@@ -365,9 +375,15 @@ async function onSave() {
 }
 
 async function remove(id: string) {
+  if (!deleteFeedbackVisible) return;
+  const expectedAccountKey = app.accountKey;
+  const expectedBindingEpoch = app.accountBindingEpoch;
+  const expectedGeneration = deleteFeedbackGeneration;
   try {
     await goalsStore.remove(id);
   } catch (error) {
+    if (!deleteFeedbackVisible || expectedGeneration !== deleteFeedbackGeneration
+        || expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch) return;
     ui.pushToast({ kind: "warn", title: error instanceof Error ? error.message : t.value.goals.serverUnavailable });
   }
 }

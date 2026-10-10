@@ -272,9 +272,17 @@ async function chooseSupportImage() {
     if (!current()) return;
     attachmentPolicy.value = policy;
     if (!policy.available) { toast.info(t.value.conversations.image.unavailable, ""); return; }
-    const selected = await new Promise<UniNamespace.ChooseImageSuccessCallbackResult>((resolve, reject) =>
-      uni.chooseImage({ count: 1, sizeType: ["original"], sourceType: ["album", "camera"], success: resolve, fail: reject }));
-    if (!current()) return;
+    const selected = await new Promise<UniNamespace.ChooseImageSuccessCallbackResult | null>((resolve, reject) =>
+      uni.chooseImage({ count: 1, sizeType: ["original"], sourceType: ["album", "camera"], success: resolve, fail: (cause) => {
+        let cancelled = /^(?:chooseImage:fail\s+)?cancel(?:led|ed)?$/i.test(cause instanceof Error ? cause.message : cause.errMsg);
+        // #ifdef APP-PLUS
+        // Uni's native source actionSheet reports cancellation without a message.
+        cancelled = cancelled || cause.errMsg === "chooseImage:fail" && (cause as { code?: unknown }).code === 0
+          && Object.getOwnPropertyNames(cause).every(key => key === "errMsg" || key === "code");
+        // #endif
+        if (cancelled) resolve(null); else reject(cause);
+      } }));
+    if (!selected || !current()) return;
     const path = selected.tempFilePaths[0];
     if (!path) return;
     const selectedFile = Array.isArray(selected.tempFiles) ? selected.tempFiles[0] : selected.tempFiles;
@@ -282,10 +290,9 @@ async function chooseSupportImage() {
     const id = requireCryptoUuid();
     imageDraft.value = { filePath: path, clientUploadId: id, key: `support-upload-${id}`, state: "uploading" };
     await retrySupportUpload();
-  } catch (cause) {
+  } catch {
     if (!current()) return;
-    const message = typeof cause === "object" && cause !== null && "errMsg" in cause ? String(cause.errMsg) : "";
-    if (!/cancel/i.test(message)) toast.error(t.value.conversations.image.uploadFailed, "");
+    toast.error(t.value.conversations.image.uploadFailed, "");
   }
 }
 async function loadAttachmentPolicy() {
@@ -320,13 +327,17 @@ async function retrySupportUpload() {
   }
 }
 async function cancelSupportAttachment() {
-  if (!supportSessionReady.value) return;
+  if (chatDisposed || !supportSessionReady.value) return;
   const draft = imageDraft.value;
   if (!draft) return;
+  const account = app.accountKey, binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, key = humanComposerKey.value;
+  const current = () => !chatDisposed && supportSessionReady.value && account === app.accountKey
+    && binding === app.accountBindingEpoch && scope === convStore.scopeInvalidated
+    && key === humanComposerKey.value && imageDraft.value === draft;
   if (draft.attachmentId && !draft.replaceOnly) {
     try { await supportApi.cancelAttachment(draft.attachmentId, `support-cancel-${draft.clientUploadId}`); }
     catch (cause) {
-      if (asApiError(cause).status !== 404) { toast.error(t.value.conversations.image.cancelFailed, ""); return; }
+      if (asApiError(cause).status !== 404) { if (current()) toast.error(t.value.conversations.image.cancelFailed, ""); return; }
     }
   }
   if (imageDraft.value === draft) imageDraft.value = null;

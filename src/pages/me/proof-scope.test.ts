@@ -7,9 +7,9 @@ const source = (import.meta.glob("./proof.vue", {
 })["./proof.vue"] ?? "") as string;
 
 describe("Proof remote snapshot scope", () => {
-  it("invalidates and clears the snapshot immediately on account changes", () => {
-    expect(source).toMatch(/watch\(\(\) => String\(app\.accountKey\)/);
-    expect(source).toMatch(/watch\(\(\) => String\(app\.accountKey\)[\s\S]{0,500}remoteRequest \+= 1;[\s\S]{0,300}remoteSnapshot\.value = null;[\s\S]{0,200}remoteError\.value = false;/);
+  it("invalidates and clears the snapshot on account changes and same-account rebinds", () => {
+    expect(source).toMatch(/watch\(\[\(\) => String\(app\.accountKey\), \(\) => app\.accountBindingEpoch\]/);
+    expect(source).toMatch(/watch\(\[\(\) => String\(app\.accountKey\), \(\) => app\.accountBindingEpoch\][\s\S]{0,500}remoteRequest \+= 1;[\s\S]{0,300}remoteSnapshot\.value = null;[\s\S]{0,200}remoteError\.value = false;/);
   });
 
   it("fences late account/run responses and invalidates the page lifecycle", () => {

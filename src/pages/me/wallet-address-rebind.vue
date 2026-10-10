@@ -240,7 +240,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
 import { asApiError } from "@/api/errors";
@@ -251,7 +251,7 @@ import CaptchaSlider from "@/components/captcha-slider.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { navBack, navTo } from "@/lib/route";
-import { confirm as uiConfirm, toast } from "@/store/ui";
+import { confirm as uiConfirm, toast, useUI } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { useConfig } from "@/store/config";
 import { usePayoutAddress } from "@/store/payout-address";
@@ -265,6 +265,8 @@ const t = useT();
 const app = useApp();
 const payout = usePayoutAddress();
 const cfg = useConfig();
+const ui = useUI();
+const confirmationOwner = `payout-address-${getCurrentInstance()?.uid}`;
 
 // ── 网络选择(标签为链名专有名词,非文案)──
 const NETWORKS: { id: ChainDepositChannel; label: string }[] = [
@@ -298,6 +300,7 @@ const step = computed<"view" | "form" | "otp" | "success">(() => {
 // base 态推导 mode:空槽 = add;显式进入更换 = change。
 function switchNetwork(id: ChainDepositChannel) {
   if (network.value === id) return;
+  invalidatePageCommand();
   network.value = id;
   explicitStep.value = "base";
   mode.value = "add";
@@ -394,17 +397,21 @@ function resetOtp() {
 }
 async function sendCode(captchaTicket?: string) {
   if (otpSending.value) return;
+  const scope = captureCommandScope();
+  if (!commandIsCurrent(scope)) return;
   otpSending.value = true;
   try {
     if (payoutAddressServerEnabled) {
       try {
         const challenge = await payout.sendRemoteOtp();
+        if (!commandIsCurrent(scope)) return;
         otpRequestId.value = challenge.challengeNo;
         otpCommandKey.value = `payout-address:${globalThis.crypto?.randomUUID?.()
           ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}`;
         startResendCountdown(60);
         explicitStep.value = "otp";
       } catch (cause) {
+        if (!commandIsCurrent(scope)) return;
         const error = asApiError(cause);
         if (error.message === "PAYOUT_ADDRESS_OTP_COOLDOWN" || error.message === "PAYOUT_ADDRESS_OTP_DAILY_LIMIT") {
           addrError.value = fmt(t.value.addrRebind.otpRateLimited, { s: 60 });
@@ -414,7 +421,8 @@ async function sendCode(captchaTicket?: string) {
       }
       return;
     }
-    const res = await otpSend(otpPhone.value, "payout-address", captchaTicket);
+    const res = await otpSend(scope.accountKey, "payout-address", captchaTicket);
+    if (!commandIsCurrent(scope)) return;
     if (res.ok) {
       otpRequestId.value = res.requestId;
       startResendCountdown(res.resendAfterSec);
@@ -466,14 +474,17 @@ function proceedToOtp() {
 }
 async function confirmOtp() {
   if (!otpReady.value || otpVerifying.value) return;
+  const scope = captureCommandScope();
+  if (!commandIsCurrent(scope)) return;
   otpVerifying.value = true;
   try {
     if (payoutAddressServerEnabled) {
-      await applyAfterOtp();
+      await applyAfterOtp(scope);
       return;
     }
     if (!otpVerifiedOnce.value) {
       const res = await otpVerify(otpPhone.value, "payout-address", otpRequestId.value!, otpCode.value.trim());
+      if (!commandIsCurrent(scope)) return;
       if (!res.ok) {
         if (res.error === "otp_invalid") otpError.value = fmt(t.value.addrRebind.otpInvalid, { n: res.attemptsLeft });
         else if (res.error === "otp_expired") otpError.value = t.value.addrRebind.otpExpired;
@@ -483,13 +494,24 @@ async function confirmOtp() {
       }
       otpVerifiedOnce.value = true;
     }
-    await applyAfterOtp();
+    await applyAfterOtp(scope);
   } finally {
     otpVerifying.value = false;
   }
 }
-async function applyAfterOtp() {
+async function applyAfterOtp(scope = captureCommandScope()) {
+  if (!commandIsCurrent(scope)) return;
   const isChange = effectiveMode.value === "change";
+  const input = {
+    network: network.value,
+    address: newAddress.value,
+    challengeNo: otpRequestId.value!,
+    code: otpCode.value.trim(),
+    idempotencyKey: otpCommandKey.value!,
+  };
+  const draftIsCurrent = () => commandIsCurrent(scope) && input.network === network.value
+    && input.address === newAddress.value && input.challengeNo === otpRequestId.value
+    && input.code === otpCode.value.trim() && input.idempotencyKey === otpCommandKey.value;
   if (isChange) {
     // 二次确认发生在远端 OTP 被消费之前;取消不会制造半完成事务。
     const ok = await uiConfirm({
@@ -497,23 +519,21 @@ async function applyAfterOtp() {
       message: fmt(t.value.addrRebind.changeConfirmBody, { days: cooldownDays.value }),
       icon: "warn",
       confirmLabel: t.value.addrRebind.changeConfirmYes,
+      owner: confirmationOwner,
     });
     if (!ok) return;
   }
+  if (!draftIsCurrent()) return;
 
   if (payoutAddressServerEnabled) {
     try {
-      await payout.saveRemoteAddress({
-        network: network.value,
-        address: newAddress.value,
-        challengeNo: otpRequestId.value!,
-        code: otpCode.value.trim(),
-        idempotencyKey: otpCommandKey.value!,
-      });
+      await payout.saveRemoteAddress(input);
+      if (!draftIsCurrent()) return;
       successIsChange.value = isChange;
       explicitStep.value = "success";
       resetOtp();
     } catch (cause) {
+      if (!draftIsCurrent()) return;
       const error = asApiError(cause);
       if (error.message === "PAYOUT_ADDRESS_OTP_INVALID") otpError.value = t.value.addrRebind.startFailed;
       else if (error.message === "PAYOUT_ADDRESS_CHANGE_BLOCKED_BY_WITHDRAWAL") toast.error(t.value.addrRebind.inFlightBlocked);
@@ -556,6 +576,7 @@ async function applyAfterOtp() {
   resetOtp();
 }
 function backToBase() {
+  invalidatePageCommand();
   explicitStep.value = "base";
   mode.value = "add";
   resetOtp();
@@ -572,6 +593,21 @@ const remoteRefreshPending = ref(false);
 let tickTimer: ReturnType<typeof setInterval> | undefined;
 let pageVisible = true;
 let refreshGeneration = 0;
+let commandGeneration = 0;
+
+function captureCommandScope() {
+  return { accountKey: app.accountKey, bindingEpoch: app.accountBindingEpoch,
+    generation: commandGeneration, runtime: captureRuntimeRevision() };
+}
+function commandIsCurrent(scope: ReturnType<typeof captureCommandScope>) {
+  return pageVisible && scope.generation === commandGeneration
+    && scope.accountKey === app.accountKey && scope.bindingEpoch === app.accountBindingEpoch
+    && isCurrentRuntimeRevision(scope.runtime);
+}
+function invalidatePageCommand() {
+  commandGeneration += 1;
+  ui.clearConfirmsBy(confirmationOwner);
+}
 
 // A fresh server anchor is the recovery boundary after losing the clock. Reset
 // the high-water mark too: an old clock origin must not advance a new snapshot.
@@ -609,9 +645,11 @@ onShow(() => {
 });
 onHide(() => {
   pageVisible = false;
+  invalidatePageCommand();
   invalidatePageRefresh();
 });
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
+  invalidatePageCommand();
   invalidatePageRefresh();
   void retryRemoteSnapshot();
 }, { flush: "sync" });
@@ -630,6 +668,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   pageVisible = false;
+  invalidatePageCommand();
   invalidatePageRefresh();
   if (tickTimer) clearInterval(tickTimer);
   if (resendTimer) clearInterval(resendTimer);
@@ -678,9 +717,11 @@ const holdActive = computed(() => {
 
 // ── 动作 ──
 function leave() {
+  invalidatePageCommand();
   navBack("/pages/me/wallet-withdraw");
 }
 function finish() {
+  invalidatePageCommand();
   navBack("/pages/me/wallet-withdraw"); // 完成后返回提现页,地址由响应式 store 即时回填
 }
 

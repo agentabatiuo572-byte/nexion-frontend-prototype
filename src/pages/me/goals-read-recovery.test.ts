@@ -192,6 +192,8 @@ describe("earning-goal read recovery", () => {
     const implementation = source.slice(start, end);
     const mount: Array<() => void> = [];
     const showHooks: Array<() => void> = [];
+    const hideHooks: Array<() => void> = [];
+    const unmountHooks: Array<() => void> = [];
     const app = Vue.reactive({ accountKey: "user:1", accountBindingEpoch: 1 });
     const target = Vue.ref(1000);
     const days = Vue.ref(90);
@@ -208,11 +210,13 @@ describe("earning-goal read recovery", () => {
       ensure: vi.fn().mockResolvedValue(undefined), refresh: vi.fn().mockResolvedValue(undefined),
       refreshRecommendation: vi.fn().mockResolvedValue(undefined),
     };
-    const execute = new Function("remoteApiEnabled", "goalsStore", "target", "days", "restoredGoal", "savePending", "editorReadPending", "ONE_DAY_MS", "onMounted", "onShow", "watch", "app", `let editorReadEpoch = 0; let restoringEditor = false; ${ts.transpileModule(implementation, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText}; return { refreshRemoteGoals, retryGoals };`);
+    const execute = new Function("remoteApiEnabled", "goalsStore", "target", "days", "restoredGoal", "savePending", "editorReadPending", "ONE_DAY_MS", "onMounted", "onShow", "onHide", "onUnmounted", "watch", "app", `let editorReadEpoch = 0; let restoringEditor = false; let deleteFeedbackVisible = true; let deleteFeedbackGeneration = 0; ${ts.transpileModule(implementation, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText}; return { refreshRemoteGoals, retryGoals, deleteFeedbackSnapshot: () => ({ visible: deleteFeedbackVisible, generation: deleteFeedbackGeneration }) };`);
     const scope = Vue.effectScope();
-    const page = scope.run(() => execute(true, goalsStore, target, days, restoredGoal, savePending, editorReadPending, 86_400_000, (hook: () => void) => mount.push(hook), (hook: () => void) => showHooks.push(hook), Vue.watch, app));
+    const page = scope.run(() => execute(true, goalsStore, target, days, restoredGoal, savePending, editorReadPending, 86_400_000, (hook: () => void) => mount.push(hook), (hook: () => void) => showHooks.push(hook), (hook: () => void) => hideHooks.push(hook), (hook: () => void) => unmountHooks.push(hook), Vue.watch, app));
     expect(mount).toHaveLength(1);
     expect(showHooks).toHaveLength(1);
+    expect(hideHooks).toHaveLength(1);
+    expect(unmountHooks).toHaveLength(1);
     expect(target.value).toBe(500);
     expect(days.value).toBe(90);
     await page.refreshRemoteGoals();
@@ -259,6 +263,17 @@ describe("earning-goal read recovery", () => {
     await page.refreshRemoteGoals(true);
     expect(editorReadPending.value).toBe(false);
     expect(goalsStore.goals).toEqual([saved]);
+    // Register and execute the real lifecycle callbacks, rather than omitting them.
+    expect(page.deleteFeedbackSnapshot()).toEqual({ visible: true, generation: 0 });
+    hideHooks[0]();
+    expect(page.deleteFeedbackSnapshot()).toEqual({ visible: false, generation: 1 });
+    const ensureCallsBeforeShow = goalsStore.ensure.mock.calls.length;
+    showHooks[0]();
+    await Vue.nextTick();
+    expect(page.deleteFeedbackSnapshot()).toEqual({ visible: true, generation: 1 });
+    expect(goalsStore.ensure).toHaveBeenCalledTimes(ensureCallsBeforeShow + 1);
+    unmountHooks[0]();
+    expect(page.deleteFeedbackSnapshot()).toEqual({ visible: false, generation: 2 });
     scope.stop();
   });
 });

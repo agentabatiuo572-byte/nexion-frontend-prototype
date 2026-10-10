@@ -2,45 +2,55 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test, { mock } from "node:test";
 import ts from "typescript";
+import { createP318AccountPageFence } from "../src/pages/me/p3-18-account-page-fence.ts";
 
 function read(path) {
   return fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-function passwordChangeFixture() {
+function passwordChangeFixture({ changePassword = async () => undefined, readback = async () => true } = {}) {
   const script = read("src/pages/me/security.vue").match(/<script setup lang="ts">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script, "security page script must exist");
   const parsed = ts.createSourceFile("security.ts", script, ts.ScriptTarget.Latest, true);
-  const handler = parsed.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === "submitPasswordChange");
-  assert.ok(handler, "real password handler must exist");
-  const code = ts.transpileModule(handler.getText(parsed), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const code = ["submitPasswordChange", "cancelPwd", "isCurrentSecurityRequest"].map((name) => {
+    const handler = parsed.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === name);
+    assert.ok(handler, `real ${name} handler must exist`);
+    return ts.transpileModule(handler.getText(parsed), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  }).join("\n");
   let resolveReceipt;
+  let rejectReceipt;
   let currentScope = true;
+  const binding = { key: "password-fixture", epoch: 1 };
+  const auth = { accountId: binding.key };
   const deps = {
     current: { value: "OldPass1!" }, next: { value: "NewPass2!" }, confirmPwd: { value: "NewPass2!" },
     securityBusy: { value: false }, editingPwd: { value: true }, err: { value: "" },
-    // #216 起真实处理器还持有「错误归属字段」与「焦点目标」两个 ref,以及
-    // 字段码常量。夹具按真实签名补齐,否则注入的代码一执行就 ReferenceError。
     pwdErrorField: { value: "" }, pwdFocusField: { value: "" },
     PWD_FIELD_CURRENT: "current", PWD_FIELD_NEXT: "next", PWD_FIELD_CONFIRM: "confirm",
     focusPwdField: mock.fn((field) => { deps.pwdFocusField.value = field; }),
-    securityPageFence: { capture: () => ({}) }, captureAccountScope: () => ({}),
-    auth: { accountId: "password-fixture" }, isCurrentSecurityRequest: () => currentScope,
+    securityPageFence: createP318AccountPageFence(() => binding.key, () => binding.epoch),
+    captureAccountScope: () => ({ ...binding }),
+    isCurrentAccountScope: (scope) => currentScope && scope.key === binding.key && scope.epoch === binding.epoch,
+    securityPageVisible: true, auth,
     isPasswordOk: (value) => value === "NewPass2!", remoteApiEnabled: true,
     SECURITY_COMMAND_TABLE: "password-fixture-commands", acquireAccountCommandKey: mock.fn(() => "command-fixture"),
     releaseAccountCommandKey: mock.fn(),
     accountApi: {
-      passwordCommandReceipt: mock.fn(() => new Promise((resolve) => { resolveReceipt = resolve; })),
-      changePassword: mock.fn(async () => undefined),
+      passwordCommandReceipt: mock.fn(() => new Promise((resolve, reject) => { resolveReceipt = resolve; rejectReceipt = reject; })),
+      changePassword: mock.fn(changePassword),
     },
-    security: { changePassword: mock.fn() }, loadRemoteSecurity: mock.fn(async () => true),
+    security: { changePassword: mock.fn() }, loadRemoteSecurity: mock.fn(readback),
     securityErrorMessage: () => "request failed", toast: { success: mock.fn() },
     t: { value: { login: { errorInvalidPassword: "missing" }, security: {
       passwordShort: "short", passwordMismatch: "mismatch", passwordRecovered: "recovered", passwordSaved: "saved",
     } } },
   };
-  const submit = new Function(...Object.keys(deps), `${code}; return submitPasswordChange;`)(...Object.values(deps));
-  return { ...deps, submit, resolveReceipt: (receipt) => resolveReceipt(receipt), leave: () => { currentScope = false; } };
+  const actions = new Function(...Object.keys(deps), `${code}; return { submit: submitPasswordChange, cancel: cancelPwd };`)(...Object.values(deps));
+  return {
+    ...deps, ...actions, resolveReceipt: (receipt) => resolveReceipt(receipt), rejectReceipt: (cause) => rejectReceipt(cause),
+    leave: () => { currentScope = false; },
+    rebind: (key = binding.key) => { binding.key = key; binding.epoch += 1; auth.accountId = key; },
+  };
 }
 
 function twoFactorFixture() {
@@ -105,6 +115,105 @@ test("password change sends only the values validated before awaiting a prior re
   assert.equal(page.security.changePassword.mock.callCount(), 0);
   assert.equal(page.current.value, "");
   assert.equal(page.next.value, "");
+});
+
+test("password buttons expose busy disabled state to keyboard and assistive input", () => {
+  const page = read("src/pages/me/security.vue");
+  for (const handler of ["cancelPwd", "submitPasswordChange"]) {
+    const button = page.split("\n").find((line) => line.includes(`@click="${handler}"`));
+    assert.ok(button);
+    assert.match(button, /:aria-disabled="securityBusy"/);
+    assert.match(button, /:tabindex="securityBusy \? -1 : 0"/);
+    assert.match(button, /securityBusy \? 'opacity-50'/);
+    assert.ok(button.includes(`@keydown.enter.prevent="${handler}"`));
+    assert.ok(button.includes(`@keydown.space.prevent="${handler}"`));
+  }
+});
+
+test("idle password cancel clears fields without sending a command", () => {
+  const page = passwordChangeFixture();
+  page.cancel();
+  assert.equal(page.editingPwd.value, false);
+  for (const field of [page.current, page.next, page.confirmPwd]) assert.equal(field.value, "");
+  assert.equal(page.accountApi.passwordCommandReceipt.mock.callCount(), 0);
+});
+
+for (const phase of ["receipt", "mutation", "readback"]) {
+  test(`busy password cancel cannot hide the pending ${phase} workflow`, async () => {
+    let finish;
+    let reached;
+    const phaseReached = new Promise((resolve) => { reached = resolve; });
+    const wait = () => new Promise((resolve) => { finish = resolve; reached(); });
+    const page = passwordChangeFixture({
+      changePassword: phase === "mutation" ? wait : async () => undefined,
+      readback: phase === "readback" ? wait : async () => true,
+    });
+    const pending = page.submit();
+    if (phase !== "receipt") { page.resolveReceipt(null); await phaseReached; }
+    page.cancel();
+    const afterCancel = { editing: page.editingPwd.value, busy: page.securityBusy.value, old: page.current.value };
+    await page.submit();
+    if (phase === "receipt") page.resolveReceipt(null);
+    else finish(phase === "readback" ? true : undefined);
+    await pending;
+    assert.deepEqual(afterCancel, { editing: true, busy: true, old: "OldPass1!" });
+    assert.equal(page.accountApi.passwordCommandReceipt.mock.callCount(), 1);
+    assert.equal(page.accountApi.changePassword.mock.callCount(), 1);
+    assert.equal(page.releaseAccountCommandKey.mock.callCount(), 1);
+    assert.equal(page.toast.success.mock.callCount(), 1);
+  });
+}
+
+test("an unknown password response retains its replay key and recovers without a second POST", async () => {
+  const page = passwordChangeFixture({ changePassword: async () => { throw new Error("synthetic response lost"); } });
+  const pending = page.submit();
+  page.resolveReceipt(null);
+  await pending;
+  assert.equal(page.securityBusy.value, false);
+  assert.equal(page.releaseAccountCommandKey.mock.callCount(), 0);
+  assert.equal(page.toast.success.mock.callCount(), 0);
+  page.cancel();
+  assert.equal(page.editingPwd.value, false);
+  page.current.value = "OldPass1!"; page.next.value = page.confirmPwd.value = "NewPass2!";
+  page.editingPwd.value = true;
+  const retry = page.submit();
+  page.resolveReceipt({ passwordChangedAt: "2026-10-10T00:00:00+08:00", revokedSessionCount: 1 });
+  await retry;
+  assert.deepEqual(page.accountApi.passwordCommandReceipt.mock.calls.map((call) => call.arguments), [["command-fixture"], ["command-fixture"]]);
+  assert.equal(page.accountApi.changePassword.mock.callCount(), 1);
+  assert.equal(page.releaseAccountCommandKey.mock.callCount(), 1);
+  assert.deepEqual(page.toast.success.mock.calls[0].arguments, ["recovered"]);
+});
+
+test("failed authoritative password readback retains its command and permits a retry", async () => {
+  const page = passwordChangeFixture({ readback: async () => false });
+  const pending = page.submit(); page.resolveReceipt(null); await pending;
+  assert.equal(page.err.value, "request failed");
+  assert.equal(page.securityBusy.value, false);
+  assert.equal(page.releaseAccountCommandKey.mock.callCount(), 0);
+  assert.equal(page.toast.success.mock.callCount(), 0);
+  assert.equal(page.editingPwd.value, true);
+});
+
+for (const key of [undefined, "other-password-fixture"]) {
+  test(`password receipt cannot POST or render after a ${key ? "different-account" : "same-key"} rebind`, async () => {
+    const page = passwordChangeFixture(); const pending = page.submit();
+    page.rebind(key); page.resolveReceipt(null); await pending;
+    assert.equal(page.accountApi.changePassword.mock.callCount(), 0);
+    assert.equal(page.loadRemoteSecurity.mock.callCount(), 0);
+    assert.equal(page.releaseAccountCommandKey.mock.callCount(), 0);
+    assert.equal(page.toast.success.mock.callCount(), 0);
+  });
+}
+
+test("expired receipt lookup cannot POST or clear a recoverable password command", async () => {
+  const page = passwordChangeFixture(); const pending = page.submit();
+  page.rejectReceipt(new Error("synthetic session unavailable")); await pending;
+  assert.equal(page.accountApi.changePassword.mock.callCount(), 0);
+  assert.equal(page.securityBusy.value, false);
+  assert.equal(page.err.value, "request failed");
+  assert.equal(page.releaseAccountCommandKey.mock.callCount(), 0);
+  assert.equal(page.toast.success.mock.callCount(), 0);
 });
 
 test("a committed password receipt recovers the old command without submitting edited passwords", async () => {

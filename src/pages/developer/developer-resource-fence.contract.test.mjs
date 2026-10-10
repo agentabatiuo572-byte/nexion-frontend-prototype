@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("./developer.vue", import.meta.url), "utf8");
+const resourceApiSource = await readFile(new URL("../../api/developer-resources-api.ts", import.meta.url), "utf8");
 const fenceSource = await readFile(new URL("./developer-resource-fence.ts", import.meta.url), "utf8");
 const docsFenceSource = await readFile(new URL("./developer-docs-fence.ts", import.meta.url), "utf8");
 const journalSource = await readFile(new URL("./developer-rotation-journal.ts", import.meta.url), "utf8");
@@ -16,13 +17,19 @@ test("developer resource operations all capture and validate the account fence",
   assert.match(source, /resetResourceScope\(\);/);
   assert.match(source, /if \(!resourceFenceCurrent\(fence\)\) return;/);
 
-  for (const functionName of ["createApiKey", "revokeApiKey", "createWebhook", "deleteWebhook", "rotateWebhook", "setWebhookEnabled", "loadWebhookDeliveries"]) {
+  for (const functionName of ["revokeApiKey", "createWebhook", "deleteWebhook", "rotateWebhook", "setWebhookEnabled", "loadWebhookDeliveries"]) {
     const start = source.indexOf(`async function ${functionName}`);
     assert.notEqual(start, -1, `${functionName} should exist`);
     const body = source.slice(start, source.indexOf("\n}", start) + 2);
     assert.match(body, /const fence = resourceFence\(\);/, `${functionName} should capture a fence`);
     assert.match(body, /resourceFenceCurrent\(fence\)/, `${functionName} should reject stale responses`);
   }
+
+  // API-key issuance was retired in b826261c; retained operations stay fenced.
+  assert.doesNotMatch(source, /\b(?:createApiKey|newKeySecret)\b/);
+  assert.doesNotMatch(resourceApiSource, /\bcreateKey\s*\(/);
+  assert.match(source, /\{\{ item\.prefix \}\}••••\{\{ item\.last4 \}\}/);
+  assert.doesNotMatch(source, /\{\{\s*item\.secret\s*\}\}/);
 
   const loadStart = source.indexOf("async function loadResources");
   const loadBody = source.slice(loadStart, source.indexOf("async function loadDocs", loadStart));
@@ -41,7 +48,9 @@ test("dangerous developer-resource actions confirm before their request and keep
   assert.match(source, /developerResourcesApi\.listWebhookDeliveries\(item\.id\)/);
   assert.match(source, /developerResourcesApi\.setWebhookEnabled\(item\.id, enabled/);
   assert.match(source, /\(\) => resourceFenceCurrent\(fence\)/);
-  assert.match(source, /newKeySecret\.value = null/);
+  const resetStart = source.indexOf("function resetResourceScope");
+  const resetBody = source.slice(resetStart, source.indexOf("function docsFenceCurrent", resetStart));
+  assert.match(resetBody, /newWebhookSecret\.value = null/);
   assert.match(source, /newWebhookSecret\.value = null/);
   assert.doesNotMatch(source, /(?:localStorage|sessionStorage).*?(?:newKeySecret|newWebhookSecret)/);
 });
@@ -49,7 +58,7 @@ test("dangerous developer-resource actions confirm before their request and keep
 test("hiding the page invalidates developer-resource confirmations before they can mutate", () => {
   assert.match(source, /function askDeveloperConfirmation[\s\S]*?owner = `developer-resources:\$\{resourceGeneration\}:\$\{\+\+confirmationSequence\}`/);
   assert.match(source, /function clearDeveloperConfirms[\s\S]*?clearConfirmsBy\(owner\)/);
-  for (const hook of ["onHide(() => {", "onUnmounted(() => {", "watch(() => String(app.accountKey), () => {"]) {
+  for (const hook of ["onHide(() => {", "onUnmounted(() => {", "watch([() => String(app.accountKey), () => app.accountBindingEpoch], () => {"]) {
     const start = source.indexOf(hook);
     assert.notEqual(start, -1, `${hook} should exist as a lifecycle callback`);
     const body = source.slice(start, source.indexOf("\n});", start) + 4);
@@ -73,16 +82,22 @@ test("failed non-idempotent mutations reconcile only from authoritative lists an
   const revokeStart = source.indexOf("async function revokeApiKey");
   const revokeBody = source.slice(revokeStart, source.indexOf("async function loadWebhookDeliveries", revokeStart));
   assert.match(revokeBody, /reconcileResourceFailure\(fence, \(\) => developerResourcesApi\.listKeys\(\), \(items\) => isApiKeyRevoked\(items, id\)\)/);
-  assert.match(revokeBody, /if \(keys\) apiKeys\.value = keys\.items/);
-  assert.ok(revokeBody.indexOf("apiKeys.value = keys.items") < revokeBody.indexOf("if (keys?.confirmed)"));
+  assert.match(revokeBody, /if \(keys\) await loadResources\(fence\)/);
+  assertRefreshBeforeConfirmation(revokeBody, "keys");
   const enableStart = source.indexOf("async function setWebhookEnabled");
   const enableBody = source.slice(enableStart, source.indexOf("async function createWebhook", enableStart));
   assert.match(enableBody, /isWebhookEnabled\(items, item\.id, enabled\)/);
-  assert.ok(enableBody.indexOf("webhooks.value = hooks.items") < enableBody.indexOf("if (hooks?.confirmed)"));
+  assertRefreshBeforeConfirmation(enableBody, "hooks");
   const deleteStart = source.indexOf("async function deleteWebhook");
   const deleteBody = source.slice(deleteStart, source.indexOf("async function rotateWebhook", deleteStart));
   assert.match(deleteBody, /isWebhookDeleted\(items, id\)/);
-  assert.ok(deleteBody.indexOf("webhooks.value = hooks.items") < deleteBody.indexOf("if (hooks?.confirmed)"));
+  assertRefreshBeforeConfirmation(deleteBody, "hooks");
+  const loadStart = source.indexOf("async function loadResources");
+  const loadBody = source.slice(loadStart, source.indexOf("async function loadDocs", loadStart));
+  assert.match(loadBody, /const readVersion = \+\+resourceReadVersion/);
+  assert.match(loadBody, /resourceFenceCurrent\(fence\) && readVersion === resourceReadVersion/);
+  assert.match(loadBody, /Promise\.all\(\[developerResourcesApi\.listKeys\(\), developerResourcesApi\.listWebhooks\(\)\]\)/);
+  assert.match(loadBody, /if \(!current\(\)\) return;[\s\S]*?apiKeys\.value = keys;[\s\S]*?webhooks\.value = hooks;/);
   assert.match(source, /resourceActionUnknown/);
 
   const rotateStart = source.indexOf("async function rotateWebhook");
@@ -106,3 +121,11 @@ test("failed non-idempotent mutations reconcile only from authoritative lists an
   assert.match(journalSource, /uni\.setStorageSync/);
   assert.match(journalSource, /writeAndReadBack/);
 });
+
+function assertRefreshBeforeConfirmation(body, result) {
+  const failed = body.slice(body.indexOf("} catch {"), body.indexOf("} finally {"));
+  const refresh = failed.indexOf("await loadResources(fence)");
+  const confirmed = failed.indexOf(`if (${result}?.confirmed)`);
+  assert.ok(refresh !== -1 && confirmed > refresh, "fresh authoritative lists must precede a successful reconciliation");
+  assert.match(failed.slice(refresh, confirmed), /if \(!resourceFenceCurrent\(fence\)\) return;/);
+}

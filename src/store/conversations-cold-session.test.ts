@@ -2,9 +2,10 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { computed, effectScope, nextTick, reactive, ref, watch } from "vue";
 import ts from "typescript";
+import { initPreContext, preJs } from "@dcloudio/uni-cli-shared/dist/preprocess";
 import { createApiClient } from "@/api/api-client";
 import { createSessionVault } from "@/api/session-vault";
-import { ApiError } from "@/api/errors";
+import { ApiError, asApiError } from "@/api/errors";
 import { binarySessionReady as accountSessionReady } from "@/lib/binary-session-ready";
 import { createHumanThreadRealtimeLifecycle, createHumanConversationCreationRecovery } from "@/pages/support/conversation-realtime-page";
 import chat from "../pages/support/chat.vue?raw";
@@ -162,28 +163,64 @@ it("a real support scope retirement clears private data and cannot be treated as
   } finally { h.scope.stop(); }
 });
 
-function attachmentHarness(waitAt: "policy" | "picker") {
+function attachmentHarness(waitAt: "policy" | "picker", platform: "app" | "h5" = "app") {
   const app = { accountBindingEpoch: 1 }, convStore = { scopeInvalidated: 0 }, key = ref("conversation:CV-1");
   const imageDraft = ref<any>(null), policy = ref<any>(waitAt === "picker" ? { available: true } : null);
-  let releasePolicy!: (value: any) => void, selected!: (value: any) => void;
+  let releasePolicy!: (value: any) => void, selected!: (value: any) => void, failed!: (cause: unknown) => void;
   const api = { attachmentPolicy: vi.fn(() => new Promise(resolve => { releasePolicy = resolve; })),
     uploadAttachment: vi.fn(async () => ({ id: "ATT-1" })), cancelAttachment: vi.fn() };
-  const chooseImage = vi.fn((options: any) => { selected = options.success; });
+  const chooseImage = vi.fn((options: any) => { selected = options.success; failed = options.fail; });
   vi.stubGlobal("uni", { chooseImage });
-  const ast = ts.createSourceFile("chat.ts", chat.split('<script setup lang="ts">')[1].split("</script>")[0], ts.ScriptTarget.ES2022, true);
+  initPreContext(platform);
+  const ast = ts.createSourceFile("chat.ts", preJs(chat.split('<script setup lang="ts">')[1].split("</script>")[0], "chat.vue"), ts.ScriptTarget.ES2022, true);
   const names = new Set(["chooseSupportImage", "retrySupportUpload", "cancelSupportAttachment", "replaceSupportAttachment"]);
   const code = ts.transpileModule(ast.statements.filter(node => ts.isFunctionDeclaration(node) && names.has(node.name?.text ?? ""))
     .map(node => node.getText(ast)).join("\n"), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const deps = { app, convStore, humanComposerKey: key, imageDraft, attachmentPolicy: policy, supportApi: api,
     supportSessionReady: ref(true), isAi: ref(false), failedHumanSend: ref(null), humanSendBusy: ref(false),
     requireCryptoUuid: () => "test-upload", asApiError: (cause: any) => cause, toast: { info: vi.fn(), error: vi.fn() },
-    t: ref({ conversations: { image: {} } }) };
+    t: ref({ conversations: { image: { uploadFailed: "upload-failed" } } }) };
   const ops = new Function("deps", `const {${Object.keys(deps).join(",")}} = deps;
     let chatDisposed = false, novaPageVisible = true; ${code}
-    return { chooseSupportImage, replaceSupportAttachment, dispose: () => { chatDisposed = true; }, hide: () => { novaPageVisible = false; } };`)(deps);
-  return { app, convStore, key, imageDraft, policy, api, chooseImage, ...ops,
-    releasePolicy: () => releasePolicy({ available: true }), select: () => selected({ tempFilePaths: ["old-account-private.jpg"], tempFiles: [{ size: 10 }] }) };
+    return { chooseSupportImage, retrySupportUpload, replaceSupportAttachment, dispose: () => { chatDisposed = true; }, hide: () => { novaPageVisible = false; } };`)(deps);
+  return { app, convStore, key, imageDraft, policy, api, chooseImage, toast: deps.toast, ...ops,
+    releasePolicy: () => releasePolicy({ available: true }), fail: (cause: unknown) => failed(cause),
+    select: (result = { tempFilePaths: ["old-account-private.jpg"], tempFiles: [{ size: 10 }] }) => selected(result) };
 }
+
+it.each([
+  ["app", { errMsg: "chooseImage:fail", code: 0 }], // Installed native actionSheet cancellation; also covered by profile's runtime-derived fixture.
+  ["app", new Error("chooseImage:fail cancel")],
+  ["h5", { errMsg: "chooseImage:fail cancel" }],
+] as const)("support media picker cancellation on %s stays silent and allows another choice", async (platform, cause) => {
+  const h = attachmentHarness("picker", platform), choosing = h.chooseSupportImage();
+  await vi.waitFor(() => expect(h.chooseImage).toHaveBeenCalled()); h.fail(cause); await choosing;
+  expect(h.toast.error).not.toHaveBeenCalled(); expect(h.api.uploadAttachment).not.toHaveBeenCalled(); expect(h.imageDraft.value).toBeNull();
+  const retry = h.chooseSupportImage(); await vi.waitFor(() => expect(h.chooseImage).toHaveBeenCalledTimes(2)); h.select(); await retry;
+  expect(h.api.uploadAttachment).toHaveBeenCalledTimes(1); expect(h.imageDraft.value?.state).toBe("ready");
+});
+
+it.each([
+  ["app", { errMsg: "chooseImage:fail permission denied: cannot cancel operation", code: 0 }],
+  ["app", { errMsg: "chooseImage:fail", code: 0, detail: "IO_FAILURE" }],
+  ["h5", { errMsg: "chooseImage:fail", code: 0 }],
+] as const)("support media genuine failure on %s remains visible and allows retry", async (platform, cause) => {
+  const h = attachmentHarness("picker", platform), choosing = h.chooseSupportImage();
+  await vi.waitFor(() => expect(h.chooseImage).toHaveBeenCalled()); h.fail(cause); await choosing;
+  expect(h.toast.error).toHaveBeenCalledWith("upload-failed", ""); expect(h.api.uploadAttachment).not.toHaveBeenCalled(); expect(h.imageDraft.value).toBeNull();
+  const retry = h.chooseSupportImage(); await vi.waitFor(() => expect(h.chooseImage).toHaveBeenCalledTimes(2)); h.select(); await retry;
+  expect(h.api.uploadAttachment).toHaveBeenCalledTimes(1); expect(h.imageDraft.value?.state).toBe("ready");
+});
+
+it("support media failed upload remains a retryable draft rather than a sent message", async () => {
+  const h = attachmentHarness("picker"); h.api.uploadAttachment.mockRejectedValueOnce(new ApiError({ kind: "network", message: "upload cancelled by transport" }));
+  const choosing = h.chooseSupportImage(); await vi.waitFor(() => expect(h.chooseImage).toHaveBeenCalled()); h.select(); await choosing;
+  expect(h.imageDraft.value).toMatchObject({ state: "failed", error: "uploadFailed", clientUploadId: "test-upload" });
+  expect(h.imageDraft.value?.attachmentId).toBeUndefined();
+  await h.retrySupportUpload();
+  expect(h.api.uploadAttachment).toHaveBeenNthCalledWith(2, "old-account-private.jpg", "test-upload", "support-upload-test-upload");
+  expect(h.imageDraft.value).toMatchObject({ state: "ready", attachmentId: "ATT-1" });
+});
 
 it.each(["policy", "picker"] as const)("stale %s completion cannot upload or write a new account/intent", async waitAt => {
   for (const change of ["account", "scope", "intent", "unmount"]) {
@@ -214,4 +251,87 @@ it("an old replacement cannot open a picker after its cancellation returns in a 
   h.app.accountBindingEpoch++; h.imageDraft.value = null; release(); await Promise.resolve(); await Promise.resolve();
   if (h.chooseImage.mock.calls.length) h.select(); await replacing;
   expect(h.chooseImage).not.toHaveBeenCalled(); expect(h.api.uploadAttachment).not.toHaveBeenCalled();
+});
+
+
+function attachmentCancelBoundaryHarness() {
+  const app = reactive({ accountKey: "user:1", accountBindingEpoch: 1 });
+  const convStore = reactive({ scopeInvalidated: 0, refreshAdvisor: vi.fn() });
+  const imageDraft = ref<any>({ attachmentId: "ATT-old", clientUploadId: "old", key: "conversation:CV-1", state: "ready" });
+  const supportSessionReady = ref(true), humanComposerKey = ref("conversation:CV-1");
+  const toast = { error: vi.fn() };
+  let resolve!: () => void, reject!: (cause: unknown) => void;
+  const api = { cancelAttachment: vi.fn(() => new Promise<void>((yes, no) => { resolve = yes; reject = no; })) };
+  const ast = ts.createSourceFile("chat.ts", chat.split('<script setup lang="ts">')[1].split("</script>")[0], ts.ScriptTarget.ES2022, true);
+  const names = new Set(["cancelSupportAttachment", "clearPrivateImages", "cleanup"]);
+  const reset = ast.statements.find(node => ts.isExpressionStatement(node)
+    && node.getText(ast).startsWith("watch(() => [app.accountBindingEpoch, convStore.scopeInvalidated]"));
+  if (!reset) throw new Error("Missing actual synchronous account/scope reset watcher");
+  const code = ts.transpileModule(ast.statements.filter(node => ts.isFunctionDeclaration(node) && names.has(node.name?.text ?? ""))
+    .map(node => node.getText(ast)).join("\n") + "\n" + reset.getText(ast), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const deps = { app, convStore, imageDraft, supportSessionReady, humanComposerKey, toast, supportApi: api, asApiError, watch,
+    failedHumanSend: ref(null), draftText: ref(""), attachmentPolicy: ref(null), attachmentPolicyError: ref(false), ticketCreationBlock: ref(null),
+    imageSources: ref({}), imageFailures: ref({}), isAi: ref(false), t: ref({ conversations: { image: { cancelFailed: "CANCEL_FAILED" } } }) };
+  const scope = effectScope();
+  const ops = scope.run(() => new Function("deps", `const {${Object.keys(deps).join(",")}} = deps;
+    const remoteApiEnabled=true, loadAttachmentPolicy=()=>{}, dialogOwner="offline-cancel", pendingTimers=[];
+    const useUI=()=>({clearConfirmsBy:()=>{}}), stopHumanThreadPolling=()=>{}, cancelNovaThinking=()=>{}, nova={close:()=>{}};
+    let imageEpoch=0, imageLoads=new Set(), humanComposerResetting=false, novaPageVisible=true, chatDisposed=false;
+    let categoryGate=null, novaStatusEpoch=0, novaHistoryEpoch=0;
+    ${code} return {cancel:cancelSupportAttachment, dispose:cleanup};`)(deps))!;
+  return { app, convStore, imageDraft, supportSessionReady, humanComposerKey, toast, api, scope, ...ops,
+    resolve: () => resolve(), reject: (status=503) => reject(new ApiError({ kind: "http", message: "CANCEL_FAILURE", status })),
+    nextDraft: () => { imageDraft.value = { attachmentId: "ATT-new", clientUploadId: "new", key: "conversation:CV-2", state: "ready" }; return imageDraft.value; } };
+}
+
+it.each(["account", "scope", "intent", "unmount"])("attachment cancel failure cannot reach a retired %s UI", async change => {
+  const h = attachmentCancelBoundaryHarness();
+  try {
+    const pending = h.cancel();
+    expect(h.api.cancelAttachment).toHaveBeenCalledWith("ATT-old", "support-cancel-old");
+    if (change === "account") { h.app.accountKey = "user:2"; h.app.accountBindingEpoch++; expect(h.imageDraft.value).toBeNull(); }
+    if (change === "scope") { h.convStore.scopeInvalidated++; expect(h.imageDraft.value).toBeNull(); }
+    if (change === "intent") h.humanComposerKey.value = "conversation:CV-2";
+    if (change === "unmount") h.dispose();
+    const next = h.nextDraft(); h.reject(change === "scope" ? 403 : 503); await pending;
+    expect(h.toast.error).not.toHaveBeenCalled(); expect(h.imageDraft.value).toBe(next);
+    expect(h.api.cancelAttachment).toHaveBeenCalledTimes(1);
+  } finally { h.scope.stop(); }
+});
+it("current attachment cancellation succeeds with the original key", async () => {
+  const h = attachmentCancelBoundaryHarness();
+  try { const pending=h.cancel(); h.resolve(); await pending; expect(h.imageDraft.value).toBeNull(); expect(h.toast.error).not.toHaveBeenCalled(); expect(h.api.cancelAttachment).toHaveBeenCalledWith("ATT-old", "support-cancel-old"); }
+  finally { h.scope.stop(); }
+});
+it("current attachment cancellation failure keeps the draft and reports once", async () => {
+  const h = attachmentCancelBoundaryHarness();
+  try { const original=h.imageDraft.value, pending=h.cancel(); h.reject(); await pending; expect(h.imageDraft.value).toBe(original); expect(h.toast.error).toHaveBeenCalledTimes(1); expect(h.toast.error).toHaveBeenCalledWith("CANCEL_FAILED", ""); }
+  finally { h.scope.stop(); }
+});
+it("current attachment cancellation 404 still clears the original draft", async () => {
+  const h = attachmentCancelBoundaryHarness();
+  try { const pending=h.cancel(); h.reject(404); await pending; expect(h.imageDraft.value).toBeNull(); expect(h.toast.error).not.toHaveBeenCalled(); }
+  finally { h.scope.stop(); }
+});
+it("late successful attachment cancellation preserves the new account draft", async () => {
+  const h = attachmentCancelBoundaryHarness();
+  try { const pending=h.cancel(); h.app.accountKey="user:2"; h.app.accountBindingEpoch++; const next=h.nextDraft(); h.resolve(); await pending; expect(h.imageDraft.value).toBe(next); expect(h.toast.error).not.toHaveBeenCalled(); }
+  finally { h.scope.stop(); }
+});
+it("cold session cannot dispatch an attachment cancellation", async () => {
+  const h = attachmentCancelBoundaryHarness();
+  try { h.supportSessionReady.value=false; await h.cancel(); expect(h.api.cancelAttachment).not.toHaveBeenCalled(); expect(h.toast.error).not.toHaveBeenCalled(); }
+  finally { h.scope.stop(); }
+});
+
+it.each(["draft", "session"])("late attachment cancel failure respects the current %s fence", async change => {
+  const h = attachmentCancelBoundaryHarness();
+  try {
+    const pending=h.cancel();
+    const next=change === "draft" ? h.nextDraft() : h.imageDraft.value;
+    if (change === "session") h.supportSessionReady.value=false;
+    h.reject(); await pending;
+    expect(h.toast.error).not.toHaveBeenCalled(); expect(h.imageDraft.value).toBe(next);
+    expect(h.api.cancelAttachment).toHaveBeenCalledTimes(1);
+  } finally { h.scope.stop(); }
 });

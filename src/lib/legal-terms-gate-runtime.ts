@@ -4,7 +4,8 @@ import { useLocaleStore } from "@/store/locale";
 import { getT } from "@/i18n/use-t";
 import { captureRuntimeRevision } from "@/api/order-api";
 import { ApiError } from "@/api/errors";
-import { pendingProfileLocaleHydration } from "./locale-profile-hydration";
+import { pendingProfileLocaleHydration, isProfileLocaleHydrationError } from "./locale-profile-hydration";
+import { retryCurrentProfileLocale } from "./locale-profile-sync-runtime";
 import {
   buildLegalTermsRoute,
   claimLegalTermsRedirect,
@@ -31,6 +32,7 @@ let pendingRequirement: {
   reason: "verification" | "verification-failed" | "acknowledgement";
   sessionFence: LegalTermsSessionFence;
   retryInPlace?: boolean;
+  profileLocaleFailed?: boolean;
   retryReturnTo?: string;
   registrationCompletionReturnTo?: string;
 } | null = null;
@@ -70,6 +72,7 @@ function promptVerificationRetry(returnTo: string): void {
           && pending.sessionFence.userId === current.sessionFence.userId
           && (sameLegalTermsSession(pending.sessionFence, fence())
             || sessionVault.isRefreshContinuation(pending.sessionFence.sessionRevision ?? -1))) {
+        if (current.profileLocaleFailed) retryCurrentProfileLocale();
         void scheduleLegalTermsGate(current.retryReturnTo ?? returnTo);
       }
     },
@@ -296,7 +299,7 @@ export function scheduleLegalTermsGate(returnTo = "/pages/index/index"): Promise
         recordLegalTermsAcknowledged(snapshot, requestLocale);
       }
     })
-    .catch(() => {
+    .catch((error) => {
       if (!ownsRead()) return;
       if (!sameLegalTermsSession(requestFence, fence())) {
         return rescheduleAfterSessionChange(requestFence, returnTo);
@@ -310,6 +313,7 @@ export function scheduleLegalTermsGate(returnTo = "/pages/index/index"): Promise
       pendingRequirement = {
         key, locale: requestLocale, version: "", reason: "verification-failed", sessionFence: requestFence,
         retryInPlace: hasPriorAcknowledgement(requestLocale),
+        profileLocaleFailed: isProfileLocaleHydrationError(error),
         retryReturnTo: currentReturnTo,
         registrationCompletionReturnTo: registrationCompletionReturnTo(currentReturnTo),
       };

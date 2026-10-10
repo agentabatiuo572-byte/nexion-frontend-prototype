@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error Vitest executes this structural contract in Node; the App tsconfig intentionally omits Node globals.
 import { readFileSync } from "node:fs";
 // @ts-expect-error The isolated legacy-JS realm is used only by the Node test runner.
@@ -10,6 +10,7 @@ import ts from "typescript";
 import { fmt } from "@/i18n/format";
 import { zh } from "@/i18n/messages/zh";
 import { useUI } from "@/store/ui";
+import { nexGridBrandText } from "@/lib/brand-copy";
 
 const source = readFileSync(new URL("./goals.vue", import.meta.url), "utf8");
 
@@ -39,8 +40,8 @@ function legacyNativePage() {
     this.exports = this.module.exports;
   `, context);
   context.require = (id: string) => {
-    if (id === "vue") return { ...Vue, onMounted: () => {} };
-    if (id === "@dcloudio/uni-app") return { onShow: () => {} };
+    if (id === "vue") return { ...Vue, onMounted: () => {}, onUnmounted: () => {} };
+    if (id === "@dcloudio/uni-app") return { onShow: () => {}, onHide: () => {} };
     if (id === "@/store/goals") return { useGoals: () => context.goalsStore };
     if (id === "@/store/ui") return { useUI: () => context.ui };
     if (id === "@/store/app") return { useApp: () => ({ accountKey: "user:3778", accountBindingEpoch: 1 }) };
@@ -191,5 +192,77 @@ describe("goal save toast placeholder contract", () => {
     expect(useUI(otherPinia).toasts).toEqual([]);
     expect(goals).toHaveLength(2);
     expect(savePending.value).toBe(false);
+  });
+});
+
+const remote=vi.hoisted(()=>({remoteApiEnabled:true,goalsApi:{list:vi.fn(),create:vi.fn(),recommendation:vi.fn(),setStatus:vi.fn(),remove:vi.fn()}}));
+vi.mock('@/api/runtime',()=>remote);
+vi.mock('@/store/account-scoped-storage',()=>({readAccountRow:()=>null,writeAccountRow:()=>{throw new Error('PERSISTENCE_NOT_ALLOWED');}}));
+const { useGoals }=await import('@/store/goals');
+const { descriptor }=parse(source,{filename:'goals.vue'});
+const script=compileScript(descriptor,{id:'goal-delete-finite'});
+const code=ts.transpileModule(script.content,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText;
+const mounted: Array<()=>void>=[];
+function deferred<T>(){let resolve!:(v:T)=>void;let reject!:(e:unknown)=>void;const promise=new Promise<T>((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};}
+async function flush(){for(let i=0;i<6;i++)await Promise.resolve();await Vue.nextTick();}
+function snapshot(id=9){return{serverCanonical:true,source:'nx_earning_goal',lifetimeEarningsUsdt:0,goals:[{id,targetUsdt:100,deadlineAt:1_900_000_000_000,createdAt:1_800_000_000_000,achieved:false,progressPct:0}]};}
+async function setup(){
+  const store=useGoals();store.bindAccount('A');await flush();
+  const account=Vue.reactive({accountKey:'A',accountBindingEpoch:1,earnings:{total:0}});
+  const ui=useUI();const shows: Array<() => void>=[];const hides: Array<() => void>=[];
+  const require=(id:string)=>{
+    if(id==='vue')return Vue;
+    if(id==='@dcloudio/uni-app')return{onShow:(fn:() => void)=>shows.push(fn),onHide:(fn:() => void)=>hides.push(fn)};
+    if(id==='@/store/goals')return{useGoals:()=>store};
+    if(id==='@/store/app')return{useApp:()=>account};
+    if(id==='@/store/ui')return{useUI:()=>ui};
+    if(id==='@/i18n/use-t')return{useT:()=>Vue.ref({goals:zh.goals})};
+    if(id==='@/i18n/format')return{fmt};
+    if(id==='@/api/runtime')return{remoteApiEnabled:true};
+    if(id==='@/lib/brand-copy')return{nexGridBrandText};
+    if(id==='@/lib/route')return{navReset:vi.fn()};
+    if(id.endsWith('.vue'))return{__esModule:true,default:{}};
+    throw new Error('UNEXPECTED_IMPORT '+id);
+  };
+  const module={exports:{} as any};new Function('require','module','exports',code)(require,module,module.exports);
+  let page:any;
+  const renderer=Vue.createRenderer<any,any>({insert:(child,parent)=>{child.parent=parent;},remove:()=>{},createElement:()=>({}),createText:()=>({}),createComment:()=>({}),setText:()=>{},setElementText:()=>{},parentNode:n=>n.parent??null,nextSibling:()=>null,patchProp:()=>{}});
+  const component=module.exports.default;
+  const app=renderer.createApp({...component,setup:(p:any,c:any)=>{page=component.setup(p,c);return page;},render:()=>null});
+  app.mount({});let active=true;const stop=()=>{if(active){active=false;app.unmount();}};mounted.push(stop);await flush();
+  const rebind=(key:string)=>{account.accountKey=key;account.accountBindingEpoch++;store.bindAccount(key);};
+  return{store,page,account,ui,stop,rebind,hide:()=>hides.forEach(fn=>fn()),show:()=>shows.forEach(fn=>fn())};
+}
+describe('actual goal page/store deletion feedback scope',()=>{
+  beforeEach(()=>{setActivePinia(createPinia());Object.values(remote.goalsApi).forEach(m=>m.mockReset());remote.goalsApi.list.mockResolvedValue(snapshot());remote.goalsApi.recommendation.mockResolvedValue({purchaseRequired:false});vi.stubGlobal('fetch',()=>{throw new Error('NETWORK_NOT_ALLOWED');});vi.useFakeTimers();});
+  afterEach(()=>{mounted.splice(0).forEach(stop=>stop());vi.useRealTimers();vi.unstubAllGlobals();});
+  it.each(['account','same-account-rebind','unmount','hide-and-show'])('suppresses late failure after %s',async boundary=>{
+    const s=await setup();const response=deferred<void>();remote.goalsApi.remove.mockReturnValue(response.promise);
+    const pending=s.page.remove('9');expect(remote.goalsApi.remove).toHaveBeenCalledExactlyOnceWith(9);
+    if(boundary==='account')s.rebind('B');
+    if(boundary==='same-account-rebind')s.rebind('A');
+    if(boundary==='unmount')s.stop();
+    if(boundary==='hide-and-show'){s.hide();s.show();}
+    await flush();response.reject(new Error('OLD_ACCOUNT_DELETE_FAILED'));await pending;
+    console.log(JSON.stringify({boundary,account:s.account.accountKey,bindingEpoch:s.account.accountBindingEpoch,storeEpoch:s.store.accountEpoch,toasts:s.ui.toasts.map(t=>({kind:t.kind,title:t.title})),currentGoals:s.store.goals.map(g=>g.id)}));
+    expect(s.ui.toasts).toHaveLength(0);
+  });
+  it('does not dispatch while hidden and permits a current delete after show',async()=>{
+    const s=await setup();s.hide();await s.page.remove('9');expect(remote.goalsApi.remove).not.toHaveBeenCalled();
+    s.show();await flush();remote.goalsApi.remove.mockResolvedValue(undefined);await s.page.remove('9');
+    expect(remote.goalsApi.remove).toHaveBeenCalledExactlyOnceWith(9);expect(s.store.goals).toEqual([]);expect(s.ui.toasts).toHaveLength(0);
+  });
+  it('current successful removal deletes the intended local row',async()=>{
+    const s=await setup();remote.goalsApi.remove.mockResolvedValue(undefined);await s.page.remove('9');
+    expect(s.store.goals).toEqual([]);expect(s.ui.toasts).toHaveLength(0);expect(remote.goalsApi.remove).toHaveBeenCalledExactlyOnceWith(9);
+  });
+  it('current failure remains visible and retains the confirmed row',async()=>{
+    const s=await setup();remote.goalsApi.remove.mockRejectedValue(new Error('CURRENT_DELETE_FAILED'));await s.page.remove('9');
+    expect(s.ui.toasts).toHaveLength(1);expect(s.ui.toasts[0].title).toBe('CURRENT_DELETE_FAILED');expect(s.store.goals[0]?.id).toBe('9');
+  });
+  it('late success after account switch cannot remove the new account row',async()=>{
+    const s=await setup();const response=deferred<void>();remote.goalsApi.remove.mockReturnValue(response.promise);const pending=s.page.remove('9');
+    s.rebind('B');await flush();expect(s.store.goals[0]?.id).toBe('9');response.resolve();await pending;
+    expect(s.store.goals[0]?.id).toBe('9');expect(s.ui.toasts).toHaveLength(0);
   });
 });

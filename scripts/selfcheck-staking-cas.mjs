@@ -478,8 +478,8 @@ function diskRev() {
       return "ok";
     };
     const env = {
-      props: { term: 30 }, term: 30,
-      amount: { value: AMT }, minAmount: { value: STAKING_MIN },
+      props: { open: true, term: 30 }, term: 30,
+      amount: { value: AMT }, minAmount: { value: STAKING_MIN[30] },
       selectedPool: { value: undefined }, remotePending: { value: false }, remoteIntent: { value: null },
       isRemote: { value: false }, isSandboxHold: { value: false }, remoteReady: { value: false }, isMounted: { value: true },
       repurchase: { open: async () => { throw new Error("REMOTE_STUB_UNUSED"); } },
@@ -507,6 +507,11 @@ function diskRev() {
     onEveryRead = (key) => { if (key === ACCOUNTS_KEY) bumpDiskRev(); };
     await run();
     onEveryRead = null;
+
+    const callerRev = diskRev();
+    if (callerRev < 6 || bills.length !== 2 || bills[0].amount !== -AMT || bills[1].amount !== AMT) {
+      throw new Error(`selfcheck-staking-cas: ⑦b [${label}] 调用方冲突靶未生效(rev=${callerRev}, bills=${JSON.stringify(bills.map((b) => b.amount))})`);
+    }
 
     check(`⑦b [${label}] 🔴 建仓失败后余额被补回($${START},不是少了 $${AMT})`,
       ledger.usdtBalance === START && before === START, `before=${before} after=${ledger.usdtBalance}`);
