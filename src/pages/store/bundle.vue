@@ -94,8 +94,10 @@
               <text style="color: var(--v5-ink-4)">{{ t.uiChrome.price }} </text>${{ p.price.toLocaleString() }}<text style="color: var(--v5-ink-4)"> · </text><text style="color: var(--v5-success)">{{ fmt(t.uiChrome.earnsPerDay, { amount: `+$${p.dailyEarn.toFixed(2)}` }) }}</text>
             </text>
           </view>
-          <view class="shrink-0 rounded-full grid place-items-center active:opacity-70" style="width: 28px; height: 28px; background: var(--v5-surface-2)" role="button" tabindex="0" :aria-label="fmt(t.uiChrome.removeItem, { name: p.name })" @click.stop="remove(p.id)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+          <view class="shrink-0 rounded-full grid place-items-center active:opacity-70" style="min-width: 44px; min-height: 44px" role="button" tabindex="0" :aria-label="fmt(t.uiChrome.removeItem, { name: p.name })" @click.stop="remove(p.id)">
+            <view class="grid place-items-center rounded-full" style="width: 28px; height: 28px; background: var(--v5-surface-2)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+            </view>
           </view>
         </view>
       </view>
