@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-genesis519-r347",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-native522-r364",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "8db8727df7dbfc1cbad156507493bd841747416a",
-  "sourceRef": "8db8727df7dbfc1cbad156507493bd841747416a",
+  "sourceHead": "971efa4b34d41751b532a53bf11141001e5c67ae",
+  "sourceRef": "971efa4b34d41751b532a53bf11141001e5c67ae",
   "sourceRefKind": "commit",
-  "sourceTree": "93bc834fe6cf8ce06306161c46a17b68f0f33a17",
+  "sourceTree": "920792fca4b5944b226c0c241eeebaf02d8ac988",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -8531,11 +8531,18 @@
       "targetSha256": "c23ce29ce38436c3d1f83265c09755fea8f13b1f0dd2c314c554108f19640af7",
       "mode": "100644"
     },
+    "src/components/native-svg.behavior.test.ts": {
+      "sourceBlob": "f553eeb1011c11a83e28a61c53c7c920f4f40149",
+      "sourceSha256": "076e3ff28a8c1b7cc1a5f384468f07a3df4e3a7781d97cb30e29d113e19e99dc",
+      "targetBlob": "f553eeb1011c11a83e28a61c53c7c920f4f40149",
+      "targetSha256": "076e3ff28a8c1b7cc1a5f384468f07a3df4e3a7781d97cb30e29d113e19e99dc",
+      "mode": "100644"
+    },
     "src/components/native-svg.vue": {
-      "sourceBlob": "7c8f08b3d28376a23847511a9bc09e8bbb3eb027",
-      "sourceSha256": "9372d3a98d1431d7f9005eb81373554384a3383f213f8a91a4eaa487a0250b26",
-      "targetBlob": "7c8f08b3d28376a23847511a9bc09e8bbb3eb027",
-      "targetSha256": "9372d3a98d1431d7f9005eb81373554384a3383f213f8a91a4eaa487a0250b26",
+      "sourceBlob": "1eca00be1b0f1e347b0ef1f95c1439003f920f37",
+      "sourceSha256": "b201c7b51600561cd31408b91a2fecda1f89e4c6dc26da515c35c085d3a3b21f",
+      "targetBlob": "1eca00be1b0f1e347b0ef1f95c1439003f920f37",
+      "targetSha256": "b201c7b51600561cd31408b91a2fecda1f89e4c6dc26da515c35c085d3a3b21f",
       "mode": "100644"
     },
     "src/components/nova/nova-avatar.vue": {

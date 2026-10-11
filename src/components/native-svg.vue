@@ -1,5 +1,5 @@
 <template>
-  <view class="nx-native-svg" :style="boxStyle" v-html="markup" />
+  <view class="nx-native-svg" :style="boxStyle" v-html="markup()" />
 </template>
 
 <script setup lang="ts">
@@ -9,7 +9,7 @@ import { svgMarkup } from "@/lib/native-svg-markup";
 defineOptions({ inheritAttrs: false });
 const attrs = useAttrs();
 const slots = useSlots();
-const markup = computed(() => svgMarkup(attrs, slots.default?.() ?? []));
+const markup = () => svgMarkup(attrs, slots.default?.() ?? []);
 const dimension = (value: unknown) => typeof value === "number" || /^\d+$/.test(String(value)) ? `${value}px` : String(value ?? "");
 const boxStyle = computed(() => ({
   display: "inline-block",
