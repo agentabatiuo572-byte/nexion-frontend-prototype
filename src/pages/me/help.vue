@@ -390,9 +390,10 @@ function syncBotAccountScope() {
   clearBotDeadline();
 }
 
-watch([() => String(app.accountKey), () => app.accountBindingEpoch, () => locale.code], () => {
+watch([() => String(app.accountKey), () => app.accountBindingEpoch, () => locale.code], ([accountKey], [previousAccountKey]) => {
   syncBotAccountScope();
-  requestedFaqId.value = "";
+  // A reload's first server-account binding must retain its URL target.
+  if (previousAccountKey !== "default" || !/^user:[1-9]\d*$/.test(String(accountKey))) requestedFaqId.value = "";
   query.value = "";
   resetFaqProjection();
   void loadFaqs();

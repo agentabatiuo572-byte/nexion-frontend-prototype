@@ -87,8 +87,8 @@
         <text style="margin-left: 6px">{{ t.me.signOut }}</text>
       </view>
 
-      <!-- i18n-en-ok: 版本指纹(品牌 · 语义化版本 · 构建号),报障时要跟日志逐字对得上,本地化会让对不上 -->
-      <text class="block text-center font-mono-tabular" style="margin-top: 16px; font-size: 12px; color: var(--v5-ink-4)">UVEL · v3.2.0 · build 6824</text>
+      <!-- i18n-en-ok: 品牌、平台及当前资源版本指纹，报障时逐字保留；? 表示未知 -->
+      <text class="block text-center font-mono-tabular" style="margin-top: 16px; font-size: 12px; color: var(--v5-ink-4)">{{ versionFooter }}</text>
     </CardStagger>
   </AppChassis>
 
@@ -97,7 +97,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import SectionHeader from "@/components/me/section-header.vue";
@@ -138,6 +138,24 @@ import type { SecurityState } from "@/api/contracts";
 import { runRemoteOrdersRefresh } from "@/lib/remote-orders-refresh";
 import { settleRemoteMeLoaders } from "@/lib/remote-me-refresh";
 import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
+import { compiledResourceVersion, formatResourceVersion, readNativeResourceVersion } from "@/lib/app-version";
+
+const versionFooter = ref("UVEL");
+// #ifdef H5
+versionFooter.value = formatResourceVersion("H5", compiledResourceVersion);
+// #endif
+// #ifdef APP-PLUS
+versionFooter.value = formatResourceVersion("APP");
+let resourceVersionRequest = 0;
+onShow(() => {
+  const request = ++resourceVersionRequest;
+  versionFooter.value = formatResourceVersion("APP");
+  readNativeResourceVersion((version) => {
+    if (request === resourceVersionRequest) versionFooter.value = formatResourceVersion("APP", version);
+  });
+});
+onUnload(() => { ++resourceVersionRequest; });
+// #endif
 
 const t = useT();
 const app = useApp();

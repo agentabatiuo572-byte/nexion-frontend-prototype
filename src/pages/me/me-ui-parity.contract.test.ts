@@ -62,7 +62,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "help.vue": "3eeec6995d290e03d6a008b83f3a2ba8365f702b6c59d3acb306eab055437d7d",
   "language.vue": "147e4114cec9c44704a643c833d582e043565ee17240fe474622f656ae104da9",
   // Owner requested removal of the unsolicited overview withdrawal warning.
-  "me.vue": "4eb7f786750e279d7d7101415c5d4857dbbdcd20a4e2afcd4979b28f21c823e6",
+  // #528: only the version footer now binds the current resource fingerprint.
+  "me.vue": "0ed89bb44bef316a6bde93fec86d9eda1d05211ca190f677b169662cf6840032",
   // Approved smooth centered message header and shared message-family interactions.
   "notifications.vue": "0c754690e400fe1b137de31e968d31a0f347c5020ed6d4a22322abb7fe327344",
   "preferences.vue": "f671d2462d5c346657790bfb9f75c92cfb0a63d1039c886ed8ad02cd6789e3cc",

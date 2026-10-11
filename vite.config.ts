@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { defineConfig, loadEnv } from "vite";
 import uniPlugin from "@dcloudio/vite-plugin-uni";
+import { parseJson } from "@dcloudio/uni-cli-shared/dist/json/json";
 import UnoCSS from "unocss/vite";
 import { nativeSvgIcons } from "./scripts/native-svg-icons.mjs";
 import { mustBlockDevelopmentOAuthProxy } from "./src/lib/dev-preview-auth-boundary";
@@ -20,6 +21,7 @@ const selfDir = __dirname.replace(/\\/g, "/");
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
+  const manifest = parseJson(readFileSync(new URL("./src/manifest.json", import.meta.url), "utf8"), false, "manifest.json");
   // The dev server, rather than the browser bundle, owns the loopback target.
   // This makes H5 -> /api same-origin and avoids localhost/127.0.0.1 identity
   // splits. A production bundle must provide its own HTTPS gateway explicitly.
@@ -33,6 +35,9 @@ export default defineConfig(({ mode }) => {
     : undefined;
 
   return {
+    define: {
+      __UVEL_RESOURCE_VERSION__: JSON.stringify({ versionName: manifest.versionName, versionCode: manifest.versionCode }),
+    },
     plugins: [nativeSvgIcons(), uni(), UnoCSS(), { name: "liquid-glass-notices", generateBundle() { this.emitFile({ type: "asset", fileName: "LIQUID-GLASS-NOTICES.txt", source: readFileSync(new URL("./docs/LIQUID-GLASS-NOTICES.txt", import.meta.url), "utf8") }); } }],
     // 只被懒编译页面引用的依赖必须在这里显式预打包:uni 的按需编译让启动扫描
     // 抓不到它们,首个访客触发运行时依赖重打包 → 在途模块请求 500 + 整页 reload,
