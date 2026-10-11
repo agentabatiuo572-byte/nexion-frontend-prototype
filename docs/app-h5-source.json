@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-version528-r377",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-bank532-r388",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "25951ac80f5cd4acd75b2b62081c08c14dbf4335",
-  "sourceRef": "25951ac80f5cd4acd75b2b62081c08c14dbf4335",
+  "sourceHead": "5f72bd5c98975a898a5320fe6a6b962ef2616edb",
+  "sourceRef": "5f72bd5c98975a898a5320fe6a6b962ef2616edb",
   "sourceRefKind": "commit",
-  "sourceTree": "10877813201815c2b1c01a4d5daef7247bfd6d30",
+  "sourceTree": "0ee79385b8ecbd9916975b3fe37f5463905447c3",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -8196,17 +8196,17 @@
       "mode": "100644"
     },
     "src/components/me/deposit-usdt-pane.behavior.test.ts": {
-      "sourceBlob": "6312625246876172a96b6de3c679d21e6b389aab",
-      "sourceSha256": "ee333cdb79f0a7e1e11af1e26c38d3a6800de0c256dc581234b28cb4a2de59fb",
-      "targetBlob": "6312625246876172a96b6de3c679d21e6b389aab",
-      "targetSha256": "ee333cdb79f0a7e1e11af1e26c38d3a6800de0c256dc581234b28cb4a2de59fb",
+      "sourceBlob": "ae9de6cc7a37f2774b79d418e2992b0a65abadad",
+      "sourceSha256": "daf9db0f34a26f887da1f44a853563e675c0f665570c90a7b6ffa1a726ffa297",
+      "targetBlob": "ae9de6cc7a37f2774b79d418e2992b0a65abadad",
+      "targetSha256": "daf9db0f34a26f887da1f44a853563e675c0f665570c90a7b6ffa1a726ffa297",
       "mode": "100644"
     },
     "src/components/me/deposit-usdt-pane.vue": {
-      "sourceBlob": "9e3b4322de2ab1f6d65a5f31be676ae7962a9fdd",
-      "sourceSha256": "9f541938159fbaaaa0b5e1adc4634b45d77014241634fe4575c14667df02eddf",
-      "targetBlob": "9e3b4322de2ab1f6d65a5f31be676ae7962a9fdd",
-      "targetSha256": "9f541938159fbaaaa0b5e1adc4634b45d77014241634fe4575c14667df02eddf",
+      "sourceBlob": "3c00dfb20adc832eca88a046e873faf71dadaf8f",
+      "sourceSha256": "1f5c023cd65a45bdec555a758af9c03f24d7d46a12ae06644e61b670a4cd685c",
+      "targetBlob": "3c00dfb20adc832eca88a046e873faf71dadaf8f",
+      "targetSha256": "1f5c023cd65a45bdec555a758af9c03f24d7d46a12ae06644e61b670a4cd685c",
       "mode": "100644"
     },
     "src/components/me/device-deactivate-sheet.vue": {
