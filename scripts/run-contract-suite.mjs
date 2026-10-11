@@ -22,6 +22,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SCRIPTS = path.join(root, "scripts");
 
 const REGISTRY = {
+  "touch-target-countdown.contract.test.mjs": { how: "chain" },
   "app-h5-sync.test.mjs": { how: "elsewhere", by: "npm run test:app-h5-sync" },
   // ── chain:本执行器跑(原孤儿,z1 接入)──
   "native-svg-icons.test.mjs": { how: "chain" },

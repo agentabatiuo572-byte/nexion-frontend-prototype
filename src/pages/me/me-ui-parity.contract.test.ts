@@ -49,6 +49,7 @@ const EXPECTED_TEMPLATE_DIFFERENCES = [
   "wallet-withdraw.vue",
   "wallet.vue"
 ];
+// Reviewed touch-target/countdown fix: 44px controls and localized seconds slot.
 // Pin the exact formal/reference template pair for every approved difference.
 // A new edit inside an approved file therefore still fails until its specific
 // production-only delta is reviewed; this is not a file-level exemption.
@@ -82,7 +83,7 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "support.vue": "9a89c364bbc52d36f0218752b5bb69ffbba692fd113feaf285e7d0273180bad0",
   // Reviewed removal of the retired card-migration notice; trial amounts, deadlines and actions remain covered.
   "trial.vue": "53967cefbe18331bee801de39a048cd5969dda1e216bb829bd54155230f3e838",
-  "wallet-address-rebind.vue": "64f22ae20b3725ff6df6c516a9f99a6714efd94834cc5b02734c146e377e9e32",
+  "wallet-address-rebind.vue": "6b58aa27f914476beaab55fe607c88db66a8fd690a0584fe034c17fe52a4b76a",
   // Reviewed #465: refund references wrap on their own read-only line; other bill rows retain their layout.
   // Promotion receipt deep links retain the existing refund row and bill layout.
   "wallet-bills.vue": "c3f827ee5d16ffc31e373c1e79567ae8e8a8affbacc1f34646399d015dd16ba7",
@@ -97,11 +98,13 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "wallet-topup.vue": "010252b7630c35defdf57a3f262d0e389c011d2b9d79ad2f5fb788e794d87768",
   "wallet-withdraw-tracking.vue": "7e295fb4b5e5bc50dcbfbbe136c6ede7bcab07ae9bb6193b666bf397acb60e9a",
   // Original pending requests expose retry even when the new-transfer form is incomplete.
-  "wallet-withdraw.vue": "5f2b01dbe62cfe7b9d233405183d044ecbf74a93b9e562aab96110a0f80674ae",
+  "wallet-withdraw.vue": "4c97b7e95291e2f199352bc516fc7f5c6d68c2362fa6f4161d785e62bdab1ec1",
   // Reviewed held-authority failure and retry UI against the fixed 710e9ee reference.
   "wallet.vue": "02bbdb6e646a7d44131faea4d6f341f87b0528115500749c9174009fc1c01733"
 };
 const EXPECTED_STYLE_PAIR_SHA256: Record<string, string> = {
+  // Reviewed touch-target/countdown fix: a fixed localized seconds slot.
+  "wallet-address-rebind.vue": "b2634e4c33fd100e60dc449a3b7b4c3d4aef975df72c505c73174ea79b279625",
   // Approved unified center uses shared flat-row styles and fixed native scrolling.
   "notifications.vue": "e065437c45004cdd395d81d27ebc06f17e7f3e4c5da3e9e9f7092d8204e2d30a",
   "preferences.vue": "2329be1da2edb9adaa473f5ef7408aa3edd688413331fdf42c4abd406c57415f",

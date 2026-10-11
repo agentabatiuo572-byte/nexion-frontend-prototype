@@ -136,7 +136,7 @@ function done() { void navReplace(props.returnTo === "/pages/me/wallet-cards" ? 
 .binding-fields { padding: 16px 2px 0; }
 .field-label { display: block; margin-bottom: 4px; font-size: 12px; color: var(--v5-ink-3); }
 .required { color: var(--v5-brand-2); }
-.field { box-sizing: border-box; width: 100%; height: 40px; min-height: 40px; background: var(--v5-surface-2); border: 1px solid var(--v5-border); border-radius: 8px; padding: 0 12px; margin-bottom: 12px; font-size: 13px; color: var(--v5-ink); }
+.field { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; background: var(--v5-surface-2); border: 1px solid var(--v5-border); border-radius: 8px; padding: 0 12px; margin-bottom: 12px; font-size: 13px; color: var(--v5-ink); }
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
 .default-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; min-height: 44px; color: var(--v5-ink-2); font-size: 13px; }
 .default-check { width: 18px; height: 18px; flex-shrink: 0; background: var(--v5-ink); border-radius: 2px; display: grid; place-items: center; }
