@@ -1107,11 +1107,12 @@ async function onConfirmPay() {
     // Trial conversion is already a backend transaction (trial lock + wallet
     // debit + order creation). It must run before the ordinary order path so
     // the checkout cannot create a second, permanently pending order.
-    if (trialQuote.applied) {
+    const recoveringTrial = freeTrial.hasPendingConversion();
+    if (trialQuote.applied || recoveringTrial) {
       const confirmationScope = captureCheckoutRoute();
       const p = product.value;
       const payQuote = trialQuoteAt(mockServerNow());
-      if (!p || !payQuote.applied) {
+      if (!p || (!recoveringTrial && !payQuote.applied)) {
         confirming = false;
         toast.warn(t.value.store.coTrialQuoteChanged);
         step.value = "select-payment";
@@ -1127,8 +1128,16 @@ async function onConfirmPay() {
       if (!isCurrentCheckoutRoute(confirmationScope)) { confirming = false; return; }
       confirming = false;
       if (!conversion.ok || !conversion.orderNo) {
-        toast.warn(t.value.store.coTrialQuoteChanged);
-        step.value = "select-payment";
+        if (conversion.reason === "insufficient-funds") {
+          await offerWalletTopup(quotedTotal, confirmationScope);
+        } else if (conversion.reason === "unknown" || (conversion.ok && !conversion.orderNo)) {
+          toast.warn(t.value.store.coRecoverOriginalOrder);
+        } else if (conversion.reason === "storage-unavailable") {
+          toast.error(t.value.errors.txNotSavedTitle, t.value.errors.txNotSavedMsg);
+        } else {
+          toast.warn(conversion.reason === "quote-changed" ? t.value.store.coTrialQuoteChanged : t.value.tradein.errPurchaseFailed);
+          step.value = "select-payment";
+        }
         return;
       }
       orderId.value = conversion.orderNo;

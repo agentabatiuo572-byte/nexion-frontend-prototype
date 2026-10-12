@@ -3,10 +3,10 @@ import { computed, ref } from "vue";
 import { useTrialConfig, computeDiscountedPrice, computeTrialOffset, resolveTrialDeviceName } from "./trial-config";
 import { mockServerNow, ONE_DAY_MS } from "./server-time";
 import { normalizeAccountKey } from "./account-cloud";
-import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
+import { acquireAccountCommandKey, readAccountRow, releaseAccountCommandKey, writeAccountRow } from "./account-scoped-storage";
 import { remoteApiEnabled, trialApi } from "@/api/runtime";
 import type { TrialAuthorityState } from "@/api/trial-api";
-import { asApiError } from "@/api/errors";
+import { asApiError, isAmbiguousOutcome } from "@/api/errors";
 import {
   resolveTrialAt,
   accruedShadow,
@@ -53,6 +53,23 @@ export type { TrialStatus } from "./trial-boundary";
  *  "risk" = spec 异常2 第三具名原因(风控命中)。MOCK 无风控引擎,本地 eligibility()
  *  无触发路径;生产由后端 GET /api/trial/eligibility 下发该 reason。 */
 export type TrialIneligibleReason = "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "unknown";
+type TrialConversionFailure = TrialIneligibleReason | "insufficient-funds" | "quote-changed" | "rejected" | "storage-unavailable";
+const CONVERT_COMMANDS_KEY = "nexgrid-trial-convert-accounts-v1";
+type ConversionCommands = { commands: Record<string, string> };
+
+// These structured refusals happen before settlement in the conversion contract.
+// Other 4xx/idempotency errors retain the original intent until its result is known.
+function conversionRefusal(error: unknown): TrialConversionFailure | null {
+  const failure = asApiError(error);
+  if (!["business", "http"].includes(failure.kind) || ![409, 422].includes(failure.code ?? 0)) return null;
+  if (failure.kind === "http" && failure.status !== failure.code) return null;
+  if (failure.message === "TRIAL_WALLET_INSUFFICIENT") return "insufficient-funds";
+  if (["TRIAL_AMOUNT_MISMATCH", "TRIAL_AMOUNT_INVALID"].includes(failure.message)) return "quote-changed";
+  return ["TRIAL_KILL_SWITCH_DISABLED", "TRIAL_PRODUCT_REQUIRED", "TRIAL_NOT_CONVERTIBLE",
+    "TRIAL_PRODUCT_NOT_ELIGIBLE", "TRIAL_PRODUCT_NOT_AVAILABLE", "TRIAL_PRODUCT_NOT_RELEASED",
+    "TRIAL_DAILY_YIELD_INVALID", "CAPACITY_REPLACEMENT_REQUIRED", "TRIAL_PRICE_SNAPSHOT_INVALID",
+    "TRIAL_WALLET_UNAVAILABLE"].includes(failure.message) ? "rejected" : null;
+}
 
 /** Persisted row shape — single source lives in trial-boundary.ts (resolver 同型)。 */
 type FreeTrialState = TrialRowSnapshot;
@@ -486,41 +503,96 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   // 绝不信任调用方(结算页)缓存的 now 或内存里的旧 status —— 用户离线跨过宽限期
   // 后趁 poll 未跑下单,这里按真实时点判到 ended 即拒绝(边界推进结果已落盘)。
   async function convert(productNo?: string, expectedAmountUsdt?: number): Promise<{
-    ok: boolean; reason?: TrialIneligibleReason; orderNo?: string;
+    ok: boolean; reason?: TrialConversionFailure; orderNo?: string;
   }> {
     const requestedProductNo = productNo ?? useTrialConfig().config.trialProductId;
     if (remoteApiEnabled) {
+      const requestedEpoch = accountBindingEpoch;
       if (authorityStatus.value !== "ready") await refreshRemote(true);
+      if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
       if (authorityStatus.value !== "ready" || !authorityClaimNo.value) return { ok: false, reason: "unknown" };
       const requestedAccount = boundKey;
       const expectedClaimNo = authorityClaimNo.value;
-      const key = `h2-convert:${expectedClaimNo}:${requestedProductNo}`;
+      let intent: string, key: string, originalAmount: number | null;
+      let originalOutcomeUnknown = false;
+      try {
+        // The intent contains the original quote as well as the claim/SKU. A
+        // lost response or App restart must replay that payload, not a new quote.
+        const commands = readAccountRow<ConversionCommands>(CONVERT_COMMANDS_KEY, requestedAccount, true)?.commands ?? {};
+        const pending = Object.keys(commands);
+        originalOutcomeUnknown = pending.length > 0;
+        if (pending.length > 1) return { ok: false, reason: "unknown" };
+        if (pending.length && (typeof commands[pending[0]!] !== "string" || !commands[pending[0]!]!.trim())) {
+          return { ok: false, reason: "unknown" };
+        }
+        intent = pending[0] ?? JSON.stringify([expectedClaimNo, requestedProductNo, expectedAmountUsdt ?? null]);
+        const original: unknown = JSON.parse(intent);
+        if (!Array.isArray(original) || original.length !== 3 || original[0] !== expectedClaimNo
+            || original[1] !== requestedProductNo || (original[2] !== null
+              && (typeof original[2] !== "number" || !Number.isFinite(original[2]) || original[2] < 0))) {
+          return { ok: false, reason: "unknown" };
+        }
+        originalAmount = original[2];
+        key = acquireAccountCommandKey(CONVERT_COMMANDS_KEY, requestedAccount, intent, "h2-convert");
+      } catch {
+        return { ok: false, reason: "storage-unavailable" };
+      }
+      const refused = (error: unknown) => {
+        const reason = conversionRefusal(error);
+        if (!reason) return null;
+        // A later refusal may be a re-execution after the original receipt's
+        // TTL. It cannot disprove an earlier commit whose response was lost.
+        if (originalOutcomeUnknown) return { ok: false, reason: "unknown" } as const;
+        // The backend caches business denials too. Retire only a known refusal;
+        // a later user retry after top-up needs a fresh key, while unknown keeps it.
+        return { ok: false, reason: releaseAccountCommandKey(CONVERT_COMMANDS_KEY, requestedAccount, intent, key)
+          ? reason : "storage-unavailable" } as const;
+      };
       try {
         const sequence = ++authorityRequestSequence;
-        const receipt = await trialApi.convert(requestedProductNo, expectedAmountUsdt ?? null, key);
-        if (requestedAccount !== boundKey) return { ok: false, reason: "unknown" };
+        const receipt = await trialApi.convert(requestedProductNo, originalAmount, key);
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         const confirmed = await refreshRemote(true);
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         if (!confirmed || authorityClaimNo.value !== expectedClaimNo || status.value !== "converted") {
           clearRemoteFacts("unknown", "TRIAL_CONVERT_RESULT_UNKNOWN");
           return { ok: false, reason: "unknown" };
         }
         lastAppliedSequence = Math.max(lastAppliedSequence, sequence);
+        releaseAccountCommandKey(CONVERT_COMMANDS_KEY, requestedAccount, intent, key);
         return { ok: true, orderNo: receipt.orderNo };
       } catch (error) {
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         authorityError.value = asApiError(error).message;
+        const rejection = refused(error);
+        if (rejection) return rejection;
+        originalOutcomeUnknown = true;
+        const failure = asApiError(error);
+        if (failure.kind === "auth" || (!isAmbiguousOutcome(error) && !failure.message.startsWith("IDEMPOTENCY_"))) {
+          return { ok: false, reason: "unknown" };
+        }
         // A lost HTTP response is reconciled with the same key first. The
         // idempotency record can replay the original order receipt without a
         // second stock reservation; only then do we fall back to state readback.
         try {
-          const replay = await trialApi.convert(requestedProductNo, expectedAmountUsdt ?? null, key);
+          const replay = await trialApi.convert(requestedProductNo, originalAmount, key);
+          if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
           const reconciled = await refreshRemote(true);
-          if (requestedAccount === boundKey && reconciled && authorityClaimNo.value === expectedClaimNo
-              && status.value === "converted") return { ok: true, orderNo: replay.orderNo };
-        } catch {
+          if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
+          if (reconciled && authorityClaimNo.value === expectedClaimNo && status.value === "converted") {
+            releaseAccountCommandKey(CONVERT_COMMANDS_KEY, requestedAccount, intent, key);
+            return { ok: true, orderNo: replay.orderNo };
+          }
+        } catch (replayError) {
+          if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
+          const rejection = refused(replayError);
+          if (rejection) return rejection;
+          if (asApiError(replayError).kind === "auth") return { ok: false, reason: "unknown" };
           // Continue to the authoritative state readback below.
         }
         const reconciled = await refreshRemote(true);
-        if (requestedAccount === boundKey && reconciled && authorityClaimNo.value === expectedClaimNo
+        if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
+        if (reconciled && authorityClaimNo.value === expectedClaimNo
             && status.value === "converted") {
           // State readback proves the trial is terminal, but without the
           // receipt/order number the checkout cannot safely present or poll
@@ -546,6 +618,15 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       return { ok: false, reason: "unknown" };
     }
     return { ok: true };
+  }
+
+  function hasPendingConversion(): boolean {
+    if (!remoteApiEnabled) return false;
+    try {
+      return Object.keys(readAccountRow<ConversionCommands>(CONVERT_COMMANDS_KEY, boundKey, true)?.commands ?? {}).length > 0;
+    } catch {
+      return true;
+    }
   }
 
   // PRODUCTION: POST /api/trial/cancel. Spec ④: only `active →(用户主动取消)ended`
@@ -626,7 +707,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   }
 
   return {
-    status, startedAt, expiresAt, graceEndsAt, finishedAt,
+    status, startedAt, expiresAt, graceEndsAt, finishedAt, hasPendingConversion,
     shadowFrozenAtUSD, shadowFrozenAtNEX, legacyCardMigrated,
     authorityStatus, authorityError, authoritativeShadowUSD, authoritativeShadowNEX,
     authorityClaimNo, authorityVersion, authorityServerState,
