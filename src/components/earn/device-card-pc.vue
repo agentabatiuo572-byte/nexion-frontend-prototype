@@ -134,6 +134,7 @@
           <text v-if="capTier != null" style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.earn.hashTier, { n: capTier }) }}</text>
         </view>
       </view>
+      <text v-if="baselineTops == null" class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.earn.hashCapabilityUnknown }}</text>
     </view>
 
     <!-- Mock phone: live hashpower (effective vs calibrated capability ceiling) -->

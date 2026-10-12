@@ -108,27 +108,31 @@ export const purchaseEligibilityStore = createPurchaseEligibilityStore(
 /**
  * UI adapter used by cards and detail. In mock mode it stays idle and never
  * triggers a request; callers continue to use their local demo gate there.
+ * Detail reads immediately; catalog cards supply their actual visibility.
  */
 export function useRemotePurchaseEligibility(
   productNo: Ref<string> | (() => string),
+  active: Ref<boolean> | (() => boolean) = () => true,
 ) {
-  return bindPurchaseEligibility(productNo, purchaseEligibilityStore, remoteApiEnabled);
+  return bindPurchaseEligibility(productNo, purchaseEligibilityStore, remoteApiEnabled, active);
 }
 
 export function bindPurchaseEligibility(
   productNo: Ref<string> | (() => string),
   store: ReturnType<typeof createPurchaseEligibilityStore>,
   enabled: boolean,
+  active: Ref<boolean> | (() => boolean) = () => true,
 ) {
   const product = computed(() => typeof productNo === "function" ? productNo() : productNo.value);
   const eligibility = computed(() => store.state(product.value));
+  const readActive = computed(() => typeof active === "function" ? active() : active.value);
 
   // `watch` is intentionally kept out of the store so a shared cache does not
   // acquire component lifecycle ownership. An account rebind clears the Map;
   // mounted pages must reload its new idle entry even if the SKU is unchanged.
   // Errors wait for an explicit retry, so persistent failures cannot poll.
-  watch([product, () => eligibility.value.status], ([value, status]) => {
-    if (enabled && value && status === "idle") void store.ensure(value);
+  watch([product, () => eligibility.value.status, readActive], ([value, status, visible]) => {
+    if (enabled && visible && value && status === "idle") void store.ensure(value);
   }, { immediate: true });
 
   function retry(): Promise<boolean> {

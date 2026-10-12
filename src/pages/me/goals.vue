@@ -203,7 +203,7 @@ const recommendation = computed(() => {
 });
 
 const heroSubLine = computed(() => {
-  if (remoteApiEnabled && goalsStore.status !== "ready") {
+  if (remoteApiEnabled && !editorHasSnapshot.value) {
     return goalsStore.status === "error" ? t.value.goals.serverUnavailable : t.value.goals.loading;
   }
   return fmt(t.value.goals.heroSubtitle, { current: lifeTimeEarnings.value.toFixed(2) });
@@ -369,7 +369,7 @@ async function onSave() {
     restoreEditorFromGoal(goalsStore.goals[goalsStore.goals.length - 1]);
     void goalsStore.refreshRecommendation(target.value, goalsStore.goals[goalsStore.goals.length - 1]?.deadlineMs ?? Date.now() + days.value * ONE_DAY_MS);
     ui.pushToast({ kind: "success", title: fmt(t.value.goals.savedToast, { amount: target.value.toLocaleString("en-US"), days: days.value }) });
-  } catch (error) {
+  } catch {
     if (!isCurrentSave()) return;
     ui.pushToast({ kind: "warn", title: t.value.goals.serverUnavailable });
   } finally {
@@ -381,12 +381,14 @@ async function remove(id: string) {
   if (!deleteFeedbackVisible) return;
   const expectedAccountKey = app.accountKey;
   const expectedBindingEpoch = app.accountBindingEpoch;
+  const expectedAccountEpoch = goalsStore.accountEpoch;
   const expectedGeneration = deleteFeedbackGeneration;
   try {
     await goalsStore.remove(id);
-  } catch (error) {
+  } catch {
     if (!deleteFeedbackVisible || expectedGeneration !== deleteFeedbackGeneration
-        || expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch) return;
+        || expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch
+        || expectedAccountEpoch !== goalsStore.accountEpoch) return;
     ui.pushToast({ kind: "warn", title: t.value.goals.serverUnavailable });
   }
 }

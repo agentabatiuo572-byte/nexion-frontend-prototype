@@ -2985,7 +2985,24 @@ function meaningfulChildren(node) {
 const carouselNode = findElement(templateAst, (node) => attr(node, "id") === "home-task-carousel");
 need(carouselNode, "task carousel template region missing");
 const carouselChildren = meaningfulChildren(carouselNode);
-need(carouselChildren.length === 2 && carouselChildren[0].tag === "swiper" && carouselChildren[1].tag === "text", "carousel gained an extra visible sibling (page/control overlay)");
+need(carouselChildren.length === 3 && carouselChildren[0].tag === "swiper" && carouselChildren[1].tag === "view" && carouselChildren[2].tag === "text", "carousel may contain only swiper, promotion read status and hidden announcement");
+function directive(node, name, argument) {
+  return node.props.find(prop => prop.type === NodeTypes.DIRECTIVE && prop.name === name && (!argument || prop.arg?.content === argument))?.exp?.content;
+}
+need(compact(directive(carouselNode, "if") ?? "") === compact("visibleTaskCards.length || homePromotionStatus === 'loading' || homePromotionStatus === 'error'"), "failed promotion reads must remain visible without task slides");
+need(directive(carouselChildren[0], "if") === "visibleTaskCards.length", "empty promotion reads must not render a blank swiper");
+const promotionStatusNode = carouselChildren[1];
+need(attr(promotionStatusNode, "class") === "promotion-flat home-promotion-status" && compact(directive(promotionStatusNode, "if") ?? "") === compact("homePromotionStatus === 'loading' || homePromotionStatus === 'error'"), "promotion read feedback must be flat and limited to loading/error");
+need(compact(directive(promotionStatusNode, "bind", "role") ?? "") === compact("homePromotionStatus === 'error' ? 'alert' : 'status'") && directive(promotionStatusNode, "bind", "aria-busy") === "homePromotionStatus === 'loading'", "promotion feedback must announce failures and pending retry");
+const promotionStatusChildren = meaningfulChildren(promotionStatusNode);
+need(promotionStatusChildren.length === 2 && promotionStatusChildren[0].tag === "text" && promotionStatusChildren[1].tag === "PromotionAction", "promotion status may contain only translated feedback and the existing glass retry");
+const promotionStatusCopy = meaningfulChildren(promotionStatusChildren[0]);
+need(promotionStatusCopy.length === 3 && promotionStatusCopy[0].type === NodeTypes.INTERPOLATION && promotionStatusCopy[0].content.content === "t.promotion.activityBadge" && promotionStatusCopy[1].content.trim() === "·" && promotionStatusCopy[2].type === NodeTypes.INTERPOLATION && compact(promotionStatusCopy[2].content.content) === compact("homePromotionStatus === 'loading' ? t.promotion.loading : t.promotion.error"), "promotion read status must use existing translated activity/loading/error copy");
+const promotionRetry = promotionStatusChildren[1];
+need(attr(promotionRetry, "class") === "home-promotion-retry" && attr(promotionRetry, "role") === "button" && directive(promotionRetry, "on", "click") === "refreshHomePromotions", "promotion retry must refresh the homepage request");
+need(directive(promotionRetry, "bind", "aria-disabled") === "homePromotionStatus === 'loading'" && compact(directive(promotionRetry, "bind", "tabindex") ?? "") === compact("homePromotionStatus === 'loading' ? -1 : 0"), "pending promotion retry must be disabled and leave keyboard order");
+const promotionRetryChildren = meaningfulChildren(promotionRetry);
+need(promotionRetryChildren.length === 1 && promotionRetryChildren[0].tag === "text" && meaningfulChildren(promotionRetryChildren[0]).length === 1 && meaningfulChildren(promotionRetryChildren[0])[0].content?.content === "t.promotion.retry", "promotion retry must keep its existing translated label");
 const swiperChildren = meaningfulChildren(carouselChildren[0]);
 need(swiperChildren.length === 1 && swiperChildren[0].tag === "swiper-item", "swiper content structure changed or gained overlay content");
 const itemChildren = meaningfulChildren(swiperChildren[0]);
@@ -2998,8 +3015,8 @@ need(
 need(attr(slideChildren[2], "mode") === "home", "promotion slide must use the homepage carousel variant");
 need(slideChildren[2].props.some(prop => prop.type === NodeTypes.DIRECTIVE && prop.name === "bind" && prop.arg?.content === "active" && prop.exp?.content === "taskSlide === index"), "offscreen promotion slides must not be active");
 need(slideChildren[2].props.some(prop => prop.type === NodeTypes.DIRECTIVE && prop.name === "bind" && prop.arg?.content === "activities" && prop.exp?.content === "homePromotions.filter(activity => card === 'promotion:'+activity.activityId)"), "promotion slide must show only its server activity");
-const statusNode = carouselChildren[1];
-need(attr(statusNode, "class") === "home-task-carousel__status" && attr(statusNode, "aria-live") === "polite", "only the hidden screen-reader status may follow swiper");
+const statusNode = carouselChildren[2];
+need(attr(statusNode, "class") === "home-task-carousel__status" && attr(statusNode, "aria-live") === "polite", "carousel must retain its hidden manual-change announcement");
 const statusChildren = meaningfulChildren(statusNode);
 need(
   statusChildren.length === 1 && statusChildren[0].type === NodeTypes.INTERPOLATION && statusChildren[0].content.content === "taskCarouselAnnouncement",

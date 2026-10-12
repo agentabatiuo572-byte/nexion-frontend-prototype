@@ -71,16 +71,16 @@ function billsHarness(target = "R1:receipt + exact", query = "") {
 }
 function rewardHarness(options: Record<string, string> = {}, query = "") {
   const app = Vue.reactive({ accountKey: "user:7", accountBindingEpoch: 1 });
-  const life = lifecycle(); const reward = vi.fn(), referral = vi.fn(), navTo = vi.fn();
+  const life = lifecycle(); const reward = vi.fn(), referral = vi.fn(), navTo = vi.fn(), changeOrder = vi.fn();
   const page = evaluate<{
     reward: Vue.Ref<Record<string, unknown> | null>; progress: Vue.Ref<unknown>; loading: Vue.Ref<boolean>;
-    error: Vue.Ref<boolean>; p: Vue.ComputedRef<typeof en.promotion>; id: string; load(): Promise<void>;
+    error: Vue.Ref<boolean>; t: Vue.Ref<typeof en>; p: Vue.ComputedRef<typeof en.promotion>; id: string; load(): Promise<void>;
   }>(rewardSource, { ...vueDependencies, ...life.deps, useT: () => Vue.ref(en), useApp: () => app,
     useLocaleStore: () => ({ code: "en" }), useSetPageHeader: vi.fn(), navTo,
-    takeNavigationQuery: () => query, promotionApi: { reward, referral },
+    takeNavigationQuery: () => query, promotionApi: { reward, referral, create: changeOrder, pay: changeOrder, cancel: changeOrder },
     localized: (title: { en: string }) => title.en, displayDeadline: () => "",
-  }, "reward, progress, loading, error, p, get id(){return id;}, load, navTo, locale, localized, displayDeadline");
-  return { page, app, reward, referral, navTo, ...life,
+  }, "reward, progress, loading, error, t, p, get id(){return id;}, load, navTo, locale, localized, displayDeadline");
+  return { page, app, reward, referral, navTo, changeOrder, ...life,
     start: () => life.hooks.load.forEach(fn => fn(options)) };
 }
 const rewardItem = { obligationId: "OB-1", activityId: "A1", beneficiaryRole: "BUYER", state: "ISSUED", orderNo: "ORD-1",
@@ -181,6 +181,21 @@ describe("promotion receipt exact wallet lookup", () => {
 });
 
 describe("reward detail missing ID and account-safe receipt", () => {
+  it.each(["PENDING", "READY", "PROCESSING", "ISSUED", "RETRYABLE_FAILED", "OUTCOME_UNKNOWN", "CANCELLED", "REVERSAL_PENDING", "REVERSED", "MANUAL_REVIEW"])("provides read-only support only for failed or manual-review rewards (%s)", async state => {
+    const h = rewardHarness({ obligationId: "OB-1" }), item = { ...rewardItem, state };
+    h.reward.mockResolvedValue(item); h.start(); await settle();
+    const help = state === "RETRYABLE_FAILED" || state === "MANUAL_REVIEW";
+    for (const dict of [en, zh, vietnamese]) {
+      expect(dict.help.contactSupport.trim()).not.toBe("");
+      const html = await renderReward({ ...h.page, t: Vue.ref(dict), p: Vue.computed(() => dict.promotion) }, dict.help.contactSupport);
+      expect(html.includes(dict.help.contactSupport)).toBe(help);
+    }
+    expect(h.navTo.mock.calls).toEqual(help ? Array(3).fill(["/pages/me/support"]) : []);
+    expect(h.reward).toHaveBeenCalledTimes(1); expect(h.referral).not.toHaveBeenCalled();
+    expect(h.changeOrder).not.toHaveBeenCalled();
+    expect(remote.walletBillsApi.list).not.toHaveBeenCalled(); expect(remote.walletBillsApi.summary).not.toHaveBeenCalled();
+    expect(h.page.reward.value).toEqual(item);
+  });
   it.each(["", "   "])("shows a clear failure and a working return for absent ID '%s'", async obligationId => {
     const h = rewardHarness({ obligationId }); h.start();
     expect(h.page.error.value).toBe(true); expect(h.page.loading.value).toBe(false);

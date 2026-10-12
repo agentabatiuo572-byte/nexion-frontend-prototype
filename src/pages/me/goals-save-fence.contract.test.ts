@@ -35,6 +35,7 @@ function legacyNativePage() {
       async refreshRecommendation(target, deadline) {
         this.recommendations.push({ target, deadline });
       },
+      async remove() { throw new Error("GOAL_DELETE_INTERNAL_SENTINEL"); },
     };
     this.ui = { toasts: [], pushToast(toast) { this.toasts.push(toast); } };
     this.exports = this.module.exports;
@@ -119,6 +120,70 @@ describe("native goal save without Array.at", () => {
       expect(context.goalsStore.saves[1]).toEqual(context.goalsStore.saves[0]);
       expect(context.goalsStore.goals).toHaveLength(1);
       expect(context.ui.toasts[1]).toEqual({ kind: "success", title: "目标已保存：$500 / 30 天" });
+    } finally { scope.stop(); }
+  });
+
+  it("maps a deletion failure to product copy without exposing the diagnostic", async () => {
+    const { context, page, scope } = legacyNativePage();
+    try {
+      await page.remove("goal-id");
+      expect(context.ui.toasts).toEqual([{ kind: "warn", title: zh.goals.serverUnavailable }]);
+    } finally { scope.stop(); }
+  });
+
+  it("deletes the requested goal normally without adding an error toast", async () => {
+    const { context, page, scope } = legacyNativePage();
+    try {
+      const removed: string[] = [];
+      context.goalsStore.remove = async (id: string) => { removed.push(id); };
+      await page.remove("goal-id");
+      expect(removed).toEqual(["goal-id"]);
+      expect(context.ui.toasts).toEqual([]);
+    } finally { scope.stop(); }
+  });
+
+  it("keeps a late deletion rejection out of the next account", async () => {
+    const { context, page, scope } = legacyNativePage();
+    try {
+      let reject!: (error: Error) => void;
+      context.goalsStore.remove = () => new Promise((_resolve, fail) => { reject = fail; });
+      const deleting = page.remove("old-account-goal");
+      context.goalsStore.accountEpoch += 1;
+      reject(new Error("OLD_DELETE_ACCOUNT_INTERNAL_SENTINEL"));
+      await deleting;
+      expect(context.ui.toasts).toEqual([]);
+    } finally { scope.stop(); }
+  });
+
+  it("does not turn a successful old-account deletion into a failure after switching accounts", async () => {
+    const { context, page, scope } = legacyNativePage();
+    try {
+      let resolve!: () => void;
+      const removed: string[] = [];
+      context.goalsStore.remove = (id: string) => {
+        removed.push(id);
+        return new Promise<void>(done => { resolve = done; });
+      };
+      const deleting = page.remove("old-account-goal");
+      context.goalsStore.accountEpoch += 1;
+      resolve();
+      await deleting;
+      expect(removed).toEqual(["old-account-goal"]);
+      expect(context.ui.toasts).toEqual([]);
+    } finally { scope.stop(); }
+  });
+
+  it("keeps a late save rejection out of the next account", async () => {
+    const { context, page, scope } = legacyNativePage();
+    try {
+      let reject!: (error: Error) => void;
+      context.goalsStore.setGoal = () => new Promise((_resolve, fail) => { reject = fail; });
+      page.selectTarget(500);
+      const saving = page.onSave();
+      context.goalsStore.accountEpoch += 1;
+      reject(new Error("OLD_ACCOUNT_INTERNAL_SENTINEL"));
+      await saving;
+      expect(context.ui.toasts).toEqual([]);
     } finally { scope.stop(); }
   });
 });

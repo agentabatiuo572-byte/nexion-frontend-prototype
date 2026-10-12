@@ -141,7 +141,7 @@
           <view class="flex items-center justify-between" style="margin-bottom: 4px">
             <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.exchange.yourDaily }}</text>
             <view class="font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink)">
-              <text>{{ remoteApiEnabled && !remoteState ? t.exchange.remoteNotProvided :`$${displayUserUsed.toFixed(2)}` }} </text>
+              <text>{{ remoteApiEnabled && !remoteState ? '-' :`$${displayUserUsed.toFixed(2)}` }} </text>
               <text v-if="!remoteApiEnabled || remoteState" style="color: var(--v5-ink-3)">/ ${{ displayUserCap.toFixed(2) }}</text>
             </view>
           </view>
@@ -155,7 +155,7 @@
           <view class="flex items-center justify-between" style="margin-bottom: 4px">
             <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.walletV3.exchangePoolToday }}</text>
             <view class="font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink)">
-              <text>{{ remoteApiEnabled && !remoteState ? t.exchange.remoteNotProvided :`$${(displayPlatformUsed / 1000).toFixed(1)}K` }} </text>
+              <text>{{ remoteApiEnabled && !remoteState ? '-' :`$${(displayPlatformUsed / 1000).toFixed(1)}K` }} </text>
               <text v-if="!remoteApiEnabled || remoteState" style="color: var(--v5-ink-3)">/ ${{ (displayPlatformCap / 1000).toFixed(0) }}K</text>
             </view>
           </view>
@@ -1033,11 +1033,11 @@ const minLabel = computed(() => exchangeSnapshotReady.value
   : t.value.exchange.remoteNotProvided);
 const fromBalLabel = computed(() => exchangeSnapshotReady.value
   ? (fromSym.value === "USDT" ? fromBal.value.toFixed(2) : fromBal.value.toLocaleString())
-  : t.value.exchange.remoteNotProvided);
+  : "-");
 const toAmountLabel = computed(() => !exchangeSnapshotReady.value || feeInvalid.value ? "—" : amtLabel(toAmount.value));
 const rateLabel = computed(() => exchangeSnapshotReady.value
   ? t.value.exchange.rate.replace("{rate}", rate.value.toFixed(5))
-  : t.value.exchange.remoteNotProvided);
+  : "-");
 const updatedLabel = computed(() => exchangeSnapshotReady.value
   ? t.value.exchange.rateLastUpdated.replace("{n}", String(secsAgo.value))
   : t.value.exchange.remoteNotProvided);

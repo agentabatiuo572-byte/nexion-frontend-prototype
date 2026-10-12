@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PromotionCheckoutSession,selectPromotionCheckoutRecord } from './promotion-checkout-session';
+import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCheckoutRecord } from './promotion-checkout-session';
 import type { Quote, OrderReceipt } from '../api/promotion-contracts';
 const quote = { quoteId:'q1', eligibility:'ELIGIBLE', amountUsdt:'120.000000', quantity:3, items:[{lineId:'sku-a',productNo:'sku-a',quantity:3}], expectedRewards:[] } as unknown as Quote;
 const order = {orderNo:'o1',promotionQuoteId:'q1',quantity:3,amountUsdt:'120',paymentStatus:'PENDING',orderStatus:'PENDING_PAYMENT',payBy:'2026-10-31T00:00:00Z',rewards:[],items:[{lineId:'canonical-line-756',productNo:'sku-a',productName:'Frozen Alpha',quantity:3}]} as OrderReceipt;
@@ -10,6 +10,90 @@ function setup() {
   return {session,api,save,key,current};
 }
 describe('promotion checkout original-command safety',()=>{
+  it('durably keeps one leave reminder through reload, requote, creation and original-order recovery',async()=>{
+    const {session,api,save,key,current}=setup();let saved:PromotionCheckoutRecord=session.record;
+    save.mockImplementation(record=>{saved=JSON.parse(JSON.stringify(record));});
+    session.setQuote(quote,'old-voucher');session.rememberLeavePrompt();expect(saved.leavePromptShown).toBe(true);
+    const restored=new PromotionCheckoutSession({api,save,key,current},saved);
+    restored.invalidateQuote();expect(restored.record.voucherId).toBeUndefined();expect(saved.leavePromptShown).toBe(true);
+    restored.setQuote(quote);expect(saved.leavePromptShown).toBe(true);expect(restored.record.voucherId).toBeNull();
+    await restored.create();expect(saved.leavePromptShown).toBe(true);
+    const original=new PromotionCheckoutSession({api,save,key,current},saved);await original.recover();
+    expect(original.record.leavePromptShown).toBe(true);expect(original.record.order?.orderNo).toBe('o1');
+    await original.pay();expect(api.create).toHaveBeenCalledOnce();expect(api.pay).toHaveBeenCalledOnce();expect(api.cancel).not.toHaveBeenCalled();
+  });
+  it('failed-create recovery preserves the reminder but discards the failed quote and voucher',async()=>{
+    const {session,api}=setup();session.setQuote(quote,'voucher');session.rememberLeavePrompt();
+    api.create.mockRejectedValueOnce(new Error('timeout'));await expect(session.create()).rejects.toThrow('timeout');
+    api.command.mockResolvedValue({status:'FAILED',order:null});await session.recover();
+    expect(session.record).toEqual({quote:null,order:null,pending:null,leavePromptShown:true});
+    session.setQuote(quote);expect(session.record.leavePromptShown).toBe(true);expect(session.record.voucherId).toBeNull();
+  });
+  it('only an explicit new purchase after a confirmed final order resets the durable reminder',async()=>{
+    const {session,api}=setup();session.rememberLeavePrompt();await session.create();
+    expect(()=>session.startNewPurchase()).toThrow('ORIGINAL_ORDER_UNRESOLVED');expect(session.record.leavePromptShown).toBe(true);
+    await session.pay();session.startNewPurchase();expect(session.record.leavePromptShown).toBeUndefined();
+    session.setQuote({...quote,quoteId:'new-purchase'});session.rememberLeavePrompt();expect(session.record.leavePromptShown).toBe(true);
+    expect(api.create).toHaveBeenCalledOnce();expect(api.pay).toHaveBeenCalledOnce();
+  });
+  it('another intent or account cannot inherit a saved reminder',()=>{
+    const {session}=setup();session.rememberLeavePrompt();const input={activityId:'a',items:[{productNo:'sku-a',quantity:3}]};
+    const original=selectPromotionCheckoutRecord({},input).intent;
+    expect(selectPromotionCheckoutRecord({[original]:session.record},input).record?.leavePromptShown).toBe(true);
+    expect(selectPromotionCheckoutRecord({[original]:session.record},{...input,activityId:'b'}).record).toBeUndefined();
+    expect(selectPromotionCheckoutRecord({},input).record).toBeUndefined();
+  });
+  it.each([false,true])('an order recovery entry reuses the actual created purchase record and its durable reminder, existingDraft=%s',async existingDraft=>{
+    const {session,api,key,current}=setup();
+    const purchase={activityId:'a',items:[{productNo:'sku-a',quantity:3}]};
+    const purchaseIntent=selectPromotionCheckoutRecord({},purchase).intent;
+    const records:Record<string,PromotionCheckoutRecord>={};
+    const save=vi.fn(record=>{records[purchaseIntent]=JSON.parse(JSON.stringify(record));});
+    const checkout=new PromotionCheckoutSession({api,save,key,current},session.record);
+    checkout.rememberLeavePrompt();await checkout.create();
+    const input={activityId:'',items:[],orderNo:'o1'};
+    if(existingDraft)records[JSON.stringify(['order','o1'])]={quote:null,order:null,pending:null};
+    const selected=selectPromotionCheckoutRecord(records,input);
+    expect(selected.intent).toBe(purchaseIntent);expect(selected.record).toBe(records[purchaseIntent]);
+    expect(selected.record?.leavePromptShown).toBe(true);expect(selected.openedOriginal).toBe(false);
+    const original=new PromotionCheckoutSession({api,save,key,current},selected.record);await original.recover();
+    const reentered=selectPromotionCheckoutRecord(records,input);
+    expect(reentered.intent).toBe(purchaseIntent);expect(reentered.record?.leavePromptShown).toBe(true);
+    expect(api.create).toHaveBeenCalledOnce();expect(api.pay).not.toHaveBeenCalled();expect(api.cancel).not.toHaveBeenCalled();
+    expect(selectPromotionCheckoutRecord(records,{...input,orderNo:'o2'}).record).toBeUndefined();
+    expect(selectPromotionCheckoutRecord({},input).record).toBeUndefined();
+  });
+  it.each([false,true])('existing order-entry records keep their receipt while sharing an earlier once-only decision, requestedFlag=%s',requestedFlag=>{
+    const requested=JSON.stringify(['order','o1']);
+    const old={quote,order,pending:null,leavePromptShown:!requestedFlag};
+    const recent={quote:null,order:{...order,paymentStatus:'PAID' as const},pending:null,leavePromptShown:requestedFlag};
+    const records={purchase:old,[requested]:recent};
+    const selected=selectPromotionCheckoutRecord(records,{activityId:'',items:[],orderNo:'o1'});
+    expect(selected.intent).toBe(requested);expect(selected.record?.order).toBe(recent.order);
+    expect(selected.record?.quote).toBeNull();expect(selected.record?.leavePromptShown).toBe(true);
+    const purchase=selectPromotionCheckoutRecord({[JSON.stringify(['a',[]])]:old,[requested]:recent},{activityId:'a',items:[]});
+    expect(purchase.record?.order).toBe(old.order);expect(purchase.record?.leavePromptShown).toBe(true);
+    expect(selectPromotionCheckoutRecord(records,{activityId:'',items:[],orderNo:'o2'}).record).toBeUndefined();
+  });
+  it('any unresolved command still takes priority over a matching same-order recovery record',()=>{
+    const requested=JSON.stringify(['order','o1']);
+    const matching={quote:null,order,pending:null,leavePromptShown:true};
+    const unresolved={quote:null,order:{...order,orderNo:'o2'},pending:{key:'cancel-o2',operation:'cancelOrder' as const,targetId:'o2'}};
+    const selected=selectPromotionCheckoutRecord({[requested]:matching,purchase:matching,unresolved},{activityId:'',items:[],orderNo:'o1'});
+    expect(selected.intent).toBe('unresolved');expect(selected.record).toBe(unresolved);expect(selected.openedOriginal).toBe(true);
+    expect(selected.record?.leavePromptShown).toBeUndefined();
+  });
+  it('a new purchase remains separate from its completed order-entry alias',async()=>{
+    const {session,api,key,current}=setup();session.rememberLeavePrompt();await session.create();await session.pay();
+    api.findOrder.mockResolvedValue({...order,paymentStatus:'PAID'});
+    const purchase={activityId:'a',items:[{productNo:'sku-a',quantity:3}]},intent=selectPromotionCheckoutRecord({},purchase).intent;
+    const records:Record<string,PromotionCheckoutRecord>={[JSON.stringify(['order','o1'])]:JSON.parse(JSON.stringify(session.record))};
+    const fresh=new PromotionCheckoutSession({api,key,current,save:record=>{records[intent]=JSON.parse(JSON.stringify(record));}},session.record);
+    await fresh.recover();fresh.startNewPurchase();fresh.setQuote({...quote,quoteId:'q2'});
+    expect(selectPromotionCheckoutRecord(records,purchase).record?.leavePromptShown).toBeUndefined();
+    expect(selectPromotionCheckoutRecord(records,{activityId:'',items:[],orderNo:'o1'}).record?.leavePromptShown).toBe(true);
+    expect(api.create).toHaveBeenCalledOnce();expect(api.pay).toHaveBeenCalledOnce();
+  });
   it('order A then order B uses separate persistent receipts',()=>{
     const a=selectPromotionCheckoutRecord({}, {activityId:'',items:[],orderNo:'a'});
     const record={quote:null,order:{...order,orderNo:'a'},pending:null};

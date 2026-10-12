@@ -29,7 +29,7 @@
         <view class="flex-1 min-w-0">
           <text class="block" style="font-size: 12px; color: var(--v5-warning); font-weight: 600">{{ t.walletV3.withdrawAmbiguousExitTitle }}</text>
           <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 3px; line-height: 1.4">{{ t.walletV3.withdrawAmbiguousExitBody }}</text>
-          <view class="inline-flex items-center active:opacity-70" style="min-height: 44px; margin-top: 4px" role="button" tabindex="0" :aria-disabled="abandoningAttempt" :aria-label="t.walletV3.withdrawAbandonAttemptCta" @click="abandonPendingAttempt"  @keydown.enter.prevent="abandonPendingAttempt" @keydown.space.prevent="abandonPendingAttempt">
+          <view class="inline-flex items-center active:scale-[0.98] transition-transform" style="min-height: 44px; margin-top: 4px" role="button" tabindex="0" :aria-disabled="abandoningAttempt" :aria-label="t.walletV3.withdrawAbandonAttemptCta" @click="abandonPendingAttempt"  @keydown.enter.prevent="abandonPendingAttempt" @keydown.space.prevent="abandonPendingAttempt">
             <text style="font-size: 12px; color: var(--v5-danger); text-decoration: underline">{{ abandoningAttempt ? `${t.walletV3.withdrawAbandonAttemptCta}…` : t.walletV3.withdrawAbandonAttemptCta }}</text>
           </view>
         </view>

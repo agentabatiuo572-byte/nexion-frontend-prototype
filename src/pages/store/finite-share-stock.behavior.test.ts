@@ -16,6 +16,8 @@ import { purchaseEligibilityPolicyHasNoRestriction, purchaseEligibilityUnlockHre
 import type { PurchaseEligibilityRequestStatus } from "@/lib/purchase-eligibility-copy";
 import { PURCHASE_ELIGIBILITY_SOURCE, type PurchaseEligibilitySnapshot } from "@/api/purchase-eligibility-api";
 import type { Product } from "@/mock/products";
+import type { PublicPromotion } from "@/api/promotion-contracts";
+import * as promotionEntry from "@/lib/promotion-entry";
 
 vi.mock("@/store/locale", () => ({ useLocaleStore: () => ({ code: "zh" }) }));
 vi.mock("@/i18n/use-t", async () => ({ DICTS: { zh: (await import("@/i18n/messages/zh")).zh } }));
@@ -70,7 +72,7 @@ function canonicalProduct(type: "SHARE" | "DEVICE", inventoryMode: "FINITE" | "U
   return parseProductCatalogPayload(raw).products[0];
 }
 
-async function mountPair(product: Product) {
+async function mountPair(product: Product,promotion?:PublicPromotion) {
   const current = Vue.reactive(product);
   const openSnapshot: PurchaseEligibilitySnapshot = {
     productNo: current.id, eligible: true, decisionCode: "ELIGIBLE", evaluatedAt: 1,
@@ -83,6 +85,7 @@ async function mountPair(product: Product) {
   const navTo = vi.fn();
   const forbiddenNetwork = vi.fn(() => { throw new Error("No business transport in component fixture"); });
   const onLoads: Array<(options: Record<string, string>) => Promise<void>> = [];
+  const onUnloads: Array<() => void> = [];
   const cta = Vue.ref<Record<string, unknown> | null>(null);
   const empty = { render: () => null };
   const chassis = { setup: (_props: unknown, { slots }: { slots: Record<string, () => Vue.VNode[]> }) => () => Vue.h("chassis-fixture", slots.default?.()) };
@@ -97,13 +100,15 @@ async function mountPair(product: Product) {
       dayOnePageObservationApi: { s1Roi: forbiddenNetwork }, h3ObservationApi: { productInterest: forbiddenNetwork } },
     "@/store/product-catalog": { productCatalogState: catalogState, productCatalogPresentation: presentation, refreshProductCatalog: async () => true },
     "@/store/purchase-eligibility": { useRemotePurchaseEligibility: () => ({ eligibility, retry: vi.fn() }) },
+    "@/composables/use-scroll-grow-progress": { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(false) }) },
     "@/composables/use-device-eligibility": { useDeviceEligibility: () => ({ tradeInSources: Vue.ref([]) }) },
     "@/mock/tradein-config": { computeTradeInCredit: () => 0 },
     "@/composables/use-purchase-gate": { usePurchaseGate: () => { throw new Error("Remote fixture must not use local gate"); } },
-    "@/lib/promotion-entry": { canPreviewPromotion: () => false, promotionCheckoutHref: () => "", promotionDetailHref: () => "", promotionBundleHref: () => "" },
+    "@/lib/promotion-entry": promotionEntry,
     "@/lib/promotion-display": { localized: (value: unknown) => value ?? "" },
     "@/composables/use-promotion-context": { usePromotionContext: () => ({ activity: Vue.ref(null), status: Vue.ref("ready"), available: Vue.ref(false), refresh: async () => true }) },
-    "@dcloudio/uni-app": { onLoad: (callback: (options: Record<string, string>) => Promise<void>) => onLoads.push(callback), onShow: () => {}, onHide: () => {} },
+    "@dcloudio/uni-app": { onLoad: (callback: (options: Record<string, string>) => Promise<void>) => onLoads.push(callback), onShow: () => {}, onHide: () => {},
+      onUnload: (callback: () => void) => onUnloads.push(callback) },
     "@/mock/products": { getProduct: () => undefined },
     "@/composables/use-product-phase": { useProductPhase: () => Vue.ref({}) },
     "@/store/product-availability": { isProductAvailable },
@@ -132,10 +137,19 @@ async function mountPair(product: Product) {
     return exports.default;
   }
   const cardRoot = node("card-root"), detailRoot = node("detail-root");
-  const cardApp = renderer.createApp(component(cardCode), { product: current });
+  const cardApp = renderer.createApp(component(cardCode), { product: current,promotion,activityId:promotion?.activityId,promotionReady:true });
   cardApp.mount(cardRoot); unmounts.push(() => cardApp.unmount());
   const detailApp = renderer.createApp(component(detailCode));
-  detailApp.mount(detailRoot); unmounts.push(() => detailApp.unmount());
+  detailApp.mount(detailRoot); unmounts.push(() => {
+    try {
+      expect(onUnloads).toHaveLength(1);
+      onUnloads.forEach(unload => unload());
+      expect(cta.value).toBeNull();
+    } finally {
+      detailApp.unmount();
+    }
+    expect(cta.value).toBeNull();
+  });
   await onLoads[0]({ id: current.id });
   await Vue.nextTick();
   return {
@@ -148,6 +162,23 @@ function activate(host: Host, key?: string) {
   const event = { key, stopPropagation() {}, preventDefault() {} };
   (Array.isArray(handler) ? handler : [handler]).forEach(callback => callback(event));
 }
+
+function marketingFixture(state:PublicPromotion['state'],eligibility:PublicPromotion['eligibility']='ESTIMATE_ELIGIBLE'):PublicPromotion{
+  const text={zh:'真实活动',en:'Live offer',vi:'Ưu đãi'};
+  return{activityId:'a1',version:1,template:'SKU_GIFT',state,eligibility,startsAt:'2026-10-07T00:00:00Z',endsAt:'2026-10-30T00:00:00Z',serverTime:'2026-10-08T00:00:00Z',title:text,terms:text,placement:null,target:'STORE',productNos:['finite-share-fixture'],minimumClientCapabilities:[],eligibilityMessage:null,rewardRules:[]};
+}
+test.each(['DRAFT','SCHEDULED','PAUSED','ENDED','ARCHIVED'] as const)('a direct %s promotion prop cannot retain promotional card styling',async state=>{
+  const h=await mountPair(canonicalProduct('DEVICE','FINITE',1),marketingFixture(state));
+  expect(find(h.cardRoot,entry=>String(entry.props.class??'').includes('promotion-catalog-card'))).toBeUndefined();
+  expect(find(h.cardRoot,entry=>String(entry.props.class??'').includes('promotion-buy'))).toBeUndefined();
+  expect(h.buy().props['aria-disabled']).toBe('true');
+});
+
+test('an active promotion remains visible to an ineligible account while its purchase stays blocked',async()=>{
+  const h=await mountPair(canonicalProduct('DEVICE','FINITE',1),marketingFixture('ACTIVE','INELIGIBLE'));
+  expect(find(h.cardRoot,entry=>String(entry.props.class??'').includes('promotion-catalog-card'))).toBeDefined();
+  expect(h.buy().props['aria-disabled']).toBe('true');
+});
 
 test.each(["SHARE", "DEVICE"] as const)("finite %s stock0 renders sold-out and blocks card click/keyboard and detail CTA", async type => {
   const h = await mountPair(canonicalProduct(type, "FINITE", 0));

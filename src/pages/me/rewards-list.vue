@@ -110,7 +110,7 @@
               <text v-if="sourceRefOpen === b.id && b.memoKey === 'learningReward'" class="block" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
             </view>
             <view class="text-right shrink-0" style="margin-left: 8px">
-              <text class="block tabular-nums" :style="rewardAmountStyle">{{ b.amount >= 0 ? '+' : '' }}{{ formatHowNumber(b.amount, locale.code) }} {{ b.symbol }}</text>
+              <text class="block tabular-nums" :style="rewardAmountStyle">{{ (b.amountExact === undefined ? Math.sign(b.amount) === -1 : b.amountExact.startsWith('-')) ? '' : '+' }}{{ formatHowNumber(b.amountExact ?? b.amount, locale.code) }} {{ b.symbol }}</text>
               <text class="block" :style="rowDateStyle">{{ rewardStatusLabel(b.status) }}</text>
               <text class="block" :style="rowDateStyle">{{ shortDate(b.ts) }}</text>
             </view>

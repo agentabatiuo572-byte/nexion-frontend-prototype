@@ -1,14 +1,25 @@
 import {describe,expect,it,vi} from 'vitest';
 import {createPromotionApi,validatePromotionItems,PROMOTION_CAPABILITIES} from './promotion-api';
 import type{ApiClient}from'./api-client';
-import type{Quote,RewardDisclosure}from'./promotion-contracts';
+import type{PublicPromotion,Quote,RewardDisclosure}from'./promotion-contracts';
 const text={zh:'活动条款',en:'Promotion terms',vi:'Điều khoản chương trình'};
 const disclosure:RewardDisclosure={title:text,terms:text,refundTerms:text,benefitDescription:text,deviceRights:null,deviceName:null};
 const spec={rewardRuleId:'r1',beneficiaryRole:'BUYER' as const,type:'USDT' as const,calculation:'FIXED' as const,amount:'0.000001',assetPolicy:{policyId:'p1',version:1,contentHash:'hash'}};
 const quote:Quote={quoteId:'quote-1',quoteHash:'hash',expiresAt:'2026-10-09T00:00:00Z',serverTime:'2026-10-08T00:00:00Z',itemCount:1,quantity:3,items:[{lineId:'l1',productNo:'sku-a',quantity:3,unitPriceUsdt:'0.000001',subtotalUsdt:'0.000003',discountUsdt:'0.000000',payableUsdt:'0.000003'}],subtotalUsdt:'0.000003',discountUsdt:'0.000000',amountUsdt:'0.000003',bundlePolicyVersion:1,activityId:'a1',activityVersion:1,eligibility:'ELIGIBLE',expectedRewards:[{lineId:'l1',activityId:'a1',version:1,ruleId:'rule',rewardRuleId:'r1',beneficiaryRole:'BUYER',groups:3,reward:spec,eligibility:'ELIGIBLE',message:null,disclosure}],warnings:[],reserved:false};
 const receipt={orderNo:'o1',paymentStatus:'PENDING',orderStatus:'PENDING_PAYMENT',promotionQuoteId:'quote-1',quantity:3,payBy:'2026-10-09T00:00:00Z',rewards:quote.expectedRewards,amountUsdt:'0.000003',items:[{lineId:'l1',productNo:'sku-a',productName:'Frozen Alpha',quantity:3}]};
 function setup(){const request=vi.fn();return{request,api:createPromotionApi({request}as unknown as ApiClient)};}
+const activity:PublicPromotion={activityId:'a1',version:2,template:'SKU_GIFT',state:'ACTIVE',startsAt:'2026-10-07T00:00:00Z',endsAt:'2026-10-30T00:00:00Z',serverTime:'2026-10-08T00:00:00Z',title:text,terms:text,placement:'home.purchase-promotion',target:'STORE',productNos:['sku-a'],minimumClientCapabilities:PROMOTION_CAPABILITIES,eligibility:'ESTIMATE_ELIGIBLE',eligibilityMessage:null,rewardRules:[]};
 describe('promotion transport',()=>{
+  it('accepts only the current activity and version banner path without arbitrary URLs',async()=>{
+    const{api,request}=setup();
+    for(const bannerImageUrl of [undefined,null,'/api/promotions/a1/banner/2']){
+      request.mockResolvedValue({...activity,bannerImageUrl});expect((await api.get('a1')).bannerImageUrl).toBe(bannerImageUrl);
+    }
+    for(const bannerImageUrl of ['https://foreign.example/api/promotions/a1/banner/2','//foreign.example/api/promotions/a1/banner/2','/api/promotions/other/banner/2','/api/promotions/a1/banner/1','/api/admin/media/image','/api/promotions/a1/banner/2?asset=secret','/api/promotions/a1/banner/2#anchor','/api/promotions/a1/banner/02','/api/promotions/a1/banner/2/../2',5]){
+      request.mockResolvedValue({...activity,bannerImageUrl});await expect(api.get('a1')).rejects.toThrow('PROMOTION_RESPONSE_INVALID');
+    }
+    request.mockResolvedValue({...activity,state:'PAUSED',bannerImageUrl:'/api/promotions/a1/banner/2'});await expect(api.get('a1')).rejects.toThrow('PROMOTION_RESPONSE_INVALID');
+  });
   it('requires frozen display names on promoted receipt lines and device disclosures',async()=>{
     const{api,request}=setup();request.mockResolvedValue({...receipt,items:[{lineId:'l1',productNo:'sku-a',quantity:3}]});await expect(api.findOrder('o1')).rejects.toThrow();
     request.mockResolvedValue({orders:[{...receipt,items:[{lineId:'l1',productNo:'sku-a',quantity:3}]}],nextCursor:null});await expect(api.findOrder('o1')).rejects.toThrow('PROMOTION_RESPONSE_INVALID');

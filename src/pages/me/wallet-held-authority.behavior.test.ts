@@ -56,8 +56,12 @@ async function mount(remoteApiEnabled = true) {
     user: { usdtBalance: 42.25, nexBalance: 3, pendingEarnings: 0,
       earningBuckets: { pendingReviewUsdt: 0, bonusLockedUsdt: 0 } },
     earnings: { today: 2, total: 10 }, homeTruthStatus: "ready",
-    homeTruth: { earnings: { today: { usdt: 2 } } }, primaryWithdrawal: null,
-    refreshRemoteFleet: vi.fn(async () => {}),
+    homeTruth: { earnings: { today: { usdt: 2 }, all: { usdt: 10 as number | null } } }, primaryWithdrawal: null,
+    refreshRemoteFleet: vi.fn(async () => {}), refreshHomeTruth: vi.fn(async () => {}),
+  });
+  const commission = Vue.reactive({ eventsStatus: "ready",
+    eventsEvidence: { aggregate: { totalUSDT: 5 } } as { aggregate: { totalUSDT: number } } | null,
+    totalUSDTLifetime: () => 5, refreshCanonicalEvents: vi.fn(async () => {}),
   });
   const earningsReleaseSnapshot = Vue.shallowRef<EarningsReleaseStatus | null>(null);
   const earningsReleaseHasSnapshot = Vue.ref(false);
@@ -71,7 +75,7 @@ async function mount(remoteApiEnabled = true) {
     "@/components/sub-page-header.vue": { default: { render: () => null } },
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(en) },
     "@/i18n/format": { fmt }, "@/store/app": { useApp: () => app },
-    "@/store/commission": { useCommission: () => ({ totalUSDTLifetime: () => 5 }) },
+    "@/store/commission": { useCommission: () => commission },
     "@/store/cards": { useCards: () => ({ cards: [] }) }, "@/store/config": { useConfig: () => ({ syncFailed: false }) },
     "@/store/ui": { confirm: vi.fn() }, "@/api/runtime": { remoteApiEnabled, developmentPaymentEnabled: false },
     "@/lib/wallet-today-earnings": { resolveWalletTodayEarnings },
@@ -104,12 +108,67 @@ async function mount(remoteApiEnabled = true) {
     const click = labelNode(en.wallet.retryFunds).parent!.props.onClick as () => void;
     click();
   };
-  return { app, earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus,
-    refreshEarningsReleaseStatus, shown, held, confirmRelease, clickRetry, text: () => textContent(root) };
+  return { app, commission, earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus,
+    refreshEarningsReleaseStatus, shown, held, confirmRelease, clickRetry, value,
+    allTimeSublabel: () => textContent(labelNode(en.wallet.allTimeEarnings).parent!),
+    retryEarnings: () => { (labelNode(en.ui.retry).parent!.props.onClick as () => void)(); },
+    text: () => textContent(root) };
 }
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.restoreAllMocks(); });
 
 describe("actual wallet held authority", () => {
+  it.each(["idle", "loading", "error", "null amount"])("keeps missing mining lifetime unknown rather than a partial total: %s", async status => {
+    const s = await mount();
+    if (status === "null amount") s.app.homeTruth.earnings.all.usdt = null;
+    else s.app.homeTruthStatus = status;
+    await Vue.nextTick();
+    expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
+    expect(s.allTimeSublabel()).toContain("Compute - · Team $5.00");
+    if (status === "idle" || status === "loading") expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
+    else expect(s.text()).toContain(en.wallet.earningsUnavailable);
+  });
+
+  it.each(["idle", "loading", "error", "missing aggregate"])("keeps missing team lifetime unknown rather than a partial total: %s", async status => {
+    const s = await mount();
+    if (status === "missing aggregate") s.commission.eventsEvidence = null;
+    else s.commission.eventsStatus = status;
+    await Vue.nextTick();
+    expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
+    expect(s.allTimeSublabel()).toContain("Compute $10.00 · Team -");
+  });
+
+  it("preserves real lifetime zero and refreshes both missing sources through the actual retry", async () => {
+    const s = await mount();
+    s.app.homeTruthStatus = "error"; s.app.homeTruth.earnings.all.usdt = null;
+    s.commission.eventsStatus = "error"; s.commission.eventsEvidence = null;
+    let mining!: () => void, team!: () => void;
+    s.app.refreshHomeTruth.mockImplementation(async () => {
+      s.app.homeTruthStatus = "loading";
+      await new Promise<void>(resolve => { mining = resolve; });
+      s.app.homeTruth.earnings.all.usdt = 0; s.app.homeTruthStatus = "ready";
+    });
+    s.commission.refreshCanonicalEvents.mockImplementation(async () => {
+      s.commission.eventsStatus = "loading";
+      await new Promise<void>(resolve => { team = resolve; });
+      s.commission.eventsEvidence = { aggregate: { totalUSDT: 0 } }; s.commission.eventsStatus = "ready";
+    });
+    await Vue.nextTick();
+    expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
+    expect(s.allTimeSublabel()).toContain("Compute - · Team -");
+    s.retryEarnings(); s.retryEarnings(); await Vue.nextTick();
+    expect(s.app.refreshHomeTruth).toHaveBeenCalledOnce(); expect(s.commission.refreshCanonicalEvents).toHaveBeenCalledOnce();
+    expect(s.app.refreshRemoteFleet).not.toHaveBeenCalled();
+    expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
+    mining(); await Promise.resolve(); await Vue.nextTick();
+    expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
+    team(); await Promise.resolve(); await Vue.nextTick();
+    expect(s.value(en.wallet.allTimeEarnings)).toBe("$0.00");
+    expect(s.allTimeSublabel()).toContain("Compute $0.00 · Team $0.00");
+    expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
+    s.app.homeTruth.earnings.all.usdt = 12.25; s.commission.eventsEvidence!.aggregate.totalUSDT = 4.5;
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$16.75");
+  });
+
   it.each(["idle", "loading", "error"])("keeps fleet-confirmed held buckets unknown when release is %s without a snapshot", async status => {
     const s = await mount(); s.earningsReleaseStatus.value = status; await Vue.nextTick();
     expect(s.held()).toEqual(["—", "—"]);

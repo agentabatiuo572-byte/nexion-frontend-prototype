@@ -5,7 +5,7 @@
   Detailed specs, progress, queue proof and Notify CTA stay collapsed by default.
 -->
 <template>
-  <view class="nx-glass-card relative overflow-hidden" :style="rootStyle">
+  <view ref="cardRef" class="nx-glass-card relative overflow-hidden" :style="rootStyle">
     <!-- aurora drift bg -->
     <view aria-hidden :style="auroraStyle" />
     <!-- 24px grid overlay -->
@@ -42,9 +42,9 @@
 
       <!-- Bottom row — Notify + queue social proof -->
       <view v-if="detailsOpen" class="mt-3 flex items-center" style="gap: 10px">
-        <view class="flex-1 inline-flex items-center justify-center" :style="notifyBtnStyle" role="button" tabindex="0" :aria-pressed="serverSubscribed" :aria-label="t.store.lockedNotifyMe" @click.stop="handleNotify">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
-          <text>{{ t.store.lockedNotifyMe }}</text>
+        <view class="flex-1 inline-flex items-center justify-center" :style="notifyBtnStyle" role="button" tabindex="0" :aria-pressed="serverSubscribed" :aria-disabled="notifyBusy || notificationStatus === 'loading'" :aria-busy="notifyBusy || notificationStatus === 'loading'" :aria-label="t.store.lockedNotifyMe" @click.stop="handleNotify">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path :d="serverSubscribed ? 'm5 12 4 4L19 6' : 'M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9'" /><path v-if="!serverSubscribed" d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
+          <text>{{ notifyBusy || notificationStatus === 'loading' ? t.store.coLoading : notificationStatus === 'error' ? t.ui.retry : t.store.lockedNotifyMe }}</text>
         </view>
       </view>
     </view>
@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import type { Product } from "@/mock/products";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
@@ -61,7 +61,7 @@ import { toast } from "@/store/ui";
 import { productNotificationApi, remoteApiEnabled } from "@/api/runtime";
 import { useApp } from "@/store/app";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
-import { captureRuntimeRevision, isCurrentRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 import { productCopy, specText } from "@/lib/product-copy";
 import { nexGridBrandText } from "@/lib/brand-copy";
@@ -83,6 +83,7 @@ const PHASE_TO_QUEUE: Record<string, number> = { P3: 1842, P5: 614 };
 const detailsOpen = ref(false);
 const notifyBusy = ref(false);
 const serverSubscribed = ref(false);
+const notificationStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
 let notificationEpoch = 0;
 let notificationMounted = true;
 let lastToggleAt = 0;
@@ -98,51 +99,64 @@ const queue = computed(() =>
 );
 const queueText = computed(() => (queue.value ?? 0).toLocaleString());
 
-const { elRef: barRef, inView: barInView } = useScrollGrowProgress();
+const { elRef: cardRef, inView: cardInView } = useScrollGrowProgress({ threshold: 0.01, fallbackInView: false });
 
-function requestIsCurrent(scope: ReturnType<typeof captureAccountScope>, epoch: number, accountKey: string, runScope: RuntimeRevisionScope): boolean {
+function requestIsCurrent(scope: ReturnType<typeof captureAccountScope>, epoch: number, accountKey: string, runScope: RuntimeRevisionScope, productNo: string): boolean {
   return notificationMounted
     && epoch === notificationEpoch
     && isCurrentAccountScope(scope)
     && String(app.accountKey) === accountKey
+    && props.product.id === productNo
     && isCurrentRuntimeRevision(runScope);
 }
 
 async function reloadNotificationState(): Promise<void> {
+  if (notifyBusy.value || notificationStatus.value === "loading") return;
   const epoch = ++notificationEpoch;
   const scope = captureAccountScope();
   const runScope = captureRuntimeRevision();
   const accountKey = scope.accountKey;
   const productNo = props.product.id;
-  serverSubscribed.value = false;
+  notificationStatus.value = "loading";
   try {
     const result = await productNotificationApi.status(productNo);
-    if (!requestIsCurrent(scope, epoch, accountKey, runScope)) return;
+    if (!requestIsCurrent(scope, epoch, accountKey, runScope, productNo)) return;
     if (result.serverCanonical && result.productNo === productNo) {
       serverSubscribed.value = result.subscribed;
+      notificationStatus.value = "ready";
+    } else {
+      notificationStatus.value = "error";
     }
   } catch {
     // Status is a best-effort hydration. The CTA remains available and only
     // a confirmed mutation can move it to the subscribed state.
+    if (requestIsCurrent(scope, epoch, accountKey, runScope, productNo)) notificationStatus.value = "error";
   }
 }
 
 async function handleNotify() {
-  if (notifyBusy.value) return;
+  if (notifyBusy.value || notificationStatus.value === "loading") return;
   const scope = captureAccountScope();
   const runScope = captureRuntimeRevision();
   const accountKey = scope.accountKey;
+  const productNo = props.product.id;
+  if (notificationStatus.value !== "ready") {
+    const reading = reloadNotificationState();
+    const epoch = notificationEpoch;
+    await reading;
+    if (requestIsCurrent(scope, epoch, accountKey, runScope, productNo) && notificationStatus.value === "error") toast.error(t.value.authOtp.errorServiceUnavailable);
+    return;
+  }
   // A mutation also advances the local request epoch so an older GET (or a
   // previous mutation) cannot overwrite its confirmed state for this account.
   const epoch = ++notificationEpoch;
-  const productNo = props.product.id;
   const nextSubscribed = !serverSubscribed.value;
   notifyBusy.value = true;
   try {
     const result = nextSubscribed
       ? await productNotificationApi.subscribe(productNo)
       : await productNotificationApi.unsubscribe(productNo);
-    if (!requestIsCurrent(scope, epoch, accountKey, runScope)) return;
+    if (!requestIsCurrent(scope, epoch, accountKey, runScope, productNo)) return;
     if (result.serverCanonical && result.productNo === productNo && result.subscribed === nextSubscribed) {
       serverSubscribed.value = nextSubscribed;
       if (nextSubscribed) toast.success(fmt(t.value.store.notifyToast, { name: nexGridBrandText(props.product.name) }));
@@ -150,24 +164,31 @@ async function handleNotify() {
       toast.error(t.value.authOtp.errorServiceUnavailable);
     }
   } catch {
-    if (!requestIsCurrent(scope, epoch, accountKey, runScope)) return;
+    if (!requestIsCurrent(scope, epoch, accountKey, runScope, productNo)) return;
     // A failed request is not a subscription. Keep the CTA available for a
     // retry and avoid claiming success from stale UI state.
     toast.error(t.value.authOtp.errorServiceUnavailable);
   } finally {
-    if (requestIsCurrent(scope, epoch, accountKey, runScope)) notifyBusy.value = false;
+    if (requestIsCurrent(scope, epoch, accountKey, runScope, productNo)) notifyBusy.value = false;
   }
 }
 
-onMounted(() => { void reloadNotificationState(); });
-watch(() => String(app.accountKey), () => {
+function resetNotificationState() {
   // Account rebinds must clear the prior account's status immediately; the
   // next GET is fenced by the new account scope/epoch before it may restore it.
+  notificationEpoch += 1;
+  serverSubscribed.value = false;
   notifyBusy.value = false;
-  void reloadNotificationState();
-});
-watch(() => props.product.id, () => { void reloadNotificationState(); });
+  notificationStatus.value = "idle";
+}
+watch(() => String(app.accountKey), resetNotificationState, { flush: "sync" });
+watch(() => props.product.id, resetNotificationState, { flush: "sync" });
+watch([cardInView, notificationStatus], ([visible, status]) => {
+  if (visible && status === "idle") void reloadNotificationState();
+}, { immediate: true });
+const stopRuntime = subscribeRuntimeRevision(resetNotificationState);
 onUnmounted(() => {
+  stopRuntime();
   notificationMounted = false;
   notificationEpoch += 1;
 });
@@ -176,6 +197,7 @@ function toggleDetails() {
   if (now - lastToggleAt < 120) return;
   lastToggleAt = now;
   detailsOpen.value = !detailsOpen.value;
+  if (detailsOpen.value && notificationStatus.value === "idle") void reloadNotificationState();
 }
 
 const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
@@ -258,9 +280,9 @@ const titleStyle: CSSProperties = {
 
 const barFillStyle = computed<CSSProperties>(() => ({
   height: "100%",
-  width: `${barInView.value ? (progress.value?.pct ?? 0) : 0}%`,
+  width: `${cardInView.value ? (progress.value?.pct ?? 0) : 0}%`,
   background: "linear-gradient(90deg, var(--v5-brand-2) 0%, var(--v5-tech-cyan) 100%)",
-  transition: barInView.value ? PROGRESS_GROW_TRANSITION : "none",
+  transition: cardInView.value ? PROGRESS_GROW_TRANSITION : "none",
   willChange: "width",
 }));
 

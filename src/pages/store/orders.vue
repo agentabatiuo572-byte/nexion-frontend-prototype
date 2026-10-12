@@ -34,7 +34,7 @@
         <view
           v-for="(o, i) in orderList"
           :key="o.id"
-          class="block active:opacity-90"
+          class="block active:scale-[0.98] transition-transform"
           :style="orderRowStyle(i === orderList.length - 1)"
           role="button"
           tabindex="0"
@@ -95,6 +95,7 @@ import { useSetPageHeader } from "@/composables/use-page-header";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import { remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { subscribeRuntimeRevision } from "@/api/order-api";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
 import { binarySessionReady } from "@/lib/binary-session-ready";
@@ -217,6 +218,7 @@ onHide(() => {
 onUnmounted(() => {
   ordersPageActive = false;
   refreshEpoch += 1;
+  unsubscribeRuntimeRevision();
 });
 watch(() => app.accountBindingEpoch, () => {
   remoteOrdersResolved.value = false;
@@ -226,6 +228,14 @@ watch(() => app.accountBindingEpoch, () => {
 // read starts here instead, so the page never settles on an account-state error.
 watch(remoteSessionReady, (ready, wasReady) => {
   if (ready && !wasReady && ordersPageActive) void refreshOrders();
+});
+
+// A later catalog response clears the shared orders without rebinding the account.
+const unsubscribeRuntimeRevision = subscribeRuntimeRevision(() => {
+  if (!remoteApiEnabled) return;
+  refreshEpoch += 1;
+  remoteOrdersResolved.value = false;
+  if (ordersPageActive) void refreshOrders();
 });
 
 const ordersBackHref = ref("/store");

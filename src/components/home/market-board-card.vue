@@ -31,7 +31,7 @@
         v-for="(row, i) in homeMarketRows"
         :key="row.code"
         data-home-market-row="true"
-        class="grid items-center gap-2 active:opacity-70 transition-opacity"
+        class="grid items-center gap-2 active:scale-[0.98] transition-transform"
         role="link"
         tabindex="0"
         :style="{ gridTemplateColumns: marketGridColumns, padding: '10px 14px', borderBottom: i < homeMarketRows.length - 1 ? '1px solid var(--v5-border)' : 'none', minWidth: 0 }"

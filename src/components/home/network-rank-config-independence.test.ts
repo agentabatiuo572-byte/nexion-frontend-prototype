@@ -2,6 +2,15 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import ts from 'typescript';
+import * as Vue from 'vue';
+import { compileScript, parse } from '@vue/compiler-sfc';
+import { renderToString } from '@vue/server-renderer';
+import { en } from '@/i18n/messages/en';
+import { zh } from '@/i18n/messages/zh';
+import { vi as vietnamese } from '@/i18n/messages/vi';
+import { fmt } from '@/i18n/format';
+import { publicStatsHealth, compactNumber } from '@/lib/platform-stats';
+import { computeRank } from '@/lib/network-rank';
 
 const source = readFileSync(new URL('./network-pulse-card.vue', import.meta.url), 'utf8');
 const start = source.indexOf('function unverifiedCell(');
@@ -17,7 +26,7 @@ const compile = new Function('computed', 'cfg', 'health', 'registered', 'app', '
 function scenario({ remote = true, failed = false, rankOk = false, kind = 'ranked', status = 'ready' } = {}) {
   const configRefresh = vi.fn();
   const rankRefresh = vi.fn();
-  const messages = new Proxy({}, { get: (_, key) => String(key) });
+  const messages = new Proxy({}, { get: (_, key) => key === 'networkStatUnverified' ? '-' : String(key) });
   const metrics = compile((run: () => unknown) => run(),
     { syncFailed: failed, config: { publicStats: { registeredUsersMonthlyGrowthPct: 1 } }, load: configRefresh },
     { value: { membersOk: true, devicesOk: true, rankOk } }, { value: 100 },
@@ -33,11 +42,12 @@ describe('actual homepage remote ranking is independent of H9 estimates', () => 
     expect(scenario().metrics[2].v).toBe('#7');
   });
   it('keeps a successful real rank when public configuration fails', () => {
-    const { metrics } = scenario({ failed: true, rankOk: true });
+    const { metrics, configRefresh } = scenario({ failed: true, rankOk: true });
     expect(metrics[2].v).toBe('#7');
-    // Unavailable aggregates remain placeholders, never configured or invented numbers.
+    // Missing measurements remain placeholders and retain the existing retry.
     expect(metrics[0].v).toBe('-');
     expect(metrics[1].v).toBe('-');
+    metrics[0].tap(); expect(configRefresh).toHaveBeenCalledOnce();
   });
   it('keeps an authoritative unranked state when public configuration fails', () => {
     expect(scenario({ failed: true, kind: 'unranked' }).metrics[2].v).toBe('networkRankUnranked');
@@ -59,4 +69,34 @@ describe('actual homepage remote ranking is independent of H9 estimates', () => 
     expect(result.configRefresh).toHaveBeenCalledOnce();
     expect(result.rankRefresh).not.toHaveBeenCalled();
   });
+});
+
+it.each([en, zh, vietnamese])('renders actual network metric slots through missing, failure, zero and recovery', async copy => {
+  const cfg = Vue.reactive({ loading: false, syncFailed: false,
+    config: { publicStats: {}, verifiedStats: null as null | { capturedAt: string; registeredAccounts: { value: number }; onlineDevices: { value: number } } }, load: vi.fn() });
+  const remoteRank = Vue.reactive({ status: 'error', snapshot: null as null | { currentRank: number | null; rankChange24h: number | null }, refresh: vi.fn(), bindAccount: vi.fn() });
+  const blank = { render: () => null };
+  const dependencies: Record<string, unknown> = {
+    vue: Vue, '@/i18n/use-t': { useT: () => Vue.ref(copy) }, '@/i18n/format': { fmt },
+    '@/store/app': { useApp: () => ({ accountKey: 'user:1' }) }, '@/store/config': { useConfig: () => cfg },
+    '@/store/rank-snapshot': { useRankSnapshot: () => ({}) }, '@/store/network-rank': { useNetworkRank: () => remoteRank },
+    '@/api/runtime': { remoteApiEnabled: true }, '@/lib/network-rank': { computeRank },
+    '@/lib/platform-stats': { publicStatsHealth, compactNumber }, '@/store/ui': { toast: { info: vi.fn() } },
+    '@/lib/route': { navTo: vi.fn() }, './pulse-dot.vue': { default: blank }, './home-sparkline.vue': { default: blank },
+  };
+  const script = compileScript(parse(source).descriptor, { id: 'network-slots', inlineTemplate: true });
+  const exports = { default: {} as Vue.Component };
+  new Function('require', 'exports', ts.transpileModule(script.content, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+  }).outputText)((id: string) => { if (!(id in dependencies)) throw new Error(`Unexpected network import: ${id}`); return dependencies[id]; }, exports);
+  const values = async () => [...(await renderToString(Vue.createSSRApp(exports.default)))
+    .matchAll(/class="block mt-0.5 tabular-nums"[^>]*>([^<]*)<\/text>/g)].map(match => match[1]);
+  expect(await values()).toEqual(['-', '-', '-']);
+  cfg.syncFailed = true; expect(await values()).toEqual(['-', '-', '-']);
+  cfg.syncFailed = false; cfg.config.verifiedStats = { capturedAt: '2026-10-10T00:00:00Z', registeredAccounts: { value: 0 }, onlineDevices: { value: 0 } };
+  remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, rankChange24h: null };
+  expect(await values()).toEqual(['0', '0', '#7']);
+  remoteRank.snapshot.currentRank = null; expect(await values()).toEqual(['0', '0', copy.home.networkRankUnranked]);
+  remoteRank.snapshot = null; remoteRank.status = 'loading'; expect(await values()).toEqual(['0', '0']);
+  remoteRank.status = 'error'; expect(await values()).toEqual(['0', '0', '-']);
 });

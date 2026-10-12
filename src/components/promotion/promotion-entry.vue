@@ -15,9 +15,9 @@
     </view>
     <view v-for="activity in visibleItems" :key="activity.activityId" :class="mode==='home'?'entry-advert':'entry-event'" :data-activity-id="activity.activityId">
       <view v-if="mode==='home'" class="entry-advert-target" role="button" :tabindex="active ? 0 : -1" :aria-hidden="!active" :aria-label="localized(activity.title,locale.code)+' · '+t.promotion.browse" @click="active && navTo(promotionStoreHref(activity.activityId))" />
-      <view v-if="mode==='home'" class="entry-artwork" aria-hidden="true" />
-      <text v-if="mode==='home'" class="entry-label">{{ t.promotion.activityBadge }}</text>
-      <view class="entry-copy">
+      <image v-if="mode==='home'&&bannerUrl(activity)" :key="[app.accountKey,app.accountBindingEpoch,locale.code,bannerUrl(activity)].join(':')" v-show="bannerReady(activity)" class="entry-artwork" :src="bannerUrl(activity)" mode="aspectFit" aria-hidden="true" alt="" @load="loadBanner(activity)" @error="failBanner(activity)" />
+      <text v-if="mode==='home'&&!bannerReady(activity)" class="entry-label">{{ t.promotion.activityBadge }}</text>
+      <view v-if="mode==='events'||!bannerReady(activity)" class="entry-copy">
         <text v-if="mode==='events'" class="entry-eyebrow">{{ t.promotion.events }}</text>
         <text class="entry-title">{{ localized(activity.title,locale.code) }}</text>
         <text class="promotion-copy">{{ t.promotion.promoSub }}</text>
@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import { computed,onBeforeUnmount,onMounted,ref,watch } from 'vue';
 import { onHide,onShow } from '@dcloudio/uni-app';
-import { promotionApi,remoteApiEnabled,sessionVault } from '@/api/runtime';
+import { apiRuntimeConfig,promotionApi,remoteApiEnabled,sessionVault } from '@/api/runtime';
 import type { PublicPromotion } from '@/api/promotion-contracts';
 import { useApp } from '@/store/app';
 import { useLocaleStore } from '@/store/locale';
@@ -50,15 +50,21 @@ import { getProduct } from '@/mock/products';
 import { productCatalogState } from '@/store/product-catalog';
 import { navTo } from '@/lib/route';
 import { localized,displayDeadline,rewardAmount } from '@/lib/promotion-display';
-import { createPromotionReadFence,promotionDisclosures,promotionStoreHref } from '@/lib/promotion-entry';
+import { createPromotionReadFence,isPromotionActive,promotionDisclosures,promotionStoreHref } from '@/lib/promotion-entry';
 import LiquidGlass from '@/components/liquid-glass.vue';
 import PromotionTerms from './promotion-terms.vue';
 const props=withDefaults(defineProps<{mode?:'home'|'events';activities?:PublicPromotion[];active?:boolean}>(),{mode:'home',active:true});
 const app=useApp(),locale=useLocaleStore(),t=useT();
 const items=ref<PublicPromotion[]>([]),status=ref<'idle'|'loading'|'ready'|'error'>('idle');
 const cursor=ref<string|null>(null),hasMore=ref(false),activeIndex=ref(0),termsActivity=ref<PublicPromotion|null>(null);
+const loadedBanners=ref(new Set<string>()),failedBanners=ref(new Set<string>());
 const fence=createPromotionReadFence();let visible=true;
 const visibleItems=computed(()=>props.mode==='home'?items.value.slice(activeIndex.value,activeIndex.value+1):items.value);
+function bannerUrl(activity:PublicPromotion){return activity.bannerImageUrl&&!failedBanners.value.has(activity.bannerImageUrl)?apiRuntimeConfig.baseUrl.replace(/\/+$/,'')+activity.bannerImageUrl:null;}
+function bannerReady(activity:PublicPromotion){const url=bannerUrl(activity);return !!url&&loadedBanners.value.has(url);}
+function loadBanner(activity:PublicPromotion){const url=bannerUrl(activity);if(url)loadedBanners.value.add(url);}
+function failBanner(activity:PublicPromotion){const url=bannerUrl(activity);if(activity.bannerImageUrl){failedBanners.value.add(activity.bannerImageUrl);if(url)loadedBanners.value.delete(url);}}
+function clear(resetBanners=true){items.value=[];cursor.value=null;hasMore.value=false;activeIndex.value=0;termsActivity.value=null;if(resetBanners){loadedBanners.value.clear();failedBanners.value.clear();}}
 function publicName(id:string){void productCatalogState.status;return sessionVault.read()?getProduct(id)?.name??id:id;}
 function rewardSummaries(activity:PublicPromotion){return activity.rewardRules.map(rule=>{
   const rewards=[rule.buyerReward,rule.inviterReward].filter((reward):reward is NonNullable<typeof reward>=>!!reward);
@@ -66,19 +72,20 @@ function rewardSummaries(activity:PublicPromotion){return activity.rewardRules.m
 });}
 const termsText=computed(()=>termsActivity.value?[localized(termsActivity.value.terms,locale.code),...rewardSummaries(termsActivity.value),t.value.promotion.deadline+' · '+displayDeadline(termsActivity.value.endsAt,locale.code)].join('\n\n'):'');
 async function load(reset:boolean){
-  if(props.activities!==undefined){items.value=props.activities;status.value='ready';cursor.value=null;hasMore.value=false;return;}
+  if(!visible)return;
+  if(props.activities!==undefined){fence.invalidate();clear(false);items.value=props.activities.filter(isPromotionActive);status.value='ready';return;}
   if(!reset&&(status.value==='loading'||!hasMore.value)) return;
-  const ticket=fence.next(),identity=`${app.accountKey}:${app.accountBindingEpoch}`;
+  const ticket=fence.next(),identity=`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`;
   status.value='loading';
-  if(reset){cursor.value=null;hasMore.value=false;activeIndex.value=0;}
-  if(!remoteApiEnabled){items.value=[];status.value=props.mode==='home'?'ready':'error';return;}
+  if(reset)clear();
+  if(!remoteApiEnabled){clear();status.value=props.mode==='home'?'ready':'error';return;}
   try{
     const page=await promotionApi.list({limit:20,cursor:reset?null:cursor.value,...(props.mode==='home'?{placement:'home.purchase-promotion' as const}:{})},!!sessionVault.read());
-    if(!visible||!fence.current(ticket)||identity!==`${app.accountKey}:${app.accountBindingEpoch}`)return;
+    if(!visible||!fence.current(ticket)||identity!==`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`)return;
     const rows=reset?[]:items.value;
-    items.value=[...new Map([...rows,...page.items].map(item=>[item.activityId,item])).values()];
+    items.value=[...new Map([...rows,...page.items.filter(isPromotionActive)].map(item=>[item.activityId,item])).values()];
     cursor.value=page.nextCursor;hasMore.value=page.hasMore;status.value='ready';
-  }catch{if(visible&&fence.current(ticket))status.value='error';}
+  }catch{if(visible&&fence.current(ticket)&&identity===`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`){clear();status.value='error';}}
 }
 async function move(delta:number){
   const next=activeIndex.value+delta;if(next<0)return;
@@ -86,28 +93,29 @@ async function move(delta:number){
   if(next<items.value.length)activeIndex.value=next;
 }
 watch([()=>app.accountKey,()=>app.accountBindingEpoch,()=>locale.code],()=>{
-  fence.invalidate();items.value=[];cursor.value=null;hasMore.value=false;termsActivity.value=null;
+  fence.invalidate();clear();status.value='idle';
   if(visible)void load(true);
 });
-watch(()=>props.activities,()=>{if(props.activities!==undefined)void load(true);},{immediate:true});
+watch(()=>props.activities,(next,previous)=>{if(visible&&(next!==undefined||previous!==undefined))void load(true);},{immediate:true});
 onMounted(()=>{void load(true);});onShow(()=>{visible=true;void load(true);});
-onHide(()=>{visible=false;fence.invalidate();termsActivity.value=null;});
-onBeforeUnmount(()=>{visible=false;fence.invalidate();});
+onHide(()=>{visible=false;fence.invalidate();clear();status.value='idle';});
+onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 </script>
 <style src="./promotion.css"></style>
 <style scoped>
 .promotion-entry { display:flex; flex-direction:column; gap:16px; }
 .entry-advert { position:relative; }
-.entry-advert-target { position:absolute;inset:0;z-index:1;border-radius:24px; }
+.entry-advert-target { position:absolute;inset:0;z-index:1;border-radius:16px; }
 .entry-advert-target:focus-visible { outline:2px solid var(--v5-brand);outline-offset:3px; }
-.entry-advert { height:184px; box-sizing:border-box; padding:16px 16px 16px 44%; border-radius:16px; overflow:hidden; background:radial-gradient(ellipse at bottom right,color-mix(in srgb,var(--v5-brand) 40%,transparent),transparent 66%),linear-gradient(145deg,var(--v5-bg),color-mix(in srgb,var(--v5-brand) 13%,var(--v5-bg))); border:1px solid color-mix(in srgb,var(--v5-brand) 65%,var(--v5-border)); box-shadow:inset 0 0 16px color-mix(in srgb,var(--v5-brand) 18%,transparent); display:flex; align-items:center; }
-.entry-artwork { position:absolute; inset:0 auto 0 0; width:45%; background:url('/static/promotion/purchase-gift-reference.png') left center / auto 100% no-repeat; mask-image:linear-gradient(to right,black 80%,transparent); }
+.entry-advert { height:184px; box-sizing:border-box; padding:16px; border-radius:16px; overflow:hidden; background:radial-gradient(ellipse at bottom right,color-mix(in srgb,var(--v5-brand) 40%,transparent),transparent 66%),linear-gradient(145deg,var(--v5-bg),color-mix(in srgb,var(--v5-brand) 13%,var(--v5-bg))); border:1px solid color-mix(in srgb,var(--v5-brand) 65%,var(--v5-border)); box-shadow:inset 0 0 16px color-mix(in srgb,var(--v5-brand) 18%,transparent); display:flex; align-items:center; }
+.entry-artwork { position:absolute; inset:0; width:100%; height:100%; }
 .entry-label { position:absolute; top:10px; left:10px; padding:3px 7px; border-radius:12px; border:1px solid var(--v5-brand); background:color-mix(in srgb,var(--v5-brand) 28%,var(--v5-bg)); color:var(--v5-ink); font-size:12px; }
 .entry-advert .entry-title { font-size:20px; line-height:1.25; margin:0 0 8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.entry-advert .promotion-copy { font-size:12px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.entry-advert .promotion-copy { color:var(--v5-ink-2); font-size:12px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .entry-title { display:block; font-size:20px; line-height:1.4; font-weight:600; margin:7px 0; overflow-wrap:anywhere; }
 .entry-eyebrow { font-size:12px; color:var(--v5-brand); }
 .entry-copy { min-width:0; }
+.entry-advert .entry-copy { width:100%; padding-top:16px; }
 .entry-copy .promotion-action { margin-top:12px; min-height:44px; font-size:13px; padding:10px 12px; }
 .promotion-action { position:relative; isolation:isolate; overflow:hidden; }
 .promotion-action text { position:relative; z-index:1; }

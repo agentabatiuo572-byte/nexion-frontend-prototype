@@ -91,7 +91,8 @@ let srcScanned = 0;
 const hits = [];
 const exempts = [];
 
-for (const file of [...i18nFiles, ...srcFiles]) {
+// Test assertions do not enter the production bundle; keep every production source in the scan.
+for (const file of [...i18nFiles, ...srcFiles].filter(file => !file.endsWith(".test.ts"))) {
   const isI18n = file.startsWith(i18nDir);
   const rel = path.relative(root, file).replace(/\\/g, "/");
   for (const row of extractValues(readFileSync(file, "utf8"))) {

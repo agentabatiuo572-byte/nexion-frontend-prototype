@@ -2,12 +2,16 @@ import type { OrderReceipt, Quote } from '../api/promotion-contracts';
 import type { PromotionApi, PromotionOperation } from '../api/promotion-api';
 
 export interface PromotionPendingCommand { key: string; operation: PromotionOperation; targetId: string }
-export interface PromotionCheckoutRecord { quote: Quote | null; order: OrderReceipt | null; pending: PromotionPendingCommand | null; voucherId?:string|null }
+export interface PromotionCheckoutRecord { quote: Quote | null; order: OrderReceipt | null; pending: PromotionPendingCommand | null; voucherId?:string|null; leavePromptShown?:boolean }
 export function selectPromotionCheckoutRecord(records:Record<string,PromotionCheckoutRecord>,input:{activityId:string;items:{productNo:string;quantity:number}[];orderNo?:string}){
   const requested=input.orderNo?JSON.stringify(['order',input.orderNo]):JSON.stringify([input.activityId,input.items]);
-  const pending=Object.entries(records).find(([,record])=>!!record.pending);
-  const intent=pending?.[0]??requested;
-  return {intent,record:pending?.[1]??records[intent],openedOriginal:!!pending&&intent!==requested};
+  const entries=Object.entries(records),pending=entries.find(([,record])=>!!record.pending);
+  const original=input.orderNo?entries.find(([intent,record])=>intent===requested&&record.order?.orderNo===input.orderNo)??entries.find(([,record])=>record.order?.orderNo===input.orderNo):undefined;
+  const intent=pending?.[0]??original?.[0]??requested;
+  let record=pending?.[1]??original?.[1]??records[intent];
+  const orderNo=record?.order?.orderNo;
+  if(record&&!record.leavePromptShown&&orderNo&&entries.some(([,other])=>other.order?.orderNo===orderNo&&other.leavePromptShown))record={...record,leavePromptShown:true};
+  return {intent,record,openedOriginal:!!pending&&intent!==requested};
 }
 export interface PromotionSessionPorts {
   api: Pick<PromotionApi, 'create' | 'pay' | 'cancel' | 'command' | 'findOrder'>;
@@ -28,10 +32,11 @@ export class PromotionCheckoutSession {
   }
   setQuote(quote: Quote,voucherId:string|null=null): void {
     if (this.busy || this.record.pending || this.record.order) throw new Error('ORIGINAL_ORDER_UNRESOLVED');
-    this.persist({ quote, order: null, pending: null,voucherId });
+    this.persist({ quote, order: null, pending: null,voucherId,...(this.record.leavePromptShown?{leavePromptShown:true}:{}) });
     this.confirmed = false;
   }
-  invalidateQuote():void {if(this.busy||this.record.pending||this.record.order)throw new Error('ORIGINAL_ORDER_UNRESOLVED');this.persist({quote:null,order:null,pending:null});this.confirmed=false;}
+  invalidateQuote():void {if(this.busy||this.record.pending||this.record.order)throw new Error('ORIGINAL_ORDER_UNRESOLVED');this.persist({quote:null,order:null,pending:null,...(this.record.leavePromptShown?{leavePromptShown:true}:{})});this.confirmed=false;}
+  rememberLeavePrompt():void {this.persist({...this.record,leavePromptShown:true});}
   private persist(record: PromotionCheckoutRecord): void {
     if (!this.ports.current()) throw new Error('ACCOUNT_SCOPE_CHANGED');
     this.ports.save(record);
@@ -129,7 +134,7 @@ export class PromotionCheckoutSession {
             if(!this.ports.current())return;
             if(!order){this.unknown=true;this.confirmed=false;return;}
             this.acceptOrder(order);
-          }else{this.persist({quote:null,order:null,pending:null});this.unknown=false;this.confirmed=false;}
+          }else{this.persist({quote:null,order:null,pending:null,...(this.record.leavePromptShown?{leavePromptShown:true}:{})});this.unknown=false;this.confirmed=false;}
           this.retryOriginal=false;
         } else if (result.status === 'NOT_FOUND') {
           this.unknown = false;

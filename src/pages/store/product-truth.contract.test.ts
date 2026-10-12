@@ -97,7 +97,7 @@ describe("locked card gate affordance tells the truth", () => {
   it("makes the actual footer CTA lead to eligibility details or retry instead of silently returning", () => {
     expect(productCard).toMatch(/<view[^>]*:aria-disabled="buyUnavailable \? 'true' : 'false'"[^>]*@click\.stop="onBuy"/);
     expect(productCard).toMatch(/const buyUnavailable = computed\([\s\S]{0,240}?eligibility\.value\.status === "loading"/);
-    expect(productCard).toMatch(/if \(remoteApiEnabled\) \{\s*if \(eligibility\.value\.status === "error"\) void retryEligibility\(\);\s*else if \(eligibility\.value\.status === "ready" && eligibility\.value\.eligible\) goCheckout\(\);\s*else if \(eligibility\.value\.status === "ready"\) goDetail\(\);/);
+    expect(productCard).toMatch(/if \(remoteApiEnabled\) \{\s*if \(eligibility\.value\.status === "idle" \|\| eligibility\.value\.status === "error"\) void retryEligibility\(\);\s*else if \(eligibility\.value\.status === "ready" && eligibility\.value\.eligible\) goCheckout\(\);\s*else if \(eligibility\.value\.status === "ready"\) goDetail\(\);/);
   });
 
   it("routes a locked card to the product page in remote mode instead of expanding nothing", () => {

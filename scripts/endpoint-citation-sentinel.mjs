@@ -105,6 +105,7 @@ const LEDGER = {
   "/api/store/bundle-discount": "BACKEND: AppCanonicalBoundaryController 已实现;PC E1 套餐折扣配置的 App 只读投影,后台 PRD v2 §176",
   "/api/orders/quote": "BACKEND: AppPromotionController#quote 已实现;R1 购机促销的账号报价快照,报价不预留资产",
   "/api/promotions": "BACKEND: AppPromotionController#{list,get,referral} 已实现;公开活动与当前账号直属推荐进度",
+  "GET /api/promotions/:activityId/banner/:version": "BACKEND: PromotionBannerController#image 已实现;docs/specs/growth-promotions/openapi.json operationId=getPublicPromotionBanner(公开读取当前已发布且生效的活动横幅)",
   "/api/promotion-commands": "BACKEND: AppPromotionController#command 已实现;当前账号的促销命令结果恢复,按 operation/targetId/幂等键匹配",
   "/api/promotion-rewards": "BACKEND: AppPromotionController#{rewards,reward} 已实现;当前账号的奖励义务分页与详情",
 

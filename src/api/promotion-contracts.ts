@@ -1,5 +1,5 @@
 // Generated from the reviewed OpenAPI. Run scripts/generate-promotion-contracts.mjs; no business calculations.
-// Source SHA256: b8a3349bf63ba3288c59bec34ec81deac4390fd3b16e15128f62b4fc100d7fa5
+// Source SHA256: a1f7a741541c9e5ac5a66f9aee094d99f3e0abe359270188b8bbaeba35847850
 export type Id = string;
 export type Revision = number;
 export type Template = "SKU_GIFT" | "FIRST_PURCHASE" | "DIRECT_REFERRAL" | "MULTI_PRODUCT" | "REPURCHASE";
@@ -13,7 +13,7 @@ export type RewardDisclosure = { "title": LocalizedText; "terms": LocalizedText;
 export type PositiveAmount = string;
 export type PublicRewardSpec = ({ "rewardRuleId": Id; "beneficiaryRole": Role; "type": "DEVICE"; "giftProductNo": Id; "quantity": Quantity; "disclosure": RewardDisclosure } | { "rewardRuleId": Id; "beneficiaryRole": Role; "type": "USDT" | "NEX"; "calculation": "FIXED"; "amount": PositiveAmount; "disclosure": RewardDisclosure });
 export type PublicPurchaseRule = { "ruleId": Id; "productNo": Id; "minBuyQty": Quantity; "repeatMode": "PER_GROUP" | "ONCE_PER_ORDER"; "maxGroups": Limit; "maxGroupsPerPerson": Limit; "buyerReward": PublicRewardSpec; "inviterReward": (PublicRewardSpec | null) };
-export type PublicPromotion = { "activityId": Id; "version": Revision; "template": Template; "state": ActivityState; "startsAt": Time; "endsAt": Time; "serverTime": Time; "title": LocalizedText; "terms": LocalizedText; "placement": "home.purchase-promotion" | null; "target": "STORE"; "productNos": Array<Id>; "minimumClientCapabilities": Array<"PROMOTION_QUOTE_V1" | "ORDER_ITEM_QUANTITIES_V1" | "PROMOTION_REWARDS_V1">; "eligibility": "SIGN_IN_REQUIRED" | "ESTIMATE_ELIGIBLE" | "INELIGIBLE" | "UNKNOWN"; "eligibilityMessage": (LocalizedText | null); "rewardRules": Array<PublicPurchaseRule> };
+export type PublicPromotion = { "bannerImageUrl"?: string | null; "activityId": Id; "version": Revision; "template": Template; "state": ActivityState; "startsAt": Time; "endsAt": Time; "serverTime": Time; "title": LocalizedText; "terms": LocalizedText; "placement": "home.purchase-promotion" | null; "target": "STORE"; "productNos": Array<Id>; "minimumClientCapabilities": Array<"PROMOTION_QUOTE_V1" | "ORDER_ITEM_QUANTITIES_V1" | "PROMOTION_REWARDS_V1">; "eligibility": "SIGN_IN_REQUIRED" | "ESTIMATE_ELIGIBLE" | "INELIGIBLE" | "UNKNOWN"; "eligibilityMessage": (LocalizedText | null); "rewardRules": Array<PublicPurchaseRule> };
 export type PublicPromotionPage = { "items": Array<PublicPromotion>; "nextCursor": (string | null); "hasMore": boolean };
 export type Hash = string;
 export type Amount = string;

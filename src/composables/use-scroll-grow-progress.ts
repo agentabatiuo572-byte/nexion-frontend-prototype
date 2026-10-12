@@ -12,18 +12,20 @@ import { ref, onMounted, onUnmounted } from "vue";
  *
  * Cross-end note: H5 webview has IntersectionObserver. On App webview where it
  * is unavailable, `inView` defaults to true (bars show final width, no grow
- * animation) — a safe degradation rather than bars stuck at 0.
+ * animation). Network readers pass `fallbackInView: false` and keep an explicit
+ * per-item action when visibility cannot be observed.
  */
-export function useScrollGrowProgress(options: { threshold?: number } = {}) {
+export function useScrollGrowProgress(options: { threshold?: number; fallbackInView?: boolean } = {}) {
   const threshold = options.threshold ?? 0.25;
+  const fallbackInView = options.fallbackInView ?? true;
   const elRef = ref<HTMLElement | null>(null);
   const inView = ref(false);
   let observer: IntersectionObserver | null = null;
 
   onMounted(() => {
     if (typeof IntersectionObserver === "undefined") {
-      // No IO (e.g. App webview) → show final state without the grow animation.
-      inView.value = true;
+      // Progress bars keep their final state; network reads must stay opt-in.
+      inView.value = fallbackInView;
       return;
     }
     // uni H5 PITFALL (P-019): a template ref on a <view> yields the component
@@ -31,14 +33,14 @@ export function useScrollGrowProgress(options: { threshold?: number } = {}) {
     // Resolve via $el so IntersectionObserver.observe() gets a real Element.
     const raw = elRef.value as unknown;
     const el: Element | null =
-      raw instanceof Element
+      typeof Element !== "undefined" && raw instanceof Element
         ? raw
-        : (raw as { $el?: unknown } | null)?.$el instanceof Element
+        : typeof Element !== "undefined" && (raw as { $el?: unknown } | null)?.$el instanceof Element
           ? (raw as { $el: Element }).$el
           : null;
     if (!el) {
       // Couldn't resolve an element → show final state rather than stay at 0.
-      inView.value = true;
+      inView.value = fallbackInView;
       return;
     }
     observer = new IntersectionObserver(

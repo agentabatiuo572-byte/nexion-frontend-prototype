@@ -23,12 +23,13 @@
            mirroring the prototype's SetPageHeader. -->
 
       <view v-if="publicOnly" class="promotion promotion-main" data-testid="promotion-public-detail">
-        <text class="promotion-title">{{ activity?localized(activity.title,locale.code):t.promotion.events }}</text>
+        <text class="promotion-title">{{ activity?localized(activity.title,locale.code):promotionStatus==='ready'?t.promotion.disabled:promotionStatus==='error'?t.promotion.error:t.promotion.loading }}</text>
         <text v-if="promotionStatus==='loading'||promotionStatus==='idle'" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
         <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
-        <text v-else-if="!promotionAvailable" class="promotion-copy">{{ localized(activity?.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
+        <text v-else-if="activity&&!promotionAvailable" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
         <PromotionProduct v-if="activity" :activity="activity" :product-no="id" expanded public-only />
-        <view class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionDetailHref(id,activityId)))"><text>{{ t.promotion.signIn }}</text></view>
+        <view v-if="activity" class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionDetailHref(id,activityId)))"><text>{{ t.promotion.signIn }}</text></view>
+        <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionStoreHref())"><text>{{ t.promotion.allProducts }}</text></view>
       </view>
       <view v-else-if="catalogStatus === 'loading'" class="text-center" style="padding: 40px 16px">
         <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.catalogLoadingTitle }}</text>
@@ -126,12 +127,12 @@
         </view>
 
         <view v-if="activityId" class="mx-4 mt-3 promotion promotion-flat" data-testid="detail-promotion">
-          <text class="promotion-title">{{ t.promotion.gift }}</text>
+          <text class="promotion-title">{{ activity?t.promotion.gift:promotionStatus==='ready'?t.promotion.disabled:promotionStatus==='error'?t.promotion.error:t.promotion.loading }}</text>
           <text v-if="promotionStatus==='loading'||promotionStatus==='idle'" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
           <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
-          <text v-else-if="!promotionAvailable||!activity?.productNos.includes(product.id)" class="promotion-copy">{{ localized(activity?.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
+          <text v-else-if="activity&&(!promotionAvailable||!activity.productNos.includes(product.id))" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
           <PromotionProduct v-if="activity" :activity="activity" :product-no="product.id" expanded />
-          <view class="promotion-summary" style="align-items:center;margin-top:16px">
+          <view v-if="activity" class="promotion-summary" style="align-items:center;margin-top:16px">
             <text>{{ t.promotion.quantity }}</text>
             <view class="promotion-quantity-stepper">
               <view role="button" :tabindex="qty<=1?-1:0" :aria-disabled="qty<=1" :aria-label="t.uiChrome.decreaseQty" @click="dec">−</view>
@@ -139,7 +140,7 @@
               <view role="button" :aria-label="t.uiChrome.increaseQty" :tabindex="qty>=100?-1:0" :aria-disabled="qty>=100" @click="inc">+</view>
             </view>
           </view>
-          <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId,[{productNo:product.id,quantity:qty}]))"><text>{{ t.promotion.bundle }}</text></view>
+          <view v-if="activity" class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId,[{productNo:product.id,quantity:qty}]))"><text>{{ t.promotion.bundle }}</text></view>
           <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionDetailHref(id))"><text>{{ t.promotion.ordinary }}</text></view>
         </view>
 
@@ -266,14 +267,14 @@
 
 <script setup lang="ts">
 import { navTo, takeNavigationQuery } from "@/lib/route";
-import { ref, computed, watch, onUnmounted, nextTick, type CSSProperties } from "vue";
-import { onLoad, onHide, onShow } from "@dcloudio/uni-app";
+import { ref, computed, watch, onActivated, onDeactivated, onUnmounted, nextTick, type CSSProperties } from "vue";
+import { onLoad, onHide, onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SectionHeader from "@/components/store/section-header.vue";
 import ProductRender from "@/components/store/product-render.vue";
 import PromotionProduct from '@/components/promotion/promotion-product.vue';
 import { usePromotionContext } from '@/composables/use-promotion-context';
-import { promotionBundleHref,promotionCheckoutHref,promotionDetailHref } from '@/lib/promotion-entry';
+import { promotionBundleHref,promotionCheckoutHref,promotionDetailHref,promotionStoreHref } from '@/lib/promotion-entry';
 import { localized } from '@/lib/promotion-display';
 import LiveSocialProof from "@/components/store/live-social-proof.vue";
 import SpecTable from "@/components/store/spec-table.vue";
@@ -681,14 +682,12 @@ function toggleFaq(i: number) {
 // Chassis-level sticky bottom Buy CTA (replaces the old page-level fixed-position
 // bar, which positioned against the viewport — wrong inside the bezel). useStickyCTA
 // → the chassis-mounted <StickyCtaBar> renders it correctly (absolute). Re-syncs as
-// product/qty resolve; cleared on hide/unmount so it never bleeds to the next page.
+// product/qty resolve; cached deactivation and Uni unload also clear this page's CTA.
 const sticky = useStickyCTA();
 const stickyOwner = Symbol("store-detail");
 const stickyPageVisible = ref(true);
 sticky.activate(stickyOwner);
-watch(
-  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, paybackLabel, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty],
-  () => {
+function publishStickyCTA() {
     if (!stickyPageVisible.value || (remoteApiEnabled && catalogStatus.value !== "ready")) {
       sticky.hide(stickyOwner);
       return;
@@ -762,27 +761,31 @@ watch(
       buttonLabel: t.value.store.cardBuyNow,
       showTabBar: false,
     }, stickyOwner);
-  },
+}
+watch(
+  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, paybackLabel, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty],
+  publishStickyCTA,
   { immediate: true },
 );
-onShow(() => {
+function showDetailStickyCTA() {
+  detailPageVisible = true;
   sticky.activate(stickyOwner);
   stickyPageVisible.value = true;
-});
-onHide(() => {
+  publishStickyCTA();
+}
+function hideDetailStickyCTA() {
   detailPageVisible = false;
   detailObservationEpoch += 1;
   invalidateDetailFacts();
   stickyPageVisible.value = false;
   sticky.hide(stickyOwner);
-});
-onUnmounted(() => {
-  detailPageVisible = false;
-  detailObservationEpoch += 1;
-  invalidateDetailFacts();
-  stickyPageVisible.value = false;
-  sticky.hide(stickyOwner);
-});
+}
+onShow(showDetailStickyCTA);
+onActivated(showDetailStickyCTA);
+onHide(hideDetailStickyCTA);
+onUnload(hideDetailStickyCTA);
+onDeactivated(hideDetailStickyCTA);
+onUnmounted(hideDetailStickyCTA);
 
 // ─── styles ───
 const catalogRetryStyle: CSSProperties = {

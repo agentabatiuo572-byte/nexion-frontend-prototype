@@ -35,6 +35,8 @@ export default defineConfig(({ mode }) => {
     : undefined;
 
   return {
+    // Worktrees share dependencies, but optimizer results depend on this source and mode.
+    cacheDir: `${selfDir}/.cache/vite/${mode}`,
     define: {
       __UVEL_RESOURCE_VERSION__: JSON.stringify({ versionName: manifest.versionName, versionCode: manifest.versionCode }),
     },

@@ -1,11 +1,15 @@
 // @ts-expect-error Node is used only by the test runner.
 import { readFileSync } from "node:fs";
 import { compile } from "@vue/compiler-dom";
-import { parse } from "@vue/compiler-sfc";
+import { compileScript, parse } from "@vue/compiler-sfc";
 import { renderToString } from "@vue/server-renderer";
 import * as Vue from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
+import { en } from "@/i18n/messages/en";
+import { zh } from "@/i18n/messages/zh";
+import { vi as vietnamese } from "@/i18n/messages/vi";
+import { fmt } from "@/i18n/format";
 
 const source = readFileSync(new URL("./goals.vue", import.meta.url), "utf8");
 const template = parse(source, { filename: "goals.vue" }).descriptor.template!.content;
@@ -66,6 +70,49 @@ async function show(
 }
 
 describe("earning-goal read recovery", () => {
+  it.each([en, zh, vietnamese])("renders the actual hero amount only after a current-account goal read", async copy => {
+    const goalsStore = Vue.reactive({ accountEpoch: 1, status: "error", goals: [], lifetimeEarningsUsdt: 0,
+      recommendationStatus: "idle", recommendation: null, recommendationError: null,
+      ensure: vi.fn(async () => {}), refreshRecommendation: vi.fn(async () => {}) });
+    const modules: Record<string, unknown> = {
+      vue: { ...Vue, onMounted() {}, onUnmounted() {} },
+      "@dcloudio/uni-app": { onShow() {}, onHide() {} },
+      "@/store/goals": { useGoals: () => goalsStore }, "@/store/app": { useApp: () => ({ accountKey: "user:1", accountBindingEpoch: 1 }) },
+      "@/store/ui": { useUI: () => ({}) }, "@/i18n/use-t": { useT: () => Vue.ref(copy) },
+      "@/i18n/format": { fmt }, "@/api/runtime": { remoteApiEnabled: true },
+      "@/lib/route": { navReset: vi.fn() }, "@/lib/brand-copy": { nexGridBrandText: (value: string) => value },
+      "@/components/app-chassis.vue": { default: wrapper }, "@/components/sub-page-header.vue": { default: wrapper },
+      "@/components/me/goal-progress-bar.vue": { default: progress },
+    };
+    const compiled = compileScript(parse(source).descriptor, { id: "actual-goal-hero" });
+    const exports = { default: {} as { setup: (props: object, context: object) => Record<string, unknown> } };
+    new Function("require", "exports", ts.transpileModule(compiled.content, {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+    }).outputText)((id: string) => { if (!(id in modules)) throw new Error(`Unexpected goals import: ${id}`); return modules[id]; }, exports);
+    const scope = Vue.effectScope();
+    const page = scope.run(() => exports.default.setup({}, { expose() {} }))!;
+    const showActual = () => {
+      const actual = Vue.createSSRApp({ render, setup: () => ({ ...page }) });
+      actual.component("AppChassis", wrapper); actual.component("SubPageHeader", wrapper); actual.component("GoalProgressBar", progress);
+      return renderToString(actual).then(html => html.replaceAll("&#39;", "'"));
+    };
+    const hero = (current: string) => fmt(copy.goals.heroSubtitle, { current });
+    try {
+      let html = await showActual();
+      expect(html).toContain(copy.goals.serverUnavailable); expect(html).not.toContain(hero("0.00")); expect(html).not.toContain("$-");
+      goalsStore.status = "ready"; await (page.refreshRemoteGoals as () => Promise<void>)();
+      html = await showActual(); expect(html).toContain(hero("0.00")); expect(html).not.toContain("$$");
+      goalsStore.lifetimeEarningsUsdt = 12.25;
+      html = await showActual(); expect(html).toContain(hero("12.25"));
+      goalsStore.status = "error";
+      html = await showActual(); expect(html).toContain(copy.goals.serverUnavailable); expect(html).not.toContain(hero("12.25"));
+      goalsStore.accountEpoch += 1; goalsStore.status = "ready";
+      html = await showActual(); expect(html).toContain(copy.goals.loading); expect(html).not.toContain(hero("12.25"));
+      goalsStore.lifetimeEarningsUsdt = 7; await (page.refreshRemoteGoals as () => Promise<void>)();
+      html = await showActual(); expect(html).toContain(hero("7.00"));
+    } finally { scope.stop(); }
+  });
+
   it("shows loading instead of default editor values until the server goal has loaded", async () => {
     const html = await show("loading", []);
     expect(html).not.toContain("<input");

@@ -84,7 +84,7 @@
   --v5-success-soft: #DFF5E8;
   --v5-warning: #C68316;
   --v5-warning-soft: #FBF1D9;
-  --v5-danger: #B9554A;
+  --v5-danger: #99443B;       /* AA small text on danger-soft and page tints through 15%. */
   --v5-danger-soft: #F8E1DC;
 
   --v5-tech-cyan: #0CC4D6;

@@ -38,8 +38,9 @@ export function rankHowCopy(locale: string) {
 }
 
 // Native UniApp can omit Intl; round decimal digits without binary toFixed ties.
-export function formatHowNumber(value: number, locale: string) {
-  const [mantissa, exponent = "0"] = Math.abs(value).toString().split("e");
+export function formatHowNumber(value: number | string, locale: string) {
+  const negative = typeof value === "string" ? value.startsWith("-") : value < 0;
+  const [mantissa, exponent = "0"] = (typeof value === "string" ? value.replace(/^-/, "").replace(/^0+(?=\d)/, "") : Math.abs(value).toString()).split("e");
   const [integer, fraction = ""] = mantissa.split(".");
   const digits = integer + fraction;
   const point = integer.length + Number(exponent);
@@ -57,7 +58,7 @@ export function formatHowNumber(value: number, locale: string) {
   const fixed = rounded.join("");
   const vietnamese = locale.split("-")[0] === "vi";
   const decimals = fixed.slice(-6).replace(/0+$/, "");
-  return (value < 0 ? "-" : "") + fixed.slice(0, -6).replace(/\B(?=(\d{3})+(?!\d))/g, vietnamese ? "." : ",")
+  return (negative ? "-" : "") + fixed.slice(0, -6).replace(/\B(?=(\d{3})+(?!\d))/g, vietnamese ? "." : ",")
     + (decimals ? `${vietnamese ? "," : "."}${decimals}` : "");
 }
 

@@ -234,8 +234,8 @@
 
 <script setup lang="ts">
 import { navTo } from "@/lib/route";
-import { computed, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { computed, onUnmounted, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -246,6 +246,7 @@ import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useGenesisPoints } from "@/store/genesis-points";
+import { registerActivePageRefresh } from "@/lib/active-page-refresh";
 
 const DAY = 86400_000;
 // mock 参考价：真后台提供平台 NEX 结算价（GET /api/market），此处仅用于「≈$」参考展示（非保证）。
@@ -266,12 +267,17 @@ const dividendsOpen = computed(() => genesis.dividendsOpen);
 // 🔴 阻断说明走 blockText 唯一出口(独立验收 P1-3):上一版写死 `.default`,
 //   售罄时这里说「暂未开放」而创世页说「已售罄」,同刻自相矛盾。售罄档落 `ctaSoldOut`。
 const { showUrgency, blockText } = useGenesisSaleGate();
+let releaseActiveRefresh = () => {};
 // 页面每次露出重读配置(hydrate-once 修复;理由同 genesis.vue)。
 onShow(() => {
+  releaseActiveRefresh();
+  releaseActiveRefresh = registerActivePageRefresh(() => genesis.syncRemote());
   void useGenesisConfig().refresh();
   void genesis.syncRemote();
   void genesisPoints.refresh();
 });
+onHide(() => releaseActiveRefresh());
+onUnmounted(() => releaseActiveRefresh());
 const notHolderBodyText = computed(() =>
   showUrgency.value
     ? fmt(t.value.genesisHolder.notHolderBody, { n: remaining.value })
@@ -297,14 +303,15 @@ const holderFactText = computed(() => {
   if (fact.holderStatus === "CONFIG_UNAVAILABLE") return copy.unpublished;
   if (fact.holderStatus === "NOT_EFFECTIVE") return copy.notEffective;
   if (fact.holderStatus === "NOT_ELIGIBLE") return copy.notEligible;
-  return fact.qualificationReasonCodes.map(reasonText).join(" · ")
+  const qualification = fact.qualificationReasonCodes.map(reasonText).join(" · ")
     || (fact.holderStatus === "READY" ? copy.confirmed : copy.unconfirmed);
+  return fact.reservedAllocation === null ? `${qualification} · ${copy.allocationUnavailable}` : qualification;
 });
 const allocText = computed(() => {
   if (!remoteApiEnabled) return `${genesis.reservedAllocationNEX().toLocaleString()} NEX`;
   const fact = remoteHolderFact.value;
-  if (!fact || holderFactStale.value || fact.holderStatus === "CONFIG_UNAVAILABLE" || fact.holderStatus === "NOT_EFFECTIVE" || fact.holderStatus === "NOT_ELIGIBLE") return "— NEX";
-  return `${(fact.reservedAllocation ?? 0).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${fact.reservedAllocationUnit}`;
+  if (!fact || holderFactStale.value || fact.holderStatus === "CONFIG_UNAVAILABLE" || fact.holderStatus === "NOT_EFFECTIVE" || fact.holderStatus === "NOT_ELIGIBLE" || fact.reservedAllocation === null) return "-";
+  return `${fact.reservedAllocation.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${fact.reservedAllocationUnit}`;
 });
 const priorityText = computed(() => {
   if (!remoteApiEnabled) return owned.value >= 5 ? "Top 1%" : owned.value >= 2 ? "Top 3%" : "Top 5%";

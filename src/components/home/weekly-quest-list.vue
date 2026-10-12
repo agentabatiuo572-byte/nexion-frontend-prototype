@@ -36,7 +36,7 @@
         </view>
 
         <!-- completed: claimable button -->
-        <view v-else-if="isCompleted(q)" class="flex items-center px-4 py-3 active:opacity-80" role="button" tabindex="0" :style="completedRowStyle" @click="onClaimRow(q)">
+        <view v-else-if="isCompleted(q)" class="flex items-center px-4 py-3 active:scale-[0.98] transition-transform" role="button" tabindex="0" :style="completedRowStyle" @click="onClaimRow(q)">
           <view class="grid place-items-center shrink-0" :style="sparkBoxStyle">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /></svg>
           </view>
@@ -278,7 +278,7 @@ const categoryLabelStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-4)",
 };
-const claimErrorStyle: CSSProperties = { ...categoryLabelStyle, color: "var(--v5-danger)" };
+const claimErrorStyle: CSSProperties = { ...categoryLabelStyle, color: "var(--v5-ink)" };
 const refreshErrorStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-warning)", borderBottom: "1px solid var(--v5-border)" };
 /** 「未开放」标记与奖励数字同槽位:同样是 12px 等宽,但不得像可赚取的金额一样抢眼。 */
 const pendingPausedStyle: CSSProperties = {

@@ -92,6 +92,21 @@ beforeEach(() => {
 afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("mounted reward detail precision", () => {
+  it.each(["zh", "en", "vi"] as const)("keeps the authoritative exact amount for both reward assets in %s", async locale => {
+    vi.stubGlobal("Intl", undefined);
+    for (const symbol of ["USDT", "NEX"] as const) {
+      const rows = ["999999999999.999999", "-999999999999.999999", "0.000001", "0001.000001", "-0.000000"].map(amountExact => ({
+        ...fixture(Number(amountExact), symbol), amountExact,
+      }));
+      const before = JSON.stringify(rows), page = await mount(locale, rows);
+      const large = locale === "vi" ? "999.999.999.999,999999" : "999,999,999,999.999999";
+      expect(page.amounts()).toEqual([`+${large} ${symbol}`, `-${large} ${symbol}`,
+        `+${locale === "vi" ? "0,000001" : "0.000001"} ${symbol}`,
+        `+${locale === "vi" ? "1,000001" : "1.000001"} ${symbol}`, `-0 ${symbol}`]);
+      expect(JSON.stringify(rows)).toBe(before);
+    }
+  });
+
   it.each(["zh", "en", "vi"] as const)("keeps six non-zero decimals, symbols, compact NEX and signs in %s", async locale => {
     const rows = [fixture(0.045005), fixture(0.000001), fixture(1234.045005), fixture(-0.045005)];
     const before = JSON.stringify(rows), page = await mount(locale, rows);

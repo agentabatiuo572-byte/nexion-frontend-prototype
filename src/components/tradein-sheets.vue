@@ -364,9 +364,11 @@ const choiceSources = computed(() => {
     .filter((d): d is Device => !!d)
     .map((d) => ({
       id: d.id,
-      label: fmt(t.value.tradein.choiceTradeInOption, {
+      label: remoteApiEnabled
+        ? `${deviceName(t.value, d)} · ${t.value.tradein.remoteQuoteCreditLabel}`
+        : fmt(t.value.tradein.choiceTradeInOption, {
         name: deviceName(t.value, d),
-        credit: remoteApiEnabled ? t.value.tradein.remoteQuoteCreditLabel : previewCredit(d, s.newPrice).toFixed(2),
+        credit: previewCredit(d, s.newPrice).toFixed(2),
       }),
     }));
 });
@@ -596,7 +598,7 @@ const tradeinView = computed(() => {
     oldDeviceText: oldDevice.name,
     earned: earned.toFixed(2),
     bandText: remoteQuote
-      ? fmt(t.value.tradein.sheetBandText, { band: t.value.tradein.remoteQuoteBandLabel, pct: remoteQuote.creditRatePct })
+      ? fmt(t.value.tradein.remoteQuoteBandLabel, { pct: remoteQuote.creditRatePct })
       : band
       ? fmt(t.value.tradein.sheetBandText, { band: band.band, pct: band.creditPct })
       : "—",

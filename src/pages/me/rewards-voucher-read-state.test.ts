@@ -117,7 +117,7 @@ describe('Rewards voucher list remote read states', () => {
       `${l1Block}\nreturn { voucherReady, availableCount, expiredCount, allZero, cats };`,
     )(computed, voucher, true, true, bills, () => false, t, (template: string, args: { n: number }) => template.replace('{n}', String(args.n)), ref, watch);
 
-    expect(result.cats.value[0].big).toBe('--');
+    expect(result.cats.value[0].big).toBe('-');
     expect(result.allZero.value).toBe(false);
     voucher.remoteStatus = 'ready';
     expect(result.cats.value[0].big).toBe('0');
@@ -125,7 +125,7 @@ describe('Rewards voucher list remote read states', () => {
   });
 
   // Returning from a detail page re-runs the summary read. The cards used to
-  // flash "--" on every return because a loading status blanked values the user
+  // flash a placeholder on every return because a loading status blanked values the user
   // had already seen. A background re-read must keep the last successful figures.
   it('keeps the last successful totals and counts while a background re-read is loading', () => {
     const voucher = reactive({ remoteStatus: 'ready', claimedUnused: [1, 2], expiredVouchers: [1] });
@@ -142,7 +142,7 @@ describe('Rewards voucher list remote read states', () => {
     expect(view.cats.value.map((c: { big: string }) => c.big)).toEqual(['2', '$12.50', '340', '']);
 
     // Background re-read in flight: status leaves "ready" and the store snapshot
-    // is briefly unavailable, but no known value may fall back to "--".
+    // is briefly unavailable, but no known value may fall back to a placeholder.
     bills.summaryStatus = 'loading';
     voucher.remoteStatus = 'loading';
     expect(view.cats.value.map((c: { big: string }) => c.big)).toEqual(['2', '$12.50', '340', '']);

@@ -195,10 +195,11 @@ function unverifiedCell(label: string): Cell {
     v: "-",
     vSize: "12.5px",
     tone: "var(--v5-ink-3)",
-    sub: "",
+    sub: cfg.syncFailed ? t.value.home.networkStatRetry : "",
     subTone: "var(--v5-ink-4)",
     data: null,
     color: "var(--v5-ink-4)",
+    tap: cfg.syncFailed ? () => { void cfg.load(); } : undefined,
   };
 }
 function placeholderCell(label: string, retry?: () => void, skeleton = showSkeleton.value): Cell {

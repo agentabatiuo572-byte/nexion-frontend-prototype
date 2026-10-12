@@ -64,3 +64,4 @@ scripts/.baseline/_check/sticky-frost.png
 # verify 三档制(包 ar):runner 产物 —— 缓存 / 日志 / 上次运行记录 / 链退出码哨兵,外部判定读文件不读管道
 .verify-cache/
 .verify-chain.code
+.cache/vite/

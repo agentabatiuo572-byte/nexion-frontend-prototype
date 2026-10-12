@@ -4,9 +4,13 @@ export type EntryItem = { productNo: string; quantity: number };
 export type EntrySelectionDraft = { items: EntryItem[]; entryItems?: EntryItem[] };
 const capabilities = new Set(['PROMOTION_QUOTE_V1', 'ORDER_ITEM_QUANTITIES_V1', 'PROMOTION_REWARDS_V1']);
 
+export function isPromotionActive(activity: PublicPromotion | null | undefined): boolean {
+  return activity?.state === 'ACTIVE';
+}
+
 /** A display gate only. Checkout always obtains a fresh, authoritative quote. */
 export function canPreviewPromotion(activity: PublicPromotion | null): boolean {
-  return !!activity && activity.state === 'ACTIVE'
+  return !!activity && isPromotionActive(activity)
     && activity.minimumClientCapabilities.every(capability => capabilities.has(capability))
     && ['SIGN_IN_REQUIRED', 'ESTIMATE_ELIGIBLE'].includes(activity.eligibility);
 }

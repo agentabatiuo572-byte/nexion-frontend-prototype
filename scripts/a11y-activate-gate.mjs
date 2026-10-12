@@ -142,9 +142,10 @@ function openTags(tpl) {
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /**
- * 取属性值。静态与动态绑定都取,并区分三态:
+ * 取属性值。静态与动态绑定都取,并区分以下情况:
  *   {kind:"static", value}  —— 写死的字面量
  *   {kind:"dynamic", value} —— 绑定表达式里能取到唯一字面量(`c ? 'button' : undefined`)
+ *   {kind:"finite", values} —— 简单条件的两支均为 alert/status,无需键盘激活
  *   {kind:"opaque"}         —— 绑定到变量/函数,静态判不出
  *   null                    —— 没有这个属性
  * 未引号写法(`role=button`)也认,否则它既漏 A 又误触 B。
@@ -164,6 +165,10 @@ function attr(attrs, name, { numeric = false } = {}) {
       }
       return { kind: "opaque", raw: dyn[1] };
     }
+    const liveRoles = name === "role"
+      ? /^\s*[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:\s*(?:===|!==|==|!=)\s*'[^'\\\r\n]*')?\s*\?\s*'(alert|status)'\s*:\s*'(alert|status)'\s*$/.exec(dyn[1])?.slice(1)
+      : null;
+    if (liveRoles?.every((value) => !ACT.includes(value))) return { kind: "finite", values: liveRoles, raw: dyn[1] };
     const uniq = [...new Set(lits.filter((v) => v && v !== "undefined" && v !== "null"))];
     if (uniq.length === 1) return { kind: "dynamic", value: uniq[0], raw: dyn[1] };
     return { kind: "opaque", raw: dyn[1] };

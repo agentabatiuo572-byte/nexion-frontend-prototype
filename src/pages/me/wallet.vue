@@ -67,6 +67,12 @@
           <text>{{ t.wallet.retryFunds }}</text>
         </view>
       </view>
+      <view v-if="remoteApiEnabled && !earningsReadPending && allTimeEarned === null" :style="syncFailBoxStyle">
+        <text class="block" :style="syncFailBodyStyle">{{ t.wallet.earningsUnavailable }}</text>
+        <view role="button" tabindex="0" :aria-label="t.ui.retry" :style="retryFundsStyle" @click="retryEarningsAuthority">
+          <text>{{ t.ui.retry }}</text>
+        </view>
+      </view>
 
       <!-- Earnings list -->
       <text v-if="fundsReadable" class="block" :style="listTitleStyle">{{ t.wallet.earningsSection }}</text>
@@ -85,7 +91,7 @@
         </WalletListRow>
         <WalletListRow icon-bg="var(--v5-tech-cyan-soft)" :label="t.wallet.allTimeEarnings" :sublabel="allTimeSublabel">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z" /><path d="M3 10h18" /></svg></template>
-          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">${{ allTimeEarned.toFixed(2) }}</text></template>
+          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">{{ allTimeEarned === null ? '-' : `$${allTimeEarned.toFixed(2)}` }}</text></template>
         </WalletListRow>
       </view>
 
@@ -146,6 +152,7 @@ onShow(() => {
   if (remoteApiEnabled) {
     void app.refreshRemoteFleet();
     void refreshEarningsReleaseStatus().catch(() => undefined);
+    retryEarningsAuthority();
   }
 });
 
@@ -154,6 +161,8 @@ const fundsAuthorityUnavailable = computed(() => remoteApiEnabled && app.remoteF
 const fundsReadable = computed(() => !remoteApiEnabled || app.remoteFleetHasSnapshot);
 const usdtBalanceReadable = computed(() => fundsReadable.value || app.remoteWalletReceiptHasSnapshot);
 const releaseAuthorityUnavailable = computed(() => remoteApiEnabled && earningsReleaseStatus.value === "error");
+const earningsReadPending = computed(() => app.homeTruthStatus === "idle" || app.homeTruthStatus === "loading"
+  || commission.eventsStatus === "idle" || commission.eventsStatus === "loading");
 const bucketsReadable = computed(() => !remoteApiEnabled || (earningsReleaseHasSnapshot.value
   && earningsReleaseSnapshot.value?.serverCanonical === true
   && (earningsReleaseStatus.value === "ready" || earningsReleaseStatus.value === "loading")));
@@ -164,6 +173,10 @@ function retryFundsAuthority() {
 function retryReleaseAuthority() {
   if (earningsReleaseStatus.value === "loading") return;
   void refreshEarningsReleaseStatus().catch(() => undefined);
+}
+function retryEarningsAuthority() {
+  if (app.homeTruthStatus !== "loading") void app.refreshHomeTruth().catch(() => undefined);
+  if (commission.eventsStatus !== "loading") void commission.refreshCanonicalEvents().catch(() => undefined);
 }
 
 // Release explanations use the same account-scoped server receipt as the
@@ -223,12 +236,16 @@ const todayEarnings = computed(() => resolveWalletTodayEarnings({
 const todayEarningsText = computed(() => todayEarnings.value === null ? "—" : `+$${todayEarnings.value.toFixed(2)}`);
 const pendingReview = computed(() => buckets.value.pendingReviewUsdt);
 const lockedRewards = computed(() => buckets.value.bonusLockedUsdt);
-const teamLifetimeUSD = computed(() => commission.totalUSDTLifetime());
-const allTimeEarned = computed(() => app.earnings.total + teamLifetimeUSD.value);
+const miningLifetimeUSD = computed(() => !remoteApiEnabled ? app.earnings.total
+  : app.homeTruthStatus === "ready" ? app.homeTruth?.earnings.all.usdt ?? null : null);
+const teamLifetimeUSD = computed(() => !remoteApiEnabled ? commission.totalUSDTLifetime()
+  : commission.eventsStatus === "ready" ? commission.eventsEvidence?.aggregate.totalUSDT ?? null : null);
+const allTimeEarned = computed(() => miningLifetimeUSD.value === null || teamLifetimeUSD.value === null
+  ? null : miningLifetimeUSD.value + teamLifetimeUSD.value);
 const allTimeSublabel = computed(() =>
   fmt(t.value.wallet.allTimeSublabel, {
-    c: app.earnings.total.toFixed(2),
-    tm: teamLifetimeUSD.value.toFixed(2),
+    c: miningLifetimeUSD.value === null ? "-" : `$${miningLifetimeUSD.value.toFixed(2)}`,
+    tm: teamLifetimeUSD.value === null ? "-" : `$${teamLifetimeUSD.value.toFixed(2)}`,
   }),
 );
 // Bank cards: dynamic count from cards store (mirrors prototype `${n} 张已绑定`
