@@ -110,6 +110,56 @@ describe("useFreeTrial remote command errors", () => {
 
     await expect(useFreeTrial().start()).resolves.toEqual({ ok: false, reason: "quota-exhausted" });
   });
+
+  it.each([
+    ["USER_ONBOARDING_REQUIRED", "onboarding-required"],
+    ["LEGAL_TERMS_ACK_REQUIRED", "terms-required"],
+  ])("classifies the exact write-gate refusal %s without replay or false activation", async (message, reason) => {
+    remote.eligibility.mockResolvedValue(authority(true));
+    remote.state.mockResolvedValue(authority(true));
+    const vault = createSessionVault();
+    vault.save({ accessToken: "fixture", refreshToken: "fixture", tokenType: "Bearer",
+      user: { userId: 7, countryCode: "+86", phone: "13800000007", nickname: "Fixture", onboardingComplete: false } });
+    const request = vi.fn().mockResolvedValue({ status: 428, headers: {},
+      data: { code: 428, message, data: null } });
+    const api = createTrialApi(createApiClient({ baseUrl: "https://example.test", vault, transport: { request } }));
+    remote.start.mockImplementation(api.start);
+    const store = useFreeTrial(); store.bindAccount("fixture-a"); await store.refreshRemote();
+    const reads = remote.state.mock.calls.length;
+    // A concurrent state read must not turn this refused command into success.
+    remote.state.mockResolvedValue(activeAuthority());
+    expect(await store.start()).toEqual({ ok: false, reason });
+    expect(request).toHaveBeenCalledOnce(); expect(remote.state).toHaveBeenCalledTimes(reads);
+    expect(store.authorityServerState).toBe("ELIGIBLE"); expect(store.authorityVersion).toBe(0);
+    expect(store.authorityClaimNo).toBeNull(); expect(store.status).toBe("none");
+  });
+
+  it.each([
+    new ApiError({ kind: "http", status: 503, code: 428, message: "USER_ONBOARDING_REQUIRED" }),
+    new ApiError({ kind: "http", status: 428, code: 999, message: "USER_ONBOARDING_REQUIRED" }),
+    new ApiError({ kind: "network", message: "USER_ONBOARDING_REQUIRED" }),
+  ])("retains unknown-result recovery for an unqualified prerequisite response (%s)", async error => {
+    remote.eligibility.mockResolvedValue(authority(true)); remote.state.mockResolvedValue(authority(true));
+    remote.start.mockRejectedValue(error);
+    const store = useFreeTrial(); store.bindAccount("fixture-a");
+    expect(await store.start()).toEqual({ ok: false, reason: "unknown" });
+    expect(await store.start()).toEqual({ ok: false, reason: "unknown" });
+    expect(remote.start).toHaveBeenCalledTimes(2);
+    expect(remote.start.mock.calls[1]).toEqual(remote.start.mock.calls[0]);
+  });
+
+  it("does not expose a late prerequisite refusal to a rebound account", async () => {
+    remote.eligibility.mockResolvedValue(authority(true)); remote.state.mockResolvedValue(authority(true));
+    const pending = deferred<TrialAuthorityState>(); remote.start.mockReturnValue(pending.promise);
+    const store = useFreeTrial(); store.bindAccount("fixture-a");
+    const command = store.start();
+    while (!remote.start.mock.calls.length) await Promise.resolve();
+    store.bindAccount("fixture-b"); await store.refreshRemote();
+    const reads = remote.state.mock.calls.length;
+    pending.reject(new ApiError({ kind: "http", status: 428, code: 428, message: "USER_ONBOARDING_REQUIRED" }));
+    expect(await command).toEqual({ ok: false, reason: "unknown" });
+    expect(store.authorityError).toBeNull(); expect(remote.state).toHaveBeenCalledTimes(reads);
+  });
 });
 
 function activeAuthority(claimNo = "FIXTURE-A", version = 5): TrialAuthorityState {

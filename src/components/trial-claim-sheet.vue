@@ -91,10 +91,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { navTo } from "@/lib/route";
+import { useApp } from "@/store/app";
 import { useTrialClaimSheet } from "@/store/trial-claim-sheet";
 import { useTrialConfig, computeTrialOffset } from "@/store/trial-config";
-import { useFreeTrial, type TrialIneligibleReason } from "@/store/free-trial";
+import { useFreeTrial, type TrialStartFailure } from "@/store/free-trial";
 import { toast } from "@/store/ui";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -103,6 +105,7 @@ import { useDialogA11y } from "@/composables/use-dialog-a11y";
 const sheet = useTrialClaimSheet();
 const trialConfig = useTrialConfig();
 const freeTrial = useFreeTrial();
+const app = useApp();
 const t = useT();
 
 const cfg = computed(() => trialConfig.config);
@@ -121,13 +124,17 @@ const prop3Sub = computed(() => fmt(t.value.trial.sheetProp3Sub, { pct: (cfg.val
 // error with retry (spec ⑤: failure is never silent).
 const claiming = ref(false);
 const claimError = ref(false);
-const claimErrorReason = ref<TrialIneligibleReason>();
-const claimCtaLabel = computed(() => (claimError.value ? t.value.trial.claimRetryCta : t.value.trial.sheetClaimCta));
-const claimErrorText = computed(() => claimErrorReason.value === "unknown"
+const claimErrorReason = ref<TrialStartFailure>();
+const claimCtaLabel = computed(() => claimErrorReason.value === "onboarding-required" ? t.value.trial.claimOnboardingCta
+  : claimErrorReason.value === "terms-required" ? t.value.trial.claimTermsCta
+  : claimError.value ? t.value.trial.claimRetryCta : t.value.trial.sheetClaimCta);
+const claimErrorText = computed(() => claimErrorReason.value === "onboarding-required" ? t.value.trial.claimOnboardingRequired
+  : claimErrorReason.value === "terms-required" ? t.value.trial.claimTermsRequired
+  : claimErrorReason.value === "unknown"
   ? t.value.trial.claimUnknownInline
   : t.value.trial.claimErrorInline);
 
-function reasonText(reason: TrialIneligibleReason | undefined): string {
+function reasonText(reason: TrialStartFailure | undefined): string {
   const w = t.value.trial;
   if (reason === "converted") return w.eligReasonConverted;
   if (reason === "used") return w.eligReasonUsed;
@@ -145,14 +152,27 @@ function hide() {
   sheet.hide();
 }
 async function onClaim() {
-  if (claiming.value) return;
+  if (claiming.value || !sheet.open) return;
+  if (claimErrorReason.value === "terms-required") { hide(); navTo("/pages/onboarding/terms"); return; }
+  if (claimErrorReason.value === "onboarding-required") {
+    hide();
+    // #ifdef H5
+    navTo("/pages/register/success?setup=1");
+    // #endif
+    // #ifndef H5
+    navTo("/pages/onboarding/estimator");
+    // #endif
+    return;
+  }
+  const requestedEpoch = app.accountBindingEpoch;
   claiming.value = true;
   // Remote start first refreshes GET /api/trial/eligibility, then posts the
   // idempotent command and performs an authoritative readback.
   const r = await freeTrial.start();
   claiming.value = false;
+  if (requestedEpoch !== app.accountBindingEpoch || !sheet.open) return;
   if (!r.ok) {
-    if (r.reason && r.reason !== "unknown") {
+    if (r.reason && r.reason !== "unknown" && r.reason !== "onboarding-required" && r.reason !== "terms-required") {
       sheet.hide();
       toast.info(reasonText(r.reason));
       return;
@@ -166,6 +186,12 @@ async function onClaim() {
   sheet.hide();
   toast.success(t.value.trial.toastActivated);
 }
+
+watch(() => app.accountBindingEpoch, () => {
+  claimError.value = false;
+  claimErrorReason.value = undefined;
+  sheet.closeTransient();
+});
 
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。

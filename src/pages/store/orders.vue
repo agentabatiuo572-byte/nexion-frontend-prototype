@@ -95,7 +95,7 @@ import { useSetPageHeader } from "@/composables/use-page-header";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import { remoteApiEnabled, sessionVault } from "@/api/runtime";
-import { subscribeRuntimeRevision } from "@/api/order-api";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
 import { binarySessionReady } from "@/lib/binary-session-ready";
@@ -155,8 +155,9 @@ let ordersPageActive = true;
 async function refreshOrders() {
   if (!remoteApiEnabled || !remoteSessionReady.value) return;
   const request = { accountKey: app.accountKey, epoch: app.accountBindingEpoch };
+  const runtime = captureRuntimeRevision();
   const currentRefresh = ++refreshEpoch;
-  const current = () => ordersPageActive && currentRefresh === refreshEpoch && remoteCommerceRequestCurrent(request, {
+  const current = () => ordersPageActive && currentRefresh === refreshEpoch && isCurrentRuntimeRevision(runtime) && remoteCommerceRequestCurrent(request, {
     accountKey: app.accountKey,
     epoch: app.accountBindingEpoch,
   });
@@ -231,11 +232,19 @@ watch(remoteSessionReady, (ready, wasReady) => {
 });
 
 // A later catalog response clears the shared orders without rebinding the account.
+// Coalesce synchronous invalidations; a failed source never schedules a retry.
+let runtimeRefreshQueued = false;
 const unsubscribeRuntimeRevision = subscribeRuntimeRevision(() => {
   if (!remoteApiEnabled) return;
   refreshEpoch += 1;
   remoteOrdersResolved.value = false;
-  if (ordersPageActive) void refreshOrders();
+  remoteOrdersRefreshing.value = ordersPageActive;
+  if (!ordersPageActive || runtimeRefreshQueued) return;
+  runtimeRefreshQueued = true;
+  void Promise.resolve().then(() => {
+    runtimeRefreshQueued = false;
+    if (ordersPageActive) void refreshOrders();
+  });
 });
 
 const ordersBackHref = ref("/store");

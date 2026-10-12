@@ -1778,6 +1778,10 @@ catalog: {
     sheetDismissCta: "我再想想",
     claimErrorInline: "试用未开通，未生成领取记录。请重试。",
     claimUnknownInline: "试用开通结果待确认，请重试。",
+    claimOnboardingRequired: "试用尚未开通。请先完成初始设置，再返回领取。",
+    claimOnboardingCta: "完成初始设置",
+    claimTermsRequired: "试用尚未开通。请先确认服务条款，再返回领取。",
+    claimTermsCta: "确认服务条款",
     claimRetryCta: "重新领取",
     // 不可领原因(规格 异常2 — 给具体原因,禁泛化报错)
     eligReasonConverted: "试用已完成转购。",

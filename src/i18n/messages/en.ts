@@ -1837,6 +1837,10 @@ catalog: {
     sheetDismissCta: "Maybe later",
     claimErrorInline: "The trial was not activated and no claim record was created. Please retry.",
     claimUnknownInline: "Trial activation could not be confirmed. Please retry.",
+    claimOnboardingRequired: "The trial has not started. Complete initial setup, then return to claim it.",
+    claimOnboardingCta: "Complete initial setup",
+    claimTermsRequired: "The trial has not started. Confirm the terms of service, then return to claim it.",
+    claimTermsCta: "Confirm terms of service",
     claimRetryCta: "Retry claim",
     // Ineligible reasons (spec 异常2 — concrete, never a generic error)
     eligReasonConverted: "This trial has already been converted to a purchase.",

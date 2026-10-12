@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { computed, effectScope, reactive, ref, watch } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { advanceRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
+import { advanceRuntimeRevision, captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { createRemoteOrdersRefresh, isInitialOrderReadLoading, orderListPanels, remoteCommerceRequestCurrent } from "@/lib/remote-commerce-refresh";
 
 const source = readFileSync(new URL("./orders.vue", import.meta.url), "utf8");
@@ -24,7 +24,7 @@ function page() {
   const refreshRemote = vi.fn(async () => { rows.value = [{ id: "original-order" }]; });
   const hooks: Record<string, Array<() => void>> = { show: [], hide: [], dispose: [] };
   const deps = {
-    computed, ref, watch, subscribeRuntimeRevision, createRemoteOrdersRefresh,
+    computed, ref, watch, captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, createRemoteOrdersRefresh,
     isInitialOrderReadLoading, orderListPanels, remoteCommerceRequestCurrent,
     app: reactive({ accountKey: "user:607", accountBindingEpoch: 1 }),
     remoteApiEnabled: true, remoteSessionReady: ready, orderList: rows,

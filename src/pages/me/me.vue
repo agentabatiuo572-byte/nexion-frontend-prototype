@@ -253,9 +253,9 @@ const localeUpper = computed(() => locale.code.toUpperCase());
 const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"
   || (trial.authorityStatus === "loading" && trial.authorityServerState !== null));
 const slotsReadable = computed(() => !remoteApiEnabled || (app.remoteFleetHasSnapshot && trialReady.value));
-const activeCount = computed(() => app.activeSlotCount);
+const activeCount = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null).length);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
-const slotsUsed = computed(() => activeCount.value + trialSlot.value);
+const slotsUsed = computed(() => app.activeSlotCount + trialSlot.value);
 const emptySlots = computed(() => Math.max(0, app.slotCap - slotsUsed.value));
 const deviceSectionCount = computed(() => slotsReadable.value ? fmt(t.value.myDevices.sectionCount, { n: slotsUsed.value, total: app.slotCap }) : "—");
 const activatedLabel = computed(() => slotsReadable.value ? fmt(t.value.myDevices.activatedLabel, { n: activeCount.value }) : "—");

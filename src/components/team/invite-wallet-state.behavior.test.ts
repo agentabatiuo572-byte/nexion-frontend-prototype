@@ -199,6 +199,7 @@ async function wallet(copy = en, initialBalance = 11, confirmed = true) {
   const navReset = vi.fn();
   const app = Vue.reactive({ user: { usdtBalance: initialBalance, nexBalance: 124,
     earningBuckets: { pendingReviewUsdt: 0, bonusLockedUsdt: 0 } }, activeSlotCount: 0, slotCap: 0,
+    visibleDevices: [],
     remoteFleetHasSnapshot: confirmed, remoteFleetStatus: confirmed ? "ready" : "idle",
     remoteWalletReceiptHasSnapshot: false });
   const trial = Vue.reactive({ authorityStatus: confirmed ? "ready" : "unknown",

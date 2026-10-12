@@ -53,6 +53,7 @@ export type { TrialStatus } from "./trial-boundary";
  *  "risk" = spec 异常2 第三具名原因(风控命中)。MOCK 无风控引擎,本地 eligibility()
  *  无触发路径;生产由后端 GET /api/trial/eligibility 下发该 reason。 */
 export type TrialIneligibleReason = "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "unknown";
+export type TrialStartFailure = TrialIneligibleReason | "onboarding-required" | "terms-required";
 type TrialConversionFailure = TrialIneligibleReason | "insufficient-funds" | "quote-changed" | "rejected" | "storage-unavailable";
 const CONVERT_COMMANDS_KEY = "nexgrid-trial-convert-accounts-v1";
 type ConversionCommands = { commands: Record<string, string> };
@@ -431,7 +432,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   // PRODUCTION: POST /api/trial/start (no card token — cardless claim, spec ③).
   // Idempotent: a second call while ineligible is a no-op (spec 异常3 — one
   // trial per account, concurrent taps produce exactly one).
-  async function start(): Promise<{ ok: boolean; reason?: TrialIneligibleReason }> {
+  async function start(): Promise<{ ok: boolean; reason?: TrialStartFailure }> {
     if (remoteApiEnabled) {
       const requestedEpoch = accountBindingEpoch;
       if (!await refreshEligibilityRemote() || requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
@@ -461,6 +462,13 @@ export const useFreeTrial = defineStore("freeTrial", () => {
         return { ok: true };
       } catch (error) {
         if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
+        const failure = asApiError(error);
+        // The shared write gate refuses before the trial command executes.
+        // Preserve the original key, but do not reconcile this refusal as success.
+        if (failure.kind === "http" && failure.status === 428 && failure.code === 428) {
+          if (failure.message === "USER_ONBOARDING_REQUIRED") return { ok: false, reason: "onboarding-required" };
+          if (failure.message === "LEGAL_TERMS_ACK_REQUIRED") return { ok: false, reason: "terms-required" };
+        }
         const reason = commandFailureReason(error);
         authorityError.value = asApiError(error).message;
         const reconciled = await refreshRemote();
