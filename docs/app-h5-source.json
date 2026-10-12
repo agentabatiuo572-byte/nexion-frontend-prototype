@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-trial-insufficient-r403",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-trial-catalog-loading-r406",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "b0946a221bd1e77406a63c34e47a4003d3a3033d",
-  "sourceRef": "b0946a221bd1e77406a63c34e47a4003d3a3033d",
+  "sourceHead": "3512145393afa51f751fd163e430dc0a29a95e60",
+  "sourceRef": "3512145393afa51f751fd163e430dc0a29a95e60",
   "sourceRefKind": "commit",
-  "sourceTree": "17a81833fd5e08bca85e62ee9d770860950d1502",
+  "sourceTree": "5897ab22dafa75a0b91a60503eb26298eddd560a",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -5606,17 +5606,17 @@
       "mode": "100644"
     },
     "src/api/account-api.test.ts": {
-      "sourceBlob": "9b2aa8bc6d3642e3c548844245239e44a385cc75",
-      "sourceSha256": "d9cf8494257e98808ca41b01dbf1d57dadbf504b8eca7e83115f8d0da48b72f8",
-      "targetBlob": "9b2aa8bc6d3642e3c548844245239e44a385cc75",
-      "targetSha256": "d9cf8494257e98808ca41b01dbf1d57dadbf504b8eca7e83115f8d0da48b72f8",
+      "sourceBlob": "39e00226ffc407f2cd6ff48ac176f50fd2c3695b",
+      "sourceSha256": "38645e0216643634db8fd707943a9ff6b7a08e5d0b9bfbf55f1a30eb0762ac3e",
+      "targetBlob": "39e00226ffc407f2cd6ff48ac176f50fd2c3695b",
+      "targetSha256": "38645e0216643634db8fd707943a9ff6b7a08e5d0b9bfbf55f1a30eb0762ac3e",
       "mode": "100644"
     },
     "src/api/account-api.ts": {
-      "sourceBlob": "e4d3ee0dcf94116a21286dc67551cc61a8399a94",
-      "sourceSha256": "750682964e42785942b0523777740924fcd9a8008223810b2d5e49f887c22466",
-      "targetBlob": "e4d3ee0dcf94116a21286dc67551cc61a8399a94",
-      "targetSha256": "750682964e42785942b0523777740924fcd9a8008223810b2d5e49f887c22466",
+      "sourceBlob": "2ab5a5f60eda07c52b8534984e8843a2cafe18e2",
+      "sourceSha256": "b2dee1c5406ab3e9563c7b694ea5c5c800aba096aaa7b5a4007bdbc34b5795f8",
+      "targetBlob": "2ab5a5f60eda07c52b8534984e8843a2cafe18e2",
+      "targetSha256": "b2dee1c5406ab3e9563c7b694ea5c5c800aba096aaa7b5a4007bdbc34b5795f8",
       "mode": "100644"
     },
     "src/api/ambassador-application-api.test.ts": {
@@ -13320,10 +13320,10 @@
       "mode": "100644"
     },
     "src/pages/me/me-ui-parity.contract.test.ts": {
-      "sourceBlob": "6f02da09967b439c3736c4642a9857c2a9417a83",
-      "sourceSha256": "0504102721568c7784716e08061050de2f2c689994a60066085c6f2c1de969cb",
-      "targetBlob": "6f02da09967b439c3736c4642a9857c2a9417a83",
-      "targetSha256": "0504102721568c7784716e08061050de2f2c689994a60066085c6f2c1de969cb",
+      "sourceBlob": "c52c6d4349f48352b5cbe6ecd15f53f2e10d5348",
+      "sourceSha256": "33a86362d6922476adfd5d09a41732a879ce59570b345c4add0d38788070b177",
+      "targetBlob": "c52c6d4349f48352b5cbe6ecd15f53f2e10d5348",
+      "targetSha256": "33a86362d6922476adfd5d09a41732a879ce59570b345c4add0d38788070b177",
       "mode": "100644"
     },
     "src/pages/me/me.vue": {
@@ -13620,11 +13620,18 @@
       "targetSha256": "2afa85e13256d0deeee51cc4a44a824aeb84d44bcb48cd812af34429b7eeed30",
       "mode": "100644"
     },
+    "src/pages/me/trial-catalog-loading.behavior.test.ts": {
+      "sourceBlob": "42fcac202b96b6f892c14277bcbd7655aa8db4b6",
+      "sourceSha256": "c4462d685d8d1c3498fb740a24a50e69e203383195a805495e7801105206a9a3",
+      "targetBlob": "42fcac202b96b6f892c14277bcbd7655aa8db4b6",
+      "targetSha256": "c4462d685d8d1c3498fb740a24a50e69e203383195a805495e7801105206a9a3",
+      "mode": "100644"
+    },
     "src/pages/me/trial.vue": {
-      "sourceBlob": "7463fda0106d6cffb49ca24c0c6ab36e566b43a1",
-      "sourceSha256": "b760c649f5f27e3fc460dc5027bd79b2d5c780e3463fa0674871d5285a3a219a",
-      "targetBlob": "7463fda0106d6cffb49ca24c0c6ab36e566b43a1",
-      "targetSha256": "b760c649f5f27e3fc460dc5027bd79b2d5c780e3463fa0674871d5285a3a219a",
+      "sourceBlob": "ae451e2cdaa7a7f4ebb24a61792df70be19ac76d",
+      "sourceSha256": "99bd2bd4d0b9fe08f7421945d42d49688a2d69ac2605cf1151a82655c44d515c",
+      "targetBlob": "ae451e2cdaa7a7f4ebb24a61792df70be19ac76d",
+      "targetSha256": "99bd2bd4d0b9fe08f7421945d42d49688a2d69ac2605cf1151a82655c44d515c",
       "mode": "100644"
     },
     "src/pages/me/usdt-guide.contract.test.ts": {

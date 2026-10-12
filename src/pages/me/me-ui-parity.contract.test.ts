@@ -81,7 +81,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "support-tickets.vue": "4504cb6168c6e939402a4be14b5f39caeaaa8ab9deda42433c7b91eacf12fce8",
   "support.vue": "9a89c364bbc52d36f0218752b5bb69ffbba692fd113feaf285e7d0273180bad0",
   // Reviewed removal of the retired card-migration notice; trial amounts, deadlines and actions remain covered.
-  "trial.vue": "53967cefbe18331bee801de39a048cd5969dda1e216bb829bd54155230f3e838",
+  // Reviewed #535: active/grace catalog CTA/ARIA and ready-only unavailability hint.
+  "trial.vue": "5f46bb3a210a5e1c7c608b1f37578c769f60e2b61aff29cc406347d67dc71d23",
   "wallet-address-rebind.vue": "64f22ae20b3725ff6df6c516a9f99a6714efd94834cc5b02734c146e377e9e32",
   // Reviewed #465: refund references wrap on their own read-only line; other bill rows retain their layout.
   // Promotion receipt deep links retain the existing refund row and bill layout.
@@ -118,7 +119,7 @@ function block(text: string, tag: "style" | "template"): string {
   return normalized.match(/<template[^>]*>[\s\S]*?<\/template>/)?.[0] ?? "";
 }
 
-// New slot-bearing surfaces also pin the full compiler-parsed template; keep
+// Reviewed surfaces with nested templates also pin the full compiler-parsed template; keep
 // the historical pair fingerprints stable for unrelated approved pages.
 function fullTemplate(text: string): string {
   const template = parse(text.replace(/\r\n/g, '\n')).descriptor.template;
@@ -159,6 +160,10 @@ describe("Me page 5174 normal-state UI parity", () => {
   it('pins the complete notification page including content after category slots', () => {
     const notification = readFileSync(new URL('./notifications.vue', import.meta.url), 'utf8');
     expect(createHash('sha256').update(fullTemplate(notification)).digest('hex')).toBe('be9ba0b339c494422691051390b9f15ca3df444d5f8817f08009072b6f20c7b1');
+  });
+  it('pins the complete trial page including ended catalog ARIA and independent retry', () => {
+    const trial = readFileSync(new URL('./trial.vue', import.meta.url), 'utf8');
+    expect(createHash('sha256').update(fullTemplate(trial)).digest('hex')).toBe('0cd57a9d5c767588306a46e8a239b80a81057f4b9bba235897b7f9851820b41f');
   });
   it("includes every page-local style block in the visual fingerprint", () => {
     const shared = '<style src="@/styles/message-center.css"></style>';
