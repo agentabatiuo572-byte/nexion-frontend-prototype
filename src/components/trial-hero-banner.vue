@@ -28,6 +28,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import { useFreeTrial } from "@/store/free-trial";
 import { useTrialConfig, computeTrialOffset } from "@/store/trial-config";
@@ -82,11 +83,11 @@ const claimCtaText = computed(() => {
     default: return t.value.trial.entryChecking;
   }
 });
-const dailyEarnText = computed(() => `${dailyEarn.value.toFixed(2)}/d × ${trialDays.value}`);
+const dailyEarnText = computed(() => `${formatAmount(dailyEarn.value)}/d × ${trialDays.value}`);
 // State the basis when the cap bites: the daily rate line alone would read as if
 // the total were days × rate, which is exactly the overstatement BUG 78 reported.
 const creditBasisText = computed(() => trialOffset.value.offsetUSD < trialDays.value * dailyEarn.value
-  ? fmt(t.value.trial.heroCreditCapNote, { cap: trialCfg.config.trialOffsetCapUSD.toFixed(0) })
+  ? fmt(t.value.trial.heroCreditCapNote, { cap: formatAmount(trialCfg.config.trialOffsetCapUSD) })
   : dailyEarnText.value);
 
 const availabilityDotStyle = computed<CSSProperties>(() => ({

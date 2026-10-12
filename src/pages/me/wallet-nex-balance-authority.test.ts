@@ -3,6 +3,7 @@ import { computed, reactive } from "vue";
 import ts from "typescript";
 import source from "./wallet-nex.vue?raw";
 import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
+import { formatAmount } from "@/lib/amount-display";
 
 function mount(remote: boolean, hasSnapshot: boolean, balance: number, marketReady = true) {
   const block = source.slice(source.indexOf("const nexBalance ="), source.indexOf("// NEX activity"))
@@ -13,8 +14,8 @@ function mount(remote: boolean, hasSnapshot: boolean, balance: number, marketRea
   const market = reactive({ remoteReady: marketReady, remoteError: marketReady ? null : "failed", nexPriceUSDT: 2, costBasis: 1, change24hPct: 0 });
   const bills = reactive({ summaryStatus: "error", summary: { todayNexEarn: 0, pendingNex: 0 } });
   const section = { liquid: "liquid", mining: "mining", pending: "pending", costBasis: "basis", totalSpent: "spent", currentValue: "value" };
-  const state = new Function("computed", "app", "market", "remoteApiEnabled", "remoteAuthorityStatus", "bills", "t", "tintIcon", "ICON", code + ";return {breakdownRows,pnlSummary,pnlCells,balanceKnown,valuationKnown,nexBalance,usdValue,fmtNum,fmtUSD};")(
-    computed, app, market, remote, remoteAuthorityStatus, bills,
+  const state = new Function("formatAmount", "computed", "app", "market", "remoteApiEnabled", "remoteAuthorityStatus", "bills", "t", "tintIcon", "ICON", code + ";return {breakdownRows,pnlSummary,pnlCells,balanceKnown,valuationKnown,nexBalance,usdValue,fmtNum,fmtUSD};")(
+    formatAmount, computed, app, market, remote, remoteAuthorityStatus, bills,
     { value: { nexWallet: { breakdown: section, pnl: section } } }, () => "", {});
   const balanceExpression = source.match(/:style="heroNumStyle">\{\{(.*?)\}\}/)?.[1];
   const valueExpression = source.match(/:style="heroUsdStyle">≈ \{\{(.*?)\}\}/)?.[1];
@@ -76,7 +77,7 @@ test("ledger amounts keep their known units without inventing a USD quote", () =
   const expression = source.match(/:style="activityUsdStyle">≈ \{\{(.*?)\}\}/)?.[1];
   expect(expression).toBeTruthy();
   const render = new Function("marketValueKnown", "a", "nexPrice", "fmtUSD", `return (${expression});`);
-  const fmt = (n: number) => `$${n.toFixed(2)}`;
+  const fmt = mount(true, true, 50).fmtUSD;
   expect(render(false, { nex: 25 }, 0, fmt)).toBe("—");
   expect(render(true, { nex: 25 }, 2, fmt)).toBe("$50.00");
   expect(render(true, { nex: 0 }, 2, fmt)).toBe("$0.00");

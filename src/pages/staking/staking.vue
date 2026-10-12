@@ -125,6 +125,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { navTo } from "@/lib/route";
 import { ref, computed, watch, getCurrentInstance, onMounted, onUnmounted, type CSSProperties } from "vue";
@@ -285,9 +286,9 @@ const avgAPY = computed(() => {
   return w / totalLocked.value;
 });
 
-const totalLockedText = computed(() => totalLocked.value.toFixed(2));
-const todayAccruedText = computed(() => todayAccrued.value.toFixed(2));
-const totalAccruedText = computed(() => totalAccrued.value.toFixed(2));
+const totalLockedText = computed(() => formatAmount(totalLocked.value));
+const todayAccruedText = computed(() => formatAmount(todayAccrued.value));
+const totalAccruedText = computed(() => formatAmount(totalAccrued.value));
 const avgApyText = computed(() => (totalLocked.value > 0 ? `${formatStakingPercentage(avgAPY.value)}%` : "—"));
 
 function openSheet(term: StakingTerm) {
@@ -345,8 +346,8 @@ async function handleEarlyWithdraw(p: StakingPosition) {
     reportStakingFailure(null, t.value.staking.remoteUnavailableClosed);
     return;
   }
-  const penalty = (p.amountUSDT * penaltyRate).toFixed(2);
-  const refund = (p.amountUSDT * (1 - penaltyRate)).toFixed(2);
+  const penalty = formatAmount(p.amountUSDT * penaltyRate);
+  const refund = formatAmount(p.amountUSDT * (1 - penaltyRate));
   const ok = await uiConfirm({
     title: t.value.stakingV3.toast.earlyConfirmTitle,
     message: fmt(t.value.stakingV3.toast.earlyConfirmMessage, {
@@ -393,8 +394,8 @@ async function handleEarlyWithdraw(p: StakingPosition) {
     toast.warn(
       t.value.stakingV3.toast.earlyDoneTitle,
       fmt(t.value.stakingV3.toast.earlyDoneSubtitle, {
-        refund: r.refund.toFixed(2),
-        penalty: r.penalty.toFixed(2),
+        refund: formatAmount(r.refund),
+        penalty: formatAmount(r.penalty),
       }),
     );
   } else if (r.conflict) {
@@ -442,8 +443,8 @@ async function handleClaim(p: StakingPosition) {
     toast.success(
       t.value.stakingV3.toast.claimedTitle,
       fmt(t.value.stakingV3.toast.claimedSubtitle, {
-        total: (r.principal + r.interest).toFixed(2),
-        interest: r.interest.toFixed(2),
+        total: formatAmount(r.principal + r.interest),
+        interest: formatAmount(r.interest),
       }),
     );
   } else if (r.conflict) {

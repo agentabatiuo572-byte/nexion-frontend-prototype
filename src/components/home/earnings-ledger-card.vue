@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -44,11 +45,11 @@ import { formatHomeFeedTime } from "./home-live-feed";
 const t = useT();
 const app = useApp();
 const ROWS = [
-  { id: 1, who: "Pocket Studios", model: "SDXL Turbo", amt: "+$0.00032", t: "2s" },
-  { id: 2, who: "Echo Earbuds", model: "Whisper tiny", amt: "+$0.00005", t: "14s" },
-  { id: 3, who: "Helix Labs", model: "Llama 3.2 3B", amt: "+$0.00021", t: "38s" },
-  { id: 4, who: "Mosaic Studios", model: "Flux Schnell", amt: "+$0.00048", t: "52s" },
-  { id: 5, who: "Vector Foundry", model: "MobileBERT", amt: "+$0.00009", t: "1m" },
+  { id: 1, who: "Pocket Studios", model: "SDXL Turbo", amt: `+$${formatAmount(0.00032)}`, t: "2s" },
+  { id: 2, who: "Echo Earbuds", model: "Whisper tiny", amt: `+$${formatAmount(0.00005)}`, t: "14s" },
+  { id: 3, who: "Helix Labs", model: "Llama 3.2 3B", amt: `+$${formatAmount(0.00021)}`, t: "38s" },
+  { id: 4, who: "Mosaic Studios", model: "Flux Schnell", amt: `+$${formatAmount(0.00048)}`, t: "52s" },
+  { id: 5, who: "Vector Foundry", model: "MobileBERT", amt: `+$${formatAmount(0.00009)}`, t: "1m" },
 ];
 
 const remoteRows = computed(() => (app.homeTruth?.earningsLedger ?? [])
@@ -59,7 +60,7 @@ const remoteRows = computed(() => (app.homeTruth?.earningsLedger ?? [])
     id: entry.id,
     who: entry.client,
     model: entry.model,
-    amt: `${entry.synthetic ? "" : "+"}$${entry.rewardUsdt.toFixed(5)}`,
+    amt: `${entry.synthetic ? "" : "+"}$${formatAmount(entry.rewardUsdt)}`,
     t: formatHomeFeedTime(entry.completedAt),
   })));
 const rows = computed(() => remoteApiEnabled ? remoteRows.value : ROWS);

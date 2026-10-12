@@ -34,7 +34,7 @@ const change = computed(() => market.change24hPct);
 const kline = computed(() => market.klineHourly);
 const isUp = computed(() => change.value >= 0);
 const tint = computed(() => (isUp.value ? "var(--v5-success)" : "var(--v5-danger)"));
-const priceText = computed(() => ready.value ? `${market.nexPriceUSDT.toFixed(3)}` : "—");
+const priceText = computed(() => ready.value ? market.nexPriceUSDT.toFixed(3) : "—");
 const changeText = computed(() => market.change24hAvailable ? `${isUp.value ? "+" : ""}${change.value.toFixed(1)}%` : "— (24h)");
 const retryStyle: CSSProperties = { display: "inline-flex", alignItems: "center", minHeight: "44px", padding: "0 12px", fontSize: "12px", color: "var(--v5-brand)", fontWeight: 500 };
 const placeholderStyle: CSSProperties = { height: "2px", marginTop: "17px", borderRadius: "999px", background: "var(--v5-border)" };

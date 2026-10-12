@@ -1,3 +1,4 @@
+import { formatAmount } from "./amount-display";
 export type RankHowRuntime = "dev" | "prod";
 
 export type RankHowPresentation = "canonical-ladder" | "hold";
@@ -32,7 +33,7 @@ export function formatCanonicalRankConditions(
 ): string[] {
   const conditions = rank.conditions;
   const parts: string[] = [];
-  const money = (value: number) => `$${value.toLocaleString()}`;
+  const money = (value: number) => `$${formatAmount(value)}`;
   const interpolate = (label: string, value: string) => label
     .replace("${n}", value)
     .replace("{n}", value);

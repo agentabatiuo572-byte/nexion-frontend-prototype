@@ -42,7 +42,7 @@
         >
           <text :style="chipLabelStyle(nw.id)">{{ nw.label }}</text>
           <text v-if="nw.id === 'usdt-trc20'" :style="chipTagStyle">{{ t.topupChrome.netRecommended }}</text>
-          <text v-else :style="chipSubStyle" style="white-space: nowrap">{{ fmt(t.topupChrome.netFee, { fee: fundsServerEnabled ? feeUsdt : CHAIN_DEPOSIT_FEE_USDT[nw.id] }) }}</text>
+          <text v-else :style="chipSubStyle" style="white-space: nowrap">{{ fmt(t.topupChrome.netFee, { fee: formatAmount(fundsServerEnabled ? feeUsdt : CHAIN_DEPOSIT_FEE_USDT[nw.id]) }) }}</text>
         </view>
       </view>
 
@@ -68,8 +68,8 @@
         </view>
         <!-- 费用/最低额/确认数 — deposits-core 常量单源派生 -->
         <view class="flex items-center justify-between" style="margin-top: 12px; gap: 8px">
-          <view><text :style="metaCapStyle">{{ t.topupChrome.minDeposit }} <text :style="metaValStyle">${{ minDeposit }}</text></text></view>
-          <view><text :style="metaCapStyle">{{ t.topupChrome.fee }} <text :style="metaValStyle">{{ feeUsdt }} USDT</text></text></view>
+          <view><text :style="metaCapStyle">{{ t.topupChrome.minDeposit }} <text :style="metaValStyle">${{ formatAmount(minDeposit) }}</text></text></view>
+          <view><text :style="metaCapStyle">{{ t.topupChrome.fee }} <text :style="metaValStyle">{{ formatAmount(feeUsdt) }} USDT</text></text></view>
           <view><text :style="metaCapStyle">{{ t.topupChrome.confirmationsLabel }} <text :style="metaValStyle">{{ confirmations }}</text></text></view>
         </view>
       </view>
@@ -153,6 +153,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import qrcode from "qrcode-generator";
 import { cregisDepositApi, fundsServerEnabled, sessionVault } from "@/api/runtime";
@@ -397,7 +398,7 @@ function isRiskHold(r: PaneDepositRecord): boolean {
 }
 function rowAmount(r: PaneDepositRecord): string {
   const value = isRiskHold(r) || r.creditedUsdt > 0 ? r.creditedUsdt : r.grossAmountUsdt;
-  return fundsServerEnabled ? value.toFixed(6).replace(/0+$/, "").replace(/\.$/, "") : value.toFixed(2);
+  return formatAmount(value);
 }
 function netShort(c: DepositChannel): string {
   return CHANNEL_SHORT[c];

@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
@@ -24,9 +25,9 @@ function harness() {
     confirm: vi.fn().mockResolvedValue(true), dialogOwner: "fixture-dialog", fmt: (copy: string) => copy,
     submitRemoteOrder: vi.fn(),
   };
-  const pay = new Function(...Object.keys(deps),
+  const pay = new Function("formatAmount", ...Object.keys(deps),
     `let confirming = false, trialQuote, quotedTotal, voucherQuote, quotedTradeIn, dialogsOpen = 0;\n${topup}\n${handler}\nreturn onConfirmPay;`,
-  )(...Object.values(deps));
+  )(formatAmount, ...Object.values(deps));
   return { ...deps, pay, stale: () => { current = false; } };
 }
 

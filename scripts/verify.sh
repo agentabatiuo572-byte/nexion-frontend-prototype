@@ -1096,7 +1096,8 @@ sentinel_present "PAY-VN 卡轨记账口径(gross = 实扣额,非入账额)" src
 sentinel_present "PAY-VN 卡轨账号守卫(授权等待期跨账号不落账)" src/store/deposits.ts 'expectedAccountKey !== boundKey'
 sentinel_present "PAY-VN 入金主键查重(DP 号同日仅 9000 种)" src/store/deposits.ts 'function mintDepositId'
 sentinel_present "PAY-VN 卡费整数域(半分边界不被浮点压低)" src/store/deposits-core.ts 'cents \* bps'
-if grep -rnE '26,?390' src/store/ src/components/me/ 2>/dev/null | grep -vqE 'fx-core|selfcheck'; then
+# Regression fixtures carry expected amounts; only the exact production FX core is exempt.
+if grep -rnE --exclude='*.test.ts' --exclude='*test-support.ts' '26,?390' src/store/ src/components/me/ 2>/dev/null | grep -vqE '^src/store/fx-core\.ts:'; then
   bad "PAY-VN 硬编码牌价 26390(必须从 fx-core computeQuoteRate 派生)"
 else
   ok "PAY-VN 无硬编码牌价(单源派生)"

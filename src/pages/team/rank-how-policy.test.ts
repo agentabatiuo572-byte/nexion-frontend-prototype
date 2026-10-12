@@ -24,7 +24,7 @@ describe("rank-how server policy boundary", () => {
     expect(formatCanonicalRankConditions({
       v: 4,
       conditions: { selfBuyUSD: 299, teamVolumeUSD: 50_000, vDownlines: { 2: 3 } },
-    }, labels)).toEqual(["Self-buy ≥ $299", "Team $50,000", "3× V2"]);
+    }, labels)).toEqual(["Self-buy ≥ $299.00", "Team $50000.00", "3× V2"]);
     expect(formatCanonicalRankConditions({ v: 0, conditions: {} }, labels))
       .toEqual(["Register immediately"]);
   });

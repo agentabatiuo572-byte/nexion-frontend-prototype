@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { computed, reactive, ref } from "vue";
@@ -48,9 +49,9 @@ function mount(bills: ReturnType<typeof useBills>) {
   if (start < 0 || end < start) throw new Error("Daily ledger projection missing");
   const code = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const faucet = reactive({ history: [{ delta: 999, ts: 1, reason: "cached reward" }, { delta: -50, ts: 2, reason: "cached swap" }] });
-  return new Function("computed", "remoteApiEnabled", "bills", "faucet", "t", "resolveWalletBillMemo",
+  return new Function("formatAmount", "computed", "remoteApiEnabled", "bills", "faucet", "t", "resolveWalletBillMemo",
     `${code}\nreturn { lifetimeEarned, lifetimeSpent, historyRows };`,
-  )(computed, true, bills, faucet, ref({ bills: { memo: {} }, wallet: { pending: "Pending" } }), resolveWalletBillMemo);
+  )(formatAmount, computed, true, bills, faucet, ref({ bills: { memo: {} }, wallet: { pending: "Pending" } }), resolveWalletBillMemo);
 }
 
 function commands(bills: ReturnType<typeof useBills>, accepted: boolean) {
@@ -73,7 +74,7 @@ function commands(bills: ReturnType<typeof useBills>, accepted: boolean) {
     toast: { success: vi.fn(), error: vi.fn() }, t: ref(en), dailyCheckInSuccessCopy, fmt,
     isMilestoneClaimed: () => false, isMilestoneUnlocked: () => true,
   };
-  const handlers = new Function(...Object.keys(deps), `${code}\nreturn { handleCheckIn, handleClaimMilestone };`)(...Object.values(deps));
+  const handlers = new Function("formatAmount", ...Object.keys(deps), `${code}\nreturn { handleCheckIn, handleClaimMilestone };`)(formatAmount, ...Object.values(deps));
   return { ...deps, ...handlers };
 }
 
@@ -150,6 +151,7 @@ async function mountedDaily() {
   const toast = { success: vi.fn(), error: vi.fn(), warn: vi.fn(), info: vi.fn() }, shows: Array<() => void> = [], hides: Array<() => void> = [];
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
   const deps: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => void) => shows.push(fn), onHide: (fn: () => void) => hides.push(fn) },
     "@/api/runtime": remote, "@/store/app": { useApp: () => app }, "@/store/nex-faucet": { useNexFaucet: () => faucet },
     "@/store/bills": { useBills: () => bills }, "@/store/auth": { useAuth: () => auth }, "@/store/lucky-spin": { useLuckySpin: () => ({}) },
@@ -165,11 +167,11 @@ async function mountedDaily() {
   const { descriptor } = parse(source), compiled = compileScript(descriptor, { id: "daily-reward-balance", inlineTemplate: true });
   const js = ts.transpileModule(compiled.content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const exports = { default: {} as Vue.Component };
-  new Function("require", "exports", js)((id: string) => { if (!(id in deps)) throw new Error(`Unexpected import ${id}`); return deps[id]; }, exports);
+  new Function("formatAmount", "require", "exports", js)(formatAmount, (id: string) => { if (!(id in deps)) throw new Error(`Unexpected import ${id}`); return deps[id]; }, exports);
   const root = renderNode("root"), mounted = pageRenderer.createApp(exports.default); mounted.mount(root);
   const close = () => mounted.unmount(); closes.push(close); await settlePage();
   pointReads[0].resolve(pointsState()); wallets[0].resolve(walletFleet(134)); await settlePage();
-  expect(primary(root).props["aria-disabled"]).toBe("false"); expect(stat(root, en.daily.balance)).toBe("134");
+  expect(primary(root).props["aria-disabled"]).toBe("false"); expect(stat(root, en.daily.balance)).toBe("134.00");
   const success = async () => {
     const completion = primary(root).props.onClick(); await settlePage();
     pointReads.at(-1)!.resolve(pointsState()); await settlePage(); // Actual write-before-fresh-state gate.
@@ -188,12 +190,12 @@ async function mountedDaily() {
 describe("Daily actual SFC post-reward balance", () => {
   it("updates the wallet from a fresh server projection after a successful check-in", async () => {
     const p = await mountedDaily(); remote.walletBillsApi.summary.mockResolvedValue(summary(136, 0));
-    await p.success(); expect(stat(p.root, en.daily.lifetime)).toBe("136");
+    await p.success(); expect(stat(p.root, en.daily.lifetime)).toBe("136.00");
     console.info("post-success before wallet readback", { balance: stat(p.root, en.daily.balance), lifetime: stat(p.root, en.daily.lifetime),
       signed: p.faucet.remoteCheckedInToday, walletReads: p.wallets.length, signInWrites: p.writes.length });
-    expect(p.wallets).toHaveLength(2); expect(stat(p.root, en.daily.balance)).toBe("134");
+    expect(p.wallets).toHaveLength(2); expect(stat(p.root, en.daily.balance)).toBe("134.00");
     p.wallets[1].resolve(walletFleet(136)); await settlePage();
-    expect(stat(p.root, en.daily.balance)).toBe("136"); expect(p.app.user.usdtBalance).toBe(110.1);
+    expect(stat(p.root, en.daily.balance)).toBe("136.00"); expect(p.app.user.usdtBalance).toBe(110.1);
     await primary(p.root).props.onClick(); expect(p.writes).toHaveLength(1);
     expect(p.toast.error).not.toHaveBeenCalled();
   });
@@ -203,24 +205,24 @@ describe("Daily actual SFC post-reward balance", () => {
     expect(p.wallets).toHaveLength(2);
     p.pointReads[1].resolve(pointsState()); await settlePage();
     await p.success(); expect(p.wallets).toHaveLength(3);
-    expect(stat(p.root, en.daily.balance)).toBe("134"); // No reward arithmetic while the authoritative read is pending.
+    expect(stat(p.root, en.daily.balance)).toBe("134.00"); // No reward arithmetic while the authoritative read is pending.
     p.wallets[2].resolve(walletFleet(141)); await settlePage(); // Server wallet may include another independent change.
-    expect(stat(p.root, en.daily.balance)).toBe("141");
+    expect(stat(p.root, en.daily.balance)).toBe("141.00");
     p.wallets[1].resolve(walletFleet(134)); await settlePage();
-    expect(stat(p.root, en.daily.balance)).toBe("141"); expect(p.writes).toHaveLength(1);
+    expect(stat(p.root, en.daily.balance)).toBe("141.00"); expect(p.writes).toHaveLength(1);
   });
 
   it("keeps a committed reward signed when wallet readback fails, and Retry only rereads the wallet", async () => {
     const p = await mountedDaily(); await p.success(); expect(p.wallets).toHaveLength(2);
     p.wallets[1].reject(new Error("wallet temporarily unavailable")); await settlePage();
-    expect(p.app.remoteFleetStatus).toBe("error"); expect(stat(p.root, en.daily.balance)).toBe("134");
+    expect(p.app.remoteFleetStatus).toBe("error"); expect(stat(p.root, en.daily.balance)).toBe("134.00");
     expect(renderText(p.root)).toContain(en.wallet.fundsStaleBody);
     expect(renderText(primary(p.root))).toBe(en.daily.checkedInToday); expect(primary(p.root).props["aria-disabled"]).toBe("true");
     await primary(p.root).props.onClick(); expect(p.writes).toHaveLength(1);
     expect(p.toast.success).toHaveBeenCalledOnce(); expect(p.toast.error).not.toHaveBeenCalled();
     pageButtons(p.root).find(el => renderText(el) === en.wallet.retryFunds)!.props.onClick(); await settlePage();
     expect(p.wallets).toHaveLength(3); p.wallets[2].resolve(walletFleet(136)); await settlePage();
-    expect(stat(p.root, en.daily.balance)).toBe("136"); expect(p.writes).toHaveLength(1);
+    expect(stat(p.root, en.daily.balance)).toBe("136.00"); expect(p.writes).toHaveLength(1);
     expect(p.faucet.remoteCheckedInToday).toBe(true);
   });
 
@@ -228,9 +230,9 @@ describe("Daily actual SFC post-reward balance", () => {
     const p = await mountedDaily(); await p.success(); expect(p.wallets).toHaveLength(2);
     p.bind(608); await settlePage(); expect(p.app.remoteFleetHasSnapshot).toBe(false);
     p.pointReads.at(-1)!.resolve(pointsState()); p.wallets[2].resolve(walletFleet(401)); await settlePage();
-    expect(p.app.accountKey).toBe("user:608"); expect(stat(p.root, en.daily.balance)).toBe("401");
+    expect(p.app.accountKey).toBe("user:608"); expect(stat(p.root, en.daily.balance)).toBe("401.00");
     if (outcome === "success") p.wallets[1].resolve(walletFleet(999)); else p.wallets[1].reject(new Error("old account wallet offline"));
-    await settlePage(); expect(stat(p.root, en.daily.balance)).toBe("401"); expect(p.app.remoteFleetStatus).toBe("ready");
+    await settlePage(); expect(stat(p.root, en.daily.balance)).toBe("401.00"); expect(p.app.remoteFleetStatus).toBe("ready");
     expect(p.writes).toHaveLength(1);
   });
 
@@ -278,7 +280,7 @@ describe("Daily actual SFC post-reward balance", () => {
     console.info("old committed command released", { kind, account: p.app.accountKey, before, after: p.wallets.length,
       wallet: p.app.user.nexBalance, status: p.app.remoteFleetStatus, signedCurrent: p.faucet.remoteCheckedInToday, writes: p.writes.length });
     expect(p.wallets).toHaveLength(before); expect(p.app.remoteFleetStatus).toBe("ready");
-    expect(stat(p.root, en.daily.balance)).toBe(String(currentBalance)); expect(p.faucet.remoteCheckedInToday).toBe(false);
+    expect(stat(p.root, en.daily.balance)).toBe(kind === "account switch" ? "401.00" : "501.00"); expect(p.faucet.remoteCheckedInToday).toBe(false);
     expect(p.writes).toHaveLength(1);
   });
 
@@ -288,7 +290,7 @@ describe("Daily actual SFC post-reward balance", () => {
     p.pointReads.at(-1)!.resolve(pointsState()); p.wallets[1].resolve(walletFleet(401)); await settlePage();
     originalRead.resolve(pointsState()); await command; await settlePage();
     expect(p.writes).toHaveLength(0); expect(p.wallets).toHaveLength(2);
-    expect(p.app.remoteFleetStatus).toBe("ready"); expect(stat(p.root, en.daily.balance)).toBe("401");
+    expect(p.app.remoteFleetStatus).toBe("ready"); expect(stat(p.root, en.daily.balance)).toBe("401.00");
   });
 
   it("switching accounts while the POST is pending starts no post-command wallet read for the new account", async () => {
@@ -299,7 +301,7 @@ describe("Daily actual SFC post-reward balance", () => {
       streakDays: 1, serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "" });
     await command; await settlePage();
     expect(p.wallets).toHaveLength(2); expect(p.app.remoteFleetStatus).toBe("ready");
-    expect(stat(p.root, en.daily.balance)).toBe("401"); expect(p.faucet.remoteCheckedInToday).toBe(false);
+    expect(stat(p.root, en.daily.balance)).toBe("401.00"); expect(p.faucet.remoteCheckedInToday).toBe(false);
   });
 
   it.each(["logout", "mismatched session"])("the existing session guard suppresses wallet readback after %s during points follow-up", async kind => {
@@ -327,8 +329,8 @@ describe("Daily wallet ledger authority", () => {
     bills.bindAccount("A");
     const view = mount(bills);
     await bills.refreshSummary();
-    expect(view.lifetimeEarned.value).toBe("199");
-    expect(view.lifetimeSpent.value).toBe("18");
+    expect(view.lifetimeEarned.value).toBe("199.00");
+    expect(view.lifetimeSpent.value).toBe("18.00");
     expect(view.historyRows.value).toEqual([]);
   });
 
@@ -365,8 +367,8 @@ describe("Daily wallet ledger authority", () => {
     else previous.reject(new Error("previous account unavailable"));
     await expect(oldRead).rejects.toThrow(outcome === "success"
       ? "WALLET_SUMMARY_REQUEST_SUPERSEDED" : "previous account unavailable");
-    expect(view.lifetimeEarned.value).toBe("20");
-    expect(view.lifetimeSpent.value).toBe("3");
+    expect(view.lifetimeEarned.value).toBe("20.00");
+    expect(view.lifetimeSpent.value).toBe("3.00");
     remote.walletBillsApi.summary.mockRejectedValueOnce(new Error("B unavailable"));
     await expect(bills.refreshSummary()).rejects.toThrow("B unavailable");
     expect(view.lifetimeEarned.value).toBe("—");
@@ -398,12 +400,12 @@ describe("Daily wallet ledger authority", () => {
     const refused = commands(bills, false);
     await run(refused);
     expect(refresh).not.toHaveBeenCalled();
-    expect(view.lifetimeEarned.value).toBe('199');
+    expect(view.lifetimeEarned.value).toBe('199.00');
     remote.walletBillsApi.summary.mockResolvedValueOnce(summary(204, 18));
     const accepted = commands(bills, true);
     await run(accepted);
     expect(refresh).toHaveBeenCalledExactlyOnceWith({ force: true });
-    await vi.waitFor(() => expect(view.lifetimeEarned.value).toBe('204'));
+    await vi.waitFor(() => expect(view.lifetimeEarned.value).toBe('204.00'));
   });
 
   it.each(['check-in', 'milestone'])("keeps totals unknown when the post-%s ledger read fails", async (action) => {

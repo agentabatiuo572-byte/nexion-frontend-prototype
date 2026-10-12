@@ -1,12 +1,13 @@
 import type { RankHowPolicy } from "@/api/rank-how-policy-api";
 import type { CanonicalVRankRow, CommissionCapabilities } from "@/api/v-rank-api";
 import type { RankHowConditionLabels } from "./v-rank-how-policy";
+import { formatAmount } from "./amount-display";
 
 // Interface/status copy only. Published business explanations come from the policy API.
 const COPY = {
   zh: {
     headline: "看懂晋升条件，了解每阶权益。", unavailable: "等级说明暂不可用，请稍后重试。", loading: "正在加载等级说明…",
-    example: "完整范例 · 按当前规则演示", noThreshold: "本阶未设置此门槛", noReferralMinimum: "0 USDT（不要求正数自购）", noExample: "当前没有可演示的相邻等级门槛。", emptyLadder: "暂无可展示的等级", retry: "重新加载",
+    example: "完整范例 · 按当前规则演示", noThreshold: "本阶未设置此门槛", noReferralMinimum: "0.00 USDT（不要求正数自购）", noExample: "当前没有可演示的相邻等级门槛。", emptyLadder: "暂无可展示的等级", retry: "重新加载",
     protected: "已开启保级；业绩回落时保留当前等级。已结算奖励的退款和撤销仍按结算规则处理。",
     unprotected: "未开启保级；业绩或合格条件变化后，可能降至当前符合条件的等级。",
     leadershipReady: "领导池参与资格、限额和到账以实际结算结果为准。",
@@ -15,7 +16,7 @@ const COPY = {
   },
   en: {
     headline: "Understand each step and its benefits.", unavailable: "The rank guide is temporarily unavailable. Please try again later.", loading: "Loading the rank guide…",
-    example: "Worked example · current rules", noThreshold: "No threshold set for this rank", noReferralMinimum: "0 USDT (no positive self-purchase minimum)", noExample: "No adjacent rank thresholds are currently available for an example.", emptyLadder: "No visible ranks", retry: "Reload",
+    example: "Worked example · current rules", noThreshold: "No threshold set for this rank", noReferralMinimum: "0.00 USDT (no positive self-purchase minimum)", noExample: "No adjacent rank thresholds are currently available for an example.", emptyLadder: "No visible ranks", retry: "Reload",
     protected: "Rank protection is enabled: falling performance retains the current rank. Refunds and reversals still follow settlement rules.",
     unprotected: "Rank protection is disabled: changes in performance or qualification may lower the rank to the level currently reached.",
     leadershipReady: "Leadership pool eligibility, limits and payment are subject to actual settlement.",
@@ -24,7 +25,7 @@ const COPY = {
   },
   vi: {
     headline: "Hiểu điều kiện và quyền lợi từng bậc.", unavailable: "Hướng dẫn về hạng hiện chưa khả dụng. Vui lòng thử lại sau.", loading: "Đang tải hướng dẫn về hạng…",
-    example: "Ví dụ · theo quy tắc hiện tại", noThreshold: "Bậc này không đặt ngưỡng", noReferralMinimum: "0 USDT (không yêu cầu mức tự mua dương)", noExample: "Hiện chưa có ngưỡng của hai bậc liền nhau để minh họa.", emptyLadder: "Chưa có hạng được hiển thị", retry: "Tải lại",
+    example: "Ví dụ · theo quy tắc hiện tại", noThreshold: "Bậc này không đặt ngưỡng", noReferralMinimum: "0.00 USDT (không yêu cầu mức tự mua dương)", noExample: "Hiện chưa có ngưỡng của hai bậc liền nhau để minh họa.", emptyLadder: "Chưa có hạng được hiển thị", retry: "Tải lại",
     protected: "Đã bật bảo vệ hạng: giữ hạng khi doanh số giảm. Hoàn tiền và thu hồi thưởng vẫn theo quy tắc quyết toán.",
     unprotected: "Chưa bật bảo vệ hạng: thay đổi doanh số hoặc điều kiện có thể làm giảm hạng về mức thực tế đạt được.",
     leadershipReady: "Điều kiện tham gia, hạn mức và thanh toán của quỹ lãnh đạo theo kết quả quyết toán thực tế.",
@@ -72,7 +73,7 @@ export function buildRankHowContent(policy: RankHowPolicy | null, ranks: Canonic
   const target = pairs.find(rank => (rank.teamVolumeUSD ?? 0) > 0 && (rank.requiredDownlineCount ?? 0) > 0) ?? pairs[0];
   const example = target ? { from: ladder.find(rank => rank.v === target.v - 1)!, to: target } : null;
   const number = (value: number) => formatHowNumber(value, locale);
-  const money = (value: number | undefined) => value !== undefined && value > 0 ? `${number(value)} USDT` : copy.noThreshold;
+  const money = (value: number | undefined) => value !== undefined && value > 0 ? `${formatAmount(value)} USDT` : copy.noThreshold;
   const tokens: Record<string, string | undefined> = {
     firstRank: ladder.length ? `V${ladder[0].v}` : undefined,
     lastRank: ladder.length ? `V${ladder[ladder.length - 1].v}` : undefined,
@@ -87,14 +88,14 @@ export function buildRankHowContent(policy: RankHowPolicy | null, ranks: Canonic
         ? labels.vDownlines.replace("{n}", number(target.requiredDownlineCount!)).replace("{v}", String(target.requiredDownlineRank)) : copy.noThreshold,
       directRate: `${number(target.directBonus * 100)}%`,
       peerRate: capabilities.peer ? `${number(target.peerBonus * 100)}%` : copy.peerUnavailable,
-      votes: number(target.leadershipVotes), cultivation: `${number(target.cultivationBonus)} NEX`,
+      votes: number(target.leadershipVotes), cultivation: `${formatAmount(target.cultivationBonus)} NEX`,
     });
   }
   if (policy?.rules) {
     tokens.protection = policy.rules.permanentProtection ? copy.protected : copy.unprotected;
     tokens.leadershipStatus = policy.rules.leadershipConfigured ? copy.leadershipReady : copy.leadershipHold;
     if (policy.rules.qualifiedReferralSelfBuyUSD !== null) tokens.referralThreshold = policy.rules.qualifiedReferralSelfBuyUSD === 0
-      ? copy.noReferralMinimum : `${number(policy.rules.qualifiedReferralSelfBuyUSD)} USDT`;
+      ? copy.noReferralMinimum : `${formatAmount(policy.rules.qualifiedReferralSelfBuyUSD)} USDT`;
   }
   const sections = new Map(policy?.sections.map(section => [section.id, section]));
   function section(id: string, fallbackTitle = copy.unavailable) {

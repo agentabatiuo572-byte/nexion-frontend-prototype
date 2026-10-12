@@ -3,10 +3,10 @@ import { directPage, eventFixture, snapshotFixture, policyFixture, flush, text, 
 test("source filters keep each settlement as one paired event and preserve whole-period totals", async () => {
   const events = [eventFixture("purchase"), eventFixture("device", "direct_device_earning")];
   const page = await directPage({ api: { policy: vi.fn().mockResolvedValue(policyFixture()), snapshot: vi.fn().mockResolvedValue(snapshotFixture(events)) } }); await flush();
-  expect(text(page.root)).toContain("60"); expect(text(page.root)).toContain("4,000");
+  expect(text(page.root)).toContain("60.00USDT4000.00NEX");
   await click(page.root, "Device earnings reward");
   expect(text(page.root)).toContain("Member device");
-  expect(text(page.root)).toContain("0.3"); expect(text(page.root)).toContain("20");
+  expect(text(page.root)).toContain("0.30USDT20.00NEX");
 });
 test("empty list retains the invitation and rules exits", async () => {
   const page = await directPage({ api: { policy: vi.fn().mockResolvedValue(policyFixture()), snapshot: vi.fn().mockResolvedValue(snapshotFixture([])) } }); await flush();

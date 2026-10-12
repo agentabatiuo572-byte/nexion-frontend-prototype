@@ -138,7 +138,7 @@
         <view class="grid grid-cols-3" style="gap: 8px">
           <view class="text-center" :style="statStyle">
             <text class="block" :style="statLabelStyle">{{ t.daily.balance }}</text>
-            <text class="block tabular-nums" :style="statValStyle('var(--v5-success)')">{{ !remoteApiEnabled || app.remoteFleetHasSnapshot ? app.user.nexBalance : '—' }}</text>
+            <text class="block tabular-nums" :style="statValStyle('var(--v5-success)')">{{ !remoteApiEnabled || app.remoteFleetHasSnapshot ? formatAmount(app.user.nexBalance) : '—' }}</text>
             <text class="block" :style="statSubStyle">{{ t.daily.points }}</text>
           </view>
           <view class="text-center" :style="statStyle">
@@ -197,7 +197,7 @@
                 <text class="block" :style="historyReasonStyle">{{ h.reason }}</text>
                 <text class="block" :style="historyTimeStyle">{{ formatTs(h.ts) }}</text>
               </view>
-              <text class="block tabular-nums" :style="historyDeltaStyle(h.delta)">{{ h.delta > 0 ? "+" : "" }}{{ h.delta }}</text>
+              <text class="block tabular-nums" :style="historyDeltaStyle(h.delta)">{{ h.delta > 0 ? "+" : "" }}{{ formatAmount(h.delta) }}</text>
             </view>
           </view>
         </view>
@@ -207,6 +207,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -468,13 +469,13 @@ const yourBestText = computed(() =>
 const pointsUnlockText = computed(() => t.value.daily.pointsUnlockHint);
 const lifetimeEarned = computed(() =>
   remoteApiEnabled ? bills.summaryStatus === 'ready' && bills.summary?.settledRewardsNex != null
-    ? String(bills.summary.settledRewardsNex) : '—'
-    : String(faucet.history.reduce((s, h) => s + (h.delta > 0 ? h.delta : 0), 0)),
+    ? formatAmount(bills.summary.settledRewardsNex) : '—'
+    : formatAmount(faucet.history.reduce((s, h) => s + (h.delta > 0 ? h.delta : 0), 0)),
 );
 const lifetimeSpent = computed(() =>
   remoteApiEnabled ? bills.summaryStatus === 'ready' && bills.summary?.withdrawalOffsetNexSpent != null
-    ? String(bills.summary.withdrawalOffsetNexSpent) : '—'
-    : String(-faucet.history.reduce((s, h) => s + (h.delta < 0 ? h.delta : 0), 0)),
+    ? formatAmount(bills.summary.withdrawalOffsetNexSpent) : '—'
+    : formatAmount(-faucet.history.reduce((s, h) => s + (h.delta < 0 ? h.delta : 0), 0)),
 );
 const historyRows = computed(() => remoteApiEnabled
   ? (bills.summaryStatus === 'ready' ? bills.summary?.recentNexBills ?? [] : []).map(b => ({
@@ -569,11 +570,11 @@ async function handleCheckIn() {
     // vibrate unavailable
   }
   if (r.multiplier > 1) {
-    toast.success(`🎲 Lucky ×${r.multiplier}! +${r.gained} NEX`, `${r.streak}-day streak`);
+    toast.success(`🎲 Lucky ×${r.multiplier}! +${formatAmount(r.gained)} NEX`, `${r.streak}-day streak`);
   } else if (r.gained > 2) {
-    toast.success(`🔥 ${r.streak}-day streak! +${r.gained} NEX`, "Day-7 bonus unlocked");
+    toast.success(`🔥 ${r.streak}-day streak! +${formatAmount(r.gained)} NEX`, "Day-7 bonus unlocked");
   } else {
-    toast.success(`+${r.gained} NEX`, `${r.streak}-day streak`);
+    toast.success(`+${formatAmount(r.gained)} NEX`, `${r.streak}-day streak`);
   }
 }
 

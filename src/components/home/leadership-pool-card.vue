@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -72,8 +73,8 @@ const poolThisWeekText = computed(() => {
     rate: (rate * 100).toLocaleString(dateLocale(), { maximumFractionDigits: 8 }),
   });
 });
-const poolKText = computed(() => (poolUSDT.value / 1000).toFixed(1));
-const payoutText = computed(() => myPayout.value.toFixed(2));
+const poolKText = computed(() => formatAmount(poolUSDT.value / 1000));
+const payoutText = computed(() => formatAmount(myPayout.value));
 const shareText = computed(() => fmt(t.value.home.poolShare, { n: (myShare.value * 100).toFixed(2) }));
 
 async function loadRemotePool() {

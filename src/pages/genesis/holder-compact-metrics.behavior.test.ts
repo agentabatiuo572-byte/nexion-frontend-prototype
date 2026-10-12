@@ -9,6 +9,7 @@ import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
+import { formatAmount } from "@/lib/amount-display";
 import { refreshActivePage, registerActivePageRefresh, resetActivePageRefreshForTest } from "@/lib/active-page-refresh";
 import source from "./holder.vue?raw";
 
@@ -50,6 +51,7 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
   const pointsRefresh = vi.fn(async () => {});
   const wrapper = { setup: (_props: unknown, { slots }: { slots: Vue.Slots }) => () => Vue.h("view", slots.default?.()) };
   const dependencies: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@dcloudio/uni-app": { onShow: (hook: () => void) => shows.push(hook), onHide: (hook: () => void) => hides.push(hook) },
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(copy) },
     "@/i18n/format": { fmt, dateLocale: () => "en-US" },
@@ -84,11 +86,12 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
     expect(page.html).toContain(copy.holderFacts.reasons.HOLDINGS_CONFIRMED);
     expect(page.html).toContain(copy.holderFacts.allocationUnavailable);
     payload.reservedAllocation = 0; await genesis.syncRemote();
-    page = await show(); expect(page.allocation).toBe("0 NEX");
+    page = await show(); expect(page.allocation).toBe("0.00 NEX");
     expect(page.html).toContain(copy.holderFacts.reasons.HOLDINGS_CONFIRMED);
     expect(page.html).not.toContain(copy.holderFacts.allocationUnavailable);
     payload.reservedAllocation = 1.234567; await genesis.syncRemote();
-    expect((await show()).allocation).toBe("1.234567 NEX");
+    expect((await show()).allocation).toBe("1.23 NEX");
+    expect(genesis.remoteEligibility?.reservedAllocation).toBe(1.234567);
     for (const status of ["CONFIG_UNAVAILABLE", "NOT_EFFECTIVE", "NOT_ELIGIBLE"]) {
       payload.status = status; payload.reservedAllocation = null; await genesis.syncRemote();
       page = await show(); expect(page.allocation).toBe("-");
@@ -118,7 +121,7 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
   expect((await show()).html).toContain(copy.holderFacts.allocationUnavailable);
   payload.reservedAllocation = 0; request.mockClear();
   await refreshActivePage(); expect(request).toHaveBeenCalledTimes(1);
-  const recovered = await show(); expect(recovered.allocation).toBe("0 NEX");
+  const recovered = await show(); expect(recovered.allocation).toBe("0.00 NEX");
   expect(recovered.html).not.toContain(copy.holderFacts.allocationUnavailable);
   holderHide(); request.mockClear(); await refreshActivePage(); expect(request).not.toHaveBeenCalled();
 

@@ -32,7 +32,7 @@
             <text class="block" :style="claimedLabelStyle">{{ titleOf(q) }}</text>
             <text class="block" :style="categoryLabelStyle">{{ t.questClaim.alreadyClaimed }}</text>
           </view>
-          <text :style="claimedRewardStyle">+{{ rewardOf(q) }} NEX</text>
+          <text :style="claimedRewardStyle">+{{ formatAmount(rewardOf(q)) }} NEX</text>
         </view>
 
         <!-- completed: claimable button -->
@@ -60,7 +60,7 @@
           <view class="flex items-baseline" style="gap: 4px">
             <!-- 目标业务停摆时不给可赚取数字:它与「不可完成」同屏是自相矛盾的。 -->
             <text v-if="targetClosed(q)" :style="pendingPausedStyle">{{ t.questClaim.definitionInactive }}</text>
-            <text v-else :style="pendingRewardStyle">+{{ rewardOf(q) }} NEX</text>
+            <text v-else :style="pendingRewardStyle">+{{ formatAmount(rewardOf(q)) }} NEX</text>
           </view>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px; flex-shrink: 0"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
@@ -74,6 +74,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, ref, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import type { CanonicalQuest } from "@/api/quest-api";
@@ -152,7 +153,7 @@ function categoryOf(q: CanonicalQuest): string {
   })[q.category];
 }
 function claimTextFor(q: CanonicalQuest): string {
-  return fmt(w.value.claim, { n: rewardOf(q).toLocaleString() });
+  return fmt(w.value.claim, { n: formatAmount(rewardOf(q)) });
 }
 
 /**

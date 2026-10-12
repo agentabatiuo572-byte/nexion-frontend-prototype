@@ -76,7 +76,7 @@
           <text
             class="font-mono-tabular tabular-nums"
             style="font-size: 34px; font-weight: 600; color: var(--v5-ink); letter-spacing: -0.02em; line-height: 1"
-          >{{ shadowUSD.toFixed(2) }}</text>
+          >{{ formatAmount(shadowUSD) }}</text>
           <text class="font-mono-tabular text-[12px] ml-1" style="color: var(--v5-tech-cyan-ink)">{{ shadowNexText }}</text>
         </view>
       </view>
@@ -105,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useFreeTrial, liveShadowUSD, liveShadowNEX, remainingMs } from "@/store/free-trial";
@@ -178,8 +179,8 @@ const progressPct = computed(() => {
 const discount = computed(() => computeDiscountedPrice(trialCfg.config).discount);
 
 const etaText = computed(() => fmt(trialLabels.value.etaTemplate, { eta: etaLabel.value }));
-const discountText = computed(() => fmt(t.value.trial.ghostDiscount, { amount: `$${discount.value}` }));
-const shadowNexText = computed(() => `+ ${shadowNEX.value.toLocaleString()} NEX`);
+const discountText = computed(() => fmt(t.value.trial.ghostDiscount, { amount: `$${formatAmount(discount.value)}` }));
+const shadowNexText = computed(() => `+ ${formatAmount(shadowNEX.value)} NEX`);
 
 function goTrial() {
   navTo("/pages/me/trial");

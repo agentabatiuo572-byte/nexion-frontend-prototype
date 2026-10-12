@@ -128,6 +128,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -277,9 +278,9 @@ const remoteGroups = computed(() => {
     key: `earning:${row.milestoneId}`,
     kind: "earning",
     id: row.milestoneId,
-    label: `${w.value.earningMilestone} ${row.thresholdUsdt.toLocaleString()}`,
-    description: `${w.value.lifetimeEarnings}: ${row.lifetimeEarningsUsdt.toLocaleString()}`,
-    reward: `+${row.rewardNex} NEX`,
+    label: `${w.value.earningMilestone} ${formatAmount(row.thresholdUsdt)}`,
+    description: `${w.value.lifetimeEarnings}: ${formatAmount(row.lifetimeEarningsUsdt)}`,
+    reward: `+${formatAmount(row.rewardNex)} NEX`,
     status: row.status,
     iconId: "first_dollar",
   }));
@@ -401,8 +402,8 @@ function desc(a: AchievementDef): string {
   return (w.value as unknown as Record<string, string>)[`a_${a.i18nKey}_d`] ?? "";
 }
 function rewardLabel(a: AchievementDef): string {
-  if (a.rewardNex) return `+${a.rewardNex} NEX`;
-  if (a.rewardUsdt) return `+${a.rewardUsdt}`;
+  if (a.rewardNex) return `+${formatAmount(a.rewardNex)} NEX`;
+  if (a.rewardUsdt) return `+${formatAmount(a.rewardUsdt)}`;
   return "VIP badge";
 }
 function relativeWhen(ms: number): string {

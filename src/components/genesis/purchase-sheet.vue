@@ -101,6 +101,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, watch, nextTick, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -175,8 +176,8 @@ const app = useApp();
 const price = computed(() => genesis.unitPriceUSDT);
 const remaining = computed(() => genesis.totalSlots - genesis.soldSlots);
 
-const subtitleText = computed(() => fmt(t.value.genesis.confirmSubtitle, { price: price.value.toLocaleString() }));
-const subtotalText = computed(() => (qty.value * price.value).toLocaleString());
+const subtitleText = computed(() => fmt(t.value.genesis.confirmSubtitle, { price: formatAmount(price.value) }));
+const subtotalText = computed(() => formatAmount(qty.value * price.value));
 
 // Reset qty to 1 each time the sheet opens. 守卫一并解锁 —— 成交成功那条路径
 // **故意**持锁到面板关闭(解锁 = 给双击留窗口),再次打开时才是新的一次购买。
@@ -248,7 +249,7 @@ async function handlePurchase() {
       if (geo) { toast.error(geo, t.value.geoPolicy.fundsSafeNote); return; }
       if (paid === "insufficient") {
         toast.error(t.value.genesis.purchaseError, fmt(t.value.genesis.purchaseErrorSubtitle, {
-          cost: cost.toLocaleString(), balance: app.user.usdtBalance.toFixed(2),
+          cost: formatAmount(cost), balance: formatAmount(app.user.usdtBalance),
         }));
         return;
       }
@@ -291,7 +292,7 @@ async function handlePurchase() {
       //   store 侧用全仓统一的 isSettledRejection 判这件事,页面只负责选文案。
       const copy = result.reason === "insufficient-funds"
         ? [t.value.genesis.purchaseInsufficient, fmt(t.value.genesis.purchaseInsufficientSub, {
-          cost: (qty.value * price.value).toLocaleString(), balance: app.user.usdtBalance.toFixed(2),
+          cost: formatAmount(qty.value * price.value), balance: formatAmount(app.user.usdtBalance),
         })]
         : result.reason === "run-conflict"
           ? [t.value.genesis.purchaseRunConflict, t.value.genesis.purchaseRunConflictSub]

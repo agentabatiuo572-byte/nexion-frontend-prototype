@@ -36,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -61,7 +62,7 @@ const missingText = computed(() => missing.value.map((g) => rankGapText(t.value,
 const unlockAtText = computed(() => (next.value ? fmt(t.value.home.rankUnlockAt, { n: next.value.v }) : ""));
 // 实物奖已删 → 改展示下一阶的 NEX 培育奖(cultivationBonus);为 0 时不显示 chip
 const rewardNex = computed(() => next.value?.cultivationBonus ?? 0);
-const rewardText = computed(() => fmt(t.value.home.rankReward, { n: rewardNex.value.toLocaleString() }));
+const rewardText = computed(() => fmt(t.value.home.rankReward, { n: formatAmount(rewardNex.value) }));
 
 const barStyle = computed<CSSProperties>(() => ({
   width: `${inView.value ? pct.value : 0}%`,

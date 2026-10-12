@@ -266,6 +266,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { ref, computed, watch, onActivated, onDeactivated, onUnmounted, nextTick, type CSSProperties } from "vue";
 import { onLoad, onHide, onShow, onUnload } from "@dcloudio/uni-app";
@@ -598,26 +599,26 @@ const stockLow = computed(
 );
 const soldText = computed(() => (product.value?.sold ?? 0).toLocaleString());
 const phoneDailyEarnText = computed(() => (phoneDailyEarnValue.value > 0
-  ? `${phoneDailyEarnValue.value.toFixed(2)}`
+  ? formatAmount(phoneDailyEarnValue.value)
   : t.value.store.specValueUnavailable));
 // Same server figure the vs-phone strip shows. It used to be baked into the copy
 // as "$0.06", which contradicted the strip whenever the server said otherwise —
 // or said nothing at all (strip degraded, this line still claimed $0.06).
 const vsPhoneSubText = computed(() => fmt(t.value.store.detVsPhone, { n: phoneDailyEarnText.value }));
-const dailyEarnText = computed(() => (product.value?.dailyEarn ?? 0).toFixed(2));
+const dailyEarnText = computed(() => formatAmount(product.value?.dailyEarn ?? 0));
 const shareYieldText = computed(() => product.value?.shareYieldMin != null && product.value?.shareYieldMax != null
   ? `${product.value.shareYieldMin}%–${product.value.shareYieldMax}%`
   : t.value.store.shareAnnualUnavailable);
-const dailyYieldText = computed(() => dailyYield.value.toFixed(2));
-const monthlyYieldText = computed(() => monthlyYield.value.toFixed(0));
-const annualYieldText = computed(() => annualYield.value.toFixed(0));
+const dailyYieldText = computed(() => formatAmount(dailyYield.value));
+const monthlyYieldText = computed(() => formatAmount(monthlyYield.value));
+const annualYieldText = computed(() => formatAmount(annualYield.value));
 const monthlyPctText = computed(() =>
   totalPrice.value > 0 ? ((monthlyYield.value / totalPrice.value) * 100).toFixed(1) : "0",
 );
 const annualPctText = computed(() =>
   totalPrice.value > 0 ? ((annualYield.value / totalPrice.value) * 100).toFixed(0) : "0",
 );
-const priceText = computed(() => (product.value?.price ?? 0).toLocaleString());
+const priceText = computed(() => formatAmount((product.value?.price ?? 0)));
 
 function eligibilityPolicyTitle(policy: PurchaseEligibilityPolicy): string {
   return policy.policy === "F4B"
@@ -650,10 +651,11 @@ function eligibilityNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.00$/, "");
 }
 function eligibilityConditionText(condition: PurchaseEligibilityCondition): string {
+  const numberLabel = condition.kind === "teamVolumeUsd" ? formatAmount : eligibilityNumber;
   const values = {
-    current: eligibilityNumber(condition.current),
-    required: eligibilityNumber(condition.required),
-    gap: eligibilityNumber(condition.gap),
+    current: numberLabel(condition.current),
+    required: numberLabel(condition.required),
+    gap: numberLabel(condition.gap),
   };
   const copy = condition.kind === "rank"
     ? fmt(t.value.store.purchaseEligibilityRank, values)

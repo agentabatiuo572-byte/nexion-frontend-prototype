@@ -80,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
@@ -179,7 +180,7 @@ function retryCatalog(): void {
   void refreshProductCatalog(true);
 }
 // 礼包 NEX 数量单源派生自 platform config。
-const inviteHint = computed(() => remoteApiEnabled ? "—" : fmt(t.value.quota.inviteFriendsHint, { inviterNex: cfg.config.rewards.inviterReward.nexAmount, nex: cfg.config.rewards.welcomeGift.nexAmount }));
+const inviteHint = computed(() => remoteApiEnabled ? "—" : fmt(t.value.quota.inviteFriendsHint, { inviterNex: formatAmount(cfg.config.rewards.inviterReward.nexAmount), nex: formatAmount(cfg.config.rewards.welcomeGift.nexAmount) }));
 
 const members = computed(() => network.members);
 const directInvites = computed(() => remoteApiEnabled ? remoteSnapshot.value?.facts.directInvites ?? "—" : members.value.filter((m) => m.layer === 1).length);
@@ -222,7 +223,7 @@ function buildTier(productId: string, tint: string): QuotaTier | null {
     unlockKind: g.mode,
     conditions,
     perks: [
-      fmt(t.value.quota.perkGen, { n: p.dailyEarnNEX }),
+      fmt(t.value.quota.perkGen, { n: formatAmount(p.dailyEarnNEX) }),
       `${specText(t.value, p.gpu, "-")} · ${specText(t.value, p.vram, "-")}`,
     ],
     roiBasis: p.productType === "SHARE" ? undefined : { dailyEarn: p.dailyEarn, price: p.price, roi: mockAnnualRoiPct(p) },
@@ -249,7 +250,7 @@ function catalogProductPerks(productId: string, fallback: readonly string[]): st
   if (!p) return fallback.filter((perk) => !isAnnualizedQuotaPerk(perk)).map(quotaPerkText);
   // Annualized output is rendered only with its complete calculation basis.
   return [
-    fmt(t.value.quota.perkGen, { n: p.dailyEarnNEX }),
+    fmt(t.value.quota.perkGen, { n: formatAmount(p.dailyEarnNEX) }),
     `${specText(t.value, p.gpu, "-")} · ${specText(t.value, p.vram, "-")}`,
   ];
 }
@@ -265,7 +266,7 @@ function catalogProductRoiBasis(productId: string): QuotaTier["roiBasis"] {
 
 // The server row's perk strings are unlocalized and carry the raw column scale
 // ("80.000000 NEX/day"). Until the catalog read lands they are the only facts
-// available, so render them through the same localized, trailing-zero-free
+// available, so render them through the same localized, two-decimal
 // line the catalog path uses (BUG 33) instead of printing the raw column.
 const QUOTA_PERK_GEN = /^(\d+(?:\.\d+)?)\s*NEX\s*\/\s*day$/i;
 function quotaPerkText(perk: string): string {
@@ -273,7 +274,7 @@ function quotaPerkText(perk: string): string {
   if (!match) return perk;
   const amount = Number(match[1]);
   if (!Number.isFinite(amount)) return perk;
-  return fmt(t.value.quota.perkGen, { n: amount });
+  return fmt(t.value.quota.perkGen, { n: formatAmount(match[1]) });
 }
 
 /** 请求聚焦的商品是否确实在配额档位里(空 id = 未指定,不提示)。 */

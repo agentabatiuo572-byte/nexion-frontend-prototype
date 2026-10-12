@@ -18,8 +18,8 @@
       <view class="grid grid-cols-3" style="gap: 8px; margin-top: 14px">
         <view v-for="tier in displayTiers" :key="tier.days" class="text-center" :style="tierCellStyle(tier.tone)">
           <text class="block font-mono-tabular" :style="tierLabelStyle(tier.tone)">{{ tierLabelText(tier.days) }}</text>
-          <text class="block tabular-nums" :style="tierValueStyle">${{ tierValue(tier).toFixed(0) }}</text>
-          <text class="block tabular-nums" :style="tierDeltaStyle(tier.tone)">+${{ tierDelta(tier).toFixed(0) }}</text>
+          <text class="block tabular-nums" :style="tierValueStyle">${{ formatAmount(tierValue(tier)) }}</text>
+          <text class="block tabular-nums" :style="tierDeltaStyle(tier.tone)">+${{ formatAmount(tierDelta(tier)) }}</text>
         </view>
       </view>
 
@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onMounted, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -78,12 +79,12 @@ const peakDelta = computed(() => peakValue.value - props.amountNum);
 
 const headlineText = computed(() =>
   fmt(w.value.headline, {
-    amount: `${props.amountNum.toFixed(2)}`,
-    peak: `${peakValue.value.toFixed(2)}`,
+    amount: formatAmount(props.amountNum),
+    peak: formatAmount(peakValue.value),
     days: peak.value?.days ?? 180,
   }),
 );
-const ctaText = computed(() => fmt(w.value.cta, { delta: `${peakDelta.value.toFixed(0)}`, days: peak.value?.days ?? 180 }));
+const ctaText = computed(() => fmt(w.value.cta, { delta: `${formatAmount(peakDelta.value)}`, days: peak.value?.days ?? 180 }));
 function tierLabelText(days: number): string {
   return fmt(w.value.tierLabel, { n: days });
 }

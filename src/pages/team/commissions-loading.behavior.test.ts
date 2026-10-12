@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -67,6 +68,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const exports = { default: {} as Component };
   const shows: Array<() => void> = [];
   const defaults: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: slot },
@@ -171,7 +173,8 @@ test.each(["en", "zh", "vi"] as const)("commissions %s retains real device sourc
     status: "recovery_pending", recoveryPendingUSDT: 1.5, recoveryPendingNEX: 80}]); await flush();
   expect(text(page.root)).toContain("EARN-REAL-7"); expect(text(page.root)).toContain("DEVICE-REAL-7");
   expect(text(page.root)).toContain(dictionaries[code].directReferral.recoveryPending);
-  expect(text(page.root)).toContain("80"); expect(text(page.root)).not.toContain("+7.00");
+  expect(text(page.root)).toContain(fmt(dictionaries[code].directReferral.pendingAmounts, { usdt: "1.50", nex: "80.00" }));
+  expect(text(page.root)).not.toContain("+7.00");
 });
 
 test.each(["en", "zh", "vi"] as const)("commissions %s idle and pending are loading, never projection failure or zero result", async code => {

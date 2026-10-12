@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import * as Vue from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { compileScript, parse } from '@vue/compiler-sfc';
@@ -17,6 +18,7 @@ const descriptor=parse(rewardRowsSource,{filename:'reward-rows.vue'}).descriptor
 const script=compileScript(descriptor,{id:'reward-rows-behavior',inlineTemplate:true,templateOptions:{compilerOptions:{isCustomElement:tag=>['view','text'].includes(tag)}}});
 const code=ts.transpileModule(script.content,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const dependencies:Record<string,unknown>={
+    "@/lib/amount-display": { formatAmount },
   vue:Vue,
   '@/i18n/use-t':{useT:()=>Vue.ref({promotion:promotionZH})},
   '@/store/locale':{useLocaleStore:()=>({code:'zh'})},
@@ -76,8 +78,8 @@ it('two canonical order-line IDs keep purchase quantities and rewards paired reg
   const html=await renderToString(Vue.createSSRApp(componentExports.default,props));
   const rows=html.replace(/<!--.*?-->/g,'').split('class="promotion-row"').slice(1);
   expect(rows).toHaveLength(2);
-  expect(rows[0]).toContain('Device Beta × 3');expect(rows[0]).toContain('7 NEX');expect(rows[0]).not.toContain('Device Alpha');
-  expect(rows[1]).toContain('Device Alpha × 2');expect(rows[1]).toContain('5 USDT');expect(rows[1]).not.toContain('Device Beta');
+  expect(rows[0]).toContain('Device Beta × 3');expect(rows[0]).toContain('7.00 NEX');expect(rows[0]).not.toContain('Device Alpha');
+  expect(rows[1]).toContain('Device Alpha × 2');expect(rows[1]).toContain('5.00 USDT');expect(rows[1]).not.toContain('Device Beta');
 });
 it('uses immutable names even when a gift is hidden from the current shop catalogue',async()=>{
   const html=await renderToString(Vue.createSSRApp(componentExports.default,{lines:[{lineId:'756',productNo:'sku-a',productName:'Original purchase name',quantity:1}],rewards:[{...reward,orderLineId:'756',reward:{rewardRuleId:'gift',type:'DEVICE',giftProductNo:'hidden-sku',quantity:1,beneficiaryRole:'BUYER'},disclosure:{deviceName:'Frozen hidden gift'}}]}));

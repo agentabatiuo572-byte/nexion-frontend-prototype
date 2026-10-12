@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -64,6 +65,7 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const app = Vue.reactive({ accountKey: "render-only", visibleDevices: [device], remotePhoneBindingInvalid: false, setPhoneRuntime });
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const dependencies: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@/components/home/device-slot.vue": { __esModule: true, default: blank },
     "@/store/app": { useApp: () => app },
     "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => calibrated }) },

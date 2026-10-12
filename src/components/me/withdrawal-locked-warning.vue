@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navReset } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -31,8 +32,8 @@ const MIN_WITHDRAWAL_USD = 20;
 const props = defineProps<{ balance: number }>();
 const t = useT();
 
-const shortBy = computed(() => (MIN_WITHDRAWAL_USD - props.balance).toFixed(2));
-const bodyLine = computed(() => fmt(t.value.me.withdrawalLockedBody, { min: MIN_WITHDRAWAL_USD, short: shortBy.value }));
+const shortBy = computed(() => formatAmount(MIN_WITHDRAWAL_USD - props.balance));
+const bodyLine = computed(() => fmt(t.value.me.withdrawalLockedBody, { min: formatAmount(MIN_WITHDRAWAL_USD), short: shortBy.value }));
 
 function goStore() {
   navReset({ url: "/pages/store/store", fail: () => {} });

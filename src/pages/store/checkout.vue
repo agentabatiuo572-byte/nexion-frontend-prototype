@@ -257,6 +257,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow, onUnload, onBackPress } from "@dcloudio/uni-app";
 import PromotionCheckout from '@/components/promotion/promotion-checkout.vue';
@@ -406,7 +407,7 @@ const walletBalanceHint = computed(() => {
     return checkoutWalletRefreshing.value || app.remoteFleetStatus === "idle" || app.remoteFleetStatus === "loading"
       ? t.value.help.loadingMore : t.value.wallet.fundsUnavailableTitle;
   }
-  return `${t.value.wallet.usdtBalance} · $${app.user.usdtBalance.toFixed(2)}`;
+  return `${t.value.wallet.usdtBalance} · $${formatAmount(app.user.usdtBalance)}`;
 });
 
 function checkoutRouteIdentity() {
@@ -659,8 +660,8 @@ const trialView = computed(() => trialQuoteAt(nowTick.value));
 const trialConversionMode = computed(() => trialView.value.applied);
 const promoDiscount = computed(() => trialView.value.promo);
 const trialOffsetView = computed(() => trialView.value);
-const promoDiscountText = computed(() => promoDiscount.value.toFixed(2));
-const trialOffsetText = computed(() => trialOffsetView.value.offsetUSD.toFixed(2));
+const promoDiscountText = computed(() => formatAmount(promoDiscount.value));
+const trialOffsetText = computed(() => formatAmount(trialOffsetView.value.offsetUSD));
 const promoRowLabel = computed(() => fmt(t.value.store.coRowTrialDiscount, { pct: (trialCfg.value.discountRate * 100).toFixed(0) }));
 
 // ─── Voucher redemption ──────────────────────────────────────────────────
@@ -688,7 +689,7 @@ const voucherMatch = computed(() => {
 });
 const voucherDiscount = computed(() => voucherMatch.value?.discountUSD ?? 0);
 const hasVoucher = computed(() => voucherDiscount.value > 0);
-const voucherDiscountText = computed(() => voucherDiscount.value.toLocaleString());
+const voucherDiscountText = computed(() => formatAmount(voucherDiscount.value));
 
 // ─── FEAT-DEV02 旧机抵扣 ─────────────────────────────────────────────────
 // retire 流(设备页下架)或本页 choice 弹层确认后,tradein.appliedTradein 携带
@@ -728,8 +729,8 @@ function resolveQuotedTradeIn(): { device: (typeof app.devices)[number]; credit:
 }
 const tradeinCredit = computed(() => appliedTradeinView.value?.credit ?? 0);
 const hasTradein = computed(() => tradeinCredit.value > 0);
-// toFixed(2) 与其余六个抵扣展示面统一(strip/弹层/横幅均两位小数)。
-const tradeinCreditText = computed(() => tradeinCredit.value.toFixed(2));
+// 抵扣展示面统一使用两位小数和相同的十进制舍入。
+const tradeinCreditText = computed(() => formatAmount(tradeinCredit.value));
 const tradeinChipText = computed(() => {
   const ti = appliedTradeinView.value;
   if (!ti) return "";
@@ -993,16 +994,16 @@ const capped = computed(() => targetOccupiesPhysicalSlot.value && (
 ));
 
 // ── derived text ──
-const priceText = computed(() => (product.value?.price ?? 0).toLocaleString());
+const priceText = computed(() => formatAmount((product.value?.price ?? 0)));
 // Header "Total" = device price after voucher (still excludes card fee, matching
 // the pre-voucher convention). Card fee is computed on the discounted subtotal.
-const netPriceText = computed(() => netPrice.value.toLocaleString());
+const netPriceText = computed(() => formatAmount(netPrice.value));
 // 算法也单源:整数域(cent × bps)与入金同一套。浮点直乘再 toFixed 会在半分边界
 // 被 IEEE754 压低一分(实测 14 个金额少收 1 分),同一笔费率两种算法两个答案。
 const cardFee = computed(() => (remoteApiEnabled && appliedTradeinView.value?.canonicalQuote
   ? 0 : isCard.value ? cardFeeUsd(netPrice.value) : 0));
-const cardFeeText = computed(() => cardFee.value.toLocaleString());
-const confirmTotalText = computed(() => (netPrice.value + cardFee.value).toLocaleString());
+const cardFeeText = computed(() => formatAmount(cardFee.value));
+const confirmTotalText = computed(() => formatAmount((netPrice.value + cardFee.value)));
 const paymentLabel = computed(() => PAYMENT_METHODS.value.find((m) => m.id === payment.value)?.label ?? "");
 const slotsFullText = computed(() => fmt(t.value.store.coSlotsFull, { max: app.slotCap }));
 const activatingSubText = computed(() => {
@@ -1233,7 +1234,7 @@ async function openChainSession(): Promise<boolean> {
       title: t.value.store.pendingCollisionTitle,
       message: fmt(t.value.store.pendingCollisionBody, {
         name: getProduct(existing.productId)?.name ?? existing.productId,
-        amount: existing.amountUsdt.toLocaleString(),
+        amount: formatAmount(existing.amountUsdt),
         left: formatCountdown(pending.secondsLeft(existing)),
       }),
       confirmLabel: t.value.store.pendingCollisionDrop,
@@ -1387,7 +1388,7 @@ async function offerWalletTopup(requiredUsdt: number, routeScope = captureChecko
   dialogsOpen += 1;
   const accepted = await confirm({
     title: t.value.errors.insufficientBalanceTitle,
-    message: fmt(t.value.errors.insufficientBalanceMsg, { amt: requiredUsdt.toLocaleString() }),
+    message: fmt(t.value.errors.insufficientBalanceMsg, { amt: formatAmount(requiredUsdt) }),
     confirmLabel: t.value.me.topup,
     cancelLabel: t.value.store.coCancel,
     icon: "warn",
@@ -1830,7 +1831,7 @@ watch(step, async (s) => {
       // (审计 R2 P0 族:此前只验「过期」不验「还在不在」,同一张票被两处各结算一次、取消后仍能扣)。
       // 余额预检排在消费发票之前:钱不够就别先把付款指令销掉(consume 不可逆)。
       if (app.user.usdtBalance < chargeTotal) {
-        toast.warn(fmt(t.value.errors.insufficientBalanceMsg, { amt: chargeTotal.toFixed(2) }));
+        toast.warn(fmt(t.value.errors.insufficientBalanceMsg, { amt: formatAmount(chargeTotal) }));
         step.value = "select-payment";
         return;
       }
@@ -1977,14 +1978,14 @@ watch(step, async (s) => {
         }
         // 只报**真的到账**的那几项 —— 报了没到账的钱等于二次欺骗。
         const earnParts: string[] = [];
-        if (usdtCredited) earnParts.push(fmt(t.value.store.coTrialEarnUsdtPart, { amount: trialRemainderUSD.toFixed(2) }));
-        if (nexCredited) earnParts.push(fmt(t.value.store.coTrialEarnNexPart, { n: shadowNEXNow.toLocaleString() }));
+        if (usdtCredited) earnParts.push(fmt(t.value.store.coTrialEarnUsdtPart, { amount: formatAmount(trialRemainderUSD) }));
+        if (nexCredited) earnParts.push(fmt(t.value.store.coTrialEarnNexPart, { n: formatAmount(shadowNEXNow) }));
         if (earnParts.length) toast.success(fmt(t.value.store.coTrialEarnToast, { parts: earnParts.join(" · ") }));
       }
       // 券已在扣款前核销(先占后花,见上);到这里订单已落盘,核销就是终态。
       // 账单 memo 走 i18n(用户账单页直接渲染,禁硬编码英文)。
       const memoParts: string[] = [];
-      if (discount > 0) memoParts.push(fmt(t.value.store.coBillVoucherPart, { amount: discount }));
+      if (discount > 0) memoParts.push(fmt(t.value.store.coBillVoucherPart, { amount: formatAmount(discount) }));
       // 设备名经 device-copy 解析(存档只认 kind,显示随语言切换);试用促销/抵扣两行为 FEAT-TRIAL02 转化单分项。
       if (ti) memoParts.push(fmt(t.value.store.coBillTradeinPart, { name: deviceName(t.value, ti.device), amount: tradeInCredit }));
       if (promo > 0) memoParts.push(fmt(t.value.store.coBillTrialDiscountPart, { amount: promo.toFixed(2) }));

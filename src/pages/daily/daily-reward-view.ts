@@ -1,3 +1,4 @@
+import { formatAmount } from "../../lib/amount-display";
 export interface DailyRule { key: string; value: string }
 
 export function dailyBaseReward(rules: readonly DailyRule[]): number | null {
@@ -97,5 +98,5 @@ export function dailyMilestoneRewardText(reward: {
     : type === "NEX" ? labels.nex
     : type === "USDT" ? labels.usdt
     : labels.unknown;
-  return `${unit} ${reward.rewardAmount}`;
+  return `${unit} ${type === "USDT" || type === "NEX" ? formatAmount(reward.rewardAmount) : reward.rewardAmount}`;
 }

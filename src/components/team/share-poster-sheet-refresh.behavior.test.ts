@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -164,6 +165,7 @@ async function mount(platform: "h5" | "native" = "h5") {
     throw new Error(`Unexpected segments import: ${id}`);
   }, segments, { update() {} });
   const dependencies: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "qrcode-generator": { default: qrcode }, "@/i18n/use-t": { useT: () => Vue.ref(en) }, "@/i18n/format": { fmt, dateLocale },
     "@/lib/brand-copy": { nexGridBrandText }, "@/api/runtime": remote, "@/lib/device-slot-policy": { isActiveSlotDevice },
     "@/store/app": { useApp }, "@/store/config": { useConfig }, "@/store/profile": { useProfile: () => ({ displayName: "Fixture" }) },

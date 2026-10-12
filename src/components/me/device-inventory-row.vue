@@ -16,7 +16,7 @@
       </view>
       <view class="flex-1 min-w-0">
         <text class="block truncate" :style="nameStyle">{{ deviceName(t, device) }}</text>
-        <text class="block truncate" :style="specStyle">{{ device.kind === "cloud-share" ? `${device.baseRateNEX} NEX${t.store.cardPerDaySuffix}` : `$${device.baseRate.toFixed(2)}${t.store.cardPerDaySuffix}` }} · {{ deviceGpuLabel(t, device) }}</text>
+        <text class="block truncate" :style="specStyle">{{ device.kind === "cloud-share" ? `${formatAmount(device.baseRateNEX)} NEX${t.store.cardPerDaySuffix}` : `$${formatAmount(device.baseRate)}${t.store.cardPerDaySuffix}` }} · {{ deviceGpuLabel(t, device) }}</text>
         <view v-if="device.pendingDeactivate" class="inline-flex items-center" :style="pendingChipStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
           <text>{{ pendingChipLabel }}</text>
@@ -44,6 +44,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, type CSSProperties } from "vue";
 import type { Device } from "@/store/types";
 import { useT } from "@/i18n/use-t";

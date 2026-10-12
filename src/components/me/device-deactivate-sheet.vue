@@ -59,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import type { Device } from "@/store/types";
@@ -108,7 +109,7 @@ const taskRewardLine = computed(() => {
   if (!tk) return "";
   return fmt(t.value.deactivateSheet.taskRewardLine, {
     client: tk.client,
-    amount: tk.reward.toFixed(3),
+    amount: formatAmount(tk.reward),
   });
 });
 

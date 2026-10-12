@@ -104,6 +104,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -160,12 +161,12 @@ const valid = computed(() => !!selectedCard.value && cvvReady.value);
 const fee = computed(() => cardFeeUsd(props.amount));
 const feeRateLabel = computed(() => cardFeeRateLabel());
 const total = computed(() => +(props.amount + fee.value).toFixed(2));
-const amountText = computed(() => props.amount.toLocaleString());
-const feeText = computed(() => fee.value.toLocaleString());
-const totalText = computed(() => total.value.toLocaleString());
+const amountText = computed(() => formatAmount(props.amount));
+const feeText = computed(() => formatAmount(fee.value));
+const totalText = computed(() => formatAmount(total.value));
 
 const payLabel = computed(() => {
-  if (valid.value) return fmt(t.value.store.coPayAmount, { total: total.value.toLocaleString() });
+  if (valid.value) return fmt(t.value.store.coPayAmount, { total: totalText.value });
   return selectedCard.value ? t.value.store.coCvvNeedCvv : t.value.store.coCvvSelectCard;
 });
 

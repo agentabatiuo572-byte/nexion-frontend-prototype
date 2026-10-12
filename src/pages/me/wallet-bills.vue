@@ -105,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, nextTick, onBeforeUnmount, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -115,7 +116,6 @@ import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { walletBillMonthKey, walletBillMonthLabel, walletBillTimeLabel } from "@/lib/wallet-bill-date";
 import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
-import { formatHowNumber } from "@/lib/rank-how-content";
 import { useCourseRewardTitles } from "@/composables/use-course-reward-titles";
 import { useBills, type Bill, type BillType, type BillStatus } from "@/store/bills";
 import { useApp } from "@/store/app";
@@ -278,13 +278,10 @@ function billMemo(b: Bill): string {
 }
 function toggleSourceRef(id: string) { sourceRefOpen.value = sourceRefOpen.value === id ? "" : id; }
 function decimalLabel(exact: string | undefined, fallback: number): string {
-  // ponytail: old number-only servers may already have rounded the source amount.
-  if (exact === undefined) return formatHowNumber(Math.abs(fallback), dateLocale());
-  const [whole, tail = ""] = exact.replace(/^-/, "").split(".");
-  const fraction = tail.replace(/0+$/, "");
+  const [whole, fraction] = formatAmount(exact === undefined ? Math.abs(fallback) : exact.replace(/^-/, "")).split(".");
+  if (fraction === undefined) return whole;
   const vietnamese = dateLocale().startsWith("vi");
-  return whole.replace(/^0+(?=\d)/, "").replace(/\B(?=(\d{3})+(?!\d))/g, vietnamese ? "." : ",")
-    + (fraction ? `${vietnamese ? "," : "."}${fraction}` : "");
+  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, vietnamese ? "." : ",") + (vietnamese ? "," : ".") + fraction;
 }
 function isDebit(b: Bill): boolean {
   return b.amountExact === undefined ? b.amount < 0 : b.amountExact.startsWith("-");

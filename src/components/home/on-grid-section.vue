@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -71,8 +72,7 @@ const gridStatusText = computed(() => app.homeTruthStatus === "error"
 const perSecText = computed(() => {
   const value = app.homeTruth?.onGrid.perSecUsdt;
   if (value == null) return "";
-  const digits = value < 0.1 ? 4 : 1;
-  return `+${value.toFixed(digits)}/sec`;
+  return `+${formatAmount(value)}/sec`;
 });
 function retryConfig() {
   void app.refreshHomeTruth();

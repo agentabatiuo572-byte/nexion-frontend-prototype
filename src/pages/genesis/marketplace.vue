@@ -30,11 +30,11 @@
           <view class="grid grid-cols-4" :style="statGridStyle">
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.floor }}</text>
-              <text class="tabular-nums" :style="statValStyle('var(--v5-success)')">{{ stats.floor === null ? "—" : `$${(stats.floor / 1000).toFixed(1)}K` }}</text>
+              <text class="tabular-nums" :style="statValStyle('var(--v5-success)')">{{ stats.floor === null ? "—" : `$${formatAmount(stats.floor / 1000)}K` }}</text>
             </view>
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.vol24h }}</text>
-              <text class="tabular-nums" :style="statValStyle()">{{ stats.vol24h === null ? "—" : `$${(stats.vol24h / 1000).toFixed(0)}K` }}</text>
+              <text class="tabular-nums" :style="statValStyle()">{{ stats.vol24h === null ? "—" : `$${formatAmount(stats.vol24h / 1000)}K` }}</text>
             </view>
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.listed }}</text>
@@ -167,6 +167,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -435,7 +436,7 @@ async function handleBuy(listing: Listing) {
     if (purchased === true) {
       toast.success(
         fmt(t.value.marketplace.acquiredToast, { id: listing.tokenId }),
-        fmt(t.value.marketplace.acquiredDesc, { paid: expectedPrice.toLocaleString(undefined, { maximumFractionDigits: 6 }), held: ownedCount.value }),
+        fmt(t.value.marketplace.acquiredDesc, { paid: formatAmount(expectedPrice), held: ownedCount.value }),
       );
       return;
     }

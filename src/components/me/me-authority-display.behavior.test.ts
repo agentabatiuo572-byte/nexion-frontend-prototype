@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { describe, expect, it } from "vitest";
 import { computed, reactive, ref, type ComputedRef } from "vue";
 import ts from "typescript";
@@ -46,18 +47,18 @@ function mount(remoteApiEnabled = true, locale?: "en" | "zh" | "vi") {
     const body = ts.transpileModule(declarations.join("\n"), {
       compilerOptions: { target: ts.ScriptTarget.ES2022 },
     }).outputText;
-    return new Function(...Object.keys(inputs), body + `;return {${names.filter(name => declarations.some(d => d.startsWith(`const ${name} =`))).join(",")}};`)(
-      ...Object.values(inputs),
+    return new Function("formatAmount", ...Object.keys(inputs), body + `;return {${names.filter(name => declarations.some(d => d.startsWith(`const ${name} =`))).join(",")}};`)(
+      formatAmount, ...Object.values(inputs),
     ) as Record<string, ComputedRef<T>>;
   }
   const wallet = projections(walletSource, ["fundsReadable", "usdtBalanceReadable", "bucketsReadable", "trialReady", "slotsReadable",
-    "buckets", "usdt", "pendingLine", "nex", "nexLabel", "marketReady", "nexMarketLabel", "activeCount", "trialSlot", "emptySlots", "slotsLine", "usdtLabel"]);
+    "buckets", "usdt", "usdtText", "pendingLine", "nex", "nexLabel", "marketReady", "nexMarketLabel", "activeCount", "trialSlot", "emptySlots", "slotsLine", "usdtLabel"]);
   const me = projections(meSource, ["trialReady", "slotsReadable", "activeCount", "trialSlot", "slotsUsed", "emptySlots",
     "deviceSectionCount", "activatedLabel", "emptySlotsLabel"]);
   const inventory = projections<typeof devices>(devicesSource, ["activeDevices"]);
   const slotCondition = walletSource.match(/v-if="([^"]+)" class="grid items-center nx-wallet-slot-block"/)?.[1];
   if (!slotCondition) throw new Error("Wallet slot promotion binding missing");
-  const showsSlotPromotion = () => new Function(...Object.keys(wallet), `return ${slotCondition};`)(...Object.values(wallet).map(v => v.value));
+  const showsSlotPromotion = () => new Function("formatAmount", ...Object.keys(wallet), `return ${slotCondition};`)(formatAmount, ...Object.values(wallet).map(v => v.value));
   const read = () => ({
     usdt: wallet.usdtLabel.value, nex: wallet.nexLabel.value, pending: wallet.pendingLine.value,
     valuation: wallet.nexMarketLabel.value, count: me.deviceSectionCount.value,
@@ -81,6 +82,16 @@ function mount(remoteApiEnabled = true, locale?: "en" | "zh" | "vi") {
 }
 
 describe("Me wallet and device authority", () => {
+  it.each([[1.005, "1.01", "1.005"], [2.675, "2.68", "2.675"], [0.145, "0.15", "0.145"],
+    [999.995, "1000.00", "999.995"]] as const)("uses decimal amount rounding for NEX valuation while keeping the price rate: %s", (price, amount, rate) => {
+      const s = mount(false);
+      s.app.user.nexBalance = 1;
+      s.market.nexPriceUSDT = price;
+      expect(s.read().valuation).toBe(`≈ ${amount} USDT · 1 NEX = ${rate} USDT`);
+      expect(s.market.nexPriceUSDT).toBe(price);
+      expect(s.app.user.nexBalance).toBe(1);
+    });
+
   it("keeps initial unknown balances, buckets and default six slots out of the first frame", () => {
     expect(mount().read()).toEqual({
       usdt: "—", nex: "—", pending: "Review — · Locked —", valuation: "≈ — USDT · 1 NEX = 2.000 USDT",
@@ -90,15 +101,15 @@ describe("Me wallet and device authority", () => {
 
   it("shows a payment receipt's confirmed USDT without authorizing NEX, buckets or slots", () => {
     const s = mount(); s.app.user.usdtBalance = 1299; s.app.remoteWalletReceiptHasSnapshot = true;
-    expect(s.read()).toMatchObject({ usdt: "1,299.00", nex: "—", pending: "Review — · Locked —", count: "—", promotion: false });
+    expect(s.read()).toMatchObject({ usdt: "1299.00", nex: "—", pending: "Review — · Locked —", count: "—", promotion: false });
   });
 
   it("requires both fleet and trial authority and preserves genuine zero", () => {
     const s = mount(); s.app.remoteFleetHasSnapshot = true; s.app.slotCap = 3;
-    expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0", count: "—", active: "—", open: "—", promotion: false });
+    expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0.00", count: "—", active: "—", open: "—", promotion: false });
     s.confirmFleetAndTrial();
     expect(s.read()).toEqual({
-      usdt: "0.00", nex: "0", pending: "Review — · Locked —", valuation: "≈ 0.00 USDT · 1 NEX = 2.000 USDT",
+      usdt: "0.00", nex: "0.00", pending: "Review — · Locked —", valuation: "≈ 0.00 USDT · 1 NEX = 2.000 USDT",
       count: "0 / 3", active: "0 active", open: "3 slots open", promotion: true,
     });
   });
@@ -106,9 +117,9 @@ describe("Me wallet and device authority", () => {
   it("retains confirmed values while refreshing and removes them on account authority reset", () => {
     const s = mount(); s.confirmFleetAndTrial(); s.confirmRelease(4.5, 7); s.app.slotCap = 3; s.app.user.usdtBalance = 1299; s.app.user.nexBalance = 10;
     s.app.remoteFleetStatus = "loading"; s.trial.authorityStatus = "loading";
-    expect(s.read()).toMatchObject({ usdt: "1,299.00", nex: "10", pending: "Review 4.50 · Locked 7.00", count: "0 / 3" });
+    expect(s.read()).toMatchObject({ usdt: "1299.00", nex: "10.00", pending: "Review 4.50 · Locked 7.00", count: "0 / 3" });
     s.app.remoteFleetStatus = "error";
-    expect(s.read()).toMatchObject({ usdt: "1,299.00", nex: "10", count: "0 / 3" });
+    expect(s.read()).toMatchObject({ usdt: "1299.00", nex: "10.00", count: "0 / 3" });
     s.app.remoteFleetHasSnapshot = false; s.app.remoteWalletReceiptHasSnapshot = false;
     s.earningsReleaseHasSnapshot.value = false; s.earningsReleaseStatus.value = "idle";
     s.trial.authorityServerState = null; s.trial.authorityStatus = "unknown";
@@ -118,9 +129,9 @@ describe("Me wallet and device authority", () => {
   it("keeps failed initial reads unknown and recovers after confirmed snapshots arrive", () => {
     const s = mount(); s.app.remoteFleetStatus = "error"; s.trial.authorityStatus = "error";
     expect(s.read()).toMatchObject({ usdt: "—", nex: "—", count: "—", promotion: false });
-    s.confirmFleetAndTrial(); expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0", count: "0 / 6" });
+    s.confirmFleetAndTrial(); expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0.00", count: "0 / 6" });
     s.trial.authorityStatus = "error"; s.trial.authorityServerState = null;
-    expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0", count: "—", open: "—", promotion: false });
+    expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0.00", count: "—", open: "—", promotion: false });
   });
 
   it("counts two physical slots plus one reserved trial while Cloud Share remains virtual capacity", () => {
@@ -198,12 +209,12 @@ describe("Me wallet and device authority", () => {
   it("preserves readable local mode and keeps unknown market valuation distinct from known holdings", () => {
     const s = mount(false); s.app.user.usdtBalance = 12.5; s.app.user.nexBalance = 10; s.market.remoteReady = false;
     s.app.user.earningBuckets.pendingReviewUsdt = 4; s.app.user.earningBuckets.bonusLockedUsdt = 2;
-    expect(s.read()).toMatchObject({ usdt: "12.50", nex: "10", pending: "Review 4.00 · Locked 2.00", valuation: "≈ — USDT · 1 NEX = — USDT", count: "0 / 6" });
+    expect(s.read()).toMatchObject({ usdt: "12.50", nex: "10.00", pending: "Review 4.00 · Locked 2.00", valuation: "≈ — USDT · 1 NEX = — USDT", count: "0 / 6" });
   });
 
   it.each(["idle", "loading", "error"])("fleet confirmation never authorizes held buckets while release is %s without a snapshot", status => {
     const s = mount(); s.confirmFleetAndTrial(); s.earningsReleaseStatus.value = status;
-    expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0", pending: "Review — · Locked —", count: "0 / 6" });
+    expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0.00", pending: "Review — · Locked —", count: "0 / 6" });
   });
 
   it("requires complete release authority and shows genuine zero only from a confirmed release snapshot", () => {

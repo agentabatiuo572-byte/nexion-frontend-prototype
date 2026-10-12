@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { computed, reactive, ref } from "vue";
 import { describe, expect, it } from "vitest";
+import { formatAmount } from "@/lib/amount-display";
 
 // The wallet payment row used to render only the static label "USDT balance",
 // with no figure and no loading/unavailable state, so the buyer could not tell
@@ -25,9 +26,9 @@ function view(app: Record<string, unknown>) {
     wallet: { usdtBalance: "USDT balance", fundsUnavailableTitle: "Wallet couldn't be refreshed" },
     help: { loadingMore: "Loading…" },
   });
-  return new Function("computed", "ref", "remoteApiEnabled", "app", "t",
+  return new Function("formatAmount", "computed", "ref", "remoteApiEnabled", "app", "t",
     `${block}\nreturn { walletBalanceHint, checkoutWalletReadable };`,
-  )(computed, ref, true, app, t);
+  )(formatAmount, computed, ref, true, app, t);
 }
 
 describe("checkout wallet balance hint", () => {

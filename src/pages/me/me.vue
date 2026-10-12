@@ -96,6 +96,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -301,7 +302,7 @@ const quickSections = computed<QuickSection[]>(() => [
     title: t.value.me.myNetwork,
     items: [
       { key: "team", label: t.value.me.team, href: "/team", icon: "network", meta: t.value.me.networkOverviewMeta, tone: "brand" },
-      { key: "invite", label: t.value.me.networkInviteLabel, href: "/team", icon: "invite", meta: config.config.rewards.enabled ? fmt(t.value.me.networkInviteMeta, { nex: config.config.rewards.inviterReward.nexAmount }) : t.value.me.networkInviteMetaDisabled, tone: "orange" },
+      { key: "invite", label: t.value.me.networkInviteLabel, href: "/team", icon: "invite", meta: config.config.rewards.enabled ? fmt(t.value.me.networkInviteMeta, { nex: formatAmount(config.config.rewards.inviterReward.nexAmount) }) : t.value.me.networkInviteMetaDisabled, tone: "orange" },
       { key: "commissions", label: t.value.me.networkCommissionsLabel, href: "/team/commissions", icon: "commission", meta: t.value.me.networkCommissionsMeta, tone: "success" },
       { key: "rank", label: t.value.me.currentRank, href: "/team/rank", icon: "rank", meta: rankValue.value, tone: "purple" },
     ],

@@ -1,3 +1,4 @@
+import { formatAmount } from "./amount-display";
 import type { HowContentDocument } from "@/api/how-content-api";
 import type { CommissionGuideRates, CommissionGuideRules } from "@/api/commission-guide-api";
 import type { DirectReferralPolicy, DirectReferralRule } from "@/api/direct-referral-api";
@@ -49,7 +50,7 @@ export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | nu
   const language = locale.split("-")[0] as keyof typeof COPY;
   const copy = COPY[language] ?? COPY.en;
   const number = (value: number) => formatHowNumber(value, locale);
-  const money = (value: number, currency = "USDT") => `${number(value)} ${currency}`;
+  const money = (value: number, currency = "USDT") => `${formatAmount(value)} ${currency}`;
   const tokens: Record<string, string> = {};
   const publicBodies: Record<string, string> = {};
   const amounts = { network: copy.unknownAmount, cultivation: copy.unknownAmount, peer: copy.unknownAmount, leadership: copy.unknownAmount };
@@ -70,7 +71,7 @@ export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | nu
     tokens.networkPurchaseRules = copy.networkPurchase;
     tokens.directDeviceRules = describe(directPolicy.deviceEarning);
     tokens.directScope = directPolicy.settlementMode === "SEVEN_V2" ? copy.deviceScope : copy.directOnly;
-    tokens.directPrice = directPolicy.nexUsdtPrice === null ? copy.priceUnavailable : `${money(directPolicy.nexUsdtPrice)} / NEX`;
+    tokens.directPrice = directPolicy.nexUsdtPrice === null ? copy.priceUnavailable : `${number(directPolicy.nexUsdtPrice)} USDT / NEX`;
     tokens.coolingDays = guide.coolingDays === null ? copy.missing : `${number(guide.coolingDays)} ${copy.days}`;
     tokens.binaryRules = b ? `${copy.dailyCap} ${money(b.dailyCap)} · ${copy.settlementPeriod}: ${copy[b.settlePeriod]} · ${copy.residualHandling}: ${copy[b.residualPolicy]} · ${b.paused ? copy.paused : copy.unpaused}` : copy.missing;
     tokens.peerRules = copy.records;

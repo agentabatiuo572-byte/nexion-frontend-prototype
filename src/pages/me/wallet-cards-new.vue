@@ -89,6 +89,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import { navReplace, navBack } from "@/lib/route";
@@ -261,7 +262,7 @@ async function handleBind() {
     // 发奖失败已弹错并还原;绑卡本身已成立,照常回上一页,不把用户卡在表单里。
     if (!drafts.length || postMoneyBillsOnce(drafts) === "ok") {
       questStore.markComplete("bind_bank_card"); // 消费失败:重试命中同 ref 不会再发
-      toast.success(fmt(t.value.quest.routeToast, { n: task.nexReward }));
+      toast.success(fmt(t.value.quest.routeToast, { n: formatAmount(task.nexReward) }));
     }
   } else {
     toast.success(fmt(t.value.cards.bindToast, { brand: brandLabel(card.brand), last4: card.last4 }));

@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 // @ts-expect-error Node is used only by the test runner.
 import { readFileSync } from "node:fs";
 import { compile } from "@vue/compiler-dom";
@@ -13,7 +14,7 @@ import { fmt } from "@/i18n/format";
 
 const source = readFileSync(new URL("./goals.vue", import.meta.url), "utf8");
 const template = parse(source, { filename: "goals.vue" }).descriptor.template!.content;
-const render = new Function("Vue", compile(template, { mode: "function", prefixIdentifiers: true }).code)(Vue);
+const render = new Function("formatAmount", "Vue", compile(template, { mode: "function", prefixIdentifiers: true }).code)(formatAmount, Vue);
 const wrapper = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("main", slots.default?.()) });
 const progress = Vue.defineComponent({ setup: () => () => Vue.h("i") });
 
@@ -36,7 +37,7 @@ async function show(
 ) {
   const app = Vue.createSSRApp({
     render,
-    setup: () => ({
+    setup: () => ({ formatAmount,
       remoteApiEnabled: true,
       t: { goals: {
         navTitle: "Goals", heroLabel: "Goal", heroTitle: "Plan", heroSubtitle: "Current {current}", targetLabel: "Target",
@@ -75,6 +76,7 @@ describe("earning-goal read recovery", () => {
       recommendationStatus: "idle", recommendation: null, recommendationError: null,
       ensure: vi.fn(async () => {}), refreshRecommendation: vi.fn(async () => {}) });
     const modules: Record<string, unknown> = {
+      "@/lib/amount-display": { formatAmount },
       vue: { ...Vue, onMounted() {}, onUnmounted() {} },
       "@dcloudio/uni-app": { onShow() {}, onHide() {} },
       "@/store/goals": { useGoals: () => goalsStore }, "@/store/app": { useApp: () => ({ accountKey: "user:1", accountBindingEpoch: 1 }) },
@@ -123,7 +125,7 @@ describe("earning-goal read recovery", () => {
 
   it("keeps a confirmed snapshot and exposes a retry after a later list failure", async () => {
     const html = await show("error", [goal()]);
-    expect(html).toContain("$500");
+    expect(html).toContain("$500.00");
     expect(html).toContain("Retry");
   });
 
@@ -132,7 +134,7 @@ describe("earning-goal read recovery", () => {
       status: "ready", error: null,
       recommendation: { purchaseRequired: true, targetUsdt: 100, days: 180, requiredDaily: 100 / 180 },
     });
-    expect(html).toContain("$100");
+    expect(html).toContain("$100.00");
     expect(html).toContain("Loading");
     expect(html).not.toContain('value="1000"');
     expect(html).not.toContain('aria-checked="true"');
@@ -144,7 +146,7 @@ describe("earning-goal read recovery", () => {
       status: "ready", error: null,
       recommendation: { purchaseRequired: true, targetUsdt: 100, days: 180, requiredDaily: 100 / 180 },
     });
-    expect(html).toContain("$100");
+    expect(html).toContain("$100.00");
     expect(html).toContain("Read unavailable");
     expect(html).toContain("Retry");
     expect(html).not.toContain('value="1000"');
@@ -178,8 +180,8 @@ describe("earning-goal read recovery", () => {
     const target = Vue.ref(100);
     const store = { recommendationStatus: "ready", recommendation: { purchaseRequired: true, targetUsdt: 100, productNo: "sku-s1" } };
     const navigate = vi.fn();
-    const go = new Function("remoteApiEnabled", "editorBlocked", "goalsStore", "target", "recommendation", "navReset",
-      `${implementation}; return goStore;`)(true, editorBlocked, store, target, { value: { tier: "S1" } }, navigate);
+    const go = new Function("formatAmount", "remoteApiEnabled", "editorBlocked", "goalsStore", "target", "recommendation", "navReset",
+      `${implementation}; return goStore;`)(formatAmount, true, editorBlocked, store, target, { value: { tier: "S1" } }, navigate);
     go();
     expect(navigate).not.toHaveBeenCalled();
     editorBlocked.value = false;
@@ -199,10 +201,10 @@ describe("earning-goal read recovery", () => {
     }).outputText;
     const format = (text: string, params: Record<string, string | number>) =>
       text.replace(/\{(\w+)\}/g, (_m, key: string) => String(params[key] ?? ""));
-    const read = new Function("computed", "fmt", "t", "target", "days", "goalsStore", "recommendation", `${implementation}; return recPathLine.value;`);
-    expect(read(Vue.computed, format, { value: { goals: { recPath: "{target}|{days}|{perDay}|{tier}" } } },
+    const read = new Function("formatAmount", "computed", "fmt", "t", "target", "days", "goalsStore", "recommendation", `${implementation}; return recPathLine.value;`);
+    expect(read(formatAmount, Vue.computed, format, { value: { goals: { recPath: "{target}|{days}|{perDay}|{tier}" } } },
       Vue.ref(1000), Vue.ref(90), { recommendation: { targetUsdt: 100, days: 180, requiredDaily: 100 / 180 } },
-      { value: { tier: "S1" } })).toBe("100|180|0.56|S1");
+      { value: { tier: "S1" } })).toBe("100.00|180|0.56|S1");
   });
 
   it("offers retry on an initial list failure without inventing an active goal", async () => {

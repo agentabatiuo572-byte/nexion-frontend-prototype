@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { navTo } from "@/lib/route";
@@ -45,7 +46,7 @@ const dotStyle = computed<CSSProperties>(() => ({
   background: isOnline.value ? "var(--v5-success)" : "var(--v5-ink-4)",
 }));
 const todayText = computed(() =>
-  props.device.todayEarnings.toFixed(props.device.todayEarnings < 1 ? 3 : 2),
+  formatAmount(props.device.todayEarnings),
 );
 
 function go() {

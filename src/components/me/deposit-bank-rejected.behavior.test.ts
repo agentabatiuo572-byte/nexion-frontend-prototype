@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { compile } from "@vue/compiler-dom";
 import { parse } from "@vue/compiler-sfc";
@@ -171,6 +172,7 @@ function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", tran
   const navTo = vi.fn(), open = vi.fn(() => true), toast = { error: vi.fn(), success: vi.fn(), warn: vi.fn() };
   const mounted: Array<() => void> = [], unmounted: Array<() => void> = [];
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: { ...Vue, onMounted: (callback: () => void) => mounted.push(callback),
       onUnmounted: (callback: () => void) => unmounted.push(callback) },
     "@/components/me/fx-rate-line.vue": {}, "@/i18n/use-t": { useT: () => Vue.ref(translations) },
@@ -199,7 +201,7 @@ function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", tran
   const dispose = () => { unmounted.forEach(callback => callback()); scope.stop(); };
   cleanups.push(dispose);
   const definition = () => ({
-    components: { FxRateLine: { render: () => null } }, setup: () => ({ ...state, fmt, fmtVnd }), render,
+    components: { FxRateLine: { render: () => null } }, setup: () => ({ fmt, fmtVnd, formatAmount, ...state }), render,
   });
   return { state, dep, fx, app, auth, navTo, open, toast, html: () => renderToString(Vue.createSSRApp(definition())),
     mount: () => {

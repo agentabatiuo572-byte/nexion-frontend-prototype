@@ -285,7 +285,7 @@ export const PRODUCTS: Product[] = [
     sold: 12483,
     features: [
       "Instant activation",
-      "Buy as little as $19.9",
+      "Buy as little as $19.90",
       "Reference annual range; returns are not guaranteed",
       "Distributed across global data centers",
     ],

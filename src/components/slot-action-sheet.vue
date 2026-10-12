@@ -60,7 +60,7 @@
             </view>
             <view class="sas-device-meta">
               <text class="sas-device-name">{{ deviceName(t, d) }}</text>
-              <text class="sas-device-rate">{{ d.kind === "cloud-share" ? `${d.baseRateNEX} NEX${t.store.cardPerDaySuffix}` : `$${d.baseRate.toFixed(2)}${t.store.cardPerDaySuffix}` }}</text>
+              <text class="sas-device-rate">{{ d.kind === "cloud-share" ? `${formatAmount(d.baseRateNEX)} NEX${t.store.cardPerDaySuffix}` : `$${formatAmount(d.baseRate)}${t.store.cardPerDaySuffix}` }}</text>
             </view>
             <view class="sas-device-power">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.77.04" /></svg>
@@ -77,6 +77,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, ref, watch } from "vue";
 import { useSlotActionSheet } from "@/store/slot-action-sheet";

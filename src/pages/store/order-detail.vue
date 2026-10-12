@@ -87,21 +87,21 @@
             <view v-for="item in order.lineItems" :key="item.sku" class="flex items-center justify-between" style="padding: 4px 0; gap: 12px">
               <view class="flex-1 min-w-0">
                 <text class="block truncate" style="font-size: 12px; color: var(--v5-ink)">{{ nexGridBrandText(item.name) }}</text>
-                <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × ${{ item.unitPriceUsdt.toLocaleString() }}</text>
+                <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × ${{ formatAmount(item.unitPriceUsdt) }}</text>
               </view>
-              <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">${{ item.lineAmountUsdt.toLocaleString() }}</text>
+              <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">${{ formatAmount(item.lineAmountUsdt) }}</text>
             </view>
           </view>
-          <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="`$${order.unitPrice.toLocaleString()}`" />
-          <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`-$${order.discount.toLocaleString()}`" brand />
+          <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="`$${formatAmount(order.unitPrice)}`" />
+          <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`-$${formatAmount(order.discount)}`" brand />
           <!-- FEAT-TRIAL02 conversion order: promo + trial credit as their own
                rows (never folded into the voucher line). -->
-          <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`-$${(order.promoDiscountUSD ?? 0).toLocaleString()}`" brand />
-          <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`-$${(order.trialOffsetUSD ?? 0).toLocaleString()}`" brand />
-          <DetailRow :label="t.orders.subtotal" :value="`$${order.subtotal.toLocaleString()}`" />
-          <DetailRow :label="t.orders.total" :value="`$${order.total.toLocaleString()}`" big />
+          <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`-$${formatAmount((order.promoDiscountUSD ?? 0))}`" brand />
+          <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`-$${formatAmount((order.trialOffsetUSD ?? 0))}`" brand />
+          <DetailRow :label="t.orders.subtotal" :value="`$${formatAmount(order.subtotal)}`" />
+          <DetailRow :label="t.orders.total" :value="`$${formatAmount(order.total)}`" big />
           <template v-if="order.status === 'refunded'">
-            <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="`$${order.refundAmountUsdt.toLocaleString()}`" brand />
+            <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="`$${formatAmount(order.refundAmountUsdt)}`" brand />
             <DetailRow v-if="order.refundChannel" :label="t.orders.refundChannel" :value="refundChannelLabel" />
             <DetailRow v-if="order.refundBillNo" :label="t.orders.refundBillNo" :value="order.refundBillNo" mono />
             <view v-if="!order.refundedAt && order.refundAmountUsdt == null && !order.refundBillNo" role="status" style="padding: 8px 0; color: var(--v5-ink-3); font-size: 12px">
@@ -186,6 +186,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import OrderRewards from '@/components/promotion/order-rewards.vue';
 import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
@@ -526,7 +527,7 @@ async function offerWalletTopup(requiredUsdt: number): Promise<void> {
   const scope = captureDetailScope();
   const accepted = await uiConfirm({
     title: t.value.errors.insufficientBalanceTitle,
-    message: t.value.errors.insufficientBalanceMsg.replace("{amt}", requiredUsdt.toLocaleString()),
+    message: t.value.errors.insufficientBalanceMsg.replace("{amt}", formatAmount(requiredUsdt)),
     confirmLabel: t.value.me.topup,
     cancelLabel: t.value.store.coCancel,
     icon: "warn",

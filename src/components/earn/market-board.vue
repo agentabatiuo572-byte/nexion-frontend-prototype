@@ -37,7 +37,7 @@
             </view>
             <text v-if="w.flagshipDelta !== null" class="block truncate" style="font-size: 12px; color: var(--v5-warning-ink); margin-top: 2px">↳ {{ t.market.flagshipRow }} <text class="tabular-nums" style="font-family: var(--font-v5)">↑{{ w.flagshipDelta.toFixed(1) }}%</text></text>
           </view>
-          <text class="tabular-nums shrink-0 text-right" style="font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-2); width: 64px">{{ w.price === null ? "—" : `$${formatPrice(w.price)}` }}</text>
+          <text class="tabular-nums shrink-0 text-right" style="font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-2); width: 64px">{{ w.price === null ? "—" : `$${formatAmount(w.price)}` }}</text>
           <text class="tabular-nums shrink-0 text-right" style="font-size: 12px; width: 48px" :style="{ color: arrowColor(w) }">{{ w.delta === null ? "—" : `${arrow(w)} ${Math.abs(w.delta).toFixed(1)}%` }}</text>
           <svg v-if="w.spark.length" class="shrink-0" width="48" height="16" viewBox="0 0 48 16">
             <polyline :points="sparkPoints(w.spark)" fill="none" :stroke="w.delta !== null && w.delta < -0.05 ? 'var(--v5-brand-2)' : 'var(--v5-brand)'" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
@@ -64,7 +64,7 @@
           <text class="block truncate" :style="{ fontSize: '15px', color: d.isPhone ? 'var(--v5-ink-3)' : 'var(--v5-ink-2)', fontWeight: d.isPhone ? 400 : 600 }">{{ d.name ?? t.market.yourPhone }}</text>
           <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 2px">#{{ d.rank }}<template v-if="d.bestFor"> · {{ d.bestFor }}</template></text>
         </view>
-        <text class="tabular-nums shrink-0" :style="{ fontFamily: 'var(--font-v5)', fontSize: '14.5px', fontWeight: 400, color: 'var(--v5-warning-ink)' }">{{ d.dailyEarn === null ? "—" : `$${d.dailyEarn.toFixed(2)}/d` }}</text>
+        <text class="tabular-nums shrink-0" :style="{ fontFamily: 'var(--font-v5)', fontSize: '14.5px', fontWeight: 400, color: 'var(--v5-warning-ink)' }">{{ d.dailyEarn === null ? "—" : `$${formatAmount(d.dailyEarn)}/d` }}</text>
         <svg v-if="d.kind" class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
     </view>
@@ -72,6 +72,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed } from "vue";
 import type { CSSProperties } from "vue";
@@ -132,11 +133,6 @@ const deviceRankings = computed<DeviceRanking[]>(() => remoteApiEnabled
   ? (app.homeTruth?.marketBoard.deviceRankings ?? []).filter((row) => row.kind !== "cloud-share").map((row) => ({ rank: row.rank, name: row.name ? nexGridBrandText(row.name) : undefined, dailyEarn: row.dailyUsdt, bestFor: row.bestFor, kind: row.kind && row.kind !== "phone" ? row.kind : undefined, isPhone: row.kind === "phone" }))
   : DEVICE_RANKINGS);
 
-function formatPrice(n: number): string {
-  if (n >= 1) return n.toFixed(2);
-  if (n >= 0.01) return n.toFixed(3);
-  return n.toFixed(4);
-}
 function arrow(w: WorkloadPrice): string {
   return w.delta !== null && w.delta > 0.05 ? "↑" : w.delta !== null && w.delta < -0.05 ? "↓" : "→";
 }

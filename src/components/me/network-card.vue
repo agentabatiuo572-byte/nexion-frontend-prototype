@@ -57,6 +57,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import SectionHeader from "@/components/me/section-header.vue";
@@ -99,9 +100,9 @@ const towardLine = computed(() =>
 function formatPrimaryGap(g: PrimaryGap): string {
   switch (g.kind) {
     case "teamVolume":
-      return fmt(t.value.me.networkCardGapTeamVolume, { amount: g.remaining.toLocaleString() });
+      return fmt(t.value.me.networkCardGapTeamVolume, { amount: formatAmount(g.remaining) });
     case "selfBuy":
-      return fmt(t.value.me.networkCardGapSelfBuy, { amount: g.remaining.toLocaleString() });
+      return fmt(t.value.me.networkCardGapSelfBuy, { amount: formatAmount(g.remaining) });
     case "directRefs":
       return fmt(t.value.me.networkCardGapDirectRefs, {
         n: g.remaining,
@@ -123,7 +124,7 @@ function formatPerk(u: PerkUnlock): string {
     case "leadershipUnlock":
       return t.value.me.networkCardUnlockLeadership;
     case "cultivationJump":
-      return fmt(t.value.me.networkCardUnlockCultivation, { to: u.to.toLocaleString() });
+      return fmt(t.value.me.networkCardUnlockCultivation, { to: formatAmount(u.to) });
     case "directBonusUp":
       return fmt(t.value.me.networkCardUnlockDirectBonus, { to: Math.round(u.to * 100) });
     case "unilevelDepthUp":

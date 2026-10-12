@@ -5,6 +5,12 @@ import { vi } from "@/i18n/messages/vi";
 import { zh } from "@/i18n/messages/zh";
 
 describe("resolveWalletBillMemo", () => {
+  it("uses the original withdrawal amount when an old NEX memo was already rounded", () => {
+    const bill = { memo: "", memoKey: "withdrawNexFee", amount: -25.123456, amountExact: "-25.123456", memoParams: { nex: "25.1" } };
+    const before = JSON.stringify(bill);
+    expect(resolveWalletBillMemo(bill, { withdrawNexFee: "Used {nex} NEX" })).toBe("Used 25.12 NEX");
+    expect(JSON.stringify(bill)).toBe(before);
+  });
   const memo = { trialCharge: "购买", other: "其他账本流水" };
 
   it("uses the controlled presentation code instead of a stored ledger remark", () => {

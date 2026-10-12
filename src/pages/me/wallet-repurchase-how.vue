@@ -55,7 +55,7 @@
           <view :style="exRowsStyle">
             <view class="flex items-center justify-between">
               <text :style="exLabelStyle">{{ w.s4Row1Label }}</text>
-              <text :style="exValInk">$1,000</text>
+              <text :style="exValInk">$1,000.00</text>
             </view>
             <view class="flex items-center justify-between">
               <text :style="exLabelStyle">{{ w.s4Row3Label }}</text>
@@ -68,7 +68,7 @@
           </view>
           <view class="flex items-center justify-between" :style="exUnlockRowStyle">
             <text :style="exUnlockLabelStyle">{{ w.s4UnlockLabel }}</text>
-            <text :style="exUnlockValueStyle">$1,300+</text>
+            <text :style="exUnlockValueStyle">$1,300.00+</text>
           </view>
         </view>
       </HowSection>

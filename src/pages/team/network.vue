@@ -218,11 +218,11 @@
           <view class="grid grid-cols-3 text-center" style="margin-top: 12px; gap: 8px">
             <view>
               <text class="block" :style="sheetStatLabelStyle">{{ t.network.monthVolume }}</text>
-              <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-brand)')">${{ selected.monthVolumeUSD }}</text>
+              <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-brand)')">${{ formatAmount(selected.monthVolumeUSD) }}</text>
             </view>
             <view>
               <text class="block" :style="sheetStatLabelStyle">{{ t.network.allTime }}</text>
-              <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-ink)')">{{ selected.totalVolumeUSD === null ? '—' : `$${selected.totalVolumeUSD}` }}</text>
+              <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-ink)')">{{ selected.totalVolumeUSD === null ? '—' : `$${formatAmount(selected.totalVolumeUSD)}` }}</text>
             </view>
             <view>
               <text class="block" :style="sheetStatLabelStyle">{{ t.network.joined }}</text>
@@ -242,6 +242,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import SvgText from "@/components/svg-text";
 import AppChassis from "@/components/app-chassis.vue";

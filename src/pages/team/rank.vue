@@ -89,6 +89,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { isEntitlementVRankReward, rankEntitlementLabel } from "@/lib/rank-entitlement-label";
@@ -150,7 +151,7 @@ const nextConditions = computed(() => {
       rows.push({
         key: `${rank.v}-${kind}-${vLevel ?? ""}`,
         label: `V${rank.v} · ${rankConditionsText(t.value, conditions, locale.code)}`,
-        values: `${unit}${formatHowNumber(current, locale.code)} / ${unit}${formatHowNumber(required, locale.code)}`,
+        values: `${unit}${unit ? formatAmount(current) : formatHowNumber(current, locale.code)} / ${unit}${unit ? formatAmount(required) : formatHowNumber(required, locale.code)}`,
         gap: gap ? rankGapText(t.value, gap, locale.code, rankDefs.value) : t.value.rank.done,
       });
     };
@@ -193,7 +194,7 @@ function nonNexRewards(rank: VRankDef): VRankReward[] {
 
 function rewardText(reward: VRankReward): string {
   if (isEntitlementVRankReward(reward)) return rankEntitlementLabel(reward, t.value.rank.rewardUnavailable);
-  return `${reward.amount.toLocaleString()} ${reward.type}`;
+  return `${formatAmount(reward.amount)} ${reward.type}`;
 }
 
 // 三语:词典里 rank.cond.* 五条早就有(此前是死键,这里原本拼英文)

@@ -233,6 +233,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, ref, watch } from "vue";
 import { useTradeinSheet } from "@/store/tradein-sheet";
 import { useApp } from "@/store/app";
@@ -368,7 +369,7 @@ const choiceSources = computed(() => {
         ? `${deviceName(t.value, d)} · ${t.value.tradein.remoteQuoteCreditLabel}`
         : fmt(t.value.tradein.choiceTradeInOption, {
         name: deviceName(t.value, d),
-        credit: previewCredit(d, s.newPrice).toFixed(2),
+        credit: formatAmount(previewCredit(d, s.newPrice)),
       }),
     }));
 });
@@ -547,10 +548,10 @@ const retireView = computed(() => {
     // 抢先购窗口内的未正式上架目标,行尾加「抢先升级」标(默认关闭时零渲染)。
     const early = !!p.unlocksAtPhase && !isPhaseReached(phase.value, p.unlocksAtPhase)
       && (!remoteApiEnabled || canonicalTradeinConfig.value?.earlyAccessEnabled === true);
-    const net = remoteApiEnabled ? "—" : Math.max(0, +(p.price - previewCredit(device, p.price)).toFixed(2)).toLocaleString();
+    const net = remoteApiEnabled ? "—" : formatAmount(Math.max(0, p.price - previewCredit(device, p.price)));
     const base = fmt(t.value.tradein.retireTargetOption, {
       name: p.name,
-      price: p.price.toLocaleString(),
+      price: formatAmount(p.price),
       net,
     });
     return { id: p.id, label: early ? `${base} · ${t.value.tradein.retireEarlyTag}` : base };
@@ -596,15 +597,15 @@ const tradeinView = computed(() => {
     }),
     // 只给设备名——内部 id 是工程标识,禁止渲染(页面文案禁字段名/枚举值)。
     oldDeviceText: oldDevice.name,
-    earned: earned.toFixed(2),
+    earned: formatAmount(earned),
     bandText: remoteQuote
       ? fmt(t.value.tradein.remoteQuoteBandLabel, { pct: remoteQuote.creditRatePct })
       : band
       ? fmt(t.value.tradein.sheetBandText, { band: band.band, pct: band.creditPct })
       : "—",
-    credit: credit.toFixed(2),
-    estNet: estNet.toFixed(2),
-    ctaText: fmt(t.value.tradein.sheetCta, { amount: estNet.toFixed(2) }),
+    credit: formatAmount(credit),
+    estNet: formatAmount(estNet),
+    ctaText: fmt(t.value.tradein.sheetCta, { amount: formatAmount(estNet) }),
   };
 });
 
@@ -663,7 +664,7 @@ const replaceView = computed(() => {
     warning: fmt(t.value.tradein.replaceWarning, { newKind: kindLabel(s.newKind) }),
     lowestText: fmt(t.value.tradein.replaceLowestText, {
       name: lowest.name,
-      earn: lowest.todayEarnings.toFixed(2),
+      earn: formatAmount(lowest.todayEarnings),
     }),
     insufficient,
     replaceCta: fmt(t.value.tradein.replaceReplaceCta, { newKind: kindLabel(s.newKind) }),
@@ -851,7 +852,7 @@ function onReplace() {
     if (!app.discardSpawnedDevice(newId)) reportStuckFunds(app.captureMoney(), newId, "device");
     // persist-verdict-ok: 回滚里的再激活失败 = 旧机留在库存,设备页可手动激活;不再追补偿
     app.activateDevice(lowest.id, reservedSlots.value);
-    if (paid === "insufficient") toast.warn(fmt(t.value.errors.insufficientBalanceMsg, { amt: s.newPrice.toFixed(2) }));
+    if (paid === "insufficient") toast.warn(fmt(t.value.errors.insufficientBalanceMsg, { amt: formatAmount(s.newPrice) }));
     confirming.value = false;
     return;
   }
@@ -986,7 +987,7 @@ function onKeepBuy() {
     // 新机已落盘(addDevice 只在落盘成功时给 id),撤销也必须落盘;撤不掉登记待对账(审计 R8 P1:直写内存不落盘 → 白得一台)
 
     if (!app.discardSpawnedDevice(newId)) reportStuckFunds(app.captureMoney(), newId, "device");
-    if (paid === "insufficient") toast.warn(fmt(t.value.errors.insufficientBalanceMsg, { amt: s.newPrice.toFixed(2) }));
+    if (paid === "insufficient") toast.warn(fmt(t.value.errors.insufficientBalanceMsg, { amt: formatAmount(s.newPrice) }));
     confirming.value = false;
     return;
   }
@@ -1098,7 +1099,7 @@ function onForce() {
     app.patchDevice(lowest.id, { currentTask: taskSnapshot });
     // persist-verdict-ok: 回滚里的再激活失败 = 旧机留在库存,设备页可手动激活;不再追补偿
     app.activateDevice(lowest.id, reservedSlots.value);
-    if (paid === "insufficient") toast.warn(fmt(t.value.errors.insufficientBalanceMsg, { amt: s.newPrice.toFixed(2) }));
+    if (paid === "insufficient") toast.warn(fmt(t.value.errors.insufficientBalanceMsg, { amt: formatAmount(s.newPrice) }));
     confirming.value = false;
     return;
   }

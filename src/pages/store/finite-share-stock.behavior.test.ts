@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { afterEach, expect, test, vi } from "vitest";
@@ -90,6 +91,7 @@ async function mountPair(product: Product,promotion?:PublicPromotion) {
   const empty = { render: () => null };
   const chassis = { setup: (_props: unknown, { slots }: { slots: Record<string, () => Vue.VNode[]> }) => () => Vue.h("chassis-fixture", slots.default?.()) };
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue,
     "@/i18n/use-t": { useT: () => Vue.ref(zh) }, "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/i18n/format": { fmt }, "@/lib/brand-copy": { nexGridBrandText },

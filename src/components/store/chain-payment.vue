@@ -84,6 +84,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -107,7 +108,7 @@ const network = computed(() =>
 
 const sendLabel = computed(() => fmt(t.value.store.coSendNetwork, { network: network.value }));
 const sendExactLabel = computed(() => fmt(t.value.store.coSendExact, { network: network.value }));
-const amountLabel = computed(() => `${props.session.amountUsdt.toLocaleString()} USDT`);
+const amountLabel = computed(() => `${formatAmount(props.session.amountUsdt)} USDT`);
 
 // ── countdown: derived from the session deadline, never from a local start
 // time — a resumed session keeps counting from where it really is. ──

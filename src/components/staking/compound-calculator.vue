@@ -75,6 +75,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import CalculatorWebviewAccessibility from "./calculator-webview-accessibility.vue";
 import { ref, computed, onMounted, nextTick, watch, type CSSProperties } from "vue";
@@ -142,11 +143,11 @@ const singleBarPct = computed(() => (compound.value > 0 ? Math.max(20, (single.v
 const { elRef: singleBarRef, inView: singleBarInView } = useScrollGrowProgress();
 const { elRef: compoundBarRef, inView: compoundBarInView } = useScrollGrowProgress();
 
-const singleText = computed(() => single.value.toFixed(0));
-const singleProfitText = computed(() => singleProfit.value.toFixed(0));
-const compoundText = computed(() => compound.value.toFixed(0));
-const compoundProfitText = computed(() => compoundProfit.value.toFixed(0));
-const extraText = computed(() => extraFromCompounding.value.toFixed(0));
+const singleText = computed(() => formatAmount(single.value));
+const singleProfitText = computed(() => formatAmount(singleProfit.value));
+const compoundText = computed(() => formatAmount(compound.value));
+const compoundProfitText = computed(() => formatAmount(compoundProfit.value));
+const extraText = computed(() => formatAmount(extraFromCompounding.value));
 const singleLabel = computed(() => fmt(w.value.singlePayoutDuration, { days: term.value }));
 const compoundLabel = computed(() => fmt(w.value.compoundPayoutDuration, {
   reinvestments: reinvestments.value,

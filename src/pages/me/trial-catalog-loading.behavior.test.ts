@@ -8,6 +8,7 @@ import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import raw from "./trial.vue?raw";
+import { formatAmount } from "@/lib/amount-display";
 
 // Render the actual page and invoke its actual handlers: disabling the paint
 // must not allow a click/key press to navigate against an unread catalog.
@@ -50,6 +51,7 @@ async function mount(locale: keyof typeof translations, trialStatus: "active" | 
   const navTo = vi.fn();
   const refresh = vi.fn().mockResolvedValue(true);
   const dependencies: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue,
     "@/components/app-chassis.vue": { default: { setup: (_props: unknown, context: { slots: Vue.Slots }) => () => Vue.h("chassis", context.slots.default?.()) } },
     "@/components/sub-page-header.vue": { default: { render: () => null } },

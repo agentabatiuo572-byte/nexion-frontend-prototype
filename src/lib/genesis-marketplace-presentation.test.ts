@@ -27,7 +27,7 @@ describe("Genesis marketplace presentation", () => {
   });
 
   it("presents a known floor as full money and an unknown floor without a currency suffix", () => {
-    expect(presentGenesisFloorPrice(13_400.5)).toBe("$13,400.50");
+    expect(presentGenesisFloorPrice(13_400.5)).toBe("$13400.50");
     expect(presentGenesisFloorPrice(null)).toBe("—");
   });
 

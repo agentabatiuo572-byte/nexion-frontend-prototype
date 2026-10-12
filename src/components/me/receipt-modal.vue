@@ -77,6 +77,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, onUnmounted, type CSSProperties } from "vue";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import type { Receipt, ReceiptDetails } from "@/mock/receipt";
@@ -250,8 +251,8 @@ const sections = computed<DescSection[]>(() => {
       },
       {
         rows: [
-          { k: "reward_usdt", v: `+$${r.rewardUsdt.toFixed(6)} USDT`, accent: true, strong: true },
-          ...(r.rewardNex > 0 ? [{ k: "reward_nex", v: `+${r.rewardNex.toFixed(6)} NEX`, accent: true }] : []),
+          { k: "reward_usdt", v: `+$${formatAmount(r.rewardUsdt)} USDT`, accent: true, strong: true },
+          ...(r.rewardNex > 0 ? [{ k: "reward_nex", v: `+${formatAmount(r.rewardNex)} NEX`, accent: true }] : []),
         ],
       },
       {
@@ -286,9 +287,9 @@ const sections = computed<DescSection[]>(() => {
       },
       {
         rows: [
-          { k: "deposit", v: `${r.gross.toFixed(2)} USDT` },
+          { k: "deposit", v: `${formatAmount(r.gross)} USDT` },
           { k: "purpose", v: "Wallet ownership proof", muted: true },
-          { k: "credited", v: `+$${r.netPaid.toFixed(2)}`, accent: true, strong: true },
+          { k: "credited", v: `+$${formatAmount(r.netPaid)}`, accent: true, strong: true },
         ],
       },
       {
@@ -333,11 +334,11 @@ const sections = computed<DescSection[]>(() => {
     },
     {
       rows: [
-        { k: "unit_price", v: r.unitPriceLabel },
+        { k: "unit_price", v: r.unitPriceLabel.replace(/^\$([0-9]+(?:\.[0-9]+)?)/, (_match, amount: string) => `$${formatAmount(amount)}`) },
         { k: "units", v: r.unitsLabel },
-        { k: "gross", v: `$${r.gross.toFixed(4)}` },
-        { k: "network_fee", v: `-$${r.fee.toFixed(4)}`, muted: true },
-        { k: "net_paid", v: `+$${r.netPaid.toFixed(4)} USDT`, accent: true, strong: true },
+        { k: "gross", v: `$${formatAmount(r.gross)}` },
+        { k: "network_fee", v: `-$${formatAmount(r.fee)}`, muted: true },
+        { k: "net_paid", v: `+$${formatAmount(r.netPaid)} USDT`, accent: true, strong: true },
       ],
     },
     {

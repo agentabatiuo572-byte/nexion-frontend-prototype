@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -70,6 +71,7 @@ async function mount(remoteApiEnabled = true) {
   const shown: Array<() => void> = [];
   const chassis = { setup: (_props: unknown, { slots }: { slots: Vue.Slots }) => () => Vue.h("view", slots.default?.()) };
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shown.push(callback) },
     "@/components/app-chassis.vue": { default: chassis },
     "@/components/sub-page-header.vue": { default: { render: () => null } },
@@ -100,6 +102,7 @@ async function mount(remoteApiEnabled = true) {
   };
   const value = (label: string) => textContent(labelNode(label).parent!.parent!.children[2]);
   const held = () => [value(en.wallet.reviewingEarnings), value(en.wallet.lockedRewards)];
+  const balance = () => textContent(labelNode(en.wallet.usdtBalance).parent!.children[1]);
   const confirmRelease = (review = 0, locked = 0) => {
     earningsReleaseSnapshot.value = receipt(review, locked);
     earningsReleaseHasSnapshot.value = true; earningsReleaseStatus.value = "ready";
@@ -109,7 +112,7 @@ async function mount(remoteApiEnabled = true) {
     click();
   };
   return { app, commission, earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus,
-    refreshEarningsReleaseStatus, shown, held, confirmRelease, clickRetry, value,
+    refreshEarningsReleaseStatus, shown, held, balance, confirmRelease, clickRetry, value,
     allTimeSublabel: () => textContent(labelNode(en.wallet.allTimeEarnings).parent!),
     retryEarnings: () => { (labelNode(en.ui.retry).parent!.props.onClick as () => void)(); },
     text: () => textContent(root) };
@@ -168,6 +171,18 @@ describe("actual wallet held authority", () => {
     s.app.homeTruth.earnings.all.usdt = 12.25; s.commission.eventsEvidence!.aggregate.totalUSDT = 4.5;
     await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$16.75");
   });
+  it.each([[1.005, "$1.01"], [2.675, "$2.68"], [0.145, "$0.15"], [999.995, "$1000.00"]] as const)(
+    "rounds balance and held displays at the decimal half without changing the source: %s", async (amount, expected) => {
+      const s = await mount();
+      s.app.user.usdtBalance = amount;
+      s.confirmRelease(amount, amount);
+      await Vue.nextTick();
+      expect(s.balance()).toBe(expected);
+      expect(s.held()).toEqual([expected, expected]);
+      expect(s.app.user.usdtBalance).toBe(amount);
+      expect(s.earningsReleaseSnapshot.value!.buckets.pending_review).toBe(amount);
+      expect(s.earningsReleaseSnapshot.value!.buckets.bonus_locked).toBe(amount);
+    });
 
   it.each(["idle", "loading", "error"])("keeps fleet-confirmed held buckets unknown when release is %s without a snapshot", async status => {
     const s = await mount(); s.earningsReleaseStatus.value = status; await Vue.nextTick();

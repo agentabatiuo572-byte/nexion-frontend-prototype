@@ -45,9 +45,9 @@
         <RewardRows :expected="quote.expectedRewards" :lines="quote.items" />
         <text v-for="(warning,index) in quote.warnings" :key="index" class="promotion-copy">{{ localized(warning,locale.code) }}</text>
         <text v-if="quote.eligibility!=='ELIGIBLE'" class="promotion-notice">{{ t.promotion.disabledNote }}</text>
-        <view class="promotion-summary"><text>{{ t.promotion.subtotal }}</text><text>{{ quote.subtotalUsdt }} USDT</text></view>
-        <view class="promotion-summary"><text>{{ t.promotion.discount }}</text><text>{{ quote.discountUsdt }} USDT</text></view>
-        <view class="promotion-summary total"><text>{{ t.promotion.total }}</text><text>{{ quote.amountUsdt }} USDT</text></view>
+        <view class="promotion-summary"><text>{{ t.promotion.subtotal }}</text><text>{{ formatAmount(quote.subtotalUsdt) }} USDT</text></view>
+        <view class="promotion-summary"><text>{{ t.promotion.discount }}</text><text>{{ formatAmount(quote.discountUsdt) }} USDT</text></view>
+        <view class="promotion-summary total"><text>{{ t.promotion.total }}</text><text>{{ formatAmount(quote.amountUsdt) }} USDT</text></view>
       </template>
       <text class="promotion-copy">{{ t.promotion.rewardNote }}</text>
     </view>
@@ -63,6 +63,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed,onBeforeUnmount,onMounted,ref,watch } from 'vue';
 import { onHide,onShow } from '@dcloudio/uni-app';
 import { promotionApi,sessionVault } from '@/api/runtime';

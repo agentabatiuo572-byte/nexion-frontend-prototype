@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error Vitest executes this structural contract in Node; the App tsconfig intentionally omits Node globals.
 import { readFileSync } from "node:fs";
@@ -41,6 +42,7 @@ function legacyNativePage() {
     this.exports = this.module.exports;
   `, context);
   context.require = (id: string) => {
+    if (id === "@/lib/amount-display") return { formatAmount };
     if (id === "vue") return { ...Vue, onMounted: () => {}, onUnmounted: () => {} };
     if (id === "@dcloudio/uni-app") return { onShow: () => {}, onHide: () => {} };
     if (id === "@/store/goals") return { useGoals: () => context.goalsStore };
@@ -92,7 +94,7 @@ describe("native goal save without Array.at", () => {
       await page.onSave();
       expect(context.goalsStore.saves).toHaveLength(1);
       expect(context.goalsStore.goals).toHaveLength(1);
-      expect(context.ui.toasts).toEqual([{ kind: "success", title: "目标已保存：$500 / 30 天" }]);
+      expect(context.ui.toasts).toEqual([{ kind: "success", title: "目标已保存：$500.00 / 30 天" }]);
       expect(page.restoredGoal.value).toEqual({ id: "saved-goal", targetUSDT: 500, days: 30 });
       expect(page.savePending.value).toBe(false);
       expect(page.saveBlocked.value).toBe(true);
@@ -119,7 +121,7 @@ describe("native goal save without Array.at", () => {
       expect(context.goalsStore.saves).toHaveLength(2);
       expect(context.goalsStore.saves[1]).toEqual(context.goalsStore.saves[0]);
       expect(context.goalsStore.goals).toHaveLength(1);
-      expect(context.ui.toasts[1]).toEqual({ kind: "success", title: "目标已保存：$500 / 30 天" });
+      expect(context.ui.toasts[1]).toEqual({ kind: "success", title: "目标已保存：$500.00 / 30 天" });
     } finally { scope.stop(); }
   });
 
@@ -227,12 +229,12 @@ describe("earning-goal save account fence", () => {
  * 判据是**行为**而非文本:用真实 fmt 渲染一遍,断言天数前没有 $、金额前有 $。
  */
 describe("goal save toast placeholder contract", () => {
-  it("keeps days unitless and groups default and custom amounts", () => {
-    expect(source).toMatch(/savedToast, \{ amount: target\.value\.toLocaleString\("en-US"\), days: days\.value \}/);
-    expect(fmt(zh.goals.savedToast, { amount: (1000).toLocaleString("en-US"), days: 90 }))
-      .toBe("目标已保存：$1,000 / 90 天");
-    expect(fmt(zh.goals.savedToast, { amount: (1234.56).toLocaleString("en-US"), days: 180 }))
-      .toBe("目标已保存：$1,234.56 / 180 天");
+  it("keeps days unitless and displays default and custom amounts with two decimals", () => {
+    expect(source).toMatch(/savedToast, \{ amount: formatAmount\(target\.value\), days: days\.value \}/);
+    expect(fmt(zh.goals.savedToast, { amount: formatAmount(1000), days: 90 }))
+      .toBe("目标已保存：$1000.00 / 90 天");
+    expect(fmt(zh.goals.savedToast, { amount: formatAmount(1234.56), days: 180 }))
+      .toBe("目标已保存：$1234.56 / 180 天");
   });
 
   it("shows both saved terms through the page-bound toast store after an async save", async () => {
@@ -260,16 +262,16 @@ describe("goal save toast placeholder contract", () => {
     const implementation = ts.transpileModule(source.slice(start, end), {
       compilerOptions: { target: ts.ScriptTarget.ES2022 },
     }).outputText;
-    const makeSave = new Function("saveBlocked", "target", "days", "goalsStore", "savePending", "ui", "t", "fmt", "restoreEditorFromGoal", "ONE_DAY_MS",
+    const makeSave = new Function("formatAmount", "saveBlocked", "target", "days", "goalsStore", "savePending", "ui", "t", "fmt", "restoreEditorFromGoal", "ONE_DAY_MS",
       `let saveEpoch = 0; const retryableSaveIntents = new Map(); ${implementation}; return onSave;`);
-    const save = makeSave({ value: false }, target, days, goalsStore, savePending, pageUi,
+    const save = makeSave(formatAmount, { value: false }, target, days, goalsStore, savePending, pageUi,
       { value: { goals: zh.goals } }, fmt, () => {}, 86_400_000) as () => Promise<void>;
 
     await save();
-    expect(pageUi.toasts.at(-1)?.title).toBe("目标已保存：$500 / 90 天");
+    expect(pageUi.toasts.at(-1)?.title).toBe("目标已保存：$500.00 / 90 天");
     days.value = 30;
     await save();
-    expect(pageUi.toasts.at(-1)?.title).toBe("目标已保存：$500 / 30 天");
+    expect(pageUi.toasts.at(-1)?.title).toBe("目标已保存：$500.00 / 30 天");
     expect(useUI(otherPinia).toasts).toEqual([]);
     expect(goals).toHaveLength(2);
     expect(savePending.value).toBe(false);
@@ -292,6 +294,7 @@ async function setup(){
   const account=Vue.reactive({accountKey:'A',accountBindingEpoch:1,earnings:{total:0}});
   const ui=useUI();const shows: Array<() => void>=[];const hides: Array<() => void>=[];
   const require=(id:string)=>{
+    if (id === "@/lib/amount-display") return { formatAmount };
     if(id==='vue')return Vue;
     if(id==='@dcloudio/uni-app')return{onShow:(fn:() => void)=>shows.push(fn),onHide:(fn:() => void)=>hides.push(fn)};
     if(id==='@/store/goals')return{useGoals:()=>store};

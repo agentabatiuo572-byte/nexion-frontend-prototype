@@ -29,7 +29,7 @@
           </view>
           <view class="nx-glass-card rounded-2xl" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.tree.monthlyVolume }}</text>
-            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : `$${(totalVol / 1000).toFixed(1)}K` }}</text>
+            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : `$${formatAmount(totalVol / 1000)}K` }}</text>
             <text class="block" :style="metricSuffixStyle">{{ t.tree.acrossNetwork }}</text>
           </view>
         </view>
@@ -76,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, reactive, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -105,13 +106,13 @@ const directRoyalty = computed(() => directVol.value * UNILEVEL_USDT[1]);
 
 const directSubtitle = computed(() =>
   remoteApiEnabled
-    ? fmt(t.value.tree.serverVolumeSubtitle, { n: direct.value.length, volume: directVol.value.toFixed(2) })
-    : fmt(t.value.tree.directSubtitle, { n: direct.value.length, amount: directRoyalty.value.toFixed(2) }),
+    ? fmt(t.value.tree.serverVolumeSubtitle, { n: direct.value.length, volume: formatAmount(directVol.value) })
+    : fmt(t.value.tree.directSubtitle, { n: direct.value.length, amount: formatAmount(directRoyalty.value) }),
 );
 const extendedSubtitle = computed(() =>
   remoteApiEnabled
-    ? fmt(t.value.tree.serverVolumeSubtitle, { n: extended.value.length, volume: extended.value.reduce((sum, m) => sum + m.monthVolumeUSD, 0).toFixed(2) })
-    : fmt(t.value.tree.extendedSubtitle, { n: extended.value.length, amount: extendedRoyalty.value.toFixed(2) }),
+    ? fmt(t.value.tree.serverVolumeSubtitle, { n: extended.value.length, volume: formatAmount(extended.value.reduce((sum, m) => sum + m.monthVolumeUSD, 0)) })
+    : fmt(t.value.tree.extendedSubtitle, { n: extended.value.length, amount: formatAmount(extendedRoyalty.value) }),
 );
 
 // expand toggle: reactive(Record) per P-027 (Vue Set/ref-toggle pitfall)

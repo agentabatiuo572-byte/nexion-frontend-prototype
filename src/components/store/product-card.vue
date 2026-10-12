@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import type { Product } from "@/mock/products";
 import type { DeviceKind } from "@/store/types";
@@ -223,7 +224,7 @@ const gateCondTexts = computed(() =>
   gate.value.conditions.map((c) => {
     if (c.kind === "rank") return fmt(t.value.store.gateCondRank, { n: c.need });
     if (c.kind === "activeDirect") return fmt(t.value.store.gateCondDirect, { n: c.need });
-    return fmt(t.value.store.gateCondVolume, { n: c.need.toLocaleString() });
+    return fmt(t.value.store.gateCondVolume, { n: formatAmount(c.need) });
   }),
 );
 const gateModeText = computed(() =>
@@ -292,17 +293,15 @@ function toggleGateDetails() {
 }
 
 // Text helpers (toFixed / toLocaleString / fmt) — kept out of template for clarity
-const dailyEarnText = computed(() => props.product.dailyEarn.toFixed(2));
+const dailyEarnText = computed(() => formatAmount(props.product.dailyEarn));
 const shareYieldText = computed(() => props.product.shareYieldMin != null && props.product.shareYieldMax != null
   ? `${props.product.shareYieldMin}%–${props.product.shareYieldMax}%`
   : t.value.store.shareAnnualUnavailable);
-const nexPerDayText = computed(() => fmt(t.value.store.cardNexPerDay, { n: props.product.dailyEarnNEX }));
+const nexPerDayText = computed(() => fmt(t.value.store.cardNexPerDay, { n: formatAmount(props.product.dailyEarnNEX) }));
 const tradeCreditText = computed(() =>
-  fmt(t.value.store.cardTradeCredit, { n: bestTradeinCredit.value.toFixed(2) }),
+  fmt(t.value.store.cardTradeCredit, { n: formatAmount(bestTradeinCredit.value) }),
 );
-const priceText = computed(() =>
-  isShare.value ? String(props.product.price) : props.product.price.toLocaleString(),
-);
+const priceText = computed(() => formatAmount(props.product.price));
 const stockHintText = computed(() => fmt(t.value.store.cardStockCompact, { n: props.product.stock ?? 0 }));
 
 function goDetail() {

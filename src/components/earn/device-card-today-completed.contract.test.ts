@@ -5,6 +5,7 @@ import en from "../../i18n/messages/en.ts?raw";
 import viSource from "../../i18n/messages/vi.ts?raw";
 
 import * as Vue from 'vue';
+import { formatAmount } from '@/lib/amount-display';
 import { compileScript, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import { createPinia, setActivePinia } from 'pinia';
@@ -182,6 +183,7 @@ async function setup(name: string) {
   const blank = { render: () => null };
   const chassis = Vue.defineComponent({ setup: (_p, ctx) => () => Vue.h('view', ctx.slots.default?.()) });
   const deps: Record<string, unknown> = {
+    '@/lib/amount-display': { formatAmount },
     vue: Vue, '@/store/app': { useApp: () => app }, '@/store/session': { useSession },
     '@/store/config': { useConfig }, '@/lib/native-phone-runtime': native,
     '@/lib/phone-activation-guidance': guidance, '@/store/device-types': deviceTypes,

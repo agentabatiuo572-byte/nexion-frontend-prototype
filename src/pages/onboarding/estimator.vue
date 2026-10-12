@@ -102,6 +102,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navReset } from "@/lib/route";
 import { onBackPress, onLoad } from "@dcloudio/uni-app";
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
@@ -142,10 +143,10 @@ const phone = comparison("phone");
 const s1 = comparison("s1");
 const pro = comparison("pro");
 const phoneRate = computed(() => calibration.value?.baseRateUsdt ?? phone.value?.dailyUsdt ?? null);
-const phoneRateLabel = computed(() => phoneRate.value === null ? "—" : `~$${phoneRate.value.toFixed(2)}`);
-const s1Label = computed(() => s1.value ? `$${s1.value.dailyUsdt.toFixed(2)}` : "—");
-const proLabel = computed(() => pro.value ? `$${pro.value.dailyUsdt.toFixed(2)}` : "—");
-const proMonthlyLabel = computed(() => pro.value ? `~$${(pro.value.dailyUsdt * 30).toFixed(0)}` : "—");
+const phoneRateLabel = computed(() => phoneRate.value === null ? "—" : `~$${formatAmount(phoneRate.value)}`);
+const s1Label = computed(() => s1.value ? `$${formatAmount(s1.value.dailyUsdt)}` : "—");
+const proLabel = computed(() => pro.value ? `$${formatAmount(pro.value.dailyUsdt)}` : "—");
+const proMonthlyLabel = computed(() => pro.value ? `~$${formatAmount(pro.value.dailyUsdt * 30)}` : "—");
 const multS1Label = computed(() => phoneRate.value && s1.value ? `${Math.round(s1.value.dailyUsdt / phoneRate.value)}×` : "—");
 
 let timer: ReturnType<typeof setTimeout> | undefined;

@@ -39,7 +39,7 @@ describe("presentHomeMarketWorkload", () => {
     }), vi)).toEqual({
       tag: "IMG",
       name: "Tạo ảnh",
-      priceText: "$0.00032",
+      priceText: "$0.00",
       unitText: "mỗi ảnh",
       deltaText: "+3.2%",
       deltaTone: "positive",

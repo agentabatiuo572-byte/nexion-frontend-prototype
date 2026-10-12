@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -62,7 +63,7 @@ function shortAddr(addr: string): string {
 
 const tint = computed(() => TINT[props.e.kind]);
 const kindLabel = computed(() => t.value.marketplace.actKind[props.e.kind]);
-const priceText = computed(() => props.e.priceUSDT?.toLocaleString() ?? "");
+const priceText = computed(() => formatAmount(props.e.priceUSDT));
 const fromLabel = computed(() => (props.e.from === "—" ? t.value.marketplace.actKind.mint : shortAddr(props.e.from)));
 const toLabel = computed(() =>
   props.e.to === "—" ? t.value.marketplace.actKind.list.toLowerCase() : shortAddr(props.e.to),

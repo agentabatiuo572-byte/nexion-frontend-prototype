@@ -28,6 +28,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { deviceName } from "@/lib/device-copy";
@@ -123,12 +124,12 @@ const best = computed(() => remoteApiEnabled ? remoteBest.value : mockBest.value
 
 const title = computed(() =>
   best.value
-    ? fmt(w.value.title, { name: best.value.name, credit: best.value.credit.toFixed(2) })
+    ? fmt(w.value.title, { name: best.value.name, credit: formatAmount(best.value.credit) })
     : "",
 );
 const body = computed(() =>
   best.value
-    ? fmt(w.value.body, { target: best.value.target, net: best.value.net.toLocaleString() })
+    ? fmt(w.value.body, { target: best.value.target, net: formatAmount(best.value.net) })
     : "",
 );
 

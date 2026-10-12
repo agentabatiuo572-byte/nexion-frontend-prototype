@@ -25,6 +25,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { computed, type CSSProperties } from "vue";
 import type { StakingTerm } from "@/store/staking";
@@ -66,7 +67,7 @@ const TIER_TONES: Record<StakingTerm, TierTone> = {
 const tone = computed(() => TIER_TONES[props.term]);
 const apyPct = computed(() => formatStakingPercentage(props.apy));
 const penaltyPct = computed(() => formatStakingPercentage(props.penalty));
-const minText = computed(() => props.min.toLocaleString());
+const minText = computed(() => formatAmount(props.min));
 
 const rowStyle = computed<CSSProperties>(() => ({
   display: "grid",

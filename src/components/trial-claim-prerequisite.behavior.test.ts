@@ -6,6 +6,7 @@ import ts from "typescript";
 import raw from "./trial-claim-sheet.vue?raw";
 import { computeTrialOffset } from "@/store/trial-config";
 import { fmt } from "@/i18n/format";
+import { formatAmount } from "@/lib/amount-display";
 import { zh } from "@/i18n/messages/zh";
 import { en } from "@/i18n/messages/en";
 import { vi as vietnamese } from "@/i18n/messages/vi";
@@ -41,6 +42,7 @@ async function mount(platform: "H5" | "APP", messages = zh) {
   const start = vi.fn().mockResolvedValue({ ok: false, reason: "onboarding-required" });
   const navTo = vi.fn(), toast = { info: vi.fn(), success: vi.fn() };
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@/lib/route": { navTo }, "@/store/app": { useApp: () => appState },
     "@/store/trial-claim-sheet": { useTrialClaimSheet: () => sheet },
     "@/store/trial-config": { useTrialConfig: () => ({ config: { trialDays: 3, shadowDailyUSD: 1,

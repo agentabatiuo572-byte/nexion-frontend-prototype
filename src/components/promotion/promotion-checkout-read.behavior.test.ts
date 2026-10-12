@@ -10,6 +10,7 @@ import { asApiError,ApiError } from '@/api/errors';
 import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
 import { projectServerNow } from '@/lib/server-deadline-clock';
 import { displayDeadline,localized } from '@/lib/promotion-display';
+import { formatAmount } from '@/lib/amount-display';
 import type { OrderReceipt,PublicPromotion,Quote } from '@/api/promotion-contracts';
 
 const serverTime='2026-10-08T00:00:00Z',text={zh:'原赠品条件',en:'Original gift terms',vi:'Điều khoản quà tặng'};
@@ -40,6 +41,7 @@ function screen(stored?:PromotionCheckoutRecord){
   const getProduct=vi.fn().mockReturnValue({name:'Selected device'}),catalog=Vue.reactive({status:'ready'}),presentation=Vue.ref<{products:{id:string;name:string}[]}|null>({products:[{id:'sku',name:'Selected device'}]});
   vi.stubGlobal('setInterval',vi.fn(()=>0));vi.stubGlobal('clearInterval',vi.fn());
   const modules:Record<string,unknown>={
+    '@/lib/amount-display':{formatAmount},
     vue:{...Vue,onMounted:(fn:()=>Promise<void>)=>mounted.push(fn),onBeforeUnmount:(fn:()=>void)=>unmounted.push(fn)},
     'vue-router':{onBeforeRouteLeave:vi.fn()},
     '@/api/runtime':{promotionApi:api,deviceE3Api:{fleet}},'@/api/errors':{asApiError},

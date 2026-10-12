@@ -2,11 +2,12 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { fmt } from '@/i18n/format';
+import { formatAmount } from '@/lib/amount-display';
 
 const source = readFileSync(new URL('./leaderboard.vue', import.meta.url), 'utf8');
 const gapExpression = source.match(/const gapText = computed\(\(\) => ([\s\S]*?)\);/)?.[1];
 if (!gapExpression) throw new Error('Missing leaderboard gap computation');
-const renderGap = new Function('me', 't', 'fmt', `return (${gapExpression});`);
+const renderGap = new Function('me', 't', 'fmt', 'formatAmount', `return (${gapExpression});`);
 const noteExpression = source.split('\n').find((line: string) => line.includes(':style="footerNoteStyle"'))?.match(/\{\{ (.*?) \}\}/)?.[1];
 if (!noteExpression) throw new Error('Missing leaderboard settlement note');
 const renderNote = new Function('period', 't', `return (${noteExpression});`);
@@ -19,12 +20,12 @@ describe('leaderboard rank explanations', () => {
     });
   }
   it('does not tell the leader to earn more to advance', () => {
-    expect(renderGap({ value: { rank: 1, gapToNext: 0 } }, t, fmt)).toBe('Currently first');
+    expect(renderGap({ value: { rank: 1, gapToNext: 0 } }, t, fmt, formatAmount)).toBe('Currently first');
   });
   it('keeps unranked state distinct from first place', () => {
-    expect(renderGap({ value: { rank: null, gapToNext: 0 } }, t, fmt)).toBe('Not ranked');
+    expect(renderGap({ value: { rank: null, gapToNext: 0 } }, t, fmt, formatAmount)).toBe('Not ranked');
   });
   it('can display a zero earnings gap for a tied lower rank', () => {
-    expect(renderGap({ value: { rank: 2, gapToNext: 0 } }, t, fmt)).toBe('Gap to preceding rank: $0');
+    expect(renderGap({ value: { rank: 2, gapToNext: 0 } }, t, fmt, formatAmount)).toBe('Gap to preceding rank: $0.00');
   });
 });

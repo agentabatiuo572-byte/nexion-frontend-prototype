@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { afterEach, expect, test, vi } from "vitest";
 import { compile } from "@vue/compiler-dom";
 import { parse } from "@vue/compiler-sfc";
@@ -93,6 +94,7 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
   const dep: BankHistoryStore = options.dep ?? Vue.reactive({ records: [], remoteReceiptInitialStatus: "ready",
     currentAccountKey: () => app.accountKey, refreshRemoteVietQrDeposits: vi.fn(async () => {}) });
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "qrcode-generator": { default: qrcode },
     "@/api/runtime": { fundsServerEnabled: true, cregisDepositApi: api,
       sessionVault: { read: () => sessionUserId.value === null ? null : { user: { userId: sessionUserId.value } } } },
@@ -109,7 +111,7 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
       if (!(name in modules)) throw new Error(`Unexpected deposit dependency: ${name}`);
       return modules[name];
     }, {});
-    return { ...state, fmt, fundsServerEnabled: true, CHAIN_DEPOSIT_FEE_USDT: depositsCore.CHAIN_DEPOSIT_FEE_USDT };
+    return { ...state, fmt, formatAmount, fundsServerEnabled: true, CHAIN_DEPOSIT_FEE_USDT: depositsCore.CHAIN_DEPOSIT_FEE_USDT };
   } });
   const root = node("root"); mounted.mount(root);
   cleanups.push(() => mounted.unmount());
@@ -293,7 +295,7 @@ test.each([zh, en, vietnamese])("a mixed six-state list stays visible and risk r
   for (const [id, label] of [["CR-5", messages.topupChrome.reorgInvestigating], ["CR-6", messages.topupChrome.providerConflictHold]]) {
     const record = records.find(record => textOf(record).includes(id))!;
     expect(textOf(record)).toContain(label);
-    expect(textOf(record)).toContain(fmt(messages.topupChrome.riskHoldNote, { amount: "9.125" }));
+    expect(textOf(record)).toContain(fmt(messages.topupChrome.riskHoldNote, { amount: "9.13" }));
     expect(record.props.onClick).toBeUndefined();
     expect(record.props.role).toBeUndefined();
     expect(record.props.tabindex).toBeUndefined();
@@ -323,8 +325,8 @@ for (const messages of [zh, en, vietnamese]) {
     expect(h.text()).toContain(messages.topupChrome.amountAtSenderNote);
     expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(1);
     expect(h.text()).toContain("BEP20");
-    expect(h.text()).toContain("$10");
-    expect(h.text()).toContain("1 USDT");
+    expect(h.text()).toContain("$10.00");
+    expect(h.text()).toContain("1.00 USDT");
     expect(h.text()).toContain("15");
   });
 }
@@ -377,9 +379,32 @@ for (const messages of [zh, en, vietnamese]) {
 test("a risk record with no historical credit does not substitute its gross transfer amount", async () => {
   const h = await pane({ ...address, creditEnabled: true }, [{ ...rows[4], creditedUsdt: 0 }]);
   const record = controls(h.root, "nx-dep-record-row")[0];
-  expect(textOf(record)).toContain(fmt(zh.topupChrome.riskHoldNote, { amount: "0" }));
+  expect(textOf(record)).toContain(fmt(zh.topupChrome.riskHoldNote, { amount: "0.00" }));
   expect(textOf(record)).not.toContain("10.125");
   expect(record.props.onClick).toBeUndefined();
+});
+
+test("Native two-decimal display preserves six-decimal credit and transaction URL", async () => {
+  vi.stubGlobal("Intl", undefined);
+  const nativeLocale = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("NATIVE_LOCALE_UNAVAILABLE"); });
+  try {
+    const transfer = { ...rows[1], grossAmountUsdt: 10.123456, creditedUsdt: 9.123456 };
+    const h = await pane({ ...address, creditEnabled: true }, [transfer]);
+    const record = controls(h.root, "nx-dep-record-row")[0];
+    expect(nodesOf(record).filter(target => target.kind === "text").map(textOf)).toContain("9.12");
+    expect(h.text()).toContain("$10.00");
+    expect(h.text()).toContain("1.00 USDT");
+    expect((h.state.serverRecords as Vue.Ref<unknown[]>).value[0]).toMatchObject({
+      grossAmountUsdt: 10.123456, creditedUsdt: 9.123456,
+    });
+    (record.props.onClick as () => void)();
+    expect(h.navTo).toHaveBeenCalledOnce();
+    const href = h.navTo.mock.calls[0][0] as string;
+    expect(href.split("?")[0]).toBe("/pages/tx/hash");
+    expect(new URLSearchParams(href.split("?")[1]).get("amount")).toBe("10.123456");
+  } finally {
+    nativeLocale.mockRestore();
+  }
 });
 
 test.each(["a", "b"])("the rendered QR bitmap decodes to the server address %s with fixed pixels and a four-module quiet zone", async digit => {

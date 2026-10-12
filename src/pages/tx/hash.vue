@@ -66,6 +66,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, type CSSProperties } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -158,7 +159,7 @@ const derived = computed(() => {
 
 const blockNumber = computed(() => derived.value.blockNumber);
 const gasUsedGwei = computed(() => derived.value.gasUsedGwei);
-const valueUSDT = computed(() => (qAmount.value !== null ? qAmount.value.toFixed(2) : derived.value.valueUSDT));
+const valueUSDT = computed(() => formatAmount(qAmount.value ?? derived.value.valueUSDT));
 const fromAddr = computed(() => derived.value.fromAddr);
 const toAddr = computed(() => qTo.value ?? derived.value.toAddr);
 const contract = computed(() => derived.value.contract);

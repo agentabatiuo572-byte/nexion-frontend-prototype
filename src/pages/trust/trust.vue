@@ -77,6 +77,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -137,7 +138,7 @@ const financialMetrics = computed(() => {
   return [
     { key: "activeAccountsValue", label: tr.value.activeAccounts, value: v.activeAccounts.value.toLocaleString("en-US"), delta: null },
     { key: "devicesOnlineValue", label: tr.value.activeNodes, value: v.onlineDevices.value.toLocaleString("en-US"), delta: null },
-    { key: "payoutsProcessedValue", label: tr.value.completedPayouts, value: `${v.completedPayoutUsdt.value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`, delta: null },
+    { key: "payoutsProcessedValue", label: tr.value.completedPayouts, value: formatAmount(v.completedPayoutUsdt.value), delta: null },
   ];
 });
 const auditRows = computed(() => trustNumberedRows(auditSection.value?.fields ?? [], "document", ["Primary", "Secondary", "Url"] as const, language.value));

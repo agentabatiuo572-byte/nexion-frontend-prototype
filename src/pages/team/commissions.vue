@@ -38,23 +38,23 @@
           <view class="grid grid-cols-2" style="gap: 12px">
             <view>
               <text class="block font-mono-tabular" :style="overviewCapStyle">{{ t.directReferral.creditedTotal }}</text>
-              <text class="block tabular-nums" :style="overviewBigStyle('var(--v5-brand)')">${{ commission.unlockedUSDT().toFixed(2) }}</text>
-              <text class="block font-mono-tabular" :style="overviewSmallStyle">{{ commission.unlockedNEX().toLocaleString() }} NEX</text>
+              <text class="block tabular-nums" :style="overviewBigStyle('var(--v5-brand)')">${{ formatAmount(commission.unlockedUSDT()) }}</text>
+              <text class="block font-mono-tabular" :style="overviewSmallStyle">{{ formatAmount(commission.unlockedNEX()) }} NEX</text>
             </view>
             <view>
               <text class="block font-mono-tabular" :style="overviewCapStyle">{{ t.commissions.cooling }}</text>
-              <text class="block tabular-nums" :style="overviewBigStyle('var(--v5-warning)')">${{ commission.coolingUSDT().toFixed(2) }}</text>
+              <text class="block tabular-nums" :style="overviewBigStyle('var(--v5-warning)')">${{ formatAmount(commission.coolingUSDT()) }}</text>
               <text class="block font-mono-tabular" :style="overviewSmallStyle">{{ coolingOverviewText }}</text>
             </view>
           </view>
           <view class="grid grid-cols-2" :style="heroFooterStyle">
             <view class="flex items-center justify-between">
               <text :style="{ color: 'var(--v5-ink-3)' }">{{ t.commissions.thisMonth }}</text>
-              <text class="font-display tabular-nums" :style="{ fontWeight: 600 }">${{ commission.monthUSDT().toFixed(2) }}</text>
+              <text class="font-display tabular-nums" :style="{ fontWeight: 600 }">${{ formatAmount(commission.monthUSDT()) }}</text>
             </view>
             <view class="flex items-center justify-between">
               <text :style="{ color: 'var(--v5-ink-3)' }">{{ t.commissions.lifetime }}</text>
-              <text class="font-display tabular-nums" :style="{ fontWeight: 600 }">${{ commission.totalUSDTLifetime().toFixed(2) }}</text>
+              <text class="font-display tabular-nums" :style="{ fontWeight: 600 }">${{ formatAmount(commission.totalUSDTLifetime()) }}</text>
             </view>
           </view>
         </view>
@@ -81,7 +81,7 @@
             <text :style="{ color: KIND[k].color }">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="KIND[k].color" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-for="(p, pi) in KIND[k].paths" :key="pi" :d="p" /></svg>
             </text>
-            <text class="block tabular-nums" :style="kindAmtStyle">${{ byKind[k].usdt.toFixed(0) }}</text>
+            <text class="block tabular-nums" :style="kindAmtStyle">${{ formatAmount(byKind[k].usdt) }}</text>
             <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.commissions.kind[k] }}</text>
             <text class="block font-mono-tabular" :style="kindCountStyle">{{ byKind[k].count }} {{ t.commissions.events }}</text>
           </view>
@@ -122,7 +122,7 @@
                 <text v-else-if="e.status === 'rejected'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-danger)', marginTop: '2px' }">{{ t.commissions.rejectedTag }}</text>
                 <text v-else-if="e.status === 'waiting_calculation'" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.waitingCalculation }}</text>
                 <text v-else-if="e.status === 'recovery_pending'" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.recoveryPending }}</text>
-                <text v-if="e.status === 'recovery_pending' && e.recoveryPendingUSDT !== undefined && e.recoveryPendingNEX !== undefined" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: e.recoveryPendingUSDT, nex: e.recoveryPendingNEX }) }}</text>
+                <text v-if="e.status === 'recovery_pending' && e.recoveryPendingUSDT !== undefined && e.recoveryPendingNEX !== undefined" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: formatAmount(e.recoveryPendingUSDT), nex: formatAmount(e.recoveryPendingNEX) }) }}</text>
               </view>
             </view>
             <view
@@ -145,6 +145,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { ref, computed, nextTick, onMounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
@@ -153,7 +154,6 @@ import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
-import { formatHowNumber } from "@/lib/rank-how-content";
 import { useCommission, type CommissionEvent, type CommissionKind } from "@/store/commission";
 import { remoteApiEnabled } from "@/api/runtime";
 
@@ -221,14 +221,14 @@ function coolingTag(e: CommissionEvent): string {
 }
 
 function commissionAmountLabel(e: CommissionEvent): string {
-  const amount = `${formatHowNumber(e.amountUSDT, dateLocale())} USDT`;
+  const amount = `${formatAmount(e.amountUSDT)} USDT`;
   if (e.status === "reversed") return `−${amount}`;
   if (e.status === "frozen" || e.status === "rejected" || e.status === "recovery_pending") return amount;
   return `+${amount}`;
 }
 
 function commissionNexLabel(e: CommissionEvent): string {
-  const amount = `${formatHowNumber(e.amountNEX, dateLocale())} NEX`;
+  const amount = `${formatAmount(e.amountNEX)} NEX`;
   if (e.status === "reversed") return `−${amount}`;
   if (e.status === "frozen" || e.status === "rejected" || e.status === "recovery_pending") return amount;
   return `+${amount}`;
@@ -252,7 +252,7 @@ function go(url: string) {
 // 6-kind summary cards double as filter controls: name them with the kind label
 // + current amount/count so a screen reader hears what the tile selects.
 function kindCardLabel(k: CommissionKind): string {
-  return `${t.value.commissions.kind[k]} · ${byKind.value[k].usdt.toFixed(0)} · ${byKind.value[k].count} ${t.value.commissions.events}`;
+  return `${t.value.commissions.kind[k]} · ${formatAmount(byKind.value[k].usdt)} · ${byKind.value[k].count} ${t.value.commissions.events}`;
 }
 
 // Filter pills are one roving-tabindex tablist (same idiom as leaderboard/unilevel):

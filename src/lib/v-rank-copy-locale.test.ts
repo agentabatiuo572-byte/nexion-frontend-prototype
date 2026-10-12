@@ -48,10 +48,10 @@ describe("canonical V-rank title locale", () => {
     expect(rankName({ title: "Server Rank", cnTitle: "注册会员" }, "en")).toBe("Server Rank");
   });
   it.each([
-    ["en", en, "Self-buy $0.000001 more", "$765.876544 more team volume", "Team $1,234.123456"],
-    ["zh", zh, "再自买 $0.000001", "团队再 $765.876544", "团队 $1,234.123456"],
-    ["vi", vietnamese, "Tự mua thêm $0,000001", "Thêm $765,876544 doanh số nhóm", "Doanh số nhóm $1.234,123456"],
-  ] as const)("preserves %s six-decimal thresholds and gaps without Intl", (locale, copy, tiny, teamGap, threshold) => {
+    ["en", en, "Self-buy $0.00 more", "$765.88 more team volume", "Team $1234.12"],
+    ["zh", zh, "再自买 $0.00", "团队再 $765.88", "团队 $1234.12"],
+    ["vi", vietnamese, "Tự mua thêm $0.00", "Thêm $765.88 doanh số nhóm", "Doanh số nhóm $1234.12"],
+  ] as const)("renders %s monetary thresholds and gaps with two decimals without Intl", (locale, copy, tiny, teamGap, threshold) => {
     vi.stubGlobal("Intl", undefined);
     try {
       expect(rankGapText(copy, { kind: "selfBuy", amount: 500 - 499.999999 }, locale, [])).toBe(tiny);

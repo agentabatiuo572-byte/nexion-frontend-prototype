@@ -14,6 +14,7 @@
   </view></AppChassis>
 </template>
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -38,8 +39,8 @@ const t = useT(); const locale = useLocaleStore(); const app = useApp(); const o
 const errorText = computed(() => error.value ? t.value.learning[error.value] : "");
 const featuredCourse = computed(() => overview.value?.courses.find((course) => course.featured));
 const language = computed(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code : "zh");
-const progressLine = computed(() => fmt(t.value.learning.centerProgress, { done: overview.value?.completedCourses ?? 0, total: overview.value?.totalCourses ?? 0, nex: overview.value?.earnedNex ?? 0 }));
-function courseMeta(course: LearningCourse) { return fmt(t.value.learning.courseMeta, { duration: courseDurationText(course.duration, t.value.learning.durationMinutes), nex: course.rewardNex }); }
+const progressLine = computed(() => fmt(t.value.learning.centerProgress, { done: overview.value?.completedCourses ?? 0, total: overview.value?.totalCourses ?? 0, nex: formatAmount(overview.value?.earnedNex ?? 0) }));
+function courseMeta(course: LearningCourse) { return fmt(t.value.learning.courseMeta, { duration: courseDurationText(course.duration, t.value.learning.durationMinutes), nex: formatAmount(course.rewardNex) }); }
 function onKeyboardActivate(event: KeyboardEvent, action: () => void) { if (!event.repeat) action(); }
 let accountEpoch = 0;
 let generation = 0;

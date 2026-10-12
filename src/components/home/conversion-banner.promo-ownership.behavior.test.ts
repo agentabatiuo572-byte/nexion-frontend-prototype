@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -67,6 +68,7 @@ async function mount(locale: LocaleCode, copy: Messages, quests: CanonicalQuest[
     loading: false, error: null, claimErrorQuestCode: null, refresh: vi.fn(),
   };
   const dependencies: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue,
     "@/i18n/use-t": { useT: () => Vue.ref(copy) },
     "@/store/locale": { useLocaleStore: () => ({ code: locale }) },
@@ -99,7 +101,7 @@ test.each(languages.flatMap(([locale, copy]) => [pausedPromo, activePromo, null]
     const original = JSON.stringify({ quest, promo });
     const { root, navTo, wq } = await mount(locale, copy, [quest], promo);
     expect(text(find(root, "weekly-quest__subtitle"))).toBe(questPresentation.weeklyQuestDisplayName(quest, locale, copy));
-    expect(text(find(root, "weekly-quest__reward-value"))).toBe("+200");
+    expect(text(find(root, "weekly-quest__reward-value"))).toBe("+200.00");
     expect(text(find(root, "weekly-quest__multiplier"))).toBe("1×");
     expect(text(find(root, "weekly-quest__category"))).toBe(copy.home.dayOneCatSocial);
     expect(text(find(root, "weekly-quest__countdown-value"))).toBe("3d 05h");
@@ -118,7 +120,7 @@ test.each(languages.flatMap(([locale, copy]) => [pausedPromo, activePromo, null]
 
 test.each(languages)("%s zero-reward task keeps its own reward instead of the promo reward", async (locale, copy) => {
   const { root, navTo } = await mount(locale, copy, [{ ...quest, rewardNex: 0 }], activePromo);
-  expect(text(find(root, "weekly-quest__reward-value"))).toBe("+0");
+  expect(text(find(root, "weekly-quest__reward-value"))).toBe("+0.00");
   expect(find(root, "weekly-quest__rate")).toBeUndefined();
   find(root, "weekly-quest").props.onClick(); expect(navTo).toHaveBeenCalledExactlyOnceWith(quest.actionRoute);
 });
@@ -128,7 +130,7 @@ test.each(languages.flatMap(([locale, copy]) => [[], [{ ...quest, status: "CLAIM
     const original = JSON.stringify({ quests, activePromo });
     const { root, navTo } = await mount(locale, copy, quests, activePromo);
     expect(text(find(root, "weekly-quest__subtitle"))).toBe("UVELBox Pro");
-    expect(text(find(root, "weekly-quest__reward-value"))).toBe("+1,200");
+    expect(text(find(root, "weekly-quest__reward-value"))).toBe("+1200.00");
     expect(text(find(root, "weekly-quest__multiplier"))).toBe("1.5×");
     expect(text(find(root, "weekly-quest__countdown-value"))).toBe("4d 12h");
     expect(text(find(root, "weekly-quest__rate-value"))).toBe("$1.50");

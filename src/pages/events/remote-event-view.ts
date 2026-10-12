@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import type { CanonicalEvent } from "@/api/events-api";
 import type { NexEvent } from "@/mock/events";
 
@@ -48,7 +49,7 @@ export function remoteEventView(event: CanonicalEvent, labels: EventActionLabels
     subtitle: event.subtitle,
     emoji: "✦",
     tint: TINT_BY_KIND[event.kind],
-    reward: event.kind === "wheel" ? event.rewardName : `${event.rewardAmount} ${event.rewardName}`,
+    reward: event.kind === "wheel" ? event.rewardName : `${event.rewardType === "USDT" || event.rewardType === "NEX" ? formatAmount(event.rewardAmount) : event.rewardAmount} ${event.rewardName}`,
     progress: event.trackable
       ? { current: event.progressValue, total: event.targetValue, label: labels.progress }
       : null,

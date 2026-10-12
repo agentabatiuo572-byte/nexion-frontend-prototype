@@ -35,7 +35,7 @@
             <text v-if="'sourceDeviceId' in event && event.sourceDeviceId" class="block" style="margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ t.directReferral.device }}: {{ event.sourceDeviceId }}</text>
             <text class="block" style="margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ t.directReferral.settlement }}: {{ event.id }}</text>
             <view style="margin-top: 6px"><text class="nx-royalty-status">{{ statusText(event) }}</text></view>
-            <text v-if="event.status === 'recovery_pending'" class="block nx-direct-amount" style="margin-top: 4px; font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: amount(event.recoveryPendingUSDT ?? 0), nex: amount(event.recoveryPendingNEX ?? 0) }) }}</text>
+            <text v-if="event.status === 'recovery_pending'" class="block nx-direct-amount" style="margin-top: 4px; font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: amount(event.recoveryPendingUSDT), nex: amount(event.recoveryPendingNEX) }) }}</text>
           </view>
           <EmptyState v-if="remoteSnapshot.totalRows === 0" kind="no-filter-results" :title="t.directReferral.empty" :desc="t.directReferral.emptyDesc" />
           <view v-if="remoteSnapshot.totalRows === 0" role="button" tabindex="0" class="nx-unilevel-focus" style="min-height: 44px; display: flex; align-items: center; justify-content: center; color: var(--v5-brand)" @click="go('/pages/team/team')"><text>{{ t.directReferral.invite }}</text></view>
@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -166,9 +167,9 @@ const ruleDescription = computed(() => {
   const rule = filter.value === "device_earning" ? p.deviceEarning : p.purchase;
   if (p.settlementMode === "SEVEN_V2" && filter.value === "direct" && (p.purchaseSplitConfigured === false || p.sevenLayerReference?.baseRatePct === null || p.sevenLayerReference?.coolingDays === null)) return t.value.directReferral.purchaseUnconfigured;
   if (p.settlementMode === "SEVEN_V2" && filter.value === "direct") return p.purchaseSplit?.enabled
-    ? fmt(t.value.directReferral.purchaseSplitRule, { usdt: amount(p.purchaseSplit.usdtSharePct), nex: amount(100 - p.purchaseSplit.usdtSharePct) })
+    ? fmt(t.value.directReferral.purchaseSplitRule, { usdt: formatHowNumber(p.purchaseSplit.usdtSharePct, dateLocale()), nex: formatHowNumber(100 - p.purchaseSplit.usdtSharePct, dateLocale()) })
     : t.value.directReferral.originalPurchaseRule;
-  return rule.enabled ? fmt(t.value.directReferral.rule, { rate: amount(rule.totalRatePct), usdt: amount(rule.usdtSharePct), nex: amount(100 - rule.usdtSharePct), days: rule.coolingDays }) : t.value.directReferral.disabled;
+  return rule.enabled ? fmt(t.value.directReferral.rule, { rate: formatHowNumber(rule.totalRatePct, dateLocale()), usdt: formatHowNumber(rule.usdtSharePct, dateLocale()), nex: formatHowNumber(100 - rule.usdtSharePct, dateLocale()), days: rule.coolingDays }) : t.value.directReferral.disabled;
 });
 const periodOptions = computed(() => (["today", "week", "month", "all"] as const).map(value => ({ value, label: t.value.unilevel.periods[value] })));
 const filterOptions = computed(() => [
@@ -176,7 +177,7 @@ const filterOptions = computed(() => [
   { value: "extended", label: t.value.directReferral.networkPurchase },
   { value: "device_earning", label: t.value.directReferral.deviceEarning },
 ]);
-function amount(value: number) { return formatHowNumber(value, dateLocale()); }
+function amount(value: number | null | undefined) { return formatAmount(value); }
 function wideAmount(value: number) { return amount(value).length > 12; }
 function sourceReference(event: DirectReferralEvent | TeamUnilevelEvent) { return event.sourceRef ?? ("orderId" in event ? event.orderId : null) ?? "—"; }
 function statusText(event: DirectReferralEvent | TeamUnilevelEvent) {

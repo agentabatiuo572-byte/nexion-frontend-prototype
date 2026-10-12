@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { describe, expect, it, vi } from "vitest";
 import { compile } from "@vue/compiler-dom";
 import { parse } from "@vue/compiler-sfc";
@@ -61,18 +62,18 @@ function page(balance: number, amount: number, pendingOpenAmount: number | null 
     insufficientTitleStyle: typeof insufficientTitleStyle === "undefined" ? {} : insufficientTitleStyle,
     insufficientBodyStyle: typeof insufficientBodyStyle === "undefined" ? {} : insufficientBodyStyle,
     topupCtaStyle: typeof topupCtaStyle === "undefined" ? {} : topupCtaStyle };`;
-  const raw = new Function(...Object.keys(bindings), code + exported)(...Object.values(bindings)) as Record<string, unknown>;
+  const raw = new Function("formatAmount", ...Object.keys(bindings), code + exported)(formatAmount, ...Object.values(bindings)) as Record<string, unknown>;
   (raw.setAmount as (value: number) => void)(amount);
   return {
-    state: Vue.proxyRefs(raw) as Record<string, unknown>, repurchase, uiConfirm, open, navTo, toasts, app, success,
+    state: Vue.proxyRefs({ ...raw, formatAmount }) as Record<string, unknown>, repurchase, uiConfirm, open, navTo, toasts, app, success,
   };
 }
 
 const template = parse(source).descriptor.template!.content;
-const render = new Function("Vue", compile(template, {
+const render = new Function("formatAmount", "Vue", compile(template, {
   mode: "function", prefixIdentifiers: true,
   isCustomElement: (tag) => tag === "view" || tag === "text",
-}).code)(Vue);
+}).code)(formatAmount, Vue);
 
 const CTA = /<view class="nx-repurchase-submit-cta w-full flex items-center justify-center[^"]*"[^>]*>/;
 

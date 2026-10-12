@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 // Execute the production SFC setup: header/product computeds, retry and CTA guards
 // stay real. Only page notifications and remote/decorative dependencies are adapted.
 import { compile } from "@vue/compiler-dom";
@@ -59,6 +60,7 @@ function page(copy = en, fallback = "") {
   let header!: Vue.ComputedRef<{ title: string; backHref: string }>;
   const getProduct = vi.fn(() => { throw new Error("Remote detail must not borrow a mock product"); });
   const dependencies: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: { ...Vue, onUnmounted: (callback: () => void) => unmounts.push(callback) },
     "@dcloudio/uni-app": { onLoad: (callback: typeof loads[number]) => loads.push(callback), onShow() {}, onHide() {},
       onUnload: (callback: () => void) => unloads.push(callback) },

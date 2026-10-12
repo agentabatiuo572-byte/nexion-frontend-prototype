@@ -148,6 +148,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navReset, navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
@@ -259,6 +260,7 @@ const activity = computed(() => {
 
 function fmtNum(n: number, dp = 2): string {
   if (!Number.isFinite(n)) return "—";
+  if (dp === 2) return formatAmount(n);
   // Android's Number locale fallback ignores fraction options; group only the integer.
   const [integer, fraction] = n.toFixed(dp).split(".");
   return integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (fraction === undefined ? "" : `.${fraction}`);

@@ -54,11 +54,12 @@ const EXPECTED_TEMPLATE_DIFFERENCES = [
 // production-only delta is reviewed; this is not a file-level exemption.
 // Reviewed 710e9ee visual refresh with formal server and accessibility boundaries.
 // Reviewed 710e9ee visual refresh with formal server and accessibility boundaries.
+// Approved amount displays now share decimal half-up rounding; authority and layout mutations remain pinned.
 const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "achievements.vue": "e7cfef2560a4a60747043f2a4d76b875a0faad0383b5cbcf1fb15deeab98e60f",
   "devices.vue": "227aa03a6c8ba621deb6d5e69fa1672cd80e918fc18cf37deeac446818adb125",
   // Keep #223 authority gates; hide the removed internal recommendation footnote.
-  "goals.vue": "2043fa722af0c8ae7aba51ed92455bcb255beb2be2ca2d8d81df4dbeb24b8f7f",
+  "goals.vue": "2ecbc0a56d928f5e7cdabe370fd01ff02ae81845839310ecf761475bc79e40c8",
   "help.vue": "3eeec6995d290e03d6a008b83f3a2ba8365f702b6c59d3acb306eab055437d7d",
   "language.vue": "147e4114cec9c44704a643c833d582e043565ee17240fe474622f656ae104da9",
   // Owner requested removal of the unsolicited overview withdrawal warning.
@@ -69,7 +70,7 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "preferences.vue": "f671d2462d5c346657790bfb9f75c92cfb0a63d1039c886ed8ad02cd6789e3cc",
   "profile.vue": "67bb87df27035ea1a2f8a374d3653b44d7c2623bc002ff054d412eb6fccc9e95",
   "proof.vue": "956e804b2c96dced42cc10cb0dd757e7abd5c4a6a3596c56bca63490e93f3616",
-  "receipts.vue": "ee45b67eef9b7054af4c16b095d1adc9c5c1c48e979469f37dbc41f0f03c613f",
+  "receipts.vue": "aaf76128cf09b5a8648eb547e453964efb1be7cf30063e17bb941366166ff891",
   // Approved promotion category reuses the existing reward hub and list.
   "rewards-list.vue": "450f0917d2ba2af0b8215ad9ea8e0f126357a6858ead54038f226700278a1da9",
   "rewards.vue": "720da0cce42564baaa4451ee4002b6e92f83be5e1ab0317963e22490927e59ef",
@@ -82,7 +83,7 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "support.vue": "9a89c364bbc52d36f0218752b5bb69ffbba692fd113feaf285e7d0273180bad0",
   // Reviewed removal of the retired card-migration notice; trial amounts, deadlines and actions remain covered.
   // Reviewed #535: active/grace catalog CTA/ARIA and ready-only unavailability hint.
-  "trial.vue": "5f46bb3a210a5e1c7c608b1f37578c769f60e2b61aff29cc406347d67dc71d23",
+  "trial.vue": "aaced274aa73d3d8b5345ea1e76d9854eb987519cca0fc8bd185aa4ff3858e36",
   "wallet-address-rebind.vue": "64f22ae20b3725ff6df6c516a9f99a6714efd94834cc5b02734c146e377e9e32",
   // Reviewed #465: refund references wrap on their own read-only line; other bill rows retain their layout.
   // Promotion receipt deep links retain the existing refund row and bill layout.
@@ -90,18 +91,18 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "wallet-cards-new.vue": "6af630a5acf97669826202e3842042a8b28af8813f0657da0a6085336f7a3fc2",
   "wallet-cards.vue": "4ba7080a2d1b7c9ce4d56c4ea90b5fed3614c689aaeccaf3811d166f08391692",
   "wallet-exchange-how.vue": "53a85b180c00d4a33e73d101a628e8f786924b2e23c48f045147b9f15cb8b9b0",
-  // Reviewed e0a491a: missing numeric values use '-' while authority labels remain separate.
-  "wallet-exchange.vue": "6e2bab7772260232f50feeb076713b3896b807840187e1f228dc818ed73dd3c6",
+  // Reviewed e0a491a authority labels with fixed two-decimal amount displays.
+  "wallet-exchange.vue": "c0254329c6ca1986c73fc1c1a8f31fe1e63b34a223343366069e60ddca6d585f",
   // Reviewed #413: native number/date formatting and finite display boundaries.
   "wallet-nex.vue": "e79b540f1eacd429f044fba4bfd7fb2d15732cac2fc7cda274406416d035ee86",
   "wallet-repurchase-how.vue": "238439b99d5b73f9cf7c6ad7b8479cb86f39ef92f93d216938b071c28372e4f0",
-  "wallet-repurchase.vue": "19b1c868b06086a2384a8f3bba7f013dc026f2c1bf97a5ff886f3fed3a40adca",
+  "wallet-repurchase.vue": "224a4968f2b1542ad6847be8a98da9109a07cceb58fc04e8cd913b6b3e4bd956",
   "wallet-topup.vue": "010252b7630c35defdf57a3f262d0e389c011d2b9d79ad2f5fb788e794d87768",
-  "wallet-withdraw-tracking.vue": "7e295fb4b5e5bc50dcbfbbe136c6ede7bcab07ae9bb6193b666bf397acb60e9a",
+  "wallet-withdraw-tracking.vue": "8df13af397e2fcb7b6de4164285dd222d6d8f851c8c153af03f300d2883de2f5",
   // Original pending requests expose retry even when the new-transfer form is incomplete.
-  "wallet-withdraw.vue": "9de96547e0723614444c9116690dbc5d4bf6ee906e2d1457940702249175dc40",
-  // Reviewed e0a491a: missing earnings use '-' with a separate reason and authority retry.
-  "wallet.vue": "bd3aab8e397c2be70bc04959a75c139f30fb2fd60aedc6fbe2d2d9850caee2c9"
+  "wallet-withdraw.vue": "267bd0456c6e186e9ca41069afd6901107cf764cc00bc84338b73ca5873bafb0",
+  // Reviewed e0a491a earnings reasons/retry with fixed two-decimal amount displays.
+  "wallet.vue": "eb813b7dfcb664f836091f06472188a2bd101f73c05aa6b607debf35051da849"
 };
 const EXPECTED_STYLE_PAIR_SHA256: Record<string, string> = {
   // Approved unified center uses shared flat-row styles and fixed native scrolling.
@@ -164,7 +165,7 @@ describe("Me page 5174 normal-state UI parity", () => {
   });
   it('pins the complete trial page including ended catalog ARIA and independent retry', () => {
     const trial = readFileSync(new URL('./trial.vue', import.meta.url), 'utf8');
-    expect(createHash('sha256').update(fullTemplate(trial)).digest('hex')).toBe('0cd57a9d5c767588306a46e8a239b80a81057f4b9bba235897b7f9851820b41f');
+    expect(createHash('sha256').update(fullTemplate(trial)).digest('hex')).toBe('b11c5c08a5e1f64a630700a7120a8a48fec6c9f9cb95ad6bfef8eb1f40ab1fac');
   });
   it("includes every page-local style block in the visual fingerprint", () => {
     const shared = '<style src="@/styles/message-center.css"></style>';

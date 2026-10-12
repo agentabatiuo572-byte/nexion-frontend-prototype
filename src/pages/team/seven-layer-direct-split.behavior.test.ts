@@ -17,11 +17,11 @@ test("purchase totals use unilevel once; the device tab has its own server-filte
   await flush();
   expect(snapshot).not.toHaveBeenCalled();
   expect(unilevel).toHaveBeenLastCalledWith("month", 1, 20, null, "direct");
-  expect(text(page.root)).toContain("110USDT4,100NEX");
+  expect(text(page.root)).toContain("110.00USDT4100.00NEX");
   await click(page.root, "Device earnings reward");
   expect(snapshot).toHaveBeenLastCalledWith("month", 1, 20, cutoff, "device_earning");
-  expect(text(page.root)).toContain("0.33USDT22NEX");
-  expect(text(page.root)).not.toContain("600USDT");
+  expect(text(page.root)).toContain("0.33USDT22.00NEX");
+  expect(text(page.root)).not.toContain("600.00USDT");
 });
 
 test("network selection queries before pagination and discards a late direct response", async () => {
@@ -40,7 +40,7 @@ test.each(["en", "zh", "vi"] as const)("%s renders a network group's different c
   const page = await directPage({ locale, purchaseApi: { unilevel } }); await flush();
   await click(page.root, dictionaries[locale].directReferral.networkPurchase);
   expect(text(page.root)).toContain(`USDT ${dictionaries[locale].commissions.reversedTag} · NEX ${dictionaries[locale].commissions.readyTag}`);
-  expect(text(page.root)).toContain(locale === "vi" ? "4.000 NEX" : "4,000 NEX");
+  expect(text(page.root)).toContain("4000.00 NEX");
 });
 
 test("waiting price is visible and a stale environment read cannot replace a fresh snapshot", async () => {

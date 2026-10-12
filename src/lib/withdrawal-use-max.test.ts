@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
+import { formatAmount } from "./amount-display";
 import {
   computeWithdrawalMaximum,
   formatWithdrawalRatioPercent,
@@ -93,7 +94,7 @@ function realUseMax(maximum: number, minimum: number) {
     resolveWithdrawalUseMax, maxWithdrawable: { value: maximum }, minWithdrawable: { value: minimum },
     toast: { info }, t: { value: { wallet: { useMaxBelowMinimum: "below minimum" } } }, fmt: vi.fn(),
   };
-  new Function(...Object.keys(scope), `${code}; useMax();`)(...Object.values(scope));
+  new Function("formatAmount", ...Object.keys(scope), `${code}; useMax();`)(formatAmount, ...Object.values(scope));
   return { amount: amount.value, info };
 }
 

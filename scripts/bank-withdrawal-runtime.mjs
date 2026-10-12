@@ -92,7 +92,7 @@ export async function verifyBankWithdrawalPage(page, gotoProtected) {
     assert.equal(await page.getByRole("combobox").count(),0,"no prototype scenario selector in the app");
     await page.getByTestId("bank-max").click();
     await page.waitForFunction(() => document.querySelector('[data-testid="bank-amount"] input')?.value === "100");
-    assert.match(await page.getByTestId("bank-single-limit").innerText(),/5[,.]000/);
+    assert.match(await page.getByTestId("bank-single-limit").innerText(),/20\.00.*5000\.00/);
     await page.locator('[data-testid="bank-amount"] input').fill("5");
     await page.locator('[data-testid="bank-quote"]').press("Enter");
     assert.equal(await page.getByTestId("bank-quote").getAttribute("aria-disabled"),"true");
@@ -101,7 +101,7 @@ export async function verifyBankWithdrawalPage(page, gotoProtected) {
     await page.locator('[data-testid="bank-amount"] input').fill("100");
     await page.locator('[data-testid="bank-quote"]').click();
     await page.locator('[data-testid="bank-submit"]').waitFor();
-    assert.match(await page.locator(".bank-withdraw").innerText(),/2[,.]475[,.]000/);
+    assert.match(await page.locator(".bank-withdraw").innerText(),/2475000\.00/);
     assert.equal(await page.getByTestId("bank-submit").getAttribute("aria-disabled"),"true");
     await page.getByTestId("bank-submit").press("Enter");
     assert.equal(await page.evaluate(()=>window.__bankFixture.submits),0,"confirmation is required");
@@ -152,7 +152,7 @@ export async function verifyBankWithdrawalPage(page, gotoProtected) {
     await page.evaluate(()=>{window.__bankFixture.policy={version:2,minAmountUsd:5,maxAmountUsd:80,feeRatePct:2,feeMinUsd:1,feeMaxUsd:12};});
     await gotoProtected("/pages/me/wallet-withdraw-bank");
     await page.getByTestId("bank-continue").click();
-    assert.match(await page.getByTestId("bank-single-limit").innerText(),/5[–-]80/);
+    assert.match(await page.getByTestId("bank-single-limit").innerText(),/5\.00[–-]80\.00/);
     await page.getByTestId("bank-max").click();
     await page.waitForFunction(() => document.querySelector('[data-testid="bank-amount"] input')?.value === "80");
     await page.locator('[data-testid="bank-amount"] input').fill("80.000001");
@@ -160,10 +160,10 @@ export async function verifyBankWithdrawalPage(page, gotoProtected) {
     await page.evaluate(()=>{window.__bankFixture.capacity.dailyRemainingCount=0;window.__bankFixture.capacity.dailyCountResetAt=new Date(Date.now()+2500).toISOString();});
     await gotoProtected("/pages/me/wallet-withdraw-bank"); await page.getByTestId("bank-continue").click();
     assert.equal(await page.getByTestId("bank-max").getAttribute("aria-disabled"),"true");
-    assert.match(await page.getByTestId("bank-single-limit").innerText(),/5[–-]80/);
+    assert.match(await page.getByTestId("bank-single-limit").innerText(),/5\.00[–-]80\.00/);
     await page.evaluate(()=>{window.__bankFixture.capacity.dailyRemainingCount=2;window.__bankFixture.capacity.dailyCountResetAt="2026-10-01T00:00:00Z";});
     await page.waitForFunction(()=>document.querySelector('[data-testid="bank-max"]')?.getAttribute("aria-disabled")==="false");
-    assert.match(await page.getByTestId("bank-single-limit").innerText(),/5[–-]80/);
+    assert.match(await page.getByTestId("bank-single-limit").innerText(),/5\.00[–-]80\.00/);
     await page.evaluate(()=>{window.__bankFixture.policy=null;});
     await gotoProtected("/pages/me/wallet-withdraw-bank");
     assert.equal(await page.getByTestId("bank-continue").getAttribute("aria-disabled"),"true");

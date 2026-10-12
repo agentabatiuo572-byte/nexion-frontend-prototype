@@ -93,6 +93,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from "vue";
 import qrcode from "qrcode-generator";
 import { useT } from "@/i18n/use-t";
@@ -130,7 +131,7 @@ const rewardEnabled = computed(() => cfg.config.rewards.enabled);
 const giftUsdt = computed(() => rewardEnabled.value ? cfg.config.rewards.welcomeGift.usdtAmount : 0);
 const giftNex = computed(() => rewardEnabled.value ? cfg.config.rewards.welcomeGift.nexAmount : 0);
 const posterRewardLine = computed(() => rewardEnabled.value
-  ? fmt(t.value.share.posterRewardLine, { usd: giftUsdt.value, nex: giftNex.value })
+  ? fmt(t.value.share.posterRewardLine, { usd: formatAmount(giftUsdt.value), nex: formatAmount(giftNex.value) })
   : t.value.team.sharingStillAvailable);
 const rewardEffectiveAtText = computed(() => {
   if (!rewardEnabled.value || !cfg.config.rewards.effectiveAt) return "";
@@ -370,8 +371,8 @@ function paint(link: string, myToken: number) {
   ctx.setTextAlign("left");
 
   // 模板中段
-  const usd = giftUsdt.value;
-  const nex = giftNex.value;
+  const usd = formatAmount(giftUsdt.value);
+  const nex = formatAmount(giftNex.value);
   if (tpl.value === "gift") {
     ctx.setFillStyle(brand);
     ctx.setFontSize(10);
@@ -397,7 +398,7 @@ function paint(link: string, myToken: number) {
     ctx.fillText(t.value.share.posterYieldSub, 20, 184);
     ctx.setFillStyle(brand);
     ctx.setFontSize(38);
-    ctx.fillText(`+${today.toFixed(2)}`, 20, 232);
+    ctx.fillText(`+${formatAmount(today)}`, 20, 232);
     ctx.setFillStyle(FAINT_ON_DARK);
     ctx.setFontSize(9.5);
     ctx.fillText(t.value.share.posterYieldDevices, 20, 262);

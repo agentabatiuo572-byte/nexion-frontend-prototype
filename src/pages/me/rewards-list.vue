@@ -110,7 +110,7 @@
               <text v-if="sourceRefOpen === b.id && b.memoKey === 'learningReward'" class="block" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
             </view>
             <view class="text-right shrink-0" style="margin-left: 8px">
-              <text class="block tabular-nums" :style="rewardAmountStyle">{{ (b.amountExact === undefined ? Math.sign(b.amount) === -1 : b.amountExact.startsWith('-')) ? '' : '+' }}{{ formatHowNumber(b.amountExact ?? b.amount, locale.code) }} {{ b.symbol }}</text>
+              <text class="block tabular-nums" :style="rewardAmountStyle">{{ (b.amountExact === undefined ? Math.sign(b.amount) === -1 : b.amountExact.startsWith('-')) ? '' : '+' }}{{ formatAmount(b.amountExact ?? b.amount) }} {{ b.symbol }}</text>
               <text class="block" :style="rowDateStyle">{{ rewardStatusLabel(b.status) }}</text>
               <text class="block" :style="rowDateStyle">{{ shortDate(b.ts) }}</text>
             </view>
@@ -137,6 +137,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, watchEffect, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -146,7 +147,6 @@ import PromotionRewardList from "@/components/promotion/promotion-reward-list.vu
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
-import { formatHowNumber } from "@/lib/rank-how-content";
 import { useCourseRewardTitles } from "@/composables/use-course-reward-titles";
 import { useVoucher } from "@/store/voucher";
 import { useBills, isRewardBill, type Bill, type BillType } from "@/store/bills";
@@ -290,7 +290,7 @@ function shortDate(ms: number): string {
 // Ticket stub — the denomination alone, big ("$50" / "8%"); the word ("立减"/
 // "折扣"/"OFF") drops to the small label line below it.
 function stubValue(v: VoucherDef): string {
-  return v.type === "fixed" ? `$${v.amountUSD ?? 0}` : `${v.percent ?? 0}%`;
+  return v.type === "fixed" ? `$${formatAmount(v.amountUSD ?? 0)}` : `${v.percent ?? 0}%`;
 }
 function stubLabel(v: VoucherDef): string {
   return v.type === "fixed" ? t.value.rewards.stubFixed : t.value.rewards.stubPercent;

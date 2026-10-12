@@ -12,7 +12,7 @@
         <view v-for="item in items" :key="item.productNo" class="promotion-row">
           <image v-if="getProduct(item.productNo)?.imageUrl" :src="getProduct(item.productNo)!.imageUrl" class="promotion-image" mode="aspectFill" />
           <view class="promotion-grow"><text style="display:block;font-weight:600">{{ selectedItemName(item) }}</text><text class="promotion-copy">{{ p.quantity }} · {{ item.quantity }}</text></view>
-          <text v-if="quote" class="promotion-price">{{ quote.items.find(l=>l.productNo===item.productNo)?.subtotalUsdt }} USDT</text>
+          <text v-if="quote" class="promotion-price">{{ formatAmount(quote.items.find(l=>l.productNo===item.productNo)?.subtotalUsdt) }} USDT</text>
         </view>
       </view>
       <view v-if="rewards.length" class="promotion-flat">
@@ -22,12 +22,12 @@
       </view>
       <view v-if="quote || order" class="promotion-flat">
         <view v-if="!order&&items.length===1&&!openedOriginal" class="promotion-link" role="button" tabindex="0" :aria-disabled="busy||!!session.record.pending" @click="chooseVoucher"><text>{{ p.voucher }}</text> · <text>{{ selectedVoucherName }}</text></view>
-        <view v-if="quote" class="promotion-summary"><text>{{ p.subtotal }}</text><text>{{ quote.subtotalUsdt }} USDT</text></view>
-        <view v-if="quote" class="promotion-summary"><text>{{ p.discount }}</text><text>{{ quote.discountUsdt }} USDT</text></view>
-        <view class="promotion-summary total"><text>{{ p.total }}</text><text>{{ order?.amountUsdt??quote?.amountUsdt }} USDT</text></view>
+        <view v-if="quote" class="promotion-summary"><text>{{ p.subtotal }}</text><text>{{ formatAmount(quote.subtotalUsdt) }} USDT</text></view>
+        <view v-if="quote" class="promotion-summary"><text>{{ p.discount }}</text><text>{{ formatAmount(quote.discountUsdt) }} USDT</text></view>
+        <view class="promotion-summary total"><text>{{ p.total }}</text><text>{{ formatAmount(order?.amountUsdt??quote?.amountUsdt) }} USDT</text></view>
         <view v-if="order ? order.paymentStatus==='PENDING'&&order.payBy : promotion?.endsAt" class="promotion-row"><text aria-hidden="true">◷</text><view class="promotion-grow"><text class="promotion-copy">{{ order ? p.payBy : p.deadline }}</text><text class="promotion-copy">{{ displayDeadline(order?.payBy??promotion!.endsAt,locale.code) }}</text></view></view>
         <text class="promotion-copy">{{ p.wallet }}</text>
-        <text class="promotion-copy">{{ t.wallet.usdtBalance }} · {{ app.remoteFleetHasSnapshot ? app.user.usdtBalance.toFixed(6)+' USDT' : p.unknown }}</text>
+        <text class="promotion-copy">{{ t.wallet.usdtBalance }} · {{ app.remoteFleetHasSnapshot ? formatAmount(app.user.usdtBalance)+' USDT' : p.unknown }}</text>
         <view class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/wallet-topup')"><text>{{ p.topup }}</text></view>
       </view>
       <view v-if="quote?.warnings.length" class="promotion-notice"><text v-for="(warning,index) in quote.warnings" :key="index" class="promotion-copy">{{ localized(warning,locale.code) }}</text></view>
@@ -59,6 +59,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import PromotionAction from '@/components/promotion/promotion-action.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
 import { computed,ref,shallowRef,watch,onMounted,onBeforeUnmount } from 'vue';

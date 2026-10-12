@@ -35,7 +35,7 @@
           <!-- Presets -->
           <view class="grid grid-cols-4" style="margin-top: 16px; gap: 8px">
             <view v-for="p in PRESETS" :key="p" class="active:opacity-80" :style="presetStyle(p)" role="button" tabindex="0" @click="amount = p"  @keydown.enter.prevent="amount = p" @keydown.space.prevent="amount = p">
-              <text>${{ p.toLocaleString() }}</text>
+              <text>${{ formatAmount(p) }}</text>
             </view>
           </view>
           <!-- Balance / Max -->
@@ -92,6 +92,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { navTo } from "@/lib/route";
 import { ref, computed, watch, onBeforeUnmount, type CSSProperties } from "vue";
@@ -167,19 +168,19 @@ const subtitleText = computed(() =>
 const interestLabel = computed(() =>
   props.term !== null ? fmt(t.value.stakingV3.sheet.interest, { n: props.term }) : "",
 );
-const balanceText = computed(() => (staking.isMockMode ? app.user.usdtBalance : staking.walletBalanceUsdt).toFixed(2));
-const principalText = computed(() => formatCommandAmount(amount.value));
+const balanceText = computed(() => formatAmount(staking.isMockMode ? app.user.usdtBalance : staking.walletBalanceUsdt));
+const principalText = computed(() => formatAmount(amount.value));
 const interestText = computed(() =>
-  props.term !== null ? (amount.value * apyRate.value * (props.term / 365)).toFixed(2) : "0.00",
+  props.term !== null ? formatAmount(amount.value * apyRate.value * (props.term / 365)) : "0.00",
 );
 const unlockDateText = computed(() =>
   props.term !== null ? formatTrialDate(Date.now() + props.term * ONE_DAY_MS) : "",
 );
 const totalText = computed(() =>
-  props.term !== null ? (amount.value * (1 + apyRate.value * (props.term / 365))).toFixed(2) : "0.00",
+  props.term !== null ? formatAmount(amount.value * (1 + apyRate.value * (props.term / 365))) : "0.00",
 );
 const ctaText = computed(() =>
-  props.term !== null ? fmt(t.value.stakingV3.sheet.cta, { amount: formatCommandAmount(amount.value), n: props.term }) : "",
+  props.term !== null ? fmt(t.value.stakingV3.sheet.cta, { amount: formatAmount(amount.value), n: props.term }) : "",
 );
 const lockedNoticeText = computed(() =>
   props.term !== null
@@ -206,7 +207,7 @@ async function submit() {
   if (term === null) return;
   const min = minAmount.value;
   if (amount.value < min) {
-    toast.error(t.value.stakingV3.toast.minAmount, fmt(t.value.stakingV3.toast.minAmountTerm, { min, n: term }));
+    toast.error(t.value.stakingV3.toast.minAmount, fmt(t.value.stakingV3.toast.minAmountTerm, { min: formatAmount(min), n: term }));
     return;
   }
   if (!staking.isMockMode) {
@@ -275,7 +276,7 @@ async function submit() {
   if (paid === "insufficient") {
     toast.error(
       t.value.stakingV3.toast.insufficient,
-      fmt(t.value.stakingV3.toast.insufficientSubtitle, { amount: app.user.usdtBalance.toFixed(2) }),
+      fmt(t.value.stakingV3.toast.insufficientSubtitle, { amount: formatAmount(app.user.usdtBalance) }),
     );
     return;
   }
@@ -311,7 +312,7 @@ async function submit() {
   }
   toast.success(
     t.value.stakingV3.toast.stakeSuccess,
-    fmt(t.value.stakingV3.toast.stakeSubtitle, { amount: amount.value, apy: formatStakingPercentage(apyRate.value), n: term }),
+    fmt(t.value.stakingV3.toast.stakeSubtitle, { amount: formatAmount(amount.value), apy: formatStakingPercentage(apyRate.value), n: term }),
   );
   emitClose();
 }

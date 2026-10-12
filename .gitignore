@@ -20,6 +20,7 @@ dist
 !.env.production
 
 # tooling / temp artifacts
+.cache/vite/
 .trash/
 .playwright-mcp/
 .playwright-cli/

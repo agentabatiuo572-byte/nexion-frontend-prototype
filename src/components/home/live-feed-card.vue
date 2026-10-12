@@ -71,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, nextTick, ref, type CSSProperties } from "vue";
 import GlassSegments from "@/components/glass-segments.vue";
@@ -112,7 +113,7 @@ const displayActivityRows = computed<FeedRow[]>(() => {
     lvl: "ok",
     who: "You",
     msg: `${row.model} @ ${row.client}`,
-    val: `+${row.rewardUsdt.toFixed(5)}`,
+    val: `+${formatAmount(row.rewardUsdt)}`,
     ts: formatHomeFeedTime(row.completedAt),
   }));
 });
@@ -157,7 +158,7 @@ function activateTabFromKeyboard(nextTab: "activity" | "earnings") {
   });
 }
 function earningsAmount(it: EarningsItem): string {
-  return it.amount.toFixed(5);
+  return formatAmount(it.amount);
 }
 function retryHome() {
   void app.refreshHomeTruth();

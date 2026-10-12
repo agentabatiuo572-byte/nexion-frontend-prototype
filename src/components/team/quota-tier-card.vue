@@ -54,6 +54,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, type CSSProperties } from "vue";
 import QuotaConditionBar from "./quota-condition-bar.vue";
 import { useT } from "@/i18n/use-t";
@@ -100,7 +101,7 @@ const unlocked = computed(() => {
 const stockPct = computed(() => props.tier.monthlyStock > 0 ? Math.min(1, props.tier.soldThisMonth / props.tier.monthlyStock) : 1);
 const stockLeft = computed(() => Math.max(0, props.tier.monthlyStock - props.tier.soldThisMonth));
 const priceLineText = computed(() =>
-  fmt(t.value.quota.priceLine, { price: props.tier.price.toLocaleString() }),
+  fmt(t.value.quota.priceLine, { price: formatAmount(props.tier.price) }),
 );
 
 // ─── styles ───

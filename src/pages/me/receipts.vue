@@ -66,7 +66,7 @@
                 <text class="block truncate" :style="rowSubStyle">{{ t.receipt.computeTitle }} · {{ r.model }}</text>
               </view>
               <view class="text-right shrink-0" style="margin-left: 8px">
-                <text class="block tabular-nums" :style="remoteAmountStyle">+${{ r.rewardUsdt.toFixed(3) }}</text>
+                <text class="block tabular-nums" :style="remoteAmountStyle">+${{ formatAmount(r.rewardUsdt) }}</text>
                 <text class="block" :style="rowDateStyle">{{ shortDate(r.completedAt) }}</text>
               </view>
             </view>
@@ -172,6 +172,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, nextTick, ref, watchEffect, watch, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -569,7 +570,7 @@ function copySig(r: Receipt) {
 }
 
 function rowAmount(r: Receipt): string {
-  return r.category === "KY" ? `✓ ${r.netPaid.toFixed(2)}` : `+${r.netPaid.toFixed(4)}`;
+  return r.category === "KY" ? `✓ ${formatAmount(r.netPaid)}` : `+${formatAmount(r.netPaid)}`;
 }
 function shortDate(ts: number): string {
   const d = new Date(ts);

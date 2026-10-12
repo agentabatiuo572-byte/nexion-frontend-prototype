@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { ref, computed, onMounted, nextTick, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
@@ -157,10 +158,10 @@ function fmtPrice(n: number): string {
 }
 function fmtBig(n: number): string {
   if (n <= 0) return "—";
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return `${n.toFixed(0)}`;
+  if (n >= 1_000_000_000) return `${formatAmount(n / 1_000_000_000)}B`;
+  if (n >= 1_000_000) return `${formatAmount(n / 1_000_000)}M`;
+  if (n >= 1_000) return `${formatAmount(n / 1_000)}K`;
+  return `${formatAmount(n)}`;
 }
 function fmtNumber(n: number): string {
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`;

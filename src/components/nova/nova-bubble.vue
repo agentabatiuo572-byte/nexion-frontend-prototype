@@ -28,6 +28,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, onUnmounted } from "vue";
 import { useNova } from "@/store/nova";
 import { useConversations } from "@/store/conversations";
@@ -103,8 +104,8 @@ function teamEventMessage(p: NovaPush): ChannelMsg {
   const buyer = TEAM_NAMES[Math.floor(Math.random() * TEAM_NAMES.length)];
   if (r < 0.5) {
     const order = TEAM_ORDERS[Math.floor(Math.random() * TEAM_ORDERS.length)];
-    const nexPart = Math.floor(order.price * 50).toLocaleString();
-    return { text: fmt(p.teamBought, { buyer, product: order.product, l1: order.l1.toFixed(2), nex: nexPart }), ctaLabel: p.teamBoughtCta, ctaHref: "/team/commissions" };
+    const nexPart = formatAmount(Math.floor(order.price * 50));
+    return { text: fmt(p.teamBought, { buyer, product: order.product, l1: formatAmount(order.l1), nex: nexPart }), ctaLabel: p.teamBoughtCta, ctaHref: "/team/commissions" };
   }
   if (r < 0.75) {
     const n = 1 + Math.floor(Math.random() * 3);
@@ -113,10 +114,10 @@ function teamEventMessage(p: NovaPush): ChannelMsg {
   }
   if (r < 0.9) {
     const remain = 200 + Math.floor(Math.random() * 1800);
-    return { text: fmt(p.teamRankGap, { remain: remain.toLocaleString() }), ctaLabel: p.teamRankGapCta, ctaHref: "/team/rank" };
+    return { text: fmt(p.teamRankGap, { remain: formatAmount(remain) }), ctaLabel: p.teamRankGapCta, ctaHref: "/team/rank" };
   }
   const peerAmt = 50 + Math.floor(Math.random() * 350);
-  return { text: fmt(p.teamPeerBonus, { buyer, peer: (peerAmt * 20).toLocaleString(), amt: peerAmt }), ctaLabel: p.teamPeerBonusCta, ctaHref: "/team/commissions" };
+  return { text: fmt(p.teamPeerBonus, { buyer, peer: formatAmount(peerAmt * 20), amt: formatAmount(peerAmt) }), ctaLabel: p.teamPeerBonusCta, ctaHref: "/team/commissions" };
 }
 
 function stakingEventMessage(p: NovaPush): ChannelMsg {

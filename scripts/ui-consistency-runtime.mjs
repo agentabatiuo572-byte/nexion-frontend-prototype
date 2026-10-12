@@ -176,7 +176,7 @@ async function rewardStates(page, record) {
   const matcher = url => url.pathname === "/api/app/referral-rewards";
   const enabled = uiFixture(new URL(`${BASE}/api/app/referral-rewards`), { method: () => "GET" });
   const ready = () => page.waitForFunction(() => document.querySelector(".nx-team-copy-code")?.getAttribute("aria-disabled") === "false" && document.querySelector(".invite-card__reward")?.getAttribute("aria-busy") === "false");
-  check((await page.locator(".invite-card__reward-line").innerText()).replace(/\s+/g, " ").includes("10 NEX"), "Enabled referral reward amount/unit is absent from the actual card", record);
+  check((await page.locator(".invite-card__reward-line").innerText()).replace(/\s+/g, " ").includes("10.00 NEX"), "Enabled referral reward amount/unit is absent from the actual card", record);
   record.checks.rewardEnabled = { rewardEnabled: true, inviterRewardNex: 10, text: await page.locator(".invite-card__reward").innerText() };
   const disabled = route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ code: 0, message: "OK", data: { ...enabled, rewardEnabled: false, inviterRewardNex: 0 } }) });
   await page.route(matcher, disabled);

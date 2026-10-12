@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { computed, createSSRApp, h, reactive, ref, watch } from 'vue';
 import * as Vue from 'vue';
 import { renderToString } from '@vue/server-renderer';
@@ -9,12 +10,12 @@ import rewardsPage from './rewards.vue?raw';
 
 const template = parse(rewardsListPage, { filename: 'rewards-list.vue' }).descriptor.template?.content;
 if (!template) throw new Error('rewards list template is required');
-const render = new Function('Vue', `${compileTemplate({
+const render = new Function("formatAmount", 'Vue', `${compileTemplate({
   source: template,
   filename: 'rewards-list.vue',
   id: 'rewards-voucher-read-state',
   compilerOptions: { mode: 'function' },
-}).code}; return render;`)(Vue);
+}).code}; return render;`)(formatAmount, Vue);
 const l1Start = rewardsPage.indexOf('const voucherReady');
 const l1End = rewardsPage.indexOf('function openCat');
 if (l1Start < 0 || l1End < l1Start) throw new Error('rewards voucher L1 state block is required');
@@ -64,9 +65,9 @@ describe('Rewards voucher list remote read states', () => {
   it('derives loading, failure and definite-empty from the current voucher read, with explicit retry', () => {
     const refreshRemote = vi.fn();
     const voucher = reactive({ remoteStatus: 'idle', claimedUnused: [] as unknown[], expiredVouchers: [] as unknown[], refreshRemote });
-    const view = new Function('computed', 'voucher', 'remoteApiEnabled',
+    const view = new Function("formatAmount", 'computed', 'voucher', 'remoteApiEnabled',
       `${l2Block}\nreturn { voucherInitialLoading, voucherReadError, voucherKnownEmpty, retryVouchers };`,
-    )(computed, voucher, true);
+    )(formatAmount, computed, voucher, true);
     expect(view.voucherInitialLoading.value).toBe(true);
     expect(view.voucherKnownEmpty.value).toBe(false);
     voucher.remoteStatus = 'loading';
@@ -113,9 +114,9 @@ describe('Rewards voucher list remote read states', () => {
       catVouchers: 'Vouchers', unitVouchers: 'vouchers', catVouchersDesc: 'Voucher rewards', expiredCount: '{n} expired',
       catUsdt: 'USDT', catNex: 'NEX', catUsdtDesc: 'USDT rewards', catNexDesc: 'NEX rewards',
     }, promotion: { rewardCategory: 'Promotion rewards', rewardCategoryDesc: 'Device gifts, USDT and NEX rewards' } });
-    const result = new Function('computed', 'voucher', 'remoteApiEnabled', 'fundsServerEnabled', 'bills', 'isRewardBill', 't', 'fmt', 'ref', 'watch',
+    const result = new Function("formatAmount", 'computed', 'voucher', 'remoteApiEnabled', 'fundsServerEnabled', 'bills', 'isRewardBill', 't', 'fmt', 'ref', 'watch',
       `${l1Block}\nreturn { voucherReady, availableCount, expiredCount, allZero, cats };`,
-    )(computed, voucher, true, true, bills, () => false, t, (template: string, args: { n: number }) => template.replace('{n}', String(args.n)), ref, watch);
+    )(formatAmount, computed, voucher, true, true, bills, () => false, t, (template: string, args: { n: number }) => template.replace('{n}', String(args.n)), ref, watch);
 
     expect(result.cats.value[0].big).toBe('-');
     expect(result.allZero.value).toBe(false);
@@ -134,17 +135,17 @@ describe('Rewards voucher list remote read states', () => {
       catVouchers: 'Vouchers', unitVouchers: 'vouchers', catVouchersDesc: 'Voucher rewards', expiredCount: '{n} expired',
       catUsdt: 'USDT', catNex: 'NEX', catUsdtDesc: 'USDT rewards', catNexDesc: 'NEX rewards',
     }, promotion: { rewardCategory: 'Promotion rewards', rewardCategoryDesc: 'Device gifts, USDT and NEX rewards' } });
-    const view = new Function('computed', 'voucher', 'remoteApiEnabled', 'fundsServerEnabled', 'bills', 'isRewardBill', 't', 'fmt', 'ref', 'watch',
+    const view = new Function("formatAmount", 'computed', 'voucher', 'remoteApiEnabled', 'fundsServerEnabled', 'bills', 'isRewardBill', 't', 'fmt', 'ref', 'watch',
       `${l1Block}\nreturn { availableCount, expiredCount, displayUsdtTotal, displayNexTotal, cats };`,
-    )(computed, voucher, true, true, bills, () => false, t, (template: string, args: { n: number }) => template.replace('{n}', String(args.n)), ref, watch);
+    )(formatAmount, computed, voucher, true, true, bills, () => false, t, (template: string, args: { n: number }) => template.replace('{n}', String(args.n)), ref, watch);
 
     // A successful read has landed: every card shows its real value.
-    expect(view.cats.value.map((c: { big: string }) => c.big)).toEqual(['2', '$12.50', '340', '']);
+    expect(view.cats.value.map((c: { big: string }) => c.big)).toEqual(['2', '$12.50', '340.00', '']);
 
     // Background re-read in flight: status leaves "ready" and the store snapshot
     // is briefly unavailable, but no known value may fall back to a placeholder.
     bills.summaryStatus = 'loading';
     voucher.remoteStatus = 'loading';
-    expect(view.cats.value.map((c: { big: string }) => c.big)).toEqual(['2', '$12.50', '340', '']);
+    expect(view.cats.value.map((c: { big: string }) => c.big)).toEqual(['2', '$12.50', '340.00', '']);
   });
 });

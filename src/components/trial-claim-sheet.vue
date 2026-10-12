@@ -91,6 +91,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch } from "vue";
 import { navTo } from "@/lib/route";
 import { useApp } from "@/store/app";
@@ -112,11 +113,11 @@ const cfg = computed(() => trialConfig.config);
 // Same capped offset every other trial surface quotes (BUG 78): the raw
 // days × shadowDailyUSD accrual overstates what the user can actually offset.
 const trialOffset = computed(() => computeTrialOffset(cfg.value, cfg.value.shadowDailyUSD * cfg.value.trialDays));
-const shadowTotal = computed(() => trialOffset.value.offsetUSD.toFixed(0));
-const perDay = computed(() => fmt(t.value.trial.sheetPerDay, { amount: cfg.value.shadowDailyUSD.toFixed(2) }));
+const shadowTotal = computed(() => formatAmount(trialOffset.value.offsetUSD));
+const perDay = computed(() => fmt(t.value.trial.sheetPerDay, { amount: formatAmount(cfg.value.shadowDailyUSD) }));
 const totalSuffix = computed(() => fmt(t.value.trial.sheetTotalSuffix, { days: String(cfg.value.trialDays) }));
 const prop1Sub = computed(() => fmt(t.value.trial.sheetProp1Sub, { days: String(cfg.value.trialDays) }));
-const prop3Title = computed(() => fmt(t.value.trial.sheetProp3Title, { amount: String(cfg.value.discountCapUSD) }));
+const prop3Title = computed(() => fmt(t.value.trial.sheetProp3Title, { amount: formatAmount(cfg.value.discountCapUSD) }));
 const prop3Sub = computed(() => fmt(t.value.trial.sheetProp3Sub, { pct: (cfg.value.discountRate * 100).toFixed(0) }));
 
 // Claim submission — loading guard against double taps (异常3; the store's

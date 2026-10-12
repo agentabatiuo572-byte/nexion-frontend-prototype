@@ -123,6 +123,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { onUnmounted, computed, nextTick, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -276,10 +277,11 @@ const mockTotal = computed(() => {
 });
 const total = computed(() => remoteApiEnabled ? serverPeriodValue.value?.usdt ?? null : mockTotal.value);
 const totalKnown = computed(() => total.value !== null);
-const totalInt = computed(() => total.value === null ? "—" : Math.floor(total.value).toLocaleString());
-const totalCents = computed(() => total.value === null ? "" : String(Math.floor(total.value * 100) % 100).padStart(2, "0"));
+const totalParts = computed(() => formatAmount(total.value).split("."));
+const totalInt = computed(() => total.value === null ? "—" : totalParts.value[0]);
+const totalCents = computed(() => total.value === null ? "" : totalParts.value[1]);
 const nexTotal = computed(() => remoteApiEnabled ? serverPeriodValue.value?.nex ?? null : (() => { const e = app.earnings; const ratio = e.today > 0 ? e.todayNEX / e.today : 0; return mockTotal.value * ratio; })());
-const nexFmt = computed(() => nexTotal.value === null ? "—" : nexTotal.value.toLocaleString(undefined, { maximumFractionDigits: 1 }));
+const nexFmt = computed(() => nexTotal.value === null ? "—" : formatAmount(nexTotal.value));
 const jobsCount = computed(() => {
   if (!remoteApiEnabled) return range.value === "Today" ? 14 : range.value === "Week" ? 98 : range.value === "Month" ? 412 : 1247;
   return serverPeriodValue.value?.jobCount ?? null;

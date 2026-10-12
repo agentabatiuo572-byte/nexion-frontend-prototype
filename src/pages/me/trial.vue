@@ -45,7 +45,7 @@
           <view :style="creditWrapStyle">
             <view class="flex items-center justify-between">
               <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.trial.offsetAccruedLabel }}</text>
-              <text class="font-mono-tabular" style="font-size: 15px; font-weight: 600; color: var(--v5-tech-cyan); white-space: nowrap">${{ trialOffset.offsetUSD.toFixed(2) }}</text>
+              <text class="font-mono-tabular" style="font-size: 15px; font-weight: 600; color: var(--v5-tech-cyan); white-space: nowrap">${{ formatAmount(trialOffset.offsetUSD) }}</text>
             </view>
             <text v-if="trialOffset.remainderUSD > 0" class="block" :style="remainderNoteStyle">{{ offsetRemainderNote }}</text>
             <view
@@ -159,6 +159,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -217,7 +218,7 @@ const w = computed(() => t.value.trial);
 const idleBody = computed(() => freeTrial.authorityStatus === "mock" || freeTrial.authorityServerState !== null
   ? fmt(w.value.idleBody, { n: String(cfg.value.trialDays) })
   : "");
-const offsetRemainderNote = computed(() => fmt(w.value.offsetRemainderNote, { remainder: trialOffset.value.remainderUSD.toFixed(2) }));
+const offsetRemainderNote = computed(() => fmt(w.value.offsetRemainderNote, { remainder: formatAmount(trialOffset.value.remainderUSD) }));
 const offsetUsableUntilText = computed(() =>
   fmt(w.value.offsetUsableUntil, {
     time: freeTrial.graceEndsAt !== null ? formatTrialDateTime(freeTrial.graceEndsAt) : w.value.countdownDateEmpty,
@@ -225,8 +226,8 @@ const offsetUsableUntilText = computed(() =>
 );
 const buyCtaText = computed(() =>
   status.value === "grace"
-    ? fmt(w.value.graceBuyCta, { amount: trialOffset.value.offsetUSD.toFixed(2) })
-    : fmt(w.value.buyCtaOffset, { amount: trialOffset.value.offsetUSD.toFixed(2) }),
+    ? fmt(w.value.graceBuyCta, { amount: formatAmount(trialOffset.value.offsetUSD) })
+    : fmt(w.value.buyCtaOffset, { amount: formatAmount(trialOffset.value.offsetUSD) }),
 );
 const trialBuyCtaText = computed(() => {
   if (productCatalogState.status !== "ready") {
@@ -261,7 +262,7 @@ const ineligibleReasonText = computed(() => {
 // remainder → balance / expiry).
 const rulesOpen = ref(false);
 const rulesLines = computed(() => [
-  fmt(w.value.rulesBefore, { cap: String(cfg.value.trialOffsetCapUSD) }),
+  fmt(w.value.rulesBefore, { cap: formatAmount(cfg.value.trialOffsetCapUSD) }),
   w.value.rulesNoCash,
   w.value.rulesAfter,
   w.value.rulesExpiry,

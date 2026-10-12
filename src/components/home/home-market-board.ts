@@ -2,6 +2,7 @@ import type { AppHomeWorkload } from "@/api/app-home-api";
 import type { TaskCategory } from "@/store/types";
 import type { Messages } from "@/i18n/messages/en";
 import { marketWorkloadCopy } from "@/lib/workload-label";
+import { formatAmount } from "@/lib/amount-display";
 
 export type HomeMarketDeltaTone = "positive" | "negative" | "neutral";
 
@@ -26,10 +27,7 @@ const MARKET_TAGS: Record<TaskCategory, string> = {
 
 function formatPrice(price: number | null): string {
   if (price === null) return "—";
-  if (price < 0.001) {
-    return "$" + price.toFixed(7).replace(/0+$/, "").replace(/\.$/, ".0");
-  }
-  return "$" + price.toFixed(3);
+  return "$" + formatAmount(price);
 }
 
 export function presentHomeMarketWorkload(row: AppHomeWorkload, t: Messages): HomeMarketDisplayRow {

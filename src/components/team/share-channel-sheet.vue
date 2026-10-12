@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, nextTick } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -61,10 +62,10 @@ const rewardLineText = computed(() => {
     const nex = rewards.snapshot?.inviterRewardNex;
     return nex === undefined
       ? t.value.team.settlementUnavailable
-      : `${nex.toLocaleString()} NEX · ${t.value.team.serverRewardPerSettlement}`;
+      : `${formatAmount(nex)} NEX · ${t.value.team.serverRewardPerSettlement}`;
   }
   if (!cfg.config.rewards.enabled) return t.value.team.referralRewardsDisabled;
-  const base = fmt(t.value.share.rewardLine, { usd: dollarReward.value });
+  const base = fmt(t.value.share.rewardLine, { usd: formatAmount(dollarReward.value) });
   const m = phase.value.inviteBonusMultiplier;
   if (m <= 1) return base;
   const promo = fmt(t.value.team.invitePromoChip, { multiplier: m.toFixed(m === Math.floor(m) ? 0 : 1) });

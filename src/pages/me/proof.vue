@@ -183,6 +183,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onUnload } from "@dcloudio/uni-app";
 import qrcode from "qrcode-generator";
@@ -291,7 +292,7 @@ onShow(() => {
 });
 
 const earningsTotal = computed<number | null>(() => remoteApiEnabled ? remoteSnapshot.value?.earningsTotalUsdt ?? null : app.earnings.total);
-const earningsTotalText = computed(() => earningsTotal.value === null ? "—" : earningsTotal.value.toFixed(2));
+const earningsTotalText = computed(() => earningsTotal.value === null ? "—" : formatAmount(earningsTotal.value));
 const onlineDevices = computed(
   () => remoteApiEnabled ? remoteSnapshot.value?.onlineDevices ?? null
     : app.visibleDevices.filter((d) => d.activatedAt !== null && isDeviceOnline(d, Date.now())).length,

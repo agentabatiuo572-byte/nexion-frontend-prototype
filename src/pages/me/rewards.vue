@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -161,14 +162,14 @@ const cats = computed<CatCard[]>(() => [
   {
     key: "usdt",
     label: t.value.rewards.catUsdt,
-    big: displayUsdtTotal.value === null ? "-" : `$${displayUsdtTotal.value.toFixed(2)}`,
+    big: displayUsdtTotal.value === null ? "-" : `$${formatAmount(displayUsdtTotal.value)}`,
     unit: "USDT",
     desc: t.value.rewards.catUsdtDesc,
   },
   {
     key: "nex",
     label: t.value.rewards.catNex,
-    big: displayNexTotal.value === null ? "-" : displayNexTotal.value.toLocaleString(),
+    big: displayNexTotal.value === null ? "-" : formatAmount(displayNexTotal.value),
     unit: "NEX",
     desc: t.value.rewards.catNexDesc,
   },

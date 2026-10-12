@@ -176,7 +176,7 @@
                   <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ c.name }}</text>
                   <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ hostedByText(c) }}</text>
                 </view>
-                <text class="font-display tabular-nums" :style="{ fontSize: '15px', fontWeight: 600, color: 'var(--v5-brand)' }">${{ c.amount.toLocaleString() }}</text>
+                <text class="font-display tabular-nums" :style="{ fontSize: '15px', fontWeight: 600, color: 'var(--v5-brand)' }">${{ formatAmount(c.amount) }}</text>
               </view>
             </view>
           </view>
@@ -187,6 +187,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { ref, computed, watch, type CSSProperties } from "vue";
 import { onShow, onHide, onUnload } from "@dcloudio/uni-app";
@@ -410,7 +411,7 @@ async function submit() {
   }
   toast.success(
     t.value.agent.toastSubmitted,
-    fmt(t.value.agent.toastSubmittedSub, { city: input.city, budget: input.budgetUsdt.toLocaleString() }),
+    fmt(t.value.agent.toastSubmittedSub, { city: input.city, budget: formatAmount(input.budgetUsdt) }),
   );
   const settled = successfulAmbassadorApplicationState(latestApplication.value);
   latestApplication.value = settled.receipt;

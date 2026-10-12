@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -72,6 +73,7 @@ async function mount(messages = en, initial?: DepositIntent) {
     quoteRate, feeUsdt: 0, feeVnd: 0, lockWindowMin: 30, load: vi.fn(async () => {}) });
   const open = vi.fn(() => true), toast = { error: vi.fn(), success: vi.fn(), warn: vi.fn() };
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@/components/me/fx-rate-line.vue": { default: Vue.defineComponent(() => () => Vue.h("aside")) },
     "@/i18n/use-t": { useT: () => Vue.ref(messages) }, "@/i18n/format": { fmt },
     "@/lib/route": { navTo: vi.fn(), navBack: vi.fn() }, "@/store/ui": { toast, confirm: vi.fn() },
@@ -162,11 +164,12 @@ describe("mounted bank top-up amount", () => {
       await pane.click(); expect(pane.dep.createRemoteBankIntent).not.toHaveBeenCalled();
     });
 
-  it.each(["10", "100", "25", "25.", "25.1", "25.12", "0025.12"])(
-    "uses the visible legal decimal for the preview and local mocked create argument: %s", async amount => {
+  it.each([["10", "263900.00₫"], ["100", "2639000.00₫"], ["25", "659750.00₫"],
+    ["25.", "659750.00₫"], ["25.1", "662389.00₫"], ["25.12", "662917.00₫"], ["0025.12", "662917.00₫"]])(
+    "uses the visible legal decimal for the preview and local mocked create argument: %s", async (amount, vnd) => {
       const pane = await mount(); await pane.enter(amount);
       expect(pane.input().props.value).toBe(amount);
-      expect(pane.text()).toContain(fmt(en.bankPane.approx, { vnd: fmtVnd(vndForUsdt(Number(amount), quoteRate)) }));
+      expect(pane.text()).toContain(fmt(en.bankPane.approx, { vnd }));
       expect(pane.control("nx-bank-create-cta").props["aria-disabled"]).toBe(false);
       await pane.click(); expect(pane.dep.createRemoteBankIntent).toHaveBeenCalledExactlyOnceWith(Number(amount), accountKey);
     });
@@ -175,15 +178,15 @@ describe("mounted bank top-up amount", () => {
     const pane = await mount(); await pane.enter(amount);
     expect(pane.input().props.value).toBe(amount);
     expect(pane.text()).toContain(fmt(en.bankPane.approx, { vnd: "—" }));
-    expect(pane.text()).not.toContain(fmt(en.bankPane.minimumLimitExceeded, { min: "$10" }));
+    expect(pane.text()).not.toContain(fmt(en.bankPane.minimumLimitExceeded, { min: "$10.00" }));
     await pane.click(); expect(pane.dep.createRemoteBankIntent).not.toHaveBeenCalled();
   });
 
   it("keeps the existing leading-dot decimal edit and its minimum limit", async () => {
     const pane = await mount(); await pane.enter(".5");
     expect(pane.input().props.value).toBe(".5");
-    expect(pane.text()).toContain(fmt(en.bankPane.approx, { vnd: fmtVnd(vndForUsdt(0.5, quoteRate)) }));
-    expect(pane.text()).toContain(fmt(en.bankPane.minimumLimitExceeded, { min: "$10" }));
+    expect(pane.text()).toContain(fmt(en.bankPane.approx, { vnd: "13195.00₫" }));
+    expect(pane.text()).toContain(fmt(en.bankPane.minimumLimitExceeded, { min: "$10.00" }));
     await pane.click(); expect(pane.dep.createRemoteBankIntent).not.toHaveBeenCalled();
   });
 
@@ -244,9 +247,9 @@ describe("mounted bank top-up amount", () => {
 
   it.each([zh, en, vietnamese])("retains translated limits and blocks out-of-range decimals (%#)", async messages => {
     const pane = await mount(messages);
-    for (const [amount, error] of [["9.99", fmt(messages.bankPane.minimumLimitExceeded, { min: "$10" })],
-      ["5000.01", fmt(messages.bankPane.singleLimitExceeded, { max: "$5,000" })],
-      ["100.01", fmt(messages.bankPane.dailyCapacityExceeded, { max: "$100" })]]) {
+    for (const [amount, error] of [["9.99", fmt(messages.bankPane.minimumLimitExceeded, { min: "$10.00" })],
+      ["5000.01", fmt(messages.bankPane.singleLimitExceeded, { max: "$5000.00" })],
+      ["100.01", fmt(messages.bankPane.dailyCapacityExceeded, { max: "$100.00" })]]) {
       await pane.enter(amount); expect(pane.input().props.value).toBe(amount); expect(pane.text()).toContain(error);
       expect(pane.control("nx-bank-create-cta").props["aria-disabled"]).toBe(true); await pane.click();
     }

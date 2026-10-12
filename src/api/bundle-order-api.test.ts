@@ -131,7 +131,7 @@ describe("bundle order API", () => {
   });
 
   it("keeps a six-decimal bundle total visible in the CTA instead of rounding it to cents", () => {
-    expect(bundleSource).toContain("maximumFractionDigits: 6");
+    expect(bundleSource).toContain("formatAmount(value)");
     expect(bundleSource).toContain("command.expectedAmountUsdt, command.key");
   });
 

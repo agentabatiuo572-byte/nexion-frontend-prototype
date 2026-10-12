@@ -1,4 +1,5 @@
 import source from "./my-token-card.vue?raw";
+import { formatAmount } from "@/lib/amount-display";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { computed, effectScope, reactive, ref, watch } from "vue";
@@ -42,7 +43,7 @@ function card(listed = false) {
     remoteApiEnabled: true, genesisMarketFloor, presentGenesisFloorPrice, presentGenesisRoyalty,
     formatCommandAmount, parseGenesisListingPrice, canExecuteGenesisListingConfirmation,
     captureAccountScope: () => accountEpoch, isCurrentAccountScope: (epoch: number) => epoch === accountEpoch,
-    useUI, toast, confirm, fmt,
+    useUI, toast, confirm, fmt, formatAmount,
   };
   const actions = scope.run(() => new Function(...Object.keys(bindings), `${js}\nreturn { handleList, handleCancel, askPriceText };`)(...Object.values(bindings))) as {
     handleList: () => Promise<void>; handleCancel: () => Promise<void>; askPriceText: { value: string };

@@ -45,8 +45,8 @@
             </view>
           </view>
           <view class="text-right shrink-0">
-            <text v-if="showContribution" class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: accentText }">+${{ contribution(m).toFixed(2) }}</text>
-            <text class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ fmt(t.uiChrome.volumeShort, { amount: `$${m.monthVolumeUSD}` }) }}</text>
+            <text v-if="showContribution" class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: accentText }">+${{ formatAmount(contribution(m)) }}</text>
+            <text class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ fmt(t.uiChrome.volumeShort, { amount: `$${formatAmount(m.monthVolumeUSD)}` }) }}</text>
           </view>
         </view>
       </view>
@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, type CSSProperties } from "vue";
 import VBadge from "./v-badge.vue";
 import type { NetworkMember, MemberStatus } from "@/store/network";

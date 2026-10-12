@@ -222,7 +222,7 @@ export function getLockedTeasers(maxVram: number, count = 3): LockedTeaser[] {
       type: TASK_CATEGORY_LABEL[tpl.category],
       model: top.name,
       minVRAM: top.minVRAM,
-      rewardHint: `$${tpl.minReward.toFixed(3)}-$${tpl.maxReward.toFixed(2)}`,
+      rewardHint: `$${tpl.minReward.toFixed(2)}-$${tpl.maxReward.toFixed(2)}`,
       unlockTier: unlockTierFor(top.minVRAM),
     });
   }

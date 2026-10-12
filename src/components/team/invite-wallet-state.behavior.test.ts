@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, compileStyle, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -47,6 +48,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   }).outputText;
   const exports = { default: {} as Component };
   new Function("require", "exports", code)((id: string) => {
+    if (id === "@/lib/amount-display") return { formatAmount };
     if (id === "vue") return Vue;
     if (id in dependencies) return dependencies[id];
     if (id.endsWith(".vue")) return { default: { render: () => Vue.h("view") } };
@@ -95,10 +97,10 @@ test.each([en, zh, vietnamese])("disabled invitation rewards keep sharing withou
   const status = text(find(card.root, "invite-card__reward"));
   expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.referralRewardsDisabled);
   expect(status).toContain(copy.team.sharingStillAvailable);
-  expect(status).toContain("+7 NEX"); // Historical settled earnings remain facts.
+  expect(status).toContain("+7.00 NEX"); // Historical settled earnings remain facts.
   expect(status).not.toContain(copy.team.serverRewardPerSettlement);
   expect(status).not.toContain(copy.team.perFriendCooldown);
-  expect(status).not.toContain("0 NEX");
+  expect(status).not.toContain("0.00 NEX");
   expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
   expect(text(find(card.root, "invite-card__header"))).not.toContain(copy.team.earnForEachFriend);
   expect(text(card.root)).not.toContain(copy.team.rewardRules);
@@ -116,13 +118,13 @@ test("the same invitation card follows server enablement, unavailable reads and 
   const card = await invitation();
   card.rewards.snapshot = snapshot(true); await Vue.nextTick();
   let status = text(find(card.root, "invite-card__reward"));
-  expect(status).toContain("12 NEX");
+  expect(status).toContain("12.00 NEX");
   expect(status).toContain(en.team.perFriendCooldown);
   expect(text(find(card.root, "invite-card__header"))).toContain(fmt(en.team.settlementStatus, { settled: 1, pending: 1 }));
   card.rewards.error = "read failed"; await Vue.nextTick();
   status = text(find(card.root, "invite-card__reward"));
   expect(status).toBe("-");
-  expect(status).not.toContain("12 NEX");
+  expect(status).not.toContain("12.00 NEX");
   const retry = find(card.root, "invite-card__retry");
   expect(retry.props.role).toBe("button");
   card.rewards.refresh.mockClear();
@@ -142,7 +144,7 @@ test("the same invitation card follows server enablement, unavailable reads and 
   expect(text(find(card.root, "invite-card__reward"))).toBe("-");
   resolveRead(); await refresh; await Vue.nextTick();
   expect(find(card.root, "invite-card__retry")).toBeUndefined();
-  expect(text(find(card.root, "invite-card__reward"))).toContain("12 NEX");
+  expect(text(find(card.root, "invite-card__reward"))).toContain("12.00 NEX");
   expect(text(find(card.root, "invite-card__reward"))).toContain(en.team.perFriendCooldown);
   card.rewards.error = ""; card.rewards.snapshot = null; card.rewards.loading = true; await Vue.nextTick();
   expect(text(find(card.root, "invite-card__reward"))).toBe("-");
@@ -152,18 +154,32 @@ test("the same invitation card follows server enablement, unavailable reads and 
 test.each([en, zh, vietnamese])("H5 share emphasis only names a reward after a successful enabled server read", async copy => {
   const card = await invitation(copy);
   card.rewards.snapshot = snapshot(true); await Vue.nextTick();
-  expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12 NEX" }));
+  expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12.00 NEX" }));
   expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.earnForEachFriend);
   card.rewards.loading = true; await Vue.nextTick();
   expect(text(find(card.root, "invite-card__reward"))).toBe("-");
   expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
-  expect(text(card.root)).not.toContain("12 NEX");
-  expect(text(card.root)).not.toContain("+7 NEX");
+  expect(text(card.root)).not.toContain("12.00 NEX");
+  expect(text(card.root)).not.toContain("+7.00 NEX");
   expect(text(card.root)).not.toContain(copy.team.perFriendCooldown);
   card.rewards.loading = false; card.rewards.error = "unavailable"; await Vue.nextTick();
   expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
   expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.settlementUnavailable);
-  expect(text(card.root)).not.toContain("12 NEX");
+  expect(text(card.root)).not.toContain("12.00 NEX");
+});
+
+test.each([en, zh, vietnamese])("invitation money keeps two decimals without Native Intl or locale number formatting", async copy => {
+  vi.stubGlobal("Intl", undefined);
+  const nativeLocale = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("NATIVE_LOCALE_UNAVAILABLE"); });
+  try {
+    const card = await invitation(copy);
+    card.rewards.snapshot = snapshot(true); await Vue.nextTick();
+    expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12.00 NEX" }));
+    expect(text(find(card.root, "invite-card__reward"))).toContain("+7.00 NEX");
+  } finally {
+    nativeLocale.mockRestore();
+    vi.unstubAllGlobals();
+  }
 });
 
 test("restored sharing tools retain clipboard failure feedback and all empty-code guards", async () => {
@@ -230,10 +246,12 @@ const balanceDisplays = [
   [11, "11.00"],
   [0.045005, "0.05"],
   [0.000001, "0.00"],
-  [999.995001, "1,000.00"],
-  [1234567.123456, "1,234,567.12"],
-  [1.005, "1.00"],
-  [2.675, "2.67"],
+  [999.995001, "1000.00"],
+  [1234567.123456, "1234567.12"],
+  [1.005, "1.01"],
+  [2.675, "2.68"],
+  [0.145, "0.15"],
+  [999.995, "1000.00"],
 ] as const;
 
 async function checkWalletBalance(copy: typeof en) {
@@ -251,7 +269,7 @@ async function checkWalletBalance(copy: typeof en) {
   expect(find(card.root, "nx-wallet-total").props["aria-label"]).toBe(`${copy.me.usdtBalance}: $0.00`);
 }
 
-test.each([en, zh, vietnamese])("wallet balance uses detail-page rounding, two decimals and comma grouping", async copy => {
+test.each([en, zh, vietnamese])("wallet balance uses decimal rounding and two decimals", async copy => {
   await checkWalletBalance(copy);
 });
 

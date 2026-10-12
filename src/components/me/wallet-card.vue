@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navReset, navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -95,17 +96,18 @@ const buckets = computed(() => ({
 }));
 // 2026-07-31:与 wallet.vue / wallet-withdraw 同源 —— 可提口径 = 总余额(held 两桶账外)。
 const usdt = computed(() => app.user.usdtBalance);
-const intPart = computed(() => Math.floor(usdt.value).toLocaleString());
-const fracPart = computed(() => (usdt.value - Math.floor(usdt.value)).toFixed(2).slice(2));
+const usdtText = computed(() => formatAmount(usdt.value));
+const intPart = computed(() => usdtText.value.split(".")[0]);
+const fracPart = computed(() => usdtText.value.split(".")[1]);
 const pendingLine = computed(() =>
   fmt(t.value.me.walletBucketsHint, {
-    review: bucketsReadable.value ? buckets.value.pendingReviewUsdt.toFixed(2) : "—",
-    locked: bucketsReadable.value ? buckets.value.bonusLockedUsdt.toFixed(2) : "—",
+    review: bucketsReadable.value ? formatAmount(buckets.value.pendingReviewUsdt) : "—",
+    locked: bucketsReadable.value ? formatAmount(buckets.value.bonusLockedUsdt) : "—",
   }),
 );
 
 const nex = computed(() => app.user.nexBalance);
-const nexLabel = computed(() => fundsReadable.value ? nex.value.toLocaleString() : "—");
+const nexLabel = computed(() => fundsReadable.value ? formatAmount(nex.value) : "—");
 const marketReady = computed(() => market.isMockMode || market.remoteReady);
 const nexChangeLabel = computed(() => {
   if (!marketReady.value || !market.change24hAvailable) return "—";
@@ -115,7 +117,7 @@ const nexChangeLabel = computed(() => {
 const nexMarketLabel = computed(() => {
   if (!marketReady.value) return "≈ — USDT · 1 NEX = — USDT";
   const price = market.nexPriceUSDT;
-  return `≈ ${fundsReadable.value ? (nex.value * price).toFixed(2) : "—"} USDT · 1 NEX = ${price.toFixed(3)} USDT`;
+  return `≈ ${fundsReadable.value ? formatAmount(nex.value * price) : "—"} USDT · 1 NEX = ${price.toFixed(3)} USDT`;
 });
 
 const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"
@@ -263,8 +265,7 @@ const addDeviceBtnStyle: CSSProperties = {
 };
 
 import { useSlotActionSheet } from "@/store/slot-action-sheet";
-// Native locale formatters can ignore fraction options; match the wallet detail's display rounding.
-const usdtLabel = computed(() => usdtBalanceReadable.value ? usdt.value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "—");
+const usdtLabel = computed(() => usdtBalanceReadable.value ? usdtText.value : "—");
 </script>
 
 <style scoped>

@@ -66,6 +66,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -89,11 +90,11 @@ const isMatured = computed(() => props.p.status === "matured" || props.now >= pr
 const isClaimed = computed(() => props.p.status === "claimed");
 const isEarlyOut = computed(() => props.p.status === "early-withdrawn");
 
-const amountText = computed(() => props.p.amountUSDT.toLocaleString());
+const amountText = computed(() => formatAmount(props.p.amountUSDT));
 const apyPct = computed(() => formatStakingPercentage(props.p.apy));
 const daysIn = computed(() => Math.floor(elapsed.value / ONE_DAY_MS));
-const accruedText = computed(() => accrued.value.toFixed(2));
-const claimText = computed(() => fmt(t.value.stakingV3.position.claim, { amount: (props.p.amountUSDT + accrued.value).toFixed(2) }));
+const accruedText = computed(() => formatAmount(accrued.value));
+const claimText = computed(() => fmt(t.value.stakingV3.position.claim, { amount: formatAmount(props.p.amountUSDT + accrued.value) }));
 const startedDate = computed(() => new Date(props.p.startTs).toLocaleDateString(dateLocale()));
 
 function onTrack() {

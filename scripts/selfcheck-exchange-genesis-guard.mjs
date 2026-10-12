@@ -109,15 +109,16 @@ const EXCHANGE_INPUT_SRC = ts2js([
   grabBlock(exchangeInputRaw, "export function sanitizeExchangeAmountInput(").replace(/^export /, ""),
   grabBlock(exchangeInputRaw, "export function canonicalExchangeAmount(").replace(/^export /, ""),
 ].join("\n"));
+const { formatAmount } = await loadSrcModule("lib", "amount-display.ts");
 const pageMath = new Function(
-  "remoteApiEnabled",
+  "remoteApiEnabled", "formatAmount",
   `${MONEY_SRC}\n${ts2js([
     grabStatement(exRaw, "const amtLabel = "),
     grabBlock(exRaw, "function quoteTo("),
     grabBlock(exRaw, "function swapLine("),
   ].join("\n"))}\n; return { money, amtLabel, quoteTo, swapLine };`,
-)(false);
-const remoteAmountLabel = new Function("remoteApiEnabled", `${ts2js(grabStatement(exRaw, "const amtLabel = "))}; return amtLabel;`)(true);
+)(false, formatAmount);
+const remoteAmountLabel = new Function("remoteApiEnabled", "formatAmount", `${ts2js(grabStatement(exRaw, "const amtLabel = "))}; return amtLabel;`)(true, formatAmount);
 
 console.log("selfcheck-exchange-genesis-guard — 兑换成交快照单源化 + 创世购买重入守卫");
 
@@ -217,7 +218,7 @@ const iDebit = Math.min(
   check(`A② 成交 ${LEGS.length} 项入参全部取自快照(一进一出两腿的金额+币种、日限计数)`,
     notSnap.length === 0, notSnap.join(","));
 }
-// ══ A④ 展示精度 == 账本精度(结构):全页只有一个取整口径,四个展示口零二次舍入 ══════
+// ══ A④ Mock 账本精度不变;两端展示统一两位;真实命令保留原金额精度 ══════
 {
   const ex = strip(exRaw);
   check("A④ 账本精度单源 money() = +n.toFixed(2),报价两个方向共用它(不再分方向各取各的整)",
@@ -225,10 +226,35 @@ const iDebit = Math.min(
     && /return money\(dir === "usdt2nex" \? from \/ r : from \* r\);/.test(ex));
   check("A④ 用户输入进入资金链路时就归到账本精度(否则账单记 1.2345 而账本只动 1.23)",
     /const fromAmount = computed\(\(\) => \{[\s\S]{0,120}return isNaN\(n\) \? 0 : money\(n\);/.test(ex));
-  check("A④ Mock 保持两位账本精度，真实服务端金额保留六位精度",
-    /minimumFractionDigits: 2, maximumFractionDigits: remoteApiEnabled \? 6 : 2/.test(ex)
-    && pageMath.amtLabel(1.123456) === (1.12).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    && remoteAmountLabel(1.123456) === (1.123456).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }));
+  const amountCases = [[0, "0.00"], [50, "50.00"], [1.123456, "1.12"], [1.005, "1.01"], [2.675, "2.68"], [0.145, "0.15"], [999.995, "1000.00"]];
+  const matchesDisplay = label => amountCases.every(([value, expected]) => label(value) === expected);
+  check("A④ Mock 与真实服务端展示都由实际 amtLabel 统一十进制两位",
+    /const amtLabel = \(n: number\): string =>\s*formatAmount\(n\);/.test(ex)
+    && matchesDisplay(pageMath.amtLabel) && matchesDisplay(remoteAmountLabel)
+    && pageMath.money(1.123456) === 1.12);
+  const originalIntl = globalThis.Intl, originalLocale = Number.prototype.toLocaleString;
+  try {
+    globalThis.Intl = undefined;
+    Number.prototype.toLocaleString = () => { throw new Error("NATIVE_LOCALE_UNAVAILABLE"); };
+    check("A④ 无 Intl 或 Native locale 时两个实际展示函数仍保持两位", matchesDisplay(pageMath.amtLabel) && matchesDisplay(remoteAmountLabel));
+  } finally { globalThis.Intl = originalIntl; Number.prototype.toLocaleString = originalLocale; }
+  const amountLabelSource = grabStatement(exRaw, "const amtLabel = ");
+  check("A④ 实际展示函数红测拒绝六位显示、二进制舍入和取整显示",
+    ["n.toFixed(6)", "n.toFixed(2)", "String(Math.round(n))"].every(replacement => {
+      const changed = amountLabelSource.replace("formatAmount(n)", replacement);
+      const label = new Function("formatAmount", `${ts2js(changed)}; return amtLabel;`)(formatAmount);
+      return changed !== amountLabelSource && !matchesDisplay(label);
+    }));
+  const { createExchangeApi } = await loadSrcModule("api", "exchange-api.ts");
+  const requests = [];
+  const api = createExchangeApi({ request: async request => { requests.push(request); throw new Error("RAW_COMMAND_CAPTURED"); } }, "prod");
+  for (const invoke of [() => api.swap("USDT_TO_NEX", 1.123456, true, "precision-probe"), () => api.recover("USDT_TO_NEX", 1.123456, true, "precision-probe")]) {
+    try { await invoke(); } catch (error) { if (error.message !== "RAW_COMMAND_CAPTURED") throw error; }
+  }
+  check("A④ 真实 API 命令/恢复 URL 保留六位原金额与原幂等键",
+    requests.length === 2 && requests[0].body.fromAmount === 1.123456 && requests[0].idempotencyKey === "precision-probe"
+    && requests[1].path === "/api/exchange/recovery?direction=USDT_TO_NEX&fromAmount=1.123456&queueIfCapped=true"
+    && requests[1].idempotencyKey === "precision-probe");
   // 🔴 四个展示口逐个点名 —— 「新写法在不在」是弱判据,四处**全部**经由 amtLabel 才算数。
   const SITES = [
     ["收款卡", /const toAmountLabel = computed\(\(\) => !exchangeSnapshotReady\.value \|\| feeInvalid\.value \? "—" : amtLabel\(toAmount\.value\)\)/],
@@ -464,7 +490,7 @@ function exchangeFixture({ onConfirm, direction: dir = "nex2usdt", from = 100, r
     fromSym: { value: dir === "usdt2nex" ? "USDT" : "NEX" },
     toSym: { value: dir === "usdt2nex" ? "NEX" : "USDT" },
     input: { value: String(from) },
-    app, v3, t, fmt,
+    app, v3, t, fmt, formatAmount,
     amtLabel: pageMath.amtLabel,
     uni: { navigateTo: () => {} },
     setTimeout: (fn) => globalThis.setTimeout(fn, 0),

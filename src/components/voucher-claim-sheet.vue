@@ -63,6 +63,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed } from "vue";
 import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { useVoucher } from "@/store/voucher";
@@ -101,15 +102,15 @@ function formatDate(ms: number): string {
 
 function valueText(v: VoucherDef): string {
   return v.type === "fixed"
-    ? fmt(t.value.voucher.offFixed, { amount: v.amountUSD ?? 0 })
+    ? fmt(t.value.voucher.offFixed, { amount: formatAmount(v.amountUSD ?? 0) })
     : fmt(t.value.voucher.offPercent, { percent: v.percent ?? 0 });
 }
 function condText(v: VoucherDef): string {
   if (v.type === "fixed" && (v.minPurchaseUSD ?? 0) > 0) {
-    return fmt(t.value.voucher.condMin, { min: v.minPurchaseUSD ?? 0 });
+    return fmt(t.value.voucher.condMin, { min: formatAmount(v.minPurchaseUSD ?? 0) });
   }
   if (v.type === "percent" && (v.maxDiscountUSD ?? 0) > 0) {
-    return fmt(t.value.voucher.condCap, { cap: v.maxDiscountUSD ?? 0 });
+    return fmt(t.value.voucher.condCap, { cap: formatAmount(v.maxDiscountUSD ?? 0) });
   }
   return "";
 }

@@ -150,6 +150,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -754,9 +755,9 @@ async function handleDeleteAccount() {
       .reduce((s, p) => s + p.amountUSDT, 0);
     const forfeitLines = [
       t.value.security.deleteAccountForfeitLead,
-      fmt(t.value.security.deleteAccountForfeitBalance, { balance: `${app.user.usdtBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }),
+      fmt(t.value.security.deleteAccountForfeitBalance, { balance: `${formatAmount(app.user.usdtBalance)}` }),
       ...(forfeitPrincipal > 0
-        ? [fmt(t.value.security.deleteAccountForfeitPrincipal, { principal: `${forfeitPrincipal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` })]
+        ? [fmt(t.value.security.deleteAccountForfeitPrincipal, { principal: `${formatAmount(forfeitPrincipal)}` })]
         : []),
     ];
     const ok = await uiConfirm({

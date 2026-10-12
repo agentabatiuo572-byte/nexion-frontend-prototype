@@ -41,14 +41,14 @@
             :aria-disabled="editorBlocked"
             :tabindex="target === p || (pi === 0 && !PRESET_TARGETS.includes(target)) ? 0 : -1"
             :aria-checked="target === p ? 'true' : 'false'"
-            :aria-label="fmt(t.goals.targetPresetOption, { amount: String(p) })"
+            :aria-label="fmt(t.goals.targetPresetOption, { amount: formatAmount(p) })"
             @click="selectTarget(p)"
 
 
 
             @keydown.enter.prevent="selectTarget(p)" @keydown.space.prevent="selectTarget(p)" @keydown.left.prevent="moveTarget(pi, -1)" @keydown.right.prevent="moveTarget(pi, 1)"
           >
-            <text :style="presetTargetLabelStyle(p)">${{ p >= 1000 ? `${p / 1000}K` : p }}</text>
+            <text :style="presetTargetLabelStyle(p)">${{ p >= 1000 ? `${formatAmount(p / 1000)}K` : formatAmount(p) }}</text>
           </view>
         </view>
 
@@ -123,15 +123,15 @@
         <view :style="goalGroupStyle">
           <view v-for="(g, gi) in goals" :key="g.id" :style="goalRowStyle(gi === goals.length - 1)">
             <view class="flex items-center justify-between">
-              <text class="font-mono-tabular" :style="goalTargetStyle">${{ g.targetUSDT.toLocaleString() }}</text>
-              <view class="grid place-items-center active:opacity-70" :style="goalRemoveStyle" role="button" tabindex="0" :aria-label="fmt(t.goals.removeGoalLabel, { amount: g.targetUSDT.toLocaleString() })" @click="remove(g.id)"  @keydown.enter.prevent="remove(g.id)" @keydown.space.prevent="remove(g.id)">
+              <text class="font-mono-tabular" :style="goalTargetStyle">${{ formatAmount(g.targetUSDT) }}</text>
+              <view class="grid place-items-center active:opacity-70" :style="goalRemoveStyle" role="button" tabindex="0" :aria-label="fmt(t.goals.removeGoalLabel, { amount: formatAmount(g.targetUSDT) })" @click="remove(g.id)"  @keydown.enter.prevent="remove(g.id)" @keydown.space.prevent="remove(g.id)">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
               </view>
             </view>
             <text class="block" :style="goalDeadlineStyle">{{ deadlineLine(g.deadlineMs) }}</text>
             <GoalProgressBar :pct="goalPct(g.targetUSDT)" />
             <view class="flex items-center justify-between font-mono-tabular" style="margin-top: 4px">
-              <text :style="goalFootMutedStyle">${{ lifeTimeEarnings.toFixed(0) }} / ${{ g.targetUSDT.toLocaleString() }}</text>
+              <text :style="goalFootMutedStyle">${{ formatAmount(lifeTimeEarnings) }} / ${{ formatAmount(g.targetUSDT) }}</text>
               <text :style="goalFootPctStyle">{{ goalPct(g.targetUSDT).toFixed(0) }}%</text>
             </view>
             <view v-if="g.achieved" class="inline-flex items-center" :style="achievedBadgeStyle">
@@ -146,6 +146,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navReset } from "@/lib/route";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -206,11 +207,11 @@ const heroSubLine = computed(() => {
   if (remoteApiEnabled && !editorHasSnapshot.value) {
     return goalsStore.status === "error" ? t.value.goals.serverUnavailable : t.value.goals.loading;
   }
-  return fmt(t.value.goals.heroSubtitle, { current: lifeTimeEarnings.value.toFixed(2) });
+  return fmt(t.value.goals.heroSubtitle, { current: formatAmount(lifeTimeEarnings.value) });
 });
 const recPathLine = computed(() =>
   fmt(t.value.goals.recPath, {
-    target: (goalsStore.recommendation?.targetUsdt ?? target.value).toLocaleString(),
+    target: formatAmount(goalsStore.recommendation?.targetUsdt ?? target.value),
     days: goalsStore.recommendation?.days ?? days.value,
     tier: recommendation.value.tier,
     perDay: formatGoalDailyRate(goalsStore.recommendation?.requiredDaily ?? target.value / days.value),
@@ -218,8 +219,7 @@ const recPathLine = computed(() =>
 );
 
 function formatGoalDailyRate(value: number): string {
-  if (value > 0 && value < 0.01) return value.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
-  return value.toFixed(2);
+  return formatAmount(value);
 }
 
 function detailVal(e: Event): string {
@@ -369,7 +369,7 @@ async function onSave() {
     retryableSaveIntents.delete(intentKey);
     restoreEditorFromGoal(goalsStore.goals[goalsStore.goals.length - 1]);
     void goalsStore.refreshRecommendation(target.value, goalsStore.goals[goalsStore.goals.length - 1]?.deadlineMs ?? Date.now() + days.value * ONE_DAY_MS);
-    ui.pushToast({ kind: "success", title: fmt(t.value.goals.savedToast, { amount: target.value.toLocaleString("en-US"), days: days.value }) });
+    ui.pushToast({ kind: "success", title: fmt(t.value.goals.savedToast, { amount: formatAmount(target.value), days: days.value }) });
   } catch {
     if (!isCurrentSave()) return;
     ui.pushToast({ kind: "warn", title: t.value.goals.serverUnavailable });

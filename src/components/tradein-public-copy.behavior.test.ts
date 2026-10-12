@@ -7,6 +7,7 @@ import ts from 'typescript';
 import { expect, it } from 'vitest';
 import source from './tradein-sheets.vue?raw';
 import { fmt } from '@/i18n/format';
+import { formatAmount } from '@/lib/amount-display';
 import { zh } from '@/i18n/messages/zh';
 import { en } from '@/i18n/messages/en';
 import { vi } from '@/i18n/messages/vi';
@@ -33,7 +34,7 @@ function page(copy = en, remoteApiEnabled = true) {
   const canonicalQuote = ref({ sourceDeviceId: 42, targetProductNo: 'stellarbox-pro', sourceActualPaidUsdt: 200,
     cumulativeOutputUsdt: 50, discountUsdt: 123.45, creditRatePct: 61.725, payableUsdt: 376.55 });
   const deps = { computed, state, app: { devices: [device] }, t: ref(copy), remoteApiEnabled,
-    canonicalQuote, fmt, deviceName, computeTradeInCredit, ladderBandFor, kindLabel: (kind: string) => kind };
+    canonicalQuote, fmt, formatAmount, deviceName, computeTradeInCredit, ladderBandFor, kindLabel: (kind: string) => kind };
   const actual = new Function('deps', `const {${Object.keys(deps).join(',')}} = deps; ${code}; return {choiceSources, tradeinView};`)(deps);
   const setup = { ...deps, ...actual, quoteLoading: false, confirming: false, ctaHalo: {},
     hide: () => {}, onKeyboardActivate: () => {}, onChooseTradein: () => {}, onChooseFullPrice: () => {}, onConfirmTradein: () => {} };

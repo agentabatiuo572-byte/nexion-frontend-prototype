@@ -8,6 +8,7 @@ import ts from 'typescript';
 import source from './promotion-checkout.vue?raw';
 import { projectServerNow } from '@/lib/server-deadline-clock';
 import { promotionZH } from '@/i18n/messages/promotion';
+import { formatAmount } from '@/lib/amount-display';
 import { PromotionCheckoutSession,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
 import type { Quote } from '@/api/promotion-contracts';
 
@@ -279,6 +280,7 @@ const checkoutRender=new Function('Vue',ts.transpileModule(checkoutRenderCode,{c
 it.each([null,false] as const)('the real template explains an unavailable payment without inventing expiry: %j',async payWindow=>{
   const action={setup:(_props:unknown,{slots}:Vue.SetupContext)=>()=>Vue.h('view',slots.default?.())};
   const html=await renderToString(Vue.createSSRApp({components:{LiquidGlass:{render:()=>null},PromotionAction:action,PromotionTerms:{render:()=>null},RewardRows:{render:()=>null}},render:checkoutRender,setup:()=>({
+    formatAmount,
     auth:{isAuthenticated:true},p:promotionZH,t:{orders:{statusExpired:'支付已过期'},wallet:{usdtBalance:'余额'}},
     loading:false,unknown:false,error:'',openedOriginal:false,order:{orderNo:'cold-original',paymentStatus:'PENDING',payBy:'2026-10-08T00:00:10Z',amountUsdt:'10'},quote:null,
     items:[],rewards:[],payWindow,app:{remoteFleetHasSnapshot:false},props:{items:[]},promotion:null,locale:{code:'zh'},

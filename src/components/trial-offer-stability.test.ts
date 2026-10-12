@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { computed } from "vue";
@@ -48,7 +49,7 @@ function actual(source: string, names: string[], deps: Record<string, unknown>) 
     statements.map(s => s.getText(ast)).join("\n") + `\nreturn {${names.join(",")}}`,
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
   ).outputText;
-  return new Function(...Object.keys(deps), body)(...Object.values(deps));
+  return new Function("formatAmount", ...Object.keys(deps), body)(formatAmount, ...Object.values(deps));
 }
 
 function authority(canStart = true): TrialAuthorityState {
@@ -82,8 +83,8 @@ it.each([en, zh, vietnamese])("active trial savings retain the monetary unit of 
   const { discountText } = actual(ghost, ["discount", "discountText"], {
     computed, trialCfg, computeDiscountedPrice, t: computed(() => copy), fmt,
   });
-  expect(discountText.value).toBe(fmt(copy.trial.ghostDiscount, { amount: "$50" }));
-  expect(discountText.value).toContain("$50");
+  expect(discountText.value).toBe(fmt(copy.trial.ghostDiscount, { amount: "$50.00" }));
+  expect(discountText.value).toContain("$50.00");
 });
 
 describe("earn hero quotes the creditable trial offset, not the raw accrual", () => {
@@ -118,7 +119,7 @@ describe("earn hero quotes the creditable trial offset, not the raw accrual", ()
       t: computed(() => ({ trial: { heroCreditCapNote: "最高抵 ${cap}" } })),
       fmt,
     }).creditBasisText;
-    expect(cappedBasis.value).toBe("最高抵 $50");
+    expect(cappedBasis.value).toBe("最高抵 $50.00");
 
     // Below the cap the total IS days × rate, so the rate line stays the basis.
     const under = { trialDays: 3, shadowDailyUSD: 1, trialOffsetCapUSD: 50 };

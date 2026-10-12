@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
@@ -30,8 +31,8 @@ function setup(query: string, remoteApiEnabled = true) {
   const names = ["computed", "q", "t", "ROUTES", "FAQ", "staking", "searchStakingRateSummary",
     "remoteApiEnabled", "searchableProducts", "productCopy", "specRow", "devices", "deviceName", "deviceGpuLabel",
     "members", "publishedFaqs", "publishedFaqStatus", "resolveSearchResultState", "productCatalogState", "network", "app"];
-  const result = new Function(...names, `${source}; return {results, searchResultState};`)(
-    computed, ref(query), messages,
+  const result = new Function("formatAmount", ...names, `${source}; return {results, searchResultState};`)(
+    formatAmount, computed, ref(query), messages,
     [], [], {}, () => "", remoteApiEnabled, products, productCopy, specRow, ref([]), () => "", () => "", ref([]),
     publishedFaqs, publishedFaqStatus, resolveSearchResultState, { status: "ready" }, { remoteStatus: "ready" },
     { remoteFleetStatus: "ready", remoteFleetHasSnapshot: true },
@@ -47,8 +48,8 @@ describe("global search uses the published Help Center FAQ corpus", () => {
       { id: "another-sku", name: "Another SKU", tagline: "H100 server copy", gpu: "RTX 4090", vram: "unavailable", price: 899 },
     ];
     expect(state.results.value.filter((hit: { group: string }) => hit.group === "product")).toEqual([
-      { group: "product", label: "StellarRack P2", sublabel: "$7499 · 8× RTX 4090 · 192GB", href: "/pages/store/detail?id=stellarrack-p2" },
-      { group: "product", label: "Another SKU", sublabel: "$899 · RTX 4090", href: "/pages/store/detail?id=another-sku" },
+      { group: "product", label: "StellarRack P2", sublabel: "$7499.00 · 8× RTX 4090 · 192GB", href: "/pages/store/detail?id=stellarrack-p2" },
+      { group: "product", label: "Another SKU", sublabel: "$899.00 · RTX 4090", href: "/pages/store/detail?id=another-sku" },
     ]);
     expect(state.productCopy).not.toHaveBeenCalled();
     const staleTaglineSearch = setup("H100");
@@ -61,9 +62,9 @@ describe("global search uses the published Help Center FAQ corpus", () => {
   it("keeps mock-mode product copy responsive to the active language", () => {
     const state = setup("Mock SKU", false);
     state.products.value = [{ id: "mock-sku", name: "Mock SKU", tagline: "English fixture", price: 123 }];
-    expect(state.results.value.find((hit: { group: string }) => hit.group === "product")?.sublabel).toBe("$123 · Mock H100 tagline");
+    expect(state.results.value.find((hit: { group: string }) => hit.group === "product")?.sublabel).toBe("$123.00 · Mock H100 tagline");
     state.messages.value.store.mockTagline = "Bản dịch Việt";
-    expect(state.results.value.find((hit: { group: string }) => hit.group === "product")?.sublabel).toBe("$123 · Bản dịch Việt");
+    expect(state.results.value.find((hit: { group: string }) => hit.group === "product")?.sublabel).toBe("$123.00 · Bản dịch Việt");
   });
 
   it("finds a published question missing from the static guide catalog and binds its exact id", () => {
