@@ -72,7 +72,7 @@ function harness(mode: "dev" | "prod" = "prod") {
   const toast = { warn: vi.fn() };
   const deps = { ref, computed, watch, orders, auth, remoteApiEnabled: true, app, toast,
     t: ref(en), asApiError, orderApi: remote.orderApi, uiConfirm: vi.fn().mockResolvedValue(true),
-    navTo: vi.fn(), detailNow: ref(Date.now()),
+    navTo: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
     captureAccountScope: account.snapshot, isCurrentAccountScope: account.isCurrent,
     captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision,
     onLoad: (fn: typeof hooks.load[number]) => hooks.load.push(fn),

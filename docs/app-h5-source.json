@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-trial-catalog-loading-r406",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-order-return-r409",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "3512145393afa51f751fd163e430dc0a29a95e60",
-  "sourceRef": "3512145393afa51f751fd163e430dc0a29a95e60",
+  "sourceHead": "5cdd6027d423c84ff27074142357d387a48835a1",
+  "sourceRef": "5cdd6027d423c84ff27074142357d387a48835a1",
   "sourceRefKind": "commit",
-  "sourceTree": "5897ab22dafa75a0b91a60503eb26298eddd560a",
+  "sourceTree": "c81a791556d6aab07e8ca485b1cf47b7d235cdee",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -14397,25 +14397,32 @@
       "targetSha256": "6b7cf65f7495169bc33c32bb2f887cb5b0d4ad17c4c8e59e28400fb64f71a2a2",
       "mode": "100644"
     },
+    "src/pages/store/order-detail-return.test.ts": {
+      "sourceBlob": "c865e368ace642c84d2a4ffc3c17b0bbb340bc31",
+      "sourceSha256": "aa3c7e5153b357b3b4bb793365c62f45f2440744100a5269cdf48f5f6ce0b7af",
+      "targetBlob": "c865e368ace642c84d2a4ffc3c17b0bbb340bc31",
+      "targetSha256": "aa3c7e5153b357b3b4bb793365c62f45f2440744100a5269cdf48f5f6ce0b7af",
+      "mode": "100644"
+    },
     "src/pages/store/order-detail-runtime.behavior.test.ts": {
-      "sourceBlob": "986c50a7301f1c63136515da579387044c91396b",
-      "sourceSha256": "8b554384afdf26ba2d12ab30d01da1a1e6fbfd94251b5e38d64aa749c1364bf4",
-      "targetBlob": "986c50a7301f1c63136515da579387044c91396b",
-      "targetSha256": "8b554384afdf26ba2d12ab30d01da1a1e6fbfd94251b5e38d64aa749c1364bf4",
+      "sourceBlob": "ded5f2c94440f8c44e800e67f39e9b7d4a778eab",
+      "sourceSha256": "1be01387a0a07ad35444591160d82519c5d2f3f1c856d32e2f5226d911431b9c",
+      "targetBlob": "ded5f2c94440f8c44e800e67f39e9b7d4a778eab",
+      "targetSha256": "1be01387a0a07ad35444591160d82519c5d2f3f1c856d32e2f5226d911431b9c",
       "mode": "100644"
     },
     "src/pages/store/order-detail-server-truth.test.ts": {
-      "sourceBlob": "beb12af12ef169d8f9203d4bf7d7267d28c059e3",
-      "sourceSha256": "f9dc9aa27f905aaf3295a9cfba03005ce6c26733ec28960681d42d727d96376d",
-      "targetBlob": "beb12af12ef169d8f9203d4bf7d7267d28c059e3",
-      "targetSha256": "f9dc9aa27f905aaf3295a9cfba03005ce6c26733ec28960681d42d727d96376d",
+      "sourceBlob": "0254009d14b26baad809455d710c8c583ceda4f5",
+      "sourceSha256": "089774bbd390759bb03a769aed18abd3b49d3e6b47398a26e3bb859aa2cc33ee",
+      "targetBlob": "0254009d14b26baad809455d710c8c583ceda4f5",
+      "targetSha256": "089774bbd390759bb03a769aed18abd3b49d3e6b47398a26e3bb859aa2cc33ee",
       "mode": "100644"
     },
     "src/pages/store/order-detail.vue": {
-      "sourceBlob": "d4cc14e9e9cbb85edecd0d9e00f87688d3c75c4b",
-      "sourceSha256": "ee1ac9aac0afc754b954d129dbc5431353cdd73f36523148cc30f6120b119efe",
-      "targetBlob": "d4cc14e9e9cbb85edecd0d9e00f87688d3c75c4b",
-      "targetSha256": "ee1ac9aac0afc754b954d129dbc5431353cdd73f36523148cc30f6120b119efe",
+      "sourceBlob": "84ec08bf69356ad7e45a2eda3a6b1150beea87f4",
+      "sourceSha256": "5e270fb5adff22286d47f1d4b99c9cedb87cebd640159a4c7bf7c5718f628b3a",
+      "targetBlob": "84ec08bf69356ad7e45a2eda3a6b1150beea87f4",
+      "targetSha256": "5e270fb5adff22286d47f1d4b99c9cedb87cebd640159a4c7bf7c5718f628b3a",
       "mode": "100644"
     },
     "src/pages/store/orders-cold-session.test.ts": {
@@ -14454,10 +14461,10 @@
       "mode": "100644"
     },
     "src/pages/store/orders.vue": {
-      "sourceBlob": "f6e2f067e491c640716169b87b28c202b95ff853",
-      "sourceSha256": "a6b0a6abdc1a6cf14d5ac53d673c4a88e4ab0773f05b162751bc770d4fe90228",
-      "targetBlob": "f6e2f067e491c640716169b87b28c202b95ff853",
-      "targetSha256": "a6b0a6abdc1a6cf14d5ac53d673c4a88e4ab0773f05b162751bc770d4fe90228",
+      "sourceBlob": "2aa67a53d3c678013236ebf25f8e9c942c67f804",
+      "sourceSha256": "068f66352dc90d525566159de37e79ce5cddbee2ffd5b7a870edbf6fa5b0fc8c",
+      "targetBlob": "2aa67a53d3c678013236ebf25f8e9c942c67f804",
+      "targetSha256": "068f66352dc90d525566159de37e79ce5cddbee2ffd5b7a870edbf6fa5b0fc8c",
       "mode": "100644"
     },
     "src/pages/store/product-truth.contract.test.ts": {

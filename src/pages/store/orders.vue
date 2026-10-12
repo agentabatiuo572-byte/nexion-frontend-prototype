@@ -304,7 +304,7 @@ function goStore() {
   navTo("/store");
 }
 function goOrder(order: OrderListItem) {
-  navTo(order.kind === "genesis" ? "/pages/genesis/holder" : `/pages/store/order-detail?id=${order.id}`);
+  navTo(order.kind === "genesis" ? "/pages/genesis/holder" : `/pages/store/order-detail?id=${encodeURIComponent(order.id)}&from=${ordersBackHref.value === "/me" ? "me" : "store"}`);
 }
 
 const remoteErrorStyle: CSSProperties = {
