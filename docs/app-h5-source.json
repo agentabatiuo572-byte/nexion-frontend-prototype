@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\audit-artifacts\\uvel-full-test-20261001\\parallel-run-20261008\\fix-pool\\trial-onboarding-r414\\integration-latest-test-r422\\app-candidate",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-app-goal541-delete-fence-r428",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "a8a55ac99fb0faa37f17035fea336277d698c04a",
-  "sourceRef": "a8a55ac99fb0faa37f17035fea336277d698c04a",
+  "sourceHead": "034949e9b4ba3c09e344c8656b37f42cfcb0a855",
+  "sourceRef": "034949e9b4ba3c09e344c8656b37f42cfcb0a855",
   "sourceRefKind": "commit",
-  "sourceTree": "9d5bb74cbd3f302ba9994a786ba441c46cff5535",
+  "sourceTree": "b3ee9ca52fa0e80c34f14526c8fc75e9a184d58d",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -13278,17 +13278,17 @@
       "mode": "100644"
     },
     "src/pages/me/goals-save-fence.contract.test.ts": {
-      "sourceBlob": "8f50a2a822517f73c373f007fd9fbe632ffe07aa",
-      "sourceSha256": "9de50c165bf30e8e6b2933f6f4900f69dda244f8911353541747850e9424d19a",
-      "targetBlob": "8f50a2a822517f73c373f007fd9fbe632ffe07aa",
-      "targetSha256": "9de50c165bf30e8e6b2933f6f4900f69dda244f8911353541747850e9424d19a",
+      "sourceBlob": "681d78a74c91335f0a696fab0c63a2c06bc3ad87",
+      "sourceSha256": "56ef0f0f9ab6444cf9cf485bb6539dbfd55c64c6eb90653d9f771c241ee8b54a",
+      "targetBlob": "681d78a74c91335f0a696fab0c63a2c06bc3ad87",
+      "targetSha256": "56ef0f0f9ab6444cf9cf485bb6539dbfd55c64c6eb90653d9f771c241ee8b54a",
       "mode": "100644"
     },
     "src/pages/me/goals.vue": {
-      "sourceBlob": "cdcbab93305992c513bbcef3e15ab7e8e04e3be2",
-      "sourceSha256": "6f4a642fb8c3660420863d53bd45f65a63d0a5a09b02a120e57afe52a42739c5",
-      "targetBlob": "cdcbab93305992c513bbcef3e15ab7e8e04e3be2",
-      "targetSha256": "6f4a642fb8c3660420863d53bd45f65a63d0a5a09b02a120e57afe52a42739c5",
+      "sourceBlob": "b8345cf222503addf13e29b49fadb43fefa4cd8c",
+      "sourceSha256": "0b855c44dee17de56a82865efd77188d17d12bfddecae9cc534d90baf78dc4dc",
+      "targetBlob": "b8345cf222503addf13e29b49fadb43fefa4cd8c",
+      "targetSha256": "0b855c44dee17de56a82865efd77188d17d12bfddecae9cc534d90baf78dc4dc",
       "mode": "100644"
     },
     "src/pages/me/help-bot-timeout.test.ts": {

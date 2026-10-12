@@ -174,7 +174,7 @@ const goals = computed(() => goalsStore.goals);
 const target = ref(1000);
 const days = ref(90);
 const savePending = ref(false);
-const restoredGoal = ref<{ targetUSDT: number; days: number } | null>(null);
+const restoredGoal = ref<{ id: string; targetUSDT: number; days: number } | null>(null);
 const editorReadPending = ref(remoteApiEnabled && goalsStore.status !== "ready");
 const editorHasSnapshot = computed(() => !remoteApiEnabled || (!editorReadPending.value && goalsStore.status === "ready"));
 const editorBlocked = computed(() => savePending.value || !editorHasSnapshot.value);
@@ -275,7 +275,7 @@ function restoreEditorFromGoal(goal: Goal | undefined): void {
   target.value = goal?.targetUSDT ?? 1000;
   // The selected term is fixed at creation; remaining days are shown only in the goal row.
   days.value = goal ? Math.max(1, Math.round((goal.deadlineMs - goal.createdAt) / ONE_DAY_MS)) : 90;
-  restoredGoal.value = goal ? { targetUSDT: target.value, days: days.value } : null;
+  restoredGoal.value = goal ? { id: goal.id, targetUSDT: target.value, days: days.value } : null;
   restoringEditor = false;
 }
 
@@ -356,7 +356,8 @@ async function onSave() {
     ?? {
         targetUSDT: target.value,
         days: days.value,
-        deadlineMs: Date.now() + days.value * ONE_DAY_MS,
+        // Use the server's DATETIME second precision from the first POST; retries retain this deadline.
+        deadlineMs: Math.floor(Date.now() / 1000) * 1000 + days.value * ONE_DAY_MS,
         // IDEMPOTENCY-FRESH-OK:首次创建后立即写入 retryableSaveIntents；失败重试按同一 intentKey 复用，成功才删除。
         idempotencyKey: `goal-save-${globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}`,
       };
@@ -379,16 +380,28 @@ async function onSave() {
 
 async function remove(id: string) {
   if (!deleteFeedbackVisible) return;
+  const removedGoal = goalsStore.goals.find((goal) => goal.id === id);
   const expectedAccountKey = app.accountKey;
   const expectedBindingEpoch = app.accountBindingEpoch;
   const expectedAccountEpoch = goalsStore.accountEpoch;
   const expectedGeneration = deleteFeedbackGeneration;
+  const isCurrentDelete = () => deleteFeedbackVisible && expectedGeneration === deleteFeedbackGeneration
+    && expectedAccountKey === app.accountKey && expectedBindingEpoch === app.accountBindingEpoch
+    && expectedAccountEpoch === goalsStore.accountEpoch;
   try {
     await goalsStore.remove(id);
+    if (!isCurrentDelete() || goalsStore.goals.some((goal) => goal.id === id)) return;
+    if (restoredGoal.value?.id === id) restoredGoal.value = null;
+    // A confirmed deletion ends only the exact recovered save, not other unknown POST outcomes.
+    if (removedGoal) {
+      for (const [intentKey, intent] of retryableSaveIntents) {
+        if (intent.targetUSDT === removedGoal.targetUSDT && intent.deadlineMs === removedGoal.deadlineMs) {
+          retryableSaveIntents.delete(intentKey);
+        }
+      }
+    }
   } catch {
-    if (!deleteFeedbackVisible || expectedGeneration !== deleteFeedbackGeneration
-        || expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch
-        || expectedAccountEpoch !== goalsStore.accountEpoch) return;
+    if (!isCurrentDelete()) return;
     ui.pushToast({ kind: "warn", title: t.value.goals.serverUnavailable });
   }
 }
