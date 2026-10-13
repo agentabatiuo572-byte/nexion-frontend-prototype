@@ -9,6 +9,8 @@ import source from './promotion-checkout.vue?raw';
 import { projectServerNow } from '@/lib/server-deadline-clock';
 import { promotionZH } from '@/i18n/messages/promotion';
 import { formatAmount } from '@/lib/amount-display';
+import { fmt } from '@/i18n/format';
+import { zh } from '@/i18n/messages/zh';
 import { PromotionCheckoutSession,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
 import type { Quote } from '@/api/promotion-contracts';
 
@@ -88,7 +90,7 @@ it('a failed reminder save permits navigation while preserving the existing fina
   for(const command of Object.values(ports.api))expect(command).not.toHaveBeenCalled();
 });
 
-const purchaseVariables=['rewards','disclosures','completeTerms','canCreate','canPay'];
+const purchaseVariables=['rewards','disclosures','completeTerms','canCreate','canPay','paymentDialogOwner','paymentConfirming'];
 const purchaseFunctions=['disclosure','run','createOrder','pay','updateClock','loadOrderClock','recover','requestLeave','finishLeave'];
 const purchaseStatements=ast.statements.filter(node=>
   ts.isFunctionDeclaration(node)&&!!node.name&&purchaseFunctions.includes(node.name.text)
@@ -109,9 +111,10 @@ function purchaseHarness({rewardRows=[] as unknown[],built=false,busy=false,unkn
   let now:number|null=clock?100:null;
   const canExecute=vi.fn(()=>executable),create=vi.fn(async()=>{}),pay=vi.fn(async()=>{}),recover=vi.fn(async()=>{});
   const fleet=vi.fn(async()=>({serverNow:Date.parse(serverTime),devices:[]}));
-  const deps={computed,current:()=>current,busy:ref(busy),unknown:ref(unknown),error:ref(''),
+  const deps={computed,current:()=>current,visible:true,readGeneration:0,readCurrent:()=>current,
+    confirm:vi.fn().mockResolvedValue(true),fmt,formatAmount,t:ref(zh),busy:ref(busy),unknown:ref(unknown),error:ref(''),
     props:{items:[]},quote:ref({expectedRewards:rewardRows,eligibility,items:bundle?[{},{}]:[{}],serverTime,expiresAt:fresh?'2026-10-08T00:00:05Z':serverTime}),
-    order:ref(built?{rewards:rewardRows,paymentStatus:status,payBy:paymentDeadline}:null),quoteFresh:ref(fresh),payWindow:ref<boolean|null>(null),
+    order:ref(built?{orderNo:'ORD-1',amountUsdt:'50.00',rewards:rewardRows,paymentStatus:status,payBy:paymentDeadline}:null),quoteFresh:ref(fresh),payWindow:ref<boolean|null>(null),
     promotion:ref({serverTime,state:promotionState,endsAt:serverTime}),projectServerNow,readTrustedMonotonicNowMs:()=>now,
     leaveOpen:ref(false),
     initialReceivedAt:quoteClock?100:null,initialPromotionReceivedAt:promotionClock?100:null,
@@ -257,7 +260,7 @@ it('clock recovery preserves unknown-command guards and the original retry choic
 });
 it.each([false,true])('the completed create command immediately projects its original deadline, elapsed=%s',async elapsed=>{
   const page=purchaseHarness();page.createCommand.mockImplementationOnce(async()=>{
-    page.deps.order.value={rewards:[],paymentStatus:'PENDING',payBy:'2026-10-08T00:00:10Z'};
+    page.deps.order.value={orderNo:'ORD-1',amountUsdt:'50.00',rewards:[],paymentStatus:'PENDING',payBy:'2026-10-08T00:00:10Z'};
     if(elapsed)page.setNow(10100);
   });
   await page.createOrder();expect(page.createCommand).toHaveBeenCalledOnce();expect(page.canPay.value).toBe(!elapsed);

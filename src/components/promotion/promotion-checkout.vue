@@ -74,7 +74,8 @@ import { useT } from '@/i18n/use-t';import { useLocaleStore } from '@/store/loca
 import { useVoucher } from '@/store/voucher';
 import { asApiError } from '@/api/errors';
 import { getProduct as readProduct } from '@/mock/products';import { refreshProductCatalog,productCatalogState,productCatalogPresentation } from '@/store/product-catalog';
-import { navTo,navBack } from '@/lib/route';import { confirm } from '@/store/ui';
+import { navTo,navBack } from '@/lib/route';import { confirm,useUI } from '@/store/ui';
+import { fmt } from '@/i18n/format';
 import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
 import { acquireAccountCommandKey,readAccountRow,writeAccountRow } from '@/store/account-scoped-storage';
 import { registerCheckoutLeaveGuard,requestCheckoutLeave } from '@/lib/promotion-leave-guard';
@@ -138,7 +139,25 @@ async function loadQuote(){
 }
 async function chooseVoucher(){if(openedOriginal||busy.value||session.record.pending||order.value||items.value.length!==1)return;await voucher.refreshRemote();if(!current())return;const options=voucher.claimedUnused;uni.showActionSheet({itemList:[p.value.noVoucher,...options.map(v=>v.name)],success:result=>{if(!current())return;voucherId.value=result.tapIndex===0?null:options[result.tapIndex-1]?.id??null;void loadQuote();}});}
 async function createOrder(){if(!canCreate.value)return;await run(()=>session.create());}
-async function pay(){updateClock();if(!canPay.value)return;await run(()=>session.pay());}
+const paymentDialogOwner=`promotion-payment:${Date.now()}:${Math.random()}`;
+let paymentConfirming=false;
+async function pay(){
+  updateClock();if(paymentConfirming||!visible||!current()||!canPay.value)return;
+  const expectedOrder=order.value,generation=readGeneration;
+  if(!expectedOrder)return;
+  const {orderNo,amountUsdt}=expectedOrder;
+  paymentConfirming=true;
+  try{
+    const accepted=await confirm({
+      title:t.value.store.coConfirmPurchase,
+      message:fmt(t.value.store.coConfirmPurchaseMessage,{amount:formatAmount(amountUsdt)}),
+      confirmLabel:t.value.store.coConfirmPayment,cancelLabel:t.value.store.coCancel,owner:paymentDialogOwner,
+    });
+    updateClock();
+    if(!accepted||!readCurrent(generation)||!canPay.value||order.value?.orderNo!==orderNo||order.value?.amountUsdt!==amountUsdt)return;
+    await run(()=>session.pay());
+  }finally{paymentConfirming=false;}
+}
 async function recover(){await run(async()=>{await session.recover();if(!current())return;revision.value++;await loadOrderClock();});}
 async function startNewPurchase(){if(!canStartNew.value||props.orderNo||openedOriginal)return;session.startNewPurchase();asked='';voucherId.value=null;revision.value++;await loadQuote();}
 async function cancelOrder(){if(!canCancel.value)return;const ok=await confirm({title:p.value.cancelTitle,message:p.value.cancelBody,confirmLabel:p.value.cancelOrder,cancelLabel:p.value.keep,danger:true});if(ok&&current())await run(()=>session.cancel());}
@@ -164,6 +183,7 @@ let nativeBackApproved=false;
 function back():boolean{if(nativeBackApproved){nativeBackApproved=false;return false;}void requestLeave().then(ok=>{if(ok&&current()){nativeBackApproved=true;navBack('/store');}});return true;}
 function hide(){
   visible=false;readGeneration++;refreshOnIdle=false;termsOpen.value=false;promotion.value=null;promotionReceivedAt=null;
+  useUI().clearConfirmsBy(paymentDialogOwner);
   if(current()&&!session.record.pending&&!session.record.order){
     freshQuoteReady.value=false;receivedAt=null;quoteFresh.value=false;
     try{if(session.record.quote)session.invalidateQuote();}catch{error.value=p.value.errorNote;}

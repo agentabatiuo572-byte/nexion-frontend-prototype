@@ -169,8 +169,8 @@
             <!-- 异常4: $0 due keeps the explicit confirm; surplus never refunds -->
             <text v-if="trialZeroDue" class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 6px; text-wrap: pretty">{{ t.store.coTrialZeroNote }}</text>
           </view>
-          <view class="w-full grid place-items-center active:opacity-90 active:scale-[0.98]" :style="confirmCtaStyle" role="button" tabindex="0" :aria-label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click.stop="onConfirmPay">
-            <text @click.stop="onConfirmPay">{{ isCard ? t.store.coContinueToPayment : t.store.coPayNow }}</text>
+          <view class="w-full grid place-items-center active:opacity-90 active:scale-[0.98]" :style="confirmCtaStyle" role="button" tabindex="0" :aria-label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click.stop="requestConfirmPay">
+            <text @click.stop="requestConfirmPay">{{ isCard ? t.store.coContinueToPayment : t.store.coPayNow }}</text>
           </view>
           <view class="w-full grid place-items-center active:bg-[var(--v5-surface-3)]" :style="changePayBtnStyle" role="button" tabindex="0" :aria-label="t.store.coChangePayment" @click.stop="goSelectPayment">
             <text @click.stop="goSelectPayment">{{ t.store.coChangePayment }}</text>
@@ -1092,13 +1092,49 @@ let quotedTradeIn: { deviceId: string } | null = null;
 /** 上一次结算尝试里核销了却没放回的券 id(storage 抖动);下一次尝试开头先补放回。 */
 let pendingVoucherRelease: string | null = null;
 
+let purchaseConfirmationOpen = false;
+async function requestConfirmPay() {
+  if (purchaseConfirmationOpen || confirming || checkoutWalletRefreshing.value || step.value !== "confirm") return;
+  const scope = captureCheckoutRoute();
+  const amount = netPrice.value + cardFee.value;
+  if (!Number.isFinite(amount) || amount < 0) return;
+  purchaseConfirmationOpen = true;
+  dialogsOpen += 1;
+  try {
+    const accepted = await confirm({
+      title: t.value.store.coConfirmPurchase,
+      message: fmt(t.value.store.coConfirmPurchaseMessage, { amount: formatAmount(amount) }),
+      confirmLabel: t.value.store.coConfirmPayment,
+      cancelLabel: t.value.store.coCancel,
+      owner: dialogOwner,
+    });
+    if (!accepted || !isCurrentCheckoutRoute(scope) || step.value !== "confirm") return;
+    if (amount !== netPrice.value + cardFee.value) {
+      toast.warn(t.value.store.coTotalQuoteChanged);
+      step.value = "select-payment";
+      return;
+    }
+    await onConfirmPay();
+  } finally {
+    purchaseConfirmationOpen = false;
+    dialogsOpen = Math.max(0, dialogsOpen - 1);
+  }
+}
+
 async function onConfirmPay() {
   if (confirming || checkoutWalletRefreshing.value || step.value !== "confirm") return;
   confirming = true;
   const recoveryScope = captureCheckoutRoute();
+  const confirmedAmount = netPrice.value + cardFee.value;
   if (remoteApiEnabled) {
     const recovering = await resumeServerOrder(recoveryScope);
     if (recovering || !isCurrentCheckoutRoute(recoveryScope)) { confirming = false; return; }
+  }
+  if (confirmedAmount !== netPrice.value + cardFee.value) {
+    confirming = false;
+    toast.warn(t.value.store.coTotalQuoteChanged);
+    step.value = "select-payment";
+    return;
   }
   trialQuote = trialView.value;
   quotedTotal = +(netPrice.value + cardFee.value).toFixed(2);
@@ -1656,6 +1692,7 @@ onHide(() => {
   if(promotionRoute.value){promotionCheckout.value?.hide();return;}
   pageVisible = false;
   invalidateCheckoutRoute();
+  if (dialogsOpen > 0) useUI().clearConfirmsBy(dialogOwner);
   // 页面被别的页压住(前向导航)时,让浮动条在上面那页露出这张发票;回来 onShow 再收起。
   if (activeSession.value && pending.viewingId === activeSession.value.id) pending.setViewing(null);
 });

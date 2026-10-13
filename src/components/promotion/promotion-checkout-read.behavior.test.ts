@@ -11,6 +11,7 @@ import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCh
 import { projectServerNow } from '@/lib/server-deadline-clock';
 import { displayDeadline,localized } from '@/lib/promotion-display';
 import { formatAmount } from '@/lib/amount-display';
+import { fmt } from '@/i18n/format';
 import type { OrderReceipt,PublicPromotion,Quote } from '@/api/promotion-contracts';
 
 const serverTime='2026-10-08T00:00:00Z',text={zh:'原赠品条件',en:'Original gift terms',vi:'Điều khoản quà tặng'};
@@ -40,15 +41,17 @@ function screen(stored?:PromotionCheckoutRecord){
   const key=vi.fn(()=> 'original-key'),fleet=vi.fn().mockResolvedValue({serverNow:Date.parse(serverTime)});
   const getProduct=vi.fn().mockReturnValue({name:'Selected device'}),catalog=Vue.reactive({status:'ready'}),presentation=Vue.ref<{products:{id:string;name:string}[]}|null>({products:[{id:'sku',name:'Selected device'}]});
   vi.stubGlobal('setInterval',vi.fn(()=>0));vi.stubGlobal('clearInterval',vi.fn());
+  const confirm=vi.fn().mockResolvedValue(false),clearConfirmsBy=vi.fn();
   const modules:Record<string,unknown>={
     '@/lib/amount-display':{formatAmount},
+    '@/i18n/format':{fmt},
     vue:{...Vue,onMounted:(fn:()=>Promise<void>)=>mounted.push(fn),onBeforeUnmount:(fn:()=>void)=>unmounted.push(fn)},
     'vue-router':{onBeforeRouteLeave:vi.fn()},
     '@/api/runtime':{promotionApi:api,deviceE3Api:{fleet}},'@/api/errors':{asApiError},
     '@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/store/locale':{useLocaleStore:()=>({code:'zh'})},'@/store/app':{useApp:()=>app},'@/store/auth':{useAuth:()=>({isAuthenticated:true})},
     '@/store/voucher':{useVoucher:()=>({catalog:[],claimedUnused:[],refreshRemote:vi.fn()})},'@/mock/products':{getProduct},
     '@/store/product-catalog':{productCatalogState:catalog,productCatalogPresentation:presentation,refreshProductCatalog:vi.fn().mockResolvedValue(true)},
-    '@/lib/route':{navTo:vi.fn(),navBack:vi.fn()},'@/store/ui':{confirm:vi.fn().mockResolvedValue(false)},
+    '@/lib/route':{navTo:vi.fn(),navBack:vi.fn()},'@/store/ui':{confirm,useUI:()=>({clearConfirmsBy})},
     '@/lib/promotion-checkout-session':{PromotionCheckoutSession,selectPromotionCheckoutRecord},
     '@/store/account-scoped-storage':{readAccountRow:()=>rows,writeAccountRow:save,acquireAccountCommandKey:key},
     '@/lib/promotion-leave-guard':{registerCheckoutLeaveGuard:guardRegistration,requestCheckoutLeave:vi.fn().mockResolvedValue(true)},
@@ -65,8 +68,26 @@ function screen(stored?:PromotionCheckoutRecord){
   cleanup.push(()=>{unmounted.forEach(fn=>fn());scope.stop();});
   const passthrough={setup:(_props:unknown,{slots}:Vue.SetupContext)=>()=>Vue.h('view',slots.default?.())};
   const html=()=>renderToString(Vue.createSSRApp({components:{PromotionAction:passthrough,PromotionTerms:empty,RewardRows:empty,LiquidGlass:empty},render:()=>render(Vue.proxyRefs({...Vue.toRefs(props),...view}),[])}));
-  return{view,exposed,api,save,key,app,fleet,props,getProduct,catalog,presentation,html,start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
+  return{view,exposed,api,save,key,app,fleet,props,getProduct,catalog,presentation,html,confirm,clearConfirmsBy,start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
 }
+
+it('payment confirmation cancels without a command, then an explicit acceptance pays the same order once',async()=>{
+  const page=screen({quote:quote(),order:receipt(),pending:null});await page.start();
+  await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();expect(page.saved().order?.paymentStatus).toBe('PENDING');
+  expect(page.confirm).toHaveBeenCalledWith(expect.objectContaining({message:'确认支付 120.00 USDT 购买所选商品？'}));
+  const decision=deferred<boolean>();page.confirm.mockReturnValueOnce(decision.promise);
+  const pending=page.view.pay();await page.view.pay();expect(page.confirm).toHaveBeenCalledTimes(2);
+  decision.resolve(true);await pending;expect(page.api.pay).toHaveBeenCalledOnce();
+  expect(page.api.pay).toHaveBeenCalledWith('o1','original-key');expect(page.saved().order?.paymentStatus).toBe('PAID');
+});
+it.each(['hide','account','expired'] as const)('a delayed payment confirmation after %s does not pay',async change=>{
+  const page=screen({quote:quote(),order:receipt(),pending:null});await page.start();
+  const decision=deferred<boolean>();page.confirm.mockReturnValueOnce(decision.promise);const pending=page.view.pay();
+  if(change==='hide'){page.exposed.hide();expect(page.clearConfirmsBy).toHaveBeenCalledWith(expect.stringContaining('promotion-payment:'));}
+  if(change==='account')page.app.accountBindingEpoch++;
+  if(change==='expired')page.view.order.value.payBy='2026-10-07T00:00:00Z';
+  decision.resolve(true);await pending;expect(page.api.pay).not.toHaveBeenCalled();
+});
 
 it('fresh hide invalidates and persists the unlocked quote, closes terms, then show obtains a new quote',async()=>{
   const page=screen();await page.start();page.view.termsOpen.value=true;

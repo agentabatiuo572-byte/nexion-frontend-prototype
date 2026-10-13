@@ -1687,7 +1687,7 @@ Price box 之后的紧迫感 strip(Sprint A-1 / B.1)。**目的**:让产品页�
 | Card | Subtotal + Card processing fee (3.5%) + Total | `price × 1.035` |
 | 链上(USDT 三网络)| Network fee: Free + Total | `price` |
 
-CTA 文案:Card 显示 `Continue to payment`(继续进入支付),链上显示 `Pay now`(立即支付)。**点击 CTA 直接进 pay-instructions,不弹任何 confirm modal**(去除冗余双重确认)。
+结算页点击付款先展示购买确认弹窗，明确应付金额和 USDT 币种；取消、关闭或离页不触发付款。确认后执行原支付流程，不要求支付密码或手机验证码；支付成功以实际支付结果为准。活动结算页付款采用相同确认规则。确认期间金额变化、订单过期或账户变化时不得继续旧确认；余额不足、失败重试及结果未知回查沿用原流程。
 
 #### 7.3.3 pay-instructions 分支
 

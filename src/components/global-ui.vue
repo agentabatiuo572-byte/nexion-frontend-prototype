@@ -235,7 +235,7 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
   align-items: center;
   justify-content: center;
   height: 46px;
-  border-radius: 12px;
+  border-radius: var(--v5-radius-full);
 }
 .nx-btn--primary { background: var(--v5-brand); }
 .nx-btn--danger { background: var(--v5-danger); }

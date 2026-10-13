@@ -32,6 +32,14 @@ function harness() {
 }
 
 describe("real trial checkout refusal and recovery feedback", () => {
+  it("requires another quote review if the amount changes during order recovery", async () => {
+    const h = harness(); let resolve!: (result: boolean) => void;
+    h.resumeServerOrder.mockReturnValue(new Promise(r => { resolve = r; }));
+    const pending = h.pay(); h.netPrice.value += 1; resolve(false); await pending;
+    expect(h.freeTrial.convert).not.toHaveBeenCalled(); expect(h.submitRemoteOrder).not.toHaveBeenCalled();
+    expect(h.toast.warn).toHaveBeenCalledWith(en.store.coTotalQuoteChanged);
+    expect(h.step.value).toBe("select-payment");
+  });
   it("offers the normal balance warning/recharge route and preserves the confirmation step", async () => {
     const h = harness(); h.freeTrial.convert.mockResolvedValue({ ok: false, reason: "insufficient-funds" });
     await h.pay();
