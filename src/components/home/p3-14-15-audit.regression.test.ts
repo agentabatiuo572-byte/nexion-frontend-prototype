@@ -80,7 +80,9 @@ describe("P3-14/15 audit regressions", () => {
   });
 
   it("invalidates an in-flight published-content request when the component unmounts", () => {
-    expect(howSource).toContain('import { onUnmounted, ref, watch } from "vue";');
+    const vueImports = howSource.match(/import\s*\{([^}]+)\}\s*from\s*["']vue["']/)?.[1]
+      .split(",").map(name => name.trim());
+    expect(vueImports).toEqual(expect.arrayContaining(["onUnmounted", "ref", "watch"]));
     expect(howSource).toContain('onUnmounted(() => requestFence.invalidate());');
   });
 });

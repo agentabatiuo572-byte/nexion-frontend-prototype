@@ -128,6 +128,7 @@ export const zh: Messages = {
   },
   howPublished: {
     loading: "正在加载说明…",
+    languageFallback: "此说明暂未提供所选语言，以下显示已发布的可用语言文本。",
     unavailableTitle: "说明暂时无法加载",
     unavailableBody: "未能获取已发布的说明，请重试。",
   },

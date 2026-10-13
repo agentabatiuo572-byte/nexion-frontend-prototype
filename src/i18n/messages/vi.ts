@@ -128,6 +128,7 @@ export const vi: Messages = {
   },
   howPublished: {
     loading: "Đang tải hướng dẫn…",
+    languageFallback: "Hướng dẫn này chưa có bản bằng ngôn ngữ bạn đã chọn. Bên dưới là nội dung đã xuất bản bằng ngôn ngữ có sẵn.",
     unavailableTitle: "Nội dung tạm thời không khả dụng",
     unavailableBody: "Không thể tải hướng dẫn đã xuất bản. Vui lòng thử lại.",
   },

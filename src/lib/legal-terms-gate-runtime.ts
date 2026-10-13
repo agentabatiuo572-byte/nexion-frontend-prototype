@@ -11,6 +11,7 @@ import {
   claimLegalTermsRedirect,
   isLegalTermsGateExemptRoute,
   LEGAL_TERMS_ROUTE,
+  LOGIN_ROUTE,
   PRIVACY_POLICY_ROUTE,
   sameLegalTermsRun,
   isLegalTermsAcknowledged,
@@ -18,7 +19,7 @@ import {
   type LegalTermsSessionFence,
 } from "@/lib/legal-terms-gate";
 
-let inFlight: { key: string; locale: string; generation: number; promise: Promise<void> } | null = null;
+let inFlight: { key: string; locale: string; generation: number; promise: Promise<void>; cancelRetry?: () => void } | null = null;
 let readGeneration = 0;
 const failedKeys = new Set<string>();
 const redirectedKeys = new Set<string>();
@@ -107,7 +108,8 @@ function rescheduleAfterSessionChange(expected: LegalTermsSessionFence, returnTo
 
 function currentPendingRequirement(): typeof pendingRequirement {
   const current = fence();
-  if (!current || !pendingRequirement) return null;
+  if (!current) { cancelVerificationRead(); return null; }
+  if (!pendingRequirement) return null;
   return pendingRequirement.key === sessionKey(current)
     || (pendingRequirement.sessionFence.userId === current.userId
       && sessionVault.isRefreshContinuation(pendingRequirement.sessionFence.sessionRevision ?? -1))
@@ -122,6 +124,16 @@ function beginVerification(key: string): void {
 function finishVerification(key: string): void {
   if (!verificationKeys.delete(key)) return;
   if (verificationKeys.size === 0) uni.hideLoading();
+}
+
+/** Relinquish the global read while Login or Terms owns the visible flow. */
+function cancelVerificationRead(): void {
+  const read = inFlight;
+  if (!read) return;
+  inFlight = null;
+  read.cancelRetry?.();
+  finishVerification(read.key);
+  latestGateRouteByKey.delete(read.key);
 }
 
 function redirectToRequiredTerms(key: string, returnTo: string): void {
@@ -150,9 +162,13 @@ export function hasPendingLegalTermsRequirement(): boolean {
  */
 export function enforcePendingLegalTermsGate(returnTo: string): boolean {
   if (!remoteApiEnabled) return false;
+  const path = `/${returnTo.replace(/^#?\/?/, "").split("?", 1)[0]}`;
+  if (path === LEGAL_TERMS_ROUTE || path === LOGIN_ROUTE) {
+    cancelVerificationRead();
+    return false;
+  }
   const pending = currentPendingRequirement();
   if (!pending) return false;
-  const path = `/${returnTo.replace(/^#?\/?/, "").split("?", 1)[0]}`;
   if (path === PRIVACY_POLICY_ROUTE) return false;
   // While current() is unresolved, the masked loading layer blocks input and
   // App treats true as a signal to stop every business loop. Do not flash an
@@ -185,7 +201,7 @@ export function recordLegalTermsAcknowledged(
   acknowledgedSession = { locale: requestedLocale, sessionFence: current };
   // A page-owned confirmation may supersede a still-pending global read. The
   // selected request locale also permits an explicitly displayed fallback doc.
-  if (inFlight?.key === key) inFlight = null;
+  cancelVerificationRead();
   finishVerification(key);
   const pending = currentPendingRequirement();
   if (pending) {
@@ -223,9 +239,11 @@ export function scheduleLegalTermsGate(returnTo = "/pages/index/index"): Promise
   // gate while that page is visible loses its query return target because the
   // App route reader intentionally strips query strings.
   const path = `/${returnTo.replace(/^#?\/?/, "").split("?", 1)[0]}`;
-  if (path === LEGAL_TERMS_ROUTE) return Promise.resolve();
   const requestFence = fence();
-  if (!requestFence) return Promise.resolve();
+  if (path === LEGAL_TERMS_ROUTE || path === LOGIN_ROUTE || !requestFence) {
+    cancelVerificationRead();
+    return Promise.resolve();
+  }
   const requestLocale = useLocaleStore().code;
   const key = sessionKey(requestFence);
   latestGateRouteByKey.set(key, returnTo);
@@ -240,6 +258,7 @@ export function scheduleLegalTermsGate(returnTo = "/pages/index/index"): Promise
     if (publicPrivacyRoute) finishVerification(key);
     return inFlight.promise;
   }
+  inFlight?.cancelRetry?.();
   // Every authoritative recheck is fail-closed, including a previously
   // acknowledged session: a newly published version must not gain a network
   // response window in which business activity can continue.
@@ -264,9 +283,16 @@ export function scheduleLegalTermsGate(returnTo = "/pages/index/index"): Promise
     try {
       return await legalTermsApi.current(requestLocale, "GLOBAL", true);
     } catch (error) {
-      if (!(error instanceof ApiError) || !error.retryable) throw error;
-      // Keep business actions gated while one transient read gets a second chance.
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      const rateLimited = error instanceof ApiError && error.kind === "http" && error.status === 429;
+      if (!(error instanceof ApiError) || (!error.retryable && !rateLimited)) throw error;
+      if (!ownsRead() || !sameLegalTermsSession(requestFence, fence()) || requestLocale !== useLocaleStore().code) throw error;
+      // Only this authenticated GET gets one retry; retain the gate and give a
+      // rate limit more time to clear without changing write retry semantics.
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, rateLimited ? 5_000 : 300);
+        inFlight!.cancelRetry = () => { clearTimeout(timer); resolve(); };
+      });
+      if (ownsRead()) inFlight!.cancelRetry = undefined;
       if (!ownsRead() || !sameLegalTermsSession(requestFence, fence()) || requestLocale !== useLocaleStore().code) throw error;
       return legalTermsApi.current(requestLocale, "GLOBAL", true);
     }

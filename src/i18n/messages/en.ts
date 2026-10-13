@@ -127,6 +127,7 @@ export const en = {
   },
   howPublished: {
     loading: "Loading explanation…",
+    languageFallback: "This explanation is not available in your selected language. The available published language is shown below.",
     unavailableTitle: "Content is temporarily unavailable",
     unavailableBody: "The published explanation could not be loaded. Please retry.",
   },
