@@ -10,6 +10,7 @@ import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
+import { formatTrialDate } from "@/lib/trial-date";
 import { formatHowNumber } from "@/lib/rank-how-content";
 import { buildCommissionsHowContent, createCommissionsHowResource, COMMISSIONS_HOW_SLOTS, type CommissionsHowSnapshot } from "@/lib/commissions-how-content";
 import type { CommissionEvent, CommissionKind } from "@/store/commission";
@@ -69,6 +70,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const shows: Array<() => void> = [];
   const defaults: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/trial-date": { formatTrialDate },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: slot },
@@ -106,6 +108,7 @@ const event = (kind: CommissionKind): CommissionEvent => ({
   ts: 1790812800000, unlockAt: 1790812800000, status: "unlocked",
 });
 async function commissions(code: Locale = "en") {
+  const locale = Vue.ref(code);
   const commission = Vue.reactive({
     eventsStatus: "idle", events: [] as CommissionEvent[], eventsEvidence: null, eventsTotalRows: 0,
     eventsLoadMoreStatus: "idle", unlockMatured: vi.fn(), loadMoreCanonicalEvents: vi.fn(),
@@ -123,9 +126,10 @@ async function commissions(code: Locale = "en") {
   const navTo = vi.fn();
   const page = await mount(commissionsSource, {
     "@/store/commission": { useCommission: () => commission }, "@/api/runtime": { remoteApiEnabled: true },
-    "@/i18n/use-t": { useT: () => Vue.ref(dictionaries[code]) }, "@/lib/route": { navTo },
+    "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.value]) }, "@/lib/route": { navTo },
+    "@/i18n/format": { fmt, dateLocale: () => ({ en: "en-US", zh: "zh-CN", vi: "vi-VN" })[locale.value] },
   });
-  return { ...page, commission, reads, navTo };
+  return { ...page, commission, reads, navTo, locale };
 }
 function guideSnapshot(): CommissionsHowSnapshot {
   const bodies: Record<string, string> = {
@@ -165,7 +169,51 @@ async function guide(code: Locale = "en") {
   return { ...page, locale, reads, published, navBack };
 }
 const buttons = (root: Host) => all(root).filter(item => item.props.role === "button");
-afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); });
+afterEach(() => {
+  unmounts.splice(0).forEach(unmount => unmount());
+  vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs();
+});
+
+for (const [zone, localDate] of [["Asia/Tokyo", "2026-10-12"], ["Asia/Ho_Chi_Minh", "2026-10-11"]]) {
+  test.each(["missing Intl", "English fallback", "throws"])(`544 ${zone} %s retains local commission dates across zh/en/vi`, async mode => {
+    vi.stubEnv("TZ", zone);
+    if (mode === "missing Intl") vi.stubGlobal("Intl", undefined);
+    const nativeLocale = vi.spyOn(Date.prototype, "toLocaleDateString").mockImplementation(() => {
+      if (mode === "throws") throw new Error("Android locale formatter unavailable");
+      return "Mon Oct 12 2026";
+    });
+    const page = await commissions("zh"); await page.show();
+    const timestamp = Date.parse("2026-10-11T15:30:00Z");
+    const originalEvents = kinds.map(kind => ({ ...event(kind), ts: timestamp, sourceRef: `REF-${kind}`, sourceDeviceId: "DEVICE-7" }));
+    page.reads[0].resolve(originalEvents); await flush();
+    for (const language of ["zh", "en", "vi"] as const) {
+      page.locale.value = language; await Vue.nextTick();
+      for (const kind of kinds) {
+        const copy = dictionaries[language];
+        expect(text(page.root)).toContain(`${copy.commissions.kind[kind]} · ${kind === "direct_purchase" ? copy.directReferral.order : copy.directReferral.receipt} REF-${kind} · ${copy.directReferral.device}: DEVICE-7 · ${localDate}`);
+      }
+      expect(text(page.root)).not.toMatch(/Mon Oct|Invalid Date|NaN|GMT\+/);
+      expect(all(page.root).filter(item => item.props.style?.marginTop === "2px" && item.props.style?.fontSize === "12px")
+        .some(item => item.props.style.color === "var(--v5-ink-3)" && text(item).endsWith(localDate))).toBe(true);
+    }
+    expect(nativeLocale).not.toHaveBeenCalled();
+    expect(originalEvents.map(item => [item.ts, item.amountUSDT, item.amountNEX, item.status]))
+      .toEqual(kinds.map(() => [timestamp, 7, 0, "unlocked"]));
+  });
+}
+
+test.each([NaN, Infinity, -Infinity, 8.64e15 + 1, -8.64e15 - 1, null, undefined, "", "not-a-date"])(
+  "544 unknown or invalid commission timestamp %s stays unknown",
+  async timestamp => {
+    const page = await commissions("zh"); await page.show();
+    page.reads[0].resolve([{ ...event("direct_purchase"), ts: timestamp as number }]); await flush();
+    for (const language of ["zh", "en", "vi"] as const) {
+      page.locale.value = language; await Vue.nextTick();
+      expect(text(page.root)).toContain(`${dictionaries[language].commissions.kind.direct_purchase} · —`);
+      expect(text(page.root)).not.toMatch(/Invalid Date|NaN|1970/);
+    }
+  },
+);
 
 test.each(["en", "zh", "vi"] as const)("commissions %s retains real device source and paired pending recovery fields", async code => {
   const page = await commissions(code); await page.show();
