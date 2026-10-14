@@ -188,6 +188,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   // Presentation only: keep the last confirmed promotion mounted during reads.
   // Never use this retained value to authorize a claim; canStart stays fail-closed.
   const confirmedPromoVisible = ref(false);
+  const confirmedPromoKnown = ref(false);
   const confirmedHeroVisible = ref(false);
   const remoteEligibilityReason = ref<TrialIneligibleReason>("unknown");
   const authorityClaimNo = ref<string | null>(null);
@@ -269,6 +270,8 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       authorityError.value = null;
       return true;
     }
+    // Validate the whole policy before committing snapshot or promotion presentation.
+    useTrialConfig().applyAuthoritative(next.config);
     lastAppliedSequence = Math.max(lastAppliedSequence, sequence);
     load({
       status: next.status,
@@ -285,13 +288,13 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     authoritativeShadowNEX.value = next.shadowNEX;
     remoteCanStart.value = next.canStart;
     confirmedPromoVisible.value = next.canStart && next.status === "none";
+    confirmedPromoKnown.value = true;
     confirmedHeroVisible.value = next.status === "none"
       && (next.canStart || next.eligibilityReason === "product-unavailable");
     remoteEligibilityReason.value = next.eligibilityReason ?? "unknown";
     authorityClaimNo.value = next.claimNo;
     authorityServerState.value = next.serverState;
     authorityVersion.value = next.version;
-    useTrialConfig().applyAuthoritative(next.config);
     authorityStatus.value = "ready";
     authorityError.value = null;
     return true;
@@ -353,6 +356,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       accountBindingEpoch++;
       lastAppliedSequence = ++authorityRequestSequence;
       confirmedPromoVisible.value = false;
+      confirmedPromoKnown.value = false;
       confirmedHeroVisible.value = false;
       clearRemoteFacts();
       // A rebind invalidates even same-key responses. Start this generation's
@@ -406,6 +410,8 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   const promoSlot = computed<"pending" | "visible" | "hidden">(() => {
     if (confirmedPromoVisible.value) return "visible";
     if (!remoteApiEnabled) return canStart() ? "visible" : "hidden";
+    // Initial skeletons must not reappear during reads of a confirmed hidden slot.
+    if (confirmedPromoKnown.value) return "hidden";
     return authorityStatus.value === "loading" || authorityStatus.value === "unknown"
       ? "pending" : "hidden";
   });

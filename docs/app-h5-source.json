@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\audit-artifacts\\uvel-full-test-20261001\\parallel-run-20261008\\fix-pool\\app-bug544-reconcile-r527\\candidate-app",
+  "sourcePath": "D:\\workspace\\audit-artifacts\\uvel-full-test-20261001\\parallel-run-20261008\\fix-pool\\code-me-layout-r884\\app-candidate",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "35aa5f120a3bd5d26102fa18123f55d956701843",
-  "sourceRef": "35aa5f120a3bd5d26102fa18123f55d956701843",
+  "sourceHead": "bb0ed7949db3825e0ce1bfd638ef47fb6b1b5b67",
+  "sourceRef": "bb0ed7949db3825e0ce1bfd638ef47fb6b1b5b67",
   "sourceRefKind": "commit",
-  "sourceTree": "7fc3cd9e4da1e7567d6d3346d3613f7c6d128a55",
+  "sourceTree": "20be55bf30ea308abb75febdf96b5b24025bf878",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -15980,10 +15980,10 @@
       "mode": "100644"
     },
     "src/store/free-trial.promo-visibility.test.ts": {
-      "sourceBlob": "98be37c9578a34ed0a547198d486dfa2ab02d752",
-      "sourceSha256": "36eabc9f819c0eb3651ec9ab9cb07d334227f88defa314132763f8b1b9666942",
-      "targetBlob": "98be37c9578a34ed0a547198d486dfa2ab02d752",
-      "targetSha256": "36eabc9f819c0eb3651ec9ab9cb07d334227f88defa314132763f8b1b9666942",
+      "sourceBlob": "2002188095c6f9b2d04f30b00afe365d032691a6",
+      "sourceSha256": "b2bb4554641db4e567c1385377eb78e05d8ca124dbce30a078893823b5b7ff63",
+      "targetBlob": "2002188095c6f9b2d04f30b00afe365d032691a6",
+      "targetSha256": "b2bb4554641db4e567c1385377eb78e05d8ca124dbce30a078893823b5b7ff63",
       "mode": "100644"
     },
     "src/store/free-trial.remote-errors.test.ts": {
@@ -15994,10 +15994,10 @@
       "mode": "100644"
     },
     "src/store/free-trial.ts": {
-      "sourceBlob": "abd7db24a75ee403a193883a78b2f98810508159",
-      "sourceSha256": "c3950d451b12c8b3627002b01afb0e0a58664e873f464d2032fe6fecc36c6122",
-      "targetBlob": "abd7db24a75ee403a193883a78b2f98810508159",
-      "targetSha256": "c3950d451b12c8b3627002b01afb0e0a58664e873f464d2032fe6fecc36c6122",
+      "sourceBlob": "c439ec03918f8e43caf11760e4169868c89c676d",
+      "sourceSha256": "85b6cb36b79901d93c9a323dedb389d24df96338d01fd864479f7f5338e2b28d",
+      "targetBlob": "c439ec03918f8e43caf11760e4169868c89c676d",
+      "targetSha256": "85b6cb36b79901d93c9a323dedb389d24df96338d01fd864479f7f5338e2b28d",
       "mode": "100644"
     },
     "src/store/fx-core.ts": {
