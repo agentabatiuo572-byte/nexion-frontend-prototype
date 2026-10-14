@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\cs-analytics-app-contract-20261009",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "233c646d262750bf308c3a34ddc2f3b26f2380d5",
-  "sourceRef": "233c646d262750bf308c3a34ddc2f3b26f2380d5",
+  "sourceHead": "1ed9d845865d23050fcfab39d0bfaa107a573252",
+  "sourceRef": "1ed9d845865d23050fcfab39d0bfaa107a573252",
   "sourceRefKind": "commit",
-  "sourceTree": "92c273dad7e604073fe59e041ae9020a0034ebe1",
+  "sourceTree": "ea8fbc420df212a3e7109956022279c2e8639446",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -272,10 +272,10 @@
       "mode": "100644"
     },
     "docs/acceptance/support-center-handoff-20261014.md": {
-      "sourceBlob": "e12d21a3db9ee71c981eae2c4627bf5930932595",
-      "sourceSha256": "584b9618588b3626b443ab454f35fd09bc3dda8993e74f71fe6ed086fbb36cee",
-      "targetBlob": "e12d21a3db9ee71c981eae2c4627bf5930932595",
-      "targetSha256": "584b9618588b3626b443ab454f35fd09bc3dda8993e74f71fe6ed086fbb36cee",
+      "sourceBlob": "2562fbfdfc2023f3f7ade897b1888dd9a41342bd",
+      "sourceSha256": "106bf1614c867a73ea811524bf45cc97b038c81058973ba5f84fd4c84d9f111d",
+      "targetBlob": "2562fbfdfc2023f3f7ade897b1888dd9a41342bd",
+      "targetSha256": "106bf1614c867a73ea811524bf45cc97b038c81058973ba5f84fd4c84d9f111d",
       "mode": "100644"
     },
     "docs/app-h5-sync.md": {
@@ -3982,10 +3982,10 @@
       "mode": "100644"
     },
     "scripts/gates.manifest.json": {
-      "sourceBlob": "3f77f981870b10da64d0d280e7aa6e244925a980",
-      "sourceSha256": "9c78150874f650da3e73f49295437392882553230bfb91633281b350940bb04d",
-      "targetBlob": "3f77f981870b10da64d0d280e7aa6e244925a980",
-      "targetSha256": "9c78150874f650da3e73f49295437392882553230bfb91633281b350940bb04d",
+      "sourceBlob": "4f0002d2e642de2159a763a1434c4f829019d531",
+      "sourceSha256": "429a5398a11708ae61108db5b9690de5281669f1db1146cf503e8fdc19747156",
+      "targetBlob": "4f0002d2e642de2159a763a1434c4f829019d531",
+      "targetSha256": "429a5398a11708ae61108db5b9690de5281669f1db1146cf503e8fdc19747156",
       "mode": "100644"
     },
     "scripts/gen2-withdraw-closure-contract.test.mjs": {
@@ -4892,10 +4892,10 @@
       "mode": "100644"
     },
     "scripts/run-contract-suite.mjs": {
-      "sourceBlob": "9624e91a2f0c1429befb0d3e6ff7318c363b3407",
-      "sourceSha256": "3a0819b4428c811bfd58157da92c5dde03af1db34875ce8762984ec9aba8aa50",
-      "targetBlob": "9624e91a2f0c1429befb0d3e6ff7318c363b3407",
-      "targetSha256": "3a0819b4428c811bfd58157da92c5dde03af1db34875ce8762984ec9aba8aa50",
+      "sourceBlob": "4876f842bb3db7bc3738b90e0dda9c8bca32bb3c",
+      "sourceSha256": "1b5b3b6b29e4c94c39aa8c36acfbed244c644fa24e8979e4df1fa3e20dd9e7e1",
+      "targetBlob": "4876f842bb3db7bc3738b90e0dda9c8bca32bb3c",
+      "targetSha256": "1b5b3b6b29e4c94c39aa8c36acfbed244c644fa24e8979e4df1fa3e20dd9e7e1",
       "mode": "100644"
     },
     "scripts/run-legacy-suite.mjs": {

@@ -313,7 +313,7 @@
     },
     "test:verify-harness": {
       "kind": "test",
-      "inputs": ["scripts/lib/**", "scripts/known-red.json", "scripts/known-red.test.mjs", "scripts/known-red-shell.test.mjs", "scripts/verify-chain.mjs"],
+      "inputs": ["scripts/lib/**", "scripts/known-red.json", "scripts/known-red.test.mjs", "scripts/known-red-shell.test.mjs", "scripts/run-legacy-suite.test.mjs", "scripts/verify-chain.mjs"],
       "$why": "验证链自身的红测:已知红清单 lint/到期/接线 + 全局清单只增不删豁免(Tier 1-C,2026-09-02)"
     },
     "test:githooks": {

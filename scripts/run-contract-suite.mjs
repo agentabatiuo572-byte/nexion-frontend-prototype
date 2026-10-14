@@ -133,6 +133,7 @@ const REGISTRY = {
   "learning-submission.test.mjs": { how: "elsewhere", by: "npm run test:learning-contracts(import .ts 源,需 type stripping)" },
   "known-red.test.mjs": { how: "elsewhere", by: "npm run test:verify-harness(known-red 判定与到期行为自测)" },
   "known-red-shell.test.mjs": { how: "elsewhere", by: "npm run test:verify-harness(跨 shell known-red 行为自测)" },
+  "run-legacy-suite.test.mjs": { how: "elsewhere", by: "npm run test:verify-harness" },
   // ── excluded:写清原因 ──
   "learning-api-contract.test.mjs": { how: "chain" },
   "h-remote-authority-contract.test.mjs": {
