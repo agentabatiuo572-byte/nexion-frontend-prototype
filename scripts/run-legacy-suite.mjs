@@ -15,7 +15,7 @@
 //   LEGACY_SUITE_REUSE_DEV_URL / LEGACY_SUITE_REUSE_PROD_URL 传进来 —— **先核身份(本树 + 构建环境)再复用**,
 //   核不过照旧自己起。VERIFY_MODE(full|scoped|static)原样透传给 verify.sh;static 档不该走本壳
 //   (不需要 server,runner 直接裸跑 verify.sh)。
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,13 +38,17 @@ try {
   log(`development server ${baseUrl}(${server.reused ? "复用" : "隔离自起"})· production 资金边界 server ${remoteBaseUrl}(${productionServer.reused ? "复用" : "隔离自起"}),开始跑 scripts/verify.sh(VERIFY_MODE=${process.env.VERIFY_MODE || "full"})`);
   const bash = findBash();
   if (!bash) throw new Error("BASH_RUNTIME_NOT_FOUND:请安装 Git Bash 或设置 BASH_EXE");
-  const res = spawnSync(bash, ["scripts/verify.sh"], {
-    cwd: root,
-    env: { ...process.env, BASE_URL: baseUrl, REMOTE_BASE_URL: remoteBaseUrl },
-    stdio: "inherit",
-    shell: false,
+  // Keep draining the two owned Vite servers while the verifier runs.
+  const res = await new Promise((resolve, reject) => {
+    const verifier = spawn(bash, ["scripts/verify.sh"], {
+      cwd: root,
+      env: { ...process.env, BASE_URL: baseUrl, REMOTE_BASE_URL: remoteBaseUrl },
+      stdio: "inherit",
+      shell: false,
+    });
+    verifier.once("error", reject);
+    verifier.once("close", (status) => resolve({ status }));
   });
-  if (res.error) throw res.error;
   code = res.status ?? 1;
   // 🔴 中止 ≠ 判红(2026-08-12 加,同型第二次之后)。
   // 套件半路暴毙时退出码同样非零,而红门数会**变少** —— 两次都差点被读成好消息:
@@ -89,4 +93,4 @@ try {
   server.stop();
   productionServer.stop();
 }
-process.exit(code);
+process.exitCode = code;

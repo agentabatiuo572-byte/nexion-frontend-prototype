@@ -72,6 +72,12 @@ function computedValue<T>(source: string, name: string, bindings: Record<string,
   return initializer.value;
 }
 type CountOption = { count?: string | number };
+function sourceFunction<T>(source: string, name: string, bindings: Record<string, unknown>): T {
+  return expression<T>(source, node => ts.isFunctionDeclaration(node) && node.name?.text === name, bindings);
+}
+const serviceUnavailable = sourceFunction<(row: { unread: unknown; kind?: string }) => boolean>(services, "unreadUnavailable", { tickets: {}, conversations: {} });
+const conversationUnavailable = sourceFunction<(row: { unread: unknown; isAi?: boolean }) => boolean>(conversations, "unreadUnavailable", { humanReadFailed: Vue.ref(false) });
+const normalTypeBadge = (count: number) => sourceFunction<(key: string) => string | undefined>(conversations, "typeUnreadBadge", { typeUnread: () => count, humanReadFailed: Vue.ref(false), formatUnreadBadge });
 
 describe("message unread badge display", () => {
   it.each(boundaries)("formats %i as '%s' without changing the source count", (count, label) => {
@@ -92,8 +98,8 @@ describe("message unread badge display", () => {
       const rowMarkup = await Promise.all([
         renderBadge(markup.bell, { unread: count, unreadLabel: bellLabel }),
         renderBadge(markup.bubble, { totalUnread: count, showUnreadBadge, unreadLabel: bubbleLabel }),
-        renderBadge(markup.service, { row: { unread: count }, formatUnreadBadge }),
-        renderBadge(markup.conversation, { r: { unread: count }, formatUnreadBadge }),
+        renderBadge(markup.service, { row: { unread: count }, unreadUnavailable: serviceUnavailable, formatUnreadBadge }),
+        renderBadge(markup.conversation, { r: { unread: count }, unreadUnavailable: conversationUnavailable, formatUnreadBadge }),
         renderBadge(markup.ticket, { tk: { unread: count }, unreadLabel: ticketLabel, unreadChipStyle: {} }),
       ]);
       for (const [index, html] of rowMarkup.entries()) {
@@ -101,7 +107,7 @@ describe("message unread badge display", () => {
         else expect(html.match(/<text[^>]*>([^<]*)<\/text>/)?.[1]).toBe(index === 4 ? fmt(translations.tickets.unreadChip, { n: label }) : label);
       }
       const sections = computedValue<CountOption[]>(notifications, "sectionOptions", { t, notifs: { unread: count }, center: { serviceUnread: count } });
-      const types = computedValue<CountOption[]>(conversations, "typeOptions", { TYPES: Vue.ref([{ key: "advisor" }, { key: "support" }, { key: "ai" }]), typeLabel: (key: string) => key, typeUnread: () => count });
+      const types = computedValue<CountOption[]>(conversations, "typeOptions", { TYPES: Vue.ref([{ key: "advisor" }, { key: "support" }, { key: "ai" }]), typeLabel: (key: string) => key, typeUnreadBadge: normalTypeBadge(count) });
       for (const option of sections) {
         expect(option.count).toBe(count);
         const html = await renderBadge(markup.segment, { option });
@@ -115,6 +121,37 @@ describe("message unread badge display", () => {
       }
       const meEntry = expression<{ badge?: string }>(me, node => ts.isObjectLiteralExpression(node) && node.properties.some(prop => ts.isPropertyAssignment(prop) && prop.name.getText() === "key" && prop.initializer.getText() === '"messages"'), { t, messageUnread: unread, formatUnreadBadge });
       expect(meEntry.badge).toBe(label || undefined);
+    });
+  }
+  for (const language of ["zh", "en", "vi"]) {
+    it(`${language}: failed or missing support unread counts show a dash without hiding real zero`, async () => {
+      for (const count of [undefined, null, Number.NaN, Infinity, -1, 0.5, 0, 1, 100]) {
+        const invalid = !Number.isSafeInteger(count) || (count as number) < 0;
+        for (const failed of [false, true]) {
+          const serviceCheck = sourceFunction<(row: { unread: unknown; kind: string }) => boolean>(services, "unreadUnavailable", { tickets: { error: "ticket failed" }, conversations: { error: failed ? "read failed" : "", categoryAvailabilityStatus: "ready" } });
+          for (const kind of ["advisor", "ticket"]) {
+            const row = { unread: count, kind };
+            const html = await renderBadge(markup.service, { row, unreadUnavailable: serviceCheck, formatUnreadBadge });
+            const expected = invalid || failed || kind === "ticket" ? "-" : formatUnreadBadge(count as number);
+            expect(html.match(/<text[^>]*>([^<]*)<\/text>/)?.[1] || "").toBe(expected);
+          }
+          const conversationCheck = sourceFunction<(row: { unread: unknown; isAi: boolean }) => boolean>(conversations, "unreadUnavailable", { humanReadFailed: Vue.ref(failed) });
+          const typeBadge = sourceFunction<(key: string) => string | undefined>(conversations, "typeUnreadBadge", { typeUnread: () => count, humanReadFailed: Vue.ref(failed), formatUnreadBadge });
+          for (const isAi of [false, true]) {
+            const r = { unread: count, isAi };
+            const expected = invalid || failed && !isAi ? "-" : formatUnreadBadge(count as number);
+            const html = await renderBadge(markup.conversation, { r, unreadUnavailable: conversationCheck, formatUnreadBadge });
+            expect(html.match(/<text[^>]*>([^<]*)<\/text>/)?.[1] || "").toBe(expected);
+            expect(typeBadge(isAi ? "ai" : "advisor") || "").toBe(expected);
+          }
+        }
+      }
+      const categoryFailed = sourceFunction<(row: { unread: number; kind: string }) => boolean>(services, "unreadUnavailable", { tickets: {}, conversations: { categoryAvailabilityStatus: "failed" } });
+      expect(categoryFailed({ unread: 0, kind: "advisor" })).toBe(true);
+      expect(categoryFailed({ unread: 0, kind: "ticket" })).toBe(false);
+      expect(computedValue<boolean>(conversations, "humanReadFailed", { convStore: { categoryAvailabilityStatus: "failed" } })).toBe(true);
+      expect(services).toContain('@click="openRow(row)"');
+      expect(conversations).toContain('@click="openRow(r)"');
     });
   }
   it('does not announce partial legacy category counts as account-wide numbers', () => {

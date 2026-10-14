@@ -195,6 +195,7 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 | `/globe` | 全球节点地图 | 28K 节点可视化 | 节点数据 | §11.6 |
 | `/developer` | Developer API | 展示性 API 文档 | 静态 | §11.7 |
 | `/me/help`·`/me/support`·`/me/support/tickets` | 帮助/客服/工单 | FAQ+渠道+1:1 工单 | `lib/mock/tickets.ts`(TicketStatus 5 态) | §11.8 |
+| `/support/messages`·`/support/chat` | 专属客服会话 | 单一人工入口，兼容advisor/support历史；卡片可用性与历史作者保持原身份，未知未读“-” | `src/store/conversations.ts`、`src/api/support-api.ts` | §11.8.4、§12.9a |
 | `/market` | NEX 行情详情 | NEX vs 同类 token 对标 | `useMarket`、`lib/mock/tokens.ts`(15) | §11.9 |
 | `/events` | 活动中心 | 限时/邀请/抽奖活动(8 EventKind) | `lib/mock/events.ts`、`useEventQuest` | §11.10 |
 | `/pages/me/rewards-list?cat=promotion` | 活动奖励 | 原奖励记录新增类别，按状态、活动、订单分页回查本人奖励 | `promotionApi.rewards`、`promotion-reward-list.vue` | §4.12 |

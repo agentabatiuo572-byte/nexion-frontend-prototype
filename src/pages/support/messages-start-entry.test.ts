@@ -49,7 +49,7 @@ function mount(type: "advisor" | "support", state: "empty" | "ended" | "active" 
     hidden: false,
     byType: (key: string) => key === type && !store.hidden ? rows : [],
     categoryReadable: (key: string) => key === type && (state !== "loading" || rows.length > 0),
-    categoryEnabled: (key: string): boolean => key === type && store.enabled && store.categoryAvailabilityStatus === "ready",
+    categoryEnabled: (key: string): boolean => (key === "advisor" || key === "support") && store.enabled && store.categoryAvailabilityStatus === "ready",
     refresh: vi.fn(), refreshCategories: vi.fn(), startConversation: vi.fn(),
   });
   const navTo = vi.fn();
@@ -177,7 +177,7 @@ describe("human conversation contact entry", () => {
   it.each(["loading", "failed", "ready"])("keeps a dismissed ongoing thread reachable when new entry is unavailable (%s)", async status => {
     const current = mount("advisor", "active"); current.store.hidden = true; current.store.enabled = false;
     current.store.categoryAvailabilityStatus = status; await Vue.nextTick();
-    const contact = flatten(current.root).find(node => node.props["aria-label"] === "联系顾问");
+    const contact = flatten(current.root).find(node => node.props["aria-label"] === zh.conversations.contactAdvisor);
     expect(contact).toBeDefined(); contact!.props.onClick();
     expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-1");
     expect(current.store.startConversation).not.toHaveBeenCalled();
@@ -186,7 +186,7 @@ describe("human conversation contact entry", () => {
   it("keeps existing conversations usable while an older backend lacks removal support", async () => {
     const current = mount("advisor", "active"); current.store.dismissalAvailable = false; await Vue.nextTick();
     expect(flatten(current.root).some(node => String(node.props["aria-label"]).startsWith("从列表移除 · "))).toBe(false);
-    expect(flatten(current.root).some(node => node.props["aria-label"] === "尚未分配顾问")).toBe(true);
+    expect(flatten(current.root).some(node => node.props["aria-label"] === zh.conversations.image.unassigned)).toBe(true);
   });
   it("removes via the row action without opening the chat and exposes the retained-history explanation", async () => {
     const current = mount("advisor", "active");
@@ -198,7 +198,7 @@ describe("human conversation contact entry", () => {
   });
   it("reuses an ongoing removed conversation when the user contacts the advisor again", async () => {
     const current = mount("advisor", "active"); current.store.hidden = true; await Vue.nextTick();
-    const button = flatten(current.root).find(node => node.props["aria-label"] === "联系顾问");
+    const button = flatten(current.root).find(node => node.props["aria-label"] === zh.conversations.contactAdvisor);
     expect(button).toBeDefined(); button!.props.onClick();
     expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-1");
     expect(current.store.startConversation).not.toHaveBeenCalled();
@@ -211,28 +211,28 @@ describe("human conversation contact entry", () => {
   });
   it.each(["advisor", "support"] as const)("lets a new user contact %s without any existing conversation", async type => {
     const current = mount(type);
-    const label = type === "advisor" ? "联系顾问" : "联系人工客服";
+    const label = zh.conversations.contactAdvisor;
     const button = flatten(current.root).find(node => node.props["aria-label"] === label);
     expect(button).toBeDefined();
     button!.props.onClick();
-    expect(current.navTo).toHaveBeenCalledExactlyOnceWith(`/pages/support/chat?start=${type}`);
+    expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=advisor");
     expect(current.store.startConversation).not.toHaveBeenCalled();
   });
   it.each(["advisor", "support"] as const)("keeps contact %s available when every prior conversation has ended", type => {
     const current = mount(type, "ended");
-    expect(flatten(current.root).some(node => node.props["aria-label"] === (type === "advisor" ? "联系顾问" : "联系人工客服"))).toBe(true);
+    expect(flatten(current.root).some(node => node.props["aria-label"] === zh.conversations.contactAdvisor)).toBe(true);
   });
   it.each(["active", "failed", "loading"] as const)("does not expose a duplicate or unauthorised contact entry in %s state", state => {
     const current = mount("advisor", state);
-    expect(flatten(current.root).some(node => node.props["aria-label"] === "联系顾问")).toBe(false);
+    expect(flatten(current.root).some(node => node.props["aria-label"] === zh.conversations.contactAdvisor)).toBe(false);
   });
   it("rechecks category availability when an old click arrives after the category was disabled", () => {
     const current = mount("advisor");
-    const button = flatten(current.root).find(node => node.props["aria-label"] === "联系顾问");
+    const button = flatten(current.root).find(node => node.props["aria-label"] === zh.conversations.contactAdvisor);
     expect(button).toBeDefined(); current.store.enabled = false; button!.props.onClick();
     expect(current.navTo).not.toHaveBeenCalled();
   });
-  it.each([[en, "Contact advisor"], [vietnamese, "Liên hệ cố vấn"]] as const)("provides a localised advisor action", (locale, label) => {
+  it.each([[en, "Contact dedicated support"], [vietnamese, "Liên hệ hỗ trợ riêng"]] as const)("provides a localised advisor action", (locale, label) => {
     expect(flatten(mount("advisor", "empty", locale as typeof zh).root).some(node => node.props["aria-label"] === label)).toBe(true);
   });
 });
@@ -351,7 +351,7 @@ describe("human chat assignment belongs to the current conversation", () => {
     ]) {
       current.store.advisor = advisor as any;
       current.store.advisorError = true; current.store.advisorLoading = true;
-      expect(current.page.headerName.value).toBe("待分配");
+      expect(current.page.headerName.value).toBe(zh.conversations.unassignedAgent);
       expect(current.page.headerRole.value).toBe(zh.conversations.sessionEnded);
       expect(current.page.isClosedSession.value).toBe(true);
       expect(current.page.showUnassignedReceived.value).toBe(false);
@@ -359,7 +359,7 @@ describe("human chat assignment belongs to the current conversation", () => {
     current.page.goBack();
     expect(current.navigation.navBack).toHaveBeenCalledExactlyOnceWith("/pages/support/messages");
     current.page.onRestart();
-    expect(current.navigation.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=support");
+    expect(current.navigation.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=advisor");
     expect(chatTransport.startConversation).not.toHaveBeenCalled();
     expect(chatTransport.replyConversation).not.toHaveBeenCalled();
   });
@@ -408,14 +408,18 @@ describe("human chat assignment belongs to the current conversation", () => {
     expect(chatTransport.replyConversation).not.toHaveBeenCalled();
   });
 
-  it("retains advisor waiting only for replyable advisor history", async () => {
+  it("retains the exact conversation owner and derives waiting only from that replyable history", async () => {
     const current = mountRealHumanChat();
     chatTransport.conversation.mockResolvedValue({ ...humanSnapshot(), type: "advisor", roleKey: "roleAdvisor",
       messages: [{ id: "1", sender: "user", text: "Existing public history", ts: 1, status: "read" }] });
     await current.show();
     current.store.advisor = { assignmentState: "UNBOUND", availability: "UNBOUND", currentAdvisorName: null } as any;
-    expect(current.page.headerName.value).toBe(zh.conversations.image.unassigned);
+    expect(current.page.headerName.value).toBe("Fixture");
+    expect(current.page.showUnassignedReceived.value).toBe(false);
+    current.store.get("CV-cold")!.agentName = "Unassigned";
+    expect(current.page.headerName.value).toBe(zh.conversations.unassignedAgent);
     expect(current.page.showUnassignedReceived.value).toBe(true);
+    current.store.get("CV-cold")!.agentName = "Fixture";
     current.store.get("CV-cold")!.status = "closed";
     expect(current.page.headerName.value).toBe("Fixture");
     expect(current.page.headerRole.value).toBe(zh.conversations.sessionEnded);
@@ -556,7 +560,7 @@ describe("real chat and store account recovery", () => {
   });
   it("keeps a rebound new-entry draft when PC confirms that category disabled", async () => {
     const current = mountRealHumanChat({ start: "support" }); await current.show();
-    chatTransport.conversationCategories.mockResolvedValue({ advisor: true, support: false, ai: false });
+    chatTransport.conversationCategories.mockResolvedValue({ advisor: false, support: true, ai: false });
     current.rebind(); await Vue.nextTick();
     await vi.waitFor(() => expect(current.store.categoryEnabled("support")).toBe(false));
     const restore = vi.fn(); await current.page.onSend("New request", restore);

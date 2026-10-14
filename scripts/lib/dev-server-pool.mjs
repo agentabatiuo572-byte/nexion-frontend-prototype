@@ -88,11 +88,15 @@ export async function ensureServer({ root, environment = "development", reuseUrl
     { cwd: root, env: { ...process.env }, shell: false, stdio: ["ignore", "pipe", "pipe"] },
   );
   let out = "";
+  let stopping = false;
   child.stdout.on("data", (c) => { out = (out + c).slice(-12_000); });
   child.stderr.on("data", (c) => { out = (out + c).slice(-12_000); });
+  child.once("close", (code, signal) => {
+    if (!stopping) log(`owned ${environment} server exited ${baseUrl} pid=${child.pid} code=${code} signal=${signal || "none"}\n${out}`);
+  });
   await waitForServer(`${baseUrl}/?nx_device=off`, child, () => out, timeoutMs);
   const id = await identify(baseUrl, { root, environment });
   if (!id.ok) { stopTree(child); throw new Error(`自起的 server 身份核对失败:${id.why}`); }
-  log(`起 ${environment} server ${baseUrl}(本树隔离)`);
-  return { baseUrl, reused: false, child, stop() { stopTree(child); } };
+  log(`起 ${environment} server ${baseUrl}(本树隔离) pid=${child.pid}`);
+  return { baseUrl, reused: false, child, stop() { stopping = true; log(`stop owned ${environment} server ${baseUrl} pid=${child.pid}`); stopTree(child); } };
 }

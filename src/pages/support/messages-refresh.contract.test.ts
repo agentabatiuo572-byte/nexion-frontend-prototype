@@ -23,16 +23,16 @@ describe("conversation-center refresh failure contract", () => {
 
   it("uses the backend M5 availability read model before exposing category entry points", () => {
     expect(source).toContain("convStore.refreshCategories()");
-    expect(source).toContain("convStore.categoryReadable(row.key)");
-    expect(source).toContain("convStore.categoryReadable(sel)");
+    expect(source).toContain('convStore.categoryReadable("advisor") || convStore.categoryReadable("support")');
+    expect(source).toContain('sel === "ai" && !convStore.categoryReadable("ai")');
     expect(source).toContain("convStore.categoryEnabled(target)");
   });
 
   it("keeps only confirmed conversation snapshots readable when category authority is unavailable", () => {
     expect(source).toContain("convStore.categoryAvailabilityStatus === 'failed'");
-    expect(source).toContain("convStore.categoryReadable(row.key)");
-    expect(source).toContain("convStore.categoryReadable(sel)");
-    expect(source).toContain("convStore.categoryEnabled(selectedType.value)");
+    expect(source).toContain('convStore.categoryReadable("advisor") || convStore.categoryReadable("support")');
+    expect(source).toContain('sel === "ai" && !convStore.categoryReadable("ai")');
+    expect(source).toContain('convStore.categoryEnabled("advisor")');
   });
 
   it("does not present a disabled PC category as an empty inbox with a start CTA", () => {

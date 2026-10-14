@@ -13,7 +13,7 @@ installSupportStorage();
 const runtime = vi.hoisted(() => ({ remoteApiEnabled: true, supportApi: {
   authorityRevision: vi.fn(), commandResult: vi.fn(), conversations: vi.fn(),
   conversationDismissals: vi.fn(), conversationCategories: vi.fn(), tickets: vi.fn(),
-  startConversation: vi.fn(), createTicket: vi.fn(),
+  startConversation: vi.fn(), createTicket: vi.fn(), advisor: vi.fn(),
 } }));
 const notificationFixture = vi.hoisted(() => ({ store: null as any }));
 vi.mock('@/api/runtime', () => runtime);
@@ -37,6 +37,8 @@ beforeEach(() => {
   runtime.supportApi.conversationDismissals.mockResolvedValue([]);
   runtime.supportApi.conversationCategories.mockResolvedValue(available);
   runtime.supportApi.tickets.mockResolvedValue({ items: [] });
+  runtime.supportApi.advisor.mockResolvedValue({ assignmentId: null, currentAdvisorId: null,
+    currentAdvisorName: null, assignmentState: 'UNBOUND', availability: 'UNBOUND' });
   notificationFixture.store = reactive({ unread: 0, loading: false, error: null,
     refreshRemote: vi.fn(async () => {}), cancelRefresh: vi.fn() });
 });
@@ -52,7 +54,7 @@ function mountPage() {
   let activeRefresh!: () => Promise<void>;
   const release = vi.fn();
   const start = messagesPage.indexOf('const selectedType = ref');
-  const end = messagesPage.indexOf('// Both human categories', start);
+  const end = messagesPage.indexOf('const humanConversations = computed', start);
   expect(start).toBeGreaterThan(0); expect(end).toBeGreaterThan(start);
   const code = ts.transpileModule(messagesPage.slice(start, end), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },

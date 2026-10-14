@@ -26,6 +26,7 @@
         </view>
         <!-- chat bubble -->
         <view v-else class="nx-conv-bubble-row" :class="m.side === 'right' ? 'nx-conv-right' : 'nx-conv-left'">
+          <image v-if="m.authorAvatarSrc" class="nx-conv-author-avatar" :src="m.authorAvatarSrc" mode="aspectFill" :aria-label="m.meta" />
           <view class="nx-conv-bubble" :style="bubbleStyle(m)">
             <view class="nx-conv-bubble-body">
               <view v-if="m.imageSrc" class="nx-conv-image-open" role="button" tabindex="0" :aria-label="imageLabels?.view"
@@ -420,6 +421,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   display: flex;
   flex-direction: column;
 }
+.nx-conv-author-avatar { width: 28px; height: 28px; border-radius: 50%; margin-bottom: 4px; }
 .nx-conv-left {
   align-items: flex-start;
 }

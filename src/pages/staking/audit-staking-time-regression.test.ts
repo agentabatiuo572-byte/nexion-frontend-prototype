@@ -192,12 +192,13 @@ describe("staking time regression", () => {
    */
   it("reads a freshly issued session timestamp as just now rather than an hour ago", () => {
     // 后端此刻会写下的值:上海墙钟、无时区后缀。
-    const shanghaiWallClockNow = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 19);
+    const now = Date.parse("2026-10-10T07:00:00Z");
+    const shanghaiWallClockNow = "2026-10-10T15:00:00";
 
     // 正确路径:默认 +08:00 → 差值≈0 → 页面显示「刚刚」。
-    expect(Date.now() - (parseServerTimestamp(shanghaiWallClockNow) as number)).toBeLessThan(5 * 60 * 1000);
-    // 显式模拟旧写法在东京 +09:00 的解析,避免依赖测试机器的时区。
-    expect(Date.now() - Date.parse(shanghaiWallClockNow + "+09:00")).toBeGreaterThan(55 * 60 * 1000);
+    expect(now - (parseServerTimestamp(shanghaiWallClockNow) as number)).toBe(0);
+    // 旧写法:当成本机时区 → 差值≈1 小时 → 页面显示「59 分钟前」。
+    expect(now - Date.parse(shanghaiWallClockNow + "+09:00")).toBe(3600_000);
   });
 
   it("routes the security page's session timestamps through the business-zone parser", async () => {

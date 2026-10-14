@@ -25,7 +25,7 @@ describe("Nova human-handoff lifecycle", () => {
   it("keeps UUID generation inside the user-visible error boundary and safely falls back", () => {
     const handoff = handoffFunction();
     expect(handoff.indexOf("try {")).toBeLessThan(handoff.indexOf("requireCryptoUuid()"));
-    expect(handoff).toMatch(/catch\s*\{[\s\S]*navTo\("\/pages\/support\/chat\?start=support"\)/);
+    expect(handoff).toMatch(/catch\s*\{[\s\S]*navTo\("\/pages\/support\/chat\?start=advisor"\)/);
   });
 
   it("does not copy an earlier Nova answer's context after the latest request failed", () => {
@@ -33,6 +33,6 @@ describe("Nova human-handoff lifecycle", () => {
     expect(source).toMatch(/nova\.completeRemote[\s\S]*handoffNeedsFreshQuestion\.value = false/);
     expect(source).toMatch(/catch \{[\s\S]*handoffNeedsFreshQuestion\.value = true/);
     expect(source).toMatch(/watch\([\s\S]*handoffNeedsFreshQuestion\.value = false/);
-    expect(handoffFunction()).toMatch(/if \(handoffNeedsFreshQuestion\.value\)[\s\S]*navTo\("\/pages\/support\/chat\?start=support"\)/);
+    expect(handoffFunction()).toMatch(/if \(handoffNeedsFreshQuestion\.value\)[\s\S]*navTo\("\/pages\/support\/chat\?start=advisor"\)/);
   });
 });

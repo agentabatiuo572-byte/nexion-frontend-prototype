@@ -55,7 +55,7 @@
             @keydown.enter.prevent="onStartConversation()" @keydown.space.prevent="onStartConversation()"
           >
               <LiquidGlass :radius="24" />
-            <view class="nx-conv-contact-ico" aria-hidden="true"><view v-html="selectedType === 'advisor' ? ADVISOR_ICON : SUPPORT_ICON" /></view>
+            <view class="nx-conv-contact-ico" aria-hidden="true"><view v-html="ADVISOR_ICON" /></view>
             <text class="nx-conv-contact-t">{{ contactLabel }}</text>
           </view>
 
@@ -106,7 +106,7 @@
               </view>
               <view class="nx-conv-rowbot">
                 <text class="nx-conv-rowprev" :style="r.typing ? { color: r.tint } : undefined">{{ r.preview }}</text>
-                <view v-if="r.unread > 0" class="nx-conv-unread"><text class="nx-conv-unread-t">{{ formatUnreadBadge(r.unread) }}</text></view>
+                <view v-if="unreadUnavailable(r) || r.unread > 0" class="nx-conv-unread"><text class="nx-conv-unread-t">{{ unreadUnavailable(r) ? '-' : formatUnreadBadge(r.unread) }}</text></view>
               </view>
             </view>
           </view>
@@ -198,18 +198,19 @@ function retryConversations() {
   void refreshInbox();
 }
 
-// Both human categories expose the same contact path, including a brand-new inbox.
+const humanConversations = computed(() => [...convStore.byType("advisor"), ...convStore.byType("support")].sort((a, b) => b.lastTs - a.lastTs || a.id.localeCompare(b.id)));
+const humanReadFailed = computed(() => !!(convStore.error || convStore.categoryAvailabilityStatus === "failed"));
 const canStartConversation = computed(() =>
   selectedType.value !== "ai"
-    && ((!convStore.error && convStore.categoryEnabled(selectedType.value))
-      || convStore.conversations.some(c => c.type === selectedType.value && (c.sessionStatus === "active" || c.status === "transferred")))
-    && !convStore.byType(selectedType.value).some((c) => c.sessionStatus === "active" || c.status === "transferred"),
+    && ((!convStore.error && convStore.categoryEnabled("advisor"))
+      || convStore.conversations.some(c => c.type !== "ai" && (c.sessionStatus === "active" || c.status === "transferred")))
+    && !humanConversations.value.some(c => c.sessionStatus === "active" || c.status === "transferred"),
 );
 
-function onStartConversation(type?: Exclude<ConversationType, "ai">) {
-  const target = type ?? (selectedType.value === "advisor" || selectedType.value === "support" ? selectedType.value : null);
-  if (!target) return;
-  const ongoing = convStore.conversations.find(c => c.type === target && (c.sessionStatus === "active" || c.status === "transferred"));
+function onStartConversation() {
+  if (selectedType.value === "ai") return;
+  const target = "advisor";
+  const ongoing = [...convStore.conversations].sort((a, b) => b.lastTs - a.lastTs || a.id.localeCompare(b.id)).find(c => c.type !== "ai" && (c.sessionStatus === "active" || c.status === "transferred"));
   if (ongoing) { navTo("/pages/support/chat?cid=" + encodeURIComponent(ongoing.id)); return; }
   if (!convStore.categoryEnabled(target)) return;
   navTo("/pages/support/chat?start=" + target);
@@ -225,16 +226,14 @@ async function removeRow(r: Row) {
 
 // Inline category icons (stroke=currentColor → tinted via container `color`).
 const ADVISOR_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M6 21a6 6 0 0 1 12 0" /></svg>`;
-const SUPPORT_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2" /><path d="M21 16a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2zM3 16a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2z" /></svg>`;
 const AI_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.8 3.2 11 7l3.8 1.2L11 9.4 9.8 13 8.6 9.4 4.8 8.2 8.6 7z" /><path d="M17.5 13.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z" /></svg>`;
 
 const TYPES = computed<{ key: ConversationType; tint: string; icon: string }[]>(() => {
   const available: { key: ConversationType; tint: string; icon: string }[] = [
     { key: "advisor", tint: "var(--v5-brand)", icon: ADVISOR_ICON },
-    { key: "support", tint: "var(--v5-tech-cyan)", icon: SUPPORT_ICON },
   ];
   if (NOVA_SUPPORT_VISIBLE) available.push({ key: "ai", tint: "var(--v5-brand-2)", icon: AI_ICON });
-  return available.filter((row) => convStore.categoryReadable(row.key));
+  return available.filter(row => row.key === "ai" ? convStore.categoryReadable("ai") : convStore.categoryReadable("advisor") || convStore.categoryReadable("support"));
 });
 
 watch(TYPES, (available) => {
@@ -253,6 +252,7 @@ interface Row {
   tint: string;
   avatarIcon: string;
 }
+function unreadUnavailable(row: Row) { return !Number.isSafeInteger(row.unread) || row.unread < 0 || !row.isAi && humanReadFailed.value; }
 
 function typeLabel(key: ConversationType): string {
   const c = t.value.conversations;
@@ -261,8 +261,9 @@ function typeLabel(key: ConversationType): string {
 
 function typeUnread(key: ConversationType): number {
   if (key === "ai") return nova.unread;
-  return convStore.byType(key).reduce((sum, c) => sum + c.unread, 0);
+  return humanConversations.value.reduce((sum, c) => sum + c.unread, 0);
 }
+function typeUnreadBadge(key: ConversationType) { const count = typeUnread(key); return key !== "ai" && humanReadFailed.value || !Number.isSafeInteger(count) || count < 0 ? "-" : formatUnreadBadge(count) || undefined; }
 
 // Rail tabs are one roving-tabindex group: arrows move the selection and carry the
 // focus ring with it (same idiom as team/leaderboard.vue and team/unilevel.vue).
@@ -316,7 +317,7 @@ function relTime(ts: number): string {
 
 const rows = computed<Row[]>(() => {
   const sel = selectedType.value;
-  if (!convStore.categoryReadable(sel)) return [];
+  if (sel === "ai" && !convStore.categoryReadable("ai")) return [];
   if (sel === "ai") {
     const msgs = nova.messages;
     const last = msgs.length ? msgs[msgs.length - 1] : null;
@@ -334,8 +335,8 @@ const rows = computed<Row[]>(() => {
       },
     ];
   }
-  const avatarIcon = sel === "advisor" ? ADVISOR_ICON : SUPPORT_ICON;
-  return convStore.byType(sel).map((c) => {
+  const avatarIcon = ADVISOR_ICON;
+  return humanConversations.value.map((c) => {
     const last = c.messages.length ? c.messages[c.messages.length - 1] : null;
     const typing = convStore.typingIds[c.id] === true;
     // The server excludes SYSTEM rows from detail history, so the closed header
@@ -366,12 +367,9 @@ const emptyHint = computed(() =>
   convStore.advisor?.assignmentState === "UNBOUND" && selectedType.value !== "ai"
     ? t.value.conversations.image.unassignedHint
     :
-  selectedType.value === "support"
-    ? t.value.conversations.listEmptySupport
-    : t.value.conversations.listEmptyAdvisor,
+  t.value.conversations.listEmptyAdvisor,
 );
-const contactLabel = computed(() => selectedType.value === "advisor"
-  ? t.value.conversations.contactAdvisor : t.value.conversations.contactSupport);
+const contactLabel = computed(() => t.value.conversations.contactAdvisor);
 
 function openRow(r: Row) {
   if (r.isAi) {
@@ -409,7 +407,7 @@ function avaStyle(tint: string): CSSProperties {
 }
 
 import GlassSegments from "@/components/glass-segments.vue";
-const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, label: typeLabel(type.key), icon: type.icon, tint: type.tint, count: formatUnreadBadge(typeUnread(type.key)) || undefined, className: "nx-conv-rail-item" })));
+const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, label: typeLabel(type.key), icon: type.icon, tint: type.tint, count: typeUnreadBadge(type.key), className: "nx-conv-rail-item" })));
 </script>
 
 <style scoped>

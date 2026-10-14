@@ -167,7 +167,7 @@ import { sessionVault, novaAiApi, remoteApiEnabled, supportApi } from "@/api/run
 import { binarySessionReady as accountSessionReady } from "@/lib/binary-session-ready";
 import { toast, confirm, useUI } from "@/store/ui";
 import { replyToQuickPrompt, type QuickPromptKey } from "@/mock/nova-templates";
-import type { ConversationType } from "@/domain/support";
+import type { ConversationType, ConvMessage } from "@/domain/support";
 
 import { ApiError, isSettledRejection, asApiError } from "@/api/errors";
 import { isSupportAttachmentNotReady, type SupportAttachmentPolicy } from "@/api/support-api";
@@ -233,20 +233,46 @@ watch(() => [app.accountBindingEpoch, convStore.scopeInvalidated], () => {
 async function loadPrivateImages() {
   if (!supportSessionReady.value) return;
   const epoch = imageEpoch, binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated;
+  const conversationId = conv.value?.id;
+  if (!conversationId) return;
   for (const message of conv.value?.messages ?? []) {
-    const id = message.attachmentId;
+    const avatarKey = avatarImageKey(message);
+    const targets = [
+      ...(message.attachmentId ? [{ id: message.attachmentId, read: () => supportApi.attachmentContent(message.attachmentId!) }] : []),
+      ...(avatarKey ? [{ id: avatarKey, read: async () => {
+        const source = await supportApi.authorAvatarContent(message.senderId!);
+        try {
+          if (epoch !== imageEpoch || binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || conv.value?.id !== conversationId) return source;
+          // The guarded endpoint returns the author's current photo; confirm its revision before caching.
+          const before = Number(message.id) + 1;
+          const latest = await supportApi.conversation(conversationId, Number.isSafeInteger(before) ? before : undefined);
+          const current = latest.messages.find(item => item.id === message.id);
+          if (!current || avatarImageKey(current) !== avatarKey) throw new Error("SUPPORT_AVATAR_REVISION_CHANGED");
+          return source;
+        } catch (cause) {
+          if (source.startsWith("blob:") && typeof URL !== "undefined") URL.revokeObjectURL(source);
+          throw cause;
+        }
+      } }] : []),
+    ];
+    for (const { id, read } of targets) {
     if (!id || imageSources.value[id] || imageFailures.value[id] || imageLoads.has(id)) continue;
     imageLoads.add(id);
     try {
-      const source = await supportApi.attachmentContent(id);
-      if (epoch !== imageEpoch || binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible) {
+      const source = await read();
+      if (epoch !== imageEpoch || binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || conv.value?.id !== conversationId) {
         if (source.startsWith("blob:") && typeof URL !== "undefined") URL.revokeObjectURL(source);
         return;
       }
       imageSources.value = { ...imageSources.value, [id]: source };
     } catch { if (epoch === imageEpoch) imageFailures.value = { ...imageFailures.value, [id]: true }; }
     finally { if (epoch === imageEpoch) imageLoads.delete(id); }
+    }
   }
+}
+function avatarImageKey(message: ConvMessage): string | undefined {
+  return message.sender === "agent" && message.authorConfidence === "VERIFIED" && message.senderId && message.senderAvatar
+    ? `author:${message.senderId}:${message.senderAvatar.assetId}:${message.senderAvatar.version}` : undefined;
 }
 const attachmentDisplay = computed(() => imageDraft.value && !isAi.value ? {
   state: imageDraft.value.state,
@@ -543,7 +569,17 @@ async function activateHumanPage() {
   const current = () => novaPageVisible && supportSessionReady.value && binding === app.accountBindingEpoch
     && scope === convStore.scopeInvalidated && id === cid.value && type === startType.value;
   revealTick.value += 1;
-  if (type && !id && remoteApiEnabled) {
+  const savedCreate = type && !id ? convStore.composer(`start:${type}`).failedSend : null;
+  let originalPending = false;
+  if (type && savedCreate && !savedCreate.settled && remoteApiEnabled) {
+    try { originalPending = await convStore.hasPendingHumanCreate(type, savedCreate.text, savedCreate.attachmentId); }
+    catch {
+      if (current()) toast.error(t.value.conversations.image.sendBlocked, "");
+      return;
+    }
+    if (!current()) return;
+  }
+  if (type && !id && remoteApiEnabled && !originalPending) {
     const gate: NonNullable<typeof categoryGate> = { category: type, promise: convStore.refreshCategories() };
     categoryGate = gate;
     const outcome = await gate.promise;
@@ -687,7 +723,7 @@ watch(() => app.accountKey, () => {
 }, { flush: "sync" });
 
 const conv = computed(() => (cid.value ? convStore.get(cid.value) : undefined));
-watch(() => conv.value?.messages?.map(message => message.attachmentId).join("|"), () => { if (novaPageVisible && !isAi.value) void loadPrivateImages(); });
+watch(() => conv.value?.messages?.map(message => [message.attachmentId, avatarImageKey(message)].join(":")).join("|"), () => { if (novaPageVisible && !isAi.value) void loadPrivateImages(); });
 const humanType = computed<Exclude<ConversationType, "ai"> | null>(() =>
   conv.value?.type === "advisor" || conv.value?.type === "support" ? conv.value.type : startType.value,
 );
@@ -700,13 +736,11 @@ const isTransferredSession = computed(() => !isAi.value && conv.value?.status ==
 const isClosedSession = computed(() =>
   isAi.value ? novaProviderHold.value : !!conv.value && !isReplyAllowed.value,
 );
-// Account advisor state applies to advisor replies and the existing new-compose
-// flow. Other threads, including ended history, keep their server-owned identity.
-const advisorApplies = computed(() => !isAi.value && !isClosedSession.value
-  && (humanType.value === "advisor" || (!cid.value && !!startType.value)));
-const showUnassignedReceived = computed(() => advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND"
-  && !!conv.value?.messages.some(message => message.sender === "user"));
-
+// Account advisor identity belongs to new composition. Existing conversation
+// headers and waiting state use the server's owner for that exact conversation id.
+const advisorApplies = computed(() => !isAi.value && !isClosedSession.value && !cid.value && !!startType.value);
+const showUnassignedReceived = computed(() => !isAi.value && !isClosedSession.value && !!conv.value
+  && isWaitingForAgent(conv.value.agentName) && conv.value.messages.some(message => message.sender === "user"));
 const headerName = computed(() => {
   if (isAi.value) return t.value.nova.name;
   if (advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.image.unassigned;
@@ -714,14 +748,12 @@ const headerName = computed(() => {
   if (advisorApplies.value && convStore.advisorError) return t.value.conversations.image.advisorUnavailable;
   if (advisorApplies.value && convStore.advisorLoading) return t.value.conversations.image.loadingAdvisor;
   if (conv.value) return displayAgentName(conv.value.agentName);
-  return humanType.value === "advisor" ? t.value.conversations.typeAdvisor : humanType.value === "support" ? t.value.conversations.typeSupport : "";
+  return humanType.value ? t.value.conversations.typeAdvisor : "";
 });
 
 function displayAgentName(name: string): string {
   const normalized = name.trim();
-  return normalized && normalized.toLowerCase() !== "unassigned"
-    ? normalized
-    : t.value.conversations.unassignedAgent;
+  return isWaitingForAgent(normalized) ? t.value.conversations.unassignedAgent : normalized;
 }
 const agentTyping = computed(() =>
   isAi.value ? nova.typing : (cid.value ? convStore.typingIds[cid.value] === true : false),
@@ -814,7 +846,7 @@ const emptyHint = computed(() => {
   if (isAi.value && novaProviderHold.value) return t.value.nova.localUnavailable;
   if (isAi.value) return remoteApiEnabled ? t.value.nova.localEmptyHint : t.value.nova.emptyHint;
   if (!supportSessionReady.value) return t.value.conversations.connecting;
-  if (advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.image.unassignedHint;
+  if (waitingForAgent.value) return t.value.conversations.image.unassignedHint;
   return humanType.value === "advisor" ? t.value.conversations.listEmptyAdvisor : t.value.conversations.listEmptySupport;
 });
 
@@ -847,6 +879,20 @@ function humanMessageTime(timestamp: number): string {
     : `${String(hour % 12 || 12).padStart(2, "0")}:${minute} ${hour < 12 ? "AM" : "PM"}`;
 }
 
+function humanMessageRecommendation(message: ConvMessage): Partial<ThreadMsg> {
+  if (message.kind !== "SKU" && message.kind !== "LINK") return {};
+  const copy = t.value.conversations.recommendation;
+  const text = message.kind === "SKU" && message.skuName !== message.text
+    ? [message.text, message.skuName].filter(Boolean).join("\n") : message.text;
+  if (message.targetAvailability !== "AVAILABLE") return { text: [text,
+    message.targetAvailability === "UNAVAILABLE" ? copy.unavailable : copy.unknown].filter(Boolean).join("\n") };
+  if (message.kind === "SKU" && message.skuId) return { text, ctaLabel: copy.product, ctaHref: `/pages/store/detail?id=${encodeURIComponent(message.skuId)}` };
+  const target = message.linkTarget?.type;
+  if (target === "HOME") return { text, ctaLabel: copy.home, ctaHref: "/home" };
+  if (target === "WALLET") return { text, ctaLabel: copy.wallet, ctaHref: "/me/wallet" };
+  if (target === "SUPPORT") return { text, ctaLabel: copy.support, ctaHref: "/pages/support/messages" };
+  return { text };
+}
 const threadMessages = computed<ThreadMsg[]>(() => {
   if (isAi.value) {
     const msgs = nova.messages;
@@ -887,6 +933,8 @@ const threadMessages = computed<ThreadMsg[]>(() => {
     imageError: !!m.attachmentId && !!imageFailures.value[m.attachmentId],
     meta: `${m.sender === "user" ? t.value.conversations.image.you : m.authorName || (c.type === "advisor" ? t.value.conversations.typeAdvisor : t.value.conversations.typeSupport)} · ${humanMessageTime(m.ts)}`,
     receipt: receiptFor(m.status, i === lastUser),
+    authorAvatarSrc: imageSources.value[avatarImageKey(m) ?? ""],
+    ...humanMessageRecommendation(m),
   }));
   const last = c.messages[c.messages.length - 1];
   const idleClose = c.status === "closed" && c.lastMessageKind === "IDLE_TIMEOUT_CLOSE" && (!last || c.lastTs > last.ts)
@@ -918,18 +966,18 @@ function onRestart() {
   }
   const type = humanType.value;
   if (!type) return;
-  navTo("/pages/support/chat?start=" + type);
+  navTo("/pages/support/chat?start=advisor");
 }
 
 async function onHumanHandoff() {
   if (handoffBusy.value || !novaPageVisible) return;
   if (handoffNeedsFreshQuestion.value) {
     toast.info(handoffCopy.value.fresh, "");
-    navTo("/pages/support/chat?start=support");
+    navTo("/pages/support/chat?start=advisor");
     return;
   }
   const lastReply = [...nova.messages].reverse().find(message => message.sender === "nova" && /^[0-9a-f-]{36}:nova$/i.test(message.id));
-  if (!lastReply) { navTo("/pages/support/chat?start=support"); return; }
+  if (!lastReply) { navTo("/pages/support/chat?start=advisor"); return; }
   const attemptEpoch = ++handoffAttemptEpoch;
   const account = app.accountKey;
   const bindingEpoch = app.accountBindingEpoch;
@@ -956,7 +1004,7 @@ async function onHumanHandoff() {
     if (current()) {
       if (!hasRequestKey) {
         toast.info(handoffCopy.value.fresh, "");
-        navTo("/pages/support/chat?start=support");
+        navTo("/pages/support/chat?start=advisor");
       } else toast.error(t.value.nova.localFailed, t.value.nova.localRetry);
     }
   } finally { if (attemptEpoch === handoffAttemptEpoch) handoffBusy.value = false; }
@@ -1220,12 +1268,19 @@ async function onSend(text: string, restore?: () => void) {
   if (!isAi.value && humanOpenRequest !== null) { restore?.(); return; }
   if (!isAi.value && !cid.value && startType.value && remoteApiEnabled) {
     const binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, type = startType.value;
-    if (convStore.categoryAvailabilityStatus !== "ready") {
+    let originalPending = false;
+    try { originalPending = await convStore.hasPendingHumanCreate(type, text, imageDraft.value?.state === "ready" ? imageDraft.value.attachmentId : undefined); }
+    catch {
+      if (binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || startType.value !== type || cid.value) return;
+      restore?.(); toast.error(t.value.conversations.image.sendBlocked, ""); return;
+    }
+    if (binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || startType.value !== type || cid.value) return;
+    if (!originalPending && convStore.categoryAvailabilityStatus !== "ready") {
       const outcome = await convStore.refreshCategories();
       if (binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || startType.value !== type || cid.value) return;
       if (outcome !== "applied") { restore?.(); return; }
     }
-    if (!convStore.categoryEnabled(type)) { restore?.(); toast.info(t.value.conversations.categoryDisabled, ""); return; }
+    if (!originalPending && !convStore.categoryEnabled(type)) { restore?.(); toast.info(t.value.conversations.categoryDisabled, ""); return; }
   }
   if (!acquireSendSlot()) {
     restore?.(); // rejected send must not swallow the typed message
@@ -1260,7 +1315,14 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
       restore?.();
       return;
     }
-    if (remoteApiEnabled && !convStore.categoryEnabled(type)) {
+    let originalPending = false;
+    try { originalPending = remoteApiEnabled && await convStore.hasPendingHumanCreate(type, text, attachmentId); }
+    catch (cause) {
+      if (!humanCreateRecovery.isCurrent(creation) || supportScope !== convStore.scopeInvalidated) return;
+      humanCreateRecovery.finish(); humanSendFailed(text, attachmentId, cause, attempts); restore?.(); return;
+    }
+    if (!humanCreateRecovery.isCurrent(creation) || supportScope !== convStore.scopeInvalidated) return;
+    if (remoteApiEnabled && !originalPending && !convStore.categoryEnabled(type)) {
       humanCreateRecovery.finish();
       restore?.();
       toast.info(t.value.conversations.categoryDisabled, "");
