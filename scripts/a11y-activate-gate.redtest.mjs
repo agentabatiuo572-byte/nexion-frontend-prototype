@@ -78,11 +78,12 @@ function redtestTemplate(name, tag, templateBody, scriptBody = "function noop() 
   }
 }
 
-function greentestTemplate(name, templateBody, scriptBody) {
+function greentestTemplate(name, templateBody, scriptBody, forbiddenNeedle) {
   writeFileSync(PROBE, `<template>\n${templateBody}\n</template>\n<script setup lang="ts">\n${scriptBody}\n</script>\n`);
   try {
     const { failed, out } = runGate();
-    return failed ? `✗ ${name}: 合法共用组件 ID 仍被判红\n${out}` : `✓ ${name}: 真实绑定的共用组件 ID 能被引用`;
+    if (forbiddenNeedle && out.includes(forbiddenNeedle)) return `✗ ${name}: 合法提示仍被列为静态判不出\n${out}`;
+    return failed ? `✗ ${name}: 合法模板仍被判红\n${out}` : `✓ ${name}: 合法模板通过`;
   } finally { cleanup(); }
 }
 
@@ -151,6 +152,14 @@ const results = [
   redtestTemplate("D 解析基数不符(元素被静默吞掉)", "D", `  <view :style="unclosed><text>x</text></view>`),
   redtestTemplate("B tabindex+click 无 role", "B", `  <view tabindex="0" @click="noop">x</view>`),
   redtestTemplate("B @tap 也算可点", "B", `  <view tabindex="0" @tap="noop">x</view>`),
+  greentestTemplate("F 首页 alert/status 完整有限分支", `<view :role="homePromotionStatus === 'error' ? 'alert' : 'status'">state</view>`, "function noop() {}", "homePromotionStatus === 'error' ? 'alert' : 'status'"),
+  greentestTemplate("F 点路径 alert/status 完整有限分支", `<view :role="m.queue.state === 'failed' ? 'alert' : 'status'">state</view>`, "function noop() {}", "m.queue.state === 'failed' ? 'alert' : 'status'"),
+  redtestVisible("F button/status 不冒认提示", "F", `state === 'error' ? 'button' : 'status'`, `<view :role="state === 'error' ? 'button' : 'status'">state</view>`),
+  redtestVisible("F 嵌套 button 分支不冒认提示", "F", `state === 'error' ? (sub ? 'button' : 'alert') : 'status'`, `<view :role="state === 'error' ? (sub ? 'button' : 'alert') : 'status'">state</view>`),
+  redtestVisible("F 未知 role 变量仍可见", "F", `unknownRole`, `<view :role="unknownRole">state</view>`),
+  redtestVisible("F 未知结果分支不冒认提示", "F", `state === 'error' ? unknownRole : 'status'`, `<view :role="state === 'error' ? unknownRole : 'status'">state</view>`),
+  redtestVisible("F 尾表达式不冒认有限分支", "F", `state === 'error' ? 'alert' : 'status' || fallbackRole`, `<view :role="state === 'error' ? 'alert' : 'status' || fallbackRole">state</view>`),
+  redtestVisible("F 额外分支不冒认有限分支", "F", `state === 'error' ? 'alert' : other ? 'button' : 'status'`, `<view :role="state === 'error' ? 'alert' : other ? 'button' : 'status'">state</view>`),
   redtestTemplate("C keydown 缺 .prevent", "C", `  <view role="button" tabindex="0" @click="noop" @keydown.enter="noop">x</view>`),
   redtestTemplate("C keyup 上的 .prevent 拦不住 keydown 层", "C", `  <view role="button" tabindex="0" @click="noop" @keyup.enter.prevent="noop">x</view>`),
   // 弹层没接焦点管理:遮罩只拦指针不拦键盘,打开后 Tab 会走到背景(那里有花钱的按钮)。

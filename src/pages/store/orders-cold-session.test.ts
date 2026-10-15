@@ -33,7 +33,7 @@ function view(auth: Record<string, unknown>, app: Record<string, unknown>, vault
   const result = new Function(
     "computed", "ref", "app", "auth", "orders", "genesis", "binarySessionReady", "remoteApiEnabled",
     "sessionVault", "createRemoteOrdersRefresh", "isInitialOrderReadLoading", "orderListPanels",
-    "remoteCommerceRequestCurrent",
+    "remoteCommerceRequestCurrent", "captureRuntimeRevision", "isCurrentRuntimeRevision",
     `${ready}\n${refresh}\nreturn { refreshOrders, remoteSessionReady };`,
   )(
     computed, ref, app, auth, orders, genesis, binarySessionReady, true,
@@ -43,7 +43,7 @@ function view(auth: Record<string, unknown>, app: Record<string, unknown>, vault
       await genesis.syncRemote();
       return { availability: "ready", commerceUnavailable: false, genesisUnavailable: false };
     },
-    () => false, () => ({ mainPresentation: "empty" }), () => true,
+    () => false, () => ({ mainPresentation: "empty" }), () => true, () => ({ epoch: 0 }), () => true,
   );
   return { result, orders, genesis };
 }

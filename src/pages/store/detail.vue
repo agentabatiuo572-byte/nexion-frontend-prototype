@@ -23,12 +23,13 @@
            mirroring the prototype's SetPageHeader. -->
 
       <view v-if="publicOnly" class="promotion promotion-main" data-testid="promotion-public-detail">
-        <text class="promotion-title">{{ activity?localized(activity.title,locale.code):t.promotion.events }}</text>
+        <text class="promotion-title">{{ activity?localized(activity.title,locale.code):promotionStatus==='ready'?t.promotion.disabled:promotionStatus==='error'?t.promotion.error:t.promotion.loading }}</text>
         <text v-if="promotionStatus==='loading'||promotionStatus==='idle'" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
         <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
-        <text v-else-if="!promotionAvailable" class="promotion-copy">{{ localized(activity?.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
+        <text v-else-if="activity&&!promotionAvailable" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
         <PromotionProduct v-if="activity" :activity="activity" :product-no="id" expanded public-only />
-        <view class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionDetailHref(id,activityId)))"><text>{{ t.promotion.signIn }}</text></view>
+        <view v-if="activity" class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionDetailHref(id,activityId)))"><text>{{ t.promotion.signIn }}</text></view>
+        <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionStoreHref())"><text>{{ t.promotion.allProducts }}</text></view>
       </view>
       <view v-else-if="catalogStatus === 'loading'" class="text-center" style="padding: 40px 16px">
         <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.catalogLoadingTitle }}</text>
@@ -126,12 +127,12 @@
         </view>
 
         <view v-if="activityId" class="mx-4 mt-3 promotion promotion-flat" data-testid="detail-promotion">
-          <text class="promotion-title">{{ t.promotion.gift }}</text>
+          <text class="promotion-title">{{ activity?t.promotion.gift:promotionStatus==='ready'?t.promotion.disabled:promotionStatus==='error'?t.promotion.error:t.promotion.loading }}</text>
           <text v-if="promotionStatus==='loading'||promotionStatus==='idle'" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
           <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
-          <text v-else-if="!promotionAvailable||!activity?.productNos.includes(product.id)" class="promotion-copy">{{ localized(activity?.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
+          <text v-else-if="activity&&(!promotionAvailable||!activity.productNos.includes(product.id))" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
           <PromotionProduct v-if="activity" :activity="activity" :product-no="product.id" expanded />
-          <view class="promotion-summary" style="align-items:center;margin-top:16px">
+          <view v-if="activity" class="promotion-summary" style="align-items:center;margin-top:16px">
             <text>{{ t.promotion.quantity }}</text>
             <view class="promotion-quantity-stepper">
               <view role="button" :tabindex="qty<=1?-1:0" :aria-disabled="qty<=1" :aria-label="t.uiChrome.decreaseQty" @click="dec">−</view>
@@ -139,7 +140,7 @@
               <view role="button" :aria-label="t.uiChrome.increaseQty" :tabindex="qty>=100?-1:0" :aria-disabled="qty>=100" @click="inc">+</view>
             </view>
           </view>
-          <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId,[{productNo:product.id,quantity:qty}]))"><text>{{ t.promotion.bundle }}</text></view>
+          <view v-if="activity" class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId,[{productNo:product.id,quantity:qty}]))"><text>{{ t.promotion.bundle }}</text></view>
           <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionDetailHref(id))"><text>{{ t.promotion.ordinary }}</text></view>
         </view>
 
@@ -265,15 +266,16 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo, takeNavigationQuery } from "@/lib/route";
-import { ref, computed, watch, onUnmounted, nextTick, type CSSProperties } from "vue";
-import { onLoad, onHide, onShow } from "@dcloudio/uni-app";
+import { ref, computed, watch, onActivated, onDeactivated, onUnmounted, nextTick, type CSSProperties } from "vue";
+import { onLoad, onHide, onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SectionHeader from "@/components/store/section-header.vue";
 import ProductRender from "@/components/store/product-render.vue";
 import PromotionProduct from '@/components/promotion/promotion-product.vue';
 import { usePromotionContext } from '@/composables/use-promotion-context';
-import { promotionBundleHref,promotionCheckoutHref,promotionDetailHref } from '@/lib/promotion-entry';
+import { promotionBundleHref,promotionCheckoutHref,promotionDetailHref,promotionStoreHref } from '@/lib/promotion-entry';
 import { localized } from '@/lib/promotion-display';
 import LiveSocialProof from "@/components/store/live-social-proof.vue";
 import SpecTable from "@/components/store/spec-table.vue";
@@ -597,26 +599,26 @@ const stockLow = computed(
 );
 const soldText = computed(() => (product.value?.sold ?? 0).toLocaleString());
 const phoneDailyEarnText = computed(() => (phoneDailyEarnValue.value > 0
-  ? `${phoneDailyEarnValue.value.toFixed(2)}`
+  ? formatAmount(phoneDailyEarnValue.value)
   : t.value.store.specValueUnavailable));
 // Same server figure the vs-phone strip shows. It used to be baked into the copy
 // as "$0.06", which contradicted the strip whenever the server said otherwise —
 // or said nothing at all (strip degraded, this line still claimed $0.06).
 const vsPhoneSubText = computed(() => fmt(t.value.store.detVsPhone, { n: phoneDailyEarnText.value }));
-const dailyEarnText = computed(() => (product.value?.dailyEarn ?? 0).toFixed(2));
+const dailyEarnText = computed(() => formatAmount(product.value?.dailyEarn ?? 0));
 const shareYieldText = computed(() => product.value?.shareYieldMin != null && product.value?.shareYieldMax != null
   ? `${product.value.shareYieldMin}%–${product.value.shareYieldMax}%`
   : t.value.store.shareAnnualUnavailable);
-const dailyYieldText = computed(() => dailyYield.value.toFixed(2));
-const monthlyYieldText = computed(() => monthlyYield.value.toFixed(0));
-const annualYieldText = computed(() => annualYield.value.toFixed(0));
+const dailyYieldText = computed(() => formatAmount(dailyYield.value));
+const monthlyYieldText = computed(() => formatAmount(monthlyYield.value));
+const annualYieldText = computed(() => formatAmount(annualYield.value));
 const monthlyPctText = computed(() =>
   totalPrice.value > 0 ? ((monthlyYield.value / totalPrice.value) * 100).toFixed(1) : "0",
 );
 const annualPctText = computed(() =>
   totalPrice.value > 0 ? ((annualYield.value / totalPrice.value) * 100).toFixed(0) : "0",
 );
-const priceText = computed(() => (product.value?.price ?? 0).toLocaleString());
+const priceText = computed(() => formatAmount((product.value?.price ?? 0)));
 
 function eligibilityPolicyTitle(policy: PurchaseEligibilityPolicy): string {
   return policy.policy === "F4B"
@@ -649,10 +651,11 @@ function eligibilityNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.00$/, "");
 }
 function eligibilityConditionText(condition: PurchaseEligibilityCondition): string {
+  const numberLabel = condition.kind === "teamVolumeUsd" ? formatAmount : eligibilityNumber;
   const values = {
-    current: eligibilityNumber(condition.current),
-    required: eligibilityNumber(condition.required),
-    gap: eligibilityNumber(condition.gap),
+    current: numberLabel(condition.current),
+    required: numberLabel(condition.required),
+    gap: numberLabel(condition.gap),
   };
   const copy = condition.kind === "rank"
     ? fmt(t.value.store.purchaseEligibilityRank, values)
@@ -681,14 +684,12 @@ function toggleFaq(i: number) {
 // Chassis-level sticky bottom Buy CTA (replaces the old page-level fixed-position
 // bar, which positioned against the viewport — wrong inside the bezel). useStickyCTA
 // → the chassis-mounted <StickyCtaBar> renders it correctly (absolute). Re-syncs as
-// product/qty resolve; cleared on hide/unmount so it never bleeds to the next page.
+// product/qty resolve; cached deactivation and Uni unload also clear this page's CTA.
 const sticky = useStickyCTA();
 const stickyOwner = Symbol("store-detail");
 const stickyPageVisible = ref(true);
 sticky.activate(stickyOwner);
-watch(
-  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, paybackLabel, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty],
-  () => {
+function publishStickyCTA() {
     if (!stickyPageVisible.value || (remoteApiEnabled && catalogStatus.value !== "ready")) {
       sticky.hide(stickyOwner);
       return;
@@ -762,27 +763,31 @@ watch(
       buttonLabel: t.value.store.cardBuyNow,
       showTabBar: false,
     }, stickyOwner);
-  },
+}
+watch(
+  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, paybackLabel, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty],
+  publishStickyCTA,
   { immediate: true },
 );
-onShow(() => {
+function showDetailStickyCTA() {
+  detailPageVisible = true;
   sticky.activate(stickyOwner);
   stickyPageVisible.value = true;
-});
-onHide(() => {
+  publishStickyCTA();
+}
+function hideDetailStickyCTA() {
   detailPageVisible = false;
   detailObservationEpoch += 1;
   invalidateDetailFacts();
   stickyPageVisible.value = false;
   sticky.hide(stickyOwner);
-});
-onUnmounted(() => {
-  detailPageVisible = false;
-  detailObservationEpoch += 1;
-  invalidateDetailFacts();
-  stickyPageVisible.value = false;
-  sticky.hide(stickyOwner);
-});
+}
+onShow(showDetailStickyCTA);
+onActivated(showDetailStickyCTA);
+onHide(hideDetailStickyCTA);
+onUnload(hideDetailStickyCTA);
+onDeactivated(hideDetailStickyCTA);
+onUnmounted(hideDetailStickyCTA);
 
 // ─── styles ───
 const catalogRetryStyle: CSSProperties = {

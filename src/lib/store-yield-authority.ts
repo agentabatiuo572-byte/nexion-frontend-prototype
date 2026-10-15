@@ -1,5 +1,6 @@
 import type { EarnPhoneTier } from "@/api/earn-config-api";
 import type { Product } from "@/mock/products";
+import { formatAmount } from "./amount-display";
 
 export interface YieldAmount {
   usd: number;
@@ -73,24 +74,24 @@ export function buildStoreYieldAuthority(
 
 export function storefrontUsd(amount: YieldAmount | null): string {
   if (!amount) return "—";
-  if (amount.usd >= 1_000_000_000) return `$${(amount.usd / 1_000_000_000).toFixed(1)}B`;
-  if (amount.usd >= 1_000_000) return `$${(amount.usd / 1_000_000).toFixed(1)}M`;
-  if (amount.usd >= 1_000) return `$${(amount.usd / 1_000).toFixed(1)}K`;
-  return `$${amount.usd.toFixed(2)}`;
+  if (amount.usd >= 1_000_000_000) return `$${formatAmount(amount.usd / 1_000_000_000)}B`;
+  if (amount.usd >= 1_000_000) return `$${formatAmount(amount.usd / 1_000_000)}M`;
+  if (amount.usd >= 1_000) return `$${formatAmount(amount.usd / 1_000)}K`;
+  return `$${formatAmount(amount.usd)}`;
 }
 
 export function storefrontUsdFull(amount: YieldAmount | null): string {
-  return amount ? `$${amount.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—";
+  return amount ? `$${formatAmount(amount.usd)}` : "—";
 }
 
 export function storefrontNex(amount: YieldAmount | null): string {
   if (!amount) return "—";
-  if (amount.nex >= 1_000_000_000) return `${(amount.nex / 1_000_000_000).toFixed(1)}B`;
-  if (amount.nex >= 1_000_000) return `${(amount.nex / 1_000_000).toFixed(1)}M`;
-  if (amount.nex >= 1_000) return `${(amount.nex / 1_000).toFixed(1)}K`;
-  return amount.nex.toLocaleString();
+  if (amount.nex >= 1_000_000_000) return `${formatAmount(amount.nex / 1_000_000_000)}B`;
+  if (amount.nex >= 1_000_000) return `${formatAmount(amount.nex / 1_000_000)}M`;
+  if (amount.nex >= 1_000) return `${formatAmount(amount.nex / 1_000)}K`;
+  return formatAmount(amount.nex);
 }
 
 export function storefrontNexFull(amount: YieldAmount | null): string {
-  return amount ? `${amount.nex.toLocaleString()} NEX` : "— NEX";
+  return amount ? `${formatAmount(amount.nex)} NEX` : "— NEX";
 }

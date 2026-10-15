@@ -12,8 +12,8 @@
 -->
 <template>
   <!-- 《08》§2:tap 反馈 active:scale+opacity(禁 hover 做移动端反馈) -->
-  <view class="relative overflow-hidden block active:scale-[0.98] active:opacity-80" :class="promotion ? 'promotion-catalog-card' : 'nx-glass-card'" :style="promotion ? promotionCardStyle : cardStyle" @click="goDetail">
-    <view v-if="featured&&!promotion" aria-hidden :style="featuredGlowStyle" />
+  <view ref="cardRef" class="relative overflow-hidden block active:scale-[0.98] active:opacity-80" :class="marketingPromotion ? 'promotion-catalog-card' : 'nx-glass-card'" :style="marketingPromotion ? promotionCardStyle : cardStyle" @click="goDetail">
+    <view v-if="featured&&!marketingPromotion" aria-hidden :style="featuredGlowStyle" />
 
     <!-- ───── Catalog photo or neutral placeholder ───── -->
     <view class="relative overflow-hidden" :style="renderWrapStyle" role="button" tabindex="0" :aria-label="nexGridBrandText(product.name)" @click.stop="goDetail"  @keydown.enter.prevent.stop="goDetail" @keydown.space.prevent.stop="goDetail">
@@ -44,7 +44,7 @@
 
       <!-- ROI 4-line hero -->
       <!-- 去线(主人 2026-08-17 全站令):mt-6 = 原 mt-3 + pt-3 的总间距 -->
-      <view v-if="!promotion" class="mt-6">
+      <view v-if="!marketingPromotion" class="mt-6">
         <!-- Eyebrow -->
         <view class="font-mono-tabular inline-flex items-center gap-1.5" :style="earnEyebrowStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
@@ -90,7 +90,7 @@
           <text class="whitespace-nowrap active:opacity-70" style="color: var(--v5-brand); font-weight: 500; font-family: var(--font-v5); min-height: 44px; display: flex; align-items: center" role="button" tabindex="0" @click.stop="goDevices">{{ t.store.cardTradeInCta }}</text>
         </view>
       </view>
-      <PromotionProduct v-if="promotion" :activity="promotion" :product-no="product.id" />
+      <PromotionProduct v-if="marketingPromotion" :activity="marketingPromotion" :product-no="product.id" />
     </view>
 
     <!-- ───── Footer: price + Buy CTA ───── -->
@@ -103,8 +103,8 @@
         </view>
       </view>
       <!-- 品牌填充按钮:opacity 取 85(《08》§2 状态派生公式) -->
-      <view class="inline-flex items-center justify-center whitespace-nowrap active:scale-[0.97] active:opacity-85" :class="{'promotion-buy':!!promotion}" :style="buyBtnDynStyle" role="button" :tabindex="buyUnavailable ? -1 : 0" :aria-disabled="buyUnavailable ? 'true' : 'false'" @click.stop="onBuy"  @keydown.enter.prevent.stop="onBuy" @keydown.space.prevent.stop="onBuy">
-        <LiquidGlass v-if="promotion" :radius="999" tone="control" />
+      <view class="inline-flex items-center justify-center whitespace-nowrap active:scale-[0.97] active:opacity-85" :class="{'promotion-buy':!!marketingPromotion}" :style="buyBtnDynStyle" role="button" :tabindex="buyUnavailable ? -1 : 0" :aria-disabled="buyUnavailable ? 'true' : 'false'" @click.stop="onBuy"  @keydown.enter.prevent.stop="onBuy" @keydown.space.prevent.stop="onBuy">
+        <LiquidGlass v-if="marketingPromotion" :radius="999" tone="control" />
         <svg v-if="gateLockedView" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; opacity: 0.9"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
         <text>{{ buyLabel }}</text>
         <svg v-if="!gateLockedView" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px; opacity: 0.9"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import type { Product } from "@/mock/products";
 import type { DeviceKind } from "@/store/types";
@@ -129,11 +130,12 @@ import { nexGridBrandText } from "@/lib/brand-copy";
 import { catalogProductImageUrl, productTierCode } from "@/lib/product-image";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useRemotePurchaseEligibility } from "@/store/purchase-eligibility";
+import { useScrollGrowProgress } from "@/composables/use-scroll-grow-progress";
 import { productCatalogState } from "@/store/product-catalog";
 import type { PublicPromotion } from '@/api/promotion-contracts';
 import PromotionProduct from '@/components/promotion/promotion-product.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
-import { canPreviewPromotion,promotionCheckoutHref,promotionDetailHref } from '@/lib/promotion-entry';
+import { canPreviewPromotion,isPromotionActive,promotionCheckoutHref,promotionDetailHref } from '@/lib/promotion-entry';
 
 const props = withDefaults(defineProps<{ product: Product; featured?: boolean; promotion?:PublicPromotion|null; activityId?:string; promotionReady?:boolean }>(), {
   featured: false,
@@ -144,6 +146,7 @@ const copy = computed(() => productCopy(t.value, props.product, remoteApiEnabled
 
 const isShare = computed(() => props.product.productType === "SHARE");
 const catalogUnavailable = computed(() => remoteApiEnabled && productCatalogState.status !== "ready");
+const marketingPromotion=computed(()=>isPromotionActive(props.promotion)?props.promotion:null);
 const promotionUnavailable=computed(()=>!!props.activityId&&(!props.promotionReady||!canPreviewPromotion(props.promotion??null)||!props.promotion?.productNos.includes(props.product.id)));
 const promotionSignIn=computed(()=>!!props.activityId&&!promotionUnavailable.value&&props.promotion?.eligibility==='SIGN_IN_REQUIRED');
 const stockUnavailable = computed(() => props.product.inventoryMode === "FINITE"
@@ -177,7 +180,8 @@ const showTradein = computed(() => !remoteApiEnabled && bestTradeinCredit.value 
 // Remote mode never evaluates the local V-rank/team snapshot. The server
 // eligibility response is the only source that can unlock this card.
 const localPurchaseGate = remoteApiEnabled ? null : usePurchaseGate(() => props.product);
-const { eligibility, retry: retryEligibility } = useRemotePurchaseEligibility(() => props.product.id);
+const { elRef: cardRef, inView: cardInView } = useScrollGrowProgress({ threshold: 0.01, fallbackInView: false });
+const { eligibility, retry: retryEligibility } = useRemotePurchaseEligibility(() => props.product.id, cardInView);
 const gate = computed(() => stockUnavailable.value
   ? {
       gated: true,
@@ -207,11 +211,12 @@ const gateDetailsOpen = ref(false);
 let lastGateToggleAt = 0;
 const gateLockedView = computed(() => gate.value.gated && gate.value.blocked);
 const buyUnavailable = computed(() => promotionUnavailable.value || stockUnavailable.value || catalogUnavailable.value
-  || (!promotionSignIn.value&&remoteApiEnabled && (gate.value.soldOut || eligibility.value.status === "loading" || eligibility.value.status === "idle")));
+  || (!promotionSignIn.value&&remoteApiEnabled && (gate.value.soldOut || eligibility.value.status === "loading")));
 const gateLabel = computed(() => {
   if (stockUnavailable.value) return t.value.store.temporarilyOutOfStock;
   if (!remoteApiEnabled) return gate.value.soldOut ? t.value.store.gateSoldOut : t.value.store.gateLockedEyebrow;
-  if (eligibility.value.status === "loading" || eligibility.value.status === "idle") return t.value.store.purchaseEligibilityLoading;
+  if (eligibility.value.status === "loading") return t.value.store.purchaseEligibilityLoading;
+  if (eligibility.value.status === "idle") return t.value.store.purchaseEligibilityProductPolicy;
   if (eligibility.value.status === "error") return t.value.store.purchaseEligibilityRetry;
   return gate.value.soldOut ? t.value.store.gateSoldOut : t.value.store.purchaseEligibilityIneligible;
 });
@@ -219,7 +224,7 @@ const gateCondTexts = computed(() =>
   gate.value.conditions.map((c) => {
     if (c.kind === "rank") return fmt(t.value.store.gateCondRank, { n: c.need });
     if (c.kind === "activeDirect") return fmt(t.value.store.gateCondDirect, { n: c.need });
-    return fmt(t.value.store.gateCondVolume, { n: c.need.toLocaleString() });
+    return fmt(t.value.store.gateCondVolume, { n: formatAmount(c.need) });
   }),
 );
 const gateModeText = computed(() =>
@@ -237,7 +242,9 @@ const buyLabel = computed(() =>
     ? productCatalogState.status === "loading" ? t.value.store.catalogLoadingTitle : t.value.store.catalogErrorTitle
     : stockUnavailable.value
     ? t.value.store.temporarilyOutOfStock
-    : remoteApiEnabled && (eligibility.value.status === "loading" || eligibility.value.status === "idle")
+    : remoteApiEnabled && eligibility.value.status === "idle"
+    ? t.value.store.purchaseEligibilityCheck
+    : remoteApiEnabled && eligibility.value.status === "loading"
     ? t.value.store.purchaseEligibilityLoading
     : remoteApiEnabled && eligibility.value.status === "error"
       ? t.value.store.purchaseEligibilityRetry
@@ -251,7 +258,7 @@ function onBuy() {
   if (buyUnavailable.value) return;
   if(promotionSignIn.value){navTo('/pages/login/login?return='+encodeURIComponent(promotionCheckoutHref([{productNo:props.product.id,quantity:1}],props.activityId)));return;}
   if (remoteApiEnabled) {
-    if (eligibility.value.status === "error") void retryEligibility();
+    if (eligibility.value.status === "idle" || eligibility.value.status === "error") void retryEligibility();
     else if (eligibility.value.status === "ready" && eligibility.value.eligible) goCheckout();
     else if (eligibility.value.status === "ready") goDetail();
     return;
@@ -286,17 +293,15 @@ function toggleGateDetails() {
 }
 
 // Text helpers (toFixed / toLocaleString / fmt) — kept out of template for clarity
-const dailyEarnText = computed(() => props.product.dailyEarn.toFixed(2));
+const dailyEarnText = computed(() => formatAmount(props.product.dailyEarn));
 const shareYieldText = computed(() => props.product.shareYieldMin != null && props.product.shareYieldMax != null
   ? `${props.product.shareYieldMin}%–${props.product.shareYieldMax}%`
   : t.value.store.shareAnnualUnavailable);
-const nexPerDayText = computed(() => fmt(t.value.store.cardNexPerDay, { n: props.product.dailyEarnNEX }));
+const nexPerDayText = computed(() => fmt(t.value.store.cardNexPerDay, { n: formatAmount(props.product.dailyEarnNEX) }));
 const tradeCreditText = computed(() =>
-  fmt(t.value.store.cardTradeCredit, { n: bestTradeinCredit.value.toFixed(2) }),
+  fmt(t.value.store.cardTradeCredit, { n: formatAmount(bestTradeinCredit.value) }),
 );
-const priceText = computed(() =>
-  isShare.value ? String(props.product.price) : props.product.price.toLocaleString(),
-);
+const priceText = computed(() => formatAmount(props.product.price));
 const stockHintText = computed(() => fmt(t.value.store.cardStockCompact, { n: props.product.stock ?? 0 }));
 
 function goDetail() {
@@ -496,5 +501,8 @@ const gateMetaStyle: CSSProperties = {
 import { getProductMedia } from "@/lib/product-media";
 </script>
 <style scoped>
+.promotion-buy { --v5-liquid-tint:transparent; }
+.promotion-buy :deep(.nx-liquid-glass[data-glass-strategy="solid"]),
+.promotion-buy :deep(.nx-liquid-glass[data-glass-strategy="solid"] .nx-liquid-optics) { background:inherit; }
 .promotion-buy > text,.promotion-buy > svg { position:relative;z-index:1; }
 </style>

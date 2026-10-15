@@ -7,6 +7,7 @@ import { useUI, confirm } from "@/store/ui";
 import { RemoteIntentKeyRegistry, type RemoteIntentStorage } from "@/lib/g-remote-intent";
 import { resolvePositionPenalty } from "@/lib/staking-canonical";
 import type { StakingSnapshot } from "@/api/staking-api";
+import { formatAmount } from "@/lib/amount-display";
 
 // Only the API transport boundary is controlled. Production page functions,
 // staking store, confirmation queue, account epoch and intent registry execute.
@@ -96,6 +97,7 @@ async function harness(storage?: RemoteIntentStorage) {
   const ui = useUI();
   const hooks: Record<string, () => void> = {};
   const dependencies = {
+    formatAmount,
     app, staking, ui, uiConfirm: confirm, resolvePositionPenalty, STAKING_PENALTY,
     pendingRemoteMutations: ref(new Set<string>()),
     remoteMutationGate: new RemoteIntentKeyRegistry("G1", persistent),

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import { compileTemplate, parse } from "@vue/compiler-sfc";
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import { createSSRApp, h } from "vue";
 import { renderToString } from "@vue/server-renderer";
 import networkPage from "./network.vue?raw";
@@ -26,6 +27,7 @@ async function renderTree(remoteStatus: "idle" | "loading" | "ready" | "error", 
       TeamRosterSection: { props: ["emptyLabel"], render() { return h("section", this.$props.emptyLabel); } },
     },
     setup: () => ({
+      formatAmount,
       remoteApiEnabled: remote,
       network: { remoteStatus, refreshCanonicalNetwork: vi.fn(), ensureCanonicalNetwork: vi.fn() },
       t: { network: en.network, tree: en.tree },

@@ -110,7 +110,7 @@
           </view>
           <view v-if="visiblePaid !== null" class="stat-sep" />
           <view v-if="visiblePaid !== null" class="stat-item">
-            <text class="stat-num stat-num--brand">{{ visiblePaid === null ? t.intro.publicStatsUnavailable : `$${fmtNum(visiblePaid)}` }}</text>
+            <text class="stat-num stat-num--brand">{{ visiblePaid === null ? t.intro.publicStatsUnavailable : `$${formatAmount(visiblePaid)}` }}</text>
             <text class="stat-label">{{ t.intro.statsPaidTotal }}</text>
           </view>
         </view>
@@ -170,6 +170,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navReset, navTo } from "@/lib/route";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -209,7 +210,7 @@ const fleetNow = () => {
 const paidNow = () => {
   if (!remoteApiEnabled) return paidCumulativeNow();
   const v = cfg.syncFailed ? null : cfg.config.verifiedStats;
-  return v ? Math.round(v.completedPayoutUsdt.value) : null;
+  return v ? v.completedPayoutUsdt.value : null;
 };
 const paid = ref(paidNow());
 const visiblePaid = computed(() => remoteApiEnabled ? paidNow() : paid.value);

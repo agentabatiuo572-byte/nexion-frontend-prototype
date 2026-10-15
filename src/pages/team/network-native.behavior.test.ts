@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import { initPreContext, preHtml, preJs } from "@dcloudio/uni-cli-shared/dist/preprocess";
@@ -80,6 +81,7 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
   const shows: Array<() => void> = [];
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
   const deps: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@/components/svg-text": { default: SvgText },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: { render: () => Vue.h("view") } },

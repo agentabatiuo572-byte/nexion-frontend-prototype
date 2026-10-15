@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -67,6 +68,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const exports = { default: {} as Component };
   const shows: Array<() => void> = [];
   const defaults: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: header },

@@ -1,3 +1,4 @@
+import { formatAmount } from "./amount-display";
 // FEAT-SHARE01 分享底座 — 单源分享链接 + 渠道 intent 解析 + 分享事件与任务接线。
 // 规格: PRD/specs/FEAT-SHARE01-invite-chain.md [FEAT-SHARE1]。
 // 链接构造全站唯一入口(禁页面自拼 nexgrid.ai/ref/);渠道表来自 platform
@@ -76,7 +77,7 @@ export function buildShareText(): string {
   const rewards = useConfig().config.rewards;
   if (!rewards.enabled) return `${t.value.team.sharingStillAvailable} ${buildShareLink()}`.trim();
   const gift = rewards.welcomeGift;
-  return fmt(t.value.share.shareText, { usd: gift.usdtAmount, nex: gift.nexAmount, link: buildShareLink() });
+  return fmt(t.value.share.shareText, { usd: formatAmount(gift.usdtAmount), nex: formatAmount(gift.nexAmount), link: buildShareLink() });
 }
 
 // web 型渠道 intent URL({link}/{text} URL-encode 后代入);非 web 型返回 null。
@@ -288,6 +289,6 @@ export async function recordShareEvent(channel: string, surface: ShareSurface): 
   if (task.nexReward) drafts.push({ type: "bonus", symbol: "NEX", amount: task.nexReward, status: "posted", memo: t.value.share.questRewardMemo, ref });
   if (drafts.length && postMoneyBillsOnce(drafts) !== "ok") return false;
   if (!useQuest().markComplete("invite_friend").firstTime) return false; // 消费失败:重试命中同 ref 不再发
-  toast.success(`+${task.nexReward} NEX · +$${task.usdtReward ?? 0}`, t.value.share.questRewardToast);
+  toast.success(`+${formatAmount(task.nexReward)} NEX · +$${formatAmount(task.usdtReward ?? 0)}`, t.value.share.questRewardToast);
   return true;
 }

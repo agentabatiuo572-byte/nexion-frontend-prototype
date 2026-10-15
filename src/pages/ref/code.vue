@@ -45,8 +45,8 @@
       <view v-if="rewardEnabled" class="nx-glass-card text-center relative overflow-hidden" :style="giftCardStyle">
         <text class="block" :style="giftLabelStyle">{{ t.ref.welcomeGift }}</text>
         <view class="flex items-baseline justify-center" style="gap: 6px; margin-top: 8px">
-          <text :style="giftAmountStyle">${{ giftUsdt }}</text>
-          <text :style="giftNexStyle">+ {{ giftNex }} NEX</text>
+          <text :style="giftAmountStyle">${{ formatAmount(giftUsdt) }}</text>
+          <text :style="giftNexStyle">+ {{ formatAmount(giftNex) }} NEX</text>
         </view>
         <text class="block" :style="giftSubStyle">{{ t.ref.welcomeGiftSub }}</text>
       </view>
@@ -65,7 +65,7 @@
       <!-- CTA(已登录 → 进入 UVEL,隐藏注册入口;异常2) -->
       <view v-if="!authed && referralCta === 'referral'" class="ref-cta w-full flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" data-system-chrome-primary @click="goRegister"  @keydown.enter.prevent="goRegister" @keydown.space.prevent="goRegister">
         <svg v-if="rewardEnabled" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13" /><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" /></svg>
-        <text style="margin: 0 8px">{{ rewardEnabled ? fmt(t.ref.claimCta, { usd: giftUsdt, nex: giftNex }) : t.ref.joinCta }}</text>
+        <text style="margin: 0 8px">{{ rewardEnabled ? fmt(t.ref.claimCta, { usd: formatAmount(giftUsdt), nex: formatAmount(giftNex) }) : t.ref.joinCta }}</text>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
       <view v-else-if="!authed && referralCta === 'ordinary'" class="ref-cta w-full flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" data-system-chrome-primary @click="goRegister"  @keydown.enter.prevent="goRegister" @keydown.space.prevent="goRegister">
@@ -123,6 +123,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { privacyPolicyHref } from "@/lib/privacy-return";
 import { navReset, navTo } from "@/lib/route";
 import { computed, onUnmounted, ref, type CSSProperties } from "vue";
@@ -161,8 +162,8 @@ const paidOutText = computed(() => {
   if (cfg.syncFailed || !v) return "—";
   const amount = v.completedPayoutUsdt.value;
   return amount >= 1_000_000
-    ? `${(amount / 1_000_000).toFixed(2)}M`
-    : `${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    ? `${formatAmount(amount / 1_000_000)}M`
+    : formatAmount(amount);
 });
 const joinersText = computed(() => {
   const v = verified.value;
@@ -260,7 +261,7 @@ const ALL_PERKS: { key: PerkKey; icon: string; tint: string }[] = [
 const perks = computed(() => ALL_PERKS.filter((perk) => rewardEnabled.value || perk.key !== "gift"));
 function perkLabel(k: PerkKey): string {
   const s = t.value.ref.perks[k];
-  return k === "gift" ? fmt(s, { usd: giftUsdt.value, nex: giftNex.value }) : s;
+  return k === "gift" ? fmt(s, { usd: formatAmount(giftUsdt.value), nex: formatAmount(giftNex.value) }) : s;
 }
 
 function goRegister() {

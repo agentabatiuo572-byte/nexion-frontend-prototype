@@ -1,4 +1,5 @@
 import { compile } from "@vue/compiler-dom";
+import { formatAmount } from "@/lib/amount-display";
 import { createSSRApp } from "vue";
 import { renderToString } from "@vue/server-renderer";
 import { describe, expect, it } from "vitest";
@@ -43,6 +44,7 @@ function renderCard(
 ) {
   const component = {
     setup: () => ({
+      formatAmount,
       props: { active: true }, expanded: false, rootStyle: {}, t: { home, quest: { expired: "EXPIRED" } },
       taskCountText: unavailable ? home.dayOneUnavailable : "0 tasks", rewardText: "—",
       questUnavailable: unavailable, questLoadError: unavailable,

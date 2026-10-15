@@ -29,7 +29,7 @@
         <view class="flex-1 min-w-0">
           <text class="block" style="font-size: 12px; color: var(--v5-warning); font-weight: 600">{{ t.walletV3.withdrawAmbiguousExitTitle }}</text>
           <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 3px; line-height: 1.4">{{ t.walletV3.withdrawAmbiguousExitBody }}</text>
-          <view class="inline-flex items-center active:opacity-70" style="min-height: 44px; margin-top: 4px" role="button" tabindex="0" :aria-disabled="abandoningAttempt" :aria-label="t.walletV3.withdrawAbandonAttemptCta" @click="abandonPendingAttempt"  @keydown.enter.prevent="abandonPendingAttempt" @keydown.space.prevent="abandonPendingAttempt">
+          <view class="inline-flex items-center active:scale-[0.98] transition-transform" style="min-height: 44px; margin-top: 4px" role="button" tabindex="0" :aria-disabled="abandoningAttempt" :aria-label="t.walletV3.withdrawAbandonAttemptCta" @click="abandonPendingAttempt"  @keydown.enter.prevent="abandonPendingAttempt" @keydown.space.prevent="abandonPendingAttempt">
             <text style="font-size: 12px; color: var(--v5-danger); text-decoration: underline">{{ abandoningAttempt ? `${t.walletV3.withdrawAbandonAttemptCta}…` : t.walletV3.withdrawAbandonAttemptCta }}</text>
           </view>
         </view>
@@ -78,7 +78,7 @@
           <text class="shrink-0" style="font-size: 12px; color: var(--v5-ink-3)">USDT</text>
         </view>
         <view class="flex items-center justify-between" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">
-          <text v-if="withdrawalFactsDisplayable">{{ t.wallet.withdrawableAvailable }} <text class="tabular-nums" style="color: var(--v5-ink-2); font-family: var(--font-v5)">${{ maxWithdrawable.toFixed(2) }}</text></text>
+          <text v-if="withdrawalFactsDisplayable">{{ t.wallet.withdrawableAvailable }} <text class="tabular-nums" style="color: var(--v5-ink-2); font-family: var(--font-v5)">${{ formatAmount(maxWithdrawable) }}</text></text>
           <text v-else>{{ withdrawalFactsStatusText }}</text>
           <text v-if="withdrawalFactsDisplayable">{{ minAmountLine }}</text>
           <text v-else>—</text>
@@ -243,19 +243,19 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>
             </view>
           </view>
-          <text class="tabular-nums" style="font-size: 13px; color: var(--v5-ink-3)">−${{ networkConfirmUsd.toFixed(2) }}</text>
+          <text class="tabular-nums" style="font-size: 13px; color: var(--v5-ink-3)">−${{ formatAmount(networkConfirmUsd) }}</text>
         </view>
         <view v-if="nexBurned > 0" class="flex items-center justify-between">
           <text style="font-size: 12px; color: var(--v5-brand)">{{ t.walletV3.feeOffsetRow }}</text>
-          <text class="tabular-nums" style="font-size: 13px; color: var(--v5-brand)">+${{ feeWaived.toFixed(2) }} · {{ fmtNex(nexBurned) }} NEX</text>
+          <text class="tabular-nums" style="font-size: 13px; color: var(--v5-brand)">+${{ formatAmount(feeWaived) }} · {{ fmtNex(nexBurned) }} NEX</text>
         </view>
         <view v-if="offsetWithNex" class="flex items-center justify-between">
           <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.walletV3.feeCharged }}</text>
-          <text class="tabular-nums" :style="{ fontSize: '13px', fontWeight: 600, color: fee > 0 ? 'var(--v5-ink)' : 'var(--v5-brand)' }">${{ fee.toFixed(2) }}</text>
+          <text class="tabular-nums" :style="{ fontSize: '13px', fontWeight: 600, color: fee > 0 ? 'var(--v5-ink)' : 'var(--v5-brand)' }">${{ formatAmount(fee) }}</text>
         </view>
         <view class="flex items-center justify-between" style="margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--v5-border)">
           <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.wallet.receiveLabel }}</text>
-          <text class="tabular-nums" style="font-size: 20px; font-weight: 600">${{ receive.toFixed(2) }}</text>
+          <text class="tabular-nums" style="font-size: 20px; font-weight: 600">${{ formatAmount(receive) }}</text>
         </view>
       </view>
 
@@ -377,6 +377,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, nextTick, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import { platformDayIndex } from "@/store/withdrawal-eligibility-core";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
@@ -678,7 +679,7 @@ const withdrawalRatioLine = computed(() => {
   if (ratio <= 0 || ratio >= 0.999999 || held <= 0.000001) return "";
   return fmt(t.value.wallet.withdrawalRatioLine, {
     pct: formatWithdrawalRatioPercent(ratio),
-    held: held.toFixed(2),
+    held: formatAmount(held),
   });
 });
 /**
@@ -704,7 +705,7 @@ const limitFacts = computed(() => withdrawalLimitFacts({
   now: nowTick.value,
 }));
 const perWithdrawalLimitText = computed(() => fmt(t.value.wallet.perWithdrawalLimit, {
-  amount: limitFacts.value.perWithdrawalMaximum.toFixed(2),
+  amount: formatAmount(limitFacts.value.perWithdrawalMaximum),
 }));
 const dailyUsageText = computed(() => fmt(t.value.wallet.dailyWithdrawalUsage, {
   used: String(limitFacts.value.dailyUsedCount),
@@ -782,8 +783,8 @@ const dailyLimitReachedText = computed(() => {
 // 重放是「今天不能提了,**而且先前那笔可能已经占掉了额度**」——
 // 只说前半句会让用户以为先前那笔没成功,转头去开新的一笔,那正是要防的事。
 const dailyLimitReachedWithPendingText = computed(() => t.value.walletV3.withdrawDailyLimitWithPending);
-const minWithdrawNoteText = computed(() => fmt(t.value.wallet.minWithdrawNote, { n: minWithdrawable.value.toFixed(0) }));
-const minAmountLine = computed(() => fmt(t.value.wallet.minAmountDynamic, { n: minWithdrawable.value.toFixed(0) }));
+const minWithdrawNoteText = computed(() => fmt(t.value.wallet.minWithdrawNote, { n: formatAmount(minWithdrawable.value) }));
+const minAmountLine = computed(() => fmt(t.value.wallet.minAmountDynamic, { n: formatAmount(minWithdrawable.value) }));
 const devMode = ref(false);
 onLoad((options) => {
   devMode.value = import.meta.env.DEV && options?.dev === "1";
@@ -1010,8 +1011,8 @@ const offsetHintText = computed(() => {
   if (fee.value <= 0.0001) return fmt(t.value.walletV3.feeOffsetOnFull, { nex: fmtNex(nexBurned.value) });
   return fmt(t.value.walletV3.feeOffsetOnPartial, {
     nex: fmtNex(nexBurned.value),
-    waived: feeWaived.value.toFixed(2),
-    rest: fee.value.toFixed(2),
+    waived: formatAmount(feeWaived.value),
+    rest: formatAmount(fee.value),
   });
 });
 /** 费用说明半屏开合。 */
@@ -1080,8 +1081,8 @@ const heldLine = computed(() => {
   const b = earningsReleaseSnapshot.value?.buckets;
   if (!b || (b.pending_review <= 0 && b.bonus_locked <= 0)) return "";
   return fmt(t.value.wallet.heldBucketsLine, {
-    p: b.pending_review.toFixed(2),
-    l: b.bonus_locked.toFixed(2),
+    p: formatAmount(b.pending_review),
+    l: formatAmount(b.bonus_locked),
   });
 });
 // 风控提示按命中原因给业务话术(工程码不直出;空时退回通用文案;码表单源 lib/risk-reason-text)。
@@ -1214,7 +1215,7 @@ const firstTimeReviewText = computed(() => t.value.wallet.firstTimeReview);
 // 原来文案 toFixed(0)、落地 toFixed(2):线配成 20.5 时按钮写「改为 $21 提现」而实际填 20.50,
 // 用户照字面手输 21 反而超线、快车道不生效 —— 按钮上的数字自己把用户送出了免审区间。
 const smallAmountLineText = computed(() =>
-  Number.isInteger(smallAmountLine.value) ? smallAmountLine.value.toFixed(0) : smallAmountLine.value.toFixed(2),
+  formatAmount(smallAmountLine.value),
 );
 const fastLaneCta = computed(() => fmt(t.value.wallet.fastLaneCta, { n: smallAmountLineText.value }));
 /**
@@ -1277,10 +1278,10 @@ function disabledReasonFor(amount: number, decision: WithdrawalEligibility): str
   // FEAT-WD01b:今日笔数用完 → 置灰 + 告知何时重置(不建单不扣款)
   if (decision.dailyLimitReached) return dailyLimitReachedText.value;
   if (amount < minWithdrawable.value) {
-    return fmt(t.value.walletV3.submitReasonMinAmount, { n: minWithdrawable.value.toFixed(0) });
+    return fmt(t.value.walletV3.submitReasonMinAmount, { n: formatAmount(minWithdrawable.value) });
   }
   if (amount > decision.maxWithdrawableUsdt) {
-    return fmt(t.value.walletV3.submitReasonMaxAmount, { n: decision.maxWithdrawableUsdt.toFixed(2) });
+    return fmt(t.value.walletV3.submitReasonMaxAmount, { n: formatAmount(decision.maxWithdrawableUsdt) });
   }
   if (!decision.canSubmit) return t.value.walletV3.submitReasonReviewBlocked;
   return "";
@@ -1288,7 +1289,7 @@ function disabledReasonFor(amount: number, decision: WithdrawalEligibility): str
 const submitDisabledReason = computed(() => disabledReasonFor(amountNum.value, eligibility.value));
 
 function fmtNex(n: number): string {
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  return formatAmount(n);
 }
 
 const canSubmit = computed(() => submitDisabledReason.value === "");
@@ -1325,8 +1326,8 @@ function useMax() {
   const decision = resolveWithdrawalUseMax(maxWithdrawable.value, minWithdrawable.value);
   if (decision.reason === "below-minimum") {
     toast.info(fmt(t.value.wallet.useMaxBelowMinimum, {
-      max: maxWithdrawable.value.toFixed(2),
-      min: minWithdrawable.value.toFixed(2),
+      max: formatAmount(maxWithdrawable.value),
+      min: formatAmount(minWithdrawable.value),
     }));
     return;
   }
@@ -1427,23 +1428,23 @@ async function handleSubmit() {
   const confirmBody =
     snap.quote.nexBurned > 0
       ? fmt(t.value.walletV3.withdrawConfirmBodyNex, {
-          amount: snap.amount.toFixed(2),
-          fee: snap.quote.networkConfirmUsd.toFixed(2),
-          waived: snap.quote.feeWaived.toFixed(2),
+          amount: formatAmount(snap.amount),
+          fee: formatAmount(snap.quote.networkConfirmUsd),
+          waived: formatAmount(snap.quote.feeWaived),
           nex: fmtNex(snap.quote.nexBurned),
-          receive: snap.quote.netReceive.toFixed(2),
+          receive: formatAmount(snap.quote.netReceive),
         })
       : fmt(t.value.walletV3.withdrawConfirmBody, {
-          amount: snap.amount.toFixed(2),
-          fee: snap.quote.networkConfirmUsd.toFixed(2),
-          receive: snap.quote.netReceive.toFixed(2),
+          amount: formatAmount(snap.amount),
+          fee: formatAmount(snap.quote.networkConfirmUsd),
+          receive: formatAmount(snap.quote.netReceive),
         });
   // 重放走**另一份**确认文案:用户点的是「提现」,发出去的却是上一笔 —— 不明说等于替他做主。
   // 这里打冻结件的金额/网络/地址,不打新报价:重放的费用由服务端按冻结的 policyVersion 定,
   // 客户端此刻算出来的价不是那笔的价,展示它就是第二个口径。
   const resendBody = pending
     ? fmt(t.value.walletV3.withdrawResendBody, {
-        amount: snap.amount.toFixed(2),
+        amount: formatAmount(snap.amount),
         network: NETWORKS.value.find((nw) => nw.id === snap.network)?.label ?? "",
         address: maskAddressMid(snap.address),
       })

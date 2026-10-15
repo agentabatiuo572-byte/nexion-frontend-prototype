@@ -21,7 +21,7 @@
           <text class="block truncate" :style="taglineStyle">{{ tagline }}</text>
         </view>
         <view :style="pricePillStyle">
-          <text class="tabular-nums" :style="priceStyle">${{ selected.product.price.toLocaleString() }}</text>
+          <text class="tabular-nums" :style="priceStyle">${{ formatAmount(selected.product.price) }}</text>
         </view>
       </view>
       <view class="grid grid-cols-3" style="gap: 8px; margin-top: 12px">
@@ -36,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onMounted, type CSSProperties } from "vue";
 import { remoteApiEnabled } from "@/api/runtime";

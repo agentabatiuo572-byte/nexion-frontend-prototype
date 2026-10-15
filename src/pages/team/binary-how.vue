@@ -72,11 +72,11 @@
           <view class="grid grid-cols-2" style="margin-top: 12px; gap: 8px">
             <view class="rounded-md text-center" :style="trackTotalStyle('var(--v5-brand)')">
               <text class="block" :style="{ color: 'var(--v5-brand)', fontWeight: 500, fontSize: '12px' }">{{ w.diagLeftLabel }}</text>
-              <text class="block font-display tabular-nums" :style="trackTotalAmtStyle">{{ fmt(t.uiChrome.perMonth, { amount: "$3,000" }) }}</text>
+              <text class="block font-display tabular-nums" :style="trackTotalAmtStyle">{{ fmt(t.uiChrome.perMonth, { amount: "$3,000.00" }) }}</text>
             </view>
             <view class="rounded-md text-center" :style="trackTotalStyle('var(--v5-brand-2)')">
               <text class="block" :style="{ color: 'var(--v5-brand-2)', fontWeight: 500, fontSize: '12px' }">{{ w.diagRightLabel }}</text>
-              <text class="block font-display tabular-nums" :style="trackTotalAmtStyle">{{ fmt(t.uiChrome.perMonth, { amount: "$2,000" }) }}</text>
+              <text class="block font-display tabular-nums" :style="trackTotalAmtStyle">{{ fmt(t.uiChrome.perMonth, { amount: "$2,000.00" }) }}</text>
             </view>
           </view>
         </view>
@@ -102,20 +102,20 @@
           <view class="grid grid-cols-2" style="gap: 12px">
             <view>
               <text class="block" :style="{ fontSize: '12px', letterSpacing: '0.16em', color: 'var(--v5-ink-3)' }">{{ w.diagLeftLabel }}</text>
-              <text class="block font-display tabular-nums" :style="{ fontSize: '20px', fontWeight: 600, color: 'var(--v5-brand)', marginTop: '2px' }">$3,000</text>
+              <text class="block font-display tabular-nums" :style="{ fontSize: '20px', fontWeight: 600, color: 'var(--v5-brand)', marginTop: '2px' }">$3,000.00</text>
             </view>
             <view>
               <text class="block" :style="{ fontSize: '12px', letterSpacing: '0.16em', color: 'var(--v5-ink-3)' }">{{ w.diagRightLabel }}</text>
-              <text class="block font-display tabular-nums" :style="{ fontSize: '20px', fontWeight: 600, color: 'var(--v5-brand-2)', marginTop: '2px' }">$2,000</text>
+              <text class="block font-display tabular-nums" :style="{ fontSize: '20px', fontWeight: 600, color: 'var(--v5-brand-2)', marginTop: '2px' }">$2,000.00</text>
             </view>
           </view>
           <view class="flex items-center justify-between" :style="mathTotalRowStyle">
             <view class="flex items-center" style="gap: 6px">
               <text :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ w.s4SmallerLabel }}</text>
-              <text class="font-display tabular-nums" :style="{ fontSize: '13px', color: 'color-mix(in srgb, var(--v5-ink) 90%, transparent)' }">$2,000</text>
+              <text class="font-display tabular-nums" :style="{ fontSize: '13px', color: 'color-mix(in srgb, var(--v5-ink) 90%, transparent)' }">$2,000.00</text>
               <text :style="{ fontSize: '12px', color: 'var(--v5-ink-4)' }">× 10% =</text>
             </view>
-            <text class="font-display tabular-nums" :style="{ fontSize: '20px', fontWeight: 600, color: 'var(--v5-brand)' }">$200</text>
+            <text class="font-display tabular-nums" :style="{ fontSize: '20px', fontWeight: 600, color: 'var(--v5-brand)' }">$200.00</text>
           </view>
         </view>
         <view class="inline-flex items-center rounded-full" :style="qualifyChipStyle">
@@ -206,9 +206,9 @@ const steps = computed(() => [
   { n: 3, title: w.value.step3Title, body: w.value.step3Body },
 ]);
 const timeline = computed(() => [
-  { month: w.value.s5M1Month, text: w.value.s5M1Text, leftVal: "$200", rightVal: "$200", bonusVal: `$0 ${w.value.s5BlockedTag}`, blocked: true, highlight: false },
-  { month: w.value.s5M2Month, text: w.value.s5M2Text, leftVal: "$2,600", rightVal: "$2,200", bonusVal: "$220", blocked: false, highlight: false },
-  { month: w.value.s5M3Month, text: w.value.s5M3Text, leftVal: "$4,500", rightVal: "$2,400", bonusVal: "$240", blocked: false, highlight: true },
+  { month: w.value.s5M1Month, text: w.value.s5M1Text, leftVal: "$200.00", rightVal: "$200.00", bonusVal: `$0.00 ${w.value.s5BlockedTag}`, blocked: true, highlight: false },
+  { month: w.value.s5M2Month, text: w.value.s5M2Text, leftVal: "$2,600.00", rightVal: "$2,200.00", bonusVal: "$220.00", blocked: false, highlight: false },
+  { month: w.value.s5M3Month, text: w.value.s5M3Text, leftVal: "$4,500.00", rightVal: "$2,400.00", bonusVal: "$240.00", blocked: false, highlight: true },
 ]);
 const faqs = computed(() => [
   { q: w.value.faqQ1, a: w.value.faqA1 },

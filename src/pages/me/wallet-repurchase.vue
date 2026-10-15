@@ -76,12 +76,12 @@
           <view class="grid grid-cols-4" style="gap: 8px; margin-top: 12px">
             <!-- 反馈恒定:选中档原是空 class,按下零反馈 -->
             <view v-for="p in presets" :key="p" class="active:opacity-70 transition-opacity" :style="presetStyle(amount === p)" role="button" tabindex="0" @click="selectPreset(p)">
-              <text>${{ p }}</text>
+              <text>${{ formatAmount(p) }}</text>
             </view>
           </view>
           <view style="margin-top: 12px">
             <text :style="balanceLabelStyle">{{ w.balanceLabel }}</text>
-            <text :style="balanceValueStyle"> ${{ displayBalance.toFixed(2) }}</text>
+            <text :style="balanceValueStyle"> ${{ formatAmount(displayBalance) }}</text>
           </view>
         </view>
 
@@ -89,10 +89,10 @@
         <view :style="cardStyle">
           <text class="block" :style="monoLabelStyle">{{ isRemote ? fmt(w.afterDays, { days: repurchase.config?.lockDays ?? '—' }) : w.after90 }}</text>
           <view style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px">
-            <Row :label="w.principal" :value="`$${formatCommandAmount(amount)}`" />
-            <Row :label="isRemote ? fmt(w.interestCanonical, { apy: repurchase.config?.apyPct ?? '—', days: repurchase.config?.lockDays ?? '—' }) : w.interest" :value="projectedYield === null ? '—' : `+$${projectedYield.toFixed(2)}`" tint="var(--v5-brand)" />
+            <Row :label="w.principal" :value="`$${formatAmount(amount)}`" />
+            <Row :label="isRemote ? fmt(w.interestCanonical, { apy: repurchase.config?.apyPct ?? '—', days: repurchase.config?.lockDays ?? '—' }) : w.interest" :value="projectedYield === null ? '—' : `+$${formatAmount(projectedYield)}`" tint="var(--v5-brand)" />
             <view :style="dividerStyle" />
-            <Row :label="w.unlockable" :value="projectedYield === null ? '—' : `$${(amount + projectedYield).toFixed(2)}`" bold />
+            <Row :label="w.unlockable" :value="projectedYield === null ? '—' : `$${formatAmount(amount + projectedYield)}`" bold />
           </view>
         </view>
 
@@ -109,13 +109,13 @@
         <!-- 余额不足:原因 + 下一步(充值)。只说「余额不足」不给出口 = 把用户堵在死路上。 -->
         <view v-if="insufficientBalance" :style="insufficientNoticeStyle" role="status">
           <text class="block" :style="insufficientTitleStyle">{{ w.insufficient }}</text>
-          <text class="block" :style="insufficientBodyStyle">{{ fmt(w.insufficientSub, { a: displayBalance.toFixed(2) }) }}</text>
+          <text class="block" :style="insufficientBodyStyle">{{ fmt(w.insufficientSub, { a: formatAmount(displayBalance) }) }}</text>
           <view class="active:opacity-80" :style="topupCtaStyle" role="button" tabindex="0" :aria-label="t.me.topup" @click="goTopup">
             <text>{{ t.me.topup }}</text>
           </view>
         </view>
 
-        <text class="block" :style="lockedNoticeStyle">{{ isRemote ? fmt(w.confirmMessage, { amount: formatCommandAmount(amount), days: repurchase.config?.lockDays ?? '—', penalty: repurchase.config?.earlyPenaltyPct ?? '—' }) : w.lockedNotice }}</text>
+        <text class="block" :style="lockedNoticeStyle">{{ isRemote ? fmt(w.confirmMessage, { amount: formatAmount(amount), days: repurchase.config?.lockDays ?? '—', penalty: repurchase.config?.earlyPenaltyPct ?? '—' }) : w.lockedNotice }}</text>
         </template>
         <view v-if="isRemote" :style="cardStyle">
           <text class="block" :style="heroTitleStyle">{{ w.ordersTitle }}</text>
@@ -123,9 +123,9 @@
           <text v-if="!repurchase.loading && !repurchase.error && !repurchase.orders.length">{{ w.ordersEmpty }}</text>
           <view v-for="order in repurchase.orders" :key="order.orderNo" style="padding: 16px 0; border-top: 1px solid var(--v5-border)">
             <text class="block" style="overflow-wrap: anywhere">{{ order.orderNo }}</text>
-            <Row :label="orderStatusLabel(order.status)" :value="`${order.amountUsdt.toLocaleString(undefined, { maximumFractionDigits: 6 })} USDT`" />
+            <Row :label="orderStatusLabel(order.status)" :value="`${formatAmount(order.amountUsdt)} USDT`" />
             <Row :label="w.maturesAt" :value="new Date(order.unlockAt).toLocaleString(dateLocale())" />
-            <Row :label="fmt(w.interestCanonical, { apy: order.apyPct, days: order.lockDays })" :value="`${order.estimatedInterestUsdt.toLocaleString(undefined, { maximumFractionDigits: 6 })} USDT`" />
+            <Row :label="fmt(w.interestCanonical, { apy: order.apyPct, days: order.lockDays })" :value="`${formatAmount(order.estimatedInterestUsdt)} USDT`" />
             <view v-if="order.status === 'MATURE_UNCLAIMED'" role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading || !!repurchase.error" :style="retryCtaStyle" @click="handleClaim(order.orderNo)"  @keydown.enter.prevent="handleClaim(order.orderNo)" @keydown.space.prevent="handleClaim(order.orderNo)"><text>{{ w.claimAction }}</text></view>
             <view v-if="order.status === 'ACTIVE'" role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading || !!repurchase.error" :style="retryCtaStyle" @click="handleEarlyWithdraw(order.orderNo)"  @keydown.enter.prevent="handleEarlyWithdraw(order.orderNo)" @keydown.space.prevent="handleEarlyWithdraw(order.orderNo)"><text>{{ w.earlyAction }}</text></view>
           </view>
@@ -136,6 +136,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -221,8 +222,8 @@ const insufficientBalance = computed(() => {
 });
 
 const ctaLabel = computed(() => recovering.value
-  ? fmt(w.value.recoveryCta, { amount: formatCommandAmount(amount.value) })
-  : fmt(w.value.cta, { amount: formatCommandAmount(amount.value) }));
+  ? fmt(w.value.recoveryCta, { amount: formatAmount(amount.value) })
+  : fmt(w.value.cta, { amount: formatAmount(amount.value) }));
 const unavailableTitle = computed(() => w.value.unavailableTitle);
 const unavailableBody = computed(() => w.value.unavailableBody);
 const retryLabel = computed(() => w.value.retry);
@@ -306,7 +307,7 @@ async function handleRepurchase() {
     // 🔴 余额门(第一道,按钮禁用之外的独立一道):余额不足**明确拒绝并说明原因**,
     //    不是静默 return —— 静默 return 在用户看来和「点了没反应」无法区分。
     if (insufficientBalance.value) {
-      toast.error(w.value.insufficient, fmt(w.value.insufficientSub, { a: displayBalance.value.toFixed(2) }));
+      toast.error(w.value.insufficient, fmt(w.value.insufficientSub, { a: formatAmount(displayBalance.value) }));
       return;
     }
     if (!canSubmit.value) return;
@@ -320,12 +321,12 @@ async function handleRepurchase() {
         title: w.value.confirmTitle,
         message: recovering.value
           ? fmt(w.value.recoveryHint, {
-              amount: formatCommandAmount(quoteAmount),
+              amount: formatAmount(quoteAmount),
               days: config?.lockDays ?? 0,
               penalty: config?.earlyPenaltyPct ?? 0,
             })
           : fmt(w.value.confirmMessage, {
-              amount: formatCommandAmount(quoteAmount),
+              amount: formatAmount(quoteAmount),
               days: config?.lockDays ?? 0,
               penalty: config?.earlyPenaltyPct ?? 0,
             }),
@@ -341,7 +342,7 @@ async function handleRepurchase() {
     try {
       await repurchase.open(quoteAmount);
       if (!currentScope(generation)) return;
-      toast.success(w.value.toastSuccess, `${formatCommandAmount(quoteAmount)} USDT`);
+      toast.success(w.value.toastSuccess, `${formatAmount(quoteAmount)} USDT`);
       const nextPreset = repurchase.config?.presets?.[0];
       amount.value = repurchase.pendingOpenAmount ?? nextPreset ?? repurchase.config?.minAmountUsdt ?? 0;
     } catch {
@@ -381,7 +382,7 @@ async function handleRepurchase() {
     return;
   }
   if (paid === "insufficient") {
-    toast.error(w.value.insufficient, fmt(w.value.insufficientSub, { a: user.value.usdtBalance.toFixed(2) }));
+    toast.error(w.value.insufficient, fmt(w.value.insufficientSub, { a: formatAmount(user.value.usdtBalance) }));
     return;
   }
   if (paid !== "ok") return; // 落盘失败:资金已还原**或**已入待对账("stuck" 那格钱仍扣着,收口点给了交易号);账上无记录,收口点已提示
@@ -433,7 +434,7 @@ async function handleClaim(orderNo: string) {
   try {
     const confirmed = await uiConfirm({
       title: w.value.claimTitle,
-      message: fmt(w.value.claimMessage, { order: orderNo, amount: (order.amountUsdt + order.estimatedInterestUsdt).toFixed(6) }),
+      message: fmt(w.value.claimMessage, { order: orderNo, amount: formatAmount(order.amountUsdt + order.estimatedInterestUsdt) }),
       confirmLabel: w.value.claimAction, cancelLabel: w.value.cancelLabel, icon: "info", owner: "wallet-repurchase",
     });
     if (!confirmed || !currentScope(generation) || repurchase.orders.find((entry) => entry.orderNo === orderNo)?.status !== "MATURE_UNCLAIMED") return;
@@ -452,7 +453,7 @@ async function handleEarlyWithdraw(orderNo: string) {
   try {
     const confirmed = await uiConfirm({
       title: w.value.earlyTitle,
-      message: fmt(w.value.earlyMessage, { order: orderNo, penalty: order.earlyPenaltyPct, amount: (order.amountUsdt * (1 - order.earlyPenaltyPct / 100)).toFixed(6) }),
+      message: fmt(w.value.earlyMessage, { order: orderNo, penalty: order.earlyPenaltyPct, amount: formatAmount(order.amountUsdt * (1 - order.earlyPenaltyPct / 100)) }),
       confirmLabel: w.value.earlyAction, cancelLabel: w.value.cancelLabel, icon: "warn", owner: "wallet-repurchase",
     });
     if (!confirmed || !currentScope(generation) || repurchase.orders.find((entry) => entry.orderNo === orderNo)?.status !== "ACTIVE") return;

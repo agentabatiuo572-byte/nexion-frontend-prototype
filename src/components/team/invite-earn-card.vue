@@ -15,7 +15,7 @@
         <template v-if="rewardReady">
           <template v-if="rewardEnabled">
             <view class="invite-card__reward-line">
-              <text class="font-mono-tabular invite-card__amount" :style="rewardAmountStyle">{{ nexReward.toLocaleString() }}</text>
+              <text class="font-mono-tabular invite-card__amount" :style="rewardAmountStyle">{{ formatAmount(nexReward) }}</text>
               <text class="font-display tabular-nums" :style="rewardUnitStyle"> NEX</text>
             </view>
             <text :style="rewardLabelStyle">{{ t.team.serverRewardPerSettlement }}</text>
@@ -23,7 +23,7 @@
           </template>
           <text v-else :style="cooldownStyle">{{ t.team.sharingStillAvailable }}</text>
           <view v-if="lifetimeEarned > 0" class="invite-card__earned" :style="earnedPillStyle">
-            <text>💎</text><text>+{{ lifetimeEarned.toLocaleString() }} NEX</text>
+            <text>💎</text><text>+{{ formatAmount(lifetimeEarned) }} NEX</text>
           </view>
         </template>
         <text v-else :style="cooldownStyle">-</text>
@@ -47,7 +47,7 @@
         </view>
         <view class="invite-card__action invite-card__primary nx-team-share-now" :style="primaryCtaStyle" role="button" tabindex="0" :aria-label="t.team.shareInvite" :aria-disabled="!referralCode" @click="openShare">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-          <text :style="primaryCtaTextStyle">{{ rewardReady && rewardEnabled ? fmt(t.team.shareAndEarn, { n: `${nexReward.toLocaleString()} NEX` }) : t.team.shareInvite }}</text>
+          <text :style="primaryCtaTextStyle">{{ rewardReady && rewardEnabled ? fmt(t.team.shareAndEarn, { n: `${formatAmount(nexReward)} NEX` }) : t.team.shareInvite }}</text>
         </view>
       </view>
     </view>
@@ -72,6 +72,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import PulseDot from "@/components/home/pulse-dot.vue";
 import ShareChannelSheet from "@/components/team/share-channel-sheet.vue";
@@ -95,7 +96,7 @@ interface TickerItem {
 const tickerItems = computed<TickerItem[]>(() => (rewards.snapshot?.recentRewards ?? []).map((row) => ({
   name: row.settlementNo.length > 12 ? `${row.settlementNo.slice(0, 12)}…` : row.settlementNo,
   action: row.releaseBucket === "withdrawable" ? t.value.team.settledToWallet : t.value.team.settledProtected,
-  amount: `+${row.amountNex.toLocaleString()} NEX`,
+  amount: `+${formatAmount(row.amountNex)} NEX`,
 })));
 const rewardReady = computed(() => !!rewards.snapshot && !rewards.error && !rewards.loading);
 const rewardEnabled = computed(() => rewards.snapshot?.rewardEnabled === true);

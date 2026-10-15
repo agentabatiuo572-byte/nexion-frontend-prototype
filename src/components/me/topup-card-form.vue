@@ -36,7 +36,7 @@
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
       </view>
       <text class="block" :style="successTitleStyle">{{ t.topupChrome.paySuccess }}</text>
-      <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.topupChrome.creditedToWallet, { amount: usdtAmount.toFixed(2) }) }}</text>
+      <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.topupChrome.creditedToWallet, { amount: formatAmount(usdtAmount) }) }}</text>
       <text class="block font-mono-tabular" style="margin-top: 12px; font-size: 12px; color: var(--v5-ink-4)">{{ receiptLine }}</text>
       <view class="inline-block w-full text-center active:opacity-90" :style="successBtnStyle" role="button" tabindex="0" :aria-label="t.topupChrome.backToWallet" @click="goWallet"  @keydown.enter.prevent="goWallet" @keydown.space.prevent="goWallet"><text>{{ t.topupChrome.backToWallet }}</text></view>
     </view>
@@ -61,8 +61,8 @@
           <text class="font-mono-tabular" style="font-size: 15px; color: var(--v5-ink-3)">USDT</text>
         </view>
         <view class="grid grid-cols-2" :style="feeRowStyle">
-          <text style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.topupChrome.cardFeeLabel, { rate: feeRateLabel }) }} · <text class="font-mono-tabular tabular-nums" style="color: var(--v5-ink-2); margin-left: 4px">${{ feeUSD.toFixed(2) }}</text></text>
-          <text class="text-right" style="font-size: 12px"><text style="color: var(--v5-ink-3)">{{ t.topupChrome.cardCharged }}</text><text class="font-mono-tabular tabular-nums" style="font-weight: 600; color: var(--v5-ink); margin-left: 4px">${{ chargeUSD.toFixed(2) }}</text></text>
+          <text style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.topupChrome.cardFeeLabel, { rate: feeRateLabel }) }} · <text class="font-mono-tabular tabular-nums" style="color: var(--v5-ink-2); margin-left: 4px">${{ formatAmount(feeUSD) }}</text></text>
+          <text class="text-right" style="font-size: 12px"><text style="color: var(--v5-ink-3)">{{ t.topupChrome.cardCharged }}</text><text class="font-mono-tabular tabular-nums" style="font-weight: 600; color: var(--v5-ink); margin-left: 4px">${{ formatAmount(chargeUSD) }}</text></text>
         </view>
         <!-- 限额常驻:事前告知 + 越界即禁用原因(不让用户填完一整张卡才吃「发卡行拒绝」)。 -->
         <view><text class="block" :style="limitHintStyle">{{ limitHint }}</text></view>
@@ -114,7 +114,7 @@
       <!-- 禁用态不给按压反馈:否则死按钮假装自己活着(点了没反应还闪一下)。 -->
       <view class="w-full flex items-center justify-center" :class="isValid ? 'active:opacity-90' : ''" :style="submitBtnStyle" role="button" tabindex="0" :aria-disabled="isValid ? 'false' : 'true'" @click="handleSubmit"  @keydown.enter.prevent="handleSubmit" @keydown.space.prevent="handleSubmit">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="isValid ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></svg>
-        <text style="margin-left: 6px">{{ fmt(t.topupChrome.payCta, { amount: `$${chargeUSD.toFixed(2)}` }) }}</text>
+        <text style="margin-left: 6px">{{ fmt(t.topupChrome.payCta, { amount: `$${formatAmount(chargeUSD)}` }) }}</text>
       </view>
 
       <!-- Trust footer -->
@@ -128,6 +128,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navReset } from "@/lib/route";
 import { ref, computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -189,8 +190,8 @@ const chargeUSD = computed(() => cardChargeUsd(usdtAmount.value));
 const feeRateLabel = computed(() => cardFeeRateLabel());
 const limitHint = computed(() =>
   fmt(t.value.topupChrome.cardLimitHint, {
-    min: `${MIN_CARD_DEPOSIT_USDT}`,
-    max: `${MAX_CARD_DEPOSIT_USDT.toLocaleString("en-US")}`,
+    min: formatAmount(MIN_CARD_DEPOSIT_USDT),
+    max: formatAmount(MAX_CARD_DEPOSIT_USDT),
   }),
 );
 /** 越界(高于上限 / 低于下限但已填了金额)→ 提示转警示色,当禁用原因用。 */
@@ -215,7 +216,7 @@ const authCode = ref("");
 // 后四位来自 tokenize() 的回执(本组件唯一能看到的卡片段),提交时定格。
 const last4 = ref("");
 const receiptLine = computed(() =>
-  fmt(t.value.topupChrome.receiptLine, { no: authCode.value, amount: chargeUSD.value.toFixed(2), last4: last4.value }),
+  fmt(t.value.topupChrome.receiptLine, { no: authCode.value, amount: formatAmount(chargeUSD.value), last4: last4.value }),
 );
 
 // ── input handlers (uni input event → e.detail.value) ──

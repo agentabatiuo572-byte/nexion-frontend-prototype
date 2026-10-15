@@ -233,9 +233,10 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
-import { computed, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { computed, onUnmounted, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -246,6 +247,7 @@ import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useGenesisPoints } from "@/store/genesis-points";
+import { registerActivePageRefresh } from "@/lib/active-page-refresh";
 
 const DAY = 86400_000;
 // mock 参考价：真后台提供平台 NEX 结算价（GET /api/market），此处仅用于「≈$」参考展示（非保证）。
@@ -266,12 +268,17 @@ const dividendsOpen = computed(() => genesis.dividendsOpen);
 // 🔴 阻断说明走 blockText 唯一出口(独立验收 P1-3):上一版写死 `.default`,
 //   售罄时这里说「暂未开放」而创世页说「已售罄」,同刻自相矛盾。售罄档落 `ctaSoldOut`。
 const { showUrgency, blockText } = useGenesisSaleGate();
+let releaseActiveRefresh = () => {};
 // 页面每次露出重读配置(hydrate-once 修复;理由同 genesis.vue)。
 onShow(() => {
+  releaseActiveRefresh();
+  releaseActiveRefresh = registerActivePageRefresh(() => genesis.syncRemote());
   void useGenesisConfig().refresh();
   void genesis.syncRemote();
   void genesisPoints.refresh();
 });
+onHide(() => releaseActiveRefresh());
+onUnmounted(() => releaseActiveRefresh());
 const notHolderBodyText = computed(() =>
   showUrgency.value
     ? fmt(t.value.genesisHolder.notHolderBody, { n: remaining.value })
@@ -297,14 +304,15 @@ const holderFactText = computed(() => {
   if (fact.holderStatus === "CONFIG_UNAVAILABLE") return copy.unpublished;
   if (fact.holderStatus === "NOT_EFFECTIVE") return copy.notEffective;
   if (fact.holderStatus === "NOT_ELIGIBLE") return copy.notEligible;
-  return fact.qualificationReasonCodes.map(reasonText).join(" · ")
+  const qualification = fact.qualificationReasonCodes.map(reasonText).join(" · ")
     || (fact.holderStatus === "READY" ? copy.confirmed : copy.unconfirmed);
+  return fact.reservedAllocation === null ? `${qualification} · ${copy.allocationUnavailable}` : qualification;
 });
 const allocText = computed(() => {
-  if (!remoteApiEnabled) return `${genesis.reservedAllocationNEX().toLocaleString()} NEX`;
+  if (!remoteApiEnabled) return `${formatAmount(genesis.reservedAllocationNEX())} NEX`;
   const fact = remoteHolderFact.value;
-  if (!fact || holderFactStale.value || fact.holderStatus === "CONFIG_UNAVAILABLE" || fact.holderStatus === "NOT_EFFECTIVE" || fact.holderStatus === "NOT_ELIGIBLE") return "— NEX";
-  return `${(fact.reservedAllocation ?? 0).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${fact.reservedAllocationUnit}`;
+  if (!fact || holderFactStale.value || fact.holderStatus === "CONFIG_UNAVAILABLE" || fact.holderStatus === "NOT_EFFECTIVE" || fact.holderStatus === "NOT_ELIGIBLE" || fact.reservedAllocation === null) return "-";
+  return `${formatAmount(fact.reservedAllocation)} ${fact.reservedAllocationUnit}`;
 });
 const priorityText = computed(() => {
   if (!remoteApiEnabled) return owned.value >= 5 ? "Top 1%" : owned.value >= 2 ? "Top 3%" : "Top 5%";
@@ -315,7 +323,7 @@ const priorityText = computed(() => {
   const tier = fact.priorityTier === "STANDARD" ? t.value.holderFacts.standard : fmt(t.value.holderFacts.topPercent, { n: fact.priorityTier.slice(4) });
   return fact.priorityRank === null ? tier : `${tier} · #${fact.priorityRank}`;
 });
-const poolText = computed(() => fmt(t.value.genesisHolder.pre.pointsPool, { amount: "$250K" }));
+const poolText = computed(() => fmt(t.value.genesisHolder.pre.pointsPool, { amount: "$250.00K" }));
 const leaderboard = computed(() => [
   { rank: 1, who: t.value.genesisHolder.pre.pointsYou, pts: String(Math.max(1, owned.value) * 1000), me: true },
 ]);
@@ -349,27 +357,27 @@ const pctText = computed(() => {
   return total > 0 ? Math.round((remotePaidUsdt.value / total) * 100) : 0;
 });
 const emittedText = computed(() => remoteApiEnabled
-  ? remotePaidUsdt.value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) ?? "—"
-  : Math.round(snap.value.emittedNEX).toLocaleString());
+  ? remotePaidUsdt.value === null ? "—" : formatAmount(remotePaidUsdt.value)
+  : formatAmount(snap.value.emittedNEX));
 const lockedText = computed(() => remoteApiEnabled
-  ? remotePendingUsdt.value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) ?? "—"
-  : Math.round(snap.value.lockedNEX).toLocaleString());
+  ? remotePendingUsdt.value === null ? "—" : formatAmount(remotePendingUsdt.value)
+  : formatAmount(snap.value.lockedNEX));
 const emissionUnit = computed(() => remoteApiEnabled ? "USDT" : "NEX");
-const refUsdText = computed(() => `${Math.round(snap.value.emittedNEX * NEX_REF_USDT).toLocaleString()}`);
+const refUsdText = computed(() => formatAmount(snap.value.emittedNEX * NEX_REF_USDT));
 const emissionFeed = computed(() => {
   if (remoteApiEnabled) {
     return genesis.remoteEmissions.map((entry) => ({
       label: entry.paidAt
         ? `${entry.batchNo} · ${new Date(entry.paidAt).toLocaleDateString(dateLocale())}`
         : `${entry.batchNo} · ${entry.status}`,
-      amt: `+${entry.amountUsdt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} USDT`,
+      amt: `+${formatAmount(entry.amountUsdt)} USDT`,
     }));
   }
   const daily = Math.max(1, Math.round((snap.value.emittedNEX * 0.008) || 142));
   return [
-    { label: t.value.genesisHolder.post.feedToday, amt: `+${daily.toLocaleString()} NEX` },
+    { label: t.value.genesisHolder.post.feedToday, amt: `+${formatAmount(daily)} NEX` },
     { label: t.value.genesisHolder.post.feedNext, amt: "T-18h" },
-    { label: t.value.genesisHolder.post.feedPool, amt: `+${Math.round(daily * 0.27).toLocaleString()} NEX` },
+    { label: t.value.genesisHolder.post.feedPool, amt: `+${formatAmount(Math.round(daily * 0.27))} NEX` },
   ];
 });
 
@@ -377,7 +385,7 @@ const emissionFeed = computed(() => {
 const holdings = computed(() => remoteApiEnabled ? genesis.remoteHoldings.map((holding) => ({
   id: holding.holdingNo,
   mintedAt: holding.acquiredAt,
-  allocText: `${holding.acquiredPriceUsdt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} USDT`,
+  allocText: `${formatAmount(holding.acquiredPriceUsdt)} USDT`,
 })) : mockHoldings());
 
 function mockHoldings(): Array<{ id: string; mintedAt: number; allocText: string }> {
@@ -388,7 +396,7 @@ function mockHoldings(): Array<{ id: string; mintedAt: number; allocText: string
     list.push({
       id: `NEX-GEN-${serial.toString().padStart(4, "0")}`,
       mintedAt: Date.now() - (142 - i * 18) * DAY,
-      allocText: `${GENESIS_EMISSION.nominalPerNodeNEX.toLocaleString()} NEX`,
+      allocText: `${formatAmount(GENESIS_EMISSION.nominalPerNodeNEX)} NEX`,
     });
   }
   return list;

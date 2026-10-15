@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { compile } from "@vue/compiler-dom";
@@ -48,7 +49,7 @@ function component(source: string, modules: Record<string, unknown>, components 
       if (!(name in modules)) throw new Error(`Unexpected payment dependency: ${name}`);
       return modules[name];
     }, {}) as Record<string, unknown>;
-    return { ...state, fmt, fmtVnd };
+    return { fmt, fmtVnd, formatAmount, ...state };
   } }, state: () => state };
 }
 
@@ -142,6 +143,7 @@ function harness(options: { warm?: boolean; quoteFailure?: boolean; existing?: b
     }) });
   const fx = useFx(), open = vi.fn(), navTo = vi.fn();
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@/store/fx": { useFx: () => fx }, "@/store/app": { useApp: () => app },
     "@/store/auth": { useAuth: () => auth }, "@/store/deposits": { useDeposits: () => dep },
     "@/api/runtime": { remoteApiEnabled: true, sessionVault: vault }, "@/api/errors": { ApiError },
@@ -302,7 +304,7 @@ test("an old binding's late read callback cannot add a banner over the current a
   const complete = h.state().completeCreateOrder as (amount: number, account: string) => Promise<void>;
   await complete(9, "user:8");
   const currentCreateError = (h.state().createError as Vue.Ref<string>).value;
-  expect(currentCreateError).toBe(fmt(zh.bankPane.minimumLimitExceeded, { min: "$10" }));
+  expect(currentCreateError).toBe(fmt(zh.bankPane.minimumLimitExceeded, { min: "$10.00" }));
   h.dep.serverStatus = "error"; h.dep.serverError = "OLD_READ_FAILED"; release();
   await Promise.resolve(); await Vue.nextTick();
   expect((h.state().readError as Vue.Ref<string>).value).toBe("");
@@ -317,7 +319,7 @@ test("an invalidated session removes only the stale read banner and keeps the ac
   await complete(9, "user:7");
   expect((h.state().readError as Vue.Ref<string>).value).toBe(zh.topupChrome.depositOpFailedNote);
   const createError = (h.state().createError as Vue.Ref<string>).value;
-  expect(createError).toBe(fmt(zh.bankPane.minimumLimitExceeded, { min: "$10" }));
+  expect(createError).toBe(fmt(zh.bankPane.minimumLimitExceeded, { min: "$10.00" }));
   const readCount = h.transport.mock.calls.length;
   h.auth.isAuthenticated = false; await Vue.nextTick();
   expect((h.state().readError as Vue.Ref<string>).value).toBe("");
@@ -352,7 +354,7 @@ test.each([zh, en, vietnamese])("a fresh canonical list offers an explicit exist
   (h.state().createError as Vue.Ref<string>).value = messages.bankPane.hostedRejectedNote;
   (choice.props.onClick as () => void)(); await Vue.nextTick();
   expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(existing20.intentId);
-  expect(h.text()).toContain(fmtVnd(existing20.vndAmount)); expect(h.text()).toContain(messages.bankPane.hostedContinueCta);
+  expect(h.text()).toContain("527800.00₫"); expect(h.text()).toContain(messages.bankPane.hostedContinueCta);
   expect(h.text()).not.toContain(messages.bankPane.expiredTitle); expect(existingControl(h)).toBeUndefined();
   expect((h.state().createError as Vue.Ref<string>).value).toBe(""); expect(h.dep.intents).toEqual(before);
   expect(h.dep.records).toEqual([]); expect(h.dep.remoteReceipts).toEqual([]);

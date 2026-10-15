@@ -34,7 +34,7 @@
         <view
           v-for="(o, i) in orderList"
           :key="o.id"
-          class="block active:opacity-90"
+          class="block active:scale-[0.98] transition-transform"
           :style="orderRowStyle(i === orderList.length - 1)"
           role="button"
           tabindex="0"
@@ -54,7 +54,7 @@
               <text v-if="o.meta" class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 3px">{{ o.meta }}</text>
               <view class="flex items-center justify-between" style="margin-top: 6px">
                 <text style="font-size: 12px; color: var(--v5-ink-4)">{{ dateText(o.placedAt) }}</text>
-                <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 13px; font-weight: 600; color: var(--v5-ink)">${{ o.total.toLocaleString() }}</text>
+                <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 13px; font-weight: 600; color: var(--v5-ink)">${{ formatAmount(o.total) }}</text>
               </view>
             </view>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" style="margin-top: 8px"><path d="m9 18 6-6-6-6" /></svg>
@@ -82,6 +82,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -95,6 +96,7 @@ import { useSetPageHeader } from "@/composables/use-page-header";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import { remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
 import { binarySessionReady } from "@/lib/binary-session-ready";
@@ -154,8 +156,9 @@ let ordersPageActive = true;
 async function refreshOrders() {
   if (!remoteApiEnabled || !remoteSessionReady.value) return;
   const request = { accountKey: app.accountKey, epoch: app.accountBindingEpoch };
+  const runtime = captureRuntimeRevision();
   const currentRefresh = ++refreshEpoch;
-  const current = () => ordersPageActive && currentRefresh === refreshEpoch && remoteCommerceRequestCurrent(request, {
+  const current = () => ordersPageActive && currentRefresh === refreshEpoch && isCurrentRuntimeRevision(runtime) && remoteCommerceRequestCurrent(request, {
     accountKey: app.accountKey,
     epoch: app.accountBindingEpoch,
   });
@@ -217,6 +220,7 @@ onHide(() => {
 onUnmounted(() => {
   ordersPageActive = false;
   refreshEpoch += 1;
+  unsubscribeRuntimeRevision();
 });
 watch(() => app.accountBindingEpoch, () => {
   remoteOrdersResolved.value = false;
@@ -226,6 +230,22 @@ watch(() => app.accountBindingEpoch, () => {
 // read starts here instead, so the page never settles on an account-state error.
 watch(remoteSessionReady, (ready, wasReady) => {
   if (ready && !wasReady && ordersPageActive) void refreshOrders();
+});
+
+// A later catalog response clears the shared orders without rebinding the account.
+// Coalesce synchronous invalidations; a failed source never schedules a retry.
+let runtimeRefreshQueued = false;
+const unsubscribeRuntimeRevision = subscribeRuntimeRevision(() => {
+  if (!remoteApiEnabled) return;
+  refreshEpoch += 1;
+  remoteOrdersResolved.value = false;
+  remoteOrdersRefreshing.value = ordersPageActive;
+  if (!ordersPageActive || runtimeRefreshQueued) return;
+  runtimeRefreshQueued = true;
+  void Promise.resolve().then(() => {
+    runtimeRefreshQueued = false;
+    if (ordersPageActive) void refreshOrders();
+  });
 });
 
 const ordersBackHref = ref("/store");
@@ -304,7 +324,7 @@ function goStore() {
   navTo("/store");
 }
 function goOrder(order: OrderListItem) {
-  navTo(order.kind === "genesis" ? "/pages/genesis/holder" : `/pages/store/order-detail?id=${order.id}`);
+  navTo(order.kind === "genesis" ? "/pages/genesis/holder" : `/pages/store/order-detail?id=${encodeURIComponent(order.id)}&from=${ordersBackHref.value === "/me" ? "me" : "store"}`);
 }
 
 const remoteErrorStyle: CSSProperties = {

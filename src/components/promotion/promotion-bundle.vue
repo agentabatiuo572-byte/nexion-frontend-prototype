@@ -1,12 +1,13 @@
 <template>
   <view class="promotion promotion-main" data-testid="promotion-bundle">
     <view>
-      <text class="promotion-title">{{ activity ? localized(activity.title,locale.code) : t.promotion.bundle }}</text>
-      <text class="promotion-copy">{{ t.promotion.quantityLimit }}</text>
+      <text class="promotion-title">{{ activity ? localized(activity.title,locale.code) : !scopeId?t.promotion.bundle:contextStatus==='ready'?t.promotion.disabled:contextStatus==='error'?t.promotion.error:t.promotion.loading }}</text>
+      <text v-if="!scopeId||activity" class="promotion-copy">{{ t.promotion.quantityLimit }}</text>
       <text v-if="scopeId&&(contextStatus==='loading'||contextStatus==='idle')" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
       <view v-if="scopeId&&contextStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshContext"><text>{{ t.promotion.retry }}</text></view></view>
-      <text v-if="scopeId&&contextStatus==='ready'&&!available" class="promotion-copy">{{ localized(activity?.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
+      <text v-if="scopeId&&activity&&contextStatus==='ready'&&!available" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
     </view>
+    <template v-if="!scopeId||activity">
     <view class="promotion-flat">
       <text class="promotion-title">{{ t.promotion.selected }}</text>
       <text v-if="!selection.length" class="promotion-copy">{{ t.promotion.selectTwo }}</text>
@@ -32,7 +33,7 @@
       <view v-for="product in suggestions" :key="product.id" class="promotion-row">
         <image v-if="imageFor(product.id)" class="promotion-image" :src="imageFor(product.id)" mode="aspectFill" :alt="product.name" />
         <view class="promotion-grow"><text class="bundle-name">{{ product.name }}</text><view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionDetailHref(product.id,scopeId))"><text>{{ t.promotion.detail }}</text></view></view>
-        <view class="bundle-add" role="button" :aria-label="t.promotion.selected+' · '+product.name" :tabindex="selection.length>=8||totalUnits>=100?-1:0" :aria-disabled="selection.length>=8||totalUnits>=100" @click="add(product.id)">+</view>
+        <view class="bundle-add" role="button" :aria-label="fmt(t.uiChrome.addItem,{name:product.name})" :tabindex="selection.length>=8||totalUnits>=100?-1:0" :aria-disabled="selection.length>=8||totalUnits>=100" @click="add(product.id)">+</view>
       </view>
     </view>
     <view class="promotion-flat">
@@ -44,9 +45,9 @@
         <RewardRows :expected="quote.expectedRewards" :lines="quote.items" />
         <text v-for="(warning,index) in quote.warnings" :key="index" class="promotion-copy">{{ localized(warning,locale.code) }}</text>
         <text v-if="quote.eligibility!=='ELIGIBLE'" class="promotion-notice">{{ t.promotion.disabledNote }}</text>
-        <view class="promotion-summary"><text>{{ t.promotion.subtotal }}</text><text>{{ quote.subtotalUsdt }} USDT</text></view>
-        <view class="promotion-summary"><text>{{ t.promotion.discount }}</text><text>{{ quote.discountUsdt }} USDT</text></view>
-        <view class="promotion-summary total"><text>{{ t.promotion.total }}</text><text>{{ quote.amountUsdt }} USDT</text></view>
+        <view class="promotion-summary"><text>{{ t.promotion.subtotal }}</text><text>{{ formatAmount(quote.subtotalUsdt) }} USDT</text></view>
+        <view class="promotion-summary"><text>{{ t.promotion.discount }}</text><text>{{ formatAmount(quote.discountUsdt) }} USDT</text></view>
+        <view class="promotion-summary total"><text>{{ t.promotion.total }}</text><text>{{ formatAmount(quote.amountUsdt) }} USDT</text></view>
       </template>
       <text class="promotion-copy">{{ t.promotion.rewardNote }}</text>
     </view>
@@ -55,12 +56,14 @@
     <view v-else class="promotion-action" role="button" :tabindex="canQuote?0:-1" :aria-disabled="!canQuote" @click="refreshQuote"><LiquidGlass :radius="999" tone="control" /><text>{{ t.promotion.quote }}</text></view>
     <text v-if="selection.length<2" class="promotion-copy">{{ t.promotion.selectTwo }}</text>
     <view class="promotion-action primary" role="button" :tabindex="canContinue?0:-1" :aria-disabled="!canContinue" @click="continueCheckout"><LiquidGlass :radius="999" tone="control" /><text>{{ t.promotion.continue }}</text></view>
-    <view v-if="scopeId" class="promotion-link" role="button" tabindex="0" @click="clearScope"><text>{{ t.promotion.ordinary }}</text></view>
     <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionStoreHref(scopeId))"><text>{{ t.promotion.buyMore }}</text></view>
     <PromotionTerms :open="termsOpen" :title="localized(activity?.title,locale.code)" :terms="ruleTerms" :disclosures="promotionDisclosures(activity)" @close="termsOpen=false" />
+    </template>
+    <view v-if="scopeId" class="promotion-link" role="button" tabindex="0" @click="clearScope"><text>{{ activity?t.promotion.ordinary:t.promotion.allProducts }}</text></view>
   </view>
 </template>
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed,onBeforeUnmount,onMounted,ref,watch } from 'vue';
 import { onHide,onShow } from '@dcloudio/uni-app';
 import { promotionApi,sessionVault } from '@/api/runtime';
@@ -76,6 +79,7 @@ import { readAccountRow,writeAccountRow } from '@/store/account-scoped-storage';
 import { catalogProductImageUrl } from '@/lib/product-image';
 import { localized,displayDeadline,rewardAmount } from '@/lib/promotion-display';
 import { navTo } from '@/lib/route';
+import { fmt } from '@/i18n/format';
 import { createPromotionReadFence,isEntryQuoteFresh,restoreEntrySelection,promotionBundleHref,promotionCheckoutHref,promotionDetailHref,promotionDisclosures,promotionStoreHref,validEntryItems,type EntryItem,type EntrySelectionDraft } from '@/lib/promotion-entry';
 import LiquidGlass from '@/components/liquid-glass.vue';
 import RewardRows from './reward-rows.vue';
@@ -97,7 +101,7 @@ restore(props.initialItems);
 const catalogStatus=computed(()=>productCatalogState.status);
 const catalog=computed(()=>productCatalogPresentation.value?.products??[]);
 const productFor=(id:string)=>catalog.value.find(product=>product.id===id);
-const nameFor=(id:string)=>productFor(id)?.name??id;
+const nameFor=(id:string)=>productFor(id)?.name??t.value.uiChrome.unavailable;
 const imageFor=(id:string)=>catalogProductImageUrl(productFor(id)?.imageUrl,'')??'';
 const ruleTerms=computed(()=>activity.value?[
   localized(activity.value.terms,locale.code),
@@ -117,7 +121,7 @@ const canQuote=computed(()=>signedIn.value&&validEntryItems(selection.value,2)&&
 const canContinue=computed(()=>canQuote.value&&quoteStatus.value==='ready'&&quote.value?.eligibility==='ELIGIBLE');
 function invalidate(){fence.invalidate();quote.value=null;quoteStatus.value='idle';}
 watch(selection,()=>{invalidate();writeAccountRow(storageKey,app.accountKey,{items:selection.value,entryItems:props.initialItems});},{deep:true,flush:'sync'});
-watch([scopeId,()=>activity.value?.version],invalidate);
+watch([scopeId,()=>activity.value?.version,()=>locale.code],()=>{invalidate();termsOpen.value=false;},{flush:'sync'});
 watch([()=>app.accountKey,()=>app.accountBindingEpoch],()=>{invalidate();termsOpen.value=false;restore();});
 function add(productNo:string){if(selection.value.length>=8||totalUnits.value>=100||!suggestions.value.some(product=>product.id===productNo))return;selection.value=[...selection.value,{productNo,quantity:1}];}
 function remove(productNo:string){selection.value=selection.value.filter(item=>item.productNo!==productNo);}

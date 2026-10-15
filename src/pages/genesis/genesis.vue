@@ -184,6 +184,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
@@ -353,7 +354,7 @@ const countdownDisplay = computed(() => {
   return `${t.value.genesisEligibility.countdownLabel} ${dayPart}${countdownClock.value}`;
 });
 
-const priceText = computed(() => price.value.toLocaleString());
+const priceText = computed(() => formatAmount(price.value));
 
 // 阶梯档展示：累计售出决定各档 售罄/当前 态。档位读 live config(运营 G4 可配、可增删)。
 // labelKey 按位置派生(不按 id 硬编码):首档=wl / 末档=Final tier / 中间=Public Tier —
@@ -365,7 +366,7 @@ const tiers = computed(() =>
     return {
       id: tier.id,
       labelKey,
-      priceText: tier.priceUSDT.toLocaleString(),
+      priceText: formatAmount(tier.priceUSDT),
       state: tier.state,
       left: tier.left,
       seatsTotal: tier.to - tier.from,

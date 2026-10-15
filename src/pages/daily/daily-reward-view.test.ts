@@ -52,7 +52,7 @@ describe("daily reward presentation", () => {
   it("localizes reward-kind enums instead of printing the server code", () => {
     expect(dailyMilestoneRewardText({ rewardType: "POINTS", rewardAmount: 50, badgeCode: null }, labels)).toBe("Points 50");
     expect(dailyMilestoneRewardText({ rewardType: "SPIN", rewardAmount: 1, badgeCode: null }, labels)).toBe("Spin tickets 1");
-    expect(dailyMilestoneRewardText({ rewardType: "USDT", rewardAmount: 1, badgeCode: null }, labels)).toBe("USDT 1");
+    expect(dailyMilestoneRewardText({ rewardType: "USDT", rewardAmount: 1, badgeCode: null }, labels)).toBe("USDT 1.00");
   });
 
   it("degrades an unrecognised reward kind to a generic unit rather than the raw code", () => {

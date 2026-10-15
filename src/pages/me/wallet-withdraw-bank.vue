@@ -47,7 +47,7 @@
             <view class="row"><text>{{ c.totalDebit }}</text><text>{{ money(quote.amountUsdt) }} USDT</text></view>
             <view class="row"><text>{{ c.fee }}</text><text>{{ money(quote.feeUsdt) }}</text></view>
             <view class="row"><text>{{ c.net }}</text><text>{{ money(quote.netUsdt) }}</text></view>
-            <view class="row"><text>{{ c.rate }}</text><text>{{ money(quote.rateVnd) }}</text></view>
+            <view class="row"><text>{{ c.rate }}</text><text>{{ formatHowNumber(quote.rateVnd, dateLocale()) }}</text></view>
             <view class="row"><text>{{ c.expiresIn }}</text><text data-testid="bank-countdown" :class="{ warn: quoteExpired }">{{ quoteExpired ? c.quoteExpired : format(c.seconds, { s: secondsLeft }) }}</text></view>
           </view>
           <view class="notice"><text>{{ c.feeIncluded }}</text></view>
@@ -91,6 +91,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatHowNumber } from "@/lib/rank-how-content";
+import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -128,7 +130,7 @@ let inFlight: { current: () => boolean; orderNo: string | null } | null = null;
 let alive = true;
 let visible = false;
 const pendingKey = () => `nexgrid.bank-withdraw.pending:${app.accountKey}`;
-const money = (value: number) => value.toLocaleString(dateLocale(), { maximumFractionDigits: 6 });
+const money = (value: number) => formatAmount(value);
 const displayDate = formatBankDateTime;
 const quoteExpired = computed(() => !!quote.value && (parseServerTimestamp(quote.value.expiresAt) ?? 0) <= now.value);
 const canSubmit = computed(() => accepted.value && !!quote.value && !quoteExpired.value && !uncertain.value && config.value?.enabled === true
@@ -145,7 +147,7 @@ const amountProblem = computed(() => bankAmountError(amount.value, config.value)
 const maxAmount = computed(() => bankMaximumAmount(config.value));
 const secondsLeft = computed(() => Math.max(0, Math.ceil(((parseServerTimestamp(quote.value?.expiresAt) ?? 0) - now.value) / 1000)));
 const title = computed(() => quote.value ? c.value.confirmTitle : formStep.value === "amount" ? c.value.amountTitle : c.value.recipientTitle);
-const feeRule = computed(() => config.value?.policy ? format(c.value.feeRule, { rate: money(config.value.policy.feeRatePct), min: money(config.value.policy.feeMinUsd), max: money(config.value.policy.feeMaxUsd) }) : "");
+const feeRule = computed(() => config.value?.policy ? format(c.value.feeRule, { rate: formatHowNumber(config.value.policy.feeRatePct, dateLocale()), min: money(config.value.policy.feeMinUsd), max: money(config.value.policy.feeMaxUsd) }) : "");
 const amountError = computed(() => {
   if (!amount.value || !amountProblem.value) return "";
   return c.value.amountErrors[amountProblem.value];

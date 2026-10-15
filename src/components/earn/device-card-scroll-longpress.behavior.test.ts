@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -57,19 +58,20 @@ function cloudDevice(): Device {
     todayEarnings: 0, todayEarningsNEX: 0, cumulativeEarningsUsdt: 0, paidPriceUsdt: 0, capacitySource: "server" };
 }
 
-async function mount(copy: Messages = zh, device = cloudDevice(), expanded = false) {
+async function mount(copy: Messages = zh, device = cloudDevice(), expanded = false, native = true, calibrated = true) {
   const navTo = vi.fn();
   const setPhoneRuntime = vi.fn();
   const toggle = vi.fn();
   const app = Vue.reactive({ accountKey: "render-only", visibleDevices: [device], remotePhoneBindingInvalid: false, setPhoneRuntime });
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const dependencies: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@/components/home/device-slot.vue": { __esModule: true, default: blank },
     "@/store/app": { useApp: () => app },
-    "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => true }) },
+    "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => calibrated }) },
     "@/store/config": { useConfig: () => ({ config: { onlineBonus: {} } }) },
     "@/store/earn-config": { prepareEarnConfig: () => {}, useEarnConfig: () => ({ lockedTeasers: () => [], averageEligibleReward: () => 1 }) },
-    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => true },
+    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => native },
     "@/api/runtime": { remoteApiEnabled: true }, "@/i18n/use-t": { useT: () => Vue.ref(copy) },
     "@/lib/route": { navTo }, "@/composables/use-capacity-explainer": { useCapacityExplainer },
     "@/lib/server-deadline-clock": deadline, "@/lib/phone-activation-guidance": phoneGuidance,
@@ -97,6 +99,32 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   unmounts.push(unmount);
   await Vue.nextTick();
   return { root, device, toggle, navTo, setPhoneRuntime, unmount };
+}
+
+for (const copy of [en, zh, vietnamese]) {
+  test(`${copy.earn.hashCapability}: missing server phone capacity is compact and a later valid value recovers`, async () => {
+    const phone = Vue.reactive({ ...cloudDevice(), kind: "phone", capabilityTops: undefined }) as Device;
+    const view = await mount(copy, phone, true);
+    const label = () => all(view.root).find(entry => text(entry) === copy.earn.hashCapability)!;
+    expect(text(label().parent!.children[1].children[0])).toBe("-");
+    expect(text(label().parent!)).not.toContain(copy.earn.hashCapabilityUnknown);
+    expect(text(label().parent!.parent!)).toContain(copy.earn.hashCapabilityUnknown);
+    phone.capabilityTops = 12.25; await Vue.nextTick();
+    expect(text(label().parent!.children[1].children[0])).toBe(`12.25 ${copy.onboarding.phoneComputeUnit}`);
+    expect(text(label().parent!.parent!)).not.toContain(copy.earn.hashCapabilityUnknown);
+    phone.capabilityTops = undefined; await Vue.nextTick();
+    expect(text(label().parent!.children[1].children[0])).toBe("-");
+    expect(text(label().parent!.parent!)).toContain(copy.earn.hashCapabilityUnknown);
+    for (const [native, calibrated] of [[true, false], [false, true]]) {
+      const blocked = await mount(copy, phone, true, native, calibrated);
+      expect(all(blocked.root).some(entry => text(entry) === copy.earn.hashCapability)).toBe(false);
+      const guidance = phoneGuidance.resolvePhoneActivationGuidance(native, copy.myDevices);
+      expect(text(blocked.root)).toContain(guidance.title);
+      expect(text(blocked.root)).toContain(guidance.body);
+      expect(text(blocked.root)).not.toContain(copy.earn.hashCapabilityUnknown);
+      expect(all(blocked.root).some(entry => text(entry) === `${copy.myDevices.phoneActivationCta} →`)).toBe(native);
+    }
+  });
 }
 
 async function fire(target: Host, handler: string, extra: object = {}) {

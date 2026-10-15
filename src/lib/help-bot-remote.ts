@@ -1,4 +1,4 @@
-import type { NovaAiChatRequest, NovaAiChatResponse } from "@/api/nova-ai-api";
+import type { NovaAiChatRequest } from "@/api/nova-ai-api";
 
 export function buildRemoteHelpRequest(
   message: string,
@@ -12,8 +12,4 @@ export function buildRemoteHelpRequest(
     conversationId,
     turnId,
   };
-}
-
-export function novaHelpSource(_response: NovaAiChatResponse): string {
-  return "UVEL AI";
 }

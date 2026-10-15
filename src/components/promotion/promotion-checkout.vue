@@ -12,7 +12,7 @@
         <view v-for="item in items" :key="item.productNo" class="promotion-row">
           <image v-if="getProduct(item.productNo)?.imageUrl" :src="getProduct(item.productNo)!.imageUrl" class="promotion-image" mode="aspectFill" />
           <view class="promotion-grow"><text style="display:block;font-weight:600">{{ selectedItemName(item) }}</text><text class="promotion-copy">{{ p.quantity }} · {{ item.quantity }}</text></view>
-          <text v-if="quote" class="promotion-price">{{ quote.items.find(l=>l.productNo===item.productNo)?.subtotalUsdt }} USDT</text>
+          <text v-if="quote" class="promotion-price">{{ formatAmount(quote.items.find(l=>l.productNo===item.productNo)?.subtotalUsdt) }} USDT</text>
         </view>
       </view>
       <view v-if="rewards.length" class="promotion-flat">
@@ -22,12 +22,12 @@
       </view>
       <view v-if="quote || order" class="promotion-flat">
         <view v-if="!order&&items.length===1&&!openedOriginal" class="promotion-link" role="button" tabindex="0" :aria-disabled="busy||!!session.record.pending" @click="chooseVoucher"><text>{{ p.voucher }}</text> · <text>{{ selectedVoucherName }}</text></view>
-        <view v-if="quote" class="promotion-summary"><text>{{ p.subtotal }}</text><text>{{ quote.subtotalUsdt }} USDT</text></view>
-        <view v-if="quote" class="promotion-summary"><text>{{ p.discount }}</text><text>{{ quote.discountUsdt }} USDT</text></view>
-        <view class="promotion-summary total"><text>{{ p.total }}</text><text>{{ order?.amountUsdt??quote?.amountUsdt }} USDT</text></view>
+        <view v-if="quote" class="promotion-summary"><text>{{ p.subtotal }}</text><text>{{ formatAmount(quote.subtotalUsdt) }} USDT</text></view>
+        <view v-if="quote" class="promotion-summary"><text>{{ p.discount }}</text><text>{{ formatAmount(quote.discountUsdt) }} USDT</text></view>
+        <view class="promotion-summary total"><text>{{ p.total }}</text><text>{{ formatAmount(order?.amountUsdt??quote?.amountUsdt) }} USDT</text></view>
         <view v-if="order ? order.paymentStatus==='PENDING'&&order.payBy : promotion?.endsAt" class="promotion-row"><text aria-hidden="true">◷</text><view class="promotion-grow"><text class="promotion-copy">{{ order ? p.payBy : p.deadline }}</text><text class="promotion-copy">{{ displayDeadline(order?.payBy??promotion!.endsAt,locale.code) }}</text></view></view>
         <text class="promotion-copy">{{ p.wallet }}</text>
-        <text class="promotion-copy">{{ t.wallet.usdtBalance }} · {{ app.remoteFleetHasSnapshot ? app.user.usdtBalance.toFixed(6)+' USDT' : p.unknown }}</text>
+        <text class="promotion-copy">{{ t.wallet.usdtBalance }} · {{ app.remoteFleetHasSnapshot ? formatAmount(app.user.usdtBalance)+' USDT' : p.unknown }}</text>
         <view class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/wallet-topup')"><text>{{ p.topup }}</text></view>
       </view>
       <view v-if="quote?.warnings.length" class="promotion-notice"><text v-for="(warning,index) in quote.warnings" :key="index" class="promotion-copy">{{ localized(warning,locale.code) }}</text></view>
@@ -35,6 +35,7 @@
         <template v-if="order">
           <text class="promotion-copy">{{ p.orderNo }} · {{ order.orderNo }}</text>
           <text class="promotion-title">{{ order.paymentStatus==='PAID' ? p.paid : order.paymentStatus==='REFUNDED' ? p.refunded : order.paymentStatus==='PENDING' ? p.pending : order.paymentStatus==='CANCELLED' ? p.rewardCancelled : order.paymentStatus==='EXPIRED' ? t.orders.statusExpired : p.unavailable }}</text>
+          <text v-if="order.paymentStatus==='PENDING'&&payWindow!==true" class="promotion-notice">{{ payWindow===false?t.orders.statusExpired:p.unknown }}</text>
           <PromotionAction v-if="order.paymentStatus==='PENDING'&&!unknown" class="promotion-action primary" role="button" tabindex="0" :aria-disabled="!canPay" @click="pay"><text>{{ p.pay }}</text></PromotionAction>
           <PromotionAction class="promotion-action" role="button" tabindex="0" :aria-disabled="busy" @click="recover"><text>{{ p.query }}</text></PromotionAction>
           <view class="promotion-link" role="button" tabindex="0" @click="viewOrder"><text>{{ p.viewOrder }}</text></view>
@@ -58,21 +59,23 @@
   </view>
 </template>
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import PromotionAction from '@/components/promotion/promotion-action.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
-import { computed,ref,shallowRef,onMounted,onBeforeUnmount } from 'vue';
+import { computed,ref,shallowRef,watch,onMounted,onBeforeUnmount } from 'vue';
 // #ifdef H5
 import { onBeforeRouteLeave } from 'vue-router';
 // #endif
-import { promotionApi } from '@/api/runtime';
+import { promotionApi,deviceE3Api } from '@/api/runtime';
 import type { PublicPromotion,ExpectedReward } from '@/api/promotion-api';
 import type { PromotionItem } from '@/api/promotion-api';
 import type { LocalizedText,RewardDisclosure } from '@/api/promotion-contracts';
 import { useT } from '@/i18n/use-t';import { useLocaleStore } from '@/store/locale';import { useApp } from '@/store/app';import { useAuth } from '@/store/auth';
 import { useVoucher } from '@/store/voucher';
 import { asApiError } from '@/api/errors';
-import { getProduct as readProduct } from '@/mock/products';import { refreshProductCatalog,productCatalogState } from '@/store/product-catalog';
-import { navTo,navBack } from '@/lib/route';import { confirm } from '@/store/ui';
+import { getProduct as readProduct } from '@/mock/products';import { refreshProductCatalog,productCatalogState,productCatalogPresentation } from '@/store/product-catalog';
+import { navTo,navBack } from '@/lib/route';import { confirm,useUI } from '@/store/ui';
+import { fmt } from '@/i18n/format';
 import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
 import { acquireAccountCommandKey,readAccountRow,writeAccountRow } from '@/store/account-scoped-storage';
 import { registerCheckoutLeaveGuard,requestCheckoutLeave } from '@/lib/promotion-leave-guard';
@@ -83,33 +86,80 @@ import RewardRows from './reward-rows.vue';import PromotionTerms from './promoti
 const props=defineProps<{activityId:string;items:PromotionItem[];orderNo?:string}>();
 function getProduct(id:string){void productCatalogState.status;return readProduct(id);}
 const t=useT(),p=computed(()=>t.value.promotion),locale=useLocaleStore(),app=useApp(),auth=useAuth(),voucher=useVoucher();
-function selectedItemName(item:{productNo:string;productName?:string}){return ('productName' in item?item.productName:getProduct(item.productNo)?.name)??p.value.unknown;}
-const account=app.accountKey,epoch=app.accountBindingEpoch;let alive=true;const current=()=>alive&&app.accountKey===account&&app.accountBindingEpoch===epoch;
+function selectedItemName(item:{productNo:string;productName?:string}){return item.productName??getProduct(item.productNo)?.name??productCatalogPresentation.value?.products.find(product=>product.id===item.productNo)?.name??p.value.unknown;}
+const account=app.accountKey,epoch=app.accountBindingEpoch;let alive=true,visible=true,readGeneration=0,refreshOnIdle=false;const current=()=>alive&&app.accountKey===account&&app.accountBindingEpoch===epoch;
+const readCurrent=(generation:number)=>current()&&visible&&generation===readGeneration;
 const TABLE='nexgrid-promotion-checkout-v1';
 let storageReadable=true;let records:Record<string,PromotionCheckoutRecord>={};
 try{records=readAccountRow<Record<string,PromotionCheckoutRecord>>(TABLE,account,true)??{};}catch{storageReadable=false;}
 // A changed route cannot bypass an unresolved command from this same account.
 const {intent,record:stored,openedOriginal}=selectPromotionCheckoutRecord(records,props);
 const session=new PromotionCheckoutSession({api:promotionApi,current,key:key=>acquireAccountCommandKey('nexgrid-promotion-commands-v1',account,key,'promotion'),save:record=>{if(!storageReadable)throw new Error('STORAGE_UNAVAILABLE');const rows=readAccountRow<Record<string,PromotionCheckoutRecord>>(TABLE,account,true)??{};if(!writeAccountRow(TABLE,account,{...rows,[intent]:record}))throw new Error('STORAGE_UNAVAILABLE');}},stored);
-const revision=ref(0),quote=computed(()=>{revision.value;return session.record.quote;}),order=computed(()=>{revision.value;return session.record.order;}),unknown=computed(()=>{revision.value;return session.unknown;});
+const freshQuoteReady=ref(false),revision=ref(0),quote=computed(()=>{revision.value;return session.record.pending||session.record.order||freshQuoteReady.value?session.record.quote:null;}),order=computed(()=>{revision.value;return session.record.order;}),unknown=computed(()=>{revision.value;return session.unknown;});
 const promotion=shallowRef<PublicPromotion|null>(null),loading=ref(true),busy=ref(false),error=ref(''),termsOpen=ref(false),leaveOpen=ref(false);
 const voucherId=ref(session.record.voucherId??null);const selectedVoucherName=computed(()=>voucher.catalog.find(v=>v.id===voucherId.value)?.name??p.value.noVoucher);
 const items=computed(()=>order.value?.items??quote.value?.items??props.items);const rewards=computed(()=>order.value?.rewards??quote.value?.expectedRewards??[]);
 function disclosure(r:ExpectedReward):RewardDisclosure|null {const d=r.disclosure;return d&&[d.title,d.terms,d.refundTerms,d.benefitDescription].every(x=>x&&['zh','en','vi'].every(l=>typeof x[l as keyof LocalizedText]==='string'&&x[l as keyof LocalizedText].trim()))?d:null;}
 const disclosures=computed(()=>rewards.value.map(disclosure).filter((d):d is RewardDisclosure=>!!d));const completeTerms=computed(()=>disclosures.value.length===rewards.value.length);
-let receivedAt:number|null=null,promotionReceivedAt:number|null=null;const quoteFresh=ref(false);let timer:ReturnType<typeof setInterval>|undefined;
-function updateClock(){const now=readTrustedMonotonicNowMs();quoteFresh.value=!!quote.value&&receivedAt!==null&&now!==null&&projectServerNow(Date.parse(quote.value.serverTime),receivedAt,now)<Date.parse(quote.value.expiresAt);}
+let receivedAt:number|null=null,promotionReceivedAt:number|null=null,orderClock:{serverNow:number;at:number}|null=null,clockGeneration=0;const quoteFresh=ref(false),payWindow=ref<boolean|null>(null);let timer:ReturnType<typeof setInterval>|undefined;
+function updateClock(){
+  const now=readTrustedMonotonicNowMs();quoteFresh.value=!!quote.value&&receivedAt!==null&&now!==null&&projectServerNow(Date.parse(quote.value.serverTime),receivedAt,now)<Date.parse(quote.value.expiresAt);
+  const sample=receivedAt!==null&&quote.value?{serverNow:Date.parse(quote.value.serverTime),at:receivedAt}:promotionReceivedAt!==null&&promotion.value?{serverNow:Date.parse(promotion.value.serverTime),at:promotionReceivedAt}:orderClock;
+  const deadline=Date.parse(order.value?.payBy??'');
+  payWindow.value=order.value?.paymentStatus==='PENDING'&&now!==null&&sample&&Number.isFinite(deadline)?projectServerNow(sample.serverNow,sample.at,now)<deadline:null;
+}
+async function loadOrderClock(){
+  updateClock();if(!current()||order.value?.paymentStatus!=='PENDING'||payWindow.value!==null)return;
+  const generation=++clockGeneration,sampledAt=readTrustedMonotonicNowMs();if(sampledAt===null)return;
+  // Persisted quotes have no live monotonic anchor; an empty fleet still carries validated server time.
+  const fleet=await deviceE3Api.fleet();if(!current()||generation!==clockGeneration)return;
+  orderClock={serverNow:fleet.serverNow,at:sampledAt};updateClock();
+}
 const canCreate=computed(()=>!busy.value&&!unknown.value&&completeTerms.value&&(quoteFresh.value||session.retryOriginal)&&quote.value?.eligibility==='ELIGIBLE'&&session.canExecute(quote.value.items.length>1?'createBundle':'createOrder'));
-const canPay=computed(()=>!busy.value&&!unknown.value&&completeTerms.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&session.canExecute('payOrder'));
+const canPay=computed(()=>!busy.value&&!unknown.value&&completeTerms.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&payWindow.value===true&&session.canExecute('payOrder'));
 const canCancel=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&session.canExecute('cancelOrder');});
 const canStartNew=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&!session.record.pending&&!!order.value&&['PAID','CANCELLED','EXPIRED','REFUNDED'].includes(order.value.paymentStatus);});
-async function run(action:()=>Promise<void>){if(busy.value||!current())return;busy.value=true;error.value='';try{await action();}catch(cause){if(current()){const message=asApiError(cause).message;error.value=message==='PROMOTION_NOT_ELIGIBLE_OR_UNAVAILABLE'?p.value.disabledNote:message.includes('CAPACITY_UNAVAILABLE')?p.value.capacityUnavailable:message==='PROMOTION_ACCOUNT_UNAVAILABLE'?p.value.accountUnavailable:message.includes('QUOTE_EXPIRED')||message.includes('QUOTE_INPUT_CHANGED')?p.value.quoteExpired:message.includes('INSUFFICIENT')?p.value.balanceInsufficient:p.value.errorNote;}}finally{if(current()){busy.value=false;revision.value++;}}}
-async function loadQuote(){if(openedOriginal||session.record.pending||session.record.order||!auth.isAuthenticated)return;await run(async()=>{session.invalidateQuote();revision.value++;const sampledAt=readTrustedMonotonicNowMs();const result=await promotionApi.quote(props.items,props.activityId||null,voucherId.value);if(!current())return;session.setQuote(result,voucherId.value);receivedAt=sampledAt;revision.value++;updateClock();});}
+async function run(action:()=>Promise<void>){if(busy.value||!current())return;busy.value=true;error.value='';try{await action();}catch(cause){if(current()){const message=asApiError(cause).message;error.value=message==='PROMOTION_NOT_ELIGIBLE_OR_UNAVAILABLE'?p.value.disabledNote:message.includes('CAPACITY_UNAVAILABLE')?p.value.capacityUnavailable:message==='PROMOTION_ACCOUNT_UNAVAILABLE'?p.value.accountUnavailable:message.includes('QUOTE_EXPIRED')||message.includes('QUOTE_INPUT_CHANGED')?p.value.quoteExpired:message.includes('INSUFFICIENT')?p.value.balanceInsufficient:p.value.errorNote;}}finally{if(current()){busy.value=false;revision.value++;updateClock();}}}
+async function loadQuote(){
+  if(busy.value||!visible||!current()||openedOriginal||props.orderNo||session.record.pending||session.record.order||!auth.isAuthenticated)return;
+  const generation=++readGeneration;
+  freshQuoteReady.value=false;promotion.value=null;promotionReceivedAt=null;termsOpen.value=false;receivedAt=null;quoteFresh.value=false;
+  await run(async()=>{
+    session.invalidateQuote();revision.value++;
+    const sampledAt=readTrustedMonotonicNowMs();
+    if(props.activityId)void promotionApi.get(props.activityId,auth.isAuthenticated).then(value=>{
+      if(readCurrent(generation)&&value.state==='ACTIVE'){promotion.value=value;promotionReceivedAt=sampledAt;updateClock();}
+    }).catch(()=>{});
+    try{
+      const result=await promotionApi.quote(props.items,props.activityId||null,voucherId.value);
+      if(!readCurrent(generation))return;
+      session.setQuote(result,voucherId.value);freshQuoteReady.value=true;receivedAt=sampledAt;revision.value++;updateClock();
+    }catch(cause){if(readCurrent(generation))throw cause;}
+  });
+}
 async function chooseVoucher(){if(openedOriginal||busy.value||session.record.pending||order.value||items.value.length!==1)return;await voucher.refreshRemote();if(!current())return;const options=voucher.claimedUnused;uni.showActionSheet({itemList:[p.value.noVoucher,...options.map(v=>v.name)],success:result=>{if(!current())return;voucherId.value=result.tapIndex===0?null:options[result.tapIndex-1]?.id??null;void loadQuote();}});}
 async function createOrder(){if(!canCreate.value)return;await run(()=>session.create());}
-async function pay(){if(!canPay.value)return;await run(()=>session.pay());}
-async function recover(){await run(()=>session.recover());}
-async function startNewPurchase(){if(!canStartNew.value||props.orderNo||openedOriginal)return;session.startNewPurchase();voucherId.value=null;revision.value++;await loadQuote();}
+const paymentDialogOwner=`promotion-payment:${Date.now()}:${Math.random()}`;
+let paymentConfirming=false;
+async function pay(){
+  updateClock();if(paymentConfirming||!visible||!current()||!canPay.value)return;
+  const expectedOrder=order.value,generation=readGeneration;
+  if(!expectedOrder)return;
+  const {orderNo,amountUsdt}=expectedOrder;
+  paymentConfirming=true;
+  try{
+    const accepted=await confirm({
+      title:t.value.store.coConfirmPurchase,
+      message:fmt(t.value.store.coConfirmPurchaseMessage,{amount:formatAmount(amountUsdt)}),
+      confirmLabel:t.value.store.coConfirmPayment,cancelLabel:t.value.store.coCancel,owner:paymentDialogOwner,
+    });
+    updateClock();
+    if(!accepted||!readCurrent(generation)||!canPay.value||order.value?.orderNo!==orderNo||order.value?.amountUsdt!==amountUsdt)return;
+    await run(()=>session.pay());
+  }finally{paymentConfirming=false;}
+}
+async function recover(){await run(async()=>{await session.recover();if(!current())return;revision.value++;await loadOrderClock();});}
+async function startNewPurchase(){if(!canStartNew.value||props.orderNo||openedOriginal)return;session.startNewPurchase();asked='';voucherId.value=null;revision.value++;await loadQuote();}
 async function cancelOrder(){if(!canCancel.value)return;const ok=await confirm({title:p.value.cancelTitle,message:p.value.cancelBody,confirmLabel:p.value.cancelOrder,cancelLabel:p.value.keep,danger:true});if(ok&&current())await run(()=>session.cancel());}
 function viewOrder(){if(order.value)void navTo('/pages/store/order-detail?id='+encodeURIComponent(order.value.orderNo));}
 function signIn(){void navTo('/pages/login/login?return='+encodeURIComponent('/pages/store/checkout?activityId='+props.activityId+'&items='+encodeURIComponent(JSON.stringify(props.items))));}
@@ -117,11 +167,12 @@ let leaveResolver:((allowed:boolean)=>void)|null=null;let asked='';let disposeGu
 function finishLeave(allowed:boolean){leaveOpen.value=false;leaveResolver?.(allowed);leaveResolver=null;}
 function requestLeave():Promise<boolean>{
   updateClock();
-  const now=readTrustedMonotonicNowMs(),sample=receivedAt!==null&&quote.value?{time:quote.value.serverTime,at:receivedAt}:promotionReceivedAt!==null&&promotion.value?{time:promotion.value.serverTime,at:promotionReceivedAt}:null;
-  const reserved=!!order.value&&order.value.paymentStatus==='PENDING'&&now!==null&&!!sample&&projectServerNow(Date.parse(sample.time),sample.at,now)<Date.parse(order.value.payBy??'');
+  const reserved=payWindow.value===true;
   const fingerprint=order.value?.orderNo??quote.value?.quoteId??'';
-  if(!current()||busy.value||unknown.value||!rewards.value.length||!fingerprint||asked===fingerprint||(order.value?!reserved:!quoteFresh.value||quote.value?.eligibility!=='ELIGIBLE'))return Promise.resolve(true);
-  asked=fingerprint;leaveOpen.value=true;return new Promise(resolve=>{leaveResolver=resolve;});
+  if(!current()||busy.value||unknown.value||!rewards.value.length||!fingerprint||asked||session.record.leavePromptShown||(order.value?!reserved:!quoteFresh.value||quote.value?.eligibility!=='ELIGIBLE'))return Promise.resolve(true);
+  asked=fingerprint;
+  try{session.rememberLeavePrompt();}catch{return Promise.resolve(true);}
+  leaveOpen.value=true;return new Promise(resolve=>{leaveResolver=resolve;});
 }
 useDialogA11y(leaveOpen,'.promotion-leave',()=>finishLeave(false));
 // H5 browser history uses the router guard; no artificial history entry or popstate trap.
@@ -130,15 +181,29 @@ onBeforeRouteLeave(()=>requestCheckoutLeave());
 // #endif
 let nativeBackApproved=false;
 function back():boolean{if(nativeBackApproved){nativeBackApproved=false;return false;}void requestLeave().then(ok=>{if(ok&&current()){nativeBackApproved=true;navBack('/store');}});return true;}
-function hide(){disposeGuard?.();disposeGuard=null;finishLeave(true);}
-function show(){if(!disposeGuard)disposeGuard=registerCheckoutLeaveGuard(requestLeave);if(session.record.pending||session.record.order)void recover();}
+function hide(){
+  visible=false;readGeneration++;refreshOnIdle=false;termsOpen.value=false;promotion.value=null;promotionReceivedAt=null;
+  useUI().clearConfirmsBy(paymentDialogOwner);
+  if(current()&&!session.record.pending&&!session.record.order){
+    freshQuoteReady.value=false;receivedAt=null;quoteFresh.value=false;
+    try{if(session.record.quote)session.invalidateQuote();}catch{error.value=p.value.errorNote;}
+    revision.value++;
+  }
+  disposeGuard?.();disposeGuard=null;finishLeave(true);
+}
+function show(){
+  visible=true;if(!current())return;
+  if(!disposeGuard)disposeGuard=registerCheckoutLeaveGuard(requestLeave);
+  if(busy.value){refreshOnIdle=true;return;}
+  if(session.record.pending||session.record.order)void recover();else if(!props.orderNo)void loadQuote();
+}
+watch(busy,value=>{if(!value&&refreshOnIdle){refreshOnIdle=false;if(visible&&current())show();}});
 defineExpose({back,hide,show});
 onMounted(async()=>{
   disposeGuard=registerCheckoutLeaveGuard(requestLeave);timer=setInterval(updateClock,1000);
   // Catalog and current campaign visibility cannot block an original order or
   // command receipt. Historical rewards always come from that receipt.
   if(auth.isAuthenticated)void refreshProductCatalog(true).catch(()=>{});
-  if(props.activityId){const sampledAt=readTrustedMonotonicNowMs();void promotionApi.get(props.activityId,auth.isAuthenticated).then(value=>{if(current()){promotion.value=value;promotionReceivedAt=sampledAt;}}).catch(()=>{});}
   try {
     if(auth.isAuthenticated){
       if(props.orderNo&&!session.record.order&&!session.record.pending){
@@ -150,6 +215,6 @@ onMounted(async()=>{
     }
   }catch{if(current())error.value=p.value.error;}finally{if(current())loading.value=false;}
 });
-onBeforeUnmount(()=>{alive=false;disposeGuard?.();if(timer)clearInterval(timer);finishLeave(true);});
+onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);});
 </script>
 <style src="./promotion.css"></style>

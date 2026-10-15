@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -75,6 +76,7 @@ function mountComponent(value: Component, props?: Record<string, unknown>): Host
 }
 const presentation = Vue.defineComponent({ setup: (_props, { slots }) => () => Vue.h("presentation", slots.default?.()) });
 const common = {
+    "@/lib/amount-display": { formatAmount },
   vue: Vue, "@/lib/route": { navBack, navReplace, navTo }, "@/i18n/use-t": { useT: () => Vue.ref(en) },
 };
 const Header = component(headerCode, {

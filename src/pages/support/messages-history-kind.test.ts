@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import * as Vue from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { zh } from "@/i18n/messages/zh";
 import { en } from "@/i18n/messages/en";
 import { vi as vietnamese } from "@/i18n/messages/vi";
@@ -29,7 +29,8 @@ const renderer = Vue.createRenderer<Element, Element>({
   remove: node => { if (node.parent) node.parent.children = node.parent.children.filter(child => child !== node); },
 });
 const mounted: Vue.App<Element>[] = [];
-afterEach(() => { mounted.splice(0).forEach(app => app.unmount()); });
+beforeEach(() => { vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-10T07:00:00Z")); });
+afterEach(() => { mounted.splice(0).forEach(app => app.unmount()); vi.restoreAllMocks(); });
 const flatten = (node: Element): Element[] => [node, ...node.children.flatMap(flatten)];
 const unbound: CurrentAdvisor = { assignmentId: null, currentAdvisorId: null, currentAdvisorName: null, assignmentState: "UNBOUND", availability: "UNBOUND" };
 const assigned: CurrentAdvisor = { assignmentId: 1, currentAdvisorId: 2, currentAdvisorName: "Current account advisor", assignmentState: "ASSIGNED", availability: "BUSY" };
@@ -51,7 +52,7 @@ function mount(type: "advisor" | "support", conversations: Conversation[], messa
     advisor: unbound as CurrentAdvisor | null, advisorLoading: false, advisorError: false, realtimeFallback: false,
     dismissingIds: {}, dismissalAvailable: true, dismissConversation: vi.fn(), refresh: vi.fn(), refreshCategories: vi.fn(), refreshAdvisor: vi.fn(),
     byType: (key: string): Conversation[] => store.conversations.filter(row => row.type === key),
-    categoryReadable: (key: string) => key === type, categoryEnabled: (key: string) => key === type,
+    categoryReadable: (key: string) => key === type, categoryEnabled: (key: string) => key === "advisor",
   });
   const navTo = vi.fn();
   const modules: Record<string, unknown> = {
@@ -80,8 +81,19 @@ function mount(type: "advisor" | "support", conversations: Conversation[], messa
 }
 
 describe("human list identity follows each conversation kind and status", () => {
+  it("shows both legacy and canonical history in one lane and preserves each conversation id", () => {
+    const current = mount("advisor", [{ ...conversation("advisor", "closed", "Dedicated history", "CV-advisor"), lastTs: 1 },
+      { ...conversation("support", "closed", "Legacy history", "CV-support"), lastTs: 1 }]);
+    current.expectNames(["Dedicated history", "Legacy history"]);
+    current.nodes("nx-conv-row")[1]!.props.onClick();
+    expect(current.navTo).toHaveBeenCalledWith("/pages/support/chat?cid=CV-support");
+    current.nodes("nx-conv-contact")[0]!.props.onClick();
+    expect(current.navTo).toHaveBeenLastCalledWith("/pages/support/chat?start=advisor");
+    expect(current.store.conversations[1]!.type).toBe("support");
+  });
   it.each(["warm", "cold"])("keeps seven %s support/CLOSED rows and action names independent of UNBOUND", async entry => {
     const rows = Array.from({ length: 7 }, (_, index) => ({ ...conversation("support", "closed", "待分配", `CV-${3168 - index}`),
+      lastTs: Date.now() - 4 * 86_400_000 - index,
       lastMessage: "会话已因用户闲置 5 分钟自动结束,可重新发起会话。", lastMessageKind: "IDLE_TIMEOUT_CLOSE" as const }));
     const current = mount("support", entry === "warm" ? rows : []);
     if (entry === "cold") { current.store.conversations = rows; await Vue.nextTick(); }
@@ -126,7 +138,7 @@ describe("human list identity follows each conversation kind and status", () => 
   });
 
   it.each([zh, en, vietnamese])("distinguishes one waiting session from seven ended sessions without changing actions", async messages => {
-    const rows = Array.from({ length: 8 }, (_, index) => conversation("support", index === 0 ? "open" : "closed", "待分配", `CV-${3169 - index}`));
+    const rows = Array.from({ length: 8 }, (_, index) => ({ ...conversation("support", index === 0 ? "open" : "closed", "待分配", `CV-${3169 - index}`), lastTs: Date.now() - index }));
     const current = mount("support", rows, messages);
     current.expectNames(["待分配", ...Array(7).fill(messages.conversations.sessionEnded)]);
     expect(current.nodes("nx-conv-contact")).toHaveLength(0);
@@ -141,7 +153,7 @@ describe("human list identity follows each conversation kind and status", () => 
     current.expectNames(Array(8).fill(messages.conversations.sessionEnded));
     expect(current.nodes("nx-conv-contact")).toHaveLength(1);
     current.nodes("nx-conv-contact")[0]!.props.onClick();
-    expect(current.navTo).toHaveBeenLastCalledWith("/pages/support/chat?start=support");
+    expect(current.navTo).toHaveBeenLastCalledWith("/pages/support/chat?start=advisor");
   });
 
   it("keeps an unassigned ended advisor independent of current assignment and preserves a later historical owner", async () => {

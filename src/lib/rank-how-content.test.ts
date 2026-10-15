@@ -16,23 +16,23 @@ const policy: RankHowPolicy = { version: "p1", locale: "zh", hero: "Published he
 ] };
 
 describe("rank-how published presentation", () => {
-  it("uses current canonical amounts with six decimals, not prototype values", () => {
+  it("displays canonical money with two decimals and preserves rate precision", () => {
     const content = buildRankHowContent(policy, ranks, enabled, "zh", labels);
     expect(content.section("example").title).toBe("V1 → V2");
-    expect(content.section("example").body).toContain("45,678.123456 USDT");
+    expect(content.section("example").body).toContain("45678.12 USDT");
     expect(content.section("example").body).toContain("6 个 V1");
     expect(content.section("rewards").body).toContain("12.3456%");
     expect(content.section("rewards").body).toContain("2.75%");
-    expect(content.section("rewards").body).toContain("321.123456 NEX");
+    expect(content.section("rewards").body).toContain("321.12 NEX");
     expect(content.section("rewards").body).toContain("暂不可结算");
-    expect(content.section("requirement-direct").body).toContain("789.123456 USDT");
+    expect(content.section("requirement-direct").body).toBe("789.12 USDT");
     expect(content.section("protection").body).toContain("未开启");
     expect(content.section("example").body).not.toMatch(/50,000|52,300|22,000/);
   });
   it.each([
-    ["zh", "1,234,567.987654 USDT", "1.234568 USDT"],
-    ["en", "1,234,567.987654 USDT", "1.234568 USDT"],
-    ["vi", "1.234.567,987654 USDT", "1,234568 USDT"],
+    ["zh", "1234567.99 USDT", "1.23 USDT"],
+    ["en", "1234567.99 USDT", "1.23 USDT"],
+    ["vi", "1234567.99 USDT", "1.23 USDT"],
   ])("renders server numbers in %s when native Intl is absent", (locale, large, rounded) => {
     vi.stubGlobal("Intl", undefined);
     try {
@@ -40,16 +40,16 @@ describe("rank-how published presentation", () => {
       const content = buildRankHowContent(policy, changed, enabled, locale, labels);
       expect(content.section("example").body).toContain(large);
       expect(content.section("example").body).toContain(rounded);
-      expect(content.section("rewards").body).toContain(locale === "vi" ? "321,123456 NEX" : "321.123456 NEX");
+      expect(content.section("rewards").body).toContain("321.12 NEX");
     } finally {
       vi.unstubAllGlobals();
     }
   });
   it.each([
-    ["zh", "1,000,000,000,000,000,000,000 USDT", "1.234566 USDT", "0.000001 USDT"],
-    ["en", "1,000,000,000,000,000,000,000 USDT", "1.234566 USDT", "0.000001 USDT"],
-    ["vi", "1.000.000.000.000.000.000.000 USDT", "1,234566 USDT", "0,000001 USDT"],
-  ])("keeps extreme and half-micro server values accurate in %s without Intl", (locale, huge, rounded, tiny) => {
+    ["zh", "1000000000000000000000.00 USDT", "1.23 USDT", "0.00 USDT"],
+    ["en", "1000000000000000000000.00 USDT", "1.23 USDT", "0.00 USDT"],
+    ["vi", "1000000000000000000000.00 USDT", "1.23 USDT", "0.00 USDT"],
+  ])("renders extreme and sub-cent server money in %s without Intl", (locale, huge, rounded, tiny) => {
     vi.stubGlobal("Intl", undefined);
     try {
       const changed = ranks.map(row => row.v === 2 ? { ...row, teamVolumeUSD: 1e21, selfBuyUSD: 1.2345655 } : row);
@@ -62,11 +62,11 @@ describe("rank-how published presentation", () => {
       vi.unstubAllGlobals();
     }
   });
-  it("carries six-decimal rounding into the whole number without Intl", () => {
+  it("carries money rounding into the whole number without Intl", () => {
     vi.stubGlobal("Intl", undefined);
     try {
       const changed = ranks.map(row => row.v === 2 ? { ...row, selfBuyUSD: 9.9999995 } : row);
-      expect(buildRankHowContent(policy, changed, enabled, "en", labels).section("example").body).toContain("10 USDT");
+      expect(buildRankHowContent(policy, changed, enabled, "en", labels).section("example").body).toContain("10.00 USDT");
     } finally {
       vi.unstubAllGlobals();
     }
@@ -74,13 +74,13 @@ describe("rank-how published presentation", () => {
   it("recomputes values after PC configuration changes", () => {
     const changed = ranks.map(r => r.v === 2 ? { ...r, teamVolumeUSD: 123, leadershipVotes: 29 } : r);
     const content = buildRankHowContent({ ...policy, rules: { ...policy.rules!, permanentProtection: true, leadershipConfigured: true } }, changed, enabled, "zh", labels);
-    expect(content.section("example").body).toContain("123 USDT");
+    expect(content.section("example").body).toContain("123.00 USDT");
     expect(content.section("rewards").body).toContain("29");
     expect(content.section("protection").body).toContain("已开启");
   });
   it("distinguishes a configured zero referral minimum from unavailable configuration", () => {
     const content = buildRankHowContent({ ...policy, rules: { ...policy.rules, qualifiedReferralSelfBuyUSD: 0 } }, ranks, enabled, "zh", labels);
-    expect(content.section("requirement-direct").body).toContain("0 USDT（不要求正数自购）");
+    expect(content.section("requirement-direct").body).toBe("0.00 USDT（不要求正数自购）");
     expect(content.section("requirement-direct").available).toBe(true);
   });
   it("keeps the full ladder range independent of the example pair", () => {

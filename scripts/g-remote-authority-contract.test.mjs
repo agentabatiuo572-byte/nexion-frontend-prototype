@@ -50,7 +50,7 @@ test("G2 remote mode never records a local wallet success", () => {
       `${derived} 必须在远端模式下只读 remoteState —— 远端模式渲染本地持久事实会把 stale 额度当权威值展示`,
     );
   }
-  assert.match(source, /t\.exchange\.remoteNotProvided\b(?!\w)/);
+  assert.match(source, /t(?:\.value)?\.exchange\.remoteNotProvided\b(?!\w)/);
   // 锚 key 就必须同时锚「key 有值」,否则指向一个不存在的键也能绿(悬空 key = 页面渲染空白)。
   // 🔴 必须**按命名空间取值**,不能对整份词典做子串匹配:remoteUnavailableClosed 在 exchange
   //    与 staking 两个命名空间里都存在,整文件匹配时把 exchange 那条清成空串,staking 那条会

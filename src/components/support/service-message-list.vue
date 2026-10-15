@@ -17,7 +17,7 @@
       <text>{{ t.notifs.serviceEmptyHint }}</text>
     </view>
     <view v-for="row in rows" :key="row.key" class="service-rowgroup">
-      <view class="service-row" role="button" tabindex="0" :aria-label="row.title + (row.unread ? ' · ' + fmt(t.notifs.unreadCount, { n: row.unread }) : '')" @click="openRow(row)">
+      <view class="service-row" role="button" tabindex="0" :aria-label="row.title + (!unreadUnavailable(row) && row.unread ? ' · ' + fmt(t.notifs.unreadCount, { n: row.unread }) : '')" @click="openRow(row)">
         <view class="service-avatar" :class="'service-avatar--' + row.kind" aria-hidden="true">
           <LiquidGlass :radius="22" />
           <svg v-if="row.kind === 'advisor'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" /></svg>
@@ -26,7 +26,7 @@
         </view>
         <view class="service-content">
           <view class="service-rowtop"><text class="service-title">{{ row.title }}</text><text class="service-time">{{ timeAgo(row.ts) }}</text></view>
-          <view class="service-rowbottom"><text class="service-preview">{{ row.preview }}</text><view v-if="row.unread > 0" class="service-unread"><text>{{ formatUnreadBadge(row.unread) }}</text></view></view>
+          <view class="service-rowbottom"><text class="service-preview">{{ row.preview }}</text><view v-if="unreadUnavailable(row) || row.unread > 0" class="service-unread"><text>{{ unreadUnavailable(row) ? '-' : formatUnreadBadge(row.unread) }}</text></view></view>
         </view>
         <svg class="service-chevron" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 5 7 7-7 7" /></svg>
       </view>
@@ -58,11 +58,11 @@ const conversations = useConversations(), tickets = useTickets(), center = useMe
 const t = useT();
 type ServiceKind = "advisor" | "support" | "ticket";
 type Row = { key: string; id: string; kind: ServiceKind; title: string; preview: string; ts: number; unread: number };
+function unreadUnavailable(row: Row) { return !Number.isSafeInteger(row.unread) || row.unread < 0 || (row.kind === "ticket" ? !!tickets.error : !!(conversations.error || conversations.categoryAvailabilityStatus === "failed")); }
 const filter = ref<"all" | ServiceKind>("all");
 const filters = computed(() => [
   { value: "all", label: t.value.notifs.filterAll },
   { value: "advisor", label: t.value.conversations.typeAdvisor },
-  { value: "support", label: t.value.conversations.typeSupport },
   { value: "ticket", label: t.value.notifs.ticketFilter },
 ]);
 const loading = computed(() => conversations.loading || tickets.loading || conversations.categoryLoading);
@@ -75,8 +75,8 @@ const rows = computed<Row[]>(() => {
     const text = useLoaded ? last.kind === "IMAGE" && !last.text ? t.value.conversations.image.message : last.text : c.lastMessage;
     const preview = c.lastMessageKind === "IDLE_TIMEOUT_CLOSE" && (!useLoaded || last.sender === "system")
       ? localizedIdleClose(text, t.value.conversations) ?? text : text;
-    return { key: `conversation:${c.id}`, id: c.id, kind,
-      title: kind === "advisor" ? t.value.conversations.typeAdvisor : t.value.conversations.typeSupport,
+    return { key: `conversation:${c.id}`, id: c.id, kind: "advisor",
+      title: t.value.conversations.typeAdvisor,
       preview: conversations.typingIds[c.id] ? t.value.conversations.agentTyping : clean(preview) || t.value.conversations[c.roleKey],
       ts: Math.max(c.lastTs, last?.ts ?? 0), unread: c.unread };
   }));
@@ -87,7 +87,8 @@ const rows = computed<Row[]>(() => {
       preview: last && last.ts >= ticket.lastReplyAt ? clean(last.body) : ticket.unread > 0 ? t.value.notifs.ticketReply : t.value.tickets.status[ticket.status],
       ts: Math.max(ticket.lastReplyAt, ticket.updatedAt), unread: ticket.unread };
   });
-  return [...human, ...ticketRows].filter(row => (props.hideFilters ? props.filter : filter.value) === "all" || row.kind === (props.hideFilters ? props.filter : filter.value))
+  const selected = props.hideFilters ? props.filter : filter.value;
+  return [...human, ...ticketRows].filter(row => selected === "all" || row.kind === (selected === "support" ? "advisor" : selected))
     .sort((a, b) => b.ts - a.ts || a.key.localeCompare(b.key));
 });
 function timeAgo(ts: number) {

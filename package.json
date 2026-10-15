@@ -59,7 +59,7 @@
     "test:login-flow-separation": "node --test scripts/login-registration-flow-separation.contract.test.mjs && vitest run src/auth/post-sign-in-route.test.ts && node scripts/login-registration-flow-separation.h5.e2e.mjs",
     "prepare": "node .githooks/verify-before-push.mjs --install",
     "test:githooks": "node --test .githooks/verify-before-push.test.mjs .githooks/guard-mainline-commit.test.mjs",
-    "test:verify-harness": "node --test scripts/known-red.test.mjs scripts/lib/verify-scope-additive.test.mjs scripts/known-red-shell.test.mjs",
+    "test:verify-harness": "node --test scripts/known-red.test.mjs scripts/lib/verify-scope-additive.test.mjs scripts/known-red-shell.test.mjs scripts/run-legacy-suite.test.mjs",
     "test:app-h5-sync": "node --test scripts/app-h5-sync.test.mjs && node scripts/app-h5-sync.mjs check",
     "sync:h5:check": "node scripts/app-h5-sync.mjs check",
     "verify": "node scripts/verify-chain.mjs --full",

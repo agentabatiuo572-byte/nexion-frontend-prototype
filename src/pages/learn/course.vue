@@ -49,6 +49,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -116,7 +117,7 @@ const canSubmit = computed(() => !!course.value
     : allAnswered.value)));
 const language = computed(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code : "zh");
 const versionLine = computed(() => course.value
-  ? fmt(t.value.learning.courseVersionMeta, { version: course.value.version, nex: course.value.rewardNex })
+  ? fmt(t.value.learning.courseVersionMeta, { version: course.value.version, nex: formatAmount(course.value.rewardNex) })
   : "");
 const scoreLine = computed(() => resultDetails.value
   ? fmt(t.value.learning.resultScore, { score: resultDetails.value.score })
@@ -127,7 +128,7 @@ const attemptsLine = computed(() => resultDetails.value
 const rewardStatusLine = computed(() => {
   const details = resultDetails.value;
   if (!details) return "";
-  if (details.rewardGranted) return fmt(t.value.learning.rewardGranted, { nex: details.rewardNex });
+  if (details.rewardGranted) return fmt(t.value.learning.rewardGranted, { nex: formatAmount(details.rewardNex) });
   return Number(details.rewardNex) > 0 ? t.value.learning.rewardNotGranted : t.value.learning.rewardNone;
 });
 const pendingStatusText = computed(() => pendingReceiptStatus.value === "UNKNOWN"

@@ -32,11 +32,11 @@
             <text class="block" :style="claimedLabelStyle">{{ titleOf(q) }}</text>
             <text class="block" :style="categoryLabelStyle">{{ t.questClaim.alreadyClaimed }}</text>
           </view>
-          <text :style="claimedRewardStyle">+{{ rewardOf(q) }} NEX</text>
+          <text :style="claimedRewardStyle">+{{ formatAmount(rewardOf(q)) }} NEX</text>
         </view>
 
         <!-- completed: claimable button -->
-        <view v-else-if="isCompleted(q)" class="flex items-center px-4 py-3 active:opacity-80" role="button" tabindex="0" :style="completedRowStyle" @click="onClaimRow(q)">
+        <view v-else-if="isCompleted(q)" class="flex items-center px-4 py-3 active:scale-[0.98] transition-transform" role="button" tabindex="0" :style="completedRowStyle" @click="onClaimRow(q)">
           <view class="grid place-items-center shrink-0" :style="sparkBoxStyle">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /></svg>
           </view>
@@ -60,7 +60,7 @@
           <view class="flex items-baseline" style="gap: 4px">
             <!-- 目标业务停摆时不给可赚取数字:它与「不可完成」同屏是自相矛盾的。 -->
             <text v-if="targetClosed(q)" :style="pendingPausedStyle">{{ t.questClaim.definitionInactive }}</text>
-            <text v-else :style="pendingRewardStyle">+{{ rewardOf(q) }} NEX</text>
+            <text v-else :style="pendingRewardStyle">+{{ formatAmount(rewardOf(q)) }} NEX</text>
           </view>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px; flex-shrink: 0"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
@@ -74,6 +74,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, ref, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import type { CanonicalQuest } from "@/api/quest-api";
@@ -152,7 +153,7 @@ function categoryOf(q: CanonicalQuest): string {
   })[q.category];
 }
 function claimTextFor(q: CanonicalQuest): string {
-  return fmt(w.value.claim, { n: rewardOf(q).toLocaleString() });
+  return fmt(w.value.claim, { n: formatAmount(rewardOf(q)) });
 }
 
 /**
@@ -278,7 +279,7 @@ const categoryLabelStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-4)",
 };
-const claimErrorStyle: CSSProperties = { ...categoryLabelStyle, color: "var(--v5-danger)" };
+const claimErrorStyle: CSSProperties = { ...categoryLabelStyle, color: "var(--v5-ink)" };
 const refreshErrorStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-warning)", borderBottom: "1px solid var(--v5-border)" };
 /** 「未开放」标记与奖励数字同槽位:同样是 12px 等宽,但不得像可赚取的金额一样抢眼。 */
 const pendingPausedStyle: CSSProperties = {

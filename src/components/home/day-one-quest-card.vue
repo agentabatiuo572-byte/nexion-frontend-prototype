@@ -72,7 +72,7 @@
             <text class="truncate" :style="labelStyle(task)">{{ task.label }}</text>
             <text :style="catStyle(task)">{{ task.cat }}</text>
           </view>
-          <text :style="rewardStyle(task)">{{ task.nex === null ? "—" : `+${task.nex} NEX` }}<text v-if="task.usdt" :style="{ color: isDone(task) ? 'var(--v5-ink-4)' : 'var(--v5-brand-2)', marginLeft: '4px' }">+${{ task.usdt }}</text></text>
+          <text :style="rewardStyle(task)">{{ task.nex === null ? "—" : `+${formatAmount(task.nex)} NEX` }}<text v-if="task.usdt" :style="{ color: isDone(task) ? 'var(--v5-ink-4)' : 'var(--v5-brand-2)', marginLeft: '4px' }">+${{ formatAmount(task.usdt) }}</text></text>
           <view>
             <svg v-if="isActionable(task)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7">
               <path d="M9 18l6-6-6-6" />
@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, watch, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -225,7 +226,7 @@ const nexEarned = computed(() => {
   if (remoteApiEnabled) return total.value > 0 && completed.length === total.value ? quest.dayOneRewardNex : 0;
   return completed.reduce((sum, task) => sum + (task.nex ?? 0), 0);
 });
-const nexEarnedText = computed(() => nexEarned.value === null ? "—" : String(nexEarned.value));
+const nexEarnedText = computed(() => nexEarned.value === null ? "—" : formatAmount(nexEarned.value));
 const viewTasksText = computed(() => fmt(t.value.home.dayOneViewTasks, { n: total.value }));
 const taskCountText = computed(() => questUnavailable.value
   ? "-"
@@ -235,9 +236,9 @@ const toggleLabel = computed(() => questLoadError.value
   : questUnavailable.value ? t.value.home.dayOneLoading
   : expanded.value ? t.value.home.dayOneHideTasks : viewTasksText.value);
 const rewardText = computed(() => {
-  if (!remoteApiEnabled) return String(mockReward);
+  if (!remoteApiEnabled) return formatAmount(mockReward);
   if (quest.remoteStatus !== "ready") return "—";
-  return quest.dayOneRewardNex > 0 ? String(quest.dayOneRewardNex) : "—";
+  return quest.dayOneRewardNex > 0 ? formatAmount(quest.dayOneRewardNex) : "—";
 });
 const dayOneWindow = computed(() => quest.remoteQuests.find((row) => row.layer === "DAY_ONE") ?? null);
 

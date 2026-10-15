@@ -75,7 +75,7 @@
       </view>
       <view v-else-if="remoteApiEnabled && remoteOrdersFailed" class="mx-0 flex items-center justify-between" style="gap: 12px; min-height: 44px" data-me-orders-state="failed">
         <text class="flex-1" style="font-size: 12px; color: var(--v5-danger)">{{ t.orders.refreshFailed }}</text>
-        <view class="shrink-0 inline-flex items-center justify-center active:opacity-80" style="min-height: 44px; padding: 0 12px; border-radius: 999px; background: var(--v5-danger-soft); color: var(--v5-danger);" data-me-action="retry-orders" role="button" tabindex="0" :aria-label="t.orders.retry" @click="refreshRemoteOrders"  @keydown.enter.prevent="refreshRemoteOrders" @keydown.space.prevent="refreshRemoteOrders">
+        <view class="shrink-0 inline-flex items-center justify-center active:scale-[0.98] transition-transform" style="min-height: 44px; padding: 0 12px; border-radius: 999px; background: var(--v5-danger-soft); color: var(--v5-danger);" data-me-action="retry-orders" role="button" tabindex="0" :aria-label="t.orders.retry" @click="refreshRemoteOrders"  @keydown.enter.prevent="refreshRemoteOrders" @keydown.space.prevent="refreshRemoteOrders">
           <text>{{ t.orders.retry }}</text>
         </view>
       </view>
@@ -96,8 +96,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, type CSSProperties } from "vue";
-import { onShow, onUnload } from "@dcloudio/uni-app";
+import { formatAmount } from "@/lib/amount-display";
+import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onHide, onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import SectionHeader from "@/components/me/section-header.vue";
@@ -136,6 +137,8 @@ import { confirm as uiConfirm, toast } from "@/store/ui";
 import { accountApi, authApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import type { SecurityState } from "@/api/contracts";
 import { runRemoteOrdersRefresh } from "@/lib/remote-orders-refresh";
+import { subscribeRuntimeRevision } from "@/api/order-api";
+import { binarySessionReady } from "@/lib/binary-session-ready";
 import { settleRemoteMeLoaders } from "@/lib/remote-me-refresh";
 import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
 import { compiledResourceVersion, formatResourceVersion, readNativeResourceVersion } from "@/lib/app-version";
@@ -184,6 +187,7 @@ const remoteOrdersLoading = ref(false);
 const remoteOrdersFailed = ref(false);
 let remoteSecurityRequest = 0;
 let remoteOrdersRequest = 0;
+let remoteMeActive = false;
 
 const iconPaths = {
   network: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 7a4 4 0 1 0 0 .01", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"],
@@ -250,9 +254,9 @@ const localeUpper = computed(() => locale.code.toUpperCase());
 const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"
   || (trial.authorityStatus === "loading" && trial.authorityServerState !== null));
 const slotsReadable = computed(() => !remoteApiEnabled || (app.remoteFleetHasSnapshot && trialReady.value));
-const activeCount = computed(() => app.activeSlotCount);
+const activeCount = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null).length);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
-const slotsUsed = computed(() => activeCount.value + trialSlot.value);
+const slotsUsed = computed(() => app.activeSlotCount + trialSlot.value);
 const emptySlots = computed(() => Math.max(0, app.slotCap - slotsUsed.value));
 const deviceSectionCount = computed(() => slotsReadable.value ? fmt(t.value.myDevices.sectionCount, { n: slotsUsed.value, total: app.slotCap }) : "—");
 const activatedLabel = computed(() => slotsReadable.value ? fmt(t.value.myDevices.activatedLabel, { n: activeCount.value }) : "—");
@@ -298,7 +302,7 @@ const quickSections = computed<QuickSection[]>(() => [
     title: t.value.me.myNetwork,
     items: [
       { key: "team", label: t.value.me.team, href: "/team", icon: "network", meta: t.value.me.networkOverviewMeta, tone: "brand" },
-      { key: "invite", label: t.value.me.networkInviteLabel, href: "/team", icon: "invite", meta: config.config.rewards.enabled ? fmt(t.value.me.networkInviteMeta, { nex: config.config.rewards.inviterReward.nexAmount }) : t.value.me.networkInviteMetaDisabled, tone: "orange" },
+      { key: "invite", label: t.value.me.networkInviteLabel, href: "/team", icon: "invite", meta: config.config.rewards.enabled ? fmt(t.value.me.networkInviteMeta, { nex: formatAmount(config.config.rewards.inviterReward.nexAmount) }) : t.value.me.networkInviteMetaDisabled, tone: "orange" },
       { key: "commissions", label: t.value.me.networkCommissionsLabel, href: "/team/commissions", icon: "commission", meta: t.value.me.networkCommissionsMeta, tone: "success" },
       { key: "rank", label: t.value.me.currentRank, href: "/team/rank", icon: "rank", meta: rankValue.value, tone: "purple" },
     ],
@@ -418,7 +422,27 @@ watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
   if (remoteApiEnabled) void refreshRemoteMe();
 });
 onShow(() => {
+  remoteMeActive = true;
   if (remoteApiEnabled) void refreshRemoteMe();
+});
+onHide(() => {
+  remoteMeActive = false;
+  remoteOrdersRequest += 1;
+});
+// Catalog replacement clears the shared order list even without an account change.
+const unsubscribeOrdersRevision = subscribeRuntimeRevision(() => {
+  if (!remoteApiEnabled) return;
+  remoteOrdersRequest += 1;
+  if (remoteMeActive && binarySessionReady({
+    remote: remoteApiEnabled, authenticated: auth.isAuthenticated,
+    accountId: auth.accountId, appAccountKey: app.accountKey,
+    sessionUserId: sessionVault.read()?.user.userId ?? null,
+  })) void refreshRemoteOrders();
+});
+onUnmounted(() => {
+  remoteMeActive = false;
+  remoteOrdersRequest += 1;
+  unsubscribeOrdersRevision();
 });
 
 function handleQuickItem(item: QuickItem) {

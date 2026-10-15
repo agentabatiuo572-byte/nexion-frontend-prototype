@@ -75,7 +75,7 @@ describe("store yield authority", () => {
   it("keeps extreme NEX yields compact while preserving the full accessible value", () => {
     const amount = { usd: 1, nex: 1_520_000 };
 
-    expect(storefrontNex(amount)).toBe("1.5M");
-    expect(storefrontNexFull(amount)).toBe("1,520,000 NEX");
+    expect(storefrontNex(amount)).toBe("1.52M");
+    expect(storefrontNexFull(amount)).toBe("1520000.00 NEX");
   });
 });

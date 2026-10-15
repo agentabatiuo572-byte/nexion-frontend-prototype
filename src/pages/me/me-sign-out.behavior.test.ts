@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { formatAmount } from "@/lib/amount-display";
 import ts from "typescript";
 import source from "./me.vue?raw";
 import securitySource from "./security.vue?raw";
@@ -13,7 +14,7 @@ function entry(deps: Record<string, unknown>, raw = source, name = "handleSignOu
   const ast = ts.createSourceFile("Me.ts", raw.split('<script setup lang="ts">')[1].split('</script>')[0], ts.ScriptTarget.Latest, true);
   const nodes = ast.statements.filter(n => ts.isFunctionDeclaration(n) && (n.name?.text === name || (raw === securitySource && n.name?.text === "isCurrentSecurityRequest")));
   const code = ts.transpileModule(nodes.map(node => node.getText(ast)).join("\n"), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  return new Function("deps", `const {${Object.keys(deps)}}=deps;${code};return ${name};`)(deps) as () => Promise<void>;
+  return new Function("formatAmount", "deps", `const {${Object.keys(deps)}}=deps;${code};return ${name};`)(formatAmount, deps) as () => Promise<void>;
 }
 
 describe("Me explicit sign out failure containment", () => {

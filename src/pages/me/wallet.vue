@@ -20,7 +20,7 @@
       <!-- Balance hero — de-carded: balance + actions sit on the page floor. -->
       <view :style="heroStyle">
         <text class="block" :style="heroLabelStyle">{{ t.wallet.usdtBalance }}</text>
-        <text class="block tabular-nums" :style="heroNumStyle">{{ usdtBalanceReadable ? `$${usdt.toFixed(2)}` : "—" }}</text>
+        <text class="block tabular-nums" :style="heroNumStyle">{{ usdtBalanceReadable ? `$${formatAmount(usdt)}` : "—" }}</text>
         <view v-if="fundsReadable" class="inline-flex items-center active:opacity-70 transition-opacity" style="margin-top: 8px; gap: 6px" role="button" tabindex="0" :aria-label="t.wallet.nexBalance" @click="goNex">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="m16.71 13.88.7.71-2.82 2.82" /></svg>
           <text style="font-size: 13px; color: var(--v5-ink-3)">{{ nexLabel }} NEX</text>
@@ -67,6 +67,12 @@
           <text>{{ t.wallet.retryFunds }}</text>
         </view>
       </view>
+      <view v-if="remoteApiEnabled && !earningsReadPending && allTimeEarned === null" :style="syncFailBoxStyle">
+        <text class="block" :style="syncFailBodyStyle">{{ t.wallet.earningsUnavailable }}</text>
+        <view role="button" tabindex="0" :aria-label="t.ui.retry" :style="retryFundsStyle" @click="retryEarningsAuthority">
+          <text>{{ t.ui.retry }}</text>
+        </view>
+      </view>
 
       <!-- Earnings list -->
       <text v-if="fundsReadable" class="block" :style="listTitleStyle">{{ t.wallet.earningsSection }}</text>
@@ -77,15 +83,15 @@
         </WalletListRow>
         <WalletListRow icon-bg="var(--v5-warning-soft)" :label="t.wallet.reviewingEarnings" :sublabel="t.wallet.reviewingEarningsSub" @click="showPendingSheet">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></svg></template>
-          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">{{ bucketsReadable ? `$${pendingReview.toFixed(2)}` : "—" }}</text></template>
+          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">{{ bucketsReadable ? `$${formatAmount(pendingReview)}` : "—" }}</text></template>
         </WalletListRow>
         <WalletListRow icon-bg="var(--v5-brand-2-soft)" :label="t.wallet.lockedRewards" :sublabel="t.wallet.lockedRewardsSub" @click="showLockedSheet">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg></template>
-          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">{{ bucketsReadable ? `$${lockedRewards.toFixed(2)}` : "—" }}</text></template>
+          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">{{ bucketsReadable ? `$${formatAmount(lockedRewards)}` : "—" }}</text></template>
         </WalletListRow>
         <WalletListRow icon-bg="var(--v5-tech-cyan-soft)" :label="t.wallet.allTimeEarnings" :sublabel="allTimeSublabel">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z" /><path d="M3 10h18" /></svg></template>
-          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">${{ allTimeEarned.toFixed(2) }}</text></template>
+          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink)">{{ allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}` }}</text></template>
         </WalletListRow>
       </view>
 
@@ -106,7 +112,7 @@
         </WalletListRow>
         <WalletListRow v-if="showWithdrawal" icon-bg="color-mix(in srgb, var(--v5-warning) 22%, transparent)" :label="withdrawalRowLabel" :sublabel="withdrawalRowSub" chevron href="/pages/me/wallet-withdraw-tracking">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14" /><path d="m6 9 6-6 6 6" /><path d="M19 21H5" /></svg></template>
-          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-danger)">-${{ latestWithdrawal!.amount.toFixed(2) }}</text></template>
+          <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-danger)">-${{ formatAmount(latestWithdrawal!.amount) }}</text></template>
         </WalletListRow>
       </view>
 
@@ -115,6 +121,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
@@ -146,6 +153,7 @@ onShow(() => {
   if (remoteApiEnabled) {
     void app.refreshRemoteFleet();
     void refreshEarningsReleaseStatus().catch(() => undefined);
+    retryEarningsAuthority();
   }
 });
 
@@ -154,6 +162,8 @@ const fundsAuthorityUnavailable = computed(() => remoteApiEnabled && app.remoteF
 const fundsReadable = computed(() => !remoteApiEnabled || app.remoteFleetHasSnapshot);
 const usdtBalanceReadable = computed(() => fundsReadable.value || app.remoteWalletReceiptHasSnapshot);
 const releaseAuthorityUnavailable = computed(() => remoteApiEnabled && earningsReleaseStatus.value === "error");
+const earningsReadPending = computed(() => app.homeTruthStatus === "idle" || app.homeTruthStatus === "loading"
+  || commission.eventsStatus === "idle" || commission.eventsStatus === "loading");
 const bucketsReadable = computed(() => !remoteApiEnabled || (earningsReleaseHasSnapshot.value
   && earningsReleaseSnapshot.value?.serverCanonical === true
   && (earningsReleaseStatus.value === "ready" || earningsReleaseStatus.value === "loading")));
@@ -164,6 +174,10 @@ function retryFundsAuthority() {
 function retryReleaseAuthority() {
   if (earningsReleaseStatus.value === "loading") return;
   void refreshEarningsReleaseStatus().catch(() => undefined);
+}
+function retryEarningsAuthority() {
+  if (app.homeTruthStatus !== "loading") void app.refreshHomeTruth().catch(() => undefined);
+  if (commission.eventsStatus !== "loading") void commission.refreshCanonicalEvents().catch(() => undefined);
 }
 
 // Release explanations use the same account-scoped server receipt as the
@@ -212,7 +226,7 @@ const buckets = computed(() => ({
 // 2026-07-31:充值本金可提后,「可提现 USDT」= 总余额(held 两桶本就账外,不含在内)。
 // 必须与 wallet-withdraw 的 maxWithdrawable 同源,否则钱包页显示的数与实际能提的数对不上。
 const usdt = computed(() => app.user.usdtBalance);
-const nexLabel = computed(() => app.user.nexBalance.toLocaleString());
+const nexLabel = computed(() => formatAmount(app.user.nexBalance));
 const pending = computed(() => app.user.pendingEarnings);
 const todayEarnings = computed(() => resolveWalletTodayEarnings({
   remoteApiEnabled,
@@ -220,15 +234,19 @@ const todayEarnings = computed(() => resolveWalletTodayEarnings({
   homeTodayUsdt: app.homeTruth?.earnings.today.usdt ?? null,
   localTodayUsdt: app.earnings.today,
 }));
-const todayEarningsText = computed(() => todayEarnings.value === null ? "—" : `+$${todayEarnings.value.toFixed(2)}`);
+const todayEarningsText = computed(() => todayEarnings.value === null ? "—" : `+$${formatAmount(todayEarnings.value)}`);
 const pendingReview = computed(() => buckets.value.pendingReviewUsdt);
 const lockedRewards = computed(() => buckets.value.bonusLockedUsdt);
-const teamLifetimeUSD = computed(() => commission.totalUSDTLifetime());
-const allTimeEarned = computed(() => app.earnings.total + teamLifetimeUSD.value);
+const miningLifetimeUSD = computed(() => !remoteApiEnabled ? app.earnings.total
+  : app.homeTruthStatus === "ready" ? app.homeTruth?.earnings.all.usdt ?? null : null);
+const teamLifetimeUSD = computed(() => !remoteApiEnabled ? commission.totalUSDTLifetime()
+  : commission.eventsStatus === "ready" ? commission.eventsEvidence?.aggregate.totalUSDT ?? null : null);
+const allTimeEarned = computed(() => miningLifetimeUSD.value === null || teamLifetimeUSD.value === null
+  ? null : miningLifetimeUSD.value + teamLifetimeUSD.value);
 const allTimeSublabel = computed(() =>
   fmt(t.value.wallet.allTimeSublabel, {
-    c: app.earnings.total.toFixed(2),
-    tm: teamLifetimeUSD.value.toFixed(2),
+    c: miningLifetimeUSD.value === null ? "-" : `$${formatAmount(miningLifetimeUSD.value)}`,
+    tm: teamLifetimeUSD.value === null ? "-" : `$${formatAmount(teamLifetimeUSD.value)}`,
   }),
 );
 // Bank cards: dynamic count from cards store (mirrors prototype `${n} 张已绑定`

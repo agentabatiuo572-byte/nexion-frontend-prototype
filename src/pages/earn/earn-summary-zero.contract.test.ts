@@ -3,6 +3,7 @@
 // @ts-expect-error Vitest executes this structural contract in Node; the App tsconfig intentionally omits Node globals.
 import { readFileSync } from "node:fs";
 import { compile } from "@vue/compiler-dom";
+import { formatAmount } from "@/lib/amount-display";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import { renderToString } from "@vue/server-renderer";
 import ts from "typescript";
@@ -33,6 +34,7 @@ function hero(range: Range, homeTruth: unknown, realized: { usdt: number; nex: n
     earnings: { today: 9, todayNEX: 3, thisWeek: 18, thisMonth: 27, total: 36 },
     refreshHomeTruth: async () => true, refreshRemoteFleet: async () => true });
   const load = (id: string) => {
+    if (id === "@/lib/amount-display") return { formatAmount };
     if (id === "vue") return { ...Vue, onUnmounted: () => {} };
     if (id === "@dcloudio/uni-app") return { onShow: () => {}, onHide: () => {} };
     if (id === "@/store/app") return { useApp: () => app };

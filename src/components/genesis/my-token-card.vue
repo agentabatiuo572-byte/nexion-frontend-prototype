@@ -18,7 +18,7 @@
       <!-- Listed state -->
       <template v-if="isListed && existing">
         <text class="block" :style="askLabelStyle">{{ askingChipText }}</text>
-        <text class="block tabular-nums" :style="askPriceStyle">${{ existing.askPriceUSDT.toLocaleString(undefined, { maximumFractionDigits: 6 }) }}</text>
+        <text class="block tabular-nums" :style="askPriceStyle">${{ formatAmount(existing.askPriceUSDT) }}</text>
         <text class="block" :style="listedAgoStyle">{{ listedAgoText }}</text>
         <view class="w-full flex items-center justify-center active:scale-[0.97]" role="button" tabindex="0" :aria-disabled="pending" :style="cancelBtnStyle" @click="handleCancel">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
@@ -44,6 +44,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import { ref, computed, watch, getCurrentInstance, onUnmounted, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -109,14 +110,14 @@ const existing = computed(() => genesis.myListings.find((l) => l.tokenId === pro
 const isListed = computed(() => !!existing.value);
 
 const askingChipText = computed(() =>
-  existing.value ? fmt(t.value.marketplace.askingChip, { amount: existing.value.askPriceUSDT.toLocaleString(undefined, { maximumFractionDigits: 6 }) }) : "",
+  existing.value ? fmt(t.value.marketplace.askingChip, { amount: formatAmount(existing.value.askPriceUSDT) }) : "",
 );
 const listedAgoText = computed(() =>
   existing.value ? fmt(t.value.marketplace.listedAgo, { time: relativeTime(existing.value.listedAt) }) : "",
 );
 const floorHintText = computed(() => floor.value === null
   ? "—"
-  : fmt(t.value.marketplace.floorShort, { k: (floor.value / 1000).toFixed(1) }));
+  : fmt(t.value.marketplace.floorShort, { k: formatAmount(floor.value / 1000) }));
 const floorConfirmationText = computed(() => presentGenesisFloorPrice(floor.value));
 
 function listingSnapshot(): GenesisListingSnapshot | null {
@@ -178,11 +179,11 @@ async function handleList() {
       title: fmt(t.value.marketplace.confirmListTitle, { id: props.tokenId }),
       message: royalty.value === null
         ? fmt(t.value.marketplace.confirmListMsgRoyaltyUnavailable, {
-            amount: formatCommandAmount(price),
+            amount: formatAmount(price),
             floor: floorConfirmationText.value,
           })
         : fmt(t.value.marketplace.confirmListMsg, {
-            amount: formatCommandAmount(price),
+            amount: formatAmount(price),
             floor: floorConfirmationText.value,
             royalty: royalty.value,
           }),
@@ -199,7 +200,7 @@ async function handleList() {
     } else if (success === true) {
       toast.success(
         fmt(t.value.marketplace.listedToast, { id: props.tokenId }),
-        fmt(t.value.marketplace.listedDesc, { amount: formatCommandAmount(price) }),
+        fmt(t.value.marketplace.listedDesc, { amount: formatAmount(price) }),
       );
     } else {
       toast.error(t.value.marketplace.listingFailed, t.value.marketplace.listingFailedDesc);

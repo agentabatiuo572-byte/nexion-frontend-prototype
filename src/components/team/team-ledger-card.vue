@@ -7,9 +7,9 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
       </view>
     </view>
-    <text class="team-ledger__amount tabular-nums">{{ '$' + monthUSDT.toFixed(2) }}</text>
-    <text class="team-ledger__nex tabular-nums">+ {{ monthNEX.toLocaleString() }} NEX</text>
-    <text class="team-ledger__lifetime">{{ t.teamV3.lifetime }} ${{ totalUSDTLifetime.toFixed(2) }} · {{ contributors }} {{ t.teamV3.contributors }}</text>
+    <text class="team-ledger__amount tabular-nums">{{ '$' + formatAmount(monthUSDT) }}</text>
+    <text class="team-ledger__nex tabular-nums">+ {{ formatAmount(monthNEX) }} NEX</text>
+    <text class="team-ledger__lifetime">{{ t.teamV3.lifetime }} ${{ formatAmount(totalUSDTLifetime) }} · {{ contributors }} {{ t.teamV3.contributors }}</text>
 
     <view class="team-ledger__bar" aria-hidden="true">
       <view :style="{ width: directPct + '%', background: 'var(--v5-brand)' }" />
@@ -18,21 +18,22 @@
     <view class="team-ledger__split">
       <view>
         <view class="team-ledger__label"><view class="team-ledger__dot" /><text>{{ t.teamV3.directLabel }} · {{ directPct }}%</text></view>
-        <text class="team-ledger__value tabular-nums">${{ directUSDT.toFixed(2) }}</text>
+        <text class="team-ledger__value tabular-nums">${{ formatAmount(directUSDT) }}</text>
       </view>
       <view>
         <view class="team-ledger__label"><view class="team-ledger__dot team-ledger__dot--extended" /><text>{{ t.teamV3.extendedLabel }} · {{ extendedPct }}%</text></view>
-        <text class="team-ledger__value tabular-nums">${{ extendedUSDT.toFixed(2) }}</text>
+        <text class="team-ledger__value tabular-nums">${{ formatAmount(extendedUSDT) }}</text>
       </view>
     </view>
     <view class="team-ledger__settlement">
-      <view><text>{{ t.teamV3.settled }}</text><text class="tabular-nums">${{ unlockedUSDT.toFixed(2) }}</text></view>
-      <view><text>{{ t.teamV3.coolingDown }}</text><text class="tabular-nums">${{ coolingUSDT.toFixed(2) }}</text></view>
+      <view><text>{{ t.teamV3.settled }}</text><text class="tabular-nums">${{ formatAmount(unlockedUSDT) }}</text></view>
+      <view><text>{{ t.teamV3.coolingDown }}</text><text class="tabular-nums">${{ formatAmount(coolingUSDT) }}</text></view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -50,8 +51,9 @@ const props = defineProps<{
 
 const t = useT();
 
-const intPart = computed(() => Math.floor(props.monthUSDT));
-const fracPart = computed(() => (props.monthUSDT - intPart.value).toFixed(2).slice(2));
+const monthUSDTText = computed(() => formatAmount(props.monthUSDT));
+const intPart = computed(() => monthUSDTText.value.split(".")[0]);
+const fracPart = computed(() => monthUSDTText.value.split(".")[1]);
 const splitTotal = computed(() => Math.max(0, props.directUSDT + props.extendedUSDT));
 const directPct = computed(() => splitTotal.value === 0 ? 0 : Math.round((props.directUSDT / splitTotal.value) * 100));
 const extendedPct = computed(() => splitTotal.value === 0 ? 0 : 100 - directPct.value);

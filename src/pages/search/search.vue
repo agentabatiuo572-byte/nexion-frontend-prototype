@@ -107,6 +107,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, onMounted, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -292,7 +293,7 @@ const results = computed<Hit[]>(() => {
       out.push({
         group: "product",
         label: p.name,
-        sublabel: `$${p.price}${detail ? ` · ${detail}` : ""}`,
+        sublabel: `$${formatAmount(p.price)}${detail ? ` · ${detail}` : ""}`,
         href: `/pages/store/detail?id=${p.id}`,
       });
     }

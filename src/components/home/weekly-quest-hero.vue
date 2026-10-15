@@ -66,6 +66,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, watch, type CSSProperties } from "vue";
 import type { CanonicalQuest } from "@/api/quest-api";
 import { useWeeklyQuest } from "@/store/weekly-quest";
@@ -125,7 +126,7 @@ onMounted(() => {
 const quest = computed<CanonicalQuest | null>(() => wq.tier1Quests.find((q) => isCurrentQuest(q, nowTick.value * 1000)) ?? null);
 const mult = computed(() => wq.multiplier);
 const reward = computed(() => (quest.value ? Math.round(quest.value.rewardNex * mult.value) : 0));
-const rewardDisplay = computed(() => reward.value.toLocaleString());
+const rewardDisplay = computed(() => formatAmount(reward.value));
 const completed = computed(() => !!quest.value && ["COMPLETED", "CLAIMABLE"].includes(quest.value.status));
 const visible = computed(() => !!quest.value && quest.value.status !== "CLAIMED");
 const periodExpired = computed(() => Date.parse(quest.value?.eligibleUntil ?? "") <= nowTick.value * 1000);

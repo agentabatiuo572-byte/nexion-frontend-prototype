@@ -382,12 +382,7 @@ function regionName(r: GlobeRegion): string {
 function regionDevicesText(r: GlobeRegion): string {
   return fmt(t.value.globe.regionDevices, { n: r.devices.toLocaleString() });
 }
-/**
- * 延迟文案。服务端目前不上报延迟遥测,所以这个值恒为 null —— 缺陷 51 的验收明确允许
- * 「若所有节点无有效延迟,应明确说明遥测缺失」。此前只渲染「平均延迟 --」,读者无法
- * 区分「延迟是 0」「读取失败」和「根本没采这个指标」,所以这里把缺失说清楚。
- * 有真实遥测时照常显示数值。
- */
+// Missing latency stays compact; the existing drawer explains its availability.
 function regionLatencyText(r: GlobeRegion): string {
   if (r.avgLatencyMs === null) return t.value.globe.latencyTelemetryMissing;
   return fmt(t.value.globe.regionLatency, { n: String(r.avgLatencyMs) });

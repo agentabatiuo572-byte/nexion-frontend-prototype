@@ -3,6 +3,7 @@ import { computed, reactive } from "vue";
 import ts from "typescript";
 import walletPage from "../pages/me/wallet.vue?raw";
 import { resolveWalletTodayEarnings } from "./wallet-today-earnings";
+import { formatAmount } from "./amount-display";
 
 describe("wallet today earnings authority", () => {
   it("renders the wallet Today binding from Home and keeps pending earnings separate", () => {
@@ -18,9 +19,9 @@ describe("wallet today earnings authority", () => {
     const code = ts.transpileModule(walletPage.slice(start, end), {
       compilerOptions: { target: ts.ScriptTarget.ES2022 },
     }).outputText;
-    const state = new Function("computed", "app", "remoteApiEnabled", "resolveWalletTodayEarnings",
+    const state = new Function("formatAmount", "computed", "app", "remoteApiEnabled", "resolveWalletTodayEarnings",
       `${code}\nreturn { todayEarningsText };`,
-    )(computed, app, true, resolveWalletTodayEarnings);
+    )(formatAmount, computed, app, true, resolveWalletTodayEarnings);
     const row = walletPage.slice(walletPage.indexOf(':label="t.wallet.todayLabel"'), walletPage.indexOf(':label="t.wallet.reviewingEarnings"'));
     const binding = row.match(/#value><text[^>]*>\{\{(.*?)\}\}/)?.[1];
     if (!binding) throw new Error("Wallet Today text binding missing");

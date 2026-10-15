@@ -39,7 +39,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </view>
           </view>
-          <text class="block font-display tabular-nums" :style="heroBigStyle">${{ (currentWeekPoolUSDT / 1000).toFixed(1) }}K</text>
+          <text class="block font-display tabular-nums" :style="heroBigStyle">${{ formatAmount(currentWeekPoolUSDT / 1000) }}K</text>
           <text class="block" :style="heroDescStyle">{{ weeklyDescText }}</text>
         </view>
 
@@ -51,7 +51,7 @@
               <text class="font-mono-tabular" :style="statusCapStyle('var(--v5-brand)')">{{ t.pool.projectedDividend }}</text>
               <VBadge :v="myRank" size="sm" />
             </view>
-            <text class="block font-display tabular-nums" :style="projectedStyle">${{ projectedPayout.toFixed(2) }}</text>
+            <text class="block font-display tabular-nums" :style="projectedStyle">${{ formatAmount(projectedPayout) }}</text>
           </template>
           <template v-else>
             <text class="block font-mono-tabular" :style="statusCapStyle('var(--v5-ink-3)')">{{ t.pool.locked }}</text>
@@ -82,7 +82,7 @@
               <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink)' }">{{ h.weekId }}</text>
               <text v-if="poolTotalText(h)" class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ poolTotalText(h) }}</text>
             </view>
-            <text class="font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: h.payoutUSDT > 0 ? 'var(--v5-brand)' : 'var(--v5-ink-3)' }">{{ h.payoutUSDT > 0 ? `+$${h.payoutUSDT.toFixed(2)}` : "—" }}</text>
+            <text class="font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: h.payoutUSDT > 0 ? 'var(--v5-brand)' : 'var(--v5-ink-3)' }">{{ h.payoutUSDT > 0 ? `+$${formatAmount(h.payoutUSDT)}` : "—" }}</text>
           </view>
         </view>
         </template>
@@ -92,6 +92,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
@@ -218,14 +219,14 @@ const voteRows = computed(() => {
       isMine: remoteApiEnabled ? canonical?.isMine === true : v === vState.myRank,
       peopleVotes: fmt(t.value.pool.peopleVotesEa, { count: count.toLocaleString(), votes: votes ?? "—" }),
       shareOfPool,
-      perPerson: ((currentWeekPoolUSDT.value * shareOfPool) / Math.max(count, 1)).toFixed(0),
+      perPerson: formatAmount((currentWeekPoolUSDT.value * shareOfPool) / Math.max(count, 1)),
     };
   });
 });
 
 function poolTotalText(h: LeadershipPayout): string {
   if (remoteApiEnabled && h.poolUSDT <= 0) return "";
-  return fmt(t.value.pool.poolTotalShort, { k: (h.poolUSDT / 1000).toFixed(1), n: h.totalVotes.toLocaleString() });
+  return fmt(t.value.pool.poolTotalShort, { k: formatAmount(h.poolUSDT / 1000), n: h.totalVotes.toLocaleString() });
 }
 
 function go(url: string) {

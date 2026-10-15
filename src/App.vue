@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navReset } from "@/lib/route";
 import { ApiError } from "@/api/errors";
 import { reportNativeSessionStage, reportNativeSessionTiming } from "@/api/native-session-storage";
@@ -335,11 +336,11 @@ async function pollTrial() {
     const left = remainingMs(nowMs);
     if (!urgencyFired.active24h && left > 0 && left <= URGENCY_24H_MS) {
       urgencyFired.active24h = true;
-      toast.warn(fmt(t.trial.urgency24h, { amount: useTrialConfig().config.discountCapUSD }));
+      toast.warn(fmt(t.trial.urgency24h, { amount: formatAmount(useTrialConfig().config.discountCapUSD) }));
     }
   } else if (st.status === "grace" && st.graceEndsAt !== null) {
     const left = remainingMs(nowMs);
-    const credit = liveShadowUSD(nowMs).toFixed(2);
+    const credit = formatAmount(liveShadowUSD(nowMs));
     if (!urgencyFired.grace1h && left > 0 && left <= URGENCY_1H_MS) {
       urgencyFired.grace1h = true;
       urgencyFired.grace24h = true; // don't double-push inside the last hour
@@ -1082,7 +1083,7 @@ function checkQuestRoute() {
   if (!drafts.length) return;
   if (postMoneyBillsOnce(drafts) !== "ok") return;
   if (!useQuest().markComplete(id).firstTime) return; // 消费失败:重试命中同 ref 不会再发
-  toast.success(fmt(t.quest.routeToast, { n: task.nexReward }));
+  toast.success(fmt(t.quest.routeToast, { n: formatAmount(task.nexReward) }));
 }
 
 function startQuestWatch() {

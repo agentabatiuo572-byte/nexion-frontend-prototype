@@ -1,6 +1,6 @@
 import { describe,expect,it } from 'vitest';
 import type { PublicPromotion,PublicRewardSpec } from '@/api/promotion-contracts';
-import { canPreviewPromotion,createPromotionReadFence,isEntryQuoteFresh,parseEntryItems,productRewardSpecs,promotionBundleHref,promotionCheckoutHref,promotionDetailHref,promotionDisclosures,promotionStoreHref,restoreEntrySelection,validEntryItems } from './promotion-entry';
+import { canPreviewPromotion,createPromotionReadFence,isPromotionActive,isEntryQuoteFresh,parseEntryItems,productRewardSpecs,promotionBundleHref,promotionCheckoutHref,promotionDetailHref,promotionDisclosures,promotionStoreHref,restoreEntrySelection,validEntryItems } from './promotion-entry';
 
 function promotion(extra:Partial<PublicPromotion>={}):PublicPromotion {
   return { activityId:'activity A',version:3,template:'SKU_GIFT',state:'ACTIVE',startsAt:'2026-10-07T00:00:00Z',endsAt:'2026-10-30T00:00:00Z',serverTime:'2026-10-08T00:00:00Z',title:{zh:'活动',en:'Offer',vi:'Ưu đãi'},terms:{zh:'条件',en:'Terms',vi:'Điều khoản'},placement:null,target:'STORE',productNos:['A','D'],minimumClientCapabilities:['PROMOTION_QUOTE_V1'],eligibility:'ESTIMATE_ELIGIBLE',eligibilityMessage:null,rewardRules:[],...extra };
@@ -16,9 +16,12 @@ describe('promotion entry server truth',()=>{
     expect(canPreviewPromotion(promotion({eligibility:'INELIGIBLE'}))).toBe(false);
     expect(canPreviewPromotion(promotion({eligibility:'UNKNOWN'}))).toBe(false);
     expect(canPreviewPromotion(null)).toBe(false);
+    expect(isPromotionActive(promotion({eligibility:'INELIGIBLE'}))).toBe(true);
+    expect(isPromotionActive(promotion({eligibility:'UNKNOWN'}))).toBe(true);
   });
   it.each(['DRAFT','SCHEDULED','PAUSED','ENDED','ARCHIVED'] as const)('keeps explicit %s unavailable, regardless of future endsAt',state=>{
     expect(canPreviewPromotion(promotion({state}))).toBe(false);
+    expect(isPromotionActive(promotion({state}))).toBe(false);
   });
   it('does not infer expiry from the device clock or invent unsupported capabilities',()=>{
     expect(canPreviewPromotion(promotion({endsAt:'2000-01-01T00:00:00Z'}))).toBe(true);

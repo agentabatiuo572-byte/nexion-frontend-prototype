@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { compile } from "@vue/compiler-dom";
@@ -57,17 +58,17 @@ function pane(fx: ReturnType<typeof useFx>) {
     runRecoverableFundsOperation, ApiError, autoResumePending: Vue.ref(false), viewIntentId: Vue.ref(null),
     paidPressed: Vue.ref(false), pageActive: Vue.ref(true), openHostedOrder: vi.fn(),
     app: Vue.reactive({ accountKey: "user:7", accountBindingEpoch: 1 }) };
-  const bindings = new Function(...Object.keys(args), code)(...Object.values(args));
+  const bindings = new Function("formatAmount", ...Object.keys(args), code)(formatAmount, ...Object.values(args));
   return { bindings, dep, toast };
 }
 
 const template = parse(source).descriptor.template!.content;
-const render = new Function("Vue", compile(template, { mode: "function", prefixIdentifiers: true,
-  isCustomElement: (tag) => tag === "view" || tag === "text" }).code)(Vue);
+const render = new Function("formatAmount", "Vue", compile(template, { mode: "function", prefixIdentifiers: true,
+  isCustomElement: (tag) => tag === "view" || tag === "text" }).code)(formatAmount, Vue);
 async function show(view: ReturnType<typeof pane>, fx: ReturnType<typeof useFx>) {
   const styles = Object.fromEntries([...source.matchAll(/\b(?:const|function)\s+(\w+Style)\b/g)].map((match) => [match[1], {}]));
   const app = Vue.createSSRApp({ render, setup: () => ({ ...styles, ...view.bindings, fx,
-    paneView: "form", intent: null, readError: "", paymentSessionReady: true, app: { accountBindingEpoch: 1 }, t: en, fmt }) });
+    paneView: "form", intent: null, readError: "", paymentSessionReady: true, app: { accountBindingEpoch: 1 }, t: en, fmt, formatAmount }) });
   app.component("FxRateLine", { render: () => Vue.h("aside") });
   return renderToString(app);
 }
@@ -86,8 +87,8 @@ test("unknown capacity survives real API and FX store, renders no fake limit, an
   expect(fx).toMatchObject({ configReady: true, dailyCapacityKnown: false, todayRemainingDepositUsdt: 0 });
   expect(view.bindings.ctaEnabled.value).toBe(true);
   const html = await show(view, fx);
-  expect(html).toContain(fmt(en.bankPane.limitNote, { min: "$10", max: "$5,000" }));
-  expect(html).not.toContain(fmt(en.bankPane.todayRemainingNote, { remaining: "$0" }));
+  expect(html).toContain(fmt(en.bankPane.limitNote, { min: "$10.00", max: "$5000.00" }));
+  expect(html).not.toContain(fmt(en.bankPane.todayRemainingNote, { remaining: "$0.00" }));
   expect(html).not.toContain(en.bankPane.dailyCapacityExhaustedTitle.replaceAll("'", "&#39;"));
   expect(html).not.toMatch(/Infinity|∞/);
   view.bindings.createOrder(); await vi.advanceTimersByTimeAsync(600);
@@ -121,7 +122,7 @@ test.each([true, undefined])("known or legacy zero capacity remains exhausted: %
   expect(view.bindings.ctaEnabled.value).toBe(false);
   const html = await show(view, fx);
   expect(html).toContain(en.bankPane.dailyCapacityExhaustedTitle.replaceAll("'", "&#39;"));
-  expect(html).toContain(fmt(en.bankPane.todayRemainingNote, { remaining: "$0" }));
+  expect(html).toContain(fmt(en.bankPane.todayRemainingNote, { remaining: "$0.00" }));
   view.bindings.createOrder(); await vi.advanceTimersByTimeAsync(600);
   expect(view.dep.createRemoteBankIntent).not.toHaveBeenCalled();
 });
@@ -130,7 +131,7 @@ test("a refreshed known zero limit blocks an order admitted by the earlier unkno
   install(); const fx = useFx(); await fx.load(); const view = pane(fx);
   view.bindings.createOrder(); install(config(true)); await vi.advanceTimersByTimeAsync(600);
   expect(view.dep.createRemoteBankIntent).not.toHaveBeenCalled();
-  expect(view.bindings.createError.value).toBe(fmt(en.bankPane.dailyCapacityExceeded, { max: "$0" }));
+  expect(view.bindings.createError.value).toBe(fmt(en.bankPane.dailyCapacityExceeded, { max: "$0.00" }));
   expect(view.bindings.creating.value).toBe(false);
 });
 
@@ -150,7 +151,7 @@ test.each([false, true])("final capacity error uses daily copy only for a known 
   view.bindings.createOrder(); await vi.advanceTimersByTimeAsync(600);
   expect(view.dep.createRemoteBankIntent).toHaveBeenCalledOnce();
   expect(view.bindings.createError.value).toBe(known
-    ? fmt(en.bankPane.dailyCapacityExceeded, { max: "$50" }) : en.bankPane.createFailedNote);
+    ? fmt(en.bankPane.dailyCapacityExceeded, { max: "$50.00" }) : en.bankPane.createFailedNote);
   expect(view.bindings.createError.value).not.toMatch(/Infinity|∞/);
 });
 

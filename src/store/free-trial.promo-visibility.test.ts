@@ -3,6 +3,8 @@ import { createPinia, setActivePinia } from "pinia";
 import { computed, nextTick } from "vue";
 import ts from "typescript";
 import type { TrialAuthorityState } from "@/api/trial-api";
+import { parseTrialAuthorityState } from "@/api/trial-api";
+import { useTrialConfig } from "./trial-config";
 
 const remote = vi.hoisted(() => ({ state: vi.fn(), eligibility: vi.fn(), start: vi.fn() }));
 vi.mock("@/api/runtime", () => ({ remoteApiEnabled: true, fundsServerEnabled: true,
@@ -25,6 +27,13 @@ function rendered(trial: ReturnType<typeof useFreeTrial>) {
   const me = pageGate(pages["../pages/me/me.vue"] as string, "trialIsHero", trial, "trialIsActive");
   const banner = pageGate(pages["../components/trial-promo-banner.vue"] as string, "visible", trial, "isActive");
   return computed(() => me.value && banner.value);
+}
+function meSkeleton(trial: ReturnType<typeof useFreeTrial>) {
+  const source = pages["../pages/me/me.vue"] as string;
+  const condition = source.match(/<view v-if="([^"]+)"[^>]*data-me-trial-state="pending"/)?.[1];
+  if (!condition) throw new Error("Me initial trial skeleton binding missing");
+  const evaluate = new Function("trial", "trialIsActive", `return ${condition};`);
+  return computed(() => evaluate(trial, trial.status === "active" || trial.status === "grace"));
 }
 function refreshFromMe(trial: ReturnType<typeof useFreeTrial>): Promise<void> {
   const script = (pages["../pages/me/me.vue"] as string).match(/<script setup lang="ts">([\s\S]*?)<\/script>/)![1];
@@ -66,6 +75,13 @@ function authority(canStart = true, status: TrialAuthorityState["status"] = "non
       shadowDailyUSD:"38.52",shadowDailyNEX:"65",seatsLeftToday:"1",phaseOpen:true,autoPushEnabled:true,
       autoPushDelayMs:"1500",autoPushCooldownHours:"24",autoPushMaxPerSession:"1"} };
 }
+function parsedAuthority(canStart: boolean, validConfig = true) {
+  const state = authority(canStart);
+  return parseTrialAuthorityState({ ...state, state: "ELIGIBLE", serverNowEpochMs: state.serverNow,
+    shadowUsdt: 0, shadowNex: 0, config: { ...state.config,
+      ...(!validConfig ? { discountRate: "not-a-number" } : {}) },
+  });
+}
 beforeEach(() => { setActivePinia(createPinia()); vi.resetAllMocks(); });
 
 describe("Earn hero display remains separate from claim authority", () => {
@@ -97,6 +113,69 @@ describe("Earn hero display remains separate from claim authority", () => {
 });
 
 describe("Me trial promotion display vs claim authority", () => {
+  it.each([false, true])("rejects an invalid initial numeric policy before confirming hidden or visible (claimable=%s)", async claimable => {
+    const trial = useFreeTrial(), skeleton = meSkeleton(trial), config = useTrialConfig();
+    const originalConfig = { ...config.config };
+    // The real API parser accepts this string-valued policy; the real config store must reject it.
+    const invalid = parsedAuthority(claimable, false);
+    remote.state.mockResolvedValueOnce(invalid);
+    expect(await trial.refreshRemote()).toBe(false);
+    expect(trial.authorityStatus).toBe("error"); expect(trial.canStart()).toBe(false);
+    expect(trial.showPromo()).toBe(false); expect(trial.showHeroPromo()).toBe(false);
+    expect(config.config).toEqual(originalConfig);
+    const fresh = deferred<TrialAuthorityState>(); remote.state.mockReturnValueOnce(fresh.promise);
+    const retry = trial.refreshRemote();
+    expect(trial.promoSlot).toBe("pending"); expect(skeleton.value).toBe(true);
+    fresh.resolve(parsedAuthority(claimable)); await retry;
+    expect(trial.promoSlot).toBe(claimable ? "visible" : "hidden");
+    expect(skeleton.value).toBe(false); expect(remote.start).not.toHaveBeenCalled();
+  });
+  it.each([false, true])("an invalid recheck retains only the prior valid promotion (claimable=%s)", async claimable => {
+    const trial = useFreeTrial(), config = useTrialConfig();
+    remote.state.mockResolvedValueOnce(parsedAuthority(claimable)); await trial.refreshRemote();
+    const originalConfig = { ...config.config };
+    remote.state.mockResolvedValueOnce(parsedAuthority(!claimable, false));
+    expect(await trial.refreshRemote()).toBe(false);
+    expect(trial.promoSlot).toBe(claimable ? "visible" : "hidden");
+    expect(trial.showPromo()).toBe(claimable); expect(trial.canStart()).toBe(false);
+    expect(config.config).toEqual(originalConfig);
+    expect(remote.start).not.toHaveBeenCalled();
+  });
+  it.each(["none", "ended", "converted"] as const)("does not reinsert the initial Me skeleton while polling a confirmed hidden %s slot", async status => {
+    const trial = useFreeTrial(), skeleton = meSkeleton(trial);
+    expect(skeleton.value).toBe(true);
+    remote.state.mockResolvedValueOnce(authority(false, status));
+    await trial.refreshRemote();
+    expect(trial.promoSlot).toBe("hidden"); expect(skeleton.value).toBe(false);
+    for (let round = 0; round < 3; round++) {
+      const next = deferred<TrialAuthorityState>(); remote.state.mockReturnValueOnce(next.promise);
+      const poll = trial.poll(Date.now());
+      expect(trial.authorityStatus).toBe("loading");
+      expect(trial.promoSlot).toBe("hidden"); expect(skeleton.value).toBe(false);
+      expect(trial.canStart()).toBe(false);
+      next.resolve(authority(false, status)); await poll;
+      expect(skeleton.value).toBe(false);
+    }
+    const failed = deferred<TrialAuthorityState>(); remote.state.mockReturnValueOnce(failed.promise);
+    const poll = trial.poll(Date.now()); failed.reject(Error("offline")); await poll;
+    const retry = deferred<TrialAuthorityState>(); remote.eligibility.mockReturnValueOnce(retry.promise);
+    const recovery = trial.refreshEligibilityRemote();
+    expect(trial.promoSlot).toBe("hidden"); expect(skeleton.value).toBe(false); expect(trial.canStart()).toBe(false);
+    retry.resolve(authority(false, status)); await recovery;
+    expect(skeleton.value).toBe(false); expect(remote.start).not.toHaveBeenCalled();
+  });
+  it.each([false, true])("clears a retained hidden slot on identity rebind (same account=%s)", async sameAccount => {
+    const trial = useFreeTrial(), skeleton = meSkeleton(trial);
+    remote.state.mockResolvedValueOnce(authority(false)); trial.bindAccount("account-a");
+    await vi.waitFor(() => expect(trial.authorityStatus).toBe("ready"));
+    expect(skeleton.value).toBe(false);
+    const fresh = deferred<TrialAuthorityState>(); remote.state.mockReturnValueOnce(fresh.promise);
+    trial.bindAccount(sameAccount ? "account-a" : "account-b");
+    expect(trial.promoSlot).toBe("pending"); expect(skeleton.value).toBe(true); expect(trial.canStart()).toBe(false);
+    fresh.resolve(authority()); await vi.waitFor(() => expect(trial.authorityStatus).toBe("ready"));
+    expect(trial.promoSlot).toBe("visible"); expect(skeleton.value).toBe(false); expect(trial.canStart()).toBe(true);
+    expect(remote.start).not.toHaveBeenCalled();
+  });
   it("opens the sheet from a confirmed claimable snapshot but never from an unconfirmed one", async () => {
     const trial = useFreeTrial(), show = vi.fn(), actions = bannerActions(trial, show);
     // First frame: nothing confirmed yet — the entry stays closed.

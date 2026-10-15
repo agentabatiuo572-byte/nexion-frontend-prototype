@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { describe, expect, it, vi } from "vitest";
 import { reactive, watch } from "vue";
 import ts from "typescript";
@@ -48,7 +49,7 @@ function harness(storage?: RemoteIntentStorage) {
     normalizeCommandAmount,
   };
   dependencies.emit.mockImplementation((_event: string, open: boolean) => { dependencies.props.open = open; });
-  const component = new Function(...Object.keys(dependencies), compiled)(...Object.values(dependencies)) as {
+  const component = new Function("formatAmount", ...Object.keys(dependencies), compiled)(formatAmount, ...Object.values(dependencies)) as {
     submit: () => Promise<void>;
     emitClose: () => void;
   };

@@ -296,7 +296,13 @@ test("a deferred authority revision cannot send an old account command with the 
     assert.match(source, /persistPending\(scope\.accountKey, scope\.runId, scope\.pending\)/);
     assert.match(source, /scope\.pending === pendingKeys && scope\.inFlight === inFlight/);
   }
-  assert.match(conversations, /const promise = Promise\.resolve\(\)\.then\(async \(\) => \{\s*try \{\s*if \(!scopeIsCurrent\(scope\)\) throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\);\s*const result = await action\(key\);/);
+  const preflight = conversations.match(/const promise = Promise\.resolve\(\)\.then\(async \(\) => \{\s*try \{\s*if \(!scopeIsCurrent\(scope\)\) throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\);([\s\S]*?)const result = await action\(key\);/)?.[1];
+  assert.notEqual(preflight, undefined, "final scope guard must precede the transport action");
+  assert.doesNotMatch(preflight, /\bawait\b/, "no async work may separate the final scope guard from dispatch");
+  assert.equal(preflight.trim().replace(/\s+/g, " "),
+    'if (createPolicy?.recovery && scope.pending.get(fingerprint) !== createPolicy.recovery.key) throw new Error("SUPPORT_PENDING_RECOVERY_SCOPE_CHANGED"); '
+    + 'if (createPolicy && !createPolicy.recovery && !createPolicy.gate()) throw new Error("SUPPORT_CATEGORY_UNAVAILABLE");',
+    "only the synchronous original-key and category guards may precede dispatch");
   assert.match(conversations, /const adopted = await recover\(key\);\s*if \(!scopeIsCurrent\(scope\)\) throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\);/);
   assert.match(conversations, /scope\.inFlight\.set\(fingerprint, promise\);[\s\S]*?return promise;/);
 });

@@ -72,6 +72,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { ref, computed, onUnmounted, type CSSProperties } from "vue";
 import GenesisEligibilitySheet from "@/components/genesis/eligibility-sheet.vue";
@@ -117,7 +118,7 @@ const countdownDisplay = computed(() => {
   const dayPart = countdownDays.value > 0 ? fmt(t.value.genesisEligibility.countdownDay, { n: countdownDays.value }) + " " : "";
   return `${dayPart}${countdownClock.value}`;
 });
-const priceText = computed(() => genesis.unitPriceUSDT.toLocaleString());
+const priceText = computed(() => formatAmount(genesis.unitPriceUSDT));
 const eyebrowText = computed(() =>
   supplyKnown.value ? fmt(t.value.store.genesisCardEyebrow, { n: genesis.totalSlots.toLocaleString() }) : "",
 );

@@ -83,8 +83,16 @@ check("🔴 警告框的抵扣提示同时挂「费率可用」与「已输入�
 // 这是「改一个语言、漏另一个」的同类第 6 例。分隔符归串自身:en/vi 带前导空格,zh 不带。
 check("模板不硬编码分隔空格(分隔符归各语言串,CJK 才不会多空格)",
   !/\{\{ ' ' \}\}\{\{ t\.wallet\.minWithdrawNoteOffset \}\}/.test(code));
-check("🔴 最低提现额从配置插值,不写死(否则运营调值后同屏两个最低额)",
-  /minWithdrawNoteText = computed\(\(\) => fmt\(t\.value\.wallet\.minWithdrawNote, \{ n: minWithdrawable\.value/.test(code));
+const minimumPolicyDisplay = (source) => norm(source).includes("const minWithdrawable = computed(() => withdrawalPolicy.value?.minAmount ?? 0);")
+  && norm(source).includes("const minWithdrawNoteText = computed(() => fmt(t.value.wallet.minWithdrawNote, { n: formatAmount(minWithdrawable.value) }));")
+  && /<text v-if="withdrawalPolicyCurrent"[^>]*>\{\{ minWithdrawNoteText \}\}/.test(source);
+check("🔴 最低提现额从当前有效政策配置插值并格式化,不写死", minimumPolicyDisplay(code));
+check("最低额配置来源/插值/有效政策门红测均能拒绝改坏的源码",
+  [
+    code.replace("withdrawalPolicy.value?.minAmount ?? 0", "20"),
+    code.replace("{ n: formatAmount(minWithdrawable.value) }", "{ n: formatAmount(20) }"),
+    code.replace('<text v-if="withdrawalPolicyCurrent" class="block">{{ minWithdrawNoteText }}', '<text class="block">{{ minWithdrawNoteText }}'),
+  ].every(changed => changed !== code && !minimumPolicyDisplay(changed)));
 // ── ②b z1 B2(2026-08-10):质押劝阻卡禁在空表单渲染 ──────
 // 漏网史:minWithdrawable 回退 0 时 `amountNum >= minWithdrawable` 对空表单(0)恒真,
 // 劝阻卡在用户一个字没输时就弹出(真回归,z1 修掉)。三门齐挂:已输入金额 /

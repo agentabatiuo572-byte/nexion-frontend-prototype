@@ -56,6 +56,7 @@ describe("earn history Proof-of-Compute interaction", () => {
 });
 
 import * as Vue from 'vue';
+import { formatAmount } from '@/lib/amount-display';
 import { compileScript, compileTemplate, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import { createPinia, setActivePinia } from 'pinia';
@@ -102,6 +103,7 @@ async function setup() {
   const modal={props:['receipt'],emits:['close'],setup:(p:any,c:any)=>()=>Vue.h('probe-modal',{receipt:p.receipt,onClose:()=>c.emit('close')})};
   const noChild={render:()=>null}; const navigation={navTo:vi.fn()};
   const imports=(id:string):any=>{
+    if(id==='@/lib/amount-display')return{formatAmount};
     if(id==='vue')return Vue;
     if(id==='@dcloudio/uni-app')return{onShow:(f:Function)=>shows.push(f),onHide:(f:Function)=>hides.push(f)};
     if(id==='@/store/app')return{useApp:()=>app};

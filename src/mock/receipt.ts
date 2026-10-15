@@ -5,6 +5,7 @@
 // Historical verification records can still be read, but no new ones are generated.
 
 import type { CompletedTask, Device, TaskCategory } from "../store/types";
+import { formatAmount } from "../lib/amount-display";
 import { getClientById, AI_CLIENTS } from "./ai-clients";
 
 // "KY" is retained only as an opaque historical category code.
@@ -37,7 +38,7 @@ export interface Receipt {
   energyKwh: number;
 
   // Pricing
-  unitPriceLabel: string;     // e.g. "$0.0030 / image" or "$1.00 / verification"
+  unitPriceLabel: string;     // e.g. "$0.01 / image" or "$1.00 / verification"
   unitsLabel: string;         // e.g. "8 images" or "1 wallet"
   gross: number;              // USDT
   fee: number;
@@ -187,14 +188,14 @@ function unitPricing(
     case "IG": {
       const unit = gross / Math.max(1, details.outputCount);
       return {
-        unitPriceLabel: `$${unit.toFixed(4)} / image`,
+        unitPriceLabel: `$${formatAmount(unit)} / image`,
         unitsLabel: `${details.outputCount} images`,
       };
     }
     case "VG": {
       const unit = gross / Math.max(1, details.durationSec);
       return {
-        unitPriceLabel: `$${unit.toFixed(3)} / sec`,
+        unitPriceLabel: `$${formatAmount(unit)} / sec`,
         unitsLabel: `${details.durationSec}s @ ${details.resolution}`,
       };
     }
@@ -202,33 +203,33 @@ function unitPricing(
       const tokens = details.inputTokens + details.outputTokens;
       const unitPer1k = (gross / Math.max(1, tokens)) * 1000;
       return {
-        unitPriceLabel: `$${unitPer1k.toFixed(4)} / 1k tok`,
+        unitPriceLabel: `$${formatAmount(unitPer1k)} / 1k tok`,
         unitsLabel: `${(tokens / 1000).toFixed(1)}k tokens`,
       };
     }
     case "FT": {
       return {
-        unitPriceLabel: `$${gross.toFixed(3)} / job`,
+        unitPriceLabel: `$${formatAmount(gross)} / job`,
         unitsLabel: `${details.trainingSteps} steps`,
       };
     }
     case "EM": {
       const unit = (gross / Math.max(1, details.chunksCount)) * 1000;
       return {
-        unitPriceLabel: `$${unit.toFixed(4)} / 1k chunks`,
+        unitPriceLabel: `$${formatAmount(unit)} / 1k chunks`,
         unitsLabel: `${details.chunksCount.toLocaleString()} chunks`,
       };
     }
     case "SP": {
       const unit = gross / Math.max(1, details.audioDurationSec);
       return {
-        unitPriceLabel: `$${unit.toFixed(4)} / audio sec`,
+        unitPriceLabel: `$${formatAmount(unit)} / audio sec`,
         unitsLabel: `${(details.audioDurationSec / 60).toFixed(1)} min`,
       };
     }
   }
   // Fallback (unreachable due to exhaustive switch above, but TS needs it)
-  return { unitPriceLabel: `$${gross.toFixed(3)}`, unitsLabel: "1 job" };
+  return { unitPriceLabel: `$${formatAmount(gross)}`, unitsLabel: "1 job" };
 }
 
 // Resolve client address from roster by name (used during receipt build).

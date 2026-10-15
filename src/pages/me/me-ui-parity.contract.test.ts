@@ -55,34 +55,36 @@ const EXPECTED_TEMPLATE_DIFFERENCES = [
 // production-only delta is reviewed; this is not a file-level exemption.
 // Reviewed 710e9ee visual refresh with formal server and accessibility boundaries.
 // Reviewed 710e9ee visual refresh with formal server and accessibility boundaries.
+// Approved amount displays now share decimal half-up rounding; authority and layout mutations remain pinned.
 const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "achievements.vue": "e7cfef2560a4a60747043f2a4d76b875a0faad0383b5cbcf1fb15deeab98e60f",
   "devices.vue": "227aa03a6c8ba621deb6d5e69fa1672cd80e918fc18cf37deeac446818adb125",
   // Keep #223 authority gates; hide the removed internal recommendation footnote.
-  "goals.vue": "2043fa722af0c8ae7aba51ed92455bcb255beb2be2ca2d8d81df4dbeb24b8f7f",
+  "goals.vue": "2ecbc0a56d928f5e7cdabe370fd01ff02ae81845839310ecf761475bc79e40c8",
   "help.vue": "3eeec6995d290e03d6a008b83f3a2ba8365f702b6c59d3acb306eab055437d7d",
   "language.vue": "147e4114cec9c44704a643c833d582e043565ee17240fe474622f656ae104da9",
   // Owner requested removal of the unsolicited overview withdrawal warning.
   // #528: only the version footer now binds the current resource fingerprint.
-  "me.vue": "0ed89bb44bef316a6bde93fec86d9eda1d05211ca190f677b169662cf6840032",
+  "me.vue": "9dca52a5c50c0d6c2af12cab111af911178b6b8ddac0fbdc0ef910c4bb1f815c",
   // Approved smooth centered message header and shared message-family interactions.
   "notifications.vue": "0c754690e400fe1b137de31e968d31a0f347c5020ed6d4a22322abb7fe327344",
   "preferences.vue": "f671d2462d5c346657790bfb9f75c92cfb0a63d1039c886ed8ad02cd6789e3cc",
   "profile.vue": "67bb87df27035ea1a2f8a374d3653b44d7c2623bc002ff054d412eb6fccc9e95",
   "proof.vue": "956e804b2c96dced42cc10cb0dd757e7abd5c4a6a3596c56bca63490e93f3616",
-  "receipts.vue": "ee45b67eef9b7054af4c16b095d1adc9c5c1c48e979469f37dbc41f0f03c613f",
+  "receipts.vue": "aaf76128cf09b5a8648eb547e453964efb1be7cf30063e17bb941366166ff891",
   // Approved promotion category reuses the existing reward hub and list.
   "rewards-list.vue": "450f0917d2ba2af0b8215ad9ea8e0f126357a6858ead54038f226700278a1da9",
   "rewards.vue": "720da0cce42564baaa4451ee4002b6e92f83be5e1ab0317963e22490927e59ef",
   "risk-disclosure.vue": "5f1d1f52b62559b79785d91fd28fd9e4de6597cf91b9174a87191740c95ba2bf",
   // Reviewed ME41: busy save/cancel remain visible and reject keyboard/pointer re-entry.
-  "security.vue": "19d724dcc21783439730c5709bd9651afc99ed50e995c5437dab0a8cbe83c247",
+  "security.vue": "97dd537c7c35262b3946475b4f897fd499de49437050c08e66c937f291b8a4ed",
   // Reviewed #439: BASIC retains the existing hint; enhanced policy owns retry timing and existing-ticket/retry actions.
   // Reviewed #470: cursor-spacing=72 on the detail reply textarea only.
   "support-tickets.vue": "4504cb6168c6e939402a4be14b5f39caeaaa8ab9deda42433c7b91eacf12fce8",
   "support.vue": "9a89c364bbc52d36f0218752b5bb69ffbba692fd113feaf285e7d0273180bad0",
   // Reviewed removal of the retired card-migration notice; trial amounts, deadlines and actions remain covered.
-  "trial.vue": "53967cefbe18331bee801de39a048cd5969dda1e216bb829bd54155230f3e838",
+  // Reviewed #535: active/grace catalog CTA/ARIA and ready-only unavailability hint.
+  "trial.vue": "aaced274aa73d3d8b5345ea1e76d9854eb987519cca0fc8bd185aa4ff3858e36",
   "wallet-address-rebind.vue": "6b58aa27f914476beaab55fe607c88db66a8fd690a0584fe034c17fe52a4b76a",
   // Reviewed #465: refund references wrap on their own read-only line; other bill rows retain their layout.
   // Promotion receipt deep links retain the existing refund row and bill layout.
@@ -90,17 +92,18 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "wallet-cards-new.vue": "6af630a5acf97669826202e3842042a8b28af8813f0657da0a6085336f7a3fc2",
   "wallet-cards.vue": "4ba7080a2d1b7c9ce4d56c4ea90b5fed3614c689aaeccaf3811d166f08391692",
   "wallet-exchange-how.vue": "53a85b180c00d4a33e73d101a628e8f786924b2e23c48f045147b9f15cb8b9b0",
-  "wallet-exchange.vue": "f6e7c49b78de3c05e25da2648b73673ec654ab69330d416dda6042ef63fe8eb6",
+  // Reviewed e0a491a authority labels with fixed two-decimal amount displays.
+  "wallet-exchange.vue": "c0254329c6ca1986c73fc1c1a8f31fe1e63b34a223343366069e60ddca6d585f",
   // Reviewed #413: native number/date formatting and finite display boundaries.
   "wallet-nex.vue": "e79b540f1eacd429f044fba4bfd7fb2d15732cac2fc7cda274406416d035ee86",
   "wallet-repurchase-how.vue": "238439b99d5b73f9cf7c6ad7b8479cb86f39ef92f93d216938b071c28372e4f0",
-  "wallet-repurchase.vue": "19b1c868b06086a2384a8f3bba7f013dc026f2c1bf97a5ff886f3fed3a40adca",
+  "wallet-repurchase.vue": "224a4968f2b1542ad6847be8a98da9109a07cceb58fc04e8cd913b6b3e4bd956",
   "wallet-topup.vue": "010252b7630c35defdf57a3f262d0e389c011d2b9d79ad2f5fb788e794d87768",
-  "wallet-withdraw-tracking.vue": "7e295fb4b5e5bc50dcbfbbe136c6ede7bcab07ae9bb6193b666bf397acb60e9a",
+  "wallet-withdraw-tracking.vue": "8df13af397e2fcb7b6de4164285dd222d6d8f851c8c153af03f300d2883de2f5",
   // Original pending requests expose retry even when the new-transfer form is incomplete.
-  "wallet-withdraw.vue": "4c97b7e95291e2f199352bc516fc7f5c6d68c2362fa6f4161d785e62bdab1ec1",
-  // Reviewed held-authority failure and retry UI against the fixed 710e9ee reference.
-  "wallet.vue": "02bbdb6e646a7d44131faea4d6f341f87b0528115500749c9174009fc1c01733"
+  "wallet-withdraw.vue": "7ca90c0482579ea2ae27a162e1c080089317fff24b5789c70078eab3875655c2",
+  // Reviewed e0a491a earnings reasons/retry with fixed two-decimal amount displays.
+  "wallet.vue": "eb813b7dfcb664f836091f06472188a2bd101f73c05aa6b607debf35051da849"
 };
 const EXPECTED_STYLE_PAIR_SHA256: Record<string, string> = {
   // Reviewed touch-target/countdown fix: a fixed localized seconds slot.
@@ -121,7 +124,7 @@ function block(text: string, tag: "style" | "template"): string {
   return normalized.match(/<template[^>]*>[\s\S]*?<\/template>/)?.[0] ?? "";
 }
 
-// New slot-bearing surfaces also pin the full compiler-parsed template; keep
+// Reviewed surfaces with nested templates also pin the full compiler-parsed template; keep
 // the historical pair fingerprints stable for unrelated approved pages.
 function fullTemplate(text: string): string {
   const template = parse(text.replace(/\r\n/g, '\n')).descriptor.template;
@@ -162,6 +165,11 @@ describe("Me page 5174 normal-state UI parity", () => {
   it('pins the complete notification page including content after category slots', () => {
     const notification = readFileSync(new URL('./notifications.vue', import.meta.url), 'utf8');
     expect(createHash('sha256').update(fullTemplate(notification)).digest('hex')).toBe('be9ba0b339c494422691051390b9f15ca3df444d5f8817f08009072b6f20c7b1');
+  });
+  // Merge review: preserve catalog ARIA/retry and the 44px rules-close target.
+  it('pins the complete trial page including ended catalog ARIA and independent retry', () => {
+    const trial = readFileSync(new URL('./trial.vue', import.meta.url), 'utf8');
+    expect(createHash('sha256').update(fullTemplate(trial)).digest('hex')).toBe('159b76ccb6e6d87418df0a69bd605aca22da88b42fbcd03edd0d3bfb332121e4');
   });
   it("includes every page-local style block in the visual fingerprint", () => {
     const shared = '<style src="@/styles/message-center.css"></style>';

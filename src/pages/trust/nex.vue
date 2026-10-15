@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navBack, navReplace, navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -186,7 +187,7 @@ const market = useMarket();
 onMounted(() => { if (!market.isMockMode) void market.syncRemote(); });
 
 // 礼包 NEX 数量单源派生自 platform config。
-const src4Body = computed(() => fmt(w.value.src4Body, { nex: cfg.config.rewards.welcomeGift.nexAmount }));
+const src4Body = computed(() => fmt(w.value.src4Body, { nex: formatAmount(cfg.config.rewards.welcomeGift.nexAmount) }));
 
 const tableRows = computed(() => [
   { k: w.value.rowType, usdt: w.value.usdtType, nex: w.value.nexType },

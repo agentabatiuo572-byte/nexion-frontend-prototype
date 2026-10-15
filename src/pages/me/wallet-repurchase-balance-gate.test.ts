@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { describe, expect, it, vi } from "vitest";
 import { compile } from "@vue/compiler-dom";
 import { parse } from "@vue/compiler-sfc";
@@ -7,6 +8,8 @@ import ts from "typescript";
 import source from "./wallet-repurchase.vue?raw";
 import { fmt } from "@/i18n/format";
 import { en } from "@/i18n/messages/en";
+import { zh } from "@/i18n/messages/zh";
+import { vi as vietnamese } from "@/i18n/messages/vi";
 import { formatCommandAmount, normalizeCommandAmount } from "@/lib/command-amount";
 import { resolveRepurchaseRuntimePolicy } from "@/lib/repurchase-runtime-policy";
 
@@ -21,11 +24,13 @@ const code = ts.transpileModule(body.replace(/^import .*$/gm, ""), {
   compilerOptions: { target: ts.ScriptTarget.ES2022 },
 }).outputText;
 
-function page(balance: number, amount: number, pendingOpenAmount: number | null = null) {
+function page(balance: number, amount: number, pendingOpenAmount: number | null = null, copy = en) {
   const uiConfirm = vi.fn().mockResolvedValue(true);
   const open = vi.fn().mockResolvedValue({});
   const navTo = vi.fn();
   const toasts: Array<[unknown, unknown]> = [];
+  const app = Vue.reactive({ user: { usdtBalance: balance }, accountKey: "acct", captureMoney: vi.fn(() => ({})) });
+  const success = vi.fn();
   const repurchase = {
     config: { enabled: true, minAmountUsdt: 100, apyPct: 35, lockDays: 90, presets: [100, 200], earlyPenaltyPct: 15 },
     orders: [], walletBalanceUsdt: balance, serverTime: 1, loading: false, submitting: false, error: "",
@@ -33,12 +38,12 @@ function page(balance: number, amount: number, pendingOpenAmount: number | null 
     refresh: vi.fn(), refreshHistory: vi.fn(), claim: vi.fn(), earlyWithdraw: vi.fn(), open,
   };
   const bindings: Record<string, unknown> = {
-    useT: () => Vue.ref(en), useApp: () => ({ user: { usdtBalance: balance }, accountKey: "acct", captureMoney: vi.fn(() => ({})) }),
+    useT: () => Vue.ref(copy), useApp: () => app,
     useStaking: () => ({ stake: vi.fn() }), useRepurchase: () => repurchase,
     resolveRepurchaseRuntimePolicy, apiRuntimeConfig: { environment: "prod" },
     computed: Vue.computed, ref: Vue.ref, watch: Vue.watch, onMounted: () => {}, onUnmounted: () => {},
     fmt, dateLocale: () => "en-US", geoPolicyUserMessage: () => null, uiConfirm,
-    toast: { success: vi.fn(), info: vi.fn(), warn: vi.fn(), error: (title: unknown, detail: unknown) => toasts.push([title, detail]) },
+    toast: { success, info: vi.fn(), warn: vi.fn(), error: (title: unknown, detail: unknown) => toasts.push([title, detail]) },
     postMoneyBill: vi.fn(() => "ok"), navTo, formatCommandAmount, normalizeCommandAmount,
   };
   // Symbols the fix introduces resolve leniently, so running this file against
@@ -57,18 +62,18 @@ function page(balance: number, amount: number, pendingOpenAmount: number | null 
     insufficientTitleStyle: typeof insufficientTitleStyle === "undefined" ? {} : insufficientTitleStyle,
     insufficientBodyStyle: typeof insufficientBodyStyle === "undefined" ? {} : insufficientBodyStyle,
     topupCtaStyle: typeof topupCtaStyle === "undefined" ? {} : topupCtaStyle };`;
-  const raw = new Function(...Object.keys(bindings), code + exported)(...Object.values(bindings)) as Record<string, unknown>;
+  const raw = new Function("formatAmount", ...Object.keys(bindings), code + exported)(formatAmount, ...Object.values(bindings)) as Record<string, unknown>;
   (raw.setAmount as (value: number) => void)(amount);
   return {
-    state: Vue.proxyRefs(raw) as Record<string, unknown>, repurchase, uiConfirm, open, navTo, toasts,
+    state: Vue.proxyRefs({ ...raw, formatAmount }) as Record<string, unknown>, repurchase, uiConfirm, open, navTo, toasts, app, success,
   };
 }
 
 const template = parse(source).descriptor.template!.content;
-const render = new Function("Vue", compile(template, {
+const render = new Function("formatAmount", "Vue", compile(template, {
   mode: "function", prefixIdentifiers: true,
   isCustomElement: (tag) => tag === "view" || tag === "text",
-}).code)(Vue);
+}).code)(formatAmount, Vue);
 
 const CTA = /<view class="nx-repurchase-submit-cta w-full flex items-center justify-center[^"]*"[^>]*>/;
 
@@ -126,6 +131,33 @@ describe("re-invest main CTA balance gate", () => {
     expect(view.state.canSubmit).toBe(true);
     await (view.state.handleRepurchase as () => Promise<void>)();
     expect(view.open).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([{ locale: "zh", copy: zh }, { locale: "en", copy: en }, { locale: "vi", copy: vietnamese }])(
+    "$locale keeps an unresolved money attempt and displays a product result without its diagnostic", async ({ copy }) => {
+      const view = page(0, 100, 100, copy);
+      view.open.mockRejectedValue(new Error("REPURCHASE_DATABASE_INTERNAL_SENTINEL"));
+      await (view.state.handleRepurchase as () => Promise<void>)();
+      expect(view.toasts).toEqual([[copy.repurchase.unavailableTitle, copy.repurchase.unavailableBody]]);
+      expect(view.repurchase.pendingOpenAmount).toBe(100);
+      expect(view.success).not.toHaveBeenCalled();
+      await (view.state.handleRepurchase as () => Promise<void>)();
+      expect(view.open.mock.calls).toEqual([[100], [100]]);
+      expect(view.repurchase.pendingOpenAmount).toBe(100);
+    },
+  );
+
+  it("keeps a late money failure out of the next account", async () => {
+    const view = page(0, 100, 100);
+    let reject!: (error: Error) => void;
+    view.open.mockImplementation(() => new Promise((_resolve, fail) => { reject = fail; }));
+    const sending = (view.state.handleRepurchase as () => Promise<void>)();
+    await Promise.resolve();
+    view.app.accountKey = "other-account";
+    reject(new Error("OLD_ACCOUNT_INTERNAL_SENTINEL"));
+    await sending;
+    expect(view.toasts).toEqual([]);
+    expect(view.success).not.toHaveBeenCalled();
   });
 
   it("routes the shortfall to the wallet top-up page", async () => {

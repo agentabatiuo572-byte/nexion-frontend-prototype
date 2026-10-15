@@ -73,6 +73,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
@@ -150,7 +151,7 @@ const weeklyState = computed<"loading" | "error" | "empty" | "ready">(() => {
 const promoMult = computed<number | null>(() => weeklyCard.value.multiplier);
 const finalRewardText = computed(() => {
   const reward = weeklyCard.value.rewardNex;
-  return reward === null ? "—" : reward.toLocaleString();
+  return reward === null ? "—" : formatAmount(reward);
 });
 // Scale long server rewards so the full number and task badges share one row.
 const rewardFontSize = computed(() => {
@@ -167,7 +168,7 @@ const remainingLabel = computed(() => {
 
 const targetDailyText = computed(() => {
   const value = weeklyCard.value.targetDaily;
-  return value == null ? "—" : value.toFixed(2);
+  return value == null ? "—" : formatAmount(value);
 });
 const subtitleText = computed(() => weeklyCard.value.subtitle || "—");
 const categoryText = computed(() => {

@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
-import { ref, computed, reactive, shallowRef, watch, nextTick } from "vue";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ref, computed, reactive, shallowRef, watch, nextTick, createRenderer, defineComponent, getCurrentInstance, h, KeepAlive, onActivated, onDeactivated, onUnmounted, type ComponentInternalInstance, type Ref } from "vue";
+import { createPinia, setActivePinia } from "pinia";
+import { useStickyCTA } from "@/store/sticky-cta-bar";
+import { promotionCheckoutHref } from "@/lib/promotion-entry";
+import { en } from "@/i18n/messages/en";
+import { vi as vietnamese } from "@/i18n/messages/vi";
 import ts from "typescript";
 import page from "./detail.vue?raw";
 
@@ -90,8 +95,8 @@ describe("store detail canonical read lifecycle", () => {
   });
 
   it("hides the purchase CTA while a forced catalog refresh is loading or failed", async () => {
-    const stickyStart = page.search(/watch\(\r?\n  \[stickyPageVisible, catalogStatus,/);
-    const stickyEnd = page.indexOf("onShow(() => {", stickyStart);
+    const stickyStart = page.indexOf("function publishStickyCTA()");
+    const stickyEnd = page.indexOf("function showDetailStickyCTA()", stickyStart);
     expect(stickyStart).toBeGreaterThan(0);
     const ctaCode = ts.transpileModule(page.slice(stickyStart, stickyEnd), {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
@@ -193,8 +198,6 @@ describe("store detail canonical read lifecycle", () => {
     expect(account.phase).not.toHaveBeenCalled();
     expect(account.trust).not.toHaveBeenCalled();
     expect(account.observe).not.toHaveBeenCalled();
-    expect(page).toMatch(/onHide\(\(\) => \{[\s\S]*?invalidateDetailFacts\(\)/);
-    expect(page).toMatch(/onUnmounted\(\(\) => \{[\s\S]*?invalidateDetailFacts\(\)/);
   });
 
   it("calls the observer only after both public projections settle", async () => {
@@ -294,5 +297,174 @@ describe("store detail canonical read lifecycle", () => {
     expect(s.trust).toHaveBeenCalledTimes(1);
     expect(trustStatus).toBe("ready");
     expect(s.value.catalogRetrying.value).toBe(false);
+  });
+});
+
+type Host = { parent: Host | null; children: Host[] };
+const host = (): Host => ({ parent: null, children: [] });
+const renderer = createRenderer<Host, Host>({
+  createElement: host, createText: host, createComment: host,
+  setText: () => {}, setElementText: () => {}, patchProp: () => {},
+  parentNode: node => node.parent,
+  nextSibling: node => node.parent?.children[node.parent.children.indexOf(node) + 1] ?? null,
+  insert: (node, parent, anchor) => {
+    if (node.parent) node.parent.children = node.parent.children.filter(child => child !== node);
+    node.parent = parent;
+    const index = anchor ? parent.children.indexOf(anchor) : -1;
+    if (index < 0) parent.children.push(node); else parent.children.splice(index, 0, node);
+  },
+  remove: node => {
+    if (node.parent) node.parent.children = node.parent.children.filter(child => child !== node);
+    node.parent = null;
+  },
+});
+const closes: Array<() => void> = [];
+afterEach(() => { closes.splice(0).forEach(close => close()); });
+
+const stickyStart = page.indexOf("const sticky = useStickyCTA();");
+const stickyEnd = page.indexOf("// ─── styles", stickyStart);
+if (stickyStart < 0 || stickyEnd < stickyStart) throw new Error("store detail sticky lifecycle source is required");
+const runSticky = new Function("dependencies", ts.transpileModule(`
+  const { ref, watch, useStickyCTA, catalogStatus, product, isShare, isLocked,
+    purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, paybackLabel,
+    purchaseGate, eligibility, purchaseEligibilityMessage, remoteApiEnabled, t,
+    purchaseEligibilityUnlockHref, activityId, promotionStatus, promotionAvailable,
+    activity, qty, promotionCheckoutHref, onShow, onHide, onUnload, onActivated,
+    onDeactivated, onUnmounted, invalidateDetailFacts } = dependencies;
+  let detailPageVisible = true;
+  let detailObservationEpoch = 0;
+  ${page.slice(stickyStart, stickyEnd)}
+  return { stickyPageVisible, stickyOwner, visible: () => detailPageVisible,
+    observationEpoch: () => detailObservationEpoch };
+`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText);
+
+type PageHook = "onShow" | "onHide" | "onUnload";
+type StickyPage = {
+  instance: ComponentInternalInstance;
+  hooks: Record<PageHook, Array<() => void>>;
+  invalidate: ReturnType<typeof vi.fn>;
+  qty: Ref<number>;
+  activityId: Ref<string>;
+  controls: { stickyPageVisible: Ref<boolean>; stickyOwner: symbol; visible(): boolean; observationEpoch(): number };
+};
+
+async function stickyNavigation() {
+  setActivePinia(createPinia());
+  const sticky = useStickyCTA();
+  const translations = ref(en);
+  const catalogStatus = ref("ready");
+  const catalog = ref({ id: "stellarbox-pro", price: 1199, dailyEarn: 13 });
+  const instances = new Map<string, StickyPage>();
+  const pages = new Map(["detail", "again"].map(key => [key, defineComponent({
+    name: `StickyDetail_${key}`,
+    setup() {
+      const hooks: StickyPage["hooks"] = { onShow: [], onHide: [], onUnload: [] };
+      const qty = ref(1), activityId = ref(key === "detail" ? "DEVICEgift" : "USDTgift");
+      const invalidate = vi.fn();
+      // Adapt Uni notification registration only; execute the page's real watcher and Vue hooks.
+      const controls = runSticky({
+        ref, watch, useStickyCTA, catalogStatus, product: catalog,
+        isShare: ref(false), isLocked: ref(false), purchaseUnavailable: ref(false), stockUnavailable: ref(false),
+        priceText: computed(() => catalog.value.price.toLocaleString()),
+        dailyEarnText: computed(() => catalog.value.dailyEarn.toFixed(2)),
+        paybackLabel: computed(() => translations.value.store.detPaybackUnavailable),
+        purchaseGate: ref({ blocked: false }), eligibility: ref({ status: "ready", eligible: true }),
+        purchaseEligibilityMessage: ref(""), remoteApiEnabled: true, t: translations,
+        purchaseEligibilityUnlockHref: vi.fn(), activityId, promotionStatus: ref("ready"), promotionAvailable: ref(true),
+        activity: ref({ productNos: [catalog.value.id], eligibility: "ESTIMATE_ELIGIBLE" }), qty, promotionCheckoutHref,
+        onShow: (callback: () => void) => hooks.onShow.push(callback),
+        onHide: (callback: () => void) => hooks.onHide.push(callback),
+        onUnload: (callback: () => void) => hooks.onUnload.push(callback),
+        onActivated, onDeactivated, onUnmounted, invalidateDetailFacts: invalidate,
+      }) as StickyPage["controls"];
+      instances.set(key, { instance: getCurrentInstance()!, hooks, invalidate, qty, activityId, controls });
+      return () => h("detail");
+    },
+  })]));
+  pages.set("store", defineComponent({ name: "StickyStore", setup: () => () => h("store") }));
+  const current = ref("detail"), cached = ref(["StickyDetail_detail", "StickyDetail_again", "StickyStore"]);
+  const app = renderer.createApp({ setup: () => () => h(KeepAlive, { include: cached.value },
+    [h(pages.get(current.value)!, { key: current.value })]) });
+  app.mount(host()); closes.push(() => app.unmount());
+  await nextTick();
+  return {
+    sticky, instances, catalog, catalogStatus, translations, cached,
+    go: async (key: string) => { current.value = key; await nextTick(); },
+    uni: (key: string, hook: PageHook) => instances.get(key)!.hooks[hook].forEach(callback => callback()),
+  };
+}
+
+describe("store detail sticky lifecycle with real KeepAlive", () => {
+  it("fences catalog, quantity and locale updates after cached deactivation without Uni hide", async () => {
+    const p = await stickyNavigation();
+    const detail = p.instances.get("detail")!;
+    expect(p.sticky.cta).not.toBeNull();
+    await p.go("store");
+    expect(p.sticky.cta).toBeNull();
+    expect(detail.controls.visible()).toBe(false);
+    expect(detail.controls.observationEpoch()).toBeGreaterThan(0);
+    expect(detail.invalidate).toHaveBeenCalled();
+    p.catalog.value = { ...p.catalog.value, price: 1299 };
+    await nextTick(); expect(p.sticky.cta).toBeNull();
+    detail.qty.value = 3;
+    await nextTick(); expect(p.sticky.cta).toBeNull();
+    p.translations.value = vietnamese;
+    await nextTick(); expect(p.sticky.cta).toBeNull();
+  });
+
+  it("restores the cached owner's current activity, quantity and locale without Uni show", async () => {
+    const p = await stickyNavigation();
+    const detail = p.instances.get("detail")!;
+    p.uni("detail", "onHide"); await p.go("store");
+    detail.activityId.value = "USDT current"; detail.qty.value = 4;
+    p.translations.value = vietnamese;
+    await nextTick(); expect(p.sticky.cta).toBeNull();
+    await p.go("detail");
+    expect(p.instances.get("detail")).toBe(detail);
+    const query = new URL(p.sticky.cta!.href, "https://nexgrid.invalid").searchParams;
+    expect(query.get("activityId")).toBe("USDT current");
+    expect(JSON.parse(query.get("items")!)).toEqual([{ productNo: "stellarbox-pro", quantity: 4 }]);
+    expect(p.sticky.cta!.buttonLabel).toBe(vietnamese.store.cardBuyNow);
+  });
+
+  it("keeps a replacement instance's CTA through the old owner's late hide and unmount", async () => {
+    const p = await stickyNavigation();
+    const old = p.instances.get("detail")!;
+    await p.go("again");
+    expect(p.instances.get("again")!.instance).not.toBe(old.instance);
+    const replacement = p.sticky.cta!.href;
+    p.uni("detail", "onHide"); await nextTick();
+    expect(p.sticky.cta!.href).toBe(replacement);
+    const invalidationsBeforeUnmount = old.invalidate.mock.calls.length;
+    p.cached.value = ["StickyDetail_again", "StickyStore"];
+    await nextTick(); expect(old.instance.isUnmounted).toBe(true);
+    expect(old.invalidate.mock.calls.length).toBeGreaterThan(invalidationsBeforeUnmount);
+    expect(p.sticky.cta!.href).toBe(replacement);
+    old.qty.value = 8; await nextTick();
+    expect(p.sticky.cta!.href).toBe(replacement);
+  });
+
+  it.each(["onHide", "onUnload"] as const)("clears synchronously on %s while allowing a normal cached return", async hook => {
+    const p = await stickyNavigation();
+    const detail = p.instances.get("detail")!;
+    p.uni("detail", hook);
+    expect(p.sticky.cta).toBeNull();
+    expect(detail.controls.visible()).toBe(false);
+    expect(detail.invalidate).toHaveBeenCalled();
+    detail.qty.value = 2; await nextTick(); expect(p.sticky.cta).toBeNull();
+    await p.go("store"); await p.go("detail");
+    expect(p.instances.get("detail")).toBe(detail);
+    expect(JSON.parse(new URL(p.sticky.cta!.href, "https://nexgrid.invalid").searchParams.get("items")!))
+      .toEqual([{ productNo: "stellarbox-pro", quantity: 2 }]);
+  });
+
+  it("reasserts the current payload on show even when its visibility was already true", async () => {
+    const p = await stickyNavigation();
+    const detail = p.instances.get("detail")!;
+    p.sticky.hide(detail.controls.stickyOwner);
+    expect(detail.controls.stickyPageVisible.value).toBe(true);
+    p.uni("detail", "onShow");
+    expect(p.sticky.cta).not.toBeNull();
+    expect(p.sticky.cta!.href).toContain("activityId=DEVICEgift");
   });
 });

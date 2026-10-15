@@ -1,4 +1,5 @@
 import source from "./marketplace.vue?raw";
+import { formatAmount } from "@/lib/amount-display";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
@@ -18,7 +19,7 @@ function page() {
     ref, genesis, secondaryBlock: ref(null), gatesSecondary: ref(true), eligible: ref(true),
     gate: ref({ capRemaining: 4 }), eligSheetOpen: ref(false), secondaryBlockText: ref("closed"),
     secondaryBlockSub: ref("closed"), remoteApiEnabled: true, ownedCount: ref(2),
-    t: ref(en), toast, fmt, ApiError, geoPolicyUserMessage: () => null,
+    t: ref(en), toast, fmt, formatAmount, ApiError, geoPolicyUserMessage: () => null,
     captureAccountScope: () => accountEpoch, isCurrentAccountScope: (epoch: number) => epoch === accountEpoch,
   };
   const js = ts.transpileModule(`let marketplacePageVisible=true; let marketplaceObservationEpoch=0;\n${body}`, {
@@ -48,7 +49,7 @@ describe("Genesis secondary purchase price and lifecycle", () => {
     expect(p.genesis.acquireSecondary).toHaveBeenCalledExactlyOnceWith("GEN-ONE", 10.123456);
     finish(true); await Promise.all([first, duplicate]);
     expect(useUI().toasts[0].description).not.toContain("999");
-    expect(useUI().toasts[0].description).toContain("10.123456");
+    expect(useUI().toasts[0].description).toBe(fmt(en.marketplace.acquiredDesc, { paid: "10.12", held: 2 }));
   });
   it.each(["page", "account"])("does not display a response after the %s scope changes", async (scope) => {
     const p = page(); let finish!: (ok: boolean) => void;

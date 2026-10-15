@@ -15,8 +15,8 @@
     <!-- Shadow earnings -->
     <view class="flex items-baseline" style="gap: 6px; margin-top: 12px">
       <text :style="dollarStyle">$</text>
-      <text :style="shadowUsdStyle">{{ shadowUSD.toFixed(2) }}</text>
-      <text :style="shadowNexStyle">+ {{ shadowNEX.toLocaleString() }} NEX</text>
+      <text :style="shadowUsdStyle">{{ formatAmount(shadowUSD) }}</text>
+      <text :style="shadowNexStyle">+ {{ formatAmount(shadowNEX) }} NEX</text>
     </view>
     <text class="block" :style="ctaLineStyle">{{ cta }}</text>
 
@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, type CSSProperties } from "vue";
 import Cell from "@/components/me/trial-time-cell.vue";
 import { useT } from "@/i18n/use-t";

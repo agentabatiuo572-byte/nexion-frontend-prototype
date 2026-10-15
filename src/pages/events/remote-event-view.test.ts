@@ -130,7 +130,7 @@ describe("remoteEventView", () => {
       rewardName: "USDT rebate",
     }), labels);
 
-    expect(view.reward).toBe("12.5 USDT rebate");
+    expect(view.reward).toBe("12.50 USDT rebate");
     expect(view.rewardNEX).toBe(0);
   });
 

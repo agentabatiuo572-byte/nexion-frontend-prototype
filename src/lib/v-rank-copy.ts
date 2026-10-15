@@ -1,3 +1,4 @@
+import { formatAmount } from "./amount-display";
 // V 级晋升缺口的本地化文案。
 //
 // 为什么要这一层(2026-08-17,英文文案哨兵配套):`nextRankProgress` 原来直接返回**英文句子**
@@ -51,7 +52,7 @@ export function rankLabel(v: number, locale: LocaleCode, ladder: readonly VRankD
 export function rankGapText(t: Messages, gap: RankGap, locale: LocaleCode, ladder: readonly VRankDef[]): string {
   switch (gap.kind) {
     case "selfBuy":
-      return fmt(t.rank.needSelfBuy, { n: formatHowNumber(gap.amount, locale) });
+      return fmt(t.rank.needSelfBuy, { n: formatAmount(gap.amount) });
     case "directRefs":
       // 🔴 英文单复数:改成读词典时我漏了旧码的 `invite${n === 1 ? "" : "s"}`,n=1 渲染成
       //    「1 more direct invites」(独立验收抓到,我先前「en 逐字未变」那句话对 n=1 是错的)。
@@ -62,7 +63,7 @@ export function rankGapText(t: Messages, gap: RankGap, locale: LocaleCode, ladde
       if (gap.n === 1) return fmt(t.rank.needRefsOne, { n: formatHowNumber(gap.n, locale) });
       return fmt(t.rank.needRefs, { n: formatHowNumber(gap.n, locale) });
     case "teamVolume":
-      return fmt(t.rank.needTeam, { n: formatHowNumber(gap.amount, locale) });
+      return fmt(t.rank.needTeam, { n: formatAmount(gap.amount) });
     case "vDownlines":
       return fmt(t.rank.needV, { n: formatHowNumber(gap.n, locale), title: rankTitle(gap.vLevel, locale, ladder), v: gap.vLevel });
   }
@@ -76,9 +77,9 @@ export function rankConditionsText(t: Messages, conds: {
   vDownlines?: Record<string, number>;
 }, locale: LocaleCode = "en"): string {
   const parts: string[] = [];
-  if (conds.selfBuyUSD) parts.push(fmt(t.rank.cond.selfBuy, { n: formatHowNumber(conds.selfBuyUSD, locale) }));
+  if (conds.selfBuyUSD) parts.push(fmt(t.rank.cond.selfBuy, { n: formatAmount(conds.selfBuyUSD) }));
   if (conds.directRefs) parts.push(fmt(t.rank.cond.directRefs, { n: formatHowNumber(conds.directRefs, locale) }));
-  if (conds.teamVolumeUSD) parts.push(fmt(t.rank.cond.teamVol, { n: formatHowNumber(conds.teamVolumeUSD, locale) }));
+  if (conds.teamVolumeUSD) parts.push(fmt(t.rank.cond.teamVol, { n: formatAmount(conds.teamVolumeUSD) }));
   if (conds.vDownlines) {
     for (const [v, n] of Object.entries(conds.vDownlines)) parts.push(fmt(t.rank.cond.vDownlines, { n: formatHowNumber(n, locale), v }));
   }

@@ -43,6 +43,14 @@ if (!Array.isArray(ignored)) {
 }
 
 const selfDir = path.dirname(configPath);
+for (const mode of ["development", "production"]) {
+  const config = mode === "development" ? loaded
+    : await loadConfigFromFile({ command: "serve", mode }, configPath);
+  const wantedCache = path.join(selfDir, ".cache", "vite", mode);
+  if (!config?.config.cacheDir || cmp(path.resolve(config.config.cacheDir)) !== cmp(wantedCache)) {
+    fail(`Vite cache must be isolated by worktree and mode: ${wantedCache}`);
+  }
+}
 const wanted = `${norm(selfDir)}/.claude/**`;
 const claudeEntries = ignored.filter(
   (entry) => typeof entry === "string" && entry.includes(".claude"),

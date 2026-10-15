@@ -1,3 +1,5 @@
+import { formatHowNumber } from "@/lib/rank-how-content";
+import { formatAmount } from "@/lib/amount-display";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -87,6 +89,8 @@ function mount(options: { params?: Record<string, unknown>; hash?: string; boots
     setStorageSync: (key: string, value: unknown) => storage.set(key, value), removeStorageSync: (key: string) => storage.delete(key) });
   const presentation = { setup: (_props: unknown, { slots }: { slots: Vue.Slots }) => () => Vue.h("view", slots.default?.()) };
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
+    "@/lib/rank-how-content": { formatHowNumber },
     vue: Vue, "@dcloudio/uni-app": Object.fromEntries(["onLoad", "onShow", "onHide", "onUnload"].map(name => [name, (fn: typeof invalidateRuntime) => { hooks[name] = fn; }])),
     "@/components/app-chassis.vue": { default: presentation }, "@/components/sub-page-header.vue": { default: { render: () => null } },
     "@/i18n/use-t": { useT: () => Vue.ref(en) }, "@/i18n/format": { dateLocale: () => "en-US" },
@@ -130,7 +134,7 @@ describe("bank order tracking reload", () => {
     const s = mount(options); s.show(); s.show(); await settle();
     expect(s.request.mock.calls.map(([input]) => input.path)).toEqual([`/api/withdrawals/bank/orders/${orderNo}`]);
     expect(textOf(s.find("bank-order-status")!)).toBe(en.bankWithdrawal.paid);
-    expect(s.text()).toContain("512,200"); expect(s.text()).toContain("21 USDT");
+    expect(s.text()).toContain("512200.00"); expect(s.text()).toContain("21.00 USDT");
     expect(s.find("bank-quote")).toBeUndefined();
   });
 
@@ -152,7 +156,7 @@ describe("bank order tracking reload", () => {
     s.app.accountKey = "user:8"; s.app.accountBindingEpoch++; s.runtime();
     try {
       await settle();
-      expect(s.find("bank-order-status")).toBeUndefined(); expect(s.text()).not.toContain("512,200");
+      expect(s.find("bank-order-status")).toBeUndefined(); expect(s.text()).not.toContain("512200.00");
       expect(reads).toEqual([{ owner: "user:8", epoch: 1, runtime: 1 }]);
       s.show(); expect(reads).toHaveLength(1);
       releases[0](paid); await settle();
@@ -164,7 +168,7 @@ describe("bank order tracking reload", () => {
   it.each([403, 404])("clears the old owner object and keeps a new owner's %s retryable", async status => {
     const s = mount({ params: { order: orderNo }, denyNewOwner: status }); s.show(); await settle();
     s.app.accountKey = "user:8"; s.app.accountBindingEpoch++; await settle();
-    expect(s.find("bank-order-status")).toBeUndefined(); expect(s.text()).not.toContain("512,200");
+    expect(s.find("bank-order-status")).toBeUndefined(); expect(s.text()).not.toContain("512200.00");
     expect(s.text()).toContain(en.bankWithdrawal.error);
     expect(s.request.mock.calls.map(([input]) => input.path)).toEqual(Array(2).fill(`/api/withdrawals/bank/orders/${orderNo}`));
     expect(s.find("bank-continue")).toBeUndefined();
@@ -177,7 +181,7 @@ describe("bank order tracking reload", () => {
     s.app.accountKey = "user:8"; s.app.accountBindingEpoch++; await settle();
     if (rejected) s.rejectFirst(new Error("OLD_ACCOUNT_FAILED")); else s.release(paid);
     await settle();
-    expect(s.find("bank-order-status")).toBeUndefined(); expect(s.text()).not.toContain("512,200");
+    expect(s.find("bank-order-status")).toBeUndefined(); expect(s.text()).not.toContain("512200.00");
     expect(s.text()).toContain(en.bankWithdrawal.error); expect(s.find("bank-continue")).toBeUndefined();
     expect(s.request.mock.calls.map(([input]) => input.path)).toEqual(Array(2).fill(`/api/withdrawals/bank/orders/${orderNo}`));
   });
@@ -186,7 +190,7 @@ describe("bank order tracking reload", () => {
     const s = mount({ params: { order: orderNo }, deferred: true }); s.show();
     s.runtime(); await settle(); expect(s.find("bank-order-status")).toBeDefined();
     s.release({ ...paid, bank: { ...bank, amountVnd: 999999 } }); await settle();
-    expect(s.text()).toContain("512,200"); expect(s.text()).not.toContain("999,999");
+    expect(s.text()).toContain("512200.00"); expect(s.text()).not.toContain("999999.00");
     expect(s.request.mock.calls.map(([input]) => input.path)).toEqual(Array(2).fill(`/api/withdrawals/bank/orders/${orderNo}`));
   });
 

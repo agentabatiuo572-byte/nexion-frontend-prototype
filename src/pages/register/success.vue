@@ -30,8 +30,8 @@
           <view v-if="giftState !== 'none'" class="rs-gift">
             <text class="rs-gift__cap">{{ t.share.posterGiftCap }}</text>
             <view class="rs-gift__amt">
-              <text class="rs-gift__usd">${{ giftUsdt }}</text>
-              <text class="rs-gift__nex">+ {{ giftNex }} NEX</text>
+              <text class="rs-gift__usd">${{ formatAmount(giftUsdt) }}</text>
+              <text class="rs-gift__nex">+ {{ formatAmount(giftNex) }} NEX</text>
             </view>
             <view v-if="giftState === 'posted'" class="rs-chip rs-chip--ok">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>
@@ -126,6 +126,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navBack, navReset } from "@/lib/route";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBackPress, onHide, onLoad } from "@dcloudio/uni-app";

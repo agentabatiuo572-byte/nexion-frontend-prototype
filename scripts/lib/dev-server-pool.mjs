@@ -9,6 +9,10 @@ import { createServer } from "node:net";
 import fs from "node:fs";
 import path from "node:path";
 
+// Only groups created here belong to this pool; callers may also pass an
+// ordinary child to stopTree, whose surrounding process group must stay alive.
+const ownedProcessGroups = new WeakSet();
+
 export function freePort() {
   return new Promise((resolve, reject) => {
     const srv = createServer();
@@ -19,7 +23,13 @@ export function freePort() {
 }
 
 export function stopTree(child) {
-  if (!child || !child.pid || child.exitCode !== null) return;
+  if (!child || !child.pid) return;
+  if (ownedProcessGroups.has(child)) {
+    try { process.kill(-child.pid, "SIGTERM"); }
+    catch (error) { if (error.code !== "ESRCH") throw error; }
+    return;
+  }
+  if (child.exitCode !== null) return;
   if (process.platform === "win32") spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
   else child.kill("SIGTERM");
 }
@@ -85,14 +95,22 @@ export async function ensureServer({ root, environment = "development", reuseUrl
     npmCli ? process.execPath : (process.platform === "win32" ? "npm.cmd" : "npm"),
     [...(npmCli ? [npmCli] : []), "run", "dev:h5", "--", "--mode", environment,
       "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
-    { cwd: root, env: { ...process.env }, shell: false, stdio: ["ignore", "pipe", "pipe"] },
+    { cwd: root, env: { ...process.env }, shell: false, detached: process.platform !== "win32", stdio: ["ignore", "pipe", "pipe"] },
   );
-  let out = "";
-  child.stdout.on("data", (c) => { out = (out + c).slice(-12_000); });
-  child.stderr.on("data", (c) => { out = (out + c).slice(-12_000); });
-  await waitForServer(`${baseUrl}/?nx_device=off`, child, () => out, timeoutMs);
+  if (process.platform !== "win32") ownedProcessGroups.add(child);
+  // Pipe events can arrive in different orders. Keep each stream's tail so a
+  // burst on stderr cannot erase the final stdout diagnostics (or vice versa).
+  let stdoutTail = "", stderrTail = "";
+  const outputTail = () => `${stdoutTail}\n${stderrTail}`;
+  let stopping = false;
+  child.stdout.on("data", (c) => { stdoutTail = (stdoutTail + c).slice(-6_000); });
+  child.stderr.on("data", (c) => { stderrTail = (stderrTail + c).slice(-6_000); });
+  child.once("close", (code, signal) => {
+    if (!stopping) log(`owned ${environment} server exited ${baseUrl} pid=${child.pid} code=${code} signal=${signal || "none"}\n${outputTail()}`);
+  });
+  await waitForServer(`${baseUrl}/?nx_device=off`, child, outputTail, timeoutMs);
   const id = await identify(baseUrl, { root, environment });
   if (!id.ok) { stopTree(child); throw new Error(`自起的 server 身份核对失败:${id.why}`); }
-  log(`起 ${environment} server ${baseUrl}(本树隔离)`);
-  return { baseUrl, reused: false, child, stop() { stopTree(child); } };
+  log(`起 ${environment} server ${baseUrl}(本树隔离) pid=${child.pid}`);
+  return { baseUrl, reused: false, child, stop() { stopping = true; log(`stop owned ${environment} server ${baseUrl} pid=${child.pid}`); stopTree(child); } };
 }

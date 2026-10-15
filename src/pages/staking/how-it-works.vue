@@ -95,6 +95,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onMounted, ref, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
@@ -156,8 +157,8 @@ const tableRows = computed(() =>
     return {
       term: termDays,
       apyPct: `${formatStakingPercentage(apy)}%`,
-      minText: `${pool.minAmountUsdt.toFixed(2).replace(/\.00$/, "")}`,
-      ret: `${(STAKING_RULE_EXAMPLE_PRINCIPAL * apy * (termDays / 365)).toFixed(2)}`,
+      minText: formatAmount(pool.minAmountUsdt),
+      ret: formatAmount(STAKING_RULE_EXAMPLE_PRINCIPAL * apy * (termDays / 365)),
     };
   }),
 );

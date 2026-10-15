@@ -1,4 +1,5 @@
 import { computed, ref } from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import { earnConfigApi, remoteApiEnabled } from "@/api/runtime";
 import type { EarnPhoneTiers, EarnTaskPricing, EarnTaskRoute, TaskClass } from "@/api/earn-config-api";
 import { applyCanonicalPhoneTierYields } from "@/mock/phone-tiers";
@@ -100,7 +101,7 @@ function lockedTeasers(maxVram: number, count = 3): LockedTeaser[] {
       type: TASK_CATEGORY_LABEL[row.taskClass],
       model: row.models[0] || row.taskName,
       minVRAM: row.minVRAM,
-      rewardHint: `$${row.minReward.toFixed(3)}-$${row.maxReward.toFixed(2)}`,
+      rewardHint: `$${formatAmount(row.minReward)}-$${formatAmount(row.maxReward)}`,
       unlockTier: `${row.minVRAM}GB VRAM`,
     }));
 }

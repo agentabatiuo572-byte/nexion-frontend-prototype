@@ -169,6 +169,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
@@ -323,12 +324,12 @@ const payoutToText = computed(() => fmt(t.value.leaderboard.pool.payoutTo, { n: 
 const gapText = computed(() => me.value.rank === null
   ? t.value.leaderboard.myRank.notRanked
   : me.value.rank === 1 ? t.value.leaderboard.myRank.first
-    : fmt(t.value.leaderboard.myRank.gap, { amount: me.value.gapToNext.toLocaleString() }));
+    : fmt(t.value.leaderboard.myRank.gap, { amount: formatAmount(me.value.gapToNext) }));
 
 function fmtCompactUSD(n: number): string {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-  return `$${n.toFixed(0)}`;
+  if (n >= 1_000_000) return `$${formatAmount(n / 1_000_000)}M`;
+  if (n >= 1_000) return `$${formatAmount(n / 1_000)}K`;
+  return `$${formatAmount(n)}`;
 }
 
 function go(url: string) {

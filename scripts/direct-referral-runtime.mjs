@@ -182,7 +182,7 @@ try {
       assert.equal(await page.locator(".nx-direct-event").count(), 20);
       for (const row of await page.locator(".nx-direct-event").allTextContents()) assert(row.includes("USDT") && row.includes("NEX"));
       const rejected = page.locator(".nx-direct-event").filter({ hasText: "ORDER-5" });
-      assert.match(await rejected.innerText(), /0 USDT[\s\S]*0 NEX/);
+      assert.match(await rejected.innerText(), /(?<![\d.,])0\.00 USDT[\s\S]*?(?<![\d.,])0\.00 NEX/);
       await contains(page, copy.directReferral.recoveryPending);
       await capture(page, `direct-${locale}-${theme}-${width}`);
       await page.getByRole("tab", { name: copy.directReferral.deviceEarning, exact: true }).click(); await contains(page, copy.directReferral.platformPays);

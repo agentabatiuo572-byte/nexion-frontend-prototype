@@ -1,3 +1,5 @@
+import { formatAmount } from "./amount-display";
+
 export type GenesisFloorDeltaState = "unavailable" | "up" | "down" | "flat";
 
 export interface GenesisFloorDeltaPresentation {
@@ -33,7 +35,7 @@ export function presentGenesisRoyalty(royaltyPct: number | null): string | null 
  * neutral marker, so template currency units can never turn it into "$—K". */
 export function presentGenesisFloorPrice(floorUsdt: number | null): string {
   if (floorUsdt === null || !Number.isFinite(floorUsdt) || floorUsdt < 0) return "—";
-  return `$${floorUsdt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
+  return `$${formatAmount(floorUsdt)}`;
 }
 
 /** Keep server transaction facts while replacing transport enums with public copy. */

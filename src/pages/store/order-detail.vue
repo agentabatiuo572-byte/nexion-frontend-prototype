@@ -87,21 +87,21 @@
             <view v-for="item in order.lineItems" :key="item.sku" class="flex items-center justify-between" style="padding: 4px 0; gap: 12px">
               <view class="flex-1 min-w-0">
                 <text class="block truncate" style="font-size: 12px; color: var(--v5-ink)">{{ nexGridBrandText(item.name) }}</text>
-                <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × ${{ item.unitPriceUsdt.toLocaleString() }}</text>
+                <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × ${{ formatAmount(item.unitPriceUsdt) }}</text>
               </view>
-              <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">${{ item.lineAmountUsdt.toLocaleString() }}</text>
+              <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">${{ formatAmount(item.lineAmountUsdt) }}</text>
             </view>
           </view>
-          <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="`$${order.unitPrice.toLocaleString()}`" />
-          <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`-$${order.discount.toLocaleString()}`" brand />
+          <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="`$${formatAmount(order.unitPrice)}`" />
+          <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`-$${formatAmount(order.discount)}`" brand />
           <!-- FEAT-TRIAL02 conversion order: promo + trial credit as their own
                rows (never folded into the voucher line). -->
-          <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`-$${(order.promoDiscountUSD ?? 0).toLocaleString()}`" brand />
-          <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`-$${(order.trialOffsetUSD ?? 0).toLocaleString()}`" brand />
-          <DetailRow :label="t.orders.subtotal" :value="`$${order.subtotal.toLocaleString()}`" />
-          <DetailRow :label="t.orders.total" :value="`$${order.total.toLocaleString()}`" big />
+          <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`-$${formatAmount((order.promoDiscountUSD ?? 0))}`" brand />
+          <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`-$${formatAmount((order.trialOffsetUSD ?? 0))}`" brand />
+          <DetailRow :label="t.orders.subtotal" :value="`$${formatAmount(order.subtotal)}`" />
+          <DetailRow :label="t.orders.total" :value="`$${formatAmount(order.total)}`" big />
           <template v-if="order.status === 'refunded'">
-            <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="`$${order.refundAmountUsdt.toLocaleString()}`" brand />
+            <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="`$${formatAmount(order.refundAmountUsdt)}`" brand />
             <DetailRow v-if="order.refundChannel" :label="t.orders.refundChannel" :value="refundChannelLabel" />
             <DetailRow v-if="order.refundBillNo" :label="t.orders.refundBillNo" :value="order.refundBillNo" mono />
             <view v-if="!order.refundedAt && order.refundAmountUsdt == null && !order.refundBillNo" role="status" style="padding: 8px 0; color: var(--v5-ink-3); font-size: 12px">
@@ -186,6 +186,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import OrderRewards from '@/components/promotion/order-rewards.vue';
 import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
@@ -200,7 +201,7 @@ import { useAuth } from "@/store/auth";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { confirm as uiConfirm, toast } from "@/store/ui";
 import { useSetPageHeader } from "@/composables/use-page-header";
-import { navTo } from "@/lib/route";
+import { navTo, takeNavigationQuery } from "@/lib/route";
 import { orderApi, remoteApiEnabled } from "@/api/runtime";
 import { asApiError } from "@/api/errors";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
@@ -212,6 +213,8 @@ const app = useApp();
 const auth = useAuth();
 
 const id = ref("");
+const orderOrigin = ref("");
+const ordersBackHref = ref("/store/orders");
 let detailMounted = true;
 let detailVisible = false;
 let detailEpoch = 0;
@@ -238,10 +241,35 @@ function isCurrentDetailScope(scope: DetailRequestScope): boolean {
 
 onLoad((options) => {
   const o = (options || {}) as Record<string, string>;
-  id.value = o.id || "";
+  const query = new URLSearchParams(takeNavigationQuery("/pages/store/order-detail"));
+  const queryIds = query.getAll("id");
+  id.value = o.id || (queryIds.length === 1 ? queryIds[0] : "");
+  const queryMatchesOrder = Boolean(id.value) && queryIds.length === 1 && queryIds[0] === id.value;
+  const from = o.from ?? (queryMatchesOrder && query.getAll("from").length === 1 ? query.get("from") : "");
+  orderOrigin.value = from === "me" || from === "store" ? from : "";
+  ordersBackHref.value = orderOrigin.value ? `/store/orders?from=${orderOrigin.value}` : "/store/orders";
+  preserveOrderOriginInH5();
   remoteOrderAttempted.value = false;
   remoteOrderError.value = false;
 });
+
+function preserveOrderOriginInH5() {
+  // A delayed lifecycle may meet another detail's hash; only update this order.
+  if (typeof window !== "undefined") {
+    try {
+      const hash = window.location.hash;
+      if (!/^#\/pages\/store\/order-detail(?:\?|$)/.test(hash)) return;
+      const question = hash.indexOf("?");
+      const query = new URLSearchParams(question < 0 ? "" : hash.slice(question + 1));
+      if (!id.value || query.getAll("id").length !== 1 || query.get("id") !== id.value) return;
+      if (!orderOrigin.value || (query.getAll("from").length === 1 && query.get("from") === orderOrigin.value)) return;
+      query.set("from", orderOrigin.value);
+      const path = question < 0 ? hash : hash.slice(0, question);
+      window.history.replaceState(window.history.state, "", `${window.location.href.slice(0, -hash.length)}${path}?${query}`);
+    } catch { /* Native runtimes have no browser history. */ }
+  }
+}
+
 const remoteOrderError = ref(false);
 const remoteOrderRefreshing = ref(false);
 const remoteOrderAttempted = ref(false);
@@ -286,6 +314,7 @@ onShow(() => {
   detailMounted = true;
   detailVisible = true;
   detailEpoch += 1;
+  preserveOrderOriginInH5();
   void refreshOrder();
   void refreshOrderWallet();
 });
@@ -345,7 +374,7 @@ useSetPageHeader(() => ({
     ? order.value.id
     : (showRemoteOrderLoading.value || remoteOrderError.value ? t.value.orders.title : t.value.orders.notFound),
   subtitle: order.value ? t.value.orders.orderId : undefined,
-  backHref: "/store/orders",
+  backHref: ordersBackHref.value,
 }));
 
 // While on this page, tick orders every 3s so the provisioning bar moves
@@ -498,7 +527,7 @@ async function offerWalletTopup(requiredUsdt: number): Promise<void> {
   const scope = captureDetailScope();
   const accepted = await uiConfirm({
     title: t.value.errors.insufficientBalanceTitle,
-    message: t.value.errors.insufficientBalanceMsg.replace("{amt}", requiredUsdt.toLocaleString()),
+    message: t.value.errors.insufficientBalanceMsg.replace("{amt}", formatAmount(requiredUsdt)),
     confirmLabel: t.value.me.topup,
     cancelLabel: t.value.store.coCancel,
     icon: "warn",
@@ -560,7 +589,7 @@ async function handleWalletPayment() {
 }
 
 function goOrders() {
-  navTo("/store/orders");
+  navTo(ordersBackHref.value);
 }
 function goEarn() {
   navTo("/earn");

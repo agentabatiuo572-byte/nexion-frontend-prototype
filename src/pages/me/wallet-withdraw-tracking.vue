@@ -44,7 +44,7 @@
                floor glow + dot-grid are deleted, not re-tuned). -->
           <view :style="heroStyle">
             <text class="block" :style="amountLabelStyle">{{ t.wallet.trackAmountLabel }}</text>
-            <text class="block" :style="amountStyle">${{ wd.amount.toFixed(2) }}</text>
+            <text class="block" :style="amountStyle">${{ formatAmount(wd.amount) }}</text>
             <text class="block" :style="viaStyle">{{ viaLine }}</text>
             <text class="block" :style="addrStyle">{{ wd.address }}</text>
           </view>
@@ -125,6 +125,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import { remoteApiEnabled, sessionVault, withdrawalApi } from "@/api/runtime";
@@ -432,7 +433,7 @@ const reasonLines = computed(() => [...new Set([
 ])]);
 // FEAT-WD02:fee 是结构化快照,展示只读 actualFeeUsd(旧单读盘时已归一,禁重算)。
 const viaLine = computed(() =>
-  wd.value ? fmt(t.value.wallet.trackViaLine, { network: wd.value.network, fee: wd.value.fee.actualFeeUsd.toFixed(2) }) : "",
+  wd.value ? fmt(t.value.wallet.trackViaLine, { network: wd.value.network, fee: formatAmount(wd.value.fee.actualFeeUsd) }) : "",
 );
 const etaTitle = computed(() =>
   wd.value?.status === "confirmed"

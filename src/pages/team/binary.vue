@@ -43,7 +43,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </view>
           </view>
-          <text class="block font-display tabular-nums" :style="heroAmtStyle">+${{ periodMatch.toFixed(2) }}</text>
+          <text class="block font-display tabular-nums" :style="heroAmtStyle">+${{ formatAmount(periodMatch) }}</text>
         </view>
 
         <!-- blocked warning -->
@@ -66,7 +66,7 @@
               <text class="font-display" :style="{ fontSize: '13px', fontWeight: 600, color: wing.color }">{{ wing.name }}</text>
               <text v-if="wing.isWeak" class="font-mono-tabular" :style="weakBadgeStyle">{{ t.binary.weakBadge }}</text>
             </view>
-            <text class="block font-display tabular-nums" :style="wingVolStyle">${{ wing.monthVol.toLocaleString() }}</text>
+            <text class="block font-display tabular-nums" :style="wingVolStyle">${{ formatAmount(wing.monthVol) }}</text>
             <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '4px' }">{{ wingMembersText(wing.count) }}</text>
             <view v-if="wing.top" class="flex items-center border-t" :style="topMemberStyle">
               <text :style="{ fontSize: '15px' }">{{ wing.top.avatar }}</text>
@@ -74,7 +74,7 @@
                 <text class="block truncate" :style="{ fontSize: '12px' }">{{ wing.top.name }}</text>
                 <view class="flex items-center" style="gap: 4px; margin-top: 2px">
                   <VBadge :v="wing.top.vRank" size="sm" :show-title="false" />
-                  <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">${{ wing.top.monthVolumeUSD }}</text>
+                  <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">${{ formatAmount(wing.top.monthVolumeUSD) }}</text>
                 </view>
               </view>
             </view>
@@ -101,7 +101,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
             <view class="flex-1 min-w-0">
               <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink)' }">{{ e.sourceUserName }}</text>
-              <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ new Date(e.ts).toLocaleDateString(dateLocale()) }}</text>
+              <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ formatTrialDate(e.ts) }}</text>
             </view>
             <text class="font-mono-tabular tabular-nums" :style="{ fontSize: '13px', color: binaryAmountColor(e.status), fontWeight: 600 }">{{ binaryAmountLabel(e) }}</text>
           </view>
@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -121,6 +122,7 @@ import EmptyState from "@/components/empty-state.vue";
 import VBadge from "@/components/team/v-badge.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
+import { formatTrialDate } from "@/lib/trial-date";
 import { useNetwork, type NetworkMember } from "@/store/network";
 import { useCommission } from "@/store/commission";
 import { useProductPhase } from "@/composables/use-product-phase";
@@ -236,7 +238,7 @@ const gapHintText = computed(() => fmt(t.value.binary.gapHint, { freq: periodFre
 const formulaText = computed(() =>
   fmt(t.value.binary.formula, {
     rate: (MATCH_RATE.value * 100).toLocaleString(dateLocale(), { maximumFractionDigits: 8 }),
-    cap: DAILY_CAP.value.toLocaleString(),
+    cap: formatAmount(DAILY_CAP.value),
     freq: periodFreqLabel.value,
   }),
 );
@@ -248,7 +250,7 @@ const blockedDetailText = computed(() => {
   }
   return fmt(t.value.binary.blockedDetail, {
     side: weakSide.value === "left" ? t.value.binary.left : t.value.binary.right,
-    vol: weakVol.value.toFixed(0),
+    vol: formatAmount(weakVol.value),
   });
 });
 const showGrowthRecoveryCta = computed(() => binaryBlockedGuidance({
@@ -272,7 +274,7 @@ function go(url: string) {
 }
 
 function binaryAmountLabel(event: { amountUSDT: number; status?: string }): string {
-  const amount = `${event.amountUSDT.toFixed(2)}`;
+  const amount = formatAmount(event.amountUSDT);
   if (event.status === "reversed") return `−${amount}`;
   if (event.status === "frozen" || event.status === "rejected") return amount;
   return `+${amount}`;

@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -101,6 +102,7 @@ async function mount(copy: Messages, device = serverDevice()) {
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const sfc = (value: Component) => ({ __esModule: true, default: value });
   const dependencies: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@dcloudio/uni-app": { onLoad: (callback: (query: object) => void) => callback({ id: device.id }),
       onShow: (callback: () => void) => onShow.push(callback) },
     "@/components/app-chassis.vue": sfc(passthrough), "@/components/empty-state.vue": sfc(blank),
@@ -152,7 +154,7 @@ for (const [locale, copy] of languages) {
     const original = JSON.stringify(view.device);
     const card = find(view.root, "nx-device-card")!;
     const originalCardText = text(card);
-    for (const value of ["CTA-pending", "$0.425", "$0.000", "0.0 NEX"]) expect(originalCardText).toContain(value);
+    for (const value of ["CTA-pending", "$0.43", "$0.00", "0.00 NEX"]) expect(originalCardText).toContain(value);
     const badge = find(view.root, "nx-device-explainer")!;
     expect(text(badge)).toBe(fmt(copy.earn.subsidyBadge, { n: 28 }));
     expect(find(view.root, "nx-capacity-explainer-root")).toBeUndefined();

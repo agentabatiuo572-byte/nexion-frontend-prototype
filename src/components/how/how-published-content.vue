@@ -12,6 +12,12 @@
       </view>
     </view>
     <view v-else-if="content" class="pb-8">
+      <view v-if="languageFallback" class="mx-4" style="margin: 16px; padding: 14px; border-radius: 12px; background: var(--v5-surface-2);" role="status" aria-live="polite">
+        <text class="block" :style="bodyStyle">{{ t.howPublished.languageFallback }}</text>
+        <view class="flex items-center justify-center" style="margin-top: 12px; height: 40px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
+          <text>{{ t.ui.retry }}</text>
+        </view>
+      </view>
       <HowHero :label="heroLabel(content.contentKey)" :title="content.blocks[0]?.title ?? heroLabel(content.contentKey)" :sub="content.blocks[0]?.body ?? ''" accent="purple" />
       <view v-if="content.blocks[0]?.items?.length" class="mx-4" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
         <view v-for="(item, itemIndex) in content.blocks[0].items" :key="itemIndex" style="display: flex; gap: 8px">
@@ -34,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import HowHero from "@/components/how/how-hero.vue";
 import HowSection from "@/components/how/how-section.vue";
@@ -54,6 +60,10 @@ const loading = ref(true);
 const error = ref(false);
 const bodyStyle = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 };
 const requestFence = new PublishedContentRequestFence();
+
+const languageFallback = computed(() => !!content.value
+  && content.value.locale.trim().split(/[-_]/)[0].toLowerCase()
+    !== locale.code.split(/[-_]/)[0].toLowerCase());
 
 function heroLabel(contentKey: HowContentKey): string {
   switch (contentKey) {

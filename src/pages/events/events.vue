@@ -76,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, nextTick, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -346,7 +347,7 @@ async function handleClaim(ev: EnrichedEvent) {
     }
     if (paid !== "ok") return;
     if (!eventQuest.claim(ev.id)) return;
-    toast.success(t.value.events.toast.claimedTitle.replace("{n}", reward.toLocaleString()), ev.title);
+    toast.success(t.value.events.toast.claimedTitle.replace("{n}", formatAmount(reward)), ev.title);
   } finally {
     if (commandBusy.value === ev.id) commandBusy.value = null;
   }

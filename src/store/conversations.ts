@@ -315,16 +315,28 @@ export const useConversations = defineStore("conversations", () => {
     scope.pending.delete(fingerprint);
   }
 
-  async function command<T>(intent: string, action: (key: string) => Promise<T>, recover?: (key: string) => Promise<T | null>, expectedAccount?: AccountScope): Promise<T> {
+  async function command<T>(intent: string, action: (key: string) => Promise<T>, recover?: (key: string) => Promise<T | null>, expectedAccount?: AccountScope, createPolicy?: { gate: () => boolean; recovery?: { scope: CommandScope; key: string } }): Promise<T> {
     const scope = await commandScope();
     if (expectedAccount && (expectedAccount.epoch !== scope.epoch || expectedAccount.accountKey !== scope.accountKey)) {
       throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
     }
     const fingerprint = opaqueSupportIntentSlot(intent);
     if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+    // Recovery authorization is tied to the final send scope and original key.
+    // A new run, retired slot or changed key must never fall through to minting.
+    if (createPolicy?.recovery) {
+      const original = createPolicy.recovery;
+      if (!scopeIsCurrent(original.scope) || original.scope.runId !== scope.runId
+          || original.scope.pending !== scope.pending || original.scope.inFlight !== scope.inFlight
+          || scope.pending.get(fingerprint) !== original.key) {
+        throw new Error("SUPPORT_PENDING_RECOVERY_SCOPE_CHANGED");
+      }
+    } else if (createPolicy && !createPolicy.gate()) {
+      throw new Error("SUPPORT_CATEGORY_UNAVAILABLE");
+    }
     const running = scope.inFlight.get(fingerprint) as Promise<T> | undefined;
     if (running) return running;
-    const key = scope.pending.get(fingerprint) ?? mutationKey(intent);
+    const key = createPolicy?.recovery?.key ?? scope.pending.get(fingerprint) ?? mutationKey(intent);
     scope.pending.set(fingerprint, key);
     persistPending(scope.accountKey, scope.runId, scope.pending);
     if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
@@ -333,6 +345,10 @@ export const useConversations = defineStore("conversations", () => {
     const promise = Promise.resolve().then(async () => {
       try {
         if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+        if (createPolicy?.recovery && scope.pending.get(fingerprint) !== createPolicy.recovery.key)
+          throw new Error("SUPPORT_PENDING_RECOVERY_SCOPE_CHANGED");
+        if (createPolicy && !createPolicy.recovery && !createPolicy.gate())
+          throw new Error("SUPPORT_CATEGORY_UNAVAILABLE");
         const result = await action(key);
         if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
         completePending(scope, fingerprint);
@@ -346,7 +362,7 @@ export const useConversations = defineStore("conversations", () => {
             return adopted;
           }
         }
-        if (!mustReadBack(cause) && scopeIsCurrent(scope)) completePending(scope, fingerprint);
+        if (!mustReadBack(cause) && scopeIsCurrent(scope) && scope.pending.get(fingerprint) === key) completePending(scope, fingerprint);
         throw cause;
       } finally {
         scope.inFlight.delete(fingerprint);
@@ -414,7 +430,7 @@ export const useConversations = defineStore("conversations", () => {
   }
 
   function categoryEnabled(type: ConversationType): boolean {
-    return categoryAvailabilityStatus.value === "ready" && categoryAvailability.value[type] === true;
+    return categoryAvailabilityStatus.value === "ready" && categoryAvailability.value[type === "support" ? "advisor" : type] === true;
   }
 
   /** Older pages may only prepend immutable messages; they never replace the live header/window. */
@@ -554,16 +570,28 @@ export const useConversations = defineStore("conversations", () => {
     }
   }
 
-  async function startConversation(type: Exclude<ConversationType, "ai">, openingText: string, attachmentId?: string): Promise<string> {
-    if (remoteApiEnabled && !categoryEnabled(type)) throw new Error("SUPPORT_CATEGORY_UNAVAILABLE");
+  async function hasPendingHumanCreate(type: Exclude<ConversationType, "ai">, openingText: string, attachmentId?: string): Promise<boolean> {
     const account = { epoch: accountEpoch, accountKey: accountKeyValue };
+    await preparePendingRun();
+    if (!accountScopeIsCurrent(account)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+    return pendingKeys.has(opaqueSupportIntentSlot(`conversation-create:${type}:${attachmentId ?? "text"}:${openingText.trim()}`));
+  }
+  async function startConversation(type: Exclude<ConversationType, "ai">, openingText: string, attachmentId?: string): Promise<string> {
+    const account = { epoch: accountEpoch, accountKey: accountKeyValue };
+    const intent = `conversation-create:${type}:${attachmentId ?? "text"}:${openingText.trim()}`;
+    const originalScope = remoteApiEnabled ? await commandScope() : undefined;
+    if (!accountScopeIsCurrent(account)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+    const originalKey = originalScope?.pending.get(opaqueSupportIntentSlot(intent));
+    const createPolicy = { gate: () => !remoteApiEnabled || categoryEnabled(type),
+      recovery: originalScope && originalKey ? { scope: originalScope, key: originalKey } : undefined };
+    if (!createPolicy.recovery && !createPolicy.gate()) throw new Error("SUPPORT_CATEGORY_UNAVAILABLE");
     let conversation: Conversation;
     try {
-      conversation = await command(`conversation-create:${type}:${attachmentId ?? "text"}:${openingText.trim()}`,
+      conversation = await command(intent,
         key => supportApi.startConversation(type, openingText, key, attachmentId), async key => {
           const result = await supportApi.commandResult(key);
           return result?.kind === "conversation" ? result.conversation : null;
-        }, account);
+        }, account, createPolicy);
     } catch (cause) {
       if (accountScopeIsCurrent(account) && mustReadBack(cause)) await reconcileAll(account);
       throw cause;
@@ -656,5 +684,5 @@ export const useConversations = defineStore("conversations", () => {
     if (remoteApiEnabled) void preparePendingRun().then(reconcilePending).catch(() => undefined);
   }
 
-  return { conversations, dismissConversation, dismissingIds, dismissalAvailable, typingIds, onlineIds,realtimeReady,realtimeFallback,scopeInvalidated,advisor,advisorLoading,advisorError,humanComposers,composer,saveComposer,clearComposer,suspendForReauthentication,discardHumanOutbox,hasPendingHumanSend,refreshAdvisor,startRealtime,stopRealtime,watchRealtime,setTyping, categoryAvailability, categoryAvailabilityStatus, categoryLoading, totalUnread, loading, mutating, error, refresh, refreshCategories, categoryEnabled, categoryReadable, byType, get, open, loadEarlier, startConversation, startSupportSession, sendUser, convertToTicket, reset, bindAccount };
+  return { conversations, dismissConversation, dismissingIds, dismissalAvailable, typingIds, onlineIds,realtimeReady,realtimeFallback,scopeInvalidated,advisor,advisorLoading,advisorError,humanComposers,composer,saveComposer,clearComposer,suspendForReauthentication,discardHumanOutbox,hasPendingHumanSend,hasPendingHumanCreate,refreshAdvisor,startRealtime,stopRealtime,watchRealtime,setTyping, categoryAvailability, categoryAvailabilityStatus, categoryLoading, totalUnread, loading, mutating, error, refresh, refreshCategories, categoryEnabled, categoryReadable, byType, get, open, loadEarlier, startConversation, startSupportSession, sendUser, convertToTicket, reset, bindAccount };
 });

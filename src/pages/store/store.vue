@@ -14,15 +14,15 @@
     <CardStagger class="px-4 pt-3 pb-4 space-y-6" style="color: var(--v5-ink)">
       <view v-if="activityId" class="promotion store-promotion-scope" data-testid="store-promotion-scope">
         <view class="store-promotion-actions">
-          <text class="promotion-badge">{{ t.promotion.activityProducts }}</text>
-          <view class="promotion-link" role="button" tabindex="0" @click="clearPromotion"><text>{{ t.promotion.scopeClear }}</text></view>
+          <text v-if="activity" class="promotion-badge">{{ t.promotion.activityProducts }}</text>
+          <view class="promotion-link" role="button" tabindex="0" @click="clearPromotion"><text>{{ activity?t.promotion.scopeClear:t.promotion.allProducts }}</text></view>
         </view>
-        <text class="promotion-title">{{ activity ? localized(activity.title,locale.code) : t.promotion.events }}</text>
+        <text class="promotion-title">{{ activity ? localized(activity.title,locale.code) : promotionStatus==='ready'?t.promotion.disabled:promotionStatus==='error'?t.promotion.error:t.promotion.loading }}</text>
         <text v-if="promotionStatus==='loading'||promotionStatus==='idle'" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
         <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
-        <text v-else-if="!promotionAvailable" class="promotion-copy">{{ localized(activity?.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
-        <text v-else class="promotion-copy">{{ t.promotion.promoSub }}</text>
-        <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId))"><text>{{ t.promotion.bundle }}</text></view>
+        <text v-else-if="activity&&!promotionAvailable" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
+        <text v-else-if="activity" class="promotion-copy">{{ t.promotion.promoSub }}</text>
+        <view v-if="activity" class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId))"><text>{{ t.promotion.bundle }}</text></view>
       </view>
       <template v-else-if="!publicOnly">
         <StoreHero :multiplier="upgrade?.multiplier ?? null" />
@@ -33,7 +33,7 @@
 
       <view v-if="publicOnly" class="promotion" data-testid="promotion-public-store">
         <template v-if="activity"><PromotionProduct v-for="productNo in activity.productNos" :key="productNo" :activity="activity" :product-no="productNo" public-only /></template>
-        <view class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionStoreHref(activityId)))"><text>{{ t.promotion.signIn }}</text></view>
+        <view v-if="activity" class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionStoreHref(activityId)))"><text>{{ t.promotion.signIn }}</text></view>
       </view>
       <template v-else>
 
@@ -69,7 +69,7 @@
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogEmptyTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogEmptyBody }}</text>
       </view>
-      <view v-if="activityId&&promotionStatus==='ready'&&catalogStatus==='ready'&&!unlockedProducts.length" class="promotion-flat"><text class="promotion-copy">{{ t.promotion.noMatchingProducts }}</text><view class="promotion-link" role="button" tabindex="0" @click="clearPromotion"><text>{{ t.promotion.allProducts }}</text></view></view>
+      <view v-if="activity&&promotionStatus==='ready'&&catalogStatus==='ready'&&!unlockedProducts.length" class="promotion-flat"><text class="promotion-copy">{{ t.promotion.noMatchingProducts }}</text><view class="promotion-link" role="button" tabindex="0" @click="clearPromotion"><text>{{ t.promotion.allProducts }}</text></view></view>
       <template v-if="catalogHasProducts">
         <SectionHeader v-if="!activityId" :title="t.store.secRecommended" style="height: 44px">
           <template #right>
@@ -311,7 +311,7 @@ const unlockedProducts = computed(() =>
 );
 const lockedProducts = computed(() =>
   displayProducts.value.filter((p) => {
-    if (!mounted.value) return true;
+    if (!mounted.value) return false;
     return !isProductAvailable(p, phase.value);
   }),
 );

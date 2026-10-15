@@ -56,9 +56,16 @@ export interface ConvMessage {
   status?: "sent" | "read";
   text: string;
   ts: number;
-  kind?: "TEXT" | "IMAGE";
+  kind?: "TEXT" | "IMAGE" | "SKU" | "LINK";
   attachmentId?: string;
+  skuId?: string;
+  skuName?: string;
+  linkTarget?: { type: "HOME" | "WALLET" | "SUPPORT"; params: Record<string, never> };
+  targetAvailability?: "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN";
   authorName?: string;
+  senderId?: number;
+  authorConfidence?: "VERIFIED" | "UNKNOWN";
+  senderAvatar?: { assetId: string; version: number };
 }
 export interface Conversation {
   id: string;

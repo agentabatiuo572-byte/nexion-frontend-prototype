@@ -55,7 +55,6 @@ function harness(chat: (request?: { turnId: string }) => Promise<unknown>): Harn
     const syncBotAccountScope = () => undefined;
     const bumpScroll = () => undefined;
     const fmt = (template, params) => template.replace(/\\{(\\w+)\\}/g, (_, key) => params[key] ?? "{" + key + "}");
-    const novaHelpSource = () => "faq";
     const asApiError = (error) => ({ message: String(error?.message ?? error), status: error?.status, kind: error?.kind });
     ${sendToBotSource()}
     return { sendToBot, retryBot };
@@ -108,14 +107,37 @@ describe("NexGridBot remote reply deadline", () => {
     expect(h.thinking.value).toBe(false);
   });
 
-  it("closes thinking and gives a retry message without exposing an internal error code", async () => {
-    const h = harness(() => Promise.reject(new Error("NOVA_AI_UNAVAILABLE")));
+  it("shows a product failure without the internal diagnostic and closes thinking", async () => {
+    const h = harness(() => Promise.reject(new Error("NOVA_INTERNAL_SENTINEL")));
     await h.sendToBot();
 
     expect(h.thinking.value).toBe(false);
     expect(h.botFailure.value).toBe("error");
     expect(h.transcript.at(-1)).toEqual({ from: "bot", text: "暂时无法回复，请重试" });
+    expect(JSON.stringify(h.transcript)).not.toContain("NOVA_INTERNAL_SENTINEL");
     expect(JSON.stringify(h.transcript)).not.toContain("NOVA_AI_UNAVAILABLE");
+  });
+
+  it("shows a reply without internal source metadata", async () => {
+    const h = harness(async () => ({ reply: "可以查看最新订单。", source: "INTERNAL_SOURCE_SENTINEL", language: "zh" }));
+    await h.sendToBot();
+    expect(h.transcript.at(-1)).toEqual({ from: "bot", text: "可以查看最新订单。" });
+    expect(h.pendingBotRequest.value).toBeNull();
+  });
+
+  it("preserves the pending turn after an ambiguous transport failure and retries its original key", async () => {
+    const chat = vi.fn().mockRejectedValueOnce(Object.assign(new Error("INTERNAL_TIMEOUT_SENTINEL"), { kind: "network", status: 500 }))
+      .mockResolvedValue({ reply: "同一条回答", source: "faq", language: "zh" });
+    const h = harness(chat);
+    await h.sendToBot();
+    expect(h.pendingBotRequest.value?.payload.turnId).toBe("turn-id");
+    expect(h.transcript.at(-1)).toEqual({ from: "bot", text: "暂时无法回复，请重试" });
+    h.retryBot();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(chat.mock.calls.map(([request]) => request.turnId)).toEqual(["turn-id", "turn-id"]);
+    expect(h.transcript.at(-1)?.text).toBe("同一条回答");
+    expect(h.pendingBotRequest.value).toBeNull();
   });
 
   it("retries the original turn after local timeout and follows its in-progress result", async () => {

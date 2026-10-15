@@ -31,10 +31,10 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
             <text>{{ t.teamV3.royaltyHeroLabel }}</text>
           </view>
-          <text class="block font-display tabular-nums" :style="royaltyAmtStyle">${{ monthUSDT.toFixed(2) }}</text>
+          <text class="block font-display tabular-nums" :style="royaltyAmtStyle">${{ formatAmount(monthUSDT) }}</text>
           <text class="block" :style="royaltySubStyle">{{ t.teamV3.royaltyHeroSubtitle }}</text>
           <view class="flex items-center justify-between" style="margin-top: 8px">
-            <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-tech-cyan-ink)' }">+{{ monthNEX.toFixed(0) }} NEX</text>
+            <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-tech-cyan-ink)' }">+{{ formatAmount(monthNEX) }} NEX</text>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </view>
         </view>
@@ -198,6 +198,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import ReferralProgress from '@/components/promotion/referral-progress.vue';
 import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
@@ -325,9 +326,9 @@ const binary = computed(() => {
   const match = Math.min(Math.min(L / 30, R / 30) * 0.1, 5000);
   return { binaryMatch: match, leftVol: L, rightVol: R };
 });
-const binaryMatchText = computed(() => binary.value === null ? "—" : `+${binary.value.binaryMatch.toFixed(2)} USDT`);
-const leftVolText = computed(() => binary.value === null ? "—" : `${binary.value.leftVol.toFixed(0)} USDT`);
-const rightVolText = computed(() => binary.value === null ? "—" : `${binary.value.rightVol.toFixed(0)} USDT`);
+const binaryMatchText = computed(() => binary.value === null ? "—" : `+${formatAmount(binary.value.binaryMatch)} USDT`);
+const leftVolText = computed(() => binary.value === null ? "—" : `${formatAmount(binary.value.leftVol)} USDT`);
+const rightVolText = computed(() => binary.value === null ? "—" : `${formatAmount(binary.value.rightVol)} USDT`);
 
 const myVotes = computed(() => remoteApiEnabled ? remotePool.value?.myVotes ?? 0 : pool.myVotes(vrank.myRank));
 const leadershipUnlockRank = computed(() => remoteApiEnabled ? remotePool.value?.unlockRank ?? 3 : 3);
@@ -336,7 +337,7 @@ const projectedPayout = computed(() => remoteApiEnabled ? remotePool.value?.proj
 const leadershipPoolUnlocked = computed(() => myVotes.value > 0);
 const leadershipPoolKText = computed(() => (remoteApiEnabled ? remotePool.value?.currentWeekPoolUSDT ?? 0 : pool.currentWeekPoolUSDT) / 1000);
 const leadershipPoolPrimary = computed(() =>
-  remoteApiEnabled && remotePoolState.value !== "ready" ? "—" : leadershipPoolUnlocked.value ? `+${projectedPayout.value.toFixed(2)} USDT` : `${leadershipPoolKText.value.toFixed(1)}K USDT`,
+  remoteApiEnabled && remotePoolState.value !== "ready" ? "—" : leadershipPoolUnlocked.value ? `+${formatAmount(projectedPayout.value)} USDT` : `${formatAmount(leadershipPoolKText.value)}K USDT`,
 );
 const leadershipPoolLineA = computed(() =>
   remoteApiEnabled && remotePoolState.value !== "ready" ? (remotePoolState.value === "hold" ? t.value.pool.settlementHoldShort : remotePoolState.value === "loading" ? t.value.pool.loading : t.value.network.projectionErrorDesc) : leadershipPoolUnlocked.value ? `${myVotes.value} ${t.value.teamV3.votes}` : `V${leadershipUnlockRank.value}`,

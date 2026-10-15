@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import * as Vue from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { compileScript, parse } from '@vue/compiler-sfc';
@@ -9,6 +10,7 @@ import orderRewardsSource from './order-rewards.vue?raw';
 import rewardDetailSource from '@/pages/events/promotion-reward-detail.vue?raw';
 import checkoutSource from './promotion-checkout.vue?raw';
 import termsSource from './promotion-terms.vue?raw';
+import entrySource from './promotion-entry.vue?raw';
 import { promotionZH } from '@/i18n/messages/promotion';
 import { localized, rewardAmount, rewardStateKey } from '@/lib/promotion-display';
 
@@ -16,6 +18,7 @@ const descriptor=parse(rewardRowsSource,{filename:'reward-rows.vue'}).descriptor
 const script=compileScript(descriptor,{id:'reward-rows-behavior',inlineTemplate:true,templateOptions:{compilerOptions:{isCustomElement:tag=>['view','text'].includes(tag)}}});
 const code=ts.transpileModule(script.content,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const dependencies:Record<string,unknown>={
+    "@/lib/amount-display": { formatAmount },
   vue:Vue,
   '@/i18n/use-t':{useT:()=>Vue.ref({promotion:promotionZH})},
   '@/store/locale':{useLocaleStore:()=>({code:'zh'})},
@@ -27,6 +30,28 @@ const dependencies:Record<string,unknown>={
 const componentExports={default:{} as Vue.Component};
 new Function('require','exports',code)((id:string)=>{if(!(id in dependencies))throw new Error('Unexpected import '+id);return dependencies[id];},componentExports);
 const reward={obligationId:'reward-1',reward:{rewardRuleId:'r1',type:'USDT',amount:'3.000000',beneficiaryRole:'BUYER'},state:'ISSUED',refundHold:false};
+
+it('home advert copy keeps AA contrast against captured light background samples',()=>{
+  const styles=parse(entrySource).descriptor.styles.find(style=>style.scoped)!.content;
+  const rule=styles.match(/\.entry-advert\s+\.promotion-copy\s*\{([^}]*)\}/)![1];
+  const token=rule.match(/color:\s*var\((--[\w-]+)\)/)?.[1];
+  expect(token).toBeDefined();
+  const tokenPath=decodeURIComponent(new URL('../../styles/tokens.css',import.meta.url).pathname).replace(/^\/([a-z]:\/)/i,'$1');
+  const tokenSource=ts.sys.readFile(tokenPath);
+  if(tokenSource===undefined)throw new Error(`Promotion contrast tokens not readable: ${tokenPath}`);
+  const light=tokenSource.match(/:root\s*\{([^}]*)\}/)![1];
+  const color=light.match(new RegExp(`${token}:\\s*(#[\\da-f]{6})`,'i'))?.[1];
+  expect(color).toBeDefined();
+  const luminance=(hex:string)=>hex.slice(1).match(/../g)!.map(channel=>{
+    const value=parseInt(channel,16)/255;
+    return value<=0.04045?value/12.92:((value+0.055)/1.055)**2.4;
+  }).reduce((sum,value,index)=>sum+value*[0.2126,0.7152,0.0722][index],0);
+  // Captured en/light320 home advert background samples.
+  for(const background of ['#D8DCE9','#C5CFE9','#BDC9E9']){
+    const foreground=luminance(color!),backdrop=luminance(background);
+    expect((Math.max(foreground,backdrop)+0.05)/(Math.min(foreground,backdrop)+0.05)).toBeGreaterThanOrEqual(4.5);
+  }
+});
 
 it('the compiled Vue Boolean prop defaults to a usable reward details link',async()=>{
   const html=await renderToString(Vue.createSSRApp(componentExports.default,{rewards:[reward]}));
@@ -53,8 +78,8 @@ it('two canonical order-line IDs keep purchase quantities and rewards paired reg
   const html=await renderToString(Vue.createSSRApp(componentExports.default,props));
   const rows=html.replace(/<!--.*?-->/g,'').split('class="promotion-row"').slice(1);
   expect(rows).toHaveLength(2);
-  expect(rows[0]).toContain('Device Beta × 3');expect(rows[0]).toContain('7 NEX');expect(rows[0]).not.toContain('Device Alpha');
-  expect(rows[1]).toContain('Device Alpha × 2');expect(rows[1]).toContain('5 USDT');expect(rows[1]).not.toContain('Device Beta');
+  expect(rows[0]).toContain('Device Beta × 3');expect(rows[0]).toContain('7.00 NEX');expect(rows[0]).not.toContain('Device Alpha');
+  expect(rows[1]).toContain('Device Alpha × 2');expect(rows[1]).toContain('5.00 USDT');expect(rows[1]).not.toContain('Device Beta');
 });
 it('uses immutable names even when a gift is hidden from the current shop catalogue',async()=>{
   const html=await renderToString(Vue.createSSRApp(componentExports.default,{lines:[{lineId:'756',productNo:'sku-a',productName:'Original purchase name',quantity:1}],rewards:[{...reward,orderLineId:'756',reward:{rewardRuleId:'gift',type:'DEVICE',giftProductNo:'hidden-sku',quantity:1,beneficiaryRole:'BUYER'},disclosure:{deviceName:'Frozen hidden gift'}}]}));

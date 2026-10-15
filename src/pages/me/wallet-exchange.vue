@@ -141,8 +141,8 @@
           <view class="flex items-center justify-between" style="margin-bottom: 4px">
             <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.exchange.yourDaily }}</text>
             <view class="font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink)">
-              <text>{{ remoteApiEnabled && !remoteState ? t.exchange.remoteNotProvided :`$${displayUserUsed.toFixed(2)}` }} </text>
-              <text v-if="!remoteApiEnabled || remoteState" style="color: var(--v5-ink-3)">/ ${{ displayUserCap.toFixed(2) }}</text>
+              <text>{{ remoteApiEnabled && !remoteState ? '-' :`$${formatAmount(displayUserUsed)}` }} </text>
+              <text v-if="!remoteApiEnabled || remoteState" style="color: var(--v5-ink-3)">/ ${{ formatAmount(displayUserCap) }}</text>
             </view>
           </view>
           <view :style="barTrackStyle">
@@ -155,8 +155,8 @@
           <view class="flex items-center justify-between" style="margin-bottom: 4px">
             <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.walletV3.exchangePoolToday }}</text>
             <view class="font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink)">
-              <text>{{ remoteApiEnabled && !remoteState ? t.exchange.remoteNotProvided :`$${(displayPlatformUsed / 1000).toFixed(1)}K` }} </text>
-              <text v-if="!remoteApiEnabled || remoteState" style="color: var(--v5-ink-3)">/ ${{ (displayPlatformCap / 1000).toFixed(0) }}K</text>
+              <text>{{ remoteApiEnabled && !remoteState ? '-' :`$${formatAmount(displayPlatformUsed / 1000)}K` }} </text>
+              <text v-if="!remoteApiEnabled || remoteState" style="color: var(--v5-ink-3)">/ ${{ formatAmount(displayPlatformCap / 1000) }}K</text>
             </view>
           </view>
           <view :style="barTrackStyle">
@@ -186,7 +186,7 @@
                 <text>{{ cancellingOrderNo === q.id ? t.exchange.cancelling : t.exchange.cancelQueued }}</text>
               </view>
             </view>
-            <text class="font-mono-tabular tabular-nums shrink-0" style="font-size: 12px; color: var(--v5-ink)">${{ q.amountUSD.toFixed(2) }}</text>
+            <text class="font-mono-tabular tabular-nums shrink-0" style="font-size: 12px; color: var(--v5-ink)">${{ formatAmount(q.amountUSD) }}</text>
           </view>
         </view>
       </view>
@@ -218,6 +218,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { onLoad, onHide, onShow } from "@dcloudio/uni-app";
 import { navTo } from "@/lib/route";
 import { exchangeQuote } from "@/lib/exchange-quote";
@@ -651,7 +652,7 @@ const exchangePaused = computed(() => remoteApiEnabled
 const money = (n: number): number => +n.toFixed(2);
 /** 展示口径与 money() 同精度 —— 屏幕上的数 = 报价的数 = 落账的数。 */
 const amtLabel = (n: number): string =>
-  n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: remoteApiEnabled ? 6 : 2 });
+  formatAmount(n);
 
 // 输入在**进入资金链路的那一刻**就归到账本精度:此后报价 / 额度门 / 扣款 / 账单 / 历史
 // 拿到的是同一个数。留着 1.2345 往下走的话,弹窗显示 1.23、账本扣 1.23、账单却记 1.2345。
@@ -746,7 +747,7 @@ function notifyRemoteSwapResult(
   if (order.status === "QUEUED") {
     toastIfRemoteScopeCurrent(scope, runScope, () => toast.info(
       t.value.exchange.queuedToastTitle,
-      fmt(t.value.exchange.queuedToastBody, { amount: (order.fromAsset === "USDT" ? order.fromAmount : order.toAmount).toFixed(2) }),
+      fmt(t.value.exchange.queuedToastBody, { amount: formatAmount(order.fromAsset === "USDT" ? order.fromAmount : order.toAmount) }),
     ));
     return;
   }
@@ -871,9 +872,9 @@ async function handleConfirm() {
         const queueIt = await confirm({
           title: t.value.exchange.capReachedTitle,
           message: fmt(t.value.exchange.capReachedMessage, {
-            used: gate.usedToday.toFixed(2),
-            cap: String(gate.cap),
-            amount: snap.usd.toFixed(2),
+            used: formatAmount(gate.usedToday),
+            cap: formatAmount(gate.cap),
+            amount: formatAmount(snap.usd),
           }),
           icon: "warn",
           confirmLabel: t.value.exchange.capReachedConfirm,
@@ -882,7 +883,7 @@ async function handleConfirm() {
           v3.enqueue({ amountUSD: snap.usd, direction: snap.direction });
           toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.info(
             t.value.exchange.queuedToastTitle,
-            fmt(t.value.exchange.queuedToastBody, { amount: snap.usd.toFixed(2) }),
+            fmt(t.value.exchange.queuedToastBody, { amount: formatAmount(snap.usd) }),
           ));
         }
         return;
@@ -890,7 +891,7 @@ async function handleConfirm() {
       if (gate.reason === "platform-cap") {
         toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(
           t.value.exchange.platformExhaustedTitle,
-          fmt(t.value.exchange.platformExhaustedBody, { cap: (gate.cap / 1000).toFixed(0) }),
+          fmt(t.value.exchange.platformExhaustedBody, { cap: formatAmount(gate.cap / 1000) }),
         ));
         return;
       }
@@ -1029,15 +1030,15 @@ async function handleConfirm() {
 
 // ── derived labels ──
 const minLabel = computed(() => exchangeSnapshotReady.value
-  ? t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : String(minFrom.value)).replace("{sym}", fromSym.value)
+  ? t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : formatAmount(minFrom.value)).replace("{sym}", fromSym.value)
   : t.value.exchange.remoteNotProvided);
 const fromBalLabel = computed(() => exchangeSnapshotReady.value
-  ? (fromSym.value === "USDT" ? fromBal.value.toFixed(2) : fromBal.value.toLocaleString())
-  : t.value.exchange.remoteNotProvided);
+  ? formatAmount(fromBal.value)
+  : "-");
 const toAmountLabel = computed(() => !exchangeSnapshotReady.value || feeInvalid.value ? "—" : amtLabel(toAmount.value));
 const rateLabel = computed(() => exchangeSnapshotReady.value
   ? t.value.exchange.rate.replace("{rate}", rate.value.toFixed(5))
-  : t.value.exchange.remoteNotProvided);
+  : "-");
 const updatedLabel = computed(() => exchangeSnapshotReady.value
   ? t.value.exchange.rateLastUpdated.replace("{n}", String(secsAgo.value))
   : t.value.exchange.remoteNotProvided);
@@ -1045,7 +1046,7 @@ const errorLabel = computed(() =>
   overBalance.value
     ? t.value.exchange.insufficientMessage.replace("{sym}", fromSym.value)
     : feeInvalid.value ? t.value.exchange.belowFee
-    : t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : String(minFrom.value)).replace("{sym}", fromSym.value),
+    : t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : formatAmount(minFrom.value)).replace("{sym}", fromSym.value),
 );
 const queuedLabel = computed(() => fmt(t.value.exchange.queuedLabel, { n: String(displayQueue.value.length) }));
 // 历史行同样走 amtLabel:历史与余额对不上,多半就是这里自己又取了一次整。

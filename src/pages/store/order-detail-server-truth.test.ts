@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import { compile } from "@vue/compiler-dom";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import { renderToString } from "@vue/server-renderer";
@@ -71,6 +72,7 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
   const copyRef = Vue.ref(copy);
   const navTo = vi.fn();
   const load = (id: string) => {
+    if (id === "@/lib/amount-display") return { formatAmount };
     if (id === "vue") return { ...Vue, onUnmounted: Vue.onScopeDispose };
     if (id === "@dcloudio/uni-app") return {
       onLoad: (callback: typeof onLoad) => { onLoad = callback; }, onShow: () => {}, onHide: () => {}, onUnload: () => {},
@@ -85,7 +87,7 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
     if (id === "@/store/free-trial") return { trialReservesSlotNow: () => false };
     if (id === "@/store/ui" || id === "@/api/errors" || id === "@/lib/account-scope") return {};
     if (id === "@/composables/use-page-header") return { useSetPageHeader: () => {} };
-    if (id === "@/lib/route") return { navTo };
+    if (id === "@/lib/route") return { navTo, takeNavigationQuery: () => "" };
     if (id === "@/api/runtime") return remote;
     if (id === "@/api/order-api") return { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision };
     if (id.endsWith(".vue")) return { __esModule: true, default: {} };

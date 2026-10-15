@@ -65,6 +65,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, watch, onMounted, onUnmounted } from "vue";
 import { useMilestones } from "@/store/milestones";
 import { usePopupArbiter } from "@/store/popup-arbiter";
@@ -130,11 +131,11 @@ onMounted(() => {
 
 // ── Derived copy (i18n) ──
 const thresholdLabel = computed(() =>
-  m.active ? m.active.threshold.toLocaleString() : "",
+  m.active ? formatAmount(m.active.threshold) : "",
 );
 
 const titleText = computed(() =>
-  m.active ? fmt(t.value.milestones.title, { amount: m.active.threshold.toLocaleString() }) : "",
+  m.active ? fmt(t.value.milestones.title, { amount: formatAmount(m.active.threshold) }) : "",
 );
 
 const bodyText = computed(() => {
@@ -145,7 +146,7 @@ const bodyText = computed(() => {
 
 const chipText = computed(() =>
   m.active
-    ? fmt(t.value.milestones.nexChip, { amount: m.active.nexReward.toLocaleString() })
+    ? fmt(t.value.milestones.nexChip, { amount: formatAmount(m.active.nexReward) })
     : "",
 );
 

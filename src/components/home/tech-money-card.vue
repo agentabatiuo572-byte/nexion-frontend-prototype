@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { useApp } from "@/store/app";
@@ -104,8 +105,9 @@ const earningsSubtitle = computed(() => homeEarningsSubtitle(
 // an unavailable placeholder; it never advances a client-side money counter.
 const display = useTicker(() => remoteToday.value ?? Math.max(todayTotal.value, 0.06), 0.0009, 1100, !remoteApiEnabled);
 const displayAmount = computed(() => remoteToday.value ?? display.value);
-const intPart = computed(() => Math.floor(displayAmount.value));
-const cents = computed(() => String(Math.floor(displayAmount.value * 100) % 100).padStart(2, "0"));
+const amountParts = computed(() => formatAmount(displayAmount.value).split("."));
+const intPart = computed(() => amountParts.value[0]);
+const cents = computed(() => amountParts.value[1]);
 
 interface Dot {
   left: string;

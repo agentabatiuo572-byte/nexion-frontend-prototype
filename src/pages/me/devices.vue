@@ -212,6 +212,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navReset, navTo } from "@/lib/route";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
@@ -371,7 +372,7 @@ function tradeinStrip(d: Device): {
     Math.min(...targets.map((p) => p.price)),
   );
   return {
-    tradeinCreditText: fmt(t.value.tradein.stripCredit, { credit: credit.toFixed(2) }),
+    tradeinCreditText: fmt(t.value.tradein.stripCredit, { credit: formatAmount(credit) }),
     tradeinCtaLabel: t.value.tradein.stripCta,
   };
 }

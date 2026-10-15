@@ -64,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -86,8 +87,8 @@ const targetLabel = computed(() => nexGridBrandText(calculator.value?.target.nam
 const baseWidthPct = computed(() => calculator.value
   ? Math.max(0.4, (calculator.value.base.dailyUsdt / calculator.value.target.dailyUsdt) * 100)
   : 0.4);
-const baseRate = computed(() => calculator.value ? `${calculator.value.base.dailyUsdt.toFixed(2)} /d` : "—");
-const targetRate = computed(() => calculator.value ? `${calculator.value.target.dailyUsdt.toFixed(2)} /d` : "—");
+const baseRate = computed(() => calculator.value ? `${formatAmount(calculator.value.base.dailyUsdt)} /d` : "—");
+const targetRate = computed(() => calculator.value ? `${formatAmount(calculator.value.target.dailyUsdt)} /d` : "—");
 
 // Render the headline by splitting the i18n template around {target}/{mult}/{base}
 // placeholders → colored segments. Works regardless of per-locale word order.
@@ -113,7 +114,7 @@ const headlineSegs = computed(() => {
 });
 
 const stats = computed(() => calculator.value ? [
-  { k: t.value.home.doMathDaily, v: `${calculator.value.target.dailyUsdt.toFixed(2)}`, tone: "var(--v5-ink)" },
+  { k: t.value.home.doMathDaily, v: formatAmount(calculator.value.target.dailyUsdt), tone: "var(--v5-ink)" },
   { k: fmt(t.value.home.doMathVs, { base: baseShort.value }), v: `${calculator.value.multiplier}×`, tone: "var(--v5-success)" },
 ] : []);
 

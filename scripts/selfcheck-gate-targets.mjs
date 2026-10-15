@@ -120,6 +120,9 @@ const EXCEPTIONS = {
   "ui-consistency-runtime.mjs:机型面":
     "UI 视觉取样:四行 fleet 与单个 catalog fixture 填充卡片、列表和设备详情,非机型全集枚举;" +
     "Earn 实景断言固定四行且 summary 明示前端 fixture 边界,不声称设备规格或八机型业务覆盖",
+  "amount-display-runtime.mjs:机型面":
+    "金额实景 fixtures 按四行 fleet 与两款商品核验金额消费点;全覆盖对象是 pages.json 路由与语言/主题/屏宽," +
+    "不声称机型规格全集覆盖;report 明示 HTTP/WS fixture 与原生未验证边界",
   "release-gate-walkthrough.mjs:机型面": "同上:发布走查按种子取样,非集合枚举",
   "selfcheck-checkout-trial-quote.mjs:机型面":
     "试用报价的定义性 fixtures —— 试用 SKU 与升级目标是规格点名的具体两台,非集合枚举",

@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 // @ts-expect-error These page contracts execute in Node.
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
@@ -14,7 +15,7 @@ function handler(name: string, scope: Record<string, unknown>) {
   const node = ast.statements.find(item => ts.isFunctionDeclaration(item) && item.name?.text === name);
   if (!node) throw new Error(`Missing actual handler: ${name}`);
   const code = ts.transpileModule(node.getText(ast), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  return new Function(...Object.keys(scope), `${code}; return ${name};`)(...Object.values(scope));
+  return new Function("formatAmount", ...Object.keys(scope), `${code}; return ${name};`)(formatAmount, ...Object.values(scope));
 }
 
 describe("withdrawal warning requires withdrawal intent", () => {
@@ -36,7 +37,7 @@ describe("withdrawal warning requires withdrawal intent", () => {
       t: { value: { walletV3: { submitReasonMinAmount: "Minimum {n}", submitReasonAmountRequired: "Enter amount" } } }, fmt,
     });
     const decision = { dailyLimitReached: false, maxWithdrawableUsdt: 100, canSubmit: true };
-    expect(reason(minimum - 1, decision)).toBe(`Minimum ${minimum}`);
+    expect(reason(minimum - 1, decision)).toBe(`Minimum ${minimum}.00`);
     expect(reason(minimum, decision)).toBe("");
     expect(reason(0, decision)).toBe("Enter amount");
   });
@@ -46,11 +47,11 @@ describe("withdrawal warning requires withdrawal intent", () => {
     const submit = handler("handleSubmit", {
       submitting: { value: false }, confirmingSubmit: { value: false },
       readWithdrawAttempt: () => null, app: { accountKey: "test-only" },
-      canSubmit: { value: false }, submitDisabledReason: { value: "Minimum 35" },
+      canSubmit: { value: false }, submitDisabledReason: { value: "Minimum 35.00" },
       toast: { info }, t: { value: { walletV3: {} } },
     });
     await submit();
-    expect(info).toHaveBeenCalledExactlyOnceWith("Minimum 35");
+    expect(info).toHaveBeenCalledExactlyOnceWith("Minimum 35.00");
     // No confirmation/API dependencies are provided; accessing them fails this test.
   });
 });

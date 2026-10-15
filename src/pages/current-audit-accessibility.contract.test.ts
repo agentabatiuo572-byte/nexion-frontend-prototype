@@ -15,8 +15,9 @@ describe("audited navigation semantics", () => {
   it("never presents private purchase totals as a public payout statistic", () => {
     const source = read("onboarding/intro.vue");
     expect(source).not.toContain("app.homeTruth?.onboarding.cumulativePaidUsdt");
-    expect(source).toMatch(/const paidNow = \(\) => \{[\s\S]*?const v = cfg\.syncFailed \? null : cfg\.config\.verifiedStats;[\s\S]*?return v \? Math\.round\(v\.completedPayoutUsdt\.value\) : null;/);
+    expect(source).toMatch(/const paidNow = \(\) => \{[\s\S]*?const v = cfg\.syncFailed \? null : cfg\.config\.verifiedStats;[\s\S]*?return v \? v\.completedPayoutUsdt\.value : null;/);
     expect(source).toContain('v-if="visiblePaid !== null"');
     expect(source).toContain("const visiblePaid = computed(() => remoteApiEnabled ? paidNow() : paid.value)");
+    expect(source).toContain('visiblePaid === null ? t.intro.publicStatsUnavailable : `$${formatAmount(visiblePaid)}`');
   });
 });

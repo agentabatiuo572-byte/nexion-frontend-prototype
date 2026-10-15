@@ -77,6 +77,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
       saveComposer: (key: string, value: any) => { humanComposers[key] = value; },
       clearComposer: (key: string) => { delete humanComposers[key]; },
       refreshAdvisor: vi.fn(async () => undefined),
+      hasPendingHumanCreate: vi.fn(async () => false),
       advisor: null,
       advisorLoading: false,
       advisorError: false,
@@ -228,7 +229,9 @@ describe("human conversation restart", () => {
   it.each([true,false])('resumes the original first-message creation after foreground, responseBeforeShow=%s',async responseBeforeShow=>{
     const current=mount({start:'advisor'});await current.hooks.onShow();
     const pending=deferred<string>();current.startConversation.mockReturnValueOnce(pending.promise);
-    const sending=current.page.onSend('Hello');current.hooks.onHide();
+    const sending=current.page.onSend('Hello');
+    await vi.waitFor(() => expect(current.startConversation).toHaveBeenCalledTimes(1));
+    current.hooks.onHide();
     if(responseBeforeShow){pending.resolve('same-conversation');await sending;await current.hooks.onShow();}
     else {await current.hooks.onShow();pending.resolve('same-conversation');await sending;}
     expect(current.startConversation).toHaveBeenCalledTimes(1);
@@ -271,6 +274,7 @@ describe("human conversation restart", () => {
     current.startConversation.mockReturnValue(pending.promise);
     await current.hooks.onShow();
     const sending = current.page.onSend("Hello");
+    await vi.waitFor(() => expect(current.startConversation).toHaveBeenCalledTimes(1));
     if (boundary === "leave") current.hooks.onHide();
     else if (boundary === "switch-account") current.rebind("user:2");
     else current.app.accountBindingEpoch += 1;
@@ -278,6 +282,7 @@ describe("human conversation restart", () => {
     await sending;
     await vi.advanceTimersByTimeAsync(10000);
     expect(current.openConversation).not.toHaveBeenCalled();
+    expect(current.watchRealtime).not.toHaveBeenCalledWith("old-account-conversation");
     current.page.cleanup();
   });
 
@@ -297,7 +302,7 @@ describe("human conversation restart", () => {
     expect(current.page.threadMessages.value[0]).toMatchObject({ tone: "user", text: "Hello" });
     expect(current.page.isClosedSession.value).toBe(true);
     current.page.onRestart();
-    expect(current.navigation.navTo).toHaveBeenCalledExactlyOnceWith(`/pages/support/chat?start=${type}`);
+    expect(current.navigation.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=advisor");
     current.page.cleanup();
   });
 
@@ -315,10 +320,10 @@ describe("human conversation restart", () => {
     next.page.cleanup();
   });
 
-  it.each(["advisor", "support"])("restarts an unassigned ended %s conversation in the same category", type => {
+  it.each(["advisor", "support"])("restarts an unassigned ended %s conversation through dedicated support", type => {
     const { page, navigation } = mount({ cid: "ended-thread" }, { type, status: "ended", agentName: "unassigned" });
     page.onRestart();
-    expect(navigation.navTo).toHaveBeenCalledExactlyOnceWith(`/pages/support/chat?start=${type}`);
+    expect(navigation.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=advisor");
     page.cleanup();
   });
 

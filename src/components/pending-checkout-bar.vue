@@ -27,6 +27,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAmount } from "@/lib/amount-display";
 import { computed } from "vue";
 import { useT } from "@/i18n/use-t";
 import { navTo } from "@/lib/route";
@@ -42,7 +43,7 @@ const t = useT();
 const pending = usePendingCheckout();
 
 const session = computed(() => pending.barSession);
-const amountText = computed(() => (session.value ? session.value.amountUsdt.toLocaleString() : ""));
+const amountText = computed(() => (session.value ? formatAmount(session.value.amountUsdt) : ""));
 const countdown = computed(() => (session.value ? formatCountdown(pending.secondsLeft(session.value)) : "00:00"));
 // 屏读标签不带每秒变化的倒计时(否则聚焦时连续重播报)。
 const ariaLabel = computed(() => `${t.value.store.pendingBarLabel} $${amountText.value} · ${t.value.store.pendingBarResume}`);

@@ -41,15 +41,14 @@ describe("formal remote session-ended boundary", () => {
     assert.doesNotMatch(page, /voided \+ rolled back/);
 
     const locales = [
-      { file: "src/i18n/messages/zh.ts", recordGuidance: /kickedTaskNote: "任务和结算状态以重新登录后显示的记录为准。"/, unsupported: /未结算部分不计入|账户与资金不受影响/ },
-      { file: "src/i18n/messages/en.ts", recordGuidance: /kickedTaskNote: "Task and settlement status follows the records shown after you sign in again\."/, unsupported: /unsettled rewards are forfeited|account and funds are unaffected/i },
-      { file: "src/i18n/messages/vi.ts", recordGuidance: /kickedTaskNote: "Trạng thái tác vụ và quyết toán theo các bản ghi hiển thị sau khi đăng nhập lại\."/, unsupported: /phần thưởng chưa quyết toán bị mất|tài khoản và tiền không bị ảnh hưởng/i },
+      { file: "src/i18n/messages/zh.ts", body: "当前登录已结束。请重新登录后查看任务和结算记录。", taskNote: "任务和结算状态以重新登录后显示的记录为准。", unsupported: /未结算部分不计入|账户与资金不受影响/ },
+      { file: "src/i18n/messages/en.ts", body: "This sign-in has ended. Sign in again to view your task and settlement records.", taskNote: "Task and settlement status follows the records shown after you sign in again.", unsupported: /unsettled rewards are forfeited|account and funds are unaffected/i },
+      { file: "src/i18n/messages/vi.ts", body: "Phiên đăng nhập này đã kết thúc. Hãy đăng nhập lại để xem các bản ghi tác vụ và quyết toán.", taskNote: "Trạng thái tác vụ và quyết toán theo các bản ghi hiển thị sau khi đăng nhập lại.", unsupported: /phần thưởng chưa quyết toán bị mất|tài khoản và tiền không bị ảnh hưởng/i },
     ];
     for (const locale of locales) {
       const messages = read(locale.file);
-      assert.match(messages, /kickedBodySessionEnded:/);
-      assert.match(messages, /kickedTaskNote:/);
-      assert.match(messages, locale.recordGuidance);
+      assert.equal(messages.match(/\bkickedBodySessionEnded:\s*"([^"]*)"/)?.[1], locale.body);
+      assert.equal(messages.match(/\bkickedTaskNote:\s*"([^"]*)"/)?.[1], locale.taskNote);
       assert.doesNotMatch(messages, locale.unsupported);
     }
   });

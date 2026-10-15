@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import ts from "typescript";
 import * as vue from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -34,6 +35,7 @@ function mount() {
   const hooks: Record<string, Array<() => void>> = { show: [], hide: [], unmount: [] };
   let beforeDelivery: (() => void) | undefined;
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: { ...vue, onUnmounted: (fn: () => void) => hooks.unmount.push(fn) },
     "@dcloudio/uni-app": { onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn) },
     "@/pages/daily/daily-reward-view": { dailyMilestoneRewardText: () => "", dailyRewardLabels: () => ({}) },

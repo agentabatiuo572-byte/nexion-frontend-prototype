@@ -7,6 +7,7 @@
 <script setup lang="ts">
 import LiquidGlass from '@/components/liquid-glass.vue';
 </script>
+<style src="./promotion.css"></style>
 <style scoped>
 .promotion-action { position:relative; isolation:isolate; overflow:hidden; }
 .promotion-action-content { position:relative; z-index:1; }

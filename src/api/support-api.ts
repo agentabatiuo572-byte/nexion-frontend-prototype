@@ -48,6 +48,7 @@ export interface SupportApi {
   attachmentPolicy(): Promise<SupportAttachmentPolicy>;
   uploadAttachment(filePath: string, clientUploadId: string, key: string): Promise<SupportAttachment>;
   attachmentContent(id: string, signal?: AbortSignal): Promise<string>;
+  authorAvatarContent(authorId: number, signal?: AbortSignal): Promise<string>;
   cancelAttachment(id: string, key: string): Promise<void>;
   convertConversationToTicket(conversation: Conversation, category: TicketCategory, title: string, key: string): Promise<ConversationTicketResult>;
   commandResult(key: string): Promise<SupportCommandResult | null>;
@@ -127,10 +128,35 @@ function parseConversationMessage(value: unknown): ConvMessage {
   const raw = text(v?.senderType)?.toLowerCase(); const sender = raw === "user" ? "user" : raw === "agent" ? "agent" : raw === "system" ? "system" : null;
   const receipt = v?.receiptStatus == null ? null : text(v.receiptStatus)?.toLowerCase(); const status = receipt === "read" ? "read" : receipt === "sent" ? "sent" : undefined;
   const kind = v?.kind == null ? "TEXT" : text(v.kind)?.toUpperCase();
-  const body = kind === "IMAGE" && v?.content == null ? "" : text(v?.content, true);
+  const body = kind !== "TEXT" && v?.content == null ? "" : text(v?.content, true);
   const attachmentId = kind === "IMAGE" ? text(v?.attachmentId) : null;
-  if (!v || id === null || ts === null || body === null || !sender || (kind !== "TEXT" && kind !== "IMAGE") || (kind === "TEXT" && !body) || (kind === "IMAGE" && !attachmentId) || (receipt !== null && receipt !== "sent" && receipt !== "read") || (sender === "system" && receipt !== null)) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
-  return { id: String(id), sender, text: body, ts, kind, attachmentId: attachmentId ?? undefined, authorName: text(v.senderName) ?? undefined, status: sender === "system" ? undefined : status };
+  if (!v || id === null || ts === null || body === null || !sender || !["TEXT", "IMAGE", "SKU", "LINK"].includes(kind ?? "") || (kind === "TEXT" && !body) || (kind === "IMAGE" && !attachmentId) || (receipt !== null && receipt !== "sent" && receipt !== "read") || (sender === "system" && receipt !== null)) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
+  const message: ConvMessage = { id: String(id), sender, text: body, ts, kind: kind as ConvMessage["kind"], attachmentId: attachmentId ?? undefined, authorName: text(v.senderName) ?? undefined, status: sender === "system" ? undefined : status };
+  if (kind === "SKU" || kind === "LINK") {
+    if (sender !== "agent" || typeof v.targetAvailability !== "string" || !["AVAILABLE", "UNAVAILABLE", "UNKNOWN"].includes(v.targetAvailability)) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
+    message.targetAvailability = v.targetAvailability as ConvMessage["targetAvailability"];
+    if (kind === "SKU") {
+      const skuId = text(v.skuId), skuName = text(v.skuName);
+      if (!skuId || !/^[A-Za-z0-9_-]{1,64}$/.test(skuId) || !skuName) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
+      message.skuId = skuId; message.skuName = skuName;
+    } else {
+      const target = row(v.linkTarget), params = row(target?.params);
+      if (!target || typeof target.type !== "string" || !["HOME", "WALLET", "SUPPORT"].includes(target.type) || !params || Object.keys(params).length || Object.keys(target).some(key => key !== "type" && key !== "params")) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
+      message.linkTarget = { type: target.type as NonNullable<ConvMessage["linkTarget"]>["type"], params: {} };
+    }
+  }
+  const confidence = v.authorConfidence == null ? "UNKNOWN" : v.authorConfidence;
+  const senderId = typeof v.senderId === "number" ? integer(v.senderId, 1) : null;
+  if (typeof confidence !== "string" || !["VERIFIED", "UNKNOWN"].includes(confidence) || (v.senderId != null && senderId === null)) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
+  message.authorConfidence = confidence as ConvMessage["authorConfidence"];
+  message.senderId = senderId ?? undefined;
+  if (v.senderAvatar != null) {
+    const avatar = row(v.senderAvatar), assetId = text(avatar?.assetId);
+    const version = typeof avatar?.version === "number" ? integer(avatar.version) : null;
+    if (sender !== "agent" || confidence !== "VERIFIED" || !senderId || !assetId || !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(assetId) || version === null) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
+    message.senderAvatar = { assetId, version };
+  }
+  return message;
 }
 function parseConversationDetail(value: unknown): Conversation {
   const v = row(value); const nextCursor = cursor(v?.nextCursor); if (!v || !Array.isArray(v.messages) || typeof v.historyTruncated !== "boolean" || (v.nextCursor !== null && v.nextCursor !== undefined && nextCursor === null)) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
@@ -310,6 +336,11 @@ export function createSupportApi(client: ApiClient): SupportApi {
     attachmentContent: async (id, signal) => {
       if (!client.download) invalid("SUPPORT_PRIVATE_DOWNLOAD_UNAVAILABLE");
       return client.download({ path: `${supportRoot}/attachments/${pathId(id)}/content`, signal });
+    },
+    authorAvatarContent: async (authorId, signal) => {
+      if (!Number.isSafeInteger(authorId) || authorId < 1) invalid("SUPPORT_AVATAR_AUTHOR_INVALID");
+      if (!client.download) invalid("SUPPORT_PRIVATE_DOWNLOAD_UNAVAILABLE");
+      return client.download({ path: `${supportRoot}/advisor/avatar/${authorId}`, signal });
     },
     cancelAttachment: async (id, key) => { parseAttachment(await client.request({ method: "DELETE", path: `${supportRoot}/attachments/${pathId(id)}`, idempotencyKey: requiredKey(key) })); },
     convertConversationToTicket: async (conversation, category, title, key) => {

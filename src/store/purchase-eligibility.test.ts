@@ -112,3 +112,62 @@ test.each(["resolve", "reject"] as const)("older forced request cannot %s over n
   await previous;
   expect(store.state("stellarbox-pro")).toMatchObject({ status: "ready", eligible: false, error: "" });
 });
+
+test("570 offscreen cards do not read, and only a visible SKU reads across account and idle resets", async () => {
+  const scope = createRemoteAccountEpoch("user:one");
+  const get = vi.fn(async (productNo: string) => snapshot(productNo, true));
+  const store = createPurchaseEligibilityStore({ get }, scope);
+  const component = effectScope();
+  const visible = Array.from({ length: 570 }, () => ref(false));
+  try {
+    const bindings = component.run(() => visible.map((active, index) =>
+      bindPurchaseEligibility(ref(`sku-${index}`), store, true, active)))!;
+    await nextTick();
+    expect(get).not.toHaveBeenCalled();
+    expect(bindings[0].eligibility.value).toMatchObject({ status: "idle", eligible: false });
+
+    visible[7].value = true;
+    await nextTick();
+    await store.ensure("sku-7");
+    expect(get.mock.calls).toEqual([["sku-7"]]);
+    visible[7].value = false;
+    visible[7].value = true;
+    await nextTick();
+    expect(get).toHaveBeenCalledOnce();
+
+    scope.bind("user:two");
+    store.clear();
+    await nextTick();
+    await store.ensure("sku-7");
+    expect(get.mock.calls).toEqual([["sku-7"], ["sku-7"]]);
+    expect(bindings[8].eligibility.value).toMatchObject({ status: "idle", eligible: false });
+
+    store.clear();
+    await nextTick();
+    await store.ensure("sku-7");
+    expect(get).toHaveBeenCalledTimes(3);
+  } finally { component.stop(); }
+});
+
+test("explicit per-SKU checks still work without visibility, errors do not poll, and detail stays eager", async () => {
+  const scope = createRemoteAccountEpoch("user:one");
+  const get = vi.fn().mockRejectedValueOnce(new Error("OFFLINE"))
+    .mockResolvedValueOnce(snapshot("chosen", true))
+    .mockResolvedValueOnce(snapshot("detail", true));
+  const store = createPurchaseEligibilityStore({ get }, scope);
+  const component = effectScope();
+  try {
+    const binding = component.run(() => bindPurchaseEligibility(ref("chosen"), store, true, ref(false)))!;
+    expect(get).not.toHaveBeenCalled();
+    await binding.retry();
+    await nextTick();
+    expect(binding.eligibility.value).toMatchObject({ status: "error", eligible: false });
+    expect(get).toHaveBeenCalledOnce();
+    await binding.retry();
+    expect(binding.eligibility.value).toMatchObject({ status: "ready", eligible: true });
+
+    component.run(() => bindPurchaseEligibility(ref("detail"), store, true));
+    await store.ensure("detail");
+    expect(get.mock.calls).toEqual([["chosen"], ["chosen"], ["detail"]]);
+  } finally { component.stop(); }
+});

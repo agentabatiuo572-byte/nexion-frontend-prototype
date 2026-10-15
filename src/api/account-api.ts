@@ -125,7 +125,15 @@ function parseTwoFactorChallenge(value: unknown): TwoFactorChallenge {
 }
 
 function parseAccountDeletion(value: unknown): AccountDeletionRequest {
-  const source = record(value);
+  const raw = record(value);
+  const source: Record<string, unknown> | null = raw && {
+    reviewedAt: null,
+    completedAt: null,
+    cancelledAt: null,
+    reason: null,
+    blockReason: null,
+    ...raw,
+  };
   const allowed = ["REQUESTED", "IN_REVIEW", "BLOCKED", "COMPLETED", "CANCELLED"];
   if (!source || typeof source.requestNo !== "string" || !/^ADR-[a-f0-9]{32}$/i.test(source.requestNo)
       || typeof source.status !== "string" || !allowed.includes(source.status)

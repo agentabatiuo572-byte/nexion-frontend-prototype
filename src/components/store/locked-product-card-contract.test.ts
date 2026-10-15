@@ -14,18 +14,18 @@ describe("locked product notification account-scope contract", () => {
     expect(source).toContain("productNotificationApi.subscribe");
     expect(source).toContain("productNotificationApi.unsubscribe");
     expect(source).toContain("const epoch = ++notificationEpoch;");
-    expect(source.match(/requestIsCurrent\(scope, epoch, accountKey, runScope\)/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(source.match(/requestIsCurrent\(scope, epoch, accountKey, runScope, productNo\)/g)?.length).toBeGreaterThanOrEqual(4);
   });
 
   it("guards canonical state and toast writes after each awaited mutation", () => {
     const mutation = source.slice(source.indexOf("async function handleNotify"));
-    expect(mutation).toContain("if (!requestIsCurrent(scope, epoch, accountKey, runScope)) return;");
-    expect(mutation).toContain("requestIsCurrent(scope, epoch, accountKey, runScope)");
+    expect(mutation).toContain("if (!requestIsCurrent(scope, epoch, accountKey, runScope, productNo)) return;");
+    expect(mutation).toContain("requestIsCurrent(scope, epoch, accountKey, runScope, productNo)");
     expect(mutation.indexOf("result.serverCanonical")).toBeGreaterThan(
-      mutation.indexOf("if (!requestIsCurrent(scope, epoch, accountKey)) return;"),
+      mutation.indexOf("if (!requestIsCurrent(scope, epoch, accountKey, runScope, productNo)) return;"),
     );
     expect(mutation.indexOf("toast.success")).toBeGreaterThan(
-      mutation.indexOf("if (!requestIsCurrent(scope, epoch, accountKey)) return;"),
+      mutation.indexOf("if (!requestIsCurrent(scope, epoch, accountKey, runScope, productNo)) return;"),
     );
   });
 

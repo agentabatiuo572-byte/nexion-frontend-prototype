@@ -15,6 +15,7 @@ export interface ThreadMsg {
   imageLoading?: boolean;
   imageError?: boolean;
   imageAttachmentId?: string;
+  authorAvatarSrc?: string;
   meta?: string;
   /** Pre-localised delivery receipt shown under the bubble (user messages only). */
   receipt?: string;

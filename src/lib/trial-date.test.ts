@@ -19,4 +19,14 @@ describe("trial dates", () => {
     expect(appSource).toContain("formatTrialDateTime(freeTrial.graceEndsAt)");
     expect(appSource).not.toContain("freeTrial.graceEndsAt).toLocaleString(");
   });
+
+  it("keeps invalid or missing timestamps unknown and retains a valid epoch zero", () => {
+    vi.stubEnv("TZ", "Asia/Tokyo");
+    for (const value of [NaN, Infinity, -Infinity, 8.64e15 + 1, -8.64e15 - 1, undefined, null, "", "not-a-date"]) {
+      expect(formatTrialDate(value as number)).toBe("—");
+      expect(formatTrialDateTime(value as number)).toBe("—");
+    }
+    expect(formatTrialDate(0)).toBe("1970-01-01");
+    expect(formatTrialDateTime(0)).toBe("1970-01-01 09:00:00");
+  });
 });

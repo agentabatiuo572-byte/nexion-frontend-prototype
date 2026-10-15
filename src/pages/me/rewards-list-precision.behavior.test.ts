@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/amount-display";
 import * as Vue from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -55,6 +56,7 @@ async function mount(localeCode: "zh" | "en" | "vi", rows: Bill[]) {
     refresh: vi.fn(async () => {}), loadMore: vi.fn(async () => {}) });
   const shown: Array<() => void> = [], chassis = Vue.defineComponent({ setup: (_props, { slots }) => () => Vue.h("main", slots.default?.()) });
   const modules: Record<string, unknown> = {
+    "@/lib/amount-display": { formatAmount },
     vue: Vue, "@dcloudio/uni-app": { onLoad: (callback: (options: { cat: string }) => void) => callback({ cat: rows[0]?.symbol === "NEX" ? "nex" : "usdt" }),
       onShow: (callback: () => void) => shown.push(callback) },
     "@/components/app-chassis.vue": { default: chassis }, "@/components/empty-state.vue": { default: Vue.defineComponent(() => () => Vue.h("empty")) },
@@ -92,13 +94,24 @@ beforeEach(() => {
 afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("mounted reward detail precision", () => {
+  it.each(["zh", "en", "vi"] as const)("keeps the authoritative exact amount for both reward assets in %s", async locale => {
+    vi.stubGlobal("Intl", undefined);
+    for (const symbol of ["USDT", "NEX"] as const) {
+      const rows = ["999999999999.999999", "-999999999999.999999", "0.000001", "0001.000001", "-0.000000"].map(amountExact => ({
+        ...fixture(Number(amountExact), symbol), amountExact,
+      }));
+      const before = JSON.stringify(rows), page = await mount(locale, rows);
+      expect(page.amounts()).toEqual([`+1000000000000.00 ${symbol}`, `-1000000000000.00 ${symbol}`,
+        `+0.00 ${symbol}`, `+1.00 ${symbol}`, `0.00 ${symbol}`]);
+      expect(JSON.stringify(rows)).toBe(before);
+    }
+  });
+
   it.each(["zh", "en", "vi"] as const)("keeps six non-zero decimals, symbols, compact NEX and signs in %s", async locale => {
     const rows = [fixture(0.045005), fixture(0.000001), fixture(1234.045005), fixture(-0.045005)];
     const before = JSON.stringify(rows), page = await mount(locale, rows);
-    expect(page.amounts()).toEqual(locale === "vi"
-      ? ["+0,045005 USDT", "+0,000001 USDT", "+1.234,045005 USDT", "-0,045005 USDT"]
-      : ["+0.045005 USDT", "+0.000001 USDT", "+1,234.045005 USDT", "-0.045005 USDT"]);
-    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146 NEX"]);
+    expect(page.amounts()).toEqual(["+0.05 USDT", "+0.00 USDT", "+1234.05 USDT", "-0.05 USDT"]);
+    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146.00 NEX"]);
     expect(JSON.stringify(rows)).toBe(before);
   });
 
@@ -106,18 +119,16 @@ describe("mounted reward detail precision", () => {
     vi.stubGlobal("Intl", undefined);
     const nativeFormat = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("NATIVE_LOCALE_FORMAT_UNAVAILABLE"); });
     const page = await mount(locale, [fixture(0.045005), fixture(0.000001), fixture(-1234.045005)]);
-    expect(page.amounts()).toEqual(locale === "vi"
-      ? ["+0,045005 USDT", "+0,000001 USDT", "-1.234,045005 USDT"]
-      : ["+0.045005 USDT", "+0.000001 USDT", "-1,234.045005 USDT"]);
-    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146 NEX"]);
+    expect(page.amounts()).toEqual(["+0.05 USDT", "+0.00 USDT", "-1234.05 USDT"]);
+    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146.00 NEX"]);
     expect(nativeFormat).not.toHaveBeenCalled();
   });
 
   it("reacts to the locale picker without rereading or changing the authoritative amount", async () => {
     const rows = [fixture(1234.045005)], page = await mount("en", rows), before = JSON.stringify(rows);
-    expect(page.amounts()).toEqual(["+1,234.045005 USDT"]);
-    page.locale.setLocale("vi"); await Vue.nextTick(); expect(page.amounts()).toEqual(["+1.234,045005 USDT"]);
-    page.locale.setLocale("zh"); await Vue.nextTick(); expect(page.amounts()).toEqual(["+1,234.045005 USDT"]);
+    expect(page.amounts()).toEqual(["+1234.05 USDT"]);
+    page.locale.setLocale("vi"); await Vue.nextTick(); expect(page.amounts()).toEqual(["+1234.05 USDT"]);
+    page.locale.setLocale("zh"); await Vue.nextTick(); expect(page.amounts()).toEqual(["+1234.05 USDT"]);
     expect(page.pager.refresh).toHaveBeenCalledOnce(); expect(page.pager.loadMore).not.toHaveBeenCalled();
     expect(JSON.stringify(rows)).toBe(before);
   });
