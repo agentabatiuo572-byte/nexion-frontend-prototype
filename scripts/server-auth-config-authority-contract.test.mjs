@@ -116,7 +116,7 @@ test("remote configuration loads are authoritative and remote writes do not revi
   assert.match(commission, /function withdraw\(id: string\): boolean \{[\s\S]*?if \(remoteApiEnabled\) return false;/);
   assert.match(
     staking,
-    /async function openRemote\([\s\S]*?if \(!remoteAccountEpoch\.isCurrent\(request\) \|\| !remoteReady\.value\) \{[\s\S]*?throw new Error\("G1_REMOTE_AUTHORITY_UNAVAILABLE"\);/,
+    /async function openRemote\([\s\S]*?if \(!remoteAccountEpoch\.isCurrent\(prepared\.request\) \|\| !remoteAccountEpoch\.isCurrent\(request\) \|\| !remoteReady\.value\) \{[\s\S]*?throw new Error\("G1_REMOTE_AUTHORITY_UNAVAILABLE"\);/,
     "remote staking order must require both the current account epoch and a canonical server snapshot",
   );
   assert.match(staking, /const boot = remoteApiEnabled \? \{ positions: \[\], rev: 0 \} : hydrate\(boundKey\)/);

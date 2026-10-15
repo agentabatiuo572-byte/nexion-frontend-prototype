@@ -7,7 +7,19 @@
   postMoneyBill,见 lib/money-receipt.ts),不在 store 里;不裸调资金原语 / 账单写入。
 -->
 <template>
-  <view v-if="open && term !== null && selectedPool" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.staking.title">
+  <view v-if="open && recovering" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.stakingV3.sheet.checkPrevious">
+    <view class="nx-sheet-backdrop" @click="emitClose" />
+    <view class="nx-glass-sheet nx-sheet-panel" :style="panelStyle">
+      <text class="block" :style="titleStyle">{{ t.stakingV3.toast.openFailedTitle }}</text>
+      <text v-if="pendingOpen" class="block" :style="subtitleStyle">{{ fmt(t.stakingV3.sheet.cta, { amount: formatAmount(pendingOpen.amountUsdt), n: pendingTerm }) }}</text>
+      <text class="block" :style="noticeStyle">{{ t.stakingV3.sheet.pendingHint }}</text>
+      <view class="nx-staking-sheet-status-cta" role="button" :aria-disabled="remotePending || recoveryBlocked" :tabindex="remotePending || recoveryBlocked ? -1 : 0" :style="submitStyle" @click="submit" @keydown.enter.prevent="submit" @keydown.space.prevent="submit">
+        <text>{{ t.stakingV3.sheet.checkPrevious }}</text>
+      </view>
+      <view role="button" tabindex="0" :style="closeBtnStyle" @click="emitClose" @keydown.enter.prevent="emitClose" @keydown.space.prevent="emitClose"><text>{{ t.ui.close }}</text></view>
+    </view>
+  </view>
+  <view v-else-if="open && term !== null && selectedPool" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.staking.title">
     <transition name="nx-sheet-fade">
       <view v-if="open" class="nx-sheet-backdrop" @click="emitClose" />
     </transition>
@@ -124,6 +136,10 @@ const risk = useRiskDisclosure();
 
 const amount = ref(0);
 const remotePending = ref(false);
+const pendingOpen = ref<{ tierKey: string; amountUsdt: number } | null>(null);
+const recoveryBlocked = ref(false);
+const recovering = computed(() => !staking.isMockMode && (pendingOpen.value !== null || recoveryBlocked.value));
+const pendingTerm = computed(() => pendingOpen.value?.tierKey.match(/usdt(\d+)d/i)?.[1] ?? "");
 const canOpen = computed(() => canOpenStakingPool(staking, props.term));
 const remoteGate = createRemoteIntentGate("G1");
 const selectedPool = computed(() => props.term === null ? null : resolveStakingPool(
@@ -141,18 +157,40 @@ const minAmount = computed(() => selectedPool.value?.minAmountUsdt ?? 0);
 
 let sheetOpenGeneration = 0;
 
+function restorePendingOpen() {
+  if (staking.isMockMode) return;
+  staking.refreshPendingOpen();
+  try {
+    const pending = remoteGate.unresolved(app.accountKey, "open");
+    for (const value of pending) {
+      const row = value as { tierKey?: unknown; amountUsdt?: unknown } | null;
+      if (!row || typeof row !== "object" || !["usdt30d", "usdt90d", "usdt180d", "usdt365d"].includes(String(row.tierKey))
+          || typeof row.amountUsdt !== "number" || !Number.isFinite(row.amountUsdt) || row.amountUsdt <= 0
+          || row.amountUsdt > 999999999999.999999) throw new Error("G1_PENDING_INVALID");
+    }
+    pendingOpen.value = pending[0] as { tierKey: string; amountUsdt: number } ?? null;
+    recoveryBlocked.value = false;
+  } catch {
+    pendingOpen.value = null;
+    recoveryBlocked.value = true;
+  }
+}
+
 function intentLease(tierKey: string, amountUsdt: number): RemoteIntentLease {
-  return remoteGate.acquire(app.accountKey, "open", { tierKey, amountUsdt });
+  restorePendingOpen();
+  if (pendingOpen.value || recoveryBlocked.value) throw new Error("G1_PENDING_RECOVERY_REQUIRED");
+  return staking.prepareOpen(tierKey, amountUsdt);
 }
 
 // Seed the amount to the term's minimum each time the sheet opens.
 watch(
-  () => [props.open, props.term] as const,
+  () => [props.open, props.term, app.accountKey, app.accountBindingEpoch] as const,
   ([o, term]) => {
     sheetOpenGeneration += 1;
+    restorePendingOpen();
     if (o && term !== null) amount.value = minAmount.value;
   },
-  { flush: "sync" },
+  { flush: "sync", immediate: true },
 );
 onBeforeUnmount(() => { sheetOpenGeneration += 1; });
 
@@ -202,7 +240,39 @@ function emitClose() {
 }
 
 async function submit() {
-  if (!props.open || !canOpen.value || remotePending.value) return;
+  if (!props.open || remotePending.value) return;
+  restorePendingOpen();
+  if (!staking.isMockMode && (pendingOpen.value || recoveryBlocked.value)) {
+    if (recoveryBlocked.value || !pendingOpen.value) return;
+    const original = pendingOpen.value;
+    const account = app.accountKey;
+    const epoch = app.accountBindingEpoch;
+    const generation = sheetOpenGeneration;
+    const lease = remoteGate.lookup(account, "open", original);
+    if (!lease || lease.pending) return;
+    remotePending.value = true;
+    try {
+      const status = await staking.openStatus(original.tierKey, original.amountUsdt, lease.key);
+      if (account !== app.accountKey || epoch !== app.accountBindingEpoch || generation !== sheetOpenGeneration || !props.open) return;
+      if (status === "SUCCEEDED" || status === "FAILED") {
+        remoteGate.complete(lease, true);
+        restorePendingOpen();
+        staking.refreshPendingOpen();
+        if (status === "SUCCEEDED") toast.success(t.value.stakingV3.toast.stakeSuccess);
+        else toast.error(t.value.stakingV3.sheet.failedTitle);
+      } else {
+        toast.error(t.value.stakingV3.toast.openFailedTitle, t.value.stakingV3.sheet.pendingHint);
+      }
+    } catch {
+      if (account === app.accountKey && epoch === app.accountBindingEpoch && generation === sheetOpenGeneration && props.open) {
+        toast.error(t.value.stakingV3.toast.openFailedTitle, t.value.stakingV3.sheet.pendingHint);
+      }
+    } finally {
+      remotePending.value = false;
+    }
+    return;
+  }
+  if (!canOpen.value) return;
   const term = props.term;
   if (term === null) return;
   const min = minAmount.value;
@@ -231,7 +301,6 @@ async function submit() {
       lease = intentLease(pool.tierKey, submittedAmount);
       await risk.checkGate("staking", lease.key);
       if (expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch || !isCurrentSheet()) {
-        remoteGate.complete(lease, false);
         return;
       }
       await staking.openRemote(pool.tierKey, submittedAmount, lease.key);
@@ -240,17 +309,19 @@ async function submit() {
       toast.success(t.value.stakingV3.toast.stakeSuccess);
       emitClose();
     } catch (cause) {
-      if (lease) remoteGate.complete(lease, false);
+      // Only the store knows whether this owned fresh preparation reached the financial API.
+      const unsent = lease ? staking.releasePreparedOpen(lease) : true;
       if (expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch) return;
-      // Unknown timeout/result: read the authority before allowing a retry with the same key.
-      await staking.syncRemote();
+      restorePendingOpen();
       if (expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch || !isCurrentSheet()) return;
       if (cause instanceof ApiError && cause.message === "RISK_DISCLOSURE_ACK_REQUIRED") {
         navTo("/pages/me/risk-disclosure?return=/pages/staking/staking");
         return;
       }
-      toast.error(t.value.stakingV3.toast.openFailedTitle);
+      toast.error(unsent ? t.value.staking.remoteUnavailableClosed : t.value.stakingV3.toast.openFailedTitle);
     } finally {
+      if (lease) staking.releasePreparedOpen(lease);
+      if (expectedAccountKey === app.accountKey && expectedBindingEpoch === app.accountBindingEpoch) restorePendingOpen();
       remotePending.value = false;
     }
     return;

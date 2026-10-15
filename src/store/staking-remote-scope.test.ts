@@ -12,6 +12,7 @@ const remote = vi.hoisted(() => ({
     openStakingPosition: vi.fn(),
     claimStakingPosition: vi.fn(),
     earlyWithdrawStakingPosition: vi.fn(),
+    openStatus: vi.fn(),
   },
 }));
 
@@ -86,11 +87,60 @@ async function bindReady(store: ReturnType<typeof useStaking>) {
 }
 
 beforeEach(() => {
+  const storage = new Map<string, unknown>();
+  vi.stubGlobal("uni", { getStorageSync: (key: string) => storage.get(key), setStorageSync: (key: string, value: unknown) => storage.set(key, structuredClone(value)) });
   setActivePinia(createPinia());
   for (const method of Object.values(remote.stakingApi)) method.mockReset();
 });
 
 describe("staking remote account scope", () => {
+  it("queries the original command independently of wallet/product readiness and never refreshes maturity", async () => {
+    const store = useStaking();
+    await bindReady(store);
+    vi.clearAllMocks();
+    store.remoteReady = false;
+    store.walletBalanceUsdt = 0;
+    store.pools = [];
+    const before = store.positions.map((position) => ({ ...position }));
+    remote.stakingApi.openStatus.mockResolvedValue("FAILED");
+    expect(await store.openStatus("usdt30d", 20, "original-key")).toBe("FAILED");
+    expect(remote.stakingApi.openStatus).toHaveBeenCalledExactlyOnceWith("usdt30d", 20, "original-key");
+    expect(store.positions).toEqual(before);
+    expect(store.walletBalanceUsdt).toBe(0);
+    expect(remote.stakingApi.fetchStakingPositions).not.toHaveBeenCalled();
+    expect(remote.stakingApi.openStakingPosition).not.toHaveBeenCalled();
+  });
+
+  it("rejects a late terminal status after account binding changes", async () => {
+    const store = useStaking();
+    await bindReady(store);
+    const status = deferred<"SUCCEEDED">();
+    remote.stakingApi.openStatus.mockReturnValue(status.promise);
+    const pending = store.openStatus("usdt30d", 20, "original-key");
+    store.bindAccount("B");
+    await flush();
+    status.resolve("SUCCEEDED");
+    await expect(pending).rejects.toThrow("G1_REMOTE_AUTHORITY_UNAVAILABLE");
+    expect(remote.stakingApi.openStakingPosition).not.toHaveBeenCalled();
+  });
+
+  it("never resubmits an ambiguous persisted open, even through the store after reconstruction", async () => {
+    const store = useStaking();
+    await bindReady(store);
+    remote.stakingApi.openStakingPosition.mockRejectedValue(new Error("timeout"));
+    const lease = store.prepareOpen("usdt30d", 100);
+    await expect(store.openRemote("usdt30d", 100, lease.key)).rejects.toThrow("G1_REMOTE_AUTHORITY_UNAVAILABLE");
+    store.releasePreparedOpen(lease);
+    await expect(store.openRemote("usdt30d", 100, lease.key)).rejects.toThrow("G1_PENDING_RECOVERY_REQUIRED");
+    expect(() => store.prepareOpen("usdt90d", 200)).toThrow("G1_PENDING_RECOVERY_REQUIRED");
+    setActivePinia(createPinia());
+    const reconstructed = useStaking();
+    await bindReady(reconstructed);
+    expect(() => reconstructed.prepareOpen("usdt30d", 100)).toThrow("G1_PENDING_RECOVERY_REQUIRED");
+    await expect(reconstructed.openRemote("usdt30d", 100, lease.key)).rejects.toThrow("G1_PENDING_RECOVERY_REQUIRED");
+    expect(remote.stakingApi.openStakingPosition).toHaveBeenCalledTimes(1);
+  });
+
   it("drops a late sync response after switching accounts", async () => {
     const poolA = deferred<StakingPool[]>();
     const snapshotA = deferred<StakingSnapshot>();
@@ -123,7 +173,8 @@ describe("staking remote account scope", () => {
     await bindReady(store);
     const openA = deferred<StakingSnapshot>();
     remote.stakingApi.openStakingPosition.mockReturnValue(openA.promise);
-    const pending = store.openRemote("usdt30d", 100, "open-A");
+    const lease = store.prepareOpen("usdt30d", 100);
+    const pending = store.openRemote("usdt30d", 100, lease.key);
 
     remote.stakingApi.fetchStakingPools.mockResolvedValue([pool("B")]);
     remote.stakingApi.fetchStakingPositions.mockResolvedValue(snapshot("B"));

@@ -61,7 +61,10 @@ export interface StakingSnapshot {
   runId: string;
 }
 
+export type StakingOpenStatus = "SUCCEEDED" | "FAILED" | "PROCESSING" | "UNKNOWN" | "NOT_FOUND" | "MISMATCH";
+
 export interface StakingApi {
+  openStatus(tierKey: string, amountUsdt: number, idempotencyKey: string): Promise<StakingOpenStatus>;
   fetchStakingPools(): Promise<StakingPool[]>;
   fetchStakingPositions(): Promise<StakingSnapshot>;
   openStakingPosition(tierKey: string, amountUsdt: number, idempotencyKey: string): Promise<StakingSnapshot>;
@@ -294,6 +297,19 @@ export function createStakingApi(client: ApiClient, mode: ApiEnvironment = "prod
       authenticated: false,
     }), mode),
     fetchStakingPositions: fetchAllPositions,
+    openStatus: async (tierKey, amountUsdt, idempotencyKey) => {
+      const row = record(await client.request({
+        method: "GET",
+        path: `/api/stakes/open-status?tierKey=${encodeURIComponent(tierKey)}&amountUsdt=${encodeURIComponent(String(amountUsdt))}`,
+        idempotencyKey,
+        timeoutMs: 30_000,
+      }));
+      if (!row || row.stakingCommandProtocol !== 1 || row.sourceEnvironment !== "PRODUCTION" || row.runId !== ""
+          || typeof row.status !== "string" || !["SUCCEEDED", "FAILED", "PROCESSING", "UNKNOWN", "NOT_FOUND", "MISMATCH"].includes(row.status)) {
+        return invalid("STAKING_OPEN_STATUS_INVALID");
+      }
+      return row.status as StakingOpenStatus;
+    },
     openStakingPosition: async (tierKey, amountUsdt, idempotencyKey) =>
       parseSnapshot(await client.request({
         method: "POST",

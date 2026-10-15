@@ -7,6 +7,7 @@ import { stakingApi, remoteApiEnabled } from "@/api/runtime";
 import type { StakingPool } from "@/api/staking-api";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import { asApiError, isSettledRejection } from "@/api/errors";
+import { createRemoteIntentGate, type RemoteIntentLease } from "@/lib/g-remote-intent";
 
 /**
  * Ported from Nexion-prototype/lib/v3/staking.ts (zustand persist → Pinia + uni storage).
@@ -126,6 +127,37 @@ export const useStaking = defineStore("staking", () => {
   const positions = ref<StakingPosition[]>(boot.positions);
   let remoteStateRevision = 0;
   const mutationBarriers = new Map<string, Set<Promise<void>>>();
+  const openIntents = createRemoteIntentGate("G1");
+  const preparedOpens = new Map<string, {
+    lease: RemoteIntentLease;
+    request: RemoteAccountRequest;
+    started: boolean;
+    dispatched: boolean;
+    retiring: boolean;
+  }>();
+  const pendingOpenCount = ref(0);
+
+  function refreshPendingOpen() {
+    if (isMockMode) return;
+    // Retry only cancelled, definitely-unsent preparations owned by this account.
+    // A storage failure must not erase the proof or authorize a financial retry.
+    for (const [key, prepared] of preparedOpens) {
+      if (prepared.retiring && !prepared.dispatched && prepared.request.accountKey === boundKey
+          && openIntents.complete(prepared.lease, true)) {
+        preparedOpens.delete(key);
+      }
+    }
+    updatePendingOpenCount();
+  }
+
+  function updatePendingOpenCount() {
+    if (isMockMode) return;
+    try {
+      pendingOpenCount.value = openIntents.unresolved(boundKey, "open").length;
+    } catch {
+      pendingOpenCount.value = -1; // Corrupt storage remains fenced and recoverable through the sheet.
+    }
+  }
 
   function remoteScopeKey(request: RemoteAccountRequest): string {
     return `${request.epoch}:${request.accountKey}`;
@@ -208,12 +240,48 @@ export const useStaking = defineStore("staking", () => {
     }
   }
 
+  async function openStatus(tierKey: string, amountUsdt: number, idempotencyKey: string) {
+    if (isMockMode) throw new Error("G1_REMOTE_AUTHORITY_UNAVAILABLE");
+    const request = remoteAccountEpoch.snapshot();
+    const status = await stakingApi.openStatus(tierKey, amountUsdt, idempotencyKey);
+    if (!remoteAccountEpoch.isCurrent(request)) throw new Error("G1_REMOTE_AUTHORITY_UNAVAILABLE");
+    return status;
+  }
+
+  function prepareOpen(tierKey: string, amountUsdt: number): RemoteIntentLease {
+    refreshPendingOpen();
+    if (isMockMode || openIntents.unresolved(boundKey, "open").length) throw new Error("G1_PENDING_RECOVERY_REQUIRED");
+    const lease = openIntents.acquire(boundKey, "open", { tierKey, amountUsdt });
+    preparedOpens.set(lease.key, { lease, request: remoteAccountEpoch.snapshot(), started: false, dispatched: false, retiring: false });
+    refreshPendingOpen();
+    return lease;
+  }
+
+  function releasePreparedOpen(lease: RemoteIntentLease) {
+    const prepared = preparedOpens.get(lease.key);
+    if (!prepared || prepared.lease.fingerprint !== lease.fingerprint) return false;
+    // Cancel dispatch eligibility before attempting storage; keep unsent proof until retirement succeeds.
+    prepared.started = true;
+    prepared.retiring = !prepared.dispatched;
+    const cleared = openIntents.complete(lease, !prepared.dispatched);
+    if (cleared || prepared.dispatched) preparedOpens.delete(lease.key);
+    updatePendingOpenCount();
+    return cleared;
+  }
+
   async function openRemote(tierKey: string, amountUsdt: number, idempotencyKey: string) {
     const request = remoteAccountEpoch.snapshot();
+    const lease = openIntents.lookup(boundKey, "open", { tierKey, amountUsdt });
+    const prepared = preparedOpens.get(idempotencyKey);
+    if (!lease || lease.key !== idempotencyKey || !prepared || prepared.started
+        || prepared.lease.fingerprint !== lease.fingerprint) {
+      throw new Error("G1_PENDING_RECOVERY_REQUIRED");
+    }
+    prepared.started = true;
     // A remote order may only be submitted against the exact, successfully
     // parsed server product snapshot. Never reconstruct a tier or minimum from
     // the mock table after a config/network failure.
-    if (!remoteAccountEpoch.isCurrent(request) || !remoteReady.value) {
+    if (!remoteAccountEpoch.isCurrent(prepared.request) || !remoteAccountEpoch.isCurrent(request) || !remoteReady.value) {
       throw new Error("G1_REMOTE_AUTHORITY_UNAVAILABLE");
     }
     const pool = pools.value.find((row) => row.tierKey === tierKey && row.enabled);
@@ -221,6 +289,8 @@ export const useStaking = defineStore("staking", () => {
     if (!remoteAccountEpoch.isCurrent(request)) throw new Error("G1_REMOTE_AUTHORITY_UNAVAILABLE");
     const mutation = beginRemoteMutation(request);
     try {
+      // The financial API boundary, after every local preflight. Unknown results keep this fresh lease.
+      prepared.dispatched = true;
       const snapshot = await stakingApi.openStakingPosition(tierKey, amountUsdt, idempotencyKey);
       if (!remoteAccountEpoch.isCurrent(request)) throw new Error("G1_REMOTE_AUTHORITY_UNAVAILABLE");
       if (mutation.revision === remoteStateRevision) applyRemoteSnapshot(snapshot);
@@ -336,6 +406,8 @@ export const useStaking = defineStore("staking", () => {
   function bindAccount(rawAccountKey: string) {
     boundKey = normalizeAccountKey(rawAccountKey);
     remoteAccountEpoch.bind(boundKey);
+    // Keep ownership until its original caller releases it; binding changes cannot authorize dispatch.
+    refreshPendingOpen();
     if (!isMockMode) {
       clearRemoteState();
       void syncRemote(remoteAccountEpoch.snapshot());
@@ -485,6 +557,11 @@ export const useStaking = defineStore("staking", () => {
     bindAccount,
     syncRemote,
     openRemote,
+    openStatus,
+    prepareOpen,
+    releasePreparedOpen,
+    pendingOpenCount,
+    refreshPendingOpen,
     claimRemote,
     earlyWithdrawRemote,
   };

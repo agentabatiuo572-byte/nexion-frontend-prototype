@@ -4,7 +4,7 @@ import stakingPageSource from "../pages/staking/staking.vue?raw";
 
 describe("staking durable remote intent integration", () => {
   it("scopes every remote money command to the current account", () => {
-    expect(stakeSheetSource).toContain('remoteGate.acquire(app.accountKey, "open"');
+    expect(stakeSheetSource).toContain('staking.prepareOpen(tierKey, amountUsdt)');
     expect(stakingPageSource).toContain("remoteMutationGate.acquire(app.accountKey, kind");
   });
 
@@ -23,10 +23,10 @@ describe("staking durable remote intent integration", () => {
     expect(stakeSheetSource).not.toContain("amountUsdt: amountUsdt.toFixed(2)");
   });
 
-  it("retires keys only after an authoritative mutation succeeds", () => {
+  it("retires acknowledged commands and delegates cancellation to the preparation owner", () => {
     expect(stakeSheetSource).toMatch(/await staking\.openRemote[\s\S]*remoteGate\.complete\(lease, true\)/);
     expect(stakingPageSource).toMatch(/await staking\.(?:claimRemote|earlyWithdrawRemote)[\s\S]*remoteMutationGate\.complete\(lease, true\)/);
-    expect(stakeSheetSource).toContain("remoteGate.complete(lease, false)");
+    expect(stakeSheetSource).toContain("staking.releasePreparedOpen(lease)");
     expect(stakingPageSource).toContain("remoteMutationGate.complete(lease, false)");
   });
 

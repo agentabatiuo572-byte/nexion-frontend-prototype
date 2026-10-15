@@ -20,6 +20,7 @@
            i18n-en-ok: 工程话诊断横幅,仅 DEV + mock 档渲染 -->
       <text v-if="isDevBuild && staking.isMockMode" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-warning)">Dev build · mock data</text>
       <text v-if="staking.remoteError" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-danger)">{{ t.staking.remoteUnavailableClosed }}</text>
+      <view v-if="staking.pendingOpenCount !== 0" class="nx-staking-recovery-entry" role="button" tabindex="0" :style="howPillStyle" @click="openRecovery" @keydown.enter.prevent="openRecovery" @keydown.space.prevent="openRecovery"><text>{{ t.stakingV3.sheet.checkPrevious }}</text></view>
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <!-- Hero — de-carded: total-locked sits on the page floor; aurora + grid
@@ -290,6 +291,14 @@ const totalLockedText = computed(() => formatAmount(totalLocked.value));
 const todayAccruedText = computed(() => formatAmount(todayAccrued.value));
 const totalAccruedText = computed(() => formatAmount(totalAccrued.value));
 const avgApyText = computed(() => (totalLocked.value > 0 ? `${formatStakingPercentage(avgAPY.value)}%` : "—"));
+
+function openRecovery() {
+  if (staking.isMockMode) return;
+  staking.refreshPendingOpen();
+  if (staking.pendingOpenCount === 0) return;
+  sheetTerm.value = null;
+  sheetOpen.value = true;
+}
 
 function openSheet(term: StakingTerm) {
   if (!canOpenPool(term)) return;

@@ -10,6 +10,7 @@ const remote = vi.hoisted(() => ({
     fetchConfig: vi.fn(),
     fetchOrders: vi.fn(),
     open: vi.fn(),
+    openStatus: vi.fn(),
     claim: vi.fn(),
     earlyWithdraw: vi.fn(),
   },
@@ -60,6 +61,8 @@ beforeEach(() => {
   });
   setActivePinia(createPinia());
   for (const method of Object.values(remote.repurchaseApi)) method.mockReset();
+  remote.repurchaseApi.fetchConfig.mockResolvedValue(config);
+  remote.repurchaseApi.fetchOrders.mockResolvedValue(snapshot);
 });
 
 describe("repurchase remote authority", () => {
@@ -226,13 +229,15 @@ describe("repurchase remote authority", () => {
     await restored.refresh();
     expect(restored.pendingOpenAmount).toBe(400);
     await expect(restored.open(100)).rejects.toThrow("REPURCHASE_PENDING_RECOVERY_REQUIRED");
-    await restored.open(400);
-    expect(remote.repurchaseApi.open).toHaveBeenLastCalledWith(400, key);
-    expect(remote.repurchaseApi.open).toHaveBeenCalledTimes(2);
+    await expect(restored.open(400)).rejects.toThrow("REPURCHASE_PENDING_RECOVERY_REQUIRED");
+    remote.repurchaseApi.openStatus.mockResolvedValue("SUCCEEDED");
+    await expect(restored.checkPendingOpen()).resolves.toBe("SUCCEEDED");
+    expect(remote.repurchaseApi.openStatus).toHaveBeenLastCalledWith(400, key);
+    expect(remote.repurchaseApi.open).toHaveBeenCalledTimes(1);
     expect(restored.pendingOpenAmount).toBeNull();
   });
 
-  it("does not discard an unknown earlier commit when a later replay is rejected", async () => {
+  it("does not replay or discard an unknown earlier commit", async () => {
     remote.repurchaseApi.fetchConfig.mockResolvedValue(config);
     remote.repurchaseApi.fetchOrders.mockResolvedValue(snapshot);
     remote.repurchaseApi.open.mockRejectedValueOnce(new Error("timeout"))
@@ -243,7 +248,75 @@ describe("repurchase remote authority", () => {
     await expect(store.open(200)).rejects.toThrow();
     await expect(store.open(200)).rejects.toThrow();
     expect(store.pendingOpenAmount).toBe(200);
-    expect(remote.repurchaseApi.open.mock.calls[1][1]).toBe(remote.repurchaseApi.open.mock.calls[0][1]);
+    expect(remote.repurchaseApi.open).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["PROCESSING", "UNKNOWN", "NOT_FOUND", "MISMATCH"])("retains the same amount and key after %s readback", async (status) => {
+    remote.repurchaseApi.open.mockRejectedValue(new Error("timeout"));
+    const store = useRepurchase();
+    store.bindAccount("account-a");
+    await store.refresh();
+    await expect(store.open(100)).rejects.toThrow();
+    const key = remote.repurchaseApi.open.mock.calls[0][1];
+    const stored = uni.getStorageSync("nexgrid-g-remote-intents-v1");
+    remote.repurchaseApi.openStatus.mockResolvedValue(status);
+    await expect(store.checkPendingOpen()).resolves.toBe(status);
+    expect(store.pendingOpenAmount).toBe(100);
+    expect(uni.getStorageSync("nexgrid-g-remote-intents-v1")).toEqual(stored);
+    expect(remote.repurchaseApi.openStatus).toHaveBeenCalledWith(100, key);
+    expect(remote.repurchaseApi.open).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["SUCCEEDED", "FAILED"])("resolves %s without a second command or historical wallet response", async (status) => {
+    remote.repurchaseApi.open.mockRejectedValue(new Error("timeout"));
+    const store = useRepurchase();
+    store.bindAccount("account-a");
+    await store.refresh();
+    await expect(store.open(100)).rejects.toThrow();
+    const balance = store.walletBalanceUsdt;
+    const reads = remote.repurchaseApi.fetchOrders.mock.calls.length;
+    remote.repurchaseApi.openStatus.mockResolvedValue(status);
+    await expect(store.checkPendingOpen()).resolves.toBe(status);
+    expect(store.pendingOpenAmount).toBeNull();
+    expect(store.walletBalanceUsdt).toBe(balance);
+    expect(remote.repurchaseApi.fetchOrders).toHaveBeenCalledTimes(reads);
+    expect(remote.repurchaseApi.open).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves unknown intent on failed read and prevents concurrent check or submit", async () => {
+    remote.repurchaseApi.open.mockRejectedValue(new Error("timeout"));
+    const store = useRepurchase();
+    store.bindAccount("account-a");
+    await store.refresh();
+    await expect(store.open(100)).rejects.toThrow();
+    let reject!: (cause: Error) => void;
+    remote.repurchaseApi.openStatus.mockReturnValue(new Promise((_, fail) => { reject = fail; }));
+    const check = store.checkPendingOpen();
+    await expect(store.checkPendingOpen()).rejects.toThrow("REPURCHASE_COMMAND_IN_PROGRESS");
+    await expect(store.open(100)).rejects.toThrow("REPURCHASE_PENDING_RECOVERY_REQUIRED");
+    reject(new Error("read unavailable"));
+    await expect(check).rejects.toThrow("read unavailable");
+    expect(store.pendingOpenAmount).toBe(100);
+    expect(store.submitting).toBe(false);
+    expect(remote.repurchaseApi.open).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects late terminal status across an account switch and retains the original account key", async () => {
+    remote.repurchaseApi.open.mockRejectedValue(new Error("timeout"));
+    const store = useRepurchase();
+    store.bindAccount("account-a");
+    await store.refresh();
+    await expect(store.open(100)).rejects.toThrow();
+    let resolve!: (value: string) => void;
+    remote.repurchaseApi.openStatus.mockReturnValue(new Promise((done) => { resolve = done; }));
+    const check = store.checkPendingOpen();
+    store.bindAccount("account-b");
+    resolve("FAILED");
+    await expect(check).rejects.toThrow("REPURCHASE_ACCOUNT_CHANGED");
+    expect(store.pendingOpenAmount).toBeNull();
+    store.bindAccount("account-a");
+    expect(store.pendingOpenAmount).toBe(100);
+    expect(remote.repurchaseApi.open).toHaveBeenCalledTimes(1);
   });
 
   it("never posts when durable storage is unavailable", async () => {

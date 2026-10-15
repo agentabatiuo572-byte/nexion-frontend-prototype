@@ -364,6 +364,7 @@ const LEDGER = {
   "/api/points/power-ups/:param/activate": "TBD-NAME: 积分道具激活;PRD 未定义",
   "/api/quests/:param/claim": "TBD-NAME: 周任务领奖(questApi.claim);与已登记的 /api/quests/state 同族,见交接书 U-16",
   "/api/repurchase/orders": "TBD-NAME: 复购单读/建;PRD 未定义",
+  "/api/repurchase/orders/open-status": "BACKEND-CANDIDATE: AppRepurchaseController#openStatus; docs/changes/2026-10-14-repurchase-open-status.md; USER派生scope/原金额hash/原key只读状态，不重执行业务；待独立复核及部署",
   "/api/repurchase/orders/:param/claim": "TBD-NAME: 同上(领取)",
   "/api/repurchase/orders/:param/early-withdraw": "TBD-NAME: 同上(提前赎回)",
   "/api/legal/risk-disclosure/acknowledgment": "TBD-NAME: 风险披露确认回写;PRD §9.11d.1 只定义了读端点",
@@ -372,6 +373,7 @@ const LEDGER = {
   // 🔴 /api/stakes/* 与已登记的 /api/staking/* 是**同一批业务的两个路径名**,谁是真的没定论。
   //    交接书 U-2 已就此问后端。在他们回话之前,两边都按代码真实引用登记 —— 台账反映实情,
   //    不反映我们希望的样子。
+  "/api/stakes/open-status": "BACKEND-CANDIDATE: AppStakingController#openStatus; docs/staking-open-status.md; USER派生scope/原档位金额hash/原key只读状态，不重执行业务；待配套后端集成及部署",
   "/api/stakes": "TBD-NAME: 与 PRD 的 /api/staking 路径名冲突,见交接书 U-2(客户端 4 处用 stakes)",
   "/api/stakes/:param/claim": "TBD-NAME: 同上;PRD 写的是 POST /api/staking/:id/claim",
   "/api/stakes/:param/early-withdraw": "TBD-NAME: 同上",

@@ -73,11 +73,16 @@ test("G1 remote mutations use instance pending locks, stable keys and authority 
   assert.match(sheet, /const remotePending = ref\(false\)/);
   assert.match(sheet, /const remoteGate = createRemoteIntentGate/);
   assert.match(sheet, /if \(remotePending\.value\) return/);
-  assert.match(sheet, /staking\.syncRemote\(\)/);
+  assert.match(sheet, /await staking\.openStatus\(original\.tierKey, original\.amountUsdt, lease\.key\)/);
+  const recovery = sheet.slice(sheet.indexOf('if (!staking.isMockMode && (pendingOpen.value'), sheet.indexOf('if (!canOpen.value) return'));
+  assert.doesNotMatch(recovery, /syncRemote|openRemote|fetchStakingPositions|openStakingPosition/);
+  assert.match(recovery, /status === "SUCCEEDED" \|\| status === "FAILED"/);
   assert.match(page, /const pendingRemoteMutations = ref/);
   assert.match(page, /if \(pendingRemoteMutations\.value\.has\(intent\)\) return/);
   assert.match(page, /await staking\.syncRemote\(\)/);
-  assert.match(sheet, /remoteGate\.acquire\(app\.accountKey, "open", \{ tierKey, amountUsdt \}\)/);
+  assert.match(sheet, /staking\.prepareOpen\(tierKey, amountUsdt\)/);
+  assert.match(sheet, /staking\.releasePreparedOpen\(lease\)/);
+  assert.match(read("src/store/staking.ts"), /openIntents\.acquire\(boundKey, "open", \{ tierKey, amountUsdt \}\)/);
   assert.match(page, /remoteMutationGate\.acquire\(app\.accountKey, kind, \{ positionNo \}\)/);
   assert.match(sheet, /remoteGate\.complete\(lease,/);
   assert.match(page, /remoteMutationGate\.complete\(lease,/);

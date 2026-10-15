@@ -46,6 +46,9 @@
         <view v-else-if="isRemote && !remoteReady" :style="unavailableStyle" role="status" :aria-busy="repurchase.loading">
           <text class="block" :style="unavailableTitleStyle">{{ repurchase.loading ? loadingLabel : unavailableTitle }}</text>
           <text v-if="!repurchase.loading" class="block" :style="unavailableBodyStyle">{{ unavailableBody }}</text>
+          <view v-if="recovering" role="button" tabindex="0" :aria-disabled="repurchase.submitting" :style="retryCtaStyle" @click="handleRepurchase" @keydown.enter.prevent="handleRepurchase" @keydown.space.prevent="handleRepurchase">
+            <text>{{ ctaLabel }}</text>
+          </view>
           <view v-if="!repurchase.loading" class="nx-repurchase-submit-cta w-full flex items-center justify-center" :style="retryCtaStyle" role="button" tabindex="0" @click="refreshRemote">
             <text>{{ retryLabel }}</text>
           </view>
@@ -205,8 +208,7 @@ const canSubmit = computed(() => {
 
 /**
  * 主按钮此刻**只因余额**而不可提交 —— 判据要窄,窄到「把余额补上就能提交」:
- * · 恢复态(上一笔结果未确认)按原金额重放,**豁免**余额门(与 canSubmit 同一条豁免),
- *   否则用户会被永久卡在恢复路径上;
+ * · 核对态只读取上一笔状态，不经过余额门；未知结果保持原意图。
  * · 产品未开放/快照未就绪时不报「余额不足」—— 那是另一件事,报错会指错方向;
  * · 余额取 displayBalance(remote 走权威快照),与按钮、与余额行**同源**,
  *   不会出现「行里写着 $0.00、门却按另一个数判」的自相矛盾。
@@ -302,6 +304,20 @@ async function refreshRemote() {
 async function handleRepurchase() {
   if (isRemote.value) {
     if (!isMounted.value) return;
+    if (recovering.value) {
+      if (confirming.value || repurchase.submitting) return;
+      const generation = accountGeneration;
+      try {
+        const status = await repurchase.checkPendingOpen();
+        if (!currentScope(generation)) return;
+        if (status === "FAILED") toast.error(w.value.recoveryFailedTitle, w.value.recoveryFailedBody);
+        else if (status === "SUCCEEDED") toast.success(w.value.recoveryConfirmedTitle, w.value.recoveryConfirmedBody);
+        else toast.error(w.value.recoveryPendingTitle, w.value.recoveryHint);
+      } catch {
+        if (currentScope(generation)) toast.error(w.value.recoveryPendingTitle, w.value.recoveryHint);
+      }
+      return;
+    }
     // 快照未就绪 = 整页 HOLD,那时根本没有可点的按钮。
     if (!remoteReady.value) return;
     // 🔴 余额门(第一道,按钮禁用之外的独立一道):余额不足**明确拒绝并说明原因**,
@@ -319,13 +335,7 @@ async function handleRepurchase() {
       const config = repurchase.config;
       confirmed = await uiConfirm({
         title: w.value.confirmTitle,
-        message: recovering.value
-          ? fmt(w.value.recoveryHint, {
-              amount: formatAmount(quoteAmount),
-              days: config?.lockDays ?? 0,
-              penalty: config?.earlyPenaltyPct ?? 0,
-            })
-          : fmt(w.value.confirmMessage, {
+        message: fmt(w.value.confirmMessage, {
               amount: formatAmount(quoteAmount),
               days: config?.lockDays ?? 0,
               penalty: config?.earlyPenaltyPct ?? 0,
@@ -347,7 +357,8 @@ async function handleRepurchase() {
       amount.value = repurchase.pendingOpenAmount ?? nextPreset ?? repurchase.config?.minAmountUsdt ?? 0;
     } catch {
       if (!currentScope(generation)) return;
-      toast.error(w.value.unavailableTitle, w.value.unavailableBody);
+      if (repurchase.pendingOpenAmount !== null) toast.error(w.value.recoveryPendingTitle, w.value.recoveryHint);
+      else toast.error(w.value.recoveryFailedTitle, w.value.recoveryFailedBody);
     }
     return;
   }

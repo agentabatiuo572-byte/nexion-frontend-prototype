@@ -8,6 +8,7 @@ import type {
   RepurchaseConfig,
   RepurchaseOrder,
   RepurchaseSnapshot,
+  RepurchaseOpenStatus,
 } from "@/api/repurchase-api";
 
 function message(error: unknown): string {
@@ -180,12 +181,36 @@ export const useRepurchase = defineStore("repurchase", () => {
     }
   }
 
+  async function checkPendingOpen(): Promise<RepurchaseOpenStatus> {
+    if (!remoteApiEnabled) throw new Error("REPURCHASE_REMOTE_AUTHORITY_REQUIRED");
+    if (submitting.value) throw new Error("REPURCHASE_COMMAND_IN_PROGRESS");
+    if (!boundAccount) throw new Error("REMOTE_INTENT_ACCOUNT_INVALID");
+    restorePendingOpen();
+    if (pendingOpenAmount.value === null) throw new Error("REPURCHASE_PENDING_NOT_FOUND");
+    const lease = intents.lookup(boundAccount, "open", pendingOpenAmount.value);
+    if (!lease || lease.pending) throw new Error("REPURCHASE_PENDING_RECOVERY_REQUIRED");
+    const account = accountGeneration;
+    const request = ++commandGeneration;
+    submitting.value = true;
+    try {
+      const status = await repurchaseApi.openStatus(pendingOpenAmount.value, lease.key);
+      if (account !== accountGeneration || request !== commandGeneration) throw new Error("REPURCHASE_ACCOUNT_CHANGED");
+      if (status === "SUCCEEDED" || status === "FAILED") {
+        intents.complete(lease, true);
+        restorePendingOpen();
+      }
+      return status;
+    } finally {
+      if (account === accountGeneration && request === commandGeneration) submitting.value = false;
+    }
+  }
+
   async function open(amountUsdt: number) {
     if (!remoteApiEnabled) throw new Error("REPURCHASE_REMOTE_AUTHORITY_REQUIRED");
     restorePendingOpen();
     const commandAmount = normalizeCommandAmount(amountUsdt);
     const recovering = pendingOpenAmount.value !== null;
-    if (recovering && pendingOpenAmount.value !== commandAmount) throw new Error("REPURCHASE_PENDING_RECOVERY_REQUIRED");
+    if (recovering) throw new Error("REPURCHASE_PENDING_RECOVERY_REQUIRED");
     const policy = config.value;
     if (!recovering && (!policy || !policy.enabled)) throw new Error("REPURCHASE_PRODUCT_UNAVAILABLE");
     if (!Number.isFinite(amountUsdt) || commandAmount <= 0 || (!recovering && commandAmount < policy!.minAmountUsdt)) {
@@ -243,6 +268,7 @@ export const useRepurchase = defineStore("repurchase", () => {
     refresh,
     refreshHistory,
     open,
+    checkPendingOpen,
     claim,
     earlyWithdraw,
     bindAccount,

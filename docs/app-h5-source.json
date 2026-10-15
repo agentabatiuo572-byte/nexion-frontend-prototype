@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uvel-earn26-gpu-input-20261015",
+  "sourcePath": "D:\\workspace\\audit-artifacts\\uvel-full-test-20261001\\single-controller-handoff-20261016\\g1-g7-final\\app-candidate",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "ff41db810070aa12717d3e8ca1fa9f3168232717",
-  "sourceRef": "ff41db810070aa12717d3e8ca1fa9f3168232717",
+  "sourceHead": "6eaef739fb3d08bd0474333519c96894a1aa02fd",
+  "sourceRef": "6eaef739fb3d08bd0474333519c96894a1aa02fd",
   "sourceRefKind": "commit",
-  "sourceTree": "b1e770c47654348dd23a54205f9bd93b96884dea",
+  "sourceTree": "fc99b8b3dc75f24ea34682420b678bce9a293d2c",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -1487,6 +1487,13 @@
       "sourceSha256": "96bd6b57ece7356edfc8abc790dea72221147ce3e1cae10fb4873c61f6e9ae7f",
       "targetBlob": "c28e4ca679fc63c2e83fe8a2fe539c43712db28d",
       "targetSha256": "96bd6b57ece7356edfc8abc790dea72221147ce3e1cae10fb4873c61f6e9ae7f",
+      "mode": "100644"
+    },
+    "docs/changes/2026-10-14-repurchase-open-status.md": {
+      "sourceBlob": "4e162d5ca3126480fe7deb56bf5490b10dfcc689",
+      "sourceSha256": "a833a2998862435a9f513e093ddc5fe66c15701c8a22f114afed496927561afa",
+      "targetBlob": "4e162d5ca3126480fe7deb56bf5490b10dfcc689",
+      "targetSha256": "a833a2998862435a9f513e093ddc5fe66c15701c8a22f114afed496927561afa",
       "mode": "100644"
     },
     "docs/changes/assets/2026-07-24-st1-globe-t0.png": {
@@ -3414,6 +3421,13 @@
       "targetSha256": "ac062cb490faef5c96aabf5b7d94816382efb3c711fea7b1cabc24b6bca028a7",
       "mode": "100644"
     },
+    "docs/staking-open-status.md": {
+      "sourceBlob": "a9b0363d9973b98d73f6f209a7cee2cfde024ab0",
+      "sourceSha256": "3e7cf7f5f134198d3c71b985b7dbb1c95ff5ba8dc2b04d20cb6bc5d319bac76c",
+      "targetBlob": "a9b0363d9973b98d73f6f209a7cee2cfde024ab0",
+      "targetSha256": "3e7cf7f5f134198d3c71b985b7dbb1c95ff5ba8dc2b04d20cb6bc5d319bac76c",
+      "mode": "100644"
+    },
     "docs/业务流程说明.md": {
       "sourceBlob": "29d468807a21661291d3b85f57e23870daa5be22",
       "sourceSha256": "eec809fc3014e4741437498eb3908bf50c77450e9d8a648bc9585600229ad1a8",
@@ -3898,10 +3912,10 @@
       "mode": "100644"
     },
     "scripts/endpoint-citation-sentinel.mjs": {
-      "sourceBlob": "f5f0a9140925c00f5e62e8e9d9138918fe0d9a66",
-      "sourceSha256": "8a5e1709e2b6a889302c8461bb851aaf7c5e5955499438c94b4e31cdd091aee6",
-      "targetBlob": "f5f0a9140925c00f5e62e8e9d9138918fe0d9a66",
-      "targetSha256": "8a5e1709e2b6a889302c8461bb851aaf7c5e5955499438c94b4e31cdd091aee6",
+      "sourceBlob": "707148d554fe658cd036baccaf48264577267493",
+      "sourceSha256": "b183a9daa293d09225dc4ff0ffff1a010c1a026ca4d5b18ef04b6da70a9724e6",
+      "targetBlob": "707148d554fe658cd036baccaf48264577267493",
+      "targetSha256": "b183a9daa293d09225dc4ff0ffff1a010c1a026ca4d5b18ef04b6da70a9724e6",
       "mode": "100644"
     },
     "scripts/external-market-removal-contract.test.mjs": {
@@ -3961,10 +3975,10 @@
       "mode": "100644"
     },
     "scripts/g-remote-authority-contract.test.mjs": {
-      "sourceBlob": "d6a9db4b4ce5c5eaea0069e49194c6fd07bc11c2",
-      "sourceSha256": "032af2e228af40862eee355e718279612d60cca6185671cc63ee6ecfd8e68fcf",
-      "targetBlob": "d6a9db4b4ce5c5eaea0069e49194c6fd07bc11c2",
-      "targetSha256": "032af2e228af40862eee355e718279612d60cca6185671cc63ee6ecfd8e68fcf",
+      "sourceBlob": "52522aa45c694aa10c0cc9b67fc73157380087d5",
+      "sourceSha256": "2d2ca5eaba372ce5e1cfc35066208353e849568db603fd0e40b301c86cb8f6be",
+      "targetBlob": "52522aa45c694aa10c0cc9b67fc73157380087d5",
+      "targetSha256": "2d2ca5eaba372ce5e1cfc35066208353e849568db603fd0e40b301c86cb8f6be",
       "mode": "100644"
     },
     "scripts/g2-swap-idempotency-behavior.test.mjs": {
@@ -5165,10 +5179,10 @@
       "mode": "100644"
     },
     "scripts/selfcheck-staking-cas.mjs": {
-      "sourceBlob": "1e7b86de55cbcbf27c01adf34fb326c7d08019fd",
-      "sourceSha256": "8c03b551f7a0c4fa45d0a1c33d9f58880037436f3b34ee840a9f47ae9b64f5d8",
-      "targetBlob": "1e7b86de55cbcbf27c01adf34fb326c7d08019fd",
-      "targetSha256": "8c03b551f7a0c4fa45d0a1c33d9f58880037436f3b34ee840a9f47ae9b64f5d8",
+      "sourceBlob": "8f432e549174d49286cf10c0adb81ad0eb2e4464",
+      "sourceSha256": "58c81840fdee63a1e5a9ea2922c45f3f10d01905b66ac63810f95a65357a7d75",
+      "targetBlob": "8f432e549174d49286cf10c0adb81ad0eb2e4464",
+      "targetSha256": "58c81840fdee63a1e5a9ea2922c45f3f10d01905b66ac63810f95a65357a7d75",
       "mode": "100644"
     },
     "scripts/selfcheck-trial-boundary.mjs": {
@@ -5242,10 +5256,10 @@
       "mode": "100644"
     },
     "scripts/server-auth-config-authority-contract.test.mjs": {
-      "sourceBlob": "6654ac2575fe8c09ca479c3bff90e457fd6aa19d",
-      "sourceSha256": "288f5a595d3d05b755712b41bf1e8a936493c4c37fa2705466432434125c7b58",
-      "targetBlob": "6654ac2575fe8c09ca479c3bff90e457fd6aa19d",
-      "targetSha256": "288f5a595d3d05b755712b41bf1e8a936493c4c37fa2705466432434125c7b58",
+      "sourceBlob": "385436a1b2a5c458b9ec54fcab4aed30606dda81",
+      "sourceSha256": "2c538a20a7c27a8bc73579c4b6dee8798527a709e2eba8154721da3b78fef21f",
+      "targetBlob": "385436a1b2a5c458b9ec54fcab4aed30606dda81",
+      "targetSha256": "2c538a20a7c27a8bc73579c4b6dee8798527a709e2eba8154721da3b78fef21f",
       "mode": "100644"
     },
     "scripts/server-login-identity-projection-contract.test.mjs": {
@@ -6817,10 +6831,17 @@
       "mode": "100644"
     },
     "src/api/repurchase-api.ts": {
-      "sourceBlob": "f88476c9a23d059ed33668639287c12c48cad30a",
-      "sourceSha256": "3da68b261e58ba2d2d3be847006af0476f23d35ede893835543f79ffa8336ee3",
-      "targetBlob": "f88476c9a23d059ed33668639287c12c48cad30a",
-      "targetSha256": "3da68b261e58ba2d2d3be847006af0476f23d35ede893835543f79ffa8336ee3",
+      "sourceBlob": "7c34235bbbd8767be67a6ce2011839dec0c1d6b7",
+      "sourceSha256": "0e50b4314b133303255d77e5742d21a7512fdc7cc4dd7dc37568d9522b3e2724",
+      "targetBlob": "7c34235bbbd8767be67a6ce2011839dec0c1d6b7",
+      "targetSha256": "0e50b4314b133303255d77e5742d21a7512fdc7cc4dd7dc37568d9522b3e2724",
+      "mode": "100644"
+    },
+    "src/api/repurchase-open-status.test.ts": {
+      "sourceBlob": "7433b1f9b995fe610322c99abd8e8753cc594591",
+      "sourceSha256": "1b56fe785730dde6bdf1d26904eec02b09dc1f6c300092c0b6b24edf9d96457b",
+      "targetBlob": "7433b1f9b995fe610322c99abd8e8753cc594591",
+      "targetSha256": "1b56fe785730dde6bdf1d26904eec02b09dc1f6c300092c0b6b24edf9d96457b",
       "mode": "100644"
     },
     "src/api/risk-disclosure-api.test.ts": {
@@ -6978,10 +6999,17 @@
       "mode": "100644"
     },
     "src/api/staking-api.ts": {
-      "sourceBlob": "f0f7710ecf73fced091b9059b5d435cb761a5df9",
-      "sourceSha256": "1a22112af645f43a5df7223388af221106766f81606cbac8c386e960d5e56b48",
-      "targetBlob": "f0f7710ecf73fced091b9059b5d435cb761a5df9",
-      "targetSha256": "1a22112af645f43a5df7223388af221106766f81606cbac8c386e960d5e56b48",
+      "sourceBlob": "63dad3ac05fde3b8decebede5f5906cbd06f0d80",
+      "sourceSha256": "9abc710bfa1db9596a2068ebe530adbcd906d5da75a374c3da0a18413dade118",
+      "targetBlob": "63dad3ac05fde3b8decebede5f5906cbd06f0d80",
+      "targetSha256": "9abc710bfa1db9596a2068ebe530adbcd906d5da75a374c3da0a18413dade118",
+      "mode": "100644"
+    },
+    "src/api/staking-open-status.test.ts": {
+      "sourceBlob": "5958f0e2cae4a82083b7a7f3c18b17d6e7ec82dd",
+      "sourceSha256": "234656fe0553a0caf40a91fd818f8ebbb42afcd9e0a0a3c686961999cf335765",
+      "targetBlob": "5958f0e2cae4a82083b7a7f3c18b17d6e7ec82dd",
+      "targetSha256": "234656fe0553a0caf40a91fd818f8ebbb42afcd9e0a0a3c686961999cf335765",
       "mode": "100644"
     },
     "src/api/storefront-activity-api.test.ts": {
@@ -8811,18 +8839,39 @@
       "targetSha256": "20e781af8172c208a6b8cc9724f3e8b515904f6b8316a911687c00b79ce311e2",
       "mode": "100644"
     },
+    "src/components/staking/stake-sheet-fresh-unsent.test.ts": {
+      "sourceBlob": "09b21dcb2584b9108f38fd3768b2eb65de882bc4",
+      "sourceSha256": "95f5115241ec4e86185bef801c5906a5b5cede4f7398b3b5abb41041bf4cf1b4",
+      "targetBlob": "09b21dcb2584b9108f38fd3768b2eb65de882bc4",
+      "targetSha256": "95f5115241ec4e86185bef801c5906a5b5cede4f7398b3b5abb41041bf4cf1b4",
+      "mode": "100644"
+    },
     "src/components/staking/stake-sheet-remote-command.test.ts": {
-      "sourceBlob": "c0b95073712e3ac8f71efa93a7128d9d18b42c81",
-      "sourceSha256": "ea348147fa684c3c74b49decbc2979715df0ee80db7ef2fc83d7d6bb2051df41",
-      "targetBlob": "c0b95073712e3ac8f71efa93a7128d9d18b42c81",
-      "targetSha256": "ea348147fa684c3c74b49decbc2979715df0ee80db7ef2fc83d7d6bb2051df41",
+      "sourceBlob": "deaa7d7054dc778e42f1f549b445b850fec1c365",
+      "sourceSha256": "6e7c91644c25d120a1b541e1b4ca0f73d6451c8fd0908fe9c67b826baf013ea9",
+      "targetBlob": "deaa7d7054dc778e42f1f549b445b850fec1c365",
+      "targetSha256": "6e7c91644c25d120a1b541e1b4ca0f73d6451c8fd0908fe9c67b826baf013ea9",
+      "mode": "100644"
+    },
+    "src/components/staking/stake-sheet-storage-recovery-boundaries.test.ts": {
+      "sourceBlob": "897825d2887e02cd7ae17182cc971de385180cbf",
+      "sourceSha256": "96e0484e43c4cc256846f4860fc82a3b3227de29f4e4408c5e3e9ad1f8be46dc",
+      "targetBlob": "897825d2887e02cd7ae17182cc971de385180cbf",
+      "targetSha256": "96e0484e43c4cc256846f4860fc82a3b3227de29f4e4408c5e3e9ad1f8be46dc",
+      "mode": "100644"
+    },
+    "src/components/staking/stake-sheet-storage-recovery.test.ts": {
+      "sourceBlob": "b3f5e7a18bb72fa9c1c7afe4d1bbe7148663899b",
+      "sourceSha256": "129c5386c91cbedf56a9c201739060bc1934a6020ee4afed15a91c7b1992761c",
+      "targetBlob": "b3f5e7a18bb72fa9c1c7afe4d1bbe7148663899b",
+      "targetSha256": "129c5386c91cbedf56a9c201739060bc1934a6020ee4afed15a91c7b1992761c",
       "mode": "100644"
     },
     "src/components/staking/stake-sheet.vue": {
-      "sourceBlob": "9859b1b9aad656da29a72b4252287e8a730c709c",
-      "sourceSha256": "2585dc8f5d528144106560214eb132f51da49a95951f902af707b5bd2c3aed0c",
-      "targetBlob": "9859b1b9aad656da29a72b4252287e8a730c709c",
-      "targetSha256": "2585dc8f5d528144106560214eb132f51da49a95951f902af707b5bd2c3aed0c",
+      "sourceBlob": "e67f4263fa7ad7a36f7a3b9eacca2efa4158451a",
+      "sourceSha256": "10d806d5c2d01a65ab6dcf738a9761e85ef43dea86089f9036fb60fe023e1187",
+      "targetBlob": "e67f4263fa7ad7a36f7a3b9eacca2efa4158451a",
+      "targetSha256": "10d806d5c2d01a65ab6dcf738a9761e85ef43dea86089f9036fb60fe023e1187",
       "mode": "100644"
     },
     "src/components/staking/vault-row.vue": {
@@ -9491,10 +9540,10 @@
       "mode": "100644"
     },
     "src/i18n/messages/en.ts": {
-      "sourceBlob": "3e1402f704c91b90f5bc5ce2c71a58d9998366c6",
-      "sourceSha256": "0cc83b76692073548302fd82a746fabf7c0f70ef3ce92d61099356cd3a75fab0",
-      "targetBlob": "3e1402f704c91b90f5bc5ce2c71a58d9998366c6",
-      "targetSha256": "0cc83b76692073548302fd82a746fabf7c0f70ef3ce92d61099356cd3a75fab0",
+      "sourceBlob": "defea18cdb0a62aa909d88f44a4be915abbdf3d7",
+      "sourceSha256": "104e7f8f9d0984dcb07936c511df9ca8ba144657a81c0f9bf5739b5b3d18a3a3",
+      "targetBlob": "defea18cdb0a62aa909d88f44a4be915abbdf3d7",
+      "targetSha256": "104e7f8f9d0984dcb07936c511df9ca8ba144657a81c0f9bf5739b5b3d18a3a3",
       "mode": "100644"
     },
     "src/i18n/messages/genesis-cta-copy.test.ts": {
@@ -9512,17 +9561,17 @@
       "mode": "100644"
     },
     "src/i18n/messages/vi.ts": {
-      "sourceBlob": "2c42dbdbfa9b123a99e3879efa1ef553ce13a369",
-      "sourceSha256": "1f9e26ffd8d2f356d369279e719fc06645ea7398ed7eeadea22ce8f606f1b387",
-      "targetBlob": "2c42dbdbfa9b123a99e3879efa1ef553ce13a369",
-      "targetSha256": "1f9e26ffd8d2f356d369279e719fc06645ea7398ed7eeadea22ce8f606f1b387",
+      "sourceBlob": "c338e3f615682db55e165adaabd933c9f6ef2e88",
+      "sourceSha256": "9e11149dbeac4d573dc0feb873ceae1555f06746efd5d0588091a69e2d36765a",
+      "targetBlob": "c338e3f615682db55e165adaabd933c9f6ef2e88",
+      "targetSha256": "9e11149dbeac4d573dc0feb873ceae1555f06746efd5d0588091a69e2d36765a",
       "mode": "100644"
     },
     "src/i18n/messages/zh.ts": {
-      "sourceBlob": "bb0188d74ab0da8b29f4b3ea028ae5a5f61abbab",
-      "sourceSha256": "30ecf5c2de191a471b295493a93325ee86d53694e34f115985656ad924cdc9bb",
-      "targetBlob": "bb0188d74ab0da8b29f4b3ea028ae5a5f61abbab",
-      "targetSha256": "30ecf5c2de191a471b295493a93325ee86d53694e34f115985656ad924cdc9bb",
+      "sourceBlob": "d43d3ed1eee9f601d2f8b59dd523f3437c367321",
+      "sourceSha256": "4451500b5147b8bee34f661029df86d36991cf6f78f1c4c8e1bce0a7d66b8d12",
+      "targetBlob": "d43d3ed1eee9f601d2f8b59dd523f3437c367321",
+      "targetSha256": "4451500b5147b8bee34f661029df86d36991cf6f78f1c4c8e1bce0a7d66b8d12",
       "mode": "100644"
     },
     "src/i18n/open-slots.test.ts": {
@@ -10310,10 +10359,10 @@
       "mode": "100644"
     },
     "src/lib/g-remote-intent-integration.contract.test.ts": {
-      "sourceBlob": "29c703d786b76e1708729ad2331b553490387045",
-      "sourceSha256": "4e8df399070a27f2134bf44d94476fdd4afdc8974f4da5d46ca511de08c998ed",
-      "targetBlob": "29c703d786b76e1708729ad2331b553490387045",
-      "targetSha256": "4e8df399070a27f2134bf44d94476fdd4afdc8974f4da5d46ca511de08c998ed",
+      "sourceBlob": "5d9b0691f8f3b9cee9a1f3981b9f2815bf320283",
+      "sourceSha256": "571a44d97cddfc8c046e9e7fa85872a170b75dba201056de9044af174fe63319",
+      "targetBlob": "5d9b0691f8f3b9cee9a1f3981b9f2815bf320283",
+      "targetSha256": "571a44d97cddfc8c046e9e7fa85872a170b75dba201056de9044af174fe63319",
       "mode": "100644"
     },
     "src/lib/g-remote-intent.test.ts": {
@@ -10324,10 +10373,10 @@
       "mode": "100644"
     },
     "src/lib/g-remote-intent.ts": {
-      "sourceBlob": "0ea6fd75f77a7baa1975e22912294df450c7379c",
-      "sourceSha256": "ebe4c11cdd377fde4c5e764520f38a1d834b97c41f0d736bce3d4c0d18814626",
-      "targetBlob": "0ea6fd75f77a7baa1975e22912294df450c7379c",
-      "targetSha256": "ebe4c11cdd377fde4c5e764520f38a1d834b97c41f0d736bce3d4c0d18814626",
+      "sourceBlob": "ef5800537228a83b7af9dafbcdf0fbc5738541ae",
+      "sourceSha256": "4fbc0deddbae12750b440d773118b5c9d07dc6ab69a2b8b0ca63abf9313ac776",
+      "targetBlob": "ef5800537228a83b7af9dafbcdf0fbc5738541ae",
+      "targetSha256": "4fbc0deddbae12750b440d773118b5c9d07dc6ab69a2b8b0ca63abf9313ac776",
       "mode": "100644"
     },
     "src/lib/genesis-activity-pager.test.ts": {
@@ -13474,10 +13523,10 @@
       "mode": "100644"
     },
     "src/pages/me/me-ui-parity.contract.test.ts": {
-      "sourceBlob": "74a589d7ddf49afd99bea7b3cf5d728767e871a2",
-      "sourceSha256": "30e970a71a0d77b32227c5900b4f789839af587a2ab261e6622bd7ad9cc81c1f",
-      "targetBlob": "74a589d7ddf49afd99bea7b3cf5d728767e871a2",
-      "targetSha256": "30e970a71a0d77b32227c5900b4f789839af587a2ab261e6622bd7ad9cc81c1f",
+      "sourceBlob": "229f16e210ae7e52d7fa2eeb8e2b9eaf1aa79022",
+      "sourceSha256": "9867b861ed7caa72f52c3609611168528e94d248d4d0cc916f1696e284418495",
+      "targetBlob": "229f16e210ae7e52d7fa2eeb8e2b9eaf1aa79022",
+      "targetSha256": "9867b861ed7caa72f52c3609611168528e94d248d4d0cc916f1696e284418495",
       "mode": "100644"
     },
     "src/pages/me/me.vue": {
@@ -13667,6 +13716,13 @@
       "sourceSha256": "969d6c58804fb3dfe705ab8a2dcfbeb24a60c9f59276cf66f81443ddf0964dc7",
       "targetBlob": "f4a5e3e30d3f1861fbd526949208f4e0d61f3394",
       "targetSha256": "969d6c58804fb3dfe705ab8a2dcfbeb24a60c9f59276cf66f81443ddf0964dc7",
+      "mode": "100644"
+    },
+    "src/pages/me/repurchase-status-handler.test.ts": {
+      "sourceBlob": "855429e347145157a1594928f10911ac4118a9a0",
+      "sourceSha256": "ce4628d0313d6d34ab3764da667c95376a81af1660534493984b906918ef1a2c",
+      "targetBlob": "855429e347145157a1594928f10911ac4118a9a0",
+      "targetSha256": "ce4628d0313d6d34ab3764da667c95376a81af1660534493984b906918ef1a2c",
       "mode": "100644"
     },
     "src/pages/me/rewards-list-precision.behavior.test.ts": {
@@ -13985,10 +14041,10 @@
       "mode": "100644"
     },
     "src/pages/me/wallet-repurchase-balance-gate.test.ts": {
-      "sourceBlob": "d3b34d8ce6f751e9b94057705eb402180e36664d",
-      "sourceSha256": "d4a9489a084d70e766c0eee454a0bf0e3054c1c8e9519cecc41c986c224a8383",
-      "targetBlob": "d3b34d8ce6f751e9b94057705eb402180e36664d",
-      "targetSha256": "d4a9489a084d70e766c0eee454a0bf0e3054c1c8e9519cecc41c986c224a8383",
+      "sourceBlob": "3ad0cbf38136c3b66a915692d753d159c86a650d",
+      "sourceSha256": "bece8c12c4f4f5865f63d085cd22c4dbf48bfe894ab8a44bb42616f5aef26fd7",
+      "targetBlob": "3ad0cbf38136c3b66a915692d753d159c86a650d",
+      "targetSha256": "bece8c12c4f4f5865f63d085cd22c4dbf48bfe894ab8a44bb42616f5aef26fd7",
       "mode": "100644"
     },
     "src/pages/me/wallet-repurchase-confirmation.contract.test.ts": {
@@ -14013,10 +14069,10 @@
       "mode": "100644"
     },
     "src/pages/me/wallet-repurchase.vue": {
-      "sourceBlob": "f850ebd5e0ced0d1b7c3a8e0ba5afdced6783935",
-      "sourceSha256": "7d80522e910365db6724161e72e42de3f40790a2d6f38a81357ffdb39f14cb8f",
-      "targetBlob": "f850ebd5e0ced0d1b7c3a8e0ba5afdced6783935",
-      "targetSha256": "7d80522e910365db6724161e72e42de3f40790a2d6f38a81357ffdb39f14cb8f",
+      "sourceBlob": "f6f16d1b97b0b61b4a333316797e83e5222d26ac",
+      "sourceSha256": "5d7974e89475b5ea1e36e0fd4993e6279a8cba6d27fc2bcfd6af7028748881a0",
+      "targetBlob": "f6f16d1b97b0b61b4a333316797e83e5222d26ac",
+      "targetSha256": "5d7974e89475b5ea1e36e0fd4993e6279a8cba6d27fc2bcfd6af7028748881a0",
       "mode": "100644"
     },
     "src/pages/me/wallet-topup.vue": {
@@ -14383,6 +14439,13 @@
       "targetSha256": "cca7bc53d1614b18e922cc2378c628565ad220050a5d2cc9d837bdadbdaa79a2",
       "mode": "100644"
     },
+    "src/pages/staking/staking-open-recovery.test.ts": {
+      "sourceBlob": "a4ea7558a59c323fede68d70dad0595373b59cc7",
+      "sourceSha256": "6fef6e8c7ee1a4aade3af4e1d69cd74dd3d43aa1cd3a38610f4d822cffce824a",
+      "targetBlob": "a4ea7558a59c323fede68d70dad0595373b59cc7",
+      "targetSha256": "6fef6e8c7ee1a4aade3af4e1d69cd74dd3d43aa1cd3a38610f4d822cffce824a",
+      "mode": "100644"
+    },
     "src/pages/staking/staking-risk-copy.test.ts": {
       "sourceBlob": "817dcb54e7a71e446975d8899d653e13e0564ab0",
       "sourceSha256": "aea53c68a4f4463a5813920652e1bee976dcb57b4f726fc0a67fb768bbd4dcce",
@@ -14391,10 +14454,10 @@
       "mode": "100644"
     },
     "src/pages/staking/staking.vue": {
-      "sourceBlob": "b88df45167f530d25aa23e86b26554514d391473",
-      "sourceSha256": "b5118be69bb6d2ac3411f4b01cfa7706834a58df5c708dee61563bc8869ee9bb",
-      "targetBlob": "b88df45167f530d25aa23e86b26554514d391473",
-      "targetSha256": "b5118be69bb6d2ac3411f4b01cfa7706834a58df5c708dee61563bc8869ee9bb",
+      "sourceBlob": "7257b91e48b255d4ae3d03e583815820298230d9",
+      "sourceSha256": "60e0cd613fc263bd008b388c36e61b1832430dab17fd7c184097e3758622b74e",
+      "targetBlob": "7257b91e48b255d4ae3d03e583815820298230d9",
+      "targetSha256": "60e0cd613fc263bd008b388c36e61b1832430dab17fd7c184097e3758622b74e",
       "mode": "100644"
     },
     "src/pages/store/audit-copy-regression.test.ts": {
@@ -16554,17 +16617,17 @@
       "mode": "100644"
     },
     "src/store/repurchase-remote-scope.test.ts": {
-      "sourceBlob": "2cf053bdc4b69eaa4f803ab2f21310d466aef075",
-      "sourceSha256": "f5be7d7838aa4c4125a2e4bcc3380c520e0e8f083c86092ef8116cc8a1546a69",
-      "targetBlob": "2cf053bdc4b69eaa4f803ab2f21310d466aef075",
-      "targetSha256": "f5be7d7838aa4c4125a2e4bcc3380c520e0e8f083c86092ef8116cc8a1546a69",
+      "sourceBlob": "95e481778a57cfe1f9b4660a9ee92bbb54b8bfd7",
+      "sourceSha256": "c2fd706f8a450eb805c96c95b4909fb465b6d5d519567127caff042e4ac8b2f0",
+      "targetBlob": "95e481778a57cfe1f9b4660a9ee92bbb54b8bfd7",
+      "targetSha256": "c2fd706f8a450eb805c96c95b4909fb465b6d5d519567127caff042e4ac8b2f0",
       "mode": "100644"
     },
     "src/store/repurchase.ts": {
-      "sourceBlob": "fa73c5bda856100af2bca975231405999a64a82a",
-      "sourceSha256": "7b462129164223c07a4a3de7a13140b883ee56d22127e53ba49c8f1fea28b3bc",
-      "targetBlob": "fa73c5bda856100af2bca975231405999a64a82a",
-      "targetSha256": "7b462129164223c07a4a3de7a13140b883ee56d22127e53ba49c8f1fea28b3bc",
+      "sourceBlob": "e59c853e9c4c15682243f9dd043f98d877fdf5fb",
+      "sourceSha256": "e1aa55b7cfd278ba54e27ef5f186abba07a6314304f978bac52a23883e637d6e",
+      "targetBlob": "e59c853e9c4c15682243f9dd043f98d877fdf5fb",
+      "targetSha256": "e1aa55b7cfd278ba54e27ef5f186abba07a6314304f978bac52a23883e637d6e",
       "mode": "100644"
     },
     "src/store/rewards-seen.ts": {
@@ -16673,17 +16736,17 @@
       "mode": "100644"
     },
     "src/store/staking-remote-scope.test.ts": {
-      "sourceBlob": "a3452ef959ea953de3d78907b1bf047d11e0c9f3",
-      "sourceSha256": "0803622770ea6bb49cec6f42698e79497fc1843c07db4cf7e59b2f48ac08d82f",
-      "targetBlob": "a3452ef959ea953de3d78907b1bf047d11e0c9f3",
-      "targetSha256": "0803622770ea6bb49cec6f42698e79497fc1843c07db4cf7e59b2f48ac08d82f",
+      "sourceBlob": "02c426a9ee093e8ee34fa86e7f5bb4adb9d2a876",
+      "sourceSha256": "fab4c083bdf679f7afc196e7155d987d1d3653d8b04f8a7300a9afda1f716b85",
+      "targetBlob": "02c426a9ee093e8ee34fa86e7f5bb4adb9d2a876",
+      "targetSha256": "fab4c083bdf679f7afc196e7155d987d1d3653d8b04f8a7300a9afda1f716b85",
       "mode": "100644"
     },
     "src/store/staking.ts": {
-      "sourceBlob": "73ad8cd5bca5609c3eb2335ca35b745bd215ffc8",
-      "sourceSha256": "7a19c5b95f77b980eb21ae9db1b5900b0cbfd188603ce5dee0eb39a645496ab5",
-      "targetBlob": "73ad8cd5bca5609c3eb2335ca35b745bd215ffc8",
-      "targetSha256": "7a19c5b95f77b980eb21ae9db1b5900b0cbfd188603ce5dee0eb39a645496ab5",
+      "sourceBlob": "443f77373b3d3671c95e1b53ffc5dfdc965d7033",
+      "sourceSha256": "08dbbc46d98b484e38df0b3b84c73826248b0d5eb9da30f611b74bf589f0efad",
+      "targetBlob": "443f77373b3d3671c95e1b53ffc5dfdc965d7033",
+      "targetSha256": "08dbbc46d98b484e38df0b3b84c73826248b0d5eb9da30f611b74bf589f0efad",
       "mode": "100644"
     },
     "src/store/sticky-cta-bar.test.ts": {

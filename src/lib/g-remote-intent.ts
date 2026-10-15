@@ -119,6 +119,13 @@ export class RemoteIntentKeyRegistry {
     });
   }
 
+  /** Read an existing key without creating or marking a money command in flight. */
+  lookup(accountKey: string, intent: string, payload: unknown): RemoteIntentLease | null {
+    const fingerprint = commandFingerprint(this.scope, accountKey, intent, payload);
+    const key = this.read().pending[fingerprint];
+    return key ? { fingerprint, key, pending: this.inFlight.has(fingerprint) } : null;
+  }
+
   acquire(accountKey: string, intent: string, payload: unknown): RemoteIntentLease {
     const intentName = normalized(intent, "REMOTE_INTENT_NAME_INVALID");
     const fingerprint = commandFingerprint(this.scope, accountKey, intentName, payload);

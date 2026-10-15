@@ -500,8 +500,11 @@ function diskRev() {
       uni: { navigateTo: () => {} },
     };
     const names = Object.keys(env);
+    // Execute the current sheet helper too; mock-mode return remains real source.
+    const recovery = src.includes("function restorePendingOpen()")
+      ? ts2js(grabBlock(src, "function restorePendingOpen()")) : "";
     // eslint-disable-next-line no-new-func — 正主代码块原文注入执行
-    const run = new Function(...names, `${ts2js(grabBlock(src, needle))}\n; return ${fnName};`)(...names.map((n) => env[n]));
+    const run = new Function(...names, `${recovery}\n${ts2js(grabBlock(src, needle))}\n; return ${fnName};`)(...names.map((n) => env[n]));
 
     const before = ledger.usdtBalance;
     onEveryRead = (key) => { if (key === ACCOUNTS_KEY) bumpDiskRev(); };

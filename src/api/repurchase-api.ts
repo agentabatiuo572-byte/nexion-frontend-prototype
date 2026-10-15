@@ -57,10 +57,13 @@ export interface RepurchaseSnapshot {
   runId: string;
 }
 
+export type RepurchaseOpenStatus = "SUCCEEDED" | "FAILED" | "PROCESSING" | "UNKNOWN" | "NOT_FOUND" | "MISMATCH";
+
 export interface RepurchaseApi {
   fetchConfig(): Promise<RepurchaseConfig>;
   fetchOrders(): Promise<RepurchaseSnapshot>;
   open(amountUsdt: number, idempotencyKey: string): Promise<RepurchaseSnapshot>;
+  openStatus(amountUsdt: number, idempotencyKey: string): Promise<RepurchaseOpenStatus>;
   claim(orderNo: string, idempotencyKey: string): Promise<RepurchaseSnapshot>;
   earlyWithdraw(orderNo: string, idempotencyKey: string): Promise<RepurchaseSnapshot>;
 }
@@ -272,6 +275,21 @@ export function createRepurchaseApi(client: ApiClient, mode: ApiEnvironment = "p
       authenticated: false,
     }), mode),
     fetchOrders: fetchAllOrders,
+    openStatus: async (amountUsdt, idempotencyKey) => {
+      if (!Number.isFinite(amountUsdt) || amountUsdt <= 0) return invalid();
+      const row = record(await client.request({
+        method: "GET", authenticated: true,
+        path: `/api/repurchase/orders/open-status?amountUsdt=${encodeURIComponent(String(amountUsdt))}`,
+        idempotencyKey: requireKey(idempotencyKey),
+      }));
+      if (!row || row.repurchaseCommandProtocol !== 1 || mode !== "prod"
+          || row.sourceEnvironment !== "PRODUCTION" || row.runId !== ""
+          || typeof row.status !== "string"
+          || !["SUCCEEDED", "FAILED", "PROCESSING", "UNKNOWN", "NOT_FOUND", "MISMATCH"].includes(row.status)) {
+        return invalid();
+      }
+      return row.status as RepurchaseOpenStatus;
+    },
     open: async (amountUsdt, idempotencyKey) => parseSnapshot(await client.request({
       method: "POST",
       path: "/api/repurchase/orders",

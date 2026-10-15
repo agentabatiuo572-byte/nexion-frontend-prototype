@@ -24,18 +24,19 @@ const code = ts.transpileModule(body.replace(/^import .*$/gm, ""), {
   compilerOptions: { target: ts.ScriptTarget.ES2022 },
 }).outputText;
 
-function page(balance: number, amount: number, pendingOpenAmount: number | null = null, copy = en) {
+function page(balance: number, amount: number, pendingOpenAmount: number | null = null, copy = en, ready = true) {
   const uiConfirm = vi.fn().mockResolvedValue(true);
   const open = vi.fn().mockResolvedValue({});
+  const check = vi.fn().mockResolvedValue("UNKNOWN");
   const navTo = vi.fn();
   const toasts: Array<[unknown, unknown]> = [];
   const app = Vue.reactive({ user: { usdtBalance: balance }, accountKey: "acct", captureMoney: vi.fn(() => ({})) });
   const success = vi.fn();
   const repurchase = {
-    config: { enabled: true, minAmountUsdt: 100, apyPct: 35, lockDays: 90, presets: [100, 200], earlyPenaltyPct: 15 },
+    config: ready ? { enabled: true, minAmountUsdt: 100, apyPct: 35, lockDays: 90, presets: [100, 200], earlyPenaltyPct: 15 } : null,
     orders: [], walletBalanceUsdt: balance, serverTime: 1, loading: false, submitting: false, error: "",
     historyLoading: false, historyError: "", pendingOpenAmount,
-    refresh: vi.fn(), refreshHistory: vi.fn(), claim: vi.fn(), earlyWithdraw: vi.fn(), open,
+    refresh: vi.fn(), refreshHistory: vi.fn(), claim: vi.fn(), earlyWithdraw: vi.fn(), open, checkPendingOpen: check,
   };
   const bindings: Record<string, unknown> = {
     useT: () => Vue.ref(copy), useApp: () => app,
@@ -51,7 +52,7 @@ function page(balance: number, amount: number, pendingOpenAmount: number | null 
   // dispatched) instead of a bare "is not defined" at bind time.
   const exported = `;return { setAmount: (v) => { amount.value = v; }, t, canSubmit, displayBalance, recovering,
     handleRepurchase, heroStyle, benefitsGridStyle, isSandboxHold, unavailableStyle, unavailableTitle, unavailableBodyStyle,
-    isRemote, remoteReady, repurchase, loadingLabel, unavailableTitleStyle, refreshRemote, retryLabel, retryCtaStyle, w, cardStyle,
+    isRemote, remoteReady, repurchase, loadingLabel, unavailableTitleStyle, unavailableBody, refreshRemote, retryLabel, retryCtaStyle, w, cardStyle,
     monoLabelStyle, amount, formatCommandAmount, confirming, amountInputStyle, onAmount, presets, presetStyle, selectPreset, dollarStyle,
     usdtStyle, balanceLabelStyle, balanceValueStyle, fmt, projectedYield, dividerStyle, lockedNoticeStyle, ctaStyle, ctaLabel,
     refreshOrders, orderStatusLabel, handleClaim, handleEarlyWithdraw, goHow, howLinkStyle, heroIconBoxStyle, heroTitleStyle,
@@ -65,7 +66,7 @@ function page(balance: number, amount: number, pendingOpenAmount: number | null 
   const raw = new Function("formatAmount", ...Object.keys(bindings), code + exported)(formatAmount, ...Object.values(bindings)) as Record<string, unknown>;
   (raw.setAmount as (value: number) => void)(amount);
   return {
-    state: Vue.proxyRefs({ ...raw, formatAmount }) as Record<string, unknown>, repurchase, uiConfirm, open, navTo, toasts, app, success,
+    state: Vue.proxyRefs({ ...raw, formatAmount }) as Record<string, unknown>, repurchase, uiConfirm, open, check, navTo, toasts, app, success,
   };
 }
 
@@ -77,8 +78,8 @@ const render = new Function("formatAmount", "Vue", compile(template, {
 
 const CTA = /<view class="nx-repurchase-submit-cta w-full flex items-center justify-center[^"]*"[^>]*>/;
 
-async function show(balance: number, amount: number, pendingOpenAmount: number | null = null) {
-  const view = page(balance, amount, pendingOpenAmount);
+async function show(balance: number, amount: number, pendingOpenAmount: number | null = null, ready = true) {
+  const view = page(balance, amount, pendingOpenAmount, en, ready);
   const app = Vue.createSSRApp({ render, setup: () => view.state });
   const wrapper = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("div", slots.default?.()) });
   app.component("AppChassis", wrapper);
@@ -121,36 +122,48 @@ describe("re-invest main CTA balance gate", () => {
     expect(html).toContain("$0.00");
   });
 
-  it("never blocks a pending replay whose amount exceeds the current balance", async () => {
-    // The recovery path re-sends an already-issued request with the same key, so
-    // a balance that dropped after the attempt must not lock the user out of it.
+  it("never blocks a read-only pending status check whose amount exceeds the current balance", async () => {
+    // The status query cannot debit funds, so a balance decrease cannot block it.
     const { html, view } = await show(0, 100, 100);
     expect(view.state.recovering).toBe(true);
     expect(view.state.insufficientBalance).toBe(false);
     expect(html).not.toContain(en.repurchase.insufficient);
     expect(view.state.canSubmit).toBe(true);
     await (view.state.handleRepurchase as () => Promise<void>)();
-    expect(view.open).toHaveBeenCalledTimes(1);
+    expect(view.check).toHaveBeenCalledTimes(1);
+    expect(view.open).not.toHaveBeenCalled();
+    expect(view.uiConfirm).not.toHaveBeenCalled();
+  });
+
+  it("keeps the read-only status query visible while product config cannot be read", async () => {
+    const { html, view } = await show(0, 100, 100, false);
+    expect(view.state.remoteReady).toBe(false);
+    expect(html).toContain(fmt(en.repurchase.recoveryCta, { amount: formatAmount(100) }));
+    await (view.state.handleRepurchase as () => Promise<void>)();
+    expect(view.check).toHaveBeenCalledTimes(1);
+    expect(view.open).not.toHaveBeenCalled();
+    expect(view.uiConfirm).not.toHaveBeenCalled();
   });
 
   it.each([{ locale: "zh", copy: zh }, { locale: "en", copy: en }, { locale: "vi", copy: vietnamese }])(
     "$locale keeps an unresolved money attempt and displays a product result without its diagnostic", async ({ copy }) => {
       const view = page(0, 100, 100, copy);
-      view.open.mockRejectedValue(new Error("REPURCHASE_DATABASE_INTERNAL_SENTINEL"));
+      view.check.mockRejectedValue(new Error("REPURCHASE_DATABASE_INTERNAL_SENTINEL"));
       await (view.state.handleRepurchase as () => Promise<void>)();
-      expect(view.toasts).toEqual([[copy.repurchase.unavailableTitle, copy.repurchase.unavailableBody]]);
+      expect(view.toasts).toEqual([[copy.repurchase.recoveryPendingTitle, copy.repurchase.recoveryHint]]);
       expect(view.repurchase.pendingOpenAmount).toBe(100);
       expect(view.success).not.toHaveBeenCalled();
       await (view.state.handleRepurchase as () => Promise<void>)();
-      expect(view.open.mock.calls).toEqual([[100], [100]]);
+      expect(view.check).toHaveBeenCalledTimes(2);
+      expect(view.open).not.toHaveBeenCalled();
       expect(view.repurchase.pendingOpenAmount).toBe(100);
     },
   );
 
-  it("keeps a late money failure out of the next account", async () => {
+  it("keeps a late status-read failure out of the next account", async () => {
     const view = page(0, 100, 100);
     let reject!: (error: Error) => void;
-    view.open.mockImplementation(() => new Promise((_resolve, fail) => { reject = fail; }));
+    view.check.mockImplementation(() => new Promise((_resolve, fail) => { reject = fail; }));
     const sending = (view.state.handleRepurchase as () => Promise<void>)();
     await Promise.resolve();
     view.app.accountKey = "other-account";
