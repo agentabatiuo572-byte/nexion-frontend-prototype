@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import page from "./download.vue?raw";
 import { createComputeShareDownloadGate } from "./download-gate";
+import { requestedGpuTier } from "./gpu-model-input";
 
 type Deferred<T> = { promise: Promise<T>; resolve(value: T): void };
 function deferred<T>(): Deferred<T> {
@@ -75,12 +76,12 @@ function setup(source: string) {
   const journalClear = vi.fn();
   const value = new Function(
     "ref", "computed", "watch", "onMounted", "onUnmounted", "useApp", "useConfig", "useLocaleStore", "useT",
-    "trialReservesSlotNow", "matchGpuTier", "fmt", "remoteApiEnabled", "createComputeShareEnrollmentJournal",
+    "trialReservesSlotNow", "requestedGpuTier", "fmt", "remoteApiEnabled", "createComputeShareEnrollmentJournal",
     "createComputeShareDownloadGate", "navReplace", "toast", "GPU_MODEL_PRESETS", lifecycleCode(source),
   )(
     ref, computed, watch, (callback: () => void) => mounted.push(callback), (callback: () => void) => unmounted.push(callback),
     () => app, () => cfg, () => locale, () => ref({ computeShare: { disabledToast: "disabled" } }),
-    () => false, () => ({ id: "G1", tops: 1 }), (value: string) => value, false, () => ({ read: () => ({ kind: "empty" }), clear: journalClear }),
+    () => false, requestedGpuTier, (value: string) => value, false, () => ({ read: () => ({ kind: "empty" }), clear: journalClear }),
     createComputeShareDownloadGate, replace, { info: vi.fn() }, ["NVIDIA RTX 4070"],
   ) as { gatePhase: { value: string }; enabled: { value: boolean }; connecting: { value: boolean } };
   return {

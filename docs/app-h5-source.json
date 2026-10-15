@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/workspace/uvel-resolution/nexion-frontend-uniapp",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-earn26-gpu-input-20261015",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "0698d516ddc2bb1716697a5ebdcb966d8f970fd6",
-  "sourceRef": "0698d516ddc2bb1716697a5ebdcb966d8f970fd6",
+  "sourceHead": "ff41db810070aa12717d3e8ca1fa9f3168232717",
+  "sourceRef": "ff41db810070aa12717d3e8ca1fa9f3168232717",
   "sourceRefKind": "commit",
-  "sourceTree": "effe6f34c4d46465a3cb9ba398a5596d5d5cf49e",
+  "sourceTree": "b1e770c47654348dd23a54205f9bd93b96884dea",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -7356,10 +7356,10 @@
       "mode": "100644"
     },
     "src/components/a11y-remediation.contract.test.ts": {
-      "sourceBlob": "ea93a1fb41e9b4dc57a73b58fd0f68a70c4001a1",
-      "sourceSha256": "92a19d8e93599800d3d3a037b2e84457bcb291ae6c806c25648ffd90de775df9",
-      "targetBlob": "ea93a1fb41e9b4dc57a73b58fd0f68a70c4001a1",
-      "targetSha256": "92a19d8e93599800d3d3a037b2e84457bcb291ae6c806c25648ffd90de775df9",
+      "sourceBlob": "db898d3073f4620d7ee2dc9310dfd7c0e7e2ef37",
+      "sourceSha256": "99a018b90c07271c2e47652c64bc84fea0fd5a204ad9ea2ee6f7f42db26cc42e",
+      "targetBlob": "db898d3073f4620d7ee2dc9310dfd7c0e7e2ef37",
+      "targetSha256": "99a018b90c07271c2e47652c64bc84fea0fd5a204ad9ea2ee6f7f42db26cc42e",
       "mode": "100644"
     },
     "src/components/app-chassis.vue": {
@@ -9491,10 +9491,10 @@
       "mode": "100644"
     },
     "src/i18n/messages/en.ts": {
-      "sourceBlob": "6d6d245e6b5e8866eea38dbe7ec334709166823e",
-      "sourceSha256": "25b2517fe081e9008abe61a889d8f2c86ddc7b4ccdceff2ca520fe49ba82562c",
-      "targetBlob": "6d6d245e6b5e8866eea38dbe7ec334709166823e",
-      "targetSha256": "25b2517fe081e9008abe61a889d8f2c86ddc7b4ccdceff2ca520fe49ba82562c",
+      "sourceBlob": "3e1402f704c91b90f5bc5ce2c71a58d9998366c6",
+      "sourceSha256": "0cc83b76692073548302fd82a746fabf7c0f70ef3ce92d61099356cd3a75fab0",
+      "targetBlob": "3e1402f704c91b90f5bc5ce2c71a58d9998366c6",
+      "targetSha256": "0cc83b76692073548302fd82a746fabf7c0f70ef3ce92d61099356cd3a75fab0",
       "mode": "100644"
     },
     "src/i18n/messages/genesis-cta-copy.test.ts": {
@@ -9512,17 +9512,17 @@
       "mode": "100644"
     },
     "src/i18n/messages/vi.ts": {
-      "sourceBlob": "1706cd98a4e2b82a1231493b590dbc734c2a50e4",
-      "sourceSha256": "3b393a44de88ea9f1ca339fb165962f1be8b965c34afccf63befb4496b26b6d7",
-      "targetBlob": "1706cd98a4e2b82a1231493b590dbc734c2a50e4",
-      "targetSha256": "3b393a44de88ea9f1ca339fb165962f1be8b965c34afccf63befb4496b26b6d7",
+      "sourceBlob": "2c42dbdbfa9b123a99e3879efa1ef553ce13a369",
+      "sourceSha256": "1f9e26ffd8d2f356d369279e719fc06645ea7398ed7eeadea22ce8f606f1b387",
+      "targetBlob": "2c42dbdbfa9b123a99e3879efa1ef553ce13a369",
+      "targetSha256": "1f9e26ffd8d2f356d369279e719fc06645ea7398ed7eeadea22ce8f606f1b387",
       "mode": "100644"
     },
     "src/i18n/messages/zh.ts": {
-      "sourceBlob": "08a6520f2289f7ec9a5cdf135716a4ba266ce6b1",
-      "sourceSha256": "fd8a6ee8fadf5a10103c0a0eccc96c4c7c5e1f595871d831f18ed8517ccef0ae",
-      "targetBlob": "08a6520f2289f7ec9a5cdf135716a4ba266ce6b1",
-      "targetSha256": "fd8a6ee8fadf5a10103c0a0eccc96c4c7c5e1f595871d831f18ed8517ccef0ae",
+      "sourceBlob": "bb0188d74ab0da8b29f4b3ea028ae5a5f61abbab",
+      "sourceSha256": "30ecf5c2de191a471b295493a93325ee86d53694e34f115985656ad924cdc9bb",
+      "targetBlob": "bb0188d74ab0da8b29f4b3ea028ae5a5f61abbab",
+      "targetSha256": "30ecf5c2de191a471b295493a93325ee86d53694e34f115985656ad924cdc9bb",
       "mode": "100644"
     },
     "src/i18n/open-slots.test.ts": {
@@ -12627,10 +12627,10 @@
       "mode": "100644"
     },
     "src/pages/compute-share/download-mounted-regression.test.ts": {
-      "sourceBlob": "ca5fa08a154b983ca7f89a90216d43609af01f5b",
-      "sourceSha256": "8156fabe18dbee076fa9675d72636fb6b2ec4b81695a9b6aac08b2817b4a2806",
-      "targetBlob": "ca5fa08a154b983ca7f89a90216d43609af01f5b",
-      "targetSha256": "8156fabe18dbee076fa9675d72636fb6b2ec4b81695a9b6aac08b2817b4a2806",
+      "sourceBlob": "db0f5128705b30ff0c316eb1749b4d146e893bca",
+      "sourceSha256": "687c9f9ce1e918df1942bab1a49b9b6e9913da36bfe1774a1450c92f119539d4",
+      "targetBlob": "db0f5128705b30ff0c316eb1749b4d146e893bca",
+      "targetSha256": "687c9f9ce1e918df1942bab1a49b9b6e9913da36bfe1774a1450c92f119539d4",
       "mode": "100644"
     },
     "src/pages/compute-share/download-page-lifecycle.contract.test.ts": {
@@ -12641,10 +12641,10 @@
       "mode": "100644"
     },
     "src/pages/compute-share/download.vue": {
-      "sourceBlob": "745f4faaa303bcf19bb08a00a92aa95e881dc541",
-      "sourceSha256": "69ab85575146a9d14fb915733e009a22059170eb91675f61ed2e36d12aa111c6",
-      "targetBlob": "745f4faaa303bcf19bb08a00a92aa95e881dc541",
-      "targetSha256": "69ab85575146a9d14fb915733e009a22059170eb91675f61ed2e36d12aa111c6",
+      "sourceBlob": "f8a1bb2075ac2b4fc24599d368c91600c6efbec8",
+      "sourceSha256": "6ec44fd93f7ec0540939838f2686306a82e8d839e0108ee53aef08d984b7de7e",
+      "targetBlob": "f8a1bb2075ac2b4fc24599d368c91600c6efbec8",
+      "targetSha256": "6ec44fd93f7ec0540939838f2686306a82e8d839e0108ee53aef08d984b7de7e",
       "mode": "100644"
     },
     "src/pages/compute-share/enrollment-flow.test.ts": {
@@ -12687,6 +12687,20 @@
       "sourceSha256": "ffdc6c5c9614c90310dac5f39357720fb75a2309f96bafb0297a34c6fa5dad9d",
       "targetBlob": "06e0ea145e6d1c35cc1bb16c748c057f97996e2f",
       "targetSha256": "ffdc6c5c9614c90310dac5f39357720fb75a2309f96bafb0297a34c6fa5dad9d",
+      "mode": "100644"
+    },
+    "src/pages/compute-share/gpu-model-input.test.ts": {
+      "sourceBlob": "a89ef11a9159ff74cfcc9195dc731b6e93f389b2",
+      "sourceSha256": "a94fb9eb77d0d1b1213816b794cbbeba594e375cc7fe9366c24955828b290214",
+      "targetBlob": "a89ef11a9159ff74cfcc9195dc731b6e93f389b2",
+      "targetSha256": "a94fb9eb77d0d1b1213816b794cbbeba594e375cc7fe9366c24955828b290214",
+      "mode": "100644"
+    },
+    "src/pages/compute-share/gpu-model-input.ts": {
+      "sourceBlob": "78cb9642cbdc99a745ec35169ec4ef77c0749743",
+      "sourceSha256": "e87a180c8d4ed6f125ed5e27c71dd86d8a87b6d04280fe6b0fea1c36fbe644eb",
+      "targetBlob": "78cb9642cbdc99a745ec35169ec4ef77c0749743",
+      "targetSha256": "e87a180c8d4ed6f125ed5e27c71dd86d8a87b6d04280fe6b0fea1c36fbe644eb",
       "mode": "100644"
     },
     "src/pages/compute-share/pairing-handoff.test.ts": {

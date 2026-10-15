@@ -89,8 +89,10 @@ describe("accessibility remediation contracts", () => {
     const download = read("../pages/compute-share/download.vue");
     expect(download).toContain('role="button" tabindex="0" :aria-label="t.computeShare.downloadCta"');
     expect(download).toContain('role="button"');
-    // 显卡型号是互斥单选:同上,改钉 radiogroup/radio。
-    expect(download).toContain('role="radiogroup" :aria-label="t.computeShare.modelLabel"');
+    // Actual model input and the optional single-choice quick-fill group each have a name.
+    expect(download).toContain(':aria-label="t.computeShare.modelLabel"');
+    expect(download).toContain('data-proof="compute-share-gpu-model-input"');
+    expect(download).toContain('role="radiogroup" :aria-label="t.computeShare.modelPresets"');
     expect(download).toContain(':aria-checked="selectedModel === model ? \'true\' : \'false\'"');
 
     const course = read("../pages/learn/course.vue");

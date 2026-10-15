@@ -45,21 +45,33 @@
         </view>
 
         <text class="block" :style="modelLabelStyle">{{ t.computeShare.modelLabel }}</text>
+        <input
+          v-model="selectedModel"
+          type="text"
+          :maxlength="128"
+          :disabled="modelInputLocked"
+          :aria-label="t.computeShare.modelLabel"
+          :placeholder="t.computeShare.modelPlaceholder"
+          :style="modelInputStyle"
+          data-proof="compute-share-gpu-model-input"
+        />
+        <text class="block" :style="modelLabelStyle">{{ t.computeShare.modelPresets }}</text>
         <!-- 显卡型号是互斥单选(选一个,其余取消)。原先 role="button" + aria-pressed 被浏览器
              当 toggle button,读屏按复选框朗读(zentao #94)。改 radiogroup/radio + aria-checked
              + roving tabindex + 左右方向键。 -->
-        <view class="grid" style="grid-template-columns: 1fr 1fr; gap: 8px" role="radiogroup" :aria-label="t.computeShare.modelLabel">
+        <view class="grid" style="grid-template-columns: 1fr 1fr; gap: 8px" role="radiogroup" :aria-label="t.computeShare.modelPresets">
           <view
             v-for="(model, mi) in GPU_MODEL_PRESETS"
             :key="model"
             :style="modelButtonStyle(model)"
             role="radio"
-            :tabindex="selectedModel === model ? 0 : -1"
+            :tabindex="modelInputLocked ? -1 : (selectedModel === model || (!GPU_MODEL_PRESETS.includes(selectedModel) && mi === 0) ? 0 : -1)"
+            :aria-disabled="modelInputLocked ? 'true' : 'false'"
             :aria-label="model"
             :aria-checked="selectedModel === model ? 'true' : 'false'"
-            @click="selectedModel = model"
-            @keydown.enter.prevent="selectedModel = model"
-            @keydown.space.prevent="selectedModel = model"
+            @click="selectModel(model)"
+            @keydown.enter.prevent="selectModel(model)"
+            @keydown.space.prevent="selectModel(model)"
             @keydown.left.prevent="moveModel(mi, -1)"
             @keydown.right.prevent="moveModel(mi, 1)"
           >
@@ -113,7 +125,7 @@ import { useConfig } from "@/store/config";
 import { useLocaleStore } from "@/store/locale";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { toast } from "@/store/ui";
-import { matchGpuTier } from "@/lib/gpu-tiers";
+import { isRequestedGpuModelValid, normalizeRequestedGpuModel, requestedGpuTier } from "./gpu-model-input";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { computeShareApi, remoteApiEnabled } from "@/api/runtime";
@@ -141,9 +153,13 @@ const cfg = useConfig();
 const locale = useLocaleStore();
 const t = useT();
 
-const selectedModel = ref(GPU_MODEL_PRESETS[2]);
+const selectedModel = ref("");
+function selectModel(model: string): void {
+  if (!modelInputLocked.value) selectedModel.value = model;
+}
 /** 单选组的左右方向键:移一格并选上,焦点跟到新选中项(zentao #94,与 earn.vue moveRange 同形)。 */
 function moveModel(index: number, delta: number): void {
+  if (modelInputLocked.value) return;
   const next = GPU_MODEL_PRESETS[(index + delta + GPU_MODEL_PRESETS.length) % GPU_MODEL_PRESETS.length];
   if (!next) return;
   selectedModel.value = next;
@@ -154,6 +170,7 @@ function moveModel(index: number, delta: number): void {
 }
 const enrollment = ref<ComputeShareEnrollment | null>(null);
 const connecting = ref(false);
+const modelInputLocked = computed(() => connecting.value || enrollment.value?.status === "PENDING");
 const gatePhase = ref<ComputeShareDownloadGatePhase>("pending");
 let accountGeneration = 0;
 let lifecycleGeneration = 0;
@@ -186,7 +203,7 @@ const downloadGuide = computed(() => {
   const configured = (locale.code === "zh" ? content.zhGuide : content.enGuide).trim();
   return configured || t.value.computeShare.downloadBody;
 });
-const selectedTier = computed(() => matchGpuTier(selectedModel.value, cfg.config.computeShare.gpuTiers));
+const selectedTier = computed(() => requestedGpuTier(selectedModel.value, cfg.config.computeShare.gpuTiers));
 const tierLabels = computed(() => ({
   G1: t.value.computeShare.gpuTierG1,
   G2: t.value.computeShare.gpuTierG2,
@@ -195,14 +212,15 @@ const tierLabels = computed(() => ({
   G5: t.value.computeShare.gpuTierG5,
   G6: t.value.computeShare.gpuTierG6,
 }));
-const selectedTierLabel = computed(() => tierLabels.value[selectedTier.value.id]);
+const selectedTierLabel = computed(() => selectedTier.value
+  ? tierLabels.value[selectedTier.value.id] : t.value.computeShare.gpuTierUnknown);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
 const slotsFull = computed(() => app.activeSlotCount + trialSlot.value >= app.slotCap);
-const tierSummary = computed(() =>
+const tierSummary = computed(() => selectedTier.value ?
   fmt(t.value.computeShare.tierSummary, {
     tier: selectedTierLabel.value,
     tops: selectedTier.value.tops,
-  }),
+  }) : t.value.computeShare.tierUnconfirmed,
 );
 const pairingStatusText = computed(() => enrollment.value?.status === "CONNECTED"
   ? t.value.computeShare.pairingConnected
@@ -272,6 +290,7 @@ watch(() => String(app.accountKey), (next, previous) => {
   accountGeneration += 1;
   connecting.value = false;
   enrollment.value = null;
+  selectedModel.value = "";
   inMemoryPairingCode = null;
   clearPolling();
   if (remoteApiEnabled && gatePhase.value === "ready" && enabled.value) {
@@ -319,6 +338,7 @@ async function adoptEnrollment(
   const next = preserved.enrollment;
   inMemoryPairingCode = preserved.pairingCode;
   enrollment.value = next;
+  selectedModel.value = next.requestedGpuModel;
   if (next.status === "CONNECTED") {
     enrollmentJournal.clear(expectedAccount);
     if (pollTimer) clearTimeout(pollTimer);
@@ -371,11 +391,19 @@ async function createRemoteEnrollment(
   expectedLifecycle = lifecycleGeneration,
 ) {
   if (connecting.value || !isCurrent(expectedAccount, expectedGeneration, expectedLifecycle) || !enabled.value) return;
+  const retained = enrollmentJournal.read(expectedAccount);
+  // Editing a draft must never replace a retained command or mint a new key.
+  if (retained.kind === "ok" && retained.pending) {
+    selectedModel.value = retained.pending.requestedGpuModel;
+  } else if (retained.kind === "ok" && !isRequestedGpuModelValid(selectedModel.value)) {
+    toast.warn(t.value.computeShare.modelInvalid);
+    return;
+  }
   connecting.value = true;
   try {
     const result = await runComputeShareEnrollmentFlow({
       accountKey: expectedAccount,
-      requestedGpuModel: selectedModel.value,
+      requestedGpuModel: normalizeRequestedGpuModel(selectedModel.value),
       journal: enrollmentJournal,
       createKey: newEnrollmentKey,
       isCurrent: () => isCurrent(expectedAccount, expectedGeneration, expectedLifecycle),
@@ -413,6 +441,10 @@ function connectDemoComputer() {
   }
   if (connecting.value || enrollment.value?.status === "PENDING") return;
   if (!remoteApiEnabled) {
+    if (!isRequestedGpuModelValid(selectedModel.value)) {
+      toast.warn(t.value.computeShare.modelInvalid);
+      return;
+    }
     const result = app.connectComputeShareDevice(selectedModel.value, trialSlot.value);
     if (!result.ok) {
       const msg = result.reason === "disabled"
@@ -564,6 +596,15 @@ const modelLabelStyle: CSSProperties = {
   fontSize: "12px",
   fontWeight: 600,
   color: "var(--v5-ink-2)",
+};
+const modelInputStyle: CSSProperties = {
+  minHeight: "44px",
+  padding: "0 12px",
+  borderRadius: "10px",
+  background: "var(--v5-surface-2)",
+  color: "var(--v5-ink)",
+  fontSize: "15px",
+  border: "1px solid var(--v5-surface-3)",
 };
 function modelButtonStyle(model: string): CSSProperties {
   const on = selectedModel.value === model;
