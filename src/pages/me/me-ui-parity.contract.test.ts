@@ -49,6 +49,7 @@ const EXPECTED_TEMPLATE_DIFFERENCES = [
   "wallet-withdraw.vue",
   "wallet.vue"
 ];
+// Reviewed touch-target/countdown fix: 44px controls and localized seconds slot.
 // Pin the exact formal/reference template pair for every approved difference.
 // A new edit inside an approved file therefore still fails until its specific
 // production-only delta is reviewed; this is not a file-level exemption.
@@ -84,7 +85,7 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   // Reviewed removal of the retired card-migration notice; trial amounts, deadlines and actions remain covered.
   // Reviewed #535: active/grace catalog CTA/ARIA and ready-only unavailability hint.
   "trial.vue": "aaced274aa73d3d8b5345ea1e76d9854eb987519cca0fc8bd185aa4ff3858e36",
-  "wallet-address-rebind.vue": "64f22ae20b3725ff6df6c516a9f99a6714efd94834cc5b02734c146e377e9e32",
+  "wallet-address-rebind.vue": "6b58aa27f914476beaab55fe607c88db66a8fd690a0584fe034c17fe52a4b76a",
   // Reviewed #465: refund references wrap on their own read-only line; other bill rows retain their layout.
   // Promotion receipt deep links retain the existing refund row and bill layout.
   "wallet-bills.vue": "c3f827ee5d16ffc31e373c1e79567ae8e8a8affbacc1f34646399d015dd16ba7",
@@ -100,11 +101,13 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "wallet-topup.vue": "010252b7630c35defdf57a3f262d0e389c011d2b9d79ad2f5fb788e794d87768",
   "wallet-withdraw-tracking.vue": "8df13af397e2fcb7b6de4164285dd222d6d8f851c8c153af03f300d2883de2f5",
   // Original pending requests expose retry even when the new-transfer form is incomplete.
-  "wallet-withdraw.vue": "267bd0456c6e186e9ca41069afd6901107cf764cc00bc84338b73ca5873bafb0",
+  "wallet-withdraw.vue": "7ca90c0482579ea2ae27a162e1c080089317fff24b5789c70078eab3875655c2",
   // Reviewed e0a491a earnings reasons/retry with fixed two-decimal amount displays.
   "wallet.vue": "eb813b7dfcb664f836091f06472188a2bd101f73c05aa6b607debf35051da849"
 };
 const EXPECTED_STYLE_PAIR_SHA256: Record<string, string> = {
+  // Reviewed touch-target/countdown fix: a fixed localized seconds slot.
+  "wallet-address-rebind.vue": "b2634e4c33fd100e60dc449a3b7b4c3d4aef975df72c505c73174ea79b279625",
   // Approved unified center uses shared flat-row styles and fixed native scrolling.
   "notifications.vue": "e065437c45004cdd395d81d27ebc06f17e7f3e4c5da3e9e9f7092d8204e2d30a",
   "preferences.vue": "2329be1da2edb9adaa473f5ef7408aa3edd688413331fdf42c4abd406c57415f",
@@ -163,9 +166,10 @@ describe("Me page 5174 normal-state UI parity", () => {
     const notification = readFileSync(new URL('./notifications.vue', import.meta.url), 'utf8');
     expect(createHash('sha256').update(fullTemplate(notification)).digest('hex')).toBe('be9ba0b339c494422691051390b9f15ca3df444d5f8817f08009072b6f20c7b1');
   });
+  // Merge review: preserve catalog ARIA/retry and the 44px rules-close target.
   it('pins the complete trial page including ended catalog ARIA and independent retry', () => {
     const trial = readFileSync(new URL('./trial.vue', import.meta.url), 'utf8');
-    expect(createHash('sha256').update(fullTemplate(trial)).digest('hex')).toBe('b11c5c08a5e1f64a630700a7120a8a48fec6c9f9cb95ad6bfef8eb1f40ab1fac');
+    expect(createHash('sha256').update(fullTemplate(trial)).digest('hex')).toBe('159b76ccb6e6d87418df0a69bd605aca22da88b42fbcd03edd0d3bfb332121e4');
   });
   it("includes every page-local style block in the visual fingerprint", () => {
     const shared = '<style src="@/styles/message-center.css"></style>';

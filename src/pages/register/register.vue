@@ -1019,7 +1019,8 @@ onUnmounted(() => cleanup());
 .rg-field-wrap { display: flex; align-items: center; background: var(--v5-surface); border-radius: 16px; height: 56px; padding: 0 16px; }
 .rg-field-wrap--err { background: color-mix(in srgb, var(--v5-brand-2) 12%, var(--v5-surface)); }
 .rg-field--flex { flex: 1; background: transparent; border: none; height: 100%; padding: 0; }
-.rg-eye { padding: 4px; }
+.rg-eye { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; }
+.rg-eye:active { opacity: 0.7; }
 .rg-check { display: flex; }
 .rg-review { margin-top: 16px; border-radius: 12px; background: color-mix(in srgb, var(--v5-warning) 10%, transparent); padding: 10px 12px; }
 .rg-review__title { display: block; font-size: 13px; font-weight: 600; color: var(--v5-warning); }
