@@ -221,7 +221,7 @@
         <view class="flex items-center justify-between">
           <view class="inline-flex items-center" style="gap: 2px">
             <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.walletV3.feeConfirmRow }}</text>
-            <view class="grid place-items-center active:opacity-60" style="min-width: 32px; min-height: 32px; margin: -10px 0" role="button" tabindex="0" :aria-label="t.walletV3.feeWhyTitle" @click="feeWhyOpen = true">
+            <view class="grid place-items-center active:opacity-60" style="min-width: 44px; min-height: 44px; flex-shrink: 0" role="button" tabindex="0" :aria-label="t.walletV3.feeWhyTitle" @click="feeWhyOpen = true">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>
             </view>
           </view>

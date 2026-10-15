@@ -40,7 +40,7 @@
     "build:quickapp-webview-union": "uni build -p quickapp-webview-union",
     "type-check": "vue-tsc --noEmit",
     "type-check:cached": "node scripts/typecheck-cached.mjs",
-    "test:contract-registry": "node scripts/frontend-mock-mode-contract.test.mjs && node --test scripts/external-market-removal-contract.test.mjs scripts/final-trust-market-contract.test.mjs scripts/keyboard-submit-contract.test.mjs scripts/leadership-pool-consumers.test.mjs",
+    "test:contract-registry": "node scripts/frontend-mock-mode-contract.test.mjs && node --test scripts/external-market-removal-contract.test.mjs scripts/final-trust-market-contract.test.mjs scripts/keyboard-submit-contract.test.mjs scripts/leadership-pool-consumers.test.mjs scripts/touch-target-countdown.contract.test.mjs",
     "test:unit": "vitest run",
     "test:team-home": "vitest run src/components/team/team-home-redesign.test.ts && node scripts/team-home-redesign-runtime.mjs",
     "test:milestones": "node scripts/selfcheck-milestone-queue.mjs && node scripts/milestone-verify.mjs",

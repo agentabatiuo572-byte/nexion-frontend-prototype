@@ -42,7 +42,7 @@
             <text style="font-size: 13px; color: var(--v5-ink)">{{ t.earn.quickMenu.tradein }}</text>
           </view>
         </view>
-        <view class="mt-2 w-full grid place-items-center" style="height: 40px; border-radius: 999px; background: var(--v5-surface-2)" role="button" tabindex="0" @click="closeMenu" @keydown.enter.stop.prevent="closeMenu" @keydown.space.stop.prevent="closeMenu">
+        <view class="mt-2 w-full grid place-items-center" style="min-height: 44px; border-radius: 999px; background: var(--v5-surface-2)" role="button" tabindex="0" @click="closeMenu" @keydown.enter.stop.prevent="closeMenu" @keydown.space.stop.prevent="closeMenu">
           <text style="font-size: 13px; color: var(--v5-ink-2)">{{ t.earn.quickMenu.cancel }}</text>
         </view>
       </view>
@@ -222,19 +222,23 @@
     <view v-if="device.kind === 'phone'" style="padding: 0 20px 12px">
       <view class="flex items-center gap-1.5 mb-2">
         <text style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-ink-3)">{{ t.earn.phoneSettingsTitle }}</text>
-        <view class="nx-device-help grid place-items-center rounded-full active:opacity-60" style="width: 20px; height: 20px" role="button" tabindex="0" :aria-label="t.earn.phoneRequirementsHelpAria" :aria-expanded="showHelp" @click="showHelp = !showHelp" @keydown.enter.stop.prevent="showHelp = !showHelp" @keydown.space.stop.prevent="showHelp = !showHelp">
+        <view class="nx-device-help grid place-items-center rounded-full active:opacity-60" style="min-width: 44px; min-height: 44px; flex-shrink: 0" role="button" tabindex="0" :aria-label="t.earn.phoneRequirementsHelpAria" :aria-expanded="showHelp" @click="showHelp = !showHelp" @keydown.enter.stop.prevent="showHelp = !showHelp" @keydown.space.stop.prevent="showHelp = !showHelp">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>
         </view>
       </view>
       <view v-if="showHelp" class="mb-2.5 rounded-lg px-3 py-2" style="background: var(--v5-surface-2)"><text style="font-size: 12px; color: var(--v5-ink-2); line-height: 1.35">{{ t.earn.phoneRequirementsHint }}</text></view>
-      <view class="flex items-center gap-1.5 mb-2.5">
-        <view class="nx-device-charger-toggle flex items-center gap-1 active:opacity-80" :style="togglePillStyle(isCharging)" role="switch" tabindex="0" :aria-checked="isCharging" :aria-label="isCharging ? t.earn.phoneCharging : t.earn.phoneOnBattery" @click="toggleCharger" @keydown.enter.stop.prevent="toggleCharger" @keydown.space.stop.prevent="toggleCharger">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="isCharging ? 'var(--v5-brand)' : 'var(--v5-ink-3)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-if="isCharging" d="m11 7-3 5h4l-3 5" /><rect x="1" y="6" width="16" height="12" rx="2" /><path d="M22 11v2" /></svg>
-          <text class="font-mono-tabular tabular-nums" :style="{ color: isCharging ? 'var(--v5-brand)' : 'var(--v5-ink-3)' }">{{ device.batteryLevel ?? 0 }}%</text>
+      <view class="flex flex-wrap items-center gap-1.5 mb-2.5">
+        <view class="nx-device-charger-toggle flex items-center gap-1 active:opacity-80" style="min-width: 44px; min-height: 44px" role="switch" tabindex="0" :aria-checked="isCharging" :aria-label="isCharging ? t.earn.phoneCharging : t.earn.phoneOnBattery" @click="toggleCharger" @keydown.enter.stop.prevent="toggleCharger" @keydown.space.stop.prevent="toggleCharger">
+          <view class="flex items-center gap-1" :style="togglePillStyle(isCharging)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="isCharging ? 'var(--v5-brand)' : 'var(--v5-ink-3)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-if="isCharging" d="m11 7-3 5h4l-3 5" /><rect x="1" y="6" width="16" height="12" rx="2" /><path d="M22 11v2" /></svg>
+            <text class="font-mono-tabular tabular-nums" :style="{ color: isCharging ? 'var(--v5-brand)' : 'var(--v5-ink-3)' }">{{ device.batteryLevel ?? 0 }}%</text>
+          </view>
         </view>
-        <view class="nx-device-network-toggle flex items-center gap-1 active:opacity-80" :style="togglePillStyle(isOnline)" role="switch" tabindex="0" :aria-checked="isOnline" :aria-label="isOnline ? t.earn.phoneNetOnline : t.earn.phoneNetOffline" @click="toggleNetwork" @keydown.enter.stop.prevent="toggleNetwork" @keydown.space.stop.prevent="toggleNetwork">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="isOnline ? 'var(--v5-brand)' : 'var(--v5-ink-3)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-if="isOnline" d="M5 13a10 10 0 0 1 14 0M8.5 16.5a5 5 0 0 1 7 0M2 8.82a15 15 0 0 1 20 0M12 20h.01" /><path v-else d="M12 20h.01M8.5 16.5a5 5 0 0 1 7 0M2 8.82a15 15 0 0 1 4.17-2.65M10.66 5c4.01-.36 8.14.9 11.34 3.76M16.85 11.25a10 10 0 0 1 2.22 1.68M5 13a10 10 0 0 1 5.24-2.76M1.42 1.42l21.16 21.16" /></svg>
-          <text :style="{ color: isOnline ? 'var(--v5-brand)' : 'var(--v5-ink-3)' }">{{ isOnline ? t.earn.phoneNetOnline : t.earn.phoneNetOffline }}</text>
+        <view class="nx-device-network-toggle flex items-center gap-1 active:opacity-80" style="min-width: 44px; min-height: 44px" role="switch" tabindex="0" :aria-checked="isOnline" :aria-label="isOnline ? t.earn.phoneNetOnline : t.earn.phoneNetOffline" @click="toggleNetwork" @keydown.enter.stop.prevent="toggleNetwork" @keydown.space.stop.prevent="toggleNetwork">
+          <view class="flex items-center gap-1" :style="togglePillStyle(isOnline)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="isOnline ? 'var(--v5-brand)' : 'var(--v5-ink-3)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-if="isOnline" d="M5 13a10 10 0 0 1 14 0M8.5 16.5a5 5 0 0 1 7 0M2 8.82a15 15 0 0 1 20 0M12 20h.01" /><path v-else d="M12 20h.01M8.5 16.5a5 5 0 0 1 7 0M2 8.82a15 15 0 0 1 4.17-2.65M10.66 5c4.01-.36 8.14.9 11.34 3.76M16.85 11.25a10 10 0 0 1 2.22 1.68M5 13a10 10 0 0 1 5.24-2.76M1.42 1.42l21.16 21.16" /></svg>
+            <text :style="{ color: isOnline ? 'var(--v5-brand)' : 'var(--v5-ink-3)' }">{{ isOnline ? t.earn.phoneNetOnline : t.earn.phoneNetOffline }}</text>
+          </view>
         </view>
       </view>
     </view>

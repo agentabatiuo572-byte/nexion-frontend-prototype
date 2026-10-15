@@ -83,9 +83,14 @@
         <view v-if="otpError"><text class="block" :style="errorTextStyle">{{ otpError }}</text></view>
         <view class="flex items-center" style="margin-top: 10px; gap: 12px">
           <view class="inline-flex items-center" :class="{ 'active:opacity-70': resendLeft <= 0 && !otpSending }" style="min-height: 44px" role="button" tabindex="0" :aria-disabled="resendLeft > 0 || otpSending ? 'true' : 'false'" @click="resendCode">
-            <text style="font-size: 12px" :style="{ color: resendLeft > 0 || otpSending ? 'var(--v5-ink-4)' : 'var(--v5-brand)' }">
-              {{ resendLeft > 0 ? fmt(t.addrRebind.otpResendIn, { s: resendLeft }) : t.addrRebind.otpResendCta }}
-            </text>
+            <view class="nx-rebind-resend-label" :style="{ color: resendLeft > 0 || otpSending ? 'var(--v5-ink-4)' : 'var(--v5-brand)' }">
+              <template v-if="resendLeft > 0">
+                <text>{{ resendLabelParts[0] }}</text>
+                <text class="nx-rebind-resend-seconds" :style="{ width: `${resendDigits}ch` }">{{ resendLeft }}</text>
+                <text>{{ resendLabelParts[1] }}</text>
+              </template>
+              <text v-else>{{ t.addrRebind.otpResendCta }}</text>
+            </view>
           </view>
         </view>
         <view
@@ -345,6 +350,9 @@ const otpVerifying = ref(false);
 const otpVerifiedOnce = ref(false);
 const otpCommandKey = ref<string | null>(null);
 const resendLeft = ref(0);
+// Keep the translated word order while reserving a stable two-digit slot.
+const resendLabelParts = computed(() => t.value.addrRebind.otpResendIn.split("{s}"));
+const resendDigits = ref(2);
 const showCaptcha = ref(false);
 let resendTimer: ReturnType<typeof setInterval> | undefined;
 const otpReady = computed(() => otpCode.value.trim().length === 6 && !!otpRequestId.value);
@@ -353,6 +361,7 @@ function onOtpInput(e: Event) {
   otpError.value = "";
 }
 function startResendCountdown(sec: number) {
+  resendDigits.value = Math.max(2, String(Math.ceil(sec)).length);
   resendLeft.value = sec;
   if (resendTimer) clearInterval(resendTimer);
   resendTimer = setInterval(() => {
@@ -759,4 +768,9 @@ const successRowValStyle: CSSProperties = {
   height: 22px;
   line-height: 22px;
 }
+</style>
+
+<style scoped>
+.nx-rebind-resend-label { display: flex; align-items: center; white-space: pre; font-size: 12px; }
+.nx-rebind-resend-seconds { display: inline-block; flex-shrink: 0; text-align: center; font-family: monospace; font-variant-numeric: tabular-nums; }
 </style>
