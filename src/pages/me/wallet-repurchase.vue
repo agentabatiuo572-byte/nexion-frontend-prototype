@@ -86,6 +86,7 @@
             <text :style="balanceLabelStyle">{{ w.balanceLabel }}</text>
             <text :style="balanceValueStyle"> ${{ formatAmount(displayBalance) }}</text>
           </view>
+          <text v-if="isRemote && repurchase.config" class="block" :style="lockedNoticeStyle">{{ fmt(w.minimumAmount, { amount: formatCommandAmount(repurchase.config.minAmountUsdt) }) }}</text>
         </view>
 
         <!-- projection -->
@@ -108,6 +109,8 @@
           <text>{{ ctaLabel }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="canSubmit ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
+
+        <text v-if="submitHint" class="block" :style="insufficientBodyStyle" role="status" aria-live="polite">{{ submitHint }}</text>
 
         <!-- 余额不足:原因 + 下一步(充值)。只说「余额不足」不给出口 = 把用户堵在死路上。 -->
         <view v-if="insufficientBalance" :style="insufficientNoticeStyle" role="status">
@@ -221,6 +224,19 @@ const insufficientBalance = computed(() => {
     return remoteReady.value && Boolean(config?.enabled);
   }
   return amount.value > 0;
+});
+
+const submitHint = computed(() => {
+  if (confirming.value) return w.value.confirmingHint;
+  if (repurchase.submitting) return w.value.submittingHint;
+  if (recovering.value) return "";
+  if (isRemote.value && !remoteReady.value) return "";
+  if (isRemote.value && !repurchase.config?.enabled) return w.value.pausedHint;
+  if (!Number.isFinite(amount.value) || amount.value <= 0) return w.value.invalidAmountHint;
+  if (isRemote.value && repurchase.config && amount.value < repurchase.config.minAmountUsdt) {
+    return fmt(w.value.belowMinimumHint, { amount: formatCommandAmount(repurchase.config.minAmountUsdt) });
+  }
+  return "";
 });
 
 const ctaLabel = computed(() => recovering.value

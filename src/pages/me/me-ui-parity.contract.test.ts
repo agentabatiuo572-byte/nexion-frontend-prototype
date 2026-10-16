@@ -98,7 +98,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "wallet-nex.vue": "e79b540f1eacd429f044fba4bfd7fb2d15732cac2fc7cda274406416d035ee86",
   "wallet-repurchase-how.vue": "238439b99d5b73f9cf7c6ad7b8479cb86f39ef92f93d216938b071c28372e4f0",
   // R833: owned pending status lookup remains available while product/config reads fail; no money command.
-  "wallet-repurchase.vue": "382131557b3ba6e41a2f59a763d5cf4f3d0bf95b25676a5b5356537526d3b818",
+  // #584: reviewed configured minimum and disabled-action reason beside the re-investment form.
+  "wallet-repurchase.vue": "d2a28ced522ef9de623ec1060478ee7088d098a9d88688bd94eef1115af936a2",
   "wallet-topup.vue": "010252b7630c35defdf57a3f262d0e389c011d2b9d79ad2f5fb788e794d87768",
   "wallet-withdraw-tracking.vue": "8df13af397e2fcb7b6de4164285dd222d6d8f851c8c153af03f300d2883de2f5",
   // Original pending requests expose retry even when the new-transfer form is incomplete.
