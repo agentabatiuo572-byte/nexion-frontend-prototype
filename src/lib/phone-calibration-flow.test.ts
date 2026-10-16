@@ -73,3 +73,35 @@ describe("automatic phone calibration", () => {
     expect(api.calibrate).not.toHaveBeenCalled();
   });
 });
+
+
+describe("asynchronous native GPU observation", () => {
+  it("waits for the render observation before fixing and sending the calibration payload", async () => {
+    let resolve!: (value: CalibrationRequestSignals) => void;
+    const observation = new Promise<CalibrationRequestSignals>(done => { resolve = done; });
+    const api = { result: vi.fn().mockRejectedValue(missing()), calibrate: vi.fn(async () => measured()) };
+    const flow = createPhoneCalibrationFlow({ api, collect: () => observation, key: () => "gpu-observed-key" });
+    const pending = flow.run(options);
+    await Promise.resolve(); await Promise.resolve();
+    expect(api.calibrate).not.toHaveBeenCalled();
+    const observed = { ...signals, gpu: "ANGLE ((Samsung Xclipse 550) on Vulkan 1.4.304)" };
+    resolve(observed); await pending;
+    expect(api.calibrate).toHaveBeenCalledExactlyOnceWith("phone-1", observed, 0, "gpu-observed-key");
+  });
+  it("does not retain an old account's pending observation as the new account intent", async () => {
+    let resolve!: (value: CalibrationRequestSignals) => void;
+    let current = true;
+    const observation = new Promise<CalibrationRequestSignals>(done => { resolve = done; });
+    const api = { result: vi.fn().mockRejectedValue(missing()), calibrate: vi.fn(async () => measured()) };
+    const collect = vi.fn().mockReturnValueOnce(observation).mockReturnValue(signals);
+    const flow = createPhoneCalibrationFlow({ api, collect, key: () => "gpu-key" });
+    const pending = flow.run({ ...options, isCurrent: () => current });
+    await Promise.resolve(); await Promise.resolve();
+    current = false; flow.reset(); resolve({ ...signals, gpu: "stale observation" });
+    await expect(pending).rejects.toThrow("SCOPE_STALE");
+    expect(api.calibrate).not.toHaveBeenCalled();
+    await flow.run(options);
+    expect(collect).toHaveBeenCalledTimes(2);
+    expect(api.calibrate).toHaveBeenCalledExactlyOnceWith("phone-1", signals, 0, "gpu-key");
+  });
+});

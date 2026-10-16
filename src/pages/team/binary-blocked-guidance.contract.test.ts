@@ -17,7 +17,8 @@ const vi = (locales["../../i18n/messages/vi.ts"] ?? "") as string;
 describe("binary blocked guidance page contract", () => {
   it("uses the reason-gated invite guidance instead of treating incomplete assignment as a volume issue", () => {
     expect(page).toContain('binaryBlockedGuidance({');
-    expect(page).toContain('}).showInviteOptions');
+    expect(page).toContain('blockedGuidance.value.showInviteOptions');
+    expect(page).toContain('t.value.binary[blockedGuidance.value.titleKey]');
     expect(page).not.toContain('["BINARY_LEG_ASSIGNMENT_INCOMPLETE", "BINARY_THRESHOLD_NOT_MET"]');
   });
 

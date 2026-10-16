@@ -18,7 +18,7 @@ export function calibrationBelongsTo(result: OnboardingCalibration, accountKey: 
 /** A page owns this intent; retries keep its exact observations, revision and key. */
 export function createPhoneCalibrationFlow(deps: {
   api: Pick<OnboardingCalibrationApi, "result" | "calibrate">;
-  collect: () => CalibrationRequestSignals;
+  collect: () => CalibrationRequestSignals | Promise<CalibrationRequestSignals>;
   key: () => string;
 }) {
   let intent: { accountKey: string; deviceId: string; signals: CalibrationRequestSignals;
@@ -57,8 +57,10 @@ export function createPhoneCalibrationFlow(deps: {
         return current;
       }
       if (!intent) {
+        const signals = await deps.collect();
+        check();
         intent = { accountKey: options.accountKey, deviceId: options.deviceId,
-          signals: deps.collect(), expectedRevision: current?.revision ?? 0, hadResult: current !== null, idempotencyKey: deps.key() };
+          signals, expectedRevision: current?.revision ?? 0, hadResult: current !== null, idempotencyKey: deps.key() };
       }
       const command = intent;
       check();

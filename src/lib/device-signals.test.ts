@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { collectDeviceSignals } from "./device-signals";
-import { readAndroidGpu } from "./native-phone-gpu";
 
 describe("native device signals", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -24,16 +23,8 @@ describe("native device signals", () => {
     } });
     expect(collectDeviceSignals()).toMatchObject({ platform: "android", soc: "Test SoC", model: "Test phone", memGB: 8, cores: 8, gpu: "", pxDensity: null });
   });
-  it("reads the native GPU without a DOM and releases its offscreen context", () => {
-    const invoke = vi.fn((_object: unknown, method: string) => {
-      if (["eglInitialize", "eglChooseConfig", "eglMakeCurrent", "equals"].includes(method)) return true;
-      if (method === "glGetString") return "Adreno test renderer";
-      return {};
-    });
-    const android = { invoke, importClass: () => ({ EGL_NO_CONTEXT: {}, EGL_NO_SURFACE: {} }) } as unknown as PlusAndroid;
-    expect(readAndroidGpu(android)).toBe("Adreno test renderer");
-    expect(invoke.mock.calls.some((call) => call[1] === "eglDestroySurface")).toBe(true);
-    expect(invoke.mock.calls.some((call) => call[1] === "eglDestroyContext")).toBe(true);
-    expect(invoke.mock.calls.some((call) => call[1] === "eglTerminate")).toBe(false);
+  it("does not accept a WebView renderer as a native phone signal outside Android", () => {
+    vi.stubGlobal("plus", undefined);
+    expect(collectDeviceSignals("observed browser GPU").gpu).toBe("");
   });
 });

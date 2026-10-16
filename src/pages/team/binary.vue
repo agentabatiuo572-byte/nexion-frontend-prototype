@@ -50,7 +50,7 @@
         <view v-if="blocked" class="rounded-2xl flex items-start" :style="blockedStyle">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
           <view style="font-size: 12px; line-height: 1.375">
-            <text class="block" :style="{ color: 'var(--v5-ink)', fontWeight: 600 }">{{ t.binary.blocked }}</text>
+            <text class="block" :style="{ color: 'var(--v5-ink)', fontWeight: 600 }">{{ blockedTitleText }}</text>
             <text class="block" :style="{ color: 'var(--v5-ink-3)', marginTop: '4px' }">{{ blockedRecoveryText }}</text>
             <view v-if="showGrowthRecoveryCta" class="inline-flex items-center active:opacity-70" :style="inviteCtaStyle" @click="go('/pages/team/team')">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
@@ -253,11 +253,13 @@ const blockedDetailText = computed(() => {
     vol: formatAmount(weakVol.value),
   });
 });
-const showGrowthRecoveryCta = computed(() => binaryBlockedGuidance({
+const blockedGuidance = computed(() => binaryBlockedGuidance({
   remote: remoteApiEnabled,
   blocked: blocked.value,
   reason: snapshot.value?.blockedReason,
-}).showInviteOptions);
+}));
+const blockedTitleText = computed(() => t.value.binary[blockedGuidance.value.titleKey]);
+const showGrowthRecoveryCta = computed(() => blockedGuidance.value.showInviteOptions);
 const blockedRecoveryText = computed(() => showGrowthRecoveryCta.value
   ? `${blockedDetailText.value} ${t.value.binary.blockedAction}`
   : blockedDetailText.value,

@@ -27,6 +27,27 @@ const valid = {
 describe("onboarding calibration API", () => {
   afterEach(() => advanceRuntimeRevision(null));
 
+  it("reads binding existence without an installation login or inferred fallback", async () => {
+    const request = vi.fn().mockResolvedValue({ serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "", hasBinding: false });
+    const api = createOnboardingCalibrationApi({ request } as never);
+    expect(await api.bindingStatus()).toBe(false);
+    expect(request).toHaveBeenCalledExactlyOnceWith({ method: "GET", path: "/api/onboarding/calibrate/binding-status" });
+    for (const invalid of [null, {}, { serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "", hasBinding: "false" },
+      { serverCanonical: true, sourceEnvironment: "SANDBOX", runId: "", hasBinding: false }]) {
+      request.mockResolvedValue(invalid);
+      await expect(api.bindingStatus()).rejects.toThrow("ONBOARDING_CALIBRATION_RESPONSE_INVALID");
+    }
+  });
+
+  it("sends initialOnly only for the explicit first-login defer and preserves normal command bodies", async () => {
+    const request = vi.fn().mockResolvedValue({ ...valid, activationStatus: "DEFERRED" });
+    const api = createOnboardingCalibrationApi({ request } as never);
+    await api.defer("device-a", 2, "phone-defer-001", true);
+    expect(request.mock.calls[0][0]).toMatchObject({ body: { deviceId: "device-a", expectedRevision: 2, initialOnly: true } });
+    await api.defer("device-a", 2, "phone-defer-002");
+    expect(request.mock.calls[1][0].body).toEqual({ deviceId: "device-a", expectedRevision: 2 });
+  });
+
   it("checks the current installation with one ordinary authenticated request", async () => {
     const request = vi.fn().mockResolvedValue({ status: "BOUND" });
     const api = createOnboardingCalibrationApi({ request } as never);

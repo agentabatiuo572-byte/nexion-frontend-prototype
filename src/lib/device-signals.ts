@@ -1,9 +1,8 @@
 import type { CalibrationRequestSignals } from "@/api/onboarding-calibration-api";
 import { hasNativeAndroidPhoneRuntime, readAndroidBattery } from "./native-phone-runtime";
-import { readAndroidGpu } from "./native-phone-gpu";
 
 /** Raw observations only. Missing native fields remain unknown, never guessed. */
-export function collectDeviceSignals(): CalibrationRequestSignals {
+export function collectDeviceSignals(observedGpu = ""): CalibrationRequestSignals {
   const result: CalibrationRequestSignals = { platform: "", soc: "", memGB: null, cores: null,
     model: "", brand: "", gpu: "", pxDensity: null, pingMs: null, batteryLevel: null,
     charging: null, networkReachable: null };
@@ -29,7 +28,7 @@ export function collectDeviceSignals(): CalibrationRequestSignals {
     const cores = android.invoke(runtime, "availableProcessors");
     if (Number.isInteger(cores) && cores > 0 && cores <= 256) result.cores = cores;
   } catch { /* Missing native memory/CPU data remains unknown. */ }
-  result.gpu = readAndroidGpu(android);
+  result.gpu = observedGpu.trim().slice(0, 256);
   const battery = readAndroidBattery(android);
   result.batteryLevel = battery?.batteryLevel ?? null;
   result.charging = battery?.isCharging ?? null;

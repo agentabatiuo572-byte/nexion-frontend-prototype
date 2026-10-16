@@ -102,7 +102,7 @@ function deferred<T>() {
 async function flush() { for (let i = 0; i < 12; i++) await Promise.resolve(); await Vue.nextTick(); }
 const dictionaries = { en, zh, vi: vietnamese };
 type Locale = keyof typeof dictionaries;
-const kinds: CommissionKind[] = ["direct_purchase", "direct_device_earning", "unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
+const kinds: CommissionKind[] = ["direct_purchase", "direct_device_earning", "unilevel", "binary", "peer", "cultivation", "leadership", "genesis", "promotion", "other"];
 const event = (kind: CommissionKind): CommissionEvent => ({
   id: `fixture-${kind}`, kind, sourceUserName: `Event ${kind}`, amountUSDT: 7, amountNEX: 0,
   ts: 1790812800000, unlockAt: 1790812800000, status: "unlocked",
@@ -318,4 +318,24 @@ test("guide refresh hides prior published rules while pending and preserves inco
   expect(buttons(page.root).some(item => text(item) === copy.retry)).toBe(true);
   expect(all(page.root).some(item => item.props["data-component"] === "hero" || item.props["data-component"] === "section")).toBe(false);
   expect(text(page.root)).not.toContain("13 USDT"); // Incomplete published context still suppresses amounts.
+});
+
+
+test.each(["en", "zh", "vi"] as const)("577 %s promotion and other filters preserve rewards without showing them as genesis", async code => {
+  const page = await commissions(code); await page.show();
+  const promotion = {...event("promotion"), id:"CM-389", amountUSDT:100, amountNEX:50,
+    orderId:"PROMOTION-1", status:"cooling" as const, unlockAt:1793863394000};
+  const other = {...event("other"), id:"CM-900", amountUSDT:3, amountNEX:0};
+  page.reads[0].resolve([promotion, other, event("genesis")]); await flush();
+  for (const kind of ["promotion", "other", "genesis"] as const) {
+    const selector = all(page.root).find(item => item.props.role === "radio"
+      && String(item.props["aria-label"]).startsWith(dictionaries[code].commissions.kind[kind]))!;
+    expect(selector).toBeDefined(); selector.props.onClick(); await Vue.nextTick();
+    expect(text(page.root)).toContain(`Event ${kind}`);
+    for (const excluded of ["promotion", "other", "genesis"].filter(item => item !== kind))
+      expect(text(page.root)).not.toContain(`Event ${excluded}`);
+    expect(all(page.root).filter(item => item.props.role === "tab" && item.props["aria-selected"]).map(text))
+      .toEqual([dictionaries[code].commissions.kind[kind]]);
+  }
+  expect(promotion).toMatchObject({id:"CM-389",amountUSDT:100,amountNEX:50,orderId:"PROMOTION-1",status:"cooling",unlockAt:1793863394000});
 });

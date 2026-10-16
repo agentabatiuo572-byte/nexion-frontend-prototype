@@ -82,10 +82,11 @@ export type OnboardingCalibration = MeasuredOnboardingCalibration | DeferredOnbo
 
 export interface OnboardingCalibrationApi {
   phoneLogin(deviceId: string): Promise<string>;
+  bindingStatus(): Promise<boolean>;
   calibrate(deviceId: string, signals: CalibrationRequestSignals, expectedRevision: number, idempotencyKey: string): Promise<OnboardingCalibration>;
   result(deviceId: string): Promise<OnboardingCalibration>;
   activate(deviceId: string, expectedRevision: number, idempotencyKey: string): Promise<OnboardingCalibration>;
-  defer(deviceId: string, expectedRevision: number, idempotencyKey: string): Promise<OnboardingCalibration>;
+  defer(deviceId: string, expectedRevision: number, idempotencyKey: string, initialOnly?: boolean): Promise<OnboardingCalibration>;
 }
 
 function invalid(): never {
@@ -224,6 +225,12 @@ function key(value: string): string {
 
 export function createOnboardingCalibrationApi(client: ApiClient, environment: OnboardingCalibrationEnvironment = "PRODUCTION"): OnboardingCalibrationApi {
   return {
+    async bindingStatus() {
+      const response = record(await client.request({ method: "GET", path: "/api/onboarding/calibrate/binding-status" }));
+      if (response.serverCanonical !== true || response.sourceEnvironment !== "PRODUCTION" || response.runId !== ""
+          || typeof response.hasBinding !== "boolean") return invalid();
+      return response.hasBinding;
+    },
     async phoneLogin(deviceId) {
       const response = record(await client.request({
         method: "POST", path: "/api/onboarding/phone-installation/login", body: { deviceId: text(deviceId) },
@@ -261,14 +268,14 @@ export function createOnboardingCalibrationApi(client: ApiClient, environment: O
       });
       return parseOnboardingCalibration(response, environment);
     },
-    async defer(deviceId, expectedRevision, idempotencyKey) {
+    async defer(deviceId, expectedRevision, idempotencyKey, initialOnly = false) {
       const normalizedDeviceId = text(deviceId);
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
         throw new ApiError({ kind: "configuration", message: "ONBOARDING_REVISION_INVALID" });
       }
       const response = await client.request({
         method: "POST", path: "/api/onboarding/calibrate/defer", idempotencyKey: key(idempotencyKey),
-        body: { deviceId: normalizedDeviceId, expectedRevision },
+        body: { deviceId: normalizedDeviceId, expectedRevision, ...(initialOnly ? { initialOnly: true } : {}) },
       });
       return parseOnboardingCalibration(response, environment);
     },

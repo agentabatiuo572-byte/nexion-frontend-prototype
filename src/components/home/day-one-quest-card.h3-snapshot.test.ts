@@ -54,7 +54,7 @@ function renderCard(
       completedCount: 0, total: 0, claimState, nexEarnedText: "0", tasks: [],
       quest: { dayOneClaiming: false, dayOneClaimError: false }, toggleStyle: {},
       toggleLabel: unavailable ? home.dayOneRetryLoad : "View tasks",
-      isActionable: () => false, onRowTap: () => undefined,
+      observationNotices: [], isActionable: () => false, onRowTap: () => undefined,
       onClaim: () => undefined, toggleExpanded: () => undefined,
       isDone: () => false,
       rowStyle: () => ({}), circleStyle: () => ({}), labelStyle: () => ({}),

@@ -14,7 +14,7 @@ describe("Day One page observation wiring", () => {
     expect(detail).toContain("canonicalProduct.id !== \"stellarbox-s1\"");
     expect(detail).toContain("dayOnePageObservationApi.s1Roi");
     for (const source of [earn, store, detail]) {
-      expect(source).toContain("authenticatedPageObservationReporter.report");
+      expect(source).toContain("reportDayOnePageObservation(");
       expect(source).toContain("isCurrent: isCurrentAccountScope");
     }
   });

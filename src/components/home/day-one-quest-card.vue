@@ -89,6 +89,24 @@
       @click="onClaim"  @keydown.enter.prevent="onClaim" @keydown.space.prevent="onClaim">
       <text>{{ quest.dayOneClaiming ? t.home.dayOneClaiming : t.home.dayOneClaimReward }}</text>
     </view>
+    <view v-if="expanded && observationNotices.length" class="newcomer-task__observation">
+      <view v-for="notice in observationNotices" :key="notice.task.id" class="newcomer-task__observation-item">
+        <text role="status">{{ notice.task.label }} · {{ observationMessage(notice.reason) }}</text>
+        <view class="newcomer-task__observation-actions">
+          <view v-if="notice.reason !== 'unconfirmed'" role="button" :tabindex="props.active ? 0 : -1"
+            :aria-disabled="!props.active" class="newcomer-task__observation-action"
+            @click="recoverObservation(notice.task)" @keydown.enter.prevent="recoverObservation(notice.task)"
+            @keydown.space.prevent="recoverObservation(notice.task)">
+            <text>{{ notice.reason === 'terms' ? t.home.dayOneObservationTermsAction : t.home.dayOneObservationSetupAction }}</text>
+          </view>
+          <view role="button" :tabindex="props.active ? 0 : -1" :aria-disabled="!props.active"
+            class="newcomer-task__observation-action" @click="recoverObservation(notice.task, true)"
+            @keydown.enter.prevent="recoverObservation(notice.task, true)" @keydown.space.prevent="recoverObservation(notice.task, true)">
+            <text>{{ t.home.dayOneObservationRetry }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
     <text v-if="remoteApiEnabled && quest.dayOneClaimError" role="status" class="newcomer-task__claim-error">
       {{ quest.claimNotice ? t.questClaim[quest.claimNotice] : t.home.dayOneClaimUnconfirmed }}
     </text>
@@ -128,6 +146,9 @@ import type { QuestTaskCategory } from "@/api/quest-api";
 import { selectHomeQuestRows } from "./home-quest-source";
 import { dayOneClaimState } from "@/lib/day-one-claim-state";
 import { dayOneQuestDisplayName } from "@/lib/quest-presentation";
+import { dayOneObservationRecovery, observationRecoveryRoute, type DayOneObservationReason } from "@/lib/day-one-observation-recovery";
+import { remoteAccountScope } from "@/lib/remote-account-epoch";
+import { useApp } from "@/store/app";
 
 interface QuestTask {
   id: string;
@@ -162,6 +183,7 @@ const locale = useLocaleStore();
 const nowTick = useNow();
 const { elRef, inView } = useScrollGrowProgress();
 const quest = useQuest();
+const app = useApp();
 const mockReward = 500;
 
 const categoryLabel = (category: QuestTaskCategory): string => ({
@@ -211,6 +233,34 @@ const tasks = computed<QuestTask[]>(() => selectHomeQuestRows(
 ));
 
 const total = computed(() => tasks.value.length);
+function observationIdentity(task: QuestTask) {
+  const row = quest.remoteQuests.find(row => row.layer === "DAY_ONE" && row.questCode === task.id);
+  return row ? { scope: remoteAccountScope.snapshot(), questCode: task.id, instanceKey: row.instanceKey } : null;
+}
+const observationNotices = computed(() => {
+  app.accountKey; app.accountBindingEpoch;
+  return remoteApiEnabled ? tasks.value.flatMap(task => {
+    const identity = observationIdentity(task);
+    const reason = identity && isActionable(task) ? dayOneObservationRecovery.notice(identity) : undefined;
+    return reason ? [{ task, reason }] : [];
+  }) : [];
+});
+function observationMessage(reason: DayOneObservationReason): string {
+  return reason === "onboarding" ? t.value.home.dayOneObservationSetup
+    : reason === "terms" ? t.value.home.dayOneObservationTerms : t.value.home.dayOneObservationUnconfirmed;
+}
+function recoverObservation(task: QuestTask, retryOnly = false): void {
+  if (!props.active || !isActionable(task)) return;
+  const identity = observationIdentity(task);
+  const reason = identity && dayOneObservationRecovery.notice(identity);
+  if (!identity || !reason) return;
+  dayOneObservationRecovery.retry(identity);
+  let web = false;
+  // #ifdef H5
+  web = true;
+  // #endif
+  navTo(retryOnly ? task.href : observationRecoveryRoute(reason, web, task.href));
+}
 const claimState = computed(() => dayOneClaimState(
   quest.remoteQuests, quest.dayOneRequiredTaskCount, quest.dayOneSnapshotStatus, nowTick.value * 1000,
 ));
@@ -380,6 +430,11 @@ const toggleStyle: CSSProperties = {
 </script>
 
 <style scoped>
+.newcomer-task__observation { margin-top: 12px; color: var(--v5-ink-2); font-size: 15px; }
+.newcomer-task__observation-item { margin-top: 8px; }
+.newcomer-task__observation-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.newcomer-task__observation-action { min-height: 44px; display: flex; align-items: center; padding: 0 12px; cursor: pointer; color: var(--v5-ink); }
+.newcomer-task__observation-action:focus-visible { outline: 2px solid var(--v5-ink); outline-offset: 2px; }
 .newcomer-task__claim {
   margin: 12px 16px 0;
   padding: 12px;

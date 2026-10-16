@@ -1,5 +1,8 @@
 <template>
   <StandalonePageShell class="cn-root" :top-inset="24" @click="rulesExpanded = false">
+    <!-- #ifdef APP-PLUS -->
+    <NativeGpuObserver :request="gpuRequest" @observation="gpuReader.receive" />
+    <!-- #endif -->
     <!-- Progress (3/3 full) -->
     <view class="cn-bars">
       <view class="cn-back active:opacity-60" role="button" :tabindex="activationBusy || phase === 'calibrating' ? -1 : 0" :aria-disabled="activationBusy || phase === 'calibrating'" :aria-label="t.login.back" @click="leaveConnect" @keydown.enter.prevent="leaveConnect" @keydown.space.prevent="leaveConnect">
@@ -119,6 +122,23 @@ import { useSession } from "@/store/session";
 import { markAuthAccountOnboardingComplete } from "@/store/auth-account";
 import { getDeviceId } from "@/lib/device-id";
 import { collectDeviceSignals } from "@/lib/device-signals";
+// #ifdef APP-PLUS
+import NativeGpuObserver from "@/components/native-gpu-observer.vue";
+import { createNativeGpuRequest } from "@/lib/native-gpu-request";
+const gpuRequest = ref(0);
+const gpuReader = createNativeGpuRequest(id => { gpuRequest.value = id; });
+onUnmounted(() => gpuReader.dispose());
+// #endif
+async function collectCalibrationSignals() {
+  // #ifdef APP-PLUS
+  if (hasNativeAndroidPhoneRuntime()) {
+    const observation = await gpuReader.read();
+    if (observation.status !== "observed") console.warn("Phone GPU observation unavailable:", observation.status);
+    return collectDeviceSignals(observation.renderer);
+  }
+  // #endif
+  return collectDeviceSignals();
+}
 import { requireCryptoUuid } from "@/lib/secure-command-id";
 import { onboardingCalibrationApi, remoteApiEnabled } from "@/api/runtime";
 import type { OnboardingCalibration } from "@/api/onboarding-calibration-api";
@@ -222,7 +242,7 @@ const whyPoints = computed(() => [
 // Initial onboarding reuses the estimator's canonical result. Only an explicit
 // warehouse remeasurement/resume can replace an existing calibration.
 const calibrationFlow = createPhoneCalibrationFlow({ api: onboardingCalibrationApi,
-  collect: collectDeviceSignals, key: () => `onboarding:${requireCryptoUuid()}` });
+  collect: collectCalibrationSignals, key: () => `onboarding:${requireCryptoUuid()}` });
 const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
 const phoneActivationGuidance = computed(() => resolvePhoneActivationGuidance(nativePhoneAvailable, t.value.myDevices));
 let activationIntent: { target: "ACTIVE" | "DEFERRED"; revision: number; idempotencyKey: string } | null = null;
@@ -397,12 +417,27 @@ async function activate() {
 }
 
 async function deferPhoneActivation() {
-  if (isLogin.value) { void navReset({ url: "/pages/index/index", fail: () => {} }); return; }
   if (!nativePhoneAvailable || !mounted || activationBusy.value) return;
   activationBusy.value = true;
   const requestScope = { ...currentScope() };
   try {
+    if (isLogin.value) {
+      // Login can mean replacing an existing phone. "NEEDS_CALIBRATION" alone
+      // cannot distinguish that from an account which has never bound one.
+      if (loginCheckNeeded.value || isRecal.value || canonical.value?.userDeviceId
+          || canonical.value?.activationStatus === "ACTIVE") {
+        void navReset({ url: "/pages/index/index", fail: () => {} });
+        return;
+      }
+      const hasBinding = await onboardingCalibrationApi.bindingStatus();
+      if (!scopeIsCurrent(requestScope)) return;
+      if (hasBinding) {
+        void navReset({ url: "/pages/index/index", fail: () => {} });
+        return;
+      }
+    }
     const current = await confirmDeferredPhoneActivation({
+      ...(isLogin.value ? { initialOnly: true } : {}),
       current: canonical.value, deviceId: getDeviceId(),
       command: (revision) => activationCommand("DEFERRED", revision),
       isCurrent: () => scopeIsCurrent(requestScope),

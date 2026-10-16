@@ -10,9 +10,9 @@
   <view v-if="open && recovering" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.stakingV3.sheet.checkPrevious">
     <view class="nx-sheet-backdrop" @click="emitClose" />
     <view class="nx-glass-sheet nx-sheet-panel" :style="panelStyle">
-      <text class="block" :style="titleStyle">{{ t.stakingV3.toast.openFailedTitle }}</text>
+      <text class="block" :style="titleStyle">{{ staking.pendingOpenRejection ? t.stakingV3.sheet.failedTitle : t.stakingV3.toast.openFailedTitle }}</text>
       <text v-if="pendingOpen" class="block" :style="subtitleStyle">{{ fmt(t.stakingV3.sheet.cta, { amount: formatAmount(pendingOpen.amountUsdt), n: pendingTerm }) }}</text>
-      <text class="block" :style="noticeStyle">{{ t.stakingV3.sheet.pendingHint }}</text>
+      <text v-if="!staking.pendingOpenRejection" class="block" :style="noticeStyle">{{ t.stakingV3.sheet.pendingHint }}</text>
       <view class="nx-staking-sheet-status-cta" role="button" :aria-disabled="remotePending || recoveryBlocked" :tabindex="remotePending || recoveryBlocked ? -1 : 0" :style="submitStyle" @click="submit" @keydown.enter.prevent="submit" @keydown.space.prevent="submit">
         <text>{{ t.stakingV3.sheet.checkPrevious }}</text>
       </view>
@@ -115,6 +115,7 @@ import { useApp } from "@/store/app";
 import { postMoneyBill } from "@/lib/money-receipt";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { createRemoteIntentGate, type RemoteIntentLease } from "@/lib/g-remote-intent";
+import { StakingOpenRejectedError } from "@/api/staking-open-rejection";
 import { useStaking, STAKING_APY, STAKING_PENALTY, STAKING_MIN, type StakingTerm } from "@/store/staking";
 import { toast } from "@/store/ui";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
@@ -316,6 +317,14 @@ async function submit() {
       if (expectedAccountKey !== app.accountKey || expectedBindingEpoch !== app.accountBindingEpoch || !isCurrentSheet()) return;
       if (cause instanceof ApiError && cause.message === "RISK_DISCLOSURE_ACK_REQUIRED") {
         navTo("/pages/me/risk-disclosure?return=/pages/staking/staking");
+        return;
+      }
+      if (cause instanceof StakingOpenRejectedError) {
+        const title = cause.reason === "insufficient" ? t.value.stakingV3.toast.insufficient
+          : cause.reason === "minimum" ? t.value.stakingV3.toast.minAmount
+          : cause.reason === "unavailable" ? t.value.staking.remoteUnavailableClosed
+          : t.value.stakingV3.sheet.failedTitle;
+        toast.error(title, cause.retired ? undefined : t.value.stakingV3.sheet.checkPrevious);
         return;
       }
       toast.error(unsent ? t.value.staking.remoteUnavailableClosed : t.value.stakingV3.toast.openFailedTitle);

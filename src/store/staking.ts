@@ -8,6 +8,7 @@ import type { StakingPool } from "@/api/staking-api";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import { asApiError, isSettledRejection } from "@/api/errors";
 import { createRemoteIntentGate, type RemoteIntentLease } from "@/lib/g-remote-intent";
+import { classifyStakingOpenRejection, StakingOpenRejectedError, type StakingOpenRejectionReason } from "@/api/staking-open-rejection";
 
 /**
  * Ported from Nexion-prototype/lib/v3/staking.ts (zustand persist → Pinia + uni storage).
@@ -136,6 +137,8 @@ export const useStaking = defineStore("staking", () => {
     retiring: boolean;
   }>();
   const pendingOpenCount = ref(0);
+  const pendingOpenRejection = ref<StakingOpenRejectionReason | null>(null);
+  let rejectedOpen: { lease: RemoteIntentLease; reason: StakingOpenRejectionReason } | null = null;
 
   function refreshPendingOpen() {
     if (isMockMode) return;
@@ -152,8 +155,18 @@ export const useStaking = defineStore("staking", () => {
 
   function updatePendingOpenCount() {
     if (isMockMode) return;
+    pendingOpenRejection.value = null;
     try {
-      pendingOpenCount.value = openIntents.unresolved(boundKey, "open").length;
+      const pending = openIntents.unresolved(boundKey, "open");
+      pendingOpenCount.value = pending.length;
+      // A known refusal whose local retirement failed remains read-only recovery.
+      // Never attach this transient explanation to another account or replacement key.
+      if (rejectedOpen && pending.length === 1) {
+        const current = openIntents.lookup(boundKey, "open", pending[0]);
+        if (current?.key === rejectedOpen.lease.key && current.fingerprint === rejectedOpen.lease.fingerprint) {
+          pendingOpenRejection.value = rejectedOpen.reason;
+        }
+      }
     } catch {
       pendingOpenCount.value = -1; // Corrupt storage remains fenced and recoverable through the sheet.
     }
@@ -297,6 +310,15 @@ export const useStaking = defineStore("staking", () => {
       return snapshot;
     } catch (cause) {
       if (!remoteAccountEpoch.isCurrent(request)) throw new Error("G1_REMOTE_AUTHORITY_UNAVAILABLE");
+      const refusal = classifyStakingOpenRejection(cause);
+      if (refusal) {
+        rejectedOpen = { lease, reason: refusal };
+        const retired = openIntents.complete(lease, true);
+        if (retired) preparedOpens.delete(lease.key);
+        updatePendingOpenCount();
+        remoteError.value = null;
+        throw new StakingOpenRejectedError(refusal, retired);
+      }
       if (isSettledRejection(cause)) {
         remoteError.value = asApiError(cause).message;
         throw cause;
@@ -561,6 +583,7 @@ export const useStaking = defineStore("staking", () => {
     prepareOpen,
     releasePreparedOpen,
     pendingOpenCount,
+    pendingOpenRejection,
     refreshPendingOpen,
     claimRemote,
     earlyWithdrawRemote,

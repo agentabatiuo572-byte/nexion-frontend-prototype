@@ -1,3 +1,4 @@
+import { dayOnePageObservationFixture } from "@/lib/day-one-page-observation.test-support";
 // @ts-expect-error Vitest executes this structural contract in Node; the App tsconfig intentionally omits Node globals.
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -120,6 +121,7 @@ async function setup() {
     if(id==='@/store/free-trial')return{useFreeTrial:()=>({refreshRemote:()=>Promise.resolve()})};
     if(id==='@/composables/use-capacity-explainer')return{useCapacityExplainer:()=>({open:vi.fn()})};
     if(id==='@/lib/account-scope')return{captureAccountScope:()=>({accountKey:app.accountKey,bindingEpoch:app.accountBindingEpoch}),isCurrentAccountScope:()=>true};
+    if(id==='@/lib/day-one-page-observation')return dayOnePageObservationFixture();
     if(id==='@/lib/authenticated-page-observation')return{authenticatedPageObservationReporter:{report:()=>{throw new Error('OBSERVATION_FORBIDDEN');}}};
     if(id==='@/components/me/receipt-modal.vue')return{__esModule:true,default:modal};
     if(id.endsWith('.vue'))return{__esModule:true,default:noChild};

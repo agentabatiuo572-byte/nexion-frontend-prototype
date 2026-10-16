@@ -196,6 +196,7 @@ const LEDGER = {
   "POST /api/devices/deactivate": "PRD §9.11c.1(composer endpoints,PRD 原文标 TBD; candidates)",
   "/api/gate/logout": "NOT-PRD: 退役 prototype 的 Next middleware reviewer-cookie 路由,uni 端已弃用(非 PROD 契约)",
   "GET /api/onboarding/calibrate/result": "PRD §12.2",
+  "/api/onboarding/calibrate/binding-status": "BACKEND: OnboardingCalibrationController.bindingStatus (#567); authenticated user, environment-scoped read of existing phone binding; no mutation",
   "/api/onboarding/calibrate": "TBD-NAME: BACKEND OnboardingCalibrationController 已实现;手机/设备校准请求与结果由服务端统一返回,前端 PRD 路径待同步",
   "/api/onboarding/calibrate/activate": "PRD §4.7.3 / App 落地规格 §393;服务端原子激活 canonical 手机设备",
   "/api/onboarding/calibrate/defer": "PRD §4.7.3 / App 落地规格 §393;服务端持久化 DEFERRED",

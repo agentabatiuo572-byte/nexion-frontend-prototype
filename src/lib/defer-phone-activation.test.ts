@@ -83,6 +83,15 @@ describe("confirmDeferredPhoneActivation", () => {
     api.defer.mockReset();
   });
 
+  it("keeps the initial-only flag and exact command when recovering an unknown result", async () => {
+    api.result.mockResolvedValue(calibrated());
+    api.defer.mockRejectedValueOnce(new ApiError({ kind: "network", message: "lost reply" })).mockResolvedValueOnce(deferred(2));
+    await expect(confirmDeferredPhoneActivation({ ...options(), initialOnly: true })).resolves.toEqual(deferred(2));
+    expect(api.defer).toHaveBeenCalledTimes(2);
+    expect(api.defer.mock.calls[0]).toEqual(["device-12345678", 1, "phone-activation:deferred:fixed", true]);
+    expect(api.defer.mock.calls[1]).toEqual(api.defer.mock.calls[0]);
+  });
+
   it("records a revision-0 DEFERRED tombstone when calibration never produced a row", async () => {
     api.result.mockRejectedValueOnce(new ApiError({ kind: "http", status: 404, message: "missing" }));
     api.defer.mockResolvedValueOnce(deferred());

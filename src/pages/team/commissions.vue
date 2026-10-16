@@ -164,7 +164,7 @@ const commission = useCommission();
 type Filter = "all" | CommissionKind;
 const filter = ref<Filter>("all");
 
-const KIND_ORDER: CommissionKind[] = ["direct_purchase", "direct_device_earning", "unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
+const KIND_ORDER: CommissionKind[] = ["direct_purchase", "direct_device_earning", "unilevel", "binary", "peer", "cultivation", "leadership", "genesis", "promotion", "other"];
 
 interface KindSpec {
   color: string;
@@ -178,6 +178,8 @@ const KIND: Record<CommissionKind, KindSpec> = {
   peer: { color: "var(--v5-tech-cyan)", paths: ["m11 17 2 2a1 1 0 1 0 3-3", "m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4", "M21 3v9h-9"] },
   cultivation: { color: "var(--v5-success)", paths: ["M7 20h10", "M10 20c5.5-2.5.8-6.4 3-10", "M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z", "M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"] },
   leadership: { color: "var(--v5-tech-cyan)", paths: ["m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"] },
+  promotion: { color: "var(--v5-success)", paths: ["M12 3v18M5 10l7-7 7 7"] },
+  other: { color: "var(--v5-brand-2)", paths: ["M4 4h16v16H4z", "M8 12h8"] },
   genesis: { color: "var(--v5-brand-2)", paths: ["M6 3h12l4 6-10 13L2 9z", "M11 3 8 9l4 13 4-13-3-6", "M2 9h20"] },
 };
 
@@ -250,7 +252,7 @@ function go(url: string) {
   navTo(url);
 }
 
-// 6-kind summary cards double as filter controls: name them with the kind label
+// Reward summary cards double as filter controls: name them with the kind label
 // + current amount/count so a screen reader hears what the tile selects.
 function kindCardLabel(k: CommissionKind): string {
   return `${t.value.commissions.kind[k]} · ${formatAmount(byKind.value[k].usdt)} · ${byKind.value[k].count} ${t.value.commissions.events}`;

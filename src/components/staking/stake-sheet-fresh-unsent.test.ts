@@ -1,3 +1,4 @@
+import { StakingOpenRejectedError } from '@/api/staking-open-rejection';
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { reactive, watch } from "vue";
@@ -58,7 +59,7 @@ async function harness() {
     pendingOpen:{value:null},recoveryBlocked:{value:false},remoteGate:registry(),staking,
     risk:{checkGate:vi.fn(()=>gate)},t:{value:zh},toast:{error:vi.fn(),success:vi.fn()},
     emit:vi.fn(),watch,onBeforeUnmount:(callback:()=>void)=>{unmount=callback;},
-    navTo:vi.fn(),fmt:vi.fn(),ApiError,normalizeCommandAmount,
+    navTo:vi.fn(),fmt:vi.fn(),ApiError,StakingOpenRejectedError,normalizeCommandAmount,
   };
   deps.emit.mockImplementation((_name:string,open:boolean)=>{deps.props.open=open;});
   const actions=new Function("formatAmount",...Object.keys(deps),compiled)(formatAmount,...Object.values(deps)) as {

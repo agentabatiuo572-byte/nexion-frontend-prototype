@@ -1,3 +1,4 @@
+import { dayOnePageObservationFixture } from "@/lib/day-one-page-observation.test-support";
 import { parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
@@ -46,6 +47,7 @@ function harness(page: Page, options: { remote?: boolean; recorded?: boolean } =
   const reporter = createAuthenticatedPageObservationReporter({ now: () => now });
   const pending: Promise<void>[] = [];
   const deps = {
+    ...dayOnePageObservationFixture(reporter),
     remoteApiEnabled: options.remote ?? true,
     app: { homeTruthStatus: "ready", remoteFleetStatus: "ready", homeTruth: {} as object | null },
     catalogStatus: { value: "ready" },

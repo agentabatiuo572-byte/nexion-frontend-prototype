@@ -7,6 +7,7 @@ import * as vue from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { zh } from "@/i18n/messages/zh";
 import { ApiError } from "@/api/errors";
+import { createNativeGpuRequest } from "@/lib/native-gpu-request";
 import * as flow from "@/lib/phone-calibration-flow";
 import * as estimatorScope from "@/lib/estimator-scope";
 import * as calibrationScope from "@/lib/onboarding-calibration-scope";
@@ -54,6 +55,10 @@ function mount(name: "connect" | "estimator", api: any, query: Record<string, st
     "@/lib/device-id": { getDeviceId: () => "phone-1" },
     "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => nativePhone },
     "@/lib/phone-activation-guidance": compileGuidance(h5),
+    "@/lib/native-gpu-request": { createNativeGpuRequest: (send: (id: number) => void) => {
+      const reader = createNativeGpuRequest(id => { send(id); queueMicrotask(() => reader.receive({ id, status: "observed", renderer: "Actual test renderer" })); });
+      return reader;
+    } },
     "@/lib/device-signals": { collectDeviceSignals: () => raw },
     "@/api/runtime": { onboardingCalibrationApi: api, remoteApiEnabled: true },
     "@/lib/account-scope": { captureAccountScope: () => ({ epoch }), isCurrentAccountScope: (scope: any) => scope.epoch === epoch },
@@ -163,6 +168,67 @@ describe("real onboarding page workers", () => {
       expect(api.activate).not.toHaveBeenCalled();
     }
   });
+  it("persists a first-login defer after a canonical unbound read instead of only returning Home", async () => {
+    const api = { phoneLogin: vi.fn().mockResolvedValue("NEEDS_CALIBRATION"),
+      bindingStatus: vi.fn().mockResolvedValue(false), result: vi.fn().mockResolvedValue(record), calibrate: vi.fn() };
+    const { page, confirmDeferredPhoneActivation, navReset, auth } = mount("connect", api, { mode: "login" });
+    await settle(); page.phase.value = "calibrating"; await settle();
+    confirmDeferredPhoneActivation.mockResolvedValue({ ...record, activationStatus: "DEFERRED", revision: 4 });
+    await page.deferPhoneActivation();
+    expect(api.bindingStatus).toHaveBeenCalledOnce();
+    expect(confirmDeferredPhoneActivation).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ initialOnly: true }));
+    expect(auth.completeOnboarding).toHaveBeenCalledOnce();
+    expect(navReset).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/index/index" }));
+  });
+
+  it("does not treat a failed login binding read as an unbound installation", async () => {
+    const api = { phoneLogin: vi.fn().mockResolvedValue("NEEDS_CALIBRATION"),
+      bindingStatus: vi.fn().mockRejectedValue(new ApiError({ kind: "network", message: "offline" })),
+      result: vi.fn().mockResolvedValue(record), calibrate: vi.fn() };
+    const { page, confirmDeferredPhoneActivation, navReset, auth } = mount("connect", api, { mode: "login" });
+    await settle(); page.phase.value = "calibrating"; await settle();
+    await page.deferPhoneActivation();
+    expect(page.phase.value).toBe("error");
+    expect(confirmDeferredPhoneActivation).not.toHaveBeenCalled();
+    expect(auth.completeOnboarding).not.toHaveBeenCalled();
+    expect(navReset).not.toHaveBeenCalled();
+  });
+
+  it.each(["NEEDS_CALIBRATION", "REPLACEMENT_REQUIRED"])("preserves the old phone on login defer for %s", async (status) => {
+    const api = { phoneLogin: vi.fn().mockResolvedValue(status), bindingStatus: vi.fn().mockResolvedValue(true),
+      result: vi.fn().mockResolvedValue(record), calibrate: vi.fn().mockResolvedValue(record), activate: vi.fn(), defer: vi.fn() };
+    const { page, confirmDeferredPhoneActivation, navReset, auth } = mount("connect", api, { mode: "login" });
+    await settle(); page.phase.value = "calibrating"; await settle();
+    await page.deferPhoneActivation();
+    expect(confirmDeferredPhoneActivation).not.toHaveBeenCalled();
+    expect(api.defer).not.toHaveBeenCalled(); expect(api.activate).not.toHaveBeenCalled();
+    expect(auth.completeOnboarding).not.toHaveBeenCalled();
+    expect(navReset).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/index/index" }));
+  });
+
+  it("ignores a late unbound read after an account switch", async () => {
+    let resolve!: (value: boolean) => void;
+    const api = { phoneLogin: vi.fn().mockResolvedValue("NEEDS_CALIBRATION"),
+      bindingStatus: vi.fn(() => new Promise<boolean>(done => { resolve = done; })),
+      result: vi.fn().mockResolvedValue(record), calibrate: vi.fn() };
+    const { page, confirmDeferredPhoneActivation, navReset, invalidate } = mount("connect", api, { mode: "login" });
+    await settle(); page.phase.value = "calibrating"; await settle();
+    const pending = page.deferPhoneActivation(); invalidate(); resolve(false); await pending;
+    expect(confirmDeferredPhoneActivation).not.toHaveBeenCalled(); expect(navReset).not.toHaveBeenCalled();
+  });
+
+  it("suppresses duplicate defer clicks while binding status is pending", async () => {
+    let resolve!: (value: boolean) => void;
+    const api = { phoneLogin: vi.fn().mockResolvedValue("NEEDS_CALIBRATION"),
+      bindingStatus: vi.fn(() => new Promise<boolean>(done => { resolve = done; })),
+      result: vi.fn().mockResolvedValue(record), calibrate: vi.fn() };
+    const { page, confirmDeferredPhoneActivation } = mount("connect", api, { mode: "login" });
+    await settle(); page.phase.value = "calibrating"; await settle();
+    confirmDeferredPhoneActivation.mockResolvedValue({ ...record, activationStatus: "DEFERRED" });
+    const pending = page.deferPhoneActivation(); await page.deferPhoneActivation(); resolve(false); await pending;
+    expect(api.bindingStatus).toHaveBeenCalledOnce(); expect(confirmDeferredPhoneActivation).toHaveBeenCalledOnce();
+  });
+
   it("uses the first-calibration title only after the server requests calibration", async () => {
     const api = { phoneLogin: vi.fn().mockResolvedValue("NEEDS_CALIBRATION"), result: vi.fn(), calibrate: vi.fn() };
     const { page } = mount("connect", api, { mode: "login" }); await settle();

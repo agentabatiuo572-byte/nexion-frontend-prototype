@@ -300,6 +300,7 @@ import { dayOnePageObservationApi, h3ObservationApi, remoteApiEnabled, sessionVa
 import { toast } from "@/store/ui";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { authenticatedPageObservationReporter } from "@/lib/authenticated-page-observation";
+import { reportDayOnePageObservation } from "@/lib/day-one-page-observation";
 import { usePurchaseGate } from "@/composables/use-purchase-gate";
 import { useRemotePurchaseEligibility } from "@/store/purchase-eligibility";
 import type { PurchaseEligibilityCondition, PurchaseEligibilityPolicy } from "@/api/purchase-eligibility-api";
@@ -406,14 +407,12 @@ async function observeCanonicalProductDetail(): Promise<void> {
   if (canonicalProduct.id !== "stellarbox-s1" || canonicalProduct.productType === "SHARE"
     || !Number.isFinite(canonicalProduct.price) || canonicalProduct.price <= 0
     || !Number.isFinite(canonicalProduct.dailyEarn) || canonicalProduct.dailyEarn <= 0) return;
-  void authenticatedPageObservationReporter.report({
-    subject: "day-one:view-product-roi:stellarbox-s1",
+  void reportDayOnePageObservation("view_product_roi", {
     scope,
     session: sessionVault.read(),
     visible: () => detailPageVisible && pageEpoch === detailObservationEpoch,
     isCurrent: isCurrentAccountScope,
     submit: () => dayOnePageObservationApi.s1Roi(),
-    accepted: (result) => result.recorded,
   });
 }
 

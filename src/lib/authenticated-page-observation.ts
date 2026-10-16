@@ -14,6 +14,8 @@ export interface AuthenticatedPageObservation<Result = void> {
   submit(): Promise<Result>;
   /** A resolved transport can still be a server-owned no-op. */
   accepted?(result: Result): boolean;
+  /** Optional task feedback; generic browsing observers remain silent. */
+  rejected?(error: unknown): void;
 }
 
 export interface AuthenticatedPageObservationOptions {
@@ -101,13 +103,19 @@ export function createAuthenticatedPageObservationReporter(options: Authenticate
     try {
       const result = await input.submit();
       attempted.set(key, { state: input.accepted?.(result) === false ? "failed" : "accepted", at: now() });
-    } catch {
+    } catch (error) {
       // Observation availability never changes a successfully rendered page.
       attempted.set(key, { state: "failed", at: now() });
+      if (input.isCurrent(input.scope)) input.rejected?.(error);
     }
   }
 
-  return { report };
+  function retryFailed(scope: RemoteAccountRequest, subject: string): void {
+    const key = `${scope.accountKey}:${scope.epoch}:${shanghaiIsoWeekKey(now())}:${subject}`;
+    if (attempted.get(key)?.state === "failed") attempted.delete(key);
+  }
+
+  return { report, retryFailed };
 }
 
 // One app-runtime reporter also covers a page instance recreated by navigation.

@@ -93,7 +93,7 @@ function leaderboard(value: unknown, mode: ApiEnvironment, requestedPeriod: Lead
   const myRank=source.myRank===null?null:num(source.myRank,true);if(myRank!==null&&(myRank<1||myRank>totalRows)) return invalid();return {...proof,period,rows,myRank,paused,snapshotState,dataAvailable,pauseSnapshotId,pauseCapturedAt,snapshotUnavailableReason,gapToNext:num(source.gapToNext),poolUsd:num(source.poolUsd),topN:num(source.topN,true),page,pageSize,totalRows,generatedAt,snapshotAt:snapshotAt(source),snapshotVersion:snapshotVersion(source)};
 }
 
-const KINDS=new Set(["direct_purchase","direct_device_earning","unilevel","binary","peer","cultivation","leadership","genesis"]);
+const KINDS=new Set(["direct_purchase","direct_device_earning","unilevel","binary","peer","cultivation","leadership","genesis","promotion","other"]);
 const STATUSES=new Set(["waiting_calculation","cooling","unlocked","withdrawn","frozen","reversed","rejected","recovery_pending"]);
 function settlement(v: Record<string, unknown>): { settlementState?: "CANONICAL"; withdrawable?: boolean } {
   if (v.settlementState !== undefined && v.settlementState !== "CANONICAL") return invalid();
@@ -124,7 +124,7 @@ function commissions(value: unknown, mode: ApiEnvironment): TeamCommissionSnapsh
   for (const key of KINDS) {
     // Older snapshots predate the new categories. A missing bucket is zero only
     // when no event claims that category; aggregate reconciliation still applies.
-    const bucket=row(rawKinds[key] ?? ((key === "direct_purchase" || key === "direct_device_earning")
+    const bucket=row(rawKinds[key] ?? ((key === "direct_purchase" || key === "direct_device_earning" || key === "promotion" || key === "other")
       && !events.some(event => event.kind === key) ? { usdt: 0, nex: 0, count: 0 } : undefined));
     byKind[key as CommissionEvent["kind"]] = {usdt:num(bucket.usdt),nex:num(bucket.nex),count:num(bucket.count,true)};
   }

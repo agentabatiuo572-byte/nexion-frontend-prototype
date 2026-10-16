@@ -1,5 +1,8 @@
 <template>
   <StandalonePageShell class="est-root" :top-inset="24">
+    <!-- #ifdef APP-PLUS -->
+    <NativeGpuObserver :request="gpuRequest" @observation="gpuReader.receive" />
+    <!-- #endif -->
     <!-- Progress -->
     <view class="est-bars">
       <view class="est-back active:opacity-60" role="button" :tabindex="deferBusy ? -1 : 0" :aria-disabled="deferBusy" :aria-label="t.login.back" @click="leaveEstimator" @keydown.enter.prevent="leaveEstimator" @keydown.space.prevent="leaveEstimator">
@@ -18,7 +21,6 @@
 
     <!-- Device reveal: loading → phone card -->
     <view v-if="nativePhoneAvailable" class="est-reveal">
-      <transition name="est-fade" mode="out-in">
         <view v-if="loadFailed || deferred" key="failed" class="est-loading est-loading--failed">
           <text class="est-loading__t">{{ deferFailed ? t.onboarding.activationDeferFailedTitle : deferred ? t.onboarding.activationDefer : calibration?.calibrationStatus === 'PENDING_VERIFICATION' ? t.onboarding.phoneCalibrationPendingTitle : t.onboarding.calibrationFailedTitle }}</text>
           <text v-if="loadFailed" class="est-failed__hint">{{ failureDetail }}</text>
@@ -60,7 +62,6 @@
             <text class="est-phone__rate-u">{{ t.onboarding.perDay }}</text>
           </view>
         </view>
-      </transition>
     </view>
 
     <!-- Upgrade comparison -->
@@ -123,6 +124,23 @@ import { createEstimatorScope, isCurrentEstimatorScope, type EstimatorScope } fr
 import { requireCryptoUuid } from "@/lib/secure-command-id";
 import { confirmDeferredPhoneActivation } from "@/lib/defer-phone-activation";
 import { collectDeviceSignals } from "@/lib/device-signals";
+// #ifdef APP-PLUS
+import NativeGpuObserver from "@/components/native-gpu-observer.vue";
+import { createNativeGpuRequest } from "@/lib/native-gpu-request";
+const gpuRequest = ref(0);
+const gpuReader = createNativeGpuRequest(id => { gpuRequest.value = id; });
+onUnmounted(() => gpuReader.dispose());
+// #endif
+async function collectCalibrationSignals() {
+  // #ifdef APP-PLUS
+  if (hasNativeAndroidPhoneRuntime()) {
+    const observation = await gpuReader.read();
+    if (observation.status !== "observed") console.warn("Phone GPU observation unavailable:", observation.status);
+    return collectDeviceSignals(observation.renderer);
+  }
+  // #endif
+  return collectDeviceSignals();
+}
 import { calibrationBelongsTo, createPhoneCalibrationFlow } from "@/lib/phone-calibration-flow";
 
 const t = useT();
@@ -156,7 +174,7 @@ let generation = 0;
 let accountWatchKey = String(app.accountKey || "");
 let deferIntent: { revision: number; idempotencyKey: string } | null = null;
 const calibrationFlow = createPhoneCalibrationFlow({ api: onboardingCalibrationApi,
-  collect: collectDeviceSignals, key: () => `onboarding:${requireCryptoUuid()}` });
+  collect: collectCalibrationSignals, key: () => `onboarding:${requireCryptoUuid()}` });
 const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
 const phoneActivationGuidance = computed(() => resolvePhoneActivationGuidance(nativePhoneAvailable, t.value.myDevices));
 
@@ -625,13 +643,5 @@ async function deferPhoneActivation() {
 @keyframes est-up {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
-}
-.est-fade-enter-active,
-.est-fade-leave-active {
-  transition: opacity 0.25s;
-}
-.est-fade-enter-from,
-.est-fade-leave-to {
-  opacity: 0;
 }
 </style>

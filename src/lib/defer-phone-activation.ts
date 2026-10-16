@@ -9,6 +9,7 @@ interface DeferredPhoneActivationCommand {
 
 interface ConfirmDeferredPhoneActivationOptions {
   current?: OnboardingCalibration | null;
+  initialOnly?: boolean;
   deviceId: string;
   command: (revision: number) => DeferredPhoneActivationCommand;
   isCurrent: () => boolean;
@@ -45,7 +46,7 @@ export async function confirmDeferredPhoneActivation(
   const command = options.command(current?.revision ?? 0);
   if (!options.isCurrent()) stale();
   try {
-    current = await onboardingCalibrationApi.defer(deviceId, command.revision, command.idempotencyKey);
+    current = await onboardingCalibrationApi.defer(deviceId, command.revision, command.idempotencyKey, ...(options.initialOnly ? [true] as const : []));
     if (!options.accept(current)) stale();
   } catch (cause: unknown) {
     if (!options.isCurrent()) stale();
@@ -66,7 +67,7 @@ export async function confirmDeferredPhoneActivation(
     // Reuse the exact command after an ambiguous response, including the
     // before-first-calibration case where readback still returns 404. The
     // server either deduplicates a committed request or applies this one once.
-    current = await onboardingCalibrationApi.defer(deviceId, command.revision, command.idempotencyKey);
+    current = await onboardingCalibrationApi.defer(deviceId, command.revision, command.idempotencyKey, ...(options.initialOnly ? [true] as const : []));
     if (!options.accept(current)) stale();
   }
 

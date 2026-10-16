@@ -1,3 +1,4 @@
+import { StakingOpenRejectedError } from '@/api/staking-open-rejection';
 import { formatAmount } from "@/lib/amount-display";
 import { describe, expect, it, vi } from "vitest";
 import { reactive, watch } from "vue";
@@ -57,7 +58,7 @@ function harness(storage?: RemoteIntentStorage) {
     onBeforeUnmount: vi.fn((callback: () => void) => { unmount = callback; }),
     navTo: vi.fn(),
     fmt: vi.fn(),
-    ApiError: class extends Error {},
+    ApiError: class extends Error {}, StakingOpenRejectedError,
     normalizeCommandAmount,
   };
   dependencies.staking.prepareOpen.mockImplementation((tierKey, amountUsdt) => {
@@ -93,7 +94,7 @@ describe("stake sheet remote command boundaries", () => {
   const template = source.split("<template>")[1].split("</template>")[0];
   const render = new Function("Vue", compile(template, { mode: "function", prefixIdentifiers: true, isCustomElement: () => true }).code)(Vue);
   function statusButton(h: ReturnType<typeof harness>) {
-    const tree = render({ open: true, term: 30, recovering: true, pendingOpen: h.pendingOpen.value,
+    const tree = render({ open: true, term: 30, recovering: true, pendingOpen: h.pendingOpen.value, staking: h.staking,
       pendingTerm: "30", t: h.t.value, remotePending: false, recoveryBlocked: false,
       formatAmount, fmt: () => "20 USDT / 30 days", submit: h.submit, emitClose: h.emitClose }, []);
     function find(node: unknown): Vue.VNode | undefined {

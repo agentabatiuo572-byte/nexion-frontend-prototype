@@ -1,3 +1,4 @@
+import { StakingOpenRejectedError } from '@/api/staking-open-rejection';
 import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
 import {reactive,watch} from 'vue';
 import {createPinia,setActivePinia} from 'pinia';
@@ -33,7 +34,7 @@ async function harness(){
  const store=useStaking();store.bindAccount(account);await flush();
  let riskResolve!:()=>void,riskReject!:(e:Error)=>void,unmount=()=>{};
  const gate=new Promise<void>((a,b)=>{riskResolve=a;riskReject=b;});
- const deps={props:reactive({open:true,term:30}),app:reactive({accountKey:account,accountBindingEpoch:1}),amount:{value:137.25},minAmount:{value:20},canOpen:{value:true},remotePending:{value:false},pendingOpen:{value:null},recoveryBlocked:{value:false},remoteGate:registry(),staking:store,risk:{checkGate:vi.fn(()=>gate)},t:{value:{staking:{remoteUnavailableClosed:'UNSENT'},stakingV3:{toast:{openFailedTitle:'FAILED'},sheet:{failedTitle:'TERMINAL',pendingHint:'WAIT'}}}},toast:{error:vi.fn(),success:vi.fn()},emit:vi.fn(),watch,onBeforeUnmount:(f:()=>void)=>{unmount=f;},navTo:vi.fn(),fmt:vi.fn(),ApiError,normalizeCommandAmount:(v:number)=>v};
+ const deps={props:reactive({open:true,term:30}),app:reactive({accountKey:account,accountBindingEpoch:1}),amount:{value:137.25},minAmount:{value:20},canOpen:{value:true},remotePending:{value:false},pendingOpen:{value:null},recoveryBlocked:{value:false},remoteGate:registry(),staking:store,risk:{checkGate:vi.fn(()=>gate)},t:{value:{staking:{remoteUnavailableClosed:'UNSENT'},stakingV3:{toast:{openFailedTitle:'FAILED'},sheet:{failedTitle:'TERMINAL',pendingHint:'WAIT'}}}},toast:{error:vi.fn(),success:vi.fn()},emit:vi.fn(),watch,onBeforeUnmount:(f:()=>void)=>{unmount=f;},navTo:vi.fn(),fmt:vi.fn(),ApiError,StakingOpenRejectedError,normalizeCommandAmount:(v:number)=>v};
  deps.emit.mockImplementation((_event,open)=>{deps.props.open=open;});
  const actions=new Function('formatAmount',...Object.keys(deps),compiled)(String,...Object.values(deps));
  deps.amount.value=payload.amountUsdt;

@@ -145,7 +145,7 @@ import { useFreeTrial } from "@/store/free-trial";
 import { dayOnePageObservationApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import { isActiveSlotDevice } from "@/lib/device-slot-policy";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
-import { authenticatedPageObservationReporter } from "@/lib/authenticated-page-observation";
+import { reportDayOnePageObservation } from "@/lib/day-one-page-observation";
 
 type Range = "Today" | "Week" | "Month" | "All";
 const RANGES: Range[] = ["Today", "Week", "Month", "All"];
@@ -186,14 +186,12 @@ async function observeDayOneEarnPage(): Promise<void> {
   await nextTick();
   if (!earnPageVisible || pageEpoch !== earnObservationEpoch || app.homeTruthStatus !== "ready"
     || app.remoteFleetStatus !== "ready" || !app.homeTruth) return;
-  void authenticatedPageObservationReporter.report({
-    subject: "day-one:visit-earn",
+  void reportDayOnePageObservation("visit_earn", {
     scope,
     session: sessionVault.read(),
     visible: () => earnPageVisible && pageEpoch === earnObservationEpoch,
     isCurrent: isCurrentAccountScope,
     submit: () => dayOnePageObservationApi.earnPage(),
-    accepted: (result) => result.recorded,
   });
 }
 

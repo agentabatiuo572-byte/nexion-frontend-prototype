@@ -1,3 +1,4 @@
+import { dayOnePageObservationFixture } from "@/lib/day-one-page-observation.test-support";
 // Execute the production SFC script against confirmed snapshots and changing
 // remote read states; fixture expectations do not reimplement its computeds.
 // @ts-expect-error Vitest executes this structural contract in Node; the App tsconfig intentionally omits Node globals.
@@ -35,6 +36,7 @@ function hero(range: Range, homeTruth: unknown, realized: { usdt: number; nex: n
     refreshHomeTruth: async () => true, refreshRemoteFleet: async () => true });
   const load = (id: string) => {
     if (id === "@/lib/amount-display") return { formatAmount };
+    if (id === "@/lib/day-one-page-observation") return dayOnePageObservationFixture();
     if (id === "vue") return { ...Vue, onUnmounted: () => {} };
     if (id === "@dcloudio/uni-app") return { onShow: () => {}, onHide: () => {} };
     if (id === "@/store/app") return { useApp: () => app };

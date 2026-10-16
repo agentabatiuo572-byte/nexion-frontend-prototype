@@ -1,3 +1,4 @@
+import { dayOnePageObservationFixture } from "@/lib/day-one-page-observation.test-support";
 import { formatAmount } from "@/lib/amount-display";
 import * as Vue from "vue";
 import type { Component } from "vue";
@@ -92,6 +93,7 @@ async function mountPair(product: Product,promotion?:PublicPromotion) {
   const chassis = { setup: (_props: unknown, { slots }: { slots: Record<string, () => Vue.VNode[]> }) => () => Vue.h("chassis-fixture", slots.default?.()) };
   const modules: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/day-one-page-observation": dayOnePageObservationFixture(),
     vue: Vue,
     "@/i18n/use-t": { useT: () => Vue.ref(zh) }, "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/i18n/format": { fmt }, "@/lib/brand-copy": { nexGridBrandText },

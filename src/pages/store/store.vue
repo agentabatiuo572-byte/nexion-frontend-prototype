@@ -26,6 +26,14 @@
       </view>
       <template v-else-if="!publicOnly">
         <StoreHero :multiplier="upgrade?.multiplier ?? null" />
+        <view class="nx-glass-card flex items-center justify-between active:opacity-70" data-testid="store-bundle-entry"
+          role="button" tabindex="0" :aria-label="t.promotion.bundle"
+          style="min-height: 48px; padding: 12px 16px; color: var(--v5-brand); font-size: 15px; font-weight: 600"
+          @click="navTo('/pages/store/bundle')"
+          @keydown.enter.prevent="navTo('/pages/store/bundle')" @keydown.space.prevent="navTo('/pages/store/bundle')">
+          <text>{{ t.promotion.bundle }}</text>
+          <text aria-hidden="true">›</text>
+        </view>
         <PromotionEntry mode="home" />
         <ClusterLadder :authority="yieldAuthority" :owned="ownedHardware" />
         <VsPhoneHero v-if="upgrade" :authority="yieldAuthority" :comparison="upgrade" />
@@ -158,7 +166,7 @@ import { highestOwnedHardware, storeUpgrade } from "@/lib/store-upgrade";
 import { useApp } from "@/store/app";
 import { dayOnePageObservationApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
-import { authenticatedPageObservationReporter } from "@/lib/authenticated-page-observation";
+import { reportDayOnePageObservation } from "@/lib/day-one-page-observation";
 import { behaviorTracker, createStoreViewEvent } from "@/services/behavior-analytics";
 
 const t = useT();
@@ -273,14 +281,12 @@ async function observeDayOneStorePage(): Promise<void> {
     };
     void send();
   }
-  void authenticatedPageObservationReporter.report({
-    subject: "day-one:visit-store",
+  void reportDayOnePageObservation("visit_store", {
     scope,
     session,
     visible: () => storePageVisible && pageEpoch === storeObservationEpoch,
     isCurrent: isCurrentAccountScope,
     submit: () => dayOnePageObservationApi.storePage(),
-    accepted: (result) => result.recorded,
   });
 }
 watch(catalogStatus, () => {
