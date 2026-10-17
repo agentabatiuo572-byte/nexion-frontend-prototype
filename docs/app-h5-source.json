@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\bug584-app",
+  "sourcePath": "D:\\workspace\\.worktrees\\bug594-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "f2990c81e02c8baa0e99fea8cc663ee7f2ee6bbe",
-  "sourceRef": "f2990c81e02c8baa0e99fea8cc663ee7f2ee6bbe",
+  "sourceHead": "764032f9a5e2e6bcf1a61a77aab25eaf54d4cb76",
+  "sourceRef": "764032f9a5e2e6bcf1a61a77aab25eaf54d4cb76",
   "sourceRefKind": "commit",
-  "sourceTree": "d31ec34a4beb9b9f80799270689953bd2930e6e3",
+  "sourceTree": "a91738061a9485e26726d6d8a86cf6120a1169d6",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -14278,11 +14278,18 @@
       "targetSha256": "19456c01229af5f16cee6100adabf83562d0dd9ca7d8d2697b15e8c62341d671",
       "mode": "100644"
     },
+    "src/pages/me/wallet-withdrawal-channel-label.test.ts": {
+      "sourceBlob": "86a4d5ce76f130386c726a1d9371a846b2477afa",
+      "sourceSha256": "81d8b4760aaaa66e0c2ab4cf3d14324886cb4334a75fe264417e8fb7a80c81ab",
+      "targetBlob": "86a4d5ce76f130386c726a1d9371a846b2477afa",
+      "targetSha256": "81d8b4760aaaa66e0c2ab4cf3d14324886cb4334a75fe264417e8fb7a80c81ab",
+      "mode": "100644"
+    },
     "src/pages/me/wallet.vue": {
-      "sourceBlob": "f5089764f66e013b3566a20ab31a65fc921e70fd",
-      "sourceSha256": "ffa49de273f430f8c7f7d066d9e285033b7dce630780bd0f2fc027ed32790044",
-      "targetBlob": "f5089764f66e013b3566a20ab31a65fc921e70fd",
-      "targetSha256": "ffa49de273f430f8c7f7d066d9e285033b7dce630780bd0f2fc027ed32790044",
+      "sourceBlob": "6b43bc2a9398702bbdb1e7e3a7518d1122d82eb4",
+      "sourceSha256": "964fb90e686f98ddc743dbddd76417eac0fe56f693f4cb26c9db2c1dfe6c5bfd",
+      "targetBlob": "6b43bc2a9398702bbdb1e7e3a7518d1122d82eb4",
+      "targetSha256": "964fb90e686f98ddc743dbddd76417eac0fe56f693f4cb26c9db2c1dfe6c5bfd",
       "mode": "100644"
     },
     "src/pages/me/withdrawal-warning-intent.test.ts": {

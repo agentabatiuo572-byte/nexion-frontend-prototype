@@ -273,16 +273,16 @@ const withdrawalRowLabel = computed(() =>
 const withdrawalRowSub = computed(() => {
   const w = latestWithdrawal.value;
   if (!w) return "";
-  return `${statusLabel(w.status)} · ${fmtTime(w.submittedAt)}`;
+  return `${statusLabel(w.status, w.network)} · ${fmtTime(w.submittedAt)}`;
 });
 
-function statusLabel(s: WithdrawalStatus): string {
+function statusLabel(s: WithdrawalStatus, network: string): string {
   const labels: Record<WithdrawalStatus, string> = {
     submitted: t.value.wallet.submitted,
     "review-pending": t.value.wallet.reviewPending,
     "review-passed": t.value.wallet.reviewPassed,
     processing: t.value.wallet.processing,
-    sent: t.value.wallet.sent,
+    sent: network === "BANK-VND" ? t.value.bankWithdrawal.processing : t.value.wallet.sent,
     confirmed: t.value.wallet.confirmed,
     "review-rejected": t.value.wallet.reviewRejected,
     frozen: t.value.wallet.statusFrozen,
