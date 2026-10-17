@@ -22,6 +22,25 @@ const quotaSource = (import.meta.glob("../pages/team/quota.vue", {
 const today = new Date("2026-08-31T15:59:59.000Z"); // Asia/Shanghai: 2026-08-31.
 
 describe("P3-17 ambassador application client contract", () => {
+  it.each([undefined, { DateTimeFormat: function () { return {}; } }])("validates Shanghai day boundaries without Intl date formatting (%j)", (intl) => {
+    vi.stubGlobal("Intl", intl);
+    const draft = { city: "UVEL-TEST-TEAM48-1058", budgetText: "3000", bucket: "venue" };
+    for (const [instant, day, upper, outside] of [
+      ["2026-10-17T15:59:59.999Z", "2026-10-17", "2027-10-17", "2027-10-18"],
+      ["2026-10-17T16:00:00.000Z", "2026-10-18", "2027-10-18", "2027-10-19"],
+      ["2026-12-31T16:00:00.000Z", "2027-01-01", "2028-01-01", "2028-01-02"],
+      ["2024-02-28T16:00:00.000Z", "2024-02-29", "2025-02-28", "2025-03-01"],
+    ]) {
+      const now = new Date(instant);
+      expect(parseAmbassadorApplicationDraft({ ...draft, eventDate: day }, now)).not.toBeNull();
+      expect(parseAmbassadorApplicationDraft({ ...draft, eventDate: upper }, now)).not.toBeNull();
+      expect(parseAmbassadorApplicationDraft({ ...draft, eventDate: outside }, now)).toBeNull();
+      const previousDay = new Date(Date.parse(day + "T00:00:00Z") - 86400000).toISOString().slice(0, 10);
+      expect(parseAmbassadorApplicationDraft({ ...draft, eventDate: previousDay }, now)).toBeNull();
+    }
+    expect(parseAmbassadorApplicationDraft({ ...draft, eventDate: "2026-10-18" }, new Date(NaN))).toBeNull();
+  });
+
   it("keeps the Shanghai today through one-year-inclusive date boundary", () => {
     expect(parseAmbassadorApplicationDraft({ eventDate: "2026-08-31", city: "  Tokyo  ", budgetText: "100.000000", bucket: "venue" }, today))
       .toEqual({ eventDate: "2026-08-31", city: "Tokyo", budgetUsdt: 100, bucket: "venue" });

@@ -49,13 +49,9 @@ function dateKey(parts: { year: number; month: number; day: number }): string {
 }
 
 function shanghaiToday(now: Date): { year: number; month: number; day: number } {
-  const values = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(now).reduce<Record<string, string>>((result, part) => {
-    result[part.type] = part.value;
-    return result;
-  }, {});
-  return { year: Number(values.year), month: Number(values.month), day: Number(values.day) };
+  // Current Shanghai business dates use UTC+8; native runtimes may have no Intl.
+  const shifted = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  return { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth() + 1, day: shifted.getUTCDate() };
 }
 
 function plusOneYear(parts: { year: number; month: number; day: number }): { year: number; month: number; day: number } {
@@ -69,6 +65,7 @@ export function parseAmbassadorApplicationDraft(
   draft: AmbassadorApplicationDraft,
   now = new Date(),
 ): AmbassadorApplicationInput | null {
+  if (!Number.isFinite(now.getTime())) return null;
   const eventDate = dateParts(draft.eventDate) ? draft.eventDate : null;
   const today = shanghaiToday(now);
   if (!eventDate || eventDate < dateKey(today) || eventDate > dateKey(plusOneYear(today))) return null;

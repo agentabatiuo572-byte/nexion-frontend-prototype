@@ -355,12 +355,19 @@ async function submit() {
     toast.error(t.value.agent.toastV5Required, fmt(t.value.agent.toastV5RequiredSub, { rank: requiredRankLabel.value }));
     return;
   }
-  const input = parseAmbassadorApplicationDraft({
-    eventDate: date.value,
-    city: city.value,
-    budgetText: budgetText.value,
-    bucket: selectedBucketId.value,
-  });
+  let parsedInput: AmbassadorApplicationInput | null;
+  try {
+    parsedInput = parseAmbassadorApplicationDraft({
+      eventDate: date.value,
+      city: city.value,
+      budgetText: budgetText.value,
+      bucket: selectedBucketId.value,
+    });
+  } catch {
+    toast.error(t.value.agent.toastRemoteFailed, t.value.agent.submitUnconfirmedBody);
+    return;
+  }
+  const input = parsedInput;
   if (!input) {
     toast.error(t.value.agent.invalidFormTitle, t.value.agent.invalidFormBody);
     return;
