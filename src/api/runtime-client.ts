@@ -13,6 +13,7 @@ export interface RuntimeApiClientOptions {
   onUnauthorized?: () => void | Promise<void>;
   onSessionRefreshed?: () => void;
   refreshCredentialMode?: RefreshCredentialMode;
+  nativeRefreshRecovery?: boolean;
 }
 
 function isLoopbackHttpUrl(value: string): boolean {
@@ -40,5 +41,6 @@ export function createRuntimeApiClient(options: RuntimeApiClientOptions): ApiCli
     onUnauthorized: options.onUnauthorized,
     onSessionRefreshed: options.onSessionRefreshed,
     refreshCredentialMode: options.refreshCredentialMode,
+    nativeRefreshRecovery: options.nativeRefreshRecovery,
   });
 }

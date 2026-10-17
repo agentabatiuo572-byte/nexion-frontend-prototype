@@ -203,6 +203,7 @@ import { useApp } from "@/store/app";
 import { ambassadorApplicationApi, remoteApiEnabled } from "@/api/runtime";
 import type { AmbassadorApplication, AmbassadorApplicationInput, AmbassadorPolicy,
   AmbassadorPolicyBucket } from "@/api/ambassador-application-api";
+import { isAmbassadorApplicationPending } from "@/api/ambassador-application-api";
 import { isSettledRejection } from "@/api/errors";
 import { acquireAmbassadorCommandKey, finishAmbassadorCommand } from "@/lib/ambassador-command-key";
 import {
@@ -399,16 +400,19 @@ async function submit() {
       void refreshHistory(requestScope).catch(() => undefined);
     } catch (error) {
       if (!requestIsCurrent(requestScope)) return;
-      const recovery = ambassadorSubmitErrorRecovery(isSettledRejection(error));
+      const pending = isAmbassadorApplicationPending(error);
+      const recovery = ambassadorSubmitErrorRecovery(pending || isSettledRejection(error));
       try {
-        if (recovery.refreshLatestForDisplay) await refreshLatest(requestScope);
+        if (pending) await refreshHistory(requestScope);
+        else if (recovery.refreshLatestForDisplay) await refreshLatest(requestScope);
         if (!requestIsCurrent(requestScope)) return;
       } catch {
         if (!requestIsCurrent(requestScope)) return;
       }
       if (!requestIsCurrent(requestScope)) return;
       if (recovery.finishCommand) finishAmbassadorCommand(requestScope.accountKey, identity);
-      toast.error(t.value.agent.toastRemoteFailed, t.value.agent.submitUnconfirmedBody);
+      toast.error(pending ? t.value.agent.pendingApplicationTitle : t.value.agent.toastRemoteFailed,
+        pending ? t.value.agent.pendingApplicationBody : t.value.agent.submitUnconfirmedBody);
       return;
     } finally {
       if (requestIsCurrent(requestScope)) submitting.value = false;

@@ -90,6 +90,7 @@ interface ApiClientOptions {
   onSessionRefreshed?: () => void;
   allowInsecureHttp?: boolean;
   refreshCredentialMode?: RefreshCredentialMode;
+  nativeRefreshRecovery?: boolean;
 }
 
 function normalizeBaseUrl(value: string, allowInsecureHttp: boolean): string {
@@ -301,6 +302,9 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         throw error;
       }
       const apiError = asApiError(error);
+      if (options.nativeRefreshRecovery && apiError.message === "USER_REFRESH_ROTATION_SUPERSEDED") {
+        return expireSession(revision);
+      }
       // A denial from the refresh endpoint is terminal, unlike a resource's
       // ordinary permission 403. Never evict a newer revision or an empty boot.
       if (current && (apiError.kind === "auth" || apiError.status === 401 || apiError.status === 403
@@ -337,7 +341,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
           }
           clearRotationNonce(nonce);
           return session;
-        }) : refreshNow();
+        }) : (async () => refreshNow(options.nativeRefreshRecovery ? options.vault.prepareRefreshRotation() : undefined))();
       refreshInFlight = refresh.catch(async (error: unknown) => {
         const apiError = asApiError(error);
         if ((apiError.message === "COOKIE_LOCK_UNAVAILABLE"

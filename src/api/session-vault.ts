@@ -1,5 +1,7 @@
 import { isUserSession, type UserSession } from "./contracts";
 import { reportNativeSessionStage } from "./native-session-storage";
+import { requireCryptoUuid } from "../lib/secure-command-id";
+import { ApiError } from "./errors";
 
 export type RefreshCredentialMode = "token" | "cookie";
 
@@ -18,6 +20,8 @@ interface PersistedSession {
   refreshToken: string;
   tokenType: string;
   user: UserSession;
+  /** Bound to refreshToken by the same encrypted, atomic storage record. */
+  refreshRotationNonce?: string;
 }
 
 export interface KeyValueStorage {
@@ -36,6 +40,7 @@ export interface SessionVault {
   /** Only a successful refresh may preserve authentication continuity. */
   refreshIfUnchanged(snapshot: SessionSnapshot, expectedRevision: number): boolean;
   isRefreshContinuation(expectedRevision: number): boolean;
+  prepareRefreshRotation(): string;
   clear(): void;
   clearIfUnchanged(expectedRevision: number): boolean;
 }
@@ -50,6 +55,8 @@ function parsePersisted(value: unknown): PersistedSession | null {
     || typeof persisted.tokenType !== "string"
     || persisted.tokenType.length === 0
     || !isUserSession(persisted.user)
+    || (persisted.refreshRotationNonce !== undefined
+      && (typeof persisted.refreshRotationNonce !== "string" || !/^[0-9a-f]{64}$/.test(persisted.refreshRotationNonce)))
   ) return null;
   return persisted as PersistedSession;
 }
@@ -58,12 +65,14 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
   let current: SessionSnapshot | null = null;
   let revision = 0;
   let identityRevision = 0;
+  let refreshRotationNonce: string | undefined;
   let hydrated = !storage;
   function hydrate(): void {
     if (hydrated || revision !== 0 || !storage) return;
     const storedValue = storage.get();
     const persisted = parsePersisted(storedValue);
     if (persisted) {
+      refreshRotationNonce = persisted.refreshRotationNonce;
       current = {
         accessToken: "",
         refreshToken: persisted.refreshToken,
@@ -118,6 +127,7 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
           } satisfies PersistedSession);
         }
       } catch (error) {
+        refreshRotationNonce = undefined;
         current = null;
         revision += 1;
         identityRevision = revision;
@@ -130,6 +140,7 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
       }
     }
     current = next;
+    refreshRotationNonce = undefined;
     revision += 1;
     if (!refresh || !sameIdentity) identityRevision = revision;
   }
@@ -137,6 +148,7 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
   function clearAndAdvance(): void {
     hydrated = true;
     current = null;
+    refreshRotationNonce = undefined;
     revision += 1;
     identityRevision = revision;
     if (!storage) return;
@@ -170,6 +182,25 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
     isRefreshContinuation(expectedRevision) {
       return current !== null && Number.isSafeInteger(expectedRevision)
         && expectedRevision >= identityRevision && expectedRevision < revision;
+    },
+    prepareRefreshRotation() {
+      if (!current?.refreshToken || current.refreshCredentialMode === "cookie") {
+        throw new ApiError({ kind: "auth", message: "AUTH_SESSION_REQUIRED" });
+      }
+      if (refreshRotationNonce) return refreshRotationNonce;
+      try {
+        // Existing helper uses Web Crypto or Android's SecureRandom-backed UUID.
+        const nonce = (requireCryptoUuid() + requireCryptoUuid()).replace(/-/g, "").toLowerCase();
+        if (!/^[0-9a-f]{64}$/.test(nonce)) throw new Error("INVALID_ROTATION_NONCE");
+        storage?.set({ schema: 1, refreshToken: current.refreshToken, tokenType: current.tokenType,
+          user: { ...current.user }, refreshRotationNonce: nonce } satisfies PersistedSession);
+        // Do not send before the adapter confirms persistence. A new login,
+        // logout or successful successor commit replaces this entire record.
+        refreshRotationNonce = nonce;
+        return nonce;
+      } catch {
+        throw new ApiError({ kind: "configuration", message: "NATIVE_REFRESH_INTENT_UNAVAILABLE", retryable: true });
+      }
     },
     clear() {
       clearAndAdvance();

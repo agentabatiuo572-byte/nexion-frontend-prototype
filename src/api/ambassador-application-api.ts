@@ -1,5 +1,11 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+
+export function isAmbassadorApplicationPending(error: unknown): boolean {
+  return error instanceof ApiError && error.kind === "http" && error.status === 409
+    && error.message === "AMBASSADOR_APPLICATION_PENDING";
+}
+
 export type AmbassadorEnvironment = "PRODUCTION";
 
 export interface AmbassadorPolicyBucket {

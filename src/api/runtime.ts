@@ -123,6 +123,7 @@ export const apiClient = createRuntimeApiClient({
   onUnauthorized: () => unauthorizedHandler?.(),
   onSessionRefreshed: renewAppConversationRealtime,
   refreshCredentialMode,
+  nativeRefreshRecovery: !!nativeSessionStorage,
 });
 // Authentication is server-backed in both dev and prod; Java active profile
 // selects the development challenge or production provider flow.

@@ -99,6 +99,25 @@ const androidOpenStages = ["PLATFORM_ANDROID", "SDK_IMPORT_BEGIN", "SDK_IMPORTED
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Android OS-encrypted native refresh persistence", () => {
+  it("keeps the refresh intent inside the encrypted R0 record across adapter restart", async () => {
+    const h = platformHarness(), adapter = h.adapter();
+    await adapter.ready();
+    const vault = createSessionVault(adapter);
+    vault.save({ ...persisted, accessToken: "synthetic-access" });
+    const nonce = vault.prepareRefreshRotation();
+    const storedText = JSON.stringify([...h.preferences.values()].map(values => [...values]));
+    expect(storedText).not.toContain(nonce);
+    expect(storedText).not.toContain(persisted.refreshToken);
+    const restarted = h.adapter(); await restarted.ready();
+    const restored = createSessionVault(restarted);
+    expect(restored.read()?.accessToken).toBe("");
+    expect(restored.prepareRefreshRotation()).toBe(nonce);
+    expect(restored.refreshIfUnchanged({ ...persisted, accessToken: "next-access", refreshToken: "next-refresh" }, restored.revision())).toBe(true);
+    expect(restarted.get()).not.toHaveProperty("refreshRotationNonce");
+    restored.clear();
+    expect(restarted.get()).toBeNull();
+  });
+
   it("orders fixed open milestones around the original calls without repeating native reads", async () => {
     const h = platformHarness(), trace: string[] = [];
     const importClass = h.android.importClass, runtimeMainActivity = h.android.runtimeMainActivity;
