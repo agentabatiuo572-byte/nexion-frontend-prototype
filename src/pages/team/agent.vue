@@ -159,7 +159,6 @@
               <view class="flex items-start justify-between">
                 <view>
                   <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ application.city }} · {{ application.eventDate }}</text>
-                  <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ applicationProof(application) }}</text>
                 </view>
                 <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-brand)' }">{{ applicationStatusText(application) }}</text>
               </view>
@@ -277,7 +276,6 @@ const latestApplication = ref<AmbassadorApplication>({ applicationId: null, stat
 const applications = ref<AmbassadorApplication[]>([]);
 
 const applicationStatusText = (application: AmbassadorApplication) => t.value.agent.applicationStatuses[application.status];
-const applicationProof = (application: AmbassadorApplication) => `${application.sourceEnvironment} · ${application.source}`;
 
 let agentMounted = true;
 let agentRequestGeneration = 0;

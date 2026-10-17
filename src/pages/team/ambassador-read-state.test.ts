@@ -5,6 +5,10 @@ import { compile as compileTemplate } from '@vue/compiler-dom';
 import { parse } from '@vue/compiler-sfc';
 import * as Vue from 'vue';
 import { renderToString } from '@vue/server-renderer';
+import { zh } from '@/i18n/messages/zh';
+import { en } from '@/i18n/messages/en';
+import { vi } from '@/i18n/messages/vi';
+import type { AmbassadorApplication } from '@/api/ambassador-application-api';
 
 const source = readFileSync(new URL('./agent.vue', import.meta.url), 'utf8');
 const implementation = source.match(/function refreshAgentPage\(\): void \{[\s\S]*?\n\}/)?.[0]?.replace('(): void', '()');
@@ -69,4 +73,39 @@ describe('ambassador required read results', () => {
     await tick();
     expect(state.value).toBe('loading');
   });
+});
+
+describe('ambassador application cards expose business information only', () => {
+  const template = parse(source).descriptor.template!.content;
+  const cards = template.slice(template.indexOf('<view v-if="remoteApiEnabled && applications.length > 0"'), template.indexOf('<view v-if="!remoteApiEnabled"'));
+  const render = new Function('Vue', compileTemplate(cards, { mode: 'function', prefixIdentifiers: true }).code)(Vue);
+  for (const [locale, messages] of Object.entries({ zh, en, vi })) {
+    for (const theme of ['light', 'dark']) {
+      it(`${locale}/${theme} keeps every application status and date without internal provenance`, async () => {
+        const applications: AmbassadorApplication[] = (['PENDING', 'APPROVED', 'REJECTED'] as const).map((status, index) => ({
+          applicationId: index + 1, status, city: `Event ${index + 1}`, eventDate: '2026-10-18',
+          budgetUsdt: 3000, bucket: 'venue', submittedAt: '2026-10-17T08:00:00Z',
+          source: 'server', sourceEnvironment: 'PRODUCTION', runId: '',
+        }));
+        const before = JSON.stringify(applications);
+        const state = {
+          remoteApiEnabled: true, applications, t: messages,
+          casesBlockStyle: {}, approvedCapStyle: {}, casesGroupStyle: {}, caseRowStyle: () => ({}),
+          applicationStatusText: (application: AmbassadorApplication) => messages.agent.applicationStatuses[application.status],
+          applicationProof: (application: AmbassadorApplication) => `${application.sourceEnvironment} · ${application.source}`,
+        };
+        const renderCards = () => renderToString(Vue.createSSRApp({ render: () => Vue.h('section', { 'data-theme': theme }, [Vue.h({ render, setup: () => state })]) }));
+        const html = await renderCards();
+        expect(html).toContain(messages.agent.serverApplication);
+        for (const application of applications) {
+          expect(html).toContain(`${application.city} · ${application.eventDate}`);
+          expect(html).toContain(messages.agent.applicationStatuses[application.status]);
+        }
+        expect(html).not.toMatch(/PRODUCTION|server/);
+        expect(JSON.stringify(applications)).toBe(before);
+        state.applications = [];
+        expect(await renderCards()).not.toContain(messages.agent.serverApplication);
+      });
+    }
+  }
 });
