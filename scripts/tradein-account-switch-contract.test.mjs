@@ -20,14 +20,21 @@ test("account scope exposes the shared request fence and advances it on rebind",
 
 test("a late checkout eligibility or capacity response cannot open account B's sheet", () => {
   const checkout = read("src/pages/store/checkout.vue");
-  const intercept = checkout.slice(checkout.indexOf("function fireTradeinIntercept"));
-  assert.match(checkout, /const requestScope = captureAccountScope\(\);/);
-  assert.match(checkout, /resolveTradeinCheckoutPreflight\([\s\S]{0,360}isCurrentAccountScope\(requestScope\)/);
-  assert.ok(intercept.indexOf("if (!isCurrentAccountScope(requestScope)) return;")
-    < intercept.indexOf("tradein.showChoice"));
-  assert.ok(intercept.indexOf("if (!isCurrentAccountScope(requestScope)) return;")
-    < intercept.indexOf("tradein.showCanonicalReplace"));
-  assert.match(checkout, /catch\(\(\) => \{\s*if \(!isCurrentAccountScope\(requestScope\)\) return;/);
+  const intercept = checkout.slice(checkout.indexOf("function fireTradeinIntercept"), checkout.indexOf("// Sticky chassis nav header"));
+  assert.match(intercept, /const requestScope = captureCheckoutRoute\(\);/);
+  assert.match(intercept, /resolveTradeinCheckoutPreflight\([\s\S]{0,360}isCurrentCheckoutRoute\(requestScope\)/);
+  const guarded = intercept.indexOf("if (!isCurrentCheckoutRoute(requestScope)) return;");
+  assert.ok(guarded >= 0 && guarded < intercept.indexOf("tradein.showChoice"));
+  assert.ok(guarded >= 0 && guarded < intercept.indexOf("tradein.showCanonicalReplace"));
+  assert.match(intercept, /catch\(\(\): undefined => \{\s*if \(!isCurrentCheckoutRoute\(requestScope\)\) return;/);
+  assert.match(checkout, /function checkoutRouteIdentity\(\) \{\s*const account = captureAccountScope\(\);\s*return \{ accountKey: account.accountKey, accountEpoch: account.epoch, productNo: productId.value \};/);
+  assert.match(checkout, /function captureCheckoutRoute\(\): CheckoutRouteScope \{\s*return checkoutRouteFence.capture\(checkoutRouteIdentity\(\)\);/);
+  assert.match(checkout, /function isCurrentCheckoutRoute\(scope: CheckoutRouteScope\): boolean \{\s*return pageAlive\s*&& pageVisible\s*&& checkoutRouteFence.isCurrent\(scope, checkoutRouteIdentity\(\)\);/);
+  const fence = read("src/lib/checkout-route-fence.ts");
+  for (const field of ["accountKey", "accountEpoch", "productNo"]) {
+    assert.ok(fence.includes(`scope.${field} === identity.${field}`));
+  }
+  assert.match(fence, /scope.generation === this.generation/);
 });
 
 test("a late trade-in eligibility or quote response cannot write account B's canonical quote", () => {

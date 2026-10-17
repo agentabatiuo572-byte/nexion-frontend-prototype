@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\app-warehouse-eligibility-20261017",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-store-hero-brand-20261017",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "083e24f0f12fd4a5971804f2fd10b6201843734b",
-  "sourceRef": "083e24f0f12fd4a5971804f2fd10b6201843734b",
+  "sourceHead": "223346d77a5c66210fb080d4bd694861f5f55617",
+  "sourceRef": "223346d77a5c66210fb080d4bd694861f5f55617",
   "sourceRefKind": "commit",
-  "sourceTree": "e128e40622158031c43dc64ed3460662aa91147e",
+  "sourceTree": "6699a24faaccf85c14845bf96099582e22985f39",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -1503,11 +1503,25 @@
       "targetSha256": "7dde6bdba7a19eb9f55cf6d3c949dafdc0ee3fd7b56a002fb71c26902b727f07",
       "mode": "100644"
     },
+    "docs/changes/2026-10-17-checkout-tradein-readd.md": {
+      "sourceBlob": "431e3924d6e4e31216b01e817026186243f0ea7f",
+      "sourceSha256": "5dfced09acff2964893c925a6473caaa7d399a910d61358e6c33ccb5c3536844",
+      "targetBlob": "431e3924d6e4e31216b01e817026186243f0ea7f",
+      "targetSha256": "5dfced09acff2964893c925a6473caaa7d399a910d61358e6c33ccb5c3536844",
+      "mode": "100644"
+    },
     "docs/changes/2026-10-17-native-refresh-intent.md": {
       "sourceBlob": "1f53fa49683ea1560cc9778b8e1972ea9ccb19c6",
       "sourceSha256": "4275260046e9c1daf9e55dbfc5cef31484682e8e59a6dce016c0c7c602f77cc5",
       "targetBlob": "1f53fa49683ea1560cc9778b8e1972ea9ccb19c6",
       "targetSha256": "4275260046e9c1daf9e55dbfc5cef31484682e8e59a6dce016c0c7c602f77cc5",
+      "mode": "100644"
+    },
+    "docs/changes/2026-10-17-store-hero-brand.md": {
+      "sourceBlob": "1bdf2927e99dee1f7541c86eee66b7f84ec1d9a5",
+      "sourceSha256": "0e3e679f843a837ead8ac649ce0d85def074961f19a15812e5b035957aacc4c4",
+      "targetBlob": "1bdf2927e99dee1f7541c86eee66b7f84ec1d9a5",
+      "targetSha256": "0e3e679f843a837ead8ac649ce0d85def074961f19a15812e5b035957aacc4c4",
       "mode": "100644"
     },
     "docs/changes/2026-10-17-warehouse-tradein-eligibility.md": {
@@ -5480,10 +5494,10 @@
       "mode": "100644"
     },
     "scripts/tradein-account-switch-contract.test.mjs": {
-      "sourceBlob": "a27beda20fc661e9f8fe938caeca9674264dd2a7",
-      "sourceSha256": "3c04472df13cad80257ae864109a847ae9d4b6f669a100bb1268fb2183655431",
-      "targetBlob": "a27beda20fc661e9f8fe938caeca9674264dd2a7",
-      "targetSha256": "3c04472df13cad80257ae864109a847ae9d4b6f669a100bb1268fb2183655431",
+      "sourceBlob": "81e31404ad5ce6f3c2ebcf93ae858c0df2b00bf6",
+      "sourceSha256": "fd7d1b76d297ee258e492d50996b7581981c7334feaf64af8561d059cfef96ec",
+      "targetBlob": "81e31404ad5ce6f3c2ebcf93ae858c0df2b00bf6",
+      "targetSha256": "fd7d1b76d297ee258e492d50996b7581981c7334feaf64af8561d059cfef96ec",
       "mode": "100644"
     },
     "scripts/tradein-remote-authority-contract.test.mjs": {
@@ -9014,6 +9028,13 @@
       "targetSha256": "6a0aeea882d7aab1956589094fb17e379df04d625c4d6faa3e324a3dda8afa7e",
       "mode": "100644"
     },
+    "src/components/store/live-social-proof-brand.behavior.test.ts": {
+      "sourceBlob": "6ee8db6f6b01d23362a18ee3d72491c7744bbde7",
+      "sourceSha256": "a69514a14a049a7fb09248b04c4098e0630b0621034a0cb093adccd26e25275f",
+      "targetBlob": "6ee8db6f6b01d23362a18ee3d72491c7744bbde7",
+      "targetSha256": "a69514a14a049a7fb09248b04c4098e0630b0621034a0cb093adccd26e25275f",
+      "mode": "100644"
+    },
     "src/components/store/live-social-proof-contract.test.ts": {
       "sourceBlob": "f8602db289d63665eaf17df3ef55dea082d34435",
       "sourceSha256": "d83dded6c6ca525f29a25c0d74272353d4c98cfdfe0a322cbe63a8e873695bbb",
@@ -9022,10 +9043,10 @@
       "mode": "100644"
     },
     "src/components/store/live-social-proof.vue": {
-      "sourceBlob": "89428c1bd28e94397575e99b584158bd1f030b84",
-      "sourceSha256": "1b7782d879928e52ebc3d37e32af267d6056d44d849c7767a506802d39cabd25",
-      "targetBlob": "89428c1bd28e94397575e99b584158bd1f030b84",
-      "targetSha256": "1b7782d879928e52ebc3d37e32af267d6056d44d849c7767a506802d39cabd25",
+      "sourceBlob": "ac704fb058a06f4e97658cceaf3f5ed1760cf19d",
+      "sourceSha256": "13d9abb9e9f289a7c49df0706af4a56831064dd15019558b82f96fb9eb343bfd",
+      "targetBlob": "ac704fb058a06f4e97658cceaf3f5ed1760cf19d",
+      "targetSha256": "13d9abb9e9f289a7c49df0706af4a56831064dd15019558b82f96fb9eb343bfd",
       "mode": "100644"
     },
     "src/components/store/locked-product-card-contract.test.ts": {
@@ -14712,6 +14733,13 @@
       "targetSha256": "ae2df55f5ab8eefba27c546daf1aa5abc6e6f1c933e8e7317354ef6ac856c389",
       "mode": "100644"
     },
+    "src/pages/store/checkout-tradein-readd.behavior.test.ts": {
+      "sourceBlob": "39a5c828652e308270bddc43c255163aea9f3544",
+      "sourceSha256": "443fd006ba53b114ea888875a7cb40ab3c6db37d7ce19818533d55372963ddf6",
+      "targetBlob": "39a5c828652e308270bddc43c255163aea9f3544",
+      "targetSha256": "443fd006ba53b114ea888875a7cb40ab3c6db37d7ce19818533d55372963ddf6",
+      "mode": "100644"
+    },
     "src/pages/store/checkout-trial-conversion.behavior.test.ts": {
       "sourceBlob": "dbaf4943dff7485a97d693cd47624af06f345958",
       "sourceSha256": "7c6f9518286049b6a62490d54ef8c9cfc3586095910c85f1ef49f68e9b96a2c1",
@@ -14734,10 +14762,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout.vue": {
-      "sourceBlob": "ae6256c96babf15c1c357907758554aaddea6d87",
-      "sourceSha256": "0feecb2024a692a227a3390e4f7d156d11e79d5b2dce995732e2746c9fcc1465",
-      "targetBlob": "ae6256c96babf15c1c357907758554aaddea6d87",
-      "targetSha256": "0feecb2024a692a227a3390e4f7d156d11e79d5b2dce995732e2746c9fcc1465",
+      "sourceBlob": "586a4c7bcaac889fcac12d311ae2ad7ded4ead1d",
+      "sourceSha256": "04b596241014894860579397685bded67f9cbee8b10de55f1bac0bf2237bb2aa",
+      "targetBlob": "586a4c7bcaac889fcac12d311ae2ad7ded4ead1d",
+      "targetSha256": "04b596241014894860579397685bded67f9cbee8b10de55f1bac0bf2237bb2aa",
       "mode": "100644"
     },
     "src/pages/store/detail-loading-header.contract.test.ts": {

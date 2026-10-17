@@ -740,6 +740,7 @@ const tradeinChipText = computed(() => {
   });
 });
 const removedTradein = ref(false);
+const reAddingTradein = ref(false);
 function removeTradein() {
   if (remoteApiEnabled && remoteTradeinRecoveryRequired.value) {
     toast.warn(t.value.tradein.errPleaseRetry);
@@ -749,15 +750,23 @@ function removeTradein() {
   removedTradein.value = true;
 }
 // 移除后的找回入口(PR-D 债 #2:intercept 一次性,移除后本页原无恢复路径)。
-function reAddTradein() {
+async function reAddTradein() {
+  if (reAddingTradein.value) return;
   if (remoteApiEnabled && remoteTradeinRecoveryRequired.value) {
     toast.warn(t.value.tradein.errPleaseRetry);
     return;
   }
-  removedTradein.value = false;
+  const scope = captureCheckoutRoute();
+  reAddingTradein.value = true;
   interceptFired = false;
-  fireTradeinIntercept();
-  if (tradein.state.kind === "none") toast.warn(t.value.tradein.errPleaseRetry);
+  try {
+    const opened = await fireTradeinIntercept();
+    if (!isCurrentCheckoutRoute(scope)) return;
+    if (opened) removedTradein.value = false;
+    else if (opened === false) toast.warn(t.value.tradein.errPleaseRetry);
+  } finally {
+    reAddingTradein.value = false;
+  }
 }
 
 const netPrice = computed(() => {
@@ -825,7 +834,7 @@ watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   if (dialogsOpen > 0) useUI().clearConfirmsBy(dialogOwner);
   step.value = "select-payment";
 });
-function fireTradeinIntercept() {
+async function fireTradeinIntercept(): Promise<boolean | undefined> {
   if (interceptFired) return;
   interceptFired = true;
   // FEAT-TRIAL02: the trial conversion checkout doesn't intercept with trade-in —
@@ -840,20 +849,20 @@ function fireTradeinIntercept() {
   const kind = p.id as DeviceKind;
   if (tradein.appliedTradein?.targetKind === kind) return;
   if (remoteApiEnabled) {
-    const requestScope = captureAccountScope();
+    const requestScope = captureCheckoutRoute();
     // Capacity is the mandatory server safety gate; trade-in eligibility is an
     // optional enhancement. A transient eligibility failure must not reject an
     // otherwise ordinary purchase, matching the prototype's local flow where
     // the absence of a trade-in candidate simply continues to payment.
-    void resolveTradeinCheckoutPreflight(
+    return resolveTradeinCheckoutPreflight(
       deviceE3Api.eligibility(kind),
       remoteCapacityGate.resolve(
         () => deviceE3Api.capacityQuote(kind),
         () => {},
-        () => isCurrentAccountScope(requestScope),
+        () => isCurrentCheckoutRoute(requestScope),
       ),
     ).then(async ({ eligibility, capacity: quote }) => {
-      if (!isCurrentAccountScope(requestScope)) return;
+      if (!isCurrentCheckoutRoute(requestScope)) return;
       const sourceIds = eligibility?.sources.filter((source) => source.eligible)
         .map((source) => String(source.sourceDeviceId)) ?? [];
       if (quote.decision === "REPLACE_REQUIRED") {
@@ -862,15 +871,15 @@ function fireTradeinIntercept() {
         } else {
           tradein.showCanonicalReplace(kind, quote.payableUsdt, quote);
         }
-        return;
+        return true;
       }
       if (quote.decision === "NO_ACTIVE_DEVICE") {
         await handleNoActiveDeviceDecision({
           notify: () => {
-            if (isCurrentAccountScope(requestScope)) toast.warn(t.value.tradein.errNoActiveDevice);
+            if (isCurrentCheckoutRoute(requestScope)) toast.warn(t.value.tradein.errNoActiveDevice);
           },
           refreshFleet: async () => {
-            if (!isCurrentAccountScope(requestScope)) return;
+            if (!isCurrentCheckoutRoute(requestScope)) return;
             await app.refreshRemoteFleet();
           }, // best-effort:失败自吞
         });
@@ -879,14 +888,15 @@ function fireTradeinIntercept() {
       // CAPACITY_AVAILABLE: server says the checkout is not capped; continue
       // through the ordinary server order path without opening a local sheet.
       if (eligibility?.eligible && sourceIds.length > 0) {
-        if (!isCurrentAccountScope(requestScope)) return;
+        if (!isCurrentCheckoutRoute(requestScope)) return;
         tradein.showChoice(kind, p.price, sourceIds);
+        return true;
       }
-    }).catch(() => {
-      if (!isCurrentAccountScope(requestScope)) return;
+      return false;
+    }).catch((): undefined => {
+      if (!isCurrentCheckoutRoute(requestScope)) return;
       toast.warn(t.value.tradein.errPleaseRetry);
     });
-    return;
   }
   // Mock/demo keeps the isolated local eligibility composer.
   const { canTradeIn, tradeInSources, capped } = useDeviceEligibility(kind);
@@ -894,11 +904,13 @@ function fireTradeinIntercept() {
   // reaches browser-owned replacement or order/device writes.
   if (canTradeIn.value && tradeInSources.value.length > 0) {
     tradein.showChoice(kind, p.price, tradeInSources.value.map((d) => d.id));
-    return;
+    return true;
   }
   if (capped.value) {
     tradein.showReplace(kind, p.price);
+    return true;
   }
+  return false;
 }
 // Sticky chassis nav header — back + "Checkout" title (mirrors the prototype's
 // <SetPageHeader backHref={`/store/${product.id}`}/>, whose chassis Header
