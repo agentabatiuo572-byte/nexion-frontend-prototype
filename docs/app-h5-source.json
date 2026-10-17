@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\app-bug617-genesis-price-20261017",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-warehouse-eligibility-20261017",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "aa49bfa5d5b8a0365ee3ca48219448e3d22f4d99",
-  "sourceRef": "aa49bfa5d5b8a0365ee3ca48219448e3d22f4d99",
+  "sourceHead": "083e24f0f12fd4a5971804f2fd10b6201843734b",
+  "sourceRef": "083e24f0f12fd4a5971804f2fd10b6201843734b",
   "sourceRefKind": "commit",
-  "sourceTree": "b4d9514ce1bd9a01dbf5ea4e4d746dc5dd72dafc",
+  "sourceTree": "e128e40622158031c43dc64ed3460662aa91147e",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -1508,6 +1508,13 @@
       "sourceSha256": "4275260046e9c1daf9e55dbfc5cef31484682e8e59a6dce016c0c7c602f77cc5",
       "targetBlob": "1f53fa49683ea1560cc9778b8e1972ea9ccb19c6",
       "targetSha256": "4275260046e9c1daf9e55dbfc5cef31484682e8e59a6dce016c0c7c602f77cc5",
+      "mode": "100644"
+    },
+    "docs/changes/2026-10-17-warehouse-tradein-eligibility.md": {
+      "sourceBlob": "825548f8620b62a7ba32cf11c37759cb00a47f83",
+      "sourceSha256": "bf6ba49ff689d7572bbbef4eefe42285c9e3fc7be0c37b259cede7105158a134",
+      "targetBlob": "825548f8620b62a7ba32cf11c37759cb00a47f83",
+      "targetSha256": "bf6ba49ff689d7572bbbef4eefe42285c9e3fc7be0c37b259cede7105158a134",
       "mode": "100644"
     },
     "docs/changes/assets/2026-07-24-st1-globe-t0.png": {
@@ -13529,11 +13536,18 @@
       "targetSha256": "b0667761770deda3bd74fd7d64222ac038cba3d894f818384d67075b05885e27",
       "mode": "100644"
     },
+    "src/pages/me/devices-tradein-refresh.test.ts": {
+      "sourceBlob": "a84254566871616a95a4cb2a8d28c97af52516c0",
+      "sourceSha256": "7f8efe89f533aaf18bee81a423b79b598a1d9f800b92697cc436fe6fa0481f40",
+      "targetBlob": "a84254566871616a95a4cb2a8d28c97af52516c0",
+      "targetSha256": "7f8efe89f533aaf18bee81a423b79b598a1d9f800b92697cc436fe6fa0481f40",
+      "mode": "100644"
+    },
     "src/pages/me/devices.vue": {
-      "sourceBlob": "524f1f7f2d4329c65ae52dd8c3091028dc706658",
-      "sourceSha256": "0291a1f324caffc814e717d8011f9c802979b60aff9acc52b2204c0c41576a34",
-      "targetBlob": "524f1f7f2d4329c65ae52dd8c3091028dc706658",
-      "targetSha256": "0291a1f324caffc814e717d8011f9c802979b60aff9acc52b2204c0c41576a34",
+      "sourceBlob": "d695418179cfe5b25397e3e436e69c9b9bf6b142",
+      "sourceSha256": "941ea6b9d112276f6d32404fff782621091172180f750a4ee95f110242b985d3",
+      "targetBlob": "d695418179cfe5b25397e3e436e69c9b9bf6b142",
+      "targetSha256": "941ea6b9d112276f6d32404fff782621091172180f750a4ee95f110242b985d3",
       "mode": "100644"
     },
     "src/pages/me/goals-read-recovery.test.ts": {

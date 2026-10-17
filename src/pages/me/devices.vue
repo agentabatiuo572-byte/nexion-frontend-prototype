@@ -323,27 +323,41 @@ const phase = useProductPhase();
 const monthsSinceJoin = computed(() => getMonthsSince(app.user.joinedAt));
 const remoteEligibleSourceIds = ref<Set<number>>(new Set());
 const remoteEligibilityReady = ref(!remoteApiEnabled);
+let remoteEligibilityRequest = 0;
 
 async function refreshRemoteTradeinEligibility(): Promise<void> {
   if (!remoteApiEnabled) return;
   const accountKey = app.accountKey;
+  const scope = captureAccountScope();
+  const request = ++remoteEligibilityRequest;
+  const current = () => request === remoteEligibilityRequest
+    && accountKey === app.accountKey && isCurrentAccountScope(scope);
   remoteEligibilityReady.value = false;
   remoteEligibleSourceIds.value = new Set();
   try {
-    if (!(await refreshProductCatalog(true)) || accountKey !== app.accountKey) return;
+    if (!(await refreshProductCatalog(true)) || !current()) return;
     const targets = PRODUCTS.filter((product) => isProductAvailable(product, phase.value));
     const snapshots = await Promise.all(targets.map((product) => deviceE3Api.eligibility(product.id)));
-    if (accountKey !== app.accountKey) return;
+    if (!current()) return;
     remoteEligibleSourceIds.value = new Set(snapshots.flatMap((snapshot) => snapshot.sources
       .filter((source) => source.eligible)
       .map((source) => source.sourceDeviceId)));
     remoteEligibilityReady.value = true;
   } catch {
-    if (accountKey === app.accountKey) remoteEligibleSourceIds.value = new Set();
+    if (current()) remoteEligibleSourceIds.value = new Set();
   }
 }
 
-watch(() => app.accountKey, () => { void refreshRemoteTradeinEligibility(); }, { immediate: true });
+watch(
+  () => JSON.stringify([app.accountKey, app.devices.map((device) => [
+    device.id, device.activatedAt, device.pendingDeactivate, Boolean(device.currentTask),
+  ])]),
+  (_value, _previous, onCleanup) => {
+    onCleanup(() => { remoteEligibilityRequest++; });
+    void refreshRemoteTradeinEligibility();
+  },
+  { immediate: true },
+);
 
 function tradeinStrip(d: Device): {
   tradeinCreditText?: string;
