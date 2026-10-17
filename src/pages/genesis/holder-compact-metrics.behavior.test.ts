@@ -10,6 +10,7 @@ import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import { formatAmount } from "@/lib/amount-display";
+import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { refreshActivePage, registerActivePageRefresh, resetActivePageRefreshForTest } from "@/lib/active-page-refresh";
 import source from "./holder.vue?raw";
 
@@ -52,6 +53,7 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
   const wrapper = { setup: (_props: unknown, { slots }: { slots: Vue.Slots }) => () => Vue.h("view", slots.default?.()) };
   const dependencies: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/genesis-marketplace-presentation": { formatGenesisPrice },
     vue: Vue, "@dcloudio/uni-app": { onShow: (hook: () => void) => shows.push(hook), onHide: (hook: () => void) => hides.push(hook) },
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(copy) },
     "@/i18n/format": { fmt, dateLocale: () => "en-US" },

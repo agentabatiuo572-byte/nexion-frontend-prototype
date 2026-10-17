@@ -1,10 +1,12 @@
 import source from "./my-token-card.vue?raw";
-import { formatAmount } from "@/lib/amount-display";
+import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { computed, effectScope, reactive, ref, watch } from "vue";
 import ts from "typescript";
 import { en } from "@/i18n/messages/en";
+import { zh } from "@/i18n/messages/zh";
+import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import { formatCommandAmount } from "@/lib/command-amount";
 import { genesisMarketFloor } from "@/lib/genesis-market-floor";
@@ -22,7 +24,7 @@ const js = ts.transpileModule(body, { compilerOptions: { target: ts.ScriptTarget
 const disposers: Array<() => void> = [];
 let uid = 0;
 
-function card(listed = false) {
+function card(listed = false, copy = en) {
   const scope = effectScope();
   const unmounts: Array<() => void> = [];
   const pageScope = reactive({ visible: true, epoch: 1 });
@@ -37,13 +39,13 @@ function card(listed = false) {
   const bindings = {
     ref, computed, watch, getCurrentInstance: () => ({ uid: ++uid }),
     onUnmounted: (fn: () => void) => unmounts.push(fn), defineProps: () => props,
-    useT: () => ref(en), useGenesis: () => genesis,
+    useT: () => ref(copy), useGenesis: () => genesis,
     useGenesisConfig: () => ({ config: { marketStats: { floor: 0 } } }),
     useGenesisSaleGate: () => ({ secondaryBlock, blockText: ref("closed") }),
     remoteApiEnabled: true, genesisMarketFloor, presentGenesisFloorPrice, presentGenesisRoyalty,
     formatCommandAmount, parseGenesisListingPrice, canExecuteGenesisListingConfirmation,
     captureAccountScope: () => accountEpoch, isCurrentAccountScope: (epoch: number) => epoch === accountEpoch,
-    useUI, toast, confirm, fmt, formatAmount,
+    useUI, toast, confirm, fmt, formatGenesisPrice,
   };
   const actions = scope.run(() => new Function(...Object.keys(bindings), `${js}\nreturn { handleList, handleCancel, askPriceText };`)(...Object.values(bindings))) as {
     handleList: () => Promise<void>; handleCancel: () => Promise<void>; askPriceText: { value: string };
@@ -128,5 +130,24 @@ describe("Genesis card confirmation and response ownership", () => {
       expect(tag).toContain('role="button"'); expect(tag).toContain('tabindex="0"');
     }
     expect(source.match(/<input[^>]*>/)?.[0]).toContain(':aria-label="t.marketplace.listForSale"');
+  });
+});
+
+
+describe("Genesis exact price confirmation", () => {
+  it.each([en, zh, vietnamese])("shows the exact accepted price before cancel or dispatch in each locale", async copy => {
+    const ui = setup(); const c = card(false, copy);
+    for (const [raw, displayed] of [["0.000001", "0.000001"], ["1.234567", "1.234567"], ["1.2", "1.20"], ["100000000", "100000000.00"]]) {
+      c.askPriceText.value = raw;
+      const attempt = c.handleList();
+      expect(ui.confirmQueue[0].message).toContain(`$${displayed}`);
+      ui.resolveConfirm(ui.confirmQueue[0].id, false); await attempt;
+      expect(c.genesis.listNode).not.toHaveBeenCalled();
+    }
+    c.askPriceText.value = "0.000001";
+    const attempt = c.handleList();
+    ui.resolveConfirm(ui.confirmQueue[0].id, true); await attempt;
+    expect(c.genesis.listNode).toHaveBeenCalledExactlyOnceWith("holding-a", 0.000001);
+    expect(ui.toasts.at(-1)?.description).toContain("0.000001");
   });
 });

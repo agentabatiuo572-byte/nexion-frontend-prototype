@@ -30,11 +30,11 @@
           <view class="grid grid-cols-4" :style="statGridStyle">
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.floor }}</text>
-              <text class="tabular-nums" :style="statValStyle('var(--v5-success)')">{{ stats.floor === null ? "—" : `$${formatAmount(stats.floor / 1000)}K` }}</text>
+              <text class="tabular-nums" :style="statValStyle('var(--v5-success)')">{{ stats.floor === null ? "—" : `$${formatGenesisPrice(stats.floor)}` }}</text>
             </view>
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.vol24h }}</text>
-              <text class="tabular-nums" :style="statValStyle()">{{ stats.vol24h === null ? "—" : `$${formatAmount(stats.vol24h / 1000)}K` }}</text>
+              <text class="tabular-nums" :style="statValStyle()">{{ stats.vol24h === null ? "—" : `$${formatGenesisPrice(stats.vol24h)}` }}</text>
             </view>
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.listed }}</text>
@@ -167,7 +167,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { navTo } from "@/lib/route";
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -436,7 +436,7 @@ async function handleBuy(listing: Listing) {
     if (purchased === true) {
       toast.success(
         fmt(t.value.marketplace.acquiredToast, { id: listing.tokenId }),
-        fmt(t.value.marketplace.acquiredDesc, { paid: formatAmount(expectedPrice), held: ownedCount.value }),
+        fmt(t.value.marketplace.acquiredDesc, { paid: formatGenesisPrice(expectedPrice), held: ownedCount.value }),
       );
       return;
     }

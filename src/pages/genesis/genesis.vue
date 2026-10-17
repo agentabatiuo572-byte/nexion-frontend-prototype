@@ -313,7 +313,7 @@ const supplyDisplay = computed(() => genesisSupplyDisplay(sold.value, total.valu
 const liveMarket = computed(() => remoteApiEnabled
   ? genesis.remoteListings.slice(0, 2).map((listing) => ({
       id: listing.tokenId,
-      price: listing.priceUSDT / 1000,
+      price: listing.priceUSDT,
       ago: ageText(listing.listedAt),
     }))
   : []);

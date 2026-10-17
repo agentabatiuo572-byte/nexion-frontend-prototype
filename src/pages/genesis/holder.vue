@@ -234,6 +234,7 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { navTo } from "@/lib/route";
 import { computed, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -385,7 +386,7 @@ const emissionFeed = computed(() => {
 const holdings = computed(() => remoteApiEnabled ? genesis.remoteHoldings.map((holding) => ({
   id: holding.holdingNo,
   mintedAt: holding.acquiredAt,
-  allocText: `${formatAmount(holding.acquiredPriceUsdt)} USDT`,
+  allocText: `${formatGenesisPrice(holding.acquiredPriceUsdt)} USDT`,
 })) : mockHoldings());
 
 function mockHoldings(): Array<{ id: string; mintedAt: number; allocText: string }> {

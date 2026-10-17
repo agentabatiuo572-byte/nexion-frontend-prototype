@@ -3,14 +3,14 @@
   <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
     <GenesisArtwork context="holding" :serial="id" style="border-radius: 10px" />
     <view class="flex items-baseline justify-between" style="margin-top: 6px">
-      <text class="tabular-nums" :style="priceStyle">${{ formatAmount(price) }}K</text>
+      <text class="tabular-nums" :style="priceStyle">${{ formatGenesisPrice(price) }}</text>
       <text :style="agoStyle">{{ agoText }}</text>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";

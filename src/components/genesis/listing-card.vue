@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -53,9 +53,9 @@ const deltaPct = computed<string | null>(() =>
     : null,
 );
 const isUp = computed(() => delta.value > 0);
-const priceText = computed(() => formatAmount(props.l.priceUSDT));
+const priceText = computed(() => formatGenesisPrice(props.l.priceUSDT));
 const lastSaleText = computed(() => props.l.lastSaleUSDT === null
-  ? "—" : fmt(t.value.marketplace.lastSale, { k: formatAmount(props.l.lastSaleUSDT / 1000) }));
+  ? "—" : fmt(t.value.marketplace.lastSale, { price: formatGenesisPrice(props.l.lastSaleUSDT) }));
 
 // Collectible tile — filled surface, no border (single visual difference).
 const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
