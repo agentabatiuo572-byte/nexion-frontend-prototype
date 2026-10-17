@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\bug594-app",
+  "sourcePath": "D:\\workspace\\.worktrees\\bug597-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "764032f9a5e2e6bcf1a61a77aab25eaf54d4cb76",
-  "sourceRef": "764032f9a5e2e6bcf1a61a77aab25eaf54d4cb76",
+  "sourceHead": "12c46362892f6531c8e4b3dc65ff1f6971617e46",
+  "sourceRef": "12c46362892f6531c8e4b3dc65ff1f6971617e46",
   "sourceRefKind": "commit",
-  "sourceTree": "a91738061a9485e26726d6d8a86cf6120a1169d6",
+  "sourceTree": "46d4cb48a9ed993d4b41ad4c1fbe466300d879f1",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -9582,10 +9582,10 @@
       "mode": "100644"
     },
     "src/i18n/messages/en.ts": {
-      "sourceBlob": "e7116c7ed99c599355015aef5b3622b2095af9a3",
-      "sourceSha256": "29b6e246b0252c39cbaa31825f4cfd4a6b50f6a33a6ff76e93753cf6f138116f",
-      "targetBlob": "e7116c7ed99c599355015aef5b3622b2095af9a3",
-      "targetSha256": "29b6e246b0252c39cbaa31825f4cfd4a6b50f6a33a6ff76e93753cf6f138116f",
+      "sourceBlob": "d9b1caa30da96cc2b701039f10c17127c97505b0",
+      "sourceSha256": "de8f47d10087195f09d1092d6e490af92bcf5479ca9c41e12e9bf22f70be9a2c",
+      "targetBlob": "d9b1caa30da96cc2b701039f10c17127c97505b0",
+      "targetSha256": "de8f47d10087195f09d1092d6e490af92bcf5479ca9c41e12e9bf22f70be9a2c",
       "mode": "100644"
     },
     "src/i18n/messages/genesis-cta-copy.test.ts": {
@@ -9603,17 +9603,17 @@
       "mode": "100644"
     },
     "src/i18n/messages/vi.ts": {
-      "sourceBlob": "f32ae6d815d0f84c176e187d2bc2b313b84179b5",
-      "sourceSha256": "d7e00e80111889f6d54c5f96612a237c3d5dbf0110cd3298d9295070e8adbb30",
-      "targetBlob": "f32ae6d815d0f84c176e187d2bc2b313b84179b5",
-      "targetSha256": "d7e00e80111889f6d54c5f96612a237c3d5dbf0110cd3298d9295070e8adbb30",
+      "sourceBlob": "c89294f66bbbef42a0d60852d0e8fb02491fd0dd",
+      "sourceSha256": "95a68d812c11059b19e8e23af8061ab7497b35e6ebb7171d1cbe1bbfad57c5cc",
+      "targetBlob": "c89294f66bbbef42a0d60852d0e8fb02491fd0dd",
+      "targetSha256": "95a68d812c11059b19e8e23af8061ab7497b35e6ebb7171d1cbe1bbfad57c5cc",
       "mode": "100644"
     },
     "src/i18n/messages/zh.ts": {
-      "sourceBlob": "1af8b1cc1cea666c012394d5bb64c4eabd01ae5b",
-      "sourceSha256": "272dc9b606c53aaa4e69e32e278ab6a41b601b029e9769382363c7e6cbc388be",
-      "targetBlob": "1af8b1cc1cea666c012394d5bb64c4eabd01ae5b",
-      "targetSha256": "272dc9b606c53aaa4e69e32e278ab6a41b601b029e9769382363c7e6cbc388be",
+      "sourceBlob": "9b948ede66eb5dc0b63d3cd42dabc872c60c04bb",
+      "sourceSha256": "47a1d80ab5fbce7ef45cc6ed9a82a22a5493f5b137076e1c1f2a16ca5843ba6f",
+      "targetBlob": "9b948ede66eb5dc0b63d3cd42dabc872c60c04bb",
+      "targetSha256": "47a1d80ab5fbce7ef45cc6ed9a82a22a5493f5b137076e1c1f2a16ca5843ba6f",
       "mode": "100644"
     },
     "src/i18n/open-slots.test.ts": {
@@ -12484,6 +12484,13 @@
       "sourceSha256": "b04eba77ee5553338afa5993d4fb3f65bf6cb0621e1e455e359f5c5c3522e446",
       "targetBlob": "b65aa4525b3cd84fb58c17e9db9fb6a294568ab8",
       "targetSha256": "b04eba77ee5553338afa5993d4fb3f65bf6cb0621e1e455e359f5c5c3522e446",
+      "mode": "100644"
+    },
+    "src/lib/wallet-bill-referral-reward.test.ts": {
+      "sourceBlob": "4d6763f18466137032114cc2b216d8871b2069cd",
+      "sourceSha256": "0e0c3598d246dc90b5c3a153793393632282e3c247b69c1d97756ad1a9bf0829",
+      "targetBlob": "4d6763f18466137032114cc2b216d8871b2069cd",
+      "targetSha256": "0e0c3598d246dc90b5c3a153793393632282e3c247b69c1d97756ad1a9bf0829",
       "mode": "100644"
     },
     "src/lib/wallet-today-earnings.test.ts": {
@@ -15945,10 +15952,10 @@
       "mode": "100644"
     },
     "src/store/bills.ts": {
-      "sourceBlob": "bb39d2cc1e8837ab926df7784820038b85da67c0",
-      "sourceSha256": "45790a7dc9e4897bad0e9da055bed0a557a757c8804eca6eeedcdb5e19a6f5ba",
-      "targetBlob": "bb39d2cc1e8837ab926df7784820038b85da67c0",
-      "targetSha256": "45790a7dc9e4897bad0e9da055bed0a557a757c8804eca6eeedcdb5e19a6f5ba",
+      "sourceBlob": "80466d3343ebf1e634f53d77f5444399963ef9eb",
+      "sourceSha256": "06fc95c49f76084d9abf674e13df293101324dac02ca008c6e4399e974267412",
+      "targetBlob": "80466d3343ebf1e634f53d77f5444399963ef9eb",
+      "targetSha256": "06fc95c49f76084d9abf674e13df293101324dac02ca008c6e4399e974267412",
       "mode": "100644"
     },
     "src/store/bundle-catalog-guard.test.ts": {

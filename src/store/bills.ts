@@ -217,13 +217,16 @@ export const useBills = defineStore("bills", () => {
 
   function productionBill(row: WalletBillRow): Bill {
     const amount = row.direction === "IN" ? row.amount : -row.amount;
-    const legacy = legacyPresentation(row.bizType);
+    const legacy = legacyPresentation(row.bizType, row.bizNo);
+    const referralReward = row.bizType.trim().toUpperCase() === "REFERRAL_REWARD";
     const orderRefund = legacy?.type === "refund";
-    const type = orderRefund ? "refund" : row.category ?? legacy?.type ?? "other";
+    const type = orderRefund ? "refund" : referralReward ? "bonus" : row.category ?? legacy?.type ?? "other";
     const projectedMemoKey = presentationCode(row.presentationCode);
     // Older projections identify every withdrawal leg as generic `withdraw`.
     // A known legacy component is more specific; new component codes still win.
     const memoKey = orderRefund ? "orderRefund"
+      : referralReward && [undefined, "refer", "bonus"].includes(projectedMemoKey)
+      ? legacy?.memoKey
       : projectedMemoKey === "bonus" && row.bizType === "LEARNING_REWARD"
       ? "learningReward"
       : projectedMemoKey === "withdraw" && legacy?.memoKey !== undefined && legacy.memoKey !== "withdraw"
@@ -285,6 +288,9 @@ export const useBills = defineStore("bills", () => {
     EXCHANGE_BUY: { type: "swap", memoKey: "swap" },
   };
   const PRESENTATION_CODES: Record<string, string> = {
+    newcomerReward: "newcomerReward",
+    inviterReward: "inviterReward",
+    referralReward: "referralReward",
     computeTaskReward: "computeTaskReward",
     dailyCheckIn: "dailyCheckIn",
     trialCharge: "trialCharge",
@@ -318,8 +324,14 @@ export const useBills = defineStore("bills", () => {
     earn: "earn", refer: "refer", bonus: "bonus", topup: "topup", withdraw: "withdraw", purchase: "purchase", refund: "orderRefund",
     swap: "swap", verification: "verification", stake: "stake", unstake: "unstake", achievement: "achievement", other: "other",
   };
-  function legacyPresentation(bizType: string) {
-    return LEGACY_PRESENTATIONS[bizType.trim().toUpperCase()];
+  function legacyPresentation(bizType: string, bizNo: string): LegacyPresentation | undefined {
+    const value = bizType.trim().toUpperCase();
+    if (value === "REFERRAL_REWARD") {
+      const recipient = /^REF-[A-F0-9]{24}:(NEWCOMER|INVITER)$/.exec(bizNo)?.[1];
+      return { type: "bonus", memoKey: recipient === "NEWCOMER" ? "newcomerReward"
+        : recipient === "INVITER" ? "inviterReward" : "referralReward" };
+    }
+    return LEGACY_PRESENTATIONS[value];
   }
   function legacyPublicReference(bizType: string, bizNo: string, kind: LegacyPublicReference | undefined): string | undefined {
     if (bizType === "LEARNING_REWARD") {
