@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\app-store-hero-brand-20261017",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-stellar-brand-20261018",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "223346d77a5c66210fb080d4bd694861f5f55617",
-  "sourceRef": "223346d77a5c66210fb080d4bd694861f5f55617",
+  "sourceHead": "4638be934465e04ad563fd1f909c0ed8ebd04dd6",
+  "sourceRef": "4638be934465e04ad563fd1f909c0ed8ebd04dd6",
   "sourceRefKind": "commit",
-  "sourceTree": "6699a24faaccf85c14845bf96099582e22985f39",
+  "sourceTree": "60e28e85c7939d4d3849d7ebc7d8faac02a6cccc",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -3667,10 +3667,10 @@
       "mode": "100644"
     },
     "scripts/amount-display-runtime.mjs": {
-      "sourceBlob": "755e75d6004e5092f2c91af95aa6ed158db5a2df",
-      "sourceSha256": "a1ff9876b45b863e06a257ca50c863f077315cd8c7daffcd435aa5a744a9b932",
-      "targetBlob": "755e75d6004e5092f2c91af95aa6ed158db5a2df",
-      "targetSha256": "a1ff9876b45b863e06a257ca50c863f077315cd8c7daffcd435aa5a744a9b932",
+      "sourceBlob": "82ad3486f9462bdd695f47994d0d5c883b2c90c8",
+      "sourceSha256": "e8e7deec96068bd72836fdf9762b951bcbc56092237bdd206bb3c6232217417d",
+      "targetBlob": "82ad3486f9462bdd695f47994d0d5c883b2c90c8",
+      "targetSha256": "e8e7deec96068bd72836fdf9762b951bcbc56092237bdd206bb3c6232217417d",
       "mode": "100644"
     },
     "scripts/anxiety-copy-gate.mjs": {
@@ -10037,17 +10037,17 @@
       "mode": "100644"
     },
     "src/lib/brand-copy.test.ts": {
-      "sourceBlob": "c5b5affd05c2c50a253e10ba807f401291cec866",
-      "sourceSha256": "c9c3f629a13ed7ed08ae123a4e2bfb7e0827655164a033599ed770a2fc49285e",
-      "targetBlob": "c5b5affd05c2c50a253e10ba807f401291cec866",
-      "targetSha256": "c9c3f629a13ed7ed08ae123a4e2bfb7e0827655164a033599ed770a2fc49285e",
+      "sourceBlob": "fe00cb83f0da7879f27ec3d8d4966e1981bccc53",
+      "sourceSha256": "c7096ea59310aeeb0e919e35eda712b2d9ff8a9dbc7a752cbb370758ac2cc2dd",
+      "targetBlob": "fe00cb83f0da7879f27ec3d8d4966e1981bccc53",
+      "targetSha256": "c7096ea59310aeeb0e919e35eda712b2d9ff8a9dbc7a752cbb370758ac2cc2dd",
       "mode": "100644"
     },
     "src/lib/brand-copy.ts": {
-      "sourceBlob": "5a7d09f629677c72fdf26e64a8cd636e29d4ac1c",
-      "sourceSha256": "8aa9f6557d7182ee3f91a17412d78040cfd880250205b4452636b9ab84cd72ff",
-      "targetBlob": "5a7d09f629677c72fdf26e64a8cd636e29d4ac1c",
-      "targetSha256": "8aa9f6557d7182ee3f91a17412d78040cfd880250205b4452636b9ab84cd72ff",
+      "sourceBlob": "76845f9b53d9b9f869015ca33708a9cce054eaa7",
+      "sourceSha256": "c8c7fd05a335e3e06e36b23d1e9740617b89545a7360af14e20830dc587014a2",
+      "targetBlob": "76845f9b53d9b9f869015ca33708a9cce054eaa7",
+      "targetSha256": "c8c7fd05a335e3e06e36b23d1e9740617b89545a7360af14e20830dc587014a2",
       "mode": "100644"
     },
     "src/lib/brand-lockup-size.test.ts": {
@@ -16729,10 +16729,10 @@
       "mode": "100644"
     },
     "src/store/product-catalog.test.ts": {
-      "sourceBlob": "6364d0afd7b3e448422915737691c138148171e0",
-      "sourceSha256": "d4d48f88f37ee860da104791e0fa6baba497c2ee56210cd7501ac21f28c08d8f",
-      "targetBlob": "6364d0afd7b3e448422915737691c138148171e0",
-      "targetSha256": "d4d48f88f37ee860da104791e0fa6baba497c2ee56210cd7501ac21f28c08d8f",
+      "sourceBlob": "d29c5f00bcbb1f48ebf0d6393e248ecba2f09f07",
+      "sourceSha256": "78f2bdb4b54d6c45abe707a64d30f938f089f692582eaaa19fce1fe4954507c4",
+      "targetBlob": "d29c5f00bcbb1f48ebf0d6393e248ecba2f09f07",
+      "targetSha256": "78f2bdb4b54d6c45abe707a64d30f938f089f692582eaaa19fce1fe4954507c4",
       "mode": "100644"
     },
     "src/store/product-catalog.ts": {

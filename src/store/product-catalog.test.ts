@@ -56,8 +56,7 @@ describe("product catalog refresh", () => {
     expect(catalog.productCatalogPresentation.value).toBeNull();
   });
 
-  it("presents a retired server product name under the current brand without changing its SKU", async () => {
-    const legacyName = "Nexi" + "onBox Pro v2";
+  it.each(["Nexi" + "onBox Pro v2", "StellarBox Pro v2", "stellarbox Pro v2"])("presents %s under the current brand without changing the raw catalog or SKU", async (legacyName) => {
     const snapshot = { products: [{ id: "stellarbox-pro-v2", name: legacyName }], source: "nx_product", sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true, revision: "brand" };
     mocks.catalog.mockResolvedValueOnce(snapshot);
     const catalog = await import("./product-catalog");

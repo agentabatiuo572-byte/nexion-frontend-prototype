@@ -19,5 +19,6 @@ const LEGACY_BRAND_PATTERN = new RegExp(LEGACY_BRAND, "gi");
 
 /** 服务端历史值 → 现品牌文案。大小写不敏感,命中即整词替换。 */
 export function nexGridBrandText(value: string): string {
-  return value.replace(LEGACY_BRAND_PATTERN, BRAND).replace(/NexGrid/gi, BRAND);
+  return value.replace(LEGACY_BRAND_PATTERN, BRAND).replace(/NexGrid/gi, BRAND)
+    .replace(/\bStellar(Box|Rack)\b(?!-)/gi, (_, family: string) => `${BRAND}${family.toLowerCase() === "box" ? "Box" : "Rack"}`);
 }

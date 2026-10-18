@@ -403,7 +403,7 @@ async function visit(route, variant, { scenario = "manifest", query = queries[ro
         dom = await readDOM(page, expected?.[0]);
       }
       if (scenario === "ordinary-bundle") {
-        for (const name of ["StellarBox S1", "StellarBox Pro"]) {
+        for (const name of ["UVELBox S1", "UVELBox Pro"]) {
           const add = page.locator(`uni-page[data-page="${route}"] [role=button][aria-label]`).filter({ hasText: name }).last();
           await add.waitFor({ state: "visible" });
           await add.click();

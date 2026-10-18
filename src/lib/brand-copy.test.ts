@@ -33,4 +33,22 @@ describe("nexGridBrandText", () => {
     expect(nexGridBrandText("UVELBox S1")).toBe("UVELBox S1");
     expect(nexGridBrandText("")).toBe("");
   });
+
+  it.each([
+    ["StellarBox Pro", "UVELBox Pro"],
+    ["stellarbox S1", "UVELBox S1"],
+    ["STELLARBOX Pro v2", "UVELBox Pro v2"],
+    ["StellarRack P1", "UVELRack P1"],
+    ["stellarrack P2", "UVELRack P2"],
+    ["添加 StellarBox Pro", "添加 UVELBox Pro"],
+    ["Add StellarBox Pro", "Add UVELBox Pro"],
+    ["Thêm StellarRack P1", "Thêm UVELRack P1"],
+  ])("normalizes retired display names: %s", (before, after) => {
+    expect(nexGridBrandText(before)).toBe(after);
+    expect(nexGridBrandText(after)).toBe(after);
+  });
+
+  it.each(["stellarbox-pro", "stellarrack-p1", "InterstellarBox Pro", "Stellar Compute", "Cloud Share"])("preserves identifiers and unrelated names: %s", value => {
+    expect(nexGridBrandText(value)).toBe(value);
+  });
 });
