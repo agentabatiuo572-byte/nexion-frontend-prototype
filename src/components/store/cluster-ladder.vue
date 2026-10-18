@@ -15,7 +15,7 @@
         style="grid-template-columns: 72px minmax(0, 1fr) minmax(70px, 84px); gap: 10px"
       >
         <view class="whitespace-nowrap truncate" :style="labelStyle(tier)">
-          <text>{{ tier.label }}</text>
+          <text>{{ nexGridBrandText(tier.label) }}</text>
           <text
             v-if="tier.you"
             class="font-mono-tabular"
@@ -37,6 +37,7 @@
 <script setup lang="ts">
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
+import { nexGridBrandText } from "@/lib/brand-copy";
 import SectionHeader from "./section-header.vue";
 import { storefrontUsd, storefrontUsdFull, type StoreYieldAuthority, type StoreYieldLadderRow } from "@/lib/store-yield-authority";
 
