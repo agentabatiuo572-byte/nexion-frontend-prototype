@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\app-invite-scan-20261018",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "7ab0d6a865fb8ca992cdc109532c800b1acc60ea",
-  "sourceRef": "7ab0d6a865fb8ca992cdc109532c800b1acc60ea",
+  "sourceHead": "191fa9cac950c111ccb45cd7189c735772f2ce8b",
+  "sourceRef": "191fa9cac950c111ccb45cd7189c735772f2ce8b",
   "sourceRefKind": "commit",
-  "sourceTree": "c8b017a4561d809968dd7e7a7f06d765085c0f68",
+  "sourceTree": "30e4737d87fc1d3716b12ed768f0b1aa5042e292",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -9204,17 +9204,17 @@
       "mode": "100644"
     },
     "src/components/team/invite-scan-entry.behavior.test.ts": {
-      "sourceBlob": "3ac44ede787b70b3deb4b182c6dfb891a5f0985f",
-      "sourceSha256": "9f5b53d120aa54a93578af9aa2ff1452bc5797517936e26811246ca1ea37ff15",
-      "targetBlob": "3ac44ede787b70b3deb4b182c6dfb891a5f0985f",
-      "targetSha256": "9f5b53d120aa54a93578af9aa2ff1452bc5797517936e26811246ca1ea37ff15",
+      "sourceBlob": "ad7858133fdbd7af80f7dcf8f28deb017ee78ca1",
+      "sourceSha256": "3fba50c30aade0988c409e399c17b71b6d64eafce811c683ecf75e23aa7cb7e3",
+      "targetBlob": "ad7858133fdbd7af80f7dcf8f28deb017ee78ca1",
+      "targetSha256": "3fba50c30aade0988c409e399c17b71b6d64eafce811c683ecf75e23aa7cb7e3",
       "mode": "100644"
     },
     "src/components/team/invite-scan-entry.vue": {
-      "sourceBlob": "96894e73247ee309119672beed2eaacd96fae39c",
-      "sourceSha256": "ba7fc7105615244a0f050399b3dc7989dfecb412bde4d05deb64c0bd53c83bb8",
-      "targetBlob": "96894e73247ee309119672beed2eaacd96fae39c",
-      "targetSha256": "ba7fc7105615244a0f050399b3dc7989dfecb412bde4d05deb64c0bd53c83bb8",
+      "sourceBlob": "2a97c0607249bcb53a8b0b739c6f2f7250c9eb25",
+      "sourceSha256": "8f946e60cde07675bacea468c8a7bd6f1c203feb7ac71ca7a48af9d45b6c0859",
+      "targetBlob": "2a97c0607249bcb53a8b0b739c6f2f7250c9eb25",
+      "targetSha256": "8f946e60cde07675bacea468c8a7bd6f1c203feb7ac71ca7a48af9d45b6c0859",
       "mode": "100644"
     },
     "src/components/team/invite-wallet-state.behavior.test.ts": {

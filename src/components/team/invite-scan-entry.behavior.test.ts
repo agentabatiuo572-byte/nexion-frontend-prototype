@@ -41,7 +41,7 @@ const compiled = ts.transpileModule(compileScript(parse(source).descriptor, { id
 
 async function fixture(copy = en, authenticated = false, load = async () => {}) {
   let epoch = 1;
-  const originalPage = {}, pages = [originalPage];
+  const originalPage = {}, pages = Object.assign(Object.create(null), { 0: originalPage, length: 1 });
   vi.stubGlobal("getCurrentPages", () => pages);
   const auth = Vue.reactive({ accountId: authenticated ? "user:1060" : "", isAuthenticated: authenticated });
   const config = Vue.reactive({ configStatus: "ready", config: { share: { baseUrl: base } }, ensureLoaded: vi.fn(load) });
@@ -64,10 +64,23 @@ async function fixture(copy = en, authenticated = false, load = async () => {}) 
   app.mount(root); unmounts.push(() => app.unmount()); await Vue.nextTick();
   const button = () => all(root).find(item => item.props.role === "button")!;
   return { root, button, scanCode, requests, config, auth, navTo, props,
-    click: () => button().props.onClick(), unload: () => unloads.forEach(fn => fn()), rebind: () => epoch++, coverPage: () => pages.push({}) };
+    pages, click: () => button().props.onClick(), unload: () => unloads.forEach(fn => fn()), rebind: () => epoch++, coverPage: () => { pages[pages.length++] = {}; } };
 }
 const flush = async () => { await Promise.resolve(); await Vue.nextTick(); await Promise.resolve(); };
 afterEach(() => { unmounts.splice(0).forEach(fn => fn()); vi.unstubAllGlobals(); });
+
+it("native page stack without Array.at reaches the scanner and preserves top-page identity", async () => {
+  const f = await fixture();
+  expect(f.pages.at).toBeUndefined();
+  let failure: unknown;
+  const scan = f.click().catch((error: unknown) => { failure = error; });
+  await flush();
+  expect(failure).toBeUndefined();
+  expect(f.scanCode).toHaveBeenCalledOnce();
+  f.requests[0].success({ result: base + code });
+  await scan;
+  expect(f.navTo).toHaveBeenCalledExactlyOnceWith(`/pages/ref/code?code=${code}`);
+});
 
 for (const copy of [en, zh, vietnamese]) it(`actual scan entry uses locale and opens only the public preview (${copy.inviteScan.open})`, async () => {
   const f = await fixture(copy);

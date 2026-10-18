@@ -28,11 +28,14 @@ onUnload(dispose);
 
 async function scan() {
   if (!alive || busy.value || props.disabled) return;
-  const page = getCurrentPages().at(-1);
+  const pages = getCurrentPages(), page = pages[pages.length - 1];
   if (!page) { error.value = t.value.inviteScan.failed; return; }
   const account = captureAccountScope(), accountId = auth.accountId, authenticated = auth.isAuthenticated;
-  const current = () => alive && !props.disabled && isCurrentAccountScope(account)
-    && accountId === auth.accountId && authenticated === auth.isAuthenticated && getCurrentPages().at(-1) === page;
+  const current = () => {
+    const pages = getCurrentPages();
+    return alive && !props.disabled && isCurrentAccountScope(account)
+      && accountId === auth.accountId && authenticated === auth.isAuthenticated && pages[pages.length - 1] === page;
+  };
   busy.value = true;
   error.value = "";
   try {
