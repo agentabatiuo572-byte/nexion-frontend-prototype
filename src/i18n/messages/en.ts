@@ -4,6 +4,14 @@ import { promotionEN } from "./promotion";
 
 export const en = {
   promotion: promotionEN,
+  inviteScan: {
+    open: "Scan an invitation QR code",
+    scanning: "Scanning…",
+    unavailable: "Invitation links are unavailable. Please try again later.",
+    invalid: "This is not a valid invitation QR code. Ask for a current invitation QR code and try again.",
+    permission: "Allow camera access in your device settings, then try again.",
+    failed: "Could not scan the invitation. Please try again.",
+  },
   pageLoad: {
     module: "Page resources could not be loaded",
     timeout: "The page is taking too long to load",

@@ -5,6 +5,14 @@ import type { Messages } from "./en";
 
 export const vi: Messages = {
   promotion: promotionVI,
+  inviteScan: {
+    open: "Quét mã QR lời mời",
+    scanning: "Đang quét…",
+    unavailable: "Liên kết lời mời hiện chưa khả dụng. Vui lòng thử lại sau.",
+    invalid: "Đây không phải mã QR lời mời hợp lệ. Hãy lấy mã QR lời mời hiện tại rồi thử lại.",
+    permission: "Cho phép truy cập máy ảnh trong cài đặt điện thoại rồi thử lại.",
+    failed: "Chưa quét được lời mời. Vui lòng thử lại.",
+  },
   pageLoad: {
     module: "Không thể tải tài nguyên trang",
     timeout: "Trang mất quá nhiều thời gian để tải",

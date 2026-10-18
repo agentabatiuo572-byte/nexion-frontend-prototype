@@ -18,6 +18,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { parse as parseSfc } from "@vue/compiler-sfc";
 
 // 字符集:汉字基本区 + 扩展 A + CJK 标点 + 全角形式。只判汉字块的话,纯标点文案
 // (「」、。—— 之类)与全角标点整段免疫(独立审计 P2 实证)。
@@ -61,6 +62,15 @@ const FILE_EXEMPTIONS = [
 ];
 
 const VALUE_EXEMPTIONS = [
+  {
+    id: "native-scan-error-source-tokens",
+    why: "原生扫码 errMsg 的权限/取消标识只用于分类；限定该组件对 message 的两条精确比较表达式，展示错误仍从三语词典读取",
+    files: ["src/components/team/invite-scan-entry.vue"],
+    strip: (line) => [
+      'if (/permission|auth.*deny|denied|权限|未授权/i.test(message)) error.value = t.value.inviteScan.permission;',
+      'else if (!/cancel|取消/i.test(message)) error.value = t.value.inviteScan.failed;',
+    ].includes(line.trim()) ? "" : line,
+  },
   {
     id: "published-pro-tagline-source-token",
     why: "已发布商品中文标语只在此处与服务端原值精确比对；用户看到的是按 locale 选取的英文、越文或服务端中文",
@@ -192,11 +202,34 @@ function supportUnassignedTokenLines(source) {
   return lines;
 }
 
+function nativeScanErrorLines(source) {
+  const descriptor = parseSfc(source).descriptor;
+  const script = descriptor.scriptSetup ?? descriptor.script;
+  const lines = new Set();
+  if (!script) return lines;
+  const parsed = ts.createSourceFile("invite-scan.ts", script.content, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  function visit(node) {
+    if (ts.isIfStatement(node)) {
+      const call = ts.isPrefixUnaryExpression(node.expression) && node.expression.operator === ts.SyntaxKind.ExclamationToken
+        ? node.expression.operand : node.expression;
+      const access = ts.isCallExpression(call) && ts.isPropertyAccessExpression(call.expression) ? call.expression : null;
+      if (access?.name.text === "test" && ts.isRegularExpressionLiteral(access.expression)
+          && call.arguments.length === 1 && ts.isIdentifier(call.arguments[0]) && call.arguments[0].text === "message") {
+        lines.add(script.loc.start.line + parsed.getLineAndCharacterOfPosition(access.expression.getStart(parsed)).line);
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(parsed);
+  return lines;
+}
+
 export function scanSource(file, src) {
   const stripped = decodeEscapes(stripComments(src, file.endsWith(".vue")));
   const fileRule = FILE_EXEMPTIONS.find((rule) => rule.match(file));
   const idleRegexLines = file === "src/lib/support-idle-message.ts" ? supportIdleRegexLines(src) : null;
   const unassignedTokenLines = ["src/pages/support/chat.vue", "src/pages/support/messages.vue"].includes(file) ? supportUnassignedTokenLines(src) : null;
+  const scanErrorLines = file === "src/components/team/invite-scan-entry.vue" ? nativeScanErrorLines(src) : null;
   const hits = [];
   stripped.split(/\r?\n/).forEach((line, idx) => {
     if (!CJK.test(line)) return;
@@ -208,6 +241,7 @@ export function scanSource(file, src) {
       if (!rule.files.includes(file)) continue;
       if (rule.id === "support-idle-close-source-token" && !idleRegexLines?.has(idx + 1)) continue;
       if (rule.id === "support-unassigned-token" && !unassignedTokenLines?.has(idx + 1)) continue;
+      if (rule.id === "native-scan-error-source-tokens" && !scanErrorLines?.has(idx + 1)) continue;
       const next = rule.strip(rest);
       if (cjkCount(next) < cjkCount(rest)) used.push(rule.id);
       rest = next;
@@ -336,6 +370,16 @@ function selftest() {
     ["support list token display rejected", "src/pages/support/messages.vue", '<template><text>待分配</text></template>', 1],
     ["support list wrong predicate rejected", "src/pages/support/messages.vue", supportPredicate('return normalized === "备勤池" || normalized === "待分配";').replace('function isWaitingForAgent', 'function displayAgentName'), 1],
     ["support list token extra display operand rejected", "src/pages/support/messages.vue", supportPredicate('return "备勤池" || normalized === "备勤池" || normalized === "待分配";'), 1],
+    ["native scan permission source token allowed", "src/components/team/invite-scan-entry.vue", '<script setup lang="ts">\nif (/permission|auth.*deny|denied|权限|未授权/i.test(message)) error.value = t.value.inviteScan.permission;\n</script>', 0],
+    ["native scan cancellation source token allowed", "src/components/team/invite-scan-entry.vue", '<script setup lang="ts">\nif (false) {}\nelse if (!/cancel|取消/i.test(message)) error.value = t.value.inviteScan.failed;\n</script>', 0],
+    ["native scan visible copy still rejected", "src/components/team/invite-scan-entry.vue", '<template><text>取消</text></template>', 1],
+    ["native scan extra token rejected", "src/components/team/invite-scan-entry.vue", 'else if (!/cancel|取消|失败/i.test(message)) error.value = t.value.inviteScan.failed;', 1],
+    ["native scan token wrong file rejected", "src/pages/login/login.vue", 'else if (!/cancel|取消/i.test(message)) error.value = t.value.inviteScan.failed;', 1],
+    ["native scan toast token rejected", "src/components/team/invite-scan-entry.vue", 'uni.showToast({ title: "权限" });', 1],
+    ["native scan aria token rejected", "src/components/team/invite-scan-entry.vue", '<template><view aria-label="未授权" /></template>', 1],
+    ["native scan same-line visible copy rejected", "src/components/team/invite-scan-entry.vue", 'else if (!/cancel|取消/i.test(message)) error.value = "取消";', 1],
+    ["native scan full comparison in template rejected", "src/components/team/invite-scan-entry.vue", '<template><text>\nif (/permission|auth.*deny|denied|权限|未授权/i.test(message)) error.value = t.value.inviteScan.permission;\n</text></template>', 1],
+    ["native scan full comparison in script string rejected", "src/components/team/invite-scan-entry.vue", '<script setup lang="ts">\nconst displayed = `\nif (/permission|auth.*deny|denied|权限|未授权/i.test(message)) error.value = t.value.inviteScan.permission;\n`;\n</script>', 1],
     // legacy-config-token —— 阴阳两面各测一遍:只测 true 那行会让 "关"/"关闭" 半边判据无人验证。
     ["豁免:已发布 Pro 标语原值仅作匹配", "src/lib/product-copy.ts", 'const PRO_PUBLISHED_TAGLINE = "中端主力·AI 推理 + 挖掘";', 0],
     ["豁免:弗吉尼亚机房原值仅作匹配", "src/lib/product-copy.ts", 'const VIRGINIA_DATACENTER = "美国·弗吉尼亚";', 0],

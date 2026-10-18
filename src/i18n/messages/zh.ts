@@ -5,6 +5,14 @@ import type { Messages } from "./en";
 
 export const zh: Messages = {
   promotion: promotionZH,
+  inviteScan: {
+    open: "扫描邀请二维码",
+    scanning: "正在扫码…",
+    unavailable: "邀请链接暂不可用，请稍后重试。",
+    invalid: "这不是有效的邀请二维码，请获取当前邀请二维码后重试。",
+    permission: "请在手机设置中允许使用相机后重试。",
+    failed: "扫码未完成，请重试。",
+  },
   pageLoad: {
     module: "页面资源加载失败",
     timeout: "页面加载时间过长",

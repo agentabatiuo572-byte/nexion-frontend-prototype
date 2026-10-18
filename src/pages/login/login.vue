@@ -121,6 +121,9 @@
       </view>
 
       <!-- Footer -->
+      <!-- #ifdef APP-PLUS -->
+      <InviteScanEntry v-if="step === 1 && mode !== 'reset'" :disabled="loading" />
+      <!-- #endif -->
       <view class="lg-footer">
         <text v-if="step === 1 && mode !== 'reset'" class="lg-footer__acc">{{ t.login.noAccount }} <text class="lg-footer__link" role="link" tabindex="0" @click="goRegister" @keydown.enter.prevent="goRegister">{{ t.login.signUp }}</text></text>
       </view>
@@ -136,6 +139,9 @@
 
 <script setup lang="ts">
 import ServerCaptchaSlider from "@/components/server-captcha-slider.vue";
+// #ifdef APP-PLUS
+import InviteScanEntry from "@/components/team/invite-scan-entry.vue";
+// #endif
 import { navReset, takeNavigationQuery } from "@/lib/route";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
