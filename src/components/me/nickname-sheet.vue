@@ -29,7 +29,7 @@
             role="radio"
             :tabindex="picked === c || (!picked && i === 0) ? 0 : -1"
             :aria-checked="picked === c ? 'true' : 'false'"
-            :aria-label="c"
+            :aria-label="displayNickname(c)"
             @click="picked = c"
 
 
@@ -38,7 +38,7 @@
 
             @keydown.enter.prevent="picked = c" @keydown.space.prevent="picked = c" @keydown.up.prevent="moveCandidate(i, -1)" @keydown.down.prevent="moveCandidate(i, 1)" @keydown.left.prevent="moveCandidate(i, -1)" @keydown.right.prevent="moveCandidate(i, 1)"
           >
-            <text class="flex-1 truncate" :style="candidateTextStyle(c)">{{ c }}</text>
+            <text class="flex-1 truncate" :style="candidateTextStyle(c)">{{ displayNickname(c) }}</text>
             <svg v-if="picked === c" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
           </view>
         </view>
@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import { displayNickname } from "@/lib/brand-copy";
 import { computed, nextTick, ref, watch, type CSSProperties } from "vue";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { useT } from "@/i18n/use-t";

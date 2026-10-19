@@ -17,9 +17,9 @@
 
       <!-- Sponsor card (arrived via ?ref) -->
       <view v-if="sponsorPreview" class="rg-sponsor">
-        <view class="rg-sponsor__av"><text class="rg-sponsor__av-t">{{ sponsorPreview.displayName[0] }}</text></view>
+        <view class="rg-sponsor__av"><text class="rg-sponsor__av-t">{{ displayNickname(sponsorPreview.displayName)[0] }}</text></view>
         <view class="rg-sponsor__body">
-          <text class="rg-sponsor__name"><text class="rg-sponsor__name-b">{{ sponsorPreview.displayName }}</text> {{ t.ref.invitedYou }}</text>
+          <text class="rg-sponsor__name"><text class="rg-sponsor__name-b">{{ displayNickname(sponsorPreview.displayName) }}</text> {{ t.ref.invitedYou }}</text>
           <text v-if="giftUsdt > 0" class="rg-sponsor__gift">+${{ formatAmount(giftUsdt) }} + {{ formatAmount(giftNex) }} NEX</text>
         </view>
         <text class="rg-sponsor__v">{{ sponsorPreview.vRank }}</text>
@@ -158,6 +158,7 @@
 </template>
 
 <script setup lang="ts">
+import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { privacyPolicyHref } from "@/lib/privacy-return";
 import ServerCaptchaSlider from "@/components/server-captcha-slider.vue";
@@ -876,7 +877,7 @@ async function finish() {
           toast.success(
             `+$${formatAmount(gift.usdt)} + ${formatAmount(gift.nex)} NEX`,
             sponsorPreview.value
-              ? fmt(t.value.register.giftCreditedToastSubSponsor, { name: sponsorPreview.value.displayName })
+              ? fmt(t.value.register.giftCreditedToastSubSponsor, { name: displayNickname(sponsorPreview.value.displayName) })
               : t.value.register.giftCreditedToastSub,
           );
         } else {

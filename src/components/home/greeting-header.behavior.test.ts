@@ -11,7 +11,7 @@ import { useI18nRuntime } from "@/store/i18n-runtime";
 import { hydrateCurrentProfileLocale } from "@/lib/locale-profile-sync-runtime";
 import { pendingProfileLocaleHydration } from "@/lib/locale-profile-hydration";
 import { homeGreetingName } from "./home-greeting";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { displayNickname } from "@/lib/brand-copy";
 import type { LocaleCode } from "@/i18n";
 
 const requests = vi.hoisted(() => ({ profile: vi.fn(), bundle: vi.fn() }));
@@ -51,7 +51,7 @@ async function mount(hour = 15, displayName = "UVEL 3778") {
     "@/i18n/use-t": { useT },
     "@/store/profile": { useProfile: () => profile },
     "./home-greeting": { homeGreetingName },
-    "@/lib/brand-copy": { nexGridBrandText },
+    "@/lib/brand-copy": { displayNickname },
   };
   const exports = { default: {} as Component };
   new Function("require", "exports", code)((id: string) => {

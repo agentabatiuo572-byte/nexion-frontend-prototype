@@ -1,3 +1,4 @@
+import { catalogSkuBrandText, catalogSkuRecommendationBody } from "@/lib/brand-copy";
 import ts from "typescript";
 import { computed, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
@@ -26,9 +27,9 @@ function harness(messages: unknown[], translations = zh, download = vi.fn(async 
   const app = { accountBindingEpoch: 1 }, store = { scopeInvalidated: 1 };
   const sources = ref<Record<string, string>>({}), failures = ref<Record<string, boolean>>({});
   const api = { authorAvatarContent: download, attachmentContent: vi.fn(async () => "blob:attachment"), conversation: vi.fn(async () => conv.value) };
-  const state = new Function("computed", "ref", "conv", "app", "convStore", "imageSources", "imageFailures", "supportApi", "t", "localizedIdleClose",
+  const state = new Function("computed", "ref", "conv", "app", "convStore", "imageSources", "imageFailures", "supportApi", "t", "localizedIdleClose", "catalogSkuBrandText", "catalogSkuRecommendationBody",
     `const isAi=ref(false), nova={}, locale={code:'zh'}, supportSessionReady=ref(true);let novaPageVisible=true,imageEpoch=0,imageLoads=new Set();\n${code}\nreturn {threadMessages,loadPrivateImages,clearPrivateImages};`)(
-    computed, ref, conv, app, store, sources, failures, api, ref(translations), localizedIdleClose);
+    computed, ref, conv, app, store, sources, failures, api, ref(translations), localizedIdleClose, catalogSkuBrandText, catalogSkuRecommendationBody);
   return { state, conv, app, store, sources, failures, api };
 }
 describe("human incoming cards reuse existing CTA", () => {
@@ -92,4 +93,56 @@ describe("author avatar uses existing private image owner guard", () => {
     expect(h.sources.value).toEqual({}); expect(h.state.threadMessages.value[0].authorAvatarSrc).toBeUndefined();
     expect(h.api.conversation).toHaveBeenCalledWith("CV-old-support", 2);
   });
+});
+
+
+it.each([zh, en, vietnamese])("brands SKU snapshots while preserving authored messages and raw history", translations => {
+  const cards = [
+    { ...author, id: "1", kind: "SKU", text: "NexGridBox S1", skuName: "NexGridBox S1", skuId: "stellarbox-s1", targetAvailability: "AVAILABLE" },
+    { ...author, id: "2", kind: "SKU", text: "I liked NexGrid", skuName: "NexGridBox S1", skuId: "stellarbox-s1", targetAvailability: "UNAVAILABLE" },
+    { ...author, id: "3", kind: "TEXT", text: "NexGridBox S1" },
+    { ...author, id: "4", sender: "user", kind: "TEXT", text: "My NexGrid" },
+  ];
+  const h = harness(cards, translations);
+  expect(h.state.threadMessages.value[0].text).toBe("UVELBox S1");
+  expect(h.state.threadMessages.value[0].ctaHref).toBe("/pages/store/detail?id=stellarbox-s1");
+  expect(h.state.threadMessages.value[1].text).toContain("I liked NexGrid\nUVELBox S1");
+  expect(h.state.threadMessages.value[1].ctaHref).toBeUndefined();
+  expect(h.state.threadMessages.value[2].text).toBe("NexGridBox S1");
+  expect(h.state.threadMessages.value[3].text).toBe("My NexGrid");
+  expect(h.conv.value.messages).toEqual(cards);
+});
+
+
+it.each([
+  ["custom", "My NexGrid collection"], ["custom", "NexGridBox S1"],
+  ["stellarbox-s1", "My NexGrid collection"], ["stellarbox-s1", "NexGridBox S1 Limited"],
+])("preserves custom SKU snapshots and identical authored bodies for %s / %s", (skuId, skuName) => {
+  const card = { ...author, id: "custom", kind: "SKU", text: skuName, skuName, skuId, targetAvailability: "AVAILABLE" };
+  const h = harness([card]);
+  expect(h.state.threadMessages.value[0].text).toBe(skuName);
+  expect(h.conv.value.messages[0]).toEqual(card);
+});
+
+it.each([zh, en, vietnamese])("brands exact historical recommendation templates while retaining authored text", translations => {
+  const cards = [
+    ["stellarbox-s1", "NexGridBox S1", "UVELBox S1"],
+    ["stellarbox-pro-v2", "NexGridBox Pro v2", "UVELBox Pro v2"],
+    ["stellarbox-pro", "StellarBox Pro", "UVELBox Pro"],
+    ["stellarrack-p1", "StellarRack P1", "UVELRack P1"],
+    ["custom", "NexGridBox S1", "NexGridBox S1"],
+    ["stellarbox-s1", "NexGridBox S1 Limited", "NexGridBox S1 Limited"],
+  ].flatMap(([skuId, skuName, displayName]) => ["AVAILABLE", "UNAVAILABLE", "UNKNOWN"].map(targetAvailability => ({
+    card: { ...author, id: `${skuId}-${targetAvailability}`, kind: "SKU", skuId, skuName,
+      text: `推荐商品：${skuName}`, targetAvailability }, displayName,
+  })));
+  for (const { card, displayName } of cards) {
+    const h = harness([card], translations);
+    expect(h.state.threadMessages.value[0].text).toContain(`推荐商品：${displayName}\n${displayName}`);
+    expect(h.conv.value.messages[0]).toEqual(card);
+  }
+  const authored = { ...author, id: "authored", kind: "SKU", skuId: "stellarbox-s1", skuName: "NexGridBox S1",
+    text: "推荐商品：NexGridBox S1 was my favorite", targetAvailability: "AVAILABLE" };
+  expect(harness([authored], translations).state.threadMessages.value[0].text)
+    .toBe("推荐商品：NexGridBox S1 was my favorite\nUVELBox S1");
 });

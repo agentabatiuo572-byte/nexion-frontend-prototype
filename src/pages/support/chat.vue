@@ -143,6 +143,7 @@
 </template>
 
 <script setup lang="ts">
+import { catalogSkuBrandText, catalogSkuRecommendationBody } from "@/lib/brand-copy";
 import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onUnload, onShow, onHide } from "@dcloudio/uni-app";
 import NovaAvatar from "@/components/nova/nova-avatar.vue";
@@ -882,8 +883,11 @@ function humanMessageTime(timestamp: number): string {
 function humanMessageRecommendation(message: ConvMessage): Partial<ThreadMsg> {
   if (message.kind !== "SKU" && message.kind !== "LINK") return {};
   const copy = t.value.conversations.recommendation;
-  const text = message.kind === "SKU" && message.skuName !== message.text
-    ? [message.text, message.skuName].filter(Boolean).join("\n") : message.text;
+  const skuName = message.skuName ? catalogSkuBrandText(message.skuId, message.skuName) : message.skuName;
+  const body = catalogSkuRecommendationBody(message.skuId, message.text, message.skuName);
+  const text = message.kind === "SKU"
+    ? message.skuName === message.text ? skuName ?? message.text : [body, skuName].filter(Boolean).join("\n")
+    : message.text;
   if (message.targetAvailability !== "AVAILABLE") return { text: [text,
     message.targetAvailability === "UNAVAILABLE" ? copy.unavailable : copy.unknown].filter(Boolean).join("\n") };
   if (message.kind === "SKU" && message.skuId) return { text, ctaLabel: copy.product, ctaHref: `/pages/store/detail?id=${encodeURIComponent(message.skuId)}` };

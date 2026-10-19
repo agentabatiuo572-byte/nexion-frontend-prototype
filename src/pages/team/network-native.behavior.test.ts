@@ -1,3 +1,4 @@
+import { displayNickname } from "@/lib/brand-copy";
 import * as Vue from "vue";
 import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
@@ -82,6 +83,7 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
   const deps: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/brand-copy": { displayNickname },
     vue: Vue, "@/components/svg-text": { default: SvgText },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: { render: () => Vue.h("view") } },
@@ -292,4 +294,23 @@ test.each(["app", "h5"] as const)("%s confirmed selection survives retry and rea
   expect(text(page.sheet()!)).toContain("Updated city");
   expect(text(page.sheet()!)).not.toContain("Member original");
   expect(text(page.sheet()!)).not.toContain("Fixture City");
+});
+
+
+test.each(["app", "h5"] as const)("%s displays historical reset names in nodes and refreshed details without changing raw members", async platform => {
+  const page = await mount(platform);
+  for (const code of ["zh", "en", "vi"] as const) {
+    page.locale.code = code;
+    page.network.members = [{ ...member("53018", 1), name: "NexGrid-F343FA44" }];
+    await Vue.nextTick();
+    const control = page.controls().find(item => item.props["aria-label"].startsWith("UVEL-F343FA44"))!;
+    emit(control, "onClick"); await Vue.nextTick();
+    const sheet = () => all(page.root).find(item => item.props.role === "dialog")!;
+    expect(text(sheet())).toContain("UVEL-F343FA44");
+    expect(page.network.members[0].name).toBe("NexGrid-F343FA44");
+    page.network.members = [{ ...member("53018", 1), name: "NexGrid fan" }];
+    await Vue.nextTick();
+    expect(text(sheet())).toContain("NexGrid fan");
+    expect(page.controls().some(item => item.props["aria-label"].startsWith("NexGrid fan"))).toBe(true);
+  }
 });

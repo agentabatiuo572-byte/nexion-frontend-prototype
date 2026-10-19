@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nexGridBrandText } from "./brand-copy";
+import { catalogSkuBrandText, displayNickname, nexGridBrandText } from "./brand-copy";
 
 // 旧词拆词构造 —— 与 scripts/verify.sh 的 no_oldbrand_check 同法:直接写字面量会被本仓
 // 自己的品牌哨兵抓红(哨兵要求 src/ 下旧词 0 残留,测试文件也在守备范围内)。
@@ -50,5 +50,35 @@ describe("nexGridBrandText", () => {
 
   it.each(["stellarbox-pro", "stellarrack-p1", "InterstellarBox Pro", "Stellar Compute", "Cloud Share"])("preserves identifiers and unrelated names: %s", value => {
     expect(nexGridBrandText(value)).toBe(value);
+  });
+});
+
+
+describe("system nickname display", () => {
+  it.each([
+    ["NexGrid 1051", "UVEL 1051"], [`${OLD} 3778`, "UVEL 3778"],
+    ["NexGrid-F343FA44", "UVEL-F343FA44"],
+  ])("maps only the full historical system name %s", (before, after) => {
+    expect(displayNickname(before)).toBe(after);
+    expect(displayNickname(after)).toBe(after);
+  });
+  it.each(["NexGrid-F343FA44\n", "NexGrid 1051\n", "NexGrid-F343FA44\r\n", "nexgrid-12ab34cd", "NexGrid-12ab34cd", `${OLD}-F343FA44`, "NexGrid 12345", "NexGrid fan", "My NexGrid 1051", "NexGrid-F343FA44 fan", "NexGrid-1234567", "NexGrid-1234567Z", "NexGrid 1051 Team", "UVEL 1051", ""])("preserves custom name %s", value => {
+    expect(displayNickname(value)).toBe(value);
+  });
+});
+
+
+describe("official SKU display", () => {
+  it.each([
+    ["stellarbox-s1", "NexGridBox S1", "UVELBox S1"],
+    ["stellarbox-pro-v2", "NexGridBox Pro v2", "UVELBox Pro v2"],
+    ["stellarbox-pro-v2", "NexGridBox Pro v2 Limited", "NexGridBox Pro v2 Limited"],
+    ["custom", "NexGridBox Pro v2", "NexGridBox Pro v2"],
+    ["stellarbox-pro", "StellarBox Pro", "UVELBox Pro"],
+    ["stellarrack-p1", "StellarRack P1", "UVELRack P1"],
+    ["custom", "NexGridBox S1", "NexGridBox S1"],
+    ["stellarbox-s1", "My NexGrid collection", "My NexGrid collection"],
+  ])("only maps the confirmed id and name pair %s / %s", (id, before, after) => {
+    expect(catalogSkuBrandText(id, before)).toBe(after);
   });
 });

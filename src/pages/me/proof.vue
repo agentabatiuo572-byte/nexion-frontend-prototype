@@ -197,7 +197,7 @@ import { toast } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { useProfile } from "@/store/profile";
 import { buildShareLink, copyText as copyToClipboard } from "@/lib/share";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { displayNickname } from "@/lib/brand-copy";
 import { isDeviceOnline } from "@/lib/hashpower";
 import { useVRank } from "@/store/v-rank";
 import { rankTitle } from "@/lib/v-rank-copy";
@@ -297,7 +297,7 @@ const onlineDevices = computed(
   () => remoteApiEnabled ? remoteSnapshot.value?.onlineDevices ?? null
     : app.visibleDevices.filter((d) => d.activatedAt !== null && isDeviceOnline(d, Date.now())).length,
 );
-const profileName = computed(() => nexGridBrandText(profile.displayName));
+const profileName = computed(() => displayNickname(profile.displayName));
 const myRank = computed(() => remoteApiEnabled && !vRank.remoteReady ? null : vRank.myRank);
 const totalMembers = computed<number | null>(() => remoteApiEnabled ? remoteSnapshot.value?.team.totalMembers ?? null : network.totalMembers);
 const streakFacts = computed(() => proofStreakFacts(

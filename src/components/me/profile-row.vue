@@ -29,7 +29,7 @@ import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { useProfile } from "@/store/profile";
 import { remoteApiEnabled } from "@/api/runtime";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { displayNickname } from "@/lib/brand-copy";
 
 const ONE_DAY_MS = 86400 * 1000;
 
@@ -37,7 +37,7 @@ const t = useT();
 const app = useApp();
 const profile = useProfile();
 
-const name = computed(() => nexGridBrandText(profile.displayName));
+const name = computed(() => displayNickname(profile.displayName));
 // Server mode deliberately never turns its internal user:<id> account key
 // into a visible identity. The auth response projects name/phone above; when
 // it is unavailable this remains a neutral empty-state avatar.

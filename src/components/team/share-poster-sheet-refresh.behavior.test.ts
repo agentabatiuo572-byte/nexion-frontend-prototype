@@ -14,7 +14,7 @@ import { createAppHomeApi } from "@/api/app-home-api";
 import { createDeviceE3Api } from "@/api/device-e3-api";
 import { en } from "@/i18n/messages/en";
 import { fmt, dateLocale } from "@/i18n/format";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { displayNickname } from "@/lib/brand-copy";
 import { isActiveSlotDevice } from "@/lib/device-slot-policy";
 import source from "./share-poster-sheet.vue?raw";
 import segmentSource from "../glass-segments.vue?raw";
@@ -167,7 +167,7 @@ async function mount(platform: "h5" | "native" = "h5") {
   const dependencies: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
     vue: Vue, "qrcode-generator": { default: qrcode }, "@/i18n/use-t": { useT: () => Vue.ref(en) }, "@/i18n/format": { fmt, dateLocale },
-    "@/lib/brand-copy": { nexGridBrandText }, "@/api/runtime": remote, "@/lib/device-slot-policy": { isActiveSlotDevice },
+    "@/lib/brand-copy": { displayNickname }, "@/api/runtime": remote, "@/lib/device-slot-policy": { isActiveSlotDevice },
     "@/store/app": { useApp }, "@/store/config": { useConfig }, "@/store/profile": { useProfile: () => ({ displayName: "Fixture" }) },
     "@/store/ui": { toast },
     "@/lib/share": { buildShareLink, currentShareReferralCode, copyText, activateChannel, notifyUnavailableShareLink: unavailable },

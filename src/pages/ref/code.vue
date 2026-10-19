@@ -123,6 +123,7 @@
 </template>
 
 <script setup lang="ts">
+import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { privacyPolicyHref } from "@/lib/privacy-return";
 import { navReset, navTo } from "@/lib/route";
@@ -240,7 +241,7 @@ const codeUpper = computed(() => code.value.toUpperCase());
 const sponsor = computed(() => {
   if (remoteApiEnabled) {
     const value = remotePreview.value?.sponsor;
-    return value ? { name: value.displayName, vRank: value.vRank.replace(/^V/i, "") } : null;
+    return value ? { name: displayNickname(value.displayName), vRank: value.vRank.replace(/^V/i, "") } : null;
   }
   return code.value ? pickSponsor(code.value) : null;
 });

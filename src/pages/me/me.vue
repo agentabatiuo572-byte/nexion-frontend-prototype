@@ -110,7 +110,7 @@ import ThemePickerSheet from "@/components/me/theme-picker-sheet.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt, openSlotsTemplate } from "@/i18n/format";
 import { navReset, navTo } from "@/lib/route";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { displayNickname } from "@/lib/brand-copy";
 import { formatUnreadBadge } from "@/lib/unread-badge";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
@@ -248,7 +248,7 @@ interface QuickSection {
   items: QuickItem[];
 }
 
-const profileName = computed(() => nexGridBrandText(profile.displayName));
+const profileName = computed(() => displayNickname(profile.displayName));
 const orderCount = computed(() => orders.orders.length);
 const localeUpper = computed(() => locale.code.toUpperCase());
 const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"

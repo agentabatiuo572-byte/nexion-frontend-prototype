@@ -36,7 +36,7 @@
           </view>
           <view class="flex-1 min-w-0">
             <view class="flex items-center" style="gap: 6px">
-              <text class="truncate" :style="{ fontSize: '13px', color: 'var(--v5-ink)' }">{{ m.name }}</text>
+              <text class="truncate" :style="{ fontSize: '13px', color: 'var(--v5-ink)' }">{{ displayNickname(m.name) }}</text>
               <VBadge :v="m.vRank" size="sm" :show-title="false" />
             </view>
             <view class="flex items-center" style="margin-top: 2px; gap: 6px">
@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, type CSSProperties } from "vue";
 import VBadge from "./v-badge.vue";

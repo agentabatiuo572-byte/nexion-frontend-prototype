@@ -13,7 +13,7 @@ import { profileVRankProjection } from "@/lib/profile-vrank-display";
 import { rankName } from "@/lib/v-rank-copy";
 import { createP318AccountPageFence } from "./p3-18-account-page-fence";
 import { reconcileProfileEdit } from "@/lib/profile-save-flow";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { displayNickname } from "@/lib/brand-copy";
 import { ApiError } from "@/api/errors";
 
 const remote = vi.hoisted(() => ({ remoteApiEnabled: true, vRankApi: { ladder: vi.fn(), current: vi.fn() } }));
@@ -73,7 +73,7 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
     "@/lib/profile-save-flow": { reconcileProfileEdit }, "@/lib/secure-command-id": { requireCryptoUuid: cryptoUuid },
     "@/lib/profile-date": { formatJoinedDate: () => "" }, "@/lib/profile-vrank-display": { profileVRankProjection },
     "@/lib/v-rank-copy": { rankName },
-    "@/lib/brand-copy": { nexGridBrandText },
+    "@/lib/brand-copy": { displayNickname },
     "@/api/order-api": runtimeRevision, "./p3-18-account-page-fence": { createP318AccountPageFence },
   };
   const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
@@ -262,8 +262,8 @@ describe("profile authoritative read lifecycle", () => {
     expect(h.page.name.value).toBe(`${oldBrand} 3778`);
     expect(h.page.displayName.value).toBe("UVEL 3778");
     expect(h.page.dirty.value).toBe(false);
-    expect(source).toContain("{{ nexGridBrandText(name) }}");
-    expect(nexGridBrandText(h.page.name.value)).toBe("UVEL 3778");
+    expect(source).toContain("{{ displayNickname(name) }}");
+    expect(displayNickname(h.page.name.value)).toBe("UVEL 3778");
     expect(h.profile.setDisplayName).not.toHaveBeenCalled();
   });
   it.each([

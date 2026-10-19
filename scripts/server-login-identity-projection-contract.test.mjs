@@ -31,7 +31,7 @@ test("first server-mode profile render uses the projected name and masked E.164 
   const row = read("src/components/me/profile-row.vue");
   assert.match(me, /import ProfileRow from "@\/components\/me\/profile-row\.vue"/);
   assert.match(me, /<ProfileRow\s*\/>/);
-  assert.match(row, /const name = computed\(\(\) => nexGridBrandText\(profile\.displayName\)\)/);
+  assert.match(row, /const name = computed\(\(\) => displayNickname\(profile\.displayName\)\)/);
   assert.match(row, /const phoneMask = computed\(\(\) => \{[\s\S]*?if \(!phone\) return ""/);
   assert.match(row, /\$\{phone\.slice\(0, 3\)\} ••••• \$\{phone\.slice\(-4\)\}/);
   // Remote mode must not fall back to a browser-owned user:<id> seed.

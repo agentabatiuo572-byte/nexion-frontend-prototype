@@ -65,7 +65,7 @@
             :aria-label="t.profile.nicknameChange"
             @click="openNicknameSheet"
           >
-            <text class="flex-1 truncate" :style="nameValueStyle">{{ nexGridBrandText(name) }}</text>
+            <text class="flex-1 truncate" :style="nameValueStyle">{{ displayNickname(name) }}</text>
             <text class="shrink-0" :style="nameChangeStyle">{{ t.profile.nicknameChange }}</text>
           </view>
           <text class="block" :style="fieldHintStyle">{{ t.profile.displayNameHint }}</text>
@@ -130,7 +130,7 @@
 
 <script setup lang="ts">
 import { navTo } from "@/lib/route";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { displayNickname } from "@/lib/brand-copy";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import { profileApi, remoteApiEnabled } from "@/api/runtime";
@@ -265,7 +265,7 @@ watch([() => String(app.accountKey), () => app.accountBindingEpoch], () => {
   refreshProfileForCurrentAccount();
 });
 
-const displayName = computed(() => nexGridBrandText(profile.displayName));
+const displayName = computed(() => displayNickname(profile.displayName));
 // A remote session's user-id key is internal routing state, never profile copy.
 // Until the backend supplies a phone projection, show an honest blank field.
 const email = computed(() => remoteApiEnabled ? profile.phoneE164 : (auth.email || app.user.email));

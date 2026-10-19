@@ -98,7 +98,7 @@ import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from 
 import qrcode from "qrcode-generator";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { displayNickname } from "@/lib/brand-copy";
 import { remoteApiEnabled } from "@/api/runtime";
 import { isActiveSlotDevice } from "@/lib/device-slot-policy";
 import { useApp } from "@/store/app";
@@ -441,7 +441,7 @@ function paint(link: string, myToken: number) {
     ctx.setFillStyle(INK_ON_DARK);
     ctx.setFontSize(12);
     // 18 = 词库昵称最长组合("Quantum Circuit 99");QR 前可用宽 ~250px,12 号字放得下,仅防异常超长。
-    const brandedName = nexGridBrandText(profile.displayName);
+    const brandedName = displayNickname(profile.displayName);
     const name = brandedName.length > 18 ? `${brandedName.slice(0, 18)}…` : brandedName;
     ctx.fillText(name, 20, footY + 18);
   }

@@ -242,6 +242,7 @@
 </template>
 
 <script setup lang="ts">
+import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import SvgText from "@/components/svg-text";
@@ -279,7 +280,7 @@ const network = useNetwork();
 const vRank = useVRank();
 const locale = useLocaleStore();
 
-const members = computed(() => network.members);
+const members = computed(() => network.members.map(member => ({ ...member, name: displayNickname(member.name) })));
 const myRank = computed(() => vRank.myRank);
 // Unavailable only when this account has never produced a projection. A
 // background re-read keeps the confirmed snapshot on screen (BUG 63).

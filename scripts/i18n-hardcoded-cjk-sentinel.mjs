@@ -63,6 +63,12 @@ const FILE_EXEMPTIONS = [
 
 const VALUE_EXEMPTIONS = [
   {
+    id: "historical-sku-recommendation-source-token",
+    why: "历史商品推荐正文的固定前缀仅用于与后端原文字节严格比较；展示前缀截取原正文，商品名仍经官方 SKU 限定，不生成中文 UI 标签。限定文件、真实顶层常量及完整取值，其他中文照常拦截。",
+    files: ["src/lib/brand-copy.ts"],
+    strip: (line) => line.replace(/^(\s*const LEGACY_SKU_RECOMMENDATION_PREFIX = )("推荐商品：")(\s*;\s*)$/, (_m, prefix, _value, suffix) => `${prefix}""${suffix}`),
+  },
+  {
     id: "native-scan-error-source-tokens",
     why: "原生扫码 errMsg 的权限/取消标识只用于分类；限定该组件对 message 的两条精确比较表达式，展示错误仍从三语词典读取",
     files: ["src/components/team/invite-scan-entry.vue"],
@@ -224,12 +230,27 @@ function nativeScanErrorLines(source) {
   return lines;
 }
 
+function historicalSkuPrefixLines(source) {
+  const parsed = ts.createSourceFile("brand-copy.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const lines = new Set();
+  for (const node of parsed.statements) {
+    if (!ts.isVariableStatement(node) || node.declarationList.flags !== ts.NodeFlags.Const) continue;
+    for (const declaration of node.declarationList.declarations) {
+      if (ts.isIdentifier(declaration.name) && declaration.name.text === "LEGACY_SKU_RECOMMENDATION_PREFIX"
+          && declaration.initializer && ts.isStringLiteral(declaration.initializer) && declaration.initializer.text === "推荐商品：")
+        lines.add(parsed.getLineAndCharacterOfPosition(declaration.initializer.getStart(parsed)).line + 1);
+    }
+  }
+  return lines;
+}
+
 export function scanSource(file, src) {
   const stripped = decodeEscapes(stripComments(src, file.endsWith(".vue")));
   const fileRule = FILE_EXEMPTIONS.find((rule) => rule.match(file));
   const idleRegexLines = file === "src/lib/support-idle-message.ts" ? supportIdleRegexLines(src) : null;
   const unassignedTokenLines = ["src/pages/support/chat.vue", "src/pages/support/messages.vue"].includes(file) ? supportUnassignedTokenLines(src) : null;
   const scanErrorLines = file === "src/components/team/invite-scan-entry.vue" ? nativeScanErrorLines(src) : null;
+  const skuPrefixLines = file === "src/lib/brand-copy.ts" ? historicalSkuPrefixLines(src) : null;
   const hits = [];
   stripped.split(/\r?\n/).forEach((line, idx) => {
     if (!CJK.test(line)) return;
@@ -238,6 +259,7 @@ export function scanSource(file, src) {
     let rest = line;
     const used = [];
     for (const rule of VALUE_EXEMPTIONS) {
+      if (rule.id === "historical-sku-recommendation-source-token" && !skuPrefixLines?.has(idx + 1)) continue;
       if (!rule.files.includes(file)) continue;
       if (rule.id === "support-idle-close-source-token" && !idleRegexLines?.has(idx + 1)) continue;
       if (rule.id === "support-unassigned-token" && !unassignedTokenLines?.has(idx + 1)) continue;
@@ -319,6 +341,13 @@ function run() {
 function selftest() {
   const supportPredicate = (statement) => `<script setup lang="ts">\nfunction isWaitingForAgent(name: string): boolean {\n  const normalized = name.trim();\n  ${statement}\n}\n</script>`;
   const cases = [
+    ["historical SKU exact source constant allowed", "src/lib/brand-copy.ts", 'const LEGACY_SKU_RECOMMENDATION_PREFIX = "推荐商品：";', 0],
+    ["historical SKU visible label rejected", "src/pages/support/chat.vue", '<template><text>推荐商品：</text></template>', 1],
+    ["historical SKU other constant rejected", "src/lib/brand-copy.ts", 'const label = "推荐商品：";', 1],
+    ["historical SKU same-line extra copy rejected", "src/lib/brand-copy.ts", 'const LEGACY_SKU_RECOMMENDATION_PREFIX = "推荐商品："; const title = "加载";', 1],
+    ["historical SKU same constant other file rejected", "src/lib/other.ts", 'const LEGACY_SKU_RECOMMENDATION_PREFIX = "推荐商品：";', 1],
+    ["historical SKU changed token rejected", "src/lib/brand-copy.ts", 'const LEGACY_SKU_RECOMMENDATION_PREFIX = "推荐商品：请购买";', 1],
+    ["historical SKU fake multiline constant rejected", "src/lib/brand-copy.ts", 'const displayed = `\nconst LEGACY_SKU_RECOMMENDATION_PREFIX = "推荐商品：";\n`;', 1],
     // [名称, 文件路径, 源码, 期望违规数]
     ["模板文本里的中文被抓", "src/pages/x/a.vue", "<template><view>正在加载</view></template>", 1],
     ["模板属性值里的中文被抓", "src/pages/x/a.vue", '<template><view title="教程中心" /></template>', 1],
