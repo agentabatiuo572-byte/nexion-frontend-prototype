@@ -78,7 +78,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "rewards.vue": "720da0cce42564baaa4451ee4002b6e92f83be5e1ab0317963e22490927e59ef",
   "risk-disclosure.vue": "5f1d1f52b62559b79785d91fd28fd9e4de6597cf91b9174a87191740c95ba2bf",
   // Reviewed ME41: busy save/cancel remain visible and reject keyboard/pointer re-entry.
-  "security.vue": "97dd537c7c35262b3946475b4f897fd499de49437050c08e66c937f291b8a4ed",
+  // Reviewed OAuth binding panel: configured providers, account-scoped lifetime and current-password confirmation.
+  "security.vue": "8e99da9909d9fef4fcf397a909ec3523e8a63d972115c8e84fa3fee70f6b3034",
   // Reviewed #439: BASIC retains the existing hint; enhanced policy owns retry timing and existing-ticket/retry actions.
   // Reviewed #470: cursor-spacing=72 on the detail reply textarea only.
   "support-tickets.vue": "4504cb6168c6e939402a4be14b5f39caeaaa8ab9deda42433c7b91eacf12fce8",

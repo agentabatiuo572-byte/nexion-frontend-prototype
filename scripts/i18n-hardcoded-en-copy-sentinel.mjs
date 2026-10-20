@@ -144,7 +144,9 @@ const NON_COPY_ATTRS = [
     why: "本仓组件的**枚举型 / 路由型** prop(色调 · 变体 · 对齐 · 图标名 · 当前 tab · 目标路由):取值来自组件自身的联合类型或 pages.json 的路径,不是文案",
     // `to` 归到上面的 SMIL 动画组(那才是它在本仓的真实用途);这里不再重复列,
     // 否则逐名存活判定对它失效(跨组重复 = 永不判死)。
-    names: ["tone", "kind", "icon", "color", "accent-bg", "accent-text", "size", "status", "back", "link", "active", "surface", "context", "content-key", "variant"],
+    // scene selects the server CAPTCHA purpose; intent selects OAuth LOGIN/LINK.
+    // Both are typed protocol enums. Visible labels still use the i18n dictionary.
+    names: ["tone", "kind", "icon", "color", "accent-bg", "accent-text", "size", "status", "back", "link", "active", "surface", "context", "content-key", "variant", "scene", "intent"],
   },
 ];
 
@@ -678,6 +680,9 @@ function selftest() {
     ["合法:绑定形式的表单机制保持相同语义", P, "<template><input :autocomplete=\"'off'\" :aria-required=\"'true'\" /></template>", 0],
     ["🔴 机制属性不豁免相邻读屏文案", P, '<template><input autocomplete="off" aria-required="true" aria-label="Enter account" /></template>', 1],
     ["🔴 机制枚举不成为全局词豁免", P, '<template><text>off true</text></template>', 1],
+    ["合法:验证码场景与授权意图是协议枚举", P, '<template><ServerCaptchaSlider scene="LOGIN" /><ThirdPartyAuth intent="LINK" /></template>', 0],
+    ["🔴 授权协议属性不豁免相邻可读标签", P, '<template><ThirdPartyAuth intent="LINK" aria-label="Link account" /></template>', 1],
+    ["🔴 授权协议枚举不成为全局文案豁免", P, '<template><text>LOGIN LINK</text></template>', 1],
     ["🔴 :class 与 class 同宽严(加个冒号不逃逸 → 都不判)", P, "<template><view :class=\"ok ? 'nx-on' : 'nx-off'\" /></template>", 0],
     // ── I:插值里的展示位字面量 ────────────────────────────────────────────
     ["🔴 三元分支里的英文文案", P, '<template><text>{{ legacy ? "Wallet Verification (legacy)" : "Proof of Compute" }}</text></template>', 2],

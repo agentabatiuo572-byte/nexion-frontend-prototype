@@ -137,6 +137,7 @@
       <text v-if="!ctaEnabled && !busy && (phoneTouched || submitAttempted)" id="rg-cta-reason" class="rg-sr-only">{{ ctaDisabledReason }}</text>
 
       <!-- OAuth (step 1) -->
+      <ThirdPartyAuth v-if="remoteApiEnabled && step === 1" :disabled="busy" @busy="oauthBusy = $event" />
       <view v-if="step === 1 && !remoteApiEnabled" class="rg-oauth">
         <view class="rg-divider"><view class="rg-divider__line" /><text class="rg-divider__t">{{ t.register.orContinueWith }}</text><view class="rg-divider__line" /></view>
         <AuthProviderGrid :busy="busy" :development="apiRuntimeConfig.environment === 'dev'" @select="startOauth" />
@@ -158,6 +159,7 @@
 </template>
 
 <script setup lang="ts">
+import ThirdPartyAuth from "@/components/third-party-auth.vue";
 import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { privacyPolicyHref } from "@/lib/privacy-return";
@@ -330,7 +332,8 @@ const codeStr = computed(() => code.value.join(""));
 const codeOk = computed(() => /^\d{6}$/.test(codeStr.value));
 const pwdOk = computed(() => isPasswordOk(password.value, { phone: phoneClean.value }));
 const pwdMatch = computed(() => password.value === confirmPwd.value && pwdOk.value);
-const busy = computed(() => verifying.value || completing.value);
+const oauthBusy = ref(false);
+const busy = computed(() => verifying.value || completing.value || oauthBusy.value);
 const ctaEnabled = computed(() => (step.value === 1 ? phoneOk.value : step.value === 2 ? codeOk.value : pwdMatch.value));
 const ctaLabel = computed(() =>
   step.value === 2 && verifiedToken.value

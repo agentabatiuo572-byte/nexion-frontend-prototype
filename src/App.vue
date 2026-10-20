@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import { acceptNativeOAuthReturn } from "@/auth/oauth-browser-return";
 import { navReset } from "@/lib/route";
 import { ApiError } from "@/api/errors";
 import { reportNativeSessionStage, reportNativeSessionTiming } from "@/api/native-session-storage";
@@ -1290,6 +1291,7 @@ onLaunch(() => {
 onShow(() => {
   // #ifdef APP-PLUS
   useTheme().refreshSystemTheme();
+  acceptNativeOAuthReturn(plus.runtime.arguments || "");
   // #endif
   attachSessionWatch();
   if (remoteApiEnabled) {

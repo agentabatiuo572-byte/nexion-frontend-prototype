@@ -184,7 +184,7 @@ function sessionFromResponse(data: AuthSessionResponse, refreshCredentialMode: R
   };
 }
 
-function consumeLoginResponse(
+export function consumeLoginResponse(
   data: AuthSessionResponse,
   vault: SessionVault,
   expectedRevision: number,

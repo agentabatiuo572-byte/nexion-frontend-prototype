@@ -114,6 +114,7 @@
         <text class="lg-switch__t">{{ mode === 'password' ? t.login.useCodeInstead : t.login.usePasswordInstead }}</text>
       </view>
 
+      <ThirdPartyAuth v-if="remoteApiEnabled && step === 1 && mode !== 'reset'" :disabled="loading" :return-to="returnParam" @busy="oauthBusy = $event" />
       <!-- OAuth (step 1, not reset) -->
       <view v-if="step === 1 && mode !== 'reset' && !remoteApiEnabled" class="lg-oauth">
         <view class="lg-divider"><view class="lg-divider__line" /><text class="lg-divider__t">{{ t.login.orContinueWith }}</text><view class="lg-divider__line" /></view>
@@ -138,6 +139,7 @@
 </template>
 
 <script setup lang="ts">
+import ThirdPartyAuth from "@/components/third-party-auth.vue";
 import ServerCaptchaSlider from "@/components/server-captcha-slider.vue";
 // #ifdef APP-PLUS
 import InviteScanEntry from "@/components/team/invite-scan-entry.vue";
@@ -226,7 +228,9 @@ const error = ref<string | null>(null);
 const phoneTouched = ref(false);
 const submitAttempted = ref(false);
 const resendLeft = ref(0);
-const loading = ref(false);
+const oauthBusy = ref(false);
+const localLoading = ref(false);
+const loading = computed({ get: () => localLoading.value || oauthBusy.value, set: (value: boolean) => { localLoading.value = value; } });
 const returnParam = ref<string | null>(null);
 const refOnLogin = ref<string | null>(null);
 const otpRequestId = ref<string | null>(null);

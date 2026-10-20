@@ -4,6 +4,27 @@ import type { Messages } from "./en";
 // Simplified Chinese — natural Mandarin phrasing. Keys mirror en.ts exactly.
 
 export const zh: Messages = {
+  thirdParty: {
+    signInTitle: "其他登录方式",
+    linkTitle: "第三方登录账号",
+    unavailable: "第三方登录暂不可用。",
+    linked: "已绑定",
+    browserPrompt: "请在浏览器中完成授权，然后返回此处继续。",
+    confirmIdentity: "请确认这是你要使用的账号。",
+    confirmLink: "确认绑定账号",
+    continueLogin: "继续登录",
+    codePrompt: "请输入发送至以下号码的验证码：",
+    codeLabel: "验证码",
+    popupBlocked: "请允许弹出窗口后重试。",
+    expired: "授权已过期或登录账号已变更，请重新开始。",
+    failed: "授权未完成，请重试或使用手机号登录。",
+    linkRequired: "请先使用手机号登录或注册，再前往“账号安全”绑定此账号。",
+    passwordInvalid: "密码不正确，请重试。",
+    linkConflict: "该登录账号已绑定，请使用已绑定账号或其他登录方式。",
+    codeInvalid: "验证码不正确或已过期，请重试。",
+    passwordReset: "请先重置密码，再继续登录。",
+    linkSuccess: "绑定成功，之后可使用此账号登录。",
+  },
   promotion: promotionZH,
   inviteScan: {
     open: "扫描邀请二维码",

@@ -4,6 +4,27 @@ import type { Messages } from "./en";
 // Vietnamese (Tiếng Việt) — professional yet friendly register (bạn). Keys mirror en.ts exactly.
 
 export const vi: Messages = {
+  thirdParty: {
+    signInTitle: "Đăng nhập bằng",
+    linkTitle: "Tài khoản đăng nhập liên kết",
+    unavailable: "Đăng nhập bên thứ ba hiện không khả dụng.",
+    linked: "Đã liên kết",
+    browserPrompt: "Hoàn tất xác thực trong trình duyệt rồi quay lại đây để tiếp tục.",
+    confirmIdentity: "Xác nhận đây là tài khoản bạn muốn sử dụng.",
+    confirmLink: "Liên kết tài khoản",
+    continueLogin: "Tiếp tục đăng nhập",
+    codePrompt: "Nhập mã xác minh được gửi đến",
+    codeLabel: "Mã xác minh",
+    popupBlocked: "Cho phép cửa sổ bật lên rồi thử lại.",
+    expired: "Xác thực đã hết hạn hoặc tài khoản đã thay đổi. Vui lòng bắt đầu lại.",
+    failed: "Không thể hoàn tất xác thực. Vui lòng thử lại hoặc đăng nhập bằng số điện thoại.",
+    linkRequired: "Đăng nhập hoặc đăng ký bằng số điện thoại trước, rồi liên kết tài khoản trong Bảo mật tài khoản.",
+    passwordInvalid: "Mật khẩu không đúng. Vui lòng thử lại.",
+    linkConflict: "Tài khoản này đã được liên kết. Hãy dùng tài khoản đã liên kết hoặc cách đăng nhập khác.",
+    codeInvalid: "Mã xác minh không đúng hoặc đã hết hạn. Vui lòng thử lại.",
+    passwordReset: "Đặt lại mật khẩu trước khi đăng nhập.",
+    linkSuccess: "Đã liên kết tài khoản. Bạn có thể dùng tài khoản này để đăng nhập.",
+  },
   promotion: promotionVI,
   inviteScan: {
     open: "Quét mã QR lời mời",

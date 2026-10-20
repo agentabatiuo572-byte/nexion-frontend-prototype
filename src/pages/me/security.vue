@@ -34,6 +34,7 @@
         <text class="block" style="font-size: 13px; line-height: 1.5">{{ t.topupChrome.flowRetired }}</text>
       </view>
 
+      <view v-if="remoteApiEnabled" class="mx-4"><ThirdPartyAuth :key="app.accountKey + ':' + app.accountBindingEpoch" intent="LINK" :disabled="securityBusy || !remoteSecurity" @busy="oauthBusy = $event" /></view>
       <!-- ───── Password + Two-factor (merged, de-carded group) ───── -->
       <view class="nx-glass-card mx-4" :style="cardStyle">
         <view class="flex items-center active:opacity-90" :style="rowStyle" role="button" tabindex="0" :aria-expanded="editingPwd ? 'true' : 'false'" @click="editingPwd = !editingPwd"  @keydown.enter.prevent="editingPwd = !editingPwd" @keydown.space.prevent="editingPwd = !editingPwd">
@@ -150,6 +151,7 @@
 </template>
 
 <script setup lang="ts">
+import ThirdPartyAuth from "@/components/third-party-auth.vue";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
@@ -212,7 +214,9 @@ const deletionPending = computed(() => deletionStatus.value.status !== "NONE"
   && (deletionStatus.value.status === "REQUESTED" || deletionStatus.value.status === "IN_REVIEW" || deletionStatus.value.status === "BLOCKED"));
 const deletionCanCancel = computed(() => deletionStatus.value.status === "REQUESTED"
   || deletionStatus.value.status === "IN_REVIEW" || deletionStatus.value.status === "BLOCKED");
-const securityBusy = ref(false);
+const oauthBusy = ref(false);
+const localSecurityBusy = ref(false);
+const securityBusy = computed({ get: () => localSecurityBusy.value || oauthBusy.value, set: (value: boolean) => { localSecurityBusy.value = value; } });
 const twoFactorPassword = ref("");
 const twoFactorPasswordError = ref("");
 const twoFactorPasswordFocus = ref(false);
