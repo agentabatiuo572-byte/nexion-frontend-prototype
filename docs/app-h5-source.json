@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uvel-brand-app-20261019",
+  "sourcePath": "D:\\workspace\\.worktrees\\uvel-assets-app-20261020",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "c7e9224db214d6ca1338a96163381934b5720989",
-  "sourceRef": "c7e9224db214d6ca1338a96163381934b5720989",
+  "sourceHead": "9d13096597564922677c7b12ff7cdf1425f5f851",
+  "sourceRef": "9d13096597564922677c7b12ff7cdf1425f5f851",
   "sourceRefKind": "commit",
-  "sourceTree": "d4455ec43ad5c97f730b614a8381a1c048882024",
+  "sourceTree": "a21093c4f4f86936d86c39065bb9b90c4329ced8",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -15630,17 +15630,17 @@
       "mode": "100644"
     },
     "src/static/img/brand/header-logo-dark.png": {
-      "sourceBlob": "0c6b2fddb3d6bcc19ec63280cfe2167c29d13c36",
-      "sourceSha256": "5f438d45f8cbb9cc9d93a3f43b1dde2894120ff4bc33d78e687cc553c0499cd8",
-      "targetBlob": "0c6b2fddb3d6bcc19ec63280cfe2167c29d13c36",
-      "targetSha256": "5f438d45f8cbb9cc9d93a3f43b1dde2894120ff4bc33d78e687cc553c0499cd8",
+      "sourceBlob": "f02420cb96867c6a1a69e1e6da28df25fdde2daf",
+      "sourceSha256": "bc913477a52934695136dfcea15a4ea6ccf7da535708e4cebc25ba5a039eab84",
+      "targetBlob": "f02420cb96867c6a1a69e1e6da28df25fdde2daf",
+      "targetSha256": "bc913477a52934695136dfcea15a4ea6ccf7da535708e4cebc25ba5a039eab84",
       "mode": "100644"
     },
     "src/static/img/brand/header-logo-light.png": {
-      "sourceBlob": "6aad31f8b11360b7b795f54d370ca975542abaef",
-      "sourceSha256": "228e45f0eb9afd51e160c685f85f7f967a94ea26d1986d5ad43ee8aa15f896a6",
-      "targetBlob": "6aad31f8b11360b7b795f54d370ca975542abaef",
-      "targetSha256": "228e45f0eb9afd51e160c685f85f7f967a94ea26d1986d5ad43ee8aa15f896a6",
+      "sourceBlob": "78c7935f5950bbe8e09595f39eab6220239be100",
+      "sourceSha256": "c5d3d7acf5b0aa2174009ee011545f0df4871b8dfab5f28c48a55af1faac2233",
+      "targetBlob": "78c7935f5950bbe8e09595f39eab6220239be100",
+      "targetSha256": "c5d3d7acf5b0aa2174009ee011545f0df4871b8dfab5f28c48a55af1faac2233",
       "mode": "100644"
     },
     "src/static/img/devices/generated-phone-alpha.png": {
