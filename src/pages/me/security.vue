@@ -96,6 +96,62 @@
       </view>
       <text class="block mx-4" :style="footerStyle">{{ t.security.twoFactorHint }}</text>
 
+      <view v-if="remoteApiEnabled && !phoneMissing" class="nx-glass-card mx-4" :style="[cardStyle, groupGap]" style="margin-top: 16px">
+        <view class="flex items-center active:opacity-90" :style="rowStyle" role="button" tabindex="0"
+          :aria-expanded="phoneEditing ? 'true' : 'false'" @click="phoneEditing = !phoneEditing"
+          @keydown.enter.prevent="phoneEditing = !phoneEditing" @keydown.space.prevent="phoneEditing = !phoneEditing">
+          <view class="flex-1 min-w-0">
+            <text class="block" :style="rowLabelStyle">{{ t.security.phoneChangeTitle }}</text>
+            <text class="block" :style="rowSubStyle">{{ phonePolicy
+              ? fmt(t.security.phoneChangeSummary, { days: phonePolicy.windowDays, max: phonePolicy.maxChanges, used: phonePolicy.usedChanges })
+              : t.security.phoneChangeUnavailable }}</text>
+          </view>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+        </view>
+        <view v-if="phoneEditing" :style="pwdFormStyle">
+          <text v-if="phonePolicy && phonePolicy.remainingChanges === 0" class="block" :style="rowSubStyle">
+            {{ t.security.phoneChangeLimit }} {{ phonePolicy.nextAvailableAt ? new Date(phonePolicy.nextAvailableAt).toLocaleDateString() : "" }}
+          </text>
+          <template v-else-if="!phoneChallenge">
+            <view class="flex" style="gap: 8px">
+              <picker :range="['+86', '+84']" :value="phoneCountry === '84' ? 1 : 0" @change="phoneCountry = Number(detailVal($event)) === 1 ? '84' : '86'">
+                <view :style="pwdInputStyle">{{ '+' + phoneCountry }}</view>
+              </picker>
+              <input class="flex-1" :style="pwdInputStyle" type="number" :value="phoneNext" :placeholder="t.security.phoneChangeNew"
+                :aria-label="t.security.phoneChangeNew" maxlength="15" @input="phoneNext = detailVal($event)" />
+            </view>
+            <input class="w-full" :style="pwdInputStyle" password :value="phonePassword" :placeholder="t.security.currentPassword"
+              :aria-label="t.security.currentPassword" :maxlength="PASSWORD_MAX_LENGTH" @input="phonePassword = detailVal($event)" />
+            <view class="flex items-center justify-center active:opacity-80" :style="pwdSaveStyle" role="button"
+              :tabindex="securityBusy || !phonePolicy || phonePolicy.remainingChanges === 0 ? -1 : 0"
+              :aria-disabled="securityBusy || !phonePolicy || phonePolicy.remainingChanges === 0"
+              @click="startPhoneChange" @keydown.enter.prevent="startPhoneChange" @keydown.space.prevent="startPhoneChange">
+              <text :style="pwdSaveLabelStyle">{{ t.security.phoneChangeSendCodes }}</text>
+            </view>
+          </template>
+          <template v-else>
+            <text class="block" :style="rowSubStyle">{{ fmt(t.security.phoneChangeCodesSent,
+              { old: phoneChallenge.oldPhoneMasked, next: phoneChallenge.newPhoneMasked }) }}</text>
+            <input class="w-full" :style="pwdInputStyle" type="number" :value="phoneOldCode" :placeholder="t.security.phoneChangeOldCode"
+              :aria-label="t.security.phoneChangeOldCode" maxlength="6" @input="phoneOldCode = detailVal($event)" />
+            <input class="w-full" :style="pwdInputStyle" type="number" :value="phoneNewCode" :placeholder="t.security.phoneChangeNewCode"
+              :aria-label="t.security.phoneChangeNewCode" maxlength="6" @input="phoneNewCode = detailVal($event)" />
+            <view class="flex items-center justify-center active:opacity-80" :style="pwdSaveStyle" role="button"
+              :tabindex="securityBusy ? -1 : 0" :aria-disabled="securityBusy"
+              @click="confirmPhoneChange" @keydown.enter.prevent="confirmPhoneChange" @keydown.space.prevent="confirmPhoneChange">
+              <text :style="pwdSaveLabelStyle">{{ t.security.phoneChangeConfirm }}</text>
+            </view>
+            <view role="button" tabindex="0" :style="rowSubStyle" @click="resetPhoneChallenge"
+              @keydown.enter.prevent="resetPhoneChallenge" @keydown.space.prevent="resetPhoneChallenge">
+              {{ t.security.phoneChangeRestart }}
+            </view>
+          </template>
+          <text v-if="phoneError" class="block" :style="errStyle" role="alert">{{ phoneError }}</text>
+          <view v-if="!phonePolicy" role="button" tabindex="0" :style="rowSubStyle" @click="loadPhonePolicy" @keydown.enter.prevent="loadPhonePolicy">
+            {{ t.ui.retry }}
+          </view>
+        </view>
+      </view>
 
       <!-- ───── Active sessions ───── -->
       <text class="block mx-4" :style="sectionHeadStyle">{{ t.security.sessionsTitle }}</text>
@@ -178,12 +234,15 @@ import { useSession, type SessionListItem } from "@/store/session";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { confirm as uiConfirm, toast, useUI } from "@/store/ui";
 import { isPasswordOk, PASSWORD_MAX_LENGTH } from "@/auth/password-rules";
+import { dialCodeForLocale, validateNationalPhone } from "@/auth/phone-number";
+import { useLocaleStore } from "@/store/locale";
 import { accountApi, authApi, apiRuntimeConfig, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import { requireAccountPhone } from "@/lib/require-account-phone";
 import { apiEnvironmentBadgeLabel } from "@/api/runtime-config";
 import { deleteMockAuthAccount } from "@/api/mock-auth-api";
 import type { SecurityState } from "@/api/contracts";
-import type { AccountDeletionStatus } from "@/api/account-api";
+import type { AccountDeletionStatus, PhoneNumberChangePolicy, PhoneNumberChangeChallenge } from "@/api/account-api";
+import { ApiError } from "@/api/errors";
 import { createP318AccountPageFence, type P318AccountPageScope } from "./p3-18-account-page-fence";
 import { accountErrorMessageKey } from "@/lib/account-error-message";
 import { acquireAccountCommandKey, releaseAccountCommandKey } from "@/store/account-scoped-storage";
@@ -217,6 +276,15 @@ let securityPageVisible = true;
 
 const remoteSecurity = ref<SecurityState | null>(null);
 const phoneMissing = ref(remoteApiEnabled && !!sessionVault.read() && !sessionVault.read()!.user.phone);
+const phonePolicy = ref<PhoneNumberChangePolicy | null>(null);
+const phoneEditing = ref(false);
+const phoneCountry = ref(dialCodeForLocale(useLocaleStore().code).slice(1));
+const phoneNext = ref("");
+const phonePassword = ref("");
+const phoneOldCode = ref("");
+const phoneNewCode = ref("");
+const phoneChallenge = ref<PhoneNumberChangeChallenge | null>(null);
+const phoneError = ref("");
 const deletionStatus = ref<AccountDeletionStatus>({ status: "NONE" });
 const deletionPending = computed(() => deletionStatus.value.status !== "NONE"
   && (deletionStatus.value.status === "REQUESTED" || deletionStatus.value.status === "IN_REVIEW" || deletionStatus.value.status === "BLOCKED"));
@@ -312,6 +380,14 @@ function clearSecurityAccountState() {
   remoteSecurityLoading.value = false;
   sessionPageLoading.value = false;
   remoteSecurity.value = null;
+  phonePolicy.value = null;
+  phoneEditing.value = false;
+  phoneNext.value = "";
+  phonePassword.value = "";
+  phoneOldCode.value = "";
+  phoneNewCode.value = "";
+  phoneChallenge.value = null;
+  phoneError.value = "";
   deletionStatus.value = { status: "NONE" };
   editingPwd.value = false;
   current.value = "";
@@ -330,7 +406,96 @@ function clearSecurityAccountState() {
 }
 
 function refreshSecurityForCurrentAccount() {
-  if (securityPageVisible && remoteApiEnabled) void loadRemoteSecurity();
+  if (securityPageVisible && remoteApiEnabled) {
+    void loadRemoteSecurity();
+    void loadPhonePolicy();
+  }
+}
+
+async function loadPhonePolicy() {
+  const pageScope = securityPageFence.capture("phone-policy");
+  const accountScope = captureAccountScope();
+  const accountKey = auth.accountId;
+  try {
+    const policy = await accountApi.phoneNumberPolicy();
+    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) phonePolicy.value = policy;
+  } catch {
+    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) phonePolicy.value = null;
+  }
+}
+
+function phoneChangeMessage(cause: unknown) {
+  if (cause instanceof ApiError) {
+    if (cause.message === "USER_PHONE_CHANGE_LIMIT_REACHED") return t.value.security.phoneChangeLimit;
+    if (cause.message === "USER_PHONE_ALREADY_IN_USE") return t.value.security.phoneChangeInUse;
+    if (cause.message === "USER_PHONE_CHANGE_CODE_INVALID") return t.value.security.phoneChangeInvalidCode;
+    if (cause.message === "USER_PHONE_CHANGE_EXPIRED") return t.value.security.phoneChangeExpired;
+    if (cause.message === "USER_PHONE_CHANGE_CHALLENGE_RATE_LIMITED") return t.value.security.phoneChangeRateLimited;
+    if (cause.message === "USER_OTP_DELIVERY_UNAVAILABLE") return t.value.security.phoneChangeDeliveryUnavailable;
+    if (cause.message === "USER_PHONE_INVALID" || cause.message === "USER_PHONE_UNCHANGED") return t.value.security.phoneChangeInvalidNumber;
+  }
+  return securityErrorMessage(cause);
+}
+
+function resetPhoneChallenge() {
+  if (securityBusy.value) return;
+  phoneChallenge.value = null;
+  phoneOldCode.value = "";
+  phoneNewCode.value = "";
+  phoneError.value = "";
+}
+
+async function startPhoneChange() {
+  if (securityBusy.value || !phonePolicy.value || phonePolicy.value.remainingChanges === 0) return;
+  phoneError.value = "";
+  if (!phonePassword.value || !validateNationalPhone("+" + phoneCountry.value, phoneNext.value)) {
+    phoneError.value = t.value.security.phoneChangeCheckInput;
+    return;
+  }
+  const pageScope = securityPageFence.capture("phone-change");
+  const accountScope = captureAccountScope();
+  const accountKey = auth.accountId;
+  securityBusy.value = true;
+  try {
+    const challenge = await accountApi.startPhoneNumberChange(phonePassword.value, phoneCountry.value, phoneNext.value);
+    if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    phoneChallenge.value = challenge;
+    phonePassword.value = "";
+  } catch (cause) {
+    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) phoneError.value = phoneChangeMessage(cause);
+  } finally {
+    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) securityBusy.value = false;
+  }
+}
+
+async function confirmPhoneChange() {
+  if (securityBusy.value || !phoneChallenge.value) return;
+  phoneError.value = "";
+  if (!/^[0-9]{6}$/.test(phoneOldCode.value) || !/^[0-9]{6}$/.test(phoneNewCode.value)) {
+    phoneError.value = t.value.security.phoneChangeInvalidCode;
+    return;
+  }
+  const pageScope = securityPageFence.capture("phone-change");
+  const accountScope = captureAccountScope();
+  const accountKey = auth.accountId;
+  const changeNo = phoneChallenge.value.changeNo;
+  securityBusy.value = true;
+  try {
+    await accountApi.confirmPhoneNumberChange(changeNo, phoneOldCode.value, phoneNewCode.value);
+    if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    try { await authApi.logout(); } catch { /* The local session must still be cleared. */ }
+    if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    toast.success(t.value.security.phoneChangeDone);
+    session.signOutSession();
+    auth.signOut();
+    app.bindAccount("default");
+    rebindAccountScopedStores("default");
+    navReset({ url: "/pages/login/login", fail: () => {} });
+  } catch (cause) {
+    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) phoneError.value = phoneChangeMessage(cause);
+  } finally {
+    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) securityBusy.value = false;
+  }
 }
 
 onShow(() => {

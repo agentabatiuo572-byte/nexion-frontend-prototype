@@ -15,6 +15,24 @@ export interface AccountApi {
   accountDeletionStatus(): Promise<AccountDeletionStatus>;
   requestAccountDeletion(currentPassword: string, idempotencyKey: string): Promise<AccountDeletionRequest>;
   cancelAccountDeletion(expectedVersion: number, idempotencyKey: string, reason?: string): Promise<AccountDeletionRequest>;
+  phoneNumberPolicy(): Promise<PhoneNumberChangePolicy>;
+  startPhoneNumberChange(currentPassword: string, countryCode: string, phone: string): Promise<PhoneNumberChangeChallenge>;
+  confirmPhoneNumberChange(changeNo: string, oldCode: string, newCode: string): Promise<void>;
+}
+
+export interface PhoneNumberChangePolicy {
+  windowDays: number;
+  maxChanges: number;
+  usedChanges: number;
+  remainingChanges: number;
+  nextAvailableAt: string;
+}
+
+export interface PhoneNumberChangeChallenge {
+  changeNo: string;
+  expiresInSeconds: number;
+  oldPhoneMasked: string;
+  newPhoneMasked: string;
 }
 
 export interface TwoFactorChallenge {
@@ -126,6 +144,27 @@ function parseTwoFactorChallenge(value: unknown): TwoFactorChallenge {
   return source as unknown as TwoFactorChallenge;
 }
 
+function parsePhoneNumberChangePolicy(value: unknown): PhoneNumberChangePolicy {
+  const source = record(value);
+  if (!source || ![source.windowDays, source.maxChanges, source.usedChanges, source.remainingChanges]
+    .every((item) => typeof item === "number" && Number.isSafeInteger(item) && item >= 0)
+    || typeof source.nextAvailableAt !== "string"
+    || (source.nextAvailableAt !== "" && !validDate(source.nextAvailableAt))) {
+    throw new ApiError({ kind: "protocol", message: "PHONE_CHANGE_POLICY_INVALID" });
+  }
+  return source as unknown as PhoneNumberChangePolicy;
+}
+
+function parsePhoneNumberChangeChallenge(value: unknown): PhoneNumberChangeChallenge {
+  const source = record(value);
+  if (!source || typeof source.changeNo !== "string" || !/^PHONE-[a-f0-9]{32}$/.test(source.changeNo)
+    || typeof source.expiresInSeconds !== "number" || source.expiresInSeconds <= 0
+    || typeof source.oldPhoneMasked !== "string" || typeof source.newPhoneMasked !== "string") {
+    throw new ApiError({ kind: "protocol", message: "PHONE_CHANGE_CHALLENGE_INVALID" });
+  }
+  return source as unknown as PhoneNumberChangeChallenge;
+}
+
 function parseAccountDeletion(value: unknown): AccountDeletionRequest {
   const raw = record(value);
   const source: Record<string, unknown> | null = raw && {
@@ -232,5 +271,22 @@ export function createAccountApi(client: ApiClient): AccountApi {
       body: { expectedVersion, reason },
       idempotencyKey,
     })),
+    phoneNumberPolicy: async () => parsePhoneNumberChangePolicy(await client.request({
+      method: "GET", path: "/api/app/security/phone-number",
+    })),
+    startPhoneNumberChange: async (currentPassword, countryCode, phone) =>
+      parsePhoneNumberChangeChallenge(await client.request({
+        method: "POST", path: "/api/app/security/phone-number/challenge",
+        body: { currentPassword, countryCode, phone },
+        idempotencyKey: mutationKey("phone-number-challenge"),
+      })),
+    confirmPhoneNumberChange: async (changeNo, oldCode, newCode) => {
+      const result = record(await client.request({
+        method: "POST", path: "/api/app/security/phone-number/confirm",
+        body: { changeNo, oldCode, newCode },
+        idempotencyKey: changeNo,
+      }));
+      if (result?.changed !== true) throw new ApiError({ kind: "protocol", message: "PHONE_CHANGE_RESULT_INVALID" });
+    },
   };
 }
