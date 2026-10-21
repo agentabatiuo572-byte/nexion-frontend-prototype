@@ -11,6 +11,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureServer } from "./lib/dev-server-pool.mjs";
+import { runProbeGroup } from "./lib/probe-routes.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSessionReloadRecoveryOnly = process.argv.includes("--server-session-reload-recovery");
@@ -75,15 +76,15 @@ try {
       // 每条都保留字面量 runGate("<探针>") —— scripts/probe-safety-contract.test.mjs 以此为接线证据(缩范围只挡执行,不动接线)
       only("guard-liveness-runtime.mjs") ? await runGate("guard-liveness-runtime.mjs", baseUrl) : await skipGate("guard-liveness-runtime.mjs"),
       only("auth-guard-verify.mjs") ? await runGate("auth-guard-verify.mjs", baseUrl) : await skipGate("auth-guard-verify.mjs"),
-      ...await Promise.all([
-        only("business-loop-liveness-runtime.mjs") ? runGate("business-loop-liveness-runtime.mjs", baseUrl) : skipGate("business-loop-liveness-runtime.mjs"),
-        only("spec6-entry-surface-runtime.mjs") ? runGate("spec6-entry-surface-runtime.mjs", baseUrl) : skipGate("spec6-entry-surface-runtime.mjs"),
-        only("trial-check.mjs") ? runGate("trial-check.mjs", baseUrl) : skipGate("trial-check.mjs"),
-        only("sticky-check.mjs") ? runGate("sticky-check.mjs", baseUrl) : skipGate("sticky-check.mjs"),
-        only("backnav-check.mjs") ? runGate("backnav-check.mjs", baseUrl) : skipGate("backnav-check.mjs"),
-        only("profile-identity-check.mjs") ? runGate("profile-identity-check.mjs", baseUrl) : skipGate("profile-identity-check.mjs"),
-        only("pending-checkout-runtime.mjs") ? runGate("pending-checkout-runtime.mjs", baseUrl) : skipGate("pending-checkout-runtime.mjs"),
-        only("page-check.mjs") ? runGate("page-check.mjs", baseUrl, [
+      ...await runProbeGroup([
+        () => only("business-loop-liveness-runtime.mjs") ? runGate("business-loop-liveness-runtime.mjs", baseUrl) : skipGate("business-loop-liveness-runtime.mjs"),
+        () => only("spec6-entry-surface-runtime.mjs") ? runGate("spec6-entry-surface-runtime.mjs", baseUrl) : skipGate("spec6-entry-surface-runtime.mjs"),
+        () => only("trial-check.mjs") ? runGate("trial-check.mjs", baseUrl) : skipGate("trial-check.mjs"),
+        () => only("sticky-check.mjs") ? runGate("sticky-check.mjs", baseUrl) : skipGate("sticky-check.mjs"),
+        () => only("backnav-check.mjs") ? runGate("backnav-check.mjs", baseUrl) : skipGate("backnav-check.mjs"),
+        () => only("profile-identity-check.mjs") ? runGate("profile-identity-check.mjs", baseUrl) : skipGate("profile-identity-check.mjs"),
+        () => only("pending-checkout-runtime.mjs") ? runGate("pending-checkout-runtime.mjs", baseUrl) : skipGate("pending-checkout-runtime.mjs"),
+        () => only("page-check.mjs") ? runGate("page-check.mjs", baseUrl, [
           "/#/pages/index/index",
           "h5-runtime-home",
           ".home-earnings-cluster",

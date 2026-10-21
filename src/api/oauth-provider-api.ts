@@ -1,8 +1,6 @@
 import type { ApiClient } from "./api-client";
-import type { AuthSessionResponse } from "./contracts";
-import { consumeLoginResponse } from "./auth-api";
+import type { AuthApi } from "./auth-api";
 import { ApiError } from "./errors";
-import type { RefreshCredentialMode, SessionVault } from "./session-vault";
 
 export type ThirdPartyProvider = "GOOGLE" | "APPLE" | "TELEGRAM";
 export interface OAuthFlow {
@@ -34,10 +32,7 @@ export function validateOAuthFlow(value: unknown): OAuthFlow {
   if (path.includes("\\") || path.split("/").some(segment => segment === "." || segment === "..")) throw invalid();
   return flow;
 }
-export function createOAuthProviderApi(client: ApiClient, vault: SessionVault, options: {
-  surface: "APP" | "H5"; refreshCredentialMode: RefreshCredentialMode;
-  installationId: () => string; executionSupported: () => boolean;
-}) {
+export function createOAuthProviderApi(client: ApiClient, auth: Pick<AuthApi, "pendingLogin" | "completeProviderLogin">) {
   const proof = (flow: OAuthFlow) => ({ flowId: flow.flowId, flowKey: flow.flowKey, receipt: flow.receipt });
   return {
     async available() {
@@ -47,6 +42,8 @@ export function createOAuthProviderApi(client: ApiClient, vault: SessionVault, o
       return providerList(await client.request({ path: `${ROOT}/linked` }));
     },
     async start(provider: ThirdPartyProvider, intent: "LOGIN" | "LINK") {
+      if (intent === "LOGIN" && auth.pendingLogin())
+        throw new ApiError({ kind: "configuration", message: "LOGIN_RESULT_UNKNOWN" });
       return validateOAuthFlow(await client.request({
         path: `${ROOT}/start`, method: "POST", body: { provider, intent }, authenticated: intent === "LINK",
       }));
@@ -63,23 +60,8 @@ export function createOAuthProviderApi(client: ApiClient, vault: SessionVault, o
     async complete(provider: ThirdPartyProvider, flow: OAuthFlow, expectedRevision: number,
         challengeNo?: string, code?: string, captchaTicket?: string) {
       if (!flow.receipt || !/^[A-Za-z0-9_-]{43}$/.test(flow.receipt)) throw invalid();
-      if (vault.revision() !== expectedRevision)
-        throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_AUTH" });
-      const data = await client.request<AuthSessionResponse>({
-        path: `${ROOT}/complete`, method: "POST",
-        body: { provider, ...proof(flow), challengeNo, code, captchaTicket }, authenticated: false,
-        headers: {
-          ...(options.refreshCredentialMode === "cookie" ? { "X-Nexion-Refresh-Mode": "cookie" } : {}),
-          ...(options.surface === "APP" ? { "X-NexGrid-Client-Surface": "APP" } : {}),
-          "X-NexGrid-Installation-Id": options.surface === "APP" ? options.installationId() : "",
-          "X-NexGrid-Execution-Supported": String(options.surface === "APP" && options.executionSupported()),
-          // Server-generated attempt/proof remain stable across retries and interrupted responses.
-          "X-NexGrid-Login-Attempt-Id": flow.flowId,
-          "X-NexGrid-Login-Recovery-Key": flow.flowKey,
-        },
-        acceptedResponses: [{ status: 428, code: 428, message: "USER_TWO_FACTOR_VERIFICATION_REQUIRED" }],
-      });
-      return consumeLoginResponse(data, vault, expectedRevision, options.refreshCredentialMode);
+      return auth.completeProviderLogin({ provider, ...proof(flow), receipt: flow.receipt,
+        challengeNo, code, captchaTicket }, expectedRevision);
     },
     async link(flow: OAuthFlow, password: string) {
       if (!flow.receipt || !/^[A-Za-z0-9_-]{43}$/.test(flow.receipt)) throw invalid();

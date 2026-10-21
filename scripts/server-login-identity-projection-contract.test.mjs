@@ -100,7 +100,8 @@ test("remote registration uses its authoritative session and recovers only unkno
   assert.match(autoLogin, /return \{\s*\.\.\.registration,\s*registrationReceipt: registration\.registrationReceipt \?\? null,\s*registrationMayBeCommitted: true,\s*\};\s*\} catch \(error\)/);
   assert.match(autoLogin, /if \(!isRegistrationOutcomeUnknown\(error\)\) \{[\s\S]*?kind: "registration_error"/);
   assert.match(autoLogin, /authApi\.discardSessionIfCurrent\(registration\.vaultRevision\)/);
-  assert.match(autoLogin, /authApi\.login\(\{[\s\S]*?countryCode: request\.countryCode,[\s\S]*?phone: request\.phone,[\s\S]*?password: request\.password/);
+  assert.match(autoLogin, /await authApi\.recoverLogin\(\)/);
+  assert.doesNotMatch(autoLogin, /authApi\.login\(/);
   assert.match(register, /const completed = completeSignIn\(\{[\s\S]*?identity: `user:\$\{registration\.user\.userId\}`,[\s\S]*?onboardingComplete: registration\.user\.onboardingComplete,[\s\S]*?serverProfile: registration\.user,[\s\S]*?serverSessionRevision: registration\.vaultRevision,[\s\S]*?\}\);/);
   assert.match(register, /onboardingComplete: registration\.user\.onboardingComplete,[\s\S]*?serverProfile: registration\.user,[\s\S]*?serverSessionRevision: registration\.vaultRevision/);
   assert.doesNotMatch(register, /registration\.kind !== "authenticated"/);
@@ -119,8 +120,8 @@ test("a rejected server completion consumes only the issued vault epoch", () => 
   assert.match(authApi, /kind: "authenticated"; user: UserSession; vaultRevision: number/);
   assert.match(authApi, /vaultRevision: expectedRevision \+ 1/);
   assert.match(authApi, /discardSessionIfCurrent\(expectedRevision: number\): void/);
-  assert.match(authApi, /if \(!vault\.clearIfUnchanged\(expectedRevision\)\) return;[\s\S]*?revokeRefreshTokenBestEffort\(snapshot\.refreshToken\)/);
-  assert.match(authApi, /const revokeRefreshTokenBestEffort[\s\S]*?void client\.request\([\s\S]*?\/auth\/users\/logout/);
+  assert.match(authApi, /if \(!vault\.clearIfUnchanged\(expectedRevision\)\) return;[\s\S]*?discardSnapshotBestEffort\(snapshot\)/);
+  assert.match(authApi, /void client\.request\(refreshCredentialMode === "cookie" \? \{[\s\S]*?path: "\/auth\/users\/session\/discard",\s*method: "POST",\s*headers: \{ Authorization: `Bearer \$\{snapshot\.accessToken\}` \},\s*authenticated: false,\s*\} : \{\s*path: "\/auth\/users\/logout",\s*method: "POST",\s*body: \{ refreshToken: snapshot\.refreshToken \}/);
   assert.match(authApi, /discardSessionForIdentity\(identity: string\): void/);
   assert.match(authApi, /if \(`user:\$\{snapshot\.user\.userId\}` !== identity\) return;/);
   assert.match(completion, /serverSessionRevision\?: number;/);

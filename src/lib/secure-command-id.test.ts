@@ -48,3 +48,19 @@ describe("secure command identifiers", () => {
     expect(() => requireCryptoUuid()).toThrow("CRYPTO_RANDOM_UUID_UNAVAILABLE");
   });
 });
+
+describe("secure command identity on unsupported execution platforms", () => {
+  it("uses iOS NSUUID when WebCrypto is absent and releases the native object", () => {
+    vi.stubGlobal("crypto", undefined);
+    const object = {}, uuid = "7608F804-99CE-4E25-9E1B-026E119902D6";
+    const invoke = vi.fn().mockReturnValueOnce(object).mockReturnValueOnce(uuid), deleteObject = vi.fn();
+    vi.stubGlobal("plus", { ios: { invoke, deleteObject } });
+    expect(requireCryptoUuid()).toBe(uuid);
+    expect(invoke.mock.calls).toEqual([["NSUUID", "UUID"], [object, "UUIDString"]]);
+    expect(deleteObject).toHaveBeenCalledExactlyOnceWith(object);
+  });
+  it("fails closed when neither WebCrypto nor a valid native UUID is available", () => {
+    vi.stubGlobal("crypto", undefined); vi.stubGlobal("plus", { ios: { invoke: () => "invalid", deleteObject: vi.fn() } });
+    expect(requireCryptoUuid).toThrow("CRYPTO_RANDOM_UUID_UNAVAILABLE");
+  });
+});

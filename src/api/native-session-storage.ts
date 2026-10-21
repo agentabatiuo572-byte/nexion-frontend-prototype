@@ -101,6 +101,8 @@ function waitForPlus(): Promise<NativePlatform> {
 /** Android >=23 only. Unsupported platforms retain the existing memory session. */
 export function createNativeSessionStorage(options: {
   baseUrl: string;
+  /** Separate encrypted records and keys; URL paths are intentionally ignored. */
+  purpose?: "session" | "login-attempt";
   installationId: () => string;
   platform?: () => Promise<NativePlatform>;
 }): NativeSessionStorage {
@@ -136,7 +138,8 @@ export function createNativeSessionStorage(options: {
     try { const url = new URL(options.baseUrl); requireValue(["https:", "http:"].includes(url.protocol)); origin = url.origin; }
     catch { throw unavailable(); }
     const scope = sha256(JSON.stringify([origin, host, install]));
-    const namespace = `uvel.native-session.v1.${scope}`;
+    // Keep the established session namespace so existing refresh records survive.
+    const namespace = `uvel.native-${options.purpose ?? "session"}.v1.${scope}`;
     const alias = `${namespace}.key`;
     const prefs = present(call(activity, "getSharedPreferences", namespace, 0));
     const store = present(call("java.security.KeyStore", "getInstance", "AndroidKeyStore"));

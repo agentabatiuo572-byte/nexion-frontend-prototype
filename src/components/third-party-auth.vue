@@ -33,11 +33,9 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import AuthProviderGrid from "@/components/auth-provider-grid.vue";
 import ServerCaptchaSlider from "@/components/server-captcha-slider.vue";
 import { useT } from "@/i18n/use-t";
-import { apiClient, authApi, h5RefreshCookieEnabled, sessionVault } from "@/api/runtime";
+import { apiClient, authApi, sessionVault } from "@/api/runtime";
 import { createOAuthProviderApi, type OAuthFlow, type ThirdPartyProvider } from "@/api/oauth-provider-api";
 import { completeSignIn } from "@/auth/complete-sign-in";
-import { getDeviceId } from "@/lib/device-id";
-import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
 import { ApiError } from "@/api/errors";
 import { listenForNativeOAuthReturn, validOAuthBrowserReceipt, type OAuthBrowserReceipt } from "@/auth/oauth-browser-return";
 
@@ -46,14 +44,7 @@ const props = withDefaults(defineProps<{ intent?: "LOGIN" | "LINK"; disabled?: b
 });
 const t = useT();
 const emit = defineEmits<{ (event: "busy", busy: boolean): void }>();
-let surface: "APP" | "H5" = "H5";
-// #ifdef APP-PLUS
-surface = "APP";
-// #endif
-const api = createOAuthProviderApi(apiClient, sessionVault, {
-  surface, refreshCredentialMode: h5RefreshCookieEnabled ? "cookie" : "token",
-  installationId: getDeviceId, executionSupported: hasNativeAndroidPhoneRuntime,
-});
+const api = createOAuthProviderApi(apiClient, authApi);
 const providers = ref<ThirdPartyProvider[]>([]);
 const linked = ref<ThirdPartyProvider[]>([]);
 const flow = ref<OAuthFlow | null>(null);
@@ -107,7 +98,10 @@ function cancel() {
   emit("busy", false);
 }
 function cancelFromUser() {
-  if (!submitting.value) cancel();
+  if (submitting.value) return;
+  if (props.intent === "LOGIN" && !authApi.pendingLogin()
+      && authApi.pendingLoginContext()?.context.flowId === flow.value?.flowId) authApi.cancelLoginChallenge();
+  cancel();
 }
 function errorMessage(cause: unknown): string {
   const error = cause instanceof ApiError ? cause.message : "";
@@ -121,6 +115,7 @@ function errorMessage(cause: unknown): string {
 }
 async function start(name: string) {
   if (flow.value || submitting.value || props.disabled || disposed) return;
+  if (props.intent === "LOGIN" && authApi.pendingLogin()) { message.value = t.value.login.unknownAttempt; return; }
   const provider = (Object.keys(names) as ThirdPartyProvider[]).find(key => names[key] === name);
   if (!provider || !providers.value.includes(provider)) return;
   const current = ++generation;
@@ -211,7 +206,11 @@ async function complete(captchaTicket?: string) {
     }
   } catch (cause) {
     if (!disposed && current === generation) {
-      if (cause instanceof ApiError && cause.message === "USER_CAPTCHA_REQUIRED") showCaptcha.value = true;
+      if (props.intent === "LOGIN" && authApi.pendingLogin()) {
+        // Leave the durable attempt intact. The shared login recovery UI owns
+        // ambiguous completion, including recovery after this flow has expired.
+        cancel(); message.value = t.value.login.unknownAttempt;
+      } else if (cause instanceof ApiError && cause.message === "USER_CAPTCHA_REQUIRED") showCaptcha.value = true;
       else message.value = errorMessage(cause);
     }
   } finally { submitting.value = false; password.value = ""; }

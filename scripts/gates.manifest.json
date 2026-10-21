@@ -473,7 +473,9 @@
       "pages": [
         "src/pages/entry-surfaces/index.vue",
         "src/pages/me/wallet-withdraw.vue",
-        "src/pages/index/index.vue"
+        "src/pages/index/index.vue",
+        "src/pages/onboarding/intro.vue",
+        "src/pages/login/login.vue"
       ],
       "inputs": [
         "scripts/guard-liveness-runtime.mjs"

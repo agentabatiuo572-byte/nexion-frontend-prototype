@@ -22,6 +22,21 @@
 
       <!-- Title -->
       <text class="lg-title">{{ titleText }}</text>
+      <!-- #ifdef APP-PLUS -->
+      <view class="lg-recovery-notice"><text>{{ t.login.takeoverNotice }}</text></view>
+      <!-- #endif -->
+      <view v-if="loginRecoveryPending" class="lg-recovery-notice" role="status">
+        <text>{{ loginResultUnknown ? t.login.unknownAttempt : t.login.verificationPending }}</text>
+        <view v-if="loginResultUnknown" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="recoverLoginResult"><text>{{ t.login.recoverAttempt }}</text></view>
+        <view v-if="replayAvailable">
+          <text>{{ t.login.retryOriginalHint }}</text>
+          <text>{{ retryContext?.context.countryCode }} {{ retryContext?.context.phone }}</text>
+          <input v-if="retryNeedsPassword" v-model="retryPassword" type="password" :placeholder="t.login.passwordPlaceholder" :aria-label="t.login.passwordPlaceholder" />
+          <input v-if="retryNeedsCode" v-model="retryCode" type="number" :maxlength="6" :placeholder="t.login.retryCode" :aria-label="t.login.retryCode" />
+          <view role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retryOriginalLogin()" @keydown.enter.prevent="retryOriginalLogin()" @keydown.space.prevent="retryOriginalLogin()"><text>{{ t.login.retryOriginal }}</text></view>
+        </view>
+        <view v-if="!loginResultUnknown" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="cancelLoginVerification"><text>{{ t.ui.cancel }}</text></view>
+      </view>
       <view v-if="modeLabel" class="lg-mode-badge" data-testid="auth-runtime-label">
         <text class="lg-mode-badge__t">{{ modeLabel }}</text>
       </view>
@@ -114,7 +129,7 @@
         <text class="lg-switch__t">{{ mode === 'password' ? t.login.useCodeInstead : t.login.usePasswordInstead }}</text>
       </view>
 
-      <ThirdPartyAuth v-if="remoteApiEnabled && step === 1 && mode !== 'reset'" :disabled="loading" :return-to="returnParam" @busy="oauthBusy = $event" />
+      <ThirdPartyAuth v-if="remoteApiEnabled && step === 1 && mode !== 'reset'" :disabled="loading || loginRecoveryPending" :return-to="returnParam" @busy="oauthBusy = $event; syncLoginRecovery()" />
       <!-- OAuth (step 1, not reset) -->
       <view v-if="step === 1 && mode !== 'reset' && !remoteApiEnabled" class="lg-oauth">
         <view class="lg-divider"><view class="lg-divider__line" /><text class="lg-divider__t">{{ t.login.orContinueWith }}</text><view class="lg-divider__line" /></view>
@@ -132,7 +147,7 @@
 
     <CountryCodeSheet :open="showCountries" :model-value="country" @select="pickCountry" @close="showCountries = false" />
     <!-- i18n-en-ok: Server CAPTCHA protocol scene enum, sent only to backend verification and never rendered. -->
-    <ServerCaptchaSlider v-if="showCaptcha && remoteApiEnabled" :phone="fullPhone" :scene='(captchaPurpose === "password" ? "LOGIN" : otpScene === "reset" ? "RESET" : "LOGIN")' @success="onCaptchaOk" @close="showCaptcha = false" />
+    <ServerCaptchaSlider v-if="showCaptcha && remoteApiEnabled" :phone="captchaPurpose === 'replay' ? `${retryContext?.context.countryCode ?? ''}${retryContext?.context.phone ?? ''}` : fullPhone" :scene='(captchaPurpose === "password" || captchaPurpose === "replay" ? "LOGIN" : otpScene === "reset" ? "RESET" : "LOGIN")' @success="onCaptchaOk" @close="showCaptcha = false" />
     <CaptchaSlider v-else-if="showCaptcha" :phone="fullPhone" @success="onCaptchaOk" @close="showCaptcha = false" />
     <GlobalUi />
   </StandalonePageShell>
@@ -231,6 +246,70 @@ const resendLeft = ref(0);
 const oauthBusy = ref(false);
 const localLoading = ref(false);
 const loading = computed({ get: () => localLoading.value || oauthBusy.value, set: (value: boolean) => { localLoading.value = value; } });
+const loginRecoveryPending = ref(false);
+const loginResultUnknown = ref(false);
+const replayAvailable = ref(false);
+const retryContext = ref<ReturnType<typeof authApi.pendingLoginContext>>(null);
+const retryPassword = ref("");
+const retryCode = ref("");
+const retryNeedsPassword = computed(() => ["PASSWORD", "TWO_FACTOR", "REGISTRATION"].includes(retryContext.value?.authMethod ?? ""));
+const retryNeedsCode = computed(() => ["OTP", "TWO_FACTOR", "REGISTRATION"].includes(retryContext.value?.authMethod ?? "")
+  || !!retryContext.value?.context.challengeNo);
+function syncLoginRecovery() {
+  retryContext.value = authApi.pendingLoginContext();
+  loginResultUnknown.value = authApi.pendingLogin();
+  loginRecoveryPending.value = loginResultUnknown.value || !!retryContext.value;
+  if (!loginResultUnknown.value) replayAvailable.value = !!retryContext.value;
+}
+function cancelLoginVerification() {
+  if (loading.value || authApi.pendingLogin()) return;
+  authApi.cancelLoginChallenge();
+  retryPassword.value = ""; retryCode.value = ""; showCaptcha.value = false;
+  remoteTwoFactorChallenge.value = null; step.value = 1;
+  syncLoginRecovery();
+}
+async function retryOriginalLogin(captchaTicket?: string) {
+  if (loading.value || !replayAvailable.value || !retryContext.value) return;
+  if ((retryNeedsPassword.value && !retryPassword.value) || (retryNeedsCode.value && !/^\d{6}$/.test(retryCode.value))) return;
+  loading.value = true;
+  try {
+    const result = await authApi.retryLogin({ password: retryPassword.value || undefined, code: retryCode.value || undefined,
+      ...(typeof captchaTicket === "string" ? { captchaTicket } : {}) });
+    if (!mounted) {
+      if (result.kind === "authenticated") authApi.discardSessionIfCurrent(result.vaultRevision);
+      return;
+    }
+    syncLoginRecovery();
+    if (result.kind === "challenge") {
+      replayAvailable.value = true; retryCode.value = "";
+    } else finishSignIn({ accountId: authenticatedAccountId(result.user), onboardingComplete: result.user.onboardingComplete,
+      serverProfile: result.user, serverSessionRevision: result.vaultRevision });
+  } catch (cause) { if (mounted) {
+    syncLoginRecovery();
+    if (cause instanceof ApiError && cause.message === "USER_CAPTCHA_REQUIRED") { captchaPurpose.value = "replay"; showCaptcha.value = true; }
+    else error.value = remoteLoginError(cause);
+  } }
+  finally { if (!showCaptcha.value || captchaPurpose.value !== "replay") { retryPassword.value = ""; retryCode.value = ""; } if (mounted) loading.value = false; }
+}
+async function recoverLoginResult() {
+  if (loading.value || !authApi.pendingLogin()) return;
+  loading.value = true;
+  try {
+    const result = await authApi.recoverLogin();
+    if (!mounted) {
+      if (result.kind === "authenticated") authApi.discardSessionIfCurrent(result.vaultRevision);
+      return;
+    }
+    syncLoginRecovery();
+    replayAvailable.value = false;
+    if (result.kind === "authenticated") finishSignIn({ accountId: authenticatedAccountId(result.user),
+      onboardingComplete: result.user.onboardingComplete, serverProfile: result.user, serverSessionRevision: result.vaultRevision });
+  } catch (cause) {
+    if (!mounted) return;
+    syncLoginRecovery(); replayAvailable.value = !!retryContext.value;
+    error.value = cause instanceof Error && cause.message === "APP_REPLACED" ? t.value.login.sessionReplaced : t.value.login.unknownAttempt;
+  } finally { if (mounted) loading.value = false; }
+}
 const returnParam = ref<string | null>(null);
 const refOnLogin = ref<string | null>(null);
 const otpRequestId = ref<string | null>(null);
@@ -249,6 +328,7 @@ let otpFlowVersion = 0;
 let mounted = true;
 
 onLoad((options) => {
+  syncLoginRecovery();
   const o = (options || {}) as Record<string, string>;
   const forwarded = new URLSearchParams(takeNavigationQuery("/pages/login/login")).get("return");
   if (forwarded || o.return) returnParam.value = forwarded || o.return;
@@ -262,7 +342,7 @@ onLoad((options) => {
 });
 
 const showCaptcha = ref(false);
-const captchaPurpose = ref<"otp" | "password">("otp");
+const captchaPurpose = ref<"otp" | "password" | "replay">("otp");
 
 const phoneClean = computed(() => sanitizePhoneInput(phone.value));
 const phoneOk = computed(() => validateNationalPhone(country.value, phoneClean.value));
@@ -602,6 +682,7 @@ async function requestCode(captchaTicket?: string) {
 }
 function onCaptchaOk(ticket: string) {
   showCaptcha.value = false;
+  if (captchaPurpose.value === "replay") { void retryOriginalLogin(ticket); return; }
   if (captchaPurpose.value === "password") {
     void signInWithPassword(ticket);
     return;
@@ -620,6 +701,8 @@ function goSendCode() {
   void requestCode();
 }
 function remoteLoginError(error: unknown): string {
+  syncLoginRecovery();
+  if (loginResultUnknown.value) return t.value.login.unknownAttempt;
   const code = error instanceof ApiError ? error.message : "";
   // #ifdef H5
   if (code === "COOKIE_LOCK_UNAVAILABLE") return t.value.session.secureBrowserUnsupported;
@@ -869,6 +952,7 @@ async function finishReset() {
 }
 
 function onPrimary() {
+  if (authApi.pendingLogin()) { loginRecoveryPending.value = true; void recoverLoginResult(); return; }
   submitAttempted.value = true;
   if (step.value === 1) { if (mode.value === "password") signInWithPassword(); else goSendCode(); }
   else if (step.value === 2) verifyCode();

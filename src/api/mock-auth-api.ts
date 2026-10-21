@@ -194,6 +194,12 @@ export function createMockAuthApi(vault: SessionVault): AuthApi {
   };
 
   return {
+    pendingLogin: () => false,
+    pendingLoginContext: () => null,
+    cancelLoginChallenge() {},
+    async completeProviderLogin() { throw new ApiError({ kind: "configuration", message: "OAUTH_PROVIDER_REQUIRES_SERVER" }); },
+    async retryLogin() { throw new ApiError({ kind: "configuration", message: "LOGIN_RECOVERY_REQUIRES_SERVER" }); },
+    async recoverLogin() { throw new ApiError({ kind: "configuration", message: "LOGIN_RECOVERY_REQUIRES_SERVER" }); },
     async login(request) {
       const reg = loadRegistry();
       const rec = reg.users[identityOf(request.countryCode, request.phone)];

@@ -66,7 +66,23 @@ export function isUserSession(value: unknown): value is UserSession {
   );
 }
 
-export interface AuthSessionResponse {
+export interface ServerSessionContext {
+  sessionGroup?: "APP" | "H5" | "UNKNOWN";
+  installationId?: string | null;
+  appSessionVersion?: number | null;
+  sessionChainId?: string | null;
+  loginAttemptId?: string | null;
+  sessionEndedReason?: string | null;
+  executionSupported?: boolean | null;
+  loginAttemptStatus?: string | null;
+}
+export function serverSessionContext(value: ServerSessionContext): ServerSessionContext {
+  return { sessionGroup: value.sessionGroup, installationId: value.installationId,
+    appSessionVersion: value.appSessionVersion, sessionChainId: value.sessionChainId,
+    loginAttemptId: value.loginAttemptId, sessionEndedReason: value.sessionEndedReason,
+    executionSupported: value.executionSupported, loginAttemptStatus: value.loginAttemptStatus };
+}
+export interface AuthSessionResponse extends ServerSessionContext {
   accessToken: string | null;
   tokenType: string;
   user: UserSession;

@@ -99,6 +99,26 @@ const androidOpenStages = ["PLATFORM_ANDROID", "SDK_IMPORT_BEGIN", "SDK_IMPORTED
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Android OS-encrypted native refresh persistence", () => {
+  it("keeps login attempts separate from the refresh record through begin, success, and cold restart", async () => {
+    const h = platformHarness();
+    const session = h.adapter();
+    const attempt = createNativeSessionStorage({ baseUrl: "https://example.test", purpose: "login-attempt",
+      installationId: () => "synthetic-install-A", platform: async () => h.platform });
+    await Promise.all([session.ready(), attempt.ready()]);
+    session.set(persisted);
+    const pending = { loginAttemptId: "synthetic-attempt", recoveryProof: "synthetic-proof" };
+    attempt.set(pending);
+    expect(session.get()).toEqual(persisted);
+    expect(attempt.get()).toEqual(pending);
+    session.set({ ...persisted, refreshToken: "new-refresh" });
+    attempt.remove();
+    expect(h.preferences.size).toBe(2);
+    expect(h.keys.size).toBe(1);
+    const restarted = h.adapter(); await restarted.ready();
+    expect(restarted.get()).toEqual({ ...persisted, refreshToken: "new-refresh" });
+    expect(attempt.get()).toBeNull();
+  });
+
   it("keeps the refresh intent inside the encrypted R0 record across adapter restart", async () => {
     const h = platformHarness(), adapter = h.adapter();
     await adapter.ready();

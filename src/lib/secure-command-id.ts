@@ -21,5 +21,14 @@ export function requireCryptoUuid(): string {
       }
     } catch { /* Keep fail-closed semantics if the native bridge is unavailable. */ }
   }
+  if (typeof plus !== "undefined" && plus.ios?.invoke) {
+    let nativeUuid: PlusIosInstanceObject | undefined;
+    try {
+      nativeUuid = plus.ios.invoke("NSUUID", "UUID");
+      const value = plus.ios.invoke(nativeUuid!, "UUIDString");
+      if (typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) return value;
+    } catch { /* No weak-random fallback when the native bridge is unavailable. */ }
+    finally { if (nativeUuid) { try { plus.ios.deleteObject(nativeUuid); } catch { /* Release is best-effort. */ } } }
+  }
   throw new Error("CRYPTO_RANDOM_UUID_UNAVAILABLE");
 }

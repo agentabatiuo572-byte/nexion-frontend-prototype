@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createApiClient } from "./api-client";
+import { createApiClient, type HttpRequest, type HttpResponse } from "./api-client";
 import { createAuthApi } from "./auth-api";
 import { createSessionVault } from "./session-vault";
 import { acquireRotationNonce, discardRotationNonce } from "./session-rotation-nonce";
@@ -8,9 +8,58 @@ const user = { userId: 3775, countryCode: "+86", phone: "18708173775", nickname:
 const cookieSession = { accessToken: "access", refreshToken: null, tokenType: "Bearer", user,
   sessionSyncKey: "a".repeat(64) };
 
-afterEach(() => discardRotationNonce());
+afterEach(() => { vi.unstubAllGlobals(); discardRotationNonce(); });
 
 describe("H5 HttpOnly refresh-cookie session", () => {
+  it.each(["success", "rejected", "network"])("late snapshot discard (%s) targets A's captured Bearer and preserves B in both tabs", async (outcome) => {
+    // Cookie mutation locks are unavailable; snapshot-only discard must still run.
+    vi.stubGlobal("window", {}); vi.stubGlobal("navigator", {});
+    const vaultA = createSessionVault(), vaultB = createSessionVault();
+    vaultA.save({ ...cookieSession, accessToken: "access-A", refreshToken: "", refreshCredentialMode: "cookie" });
+    const revisionA = vaultA.revision();
+    const sessionB = { ...cookieSession, accessToken: "access-B", refreshToken: "", refreshCredentialMode: "cookie" as const,
+      user: { ...user, userId: 3776 }, sessionSyncKey: "b".repeat(64) };
+    vaultB.save(sessionB);
+    let finish!: () => void;
+    const request = vi.fn((input: HttpRequest): Promise<HttpResponse> => input.url.endsWith("/session/discard")
+      ? new Promise((resolve, reject) => { finish = () => outcome === "network" ? reject(new Error("lost")) : resolve({
+        status: outcome === "rejected" ? 401 : 200, headers: {},
+        data: { code: outcome === "rejected" ? 401 : 0, message: outcome === "rejected" ? "USER_AUTH_REQUIRED" : "ok", data: { revoked: true } },
+      }); })
+      : Promise.resolve({ status: 200, headers: {}, data: { code: 0, message: "ok", data: { userId: 3776 } } }));
+    const unauthorized = vi.fn();
+    const clientA = createApiClient({ baseUrl: "https://example.test", vault: vaultA, transport: { request }, refreshCredentialMode: "cookie", onUnauthorized: unauthorized });
+    const clientB = createApiClient({ baseUrl: "https://example.test", vault: vaultB, transport: { request }, refreshCredentialMode: "cookie" });
+    const authA = createAuthApi(clientA, vaultA, { refreshCredentialMode: "cookie" });
+    authA.discardSessionIfCurrent(revisionA);
+    expect(vaultA.read()).toBeNull();
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0]).toMatchObject({ url: "https://example.test/auth/users/session/discard", method: "POST",
+      headers: { Authorization: "Bearer access-A", "Content-Type": "application/json" } });
+    expect(Object.keys(request.mock.calls[0][0].headers).sort()).toEqual(["Authorization", "Content-Type"]);
+    expect(request.mock.calls[0][0]).not.toHaveProperty("body");
+    vaultA.save(sessionB);
+    finish();
+    await clientB.request({ path: "/me" });
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+    expect(vaultA.read()).toMatchObject(sessionB); expect(vaultB.read()).toMatchObject(sessionB);
+    expect(unauthorized).not.toHaveBeenCalled();
+    expect(request.mock.calls.map(([call]) => call.url)).toEqual(["https://example.test/auth/users/session/discard", "https://example.test/me"]);
+    expect(request.mock.calls[1][0].headers.Authorization).toBe("Bearer access-B");
+    authA.discardSessionIfCurrent(revisionA);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it("native snapshot cleanup still revokes the captured refresh token", () => {
+    const request = vi.fn().mockResolvedValue(null), vault = createSessionVault();
+    vault.save({ ...cookieSession, refreshToken: "native-refresh-A" });
+    const auth = createAuthApi({ request } as never, vault);
+    auth.discardSessionIfCurrent(vault.revision());
+    expect(vault.read()).toBeNull();
+    expect(request).toHaveBeenCalledWith({ path: "/auth/users/logout", method: "POST", authenticated: false,
+      body: { refreshToken: "native-refresh-A" } });
+  });
+
   it("accepts a login response without exposing the refresh credential to JavaScript", async () => {
     const request = vi.fn().mockResolvedValue(cookieSession);
     const vault = createSessionVault();
@@ -20,7 +69,8 @@ describe("H5 HttpOnly refresh-cookie session", () => {
       .resolves.toMatchObject({ kind: "authenticated", user });
     expect(request).toHaveBeenCalledWith(expect.objectContaining({
       path: "/auth/users/login",
-      headers: { "X-Nexion-Refresh-Mode": "cookie" },
+      headers: expect.objectContaining({ "X-Nexion-Refresh-Mode": "cookie", "X-NexGrid-Execution-Supported": "false",
+        "X-NexGrid-Login-Attempt-Id": expect.any(String), "X-NexGrid-Login-Recovery-Key": expect.any(String) }),
     }));
     expect(vault.read()).toMatchObject({ refreshCredentialMode: "cookie", refreshToken: "", user });
     expect(vault.read()?.sessionSyncKey).toBe(cookieSession.sessionSyncKey);

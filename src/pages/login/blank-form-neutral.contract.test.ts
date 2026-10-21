@@ -1,6 +1,7 @@
 // @ts-expect-error Node is used only by the test runner.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import ts from "typescript";
 
 /**
  * 简报 #211 / #213:空白表单首次进入即显示校验错误。
@@ -33,7 +34,29 @@ describe("blank auth forms stay neutral on first paint", () => {
     // 输入与失焦都要标记交互。
     expect(login).toMatch(/@input="onPhone" @blur="phoneTouched = true"/);
     expect(login).toMatch(/function onPhone\(e: Event\) \{\s*invalidateOtpFlow\(\);\s*phoneTouched\.value = true;/);
-    expect(login).toMatch(/function onPrimary\(\) \{\s*submitAttempted\.value = true;/);
+  });
+
+  it.each([false, true])("登录提交标记只在新提交时进入校验，待恢复状态：%s", (pending) => {
+    const script = login.split('<script setup lang="ts">')[1].split("</script>")[0];
+    const ast = ts.createSourceFile("login.ts", script, ts.ScriptTarget.Latest, true);
+    const fn = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "onPrimary");
+    expect(fn).toBeDefined();
+    const code = ts.transpileModule(fn!.getText(ast), { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
+    for (const [step, mode, expected] of [[1, "password", "password"], [1, "otp", "sendCode"], [2, "otp", "verifyCode"], [3, "reset", "reset"]] as const) {
+      const submitAttempted = { value: false }, loginRecoveryPending = { value: false };
+      const calls: Array<[string, boolean]> = [];
+      const record = (name: string) => () => { calls.push([name, submitAttempted.value]); };
+      const deps = { authApi: { pendingLogin: () => pending }, submitAttempted, loginRecoveryPending,
+        step: { value: step }, mode: { value: mode }, recoverLoginResult: record("recover"),
+        signInWithPassword: record("password"), goSendCode: record("sendCode"), verifyCode: record("verifyCode"), finishReset: record("reset") };
+      const onPrimary = new Function(...Object.keys(deps), `${code}; return onPrimary;`)(...Object.values(deps));
+      expect(submitAttempted.value).toBe(false);
+      expect(calls).toEqual([]);
+      onPrimary();
+      expect(calls).toEqual([[pending ? "recover" : expected, !pending]]);
+      expect(submitAttempted.value).toBe(!pending);
+      expect(loginRecoveryPending.value).toBe(pending);
+    }
   });
 
   it("注册页同样只在交互或提交尝试后才渲染 CTA 禁用原因", () => {

@@ -16,12 +16,17 @@
  *     (P-080 的教训:探不到 ≠ 无违例;空集会让全称判据恒真)
  */
 import { chromium } from "playwright";
+import { collectGuardRouteWitness, GUARD_ROUTE_CONTENT, resolveGuardRouteWitness } from "./lib/guard-route-witness.mjs";
 
 const BASE = process.env.BASE_URL || process.env.UNI_BASE_URL || "http://localhost:5173";
 const SETTLE_MS = 9000;
 const AUTHED = { isAuthenticated: true, email: "", accountId: "user:900001", onboardingComplete: true };
 const OUT = { isAuthenticated: false, email: "", accountId: "default", onboardingComplete: false };
 const BUSINESS = "pages/me/wallet-withdraw";
+const AUTH_EXITS = ["pages/onboarding/intro", "pages/login/login"];
+// TEST regression: hold only scenario 1's first dev component response.
+const MODULE_DELAY_MS = Number(process.env.GUARD_WITHDRAW_MODULE_DELAY_MS || 0);
+const delayedModules = new WeakMap();
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 /**
@@ -38,19 +43,33 @@ async function waitEvictedFrom(p, business, deadlineMs) {
   let last = "";
   while (Date.now() - t0 < deadlineMs) {
     last = await readRoute(p);
-    if (last && last !== business) return { evicted: true, route: last };
+    const delayed = delayedModules.get(p);
+    if (last !== business && AUTH_EXITS.includes(last) && (!delayed.enabled || delayed.released)) {
+      if (delayed.enabled) console.log("guard delayed route witness", JSON.stringify(await readWitness(p)));
+      return { evicted: true, route: last };
+    }
     await wait(500);
   }
+  console.log("guard-route-witness", JSON.stringify({ ...(await readWitness(p)), module: delayedModules.get(p) }));
   return { evicted: false, route: last };
 }
 const EVICT_DEADLINE_MS = 20000;
-const readRoute = (p) => p.evaluate(() => {
-  try { const ps = getCurrentPages(); if (ps.length) return ps[ps.length - 1].route || ""; } catch {}
-  return (location.hash || "").replace(/^#\/?/, "").split("?")[0];
-});
+const readWitness = p => p.evaluate(collectGuardRouteWitness, GUARD_ROUTE_CONTENT);
+const readRoute = async p => resolveGuardRouteWitness(await readWitness(p));
+
+async function waitForLanding(p, expected) {
+  const deadline = Date.now() + EVICT_DEADLINE_MS;
+  while (Date.now() < deadline) {
+    if (await readRoute(p) === expected) return;
+    await wait(100);
+  }
+  throw new Error(`Landing did not render ${expected}: ${JSON.stringify(await readWitness(p))}`);
+}
 
 async function open(ctx, landing, auth) {
   const p = await ctx.newPage();
+  const delayed = { enabled: MODULE_DELAY_MS > 0 && landing === "pages/entry-surfaces/index", intercepted: false, released: false };
+  delayedModules.set(p, delayed);
   if (auth.isAuthenticated) {
     await p.addInitScript((s) => {
       localStorage.clear();
@@ -64,6 +83,17 @@ async function open(ctx, landing, auth) {
   // unrelated business parser while it observes the protected route.
   await p.route("**/*", async (route) => {
     const url = new URL(route.request().url());
+    if (delayed.enabled && !delayed.intercepted && url.pathname.endsWith("/src/pages/me/wallet-withdraw.vue")
+      && route.request().resourceType() === "script" && !url.searchParams.has("type")) {
+      delayed.intercepted = true;
+      const release = wait(MODULE_DELAY_MS);
+      const response = await route.fetch();
+      await release;
+      await route.fulfill({ response });
+      delayed.released = true;
+      console.log(`guard delayed withdrawal module ${MODULE_DELAY_MS}ms: released`);
+      return;
+    }
     if (!/^\/(?:api|auth)\//.test(url.pathname)) return route.continue();
     if (url.pathname === "/auth/users/refresh") {
       if (!auth.isAuthenticated) {
@@ -139,16 +169,21 @@ async function open(ctx, landing, auth) {
   }
   await p.goto(`${BASE}/?nx_device=off&cb=${Math.floor(performance.now())}#/${landing}`, { waitUntil: "load" });
   await wait(3000);
+  if (landing === "pages/entry-surfaces/index" || auth.isAuthenticated) await waitForLanding(p, landing);
   return p;
 }
 
 /** 应用内导航 —— 用项目自己的导航原语,不改地址栏(改 hash 不是真实用户路径)。 */
 async function navInApp(p, target) {
-  const ok = await p.evaluate((t) => {
-    if (typeof uni === "undefined" || !uni.reLaunch) return false;
-    uni.reLaunch({ url: "/" + t, fail: () => {} });
-    return true;
-  }, target);
+  const ok = await p.evaluate((t) => new Promise(resolve => {
+    if (typeof uni === "undefined" || !uni.reLaunch) { resolve(false); return; }
+    const timer = setTimeout(() => resolve(false), 2500);
+    const finish = value => { clearTimeout(timer); resolve(value); };
+    uni.reLaunch({ url: "/" + t,
+      success: () => finish(location.hash.replace(/^#\/?/, "").split("?")[0] === t),
+      fail: () => finish(false),
+    });
+  }), target);
   await wait(2500);
   return ok;
 }
@@ -164,8 +199,8 @@ try {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const p = await open(ctx, "pages/entry-surfaces/index", OUT);
     const landed = await readRoute(p);
-    if (!landed) fails.push("① 覆盖面:评审页没起来(路由读空)—— 判据失效,不是没违例");
-    else if (!(await navInApp(p, BUSINESS))) fails.push("① 覆盖面:应用内导航原语不可用 —— 判据失效");
+    if (landed !== "pages/entry-surfaces/index") fails.push("① 覆盖面:评审页未完成实际呈现 —— 判据失效,不是没违例");
+    else if (!(await navInApp(p, BUSINESS))) fails.push("① 覆盖面:应用内导航未成功到达目标 —— 判据失效");
     else {
       const r = await waitEvictedFrom(p, BUSINESS, EVICT_DEADLINE_MS);
       checks++;
@@ -192,7 +227,7 @@ try {
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const p = await open(ctx, "pages/index/index", AUTHED);
-    if (!(await navInApp(p, BUSINESS))) fails.push("③ 覆盖面:应用内导航原语不可用 —— 判据失效");
+    if (!(await navInApp(p, BUSINESS))) fails.push("③ 覆盖面:应用内导航未成功到达目标 —— 判据失效");
     else {
       await wait(SETTLE_MS);
       const end = await readRoute(p);

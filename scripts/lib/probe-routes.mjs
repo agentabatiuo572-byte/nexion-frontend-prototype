@@ -30,6 +30,18 @@ export function concurrencyFromEnv(def = 3) {
   return Number.isFinite(n) && n >= 1 ? Math.floor(n) : def;
 }
 
+// 默认同时启动全部独立探针；PROBE_CONCURRENCY=1 按原顺序跑全组。
+// 收齐失败再抛出，避免串行资源档因首个失败漏跑剩余探针。
+export async function runProbeGroup(probes, concurrency = concurrencyFromEnv(probes.length || 1)) {
+  const outcomes = [];
+  for (let i = 0; i < probes.length; i += concurrency) {
+    outcomes.push(...await Promise.allSettled(probes.slice(i, i + concurrency).map((probe) => Promise.resolve().then(probe))));
+  }
+  const failures = outcomes.filter((outcome) => outcome.status === "rejected");
+  if (failures.length) throw new AggregateError(failures.map((outcome) => outcome.reason), "H5 runtime probe group failed");
+  return outcomes.map((outcome) => outcome.value);
+}
+
 export async function mapRoutes(browser, routes, worker, { concurrency = concurrencyFromEnv(), context = {} } = {}) {
   const results = new Array(routes.length);
   let next = 0;

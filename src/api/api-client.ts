@@ -1,4 +1,4 @@
-import { isUserSession, type ApiResult, type AuthSessionResponse } from "./contracts";
+import { serverSessionContext, isUserSession, type ApiResult, type AuthSessionResponse } from "./contracts";
 import { ApiError, asApiError } from "./errors";
 import type { RefreshCredentialMode, SessionSnapshot, SessionVault } from "./session-vault";
 import { withSessionCookieLock } from "./session-cookie-lock";
@@ -86,7 +86,7 @@ interface ApiClientOptions {
   baseUrl: string;
   transport: HttpTransport;
   vault: SessionVault;
-  onUnauthorized?: () => void | Promise<void>;
+  onUnauthorized?: (reason?: string) => void | Promise<void>;
   onSessionRefreshed?: () => void;
   allowInsecureHttp?: boolean;
   refreshCredentialMode?: RefreshCredentialMode;
@@ -178,6 +178,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         // Logout revokes the whole refresh chain even if another tab rotates
         // concurrently. It must remain available if Web Locks is disabled.
         && request.url !== `${baseUrl}/auth/users/logout`
+        // Snapshot discard uses only its captured Bearer and never changes cookies.
+        && request.url !== `${baseUrl}/auth/users/session/discard`
         ? await withSessionCookieLock(send)
         : await send();
     } catch (error) {
@@ -191,12 +193,15 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         && accepted.code === envelope.code
         && accepted.message === envelope.message,
     );
-    if (authFailure(response.status, envelope?.code, envelope?.message)) {
+    const endedReason = envelope?.data && typeof envelope.data === "object"
+      ? (envelope.data as { sessionEndedReason?: string }).sessionEndedReason : undefined;
+    if (authFailure(response.status, envelope?.code, envelope?.message) || ((response.status === 401 || response.status === 403) && endedReason)) {
       throw new ApiError({
         kind: "auth",
         message: envelope?.message || "AUTH_REQUIRED",
         status: response.status,
         code: envelope?.code,
+        sessionEndedReason: endedReason,
       });
     }
     if ((response.status < 200 || response.status >= 300) && !explicitlyAccepted) {
@@ -237,7 +242,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_REFRESH" });
     }
     if (refreshCredentialMode === "cookie") discardRotationNonce();
-    await options.onUnauthorized?.();
+    await options.onUnauthorized?.(message);
     throw new ApiError({ kind: "auth", message, status, code });
   }
 
@@ -273,6 +278,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       }
       reportNativeSessionStage("REFRESH_SERVER_ACCEPTED");
       const next: SessionSnapshot = {
+        ...serverSessionContext(data),
         accessToken: data.accessToken,
         refreshToken: refreshCredentialMode === "cookie" ? "" : data.refreshToken as string,
         tokenType: data.tokenType,
@@ -303,14 +309,14 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       }
       const apiError = asApiError(error);
       if (options.nativeRefreshRecovery && apiError.message === "USER_REFRESH_ROTATION_SUPERSEDED") {
-        return expireSession(revision);
+        return terminateSession(revision, apiError.sessionEndedReason ?? "SESSION_EXPIRED");
       }
       // A denial from the refresh endpoint is terminal, unlike a resource's
       // ordinary permission 403. Never evict a newer revision or an empty boot.
       if (current && (apiError.kind === "auth" || apiError.status === 401 || apiError.status === 403
           || apiError.code === 401 || apiError.code === 403)) {
         reportNativeSessionStage("REFRESH_DENIED");
-        return expireSession(revision);
+        return terminateSession(revision, apiError.sessionEndedReason ?? "SESSION_EXPIRED");
       }
       reportNativeSessionStage("REFRESH_FAILED");
       throw apiError;
@@ -359,6 +365,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     const authenticated = apiRequest.authenticated !== false;
     let session = options.vault.read();
     const sessionRevision = options.vault.revision();
+    const responseGuard = authenticated ? captureSessionGuard() : () => {};
     if (authenticated && !session?.accessToken) {
       // A protected prefetch started from Login has no authority to mutate the
       // global auth lifecycle. Treat the missing vault as a local caller-state
@@ -388,10 +395,13 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     if (apiRequest.body !== undefined) httpRequest.body = apiRequest.body;
 
     try {
-      return await execute<T>(httpRequest, apiRequest.acceptedResponses);
+      const result = await execute<T>(httpRequest, apiRequest.acceptedResponses);
+      responseGuard();
+      return result;
     } catch (error) {
       const apiError = asApiError(error);
       if (!authenticated || apiError.kind !== "auth") throw apiError;
+      if (apiError.sessionEndedReason) return terminateSession(sessionRevision, apiError.sessionEndedReason);
       if (terminalAuthFailure(apiError.status ?? 0, apiError.code, apiError.message)) {
         return terminateSession(sessionRevision, apiError.message, apiError.status ?? 403, apiError.code ?? 403);
       }
@@ -408,7 +418,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       }
       const retryRevision = options.vault.revision();
       try {
-        return await execute<T>(
+        const result = await execute<T>(
           {
             ...httpRequest,
             headers: {
@@ -418,10 +428,12 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
           },
           apiRequest.acceptedResponses,
         );
+        responseGuard();
+        return result;
       } catch (retryError) {
         const rejected = asApiError(retryError);
         if (rejected.kind === "auth" && options.vault.revision() === retryRevision) {
-          return terminateSession(retryRevision, rejected.message, rejected.status ?? 401, rejected.code ?? 401);
+          return terminateSession(retryRevision, rejected.sessionEndedReason ?? rejected.message, rejected.status ?? 401, rejected.code ?? 401);
         }
         throw rejected;
       }
@@ -452,13 +464,17 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       signal: apiRequest.signal,
       formData: apiRequest.formData,
     };
-    const executeUpload = () => options.transport.upload!(uploadRequest)
-      .then((response) => executeResponse<T>(response));
+    const uploadGuard = authenticated ? captureSessionGuard() : () => {};
+    const executeUpload = async () => {
+      const result = await executeResponse<T>(await options.transport.upload!(uploadRequest));
+      uploadGuard(); return result;
+    };
     try {
       return await executeUpload();
     } catch (error) {
       const apiError = asApiError(error);
       if (!authenticated || apiError.kind !== "auth") throw apiError;
+      if (apiError.sessionEndedReason) return terminateSession(sessionRevision, apiError.sessionEndedReason);
       if (terminalAuthFailure(apiError.status ?? 0, apiError.code, apiError.message)) {
         return terminateSession(sessionRevision, apiError.message, apiError.status ?? 403, apiError.code ?? 403);
       }
@@ -479,7 +495,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       } catch (retryError) {
         const rejected = asApiError(retryError);
         if (rejected.kind === "auth" && options.vault.revision() === retryRevision) {
-          return terminateSession(retryRevision, rejected.message, rejected.status ?? 401, rejected.code ?? 401);
+          return terminateSession(retryRevision, rejected.sessionEndedReason ?? rejected.message, rejected.status ?? 401, rejected.code ?? 401);
         }
         throw rejected;
       }
@@ -520,8 +536,10 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   async function executeResponse<T>(response: HttpResponse): Promise<T> {
     const responseData = decodeTransportData(response.data);
     const envelope = isEnvelope(responseData) ? responseData : null;
-    if (authFailure(response.status, envelope?.code, envelope?.message)) {
-      throw new ApiError({ kind: "auth", message: envelope?.message || "AUTH_REQUIRED", status: response.status, code: envelope?.code });
+    const sessionEndedReason = envelope?.data && typeof envelope.data === "object"
+      ? (envelope.data as { sessionEndedReason?: string }).sessionEndedReason : undefined;
+    if (authFailure(response.status, envelope?.code, envelope?.message) || ((response.status === 401 || response.status === 403) && sessionEndedReason)) {
+      throw new ApiError({ kind: "auth", message: envelope?.message || "AUTH_REQUIRED", status: response.status, code: envelope?.code, sessionEndedReason });
     }
     if (response.status < 200 || response.status >= 300) {
       throw new ApiError({

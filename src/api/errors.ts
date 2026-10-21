@@ -7,6 +7,7 @@ interface ApiErrorOptions {
   code?: number;
   retryable?: boolean;
   providerReason?: string;
+  sessionEndedReason?: string;
 }
 
 /** Optional ordinary prose already selected by the provider-facing backend. */
@@ -22,6 +23,7 @@ export class ApiError extends Error {
   readonly code?: number;
   readonly retryable: boolean;
   readonly providerReason?: string;
+  readonly sessionEndedReason?: string;
 
   constructor(options: ApiErrorOptions) {
     super(options.message);
@@ -31,6 +33,7 @@ export class ApiError extends Error {
     this.code = options.code;
     this.retryable = options.retryable ?? false;
     this.providerReason = readProviderReason(options.providerReason);
+    this.sessionEndedReason = options.sessionEndedReason;
   }
 }
 
@@ -96,6 +99,12 @@ export function isAmbiguousOutcome(error: unknown): boolean {
     default:
       return true;
   }
+}
+
+/** Opt-in for session/phone commands whose envelope code carries an HTTP status. */
+export function isAmbiguousEnvelopeOutcome(error: unknown): boolean {
+  return isAmbiguousOutcome(error instanceof ApiError && error.kind === "business"
+    ? new ApiError({ kind: "http", message: error.message, status: error.code }) : error);
 }
 
 /**

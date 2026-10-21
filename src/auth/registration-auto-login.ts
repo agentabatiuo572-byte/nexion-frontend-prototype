@@ -8,17 +8,20 @@ export type RegistrationAutoLoginResult =
   | (AuthenticatedLogin & { registrationMayBeCommitted: true })
   | { kind: "registration_error"; error: unknown }
   | { kind: "login_error"; error: unknown; registrationMayBeCommitted: true }
+  | { kind: "recovery_required" }
   | { kind: "stale" };
 
+/** A different form must not adopt the account from a previously pending login. */
+export function requiresOriginalRegistrationRecovery(authApi: AuthApi, identity: Pick<RegistrationRequest, "countryCode" | "phone">): boolean {
+  if (!authApi.pendingLogin()) return false;
+  const attempt = authApi.pendingLoginContext();
+  return attempt?.authMethod !== "REGISTRATION"
+    || attempt.context.countryCode !== identity.countryCode || attempt.context.phone !== identity.phone;
+}
+
 /**
- * Register first, then authenticate through the ordinary password-login API.
- *
- * The registration endpoint already returns the one authoritative session, so
- * a successful response is used directly. Starting a logout and password login
- * back-to-back is unsafe for H5: a delayed cookie-clearing response can erase
- * the new refresh cookie. If registration is outcome-unknown, password login
- * remains the one safe authoritative read because it succeeds only when the
- * account was actually committed with this password.
+ * Registration returns its authoritative session directly. An unknown result
+ * is recovered by its original attempt and proof, without issuing another login.
  */
 export async function registerAndLogin(
   authApi: AuthApi,
@@ -26,6 +29,9 @@ export async function registerAndLogin(
   isCurrent: () => boolean,
   recoverOnly = false,
 ): Promise<RegistrationAutoLoginResult> {
+  if (requiresOriginalRegistrationRecovery(authApi, request)) return { kind: "recovery_required" };
+  // Re-entering the original identity may query its result, never POST again.
+  recoverOnly ||= authApi.pendingLogin();
   let registrationReceipt: AuthenticatedLogin["registrationReceipt"] = null;
   if (!recoverOnly) try {
     const registration = await authApi.register(request);
@@ -51,13 +57,10 @@ export async function registerAndLogin(
   }
 
   if (!isCurrent()) return { kind: "stale" };
+  if (requiresOriginalRegistrationRecovery(authApi, request)) return { kind: "recovery_required" };
 
   try {
-    const login = await authApi.login({
-      countryCode: request.countryCode,
-      phone: request.phone,
-      password: request.password,
-    });
+    const login = await authApi.recoverLogin();
     if (!isCurrent()) {
       if (login.kind === "authenticated") {
         authApi.discardSessionIfCurrent(login.vaultRevision);

@@ -16,6 +16,7 @@ const receipt = "r".repeat(43);
 const authOrigin = "https://oauth.example.test";
 let provider = "GOOGLE", intent = "LOGIN", completion = "unlinked", completeCalls = 0, linkCalls = 0;
 let issued = false;
+let completionHeaders, recoveryCalls = 0;
 let statusCalls = 0, refreshCalls = 0;
 let expireLinkRequest = false;
 const linked = [];
@@ -38,6 +39,7 @@ const transport = async route => {
   if (path.endsWith("/oauth/provider/linked")) return ok(linked);
   if (path.endsWith("/oauth/provider/start")) {
     ({ provider, intent } = request.postDataJSON());
+    completionHeaders = undefined;
     return ok({ flowId, flowKey, expiresInSec: 600, authorizationUrl: `${authOrigin}/auth/users/oauth/provider/authorize/${"s".repeat(43)}` });
   }
   if (path.endsWith("/oauth/provider/status")) {
@@ -55,15 +57,33 @@ const transport = async route => {
   if (path.endsWith("/oauth/provider/complete")) {
     const body = request.postDataJSON();
     assert.equal(body.receipt, receipt);
-    assert.equal(request.headers()["x-nexgrid-login-attempt-id"], flowId);
+    const headers = request.headers();
+    const frozen = Object.fromEntries(Object.entries(headers).filter(([name]) => name.startsWith("x-nexgrid-")));
+    assert.match(headers["x-nexgrid-login-attempt-id"], /^[A-Za-z0-9_-]{16,80}$/);
+    assert.match(headers["x-nexgrid-login-recovery-key"], /^[A-Za-z0-9_-]{43,128}$/);
+    assert.equal(headers["x-nexgrid-execution-supported"], "false");
+    assert.equal(headers["x-nexion-refresh-mode"], "cookie");
+    assert.equal(headers["x-nexgrid-client-surface"], undefined);
+    if (completionHeaders) assert.deepEqual(frozen, completionHeaders);
+    completionHeaders = frozen;
     completeCalls++;
     if (completion === "unlinked") return fail(409, "OAUTH_ACCOUNT_LINK_REQUIRED");
     if (completion === "mfa" && !body.code) return route.fulfill({ status: 428, contentType: "application/json",
       body: JSON.stringify({ code: 428, message: "USER_TWO_FACTOR_VERIFICATION_REQUIRED",
         data: { accessToken: null, refreshToken: null, tokenType: "Challenge", user: session.user,
           challengeNo: `OTP-${"b".repeat(32)}`, deliveryHint: "***" } }) });
-    if (completion === "mfa") assert.equal(body.code, "123456");
+    if (completion === "mfa" && body.code !== "123456") return fail(422, "USER_TWO_FACTOR_CHALLENGE_INVALID");
+    if (completion === "lost") return route.abort("connectionreset");
     issued = true;
+    return ok(session);
+  }
+  if (/\/auth\/users\/login\/attempts\/[^/]+\/recover$/.test(path)) {
+    assert.equal(path.split("/").at(-2), completionHeaders["x-nexgrid-login-attempt-id"]);
+    const body = request.postDataJSON();
+    assert.equal(body.recoveryProof, completionHeaders["x-nexgrid-login-recovery-key"]);
+    assert.equal(body.authReference, `${provider}:${flowId}`);
+    assert.equal(body.executionSupported, false);
+    recoveryCalls++; issued = true;
     return ok(session);
   }
   if (path.endsWith("/oauth/provider/link")) {
@@ -153,6 +173,9 @@ try {
   completion = "mfa";
   await authorize("Google");
   await box().locator(".oauth-button").first().click();
+  await box().locator(".oauth-input input, input.oauth-input").fill("000000");
+  await box().locator(".oauth-button").first().click();
+  await box().locator('[role="status"]').waitFor({ state: "visible" });
   await box().locator(".oauth-input input, input.oauth-input").fill("123456");
   await box().locator(".oauth-button").first().click();
   await page.waitForURL(url => url.hash === "#/" || url.hash.includes("/pages/index/index"));
@@ -167,7 +190,7 @@ try {
   await box().locator(".oauth-panel").waitFor({ state: "detached" });
   assert(refreshCalls > beforeBrowserSwitch, "binding after browser return exercised same-account session refresh");
   assert.equal(linkCalls, 1);
-  assert.equal(completeCalls, 5);
+  assert.equal(completeCalls, 6);
   assert.equal(await box().getByRole("button", { name: "Apple", exact: true }).count(), 0);
   assert.deepEqual(errors, []);
   await mkdir(new URL("../.verify-cache/oauth/", import.meta.url), { recursive: true });
@@ -186,8 +209,25 @@ try {
   await registerPage.locator(".oauth-secondary").click();
   assert.equal(await registerPage.locator(".oauth-panel").count(), 0);
   await registerPage.screenshot({ path: fileURLToPath(new URL("../.verify-cache/oauth/register.png", import.meta.url)), fullPage: true });
+  completion = "lost";
+  const [lostPopup] = await Promise.all([
+    registerPage.waitForEvent("popup"),
+    registerPage.locator(".third-party-auth").getByRole("button", { name: "Telegram", exact: true }).click(),
+  ]);
+  await lostPopup.locator("#approve").click();
+  await registerPage.locator(".oauth-identity").waitFor({ state: "visible" });
+  await registerPage.locator(".oauth-button").first().click();
+  await registerPage.locator(".oauth-panel").waitFor({ state: "detached" });
+  await registerPage.evaluate(() => window.uni.reLaunch({ url: "/pages/login/login" }));
+  await registerPage.waitForURL(url => url.hash.includes("/pages/login/login"));
+  await registerPage.reload();
+  await registerPage.locator(".lg-recovery-notice[role=status]").waitFor({ state: "visible" });
+  assert.equal(await registerPage.locator('.third-party-auth [data-provider="Telegram"]').getAttribute("aria-disabled"), "true");
+  await registerPage.locator(".lg-recovery-notice[role=status] [role=button]").first().click();
+  await registerPage.waitForURL(url => url.hash === "#/" || url.hash.includes("/pages/index/index"));
+  assert.equal(recoveryCalls, 1); assert.equal(completeCalls, 7, "recovery must not issue another provider completion");
   await registration.close();
-  console.log("PASS OAuth pages: Google/Apple/Telegram, unlinked rejection, MFA login, popup receipt, pending race, browser return and account binding (transport fixture)");
+  console.log("PASS OAuth pages: providers, unlinked rejection, MFA wrong-code retry, durable response recovery, popup receipt, pending race and account binding (transport fixture)");
 } catch (error) {
   console.error("Page state:", page.url(), (await page.locator("body").innerText()).slice(-3000), errors);
   throw error;

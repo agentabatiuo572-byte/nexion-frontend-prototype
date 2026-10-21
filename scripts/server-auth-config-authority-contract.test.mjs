@@ -40,9 +40,13 @@ test("server mode starts unauthenticated and only retains a non-secret recovery 
   assert.match(runtimeVault, /const vault = createSessionVault\(storage, \{ deferHydration: !!storage \}\);/);
   assert.match(runtimeVault, /if \(storage\) return vault;/);
   const runtime = read("src/api/runtime.ts");
-  assert.match(runtime, /\/\/ #ifdef APP-PLUS\s+if \(!h5RefreshCookieEnabled\) \{\s+nativeSessionStorage = createNativeSessionStorage\([^\n]+\);\s+\}\s+\/\/ #endif/,
-    "the native encrypted adapter must remain APP-PLUS only");
-  assert.match(runtime, /await nativeSessionStorage\.ready\(\);\s+sessionVault\.hydrate\(\);/);
+  const nativeBlock = runtime.match(/\/\/ #ifdef APP-PLUS\s+if \(!h5RefreshCookieEnabled\) \{([\s\S]*?)\}\s+\/\/ #endif/)?.[1];
+  assert.ok(nativeBlock, "native encrypted adapters must remain APP-PLUS only");
+  assert.match(nativeBlock, /nativeSessionStorage = createNativeSessionStorage\(/);
+  assert.match(nativeBlock, /nativeAttemptStorage = createNativeSessionStorage\([^\n]+purpose: "login-attempt"/);
+  assert.equal((runtime.match(/= createNativeSessionStorage\(/g) || []).length, 2);
+  const prepare = fnBlock(runtime, "prepareSessionVault");
+  assert.match(prepare, /await nativeSessionStorage\.ready\(\);\s+await nativeAttemptStorage\?\.ready\(\);\s+sessionVault\.hydrate\(\);/);
   assert.doesNotMatch(runtimeVault, /(?:window\.)?localStorage\.(?:setItem|getItem)|uni\.setStorageSync|storage\.set\(/,
     "cross-tab access-token continuity must remain in memory");
   assert.doesNotMatch(fnBlock(vault, "persistAndCommit"), /accessToken:\s*snapshot\.accessToken/,
@@ -80,7 +84,12 @@ test("mock password reset persists through AuthApi and reuses the phone account 
     "mock reset must not bypass the AuthApi persistence call");
   assert.match(accountId, /if \(remoteApiEnabled\) return `user:\$\{user\.userId\}`/);
   assert.match(accountId, /authAccountKeyForPhone\(`\$\{user\.countryCode\}\$\{user\.phone\}`\)/);
-  assert.equal((login.match(/accountId: authenticatedAccountId\(result\.user\)/g) || []).length, 3);
+  for (const name of ["signInWithPassword", "verifyRemoteTwoFactor", "verifyCode", "retryOriginalLogin", "recoverLoginResult"]) {
+    const flow = fnBlock(login, name);
+    assert.match(flow, /accountId: authenticatedAccountId\(result\.user\)/, name);
+    assert.match(flow, /serverProfile: result\.user/, name);
+    assert.match(flow, /serverSessionRevision: result\.vaultRevision/, name);
+  }
   assert.match(login, /identity: authenticatedAccountId\(result\.user\)/);
 });
 

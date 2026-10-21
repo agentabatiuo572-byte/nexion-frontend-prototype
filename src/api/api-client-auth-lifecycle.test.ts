@@ -5,6 +5,35 @@ import { createSessionVault } from "./session-vault";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("API client session lifecycle", () => {
+  it("preserves APP_REPLACED from the protected request retry after refresh", async () => {
+    const vault = createSessionVault();
+    const user = { userId: 7, countryCode: "+86", phone: "13800000007", nickname: "Fixture", onboardingComplete: true };
+    vault.save({ accessToken: "old", refreshToken: "refresh", tokenType: "Bearer", user });
+    const request = vi.fn()
+      .mockResolvedValueOnce({ status: 401, data: { code: 401, message: "TOKEN_EXPIRED", data: null }, headers: {} })
+      .mockResolvedValueOnce({ status: 200, data: { code: 0, message: "ok", data: { accessToken: "next", refreshToken: "refresh-next", tokenType: "Bearer", user } }, headers: {} })
+      .mockResolvedValueOnce({ status: 401, data: { code: 401, message: "USER_AUTH_REQUIRED", data: { sessionEndedReason: "APP_REPLACED" } }, headers: {} });
+    const onUnauthorized = vi.fn();
+    const api = createApiClient({ baseUrl: "https://example.test", vault, transport: { request }, onUnauthorized });
+    await expect(api.request({ path: "/api/app/home/overview" })).rejects.toThrow("APP_REPLACED");
+    expect(onUnauthorized).toHaveBeenCalledExactlyOnceWith("APP_REPLACED");
+    expect(vault.read()).toBeNull();
+  });
+
+  it("discards a late successful response after a newer login for the same user", async () => {
+    const vault = createSessionVault();
+    const user = { userId: 7, countryCode: "+86", phone: "13800000007", nickname: "Fixture", onboardingComplete: true };
+    vault.save({ accessToken: "old", refreshToken: "refresh", tokenType: "Bearer", user });
+    let respond!: (value: unknown) => void;
+    const request = vi.fn().mockReturnValue(new Promise(resolve => { respond = resolve; }));
+    const api = createApiClient({ baseUrl: "https://example.test", vault, transport: { request } });
+    const pending = api.request({ path: "/api/app/home/overview" });
+    vault.save({ accessToken: "new", refreshToken: "new-refresh", tokenType: "Bearer", user });
+    respond({ status: 200, data: { code: 0, message: "ok", data: { stale: true } }, headers: {} });
+    await expect(pending).rejects.toThrow("SESSION_CHANGED_DURING_REQUEST");
+    expect(vault.read()?.accessToken).toBe("new");
+  });
+
   it("clears an existing account when the browser cannot lock a cookie refresh", async () => {
     vi.stubGlobal("window", {});
     vi.stubGlobal("navigator", {});

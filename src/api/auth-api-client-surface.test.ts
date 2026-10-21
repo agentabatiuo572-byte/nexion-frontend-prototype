@@ -23,11 +23,11 @@ function fixture(cookie: boolean) {
 describe("session issuance client surface", () => {
   it.each(issuance)("marks only the APP-PLUS %s issuance request", async (_label, path, invoke) => {
     const request = vi.fn().mockResolvedValue(fixture(false));
-    const auth = createAuthApi({ request } as never, createSessionVault(), { clientSurface: "APP" });
+    const auth = createAuthApi({ request } as never, createSessionVault(), { clientSurface: "APP", installationId: () => "installation-A" });
     await invoke(auth);
     expect(request).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
       path, method: "POST", authenticated: false,
-      headers: { "X-NexGrid-Client-Surface": "APP" },
+      headers: expect.objectContaining({ "X-NexGrid-Client-Surface": "APP", "X-NexGrid-Installation-Id": "installation-A", "X-NexGrid-Execution-Supported": "false", "X-NexGrid-Login-Attempt-Id": expect.stringMatching(/^[A-Za-z0-9_-]{16,80}$/), "X-NexGrid-Login-Recovery-Key": expect.stringMatching(/^[A-Za-z0-9_-]{43,128}$/) }),
     }));
   });
 
@@ -37,7 +37,7 @@ describe("session issuance client surface", () => {
     await invoke(auth);
     expect(request).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
       path, method: "POST", authenticated: false,
-      headers: { "X-Nexion-Refresh-Mode": "cookie" },
+      headers: expect.objectContaining({ "X-Nexion-Refresh-Mode": "cookie", "X-NexGrid-Execution-Supported": "false", "X-NexGrid-Login-Attempt-Id": expect.any(String), "X-NexGrid-Login-Recovery-Key": expect.any(String) }),
     }));
   });
 
@@ -50,7 +50,7 @@ describe("session issuance client surface", () => {
     });
     const vault = createSessionVault();
     vault.save({ accessToken: "access", refreshToken: "refresh", tokenType: "Bearer", user });
-    const auth = createAuthApi({ request } as never, vault, { clientSurface: "APP" });
+    const auth = createAuthApi({ request } as never, vault, { clientSurface: "APP", installationId: () => "installation-A" });
     await auth.sendLoginOtp(credentials);
     await auth.sendRegistrationOtp(credentials);
     await auth.verifyRegistrationOtp(otp);

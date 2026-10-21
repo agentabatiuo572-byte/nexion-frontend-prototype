@@ -2,6 +2,78 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import { installProbeConversationRealtime } from "./lib/probe-conversation-realtime.mjs";
+import { runProbeGroup } from "./lib/probe-routes.mjs";
+import { resolveGuardRouteWitness } from "./lib/guard-route-witness.mjs";
+
+test("guard witness accepts the visible auth exit despite a late withdrawal stack entry", () => {
+  const intro = "pages/onboarding/intro", withdraw = "pages/me/wallet-withdraw";
+  const witness = { hashRoute: intro, stackRoutes: [intro, withdraw],
+    visiblePages: [{ route: intro, contentRoutes: [intro] }] };
+  assert.equal(resolveGuardRouteWitness(witness), intro);
+  assert.equal(resolveGuardRouteWitness({ hashRoute: withdraw, stackRoutes: [withdraw],
+    visiblePages: [{ route: withdraw, contentRoutes: [withdraw] }] }), withdraw);
+  for (const visiblePages of [[], [{ route: intro, contentRoutes: [] }],
+    [{ route: withdraw, contentRoutes: [withdraw] }], [{ route: intro, contentRoutes: [withdraw] }],
+    [{ route: intro, contentRoutes: [intro, withdraw] }],
+    [{ route: intro, contentRoutes: [intro] }, { route: withdraw, contentRoutes: [withdraw] }]]) {
+    assert.equal(resolveGuardRouteWitness({ ...witness, visiblePages }), "");
+  }
+  assert.equal(resolveGuardRouteWitness({ ...witness, hashRoute: "" }), "");
+});
+
+const INDEPENDENT_RUNTIME_PROBES = [
+  "business-loop-liveness-runtime.mjs", "spec6-entry-surface-runtime.mjs", "trial-check.mjs", "sticky-check.mjs",
+  "backnav-check.mjs", "profile-identity-check.mjs", "pending-checkout-runtime.mjs", "page-check.mjs",
+];
+
+test("H5 runtime queues all eight existing probes without changing guard order or home witness", () => {
+  const source = fs.readFileSync("scripts/verify-h5-runtime.mjs", "utf8");
+  const queued = [...source.matchAll(/\(\) => only\("([^"]+)"\) \? runGate\("([^"]+)"/g)];
+  assert.deepEqual(queued.map((match) => match[1]), INDEPENDENT_RUNTIME_PROBES);
+  assert.ok(queued.every((match) => match[1] === match[2]));
+  assert.match(source, /\.\.\.await runProbeGroup\(\[/);
+  assert.ok(source.indexOf('await runGate("guard-liveness-runtime.mjs"') < source.indexOf('await runGate("auth-guard-verify.mjs"'));
+  assert.ok(source.indexOf('await runGate("auth-guard-verify.mjs"') < source.indexOf("...await runProbeGroup(["));
+  assert.match(source, /runGate\("page-check\.mjs", baseUrl, \[\s*"\/#\/pages\/index\/index",\s*"h5-runtime-home",\s*"\.home-earnings-cluster"/);
+});
+
+test("PROBE_CONCURRENCY=1 executes the complete probe sequence serially; default stays eight", async () => {
+  const before = process.env.PROBE_CONCURRENCY;
+  try {
+    for (const concurrency of [undefined, "1"]) {
+      if (concurrency === undefined) delete process.env.PROBE_CONCURRENCY;
+      else process.env.PROBE_CONCURRENCY = concurrency;
+      const events = []; let active = 0; let peak = 0;
+      const result = await runProbeGroup(INDEPENDENT_RUNTIME_PROBES.map((name) => async () => {
+        events.push(`start:${name}`); peak = Math.max(peak, ++active);
+        await Promise.resolve();
+        events.push(`end:${name}`); active--; return name;
+      }));
+      assert.deepEqual(result, INDEPENDENT_RUNTIME_PROBES);
+      assert.equal(peak, concurrency === "1" ? 1 : 8);
+      if (concurrency === "1") assert.deepEqual(events, INDEPENDENT_RUNTIME_PROBES.flatMap((name) => [`start:${name}`, `end:${name}`]));
+    }
+  } finally {
+    if (before === undefined) delete process.env.PROBE_CONCURRENCY;
+    else process.env.PROBE_CONCURRENCY = before;
+  }
+});
+
+test("serial runtime probes finish the full sequence and retain every failure", async () => {
+  const visited = [];
+  const failures = [new Error("first probe failed"), new Error("last probe failed")];
+  await assert.rejects(runProbeGroup(INDEPENDENT_RUNTIME_PROBES.map((name, index) => async () => {
+    visited.push(name);
+    if (index === 0) throw failures[0];
+    if (index === 7) throw failures[1];
+    return name;
+  }), 1), (error) => {
+    assert.ok(error instanceof AggregateError);
+    assert.deepEqual(error.errors, failures);
+    return true;
+  });
+  assert.deepEqual(visited, INDEPENDENT_RUNTIME_PROBES);
+});
 
 test("background realtime fixture requires a single-use ticket and never acknowledges unmodeled writes", async () => {
   let http, connect;

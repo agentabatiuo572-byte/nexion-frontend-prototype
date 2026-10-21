@@ -32,6 +32,14 @@
 
       <!-- Title -->
       <text class="rg-title">{{ step === 1 ? t.register.title : step === 2 ? t.register.codeStepTitle : t.register.setPasswordTitle }}</text>
+      <view v-if="registrationNeedsLogin" role="status">
+        <text>{{ t.register.registrationSignInRequired }}</text>
+        <view role="button" tabindex="0" @click="goLogin" @keydown.enter.prevent="goLogin" @keydown.space.prevent="goLogin"><text>{{ t.register.signIn }}</text></view>
+      </view>
+      <view v-else-if="authApi.pendingLogin()" role="status">
+        <text>{{ t.login.unknownAttempt }}</text>
+        <view role="button" tabindex="0" @click="recoverOriginalLogin" @keydown.enter.prevent="recoverOriginalLogin" @keydown.space.prevent="recoverOriginalLogin"><text>{{ t.login.recoverAttempt }}</text></view>
+      </view>
       <view v-if="modeLabel" class="rg-mode-badge" data-testid="auth-runtime-label">
         <text class="rg-mode-badge__t">{{ modeLabel }}</text>
       </view>
@@ -137,7 +145,7 @@
       <text v-if="!ctaEnabled && !busy && (phoneTouched || submitAttempted)" id="rg-cta-reason" class="rg-sr-only">{{ ctaDisabledReason }}</text>
 
       <!-- OAuth (step 1) -->
-      <ThirdPartyAuth v-if="remoteApiEnabled && step === 1" :disabled="busy" @busy="oauthBusy = $event" />
+      <ThirdPartyAuth v-if="remoteApiEnabled && step === 1" :disabled="busy || authApi.pendingLogin()" @busy="oauthBusy = $event" />
       <view v-if="step === 1 && !remoteApiEnabled" class="rg-oauth">
         <view class="rg-divider"><view class="rg-divider__line" /><text class="rg-divider__t">{{ t.register.orContinueWith }}</text><view class="rg-divider__line" /></view>
         <AuthProviderGrid :busy="busy" :development="apiRuntimeConfig.environment === 'dev'" @select="startOauth" />
@@ -181,7 +189,7 @@ import { apiEnvironmentBadgeLabel } from "@/api/runtime-config";
 import type { OAuthProvider, RegistrationRequest } from "@/api/auth-api";
 import { createPublicSponsorPreviewApi, type PublicSponsorPreview } from "@/api/public-sponsor-preview-api";
 import { registerMockAuthCredential } from "@/api/mock-auth-api";
-import { registerAndLogin } from "@/auth/registration-auto-login";
+import { registerAndLogin, requiresOriginalRegistrationRecovery } from "@/auth/registration-auto-login";
 import { normalizeRegistrationSponsorCode } from "@/auth/registration-sponsor";
 import {
   exchangeVerifiedSignIn,
@@ -238,6 +246,8 @@ interface RemoteRegistrationAttemptContext {
   challengeNo: string;
 }
 let pendingRegistrationRecovery: RegistrationRequest | null = null;
+const completedRegistrationIdentity = ref<string | null>(null);
+const registrationNeedsLogin = computed(() => completedRegistrationIdentity.value === `${country.value}:${phoneClean.value}`);
 const step = ref<Step>(1);
 // 包 zm T4:初始国家码随 App 语言(仅初始默认;用户手选后以 pickCountry 为准)。
 const country = ref(dialCodeForLocale(useLocaleStore().code));
@@ -334,7 +344,10 @@ const pwdOk = computed(() => isPasswordOk(password.value, { phone: phoneClean.va
 const pwdMatch = computed(() => password.value === confirmPwd.value && pwdOk.value);
 const oauthBusy = ref(false);
 const busy = computed(() => verifying.value || completing.value || oauthBusy.value);
-const ctaEnabled = computed(() => (step.value === 1 ? phoneOk.value : step.value === 2 ? codeOk.value : pwdMatch.value));
+const originalRegistrationRecoveryRequired = computed(() => requiresOriginalRegistrationRecovery(authApi,
+  { countryCode: country.value, phone: phoneClean.value }));
+const ctaEnabled = computed(() => !registrationNeedsLogin.value && !originalRegistrationRecoveryRequired.value
+  && (step.value === 1 ? phoneOk.value : step.value === 2 ? codeOk.value : pwdMatch.value));
 const ctaLabel = computed(() =>
   step.value === 2 && verifiedToken.value
     ? verifying.value ? t.value.register.signingIn : t.value.register.retrySignIn
@@ -349,6 +362,8 @@ const ctaLabel = computed(() =>
         : t.value.register.finish,
 );
 const ctaDisabledReason = computed(() => {
+  if (registrationNeedsLogin.value) return t.value.register.registrationSignInRequired;
+  if (originalRegistrationRecoveryRequired.value) return t.value.login.unknownAttempt;
   if (step.value === 1) return t.value.register.ctaDisabledPhone;
   if (step.value === 2) return t.value.register.ctaDisabledCode;
   return t.value.register.ctaDisabledPassword;
@@ -460,12 +475,17 @@ function focusPasswordConfirmation() {
 function pickCountry(c: string) {
   invalidateOtpFlow();
   country.value = c;
+  error.value = null;
   showCountries.value = false;
 }
 
 function onCta() {
   submitAttempted.value = true;
   if (busy.value) return;
+  if (requiresOriginalRegistrationRecovery(authApi, { countryCode: country.value, phone: phoneClean.value })) {
+    error.value = t.value.login.unknownAttempt;
+    return;
+  }
   if (!ctaEnabled.value) {
     error.value = ctaDisabledReason.value;
     return;
@@ -725,7 +745,11 @@ async function exchangeVerifiedAccount(token: string, phoneAtVerify: string, flo
   }
 }
 async function finish() {
-  if (completing.value) return;
+  if (completing.value || registrationNeedsLogin.value) return;
+  if (requiresOriginalRegistrationRecovery(authApi, { countryCode: country.value, phone: phoneClean.value })) {
+    error.value = t.value.login.unknownAttempt;
+    return;
+  }
   error.value = null;
   if (!pwdOk.value) { error.value = t.value.register.errorWeakPassword; return; }
   if (!pwdMatch.value) { error.value = t.value.register.passwordMismatch; return; }
@@ -754,6 +778,11 @@ async function finish() {
     const registration = await registerAndLogin(authApi, registrationRequest,
       () => isCurrentRemoteRegistrationAttempt(registrationAttempt), pendingRegistrationRecovery !== null);
     if (registration.kind === "stale" || !isCurrentRemoteRegistrationAttempt(registrationAttempt)) return;
+    if (registration.kind === "recovery_required") {
+      completing.value = false;
+      error.value = t.value.login.unknownAttempt;
+      return;
+    }
     if (registration.kind === "registration_error") {
       completing.value = false;
       if (!recoverRejectedRegistration(registration.error)) {
@@ -780,7 +809,10 @@ async function finish() {
       registrationLocale: useLocaleStore().code,
     });
     if (!completed.ok) {
-      error.value = geoText(completed.error) ?? t.value.authOtp.errorServiceUnavailable;
+      // Registration succeeded; its login attempt is complete. Require an explicit new sign-in.
+      pendingRegistrationRecovery = null;
+      completedRegistrationIdentity.value = `${registrationRequest.countryCode}:${registrationRequest.phone}`;
+      error.value = t.value.register.registrationSignInRequired;
       completing.value = false;
       clearRemoteRegistrationReceipt();
       return;
@@ -956,6 +988,7 @@ function back() {
 }
 function close() { navReset({ url: "/pages/onboarding/intro", fail: () => {} }); }
 function goLogin() { navReset({ url: "/pages/login/login", fail: () => {} }); }
+function recoverOriginalLogin() { if (!completing.value) navTo("/pages/login/login"); }
 function goTerms() { navTo("/pages/onboarding/terms"); }
 const privacyHref = ref(privacyPolicyHref("/pages/register/register"));
 function goPrivacy() { navTo(privacyHref.value); }

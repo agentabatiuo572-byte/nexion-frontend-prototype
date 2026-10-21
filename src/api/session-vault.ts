@@ -1,11 +1,11 @@
-import { isUserSession, type UserSession } from "./contracts";
+import { serverSessionContext, isUserSession, type UserSession, type ServerSessionContext } from "./contracts";
 import { reportNativeSessionStage } from "./native-session-storage";
 import { requireCryptoUuid } from "../lib/secure-command-id";
 import { ApiError } from "./errors";
 
 export type RefreshCredentialMode = "token" | "cookie";
 
-export interface SessionSnapshot {
+export interface SessionSnapshot extends ServerSessionContext {
   accessToken: string;
   refreshToken: string;
   tokenType: string;
@@ -15,7 +15,7 @@ export interface SessionSnapshot {
   sessionSyncKey?: string;
 }
 
-interface PersistedSession {
+interface PersistedSession extends ServerSessionContext {
   schema: 1;
   refreshToken: string;
   tokenType: string;
@@ -74,6 +74,7 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
     if (persisted) {
       refreshRotationNonce = persisted.refreshRotationNonce;
       current = {
+        ...serverSessionContext(persisted),
         accessToken: "",
         refreshToken: persisted.refreshToken,
         tokenType: persisted.tokenType,
@@ -120,6 +121,7 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
           storage.remove();
         } else {
           storage.set({
+            ...serverSessionContext(snapshot),
             schema: 1,
             refreshToken: snapshot.refreshToken,
             tokenType: snapshot.tokenType,
@@ -176,6 +178,9 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
     refreshIfUnchanged(snapshot, expectedRevision) {
       validateSnapshot(snapshot);
       if (revision !== expectedRevision || (current && current.user.userId !== snapshot.user.userId)) return false;
+      if (current?.sessionChainId && (snapshot.sessionChainId !== current.sessionChainId
+          || snapshot.sessionGroup !== current.sessionGroup || snapshot.installationId !== current.installationId
+          || snapshot.appSessionVersion !== current.appSessionVersion)) return false;
       persistAndCommit(snapshot, true);
       return true;
     },
@@ -192,7 +197,7 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
         // Existing helper uses Web Crypto or Android's SecureRandom-backed UUID.
         const nonce = (requireCryptoUuid() + requireCryptoUuid()).replace(/-/g, "").toLowerCase();
         if (!/^[0-9a-f]{64}$/.test(nonce)) throw new Error("INVALID_ROTATION_NONCE");
-        storage?.set({ schema: 1, refreshToken: current.refreshToken, tokenType: current.tokenType,
+        storage?.set({ ...serverSessionContext(current), schema: 1, refreshToken: current.refreshToken, tokenType: current.tokenType,
           user: { ...current.user }, refreshRotationNonce: nonce } satisfies PersistedSession);
         // Do not send before the adapter confirms persistence. A new login,
         // logout or successful successor commit replaces this entire record.

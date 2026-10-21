@@ -140,10 +140,13 @@ test("native login deep-link and cookie error cannot render browser-only recover
       exports: {}, onLoad: (handler) => { sandbox.load = handler; },
       returnParam: { value: null }, refOnLogin: { value: null }, serverSessionReloadNotice: { value: false },
       browserUnsupportedNotice: { value: false }, normalizeRefCode: () => null,
+      authApi: { pendingLoginContext: () => null, pendingLogin: () => false },
+      retryContext: { value: null }, loginResultUnknown: { value: false },
+      loginRecoveryPending: { value: false }, replayAvailable: { value: false },
       ApiError, geoText: () => "", resolveRemoteLoginErrorKind: () => "unknown",
       t: { value: { session: { secureBrowserUnsupported: "browser-only" }, authOtp: { errorServiceUnavailable: "service-unavailable" } } },
     };
-    execute(`${load.getText(ast)}\n${functions(compiled, ["remoteLoginError"])}\nexports.error=remoteLoginError;`, sandbox);
+    execute(`${load.getText(ast)}\n${functions(compiled, ["syncLoginRecovery", "remoteLoginError"])}\nexports.error=remoteLoginError;`, sandbox);
     sandbox.load({ notice: "secure-browser-unsupported" });
     assert.equal(sandbox.browserUnsupportedNotice.value, platform === "h5");
     assert.equal(sandbox.exports.error(new ApiError("COOKIE_LOCK_UNAVAILABLE")), platform === "h5" ? "browser-only" : "service-unavailable");

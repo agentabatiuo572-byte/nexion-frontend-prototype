@@ -10,7 +10,7 @@ export interface RuntimeApiClientOptions {
   development: boolean;
   /** Only the local loopback H5 preview may proxy its same-origin HTTP gateway. */
   localPreview?: boolean;
-  onUnauthorized?: () => void | Promise<void>;
+  onUnauthorized?: (reason?: string) => void | Promise<void>;
   onSessionRefreshed?: () => void;
   refreshCredentialMode?: RefreshCredentialMode;
   nativeRefreshRecovery?: boolean;

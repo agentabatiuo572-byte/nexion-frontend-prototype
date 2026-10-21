@@ -4,19 +4,20 @@ import { readFileSync } from "node:fs";
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
-test("unknown remote registration results attempt one password-login recovery", () => {
+test("unknown remote registration results recover the original attempt without another login", () => {
   const api = read("src/api/auth-api.ts");
   const page = read("src/pages/register/register.vue");
   const recovery = read("src/auth/registration-auto-login.ts");
   const zh = read("src/i18n/messages/zh.ts");
 
   assert.match(api, /function isRegistrationOutcomeUnknown\(error: unknown\)/);
-  assert.match(api, /apiError\.kind === "network"\s*\|\| apiError\.kind === "protocol"/);
-  assert.match(api, /apiError\.kind === "http" && \(apiError\.status \?\? 0\) >= 500/);
+  assert.match(api, /!isSettledRegistrationConflict\(apiError\) && isAmbiguousEnvelopeOutcome\(apiError\)/);
+  assert.match(api, /method === "REGISTRATION" && isSettledRegistrationConflict\(cause\)\) attempts\.complete\(attempt\)/);
   assert.match(page, /registerAndLogin\(authApi/);
   assert.match(recovery, /if \(!isRegistrationOutcomeUnknown\(error\)\)[\s\S]*?kind: "registration_error"/);
-  assert.match(recovery, /authApi\.login\(/);
-  assert.match(zh, /registrationOutcomeUnknown:\s*"账号可能已创建，自动登录结果尚未确认。请使用注册手机号和密码登录。"/);
+  assert.match(recovery, /await authApi\.recoverLogin\(\)/);
+  assert.doesNotMatch(recovery, /authApi\.login\(/);
+  assert.match(zh, /registrationOutcomeUnknown:\s*"账号可能已创建，登录结果尚未确认。请查询注册结果，确认前不要重复注册。"/);
   // 🔴 语言面必须三语齐点(门的门 ① 判据):只点一种语言时,另两种可以随意漂移而本门全绿。
   // 实测过的失败形态:语言豁免表不带语言维 → vi 真丢了占位符照样绿。
   // 中文钉**原文**(话术是产品决定),英/越只钉**键存在** —— 措辞由翻译定,但键不许缺。
