@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\telegram79-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "9c330b013b320bc2577aeed664325ed9664245e9",
-  "sourceRef": "9c330b013b320bc2577aeed664325ed9664245e9",
+  "sourceHead": "322f95e5c047cfcb03f4fb07c54257c98acc9afb",
+  "sourceRef": "322f95e5c047cfcb03f4fb07c54257c98acc9afb",
   "sourceRefKind": "commit",
-  "sourceTree": "1d33ad71fc4a5d31d2cce1ff9c63b12415b3295d",
+  "sourceTree": "88ed422bf3595ac6cf5b1a9802937e3c6c5052c5",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -5851,10 +5851,10 @@
       "mode": "100644"
     },
     "src/api/auth-login-attempt.test.ts": {
-      "sourceBlob": "f3caca5f6b4e78c27556f1b71d38304d297eeb48",
-      "sourceSha256": "d630be6767ddfce4f8026ce01ead9030c0a1f5c3e1ef8a3e09e06fc9576a340b",
-      "targetBlob": "f3caca5f6b4e78c27556f1b71d38304d297eeb48",
-      "targetSha256": "d630be6767ddfce4f8026ce01ead9030c0a1f5c3e1ef8a3e09e06fc9576a340b",
+      "sourceBlob": "89a3187c27c5f8d356db08d0e8639d35697f4703",
+      "sourceSha256": "b497200fd46fdc820d8dabf98bee460d53db7e155117b6192c2d0b69fb339474",
+      "targetBlob": "89a3187c27c5f8d356db08d0e8639d35697f4703",
+      "targetSha256": "b497200fd46fdc820d8dabf98bee460d53db7e155117b6192c2d0b69fb339474",
       "mode": "100644"
     },
     "src/api/auth-refresh-audit-regression.test.ts": {

@@ -129,7 +129,7 @@ describe("durable original login attempt", () => {
   });
 
   it.each(["USER_LOGIN_RATE_LIMITED", "USER_LOGIN_TEMPORARILY_LOCKED"].flatMap(message =>
-    ["http", "business"].map(kind => [message, kind] as const)))
+    (["http", "business"] as const).map(kind => [message, kind] as const)))
     ("does not trap a rejected login after %s (%s)", async (message, kind) => {
       const f = fixture();
       f.request.mockRejectedValueOnce(new ApiError({ kind, status: kind === "business" ? 200 : 429, code: 429, message }))
