@@ -2,8 +2,7 @@
   <view v-if="providers.length || intent === 'LINK'" class="third-party-auth" data-testid="third-party-auth">
     <text class="oauth-title">{{ intent === "LINK" ? t.thirdParty.linkTitle : t.thirdParty.signInTitle }}</text>
     <text v-if="intent === 'LINK' && !providers.length" class="oauth-copy">{{ t.thirdParty.unavailable }}</text>
-    <AuthProviderGrid v-if="labels.length" :providers="labels" :busy="!!flow || submitting || disabled" @select="start" />
-    <text v-if="intent === 'LINK' && linked.length" class="oauth-copy">{{ t.thirdParty.linked }}: {{ linked.map(label).join(", ") }}</text>
+    <AuthProviderGrid v-if="labels.length" :providers="labels" :linked="linkedLabels" :busy="!!flow || submitting || disabled" @select="start" />
     <view v-if="flow" class="oauth-panel" aria-live="polite">
       <text class="oauth-copy">{{ verified ? t.thirdParty.confirmIdentity : t.thirdParty.browserPrompt }}</text>
       <text v-if="verified" class="oauth-identity">{{ label(selected) }} · {{ displayName }}</text>
@@ -63,7 +62,9 @@ const completionDisabled = computed(() => submitting.value || (props.intent === 
 const showCaptcha = ref(false);
 const names = { GOOGLE: "Google", APPLE: "Apple", TELEGRAM: "Telegram" } as const;
 const label = (provider: ThirdPartyProvider) => names[provider];
-const labels = computed(() => providers.value.filter(p => props.intent !== "LINK" || !linked.value.includes(p)).map(label));
+const linkedLabels = computed(() => props.intent === "LINK" ? linked.value.map(label) : []);
+const labels = computed(() => (props.intent === "LINK"
+  ? [...new Set([...providers.value, ...linked.value])] : providers.value).map(label));
 let generation = 0;
 let pollVersion = 0;
 let disposed = false;
@@ -117,7 +118,8 @@ async function start(name: string) {
   if (flow.value || submitting.value || props.disabled || disposed) return;
   if (props.intent === "LOGIN" && authApi.pendingLogin()) { message.value = t.value.login.unknownAttempt; return; }
   const provider = (Object.keys(names) as ThirdPartyProvider[]).find(key => names[key] === name);
-  if (!provider || !providers.value.includes(provider)) return;
+  if (!provider || !providers.value.includes(provider)
+      || (props.intent === "LINK" && linked.value.includes(provider))) return;
   const current = ++generation;
   revision = sessionVault.revision();
   selected.value = provider; message.value = ""; submitting.value = true; emit("busy", true);

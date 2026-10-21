@@ -191,7 +191,15 @@ try {
   assert(refreshCalls > beforeBrowserSwitch, "binding after browser return exercised same-account session refresh");
   assert.equal(linkCalls, 1);
   assert.equal(completeCalls, 6);
-  assert.equal(await box().getByRole("button", { name: "Apple", exact: true }).count(), 0);
+  const linkedApple = box().locator('[data-provider="Apple"]');
+  assert(await linkedApple.locator("svg").isVisible());
+  assert(await linkedApple.locator(".auth-provider__status").isVisible());
+  assert.equal(await linkedApple.getAttribute("aria-disabled"), "true");
+  await linkedApple.click({ force: true });
+  await linkedApple.press("Enter");
+  await linkedApple.press("Space");
+  assert.equal(await box().locator(".oauth-panel").count(), 0);
+  assert.equal(linkCalls, 1);
   assert.deepEqual(errors, []);
   await mkdir(new URL("../.verify-cache/oauth/", import.meta.url), { recursive: true });
   await page.screenshot({ path: fileURLToPath(new URL("../.verify-cache/oauth/security.png", import.meta.url)), fullPage: true });

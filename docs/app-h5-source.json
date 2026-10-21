@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/home/jenkins/agent/workspace/telegram78/app",
+  "sourcePath": "D:\\workspace\\.worktrees\\telegram79-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "01517994d1cac90888c2b6f4f51e3b174735e4f3",
-  "sourceRef": "01517994d1cac90888c2b6f4f51e3b174735e4f3",
+  "sourceHead": "62b1bc9b172b1e8e9ae4435d9a0a9eefc48e4c50",
+  "sourceRef": "62b1bc9b172b1e8e9ae4435d9a0a9eefc48e4c50",
   "sourceRefKind": "commit",
-  "sourceTree": "b5e176749bb8efab584ff6c42a876cd62ba99244",
+  "sourceTree": "0d5ab8e1f3184c12a8bc242950c20aab02715dcd",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -4731,10 +4731,10 @@
       "mode": "100644"
     },
     "scripts/oauth-provider.h5.e2e.mjs": {
-      "sourceBlob": "0a5d88f4fb7036a473cf6bafd149f407d4ec6d2e",
-      "sourceSha256": "488d8839fd413a77da77bf5b5a6296bc5c41910b0eea20a6125ac6710c4171ea",
-      "targetBlob": "0a5d88f4fb7036a473cf6bafd149f407d4ec6d2e",
-      "targetSha256": "488d8839fd413a77da77bf5b5a6296bc5c41910b0eea20a6125ac6710c4171ea",
+      "sourceBlob": "68b64cdda6fc4e2090e98d75aa066490b974ce65",
+      "sourceSha256": "cd67ed05fdc02596ba845d41ffcf320bdc40b27ab3b56f1d46252238fb1611fa",
+      "targetBlob": "68b64cdda6fc4e2090e98d75aa066490b974ce65",
+      "targetSha256": "cd67ed05fdc02596ba845d41ffcf320bdc40b27ab3b56f1d46252238fb1611fa",
       "mode": "100644"
     },
     "scripts/onboarding-estimator-fail-closed.contract.test.mjs": {
@@ -7531,10 +7531,10 @@
       "mode": "100644"
     },
     "src/components/auth-provider-grid.vue": {
-      "sourceBlob": "dab38574bfec00de2080355de2dc8269535d365a",
-      "sourceSha256": "bc50d4c75db63ed988a532140cbc6630ae3ea4126b51ad6d25de5cc416333d0e",
-      "targetBlob": "dab38574bfec00de2080355de2dc8269535d365a",
-      "targetSha256": "bc50d4c75db63ed988a532140cbc6630ae3ea4126b51ad6d25de5cc416333d0e",
+      "sourceBlob": "2867a53d2aa6fdd45411f5cebbed8b85727cb17d",
+      "sourceSha256": "c7fef2cae857bb9f59c8ae23058237ab97f6b077fb239e558530424b0592ddb7",
+      "targetBlob": "2867a53d2aa6fdd45411f5cebbed8b85727cb17d",
+      "targetSha256": "c7fef2cae857bb9f59c8ae23058237ab97f6b077fb239e558530424b0592ddb7",
       "mode": "100644"
     },
     "src/components/brand-lockup.vue": {
@@ -9386,10 +9386,10 @@
       "mode": "100644"
     },
     "src/components/third-party-auth.vue": {
-      "sourceBlob": "17d56558b71856ff0c4d9cb938aacec3a0017654",
-      "sourceSha256": "8440d5a90f5d5dc9e4cbf45198ed2af637bca7bde5ffcd735b1eaa4e0753f786",
-      "targetBlob": "17d56558b71856ff0c4d9cb938aacec3a0017654",
-      "targetSha256": "8440d5a90f5d5dc9e4cbf45198ed2af637bca7bde5ffcd735b1eaa4e0753f786",
+      "sourceBlob": "4432e894b0f9c27b129dfec0c27b8640f0fc4a45",
+      "sourceSha256": "74242dbbdd5a584de3f7259659979918ef56757f3f64ec03b20396dcd8dbe64d",
+      "targetBlob": "4432e894b0f9c27b129dfec0c27b8640f0fc4a45",
+      "targetSha256": "74242dbbdd5a584de3f7259659979918ef56757f3f64ec03b20396dcd8dbe64d",
       "mode": "100644"
     },
     "src/components/tradein-public-copy.behavior.test.ts": {
