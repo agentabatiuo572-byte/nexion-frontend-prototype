@@ -2,6 +2,12 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <script id="nx-referral-entry">
+      ;(function () {
+        var referral = /^\/ref\/([A-Za-z0-9-]{4,64})\/?$/.exec(window.location.pathname)
+        if (referral) window.location.replace('%BASE_URL%#/pages/ref/code?code=' + encodeURIComponent(referral[1]))
+      })()
+    </script>
     <script>
       var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') ||
         CSS.supports('top: constant(a)'))

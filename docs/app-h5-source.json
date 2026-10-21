@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\uniapp-oauth-invite-entry",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "1e4ccd27148fdb1dd211f91d2f6a2e8f017d1104",
-  "sourceRef": "1e4ccd27148fdb1dd211f91d2f6a2e8f017d1104",
+  "sourceHead": "e09e31a266c237acdaddcbadeaa6794848ca665b",
+  "sourceRef": "e09e31a266c237acdaddcbadeaa6794848ca665b",
   "sourceRefKind": "commit",
-  "sourceTree": "88c4fb8a176d48d758613a88a2ad46f6ce633a38",
+  "sourceTree": "a23d336c7d1a42ee1b637db66368aa738b2bf73f",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -3485,10 +3485,10 @@
       "mode": "100644"
     },
     "index.html": {
-      "sourceBlob": "77b3920ffe6750c594d2911014d7da2c008fefc1",
-      "sourceSha256": "0a42d3b450086d8b492f70dd42c8f0225946cb0c648bd295aa7b8cc9ac90dae6",
-      "targetBlob": "77b3920ffe6750c594d2911014d7da2c008fefc1",
-      "targetSha256": "0a42d3b450086d8b492f70dd42c8f0225946cb0c648bd295aa7b8cc9ac90dae6",
+      "sourceBlob": "73fa63c928501ba2730045cb7291fb70cfc292a9",
+      "sourceSha256": "f597aa2ceb04b0e5ac0b71d730d96177c0706fc9015e35bbe55ada55f449ab53",
+      "targetBlob": "73fa63c928501ba2730045cb7291fb70cfc292a9",
+      "targetSha256": "f597aa2ceb04b0e5ac0b71d730d96177c0706fc9015e35bbe55ada55f449ab53",
       "mode": "100644"
     },
     "package-lock.json": {
@@ -7437,6 +7437,13 @@
       "sourceSha256": "9bf8965404d88452641b9286fb36618bf9e884d4b13f0d2be180b3eef31a7c98",
       "targetBlob": "2f854eebb4eb0610b0963ab475da1e9591a1c8a5",
       "targetSha256": "9bf8965404d88452641b9286fb36618bf9e884d4b13f0d2be180b3eef31a7c98",
+      "mode": "100644"
+    },
+    "src/auth/referral-shortlink.behavior.test.ts": {
+      "sourceBlob": "985f747c3c95158f9d97138967ffb009d9de9146",
+      "sourceSha256": "bccc8d691a962ef0cf855f18467cb2d937e6933933817e4a87c1f645f45a5ae9",
+      "targetBlob": "985f747c3c95158f9d97138967ffb009d9de9146",
+      "targetSha256": "bccc8d691a962ef0cf855f18467cb2d937e6933933817e4a87c1f645f45a5ae9",
       "mode": "100644"
     },
     "src/auth/registration-auto-login.test.ts": {
