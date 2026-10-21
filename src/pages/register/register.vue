@@ -172,7 +172,7 @@ import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { privacyPolicyHref } from "@/lib/privacy-return";
 import ServerCaptchaSlider from "@/components/server-captcha-slider.vue";
-import { navReset, navTo } from "@/lib/route";
+import { navReset, navTo, takeNavigationQuery } from "@/lib/route";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -291,7 +291,8 @@ type SponsorPreview = { displayName: string; vRank: string };
 const sponsorPreview = ref<SponsorPreview | null>(null);
 
 onLoad(async (options) => {
-  const raw = options && (options as Record<string, string>).ref;
+  const forwarded = new URLSearchParams(takeNavigationQuery("/pages/register/register"));
+  const raw = options?.ref ?? forwarded.get("ref") ?? undefined;
   privacyHref.value = privacyPolicyHref("/pages/register/register", raw);
   if (remoteApiEnabled) {
     const previewLoadVersion = ++sponsorPreviewLoadVersion;
@@ -300,17 +301,20 @@ onLoad(async (options) => {
     sponsorPreview.value = null;
     const norm = normalizeRegistrationSponsorCode(raw, true);
     if (!norm) return;
+    // Keep attribution while the display preview loads or fails; registration validates the sponsor.
+    lockedRef.value = norm;
     try {
       const preview = await publicSponsorPreviewApi.preview(norm);
       if (!mounted || previewLoadVersion !== sponsorPreviewLoadVersion) return;
       remotePreview.value = preview;
       lockedRef.value = preview.code;
       sponsorPreview.value = preview.sponsor;
-    } catch {
+    } catch (cause) {
       if (!mounted || previewLoadVersion !== sponsorPreviewLoadVersion) return;
       remotePreview.value = null;
-      lockedRef.value = null;
       sponsorPreview.value = null;
+      if (cause instanceof ApiError && ["REFERRAL_PREVIEW_INVALID", "REFERRAL_PREVIEW_NOT_FOUND"].includes(cause.message))
+        lockedRef.value = null;
     }
     return;
   }
@@ -987,7 +991,11 @@ function back() {
   step.value = (step.value === 3 ? 2 : 1) as Step;
 }
 function close() { navReset({ url: "/pages/onboarding/intro", fail: () => {} }); }
-function goLogin() { navReset({ url: "/pages/login/login", fail: () => {} }); }
+function goLogin() {
+  const sponsorCode = lockedRef.value || invite.value.trim();
+  const query = sponsorCode ? `?ref=${encodeURIComponent(sponsorCode)}` : "";
+  navReset({ url: `/pages/login/login${query}`, fail: () => {} });
+}
 function recoverOriginalLogin() { if (!completing.value) navTo("/pages/login/login"); }
 function goTerms() { navTo("/pages/onboarding/terms"); }
 const privacyHref = ref(privacyPolicyHref("/pages/register/register"));

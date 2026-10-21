@@ -128,7 +128,7 @@
         <text class="lg-switch__t">{{ mode === 'password' ? t.login.useCodeInstead : t.login.usePasswordInstead }}</text>
       </view>
 
-      <ThirdPartyAuth v-if="!loginRecoveryPending && remoteApiEnabled && step === 1 && mode !== 'reset'" :disabled="loading || loginRecoveryPending" :return-to="returnParam" @busy="oauthBusy = $event; syncLoginRecovery()" />
+      <ThirdPartyAuth v-if="!loginRecoveryPending && remoteApiEnabled && step === 1 && mode !== 'reset'" :disabled="loading || loginRecoveryPending" :return-to="returnParam" :sponsor-code="refOnLogin" @busy="oauthBusy = $event; syncLoginRecovery()" />
       <!-- OAuth (step 1, not reset) -->
       <view v-if="!loginRecoveryPending && step === 1 && mode !== 'reset' && !remoteApiEnabled" class="lg-oauth">
         <view class="lg-divider"><view class="lg-divider__line" /><text class="lg-divider__t">{{ t.login.orContinueWith }}</text><view class="lg-divider__line" /></view>
@@ -173,7 +173,7 @@ import { fmt } from "@/i18n/format";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { otpSend, otpVerify, type OtpScene } from "@/store/auth-otp";
 import { authAccountKeyForPhone } from "@/store/auth-account";
-import { normalizeRefCode } from "@/store/sponsorship";
+import { normalizeRegistrationSponsorCode } from "@/auth/registration-sponsor";
 import { toast } from "@/store/ui";
 import { isResetPasswordOk, PASSWORD_MAX_LENGTH } from "@/auth/password-rules";
 import { completeSignIn } from "@/auth/complete-sign-in";
@@ -335,15 +335,14 @@ let mounted = true;
 onLoad((options) => {
   syncLoginRecovery();
   const o = (options || {}) as Record<string, string>;
-  const forwarded = new URLSearchParams(takeNavigationQuery("/pages/login/login")).get("return");
-  if (forwarded || o.return) returnParam.value = forwarded || o.return;
+  const forwarded = new URLSearchParams(takeNavigationQuery("/pages/login/login"));
+  if (forwarded.get("return") || o.return) returnParam.value = forwarded.get("return") || o.return;
   serverSessionReloadNotice.value = o.notice === "server-session-reload";
   // #ifdef H5
   browserUnsupportedNotice.value = o.notice === "secure-browser-unsupported";
   // #endif
   // [FEAT-SHARE4] 与注册页同一 client 预检:非法码不入绑定链(服务端权威校验另行)。
-  const normRef = normalizeRefCode(o.ref);
-  if (normRef) refOnLogin.value = normRef;
+  refOnLogin.value = normalizeRegistrationSponsorCode(o.ref ?? forwarded.get("ref"), remoteApiEnabled);
 });
 
 const showCaptcha = ref(false);
@@ -1008,7 +1007,8 @@ function close() {
 }
 function goRegister() {
   invalidateOtpFlow();
-  navReset({ url: "/pages/register/register", fail: () => {} });
+  const query = refOnLogin.value ? `?ref=${encodeURIComponent(refOnLogin.value)}` : "";
+  navReset({ url: `/pages/register/register${query}`, fail: () => {} });
 }
 
 function cleanup() {

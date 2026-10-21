@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\NX1.0-UniApp-phone-number-limit",
+  "sourcePath": "D:\\workspace\\.worktrees\\uniapp-oauth-invite-entry",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "ec6cc13e09975e0460a9962fda794379dca7c130",
-  "sourceRef": "ec6cc13e09975e0460a9962fda794379dca7c130",
+  "sourceHead": "1e4ccd27148fdb1dd211f91d2f6a2e8f017d1104",
+  "sourceRef": "1e4ccd27148fdb1dd211f91d2f6a2e8f017d1104",
   "sourceRefKind": "commit",
-  "sourceTree": "18c5421bcc4acf302f3971945632b64db7aa78e3",
+  "sourceTree": "88c4fb8a176d48d758613a88a2ad46f6ce633a38",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -7369,6 +7369,13 @@
       "targetSha256": "007661709a31a1fd4b13efc6798d7d482d474265f0ad52b3a196b45269f7b369",
       "mode": "100644"
     },
+    "src/auth/invitation-entry.behavior.test.ts": {
+      "sourceBlob": "223138c89e92a40f8209dc0268273a0144d2d075",
+      "sourceSha256": "e10028ebdbd77a550937f17c19b20f036ae4a3910eceb145610eb7357f059024",
+      "targetBlob": "223138c89e92a40f8209dc0268273a0144d2d075",
+      "targetSha256": "e10028ebdbd77a550937f17c19b20f036ae4a3910eceb145610eb7357f059024",
+      "mode": "100644"
+    },
     "src/auth/login-attempt.ts": {
       "sourceBlob": "f517986a7dd7d7da34c75766e0e662f8f1bb2a9a",
       "sourceSha256": "5131d49276662840316cc2b0ed33297e3844fabecdfbd587fdfd1adab44d0bc9",
@@ -13600,10 +13607,10 @@
       "mode": "100644"
     },
     "src/pages/login/login.vue": {
-      "sourceBlob": "54a91d8c7a60e855d48e16ae3793f960ee0ce3c7",
-      "sourceSha256": "c6c8fa69d244d0c52af4a4544901dac349c461e7788c507db6e44e526528ef4a",
-      "targetBlob": "54a91d8c7a60e855d48e16ae3793f960ee0ce3c7",
-      "targetSha256": "c6c8fa69d244d0c52af4a4544901dac349c461e7788c507db6e44e526528ef4a",
+      "sourceBlob": "ef511cf3b3ad2be7239aa11d20b34313e90f1c0b",
+      "sourceSha256": "068709d7d8bda2f8cb6df966d01c6bbd8a3b369721974685dbd51070d13243a1",
+      "targetBlob": "ef511cf3b3ad2be7239aa11d20b34313e90f1c0b",
+      "targetSha256": "068709d7d8bda2f8cb6df966d01c6bbd8a3b369721974685dbd51070d13243a1",
       "mode": "100644"
     },
     "src/pages/login/password-reset-contract.test.ts": {
@@ -14629,10 +14636,10 @@
       "mode": "100644"
     },
     "src/pages/ref/code.vue": {
-      "sourceBlob": "56597d3be72a83beae551be648000c544c218650",
-      "sourceSha256": "604bbc5abe00aa9dc0d5146e9a2efd6b14fe2de61a0f5d583a7f8513139b4032",
-      "targetBlob": "56597d3be72a83beae551be648000c544c218650",
-      "targetSha256": "604bbc5abe00aa9dc0d5146e9a2efd6b14fe2de61a0f5d583a7f8513139b4032",
+      "sourceBlob": "d7c9ef1fd0cfa412d11dd3c19b9c7057b177b75e",
+      "sourceSha256": "b540db9aca58e305ae13d70bc50e31e520186167d399f762d33dc699cac05268",
+      "targetBlob": "d7c9ef1fd0cfa412d11dd3c19b9c7057b177b75e",
+      "targetSha256": "b540db9aca58e305ae13d70bc50e31e520186167d399f762d33dc699cac05268",
       "mode": "100644"
     },
     "src/pages/register/register-completion-route.test.ts": {
@@ -14650,10 +14657,10 @@
       "mode": "100644"
     },
     "src/pages/register/register.vue": {
-      "sourceBlob": "a419604d7f8e39e14e4ca14b2a89e196b87dd857",
-      "sourceSha256": "2a6c35396343ddd2631831eedf49ef00563165c82fb05c658c1108888d5fe4ed",
-      "targetBlob": "a419604d7f8e39e14e4ca14b2a89e196b87dd857",
-      "targetSha256": "2a6c35396343ddd2631831eedf49ef00563165c82fb05c658c1108888d5fe4ed",
+      "sourceBlob": "afd1ca034dcab670854087cf3dbf0e2bbe16bd5b",
+      "sourceSha256": "74b9b13088173462ad631abb567d0ab150d55a8e84b010745179fcd2ade2123f",
+      "targetBlob": "afd1ca034dcab670854087cf3dbf0e2bbe16bd5b",
+      "targetSha256": "74b9b13088173462ad631abb567d0ab150d55a8e84b010745179fcd2ade2123f",
       "mode": "100644"
     },
     "src/pages/register/success-web-exit.test.ts": {

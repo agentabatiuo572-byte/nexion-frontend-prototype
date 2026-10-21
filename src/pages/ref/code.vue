@@ -126,7 +126,7 @@
 import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { privacyPolicyHref } from "@/lib/privacy-return";
-import { navReset, navTo } from "@/lib/route";
+import { navReset, navTo, takeNavigationQuery } from "@/lib/route";
 import { computed, onUnmounted, ref, type CSSProperties } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -137,6 +137,7 @@ import Stat from "@/components/trust/trust-stat.vue";
 import { pickSponsor } from "@/mock/sponsors";
 import { apiClient, remoteApiEnabled } from "@/api/runtime";
 import { createPublicSponsorPreviewApi, type PublicSponsorPreview } from "@/api/public-sponsor-preview-api";
+import { ApiError } from "@/api/errors";
 import { normalizeRegistrationSponsorCode } from "@/auth/registration-sponsor";
 import { useConfig } from "@/store/config";
 import { useAuth } from "@/store/auth";
@@ -147,6 +148,7 @@ import { referralCtaMode, resolveReferralAttributionCode, type ReferralPreviewSt
 const PARTNER_LOGOS = ["NVIDIA", "Intel", "AMD", "OpenRouter", "OPPO", "TechCrunch"];
 const t = useT();
 const code = ref("");
+const requestedCode = ref<string | null>(null);
 const cfg = useConfig();
 const publicSponsorPreviewApi = createPublicSponsorPreviewApi(apiClient);
 const remotePreview = ref<PublicSponsorPreview | null>(null);
@@ -194,17 +196,21 @@ let referralLoadVersion = 0;
 let referralMounted = true;
 const isCurrentReferralLoad = (version: number) => referralMounted && version === referralLoadVersion;
 
-// [FEAT-SHARE4] 仅服务端预览确认的码才展示 sponsor / 写归因;非法、失败 = 普通注册。
+// Show sponsor/rewards only after preview. Forward the requested code while loading;
+// registration still validates it before establishing the relationship.
 onLoad(async (options) => {
-  privacyHref.value = privacyPolicyHref("/pages/ref/code", options?.code);
+  const forwarded = new URLSearchParams(takeNavigationQuery("/pages/ref/code"));
+  const incomingCode = options?.code ?? forwarded.get("code") ?? undefined;
+  privacyHref.value = privacyPolicyHref("/pages/ref/code", incomingCode);
   referralMounted = true;
   const loadVersion = ++referralLoadVersion;
   if (remoteApiEnabled) {
     code.value = "";
     remotePreview.value = null;
     remotePreviewState.value = "idle";
-    const rawCode = String(options?.code ?? "").trim();
+    const rawCode = String(incomingCode ?? "").trim();
     const norm = normalizeRegistrationSponsorCode(rawCode, true);
+    requestedCode.value = norm;
     if (!norm) {
       remotePreviewState.value = rawCode ? "unavailable" : "idle";
       return;
@@ -216,11 +222,13 @@ onLoad(async (options) => {
       remotePreview.value = preview;
       code.value = preview.code;
       remotePreviewState.value = "ready";
-    } catch {
+    } catch (cause) {
       if (!isCurrentReferralLoad(loadVersion)) return;
       code.value = "";
       remotePreview.value = null;
       remotePreviewState.value = "unavailable";
+      if (cause instanceof ApiError && ["REFERRAL_PREVIEW_INVALID", "REFERRAL_PREVIEW_NOT_FOUND"].includes(cause.message))
+        requestedCode.value = null;
     }
     return;
   }
@@ -266,11 +274,13 @@ function perkLabel(k: PerkKey): string {
 }
 
 function goRegister() {
-  const q = referralAttribution.value ? `?ref=${encodeURIComponent(referralAttribution.value)}` : "";
+  const sponsorCode = referralAttribution.value || requestedCode.value;
+  const q = sponsorCode ? `?ref=${encodeURIComponent(sponsorCode)}` : "";
   navTo(`/pages/register/register${q}`);
 }
 function goLogin() {
-  const q = referralAttribution.value ? `?ref=${encodeURIComponent(referralAttribution.value)}` : "";
+  const sponsorCode = referralAttribution.value || requestedCode.value;
+  const q = sponsorCode ? `?ref=${encodeURIComponent(sponsorCode)}` : "";
   navTo(`/pages/login/login${q}`);
 }
 function enterApp() {
