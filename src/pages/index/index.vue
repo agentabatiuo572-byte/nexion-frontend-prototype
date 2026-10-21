@@ -174,6 +174,7 @@ function goPhoneBinding() { if (hasNativeAndroidPhoneRuntime()) navTo("/pages/on
 onShow(() => useGenesisConfig().refresh());
 const locale = useLocaleStore();
 const platformConfig = useConfig();
+onShow(() => { void platformConfig.load(); });
 const weeklyQuestStore = useWeeklyQuest();
 const instance = getCurrentInstance();
 const homePromotions = ref<PublicPromotion[]>([]);

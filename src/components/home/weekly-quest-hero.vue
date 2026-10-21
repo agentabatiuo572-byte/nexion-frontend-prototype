@@ -70,6 +70,7 @@ import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, watch, type CSSProperties } from "vue";
 import type { CanonicalQuest } from "@/api/quest-api";
 import { useWeeklyQuest } from "@/store/weekly-quest";
+import { useConfig } from "@/store/config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { unclaimableGenesisQuests, genesisQuestContractViolation } from "@/lib/quest-genesis-tripwire";
 import { genesisBlockIsKnownUnavailable } from "@/store/genesis-config";
@@ -85,6 +86,7 @@ import { toast } from "@/store/ui";
 import { weeklyQuestDisplayName } from "@/lib/quest-presentation";
 
 const t = useT();
+const stakingDisplay = useConfig();
 const locale = useLocaleStore();
 const w = computed(() => t.value.weeklyQuest);
 const wq = useWeeklyQuest();
@@ -123,7 +125,9 @@ onMounted(() => {
   void wq.refresh();
 });
 
-const quest = computed<CanonicalQuest | null>(() => wq.tier1Quests.find((q) => isCurrentQuest(q, nowTick.value * 1000)) ?? null);
+const quest = computed<CanonicalQuest | null>(() => wq.tier1Quests.find((q) =>
+  (stakingDisplay.isEnabled("stakingVisible") || q.actionRoute !== "/pages/staking/staking")
+  && isCurrentQuest(q, nowTick.value * 1000)) ?? null);
 const mult = computed(() => wq.multiplier);
 const reward = computed(() => (quest.value ? Math.round(quest.value.rewardNex * mult.value) : 0));
 const rewardDisplay = computed(() => formatAmount(reward.value));

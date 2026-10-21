@@ -17,6 +17,7 @@ import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { toast } from "@/store/ui";
 import { getT } from "@/i18n/use-t";
 import { requestCheckoutLeave, hasCheckoutLeaveGuard, clearCheckoutLeaveForReset } from "@/lib/promotion-leave-guard";
+import { useConfig } from "@/store/config";
 
 const TAB_ROOT: Record<string, string> = {
   "/": "/pages/index/index",
@@ -249,6 +250,7 @@ function performNavTo(href: string): Promise<boolean> {
     return Promise.resolve(false);
   }
   const { url, tab } = toUniRoute(href);
+  if (url.startsWith("/pages/staking/") && !useConfig().isEnabled("stakingVisible")) return Promise.resolve(false);
   const question = url.indexOf("?");
   pendingNavigationQuery = question < 0 ? null : { path: url.slice(0, question), query: url.slice(question) };
   const queryForThisNavigation = pendingNavigationQuery;

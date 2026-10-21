@@ -19,6 +19,7 @@ export interface PlatformComputeConfigSnapshot {
     computeShareEnabled: boolean;
     homeNewcomerTasksEnabled: boolean;
     homeWeeklyPromoEnabled: boolean;
+    stakingVisible: boolean;
   };
   publicStats: PublicStatsConfig;
   publicStatsAuthority: PlatformPublicStatsAuthority;
@@ -215,7 +216,8 @@ export function parsePlatformExperienceConfig(value: unknown): {
   const root = record(value);
   const featureFlags = record(root.featureFlags);
   if (typeof featureFlags.homeNewcomerTasksEnabled !== "boolean"
-      || typeof featureFlags.homeWeeklyPromoEnabled !== "boolean") {
+      || typeof featureFlags.homeWeeklyPromoEnabled !== "boolean"
+      || (featureFlags.stakingVisible !== undefined && typeof featureFlags.stakingVisible !== "boolean")) {
     return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
   }
   return {
@@ -223,6 +225,7 @@ export function parsePlatformExperienceConfig(value: unknown): {
       computeShareEnabled: typeof featureFlags.computeShareEnabled === "boolean" ? featureFlags.computeShareEnabled : false,
       homeNewcomerTasksEnabled: featureFlags.homeNewcomerTasksEnabled,
       homeWeeklyPromoEnabled: featureFlags.homeWeeklyPromoEnabled,
+      stakingVisible: featureFlags.stakingVisible !== false,
     },
     share: parsePlatformShareConfig(root.share),
   };
@@ -395,6 +398,7 @@ export function parsePlatformComputeConfig(value: unknown, mode: ApiEnvironment 
   if (typeof featureFlags.computeShareEnabled !== "boolean"
       || typeof featureFlags.homeNewcomerTasksEnabled !== "boolean"
       || typeof featureFlags.homeWeeklyPromoEnabled !== "boolean"
+      || (featureFlags.stakingVisible !== undefined && typeof featureFlags.stakingVisible !== "boolean")
       || compute.domain !== "E6") return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
   const experience = parsePlatformExperienceConfig(value);
   const h5BaseFactor = nonNegativeNumber(onlineBonus.h5BaseFactor);

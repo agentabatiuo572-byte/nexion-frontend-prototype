@@ -27,6 +27,7 @@ export const useConfig = defineStore("config", () => {
       computeShareEnabled: false,
       homeNewcomerTasksEnabled: false,
       homeWeeklyPromoEnabled: false,
+      stakingVisible: false,
     },
     publicStats: {
       // 🔴 三个 -1 是**故意的非法值**,不是随手写的 0(2026-08-12 合并收口;

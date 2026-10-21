@@ -150,6 +150,7 @@ const cfg = useConfig();
 // wallet projection whenever this page becomes visible so a completed exchange
 // cannot send the user back to a stale pre-exchange balance.
 onShow(() => {
+  void cfg.load();
   if (remoteApiEnabled) {
     void app.refreshRemoteFleet();
     void refreshEarningsReleaseStatus().catch(() => undefined);

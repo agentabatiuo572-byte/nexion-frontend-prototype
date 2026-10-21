@@ -220,7 +220,7 @@
           </view>
 
           <!-- Boost CTA (state-specific label) -->
-          <view class="active:scale-[0.98] text-center" :style="boostStyle" @click="goStaking">
+          <view v-if="config.isEnabled('stakingVisible')" class="active:scale-[0.98] text-center" :style="boostStyle" @click="goStaking">
             <text :style="boostLabelStyle">{{ dividendsOpen ? t.genesisHolder.post.boostCta : t.genesisHolder.pre.boostCta }}</text>
           </view>
         </template>
@@ -245,6 +245,7 @@ import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { useGenesis, GENESIS_EMISSION } from "@/store/genesis";
 import { useGenesisConfig } from "@/store/genesis-config";
+import { useConfig } from "@/store/config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useGenesisPoints } from "@/store/genesis-points";
@@ -256,6 +257,8 @@ const NEX_REF_USDT = 0.189;
 
 const t = useT();
 const genesis = useGenesis();
+const config = useConfig();
+onShow(() => { void config.load(); });
 const genesisPoints = useGenesisPoints();
 
 const perkKeys = ["a", "b", "c", "d", "e", "f"] as const;

@@ -84,6 +84,7 @@ import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNexFaucet } from "@/store/nex-faucet";
+import { useConfig } from "@/store/config";
 import { useDailyPowerUp, type StreakPowerUpId } from "@/store/daily-powerup";
 import { toast } from "@/store/ui";
 import { remoteApiEnabled } from "@/api/runtime";
@@ -110,6 +111,7 @@ const t = useT();
 // `w` indexes dynamic `${key}_label/_desc` props → type as a string record.
 const w = computed(() => t.value.daily.powerUps as unknown as Record<string, string>);
 const faucet = useNexFaucet();
+const config = useConfig();
 const powerUp = useDailyPowerUp();
 
 const POWERUPS: PowerUp[] = [
@@ -119,7 +121,7 @@ const POWERUPS: PowerUp[] = [
   { id: "genesis_whitelist", threshold: 60, tint: "var(--v5-ink)", key: "genesis_whitelist", href: "/pages/genesis/genesis" },
 ];
 
-const powerUps = computed<PowerUp[]>(() => remoteApiEnabled
+const powerUps = computed<PowerUp[]>(() => (remoteApiEnabled
   ? faucet.remotePowerUps.map((item) => ({
       id: item.powerUpCode.toLowerCase() as StreakPowerUpId,
       threshold: item.unlockStreakDays,
@@ -129,7 +131,7 @@ const powerUps = computed<PowerUp[]>(() => remoteApiEnabled
       // 服务端的可用性判定是权威:它读的是各域自己的读模型,比客户端本地推断更准。
       serverBusinessAvailable: item.businessAvailable,
     }))
-  : POWERUPS);
+  : POWERUPS).filter((item) => config.isEnabled("stakingVisible") || item.id !== "staking_boost"));
 
 const streak = computed(() => faucet.signInStreak);
 

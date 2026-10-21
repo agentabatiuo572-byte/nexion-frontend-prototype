@@ -75,6 +75,7 @@ async function mount(locale: LocaleCode, copy: Messages, quests: CanonicalQuest[
     "@/store/content-copy": { useContentCopy: () => ({ refresh: async () => {}, deliveries: {}, status: {} }) },
     "@/store/order-canonical": { refreshCanonicalOrders: vi.fn() },
     "@/store/weekly-quest": { useWeeklyQuest: () => wq },
+    "@/store/config": { useConfig: () => ({ isEnabled: () => true }) },
     "@/lib/home-task-carousel": carousel,
     "@/lib/quest-presentation": questPresentation,
     "@/lib/quest-business-availability": questBusiness,

@@ -5,7 +5,7 @@
   Icon stroke follows the chip tone accent token (no hardcoded hex).
 -->
 <template>
-  <view class="grid grid-cols-4 gap-2">
+  <view class="grid gap-2" :style="{ gridTemplateColumns: `repeat(${chips.length}, minmax(0, 1fr))` }">
     <view
       v-for="c in chips"
       :key="c.href"
@@ -56,6 +56,7 @@ import { fmt } from "@/i18n/format";
 import { useNexFaucet } from "@/store/nex-faucet";
 import { useGenesis } from "@/store/genesis";
 import { useQuest } from "@/store/quest";
+import { useConfig } from "@/store/config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { remoteApiEnabled, stakingApi } from "@/api/runtime";
 import { highestLiveStakingApyPct } from "./home-staking-rate";
@@ -65,6 +66,7 @@ const t = useT();
 const faucet = useNexFaucet();
 const genesis = useGenesis();
 const quest = useQuest();
+const config = useConfig();
 const stakingApyPct = ref<number | null>(null);
 const stakingLoading = ref(true);
 const stakingFailed = ref(false);
@@ -126,7 +128,7 @@ const genesisSubtitle = computed(() => {
 });
 
 const chips = computed(() => [
-  { href: "/pages/staking/staking", icon: "gem", label: t.value.home.quickStake, sub: stakingSubtitle.value, tone: "brand" as const },
+  ...(config.isEnabled("stakingVisible") ? [{ href: "/pages/staking/staking", icon: "gem", label: t.value.home.quickStake, sub: stakingSubtitle.value, tone: "brand" as const }] : []),
   { href: "/pages/genesis/genesis", icon: "crown", label: t.value.home.quickGenesisLabel, sub: genesisSubtitle.value, tone: "warm" as const },
   { href: "/pages/missions/missions", icon: "target", label: t.value.home.quickMissions, sub: missionsSubtitle.value, tone: "brand" as const },
   { href: "/pages/daily/daily", icon: "flame", label: t.value.home.quickDaily, sub: dailySubtitle.value, tone: "warm" as const },

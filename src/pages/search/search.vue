@@ -119,6 +119,7 @@ import { useApp } from "@/store/app";
 import { useNetwork } from "@/store/network";
 import { useLocaleStore } from "@/store/locale";
 import { useStaking } from "@/store/staking";
+import { useConfig } from "@/store/config";
 import { PRODUCTS } from "@/mock/products";
 import type { Product } from "@/mock/products";
 import { productCopy, specRow } from "@/lib/product-copy";
@@ -146,6 +147,8 @@ const app = useApp();
 const network = useNetwork();
 const locale = useLocaleStore();
 const staking = useStaking();
+const config = useConfig();
+onShow(() => { void config.load(); });
 
 const q = ref("");
 
@@ -273,6 +276,7 @@ const results = computed<Hit[]>(() => {
   const routeCopy = t.value.search.routes;
   const faqCopy = t.value.search.faqEntries;
   for (const r of ROUTES) {
+    if (r.key === "staking" && !config.isEnabled("stakingVisible")) continue;
     const c = routeCopy[r.key];
     const sublabel = r.key === "staking"
       ? searchStakingRateSummary({

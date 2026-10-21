@@ -6,7 +6,7 @@
   + headline + "Stake for +$delta in {days} days" CTA → /staking.
 -->
 <template>
-  <view v-if="hasEligiblePool" class="nx-glass-card mx-4 mt-3 relative overflow-hidden" :style="cardStyle">
+  <view v-if="config.isEnabled('stakingVisible') && hasEligiblePool" class="nx-glass-card mx-4 mt-3 relative overflow-hidden" :style="cardStyle">
     <view aria-hidden :style="washStyle" />
     <view class="relative">
       <view class="flex items-center" :style="labelStyle">
@@ -39,12 +39,14 @@ import { computed, onMounted, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useStaking, STAKING_APY, STAKING_PENALTY, STAKING_MIN, type StakingTerm } from "@/store/staking";
+import { useConfig } from "@/store/config";
 import { canRecommendStakingPool, resolveStakingPool } from "@/lib/staking-canonical";
 
 const props = defineProps<{ amountNum: number }>();
 const t = useT();
 const w = computed(() => t.value.walletV3.stakeAlt);
 const staking = useStaking();
+const config = useConfig();
 onMounted(() => {
   if (!staking.isMockMode) void staking.syncRemote();
 });

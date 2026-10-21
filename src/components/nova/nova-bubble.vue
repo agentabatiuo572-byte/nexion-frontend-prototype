@@ -36,6 +36,7 @@ import { useNotifications, type NotifKind } from "@/store/notifications";
 import { remoteApiEnabled } from "@/api/runtime";
 import { welcomeMessage } from "@/mock/nova-templates";
 import { useGenesisConfig } from "@/store/genesis-config";
+import { useConfig } from "@/store/config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { useMessageDrawer } from "@/store/message-drawer";
 import { useT } from "@/i18n/use-t";
@@ -52,6 +53,7 @@ defineProps<{ dimmed?: boolean }>();
 
 const t = useT();
 const nova = useNova();
+const config = useConfig();
 const conversations = useConversations();
 const messageCenter = useMessageDrawer();
 const notifications = useNotifications();
@@ -181,7 +183,9 @@ onMounted(() => {
   timers.push(setTimeout(teamFire, FIRST_TEAM));
   intervals.push(setInterval(teamFire, TEAM_TICK_MS));
 
-  const stakingFire = () => fireChannel("staking", "staking", stakingEventMessage(t.value.nova.push), STAKING_COOLDOWN_MS);
+  const stakingFire = () => {
+    if (config.isEnabled("stakingVisible")) fireChannel("staking", "staking", stakingEventMessage(t.value.nova.push), STAKING_COOLDOWN_MS);
+  };
   timers.push(setTimeout(stakingFire, FIRST_STAKING));
   intervals.push(setInterval(stakingFire, STAKING_TICK_MS));
 

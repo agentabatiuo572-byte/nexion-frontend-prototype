@@ -177,6 +177,15 @@ describe("platform experience config contract", () => {
     expect(parsePlatformExperienceConfig(valid)).toMatchObject(valid);
   });
 
+  it("reads the PC staking display switch and rejects malformed values", () => {
+    expect(parsePlatformExperienceConfig({ ...valid, featureFlags: {
+      ...valid.featureFlags, stakingVisible: false,
+    } }).featureFlags.stakingVisible).toBe(false);
+    expect(() => parsePlatformExperienceConfig({ ...valid, featureFlags: {
+      ...valid.featureFlags, stakingVisible: "false",
+    } })).toThrow("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
+  });
+
   it("rejects unsafe URLs, unknown enums, and empty official release metadata", () => {
     expect(() => parsePlatformExperienceConfig({
       ...valid,

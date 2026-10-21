@@ -79,6 +79,7 @@ import { computed, onMounted, ref, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import type { CanonicalQuest } from "@/api/quest-api";
 import { useWeeklyQuest } from "@/store/weekly-quest";
+import { useConfig } from "@/store/config";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
@@ -93,6 +94,7 @@ import { useQuestTargetAvailability } from "@/composables/use-quest-target-avail
 import { weeklyQuestDisplayName } from "@/lib/quest-presentation";
 
 const t = useT();
+const stakingDisplay = useConfig();
 const locale = useLocaleStore();
 const w = computed(() => t.value.weeklyQuest);
 const wq = useWeeklyQuest();
@@ -108,7 +110,8 @@ bindPageVisibilityRefresh(weeklyQuestVisibility, {
   hidden: (callback) => onHide(callback),
 });
 
-const tier2Quests = computed<CanonicalQuest[]>(() => mounted.value ? wq.tier2Quests : []);
+const tier2Quests = computed<CanonicalQuest[]>(() => mounted.value
+  ? wq.tier2Quests.filter((q) => stakingDisplay.isEnabled("stakingVisible") || q.actionRoute !== "/pages/staking/staking") : []);
 
 const mult = computed(() => wq.multiplier);
 const completedCount = computed(() => tier2Quests.value.filter((q) =>

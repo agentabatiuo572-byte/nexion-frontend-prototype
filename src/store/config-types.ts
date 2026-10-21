@@ -13,6 +13,7 @@ export interface FeatureFlags {
   // weekly card = H3 has an active WEEKLY_T1/T2 mission or an active promo banner.
   homeNewcomerTasksEnabled: boolean;
   homeWeeklyPromoEnabled: boolean;
+  stakingVisible: boolean;
 }
 
 // Single source: derived from FeatureFlags keys — adding a flag to the

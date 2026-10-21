@@ -13,6 +13,7 @@ export const DEFAULT_PLATFORM_CONFIG: PlatformConfigSeed = {
     // day-one task statuses and promo-banner status; client remains read-only.
     homeNewcomerTasksEnabled: true,
     homeWeeklyPromoEnabled: true,
+    stakingVisible: true,
   },
   // SPEC-1 在线加成系数(单一来源:lib/hashpower.ts 派生 H5_BASE_FACTOR / CONTINUITY_FULL_MS)。
   // 与 admin compute-config COMPUTE_COEFFICIENTS 同 key,运营在 E6 调,PROD 由服务端下发。

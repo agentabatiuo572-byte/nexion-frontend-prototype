@@ -6,7 +6,7 @@
   <AppChassis active="me">.
 -->
 <template>
-  <AppChassis active="me">
+  <AppChassis v-if="config.configStatus === 'ready' && config.isEnabled('stakingVisible')" active="me">
     <view style="padding-bottom: 32px">
       <SubPageHeader back="/pages/staking/staking" />
 
@@ -96,7 +96,9 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
-import { navTo } from "@/lib/route";
+import { navTo, navReset } from "@/lib/route";
+import { useConfig } from "@/store/config";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import { computed, onMounted, ref, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -114,6 +116,25 @@ import { exchangeApi, remoteApiEnabled } from "@/api/runtime";
 import { stakingFaqAnswerKey } from "./staking-faq-availability";
 
 const t = useT();
+const config = useConfig();
+let pageVisible = false;
+let visibilityTimer: ReturnType<typeof setInterval> | null = null;
+function refreshVisibility() {
+  void config.load().then(() => {
+    if (pageVisible && !config.isEnabled("stakingVisible")) void navReset("/pages/index/index");
+  });
+}
+onShow(() => {
+  pageVisible = true;
+  refreshVisibility();
+  if (visibilityTimer) clearInterval(visibilityTimer);
+  if (remoteApiEnabled) visibilityTimer = setInterval(refreshVisibility, 15_000);
+});
+onHide(() => {
+  pageVisible = false;
+  if (visibilityTimer) clearInterval(visibilityTimer);
+  visibilityTimer = null;
+});
 const w = computed(() => t.value.stakingHowItWorks);
 const staking = useStaking();
 const retrying = ref(false);

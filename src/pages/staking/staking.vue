@@ -10,7 +10,7 @@
   (入账 ⊗ 记账,见 lib/money-receipt.ts) in the page handlers.
 -->
 <template>
-  <AppChassis active="me">
+  <AppChassis v-if="config.configStatus === 'ready' && config.isEnabled('stakingVisible')" active="me">
     <CardStagger style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/wallet" />
       <!-- 开发诊断,不是产品文案:所以① 只在 DEV 构建渲染 ② 文案是裸英文字面量,不进三语词典 ——
@@ -128,7 +128,8 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
-import { navTo } from "@/lib/route";
+import { navTo, navReset } from "@/lib/route";
+import { useConfig } from "@/store/config";
 import { ref, computed, watch, getCurrentInstance, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -203,11 +204,31 @@ function invalidateConfirmations() {
 
 function hidePage() {
   pageVisible = false;
+  if (visibilityTimer) clearInterval(visibilityTimer);
+  visibilityTimer = null;
   invalidateConfirmations();
 }
 
 watch(() => [app.accountKey, app.accountBindingEpoch], invalidateConfirmations, { flush: "sync" });
-onShow(() => { pageVisible = true; });
+const config = useConfig();
+let visibilityTimer: ReturnType<typeof setInterval> | null = null;
+watch(() => config.isEnabled("stakingVisible"), (visible) => {
+  if (!visible) sheetOpen.value = false;
+});
+function refreshVisibility() {
+  void config.load().then(() => {
+    if (!pageVisible || config.isEnabled("stakingVisible")) return;
+    sheetOpen.value = false;
+    invalidateConfirmations();
+    void navReset("/pages/index/index");
+  });
+}
+onShow(() => {
+  pageVisible = true;
+  refreshVisibility();
+  if (visibilityTimer) clearInterval(visibilityTimer);
+  if (!staking.isMockMode) visibilityTimer = setInterval(refreshVisibility, 15_000);
+});
 onHide(hidePage);
 
 async function runRemoteMutation(kind: "claim" | "early", positionNo: string, scope = mutationScope()) {

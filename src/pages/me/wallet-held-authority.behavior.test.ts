@@ -78,7 +78,7 @@ async function mount(remoteApiEnabled = true) {
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(en) },
     "@/i18n/format": { fmt }, "@/store/app": { useApp: () => app },
     "@/store/commission": { useCommission: () => commission },
-    "@/store/cards": { useCards: () => ({ cards: [] }) }, "@/store/config": { useConfig: () => ({ syncFailed: false }) },
+    "@/store/cards": { useCards: () => ({ cards: [] }) }, "@/store/config": { useConfig: () => ({ syncFailed: false, isEnabled: () => true, load: vi.fn(async () => {}) }) },
     "@/store/ui": { confirm: vi.fn() }, "@/api/runtime": { remoteApiEnabled, developmentPaymentEnabled: false },
     "@/lib/wallet-today-earnings": { resolveWalletTodayEarnings },
     "@/store/earning-release": { earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus, refreshEarningsReleaseStatus },

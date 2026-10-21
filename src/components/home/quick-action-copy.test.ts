@@ -29,6 +29,7 @@ function actualChips(dictionary: typeof zh | typeof en | typeof vi) {
     "@/store/nex-faucet": { useNexFaucet: () => faucet },
     "@/store/genesis": { useGenesis: () => genesis },
     "@/store/quest": { useQuest: () => quest },
+    "@/store/config": { useConfig: () => ({ isEnabled: () => true }) },
     "@/composables/use-genesis-sale-gate": { useGenesisSaleGate: () => ({ showUrgency: Vue.ref(true), blockText: Vue.ref(null) }) },
     "@/api/runtime": { remoteApiEnabled: true, stakingApi: {} },
     "./home-staking-rate": { highestLiveStakingApyPct },

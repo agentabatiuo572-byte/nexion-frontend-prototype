@@ -42,9 +42,9 @@ const lifecycle = ast.statements.filter((s) => ts.isExpressionStatement(s)
   && ["watch", "onShow", "onHide", "onUnmounted"].includes(s.expression.expression.getText(ast)))
   .map((s) => s.getText(ast));
 const executable = ts.transpileModule([
-  ...["confirmationOwner", "pageVisible", "pageGeneration"].map(variable),
+  ...["confirmationOwner", "pageVisible", "pageGeneration", "visibilityTimer"].map(variable),
   ...["mutationScope", "isCurrentMutationBinding", "isCurrentMutationPage", "invalidateConfirmations", "hidePage",
-    "runRemoteMutation", "handleEarlyWithdraw", "handleClaim"].map(declaration),
+    "refreshVisibility", "runRemoteMutation", "handleEarlyWithdraw", "handleClaim"].map(declaration),
   ...lifecycle,
   "return { handleEarlyWithdraw, handleClaim };",
 ].join("\n"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
@@ -100,6 +100,8 @@ async function harness(storage?: RemoteIntentStorage) {
     formatAmount,
     app, staking, ui, uiConfirm: confirm, resolvePositionPenalty, STAKING_PENALTY,
     pendingRemoteMutations: ref(new Set<string>()),
+    config: { isEnabled: () => true, load: () => Promise.resolve() },
+    sheetOpen: ref(false), navReset: vi.fn(), setInterval: vi.fn(() => 1),
     remoteMutationGate: new RemoteIntentKeyRegistry("G1", persistent),
     t: { value: { staking: { remoteUnavailableClosed: "unavailable" }, stakingV3: { toast: {
       earlyConfirmTitle: "early", earlyConfirmMessage: "fee", earlyConfirmCta: "confirm",

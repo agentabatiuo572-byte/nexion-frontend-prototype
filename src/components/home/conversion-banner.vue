@@ -80,6 +80,7 @@ import { useLocaleStore } from "@/store/locale";
 import { useContentCopy } from "@/store/content-copy";
 import { refreshCanonicalOrders } from "@/store/order-canonical";
 import { useWeeklyQuest } from "@/store/weekly-quest";
+import { useConfig } from "@/store/config";
 import { presentHomeWeeklyCard, selectHomeWeeklySource } from "@/lib/home-task-carousel";
 import { weeklyQuestDisplayName } from "@/lib/quest-presentation";
 import { navTo } from "@/lib/route";
@@ -98,6 +99,7 @@ const t = useT();
 const locale = useLocaleStore();
 const managedCopy = useContentCopy();
 const wq = useWeeklyQuest();
+const stakingDisplay = useConfig();
 const now = useNow();
 
 onMounted(() => {
@@ -109,7 +111,8 @@ onMounted(() => {
 const { block: genesisBlock } = useGenesisSaleGate();
 const targetAvailability = useQuestTargetAvailability();
 const weeklySource = computed(() => selectHomeWeeklySource(
-  [...wq.tier1Quests, ...wq.tier2Quests],
+  [...wq.tier1Quests, ...wq.tier2Quests].filter((q) =>
+    stakingDisplay.isEnabled("stakingVisible") || q.actionRoute !== "/pages/staking/staking"),
   wq.snapshot?.promoBanner ?? null,
 ));
 const weeklyCard = computed(() => presentHomeWeeklyCard(

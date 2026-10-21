@@ -59,6 +59,7 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
     "@/i18n/format": { fmt, dateLocale: () => "en-US" },
     "@/store/genesis": { useGenesis: () => genesis, GENESIS_EMISSION: {} },
     "@/store/genesis-config": { useGenesisConfig: () => ({ refresh: configRefresh }) },
+    "@/store/config": { useConfig: () => ({ isEnabled: () => true }) },
     "@/composables/use-genesis-sale-gate": { useGenesisSaleGate: () => ({ showUrgency: Vue.ref(false), blockText: Vue.ref(null) }) },
     "@/store/genesis-points": { useGenesisPoints: () => ({ projection: null, status: "idle", refresh: pointsRefresh }) },
     "@/lib/active-page-refresh": { registerActivePageRefresh },
