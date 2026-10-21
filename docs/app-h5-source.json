@@ -3,10 +3,10 @@
   "sourcePath": "/home/jenkins/agent/workspace/telegram78/app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "c44d6526326256f9306de0a6241b6d7fe027369c",
-  "sourceRef": "c44d6526326256f9306de0a6241b6d7fe027369c",
+  "sourceHead": "01517994d1cac90888c2b6f4f51e3b174735e4f3",
+  "sourceRef": "01517994d1cac90888c2b6f4f51e3b174735e4f3",
   "sourceRefKind": "commit",
-  "sourceTree": "c95bf6285298a3ff7398f790bece634e9166b50b",
+  "sourceTree": "b5e176749bb8efab584ff6c42a876cd62ba99244",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -48,52 +48,52 @@
       "mode": "100644"
     },
     ".githooks/config.json": {
-      "sourceBlob": "54e5e35df88f48582cc5d53282b4ae55b3b8563f",
-      "sourceSha256": "0614a41fafe1ac75c232ddd1b5375cd7805f1a9d8c7fb8ade5c672f17ff8daa2",
-      "targetBlob": "1a99455ccd39e6f16d2f02b37f40992409fc8675",
-      "targetSha256": "630a175cf22f743b0eb998ed52ecef857bc4d049710fd4a7137463d27f8cac28",
+      "sourceBlob": "08ca1caed2747883f13b68cb62cef601db39e83b",
+      "sourceSha256": "f1518ef20f90655bf287bca9a4c16bd6a26595ca63a307666a9ba5226b0fb360",
+      "targetBlob": "7fe4e9c7bf812d0554d77746f53d2b74dee78cdd",
+      "targetSha256": "f093ac507dd335a34adf3d26d2384ef7e3cf2e86f04d3c3ca5d605c45f663c45",
       "mode": "100644"
     },
     ".githooks/guard-mainline-commit.mjs": {
-      "sourceBlob": "079a14c7667c0d6ae9cb579effdf6779187d3131",
-      "sourceSha256": "dead77f47fef8b82133189d83e5169748e8316f634d1b5165674a093f069983c",
-      "targetBlob": "079a14c7667c0d6ae9cb579effdf6779187d3131",
-      "targetSha256": "dead77f47fef8b82133189d83e5169748e8316f634d1b5165674a093f069983c",
+      "sourceBlob": "ddc5ae731d9bb09e0b53f2153f2ad837f9553d31",
+      "sourceSha256": "2e8784e2c3ce893d69d2209ca067913828280dd4a1115f7e1145366026ae9d53",
+      "targetBlob": "ddc5ae731d9bb09e0b53f2153f2ad837f9553d31",
+      "targetSha256": "2e8784e2c3ce893d69d2209ca067913828280dd4a1115f7e1145366026ae9d53",
       "mode": "100644"
     },
     ".githooks/guard-mainline-commit.test.mjs": {
-      "sourceBlob": "a4d082476d9a3d1f1326d3d568d1233b60974279",
-      "sourceSha256": "cc571c60a735650749f2d762b513f5536beb296593787c007e33211916a5f7b6",
-      "targetBlob": "a4d082476d9a3d1f1326d3d568d1233b60974279",
-      "targetSha256": "cc571c60a735650749f2d762b513f5536beb296593787c007e33211916a5f7b6",
+      "sourceBlob": "ec9085e1285bc7c13f3ba81f203dbe56d5e19a4a",
+      "sourceSha256": "e5688c91fecc5c4adb0522874195f1360e21b6f69631a38ba228835abc78718e",
+      "targetBlob": "ec9085e1285bc7c13f3ba81f203dbe56d5e19a4a",
+      "targetSha256": "e5688c91fecc5c4adb0522874195f1360e21b6f69631a38ba228835abc78718e",
       "mode": "100644"
     },
     ".githooks/pre-commit": {
-      "sourceBlob": "f87ed9b646116fb6d5a0dcbe4e063c4877ec18ec",
-      "sourceSha256": "0795fa3f71a4cd5e6d5030b047e7dd45f4d7c32b7171168bc3583696f35dd63a",
-      "targetBlob": "f87ed9b646116fb6d5a0dcbe4e063c4877ec18ec",
-      "targetSha256": "0795fa3f71a4cd5e6d5030b047e7dd45f4d7c32b7171168bc3583696f35dd63a",
+      "sourceBlob": "76d7ef631a2aebafd1ec66085b9a27d49a6feb47",
+      "sourceSha256": "a9c043329b84e7adc9030dbbf2324f4c9f75b734cc8bb4c476d485522171e491",
+      "targetBlob": "76d7ef631a2aebafd1ec66085b9a27d49a6feb47",
+      "targetSha256": "a9c043329b84e7adc9030dbbf2324f4c9f75b734cc8bb4c476d485522171e491",
       "mode": "100755"
     },
     ".githooks/pre-push": {
-      "sourceBlob": "c016624f9d55a9bd8b18de60453b953cbcfdb970",
-      "sourceSha256": "c63570a08e3f02903b1a9139c77c0084a73b0043449f33c3a911ee6033358051",
-      "targetBlob": "c016624f9d55a9bd8b18de60453b953cbcfdb970",
-      "targetSha256": "c63570a08e3f02903b1a9139c77c0084a73b0043449f33c3a911ee6033358051",
+      "sourceBlob": "714b305dcec37a65ab0cd27c6fef0c5e208cdb04",
+      "sourceSha256": "eb7a0d4430677dbd8835025fb8546999e341587935e9fbf0f18b0371701bcaa5",
+      "targetBlob": "714b305dcec37a65ab0cd27c6fef0c5e208cdb04",
+      "targetSha256": "eb7a0d4430677dbd8835025fb8546999e341587935e9fbf0f18b0371701bcaa5",
       "mode": "100755"
     },
     ".githooks/verify-before-push.mjs": {
-      "sourceBlob": "b72bf806cdc60df109e36d2b7f8361e6c7918ebf",
-      "sourceSha256": "1f9ba6069dc3dea3752e7470798d843fcb9a8d02aea3e5b0603ba36bb7a0885a",
-      "targetBlob": "b72bf806cdc60df109e36d2b7f8361e6c7918ebf",
-      "targetSha256": "1f9ba6069dc3dea3752e7470798d843fcb9a8d02aea3e5b0603ba36bb7a0885a",
+      "sourceBlob": "56e1f9c320a0a45b2da144603b2fbe71ea69440e",
+      "sourceSha256": "0cd7790e4c150a9f37bca4ff04f329361e793ec0bc042bf84c074f9821769922",
+      "targetBlob": "56e1f9c320a0a45b2da144603b2fbe71ea69440e",
+      "targetSha256": "0cd7790e4c150a9f37bca4ff04f329361e793ec0bc042bf84c074f9821769922",
       "mode": "100644"
     },
     ".githooks/verify-before-push.test.mjs": {
-      "sourceBlob": "ffeec0bff401ea17e9c9ba4e5b8c3f703a9186d5",
-      "sourceSha256": "0703ced1731f835a8637a3caa45928e17a8c18eb6c1157164efdf6ac8f3b0df8",
-      "targetBlob": "ffeec0bff401ea17e9c9ba4e5b8c3f703a9186d5",
-      "targetSha256": "0703ced1731f835a8637a3caa45928e17a8c18eb6c1157164efdf6ac8f3b0df8",
+      "sourceBlob": "c8d6b5307d7beb6a384a61edc253171be81e1569",
+      "sourceSha256": "c59aacd70c6dd6c451599696bb9f636be3ee050d8538618e2ecbf95680c2f1d2",
+      "targetBlob": "c8d6b5307d7beb6a384a61edc253171be81e1569",
+      "targetSha256": "c59aacd70c6dd6c451599696bb9f636be3ee050d8538618e2ecbf95680c2f1d2",
       "mode": "100644"
     },
     ".gitignore": {
@@ -279,10 +279,10 @@
       "mode": "100644"
     },
     "docs/app-h5-sync.md": {
-      "sourceBlob": "d8a3955dacdca5f0f5dc692ad90135267b936577",
-      "sourceSha256": "e0420b42ccedf126e22bce846381f4b02dbb62505bbd6753ec9c29a946accbb0",
-      "targetBlob": "d8a3955dacdca5f0f5dc692ad90135267b936577",
-      "targetSha256": "e0420b42ccedf126e22bce846381f4b02dbb62505bbd6753ec9c29a946accbb0",
+      "sourceBlob": "38724e0e8212cda5a1520893a2523ef9d3458f80",
+      "sourceSha256": "f908749fec70d9262fc934d874b2eedb10f9bf72a1c8cb532312193195662644",
+      "targetBlob": "38724e0e8212cda5a1520893a2523ef9d3458f80",
+      "targetSha256": "f908749fec70d9262fc934d874b2eedb10f9bf72a1c8cb532312193195662644",
       "mode": "100644"
     },
     "docs/audit/2026-08-07-probe-and-guard-audit.md": {
