@@ -137,6 +137,10 @@
       "style": { "navigationStyle": "custom" }
     },
     {
+      "path": "pages/me/phone-binding",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
       "path": "pages/me/goals",
       "style": { "navigationStyle": "custom" }
     },

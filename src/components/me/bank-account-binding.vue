@@ -76,6 +76,7 @@ import { formatBankDateTime } from "@/lib/bank-date";
 import { createBankBindingForm, directBankBindingAvailable } from "@/lib/bank-binding-form";
 import { bankAccountNotice } from "@/lib/bank-withdrawal-state";
 import { navReplace } from "@/lib/route";
+import { requireAccountPhone } from "@/lib/require-account-phone";
 
 const props = defineProps<{ active: boolean; returnTo: string }>();
 const t = useT(), c = computed(() => t.value.bankBinding), app = useApp();
@@ -88,7 +89,7 @@ const fieldsDisabled = computed(() => state.busy || state.phase !== "details" ||
 const canSubmit = computed(() => { void now.value; return !state.busy && (state.phase === "uncertain" || form.canContinue()); });
 const canSendOtp = computed(() => { void now.value; return form.canSendOtp(); });
 const resendSeconds = computed(() => Math.max(0, Math.ceil((state.resendAt - now.value) / 1000)));
-function sendOtp() { if (canSendOtp.value) void form.sendOtp(); }
+function sendOtp() { if (canSendOtp.value && requireAccountPhone()) void form.sendOtp(); }
 const errorMessage = computed(() => ({ load: c.value.loadError, unsupported: c.value.unsupported, routingUnverified: c.value.routingUnverified, bind: c.value.bindError, unknown: c.value.unknown, otpSend: c.value.otpSendError, otpInvalid: c.value.otpInvalid, otpRateLimited: c.value.otpRateLimited }[state.error] || c.value.bindError));
 const displayDate = formatBankDateTime;
 function submitBinding() {

@@ -35,6 +35,10 @@
       </view>
 
       <view v-if="remoteApiEnabled" class="mx-4"><ThirdPartyAuth :key="app.accountKey + ':' + app.accountBindingEpoch" intent="LINK" :disabled="securityBusy || !remoteSecurity" @busy="oauthBusy = $event" /></view>
+      <view v-if="phoneMissing" class="mx-4 nx-glass-card" style="padding: 16px; margin-bottom: 16px" role="status">
+        <text class="block">{{ t.security.phoneBindingRequired }}</text>
+        <view role="button" tabindex="0" style="min-height: 44px; color: var(--v5-brand); display: flex; align-items: center" @click="navTo('/pages/me/phone-binding')" @keydown.enter.prevent="navTo('/pages/me/phone-binding')">{{ t.security.phoneBindingTitle }} →</view>
+      </view>
       <!-- ───── Password + Two-factor (merged, de-carded group) ───── -->
       <view class="nx-glass-card mx-4" :style="cardStyle">
         <view class="flex items-center active:opacity-90" :style="rowStyle" role="button" tabindex="0" :aria-expanded="editingPwd ? 'true' : 'false'" @click="editingPwd = !editingPwd"  @keydown.enter.prevent="editingPwd = !editingPwd" @keydown.space.prevent="editingPwd = !editingPwd">
@@ -175,6 +179,7 @@ import { nexGridBrandText } from "@/lib/brand-copy";
 import { confirm as uiConfirm, toast, useUI } from "@/store/ui";
 import { isPasswordOk, PASSWORD_MAX_LENGTH } from "@/auth/password-rules";
 import { accountApi, authApi, apiRuntimeConfig, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { requireAccountPhone } from "@/lib/require-account-phone";
 import { apiEnvironmentBadgeLabel } from "@/api/runtime-config";
 import { deleteMockAuthAccount } from "@/api/mock-auth-api";
 import type { SecurityState } from "@/api/contracts";
@@ -211,6 +216,7 @@ const securityConfirmOwner = `p3-18-security:${globalThis.crypto?.randomUUID?.()
 let securityPageVisible = true;
 
 const remoteSecurity = ref<SecurityState | null>(null);
+const phoneMissing = ref(remoteApiEnabled && !!sessionVault.read() && !sessionVault.read()!.user.phone);
 const deletionStatus = ref<AccountDeletionStatus>({ status: "NONE" });
 const deletionPending = computed(() => deletionStatus.value.status !== "NONE"
   && (deletionStatus.value.status === "REQUESTED" || deletionStatus.value.status === "IN_REVIEW" || deletionStatus.value.status === "BLOCKED"));
@@ -329,6 +335,7 @@ function refreshSecurityForCurrentAccount() {
 
 onShow(() => {
   securityPageVisible = true;
+  phoneMissing.value = remoteApiEnabled && !!sessionVault.read() && !sessionVault.read()!.user.phone;
   refreshSecurityForCurrentAccount();
 });
 onHide(() => {
@@ -545,6 +552,7 @@ async function submitPasswordChange() {
 
 async function toggleTwoFactor(value: boolean) {
   if (securityBusy.value) return;
+  if (!requireAccountPhone()) return;
   const pageScope = securityPageFence.capture("two-factor");
   const accountScope = captureAccountScope();
   const accountKey = auth.accountId;

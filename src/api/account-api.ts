@@ -3,6 +3,8 @@ import type { SecurityMutation, SecurityState } from "./contracts";
 import { ApiError } from "./errors";
 
 export interface AccountApi {
+  sendPhoneBindingChallenge(countryCode: string, phone: string, captchaTicket?: string): Promise<{ challengeNo: string; resendAfterSec: number; deliveryHint: string }>;
+  bindPhone(countryCode: string, phone: string, challengeNo: string, code: string): Promise<void>;
   securityOverview(cursor?: string): Promise<SecurityState>;
   passwordCommandReceipt(key: string): Promise<SecurityMutation | null>;
   changePassword(currentPassword: string, newPassword: string, idempotencyKey: string): Promise<SecurityMutation>;
@@ -165,6 +167,19 @@ function parseAccountDeletionStatus(value: unknown): AccountDeletionStatus {
 
 export function createAccountApi(client: ApiClient): AccountApi {
   return {
+    sendPhoneBindingChallenge: async (countryCode, phone, captchaTicket) => {
+      const result = record(await client.request({ method: "POST", path: "/api/app/security/phone/challenge",
+        body: { countryCode, phone, ...(captchaTicket ? { captchaTicket } : {}) } }));
+      if (!result || typeof result.challengeNo !== "string" || !/^REG-[a-f0-9]{32}$/.test(result.challengeNo)
+          || !Number.isSafeInteger(result.resendAfterSec) || typeof result.deliveryHint !== "string")
+        throw new ApiError({ kind: "protocol", message: "PHONE_BINDING_CHALLENGE_INVALID" });
+      return result as { challengeNo: string; resendAfterSec: number; deliveryHint: string };
+    },
+    bindPhone: async (countryCode, phone, challengeNo, code) => {
+      const result = record(await client.request({ method: "POST", path: "/api/app/security/phone",
+        body: { countryCode, phone, challengeNo, code } }));
+      if (result?.status !== "PHONE_BOUND") throw new ApiError({ kind: "protocol", message: "PHONE_BINDING_RESPONSE_INVALID" });
+    },
     passwordCommandReceipt: async (key) => {
       const result = await client.request({ method: "GET", path: `/api/app/security/password/commands/${encodeURIComponent(key)}` });
       return result === null ? null : parseMutation(result);
