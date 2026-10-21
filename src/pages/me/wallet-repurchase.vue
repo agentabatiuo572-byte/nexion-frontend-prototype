@@ -5,7 +5,7 @@
   isolated backend route exists. Wrapped in <AppChassis active="me">.
 -->
 <template>
-  <AppChassis active="me">
+  <AppChassis v-if="visibility.configStatus === 'ready' && visibility.isEnabled('stakingVisible')" active="me">
     <view style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/wallet" />
 
@@ -144,20 +144,22 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import Row from "@/components/me/repurchase-row.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import { confirm as uiConfirm, toast } from "@/store/ui";
+import { confirm as uiConfirm, toast, useUI } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { postMoneyBill } from "@/lib/money-receipt";
 import { useStaking } from "@/store/staking";
+import { useConfig } from "@/store/config";
 import { apiRuntimeConfig } from "@/api/runtime";
 import { useRepurchase } from "@/store/repurchase";
 import { resolveRepurchaseRuntimePolicy } from "@/lib/repurchase-runtime-policy";
-import { navTo } from "@/lib/route";
+import { navReset, navTo } from "@/lib/route";
 import { formatCommandAmount, normalizeCommandAmount } from "@/lib/command-amount";
 import type { RepurchaseStatus } from "@/api/repurchase-api";
 
@@ -168,6 +170,18 @@ const w = computed(() => t.value.repurchase);
 const app = useApp();
 const staking = useStaking();
 const repurchase = useRepurchase();
+const visibility = useConfig();
+const ui = useUI();
+let pageVisible = false;
+let visibilityTimer: ReturnType<typeof setInterval> | null = null;
+function refreshVisibility() {
+  void visibility.load().then(() => {
+    if (!pageVisible || visibility.isEnabled("stakingVisible")) return;
+    accountGeneration += 1;
+    ui.clearConfirmsBy("wallet-repurchase");
+    void navReset("/pages/index/index");
+  });
+}
 const repurchasePolicy = resolveRepurchaseRuntimePolicy(apiRuntimeConfig.environment);
 const isRemote = computed(() => repurchasePolicy.serverAuthoritative);
 const isSandboxHold = computed(() => repurchasePolicy.unavailable);
@@ -179,7 +193,20 @@ const amountTouched = ref(false);
 const confirming = ref(false);
 let accountGeneration = 0;
 watch(() => app.accountKey, () => { accountGeneration += 1; }, { flush: "sync" });
-const currentScope = (generation: number) => isMounted.value && generation === accountGeneration;
+const currentScope = (generation: number) => isMounted.value && generation === accountGeneration
+  && pageVisible && visibility.isEnabled("stakingVisible");
+onShow(() => {
+  pageVisible = true;
+  refreshVisibility();
+  if (visibilityTimer) clearInterval(visibilityTimer);
+  if (isRemote.value) visibilityTimer = setInterval(refreshVisibility, 15_000);
+});
+onHide(() => {
+  pageVisible = false;
+  if (visibilityTimer) clearInterval(visibilityTimer);
+  visibilityTimer = null;
+  ui.clearConfirmsBy("wallet-repurchase");
+});
 const recovering = computed(() => isRemote.value && repurchase.pendingOpenAmount !== null);
 watch(() => repurchase.pendingOpenAmount, (pending) => {
   if (pending !== null) amount.value = pending;

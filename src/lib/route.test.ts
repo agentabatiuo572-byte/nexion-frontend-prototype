@@ -30,7 +30,16 @@ vi.mock("@/i18n/use-t", () => ({
   getT: () => ({ ui: { navigationFailed: "Navigation failed" } }),
 }));
 
-import { navBack, navTo, navReset, navReplace, takeNavigationQuery, toUniRoute } from "./route";
+import { isStakingVisibilityRoute, navBack, navTo, navReset, navReplace, takeNavigationQuery, toUniRoute } from "./route";
+
+describe("staking visibility routes", () => {
+  it("covers staking and reinvestment pages without hiding the wallet", () => {
+    expect(isStakingVisibilityRoute("/pages/staking/staking")).toBe(true);
+    expect(isStakingVisibilityRoute("/pages/me/wallet-repurchase?from=wallet")).toBe(true);
+    expect(isStakingVisibilityRoute("/pages/me/wallet-repurchase-how")).toBe(true);
+    expect(isStakingVisibilityRoute("/pages/me/wallet")).toBe(false);
+  });
+});
 
 type NavigationOptions = {
   url: string;

@@ -67,7 +67,7 @@ function activate(provider: AuthProviderLabel) {
 .auth-provider[aria-disabled="true"] { opacity: 0.5; }
 .auth-provider-grid--linked .auth-provider { height: 82px; }
 .auth-provider--linked[aria-disabled="true"] { opacity: 1; }
-.auth-provider__status { font-size: 11px; line-height: 14px; color: var(--v5-ink-3); }
+.auth-provider__status { font-size: 12px; line-height: 14px; color: var(--v5-ink-3); }
 .auth-provider__icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex: 0 0 20px; }
 .auth-provider__icon--ink { color: var(--v5-ink-2); }
 .auth-provider__label { max-width: 100%; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 14px; font-weight: 500; color: var(--v5-ink-3); }

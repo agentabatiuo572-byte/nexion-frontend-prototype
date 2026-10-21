@@ -62,7 +62,7 @@ async function mount(translations = en) {
   const empty = { render: () => null };
   const modules: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
-    vue: Vue, "@dcloudio/uni-app": { onShow: () => {} },
+    vue: Vue, "@dcloudio/uni-app": { onShow: () => {}, onHide: () => {} },
     "@/components/app-chassis.vue": { default: chassis },
     "@/components/sub-page-header.vue": { default: empty },
     "@/components/empty-state.vue": { default: empty },

@@ -235,6 +235,13 @@ function runNavigationChain(attempts: NavigationAttempt[]): Promise<boolean> {
 }
 
 /** Navigate to a logical-or-uni href, picking reLaunch for tab roots. */
+export function isStakingVisibilityRoute(href: string): boolean {
+  const path = href.split("?")[0];
+  return path.startsWith("/pages/staking/")
+    || path === "/pages/me/wallet-repurchase"
+    || path === "/pages/me/wallet-repurchase-how";
+}
+
 export function navTo(href: string): Promise<boolean> {
   if (hasCheckoutLeaveGuard()) return requestCheckoutLeave().then(allowed=>allowed?performNavTo(href):false);
   return performNavTo(href);
@@ -250,7 +257,7 @@ function performNavTo(href: string): Promise<boolean> {
     return Promise.resolve(false);
   }
   const { url, tab } = toUniRoute(href);
-  if (url.startsWith("/pages/staking/") && !useConfig().isEnabled("stakingVisible")) return Promise.resolve(false);
+  if (isStakingVisibilityRoute(url) && !useConfig().isEnabled("stakingVisible")) return Promise.resolve(false);
   const question = url.indexOf("?");
   pendingNavigationQuery = question < 0 ? null : { path: url.slice(0, question), query: url.slice(question) };
   const queryForThisNavigation = pendingNavigationQuery;

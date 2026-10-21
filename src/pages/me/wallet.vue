@@ -96,7 +96,7 @@
       </view>
 
       <!-- Activity list -->
-      <WalletListRow icon-bg="var(--v5-brand-2-soft)" :label="t.repurchase.ordersTitle" chevron href="/pages/me/wallet-repurchase">
+      <WalletListRow v-if="cfg.isEnabled('stakingVisible')" icon-bg="var(--v5-brand-2-soft)" :label="t.repurchase.ordersTitle" chevron href="/pages/me/wallet-repurchase">
         <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg></template>
       </WalletListRow>
       <text class="block" :style="listTitleStyle">{{ t.wallet.activitySection }}</text>
@@ -136,7 +136,7 @@ import { useCards } from "@/store/cards";
 import { useConfig } from "@/store/config";
 import { confirm as uiConfirm } from "@/store/ui";
 import type { WithdrawalStatus } from "@/store/types";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import { remoteApiEnabled, developmentPaymentEnabled } from "@/api/runtime";
 import { resolveWalletTodayEarnings } from "@/lib/wallet-today-earnings";
 
@@ -145,17 +145,24 @@ const app = useApp();
 const commission = useCommission();
 const cards = useCards();
 const cfg = useConfig();
+let visibilityTimer: ReturnType<typeof setInterval> | null = null;
 
 // uni pages remain alive in the navigation stack. Refresh the server-owned
 // wallet projection whenever this page becomes visible so a completed exchange
 // cannot send the user back to a stale pre-exchange balance.
 onShow(() => {
   void cfg.load();
+  if (visibilityTimer) clearInterval(visibilityTimer);
+  if (remoteApiEnabled) visibilityTimer = setInterval(() => { void cfg.load(); }, 15_000);
   if (remoteApiEnabled) {
     void app.refreshRemoteFleet();
     void refreshEarningsReleaseStatus().catch(() => undefined);
     retryEarningsAuthority();
   }
+});
+onHide(() => {
+  if (visibilityTimer) clearInterval(visibilityTimer);
+  visibilityTimer = null;
 });
 
 const configSyncFailed = computed(() => cfg.syncFailed);

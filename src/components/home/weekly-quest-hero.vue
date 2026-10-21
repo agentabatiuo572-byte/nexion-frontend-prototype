@@ -79,7 +79,7 @@ import { useQuestTargetAvailability } from "@/composables/use-quest-target-avail
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
-import { navTo } from "@/lib/route";
+import { isStakingVisibilityRoute, navTo } from "@/lib/route";
 import { useNow } from "@/composables/use-now";
 import { isCurrentQuest } from "@/lib/actionable-quest";
 import { toast } from "@/store/ui";
@@ -126,7 +126,7 @@ onMounted(() => {
 });
 
 const quest = computed<CanonicalQuest | null>(() => wq.tier1Quests.find((q) =>
-  (stakingDisplay.isEnabled("stakingVisible") || q.actionRoute !== "/pages/staking/staking")
+  (stakingDisplay.isEnabled("stakingVisible") || !isStakingVisibilityRoute(q.actionRoute))
   && isCurrentQuest(q, nowTick.value * 1000)) ?? null);
 const mult = computed(() => wq.multiplier);
 const reward = computed(() => (quest.value ? Math.round(quest.value.rewardNex * mult.value) : 0));

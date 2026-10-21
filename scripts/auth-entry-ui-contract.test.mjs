@@ -44,8 +44,8 @@ test("development providers stay isolated and real sign-in uses configured provi
   ]);
   for (const page of [login, register]) {
     assert.match(page, /AuthProviderGrid/);
-    assert.match(page, /v-if="step === 1[^\"]*!remoteApiEnabled/);
-    assert.match(page, /<ThirdPartyAuth v-if="remoteApiEnabled && step === 1/);
+    assert.match(page, /v-if="(?:!loginRecoveryPending && )?step === 1[^\"]*!remoteApiEnabled/);
+    assert.match(page, /<ThirdPartyAuth v-if="(?:!loginRecoveryPending && )?remoteApiEnabled && step === 1/);
     assert.match(page, /data-testid="auth-runtime-label"/);
     assert.doesNotMatch(page, /const oauth\s*=/);
     assert.doesNotMatch(page, /oauthDisplayLabel/);
@@ -88,6 +88,6 @@ test("authentication failures are announced immediately to assistive technology"
     read("src/pages/register/register.vue"),
   ]);
   for (const page of [login, register]) {
-    assert.match(page, /v-if="error"[^>]*role="alert"[^>]*aria-live="assertive"/);
+    assert.match(page, /v-if="error(?: && !\(loginRecoveryPending && error === t\.login\.unknownAttempt\))?"[^>]*role="alert"[^>]*aria-live="assertive"/);
   }
 });

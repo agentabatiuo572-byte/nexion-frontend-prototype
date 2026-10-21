@@ -41,16 +41,19 @@ function page(balance: number, amount: number, pendingOpenAmount: number | null 
   const bindings: Record<string, unknown> = {
     useT: () => Vue.ref(copy), useApp: () => app,
     useStaking: () => ({ stake: vi.fn() }), useRepurchase: () => repurchase,
+    useConfig: () => ({ configStatus: "ready", isEnabled: () => true, load: () => Promise.resolve() }),
+    useUI: () => ({ clearConfirmsBy: vi.fn() }),
     resolveRepurchaseRuntimePolicy, apiRuntimeConfig: { environment: "prod" },
     computed: Vue.computed, ref: Vue.ref, watch: Vue.watch, onMounted: () => {}, onUnmounted: () => {},
+    onShow: () => {}, onHide: () => {},
     fmt, dateLocale: () => "en-US", geoPolicyUserMessage: () => null, uiConfirm,
     toast: { success, info: vi.fn(), warn: vi.fn(), error: (title: unknown, detail: unknown) => toasts.push([title, detail]) },
-    postMoneyBill: vi.fn(() => "ok"), navTo, formatCommandAmount, normalizeCommandAmount,
+    postMoneyBill: vi.fn(() => "ok"), navTo, navReset: vi.fn(), formatCommandAmount, normalizeCommandAmount,
   };
   // Symbols the fix introduces resolve leniently, so running this file against
   // the pre-fix page reports the behavioural assertion (button enabled, command
   // dispatched) instead of a bare "is not defined" at bind time.
-  const exported = `;return { setAmount: (v) => { amount.value = v; }, t, canSubmit, displayBalance, recovering,
+  const exported = `;return { setAmount: (v) => { amount.value = v; }, showPage: () => { pageVisible = true; }, visibility, t, canSubmit, displayBalance, recovering,
     handleRepurchase, heroStyle, benefitsGridStyle, isSandboxHold, unavailableStyle, unavailableTitle, unavailableBodyStyle,
     isRemote, remoteReady, repurchase, loadingLabel, unavailableTitleStyle, unavailableBody, refreshRemote, retryLabel, retryCtaStyle, w, cardStyle,
     monoLabelStyle, amount, formatCommandAmount, confirming, amountInputStyle, onAmount, presets, presetStyle, selectPreset, dollarStyle,
@@ -64,6 +67,7 @@ function page(balance: number, amount: number, pendingOpenAmount: number | null 
     insufficientBodyStyle: typeof insufficientBodyStyle === "undefined" ? {} : insufficientBodyStyle,
     topupCtaStyle: typeof topupCtaStyle === "undefined" ? {} : topupCtaStyle };`;
   const raw = new Function("formatAmount", ...Object.keys(bindings), code + exported)(formatAmount, ...Object.values(bindings)) as Record<string, unknown>;
+  (raw.showPage as () => void)();
   (raw.setAmount as (value: number) => void)(amount);
   return {
     state: Vue.proxyRefs({ ...raw, formatAmount }) as Record<string, unknown>, repurchase, uiConfirm, open, check, navTo, toasts, app, success,

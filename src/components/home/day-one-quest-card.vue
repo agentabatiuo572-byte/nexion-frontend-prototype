@@ -133,7 +133,7 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
-import { navTo } from "@/lib/route";
+import { isStakingVisibilityRoute, navTo } from "@/lib/route";
 import { computed, watch, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -149,6 +149,7 @@ import { dayOneQuestDisplayName } from "@/lib/quest-presentation";
 import { dayOneObservationRecovery, observationRecoveryRoute, type DayOneObservationReason } from "@/lib/day-one-observation-recovery";
 import { remoteAccountScope } from "@/lib/remote-account-epoch";
 import { useApp } from "@/store/app";
+import { useConfig } from "@/store/config";
 
 interface QuestTask {
   id: string;
@@ -184,6 +185,7 @@ const nowTick = useNow();
 const { elRef, inView } = useScrollGrowProgress();
 const quest = useQuest();
 const app = useApp();
+const stakingDisplay = useConfig();
 const mockReward = 500;
 
 const categoryLabel = (category: QuestTaskCategory): string => ({
@@ -209,7 +211,8 @@ const remoteTasks = computed<QuestTask[]>(() => {
     { color: "var(--v5-brand)", onColor: "var(--v5-on-brand)" },
   ];
   return quest.remoteQuests
-    .filter((row) => row.layer === "DAY_ONE")
+    .filter((row) => row.layer === "DAY_ONE"
+      && (stakingDisplay.isEnabled("stakingVisible") || !isStakingVisibilityRoute(row.actionRoute)))
     .map((row, index) => ({
       id: row.questCode,
       order: index + 1,

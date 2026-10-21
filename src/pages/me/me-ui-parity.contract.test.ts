@@ -79,7 +79,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "risk-disclosure.vue": "5f1d1f52b62559b79785d91fd28fd9e4de6597cf91b9174a87191740c95ba2bf",
   // Reviewed ME41: busy save/cancel remain visible and reject keyboard/pointer re-entry.
   // Reviewed OAuth binding panel: configured providers, account-scoped lifetime and current-password confirmation.
-  "security.vue": "8e99da9909d9fef4fcf397a909ec3523e8a63d972115c8e84fa3fee70f6b3034",
+  // 5dff851d keeps the compact 2FA track inside a 44px keyboard/pointer target.
+  "security.vue": "c0a05d3ca82030063f20aec791403b34330b739d9a8b9bf52f28d1476552e376",
   // Reviewed #439: BASIC retains the existing hint; enhanced policy owns retry timing and existing-ticket/retry actions.
   // Reviewed #470: cursor-spacing=72 on the detail reply textarea only.
   "support-tickets.vue": "4504cb6168c6e939402a4be14b5f39caeaaa8ab9deda42433c7b91eacf12fce8",
@@ -98,10 +99,11 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "wallet-exchange.vue": "c0254329c6ca1986c73fc1c1a8f31fe1e63b34a223343366069e60ddca6d585f",
   // Reviewed #413: native number/date formatting and finite display boundaries.
   "wallet-nex.vue": "e79b540f1eacd429f044fba4bfd7fb2d15732cac2fc7cda274406416d035ee86",
-  "wallet-repurchase-how.vue": "238439b99d5b73f9cf7c6ad7b8479cb86f39ef92f93d216938b071c28372e4f0",
+  // G1 hides the entire reinvestment surface, including direct entry and prior orders.
+  "wallet-repurchase-how.vue": "cf5593f2be3a07e1006ce752dc1befa50ef7fe4dc6289e606c033e9cf5740180",
   // R833: owned pending status lookup remains available while product/config reads fail; no money command.
   // #584: reviewed configured minimum and disabled-action reason beside the re-investment form.
-  "wallet-repurchase.vue": "d2a28ced522ef9de623ec1060478ee7088d098a9d88688bd94eef1115af936a2",
+  "wallet-repurchase.vue": "4cb3655b512234ef7085da4d38588edfaa15551dc1843feb6e90614fa1b88793",
   "wallet-topup.vue": "010252b7630c35defdf57a3f262d0e389c011d2b9d79ad2f5fb788e794d87768",
   "wallet-withdraw-tracking.vue": "8df13af397e2fcb7b6de4164285dd222d6d8f851c8c153af03f300d2883de2f5",
   // Original pending requests expose retry even when the new-transfer form is incomplete.

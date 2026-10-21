@@ -87,13 +87,14 @@ import EventsFeaturedHero from "@/components/events/events-featured-hero.vue";
 import EventsCard from "@/components/events/events-card.vue";
 import PromotionEntry from "@/components/promotion/promotion-entry.vue";
 import { useT } from "@/i18n/use-t";
-import { navTo } from '@/lib/route';
+import { isStakingVisibilityRoute, navTo } from '@/lib/route';
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { eventsApi, remoteApiEnabled,sessionVault } from "@/api/runtime";
 import type { CanonicalEvent } from "@/api/events-api";
 import { postMoneyBillsOnce } from "@/lib/money-receipt";
 import { useEventQuest } from "@/store/event-quest";
 import { useApp } from "@/store/app";
+import { useConfig } from "@/store/config";
 import { useLocaleStore } from "@/store/locale";
 import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
 import { bindPageVisibilityRefresh, createPageVisibilityRefresh } from "@/lib/page-visibility-refresh";
@@ -121,6 +122,7 @@ const sourceOptions=computed(()=>[
 const eventQuest = useEventQuest();
 const luckySpin = useLuckySpin();
 const app = useApp();
+const stakingDisplay = useConfig();
 const locale = useLocaleStore();
 const language = computed(() => locale.code);
 
@@ -223,7 +225,8 @@ const enrichedEvents = computed<EnrichedEvent[]>(() =>
   (remoteApiEnabled
     ? remoteEvents.value.map((event) => remoteEventView(event, eventActionLabels.value))
     : EVENTS.map((event) => ({ ...event, runtimeSource: "mock" as const }))
-  ).map((ev) => {
+  ).filter((ev) => stakingDisplay.isEnabled("stakingVisible") || !isStakingVisibilityRoute(ev.href ?? ""))
+    .map((ev) => {
     const trackable = ev.trackable === true;
     const remoteStatus = remoteApiEnabled
       ? remoteEvents.value.find((event) => event.eventCode === ev.id)?.userStatus

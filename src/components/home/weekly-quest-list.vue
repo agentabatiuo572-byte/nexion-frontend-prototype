@@ -83,7 +83,7 @@ import { useConfig } from "@/store/config";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
-import { navTo } from "@/lib/route";
+import { isStakingVisibilityRoute, navTo } from "@/lib/route";
 import { useNow } from "@/composables/use-now";
 import { toast } from "@/store/ui";
 import { bindPageVisibilityRefresh, createPageVisibilityRefresh } from "@/lib/page-visibility-refresh";
@@ -111,7 +111,7 @@ bindPageVisibilityRefresh(weeklyQuestVisibility, {
 });
 
 const tier2Quests = computed<CanonicalQuest[]>(() => mounted.value
-  ? wq.tier2Quests.filter((q) => stakingDisplay.isEnabled("stakingVisible") || q.actionRoute !== "/pages/staking/staking") : []);
+  ? wq.tier2Quests.filter((q) => stakingDisplay.isEnabled("stakingVisible") || !isStakingVisibilityRoute(q.actionRoute)) : []);
 
 const mult = computed(() => wq.multiplier);
 const completedCount = computed(() => tier2Quests.value.filter((q) =>

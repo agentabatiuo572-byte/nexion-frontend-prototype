@@ -80,6 +80,7 @@ import { isLegalTermsGateExemptRoute } from "@/lib/legal-terms-gate";
 // Simulation tick driver (ports SimulationProvider). Runs the client-side
 // earnings/device simulation while the app is visible; pauses in background.
 let tickTimer: ReturnType<typeof setInterval> | undefined;
+let lastPlatformConfigLoadAt = 0;
 let lastTick = Date.now();
 let accountSessionBootstrapped = false;
 let businessLoopsRunning = false;
@@ -1033,6 +1034,10 @@ function checkQuestRoute() {
   // (认领是幂等的,未认证时不消耗一次性资格),但别照着旧注释的错误前提推理。
   bootstrapAccountSession();
   if (checkSession()) return; // evicted/invalid session → redirected; recalibration is explicit device management only
+  if (remoteApiEnabled && Date.now() - lastPlatformConfigLoadAt >= 15_000) {
+    lastPlatformConfigLoadAt = Date.now();
+    void useConfig().load();
+  }
   if (route !== lastLegalTermsGateRoute || useLocaleStore().code !== lastLegalTermsGateLocale) {
     lastLegalTermsGateRoute = route;
     lastLegalTermsGateLocale = useLocaleStore().code;
@@ -1297,6 +1302,7 @@ onShow(() => {
   if (remoteApiEnabled) {
     useApp().setRemoteTaskForeground(true);
     void useConfig().load();
+    lastPlatformConfigLoadAt = Date.now();
     // PC-managed runtime configuration must converge when the App returns to
     // foreground; a launch-only fetch leaves pricing, phase and translations
     // stale for an entire long-lived session.

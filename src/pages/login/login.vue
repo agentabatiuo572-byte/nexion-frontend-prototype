@@ -1040,7 +1040,7 @@ onUnmounted(() => cleanup());
 .lg-recovery__account { font-size: 15px; color: var(--v5-ink); }
 .lg-recovery__input { box-sizing: border-box; height: 56px; padding: 0 16px; border-radius: 16px; background: var(--v5-surface); color: var(--v5-ink); font-size: 15px; }
 .lg-recovery .lg-recovery__action { margin-top: 4px; }
-.lg-recovery__secondary { min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--v5-brand); }
+.lg-recovery__secondary { min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--v5-brand); }
 .lg-recovery__secondary[aria-disabled="true"] { opacity: .5; }
 .lg-recovery-notice__t { display: block; font-size: 13px; line-height: 1.5; color: var(--v5-ink-2); }
 .lg-sub { display: block; margin-top: 8px; font-size: 13px; color: var(--v5-ink-3); }

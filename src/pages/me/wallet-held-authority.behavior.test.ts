@@ -72,7 +72,7 @@ async function mount(remoteApiEnabled = true) {
   const chassis = { setup: (_props: unknown, { slots }: { slots: Vue.Slots }) => () => Vue.h("view", slots.default?.()) };
   const modules: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
-    vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shown.push(callback) },
+    vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shown.push(callback), onHide: () => {} },
     "@/components/app-chassis.vue": { default: chassis },
     "@/components/sub-page-header.vue": { default: { render: () => null } },
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(en) },

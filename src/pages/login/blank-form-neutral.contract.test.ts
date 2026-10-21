@@ -28,7 +28,7 @@ describe("blank auth forms stay neutral on first paint", () => {
     expect(login).toMatch(/const phoneTouched = ref\(false\)/);
     expect(login).toMatch(/const submitAttempted = ref\(false\)/);
     // 渲染条件必须带上交互门,而不是只看 !canPrimary。
-    expect(login).toMatch(/v-if="!canPrimary && !loading && \(phoneTouched \|\| submitAttempted\)"/);
+    expect(login).toMatch(/v-if="!loginRecoveryPending && !canPrimary && !loading && \(phoneTouched \|\| submitAttempted\)"/);
     // aria-describedby 必须与渲染条件一致,否则指向不存在的元素。
     expect(login).toMatch(/:aria-describedby="!canPrimary && !loading && \(phoneTouched \|\| submitAttempted\) \? 'lg-cta-reason' : undefined"/);
     // 输入与失焦都要标记交互。
