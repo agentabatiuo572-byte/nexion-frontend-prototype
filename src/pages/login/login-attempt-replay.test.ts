@@ -19,7 +19,7 @@ it.each(["retryOriginalLogin", "recoverLoginResult"].flatMap(method => [false, t
     const pending = new Promise(resolve => { complete = resolve; });
     const authApi = { pendingLogin: () => true, retryLogin: () => pending, recoverLogin: () => pending,
       discardSessionIfCurrent: vi.fn(auth.discardSessionIfCurrent) };
-    const deps = { authApi, loading: ref(false), replayAvailable: ref(true), retryContext: ref({ authMethod: "PASSWORD" }),
+    const deps = { authApi, error: ref(null), loading: ref(false), replayAvailable: ref(true), retryContext: ref({ authMethod: "PASSWORD" }),
       retryNeedsPassword: ref(true), retryPassword: ref("private-input"), retryNeedsCode: ref(false), retryCode: ref(""),
       showCaptcha: ref(false), captchaPurpose: ref("replay"), syncLoginRecovery: vi.fn(), finishSignIn: vi.fn() };
     const page = new Function(...Object.keys(deps), `let mounted = true; ${code}; return { invoke: ${method}, unmount() { mounted = false; } };`)(...Object.values(deps));

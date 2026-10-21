@@ -25,17 +25,16 @@
       <!-- #ifdef APP-PLUS -->
       <view class="lg-recovery-notice"><text>{{ t.login.takeoverNotice }}</text></view>
       <!-- #endif -->
-      <view v-if="loginRecoveryPending" class="lg-recovery-notice" role="status">
-        <text>{{ loginResultUnknown ? t.login.unknownAttempt : t.login.verificationPending }}</text>
-        <view v-if="loginResultUnknown" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="recoverLoginResult"><text>{{ t.login.recoverAttempt }}</text></view>
-        <view v-if="replayAvailable">
-          <text>{{ t.login.retryOriginalHint }}</text>
-          <text>{{ retryContext?.context.countryCode }} {{ retryContext?.context.phone }}</text>
-          <input v-if="retryNeedsPassword" v-model="retryPassword" type="password" :placeholder="t.login.passwordPlaceholder" :aria-label="t.login.passwordPlaceholder" />
-          <input v-if="retryNeedsCode" v-model="retryCode" type="number" :maxlength="6" :placeholder="t.login.retryCode" :aria-label="t.login.retryCode" />
-          <view role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retryOriginalLogin()" @keydown.enter.prevent="retryOriginalLogin()" @keydown.space.prevent="retryOriginalLogin()"><text>{{ t.login.retryOriginal }}</text></view>
+      <view v-if="loginRecoveryPending" class="lg-recovery-notice lg-recovery" data-testid="login-recovery" role="status">
+        <text class="lg-recovery-notice__t">{{ replayAvailable ? t.login.retryOriginalHint : loginResultUnknown ? t.login.unknownAttempt : t.login.verificationPending }}</text>
+        <view v-if="loginResultUnknown" class="lg-recovery__secondary" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="recoverLoginResult" @keydown.enter.prevent="recoverLoginResult" @keydown.space.prevent="recoverLoginResult"><text>{{ t.login.recoverAttempt }}</text></view>
+        <view v-if="replayAvailable" class="lg-col">
+          <text class="lg-recovery__account">{{ retryContext?.context.countryCode }} {{ retryContext?.context.phone }}</text>
+          <input class="lg-recovery__input" v-if="retryNeedsPassword" v-model="retryPassword" type="password" :maxlength="PASSWORD_MAX_LENGTH" confirm-type="done" @confirm="retryOriginalLogin()" :placeholder="t.login.passwordPlaceholder" :aria-label="t.login.passwordPlaceholder" />
+          <input class="lg-recovery__input" v-if="retryNeedsCode" v-model="retryCode" type="number" confirm-type="done" @confirm="retryOriginalLogin()" :maxlength="6" :placeholder="t.login.retryCode" :aria-label="t.login.retryCode" />
+          <view class="lg-cta lg-recovery__action" :class="canRetryOriginal ? 'lg-cta--on' : ''" role="button" :tabindex="canRetryOriginal ? 0 : -1" :aria-disabled="!canRetryOriginal" @click="retryOriginalLogin()" @keydown.enter.prevent="retryOriginalLogin()" @keydown.space.prevent="retryOriginalLogin()"><text class="lg-cta__t" :class="canRetryOriginal ? 'lg-cta__t--on' : ''">{{ t.login.retryOriginal }}</text></view>
         </view>
-        <view v-if="!loginResultUnknown" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="cancelLoginVerification"><text>{{ t.ui.cancel }}</text></view>
+        <view v-if="!loginResultUnknown" class="lg-recovery__secondary" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="cancelLoginVerification" @keydown.enter.prevent="cancelLoginVerification" @keydown.space.prevent="cancelLoginVerification"><text>{{ t.ui.cancel }}</text></view>
       </view>
       <view v-if="modeLabel" class="lg-mode-badge" data-testid="auth-runtime-label">
         <text class="lg-mode-badge__t">{{ modeLabel }}</text>
@@ -53,7 +52,7 @@
       <text v-else-if="step === 3" class="lg-sub">{{ t.login.newPasswordHint }}</text>
 
       <!-- Body -->
-      <view class="lg-body">
+      <view v-if="!loginRecoveryPending" class="lg-body">
         <!-- Step 1: phone (+ password for password mode) -->
         <view v-if="step === 1" class="lg-col">
           <view class="lg-phone" :class="{ 'lg-phone--err': phone && !phoneOk }">
@@ -109,39 +108,39 @@
       </view>
 
       <!-- Error -->
-      <view v-if="error" class="lg-error" role="alert" aria-live="assertive">
+      <view v-if="error && !(loginRecoveryPending && error === t.login.unknownAttempt)" class="lg-error" role="alert" aria-live="assertive">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
         <text class="lg-error__t">{{ error }}</text>
       </view>
 
       <!-- Primary CTA -->
-      <view class="lg-cta" :class="canPrimary ? 'lg-cta--on' : ''" role="button" tabindex="0" :aria-disabled="!canPrimary || loading" :aria-describedby="!canPrimary && !loading && (phoneTouched || submitAttempted) ? 'lg-cta-reason' : undefined" data-system-chrome-primary @click="onPrimary" @keydown.enter.prevent="onPrimary" @keydown.space.prevent="onPrimary">
+      <view v-if="!loginRecoveryPending" class="lg-cta" :class="canPrimary ? 'lg-cta--on' : ''" role="button" tabindex="0" :aria-disabled="!canPrimary || loading" :aria-describedby="!canPrimary && !loading && (phoneTouched || submitAttempted) ? 'lg-cta-reason' : undefined" data-system-chrome-primary @click="onPrimary" @keydown.enter.prevent="onPrimary" @keydown.space.prevent="onPrimary">
         <text v-if="loading" class="lg-cta__t lg-cta__t--on">···</text>
         <text v-else class="lg-cta__t" :class="canPrimary ? 'lg-cta__t--on' : ''">{{ primaryText }}</text>
       </view>
       <!-- 简报 #211:空白表单首次展示必须中性 —— 只在用户已与手机号字段交互或尝试提交后
            才给出禁用原因。此前它从首帧起就存在(空表单天然 canPrimary=false),而 sr-only
            的 clip 裁不住 uni-app 内部的 <span>,导致文本提取/自动化会读到用户从未触发的错误。 -->
-      <text v-if="!canPrimary && !loading && (phoneTouched || submitAttempted)" id="lg-cta-reason" class="lg-sr-only">{{ primaryDisabledReason }}</text>
+      <text v-if="!loginRecoveryPending && !canPrimary && !loading && (phoneTouched || submitAttempted)" id="lg-cta-reason" class="lg-sr-only">{{ primaryDisabledReason }}</text>
 
       <!-- Mode switch (password ↔ otp), only on step 1 non-reset -->
-      <view v-if="step === 1 && mode !== 'reset'" class="lg-switch" role="button" tabindex="0" @click="toggleMode" @keydown.enter.prevent="toggleMode" @keydown.space.prevent="toggleMode">
+      <view v-if="!loginRecoveryPending && step === 1 && mode !== 'reset'" class="lg-switch" role="button" tabindex="0" @click="toggleMode" @keydown.enter.prevent="toggleMode" @keydown.space.prevent="toggleMode">
         <text class="lg-switch__t">{{ mode === 'password' ? t.login.useCodeInstead : t.login.usePasswordInstead }}</text>
       </view>
 
-      <ThirdPartyAuth v-if="remoteApiEnabled && step === 1 && mode !== 'reset'" :disabled="loading || loginRecoveryPending" :return-to="returnParam" @busy="oauthBusy = $event; syncLoginRecovery()" />
+      <ThirdPartyAuth v-if="!loginRecoveryPending && remoteApiEnabled && step === 1 && mode !== 'reset'" :disabled="loading || loginRecoveryPending" :return-to="returnParam" @busy="oauthBusy = $event; syncLoginRecovery()" />
       <!-- OAuth (step 1, not reset) -->
-      <view v-if="step === 1 && mode !== 'reset' && !remoteApiEnabled" class="lg-oauth">
+      <view v-if="!loginRecoveryPending && step === 1 && mode !== 'reset' && !remoteApiEnabled" class="lg-oauth">
         <view class="lg-divider"><view class="lg-divider__line" /><text class="lg-divider__t">{{ t.login.orContinueWith }}</text><view class="lg-divider__line" /></view>
         <AuthProviderGrid :busy="loading" :development="apiRuntimeConfig.environment === 'dev'" @select="startOauth" />
       </view>
 
       <!-- Footer -->
       <!-- #ifdef APP-PLUS -->
-      <InviteScanEntry v-if="step === 1 && mode !== 'reset'" :disabled="loading" />
+      <InviteScanEntry v-if="!loginRecoveryPending && step === 1 && mode !== 'reset'" :disabled="loading" />
       <!-- #endif -->
       <view class="lg-footer">
-        <text v-if="step === 1 && mode !== 'reset'" class="lg-footer__acc">{{ t.login.noAccount }} <text class="lg-footer__link" role="link" tabindex="0" @click="goRegister" @keydown.enter.prevent="goRegister">{{ t.login.signUp }}</text></text>
+        <text v-if="!loginRecoveryPending && step === 1 && mode !== 'reset'" class="lg-footer__acc">{{ t.login.noAccount }} <text class="lg-footer__link" role="link" tabindex="0" @click="goRegister" @keydown.enter.prevent="goRegister">{{ t.login.signUp }}</text></text>
       </view>
     </view>
 
@@ -255,6 +254,9 @@ const retryCode = ref("");
 const retryNeedsPassword = computed(() => ["PASSWORD", "TWO_FACTOR", "REGISTRATION"].includes(retryContext.value?.authMethod ?? ""));
 const retryNeedsCode = computed(() => ["OTP", "TWO_FACTOR", "REGISTRATION"].includes(retryContext.value?.authMethod ?? "")
   || !!retryContext.value?.context.challengeNo);
+const canRetryOriginal = computed(() => !loading.value && replayAvailable.value
+  && (!retryNeedsPassword.value || !!retryPassword.value)
+  && (!retryNeedsCode.value || /^\d{6}$/.test(retryCode.value)));
 function syncLoginRecovery() {
   retryContext.value = authApi.pendingLoginContext();
   loginResultUnknown.value = authApi.pendingLogin();
@@ -264,6 +266,7 @@ function syncLoginRecovery() {
 function cancelLoginVerification() {
   if (loading.value || authApi.pendingLogin()) return;
   authApi.cancelLoginChallenge();
+  error.value = null;
   retryPassword.value = ""; retryCode.value = ""; showCaptcha.value = false;
   remoteTwoFactorChallenge.value = null; step.value = 1;
   syncLoginRecovery();
@@ -271,6 +274,7 @@ function cancelLoginVerification() {
 async function retryOriginalLogin(captchaTicket?: string) {
   if (loading.value || !replayAvailable.value || !retryContext.value) return;
   if ((retryNeedsPassword.value && !retryPassword.value) || (retryNeedsCode.value && !/^\d{6}$/.test(retryCode.value))) return;
+  error.value = null;
   loading.value = true;
   try {
     const result = await authApi.retryLogin({ password: retryPassword.value || undefined, code: retryCode.value || undefined,
@@ -293,6 +297,7 @@ async function retryOriginalLogin(captchaTicket?: string) {
 }
 async function recoverLoginResult() {
   if (loading.value || !authApi.pendingLogin()) return;
+  error.value = null;
   loading.value = true;
   try {
     const result = await authApi.recoverLogin();
@@ -702,7 +707,6 @@ function goSendCode() {
 }
 function remoteLoginError(error: unknown): string {
   syncLoginRecovery();
-  if (loginResultUnknown.value) return t.value.login.unknownAttempt;
   const code = error instanceof ApiError ? error.message : "";
   // #ifdef H5
   if (code === "COOKIE_LOCK_UNAVAILABLE") return t.value.session.secureBrowserUnsupported;
@@ -718,7 +722,7 @@ function remoteLoginError(error: unknown): string {
     case "accountBlocked": return t.value.login.errorAccountBlocked;
     case "passwordResetRequired": return t.value.login.errorPasswordResetRequired;
     case "signInStateChanged": return t.value.login.errorSignInStateChanged;
-    default: return t.value.authOtp.errorServiceUnavailable;
+    default: return loginResultUnknown.value ? t.value.login.unknownAttempt : t.value.authOtp.errorServiceUnavailable;
   }
 }
 
@@ -1032,6 +1036,12 @@ onUnmounted(() => cleanup());
 .lg-mode-badge { display: inline-flex; margin-top: 8px; padding: 5px 8px; border-radius: 999px; background: var(--v5-warning-soft); }
 .lg-mode-badge__t { font-size: 12px; font-weight: 600; color: var(--v5-warning); }
 .lg-recovery-notice { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--v5-brand) 12%, transparent); border: 1px solid color-mix(in srgb, var(--v5-brand) 34%, transparent); }
+.lg-recovery { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
+.lg-recovery__account { font-size: 15px; color: var(--v5-ink); }
+.lg-recovery__input { box-sizing: border-box; height: 56px; padding: 0 16px; border-radius: 16px; background: var(--v5-surface); color: var(--v5-ink); font-size: 15px; }
+.lg-recovery .lg-recovery__action { margin-top: 4px; }
+.lg-recovery__secondary { min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--v5-brand); }
+.lg-recovery__secondary[aria-disabled="true"] { opacity: .5; }
 .lg-recovery-notice__t { display: block; font-size: 13px; line-height: 1.5; color: var(--v5-ink-2); }
 .lg-sub { display: block; margin-top: 8px; font-size: 13px; color: var(--v5-ink-3); }
 .lg-sub__ph { font-family: var(--font-v5); color: var(--v5-ink); font-variant-numeric: tabular-nums; }

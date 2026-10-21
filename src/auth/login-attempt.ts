@@ -63,7 +63,13 @@ export function createLoginAttempt(deps: { storage?: KeyValueStorage; installati
       if (attempt) { deps.storage?.remove(); current = null; }
     },
     failed(attempt: LoginAttempt, cause: unknown) {
-      if (current?.loginAttemptId !== attempt.loginAttemptId || isAmbiguousEnvelopeOutcome(cause)) return;
+      if (current?.loginAttemptId !== attempt.loginAttemptId) return;
+      // These login replies are issued before session creation; a fresh attempt is safe.
+      const rejectedBeforeLogin = cause instanceof ApiError
+        && (cause.kind === "http" || cause.kind === "business")
+        && (cause.status === 429 || cause.code === 429)
+        && ["USER_LOGIN_RATE_LIMITED", "USER_LOGIN_TEMPORARILY_LOCKED"].includes(cause.message);
+      if (!rejectedBeforeLogin && isAmbiguousEnvelopeOutcome(cause)) return;
       deps.storage?.remove(); current = null;
     },
   };

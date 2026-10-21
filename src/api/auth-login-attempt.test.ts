@@ -128,6 +128,32 @@ describe("durable original login attempt", () => {
     expect(next.auth.pendingLogin()).toBe(false);
   });
 
+  it.each(["USER_LOGIN_RATE_LIMITED", "USER_LOGIN_TEMPORARILY_LOCKED"].flatMap(message =>
+    ["http", "business"].map(kind => [message, kind] as const)))
+    ("does not trap a rejected login after %s (%s)", async (message, kind) => {
+      const f = fixture();
+      f.request.mockRejectedValueOnce(new ApiError({ kind, status: kind === "business" ? 200 : 429, code: 429, message }))
+        .mockResolvedValueOnce(session);
+      await expect(f.auth.login(credentials)).rejects.toThrow(message);
+      expect(f.auth.pendingLogin()).toBe(false);
+      expect(f.auth.pendingLoginContext()).toBeNull();
+      await expect(f.auth.login(credentials)).resolves.toMatchObject({ kind: "authenticated" });
+      expect(f.request.mock.calls[1][0].headers["X-NexGrid-Login-Attempt-Id"])
+        .not.toBe(f.request.mock.calls[0][0].headers["X-NexGrid-Login-Attempt-Id"]);
+    });
+
+  it.each(["USER_LOGIN_RATE_LIMITED", "USER_LOGIN_TEMPORARILY_LOCKED"])
+    ("keeps a network-unknown original attempt when replay returns %s", async message => {
+      const f = fixture();
+      f.request.mockRejectedValueOnce(new ApiError({ kind: "network", message: "lost" }))
+        .mockRejectedValueOnce(new ApiError({ kind: "http", status: 429, message }));
+      await expect(f.auth.login(credentials)).rejects.toThrow("lost");
+      const original = f.saved.get();
+      await expect(f.auth.retryLogin({ password: credentials.password })).rejects.toThrow(message);
+      expect(f.saved.get()).toEqual(original);
+      expect(f.auth.pendingLogin()).toBe(true);
+    });
+
   it("re-verifies a lost password challenge with the same identity and proof, then continues 2FA", async () => {
     const f = fixture();
     f.request.mockRejectedValueOnce(new ApiError({ kind: "network", message: "lost challenge" }))
