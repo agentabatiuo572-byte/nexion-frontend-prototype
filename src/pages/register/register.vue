@@ -63,24 +63,6 @@
             <input class="rg-phone__in" type="number" inputmode="numeric" maxlength="15" :placeholder="t.register.phonePlaceholder" :aria-label="t.register.phonePlaceholder" :value="phone" :aria-invalid="!!phone && !phoneOk" aria-describedby="register-phone-format" confirm-type="done" @input="onPhone" @blur="phoneTouched = true" @confirm="onCta" />
           </view>
           <text id="register-phone-format" data-testid="auth-phone-hint" class="rg-phone-hint" :class="{ 'rg-phone-hint--err': phone && !phoneOk }" role="status" aria-live="polite">{{ phoneFormatMessage }}</text>
-          <!-- 包 zm T3:仅开发构建,Java dev 后端网络级失联时亮工程横幅(生产构建整段剔除)
-               i18n-en-ok: 工程话,指名端口与启动方式,受众是开发者不是用户 -->
-          <view v-if="devBackendDown" class="rg-devbanner"><text class="rg-devbanner__t">Development backend unavailable · start the Java dev service on port 8110</text></view>
-        </view>
-
-        <!-- Step 2: OTP + invite -->
-        <view v-else-if="step === 2" class="rg-step2">
-          <view class="rg-otp">
-            <input v-for="(d, i) in code" :key="i" class="rg-otp__in" :class="{ 'rg-otp__in--filled': d }" type="number" :maxlength="1" :aria-label="fmt(t.register.otpDigitLabel, { n: i + 1 })" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onCta()" />
-          </view>
-          <view v-if="developmentOtpEnabled" class="rg-development-otp" data-testid="development-otp-code" role="status">
-            <text class="rg-development-otp__t">{{ fmt(t.authOtp.developmentCodeHint, { code: developmentOtpCode }) }}</text>
-          </view>
-          <view class="rg-resend">
-            <text class="rg-resend__change" role="button" tabindex="0" :aria-label="t.register.changeNumber" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">{{ t.register.changeNumber }}</text>
-            <text v-if="resendLeft > 0" class="rg-resend__count">{{ resendInText }}</text>
-            <text v-else class="rg-resend__btn" role="button" tabindex="0" :aria-label="t.register.resend" @click="resend" @keydown.enter.prevent="resend" @keydown.space.prevent="resend">{{ t.register.resend }}</text>
-          </view>
           <view class="rg-invite">
             <text class="rg-invite__lbl">{{ t.register.inviteLabel }} <text class="rg-invite__opt">{{ lockedRef ? t.register.inviteLockedLabel : t.register.inviteOptional }}</text></text>
             <!-- [FEAT-SHARE4] 链接来源码锁定置灰:不可修改不可删除(主人 2026-07-08 拍板);
@@ -93,6 +75,24 @@
               <text class="rg-locked__tag">{{ t.register.inviteLockedTag }}</text>
             </view>
             <input v-else class="rg-field" type="text" :placeholder="t.register.invitePlaceholder" :aria-label="t.register.invitePlaceholder" :value="invite" confirm-type="done" @input="onInvite" @confirm="onCta" />
+          </view>
+          <!-- 包 zm T3:仅开发构建,Java dev 后端网络级失联时亮工程横幅(生产构建整段剔除)
+               i18n-en-ok: 工程话,指名端口与启动方式,受众是开发者不是用户 -->
+          <view v-if="devBackendDown" class="rg-devbanner"><text class="rg-devbanner__t">Development backend unavailable · start the Java dev service on port 8110</text></view>
+        </view>
+
+        <!-- Step 2: OTP -->
+        <view v-else-if="step === 2" class="rg-step2">
+          <view class="rg-otp">
+            <input v-for="(d, i) in code" :key="i" class="rg-otp__in" :class="{ 'rg-otp__in--filled': d }" type="number" :maxlength="1" :aria-label="fmt(t.register.otpDigitLabel, { n: i + 1 })" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onCta()" />
+          </view>
+          <view v-if="developmentOtpEnabled" class="rg-development-otp" data-testid="development-otp-code" role="status">
+            <text class="rg-development-otp__t">{{ fmt(t.authOtp.developmentCodeHint, { code: developmentOtpCode }) }}</text>
+          </view>
+          <view class="rg-resend">
+            <text class="rg-resend__change" role="button" tabindex="0" :aria-label="t.register.changeNumber" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">{{ t.register.changeNumber }}</text>
+            <text v-if="resendLeft > 0" class="rg-resend__count">{{ resendInText }}</text>
+            <text v-else class="rg-resend__btn" role="button" tabindex="0" :aria-label="t.register.resend" @click="resend" @keydown.enter.prevent="resend" @keydown.space.prevent="resend">{{ t.register.resend }}</text>
           </view>
         </view>
 
@@ -1044,6 +1044,7 @@ onUnmounted(() => cleanup());
 .rg-resend__change { color: var(--v5-ink-3); }
 .rg-resend__count { font-family: var(--font-v5); color: var(--v5-ink-4); font-variant-numeric: tabular-nums; }
 .rg-resend__btn { color: var(--v5-brand); font-weight: 500; }
+.rg-invite { margin-top: 20px; }
 .rg-invite__lbl { display: block; font-size: 12px; color: var(--v5-ink-3); margin-bottom: 6px; padding: 0 4px; }
 .rg-invite__opt { color: var(--v5-ink-4); }
 /* [FEAT-SHARE4] 链接来源码锁定态:同 rg-field 形制但压暗 + 锁标,无输入交互。 */

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\staking-visibility-app-refresh",
+  "sourcePath": "D:\\workspace\\.worktrees\\uniapp-invite-step-one",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "d4cae8b9780fab775e08e66e9e7e063d8886415f",
-  "sourceRef": "d4cae8b9780fab775e08e66e9e7e063d8886415f",
+  "sourceHead": "8c64473e707a83be0f2be9d3dd0997e76515d5fd",
+  "sourceRef": "8c64473e707a83be0f2be9d3dd0997e76515d5fd",
   "sourceRefKind": "commit",
-  "sourceTree": "dc14410ae6e0ed295ae2f47501e5e069eae7ae4a",
+  "sourceTree": "b8aa3e49fd60571eaca7bcff42568ac001c19ace",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -14629,10 +14629,10 @@
       "mode": "100644"
     },
     "src/pages/register/register.vue": {
-      "sourceBlob": "a8bd0c0c0eefea574286503117e39418615e0651",
-      "sourceSha256": "af5eabf920eae040175920bb25f967692cb622a117059b4ba6335071bb446593",
-      "targetBlob": "a8bd0c0c0eefea574286503117e39418615e0651",
-      "targetSha256": "af5eabf920eae040175920bb25f967692cb622a117059b4ba6335071bb446593",
+      "sourceBlob": "807c0cfa254d2b1c8f8695b2407b3084d31429bd",
+      "sourceSha256": "1a87d9ec666355bae645f46bae3d050b48c4efdd61e51dd2d7d4c9cfcd8437cf",
+      "targetBlob": "807c0cfa254d2b1c8f8695b2407b3084d31429bd",
+      "targetSha256": "1a87d9ec666355bae645f46bae3d050b48c4efdd61e51dd2d7d4c9cfcd8437cf",
       "mode": "100644"
     },
     "src/pages/register/success-web-exit.test.ts": {
