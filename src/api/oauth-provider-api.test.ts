@@ -11,6 +11,14 @@ const session = { accessToken: "access", refreshToken: "refresh", tokenType: "Be
 const options = { clientSurface: "APP" as const, refreshCredentialMode: "token" as const,
   installationId: () => "installation", executionSupported: () => true };
 afterEach(() => vi.unstubAllGlobals());
+test("registration passes the invitation only when starting provider sign in", async () => {
+  const request = vi.fn().mockResolvedValue(flow);
+  const api = createOAuthProviderApi({ request } as never, { pendingLogin: () => false } as never);
+  await api.start("GOOGLE", "LOGIN", "NXINVITE1234");
+  expect(request.mock.calls[0][0].body).toEqual({ provider: "GOOGLE", intent: "LOGIN", sponsorCode: "NXINVITE1234" });
+  await api.start("GOOGLE", "LINK", "NXINVITE1234");
+  expect(request.mock.calls[1][0].body).toEqual({ provider: "GOOGLE", intent: "LINK" });
+});
 test("native handoff validates canonical HTTPS without the browser URL constructor", () => {
   vi.stubGlobal("URL", undefined);
   expect(validateOAuthFlow(flow)).toEqual(flow);

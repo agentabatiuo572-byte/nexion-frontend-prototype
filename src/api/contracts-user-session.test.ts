@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest";
 import { isUserSession } from "./contracts";
 
 describe("user session onboarding contract", () => {
+  it("accepts an OAuth account before phone binding but rejects a partial phone identity", () => {
+    const user = { userId: 42, countryCode: "", phone: "", nickname: "New User", onboardingComplete: false };
+    expect(isUserSession(user)).toBe(true);
+    expect(isUserSession({ ...user, countryCode: "+84" })).toBe(false);
+    expect(isUserSession({ ...user, phone: "912345678" })).toBe(false);
+  });
   it("requires the server-owned onboarding completion flag", () => {
     expect(isUserSession({
       userId: 42,

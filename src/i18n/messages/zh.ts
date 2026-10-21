@@ -18,7 +18,7 @@ export const zh: Messages = {
     popupBlocked: "请允许弹出窗口后重试。",
     expired: "授权已过期或登录账号已变更，请重新开始。",
     failed: "授权未完成，请重试或使用手机号登录。",
-    linkRequired: "请先使用手机号登录或注册，再前往“账号安全”绑定此账号。",
+    linkRequired: "暂时无法使用此第三方账号登录，请重试。",
     passwordInvalid: "密码不正确，请重试。",
     linkConflict: "该登录账号已绑定，请使用已绑定账号或其他登录方式。",
     codeInvalid: "验证码不正确或已过期，请重试。",

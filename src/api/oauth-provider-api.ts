@@ -41,11 +41,12 @@ export function createOAuthProviderApi(client: ApiClient, auth: Pick<AuthApi, "p
     async linked() {
       return providerList(await client.request({ path: `${ROOT}/linked` }));
     },
-    async start(provider: ThirdPartyProvider, intent: "LOGIN" | "LINK") {
+    async start(provider: ThirdPartyProvider, intent: "LOGIN" | "LINK", sponsorCode?: string | null) {
       if (intent === "LOGIN" && auth.pendingLogin())
         throw new ApiError({ kind: "configuration", message: "LOGIN_RESULT_UNKNOWN" });
       return validateOAuthFlow(await client.request({
-        path: `${ROOT}/start`, method: "POST", body: { provider, intent }, authenticated: intent === "LINK",
+        path: `${ROOT}/start`, method: "POST", body: { provider, intent,
+          ...(intent === "LOGIN" && sponsorCode ? { sponsorCode } : {}) }, authenticated: intent === "LINK",
       }));
     },
     async status(flow: OAuthFlow): Promise<OAuthStatus> {

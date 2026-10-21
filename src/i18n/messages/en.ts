@@ -17,7 +17,7 @@ export const en = {
     popupBlocked: "Allow pop-up windows, then try again.",
     expired: "Authorization expired or your account changed. Please start again.",
     failed: "Authorization could not be completed. Please try again or sign in with your phone number.",
-    linkRequired: "First sign in or register with your phone number, then link this account in Account security.",
+    linkRequired: "This provider account could not sign in. Please try again.",
     passwordInvalid: "The password is incorrect. Please try again.",
     linkConflict: "This sign-in account is already linked. Use the linked account or another sign-in method.",
     codeInvalid: "The verification code is invalid or expired. Please try again.",

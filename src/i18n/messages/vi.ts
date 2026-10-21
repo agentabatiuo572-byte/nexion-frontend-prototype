@@ -18,7 +18,7 @@ export const vi: Messages = {
     popupBlocked: "Cho phép cửa sổ bật lên rồi thử lại.",
     expired: "Xác thực đã hết hạn hoặc tài khoản đã thay đổi. Vui lòng bắt đầu lại.",
     failed: "Không thể hoàn tất xác thực. Vui lòng thử lại hoặc đăng nhập bằng số điện thoại.",
-    linkRequired: "Đăng nhập hoặc đăng ký bằng số điện thoại trước, rồi liên kết tài khoản trong Bảo mật tài khoản.",
+    linkRequired: "Không thể đăng nhập bằng tài khoản này. Vui lòng thử lại.",
     passwordInvalid: "Mật khẩu không đúng. Vui lòng thử lại.",
     linkConflict: "Tài khoản này đã được liên kết. Hãy dùng tài khoản đã liên kết hoặc cách đăng nhập khác.",
     codeInvalid: "Mã xác minh không đúng hoặc đã hết hạn. Vui lòng thử lại.",

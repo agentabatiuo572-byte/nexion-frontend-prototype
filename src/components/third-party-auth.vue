@@ -35,11 +35,15 @@ import { useT } from "@/i18n/use-t";
 import { apiClient, authApi, sessionVault } from "@/api/runtime";
 import { createOAuthProviderApi, type OAuthFlow, type ThirdPartyProvider } from "@/api/oauth-provider-api";
 import { completeSignIn } from "@/auth/complete-sign-in";
+import { stageRemoteRegistrationReceipt } from "@/auth/remote-registration-receipt";
+import { navReset } from "@/lib/route";
+import { toast } from "@/store/ui";
+import { useLocaleStore } from "@/store/locale";
 import { ApiError } from "@/api/errors";
 import { listenForNativeOAuthReturn, validOAuthBrowserReceipt, type OAuthBrowserReceipt } from "@/auth/oauth-browser-return";
 
-const props = withDefaults(defineProps<{ intent?: "LOGIN" | "LINK"; disabled?: boolean; returnTo?: string | null }>(), {
-  intent: "LOGIN", disabled: false, returnTo: null,
+const props = withDefaults(defineProps<{ intent?: "LOGIN" | "LINK"; disabled?: boolean; returnTo?: string | null; sponsorCode?: string | null }>(), {
+  intent: "LOGIN", disabled: false, returnTo: null, sponsorCode: null,
 });
 const t = useT();
 const emit = defineEmits<{ (event: "busy", busy: boolean): void }>();
@@ -107,6 +111,7 @@ function cancelFromUser() {
 function errorMessage(cause: unknown): string {
   const error = cause instanceof ApiError ? cause.message : "";
   if (error === "OAUTH_ACCOUNT_LINK_REQUIRED") return t.value.thirdParty.linkRequired;
+  if (error?.startsWith("USER_REGISTRATION_SPONSOR_")) return t.value.register.sponsorEnvironmentMismatch;
   if (error === "OAUTH_LINK_PASSWORD_INVALID") return t.value.thirdParty.passwordInvalid;
   if (error === "OAUTH_IDENTITY_ALREADY_LINKED" || error === "OAUTH_PROVIDER_ALREADY_LINKED")
     return t.value.thirdParty.linkConflict;
@@ -129,7 +134,7 @@ async function start(name: string) {
   if (!popup) { message.value = t.value.thirdParty.popupBlocked; submitting.value = false; emit("busy", false); return; }
   // #endif
   try {
-    const next = await api.start(provider, props.intent);
+    const next = await api.start(provider, props.intent, props.sponsorCode);
     if (disposed || current !== generation || !sameSession()) { cancel(); return; }
     flow.value = next; expiresAt = Date.now() + next.expiresInSec * 1000;
     // #ifdef H5
@@ -198,12 +203,27 @@ async function complete(captchaTicket?: string) {
       if (result.kind === "challenge") {
         challengeNo.value = result.challengeNo; deliveryHint.value = result.deliveryHint; code.value = ""; return;
       }
+      const registrationDestination = result.registrationReceipt
+        ? "/pages/register/success"
+        : props.returnTo;
       const completed = completeSignIn({
-        identity: `user:${result.user.userId}`, returnTo: props.returnTo,
+        identity: `user:${result.user.userId}`, returnTo: registrationDestination,
         serverProfile: result.user, onboardingComplete: result.user.onboardingComplete,
         serverSessionRevision: result.vaultRevision,
+        deferNavigation: !!result.registrationReceipt,
+        registrationLocale: result.registrationReceipt ? useLocaleStore().code : undefined,
       });
       if (!completed.ok) throw new Error("SIGN_IN_FAILED");
+      if (result.registrationReceipt) {
+        stageRemoteRegistrationReceipt(result.registrationReceipt, `user:${result.user.userId}`);
+        toast.success(t.value.register.registrationSignedIn);
+        // #ifdef H5
+        navReset({ url: "/pages/register/success", fail: () => navReset({ url: "/pages/onboarding/estimator", fail: () => {} }) });
+        // #endif
+        // #ifndef H5
+        navReset({ url: "/pages/onboarding/estimator", fail: () => {} });
+        // #endif
+      }
       cancel();
     }
   } catch (cause) {
