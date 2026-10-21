@@ -72,8 +72,10 @@
             <text class="block" :style="rowLabelStyle">{{ t.security.twoFactorTitle }}</text>
           </view>
           <text v-if="twoFactorEnabled === null" :style="unavailableValueStyle">—</text>
-          <view v-else class="shrink-0 active:opacity-70 transition-opacity" :style="toggleTrackStyle" role="switch" tabindex="0" :aria-label="t.security.twoFactorSwitchLabel" :aria-checked="twoFactorEnabled" @click="toggleTwoFactor(!twoFactorEnabled)"  @keydown.enter.prevent="toggleTwoFactor(!twoFactorEnabled)" @keydown.space.prevent="toggleTwoFactor(!twoFactorEnabled)">
-            <view :style="toggleThumbStyle" />
+          <view v-else class="shrink-0 flex items-center justify-center active:opacity-70 transition-opacity" style="width: 44px; height: 44px" role="switch" tabindex="0" :aria-label="t.security.twoFactorSwitchLabel" :aria-checked="twoFactorEnabled" @click="toggleTwoFactor(!twoFactorEnabled)"  @keydown.enter.prevent="toggleTwoFactor(!twoFactorEnabled)" @keydown.space.prevent="toggleTwoFactor(!twoFactorEnabled)">
+            <view :style="toggleTrackStyle">
+              <view :style="toggleThumbStyle" />
+            </view>
           </view>
         </view>
         <view :style="pwdFormStyle">
@@ -1017,26 +1019,23 @@ const pwdSaveLabelStyle: CSSProperties = {
 };
 const toggleTrackStyle = computed<CSSProperties>(() => ({
   position: "relative",
-  width: "51px",
-  height: "31px",
-  // 《07》tap≥44:开关本体保持 iOS 标准的 51×31 视觉,热区靠上下 padding 撑到 44(box-sizing 已是 border-box 之外的场景用 min-height 兜)
-  boxSizing: "content-box",
-  padding: "6.5px 0",
-  margin: "-6.5px 0",
+  width: "40px",
+  height: "24px",
   borderRadius: "999px",
-  background: twoFactorEnabled.value ? "var(--v5-success)" : "var(--v5-surface-3)",
+  background: twoFactorEnabled.value ? "var(--v5-brand)" : "var(--v5-surface-3)",
+  boxShadow: twoFactorEnabled.value ? "none" : "inset 0 0 0 1px var(--v5-border)",
   transition: "background 200ms ease",
 }));
 const toggleThumbStyle = computed<CSSProperties>(() => ({
   position: "absolute",
   top: "2px",
   left: "2px",
-  width: "27px",
-  height: "27px",
+  width: "20px",
+  height: "20px",
   borderRadius: "999px",
   background: "#FFFFFF",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.25)",
-  transform: `translateX(${twoFactorEnabled.value ? 20 : 0}px)`,
+  boxShadow: "0 1px 3px rgba(0,0,0,0.18)",
+  transform: `translateX(${twoFactorEnabled.value ? 16 : 0}px)`,
   transition: "transform 200ms ease",
 }));
 const currentBadgeStyle: CSSProperties = {
