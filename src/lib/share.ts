@@ -51,7 +51,8 @@ export function currentShareReferralCode(): string {
 export function buildShareLink(referralCode = currentShareReferralCode()): string {
   const code = referralCode.trim();
   if (!code) return "";
-  if (remoteApiEnabled && useConfig().configStatus !== "ready") return "";
+  // Polling retains the last validated public base; initial/failing loads have no share authority.
+  if (remoteApiEnabled && ["idle", "failed"].includes(useConfig().configStatus)) return "";
   const base = useConfig().config.share.baseUrl;
   if (base) return `${base}${code}`;
   if (remoteApiEnabled) return "";

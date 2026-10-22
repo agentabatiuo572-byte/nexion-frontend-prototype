@@ -204,6 +204,24 @@ beforeEach(() => {
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("mounted poster template during real authority refresh", () => {
+  it.each(["h5", "native"] as const)("keeps the %s poster open while public config polls and closes on confirmed failure", async platform => {
+    const s = await mount(platform); await s.generate(); await s.finish();
+    const confirmedLink = buildShareLink();
+    s.cfg.configStatus = "loading"; await flush();
+    expect(s.open.value).toBe(true);
+    expect(s.control(en.share.saveImage).props["aria-disabled"]).toBe(true);
+    await s.generate(); await s.finish("/polling-poster.png");
+    await s.control(en.share.copyLink).props.onClick();
+    expect(s.copyText).toHaveBeenCalledWith(confirmedLink);
+    expect(s.unavailable).not.toHaveBeenCalled();
+    s.cfg.configStatus = "ready"; await flush();
+    expect(s.open.value).toBe(true);
+    await s.generate(); await s.finish("/confirmed-poster.png");
+    expect(s.image()).toBe("/confirmed-poster.png");
+    s.cfg.configStatus = "failed"; await flush();
+    expect(s.open.value).toBe(false); expect(s.unavailable).toHaveBeenCalled();
+  });
+
   it.each(["home", "fleet", "both"])("keeps My yield selected through %s polling but exports only current confirmed data", async kind => {
     const s = await mount(); await s.selectYield();
     expect(s.canvas.at(-1)!.texts).toContain("+0.00");

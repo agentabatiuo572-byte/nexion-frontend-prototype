@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\uniapp-oauth-invite-entry",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "71fa4cf2995ce69e871f5384d8492393b5ccec18",
-  "sourceRef": "71fa4cf2995ce69e871f5384d8492393b5ccec18",
+  "sourceHead": "c482b8403d986275b853978560cd27ae94585aea",
+  "sourceRef": "c482b8403d986275b853978560cd27ae94585aea",
   "sourceRefKind": "commit",
-  "sourceTree": "cd2e18eab97c5bc0f4d79a572cd7f4ae8f193e08",
+  "sourceTree": "d14bf661ee3d72db11069d266233e571e85d6ae6",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -9337,10 +9337,10 @@
       "mode": "100644"
     },
     "src/components/team/share-poster-sheet-refresh.behavior.test.ts": {
-      "sourceBlob": "cd90d7cad89ab17621533599c357ddcc5cb52621",
-      "sourceSha256": "2d6331c3aa4e8f7c86ed2f45f51107f76c621e370a869c5a5d7dcfe931a76038",
-      "targetBlob": "cd90d7cad89ab17621533599c357ddcc5cb52621",
-      "targetSha256": "2d6331c3aa4e8f7c86ed2f45f51107f76c621e370a869c5a5d7dcfe931a76038",
+      "sourceBlob": "2854bd37d6012c853ab64e6d4c4f7d728bf9251e",
+      "sourceSha256": "b9add5907ddec5e74f5fbe237ba667339f2717b83dbd7bad09ce5dd4f66cbb2b",
+      "targetBlob": "2854bd37d6012c853ab64e6d4c4f7d728bf9251e",
+      "targetSha256": "b9add5907ddec5e74f5fbe237ba667339f2717b83dbd7bad09ce5dd4f66cbb2b",
       "mode": "100644"
     },
     "src/components/team/share-poster-sheet.vue": {
@@ -12228,17 +12228,17 @@
       "mode": "100644"
     },
     "src/lib/share-link-config.test.ts": {
-      "sourceBlob": "831c460ca0e1c145a39c3a9225487588cb706082",
-      "sourceSha256": "c13e687916954fd30176e9b34ed8d3ce572a3a2a5e0ec3b0e105479a13c2f582",
-      "targetBlob": "831c460ca0e1c145a39c3a9225487588cb706082",
-      "targetSha256": "c13e687916954fd30176e9b34ed8d3ce572a3a2a5e0ec3b0e105479a13c2f582",
+      "sourceBlob": "355d6ce30d0183257f8916fad100d0b5654e3fd2",
+      "sourceSha256": "8ad4c90622124c805b12bd4578e26b26d1e46d70478f64c9fbf12f54a580348e",
+      "targetBlob": "355d6ce30d0183257f8916fad100d0b5654e3fd2",
+      "targetSha256": "8ad4c90622124c805b12bd4578e26b26d1e46d70478f64c9fbf12f54a580348e",
       "mode": "100644"
     },
     "src/lib/share.ts": {
-      "sourceBlob": "8737885e304ce19a8831d268cf237289a617bce6",
-      "sourceSha256": "d10d3b92fe0be6a4ed03dd1c28d151974bec27d5127f27a7ca8d11a2d602ebb6",
-      "targetBlob": "8737885e304ce19a8831d268cf237289a617bce6",
-      "targetSha256": "d10d3b92fe0be6a4ed03dd1c28d151974bec27d5127f27a7ca8d11a2d602ebb6",
+      "sourceBlob": "f48962c1faca374e20b040fb2d47294027281f45",
+      "sourceSha256": "8c1e22ec257e81db410b001f94bbc1edec0e944c6b6b4d2e31485f166e5a4e1a",
+      "targetBlob": "f48962c1faca374e20b040fb2d47294027281f45",
+      "targetSha256": "8c1e22ec257e81db410b001f94bbc1edec0e944c6b6b4d2e31485f166e5a4e1a",
       "mode": "100644"
     },
     "src/lib/spec7-dev-bridge.ts": {

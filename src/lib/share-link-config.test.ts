@@ -6,7 +6,7 @@ import { buildShareLink } from "./share";
 
 beforeEach(() => setActivePinia(createPinia()));
 
-it("uses only a ready server share base for a native invite link", () => {
+it("uses only a confirmed server share base for a native invite link", () => {
   const config = useConfig();
   expect(buildShareLink("NXTEST311")).toBe("");
   config.config.share.baseUrl = "https://nexgrid.ai/ref/";
@@ -16,5 +16,18 @@ it("uses only a ready server share base for a native invite link", () => {
   expect(buildShareLink("NXTEST311")).toBe("");
   config.configStatus = "ready";
   config.config.share.baseUrl = "";
+  expect(buildShareLink("NXTEST311")).toBe("");
+});
+
+it("retains a confirmed public share URL during polling but closes fresh loads and failures", () => {
+  const config = useConfig();
+  config.configStatus = "loading";
+  expect(buildShareLink("NXTEST311")).toBe("");
+  config.config.share.baseUrl = "https://nexgrid.ai/ref/";
+  config.configStatus = "ready";
+  const confirmedLink = buildShareLink("NXTEST311");
+  config.configStatus = "loading";
+  expect(buildShareLink("NXTEST311")).toBe(confirmedLink);
+  config.configStatus = "failed";
   expect(buildShareLink("NXTEST311")).toBe("");
 });
