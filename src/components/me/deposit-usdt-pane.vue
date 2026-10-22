@@ -216,7 +216,7 @@ const serverAddress = ref("");
 const serverEnabled = ref(false);
 const serverCreditEnabled = ref(false);
 type PaneDepositRecord = Omit<DepositRecord, "status"> & {
-  status: DepositRecord["status"] | "reorg_investigating" | "provider_conflict_hold";
+  status: DepositRecord["status"] | "reorg_investigating" | "provider_conflict_hold" | "reorg_reversed";
   reviewHold?: boolean;
 };
 const serverRecords = ref<PaneDepositRecord[]>([]);
@@ -259,6 +259,8 @@ function load(background = false) {
           status: row.status === "CREDITED" ? "credited"
             : row.status === "REORG_INVESTIGATING" ? "reorg_investigating"
             : row.status === "PROVIDER_CONFLICT_HOLD" ? "provider_conflict_hold"
+            : row.status === "REFUNDED" ? "returned"
+            : row.status === "REORG_REVERSED" ? "reorg_reversed"
             : row.status === "CONFIRMING" ? "confirming" : "dust_hold",
           createdAt: row.createdAt, creditedAt: row.creditedAt ?? undefined,
         }));
@@ -397,7 +399,7 @@ function isRiskHold(r: PaneDepositRecord): boolean {
   return r.status === "reorg_investigating" || r.status === "provider_conflict_hold";
 }
 function rowAmount(r: PaneDepositRecord): string {
-  const value = isRiskHold(r) || r.creditedUsdt > 0 ? r.creditedUsdt : r.grossAmountUsdt;
+  const value = r.status === "reorg_reversed" || isRiskHold(r) || r.creditedUsdt > 0 ? r.creditedUsdt : r.grossAmountUsdt;
   return formatAmount(value);
 }
 function netShort(c: DepositChannel): string {
@@ -410,6 +412,7 @@ function stateText(r: PaneDepositRecord): string {
   const tc = t.value.topupChrome;
   if (r.status === "reorg_investigating") return tc.reorgInvestigating;
   if (r.status === "provider_conflict_hold") return tc.providerConflictHold;
+  if (r.status === "reorg_reversed") return t.value.commissions.reversedTag;
   if (r.status === "credited") return tc.depositCredited;
   if (r.status === "returned") return tc.depositReturned;
   if (isInFlight(r)) {
@@ -584,7 +587,7 @@ function stateTextStyle(r: PaneDepositRecord): CSSProperties {
     fontSize: "12px",
     whiteSpace: isRiskHold(r) ? "normal" : "nowrap",
     textAlign: "right",
-    color: isRiskHold(r) ? "var(--v5-warning)" : r.status === "credited" ? "var(--v5-brand)" : r.status === "returned" ? "var(--v5-ink-4)" : "var(--v5-ink-3)",
+    color: isRiskHold(r) ? "var(--v5-warning)" : r.status === "credited" ? "var(--v5-brand)" : ["returned", "reorg_reversed"].includes(r.status) ? "var(--v5-ink-4)" : "var(--v5-ink-3)",
   };
 }
 const progTrackStyle: CSSProperties = {

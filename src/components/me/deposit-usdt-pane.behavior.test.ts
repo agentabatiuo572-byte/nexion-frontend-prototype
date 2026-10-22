@@ -283,6 +283,21 @@ test("cold or unbound account history never exposes cached bank records or start
   expect(h.text()).toContain(zh.topupChrome.noDepositsYet);
 });
 
+test.each([zh, en, vietnamese])("refunded and reversed deposits retain the address without showing a new credit", async messages => {
+  const terminalRows = ["REFUNDED", "REORG_REVERSED"].map((status, index) => ({ ...rows[1],
+    depositId: `CR-${index + 7}`, status, creditedUsdt: 0 }));
+  const h = await pane({ ...address, creditEnabled: true }, terminalRows, messages);
+  const records = controls(h.root, "nx-dep-record-row");
+  expect(records).toHaveLength(2);
+  expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(1);
+  expect(h.text()).not.toContain(messages.topupChrome.addrLoadFailed);
+  expect(textOf(records[0])).toContain(messages.topupChrome.depositReturned);
+  expect(textOf(records[1])).toContain(messages.commissions.reversedTag);
+  expect(textOf(records[1])).toContain("0.00");
+  for (const record of records) expect(record.props.onClick).toBeUndefined();
+  expect(h.navTo).not.toHaveBeenCalled();
+});
+
 test.each([zh, en, vietnamese])("a mixed six-state list stays visible and risk records preserve historical credit without confirmed details", async messages => {
   const h = await pane({ ...address, creditEnabled: true }, rows, messages);
   const records = controls(h.root, "nx-dep-record-row");

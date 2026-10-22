@@ -41,9 +41,9 @@ describe("Cregis deposit API", () => {
     await expect(api.address()).resolves.toEqual(response);
   });
 
-  it("accepts all six existing states together and preserves historical credit", async () => {
+  it("accepts all current states together and preserves historical credit", async () => {
     const statuses: CregisDeposit["status"][] = ["CONFIRMING", "CREDITED", "DUST_HOLD", "REVIEW_HOLD",
-      "REORG_INVESTIGATING", "PROVIDER_CONFLICT_HOLD"];
+      "REORG_INVESTIGATING", "PROVIDER_CONFLICT_HOLD", "REFUNDED", "REORG_REVERSED"];
     const rows = statuses.map((status, index) => ({ ...deposit, depositId: `CR-${index + 1}`, status,
       creditedUsdt: ["CREDITED", "REORG_INVESTIGATING", "PROVIDER_CONFLICT_HOLD"].includes(status) ? 9 : 0 }));
     const request = vi.fn().mockResolvedValue(rows);

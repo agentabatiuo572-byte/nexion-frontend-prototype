@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\uniapp-oauth-invite-entry",
+  "sourcePath": "D:\\workspace\\.worktrees\\nexion-uniapp-cregis-readiness",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "c482b8403d986275b853978560cd27ae94585aea",
-  "sourceRef": "c482b8403d986275b853978560cd27ae94585aea",
+  "sourceHead": "66ac27f28b4fa11239d364cf3252c4238f4ab562",
+  "sourceRef": "66ac27f28b4fa11239d364cf3252c4238f4ab562",
   "sourceRefKind": "commit",
-  "sourceTree": "d14bf661ee3d72db11069d266233e571e85d6ae6",
+  "sourceTree": "1645cc77342c9982ea53ed8fecac701b1b3071d7",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -6082,17 +6082,17 @@
       "mode": "100644"
     },
     "src/api/cregis-deposit-api.test.ts": {
-      "sourceBlob": "2ee9a145a7aa4bf98a9846f34cd148eb51869d8c",
-      "sourceSha256": "1fa0187ea73a78d038580576a6b78e9866694fddafd572535ab545778a673aef",
-      "targetBlob": "2ee9a145a7aa4bf98a9846f34cd148eb51869d8c",
-      "targetSha256": "1fa0187ea73a78d038580576a6b78e9866694fddafd572535ab545778a673aef",
+      "sourceBlob": "2139bf645082ded489e9c484c4e73d562f1735ed",
+      "sourceSha256": "a937d7cee8962b6020bb73e9b5f42439b30195c0ef4fab0e120a254b98c9484b",
+      "targetBlob": "2139bf645082ded489e9c484c4e73d562f1735ed",
+      "targetSha256": "a937d7cee8962b6020bb73e9b5f42439b30195c0ef4fab0e120a254b98c9484b",
       "mode": "100644"
     },
     "src/api/cregis-deposit-api.ts": {
-      "sourceBlob": "ba8ab910076d701b825a1f3f0bc19546063bec54",
-      "sourceSha256": "76b2c9d11fb17e526474be194c764a8402dd243788358ca374808861c4d02fd2",
-      "targetBlob": "ba8ab910076d701b825a1f3f0bc19546063bec54",
-      "targetSha256": "76b2c9d11fb17e526474be194c764a8402dd243788358ca374808861c4d02fd2",
+      "sourceBlob": "a654821da106811eb0f4c6b787560a01ae2981ed",
+      "sourceSha256": "a1501a1f04863c84ac6b5cfb4d4c35cbef50da3a6273c69e34dbe82cdf3c207a",
+      "targetBlob": "a654821da106811eb0f4c6b787560a01ae2981ed",
+      "targetSha256": "a1501a1f04863c84ac6b5cfb4d4c35cbef50da3a6273c69e34dbe82cdf3c207a",
       "mode": "100644"
     },
     "src/api/day-one-page-observation-api.test.ts": {
@@ -7314,17 +7314,17 @@
       "mode": "100644"
     },
     "src/api/withdrawal-api.test.ts": {
-      "sourceBlob": "aa849e07fb20bc669c2f085041089ac48bc6ad35",
-      "sourceSha256": "4d8740113a2dede6525c1f03c68b1965b8b544ed7565ca2b9aa7806baa301f08",
-      "targetBlob": "aa849e07fb20bc669c2f085041089ac48bc6ad35",
-      "targetSha256": "4d8740113a2dede6525c1f03c68b1965b8b544ed7565ca2b9aa7806baa301f08",
+      "sourceBlob": "98f136a186cf959099c63b26e565cab42a841208",
+      "sourceSha256": "98733452fed77f404665258be521f1dbe38aa07ca63780de87d78ba08ac6a911",
+      "targetBlob": "98f136a186cf959099c63b26e565cab42a841208",
+      "targetSha256": "98733452fed77f404665258be521f1dbe38aa07ca63780de87d78ba08ac6a911",
       "mode": "100644"
     },
     "src/api/withdrawal-api.ts": {
-      "sourceBlob": "c9460ff437dfeeca44c73cf2e6ac8266c54a9106",
-      "sourceSha256": "4485d0792b4f91cd4c6cfa7f2313309c276e149492f59f12444a2d03f93a6ea6",
-      "targetBlob": "c9460ff437dfeeca44c73cf2e6ac8266c54a9106",
-      "targetSha256": "4485d0792b4f91cd4c6cfa7f2313309c276e149492f59f12444a2d03f93a6ea6",
+      "sourceBlob": "8ff3b000505c10bdde493422aba58ba94ce011ca",
+      "sourceSha256": "987bec24747aa8b4a7b8c15e5bf553a990ee585759cf5d45e70923266e127315",
+      "targetBlob": "8ff3b000505c10bdde493422aba58ba94ce011ca",
+      "targetSha256": "987bec24747aa8b4a7b8c15e5bf553a990ee585759cf5d45e70923266e127315",
       "mode": "100644"
     },
     "src/app-runtime-config-refresh.contract.test.ts": {
@@ -8406,17 +8406,17 @@
       "mode": "100644"
     },
     "src/components/me/deposit-usdt-pane.behavior.test.ts": {
-      "sourceBlob": "f09ddd53ff815749e73d195480c44c1c90cb874f",
-      "sourceSha256": "a2e611656ee018679ea645f00f7f2d0aa5bcc02bb8467096422a72a7fc807057",
-      "targetBlob": "f09ddd53ff815749e73d195480c44c1c90cb874f",
-      "targetSha256": "a2e611656ee018679ea645f00f7f2d0aa5bcc02bb8467096422a72a7fc807057",
+      "sourceBlob": "4ec93533a243aa41f37af960d581ed5a353988b7",
+      "sourceSha256": "df79bc38ed2796007bdc81b3ad95d7e7f034515ebbb755cd720c8e258674e81a",
+      "targetBlob": "4ec93533a243aa41f37af960d581ed5a353988b7",
+      "targetSha256": "df79bc38ed2796007bdc81b3ad95d7e7f034515ebbb755cd720c8e258674e81a",
       "mode": "100644"
     },
     "src/components/me/deposit-usdt-pane.vue": {
-      "sourceBlob": "ab050d7f034b4f0f90292b7c0216b9b1e4b71269",
-      "sourceSha256": "2f75b582d118ddefcdc4c0b32c8d24304696d65fb542a0c1a3a222575697f155",
-      "targetBlob": "ab050d7f034b4f0f90292b7c0216b9b1e4b71269",
-      "targetSha256": "2f75b582d118ddefcdc4c0b32c8d24304696d65fb542a0c1a3a222575697f155",
+      "sourceBlob": "27fc3dce68b9de6b0d9e1af57c8e48b2edbce165",
+      "sourceSha256": "235169de73a6a621f1863b05a20253f0da11ae82e5eb3bcb5a28d1fc2dc3a11c",
+      "targetBlob": "27fc3dce68b9de6b0d9e1af57c8e48b2edbce165",
+      "targetSha256": "235169de73a6a621f1863b05a20253f0da11ae82e5eb3bcb5a28d1fc2dc3a11c",
       "mode": "100644"
     },
     "src/components/me/device-deactivate-sheet.vue": {

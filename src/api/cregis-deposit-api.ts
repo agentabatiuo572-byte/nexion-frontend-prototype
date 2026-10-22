@@ -19,7 +19,7 @@ export interface CregisDeposit {
   creditedUsdt: number;
   confirmations: number;
   status: "CONFIRMING" | "CREDITED" | "DUST_HOLD" | "REVIEW_HOLD"
-    | "REORG_INVESTIGATING" | "PROVIDER_CONFLICT_HOLD";
+    | "REORG_INVESTIGATING" | "PROVIDER_CONFLICT_HOLD" | "REFUNDED" | "REORG_REVERSED";
   createdAt: number;
   creditedAt?: number | null;
 }
@@ -53,7 +53,7 @@ export function createCregisDepositApi(client: ApiClient) {
           || !Number.isInteger(row.confirmations) || row.confirmations < 0
           || typeof row.createdAt !== "number" || !Number.isFinite(row.createdAt)
           || !["CONFIRMING", "CREDITED", "DUST_HOLD", "REVIEW_HOLD",
-            "REORG_INVESTIGATING", "PROVIDER_CONFLICT_HOLD"].includes(String(row.status)))) {
+            "REORG_INVESTIGATING", "PROVIDER_CONFLICT_HOLD", "REFUNDED", "REORG_REVERSED"].includes(String(row.status)))) {
         throw new ApiError({ kind: "protocol", message: "CREGIS_DEPOSITS_INVALID" });
       }
       return rows as CregisDeposit[];
