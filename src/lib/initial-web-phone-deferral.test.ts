@@ -24,12 +24,15 @@ describe("initial H5 phone deferral", () => {
 
   it("writes revision zero only after a true missing result/no phone and completes from a persistent GET", async () => {
     api.result.mockRejectedValueOnce(missing()).mockResolvedValueOnce(deferred());
-    api.defer.mockResolvedValueOnce(deferred());
+    api.defer.mockImplementationOnce((_deviceId, _revision, _key, initialOnly) => {
+      if (initialOnly !== true) throw new ApiError({ kind: "http", status: 403, code: 403, message: "PHONE_INITIAL_DEFER_ONLY" });
+      return Promise.resolve(deferred());
+    });
     const request = options();
     await expect(confirmInitialWebPhoneDeferral(request)).resolves.toEqual(deferred());
     expect(api.result).toHaveBeenCalledTimes(2);
     expect(api.fleet).toHaveBeenCalledOnce();
-    expect(api.defer).toHaveBeenCalledExactlyOnceWith("web-install-42", 0, "web-initial-defer:fixed-command");
+    expect(api.defer).toHaveBeenCalledExactlyOnceWith("web-install-42", 0, "web-initial-defer:fixed-command", true);
     expect(api.result.mock.invocationCallOrder[0]).toBeLessThan(api.fleet.mock.invocationCallOrder[0]);
     expect(api.fleet.mock.invocationCallOrder[0]).toBeLessThan(api.defer.mock.invocationCallOrder[0]);
     expect(api.defer.mock.invocationCallOrder[0]).toBeLessThan(api.result.mock.invocationCallOrder[1]);

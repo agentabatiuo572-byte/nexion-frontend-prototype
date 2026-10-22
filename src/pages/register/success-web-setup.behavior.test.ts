@@ -72,7 +72,7 @@ test("double click writes one command and completes only after persistent GET, r
   expect(view.state.setupBusy.value).toBe(true);
   expect(view.auth.completeOnboarding).not.toHaveBeenCalled(); expect(view.navBack).not.toHaveBeenCalled();
   release(); await pending;
-  expect(api.defer).toHaveBeenCalledExactlyOnceWith("browser-install-42", 0, "web-initial-defer:fixed-page-command");
+  expect(api.defer).toHaveBeenCalledExactlyOnceWith("browser-install-42", 0, "web-initial-defer:fixed-page-command", true);
   expect(view.auth.completeOnboarding).toHaveBeenCalledOnce();
   expect(view.navBack).toHaveBeenCalledExactlyOnceWith("/pages/me/wallet-topup");
   expect(view.navReset).not.toHaveBeenCalled();

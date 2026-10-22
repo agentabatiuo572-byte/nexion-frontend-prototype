@@ -107,7 +107,7 @@ export async function confirmInitialWebPhoneDeferral(
   const command = options.command(0);
   check();
   try {
-    const result = await onboardingCalibrationApi.defer(options.deviceId, 0, command.idempotencyKey);
+    const result = await onboardingCalibrationApi.defer(options.deviceId, 0, command.idempotencyKey, true);
     if (!options.accept(result)) stale();
     deferred(result);
   } catch (cause) {
