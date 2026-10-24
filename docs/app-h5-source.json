@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\team-v8-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "20a8f0914958b5876c232f7552742035e17f78bb",
-  "sourceRef": "20a8f0914958b5876c232f7552742035e17f78bb",
+  "sourceHead": "92577f7535318895ab584db43dda22f0ae6e4698",
+  "sourceRef": "92577f7535318895ab584db43dda22f0ae6e4698",
   "sourceRefKind": "commit",
-  "sourceTree": "82b65d98f65e6c169c88d338cbe3e20bd5c0f369",
+  "sourceTree": "ca777d8653ca246fa956b8ed2228685670b5c0fd",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -104,17 +104,24 @@
       "mode": "100644"
     },
     "PRD/NexGrid_APP端开发落地规格.md": {
-      "sourceBlob": "139f06fbf374484c51718fd7e742aca9a796a8af",
-      "sourceSha256": "dab6c0e45dc0630c0e8fec30a175e6e1c6d910860032b52e69dc8321304e2f7a",
-      "targetBlob": "139f06fbf374484c51718fd7e742aca9a796a8af",
-      "targetSha256": "dab6c0e45dc0630c0e8fec30a175e6e1c6d910860032b52e69dc8321304e2f7a",
+      "sourceBlob": "25f8cb613c2971236c9e57587f32ea9fcdab923f",
+      "sourceSha256": "902bbe39518d50f309eda1d6879e94950a61e0e43177503aca6b87acaf12979f",
+      "targetBlob": "25f8cb613c2971236c9e57587f32ea9fcdab923f",
+      "targetSha256": "902bbe39518d50f309eda1d6879e94950a61e0e43177503aca6b87acaf12979f",
       "mode": "100644"
     },
     "PRD/NexGrid_产品功能架构设计文档_v3.7.md": {
-      "sourceBlob": "ec1e228417f8a01c89c38df70ed07969b5d7242b",
-      "sourceSha256": "397afa47d91fb615a4b7c5bcdf0feb5d10fc84f1d71df327c04fc35d1cf8c84d",
-      "targetBlob": "ec1e228417f8a01c89c38df70ed07969b5d7242b",
-      "targetSha256": "397afa47d91fb615a4b7c5bcdf0feb5d10fc84f1d71df327c04fc35d1cf8c84d",
+      "sourceBlob": "3451f2fa189e59c5c6e70a8acda7fd5fefb9d0d0",
+      "sourceSha256": "382d6c6047cbba4a720df524aa7bdb33b4535173c45bc0cae9276f70ba20e68d",
+      "targetBlob": "3451f2fa189e59c5c6e70a8acda7fd5fefb9d0d0",
+      "targetSha256": "382d6c6047cbba4a720df524aa7bdb33b4535173c45bc0cae9276f70ba20e68d",
+      "mode": "100644"
+    },
+    "PRD/UVEL_体验与运营配置同步_20261025.md": {
+      "sourceBlob": "5c7e163ec06c67f140c8412a19f304bc52dad98e",
+      "sourceSha256": "4165680a431476d84255622d615b017eb5ace85ca48b1c8e3e87dd0ffc235722",
+      "targetBlob": "5c7e163ec06c67f140c8412a19f304bc52dad98e",
+      "targetSha256": "4165680a431476d84255622d615b017eb5ace85ca48b1c8e3e87dd0ffc235722",
       "mode": "100644"
     },
     "checks/lucky-spin-remote-contract.test.mjs": {

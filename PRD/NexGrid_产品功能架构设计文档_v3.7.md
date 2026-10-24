@@ -1,4 +1,4 @@
-# NexGrid · 产品需求文档(PRD)
+# UVEL · 产品需求文档(PRD)
 
 | 项 | 值 |
 |---|---|
@@ -6,9 +6,9 @@
 | 版本 | v3.7 |
 | 文档类型 | Product Requirements Document |
 | 适用对象 | 产品 / 设计 / 前端 / 测试 / 业务 |
-| 适用系统 | NexGrid 移动端 H5 应用 |
+| 适用系统 | UVEL App 与共享 H5 |
 
-> **声明**:本文档为研究性原型的产品需求规格,系统中所有业务数据(收益、佣金、价格、TVL)均为模拟生成,不涉及真实资金。
+> **现行适用范围（2026-10-25）**：本文承接历史原型，现用于正式 UVEL App/H5 的需求索引；业务数据以正式服务端为准，不能据旧原型声明生成模拟资金或状态。本轮 Tab、UVT/品牌、团队 V0–V8、H9 数字、商城资格/图片/标题的现行契约见 [UVEL_体验与运营配置同步_20261025.md](UVEL_体验与运营配置同步_20261025.md)。历史文件名与接口标识保留；用户可见 NEX 统一显示 UVT，Nexion/NexGrid 显示 UVEL，团队“业绩/业绩额”显示“算力额”。
 
 ---
 
@@ -109,9 +109,9 @@ NexGrid 是面向全球非中国市场(北美、欧洲、东南亚、日韩、�
 
 > 内部 `UserTier` enum 保留 `"L0"|"L1"|…|"L5"` 标识符;UI 一律走 i18n `profile.tierLabels` 显示功能化标签,**不暴露 L\d 编号**,避免与已废弃的 MLM 层级数字混淆。
 
-### 2.2 V 级头衔(V0-V12,基于团队业绩)
+### 2.2 V 级头衔(V0–V8,基于团队算力额)
 
-跟 L 级独立,V 级是团队业绩驱动的军衔体系(详见 §8.2)。L0-L5 反映"产品使用阶段",V0-V12 反映"团队规模阶段",两套体系并存。
+跟 L 级独立,V 级是团队算力额驱动的军衔体系(详见 §8.2)。L0-L5 反映"产品使用阶段",V0–V8 反映"团队规模阶段",两套体系并存。
 
 ### 2.3 核心使用场景
 
@@ -142,6 +142,8 @@ Day 90:  活跃推广者,V2-V3 头衔追求
 ---
 
 ## 3. 信息架构与导航
+
+底部 Tab 现行交互：原生常驻页面壳保留状态，一次点击只播放一次滑块移动；避免切页黑帧和到达后重复滑动。快速连点以最后目标为准，详见 [本轮同步规格](UVEL_体验与运营配置同步_20261025.md) §1。
 
 ### 3.1 应用框架(IOSFrame chassis)
 
@@ -738,7 +740,7 @@ Hero 信息层:
 | 标题 line 1 | "AI 时代,算力就是钱。" | 资本视角钩 — AI 缺算力,你刚好有 |
 | 标题 line 2 | "24 小时 替你打工。" | 第二人称 + 强动词 + 数字前置 |
 | 副标题 | "插上充电,就开始接 AI 任务。越多 · 越久 · 赚得越多。" | 隐性 phone hint + 增长承诺 |
-| 实时统计 chip | `28,xxx 台设备在线 · $1xx,xxx,xxx 累计已发放`;累计值按「设备总数 × 设备日产出公布档」速率随真实时间单调递增,跨访问不倒退;设备在线数小幅双向波动 | 社会证明 + 规模信任;累计口径不暴露日流水、不可反推单台收益 |
+| 实时统计 chip | 在线设备与累计已发放读取 H9 首页数字增长批次；每秒按共享序列显示，刷新不重置，失败显示“—” | 独立展示数据；开关、随机批次与性能规则见本轮同步规格 §4 |
 | 中央 ComputeOrb | SVG 动画:旋转轨道 + 卫星节点 + 中央芯片标 "N" | 真平台仿真 — 算力网络可视化 |
 | 主 CTA | "立即开始 →"(brand 大按钮) | 零门槛字眼,无扣款 / 绑卡暴露 |
 | 副 CTA | "登录"(surface ghost) | 复访用户路径 |
@@ -1518,7 +1520,7 @@ APP 登录完成当前条款确认后，以当前安装 deviceId 调用普通手
 
 **购买门(等级门 + 锁额门)**(`Product.purchaseGate`):
 
-上架节奏门(`unlocksAtPhase`,阶段门)之外,高客单设备可挂第二类 per-product 购买门 —— **等级/条件门**(谁有资格买)+ **锁额门**(本期限量多少)。两者正交,任一可单独设。目的:高价机型挂资格条件 + 限量,制造稀缺感并把"达成团队条件"作为购买前提,驱动用户冲直推数 / 团队业绩。门为**后台可配**(运营在后台 SKU「购买限制」配置组设定,server-canonical,见后台 PRD E 域),前端只读、服务端二次校验为权威。
+上架节奏门(`unlocksAtPhase`,阶段门)之外,高客单设备可挂第二类 per-product 购买门 —— **等级/条件门**(谁有资格买)+ **锁额门**(本期限量多少)。两者正交,任一可单独设。目的:高价机型挂资格条件 + 限量,制造稀缺感并把"达成团队条件"作为购买前提,驱动用户冲直推数 / 团队算力额。门为**后台可配**(运营在后台 SKU「购买限制」配置组设定,server-canonical,见后台 PRD E 域),前端只读、服务端二次校验为权威。
 
 数据结构 `PurchaseGate`(全字段可选,任一条件省略=不校验该项;`purchaseGate` 整体未设=自由购买无门):
 
@@ -1526,7 +1528,7 @@ APP 登录完成当前条款确认后，以当前安装 deviceId 调用普通手
 |---|---|
 | `rankMin?` | 最低 V 级(0-12),需 `myRank ≥ rankMin` |
 | `activeDirectMin?` | 最少活跃直推数 |
-| `teamVolumeMin?` | 最低团队业绩(USD) |
+| `teamVolumeMin?` | 最低团队算力额(USD) |
 | `mode` | 多条件判定:`all`(全满足 AND)/ `either`(任一满足 OR)|
 | `quotaCap?` | 锁额:本期可售上限(未设=不限量)|
 | `quotaSold?` | 已售(服务端维护;余量 `remaining = max(0, quotaCap − quotaSold)`)|
@@ -1557,7 +1559,7 @@ flowchart TD
 | 产品 | 门类型 | 条件 | mode | 锁额 cap / sold | enforce |
 |---|---|---|---|---|---|
 | NexGridBox Pro | 单活跃直推 | ≥ 5 活跃直推 | all | 1,000 / 977(余 23)| 硬拦 |
-| NexGridRack P1 | 组合 | V≥3 **或** ≥15 活跃直推 **或** 团队业绩 ≥ $20,000 | either | 100 / 92(余 8)| 硬拦 |
+| NexGridRack P1 | 组合 | V≥3 **或** ≥15 活跃直推 **或** 团队算力额 ≥ $20,000 | either | 100 / 92(余 8)| 硬拦 |
 
 > 锁额 `remaining` 是该 SKU"还剩 N 件"的**单一来源**(收编原 `stock` 展示,消除双口径)。其余 SKU 默认无购买门;Pro v2 / Rack P2 维持阶段门(`unlocksAtPhase`)。
 
@@ -1587,7 +1589,9 @@ flowchart TD
 
 **商品图片缓存（2026-10-25）**：原生 App 的商品列表与详情共用本地持久缓存，首次下载后重复访问和重启均复用；只缓存当前目录提供的有效签名商品图片。缓存按图片资产版本识别，签名续期不重复下载，换图后下载新资产。最多 64 张、32 MiB，按最近使用顺序清理；文件缺失或损坏时重新下载，保存失败仍可展示本次下载图片。H5 保持网页图片加载方式，不调用原生文件缓存。购买资格失败通过错误提示反馈，详情上方不额外放置资格说明；底部入口依据真实资格保持购买限制。
 
-**Phase gate**:商品详情外层包 `<ProductDetailGate product={product}>` 客户端 wrapper。读 `useProductPhase()`,若 `product.unlocksAtPhase` 未 reached,**post-mount 替换整页**为 `<LockedProductCard>` 完整变体(lock icon + `New silicon — coming next quarter` 大字 + tagline + GPU/VRAM mini-spec + Estimated arrival + 全宽 `Notify me when live` 按钮)。直链 URL(`/store/stellarbox-pro-v2` 等)仍返回 HTTP 200,不走 `notFound()` — 用户从分享链接落地也能看到 anticipation 卡。SSR + first paint 渲染完整产品页(避免 hydration mismatch),mount 后再 swap,接受短暂闪烁(deep-link 场景为边缘 case)。
+**当前资格交互**：详情上方移除资格、条件和错误说明块；底部“查看解锁条件”展示真实等级及配额条件；配额耗尽则显示耗尽状态并禁用按钮，不跳解锁页。查询失败用统一错误提示，未知资格仍限制购买，恢复后重查，离页后丢弃迟到反馈；服务端最终购买校验保留。图片压缩与缓存异常边界见本轮同步规格 §6。
+
+**Phase gate（历史原型，仅作背景，不替代当前服务端资格流程）**:商品详情外层包 `<ProductDetailGate product={product}>` 客户端 wrapper。读 `useProductPhase()`,若 `product.unlocksAtPhase` 未 reached,**post-mount 替换整页**为 `<LockedProductCard>` 完整变体(lock icon + `New silicon — coming next quarter` 大字 + tagline + GPU/VRAM mini-spec + Estimated arrival + 全宽 `Notify me when live` 按钮)。直链 URL(`/store/stellarbox-pro-v2` 等)仍返回 HTTP 200,不走 `notFound()` — 用户从分享链接落地也能看到 anticipation 卡。SSR + first paint 渲染完整产品页(避免 hydration mismatch),mount 后再 swap,接受短暂闪烁(deep-link 场景为边缘 case)。
 
 页面自上而下(unlocked 状态):
 
@@ -2048,7 +2052,7 @@ flowchart LR
 
 #### 8.1.2 团队收益卡(TeamLedgerCard)
 
-**目的**:把"本月可领、累计业绩、网络结构拆分、可提现/冷却余额、提现入口"聚合在单卡,替代原"团队累计 lifetime 卡 + 月份佣金卡"双卡布局,消除同一 $195.09 数据重复出现。
+**目的**:把"本月可领、累计算力额、网络结构拆分、可提现/冷却余额、提现入口"聚合在单卡,替代原"团队累计 lifetime 卡 + 月份佣金卡"双卡布局,消除同一 $195.09 数据重复出现。
 
 **内容**(自上而下):
 
@@ -2100,7 +2104,7 @@ flowchart LR
 ### 8.1.3 Team finance controls
 
 - Commissions:展示 5 类佣金事件明细,入口必须可从 Team 主页到达。
-- V Rank:展示 V0-V12 进度、晋升条件、维持期与等级奖励/培育奖。
+- V Rank:展示 V0–V8 进度、晋升条件、维持期与等级奖励/培育奖。
 - Balance Match:展示双轨 balance、弱区/强区、日封顶与 spillover 逻辑。
 - Leadership Pool:展示全球领导奖池、参与资格、分配周期与说明页。
 
@@ -2108,25 +2112,9 @@ flowchart LR
 
 ### 8.2 V 级头衔体系 `/team/rank`
 
-#### 8.2.1 13 阶完整表
+#### 8.2.1 V0–V8 有效等级
 
-| V | 头衔 | 升级条件 | 扩展版税覆盖(数学层 `unilevelDepth`) | 平级奖 | 领导池票数 |
-|---|---|---|---|---|---|
-| V0 | Cadet 学员 | 注册即得 | 仅直推 | — | — |
-| V1 | Pilot 飞行员 | 自买 ≥ $299 + 直推 3 | 直推 + 1 度扩展 | — | — |
-| V2 | Operator 操作员 | 团队 $5K | 直推 + 2 度扩展 | — | — |
-| V3 | Captain 舰长 | $20K + 2×V1 | 直推 + 3 度扩展 | 5% | 1 |
-| V4 | Commander 指挥官 | $50K + 3×V2 | 直推 + 4 度扩展 | 5% | 2 |
-| V5 | Wing Leader 翼领 | $150K + 4×V3 | 直推 + 5 度扩展 | 5% | 4 |
-| V6 | Squadron 中队长 | $500K + 5×V4 | 直推 + 6 度扩展 | 5% | 8 |
-| V7 | Fleet Cmdr 舰队司令 | $1M + 6×V5 | 直推 + 7 度扩展 | 5% | 16 |
-| V8 | Star Admiral 星上将 | $3M + 7×V6 | 直推 + 8 度扩展 | 5% | 32 |
-| V9 | Galaxy Lord 星河领主 | $10M | 直推 + 9 度扩展 | 5% | 64 |
-| V10 | NexGrid Founder 联合创始 | $30M | 无限扩展 0.5% | 5% | 128 |
-| V11 | Cosmic Sovereign 宇宙至尊 | $100M | 无限扩展 1% | 5% | 256 |
-| V12 | Singularity 奇点 | $500M | 无限扩展 1.5% | 5% | 512 |
-
-> unilevelDepth与购买资格继续由原七层引擎解释；设备收益分成只认真实直属来源，不按深度推算。
+有效范围为 V0–V8（共 9 个等级），名称、升级条件、权益、领导池票数及等级/培育奖励均读取后端发布配置，不以旧原型的固定门槛或奖励表代替。PC F1 与后端停用 V9–V12 配置并保留历史记录；迁移前检查存量高等级账号，不静默降级。购买资格和佣金计算仍按对应服务端规则，不因展示范围调整而重写结算。
 
 #### 8.2.2 升级判定规则
 
@@ -2136,14 +2124,14 @@ flowchart LR
 |---|---|---|
 | 自买累计 | `selfBuyUSD` | **仅本人下单**支付的 NexGridBox / NexGridRack / Cloud Share USDT 金额。复投锁仓 / NEX 内购 / 礼包赠送 **不计**。退款金额从累计中扣除。 |
 | 直推数 | `directRefs` | 直接邀请并完成注册 + KYC-Express 的下家数(数学层 L1)。**仅去重计数**(同手机号 / 同钱包重复绑定不重复计)。降级 / 注销的下家从计数中扣除。 |
-| 团队业绩 | `teamVolumeUSD` | 直推 + 扩展网络全部下线**所有订单 USDT 金额累加**(数学层 L1-L7;超过 V7 后按对应 unilevelDepth)。包括首购 / 复投 / 商城升级 / Cloud Share 充值。退款扣减。 |
+| 团队算力额 | `teamVolumeUSD` | 直推 + 扩展网络全部下线**所有订单 USDT 金额累加**(数学层 L1-L7;超过 V7 后按对应 unilevelDepth)。包括首购 / 复投 / 商城升级 / Cloud Share 充值。退款扣减。 |
 | 下属 V 级数 | `vDownlines` | "≥Vn 等级"直推下家数,**含直推中达到目标 V 级或更高的人**。例:V3 要求 `vDownlines: { 1: 2 }` 表示需要 ≥2 个 V≥1 的直推(若直推中有 V3,也按 V≥1 计 1 个)。 |
 
 **判定方式**:
 
 - **同时满足全部条件**(`AND` 逻辑)才晋升。`progressPct = avg(每个 check 完成度)`,但实际晋升要求 **每个 check 必须独立 ≥ 1**(并非平均 ≥ 1)。
 - 进度条 UI 显示 `progressPct`(平均完成度),Missing 文案逐条列出未达成项。
-- **不可越级**:必须按 V0→V1→V2→...→V12 顺序升,每跳一阶。即使一次性满足 V5 的条件,系统也只先晋升到 V3(下一阶),下一次结算再升 V4,以此类推。这保证奖项 / 解锁深度 / 培育奖按阶逐次发放。
+- **不可越级**:必须按 V0→V1→V2→...→V8 顺序升,每跳一阶。即使一次性满足 V5 的条件,系统也只先晋升到 V3(下一阶),下一次结算再升 V4,以此类推。这保证奖项 / 解锁深度 / 培育奖按阶逐次发放。
 
 #### 8.2.3 晋升触发时机
 
@@ -2154,57 +2142,39 @@ flowchart LR
   - 直推下家自身晋升 V 级 → 上线 `vDownlineCounts` 更新
 - **晋升瞬时性**:check 通过后系统**当前帧自动 setMyRank**(无审批等待 / 无月结结算),立即生效:
   - 扩展版税覆盖范围加宽(下一笔订单按新覆盖度结算)
-  - 解锁平级奖(若 V≥3)
+  - 按发布配置和能力状态展示平级权益；能力未开放时标明未发放，不因达到 V3 就承诺发奖
   - 解锁领导池票数(下次周结自动并入)
   - 上线触发 cultivationBonus NEX(见 §8.2.5)
 - **晋升通知**:推送至 useNotifications(`kind: team`)+ Nova 推一条 `🎉 Congratulations! You're now V{n} {Title}.` + Home BoostUpsell 轮换插入 5s 庆祝条幅
 
 #### 8.2.4 维持期 / 降级规则
 
-- **不降级**:V 级一旦达成,**永久保留**。即使后续团队业绩缩水 / 下家流失 / V 级下家降级,自身 V 级不回退。
-- **不需要月度维护**:无"月度业绩门槛""活跃考核""90 天激活窗口"等典型 MLM 维持机制。
+- **不降级**:V 级一旦达成,**永久保留**。即使后续团队算力额缩水 / 下家流失 / V 级下家降级,自身 V 级不回退。
+- **不需要月度维护**:无"月度算力额门槛""活跃考核""90 天激活窗口"等典型 MLM 维持机制。
 - **唯一例外**:账户注销 → V 级清零(账户重新注册视为 V0)。
-- **保留机制目的**:晋升后用户视角是"已锁定身份和未来收益"(包括 unilevel 深度 / 平级奖 / 领导池票数),减少持续投入压力。
+- **保留机制**：保留已达等级；可用权益、奖励与领导池票数按发布配置和实际能力状态展示，未开放能力不能作为已锁定的未来收益承诺。
 
 #### 8.2.5 等级奖励 & 培育奖
 
 **等级奖励(运营可配)**:每个 V 级的晋升奖励由运营后台(F1 V-Rank)配置,支持 **USDT / NEX / 代金券 / 系统 SKU / 自定义** 多种类型,可一阶多项。原「实物奖品 + 发货队列」机制已下线。下方「培育奖 NEX」是默认随阶发放的代币奖励(发给上线 sponsor)。
 
-**培育奖(cultivationBonus,NEX)**:
-
-| 培育对象升至 | 上线一次性获得 NEX |
-|---|---|
-| V1 | 500 |
-| V2 | 2,000 |
-| V3 | 10,000 |
-| V4 | 50,000 |
-| V5 | 200,000 |
-| V6 | 800,000 |
-| V7 | 3,200,000 |
-| V8 | 10,000,000 |
-| V9+ | 0(高阶停发,改靠平级 / 领导池) |
+**培育奖（`cultivationBonus`，展示 UVT）**：读取各有效等级发布值，不写死金额。字段和资产代码仍为原协议；本人等级奖励与发给直接推荐人的培育奖励分开显示。
 
 - **触发对象**:被培育者的**直接上线**(L1 sponsor)。L2 及以上不分培育奖。
-- **重复触发限制**:同一被培育对象升 V 级时仅触发**该次跨阶**对应奖励;若被培育者从 V2 直接达成 V5 条件(实际仍需逐阶升,见 §8.2.2),则上线分别在 V3 / V4 / V5 三次晋升时累计拿到 10K + 50K + 200K NEX。
+- **重复触发限制**:同一被培育对象升 V 级时仅触发**该次跨阶**对应奖励;若被培育者从 V2 直接达成 V5 条件(实际仍需逐阶升,见 §8.2.2),则直接推荐人分别按 V3 / V4 / V5 各阶发布配置取得对应培育奖励（显示 UVT），不采用旧示例写死金额。
 - **结算**:NEX 即时入 `user.nexBalance`,无冷却期,无门槛。
 - **通知**:`kind: team` 推一条 `🌱 Your direct {name} just hit V{n} — you earned +{nex} NEX cultivation bonus.`
 
-#### 8.2.6 V 级矩阵设计意图
+#### 8.2.6 等级范围与展示边界
 
-| 阶段 | V 范围 | 用户体验目标 |
-|---|---|---|
-| 入门 | V0 → V3 | 低门槛快速上手 — 3 个直推 + $20K 团队业绩可达,平均 2-4 周内 90% 活跃用户能升 V3,解锁平级奖 + 领导池 1 票 + 培育奖 NEX |
-| 攀升 | V4 → V6 | 业绩门槛指数级跳跃($50K → $500K),需稳定下线团队 + V 级下属;典型 MLM "中坚干部"区间 |
-| 高阶 | V7 → V9 | $1M-$10M 团队业绩,需 6+ V5 / 7+ V6 下属;少数顶尖大区领袖区间 |
-| 远期 | V10 → V12 | $30M-$500M 远期天花板;高阶领导池权重 + 全网分红作为长期 aspirational 锚 |
+V0–V8 为当前有效等级；已停用的 V9–V12 不作为新增晋升目标，也不提供当前等级奖励入口。V8 展示已达最高有效等级，不生成 V9 的升级差额。奖励、条件与票权按当前配置展示，不写死未来等级收益示例。
 
 #### 8.2.7 UI 规格
 
-- 当前 V 级 hero(V Badge + 头衔英中文双行)
-- 升至下一阶进度条(`Math.round(progressPct × 100)%`)
-- Missing 条件清单(`nextRankProgress().missing` 数组逐条列出)
-- 13 阶完整列表(已达成 / CURRENT / 锁定 3 状态)
-- 每阶展示升级条件与已开放权益；购买资格沿原七层规则，设备直属奖励资格独立。
+- 整条圆角标题栏显示“V 级头衔”，保留返回、消息和“规则介绍”入口。
+- 当前等级区保持紧凑；下方列出 V0–V8，并标记已达成、当前、未解锁。
+- 每级展示所需条件、对应权益及奖励；下一阶进度与差额放入该级条目，移除上方重复的长说明和升级引导块。
+- 奖励标明本人/直接推荐人等实际领取对象，未配置或未开放权益不冒充已开放。团队金额统一显示“算力额”，计量与业务计算不变。
 
 ### 8.3 网络版税 `/team/unilevel`
 
@@ -2242,15 +2212,15 @@ v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，�
 
 ##### 8.4.0.1 在团队体系中的角色
 
-双轨平衡匹配与直属分成(§8.3)并行；对碰按原业绩及结算规则执行，直属分成只来自直接成员的合格购买与真实设备收益，两者互不替代。
+双轨平衡匹配与直属分成(§8.3)并行；对碰按原算力额及结算规则执行，直属分成只来自直接成员的合格购买与真实设备收益，两者互不替代。
 
 ##### 8.4.0.2 4 个核心机制要点
 
 | # | 机制 | 业务效果 |
 |---|---|---|
 | 1 | 较小轨匹配公式 | Balance Match = `min(A, B) × 10%`,日上限随平台 Phase 收紧(P1–P3 $5,000 / P4+ $2,000,详见 §11 Phase 参数表)。仅按较小一轨体量发放,鼓励两轨均衡发展。**结算周期**(每日 / 每周 / 每月)与**沉淀处置策略**(较大一轨未匹配体量如何处理:每月清零 / 每次对碰清零 / 转结)均由运营后台配置(默认每月结算 + 每月清零),详见 §8.4.1.2。 |
-| 2 | 最低业绩门槛 | 强制两轨各 ≥ $1,000 才进入结算队列。未达门槛的业绩计为 pending,达标后批量结算 → 自然形成业绩沉淀缓冲池,稳定平台日结资金流。 |
-| 3 | 自动分配机制(内部 spillover) | 网络伙伴在某轨业绩饱和时,新邀请自动分配到下游轨道,形成"网络伙伴主动帮你扩展轨道"的体验。增强网络绑定关系,降低用户主动退出意愿。 |
+| 2 | 最低算力额门槛 | 强制两轨各 ≥ $1,000 才进入结算队列。未达门槛的算力额计为 pending,达标后批量结算 → 自然形成算力额沉淀缓冲池,稳定平台日结资金流。 |
+| 3 | 自动分配机制(内部 spillover) | 网络伙伴在某轨算力额饱和时,新邀请自动分配到下游轨道,形成"网络伙伴主动帮你扩展轨道"的体验。增强网络绑定关系,降低用户主动退出意愿。 |
 | 4 | LTV 延长 | 两轨无封顶 + 强制平衡,提供"持续投入还能再增长"的长期激励路径,把用户活跃生命周期从单一网络版税的 ~6 个月延长到 ~18-24 个月(基于行业基准数据)。 |
 
 ##### 8.4.0.3 与 NexGrid 产品目标的契合
@@ -2258,7 +2228,7 @@ v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，�
 | 产品目标 | 双轨对碰的贡献 |
 |---|---|
 | 用户增长速率 | 自动分配机制把网络伙伴的拉新激励传递给下游用户,加速底层用户基数扩展 |
-| 用户留存率 | 强制平衡门槛 + 业绩沉淀机制提升用户继续投入意愿 |
+| 用户留存率 | 强制平衡门槛 + 算力额沉淀机制提升用户继续投入意愿 |
 | 体系包装一致性 | Dual-Track Growth Program 命名与 V 级 / 影响力网络版税 / 领导池等模块共用"成长激励"语义,保持产品语言统一 |
 
 #### 8.4.1 规则
@@ -2269,9 +2239,9 @@ v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，�
 
 **强制平衡**:必须 Track A ≥ $1,000 且 Track B ≥ $1,000 才能领奖,否则当月归零
 
-##### 8.4.1.1 轨道月活跃业绩(Group Volume, GV)计算
+##### 8.4.1.1 轨道月活跃算力额(Group Volume, GV)计算
 
-每条轨道的月活跃业绩 = **该轨道全部下游成员**(从直推到轨道末端,不限网络深度)**当月合格交易 USDT 金额累加**。
+每条轨道的月活跃算力额 = **该轨道全部下游成员**(从直推到轨道末端,不限网络深度)**当月合格交易 USDT 金额累加**。
 
 **计入项**:
 - 设备首购(NexGridBox S1 / Pro / NexGridRack P1 / Cloud Share)
@@ -2287,7 +2257,7 @@ v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，�
 
 **扣减项**:
 - 30 天内退款 / 取消订单的 USDT 金额按比例扣减当月 GV
-- 下游成员降级 / 注销后,其历史业绩从对应轨道累加值中移除
+- 下游成员降级 / 注销后,其历史算力额从对应轨道累加值中移除
 
 **周期**:按自然月统计,每月 1 日 00:00 UTC 滚动归零;月底 23:59 UTC 锁定结算。
 
@@ -2301,12 +2271,12 @@ v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，�
 
 **结算周期 `settlePeriod`**:对碰奖金的派发节奏,枚举 `每日 | 每周 | 每月`,默认 `每月`。
 
-- 每条轨道的活跃业绩(GV)始终按自然月累计(§8.4.1.1);结算周期决定按何种节奏计算并派发 Balance Match Bonus。
-- **预计金额口径**:hero 显示的预计奖金随结算周期联动 = 较小轨「该周期业绩」× 10%,封顶 = 日封顶 × 周期天数。其中「周期业绩」= 月业绩 ×(周期天数 / 30),周期天数 `每日=1 / 每周=7 / 每月=30`。
-  - 默认每月:hero 显示「本月平衡匹配奖估算」= `min(月 Track A, 月 Track B) × 10%`,与双轨卡可见的月业绩、玩法说明页 `$2,000 × 10% = $200` 示例同口径,用户可自行验算。
+- 每条轨道的活跃算力额(GV)始终按自然月累计(§8.4.1.1);结算周期决定按何种节奏计算并派发 Balance Match Bonus。
+- **预计金额口径**:hero 显示的预计奖金随结算周期联动 = 较小轨「该周期算力额」× 10%,封顶 = 日封顶 × 周期天数。其中「周期算力额」= 月算力额 ×(周期天数 / 30),周期天数 `每日=1 / 每周=7 / 每月=30`。
+  - 默认每月:hero 显示「本月平衡匹配奖估算」= `min(月 Track A, 月 Track B) × 10%`,与双轨卡可见的月算力额、玩法说明页 `$2,000 × 10% = $200` 示例同口径,用户可自行验算。
   - 每周 / 每日:hero 标签与金额随之切换为「本周 / 今日 …估算」并按周期天数折算。
 
-**沉淀处置策略 `residualPolicy`**:较大一轨未被匹配的剩余业绩(沉淀池)在周期边界如何处理,枚举三档,默认 `每月清零`:
+**沉淀处置策略 `residualPolicy`**:较大一轨未被匹配的剩余算力额(沉淀池)在周期边界如何处理,枚举三档,默认 `每月清零`:
 
 | 策略 | 语义 | 平台资金影响 |
 |---|---|---|
@@ -2314,7 +2284,7 @@ v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，�
 | 每次对碰清零 | 每次结算事件后较大轨未匹配体量即清零(清零频率 = 结算周期) | 与每月清零在周期=每月时重合,但概念为「结算事件驱动」而非「日历驱动」 |
 | 转结 | 较大轨未匹配体量结转到下一周期继续累计,不清零 | 沉淀持续累积、最终可被匹配派发 → 拉大利息负债(科目 #3)与佣金应付,改前须过 B1 兑付覆盖率核验 |
 
-**最低业绩门槛**(独立于结算周期):必须 Track A ≥ $1,000/月 且 Track B ≥ $1,000/月 才进入结算队列,未达门槛该周期匹配归零;此门槛恒按月口径,与结算周期正交。
+**最低算力额门槛**(独立于结算周期):必须 Track A ≥ $1,000/月 且 Track B ≥ $1,000/月 才进入结算队列,未达门槛该周期匹配归零;此门槛恒按月口径,与结算周期正交。
 
 **前后端联动**:运营在后台改 `settlePeriod` / `residualPolicy` → server-canonical 配置经平台配置接口下发 → 前端读取并联动:① 预计金额数字与「本周期…估算」标签;② 公式行「{周期}结算」节奏文案;③ 玩法说明页结算频率 FAQ 与沉淀处置 FAQ。前端以 backend-replaceable 单源(`lib/binary-settlement.ts`,枚举 `settlePeriod` / `residualPolicy` + i18n label map)承接,接真后台时把常量换成配置接口拉取即可,渲染层零重写。
 
@@ -2326,7 +2296,7 @@ v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，�
 
 - 本周期(默认本月)Balance Match 预计 hero(大字,金额随结算周期联动,见 §8.4.1.2)+ 公式(min(Track A, Track B) × 10% · 日上限 · {周期}结算)
 - 阻塞警告(若任一轨 < $1,000)
-- Track A / Track B 双轨卡(月业绩 + 成员数 + Top member)
+- Track A / Track B 双轨卡(月算力额 + 成员数 + Top member)
 - 较大 vs 较小差距比较条
 - 自动分配记录(`↳` 图标)
 - 最近匹配历史
@@ -2389,9 +2359,9 @@ v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，�
 8. **§6 Common questions**(5 FAQ 行,纯展开列表)
    - Q1 能否选 track?A1 可以,首次签约时选,placement 之后锁定
    - Q2 一轨没人怎么办?A2 继续邀请该轨或等网络伙伴自动分配;两轨 < $1,000 无 bonus
-   - Q3 多久结算?A3 按平台配置的结算周期(默认每月),按周期统计两轨累计业绩、于下一周期初支付(§8.4.1.2)
+   - Q3 多久结算?A3 按平台配置的结算周期(默认每月),按周期统计两轨累计算力额、于下一周期初支付(§8.4.1.2)
    - Q4 不邀请也赚吗?A4 可以,Balance Match Bonus 只是 channel 之一,设备产出 / 直推奖照常
-   - Q5 未匹配的业绩会保留吗?A5 取决于沉淀处置策略(§8.4.1.2):每月清零 / 每次对碰清零 → 不结转;转结 → 累积到下一周期
+   - Q5 未匹配的算力额会保留吗?A5 取决于沉淀处置策略(§8.4.1.2):每月清零 / 每次对碰清零 → 不结转;转结 → 累积到下一周期
 
 9. **底部 footer**:全宽 CTA `Got it · see my Dual-Track →` 链 `/team/binary`
 
@@ -2406,11 +2376,11 @@ v2政策来自 `GET /api/config/commission/direct-referral?schemaVersion=2`，�
 
 - 池子来源:平台每周总交易额(GMV)的 5% 注入;池额 = 周 GMV × 比例派生,当前周池约 $487.3K(GMV ~$9.75M)
 - 参与门槛:V3(Captain)解锁——票权首个非零等级;V3 以下可查看池子但不参与分配
-- 分配:V3+ 领袖按指数票权(V3=1, V4=2, V5=4 ... V12=512,每升一级翻倍)分配,个人份额 = 个人票数 ÷ 全网总票
+- 分配：有效等级的票权读取服务端领导池配置，个人份额 = 个人票数 ÷ 全网总票；不以旧 V12 固定票表生成当前分红。
 - 结算:每周一次——周日 23:59 UTC 票权快照 → 周一 00:00 UTC 自动派发入钱包(无需 claim)
 - **头部集中(派生)**:高阶领袖稀少但指数票权碾压,池子向 V-Rank 顶层集中。顶部 N 名领袖(当前全网分布下 ≈ V8 星上将及以上约 10 人)凭票权分走约六成奖池。集中度按真实全网 V 级分布 × 票权运行时派生展示,不写死固定百分比;调整全网分布或票权,集中度同步变化
 
-**示例**(当前全网分布,周池 $487.3K,全网总票约 2,100):V3 入门单人约占 0.05% → 周入约 $232(尝鲜);V8 约占 1.5% → 约 $7.4K;V12 顶阶单人约占 24% → 约 $119K。
+分布、周池、个人份额和分红均读取当前真实结果，不展示旧 V12 的静态收益示例。
 
 **业务流程(周结算循环)**:
 
@@ -2434,7 +2404,7 @@ flowchart TD
 - 你的预估分红 + 票数 + 全网票数 + 占比
 - V<3 时显示"V3+ to unlock" + 升级路径 CTA
 - 顶部集中度提示条(派生):顶部 N 名领袖分走约 X% 池子,X 按当前全网分布与票权派生
-- V 级 → 票数权重完整表(显示全网 V3-V12 分布 + 各档占池比与人均派发,派生)
+- V 级 → 票数权重完整表(显示全网 V3–V8 分布 + 各档占池比与人均派发,派生)
 - 历史周池列表
 
 #### 8.5.3 玩法说明页 `/team/leadership-pool/how-it-works`
@@ -2445,8 +2415,8 @@ flowchart TD
 1. iOS nav back + 标题 `How the Leadership Pool works`
 2. Hero + 标签 `GLOBAL LEADERSHIP POOL` + 大标题 `5% of all platform volume, split among V3+ leaders every week.`
 3. §1 What is the Leadership Pool?(2 段:周度 5% 注入 + 利润分享类比)
-4. §2 V 级票数对照表(V3=1 / V4=2 / V5=4 / V6=8 / V7=16 / V8=32 / V9=64 / V10=128 / V11=256 / V12=512)+ 各档周分红占比(单人份额 = 票数 ÷ 全网总票,从全网分布派生,非写死)
-5. §3 结算时间表 3 步:周一 00:00 UTC 开新池 / 整周 5% 业绩流入 / 周日 23:59 UTC 快照 + CalloutBox `💡 When you reach V3 mid-week`(部分周按比例计入)
+4. §2 有效 V 级票数对照表：按服务端 V0–V8 配置和实际全网分布展示票权与派发，不写死权重和金额。
+5. §3 结算时间表 3 步:周一 00:00 UTC 开新池 / 整周 5% 算力额流入 / 周日 23:59 UTC 快照 + CalloutBox `💡 When you reach V3 mid-week`(部分周按比例计入)
 6. §4 提升池子分成 3 种途径 IconRow(🚀 升 V 级 / 💎 持有不衰减 / 🤝 帮团队成长)
 7. §5 FAQ 4 问(V0-V2 能看吗 / 何时收到 / 票数会丢吗 / 总票数翻倍怎么办)
 8. 底部 CTA 回 `/team/leadership-pool`
@@ -2461,8 +2431,8 @@ i18n keys 在 `poolHowItWorks.*` namespace(en + zh 双语镜像)~40 keys。
 | 直属设备收益分成 | 直接成员真实已入账设备凭证 | 由当笔政策决定等待期 | USDT + NEX，同一结算组 |
 | 网络购买奖励 | 网络成员实付设备订单 | 原七层冷却规则 | L2–L7保留原USDT及额外NEX；历史原账保留 |
 | 平衡匹配(Balance Match) | 双轨对碰条件满足 | 每日 | USDT,30 天冷却 |
-| Peer | 同 V 级团员业绩 5% | 每月 | USDT |
-| Cultivation | 下属升 V 一次性 NEX | 实时 | V1 500 / V2 2K / V3 10K / V4 50K / V5 200K NEX |
+| Peer | 保留配置参数；当前能力未开放、未发放 | 不作发放承诺 | USDT |
+| Cultivation | 直接推荐人按下属晋升有效等级的发布配置获得奖励 | 按实际结算状态 | UVT（协议 NEX） |
 | Leadership | 领导池周分红 | 每周 | USDT(V3+ 解锁) |
 | Genesis | 创世节点持有人排放 | 上所后 | $NEX(创世持有人,vesting 释放) |
 
@@ -2472,7 +2442,7 @@ i18n keys 在 `poolHowItWorks.*` namespace(en + zh 双语镜像)~40 keys。
 - `layer === 1` → **直推**(`commissions.directBadge`)
 - `layer >= 2` → **扩展**(`commissions.extendedBadge`)
 
-层级标签区分购买的直属/网络来源；设备分成只认服务端真实直属来源，不按客户端月业绩推算。
+层级标签区分购买的直属/网络来源；设备分成只认服务端真实直属来源，不按客户端月算力额推算。
 
 #### 8.6.1 玩法说明页 `/team/commissions/how-it-works`
 
@@ -2503,7 +2473,7 @@ i18n keys 在 `poolHowItWorks.*` namespace(en + zh 双语镜像)~40 keys。
 - **Extended 外圈**(虚线轨道):扩展网络节点带轻微径向偏移分散,呈环带分布
 - **Top metrics**:Members 总数 / Active 活跃数 / **Direct** 直推数
 - 每 1.2 秒随机 pulse 一个 active 节点(模拟新订单经过)
-- Tap 节点 → bottom sheet 显示详情(头像 + V 级 + DIRECT/EXTENDED badge + city + 月业绩 / 累计 / 加入天数 / 头衔 / 状态)
+- Tap 节点 → bottom sheet 显示详情(头像 + V 级 + DIRECT/EXTENDED badge + city + 月算力额 / 累计 / 加入天数 / 头衔 / 状态)
 - Legend:Direct friends / Extended network
 - 不暴露 L1-L7 / 左右翼 / 4 色 layer 编码 / Spillover ring;内部数据仍保留 layer 字段供数学层使用,可视化层只呈现 Direct(L1) vs Extended(L2-L7 合并)
 - SVG cx/cy 计算后 `Math.round(n*100)/100` 规整精度,避免 SSR/CSR 浮点字符串化漂移
@@ -2512,14 +2482,14 @@ i18n keys 在 `poolHowItWorks.*` namespace(en + zh 双语镜像)~40 keys。
 
 Direct / Extended 二分类可折叠列表:
 
-- **Top metrics**:Total network 成员数 / Monthly volume 全网月业绩
+- **Top metrics**:Total network 成员数 / Monthly volume 全网月算力额
 - **Direct section**(DIRECT badge,默认展开):
   - Header subtitle:`{n} contributing · ~$X/mo Direct Royalty`
   - member row 按 monthVolume 降序
 - **Extended section**(EXT badge,默认展开):
   - Header subtitle:`{n} members · ~$X/mo Network Yield Bonus`
   - member row 按 monthVolume 降序
-- 成员记录保留关系、等级、活跃状态与入网信息；收益只读服务端结算记录，不按成员月业绩或旧层级费率推算。
+- 成员记录保留关系、等级、活跃状态与入网信息；收益只读服务端结算记录，不按成员月算力额或旧层级费率推算。
 - 不展示 7 层 sections / 左右翼 filter / Spillover badge
 
 ### 8.9 硬件配额解锁 `/team/quota`
@@ -2527,7 +2497,7 @@ Direct / Extended 二分类可折叠列表:
 | 设备 | 解锁条件 | 月度库存 |
 |---|---|---|
 | NexGridBox Pro | 5+ 已激活直推 | 1,000 台(余 23)|
-| NexGridRack P1 | 15+ 直推 **或** 团队月业绩 ≥ $20,000 | 100 台(余 8)|
+| NexGridRack P1 | 15+ 直推 **或** 团队月算力额 ≥ $20,000 | 100 台(余 8)|
 
 > 解锁条件 / 阈值 / 库存 / 进度**单源自商品目录的 `purchaseGate` 配置**(§7.1)与 `evaluatePurchaseGate`,本页不自带硬编码数值;运营在后台调门槛 / 锁额,本页与商城卡 / 详情 / 结账同步变化。tier 的名称 / 价格 / perks 同源自 catalog,杜绝口径分叉。
 
@@ -3105,7 +3075,7 @@ Staking 开仓必须展示档位 APY、锁期、提前退出 penalty、预计收
    - ⚠️ 提前赎回 forfeit 全部累计利息(只拿本金扣罚款)
    - 📉 APY 浮动,但已质押位按原利率到期
    + CalloutBox `Why it's safe`(102.4% 超额抵押兑付 + 信任中心公开储备)
-7. §5 FAQ 5 问(最低金额 / NEX 能否质押 / 到期不 claim 怎样 / 多笔并行 / 是否算团队业绩)
+7. §5 FAQ 5 问(最低金额 / NEX 能否质押 / 到期不 claim 怎样 / 多笔并行 / 是否算团队算力额)
 8. 底部 CTA 回 `/staking`
 
 ### 9.7 账单 `/me/wallet/bills`
@@ -3516,7 +3486,7 @@ interface TrialConfig {
 |---|---|---|---|
 | Unilevel rates L1-L7(USDT + NEX) | `lib/v3/commission.ts:56-62` | `GET /api/config/commission/rates` | Promotion 周 multiplier / phase 紧缩 |
 | Commission 30-day cooling-off | `lib/v3/commission.ts:141` | `GET /api/config/commission/cooling-days` | 监管紧缩 → 拉长 30d→45d→60d |
-| V-Rank ladder(13 级 selfBuyUSD / directRefs / teamVolumeUSD / votes / prize) | `lib/v3/v-rank.ts:49-140` | `GET /api/config/v-ranks` | 阶段调整门槛 |
+| V-Rank ladder(V0–V8 有效等级 selfBuyUSD / directRefs / teamVolumeUSD / votes / prize) | `lib/v3/v-rank.ts:49-140` | `GET /api/config/v-ranks` | 阶段调整门槛 |
 | V_VOTES + GLOBAL_V_DISTRIBUTION | `lib/v3/leadership-pool.ts:27-43` | `GET /api/config/leadership-pool` | 周池金额 + vote weight |
 | Staking pools 统一(USDT 锁仓 + NEX 池)| `lib/v3/staking.ts:28-40` + `lib/mock/staking-pools.ts:13-46` | `GET /api/config/staking/pools` | APY / penalty / enabled / minStake |
 | Genesis 节点经济(TOTAL_SLOTS / unitPriceUSDT / dailyDividendShare) | `lib/v3/genesis.ts:25,76,82` | `GET /api/genesis/state` | 供应 / 单价 / 排放比例 |
@@ -3894,7 +3864,7 @@ DAO 治理功能本期**仅作为持有人权益的文字承诺**(在 Perks 列�
 定位:升级引导卡 — 展示距下一阶 V 级的具体动作 + 升级解锁的核心权益,引导用户进 `/team` 操作。**不展示状态信息**(可提现 / cooling 已在钱包卡覆盖),保持单一主题。
 
 **进行中状态**(`gap.next` 不为空):
-- 奖励锚点:下一阶解锁的培育奖 NEX(如 V3 = 10,000 NEX)
+- 奖励锚点：当前发布配置中的下一阶本人权益/等级奖励；培育奖须单独注明发给直接推荐人，不当作本人升级奖励，不写死示例金额。
 - 主标:`距 V{N+1} {title}` + 主缺口文案(取 `nextRankGap(state).primaryGap`,按 `progress = have/required` 比例选离完成最远的条件)
 - 升级权益:`topUnlocks` 取前 2 项(emotional weight 排序见 §13.2)
 - 进度条 + 百分比;`progressPct ≥ 0.8` 时进度条切 warning(冲刺暗示)
@@ -5688,7 +5658,7 @@ Sprint 3。把 12 月生命周期固化为 6 个 phase,每个 phase 派发若干
 
 - LocaleSwitcher 组件在 Header / 注册页 / 登录页
 - 用户选择持久化到 localStorage
-- 不可翻译保留英文:品牌名(NEXGRID / NVIDIA / TechCrunch...)、token 符号(USDT / NEX / ERC-721)
+- 不可翻译保留英文:品牌名(UVEL / NVIDIA / TechCrunch...)、token 展示符号(USDT / UVT / ERC-721)；历史 NEX 接口/账本标识保持兼容
 
 ---
 

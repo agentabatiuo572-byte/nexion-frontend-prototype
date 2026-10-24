@@ -1,4 +1,4 @@
-# NexGrid 移动端 App — 开发落地规格(Dev-Ready Spec)
+# UVEL 移动端 App — 开发落地规格(Dev-Ready Spec)
 
 > **本文件是什么**:从 `NexGrid_产品功能架构设计文档_v3.7.md`(18 章 5053 行)提炼的**前端 app 开发落地契约速查**。源 PRD 回答「产品做什么、为什么」;本文件回答「建哪些页、定什么类型/store、调什么 API、算什么公式、状态怎么流转」——前端按本文件即可落地,产品背景再查源 PRD 对应 §锚点。
 >
@@ -17,12 +17,14 @@
 >
 > ---
 
+> **2026-10-25 现行补充**：[UVEL_体验与运营配置同步_20261025.md](UVEL_体验与运营配置同步_20261025.md) 规定本轮 Tab、品牌/UVT、团队 V0–V8、H9 数字与商城交互。以下历史 `NEX` 字段/公式保留协议含义，用户显示统一 UVT；旧原型项目名称在界面及协议正文显示为 UVEL，不改 URL/邮箱/版本确认。
+
 ## 第 0 章 全局铁律(前端实现前必读)
 
 > 这 12 条贯穿全站。源 PRD §9.11d/e/f(防篡改/原子性/状态机权威)是其总纲。
 
 ### 0.1 server-canonical(client 仅 UI cache,绝不本地推进)
-所有核心状态机(Trial/Order/Withdrawal/Staking/Device 激活/Commission/Genesis/Phase)、资金值、风控值 **server 唯一权威**;client 通过 `GET /api/{module}/:id` 或 SSE 订阅获取,**绝不本地推进**(§9.11f / §9.11d.2)。仅 Day-One Quest(引导)、Notification(UI 态)、Device 衰减展示数字可前端推进。
+所有核心状态机(Trial/Order/Withdrawal/Staking/Device 激活/Commission/Genesis/Phase)、资金值、风控值 **server 唯一权威**;client 通过 `GET /api/{module}/:id` 或 SSE 订阅获取,**绝不本地推进**(§9.11f / §9.11d.2)。首页介绍页数字允许按服务端随机批次进行本地逐秒展示，不本地生成随机数或改变资金状态（见本轮补充 §4）。仅 Day-One Quest(引导)、Notification(UI 态)、Device 衰减展示数字可前端推进。
 
 ### 0.2 Idempotency-Key(所有 mutation 必带)
 全部资金/状态 mutation 携 `Idempotency-Key` header(client mint UUIDv4,server dedup 24h):sign-in(login/otp-verify/password-reset)、trial start/redeem-early、staking open/claim/early-withdraw、wallet reinvest、withdrawals。**源 PRD 强调当前 client mutation 均无幂等,网络抖动 retry 会重复扣款/开仓**(§9.11e)。
@@ -68,7 +70,7 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 | 路由 | 页面/组件 | 职责 | 数据依赖 | 关键交互·状态 | §锚点 |
 |---|---|---|---|---|---|
 | (全局壳) | IOSFrame chassis | 所有路由统一套 iOS 外壳(StatusBar/Header/Scroll/TabBar/HomeIndicator) | `useTheme`(persist `nexgrid-theme-v1`) | 默认 dark + SSR 直出防闪;tab vs sub-route 顶部留白不同 | §3.1 |
-| (全局) | TabBar 5-tab | 底部主导航 Home/Earn/Store/Team/Me | 路由 active 态 | 仅 tab 路由显示 Header+TabBar | §3.2 |
+| (全局) | TabBar 5-tab | 底部主导航 Home/Earn/Store/Team/Me | 路由 active 态 | 仅 tab 路由显示 Header+TabBar；原生常驻壳保留状态，单次滑块移动，无黑帧/到达重播 | §3.2 |
 
 ### 1.2 账户与身份(§4)
 
@@ -81,7 +83,7 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 | `/ref/[code]` | 公开邀请落地页 | 展示 sponsor+gift+社会证明引导注册 | code hash→固定 sponsor | 主 CTA→`/register?ref`;次→`/login?ref` | §4.3.1 |
 | `/me/security` | 安全设置 | 密码/2FA/sessions/删号/KYC 入口 | `/api/auth/password/change`、`/2fa/*`、`/sessions/*`、`DELETE /api/account` | 2FA step-up;recovery codes 生成下载;逐个/批量 revoke;删号二次确认 | §4.5 |
 | `/me/security/kyc-express` | KYC-Express 说明 | 零基础说明降抗拒 | i18n `kycExpress.*` | CTA→`/me/wallet/topup?kyc=1` | §4.4.4 |
-| `/onboarding/intro` | Onboarding 1 | Hero 价值主张(无 Skip) | `navigator.language` auto-detect | 主 CTA 进下一步;禁跳过 | §4.7.1 |
+| `/onboarding/intro` | Onboarding 1 | Hero 价值主张(无 Skip) | `navigator.language`、`GET /api/config/home-display` | 数字共享随机批次、可见时每秒本地更新/约每60秒拉取；隐藏停止、返回重取，失败占位；主 CTA 进下一步;禁跳过 | §4.7.1 |
 | `/onboarding/estimator` | Onboarding 2 | 手机 NPU 档→日收益基线+对比 | 设备 NPU 规格(详 §11) | 进 connect;L0→L1 | §4.7.2 |
 | `/onboarding/connect` | Onboarding 3 | 12s 校准 + 激活/暂缓 + 接单规则 | `POST /api/onboarding/calibrate`、`GET /result`、`POST /activate|defer` | intro→calibrating→result；失败→error（重试/暂不激活）；ACTIVE 后才具备手机奖励资格 | §4.7.3 |
 
@@ -139,14 +141,14 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 | 路由 | 页面 | 职责 | 数据依赖 | §锚点 |
 |---|---|---|---|---|
 | `/team` | 团队主页 | 汇总枢纽(ReferralHero/TeamLedger/5-track/Leaderboard preview) | `useCommission`、`useNetwork`、`useApp.wallet`、`useVRank`、`useProductPhase` | §8.1 |
-| `/team/rank` | V 级头衔体系 | 13 阶 V 级阶梯+进度+实物奖领取 | `useVRank`、`nextRankProgress()`、`useAchievements` | §8.2 |
+| `/team/rank` | V 级头衔体系 | V0–V8 有效阶梯、每级条件/权益/奖励与下一阶进度 | `useVRank`、`nextRankProgress()`、`useAchievements` | §8.2 |
 | `/team/unilevel` | 网络版税 | 七层购买、L1拆分与直属设备收益三类 | v2政策、unilevel购买聚合、direct-referral设备筛选 | §8.3 |
 | `/team/binary` | 双轨平衡匹配 | Balance Match=`min(A,B)×10%` 日上限 $5K | `useNetwork.left/rightVolumeMonth()` | §8.4 |
 | `/team/leadership-pool` | 全球领导奖池 | 周 5% 平台交易额按 V 票数分配(V3+) | V_VOTES、GLOBAL_V_DISTRIBUTION、周交易额 | §8.5 |
 | `/team/commissions` | 8 类佣金流水 | 直属购买、网络购买、直属设备与其他奖励 | `useCommission.events`、服务端账项汇总 | §8.6 |
 | `/team/network` | 影响力网络 | 2 圈轨道可视化 | `useNetwork`(members+layer) | §8.7 |
 | `/team/tree` | 族谱树 | Direct/Extended 二分类列表 | `useNetwork`、`UNILEVEL_USDT[layer]` | §8.8 |
-| `/team/quota` | 硬件配额解锁 | 邀请数/团队业绩解锁高阶设备 | 邀请数、团队月业绩、月库存 | §8.9 |
+| `/team/quota` | 硬件配额解锁 | 邀请数/团队算力额解锁高阶设备 | 邀请数、团队月算力额、月库存 | §8.9 |
 | `/team/agent` | 区域大使 | V5+ 申请 4 项区域预算 | V 级、4 预算规则 | §8.10 |
 | `/team/leaderboard` | 邀请排行榜 | Top 100 邀请人(4 周期奖池) | `PERIOD_PRIZE`、`PODIUM_PRIZE`、server snapshot(5min) | §8.11 |
 | `/team/*/how-it-works` | 各玩法说明页 | rank/unilevel/binary/pool/commissions 零基础说明 | 静态 i18n | §8.x.3 |
@@ -291,15 +293,15 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 - **政策**：`/api/config/commission/direct-referral?schemaVersion=2`包含schemaVersion、实际settlementMode、purchaseSplit(enabled/usdtSharePct)、deviceEarning(enabled/totalRatePct/usdtSharePct/coolingDays)、sevenLayerReference(revision/baseRatePct/coolingDays/legacyNexPerUsd)。购买唯一预算与冷却只读引用，设备独立配置；切换前保留旧代际真实规则，不误读旧独立购买比例。
 - **查询**：购买唯一读`/api/app/team/insights/unilevel?schemaVersion=2&filter=all|direct|extended`，设备只读`/api/app/team/insights/direct-referral?schemaVersion=2&kind=device_earning`；服务端先过滤再统计分页。三组同一snapshotAt、期间today/week/month/all；购买hero只用unilevel两类split，设备hero只用deviceEarning，禁止L1重复聚合。
 - **状态/计数**：奖励组/账项/贡献成员分别计数；等待计算、冷却、冻结、已到账、已支取、拒绝、撤销、待追回可查。净奖励排除无效终态；累计已到账不等于可提现，钱包权威。切账号/环境/期间丢弃旧请求，分页去重；USDT榜单不加入NEX估值。三语双主题320px及大数回归。
-- **Peer 平级奖** = 同 V 级团员业绩 × 5%(仅 V≥3);月结。
-- **Cultivation 培育奖**(下属升 V 一次性 NEX):V1 500/V2 2,000/V3 10,000/V4 50,000/V5 200,000 NEX。
+- **Peer 平级奖**：保留发布参数说明；当前能力未开放、未发放，App 按能力状态展示，不把历史 5% 月结公式作为现行发奖承诺。
+- **Cultivation 培育奖**：直接推荐人按下属晋升的有效等级发布配置取得一次性奖励，代币显示 UVT，不写死旧原型奖励金额。
 - **Leadership Pool**:周池 = 平台周交易额 × 5%;`用户分红 = 周池 × (用户票数/全网总票数)`;V3+ 解锁;周一 00:00 UTC 开池/周日 23:59 快照。
-- **票数权重**:V3=1,V4=2,V5=4,…V12=512(每升一级翻倍)。
+- **票数权重**：读取后端有效等级的已发布领导池配置，不保留 V12 固定票表作为当前执行值。
 - **佣金冷却/退款**：购买自首次整链准备时间加原七层冷却，设备自凭证确认时间加设备冷却；缺价不重置，两币均不得提前进钱包。SEVEN_V2全额退款取消/追回L1–L7及合法补发谱系，余额不足逐受益人/币记欠额。有效历史设备收益不因设备后来退款而自动撤销；旧账不重算。
 
 ### 3.D V 级升等(V-Rank)— §8.2/§13.2
 - **升级进度** = `avg(每条件 min(1, have/required))`(client preview,server 二次判定权威)。
-- **13 阶条件**:V1 自买≥$299+直推3 · V2 团队$5K · V3 $20K+2×V1 · V4 $50K+3×V2 · V5 $150K+4×V3 · V6 $500K+5×V4 · V7 $1M+6×V5 · V8 $3M+7×V6 · V9 $10M · V10 $30M · V11 $100M · V12 $500M。
+- **有效等级与条件**：V0–V8 共 9 级，条件、权益、奖励读取发布配置，不照搬旧固定门槛。PC/后端停用 V9–V12，保留历史记录并预检存量账号；App 每级显示条件/权益/奖励，下一阶进度在该级行内展示，V8 无下一阶。
 - **深度字段**：unilevelDepth及购买资格继续由原七层引擎解释；设备收益分成不按深度推算。
 - **primaryGap**:取 `progress=have/required` 比例最远 blocker(非 raw remaining)。
 - **条件计入**:selfBuyUSD 仅本人下单(复投/兑换/赠送不计,退款扣);directRefs 注册+KYC 去重;teamVolumeUSD L1-L7 累加;vDownlines ≥Vn 直推数。
@@ -444,7 +446,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 | `/api/me/earnings?range={today\|week\|month\|all}` | GET | 多 range 收益聚合(today=设备+今日佣金) | SC,4 range 独立算 | §5.2 |
 
 ### 4.7 配置参数(运营常调,client GET 读 seed;全 server-canonical,client 常量仅 fallback)— §9.11c.1
-`/api/config/commission/rates`(L1-L7 费率)· `/commission/cooling-days`(30d)· `/v-ranks`(13 级阶梯)· `/leadership-pool`(周金额+vote weight)· **`/staking/pools`(APY/penalty/min,收敛三套打架单源)** · `/exchange/caps`(三阈值)· `/task-pricing`(6 类+QUEUE_SATURATION)· `/products/specs`(baseRate/baseRateNEX/price 全表)· `/lifecycle`(衰减曲线+MIN_EFFICIENCY)· `/sponsorship`(welcome gift)· `/milestones`(5 档)· `/premium` · `/nex-v2-lock` · `/tradein`(salvage/minHoldingMonths/eligibility/promo,TBD)· `/wallet/withdraw-limits` · `/cart/bundle-discount` · `/quest/day-one` · `/genesis/state`(TOTAL_SLOTS/unitPrice/dailyDividendShare)· `/users/me/promo-dismissals`(TBD)。
+`/api/config/commission/rates`(L1-L7 费率)· `/commission/cooling-days`(30d)· `/v-ranks`(V0–V8 有效阶梯)· `/leadership-pool`(周金额+vote weight)· **`/staking/pools`(APY/penalty/min,收敛三套打架单源)** · `/exchange/caps`(三阈值)· `/task-pricing`(6 类+QUEUE_SATURATION)· `/products/specs`(baseRate/baseRateNEX/price 全表)· `/lifecycle`(衰减曲线+MIN_EFFICIENCY)· `/sponsorship`(welcome gift)· `/milestones`(5 档)· `/premium` · `/nex-v2-lock` · `/tradein`(salvage/minHoldingMonths/eligibility/promo,TBD)· `/wallet/withdraw-limits` · `/cart/bundle-discount` · `/quest/day-one` · `/genesis/state`(TOTAL_SLOTS/unitPrice/dailyDividendShare)· `/users/me/promo-dismissals`(TBD)。
 
 ### 4.8 实时流(SSE/WS,client 仅订阅)
 `/api/genesis/marketplace/stats`(SSE,floor/vol/listed/owners)· `/api/market/nex`(WS,price+曲线,**server canonical 不本地 roll**)· `/api/platform/stats`(SSE,marketing hero)· `/api/me/earnings/stream`(SSE,today 增量,TBD)· `/api/notifications/stream`(SSE,priority 升级,client 不 PATCH)· `/api/stella/config-invalidate`(SSE,Nova cadence 变更,TBD)。
@@ -542,7 +544,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 ### 6.1 产品定位 + 用户分级(§1/§2)
 分布式 AI 推理算力共享平台(全球非中国市场);核心叙事 "Your phone is the AI cluster. Earn while you sleep."。两套并行分级:
 - **用户生命周期 L0-L5**(`profile.tierLabels`,**UI 永不暴露 L\d 编号**):L0 访客/L1 新手/L2 活跃/L3 升级候选/L4 持有者/L5 推广大使。
-- **V0-V12 头衔体系**(团队业绩驱动,§8.2),与 L 级并存。
+- **V0–V8 头衔体系**(团队算力额驱动,§8.2),与 L 级并存。
 
 ### 6.2 技术栈(§16/§17.1)
 | 项 | 选型 |
@@ -564,7 +566,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 ### 6.3 i18n(§14)
 语言:`en`/`zh` 完整;`es/fr/de/ja/ko/ar` 占位(fallback en)。实现:`lib/i18n/use-t.ts`(`useT()`)+`format.ts`(`fmt(s,params)`)+`messages/{en,zh}.ts`(各 ~770 keys,30+ namespace)。
 namespace 含:tabs/headerTitles(60+ 路由)/headerSubtitles(23)/home/earn/store/team/wallet/onboarding/me/profile/security/staking/trust/genesis/rank/unilevel/binary/pool/commissions/network/daily/marketplace/leaderboard/market/events/learn/kycExpress/tickets/tradein/milestones/productPhase/premium/nexV2Lock/riskDisclosure/missions/weeklyQuest/...。
-纪律:en/zh 双语镜像加 key;关键页 i18n 全覆盖无 hardcode;品牌名/token 符号(NEXGRID/USDT/NEX)保留英文;**文案禁 `模拟/mock/demo/演示/simulated/自动扣款`**,试用称"试用收益"(§16.2.5)。
+纪律:en/zh/vi 三语镜像加 key;关键页 i18n 全覆盖无 hardcode;品牌名/代币展示符号(UVEL/USDT/UVT)保留原文；历史 NEX 仅用于兼容接口/账本标识;**文案禁 `模拟/mock/demo/演示/simulated/自动扣款`**,试用称"试用收益"(§16.2.5)。
 
 ### 6.4 非功能(§15/§16)
 - **性能**:LCP<2.5s · 路由 TTI<500ms · 60fps · localStorage<50ms。
