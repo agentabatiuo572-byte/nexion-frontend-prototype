@@ -35,12 +35,12 @@ const socialProof = (import.meta.glob("../../components/store/live-social-proof.
 describe("store product truth rendering", () => {
   it("uses only the canonical catalog image in both card and detail views", () => {
     expect(productCard).toContain("props.product.imageUrl");
-    expect(productCard).toContain("catalogProductImageUrl(props.product.imageUrl, failedImageUrl.value)");
+    expect(productCard).toContain("useProductImage(() => props.product.imageUrl)");
     expect(detail).toContain(':product-id="product.id"');
     expect(detail).toContain(':image-url="product.imageUrl"');
     expect(productRender).toContain("productId: string");
     expect(productRender).toContain("imageUrl?: string");
-    expect(productRender).toContain("catalogProductImageUrl(props.imageUrl, failedImageUrl.value)");
+    expect(productRender).toContain("useProductImage(() => props.imageUrl)");
     expect(productImage).not.toContain("/static/img/products/");
     expect(Object.keys(embeddedProductImages)).toHaveLength(0);
     expect(productCard).not.toContain("productImageMeta");

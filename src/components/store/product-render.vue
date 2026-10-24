@@ -16,7 +16,7 @@
       <!-- Tilted product image layer -->
       <view :style="tiltLayerStyle">
         <video v-if="video" :src="video" :poster="videoPoster" controls :autoplay="false" preload="metadata" playsinline style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain" @error="fallbackProductVideo" />
-        <image v-else-if="photo" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" />
+        <image v-else-if="photo" :key="photo.src" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" />
       </view>
       <!-- Bottom vignette (flat) so the brand overlay reads cleanly -->
       <view aria-hidden :style="vignetteStyle" />
@@ -36,19 +36,17 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, type CSSProperties } from "vue";
-import { catalogProductImageUrl, productTierCode } from "@/lib/product-image";
+import { productTierCode } from "@/lib/product-image";
+import { useProductImage } from "@/composables/use-product-image";
 
 const props = defineProps<{ productId: string; tier: "Entry" | "Pro" | "Flagship" | "Share"; imageUrl?: string; videoUrl?: string }>();
 
-const failedImageUrl = ref("");
-watch(() => props.imageUrl, () => { failedImageUrl.value = ""; }, { immediate: true });
+const { imageSrc, imageError: fallbackProductImage } = useProductImage(() => props.imageUrl);
 const photo = computed(() => {
-  const imageUrl = catalogProductImageUrl(props.imageUrl, failedImageUrl.value);
+  const imageUrl = imageSrc.value;
   return imageUrl ? { src: imageUrl, tierCode: productTierCode(props.productId, props.tier) } : null;
 });
-function fallbackProductImage() {
-  failedImageUrl.value = props.imageUrl ?? "";
-}
+
 const failedVideoUrl = ref("");
 watch(() => props.videoUrl, () => { failedVideoUrl.value = ""; }, { immediate: true });
 const video = computed(() => failedVideoUrl.value === props.videoUrl ? undefined : props.videoUrl);

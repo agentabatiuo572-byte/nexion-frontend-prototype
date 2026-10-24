@@ -17,7 +17,7 @@
 
     <!-- ───── Catalog photo or neutral placeholder ───── -->
     <view class="relative overflow-hidden" :style="renderWrapStyle" role="button" tabindex="0" :aria-label="nexGridBrandText(product.name)" @click.stop="goDetail"  @keydown.enter.prevent.stop="goDetail" @keydown.space.prevent.stop="goDetail">
-      <image v-if="photo" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" />
+      <image v-if="photo" :key="photo.src" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" />
       <view v-else class="absolute inset-0 grid place-items-center" style="color: var(--v5-ink-3)">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
       </view>
@@ -127,7 +127,8 @@ import { navTo } from "@/lib/route";
 import { usePurchaseGate } from "@/composables/use-purchase-gate";
 import { productCopy } from "@/lib/product-copy";
 import { nexGridBrandText } from "@/lib/brand-copy";
-import { catalogProductImageUrl, productTierCode } from "@/lib/product-image";
+import { productTierCode } from "@/lib/product-image";
+import { useProductImage } from "@/composables/use-product-image";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useRemotePurchaseEligibility } from "@/store/purchase-eligibility";
 import { useScrollGrowProgress } from "@/composables/use-scroll-grow-progress";
@@ -151,17 +152,12 @@ const promotionUnavailable=computed(()=>!!props.activityId&&(!props.promotionRea
 const promotionSignIn=computed(()=>!!props.activityId&&!promotionUnavailable.value&&props.promotion?.eligibility==='SIGN_IN_REQUIRED');
 const stockUnavailable = computed(() => props.product.inventoryMode === "FINITE"
   && props.product.stock === 0);
-const failedImageUrl = ref("");
-watch(() => props.product.imageUrl, () => { failedImageUrl.value = ""; }, { immediate: true });
-// Product videos stay detail-only: listing cards use the catalog image
-// so browsing never triggers downloads or playback before the user chooses it.
+const { imageSrc, imageError: fallbackProductImage } = useProductImage(() => props.product.imageUrl);
 const photo = computed(() => {
-  const imageUrl = catalogProductImageUrl(props.product.imageUrl, failedImageUrl.value);
+  const imageUrl = imageSrc.value;
   return imageUrl ? { src: imageUrl, tierCode: productTierCode(props.product.id, props.product.tier) } : null;
 });
-function fallbackProductImage() {
-  failedImageUrl.value = props.product.imageUrl ?? "";
-}
+
 
 const stockLow = computed(
   () => !isShare.value && props.product.stock != null && props.product.stock < 50,

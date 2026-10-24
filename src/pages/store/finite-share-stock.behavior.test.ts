@@ -100,6 +100,7 @@ async function mountPair(product: Product,promotion?:PublicPromotion) {
     "@/i18n/format": { fmt }, "@/lib/brand-copy": { nexGridBrandText },
     "@/lib/product-copy": { localizedDatacenterValue, productCopy, specRow, specText },
     "@/lib/product-image": { catalogProductImageUrl, productTierCode },
+    "@/composables/use-product-image": { useProductImage: (source: () => string | undefined) => ({ imageSrc: Vue.computed(() => source() ?? null), imageError: () => {} }) },
     "@/lib/route": { navTo, takeNavigationQuery: () => "" },
     "@/api/runtime": { remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: 7101 } }) },
       dayOnePageObservationApi: { s1Roi: forbiddenNetwork }, h3ObservationApi: { productInterest: forbiddenNetwork } },
