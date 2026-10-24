@@ -67,7 +67,9 @@ export function productCopy(t: Messages, p: Product, serverCatalog = false, loca
   if (serverCatalog) return {
     tagline: serverTagline(t, p, locale),
     badge: serverBadge(t, p.badge),
-    unlocks: "",
+    unlocks: p.ai?.unlocks && p.ai.unlocks !== SPEC_UNAVAILABLE
+      ? t.market.workloads[p.ai.unlocks as keyof typeof t.market.workloads]?.label ?? p.ai.unlocks
+      : "",
   };
   const entry = (t.store.catalog as Record<string, CatalogEntry | undefined>)[p.id];
   return {

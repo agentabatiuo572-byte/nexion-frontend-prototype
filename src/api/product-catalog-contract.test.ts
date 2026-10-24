@@ -26,18 +26,20 @@ describe("product catalog strict specification contract", () => {
   // 🔴 这一格以前不存在,而它才是真后端的常态:`gpu` / `vram` / `power` / `datacenter` 后端可空,
   // 运营在后台表单留空即不下发。旧契约把规格字段全设成必填,于是**少一个规格 = 整份目录抛错
   // = 商城一件商品都没有**(P-110)。缺失必须降级,不能作废全量。
-  const SPEC_FIELDS = ["gpu", "vram", "power", "datacenter", "warranty"] as const;
+  const SPEC_FIELDS = ["gpu", "vram", "power", "datacenter", "warranty", "uptime"] as const;
 
-  // 🔴 这三项不是商品字段,不得投影进商品模型。
-  //
-  // 2026-09-21 更正(zentao #207):此前这里写着「后端从来没有这四列」,对 `uptime` 是**错的** ——
-  // nx_admin_device_sku.uptime 自迁移 20260817_p2_product_specifications.sql 起就存在,且由
-  // AppProductCatalogService.java:201 下发。错的是「投影进来」这一步的判据,不是事实本身:
-  // 那一列是 VARCHAR(64) 自由文本,只有一句展示串,没有口径/统计周期/例外/补偿条款,也没有
-  // 适用 SKU 的已发布 SLA。把它投影进来,商城就能对一个无法兑现说明的量化承诺负责(#207)。
-  // 因此本用例的断言不变(不投影),但理由改成「没有权威条款就不作量化承诺」;
-  // 手机日收益=平台手机档位配置;其余两项仍不是商品字段。
-  const PHANTOM_FIELDS = ["uptime", "phoneDailyEarn", "phoneDailyEarnNEX"] as const;
+  // Uptime is now an E1-authored display value, not a fabricated SLA guarantee.
+  // Phone yield still comes from phone tiers, not a hardware SKU.
+  const PHANTOM_FIELDS = ["phoneDailyEarn", "phoneDailyEarnNEX"] as const;
+
+  it("preserves optional E1 uptime and AI performance without prototype defaults", () => {
+    const snapshot = { source: "nx_product", ...proof, serverCanonical: true, revision: null,
+      products: [{ ...product, uptime: " 99.5% ", ai: { imageGenPerMin: 2, llmTokensPerSec: 50, videoMinPerHour: 0, fineTuneMins: null, unlocks: "LL" } }] };
+    const actual = parseProductCatalogPayload(snapshot).products[0];
+    expect(actual.uptime).toBe("99.5%");
+    expect(actual.ai).toEqual({ imageGenPerMin: 2, llmTokensPerSec: 50, videoMinPerHour: 0, fineTuneMins: undefined, unlocks: "LL" });
+    expect(() => parseProductCatalogPayload({ ...snapshot, products: [{ ...product, uptime: 99.5 }] })).toThrow();
+  });
 
   it("does not resurrect specs that cannot back a quantified claim", () => {
     const parsed = parseProductCatalogPayload({ source: "nx_product", ...proof, serverCanonical: true, revision: null, products: [product] });

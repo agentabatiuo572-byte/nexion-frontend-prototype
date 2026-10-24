@@ -28,15 +28,19 @@ describe("server catalog capability copy", () => {
     expect(productCopy(vi, { ...pro, badge: undefined }, true).badge).toBe("");
   });
 
-  it("does not turn a 12GB Pro into a fine-tuning or 405B promise", () => {
+  it("uses only the server's selected pool, never a prototype's 405B capability", () => {
     const pro = {
       id: "stellarbox-pro",
       tagline: "Managed device",
       badge: "Pro",
       vram: "12GB",
-      ai: { unlocks: "Fine-tune + 405B inference" },
+      ai: { unlocks: "LL" },
     } as Product;
 
-    expect(productCopy(en, pro, true)).toEqual({ tagline: "Managed device", badge: "Pro", unlocks: "" });
+    for (const messages of [zh, en, vi]) {
+      expect(productCopy(messages, pro, true).unlocks).toBe(messages.market.workloads.LL.label);
+      expect(productCopy(messages, { ...pro, ai: undefined }, true).unlocks).toBe("");
+      expect(productCopy(messages, { ...pro, ai: { unlocks: "unavailable" } }, true).unlocks).toBe("");
+    }
   });
 });

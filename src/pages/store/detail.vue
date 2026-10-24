@@ -183,7 +183,7 @@
         <SpecTable :rows="hardwareSpecs" />
 
         <!-- === Section 6: AI performance spec === -->
-        <template v-if="aiPerfRows.length > 0">
+        <template v-if="!isShare || aiPerfRows.length > 0">
           <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detAiPerf" /></view>
           <SpecTable :rows="aiPerfRows" brand-value />
         </template>
@@ -192,7 +192,7 @@
         <template v-if="!remoteApiEnabled">
           <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detTrustedBy" /></view>
           <view class="mx-4 nx-glass-card" :style="trustCardStyle">
-            <text class="block" :style="trustBodyStyle">{{ t.trust.errorUnavailable }}</text>
+            <text class="block" :style="trustBodyStyle">{{ t.store.relatedMaterialsEmpty }}</text>
           </view>
         </template>
         <template v-else>
@@ -209,8 +209,7 @@
               </view>
             </template>
             <template v-else>
-              <text class="block" :style="trustBodyStyle">{{ t.trust.errorUnavailable }}</text>
-              <text class="block active:opacity-70" :style="trustRetryStyle" role="button" tabindex="0" :aria-label="t.ui.retry" @click="refreshTrustMaterial">{{ t.ui.retry }}</text>
+              <text class="block" :style="trustBodyStyle">{{ trustStatus === 'error' ? t.store.relatedMaterialsLoadFailed : t.store.relatedMaterialsEmpty }}</text>
             </template>
           </view>
         </template>
@@ -278,7 +277,7 @@ import { useRemotePurchaseEligibility } from "@/store/purchase-eligibility";
 import { purchaseEligibilityUnlockHref, resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-copy";
 import type { TrustLocale } from "@/api/trust-section-api";
 import { trustNumberedRows } from "@/lib/trust-fields";
-import { recordPublishedTrustViews, usePublishedTrust } from "@/composables/use-published-trust";
+import { usePublishedTrust } from "@/composables/use-published-trust";
 
 const t = useT();
 const locale = useLocaleStore();
@@ -483,24 +482,17 @@ const paybackLabel = computed(() => {
     : fmt(t.value.store.detPaybackDays, { n: days });
 });
 
-// Hardware spec rows — per-SKU values are server-owned and optional, so labels
-// localise while values render as authored upstream, and a row with nothing to
-// say is dropped rather than filled with a placeholder. Uptime is a platform-wide
-// promise. Warranty is server-authored per SKU and is rendered without changing
-// its unit or terms.
+// Preserve the prototype's four spec slots while taking values from E1.
+// An operator-authored uptime is displayed as online rate, not an SLA guarantee.
 const hardwareSpecs = computed<SpecRow[]>(() => {
   const p = product.value;
   if (!p) return [];
   const s = t.value.store;
   return [
-    specRow(s.specGpu, p.gpu),
-    specRow(s.specVram, p.vram),
-    specRow(s.specPower, p.power),
-    specRow(s.specDatacenter, localizedDatacenterValue(p.datacenter, locale.code) ?? undefined),
-    // 在线率不是商品字段:服务端只有 nx_admin_device_sku.uptime 这一列自由文本,
-    // 没有口径/统计周期/例外/补偿条款,也没有适用 SKU 的已发布 SLA。没有权威条款时
-    // 不得对购买决策作出量化服务承诺(zentao #207),整行不出现 —— 与质保同一判据:
-    // 「没得说就不说」,而不是填一个占位符。
+    { k: s.specGpu, v: specText(t.value, p.gpu, "-") },
+    { k: s.specVram, v: specText(t.value, p.vram, "-") },
+    { k: s.specPower, v: specText(t.value, p.power, "-") },
+    { k: s.specOnlineRate, v: specText(t.value, p.uptime, "-") },
     specRow(s.specWarranty, p.warranty),
   ].filter((r): r is SpecRow => r !== null);
 });
@@ -508,30 +500,26 @@ const hardwareSpecs = computed<SpecRow[]>(() => {
 // AI perf rows from product.ai. `unlocks` is per-SKU marketing copy → resolved
 // through productCopy() alongside tagline/badge, not read raw off the mock.
 const aiPerfRows = computed<{ k: string; v: string }[]>(() => {
-  const ai = remoteApiEnabled ? null : product.value?.ai;
-  if (!ai) return [];
+  const ai = product.value?.ai;
+  if (isShare.value && !ai) return [];
   const s = t.value.store;
   const rows: { k: string; v: string }[] = [];
-  if (ai.imageGenPerMin) rows.push({ k: s.aiRowImageGen, v: `${ai.imageGenPerMin} ${s.aiUnitImgMin}` });
-  if (ai.llmTokensPerSec) rows.push({ k: s.aiRowLlm, v: `${(ai.llmTokensPerSec / 1000).toFixed(1)}${s.aiUnitTokSec}` });
-  if (ai.videoMinPerHour) rows.push({ k: s.aiRowVideo, v: `${ai.videoMinPerHour} ${s.aiUnitMinHour}` });
-  if (ai.fineTuneMins) rows.push({ k: s.aiRowFineTune, v: `~${ai.fineTuneMins} ${s.aiUnitMin}` });
-  if (copy.value.unlocks) rows.push({ k: s.aiRowUnlocks, v: copy.value.unlocks });
+  const metric = (value: number | undefined, unit: string, scale = 1) => value == null
+    ? "-" : `${value / scale} ${unit}`;
+  if (!isShare.value) {
+    rows.push({ k: s.aiRowImageGen, v: metric(ai?.imageGenPerMin, s.aiUnitImgMin) });
+    rows.push({ k: s.aiRowLlm, v: metric(ai?.llmTokensPerSec, s.aiUnitTokSec, 1000) });
+    rows.push({ k: s.aiRowVideo, v: metric(ai?.videoMinPerHour, s.aiUnitMinHour) });
+    rows.push({ k: s.aiRowFineTune, v: metric(ai?.fineTuneMins, s.aiUnitMin) });
+  }
+  rows.push({ k: s.aiRowUnlocks, v: copy.value.unlocks || "-" });
   return rows;
 });
 
-// Trust marks are proper nouns — publications and certification schemes keep
-// their registered names in every locale.
-const featuredMedia = ["Forbes", "CoinDesk", "TechCrunch", "The Block"];
-const compliance = ["SOC 2 Type II", "ISO 27001", "CE / FCC"];
 const productAuditSection = computed(() => trustSections.value.find((section) => section.sectionKey === "auditsReserves"));
-const productTrustTitle = computed(() => t.value.store.detEvidenceDocuments);
+const productTrustTitle = computed(() => t.value.store.detTrustedBy);
 const productAuditRows = computed(() => trustNumberedRows(productAuditSection.value?.fields ?? [], "document", ["Primary", "Secondary", "Url"] as const, trustLanguage.value)
   .filter((row) => safeTrustUrl(row.Url)));
-
-async function refreshTrustMaterial() {
-  if (await refreshTrust(true)) recordPublishedTrustViews(["auditsReserves"], trustLanguage.value);
-}
 
 function safeTrustUrl(raw: string): string | null {
   const value = raw.trim();
@@ -882,7 +870,6 @@ const trustDisclosureRowStyle: CSSProperties = { padding: "12px 0", borderBottom
 const trustDisclosureTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
 const trustBodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 const trustLinkStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", fontWeight: 600, color: "var(--v5-brand)" };
-const trustRetryStyle: CSSProperties = { marginTop: "12px", fontSize: "13px", fontWeight: 600, color: "var(--v5-brand)" };
 // FAQ de-carded to a transparent hairline group (spec: FAQ → floor). The
 // container border-top opens the group; each item keeps its own row hairline.
 const faqCardStyle: CSSProperties = {

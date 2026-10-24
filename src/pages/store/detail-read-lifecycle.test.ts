@@ -36,7 +36,7 @@ function setup() {
   const app = reactive({ accountKey: "default", accountBindingEpoch: 1 });
   let currentAccountScope = { accountKey: "user:1", epoch: 1 };
   const value = new Function(
-    "ref", "computed", "watch", "app", "Promise", "refreshProductCatalog", "refreshServerProductPhase", "remoteApiEnabled", "refreshTrust", "onLoad", "onShow", "captureAccountScope", "isCurrentAccountScope", "productCatalogState", "observeCanonicalProductDetail", "takeNavigationQuery", "sessionVault", "usePromotionContext",
+    "ref", "computed", "watch", "app", "Promise", "refreshProductCatalog", "refreshServerProductPhase", "remoteApiEnabled", "refreshTrust", "onLoad", "onShow", "captureAccountScope", "isCurrentAccountScope", "productCatalogState", "observeCanonicalProductDetail", "takeNavigationQuery", "sessionVault", "usePromotionContext", "nextTick", "eligibility", "purchaseEligibilityMessage", "retryEligibility",
     lifecycleCode,
   )(ref, computed, watch, app, Promise, catalog, phase, true, trust,
     (callback: (options?: Record<string, string>) => Promise<void>) => loaded.push(callback),
@@ -46,6 +46,7 @@ function setup() {
     productCatalogState, observe, () => "?id=stellarbox-pro",
     { read: () => ({ user: { userId: 1 } }) },
     () => ({ activity: ref(null), status: ref("idle"), available: ref(false), refresh: vi.fn() }),
+    nextTick, ref({ status: "ready" }), ref(null), vi.fn(),
   ) as {
     id: { value: string };
     catalogRetrying: { value: boolean };
@@ -209,6 +210,7 @@ describe("store detail canonical read lifecycle", () => {
     s.trust.mockReturnValue(trust.promise);
     const reading = s.value.refreshDetailFacts();
     await Promise.resolve();
+    await nextTick();
     expect(s.trust).toHaveBeenCalledTimes(1);
     expect(s.observe).not.toHaveBeenCalled();
     phase.resolve(true);
@@ -227,6 +229,7 @@ describe("store detail canonical read lifecycle", () => {
       s.trust.mockReturnValue(trust.promise);
       const reading = s.value.refreshDetailFacts();
       await Promise.resolve();
+      await nextTick();
       expect(s.trust).toHaveBeenCalledTimes(1);
       if (boundary === "hide") s.value.invalidateDetailFacts();
       else s.rebindAccount();
@@ -252,6 +255,7 @@ describe("store detail canonical read lifecycle", () => {
     await loading;
     second.resolve(true);
     await Promise.resolve();
+    await nextTick();
     expect(s.trust).toHaveBeenCalledTimes(1);
   });
 
