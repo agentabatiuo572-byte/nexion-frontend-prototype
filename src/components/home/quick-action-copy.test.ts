@@ -21,7 +21,7 @@ function actualChips(dictionary: typeof zh | typeof en | typeof vi) {
   const quest = Vue.reactive({ remoteStatus: "error", remoteQuests: [] });
   const modules: Record<string, unknown> = {
     vue: { ...Vue, onMounted() {} },
-    "@dcloudio/uni-app": { onShow() {} },
+    "@/composables/use-tab-page-lifecycle": { onShow() {} },
     "@/lib/route": { navTo() {} },
     "@/composables/use-now": { useNow: () => Vue.ref(Date.now() / 1000) },
     "@/i18n/use-t": { useT: () => Vue.ref(dictionary) },

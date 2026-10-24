@@ -16,7 +16,8 @@ const migrationPaths = [
 ].map((name) => resolve(backendRoot, "scripts", "migrations", name));
 
 function manifestRoutes() {
-  return pages.pages.map(({ path }) => `/${path}`).sort();
+  // The native container reports its active business route, never a sixth analytics page.
+  return pages.pages.filter(({ path }) => path !== "pages/tabs/tabs").map(({ path }) => `/${path}`).sort();
 }
 
 function catalogRoutes(sql) {

@@ -76,7 +76,7 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, ref, type CSSProperties } from "vue";
-import { onHide, onShow } from "@dcloudio/uni-app";
+import { onHide, onShow } from "@/composables/use-tab-page-lifecycle";
 import type { CanonicalQuest } from "@/api/quest-api";
 import { useWeeklyQuest } from "@/store/weekly-quest";
 import { useConfig } from "@/store/config";

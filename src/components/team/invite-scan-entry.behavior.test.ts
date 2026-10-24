@@ -50,7 +50,7 @@ async function fixture(copy = en, authenticated = false, load = async () => {}) 
   vi.stubGlobal("uni", { scanCode });
   const navTo = vi.fn(async (_url: string) => true), unloads: Array<() => void> = [];
   const imports: Record<string, unknown> = {
-    vue: Vue, "@dcloudio/uni-app": { onUnload: (fn: () => void) => unloads.push(fn) },
+    vue: Vue, "@/composables/use-tab-page-lifecycle": { onUnload: (fn: () => void) => unloads.push(fn) },
     "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/store/auth": { useAuth: () => auth },
     "@/store/config": { useConfig: () => config }, "@/lib/route": { navTo },
     "@/lib/account-scope": { captureAccountScope: () => epoch, isCurrentAccountScope: (value: number) => value === epoch },

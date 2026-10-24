@@ -27,6 +27,30 @@ function mount(layout = "equal", variant = "filter") {
 }
 
 describe("glass selection keyboard behavior", () => {
+  it("uses authoritative shell state for rapid return taps and ignores stale failed requests", async () => {
+    const nativeGo = chassisSource.slice(chassisSource.indexOf("function go(tab:"), chassisSource.indexOf("function goSearch()"))
+      .replace(/\/\/ #ifndef APP-PLUS[\s\S]*?\/\/ #endif/g, "");
+    const code = ts.transpileModule(nativeGo, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+    let current = "/pages/index/index";
+    const reset = { value: 0 }, scroll = vi.fn();
+    const navigate = vi.fn((url: string) => { current = url; return Promise.resolve(true); });
+    const go = new Function("props", "isCurrentNativeTab", "getCurrentPages", "scrollNativeCurrentTabToTop", "navTo", "navigationReset", "let navigationAttempt = 0;\n" + code + "\nreturn go;")(
+      { tabHost: true }, (url: string) => current === url, () => [{}], scroll, navigate, reset,
+    );
+    go({ key: "me", route: "/pages/me/me" });
+    go({ key: "home", route: "/pages/index/index" });
+    expect(navigate.mock.calls.map(([url]) => url)).toEqual(["/pages/me/me", "/pages/index/index"]);
+    go({ key: "home", route: "/pages/index/index" }); expect(scroll).toHaveBeenCalledOnce();
+    let fail!: (ok: boolean) => void;
+    navigate.mockImplementationOnce(() => new Promise<boolean>(resolve => { fail = resolve; }));
+    go({ key: "earn", route: "/pages/earn/earn" });
+    go({ key: "store", route: "/pages/store/store" });
+    fail(false); await Promise.resolve();
+    expect(reset.value).toBe(0);
+    navigate.mockResolvedValueOnce(false);
+    go({ key: "me", route: "/pages/me/me" }); await Promise.resolve();
+    expect(reset.value).toBe(1);
+  });
   it("binds group and member semantics and selection to the caller's model", () => {
     expect(source).toContain(`:role="variant === 'navigation' ? 'navigation' : semantics === 'radio' ? 'radiogroup' : 'tablist'"`);
     expect(source).toContain(`:role="variant === 'navigation' ? 'link' : semantics === 'radio' ? 'radio' : 'tab'"`);
@@ -75,7 +99,7 @@ describe("glass selection keyboard behavior", () => {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
     }).outputText;
     const remember = vi.fn(), navigate = vi.fn().mockResolvedValue(false), reset = { value: 0 };
-    const go = new Function("activeTab", "rememberGlassNavigation", "navTo", "navigationReset", "let navigationPending = false;\n" + goCode + "\nreturn go;")({ value: "me" }, remember, navigate, reset);
+    const go = new Function("activeTab", "rememberGlassNavigation", "navTo", "navigationReset", "props", "let navigationPending = false;\n" + goCode + "\nreturn go;")({ value: "me" }, remember, navigate, reset, { tabHost: false });
     go({ key: "home", route: "/pages/index/index" }, "drag");
     expect(remember).toHaveBeenLastCalledWith("home", "home");
     go({ key: "store", route: "/pages/store/store" }, "activation");

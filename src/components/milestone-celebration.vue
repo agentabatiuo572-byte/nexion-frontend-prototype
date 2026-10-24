@@ -65,6 +65,7 @@
 </template>
 
 <script setup lang="ts">
+import { logicalNativePage } from "@/lib/native-tab-navigation";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, watch, onMounted, onUnmounted } from "vue";
 import { useMilestones } from "@/store/milestones";
@@ -90,7 +91,10 @@ const t = useT();
 function readRoute(): string {
   try {
     const ps = getCurrentPages();
-    const route = ps.length ? ((ps[ps.length - 1] as { route?: string }).route ?? "") : "";
+    let route = ps.length ? ((ps[ps.length - 1] as { route?: string }).route ?? "") : "";
+    // #ifdef APP-PLUS
+    route = logicalNativePage(ps[ps.length - 1]).route;
+    // #endif
     if (route) return route;
   } catch {
     // fall through to H5 hash fallback

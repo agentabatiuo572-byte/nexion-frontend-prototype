@@ -8,7 +8,7 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { onShow, onHide } from "@dcloudio/uni-app";
+import { onShow, onHide } from "@/composables/use-tab-page-lifecycle";
 import { learningApi } from "@/api/learning-runtime";
 import { remoteApiEnabled } from "@/api/runtime";
 import { captureRuntimeRevision } from "@/api/order-api";

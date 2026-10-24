@@ -1,5 +1,5 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
-import { onHide, onShow } from '@dcloudio/uni-app';
+import { onHide, onShow } from '@/composables/use-tab-page-lifecycle';
 import { promotionApi, remoteApiEnabled, sessionVault } from '@/api/runtime';
 import type { PublicPromotion } from '@/api/promotion-contracts';
 import { useApp } from '@/store/app';

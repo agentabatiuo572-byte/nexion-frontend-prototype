@@ -205,8 +205,8 @@ import { formatAmount } from "@/lib/amount-display";
 import ReferralProgress from '@/components/promotion/referral-progress.vue';
 import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
-import AppChassis from "@/components/app-chassis.vue";
+import { onShow } from "@/composables/use-tab-page-lifecycle";
+import AppChassis from "@/components/tab-page-frame.vue";
 import InviteEarnCard from "@/components/team/invite-earn-card.vue";
 // #ifdef APP-PLUS
 import InviteScanEntry from "@/components/team/invite-scan-entry.vue";

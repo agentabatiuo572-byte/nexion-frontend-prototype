@@ -21,6 +21,7 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
   let expansion = 0, expansionVelocity = 0;
   let maxTrackScroll = 0;
   let destination = initial.value, suppressClick = false;
+  let pendingNavigation: string[] = [];
   let outgoingSequence = 0;
   let drag: { id: number; x: number; y: number; lastX: number; at: number; engaged: boolean } | undefined;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -124,13 +125,16 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
   function measure() {
     frame = 0;
     if (disposed || !root.offsetWidth) return;
-    const items = nodes(), item = items[config.values.indexOf(config.value)];
+    // The view responds before the logic thread can commit the new model.
+    // Font/layout/config notifications must not retarget that flight to the old tab.
+    const selected = pendingNavigation[pendingNavigation.length - 1] ?? config.value;
+    const items = nodes(), item = items[config.values.indexOf(selected)];
     const last = items[items.length - 1];
     maxTrackScroll = config.layout === "scroll" && last
       ? Math.max(0, last.offsetLeft + last.offsetWidth + parseFloat(getComputedStyle(root).paddingRight || "0") - root.clientWidth) : 0;
     if (!lens) return;
     if (!item) { lens.style.visibility = "hidden"; current = target = undefined; return; }
-    if (!drag?.engaged) moveTo(item, config.value);
+    if (!drag?.engaged) moveTo(item, selected);
     if (config.layout === "scroll" && (item.offsetLeft < root.scrollLeft || item.offsetLeft + item.offsetWidth > root.scrollLeft + root.clientWidth)) {
       root.scrollLeft = Math.max(0, item.offsetLeft - (root.clientWidth - item.offsetWidth) / 2);
     }
@@ -143,6 +147,10 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
       // App pages have separate renderjs contexts. Only the arriving page owns
       // a tap animation; starting here as well would replay it after reLaunch.
       if (config.variant === "navigation" && config.navigationOnArrival) return;
+      if (config.variant === "navigation") {
+        const value = item.dataset.glassValue!;
+        if ((pendingNavigation.length || value !== config.value) && pendingNavigation[pendingNavigation.length - 1] !== value) pendingNavigation.push(value);
+      }
       if (config.variant === "navigation" && item.dataset.glassValue !== config.value) outgoingSequence = ++navigationSequence;
       moveTo(item, item.dataset.glassValue!);
     }
@@ -241,7 +249,16 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
   void document.fonts?.ready.then(schedule);
   observe(); schedule();
   return {
-    update(value: SegmentsConfiguration) { config = value; observe(); schedule(); },
+    update(value: SegmentsConfiguration) {
+      if (value.value !== config.value && pendingNavigation.length) {
+        const committed = pendingNavigation.indexOf(value.value);
+        // A queued earlier tap can commit before the newest one. An unrelated
+        // model value is an authoritative redirect; the newest tap ends the queue.
+        if (committed < 0 || value.value === pendingNavigation[pendingNavigation.length - 1]) pendingNavigation = [];
+        else pendingNavigation.splice(0, committed + 1);
+      }
+      config = value; observe(); schedule();
+    },
     destroy() {
       disposed = true; cancelAnimationFrame(frame); cancelAnimationFrame(motionFrame); transformLayer?.cancel(); trackLayer?.cancel(); resize.disconnect();
       root.removeEventListener("keydown", onArrow); root.removeEventListener("click", onClick, true);

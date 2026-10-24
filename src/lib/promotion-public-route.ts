@@ -1,3 +1,4 @@
+import { logicalNativePage } from "@/lib/native-tab-navigation";
 /** Public promotion disclosure only. Checkout, rewards and account pages remain private. */
 export function isPublicPromotionRoute(route:string,activityId:unknown):boolean {
   const path=route.replace(/^#?\/?/,'').split('?')[0];
@@ -6,7 +7,14 @@ export function isPublicPromotionRoute(route:string,activityId:unknown):boolean 
 }
 export function currentPublicPromotionRoute(route:string):boolean {
   let activityId:unknown;
-  try {const pages=getCurrentPages();const page=pages[pages.length-1] as unknown as {route?:string;options?:Record<string,unknown>};if(page?.route===route)activityId=page.options?.activityId;}catch{/* native stack is not available during cold load */}
+  try {
+    const pages=getCurrentPages();
+    let page=pages[pages.length-1] as unknown as {route?:string;options?:Record<string,unknown>};
+    // #ifdef APP-PLUS
+    page=logicalNativePage(page);
+    // #endif
+    if(page?.route===route)activityId=page.options?.activityId;
+  }catch{/* native stack is not available during cold load */}
   // #ifdef H5
   if(typeof window!=='undefined'){
     const hash=window.location.hash.replace(/^#\/?/,'');

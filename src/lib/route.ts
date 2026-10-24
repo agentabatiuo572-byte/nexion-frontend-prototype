@@ -18,6 +18,7 @@ import { toast } from "@/store/ui";
 import { getT } from "@/i18n/use-t";
 import { requestCheckoutLeave, hasCheckoutLeaveGuard, clearCheckoutLeaveForReset } from "@/lib/promotion-leave-guard";
 import { useConfig } from "@/store/config";
+import { nativeTabUrl, switchNativeTab } from "@/lib/native-tab-navigation";
 
 const TAB_ROOT: Record<string, string> = {
   "/": "/pages/index/index",
@@ -89,7 +90,12 @@ function forceNavigation(target: string | ForcedNavigationOptions, replace: bool
     reportNavigationFailure();
     return Promise.resolve(false);
   }
-  const { url } = toUniRoute(options.url.trim());
+  let { url } = toUniRoute(options.url.trim());
+  // A reset/replacement still opens a fresh page and clears the old account scope.
+  // #ifdef APP-PLUS
+  try { url = nativeTabUrl(url); }
+  catch { reportNavigationFailure(); return Promise.resolve(false); }
+  // #endif
   return new Promise((resolve) => {
     let settled = false;
     const invoke = (callback: Function | undefined, result: unknown) => {
@@ -167,13 +173,17 @@ function performNavBack(fallbackHref?: string): void {
     return;
   }
   if (fallbackHref) {
-    const { url } = toUniRoute(fallbackHref);
+    let { url } = toUniRoute(fallbackHref);
+    // #ifdef APP-PLUS
+    try { url = nativeTabUrl(url); }
+    catch { reportNavigationFailure(); return; }
+    // #endif
     uni.reLaunch({ url, fail: () => void navReplace(fallbackHref) });
     return;
   }
   // No declared back target on a singleton stack — never leave the back button a
   // dead end; fall back to home so a cold-opened caller without a backHref still moves.
-  uni.reLaunch({ url: "/pages/index/index", fail: reportNavigationFailure });
+  void navReset("/pages/index/index");
 }
 
 type NavigationAttempt = (
@@ -256,11 +266,22 @@ function performNavTo(href: string): Promise<boolean> {
     reportNavigationFailure();
     return Promise.resolve(false);
   }
-  const { url, tab } = toUniRoute(href);
+  let { url, tab } = toUniRoute(href);
   if (isStakingVisibilityRoute(url) && !useConfig().isEnabled("stakingVisible")) return Promise.resolve(false);
   const question = url.indexOf("?");
   pendingNavigationQuery = question < 0 ? null : { path: url.slice(0, question), query: url.slice(question) };
   const queryForThisNavigation = pendingNavigationQuery;
+  // Keep tab taps inside the visible native shell. Child-page returns and
+  // external entries open a shell normally, with the same business query.
+  // #ifdef APP-PLUS
+  try {
+    if (tab && switchNativeTab(url)) return Promise.resolve(true);
+    if (tab) url = nativeTabUrl(url);
+  } catch {
+    pendingNavigationQuery = null;
+    reportNavigationFailure(); return Promise.resolve(false);
+  }
+  // #endif
   const result = tab
     ? runNavigationChain([
       (success, fail) => uni.reLaunch({ url, success, fail }),

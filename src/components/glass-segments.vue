@@ -46,6 +46,7 @@ const props = withDefaults(defineProps<{
   variant?: "filter" | "navigation";
   label?: string;
   fromValue?: string;
+  navigationOnArrival?: boolean;
   semantics?: "radio" | "tab";
 }>(), { layout: "equal", variant: "filter", label: "", fromValue: undefined, semantics: "tab" });
 // Values originate from the caller's typed options, including narrow string unions.
@@ -55,7 +56,7 @@ let navigationOnArrival = false;
 // #ifdef APP-PLUS
 navigationOnArrival = true;
 // #endif
-const configuration = computed<SegmentsConfiguration>(() => ({ hostId, value: String(props.modelValue), values: props.options.map(option => String(option.value)), fromValue: props.fromValue, layout: props.layout, variant: props.variant, navigationOnArrival }));
+const configuration = computed<SegmentsConfiguration>(() => ({ hostId, value: String(props.modelValue), values: props.options.map(option => String(option.value)), fromValue: props.fromValue, layout: props.layout, variant: props.variant, navigationOnArrival: props.navigationOnArrival ?? navigationOnArrival }));
 declare const segmentsView: { update(value: SegmentsConfiguration): void };
 
 function choose(option: GlassOption, reason = "activation") {

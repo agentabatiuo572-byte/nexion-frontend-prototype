@@ -115,10 +115,10 @@
 
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
+import { onLoad, onShow, onHide } from "@/composables/use-tab-page-lifecycle";
 import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
 import { useGenesisConfig } from "@/store/genesis-config";
-import AppChassis from "@/components/app-chassis.vue";
+import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import GreetingHeader from "@/components/home/greeting-header.vue";
 import TechMoneyCard from "@/components/home/tech-money-card.vue";

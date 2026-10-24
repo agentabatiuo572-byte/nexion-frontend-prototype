@@ -107,6 +107,7 @@
 </template>
 
 <script setup lang="ts">
+import { navTo } from "@/lib/route";
 import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, onMounted, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -377,14 +378,8 @@ const pendingNavigationUrl = computed(() => navigationState.value.pendingUrl);
 function navigateWithFeedback(url: string) {
   const started = beginNavigationAttempt(navigationState.value, url);
   navigationState.value = started;
-  uni.navigateTo({
-    url,
-    success: () => {
-      navigationState.value = completeNavigationAttempt(navigationState.value, started.attempt, "success");
-    },
-    fail: () => {
-      navigationState.value = completeNavigationAttempt(navigationState.value, started.attempt, "failure");
-    },
+  void navTo(url).then(ok => {
+    navigationState.value = completeNavigationAttempt(navigationState.value, started.attempt, ok ? "success" : "failure");
   });
 }
 

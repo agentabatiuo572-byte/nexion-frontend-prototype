@@ -26,6 +26,7 @@ const empty={render:()=>null};
 function evaluate(source:string,modules:Record<string,unknown>){
   const exports:Record<string,any>={};
   new Function('require','exports',source)((id:string)=>{
+    if(id==='@/composables/use-tab-page-lifecycle')id='@dcloudio/uni-app';
     if(id in modules)return modules[id];
     if(id.endsWith('.vue'))return{default:empty};
     throw new Error('Unexpected marketing dependency '+id);

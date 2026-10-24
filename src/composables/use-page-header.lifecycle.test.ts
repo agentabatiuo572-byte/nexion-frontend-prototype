@@ -68,6 +68,7 @@ function chassis(translations: Vue.Ref<typeof en>, back: ReturnType<typeof vi.fn
     "@/store/pending-checkout-core": { PENDING_BAR_INSET_KEY: Symbol("pending") },
     "@/store/popup-arbiter": { usePopupArbiter: () => ({ release: idle }), runPriorityRound: idle },
     "@/lib/route": { navBack: back, navTo: idle },
+    "@/lib/native-tab-navigation": { isCurrentNativeTab: () => false },
     "@/lib/unread-badge": { formatUnreadBadge },
     "@/lib/static-review-routes": { isStaticReviewRoute: () => false },
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 },

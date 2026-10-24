@@ -125,8 +125,8 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { onUnmounted, computed, nextTick, ref, watch, type CSSProperties } from "vue";
-import { onHide, onShow } from "@dcloudio/uni-app";
-import AppChassis from "@/components/app-chassis.vue";
+import { onHide, onShow } from "@/composables/use-tab-page-lifecycle";
+import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import TrialHeroBanner from "@/components/trial-hero-banner.vue";
 import TrialGhostSlot from "@/components/trial-ghost-slot.vue";

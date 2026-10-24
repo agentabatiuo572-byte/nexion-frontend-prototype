@@ -106,7 +106,7 @@ async function setup() {
   const imports=(id:string):any=>{
     if(id==='@/lib/amount-display')return{formatAmount};
     if(id==='vue')return Vue;
-    if(id==='@dcloudio/uni-app')return{onShow:(f:Function)=>shows.push(f),onHide:(f:Function)=>hides.push(f)};
+    if(id==='@dcloudio/uni-app'||id==='@/composables/use-tab-page-lifecycle')return{onShow:(f:Function)=>shows.push(f),onHide:(f:Function)=>hides.push(f)};
     if(id==='@/store/app')return{useApp:()=>app};
     if(id==='@/store/ui')return{toast};
     if(id==='@/i18n/use-t')return{useT:()=>Vue.ref(zh)};

@@ -6,6 +6,7 @@ import type {
 } from "@/api/behavior-analytics-api";
 import { behaviorAnalyticsApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import type { SessionVault } from "@/api/session-vault";
+import { logicalNativePage, onNativeTabChange } from "@/lib/native-tab-navigation";
 
 export type BehaviorTransport = Pick<BehaviorAnalyticsApi, "ingest">;
 export type StoreViewEvent = Extract<BehaviorEvent, { eventName: "store.viewed" }>;
@@ -478,13 +479,21 @@ export const behaviorTracker = createBehaviorAnalyticsManager({
 function readCurrentRoute(): string {
   try {
     const pages = getCurrentPages();
+    // #ifdef APP-PLUS
+    return `/${logicalNativePage(pages[pages.length - 1]).route}`;
+    // #endif
+    // #ifndef APP-PLUS
     return `/${String(pages[pages.length - 1]?.route || "")}`;
+    // #endif
   } catch {
     return "";
   }
 }
 
 function installNavigationObserver(listener: () => void): void {
+  // #ifdef APP-PLUS
+  onNativeTabChange(listener);
+  // #endif
   for (const method of ["navigateTo", "redirectTo", "switchTab", "reLaunch", "navigateBack"] as const) {
     try {
       uni.addInterceptor(method, {

@@ -98,8 +98,8 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
-import { onHide, onShow, onUnload } from "@dcloudio/uni-app";
-import AppChassis from "@/components/app-chassis.vue";
+import { onHide, onShow, onUnload } from "@/composables/use-tab-page-lifecycle";
+import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import SectionHeader from "@/components/me/section-header.vue";
 import ProfileRow from "@/components/me/profile-row.vue";

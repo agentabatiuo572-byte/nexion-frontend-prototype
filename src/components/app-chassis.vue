@@ -101,7 +101,7 @@
           <!-- Voucher fallback banner — chassis-injected at content top so the
                5 protected tab pages stay untouched (ALIGNMENT red-line). Self-
                hides unless a claimable voucher targets the current surface. -->
-          <VoucherBanner v-if="bannerSurface" :surface="bannerSurface" />
+          <VoucherBanner v-if="bannerSurface && !tabHost" :surface="bannerSurface" />
           <slot />
         </view>
       </view>
@@ -111,7 +111,7 @@
 
     <!-- Bottom chrome: floating pill TabBar (tab routes) + home indicator (always) -->
     <view class="nx-tabbar-wrap">
-      <GlassSegments v-if="isTabRoute" :key="navigationReset" class="nx-tabbar-pill" variant="navigation" :options="navigationOptions" :model-value="activeTab" :from-value="navigationReset ? undefined : navigationFrom" @select="selectNavigation">
+      <GlassSegments v-if="isTabRoute" :key="navigationReset" class="nx-tabbar-pill" variant="navigation" :options="navigationOptions" :model-value="activeTab" :from-value="navigationReset ? undefined : navigationFrom" :navigation-on-arrival="tabHost ? false : undefined" @select="selectNavigation">
         <template #option="{ option: tab, selected }">
           <svg class="nx-tab__icon" width="22" height="22" viewBox="0 0 24 24" fill="none"
             :stroke="selected ? 'var(--v5-brand)' : 'var(--v5-ink-2)'"
@@ -177,6 +177,7 @@ import { usePendingCheckout } from "@/store/pending-checkout";
 import { PENDING_BAR_INSET_KEY } from "@/store/pending-checkout-core";
 import { usePopupArbiter, runPriorityRound, type AutoPushCandidate, type PopupId } from "@/store/popup-arbiter";
 import { navBack as navBackTo, navTo } from "@/lib/route";
+import { isCurrentNativeTab } from "@/lib/native-tab-navigation";
 import { isStaticReviewRoute } from "@/lib/static-review-routes";
 import { h5DevicePreviewStatusBarHeight } from "@/lib/device-preview";
 import { saveScrollPos, getScrollPos, dropScrollPos } from "@/lib/scroll-memory";
@@ -190,9 +191,13 @@ import { isAcceptanceObservationModalOpen, onAcceptanceObservationModalClosed, o
 // Uni forwards query parameters such as product `id` through the page root.
 // Bind fallthrough attrs explicitly so they cannot replace the view adapter's ID.
 defineOptions({ inheritAttrs: false });
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   active?: "home" | "earn" | "store" | "team" | "me";
-}>();
+  logicalRoute?: string;
+  tabLocationKey?: string;
+  tabHost?: boolean;
+  hostVisible?: boolean;
+}>(), { hostVisible: true });
 
 const t = useT();
 const notifications = useNotifications();
@@ -222,7 +227,7 @@ function isCurrentVoucherPopupScope(scope: VoucherPopupRequestScope): boolean {
 
 let autoPushMounted = false;
 const voucherPopupScheduler = createVoucherPopupScheduler<VoucherPopupRequestScope>({
-  isHome: () => autoPushMounted && readRoute() === "pages/index/index",
+  isHome: () => autoPushMounted && props.hostVisible && readRoute() === "pages/index/index",
   isObservationModalOpen: isAcceptanceObservationModalOpen,
   isBlockingSheetOpen: () => popupArbiter.current !== null || popupArbiter.visitClaimed,
   sessionShownCount: () => voucherClaimSheet.sessionShownCount,
@@ -299,7 +304,7 @@ function settleDelayMs(): number {
 // 机器门能测**正主**;埋在组件里时门只能用正则猜写法,而正则对改名 / 挪位 / 装饰性
 // 保留一概判绿(独立审计实测:两条旧定时器改个变量名搬回来,门 57/57 全绿)。
 function runAutoPushRound(): boolean {
-  if (readRoute() !== "pages/index/index") return true;
+  if (!props.hostVisible || readRoute() !== "pages/index/index") return true;
   return runPriorityRound({
     currentHolder: () => popupArbiter.current,
     acquire: (id) => popupArbiter.acquire(id),
@@ -385,6 +390,7 @@ function currentScrollTop(): number {
 // (forward navigation / reLaunch) intentionally starts clean at the top. ──
 let scrollMemKey = "";
 function pageScrollKey(): string {
+  if (props.tabHost) return props.tabLocationKey ?? props.logicalRoute ?? "";
   try {
     const ps = getCurrentPages();
     const top = ps.length ? (ps[ps.length - 1] as { $page?: { fullPath?: string }; route?: string }) : undefined;
@@ -467,6 +473,7 @@ const TAB_ROUTE_KEY: Record<string, "home" | "earn" | "store" | "team" | "me"> =
   "pages/me/me": "me",
 };
 function readRoute(): string {
+  if (props.logicalRoute) return props.logicalRoute;
   try {
     const ps = getCurrentPages();
     const route = ps.length ? ((ps[ps.length - 1] as { route?: string }).route ?? "") : "";
@@ -511,8 +518,15 @@ onMounted(() => {
   // 挂载即排一条安顿定时器;到点评一轮,评不出赢家就有界重试(等异步目录到货),
   // 直到有人弹出 / 离开首页 / 超时。isHome 守卫让受保护的 index.vue 不必被编辑
   // (ALIGNMENT 红线);路由在**触发时**复检,绝不弹到延迟期间跳过去的别的页上。
-  if (isHome.value) {
-    popupArbiter.beginHomeVisit();
+  beginHomeAutoPush(true);
+});
+function beginHomeAutoPush(newVisit: boolean) {
+  stopAutoPush();
+  voucherPopupScheduler.cancel();
+  stopObservationOpened?.(); stopObservationOpened = null;
+  stopObservationClosed?.(); stopObservationClosed = null;
+  if (props.hostVisible && isHome.value) {
+    if (newVisit) popupArbiter.beginHomeVisit();
     voucherPopupScheduler.schedule();
     stopObservationOpened = onAcceptanceObservationModalOpened(() => {
       voucherPopupScheduler.onObservationModalOpened(captureVoucherPopupScope());
@@ -529,6 +543,20 @@ onMounted(() => {
       }, SETTLE_RETRY_MS);
     }, settleDelayMs());
   }
+}
+watch(() => [props.logicalRoute, props.tabLocationKey], () => {
+  if (!props.tabHost) return;
+  route.value = readRoute();
+  scrollMemKey = pageScrollKey();
+  dropScrollPos(scrollMemKey);
+  startY = null; pullY.value = 0; pulling.value = false; pullActive.value = false;
+  void nextTick(() => {
+    const pages = getCurrentPages();
+    scrollNativeCurrentTabToTop(pages[pages.length - 1]);
+  });
+});
+watch(() => [route.value, props.hostVisible], ([current], [previous]) => {
+  if (autoPushMounted && props.tabHost) beginHomeAutoPush(current !== previous);
 });
 onUnmounted(() => {
   autoPushMounted = false;
@@ -644,6 +672,18 @@ const activeTabStyle: CSSProperties = {
 };
 
 function go(tab: { key: string; route: string }, reason = "activation") {
+  if (props.tabHost) {
+    const attempt = ++navigationAttempt;
+    // Props can still describe A while the service has already selected B.
+    // Decide same-tab taps from the host's synchronous route, including B→A.
+    if (isCurrentNativeTab(tab.route)) {
+      const pages = getCurrentPages();
+      scrollNativeCurrentTabToTop(pages[pages.length - 1]);
+    } else {
+      void navTo(tab.route).then(ok => { if (!ok && attempt === navigationAttempt) navigationReset.value++; });
+    }
+    return;
+  }
   // #ifdef APP-PLUS
   if (navigationPending) return;
   // #endif
@@ -702,6 +742,7 @@ declare const chromeView: { update(value: { hostId: string }): void };
 const navigationOptions = computed(() => tabs.value.map(tab => ({ ...tab, value: tab.key })));
 const navigationFrom = consumeGlassNavigation(activeTab.value);
 let navigationPending = false;
+let navigationAttempt = 0;
 const navigationReset = ref(0);
 function selectNavigation(value: string, reason: string) {
   const tab = tabs.value.find(item => item.key === value);

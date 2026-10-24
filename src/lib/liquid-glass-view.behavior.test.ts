@@ -43,9 +43,10 @@ function motionHarness() {
   const frames = new Map<number, FrameRequestCallback>();
   const hosts = new Map<string, unknown>();
   let serial = 0, now = 0;
+  const resizeCallbacks: Array<() => void> = [];
   vi.stubGlobal("requestAnimationFrame", (fn: FrameRequestCallback) => { frames.set(++serial, fn); return serial; });
   vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  vi.stubGlobal("ResizeObserver", class { constructor(callback: () => void) { resizeCallbacks.push(callback); } observe() {} disconnect() {} });
   vi.stubGlobal("document", { getElementById: (id: string) => hosts.get(id) });
   let reduced = false;
   vi.stubGlobal("matchMedia", () => ({ get matches() { return reduced; }, addEventListener() {}, removeEventListener() {} }));
@@ -83,6 +84,8 @@ function motionHarness() {
       lens, activations,
       x: () => Number(lens.style.transform.match(/translate3d\(([^p]+)/)![1]),
       click: (index: number) => items[index].click(),
+      update: (value: string) => segmentsView.methods.update.call(instance, { ...configuration, value }),
+      resize: () => resizeCallbacks.forEach(callback => callback()),
       drag: (from: number, toX: number) => {
         listeners.get("pointerdown")!({ target: items[from], isPrimary: true, button: 0, pointerId: 1, clientX: items[from].offsetLeft + 29, clientY: 30, timeStamp: now });
         listeners.get("pointermove")!({ pointerId: 1, clientX: toX, clientY: 30, timeStamp: now + 20, preventDefault() {} });
@@ -95,6 +98,38 @@ function motionHarness() {
 }
 
 describe("glass navigation animation ownership", () => {
+  it("handles A to B to A before any model commit, followed by a fresh C tap", () => {
+    const h = motionHarness(), shell = h.mount("home", false);
+    shell.click(4); h.step(); shell.click(0);
+    shell.update("home"); h.step(); h.step();
+    for (let i = 0; i < 60; i++) h.step();
+    expect(shell.x()).toBe(5);
+    shell.click(2); shell.update("store"); h.step(); h.step();
+    for (let i = 0; i < 60; i++) h.step();
+    expect(shell.x()).toBe(125); shell.destroy();
+  });
+  it("keeps the clicked target through old-model updates and resize until the shell commits", () => {
+    const h = motionHarness(), shell = h.mount("home", false);
+    shell.click(4); h.step();
+    const first = shell.x();
+    shell.update("home"); shell.resize(); h.step(); h.step();
+    expect(shell.x()).toBeGreaterThan(first);
+    for (let i = 0; i < 60; i++) h.step();
+    expect(shell.x()).toBe(245);
+    shell.update("me"); h.step(); h.step();
+    expect(shell.x()).toBe(245); shell.destroy();
+  });
+  it("keeps the newest tap when an earlier model commits, but accepts an external redirect", () => {
+    const h = motionHarness(), shell = h.mount("home", false);
+    shell.click(2); shell.click(4);
+    shell.update("store"); h.step(); h.step();
+    for (let i = 0; i < 60; i++) h.step();
+    expect(shell.x()).toBe(245);
+    shell.update("me"); h.step(); h.step();
+    shell.click(0); shell.update("team"); h.step(); h.step();
+    for (let i = 0; i < 60; i++) h.step();
+    expect(shell.x()).toBe(185); shell.destroy();
+  });
   it("keeps a native tap stationary until the destination plays one spring", () => {
     const h = motionHarness(), source = h.mount("me", true);
     source.click(0);

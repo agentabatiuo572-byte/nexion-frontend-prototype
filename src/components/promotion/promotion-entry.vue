@@ -40,7 +40,7 @@
 </template>
 <script setup lang="ts">
 import { computed,onBeforeUnmount,onMounted,ref,watch } from 'vue';
-import { onHide,onShow } from '@dcloudio/uni-app';
+import { onHide,onShow } from '@/composables/use-tab-page-lifecycle';
 import { apiRuntimeConfig,promotionApi,remoteApiEnabled,sessionVault } from '@/api/runtime';
 import type { PublicPromotion } from '@/api/promotion-contracts';
 import { useApp } from '@/store/app';

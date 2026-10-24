@@ -12,13 +12,15 @@
   prefers-reduced-motion is honored via CSS (animation disabled).
 -->
 <template>
-  <view class="nx-card-stagger" :style="staggerVar">
+  <view class="nx-card-stagger" :class="{ 'nx-card-stagger--instant': hosted }" :style="staggerVar">
     <slot />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, inject } from "vue";
+import { TAB_HOST } from "@/composables/use-tab-page-lifecycle";
+const hosted = inject(TAB_HOST, false);
 
 const props = withDefaults(defineProps<{ stagger?: number }>(), { stagger: 0.05 });
 
@@ -54,4 +56,5 @@ const staggerVar = computed(() => ({ "--nx-cs-step": `${props.stagger}s` }));
 @media (prefers-reduced-motion: reduce) {
   .nx-card-stagger > * { animation: none; }
 }
+.nx-card-stagger--instant > * { animation: none; }
 </style>

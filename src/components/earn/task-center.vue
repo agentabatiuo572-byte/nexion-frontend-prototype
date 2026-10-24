@@ -120,7 +120,7 @@
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
-import { onHide, onShow } from "@dcloudio/uni-app";
+import { onHide, onShow } from "@/composables/use-tab-page-lifecycle";
 import { taskRelativeTime } from "@/lib/task-relative-time";
 import { useApp } from "@/store/app";
 import { useT } from "@/i18n/use-t";

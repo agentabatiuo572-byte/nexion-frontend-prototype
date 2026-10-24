@@ -2,6 +2,7 @@
 import { formatAmount } from "@/lib/amount-display";
 import { acceptNativeOAuthReturn } from "@/auth/oauth-browser-return";
 import { navReset } from "@/lib/route";
+import { logicalNativePage } from "@/lib/native-tab-navigation";
 import { ApiError } from "@/api/errors";
 import { reportNativeSessionStage, reportNativeSessionTiming } from "@/api/native-session-storage";
 import { watch } from "vue";
@@ -853,6 +854,9 @@ function readCurrentRoute(): string {
   try {
     const ps = getCurrentPages();
     pageRoute = ps.length ? ((ps[ps.length - 1] as { route?: string }).route ?? "") : "";
+    // #ifdef APP-PLUS
+    pageRoute = logicalNativePage(ps[ps.length - 1]).route;
+    // #endif
   } catch { /* 页面栈不可用 → 走下方兜底 */ }
   let route = pageRoute;
   // #ifdef H5

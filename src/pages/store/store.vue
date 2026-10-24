@@ -131,7 +131,7 @@
 
 <script setup lang="ts">
 import { onUnmounted, ref, computed, nextTick, onMounted, watch, type CSSProperties } from "vue";
-import AppChassis from "@/components/app-chassis.vue";
+import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import SectionHeader from "@/components/store/section-header.vue";
 import StoreHero from "@/components/store/store-hero.vue";
@@ -149,7 +149,7 @@ import { navTo,takeNavigationQuery } from '@/lib/route';
 import PurchaseTicker from "@/components/store/purchase-ticker.vue";
 import LockedProductCard from "@/components/store/locked-product-card.vue";
 import GenesisShowcaseCard from "@/components/store/genesis-showcase-card.vue";
-import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
+import { onHide, onLoad, onShow } from "@/composables/use-tab-page-lifecycle";
 import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesis } from "@/store/genesis";
 import { useT } from "@/i18n/use-t";

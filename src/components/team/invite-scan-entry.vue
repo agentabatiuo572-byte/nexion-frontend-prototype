@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
-import { onUnload } from "@dcloudio/uni-app";
+import { onUnload } from "@/composables/use-tab-page-lifecycle";
 import { useT } from "@/i18n/use-t";
 import { useAuth } from "@/store/auth";
 import { useConfig } from "@/store/config";
