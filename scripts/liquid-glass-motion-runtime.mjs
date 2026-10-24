@@ -395,6 +395,24 @@ try {
         assert.ok(state.overflow<=1&&state.controls.length===2&&state.controls.every(c=>c.belowStatus&&c.hit),JSON.stringify(state));
         log('disclosure-single-scroll-'+width,state);
       }
+      // Keep the disclosure document alive while its glass capture settles;
+      // chat geometry has no dependency on replacing that document.
+      const chatPage=await context.newPage();
+      chatPage.on('pageerror',e=>errors.push(engine+': '+(e.stack || `${e.name}: ${e.message}`)));
+      await chatPage.goto(`${server.baseUrl}/?nx_device_inner=1#/pages/support/chat?start=advisor`,{waitUntil:'domcontentloaded'});
+      await chatPage.locator('.cp-identity').waitFor();await chatPage.locator('.nx-conv-input-row').waitFor();
+      await chatPage.evaluate(()=>document.fonts.ready);
+      for(const [width,height] of [[390,844],[320,480]]) {
+        await chatPage.setViewportSize({width,height});
+        const layout=await chatPage.evaluate(()=>{
+          const rect=s=>document.querySelector(s).getBoundingClientRect();
+          const back=rect('.cp-back'),identity=rect('.cp-identity'),input=rect('.nx-conv-input'),send=rect('.nx-conv-send'),home=rect('.cp-home .nx-home-indicator');
+          const hittable=s=>{const el=document.querySelector(s),r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));};
+          return {left:back.left,centerError:Math.abs(identity.x+identity.width/2-innerWidth/2),bottom:innerHeight-Math.max(input.bottom,send.bottom),homeGap:home.top-Math.max(input.bottom,send.bottom),hits:['.cp-back','.nx-conv-input','.nx-conv-send'].map(hittable)};
+        });
+        assert.ok(layout.left>=15.9&&layout.centerError<=1&&layout.bottom>=37.9&&layout.homeGap>=15.9&&layout.hits.every(Boolean),JSON.stringify(layout));
+        log('chat-navigation-composer-spacing-'+width,layout);
+      }
       // The synthetic view fixture owns its document; replacing the live app
       // here aborts its lazy route/capture work and produces WebKit CORS diagnostics.
       const intentPage=await context.newPage();

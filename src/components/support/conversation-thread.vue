@@ -405,16 +405,18 @@ const sendStyle = computed<CSSProperties>(() => ({
 .nx-conv-input-row {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 10px var(--nx-conv-inline-space, 12px);
   /* lift the input clear of the iOS home indicator (P-040 nova pattern) */
-  padding-bottom: calc(env(safe-area-inset-bottom) + 22px);
+  padding-bottom: var(--nx-conv-bottom-space, calc(env(safe-area-inset-bottom, 0px) + 22px));
   border-top: 1px solid var(--v5-border);
 }
 .nx-conv-closedbar {
-  padding: 10px 12px;
+  flex-shrink: 0;
+  padding: 10px var(--nx-conv-inline-space, 12px);
   /* mirrors the input row's safe-area lift (it replaces that row) */
-  padding-bottom: calc(env(safe-area-inset-bottom) + 22px);
+  padding-bottom: var(--nx-conv-bottom-space, calc(env(safe-area-inset-bottom, 0px) + 22px));
   border-top: 1px solid var(--v5-border);
 }
 .nx-conv-restart {

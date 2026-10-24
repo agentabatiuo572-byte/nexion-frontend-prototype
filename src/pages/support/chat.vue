@@ -26,15 +26,16 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       </view>
 
-      <view class="cp-ava" :style="avaStyle">
-        <view v-html="headerIcon" />
-      </view>
-
-      <view class="cp-meta">
-        <text class="cp-name">{{ headerName }}</text>
-        <view class="cp-role">
-          <view class="cp-dot" :style="dotStyle" />
-          <text class="cp-role-t">{{ headerRole }}</text>
+      <view class="cp-identity">
+        <view class="cp-ava" :style="avaStyle">
+          <view v-html="headerIcon" />
+        </view>
+        <view class="cp-meta">
+          <text class="cp-name">{{ headerName }}</text>
+          <view class="cp-role">
+            <view class="cp-dot" :style="dotStyle" />
+            <text class="cp-role-t">{{ headerRole }}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -65,8 +66,8 @@
       @restart="onRestart"
     />
 
-    <!-- Home Indicator — bare page (no AppChassis) draws its own. Sits over the input
-         row's bottom safe-area padding; pointer-events:none so it never blocks the input. -->
+    <!-- Home Indicator — its 22px band plus 16px breathing room are reserved by
+         the composer. pointer-events:none keeps the indicator non-interactive. -->
     <view class="cp-home">
       <DeviceHomeIndicator />
     </view>
@@ -199,17 +200,22 @@ watch(() => convStore.historyRows.map(row => row.lastPublicMessageId).join("|"),
 .cp-state { padding:8px 16px; color:var(--v5-ink-3); font-size:13px; display:flex; gap:12px; align-items:center; }
 .cp-state[role="button"], .cp-state [role="button"] { min-height:44px; display:flex; align-items:center; color:var(--v5-brand); }
 .cp-root {
+  --nx-conv-inline-space: 16px;
+  --nx-conv-bottom-space: calc(env(safe-area-inset-bottom, 0px) + 38px);
   position: fixed;
   inset: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--v5-bg);
 }
 .cp-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px 12px;
+  flex-shrink: 0;
+  padding: 10px 16px 12px;
   /* top padding is bound inline to the device status-bar height (see cp-head :style) */
   border-bottom: 1px solid var(--v5-border);
 }
@@ -225,13 +231,22 @@ watch(() => convStore.historyRows.map(row => row.lastPublicMessageId).join("|"),
   color: var(--v5-ink-3);
 }
 .cp-back {
-  /* 《07》tap≥44:原 36×36。负 margin 由 -6 调到 -10,图标视觉位置不动、只有热区变大 */
   width: 44px;
   height: 44px;
-  margin-left: -10px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.cp-back:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
+.cp-identity {
+  display: flex;
+  align-items: center;
+  justify-self: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 .cp-ava {
   width: 40px;
@@ -256,6 +271,9 @@ watch(() => convStore.historyRows.map(row => row.lastPublicMessageId).join("|"),
 }
 .cp-name {
   display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-family: var(--font-v5);
   font-weight: 600;
   font-size: 15px;
@@ -265,16 +283,22 @@ watch(() => convStore.historyRows.map(row => row.lastPublicMessageId).join("|"),
 .cp-role {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 6px;
   margin-top: 2px;
 }
 .cp-dot {
   width: 6px;
   height: 6px;
+  flex-shrink: 0;
   border-radius: 999px;
   animation: mc-pulse 1.6s ease-in-out infinite;
 }
 .cp-role-t {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 12px;
   color: var(--v5-ink-3);
 }
