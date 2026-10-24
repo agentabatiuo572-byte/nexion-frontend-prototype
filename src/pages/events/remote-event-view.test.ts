@@ -42,6 +42,10 @@ function canonicalEvent(overrides: Partial<CanonicalEvent> = {}): CanonicalEvent
 }
 
 describe("remoteEventView", () => {
+  it("displays configured composite rewards without a fictitious numeric prefix", () => {
+    expect(remoteEventView(canonicalEvent({ rewardType: "COMPOSITE", rewardAmount: 0, rewardName: "200 UVT + 1 streak saver" }), labels).reward)
+      .toBe("200 UVT + 1 streak saver");
+  });
   it.each([
     ["discount", "/pages/store/store", "Claim discount"],
     ["boost", "/pages/daily/daily", "Check in"],

@@ -148,6 +148,9 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   const coverageDegraded = ref(false);
   const remoteSegments = ref<SpinPrize[]>([]);
   const remoteHistory = ref<EventSpinHistory[]>([]);
+  const remoteLoading = ref(false);
+  const remoteError = ref(false);
+  const remoteEnded = ref(false);
   let remoteGeneration = 0;
   const activeEventCode = ref("evt-spring-spin");
   const remoteState = ref<{
@@ -184,6 +187,9 @@ export const useLuckySpin = defineStore("luckySpin", () => {
     remoteState.value = null;
     remoteSegments.value = [];
     remoteHistory.value = [];
+    remoteLoading.value = false;
+    remoteError.value = false;
+    remoteEnded.value = false;
     const next = rows.bind(rawAccountKey) ?? defaults();
     bonusTickets.value = next.bonusTickets;
     lastFreeSpinDate.value = next.lastFreeSpinDate;
@@ -236,10 +242,12 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   async function refreshRemoteState(eventCode = activeEventCode.value): Promise<boolean> {
     if (!remoteApiEnabled) return false;
     const generation = remoteGeneration;
+    remoteLoading.value = true;
+    remoteError.value = false;
     try {
-      await eventsApi.state();
       const next = await eventsApi.spinState(eventCode);
       if (generation !== remoteGeneration) return false;
+      remoteEnded.value = next.ended === true;
       remoteState.value = {
         freeAvailable: next.freeAvailable,
         bonusTickets: next.bonusTickets,
@@ -249,12 +257,17 @@ export const useLuckySpin = defineStore("luckySpin", () => {
       bonusTickets.value = next.bonusTickets;
       lastFreeSpinDate.value = next.freeAvailable ? "" : next.serverDate;
       history.value = [];
-      remoteSegments.value = next.segments.map(mapRemoteSegment);
+      if (phase.value === "idle") remoteSegments.value = next.segments.map(mapRemoteSegment);
       remoteHistory.value = next.history;
       return true;
     } catch {
-      if (generation === remoteGeneration) remoteState.value = null;
+      if (generation === remoteGeneration) {
+        remoteState.value = null;
+        remoteError.value = true;
+      }
       return false;
+    } finally {
+      if (generation === remoteGeneration) remoteLoading.value = false;
     }
   }
 
@@ -265,6 +278,8 @@ export const useLuckySpin = defineStore("luckySpin", () => {
     remoteState.value = null;
     remoteSegments.value = [];
     remoteHistory.value = [];
+    remoteError.value = false;
+    remoteEnded.value = false;
     open.value = true;
     phase.value = "idle";
     lastWonPrizeId.value = null;
@@ -273,6 +288,7 @@ export const useLuckySpin = defineStore("luckySpin", () => {
 
   function closeSheet() {
     remoteGeneration += 1;
+    remoteLoading.value = false;
     open.value = false;
     phase.value = "idle";
     lastWonPrizeId.value = null;
@@ -325,6 +341,7 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   ): Promise<{ ok: boolean; prizeId: string | null; stale?: boolean }> {
     if (!remoteApiEnabled) return spin();
     if (eventCode !== activeEventCode.value) return { ok: false, prizeId: null, stale: true };
+    if (remoteEnded.value || remoteLoading.value || remoteError.value) return { ok: false, prizeId: null };
     if (availableSpins() <= 0) return { ok: false, prizeId: null };
     if (remoteSegments.value.length === 0) return { ok: false, prizeId: null };
     const generation = remoteGeneration;
@@ -332,6 +349,12 @@ export const useLuckySpin = defineStore("luckySpin", () => {
       const result = await eventsApi.spin(eventCode, idempotencyKey);
       if (generation !== remoteGeneration) return { ok: false, prizeId: null, stale: true };
       const prizeId = result.tierId;
+      const receiptPrize = mapRemoteSegment({ tierId: result.tierId, rewardType: result.rewardType,
+        rewardAmount: result.rewardAmount, rewardName: result.rewardName,
+        realOutflow: result.rewardType === "USDT", displayOrder: 0 }, 0);
+      const existing = remoteSegments.value.findIndex(prize => prize.id === prizeId);
+      if (existing < 0) remoteSegments.value = [...remoteSegments.value, receiptPrize];
+      else remoteSegments.value = remoteSegments.value.map((prize, index) => index === existing ? { ...receiptPrize, tint: prize.tint } : prize);
       const prizes = remoteSegments.value;
       phase.value = "spinning";
       lastWonPrizeId.value = prizeId;
@@ -406,6 +429,9 @@ export const useLuckySpin = defineStore("luckySpin", () => {
     coverageDegraded,
     remoteSegments,
     remoteHistory,
+    remoteLoading,
+    remoteError,
+    remoteEnded,
     hasFreeSpinToday,
     availableSpins,
     nextResetAtUtc,

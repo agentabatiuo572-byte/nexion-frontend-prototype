@@ -25,6 +25,22 @@ const production = {
 };
 
 describe("H9 public stats provenance", () => {
+  it("exposes only the dedicated H9 display snapshot without reviving legacy global estimates", () => {
+    const networkPulse = { registeredUsers: 1_500_000, onlineDevices: 28_999 };
+    const parsed = parsePlatformPublicStats({ ...production, networkPulse });
+    expect(parsed.networkPulse).toEqual(networkPulse);
+    expect(parsed.config.fleetDevices).toBe(0);
+    expect(parsed.config.realUserCount).toBe(4_321);
+    expect(parsePlatformPublicStats(production).networkPulse).toBeNull();
+    expect(parsePlatformPublicStats({ ...production, networkPulse: { registeredUsers: 0, onlineDevices: null } }).networkPulse)
+      .toEqual({ registeredUsers: 0, onlineDevices: null });
+  });
+
+  it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1])("rejects invalid H9 display count %s", count => {
+    expect(() => parsePlatformPublicStats({ ...production, networkPulse: { registeredUsers: count, onlineDevices: 0 } }))
+      .toThrow("H9_NETWORK_PULSE_INVALID");
+  });
+
   it("accepts the exact production authority", () => {
     expect(parsePlatformPublicStats(production, "prod").authority).toEqual({
       source: "server:nx_config_item,nx_user",

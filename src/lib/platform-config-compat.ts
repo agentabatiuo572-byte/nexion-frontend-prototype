@@ -71,6 +71,7 @@ export function completePlatformConfigSeed(seed: PlatformConfigSeed): PlatformCo
       hashratePercentileTable: publicStats.hashratePercentileTable.map((bucket) => ({ ...bucket })),
     },
     verifiedStats,
+    networkPulse: null,
     onlineBonus: { ...seed.onlineBonus },
     riskCluster: { ...seed.riskCluster },
     withdrawRules: {

@@ -271,6 +271,8 @@ export interface PlatformVerifiedStats {
 export interface PlatformConfig {
   featureFlags: FeatureFlags;
   publicStats: PublicStatsConfig;
+  /** H9 home display snapshot; separate from measured aggregates and ranking. */
+  networkPulse: { registeredUsers: number | null; onlineDevices: number | null } | null;
   /**
    * 服务端可核验聚合(zentao #59)。与 `publicStats` 的区别是**数据性质**:
    * `publicStats` 是运营手填的展示配置,`verifiedStats` 是真实表聚合。
@@ -303,7 +305,7 @@ type RuntimeWithdrawRuleKey =
  * Runtime consumers always receive a complete `PlatformConfig`; the config
  * store supplies newly required fields outside the Mock dataset boundary.
  */
-export type PlatformConfigSeed = Omit<PlatformConfig, "publicStats" | "verifiedStats" | "withdrawRules" | "otpGate"> & {
+export type PlatformConfigSeed = Omit<PlatformConfig, "publicStats" | "networkPulse" | "verifiedStats" | "withdrawRules" | "otpGate"> & {
   publicStats?: PublicStatsConfig;
   /** 本地 mock 没有可核验聚合;compat 会补 null。 */
   verifiedStats?: PlatformVerifiedStats | null;

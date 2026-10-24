@@ -1,7 +1,7 @@
 <template>
   <AppChassis active="me">
     <CardStagger style="padding-bottom: 24px">
-      <SubPageHeader back="/pages/me/me" />
+      <SubPageHeader back="/pages/me/me" pill />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <view class="nx-glass-card" :style="heroStyle">
@@ -10,13 +10,23 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
             </view>
             <view class="min-w-0" style="flex: 1">
-              <text class="block" :style="heroLabelStyle">{{ sectionLabel(sectionKey.nexNarrative) }}</text>
-              <text class="block" :style="heroHeadlineStyle">{{ narrativeHero || "—" }}</text>
-              <text v-if="narrativeSubhero" class="block" :style="heroBodyStyle">{{ narrativeSubhero }}</text>
+              <text class="block" :style="heroLabelStyle">{{ resources.about }}</text>
+              <text class="block" :style="heroHeadlineStyle">{{ narrativeHero || resources.headline }}</text>
+              <text class="block" :style="heroBodyStyle">{{ narrativeSubhero || resources.subtitle }}</text>
             </view>
           </view>
-          <view v-if="verified" class="grid text-center" :style="heroStatsStyle">
-            <Stat :label="tr.activeNodes" :value="activeDevicesText" />
+        </view>
+
+        <SectionHeader :label="resources.resources" />
+        <view class="nx-glass-card" :style="listCardStyle">
+          <view v-for="(resource, index) in resources.items" :key="resource.href" role="link" tabindex="0"
+            class="active:opacity-75" :style="listRowStyle(index === resources.items.length - 1)"
+            @click="openHref(resource.href)" @keydown.enter.prevent="openHref(resource.href)">
+            <view style="flex: 1; min-width: 0">
+              <text class="block" :style="titleStyle">{{ resource.title }}</text>
+              <text class="block" :style="bodyStyle">{{ resource.body }}</text>
+            </view>
+            <text :style="linkStyle" aria-hidden="true">›</text>
           </view>
         </view>
 
@@ -28,7 +38,7 @@
 
         <template v-else>
           <template v-if="financialSection && financialMetrics.length">
-            <SectionHeader :label="sectionLabel(sectionKey.financials)" />
+            <SectionHeader :label="resources.data" />
             <view class="nx-glass-card grid grid-cols-2" :style="gridCardStyle">
               <view v-for="metric in financialMetrics" :key="metric.key" :style="metricStyle">
                 <text class="block" :style="labelStyle">{{ metric.label }}</text>
@@ -41,7 +51,7 @@
           </template>
 
           <template v-if="auditSection && verifiedAuditRows.length">
-            <SectionHeader :label="sectionLabel(sectionKey.auditsReserves)" :suffix="auditSection.version" />
+            <SectionHeader :label="resources.documents" />
             <view class="nx-glass-card" :style="listCardStyle">
               <view v-for="(row, index) in verifiedAuditRows" :key="row.Primary" class="active:opacity-75" :style="listRowStyle(index === verifiedAuditRows.length - 1)"
                 role="link" :tabindex="safeHref(row.Url) ? 0 : -1" :aria-disabled="safeHref(row.Url) ? 'false' : 'true'"
@@ -84,7 +94,7 @@ import AppChassis from "@/components/app-chassis.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import SectionHeader from "@/components/trust/trust-section-header.vue";
-import Stat from "@/components/trust/trust-stat.vue";
+import { trustResources } from "./trust-resources";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { useConfig } from "@/store/config";
@@ -101,6 +111,7 @@ const cfg = useConfig();
 const tr = computed(() => t.value.trust);
 const locale = useLocaleStore();
 const language = computed<TrustLocale>(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code as TrustLocale : "en");
+const resources = computed(() => trustResources(language.value));
 const { sections, status, refresh } = usePublishedTrust();
 const loading = computed(() => remoteApiEnabled && (status.value === "idle" || status.value === "loading"));
 const hasError = computed(() => !remoteApiEnabled || status.value === "error");
@@ -131,7 +142,6 @@ const auditSection = computed(() => section(sectionKey.auditsReserves));
 const narrativeHero = computed(() => localizedTrustFieldValue(narrativeSection.value?.fields ?? [], "hero", language.value) ?? "");
 const narrativeSubhero = computed(() => localizedTrustFieldValue(narrativeSection.value?.fields ?? [], "subhero", language.value) ?? "");
 const verified = computed(() => cfg.syncFailed ? null : cfg.config.verifiedStats);
-const activeDevicesText = computed(() => verified.value?.onlineDevices.value.toLocaleString("en-US") ?? "—");
 const financialMetrics = computed(() => {
   const v = verified.value;
   if (!v) return [];
@@ -221,14 +231,12 @@ const heroIconStyle: CSSProperties = { width: "40px", height: "40px", borderRadi
 const heroLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-brand-2)" };
 const heroHeadlineStyle: CSSProperties = { marginTop: "3px", fontSize: "20px", fontWeight: 600, lineHeight: 1.3, color: "var(--v5-ink)" };
 const heroBodyStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
-const heroStatsStyle: CSSProperties = { marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--v5-border)", gap: "8px" };
 const stateCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "16px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
 const gridCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", overflow: "hidden", background: "var(--nx-glass-fill)" };
 const metricStyle: CSSProperties = { padding: "14px", borderRight: "1px solid var(--v5-border)", borderBottom: "1px solid var(--v5-border)" };
 const labelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const metricValueStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, color: "var(--v5-ink)" };
 const deltaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-success)" };
-const tileStyle: CSSProperties = { padding: "12px", borderRadius: "12px", background: "var(--v5-surface)" };
 const listCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", overflow: "hidden", background: "var(--nx-glass-fill)" };
 function listRowStyle(last: boolean): CSSProperties { return { display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderBottom: last ? "none" : "1px solid var(--v5-border)" }; }
 const titleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };

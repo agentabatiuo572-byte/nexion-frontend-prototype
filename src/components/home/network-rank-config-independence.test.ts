@@ -13,7 +13,7 @@ import { publicStatsHealth, compactNumber } from '@/lib/platform-stats';
 import { computeRank } from '@/lib/network-rank';
 
 const source = readFileSync(new URL('./network-pulse-card.vue', import.meta.url), 'utf8');
-const start = source.indexOf('function unverifiedCell(');
+const start = source.indexOf('function placeholderCell(');
 const end = source.indexOf('</script>', start);
 if (start < 0 || end < 0) throw new Error('Actual metrics implementation not found');
 const implementation = ts.transpileModule(source.slice(start, end), {
@@ -44,7 +44,7 @@ describe('actual homepage remote ranking is independent of H9 estimates', () => 
   it('keeps a successful real rank when public configuration fails', () => {
     const { metrics, configRefresh } = scenario({ failed: true, rankOk: true });
     expect(metrics[2].v).toBe('#7');
-    // Missing measurements remain placeholders and retain the existing retry.
+    // Missing H9 display values remain placeholders and retain the existing retry.
     expect(metrics[0].v).toBe('-');
     expect(metrics[1].v).toBe('-');
     metrics[0].tap(); expect(configRefresh).toHaveBeenCalledOnce();
@@ -73,7 +73,7 @@ describe('actual homepage remote ranking is independent of H9 estimates', () => 
 
 it.each([en, zh, vietnamese])('renders actual network metric slots through missing, failure, zero and recovery', async copy => {
   const cfg = Vue.reactive({ loading: false, syncFailed: false,
-    config: { publicStats: {}, verifiedStats: null as null | { capturedAt: string; registeredAccounts: { value: number }; onlineDevices: { value: number } } }, load: vi.fn() });
+    config: { publicStats: {}, networkPulse: null as null | { registeredUsers: number | null; onlineDevices: number | null } }, load: vi.fn() });
   const remoteRank = Vue.reactive({ status: 'error', snapshot: null as null | { currentRank: number | null; rankChange24h: number | null }, refresh: vi.fn(), bindAccount: vi.fn() });
   const blank = { render: () => null };
   const dependencies: Record<string, unknown> = {
@@ -93,10 +93,21 @@ it.each([en, zh, vietnamese])('renders actual network metric slots through missi
     .matchAll(/class="block mt-0.5 tabular-nums"[^>]*>([^<]*)<\/text>/g)].map(match => match[1]);
   expect(await values()).toEqual(['-', '-', '-']);
   cfg.syncFailed = true; expect(await values()).toEqual(['-', '-', '-']);
-  cfg.syncFailed = false; cfg.config.verifiedStats = { capturedAt: '2026-10-10T00:00:00Z', registeredAccounts: { value: 0 }, onlineDevices: { value: 0 } };
+  cfg.syncFailed = false; cfg.config.networkPulse = { registeredUsers: 0, onlineDevices: 0 };
   remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, rankChange24h: null };
   expect(await values()).toEqual(['0', '0', '#7']);
   remoteRank.snapshot.currentRank = null; expect(await values()).toEqual(['0', '0', copy.home.networkRankUnranked]);
   remoteRank.snapshot = null; remoteRank.status = 'loading'; expect(await values()).toEqual(['0', '0']);
   remoteRank.status = 'error'; expect(await values()).toEqual(['0', '0', '-']);
+  cfg.config.networkPulse = { registeredUsers: 12345, onlineDevices: 28432 };
+  remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, rankChange24h: null };
+  expect(await values()).toEqual([compactNumber(12345), compactNumber(28432), '#7']);
+  cfg.config.networkPulse.onlineDevices = null;
+  expect(await values()).toEqual([compactNumber(12345), '-', '#7']);
+  cfg.syncFailed = true;
+  expect(await values()).toEqual(['-', '-', '#7']);
+  const html = await renderToString(Vue.createSSRApp(exports.default));
+  expect(html).not.toContain('2026-10');
+  expect(source).not.toContain('verifiedStats');
+  expect(source).not.toContain('setInterval');
 });

@@ -41,6 +41,7 @@ const SERVED_PLATFORM = {
     sourceEnvironment: "PRODUCTION",
     runId: "",
     realUserCount: 214_000,
+    networkPulse: { registeredUsers: 2_155_000, onlineDevices: 28_999 },
     values: {
       fleetDevices: 31_337,
       onlineRatePct: 87.5,

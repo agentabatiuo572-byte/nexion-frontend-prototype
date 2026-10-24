@@ -2,6 +2,23 @@ import { describe, expect, it, vi } from "vitest";
 import { courseRewardHref, preserveCourseSourceInH5, resolveCourseNavigation } from "./course-navigation";
 
 describe("course return after a cold H5 refresh", () => {
+  it("returns home recommendations to home on native entry and cold H5 refresh", () => {
+    expect(resolveCourseNavigation({ id: "account-security", source: "home" }, "")).toEqual({
+      id: "account-security", source: "home", back: "/pages/index/index",
+    });
+    const location = { pathname: "/app/", search: "", hash: "#/pages/learn/course?id=account-security" };
+    const history = { state: {}, replaceState: vi.fn((_state, _title, url: string) => {
+      location.hash = url.slice(url.indexOf("#"));
+    }) };
+    vi.stubGlobal("window", { location, history });
+    try {
+      preserveCourseSourceInH5("account-security", "home");
+      expect(resolveCourseNavigation(undefined, location.hash.split("?")[1]).back).toBe("/pages/index/index");
+      preserveCourseSourceInH5("account-security", "home");
+      expect(history.replaceState).toHaveBeenCalledOnce();
+    } finally { vi.unstubAllGlobals(); }
+  });
+
   it("keeps the NEX reward source in the deep link and returns to its list", () => {
     const url = courseRewardHref("account-security");
     expect(resolveCourseNavigation(undefined, url.split("?")[1])).toEqual({

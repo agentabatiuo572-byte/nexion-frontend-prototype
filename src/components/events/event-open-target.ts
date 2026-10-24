@@ -34,7 +34,7 @@ type DecorativeActionEvent = Pick<
 export function shouldShowDecorativeAction(event: DecorativeActionEvent): boolean {
   return !event._trackable
     && !event._claimed
-    && event.status === "ongoing"
+    && (event.status === "ongoing" || (event.status === "ended" && event.kind === "wheel"))
     && Boolean(event.ctaLabel)
     && eventOpenTarget(event) !== null;
 }

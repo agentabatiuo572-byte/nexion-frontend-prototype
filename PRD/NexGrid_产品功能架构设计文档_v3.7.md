@@ -1076,11 +1076,7 @@ Fleet-aware 4 slot 每 8 秒轮换,每条带 CTA:
 
 ### 5.12 网络脉搏(Network Pulse)
 
-2×2 grid metrics + 每格 sparkline:
-- Members(注册用户 1.42M,用户口径)· Paid today(= 日发放锚 $682K)· Devices(在线设备,与平台实时统计同源)· Your rank
-- 右上角 `+$7.9/sec` ticker(围绕 日发放锚 ÷ 86,400 波动,不单调累加)
-
-> 平台级展示数字单源规则:日发放锚 = 在线设备 28,432 × 公布档 $24/台/日 = $682,368;每秒、月度($20.5M)、累计(时间锚单调)均由此派生,任意两处展示换算同维度偏差 <5%;28,432 仅作设备口径使用。
+三格展示注册用户、在线设备、你的排名；移除更新时间。前两项由 H9 配置公开投影：人数按公布基数/月增长率/时间锚计算，在线设备与首页数字增长共用持久化随机批次。配置刷新时更新快照，不增加秒级请求。排名继续使用本人真实数据，不使用公布数字计算。异常不默认为零。详见[现行规则 §2](UVEL_首页信任与活动规则_20261025.md)。
 
 ### 5.13 设备对比卡(Math Card)
 
@@ -4045,29 +4041,9 @@ flowchart LR
 
 ### 11.3 信任中心 `/trust`
 
-14 个 section 集中展示合规与信任标识。
+展示 I4 发布的平台简介、真实运行数据、公开资料，以及 UVT 使用说明、服务条款、隐私政策、风险披露四个正式入口。资料入口在远程请求失败时仍可使用。标题和内容分组遵循 App 圆角标题栏样式，三语适配。
 
-| Section | 内容 |
-|---|---|
-| Hero | "Hardware-backed compute · Verifiable execution" + TVL $847M + Active nodes 287K |
-| Compliance badges | SOC 2 Type II / ISO 27001 / GDPR / HIPAA / FinCEN MSB / Chainalysis KYT |
-| Audits & reserves | CertiK 智能合约审计 PDF + Etherscan reserve proof + Trail of Bits quarterly attestation |
-| Trusted by | NVIDIA / Intel / AMD + 5 客户 logo |
-| Backed by | a16z crypto / Sequoia / Pantera / Polychain / Multicoin / Coinbase Ventures |
-| **Leadership team** | 5 行 C-suite,LinkedIn 风格(首字母头像 + 名 + 角色 + ex-公司 + `in` 外链 chip)。Section header suffix `verified on LinkedIn`。整行 `<a href="#">` 占位 |
-| In the press | TechCrunch / CoinDesk / Forbes / The Block 4 篇报道 |
-| **Q2 2026 financials** | 顶部 strip(文件图标 + 标题 + `Download PDF →` 占位链接)+ 2×2 KPI grid(MRR $4.87M +22% / Active 184,206 +38% / Devices 27,150 +12% / Payouts $47.0M +27%)+ footnote `Selected metrics · Full audited report ships to investors quarterly`。Section header suffix `audited by PwC`。季度取**已收官季**(季中不得标 audited);Payouts 为按增长曲线积分、收口于日发放锚的季总量;Devices 为季末快照,低于当前在线锚形成延续增长轨迹 |
-| **NEX backed by AI demand** | hero(`Every NEX is minted only when AI inference completes` + `30% 平台手续费回购销毁`)+ 3 列 stats(`$X.XXM 24h volume` / `$XXXM FDV` / `X.XXB Circulating`)+ 3 行 top AI 客户 NEX 月度消费 ranking(Helix Labs / Mosaic Studios / Echo Earbuds)+ footer `View all 1,247 active AI clients →` |
-| $NEX listings | PancakeSwap / Uniswap / CoinGecko / CoinMarketCap "Live",Binance / Coinbase "审核中" |
-| Bug bounty | $50,000 per critical · HackerOne · 24h triage SLA |
-| KYC & AML | Jumio / Sumsub / Chainalysis / Elliptic / ComplyAdvantage |
-| Footer | compliance@nexgrid.ai |
-
-**Sprint A-1 / A.2 新增**:Leadership team + Q3 2026 financials 两 section 在 Investors → Press → NEX anchor 链条中插入(Leadership 在 Investors 后 Press 前;Q3 在 Press 后 NEX anchor 前),进一步强化"真实 fintech / Web3 公司"信号。所有 PDF / LinkedIn 链接均为占位 `href="#"`,纯视觉剧场。
-
-**NEX 价值锚叙事目的**:为平台代币提供"工作量证明"语义 — NEX 不是凭空铸造,而是 AI 推理完成才 mint;暗示 buyback 机制(30% 平台手续费回购);列出 top 客户月度 NEX 消费量,放大"1,247 家客户真实需求"的可信度。数据源:`useMarket.volume24hUSDT / circulating` 计算 FDV;客户消费量来自 §9.5 AI 客户清单关联。
-
-`NEX backed by AI demand` section 内嵌 entry chip `📖 What is NEX? Learn more →` 链 `/trust/nex`。
+原型中的投资方、认证、审计、媒体、客户、上市交易所、财务数字及占位文件不是已验证资料，不得直接发布。仅展示有证据支持且链接有效的公开内容，资料缺失时不编造。详见[现行规则 §3](UVEL_首页信任与活动规则_20261025.md)。
 
 #### 11.3.1 NEX 代币说明页 `/trust/nex`
 
@@ -4415,6 +4391,8 @@ FAQ accordion,分类:Account / Earnings / Hardware / Payment / Security。
 - 可从 `/trust/nex` 等 NEX 说明页加 "查看行情" 入口
 
 ### 11.10 活动中心 `/events`
+
+> **2026-10-25 现行裁定**：以下历史“4 trackable + 6 decorative”、本地领奖和示例奖励不再是执行依据。全部十项活动均按[首页与活动规则 §4–5](UVEL_首页信任与活动规则_20261025.md)实现真实条件与权益，PC 配置完整后启用；新增独立创世抽奖，奖励、票据、结算与失败恢复均由服务端执行。
 
 #### 11.10.1 目的
 

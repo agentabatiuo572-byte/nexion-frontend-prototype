@@ -558,8 +558,6 @@ sandboxSponsorEnvironmentMismatch: "该邀请码不可用,请核对后重试",
     networkYourRank: "你的排名",
     // FEAT-HOME02 脉搏三格副文本 + 排名三态(上榜 / 未上榜 / 配置拉不到)
     networkMembersSub: "每月 +{n}%",
-    networkVerifiedMembers: "更新于 {at}",
-    networkVerifiedDevices: "更新于 {at}",
     networkDevicesSub: "正在跑任务",
     networkRankUp24h: "24h +{n} 名",
     networkRankUnranked: "未上榜",

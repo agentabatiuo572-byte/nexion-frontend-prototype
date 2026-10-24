@@ -42,7 +42,7 @@
       </view>
 
       <!-- 票况 + 社会证明 -->
-      <view class="lss-tickets">
+      <view v-if="!spin.remoteEnded && !spin.remoteLoading && !spin.remoteError" class="lss-tickets">
         <view class="lss-chips">
           <view v-if="hasFreeToday" class="lss-chip lss-chip-free">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z" /></svg>
@@ -57,7 +57,7 @@
       </view>
 
       <!-- ───────── 转盘 ───────── -->
-      <view class="lss-wheel-wrap">
+      <view v-if="prizes.length > 0 && !spin.remoteEnded && !spin.remoteError" class="lss-wheel-wrap">
         <!-- pointer(顶部固定指针)-->
         <view class="lss-pointer" />
         <svg viewBox="0 0 200 200" width="248" height="248" class="lss-wheel-svg">
@@ -74,8 +74,21 @@
 
       <!-- ───────── CTA 区(phase 驱动)───────── -->
       <view class="lss-cta-zone">
+        <view v-if="spin.remoteLoading && spin.phase === 'idle'" class="lss-nospin" role="status">
+          <text class="lss-nospin-title">{{ statusCopy.loading }}</text>
+        </view>
+        <view v-else-if="spin.remoteError && spin.phase === 'idle'" class="lss-nospin">
+          <text class="lss-nospin-title">{{ t.events.loadErrorTitle }}</text>
+          <view class="lss-earn-cta" role="button" tabindex="0" @click="spin.refreshRemoteState()">
+            <text class="lss-earn-cta-t">{{ t.events.retry }}</text>
+          </view>
+        </view>
+        <view v-else-if="spin.remoteEnded" class="lss-nospin">
+          <text class="lss-nospin-title">{{ t.events.chip.ended }}</text>
+          <text v-if="historyRows.length === 0" class="lss-nospin-hint">{{ statusCopy.noHistory }}</text>
+        </view>
         <!-- 中奖庆祝 -->
-        <view v-if="spin.phase === 'won' && wonPrize" class="lss-won" :style="wonCardStyle">
+        <view v-else-if="spin.phase === 'won' && wonPrize" class="lss-won" :style="wonCardStyle">
           <text class="lss-won-label">{{ isJackpot ? t.luckySpin.jackpotTitle : t.luckySpin.wonTitle }}</text>
           <text class="lss-won-prize" :style="wonPrizeStyle">{{ ls(wonPrize) }}</text>
           <text class="lss-won-hint">{{ wonPrize.kind === "coupon" ? t.luckySpin.couponHint : t.luckySpin.creditedHint }}</text>
@@ -95,7 +108,7 @@
         </view>
 
         <!-- idle / spinning(有次数)-->
-        <view v-else-if="available > 0" class="lss-spin-btn" :class="{ 'lss-spin-btn-busy': spin.phase === 'spinning' }" :style="spinBtnStyle" @click="onSpinClick">
+        <view v-else-if="available > 0 || spin.phase === 'spinning'" class="lss-spin-btn" :class="{ 'lss-spin-btn-busy': spin.phase === 'spinning' }" :style="spinBtnStyle" @click="onSpinClick">
           <text v-if="spin.phase === 'spinning'" class="lss-spin-btn-t">{{ t.luckySpin.spinningLabel }}</text>
           <template v-else>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z" /></svg>
@@ -116,11 +129,11 @@
       </view>
 
       <!-- 奖池一览(透明度)-->
-      <view class="lss-pool-toggle" @click="poolOpen = !poolOpen">
+      <view v-if="prizes.length > 0 && !spin.remoteEnded && !spin.remoteError" class="lss-pool-toggle" @click="poolOpen = !poolOpen">
         <text class="lss-pool-toggle-t">{{ t.luckySpin.poolTitle }}</text>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lss-pool-chev" :class="{ 'lss-pool-chev-open': poolOpen }"><path d="m9 18 6-6-6-6" /></svg>
       </view>
-      <view v-if="poolOpen" class="lss-pool-grid">
+      <view v-if="poolOpen && !spin.remoteEnded && !spin.remoteError" class="lss-pool-grid">
         <view v-for="sp in prizes" :key="sp.id" class="lss-pool-item" :style="{ opacity: sp.isReal && !realActive ? 0.45 : 1 }">
           <view class="lss-pool-dot" :style="{ background: sp.tint }" />
           <text class="lss-pool-name">{{ ls(sp) }}</text>
@@ -160,6 +173,8 @@ import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useApp } from "@/store/app";
 import { escapeSvgText } from "@/lib/svg-text";
+import { useLocaleStore } from "@/store/locale";
+import { eventStatusCopy } from "@/components/events/event-status-copy";
 
 const R = 94; // wheel radius (viewBox 200)
 const CX = 100;
@@ -169,6 +184,8 @@ const MOCK_NET_FAIL_RATE = 0.08; // mock: 区块链拥堵演示(server 侧真实
 const spin = useLuckySpin();
 const app = useApp();
 const t = useT();
+const locale = useLocaleStore();
+const statusCopy = computed(() => eventStatusCopy[locale.code as keyof typeof eventStatusCopy] ?? eventStatusCopy.en);
 
 const poolOpen = ref(false);
 let accountGeneration = 0;

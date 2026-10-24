@@ -23,6 +23,7 @@
 
       <view class="px-4 space-y-3">
         <GlassSegments :label="t.promotion.events" v-model="eventSource" :options="sourceOptions" />
+        <view class="nx-glass-card" style="padding:14px;border-radius:var(--nx-glass-radius)" role="link" tabindex="0" @click="navTo('/pages/events/genesis-raffle')" @keydown.enter.prevent="navTo('/pages/events/genesis-raffle')"><text class="block" style="font-size:14px;font-weight:600;color:var(--v5-brand)">{{ raffleCopy.title }} ›</text><text class="block" style="margin-top:4px;font-size:12px;color:var(--v5-ink-3)">{{ raffleCopy.intro }}</text></view>
         <PromotionEntry v-if="eventSource==='promotions'" mode="events" />
         <view v-else-if="!signedIn" class="promotion-flat"><view class="promotion-action" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent('/pages/events/events'))"><text>{{ t.promotion.signIn }}</text></view></view>
         <template v-else>
@@ -78,7 +79,7 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, nextTick, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
-import { onHide, onShow } from "@dcloudio/uni-app";
+import { onLoad, onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -87,7 +88,7 @@ import EventsFeaturedHero from "@/components/events/events-featured-hero.vue";
 import EventsCard from "@/components/events/events-card.vue";
 import PromotionEntry from "@/components/promotion/promotion-entry.vue";
 import { useT } from "@/i18n/use-t";
-import { isStakingVisibilityRoute, navTo } from '@/lib/route';
+import { isStakingVisibilityRoute, navTo, takeNavigationQuery } from '@/lib/route';
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { eventsApi, remoteApiEnabled,sessionVault } from "@/api/runtime";
 import type { CanonicalEvent } from "@/api/events-api";
@@ -106,6 +107,7 @@ import { EVENTS, type EventStatus, type NexEvent } from "@/mock/events";
 import { remoteEventView, type EventActionLabels } from "./remote-event-view";
 import { runRemoteEventAction } from "./remote-event-action";
 import { registerActivePageRefresh } from "@/lib/active-page-refresh";
+import { genesisRaffleCopy } from "@/i18n/genesis-raffle";
 
 type TabId = "all" | EventStatus | "joined";
 type EnrichedEvent = NexEvent & { _trackable: boolean; _done: boolean; _claimed: boolean };
@@ -114,6 +116,10 @@ const TABS: TabId[] = ["all", "ongoing", "upcoming", "joined", "ended"];
 
 const t = useT();
 const eventSource=ref('promotions');
+onLoad(options => {
+  const query = new URLSearchParams(takeNavigationQuery("/pages/events/events"));
+  if ((options?.source ?? query.get("source")) === "legacy") eventSource.value = "legacy";
+});
 const signedIn=computed(()=>{void app.accountKey;void app.accountBindingEpoch;return !!sessionVault.read();});
 const sourceOptions=computed(()=>[
   {value:'promotions',label:t.value.promotion.promotionList},
@@ -125,6 +131,7 @@ const app = useApp();
 const stakingDisplay = useConfig();
 const locale = useLocaleStore();
 const language = computed(() => locale.code);
+const raffleCopy = computed(() => genesisRaffleCopy[locale.code === "zh" || locale.code === "vi" ? locale.code : "en"]);
 
 const tab = ref<TabId>("ongoing");
 const remoteEvents = ref<CanonicalEvent[]>([]);

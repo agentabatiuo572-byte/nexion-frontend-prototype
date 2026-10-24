@@ -14,6 +14,7 @@
     <view aria-hidden :style="hairlineStyle" />
 
     <view class="relative" style="padding: 20px">
+      <view v-if="ev.runtimeSource === 'remote' && ev.kind === 'wheel'" class="flex justify-end" role="link" tabindex="0" :aria-label="t.events.action.viewDetails + ' · ' + ev.title" @click="openDetails" @keydown.enter.prevent="openDetails"><text style="font-size:12px;color:var(--v5-brand)">{{ t.events.action.viewDetails }} ›</text></view>
       <!-- TOP — cap label + countdown -->
       <view class="flex items-center justify-between">
         <view class="inline-flex items-center font-mono-tabular" :style="capLabelStyle">
@@ -56,7 +57,8 @@
       </view>
 
       <!-- CTA -->
-      <view v-if="showClaim" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="claimBtnStyle" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" :aria-label="claimLabel" @click="emitUnlessBusy('claim')">
+      <view v-if="ev.runtimeSource === 'remote' && ev.kind !== 'wheel'" class="mt-5 w-full rounded-full flex items-center justify-center" :style="joinBtnStyle" role="link" tabindex="0" @click="openDetails" @keydown.enter.prevent="openDetails"><text style="font-size:15px;font-weight:600;color:var(--v5-on-brand)">{{ t.events.action.viewDetails }} ›</text></view>
+      <view v-else-if="showClaim" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="claimBtnStyle" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" :aria-label="claimLabel" @click="emitUnlessBusy('claim')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287z" /></svg>
         <text style="font-size: 15px; font-weight: 600; color: var(--v5-on-brand); pointer-events: none">{{ claimLabel }}</text>
       </view>
@@ -97,6 +99,7 @@ const props = withDefaults(defineProps<{ ev: EnrichedEvent; rewardNex: number; b
 const emit = defineEmits<{ (e: "join"): void; (e: "claim"): void; (e: "cta"): void }>();
 
 const t = useT();
+function openDetails() { navTo(`/pages/events/detail?id=${encodeURIComponent(props.ev.id)}`); }
 const busy = computed(() => props.busy);
 function emitUnlessBusy(event: "join" | "claim") {
   if (props.busy) return;

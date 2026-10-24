@@ -25,6 +25,7 @@ import { learningApi } from "@/api/learning-runtime";
 import { remoteApiEnabled } from "@/api/runtime";
 import { fmt } from "@/i18n/format";
 import { courseDurationText } from "@/lib/course-duration";
+import { selectRecommendedCourse } from "@/lib/learning-recommendation";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { useApp } from "@/store/app";
@@ -37,7 +38,7 @@ import type { LearningCourse, LearningOverview } from "@/api/learning-api";
 type LearningError = "" | "centerOffline" | "centerGeoUnresolved" | "centerUnavailable";
 const t = useT(); const locale = useLocaleStore(); const app = useApp(); const overview = ref<LearningOverview | null>(null); const loading = ref(true); const error = ref<LearningError>("");
 const errorText = computed(() => error.value ? t.value.learning[error.value] : "");
-const featuredCourse = computed(() => overview.value?.courses.find((course) => course.featured));
+const featuredCourse = computed(() => selectRecommendedCourse(overview.value?.courses ?? []));
 const language = computed(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code : "zh");
 const progressLine = computed(() => fmt(t.value.learning.centerProgress, { done: overview.value?.completedCourses ?? 0, total: overview.value?.totalCourses ?? 0, nex: formatAmount(overview.value?.earnedNex ?? 0) }));
 function courseMeta(course: LearningCourse) { return fmt(t.value.learning.courseMeta, { duration: courseDurationText(course.duration, t.value.learning.durationMinutes), nex: formatAmount(course.rewardNex) }); }

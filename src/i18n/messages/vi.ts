@@ -569,8 +569,6 @@ sandboxSponsorEnvironmentMismatch: "Mã mời này không dùng được. Kiểm
     networkYourRank: "Hạng của bạn",
     // FEAT-HOME02 phụ đề 3 ô nhịp mạng + 3 trạng thái hạng
     networkMembersSub: "+{n}%/tháng",
-    networkVerifiedMembers: "Cập nhật {at}",
-    networkVerifiedDevices: "Cập nhật {at}",
     networkDevicesSub: "chạy tác vụ",
     networkRankUp24h: "+{n} bậc/24h",
     // 🔴 值槽 90.3px@20px 装不下任何含 "hạng" 的越南语说法(实测:Chưa xếp hạng 139.1 /

@@ -171,6 +171,7 @@ export const useConfig = defineStore("config", () => {
       ...config.value,
       publicStats: { ...unavailableServerConfig.publicStats },
       verifiedStats: null,
+      networkPulse: null,
       rewards: {
         enabled: false,
         effectiveAt: null,
@@ -216,6 +217,7 @@ export const useConfig = defineStore("config", () => {
         //   解析器返回的每个属于 PlatformConfig 的字段都必须在这里落地,漏一个即红。
         publicStats: remote.publicStats,
         verifiedStats: remote.verifiedStats,
+        networkPulse: remote.networkPulse,
         onlineBonus: remote.onlineBonus,
         rewards: remote.rewards,
         computeShare: remote.computeShare,

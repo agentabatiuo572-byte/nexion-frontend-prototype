@@ -87,6 +87,7 @@ export interface EventSpinHistory {
 }
 
 export interface EventSpinState {
+  ended?: boolean;
   eventCode: string;
   eventId: string;
   serverDate: string;
@@ -158,7 +159,7 @@ export function isValidEventHref(href: string): boolean {
     && segments.every((segment) => segment !== "" && segment !== "." && segment !== "..");
 }
 
-function parseEvent(value: unknown): CanonicalEvent {
+export function parseEvent(value: unknown): CanonicalEvent {
   const row = record(value);
   const eventCode = text(row?.eventCode);
   const kind = text(row?.kind)?.toLowerCase() as CanonicalEventKind;
@@ -271,6 +272,7 @@ function parseSpin(value: unknown): EventSpinResult {
 
 function parseSpinState(value: unknown): EventSpinState {
   const row = record(value);
+  const ended = row?.ended === undefined ? false : bool(row.ended);
   const eventCode = text(row?.eventCode);
   const eventId = text(row?.eventId);
   const serverDate = text(row?.serverDate);
@@ -279,7 +281,7 @@ function parseSpinState(value: unknown): EventSpinState {
   const bonusTickets = number(row?.bonusTickets);
   const availableSpins = number(row?.availableSpins);
   const source = text(row?.source);
-  if (!row || !eventCode || !eventId || !serverDate || !nextResetAtUtc
+  if (!row || ended === null || !eventCode || !eventId || !serverDate || !nextResetAtUtc
       || freeAvailable === null || bonusTickets === null || availableSpins === null
       || !source || !Array.isArray(row.segments) || !Array.isArray(row.history)) {
     return invalid("EVENT_SPIN_STATE_RESPONSE_INVALID");
@@ -321,7 +323,7 @@ function parseSpinState(value: unknown): EventSpinState {
     };
   });
   return {
-    eventCode, eventId, serverDate, nextResetAtUtc, freeAvailable,
+    eventCode, eventId, ended, serverDate, nextResetAtUtc, freeAvailable,
     bonusTickets, availableSpins, segments, history, source,
   };
 }

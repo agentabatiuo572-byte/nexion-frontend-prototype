@@ -121,18 +121,17 @@ it.each([
   expect(copy.earn.hashCapabilityUnknown).toBe(text);
 });
 const consumers:{key:string;sources:string[]}[]=[
-  {key:'home.networkVerifiedMembers',sources:[networkSource]},
-  {key:'home.networkVerifiedDevices',sources:[networkSource]},
+  {key:'home.networkMembers',sources:[networkSource]},
+  {key:'home.networkDevices',sources:[networkSource]},
   {key:'earn.summaryUnavailableBody',sources:[earnSource]},
   {key:'earn.hashCapabilityUnknown',sources:[deviceSource]},
   {key:'events.loadErrorBody',sources:[eventsSource]},
   {key:'store.catalogLoadingBody',sources:[storeSource,bundleSource,ordinaryBundleSource]},
   {key:'store.catalogEmptyBody',sources:[storeSource]},
   {key:'store.coAwaitingServer',sources:[ordinaryCheckoutSource]},
-  {key:'store.purchaseEligibilityFailClosed',sources:[detailSource]},
-  {key:'store.purchaseEligibilityNoFacts',sources:[detailSource]},
+  {key:'store.purchaseEligibilityError',sources:[detailSource]},
   {key:'orders.refreshing',sources:[orderSource,meSource]},
-  {key:'trust.errorUnavailable',sources:[detailSource]},
+  {key:'store.relatedMaterialsEmpty',sources:[detailSource]},
   {key:'pool.loading',sources:[poolSource,teamSource,poolPageSource,poolHowSource]},
   {key:'promotion.existingInvite',sources:[inviteSource]},
 ];
@@ -145,6 +144,7 @@ it.each([{locale:'zh',copy:zh},{locale:'en',copy:en},{locale:'vi',copy:vi}])('$l
   }
   expect(copy.promotion).not.toHaveProperty('statusRead');expect(copy.promotion).not.toHaveProperty('specNote');
   expect(rewardDetailSource).not.toContain('p.statusRead');expect(rewardDetailSource).toContain('p.existingInvite');
+  expect(networkSource).not.toMatch(/networkVerifiedMembers|networkVerifiedDevices|capturedAt/);
 });
 
 const render=new Function('Vue',compile(parse(rewardDetailSource).descriptor.template!.content,{mode:'function',prefixIdentifiers:true,isCustomElement:tag=>['view','text'].includes(tag)}).code)(Vue);

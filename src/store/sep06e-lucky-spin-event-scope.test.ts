@@ -67,9 +67,43 @@ beforeEach(() => {
 });
 
 describe("Lucky Spin selected-event isolation", () => {
+  it("keeps the awarded receipt visible if the configured pool changed during the request", async () => {
+    remote.eventsApi.spinState.mockResolvedValue(state("evt-autumn", "old-tier"));
+    remote.eventsApi.spin.mockResolvedValue({ tierId: "new-tier", rewardType: "USDT", rewardAmount: 20, rewardName: "20 USDT" });
+    const spin = useLuckySpin();
+    spin.openSheet("evt-autumn");
+    await flush();
+    await expect(spin.spinRemote("evt-autumn", "key")).resolves.toMatchObject({ ok: true, prizeId: "new-tier" });
+    await flush();
+    expect(spin.remoteSegments.find(prize => prize.id === "new-tier")).toMatchObject({ amount: 20, kind: "usdt", rewardName: "20 USDT" });
+  });
+  it("keeps a failed load retryable instead of showing exhausted spins", async () => {
+    remote.eventsApi.spinState.mockRejectedValueOnce(new Error("offline"));
+    const spin = useLuckySpin();
+    spin.openSheet("evt-autumn");
+    await flush();
+    expect(spin.remoteLoading).toBe(false);
+    expect(spin.remoteError).toBe(true);
+    remote.eventsApi.spinState.mockResolvedValue(state("evt-autumn", "tier-autumn"));
+    await spin.refreshRemoteState();
+    expect(spin.remoteError).toBe(false);
+    expect(spin.availableSpins()).toBe(1);
+  });
+
+  it("shows historical results without enabling an ended wheel", async () => {
+    remote.eventsApi.spinState.mockResolvedValue({ ...state("evt-old", "old-tier"),
+      ended: true, availableSpins: 0, freeAvailable: false, segments: [] });
+    const spin = useLuckySpin();
+    spin.openSheet("evt-old");
+    await flush();
+    expect(spin.remoteEnded).toBe(true);
+    expect(await spin.spinRemote("evt-old", "key")).toMatchObject({ ok: false });
+    expect(remote.eventsApi.spin).not.toHaveBeenCalled();
+  });
+
   it("loads and spins the event code selected by the CTA", async () => {
     remote.eventsApi.spinState.mockResolvedValue(state("evt-autumn", "tier-autumn"));
-    remote.eventsApi.spin.mockResolvedValue({ tierId: "tier-autumn" });
+    remote.eventsApi.spin.mockResolvedValue({ tierId: "tier-autumn", rewardType: "NEX", rewardAmount: 5, rewardName: "5 NEX" });
     const spin = useLuckySpin() as EventScopedSpin;
 
     spin.openSheet("evt-autumn");

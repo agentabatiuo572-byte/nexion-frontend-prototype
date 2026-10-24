@@ -612,8 +612,6 @@ sandboxSponsorEnvironmentMismatch: "This invitation code can't be used. Check it
     //   别用字符数估宽:vi 13 字符 = 139.14px、zh 5 字 = 59.2px。旧长式与其实测值
     //   (93.6/115.2/122.41/158.4/144.0 各 ✗)已随本次换串退役,不再是现网形态。
     networkMembersSub: "+{n}% /mo",
-    networkVerifiedMembers: "Updated {at}",
-    networkVerifiedDevices: "Updated {at}",
     networkDevicesSub: "running jobs",
     networkRankUp24h: "+{n} in 24h",
     networkRankUnranked: "No rank",
