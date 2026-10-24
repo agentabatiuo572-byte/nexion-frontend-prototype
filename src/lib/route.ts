@@ -12,6 +12,9 @@
 // `/pages${href}` prefixing (nova-drawer did) hits non-existent routes and
 // uni's navigateTo silently fails → "点击无跳转". (P-046)
 
+import { useConfig } from "@/store/config";
+import { isStakingVisibilityRoute } from "@/lib/staking-visibility";
+
 const TAB_ROOT: Record<string, string> = {
   "/": "/pages/index/index",
   "/home": "/pages/index/index",
@@ -68,6 +71,7 @@ export function navBack(fallbackHref?: string): void {
 /** Navigate to a logical-or-uni href, picking reLaunch for tab roots. */
 export function navTo(href: string): Promise<void> {
   const { url, tab } = toUniRoute(href);
+  if (isStakingVisibilityRoute(url) && !useConfig().isEnabled("stakingVisible")) return Promise.resolve();
   return new Promise((resolve) => {
     const done = () => resolve();
     if (tab) {

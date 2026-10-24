@@ -7,8 +7,8 @@ const source = (import.meta.glob("./nova-bubble.vue", {
 })["./nova-bubble.vue"] ?? "") as string;
 
 describe("floating Nova entry route", () => {
-  it("always opens the unified conversation center", () => {
-    expect(source).toMatch(/function open\(\) \{\s*navTo\("\/pages\/support\/messages"\);\s*\}/);
+  it("opens the service section of the unified message center", () => {
+    expect(source).toMatch(/function open\(\) \{\s*messageCenter\.show\("service"\);\s*\}/);
     expect(source).not.toContain('/pages/support/chat?type=ai');
   });
 });

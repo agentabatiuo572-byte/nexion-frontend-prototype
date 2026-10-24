@@ -16,6 +16,7 @@
     <view style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/wallet" :title="t.bills.title" />
       <FundsSandboxBadge />
+      <view v-if="focusedRef" class="mx-4" style="overflow-wrap:anywhere"><text>{{ t.prototypeBusiness.receipt }} · {{ focusedRef }}</text><view role="button" tabindex="0" style="min-height:44px;display:flex;align-items:center;color:var(--v5-brand)" @click="focusedRef=''">{{ t.commissions.all }}</view></view>
 
       <!-- Tabs -->
       <GlassSegments v-model="tab" :options="tabOptions" style="margin: 0 16px 12px" />
@@ -85,7 +86,7 @@
 <script setup lang="ts">
 import GlassSegments from "@/components/glass-segments.vue";
 import { computed, ref, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onLoad } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -124,6 +125,8 @@ onShow(() => { void refreshLedger(); });
 type Tab = "all" | "in" | "out";
 const TABS: Tab[] = ["all", "in", "out"];
 const tab = ref<Tab>("all");
+const focusedRef = ref('');
+onLoad(options => { focusedRef.value = String(options?.ref ?? options?.obligationId ?? options?.ledgerBizNo ?? ''); });
 
 // Type accent colours. Most map to tokens; refer/topup use official accents
 // (like the card-brand colours) kept literal on purpose.
@@ -158,9 +161,10 @@ function typeColor(type: BillType): string {
 // 判据回到本工程自己的规矩:**指不出单源的数字,要么接单源,要么别显示**。
 // mock 期 balanceAfter 恒为 undefined → 这一列不渲染;接上真后端自动出现,零改动。
 const filtered = computed<Bill[]>(() => {
-  if (tab.value === "all") return billsStore.bills;
-  if (tab.value === "in") return billsStore.bills.filter((b) => b.amount > 0);
-  return billsStore.bills.filter((b) => b.amount < 0);
+  const records = focusedRef.value ? billsStore.bills.filter(b => b.ref === focusedRef.value || b.id === focusedRef.value) : billsStore.bills;
+  if (tab.value === "all") return records;
+  if (tab.value === "in") return records.filter((b) => b.amount > 0);
+  return records.filter((b) => b.amount < 0);
 });
 
 const grouped = computed<Array<{ month: string; rows: Bill[] }>>(() => {

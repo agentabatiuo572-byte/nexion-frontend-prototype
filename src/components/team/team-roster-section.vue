@@ -59,6 +59,7 @@ import { computed, type CSSProperties } from "vue";
 import VBadge from "./v-badge.vue";
 import type { NetworkMember, MemberStatus } from "@/store/network";
 import { UNILEVEL_USDT } from "@/store/commission";
+import { directPurchaseUsdt } from '@/lib/prototype-team-rewards';
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 
@@ -83,7 +84,7 @@ const sortedMembers = computed(() => [...props.members].sort((a, b) => b.monthVo
 
 function contribution(m: NetworkMember): number {
   const layer = m.layer;
-  return props.kind === "direct" ? m.monthVolumeUSD * 0.1 : m.monthVolumeUSD * (UNILEVEL_USDT[layer] ?? 0);
+  return props.kind === "direct" ? directPurchaseUsdt(m.monthVolumeUSD,UNILEVEL_USDT[1]) : m.monthVolumeUSD * (UNILEVEL_USDT[layer] ?? 0);
 }
 function daysAgo(joinedAt: number): number {
   return Math.floor((Date.now() - joinedAt) / 86400000);

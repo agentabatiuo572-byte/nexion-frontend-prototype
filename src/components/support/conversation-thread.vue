@@ -27,6 +27,9 @@
         <!-- chat bubble -->
         <view v-else class="nx-conv-bubble-row" :class="m.side === 'right' ? 'nx-conv-right' : 'nx-conv-left'">
           <view class="nx-conv-bubble" :style="bubbleStyle(m)">
+            <view v-if="m.meta" class="nx-conv-author"><text>{{ m.meta }}</text></view>
+            <view v-if="m.imageSrc" class="nx-conv-image" role="button" tabindex="0" :aria-label="m.imageLabel" @click="previewImage(m)"><image :src="m.imageSrc" mode="widthFix" :alt="m.imageLabel" /></view>
+            <view v-else-if="m.imageError" class="nx-conv-author" role="button" tabindex="0" @click="emit('retry-image')"><text>{{ imageErrorLabel }}</text></view>
             <view class="nx-conv-bubble-body">
               <view v-for="(line, li) in formatLines(m.text)" :key="li" class="nx-conv-line">
                 <text
@@ -39,7 +42,7 @@
                 <text v-if="line.length === 0" class="nx-conv-seg">{{ " " }}</text>
               </view>
             </view>
-            <view v-if="m.ctaLabel && m.ctaHref" class="nx-conv-cta-row" @click="onCta(m)">
+            <view v-if="m.ctaLabel && m.ctaHref" class="nx-conv-cta-row" role="button" tabindex="0" :aria-label="m.ctaLabel" @click="onCta(m)">
               <text class="nx-conv-cta-t">{{ m.ctaLabel }}</text>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg>
             </view>
@@ -90,12 +93,15 @@
         class="nx-conv-input"
         :value="draft"
         :placeholder="inputPlaceholder"
+        :aria-label="inputLabel || inputPlaceholder"
+        :disabled="disabled"
+        :maxlength="4000"
         placeholder-class="nx-conv-input-ph"
         confirm-type="send"
         @input="onDraft"
         @confirm="onSend"
       />
-      <view class="nx-conv-send" :style="sendStyle" @click="onSend">
+      <view class="nx-conv-send" role="button" :tabindex="disabled || !draft.trim() ? -1 : 0" :aria-disabled="disabled || !draft.trim()" :aria-label="sendLabel" :style="sendStyle" @click="onSend">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="draft.trim() ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg>
       </view>
     </view>
@@ -109,6 +115,11 @@ import type { ThreadMsg, QuickChip } from "./thread-types";
 const props = defineProps<{
   messages: ThreadMsg[];
   inputPlaceholder: string;
+  inputLabel?: string;
+  sendLabel?: string;
+  imageErrorLabel?: string;
+  draftValue?: string;
+  disabled?: boolean;
   quickChips?: QuickChip[];
   emptyHint?: string;
   /** "Agent is typing" indicator (pre-localised aria label via typingLabel). */
@@ -128,17 +139,22 @@ const emit = defineEmits<{
   (e: "chip", key: string): void;
   (e: "cta", href: string, label: string): void;
   (e: "restart"): void;
+  (e: "draft", value: string): void;
+  (e: "retry-image"): void;
 }>();
 
 const draft = ref("");
+watch(() => props.draftValue, value => { if (value !== undefined) draft.value = value; }, { immediate: true });
+function previewImage(message: ThreadMsg) { if (message.imageSrc) uni.previewImage({ urls: [message.imageSrc], current: message.imageSrc }); }
 
 function onDraft(e: Event) {
   draft.value = (e as unknown as { detail: { value: string } }).detail.value;
+  emit("draft", draft.value);
 }
 
 function onSend() {
   const text = draft.value.trim();
-  if (!text) return;
+  if (!text || props.disabled) return;
   draft.value = "";
   emit("send", text, () => {
     draft.value = text;
@@ -224,6 +240,9 @@ const sendStyle = computed<CSSProperties>(() => ({
 </script>
 
 <style scoped>
+.nx-conv-author { padding:8px 14px 0; font-size:11px; opacity:.8; }
+.nx-conv-image { padding:10px; }
+.nx-conv-image image { width:220px; max-width:100%; }
 .nx-conv-thread {
   display: flex;
   flex-direction: column;

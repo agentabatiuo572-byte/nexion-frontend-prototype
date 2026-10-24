@@ -37,15 +37,27 @@ test("OAuth sandbox backend keeps the explicit exchange endpoint and strict mock
   assert.match(challengeService, /AtomicReference/);
 });
 
-test("OAuth UI buttons invoke the server API and never persist provider subjects", () => {
+test("prototype OAuth UI persists a provider and subject binding through the local adapter", () => {
   const providerGrid = read("src/components/auth-provider-grid.vue");
+  const providerFlow = read("src/components/third-party-auth.vue");
+  const adapter = read("src/api/prototype-account-api.ts");
   assert.match(providerGrid, /emit\("select", provider\)/);
   assert.match(providerGrid, /@click="activate\('Passkey'\)"/);
   for (const file of ["src/pages/login/login.vue", "src/pages/register/register.vue"]) {
     const page = read(file);
-    assert.match(page, /<AuthProviderGrid[^>]+@select="startOauth"/);
-    assert.match(page, /authApi\.oauthExchange/);
-    assert.doesNotMatch(page, /externalSubject|oauthSubject/);
+    assert.match(page, /<ThirdPartyAuth/);
+    assert.doesNotMatch(page, /authApi\.oauthExchange|function startOauth/);
     assert.doesNotMatch(page, /localStorage|sessionStorage/);
   }
+  assert.match(providerFlow, /<AuthProviderGrid[^>]+@select="start"/);
+  assert.match(providerFlow, /from "@\/api\/prototype-account-api"/);
+  assert.match(providerFlow, /linkPrototypeProvider\(flow\.value\.id, owner, password\.value\)/);
+  assert.match(providerFlow, /signInPrototypeProvider\(flow\.value\.id/);
+  assert.match(adapter, /providerIdentities = [^\n]+provider: flow\.provider, subject: flow\.subject/);
+  assert.match(adapter, /identity\.provider === flow\.provider && identity\.subject === flow\.subject/);
+  assert.match(adapter, /writePrototypeUsers\(registry\)/);
+  assert.match(adapter, /needsRegistration = !account \|\| account\[1\]\.registration\?\.status === "pending"/);
+  assert.match(adapter, /registerPrototypeProvider\(flow\.provider, flow\.subject, flow\.sponsorCode\)/);
+  assert.match(providerFlow, /result\.registrationReceipt \? '\/pages\/register\/success'/);
+  assert.doesNotMatch(adapter, /http|oauthExchange|authApi|uni\.request/);
 });

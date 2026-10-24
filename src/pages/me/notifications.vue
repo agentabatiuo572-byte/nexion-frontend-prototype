@@ -11,6 +11,12 @@
   <AppChassis active="me">
     <view style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/me" />
+      <GlassSegments v-model="section" :options="sectionOptions" :label="t.notifs.drawerTitle" style="margin: 0 16px 12px" />
+      <view v-if="section === 'service'">
+        <GlassSegments v-model="serviceFilter" :options="serviceFilters" :label="t.notifs.serviceFilterLabel" style="margin: 0 16px 12px" />
+        <ServiceMessageList :filter="serviceFilter" />
+      </view>
+      <view v-else>
 
       <!-- unread badge + action buttons -->
       <view class="px-4 flex items-center justify-between" style="padding-bottom: 8px">
@@ -18,11 +24,11 @@
           <text v-if="notifs.unread > 0" :style="unreadBadgeStyle">{{ notifs.unread }}</text>
         </view>
         <view class="flex items-center" style="gap: 4px">
-          <view v-if="notifs.unread > 0" class="flex items-center active:opacity-70" :style="actionBtnStyle('var(--v5-brand)')" @click="notifs.markAllRead()">
+          <view v-if="notifs.unread > 0" class="flex items-center active:opacity-70" role="button" tabindex="0" :style="actionBtnStyle('var(--v5-brand)')" @click="notifs.markAllRead()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
             <text style="margin-left: 4px">{{ t.notifs.markAll }}</text>
           </view>
-          <view v-if="hasRead" class="flex items-center active:opacity-70" :style="actionBtnStyle('var(--v5-ink-3)')" @click="notifs.clearRead()">
+          <view v-if="hasRead" class="flex items-center active:opacity-70" role="button" tabindex="0" :aria-label="t.notifs.clearReadAria" :style="actionBtnStyle('var(--v5-ink-3)')" @click="clearRead">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
           </view>
         </view>
@@ -34,7 +40,8 @@
       <!-- Timeline -->
       <view class="px-4">
         <view v-if="notifs.error" data-testid="notification-error" :style="emptyCardStyle"><text>{{ notifsErrorText }}</text><text class="block" :style="ctaStyle('system')" @click="notifs.retryRemote()">{{ t.ui.retry }}</text></view>
-        <EmptyState v-if="filtered.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" />
+        <view v-if="notifs.loading" role="status"><text>{{ t.help.loadingMore }}</text></view>
+        <EmptyState v-if="!notifs.loading && !notifs.error && filtered.length === 0" kind="empty-list" :title="emptyTitle" :desc="t.notifs.emptyBody" />
         <view v-else :style="listStyle">
           <view
             v-for="(n, i) in filtered"
@@ -43,7 +50,7 @@
             :style="rowStyle(i !== filtered.length - 1, !n.readAt)"
             @touchstart="onTouchStart(n, $event)"
             @touchend="onTouchEnd(n, $event)"
-            @click="onTap(n)"
+            role="button" tabindex="0" :aria-expanded="expandedId === n.id" :aria-label="n.title" @click="toggle(n)"
           >
             <view class="relative shrink-0">
               <view class="grid place-items-center" :style="iconBoxStyle(n.kind)">
@@ -57,11 +64,12 @@
                 <text class="shrink-0" :style="timeStyle">{{ timeAgo(n.ts) }}</text>
               </view>
               <text v-if="n.body" class="block" :style="bodyStyle">{{ n.body }}</text>
-              <text v-if="n.ctaLabel" class="block" :style="ctaStyle(n.kind)">{{ n.ctaLabel }} →</text>
+              <view v-if="expandedId === n.id && n.ctaLabel && ctaAvailable(n)" role="button" tabindex="0" :aria-label="n.ctaLabel" @click.stop="onTap(n)"><text class="block" :style="ctaStyle(n.kind)">{{ n.ctaLabel }} →</text></view>
             </view>
           </view>
         </view>
         <text v-if="notifs.nextCursor && !notifs.loading" class="block text-center" :style="ctaStyle('system')" @click="notifs.loadMoreRemote()">{{ t.notifs.loadMore }}</text>
+      </view>
       </view>
     </view>
   </AppChassis>
@@ -70,6 +78,14 @@
 <script setup lang="ts">
 import GlassSegments from "@/components/glass-segments.vue";
 import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
+import { onLoad, onShow } from "@dcloudio/uni-app";
+import ServiceMessageList from "@/components/support/service-message-list.vue";
+import { useMessageDrawer } from "@/store/message-drawer";
+import { useApp } from "@/store/app";
+import { notificationCategory, type NotificationCategory } from "@/lib/notification-category";
+import { confirm, useUI } from "@/store/ui";
+import { useConfig } from "@/store/config";
+import { isStakingVisibilityRoute } from "@/lib/staking-visibility";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -83,14 +99,31 @@ import { isLeftConversionSwipe, type SwipePoint } from "@/lib/notification-swipe
 
 const t = useT();
 const notifs = useNotifications();
+const center = useMessageDrawer(), app = useApp();
+const config = useConfig();
+function ctaAvailable(item: Notification) { return !!item.ctaHref && (config.isEnabled("stakingVisible") || !isStakingVisibilityRoute(item.ctaHref)); }
+const section = computed({ get: () => center.section, set: value => { center.section = value; } });
+const serviceFilter = ref<"all" | "advisor">("all");
+const sectionOptions = computed(() => [
+  { value: "notifications", label: t.value.notifs.notificationsTab, count: notifs.unread },
+  { value: "service", label: t.value.notifs.serviceTab, count: center.serviceUnread },
+]);
+const serviceFilters = computed(() => [{ value: "all", label: t.value.notifs.filterAll }, { value: "advisor", label: t.value.conversations.typeAdvisor }]);
+const expandedId = ref<string | null>(null);
+const confirmOwner = `support-notifications-${Date.now()}`;
+onLoad(query => { if (query?.section === "service" || query?.section === "notifications") center.section = query.section; });
+onShow(() => { void center.refresh(); });
+watch(() => app.accountKey, () => { useUI().clearConfirmsBy(confirmOwner); center.bindAccount(); expandedId.value = null; filter.value = "all"; void center.refresh(); });
+function toggle(item: Notification) { void notifs.markRead(item.id); expandedId.value = expandedId.value === item.id ? null : item.id; }
+async function clearRead() { const account = app.accountKey; if (await confirm({ owner: confirmOwner, title: t.value.notifs.clearReadAria, message: t.value.notifs.clearReadAria }) && account === app.accountKey) await notifs.clearRead(); }
 // store 保留机器码(SESSION_EXPIRED / NOTIFICATION_UNAVAILABLE / 服务端 envelope 原文…),
 // 视图侧统一映射成用户文案 —— 裸插值会把工程码上屏,违反「页面文案禁止错误码」。
 // 写法与 risk-disclosure.vue:108 同源。
 const notifsErrorText = computed(() => notifs.error ? t.value.notifs.loadFailed : "");
 
-type Filter = "all" | NotifKind;
+type Filter = "all" | NotificationCategory;
 const filter = ref<Filter>("all");
-const filterIds: Filter[] = ["all", "commission", "team", "staking", "market", "genesis", "system"];
+const filterIds: Filter[] = ["all", "finance", "device", "team", "rewards", "system"];
 
 const KIND_META: Record<NotifKind, { labelKey: string; tint: string; href: string }> = {
   commission: { labelKey: "kindMoney", tint: "var(--v5-success)", href: "/pages/me/wallet-repurchase" },
@@ -115,15 +148,15 @@ function kindIcon(k: NotifKind): string {
 
 const hasRead = computed(() => notifs.items.some((i) => i.readAt));
 function countOf(id: Filter): number {
-  return id === "all" ? notifs.items.length : notifs.items.filter((x) => x.kind === id).length;
+  return id === "all" ? notifs.items.length : notifs.items.filter((x) => notificationCategory(x) === id).length;
 }
 const filtered = computed(() =>
-  (filter.value === "all" ? notifs.items : notifs.items.filter((x) => x.kind === filter.value))
+  (filter.value === "all" ? notifs.items : notifs.items.filter((x) => notificationCategory(x) === filter.value))
     .map((item) => notificationCopy(item, t.value, remoteApiEnabled)),
 );
 
 function filterLabelKey(id: Filter): string {
-  return id === "all" ? "filterAll" : KIND_META[id].labelKey;
+  return id === "all" ? "filterAll" : ({ finance: "categoryFinance", device: "categoryDevice", team: "kindTeam", rewards: "categoryRewards", system: "kindSystem" })[id];
 }
 function filterLabel(id: Filter): string {
   return (t.value.notifs as unknown as Record<string, string>)[filterLabelKey(id)];
@@ -142,6 +175,8 @@ function timeAgo(ts: number): string {
 }
 
 async function onTap(n: Notification) {
+  if (!ctaAvailable(n)) return;
+  const account = app.accountKey;
   if (suppressedClick?.id === n.id && Date.now() <= suppressedClick.until) {
     suppressedClick = null;
     return;
@@ -149,10 +184,10 @@ async function onTap(n: Notification) {
   if (n.ctaHref) {
     if (remoteApiEnabled) {
       const canonicalRoute = await notifs.recordCta(n.id);
-      if (canonicalRoute) navTo(canonicalRoute);
+      if (canonicalRoute && account === app.accountKey) navTo(canonicalRoute);
     } else {
       await notifs.markRead(n.id);
-      navTo(n.ctaHref);
+      if (account === app.accountKey) navTo(n.ctaHref);
     }
     return;
   }
@@ -196,7 +231,7 @@ const unreadBadgeStyle: CSSProperties = {
   fontWeight: 600,
 };
 function actionBtnStyle(color: string): CSSProperties {
-  return { height: "36px", padding: "0 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 600, color };
+  return { minHeight: "44px", padding: "0 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 600, color };
 }
 // Empty state — dashed outline hint, no fill (V5 empty-state idiom).
 const emptyCardStyle: CSSProperties = {

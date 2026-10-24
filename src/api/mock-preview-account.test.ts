@@ -55,12 +55,11 @@ describe("fixed mock preview account", () => {
       .resolves.toMatchObject({ kind: "authenticated" });
   });
 
-  it("repairs a corrupt mock credential directory", async () => {
-    storage.set("nexgrid-mock-auth-users-v1", { schema: 99, users: "broken" });
-
-    expect(provisionMockPreviewAccount()).toMatchObject({ ok: true });
-    await expect(createMockAuthApi(createSessionVault()).login(MOCK_PREVIEW_ACCOUNT))
-      .resolves.toMatchObject({ kind: "authenticated" });
+  it("preserves an unrecognized credential directory instead of destructively resetting it", () => {
+    const original = { schema: 99, users: "broken" };
+    storage.set("nexgrid-mock-auth-users-v1", original);
+    expect(provisionMockPreviewAccount()).toEqual({ ok: false, error: "credential_storage_unavailable" });
+    expect(storage.get("nexgrid-mock-auth-users-v1")).toEqual(original);
   });
 
   it("fails closed when credential storage is unavailable", () => {

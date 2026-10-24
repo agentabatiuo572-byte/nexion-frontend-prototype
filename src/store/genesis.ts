@@ -562,6 +562,8 @@ export const useGenesis = defineStore("genesis", () => {
   }
 
   async function listNode(tokenId: number, askPriceUSDT: number): Promise<boolean> {
+    if (!Number.isFinite(askPriceUSDT) || askPriceUSDT <= 0 || askPriceUSDT > 100_000_000
+      || Number(askPriceUSDT.toFixed(6)) !== askPriceUSDT) return false;
     // 🔴 守卫必须在 holdingNo 之前:holdingNo 由服务端状态派生,mock 下恒空 ——
     //   守卫放在 lookup 之后的话,本地路径照样被 `if (!holdingNo) return false` 挡死。
     if (remoteApiEnabled) {

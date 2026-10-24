@@ -28,6 +28,14 @@
         <text class="block" style="font-size: 13px; line-height: 1.5">{{ t.topupChrome.flowRetired }}</text>
       </view>
 
+      <view class="mx-4">
+        <ThirdPartyAuth :key="auth.accountId" intent="LINK" :disabled="securityBusy" />
+        <view class="nx-glass-card" style="padding: 16px; margin-bottom: 16px">
+          <text class="block" style="font-size: 13px; color: var(--v5-ink-2)">{{ accountPhone?.phone ? `${accountPhone.countryCode} ••• ${accountPhone.phone.slice(-4)}` : t.security.phoneBindingRequired }}</text>
+          <view role="button" tabindex="0" style="min-height: 44px; display: flex; align-items: center; color: var(--v5-brand)" @click="navTo('/pages/me/phone-binding')"><text>{{ accountPhone?.phone ? t.security.phoneChangeTitle : t.security.phoneBindingTitle }} →</text></view>
+        </view>
+      </view>
+
       <!-- ───── Password + Two-factor (merged, de-carded group) ───── -->
       <view class="nx-glass-card mx-4" :style="cardStyle">
         <view class="flex items-center active:opacity-90" :style="rowStyle" @click="editingPwd = !editingPwd">
@@ -125,7 +133,9 @@
 
 <script setup lang="ts">
 import { computed, ref, type CSSProperties } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { onLoad, onShow } from "@dcloudio/uni-app";
+import ThirdPartyAuth from "@/components/third-party-auth.vue";
+import { prototypeAccountPhone } from "@/api/prototype-account-api";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
@@ -160,6 +170,8 @@ onLoad((options) => {
 });
 const security = useSecurity();
 const auth = useAuth();
+const accountPhone = ref<ReturnType<typeof prototypeAccountPhone>>(null);
+onShow(() => { try { accountPhone.value = prototypeAccountPhone(auth.accountId); } catch { accountPhone.value = null; } });
 const app = useApp();
 const staking = useStaking();
 const session = useSession();

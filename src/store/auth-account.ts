@@ -1,4 +1,5 @@
 import { normalizeAccountKey } from "@/store/account-cloud";
+import { prototypePhoneDirectory, readPrototypeUsers, findPrototypeAccount, currentPrototypePhone, writePrototypeUsers } from "@/auth/prototype-identity";
 import {
   readRiskRecordsStrict,
   sealLegacyRiskRegistryForAuthDirectory,
@@ -252,12 +253,22 @@ function readRegistry(): AuthAccountRegistry | null {
   }
 }
 
+/** Prepare the shared phone directory before a phone-less registration seals risk facts. */
+export function preparePrototypeAuthDirectory(): boolean { return readRegistry() !== null; }
+
 export function resolveAuthAccount(rawPhone: string): AuthAccountLookup {
   const phone = normalizeAuthPhone(rawPhone);
   if (!phone) return { ok: true, account: null };
   const registry = readRegistry();
   if (!registry) return { ok: false, error: "account_directory_unavailable" };
-  const account = registry.byPhone[phone];
+  let alias: ReturnType<typeof prototypePhoneDirectory>;
+  try { alias = prototypePhoneDirectory(phone); }
+  catch { return { ok: false, error: "account_directory_unavailable" }; }
+  if (alias === "retired") return { ok: true, account: null };
+  const aliasId = alias?.accountId;
+  const account = alias ? Object.values(registry.byPhone).find(value => value.accountId === aliasId)
+    ?? (!isPhoneAuthAccountId(alias.accountId) ? { accountId: alias.accountId, phoneE164: phone, createdAt: 0, status: "active" as const, onboardingComplete: true, registration: null } : undefined)
+    : registry.byPhone[phone];
   return { ok: true, account: account?.status === "active" ? account : null };
 }
 
@@ -265,7 +276,17 @@ export function resolveAuthAccount(rawPhone: string): AuthAccountLookup {
 export function resolveAuthAccountById(rawAccountId: string): AuthAccountLookup {
   const accountId = normalizeAccountKey(rawAccountId);
   const match = LEGACY_ACCOUNT_RE.exec(accountId);
-  if (!match) return { ok: true, account: null };
+  if (!match) {
+    try {
+      const entry = findPrototypeAccount(readPrototypeUsers(), accountId);
+      const registration = entry?.[1].registration;
+      if (!entry || !registration) return { ok: true, account: null };
+      const phone = currentPrototypePhone(entry[0], entry[1]);
+      return { ok: true, account: { accountId, phoneE164: `${phone.countryCode}${phone.phone}`,
+        createdAt: registration.createdAt, status: registration.status,
+        onboardingComplete: registration.onboardingComplete, registration: registration.context } };
+    } catch { return { ok: false, error: "account_directory_unavailable" }; }
+  }
   const registry = readRegistry();
   if (!registry) return { ok: false, error: "account_directory_unavailable" };
   return { ok: true, account: registry.byPhone[match[1]] ?? null };
@@ -328,6 +349,15 @@ export function activateReservedAuthAccount(rawPhone: string, expectedAccountId:
 /** Onboarding 的服务端事实镜像；不存在手机号目录的演示/历史账号无需写本表。 */
 export function markAuthAccountOnboardingComplete(rawAccountId: string): boolean {
   const accountId = normalizeAccountKey(rawAccountId);
+  if (accountId.startsWith("provider:")) {
+    try {
+      const users = readPrototypeUsers(), entry = findPrototypeAccount(users, accountId);
+      if (!entry?.[1].registration || entry[1].registration.status !== "active") return false;
+      entry[1].registration.onboardingComplete = true;
+      writePrototypeUsers(users);
+      return true;
+    } catch { return false; }
+  }
   const registry = readRegistry();
   if (!registry) return false;
   const entry = Object.entries(registry.byPhone).find(([, account]) => account.accountId === accountId);

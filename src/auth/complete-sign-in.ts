@@ -3,15 +3,13 @@ import { useApp } from "@/store/app";
 import { readAccountSessionRecords, useSession } from "@/store/session";
 import { useSponsorship } from "@/store/sponsorship";
 import { rebindAccountScopedStores } from "@/lib/account-scope";
-import { safeReturnTo } from "@/routing/safe-return-to";
+import { resolvePostSignInRoute } from "@/auth/post-sign-in-route";
 import { isPhoneAuthAccountId, resolveAuthAccountById } from "@/store/auth-account";
 import { refreshEarningsReleaseStatus } from "@/store/earning-release";
 import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
 import { useProfile } from "@/store/profile";
 import { authApi, remoteApiEnabled } from "@/api/runtime";
 import type { UserSession } from "@/api/contracts";
-import { getCarrier } from "@/lib/carrier";
-import { getDeviceId } from "@/lib/device-id";
 
 interface CompleteSignInOptions {
   identity: string;
@@ -81,8 +79,13 @@ export function completeSignIn(options: CompleteSignInOptions): CompleteSignInRe
   const abortSignIn = (): CompleteSignInResult => {
     session.signOutSession();
     auth.signOut();
-    app.bindAccount("default");
-    rebindAccountScopedStores("default");
+    try {
+      app.bindAccount("default");
+      rebindAccountScopedStores("default");
+    } catch {
+      // Auth/session are already cleared. A failed cleanup storage write must
+      // not escape and leave the caller's matching vault session accepted.
+    }
     return failRemoteCompletion("sign_in_storage_unavailable");
   };
 
@@ -130,32 +133,36 @@ export function completeSignIn(options: CompleteSignInOptions): CompleteSignInRe
     && auth.accountId === options.identity
     && session.accountKey === options.identity
     && session.status === "active";
-  if (!completionStillApplied) {
-    if (!auth.signIn(options.identity, onboardingComplete)) {
-      return remoteApiEnabled ? failRemoteCompletion("sign_in_storage_unavailable") : { ok: false, error: "sign_in_storage_unavailable" };
+  try {
+    if (!completionStillApplied) {
+      if (!auth.signIn(options.identity, onboardingComplete)) {
+        return remoteApiEnabled ? failRemoteCompletion("sign_in_storage_unavailable") : { ok: false, error: "sign_in_storage_unavailable" };
+      }
+      app.bindAccount(options.identity);
+      rebindAccountScopedStores(options.identity);
+      if (completed) {
+        const resumed = session.resumeOrClaim(options.identity);
+        ({ requiresRecalibration } = resumed.status === "active" ? resumed : session.claim(options.identity));
+      } else {
+        ({ requiresRecalibration } = session.claim(options.identity));
+      }
+      if (!readAccountSessionRecords(options.identity).some((record) => record.sessionId === session.sessionId)) {
+        return abortSignIn();
+      }
+      if (!remoteApiEnabled && !completed && !app.acceptPhoneSignIn()) return abortSignIn();
+      if (!remoteApiEnabled && options.sponsorCode && !sponsorship?.bind(options.sponsorCode)) {
+        return abortSignIn();
+      }
+      if (idempotencyKey) {
+        completedSignIns.set(idempotencyKey, { identity: options.identity, requiresRecalibration, completedAt: now });
+      }
+    } else if (auth.onboardingComplete !== onboardingComplete) {
+      if (!auth.signIn(options.identity, onboardingComplete)) {
+        return remoteApiEnabled ? failRemoteCompletion("sign_in_storage_unavailable") : { ok: false, error: "sign_in_storage_unavailable" };
+      }
     }
-    app.bindAccount(options.identity);
-    rebindAccountScopedStores(options.identity);
-    if (completed) {
-      const resumed = session.resumeOrClaim(options.identity);
-      ({ requiresRecalibration } = resumed.status === "active" ? resumed : session.claim(options.identity));
-    } else {
-      ({ requiresRecalibration } = session.claim(options.identity));
-    }
-    if (!readAccountSessionRecords(options.identity).some((record) => record.sessionId === session.sessionId)) {
-      return abortSignIn();
-    }
-    if (!remoteApiEnabled && !completed && !app.acceptPhoneSignIn()) return abortSignIn();
-    if (!remoteApiEnabled && options.sponsorCode && !sponsorship?.bind(options.sponsorCode)) {
-      return abortSignIn();
-    }
-    if (idempotencyKey) {
-      completedSignIns.set(idempotencyKey, { identity: options.identity, requiresRecalibration, completedAt: now });
-    }
-  } else if (auth.onboardingComplete !== onboardingComplete) {
-    if (!auth.signIn(options.identity, onboardingComplete)) {
-      return remoteApiEnabled ? failRemoteCompletion("sign_in_storage_unavailable") : { ok: false, error: "sign_in_storage_unavailable" };
-    }
+  } catch {
+    return abortSignIn();
   }
   // Apply on every accepted server login, including a token-refresh/retry that
   // reused the same completion key. This prevents an earlier browser profile
@@ -180,22 +187,8 @@ export function completeSignIn(options: CompleteSignInOptions): CompleteSignInRe
   // Fetch the new account's server buckets here; a failed request leaves the
   // snapshot unavailable and the withdrawal endpoint still fails closed.
   void refreshEarningsReleaseStatus(options.identity).catch(() => {});
-  if (options.deferNavigation) return { ok: true };
-  if (getCarrier() === "app" && !auth.onboardingComplete) {
-    uni.reLaunch({
-      url: "/pages/onboarding/estimator",
-      fail: () => uni.reLaunch({ url: "/pages/onboarding/intro", fail: () => {} }),
-    });
-    return { ok: true };
-  }
-  if (getCarrier() === "app" && (requiresRecalibration || !app.phoneBinding || app.phoneBinding.installationId !== getDeviceId())) {
-    uni.reLaunch({
-      url: "/pages/onboarding/connect?mode=recalibrate",
-      fail: () => uni.reLaunch({ url: "/pages/index/index", fail: () => {} }),
-    });
-    return { ok: true };
-  }
-  const dest = safeReturnTo(options.returnTo ?? null, "/pages/index/index");
+  const dest = resolvePostSignInRoute({ onboardingComplete: auth.onboardingComplete, requiresRecalibration, returnTo: options.returnTo, deferNavigation: options.deferNavigation });
+  if (!dest) return { ok: true };
   uni.reLaunch({ url: dest, fail: () => uni.reLaunch({ url: "/pages/index/index", fail: () => {} }) });
   return { ok: true };
 }

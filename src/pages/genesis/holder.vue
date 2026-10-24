@@ -103,7 +103,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" aria-hidden="true"><path d="M16 7h6v6m0-6-9 9-5-5-6 6"/></svg><text>{{ t.genesisHolder.actions.sell }}</text>
             </view>
           </view>
-          <view class="gh-boost" role="button" tabindex="0" @click="goStaking" @keydown.enter.prevent="goStaking" @keydown.space.prevent="goStaking">{{ dividendsOpen ? t.genesisHolder.post.boostCta : t.genesisHolder.pre.boostCta }}</view>
+          <view v-if="visibilityConfig.isEnabled('stakingVisible')" class="gh-boost" role="button" tabindex="0" @click="goStaking" @keydown.enter.prevent="goStaking" @keydown.space.prevent="goStaking">{{ dividendsOpen ? t.genesisHolder.post.boostCta : t.genesisHolder.pre.boostCta }}</view>
           <view class="gh-link gh-how" role="button" tabindex="0" @click="goHowItWorks" @keydown.enter.prevent="goHowItWorks" @keydown.space.prevent="goHowItWorks">{{ t.genesisHolder.pre.howLink }}</view>
         </template>
       </view>
@@ -112,6 +112,8 @@
 </template>
 
 <script setup lang="ts">
+import { useConfig } from "@/store/config";
+const visibilityConfig = useConfig();
 import { computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";

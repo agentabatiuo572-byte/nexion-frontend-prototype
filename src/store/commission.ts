@@ -4,6 +4,7 @@ import { commissionConfigApi, remoteApiEnabled, teamInsightsApi } from "@/api/ru
 import type { CanonicalBinaryState } from "@/api/commission-config-api";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
+import { commissionNetAmount, commissionAssetStatus } from '@/lib/prototype-team-rewards';
 
 /**
  * Ported from Nexion-prototype/lib/v3/commission.ts (zustand persist → Pinia + uni storage).
@@ -23,7 +24,7 @@ export type CommissionKind =
   | "leadership"
   | "genesis";
 
-export type CommissionStatus = "cooling" | "unlocked" | "withdrawn";
+export type CommissionStatus = "cooling" | "unlocked" | "withdrawn" | 'waiting_calculation' | 'frozen' | 'reversed' | 'rejected' | 'recovery_pending' | 'simulated';
 
 export interface CommissionEvent {
   id: string;
@@ -38,6 +39,13 @@ export interface CommissionEvent {
   ts: number;
   unlockAt: number;           // 30d 后
   status: CommissionStatus;
+  rewardKind?: 'direct_purchase' | 'direct_device_earning';
+  statusUSDT?: CommissionStatus;
+  statusNEX?: CommissionStatus;
+  sourceRef?: string;
+  sourceDeviceId?: string;
+  recoveryPendingUSDT?: number;
+  recoveryPendingNEX?: number;
 }
 
 const ONE_DAY = 86400 * 1000;
@@ -73,7 +81,7 @@ function buildTodayDemoEvents(): CommissionEvent[] {
     {
       id: "c-today-1", kind: "unilevel", sourceUserId: "net-12", sourceUserName: "Mei L.",
       layer: 1, orderId: "ord-today-1", orderAmountUSD: 299,
-      amountUSDT: 29.90, amountNEX: 14_950,
+      amountUSDT: 17.94, amountNEX: 1_196, rewardKind: 'direct_purchase',
       ts: recentTodayTs(50), unlockAt: recentTodayTs(50) + 30 * ONE_DAY, status: "cooling",
     },
     {
@@ -86,6 +94,7 @@ function buildTodayDemoEvents(): CommissionEvent[] {
 
 function seedEvents(): CommissionEvent[] {
   return [
+    ...directRewardFixtures(),
     ...buildTodayDemoEvents(),
     {
       id: "c-1", kind: "unilevel", sourceUserId: "net-0", sourceUserName: "Sarah K.",
@@ -141,10 +150,20 @@ function seedEvents(): CommissionEvent[] {
 // 旧设备级单键 "nexgrid-commission-v1" 废弃(存量无账号归属,mock 可重建);佣金事件按账号分行。
 const ACCOUNTS_KEY = "nexgrid-commission-accounts-v1"; // { [accountKey]: { events: CommissionEvent[] } }
 
+/** Display fixtures from source direct-referral-api and seven-layer tests.
+ * Existing historical events are retained; no historical reward is recalculated. */
+function directRewardFixtures(): CommissionEvent[] {
+  return [
+    { id:'c-v2-direct',kind:'unilevel',rewardKind:'direct_purchase',layer:1,sourceUserName:'B***b',orderId:'ORDER-source-1',sourceRef:'ORDER-source-1',orderAmountUSD:1000,amountUSDT:60,amountNEX:4000,ts:recentTodayTs(10),unlockAt:recentTodayTs(10),status:'unlocked' },
+    { id:'c-v2-device',kind:'unilevel',rewardKind:'direct_device_earning',layer:1,sourceUserName:'B***b',sourceRef:'EARNING-source-1',sourceDeviceId:'DEVICE-1',amountUSDT:60,amountNEX:4000,ts:recentTodayTs(8),unlockAt:recentTodayTs(8),status:'unlocked' },
+    ...([2,3,4,5,6,7] as const).map((layer):CommissionEvent=>({ id:`c-v2-network-${layer}`,kind:'unilevel',layer,sourceUserName:`N***${layer}`,orderId:`ORDER-network-${layer}`,amountUSDT:1000*UNILEVEL_USDT[layer],amountNEX:1000*UNILEVEL_NEX[layer],ts:now-layer*86400000,unlockAt:now-layer*86400000,status:'unlocked',...(layer===2?{statusUSDT:'reversed' as const,statusNEX:'unlocked' as const}:{}) })),
+  ];
+}
+
 function hydrate(accountKey: string): CommissionEvent[] {
   const row = readAccountRow<{ events?: CommissionEvent[] }>(ACCOUNTS_KEY, accountKey);
   if (row && Array.isArray(row.events)) {
-    const existing = row.events;
+    const existing = [...row.events, ...directRewardFixtures().filter(fixture => !row.events!.some(e => e.id === fixture.id))];
     // Keep mock "today" events actually inside the current local day. Persisted
     // demos otherwise go stale across midnight and Home collapses back to device-only.
     const dayStart = localDayStart();
@@ -234,10 +253,10 @@ export const useCommission = defineStore("commission", () => {
   function unlockMatured() {
     if (remoteApiEnabled) return;
     const t = Date.now();
-    const needsUpdate = events.value.some((e) => e.status === "cooling" && e.unlockAt <= t);
+    const needsUpdate = events.value.some((e) => [e.status,e.statusUSDT,e.statusNEX].includes('cooling') && e.unlockAt <= t);
     if (!needsUpdate) return;
     events.value = events.value.map((e) =>
-      e.status === "cooling" && e.unlockAt <= t ? { ...e, status: "unlocked" } : e,
+      e.unlockAt <= t ? { ...e, ...(e.status === 'cooling' ? {status: 'unlocked' as const} : {}), ...(e.statusUSDT === 'cooling' ? {statusUSDT: 'unlocked' as const} : {}), ...(e.statusNEX === 'cooling' ? {statusNEX: 'unlocked' as const} : {}) } : e,
     );
     persist();
   }
@@ -245,39 +264,39 @@ export const useCommission = defineStore("commission", () => {
   function withdraw(id: string): boolean {
     if (remoteApiEnabled) return false;
     const e = events.value.find((x) => x.id === id);
-    if (!e || e.status !== "unlocked") return false;
-    events.value = events.value.map((x) => (x.id === id ? { ...x, status: "withdrawn" } : x));
+    if (!e || (commissionAssetStatus(e,'USDT') !== 'unlocked' && commissionAssetStatus(e,'NEX') !== 'unlocked')) return false;
+    events.value = events.value.map((x) => (x.id === id ? { ...x, status: 'withdrawn', statusUSDT: commissionAssetStatus(x,'USDT') === 'unlocked' ? 'withdrawn' : commissionAssetStatus(x,'USDT'), statusNEX: commissionAssetStatus(x,'NEX') === 'unlocked' ? 'withdrawn' : commissionAssetStatus(x,'NEX') } : x));
     persist();
     return true;
   }
 
   function totalUSDTLifetime() {
-    return events.value.reduce((s, e) => s + e.amountUSDT, 0);
+    return events.value.reduce((s, e) => s + commissionNetAmount(e, 'USDT'), 0);
   }
   function totalNEXLifetime() {
-    return events.value.reduce((s, e) => s + e.amountNEX, 0);
+    return events.value.reduce((s, e) => s + commissionNetAmount(e, 'NEX'), 0);
   }
   function unlockedUSDT() {
-    return events.value.filter((e) => e.status === "unlocked").reduce((s, e) => s + e.amountUSDT, 0);
+    return events.value.filter((e) => commissionAssetStatus(e,'USDT') === "unlocked").reduce((s, e) => s + e.amountUSDT, 0);
   }
   function unlockedNEX() {
-    return events.value.filter((e) => e.status === "unlocked").reduce((s, e) => s + e.amountNEX, 0);
+    return events.value.filter((e) => commissionAssetStatus(e,'NEX') === "unlocked").reduce((s, e) => s + e.amountNEX, 0);
   }
   function coolingUSDT() {
-    return events.value.filter((e) => e.status === "cooling").reduce((s, e) => s + e.amountUSDT, 0);
+    return events.value.filter((e) => commissionAssetStatus(e,'USDT') === "cooling").reduce((s, e) => s + e.amountUSDT, 0);
   }
   /** sum since local midnight — Home Hero "today's earnings" cross-stream. */
   function todayUSDT() {
     const cutoff = localDayStart();
-    return events.value.filter((e) => e.ts >= cutoff).reduce((s, e) => s + e.amountUSDT, 0);
+    return events.value.filter((e) => e.ts >= cutoff).reduce((s, e) => s + commissionNetAmount(e, 'USDT'), 0);
   }
   function monthUSDT() {
     const cutoff = Date.now() - 30 * ONE_DAY;
-    return events.value.filter((e) => e.ts >= cutoff).reduce((s, e) => s + e.amountUSDT, 0);
+    return events.value.filter((e) => e.ts >= cutoff).reduce((s, e) => s + commissionNetAmount(e, 'USDT'), 0);
   }
   function monthNEX() {
     const cutoff = Date.now() - 30 * ONE_DAY;
-    return events.value.filter((e) => e.ts >= cutoff).reduce((s, e) => s + e.amountNEX, 0);
+    return events.value.filter((e) => e.ts >= cutoff).reduce((s, e) => s + commissionNetAmount(e, 'NEX'), 0);
   }
 
   function byKind(): Record<CommissionKind, { usdt: number; nex: number; count: number }> {
@@ -285,8 +304,8 @@ export const useCommission = defineStore("commission", () => {
     const out = {} as Record<CommissionKind, { usdt: number; nex: number; count: number }>;
     for (const k of kinds) out[k] = { usdt: 0, nex: 0, count: 0 };
     for (const e of events.value) {
-      out[e.kind].usdt += e.amountUSDT;
-      out[e.kind].nex += e.amountNEX;
+      out[e.kind].usdt += commissionNetAmount(e, 'USDT');
+      out[e.kind].nex += commissionNetAmount(e, 'NEX');
       out[e.kind].count += 1;
     }
     return out;

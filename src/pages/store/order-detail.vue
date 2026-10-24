@@ -15,13 +15,14 @@
 -->
 <template>
   <AppChassis active="store">
+    <PromotionCheckout v-if="promotionOrder" :activity-id="promotionOrder.quote.activityId || ''" :items="promotionOrder.items || promotionOrder.quote.items" :order-no="promotionOrder.orderNo" :show-order-link="false" />
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
-    <view style="color: var(--v5-ink); padding-top: 24px">
+    <view v-else style="color: var(--v5-ink); padding-top: 24px">
       <view v-if="remoteOrderError" class="mx-4 rounded-2xl" :style="remoteErrorStyle">
         <view class="flex items-center justify-between" style="gap: 12px">
           <text :style="{ color: 'var(--v5-warning)', fontSize: '12px', lineHeight: '1.5' }">{{ t.orders.refreshFailed }}</text>
-          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" :aria-disabled="remoteOrderRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="refreshOrder">
+          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" :aria-disabled="remoteOrderRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="retryOrder">
             <text>{{ t.store.catalogRetry }}</text>
           </view>
         </view>
@@ -147,6 +148,8 @@ import { orderStatusText } from "@/components/store/order-status-copy";
 import { ref, computed, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import PromotionCheckout from "@/components/promotion/promotion-checkout.vue";
+import { usePromotion } from "@/store/promotion";
 import DetailRow from "@/components/store/order-detail-row.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale } from "@/i18n/format";
@@ -159,11 +162,13 @@ import { commercePaymentApi, mockFundsEnabled, remoteApiEnabled } from "@/api/ru
 
 const t = useT();
 const orders = useOrders();
+const promotion = usePromotion();
 
 const id = ref("");
 onLoad((options) => {
   const o = (options || {}) as Record<string, string>;
   if (o.id) id.value = o.id;
+  refreshPromotion();
 });
 const remoteOrderError = ref(false);
 const remoteOrderRefreshing = ref(false);
@@ -179,9 +184,14 @@ async function refreshOrder() {
     remoteOrderRefreshing.value = false;
   }
 }
-onShow(() => { void refreshOrder(); });
+function refreshPromotion() {
+  try { promotion.refresh(); remoteOrderError.value = !!promotion.error; } catch { remoteOrderError.value = true; }
+}
+function retryOrder() { refreshPromotion(); void refreshOrder(); }
+onShow(() => { refreshPromotion(); void refreshOrder(); });
 
 const order = computed(() => orders.orders.find((o) => o.id === id.value));
+const promotionOrder = computed(() => promotion.orders.find((o) => o.orderNo === id.value) ?? null);
 
 // Sticky chassis nav header — back + order-id title + "Order ID" subtitle
 // (mirrors the prototype's <SetPageHeader title={order.id} subtitle={t.orders.orderId}

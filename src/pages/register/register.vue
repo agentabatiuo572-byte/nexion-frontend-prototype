@@ -20,7 +20,7 @@
         <view class="rg-sponsor__av"><text class="rg-sponsor__av-t">{{ sponsorPreview.displayName[0] }}</text></view>
         <view class="rg-sponsor__body">
           <text class="rg-sponsor__name"><text class="rg-sponsor__name-b">{{ sponsorPreview.displayName }}</text> {{ t.ref.invitedYou }}</text>
-          <text v-if="giftUsdt > 0" class="rg-sponsor__gift">+${{ giftUsdt }} + {{ giftNex }} NEX</text>
+          <text v-if="giftUsdt > 0 || giftNex > 0" class="rg-sponsor__gift">{{ giftLabel }}</text>
         </view>
         <text class="rg-sponsor__v">{{ sponsorPreview.vRank }}</text>
       </view>
@@ -37,8 +37,8 @@
       </view>
       <text class="rg-subtitle">
         <!-- 奖励金额护栏(包 zm T1):配置未到位/被中毒清零时金额句整体让位,$0 永不上转化首屏 -->
-        <template v-if="step === 1"><template v-if="giftUsdt > 0"><text class="rg-subtitle__hl">{{ fmt(t.register.subtitleHighlight, { usd: giftUsdt }) }}</text>{{ t.register.subtitleRest }}</template><template v-else>{{ t.register.subtitleNoBonus }}</template></template>
-        <template v-else-if="step === 2">{{ t.register.codeSentTo }} <text class="rg-subtitle__ph">{{ country }} {{ phone }}</text></template>
+        <template v-if="step === 1"><template v-if="giftUsdt > 0 || giftNex > 0"><text class="rg-subtitle__hl">{{ fmt(t.register.subtitleRewardAmount, { reward: giftLabel }) }}</text>{{ t.register.subtitleRest }}</template><template v-else>{{ t.register.subtitleRewardDisabled }}</template></template>
+        <template v-else-if="step === 2">{{ remoteApiEnabled ? t.register.codeSentTo : t.prototypeAuth.verifyNumber }} <text class="rg-subtitle__ph">{{ country }} {{ phone }}</text></template>
         <template v-else>{{ t.register.setPasswordHint }}</template>
       </text>
 
@@ -55,18 +55,6 @@
             <input class="rg-phone__in" type="number" inputmode="numeric" maxlength="15" :placeholder="t.register.phonePlaceholder" :value="phone" :aria-invalid="!!phone && !phoneOk" aria-describedby="register-phone-format" confirm-type="done" @input="onPhone" @confirm="onCta" />
           </view>
           <text id="register-phone-format" data-testid="auth-phone-hint" class="rg-phone-hint" :class="{ 'rg-phone-hint--err': phone && !phoneOk }" role="status" aria-live="polite">{{ phoneFormatMessage }}</text>
-        </view>
-
-        <!-- Step 2: OTP + invite -->
-        <view v-else-if="step === 2" class="rg-step2">
-          <view class="rg-otp">
-            <input v-for="(d, i) in code" :key="i" class="rg-otp__in" :class="{ 'rg-otp__in--filled': d }" type="number" :maxlength="1" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onCta()" />
-          </view>
-          <view class="rg-resend">
-            <text class="rg-resend__change" role="button" tabindex="0" :aria-label="t.register.changeNumber" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">{{ t.register.changeNumber }}</text>
-            <text v-if="resendLeft > 0" class="rg-resend__count">{{ resendInText }}</text>
-            <text v-else class="rg-resend__btn" role="button" tabindex="0" :aria-label="t.register.resend" @click="resend" @keydown.enter.prevent="resend" @keydown.space.prevent="resend">{{ t.register.resend }}</text>
-          </view>
           <view class="rg-invite">
             <text class="rg-invite__lbl">{{ t.register.inviteLabel }} <text class="rg-invite__opt">{{ lockedRef ? t.register.inviteLockedLabel : t.register.inviteOptional }}</text></text>
             <!-- [FEAT-SHARE4] 链接来源码锁定置灰:不可修改不可删除(主人 2026-07-08 拍板);
@@ -80,6 +68,20 @@
             </view>
             <input v-else class="rg-field" type="text" :placeholder="t.register.invitePlaceholder" :value="invite" confirm-type="done" @input="onInvite" @confirm="onCta" />
           </view>
+        </view>
+
+        <!-- Step 2: OTP + invite -->
+        <view v-else-if="step === 2" class="rg-step2">
+          <text v-if="!remoteApiEnabled" class="rg-phone-hint" role="status">{{ fmt(t.prototypeAuth.codeHint, { code: PROTOTYPE_DEMO_CODE }) }}</text>
+          <view class="rg-otp">
+            <input v-for="(d, i) in code" :key="i" class="rg-otp__in" :class="{ 'rg-otp__in--filled': d }" type="number" :maxlength="1" :aria-label="fmt(t.register.otpDigitLabel, { n: i + 1 })" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onCta()" />
+          </view>
+          <view class="rg-resend">
+            <text class="rg-resend__change" role="button" tabindex="0" :aria-label="t.register.changeNumber" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">{{ t.register.changeNumber }}</text>
+            <text v-if="resendLeft > 0" class="rg-resend__count">{{ resendInText }}</text>
+            <text v-else class="rg-resend__btn" role="button" tabindex="0" :aria-label="t.register.resend" @click="resend" @keydown.enter.prevent="resend" @keydown.space.prevent="resend">{{ t.register.resend }}</text>
+          </view>
+
         </view>
 
         <!-- Step 3: password -->
@@ -105,7 +107,7 @@
         <text class="rg-review__body">{{ reviewNoticeBody }}</text>
       </view>
       <!-- Error -->
-      <view v-if="error" class="rg-error">
+      <view v-if="error" class="rg-error" role="alert">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
         <text class="rg-error__t">{{ error }}</text>
       </view>
@@ -120,25 +122,25 @@
         :aria-label="ctaLabel"
         :aria-disabled="!ctaEnabled || busy"
         :aria-busy="busy"
-        :aria-describedby="!ctaEnabled && !busy ? 'rg-cta-reason' : undefined"
+        :aria-describedby="!ctaEnabled && !busy && (phoneTouched || submitAttempted) ? 'rg-cta-reason' : undefined"
         @click="onCta"
         @keydown.enter.prevent="onCta"
         @keydown.space.prevent="onCta"
       >
         <text class="rg-cta__t" :class="ctaEnabled && !busy ? 'rg-cta__t--on' : ''">{{ ctaLabel }}</text>
       </view>
-      <text v-if="!ctaEnabled && !busy" id="rg-cta-reason" class="rg-sr-only">{{ ctaDisabledReason }}</text>
+      <text v-if="!ctaEnabled && !busy && (phoneTouched || submitAttempted)" id="rg-cta-reason" class="rg-sr-only">{{ ctaDisabledReason }}</text>
 
       <!-- OAuth (step 1) -->
       <view v-if="step === 1" class="rg-oauth">
         <view class="rg-divider"><view class="rg-divider__line" /><text class="rg-divider__t">{{ t.register.orContinueWith }}</text><view class="rg-divider__line" /></view>
-        <AuthProviderGrid :busy="busy" @select="startOauth" />
+        <ThirdPartyAuth :disabled="verifying || completing" :sponsor-code="lockedRef || invite" @busy="providerBusy = $event" />
       </view>
 
       <!-- Footer -->
       <view class="rg-footer">
         <text v-if="step === 1" class="rg-footer__acc">{{ t.register.haveAccount }} <text class="rg-footer__link" role="link" tabindex="0" @click="goLogin" @keydown.enter.prevent="goLogin" @keydown.space.prevent="goLogin">{{ t.register.signIn }}</text></text>
-        <text class="rg-footer__terms">{{ t.register.termsPrefix }}<text class="rg-footer__terms-link active:opacity-70" role="link" tabindex="0" @click="goTerms" @keydown.enter.prevent="goTerms" @keydown.space.prevent="goTerms">{{ t.register.termsServiceLink }}</text>{{ t.register.termsAndPrivacy }}</text>
+        <text class="rg-footer__terms">{{ t.register.termsPrefix }}<text class="rg-footer__terms-link active:opacity-70" role="link" tabindex="0" @click="goTerms" @keydown.enter.prevent="goTerms" @keydown.space.prevent="goTerms">{{ t.register.termsServiceLink }}</text> · <text class="rg-footer__terms-link" role="link" tabindex="0" @click="goPrivacy">{{ t.privacy.title }}</text></text>
       </view>
     </view>
 
@@ -157,12 +159,16 @@ import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import GlobalUi from "@/components/global-ui.vue";
 import CaptchaSlider from "@/components/captcha-slider.vue";
 import CountryCodeSheet from "@/components/country-code-sheet.vue";
-import AuthProviderGrid from "@/components/auth-provider-grid.vue";
+import ThirdPartyAuth from "@/components/third-party-auth.vue";
+import { privacyPolicyHref } from "@/lib/privacy-return";
+import { PROTOTYPE_DEMO_CODE } from "@/auth/prototype-demo";
+import { navTo } from "@/lib/route";
+import { visibleReferralGift } from "@/lib/referral-reward-gate";
+import { formatAmount } from "@/lib/amount-display";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { apiClient, authApi, remoteApiEnabled } from "@/api/runtime";
-import type { OAuthProvider } from "@/api/auth-api";
 import { createPublicSponsorPreviewApi, type PublicSponsorPreview } from "@/api/public-sponsor-preview-api";
 import { registerMockAuthCredential } from "@/api/mock-auth-api";
 import { registerAndLogin } from "@/auth/registration-auto-login";
@@ -198,12 +204,14 @@ const cfg = useConfig();
 const publicSponsorPreviewApi = createPublicSponsorPreviewApi(apiClient);
 // 礼包金额单源派生自 platform config(禁本地常量镜像)。
 const remotePreview = ref<PublicSponsorPreview | null>(null);
+const localGift = computed(() => visibleReferralGift(cfg.config.rewards));
 const giftUsdt = computed(() => remoteApiEnabled
   ? remotePreview.value?.gift.usdtAmount ?? 0
-  : cfg.config.rewards.welcomeGift.usdtAmount);
+  : localGift.value.usdtAmount);
 const giftNex = computed(() => remoteApiEnabled
   ? remotePreview.value?.gift.nexAmount ?? 0
-  : cfg.config.rewards.welcomeGift.nexAmount);
+  : localGift.value.nexAmount);
+const giftLabel = computed(() => [giftUsdt.value > 0 ? `${formatAmount(giftUsdt.value)} USDT` : '', giftNex.value > 0 ? `${formatAmount(giftNex.value)} NEX` : ''].filter(Boolean).join(' + '));
 
 type Step = 1 | 2 | 3;
 
@@ -284,8 +292,11 @@ const codeStr = computed(() => code.value.join(""));
 const codeOk = computed(() => /^\d{6}$/.test(codeStr.value));
 const pwdOk = computed(() => isPasswordOk(password.value, { phone: phoneClean.value }));
 const pwdMatch = computed(() => password.value === confirmPwd.value && pwdOk.value);
-const busy = computed(() => verifying.value || completing.value);
-const ctaEnabled = computed(() => (step.value === 1 ? phoneOk.value : step.value === 2 ? codeOk.value : pwdMatch.value));
+const providerBusy = ref(false);
+const phoneTouched = ref(false);
+const submitAttempted = ref(false);
+const busy = computed(() => verifying.value || completing.value || providerBusy.value);
+const ctaEnabled = computed(() => !providerBusy.value && (step.value === 1 ? phoneOk.value : step.value === 2 ? codeOk.value : pwdMatch.value));
 const ctaLabel = computed(() =>
   step.value === 2 && verifiedToken.value
     ? verifying.value ? t.value.register.signingIn : t.value.register.retrySignIn
@@ -305,71 +316,14 @@ const ctaDisabledReason = computed(() => {
   return t.value.register.ctaDisabledPassword;
 });
 const resendInText = computed(() => (t.value.register.resendIn || "{s}s").replace("{s}", String(resendLeft.value)));
-function showOauthUnavailable(provider: string) {
-  toast.info(fmt(t.value.register.oauthUnavailableTitle, { provider }), t.value.register.oauthUnavailableBody);
-}
 
-function oauthProvider(label: string): OAuthProvider | null {
-  return label === "Google" ? "GOOGLE"
-    : label === "Apple" ? "APPLE"
-    : label === "Passkey" ? "PASSKEY"
-    : label === "Telegram" ? "TELEGRAM"
-    : null;
-}
-
-function oauthError(cause: unknown, provider: OAuthProvider): string {
-  const code = cause instanceof Error ? cause.message : "";
-  if (code === "OAUTH_PROVIDER_NOT_CONFIGURED" || code === "OAUTH_PROVIDER_UNAVAILABLE"
-      || code === "OAUTH_SANDBOX_ONLY") {
-    return `${fmt(t.value.register.oauthUnavailableTitle, { provider })}: ${t.value.register.oauthUnavailableBody}`;
-  }
-  return t.value.authOtp.errorServiceUnavailable;
-}
-
-async function startOauth(label: string) {
-  const provider = oauthProvider(label);
-  if (!provider || !remoteApiEnabled) {
-    showOauthUnavailable(label);
-    return;
-  }
-  if (busy.value) return;
-  const flowVersion = ++otpFlowVersion;
-  completing.value = true;
-  error.value = null;
-  try {
-    const result = await authApi.oauthExchange({
-      provider,
-      mode: "PROVIDER",
-      displayName: provider,
-    });
-    if (!mounted || flowVersion !== otpFlowVersion) {
-      authApi.discardSessionIfCurrent(result.vaultRevision);
-      return;
-    }
-    const completed = completeSignIn({
-      identity: `user:${result.user.userId}`,
-      onboardingComplete: true,
-      serverProfile: result.user,
-      serverSessionRevision: result.vaultRevision,
-    });
-    if (!completed.ok) {
-      completing.value = false;
-      error.value = t.value.authOtp.errorServiceUnavailable;
-    }
-  } catch (cause) {
-    if (!mounted || flowVersion !== otpFlowVersion) return;
-    completing.value = false;
-    error.value = oauthError(cause, provider);
-  }
-}
 const reviewNotice = computed(() => registrationRisk.value !== null && registrationRisk.value.cluster.status !== "clear");
-// 分因提示: 同簇重复账号用「设备已有账号活动」口径;裸号/未绑定用「先审核,绑定后释放」口径。
 const reviewNoticeBody = computed(() => {
-  const c = registrationRisk.value?.cluster;
-  if (!c) return "";
-  const dup = c.reasons.includes("duplicate-pending-line") || c.reasons.includes("duplicate-freeze-line");
-  const bare = c.reasons.includes("bare-identity") || c.reasons.includes("unbound-free-slot");
-  return !dup && bare ? t.value.register.rewardReviewBodyUnbound : t.value.register.rewardReviewBody;
+  const cluster = registrationRisk.value?.cluster;
+  if (!cluster) return "";
+  const duplicate = cluster.reasons.includes("duplicate-pending-line") || cluster.reasons.includes("duplicate-freeze-line");
+  const unbound = cluster.reasons.includes("bare-identity") || cluster.reasons.includes("unbound-free-slot");
+  return !duplicate && unbound ? t.value.register.rewardReviewBodyUnbound : t.value.register.rewardReviewBody;
 });
 
 function invalidateOtpFlow() {
@@ -383,6 +337,7 @@ function inputVal(e: Event): string {
   return (e as unknown as { detail: { value: string } }).detail.value;
 }
 function onPhone(e: Event) {
+  phoneTouched.value = true;
   invalidateOtpFlow();
   phone.value = sanitizePhoneInput(inputVal(e));
   error.value = null;
@@ -414,6 +369,8 @@ function pickCountry(c: string) {
 }
 
 function onCta() {
+  submitAttempted.value = true;
+  if (providerBusy.value) return;
   if (busy.value) return;
   if (!ctaEnabled.value) {
     error.value = ctaDisabledReason.value;
@@ -825,7 +782,8 @@ function back() {
   step.value = (step.value === 3 ? 2 : 1) as Step;
 }
 function close() { uni.reLaunch({ url: "/pages/onboarding/intro", fail: () => {} }); }
-function goLogin() { uni.reLaunch({ url: "/pages/login/login", fail: () => {} }); }
+function goLogin() { const code = normalizeRefCode(lockedRef.value || invite.value); uni.reLaunch({ url: `/pages/login/login${code ? `?ref=${encodeURIComponent(code)}` : ""}`, fail: () => {} }); }
+function goPrivacy() { navTo(privacyPolicyHref("/pages/register/register", lockedRef.value || invite.value || undefined)); }
 function goTerms() { uni.navigateTo({ url: "/pages/onboarding/terms", fail: () => {} }); }
 
 function cleanup() {

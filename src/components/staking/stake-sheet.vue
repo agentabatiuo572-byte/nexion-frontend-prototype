@@ -81,6 +81,7 @@
 </template>
 
 <script setup lang="ts">
+import { useConfig } from "@/store/config";
 import { ref, computed, watch, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
@@ -171,6 +172,7 @@ function emitClose() {
 }
 
 async function submit() {
+  if (!useConfig().isEnabled("stakingVisible")) { emitClose(); return; }
   const term = props.term;
   if (term === null) return;
   const min = selectedPool.value?.minAmountUsdt ?? STAKING_MIN[term];

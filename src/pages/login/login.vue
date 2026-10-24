@@ -29,7 +29,7 @@
         <text class="lg-recovery-notice__t">{{ t.login.serverSessionReloadNotice }}</text>
       </view>
       <text v-if="step === 1 && mode === 'reset'" class="lg-sub">{{ t.login.resetSubtitle }}</text>
-      <text v-else-if="step === 2" class="lg-sub">{{ t.login.codeSentTo }} <text class="lg-sub__ph">{{ country }} {{ phone }}</text></text>
+      <text v-else-if="step === 2" class="lg-sub">{{ remoteApiEnabled ? t.login.codeSentTo : t.prototypeAuth.verifyNumber }} <text class="lg-sub__ph">{{ country }} {{ phone }}</text></text>
       <text v-else-if="step === 3" class="lg-sub">{{ t.login.newPasswordHint }}</text>
 
       <!-- Body -->
@@ -60,8 +60,9 @@
 
         <!-- Step 2: OTP -->
         <view v-else-if="step === 2" class="lg-col">
+          <text v-if="!remoteApiEnabled" class="lg-sandbox-otp lg-sandbox-otp__t" role="status">{{ fmt(t.prototypeAuth.codeHint, { code: PROTOTYPE_DEMO_CODE }) }}</text>
           <view class="lg-otp">
-            <input v-for="(d, i) in code" :key="i" class="lg-otp__in" :class="{ 'lg-otp__in--filled': d }" type="number" :maxlength="1" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onPrimary()" />
+            <input v-for="(d, i) in code" :key="i" class="lg-otp__in" :class="{ 'lg-otp__in--filled': d }" type="number" :maxlength="1" :aria-label="fmt(t.login.otpDigitLabel, { n: i + 1 })" :focus="focusIdx === i" :value="d" :confirm-type="i === 5 ? 'done' : 'next'" @input="onCode(i, $event)" @confirm="i === 5 && onPrimary()" />
           </view>
           <view class="lg-resend">
             <text class="lg-resend__change" role="button" tabindex="0" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">{{ t.login.changeNumber }}</text>
@@ -86,17 +87,17 @@
       </view>
 
       <!-- Error -->
-      <view v-if="error" class="lg-error">
+      <view v-if="error" class="lg-error" role="alert">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
         <text class="lg-error__t">{{ error }}</text>
       </view>
 
       <!-- Primary CTA -->
-      <view class="lg-cta" :class="canPrimary ? 'lg-cta--on' : ''" role="button" tabindex="0" :aria-disabled="!canPrimary || loading" :aria-describedby="!canPrimary && !loading ? 'lg-cta-reason' : undefined" data-system-chrome-primary @click="onPrimary" @keydown.enter.prevent="onPrimary" @keydown.space.prevent="onPrimary">
+      <view class="lg-cta" :class="canPrimary ? 'lg-cta--on' : ''" role="button" tabindex="0" :aria-disabled="!canPrimary || loading" :aria-describedby="!canPrimary && !loading && (phoneTouched || submitAttempted) ? 'lg-cta-reason' : undefined" data-system-chrome-primary @click="onPrimary" @keydown.enter.prevent="onPrimary" @keydown.space.prevent="onPrimary">
         <text v-if="loading" class="lg-cta__t lg-cta__t--on">···</text>
         <text v-else class="lg-cta__t" :class="canPrimary ? 'lg-cta__t--on' : ''">{{ primaryText }}</text>
       </view>
-      <text v-if="!canPrimary && !loading" id="lg-cta-reason" class="lg-sr-only">{{ primaryDisabledReason }}</text>
+      <text v-if="!canPrimary && !loading && (phoneTouched || submitAttempted)" id="lg-cta-reason" class="lg-sr-only">{{ primaryDisabledReason }}</text>
 
       <!-- Mode switch (password ↔ otp), only on step 1 non-reset -->
       <view v-if="step === 1 && mode !== 'reset'" class="lg-switch" role="button" tabindex="0" @click="toggleMode" @keydown.enter.prevent="toggleMode" @keydown.space.prevent="toggleMode">
@@ -106,7 +107,7 @@
       <!-- OAuth (step 1, not reset) -->
       <view v-if="step === 1 && mode !== 'reset'" class="lg-oauth">
         <view class="lg-divider"><view class="lg-divider__line" /><text class="lg-divider__t">{{ t.login.orContinueWith }}</text><view class="lg-divider__line" /></view>
-        <AuthProviderGrid :busy="loading" @select="startOauth" />
+        <ThirdPartyAuth :disabled="loading" :return-to="returnParam" :sponsor-code="refOnLogin" @busy="providerBusy = $event" />
       </view>
 
       <!-- Footer -->
@@ -129,13 +130,14 @@ import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import GlobalUi from "@/components/global-ui.vue";
 import CaptchaSlider from "@/components/captcha-slider.vue";
 import CountryCodeSheet from "@/components/country-code-sheet.vue";
-import AuthProviderGrid from "@/components/auth-provider-grid.vue";
+import ThirdPartyAuth from "@/components/third-party-auth.vue";
+import { mockAccountIdForUser, mockAccountPhone } from "@/api/mock-auth-api";
+import { PROTOTYPE_DEMO_CODE } from "@/auth/prototype-demo";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { otpSend, otpVerify, type OtpScene } from "@/store/auth-otp";
-import { authAccountKeyForPhone } from "@/store/auth-account";
 import { normalizeRefCode } from "@/store/sponsorship";
 import { toast } from "@/store/ui";
 import { isResetPasswordOk, PASSWORD_MAX_LENGTH } from "@/auth/password-rules";
@@ -143,7 +145,6 @@ import { completeSignIn } from "@/auth/complete-sign-in";
 import { exchangeVerifiedLogin } from "@/store/auth-otp";
 import { authApi, remoteApiEnabled } from "@/api/runtime";
 import { MOCK_PREVIEW_ACCOUNT, provisionMockPreviewAccount } from "@/api/mock-preview-account";
-import type { OAuthProvider } from "@/api/auth-api";
 import { ApiError } from "@/api/errors";
 import type { UserSession } from "@/api/contracts";
 import { dialCodeForLocale, phoneFormatHint, sanitizePhoneInput, validateNationalPhone } from "@/auth/phone-number";
@@ -173,11 +174,15 @@ interface RemoteTwoFactorAttemptContext {
 }
 
 const previewAccount = provisionMockPreviewAccount();
+const previewPhone = previewAccount.ok ? mockAccountPhone(previewAccount.accountId) : null;
+const providerBusy = ref(false);
+const phoneTouched = ref(false);
+const submitAttempted = ref(false);
 const mode = ref<LoginMode>("password");
 const step = ref<Step>(1);
-const country = ref(previewAccount.ok ? MOCK_PREVIEW_ACCOUNT.countryCode : dialCodeForLocale(useLocaleStore().code));
+const country = ref(previewAccount.ok ? previewPhone?.countryCode ?? MOCK_PREVIEW_ACCOUNT.countryCode : dialCodeForLocale(useLocaleStore().code));
 const showCountries = ref(false);
-const phone = ref(previewAccount.ok ? MOCK_PREVIEW_ACCOUNT.phone : "");
+const phone = ref(previewAccount.ok ? previewPhone?.phone ?? MOCK_PREVIEW_ACCOUNT.phone : "");
 const password = ref(previewAccount.ok ? MOCK_PREVIEW_ACCOUNT.password : "");
 const newPassword = ref("");
 const confirmPwd = ref("");
@@ -207,7 +212,7 @@ onLoad((options) => {
   serverSessionReloadNotice.value = o.notice === "server-session-reload";
   // [FEAT-SHARE4] 与注册页同一 client 预检:非法码不入绑定链(服务端权威校验另行)。
   const normRef = normalizeRefCode(o.ref);
-  if (normRef) refOnLogin.value = normRef;
+  refOnLogin.value = normRef;
 });
 
 const showCaptcha = ref(false);
@@ -231,7 +236,7 @@ function authenticatedAccountId(user: UserSession): string {
   if (remoteApiEnabled) return `user:${user.userId}`;
   // Mock password auth shares the same account scope as the legacy OTP and
   // registration directory, so one phone never opens two local wallets.
-  return authAccountKeyForPhone(`${user.countryCode}${user.phone}`) ?? `user:${user.userId}`;
+  return mockAccountIdForUser(user);
 }
 // Reset mode's new password must pass the full strength check.
 const newPwdOk = computed(() => isResetPasswordOk(newPassword.value, { phone: phoneClean.value }));
@@ -250,6 +255,7 @@ const primaryText = computed(() => {
   return t.value.login.finishReset;
 });
 const canPrimary = computed(() => {
+  if (providerBusy.value) return false;
   if (step.value === 1) return mode.value === "password" ? (phoneOk.value && pwdOk.value && !loading.value) : (phoneOk.value && !loading.value);
   if (step.value === 2) return codeOk.value && !loading.value;
   return pwdMatch.value && !loading.value;
@@ -265,69 +271,12 @@ const primaryDisabledReason = computed(() => {
   return "";
 });
 const resendInText = computed(() => (t.value.login.resendIn || "{s}s").replace("{s}", String(resendLeft.value)));
-function showOauthUnavailable(provider: string) {
-  toast.info(fmt(t.value.login.oauthUnavailableTitle, { provider }), t.value.login.oauthUnavailableBody);
-}
-
-function oauthProvider(label: string): OAuthProvider | null {
-  return label === "Google" ? "GOOGLE"
-    : label === "Apple" ? "APPLE"
-    : label === "Passkey" ? "PASSKEY"
-    : label === "Telegram" ? "TELEGRAM"
-    : null;
-}
-
-function oauthError(cause: unknown, provider: OAuthProvider): string {
-  const code = cause instanceof ApiError ? cause.message : "";
-  if (code === "OAUTH_PROVIDER_NOT_CONFIGURED" || code === "OAUTH_PROVIDER_UNAVAILABLE"
-      || code === "OAUTH_SANDBOX_ONLY") {
-    return `${fmt(t.value.login.oauthUnavailableTitle, { provider })}: ${t.value.login.oauthUnavailableBody}`;
-  }
-  return remoteLoginError(cause);
-}
-
-async function startOauth(label: string) {
-  const provider = oauthProvider(label);
-  if (!provider || !remoteApiEnabled) {
-    showOauthUnavailable(label);
-    return;
-  }
-  if (loading.value) return;
-  const flowVersion = ++otpFlowVersion;
-  loading.value = true;
-  error.value = null;
-  try {
-    const result = await authApi.oauthExchange({
-      provider,
-      mode: "PROVIDER",
-      displayName: provider,
-    });
-    if (!mounted || flowVersion !== otpFlowVersion) {
-      authApi.discardSessionIfCurrent(result.vaultRevision);
-      return;
-    }
-    const completed = completeSignIn({
-      identity: authenticatedAccountId(result.user),
-      returnTo: returnParam.value,
-      onboardingComplete: true,
-      serverProfile: result.user,
-      serverSessionRevision: result.vaultRevision,
-    });
-    if (!completed.ok) {
-      loading.value = false;
-      error.value = t.value.authOtp.errorServiceUnavailable;
-    }
-  } catch (cause) {
-    if (!mounted || flowVersion !== otpFlowVersion) return;
-    loading.value = false;
-    error.value = oauthError(cause, provider);
-  }
-}
 
 function inputVal(e: Event): string {
   return (e as unknown as { detail: { value: string } }).detail.value;
 }
 function onPhone(e: Event) {
+  phoneTouched.value = true;
   invalidateOtpFlow();
   phone.value = sanitizePhoneInput(inputVal(e));
   error.value = null;
@@ -722,6 +671,8 @@ async function finishReset() {
 }
 
 function onPrimary() {
+  submitAttempted.value = true;
+  if (providerBusy.value) return;
   if (step.value === 1) { if (mode.value === "password") signInWithPassword(); else goSendCode(); }
   else if (step.value === 2) verifyCode();
   else finishReset();
@@ -772,7 +723,7 @@ function close() {
 }
 function goRegister() {
   invalidateOtpFlow();
-  uni.reLaunch({ url: "/pages/register/register", fail: () => {} });
+  uni.reLaunch({ url: `/pages/register/register${refOnLogin.value ? `?ref=${encodeURIComponent(refOnLogin.value)}` : ""}`, fail: () => {} });
 }
 
 function cleanup() {

@@ -73,6 +73,9 @@
 </template>
 
 <script setup lang="ts">
+import { useConfig } from "@/store/config";
+import { isStakingVisibilityRoute } from "@/lib/staking-visibility";
+const visibilityConfig = useConfig();
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -105,7 +108,7 @@ const POWERUPS: PowerUp[] = [
   { id: "genesis_whitelist", threshold: 60, tint: "var(--v5-ink)", key: "genesis_whitelist", href: "/pages/genesis/genesis" },
 ];
 
-const powerUps = computed<PowerUp[]>(() => remoteApiEnabled
+const powerUps = computed<PowerUp[]>(() => (remoteApiEnabled
   ? faucet.remotePowerUps.map((item) => ({
       id: item.powerUpCode.toLowerCase() as StreakPowerUpId,
       threshold: item.unlockStreakDays,
@@ -113,7 +116,7 @@ const powerUps = computed<PowerUp[]>(() => remoteApiEnabled
       labelText: item.name, descText: benefitDescription(item.powerUpCode, item.effectValue, item.status),
       status: item.status,
     }))
-  : POWERUPS);
+  : POWERUPS).filter((item) => !isStakingVisibilityRoute(item.href ?? "") || visibilityConfig.isEnabled("stakingVisible")));
 
 function benefitDescription(code: string, value: string, status: PowerUp["status"]): string {
   if (POWERUPS.some((item) => item.id === code.toLowerCase()) && /^\d+(?:\.\d+)?(?:%|×|x| NEX| USDT)?$/.test(value.trim())) {

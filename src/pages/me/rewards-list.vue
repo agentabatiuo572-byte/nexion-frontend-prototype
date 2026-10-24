@@ -19,6 +19,7 @@
   <AppChassis active="me">
     <view style="color: var(--v5-ink); padding-bottom: 24px">
       <SubPageHeader back="/pages/me/rewards" :title="pageTitle" />
+      <PromotionRewardList v-if="cat==='promotion'" />
 
       <!-- ── Vouchers (ticket-style cards: value stub + perforation + body) ── -->
       <template v-if="cat === 'voucher'">
@@ -79,7 +80,7 @@
       </template>
 
       <!-- ── USDT / NEX reward records (paginated) ── -->
-      <template v-else>
+      <template v-else-if="cat !== 'promotion'">
         <EmptyState v-if="records.length === 0" kind="empty-list" :title="t.empty.rewardsTitle" :desc="t.empty.rewardsDesc" />
 
         <view v-else :style="recordListStyle">
@@ -106,6 +107,7 @@
 </template>
 
 <script setup lang="ts">
+import PromotionRewardList from '@/components/promotion/promotion-reward-list.vue';
 import { computed, ref, watchEffect, type CSSProperties } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -122,7 +124,7 @@ import { remoteApiEnabled } from "@/api/runtime";
 import { useScrollGrowProgress } from "@/composables/use-scroll-grow-progress";
 
 // Mirrors L1's RewardsCat (pages/me/rewards.vue); unknown values fall back.
-type RewardsCat = "voucher" | "usdt" | "nex";
+type RewardsCat = "voucher" | "usdt" | "nex" | "promotion";
 // One screen's worth per load (receipts idiom — mock slices locally, real
 // backend pages via cursor+limit with the same size).
 const PAGE_SIZE = 10;
@@ -134,11 +136,11 @@ const bills = useBills();
 const cat = ref<RewardsCat>("voucher");
 onLoad((options) => {
   const o = (options || {}) as Record<string, string>;
-  cat.value = o.cat === "usdt" || o.cat === "nex" ? o.cat : "voucher";
+  cat.value = o.cat === "usdt" || o.cat === "nex" || o.cat === "promotion" ? o.cat : "voucher";
 });
 
 const pageTitle = computed(() =>
-  cat.value === "usdt" ? t.value.rewards.catUsdt : cat.value === "nex" ? t.value.rewards.catNex : t.value.rewards.catVouchers,
+  cat.value === 'promotion' ? t.value.promotion.rewards : cat.value === "usdt" ? t.value.rewards.catUsdt : cat.value === "nex" ? t.value.rewards.catNex : t.value.rewards.catVouchers,
 );
 
 // ── vouchers ──

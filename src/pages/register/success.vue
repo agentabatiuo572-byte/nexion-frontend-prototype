@@ -9,7 +9,7 @@
 -->
 <template>
   <StandalonePageShell class="rs-root" :reserve-bottom="false">
-    <view class="rs-wrap" :class="{ 'rs-wrap--gift': giftState !== 'none' }">
+    <view v-if="auth.isAuthenticated || downloadOnly" class="rs-wrap" :class="{ 'rs-wrap--gift': giftState !== 'none' }">
       <view class="rs-main">
         <view class="rs-content">
           <view class="rs-badge">
@@ -82,7 +82,7 @@
         <view v-else class="rs-h5-download__action rs-h5-download__action--disabled" role="status" aria-disabled="true">
           <text class="rs-h5-download__pending">{{ t.register.doneOfficialDownloadPending }}</text>
         </view>
-        <button v-if="!officialDownloadUrl" class="rs-retry" :disabled="cfg.loading" @click="cfg.load()">{{ t.phonePolicy.retry }}</button>
+        <view v-if="!officialDownloadUrl" class="rs-retry" role="button" :tabindex="cfg.loading ? -1 : 0" :aria-disabled="cfg.loading" @click="retryDownloadConfig"><text>{{ t.phonePolicy.retry }}</text></view>
       </view>
       <!-- #endif -->
 
@@ -148,7 +148,7 @@ const giftState = computed<GiftState>(() => {
     return status === "POSTED" ? "posted" : "pending";
   }
   const receipt = registration.value;
-  if (!receipt?.sponsorCode) return "none";
+  if (!receipt?.sponsorCode || receipt.giftRoute === "no_issue" || receipt.giftUsdt <= 0 && receipt.giftNex <= 0) return "none";
   return receipt.giftRoute === "withdrawable" ? "posted" : "pending";
 });
 
@@ -170,6 +170,7 @@ const subLine = computed(() =>
 );
 
 onMounted(() => {
+  if (!auth.isAuthenticated && !downloadOnly.value) { uni.reLaunch({ url: "/pages/onboarding/intro", fail: () => {} }); return; }
   // #ifdef H5
   void nextTick(() => document.querySelector<HTMLElement>(".rs-title")?.focus());
   // #endif
@@ -195,6 +196,7 @@ function openOfficialDownload() {
   if (popup) popup.opener = null;
   else window.location.assign(url);
 }
+function retryDownloadConfig() { if (!cfg.loading) void cfg.load(); }
 // #endif
 
 function continueWeb() {

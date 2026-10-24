@@ -4,6 +4,7 @@
 // the homepage task flags below are read-only projections of existing H3 data.
 
 export interface FeatureFlags {
+  stakingVisible: boolean;
   // DR-1: 电脑算力(PC 共享)总开关。默认 false → 前端零入口零推送；
   // 后台一键开启后前端才长出弱入口。
   computeShareEnabled: boolean;
@@ -111,6 +112,7 @@ export interface WithdrawRulesConfig {
 export type WelcomeGiftLockMode = "risk_bucket" | "direct";
 
 export interface RewardsConfig {
+  enabled: boolean;
   welcomeGift: {
     lockMode: WelcomeGiftLockMode;
     // 注册礼包金额(运营可调;admin K.rewards.welcomeGift.* 同键,CGM-F-020)。

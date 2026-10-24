@@ -43,6 +43,10 @@ export interface Order {
   quantity: number;
   /** Number of products represented by a canonical bundle order. */
   itemCount?: number;
+  promotionQuoteId?: string;
+  activityId?: string;
+  items?: { lineId: string; productNo: string; productName: string; quantity: number }[];
+  deviceIds?: string[];
   unitPrice: number;        // USDT
   discount: number;         // USDT (voucher)
   /** FEAT-DEV02 旧机抵扣(USDT)——仅结算抵减,永不入余额;服务端同事务复算。 */
@@ -311,6 +315,8 @@ export const useOrders = defineStore("orders", () => {
     //    这里往前推一步就等于凭空发一台机器:next === "activated" 会 addDevice + activateDevice。
     if (remoteApiEnabled) return;
     const cur = orders.value.find((o) => o.id === id);
+    // Activity fulfillment is idempotent per order line in the local promotion adapter.
+    if (cur?.promotionQuoteId) return;
     if (!cur || cur.status === "activated" || cur.status === "cancelled") return;
     const idx = TIMELINE.indexOf(cur.status);
     if (idx < 0 || idx >= TIMELINE.length - 1) return;
@@ -427,7 +433,11 @@ export const useOrders = defineStore("orders", () => {
     return orders.value.find((o) => o.id === id);
   }
 
-  return { orders, createOrder, createOrders, advanceOrder, markActivated, cancelOrder, cancelOrderRemote, getById, bindAccount, currentAccountKey, refreshRemote };
+  function upsertPromotionOrder(order: Order): boolean {
+    if (remoteApiEnabled || !order.promotionQuoteId) return false;
+    return commitOrders(current => [order, ...current.filter(item => item.id !== order.id)]);
+  }
+  return { orders, createOrder, createOrders, advanceOrder, markActivated, cancelOrder, cancelOrderRemote, getById, bindAccount, currentAccountKey, refreshRemote, upsertPromotionOrder };
 });
 
 // ⚠️ MOCK-ONLY: client unilaterally progresses orders through provisioning with

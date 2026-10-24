@@ -4,7 +4,7 @@
   Reuses shared how-* components. lemon accent.
 -->
 <template>
-  <AppChassis active="me">
+  <AppChassis v-if="stakingVisible" active="me">
     <view style="padding-bottom: 32px">
       <SubPageHeader back="/pages/me/wallet-repurchase" :title="w.navTitle" />
 
@@ -64,6 +64,8 @@
 </template>
 
 <script setup lang="ts">
+import { useStakingPageVisibility } from "@/composables/use-staking-page-visibility";
+const stakingVisible = useStakingPageVisibility();
 import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";

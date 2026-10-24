@@ -314,8 +314,7 @@ function goGuide() {
   navTo("/pages/me/usdt-guide");
 }
 function goSupport() {
-  // cat=deposit:从充值场景进工单,预选「充值」分类(上下文随入口带过去)
-  navTo("/pages/me/support-tickets?mode=create&cat=deposit");
+  navTo("/pages/support/messages");
 }
 
 // ── 最近入金(纯展示;状态由 store mock 引擎推进,server-canonical)──

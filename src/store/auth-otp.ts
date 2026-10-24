@@ -404,7 +404,8 @@ export function registerVerifiedPhone(
   if (!token || token.nextAction !== "continue_registration") return { ok: false, error: "verify_token_invalid" };
   const accountId = authAccountKeyForPhone(phone);
   if (!accountId) return { ok: false, error: "account_directory_unavailable" };
-  const gift = useConfig().config.rewards.welcomeGift;
+  const rewards = useConfig().config.rewards;
+  const gift = rewards.enabled ? rewards.welcomeGift : { lockMode: "risk_bucket" as const, usdtAmount: 0, nexAmount: 0 };
   // 不信任页面调用方：冻结到 pending 目录前再次裁掉任意字符串邀请码。
   const sponsorCode = normalizeRefCode(input.sponsorCode);
   const result = reserveAuthAccount(phone, {

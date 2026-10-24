@@ -34,6 +34,7 @@ import { recordAttestation } from "@/store/risk-identity";
 import { commitWithdrawal } from "@/store/withdrawal-eligibility";
 import { advanceArrival, occupiesWithdrawalSlot } from "@/store/withdrawal-arrival-core";
 import { mockServerNow } from "@/store/server-time";
+import { readPrototypeStorage, writePrototypeStorageSnapshot } from '@/lib/prototype-storage';
 import type { OnlineBonus, WithdrawalRiskRoute } from "@/store/config-types";
 import type { DeviceCapability } from "@/lib/device-capability";
 import { useReceipts } from "./receipts";
@@ -43,6 +44,7 @@ import {
   mergeAndWriteAccountSnapshotResult,
   readAccountSnapshot,
   type AccountCloudSnapshot,
+  type AccountSnapshotStorage,
 } from "./account-cloud";
 import {
   deviceE3Api,
@@ -601,6 +603,42 @@ export const useApp = defineStore("app", () => {
 
   reseedDeviceRuntime(devices.value);
 
+  let strictSnapshotStorage: AccountSnapshotStorage | undefined;
+  /** Only synchronous prototype transactions opt in. All money/device writes
+   * in the callback consume this one validated snapshot, including rollback. */
+  function withStrictPrototypeSnapshot<T>(run: () => T, options: { allowAccountSwitch?: boolean } = {}): T {
+    if (remoteApiEnabled) throw new Error('storage');
+    if (strictSnapshotStorage) return run();
+    const key = accountKey.value;
+    let table = readPrototypeStorage<Record<string, AccountCloudSnapshot>>('nexgrid-account-cloud-v1') ?? {};
+    if (!table || typeof table !== 'object' || Array.isArray(table)) throw new Error('storage');
+    const read = (requested: string) => {
+      const saved = table[normalizeAccountKey(requested)];
+      if (saved !== undefined && (!saved || saved.schema !== 1 || !saved.user || !saved.earnings || !Array.isArray(saved.devices)
+        || !Number.isFinite(saved.user.usdtBalance) || !Number.isFinite(saved.user.nexBalance))) throw new Error('storage');
+      return readAccountSnapshot(requested, table);
+    };
+    read(key);
+    const previous = strictSnapshotStorage;
+    strictSnapshotStorage = {
+      read,
+      write: snapshot => {
+        const currentKey = accountKey.value;
+        if ((!options.allowAccountSwitch && currentKey !== key) || normalizeAccountKey(snapshot.accountKey) !== currentKey) return false;
+        const next = { ...table, [currentKey]: snapshot };
+        try {
+          writePrototypeStorageSnapshot('nexgrid-account-cloud-v1', next);
+          table = JSON.parse(JSON.stringify(next));
+          return true;
+        } catch { return false; }
+      },
+    };
+    try {
+      if (!persistAccountSnapshot()) throw new Error('storage');
+      return run();
+    } finally { strictSnapshotStorage = previous; }
+  }
+
   function persistAccountSnapshot(): boolean {
     // 🔴🔴 返回值语义 = 「内存这一拍可以留下吗」,**不是**「有没有写磁盘」
     // (2026-08-12 双向分叉合并实测出的资金级缺陷,根治而非逐点打补丁)。
@@ -627,7 +665,7 @@ export const useApp = defineStore("app", () => {
       earnings: earnings.value,
       withdrawals: withdrawals.value,
     };
-    const result = mergeAndWriteAccountSnapshotResult(lastCloudSnapshot, snapshot);
+    const result = mergeAndWriteAccountSnapshotResult(lastCloudSnapshot, snapshot, strictSnapshotStorage);
     adoptAccountSnapshot(result.snapshot);
     return result.persisted;
   }
@@ -905,7 +943,7 @@ export const useApp = defineStore("app", () => {
       if (mockFundsEnabled) void refreshFundsSandboxForAccount(key);
       return;
     }
-    const snapshot = hydrateSnapshotEconomics(readAccountSnapshot(key)) ?? createSeedSnapshot(key, rawAccountKey, surface);
+    const snapshot = hydrateSnapshotEconomics(strictSnapshotStorage ? strictSnapshotStorage.read(key) : readAccountSnapshot(key)) ?? createSeedSnapshot(key, rawAccountKey, surface);
     accountKey.value = snapshot.accountKey;
     entrySurface.value = surface;
     const boundSnapshot: AccountCloudSnapshot = {
@@ -916,7 +954,7 @@ export const useApp = defineStore("app", () => {
     miningPaused.value = false;
     adoptAccountSnapshot(boundSnapshot, true);
     // persist-verdict-ok: 换号后的首拍落盘;失败时磁盘保持原样、内存已拨回,后续每次资金动作各自落盘复验
-    persistAccountSnapshot();
+    if (!persistAccountSnapshot() && strictSnapshotStorage) throw new Error('storage');
   }
 
   /** Rehydrates every historical production withdrawal after login/reload. */
@@ -1265,7 +1303,7 @@ export const useApp = defineStore("app", () => {
   }
 
   function enforcePhoneRuntime() {
-    const latest = readAccountSnapshot(accountKey.value);
+    const latest = strictSnapshotStorage ? strictSnapshotStorage.read(accountKey.value) : readAccountSnapshot(accountKey.value);
     if (latest && JSON.stringify(latest.phoneBinding ?? null) !== JSON.stringify(phoneBinding.value)) adoptAccountSnapshot(latest);
     else if (latest && latest.devices.some((d) => d.kind === "phone"
       && (d.onlineHeartbeatAt ?? 0) > (devices.value.find((row) => row.id === d.id)?.onlineHeartbeatAt ?? 0))) {
@@ -1284,7 +1322,7 @@ export const useApp = defineStore("app", () => {
   // Only a completed, explicit authentication calls this. onShow/session refresh
   // cannot clear a different-phone login suspension.
   function acceptPhoneSignIn(): boolean {
-    const latest = readAccountSnapshot(accountKey.value);
+    const latest = strictSnapshotStorage ? strictSnapshotStorage.read(accountKey.value) : readAccountSnapshot(accountKey.value);
     if (latest) adoptAccountSnapshot(latest);
     const binding = phoneBinding.value;
     if (getCarrier() === "app" && binding && (binding.installationId !== getDeviceId() || binding.suspendedAt !== null)) {
@@ -1973,7 +2011,7 @@ export const useApp = defineStore("app", () => {
     if (!Number.isFinite(usdt) || !Number.isFinite(nex) || usdt < 0 || nex < 0) return false;
     if (route === "no_issue") return true;
     if (idempotencyKey) {
-      const stored = readAccountSnapshot(accountKey.value);
+      const stored = strictSnapshotStorage ? strictSnapshotStorage.read(accountKey.value) : readAccountSnapshot(accountKey.value);
       if (stored?.user.appliedRewardKeys?.[idempotencyKey]) {
         adoptAccountSnapshot(stored);
         return true;
@@ -2544,7 +2582,7 @@ export const useApp = defineStore("app", () => {
     homeTruth, homeTruthStatus, homeTruthError,
     remoteFleetStatus, remoteFleetError,
     withdrawals, latestWithdrawal, inFlightWithdrawals, primaryWithdrawal, miningPaused,
-    bindAccount, projectServerIdentity, persistAccountSnapshot, refreshHomeTruth, refreshRemoteFleet, syncRemoteTaskAssignments, refreshFundsSandbox, refreshFundsSandboxForAccount,
+    bindAccount, projectServerIdentity, persistAccountSnapshot, withStrictPrototypeSnapshot, refreshHomeTruth, refreshRemoteFleet, syncRemoteTaskAssignments, refreshFundsSandbox, refreshFundsSandboxForAccount,
     fundsSandboxStatus, fundsSandboxError, fundsSandboxEvidence,
     tick, settle, setPhoneRuntime, applyPhoneCalibration, interruptAllTasks, resumeMining,
     phoneBinding, phoneActivationError, phoneInventoryActivationError, acceptPhoneSignIn,

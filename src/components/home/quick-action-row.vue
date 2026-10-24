@@ -43,6 +43,9 @@
 </template>
 
 <script setup lang="ts">
+import { useConfig } from "@/store/config";
+import { isStakingVisibilityRoute } from "@/lib/staking-visibility";
+const visibilityConfig = useConfig();
 import { computed } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -65,7 +68,7 @@ const chips = computed(() => [
   { href: "/pages/genesis/genesis", icon: "crown", label: t.value.home.quickGenesisLabel, sub: genesisUrgencyOk.value ? fmt(t.value.home.quickGenesisLeft, { n: genesis.totalSlots - genesis.soldSlots }) : (genesisBlockText.value ?? t.value.genesis.ctaSoldOut), tone: "warm" as const },
   { href: "/pages/missions/missions", icon: "target", label: t.value.home.quickMissions, sub: t.value.home.quickMissionsActive, tone: "brand" as const },
   { href: "/pages/daily/daily", icon: "flame", label: t.value.home.quickDaily, sub: fmt(t.value.home.quickDailyStreak, { n: faucet.signInStreak }), tone: "warm" as const },
-]);
+].filter((chip) => !isStakingVisibilityRoute(chip.href) || visibilityConfig.isEnabled("stakingVisible")));
 
 function iconColor(tone: "brand" | "warm"): string {
   return tone === "warm" ? "var(--v5-brand-2)" : "var(--v5-brand)";

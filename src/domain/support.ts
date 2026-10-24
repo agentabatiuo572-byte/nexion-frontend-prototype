@@ -51,6 +51,15 @@ export interface ConvMessage {
   status?: "sent" | "read";
   text: string;
   ts: number;
+  kind?: "TEXT" | "IMAGE" | "SKU" | "LINK";
+  attachmentId?: string;
+  imageSrc?: string;
+  skuId?: string;
+  skuName?: string;
+  linkTarget?: { type: "HOME" | "WALLET" | "SUPPORT"; params: Record<string, never> };
+  targetAvailability?: "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN";
+  authorName?: string;
+  authorConfidence?: "VERIFIED" | "UNKNOWN";
 }
 export interface Conversation {
   id: string;
@@ -65,6 +74,9 @@ export interface Conversation {
   lastTs: number;
   lastMessage: string;
   sessionStatus: ConvSessionStatus;
+  lastPublicMessageId?: number;
+  historyTruncated?: boolean;
+  historyNextCursor?: number | null;
 }
 
 export interface SupportFaq {

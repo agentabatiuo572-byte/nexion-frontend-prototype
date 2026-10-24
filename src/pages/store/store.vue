@@ -11,7 +11,9 @@
 -->
 <template>
   <AppChassis active="store">
-    <CardStagger class="px-4 pt-3 pb-4 space-y-6" style="color: var(--v5-ink)">
+    <PromotionBundle v-if="promotionActivityId" :activity-id="promotionActivityId" />
+    <CardStagger v-else class="px-4 pt-3 pb-4 space-y-6" style="color: var(--v5-ink)">
+      <PromotionEntry mode="store" />
       <StoreHero />
       <ClusterLadder />
       <VsPhoneHero />
@@ -77,6 +79,9 @@
 </template>
 
 <script setup lang="ts">
+import PromotionEntry from '@/components/promotion/promotion-entry.vue';
+import PromotionBundle from '@/components/promotion/promotion-bundle.vue';
+import { onLoad } from '@dcloudio/uni-app';
 import { ref, computed, onMounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import CardStagger from "@/components/card-stagger.vue";
@@ -99,6 +104,8 @@ import { useProductPhase } from "@/composables/use-product-phase";
 import { isProductAvailable } from "@/store/product-availability";
 
 const t = useT();
+const promotionActivityId = ref('');
+onLoad(options => { promotionActivityId.value = String(options?.activityId ?? ''); });
 const genesisCfg = useGenesisConfig();
 // 🔴 商城页渲染创世尊享卡(受闸 CTA + 上架开关),必须跟着重读(独立验收 P1)。
 //   注意 `showcaseEnabled` 由 false→true 时卡片本身不挂载,composable 的 onMounted 够不着,

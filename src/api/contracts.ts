@@ -55,9 +55,9 @@ export function isUserSession(value: unknown): value is UserSession {
     && Number.isSafeInteger(user.userId)
     && user.userId > 0
     && typeof user.countryCode === "string"
-    && user.countryCode.length > 0
     && typeof user.phone === "string"
-    && user.phone.length > 0
+    && (user.countryCode === "" && user.phone === ""
+      || /^\+\d{1,4}$/.test(user.countryCode) && /^\d+$/.test(user.phone))
     && typeof user.nickname === "string"
   );
 }

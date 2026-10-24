@@ -5,7 +5,7 @@
   stagger → CSS nx-step-in. Wrapped in <AppChassis active="me">.
 -->
 <template>
-  <AppChassis active="me">
+  <AppChassis v-if="stakingVisible" active="me">
     <view style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/wallet" />
 
@@ -75,7 +75,9 @@
         </view>
 
         <!-- CTA -->
-        <view class="nx-repurchase-submit-cta w-full flex items-center justify-center" :class="{ 'active:scale-[0.98]': canSubmit }" :style="ctaStyle" role="button" tabindex="0" @click="handleRepurchase">
+        <text class="block" :style="lockedNoticeStyle">{{ fmt(w.minimumAmount, { amount: minimumAmount.toFixed(2) }) }}</text>
+        <text v-if="disabledReason" class="block" role="status" :style="lockedNoticeStyle">{{ disabledReason }}</text>
+        <view class="nx-repurchase-submit-cta w-full flex items-center justify-center" :class="{ 'active:scale-[0.98]': canSubmit }" :style="ctaStyle" role="button" tabindex="0" :aria-disabled="!canSubmit" @click="handleRepurchase">
           <text>{{ ctaLabel }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="canSubmit ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
@@ -87,6 +89,8 @@
 </template>
 
 <script setup lang="ts">
+import { useStakingPageVisibility } from "@/composables/use-staking-page-visibility";
+const stakingVisible = useStakingPageVisibility();
 import { computed, ref, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -94,10 +98,12 @@ import Row from "@/components/me/repurchase-row.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import { toast } from "@/store/ui";
+import { toast, confirm } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { postMoneyBill } from "@/lib/money-receipt";
-import { useStaking } from "@/store/staking";
+import { useStaking, STAKING_MIN } from "@/store/staking";
+import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { onHide, onShow } from "@dcloudio/uni-app";
 
 const PRESETS = [100, 200, 500, 1000];
 
@@ -111,7 +117,16 @@ const amount = ref<number>(200);
 const presets = PRESETS;
 
 const projectedYield = computed(() => amount.value * 0.35 * (90 / 365));
-const canSubmit = computed(() => amount.value > 0 && amount.value <= user.value.usdtBalance);
+const minimumAmount = STAKING_MIN[90];
+const processing = ref(false);
+let visible = true;
+onShow(() => { visible = true; });
+onHide(() => { visible = false; });
+const disabledReason = computed(() => !stakingVisible.value ? w.value.pausedHint
+  : processing.value ? w.value.processingHint
+  : !Number.isFinite(amount.value) || amount.value < minimumAmount ? fmt(w.value.belowMinimumHint, { amount: minimumAmount.toFixed(2) })
+  : amount.value > user.value.usdtBalance ? w.value.insufficient : "");
+const canSubmit = computed(() => !disabledReason.value);
 
 const ctaLabel = computed(() => fmt(w.value.cta, { amount: amount.value.toFixed(2) }));
 
@@ -135,8 +150,19 @@ function onAmount(e: Event) {
   amount.value = Math.max(0, parseFloat(detailVal(e)) || 0);
 }
 
-function handleRepurchase() {
+async function handleRepurchase() {
   if (!canSubmit.value) return;
+  const account = captureAccountScope();
+  const requestedAmount = amount.value;
+  processing.value = true;
+  try {
+    const accepted = await confirm({ title: ctaLabel.value, message: w.value.lockedNotice, confirmLabel: ctaLabel.value });
+    if (!accepted || !visible || !stakingVisible.value || !isCurrentAccountScope(account) || amount.value !== requestedAmount) return;
+    if (requestedAmount < minimumAmount || requestedAmount > user.value.usdtBalance) return;
+    executeRepurchase();
+  } finally { processing.value = false; }
+}
+function executeRepurchase() {
   const billRef = `REINVEST-${Date.now().toString(36).toUpperCase()}`;
   // Cross-store orchestration in the handler (stores don't import each other).
   // 🔴 顺序 = 扣款⊗记账(原子)→ 建仓(2026-08-04 R4「钱动了、账没记上」)。原顺序是

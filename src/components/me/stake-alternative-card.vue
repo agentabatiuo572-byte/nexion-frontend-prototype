@@ -6,7 +6,7 @@
   + headline + "Stake for +$delta in {days} days" CTA → /staking.
 -->
 <template>
-  <view class="nx-glass-card mx-4 mt-3 relative overflow-hidden" :style="cardStyle">
+  <view v-if="visibilityConfig.isEnabled('stakingVisible')" class="nx-glass-card mx-4 mt-3 relative overflow-hidden" :style="cardStyle">
     <view aria-hidden :style="washStyle" />
     <view class="relative">
       <view class="flex items-center" :style="labelStyle">
@@ -33,6 +33,8 @@
 </template>
 
 <script setup lang="ts">
+import { useConfig } from "@/store/config";
+const visibilityConfig = useConfig();
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";

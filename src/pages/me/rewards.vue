@@ -21,6 +21,7 @@
       <SubPageHeader back="/pages/me/me" :title="t.rewards.title" />
 
       <text class="block" :style="heroStyle">{{ t.rewards.heroTitle }}</text>
+      <view v-if="promotion.error" role="alert" class="px-4"><text>{{ t.prototypeBusiness.localError }}</text><view role="button" tabindex="0" style="min-height:44px;display:flex;align-items:center" @click="promotion.refresh"><text>{{ t.promotion.retry }}</text></view></view>
 
       <view
         v-for="c in cats"
@@ -52,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+import { usePromotion } from '@/store/promotion';
 import { computed, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -64,9 +66,11 @@ import { useRewardsSeen } from "@/store/rewards-seen";
 import { navTo } from "@/lib/route";
 
 // L2 category param — mirrored by pages/me/rewards-list.vue (invalid → voucher).
-type RewardsCat = "voucher" | "usdt" | "nex";
+type RewardsCat = "voucher" | "usdt" | "nex" | "promotion";
 
 const t = useT();
+const promotion = usePromotion();
+onShow(promotion.refresh);
 const voucher = useVoucher();
 const bills = useBills();
 const rewardsSeen = useRewardsSeen();
@@ -99,6 +103,7 @@ interface CatCard {
 }
 
 const cats = computed<CatCard[]>(() => [
+  { key: 'promotion', label: t.value.prototypeBusiness.activity, big: promotion.error ? '—' : String(promotion.rewards.length), unit: '', desc: t.value.prototypeBusiness.activityDesc },
   {
     key: "voucher",
     label: t.value.rewards.catVouchers,

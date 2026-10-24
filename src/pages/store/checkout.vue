@@ -21,9 +21,10 @@
 -->
 <template>
   <AppChassis active="store">
+    <PromotionCheckout v-if="promotionMode" :activity-id="promotionActivityId" :items="promotionItems" :order-no="promotionOrderNo" />
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
-    <view style="color: var(--v5-ink); padding-top: 24px">
+    <view v-else style="color: var(--v5-ink); padding-top: 24px">
       <!-- Back + title now live in the sticky chassis nav header
            (useSetPageHeader below) so they pin on scroll, mirroring the
            prototype's <SetPageHeader>. -->
@@ -168,8 +169,8 @@
             <!-- 异常4: $0 due keeps the explicit confirm; surplus never refunds -->
             <text v-if="trialZeroDue" class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 6px; text-wrap: pretty">{{ t.store.coTrialZeroNote }}</text>
           </view>
-          <view class="w-full grid place-items-center active:opacity-90 active:scale-[0.98]" :style="confirmCtaStyle" role="button" tabindex="0" :aria-label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click.stop="onConfirmPay">
-            <text @click.stop="onConfirmPay">{{ isCard ? t.store.coContinueToPayment : t.store.coPayNow }}</text>
+          <view class="w-full grid place-items-center active:opacity-90 active:scale-[0.98]" :style="confirmCtaStyle" role="button" tabindex="0" :aria-disabled="purchaseConfirmationOpen" :aria-label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click.stop="requestConfirmPay">
+            <text>{{ isCard ? t.store.coContinueToPayment : t.store.coPayNow }}</text>
           </view>
           <view class="w-full grid place-items-center active:bg-[var(--v5-surface-3)]" :style="changePayBtnStyle" role="button" tabindex="0" :aria-label="t.store.coChangePayment" @click.stop="goSelectPayment">
             <text @click.stop="goSelectPayment">{{ t.store.coChangePayment }}</text>
@@ -262,6 +263,8 @@
 import { ref, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import PromotionCheckout from "@/components/promotion/promotion-checkout.vue";
+import { parseEntryItems, type EntryItem } from "@/lib/promotion-entry";
 import CheckoutRow from "@/components/store/checkout-row.vue";
 import ChainPayment from "@/components/store/chain-payment.vue";
 import CardPayment from "@/components/store/card-payment.vue";
@@ -308,6 +311,11 @@ import { formatCountdown, PENDING_CHECKOUT_WINDOW_MIN, reconcileInvoiceQuote, ty
 
 // cap applies to ACTIVE slots, not inventory (source Sprint #146-1).
 const MAX_DEVICES = 6;
+const promotionMode = ref(false);
+const promotionActivityId = ref("");
+const promotionItems = ref<EntryItem[]>([]);
+const promotionOrderNo = ref("");
+const purchaseConfirmationOpen = ref(false);
 
 type Step =
   | "select-payment"
@@ -415,6 +423,13 @@ function purchaseEligibilityFailureCopy(): string {
 
 onLoad(async (options) => {
   const o = (options || {}) as Record<string, string>;
+  if ("activityId" in o || "items" in o || "promotionOrderNo" in o) {
+    promotionMode.value = true;
+    promotionActivityId.value = o.activityId || "";
+    promotionItems.value = parseEntryItems(o.items) || [];
+    promotionOrderNo.value = o.promotionOrderNo || "";
+    return;
+  }
   // accept ?product= (canonical) or ?id= (per task spec)
   if (o.product) productId.value = o.product;
   else if (o.id) productId.value = o.id;
@@ -502,6 +517,7 @@ const trialCfg = computed(() => useTrialConfig().config);
 const nowTick = ref(mockServerNow());
 let trialTicker: ReturnType<typeof setInterval> | undefined;
 onMounted(() => {
+  if (promotionMode.value) return;
   trialTicker = setInterval(() => { nowTick.value = mockServerNow(); }, 1000);
 });
 
@@ -632,10 +648,10 @@ function reAddTradein() {
     toast.warn(t.value.tradein.errPleaseRetry);
     return;
   }
-  removedTradein.value = false;
   interceptFired = false;
   fireTradeinIntercept();
   if (tradein.state.kind === "none") toast.warn(t.value.tradein.errPleaseRetry);
+  else removedTradein.value = false;
 }
 
 const netPrice = computed(() => {
@@ -984,6 +1000,27 @@ let voucherQuote: { id: string | null; discount: number } = { id: null, discount
 let quotedTradeIn: { deviceId: string } | null = null;
 /** 上一次结算尝试里核销了却没放回的券 id(storage 抖动);下一次尝试开头先补放回。 */
 let pendingVoucherRelease: string | null = null;
+
+async function requestConfirmPay() {
+  if (purchaseConfirmationOpen.value || confirming || step.value !== "confirm" || promotionMode.value) return;
+  const scope = captureAccountScope();
+  const snapshot = () => JSON.stringify([productId.value, netPrice.value, cardFee.value, voucherMatch.value?.def.id, appliedTradeinView.value?.device.id, payment.value]);
+  const expected = snapshot();
+  const amount = netPrice.value + cardFee.value;
+  if (!Number.isFinite(amount) || amount < 0) return;
+  purchaseConfirmationOpen.value = true;
+  try {
+    const accepted = await confirm({
+      title: t.value.prototypeBusiness.purchaseConfirm,
+      message: fmt(t.value.prototypeBusiness.purchaseConfirmBody, { amount: amount.toFixed(2) }),
+      confirmLabel: t.value.store.coPayNow,
+      cancelLabel: t.value.prototypeBusiness.cancel,
+    });
+    if (!accepted || !pageVisible || !isCurrentAccountScope(scope) || step.value !== "confirm") return;
+    if (expected !== snapshot()) { toast.warn(t.value.store.coTotalQuoteChanged); return; }
+    await onConfirmPay();
+  } finally { purchaseConfirmationOpen.value = false; }
+}
 
 async function onConfirmPay() {
   if (confirming || step.value !== "confirm") return;
@@ -1545,6 +1582,7 @@ function reassertTradeinContext() {
 onShow(() => {
   remoteOrderPageVisible = true;
   pageVisible = true;
+  if (promotionMode.value) return;
   reassertTradeinContext();
   // 页面重新可见 → 先回灌磁盘:这张票若已在别处结算 / 取消,本页不能继续展示一张死票。
   if (activeSession.value) {

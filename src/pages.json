@@ -293,7 +293,7 @@
       "style": { "navigationStyle": "custom" }
     },
     {
-      "path": "pages/me/support-tickets",
+      "path": "pages/me/phone-binding",
       "style": { "navigationStyle": "custom" }
     },
     {
@@ -358,6 +358,18 @@
     },
     {
       "path": "pages/ref/code",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/onboarding/privacy",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/events/promotion-rewards",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/events/promotion-reward-detail",
       "style": { "navigationStyle": "custom" }
     },
     {

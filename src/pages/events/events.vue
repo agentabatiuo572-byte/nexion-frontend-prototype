@@ -22,6 +22,7 @@
       <SubPageHeader back="/pages/index/index" />
 
       <view class="px-4 space-y-3">
+        <PromotionEntry mode="events" />
         <!-- Featured hero -->
         <EventsFeaturedHero
           v-if="featured"
@@ -67,6 +68,10 @@
 </template>
 
 <script setup lang="ts">
+import { useConfig } from "@/store/config";
+import { isStakingVisibilityRoute } from "@/lib/staking-visibility";
+const visibilityConfig = useConfig();
+import PromotionEntry from '@/components/promotion/promotion-entry.vue';
 import GlassSegments from "@/components/glass-segments.vue";
 import { ref, computed, onMounted, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
@@ -160,7 +165,7 @@ watch(() => app.accountKey, (accountKey) => {
 
 // Enrich each event with live join/claim state from the store.
 const enrichedEvents = computed<EnrichedEvent[]>(() =>
-  (remoteApiEnabled ? remoteEvents.value.map(remoteEventView) : EVENTS.map(event => localizeEvent(event, t.value.events.catalog))).map((ev) => {
+  (remoteApiEnabled ? remoteEvents.value.map(remoteEventView) : EVENTS.map(event => localizeEvent(event, t.value.events.catalog))).filter((ev) => !isStakingVisibilityRoute(ev.href ?? "") || visibilityConfig.isEnabled("stakingVisible")).map((ev) => {
     const trackable = ev.trackable === true;
     const remoteStatus = remoteApiEnabled
       ? remoteEvents.value.find((event) => event.eventCode === ev.id)?.userStatus

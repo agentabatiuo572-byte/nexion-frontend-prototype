@@ -20,6 +20,8 @@
 -->
 <template>
   <AppChassis active="store">
+    <PromotionBundle v-if="promotionActivityId" :activity-id="promotionActivityId" :items="promotionItems" />
+    <template v-else>
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
     <view class="pb-6" style="color: var(--v5-ink); padding-top: 24px">
@@ -178,10 +180,14 @@
       </template>
       </template>
     </view>
+    </template>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
+import PromotionBundle from '@/components/promotion/promotion-bundle.vue';
+import { parseEntryItems } from '@/lib/promotion-entry';
+import type { Item as PromotionItem } from '@/api/promotion-contracts';
 import { computed, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -219,7 +225,12 @@ const pending = usePendingCheckout();
 const catalogStatus = computed(() => productCatalogState.status);
 const catalogReady = computed(() => bundleCatalogReady(remoteApiEnabled, catalogStatus.value));
 
-onLoad(async () => {
+const promotionActivityId = ref('');
+const promotionItems = ref<PromotionItem[]>([]);
+onLoad(async (options) => {
+  promotionActivityId.value = String(options?.activityId ?? '');
+  promotionItems.value = parseEntryItems(String(options?.items ?? '')) ?? [];
+  if (promotionActivityId.value) return;
   await Promise.all([refreshProductCatalog(true), refreshServerProductPhase(true)]);
 });
 

@@ -16,6 +16,7 @@
         <TechMoneyCard />
       </view>
       <TrialGhostSlot />
+      <PromotionEntry mode="home" />
       <view v-if="showPhoneNotice" class="phone-policy-notice nx-home-glass-item" role="status">
         <view class="nx-home-glass-panel" aria-hidden="true" />
         <svg class="phone-policy-icon" width="24" height="32" viewBox="0 0 24 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="4" y="2" width="16" height="28" rx="4" /><path d="M10 5h4m-4 22h4" /></svg>
@@ -86,7 +87,7 @@
       <NetworkPulseCard />
 
       <!-- ZONE 3: AI advisor bridge -->
-      <NovaCardSlot v-if="!remoteApiEnabled" />
+      <NovaCardSlot v-if="NOVA_SUPPORT_VISIBLE && !remoteApiEnabled" />
 
       <!-- ZONE 5: money & ROI -->
       <DoTheMathCard />
@@ -110,6 +111,7 @@ import CardStagger from "@/components/card-stagger.vue";
 import GreetingHeader from "@/components/home/greeting-header.vue";
 import TechMoneyCard from "@/components/home/tech-money-card.vue";
 import TrialGhostSlot from "@/components/trial-ghost-slot.vue";
+import PromotionEntry from "@/components/promotion/promotion-entry.vue";
 import ConversionBanner from "@/components/home/conversion-banner.vue";
 import DayOneQuestCard from "@/components/home/day-one-quest-card.vue";
 import LiveFeedCard from "@/components/home/live-feed-card.vue";
@@ -118,6 +120,7 @@ import MyFleetSection from "@/components/home/my-fleet-section.vue";
 import OnGridSection from "@/components/home/on-grid-section.vue";
 import NetworkPulseCard from "@/components/home/network-pulse-card.vue";
 import NovaCardSlot from "@/components/home/nova-card-slot.vue";
+import { NOVA_SUPPORT_VISIBLE } from "@/lib/nova-visibility";
 import DoTheMathCard from "@/components/home/do-the-math-card.vue";
 import EarningsLedgerCard from "@/components/home/earnings-ledger-card.vue";
 import NexPriceCard from "@/components/home/nex-price-card.vue";

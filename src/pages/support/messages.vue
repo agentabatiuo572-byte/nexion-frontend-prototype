@@ -11,7 +11,7 @@
 <template>
   <AppChassis active="me">
     <view style="padding-bottom: 32px">
-      <SubPageHeader back="/pages/me/me" :title="t.conversations.title" />
+      <SubPageHeader back="/pages/me/notifications?section=service" :title="t.conversations.title" />
 
       <view class="nx-conv-center">
         <!-- Left type rail -->
@@ -27,21 +27,23 @@
 
         <!-- Right conversation list -->
         <view class="nx-conv-listcol">
+          <view v-if="convStore.loading" class="nx-conv-state" role="status"><text>{{ t.help.loadingMore }}</text></view>
+          <view v-if="convStore.error" class="nx-conv-state" role="alert"><text>{{ t.conversations.loadError }}</text><view role="button" tabindex="0" @click="retry"><text>{{ t.conversations.retry }}</text></view></view>
           <!-- A new turn opens a composer first. The authenticated user's text is the
                first durable timeline entry; this surface never invents an opening. -->
           <view
-            v-if="selectedType === 'support' && rows.length > 0 && !hasActiveSupport"
+            v-if="rows.length > 0"
             class="nx-conv-contact active:opacity-80"
             role="button"
             tabindex="0"
             :aria-label="t.conversations.contactSupport"
-            @click="onStartConversation('support')"
+            @click="onStartConversation()"
           >
             <view class="nx-conv-contact-ico" aria-hidden="true"><view v-html="SUPPORT_ICON" /></view>
             <text class="nx-conv-contact-t">{{ t.conversations.contactSupport }}</text>
           </view>
 
-          <EmptyState v-if="rows.length === 0" kind="empty-list" :title="t.empty.messagesTitle" :desc="emptyHint" :cta-label="startConversationLabel" emphasis compact @cta="onStartConversation" />
+          <EmptyState v-if="!convStore.loading && !convStore.error && rows.length === 0" kind="empty-list" :title="t.empty.messagesTitle" :desc="emptyHint" :cta-label="startConversationLabel" emphasis compact @cta="onStartConversation" />
           <view
             v-for="r in rows"
             :key="r.id"
@@ -62,10 +64,12 @@
               </view>
               <view class="nx-conv-rowbot">
                 <text class="nx-conv-rowprev" :style="r.typing ? { color: r.tint } : undefined">{{ r.preview }}</text>
-                <view v-if="r.unread > 0" class="nx-conv-unread"><text class="nx-conv-unread-t">{{ r.unread > 9 ? "9+" : String(r.unread) }}</text></view>
+                <view v-if="convStore.error || r.unread > 0" class="nx-conv-unread"><text class="nx-conv-unread-t">{{ convStore.error ? '-' : formatUnreadBadge(r.unread) }}</text></view>
               </view>
             </view>
           </view>
+          <view v-if="rows.length" class="nx-conv-state"><text>{{ t.conversations.removeHint }}</text><view role="button" :tabindex="removing ? -1 : 0" :aria-disabled="removing" @click="removeHuman"><text>{{ removing ? t.conversations.removing : t.conversations.removeFromList }}</text></view></view>
+          <view v-if="removeError" class="nx-conv-state" role="alert"><text>{{ removeError }}</text><view role="button" tabindex="0" @click="removeHuman"><text>{{ t.conversations.retry }}</text></view></view>
         </view>
       </view>
     </view>
@@ -74,7 +78,7 @@
 
 <script setup lang="ts">
 import GlassSegments from "@/components/glass-segments.vue";
-import { computed, ref, type CSSProperties } from "vue";
+import { computed, ref, watch, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -88,6 +92,7 @@ import { useNova } from "@/store/nova";
 import type { ConversationType, ConvMessage } from "@/domain/support";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useApp } from "@/store/app";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 
 const t = useT();
 const convStore = useConversations();
@@ -95,6 +100,18 @@ const nova = useNova();
 const app = useApp();
 
 const selectedType = ref<ConversationType>("advisor");
+const humanConversations = computed(() => convStore.conversations.filter(row => row.type !== "ai").sort((a, b) => b.lastTs - a.lastTs));
+const removing = ref(false), removeError = ref("");
+function retry() { if (!convStore.loading) void convStore.refresh().catch(() => undefined); }
+async function removeHuman() {
+  if (removing.value) return;
+  const account = app.accountKey;
+  removing.value = true; removeError.value = "";
+  try { for (const row of [...humanConversations.value]) { if (account !== app.accountKey) return; await convStore.dismissConversation(row.id); } }
+  catch { if (account === app.accountKey) removeError.value = t.value.conversations.removeFailed; }
+  finally { if (account === app.accountKey) removing.value = false; }
+}
+watch(() => app.accountKey, () => { removeError.value = ""; removing.value = false; retry(); });
 
 // Entering the inbox is a lazy timeout checkpoint (chat entry and session start
 // sweep too): stale-active support sessions flip to closed here (real backend
@@ -109,10 +126,9 @@ const hasActiveSupport = computed(() =>
   convStore.byType("support").some((c) => c.sessionStatus === "active"),
 );
 
-function onStartConversation(type?: Exclude<ConversationType, "ai">) {
-  const target = type ?? (selectedType.value === "advisor" || selectedType.value === "support" ? selectedType.value : null);
-  if (!target) return;
-  navTo("/pages/support/chat?start=" + target);
+function onStartConversation() {
+  const ongoing = humanConversations.value.find(row => row.status !== "transferred");
+  navTo(ongoing ? "/pages/support/chat?cid=" + encodeURIComponent(ongoing.id) : "/pages/support/chat?start=advisor");
 }
 
 // Inline category icons (stroke=currentColor → tinted via container `color`).
@@ -123,9 +139,7 @@ const AI_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" str
 const TYPES = computed<{ key: ConversationType; tint: string; icon: string }[]>(() => {
   const available: { key: ConversationType; tint: string; icon: string }[] = [
     { key: "advisor", tint: "var(--v5-brand)", icon: ADVISOR_ICON },
-    { key: "support", tint: "var(--v5-tech-cyan)", icon: SUPPORT_ICON },
   ];
-  available.push({ key: "ai", tint: "var(--v5-brand-2)", icon: AI_ICON });
   return available;
 });
 
@@ -149,7 +163,7 @@ function typeLabel(key: ConversationType): string {
 
 function typeUnread(key: ConversationType): number {
   if (key === "ai") return nova.unread;
-  return convStore.byType(key).reduce((sum, c) => sum + c.unread, 0);
+  return convStore.totalUnread;
 }
 
 function cleanPreview(s: string): string {
@@ -194,15 +208,15 @@ const rows = computed<Row[]>(() => {
     ];
   }
   const avatarIcon = sel === "advisor" ? ADVISOR_ICON : SUPPORT_ICON;
-  return convStore.byType(sel).map((c) => {
+  return humanConversations.value.slice(0, 1).map((c) => {
     const last = c.messages.length ? c.messages[c.messages.length - 1] : null;
     const typing = convStore.typingIds[c.id] === true;
     return {
       id: c.id,
-      name: displayAgentName(c.agentName),
+      name: t.value.conversations.typeAdvisor,
       preview: typing ? t.value.conversations.agentTyping : last ? cleanPreview(msgText(last, c.agentName)) : cleanPreview(c.lastMessage) || t.value.conversations[c.roleKey],
       time: relTime(c.lastTs),
-      unread: c.unread,
+      unread: convStore.totalUnread,
       isAi: false,
       typing,
       tint: c.avatarTint,
@@ -241,6 +255,8 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
 </script>
 
 <style scoped>
+.nx-conv-state { display:flex; flex-direction:column; gap:10px; padding:12px 16px; color:var(--v5-ink-3); font-size:13px; }
+.nx-conv-state [role="button"] { min-height:44px; display:flex; align-items:center; color:var(--v5-brand); }
 .nx-conv-center {
   display: flex;
   gap: 0;

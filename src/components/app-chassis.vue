@@ -518,8 +518,8 @@ function navBack() {
   navBackTo(navHeader.value?.backHref);
 }
 
-const unread = computed(() => notifications.unread);
-const unreadLabel = computed(() => (unread.value > 99 ? "99+" : String(unread.value)));
+const unread = computed(() => messageDrawer.totalUnread);
+const unreadLabel = computed(() => String(Math.min(99, unread.value)));
 
 // ── layout insets ──
 const statusBarHeight = computed(() => {

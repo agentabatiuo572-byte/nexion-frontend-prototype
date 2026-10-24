@@ -43,7 +43,6 @@ const ROUTE_TITLE_KEY: Record<string, HeaderTitleKey> = {
   "pages/me/security": "meSecurity",
   "pages/me/help": "meHelp",
   "pages/me/support": "meSupport",
-  "pages/me/support-tickets": "meSupportTickets",
   "pages/me/notifications": "meNotifications",
   "pages/me/receipts": "meReceipts",
   "pages/me/preferences": "mePreferences",

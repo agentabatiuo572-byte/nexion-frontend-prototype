@@ -25,6 +25,7 @@ export const useConfig = defineStore("config", () => {
   const unavailableServerConfig: PlatformConfig = {
     ...mockConfig,
     featureFlags: {
+      stakingVisible: false,
       computeShareEnabled: false,
       homeNewcomerTasksEnabled: false,
       homeWeeklyPromoEnabled: false,
@@ -76,6 +77,7 @@ export const useConfig = defineStore("config", () => {
       networkConfirmFeeUsd: { trc20: 0, bep20: 0, erc20: 0 },
     },
     rewards: {
+      enabled: false,
       welcomeGift: { lockMode: "risk_bucket", usdtAmount: 0, nexAmount: 0 },
       inviterReward: { nexAmount: 0 },
     },

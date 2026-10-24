@@ -128,6 +128,8 @@
         <view class="intro-terms">
           <text class="terms-left">{{ t.intro.termsLeft }} </text>
           <text class="terms-link active:opacity-70" role="link" tabindex="0" @click="goTerms" @keydown.enter.prevent="goTerms" @keydown.space.prevent="goTerms">{{ t.intro.termsLink }}</text>
+          <text class="terms-left"> · </text>
+          <text class="terms-link active:opacity-70" role="link" tabindex="0" @click="goPrivacy" @keydown.enter.prevent="goPrivacy" @keydown.space.prevent="goPrivacy">{{ t.privacy.title }}</text>
         </view>
       </view>
     </view>
@@ -165,6 +167,7 @@
 </template>
 
 <script setup lang="ts">
+import { privacyPolicyHref } from "@/lib/privacy-return";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import { useT } from "@/i18n/use-t";
@@ -271,6 +274,9 @@ function goLogin() {
 }
 function goTerms() {
   uni.navigateTo({ url: "/pages/onboarding/terms", fail: () => {} });
+}
+function goPrivacy() {
+  uni.navigateTo({ url: privacyPolicyHref('/pages/onboarding/intro'), fail: () => {} });
 }
 </script>
 

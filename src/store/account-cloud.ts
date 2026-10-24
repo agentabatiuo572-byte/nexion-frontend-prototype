@@ -29,6 +29,12 @@ export interface AccountSnapshotWriteResult {
   persisted: boolean;
 }
 
+/** Optional synchronous snapshot I/O; ordinary callers keep their existing storage path. */
+export interface AccountSnapshotStorage {
+  read(accountKey: string): AccountCloudSnapshot | null;
+  write(snapshot: AccountCloudSnapshot): boolean;
+}
+
 type AccountCloudTable = Record<string, AccountCloudSnapshot>;
 type JsonRecord = Record<string, unknown>;
 
@@ -125,9 +131,9 @@ function writeTable(table: AccountCloudTable): boolean {
 // device-types.ts backfillDeviceEconomics(), applied by app.ts at the two
 // snapshot consumption points (boot + account switch). Merge handles missing
 // fields gracefully (last-write), and the live state is always backfilled.
-export function readAccountSnapshot(accountKey: string): AccountCloudSnapshot | null {
+export function readAccountSnapshot(accountKey: string, table?: AccountCloudTable): AccountCloudSnapshot | null {
   const key = normalizeAccountKey(accountKey);
-  const row = readTable()[key];
+  const row = (table ?? readTable())[key];
   if (!row || row.schema !== 1) return null;
   const upgraded = upgradeLegacyWithdrawals(row);
   // 读时升级(同 upgradeLegacyWithdrawals 的「只补形不迁移」纪律):user.email 只承载联系
@@ -541,9 +547,10 @@ export function mergeAndWriteAccountSnapshot(
 export function mergeAndWriteAccountSnapshotResult(
   base: AccountCloudSnapshot | null,
   next: AccountCloudSnapshot,
+  storage?: AccountSnapshotStorage,
 ): AccountSnapshotWriteResult {
   const key = normalizeAccountKey(next.accountKey);
-  const latest = readAccountSnapshot(key);
+  const latest = storage ? storage.read(key) : readAccountSnapshot(key);
   // A changed binding invalidates all work based on the old authority, including
   // phone earnings. The caller adopts the latest snapshot and can retry safely.
   if (base && latest && !sameValue(base.phoneBinding, latest.phoneBinding)) {
@@ -573,8 +580,8 @@ export function mergeAndWriteAccountSnapshotResult(
   //
   // 真要降写盘成本,先量「贵在哪」再动手,别再从「少写几次」这个方向猜。
   // 台账:docs/changes/2026-08-04-design-v2.md;门:scripts/selfcheck-snapshot-write.mjs
-  const writeSucceeded = writeAccountSnapshot(merged);
-  const stored = readAccountSnapshot(key);
+  const writeSucceeded = storage ? storage.write(merged) : writeAccountSnapshot(merged);
+  const stored = storage ? storage.read(key) : readAccountSnapshot(key);
   return {
     snapshot: stored ?? merged,
     persisted: writeSucceeded && stored !== null,

@@ -4,6 +4,7 @@ import { supportApi } from "@/api/runtime";
 import { remoteApiEnabled } from "@/api/runtime";
 import { asApiError } from "@/api/errors";
 import type { Conversation, ConversationType, TicketCategory } from "@/domain/support";
+import { getT } from "@/i18n/use-t";
 
 function mutationKey(scope: string): string {
   const label = scope.split(":", 1)[0].replace(/[^a-z0-9-]/gi, "").slice(0, 24) || "command";
@@ -26,11 +27,15 @@ type SnapshotScope = { accountKey: string; epoch: number; runId: string };
 
 export const useConversations = defineStore("conversations", () => {
   const conversations = ref<Conversation[]>([]);
+  const historyRows = ref<Conversation[]>([]);
+  const scopeRevision = ref(0);
+  const dismissingIds = ref<Record<string, boolean>>({});
+  const replyTimers = new Set<ReturnType<typeof setTimeout>>();
   const loading = ref(false);
   const mutating = ref(false);
   const error = ref<string | null>(null);
   const typingIds = ref<Record<string, boolean>>({});
-  const totalUnread = computed(() => conversations.value.reduce((sum, row) => sum + row.unread, 0));
+  const totalUnread = computed(() => conversations.value.filter(row => row.type !== "ai").reduce((sum, row) => sum + row.unread, 0));
   let pendingKeys = new Map<string, string>();
   let inFlight = new Map<string, Promise<unknown>>();
   let accountEpoch = 0;
@@ -116,8 +121,18 @@ export const useConversations = defineStore("conversations", () => {
   function replace(conversation: Conversation) {
     const prior = conversations.value.find((row) => row.id === conversation.id);
     if (prior && (conversation.version < prior.version || (conversation.version === prior.version && conversation.lastTs < prior.lastTs))) return;
+    const priorHistory = historyRows.value.find(row => row.id === conversation.id);
+    if (priorHistory) conversation = mergeHistory(priorHistory, conversation);
     const rest = conversations.value.filter((row) => row.id !== conversation.id);
     conversations.value = [conversation, ...rest].sort((a, b) => b.lastTs - a.lastTs);
+    historyRows.value = [conversation, ...historyRows.value.filter(row => row.id !== conversation.id)];
+  }
+
+  function mergeHistory(previous: Conversation, next: Conversation): Conversation {
+    const messages = [...new Map([...previous.messages, ...next.messages].map(message => [message.id, message])).values()].sort((a, b) => a.ts - b.ts || Number(a.id) - Number(b.id));
+    const keptEarlier = previous.messages.length > 0 && (next.messages.length === 0 || Number(previous.messages[0].id) < Number(next.messages[0].id));
+    return { ...next, messages, historyNextCursor: keptEarlier ? previous.historyNextCursor : next.historyNextCursor,
+      historyTruncated: keptEarlier ? previous.historyTruncated : next.historyTruncated };
   }
 
   /** A delayed page may add an absent row, but cannot erase or regress a newer live snapshot. */
@@ -135,7 +150,11 @@ export const useConversations = defineStore("conversations", () => {
       await reconcilePending();
       if (!snapshotIsCurrent(scope) || requestGeneration !== listRequestGeneration) return;
       const items = (await supportApi.conversations()).items;
-      if (snapshotIsCurrent(scope) && requestGeneration === listRequestGeneration) mergeConversations(items);
+      if (snapshotIsCurrent(scope) && requestGeneration === listRequestGeneration) {
+        const visibleIds = new Set(items.map(row => row.id));
+        mergeConversations(items);
+        conversations.value = conversations.value.filter(row => visibleIds.has(row.id));
+      }
     } catch (cause) {
       if (epoch === accountEpoch) {
         error.value = cause instanceof Error ? cause.message : "SUPPORT_CONVERSATIONS_LOAD_FAILED";
@@ -149,7 +168,56 @@ export const useConversations = defineStore("conversations", () => {
   function byType(type: ConversationType): Conversation[] {
     return conversations.value.filter((row) => row.type === type).sort((a, b) => b.lastTs - a.lastTs);
   }
-  function get(id: string): Conversation | undefined { return conversations.value.find((row) => row.id === id); }
+  function get(id: string): Conversation | undefined { return conversations.value.find((row) => row.id === id) ?? historyRows.value.find(row => row.id === id); }
+
+  async function loadHumanHistory(active: () => boolean = () => true) {
+    const epoch = accountEpoch;
+    const rows = await supportApi.history();
+    if (epoch !== accountEpoch || !active()) return;
+    const hydrated: Conversation[] = [];
+    for (const row of rows) {
+      if (epoch !== accountEpoch || !active()) return;
+      const lastAgent = [...row.messages].reverse().find(message => message.sender === "agent");
+      let result = row.unread > 0 && lastAgent ? await supportApi.markConversationRead(row, Number(lastAgent.id)) : row;
+      if (epoch !== accountEpoch || !active()) return;
+      const previous = historyRows.value.find(item => item.id === result.id);
+      if (previous) result = mergeHistory(previous, result);
+      hydrated.push(result);
+      conversations.value = conversations.value.map(item => item.id === result.id ? result : item);
+    }
+    if (epoch === accountEpoch && active()) historyRows.value = hydrated;
+  }
+  async function loadEarlier(id: string, active: () => boolean = () => true) {
+    const epoch = accountEpoch, current = historyRows.value.find(row => row.id === id);
+    if (!current?.historyNextCursor) return;
+    const older = await supportApi.earlier(id, current.historyNextCursor);
+    if (epoch !== accountEpoch || !active()) return;
+    const messages = [...new Map([...older.messages, ...current.messages].map(message => [message.id, message])).values()].sort((a, b) => a.ts - b.ts || Number(a.id) - Number(b.id));
+    historyRows.value = historyRows.value.map(row => row.id === id ? { ...row, messages, historyNextCursor: older.historyNextCursor, historyTruncated: older.historyTruncated } : row);
+  }
+  async function dismissConversation(id: string) {
+    const epoch = accountEpoch;
+    dismissingIds.value = { ...dismissingIds.value, [id]: true };
+    try {
+      await supportApi.dismissConversation(id);
+      if (epoch === accountEpoch) conversations.value = conversations.value.filter(row => row.id !== id);
+    } finally { if (epoch === accountEpoch) { const next = { ...dismissingIds.value }; delete next[id]; dismissingIds.value = next; } }
+  }
+  function scheduleReply(id: string) {
+    if (remoteApiEnabled) return;
+    const epoch = accountEpoch;
+    typingIds.value = { ...typingIds.value, [id]: true };
+    const timer = setTimeout(async () => {
+      replyTimers.delete(timer);
+      if (epoch !== accountEpoch) return;
+      try { const row = await supportApi.receiveMessage(id, { text: getT().conversations.supportReply1, kind: "TEXT" }); if (epoch === accountEpoch) replace(row); }
+      catch { if (epoch === accountEpoch) error.value = "SUPPORT_REPLY_UNAVAILABLE"; }
+      finally { if (epoch === accountEpoch) typingIds.value = { ...typingIds.value, [id]: false }; }
+    }, 1400);
+    replyTimers.add(timer);
+  }
+  function readDraft(id: string) { return supportApi.readDraft(id); }
+  function saveDraft(id: string, value: string) { supportApi.saveDraft(id, value); }
 
   async function open(id: string, active: () => boolean = () => true): Promise<Conversation> {
     const epoch = accountEpoch;
@@ -230,7 +298,7 @@ export const useConversations = defineStore("conversations", () => {
       if (mustReadBack(cause)) await reconcileAll(epoch);
       throw cause;
     }
-    if (epoch === accountEpoch) replace(conversation);
+    if (epoch === accountEpoch) { replace(conversation); scheduleReply(conversation.id); }
     return conversation.id;
   }
 
@@ -252,7 +320,7 @@ export const useConversations = defineStore("conversations", () => {
       if (mustReadBack(cause)) await reconcile(id, epoch);
       throw cause;
     }
-    if (epoch === accountEpoch) replace(conversation);
+    if (epoch === accountEpoch) { replace(conversation); scheduleReply(conversation.id); }
     return true;
   }
 
@@ -278,6 +346,8 @@ export const useConversations = defineStore("conversations", () => {
 
   function reset() {
     accountEpoch += 1; conversations.value = []; error.value = null; typingIds.value = {};
+    scopeRevision.value++;
+    historyRows.value = []; dismissingIds.value = {}; replyTimers.forEach(clearTimeout); replyTimers.clear();
     openGeneration.clear(); listRequestGeneration += 1;
     inFlight = new Map(); mutating.value = false;
     pendingKeys = new Map();
@@ -286,6 +356,7 @@ export const useConversations = defineStore("conversations", () => {
   function bindAccount(accountKey: string) {
     reset();
     accountKeyValue = accountKey;
+    supportApi.bindAccount(accountKey);
     pendingRunId = remoteApiEnabled ? "unverified" : "mock";
     // 启动预热是 fire-and-forget:权威不可达自吞(resilience 门)。pendingRunId 留
     // "unverified",首次 refresh() 重走 preparePendingRun 并把失败落 error 态;
@@ -293,5 +364,5 @@ export const useConversations = defineStore("conversations", () => {
     if (remoteApiEnabled) void preparePendingRun().then(reconcilePending).catch(() => undefined);
   }
 
-  return { conversations, typingIds, totalUnread, loading, mutating, error, refresh, byType, get, open, startConversation, startSupportSession, sendUser, convertToTicket, reset, bindAccount };
+  return { conversations, historyRows, scopeRevision, loadHumanHistory, loadEarlier, dismissConversation, dismissingIds, readDraft, saveDraft, typingIds, totalUnread, loading, mutating, error, refresh, byType, get, open, startConversation, startSupportSession, sendUser, convertToTicket, reset, bindAccount };
 });

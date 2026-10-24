@@ -10,7 +10,9 @@ describe("registration sponsor authority", () => {
   it("keeps the mock-only NEXGRID format when the remote API is disabled", () => {
     expect(normalizeRegistrationSponsorCode("nexgrid-ab12", false))
       .toBe("NEXGRID-AB12");
-    expect(normalizeRegistrationSponsorCode("NX7EC754D46B6E", false)).toBeNull();
+    expect(normalizeRegistrationSponsorCode("NX7EC754D46B6E", false)).toBe("NX7EC754D46B6E");
+    expect(normalizeRegistrationSponsorCode("nx-7ec754-d46b6e", false)).toBe("NX7EC754D46B6E");
+    expect(normalizeRegistrationSponsorCode("arbitrary text", false)).toBeNull();
   });
 
   it("rejects malformed remote values instead of sending ambiguous input", () => {

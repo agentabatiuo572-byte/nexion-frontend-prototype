@@ -396,6 +396,7 @@ export function parsePlatformComputeConfig(value: unknown, mode: ApiResponseEnvi
     },
     // H8 is fetched from its own bounded context and merged by createPlatformConfigApi.
     rewards: {
+      enabled: false,
       welcomeGift: { lockMode: "risk_bucket", usdtAmount: 0, nexAmount: 0 },
       inviterReward: { nexAmount: 0 },
     },
@@ -437,6 +438,7 @@ export function parseReferralRewardConfig(value: unknown): ReferralRewardConfigS
     }
     return {
       rewards: {
+        enabled: typeof root.enabled === "boolean" ? root.enabled : true,
         welcomeGift: {
           lockMode,
           usdtAmount: rewardAmount(welcomeGift.usdtAmount),

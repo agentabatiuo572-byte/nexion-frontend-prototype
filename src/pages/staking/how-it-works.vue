@@ -5,7 +5,7 @@
   stake). Wrapped in <AppChassis active="me">.
 -->
 <template>
-  <AppChassis active="me">
+  <AppChassis v-if="stakingVisible" active="me">
     <view style="padding-bottom: 32px">
       <SubPageHeader back="/pages/staking/staking" />
 
@@ -86,6 +86,8 @@
 </template>
 
 <script setup lang="ts">
+import { useStakingPageVisibility } from "@/composables/use-staking-page-visibility";
+const stakingVisible = useStakingPageVisibility();
 import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";

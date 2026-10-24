@@ -28,6 +28,7 @@
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 
 export interface Listing {
@@ -52,9 +53,9 @@ const deltaPct = computed<string | null>(() =>
     : null,
 );
 const isUp = computed(() => delta.value > 0);
-const priceText = computed(() => props.l.priceUSDT.toLocaleString());
+const priceText = computed(() => formatGenesisPrice(props.l.priceUSDT));
 const lastSaleText = computed(() => props.l.lastSaleUSDT === null
-  ? "—" : fmt(t.value.marketplace.lastSale, { k: (props.l.lastSaleUSDT / 1000).toFixed(1) }));
+  ? "—" : fmt(t.value.marketplace.lastSale, { price: formatGenesisPrice(props.l.lastSaleUSDT) }));
 
 // Collectible tile — filled surface, no border (single visual difference).
 const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",

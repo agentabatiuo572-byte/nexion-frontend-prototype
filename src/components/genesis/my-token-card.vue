@@ -18,9 +18,9 @@
       <!-- Listed state -->
       <template v-if="isListed && existing">
         <text class="block" :style="askLabelStyle">{{ askingChipText }}</text>
-        <text class="block tabular-nums" :style="askPriceStyle">${{ existing.askPriceUSDT.toLocaleString() }}</text>
+        <text class="block tabular-nums" :style="askPriceStyle">${{ formatGenesisPrice(existing.askPriceUSDT) }}</text>
         <text class="block" :style="listedAgoStyle">{{ listedAgoText }}</text>
-        <view class="w-full flex items-center justify-center active:scale-[0.97]" :style="cancelBtnStyle" @click="handleCancel">
+        <view class="w-full flex items-center justify-center active:scale-[0.97]" :style="cancelBtnStyle" role="button" tabindex="0" :aria-disabled="pending" @click="handleCancel">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
           <text>{{ t.marketplace.cancelBtn }}</text>
         </view>
@@ -31,10 +31,10 @@
         <text class="block" :style="listLabelStyle">{{ t.marketplace.listForSale }}</text>
         <view class="flex items-baseline" :style="inputWrapStyle">
           <text :style="dollarStyle">$</text>
-          <input class="flex-1 min-w-0 tabular-nums" :style="inputStyle" type="text" inputmode="numeric" :value="String(askPrice)" @input="onAskInput" />
+          <input class="flex-1 min-w-0 tabular-nums" :style="inputStyle" type="text" inputmode="decimal" :aria-label="t.marketplace.listForSale" :value="askPriceText" @input="onAskInput" />
         </view>
         <text class="block" :style="floorHintStyle">{{ floorHintText }}</text>
-        <view class="w-full flex items-center justify-center active:scale-[0.97]" :style="listBtnStyle" @click="handleList">
+        <view class="w-full flex items-center justify-center active:scale-[0.97]" :style="listBtnStyle" role="button" tabindex="0" :aria-disabled="pending || listBlocked || askPrice === null" @click="handleList">
           <svg v-if="!listBlocked" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" /><circle cx="7.5" cy="7.5" r=".5" fill="currentColor" /></svg>
           <text>{{ listBlocked ? (blockText ?? t.genesis.marketClosed.default) : t.marketplace.listCta }}</text>
         </view>
@@ -44,13 +44,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type CSSProperties } from "vue";
+import { ref, computed, onBeforeUnmount, type CSSProperties } from "vue";
+import { onHide, onShow } from "@dcloudio/uni-app";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useGenesis } from "@/store/genesis";
 import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { toast, confirm } from "@/store/ui";
+import { parseGenesisListingPrice } from "@/lib/genesis-listing-price";
+import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
+import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 
 const props = defineProps<{ tokenId: number }>();
@@ -67,18 +71,24 @@ const floor = computed(() => cfg.config.marketStats.floor);
 const { secondaryBlock, blockText } = useGenesisSaleGate();
 const listBlocked = computed(() => secondaryBlock.value !== null);
 
-const askPrice = ref(floor.value);
+const askPriceText = ref(String(floor.value));
+const askPrice = computed(() => parseGenesisListingPrice(askPriceText.value));
+const pending = ref(false);
+let visible = true;
+onShow(() => { visible = true; });
+onHide(() => { visible = false; });
+onBeforeUnmount(() => { visible = false; });
 
 const existing = computed(() => genesis.myListings.find((l) => l.tokenId === props.tokenId));
 const isListed = computed(() => !!existing.value);
 
 const askingChipText = computed(() =>
-  existing.value ? fmt(t.value.marketplace.askingChip, { amount: existing.value.askPriceUSDT.toLocaleString() }) : "",
+  existing.value ? fmt(t.value.marketplace.askingChip, { amount: formatGenesisPrice(existing.value.askPriceUSDT) }) : "",
 );
 const listedAgoText = computed(() =>
   existing.value ? fmt(t.value.marketplace.listedAgo, { time: relativeTime(existing.value.listedAt) }) : "",
 );
-const floorHintText = computed(() => fmt(t.value.marketplace.floorShort, { k: (floor.value / 1000).toFixed(1) }));
+const floorHintText = computed(() => fmt(t.value.marketplace.floorShort, { price: formatGenesisPrice(floor.value) }));
 
 function relativeTime(ts: number): string {
   const ms = Date.now() - ts;
@@ -90,36 +100,51 @@ function relativeTime(ts: number): string {
 
 function onAskInput(e: Event) {
   const raw = (e as unknown as { detail: { value: string } }).detail.value;
-  askPrice.value = Math.max(0, parseInt(raw.replace(/\D/g, "")) || 0);
+  askPriceText.value = raw;
 }
 
 async function handleList() {
+  if (pending.value) return;
   // 🔴 阻断态给说明,不静默(规格 ⑥「禁静默无反馈」)。放在 confirm **之前** ——
   //   没必要让用户先确认一件注定失败的事。
   if (listBlocked.value) {
     toast.info(blockText.value ?? t.value.genesis.marketClosed.default, t.value.marketplace.listBlockedDesc);
     return;
   }
+  if (askPrice.value === null) {
+    toast.error(t.value.marketplace.listingPriceInvalid, t.value.marketplace.listingPriceInvalidDesc);
+    return;
+  }
+  const price = askPrice.value;
+  const tokenId = props.tokenId;
+  const account = captureAccountScope();
+  pending.value = true;
+  try {
   const ok = await confirm({
     title: fmt(t.value.marketplace.confirmListTitle, { id: props.tokenId }),
     message: fmt(t.value.marketplace.confirmListMsg, {
-      amount: askPrice.value.toLocaleString(),
-      floor: (floor.value / 1000).toFixed(1),
+      amount: formatGenesisPrice(price),
+      floor: formatGenesisPrice(floor.value),
     }),
     confirmLabel: t.value.marketplace.confirmListCta,
     icon: "info",
   });
-  if (!ok) return;
-  if (await genesis.listNode(props.tokenId, askPrice.value)) {
+  if (!ok || !visible || !isCurrentAccountScope(account) || props.tokenId !== tokenId) return;
+  if (await genesis.listNode(tokenId, price)) {
     toast.success(
       fmt(t.value.marketplace.listedToast, { id: props.tokenId }),
-      fmt(t.value.marketplace.listedDesc, { amount: askPrice.value.toLocaleString() }),
+      fmt(t.value.marketplace.listedDesc, { amount: formatGenesisPrice(price) }),
     );
   }
+  } finally { pending.value = false; }
 }
 
 async function handleCancel() {
-  if (!existing.value) return;
+  if (!existing.value || pending.value) return;
+  const account = captureAccountScope();
+  const tokenId = props.tokenId;
+  pending.value = true;
+  try {
   const ok = await confirm({
     title: fmt(t.value.marketplace.confirmCancelTitle, { id: props.tokenId }),
     // 🔴 关闭态下不许承诺「之后可以重新设价上架」—— 撤完就再也挂不上,直到运营重开。
@@ -135,13 +160,14 @@ async function handleCancel() {
     danger: true,
     icon: "warn",
   });
-  if (!ok) return;
-  if (await genesis.cancelListing(props.tokenId)) {
+  if (!ok || !visible || !isCurrentAccountScope(account) || props.tokenId !== tokenId) return;
+  if (await genesis.cancelListing(tokenId)) {
     toast.info(
       fmt(t.value.marketplace.cancelledToast, { id: props.tokenId }),
       t.value.marketplace.cancelledDesc,
     );
   }
+  } finally { pending.value = false; }
 }
 
 // Listed state stays on the badge; artwork never supplies a holding identity.

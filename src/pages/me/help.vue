@@ -32,7 +32,8 @@
 
       <!-- FAQ list -->
       <view class="mx-4" :style="faqWrapStyle">
-        <EmptyState v-if="faqLoadError" kind="recoverable-error" :title="t.empty.errorTitle" :desc="t.empty.errorDesc" :cta-label="t.empty.errorCta" @cta="loadFaqs" />
+        <view v-if="faqLoading" role="status"><text>{{ w.loadingMore }}</text></view>
+        <EmptyState v-else-if="faqLoadError" kind="recoverable-error" :title="t.empty.errorTitle" :desc="t.empty.errorDesc" :cta-label="t.empty.errorCta" @cta="loadFaqs" />
         <EmptyState v-else-if="filtered.length === 0" :kind="query.trim() ? 'no-search-results' : 'empty-list'" :title="query.trim() ? t.empty.searchTitle : t.empty.listTitle" :desc="query.trim() ? t.empty.searchDesc : t.empty.listDesc" compact />
         <template v-else>
           <view
@@ -40,7 +41,7 @@
             :key="it.id"
             :style="i !== 0 ? faqDividerStyle : undefined"
           >
-            <view class="w-full flex items-center active:opacity-90" :style="faqHeadStyle" @click="toggleFaq(it.id)">
+            <view class="w-full flex items-center active:opacity-90" role="button" tabindex="0" :aria-expanded="openId === it.id" :style="faqHeadStyle" @click="toggleFaq(it.id)">
               <text :style="faqQStyle" style="flex: 1">{{ it.q }}</text>
               <view :style="chevStyle(openId === it.id)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
@@ -54,7 +55,7 @@
       </view>
 
       <!-- NexGridBot -->
-      <view class="nx-glass-card mx-4" :style="botCardStyle">
+      <view v-if="NOVA_SUPPORT_VISIBLE" class="nx-glass-card mx-4" :style="botCardStyle">
         <view class="flex items-center" :style="botHeadStyle">
           <view class="grid place-items-center" :style="botIconBoxStyle">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
@@ -113,7 +114,8 @@
 
 <script setup lang="ts">
 import GlassSegments from "@/components/glass-segments.vue";
-import { computed, ref, type CSSProperties } from "vue";
+import { computed, ref, watch, type CSSProperties } from "vue";
+import { NOVA_SUPPORT_VISIBLE } from "@/lib/nova-visibility";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -137,14 +139,20 @@ const query = ref("");
 const cat = ref<FaqCategory | "all">("all");
 const openId = ref<string | null>(null);
 const faqLoadError = ref(false);
+const faqLoading = ref(false);
+let faqEpoch = 0;
 
 async function loadFaqs() {
+  const request = ++faqEpoch;
+  faqLoading.value = true;
   faqLoadError.value = false;
-  try { faqs.value = await supportApi.faqs(locale.code); }
-  catch { faqs.value = []; faqLoadError.value = true; }
+  try { const rows = await supportApi.faqs(locale.code); if (request === faqEpoch) faqs.value = rows; }
+  catch { if (request === faqEpoch) { faqs.value = []; faqLoadError.value = true; } }
+  finally { if (request === faqEpoch) faqLoading.value = false; }
 }
 
 onShow(() => { void loadFaqs(); });
+watch(() => locale.code, () => { void loadFaqs(); });
 
 function detailVal(e: Event): string {
   return (e as unknown as { detail: { value: string } }).detail.value;
@@ -221,7 +229,7 @@ function goSupport() {
   navTo("/pages/me/support");
 }
 function goTicketCreate() {
-  navTo("/pages/me/support-tickets?mode=create");
+  navTo("/pages/support/messages");
 }
 
 const contactLinkStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-brand)", minHeight: "44px", paddingLeft: "10px", paddingRight: "10px" };

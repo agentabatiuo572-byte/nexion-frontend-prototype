@@ -71,8 +71,7 @@ const CHAT_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" st
 const TICKET_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z" /><path d="m9 11 2 2 4-4" /></svg>`;
 
 const channels = computed<Channel[]>(() => [
-  { id: "lc", label: w.value.chLiveChat, hint: w.value.chLiveChatHint, icon: CHAT_SVG, tintSoft: "color-mix(in srgb, var(--v5-brand) 15%, transparent)", href: "/pages/support/messages" },
-  { id: "tk", label: w.value.chTicket, hint: w.value.chTicketHint, icon: TICKET_SVG, tintSoft: "color-mix(in srgb, var(--v5-brand) 15%, transparent)", href: "/pages/me/support-tickets?mode=create" },
+  { id: "lc", label: w.value.chLiveChat, hint: w.value.chLiveChatHint, icon: CHAT_SVG, tintSoft: "color-mix(in srgb, var(--v5-brand) 15%, transparent)", href: "/pages/me/notifications?section=service" },
 ]);
 
 const pinned = computed(() => [w.value.pinnedItem1, w.value.pinnedItem2, w.value.pinnedItem3, w.value.pinnedItem4]);

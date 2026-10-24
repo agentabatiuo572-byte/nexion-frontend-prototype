@@ -1,23 +1,4 @@
-<template>
-  <AppChassis active="team">
-    <view class="pb-8" style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/team/unilevel" :title="t.publicCopy.helpTitle" />
-      <HowHero :label="t.publicCopy.helpTitle" :title="t.unilevel.pageTitle" :sub="t.publicCopy.earningsHelp" accent="lemon" />
-      <HowSection :title="t.publicCopy.helpTitle" accent="lemon">
-        <template #icon><text aria-hidden="true">ⓘ</text></template>
-        <text class="block" style="font-size: 13px; line-height: 1.65; color: var(--v5-ink-2)">{{ t.publicCopy.pendingHelp }}</text>
-        <text class="block mt-4" style="font-size: 13px; line-height: 1.65; color: var(--v5-ink-2)">{{ t.publicCopy.refundHelp }}</text>
-      </HowSection>
-    </view>
-  </AppChassis>
-</template>
-
+<template><AppChassis active="team"><SubPageHeader back="/pages/team/unilevel" :title="w.rules" /><view class="px-4 pb-6" style="display:flex;flex-direction:column;gap:18px;color:var(--v5-ink)"><view class="nx-glass-card" style="padding:18px;border-radius:20px"><text class="block" style="font-size:18px;font-weight:600">{{ w.title }}</text><text class="block" style="margin-top:12px;font-size:14px;line-height:1.8">{{ w.ruleBody }}</text></view><view class="nx-glass-card" style="padding:18px;border-radius:20px"><text style="font-size:14px;line-height:1.8">{{ w.platformPays }}</text><text class="block" style="margin-top:12px;font-size:13px;line-height:1.8;color:var(--v5-ink-3)">{{ w.netHint }}</text></view><view role="button" tabindex="0" style="min-height:44px;display:flex;align-items:center;color:var(--v5-brand)" @click="navTo('/pages/team/unilevel')">{{ w.back }}</view></view></AppChassis></template>
 <script setup lang="ts">
-import AppChassis from "@/components/app-chassis.vue";
-import SubPageHeader from "@/components/sub-page-header.vue";
-import HowHero from "@/components/how/how-hero.vue";
-import HowSection from "@/components/how/how-section.vue";
-import { useT } from "@/i18n/use-t";
-
-const t = useT();
+import { computed } from 'vue';import AppChassis from '@/components/app-chassis.vue';import SubPageHeader from '@/components/sub-page-header.vue';import { useT } from '@/i18n/use-t';import { navTo } from '@/lib/route';const t=useT(),w=computed(()=>t.value.prototypeBusiness);
 </script>

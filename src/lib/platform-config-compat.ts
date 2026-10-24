@@ -63,7 +63,7 @@ export function completePlatformConfigSeed(seed: PlatformConfigSeed): PlatformCo
 
   return {
     phoneBinding: seed.phoneBinding ? { ...seed.phoneBinding } : { allowReplacement: false, minReplacementIntervalDays: 0 },
-    featureFlags: { ...seed.featureFlags },
+    featureFlags: { ...seed.featureFlags, stakingVisible: seed.featureFlags.stakingVisible ?? true },
     publicStats: {
       ...publicStats,
       hashratePercentileTable: publicStats.hashratePercentileTable.map((bucket) => ({ ...bucket })),
@@ -76,6 +76,7 @@ export function completePlatformConfigSeed(seed: PlatformConfigSeed): PlatformCo
       networkConfirmFeeUsd: { ...networkConfirmFeeUsd },
     },
     rewards: {
+      enabled: seed.rewards.enabled ?? true,
       welcomeGift: { ...seed.rewards.welcomeGift },
       inviterReward: { ...seed.rewards.inviterReward },
     },

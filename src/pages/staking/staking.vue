@@ -10,7 +10,7 @@
   (入账 ⊗ 记账,见 lib/money-receipt.ts) in the page handlers.
 -->
 <template>
-  <AppChassis active="me">
+  <AppChassis v-if="stakingVisible" active="me">
     <CardStagger style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/wallet" />
       <!-- 开发诊断,不是产品文案:所以① 只在 DEV 构建渲染 ② 文案是裸英文字面量,不进三语词典 ——
@@ -122,6 +122,8 @@
 </template>
 
 <script setup lang="ts">
+import { useStakingPageVisibility } from "@/composables/use-staking-page-visibility";
+const stakingVisible = useStakingPageVisibility();
 import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -287,6 +289,7 @@ function reportStakingFailure(reason: unknown, fallbackTitle: string) {
 }
 
 async function handleEarlyWithdraw(p: StakingPosition) {
+  if (!stakingVisible.value) return;
   const penaltyRate = STAKING_PENALTY[p.termDays];
   const penalty = (p.amountUSDT * penaltyRate).toFixed(2);
   const refund = (p.amountUSDT * (1 - penaltyRate)).toFixed(2);
@@ -300,7 +303,7 @@ async function handleEarlyWithdraw(p: StakingPosition) {
     danger: true,
     confirmLabel: t.value.stakingV3.toast.earlyConfirmCta,
   });
-  if (!ok) return;
+  if (!ok || !stakingVisible.value) return;
   if (!staking.isMockMode) {
     if (await runRemoteMutation("early", p.id)) {
       toast.warn(t.value.stakingV3.toast.earlyDoneTitle);

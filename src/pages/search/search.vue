@@ -36,7 +36,7 @@
         <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.625">{{ t.search.emptyBody }}</text>
         <view class="nx-search-nova active:opacity-75" role="button" tabindex="0"
           @click="openNova('')" @keydown.enter.prevent="openNova('')" @keydown.space.prevent="openNova('')">
-          <text>{{ t.search.askNova }}</text>
+          <text>{{ t.conversations.contactSupport }}</text>
         </view>
       </view>
 
@@ -46,7 +46,7 @@
         kind="no-search-results"
         :title="t.empty.searchTitle"
         :desc="t.empty.searchDesc"
-        :cta-label="t.search.askNova"
+        :cta-label="t.conversations.contactSupport"
         @cta="openNova(q)"
       />
 
@@ -76,6 +76,9 @@
 </template>
 
 <script setup lang="ts">
+import { useConfig } from "@/store/config";
+import { isStakingVisibilityRoute } from "@/lib/staking-visibility";
+const visibilityConfig = useConfig();
 import { ref, computed, onMounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -156,6 +159,7 @@ const results = computed<Hit[]>(() => {
   const routeCopy = t.value.search.routes;
   const faqCopy = t.value.search.faqEntries;
   for (const r of ROUTES) {
+    if (isStakingVisibilityRoute(r.href) && !visibilityConfig.isEnabled("stakingVisible")) continue;
     const c = routeCopy[r.key];
     if (c.label.toLowerCase().includes(query) || c.sub.toLowerCase().includes(query)) {
       out.push({ group: "route", label: c.label, sublabel: c.sub, href: r.href });
@@ -194,6 +198,7 @@ const results = computed<Hit[]>(() => {
     }
   }
   for (const f of FAQ) {
+    if (isStakingVisibilityRoute(f.href) && !visibilityConfig.isEnabled("stakingVisible")) continue;
     const c = faqCopy[f.key];
     if (c.label.toLowerCase().includes(query) || c.sub.toLowerCase().includes(query)) {
       out.push({ group: "faq", label: c.label, sublabel: c.sub, href: f.href });
@@ -201,9 +206,9 @@ const results = computed<Hit[]>(() => {
   }
   const help: Hit = {
     group: "help",
-    label: t.value.search.askNova,
-    sublabel: t.value.search.askNovaWithQuery.replace("{query}", q.value.trim()),
-    href: `/pages/support/chat?type=ai&prompt=${encodeURIComponent(q.value.trim())}`,
+    label: t.value.conversations.contactSupport,
+    sublabel: t.value.help.contactHint,
+    href: `/pages/support/chat?type=advisor&prompt=${encodeURIComponent(q.value.trim())}`,
   };
   return out.length ? [...out.slice(0, 29), help] : [];
 });
@@ -234,7 +239,7 @@ function openHit(h: Hit) {
 
 function openNova(query: string) {
   const suffix = query.trim() ? `&prompt=${encodeURIComponent(query.trim())}` : "";
-  uni.navigateTo({ url: `/pages/support/chat?type=ai${suffix}`, fail: () => {} });
+  uni.navigateTo({ url: `/pages/support/chat?type=advisor${suffix}`, fail: () => {} });
 }
 
 // ── styles ──

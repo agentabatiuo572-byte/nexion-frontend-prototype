@@ -71,9 +71,11 @@ test("mock password reset persists through AuthApi and reuses the phone account 
   assert.doesNotMatch(reset, /if \(remoteApiEnabled\)/,
     "mock reset must not bypass the AuthApi persistence call");
   assert.match(accountId, /if \(remoteApiEnabled\) return `user:\$\{user\.userId\}`/);
-  assert.match(accountId, /authAccountKeyForPhone\(`\$\{user\.countryCode\}\$\{user\.phone\}`\)/);
+  assert.match(accountId, /return mockAccountIdForUser\(user\)/);
+  const mockApi = read("src/api/mock-auth-api.ts");
+  assert.match(fnBlock(mockApi, "mockAccountIdForUser"), /originalAccountId/);
   assert.equal((login.match(/accountId: authenticatedAccountId\(result\.user\)/g) || []).length, 3);
-  assert.match(login, /identity: authenticatedAccountId\(result\.user\)/);
+  assert.match(read("src/components/third-party-auth.vue"), /completeSignIn\(\{ identity: result\.accountId/);
 });
 
 test("remote configuration loads are authoritative and remote writes do not revive local tables", () => {
@@ -146,8 +148,12 @@ test("remote policy branches use dedicated server contracts or stay fail-closed"
   // 锚点改用同样「关死」的 smallAmountThresholdUsd: 0(小额免审真停用),强度不变。
   assert.match(config, /const unavailableServerConfig: PlatformConfig = \{[\s\S]*?riskCluster: \{[\s\S]*?releaseMode: "manual_only"[\s\S]*?withdrawRules: \{[\s\S]*?sameAddressRoute: "reject"[\s\S]*?smallAmountThresholdUsd: 0[\s\S]*?riskScore: \{[\s\S]*?weakSignalClusterThreshold: 0[\s\S]*?otpGate: \{[\s\S]*?maxVerifyAttempts: 0[\s\S]*?share: \{[\s\S]*?channels: \[\]/);
   assert.match(login, /import \{[^}]*authApi[^}]*remoteApiEnabled[^}]*\} from "@\/api\/runtime"/);
-  assert.match(login, /async function startOauth\([\s\S]*?authApi\.oauthExchange/);
-  assert.match(login, /apiRuntimeConfig\.mode === "sandbox" && apiRuntimeConfig\.modeExplicit \? "SANDBOX_MOCK" : "PROVIDER"/);
+  assert.match(login, /<ThirdPartyAuth/);
+  const providerFlow = read("src/components/third-party-auth.vue");
+  assert.match(providerFlow, /from "@\/api\/prototype-account-api"/);
+  assert.match(providerFlow, /revision !== sessionVault\.revision\(\)/);
+  assert.match(providerFlow, /saveIfUnchanged/);
+  assert.doesNotMatch(providerFlow, /authApi\.oauthExchange|SANDBOX_MOCK/);
   assert.match(login, /async function requestCode\(captchaTicket\?: string\) \{[\s\S]*?if \(remoteApiEnabled\) \{[\s\S]*?authApi\.sendPasswordResetOtp[\s\S]*?authApi\.sendLoginOtp/);
   assert.match(login, /async function verifyCode\(\) \{[\s\S]*?if \(remoteTwoFactorChallenge\.value\) \{ await verifyRemoteTwoFactor\(\); return; \}[\s\S]*?if \(remoteApiEnabled\) \{[\s\S]*?authApi\.completeOtpLogin/);
   assert.match(login, /async function finishReset\(\) \{[\s\S]*?authApi\.completePasswordReset/);

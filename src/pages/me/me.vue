@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { useMessageDrawer } from "@/store/message-drawer";
 import { computed, ref, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import CardStagger from "@/components/card-stagger.vue";
@@ -244,7 +245,8 @@ const myGenesisValue = computed(() => fmt(t.value.me.myGenesisNodeValue, { n: St
 
 // ── Secondary display values, wired to the live ported stores (matches source) ──
 const twoFactorEnabled = computed(() => security.twoFactorEnabled);
-const unreadNotifs = computed(() => notifications.unread);
+const messageCenter = useMessageDrawer();
+const unreadNotifs = computed(() => messageCenter.totalUnread);
 const achievementsUnlocked = computed(
   () => achievements.records.filter((r) => r.unlockedAt > 0).length,
 );
@@ -306,10 +308,9 @@ const quickSections = computed<QuickSection[]>(() => [
     key: "help",
     title: t.value.me.secHelp,
     items: [
-      { key: "messages", label: t.value.me.supportMessagesRow, href: "/support/messages", icon: "messages", badge: unreadNotifs.value > 0 ? String(unreadNotifs.value) : undefined, tone: "purple" },
-      { key: "support", label: t.value.me.liveSupportRow, href: "/me/support", icon: "chat", meta: t.value.me.onlineChip, tone: "success" },
+      { key: "messages", label: t.value.me.supportMessagesRow, href: "/me/notifications", icon: "messages", badge: unreadNotifs.value > 0 ? String(Math.min(99, unreadNotifs.value)) : undefined, tone: "purple" },
+      { key: "support", label: t.value.me.liveSupportRow, href: "/me/support", icon: "chat", meta: t.value.me.supportHubMeta, tone: "success" },
       { key: "faq", label: t.value.me.helpFaq, href: "/me/help", icon: "help", tone: "muted" },
-      { key: "tickets", label: t.value.me.supportTicketsRow, href: "/me/support-tickets", icon: "ticket", tone: "orange" },
       { key: "trust", label: t.value.me.trustCenter, href: "/trust", icon: "trust", meta: t.value.me.auditsPartners, tone: "success" },
       { key: "learning", label: t.value.me.learningRow, href: "/learn/courses", icon: "book", tone: "brand" },
       { key: "risk", label: t.value.me.riskRow, href: "/me/risk-disclosure", icon: "warning", tone: "orange" },

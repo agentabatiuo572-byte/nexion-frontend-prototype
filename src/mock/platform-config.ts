@@ -7,6 +7,7 @@ import { GPU_TIERS } from "@/lib/gpu-tiers";
 // this repo currently has no admin-to-client transport.
 export const DEFAULT_PLATFORM_CONFIG: PlatformConfigSeed = {
   featureFlags: {
+    stakingVisible: true,
     // DR-1: 电脑算力默认 OFF。
     computeShareEnabled: false,
     // FEAT-HOME02 mock projections. PROD derives these from the existing H3
@@ -46,6 +47,7 @@ export const DEFAULT_PLATFORM_CONFIG: PlatformConfigSeed = {
     rebindCooldownDays: 7,
   },
   rewards: {
+    enabled: true,
     // NEX 数量原 200(≈免费 $2000 提现抵扣额度)过松,已收紧到 20;此处仅 mock seed,运营在 K 域调。
     welcomeGift: { lockMode: "risk_bucket", usdtAmount: 5, nexAmount: 20 },
     // 邀请人奖励:邀请人每邀请一名新用户得的 NEX;此处仅 mock seed,运营在 K 域调。

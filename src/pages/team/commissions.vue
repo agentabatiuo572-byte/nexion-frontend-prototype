@@ -99,12 +99,11 @@
                 </view>
                 <text class="block font-mono-tabular" :style="eventMetaStyle">{{ eventMeta(e) }}</text>
               </view>
-              <view class="text-right">
+              <view class="text-right" style="max-width:52%;overflow-wrap:anywhere">
                 <text v-if="e.amountUSDT > 0" class="block font-mono-tabular tabular-nums" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-brand)' }">+${{ e.amountUSDT.toFixed(2) }}</text>
                 <text v-if="e.amountNEX > 0" class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-warning)' }">+{{ e.amountNEX.toLocaleString() }} NEX</text>
-                <text v-if="e.status === 'cooling'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-warning)', marginTop: '2px' }">{{ coolingTag(e) }}</text>
-                <text v-else-if="e.status === 'unlocked'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-success)', marginTop: '2px' }">{{ t.commissions.readyTag }}</text>
-                <text v-else-if="e.status === 'withdrawn'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.commissions.withdrawnTag }}</text>
+                <text class="block" style="font-size:12px;color:var(--v5-ink-3);margin-top:2px">{{ rewardStatus(e) }}</text>
+                <text v-if="e.status==='recovery_pending'" class="block" style="font-size:12px;color:var(--v5-warning)">{{ t.prototypeBusiness.pending }} · {{ (e.recoveryPendingUSDT??0).toFixed(2) }} USDT · {{ (e.recoveryPendingNEX??0).toFixed(2) }} NEX</text>
               </view>
             </view>
         </view>
@@ -115,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { teamRewardCategory, commissionAssetStatus } from '@/lib/prototype-team-rewards';
 import GlassSegments from "@/components/glass-segments.vue";
 import { ref, computed, onMounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
@@ -133,7 +133,7 @@ import { remoteApiEnabled } from "@/api/runtime";
 const t = useT();
 const commission = useCommission();
 
-type Filter = "all" | CommissionKind;
+type Filter = "all" | CommissionKind | 'direct' | 'extended' | 'device_earning';
 const filter = ref<Filter>("all");
 
 const KIND_ORDER: CommissionKind[] = ["unilevel", "binary", "peer", "cultivation", "leadership", "genesis"];
@@ -159,7 +159,7 @@ onShow(() => { if (remoteApiEnabled) void commission.refreshCanonicalEvents(); }
 const events = computed(() => commission.events);
 const byKind = computed(() => commission.byKind());
 const filtered = computed(() =>
-  filter.value === "all" ? events.value : events.value.filter((e) => e.kind === filter.value),
+  filter.value === "all" ? events.value : events.value.filter((e) => ['direct','extended','device_earning'].includes(filter.value) ? teamRewardCategory(e) === filter.value : e.kind === filter.value),
 );
 
 const coolingOverviewText = computed(() => {
@@ -184,10 +184,16 @@ function sourceName(e: CommissionEvent): string {
 }
 
 function eventMeta(e: CommissionEvent): string {
-  const kindLabel = t.value.commissions.kind[e.kind];
+  const category = teamRewardCategory(e);
+  const kindLabel = category === 'direct' ? t.value.prototypeBusiness.purchase : category === 'extended' ? t.value.prototypeBusiness.networkPurchase : category === 'device_earning' ? t.value.prototypeBusiness.deviceEarning : t.value.commissions.kind[e.kind];
   const order = e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${e.orderAmountUSD}` : "";
   const date = new Date(e.ts).toLocaleDateString(dateLocale());
   return `${kindLabel}${order} · ${date}`;
+}
+function rewardStatus(e: CommissionEvent): string {
+  const usdt = commissionAssetStatus(e,'USDT'), nex = commissionAssetStatus(e,'NEX');
+  const labels = t.value.prototypeBusiness;
+  return usdt === nex ? labels[usdt] : `USDT ${labels[usdt]} · NEX ${labels[nex]}`;
 }
 function coolingTag(e: CommissionEvent): string {
   const days = Math.max(0, Math.ceil((e.unlockAt - Date.now()) / 86400000));
@@ -300,6 +306,9 @@ const extendedBadgeStyle: CSSProperties = {
 const eventMetaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
 const filterOptions = computed(() => [
   { value: "all", label: t.value.commissions.all, count: commission.events.length },
+  { value: 'direct', label: t.value.prototypeBusiness.purchase },
+  { value: 'extended', label: t.value.prototypeBusiness.networkPurchase },
+  { value: 'device_earning', label: t.value.prototypeBusiness.deviceEarning },
   ...KIND_ORDER.map(value => ({ value, label: t.value.commissions.kind[value], count: byKind.value[value].count })),
 ]);
 </script>

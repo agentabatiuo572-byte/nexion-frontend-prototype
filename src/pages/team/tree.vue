@@ -79,6 +79,7 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNetwork, type NetworkMember } from "@/store/network";
 import { UNILEVEL_USDT } from "@/store/commission";
+import { directPurchaseUsdt } from '@/lib/prototype-team-rewards';
 import { remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
@@ -94,7 +95,7 @@ const directVol = computed(() => direct.value.reduce((s, m) => s + m.monthVolume
 const extendedRoyalty = computed(() =>
   extended.value.reduce((sum, m: NetworkMember) => sum + m.monthVolumeUSD * (UNILEVEL_USDT[m.layer] ?? 0), 0),
 );
-const directRoyalty = computed(() => directVol.value * UNILEVEL_USDT[1]);
+const directRoyalty = computed(() => directPurchaseUsdt(directVol.value, UNILEVEL_USDT[1]));
 
 const directSubtitle = computed(() =>
   remoteApiEnabled

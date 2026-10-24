@@ -31,11 +31,11 @@
           <view class="nx-marketplace-stats grid" :style="statGridStyle">
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.floor }}</text>
-              <text class="tabular-nums" :style="statValStyle('var(--v5-success)')">{{ stats.floor === null ? "—" : `$${(stats.floor / 1000).toFixed(1)}K` }}</text>
+              <text class="tabular-nums" :style="statValStyle('var(--v5-success)')">{{ stats.floor === null ? "—" : `$${formatGenesisPrice(stats.floor)}` }}</text>
             </view>
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.vol24h }}</text>
-              <text class="tabular-nums" :style="statValStyle()">{{ stats.vol24h === null ? "—" : `$${(stats.vol24h / 1000).toFixed(0)}K` }}</text>
+              <text class="tabular-nums" :style="statValStyle()">{{ stats.vol24h === null ? "—" : `$${formatGenesisPrice(stats.vol24h)}` }}</text>
             </view>
             <view class="flex flex-col">
               <text :style="statLabelStyle">{{ t.marketplace.listed }}</text>
@@ -134,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import GlassSegments from "@/components/glass-segments.vue";
 import { ref, computed, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
@@ -262,7 +263,7 @@ async function handleBuy(listing: Listing) {
     if (await genesis.acquireSecondary(listing.tokenId)) {
       toast.success(
         fmt(t.value.marketplace.acquiredToast, { id: listing.tokenId }),
-        fmt(t.value.marketplace.acquiredDesc, { paid: listing.priceUSDT.toLocaleString(), held: ownedCount.value }),
+        fmt(t.value.marketplace.acquiredDesc, { paid: formatGenesisPrice(listing.priceUSDT), held: ownedCount.value }),
       );
       return;
     }

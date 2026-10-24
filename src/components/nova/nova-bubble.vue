@@ -31,6 +31,9 @@
 import { computed, onMounted, onUnmounted } from "vue";
 import { useNova } from "@/store/nova";
 import { useConversations } from "@/store/conversations";
+import { useMessageDrawer } from "@/store/message-drawer";
+import { useConfig } from "@/store/config";
+import { formatUnreadBadge } from "@/lib/unread-badge";
 import { useNotifications, type NotifKind } from "@/store/notifications";
 import { remoteApiEnabled } from "@/api/runtime";
 import { welcomeMessage } from "@/mock/nova-templates";
@@ -50,6 +53,7 @@ defineProps<{ dimmed?: boolean }>();
 const t = useT();
 const nova = useNova();
 const conversations = useConversations();
+const messageCenter = useMessageDrawer(), config = useConfig();
 const notifications = useNotifications();
 // 创世闸(P1-2):推送前判紧迫感是否被允许;声明见 stakingEventMessage 内注释。
 const genesisCfg = useGenesisConfig();
@@ -59,14 +63,14 @@ const { showUrgency: genesisUrgencyOk } = useGenesisSaleGate();
 // (the advisor's proactive seed shows immediately as a conversion hook). Tapping
 // opens the unified conversation center; unread clears per-thread on open there.
 const totalUnread = computed(() =>
-  remoteApiEnabled ? nova.unread : nova.unread + conversations.totalUnread,
+  conversations.totalUnread,
 );
-const visible = computed(() => remoteApiEnabled || totalUnread.value > 0);
+const visible = computed(() => true);
 const showUnreadBadge = computed(() => totalUnread.value > 0);
-const unreadLabel = computed(() => (totalUnread.value > 9 ? "9+" : String(totalUnread.value)));
+const unreadLabel = computed(() => formatUnreadBadge(totalUnread.value));
 
 function open() {
-  navTo("/pages/support/messages");
+  messageCenter.show("service");
 }
 
 // ── focused trigger port (nova-triggers welcome + nova-triggers-v3 channels)
@@ -146,6 +150,7 @@ function marketEventMessage(p: NovaPush): ChannelMsg {
 }
 
 function fireChannel(prefix: "team" | "staking" | "market", kind: NotifKind, m: ChannelMsg, cooldownMs: number) {
+  if (prefix === "staking" && !config.isEnabled("stakingVisible")) return;
   const cooldownKey = `${prefix}_${m.ctaHref}`;
   const fired = nova.push(
     { kind: "market-event", text: m.text, ctaLabel: m.ctaLabel, ctaHref: m.ctaHref },
@@ -160,6 +165,7 @@ const timers: ReturnType<typeof setTimeout>[] = [];
 const intervals: ReturnType<typeof setInterval>[] = [];
 
 onMounted(() => {
+  void conversations.refresh().catch(() => undefined);
   if (remoteApiEnabled) {
     void notifications.refreshRemote();
     return;

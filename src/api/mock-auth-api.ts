@@ -6,6 +6,7 @@ import { normalizeAccountKey } from "@/store/account-cloud";
 import { deleteAuthAccount } from "@/store/auth-account";
 import { clearAuthOtpStateForPhone } from "@/store/auth-otp";
 import { removeAccountScopedPersistentState } from "@/store/account-scoped-storage";
+import { readPrototypeUsers, writePrototypeUsers, findPrototypeAccount, findPrototypePhone, currentPrototypePhone, originalAccountId, type PrototypeUserRecord, type PrototypeUserRegistry } from "@/auth/prototype-identity";
 
 /**
  * mock 档的本地 AuthApi 实现(主人 2026-08-15 拍板包 zm T0)。
@@ -21,19 +22,8 @@ import { removeAccountScopedPersistentState } from "@/store/account-scoped-stora
  * - userId 由 国家码+号码 稳定派生 —— 同一手机号跨会话同一账号,account-cloud 按此自初始化。
  */
 
-interface MockUserRecord {
-  userId: number;
-  password: string | null;
-  nickname: string;
-  twoFactorEnabled?: boolean;
-}
-
-interface MockUserRegistry {
-  schema: 1;
-  users: Record<string, MockUserRecord>;
-}
-
-const REGISTRY_KEY = "nexgrid-mock-auth-users-v1";
+type MockUserRecord = PrototypeUserRecord;
+type MockUserRegistry = PrototypeUserRegistry;
 
 function identityOf(countryCode: string, phone: string): string {
   return `${countryCode} ${phone}`.trim();
@@ -52,18 +42,12 @@ function maskedHint(phone: string): string {
 }
 
 function loadRegistry(): MockUserRegistry {
-  try {
-    const raw = uni.getStorageSync(REGISTRY_KEY) as MockUserRegistry | "";
-    if (raw && raw.schema === 1 && raw.users && typeof raw.users === "object") return raw;
-  } catch {
-    // first run / storage unavailable
-  }
-  return { schema: 1, users: {} };
+  return readPrototypeUsers();
 }
 
 function saveRegistry(reg: MockUserRegistry): boolean {
   try {
-    uni.setStorageSync(REGISTRY_KEY, reg);
+    writePrototypeUsers(reg);
     return true;
   } catch {
     // storage unavailable — session survives in memory via vault only
@@ -73,8 +57,9 @@ function saveRegistry(reg: MockUserRegistry): boolean {
 
 function ensureUser(reg: MockUserRegistry, countryCode: string, phone: string): MockUserRecord {
   const id = identityOf(countryCode, phone);
-  const existing = reg.users[id];
+  const existing = findPrototypePhone(reg, countryCode, phone)?.[1];
   if (existing) return existing;
+  if (reg.users[id]) throw new ApiError({ kind: "business", message: "USER_INVALID_CREDENTIALS" });
   const created: MockUserRecord = { userId: deriveUserId(id), password: null, nickname: phone.slice(-4) };
   reg.users[id] = created;
   saveRegistry(reg);
@@ -97,19 +82,22 @@ function snapshotFor(user: UserSession): SessionSnapshot {
 }
 
 function sessionUser(countryCode: string, phone: string, rec: MockUserRecord): UserSession {
-  return { userId: rec.userId, countryCode, phone, nickname: rec.nickname };
+  return { userId: rec.userId, countryCode: rec.countryCode ?? countryCode, phone: rec.phone ?? phone, nickname: rec.nickname };
 }
 
-function accountIdForIdentity(identity: string): string {
-  const compact = identity.replace(/\s+/g, "");
-  return normalizeAccountKey(`${compact}@demo.nexgrid.ai`);
+export function mockAccountIdForUser(user: UserSession): string {
+  const entry = Object.entries(loadRegistry().users).find(([, record]) => record.userId === user.userId);
+  return entry ? originalAccountId(entry[0], entry[1]) : `user:${user.userId}`;
+}
+
+export function mockAccountPhone(accountId: string): { countryCode: string; phone: string } | null {
+  const entry = findPrototypeAccount(loadRegistry(), accountId);
+  return entry ? currentPrototypePhone(entry[0], entry[1]) : null;
 }
 
 function findUser(reg: MockUserRegistry, accountId: string): { identity: string; record: MockUserRecord } | null {
   const normalized = normalizeAccountKey(accountId);
-  const entry = Object.entries(reg.users).find(([identity, record]) =>
-    accountIdForIdentity(identity) === normalized || `user:${record.userId}` === normalized,
-  );
+  const entry = findPrototypeAccount(reg, normalized);
   return entry ? { identity: entry[0], record: entry[1] } : null;
 }
 
@@ -131,7 +119,7 @@ export function changeMockAuthPassword(accountId: string, currentPassword: strin
     throw new ApiError({ kind: "business", message: "USER_INVALID_CREDENTIALS" });
   }
   found.record.password = newPassword;
-  saveRegistry(found.registry);
+  if (!saveRegistry(found.registry)) throw new ApiError({ kind: "protocol", message: "ACCOUNT_STORAGE_UNAVAILABLE" });
 }
 
 export function setMockAuthTwoFactor(accountId: string, enabled: boolean, currentPassword: string): void {
@@ -140,7 +128,7 @@ export function setMockAuthTwoFactor(accountId: string, enabled: boolean, curren
     throw new ApiError({ kind: "business", message: "USER_INVALID_CREDENTIALS" });
   }
   found.record.twoFactorEnabled = enabled;
-  saveRegistry(found.registry);
+  if (!saveRegistry(found.registry)) throw new ApiError({ kind: "protocol", message: "ACCOUNT_STORAGE_UNAVAILABLE" });
 }
 
 /** Delete the mock auth account plus every account-keyed local projection. */
@@ -184,7 +172,13 @@ export function registerMockAuthCredential(countryCode: string, phone: string, p
  * which must preserve a user's 2FA choice.
  */
 export function provisionMockAuthCredential(countryCode: string, phone: string, password: string): boolean {
-  const reg = loadRegistry();
+  let reg: MockUserRegistry;
+  try { reg = loadRegistry(); }
+  catch { return false; }
+  // Once used by the new account workflows, the preview account's chosen
+  // phone/password/2FA are durable; visiting login must not undo those choices.
+  const previous = reg.users[identityOf(countryCode, phone)];
+  if (previous?.phone !== undefined || previous?.providers?.length || previous?.providerIdentities?.length) return true;
   const rec = ensureUser(reg, countryCode, phone);
   rec.password = password;
   rec.twoFactorEnabled = false;
@@ -212,7 +206,7 @@ export function createMockAuthApi(vault: SessionVault): AuthApi {
   return {
     async login(request) {
       const reg = loadRegistry();
-      const rec = reg.users[identityOf(request.countryCode, request.phone)];
+      const rec = findPrototypePhone(reg, request.countryCode, request.phone)?.[1];
       if (!rec || rec.password === null || rec.password !== request.password) {
         // 错误码钉页面契约名(login.vue 映射 USER_INVALID_CREDENTIALS;独立验收 F3:
         // 自造码会落兜底「服务不可用」,连「手机号或密码不正确」都显不出来)。
@@ -247,7 +241,7 @@ export function createMockAuthApi(vault: SessionVault): AuthApi {
       const reg = loadRegistry();
       const rec = ensureUser(reg, request.countryCode, request.phone);
       rec.password = request.newPassword;
-      saveRegistry(reg);
+      if (!saveRegistry(reg)) throw new ApiError({ kind: "protocol", message: "ACCOUNT_STORAGE_UNAVAILABLE" });
       return { status: "PASSWORD_RESET", revokedSessionCount: 0 };
     },
     async completeTwoFactor(request) {
@@ -259,7 +253,7 @@ export function createMockAuthApi(vault: SessionVault): AuthApi {
         throw new ApiError({ kind: "business", message: "USER_TWO_FACTOR_CHALLENGE_INVALID" });
       }
       const reg = loadRegistry();
-      const rec = reg.users[identity];
+      const rec = findPrototypePhone(reg, request.countryCode, request.phone)?.[1];
       if (!rec || rec.password !== request.password || rec.twoFactorEnabled !== true) {
         throw new ApiError({ kind: "business", message: "USER_INVALID_CREDENTIALS" });
       }

@@ -15,7 +15,10 @@ export const REF_CODE_RE = /^NEXGRID-[A-Z0-9]{4}$/;
 
 export function normalizeRefCode(raw: string | null | undefined): string | null {
   const v = (raw || "").trim().toUpperCase();
-  return REF_CODE_RE.test(v) ? v : null;
+  if (REF_CODE_RE.test(v)) return v;
+  // Current invitation links use the source NX identifier; keep legacy demo codes.
+  const current = v.replace(/-/g, "");
+  return /^NX[A-Z0-9]{2,30}$/.test(current) ? current : null;
 }
 
 interface AccountBinding {

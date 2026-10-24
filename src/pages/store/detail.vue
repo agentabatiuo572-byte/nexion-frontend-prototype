@@ -15,6 +15,7 @@
 -->
 <template>
   <AppChassis active="store">
+    <view v-if="promotionActivityId" class="px-4 pt-3"><PromotionEntry mode="store" :activity-id="promotionActivityId" :product-no="id" /></view>
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
     <view style="color: var(--v5-ink); padding-top: 24px">
@@ -224,6 +225,8 @@
 </template>
 
 <script setup lang="ts">
+import PromotionEntry from '@/components/promotion/promotion-entry.vue';
+import { promotionCheckoutHref } from '@/lib/promotion-entry';
 import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -259,9 +262,11 @@ const trustLanguage = computed<TrustLocale>(() => ["zh", "vi", "en"].includes(lo
 const { sections: trustSections, status: trustStatus, refresh: refreshTrust } = usePublishedTrust();
 
 const id = ref("");
+const promotionActivityId = ref('');
 const catalogRetrying = ref(false);
 onLoad(async (options) => {
   const o = (options || {}) as Record<string, string>;
+  promotionActivityId.value = o.activityId ?? '';
   if (o.id) id.value = o.id;
   await Promise.all([refreshProductCatalog(true), refreshServerProductPhase(true), remoteApiEnabled ? refreshTrust() : Promise.resolve(true)]);
 });
@@ -478,7 +483,7 @@ watch(
       return;
     }
     sticky.show({
-      href: `/pages/store/checkout?product=${product.value.id}`,
+      href: promotionActivityId.value ? promotionCheckoutHref([{productNo:product.value.id,quantity:qty.value}],promotionActivityId.value) : `/pages/store/checkout?product=${product.value.id}`,
       amount: `$${priceText.value}`,
       buttonLabel: t.value.store.cardBuyNow,
       showTabBar: false,

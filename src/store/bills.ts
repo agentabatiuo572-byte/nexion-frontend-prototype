@@ -4,6 +4,7 @@ import { mockServerId } from "./mock-id";
 import { mockServerNow } from "./server-time";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
+import { readPrototypeStorage, writePrototypeStorageSnapshot } from '@/lib/prototype-storage';
 import { fundsSandboxApi, mockFundsEnabled, fundsServerEnabled, referralRewardApi, walletBillsApi } from "@/api/runtime";
 import type { FundsSandboxLedgerEntry } from "@/api/funds-sandbox-api";
 import type { WalletBillRow } from "@/api/wallet-bills-api";
@@ -188,9 +189,32 @@ export const useBills = defineStore("bills", () => {
   const bills = ref<Bill[]>(fundsServerEnabled ? [] : hydrate(boundKey));
   const serverStatus = ref<"idle" | "loading" | "ready" | "error">(mockFundsEnabled ? "idle" : "ready");
   const serverError = ref("");
+  let strictTable: Record<string, { bills: Bill[] }> | undefined;
+
+  /** A single strict read supplies both idempotency and subsequent writes.
+   * Never hydrate again through the legacy empty-on-read-error path. */
+  function withStrictPrototypeSnapshot<T>(rawAccountKey: string, run: () => T): T {
+    if (fundsServerEnabled) throw new Error('storage');
+    if (strictTable) return run();
+    const key = normalizeAccountKey(rawAccountKey);
+    const table = readPrototypeStorage<Record<string, { bills: Bill[] }>>(ACCOUNTS_KEY) ?? {};
+    if (!table || typeof table !== 'object' || Array.isArray(table)) throw new Error('storage');
+    const saved = table[key];
+    if (saved !== undefined && (!saved || !Array.isArray(saved.bills)
+      || saved.bills.some(b => !b || typeof b.id !== 'string' || !Number.isFinite(b.amount) || !['USDT','NEX'].includes(b.symbol)))) throw new Error('storage');
+    boundKey = key;
+    bills.value = saved ? recomputeBalance(saved.bills.map(({ balanceAfter: _drop, ...bill }) => bill as Bill)) : recomputeBalance(seedBills());
+    strictTable = table;
+    try { return run(); } finally { strictTable = undefined; }
+  }
 
   function persist(): boolean {
     if (fundsServerEnabled) return false;
+    if (strictTable) {
+      const next = { ...strictTable, [boundKey]: { bills: bills.value } };
+      try { writePrototypeStorageSnapshot(ACCOUNTS_KEY, next); strictTable = JSON.parse(JSON.stringify(next)); return true; }
+      catch { return false; }
+    }
     return writeAccountRow<{ bills: Bill[] }>(ACCOUNTS_KEY, boundKey, { bills: bills.value });
   }
 
@@ -494,7 +518,7 @@ export const useBills = defineStore("bills", () => {
 
   return {
     bills, serverStatus, serverError,
-    add, addMany, addManyForAccountOnce, addOnce, seed, settleByRef, bindAccount,
+    add, addMany, addManyForAccountOnce, addOnce, seed, settleByRef, bindAccount, withStrictPrototypeSnapshot,
     adoptFundsSandboxLedger, refreshFundsSandboxLedger, refreshServerLedger,
   };
 });

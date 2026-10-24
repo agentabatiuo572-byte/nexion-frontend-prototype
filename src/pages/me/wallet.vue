@@ -94,6 +94,9 @@
         <WalletListRow icon-bg="var(--v5-warning-soft)" :label="t.cards.listTitle" :sublabel="cardsSub" chevron href="/pages/me/wallet-cards">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg></template>
         </WalletListRow>
+        <WalletListRow v-if="cfg.isEnabled('stakingVisible')" icon-bg="var(--v5-brand-2-soft)" :label="t.repurchase.hero" chevron href="/pages/me/wallet-repurchase">
+          <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v6h-6" /></svg></template>
+        </WalletListRow>
         <WalletListRow v-if="showWithdrawal" icon-bg="color-mix(in srgb, var(--v5-warning) 22%, transparent)" :label="withdrawalRowLabel" :sublabel="withdrawalRowSub" chevron href="/pages/me/wallet-withdraw-tracking">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14" /><path d="m6 9 6-6 6 6" /><path d="M19 21H5" /></svg></template>
           <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-danger)">-${{ latestWithdrawal!.amount.toFixed(2) }}</text></template>
