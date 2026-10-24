@@ -65,34 +65,6 @@
 
       <!-- Full detail -->
       <template v-else>
-        <!-- Remote purchase qualification is server-owned. Keep the detail
-             readable, but never imply that a loading/error response is a buy
-             decision. Error state has an explicit retry and remains blocked. -->
-        <view v-if="remoteApiEnabled && eligibility.status !== 'ready'" data-testid="detail-purchase-eligibility" class="mx-4 mb-3 rounded-2xl" :style="purchaseEligibilityCardStyle">
-          <text class="block" :style="purchaseEligibilityTitleStyle">{{ eligibility.status === 'error' ? t.store.purchaseEligibilityError : t.store.purchaseEligibilityLoading }}</text>
-          <text class="block" style="margin-top: 5px; font-size: 12px; color: var(--v5-ink-3)">{{ t.store.purchaseEligibilityFailClosed }}</text>
-          <view v-if="eligibility.status === 'error'" class="inline-flex items-center justify-center active:opacity-90" :style="catalogRetryStyle" role="button" tabindex="0" @click.stop="retryEligibility">
-            <text>{{ t.store.purchaseEligibilityRetry }}</text>
-          </view>
-        </view>
-        <view v-else-if="remoteApiEnabled && !eligibility.eligible" data-testid="detail-purchase-ineligible" class="mx-4 mb-3 rounded-2xl" :style="purchaseEligibilityCardStyle">
-          <text class="block" :style="purchaseEligibilityTitleStyle">{{ eligibilityDenyTitle }}</text>
-          <text class="block" style="margin-top: 5px; font-size: 12px; color: var(--v5-ink-3)">{{ eligibilityDenyBody }}</text>
-          <view v-if="purchaseEligibilityMessage === 'error'" class="inline-flex items-center justify-center active:opacity-90" :style="catalogRetryStyle" role="button" tabindex="0" @click.stop="retryEligibility">
-            <text>{{ t.store.purchaseEligibilityRetry }}</text>
-          </view>
-        </view>
-        <view v-if="remoteApiEnabled && eligibility.status === 'ready' && eligibility.snapshot" data-testid="detail-purchase-policy-facts" class="mx-4 mb-3 rounded-2xl" :style="purchaseEligibilityCardStyle">
-          <view v-for="(policy, policyIndex) in eligibility.snapshot.policies" :key="`${policy.policy}-${policyIndex}`" style="padding: 4px 0">
-            <text class="block" :style="purchaseEligibilityTitleStyle">{{ eligibilityPolicyTitle(policy) }}</text>
-            <text v-if="eligibilityQualificationConditions(policy).length > 1" class="block" style="margin-top: 3px; font-size: 12px; color: var(--v5-ink-3)">{{ eligibilityPolicyMode(policy) }}</text>
-            <text v-for="condition in eligibilityQualificationConditions(policy)" :key="condition.kind" class="block font-mono-tabular" style="margin-top: 3px; font-size: 12px; color: var(--v5-ink-3)">{{ eligibilityConditionText(condition) }}</text>
-            <text v-if="eligibilityMonthlyStockCondition(policy)" class="block font-mono-tabular" style="margin-top: 3px; font-size: 12px; color: var(--v5-ink-3)">{{ eligibilityConditionText(eligibilityMonthlyStockCondition(policy)!) }}</text>
-            <text v-if="eligibilityPolicyHasFacts(policy)" class="block" style="margin-top: 3px; font-size: 12px" :style="eligibilityPolicyResultStyle(policy)">{{ policy.eligible ? t.store.purchaseEligibilityPolicyMet : t.store.purchaseEligibilityPolicyUnmet }}</text>
-            <text v-else-if="eligibilityPolicyHasNoRestriction(policy)" class="block" style="margin-top: 3px; font-size: 12px; color: var(--v5-ink-3)">{{ t.store.purchaseEligibilityNoExtraRestriction }}</text>
-            <text v-else class="block" style="margin-top: 3px; font-size: 12px; color: var(--v5-ink-3)">{{ t.store.purchaseEligibilityNoFacts }}</text>
-          </view>
-        </view>
         <!-- === Section 1: Hero === -->
         <view class="mx-4 nx-glass-card overflow-hidden relative">
           <view aria-hidden :style="auroraStyle" />
@@ -303,8 +275,7 @@ import { authenticatedPageObservationReporter } from "@/lib/authenticated-page-o
 import { reportDayOnePageObservation } from "@/lib/day-one-page-observation";
 import { usePurchaseGate } from "@/composables/use-purchase-gate";
 import { useRemotePurchaseEligibility } from "@/store/purchase-eligibility";
-import type { PurchaseEligibilityCondition, PurchaseEligibilityPolicy } from "@/api/purchase-eligibility-api";
-import { purchaseEligibilityPolicyHasNoRestriction as eligibilityPolicyHasNoRestriction, purchaseEligibilityUnlockHref, resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-copy";
+import { purchaseEligibilityUnlockHref, resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-copy";
 import type { TrustLocale } from "@/api/trust-section-api";
 import { trustNumberedRows } from "@/lib/trust-fields";
 import { recordPublishedTrustViews, usePublishedTrust } from "@/composables/use-published-trust";
@@ -337,7 +308,12 @@ async function refreshDetailFacts(): Promise<void> {
   // failure. Trust must begin after that boundary or its valid public response
   // is discarded by the Trust generation fence.
   await refreshProductCatalog(true);
+  await nextTick();
   if (readEpoch !== detailFactsEpoch || !isCurrentAccountScope(accountScope)) return;
+  if (remoteApiEnabled && (eligibility.value.status === "error"
+    || eligibility.value.status === "ready" && purchaseEligibilityMessage.value === "error")) {
+    void retryEligibility();
+  }
   await Promise.all([
     refreshServerProductPhase(true),
     remoteApiEnabled ? refreshTrust(true) : Promise.resolve(true),
@@ -451,14 +427,6 @@ const purchaseEligibilityMessage = computed(() => resolvePurchaseEligibilityMess
   eligibility.value.status,
   eligibility.value.snapshot,
 ));
-const eligibilityDenyTitle = computed(() => purchaseEligibilityMessage.value === "quotaDepleted"
-  ? t.value.store.purchaseEligibilityQuotaDepleted
-  : purchaseEligibilityMessage.value === "ineligible"
-    ? t.value.store.purchaseEligibilityIneligible
-    : t.value.store.purchaseEligibilityError);
-const eligibilityDenyBody = computed(() => purchaseEligibilityMessage.value === "error"
-  ? t.value.store.purchaseEligibilityFailClosed
-  : t.value.store.purchaseEligibilityConditionsUnmet);
 const purchaseGate = computed(() => remoteApiEnabled
   ? {
       gated: true,
@@ -619,58 +587,6 @@ const annualPctText = computed(() =>
 );
 const priceText = computed(() => formatAmount((product.value?.price ?? 0)));
 
-function eligibilityPolicyTitle(policy: PurchaseEligibilityPolicy): string {
-  return policy.policy === "F4B"
-    ? t.value.store.purchaseEligibilityQuotaPolicy
-    : t.value.store.purchaseEligibilityProductPolicy;
-}
-function eligibilityPolicyMode(policy: PurchaseEligibilityPolicy): string {
-  if (policy.policy === "F4B") {
-    return policy.mode === "EITHER"
-      ? t.value.store.purchaseEligibilityQuotaEitherAndStock
-      : t.value.store.purchaseEligibilityQuotaAllAndStock;
-  }
-  return policy.mode === "EITHER"
-    ? t.value.store.purchaseEligibilityModeEither
-    : t.value.store.purchaseEligibilityModeAll;
-}
-function eligibilityQualificationConditions(policy: PurchaseEligibilityPolicy): PurchaseEligibilityCondition[] {
-  return policy.conditions.filter((condition) => condition.kind !== "monthlyQuota");
-}
-function eligibilityMonthlyStockCondition(policy: PurchaseEligibilityPolicy): PurchaseEligibilityCondition | undefined {
-  return policy.conditions.find((condition) => condition.kind === "monthlyQuota");
-}
-function eligibilityPolicyHasFacts(policy: PurchaseEligibilityPolicy): boolean {
-  return policy.conditions.length > 0;
-}
-function eligibilityPolicyResultStyle(policy: PurchaseEligibilityPolicy): CSSProperties {
-  return { color: policy.eligible ? "var(--v5-success)" : "var(--v5-warning)" };
-}
-function eligibilityNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.00$/, "");
-}
-function eligibilityConditionText(condition: PurchaseEligibilityCondition): string {
-  const numberLabel = condition.kind === "teamVolumeUsd" ? formatAmount : eligibilityNumber;
-  const values = {
-    current: numberLabel(condition.current),
-    required: numberLabel(condition.required),
-    gap: numberLabel(condition.gap),
-  };
-  const copy = condition.kind === "rank"
-    ? fmt(t.value.store.purchaseEligibilityRank, values)
-    : condition.kind === "activeDirect"
-      ? fmt(t.value.store.purchaseEligibilityActiveDirect, values)
-      : condition.kind === "teamVolumeUsd"
-        ? fmt(t.value.store.purchaseEligibilityTeamVolume, values)
-        : condition.kind === "lifetimeQuota"
-          ? fmt(t.value.store.purchaseEligibilityLifetimeQuota, values)
-          : fmt(t.value.store.purchaseEligibilityMonthlyQuota, values);
-  if (condition.kind === "monthlyQuota" || condition.kind === "lifetimeQuota") return copy;
-  return `${copy} · ${condition.met
-    ? t.value.store.purchaseEligibilityConditionMet
-    : fmt(t.value.store.purchaseEligibilityConditionGap, values)}`;
-}
-
 function dec() {
   if (qty.value > 1) qty.value -= 1;
 }
@@ -719,8 +635,16 @@ function publishStickyCTA() {
         return;
       }
     }
-    if (remoteApiEnabled && eligibility.value.status !== "ready") {
-      sticky.hide(stickyOwner);
+    if (remoteApiEnabled && (eligibility.value.status !== "ready" || purchaseEligibilityMessage.value === "error")) {
+      sticky.show({
+        href: `/pages/store/detail?id=${product.value.id}`,
+        amount: `${priceText.value}`,
+        buttonLabel: eligibility.value.status === "loading" || eligibility.value.status === "idle"
+          ? t.value.store.purchaseEligibilityLoading
+          : t.value.store.cardBuyNow,
+        disabled: true,
+        showTabBar: false,
+      }, stickyOwner);
       return;
     }
     if (remoteApiEnabled && !eligibility.value.eligible) {
@@ -768,6 +692,13 @@ watch(
   publishStickyCTA,
   { immediate: true },
 );
+watch(
+  () => remoteApiEnabled && stickyPageVisible.value
+    && (eligibility.value.status === "error"
+      || eligibility.value.status === "ready" && purchaseEligibilityMessage.value === "error"),
+  (failed, wasFailed) => { if (failed && !wasFailed) toast.error(t.value.store.purchaseEligibilityError); },
+  { immediate: true },
+);
 function showDetailStickyCTA() {
   detailPageVisible = true;
   sticky.activate(stickyOwner);
@@ -797,16 +728,6 @@ const catalogRetryStyle: CSSProperties = {
   color: "var(--v5-on-brand)",
   fontSize: "13px",
   fontWeight: 600,
-};
-const purchaseEligibilityCardStyle: CSSProperties = {
-  padding: "14px 16px",
-  background: "var(--v5-surface)",
-  border: "1px solid var(--v5-border)",
-};
-const purchaseEligibilityTitleStyle: CSSProperties = {
-  fontSize: "13px",
-  fontWeight: 600,
-  color: "var(--v5-ink)",
 };
 const heroCardStyle: CSSProperties = {
   background: "var(--v5-surface)",
