@@ -51,6 +51,7 @@ export function platformDisplayText(value: string): string {
   return value.split(/((?:https?:\/\/|www\.)[^\s<>"'，。；、！？（）【】]+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:\/[^\s<>"'，。；、！？（）【】]*)?)/g)
     .map((part, index) => index % 2 ? part : part
       .replace(/\b(?:NexGrid|Nexion)(?:Box|Rack)?\b|\bStellar(?:Box|Rack)\b(?!-)/gi, nexGridBrandText)
-      .replace(/\bNEX\b(?!-[A-Z0-9]{2,})/g, "UVT"))
+      .replace(/\bNEX\b(?!-[A-Z0-9]{2,})/g, "UVT")
+      .replace(/业绩额?/g, "算力额"))
     .join("");
 }

@@ -7,7 +7,7 @@
   round glass surface. An optional action replaces the message bell.
 -->
 <template>
-  <view class="spv" :class="{ 'spv--plain': plain }" :style="{ top: (statusBarHeight + pendingBarInset) + 'px', height: rowH + 'px' }">
+  <view class="spv" :class="{ 'spv--plain': plain, 'spv--pill': pill }" :style="{ top: (statusBarHeight + pendingBarInset) + 'px', height: rowH + 'px' }">
     <view
       class="spv-side spv-back"
       role="button"
@@ -57,7 +57,7 @@ import { resolveHeaderTitleText, routeFromH5Hash } from "@/lib/header-title";
 import { navBack } from "@/lib/route";
 import { h5DevicePreviewStatusBarHeight } from "@/lib/device-preview";
 
-const props = defineProps<{ back: string; title?: string; subtitle?: string; backAction?: () => void; plain?: boolean; actionLabel?: string; action?: () => void }>();
+const props = defineProps<{ back: string; title?: string; subtitle?: string; backAction?: () => void; plain?: boolean; pill?: boolean; actionLabel?: string; action?: () => void }>();
 // 待支付浮动条在场时 chassis 让内容整体下让一带,并把同一个值 provide 下来:sticky 行钉在带的下沿,
 // 不与浮动条重叠(chassis 外渲染 / 无条时为 0)。
 const pendingBarInset = inject(PENDING_BAR_INSET_KEY, ref(0));
@@ -121,6 +121,9 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 </script>
 
 <style scoped>
+.spv--pill { background: var(--v5-surface); border: 1px solid var(--v5-border-strong); box-shadow: inset 0 1px 1px color-mix(in srgb, var(--v5-ink) 8%, transparent); }
+.spv--pill :deep(.spv-glass > .nx-liquid-glass) { display: none; }
+
 .spv {
   position: sticky;
   left: 0;

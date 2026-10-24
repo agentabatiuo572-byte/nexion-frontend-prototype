@@ -48,9 +48,9 @@ describe("canonical V-rank title locale", () => {
     expect(rankName({ title: "Server Rank", cnTitle: "注册会员" }, "en")).toBe("Server Rank");
   });
   it.each([
-    ["en", en, "Self-buy $0.00 more", "$765.88 more team volume", "Team $1234.12"],
-    ["zh", zh, "再自买 $0.00", "团队再 $765.88", "团队 $1234.12"],
-    ["vi", vietnamese, "Tự mua thêm $0.00", "Thêm $765.88 doanh số nhóm", "Doanh số nhóm $1234.12"],
+    ["en", en, "Self-buy $0.00 more", "$765.88 more team compute amount", "Team compute amount ≥ $1234.12"],
+    ["zh", zh, "再自买 $0.00", "团队算力额还差 $765.88", "团队算力额 ≥ $1234.12"],
+    ["vi", vietnamese, "Tự mua thêm $0.00", "Thêm $765.88 giá trị công suất nhóm", "Giá trị công suất nhóm $1234.12"],
   ] as const)("renders %s monetary thresholds and gaps with two decimals without Intl", (locale, copy, tiny, teamGap, threshold) => {
     vi.stubGlobal("Intl", undefined);
     try {

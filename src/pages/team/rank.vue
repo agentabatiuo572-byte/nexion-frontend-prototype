@@ -1,17 +1,7 @@
-<!--
-  V Rank — ported from Nexion-prototype/app/(main)/team/rank/page.tsx.
-  My-status block de-carded (DECARD form c): cap + VBadgeIcon 48 + progress bar
-  w/ scroll-grow + missing list + upgrade CTA sit directly on the page floor,
-  hairline splits the progress zone. 13-rank ladder = single surface container
-  (form b, no border), rows hairlined, current row tinted. Sub-page →
-  <AppChassis active="team"> w/ in-page back → /team.
-  Reuses v-rank store + nextRankProgress + canonical ladder + useScrollGrowProgress (P-019
-  $el-safe). useMemo → computed. lucide → inline <svg>. <Link>→<view @click>.
--->
 <template>
   <AppChassis active="team">
     <view class="pb-6" style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/team/team" :title="rankTitleText" />
+      <SubPageHeader back="/pages/team/team" :title="t.rank.pageTitle" pill />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <!-- My status — de-carded: sits directly on the page floor (card shell +
@@ -35,25 +25,14 @@
               <VBadgeIcon :v="myRank" :size="48" />
               <view>
                 <text class="block" :style="heroRankStyle">{{ rankLabel(myRank, locale.code, rankDefs) }}</text>
-                <text class="block" :style="heroSubStyle">{{ heroSubText }}</text>
               </view>
             </view>
 
-            <view v-if="prog.next" :style="progressWrapStyle">
-              <text class="block" style="font-size: 15px; font-weight: 600">{{ t.rank.next }} {{ rankLabel(prog.next.v, locale.code, rankDefs) }}</text>
-              <view v-for="condition in nextConditions" :key="condition.key" :style="condStyle">
-                <text class="block">{{ condition.label }} · {{ t.rank.progressLabel }} {{ condition.values }}</text>
-                <text class="block" style="margin-top: 3px; color: var(--v5-ink-2)">{{ condition.gap }}</text>
-              </view>
-              <view class="inline-flex items-center active:scale-[0.97] transition-transform" :style="upgradeCtaStyle" @click="go('/pages/store/store')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                <text>{{ t.rank.upgradeCta }}</text>
-              </view>
-            </view>
+
           </view>
         </view>
 
-        <!-- 13-rank ladder — single surface container (form b): outer border
+        <!-- Active rank ladder — single surface container (form b): outer border
              dropped, the fill is the single visual difference; rows hairlined. -->
         <view v-if="rankAvailable" class="nx-glass-card rounded-2xl overflow-hidden" :style="ladderCardStyle">
           <view
@@ -72,6 +51,27 @@
                 </view>
                 <text v-else-if="rowStatus(r.v) === 'current'" class="font-mono-tabular" :style="currentTagStyle">{{ t.rank.current }}</text>
               </view>
+              <view class="rank-detail">
+                <text class="rank-detail__label">{{ t.rank.conditionsLabel }}</text>
+                <text>{{ formatConditions(r) }}</text>
+                <text v-if="r.v > 1" class="rank-detail__hint">{{ t.rank.previousConditions }}</text>
+              </view>
+              <view class="rank-detail">
+                <text class="rank-detail__label">{{ t.rank.benefitsLabel }}</text>
+                <text>{{ benefitText(r) }}</text>
+              </view>
+              <view class="rank-detail">
+                <text class="rank-detail__label">{{ t.rank.rewardsLabel }}</text>
+                <text>{{ r.rewards.length ? r.rewards.map(rewardText).join(' · ') : t.rank.noRewards }}</text>
+              </view>
+              <view v-if="prog.next?.v === r.v" class="rank-next-progress">
+                <text class="rank-detail__label">{{ t.rank.progressLabel }}</text>
+                <view v-for="condition in nextConditions" :key="condition.key" style="margin-top: 6px">
+                  <text class="block">{{ condition.label }} · {{ t.rank.progressLabel }} {{ condition.values }}</text>
+                  <text class="block">{{ condition.gap }}</text>
+                </view>
+              </view>
+
 
             </view>
           </view>
@@ -91,7 +91,7 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
-import { nexGridBrandText } from "@/lib/brand-copy";
+import { platformDisplayText } from "@/lib/brand-copy";
 import { isEntitlementVRankReward, rankEntitlementLabel } from "@/lib/rank-entitlement-label";
 import { computed, onMounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
@@ -105,24 +105,15 @@ import { formatHowNumber } from "@/lib/rank-how-content";
 import { useLocaleStore } from "@/store/locale";
 import { remoteApiEnabled } from "@/api/runtime";
 import { onShow } from "@dcloudio/uni-app";
-import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
 const t = useT();
 // 中文界面显示中文头衔(主人 2026-08-17 拍板:V3 = 舰长),拼法收在 lib/v-rank-copy
 const locale = useLocaleStore();
 const vState = useVRank();
-const { elRef: rankBarRef, inView: rankBarInView } = useScrollGrowProgress();
 
 const myRank = computed(() => vState.myRank);
 const rankDefs = computed(() => vState.ladder);
-// 标题优先用服务端 prizeName(运营可配);存量配置值仍是改名前的旧品牌,
-// 渲染层归一后再上屏,取不到才回退到三语 pageTitle(BUG 31)。
-const rankTitleText = computed(() => nexGridBrandText(vState.prizeName) || t.value.rank.pageTitle);
 const rankAvailable = computed(() => !remoteApiEnabled || vState.remoteReady);
-const currentDef = computed(() => rankDefs.value[vState.myRank] ?? {
-  v: vState.myRank, title: "", cnTitle: "", conditions: {}, directBonus: 0,
-  unilevelDepth: 0, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0, rewards: [],
-});
 // The API supplies exact L1 rank buckets; the engine counts members at or above
 // each required rank. This projection is only for the observed progress display.
 const previewData = computed(() => ({
@@ -177,28 +168,21 @@ function retryRank() {
   if (remoteApiEnabled) void vState.refreshCanonicalVRank();
 }
 
-const heroSubText = computed(() => {
-  const d = currentDef.value;
-  // 三语:词典里 teamV3.directBonus / teamV3.extendedRoyalty 早就有(此前是死键,这里原本拼英文)
-  const head = `${t.value.teamV3.directBonus} ${Math.round(d.directBonus * 100)}%`;
-  return d.unilevelDepth > 1 ? `${head} · ${t.value.teamV3.extendedRoyalty}` : head;
-});
-
 function rowStatus(v: VRank): "done" | "current" | "locked" {
   return v < vState.myRank ? "done" : v === vState.myRank ? "current" : "locked";
 }
 
-function nonNexRewards(rank: VRankDef): VRankReward[] {
-  return rank.rewards.filter((reward) => reward.type !== "NEX");
-}
-
 function rewardText(reward: VRankReward): string {
-  if (isEntitlementVRankReward(reward)) return rankEntitlementLabel(reward, t.value.rank.rewardUnavailable);
-  return `${formatAmount(reward.amount)} ${reward.type}`;
+  if (isEntitlementVRankReward(reward)) return platformDisplayText(rankEntitlementLabel(reward, t.value.rank.rewardUnavailable));
+  const amount = `${formatAmount(reward.amount)} ${reward.type === "NEX" ? "UVT" : reward.type}`;
+  if (reward.type === "NEX" && !/self|direct/i.test(reward.customLabel ?? "")) {
+    return `${amount} (${t.value.rank.cultivationRecipient})`;
+  }
+  return amount;
 }
 
 // 三语:词典里 rank.cond.* 五条早就有(此前是死键,这里原本拼英文)
-const formatConditions = (r: VRankDef): string => rankConditionsText(t.value, r.conditions);
+const formatConditions = (r: VRankDef): string => rankConditionsText(t.value, r.conditions, locale.code);
 
 function go(url: string) {
   navTo(url);
@@ -226,7 +210,6 @@ const unavailableStyle: CSSProperties = {
   textAlign: "center",
 };
 // -2px side margins pull the hairline back to full width (hero has a 2px optical inset).
-const progressWrapStyle: CSSProperties = { margin: "16px -2px 0", padding: "12px 2px 0", borderTop: "1px solid var(--v5-border)" };
 const heroCapStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
@@ -242,35 +225,9 @@ const heroRankStyle: CSSProperties = {
   color: "var(--v5-ink)",
   lineHeight: 1,
 };
-const heroSubStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "4px" };
-
-const barTrackStyle: CSSProperties = { height: "8px", background: "color-mix(in srgb, var(--v5-surface-2) 70%, transparent)" };
-const barFillStyle = computed<CSSProperties>(() => ({
-  height: "100%",
-  background: "linear-gradient(to right, var(--v5-tech-cyan), var(--v5-brand))",
-  width: `${rankBarInView.value ? prog.value.progressPct * 100 : 0}%`,
-  transition: rankBarInView.value ? PROGRESS_GROW_TRANSITION : "none",
-  willChange: "width",
-}));
-
-const upgradeCtaStyle: CSSProperties = {
-  marginTop: "12px",
-  gap: "6px",
-  height: "44px",
-  padding: "0 16px",
-  borderRadius: "999px",
-  background: "var(--v5-brand)",
-  boxShadow: "var(--v5-spotlight-brand)",
-  color: "var(--v5-on-brand)",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 500,
-  fontSize: "13px",
-  letterSpacing: "-0.005em",
-};
-
 // Form b container — no border (fill is the single visual difference);
 // overflow-hidden stays: the tinted current row must clip to the radius.
-const ladderCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderRadius: "var(--nx-glass-radius)", marginTop: "12px" };
+const ladderCardStyle: CSSProperties = { background: "var(--v5-surface)", borderRadius: "var(--nx-glass-radius)", marginTop: "12px" };
 function rowStyle(status: "done" | "current" | "locked", isLast: boolean): CSSProperties {
   return {
     padding: "14px 16px",
@@ -289,32 +246,25 @@ const currentTagStyle: CSSProperties = {
   letterSpacing: "0.06em",
 };
 // SKILL leading-snug = 1.375 (原版 .mt-1.5 text-[12px] leading-snug; was 1.45)
-const condStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375 };
 
-function chipStyle(kind: "default" | "purple" | "lemon" | "muted"): CSSProperties {
-  const map = {
-    default: { background: "color-mix(in srgb, var(--v5-surface-2) 60%, transparent)", color: "var(--v5-ink-3)" },
-    // 未开放的权益用更弱的视觉:它仍是信息(该等级配置了比例),但不是可获得的承诺。
-    muted: { background: "color-mix(in srgb, var(--v5-surface-2) 40%, transparent)", color: "var(--v5-ink-4)", textDecoration: "line-through" },
-    purple: { background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)", color: "var(--v5-brand-2)" },
-    lemon: { background: "color-mix(in srgb, var(--v5-brand) 12%, transparent)", color: "var(--v5-brand)" },
-  } as const;
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "1px 6px",
-    borderRadius: "4px",
-    fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-    fontSize: "12px",
-    letterSpacing: "0.02em",
-    ...map[kind],
-  };
+function benefitText(r: VRankDef): string {
+  const items = [`${t.value.rank.chips.direct} ${formatHowNumber(r.directBonus * 100, locale.code)}%`];
+  if (r.unilevelDepth > 0) items.push(fmt(t.value.rank.networkDepth, { n: r.unilevelDepth }));
+  if (r.leadershipVotes > 0) items.push(`${t.value.rank.chips.pool} ${r.leadershipVotes} ${t.value.rank.chips.votes}`);
+  if (r.peerBonus > 0) items.push(vState.capabilities.peer
+    ? `${t.value.rank.chips.peer} ${formatHowNumber(r.peerBonus * 100, locale.code)}%`
+    : fmt(t.value.rank.chips.peerNotDispatched, { n: formatHowNumber(r.peerBonus * 100, locale.code) }));
+  return items.join(" · ");
 }
-
 
 </script>
 
 <style scoped>
+.rank-detail { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-2); overflow-wrap: anywhere; }
+.rank-detail__label { font-weight: 600; color: var(--v5-ink-3); }
+.rank-detail__hint { color: var(--v5-ink-3); }
+.rank-next-progress { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--v5-border); font-size: 12px; line-height: 1.7; color: var(--v5-ink-3); }
+
 /* 规则介绍 pill 现在进得了 Tab 序(role+tabindex),没有这条外环键盘用户看不出
    焦点停在哪 —— 药丸自带 border-radius:999px,默认 outline 贴圆角会被裁。 */
 .nx-rank-how-link:focus-visible {

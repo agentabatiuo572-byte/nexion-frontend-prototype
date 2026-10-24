@@ -81,7 +81,7 @@ export function rankConditionsText(t: Messages, conds: {
   if (conds.directRefs) parts.push(fmt(t.rank.cond.directRefs, { n: formatHowNumber(conds.directRefs, locale) }));
   if (conds.teamVolumeUSD) parts.push(fmt(t.rank.cond.teamVol, { n: formatAmount(conds.teamVolumeUSD) }));
   if (conds.vDownlines) {
-    for (const [v, n] of Object.entries(conds.vDownlines)) parts.push(fmt(t.rank.cond.vDownlines, { n: formatHowNumber(n, locale), v }));
+    for (const [v, n] of Object.entries(conds.vDownlines)) if (n > 0) parts.push(fmt(t.rank.cond.vDownlines, { n: formatHowNumber(n, locale), v }));
   }
   return parts.length ? parts.join(" + ") : t.rank.cond.register;
 }

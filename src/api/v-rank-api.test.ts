@@ -104,3 +104,11 @@ describe("v-rank API authority provenance", () => {
       .rejects.toMatchObject({ message: "V_RANK_RESPONSE_INVALID" });
   });
 });
+
+
+it("reads the active V0-V8 ladder from F1 without fabricating higher ranks", async () => {
+  const request = vi.fn().mockResolvedValue({ source: "nx_v_rank_config", serverCanonical: true,
+    sourceEnvironment: "PRODUCTION", runId: "", prizeName: "Ranks", capabilities: { peer: false, genesis: false },
+    ranks: ladder().slice(0, 9) });
+  expect((await createVRankApi({ request } as never).ladder()).ranks.map(r => r.v)).toEqual([0,1,2,3,4,5,6,7,8]);
+});

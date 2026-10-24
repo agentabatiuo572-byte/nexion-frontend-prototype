@@ -179,7 +179,7 @@ function ladder(value: unknown, mode: ApiEnvironment): CanonicalVRankLadder {
   const proof = provenance(source, mode);
   if (!Array.isArray(source.ranks)) return invalid();
   const ranks = source.ranks.map(rankRow).sort((left, right) => left.v - right.v);
-  if (ranks.length !== 13 || ranks.some((rank, index) => rank.v !== index)) return invalid();
+  if ((ranks.length < 1 || ranks.length > 13) || ranks.some((rank, index) => rank.v !== index)) return invalid();
   // 旧后端(尚未下发能力位)不能让整个阶梯判非法 —— 那会把等级页变成「数据不可用」,
   // 连配置比例都读不到。缺字段一律**失败关闭**为「不派发」:宁可少承诺,不能把配置
   // 比例写成已生效权益(#79)。字段在但类型不对属于协议违规,仍判非法。

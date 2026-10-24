@@ -102,18 +102,7 @@
         <text class="intro-title">{{ t.intro.title1 }}</text>
         <text class="intro-sub">{{ t.intro.subtitleLine1 }}</text>
 
-        <view class="intro-stats anim-stats">
-          <view class="stat-item">
-            <view class="stat-dot" />
-            <text class="stat-num">{{ fmtNum(visibleDevices) }}</text>
-            <text class="stat-label">{{ t.intro.statsDevices }}</text>
-          </view>
-          <view v-if="visiblePaid !== null" class="stat-sep" />
-          <view v-if="visiblePaid !== null" class="stat-item">
-            <text class="stat-num stat-num--brand">{{ visiblePaid === null ? t.intro.publicStatsUnavailable : `$${formatAmount(visiblePaid)}` }}</text>
-            <text class="stat-label">{{ t.intro.statsPaidTotal }}</text>
-          </view>
-        </view>
+        <HomeDisplayStats :active="statsActive" />
       </view>
 
       <view class="intro-cta anim-cta">
@@ -170,18 +159,16 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import HomeDisplayStats from "@/components/home/home-display-stats.vue";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import { navReset, navTo } from "@/lib/route";
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import BrandLockup from "@/components/brand-lockup.vue";
 import { useT } from "@/i18n/use-t";
 import { LOCALES, type LocaleCode } from "@/i18n";
 import { useLocaleStore } from "@/store/locale";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
-import { paidCumulativeNow } from "@/lib/platform-stats";
-import { useConfig } from "@/store/config";
-import { remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
 const locale = useLocaleStore();
@@ -194,34 +181,9 @@ function pick(code: LocaleCode) {
   langOpen.value = false;
 }
 useDialogA11y(computed(() => langOpen.value), ".intro-lang-root", closeLang);
-const cfg = useConfig();
-const fleetNow = () => {
-  return cfg.syncFailed ? null : cfg.config.verifiedStats?.onlineDevices.value ?? null;
-};
-// 🔴 累计支付**不跟配置走**(第二次结构反思·族B,R2 审计 C5):它是时间积分,背着历史 ——
-//   拿「当前参数 × 全段 elapsed」派生,运营调低舰队它就整段回退,而「不回退」是本数字的
-//   硬承诺。mock 无参数变更时点存储,沉淀段以编译期锚斜率计;PROD 由服务端累计。
-//   速率类($/sec、日产、月付)跟配置走是对的 —— 它们是「现在」,不背历史。
-// No public payout projection exists. Private purchase totals are not payouts;
-// omit this unsupported metric rather than expose an account-dependent amount.
-// 🔴 远程模式下的「累计已发放」只能是可核验的提现完成额(zentao #59):
-//   此前这里是 `null`(直接隐藏),服务端也没有对应聚合。现在读 verified 聚合;
-//   沙箱/旧后端没有该聚合 → 继续不显示,绝不用配置值编造一个财务事实。
-const paidNow = () => {
-  if (!remoteApiEnabled) return paidCumulativeNow();
-  const v = cfg.syncFailed ? null : cfg.config.verifiedStats;
-  return v ? v.completedPayoutUsdt.value : null;
-};
-const paid = ref(paidNow());
-const visiblePaid = computed(() => remoteApiEnabled ? paidNow() : paid.value);
-// Intro is public and often shown before a user session exists. Its public
-// device count comes from the verified server aggregate.
-const devices = ref(fleetNow());
-const visibleDevices = computed(() => remoteApiEnabled ? fleetNow() : devices.value);
-
-function fmtNum(n: number | null): string {
-  return n === null ? "—" : n.toLocaleString("en-US");
-}
+const statsActive = ref(true);
+onShow(() => { statsActive.value = true; });
+onHide(() => { statsActive.value = false; });
 
 // Deterministic PRNG (SSR-safe in the prototype; here just keeps positions stable).
 function mulberry32(seed: number) {
@@ -251,22 +213,6 @@ const satellites = [
   { x: 12, y: 120 },
 ];
 const orbitPath = "M 120 12 A 108 108 0 1 1 119.999 12 Z";
-
-let timer: ReturnType<typeof setInterval> | undefined;
-onMounted(() => {
-  timer = setInterval(() => {
-    // Recompute from the time anchor (~$14/1.8s) instead of accumulating random
-    // steps, so a reload can never show a smaller total than a longer session.
-    paid.value = paidNow();
-    // BUG #59: the published fleet figure is an operator-owned aggregate, not a
-    // live measurement. It must not drift while the page is open — a wobbling
-    // number reads as a real-time feed. Display the configured value verbatim.
-    devices.value = fleetNow();
-  }, 1800);
-});
-onUnmounted(() => {
-  if (timer) clearInterval(timer);
-});
 
 function goRegister() {
   navReset({ url: "/pages/register/register", fail: () => {} });
