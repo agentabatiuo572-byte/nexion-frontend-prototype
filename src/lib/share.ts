@@ -290,6 +290,6 @@ export async function recordShareEvent(channel: string, surface: ShareSurface): 
   if (task.nexReward) drafts.push({ type: "bonus", symbol: "NEX", amount: task.nexReward, status: "posted", memo: t.value.share.questRewardMemo, ref });
   if (drafts.length && postMoneyBillsOnce(drafts) !== "ok") return false;
   if (!useQuest().markComplete("invite_friend").firstTime) return false; // 消费失败:重试命中同 ref 不再发
-  toast.success(`+${formatAmount(task.nexReward)} NEX · +$${formatAmount(task.usdtReward ?? 0)}`, t.value.share.questRewardToast);
+  toast.success(`+${formatAmount(task.nexReward)} UVT · +$${formatAmount(task.usdtReward ?? 0)}`, t.value.share.questRewardToast);
   return true;
 }

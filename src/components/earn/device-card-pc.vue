@@ -368,7 +368,7 @@
         <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; line-height: 1; font-weight: 600; color: var(--v5-success-ink); letter-spacing: -0.014em">${{ formatAmount(device.todayEarnings) }}</text>
         <view class="font-mono-tabular flex items-center gap-1 tabular-nums" style="font-size: 12px; color: var(--v5-success-ink); font-weight: 600">
           <text style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--v5-success) 75%, transparent)">+</text>
-          <text>{{ formatAmount(device.todayEarningsNEX) }} NEX</text>
+          <text>{{ formatAmount(device.todayEarningsNEX) }} UVT</text>
         </view>
       </view>
     </view>

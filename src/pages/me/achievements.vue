@@ -280,7 +280,7 @@ const remoteGroups = computed(() => {
     id: row.milestoneId,
     label: `${w.value.earningMilestone} ${formatAmount(row.thresholdUsdt)}`,
     description: `${w.value.lifetimeEarnings}: ${formatAmount(row.lifetimeEarningsUsdt)}`,
-    reward: `+${formatAmount(row.rewardNex)} NEX`,
+    reward: `+${formatAmount(row.rewardNex)} UVT`,
     status: row.status,
     iconId: "first_dollar",
   }));
@@ -402,7 +402,7 @@ function desc(a: AchievementDef): string {
   return (w.value as unknown as Record<string, string>)[`a_${a.i18nKey}_d`] ?? "";
 }
 function rewardLabel(a: AchievementDef): string {
-  if (a.rewardNex) return `+${formatAmount(a.rewardNex)} NEX`;
+  if (a.rewardNex) return `+${formatAmount(a.rewardNex)} UVT`;
   if (a.rewardUsdt) return `+${formatAmount(a.rewardUsdt)}`;
   return "VIP badge";
 }

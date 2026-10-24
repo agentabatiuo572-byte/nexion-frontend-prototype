@@ -2,7 +2,7 @@ import type { CanonicalQuest } from "@/api/quest-api";
 import type { LocaleCode } from "@/i18n";
 import type { Messages } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
-import { nexGridBrandText } from "./brand-copy";
+import { platformDisplayText } from "./brand-copy";
 
 const APP_QUEST_ROUTES = new Set([
   "/pages/missions/missions",
@@ -47,7 +47,7 @@ export function dayOneQuestDisplayName(
   locale: LocaleCode,
   t: Messages,
 ): string {
-  const name = nexGridBrandText(quest.name);
+  const name = platformDisplayText(quest.name);
   if (locale === "zh" || quest.layer !== "DAY_ONE") return name;
   const key = DAY_ONE_TITLE_KEYS.get(quest.questCode);
   if (!key) return name;
@@ -55,7 +55,7 @@ export function dayOneQuestDisplayName(
   const fallback = zh.home[key];
   return typeof translated === "string" && translated.trim().length > 0
     && typeof fallback === "string"
-    && name === nexGridBrandText(fallback)
+    && name === platformDisplayText(fallback)
     ? translated
     : name;
 }
@@ -66,7 +66,7 @@ export function weeklyQuestDisplayName(
   locale: LocaleCode,
   t: Messages,
 ): string {
-  const name = nexGridBrandText(quest.name);
+  const name = platformDisplayText(quest.name);
   if (locale === "zh") return name;
   const match = /^weekly_t([12])_([a-z0-9_]+)$/.exec(quest.questCode);
   if (!match) return name;
@@ -75,7 +75,7 @@ export function weeklyQuestDisplayName(
   const fallback = zh.weeklyQuest[key];
   return typeof translated === "string"
     && typeof fallback === "string"
-    && name === nexGridBrandText(fallback)
+    && name === platformDisplayText(fallback)
     ? translated
     : name;
 }

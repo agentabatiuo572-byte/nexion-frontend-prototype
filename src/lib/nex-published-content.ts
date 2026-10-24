@@ -1,3 +1,4 @@
+import { platformDisplayText } from "./brand-copy";
 import type { PublishedTrustSection, TrustLocale } from "@/api/trust-section-api";
 import { localizedTrustFieldValue } from "./trust-fields";
 
@@ -24,10 +25,11 @@ export function resolvePublishedNexNarrative(
   if (!section) return { state: "unpublished" };
   const hero = localizedTrustFieldValue(section.fields, "hero", locale);
   if (!hero) return { state: "unpublished" };
+  const subhero = localizedTrustFieldValue(section.fields, "subhero", locale);
   return {
     state: "ready",
     version: section.version,
-    hero,
-    subhero: localizedTrustFieldValue(section.fields, "subhero", locale),
+    hero: platformDisplayText(hero),
+    subhero: subhero === null ? null : platformDisplayText(subhero),
   };
 }

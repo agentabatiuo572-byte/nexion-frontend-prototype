@@ -39,7 +39,7 @@
             <view>
               <text class="block font-mono-tabular" :style="overviewCapStyle">{{ t.directReferral.creditedTotal }}</text>
               <text class="block tabular-nums" :style="overviewBigStyle('var(--v5-brand)')">${{ formatAmount(commission.unlockedUSDT()) }}</text>
-              <text class="block font-mono-tabular" :style="overviewSmallStyle">{{ formatAmount(commission.unlockedNEX()) }} NEX</text>
+              <text class="block font-mono-tabular" :style="overviewSmallStyle">{{ formatAmount(commission.unlockedNEX()) }} UVT</text>
             </view>
             <view>
               <text class="block font-mono-tabular" :style="overviewCapStyle">{{ t.commissions.cooling }}</text>
@@ -231,7 +231,7 @@ function commissionAmountLabel(e: CommissionEvent): string {
 }
 
 function commissionNexLabel(e: CommissionEvent): string {
-  const amount = `${formatAmount(e.amountNEX)} NEX`;
+  const amount = `${formatAmount(e.amountNEX)} UVT`;
   if (e.status === "reversed") return `−${amount}`;
   if (e.status === "frozen" || e.status === "rejected" || e.status === "recovery_pending") return amount;
   return `+${amount}`;

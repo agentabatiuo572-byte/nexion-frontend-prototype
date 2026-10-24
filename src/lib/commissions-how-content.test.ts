@@ -53,7 +53,7 @@ describe("published direct and independent reward explanations", () => {
     let view = buildCommissionsHowContent(facts, "en"); expect(view.section("network").body).toContain("Temporarily unavailable");
     facts.directPolicy.configured = true; facts.directPolicy.purchase.enabled = false; facts.directPolicy.nexUsdtPrice = null;
     view = buildCommissionsHowContent(facts, "en"); expect(view.section("network").body).toContain("paused");
-    expect(view.section("network").body).toContain("NEX price unavailable"); expect(view.amounts.network).toBe("Temporarily unavailable");
+    expect(view.section("network").body).toContain("UVT price unavailable"); expect(view.amounts.network).toBe("Temporarily unavailable");
   });
   it("does not call configuration examples actual earnings or replace missing tokens", () => {
     let view = buildCommissionsHowContent(snapshot(), "en");

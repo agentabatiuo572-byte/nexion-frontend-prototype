@@ -161,6 +161,8 @@
 </template>
 
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
+
 import { computed, nextTick, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -313,7 +315,7 @@ function toggleFaq(id: string) {
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
-  return faqs.value.map((it) => ({ ...it, q: it.question, a: it.answer })).filter((it) => {
+  return faqs.value.map((it) => ({ ...it, q: platformDisplayText(it.question), a: platformDisplayText(it.answer) })).filter((it) => {
     if (requestedFaqId.value) return it.id === requestedFaqId.value;
     // M4 publishes canonical support categories; the app groups these into topics.
     const category = it.category.trim().toLowerCase();

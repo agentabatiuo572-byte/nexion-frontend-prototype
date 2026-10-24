@@ -233,6 +233,8 @@
 </template>
 
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
+
 import { formatAmount } from "@/lib/amount-display";
 import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { navTo } from "@/lib/route";
@@ -313,10 +315,10 @@ const holderFactText = computed(() => {
   return fact.reservedAllocation === null ? `${qualification} · ${copy.allocationUnavailable}` : qualification;
 });
 const allocText = computed(() => {
-  if (!remoteApiEnabled) return `${formatAmount(genesis.reservedAllocationNEX())} NEX`;
+  if (!remoteApiEnabled) return `${formatAmount(genesis.reservedAllocationNEX())} UVT`;
   const fact = remoteHolderFact.value;
   if (!fact || holderFactStale.value || fact.holderStatus === "CONFIG_UNAVAILABLE" || fact.holderStatus === "NOT_EFFECTIVE" || fact.holderStatus === "NOT_ELIGIBLE" || fact.reservedAllocation === null) return "-";
-  return `${formatAmount(fact.reservedAllocation)} ${fact.reservedAllocationUnit}`;
+  return `${formatAmount(fact.reservedAllocation)} ${platformDisplayText(fact.reservedAllocationUnit)}`;
 });
 const priorityText = computed(() => {
   if (!remoteApiEnabled) return owned.value >= 5 ? "Top 1%" : owned.value >= 2 ? "Top 3%" : "Top 5%";
@@ -366,7 +368,7 @@ const emittedText = computed(() => remoteApiEnabled
 const lockedText = computed(() => remoteApiEnabled
   ? remotePendingUsdt.value === null ? "—" : formatAmount(remotePendingUsdt.value)
   : formatAmount(snap.value.lockedNEX));
-const emissionUnit = computed(() => remoteApiEnabled ? "USDT" : "NEX");
+const emissionUnit = computed(() => remoteApiEnabled ? "USDT" : "UVT");
 const refUsdText = computed(() => formatAmount(snap.value.emittedNEX * NEX_REF_USDT));
 const emissionFeed = computed(() => {
   if (remoteApiEnabled) {
@@ -379,9 +381,9 @@ const emissionFeed = computed(() => {
   }
   const daily = Math.max(1, Math.round((snap.value.emittedNEX * 0.008) || 142));
   return [
-    { label: t.value.genesisHolder.post.feedToday, amt: `+${formatAmount(daily)} NEX` },
+    { label: t.value.genesisHolder.post.feedToday, amt: `+${formatAmount(daily)} UVT` },
     { label: t.value.genesisHolder.post.feedNext, amt: "T-18h" },
-    { label: t.value.genesisHolder.post.feedPool, amt: `+${formatAmount(Math.round(daily * 0.27))} NEX` },
+    { label: t.value.genesisHolder.post.feedPool, amt: `+${formatAmount(Math.round(daily * 0.27))} UVT` },
   ];
 });
 
@@ -400,7 +402,7 @@ function mockHoldings(): Array<{ id: string; mintedAt: number; allocText: string
     list.push({
       id: `NEX-GEN-${serial.toString().padStart(4, "0")}`,
       mintedAt: Date.now() - (142 - i * 18) * DAY,
-      allocText: `${formatAmount(GENESIS_EMISSION.nominalPerNodeNEX)} NEX`,
+      allocText: `${formatAmount(GENESIS_EMISSION.nominalPerNodeNEX)} UVT`,
     });
   }
   return list;

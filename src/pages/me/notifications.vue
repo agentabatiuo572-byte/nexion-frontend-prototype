@@ -33,11 +33,11 @@
         <view v-if="!notifs.loading && !notifs.error && notifs.nextCursor && filtered.length === 0" role="status" class="message-state"><text>{{ t.notifs.moreToCheck }}</text></view>
         <EmptyState v-if="!notifs.loading && !notifs.error && !notifs.nextCursor && filtered.length === 0" kind="empty-list" :title="emptyTitle" :desc="notifs.items.length === 0 ? t.notifs.emptyBody : undefined" />
         <view v-for="n in filtered" :key="n.id" class="notification-item" :class="{ 'notification-item--read': !!n.readAt }">
-          <view class="notification-row" role="button" tabindex="0" :aria-label="n.title" :aria-expanded="expandedId === n.id" @click="toggle(n)" @touchstart="onTouchStart(n, $event)" @touchend="onTouchEnd(n, $event)">
+          <view class="notification-row" role="button" tabindex="0" :aria-label="platformDisplayText(n.title)" :aria-expanded="expandedId === n.id" @click="toggle(n)" @touchstart="onTouchStart(n, $event)" @touchend="onTouchEnd(n, $event)">
             <view class="notification-icon" aria-hidden="true" v-html="kindIcon(n)" />
-            <view class="notification-content"><view class="notification-top"><text class="notification-title">{{ n.title }}</text><text v-if="n.priority === 'critical' || n.priority === 'high'" class="notification-important">{{ t.notifs.important }}</text><text class="notification-time">{{ timeAgo(n.ts) }}</text><view v-if="!n.readAt" class="message-status-dot" /></view><text v-if="n.body" class="notification-preview">{{ n.body }}</text></view>
+            <view class="notification-content"><view class="notification-top"><text class="notification-title">{{ platformDisplayText(n.title) }}</text><text v-if="n.priority === 'critical' || n.priority === 'high'" class="notification-important">{{ t.notifs.important }}</text><text class="notification-time">{{ timeAgo(n.ts) }}</text><view v-if="!n.readAt" class="message-status-dot" /></view><text v-if="n.body" class="notification-preview">{{ platformDisplayText(n.body) }}</text></view>
           </view>
-          <view v-if="expandedId === n.id" class="notification-detail"><text v-if="n.body" class="notification-body">{{ n.body }}</text><view v-if="n.ctaLabel && n.ctaHref" class="message-button notification-cta" role="button" tabindex="0" :aria-label="n.ctaLabel" @click.stop="onTap(n)"><LiquidGlass :radius="22" /><text>{{ n.ctaLabel }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></view></view>
+          <view v-if="expandedId === n.id" class="notification-detail"><text v-if="n.body" class="notification-body">{{ platformDisplayText(n.body) }}</text><view v-if="n.ctaLabel && n.ctaHref" class="message-button notification-cta" role="button" tabindex="0" :aria-label="platformDisplayText(n.ctaLabel)" @click.stop="onTap(n)"><LiquidGlass :radius="22" /><text>{{ platformDisplayText(n.ctaLabel) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></view></view>
         </view>
         <view v-if="notifs.loading" class="message-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
         <view v-if="notifs.nextCursor" class="message-more"><view class="message-button" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.notifs.loadMore" @click="notifs.loadMoreRemote()"><LiquidGlass :radius="22" /><text>{{ notifs.loading ? t.help.loadingMore : t.notifs.loadMore }}</text></view></view>
@@ -51,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
 import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { onShow, onHide, onLoad, onResize } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";

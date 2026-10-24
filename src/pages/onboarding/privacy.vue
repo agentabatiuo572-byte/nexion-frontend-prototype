@@ -10,10 +10,10 @@
       </view>
       <view v-else-if="policy">
         <text class="privacy-copy">{{ t.privacy.version }} {{ policy.version }} · {{ policy.locale }}</text>
-        <text class="privacy-copy">{{ policy.hero }}</text>
+        <text class="privacy-copy">{{ platformDisplayText(policy.hero) }}</text>
         <view v-for="section in policy.sections" :key="section.id" class="privacy-section">
-          <text class="privacy-section-title">{{ section.title }}</text>
-          <text class="privacy-copy">{{ section.body }}</text>
+          <text class="privacy-section-title">{{ platformDisplayText(section.title) }}</text>
+          <text class="privacy-copy">{{ platformDisplayText(section.body) }}</text>
         </view>
       </view>
     </view>
@@ -30,6 +30,7 @@ import { privacyPolicyApi } from "@/api/runtime";
 import type { PrivacyPolicy } from "@/api/privacy-policy-api";
 import { navBack } from "@/lib/route";
 import { resolvePrivacyReturn } from "@/lib/privacy-return";
+import { platformDisplayText } from "@/lib/brand-copy";
 const t = useT();
 const locale = useLocaleStore();
 const policy = ref<PrivacyPolicy | null>(null);

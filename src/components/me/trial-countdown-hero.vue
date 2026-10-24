@@ -16,7 +16,7 @@
     <view class="flex items-baseline" style="gap: 6px; margin-top: 12px">
       <text :style="dollarStyle">$</text>
       <text :style="shadowUsdStyle">{{ formatAmount(shadowUSD) }}</text>
-      <text :style="shadowNexStyle">+ {{ formatAmount(shadowNEX) }} NEX</text>
+      <text :style="shadowNexStyle">+ {{ formatAmount(shadowNEX) }} UVT</text>
     </view>
     <text class="block" :style="ctaLineStyle">{{ cta }}</text>
 

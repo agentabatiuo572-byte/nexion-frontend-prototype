@@ -247,7 +247,7 @@
         </view>
         <view v-if="nexBurned > 0" class="flex items-center justify-between">
           <text style="font-size: 12px; color: var(--v5-brand)">{{ t.walletV3.feeOffsetRow }}</text>
-          <text class="tabular-nums" style="font-size: 13px; color: var(--v5-brand)">+${{ formatAmount(feeWaived) }} · {{ fmtNex(nexBurned) }} NEX</text>
+          <text class="tabular-nums" style="font-size: 13px; color: var(--v5-brand)">+${{ formatAmount(feeWaived) }} · {{ fmtNex(nexBurned) }} UVT</text>
         </view>
         <view v-if="offsetWithNex" class="flex items-center justify-between">
           <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.walletV3.feeCharged }}</text>

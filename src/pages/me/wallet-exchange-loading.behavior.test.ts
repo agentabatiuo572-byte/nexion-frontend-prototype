@@ -1,3 +1,4 @@
+import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import * as Vue from "vue";
 import type { Component } from "vue";
@@ -87,6 +88,7 @@ async function mount(direction = "nex2usdt") {
   const header = Vue.defineComponent({ props: ["title"], setup: props => () => Vue.h("header", props.title) });
   const accountKey = "user:exchange-loading-fixture";
   const dependencies: Record<string, unknown> = {
+    "@/lib/brand-copy": { platformDisplayText },
     "@/lib/amount-display": { formatAmount },
     vue: Vue,
     "@dcloudio/uni-app": {
@@ -141,7 +143,7 @@ async function mount(direction = "nex2usdt") {
     settle: async (value: ExchangeSnapshot) => { requests.at(-1)!.resolve(value); await flush(); },
   };
 }
-const insufficient = (sym: string) => en.exchange.insufficientMessage.replace("{sym}", sym);
+const insufficient = (sym: string) => en.exchange.insufficientMessage.replace("{sym}", sym === "NEX" ? "UVT" : sym);
 beforeEach(() => {
   vi.useFakeTimers();
   vi.stubGlobal("uni", { getStorageSync: () => "", setStorageSync: vi.fn() });
@@ -210,7 +212,7 @@ describe("mounted exchange balance authority", () => {
   it("preserves ready minimum and exchange-fee validation", async () => {
     const s = await mount(), state = snapshot(); state.caps.swapEnabled = true;
     await s.settle(state); await s.enter("5");
-    const minimum = en.exchange.minAmount.replace("{n}", "10.00").replace("{sym}", "NEX");
+    const minimum = en.exchange.minAmount.replace("{n}", "10.00").replace("{sym}", "UVT");
     expect(s.text().split(minimum)).toHaveLength(3); // Pay-card hint plus validation.
     expect(s.text()).not.toContain(insufficient("NEX"));
     expect(s.button(en.exchange.confirm).props["aria-disabled"]).toBe("true");

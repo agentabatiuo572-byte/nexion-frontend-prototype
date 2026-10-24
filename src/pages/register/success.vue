@@ -31,7 +31,7 @@
             <text class="rs-gift__cap">{{ t.share.posterGiftCap }}</text>
             <view class="rs-gift__amt">
               <text class="rs-gift__usd">${{ formatAmount(giftUsdt) }}</text>
-              <text class="rs-gift__nex">+ {{ formatAmount(giftNex) }} NEX</text>
+              <text class="rs-gift__nex">+ {{ formatAmount(giftNex) }} UVT</text>
             </view>
             <view v-if="giftState === 'posted'" class="rs-chip rs-chip--ok">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>

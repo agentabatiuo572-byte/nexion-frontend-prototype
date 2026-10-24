@@ -21,7 +21,7 @@
                 <text :style="{ fontSize: '15px', fontWeight: 600, color: 'var(--v5-ink)' }">N</text>
               </view>
               <view>
-                <text class="block font-display" :style="nexPairStyle">NEX / USDT</text>
+                <text class="block font-display" :style="nexPairStyle">UVT / USDT</text>
                 <text class="block" :style="nexSubStyle">UVEL · #{{ nex.rank }}</text>
               </view>
             </view>

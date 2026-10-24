@@ -3,7 +3,7 @@
     <view class="grid items-center gap-3" style="grid-template-columns: 1fr 76px">
       <view class="min-w-0">
         <view class="flex items-baseline gap-1.5 font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">
-          <text style="font-family: var(--font-v5); font-weight: 600; color: var(--v5-brand); letter-spacing: -0.005em; font-size: 13px">$NEX</text>
+          <text style="font-family: var(--font-v5); font-weight: 600; color: var(--v5-brand); letter-spacing: -0.005em; font-size: 13px">$UVT</text>
           <text style="color: var(--v5-ink-4)">{{ t.home.nexPricePair }}</text>
         </view>
         <view class="mt-1 flex items-baseline gap-1.5">

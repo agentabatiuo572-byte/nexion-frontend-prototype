@@ -26,7 +26,7 @@
           <view class="flex items-baseline" style="gap: 4px">
             <!-- Page H1 24 / 600 warning amber + tabular -->
             <text class="tabular-nums" :style="rewardStyle">+{{ rewardDisplay }}</text>
-            <text :style="nexUnitStyle">NEX</text>
+            <text :style="nexUnitStyle">UVT</text>
             <text v-if="mult > 1" class="inline-flex items-center" :style="promoChipStyle">{{ promoChipText }}</text>
           </view>
 

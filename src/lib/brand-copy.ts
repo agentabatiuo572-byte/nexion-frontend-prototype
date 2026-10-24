@@ -45,3 +45,12 @@ export function nexGridBrandText(value: string): string {
   return value.replace(LEGACY_BRAND_PATTERN, BRAND).replace(/NexGrid/gi, BRAND)
     .replace(/\bStellar(Box|Rack)\b(?!-)/gi, (_, family: string) => `${BRAND}${family.toLowerCase() === "box" ? "Box" : "Rack"}`);
 }
+
+/** Display copy only. Keep transport codes, stored records and contact/link targets unchanged. */
+export function platformDisplayText(value: string): string {
+  return value.split(/((?:https?:\/\/|www\.)[^\s<>"'，。；、！？（）【】]+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:\/[^\s<>"'，。；、！？（）【】]*)?)/g)
+    .map((part, index) => index % 2 ? part : part
+      .replace(/\b(?:NexGrid|Nexion)(?:Box|Rack)?\b|\bStellar(?:Box|Rack)\b(?!-)/gi, nexGridBrandText)
+      .replace(/\bNEX\b(?!-[A-Z0-9]{2,})/g, "UVT"))
+    .join("");
+}

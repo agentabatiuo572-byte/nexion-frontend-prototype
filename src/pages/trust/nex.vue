@@ -33,7 +33,7 @@
           <view class="flex" :style="tableHeadStyle">
             <text class="text-left" :style="thWhat">{{ w.colWhat }}</text>
             <text class="text-left" :style="thCell">USDT</text>
-            <text class="text-left" :style="thCell">NEX</text>
+            <text class="text-left" :style="thCell">UVT</text>
           </view>
           <view v-for="(row, i) in tableRows" :key="row.k" class="flex" :style="tableRowStyle(i === 0)">
             <text class="text-left" :style="tdWhat">{{ row.k }}</text>

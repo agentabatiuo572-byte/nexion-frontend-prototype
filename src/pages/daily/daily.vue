@@ -540,7 +540,7 @@ async function handleCheckIn() {
   if (!r.ok) {
     // conflict = 别的标签页刚签过(store 已刷新到最新);否则就是本页自己今天已签。
     if (r.conflict) toast.warn(t.value.errors.staleTitle, t.value.errors.staleMsg);
-    else toast.info("Already checked in today", "Come back tomorrow for more NEX.");
+    else toast.info("Already checked in today", "Come back tomorrow for more UVT.");
     return;
   }
   // Faucet store tracks streak only; crediting NEX to the wallet is composed here
@@ -570,11 +570,11 @@ async function handleCheckIn() {
     // vibrate unavailable
   }
   if (r.multiplier > 1) {
-    toast.success(`🎲 Lucky ×${r.multiplier}! +${formatAmount(r.gained)} NEX`, `${r.streak}-day streak`);
+    toast.success(`🎲 Lucky ×${r.multiplier}! +${formatAmount(r.gained)} UVT`, `${r.streak}-day streak`);
   } else if (r.gained > 2) {
-    toast.success(`🔥 ${r.streak}-day streak! +${formatAmount(r.gained)} NEX`, "Day-7 bonus unlocked");
+    toast.success(`🔥 ${r.streak}-day streak! +${formatAmount(r.gained)} UVT`, "Day-7 bonus unlocked");
   } else {
-    toast.success(`+${formatAmount(r.gained)} NEX`, `${r.streak}-day streak`);
+    toast.success(`+${formatAmount(r.gained)} UVT`, `${r.streak}-day streak`);
   }
 }
 

@@ -1,3 +1,4 @@
+import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import * as Vue from 'vue';
 import { renderToString } from '@vue/server-renderer';
@@ -18,6 +19,7 @@ const descriptor=parse(rewardRowsSource,{filename:'reward-rows.vue'}).descriptor
 const script=compileScript(descriptor,{id:'reward-rows-behavior',inlineTemplate:true,templateOptions:{compilerOptions:{isCustomElement:tag=>['view','text'].includes(tag)}}});
 const code=ts.transpileModule(script.content,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const dependencies:Record<string,unknown>={
+    "@/lib/brand-copy": { platformDisplayText },
     "@/lib/amount-display": { formatAmount },
   vue:Vue,
   '@/i18n/use-t':{useT:()=>Vue.ref({promotion:promotionZH})},
@@ -78,7 +80,7 @@ it('two canonical order-line IDs keep purchase quantities and rewards paired reg
   const html=await renderToString(Vue.createSSRApp(componentExports.default,props));
   const rows=html.replace(/<!--.*?-->/g,'').split('class="promotion-row"').slice(1);
   expect(rows).toHaveLength(2);
-  expect(rows[0]).toContain('Device Beta × 3');expect(rows[0]).toContain('7.00 NEX');expect(rows[0]).not.toContain('Device Alpha');
+  expect(rows[0]).toContain('Device Beta × 3');expect(rows[0]).toContain('7.00 UVT');expect(rows[0]).not.toContain('Device Alpha');
   expect(rows[1]).toContain('Device Alpha × 2');expect(rows[1]).toContain('5.00 USDT');expect(rows[1]).not.toContain('Device Beta');
 });
 it('uses immutable names even when a gift is hidden from the current shop catalogue',async()=>{

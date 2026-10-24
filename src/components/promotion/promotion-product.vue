@@ -17,6 +17,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
 import { computed,ref } from 'vue';
 import type { PublicPromotion,PublicRewardSpec } from '@/api/promotion-contracts';
 import { useT } from '@/i18n/use-t';
@@ -32,7 +33,7 @@ const t=useT(),locale=useLocaleStore(),termsOpen=ref(false);
 const rules=computed(()=>isPromotionActive(props.activity)?props.activity.rewardRules.filter(rule=>rule.productNo===props.productNo):[]);
 const disclosures=computed(()=>promotionDisclosures(props.activity,props.productNo));
 const productName=(id:string)=>props.publicOnly?id:getProduct(id)?.name??id;
-const rewardSummary=(reward:PublicRewardSpec)=>`${reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter} · ${reward.type==='DEVICE'?(reward.disclosure.deviceName || t.value.promotion.unknown)+' × '+rewardAmount(reward):rewardAmount(reward)+' '+reward.type}`;
+const rewardSummary=(reward:PublicRewardSpec)=>`${reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter} · ${reward.type==='DEVICE'?(reward.disclosure.deviceName || t.value.promotion.unknown)+' × '+rewardAmount(reward):rewardAmount(reward)+' '+platformDisplayText(reward.type)}`;
 const limits=(rule:PublicPromotion['rewardRules'][number])=>`${t.value.promotion.orderGroupLimit} · ${rule.maxGroups.mode==='LIMITED'?rule.maxGroups.value:t.value.promotion.unlimitedGroups}\n${t.value.promotion.personGroupLimit} · ${rule.maxGroupsPerPerson.mode==='LIMITED'?rule.maxGroupsPerPerson.value:t.value.promotion.unlimitedGroups}`;
 const ruleTerms=computed(()=>[
   localized(props.activity.terms,locale.code),

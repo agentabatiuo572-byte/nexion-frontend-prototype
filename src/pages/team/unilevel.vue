@@ -11,7 +11,7 @@
             <text class="block" style="font-size: 15px; font-weight: 600">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : t.directReferral.purchaseTotal }}</text>
             <view class="nx-royalty-totals" :class="{ 'nx-royalty-totals-large': wideAmount(remoteTotalUSDT) || wideAmount(remoteTotalNEX) }">
               <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalUSDT).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-brand)' }">{{ amount(remoteTotalUSDT) }}</text><text>USDT</text></view>
-              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalNEX).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-brand-2)' }">{{ amount(remoteTotalNEX) }}</text><text>NEX</text></view>
+              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalNEX).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-brand-2)' }">{{ amount(remoteTotalNEX) }}</text><text>UVT</text></view>
             </view>
             <text class="block" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">{{ remoteGroupCount }} {{ t.directReferral.settlementGroups }}</text>
             <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ t.directReferral.netHint }}</text>
@@ -28,7 +28,7 @@
               </view>
               <view style="max-width: 58%; text-align: right">
                 <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-brand)">{{ amount(event.amountUSDT) }} USDT</text>
-                <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-brand-2)">{{ amount(event.amountNEX) }} NEX</text>
+                <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-brand-2)">{{ amount(event.amountNEX) }} UVT</text>
               </view>
             </view>
             <text class="block" style="margin-top: 6px; font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ filter === 'device_earning' ? t.directReferral.receipt : t.directReferral.order }} · {{ sourceReference(event) }}</text>
@@ -182,7 +182,7 @@ function wideAmount(value: number) { return amount(value).length > 12; }
 function sourceReference(event: DirectReferralEvent | TeamUnilevelEvent) { return event.sourceRef ?? ("orderId" in event ? event.orderId : null) ?? "—"; }
 function statusText(event: DirectReferralEvent | TeamUnilevelEvent) {
   const { statusUSDT, statusNEX } = event as TeamUnilevelEvent;
-  return statusUSDT && statusNEX && statusUSDT !== statusNEX ? `USDT ${statusLabel(event, statusUSDT)} · NEX ${statusLabel(event, statusNEX)}` : statusLabel(event);
+  return statusUSDT && statusNEX && statusUSDT !== statusNEX ? `USDT ${statusLabel(event, statusUSDT)} · UVT ${statusLabel(event, statusNEX)}` : statusLabel(event);
 }
 function statusLabel(event: DirectReferralEvent | TeamUnilevelEvent, status = event.status) {
   if (status === "cooling") return fmt(t.value.commissions.coolingTag, { n: Math.max(0, Math.ceil((event.unlockAt - Date.now()) / 86400000)) });

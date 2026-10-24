@@ -50,7 +50,7 @@
         <view class="weekly-quest__reward-row">
           <view class="weekly-quest__reward">
             <text class="weekly-quest__reward-value" :style="{ fontSize: rewardFontSize }">+{{ finalRewardText }}</text>
-            <text class="weekly-quest__reward-unit">NEX</text>
+            <text class="weekly-quest__reward-unit">UVT</text>
           </view>
           <view class="weekly-quest__badges">
             <text v-if="categoryText" class="weekly-quest__category">{{ categoryText }}</text>

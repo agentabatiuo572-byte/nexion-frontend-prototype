@@ -63,6 +63,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { computed,onBeforeUnmount,onMounted,ref,watch } from 'vue';
 import { onHide,onShow } from '@dcloudio/uni-app';
@@ -109,7 +110,7 @@ const ruleTerms=computed(()=>activity.value?[
     `${nameFor(rule.productNo)} · ${t.value.promotion.rulePer} ${rule.minBuyQty} · ${rule.repeatMode==='PER_GROUP'?t.value.promotion.perGroup:t.value.promotion.oncePerOrder}`,
     `${t.value.promotion.orderGroupLimit} · ${rule.maxGroups.mode==='LIMITED'?rule.maxGroups.value:t.value.promotion.unlimitedGroups}`,
     `${t.value.promotion.personGroupLimit} · ${rule.maxGroupsPerPerson.mode==='LIMITED'?rule.maxGroupsPerPerson.value:t.value.promotion.unlimitedGroups}`,
-    ...[rule.buyerReward,rule.inviterReward].filter(reward=>!!reward).map(reward=>reward?`${reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter} · ${reward.type==='DEVICE'?(reward.disclosure.deviceName || t.value.promotion.unknown)+' × '+rewardAmount(reward):rewardAmount(reward)+' '+reward.type}`:''),
+    ...[rule.buyerReward,rule.inviterReward].filter(reward=>!!reward).map(reward=>reward?`${reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter} · ${reward.type==='DEVICE'?(reward.disclosure.deviceName || t.value.promotion.unknown)+' × '+rewardAmount(reward):rewardAmount(reward)+' '+platformDisplayText(reward.type)}`:''),
   ].join('\n')),
   `${t.value.promotion.deadline} · ${displayDeadline(activity.value.endsAt,locale.code)}`,
 ].join('\n\n'):'');

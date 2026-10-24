@@ -333,8 +333,8 @@ const topPctText = computed(() => topPct.value === null ? "—" : `Top ${topPct.
 const shareText = computed(() => {
   if (variant.value === "streak")
     return longestOrCurrent.value === null
-      ? `🔥 My UVEL streak is not available right now. Daily check-ins = passive NEX. Join me: ${referralLink.value}`
-      : `🔥 ${longestOrCurrent.value}-day streak on UVEL. Daily check-ins = passive NEX. Join me: ${referralLink.value}`;
+      ? `🔥 My UVEL streak is not available right now. Daily check-ins = passive UVT. Join me: ${referralLink.value}`
+      : `🔥 ${longestOrCurrent.value}-day streak on UVEL. Daily check-ins = passive UVT. Join me: ${referralLink.value}`;
   if (variant.value === "network")
     return `🌐 My UVEL network has ${totalMembers.value ?? "—"} members. Explore UVEL: ${referralLink.value}`;
   return `💸 Earned ${earningsTotalText.value} on UVEL in ${activeDays.value ?? "—"} days. Join my network: ${referralLink.value}`;

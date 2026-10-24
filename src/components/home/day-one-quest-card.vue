@@ -21,7 +21,7 @@
           </view>
           <view class="newcomer-task__reward">
             <text class="newcomer-task__reward-value">{{ rewardText === "—" ? "—" : `+${rewardText}` }}</text>
-            <text style="font-size: 13px; color: var(--v5-nex); font-family: var(--font-jet-mono), ui-monospace, monospace; font-weight: 500; margin-left: 2px">NEX</text>
+            <text style="font-size: 13px; color: var(--v5-nex); font-family: var(--font-jet-mono), ui-monospace, monospace; font-weight: 500; margin-left: 2px">UVT</text>
           </view>
         </view>
         <view v-if="!questUnavailable && (!remoteApiEnabled || dayOneWindow)" style="text-align: right; flex-shrink: 0">
@@ -72,7 +72,7 @@
             <text class="truncate" :style="labelStyle(task)">{{ task.label }}</text>
             <text :style="catStyle(task)">{{ task.cat }}</text>
           </view>
-          <text :style="rewardStyle(task)">{{ task.nex === null ? "—" : `+${formatAmount(task.nex)} NEX` }}<text v-if="task.usdt" :style="{ color: isDone(task) ? 'var(--v5-ink-4)' : 'var(--v5-brand-2)', marginLeft: '4px' }">+${{ formatAmount(task.usdt) }}</text></text>
+          <text :style="rewardStyle(task)">{{ task.nex === null ? "—" : `+${formatAmount(task.nex)} UVT` }}<text v-if="task.usdt" :style="{ color: isDone(task) ? 'var(--v5-ink-4)' : 'var(--v5-brand-2)', marginLeft: '4px' }">+${{ formatAmount(task.usdt) }}</text></text>
           <view>
             <svg v-if="isActionable(task)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7">
               <path d="M9 18l6-6-6-6" />

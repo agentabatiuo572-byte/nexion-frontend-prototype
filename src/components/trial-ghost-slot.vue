@@ -180,7 +180,7 @@ const discount = computed(() => computeDiscountedPrice(trialCfg.config).discount
 
 const etaText = computed(() => fmt(trialLabels.value.etaTemplate, { eta: etaLabel.value }));
 const discountText = computed(() => fmt(t.value.trial.ghostDiscount, { amount: `$${formatAmount(discount.value)}` }));
-const shadowNexText = computed(() => `+ ${formatAmount(shadowNEX.value)} NEX`);
+const shadowNexText = computed(() => `+ ${formatAmount(shadowNEX.value)} UVT`);
 
 function goTrial() {
   navTo("/pages/me/trial");

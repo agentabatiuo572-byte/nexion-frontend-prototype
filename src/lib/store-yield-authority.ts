@@ -93,5 +93,5 @@ export function storefrontNex(amount: YieldAmount | null): string {
 }
 
 export function storefrontNexFull(amount: YieldAmount | null): string {
-  return amount ? `${formatAmount(amount.nex)} NEX` : "— NEX";
+  return amount ? `${formatAmount(amount.nex)} UVT` : "— UVT";
 }

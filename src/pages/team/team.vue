@@ -37,7 +37,7 @@
           <text class="block font-display tabular-nums" :style="royaltyAmtStyle">${{ formatAmount(monthUSDT) }}</text>
           <text class="block" :style="royaltySubStyle">{{ t.teamV3.royaltyHeroSubtitle }}</text>
           <view class="flex items-center justify-between" style="margin-top: 8px">
-            <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-tech-cyan-ink)' }">+{{ formatAmount(monthNEX) }} NEX</text>
+            <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-tech-cyan-ink)' }">+{{ formatAmount(monthNEX) }} UVT</text>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </view>
         </view>

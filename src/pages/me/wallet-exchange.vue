@@ -55,16 +55,16 @@
             placeholder="0"
             placeholder-style="color: var(--v5-ink-2)"
             :disabled="submitting"
-            :aria-label="fmt(t.exchange.payAmountLabel, { sym: fromSym })"
+            :aria-label="fmt(t.exchange.payAmountLabel, { sym: platformDisplayText(fromSym) })"
             @input="onInput"
             @blur="onInputBlur"
           />
-          <text class="shrink-0" style="font-size: 15px; color: var(--v5-ink-3)">{{ fromSym }}</text>
+          <text class="shrink-0" style="font-size: 15px; color: var(--v5-ink-3)">{{ platformDisplayText(fromSym) }}</text>
         </view>
         <view class="flex items-center justify-between" style="margin-top: 6px">
           <text style="font-size: 12px; color: var(--v5-ink-4)">{{ minLabel }}</text>
           <view class="inline-flex items-center active:bg-[color-mix(in_srgb,var(--v5-surface-2)_50%,transparent)]" :style="maxBtnStyle" role="button" tabindex="0" :aria-label="t.uiChrome.max" @click="setMax"  @keydown.enter.prevent="setMax" @keydown.space.prevent="setMax">
-            <text style="color: var(--v5-brand)">{{ fromSym }} </text>
+            <text style="color: var(--v5-brand)">{{ platformDisplayText(fromSym) }} </text>
             <text class="tabular-nums" style="color: var(--v5-brand)">{{ fromBalLabel }}</text>
             <text style="color: var(--v5-brand)"> · {{ t.uiChrome.max }}</text>
           </view>
@@ -83,7 +83,7 @@
         <text class="block" :style="cardLabelStyle">{{ remoteApiEnabled ? t.exchange.netReceive : t.exchange.receive }}</text>
         <view class="flex items-baseline" style="margin-top: 6px; gap: 4px">
           <text class="flex-1 min-w-0 tabular-nums truncate" :style="receiveValueStyle">{{ toAmountLabel }}</text>
-          <text class="shrink-0" style="font-size: 15px; color: var(--v5-ink-3)">{{ toSym }}</text>
+          <text class="shrink-0" style="font-size: 15px; color: var(--v5-ink-3)">{{ platformDisplayText(toSym) }}</text>
         </view>
         <view class="flex items-center justify-between" style="margin-top: 6px">
           <text style="font-size: 12px; color: var(--v5-ink-4)">{{ rateLabel }}</text>
@@ -173,7 +173,7 @@
           <text class="block" style="margin: 4px 0 6px; font-size: 12px; line-height: 1.4; color: var(--v5-ink-3)">{{ t.exchange.queuedReservation }}</text>
           <view v-for="q in displayQueue.slice(0, 3)" :key="q.id" class="flex items-center justify-between" style="padding: 4px 0">
             <view class="flex items-center min-w-0" style="gap: 8px">
-              <text class="font-mono-tabular truncate" style="font-size: 12px; color: var(--v5-ink-3)">{{ q.id }} · {{ q.direction === "nex2usdt" ? "NEX → USDT" : "USDT → NEX" }}</text>
+              <text class="font-mono-tabular truncate" style="font-size: 12px; color: var(--v5-ink-3)">{{ q.id }} · {{ q.direction === "nex2usdt" ? "UVT → USDT" : "USDT → UVT" }}</text>
               <view
                 v-if="remoteApiEnabled"
                 class="shrink-0"
@@ -218,6 +218,8 @@
 </template>
 
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
+
 import { formatAmount } from "@/lib/amount-display";
 import { onLoad, onHide, onShow } from "@dcloudio/uni-app";
 import { navTo } from "@/lib/route";
@@ -812,7 +814,7 @@ async function handleConfirm() {
     if (remoteApiEnabled) {
       const ok = await confirm({
         title: t.value.exchange.confirm,
-        message: `${snap.fromSym} ${amtLabel(snap.fromAmount)} → ${t.value.exchange.netReceive}: ${snap.toSym} ${amtLabel(snap.toAmount)}\n${t.value.exchange.exchangeFee}: ${amtLabel(snap.feeUsdt)} USDT\n${t.value.exchange.quoteEstimate}`,
+        message: `${platformDisplayText(snap.fromSym)} ${amtLabel(snap.fromAmount)} → ${t.value.exchange.netReceive}: ${platformDisplayText(snap.toSym)} ${amtLabel(snap.toAmount)}\n${t.value.exchange.exchangeFee}: ${amtLabel(snap.feeUsdt)} USDT\n${t.value.exchange.quoteEstimate}`,
         icon: "info",
         confirmLabel: t.value.exchange.confirm,
       });
@@ -901,7 +903,7 @@ async function handleConfirm() {
       title: t.value.exchange.confirm,
       // 🔴 弹窗数字与到账数字必须逐位相同 —— 走同一个 amtLabel,不在这里另立取整规则。
       // 曾经这行对 NEX 取整到 0 位:1 USDT @0.085 展示「12 NEX」,实入 11.76,每笔差 0.24。
-      message: `${snap.fromSym} ${amtLabel(snap.fromAmount)} → ${snap.toSym} ${amtLabel(snap.toAmount)}`,
+      message: `${platformDisplayText(snap.fromSym)} ${amtLabel(snap.fromAmount)} → ${platformDisplayText(snap.toSym)} ${amtLabel(snap.toAmount)}`,
       icon: "info",
       confirmLabel: t.value.exchange.confirm,
     });
@@ -953,7 +955,7 @@ async function handleConfirm() {
     if (posted === "insufficient") {
       toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.error(
         t.value.exchange.insufficientTitle,
-        t.value.exchange.insufficientMessage.replace("{sym}", snap.fromSym),
+        t.value.exchange.insufficientMessage.replace("{sym}", platformDisplayText(snap.fromSym)),
       ));
       return;
     }
@@ -974,9 +976,9 @@ async function handleConfirm() {
     toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.success(
       t.value.exchange.swapped,
       t.value.exchange.swappedDetail
-        .replace("{from}", snap.fromSym)
+        .replace("{from}", platformDisplayText(snap.fromSym))
         .replace("{fromAmt}", amtLabel(snap.fromAmount))
-        .replace("{to}", snap.toSym)
+        .replace("{to}", platformDisplayText(snap.toSym))
         .replace("{toAmt}", amtLabel(snap.toAmount)),
     ));
     input.value = "";
@@ -1030,7 +1032,7 @@ async function handleConfirm() {
 
 // ── derived labels ──
 const minLabel = computed(() => exchangeSnapshotReady.value
-  ? t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : formatAmount(minFrom.value)).replace("{sym}", fromSym.value)
+  ? t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : formatAmount(minFrom.value)).replace("{sym}", platformDisplayText(fromSym.value))
   : t.value.exchange.remoteNotProvided);
 const fromBalLabel = computed(() => exchangeSnapshotReady.value
   ? formatAmount(fromBal.value)
@@ -1044,14 +1046,14 @@ const updatedLabel = computed(() => exchangeSnapshotReady.value
   : t.value.exchange.remoteNotProvided);
 const errorLabel = computed(() =>
   overBalance.value
-    ? t.value.exchange.insufficientMessage.replace("{sym}", fromSym.value)
+    ? t.value.exchange.insufficientMessage.replace("{sym}", platformDisplayText(fromSym.value))
     : feeInvalid.value ? t.value.exchange.belowFee
-    : t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : formatAmount(minFrom.value)).replace("{sym}", fromSym.value),
+    : t.value.exchange.minAmount.replace("{n}", minFrom.value === null ? "—" : formatAmount(minFrom.value)).replace("{sym}", platformDisplayText(fromSym.value)),
 );
 const queuedLabel = computed(() => fmt(t.value.exchange.queuedLabel, { n: String(displayQueue.value.length) }));
 // 历史行同样走 amtLabel:历史与余额对不上,多半就是这里自己又取了一次整。
 function swapLine(h: SwapEvent): string {
-  return `${amtLabel(h.fromAmount)} ${h.fromSym} → ${amtLabel(h.toAmount)} ${h.toSym}`;
+  return `${amtLabel(h.fromAmount)} ${platformDisplayText(h.fromSym)} → ${amtLabel(h.toAmount)} ${platformDisplayText(h.toSym)}`;
 }
 
 // ── styles ──

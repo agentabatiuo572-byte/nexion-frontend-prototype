@@ -1,3 +1,4 @@
+import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import type { CanonicalEvent } from "@/api/events-api";
 import type { NexEvent } from "@/mock/events";
@@ -45,11 +46,11 @@ export function remoteEventView(event: CanonicalEvent, labels: EventActionLabels
     id: event.eventCode,
     kind: event.kind,
     status: event.state,
-    title: event.title,
-    subtitle: event.subtitle,
+    title: platformDisplayText(event.title),
+    subtitle: platformDisplayText(event.subtitle),
     emoji: "✦",
     tint: TINT_BY_KIND[event.kind],
-    reward: event.kind === "wheel" ? event.rewardName : `${event.rewardType === "USDT" || event.rewardType === "NEX" ? formatAmount(event.rewardAmount) : event.rewardAmount} ${event.rewardName}`,
+    reward: event.kind === "wheel" ? platformDisplayText(event.rewardName) : `${event.rewardType === "USDT" || event.rewardType === "NEX" ? formatAmount(event.rewardAmount) : event.rewardAmount} ${platformDisplayText(event.rewardName)}`,
     progress: event.trackable
       ? { current: event.progressValue, total: event.targetValue, label: labels.progress }
       : null,

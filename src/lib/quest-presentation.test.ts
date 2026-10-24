@@ -26,6 +26,13 @@ describe("normalizeQuestActionRoute", () => {
 });
 
 describe("weeklyQuestDisplayName", () => {
+  it("still localizes the historical token name without changing the server record", () => {
+    const original = { questCode: "weekly_t2_nex_swap", name: "完成一次 NEX ↔ USDT 兑换" };
+    expect(weeklyQuestDisplayName(original, "en", en)).toBe(en.weeklyQuest.tier2_nex_swap_title);
+    expect(weeklyQuestDisplayName(original, "vi", vi)).toBe(vi.weeklyQuest.tier2_nex_swap_title);
+    expect(weeklyQuestDisplayName(original, "zh", zh)).toBe("完成一次 UVT ↔ USDT 兑换");
+    expect(original.name).toBe("完成一次 NEX ↔ USDT 兑换");
+  });
   const quest = { questCode: "weekly_t2_invite_friend", name: "邀请 1 位朋友注册" };
 
   it("uses the existing three-language title when a known mission falls back to Chinese", () => {

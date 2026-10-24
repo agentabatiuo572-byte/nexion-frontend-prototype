@@ -2,7 +2,7 @@
 export const promotionZH = {
 "activityBadge":"活动",
 "rewardCategory":"活动奖励",
-"rewardCategoryDesc":"设备赠礼、USDT 与 NEX 奖励",
+"rewardCategoryDesc":"设备赠礼、USDT 与 UVT 奖励",
 "orderUnknownTitle":"订单处理结果尚未确认",
 "buyAgain":"再买一单",
 "retryOriginalCancel":"重试原取消",
@@ -209,7 +209,7 @@ export const promotionZH = {
 export const promotionEN = {
 "activityBadge":"Offer",
 "rewardCategory":"Promotion rewards",
-"rewardCategoryDesc":"Device gifts, USDT and NEX rewards",
+"rewardCategoryDesc":"Device gifts, USDT and UVT rewards",
 "orderUnknownTitle":"Order outcome is not confirmed",
 "buyAgain":"Start another purchase",
 "retryOriginalCancel":"Retry original cancellation",
@@ -416,7 +416,7 @@ export const promotionEN = {
 export const promotionVI = {
 "activityBadge":"Ưu đãi",
 "rewardCategory":"Phần thưởng chương trình",
-"rewardCategoryDesc":"Quà tặng thiết bị, phần thưởng USDT và NEX",
+"rewardCategoryDesc":"Quà tặng thiết bị, phần thưởng USDT và UVT",
 "orderUnknownTitle":"Chưa xác nhận kết quả xử lý đơn",
 "buyAgain":"Mua thêm một đơn",
 "retryOriginalCancel":"Thử lại yêu cầu hủy ban đầu",

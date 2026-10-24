@@ -70,7 +70,7 @@
             <view class="text-right shrink-0" style="margin-left: 8px">
               <view :style="amountStyle(b)">
                 <text>{{ isDebit(b) ? "-" : "+" }}{{ fmtAmount(b) }}</text>
-                <text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 4px">{{ b.symbol }}</text>
+                <text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 4px">{{ platformDisplayText(b.symbol) }}</text>
               </view>
               <text
                 v-if="b.balanceAfter !== undefined && b.symbol === 'USDT'"
@@ -105,6 +105,8 @@
 </template>
 
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
+
 import { formatAmount } from "@/lib/amount-display";
 import { computed, nextTick, onBeforeUnmount, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";

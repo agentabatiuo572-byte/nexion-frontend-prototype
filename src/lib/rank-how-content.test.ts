@@ -23,7 +23,7 @@ describe("rank-how published presentation", () => {
     expect(content.section("example").body).toContain("6 个 V1");
     expect(content.section("rewards").body).toContain("12.3456%");
     expect(content.section("rewards").body).toContain("2.75%");
-    expect(content.section("rewards").body).toContain("321.12 NEX");
+    expect(content.section("rewards").body).toContain("321.12 UVT");
     expect(content.section("rewards").body).toContain("暂不可结算");
     expect(content.section("requirement-direct").body).toBe("789.12 USDT");
     expect(content.section("protection").body).toContain("未开启");
@@ -40,7 +40,7 @@ describe("rank-how published presentation", () => {
       const content = buildRankHowContent(policy, changed, enabled, locale, labels);
       expect(content.section("example").body).toContain(large);
       expect(content.section("example").body).toContain(rounded);
-      expect(content.section("rewards").body).toContain("321.12 NEX");
+      expect(content.section("rewards").body).toContain("321.12 UVT");
     } finally {
       vi.unstubAllGlobals();
     }

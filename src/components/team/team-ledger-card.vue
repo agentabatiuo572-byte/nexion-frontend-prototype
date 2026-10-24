@@ -8,7 +8,7 @@
       </view>
     </view>
     <text class="team-ledger__amount tabular-nums">{{ '$' + formatAmount(monthUSDT) }}</text>
-    <text class="team-ledger__nex tabular-nums">+ {{ formatAmount(monthNEX) }} NEX</text>
+    <text class="team-ledger__nex tabular-nums">+ {{ formatAmount(monthNEX) }} UVT</text>
     <text class="team-ledger__lifetime">{{ t.teamV3.lifetime }} ${{ formatAmount(totalUSDTLifetime) }} · {{ contributors }} {{ t.teamV3.contributors }}</text>
 
     <view class="team-ledger__bar" aria-hidden="true">

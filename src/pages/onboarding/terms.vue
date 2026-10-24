@@ -28,8 +28,8 @@
       </view>
       <view v-else-if="serverTerms" class="tos-hero">
         <text class="tos-eyebrow">{{ `${serverTerms.effectiveAt} · ${serverTerms.version}` }}</text>
-        <text class="tos-title">{{ serverTerms.title }}</text>
-        <text class="tos-sub">{{ serverTerms.summary }}</text>
+        <text class="tos-title">{{ platformDisplayText(serverTerms.title) }}</text>
+        <text class="tos-sub">{{ platformDisplayText(serverTerms.summary) }}</text>
       </view>
       <view v-else class="tos-hero">
         <text class="tos-eyebrow">{{ t.terms.effectiveLabel }}</text>
@@ -75,9 +75,9 @@
         <view v-for="b in blocks" :key="b.n" class="tos-block">
           <view class="tos-block__head">
             <text class="tos-block__num">{{ pad(b.n) }}</text>
-            <text class="tos-block__title">{{ b.title }}</text>
+            <text class="tos-block__title">{{ platformDisplayText(b.title) }}</text>
           </view>
-          <text class="tos-block__body">{{ b.body }}</text>
+          <text class="tos-block__body">{{ platformDisplayText(b.body) }}</text>
         </view>
       </view>
       <view v-else class="tos-fail"><text>{{ t.terms.loading }}</text></view>
@@ -102,6 +102,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBackPress, onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import BrandLockup from "@/components/brand-lockup.vue";
+import { platformDisplayText } from "@/lib/brand-copy";
 import { useT } from "@/i18n/use-t";
 import { navBack, navTo } from "@/lib/route";
 import { legalTermsApi, remoteApiEnabled, sessionVault } from "@/api/runtime";

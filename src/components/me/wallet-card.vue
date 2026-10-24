@@ -14,9 +14,9 @@
       <view class="nx-wallet-total" :aria-label="t.me.usdtBalance + ': $' + usdtLabel">
         <text class="nx-wallet-currency">$</text><text class="tabular-nums nx-wallet-amount">{{ usdtLabel }}</text>
       </view>
-      <view class="nx-wallet-nex" :aria-label="t.uiChrome.nexBalance + ': ' + nexLabel + ' NEX'">
+      <view class="nx-wallet-nex" :aria-label="t.uiChrome.nexBalance + ': ' + nexLabel + ' UVT'">
         <view class="nx-wallet-coin" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM8 15V9l8 6V9" /></svg></view>
-        <text class="tabular-nums">{{ nexLabel }} NEX</text>
+        <text class="tabular-nums">{{ nexLabel }} UVT</text>
       </view>
     </view>
     <view class="nx-wallet-details">
@@ -35,7 +35,7 @@
             <WalletActionBtn href="/pages/me/wallet-withdraw-method" :label="t.me.withdraw" sub="USDT / VND">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14" /><path d="m6 9 6-6 6 6" /><path d="M19 21H5" /></svg>
             </WalletActionBtn>
-            <WalletActionBtn href="/pages/me/wallet-exchange" :label="t.me.exchange" sub="USDT ⇄ NEX">
+            <WalletActionBtn href="/pages/me/wallet-exchange" :label="t.me.exchange" sub="USDT ⇄ UVT">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 3 1.9 4.6L16 9.5l-4.6 1.9L9.5 16l-1.9-4.6L3 9.5l4.6-1.9z" /><path d="M19 14v6" /><path d="M22 17h-6" /></svg>
             </WalletActionBtn>
           </view>
@@ -115,9 +115,9 @@ const nexChangeLabel = computed(() => {
   return `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`;
 });
 const nexMarketLabel = computed(() => {
-  if (!marketReady.value) return "≈ — USDT · 1 NEX = — USDT";
+  if (!marketReady.value) return "≈ — USDT · 1 UVT = — USDT";
   const price = market.nexPriceUSDT;
-  return `≈ ${fundsReadable.value ? formatAmount(nex.value * price) : "—"} USDT · 1 NEX = ${price.toFixed(3)} USDT`;
+  return `≈ ${fundsReadable.value ? formatAmount(nex.value * price) : "—"} USDT · 1 UVT = ${price.toFixed(3)} USDT`;
 });
 
 const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"

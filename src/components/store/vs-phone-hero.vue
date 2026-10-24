@@ -52,8 +52,8 @@ const authority = computed(() => ({
  *  the device cards use, instead of rendering the stored English name. */
 const baseName = computed(() => deviceName(t.value, props.comparison.base));
 const multiplierText = computed(() => `${props.comparison.multiplier}×`);
-const phoneNexText = computed(() => `+${storefrontNex(authority.value.phone)} NEX`);
-const entryNexText = computed(() => `+${storefrontNex(authority.value.entry)} NEX`);
+const phoneNexText = computed(() => `+${storefrontNex(authority.value.phone)} UVT`);
+const entryNexText = computed(() => `+${storefrontNex(authority.value.entry)} UVT`);
 const phoneNexFullText = computed(() => `+${storefrontNexFull(authority.value.phone)}${t.value.store.vsPerDay}`);
 const entryNexFullText = computed(() => `+${storefrontNexFull(authority.value.entry)}${t.value.store.vsPerDay}`);
 

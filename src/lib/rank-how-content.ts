@@ -1,3 +1,4 @@
+import { platformDisplayText } from "./brand-copy";
 import type { RankHowPolicy } from "@/api/rank-how-policy-api";
 import type { CanonicalVRankRow, CommissionCapabilities } from "@/api/v-rank-api";
 import type { RankHowConditionLabels } from "./v-rank-how-policy";
@@ -88,7 +89,7 @@ export function buildRankHowContent(policy: RankHowPolicy | null, ranks: Canonic
         ? labels.vDownlines.replace("{n}", number(target.requiredDownlineCount!)).replace("{v}", String(target.requiredDownlineRank)) : copy.noThreshold,
       directRate: `${number(target.directBonus * 100)}%`,
       peerRate: capabilities.peer ? `${number(target.peerBonus * 100)}%` : copy.peerUnavailable,
-      votes: number(target.leadershipVotes), cultivation: `${formatAmount(target.cultivationBonus)} NEX`,
+      votes: number(target.leadershipVotes), cultivation: `${formatAmount(target.cultivationBonus)} UVT`,
     });
   }
   if (policy?.rules) {
@@ -108,10 +109,10 @@ export function buildRankHowContent(policy: RankHowPolicy | null, ranks: Canonic
     const title = published ? interpolate(published.title) : fallbackTitle;
     // 平级奖励未派发时,规则页不得把配置比例写成已开放权益 —— 与等级页同一事实(#79)。
     if (published && !capabilities.peer && (id === "unlock-peer" || id === "result-peer")) {
-      return { id, available, title: available ? title : fallbackTitle, body: available ? copy.peerUnavailable : copy.unavailable };
+      return { id, available, title: platformDisplayText(available ? title : fallbackTitle), body: available ? copy.peerUnavailable : copy.unavailable };
     }
     const body = published ? interpolate(published.body) : copy.unavailable;
-    return { id, available, title: available ? title : fallbackTitle, body: available ? body : copy.unavailable };
+    return { id, available, title: platformDisplayText(available ? title : fallbackTitle), body: platformDisplayText(available ? body : copy.unavailable) };
   }
   return { ladder, example, section, copy };
 }

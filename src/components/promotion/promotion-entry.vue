@@ -39,6 +39,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
 import { computed,onBeforeUnmount,onMounted,ref,watch } from 'vue';
 import { onHide,onShow } from '@/composables/use-tab-page-lifecycle';
 import { apiRuntimeConfig,promotionApi,remoteApiEnabled,sessionVault } from '@/api/runtime';
@@ -68,7 +69,7 @@ function clear(resetBanners=true){items.value=[];cursor.value=null;hasMore.value
 function publicName(id:string){void productCatalogState.status;return sessionVault.read()?getProduct(id)?.name??id:id;}
 function rewardSummaries(activity:PublicPromotion){return activity.rewardRules.map(rule=>{
   const rewards=[rule.buyerReward,rule.inviterReward].filter((reward):reward is NonNullable<typeof reward>=>!!reward);
-  return publicName(rule.productNo)+' · '+t.value.promotion.rulePer+' '+rule.minBuyQty+' · '+(rule.repeatMode==='PER_GROUP'?t.value.promotion.perGroup:t.value.promotion.oncePerOrder)+'\n'+rewards.map(reward=>(reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter)+' · '+(reward.type==='DEVICE'?(reward.disclosure.deviceName || t.value.promotion.unknown)+' × '+rewardAmount(reward):rewardAmount(reward)+' '+reward.type)).join(' / ')+'\n'+t.value.promotion.orderGroupLimit+' · '+(rule.maxGroups.mode==='LIMITED'?rule.maxGroups.value:t.value.promotion.unlimitedGroups)+'\n'+t.value.promotion.personGroupLimit+' · '+(rule.maxGroupsPerPerson.mode==='LIMITED'?rule.maxGroupsPerPerson.value:t.value.promotion.unlimitedGroups);
+  return publicName(rule.productNo)+' · '+t.value.promotion.rulePer+' '+rule.minBuyQty+' · '+(rule.repeatMode==='PER_GROUP'?t.value.promotion.perGroup:t.value.promotion.oncePerOrder)+'\n'+rewards.map(reward=>(reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter)+' · '+(reward.type==='DEVICE'?(reward.disclosure.deviceName || t.value.promotion.unknown)+' × '+rewardAmount(reward):rewardAmount(reward)+' '+platformDisplayText(reward.type))).join(' / ')+'\n'+t.value.promotion.orderGroupLimit+' · '+(rule.maxGroups.mode==='LIMITED'?rule.maxGroups.value:t.value.promotion.unlimitedGroups)+'\n'+t.value.promotion.personGroupLimit+' · '+(rule.maxGroupsPerPerson.mode==='LIMITED'?rule.maxGroupsPerPerson.value:t.value.promotion.unlimitedGroups);
 });}
 const termsText=computed(()=>termsActivity.value?[localized(termsActivity.value.terms,locale.code),...rewardSummaries(termsActivity.value),t.value.promotion.deadline+' · '+displayDeadline(termsActivity.value.endsAt,locale.code)].join('\n\n'):'');
 async function load(reset:boolean){

@@ -62,7 +62,7 @@ const rewardLineText = computed(() => {
     const nex = rewards.snapshot?.inviterRewardNex;
     return nex === undefined
       ? t.value.team.settlementUnavailable
-      : `${formatAmount(nex)} NEX · ${t.value.team.serverRewardPerSettlement}`;
+      : `${formatAmount(nex)} UVT · ${t.value.team.serverRewardPerSettlement}`;
   }
   if (!cfg.config.rewards.enabled) return t.value.team.referralRewardsDisabled;
   const base = fmt(t.value.share.rewardLine, { usd: formatAmount(dollarReward.value) });

@@ -1,6 +1,7 @@
+import { platformDisplayText } from "./brand-copy";
 import { formatAmount } from "./amount-display";
 import type { LocalizedText, RewardState, PublicRewardSpec, RewardSpec } from '../api/promotion-contracts';
-export function localized(value: LocalizedText | null | undefined, language: string): string { return value?.[language === 'zh' || language === 'vi' ? language : 'en'] ?? ''; }
+export function localized(value: LocalizedText | null | undefined, language: string): string { return platformDisplayText(value?.[language === 'zh' || language === 'vi' ? language : 'en'] ?? ''); }
 /** Decimal string multiplication is display-only; eligibility and groups come from the server. */
 export function rewardAmount(reward: PublicRewardSpec | RewardSpec, groups=1): string {
   if(reward.type==='DEVICE') return String(reward.quantity * groups);

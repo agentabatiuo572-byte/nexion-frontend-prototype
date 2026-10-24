@@ -94,7 +94,7 @@
           <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshRecords"><text>{{ t.store.catalogRetry }}</text></view>
         </view>
         <view v-else-if="initialLoading" :style="loadingStyle"><text>…</text></view>
-        <EmptyState v-else-if="records.length === 0" kind="empty-list" :title="t.empty.rewardsTitle" :desc="fmt(t.empty.rewardsTokenDesc, { asset: symbol })" />
+        <EmptyState v-else-if="records.length === 0" kind="empty-list" :title="t.empty.rewardsTitle" :desc="fmt(t.empty.rewardsTokenDesc, { asset: platformDisplayText(symbol) })" />
 
         <view v-else :style="recordListStyle">
           <view v-for="(b, i) in visibleRecords" :key="b.id" class="flex items-center" :style="recordRowStyle(i)">
@@ -110,7 +110,7 @@
               <text v-if="sourceRefOpen === b.id && b.memoKey === 'learningReward'" class="block" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
             </view>
             <view class="text-right shrink-0" style="margin-left: 8px">
-              <text class="block tabular-nums" :style="rewardAmountStyle">{{ (b.amountExact === undefined ? Math.sign(b.amount) === -1 : b.amountExact.startsWith('-')) ? '' : '+' }}{{ formatAmount(b.amountExact ?? b.amount) }} {{ b.symbol }}</text>
+              <text class="block tabular-nums" :style="rewardAmountStyle">{{ (b.amountExact === undefined ? Math.sign(b.amount) === -1 : b.amountExact.startsWith('-')) ? '' : '+' }}{{ formatAmount(b.amountExact ?? b.amount) }} {{ platformDisplayText(b.symbol) }}</text>
               <text class="block" :style="rowDateStyle">{{ rewardStatusLabel(b.status) }}</text>
               <text class="block" :style="rowDateStyle">{{ shortDate(b.ts) }}</text>
             </view>
@@ -137,6 +137,8 @@
 </template>
 
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
+
 import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, watch, watchEffect, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";

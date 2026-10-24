@@ -28,7 +28,7 @@
             <view class="flex items-end justify-between" style="margin-top: 10px">
               <view>
                 <text class="block tabular-nums" :style="heroNumStyle">{{ balanceKnown ? fmtNum(nexBalance, 2) : "—" }}</text>
-                <text class="block" :style="heroUnitStyle">NEX</text>
+                <text class="block" :style="heroUnitStyle">UVT</text>
               </view>
               <view class="text-right">
                 <text class="block tabular-nums" :style="heroUsdStyle">≈ {{ valuationKnown ? fmtUSD(usdValue) : "—" }}</text>
@@ -134,7 +134,7 @@
               <text class="block" :style="activityTimeStyle">{{ fmtActivityTime(a.ts) }}</text>
             </view>
             <view class="text-right">
-              <text class="block tabular-nums" :style="activityNexStyle">{{ Number.isFinite(a.nex) && a.nex >= 0 ? "+" : "" }}{{ fmtNum(a.nex, 2) }} NEX</text>
+              <text class="block tabular-nums" :style="activityNexStyle">{{ Number.isFinite(a.nex) && a.nex >= 0 ? "+" : "" }}{{ fmtNum(a.nex, 2) }} UVT</text>
               <text class="block" :style="activityUsdStyle">≈ {{ marketValueKnown ? fmtUSD(a.nex * nexPrice) : "—" }}</text>
             </view>
           </view>
@@ -298,9 +298,9 @@ const quickCells = computed(() => [
 ]);
 
 const breakdownRows = computed(() => [
-  { label: t.value.nexWallet.breakdown.liquid, value: balanceKnown.value ? `${fmtNum(nexBalance.value, 2)} NEX` : "—", hint: valuationKnown.value ? fmtUSD(usdValue.value) : "—", tint: "var(--v5-success)", icon: tintIcon(ICON.up, "var(--v5-success)") },
-  { label: t.value.nexWallet.breakdown.mining, value: todayNEX.value === null ? "—" : `${Number.isFinite(todayNEX.value) && todayNEX.value >= 0 ? "+" : ""}${fmtNum(todayNEX.value, 2)} NEX`, hint: todayNEX.value === null ? "—" : t.value.nexWallet.breakdown.miningHint, tint: "var(--v5-brand)", icon: tintIcon(ICON.cpu, "var(--v5-brand)") },
-  { label: t.value.nexWallet.breakdown.pending, value: pendingNex.value === null ? "—" : `${fmtNum(pendingNex.value, 2)} NEX`, hint: pendingNex.value === null ? "—" : t.value.nexWallet.breakdown.pendingHint, tint: "var(--v5-warning)", icon: tintIcon(ICON.hourglass, "var(--v5-warning)") },
+  { label: t.value.nexWallet.breakdown.liquid, value: balanceKnown.value ? `${fmtNum(nexBalance.value, 2)} UVT` : "—", hint: valuationKnown.value ? fmtUSD(usdValue.value) : "—", tint: "var(--v5-success)", icon: tintIcon(ICON.up, "var(--v5-success)") },
+  { label: t.value.nexWallet.breakdown.mining, value: todayNEX.value === null ? "—" : `${Number.isFinite(todayNEX.value) && todayNEX.value >= 0 ? "+" : ""}${fmtNum(todayNEX.value, 2)} UVT`, hint: todayNEX.value === null ? "—" : t.value.nexWallet.breakdown.miningHint, tint: "var(--v5-brand)", icon: tintIcon(ICON.cpu, "var(--v5-brand)") },
+  { label: t.value.nexWallet.breakdown.pending, value: pendingNex.value === null ? "—" : `${fmtNum(pendingNex.value, 2)} UVT`, hint: pendingNex.value === null ? "—" : t.value.nexWallet.breakdown.pendingHint, tint: "var(--v5-warning)", icon: tintIcon(ICON.hourglass, "var(--v5-warning)") },
 ]);
 
 const pnlSummary = computed(() => valuationKnown.value && Number.isFinite(pnl.value) && Number.isFinite(pnlPct.value)

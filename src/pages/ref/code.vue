@@ -46,7 +46,7 @@
         <text class="block" :style="giftLabelStyle">{{ t.ref.welcomeGift }}</text>
         <view class="flex items-baseline justify-center" style="gap: 6px; margin-top: 8px">
           <text :style="giftAmountStyle">${{ formatAmount(giftUsdt) }}</text>
-          <text :style="giftNexStyle">+ {{ formatAmount(giftNex) }} NEX</text>
+          <text :style="giftNexStyle">+ {{ formatAmount(giftNex) }} UVT</text>
         </view>
         <text class="block" :style="giftSubStyle">{{ t.ref.welcomeGiftSub }}</text>
       </view>

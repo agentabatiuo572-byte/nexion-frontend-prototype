@@ -23,7 +23,7 @@
         <text class="block tabular-nums" :style="heroNumStyle">{{ usdtBalanceReadable ? `$${formatAmount(usdt)}` : "—" }}</text>
         <view v-if="fundsReadable" class="inline-flex items-center active:opacity-70 transition-opacity" style="margin-top: 8px; gap: 6px" role="button" tabindex="0" :aria-label="t.wallet.nexBalance" @click="goNex">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="m16.71 13.88.7.71-2.82 2.82" /></svg>
-          <text style="font-size: 13px; color: var(--v5-ink-3)">{{ nexLabel }} NEX</text>
+          <text style="font-size: 13px; color: var(--v5-ink-3)">{{ nexLabel }} UVT</text>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </view>
 

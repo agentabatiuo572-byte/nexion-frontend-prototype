@@ -4,7 +4,7 @@
       <view class="promotion-symbol" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v4H3z M5 12v9h14v-9 M12 8v13 M12 8C6 8 5 5 7 3c2-2 5 2 5 5 M12 8c6 0 7-3 5-5-2-2-5 2-5 5" /></svg></view>
       <view class="promotion-grow">
         <text v-if="entry.productNo" class="promotion-copy">{{ t.promotion.buyLine }} · {{ (entry.productName || productName(entry.productNo)) }}<template v-if="entry.quantity"> × {{ entry.quantity }}</template></text>
-        <text style="display:block;font-size:15px;font-weight:600">{{ entry.reward.type==='DEVICE' ? (entry.deviceName || t.promotion.unknown)+' × '+rewardAmount(entry.reward,entry.groups) : rewardAmount(entry.reward,entry.groups)+' '+entry.reward.type }}</text>
+        <text style="display:block;font-size:15px;font-weight:600">{{ entry.reward.type==='DEVICE' ? (entry.deviceName || t.promotion.unknown)+' × '+rewardAmount(entry.reward,entry.groups) : rewardAmount(entry.reward,entry.groups)+' '+platformDisplayText(entry.reward.type) }}</text>
         <text v-if="entry.reward.beneficiaryRole==='DIRECT_INVITER'" class="promotion-copy">{{ t.promotion.inviter }}</text>
         <text v-if="!entry.state" class="promotion-copy">{{ t.promotion.settle }}</text>
         <text v-if="entry.message" class="promotion-copy">{{ localized(entry.message,locale.code) }}</text>
@@ -15,6 +15,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
 import { computed } from 'vue';
 import type { ExpectedReward, Reward, PublicRewardSpec } from '@/api/promotion-api';
 import { useT } from '@/i18n/use-t';

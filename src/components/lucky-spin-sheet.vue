@@ -145,6 +145,8 @@
 </template>
 
 <script setup lang="ts">
+import { platformDisplayText } from "@/lib/brand-copy";
+
 import { navTo } from "@/lib/route";
 import { computed, ref, onUnmounted, watch, type CSSProperties } from "vue";
 
@@ -204,9 +206,9 @@ const realActive = computed(() => spin.realPrizeActive());
 const realPrizeSoldOut = computed(() => spin.realPrizeSoldOut);
 
 const ls = (sp: SpinPrize) => t.value.luckySpin.prizes[sp.labelKey as keyof typeof t.value.luckySpin.prizes]
-  || sp.rewardName || sp.id;
+  || (sp.rewardName ? platformDisplayText(sp.rewardName) : sp.id);
 const lsShort = (sp: SpinPrize) => t.value.luckySpin.prizesShort[sp.labelKey as keyof typeof t.value.luckySpin.prizesShort]
-  || sp.rewardName || sp.id;
+  || (sp.rewardName ? platformDisplayText(sp.rewardName) : sp.id);
 
 const bonusChip = computed(() => fmt(t.value.luckySpin.bonusTicketChip, { n: spin.bonusTickets }));
 const socialProofText = computed(() => fmt(t.value.luckySpin.socialProof, { n: winnersToday }));
@@ -259,7 +261,7 @@ const historyRows = computed(() => {
   if (remoteApiEnabled) {
     return spin.remoteHistory.slice(0, 5).map((h) => ({
       ts: Date.parse(h.awardedAt),
-      label: h.rewardName,
+      label: platformDisplayText(h.rewardName),
       time: h.awardedAt.slice(5, 16).replace("T", " "),
     }));
   }

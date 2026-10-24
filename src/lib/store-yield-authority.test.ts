@@ -76,6 +76,6 @@ describe("store yield authority", () => {
     const amount = { usd: 1, nex: 1_520_000 };
 
     expect(storefrontNex(amount)).toBe("1.52M");
-    expect(storefrontNexFull(amount)).toBe("1520000.00 NEX");
+    expect(storefrontNexFull(amount)).toBe("1520000.00 UVT");
   });
 });

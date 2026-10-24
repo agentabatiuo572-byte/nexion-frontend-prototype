@@ -65,7 +65,7 @@
               <text style="font-size: 20px; color: var(--v5-ink-3); font-weight: 500">$</text>
               <text class="tabular-nums" style="font-size: 56px">{{ totalInt }}<text v-if="totalKnown" style="font-size: 36px; color: var(--v5-ink-3); font-weight: 600">.{{ totalCents }}</text></text>
             </view>
-            <text class="block mt-2 font-mono-tabular tabular-nums" style="font-size: 15px; color: var(--v5-nex); font-weight: 600">+{{ nexFmt }} <text style="font-size: 12px; font-weight: 500; letter-spacing: 0.06em">NEX</text></text>
+            <text class="block mt-2 font-mono-tabular tabular-nums" style="font-size: 15px; color: var(--v5-nex); font-weight: 600">+{{ nexFmt }} <text style="font-size: 12px; font-weight: 500; letter-spacing: 0.06em">UVT</text></text>
             <text class="block mt-2 font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink-3)">{{ jobsText }}</text>
             <!-- 只有**确实请求失败**时才说不可用并给重试;零值已在上面显示为 0(#128)。 -->
             <view v-if="remoteApiEnabled && app.homeTruthStatus === 'error'" class="mt-2" role="status" aria-live="polite">

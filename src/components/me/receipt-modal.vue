@@ -252,7 +252,7 @@ const sections = computed<DescSection[]>(() => {
       {
         rows: [
           { k: "reward_usdt", v: `+$${formatAmount(r.rewardUsdt)} USDT`, accent: true, strong: true },
-          ...(r.rewardNex > 0 ? [{ k: "reward_nex", v: `+${formatAmount(r.rewardNex)} NEX`, accent: true }] : []),
+          ...(r.rewardNex > 0 ? [{ k: "reward_nex", v: `+${formatAmount(r.rewardNex)} UVT`, accent: true }] : []),
         ],
       },
       {

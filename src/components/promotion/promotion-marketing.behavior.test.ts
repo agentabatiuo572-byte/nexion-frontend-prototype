@@ -16,6 +16,7 @@ import { zh } from '@/i18n/messages/zh';
 import { en } from '@/i18n/messages/en';
 import { vi as vietnamese } from '@/i18n/messages/vi';
 import { fmt } from '@/i18n/format';
+import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from '@/lib/amount-display';
 import * as entry from '@/lib/promotion-entry';
 import * as display from '@/lib/promotion-display';
@@ -43,6 +44,7 @@ function platform(){
   const app=Vue.reactive({accountKey:'user:7',accountBindingEpoch:1}),locale=Vue.reactive({code:'zh'});
   const shown:Array<()=>void>=[],hidden:Array<()=>void>=[],mounted:Array<()=>void>=[];
   const modules:Record<string,unknown>={
+    '@/lib/brand-copy':{platformDisplayText},
     '@/lib/amount-display':{formatAmount},
     vue:{...Vue,onMounted:(fn:()=>void)=>mounted.push(fn),onBeforeUnmount:()=>{}},
     '@dcloudio/uni-app':{onShow:(fn:()=>void)=>shown.push(fn),onHide:(fn:()=>void)=>hidden.push(fn)},
