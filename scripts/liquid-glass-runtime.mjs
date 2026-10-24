@@ -332,9 +332,14 @@ try {
       }));
       assert.ok(surfaces.every(s=>s.glass ? s.shadow!=='none' && parseFloat(s.radius)>0 : s.shadow==='none' && s.background==='none' && (!s.filter || s.filter==='none') && (!s.nested || s.fill==='rgba(0, 0, 0, 0)')),`Surface hierarchy ${route}: ${JSON.stringify(surfaces)}`);
       assert.equal(await page.locator('.nx-nova-btn .nx-liquid-glass').count(),0,'Nova has no optical layer');
+      await page.waitForFunction(()=>[...document.querySelectorAll('.nx-page-enter')].filter(el=>el.getClientRects().length).every(el=>getComputedStyle(el).transform==='none'));
+      const navigation=await page.locator('uni-page-body').last().locator('.spv-side,.nx-nav-side,.nx-icon-btn,.lg-iconbtn,.rg-iconbtn,.tos-back,.est-back,.cn-back,.cp-back').evaluateAll(els=>els.filter(el=>el.getClientRects().length).map(el=>{
+        const r=el.getBoundingClientRect();return {label:el.getAttribute('aria-label'),left:r.left,right:r.right,width:r.width,height:r.height,viewport:innerWidth};
+      }));
+      assert.ok(navigation.every(b=>b.left>=11.9&&b.right<=b.viewport-11.9&&b.width>=43.9&&b.height>=43.9),`Navigation safe spacing ${route}: ${JSON.stringify(navigation)}`);
       const shot=resolve(out,'route-'+route.replaceAll('/','-')+'.png');
       await page.screenshot({path:shot}); evidence.push(shot);
-      log('route-'+route,{actualRoute:expected,textLength:(await page.locator('uni-page-body').last().innerText()).length,surfaces});
+      log('route-'+route,{actualRoute:expected,textLength:(await page.locator('uni-page-body').last().innerText()).length,surfaces,navigation});
       } catch(error) {
         const witness=await page.evaluate(()=>({url:location.href,stack:typeof getCurrentPages==='function'?getCurrentPages().map(p=>p.route):[],text:document.body.innerText.slice(0,400)}));
         throw new Error(`Route ${route}: ${JSON.stringify(witness)}; ${error.message}`,{cause:error});

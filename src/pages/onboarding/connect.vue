@@ -357,7 +357,7 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 .cn-bars { min-height: 44px; display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
-.cn-back { width: 44px; height: 44px; margin-left: -12px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; border-radius: 9999px; }
+.cn-back { width: 44px; height: 44px; margin-left: -4px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; border-radius: 9999px; }
 .cn-back { position: relative; cursor: pointer; }
 .cn-back > svg { position: relative; z-index: 1; }
 .cn-back:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }

@@ -120,7 +120,7 @@ function goRisk() {
   cursor: pointer;
   width: 44px;
   height: 44px;
-  margin-left: -8px;
+  margin-left: 0;
   border-radius: 9999px;
   display: flex;
   align-items: center;

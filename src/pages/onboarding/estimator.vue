@@ -149,7 +149,7 @@ function leaveEstimator() {
   margin-bottom: 20px;
   min-height: 44px;
 }
-.est-back { width: 44px; height: 44px; margin-left: -12px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; border-radius: 9999px; }
+.est-back { width: 44px; height: 44px; margin-left: -4px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; border-radius: 9999px; }
 .est-back { position: relative; cursor: pointer; }
 .est-back > svg { position: relative; z-index: 1; }
 .est-back:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
