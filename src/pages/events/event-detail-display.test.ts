@@ -20,6 +20,7 @@ it("offers only actions permitted by current event eligibility and state", () =>
   const value = detail(); expect(eventDetailAction(value)).toBe("join");
   value.userStatus = "JOINED"; expect(eventDetailAction(value)).toBe("open");
   value.userStatus = "CLAIMABLE"; expect(eventDetailAction(value)).toBe("claim");
+  value.userStatus = "JOINED";
   for (const reason of ["DISABLED", "NOT_STARTED", "ENDED", "NOT_ELIGIBLE", "CLAIMED"] as const) expect(eventDetailAction({ ...value, eligibilityReason: reason })).toBeNull();
   expect(eventDetailAction({ ...value, enabled: false })).toBeNull();
   expect(eventDetailAction({ ...value, eligible: false })).toBeNull();
@@ -39,4 +40,16 @@ it("rejects missing eligibility, corrupt money/progress and mismatched event ide
   const api = createEventDetailApi({ request } as unknown as ApiClient);
   await expect(api.detail("wrong-event", "zh")).rejects.toThrow("EVENT_DETAIL_SCOPE_MISMATCH");
   expect(request.mock.calls[0][0].path).toBe("/api/events/wrong-event/detail?locale=zh");
+});
+
+it("keeps earned rewards claimable after closure or expiry without reopening participation", () => {
+  const value = detail();
+  for (const enabled of [true, false]) {
+    const ended = { ...value, enabled, eligible: true, eligibilityReason: "READY" as const, userStatus: "CLAIMABLE" as const, event: { ...value.event, state: "ended" as const } };
+    expect(eventDetailAction(ended)).toBe("claim");
+    expect(eventDetailAction({ ...ended, eligible: false })).toBeNull();
+    expect(eventDetailAction({ ...ended, userStatus: "AVAILABLE" })).toBeNull();
+    expect(eventDetailAction({ ...ended, userStatus: "JOINED" })).toBeNull();
+    expect(eventDetailAction({ ...ended, userStatus: "CLAIMED" })).toBeNull();
+  }
 });

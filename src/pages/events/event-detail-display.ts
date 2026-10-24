@@ -25,9 +25,9 @@ export function eventDetailHref(detail: EventDetail): string {
   return detail.event.href;
 }
 export function eventDetailAction(detail: EventDetail): "join" | "claim" | "open" | "remind" | null {
+  if (detail.eligible && detail.userStatus === "CLAIMABLE") return "claim";
   if (detail.enabled && detail.event.state === "upcoming" && !detail.reminderSubscribed) return "remind";
   if (!detail.enabled || !detail.eligible || detail.event.state !== "ongoing" || ["DISABLED", "NOT_STARTED", "ENDED", "NOT_ELIGIBLE", "CLAIMED"].includes(detail.eligibilityReason)) return null;
-  if (detail.userStatus === "CLAIMABLE") return "claim";
   if (detail.event.trackable && detail.userStatus === "AVAILABLE") return "join";
   return eventDetailHref(detail) ? "open" : null;
 }
