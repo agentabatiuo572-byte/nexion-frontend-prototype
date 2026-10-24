@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\support-unified-20261024-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "71739b5c653d903653c3e30f7f269146b544f4b8",
-  "sourceRef": "71739b5c653d903653c3e30f7f269146b544f4b8",
+  "sourceHead": "51198e2ae526bf13ad13f48f3dc0b524c3c95fd7",
+  "sourceRef": "51198e2ae526bf13ad13f48f3dc0b524c3c95fd7",
   "sourceRefKind": "commit",
-  "sourceTree": "d80c1683e8b713b3e714f482a84ce09c5f666da6",
+  "sourceTree": "f0d7cd1a9edbe6c2d1b50b025cd64e2b1176e9b7",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -13852,10 +13852,10 @@
       "mode": "100644"
     },
     "src/pages/me/notifications-empty-state.test.ts": {
-      "sourceBlob": "a632ca249258750b291e8a3f9df672e749849e11",
-      "sourceSha256": "6aa2db1a148637ad80a1ff66bb4a66187a99cb595194181d9cfea6c720503628",
-      "targetBlob": "a632ca249258750b291e8a3f9df672e749849e11",
-      "targetSha256": "6aa2db1a148637ad80a1ff66bb4a66187a99cb595194181d9cfea6c720503628",
+      "sourceBlob": "c39f7d3896f4c9d7f92d3e0e21ed9577857cc435",
+      "sourceSha256": "dd36796e60f77dfe5e1898bf3fcfb030d0cc3e5f4dba1aeb1140694c5421d421",
+      "targetBlob": "c39f7d3896f4c9d7f92d3e0e21ed9577857cc435",
+      "targetSha256": "dd36796e60f77dfe5e1898bf3fcfb030d0cc3e5f4dba1aeb1140694c5421d421",
       "mode": "100644"
     },
     "src/pages/me/notifications-header-layout.contract.test.ts": {
@@ -13873,10 +13873,10 @@
       "mode": "100644"
     },
     "src/pages/me/notifications.vue": {
-      "sourceBlob": "b073ba6bdb31e976c1b40ed11f5deba23f9b80ca",
-      "sourceSha256": "14cd7e09db62790a1735100da50a6a1770fc9ab371e193ffbcea54008d12e6c1",
-      "targetBlob": "b073ba6bdb31e976c1b40ed11f5deba23f9b80ca",
-      "targetSha256": "14cd7e09db62790a1735100da50a6a1770fc9ab371e193ffbcea54008d12e6c1",
+      "sourceBlob": "ab7ef5909eee6d3956dba2637d3d88255ff08ef7",
+      "sourceSha256": "2b4456457f37d3c24d8b24ee3434d16b64c3fa6bbe3ce5a705fd7266fdce1973",
+      "targetBlob": "ab7ef5909eee6d3956dba2637d3d88255ff08ef7",
+      "targetSha256": "2b4456457f37d3c24d8b24ee3434d16b64c3fa6bbe3ce5a705fd7266fdce1973",
       "mode": "100644"
     },
     "src/pages/me/p3-18-account-page-fence.test.ts": {

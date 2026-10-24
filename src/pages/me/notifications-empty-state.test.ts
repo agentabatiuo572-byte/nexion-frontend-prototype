@@ -39,7 +39,7 @@ function mountPage() {
     "@/store/ui": { confirm: async () => true, useUI: () => ({ clearConfirmsBy: vi.fn() }) },
     "@/store/app": { useApp: () => ({ accountKey: "fixture", accountBindingEpoch: 0 }) },
   };
-  const page = new Function("require", "exports", output + ";return { t, notifs, filter, filtered, countOf, filterLabel, emptyTitle, confirmClearRead, visibleFilterIds };")(
+  const page = new Function("require", "exports", output + ";return { t, notifs, filter, filtered, countOf, filterLabel, emptyTitle, confirmClearRead, visibleFilterIds, serviceFilters };")(
     (name: string) => {
       if (name.endsWith(".vue")) return {};
       if (!(name in modules)) throw new Error(`Unexpected dependency: ${name}`);
@@ -54,6 +54,9 @@ function evaluateBinding(expression: string, values: Record<string, unknown>) {
 }
 
 describe("notification empty-state context", () => {
+  it("does not offer retired ticket filtering in the service message parent page", () => {
+    expect(mountPage().page.serviceFilters.value.map((item: { value: string }) => item.value)).toEqual(["all", "advisor"]);
+  });
   for (const [name, template] of [["page", source]]) {
     it(`${name} never reports all read while the unread snapshot is unavailable`, () => {
       const expression = template.match(/const unreadLabel = computed\(\(\) => (.+)\);/)![1];

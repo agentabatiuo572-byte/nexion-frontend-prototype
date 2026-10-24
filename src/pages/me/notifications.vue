@@ -289,10 +289,9 @@ onResize(measureHeader);
 watch([unreadLabel, sectionOptions, hasRead, section], measureHeader);
 let lastScrollInputAt = -Infinity;
 function onScrollInput() { lastScrollInputAt = Date.now(); }
-const serviceFilter = ref<"all" | "advisor" | "support" | "ticket">("all");
+const serviceFilter = ref<"all" | "advisor">("all");
 const serviceFilters = computed(() => [
   { value: "all", label: t.value.notifs.filterAll, count: center.serviceUnread }, { value: "advisor", label: t.value.conversations.typeAdvisor, count: center.humanUnread },
-  { value: "ticket", label: t.value.notifs.ticketFilter, count: center.ticketUnread },
 ]);
 function onMessageScroll(event: { detail: { scrollTop: number } }) {
   const now = Date.now();
