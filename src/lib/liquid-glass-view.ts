@@ -278,7 +278,7 @@ export function mountChassis(root: HTMLElement) {
     hidden = glassLogoHidden(top, hidden);
     // Query again for headers that mount after a product or route resolves.
     for (const title of Array.from(root.querySelectorAll<HTMLElement>(".nx-header__l, .spv-titlewrap, .nx-nav-titlewrap"))) {
-      const value = String(hidden);
+      const value = String(hidden && title.dataset.persistent !== "true");
       if (title.dataset.hidden !== value) title.dataset.hidden = value;
       if (title.getAttribute("aria-hidden") !== value) title.setAttribute("aria-hidden", value);
     }

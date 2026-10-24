@@ -14,7 +14,7 @@
   disclosures; unavailable material is shown as unavailable.
 -->
 <template>
-  <AppChassis active="store">
+  <AppChassis active="store" nav-capsule>
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
     <view style="color: var(--v5-ink); padding-top: 24px">
@@ -448,6 +448,7 @@ useSetPageHeader(() => ({
     : catalogStatus.value === "loading" ? t.value.store.catalogLoadingTitle
     : catalogStatus.value === "error" ? t.value.store.catalogErrorTitle
       : product.value?.name ?? t.value.store.coProductNotFound,
+  subtitle: publicOnly.value ? undefined : product.value?.tier,
   backHref: activityId.value ? '/pages/store/store?activityId='+encodeURIComponent(activityId.value) : "/store",
 }));
 

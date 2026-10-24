@@ -37,20 +37,21 @@
 
     <!-- Registered sub-page header: round glass controls stay available while
          the bare title hides as content scrolls into the reserved header gap. -->
-    <view v-if="!isTabRoute && navHeader" class="nx-navheader" :style="{ top: statusBarHeight + 'px', height: navHeaderH + 'px' }">
+    <view v-if="!isTabRoute && navHeader" class="nx-navheader" :class="{ 'nx-navheader--capsule': navCapsule }" :style="{ top: statusBarHeight + 'px', height: navHeaderH + 'px' }">
+      <LiquidGlass v-if="navCapsule" :radius="navHeaderH / 2" tone="navigation" backdrop=".nx-page-enter" />
       <view class="nx-nav-side" role="button" tabindex="0" :aria-label="t.privacy.back" @click="navBack"  @keydown.enter.prevent="onKeyboardActivate($event, navBack)" @keydown.space.prevent="onKeyboardActivate($event, navBack)">
         <view class="nx-nav-glass">
-          <LiquidGlass :radius="18" tone="navigation" backdrop=".nx-page-enter" />
+          <LiquidGlass v-if="!navCapsule" :radius="18" tone="navigation" backdrop=".nx-page-enter" />
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         </view>
       </view>
-      <view class="nx-nav-titlewrap">
+      <view class="nx-nav-titlewrap" :data-persistent="navCapsule ? 'true' : undefined">
         <text class="nx-nav-title">{{ navHeader.title }}</text>
         <text v-if="navHeader.subtitle" class="nx-nav-sub">{{ navHeader.subtitle }}</text>
       </view>
 	      <view class="nx-nav-side" role="button" tabindex="0" :aria-label="unread > 0 ? t.notifs.drawerTitle + ' · ' + unreadLabel : t.notifs.drawerTitle" @click="goNotifications"  @keydown.enter.prevent="onKeyboardActivate($event, goNotifications)" @keydown.space.prevent="onKeyboardActivate($event, goNotifications)">
         <view class="nx-nav-glass">
-          <LiquidGlass :radius="18" tone="navigation" backdrop=".nx-page-enter" />
+          <LiquidGlass v-if="!navCapsule" :radius="18" tone="navigation" backdrop=".nx-page-enter" />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
           <view v-if="unread > 0" class="nx-nav-belldot" />
         </view>
@@ -197,6 +198,7 @@ const props = withDefaults(defineProps<{
   tabLocationKey?: string;
   tabHost?: boolean;
   hostVisible?: boolean;
+  navCapsule?: boolean;
 }>(), { hostVisible: true });
 
 const t = useT();
@@ -797,6 +799,7 @@ export default chassisView;
   padding: 0 2px;
   border-radius: 28px;
 }
+.nx-navheader--capsule { box-shadow: 0 0 0 1px var(--v5-liquid-rim); }
 .nx-nav-side {
   position: relative;
   z-index: 1;

@@ -14,6 +14,7 @@ import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import type { Product } from "@/mock/products";
+import { PURCHASE_ELIGIBILITY_SOURCE, type PurchaseEligibilitySnapshot } from "@/api/purchase-eligibility-api";
 import { purchaseEligibilityPolicyHasNoRestriction, purchaseEligibilityUnlockHref, resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-copy";
 import * as promotionEntry from "@/lib/promotion-entry";
 import { localized } from "@/lib/promotion-display";
@@ -54,11 +55,11 @@ function page(copy = en, fallback = "") {
       resolve(ok);
     }));
   });
-  const eligibility = Vue.ref({ status: "loading", eligible: false, snapshot: null });
+  const eligibility = Vue.ref<{ status: string; eligible: boolean; snapshot: PurchaseEligibilitySnapshot | null }>({ status: "loading", eligible: false, snapshot: null });
   const cta = Vue.shallowRef<Record<string, unknown> | null>(null);
   const sticky = { activate() {}, hide: () => { cta.value = null; },
     show: (value: Record<string, unknown>) => { cta.value = value; } };
-  let header!: Vue.ComputedRef<{ title: string; backHref: string }>;
+  let header!: Vue.ComputedRef<{ title: string; subtitle?: string; backHref: string }>;
   const getProduct = vi.fn(() => { throw new Error("Remote detail must not borrow a mock product"); });
   const dependencies: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
@@ -146,14 +147,20 @@ describe("BUG 400 detail header distinguishes pending/failed reads from a missin
     p.reads[1](true); await retry; await Vue.nextTick();
     expect(p.view.catalogRetrying.value).toBe(false);
     expect(p.header.value.title).toBe("Cloud Share");
+    expect(p.header.value.subtitle).toBe("Share");
     expect(p.view.product.value).toEqual(cloud);
-    expect(p.cta.value).toBeNull(); // Eligibility is still unknown.
-    p.eligibility.value = { status: "ready", eligible: true, snapshot: null }; await Vue.nextTick();
+    expect(p.cta.value).toMatchObject({ disabled: true, href: "/pages/store/detail?id=cloud-share" });
+    p.eligibility.value = { status: "ready", eligible: true, snapshot: {
+      productNo: cloud.id, eligible: true, decisionCode: "ELIGIBLE", evaluatedAt: 1,
+      source: PURCHASE_ELIGIBILITY_SOURCE, sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true,
+      policies: [{ policy: "E1", eligible: true, decisionCode: "ELIGIBLE", mode: "ALL", conditions: [] }],
+    } }; await Vue.nextTick();
     expect(p.cta.value?.href).toBe("/pages/store/checkout?product=cloud-share");
     p.catalog.status = "loading"; await Vue.nextTick();
     expect(p.header.value.title).toBe(copy.store.catalogLoadingTitle); expect(p.cta.value).toBeNull();
     p.catalog.status = "error"; await Vue.nextTick();
     expect(p.header.value.title).toBe(copy.store.catalogErrorTitle); expect(p.cta.value).toBeNull();
+    expect(p.header.value.subtitle).toBeUndefined();
     expect(p.getProduct).not.toHaveBeenCalled();
     p.catalog.status = "ready"; await Vue.nextTick();
     expect(p.cta.value?.href).toBe("/pages/store/checkout?product=cloud-share");

@@ -173,6 +173,15 @@ describe("glass navigation animation ownership", () => {
 });
 
 describe("chassis header title visibility", () => {
+  it("keeps the product capsule title visible and accessible while scrolling", () => {
+    const h = harness();
+    h.navTitle.dataset.persistent = "true";
+    for (const top of [16, 400, 100, 0]) {
+      h.move(top);
+      expect(h.navTitle.dataset.hidden).toBe("false");
+      expect(h.navTitle.getAttribute("aria-hidden")).toBe("false");
+    }
+  });
   it("hides both sub-page title variants at 16px and restores only in the top gap", () => {
     const h = harness();
     for (const [top, hidden] of [[0, false], [12, false], [16, true], [12, true], [9, true], [8, false], [0, false]] as const) {

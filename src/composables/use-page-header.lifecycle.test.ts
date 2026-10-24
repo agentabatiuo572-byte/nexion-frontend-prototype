@@ -101,7 +101,7 @@ function chassis(translations: Vue.Ref<typeof en>, back: ReturnType<typeof vi.fn
   return exports.default;
 }
 
-async function navigation() {
+async function navigation(navCapsule = false) {
   const translations = Vue.ref(en), back = vi.fn(), messages = vi.fn();
   const Chassis = chassis(translations, back, messages);
   const instances = new Map<string, ComponentInternalInstance>();
@@ -116,7 +116,7 @@ async function navigation() {
         useSetPageHeader(() => ({
           title: key.startsWith("bundle") ? translations.value.headerTitles.storeBundle : title[key], backHref: "/store",
         }));
-        return () => Vue.h(Chassis, { active: "store", id: key === "pro" ? "stellarbox-s1" : undefined,
+        return () => Vue.h(Chassis, { active: "store", navCapsule, id: key === "pro" ? "stellarbox-s1" : undefined,
           class: "route-shell", style: { color: "rgb(1, 2, 3)" }, "data-route-attr": key },
           { default: () => Vue.h("draft", draft.value) });
       },
@@ -138,15 +138,15 @@ async function navigation() {
   const go = async (key: string) => { current.value = key; await Vue.nextTick(); };
   const controls = () => all(root).filter(item => item.props.role === "button");
   const expectHeader = (value: string) => {
-    const headers = all(root).filter(item => item.props.class === "nx-navheader");
+    const headers = all(root).filter(item => String(item.props.class).split(" ").includes("nx-navheader"));
     expect(headers).toHaveLength(1);
-    expect(headers[0].children.filter(item => item.tag === "glass")).toHaveLength(0);
+    expect(headers[0].children.filter(item => item.tag === "glass")).toHaveLength(navCapsule ? 1 : 0);
     const surfaces = all(headers[0]).filter(item => item.props.class === "nx-nav-glass");
     expect(surfaces).toHaveLength(2);
     for (const surface of surfaces) {
       const glass = surface.children.filter(item => item.tag === "glass");
-      expect(glass).toHaveLength(1);
-      expect(glass[0].props["data-radius"]).toBe(18);
+      expect(glass).toHaveLength(navCapsule ? 0 : 1);
+      if (!navCapsule) expect(glass[0].props["data-radius"]).toBe(18);
     }
     const titleWrap = all(headers[0]).find(item => item.props.class === "nx-nav-titlewrap")!;
     expect(all(titleWrap).filter(item => item.tag === "glass")).toHaveLength(0);
@@ -158,8 +158,8 @@ async function navigation() {
     close: () => { const close = unmounts.pop()!; close(); } };
 }
 
-it("cold Uni show renders the actual chassis controls; repeated keyboard activation stays guarded", async () => {
-  const p = await navigation(); p.uni("bundle", "onShow"); p.uni("bundle", "onShow"); await Vue.nextTick();
+it.each([false, true])("cold Uni show renders controls with capsule=%s; repeated keyboard activation stays guarded", async navCapsule => {
+  const p = await navigation(navCapsule); p.uni("bundle", "onShow"); p.uni("bundle", "onShow"); await Vue.nextTick();
   p.expectHeader("Bundle");
   const back = p.controls().find(item => item.props["aria-label"] === en.privacy.back)!;
   const keyboard = Array.isArray(back.props.onKeydown) ? back.props.onKeydown : [back.props.onKeydown];

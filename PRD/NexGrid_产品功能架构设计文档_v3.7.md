@@ -1583,6 +1583,10 @@ flowchart TD
 
 ### 7.2 商品详情 `/store/[productId]`
 
+**标题栏（2026-10-25 对齐原型）**：商品详情顶部使用一整条圆角玻璃栏，返回图标、居中商品名称与消息图标置于同一背景内，不为两侧按钮另加圆形底。商品名称下显示当前目录商品的 `tier`（如 S1 的 Entry、Pro 的 Pro），不固定套用截图商品名称。双行高 56px，未提供副标题时高 44px；内容与栏底间距 24px。滚动时整条栏和标题保持可见。目录加载、错误、未找到状态保留相应标题，不展示旧商品副标题；返回和消息入口保持可用。
+
+**商品图片缓存（2026-10-25）**：原生 App 的商品列表与详情共用本地持久缓存，首次下载后重复访问和重启均复用；只缓存当前目录提供的有效签名商品图片。缓存按图片资产版本识别，签名续期不重复下载，换图后下载新资产。最多 64 张、32 MiB，按最近使用顺序清理；文件缺失或损坏时重新下载，保存失败仍可展示本次下载图片。H5 保持网页图片加载方式，不调用原生文件缓存。购买资格失败通过错误提示反馈，详情上方不额外放置资格说明；底部入口依据真实资格保持购买限制。
+
 **Phase gate**:商品详情外层包 `<ProductDetailGate product={product}>` 客户端 wrapper。读 `useProductPhase()`,若 `product.unlocksAtPhase` 未 reached,**post-mount 替换整页**为 `<LockedProductCard>` 完整变体(lock icon + `New silicon — coming next quarter` 大字 + tagline + GPU/VRAM mini-spec + Estimated arrival + 全宽 `Notify me when live` 按钮)。直链 URL(`/store/stellarbox-pro-v2` 等)仍返回 HTTP 200,不走 `notFound()` — 用户从分享链接落地也能看到 anticipation 卡。SSR + first paint 渲染完整产品页(避免 hydration mismatch),mount 后再 swap,接受短暂闪烁(deep-link 场景为边缘 case)。
 
 页面自上而下(unlocked 状态):
