@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\team-v8-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "7dd3aaf454416cfc58956b2fe56b2570434cb104",
-  "sourceRef": "7dd3aaf454416cfc58956b2fe56b2570434cb104",
+  "sourceHead": "2d03ea139651b09e87ad11899cc9b42ba111e2fc",
+  "sourceRef": "2d03ea139651b09e87ad11899cc9b42ba111e2fc",
   "sourceRefKind": "commit",
-  "sourceTree": "47cdec18e1b8f2f68598f1c6d3ccd8a52f615512",
+  "sourceTree": "c00b73c015c9288d709cc00ce750895f14e67206",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -14313,11 +14313,18 @@
       "targetSha256": "7a4819abf956395a84d43af762bce887cc97cfa5706b78de7a8ab6556311edc0",
       "mode": "100644"
     },
+    "src/pages/me/risk-disclosure-brand-display.test.ts": {
+      "sourceBlob": "78450fbb8e998e3357263b3da7421b42412cb0f9",
+      "sourceSha256": "3ba4c1d08b6d85e667e18b9f8599e472ddeff166b478943944dbf69821c655bc",
+      "targetBlob": "78450fbb8e998e3357263b3da7421b42412cb0f9",
+      "targetSha256": "3ba4c1d08b6d85e667e18b9f8599e472ddeff166b478943944dbf69821c655bc",
+      "mode": "100644"
+    },
     "src/pages/me/risk-disclosure-jurisdiction-locale.test.ts": {
-      "sourceBlob": "83cc34eac086fad578b9999127247096819b5585",
-      "sourceSha256": "216869f838df580d124c9da53ff3ce5426a2200fb657df0597e30bebf8fc91b1",
-      "targetBlob": "83cc34eac086fad578b9999127247096819b5585",
-      "targetSha256": "216869f838df580d124c9da53ff3ce5426a2200fb657df0597e30bebf8fc91b1",
+      "sourceBlob": "544391f70fd6cf80df7e71c2ec9968e6a4e9cdb2",
+      "sourceSha256": "9762240209fd041282a013ded15c6cfc2975c704b04a1f5ee71f228e8838ad1e",
+      "targetBlob": "544391f70fd6cf80df7e71c2ec9968e6a4e9cdb2",
+      "targetSha256": "9762240209fd041282a013ded15c6cfc2975c704b04a1f5ee71f228e8838ad1e",
       "mode": "100644"
     },
     "src/pages/me/risk-disclosure-page-lifecycle.test.ts": {
@@ -14328,10 +14335,10 @@
       "mode": "100644"
     },
     "src/pages/me/risk-disclosure.vue": {
-      "sourceBlob": "c4e7b51ae6a91757165af9502b8045b8f028cc5c",
-      "sourceSha256": "31d305dc31efbab632d5b8913117cc55508abe874b94cf0f5a4a56545dff1297",
-      "targetBlob": "c4e7b51ae6a91757165af9502b8045b8f028cc5c",
-      "targetSha256": "31d305dc31efbab632d5b8913117cc55508abe874b94cf0f5a4a56545dff1297",
+      "sourceBlob": "60e241ddb2305e295d0a34bbfc24b10091e6ee51",
+      "sourceSha256": "b712e1656ea8040cb592314159bb5be3902fca22a4f7546ee262cf2c2064430e",
+      "targetBlob": "60e241ddb2305e295d0a34bbfc24b10091e6ee51",
+      "targetSha256": "b712e1656ea8040cb592314159bb5be3902fca22a4f7546ee262cf2c2064430e",
       "mode": "100644"
     },
     "src/pages/me/security.vue": {

@@ -71,6 +71,7 @@ describe("risk disclosure jurisdiction display", () => {
     setActivePinia(createPinia());
     vi.stubGlobal("uni", { getStorageSync: () => "", setStorageSync: vi.fn(), getSystemInfoSync: () => ({ language: "en" }) });
     const locale = useLocaleStore(), runtime = useI18nRuntime(), t = useT();
+    locale.setLocale("en");
     const page = actualPageContext("en", snapshot, { locale, w: computed(() => t.value.riskDisclosure) });
     let resolve!: (value: { messages: Record<string, string> }) => void;
     bundles.all.mockReturnValueOnce(new Promise((done) => { resolve = done; }));

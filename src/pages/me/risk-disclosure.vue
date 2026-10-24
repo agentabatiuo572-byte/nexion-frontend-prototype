@@ -10,7 +10,7 @@
   <AppChassis active="me">
     <scroll-view :key="nativeScrollSurface.key" scroll-y :scroll-top="scrollTop" style="height: 100vh" :onScroll="nativeScrollSurface.events.scroll" :onScrolltolower="nativeScrollSurface.events.scrolltolower">
     <view style="padding-bottom: 32px">
-      <SubPageHeader :back="returnTo" />
+      <SubPageHeader :back="returnTo" pill />
 
       <!-- Hero -->
       <view class="nx-glass-card mx-4" :style="heroStyle">
@@ -121,6 +121,7 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
+import { platformDisplayText } from "@/lib/brand-copy";
 import { resolveRiskDisclosureDisplayLanguage, riskDisclosureChapterCopy } from "@/lib/risk-disclosure-language";
 import { canAcknowledgeRiskDisclosure, canCompleteRiskDisclosureReadingFromScrollEvent, EMPTY_RISK_DISCLOSURE_READING_STATE, riskDisclosureDocumentIdentity, updateRiskDisclosureReadingState } from "@/lib/risk-disclosure-reading-gate";
 import { toast } from "@/store/ui";
@@ -295,8 +296,8 @@ onUnmounted(() => {
 
 const blocks = computed(() => disclosure.value?.chapters.map((chapter) => ({
   n: Number(chapter.no),
-  title: riskDisclosureChapterCopy(chapter, displayLanguage.value?.language ?? "zh").title,
-  body: riskDisclosureChapterCopy(chapter, displayLanguage.value?.language ?? "zh").body,
+  title: platformDisplayText(riskDisclosureChapterCopy(chapter, displayLanguage.value?.language ?? "zh").title),
+  body: platformDisplayText(riskDisclosureChapterCopy(chapter, displayLanguage.value?.language ?? "zh").body),
 })) ?? []);
 
 function sectionSelectedLabel(n: number): string {
