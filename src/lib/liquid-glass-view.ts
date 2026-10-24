@@ -4,6 +4,7 @@ import { glassSpring, glassLogoHidden } from "./liquid-glass-core";
 export interface SegmentsConfiguration {
   hostId: string; value: string; values: string[]; fromValue?: string;
   layout: string; variant: string;
+  navigationOnArrival?: boolean;
 }
 
 type LensRect = { x: number; y: number; width: number; height: number };
@@ -139,6 +140,9 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
     if (suppressClick && event.detail > 0) { suppressClick = false; event.preventDefault(); event.stopImmediatePropagation(); return; }
     const item = (event.target as Element).closest<HTMLElement>(".nx-glass-option");
     if (item?.parentElement === root && enabled(item)) {
+      // App pages have separate renderjs contexts. Only the arriving page owns
+      // a tap animation; starting here as well would replay it after reLaunch.
+      if (config.variant === "navigation" && config.navigationOnArrival) return;
       if (config.variant === "navigation" && item.dataset.glassValue !== config.value) outgoingSequence = ++navigationSequence;
       moveTo(item, item.dataset.glassValue!);
     }
@@ -187,7 +191,9 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
     if (!items.length) { schedule(); return; }
     const item = items.reduce((best, el) => Math.abs(el.offsetLeft + el.offsetWidth / 2 - center) < Math.abs(best.offsetLeft + best.offsetWidth / 2 - center) ? el : best);
     moveTo(item, item.dataset.glassValue!);
+    item.dataset.glassActivation = "drag";
     item.click(); // The Vue owner commits once; drag previews never change business state.
+    delete item.dataset.glassActivation;
   }
   function onArrow(event: KeyboardEvent) {
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;

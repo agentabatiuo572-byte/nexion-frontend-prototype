@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mountChassis } from "./liquid-glass-view";
+import { mountChassis, segmentsView, type SegmentsConfiguration } from "./liquid-glass-view";
 
 function harness(top = 0, maximum = 800) {
   const listeners = new Map<string, () => void>();
@@ -38,6 +38,104 @@ function harness(top = 0, maximum = 800) {
 }
 
 afterEach(() => { vi.unstubAllGlobals(); });
+
+function motionHarness() {
+  const frames = new Map<number, FrameRequestCallback>();
+  const hosts = new Map<string, unknown>();
+  let serial = 0, now = 0;
+  vi.stubGlobal("requestAnimationFrame", (fn: FrameRequestCallback) => { frames.set(++serial, fn); return serial; });
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  vi.stubGlobal("document", { getElementById: (id: string) => hosts.get(id) });
+  let reduced = false;
+  vi.stubGlobal("matchMedia", () => ({ get matches() { return reduced; }, addEventListener() {}, removeEventListener() {} }));
+  const step = () => { now += 1000 / 60; const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(now)); };
+  function mount(value: string, native: boolean, fromValue?: string, variant = "navigation") {
+    const listeners = new Map<string, Function>();
+    const lens = { style: {} as Record<string, string> };
+    const values = ["home", "earn", "store", "team", "me"];
+    const items = values.map((value, index) => ({
+      offsetLeft: 5 + 60 * index, offsetTop: 5, offsetWidth: 58, offsetHeight: 58,
+      dataset: { glassValue: value } as Record<string, string>,
+      parentElement: null as unknown,
+      getAttribute: () => null,
+      closest() { return this; },
+      click() { listeners.get("click")!({ target: this, detail: 0 }); activations.push({ ...this.dataset }); },
+    }));
+    const activations: Record<string, string>[] = [];
+    const root = {
+      offsetWidth: 310, clientWidth: 310, clientHeight: 68, scrollLeft: 0, dataset: {},
+      querySelectorAll: () => items,
+      querySelector: (selector: string) => selector === ":scope > .nx-glass-indicator" ? lens : null,
+      addEventListener: (name: string, fn: Function) => listeners.set(name, fn),
+      removeEventListener: (name: string) => listeners.delete(name),
+      getBoundingClientRect: () => ({ left: 0, top: 0, bottom: 68 }),
+      setPointerCapture() {}, hasPointerCapture: () => false,
+    };
+    items.forEach(item => { item.parentElement = root; });
+    const hostId = `host-${hosts.size}`;
+    hosts.set(hostId, root);
+    const configuration: SegmentsConfiguration = { hostId, value, values, fromValue, layout: "equal", variant, navigationOnArrival: native };
+    const instance = {};
+    segmentsView.methods.update.call(instance, configuration);
+    step(); step();
+    return {
+      lens, activations,
+      x: () => Number(lens.style.transform.match(/translate3d\(([^p]+)/)![1]),
+      click: (index: number) => items[index].click(),
+      drag: (from: number, toX: number) => {
+        listeners.get("pointerdown")!({ target: items[from], isPrimary: true, button: 0, pointerId: 1, clientX: items[from].offsetLeft + 29, clientY: 30, timeStamp: now });
+        listeners.get("pointermove")!({ pointerId: 1, clientX: toX, clientY: 30, timeStamp: now + 20, preventDefault() {} });
+        listeners.get("pointerup")!({ type: "pointerup", pointerId: 1, clientX: toX, clientY: 30 });
+      },
+      destroy: () => segmentsView.beforeUnmount.call(instance),
+    };
+  }
+  return { mount, step, reduce() { reduced = true; } };
+}
+
+describe("glass navigation animation ownership", () => {
+  it("keeps a native tap stationary until the destination plays one spring", () => {
+    const h = motionHarness(), source = h.mount("me", true);
+    source.click(0);
+    for (let i = 0; i < 10; i++) h.step();
+    expect(source.x()).toBe(245);
+    source.destroy();
+    const target = h.mount("home", true, "me");
+    expect(target.x()).toBe(245);
+    h.step(); expect(target.x()).toBeLessThan(245);
+    for (let i = 0; i < 60; i++) h.step();
+    expect(target.x()).toBe(5);
+    target.destroy();
+  });
+  it("keeps H5 source and destination motion continuous", () => {
+    const h = motionHarness(), source = h.mount("me", false);
+    source.click(0);
+    for (let i = 0; i < 4; i++) h.step();
+    expect(source.x()).toBeLessThan(245);
+    const departure = source.x(); source.destroy();
+    const target = h.mount("home", false, "me");
+    expect(target.x()).toBeCloseTo(departure);
+    target.destroy();
+  });
+  it("retains native dragging and marks its one committed selection", () => {
+    const h = motionHarness(), source = h.mount("me", true);
+    source.drag(4, 34);
+    expect(source.x()).toBeLessThan(20);
+    expect(source.activations).toEqual([{ glassValue: "home", glassActivation: "drag" }]);
+    source.destroy();
+    const target = h.mount("home", true);
+    expect(target.x()).toBe(5);
+    target.destroy();
+  });
+  it("preserves ordinary selectors and respects reduced motion on native arrival", () => {
+    const h = motionHarness(), selector = h.mount("me", true, undefined, "filter");
+    selector.click(0); h.step(); expect(selector.x()).toBeLessThan(245); selector.destroy();
+    h.reduce();
+    const target = h.mount("home", true, "me");
+    expect(target.x()).toBe(5); target.destroy();
+  });
+});
 
 describe("chassis header title visibility", () => {
   it("hides both sub-page title variants at 16px and restores only in the top gap", () => {

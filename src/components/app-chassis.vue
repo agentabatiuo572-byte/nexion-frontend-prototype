@@ -96,7 +96,7 @@
              clipped everything above the header so there was nothing behind the
              chrome to frost → it read as solid black. (P-041) `backwards` fill on
              the entrance so no transform lingers. -->
-        <view class="nx-page-enter" :style="{ paddingTop: (contentTop + pendingBarInset) + 'px', paddingBottom: contentBottom + 'px' }">
+        <view class="nx-page-enter" :class="{ 'nx-page-enter--tab': isTabRoute }" :style="{ paddingTop: (contentTop + pendingBarInset) + 'px', paddingBottom: contentBottom + 'px' }">
           <slot name="pageTop" />
           <!-- Voucher fallback banner — chassis-injected at content top so the
                5 protected tab pages stay untouched (ALIGNMENT red-line). Self-
@@ -111,7 +111,7 @@
 
     <!-- Bottom chrome: floating pill TabBar (tab routes) + home indicator (always) -->
     <view class="nx-tabbar-wrap">
-      <GlassSegments v-if="isTabRoute" class="nx-tabbar-pill" variant="navigation" :options="navigationOptions" :model-value="activeTab" :from-value="navigationFrom" @select="selectNavigation">
+      <GlassSegments v-if="isTabRoute" :key="navigationReset" class="nx-tabbar-pill" variant="navigation" :options="navigationOptions" :model-value="activeTab" :from-value="navigationReset ? undefined : navigationFrom" @select="selectNavigation">
         <template #option="{ option: tab, selected }">
           <svg class="nx-tab__icon" width="22" height="22" viewBox="0 0 24 24" fill="none"
             :stroke="selected ? 'var(--v5-brand)' : 'var(--v5-ink-2)'"
@@ -643,7 +643,10 @@ const activeTabStyle: CSSProperties = {
     "0 0 0 0.5px color-mix(in srgb, var(--v5-brand) 28%, transparent)",
 };
 
-function go(tab: { key: string; route: string }) {
+function go(tab: { key: string; route: string }, reason = "activation") {
+  // #ifdef APP-PLUS
+  if (navigationPending) return;
+  // #endif
   // 再点当前 tab = 回到顶部(《05》§5.3);原实现直接 return,实测 scrollTop
   // 900→900 零位移,是全站唯一「点了没反应」的控件。
   // behavior 显式跟随系统「减少动态」偏好——CSS 的 scroll-behavior 兜底管不到
@@ -662,8 +665,25 @@ function go(tab: { key: string; route: string }) {
     // #endif
     return;
   }
-  rememberGlassNavigation(activeTab.value, tab.key);
-  navTo(tab.route);
+  let from: string = activeTab.value;
+  // A native drag already moved the lens under the finger in the outgoing view.
+  // #ifdef APP-PLUS
+  if (reason === "drag") from = tab.key;
+  // #endif
+  rememberGlassNavigation(from, tab.key);
+  // #ifdef APP-PLUS
+  navigationPending = true;
+  void navTo(tab.route).then(ok => {
+    navigationPending = false;
+    if (!ok) {
+      rememberGlassNavigation(activeTab.value, activeTab.value);
+      navigationReset.value++;
+    }
+  });
+  // #endif
+  // #ifndef APP-PLUS
+  void navTo(tab.route);
+  // #endif
 }
 function goSearch() {
   navTo("/pages/search/search");
@@ -681,9 +701,11 @@ const chromeConfiguration = { hostId: chassisHostId };
 declare const chromeView: { update(value: { hostId: string }): void };
 const navigationOptions = computed(() => tabs.value.map(tab => ({ ...tab, value: tab.key })));
 const navigationFrom = consumeGlassNavigation(activeTab.value);
-function selectNavigation(value: string) {
+let navigationPending = false;
+const navigationReset = ref(0);
+function selectNavigation(value: string, reason: string) {
   const tab = tabs.value.find(item => item.key === value);
-  if (tab) go(tab);
+  if (tab) go(tab, reason);
 }
 </script>
 
@@ -941,6 +963,11 @@ export default chassisView;
 .nx-page-enter {
   animation: nx-page-in 0.36s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
+/* Native tab roots replace the webview; another content translation makes that
+   replacement look like a second transition underneath the moving lens. */
+/* #ifdef APP-PLUS */
+.nx-page-enter--tab { animation: none; }
+/* #endif */
 @keyframes nx-page-in {
   from {
     opacity: 0;

@@ -51,7 +51,11 @@ const props = withDefaults(defineProps<{
 // Values originate from the caller's typed options, including narrow string unions.
 const emit = defineEmits<{ (e: "update:modelValue", value: any): void; (e: "select", value: any, reason: string): void }>();
 const hostId = `nx-segments-host-${getCurrentInstance()!.uid}`;
-const configuration = computed<SegmentsConfiguration>(() => ({ hostId, value: String(props.modelValue), values: props.options.map(option => String(option.value)), fromValue: props.fromValue, layout: props.layout, variant: props.variant }));
+let navigationOnArrival = false;
+// #ifdef APP-PLUS
+navigationOnArrival = true;
+// #endif
+const configuration = computed<SegmentsConfiguration>(() => ({ hostId, value: String(props.modelValue), values: props.options.map(option => String(option.value)), fromValue: props.fromValue, layout: props.layout, variant: props.variant, navigationOnArrival }));
 declare const segmentsView: { update(value: SegmentsConfiguration): void };
 
 function choose(option: GlassOption, reason = "activation") {
@@ -61,7 +65,8 @@ function choose(option: GlassOption, reason = "activation") {
 }
 
 function onClick(option: GlassOption, event: Event) {
-  choose(option, (event.currentTarget as HTMLElement | null)?.dataset?.glassKeyboard === "arrow" ? "arrow" : "activation");
+  const dataset = (event.currentTarget as HTMLElement | null)?.dataset;
+  choose(option, dataset?.glassKeyboard === "arrow" ? "arrow" : dataset?.glassActivation === "drag" ? "drag" : "activation");
 }
 
 function onKeydown(event: KeyboardEvent, option: GlassOption) {

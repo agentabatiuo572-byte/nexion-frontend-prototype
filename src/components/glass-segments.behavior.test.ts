@@ -1,6 +1,7 @@
 import ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
 import source from "./glass-segments.vue?raw";
+import chassisSource from "./app-chassis.vue?raw";
 
 const logic = ts.transpileModule(source.slice(source.indexOf("function choose("), source.indexOf("</script>")), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
@@ -63,5 +64,30 @@ describe("glass selection keyboard behavior", () => {
     expect(s.emit).toHaveBeenCalledWith("select", "c", "arrow");
     s.emit.mockClear(); expect(() => s.control.onKeydown({ key: "Enter" }, s.options[0])).not.toThrow();
     expect(s.emit).not.toHaveBeenCalled();
+  });
+  it("carries native drag intent, ignores rapid reentry, and restores selection after navigation failure", async () => {
+    const s = mount("equal", "navigation");
+    s.control.onClick(s.options[2], { currentTarget: { dataset: { glassActivation: "drag" } } });
+    expect(s.emit).toHaveBeenCalledWith("select", "c", "drag");
+    const nativeGo = chassisSource.slice(chassisSource.indexOf("function go(tab:"), chassisSource.indexOf("function goSearch()"))
+      .replace(/\/\/ #ifndef APP-PLUS[\s\S]*?\/\/ #endif/g, "");
+    const goCode = ts.transpileModule(nativeGo, {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+    }).outputText;
+    const remember = vi.fn(), navigate = vi.fn().mockResolvedValue(false), reset = { value: 0 };
+    const go = new Function("activeTab", "rememberGlassNavigation", "navTo", "navigationReset", "let navigationPending = false;\n" + goCode + "\nreturn go;")({ value: "me" }, remember, navigate, reset);
+    go({ key: "home", route: "/pages/index/index" }, "drag");
+    expect(remember).toHaveBeenLastCalledWith("home", "home");
+    go({ key: "store", route: "/pages/store/store" }, "activation");
+    expect(navigate).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    expect(remember).toHaveBeenLastCalledWith("me", "me");
+    expect(reset.value).toBe(1);
+    navigate.mockResolvedValue(true);
+    go({ key: "home", route: "/pages/index/index" }, "activation");
+    expect(remember).toHaveBeenLastCalledWith("me", "home");
+    expect(navigate).toHaveBeenCalledTimes(2);
+    await Promise.resolve();
+    expect(reset.value).toBe(1);
   });
 });
