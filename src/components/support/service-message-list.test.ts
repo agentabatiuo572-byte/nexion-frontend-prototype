@@ -31,21 +31,21 @@ function mount() {
   return { worker, props, navTo, emit, refresh, conversations, tickets };
 }
 describe("unified service rows", () => {
-  it("merges real ticket and human replies in latest-first order without reusing stale bodies", () => {
+  it("shows one customer window with combined human unread and excludes retained ticket data", () => {
     const h = mount();
-    expect(h.worker.rows.value.map((row: { kind: string }) => row.kind)).toEqual(["ticket", "advisor", "advisor"]);
-    expect(h.worker.rows.value[0].preview).toBe(zh.notifs.ticketReply);
-    expect(h.worker.rows.value[2].preview).toBe("Latest server summary");
-    expect(h.worker.rows.value.map((row: { unread: number }) => row.unread)).toEqual([3, 2, 1]);
-    h.props.filter = "advisor"; expect(h.worker.rows.value).toHaveLength(2);
-    h.props.filter = "support"; expect(h.worker.rows.value).toHaveLength(2);
-    h.props.filter = "ticket"; expect(h.worker.rows.value[0].kind).toBe("ticket");
+    expect(h.worker.rows.value.map((row: { kind: string }) => row.kind)).toEqual(["advisor"]);
+    expect(h.worker.rows.value[0].preview).toBe("Advisor reply");
+    expect(h.worker.rows.value[0].unread).toBe(3);
+    h.props.filter = "advisor"; expect(h.worker.rows.value).toHaveLength(1);
+    h.props.filter = "support"; expect(h.worker.rows.value).toHaveLength(1);
+    h.props.filter = "ticket"; expect(h.worker.rows.value).toHaveLength(0);
+    expect(source).not.toContain("support-tickets");
   });
-  it("opens the selected detail without claiming its unread replies were already acknowledged", () => {
+  it("opens the customer window without claiming unread messages are acknowledged", () => {
     const h = mount();
-    h.worker.openRow(h.worker.rows.value[0]); expect(h.navTo).toHaveBeenCalledWith("/pages/me/support-tickets?ticket=ticket%2F1");
-    h.worker.openRow(h.worker.rows.value[1]); expect(h.navTo).toHaveBeenCalledWith("/pages/support/chat?cid=advisor%2F1");
-    h.worker.openRow(h.worker.rows.value[2]); expect(h.navTo).toHaveBeenCalledWith("/pages/support/chat?cid=support%2F1");
+    h.worker.openRow(h.worker.rows.value[0]);
+    expect(h.navTo).toHaveBeenCalledWith("/pages/support/chat?cid=advisor%2F1");
+    expect(h.worker.rows.value[0].unread).toBe(3);
     expect(h.tickets.tickets[0].unread).toBe(3); expect(h.emit).toHaveBeenCalledWith("navigate");
   });
   it("refreshes failed sources once and keeps conversation management in its existing page", () => {

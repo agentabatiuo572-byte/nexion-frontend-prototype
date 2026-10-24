@@ -220,7 +220,7 @@ async function removeRow(r: Row) {
   if (r.isAi || convStore.dismissingIds[r.id]) return;
   const accountEpoch = app.accountBindingEpoch;
   removeError.value = "";
-  try { await convStore.dismissConversation(r.id); }
+  try { for (const row of [...humanConversations.value]) { if (accountEpoch !== app.accountBindingEpoch) return; await convStore.dismissConversation(row.id); } }
   catch { if (accountEpoch === app.accountBindingEpoch) removeError.value = t.value.conversations.removeFailed; }
 }
 
@@ -336,7 +336,7 @@ const rows = computed<Row[]>(() => {
     ];
   }
   const avatarIcon = ADVISOR_ICON;
-  return humanConversations.value.map((c) => {
+  return humanConversations.value.slice(0, 1).map((c) => {
     const last = c.messages.length ? c.messages[c.messages.length - 1] : null;
     const typing = convStore.typingIds[c.id] === true;
     // The server excludes SYSTEM rows from detail history, so the closed header
@@ -354,7 +354,7 @@ const rows = computed<Row[]>(() => {
         : displayAgentName(c.agentName, c.status),
       preview: typing ? t.value.conversations.agentTyping : cleanPreview(latestText) || t.value.conversations[c.roleKey],
       time: relTime(c.lastTs),
-      unread: c.unread,
+      unread: humanConversations.value.reduce((sum,row)=>sum+row.unread,0),
       isAi: false,
       typing,
       tint: c.avatarTint,

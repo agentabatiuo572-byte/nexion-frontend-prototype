@@ -250,7 +250,6 @@ const ROUTES: ReadonlyArray<{ key: RouteKey; href: string }> = [
   { key: "preferences", href: "/pages/me/preferences" },
   { key: "language", href: "/pages/me/language" },
   { key: "help", href: "/pages/me/help" },
-  { key: "supportTickets", href: "/pages/me/support-tickets" },
   { key: "risk", href: "/pages/me/risk-disclosure" },
   { key: "trust", href: "/pages/trust/trust" },
   { key: "developer", href: "/pages/developer/developer" },

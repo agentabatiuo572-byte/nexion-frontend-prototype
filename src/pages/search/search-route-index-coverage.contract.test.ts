@@ -29,7 +29,6 @@ const REQUIRED_SEARCHABLE_ROUTES = [
   "/pages/me/preferences",
   "/pages/me/language",
   "/pages/me/help",
-  "/pages/me/support-tickets",
   "/pages/trust/trust",
   "/pages/learn/courses",
 ];

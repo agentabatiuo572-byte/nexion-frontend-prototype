@@ -24,13 +24,14 @@ const author = { sender: "agent", authorName: "Real historical author", senderId
   senderAvatar: { assetId: "c87c520a-0748-4cef-a790-9c8646a29083", version: 3 }, ts: 1 };
 function harness(messages: unknown[], translations = zh, download = vi.fn(async () => "blob:author")) {
   const conv = ref({ id: "CV-old-support", type: "support", status: "open", messages });
+  const humanHistory = ref([conv.value]);
   const app = { accountBindingEpoch: 1 }, store = { scopeInvalidated: 1 };
   const sources = ref<Record<string, string>>({}), failures = ref<Record<string, boolean>>({});
   const api = { authorAvatarContent: download, attachmentContent: vi.fn(async () => "blob:attachment"), conversation: vi.fn(async () => conv.value) };
-  const state = new Function("computed", "ref", "conv", "app", "convStore", "imageSources", "imageFailures", "supportApi", "t", "localizedIdleClose", "catalogSkuBrandText", "catalogSkuRecommendationBody",
+  const state = new Function("computed", "ref", "conv", "app", "convStore", "imageSources", "imageFailures", "supportApi", "t", "localizedIdleClose", "catalogSkuBrandText", "catalogSkuRecommendationBody", "humanHistory",
     `const isAi=ref(false), nova={}, locale={code:'zh'}, supportSessionReady=ref(true);let novaPageVisible=true,imageEpoch=0,imageLoads=new Set();\n${code}\nreturn {threadMessages,loadPrivateImages,clearPrivateImages};`)(
-    computed, ref, conv, app, store, sources, failures, api, ref(translations), localizedIdleClose, catalogSkuBrandText, catalogSkuRecommendationBody);
-  return { state, conv, app, store, sources, failures, api };
+    computed, ref, conv, app, store, sources, failures, api, ref(translations), localizedIdleClose, catalogSkuBrandText, catalogSkuRecommendationBody, humanHistory);
+  return { state, conv, app, store, sources, failures, api, humanHistory };
 }
 describe("human incoming cards reuse existing CTA", () => {
   it.each([zh, en, vietnamese])("maps the actual destination and keeps body, SKU snapshot, identity and read receipt", translations => {
@@ -63,6 +64,16 @@ describe("human incoming cards reuse existing CTA", () => {
 });
 describe("author avatar uses existing private image owner guard", () => {
   const message = { ...author, id: "1", kind: "TEXT", text: "Hello" };
+  it("validates an aggregated historical author's avatar against its source conversation", async () => {
+    const h = harness([message]);
+    const historical = { ...h.conv.value, id: "CV-original-source" };
+    h.humanHistory.value = [historical];
+    h.conv.value = { ...h.conv.value, id: "CV-current-window" };
+    h.api.conversation.mockResolvedValue(historical);
+    await h.state.loadPrivateImages();
+    expect(h.api.conversation).toHaveBeenCalledExactlyOnceWith("CV-original-source", 2);
+    expect(h.state.threadMessages.value[0].authorAvatarSrc).toBe("blob:author");
+  });
   it("loads the exact historical author once and preserves attachment display", async () => {
     const h = harness([message, { ...author, id: "2", kind: "IMAGE", attachmentId: "private-1", text: "" }]);
     await h.state.loadPrivateImages(); await h.state.loadPrivateImages();

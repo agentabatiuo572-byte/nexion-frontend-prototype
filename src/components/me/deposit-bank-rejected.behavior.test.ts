@@ -489,7 +489,7 @@ test.each([zh, en, vietnamese])("a resumed rejected order offers explicit retry,
   expect(html).toContain("nx-bank-new-topup-cta");
   expect(html).not.toMatch(/nx-bank-(?:create|hosted-continue|cancel)-cta/);
   view.state.goSupport();
-  expect(view.navTo).toHaveBeenCalledExactlyOnceWith("/pages/me/support-tickets?mode=create&cat=deposit");
+  expect(view.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/messages");
   expect(view.dep.createRemoteBankIntent).not.toHaveBeenCalled();
   expect(view.open).not.toHaveBeenCalled();
   expect(view.dep.intents[0]).toMatchObject({ intentId: "VQR-existing", status: "awaiting_payment", providerStatus: "rejected" });

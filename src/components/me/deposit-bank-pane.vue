@@ -856,7 +856,7 @@ async function askCancel() {
 }
 function goSupport() {
   // cat=deposit:从充值场景进工单,预选「充值」分类(同 usdt 段入口)
-  navTo("/pages/me/support-tickets?mode=create&cat=deposit");
+  navTo("/pages/support/messages");
 }
 function goBills() {
   navTo("/pages/me/wallet-bills");

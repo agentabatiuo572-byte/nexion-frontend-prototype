@@ -311,10 +311,6 @@
       "style": { "navigationStyle": "custom" }
     },
     {
-      "path": "pages/me/support-tickets",
-      "style": { "navigationStyle": "custom" }
-    },
-    {
       "path": "pages/support/messages",
       "style": { "navigationStyle": "custom" }
     },

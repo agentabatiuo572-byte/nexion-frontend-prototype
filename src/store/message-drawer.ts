@@ -3,21 +3,21 @@ import { computed, ref } from "vue";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useNotifications } from "./notifications";
 import { useConversations } from "./conversations";
-import { useTickets } from "./tickets";
+
 import { navTo } from "@/lib/route";
 
 export type MessageSection = "notifications" | "service";
 export const useMessageDrawer = defineStore("messageDrawer", () => {
   const section = ref<MessageSection>("notifications");
-  const notifications = useNotifications(), conversations = useConversations(), tickets = useTickets();
+  const notifications = useNotifications(), conversations = useConversations();
   const advisorUnread = computed(() => conversations.byType("advisor").reduce((sum, row) => sum + row.unread, 0));
   const supportUnread = computed(() => conversations.byType("support").reduce((sum, row) => sum + row.unread, 0));
   const humanUnread = computed(() => advisorUnread.value + supportUnread.value);
-  const ticketUnread = computed(() => tickets.tickets.reduce((sum, ticket) => sum + ticket.unread, 0));
+  const ticketUnread = computed(() => 0);
   const serviceUnread = computed(() => humanUnread.value + ticketUnread.value);
   const totalUnread = computed(() => notifications.unread + serviceUnread.value);
-  const loading = computed(() => notifications.loading || conversations.loading || tickets.loading);
-  const error = computed(() => notifications.error || conversations.error || tickets.error
+  const loading = computed(() => notifications.loading || conversations.loading);
+  const error = computed(() => notifications.error || conversations.error
     || (conversations.categoryAvailabilityStatus === "failed" ? "SUPPORT_CATEGORIES_UNAVAILABLE" : null));
   let epoch = 0;
   let running = false;
@@ -49,7 +49,6 @@ export const useMessageDrawer = defineStore("messageDrawer", () => {
       const requests: Promise<unknown>[] = [];
       // A page-triggered request already supplies this snapshot; do not race pagination.
       if (!notifications.loading) requests.push(notifications.refreshRemote(undefined, active));
-      if (!tickets.loading) requests.push(tickets.refresh(active));
       if (includeHuman) requests.push(conversations.refresh(active), conversations.refreshCategories(active));
       await Promise.allSettled(requests);
     };
@@ -77,7 +76,6 @@ export const useMessageDrawer = defineStore("messageDrawer", () => {
     timer = undefined;
     inFlight = undefined;
     notifications.cancelRefresh();
-    tickets.cancelRefresh();
   }
   function bindAccount() {
     stopRefresh();

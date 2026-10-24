@@ -43,9 +43,6 @@
         <text>{{ t.conversations.restartSession }}</text>
       </view>
       <view v-if="advisorApplies && convStore.advisorError" class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" :aria-label="t.conversations.image.retryPolicy" @click="convStore.refreshAdvisor()"  @keydown.enter.prevent="convStore.refreshAdvisor()" @keydown.space.prevent="convStore.refreshAdvisor()"><LiquidGlass :radius="22" /><text>{{ t.conversations.image.retryPolicy }}</text></view>
-      <view v-if="!isAi && conv && !isClosedSession" class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" :aria-label="t.conversations.convertTicket" @click="onConvertToTicket"  @keydown.enter.prevent="onKeyboardActivate($event, onConvertToTicket)" @keydown.space.prevent="onKeyboardActivate($event, onConvertToTicket)"><LiquidGlass :radius="22" />
-        <text>{{ t.conversations.convertTicket }}</text>
-      </view>
     </view>
 
     <view v-if="isAi && remoteApiEnabled" class="cp-ai-safety" role="note">
@@ -69,13 +66,9 @@
       :aria-label="t.conversations.loadEarlier" @click="loadEarlierHumanHistory"  @keydown.enter.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)" @keydown.space.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)"><LiquidGlass :radius="22" />
       <text class="cp-ai-history-t">{{ t.conversations.loadEarlier }}</text>
     </view>
+    <view v-if="humanHistoryError || humanHistoryListError" class="cp-ai-history" role="alert"><text>{{ t.conversations.loadError }}</text><view role="button" tabindex="0" @click="retryHumanHistory" @keydown.enter.prevent="retryHumanHistory"><text>{{ t.conversations.retry }}</text></view></view>
     <view v-if="showUnassignedReceived" class="cp-ai-history" role="status"><text class="cp-ai-history-t">{{ t.conversations.image.unassignedReceived }}</text></view>
 
-    <view v-if="ticketCreationBlock" class="cp-ticket-limit" role="status" aria-live="polite">
-      <text>{{ ticketCreationBlockText }}</text>
-      <text v-if="ticketCreationBlock.retryAfterSeconds > 0">{{ fmt(t.tickets.policyRetryAfter, { n: Math.max(1, Math.ceil(ticketCreationBlock.retryAfterSeconds / 60)) }) }}</text>
-      <view v-if="ticketCreationBlock.existingTicketNo" class="family-control" role="button" tabindex="0" @click="navTo('/pages/me/support-tickets?ticket=' + encodeURIComponent(ticketCreationBlock.existingTicketNo))"><LiquidGlass :radius="24" /><text>{{ t.tickets.policyViewTicket }}</text></view>
-    </view>
     <!-- Thread body (messages + chips + input) -->
     <ConversationThread
       @typing="!isAi && convStore.setTyping($event)"
@@ -172,7 +165,7 @@ import type { ConversationType, ConvMessage } from "@/domain/support";
 
 import { ApiError, isSettledRejection, asApiError } from "@/api/errors";
 import { isSupportAttachmentNotReady, type SupportAttachmentPolicy } from "@/api/support-api";
-import { TicketCreationDenied, isTicketReplyRequired, type TicketCreationPolicy } from '@/api/support-ticket-policy';
+import type { TicketCreationPolicy } from '@/api/support-ticket-policy';
 import { novaFailure } from "@/lib/nova-failure";
 import { useLocaleStore } from "@/store/locale";
 import { requireCryptoUuid } from "@/lib/secure-command-id";
@@ -246,7 +239,9 @@ async function loadPrivateImages() {
           if (epoch !== imageEpoch || binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || conv.value?.id !== conversationId) return source;
           // The guarded endpoint returns the author's current photo; confirm its revision before caching.
           const before = Number(message.id) + 1;
-          const latest = await supportApi.conversation(conversationId, Number.isSafeInteger(before) ? before : undefined);
+          const sourceConversationId = humanHistory.value.find(row => row.messages.some(item=>item.id===message.id))?.id;
+          if (!sourceConversationId) throw new Error("SUPPORT_MESSAGE_SOURCE_UNAVAILABLE");
+          const latest = await supportApi.conversation(sourceConversationId, Number.isSafeInteger(before) ? before : undefined);
           const current = latest.messages.find(item => item.id === message.id);
           if (!current || avatarImageKey(current) !== avatarKey) throw new Error("SUPPORT_AVATAR_REVISION_CHANGED");
           return source;
@@ -589,7 +584,7 @@ async function activateHumanPage() {
       toast.info(t.value.conversations.categoryDisabled, ""); navBack("/pages/support/messages"); return;
     }
   }
-  if (current() && id) { await openHumanConversation(epoch, id); if (current()) void loadPrivateImages(); }
+  if (current() && id) { try { await convStore.refresh(current); if(current()) humanHistoryListError.value=false; } catch { if(current()) humanHistoryListError.value=true; } if (!current()) return; await openHumanConversation(epoch, id); if (current()) void loadPrivateImages(); }
 }
 
 // Bare full-screen page (no AppChassis), so it must reserve the device status-bar
@@ -723,7 +718,31 @@ watch(() => app.accountKey, () => {
   }
 }, { flush: "sync" });
 
-const conv = computed(() => (cid.value ? convStore.get(cid.value) : undefined));
+const humanHistoryError = ref(false);
+const humanHistoryListError = ref(false);
+const humanHistoryRetry = ref(0);
+async function retryHumanHistory() {
+  const binding=app.accountBindingEpoch, id=cid.value;
+  const current=()=>novaPageVisible && binding===app.accountBindingEpoch && id===cid.value;
+  try { await convStore.refresh(current); if(current()) { humanHistoryListError.value=false; humanHistoryRetry.value++; } }
+  catch { if(current()) humanHistoryListError.value=true; }
+}
+const humanHistory = computed(() => convStore.conversations.filter(row => row.type !== "ai"));
+const conv = computed(() => {
+  const current = cid.value ? convStore.get(cid.value) : undefined;
+  if (!current) return undefined;
+  const messages = [...new Map(humanHistory.value.flatMap(row => row.messages).map(message => [message.id,message])).values()].sort((a,b)=>a.ts-b.ts || String(a.id).localeCompare(String(b.id)));
+  return { ...current, messages, historyTruncated: humanHistory.value.some(row=>row.historyTruncated), historyNextCursor: humanHistory.value.find(row=>row.historyNextCursor)?.historyNextCursor };
+});
+watch([cid, () => app.accountBindingEpoch, supportSessionReady, () => humanHistory.value.map(row=>`${row.id}:${row.lastPublicMessageId ?? row.lastTs}`).sort().join("|"), humanHistoryRetry, humanShowRevision], async ([id,, ready],_,onCleanup) => {
+  if (!id || !ready) return;
+  let current = true; onCleanup(()=>{current=false;}); humanHistoryError.value=false;
+  for (const row of humanHistory.value) {
+    if (!current || !novaPageVisible) return;
+    if (row.id === id) continue;
+    try { await convStore.open(row.id,()=>current && novaPageVisible); } catch { if(current)humanHistoryError.value=true; }
+  }
+}, { immediate: true });
 watch(() => conv.value?.messages?.map(message => [message.attachmentId, avatarImageKey(message)].join(":")).join("|"), () => { if (novaPageVisible && !isAi.value) void loadPrivateImages(); });
 const humanType = computed<Exclude<ConversationType, "ai"> | null>(() =>
   conv.value?.type === "advisor" || conv.value?.type === "support" ? conv.value.type : startType.value,
@@ -731,7 +750,7 @@ const humanType = computed<Exclude<ConversationType, "ai"> | null>(() =>
 
 // The App only permits replies to the same states accepted by AppSupportService.
 // A transferred thread is history: a restart creates a new user-owned conversation.
-const replyAllowedStatuses = new Set(["open", "resolved"]);
+const replyAllowedStatuses = new Set(["open", "resolved", "closed"]);
 const isReplyAllowed = computed(() => !conv.value || replyAllowedStatuses.has(conv.value.status));
 const isTransferredSession = computed(() => !isAi.value && conv.value?.status === "transferred");
 const isClosedSession = computed(() =>
@@ -955,7 +974,8 @@ async function loadEarlierHumanHistory() {
   const scope = activeId ? humanRealtime.capture(activeId) : null;
   if (!scope) return;
   try {
-    await convStore.loadEarlier(scope.id, () => humanRealtime.isCurrent(scope.epoch, scope.id));
+    const earlier = humanHistory.value.find(row=>row.historyNextCursor);
+    if (earlier) await convStore.loadEarlier(earlier.id, () => humanRealtime.isCurrent(scope.epoch, scope.id));
   } catch {
     if (humanRealtime.isCurrent(scope.epoch, scope.id)) toast.warn(t.value.security.opFailed);
   }
@@ -1488,30 +1508,6 @@ function onQueueSave(turnId: string, text: string) {
 }
 
 let humanConvertRequest: { binding: number; id: string } | null = null;
-async function onConvertToTicket() {
-  if (!supportSessionReady.value) return;
-  const current = conv.value;
-  if (!current) return;
-  const binding = app.accountBindingEpoch;
-  if (humanConvertRequest?.binding === binding && humanConvertRequest.id === current.id) return;
-  const request = { binding, id: current.id };
-  humanConvertRequest = request;
-  ticketCreationBlock.value = null;
-  const isCurrent = () => binding === app.accountBindingEpoch && novaPageVisible && cid.value === current.id;
-  try {
-    const ticketId = await convStore.convertToTicket(current.id, "technical", `Conversation ${current.id}`);
-    if (!isCurrent()) return;
-    navTo(`/pages/me/support-tickets?ticket=${encodeURIComponent(ticketId)}`);
-    } catch (cause) {
-      if (!isCurrent()) return;
-      if (cause instanceof TicketCreationDenied) ticketCreationBlock.value = cause.policy;
-      else if (isTicketReplyRequired(cause))
-        toast.warn(t.value.conversations.convertTicketReplyRequired);
-      else toast.error(t.value.conversations.convertTicketFailed, "");
-    }
-  finally { if (humanConvertRequest === request) humanConvertRequest = null; }
-}
-
 function onChip(key: string) {
   if (remoteApiEnabled) {
     const message = key === "search-query" ? initialPrompt.value : quickLabel(key as QuickPromptKey);

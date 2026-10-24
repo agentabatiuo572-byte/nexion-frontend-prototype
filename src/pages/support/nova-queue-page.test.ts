@@ -75,6 +75,8 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/lib/hashpower": { isDeviceOnline: () => false },
     "@/store/conversations": { useConversations: () => ({
       humanComposers,
+      conversations: conversation ? [{ id: query.cid, messages: [], ...conversation }] : [],
+      refresh: vi.fn(async () => undefined),
       composer: (key: string) => humanComposers[key] ?? { text: "", imageDraft: null, failedSend: null },
       saveComposer: (key: string, value: any) => { humanComposers[key] = value; },
       clearComposer: (key: string) => { delete humanComposers[key]; },
@@ -84,7 +86,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
       advisorLoading: false,
       advisorError: false,
       scopeInvalidated: 0,
-      get: () => conversation,
+      get: () => conversation ? { id: query.cid, messages: [], ...conversation } : undefined,
       open: openConversation,
       watchRealtime,
       setTyping: vi.fn(),
@@ -288,7 +290,7 @@ describe("human conversation restart", () => {
     current.page.cleanup();
   });
 
-  it.each(["advisor", "support"])("opens server-ended %s history and restarts without returning to the center", async type => {
+  it.each(["advisor", "support"])("keeps server-ended %s history replyable in the same window", async type => {
     const raw = {
       conversation: { conversationNo: "CV-ended", conversationType: type, status: "CLOSED", version: 2,
         ownerAgentName: "", unreadCount: 0, lastMessage: "Session ended", lastMessageAt: "2026-09-01T00:05:00Z" },
@@ -302,9 +304,9 @@ describe("human conversation restart", () => {
     await current.hooks.onShow();
     expect(current.navigation.navBack).not.toHaveBeenCalled();
     expect(current.page.threadMessages.value[0]).toMatchObject({ tone: "user", text: "Hello" });
-    expect(current.page.isClosedSession.value).toBe(true);
-    current.page.onRestart();
-    expect(current.navigation.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=advisor");
+    expect(current.page.isClosedSession.value).toBe(false);
+    expect(current.navigation.navTo).not.toHaveBeenCalled();
+    expect(current.startConversation).not.toHaveBeenCalled();
     current.page.cleanup();
   });
 
@@ -423,7 +425,8 @@ describe("human chat realtime presence", () => {
     expect(local.page.dotStyle.value).toMatchObject({ animation: "none" });
     expect(ai.page.headerRole.value).toBe(zh.nova.localRole);
     expect(ai.page.dotStyle.value).toEqual({ background: "var(--v5-brand-2)" });
-    expect(closed.page.headerRole.value).toBe(zh.conversations.sessionEnded);
+    expect(closed.page.isClosedSession.value).toBe(false);
+    expect(closed.page.headerRole.value).toBe(zh.conversations.agentTyping);
     expect(transferred.page.headerRole.value).toBe(zh.conversations.sessionTransferred);
     unknown.page.cleanup(); local.page.cleanup(); ai.page.cleanup(); closed.page.cleanup(); transferred.page.cleanup();
   });

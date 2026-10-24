@@ -34,7 +34,6 @@
     <view class="service-note"><text>{{ t.notifs.serviceReadHint }}</text></view>
     <view class="service-links">
       <view class="service-button" role="button" tabindex="0" @click="go('/pages/support/messages')"><LiquidGlass :radius="22" /><text>{{ t.notifs.contactService }}</text></view>
-      <view class="service-button" role="button" tabindex="0" @click="go('/pages/me/support-tickets')"><LiquidGlass :radius="22" /><text>{{ t.notifs.manageTickets }}</text></view>
     </view>
   </view>
 </template>
@@ -44,7 +43,7 @@ import { computed, ref } from "vue";
 import GlassSegments from "@/components/glass-segments.vue";
 import LiquidGlass from "@/components/liquid-glass.vue";
 import { useConversations } from "@/store/conversations";
-import { useTickets } from "@/store/tickets";
+
 import { useMessageDrawer } from "@/store/message-drawer";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -54,19 +53,18 @@ import { formatUnreadBadge } from "@/lib/unread-badge";
 
 const props = withDefaults(defineProps<{ filter?: "all" | "advisor" | "support" | "ticket"; hideFilters?: boolean }>(), { filter: "all", hideFilters: false });
 const emit = defineEmits<{ (event: "navigate"): void }>();
-const conversations = useConversations(), tickets = useTickets(), center = useMessageDrawer();
+const conversations = useConversations(), center = useMessageDrawer();
 const t = useT();
 type ServiceKind = "advisor" | "support" | "ticket";
 type Row = { key: string; id: string; kind: ServiceKind; title: string; preview: string; ts: number; unread: number };
-function unreadUnavailable(row: Row) { return !Number.isSafeInteger(row.unread) || row.unread < 0 || (row.kind === "ticket" ? !!tickets.error : !!(conversations.error || conversations.categoryAvailabilityStatus === "failed")); }
+function unreadUnavailable(row: Row) { return !Number.isSafeInteger(row.unread) || row.unread < 0 || !!(conversations.error || conversations.categoryAvailabilityStatus === "failed"); }
 const filter = ref<"all" | ServiceKind>("all");
 const filters = computed(() => [
   { value: "all", label: t.value.notifs.filterAll },
   { value: "advisor", label: t.value.conversations.typeAdvisor },
-  { value: "ticket", label: t.value.notifs.ticketFilter },
 ]);
-const loading = computed(() => conversations.loading || tickets.loading || conversations.categoryLoading);
-const failed = computed(() => !!(conversations.error || tickets.error || conversations.categoryAvailabilityStatus === "failed"));
+const loading = computed(() => conversations.loading || conversations.categoryLoading);
+const failed = computed(() => !!(conversations.error || conversations.categoryAvailabilityStatus === "failed"));
 const clean = (text: string) => text.replace(/\*\*/g, "").replace(/\s*\n+\s*/g, " ").trim();
 const rows = computed<Row[]>(() => {
   const human: Row[] = (["advisor", "support"] as const).flatMap(kind => conversations.byType(kind).map(c => {
@@ -80,16 +78,10 @@ const rows = computed<Row[]>(() => {
       preview: conversations.typingIds[c.id] ? t.value.conversations.agentTyping : clean(preview) || t.value.conversations[c.roleKey],
       ts: Math.max(c.lastTs, last?.ts ?? 0), unread: c.unread };
   }));
-  const ticketRows: Row[] = tickets.tickets.map(ticket => {
-    const last = ticket.messages[ticket.messages.length - 1];
-    return { key: `ticket:${ticket.id}`, id: ticket.id, kind: "ticket", title: `${t.value.notifs.ticketFilter} · ${ticket.subject}`,
-      // List headers do not include a reply body. Do not present an older hydrated reply as the latest one.
-      preview: last && last.ts >= ticket.lastReplyAt ? clean(last.body) : ticket.unread > 0 ? t.value.notifs.ticketReply : t.value.tickets.status[ticket.status],
-      ts: Math.max(ticket.lastReplyAt, ticket.updatedAt), unread: ticket.unread };
-  });
+
   const selected = props.hideFilters ? props.filter : filter.value;
-  return [...human, ...ticketRows].filter(row => selected === "all" || row.kind === (selected === "support" ? "advisor" : selected))
-    .sort((a, b) => b.ts - a.ts || a.key.localeCompare(b.key));
+  return human.filter(row => selected === "all" || row.kind === (selected === "support" ? "advisor" : selected))
+    .sort((a, b) => b.ts - a.ts || a.key.localeCompare(b.key)).slice(0, 1).map(row => ({ ...row, unread: human.reduce((sum,item)=>sum+item.unread,0) }));
 });
 function timeAgo(ts: number) {
   const minutes = Math.max(1, Math.floor((Date.now() - ts) / 60_000));
@@ -98,7 +90,7 @@ function timeAgo(ts: number) {
 }
 function go(route: string) { emit("navigate"); navTo(route); }
 function openRow(row: Row) {
-  go(row.kind === "ticket" ? `/pages/me/support-tickets?ticket=${encodeURIComponent(row.id)}` : `/pages/support/chat?cid=${encodeURIComponent(row.id)}`);
+  go(`/pages/support/chat?cid=${encodeURIComponent(row.id)}`);
 }
 function retry() {
   if (loading.value) return;

@@ -260,7 +260,7 @@ const chatTransport = vi.hoisted(() => ({
   authorityRevision: vi.fn(async () => "canonical-v1"), commandResult: vi.fn(async () => null),
   conversation: vi.fn(), replyConversation: vi.fn(), startConversation: vi.fn(), convertConversationToTicket: vi.fn(),
   conversationCategories: vi.fn(async () => ({ advisor: true, support: true, ai: false })),
-  conversations: vi.fn(async () => ({ items: [] })), conversationDismissals: vi.fn(async () => []),
+  conversations: vi.fn(async () => ({ items: [] as ReturnType<typeof humanSnapshot>[] })), conversationDismissals: vi.fn(async () => []),
   advisor: vi.fn(async (): Promise<CurrentAdvisor> => ({ assignmentId: null, currentAdvisorId: null, currentAdvisorName: null, assignmentState: "UNBOUND", availability: "UNBOUND" })),
   attachmentPolicy: vi.fn(async () => ({ available: false })),
 }));
@@ -280,6 +280,8 @@ const chatCleanups: Array<() => void> = [];
 afterEach(() => { chatCleanups.splice(0).forEach(stop => stop()); });
 function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, messages = zh) {
   setActivePinia(createPinia()); vi.clearAllMocks();
+  chatTransport.conversations.mockReset().mockResolvedValue({ items: [] });
+  chatTransport.conversationDismissals.mockReset().mockResolvedValue([]);
   chatTransport.conversation.mockReset().mockResolvedValue(humanSnapshot());
   chatTransport.replyConversation.mockReset().mockResolvedValue(humanSnapshot());
   chatTransport.startConversation.mockReset().mockResolvedValue(humanSnapshot());
@@ -311,7 +313,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/store/conversations": { useConversations: () => store }, "@/store/nova": { useNova }, "@/store/app": { useApp: () => app },
     "@/store/auth": { useAuth: () => auth }, "@/lib/binary-session-ready": { binarySessionReady },
     "@/store/ui": { toast, confirm: vi.fn(), useUI: () => ({ clearConfirmsBy: vi.fn() }) },
-    "@/mock/nova-templates": {}, "@/api/runtime": { novaAiApi: {}, remoteApiEnabled: true, sessionVault },
+    "@/mock/nova-templates": {}, "@/api/runtime": { novaAiApi: {}, remoteApiEnabled: true, sessionVault, supportApi: chatTransport },
     "@/api/errors": chatApiErrors,
     "@/api/support-api": { isSupportAttachmentNotReady },
     '@/api/support-ticket-policy': ticketPolicy,
@@ -319,7 +321,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/lib/secure-command-id": chatSecure, "@/lib/nova-thinking": chatThinking, "./conversation-realtime-page": chatRealtime,
   };
   const scope = Vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onConvertToTicket, onRestart, goBack, cleanup, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived };")((name: string) => {
+  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv };")((name: string) => {
     if (name.endsWith(".vue")) return {}; if (!(name in modules)) throw new Error(`Unexpected chat dependency: ${name}`); return modules[name];
   }, {}));
   hooks.onLoad(query); chatCleanups.push(() => { page.cleanup(); scope.stop(); });
@@ -355,16 +357,17 @@ describe("human chat assignment belongs to the current conversation", () => {
       current.store.advisor = advisor as any;
       current.store.advisorError = true; current.store.advisorLoading = true;
       expect(current.page.headerName.value).toBe(zh.conversations.unassignedAgent);
-      expect(current.page.headerRole.value).toBe(zh.conversations.sessionEnded);
-      expect(current.page.isClosedSession.value).toBe(true);
-      expect(current.page.showUnassignedReceived.value).toBe(false);
+      expect(current.page.headerRole.value).toBe(zh.conversations.waitingAgent);
+      expect(current.page.isClosedSession.value).toBe(false);
+      expect(current.page.showUnassignedReceived.value).toBe(true);
     }
     current.page.goBack();
     expect(current.navigation.navBack).toHaveBeenCalledExactlyOnceWith("/pages/support/messages");
-    current.page.onRestart();
-    expect(current.navigation.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=advisor");
+    await current.page.onSend("Continue original closed conversation", vi.fn());
+    expect(current.navigation.navTo).not.toHaveBeenCalled();
     expect(chatTransport.startConversation).not.toHaveBeenCalled();
-    expect(chatTransport.replyConversation).not.toHaveBeenCalled();
+    expect(chatTransport.replyConversation).toHaveBeenCalledTimes(1);
+    expect(chatTransport.replyConversation.mock.calls[0]![0]).toMatchObject({ id: "CV-cold", status: "closed" });
   });
 
   it("does not borrow an assigned advisor while a cold conversation is unknown", async () => {
@@ -425,73 +428,67 @@ describe("human chat assignment belongs to the current conversation", () => {
     current.store.get("CV-cold")!.agentName = "Fixture";
     current.store.get("CV-cold")!.status = "closed";
     expect(current.page.headerName.value).toBe("Fixture");
-    expect(current.page.headerRole.value).toBe(zh.conversations.sessionEnded);
+    expect(current.page.headerRole.value).toBe(zh.conversations.connecting);
     expect(current.page.showUnassignedReceived.value).toBe(false);
   });
 });
 
 describe("real chat and store account recovery", () => {
-  it.each([
-    [zh, "客服回复当前消息后，才可转为工单。可先在此会话继续沟通。"],
-    [en, "Wait for a service agent to reply before creating a ticket. You can continue this conversation."],
-    [vietnamese, "Vui lòng chờ nhân viên hỗ trợ trả lời trước khi tạo phiếu. Bạn có thể tiếp tục cuộc trò chuyện này."],
-  ])("explains the server reply prerequisite in the selected language", async (messages, notice) => {
-    const current = mountRealHumanChat({ cid: "CV-cold" }, messages); await current.show();
-    chatTransport.commandResult.mockRejectedValue(new chatApiErrors.ApiError({
-      kind: "http", status: 409, message: "SUPPORT_COMMAND_FAILED_RETRYABLE",
-    }));
-    chatTransport.convertConversationToTicket.mockRejectedValueOnce(new chatApiErrors.ApiError({
-      kind: "http", status: 409, message: "SUPPORT_REPLY_REQUIRED",
-    }));
-    await current.page.onConvertToTicket();
-    expect(current.toast.warn).toHaveBeenCalledExactlyOnceWith(notice);
-    expect(current.toast.error).not.toHaveBeenCalled();
-    expect(chatTransport.commandResult).not.toHaveBeenCalled();
-    expect(current.page.ticketCreationBlock.value).toBeNull();
-    expect(current.store.get("CV-cold")?.status).toBe("open");
+  it("retains a cold list failure after the current thread opens, then retries the missing history", async () => {
+    const current = mountRealHumanChat();
+    chatTransport.conversations.mockRejectedValueOnce(new Error("list offline"));
+    await current.show(); await Vue.nextTick();
+    expect(current.store.get("CV-cold")).toBeDefined();
+    expect(current.page.humanHistoryListError.value).toBe(true);
+    expect(current.page.humanHistoryError.value).toBe(false);
+    expect(current.navigation.navBack).not.toHaveBeenCalled();
+    const old = { ...humanSnapshot(), id: "CV-old", lastTs: 0, lastPublicMessageId: 2,
+      messages: [{ id: "2", sender: "agent", text: "Older retained history", ts: 0, status: "sent" }] };
+    chatTransport.conversations.mockResolvedValue({ items: [humanSnapshot(), { ...old, messages: [] }] });
+    chatTransport.conversation.mockImplementation(async id => id === old.id ? old : humanSnapshot());
+    await current.page.retryHumanHistory();
+    await vi.waitFor(() => expect(current.page.conv.value.messages.map((row: any) => row.text))
+      .toEqual(["Older retained history", "History"]));
+    expect(current.page.humanHistoryListError.value).toBe(false);
+    expect(current.page.humanHistoryError.value).toBe(false);
+    expect(chatTransport.conversations).toHaveBeenCalledTimes(2);
+    expect(chatTransport.startConversation).not.toHaveBeenCalled();
+  });
+
+  it("hydrates a new reply in another historical segment without reopening the fixed window", async () => {
+    const current = mountRealHumanChat();
+    let old = { ...humanSnapshot(), id: "CV-old", lastTs: 0, lastPublicMessageId: 2,
+      messages: [{ id: "2", sender: "agent", text: "Older retained history", ts: 0, status: "sent" }] };
+    chatTransport.conversations.mockImplementation(async () => ({ items: [humanSnapshot(), { ...old, messages: [] }] }));
+    chatTransport.conversation.mockImplementation(async id => id === old.id ? old : humanSnapshot());
+    await current.show();
+    await vi.waitFor(() => expect(current.page.conv.value.messages).toHaveLength(2));
+    old = { ...old, version: 2, lastTs: 3, lastPublicMessageId: 3,
+      messages: [...old.messages, { id: "3", sender: "agent", text: "Live historical reply", ts: 3, status: "sent" }] };
+    await current.store.refresh();
+    await vi.waitFor(() => expect(current.page.conv.value.messages.map((row: any) => row.text))
+      .toEqual(["Older retained history", "History", "Live historical reply"]));
+    expect(current.page.conv.value.id).toBe("CV-cold");
     expect(current.navigation.navTo).not.toHaveBeenCalled();
+    expect(chatTransport.startConversation).not.toHaveBeenCalled();
+  });
+
+  it.each([zh, en, vietnamese])("retires ticket conversion while keeping human replies usable", async messages => {
+    const current = mountRealHumanChat({ cid: "CV-cold" }, messages); await current.show();
+    const fullSource = readFileSync(new URL("./chat.vue", import.meta.url), "utf8");
+    expect(fullSource).not.toContain("onConvertToTicket");
+    expect(fullSource).not.toContain("convStore.convertToTicket(");
+    expect(fullSource).not.toContain("/pages/me/support-tickets");
     await current.page.onSend("Continue the conversation", vi.fn());
     expect(chatTransport.replyConversation).toHaveBeenCalledTimes(1);
-  });
-  it("does not treat an unrelated failure as a reply prerequisite", async () => {
-    const current = mountRealHumanChat(); await current.show();
-    chatTransport.convertConversationToTicket.mockRejectedValueOnce(new Error("SUPPORT_REPLY_REQUIRED"));
-    await current.page.onConvertToTicket();
-    expect(current.toast.warn).not.toHaveBeenCalled();
-    expect(current.toast.error).toHaveBeenCalledExactlyOnceWith(zh.conversations.convertTicketFailed, "");
-  });
-  it("keeps a quota-refused conversation open and clears its notice on account rebinding", async () => {
-    const current = mountRealHumanChat(); await current.show();
-    const policy: ticketPolicy.TicketCreationPolicy = { allowed: false, reasonCode: 'SUPPORT_TICKET_CREATE_ACTIVE_LIMIT',
-      retryAfterSeconds: 0, retryAt: null, existingTicketNo: 'TK-existing', cooldownSeconds: 60,
-      windowHours: 24, maxCreatedInWindow: 10, maxActiveTickets: 3, createdInWindow: 3, activeTickets: 3 };
-    chatTransport.convertConversationToTicket.mockRejectedValueOnce(new ticketPolicy.TicketCreationDenied(policy));
-    await current.page.onConvertToTicket();
-    expect(current.page.ticketCreationBlock.value).toEqual(policy);
-    expect(current.page.ticketCreationBlockText.value).toContain('3');
-    expect(current.store.get('CV-cold')?.status).toBe('open');
+    expect(chatTransport.convertConversationToTicket).not.toHaveBeenCalled();
     expect(current.navigation.navTo).not.toHaveBeenCalled();
-    expect(current.toast.error).not.toHaveBeenCalled();
-    await current.page.onSend('Continue this existing conversation', vi.fn());
-    expect(chatTransport.replyConversation).toHaveBeenCalledTimes(1);
-    current.rebind(); await Vue.nextTick();
-    expect(current.page.ticketCreationBlock.value).toBeNull();
   });
   it("redirects an old AI link before opening a category or sending a request", async () => {
     const current = mountRealHumanChat({ type: "ai" });
     expect(current.navigation.navReplace).toHaveBeenCalledExactlyOnceWith("/pages/support/messages");
     await current.show();
     expect(chatTransport.conversationCategories).not.toHaveBeenCalled();
-  });
-  it("navigates once when the ticket conversion is clicked twice before completion", async () => {
-    const current = mountRealHumanChat(); await current.show(); const gate = chatDeferred();
-    chatTransport.convertConversationToTicket.mockReturnValueOnce(gate.promise);
-    const first = current.page.onConvertToTicket();
-    await vi.waitFor(() => expect(chatTransport.convertConversationToTicket).toHaveBeenCalledTimes(1));
-    const second = current.page.onConvertToTicket(); await new Promise(done => setTimeout(done, 20));
-    gate.resolve({ conversation: humanSnapshot(), ticket: { id: "TK-one" } }); await Promise.all([first, second]);
-    expect(chatTransport.convertConversationToTicket).toHaveBeenCalledTimes(1);
-    expect(current.navigation.navTo).toHaveBeenCalledTimes(1);
   });
   it.each(["failed", "disabled"])("does not navigate a hidden page after a delayed %s category read", async outcome => {
     const current = mountRealHumanChat({ start: "support" });
@@ -508,18 +505,18 @@ describe("real chat and store account recovery", () => {
     expect(chatTransport.conversationCategories).toHaveBeenCalledTimes(2);
     expect(current.navigation.navBack).not.toHaveBeenCalled();
   });
-  it.each(["reply failure", "convert failure", "convert success"])("does not let an old %s interrupt the new account history read", async operation => {
+  it.each(["reply failure", "reply success"])("does not let an old %s interrupt the new account history read", async operation => {
     const current = mountRealHumanChat(); await current.show();
     let resolve!: (value: any) => void, reject!: (error: Error) => void;
     const old = new Promise((done, fail) => { resolve = done; reject = fail; });
-    const transport = operation.startsWith("reply") ? chatTransport.replyConversation : chatTransport.convertConversationToTicket;
+    const transport = chatTransport.replyConversation;
     transport.mockReturnValueOnce(old);
-    const pending = operation.startsWith("reply") ? current.page.onSend("Old account request", vi.fn()) : current.page.onConvertToTicket();
+    const pending = current.page.onSend("Old account request", vi.fn());
     await vi.waitFor(() => expect(transport).toHaveBeenCalledTimes(1));
     const history = chatDeferred(); chatTransport.conversation.mockReturnValueOnce(history.promise);
     current.rebind(); await Vue.nextTick();
     await vi.waitFor(() => expect(chatTransport.conversation).toHaveBeenCalledTimes(2));
-    if (operation.endsWith("success")) resolve({ conversation: humanSnapshot(), ticket: { id: "TK-old" } });
+    if (operation.endsWith("success")) resolve(humanSnapshot());
     else reject(new Error("old transport failure"));
     await pending;
     const reads = chatTransport.conversation.mock.calls.length;

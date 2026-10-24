@@ -348,7 +348,6 @@ const quickSections = computed<QuickSection[]>(() => [
       // This opens the support hub; availability is not inferred from a local badge.
       { key: "support", label: t.value.me.supportHubRow, href: "/me/support", icon: "chat", meta: t.value.me.supportHubMeta, tone: "success" },
       { key: "faq", label: t.value.me.helpFaq, href: "/me/help", icon: "help", tone: "muted" },
-      { key: "tickets", label: t.value.me.supportTicketsRow, href: "/me/support-tickets", icon: "ticket", tone: "orange" },
       { key: "trust", label: t.value.me.trustCenter, href: "/trust", icon: "trust", meta: t.value.me.auditsPartners, tone: "success" },
       { key: "learning", label: t.value.me.learningRow, href: "/learn/courses", icon: "book", tone: "brand" },
       { key: "risk", label: t.value.me.riskRow, href: "/me/risk-disclosure", icon: "warning", tone: "orange" },

@@ -81,28 +81,30 @@ function mount(type: "advisor" | "support", conversations: Conversation[], messa
 }
 
 describe("human list identity follows each conversation kind and status", () => {
-  it("shows both legacy and canonical history in one lane and preserves each conversation id", () => {
+  it("shows one customer lane while preserving both legacy conversation records", () => {
     const current = mount("advisor", [{ ...conversation("advisor", "closed", "Dedicated history", "CV-advisor"), lastTs: 1 },
       { ...conversation("support", "closed", "Legacy history", "CV-support"), lastTs: 1 }]);
-    current.expectNames(["Dedicated history", "Legacy history"]);
-    current.nodes("nx-conv-row")[1]!.props.onClick();
-    expect(current.navTo).toHaveBeenCalledWith("/pages/support/chat?cid=CV-support");
+    current.expectNames(["Dedicated history"]);
+    expect(current.store.conversations.map(row=>row.id)).toEqual(["CV-advisor", "CV-support"]);
+    current.nodes("nx-conv-row")[0]!.props.onClick();
+    expect(current.navTo).toHaveBeenCalledWith("/pages/support/chat?cid=CV-advisor");
     current.nodes("nx-conv-contact")[0]!.props.onClick();
     expect(current.navTo).toHaveBeenLastCalledWith("/pages/support/chat?start=advisor");
     expect(current.store.conversations[1]!.type).toBe("support");
   });
-  it.each(["warm", "cold"])("keeps seven %s support/CLOSED rows and action names independent of UNBOUND", async entry => {
+  it.each(["warm", "cold"])("aggregates seven %s support/CLOSED records without dropping history", async entry => {
     const rows = Array.from({ length: 7 }, (_, index) => ({ ...conversation("support", "closed", "待分配", `CV-${3168 - index}`),
       lastTs: Date.now() - 4 * 86_400_000 - index,
       lastMessage: "会话已因用户闲置 5 分钟自动结束,可重新发起会话。", lastMessageKind: "IDLE_TIMEOUT_CLOSE" as const }));
     const current = mount("support", entry === "warm" ? rows : []);
     if (entry === "cold") { current.store.conversations = rows; await Vue.nextTick(); }
-    current.expectNames(rows.map(() => zh.conversations.sessionEnded));
-    expect(current.nodes("nx-conv-rowprev").map(node => node.text)).toEqual(rows.map(row => localizedIdleClose(row.lastMessage, zh.conversations)));
-    expect(current.nodes("nx-conv-rowtime").map(node => node.text)).toEqual(rows.map(() => fmt(zh.conversations.tDayAgo, { n: 4 })));
-    expect(current.nodes("nx-conv-unread-t").map(node => node.children[0]?.text || node.text)).toEqual(rows.map(() => "2"));
+    current.expectNames([zh.conversations.sessionEnded]);
+    expect(current.store.conversations).toHaveLength(7);
+    expect(current.nodes("nx-conv-rowprev").map(node => node.text)).toEqual([localizedIdleClose(rows[0]!.lastMessage, zh.conversations)]);
+    expect(current.nodes("nx-conv-rowtime").map(node => node.text)).toEqual([fmt(zh.conversations.tDayAgo, { n: 4 })]);
+    expect(current.nodes("nx-conv-unread-t").map(node => node.children[0]?.text || node.text)).toEqual(["14"]);
     current.nodes("nx-conv-row").forEach(node => node.props.onClick());
-    expect(current.navTo.mock.calls.map(call => call[0])).toEqual(rows.map(row => `/pages/support/chat?cid=${row.id}`));
+    expect(current.navTo.mock.calls.map(call => call[0])).toEqual([`/pages/support/chat?cid=${rows[0]!.id}`]);
     expect(current.store.dismissConversation).not.toHaveBeenCalled();
   });
 
@@ -128,29 +130,33 @@ describe("human list identity follows each conversation kind and status", () => 
   it.each([zh, en, vietnamese])("retains existing owner normalization and localized action names", async messages => {
     for (const status of ["open", "closed"] as const) {
       const owners = ["", "Unassigned", "  unassigned  ", "待分配", "备勤池", "  Named owner  "];
-      const current = mount("support", owners.map((owner, index) => conversation("support", status, owner, `CV-owner-${index}`)), messages);
-      current.store.advisor = null; await Vue.nextTick();
-      current.expectNames(status === "closed"
-        ? [...Array(5).fill(messages.conversations.sessionEnded), "Named owner"]
-        : [messages.conversations.unassignedAgent, messages.conversations.unassignedAgent, messages.conversations.unassignedAgent,
-          "待分配", "备勤池", "Named owner"]);
+      for (const [index, owner] of owners.entries()) {
+        const current = mount("support", [conversation("support", status, owner, `CV-owner-${index}`)], messages);
+        current.store.advisor = null; await Vue.nextTick();
+        const expected = status === "closed" ? index < 5 ? messages.conversations.sessionEnded : "Named owner"
+          : index < 3 ? messages.conversations.unassignedAgent : owner.trim();
+        current.expectNames([expected]);
+      }
     }
   });
 
   it.each([zh, en, vietnamese])("distinguishes one waiting session from seven ended sessions without changing actions", async messages => {
     const rows = Array.from({ length: 8 }, (_, index) => ({ ...conversation("support", index === 0 ? "open" : "closed", "待分配", `CV-${3169 - index}`), lastTs: Date.now() - index }));
     const current = mount("support", rows, messages);
-    current.expectNames(["待分配", ...Array(7).fill(messages.conversations.sessionEnded)]);
+    current.expectNames(["待分配"]);
+    expect(current.store.conversations).toHaveLength(8);
     expect(current.nodes("nx-conv-contact")).toHaveLength(0);
-    current.nodes("nx-conv-row")[1]!.props.onClick();
-    expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-3168");
-    await current.nodes("nx-conv-remove")[1]!.props.onClick();
-    expect(current.store.dismissConversation).toHaveBeenCalledExactlyOnceWith("CV-3168");
-    expect(current.nodes("nx-conv-row")).toHaveLength(8);
+    current.nodes("nx-conv-row")[0]!.props.onClick();
+    expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-3169");
+    await current.nodes("nx-conv-remove")[0]!.props.onClick();
+    await Vue.nextTick();
+    await vi.waitFor(() => expect(current.store.dismissConversation).toHaveBeenCalledTimes(8));
+    expect(current.store.dismissConversation.mock.calls.map(call=>call[0])).toEqual(rows.map(row=>row.id));
+    expect(current.nodes("nx-conv-row")).toHaveLength(1);
 
     Object.assign(current.store.conversations[0]!, { status: "closed", sessionStatus: "closed" });
     await Vue.nextTick();
-    current.expectNames(Array(8).fill(messages.conversations.sessionEnded));
+    current.expectNames([messages.conversations.sessionEnded]);
     expect(current.nodes("nx-conv-contact")).toHaveLength(1);
     current.nodes("nx-conv-contact")[0]!.props.onClick();
     expect(current.navTo).toHaveBeenLastCalledWith("/pages/support/chat?start=advisor");

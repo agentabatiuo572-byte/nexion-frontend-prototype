@@ -66,9 +66,9 @@ beforeEach(() => {
 afterEach(() => { useMessageDrawer().stopRefresh(); vi.useRealTimers(); });
 
 describe("shared message center", () => {
-  it("sums server notifications, visible human conversations and tickets without reading on open", async () => {
+  it("sums notifications and visible human conversations without fetching retired tickets", async () => {
     runtime.notificationApi.page.mockResolvedValue(notificationPage(11));
-    runtime.supportApi.tickets.mockResolvedValue({ items: [ticket()], total: 1 });
+    useTickets().tickets.push(ticket());
     runtime.supportApi.conversations.mockResolvedValue({ items: [human("advisor", "advisor", 3), human("support", "support", 4),
       human("ai", "ai", 50), human("dismissed", "support", 20)], total: 4 });
     runtime.supportApi.conversationDismissals.mockResolvedValue([{ conversationNo: "dismissed", throughMessageId: 5 }]);
@@ -76,12 +76,12 @@ describe("shared message center", () => {
     await center.refresh(); center.show("service");
     expect(center.section).toBe("service"); expect(pages[1].route).toBe("pages/me/notifications");
     expect(center.advisorUnread).toBe(3); expect(center.supportUnread).toBe(4);
-    expect(center.humanUnread).toBe(7); expect(center.ticketUnread).toBe(2);
-    expect(center.serviceUnread).toBe(9); expect(center.totalUnread).toBe(20);
+    expect(center.humanUnread).toBe(7); expect(center.ticketUnread).toBe(0);
+    expect(center.serviceUnread).toBe(7); expect(center.totalUnread).toBe(18);
     expect(runtime.notificationApi.markRead).not.toHaveBeenCalled();
     expect(runtime.supportApi.markTicketRead).not.toHaveBeenCalled();
-    runtime.supportApi.markTicketRead.mockResolvedValue(ticket(0, 2));
-    await useTickets().markRead(useTickets().tickets[0]);
+    expect(runtime.supportApi.tickets).not.toHaveBeenCalled();
+    expect(useTickets().tickets[0]).toMatchObject({ id: "TK-1", unread: 2 });
     expect(center.ticketUnread).toBe(0); expect(center.totalUnread).toBe(18);
   });
 
@@ -106,7 +106,7 @@ describe("shared message center", () => {
     runtime.supportApi.tickets.mockResolvedValueOnce({ items: [ticket()], total: 1 }).mockRejectedValueOnce(new Error("offline"));
     const center = useMessageDrawer();
     await center.refresh(); await center.refresh();
-    expect(center.totalUnread).toBe(6); expect(center.error).toBe("offline"); expect(center.loading).toBe(false);
+    expect(center.totalUnread).toBe(4); expect(center.error).toBe("offline"); expect(center.loading).toBe(false);
   });
 
   it("runs one non-overlapping foreground loop and leaves human polling to realtime", async () => {
@@ -116,7 +116,7 @@ describe("shared message center", () => {
     center.startRefresh(); center.startRefresh(); await flush();
     await vi.advanceTimersByTimeAsync(45_000);
     expect(runtime.notificationApi.page).toHaveBeenCalledTimes(1);
-    expect(runtime.supportApi.tickets).toHaveBeenCalledTimes(1);
+    expect(runtime.supportApi.tickets).not.toHaveBeenCalled();
     expect(runtime.supportApi.conversations).not.toHaveBeenCalled();
     slow.resolve(notificationPage(1)); await flush();
     await vi.advanceTimersByTimeAsync(15_000);
@@ -132,9 +132,9 @@ describe("shared message center", () => {
     runtime.supportApi.tickets.mockReturnValueOnce(oldTickets.promise).mockResolvedValueOnce({ items: [ticket(3)], total: 1 });
     const center = useMessageDrawer();
     center.startRefresh(); await flush(); center.stopRefresh(); center.startRefresh(); await flush();
-    expect(center.totalUnread).toBe(5);
+    expect(center.totalUnread).toBe(2);
     oldNotifications.resolve(notificationPage(40)); oldTickets.resolve({ items: [ticket(20)], total: 1 });
-    await flush(); expect(center.totalUnread).toBe(5);
+    await flush(); expect(center.totalUnread).toBe(2);
     expect(runtime.notificationApi.page).toHaveBeenCalledTimes(2);
   });
 
@@ -151,7 +151,7 @@ describe("shared message center", () => {
     expect(center.section).toBe("notifications"); expect(center.totalUnread).toBe(0);
   });
 
-  for (const origin of ["pages/index/index", "pages/store/store", "pages/me/me", "pages/me/support-tickets"]) {
+  for (const origin of ["pages/index/index", "pages/store/store", "pages/me/me", "pages/me/support"]) {
     it(`opens the full-page center from every bell and returns to ${origin}`, async () => {
       const center = useMessageDrawer();
       for (const [source, handler, binding] of [[chassisSource, "goNotifications", "messageDrawer"], [headerSource, "goBell", "drawer"]]) {
@@ -228,7 +228,6 @@ describe("shared message center", () => {
     }
     expect(runtime.notificationApi.markRead).not.toHaveBeenCalled();
     expect(runtime.supportApi.markTicketRead).not.toHaveBeenCalled();
-    await channel({ id: "tk", href: "/pages/me/support-tickets?mode=create" });
-    expect(pages[1].route).toBe("pages/me/support-tickets");
+    expect(supportSource).not.toContain('href: "/pages/me/support-tickets?mode=create"');
   });
 });

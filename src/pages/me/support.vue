@@ -83,7 +83,6 @@ const MAIL_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" st
 
 const internalChannels = computed<Channel[]>(() => [
   { id: "lc", label: w.value.chLiveChat, hint: w.value.chLiveChatHint, icon: CHAT_SVG, tintSoft: "color-mix(in srgb, var(--v5-brand) 15%, transparent)" },
-  { id: "tk", label: w.value.chTicket, hint: w.value.chTicketHint, icon: TICKET_SVG, tintSoft: "color-mix(in srgb, var(--v5-brand) 15%, transparent)", href: "/pages/me/support-tickets?mode=create" },
 ]);
 const externalChannels = computed<Channel[]>(() => [
   { id: "tg", externalId: "telegram", label: w.value.chTelegram, hint: w.value.chTelegramHint, icon: SEND_SVG, tintSoft: "color-mix(in srgb, var(--v5-tech-cyan) 15%, transparent)" },

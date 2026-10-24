@@ -12,7 +12,7 @@ describe("support channel actions", () => {
     expect(source).toContain("return remoteApiEnabled ? internalChannels.value : [...internalChannels.value, ...externalChannels.value];");
     expect(source).toContain('messageCenter.show("service")');
     expect(source).not.toContain('href: "/pages/support/messages"');
-    expect(source).toContain('href: "/pages/me/support-tickets?mode=create"');
+    expect(source).not.toContain("support-tickets");
   });
 
   it("keeps external launch behavior confined to the explicit mock-only branch", () => {

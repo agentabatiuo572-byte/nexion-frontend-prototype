@@ -514,7 +514,7 @@ function goSupport() {
   navTo("/pages/me/support");
 }
 function goTicketCreate() {
-  navTo("/pages/me/support-tickets?mode=create");
+  navTo("/pages/support/messages");
 }
 /** Retry the same server turn while its outcome is unknown. */
 function retryBot() {
