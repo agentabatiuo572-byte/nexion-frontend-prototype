@@ -126,6 +126,7 @@ import { fmt } from "@/i18n/format";
 import { navTo } from "@/lib/route";
 import { usePurchaseGate } from "@/composables/use-purchase-gate";
 import { productCopy } from "@/lib/product-copy";
+import { prepareEarnConfig, useEarnConfig } from "@/store/earn-config";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { productTierCode } from "@/lib/product-image";
 import { useProductImage } from "@/composables/use-product-image";
@@ -143,7 +144,9 @@ const props = withDefaults(defineProps<{ product: Product; featured?: boolean; p
 });
 const t = useT();
 const locale = useLocaleStore();
-const copy = computed(() => productCopy(t.value, props.product, remoteApiEnabled, locale.code));
+const earnConfig = useEarnConfig();
+prepareEarnConfig();
+const copy = computed(() => productCopy(t.value, props.product, remoteApiEnabled, locale.code, earnConfig.taskPricing.value?.taskClasses));
 
 const isShare = computed(() => props.product.productType === "SHARE");
 const catalogUnavailable = computed(() => remoteApiEnabled && productCatalogState.status !== "ready");

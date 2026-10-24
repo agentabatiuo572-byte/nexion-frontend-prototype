@@ -186,6 +186,7 @@
         <template v-if="!isShare || aiPerfRows.length > 0">
           <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detAiPerf" /></view>
           <SpecTable :rows="aiPerfRows" brand-value />
+          <text class="block mx-4" :style="{ ...trustBodyStyle, marginTop: '8px' }">{{ t.store.aiReferenceHint }}</text>
         </template>
 
         <!-- === Section 7: Trust material === -->
@@ -229,7 +230,7 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" :style="{ transform: openFaq === i ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><path d="m9 18 6-6-6-6" /></svg>
             </view>
             <view v-if="openFaq === i" style="padding-bottom: 12px; padding-right: 24px; margin-top: -4px">
-              <text style="font-size: 13px; color: var(--v5-ink-3); line-height: 1.625">{{ f.a }}</text>
+              <text style="font-size: 13px; color: var(--v5-ink-3); line-height: 1.625; white-space: pre-line">{{ f.a }}</text>
             </view>
           </view>
         </view>
@@ -258,6 +259,7 @@ import LiveSocialProof from "@/components/store/live-social-proof.vue";
 import SpecTable from "@/components/store/spec-table.vue";
 import LockedProductCard from "@/components/store/locked-product-card.vue";
 import { useT } from "@/i18n/use-t";
+import { useEarnConfig } from "@/store/earn-config";
 import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
 import { nexGridBrandText } from "@/lib/brand-copy";
@@ -320,6 +322,7 @@ async function refreshDetailFacts(): Promise<void> {
     void retryEligibility();
   }
   await Promise.all([
+    earnConfig.refresh(),
     refreshServerProductPhase(true),
     remoteApiEnabled ? refreshTrust(true) : Promise.resolve(true),
   ]);
@@ -402,6 +405,7 @@ watch([catalogStatus, () => product.value?.id], () => {
 });
 
 const isShare = computed(() => product.value?.productType === "SHARE");
+const earnConfig = useEarnConfig();
 const stockUnavailable = computed(() => product.value?.inventoryMode === "FINITE"
   && product.value.stock === 0);
 // Localized SKU copy (tagline / ribbon badge). Empty strings until `id` resolves —
@@ -409,7 +413,7 @@ const stockUnavailable = computed(() => product.value?.inventoryMode === "FINITE
 const copy = computed(() =>
   product.value
     ? remoteApiEnabled
-      ? productCopy(t.value, product.value, true, locale.code)
+      ? productCopy(t.value, product.value, true, locale.code, earnConfig.taskPricing.value?.taskClasses)
       : productCopy(t.value, product.value, false, locale.code)
     : { tagline: "", badge: "", unlocks: "" },
 );
@@ -558,7 +562,8 @@ function openTrustUrl(raw: string) {
 const faqs = computed(() => {
   const f = t.value.store.faq;
   const datacenter = specText(t.value, localizedDatacenterValue(product.value?.datacenter, locale.code));
-  return [{ ...f.location, a: datacenter }, f.withdraw, f.demand, f.refund];
+  const notes = product.value?.features.filter((line) => line.trim()).join('\n');
+  return [...(notes ? [{ q: t.value.store.productNotes, a: notes }] : []), { ...f.location, a: datacenter }, f.withdraw, f.demand, f.refund];
 });
 
 // ── text helpers (toFixed / toLocaleString / fmt out of template) ──

@@ -76,6 +76,7 @@ function page(copy = en, fallback = "") {
     "@/store/product-availability": { isProductAvailable: (product: Product) => product.available !== false },
     "@/composables/use-page-header": { useSetPageHeader: (getter: () => typeof header.value) => { header = Vue.computed(getter); } },
     "@/store/sticky-cta-bar": { useStickyCTA: () => sticky },
+    "@/store/earn-config": { useEarnConfig: () => ({ taskPricing: Vue.ref(null), refresh: async () => {} }) },
     "@/lib/product-copy": { productCopy: () => ({ tagline: "", badge: "", unlocks: "" }),
       localizedDatacenterValue: (value: string) => value, specText: (_copy: unknown, value: string) => value ?? "",
       specRow: () => null },

@@ -17,6 +17,7 @@ import type { LocaleCode } from "@/i18n";
 import type { Product } from "@/mock/products";
 import { SPEC_UNAVAILABLE } from "@/api/product-catalog-contract";
 import { fmt } from "@/i18n/format";
+import type { EarnTaskClass } from "@/api/earn-config-api";
 
 export interface ProductCopy {
   tagline: string;
@@ -63,13 +64,18 @@ function serverTagline(t: Messages, p: Product, locale?: LocaleCode): string {
   return p.tagline;
 }
 
-export function productCopy(t: Messages, p: Product, serverCatalog = false, locale?: LocaleCode): ProductCopy {
+export function productPoolLabel(t: Messages, pool: string | undefined, tasks: readonly EarnTaskClass[] = []): string {
+  if (!pool || pool === SPEC_UNAVAILABLE) return "";
+  const selected = tasks.find((task) => task.taskId === pool);
+  if (selected) return selected.enabled ? t.market.workloads[selected.taskClass]?.label ?? selected.taskName : "";
+  return t.market.workloads[pool as keyof typeof t.market.workloads]?.label ?? "";
+}
+
+export function productCopy(t: Messages, p: Product, serverCatalog = false, locale?: LocaleCode, tasks: readonly EarnTaskClass[] = []): ProductCopy {
   if (serverCatalog) return {
     tagline: serverTagline(t, p, locale),
     badge: serverBadge(t, p.badge),
-    unlocks: p.ai?.unlocks && p.ai.unlocks !== SPEC_UNAVAILABLE
-      ? t.market.workloads[p.ai.unlocks as keyof typeof t.market.workloads]?.label ?? p.ai.unlocks
-      : "",
+    unlocks: productPoolLabel(t, p.ai?.unlocks, tasks),
   };
   const entry = (t.store.catalog as Record<string, CatalogEntry | undefined>)[p.id];
   return {
@@ -89,6 +95,8 @@ export function productCopy(t: Messages, p: Product, serverCatalog = false, loca
  * fails the build on any unwrapped read in the store render face.
  */
 export function specText(t: Messages, value: string | null | undefined, fallback = t.store.specValueUnavailable): string {
+  const target = value?.match(/^目标\s*(\d+(?:\.\d+)?%)$/);
+  if (target) return fmt(t.store.specTarget, { n: target[1] });
   return !value || value === SPEC_UNAVAILABLE ? fallback : value;
 }
 
