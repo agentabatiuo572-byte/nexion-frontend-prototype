@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\team-v8-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "52e160159490c818aae4bb37db9c498e67631f80",
-  "sourceRef": "52e160159490c818aae4bb37db9c498e67631f80",
+  "sourceHead": "169f6696f19712669f35849fc6eac7243a071e99",
+  "sourceRef": "169f6696f19712669f35849fc6eac7243a071e99",
   "sourceRefKind": "commit",
-  "sourceTree": "5f9302a3693a524271f75000a86eb31e2dfe7cb4",
+  "sourceTree": "e8dd6ed16a4112b4e9beca6a450a71c37a02089d",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -9344,10 +9344,10 @@
       "mode": "100644"
     },
     "src/components/team/quota-tier-card.vue": {
-      "sourceBlob": "33b02c775b03773c2d22ec6ab33f020966835ff7",
-      "sourceSha256": "af42f220626b5d3a216e47912408dc518af5531df92772c1c4a6fe08e64e5786",
-      "targetBlob": "33b02c775b03773c2d22ec6ab33f020966835ff7",
-      "targetSha256": "af42f220626b5d3a216e47912408dc518af5531df92772c1c4a6fe08e64e5786",
+      "sourceBlob": "eb4e50c21e6c7d06dc74c7625499b7b8560df497",
+      "sourceSha256": "27b42760d410501cf594986301cd3bc4452978670e8e2931b25805359b38eec3",
+      "targetBlob": "eb4e50c21e6c7d06dc74c7625499b7b8560df497",
+      "targetSha256": "27b42760d410501cf594986301cd3bc4452978670e8e2931b25805359b38eec3",
       "mode": "100644"
     },
     "src/components/team/share-channel-sheet-parity.contract.test.ts": {

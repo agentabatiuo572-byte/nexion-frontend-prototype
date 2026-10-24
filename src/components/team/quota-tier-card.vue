@@ -28,6 +28,17 @@
       <text class="font-mono-tabular" :style="badgeStyle">{{ unlocked ? t.quota.unlocked : t.quota.locked }}</text>
     </view>
 
+    <view v-if="tier.conditions.length" style="margin-top: 18px; display: flex; flex-direction: column; gap: 12px">
+      <text :style="unlockHeadStyle">{{ tier.unlockKind === 'either' ? t.quota.unlockEither : t.quota.unlockAll }}</text>
+      <view v-for="(condition, index) in tier.conditions" :key="index">
+        <view class="flex items-center justify-between" style="gap: 12px; margin-bottom: 6px; font-size: 12px">
+          <text style="color: var(--v5-ink-2)">{{ condition.label }}</text>
+          <text class="font-mono-tabular" :style="{ color: condition.current >= condition.required ? 'var(--v5-success)' : 'var(--v5-ink)' }">{{ condition.kind === 'volume' ? `$${formatAmount(condition.current)} / $${formatAmount(condition.required)}` : `${condition.current} / ${condition.required}` }}</text>
+        </view>
+        <QuotaConditionBar :pct="condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="condition.current >= condition.required" :tint="tier.tint" />
+      </view>
+    </view>
+
     <!-- perks -->
     <view :style="perksWrapStyle">
       <view v-for="(p, i) in tier.perks" :key="i" class="flex items-start" style="gap: 8px">
