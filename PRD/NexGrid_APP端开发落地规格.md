@@ -122,7 +122,7 @@ trade-in/replace composer 等跨 store 操作:任一步失败全 rollback(设备
 
 ### 1.5 Store(§7)
 
-2026-10-25 规格补充：`GET /api/store/catalog` 的 `gpu/vram/power/uptime` 分别对应硬件四行；`uptime` 是 E1 文本展示值，不自动声明 SLA。`ai.imageGenPerMin/llmTokensPerSec/videoMinPerHour/fineTuneMins/unlocks` 在真实接口模式正常展示，缺值 `-`，保留零值和小吞吐精度。数据中心在 FAQ 展示。“相关资料”使用 I4 `auditsReserves` 已发布报告名/说明/安全链接；空数据与加载失败分开显示，不设重试按钮，页面重进正常刷新。详细边界见主 PRD §7.2。
+2026-10-25 规格补充：`GET /api/store/catalog` 的 `gpu/vram/power/uptime` 分别对应硬件四行；`uptime` 是 E1 文本展示值，不自动声明 SLA。`ai.imageGenPerMin/llmTokensPerSec/videoMinPerHour/fineTuneMins/unlocks` 在真实接口模式正常展示，缺值 `-`，保留零值和小吞吐精度。数据中心在 FAQ 展示。“相关资料”优先使用目录的 `specDocumentTitle/specDocumentUrl`（E1 商品公开资料），无商品资料时回退 I4 `auditsReserves` 已发布报告名/说明/安全链接；商品资料不依赖 I4 状态，切商品后重新计算；空数据与加载失败分开显示，不设重试按钮，页面重进正常刷新。详细边界见主 PRD §7.2。
 
 2026-10-25 补充：商品详情采用整条圆角标题栏（商品名 + 目录档位副标题，返回/消息图标共用栏背景），滚动时保留标题，目录异常时不展示旧档位。原生商品列表/详情共享持久图片缓存（64 张 / 32 MiB，资产版本更新、签名续期复用、按最近使用清理、缺失/损坏重下载）；H5 不执行原生缓存。具体状态和间距见架构文档 §7.2。购买资格失败用错误提示，底部购买限制继续有效，不在详情顶部堆放重复说明。
 

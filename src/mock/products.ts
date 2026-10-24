@@ -42,6 +42,8 @@ export interface Product {
   // 缺失在渲染层降级成本地化占位串 (lib/product-copy.ts 的 specText)，
   // 不是解析失败——解析失败会连整份目录一起作废。
   gpu?: string;
+  specDocumentTitle?: string;
+  specDocumentUrl?: string;
   vram?: string;
   hashRate?: string;
   power?: string;

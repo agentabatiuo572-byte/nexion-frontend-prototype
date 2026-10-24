@@ -194,6 +194,8 @@ function product(value: unknown): CatalogProduct {
     hashRate: optionalString(source.hashRate),
     power: displayString(source.power),
     uptime: displayString(source.uptime),
+    specDocumentTitle: optionalString(source.specDocumentTitle),
+    specDocumentUrl: optionalString(source.specDocumentUrl),
     datacenter: displayString(source.datacenter),
     // 质保直接消费 nx_admin_device_sku.warranty 的服务端原文；它可能是月数、年数或
     // 限定条款，客户端不得改造成并不存在的 warrantyMonths 再猜单位。

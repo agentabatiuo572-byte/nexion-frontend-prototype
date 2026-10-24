@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import page from "./detail.vue?raw";
+import { computed, ref } from "vue";
 
 const script = page.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)![1];
 const source = ts.createSourceFile("trust.ts", script, ts.ScriptTarget.Latest, true);
@@ -23,6 +24,17 @@ function setup() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Product report link availability uses the actual page handler", () => {
+  it("selects the current SKU document independently of platform disclosure and clears it on SKU change", () => {
+    const product = ref({ specDocumentTitle: "NVIDIA RTX 4090", specDocumentUrl: "https://www.nvidia.com/" });
+    const declaration = script.slice(script.indexOf("const productSpecDocument ="), script.indexOf("function safeTrustUrl"));
+    const code = ts.transpileModule(`${declaration}; return productSpecDocument;`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+    const view = new Function("computed", "product", "safeTrustUrl", code)(computed, product, setup().safeTrustUrl);
+    expect(view.value).toEqual({ title: "NVIDIA RTX 4090", url: "https://www.nvidia.com/" });
+    product.value = { specDocumentTitle: "", specDocumentUrl: "" };
+    expect(view.value).toBeNull();
+    product.value = { specDocumentTitle: "Specs", specDocumentUrl: "javascript:alert(1)" };
+    expect(view.value).toBeNull();
+  });
   it.each(["", "   ", "javascript:alert(1)", "data:text/html,hello", "http://example.com/a.pdf",
     "https://user:password@example.com/a.pdf", "//example.com/a.pdf", "/pages/me/me?token=private", "not a URL"])(
     "explicitly reports an unavailable link without opening %j", (raw) => {

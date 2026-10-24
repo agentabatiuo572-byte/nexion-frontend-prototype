@@ -198,7 +198,13 @@
         <template v-else>
           <view style="padding: 22px 16px 4px"><SectionHeader :title="productTrustTitle" /></view>
           <view class="mx-4 nx-glass-card" :style="trustCardStyle" data-testid="product-trust-material">
-            <text v-if="trustStatus === 'loading' || trustStatus === 'idle'" class="block" :style="trustBodyStyle">{{ t.trust.loadingDisclosure }}</text>
+            <view v-if="productSpecDocument" class="active:opacity-70" :style="trustDisclosureRowStyle"
+              role="link" tabindex="0" :aria-label="productSpecDocument.title"
+              @click="openTrustUrl(productSpecDocument.url)" @keydown.enter.prevent="openTrustUrl(productSpecDocument.url)">
+              <text class="block" :style="trustDisclosureTitleStyle">{{ productSpecDocument.title }}</text>
+              <text class="block" :style="trustLinkStyle">{{ t.store.viewRelatedMaterial }} ↗</text>
+            </view>
+            <text v-else-if="trustStatus === 'loading' || trustStatus === 'idle'" class="block" :style="trustBodyStyle">{{ t.trust.loadingDisclosure }}</text>
             <template v-else-if="trustStatus === 'ready' && productAuditRows.length">
               <view v-for="row in productAuditRows" :key="row.Primary" class="active:opacity-70" :style="trustDisclosureRowStyle"
                 role="link" tabindex="0" :aria-label="row.Primary"
@@ -520,6 +526,12 @@ const productAuditSection = computed(() => trustSections.value.find((section) =>
 const productTrustTitle = computed(() => t.value.store.detTrustedBy);
 const productAuditRows = computed(() => trustNumberedRows(productAuditSection.value?.fields ?? [], "document", ["Primary", "Secondary", "Url"] as const, trustLanguage.value)
   .filter((row) => safeTrustUrl(row.Url)));
+
+const productSpecDocument = computed(() => {
+  const title = product.value?.specDocumentTitle?.trim();
+  const url = safeTrustUrl(product.value?.specDocumentUrl ?? "");
+  return title && url ? { title, url } : null;
+});
 
 function safeTrustUrl(raw: string): string | null {
   const value = raw.trim();
