@@ -31,7 +31,9 @@ const CHECKOUT = `/#/pages/store/checkout?product=${PRODUCT}`;
 const PENDING_KEY = "nexgrid-pending-checkout-accounts-v1";
 const ORDERS_KEY = "nexgrid-orders-accounts-v1";
 const CLOUD_KEY = "nexgrid-account-cloud-v1";
+const BILLS_KEY = "nexgrid-bills-accounts-v1";
 const NO_ADVANCE_WAIT_MS = 15_000;
+const confirmationEvidence = [];
 
 function fail(msg) { throw new Error(`pending-checkout-runtime: ${msg}`); }
 
@@ -89,7 +91,7 @@ async function tapBar(page) {
 }
 
 async function readState(page) {
-  return page.evaluate(({ PENDING_KEY, ORDERS_KEY }) => {
+  return page.evaluate(({ PENDING_KEY, ORDERS_KEY, CLOUD_KEY, BILLS_KEY }) => {
     const parse = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null")?.data ?? null; } catch { return null; } };
     const pending = parse(PENDING_KEY) ?? {};
     const orders = parse(ORDERS_KEY) ?? {};
@@ -104,6 +106,8 @@ async function readState(page) {
       lastOrder: (() => { const o = Object.values(orders).flatMap((row) => row?.orders ?? [])[0]; return o ? { total: o.total, tradeInCredit: o.tradeInCredit ?? 0, tradeInDeviceId: o.tradeInDeviceId ?? null } : null; })(),
       pageStack: typeof getCurrentPages === "function" ? getCurrentPages().length : null,
       orderCount,
+      balances: Object.fromEntries(Object.entries(parse(CLOUD_KEY) ?? {}).map(([key, row]) => [key, { usdt: row?.user?.usdtBalance, nex: row?.user?.nexBalance }])),
+      bills: parse(BILLS_KEY) ?? {},
       onPayStep: /completed the payment/.test(text),
       address: text.match(/T[0-9A-F]{33}|0x[0-9a-f]{40}/)?.[0] ?? null,
       countdown: text.match(/\b\d\d:\d\d\b/)?.[0] ?? null,
@@ -112,7 +116,32 @@ async function readState(page) {
       dialog: !!document.querySelector(".nx-mask--confirm"),
       reviewOrder: /Review order/.test(text),
     };
-  }, { PENDING_KEY, ORDERS_KEY });
+  }, { PENDING_KEY, ORDERS_KEY, CLOUD_KEY, BILLS_KEY });
+}
+
+/** The review CTA now opens an explicit purchase confirmation before either
+ * payment rail. Keep the old payment assertions behind a real dialog click. */
+async function confirmPurchase(page, label, verifyCancel = false) {
+  const before = await readState(page);
+  const effects = state => JSON.stringify({ balances: state.balances, bills: state.bills, orders: state.orderCount, sessions: state.sessions });
+  await tapButton(page, label);
+  const dialog = page.getByRole("dialog", { name: "Confirm payment", exact: true }).last();
+  await dialog.waitFor({ state: "visible", timeout: 5000 });
+  const message = await dialog.locator(".nx-modal__msg").innerText();
+  if (!/^Pay \d+\.\d{2} USDT\?$/.test(message)) fail(`purchase confirmation did not show a precise payable amount: ${message}`);
+  const opened = await readState(page);
+  if (!opened.reviewOrder || opened.onPayStep || effects(opened) !== effects(before)) fail("opening purchase confirmation mutated money, bills, orders, or invoice state");
+  if (verifyCancel) {
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click({ timeout: 5000 });
+    await dialog.waitFor({ state: "hidden", timeout: 5000 });
+    const cancelled = await readState(page);
+    if (!cancelled.reviewOrder || cancelled.onPayStep || effects(cancelled) !== effects(before)) fail("cancelled purchase confirmation changed money, bills, orders, or invoices");
+    confirmationEvidence.push({ label, message, cancelledWithoutEffects: true });
+    await tapButton(page, label);
+    await dialog.waitFor({ state: "visible", timeout: 5000 });
+  }
+  await dialog.getByRole("button", { name: "Pay now", exact: true }).click({ timeout: 5000 });
+  await dialog.waitFor({ state: "hidden", timeout: 5000 });
 }
 
 async function goToPayStep(page) {
@@ -120,7 +149,7 @@ async function goToPayStep(page) {
   await page.waitForTimeout(1500);
   await dismissSheets(page);
   await tapButton(page, "Continue");
-  await tapButton(page, "Pay now");
+  await confirmPurchase(page, "Pay now", confirmationEvidence.length === 0);
   await page.waitForTimeout(400);
   const st = await readState(page);
   if (!st.onPayStep || !st.address || st.sessions.length !== 1) fail(`could not reach the pay step: ${JSON.stringify(st)}`);
@@ -138,7 +167,7 @@ async function goToPayStepWithTradeIn(page) {
   await page.locator(".tis-root .tis-cta").first().click({ timeout: 5000 });
   await page.waitForTimeout(800);
   await tapButton(page, "Continue");
-  await tapButton(page, "Pay now");
+  await confirmPurchase(page, "Pay now");
   await page.waitForTimeout(400);
   const st = await readState(page);
   if (!st.onPayStep || !st.address || st.sessions.length !== 1) fail(`F: could not reach the pay step with a trade-in: ${JSON.stringify(st)}`);
@@ -164,7 +193,7 @@ async function payByCard(page) {
     if (!picked) fail("G: card payment method row not found on the select-payment step");
     await page.waitForTimeout(600);
     await tapButton(page, "Continue");
-    await tapButton(page, "Continue to payment"); // card leg CTA label (chain leg says "Pay now")
+    await confirmPurchase(page, "Continue to payment", !confirmationEvidence.some(item => item.label === "Continue to payment")); // card leg CTA label (chain leg says "Pay now")
     await page.waitForTimeout(800);
   };
   await pickCardAndContinue();
@@ -259,7 +288,7 @@ try {
     if (bounced.sessions.length !== 0) fail(`C: bounced invoice not voided (sessions=${bounced.sessions.length}) — a second Pay now would mint a duplicate`);
     if (bounced.pill !== null) fail(`C: bar shows a voided invoice: ${bounced.pill}`);
     await tapButton(page, "Continue");
-    await tapButton(page, "Pay now");
+    await confirmPurchase(page, "Pay now");
     await page.waitForTimeout(500);
     const second = await readState(page);
     if (second.dialog) fail("C: collision dialog raised although the previous invoice was voided");
@@ -375,6 +404,7 @@ try {
     await ctx.close();
   }
 
+  report.confirmation = confirmationEvidence;
   console.log(JSON.stringify(report, null, 2));
   console.log("PENDING-CHECKOUT-RUNTIME: PASS (A no-auto-advance 15s · B leave/resume same invoice · C bounce voids + single live · D expiry prune · E two tabs settle once · F sibling instance keeps trade-in · G card purchase voids the chain invoice)");
 } finally {

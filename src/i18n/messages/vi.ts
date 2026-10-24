@@ -2898,15 +2898,6 @@ export const vi: Messages = {
     chLiveChat: "Tin nhắn trực tiếp",
     chLiveChatHint: "Liên hệ cố vấn hoặc đội hỗ trợ",
 
-    "onlineNow": "Đang online",
-    "avgResponse": "Phản hồi TB {n} phút",
-    "chTelegram": "Telegram",
-    "chTelegramHint": "@nexgrid_official · Cộng đồng chính thức",
-    "chDiscord": "Discord",
-    "chDiscordHint": "discord.gg/nexgrid · #ask-an-engineer",
-    "chEmail": "Email",
-    "chEmailHint": "support@nexgrid.ai · Hỗ trợ qua email",
-    "openChannel": "Mở",
   },
   conversations: {
     title: "Tin nhắn",

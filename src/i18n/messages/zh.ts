@@ -2915,15 +2915,6 @@ export const zh: Messages = {
     chLiveChat: "在线会话",
     chLiveChatHint: "联系顾问或客服团队",
 
-    "onlineNow": "现在在线",
-    "avgResponse": "平均响应 {n} 分钟",
-    "chTelegram": "Telegram",
-    "chTelegramHint": "@nexgrid_official · 官方社群",
-    "chDiscord": "Discord",
-    "chDiscordHint": "discord.gg/nexgrid · #ask-an-engineer",
-    "chEmail": "邮件",
-    "chEmailHint": "support@nexgrid.ai · 邮件支持",
-    "openChannel": "打开",
   },
   conversations: {
     title: "会话中心",

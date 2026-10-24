@@ -3016,15 +3016,6 @@ export const en = {
     chLiveChat: "Live messages",
     chLiveChatHint: "Contact an advisor or the support team",
 
-    "onlineNow": "Online now",
-    "avgResponse": "Avg. response {n}m",
-    "chTelegram": "Telegram",
-    "chTelegramHint": "@nexgrid_official · Official community",
-    "chDiscord": "Discord",
-    "chDiscordHint": "discord.gg/nexgrid · #ask-an-engineer",
-    "chEmail": "Email",
-    "chEmailHint": "support@nexgrid.ai · Email support",
-    "openChannel": "Open",
   },
   conversations: {
     title: "Messages",

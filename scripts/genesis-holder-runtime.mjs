@@ -120,7 +120,15 @@ async function staticPerks(page) {
   assert.deepEqual(perks.clipped, [], 'benefit titles and descriptions remain visible without clipping or truncation');
   return perks;
 }
-async function emissionGuide(page, activation) {
+async function emissionGuide(page, activation, stakingVisible) {
+  // A reload restores holdings before the async mock configuration is ready.
+  // Visibility must be checked against loaded authority, including its off state.
+  await page.waitForFunction(async () => {
+    const cfg = (await import('/src/store/config.ts')).useConfig();
+    return !cfg.loading && !cfg.syncFailed;
+  });
+  await page.evaluate(async visible => (await import('/src/store/config.ts')).useConfig()._devSetFlag('stakingVisible', visible), stakingVisible);
+  await page.locator('.gh-boost').waitFor({ state: stakingVisible ? 'visible' : 'detached' });
   const copy = await page.evaluate(async () => {
     const t = (await import('/src/i18n/use-t.ts')).getT();
     return { label: t.genesisHolder.pre.howLink, title: t.genesisHowItWorks.heroTitle };
@@ -128,8 +136,17 @@ async function emissionGuide(page, activation) {
   const link = page.locator('.gh-how');
   assert.equal(await link.count(), 1, 'emission explanation remains available independently of listing progress');
   assert.equal(await link.innerText(), copy.label);
-  assert.ok(await link.evaluate(e => e.parentElement.classList.contains('gh-content') && !e.nextElementSibling
-    && e.previousElementSibling.classList.contains('gh-boost')), 'explanation is the final action at the page bottom');
+  async function guidePosition() {
+    const position = await link.evaluate(e => ({ parent: e.parentElement.className,
+      last: !e.nextElementSibling, previous: e.previousElementSibling?.className,
+      boosts: e.parentElement.querySelectorAll('.gh-boost').length }));
+    assert.equal(position.parent, 'gh-content', 'explanation belongs to the page content');
+    assert.equal(position.last, true, 'explanation is the final action at the page bottom');
+    assert.equal(position.boosts, stakingVisible ? 1 : 0, 'staking entry follows its loaded visibility flag');
+    assert.equal(position.previous, stakingVisible ? 'gh-boost' : 'gh-actions', 'explanation follows the final available action');
+    return position;
+  }
+  const before = await guidePosition();
   if (activation === 'click') await link.click();
   else await link.press(activation);
   await page.waitForURL(/#\/pages\/genesis\/how-it-works$/);
@@ -137,6 +154,8 @@ async function emissionGuide(page, activation) {
   await page.goBack();
   await page.waitForURL(/#\/pages\/genesis\/holder$/);
   await link.waitFor();
+  const after = await guidePosition();
+  return { stakingVisible, activation, before, after };
 }
 async function runCase(base, locale, theme) {
   const name = locale + "-" + theme;
@@ -273,7 +292,9 @@ async function runCase(base, locale, theme) {
     assert.equal((await state(page)).owned, 1, "purchase persists after reload");
     assert.equal((await state(page)).purchases, after.purchases, "reload creates no duplicate receipt");
     assert.equal(await page.locator(".gh-emissions").count(), 0, "pre-listing never shows released funds");
-    await emissionGuide(page, theme === 'dark' ? 'click' : 'Enter');
+    for (const stakingVisible of [false, true]) {
+      evidence.push({ emissionGuide: await emissionGuide(page, theme === 'dark' ? 'click' : 'Enter', stakingVisible) });
+    }
     await page.evaluate(async () => (await import("/src/store/genesis.ts")).useGenesis().setNexListed(true, Date.now()));
     await page.locator(".gh-emissions").waitFor();
     assert.equal(await page.locator(".gh-hero .genesis-holder-badge").count(), 1, "post-listing retains identity");
@@ -285,7 +306,9 @@ async function runCase(base, locale, theme) {
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator(".gh-emissions").waitFor();
 
-    await emissionGuide(page, 'Space');
+    for (const stakingVisible of [false, true]) {
+      evidence.push({ emissionGuide: await emissionGuide(page, 'Space', stakingVisible) });
+    }
     // Arabic currently falls back to English. Stress RTL layout in this isolated
     // fixture; the app itself does not yet apply a document direction globally.
     await themeAndLocale(page, theme, "ar");
