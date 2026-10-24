@@ -301,7 +301,14 @@ try {
       for(const route of ['index/index','earn/earn','store/store','team/team','me/me']) {
         await goto(route);await settled(nav());
         assert.equal(await chassis().locator('.nx-header__l .nx-liquid-glass').count(),0);
-        assert.equal(await chassis().locator('.nx-header__r .nx-liquid-glass').count(),1);
+        assert.equal(await chassis().locator('.nx-header__r > .nx-liquid-glass').count(),0);
+        assert.equal(await chassis().locator('.nx-header__r .nx-icon-btn > .nx-liquid-glass').count(),2);
+        const circularControls=await chassis().locator('.nx-header__r .nx-icon-btn').evaluateAll(els=>els.map(el=>{
+          const r=el.getBoundingClientRect(),surface=el.querySelector(':scope > .nx-liquid-glass');
+          const s=surface.getBoundingClientRect();
+          return {width:r.width,height:r.height,surfaceWidth:s.width,surfaceHeight:s.height,radius:parseFloat(getComputedStyle(surface).borderRadius)};
+        }));
+        assert.ok(circularControls.every(c=>c.width>=44&&c.height>=44&&Math.abs(c.surfaceWidth-c.surfaceHeight)<1&&c.radius>=c.surfaceWidth/2-1),'independent circular navigation targets: '+JSON.stringify(circularControls));
         const before=await chassis().locator('.nx-header__r').boundingBox();
         await scrollContent(340);
         try { await chassis().locator('.nx-header__l[data-hidden="true"]').waitFor({state:'attached',timeout:6000}); }
@@ -362,10 +369,32 @@ try {
         await chassis().locator('.nx-header__l').waitFor({state:'hidden'});
         const path=resolve(out,`${engine}-store-${theme}.png`);await page.screenshot({path});evidence.push(path);log('clear-material-'+theme,material);
       }
-      await chassis().locator('.nx-bell').click();await page.locator('.md-panel:visible').waitFor();
-      await page.locator('.md-panel:visible .md-close').click();
+      await chassis().locator('.nx-bell').click();await page.waitForURL(/pages\/me\/notifications\?section=notifications/);
+      assert.equal(await page.locator('.md-panel:visible').count(),0);
+      await chassis().locator('[data-glass-value="notifications"][data-selected="true"]').waitFor();
+      await chassis().locator('.spv-back').click();await page.waitForURL(/pages\/store\/store/);
       await chassis().locator('.nx-icon-btn').first().click();await page.waitForURL(/pages\/search\/search/);
       await chassis().locator('.nx-search-nova').waitFor();await chassis().locator('input').waitFor();log('search-message-actions');
+      // The disclosure reader owns vertical scrolling. Its header must never
+      // scroll underneath the status bar, including in the offline error state.
+      for(const width of [320,390]) {
+        await page.setViewportSize({width,height:740});
+        await page.goto(`${server.baseUrl}/?nx_device_inner=1&glass_disclosure_width=${width}#/pages/me/risk-disclosure`,{waitUntil:'domcontentloaded'});
+        await chassis().locator('.spv').waitFor();
+        await page.waitForFunction(()=>[...document.querySelectorAll('.nx-chassis')].filter(el=>el.getClientRects().length).every(el=>getComputedStyle(el.querySelector('.nx-page-enter')).transform==='none'));
+        const header=chassis().locator('.spv'),before=await header.boundingBox();
+        const reading=await chassis().locator('.rd-reading').boundingBox();
+        await page.mouse.move(reading.x+reading.width/2,reading.y+reading.height/2);
+        await page.mouse.wheel(0,1000);await page.waitForTimeout(250);
+        const after=await header.boundingBox();assert.ok(Math.abs(after.y-before.y)<.1,'reading scroll moved the header');
+        const state=await chassis().evaluate(el=>{
+          const outer=el.querySelector('.nx-content'),status=el.querySelector('.nx-statusbar').getBoundingClientRect();
+          const controls=[...el.querySelectorAll('.spv-side')].map(button=>{const r=button.getBoundingClientRect();return {belowStatus:r.top>=status.bottom-.1,hit:button.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))};});
+          return {overflow:outer.scrollHeight-outer.clientHeight,controls};
+        });
+        assert.ok(state.overflow<=1&&state.controls.length===2&&state.controls.every(c=>c.belowStatus&&c.hit),JSON.stringify(state));
+        log('disclosure-single-scroll-'+width,state);
+      }
       // The synthetic view fixture owns its document; replacing the live app
       // here aborts its lazy route/capture work and produces WebKit CORS diagnostics.
       const intentPage=await context.newPage();

@@ -12,6 +12,7 @@
     <!-- Sticky back header + brand -->
     <view class="tos-top">
       <view class="tos-back active:opacity-60" role="button" tabindex="0" :aria-label="t.login.back" @click="goBack" @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack">
+        <LiquidGlass :radius="22" tone="control" />
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       </view>
       <view class="tos-brand">
@@ -57,6 +58,7 @@
 
 <script setup lang="ts">
 import BrandLockup from "@/components/brand-lockup.vue";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import { computed } from "vue";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import { useT } from "@/i18n/use-t";
@@ -112,11 +114,10 @@ function goRisk() {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 10px 16px;
-  background: color-mix(in srgb, var(--v5-bg) 86%, transparent);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--v5-border);
 }
 .tos-back {
+  position: relative;
+  cursor: pointer;
   width: 44px;
   height: 44px;
   margin-left: -8px;
@@ -126,6 +127,8 @@ function goRisk() {
   justify-content: center;
   justify-self: start;
 }
+.tos-back > svg { position: relative; z-index: 1; }
+.tos-back:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
 .tos-brand {
   display: flex;
   align-items: center;

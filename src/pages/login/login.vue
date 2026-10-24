@@ -4,10 +4,12 @@
       <!-- Top bar -->
       <view class="lg-top">
         <view v-if="step > 1 || mode === 'reset'" class="lg-iconbtn" role="button" tabindex="0" :aria-label="t.login.back" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8D0DC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+          <LiquidGlass :radius="22" tone="control" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         </view>
         <view v-else class="lg-iconbtn" role="button" tabindex="0" :aria-label="t.login.close" @click="close" @keydown.enter.prevent="close" @keydown.space.prevent="close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8D0DC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+          <LiquidGlass :radius="22" tone="control" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
         <view class="lg-brand">
           <BrandLockup />
@@ -124,6 +126,7 @@
 
 <script setup lang="ts">
 import BrandLockup from "@/components/brand-lockup.vue";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -740,6 +743,9 @@ onUnmounted(() => cleanup());
 .lg-wrap { display: flex; flex-direction: column; padding: 16px 24px 0; min-height: 100%; box-sizing: border-box; }
 .lg-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
 .lg-iconbtn { width: 44px; height: 44px; margin-left: -8px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; justify-self: start; transition: opacity 0.15s; }
+.lg-iconbtn { position: relative; cursor: pointer; }
+.lg-iconbtn > svg { position: relative; z-index: 1; }
+.lg-iconbtn:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
 /* 《08》§2 按下反馈 —— 本页六个可点控件原先按下去零视觉变化(CDP forcePseudoState 实测) */
 .lg-iconbtn:active, .lg-phone__cc:active, .lg-eye:active, .lg-forgot:active, .lg-switch:active { opacity: 0.6; }
 .lg-brand { display: flex; align-items: center; gap: 6px; justify-self: center; }

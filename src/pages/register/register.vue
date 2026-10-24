@@ -4,10 +4,12 @@
       <!-- Top bar -->
       <view class="rg-top">
         <view v-if="step > 1" class="rg-iconbtn" role="button" tabindex="0" :aria-label="t.register.back" @click="back" @keydown.enter.prevent="back" @keydown.space.prevent="back">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8D0DC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+          <LiquidGlass :radius="22" tone="control" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         </view>
         <view v-else class="rg-iconbtn" role="button" tabindex="0" :aria-label="t.register.close" @click="close" @keydown.enter.prevent="close" @keydown.space.prevent="close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8D0DC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+          <LiquidGlass :radius="22" tone="control" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </view>
         <view class="rg-brand">
           <BrandLockup />
@@ -153,6 +155,7 @@
 <script setup lang="ts">
 import { getCarrier } from "@/lib/carrier";
 import BrandLockup from "@/components/brand-lockup.vue";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
@@ -800,6 +803,9 @@ onUnmounted(() => cleanup());
 .rg-wrap { display: flex; flex-direction: column; padding: 16px 24px 0; min-height: 100%; box-sizing: border-box; }
 .rg-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
 .rg-iconbtn { width: 44px; height: 44px; margin-left: -8px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; justify-self: start; transition: opacity 0.15s; }
+.rg-iconbtn { position: relative; cursor: pointer; }
+.rg-iconbtn > svg { position: relative; z-index: 1; }
+.rg-iconbtn:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
 /* 《08》§2 按下反馈(同 login) */
 .rg-iconbtn:active, .rg-phone__cc:active { opacity: 0.6; }
 .rg-brand { display: flex; align-items: center; gap: 6px; justify-self: center; }

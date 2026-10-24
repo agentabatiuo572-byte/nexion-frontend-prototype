@@ -6,10 +6,11 @@
   store. Reads `?return=` for where to land. Wrapped in <AppChassis active="me">.
 -->
 <template>
-  <AppChassis active="me">
-    <scroll-view scroll-y style="height: 100vh; text-wrap: pretty" @scrolltolower="onScrollToLower">
-    <view style="padding-bottom: 32px">
-      <SubPageHeader :back="returnTo" />
+  <AppChassis active="me" contained>
+    <view class="rd-layout">
+      <SubPageHeader :back="returnTo" class="rd-header" />
+      <scroll-view class="rd-reading" scroll-y @scrolltolower="onScrollToLower">
+      <view style="padding-bottom: 32px">
 
       <!-- Hero -->
       <view class="nx-glass-card mx-4" :style="heroStyle">
@@ -77,8 +78,9 @@
         </view>
         <text class="block text-center" :style="disclaimerStyle">{{ w.disclaimer }}</text>
       </view>
+      </view>
+      </scroll-view>
     </view>
-    </scroll-view>
   </AppChassis>
 </template>
 
@@ -274,3 +276,9 @@ const acceptBtnStyle = computed<CSSProperties>(() => ({
 }));
 const disclaimerStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-4)", lineHeight: 1.375 };
 </script>
+
+<style scoped>
+.rd-layout { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.rd-header { position: relative; top: 0 !important; flex-shrink: 0; }
+.rd-reading { flex: 1; height: 0; min-height: 0; text-wrap: pretty; }
+</style>

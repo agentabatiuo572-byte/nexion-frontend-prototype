@@ -29,9 +29,13 @@ async function closeTransient() {
   // A second manual close can race the handler and wait for an already removed button.
   await page.locator('body').click({ trial: true });
 }
+let routeCase=0;
 async function goto(route) {
-  await page.goto(`${server.baseUrl}/?nx_device_inner=1#/pages/${route}`, { waitUntil: 'domcontentloaded' });
+  // Give each route a fresh document: hash-only jumps can retain the previous
+  // uni page instance without synchronizing it to the requested selector case.
+  await page.goto(`${server.baseUrl}/?nx_device_inner=1&glass_selector_route=${encodeURIComponent(route)}&glass_case=${++routeCase}#/pages/${route}`, { waitUntil: 'domcontentloaded' });
   await page.locator('.nx-chassis:visible,.cp-root:visible').first().waitFor();
+  await page.waitForFunction(route=>typeof getCurrentPages==='function'&&getCurrentPages().at(-1)?.route==='pages/'+route,route);
   await closeTransient();
 }
 async function settings(locale, theme) {
@@ -55,7 +59,8 @@ async function aligned(rail) {
     return { delta: Math.max(Math.abs(a.left-b.left),Math.abs(a.top-b.top),Math.abs(a.width-b.width),Math.abs(a.height-b.height)), height: a.height, strategy: lens.dataset.glassStrategy };
   });
   assert.ok(result.delta <= 1.6, `selection geometry: ${JSON.stringify(result)}`);
-  assert.ok(result.height >= 44, `touch target ${result.height}`);
+  // Transformed browser rectangles can report 43.999992 for a 44px target.
+  assert.ok(result.height >= 44 - 0.01, `touch target ${result.height}`);
   return result;
 }
 function log(id, data) { cases.push({id,...data}); console.log(`PASS ${id}`); }
@@ -135,7 +140,9 @@ try {
   await cdp.send('Emulation.setEmulatedMedia',{features:[]});await cdp.detach();
 
   if (stage !== 'foundation') {
-    const routes=['index/index','earn/earn','me/wallet-bills','me/wallet-topup','market/market','team/leaderboard','events/events','developer/developer','genesis/marketplace','me/proof','me/receipts','me/help','me/notifications','me/support-tickets','team/commissions','team/unilevel','support/messages'];
+    const registry=JSON.parse(await readFile(resolve(root,'src/pages.json'),'utf8'));
+    assert.ok(!registry.pages.some(item=>item.path==='pages/me/support-tickets'),'retired tickets must stay unregistered');
+    const routes=['index/index','earn/earn','me/wallet-bills','me/wallet-topup','market/market','team/leaderboard','events/events','developer/developer','genesis/marketplace','me/proof','me/receipts','me/help','me/notifications','team/commissions','team/unilevel','support/messages'];
     for (const route of routes) {
       await goto(route);await settings('zh','dark');
       const rails=active().locator('.nx-glass-segments--filter');
@@ -168,29 +175,36 @@ try {
     await page.evaluate(async()=>{(await import('/src/store/genesis.ts')).useGenesis().remoteListings=window.__glassListings;delete window.__glassListings;});
     await sortRail.waitFor({state:'hidden'});
     log('conditional-market-sort',{choices:3});
-    for(const surface of ['page','drawer']){
-      await goto(surface==='page'?'me/notifications':'earn/earn');
-      if(surface==='drawer')await active().locator('.nx-bell').click();
-      const filter=surface==='page'?active().locator('.nx-glass-segments--filter'):page.locator('.md-panel:visible .nx-glass-segments');
+    for(const surface of ['direct','bell']){
+      await goto(surface==='direct'?'me/notifications':'earn/earn');
+      if(surface==='bell')await active().locator('.nx-bell').click();
+      await page.waitForURL(/pages\/me\/notifications/);
+      assert.equal(await page.locator('.md-panel:visible').count(),0);
+      await active().locator('[data-glass-value="notifications"][data-selected="true"]').waitFor();
+      const filter=active().locator('.nx-glass-segments--filter.nx-glass-segments--scroll');
       await page.evaluate(async()=>{
         const s=(await import('/src/store/notifications.ts')).useNotifications();window.__glassNotifs=s.items;
         s.items=[{id:'glass-count-probe',kind:'market',priority:'normal',title:'probe',ts:Date.now(),readAt:null}];
       });
-      await filter.locator('[data-glass-value="market"]').click();await aligned(filter);
+      await filter.locator('[data-glass-value="finance"]').click();await aligned(filter);
+      await active().getByRole('button',{name:'probe',exact:true}).waitFor();
       await page.evaluate(async()=>(await import('/src/store/notifications.ts')).useNotifications().items=[]);
-      await filter.locator('[data-glass-value="market"]').waitFor({state:'hidden'});
+      await filter.locator('[data-glass-value="finance"]').waitFor({state:'hidden'});
       assert.equal(await filter.locator('[data-selected="true"]').getAttribute('data-glass-value'),'all');
+      await active().locator('.nx-empty').waitFor();
       await aligned(filter);
       await page.evaluate(async()=>{(await import('/src/store/notifications.ts')).useNotifications().items=window.__glassNotifs;delete window.__glassNotifs;});
-      if(surface==='drawer')await page.locator('.md-panel:visible .md-close').click();
+      if(surface==='bell'){await active().locator('.spv-back').click();await page.waitForURL(/pages\/earn\/earn/);}
       log('notification-empty-category-'+surface,{});
     }
     await goto('earn/earn');
     await active().locator('.nx-bell').click();
-    const drawer=page.locator('.md-panel:visible');await drawer.waitFor();
-    const rail=drawer.locator('.nx-glass-segments');assert.ok(await rail.count());await aligned(rail);
-    log('message-drawer',{});
-    await drawer.locator('.md-close').click();
+    await page.waitForURL(/pages\/me\/notifications/);
+    const rail=active().locator('.nx-glass-segments').filter({has:page.locator('[data-glass-value="notifications"]')});
+    await aligned(rail);assert.equal(await page.locator('.md-panel:visible').count(),0);
+    assert.equal(await active().locator('[data-glass-value="ticket"],[data-glass-value="ai"]').count(),0);
+    log('message-center-entry',{});
+    await active().locator('.spv-back').click();await page.waitForURL(/pages\/earn\/earn/);
     await goto('me/me');
     assert.ok(await page.locator('.nx-chassis:visible').count());
     for (const theme of ['light','dark','system']) {
@@ -236,12 +250,13 @@ try {
     await page.keyboard.press('Escape');await poster.waitFor({state:'hidden'});
     assert.ok(await page.evaluate(()=>document.activeElement===document.querySelector('.invite-card__action')));
     await goto('earn/earn');await active().locator('.nx-nova-bubble').click();
-    await page.waitForURL(/pages\/support\/messages/);
-    await active().locator('[data-glass-value="ai"]').click();
-    await active().locator('.nx-conv-row').first().click();
+    await page.waitForURL(/pages\/me\/notifications\?section=service/);
+    await active().locator('[data-glass-value="service"][data-selected="true"]').waitFor();
+    assert.equal(await active().locator('[data-glass-value="ai"]').count(),0);
+    await active().locator('.service-row').click();
     await page.waitForURL(/pages\/support\/chat/);
     await page.locator('.cp-back').focus();await page.keyboard.press('Enter');
-    await page.waitForURL(/pages\/support\/messages/);
+    await page.waitForURL(/pages\/me\/notifications\?section=service/);
     log('nova-and-chat-return',{});
     await goto('me/wallet-bills');await page.reload({waitUntil:'domcontentloaded'});await active().waitFor();
     await active().locator('.spv-back').focus();await page.keyboard.press('Space');
@@ -251,28 +266,64 @@ try {
 
   if (stage === 'integration') {
     await goto('index/index');
-    for (const width of [320,390]) for (const locale of ['zh','en','vi']) {
+    await page.evaluate(async()=>{window.__glassConfig=(await import('/src/store/config.ts')).useConfig();});
+    await page.waitForFunction(()=>!window.__glassConfig.loading&&!window.__glassConfig.syncFailed);
+    for (const width of [320,390]) for (const locale of ['zh','en','vi']) for(const stakingVisible of [true,false]) {
       await page.setViewportSize({width,height:844}); await settings(locale,'dark');
+      await page.evaluate(async visible=>(await import('/src/store/config.ts')).useConfig()._devSetFlag('stakingVisible',visible),stakingVisible);
+      await page.waitForFunction(visible=>{
+        const cfg=window.__glassConfig;
+        return !cfg.loading&&!cfg.syncFailed&&cfg.isEnabled('stakingVisible')===visible
+          && document.querySelectorAll('.nx-chassis .nx-glass-action[role="link"]').length===(visible?4:3);
+      },stakingVisible);
+      await settled();
       const entries=active().locator('.nx-glass-action[role="link"]');
       const boxes=await entries.evaluateAll(els=>els.map(el=>{
         const r=el.getBoundingClientRect(),parent=el.parentElement.getBoundingClientRect();
         return {x:r.x,right:r.right,width:r.width,height:r.height,parentRight:parent.right,overflow:el.scrollWidth>el.clientWidth+1};
       }));
-      assert.equal(boxes.length,4);
+      assert.equal(boxes.length,stakingVisible?4:3,JSON.stringify(await page.evaluate(async()=>{
+        const cfg=(await import('/src/store/config.ts')).useConfig();
+        return {url:location.href,stack:getCurrentPages().map(p=>p.route),enabled:cfg.isEnabled('stakingVisible'),loading:cfg.loading,syncFailed:cfg.syncFailed,roots:[...document.querySelectorAll('.nx-chassis')].map(el=>({id:el.id,display:getComputedStyle(el).display,entries:[...el.querySelectorAll('.nx-glass-action[role="link"]')].map(item=>item.textContent)}))};
+      })));
       assert.ok(boxes.every((b,i)=>b.width>=44 && b.height>=44 && b.right<=b.parentRight+1 && !b.overflow && (!i || b.x>=boxes[i-1].right)),JSON.stringify(boxes));
-      log(`home-shortcuts-${width}-${locale}`,{boxes});
+      log(`home-shortcuts-${width}-${locale}-${stakingVisible?'staking-visible':'staking-hidden'}`,{boxes});
     }
     await page.setViewportSize({width:390,height:844}); await settings('zh','dark');
     const source=await readFile(resolve(root,'src/pages.json'),'utf8');
     const routes=[...source.matchAll(/"path"\s*:\s*"([^"]+)"/g)].map(m=>m[1]);
     for(const route of routes) {
-      await page.goto(`${server.baseUrl}/?nx_device_inner=1&glass_route=${encodeURIComponent(route)}#/${route}`,{waitUntil:'domcontentloaded'});
-      // The existing disabled compute-sharing route deliberately redirects.
-      const expected=route==='pages/compute-share/download'?'pages/me/devices':route;
-      await page.waitForFunction(route=>getCurrentPages().at(-1)?.route===route,expected);
+      // Route appearance is independent of preceding sign-in, support and wallet
+      // cases. Give each route an isolated account/session and modal lifecycle.
+      const routeContext=await browser.newContext({viewport:{width:390,height:844}});
+      await routeContext.addInitScript(()=>{
+        localStorage.setItem('nexgrid-locale-v1',JSON.stringify({type:'object',data:{code:'zh',userSet:true}}));
+        localStorage.setItem('nexgrid-theme-v1',JSON.stringify({type:'object',data:{mode:'dark'}}));
+      });
+      const page=await routeContext.newPage();
+      page.on('pageerror',error=>errors.push(route+': '+error.message));
+      for(const prefix of ['tcs','vcs'])await page.addLocatorHandler(page.locator(`.${prefix}-root:visible`),async()=>{
+        await page.locator(`.${prefix}-dismiss:visible,.${prefix}-close:visible`).first().click();
+      });
+      const active=()=>page.locator('.nx-chassis:visible').last();
+      try {
+      const flag=route==='pages/compute-share/download'?'computeShareEnabled':/^pages\/(staking\/|me\/wallet-repurchase(?:-how)?$)/.test(route)?'stakingVisible':null;
+      await page.goto(`${server.baseUrl}/?nx_device_inner=1&glass_route=${encodeURIComponent(route)}#/${flag?'pages/me/devices':route}`,{waitUntil:'domcontentloaded'});
+      if(flag) {
+        await active().waitFor();
+        await page.evaluate(async()=>{window.__glassRouteConfig=(await import('/src/store/config.ts')).useConfig();});
+        await page.waitForFunction(()=>!window.__glassRouteConfig.loading&&!window.__glassRouteConfig.syncFailed);
+        await page.evaluate(async({flag,route})=>{
+          window.__glassRouteConfig._devSetFlag(flag,true);
+          await new Promise((resolve,reject)=>uni.navigateTo({url:'/'+route,success:resolve,fail:reject}));
+        },{flag,route});
+      }
+      const expected=route;
+      await page.waitForFunction(route=>typeof getCurrentPages==='function'&&getCurrentPages().at(-1)?.route===route,expected);
       await page.locator('uni-page-body').last().waitFor({state:'attached'});
       await page.waitForFunction(()=>document.querySelector('uni-page-body')?.textContent?.trim().length>0);
-      await closeTransient(); await settled();
+      await page.locator('body').click({trial:true});
+      await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       const surfaces=await page.locator('uni-page-body').last().locator('.nx-glass-card,.nx-glass-sheet,.nx-glass-action,.nx-home-glass-panel').evaluateAll(els=>els.filter(el=>el.getClientRects().length).map(el=>{
         const s=getComputedStyle(el,el.classList.contains('nx-glass-action')?'::before':null);
         const glass=el.matches('.nx-glass-sheet,.nx-glass-action,.nx-glass-hero');
@@ -284,6 +335,10 @@ try {
       const shot=resolve(out,'route-'+route.replaceAll('/','-')+'.png');
       await page.screenshot({path:shot}); evidence.push(shot);
       log('route-'+route,{actualRoute:expected,textLength:(await page.locator('uni-page-body').last().innerText()).length,surfaces});
+      } catch(error) {
+        const witness=await page.evaluate(()=>({url:location.href,stack:typeof getCurrentPages==='function'?getCurrentPages().map(p=>p.route):[],text:document.body.innerText.slice(0,400)}));
+        throw new Error(`Route ${route}: ${JSON.stringify(witness)}; ${error.message}`,{cause:error});
+      } finally {await routeContext.close();}
     }
   }
   await goto('earn/earn');await page.reload({waitUntil:'domcontentloaded'});await active().waitFor();

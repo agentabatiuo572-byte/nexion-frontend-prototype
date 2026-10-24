@@ -24,11 +24,12 @@
       </view>
       <view class="nx-header__center" />
       <view class="nx-header__r">
-        <LiquidGlass :radius="24" tone="control" backdrop=".nx-page-enter" />
         <view class="nx-icon-btn" role="button" tabindex="0" :aria-label="t.headerTitles.search" @click="goSearch" @keydown.enter.prevent="goSearch" @keydown.space.prevent="goSearch">
+          <LiquidGlass :radius="22" tone="control" backdrop=".nx-page-enter" />
           <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
         </view>
         <view class="nx-icon-btn nx-bell" role="button" tabindex="0" :aria-label="t.notifs.drawerTitle" @click="goNotifications" @keydown.enter.prevent="goNotifications" @keydown.space.prevent="goNotifications">
+          <LiquidGlass :radius="22" tone="control" backdrop=".nx-page-enter" />
           <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
           <view v-if="unread > 0" class="nx-badge"><text class="nx-badge__t">{{ unreadLabel }}</text></view>
         </view>
@@ -40,9 +41,9 @@
          content behind it, mirroring the prototype Header nav row. Tab pages never
          set pageHeader, so this never shows for them (brand row stays untouched). -->
     <view v-if="!isTabRoute && navHeader" class="nx-navheader" :style="{ top: statusBarHeight + 'px', height: navHeaderH + 'px' }">
-      <LiquidGlass :radius="navHeaderH / 2" tone="navigation" backdrop=".nx-page-enter" />
       <view class="nx-nav-side" role="button" tabindex="0" :aria-label="t.profile.back" @click="navBack">
         <view class="nx-nav-glass">
+          <LiquidGlass :radius="22" tone="control" backdrop=".nx-page-enter" />
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         </view>
       </view>
@@ -52,6 +53,7 @@
       </view>
       <view class="nx-nav-side" role="button" tabindex="0" :aria-label="t.notifs.drawerTitle" @click="goNotifications">
         <view class="nx-nav-glass">
+          <LiquidGlass :radius="22" tone="control" backdrop=".nx-page-enter" />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
           <view class="nx-nav-belldot" />
         </view>
@@ -68,6 +70,7 @@
     <view
       ref="scrollEl"
       class="nx-content nx-scroll"
+      :class="{ 'nx-content--contained': contained }"
       @touchstart="onTouchStart"
       @touchmove="onTouchMove"
       @touchend="onTouchEnd"
@@ -89,7 +92,7 @@
            backdrop-filter cannot sample → the frosted glass shows nothing (looks
            opaque). Mirrors the prototype PullableContent ("transform must be
            ABSENT, not translateY(0), when idle"). (P-041) -->
-      <view :style="pullActive ? { transform: `translateY(${indicatorY}px)`, transition: pulling ? 'none' : 'transform .28s cubic-bezier(.16,1,.3,1)', willChange: 'transform' } : {}">
+      <view class="nx-content-shift" :style="pullActive ? { transform: `translateY(${indicatorY}px)`, transition: pulling ? 'none' : 'transform .28s cubic-bezier(.16,1,.3,1)', willChange: 'transform' } : {}">
         <!-- Padded so content sits BELOW the header / ABOVE the tabbar, while the
              scroll container (.nx-content) spans the FULL chassis (top:0/bottom:0).
              This is the crux: content then scrolls BEHIND the frosted chrome and
@@ -189,6 +192,8 @@ import { saveScrollPos, getScrollPos, dropScrollPos } from "@/lib/scroll-memory"
 
 const props = defineProps<{
   active?: "home" | "earn" | "store" | "team" | "me";
+  /** A page with its own reading scroller owns scrolling and refresh gestures. */
+  contained?: boolean;
 }>();
 
 const chassisHostId = `nx-chassis-host-${getCurrentInstance()!.uid}`;
@@ -392,6 +397,7 @@ function touchY(e: TouchEvent): number | null {
   return tp ? tp.clientY : null;
 }
 function onTouchStart(e: TouchEvent) {
+  if (props.contained) { startY = null; return; }
   if (refreshing.value || currentScrollTop() > 0) { startY = null; return; }
   startY = touchY(e);
 }
@@ -627,9 +633,7 @@ export default chassisView;
   padding: 0 16px;
   gap: 12px;
 }
-/* Page nav header (sub-pages) — its OWN chrome surface so the brand row
-   (.nx-header) stays byte-identical for the 5 tab pages. Mirrors the prototype
-   Header nav row: 44/56 tall, back + centered title + bell, frosted. */
+/* Page nav header: transparent title row, independent 44px glass controls. */
 .nx-navheader {
   position: absolute;
   left: 12px;
@@ -639,7 +643,6 @@ export default chassisView;
   align-items: center;
   gap: 8px;
   padding: 0 2px;
-  border-radius: 28px;
 }
 .nx-nav-side {
   position: relative;
@@ -649,19 +652,22 @@ export default chassisView;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  border-radius: 50%;
+  cursor: pointer;
 }
 .nx-nav-side:active {
   opacity: 0.7;
 }
 .nx-nav-glass {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   transition: transform 100ms cubic-bezier(.2,.8,.2,1);
 }
+.nx-nav-glass > svg { position: relative; z-index: 1; }
 .nx-nav-titlewrap {
   position: relative;
   z-index: 1;
@@ -756,8 +762,7 @@ export default chassisView;
   position: relative;
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 3px;
+  gap: 8px;
   flex-shrink: 0;
 }
 .nx-icon-btn {
@@ -768,10 +773,17 @@ export default chassisView;
   align-items: center;
   justify-content: center;
   position: relative;
+  border-radius: 50%;
+  cursor: pointer;
   transition: transform 100ms cubic-bezier(.2,.8,.2,1);
 }
+.nx-icon-btn > svg { position: relative; z-index: 1; }
 .nx-icon-btn:active, .nx-nav-side:active .nx-nav-glass { transform: scale(.92); }
 .nx-icon-btn:focus-visible, .nx-nav-side:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; border-radius: 24px; }
+@media (prefers-reduced-motion: reduce) {
+  .nx-icon-btn, .nx-nav-glass { transition: none; }
+  .nx-icon-btn:active, .nx-nav-side:active .nx-nav-glass { transform: none; }
+}
 .nx-badge {
   position: absolute;
   top: 4px;
@@ -811,6 +823,12 @@ export default chassisView;
 /* hide scrollbar (match the prototype's no-scrollbar utility) */
 .nx-content::-webkit-scrollbar {
   display: none;
+}
+.nx-content--contained { overflow: hidden; }
+.nx-content--contained > .nx-content-shift,
+.nx-content--contained > .nx-content-shift > .nx-page-enter {
+  height: 100%;
+  box-sizing: border-box;
 }
 /* themed pull-to-refresh indicator — dark chip + brand spinner */
 .nx-refresher {

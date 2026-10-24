@@ -3,6 +3,7 @@
     <!-- Progress (3/3 full) -->
     <view class="cn-bars">
       <view class="cn-back active:opacity-60" role="button" tabindex="0" :aria-label="t.login.back" @click="leaveConnect" @keydown.enter.prevent="leaveConnect" @keydown.space.prevent="leaveConnect">
+        <LiquidGlass :radius="22" tone="control" />
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       </view>
       <view class="cn-bar"><view class="cn-bar__fill cn-bar__fill--full" /></view>
@@ -115,6 +116,7 @@
 import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useAuth } from "@/store/auth";
@@ -356,6 +358,9 @@ onUnmounted(() => {
 }
 .cn-bars { min-height: 44px; display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
 .cn-back { width: 44px; height: 44px; margin-left: -12px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; border-radius: 9999px; }
+.cn-back { position: relative; cursor: pointer; }
+.cn-back > svg { position: relative; z-index: 1; }
+.cn-back:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
 .cn-bar { flex: 1; height: 4px; border-radius: 9999px; background: var(--v5-surface); overflow: hidden; }
 .cn-bar__fill { height: 100%; width: 0; background: var(--v5-brand); }
 .cn-bar__fill--full { width: 100%; }

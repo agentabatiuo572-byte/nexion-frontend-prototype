@@ -1,7 +1,6 @@
 <!--
-  Conversation center — full-screen unified support inbox. Left vertical rail
-  switches customer-service category (Advisor / Support / Nova AI); the right column
-  lists that category's conversations. Tapping a row opens the full-screen chat page.
+  Conversation center — horizontal category selection followed by a flat list of
+  existing conversations. Tapping a row opens the full-screen chat page.
 
   The "ai" category is virtual: its single row is synthesised from the nova store
   (Nova's transcript + unread), so the existing proactive push channels keep feeding
@@ -10,40 +9,42 @@
 -->
 <template>
   <AppChassis active="me">
-    <view style="padding-bottom: 32px">
+    <view class="message-family" style="padding-bottom: 32px">
       <SubPageHeader back="/pages/me/notifications?section=service" :title="t.conversations.title" />
 
       <view class="nx-conv-center">
-        <!-- Left type rail -->
-        <GlassSegments v-model="selectedType" :options="typeOptions" layout="vertical" class="nx-conv-rail" :label="t.conversations.title">
-          <template #option="{ option, selected }">
-            <view class="nx-conv-rail-ico" :style="{ color: selected ? String(option.tint) : 'var(--v5-ink-3)' }">
-              <view v-html="option.icon" />
-              <view v-if="option.count" class="nx-conv-rail-dot" />
-            </view>
-            <text class="nx-conv-rail-label">{{ option.label }}</text>
-          </template>
-        </GlassSegments>
+        <GlassSegments v-model="selectedType" :options="typeOptions" class="nx-conv-rail" :label="t.conversations.typeGroupLabel" />
 
-        <!-- Right conversation list -->
+        <!-- Conversation list -->
         <view class="nx-conv-listcol">
-          <view v-if="convStore.loading" class="nx-conv-state" role="status"><text>{{ t.help.loadingMore }}</text></view>
-          <view v-if="convStore.error" class="nx-conv-state" role="alert"><text>{{ t.conversations.loadError }}</text><view role="button" tabindex="0" @click="retry"><text>{{ t.conversations.retry }}</text></view></view>
+          <view v-if="convStore.loading" class="nx-conv-category-loading" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
+          <view v-if="convStore.error && rows.length" class="nx-conv-refresh-warning" role="alert">
+            <text class="nx-conv-refresh-warning__text">{{ t.conversations.loadError }}</text>
+            <view class="nx-conv-refresh-warning__retry family-control" role="button" tabindex="0" @click="retry"><LiquidGlass :radius="24" /><text>{{ t.conversations.retry }}</text></view>
+          </view>
+          <view v-else-if="convStore.error" class="nx-conv-retry-state" role="alert">
+            <EmptyState kind="recoverable-error" :title="t.conversations.loadError" :desc="t.conversations.loadErrorDesc" compact />
+            <view class="family-control" role="button" tabindex="0" @click="retry"><LiquidGlass :radius="24" /><text>{{ t.conversations.retry }}</text></view>
+          </view>
           <!-- A new turn opens a composer first. The authenticated user's text is the
                first durable timeline entry; this surface never invents an opening. -->
           <view
             v-if="rows.length > 0"
-            class="nx-conv-contact active:opacity-80"
+            class="nx-conv-contact family-control active:opacity-80"
             role="button"
             tabindex="0"
             :aria-label="t.conversations.contactSupport"
             @click="onStartConversation()"
           >
-            <view class="nx-conv-contact-ico" aria-hidden="true"><view v-html="SUPPORT_ICON" /></view>
+            <LiquidGlass :radius="24" />
+            <view class="nx-conv-contact-ico" aria-hidden="true"><view v-html="ADVISOR_ICON" /></view>
             <text class="nx-conv-contact-t">{{ t.conversations.contactSupport }}</text>
           </view>
 
-          <EmptyState v-if="!convStore.loading && !convStore.error && rows.length === 0" kind="empty-list" :title="t.empty.messagesTitle" :desc="emptyHint" :cta-label="startConversationLabel" emphasis compact @cta="onStartConversation" />
+          <view v-if="!convStore.loading && !convStore.error && rows.length === 0" class="nx-conv-retry-state">
+            <EmptyState kind="empty-list" :title="t.empty.messagesTitle" :desc="emptyHint" compact />
+            <view class="family-control" role="button" tabindex="0" :aria-label="startConversationLabel" @click="onStartConversation"><LiquidGlass :radius="24" /><text>{{ startConversationLabel }}</text></view>
+          </view>
           <view
             v-for="r in rows"
             :key="r.id"
@@ -68,8 +69,11 @@
               </view>
             </view>
           </view>
-          <view v-if="rows.length" class="nx-conv-state"><text>{{ t.conversations.removeHint }}</text><view role="button" :tabindex="removing ? -1 : 0" :aria-disabled="removing" @click="removeHuman"><text>{{ removing ? t.conversations.removing : t.conversations.removeFromList }}</text></view></view>
-          <view v-if="removeError" class="nx-conv-state" role="alert"><text>{{ removeError }}</text><view role="button" tabindex="0" @click="removeHuman"><text>{{ t.conversations.retry }}</text></view></view>
+          <view v-if="rows.length" class="nx-conv-rowactions">
+            <view class="nx-conv-remove family-control" role="button" :tabindex="removing ? -1 : 0" :aria-disabled="removing" @click="removeHuman"><LiquidGlass :radius="24" /><text>{{ removing ? t.conversations.removing : t.conversations.removeFromList }}</text></view>
+          </view>
+          <view v-if="rows.length" class="nx-conv-remove-hint"><text>{{ t.conversations.removeHint }}</text></view>
+          <view v-if="removeError" class="nx-conv-refresh-warning" role="alert"><text class="nx-conv-refresh-warning__text">{{ removeError }}</text><view class="nx-conv-refresh-warning__retry family-control" role="button" tabindex="0" @click="removeHuman"><LiquidGlass :radius="24" /><text>{{ t.conversations.retry }}</text></view></view>
         </view>
       </view>
     </view>
@@ -83,6 +87,7 @@ import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import NovaAvatar from "@/components/nova/nova-avatar.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -211,10 +216,12 @@ const rows = computed<Row[]>(() => {
   return humanConversations.value.slice(0, 1).map((c) => {
     const last = c.messages.length ? c.messages[c.messages.length - 1] : null;
     const typing = convStore.typingIds[c.id] === true;
+    // Inbox refresh can carry a newer preview before that thread's history reloads.
+    const latestText = last && last.ts >= c.lastTs ? msgText(last, c.agentName) : c.lastMessage;
     return {
       id: c.id,
       name: t.value.conversations.typeAdvisor,
-      preview: typing ? t.value.conversations.agentTyping : last ? cleanPreview(msgText(last, c.agentName)) : cleanPreview(c.lastMessage) || t.value.conversations[c.roleKey],
+      preview: typing ? t.value.conversations.agentTyping : cleanPreview(latestText) || t.value.conversations[c.roleKey],
       time: relTime(c.lastTs),
       unread: convStore.totalUnread,
       isAi: false,
@@ -239,7 +246,7 @@ function openRow(r: Row) {
   }
   navTo("/pages/support/chat?cid=" + r.id);
 }
-function avaStyle(tint: string): CSSProperties {
+function avaStyle(_tint: string): CSSProperties {
   return {
     width: "44px",
     height: "44px",
@@ -247,47 +254,36 @@ function avaStyle(tint: string): CSSProperties {
     display: "grid",
     placeItems: "center",
     flexShrink: 0,
-    color: tint,
-    background: `color-mix(in srgb, ${tint} 14%, transparent)`,
+    color: "var(--v5-ink-2)",
+    background: "var(--v5-surface-2)",
   };
 }
-const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, label: typeLabel(type.key), icon: type.icon, tint: type.tint, count: typeUnread(type.key), className: "nx-conv-rail-item" })));
+const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, label: typeLabel(type.key), icon: type.icon, tint: type.tint, count: convStore.error ? "-" : formatUnreadBadge(typeUnread(type.key)) || undefined, className: "nx-conv-rail-item" })));
 </script>
 
 <style scoped>
-.nx-conv-state { display:flex; flex-direction:column; gap:10px; padding:12px 16px; color:var(--v5-ink-3); font-size:13px; }
-.nx-conv-state [role="button"] { min-height:44px; display:flex; align-items:center; color:var(--v5-brand); }
+.message-family { font-family: var(--font-v5); }
+.family-control { position: relative; box-sizing: border-box; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: 24px; background: transparent; color: var(--v5-ink-2); font-family: var(--font-v5); font-size: 13px; cursor: pointer; }
+.family-control > :not(.nx-liquid-glass) { position: relative; }
+.family-control:active { opacity: .75; }
+.family-control:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+.family-control[aria-disabled="true"] { opacity: .45; cursor: default; }
+.message-family :deep(.nx-glass-option--selected) { color: var(--v5-bg); }
+.message-family :deep(.nx-liquid-glass--selection) { --v5-liquid-selected: transparent; }
+.message-family :deep(.nx-liquid-glass--selection .nx-liquid-tint) { background: linear-gradient(155deg, color-mix(in srgb, var(--v5-ink) 98%, var(--v5-surface)), color-mix(in srgb, var(--v5-ink) 65%, var(--v5-surface))); }
+.message-family :deep(.nx-glass-option__label) { font-size: 13px; }
+.message-family :deep(.nx-glass-segments .nx-glass-option) { padding-inline: 16px; }
+.nx-conv-rowactions { display: flex; justify-content: flex-end; padding: 0 16px 4px; }
+.nx-conv-remove { min-height: 44px; }
+.nx-conv-remove-hint { display: block; padding: 12px 16px; color: var(--v5-ink-3); font-size: 12px; line-height: 1.6; }
 .nx-conv-center {
   display: flex;
-  gap: 0;
-  /* No top padding — the sub-page header already supplies the 24px header→content gap. */
-  padding: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px;
 }
-.nx-conv-rail { width: 84px; flex-shrink: 0; align-self: flex-start; margin-right: 8px; }
-.nx-conv-rail :deep(.nx-conv-rail-item) { flex-direction: column; min-height: 72px; padding: 10px 4px; }
-.nx-conv-rail-ico {
-  position: relative;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-}
-.nx-conv-rail-dot {
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--v5-brand-2);
-  border: 1.5px solid var(--v5-bg);
-}
-.nx-conv-rail-label {
-  font-family: var(--font-v5);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-}
+.nx-conv-rail { width: 100%; flex-shrink: 0; box-sizing: border-box; }
+.nx-conv-rail :deep(.nx-conv-rail-item) { min-height: 44px; }
 .nx-conv-listcol {
   flex: 1;
   min-width: 0;
@@ -299,10 +295,8 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
   justify-content: center;
   gap: 8px;
   min-height: 48px;
-  margin: 10px 16px 4px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--v5-tech-cyan) 12%, transparent);
-  color: var(--v5-tech-cyan);
+  margin: 4px 0 12px;
+  width: 100%;
 }
 .nx-conv-contact-ico {
   display: grid;
@@ -312,24 +306,42 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
   font-family: var(--font-v5);
   font-size: 13px;
   font-weight: 600;
-  color: var(--v5-tech-cyan);
+  color: inherit;
 }
-.nx-conv-listempty {
-  padding: 40px 20px;
-  text-align: center;
-}
-.nx-conv-listempty-t {
+.nx-conv-category-loading {
+  min-height: 144px;
+  display: grid;
+  place-items: center;
   font-size: 13px;
   color: var(--v5-ink-3);
-  line-height: 1.6;
 }
+.nx-conv-refresh-warning {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--v5-warning-soft);
+}
+.nx-conv-refresh-warning__text {
+  flex: 1 1 180px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--v5-ink-3);
+}
+.nx-conv-refresh-warning__retry { font-size: 12px; font-weight: 600; }
+.nx-conv-retry-state { text-align: center; padding-bottom: 16px; }
 .nx-conv-row {
   display: flex;
   align-items: center;
   gap: 12px;
   min-height: 64px;
-  padding: 12px 16px;
+  padding: 20px 0;
   border-bottom: 1px solid color-mix(in srgb, var(--v5-border) 70%, transparent);
+  cursor: pointer;
 }
 .nx-conv-ava {
   /* supplied inline (tint) */
@@ -342,18 +354,20 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .nx-conv-rowname {
   font-family: var(--font-v5);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.008em;
   color: var(--v5-ink);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .nx-conv-rowtime {
   flex-shrink: 0;
@@ -383,7 +397,7 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--v5-brand-2);
+  background: var(--v5-brand-soft);
   display: grid;
   place-items: center;
 }
@@ -391,7 +405,8 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
   font-size: 12px;
   font-weight: 600;
   font-family: var(--font-v5);
-  color: var(--v5-on-brand-2);
+  color: var(--v5-brand);
   line-height: 1;
 }
+@media (prefers-reduced-motion: reduce) { .family-control { transition: none; } .family-control:active { transform: none; } }
 </style>

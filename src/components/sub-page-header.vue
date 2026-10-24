@@ -1,6 +1,6 @@
 <!--
   SubPageHeader — STICKY in-content top chrome for sub-pages. Prototype-faithful
-  nav row: glass back tile (left) + CENTERED title/subtitle + glass bell tile
+  nav row: glass back circle (left) + CENTERED title/subtitle + glass bell circle
   (right). position:sticky so it pins to the top of the chassis scroll container on
   scroll and frosts the content scrolling beneath it (the chassis content is a plain
   overflow:auto view per P-041, so a sticky child shares its paint surface and
@@ -13,7 +13,6 @@
 -->
 <template>
   <view class="spv" :style="{ top: (statusBarHeight + pendingBarInset) + 'px', height: rowH + 'px' }">
-    <LiquidGlass :radius="rowH / 2" tone="navigation" />
     <view
       class="spv-side spv-back"
       role="button"
@@ -24,6 +23,7 @@
       @keydown.space.prevent="goBack"
     >
       <view class="spv-glass">
+        <LiquidGlass :radius="22" tone="control" />
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       </view>
     </view>
@@ -41,6 +41,7 @@
       @keydown.space.prevent="goBell"
     >
       <view class="spv-glass">
+        <LiquidGlass :radius="22" tone="control" />
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
         <view v-if="unread > 0" class="spv-belldot" />
       </view>
@@ -113,7 +114,6 @@ function goBell() {
      padding on top of this — reset to 0 when de-carding. */
   margin: 0 12px 24px;
   margin-bottom: 24px;
-  border-radius: 28px;
 }
 .spv-side {
   position: relative;
@@ -123,21 +123,28 @@ function goBell() {
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  border-radius: 50%;
+  cursor: pointer;
 }
 .spv-side:active {
   opacity: 0.7;
 }
 .spv-glass {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   transition: transform 100ms cubic-bezier(.2,.8,.2,1);
 }
+.spv-glass > svg { position: relative; z-index: 1; }
 .spv-side:active .spv-glass { transform: scale(.92); }
 .spv-side:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; border-radius: 24px; }
+@media (prefers-reduced-motion: reduce) {
+  .spv-glass { transition: none; }
+  .spv-side:active .spv-glass { transform: none; }
+}
 .spv-titlewrap {
   position: relative;
   z-index: 1;

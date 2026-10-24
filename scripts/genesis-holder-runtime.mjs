@@ -123,8 +123,9 @@ async function staticPerks(page) {
 async function emissionGuide(page, activation, stakingVisible) {
   // A reload restores holdings before the async mock configuration is ready.
   // Visibility must be checked against loaded authority, including its off state.
-  await page.waitForFunction(async () => {
-    const cfg = (await import('/src/store/config.ts')).useConfig();
+  await page.evaluate(async () => { window.__genesisVisibilityConfig = (await import('/src/store/config.ts')).useConfig(); });
+  await page.waitForFunction(() => {
+    const cfg = window.__genesisVisibilityConfig;
     return !cfg.loading && !cfg.syncFailed;
   });
   await page.evaluate(async visible => (await import('/src/store/config.ts')).useConfig()._devSetFlag('stakingVisible', visible), stakingVisible);
