@@ -38,7 +38,7 @@ const unacknowledged = {
   version: "v6", acknowledged: false, acknowledgedAt: null,
 };
 
-describe("remote registration completion owns its legal return target", () => {
+describe("registration proceeds directly without a legal gate", () => {
   beforeEach(() => {
     vi.resetModules();
     state.current.mockReset();
@@ -68,7 +68,7 @@ describe("remote registration completion owns its legal return target", () => {
       scheduleLegalTermsGate: gate.scheduleLegalTermsGate, hasPendingLegalTermsRequirement: gate.hasPendingLegalTermsRequirement,
       afterLegalTermsAcknowledged: gate.afterLegalTermsAcknowledged,
       sessionVault: { read: () => ({ user: { userId: 7 } }), revision: () => 1, isRefreshContinuation: () => false }, refreshRemoteFleetAfterCatalog: vi.fn(),
-      refreshEarningsReleaseStatus: vi.fn(), resolvePostSignInRoute, navReset: state.nav,
+      hasNativeAndroidPhoneRuntime: () => false, refreshEarningsReleaseStatus: vi.fn().mockResolvedValue(undefined), resolvePostSignInRoute, navReset: state.nav,
     }, "completeSignIn");
     const conditionalSource = registerSource
       .replace(/\/\/ #ifdef H5\r?\n([\s\S]*?)\/\/ #endif/g, (_all, body) => h5 ? body : "")
@@ -88,15 +88,11 @@ describe("remote registration completion owns its legal return target", () => {
     await finish();
     expect(app.setRemoteTaskForeground).toHaveBeenCalledWith(true);
     expect(state.nav).toHaveBeenCalledWith(expect.objectContaining({ url: expected }));
-    await vi.waitFor(() => expect(state.current).toHaveBeenCalledOnce());
-    if (delayed) resolve(unacknowledged);
-    const termsUrl = `/pages/onboarding/terms?return=${encodeURIComponent(expected)}`;
-    await vi.waitFor(() => expect(state.nav).toHaveBeenCalledWith(termsUrl));
-    // Reproduce App's one-second tick after the read's finally has run, while
-    // native page rendering still reports the old registration form route.
-    expect(gate.enforcePendingLegalTermsGate("/pages/register/register")).toBe(true);
-    expect(state.nav.mock.calls.filter(([route]) => typeof route === "string")).toEqual([[termsUrl]]);
-    expect(state.nav.mock.calls.some(([route]) => typeof route === "string" && route.includes("index%2Findex"))).toBe(false);
-    expect(gate.hasPendingLegalTermsRequirement()).toBe(true);
+    await Promise.resolve();
+    expect(state.current).not.toHaveBeenCalled();
+    expect(gate.enforcePendingLegalTermsGate("/pages/register/register")).toBe(false);
+    expect(gate.hasPendingLegalTermsRequirement()).toBe(false);
+    expect(state.nav.mock.calls.some(([route]) => typeof route === "string" && route.includes("/onboarding/terms"))).toBe(false);
+    expect(app.refreshHomeTruth).toHaveBeenCalledOnce();
   });
 });

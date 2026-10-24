@@ -58,13 +58,13 @@ export function isLegalTermsAcknowledged(snapshot: LegalTermsCurrent): boolean {
   return snapshot.source === "server" && snapshot.acknowledged === true;
 }
 
-/** Fail closed only for an authenticated remote-account acknowledgement flow. */
+/** The document reader is optional; consent is handled at registration. */
 export function shouldBlockLegalTermsExit(
-  remote: boolean,
-  authenticated: boolean,
-  snapshot: LegalTermsCurrent | null,
+  _remote: boolean,
+  _authenticated: boolean,
+  _snapshot: LegalTermsCurrent | null,
 ): boolean {
-  return remote && authenticated && (!snapshot || !isLegalTermsAcknowledged(snapshot));
+  return false;
 }
 
 /** Legal documents remain readable while every business route stays gated. */

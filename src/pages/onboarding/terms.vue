@@ -91,7 +91,7 @@
 
       <!-- Acknowledge & return -->
       <view v-if="!loadError && loaded" class="tos-cta active:opacity-90 active:scale-[0.98]" role="button" tabindex="0" data-system-chrome-primary @click="confirmTerms" @keydown.enter.prevent="confirmTerms($event)" @keydown.space.prevent="confirmTerms($event)">
-        <text class="tos-cta__t">{{ confirming ? "…" : (serverTerms?.acknowledged ? t.terms.gotIt : t.terms.confirmContinue) }}</text>
+        <text class="tos-cta__t">{{ t.terms.gotIt }}</text>
       </view>
     </view>
   </StandalonePageShell>
@@ -109,7 +109,6 @@ import { useLocaleStore } from "@/store/locale";
 import { LOCALES, type LocaleCode } from "@/i18n";
 import type { LegalTermsCurrent } from "@/api/legal-terms-api";
 import {
-  buildLegalTermsLoginRoute,
   buildLegalTermsRoute,
   sameLegalTermsSession,
   sameLegalTermsRun,
@@ -117,7 +116,6 @@ import {
   shouldBlockLegalTermsExit,
   type LegalTermsSessionFence,
 } from "@/lib/legal-terms-gate";
-import { recordLegalTermsAcknowledged } from "@/lib/legal-terms-gate-runtime";
 import { pendingProfileLocaleHydration, isProfileLocaleHydrationError } from "@/lib/locale-profile-hydration";
 import { retryCurrentProfileLocale } from "@/lib/locale-profile-sync-runtime";
 import { captureRuntimeRevision } from "@/api/order-api";
@@ -245,7 +243,6 @@ async function loadTerms(retryRotation = true) {
       return;
     }
     serverTerms.value = snapshot;
-    if (snapshot.acknowledged) recordLegalTermsAcknowledged(snapshot);
   } catch (error) {
     if (!termsRequests.isCurrent(request, locale.code)) return;
     if (requestFence && !sameLegalTermsSession(requestFence, currentSessionFence())) {
@@ -326,54 +323,8 @@ function goRisk(event?: Event) {
   if (repeatedKeyboardActivation(event)) return;
   navTo(`/pages/me/risk-disclosure?return=${encodeURIComponent(buildLegalTermsRoute(returnTo.value))}&country=VN`);
 }
-async function confirmTerms(event?: Event) {
-  if (repeatedKeyboardActivation(event) || confirming.value) return;
-  if (!remoteApiEnabled || !serverTerms.value || serverTerms.value.acknowledged) { goBack(); return; }
-  if (!currentSessionFence()) {
-    loadErrorKey.value = "loginRequired";
-    navTo(buildLegalTermsLoginRoute(buildLegalTermsRoute(returnTo.value)));
-    return;
-  }
-  const requestFence = currentSessionFence();
-  const snapshot = serverTerms.value;
-  const snapshotLocale = locale.code;
-  const confirmation = ++confirmationGeneration;
-  // A language change or a fresh document read replaces this screen's consent
-  // target. Its earlier command may finish, but cannot decide the new gate.
-  const ownsSnapshot = () => confirmation === confirmationGeneration && termsPageVisible
-    && locale.code === snapshotLocale && serverTerms.value === snapshot;
-  if (!sameLegalTermsRun(snapshot, captureRuntimeRevision().runId)) {
-    loadErrorKey.value = "runChanged";
-    return;
-  }
-  confirming.value = true;
-  try {
-    const acknowledged = await legalTermsApi.acknowledge(snapshot);
-    if (!ownsSnapshot()) return;
-    if (!sameLegalTermsSession(requestFence, currentSessionFence()) && isCurrentRefreshContinuation(requestFence)) {
-      confirming.value = false;
-      await loadTerms();
-      return;
-    }
-    if (!sameLegalTermsSession(requestFence, currentSessionFence())
-      || acknowledged.version !== snapshot.version
-      || acknowledged.resolvedLocale !== snapshot.resolvedLocale
-      || acknowledged.resolvedJurisdiction !== snapshot.resolvedJurisdiction
-      || acknowledged.runId !== snapshot.runId
-      || !sameLegalTermsRun(acknowledged, captureRuntimeRevision().runId)) {
-      loadErrorKey.value = "sessionChanged";
-      return;
-    }
-    serverTerms.value = acknowledged;
-    if (acknowledged.acknowledged) {
-      recordLegalTermsAcknowledged(acknowledged, snapshotLocale);
-      goBack();
-    }
-  } catch {
-    if (ownsSnapshot()) loadErrorKey.value = sameLegalTermsSession(requestFence, currentSessionFence())
-      ? "ackFailed" : "sessionChanged";
-  }
-  finally { if (confirmation === confirmationGeneration) confirming.value = false; }
+function confirmTerms(event?: Event) {
+  goBack(event);
 }
 </script>
 

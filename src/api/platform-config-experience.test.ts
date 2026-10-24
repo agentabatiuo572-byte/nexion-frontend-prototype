@@ -173,6 +173,19 @@ describe("platform experience config contract", () => {
     }
   });
 
+  it.each([true, false])("preserves official landing fragments with browser URL available=%s", (hasUrl) => {
+    if (!hasUrl) vi.stubGlobal("URL", undefined);
+    try {
+      const share = { ...valid.share, appDownload: { ...valid.share.appDownload, officialUrl: "https://uvel.ai/#download" } };
+      expect(parsePlatformExperienceConfig({ ...valid, share }).share.appDownload.officialUrl).toBe("https://uvel.ai/#download");
+      expect(parsePlatformComputeConfig({ ...validPlatform, share }).share.appDownload.officialUrl).toBe("https://uvel.ai/#download");
+      for (const officialUrl of ["javascript:alert(1)#download", "http://uvel.ai/#download", "https://user:pass@uvel.ai/#download", "https://uvel.ai/#bad anchor"]) {
+        expect(() => parsePlatformExperienceConfig({ ...valid, share: { ...share, appDownload: { ...share.appDownload, officialUrl } } })).toThrow("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
+      }
+      expect(() => parsePlatformExperienceConfig({ ...valid, share: { ...share, appDownload: { ...share.appDownload, androidUrl: "https://uvel.ai/app.apk#download" } } })).toThrow("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
+    } finally { vi.unstubAllGlobals(); }
+  });
+
   it("parses server-owned flags, share channels, and official release metadata", () => {
     expect(parsePlatformExperienceConfig(valid)).toMatchObject(valid);
   });
@@ -270,5 +283,6 @@ describe("referral reward public effective boundary", () => {
     await expect(createPlatformConfigApi({ request } as never).platformConfig()).resolves.toMatchObject({
       rewards: { effectiveAt: "2026-09-01T00:00:00Z" },
     });
+    expect(request.mock.calls[0][0]).toMatchObject({ path: "/api/config/platform?officialLinkFragments=true", authenticated: false });
   });
 });

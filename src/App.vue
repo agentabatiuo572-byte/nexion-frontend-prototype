@@ -70,11 +70,6 @@ import { refreshServerProductPhase } from "@/store/server-product-phase";
 import { useI18nRuntime } from "@/store/i18n-runtime";
 import { useLocaleStore } from "@/store/locale";
 import { useMarket } from "@/store/market";
-import {
-  enforcePendingLegalTermsGate,
-  hasPendingLegalTermsRequirement,
-  scheduleLegalTermsGate,
-} from "@/lib/legal-terms-gate-runtime";
 import { isLegalTermsGateExemptRoute } from "@/lib/legal-terms-gate";
 
 // Simulation tick driver (ports SimulationProvider). Runs the client-side
@@ -843,21 +838,6 @@ function detachSessionWatch() {
 const QUEST_TICK_MS = 1000;
 let questTimer: ReturnType<typeof setInterval> | undefined;
 let lastQuestRoute = "";
-let lastLegalTermsGateRoute = "";
-let lastLegalTermsGateLocale = "";
-
-// An explicit language change can change the account's required legal document
-// without navigating. Close the gate synchronously before the profile write.
-watch(() => useLocaleStore().code, () => {
-  if (!remoteApiEnabled || !questTimer || !canRefreshRemoteAccount(useAuth())) return;
-  const route = readCurrentRoute();
-  if (!route || isStaticReviewRoute(route)) return;
-  lastLegalTermsGateRoute = route;
-  lastLegalTermsGateLocale = useLocaleStore().code;
-  void scheduleLegalTermsGate(`/${route}`);
-  if (hasPendingLegalTermsRequirement()) stopBusinessLoops();
-}, { flush: "sync" });
-
 // 🔴 本文件**唯一**的路由读取口 —— 不要加第二个(verify 哨兵 app-route-single-reader 盯着)。
 //
 // 2026-08-07 同形洞一天三处(守门 checkAuthGuard / 会话驱逐 checkSession / 任务播种)。
@@ -1038,22 +1018,6 @@ function checkQuestRoute() {
     lastPlatformConfigLoadAt = Date.now();
     void useConfig().load();
   }
-  if (route !== lastLegalTermsGateRoute || useLocaleStore().code !== lastLegalTermsGateLocale) {
-    lastLegalTermsGateRoute = route;
-    lastLegalTermsGateLocale = useLocaleStore().code;
-    if (canRefreshRemoteAccount(useAuth())) scheduleLegalTermsGate(`/${route}`);
-  }
-  if (enforcePendingLegalTermsGate(`/${route}`)) {
-    stopBusinessLoops();
-    return;
-  }
-  // Risk disclosure remains readable from the required Terms page, but it is
-  // still a legal-only surface: no earnings, orders, trials or analytics may
-  // run until the current account acknowledges the authoritative version.
-  if (hasPendingLegalTermsRequirement()) {
-    stopBusinessLoops();
-    return;
-  }
   // H5 站内路由不会重发 App.onShow。静态评审页会按安全边界停掉业务循环，
   // 所以离开评审页后必须由仍存活的守卫在这一拍重新校验并恢复；放在同路由短路前，
   // 才能覆盖「路由已经切回业务页、lastQuestRoute 也已更新」的时序。
@@ -1097,8 +1061,6 @@ function startQuestWatch() {
   // 播种置空,故意不预填当前页:quest 一次性 + 发钱/markComplete 幂等,重放无害;
   // 冷启深链落地页要记一次访问(112b9d0 以此作实证基线),预填会把这一次吞掉。
   lastQuestRoute = "";
-  lastLegalTermsGateRoute = "";
-  lastLegalTermsGateLocale = "";
   questTimer = setInterval(checkQuestRoute, QUEST_TICK_MS);
 }
 function stopQuestWatch() {
@@ -1310,10 +1272,6 @@ onShow(() => {
     void refreshServerProductPhase(true).catch(() => false);
     void useI18nRuntime().refresh(useLocaleStore().code, true).catch(() => undefined);
   }
-  const termsGateRoute = readCurrentRoute();
-  if (termsGateRoute && !isAuthWhitelisted(termsGateRoute) && canRefreshRemoteAccount(useAuth())) {
-    scheduleLegalTermsGate(`/${termsGateRoute}`);
-  }
   // 🔴 守卫轮询必须无条件启动(2026-08-07 实景抓到的残留洞):冷启动那一拍守卫虽已看见
   // 未登录+业务页并发起 reLaunch,但首次导航还在进行中,那一枪会被吞掉;守卫返回「已跳转」
   // → onShow 提前收工 → 轮询没启动 → 再无第二枪,登出态照样停在业务页(与修复前同果)。
@@ -1321,16 +1279,6 @@ onShow(() => {
   // 未登录/流程页上它短路在任何业务写入之前,常开无副作用。
   // 这里是守卫**唯一**的起点(停点唯一在 onHide),与 stopBusinessLoops 上方的不变量成对。
   startQuestWatch();
-  // startQuestWatch resets the route marker. Seed it with the check just
-  // scheduled above so the first one-second tick does not duplicate the same
-  // current-terms request; a real route change still schedules immediately.
-  lastLegalTermsGateRoute = termsGateRoute;
-  lastLegalTermsGateLocale = useLocaleStore().code;
-  if (termsGateRoute && (enforcePendingLegalTermsGate(`/${termsGateRoute}`)
-    || hasPendingLegalTermsRequirement())) {
-    stopBusinessLoops();
-    return;
-  }
   if (canRefreshRemoteAccount(useAuth())) {
     void probeServerSession();
   }

@@ -50,9 +50,9 @@ describe("legal terms session gate", () => {
     expect(isLegalTermsAcknowledged(acknowledged(true))).toBe(true);
   });
 
-  it("blocks every authenticated remote exit until the authoritative version is acknowledged", () => {
-    expect(shouldBlockLegalTermsExit(true, true, null)).toBe(true);
-    expect(shouldBlockLegalTermsExit(true, true, acknowledged(false))).toBe(true);
+  it("allows leaving the optional document reader regardless of acknowledgement", () => {
+    expect(shouldBlockLegalTermsExit(true, true, null)).toBe(false);
+    expect(shouldBlockLegalTermsExit(true, true, acknowledged(false))).toBe(false);
     expect(shouldBlockLegalTermsExit(true, true, acknowledged(true))).toBe(false);
     expect(shouldBlockLegalTermsExit(true, false, acknowledged(false))).toBe(false);
     expect(shouldBlockLegalTermsExit(false, true, acknowledged(false))).toBe(false);

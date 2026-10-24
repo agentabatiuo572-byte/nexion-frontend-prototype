@@ -112,11 +112,11 @@ function httpUrlParts(value: string): { protocol: string; hostname: string; user
   return { protocol: `${match![1].toLowerCase()}:`, hostname, username: "", password: "" };
 }
 
-function safeUrl(value: unknown, required: boolean, allowHttp: boolean): string {
+function safeUrl(value: unknown, required: boolean, allowHttp: boolean, allowFragment = false): string {
   const url = optionalString(value);
   if (!url && !required) return "";
-  if (!url || /[\s#@]/.test(url)) return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
-  const parsed = httpUrlParts(url);
+  if (!url || /[\s@]/.test(url) || (!allowFragment && url.includes("#"))) return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
+  const parsed = httpUrlParts(allowFragment ? url.split("#", 1)[0] : url);
   if (!parsed || (!allowHttp && parsed.protocol !== "https:")
       || (allowHttp && !["https:", "http:"].includes(parsed.protocol))
       || !parsed.hostname || parsed.username || parsed.password) {
@@ -182,7 +182,7 @@ function parsePlatformShareConfig(value: unknown): ShareConfig {
   const appDownload = record(root.appDownload);
   const source = nonEmptyString(appDownload.source);
   if (!DOWNLOAD_SOURCES.has(source)) return invalid("PLATFORM_EXPERIENCE_RESPONSE_INVALID");
-  const officialUrl = safeUrl(appDownload.officialUrl, source !== "unavailable", false);
+  const officialUrl = safeUrl(appDownload.officialUrl, source !== "unavailable", false, true);
   const version = optionalString(appDownload.version);
   const notes = record(appDownload.releaseNotes);
   const releaseNotes = { zh: optionalString(notes.zh), en: optionalString(notes.en) };
@@ -534,7 +534,7 @@ export function createPlatformConfigApi(client: ApiClient, mode: ApiEnvironment 
       const [computeRaw, referralRaw] = await Promise.all([
         client.request({
           method: "GET",
-          path: "/api/config/platform",
+          path: "/api/config/platform?officialLinkFragments=true",
           authenticated: false,
         }),
         client.request({

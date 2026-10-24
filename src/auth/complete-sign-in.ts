@@ -12,7 +12,7 @@ import { authApi, onboardingCalibrationApi, remoteApiEnabled, sessionVault } fro
 import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
 import { getDeviceId } from "@/lib/device-id";
 import { hydrateCurrentProfileLocale } from "@/lib/locale-profile-sync-runtime";
-import { afterLegalTermsAcknowledged, hasPendingLegalTermsRequirement, scheduleLegalTermsGate } from "@/lib/legal-terms-gate-runtime";
+import { afterLegalTermsAcknowledged } from "@/lib/legal-terms-gate-runtime";
 import type { UserSession } from "@/api/contracts";
 import type { LocaleCode } from "@/i18n";
 import { resolvePostSignInRoute } from "@/auth/post-sign-in-route";
@@ -177,36 +177,31 @@ export function completeSignIn(options: CompleteSignInOptions): CompleteSignInRe
     // another App.onShow, so rearm only after this server session is accepted.
     app.setRemoteTaskForeground(true);
   }
-  // Login completion is a re-ack checkpoint. The helper fences its request to
-  // this exact bearer/account and only starts business reads after the server
-  // confirms the current version is acknowledged.
+  // Registration owns consent. Resume account reads without checking Terms again.
   if (remoteApiEnabled && options.serverProfile) {
     const expectedUserId = options.serverProfile.userId;
     afterLegalTermsAcknowledged(async () => {
       const current = sessionVault.read();
       if (!current || current.user.userId !== expectedUserId) return;
-      if (hasPendingLegalTermsRequirement()) return false;
       if (hasNativeAndroidPhoneRuntime()) {
         const phoneScope = captureAccountScope();
         let phoneStatus = "UNAVAILABLE";
         try { phoneStatus = await onboardingCalibrationApi.phoneLogin(getDeviceId()); } catch { /* The phone screen owns retry; other assets remain available. */ }
         const latest = sessionVault.read();
         if (!isCurrentAccountScope(phoneScope) || !latest || latest.user.userId !== expectedUserId) return;
-        if (hasPendingLegalTermsRequirement()) return false;
         if (phoneStatus === "BOUND") session.markCalibrated(options.identity);
         if (phoneStatus !== "BOUND" && !options.deferNavigation) {
           void navReset({ url: "/pages/onboarding/connect?mode=login", fail: () => {} });
         }
       }
       // App.onShow is not guaranteed after an H5 reLaunch. Complete the
-      // canonical catalogue/fleet bootstrap only after the legal boundary.
+      // canonical catalogue/fleet bootstrap for this accepted session.
       void app.refreshHomeTruth();
       void refreshRemoteFleetAfterCatalog(options.identity);
       // A failed request leaves the snapshot unavailable and withdrawal still
       // fails closed at the server endpoint.
       void refreshEarningsReleaseStatus(options.identity).catch(() => {});
     });
-    void scheduleLegalTermsGate(options.returnTo ?? "/pages/index/index");
   }
   const dest = resolvePostSignInRoute({
     onboardingComplete: auth.onboardingComplete,
