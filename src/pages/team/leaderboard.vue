@@ -152,8 +152,8 @@
         <!-- Share CTA — sticky within the scroll viewport so it stays visible
              without scrolling to the page end, then settles into flow once the
              real bottom is reached. Bleeds edge-to-edge via negative margin to
-             escape the px-4 parent; 26px bottom offset mirrors AppChassis's
-             sub-route safe-area inset (SUB_BOTTOM) so it clears the home indicator. -->
+             escape the px-4 parent; device inset + 26px offset + 12px padding
+             keep the action 38px above the system safe area. -->
         <view :style="shareStickyStyle">
           <view class="flex items-center justify-center active:scale-[0.98]" :style="shareCtaStyle" @click="go('/pages/team/team')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></svg>
@@ -349,7 +349,7 @@ const loadMoreLabelStyle: CSSProperties = {
 
 const shareStickyStyle: CSSProperties = {
   position: "sticky",
-  bottom: "26px",
+  bottom: "calc(env(safe-area-inset-bottom, 0px) + 26px)",
   zIndex: 10,
   margin: "0 -16px",
   padding: "12px 16px",

@@ -548,7 +548,7 @@ const faqAStyle: CSSProperties = {
 
 // Sticky dock styles (folds GenesisDockHost) — anchored to chassis bottom.
 const dockWrapStyle: CSSProperties = {
-  padding: "12px 16px 24px",
+  padding: "12px 16px calc(env(safe-area-inset-bottom, 0px) + 38px)",
   background: "var(--v5-sticky-bar-bg)",
   backdropFilter: "blur(18px) saturate(180%)",
   borderTop: "1px solid var(--v5-sticky-bar-border)",

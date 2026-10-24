@@ -142,7 +142,8 @@ function select(item: CountryRow) {
 .cc-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 8px 16px 6px 20px; }
 .cc-head__title { font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); }
 .cc-head__close { width: 44px; height: 44px; border-radius: 9999px; background: var(--v5-surface-2); display: flex; align-items: center; justify-content: center; }
-.cc-list { flex: 1; min-height: 0; max-height: calc(min(74vh, 620px) - 68px); padding: 0 16px 12px; box-sizing: border-box; scrollbar-width: none; }
+.cc-list { flex: 0 1 auto; min-height: 0; height: calc(min(74vh, 620px) - 72px - env(safe-area-inset-bottom, 0px) - 24px); padding: 0 16px 12px; box-sizing: border-box; scrollbar-width: none; }
+.cc-list :deep(.uni-scroll-view) { height: 100%; max-height: 100%; }
 .cc-list::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .cc-row { min-height: 56px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; }
 .cc-row:not(.cc-row--disabled):active { opacity: 0.7; }

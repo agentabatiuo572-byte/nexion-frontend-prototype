@@ -198,7 +198,7 @@ onUnmounted(() => {
 .nx-nova-bubble {
   position: fixed;
   right: 16px;
-  bottom: 100px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
   z-index: 40;
   transition: opacity 150ms, transform 120ms cubic-bezier(.2,.8,.2,1);
   /* 命中区跟着视觉走。这层是 48×48 的**方框**,而看得见的球是内切圆 —— 四角那

@@ -100,7 +100,7 @@
              clipped everything above the header so there was nothing behind the
              chrome to frost → it read as solid black. (P-041) `backwards` fill on
              the entrance so no transform lingers. -->
-        <view class="nx-page-enter" :style="{ paddingTop: (contentTop + pendingBarInset) + 'px', paddingBottom: contentBottom + 'px' }">
+        <view class="nx-page-enter" :style="{ paddingTop: (contentTop + pendingBarInset) + 'px', paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${contentBottom}px)` }">
           <slot name="pageTop" />
           <!-- Voucher fallback banner — chassis-injected at content top so the
                5 protected tab pages stay untouched (ALIGNMENT red-line). Self-
@@ -881,6 +881,7 @@ export default chassisView;
   left: 0;
   right: 0;
   bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   z-index: 30;
   /* transparent wrapper — the pill's own backdrop blurs content behind it */
 }

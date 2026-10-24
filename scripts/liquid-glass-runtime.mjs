@@ -4,6 +4,7 @@ import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ensureServer } from './lib/dev-server-pool.mjs';
+import { checkPageBottom, checkBottomOverlays } from './bottom-safe-area-runtime.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stage = process.argv.find(v => v.startsWith('--stage='))?.split('=')[1] ?? 'integration';
@@ -337,15 +338,17 @@ try {
         const r=el.getBoundingClientRect();return {label:el.getAttribute('aria-label'),left:r.left,right:r.right,width:r.width,height:r.height,viewport:innerWidth};
       }));
       assert.ok(navigation.every(b=>b.left>=11.9&&b.right<=b.viewport-11.9&&b.width>=43.9&&b.height>=43.9),`Navigation safe spacing ${route}: ${JSON.stringify(navigation)}`);
+      const bottomSafety=await checkPageBottom(page);
       const shot=resolve(out,'route-'+route.replaceAll('/','-')+'.png');
       await page.screenshot({path:shot}); evidence.push(shot);
-      log('route-'+route,{actualRoute:expected,textLength:(await page.locator('uni-page-body').last().innerText()).length,surfaces,navigation});
+      log('route-'+route,{actualRoute:expected,textLength:(await page.locator('uni-page-body').last().innerText()).length,surfaces,navigation,bottomSafety});
       } catch(error) {
         const witness=await page.evaluate(()=>({url:location.href,stack:typeof getCurrentPages==='function'?getCurrentPages().map(p=>p.route):[],text:document.body.innerText.slice(0,400)}));
         throw new Error(`Route ${route}: ${JSON.stringify(witness)}; ${error.message}`,{cause:error});
       } finally {await routeContext.close();}
     }
   }
+  if(stage==='integration') cases.push(...await checkBottomOverlays(browser,server.baseUrl,out));
   await goto('earn/earn');await page.reload({waitUntil:'domcontentloaded'});await active().waitFor();
   await closeTransient();await settings('zh','dark');await page.waitForTimeout(1800);
   for(const theme of ['dark','light']){await settings('zh',theme);const path=resolve(out,`earn-${theme}.png`);await page.screenshot({path});evidence.push(path);}
