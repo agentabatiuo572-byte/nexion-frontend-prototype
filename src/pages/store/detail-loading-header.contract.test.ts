@@ -150,6 +150,7 @@ describe("BUG 400 detail header distinguishes pending/failed reads from a missin
     expect(p.header.value.title).toBe("Cloud Share");
     expect(p.header.value.subtitle).toBe("Share");
     expect(p.view.product.value).toEqual(cloud);
+    expect(await p.body()).not.toContain(copy.store.faq.refund.q);
     expect(p.cta.value).toMatchObject({ disabled: true, href: "/pages/store/detail?id=cloud-share" });
     p.eligibility.value = { status: "ready", eligible: true, snapshot: {
       productNo: cloud.id, eligible: true, decisionCode: "ELIGIBLE", evaluatedAt: 1,

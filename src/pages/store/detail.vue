@@ -186,7 +186,6 @@
         <template v-if="!isShare || aiPerfRows.length > 0">
           <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detAiPerf" /></view>
           <SpecTable :rows="aiPerfRows" brand-value />
-          <text class="block mx-4" :style="{ ...trustBodyStyle, marginTop: '8px' }">{{ t.store.aiReferenceHint }}</text>
         </template>
 
         <!-- === Section 7: Trust material === -->
@@ -268,7 +267,7 @@ import { useProductPhase } from "@/composables/use-product-phase";
 import { isProductAvailable } from "@/store/product-availability";
 import { useSetPageHeader } from "@/composables/use-page-header";
 import { useStickyCTA } from "@/store/sticky-cta-bar";
-import { localizedDatacenterValue, productCopy, specRow, specText, type SpecRow } from "@/lib/product-copy";
+import { productCopy, specRow, specText, type SpecRow } from "@/lib/product-copy";
 import { estimatePaybackDays } from "@/lib/product-payback";
 import { getPhoneTierYields } from "@/mock/phone-tiers";
 import { activePhoneDailyRate, storeYieldMultiplier } from "@/lib/store-upgrade";
@@ -561,9 +560,7 @@ function openTrustUrl(raw: string) {
 }
 const faqs = computed(() => {
   const f = t.value.store.faq;
-  const datacenter = specText(t.value, localizedDatacenterValue(product.value?.datacenter, locale.code));
-  const notes = product.value?.features.filter((line) => line.trim()).join('\n');
-  return [...(notes ? [{ q: t.value.store.productNotes, a: notes }] : []), { ...f.location, a: datacenter }, f.withdraw, f.demand, f.refund];
+  return [f.location, f.withdraw, f.demand, ...(!isShare.value ? [f.refund] : [])];
 });
 
 // ── text helpers (toFixed / toLocaleString / fmt out of template) ──
