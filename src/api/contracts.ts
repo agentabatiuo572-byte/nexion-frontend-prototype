@@ -1,5 +1,3 @@
-import { isSelectablePhoneDialCode } from "@/auth/phone-number";
-
 export interface ApiResult<T> {
   code: number;
   message: string;
@@ -50,6 +48,7 @@ export function isRegistrationReceipt(value: unknown): value is RegistrationRece
     && (receipt.giftStatus === "UNAVAILABLE" || (typeof receipt.giftUsdt === "number" && typeof receipt.giftNex === "number"));
 }
 
+// A trusted historical session is independent of countries offered for new form input.
 export function isUserSession(value: unknown): value is UserSession {
   if (!value || typeof value !== "object") return false;
   const user = value as Partial<UserSession>;
@@ -58,7 +57,7 @@ export function isUserSession(value: unknown): value is UserSession {
     && Number.isSafeInteger(user.userId)
     && user.userId > 0
     && typeof user.countryCode === "string"
-    && (isSelectablePhoneDialCode(user.countryCode) || user.countryCode === "" && user.phone === "")
+    && (["+84", "+86"].includes(user.countryCode) || user.countryCode === "" && user.phone === "")
     && typeof user.phone === "string"
     && (user.phone.length > 0 || user.countryCode === "")
     && typeof user.nickname === "string"

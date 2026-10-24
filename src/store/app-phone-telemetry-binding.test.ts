@@ -283,6 +283,36 @@ it("invalidates B's stale local activation after C replaces it, then accepts B a
   expect(local.calibrated).toBe(true);
 });
 
+it("clears the prior binding failure immediately after confirmed activation", async () => {
+  remote.taskAssignmentApi.reportPhoneRuntime.mockRejectedValueOnce(
+    new ApiError({ kind: "business", code: 409, message: "TASK_ASSIGNMENT_PHONE_BINDING_INVALID" }),
+  );
+  const app = useApp();
+  app.bindAccount("user:1001");
+  await app.syncRemoteTaskAssignments();
+  expect(app.remotePhoneBindingInvalid).toBe(true);
+  local.calibrated = true;
+  app.acceptPhoneActivation();
+  expect(app.remotePhoneBindingInvalid).toBe(false);
+  await vi.waitFor(() => expect(remote.taskAssignmentApi.reportPhoneRuntime).toHaveBeenCalledTimes(2));
+  expect(local.calibrated).toBe(true);
+});
+
+it("ignores a pre-activation heartbeat rejection after activation succeeds", async () => {
+  let rejectOld!: (error: unknown) => void;
+  remote.taskAssignmentApi.reportPhoneRuntime.mockReturnValueOnce(new Promise((_resolve, reject) => { rejectOld = reject; }));
+  const app = useApp();
+  app.bindAccount("user:1001");
+  const pending = app.syncRemoteTaskAssignments();
+  await vi.waitFor(() => expect(remote.taskAssignmentApi.reportPhoneRuntime).toHaveBeenCalledOnce());
+  app.acceptPhoneActivation();
+  rejectOld(new ApiError({ kind: "business", code: 409, message: "TASK_ASSIGNMENT_PHONE_BINDING_INVALID" }));
+  await pending;
+  await vi.waitFor(() => expect(remote.taskAssignmentApi.reportPhoneRuntime).toHaveBeenCalledTimes(2));
+  expect(app.remotePhoneBindingInvalid).toBe(false);
+  expect(local.clearCalibrated).not.toHaveBeenCalled();
+});
+
 it("starts a fresh foreground sync while the old epoch's read remains in flight", async () => {
   let resolveOldState!: (value: CanonicalTaskAssignments) => void;
   remote.taskAssignmentApi.state.mockReturnValueOnce(new Promise((resolve) => { resolveOldState = resolve; }));

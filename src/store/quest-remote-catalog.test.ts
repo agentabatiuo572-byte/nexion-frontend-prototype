@@ -55,10 +55,10 @@ describe("PC-managed H3 quest catalogue", () => {
     await quest.refreshRemote();
     expect(state).toHaveBeenLastCalledWith("en");
 
-    locale.setLocale("zh");
+    locale.setLocale("vi");
 
     await vi.waitFor(() => expect(quest.remoteQuests[0]?.name).toBe("Start first order"));
-    expect(state).toHaveBeenLastCalledWith("zh");
+    expect(state).toHaveBeenLastCalledWith("vi");
   });
 
   it("keeps the last confirmed catalogue visible while a background refresh is pending", async () => {

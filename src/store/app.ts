@@ -444,6 +444,15 @@ export const useApp = defineStore("app", () => {
       invalidateRemoteFleet();
     }
   }
+  function acceptPhoneActivation(): void {
+    // A confirmed activation supersedes failures from the previous binding.
+    remoteTaskForegroundEpoch += 1;
+    remoteTaskSyncAfter = 0;
+    remotePhoneBindingInvalid.value = false;
+    taskAssignmentReadEpoch += 1;
+    taskAssignmentSnapshot = null;
+    void syncRemoteTaskAssignments();
+  }
   async function pauseLocalPhoneRuntimeBeforeSignOut(): Promise<void> {
     setRemoteTaskForeground(false);
     const request = remoteAccountEpoch.snapshot();
@@ -2431,7 +2440,7 @@ export const useApp = defineStore("app", () => {
     remoteFleetStatus, remoteFleetError, remoteFleetHasSnapshot, remoteRealizedToday, remoteWithdrawalListStatus, remoteWithdrawalListHasSnapshot, remoteWalletReceiptHasSnapshot, remoteAssignmentStatus, remoteAssignmentError, remoteAssignmentHasSnapshot, remotePhoneBindingInvalid,
     withdrawals, latestWithdrawal, inFlightWithdrawals, primaryWithdrawal, miningPaused,
     bindAccount, projectServerIdentity, persistAccountSnapshot, refreshHomeTruth, refreshRemoteFleet, invalidateRemoteFleet, captureRemoteAccountRequest, adoptCommerceWallet, adoptDevelopmentCommerceWallet, adoptDevelopmentGenesisWallet, syncRemoteTaskAssignments, setRemoteTaskForeground, pauseLocalPhoneRuntimeBeforeSignOut,
-    tick, settle, setPhoneRuntime, interruptAllTasks, resumeMining,
+    tick, settle, setPhoneRuntime, interruptAllTasks, resumeMining, acceptPhoneActivation,
     creditBalance, debitBalance, creditNex, debitNex, captureMoney, restoreMoney,
     recordDeposit, creditRewardBucket, creditRewardBucketOnce,
     submitWithdrawal, applyWithdrawalDebit, advanceWithdrawalArrival, refreshRemoteWithdrawals, refreshRemoteWithdrawalList,

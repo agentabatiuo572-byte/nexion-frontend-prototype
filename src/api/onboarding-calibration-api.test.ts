@@ -23,8 +23,31 @@ const valid = {
   signals: { memGB: 8, cores: 8, model: "Pixel", brand: "Google", gpu: "Mali", pxDensity: 900, pingMs: 42, batteryLevel: 80, charging: true, networkReachable: true },
   comparisonConfig: [{ key: "phone", label: "Phone", dailyUsdt: 0.06, dailyNex: 10, sortOrder: 1 }],
 };
+const versions = { expectedBindingVersion: null, expectedPolicyVersion: 1, replacementConfirmed: false };
 
 describe("onboarding calibration API", () => {
+  it("reads nullable initial binding and rejects missing or invalid version metadata", async () => {
+    const eligibility = { binding: null, policy: { policyVersion: 4 }, canReplace: true, blockedReasons: [], grant: null };
+    const request = vi.fn().mockResolvedValue(eligibility);
+    const api = createOnboardingCalibrationApi({ request } as never);
+    expect(await api.activationEligibility()).toEqual({ binding: null, policyVersion: 4, canActivate: true, blockedReasons: [] });
+    for (const invalid of [{ ...eligibility, binding: undefined }, { ...eligibility, policy: {} },
+      { ...eligibility, binding: { installationId: "old", bindingVersion: null } },
+      { ...eligibility, canReplace: "true" }, { ...eligibility, blockedReasons: [null] }]) {
+      request.mockResolvedValue(invalid);
+      await expect(api.activationEligibility()).rejects.toThrow("ONBOARDING_CALIBRATION_RESPONSE_INVALID");
+    }
+  });
+  it("settles a retry only from its failed activation receipt", async () => {
+    const request = vi.fn(); const api = createOnboardingCalibrationApi({ request } as never);
+    for (const response of [null, { commandType: "PHONE_ACTIVATE", status: "PROCESSING" },
+      { commandType: "PHONE_ACTIVATE", status: "SUCCEEDED" }, { commandType: "OTHER", status: "FAILED" }]) {
+      request.mockResolvedValue(response); expect(await api.activationFailed("phone-key:1")).toBe(false);
+    }
+    request.mockResolvedValue({ commandType: "PHONE_ACTIVATE", status: "FAILED" });
+    expect(await api.activationFailed("phone-key:1")).toBe(true);
+    expect(request.mock.lastCall?.[0].path).toContain("idempotencyKey=phone-key%3A1");
+  });
   afterEach(() => advanceRuntimeRevision(null));
 
   it("reads binding existence without an installation login or inferred fallback", async () => {
@@ -64,7 +87,7 @@ describe("onboarding calibration API", () => {
     const denial = new ApiError({ kind: "business", message: "PHONE_REPLACEMENT_DISABLED" });
     const request = vi.fn().mockRejectedValue(denial);
     const api = createOnboardingCalibrationApi({ request } as never);
-    await expect(api.activate("device-a", 2, "phone-active-001")).rejects.toBe(denial);
+    await expect(api.activate("device-a", 2, "phone-active-001", versions)).rejects.toBe(denial);
     expect(request).toHaveBeenCalledTimes(1);
   });
 
@@ -153,12 +176,12 @@ describe("onboarding calibration API", () => {
       .mockResolvedValueOnce({ ...valid, activationStatus: "DEFERRED", revision: 4 });
     const api = createOnboardingCalibrationApi({ request } as never);
 
-    await api.activate("device-a", 2, "phone-active-001");
+    await api.activate("device-a", 2, "phone-active-001", versions);
     await api.defer("device-a", 3, "phone-defer-001");
 
     expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({
       method: "POST", path: "/api/onboarding/calibrate/activate", idempotencyKey: "phone-active-001",
-      body: { deviceId: "device-a", expectedRevision: 2 },
+      body: { deviceId: "device-a", expectedRevision: 2, ...versions },
     }));
     expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
       method: "POST", path: "/api/onboarding/calibrate/defer", idempotencyKey: "phone-defer-001",

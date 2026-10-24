@@ -20,15 +20,15 @@ test("login and registration share country-aware phone validation", async () => 
   assert.match(countrySheet, /item\.iso/);
 });
 
-test("registered-number runtime fixtures stay on the selectable development country code", async () => {
+test("registered-number runtime fixtures stay on the selectable country code", async () => {
   const runtime = await read("scripts/auth-register-existing-runtime.mjs");
   assert.doesNotMatch(runtime, /\+1/);
-  assert.match(runtime, /const fullPhone = `\+86\$\{phoneDigits\}`/);
-  assert.match(runtime, /hasText: "\+86"/);
-  assert.match(runtime, /solveCaptchaSlider\(frame, `\+86\$\{digits\}`\)/);
+  assert.match(runtime, /const fullPhone = `\+84\$\{phoneDigits\}`/);
+  assert.match(runtime, /hasText: "\+84"/);
+  assert.match(runtime, /solveCaptchaSlider\(frame, `\+84\$\{digits\}`\)/);
 });
 
-test("keyboard auth regression uses valid phones for both selectable country codes", async () => {
+test("keyboard auth regression uses valid phones for the selectable country code", async () => {
   const keyboardRuntime = await read("scripts/keyboard-submit-h5.e2e.mjs");
   assert.match(keyboardRuntime, /countryCode === "\+84" \? "912345678"/);
   assert.match(keyboardRuntime, /countryCode === "\+86" \? "13800138000"/);

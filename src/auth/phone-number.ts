@@ -8,7 +8,7 @@ export interface PhoneCountryProfile {
 
 /**
  * The order is also the selector order. Vietnam is the formal market and
- * China is retained for local development; the remaining rows stay visible
+ * China is also available for the demonstration; the remaining rows stay visible
  * to explain coverage but cannot be selected or submitted.
  */
 export const PHONE_COUNTRIES: readonly PhoneCountryProfile[] = [
@@ -50,6 +50,6 @@ export function phoneFormatHint(dialCode: string): string {
   return profile?.selectable ? profile.example : "";
 }
 
-export function dialCodeForLocale(_locale: string, development = import.meta.env.DEV): string {
-  return development ? "+86" : "+84";
+export function dialCodeForLocale(locale: string, _development = import.meta.env.DEV): string {
+  return locale === "zh" ? "+86" : "+84";
 }

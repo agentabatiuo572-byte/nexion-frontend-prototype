@@ -6,9 +6,9 @@
         <text class="phone-binding-note" role="status">{{ bound ? t.security.phoneBindingDone : t.security.phoneBindingRequired }}</text>
         <template v-if="!bound">
           <view class="phone-binding-number">
-            <picker :range="dialCodes" :value="countryIndex" @change="onCountryChange">
-              <view class="phone-binding-code" role="button" :aria-label="t.countryCodes.title">{{ countryCode }} ▾</view>
-            </picker>
+            <view class="phone-binding-code" role="button" tabindex="0" :aria-label="t.countryCodes.title"
+              :aria-expanded="showCountries" @click="showCountries = true" @keydown.enter.prevent="showCountries = true"
+              @keydown.space.prevent="showCountries = true">{{ countryCode }} ▾</view>
             <input v-model="phone" type="number" inputmode="numeric" maxlength="15" :placeholder="t.register.phonePlaceholder" :aria-label="t.register.phonePlaceholder" />
           </view>
           <view class="phone-binding-action" role="button" tabindex="0" :aria-disabled="busy || !validPhone || resendLeft > 0" @click="sendCode()" @keydown.enter.prevent="sendCode()">
@@ -22,6 +22,7 @@
       </view>
       <ServerCaptchaSlider v-if="showCaptcha" :phone="`${countryCode}${phone}`" scene="REGISTER" @success="onCaptchaSuccess" @close="showCaptcha = false" />
     </view>
+    <CountryCodeSheet :open="showCountries" :model-value="countryCode" @select="countryCode = $event" @close="showCountries = false" />
   </AppChassis>
 </template>
 
@@ -29,18 +30,19 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import CountryCodeSheet from "@/components/country-code-sheet.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import ServerCaptchaSlider from "@/components/server-captcha-slider.vue";
 import { accountApi, authApi, sessionVault } from "@/api/runtime";
-import { sanitizePhoneInput, validateNationalPhone } from "@/auth/phone-number";
+import { dialCodeForLocale, sanitizePhoneInput, validateNationalPhone } from "@/auth/phone-number";
+import { useLocaleStore } from "@/store/locale";
 import { useT } from "@/i18n/use-t";
 import { navTo } from "@/lib/route";
 import { asApiError } from "@/api/errors";
 
 const t = useT();
-const dialCodes = ["+84", "+86"];
-const countryIndex = ref(0);
-const countryCode = computed(() => dialCodes[countryIndex.value] ?? "+84");
+const showCountries = ref(false);
+const countryCode = ref(dialCodeForLocale(useLocaleStore().code));
 const phone = ref("");
 const code = ref("");
 const challengeNo = ref("");
@@ -56,11 +58,6 @@ let timer: ReturnType<typeof setInterval> | null = null;
 onShow(() => { bound.value = !!sessionVault.read()?.user.phone; });
 onUnmounted(() => { if (timer) clearInterval(timer); });
 watch([phone, countryCode], () => { challengeNo.value = ""; code.value = ""; });
-function onCountryChange(event: { detail: { value: string } }) {
-  countryIndex.value = Number(event.detail.value) || 0;
-  challengeNo.value = "";
-  code.value = "";
-}
 function startCooldown(seconds: number) {
   resendLeft.value = seconds;
   if (timer) clearInterval(timer);

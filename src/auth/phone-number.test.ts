@@ -8,7 +8,7 @@ import {
 } from "./phone-number";
 
 describe("country-aware phone validation", () => {
-  it("keeps only Vietnam and China selectable, ahead of disabled regions", () => {
+  it("keeps Vietnam and China selectable for the demonstration", () => {
     expect(PHONE_COUNTRIES.slice(0, 2)).toEqual([
       expect.objectContaining({ iso: "VN", dialCode: "+84", selectable: true }),
       expect.objectContaining({ iso: "CN", dialCode: "+86", selectable: true }),
@@ -18,10 +18,10 @@ describe("country-aware phone validation", () => {
     expect(PHONE_COUNTRIES.slice(2).every((country) => !country.selectable)).toBe(true);
   });
 
-  it("defaults formal builds to +84 and local development to +86", () => {
+  it("defaults Chinese to +86 and other supported locales to +84 in every build", () => {
     expect(dialCodeForLocale("vi", false)).toBe("+84");
-    expect(dialCodeForLocale("zh", false)).toBe("+84");
-    expect(dialCodeForLocale("vi", true)).toBe("+86");
+    expect(dialCodeForLocale("zh", false)).toBe("+86");
+    expect(dialCodeForLocale("vi", true)).toBe("+84");
   });
 
   it("does not expose an input hint for disabled or unknown country codes", () => {
@@ -32,8 +32,7 @@ describe("country-aware phone validation", () => {
   });
 
   it.each([
-    ["+84", "0912345678"], ["+84", "912345678"],
-    ["+86", "13800138000"],
+    ["+84", "0912345678"], ["+84", "912345678"], ["+86", "13800138000"],
   ])("accepts a valid %s national format", (dialCode, phone) => {
     expect(validateNationalPhone(dialCode, phone)).toBe(true);
   });

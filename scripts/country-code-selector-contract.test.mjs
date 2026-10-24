@@ -8,7 +8,7 @@ const phoneRules = read("src/auth/phone-number.ts");
 const login = read("src/pages/login/login.vue");
 const register = read("src/pages/register/register.vue");
 
-test("only +84 and +86 remain selectable while every other country stays visible and disabled", () => {
+test("+84 and +86 are selectable while other countries stay disabled", () => {
   assert.match(selector, /v-for="\(item, index\) in COUNTRIES"/);
   assert.match(selector, /case "CN": return t\.value\.countryCodes\.china/);
   assert.match(phoneRules, /PHONE_COUNTRIES[^=]*=\s*\[\s*\{ iso: "VN", dialCode: "\+84"[^\n]*selectable: true/);

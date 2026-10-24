@@ -84,15 +84,15 @@
     </view>
     <view v-if="nativePhoneAvailable" class="cn-cta">
       <view v-if="phase === 'result'" class="cn-go cn-go--on active:scale-[0.98]" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" data-system-chrome-primary @click="activate" @keydown.enter.prevent="activate" @keydown.space.prevent="activate">
-        <text class="cn-go__t cn-go__t--on">{{ activateText }}</text>
+        <text class="cn-go__t cn-go__t--on" aria-live="polite">{{ activationBusy ? t.onboarding.activationProcessing : activateText }}</text>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
       <view v-else-if="phase === 'error'" class="cn-error-actions">
         <view class="cn-go cn-go--on active:scale-[0.98]" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" data-system-chrome-primary @click="retryCalibration" @keydown.enter.prevent="retryCalibration" @keydown.space.prevent="retryCalibration">
-          <text class="cn-go__t cn-go__t--on">{{ t.onboarding.activationRetry }}</text>
+          <text class="cn-go__t cn-go__t--on" aria-live="polite">{{ activationBusy ? t.onboarding.activationProcessing : t.onboarding.activationRetry }}</text>
         </view>
         <view v-if="failedAction !== 'defer'" class="cn-go cn-go--secondary active:scale-[0.98]" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" @click="deferPhoneActivation" @keydown.enter.prevent="deferPhoneActivation" @keydown.space.prevent="deferPhoneActivation">
-          <text class="cn-go__t cn-go__t--secondary">{{ t.onboarding.activationDefer }}</text>
+          <text class="cn-go__t cn-go__t--secondary" aria-live="polite">{{ activationBusy ? t.onboarding.activationProcessing : t.onboarding.activationDefer }}</text>
         </view>
       </view>
     </view>
@@ -105,6 +105,7 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><path d="M12 8h.01" /></svg>
       </view>
     </view>
+    <GlobalUi />
   </StandalonePageShell>
 </template>
 
@@ -115,6 +116,7 @@ import { resolvePhoneActivationGuidance } from "@/lib/phone-activation-guidance"
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { onLoad, onBackPress } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
+import GlobalUi from "@/components/global-ui.vue";
 import { useT } from "@/i18n/use-t";
 import { useAuth } from "@/store/auth";
 import { useApp } from "@/store/app";
@@ -141,7 +143,8 @@ async function collectCalibrationSignals() {
 }
 import { requireCryptoUuid } from "@/lib/secure-command-id";
 import { onboardingCalibrationApi, remoteApiEnabled } from "@/api/runtime";
-import type { OnboardingCalibration } from "@/api/onboarding-calibration-api";
+import type { OnboardingCalibration, PhoneActivationVersions } from "@/api/onboarding-calibration-api";
+import { confirm as uiConfirm, useUI } from "@/store/ui";
 import { calibrationBelongsTo, createPhoneCalibrationFlow } from "@/lib/phone-calibration-flow";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import type { RemoteAccountRequest } from "@/lib/remote-account-epoch";
@@ -188,6 +191,7 @@ function acceptCurrentCanonical(scope: RequestScope, result: OnboardingCalibrati
   return scopeIsCurrent(scope) && calibrationBelongsTo(result, accountKey(), getDeviceId());
 }
 const authenticatedAccountKey = computed(() => auth.isAuthenticated ? accountKey() : "");
+const confirmOwner = `phone-activation-${Date.now()}-${Math.random()}`;
 watch(authenticatedAccountKey, (next, previous) => {
   if (next === previous) return;
   // Remote login hydrates the non-secret account routing key after the
@@ -197,6 +201,7 @@ watch(authenticatedAccountKey, (next, previous) => {
   activationBusy.value = false;
   accountEpoch += 1;
   requestGeneration += 1;
+  useUI().clearConfirmsBy(confirmOwner);
   calibrationFlow.reset();
   activationIntent = null;
   canonical.value = null;
@@ -245,7 +250,7 @@ const calibrationFlow = createPhoneCalibrationFlow({ api: onboardingCalibrationA
   collect: collectCalibrationSignals, key: () => `onboarding:${requireCryptoUuid()}` });
 const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
 const phoneActivationGuidance = computed(() => resolvePhoneActivationGuidance(nativePhoneAvailable, t.value.myDevices));
-let activationIntent: { target: "ACTIVE" | "DEFERRED"; revision: number; idempotencyKey: string } | null = null;
+let activationIntent: { target: "ACTIVE" | "DEFERRED"; revision: number; idempotencyKey: string; versions?: PhoneActivationVersions } | null = null;
 const activationBusy = ref(false);
 
 async function startCalibration() {
@@ -375,16 +380,43 @@ async function activate() {
   activationBusy.value = true;
   const requestScope = { ...currentScope() };
   const before = canonical.value;
-  const command = activationCommand("ACTIVE", before.revision);
-  const app = useApp();
   // Apply the server-confirmed baseline to the live phone device + record this
   // device as the account's calibrated device (so future logins on it skip
   // recalibration, while a different device triggers it).
   try {
+    const command = activationCommand("ACTIVE", before.revision);
+    const app = useApp();
+    if (!command.versions) {
+      const eligibility = await onboardingCalibrationApi.activationEligibility();
+      if (!scopeIsCurrent(requestScope)) return;
+      if (!eligibility.canActivate) throw new Error(eligibility.blockedReasons[0] || "PHONE_ACTIVATION_UNAVAILABLE");
+      const replacing = eligibility.binding !== null && (eligibility.binding.installationId !== before.deviceId
+        || failureCode.value === "PHONE_REPLACEMENT_CONFIRMATION_REQUIRED");
+      if (replacing) {
+        const confirmed = await uiConfirm({ title: t.value.onboarding.replacementConfirmTitle,
+          message: t.value.onboarding.replacementConfirmBody, confirmLabel: t.value.onboarding.replacementConfirmAction,
+          owner: confirmOwner });
+        if (!scopeIsCurrent(requestScope) || !confirmed) return;
+      }
+      command.versions = {
+        expectedBindingVersion: eligibility.binding?.bindingVersion ?? null,
+        expectedPolicyVersion: eligibility.policyVersion,
+        replacementConfirmed: replacing,
+        ...(eligibility.grantId ? { exceptionGrantId: eligibility.grantId } : {}),
+      };
+    }
     let activated: OnboardingCalibration;
     try {
-      activated = await onboardingCalibrationApi.activate(before.deviceId, command.revision, command.idempotencyKey);
+      activated = await onboardingCalibrationApi.activate(before.deviceId, command.revision, command.idempotencyKey, command.versions);
     } catch (cause) {
+      if (!scopeIsCurrent(requestScope)) return;
+      // Only a persisted FAILED receipt settles the command. Unknown/network
+      // outcomes retain both the key and the exact version/consent snapshot.
+      try {
+        const failed = await onboardingCalibrationApi.activationFailed(command.idempotencyKey);
+        if (!scopeIsCurrent(requestScope)) return;
+        if (failed && activationIntent === command) activationIntent = null;
+      } catch { /* Keep the original command when its receipt is unavailable. */ }
       if (!scopeIsCurrent(requestScope)) return;
       const readback = await onboardingCalibrationApi.result(before.deviceId);
       if (!acceptCurrentCanonical(requestScope, readback)) return;
@@ -399,6 +431,7 @@ async function activate() {
       throw new Error("PHONE_ACTIVATION_LOCAL_COMMIT_FAILED");
     }
     canonical.value = activated;
+    app.acceptPhoneActivation();
     // Activation is already committed by the canonical endpoint. A secondary
     // fleet refresh must not turn that success into a false activation error;
     // App-level resilience owns refresh failure and the next page can retry it.
@@ -412,7 +445,7 @@ async function activate() {
       phase.value = "error";
     }
   } finally {
-    if (scopeIsCurrent(requestScope)) activationBusy.value = false;
+    if (isCurrentOnboardingCalibrationScope(requestScope, currentScope())) activationBusy.value = false;
   }
 }
 
@@ -466,7 +499,7 @@ async function deferPhoneActivation() {
       phase.value = "error";
     }
   } finally {
-    if (scopeIsCurrent(requestScope)) activationBusy.value = false;
+    if (isCurrentOnboardingCalibrationScope(requestScope, currentScope())) activationBusy.value = false;
   }
 }
 function leaveConnect() {
@@ -498,6 +531,7 @@ onMounted(() => {
 onBackPress(() => { leaveConnect(); return true; });
 onUnmounted(() => {
   mounted = false;
+  useUI().clearConfirmsBy(confirmOwner);
   if (scoreTimer) clearInterval(scoreTimer);
   requestGeneration += 1;
 });

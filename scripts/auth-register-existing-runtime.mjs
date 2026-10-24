@@ -5,9 +5,9 @@ const baseUrl = process.env.BASE_URL || "http://127.0.0.1:5173";
 const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 // argv 优先于环境变量：WSL 调用 node.exe 时临时环境变量可能不会跨进 Windows
 // 进程，而 argv 能稳定保留 EN/ZH 两轮运行时回归的目标语言。
-const locale = process.argv[2] === "zh" || (process.argv[2] !== "en" && process.env.AUTH02_LOCALE === "zh") ? "zh" : "en";
-const phoneDigits = `1390${String(Date.now()).slice(-7)}`;
-const fullPhone = `+86${phoneDigits}`;
+const locale = "en"; // Chinese is no longer a selectable locale.
+const phoneDigits = `91${String(Date.now()).slice(-7)}`;
+const fullPhone = `+84${phoneDigits}`;
 const accountId = `${fullPhone}@demo.nexgrid.ai`;
 const referralCode = "NEXGRID-AB12";
 const registeredTitle = locale === "zh" ? "该手机号已注册" : "This number is already registered";
@@ -135,14 +135,14 @@ async function solveCaptchaSlider(frame, phone) {
 }
 
 async function enterPhoneAndSend(frame, digits = phoneDigits) {
-  // 正式环境默认 +84，开发环境默认 +86；本运行时夹具统一使用开发专用的 +86 号码。
-  // 显式选择 +86，既覆盖真实选择步骤，也避免测试依赖运行环境默认值。
-  if ((await frame.locator(".rg-phone__cc-t").innerText()).trim() !== "+86") {
+  // 各环境统一使用可选择的 +84 号码。
+  // 显式选择 +84，既覆盖真实选择步骤，也避免测试依赖运行环境默认值。
+  if ((await frame.locator(".rg-phone__cc-t").innerText()).trim() !== "+84") {
     await frame.locator(".rg-phone__cc").click();
-    const row = frame.locator(".cc-row", { hasText: "+86" }).first();
+    const row = frame.locator(".cc-row", { hasText: "+84" }).first();
     await row.waitFor({ state: "visible", timeout: 10_000 });
     await row.click();
-    await waitUntil(async () => (await frame.locator(".rg-phone__cc-t").innerText()).trim() === "+86", "country code did not switch to +86");
+    await waitUntil(async () => (await frame.locator(".rg-phone__cc-t").innerText()).trim() === "+84", "country code did not switch to +84");
   }
   await frame.locator(".rg-phone__in input").fill(digits);
   await frame.locator(".rg-cta").click();
@@ -160,7 +160,7 @@ async function enterPhoneAndSend(frame, digits = phoneDigits) {
     return false;
   }, "neither the OTP step nor the captcha layer appeared after send");
   if (sawCaptcha) {
-    await solveCaptchaSlider(frame, `+86${digits}`);
+    await solveCaptchaSlider(frame, `+84${digits}`);
     await frame.locator(".rg-step2").waitFor({ state: "visible", timeout: 10_000 });
   }
 }
@@ -435,15 +435,15 @@ async function assertRegistrationSuccessUi(frame, expectGift, expectRouteEntryFo
 
 async function assertAuthDirectorySchemaBarrier(frame) {
   const suffix = String(Date.now()).slice(-7);
-  const legacyPhone = `+861355${suffix}`;
+  const legacyPhone = `+8491${suffix}`;
   const legacyAccount = `${legacyPhone}@demo.nexgrid.ai`;
-  const recoveryPhone = `+861358${suffix}`;
+  const recoveryPhone = `+8492${suffix}`;
   const recoveryAccount = `${recoveryPhone}@demo.nexgrid.ai`;
-  const cleanupPhone = `+861359${suffix}`;
+  const cleanupPhone = `+8493${suffix}`;
   const cleanupAccount = `${cleanupPhone}@demo.nexgrid.ai`;
-  const pendingPhone = `+861356${suffix}`;
+  const pendingPhone = `+8494${suffix}`;
   const pendingAccount = `${pendingPhone}@demo.nexgrid.ai`;
-  const freshPhone = `+861357${suffix}`;
+  const freshPhone = `+8495${suffix}`;
   const result = await frame.evaluate(async ({ legacyPhone, legacyAccount, recoveryPhone, recoveryAccount, cleanupPhone, cleanupAccount, pendingPhone, pendingAccount, freshPhone }) => {
     const { buildCandidateRecord, readRiskRecordsStrict } = await import("/src/store/risk-identity.ts");
     const {
@@ -778,7 +778,7 @@ try {
     const { useAuth } = await import("/src/store/auth.ts");
     const result = completeSignIn({ identity: `${phone}@demo.nexgrid.ai` });
     return { result, accountId: useAuth().accountId, expectedAccount };
-  }, { expectedAccount: accountId, phone: `+861351${String(Date.now()).slice(-7)}` });
+  }, { expectedAccount: accountId, phone: `+8496${String(Date.now()).slice(-7)}` });
   assert(unregisteredGuard.result?.ok === false && unregisteredGuard.result.error === "account_not_found", "unregistered phone bypassed the account directory");
   assert(unregisteredGuard.accountId === unregisteredGuard.expectedAccount, "rejected sign-in changed the active account");
 
@@ -787,13 +787,13 @@ try {
   await signOutToDefault(frame, fullPhone);
   let loginFrame = await gotoLogin("stale-login");
   await loginFrame.locator(".lg-switch").click();
-  // 登录页同样显式选择开发专用的 +86，避免依赖语言或构建环境默认值。
-  if ((await loginFrame.locator(".lg-phone__cc-t").innerText()).trim() !== "+86") {
+  // 登录页同样显式选择可选择的 +84，避免依赖语言或构建环境默认值。
+  if ((await loginFrame.locator(".lg-phone__cc-t").innerText()).trim() !== "+84") {
     await loginFrame.locator(".lg-phone__cc").click();
-    const row = loginFrame.locator(".cc-row", { hasText: "+86" }).first();
+    const row = loginFrame.locator(".cc-row", { hasText: "+84" }).first();
     await row.waitFor({ state: "visible", timeout: 10_000 });
     await row.click();
-    await waitUntil(async () => (await loginFrame.locator(".lg-phone__cc-t").innerText()).trim() === "+86", "login country code did not switch to +86");
+    await waitUntil(async () => (await loginFrame.locator(".lg-phone__cc-t").innerText()).trim() === "+84", "login country code did not switch to +84");
   }
   await loginFrame.locator(".lg-phone__in input").fill(phoneDigits);
   await loginFrame.locator(".lg-cta").click();
@@ -828,8 +828,8 @@ try {
     return completeSignIn({ identity });
   }, accountId);
   assert(resumeOldForRollback?.ok, "could not restore the existing account before rollback test");
-  const rollbackDigits = `1363${String(Date.now()).slice(-7)}`;
-  const rollbackPhone = `+86${rollbackDigits}`;
+  const rollbackDigits = `93${String(Date.now()).slice(-7)}`;
+  const rollbackPhone = `+84${rollbackDigits}`;
   const rollbackAccount = `${rollbackPhone}@demo.nexgrid.ai`;
   frame = await gotoRegister("risk-rollback");
   await enterPhoneAndSend(frame, rollbackDigits);
@@ -887,8 +887,8 @@ try {
   assert(afterRollbackRetry.bonusBills.length === 2 && afterRollbackRetry.giftClaimed && afterRollbackRetry.giftMirror, "retry after K1 failure duplicated or lost welcome-gift side effects");
 
   // 验码请求尚未返回时改号，旧响应不能污染新号码步骤或生成账号。
-  const stalePhoneDigits = `1362${String(Date.now()).slice(-7)}`;
-  const stalePhone = `+86${stalePhoneDigits}`;
+  const stalePhoneDigits = `92${String(Date.now()).slice(-7)}`;
+  const stalePhone = `+84${stalePhoneDigits}`;
   frame = await gotoRegister("stale", false);
   await enterPhoneAndSend(frame, stalePhoneDigits);
   await enterOtp(frame);

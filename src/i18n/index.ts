@@ -22,12 +22,12 @@ export interface LocaleEntry {
 }
 
 export const LOCALES: LocaleEntry[] = [
+  { code: "zh", nativeName: "中文", englishName: "Chinese", region: "China", priority: 0, isRTL: false, flag: "🇨🇳" },
   { code: "en", nativeName: "English",   englishName: "English",              region: "Global",              priority: 0, isRTL: false, flag: "🌐" },
   { code: "vi", nativeName: "Tiếng Việt", englishName: "Vietnamese",           region: "Vietnam",             priority: 0, isRTL: false, flag: "🇻🇳" },
-  { code: "zh", nativeName: "简体中文",   englishName: "Chinese (Simplified)", region: "China · Singapore",   priority: 1, isRTL: false, flag: "🇨🇳" },
 ];
 
-export const DEFAULT_LOCALE: LocaleCode = "en";
+export const DEFAULT_LOCALE: LocaleCode = "zh";
 
 export function getLocale(code: LocaleCode): LocaleEntry {
   return LOCALES.find((l) => l.code === code) ?? LOCALES[0];

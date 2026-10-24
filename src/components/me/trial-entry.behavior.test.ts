@@ -86,10 +86,10 @@ test("a mounted entry follows status and locale changes while retaining the same
   const entry = await mount("active");
   entry.trial.status = "grace"; await Vue.nextTick();
   expect(entry.action()?.props["aria-label"]).toBe("Trial ended · Production stopped");
-  locale.setLocale("zh"); await Vue.nextTick();
-  expect(entry.action()?.props["aria-label"]).toBe("试用已结束 · 已停止产出");
+  locale.setLocale("vi"); await Vue.nextTick();
+  expect(entry.action()?.props["aria-label"]).toBe("Đã kết thúc dùng thử · Đã ngừng sinh lời");
   entry.trial.status = "active"; await Vue.nextTick();
-  expect(entry.action()?.props["aria-label"]).toBe("试用进行中 · 体验中");
+  expect(entry.action()?.props["aria-label"]).toBe("Đang dùng thử · Đang chạy");
   expect(entry.trial.status).toBe("active");
 });
 

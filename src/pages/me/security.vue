@@ -114,9 +114,9 @@
           </text>
           <template v-else-if="!phoneChallenge">
             <view class="flex" style="gap: 8px">
-              <picker :range="['+86', '+84']" :value="phoneCountry === '84' ? 1 : 0" @change="phoneCountry = Number(detailVal($event)) === 1 ? '84' : '86'">
-                <view :style="pwdInputStyle">{{ '+' + phoneCountry }}</view>
-              </picker>
+              <view :style="pwdInputStyle" role="button" tabindex="0" :aria-label="t.countryCodes.title"
+                :aria-expanded="showPhoneCountries" @click="showPhoneCountries = true" @keydown.enter.prevent="showPhoneCountries = true"
+                @keydown.space.prevent="showPhoneCountries = true">{{ '+' + phoneCountry }} ▾</view>
               <input class="flex-1" :style="pwdInputStyle" type="number" :value="phoneNext" :placeholder="t.security.phoneChangeNew"
                 :aria-label="t.security.phoneChangeNew" maxlength="15" @input="phoneNext = detailVal($event)" />
             </view>
@@ -209,6 +209,7 @@
       </view>
       <text class="block mx-4" :style="footerStyle">{{ remoteApiEnabled && !remoteSecurity ? "—" : deletionStatus.status === 'BLOCKED' ? fmt(t.security.deleteAccountBlocked, { reason: deletionStatus.blockReason ?? deletionStatus.reason ?? t.security.deleteAccountPendingReason }) : deletionPending ? t.security.deleteAccountPending : t.security.deleteAccountHint }}</text>
     </view>
+    <CountryCodeSheet :open="showPhoneCountries" :model-value="'+' + phoneCountry" @select="selectPhoneCountry" @close="showPhoneCountries = false" />
   </AppChassis>
 </template>
 
@@ -218,6 +219,7 @@ import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import CountryCodeSheet from "@/components/country-code-sheet.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { parseServerTimestamp } from "@/api/server-time";
 import { useT } from "@/i18n/use-t";
@@ -278,6 +280,8 @@ const remoteSecurity = ref<SecurityState | null>(null);
 const phoneMissing = ref(remoteApiEnabled && !!sessionVault.read() && !sessionVault.read()!.user.phone);
 const phonePolicy = ref<PhoneNumberChangePolicy | null>(null);
 const phoneEditing = ref(false);
+const showPhoneCountries = ref(false);
+function selectPhoneCountry(value: string) { phoneCountry.value = value.slice(1); }
 const phoneCountry = ref(dialCodeForLocale(useLocaleStore().code).slice(1));
 const phoneNext = ref("");
 const phonePassword = ref("");

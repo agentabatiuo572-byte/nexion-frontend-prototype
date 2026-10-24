@@ -104,25 +104,25 @@ test("late account-language hydration updates the already mounted greeting", asy
 });
 
 test("a freshly published dictionary updates a mounted greeting in the same locale", async () => {
-  useLocaleStore().setLocale("zh");
+  useLocaleStore().setLocale("en");
   const header = await mount();
-  expect(header.text()).toBe("下午好, UVEL 3778");
-  requests.bundle.mockResolvedValueOnce({ messages: { "home.greetingAfternoon": "午后好" } });
-  await useI18nRuntime().refresh("zh", true);
+  expect(header.text()).toBe("Good afternoon, UVEL 3778");
+  requests.bundle.mockResolvedValueOnce({ messages: { "home.greetingAfternoon": "Welcome afternoon" } });
+  await useI18nRuntime().refresh("en", true);
   await Vue.nextTick();
-  expect(header.text()).toBe("午后好, UVEL 3778");
+  expect(header.text()).toBe("Welcome afternoon, UVEL 3778");
 });
 
 test.each([
-  [0, "深夜"], [4, "深夜"], [5, "早上好"], [11, "早上好"],
-  [12, "下午好"], [17, "下午好"], [18, "晚上好"], [23, "晚上好"],
+  [0, "Late night"], [4, "Late night"], [5, "Good morning"], [11, "Good morning"],
+  [12, "Good afternoon"], [17, "Good afternoon"], [18, "Good evening"], [23, "Good evening"],
 ] as Array<[number, string]>)("preserves the local-hour boundary at %s", async (hour, greeting) => {
-  useLocaleStore().setLocale("zh");
+  useLocaleStore().setLocale("en");
   expect((await mount(hour)).text()).toBe(`${greeting}, UVEL 3778`);
 });
 
 test("locale changes keep the hour captured when the component mounted", async () => {
-  const locale = useLocaleStore(); locale.setLocale("zh");
+  const locale = useLocaleStore(); locale.setLocale("vi");
   const header = await mount(11);
   vi.setSystemTime(new Date(2026, 8, 30, 18, 0));
   locale.setLocale("en");
@@ -131,9 +131,9 @@ test("locale changes keep the hour captured when the component mounted", async (
 });
 
 test("preserves the fallback and full server nickname while the locale changes", async () => {
-  const locale = useLocaleStore(); locale.setLocale("zh");
+  const locale = useLocaleStore(); locale.setLocale("vi");
   const header = await mount(15, "");
-  expect(header.text()).toBe("下午好, UVEL");
+  expect(header.text()).toBe("Chào buổi chiều, UVEL");
   header.profile.displayName = "  UVEL 3778 Two Words  ";
   locale.setLocale("en");
   await Vue.nextTick();

@@ -80,12 +80,29 @@ export interface PendingOnboardingCalibration extends Omit<DeferredOnboardingCal
 }
 export type OnboardingCalibration = MeasuredOnboardingCalibration | DeferredOnboardingCalibration | PendingOnboardingCalibration;
 
+export interface PhoneActivationVersions {
+  expectedBindingVersion: number | null;
+  expectedPolicyVersion: number | null;
+  replacementConfirmed: boolean;
+  exceptionGrantId?: string;
+}
+
+export interface PhoneActivationEligibility {
+  binding: { installationId: string; bindingVersion: number } | null;
+  policyVersion: number | null;
+  canActivate: boolean;
+  blockedReasons: string[];
+  grantId?: string;
+}
+
 export interface OnboardingCalibrationApi {
+  activationEligibility(): Promise<PhoneActivationEligibility>;
+  activationFailed(idempotencyKey: string): Promise<boolean>;
   phoneLogin(deviceId: string): Promise<string>;
   bindingStatus(): Promise<boolean>;
   calibrate(deviceId: string, signals: CalibrationRequestSignals, expectedRevision: number, idempotencyKey: string): Promise<OnboardingCalibration>;
   result(deviceId: string): Promise<OnboardingCalibration>;
-  activate(deviceId: string, expectedRevision: number, idempotencyKey: string): Promise<OnboardingCalibration>;
+  activate(deviceId: string, expectedRevision: number, idempotencyKey: string, versions: PhoneActivationVersions): Promise<OnboardingCalibration>;
   defer(deviceId: string, expectedRevision: number, idempotencyKey: string, initialOnly?: boolean): Promise<OnboardingCalibration>;
 }
 
@@ -225,6 +242,32 @@ function key(value: string): string {
 
 export function createOnboardingCalibrationApi(client: ApiClient, environment: OnboardingCalibrationEnvironment = "PRODUCTION"): OnboardingCalibrationApi {
   return {
+    async activationEligibility() {
+      const response = record(await client.request({ method: "GET", path: "/api/onboarding/phone-installation/replacement-eligibility" }));
+      const policy = record(response.policy);
+      const version = (value: unknown): number | null => {
+        if (value === null) return null;
+        if (!Number.isSafeInteger(value) || (value as number) < 1) return invalid();
+        return value as number;
+      };
+      const binding = response.binding === null ? null : record(response.binding);
+      const bindingVersion = binding ? version(binding.bindingVersion) : null;
+      if (binding && bindingVersion === null || typeof response.canReplace !== "boolean"
+          || !Array.isArray(response.blockedReasons) || !response.blockedReasons.every(reason => typeof reason === "string")) return invalid();
+      const grant = response.grant == null ? null : record(response.grant);
+      return {
+        binding: binding ? { installationId: text(binding.installationId), bindingVersion: bindingVersion! } : null,
+        policyVersion: version(policy.policyVersion), canActivate: response.canReplace,
+        blockedReasons: response.blockedReasons as string[],
+        ...(grant ? { grantId: text(grant.grantId) } : {}),
+      };
+    },
+    async activationFailed(idempotencyKey) {
+      const response = await client.request({ method: "GET", path: `/api/onboarding/phone-installation/replacement-operations/by-key?commandType=PHONE_ACTIVATE&idempotencyKey=${encodeURIComponent(key(idempotencyKey))}` });
+      if (response === null) return false;
+      const receipt = record(response);
+      return receipt.commandType === "PHONE_ACTIVATE" && receipt.status === "FAILED";
+    },
     async bindingStatus() {
       const response = record(await client.request({ method: "GET", path: "/api/onboarding/calibrate/binding-status" }));
       if (response.serverCanonical !== true || response.sourceEnvironment !== "PRODUCTION" || response.runId !== ""
@@ -257,14 +300,23 @@ export function createOnboardingCalibrationApi(client: ApiClient, environment: O
       });
       return parseOnboardingCalibration(response, environment);
     },
-    async activate(deviceId, expectedRevision, idempotencyKey) {
+    async activate(deviceId, expectedRevision, idempotencyKey, versions) {
       const normalizedDeviceId = text(deviceId);
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
         throw new ApiError({ kind: "configuration", message: "ONBOARDING_REVISION_INVALID" });
       }
+      const validVersion = (value: unknown) => value === null || Number.isSafeInteger(value) && (value as number) > 0;
+      if (!versions || !validVersion(versions.expectedBindingVersion) || !validVersion(versions.expectedPolicyVersion)
+          || typeof versions.replacementConfirmed !== "boolean") {
+        throw new ApiError({ kind: "configuration", message: "PHONE_ACTIVATION_VERSIONS_REQUIRED" });
+      }
       const response = await client.request({
         method: "POST", path: "/api/onboarding/calibrate/activate", idempotencyKey: key(idempotencyKey),
-        body: { deviceId: normalizedDeviceId, expectedRevision },
+        body: { deviceId: normalizedDeviceId, expectedRevision,
+          expectedBindingVersion: versions.expectedBindingVersion, expectedPolicyVersion: versions.expectedPolicyVersion,
+          replacementConfirmed: versions.replacementConfirmed,
+          ...(versions.exceptionGrantId ? { exceptionGrantId: text(versions.exceptionGrantId) } : {}),
+        },
       });
       return parseOnboardingCalibration(response, environment);
     },

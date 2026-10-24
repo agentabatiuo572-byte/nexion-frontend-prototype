@@ -36,22 +36,27 @@ afterEach(() => { cleanups.splice(0).forEach(fn => fn()); vi.useRealTimers(); vi
 async function settle() { for (let n = 0; n < 15; n++) await vue.nextTick(); }
 
 function mount(name: "connect" | "estimator", api: any, query: Record<string, string> = {}, nativePhone = true, h5 = !nativePhone) {
+  api.activationEligibility ??= vi.fn().mockResolvedValue({ binding: null, policyVersion: 1, canActivate: true, blockedReasons: [] });
+  api.activationFailed ??= vi.fn().mockResolvedValue(false);
+  const uiConfirm = vi.fn().mockResolvedValue(true);
   const hooks: Record<string, (...args: any[]) => void> = {};
   const auth = vue.reactive({ accountId: "user:42", email: "", isAuthenticated: true,
     completeOnboarding: vi.fn(() => true), requireOnboarding: vi.fn(), signOut: vi.fn() });
   const app = vue.reactive({ accountKey: "user:42", devices: [],
-    refreshRemoteFleet: vi.fn(async () => {}), resumeMining: vi.fn() });
+    refreshRemoteFleet: vi.fn(async () => {}), resumeMining: vi.fn(), acceptPhoneActivation: vi.fn() });
   const navReset = vi.fn();
   const confirmDeferredPhoneActivation = vi.fn();
+  const requireCryptoUuid = vi.fn(() => "fixed-unique-command");
   let epoch = 0;
   const modules: Record<string, unknown> = {
     vue: { ...vue, onMounted: (fn: () => void) => { hooks.mount = fn; }, onUnmounted: (fn: () => void) => { hooks.unmount = fn; } },
     "@dcloudio/uni-app": { onLoad: (fn: any) => { hooks.load = fn; }, onBackPress: (fn: any) => { hooks.back = fn; } },
     "@/lib/route": { navReset }, "@/store/auth": { useAuth: () => auth }, "@/store/app": { useApp: () => app },
     "@/i18n/use-t": { useT: () => vue.ref(zh) }, "@/i18n/format": format,
+    "@/store/ui": { confirm: uiConfirm, useUI: () => ({ clearConfirmsBy: vi.fn() }) },
     "@/store/session": { useSession: () => ({ markCalibrated: () => true, markPhoneActivationDeferred: () => true }) },
     "@/store/auth-account": { markAuthAccountOnboardingComplete: () => true },
-    "@/lib/secure-command-id": { requireCryptoUuid: () => "fixed-unique-command" },
+    "@/lib/secure-command-id": { requireCryptoUuid },
     "@/lib/device-id": { getDeviceId: () => "phone-1" },
     "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => nativePhone },
     "@/lib/phone-activation-guidance": compileGuidance(h5),
@@ -70,7 +75,7 @@ function mount(name: "connect" | "estimator", api: any, query: Record<string, st
   initPreContext(h5 ? "h5" : "app-plus");
   const compiled = preJs(preHtml(readFileSync(new URL(`./${name}.vue`, import.meta.url), "utf8"), `${name}.vue`), `${name}.vue`);
   const source = compiled.split('<script setup lang="ts">')[1].split("</script>")[0];
-  const fields = name === "connect" ? "phase, canonical, titleText, isRecal, failureTitle, failureDetail, retryCalibration, activate, leaveConnect, deferPhoneActivation" : "detected, loadFailed, deferred, deferFailed, calibration, failureDetail, retryCalibration, goConnect, leaveEstimator, deferPhoneActivation";
+  const fields = name === "connect" ? "phase, canonical, activationBusy, titleText, isRecal, failureTitle, failureDetail, retryCalibration, activate, leaveConnect, deferPhoneActivation" : "detected, loadFailed, deferred, deferFailed, calibration, failureDetail, retryCalibration, goConnect, leaveEstimator, deferPhoneActivation";
   const code = ts.transpileModule(`${source}\nexport const page = { ${fields}, phoneActivationGuidance };`, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
@@ -79,10 +84,67 @@ function mount(name: "connect" | "estimator", api: any, query: Record<string, st
   scope.run(() => new Function("require", "exports", code)((id: string) => modules[id] ?? {}, exports));
   hooks.load?.(query); hooks.mount?.();
   cleanups.push(() => { hooks.unmount?.(); scope.stop(); });
-  return { page: exports.page, auth, app, navReset, confirmDeferredPhoneActivation, back: hooks.back, invalidate: () => { epoch++; } };
+  return { page: exports.page, auth, app, navReset, confirmDeferredPhoneActivation, requireCryptoUuid, uiConfirm, back: hooks.back, invalidate: () => { epoch++; } };
 }
 
 describe("real onboarding page workers", () => {
+  it.each([false, true])("refreshes versions and key only after a persisted failed receipt=%s", async failed => {
+    const api = { result: vi.fn().mockResolvedValue(record), calibrate: vi.fn(),
+      activationEligibility: vi.fn().mockResolvedValueOnce({ binding: null, policyVersion: 1, canActivate: true, blockedReasons: [] })
+        .mockResolvedValue({ binding: null, policyVersion: 2, canActivate: true, blockedReasons: [] }),
+      activationFailed: vi.fn().mockResolvedValue(failed),
+      activate: vi.fn().mockRejectedValueOnce(new ApiError({ kind: "network", message: "lost response" }))
+        .mockResolvedValue({ ...record, revision: 4, activationStatus: "ACTIVE" }) };
+    const { page, requireCryptoUuid } = mount("connect", api); await settle();
+    requireCryptoUuid.mockReturnValueOnce("command-one").mockReturnValueOnce("command-two");
+    await page.activate(); await page.activate();
+    expect(api.activationEligibility).toHaveBeenCalledTimes(failed ? 2 : 1);
+    expect(api.activate.mock.calls[1][2]).toBe(`phone-activation:active:command-${failed ? "two" : "one"}`);
+    expect(api.activate.mock.calls[1][3]).toEqual({ expectedBindingVersion: null,
+      expectedPolicyVersion: failed ? 2 : 1, replacementConfirmed: false });
+  });
+  it("blocks policy-denied replacement before posting activation", async () => {
+    const api = { result: vi.fn().mockResolvedValue(record), calibrate: vi.fn(), activate: vi.fn(),
+      activationEligibility: vi.fn().mockResolvedValue({ binding: { installationId: "old-phone", bindingVersion: 7 },
+        policyVersion: 3, canActivate: false, blockedReasons: ["PHONE_REPLACEMENT_DISABLED"] }) };
+    const { page, uiConfirm } = mount("connect", api); await settle(); await page.activate();
+    expect(api.activate).not.toHaveBeenCalled(); expect(uiConfirm).not.toHaveBeenCalled();
+    expect(page.phase.value).toBe("error"); expect(page.activationBusy.value).toBe(false);
+  });
+  it("asks for consent after the server identifies a same-installation hardware replacement", async () => {
+    const api = { result: vi.fn().mockResolvedValue(record), calibrate: vi.fn(),
+      activationEligibility: vi.fn().mockResolvedValue({ binding: { installationId: "phone-1", bindingVersion: 7 },
+        policyVersion: 3, canActivate: true, blockedReasons: [] }),
+      activationFailed: vi.fn().mockResolvedValue(true),
+      activate: vi.fn().mockRejectedValueOnce(new ApiError({ kind: "http", status: 409, message: "PHONE_REPLACEMENT_CONFIRMATION_REQUIRED" }))
+        .mockResolvedValue({ ...record, revision: 4, activationStatus: "ACTIVE" }) };
+    const { page, uiConfirm } = mount("connect", api); await settle();
+    await page.activate(); expect(uiConfirm).not.toHaveBeenCalled();
+    await page.activate(); expect(uiConfirm).toHaveBeenCalledOnce();
+    expect(api.activate.mock.calls[0][3].replacementConfirmed).toBe(false);
+    expect(api.activate.mock.calls[1][3].replacementConfirmed).toBe(true);
+  });
+  it.each([false, true])("requires explicit replacement consent=%s and sends the read versions", async confirmed => {
+    const api = { result: vi.fn().mockResolvedValue(record), calibrate: vi.fn(),
+      activate: vi.fn().mockResolvedValue({ ...record, revision: 4, activationStatus: "ACTIVE" }),
+      activationEligibility: vi.fn().mockResolvedValue({ binding: { installationId: "old-phone", bindingVersion: 7 },
+        policyVersion: 3, canActivate: true, blockedReasons: [], grantId: "grant-one" }) };
+    const { page, uiConfirm } = mount("connect", api); await settle(); uiConfirm.mockResolvedValue(confirmed);
+    await page.activate(); expect(uiConfirm).toHaveBeenCalledOnce();
+    expect(api.activate).toHaveBeenCalledTimes(confirmed ? 1 : 0);
+    if (confirmed) expect(api.activate.mock.calls[0][3]).toEqual({ expectedBindingVersion: 7,
+      expectedPolicyVersion: 3, replacementConfirmed: true, exceptionGrantId: "grant-one" });
+    expect(page.activationBusy.value).toBe(false);
+  });
+  it("discards eligibility after the account changes before activation", async () => {
+    let resolve!: (value: unknown) => void;
+    const api = { result: vi.fn().mockResolvedValue(record), calibrate: vi.fn(), activate: vi.fn(),
+      activationEligibility: vi.fn(() => new Promise(r => { resolve = r; })) };
+    const { page, auth } = mount("connect", api); await settle(); const pending = page.activate();
+    auth.accountId = "user:43"; await settle();
+    resolve({ binding: null, policyVersion: 1, canActivate: true, blockedReasons: [] }); await pending;
+    expect(api.activate).not.toHaveBeenCalled();
+  });
   it.each([
     ["connect", {}], ["connect", { mode: "login" }],
     ["connect", { mode: "recalibrate" }], ["connect", { mode: "resume" }],
@@ -307,8 +369,11 @@ describe("real onboarding page workers", () => {
     await settle(); expect(page.phase.value).toBe("result");
     expect(api.calibrate).not.toHaveBeenCalled(); expect(api.activate).not.toHaveBeenCalled();
     await page.activate();
-    expect(api.activate).toHaveBeenCalledWith("phone-1", 3, "phone-activation:active:fixed-unique-command");
+    expect(api.activate).toHaveBeenCalledWith("phone-1", 3, "phone-activation:active:fixed-unique-command", {
+      expectedBindingVersion: null, expectedPolicyVersion: 1, replacementConfirmed: false,
+    });
     expect(app.refreshRemoteFleet).toHaveBeenCalledOnce();
+    expect(app.acceptPhoneActivation).toHaveBeenCalledOnce();
     expect(navReset).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/index/index" }));
   });
   it("warehouse recalibration starts only on click and uses the latest revision", async () => {
@@ -319,12 +384,70 @@ describe("real onboarding page workers", () => {
     expect(api.calibrate).toHaveBeenCalledWith("phone-1", raw, 3, "onboarding:fixed-unique-command");
     expect(page.phase.value).toBe("result");
   });
+  it("releases activation after command creation fails and lets the user retry", async () => {
+    const api = { result: vi.fn().mockResolvedValue(record), calibrate: vi.fn(),
+      activate: vi.fn().mockResolvedValue({ ...record, revision: 4, activationStatus: "ACTIVE" }) };
+    const { page, requireCryptoUuid, navReset } = mount("connect", api);
+    await settle();
+    requireCryptoUuid.mockImplementationOnce(() => { throw new Error("CRYPTO_RANDOM_UUID_UNAVAILABLE"); });
+    await page.activate();
+    expect(page.phase.value).toBe("error");
+    expect(page.activationBusy.value).toBe(false);
+    expect(api.activate).not.toHaveBeenCalled();
+    page.retryCalibration(); await settle();
+    expect(api.activate).toHaveBeenCalledOnce();
+    expect(navReset).toHaveBeenCalledOnce();
+  });
+  it.each(["activate", "defer"])("releases %s after a same-account session rebind without accepting the old result", async (action) => {
+    let resolve!: (value: unknown) => void;
+    const delayed = vi.fn(() => new Promise(r => { resolve = r; }));
+    const api = { result: vi.fn().mockResolvedValue(record), calibrate: vi.fn(), activate: delayed };
+    const { page, app, navReset, invalidate, confirmDeferredPhoneActivation } = mount("connect", api);
+    await settle();
+    confirmDeferredPhoneActivation.mockImplementation(delayed);
+    const pending = action === "activate" ? page.activate() : page.deferPhoneActivation();
+    await settle();
+    expect(page.activationBusy.value).toBe(true);
+    invalidate();
+    resolve({ ...record, revision: 4, activationStatus: action === "activate" ? "ACTIVE" : "DEFERRED" });
+    await pending;
+    expect(page.activationBusy.value).toBe(false);
+    expect(page.canonical.value).toEqual(record);
+    expect(app.refreshRemoteFleet).not.toHaveBeenCalled();
+    expect(navReset).not.toHaveBeenCalled();
+    page.leaveConnect();
+    expect(navReset).toHaveBeenCalledOnce();
+  });
   it("confirms a lost activation response by readback without a second activation", async () => {
     const api = { result: vi.fn().mockResolvedValueOnce(record).mockResolvedValue({ ...record, revision: 4, activationStatus: "ACTIVE" }),
       calibrate: vi.fn(), activate: vi.fn().mockRejectedValue(new ApiError({ kind: "network", message: "lost response" })) };
     const { page, app, navReset } = mount("connect", api); await settle(); await page.activate();
     expect(api.activate).toHaveBeenCalledOnce(); expect(app.refreshRemoteFleet).toHaveBeenCalledOnce();
     expect(navReset).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/index/index" }));
+  });
+  it("does not let an old account's completion unlock a new account's activation", async () => {
+    const completions: Array<(value: unknown) => void> = [];
+    const api = { result: vi.fn().mockResolvedValue(record), calibrate: vi.fn(),
+      activate: vi.fn(() => new Promise(resolve => { completions.push(resolve); })) };
+    const { page, auth, navReset } = mount("connect", api);
+    await settle();
+    const first = page.activate();
+    await settle();
+    auth.accountId = "user:43";
+    await settle();
+    const next = { ...record, userId: 43 };
+    page.canonical.value = next;
+    const second = page.activate();
+    await settle();
+    completions[0]({ ...record, revision: 4, activationStatus: "ACTIVE" });
+    await first;
+    expect(page.activationBusy.value).toBe(true);
+    expect(page.canonical.value).toEqual(next);
+    expect(navReset).not.toHaveBeenCalled();
+    completions[1]({ ...next, revision: 4, activationStatus: "ACTIVE" });
+    await second;
+    expect(page.activationBusy.value).toBe(false);
+    expect(navReset).toHaveBeenCalledOnce();
   });
   it("does not keep retrying an obsolete activation revision after a conflict", async () => {
     const api = { result: vi.fn().mockResolvedValueOnce(record).mockResolvedValue({ ...record, revision: 5 }), calibrate: vi.fn(),

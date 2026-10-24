@@ -26,6 +26,7 @@
         "distribute" : {
             /* android打包配置 */
             "android" : {
+                "enableOAID": false,
                 "schemes": "uvel",
                 "permissions" : [
                     "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
