@@ -174,6 +174,8 @@ import { useApp } from "@/store/app";
 import { escapeSvgText } from "@/lib/svg-text";
 import { useLocaleStore } from "@/store/locale";
 import { eventStatusCopy } from "@/components/events/event-status-copy";
+import type { EventSpinHistory } from "@/api/events-api";
+import { displayDeadline } from "@/lib/promotion-display";
 
 const R = 94; // wheel radius (viewBox 200)
 const CX = 100;
@@ -223,8 +225,18 @@ const realPrizeSoldOut = computed(() => spin.realPrizeSoldOut);
 
 const ls = (sp: SpinPrize) => t.value.luckySpin.prizes[sp.labelKey as keyof typeof t.value.luckySpin.prizes]
   || (sp.rewardName ? platformDisplayText(sp.rewardName) : sp.id);
-const lsShort = (sp: SpinPrize) => t.value.luckySpin.prizesShort[sp.labelKey as keyof typeof t.value.luckySpin.prizesShort]
-  || (sp.rewardName ? platformDisplayText(sp.rewardName) : sp.id);
+const wheelUnits = {
+  zh: { points: "积分", coupon: "券" },
+  en: { points: "pts", coupon: "coupon" },
+  vi: { points: "điểm", coupon: "phiếu" },
+};
+function wheelLabel(sp: Pick<SpinPrize, "kind" | "amount">): string[] {
+  const units = wheelUnits[locale.code === "zh" || locale.code === "vi" ? locale.code : "en"];
+  return [
+    `${sp.kind === "usdt" || sp.kind === "coupon" ? "$" : ""}${sp.amount}`,
+    sp.kind === "nex" ? "UVT" : sp.kind === "usdt" ? "USDT" : units[sp.kind],
+  ];
+}
 
 const bonusChip = computed(() => fmt(t.value.luckySpin.bonusTicketChip, { n: spin.bonusTickets }));
 const socialProofText = computed(() => fmt(t.value.luckySpin.socialProof, { n: winnersToday }));
@@ -240,10 +252,10 @@ const slices = computed(() =>
     const a1 = -90 + (i + 1) * segmentDeg;
     const p0 = polar(a0, R);
     const p1 = polar(a1, R);
-    const mid = polar(a0 + segmentDeg / 2, 60);
+    const mid = polar(a0 + segmentDeg / 2, 70);
     const dim = sp.isReal && !realActive.value; // 降级/售罄 → 真实奖档置灰
     const fill = `color-mix(in srgb, ${sp.tint} ${i % 2 === 0 ? 46 : 30}%, var(--v5-surface-2))`;
-    return { sp, i, path: `M${CX},${CY} L${p0.x},${p0.y} A${R},${R} 0 0 1 ${p1.x},${p1.y} Z`, mid, dim, fill };
+    return { sp, i, path: `M${CX},${CY} L${p0.x},${p0.y} A${R},${R} 0 0 1 ${p1.x},${p1.y} Z`, mid, dim, fill, label: wheelLabel(sp) };
   }),
 );
 
@@ -256,8 +268,11 @@ const wheelSvg = computed(() =>
       (s) =>
         `<g opacity="${s.dim ? 0.32 : 1}">` +
         `<path d="${s.path}" fill="${s.fill}" stroke="var(--v5-bg)" stroke-width="1.5" />` +
-        `<text x="${s.mid.x}" y="${s.mid.y}" text-anchor="middle" dominant-baseline="middle" ` +
-        `style="font-size:12px;font-weight:600;fill:var(--v5-ink);font-family:var(--font-v5);">${escapeSvgText(lsShort(s.sp))}</text>` +
+        s.label.map((line, index) =>
+          `<text x="${s.mid.x}" y="${s.mid.y + (index === 0 ? -6 : 6)}" text-anchor="middle" dominant-baseline="middle" ` +
+          `${line.length > 8 ? 'textLength="40" lengthAdjust="spacingAndGlyphs" ' : ''}` +
+          `style="font-size:8.5px;font-weight:600;fill:var(--v5-ink);font-family:var(--font-v5);">${escapeSvgText(line)}</text>`,
+        ).join("") +
         `</g>`,
     )
     .join("") + '</svg>',
@@ -275,12 +290,29 @@ const isJackpot = computed(() =>
     : false,
 );
 
+function historyAwardTime(value: string): string {
+  return /(?:Z|[+-]\d{2}:\d{2})$/i.test(value) ? displayDeadline(value, locale.code) : "";
+}
+
+function historyPrizeLabel(row: EventSpinHistory): string {
+  const kind = row.rewardType.toLowerCase();
+  const current = prizes.value.find(prize => prize.id === row.tierId && prize.kind === kind && prize.amount === row.rewardAmount);
+  if (current) {
+    const label = ls(current);
+    if (label !== current.id) return label;
+  }
+  if (kind === "nex" || kind === "usdt" || kind === "points" || kind === "coupon") {
+    return wheelLabel({ kind, amount: row.rewardAmount }).join(" ");
+  }
+  return platformDisplayText(row.rewardName);
+}
+
 const historyRows = computed(() => {
   if (remoteApiEnabled) {
     return spin.remoteHistory.slice(0, 5).map((h) => ({
       ts: Date.parse(h.awardedAt),
-      label: platformDisplayText(h.rewardName),
-      time: h.awardedAt.slice(5, 16).replace("T", " "),
+      label: historyPrizeLabel(h),
+      time: historyAwardTime(h.awardedAt),
     }));
   }
   return spin.history.slice(0, 5).flatMap((h) => {
