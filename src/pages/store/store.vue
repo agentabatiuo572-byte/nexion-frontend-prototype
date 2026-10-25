@@ -15,19 +15,20 @@
         <view v-if="activity" class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId))"><text>{{ t.promotion.bundle }}</text></view>
       </view>
       <template v-else-if="!publicOnly">
-        <view v-if="voucherOffers.length" class="store-voucher-ticket" data-testid="store-voucher-ticket" role="button" tabindex="0" @click="openStoreVouchers" @keydown.enter.prevent="openStoreVouchers" @keydown.space.prevent="openStoreVouchers">
+        <view v-if="voucherContext.voucherId" class="promotion promotion-flat"><text class="promotion-title">{{ t.promotion.eventVoucher }} · {{ voucherContext.voucherId }}</text><text class="promotion-copy">{{ t.promotion.eventVoucherTerms }}</text><view class="promotion-link" role="button" tabindex="0" @click="clearPromotion" @keydown.enter.prevent="clearPromotion" @keydown.space.prevent="clearPromotion"><text>{{ t.promotion.scopeClear }}</text></view></view>
+        <view v-if="voucherOffers.length&&!voucherContext.voucherId" class="store-voucher-ticket" data-testid="store-voucher-ticket" role="button" tabindex="0" @click="openStoreVouchers" @keydown.enter.prevent="openStoreVouchers" @keydown.space.prevent="openStoreVouchers">
           <view class="store-voucher-ticket__value"><text v-if="voucherBenefit.amount != null" class="store-voucher-ticket__currency">$</text><text>{{ voucherBenefit.amount != null ? fmtMoney(voucherBenefit.amount).replace(/^\$/, '').replace(/\.00$/, '') : voucherBenefit.percent != null ? voucherBenefit.percent + '%' : '–' }}</text></view>
           <view class="store-voucher-ticket__rule" aria-hidden="true" />
           <view class="store-voucher-ticket__copy"><text class="store-voucher-ticket__title">{{ auditCopy.voucherShort }} · {{ fmt(auditCopy.voucherShortCount,{n:voucherOffers.length}) }}</text><view class="store-voucher-ticket__hint"><view>{{ voucherBenefit.amount != null ? auditCopy.upToOff : auditCopy.voucherDiscount }}</view><view>{{ voucherClaimable.length ? auditCopy.claimToUse : auditCopy.autoApplyVoucher }}</view></view></view>
           <image class="store-voucher-ticket__art" src="/static/img/home-glass-20260928/coupon.webp" mode="aspectFit" aria-hidden="true" />
         </view>
-        <PromotionEntry class="store-campaign" mode="home" />
-        <UpgradeSpotlight v-if="upgrade" :base="upgrade.base" :base-image-url="upgradeBaseImageUrl" :target="upgrade.target" />
+        <PromotionEntry v-if="!voucherContext.voucherId" class="store-campaign" mode="home" />
+        <UpgradeSpotlight v-if="upgrade&&!voucherContext.voucherId" :base="upgrade.base" :base-image-url="upgradeBaseImageUrl" :target="upgrade.target" />
       </template>
 
       <view v-if="publicOnly" class="promotion" data-testid="promotion-public-store">
         <template v-if="activity"><PromotionProduct v-for="productNo in activity.productNos" :key="productNo" :activity="activity" :product-no="productNo" public-only /></template>
-        <view v-if="activity" class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionStoreHref(activityId)))"><text>{{ t.promotion.signIn }}</text></view>
+        <view v-if="activity||voucherContext.voucherId" class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionStoreHref(activityId,voucherContext)))"><text>{{ t.promotion.signIn }}</text></view>
       </view>
       <template v-else>
 
@@ -67,7 +68,7 @@
       <template v-if="catalogHasProducts">
         <NxSection class="store-catalogue" :title="t.store.allProducts" :meta="String(unlockedProducts.length)" :action="catalogStatus === 'error' ? t.store.catalogRetry : undefined" @action="retryCatalog">
           <view class="store-product-grid">
-            <ProductCard v-for="p in catalogProducts" :key="p.id" :product="p" :promotion="activity" :activity-id="activityId" :promotion-ready="promotionStatus==='ready'" compact />
+            <ProductCard v-for="p in catalogProducts" :key="p.id" :product="p" :promotion="activity" :activity-id="activityId" :voucher-context="voucherContext" :promotion-ready="promotionStatus==='ready'" compact />
           </view>
           <text class="store-estimate-note">{{ t.store.cardEstimateNote }}</text>
         </NxSection>
@@ -78,7 +79,7 @@
         <view v-if="comingSoonOpen && lockedProducts.length" class="store-locked-list"><LockedProductCard v-for="p in lockedProducts" :key="p.id" :product="p" /></view>
       </template>
 
-      <view v-if="!publicOnly && !activityId" class="store-bundle-entry" data-testid="store-bundle-entry" role="button" tabindex="0" :aria-label="t.promotion.bundle"
+      <view v-if="!publicOnly && !activityId && !voucherContext.voucherId" class="store-bundle-entry" data-testid="store-bundle-entry" role="button" tabindex="0" :aria-label="t.promotion.bundle"
         @click="navTo('/pages/store/bundle')" @keydown.enter.prevent="navTo('/pages/store/bundle')" @keydown.space.prevent="navTo('/pages/store/bundle')">
         <text>{{ t.promotion.bundle }}</text><text aria-hidden="true">›</text>
       </view>
@@ -99,7 +100,7 @@ import ProductCard from "@/components/store/product-card.vue";
 import PromotionEntry from '@/components/promotion/promotion-entry.vue';
 import PromotionProduct from '@/components/promotion/promotion-product.vue';
 import { usePromotionContext } from '@/composables/use-promotion-context';
-import { promotionBundleHref,promotionStoreHref } from '@/lib/promotion-entry';
+import { promotionBundleHref,promotionStoreHref,voucherEntryContext,type VoucherEntryContext } from '@/lib/promotion-entry';
 import { localized } from '@/lib/promotion-display';
 import { useLocaleStore } from '@/store/locale';
 import { navTo,takeNavigationQuery } from '@/lib/route';
@@ -137,13 +138,15 @@ const voucherClaimSheet = useVoucherClaimSheet();
 const app = useApp();
 const locale=useLocaleStore();
 const activityId=ref('');
+const voucherContext=ref<VoucherEntryContext>({});
 const publicOnly=computed(()=>{void app.accountKey;void app.accountBindingEpoch;return !sessionVault.read();});
 const {activity,status:promotionStatus,available:promotionAvailable,refresh:refreshPromotion}=usePromotionContext(activityId);
 function readPromotionQuery(query:Record<string,string|undefined>){
-  if(query.scope==='all')activityId.value='';
+  voucherContext.value=voucherEntryContext(query);
+  if(query.scope==='all'||voucherContext.value.voucherId)activityId.value='';
   else if(query.activityId)activityId.value=query.activityId.trim();
 }
-function clearPromotion(){activityId.value='';void navTo(promotionStoreHref());}
+function clearPromotion(){activityId.value='';voucherContext.value={};void navTo(promotionStoreHref());}
 // The fleet store clears this flag on every account binding. Retained devices
 // are presentation only and never supply purchase eligibility.
 const ownedDevices = computed(() => app.remoteFleetHasSnapshot ? app.visibleDevices : []);
@@ -169,7 +172,7 @@ let storeViewAttempt: { scopeKey: string; userId: number; event: ReturnType<type
 //   只有页面级 onShow 能把它翻回来。
 onShow(() => {
   const pending=takeNavigationQuery('/pages/store/store');
-  if(pending){const query=new URLSearchParams(pending);readPromotionQuery({scope:query.get('scope')??undefined,activityId:query.get('activityId')??undefined});}
+  if(pending){const query=new URLSearchParams(pending),values:Record<string,string>={};query.forEach((value,key)=>{values[key]=value;});readPromotionQuery(values);}
   storePageVisible = true;
   if(publicOnly.value)return;
   genesisCfg.refresh();

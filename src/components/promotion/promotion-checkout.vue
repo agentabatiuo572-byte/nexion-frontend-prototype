@@ -7,6 +7,11 @@
       <view v-if="unknown" class="promotion-flat" role="status"><text class="promotion-title">{{ session.record.pending?.operation==='payOrder'?p.unknownTitle:p.orderUnknownTitle }}</text><text class="promotion-copy">{{ p.unknownBody }}</text><PromotionAction class="promotion-action primary" role="button" tabindex="0" :aria-disabled="busy" @click="recover"><text>{{ p.query }}</text></PromotionAction></view>
       <view v-if="error" class="promotion-notice" role="alert"><text>{{ error }}</text></view>
       <view v-if="openedOriginal" class="promotion-notice" role="status"><text>{{ p.openedOriginal }}</text></view>
+      <view v-if="eventVoucherId&&!order&&!openedOriginal&&!session.record.pending" class="promotion-flat" data-testid="checkout-event-voucher">
+        <text class="promotion-title">{{ p.eventVoucher }} · {{ eventVoucherId }}</text><text class="promotion-copy">{{ p.eventVoucherTerms }}</text>
+        <PromotionAction v-if="eventVoucherStatus==='claimable'" class="promotion-action primary" role="button" tabindex="0" :aria-disabled="busy" @click="claimEventVoucher"><text>{{ p.claimEventVoucher }}</text></PromotionAction>
+        <text v-else-if="eventVoucherStatus==='unavailable'" class="promotion-notice">{{ p.eventVoucherUnavailable }}</text>
+      </view>
       <view v-if="items.length" class="promotion-flat">
         <text class="promotion-title">{{ p.selected }}</text>
         <view v-for="item in items" :key="item.productNo" class="promotion-row">
@@ -27,7 +32,7 @@
         <view class="promotion-link" role="button" tabindex="0" @click="termsOpen=true"><text>{{ p.rulesLink }}</text></view>
       </view>
       <view v-if="quote || order" class="promotion-flat">
-        <view v-if="!order&&items.length===1&&!openedOriginal" class="promotion-link" role="button" tabindex="0" :aria-disabled="busy||!!session.record.pending" @click="chooseVoucher"><text>{{ p.voucher }}</text> · <text>{{ selectedVoucherName }}</text></view>
+        <view v-if="!order&&items.length===1&&!openedOriginal&&!eventVoucherId" class="promotion-link" role="button" tabindex="0" :aria-disabled="busy||!!session.record.pending" @click="chooseVoucher"><text>{{ p.voucher }}</text> · <text>{{ selectedVoucherName }}</text></view>
         <view v-if="quote" class="promotion-summary"><text>{{ p.subtotal }}</text><text>{{ formatAmount(quote.subtotalUsdt) }} USDT</text></view>
         <view v-if="quote" class="promotion-summary"><text>{{ p.discount }}</text><text>{{ formatAmount(quote.discountUsdt) }} USDT</text></view>
         <view class="promotion-summary total"><text>{{ p.total }}</text><text>{{ formatAmount(order?.amountUsdt??quote?.amountUsdt) }} USDT</text></view>
@@ -90,8 +95,9 @@ import { registerCheckoutLeaveGuard,requestCheckoutLeave } from '@/lib/promotion
 import { readTrustedMonotonicNowMs,projectServerNow } from '@/lib/server-deadline-clock';
 import { useDialogA11y } from '@/composables/use-dialog-a11y';
 import { displayDeadline,localized } from '@/lib/promotion-display';
+import { promotionCheckoutHref } from '@/lib/promotion-entry';
 import RewardRows from './reward-rows.vue';import PromotionTerms from './promotion-terms.vue';
-const props=defineProps<{activityId:string;items:PromotionItem[];orderNo?:string}>();
+const props=defineProps<{activityId:string;items:PromotionItem[];orderNo?:string;voucherId?:string;upgradeActivityId?:string}>();
 function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
   return formatPlainAmount(value).replace(/\B(?=(\d{3})+\.)/g, ',');
 }
@@ -108,7 +114,9 @@ const {intent,record:stored,openedOriginal}=selectPromotionCheckoutRecord(record
 const session=new PromotionCheckoutSession({api:promotionApi,current,key:key=>acquireAccountCommandKey('nexgrid-promotion-commands-v1',account,key,'promotion'),save:record=>{if(!storageReadable)throw new Error('STORAGE_UNAVAILABLE');const rows=readAccountRow<Record<string,PromotionCheckoutRecord>>(TABLE,account,true)??{};if(!writeAccountRow(TABLE,account,{...rows,[intent]:record}))throw new Error('STORAGE_UNAVAILABLE');}},stored);
 const freshQuoteReady=ref(false),revision=ref(0),quote=computed(()=>{revision.value;return session.record.pending||session.record.order||freshQuoteReady.value?session.record.quote:null;}),order=computed(()=>{revision.value;return session.record.order;}),unknown=computed(()=>{revision.value;return session.unknown;});
 const promotion=shallowRef<PublicPromotion|null>(null),loading=ref(true),busy=ref(false),error=ref(''),termsOpen=ref(false),leaveOpen=ref(false);
-const voucherId=ref(session.record.voucherId??null);const selectedVoucherName=computed(()=>voucher.catalog.find(v=>v.id===voucherId.value)?.name??p.value.noVoucher);
+const eventVoucherId=props.voucherId?.trim()??'';
+const eventVoucherStatus=ref<'loading'|'claimable'|'available'|'unavailable'>('loading');
+const voucherId=ref(session.record.voucherId??(openedOriginal?null:eventVoucherId||null));const selectedVoucherName=computed(()=>voucher.catalog.find(v=>v.id===voucherId.value)?.name??p.value.noVoucher);
 const selection=ref(props.items.map(({productNo,quantity})=>({productNo,quantity})));
 const items=computed(()=>order.value?.items??quote.value?.items??selection.value);const rewards=computed(()=>order.value?.rewards??quote.value?.expectedRewards??[]);
 function canChangeQuantity(productNo:string,delta:-1|1):boolean {
@@ -157,15 +165,40 @@ async function loadQuote(){
     }).catch(()=>{});
     try{
       const requestedItems=selection.value.map(item=>({...item}));
-      const result=await promotionApi.quote(requestedItems,props.activityId||null,voucherId.value);
+      let activityId=props.activityId||null;
+      if(eventVoucherId){
+        eventVoucherStatus.value='loading';
+        const refreshed=await voucher.refreshRemote();if(!readCurrent(generation))return;
+        if(!refreshed)throw new Error('VOUCHER_STATE_UNAVAILABLE');
+        const available=voucher.claimedUnused.some(offer=>offer.id===eventVoucherId);
+        const claimable=voucher.claimableVouchers.some(offer=>offer.id===eventVoucherId&&offer.claimSurfaces.includes('store'));
+        eventVoucherStatus.value=requestedItems.length!==1?'unavailable':available?'available':claimable?'claimable':'unavailable';
+        if(eventVoucherStatus.value!=='available')return;
+        voucherId.value=eventVoucherId;activityId=null;
+        if(props.upgradeActivityId){
+          const candidate=await promotionApi.get(props.upgradeActivityId,true);if(!readCurrent(generation))return;
+          if(candidate.state==='ACTIVE'&&candidate.eligibility==='ESTIMATE_ELIGIBLE'&&candidate.productNos.includes(requestedItems[0].productNo)){
+            activityId=candidate.activityId;promotion.value=candidate;promotionReceivedAt=sampledAt;
+          }
+        }
+      }
+      const result=eventVoucherId?await promotionApi.quote(requestedItems,activityId,voucherId.value,false):await promotionApi.quote(requestedItems,activityId,voucherId.value);
       if(!readCurrent(generation))return;
       if(result.items.length!==requestedItems.length||requestedItems.some(item=>!result.items.some(line=>line.productNo===item.productNo&&line.quantity===item.quantity)))throw new Error('QUOTE_INPUT_CHANGED');
       session.setQuote(result,voucherId.value);freshQuoteReady.value=true;receivedAt=sampledAt;revision.value++;updateClock();
     }catch(cause){if(readCurrent(generation))throw cause;}
   });
 }
+async function claimEventVoucher(){
+  if(!eventVoucherId||eventVoucherStatus.value!=='claimable'||busy.value||!visible||!current()||openedOriginal||session.record.pending||order.value)return;
+  const generation=readGeneration;
+  let claimed=false;
+  await run(async()=>{claimed=await voucher.claimRemote(eventVoucherId,'store');if(!claimed&&readCurrent(generation))throw new Error('VOUCHER_CLAIM_FAILED');});
+  // A repeated claim receipt is idempotent; only a fresh voucher-state read can authorize use.
+  if(claimed&&readCurrent(generation))await loadQuote();
+}
 async function chooseVoucher(){
-  if(openedOriginal||busy.value||session.record.pending||order.value||items.value.length!==1)return;
+  if(eventVoucherId||openedOriginal||busy.value||session.record.pending||order.value||items.value.length!==1)return;
   const generation=readGeneration;
   const selectable=()=>readCurrent(generation)&&!busy.value&&!session.record.pending&&!order.value;
   await voucher.refreshRemote();if(!selectable())return;
@@ -196,10 +229,10 @@ async function pay(){
   }finally{paymentConfirming=false;}
 }
 async function recover(){await run(async()=>{await session.recover();if(!current())return;revision.value++;await loadOrderClock();});}
-async function startNewPurchase(){if(!canStartNew.value||props.orderNo||openedOriginal)return;session.startNewPurchase();asked='';voucherId.value=null;revision.value++;await loadQuote();}
+async function startNewPurchase(){if(!canStartNew.value||props.orderNo||openedOriginal)return;session.startNewPurchase();asked='';voucherId.value=props.voucherId?.trim()||null;revision.value++;await loadQuote();}
 async function cancelOrder(){if(!canCancel.value)return;const ok=await confirm({title:p.value.cancelTitle,message:p.value.cancelBody,confirmLabel:p.value.cancelOrder,cancelLabel:p.value.keep,danger:true});if(ok&&current())await run(()=>session.cancel());}
 function viewOrder(){if(order.value)void navTo('/pages/store/order-detail?id='+encodeURIComponent(order.value.orderNo));}
-function signIn(){void navTo('/pages/login/login?return='+encodeURIComponent('/pages/store/checkout?activityId='+props.activityId+'&items='+encodeURIComponent(JSON.stringify(selection.value))));}
+function signIn(){void navTo('/pages/login/login?return='+encodeURIComponent(promotionCheckoutHref(selection.value,props.activityId,props)));}
 let leaveResolver:((allowed:boolean)=>void)|null=null;let asked='';let disposeGuard:(()=>void)|null=null;
 function finishLeave(allowed:boolean){leaveOpen.value=false;leaveResolver?.(allowed);leaveResolver=null;}
 function requestLeave():Promise<boolean>{

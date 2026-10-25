@@ -179,7 +179,7 @@ export const EVENTS: NexEvent[] = [
     kind: "seasonal",
     status: "upcoming",
     title: "Black Friday · 20% OFF Everything",
-    subtitle: "All hardware $300.00+ off · code BF20 stacks with Pro Flash Upgrade.",
+    subtitle: "20% off all hardware · BF20 stacks with eligible Pro Flash Upgrade.",
     ribbon: "PRE-LAUNCH",
     emoji: "🛍",
     tint: "#FF6B35",

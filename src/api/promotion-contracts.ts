@@ -1,5 +1,5 @@
 // Generated from the reviewed OpenAPI. Run scripts/generate-promotion-contracts.mjs; no business calculations.
-// Source SHA256: 62d3a4da21e3f3ec3b70ab7c96163fc70ceb52010c6495b7d986fb786cab07d0
+// Source SHA256: 8767bca4c82abfc5810f152f9088582457d0a4fa2df322b73679c68950bcf3af
 export type Id = string;
 export type Revision = number;
 export type Template = "SKU_GIFT" | "FIRST_PURCHASE" | "DIRECT_REFERRAL" | "MULTI_PRODUCT" | "REPURCHASE";
@@ -23,7 +23,7 @@ export type RewardSpec = ({ "rewardRuleId": Id; "beneficiaryRole": Role; "type":
 export type ExpectedReward = { "lineId": Id; "activityId": Id; "version": Revision; "ruleId": Id; "rewardRuleId": Id; "beneficiaryRole": Role; "groups": Quantity; "reward": RewardSpec; "eligibility": "ELIGIBLE" | "INELIGIBLE" | "UNKNOWN"; "message": (LocalizedText | null); "disclosure": RewardDisclosure };
 export type Quote = { "quoteId": Id; "quoteHash": Hash; "expiresAt": Time; "serverTime": Time; "itemCount": number; "quantity": Quantity; "items": Array<QuoteLine>; "subtotalUsdt": Amount; "discountUsdt": Amount; "amountUsdt": Amount; "bundlePolicyVersion": Revision; "activityId": (Id | null); "activityVersion": (Revision | null); "eligibility": "ELIGIBLE" | "INELIGIBLE" | "UNKNOWN"; "expectedRewards": Array<ExpectedReward>; "warnings": Array<LocalizedText>; "reserved": false; "promotionDiscountUsdt"?: Amount };
 export type Item = { "productNo": Id; "quantity": Quantity };
-export type QuoteInput = { "items": Array<Item>; "voucherId"?: (Id | null); "activityId"?: (Id | null); "clientCapabilities": Array<"PROMOTION_QUOTE_V1" | "ORDER_ITEM_QUANTITIES_V1" | "PROMOTION_REWARDS_V1"> };
+export type QuoteInput = { "items": Array<Item>; "voucherId"?: (Id | null); "activityId"?: (Id | null); "clientCapabilities": Array<"PROMOTION_QUOTE_V1" | "ORDER_ITEM_QUANTITIES_V1" | "PROMOTION_REWARDS_V1">; "autoSelectPromotion"?: boolean };
 export type OrderNo = string;
 export type RewardState = "PENDING" | "READY" | "PROCESSING" | "ISSUED" | "RETRYABLE_FAILED" | "OUTCOME_UNKNOWN" | "CANCELLED" | "REVERSAL_PENDING" | "REVERSED" | "MANUAL_REVIEW";
 export type ExternalId = string;

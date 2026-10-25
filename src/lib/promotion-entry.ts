@@ -31,19 +31,28 @@ export function validEntryItems(items: EntryItem[], minimum = 1): boolean {
     && items.reduce((total, item) => total + item.quantity, 0) <= 100;
 }
 
-export function promotionStoreHref(activityId?: string): string {
+export type VoucherEntryContext = { voucherId?:string; upgradeActivityId?:string };
+export function voucherEntryContext(query:Record<string,string|undefined>):VoucherEntryContext {
+  const voucherId=query.voucherId?.trim(),upgradeActivityId=query.upgradeActivityId?.trim();
+  return voucherId?{voucherId,...(upgradeActivityId?{upgradeActivityId}:{})}:{};
+}
+function voucherEntryQuery(context?:VoucherEntryContext):string {
+  return context?.voucherId?'&voucherId='+encodeURIComponent(context.voucherId)+(context.upgradeActivityId?'&upgradeActivityId='+encodeURIComponent(context.upgradeActivityId):''):'';
+}
+export function promotionStoreHref(activityId?: string, context?:VoucherEntryContext): string {
+  if(context?.voucherId)return '/pages/store/store?scope=all'+voucherEntryQuery(context);
   return '/pages/store/store' + (activityId ? '?activityId=' + encodeURIComponent(activityId) : '?scope=all');
 }
 
-export function promotionDetailHref(productNo: string, activityId?: string): string {
+export function promotionDetailHref(productNo: string, activityId?: string, context?:VoucherEntryContext): string {
   return '/pages/store/detail?id=' + encodeURIComponent(productNo)
-    + (activityId ? '&activityId=' + encodeURIComponent(activityId) : '');
+    + (activityId ? '&activityId=' + encodeURIComponent(activityId) : '')+voucherEntryQuery(context);
 }
 
-export function promotionCheckoutHref(items: EntryItem[], activityId?: string): string {
+export function promotionCheckoutHref(items: EntryItem[], activityId?: string, context?:VoucherEntryContext): string {
   if (!validEntryItems(items)) throw new Error('Invalid purchase selection');
   return '/pages/store/checkout?items=' + encodeURIComponent(JSON.stringify(items))
-    + (activityId ? '&activityId=' + encodeURIComponent(activityId) : '');
+    + (activityId ? '&activityId=' + encodeURIComponent(activityId) : '')+voucherEntryQuery(context);
 }
 
 export function promotionBundleHref(activityId?: string, items?: EntryItem[]): string {

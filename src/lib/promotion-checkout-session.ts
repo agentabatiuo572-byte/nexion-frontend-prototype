@@ -3,8 +3,8 @@ import type { PromotionApi, PromotionOperation } from '../api/promotion-api';
 
 export interface PromotionPendingCommand { key: string; operation: PromotionOperation; targetId: string }
 export interface PromotionCheckoutRecord { quote: Quote | null; order: OrderReceipt | null; pending: PromotionPendingCommand | null; voucherId?:string|null; leavePromptShown?:boolean }
-export function selectPromotionCheckoutRecord(records:Record<string,PromotionCheckoutRecord>,input:{activityId:string;items:{productNo:string;quantity:number}[];orderNo?:string}){
-  const requested=input.orderNo?JSON.stringify(['order',input.orderNo]):JSON.stringify([input.activityId,input.items]);
+export function selectPromotionCheckoutRecord(records:Record<string,PromotionCheckoutRecord>,input:{activityId:string;items:{productNo:string;quantity:number}[];orderNo?:string;voucherId?:string;upgradeActivityId?:string}){
+  const requested=input.orderNo?JSON.stringify(['order',input.orderNo]):JSON.stringify([input.activityId,input.items,...(input.voucherId?[input.voucherId,input.upgradeActivityId??'']:[])]);
   const entries=Object.entries(records),pending=entries.find(([,record])=>!!record.pending);
   const original=input.orderNo?entries.find(([intent,record])=>intent===requested&&record.order?.orderNo===input.orderNo)??entries.find(([,record])=>record.order?.orderNo===input.orderNo):undefined;
   const intent=pending?.[0]??original?.[0]??requested;

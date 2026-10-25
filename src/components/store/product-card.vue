@@ -142,9 +142,9 @@ import { productCatalogState } from "@/store/product-catalog";
 import type { PublicPromotion } from '@/api/promotion-contracts';
 import PromotionProduct from '@/components/promotion/promotion-product.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
-import { canPreviewPromotion,isPromotionActive,promotionCheckoutHref,promotionDetailHref } from '@/lib/promotion-entry';
+import { canPreviewPromotion,isPromotionActive,promotionCheckoutHref,promotionDetailHref,type VoucherEntryContext } from '@/lib/promotion-entry';
 
-const props = withDefaults(defineProps<{ product: Product; featured?: boolean; compact?: boolean; promotion?:PublicPromotion|null; activityId?:string; promotionReady?:boolean }>(), {
+const props = withDefaults(defineProps<{ product: Product; featured?: boolean; compact?: boolean; promotion?:PublicPromotion|null; activityId?:string; promotionReady?:boolean; voucherContext?:VoucherEntryContext }>(), {
   featured: false,
 });
 const t = useT();
@@ -317,15 +317,15 @@ function goDetail() {
     startViewTransition?: (update: () => Promise<void>) => { finished: Promise<void> };
   };
   if(typeof transitionDocument?.startViewTransition === 'function' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const transition=transitionDocument.startViewTransition(async()=>{await navTo(promotionDetailHref(props.product.id,props.activityId));});
+    const transition=transitionDocument.startViewTransition(async()=>{await navTo(promotionDetailHref(props.product.id,props.activityId,props.voucherContext));});
     void transition.finished.catch(()=>{}); // Unsupported snapshots must never cancel navigation.
     return;
   }
   // #endif
-  navTo(promotionDetailHref(props.product.id,props.activityId));
+  navTo(promotionDetailHref(props.product.id,props.activityId,props.voucherContext));
 }
 function goCheckout() {
-  navTo(props.activityId ? promotionCheckoutHref([{productNo:props.product.id,quantity:1}],props.activityId) : `/pages/store/checkout?product=${encodeURIComponent(props.product.id)}`);
+  navTo(props.activityId||props.voucherContext?.voucherId ? promotionCheckoutHref([{productNo:props.product.id,quantity:1}],props.activityId,props.voucherContext) : `/pages/store/checkout?product=${encodeURIComponent(props.product.id)}`);
 }
 function goDevices() {
   navTo("/pages/me/devices");

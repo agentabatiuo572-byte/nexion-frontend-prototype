@@ -2,7 +2,9 @@ import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 import { parseEvent, type CanonicalEvent, type CanonicalEventUserStatus } from "./events-api";
 
-export type EventEligibilityReason = "DISABLED" | "NOT_STARTED" | "ENDED" | "NOT_ELIGIBLE" | "IN_PROGRESS" | "READY" | "CLAIMED";
+const eventEligibilityReasons = ["DISABLED", "NOT_STARTED", "ENDED", "NOT_ELIGIBLE", "IN_PROGRESS", "READY", "CLAIMED", "VOUCHER_UNAVAILABLE", "VOUCHER_NOT_STARTED", "VOUCHER_EXPIRED", "VOUCHER_ALREADY_USED", "VOUCHER_EXHAUSTED"] as const;
+export type EventEligibilityReason = typeof eventEligibilityReasons[number];
+export interface EventVoucher { voucherId:string;percent:number|null;applicableSkus:string[];grantStatus:string;claimable:boolean;usable:boolean;singleSkuOnly:true;singleUse:true;claimSurface:'store' }
 export interface EventDetail {
   event: CanonicalEvent;
   rules: Record<string, unknown>;
@@ -16,6 +18,7 @@ export interface EventDetail {
   userStatus: CanonicalEventUserStatus;
   claimKeys?: string[];
   reminderSubscribed?: boolean;
+  voucher?: EventVoucher | null;
 }
 function record(value: unknown): Record<string, any> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new ApiError({ kind: "protocol", message: "EVENT_DETAIL_INVALID" });
@@ -28,15 +31,24 @@ function nonnegative(value: unknown): number {
 }
 export function parseEventDetail(value: unknown): EventDetail {
   const row = record(value);
+  let voucher:EventVoucher|null|undefined;
+  if(row.voucher!=null){
+    const v=record(row.voucher);
+    if(typeof v.voucherId!=='string'||!v.voucherId.trim()||(v.percent!==null&&(typeof v.percent!=='number'||!Number.isFinite(v.percent)||v.percent<=0||v.percent>=100))
+      ||!Array.isArray(v.applicableSkus)||v.applicableSkus.some((sku:unknown)=>typeof sku!=='string'||!sku.trim())||typeof v.grantStatus!=='string'
+      ||typeof v.claimable!=='boolean'||typeof v.usable!=='boolean'||v.singleSkuOnly!==true||v.singleUse!==true||v.claimSurface!=='store')throw new ApiError({kind:'protocol',message:'EVENT_DETAIL_INVALID'});
+    voucher=v as EventVoucher;
+  }else if(row.voucher===null)voucher=null;
   if (typeof row.enabled !== "boolean" || typeof row.eligible !== "boolean"
     || (row.claimKeys !== undefined && (!Array.isArray(row.claimKeys) || row.claimKeys.some((key: unknown) => typeof key !== "string" || !key)))
     || (row.reminderSubscribed !== undefined && typeof row.reminderSubscribed !== "boolean")
-    || !["DISABLED", "NOT_STARTED", "ENDED", "NOT_ELIGIBLE", "IN_PROGRESS", "READY", "CLAIMED"].includes(row.eligibilityReason)
+    || !eventEligibilityReasons.includes(row.eligibilityReason)
     || !["AVAILABLE", "JOINED", "CLAIMABLE", "CLAIMED"].includes(row.userStatus)
     || !Array.isArray(row.rewards) || !Array.isArray(row.results)) throw new ApiError({ kind: "protocol", message: "EVENT_DETAIL_INVALID" });
   return {
     event: parseEvent(row.event), rules: record(row.rules), enabled: row.enabled, eligible: row.eligible,
     eligibilityReason: row.eligibilityReason, userStatus: row.userStatus,
+    ...(voucher!==undefined?{voucher}:{}),
     ...(Array.isArray(row.claimKeys) && row.claimKeys.every((key: unknown) => typeof key === "string" && key) ? { claimKeys: row.claimKeys } : {}),
     ...(typeof row.reminderSubscribed === "boolean" ? { reminderSubscribed: row.reminderSubscribed } : {}),
     progressValue: nonnegative(row.progressValue), targetValue: nonnegative(row.targetValue),

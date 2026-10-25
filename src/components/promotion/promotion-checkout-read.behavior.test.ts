@@ -13,6 +13,7 @@ import { displayDeadline,localized } from '@/lib/promotion-display';
 import { formatAmount } from '@/lib/amount-display';
 import { fmt } from '@/i18n/format';
 import { validatePromotionItems } from '@/api/promotion-api';
+import * as entry from '@/lib/promotion-entry';
 import type { OrderReceipt,PublicPromotion,Quote } from '@/api/promotion-contracts';
 
 const serverTime='2026-10-08T00:00:00Z',text={zh:'原赠品条件',en:'Original gift terms',vi:'Điều khoản quà tặng'};
@@ -30,9 +31,9 @@ const render=new Function('Vue',ts.transpileModule(renderCode,{compilerOptions:{
 
 // Execute the entire production setup and session. Only external transports,
 // storage and native notifications are adapters; no copy of the read lifecycle.
-function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items?:{productNo:string;quantity:number}[]}){
-  const props=Vue.reactive({activityId:input?.activityId??'a1',items:input?.items??[{productNo:'sku',quantity:1}],orderNo:undefined as string|undefined});
-  const intent=JSON.stringify([props.activityId,props.items]);
+function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items?:{productNo:string;quantity:number}[];voucherId?:string;upgradeActivityId?:string}){
+  const props=Vue.reactive({activityId:input?.activityId??'a1',items:input?.items??[{productNo:'sku',quantity:1}],orderNo:undefined as string|undefined,voucherId:input?.voucherId,upgradeActivityId:input?.upgradeActivityId});
+  const intent=selectPromotionCheckoutRecord({},props).intent;
   let rows:Record<string,PromotionCheckoutRecord>=stored?{[intent]:structuredClone(stored)}:{};
   let writable=true;
   const save=vi.fn((_table:string,_account:string,value:Record<string,PromotionCheckoutRecord>)=>{if(!writable)return false;rows=structuredClone(value);return true;});
@@ -43,7 +44,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   const getProduct=vi.fn().mockReturnValue({name:'Selected device'}),catalog=Vue.reactive({status:'ready'}),presentation=Vue.ref<{products:{id:string;name:string}[]}|null>({products:[{id:'sku',name:'Selected device'}]});
   vi.stubGlobal('setInterval',vi.fn(()=>0));vi.stubGlobal('clearInterval',vi.fn());
   const confirm=vi.fn().mockResolvedValue(false),clearConfirmsBy=vi.fn();
-  const vouchers={catalog:[] as {id:string;name:string}[],claimedUnused:[] as {id:string;name:string}[],refreshRemote:vi.fn()};
+  const vouchers={catalog:[] as {id:string;name:string}[],claimedUnused:[] as {id:string;name:string}[],claimableVouchers:[] as {id:string;name:string;claimSurfaces:string[]}[],refreshRemote:vi.fn().mockResolvedValue(true),claimRemote:vi.fn().mockResolvedValue(true)};
   const modules:Record<string,unknown>={
     '@/lib/amount-display':{formatAmount},
     '@/i18n/format':{fmt},
@@ -56,6 +57,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
     '@/store/product-catalog':{productCatalogState:catalog,productCatalogPresentation:presentation,refreshProductCatalog:vi.fn().mockResolvedValue(true)},
     '@/lib/route':{navTo:vi.fn(),navBack:vi.fn()},'@/store/ui':{confirm,useUI:()=>({clearConfirmsBy})},
     '@/lib/promotion-checkout-session':{PromotionCheckoutSession,selectPromotionCheckoutRecord},
+    '@/lib/promotion-entry':entry,
     '@/store/account-scoped-storage':{readAccountRow:()=>rows,writeAccountRow:save,acquireAccountCommandKey:key},
     '@/lib/promotion-leave-guard':{registerCheckoutLeaveGuard:guardRegistration,requestCheckoutLeave:vi.fn().mockResolvedValue(true)},
     '@/lib/server-deadline-clock':{readTrustedMonotonicNowMs:()=>100,projectServerNow},'@/composables/use-dialog-a11y':{useDialogA11y:vi.fn()},'@/lib/promotion-display':{displayDeadline,localized},
@@ -282,4 +284,48 @@ it('a voucher picker opened for the old quantity cannot apply after the quantity
   page.api.quote.mockResolvedValueOnce(selectedQuote([{productNo:'sku',quantity:2}]));await page.view.changeQuantity('sku',1);
   choose({tapIndex:1});await flush();
   expect(page.view.voucherId.value).toBeNull();expect(page.api.quote).toHaveBeenCalledTimes(2);
+});
+
+const eventEntry={activityId:'',voucherId:'BF20',upgradeActivityId:'pro-upgrade'};
+const bf20={id:'BF20',name:'Black Friday 20%',claimSurfaces:['store']};
+it('BF20 requires an explicit claim then rereads availability and quotes the selected coupon, with no client price arithmetic',async()=>{
+  const page=screen(undefined,eventEntry);page.vouchers.claimableVouchers=[bf20];page.vouchers.catalog=[bf20];
+  await page.start();expect(page.api.quote).not.toHaveBeenCalled();expect(page.vouchers.claimRemote).not.toHaveBeenCalled();
+  expect(await page.html()).toContain(zh.promotion.claimEventVoucher);expect(page.exposed.footer.value.disabled).toBe(true);
+  page.vouchers.claimRemote.mockImplementation(async()=>{page.vouchers.claimableVouchers=[];page.vouchers.claimedUnused=[bf20];return true;});
+  page.api.get.mockResolvedValue({...activity(),productNos:['pro']});
+  page.api.quote.mockResolvedValue(selectedQuote(page.props.items,{activityId:'a1',amountUsdt:'700.000000',subtotalUsdt:'1500.000000',discountUsdt:'800.000000',promotionDiscountUsdt:'500.000000'}));
+  await page.view.claimEventVoucher();
+  expect(page.vouchers.claimRemote).toHaveBeenCalledWith('BF20','store');expect(page.vouchers.refreshRemote).toHaveBeenCalledTimes(2);
+  expect(page.api.quote).toHaveBeenCalledWith([{productNo:'sku',quantity:1}],null,'BF20',false);
+  expect(page.exposed.footer.value.amount).toBe('$700.00');expect(page.saved().voucherId).toBe('BF20');
+  await page.view.chooseVoucher();expect(page.vouchers.refreshRemote).toHaveBeenCalledTimes(2);
+  await page.view.createOrder();expect(page.api.create).toHaveBeenCalledWith(expect.objectContaining({amountUsdt:'700.000000'}),'original-key','BF20');
+});
+it.each(['ordinary','eligible-pro','ineligible-pro','closed-pro'] as const)('BF20 %s only adds the optional upgrade for a matching eligible Pro product',async scenario=>{
+  const page=screen(undefined,eventEntry);page.vouchers.claimedUnused=[bf20];
+  const candidate={...activity(),activityId:'pro-upgrade',productNos:scenario==='ordinary'?['pro']:['sku'],eligibility:scenario==='ineligible-pro'?'INELIGIBLE':'ESTIMATE_ELIGIBLE',state:scenario==='closed-pro'?'PAUSED':'ACTIVE'} as PublicPromotion;
+  page.api.get.mockResolvedValue(candidate);await page.start();
+  expect(page.api.quote).toHaveBeenCalledWith(page.props.items,scenario==='eligible-pro'?'pro-upgrade':null,'BF20',false);
+  expect(page.vouchers.claimRemote).not.toHaveBeenCalled();
+});
+it('an idempotent claim receipt cannot authorize an already-used voucher',async()=>{
+  const page=screen(undefined,eventEntry);page.vouchers.claimableVouchers=[bf20];await page.start();
+  page.vouchers.claimRemote.mockImplementation(async()=>{page.vouchers.claimableVouchers=[];return true;});await page.view.claimEventVoucher();
+  expect(page.view.eventVoucherStatus.value).toBe('unavailable');expect(page.api.quote).not.toHaveBeenCalled();expect(page.exposed.footer.value.disabled).toBe(true);
+});
+it.each(['unavailable','state-failure','multi-sku'] as const)('BF20 %s cannot silently become an undiscounted or multi-SKU checkout',async scenario=>{
+  const page=screen(undefined,{...eventEntry,...(scenario==='multi-sku'?{items:[{productNo:'sku',quantity:1},{productNo:'second',quantity:1}]}:{})});
+  if(scenario!=='unavailable')page.vouchers.claimedUnused=[bf20];
+  if(scenario==='state-failure')page.vouchers.refreshRemote.mockResolvedValue(false);
+  await page.start();await page.view.createOrder();expect(page.api.quote).not.toHaveBeenCalled();expect(page.api.create).not.toHaveBeenCalled();
+});
+it.each(['hide','account'] as const)('a BF20 availability response after %s cannot start a quote or claim',async boundary=>{
+  const page=screen(undefined,eventEntry),state=deferred<boolean>();page.vouchers.claimedUnused=[bf20];page.vouchers.refreshRemote.mockReturnValueOnce(state.promise);
+  const loading=page.start();if(boundary==='hide')page.exposed.hide();else page.app.accountBindingEpoch++;
+  state.resolve(true);await loading;expect(page.api.quote).not.toHaveBeenCalled();expect(page.vouchers.claimRemote).not.toHaveBeenCalled();
+});
+it('an original BF20 order is recovered without reclaiming or rechecking the voucher',async()=>{
+  const page=screen({quote:quote(),order:receipt(),pending:null,voucherId:'BF20'},eventEntry);await page.start();
+  expect(page.api.findOrder).toHaveBeenCalledWith('o1');expect(page.vouchers.refreshRemote).not.toHaveBeenCalled();expect(page.vouchers.claimRemote).not.toHaveBeenCalled();expect(page.api.quote).not.toHaveBeenCalled();
 });

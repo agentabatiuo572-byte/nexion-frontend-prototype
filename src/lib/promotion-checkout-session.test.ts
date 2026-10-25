@@ -190,3 +190,11 @@ describe('promotion checkout original-command safety',()=>{
     api.command.mockResolvedValue({status:'SUCCEEDED',order:canonical});await session.recover();expect(session.record.order?.items?.map(item=>item.lineId)).toEqual(['701','702']);expect(session.confirmed).toBe(true);
   });
 });
+
+it('voucher entry intents are isolated but cannot bypass an unresolved original command',()=>{
+  const input={activityId:'',items:[{productNo:'sku',quantity:1}]},ordinary=selectPromotionCheckoutRecord({},input),event=selectPromotionCheckoutRecord({},{...input,voucherId:'BF20',upgradeActivityId:'pro'});
+  expect(event.intent).not.toBe(ordinary.intent);
+  const record:PromotionCheckoutRecord={quote,order:null,pending:{key:'pending-key',operation:'createOrder',targetId:'q1'},voucherId:'old-coupon'};
+  const resumed=selectPromotionCheckoutRecord({[ordinary.intent]:record},{...input,voucherId:'BF20',upgradeActivityId:'pro'});
+  expect(resumed).toEqual({intent:ordinary.intent,record,openedOriginal:true});
+});

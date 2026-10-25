@@ -2,12 +2,32 @@ import { expect, it, vi } from "vitest";
 import { createEventDetailApi, parseEventDetail, type EventDetail } from "@/api/event-detail-api";
 import type { ApiClient } from "@/api/api-client";
 import { eventDetailCopy } from "@/i18n/event-detail";
-import { eventDetailAction, eventDetailRules, eventDetailReward, eventClaimCommandKey } from "./event-detail-display";
+import { eventDetailAction, eventDetailRules, eventDetailReward, eventClaimCommandKey, eventDetailHref } from "./event-detail-display";
+import { promotionDetailHref,promotionCheckoutHref,voucherEntryContext } from '@/lib/promotion-entry';
 
+function queryValues(query:URLSearchParams){const values:Record<string,string>={};query.forEach((value,key)=>{values[key]=value;});return values;}
 function detail(): EventDetail {
   return { event: { eventCode: "evt-1", kind: "referral", state: "ongoing", title: "Invite", subtitle: "Invite friends", rewardName: "Device", rewardType: "DEVICE", rewardAmount: 1, featured: false, trackable: true, targetValue: 5, progressValue: 2, userStatus: "AVAILABLE", geo: "", href: "/pages/team/team", startsAt: null, endsAt: null },
     rules: { targetInvites: 5, windowDays: 7, deviceBudget: 20, giftProductNo: "private-product-no", arbitraryInternalKey: "not-for-users" }, enabled: true, eligible: true, eligibilityReason: "IN_PROGRESS", progressValue: 2, targetValue: 5, rewards: [{ type: "DEVICE", amount: 0, quantity: 1 }], results: [], userStatus: "AVAILABLE" };
 }
+it('seasonal BF20 keeps the whole hardware store and passes voucher context through detail and checkout',()=>{
+  const value=detail();value.event.kind='seasonal';value.event.trackable=false;value.rules={voucherId:'BF20',promotionActivityId:'Pro upgrade'};
+  const store=new URL(eventDetailHref(value),'https://app.test');
+  expect(store.pathname).toBe('/pages/store/store');expect(store.searchParams.get('scope')).toBe('all');expect(store.searchParams.has('activityId')).toBe(false);
+  const context=voucherEntryContext(queryValues(store.searchParams));
+  const product=new URL(promotionDetailHref('ordinary sku',undefined,context),'https://app.test');
+  const checkout=new URL(promotionCheckoutHref([{productNo:'ordinary sku',quantity:3}],undefined,voucherEntryContext(queryValues(product.searchParams))),'https://app.test');
+  expect(checkout.searchParams.get('voucherId')).toBe('BF20');expect(checkout.searchParams.get('upgradeActivityId')).toBe('Pro upgrade');expect(checkout.searchParams.has('activityId')).toBe(false);
+  expect(JSON.parse(checkout.searchParams.get('items')!)).toEqual([{productNo:'ordinary sku',quantity:3}]);
+});
+it('parses actual voucher states and provides localized unavailable reasons without opening checkout',()=>{
+  const voucher={voucherId:'BF20',percent:20,applicableSkus:[],grantStatus:'USED',claimable:false,usable:false,singleSkuOnly:true,singleUse:true,claimSurface:'store'};
+  for(const reason of ['VOUCHER_UNAVAILABLE','VOUCHER_NOT_STARTED','VOUCHER_EXPIRED','VOUCHER_ALREADY_USED','VOUCHER_EXHAUSTED'] as const){
+    const value=parseEventDetail({...detail(),eligible:false,eligibilityReason:reason,voucher});expect(value.voucher).toEqual(voucher);expect(eventDetailAction(value)).toBeNull();
+    for(const copy of Object.values(eventDetailCopy))expect(copy.eligibility[reason]).toBeTruthy();
+  }
+  for(const patch of [{percent:'20'},{singleUse:false},{claimable:1},{applicableSkus:[null]}])expect(()=>parseEventDetail({...detail(),voucher:{...voucher,...patch}})).toThrow('EVENT_DETAIL_INVALID');
+});
 it.each(Object.values(eventDetailCopy))("only renders known public rule labels and real reward quantities", copy => {
   const value = detail(); const rows = eventDetailRules(value.rules, copy);
   expect(rows).toEqual([{ label: copy.labels.targetInvites, value: "5" }, { label: copy.labels.windowDays, value: "7" }]);

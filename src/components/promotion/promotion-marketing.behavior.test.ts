@@ -202,7 +202,7 @@ it.each(['PAUSED','ENDED'] as const)('direct product promotion props suppress re
   expect(await renderer(productSource,view).html()).not.toContain('promotion-product');
 });
 it.each([promotionZH,promotionEN,promotionVI])('old store, detail and bundle links expose only status and an ordinary-product exit',async copy=>{
-  const context={activityId:'a1',scopeId:'a1',activity:null,promotionStatus:'ready',contextStatus:'ready',publicOnly:true,t:{promotion:copy},locale:{code:'zh'},localized:display.localized,clearPromotion:vi.fn(),clearScope:vi.fn(),navTo:vi.fn(),promotionStoreHref:entry.promotionStoreHref};
+  const context={activityId:'a1',scopeId:'a1',activity:null,voucherContext:{},promotionStatus:'ready',contextStatus:'ready',publicOnly:true,t:{promotion:copy},locale:{code:'zh'},localized:display.localized,clearPromotion:vi.fn(),clearScope:vi.fn(),navTo:vi.fn(),promotionStoreHref:entry.promotionStoreHref};
   const store=storeSource.slice(storeSource.indexOf('<view v-if="activityId"'),storeSource.indexOf('<template v-else-if="!publicOnly">'));
   const detail=detailSource.slice(detailSource.indexOf('<view v-if="publicOnly"'),detailSource.indexOf('<view v-else-if="catalogStatus'));
   for(const source of [store,detail,bundleSource]){

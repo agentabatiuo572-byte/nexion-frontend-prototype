@@ -4,7 +4,7 @@ import { parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import source from './checkout.vue?raw';
 import { validatePromotionItems } from '@/api/promotion-api';
-import { promotionCheckoutHref } from '@/lib/promotion-entry';
+import { promotionCheckoutHref,voucherEntryContext } from '@/lib/promotion-entry';
 import { formatAmount as formatPlainAmount } from '@/lib/amount-display';
 import { zh } from '@/i18n/messages/zh';
 
@@ -75,7 +75,7 @@ describe('single-item checkout to canonical quantities',()=>{
 const loadNode=ast.statements.find(node=>ts.isExpressionStatement(node)&&ts.isCallExpression(node.expression)&&node.expression.expression.getText(ast)==='onLoad') as ts.ExpressionStatement;
 const loadSource=(loadNode.expression as ts.CallExpression).arguments[0].getText(ast);
 function routeScreen() {
-  const deps={takeNavigationQuery:()=>'',promotionRoute:ref(null),validatePromotionItems,t:ref(zh),toast:{warn:vi.fn()},navTo:vi.fn(),URLSearchParams};
+  const deps={takeNavigationQuery:()=>'',voucherEntryContext,promotionRoute:ref(null),validatePromotionItems,t:ref(zh),toast:{warn:vi.fn()},navTo:vi.fn(),URLSearchParams};
   const code=ts.transpileModule('const load='+loadSource,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
   return {...deps,load:new Function('deps',`with(deps){${code};return load;}`)(deps)};
 }
@@ -89,4 +89,9 @@ it.each(['[]','[{"productNo":"sku","quantity":0}]','broken'])('rejects invalid i
 it.each([[1299,'1,299.00'],['999999999999.995','1,000,000,000,000.00'],[-1299.5,'-1,299.50'],[null,'-']])('groups only the displayed amount %s', (input,expected)=>{
   const display=new Function('formatPlainAmount',declarations(['formatAmount'])+';return formatAmount;')(formatPlainAmount);
   expect(display(input)).toBe(expected);
+});
+
+it('a BF20 route preserves coupon and upgrade context without turning the whole shop into an activity scope',async()=>{
+  const page=routeScreen();await page.load({product:'ordinary',quantity:'3',voucherId:'BF20',upgradeActivityId:'pro-upgrade',activityId:'unrelated'});
+  expect(page.promotionRoute.value).toEqual({activityId:'',items:[{productNo:'ordinary',quantity:3}],orderNo:undefined,voucherId:'BF20',upgradeActivityId:'pro-upgrade'});
 });

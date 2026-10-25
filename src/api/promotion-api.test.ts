@@ -56,3 +56,9 @@ describe('promotion transport',()=>{
   it('recovery scans canonical order pages and never posts; rejects cursor cycles',async()=>{const{api,request}=setup();request.mockResolvedValueOnce({orders:[],nextCursor:'older'}).mockResolvedValueOnce({orders:[receipt],nextCursor:null});expect((await api.findOrder('o1'))?.orderNo).toBe('o1');expect(request.mock.calls.every(([r])=>!r.method)).toBe(true);request.mockResolvedValue({orders:[],nextCursor:'loop'});await expect(api.findOrder('absent')).rejects.toThrow();});
   it('a mismatched command target cannot supply another checkout receipt',async()=>{const{api,request}=setup();request.mockResolvedValue({idempotencyKey:'k',operation:'payOrder',targetId:'other',status:'SUCCEEDED',order:receipt});await expect(api.command('k','payOrder','o1')).rejects.toThrow();});
 });
+
+it('an explicit event voucher disables automatic promotion selection while preserving the server amount',async()=>{
+  const {api,request}=setup();request.mockResolvedValue(quote);
+  await api.quote([{productNo:'sku-a',quantity:3}],null,'BF20',false);
+  expect(request.mock.calls[0][0].body).toEqual({items:[{productNo:'sku-a',quantity:3}],activityId:null,voucherId:'BF20',autoSelectPromotion:false,clientCapabilities:PROMOTION_CAPABILITIES});
+});

@@ -20,6 +20,7 @@ export function eventClaimCommandKey(code: string, claimKeys: readonly string[] 
   return `h4-event-claim:${code}${claimKeys[0] && claimKeys[0] !== "ONCE" ? `:${claimKeys[0]}` : ""}`;
 }
 export function eventDetailHref(detail: EventDetail): string {
+  if(detail.event.kind==='seasonal'&&typeof detail.rules.voucherId==='string'&&detail.rules.voucherId.trim())return promotionStoreHref(undefined,{voucherId:detail.rules.voucherId,upgradeActivityId:typeof detail.rules.promotionActivityId==='string'?detail.rules.promotionActivityId:undefined});
   if (["discount", "seasonal"].includes(detail.event.kind) && typeof detail.rules.promotionActivityId === "string" && detail.rules.promotionActivityId) return promotionStoreHref(detail.rules.promotionActivityId);
   if (detail.event.kind === "regional") return "";
   return detail.event.href;

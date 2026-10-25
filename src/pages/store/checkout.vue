@@ -2,7 +2,7 @@
 <template>
   <AppChassis active="store">
     <template #pageTop><SubPageHeader class="checkout-header" design :back="checkoutBackHref" :title="auditCopy.review" /></template>
-    <PromotionCheckout class="checkout-promotion" v-if="promotionRoute" :key="app.accountKey+':'+app.accountBindingEpoch" ref="promotionCheckout" :activity-id="promotionRoute.activityId" :items="promotionRoute.items" :order-no="promotionRoute.orderNo">
+    <PromotionCheckout class="checkout-promotion" v-if="promotionRoute" :key="app.accountKey+':'+app.accountBindingEpoch" ref="promotionCheckout" :activity-id="promotionRoute.activityId" :items="promotionRoute.items" :order-no="promotionRoute.orderNo" :voucher-id="promotionRoute.voucherId" :upgrade-activity-id="promotionRoute.upgradeActivityId">
       <template #review-footer>
         <view class="checkout-legal"><text>{{ legalCopy.before }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/onboarding/terms')" @keydown.enter.prevent="navTo('/pages/onboarding/terms')">{{ auditCopy.terms }}</text><text>{{ legalCopy.join }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/me/risk-disclosure')" @keydown.enter.prevent="navTo('/pages/me/risk-disclosure')">{{ t.me.riskRow }}</text><text>{{ legalCopy.end }}</text></view>
         <view class="checkout-cancel" role="button" tabindex="0" @click.stop="promotionCheckout?.back()" @keydown.enter.prevent.stop="promotionCheckout?.back()" @keydown.space.prevent.stop="promotionCheckout?.back()"><text>{{ t.store.coCancel }}</text></view>
@@ -213,7 +213,7 @@ import { onHide, onLoad, onShow, onUnload, onBackPress } from "@dcloudio/uni-app
 import PromotionCheckout from '@/components/promotion/promotion-checkout.vue';
 import { validatePromotionItems, type PromotionItem } from '@/api/promotion-api';
 import { takeNavigationQuery } from '@/lib/route';
-import { promotionCheckoutHref } from '@/lib/promotion-entry';
+import { promotionCheckoutHref,promotionStoreHref,voucherEntryContext,type VoucherEntryContext } from '@/lib/promotion-entry';
 import AppChassis from "@/components/app-chassis.vue";
 import CheckoutRow from "@/components/store/checkout-row.vue";
 import ChainPayment from "@/components/store/chain-payment.vue";
@@ -294,7 +294,7 @@ const legalCopy = computed(() => locale.code === 'zh'
     ? { before: 'Trước khi thanh toán, hãy đọc ', join: ' và ', end: '.' }
     : { before: 'Before paying, review ', join: ' and ', end: '.' });
 const app = useApp();
-const promotionRoute=ref<{activityId:string;items:PromotionItem[];orderNo?:string}|null>(null);
+const promotionRoute=ref<({activityId:string;items:PromotionItem[];orderNo?:string}&VoucherEntryContext)|null>(null);
 const promotionCheckout=ref<InstanceType<typeof PromotionCheckout>|null>(null);
 onBackPress(()=>promotionRoute.value ? (promotionCheckout.value?.back()??false) : false);
 const auth = useAuth();
@@ -458,11 +458,12 @@ onLoad(async (options) => {
   const pendingQuery=new URLSearchParams(takeNavigationQuery('/pages/store/checkout').replace(/^\?/,''));
   const navigationQuery:Record<string,string>={};pendingQuery.forEach((value,key)=>{navigationQuery[key]=value;});
   const o = { ...navigationQuery, ...(options || {}) } as Record<string, string>;
-  if (o.items !== undefined || o.activityId || o.promotion==='1') {
+  if (o.items !== undefined || o.activityId || o.voucherId || o.promotion==='1') {
     try {
       const items:PromotionItem[]=o.items ? JSON.parse(o.items) : o.product ? [{productNo:o.product,quantity:Number(o.quantity??1)}] : [];
       if(!o.orderNo)validatePromotionItems(items);
-      promotionRoute.value={activityId:o.activityId??'',items,orderNo:o.orderNo};
+      const context=voucherEntryContext(o);
+      promotionRoute.value={activityId:context.voucherId?'':o.activityId??'',items,orderNo:o.orderNo,...context};
     } catch { toast.warn(t.value.promotion.errorNote);void navTo('/store'); }
     return;
   }
@@ -890,7 +891,7 @@ async function fireTradeinIntercept(interactive = false): Promise<boolean | unde
   return false;
 }
 const checkoutBackHref = computed(() => promotionRoute.value
-  ? '/pages/store/store' + (promotionRoute.value.activityId ? '?activityId=' + encodeURIComponent(promotionRoute.value.activityId) : '')
+  ? promotionStoreHref(promotionRoute.value.activityId,promotionRoute.value)
   : product.value ? '/pages/store/detail?id=' + encodeURIComponent(product.value.id) : '/pages/store/store');
 const { imageSrc: checkoutImage, imageError: checkoutImageError } = useProductImage(() => product.value?.imageUrl);
 const voucherDetailsOpen = ref(false);

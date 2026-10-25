@@ -10,6 +10,7 @@
       <view class="nx-glass-card event-section">
         <text class="event-title">{{ detail.event.title }}</text>
         <text class="event-copy">{{ detail.event.subtitle }}</text>
+        <text v-if="detail.event.kind==='seasonal'&&detail.rules.voucherId" class="event-copy">{{ copy.voucherTerms }}</text>
         <text class="event-status" role="status">{{ copy.eligibility[detail.eligibilityReason] }}</text>
         <text v-if="detail.reminderSubscribed" class="event-copy" role="status">{{ reminderCopy.subscribed }}</text>
         <view v-if="detail.event.startsAt" class="event-row"><text>{{ copy.start }}</text><text>{{ displayDeadline(detail.event.startsAt, language) }}</text></view>

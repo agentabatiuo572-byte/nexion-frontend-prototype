@@ -1685,7 +1685,7 @@ catalog: {
       },
       "evt-black-friday": {
         "title": "Black Friday · Giảm 20% toàn bộ",
-        "subtitle": "Phần cứng giảm từ $300.00 · mã BF20 cộng dồn với ưu đãi nâng cấp Pro.",
+        "subtitle": "Giảm 20% toàn bộ phần cứng · BF20 cộng ưu đãi nâng cấp Pro đủ điều kiện.",
         "ribbon": "SẮP BẮT ĐẦU",
         "reward": "Giảm 20% + cộng dồn mã",
         "progressLabel": "",

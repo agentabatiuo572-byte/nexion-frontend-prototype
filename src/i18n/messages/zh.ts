@@ -1669,7 +1669,7 @@ catalog: {
       },
       "evt-black-friday": {
         "title": "黑色星期五 · 全场八折",
-        "subtitle": "全部硬件优惠 $300.00 起 · BF20 可与 Pro 限时升级叠加。",
+        "subtitle": "全场硬件八折 · BF20 可与符合条件的 Pro 限时升级叠加。",
         "ribbon": "即将开始",
         "reward": "八折 + 优惠码叠加",
         "progressLabel": "",

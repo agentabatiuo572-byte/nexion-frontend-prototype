@@ -1,5 +1,9 @@
 // Copy follows the approved APP artboards; all prices, terms and entitlements come from API data.
 export const promotionZH = {
+"eventVoucher":"活动优惠券",
+"eventVoucherTerms":"每个账号限领一次，用于一笔订单；可选同款多台。符合条件的 Pro 可叠加升级优惠。",
+"claimEventVoucher":"领取并使用此券",
+"eventVoucherUnavailable":"此券当前不可使用，请查看有效期或使用记录。",
 "activityBadge":"活动",
 "rewardCategory":"活动奖励",
 "rewardCategoryDesc":"设备赠礼、USDT 与 UVT 奖励",
@@ -209,6 +213,10 @@ export const promotionZH = {
   "failed": "查询原结果后重试"
 };
 export const promotionEN = {
+"eventVoucher":"Event voucher",
+"eventVoucherTerms":"One claim per account, for one order of a single model. Multiple units are allowed. Eligible Pro purchases can stack the upgrade offer.",
+"claimEventVoucher":"Claim and use this voucher",
+"eventVoucherUnavailable":"This voucher is unavailable. Check its validity or usage history.",
 "activityBadge":"Offer",
 "rewardCategory":"Promotion rewards",
 "rewardCategoryDesc":"Device gifts, USDT and UVT rewards",
@@ -418,6 +426,10 @@ export const promotionEN = {
   "failed": "Try again after checking the original result"
 };
 export const promotionVI = {
+"eventVoucher":"Phiếu ưu đãi sự kiện",
+"eventVoucherTerms":"Mỗi tài khoản nhận một lần, dùng cho một đơn hàng cùng mẫu. Có thể mua nhiều máy. Pro đủ điều kiện được cộng ưu đãi nâng cấp.",
+"claimEventVoucher":"Nhận và dùng phiếu này",
+"eventVoucherUnavailable":"Phiếu hiện không dùng được. Hãy kiểm tra thời hạn hoặc lịch sử sử dụng.",
 "activityBadge":"Ưu đãi",
 "rewardCategory":"Phần thưởng chương trình",
 "rewardCategoryDesc":"Quà tặng thiết bị, phần thưởng USDT và UVT",

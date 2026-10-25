@@ -28,7 +28,7 @@
         <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
         <text v-else-if="activity&&!promotionAvailable" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
         <PromotionProduct v-if="activity" :activity="activity" :product-no="id" expanded public-only />
-        <view v-if="activity" class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionDetailHref(id,activityId)))"><text>{{ t.promotion.signIn }}</text></view>
+        <view v-if="activity||voucherContext.voucherId" class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionDetailHref(id,activityId,voucherContext)))"><text>{{ t.promotion.signIn }}</text></view>
         <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionStoreHref())"><text>{{ t.promotion.allProducts }}</text></view>
       </view>
       <view v-else-if="catalogStatus === 'loading'" class="text-center" style="padding: 40px 16px">
@@ -97,6 +97,7 @@
           </view>
         </view>
 
+        <view v-if="voucherContext.voucherId" class="mx-4 mt-3 promotion promotion-flat"><text class="promotion-title">{{ t.promotion.eventVoucher }} · {{ voucherContext.voucherId }}</text><text class="promotion-copy">{{ t.promotion.eventVoucherTerms }}</text></view>
         <view v-if="activityId" class="mx-4 mt-3 promotion promotion-flat" data-testid="detail-promotion">
           <text class="promotion-title">{{ activity?t.promotion.gift:promotionStatus==='ready'?t.promotion.disabled:promotionStatus==='error'?t.promotion.error:t.promotion.loading }}</text>
           <text v-if="promotionStatus==='loading'||promotionStatus==='idle'" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
@@ -228,7 +229,7 @@ import SectionHeader from "@/components/store/section-header.vue";
 import ProductRender from "@/components/store/product-render.vue";
 import PromotionProduct from '@/components/promotion/promotion-product.vue';
 import { usePromotionContext } from '@/composables/use-promotion-context';
-import { promotionBundleHref,promotionCheckoutHref,promotionDetailHref,promotionStoreHref } from '@/lib/promotion-entry';
+import { promotionBundleHref,promotionCheckoutHref,promotionDetailHref,promotionStoreHref,voucherEntryContext,type VoucherEntryContext } from '@/lib/promotion-entry';
 import { localized } from '@/lib/promotion-display';
 import LiveSocialProof from "@/components/store/live-social-proof.vue";
 import SpecTable from "@/components/store/spec-table.vue";
@@ -271,6 +272,7 @@ const { sections: trustSections, status: trustStatus, refresh: refreshTrust } = 
 const app = useApp();
 const id = ref("");
 const activityId=ref('');
+const voucherContext=ref<VoucherEntryContext>({});
 const publicOnly=computed(()=>{void app.accountKey;void app.accountBindingEpoch;return !sessionVault.read();});
 const {activity,status:promotionStatus,available:promotionAvailable,refresh:refreshPromotion}=usePromotionContext(activityId);
 const catalogRetrying = ref(false);
@@ -310,6 +312,8 @@ onLoad(async (options) => {
   const fallback = new URLSearchParams(takeNavigationQuery("/pages/store/detail"));
   id.value = (o.id || fallback.get('id') || "").trim();
   activityId.value=(o.activityId||fallback.get('activityId')||'').trim();
+  voucherContext.value=voucherEntryContext({voucherId:o.voucherId||fallback.get('voucherId')||undefined,upgradeActivityId:o.upgradeActivityId||fallback.get('upgradeActivityId')||undefined});
+  if(voucherContext.value.voucherId)activityId.value='';
   await refreshDetailFacts();
 });
 
@@ -433,7 +437,7 @@ useSetPageHeader(() => ({
     : catalogStatus.value === "error" ? t.value.store.catalogErrorTitle
       : product.value?.name ?? t.value.store.coProductNotFound,
   subtitle: undefined,
-  backHref: activityId.value ? '/pages/store/store?activityId='+encodeURIComponent(activityId.value) : "/store",
+  backHref: activityId.value||voucherContext.value.voucherId ? promotionStoreHref(activityId.value,voucherContext.value) : "/store",
 }));
 
 // ── derived ROI math (mirrors page.tsx + _client.tsx) ──
@@ -659,7 +663,7 @@ function publishStickyCTA() {
       return;
     }
     sticky.show({
-      href: activityId.value || qty.value > 1 ? promotionCheckoutHref([{productNo:product.value.id,quantity:qty.value}],activityId.value) : `/pages/store/checkout?product=${product.value.id}`,
+      href: activityId.value || voucherContext.value.voucherId || qty.value > 1 ? promotionCheckoutHref([{productNo:product.value.id,quantity:qty.value}],activityId.value,voucherContext.value) : `/pages/store/checkout?product=${product.value.id}`,
       quantity: { value:qty.value,min:1,max:activityId.value?100:6,decrease:dec,increase:inc },
       amount: `${priceText.value}`,
       amountSubtext: isShare.value ? undefined : `${t.value.store.detDaily}: ${dailyEarnText.value}`,
@@ -668,7 +672,7 @@ function publishStickyCTA() {
     }, stickyOwner);
 }
 watch(
-  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, paybackLabel, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty],
+  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, paybackLabel, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty,voucherContext],
   publishStickyCTA,
   { immediate: true },
 );
