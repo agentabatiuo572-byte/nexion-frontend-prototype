@@ -1,10 +1,12 @@
 <template>
   <AppChassis active="earn">
     <view class="nx-device-detail pb-8" style="color: var(--v5-ink)">
-      <SubPageHeader :back="backHref" :title="deviceTitle" :subtitle="deviceSubtitle" />
+      <SubPageHeader :back="backHref" :title="deviceTitle" />
 
       <view v-if="device && !waitingForFleet && !fleetFailed" class="nx-device-detail__surface nx-glass-card mx-4">
+        <DeviceSlot class="device-detail-art" :device="device" :online="false" />
         <DeviceCardPC
+          show-manage
           :device="device"
           :expanded="expanded"
           @toggle="expanded = !expanded"
@@ -62,6 +64,7 @@ import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import DeviceSlot from "@/components/home/device-slot.vue";
 import DeviceCardPC from "@/components/earn/device-card-pc.vue";
 import CapacityExplainerSheet from "@/components/earn/capacity-explainer-sheet.vue";
 import { navBack, takeNavigationQuery } from "@/lib/route";
@@ -210,3 +213,5 @@ const backButtonStyle: CSSProperties = {
   fontWeight: 500,
 };
 </script>
+
+<style scoped>.device-detail-art { height:210px; }.device-detail-art :deep(.nx-home-art) { width:210px; }.nx-device-detail__surface :deep(.earn-device-art) { display:none; }</style>

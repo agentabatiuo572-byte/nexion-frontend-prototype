@@ -11,15 +11,17 @@ const template = parse(readFileSync(new URL("./preferences.vue", import.meta.url
 const render = new Function("Vue", compile(template, { mode: "function", prefixIdentifiers: true }).code)(Vue);
 const wrapper = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("section", slots.default?.()) });
 const toggle = Vue.defineComponent({ props: ["label", "value"], setup: props => () => Vue.h("button", { role: "switch", "aria-checked": String(props.value) }, String(props.label)) });
-async function show(ready: boolean, error: string | null) {
+async function show(ready: boolean, error: string | null, notificationError: string | null = null, clearingRead = false) {
   const kinds = ["commission", "team", "staking", "market", "genesis", "system"];
   const app = Vue.createSSRApp({ render, setup: () => ({
     prefs: { remoteReady: ready, error, soundEnabled: false, hapticsEnabled: true, notifPrefs: Object.fromEntries(kinds.map(k => [k, true])), refreshRemote() {}, toggleSound() {}, toggleHaptics() {}, toggleNotifKind() {} },
-    t: { ui: { retry: "Retry" } }, preferenceError: "Read unavailable",
+    t: { ui: { retry: "Retry" }, notifs: { drawerTitle: "Messages", clearReadAria: "Clear read", loadFailed: "Messages unavailable" }, help: { loadingMore: "Loading messages" } }, preferenceError: "Read unavailable",
+    notifs: { loading: false, error: notificationError }, clearingRead, confirmClearRead() {}, refreshNotifications() {},
     w: { loading: "Loading settings", feedbackHeading: "Feedback", soundLabel: "Sound", soundHint: "", hapticsLabel: "Haptics", hapticsHint: "", notifHeading: "Notifications", notifKinds: Object.fromEntries(kinds.map(k => [k, k])), notifFooter: "" },
     notifKinds: kinds, isMandatoryNotifKind, headingStyle: {}, cardStyle: {}, footerStyle: {}, dotStyle: () => ({}),
   }) });
   app.component("AppChassis", wrapper); app.component("SubPageHeader", wrapper); app.component("ToggleRow", toggle);
+  app.component("LiquidGlass", { render: () => null });
   return renderToString(app);
 }
 describe("notification settings unknown state", () => {
@@ -39,5 +41,18 @@ describe("notification settings unknown state", () => {
     const html = await show(true, "unavailable");
     expect(html.match(/role="switch"/g)).toHaveLength(8);
     expect(html).toContain("Retry");
+  });
+  it("keeps message clearing reachable with its own error and retry independently of preference errors", async () => {
+    const html = await show(true, "unavailable", "NOTIFICATION_UPDATE_FAILED");
+    expect(html).toContain('aria-label="Clear read"');
+    expect(html).toContain('data-testid="notification-preferences-error"');
+    expect(html).toContain('data-testid="notification-clear-error"');
+    expect(html).toContain('Messages unavailable'); expect(html).not.toContain('NOTIFICATION_UPDATE_FAILED');
+    expect(html.match(/aria-label="Retry"/g)).toHaveLength(2);
+    expect(html.match(/role="switch"/g)).toHaveLength(8);
+  });
+  it("removes the clear action from keyboard activation while its confirmation or mutation is pending", async () => {
+    const html = await show(true, null, null, true);
+    expect(html).toMatch(/class="family-control notification-clear-read"[^>]*tabindex="-1"[^>]*aria-disabled="true"/);
   });
 });

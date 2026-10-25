@@ -24,6 +24,26 @@ export function openSlotsTemplate(s: string, open: number): string {
   return open === 1 ? s.replace("slots open", "slot open") : s;
 }
 
+/** Display-only formatting. Unknown values never become a zero balance. */
+export function fmtMoney(value: number | null | undefined, detail = false): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  if (!detail && value !== 0 && Math.abs(value) < 0.01) return value < 0 ? "−<$0.01" : "<$0.01";
+  return `${value < 0 ? "−" : ""}$${Math.abs(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: detail ? 4 : 2 })}`;
+}
+
+export function fmtRate(value: number | null | undefined, locale: string = "en"): string {
+  return `${fmtMoney(value)}/${locale === "zh" ? "天" : locale === "vi" ? "ngày" : "day"}`;
+}
+
+export function fmtRelTime(timestamp: number, locale = "en", now = Date.now()): string {
+  if (!Number.isFinite(timestamp)) return "-";
+  const minutes = Math.max(0, Math.floor((now - timestamp) / 60_000));
+  if (!minutes) return locale === "zh" ? "刚刚" : locale === "vi" ? "Vừa xong" : "Just now";
+  const unit = minutes < 60 ? "minute" : minutes < 1440 ? "hour" : "day";
+  const count = unit === "minute" ? minutes : unit === "hour" ? Math.floor(minutes / 60) : Math.floor(minutes / 1440);
+  return new Intl.RelativeTimeFormat(locale, { numeric: "always" }).format(-count, unit);
+}
+
 /**
  * BCP-47 tag for Date#toLocale{Date,Time}String / toLocaleString — must follow
  * the language the UI actually renders, never the device locale (`undefined`

@@ -7,40 +7,9 @@ import { chromium } from 'playwright';
 import { installFormalProbeSession } from './lib/formal-probe-session.mjs';
 import { directAppUrl } from './lib/direct-app-url.mjs';
 
-const BASE = process.env.BASE_URL || 'http://127.0.0.1:5186';
+const BASE = process.env.DESIGN_BASE || process.env.BASE_URL || 'http://127.0.0.1:5186';
 const OUTPUT = process.env.DESIGN_OUTPUT || path.join(os.tmpdir(), 'uvel-design-review');
-const now = Date.now(), iso = new Date(now).toISOString();
-const authority = { sourceEnvironment: 'PRODUCTION', runId: '', serverCanonical: true };
-const products = [
-  { id: 'stellarbox-s1', name: 'UVEL Box S1', tier: 'Entry', imageUrl: '/static/img/home-glass-20260928/s1.webp', price: 1299, dailyEarn: 6.2, dailyEarnNEX: 3 },
-  { id: 'stellarbox-pro', name: 'UVEL Box Pro', tier: 'Pro', imageUrl: '/static/img/home-glass-20260928/pro.webp', price: 4999, dailyEarn: 22.4, dailyEarnNEX: 12 },
-].map(p => ({ ...p, imageUrl: new URL(p.imageUrl, BASE).href, tagline: '', badge: null, productType: 'DEVICE', inventoryMode: 'FINITE', gpu: null, vram: null, power: null, datacenter: null, warranty: null, hashRate: null, sold: 7, stock: 60, features: [], ai: null, status: 'active', available: true, releaseState: null, releasePhaseId: null, unlocksAtPhase: null, purchaseGate: null }));
-const trial = { ...authority, authoritative: true, state: 'ELIGIBLE', canStart: true, serverNowEpochMs: now, version: 1, claimNo: null, startedAt: null, expiresAt: null, graceEndsAt: null, finishedAt: null, cooldownUntil: null, shadowUSD: 0, shadowNEX: 0, source: 'nx_trial_claim', provenance: { ...authority, source: 'nx_trial_claim' }, paymentRail: 'NEXION_USDT_WALLET', config: { trialDays: '3', graceDays: '7', discountRate: '0.15', discountCapUSD: '20', trialOffsetCapUSD: '50', trialProductId: 'stellarbox-s1', trialProductName: 'UVEL Box S1', trialPriceUSD: '1299', shadowDailyUSD: '38.52', shadowDailyNEX: '65', seatsLeftToday: '1', phaseOpen: true, autoPushEnabled: false, autoPushDelayMs: '1500', autoPushCooldownHours: '24', autoPushMaxPerSession: '1' } };
-const voucher = { voucherId: 'V-DESIGN', voucherName: 'Device voucher', voucherType: 'fixed', amountUsd: 50, percentValue: 0, minPurchaseUsd: 0, maxDiscountUsd: 50, applicableSkus: '[]', audience: 'all', claimSurfaces: '["home","store"]', startAt: 0, endAt: 0, popupEnabled: false, popupDelayMs: 300, popupCooldownHours: 1, popupMaxPerSession: 1, popupCadenceEnabled: false, popupLastSeenAt: 0, popupSessionCount: 0, nextEligibleAt: 0, stackWithTrial: false, stackWithOthers: false, splittable: false, definitionStatus: 'active', definitionDeleted: 0, grantStatus: 'UNCLAIMED', claimable: true, audienceEligible: true, popupEligible: false };
-
-function fixture(url, locale, state) {
-  if (url.pathname === '/api/content/trust/sections/current') return { ...authority, source: 'nx_trust_section_version:published', sections: ['financials', 'leadership', 'nexNarrative', 'complianceBadges', 'auditsReserves', 'listings'].map(sectionKey => ({ sectionKey, version: 'v1', description: 'UI review fixture', structure: 'Published resources', fields: [] })) };
-  if (/^\/api\/content\/trust\/sections\/[^/]+\/view$/.test(url.pathname)) return null;
-  if (url.pathname === '/api/promotions') return { items: [], nextCursor: null, hasMore: false };
-  if (url.pathname === '/api/config/v-ranks') return { ...authority, source: 'nx_v_rank_config', prizeName: 'Ranks', capabilities: { peer: false, genesis: false }, ranks: Array.from({ length: 9 }, (_, v) => ({ v, title: `Level ${v}`, cnTitle: `等级 ${v}`, directBonus: .1, unilevelDepth: v + 1, peerBonus: 0, leadershipVotes: v, cultivationBonus: 0, selfBuyUSD: v * 100, directRefs: v, teamVolumeUSD: v * 1000, rewards: [{ type: 'NEX', amount: v * 10 }], visible: true })) };
-  if (url.pathname === '/api/team/rank') return { ...authority, source: 'nx_team_member + server VRankPerformanceRepository', rankCode: 'V2', progress: { selfBuyUSD: 250, directRefs: 2, teamVolumeUSD: 2300, vDownlineCounts: {} } };
-  if (url.pathname === '/api/app/profile') return { nickname: 'Alex', avatarUrl: '', avatarRevision: '', language: locale };
-  if (url.pathname === '/api/app/home/overview') return { ...authority, source: 'server:nx_compute_receipt,nx_compute_task,nx_user_device,nx_compute_datacenter,nx_product,nx_growth_promo_banner', generatedAt: iso, accountScope: 'authenticated-account', earnings: { todayVsYesterdayPct: 0, ...Object.fromEntries(['today', 'week', 'month', 'all'].map(p => [p, { usdt: 16.24, nex: 3, jobCount: 10 }])) }, earningsLedgerMode: 'SETTLED', earningsLedger: [], marketBoard: { workloads: [], deviceRankings: [] }, doTheMath: null, weeklyPromo: null, onboarding: { cumulativePaidUsdt: 0, activeDevices: 0 }, onGrid: { clients: [], activeDevices: 0, activeJobs: 0, perSecUsdt: 0 } };
-  if (url.pathname === '/api/config/platform') return { featureFlags: { computeShareEnabled: false, homeNewcomerTasksEnabled: false, homeWeeklyPromoEnabled: false }, publicStats: { version: 1, ...authority, source: 'server:nx_config_item,nx_user', realUserCount: 0 }, updatedAt: iso };
-  if (url.pathname === '/api/devices/earnings') return { ...authority, source: 'nx_user_device + nx_compute_receipt + nx_compute_e3_config', dailyUsdt: 0, dailyNex: 0, realizedTodayUsdt: 16.24, realizedTodayNex: 3, walletUsdt: 0, walletNex: 0, userJoinedAt: now, serverNow: now, timezone: 'UTC', slotCap: 1, devices: [], capacitySchedule: {} };
-  if (url.pathname === '/api/trial/state' || url.pathname === '/api/trial/eligibility') return state.offers ? trial : { ...trial, state: 'REDEEMED', claimNo: 'TRIAL-REVIEW', claimedAtEpochMs: now - 5000, expiresAtEpochMs: now - 1000, canStart: false, eligibilityReason: 'converted' };
-  if (url.pathname === '/api/vouchers') return { vouchers: state.offers ? [voucher] : [], source: 'nx_growth_voucher + nx_growth_voucher_grant', serverCanonical: true, provenance: { ...authority, source: 'nx_growth_voucher' } };
-  if (url.pathname === '/api/store/catalog') return { ...authority, source: 'nx_product', revision: null, products };
-  if (url.pathname === '/api/store/purchase-eligibility') return { ...authority, runId: null, productNo: url.searchParams.get('productNo'), eligible: true, decisionCode: 'ELIGIBLE', policies: ['E1', 'F4B'].map(policy => ({ policy, eligible: true, decisionCode: 'ELIGIBLE', mode: 'ALL', conditions: [] })), evaluatedAt: now, source: 'nx_product + nx_admin_device_sku + nx_user' };
-  if (url.pathname === '/api/orders') return { ...authority, source: 'server', orders: [] };
-  if (url.pathname === '/api/notifications') return { items: state.messages ? [
-    { id: 901, kind: 'system', priority: 'normal', title: '设备维护提醒', body: '本次维护已完成。你可以继续查看设备运行状态。', ctaLabel: '', ctaHref: '', createdAt: now - 60000, readAt: state.read ? now : null },
-    { id: 902, kind: 'order', priority: 'high', title: '订单状态已更新', body: '查看当前订单和账户记录。', ctaLabel: '查看记录', ctaHref: '/pages/me/wallet', createdAt: now - 86400000, readAt: now },
-  ] : [], nextCursor: null, unread: state.messages && !state.read ? 1 : 0 };
-  if (url.pathname === '/api/notifications/901/read') { state.read = true; return null; }
-  if (url.pathname === '/api/notifications/902/actions') return { notificationId: 902, action: 'cta', route: '/pages/me/wallet', recorded: true };
-  return undefined;
-}
+import { fixture } from './lib/design-review-fixture.mjs';
 
 await mkdir(OUTPUT, { recursive: true });
 const browser = await chromium.launch();
@@ -51,24 +20,43 @@ try {
     const context = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 1, colorScheme: theme, reducedMotion: width === 320 ? 'reduce' : 'no-preference', hasTouch: true });
     const page = await context.newPage(), state = { offers: true, messages: false, read: false };
     page.on('pageerror', e => errors.push({ width, locale, theme, error: e.message }));
-    await installFormalProbeSession(page, { responseFor: url => fixture(url, locale, state) });
+    await installFormalProbeSession(page, { responseFor: (url,request) => fixture(url, locale, state,request) });
     await page.addInitScript(({ locale, theme }) => {
       localStorage.setItem('nexgrid-locale-v1', JSON.stringify({ type: 'object', data: { code: locale, userSet: true } }));
       localStorage.setItem('nexgrid-theme-v1', JSON.stringify({ type: 'object', data: { mode: theme } }));
     }, { locale, theme });
     await page.goto(directAppUrl(BASE, '/pages/index/index'), { waitUntil: 'networkidle' });
     await page.locator('.home-benefits .vb-card').waitFor();
-    await page.locator('.home-benefits .nx-trial-hero').waitFor();
+    await page.locator('.nx-device-row').first().waitFor();
     assert.equal(await page.locator('.vb-card').count(), 1, 'Home has exactly one voucher entry');
+    assert.ok(await page.locator('[data-home-section]:visible').count() <= 6);
+    assert.equal(await page.locator('[role=dialog]').count(), 0, 'Home does not auto-open marketing');
+    assert.ok((await page.locator('.daily-check-in-row .nx-button').innerText()).trim());
+    const homeMetrics = await page.locator('.home-overview').evaluate(el => ({ height: el.getBoundingClientRect().height, width: el.getBoundingClientRect().width }));
     await page.locator('.home-benefits').scrollIntoViewIfNeeded();
     const prefix = `${width}-${locale}-${theme}`;
+    const captureFull = async (name,height) => {
+      await page.setViewportSize({width,height});
+      await page.locator('.nx-content').evaluate(el=>{el.scrollTop=0});
+      await page.evaluate(()=>document.fonts.ready);
+      await page.screenshot({animations:'disabled',path:path.join(OUTPUT,`${prefix}-${name}-full.png`)});
+      await page.setViewportSize({width,height:844});
+    };
+    await captureFull('home',1660);
     await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-home.png`) });
+    const voucherLayout = await page.locator('.home-benefits__grid').evaluate(el => { const a=el.children[0].getBoundingClientRect(), b=el.children[1].getBoundingClientRect(); return {height:a.height,secondHeight:b.height,gap:b.left-a.right,aligned:Math.abs(a.top-b.top)<1}; });
+    assert.ok(voucherLayout.aligned && Math.abs(voucherLayout.gap-12)<1, 'Benefits use the reference two-column layout');
+    assert.ok(Math.abs(voucherLayout.height-voucherLayout.secondHeight)<2 && Math.abs(voucherLayout.height-184)<2, 'Benefits have equal reference heights');
+    await page.locator('.vb-card').screenshot({ animations:'disabled', path:path.join(OUTPUT,`${prefix}-voucher-card.png`) });
     await page.locator('.home-benefits .vb-card').click();
     await page.waitForSelector('[role="dialog"]');
     await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-voucher.png`) });
     // Reload verifies that opening an offer does not silently claim it.
     await page.reload({ waitUntil: 'networkidle' });
     await page.locator('.home-benefits .nx-trial-hero').waitFor();
+    const trialLayout = await page.locator('.home-benefits .nx-trial-hero').evaluate(el => { const card=el.getBoundingClientRect(), cta=el.querySelector('.trial-cta').getBoundingClientRect(); return {height:card.height,ctaInside:cta.left>=card.left&&cta.right<=card.right&&cta.bottom<=card.bottom}; });
+    assert.ok(trialLayout.ctaInside && Math.abs(trialLayout.height-184)<2);
+    await page.locator('.home-benefits .nx-trial-hero').screenshot({ animations:'disabled', path:path.join(OUTPUT,`${prefix}-trial-card.png`) });
     await page.locator('.home-benefits .nx-trial-hero').click();
     await page.waitForSelector('[role="dialog"]');
     await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-trial.png`) });
@@ -77,11 +65,12 @@ try {
     await card.waitFor();
     await card.scrollIntoViewIfNeeded();
     await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-store.png`) });
+    await captureFull('store',1620);
     const bounds = await card.evaluate(el => {
       const card = el.getBoundingClientRect(), media = el.querySelector('.product-media').getBoundingClientRect();
-      return { cardWidth: card.width, mediaWidth: media.width, roundedInner: getComputedStyle(el.querySelector('.product-media')).borderRadius, animation: getComputedStyle(el.querySelector('.product-art')).animationName, nested: el.querySelectorAll('.nx-glass-card,.nx-glass-inset').length };
+      return { cardWidth: card.width, mediaWidth: media.width, borderWidth:parseFloat(getComputedStyle(el).borderLeftWidth)+parseFloat(getComputedStyle(el).borderRightWidth), roundedInner: getComputedStyle(el.querySelector('.product-media')).borderRadius, animation: getComputedStyle(el.querySelector('.product-art')).animationName, nested: el.querySelectorAll('.nx-glass-card,.nx-glass-inset').length };
     });
-    assert.ok(Math.abs(bounds.cardWidth - bounds.mediaWidth) < 1, 'Product image region fills the card width');
+    assert.ok(Math.abs(bounds.cardWidth - bounds.mediaWidth - bounds.borderWidth) < 1, 'Product image region fills the card width');
     assert.equal(bounds.roundedInner, '0px');
     assert.equal(bounds.nested, 0);
     if (width === 320) assert.equal(bounds.animation, 'none');
@@ -94,6 +83,7 @@ try {
     assert.equal(await page.locator('.rank-row-heading[aria-expanded="true"]').count(), 1);
     await page.locator('#rank-details-3').waitFor();
     await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-rank.png`) });
+    await captureFull('rank',2200);
     await ranks.nth(8).click();
     await page.locator('#rank-details-8').waitFor();
     assert.equal(await page.locator('#rank-details-3').count(), 0);
@@ -102,11 +92,61 @@ try {
     await ranks.nth(8).focus();
     await page.keyboard.press('Enter');
     await page.locator('#rank-details-8').waitFor();
+    await page.goto(directAppUrl(BASE, '/pages/learn/courses'), { waitUntil: 'networkidle' });
+    await page.locator('.course-feature .nx-button').waitFor();
+    await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-courses.png`) });
+    await captureFull('courses',1180);
+    await page.locator('.course-feature .nx-button').click();
+    await page.waitForURL(/review-course-2/);
+    for (const id of [2, 1, 3]) {
+      const complete = page.locator('.nx-button--primary');
+      await complete.waitFor();
+      await complete.click();
+      await page.locator('[data-testid=learning-result-details]').waitFor();
+      if (id === 2) await page.screenshot({animations:'disabled',path:path.join(OUTPUT,`${prefix}-learning-next.png`)});
+      if (id !== 3) {
+        const next = page.locator('[data-testid=learning-next-course]');
+        await next.waitFor();
+        await next.click();
+        await page.waitForURL(new RegExp(`review-course-${id === 2 ? 1 : 3}`));
+      }
+    }
+    assert.deepEqual(state.completed, [2, 1, 3]);
+    await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-learning-complete.png`) });
+    await page.goto(directAppUrl(BASE, '/pages/learn/courses'), { waitUntil: 'networkidle' });
+    await page.locator('.course-completed').waitFor();
+    assert.equal(await page.locator('.course-feature').count(), 0);
+    for (const [route, anchor] of [['earn/earn','.nx-content'], ['team/team','.team-rank'], ['me/me','.nx-content'], ['missions/missions','.missions-content']]) {
+      await page.goto(directAppUrl(BASE, '/pages/' + route), { waitUntil: 'networkidle' });
+      await page.locator(anchor).first().waitFor();
+      await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-${route.split('/')[0]}.png`) });
+    }
+    const panels = page.locator('.missions-content [role=tab]');
+    assert.equal(await panels.count(), 4);
+    for (let index=1;index<4;index++) { await panels.nth(index).click(); assert.equal(await panels.nth(index).getAttribute('aria-selected'), 'true'); assert.equal(await page.locator('.nx-chassis:visible').count(),1,'Embedded tasks must not create a second chassis'); }
+    await page.goto(directAppUrl(BASE, '/pages/store/checkout?product=stellarbox-s1'), { waitUntil: 'networkidle' });
+    await page.locator('.checkout-sticky .nx-button').waitFor();
+    assert.equal(await page.locator('.checkout-product').count(),1);
+    assert.equal(await page.locator('[role=dialog]').count(),0,'Checkout does not auto-open trade-in');
+    await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-checkout.png`) });
+    await captureFull('checkout',1320);
+    await page.getByTestId('checkout-quantity-increase').click();
+    await page.waitForURL(/items=/);
+    await page.locator('.checkout-item-quantity-value').filter({hasText:'2'}).waitFor();
+    await page.locator('.promotion-summary.total').filter({hasText:'2,598.00'}).waitFor();
+    await page.getByTestId('checkout-item-increase').click();
+    await page.locator('.checkout-item-quantity-value').filter({hasText:'3'}).waitFor();
+    await page.locator('.promotion-summary.total').filter({hasText:'3,897.00'}).waitFor();
+    await page.getByTestId('checkout-item-decrease').press('Enter');
+    await page.locator('.checkout-item-quantity-value').filter({hasText:'2'}).waitFor();
+    await page.locator('.promotion-summary.total').filter({hasText:'2,598.00'}).waitFor();
+    await page.screenshot({animations:'disabled',path:path.join(OUTPUT,`${prefix}-checkout-quantity.png`)});
     state.messages = true;
     await page.goto(directAppUrl(BASE, '/pages/me/notifications?section=notifications'), { waitUntil: 'networkidle' });
     await page.locator('.notification-row').first().waitFor();
     assert.equal(await page.locator('.notification-date').count(), 2);
     await page.screenshot({ animations: 'disabled', path: path.join(OUTPUT, `${prefix}-messages.png`) });
+    await captureFull('messages',920);
     await page.locator('.notification-row').first().click();
     await page.locator('.notification-detail').waitFor();
     assert.equal(await page.locator('.notification-item').first().locator('.notification-preview').count(), 0, 'Expanded text appears once');
@@ -121,7 +161,7 @@ try {
     await page.reload({ waitUntil: 'networkidle' });
     await page.locator('.home-benefits').waitFor({ state: 'hidden' });
     assert.equal(await page.locator('.home-benefits').count(), 0, 'Consumed benefits leave no empty section');
-    records.push({ width, locale, theme, bounds });
+    records.push({ width, locale, theme, bounds, homeMetrics, voucherLayout, trialLayout });
     console.log(`PASS ${prefix}`);
     await context.close();
   }

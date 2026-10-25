@@ -6,20 +6,11 @@
     <view class="trial-aura" aria-hidden="true" />
     <view class="trial-art" aria-hidden="true"><view class="nx-home-art" /></view>
     <view class="trial-meta">
-      <text class="trial-badge">{{ t.trial.heroBadge }}</text>
-      <text v-if="!embedded" class="trial-title">{{ t.trial.heroDeviceName }}</text>
-      <text v-if="!embedded" class="trial-tagline">{{ taglineText }}</text>
-      <view class="trial-estimate">
-        <text class="trial-estimate-label">{{ earnLabelText }}</text>
-        <text class="trial-value font-mono-tabular">${{ formatAmount(est) }}</text>
-      </view>
-      <text class="trial-estimate-label">{{ embedded ? t.trial.heroCreditUse : creditBasisText }}</text>
-      <view class="trial-cta" aria-hidden="true">
-        <LiquidGlass :radius="999" tone="control" />
-        <text>{{ claimCtaText }}</text>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7 7 7-7 7" /></svg>
-      </view>
+      <text class="trial-badge">{{ embedded ? fmt(copy.freeTrialDays,{n:trialDays}) : t.trial.heroBadge }}</text>
+      <text class="trial-title">{{ t.trial.heroDeviceName }}</text>
+      <template v-if="!embedded"><text class="trial-tagline">{{ taglineText }}</text><view class="trial-estimate"><text class="trial-estimate-label">{{ earnLabelText }}</text><text class="trial-value font-mono-tabular">${{ formatAmount(est) }}</text></view><text class="trial-estimate-label">{{ creditBasisText }}</text></template>
     </view>
+    <view class="trial-cta nx-design-glass" aria-hidden="true"><LiquidGlass :radius="999" tone="control" /><text>{{ canClaim && embedded ? t.voucher.bannerCta : claimCtaText }}</text></view>
       <view v-if="trial.authorityStatus === 'error'" role="button" tabindex="0" :aria-label="t.trial.entryRetry"
         style="padding: 8px 16px" @click.stop="retryEligibility"  @keydown.enter.stop.prevent="retryEligibility" @keydown.space.stop.prevent="retryEligibility">
         <text>{{ t.trial.entryRetry }}</text>
@@ -35,6 +26,7 @@ import { useTrialConfig, computeTrialOffset } from "@/store/trial-config";
 import { useTrialClaimSheet } from "@/store/trial-claim-sheet";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import { useAuditUiCopy } from '@/i18n/audit-ui';
 import LiquidGlass from "@/components/liquid-glass.vue";
 
 defineProps<{ embedded?: boolean }>();
@@ -42,7 +34,7 @@ defineProps<{ embedded?: boolean }>();
 const trial = useFreeTrial();
 const trialCfg = useTrialConfig();
 const claimSheet = useTrialClaimSheet();
-const t = useT();
+const t = useT(), copy = useAuditUiCopy();
 
 const eligibility = computed(() => trial.eligibility());
 const canClaim = computed(() => trial.status === "none"
@@ -116,15 +108,15 @@ function retryEligibility() {
 .trial-art { position: absolute; width: 43%; aspect-ratio: 1; right: 0; top: 50%; margin-top: -21.5%; pointer-events: none; }
 .trial-art .nx-home-art { width: 100%; height: 100%; background-image: url('/static/img/home-glass-20260928/s1.webp'); }
 .trial-aura { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(ellipse at 83% 54%, color-mix(in srgb, var(--v5-brand) 12%, transparent), transparent 65%); }
-.nx-trial-hero--embedded { min-width: 0; min-height: 0; padding: 0; display: flex; flex-direction: column; }
-.nx-trial-hero--embedded .trial-art { position: relative; width: 100%; height: 116px; aspect-ratio: auto; top: auto; right: auto; margin: 0; }
-.nx-trial-hero--embedded .trial-art .nx-home-art { width: 150px; height: 150px; margin: -16px auto 0; }
-.nx-trial-hero--embedded .trial-meta { width: auto; flex: 1; padding: 12px 16px 16px; display: flex; flex-direction: column; }
-.nx-trial-hero--embedded .trial-badge { padding: 0; background: none; border-radius: 0; color: var(--v5-ink); font-size: 17px; line-height: 1.3; }
-.nx-trial-hero--embedded .trial-estimate { margin-top: 6px; }
-.nx-trial-hero--embedded .trial-value { font-size: 26px; }
-.nx-trial-hero--embedded .trial-meta > .trial-estimate-label { margin: 4px 0 12px; }
-.nx-trial-hero--embedded .trial-cta { align-self: flex-start; margin-top: auto; }
+.nx-trial-hero--embedded { min-height:0;height:184px;min-width:0;padding:0;border:1px solid var(--v5-border);background:radial-gradient(70% 45% at 70% 92%,color-mix(in srgb,var(--v5-brand) 22%,transparent),transparent 70%),linear-gradient(180deg,var(--ui-trial-top),var(--ui-ticket-bottom)); }
+.nx-trial-hero--embedded .trial-art { position:absolute;right:-6px;bottom:8px;top:auto;width:118px;height:118px;margin:0; }
+.nx-trial-hero--embedded .trial-art .nx-home-art { width:118px;height:118px;margin:0; }
+.nx-trial-hero--embedded .trial-aura {inset:auto;right:6px;bottom:18px;width:110px;height:22px;background:radial-gradient(closest-side,rgba(158,220,29,.42),transparent);filter:blur(2px);}
+.nx-trial-hero--embedded .trial-meta { position:relative;width:auto;padding:14px 14px 0; }
+.nx-trial-hero--embedded .trial-badge { display:block;padding:0;background:none;border-radius:0;color:var(--ui-lime-soft);font:500 12.5px/20px var(--font-v5); }
+.nx-trial-hero--embedded .trial-title { font:600 18px/22px var(--font-v5);margin-top:8px;letter-spacing:0; }
+.nx-trial-hero--embedded .trial-cta { position:absolute;left:14px;bottom:14px;min-height:32px;margin:0;padding:0 14px;font:600 13px/1.3 var(--font-v5); }
+@media(max-width:350px) { .nx-trial-hero--embedded .trial-art,.nx-trial-hero--embedded .trial-art .nx-home-art {width:102px;height:102px;} .nx-trial-hero--embedded .trial-meta { padding-inline:12px; }.nx-trial-hero--embedded .trial-title { font-size:16px; }}
 @media (prefers-reduced-motion: reduce) { .nx-trial-hero { transition: none; } }
 @media (max-width: 350px) {
   .nx-trial-hero:not(.nx-trial-hero--embedded) { padding: 18px; }

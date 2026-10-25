@@ -1,15 +1,46 @@
 <template>
   <AppChassis active="me">
-    <view class="px-4" style="padding-bottom: 24px">
-      <SubPageHeader :back="courseBack" />
-      <view v-if="loading"><text>{{ t.learning.courseLoading }}</text></view>
-      <view v-else-if="error" role="alert" aria-live="assertive">
+    <view class="learning-course">
+      <view v-if="course && serverCompleted && !loading && !error" class="course-result-header">
+        <view class="course-result-header__close nx-design-glass" role="button" tabindex="0" :aria-label="auditCopy.close" @click="navBack(courseBack)" @keydown.enter.prevent="navBack(courseBack)" @keydown.space.prevent="navBack(courseBack)">
+          <LiquidGlass :radius="22" tone="navigation" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </view>
+        <text class="course-result-header__title">{{ course.title }}</text>
+      </view>
+      <SubPageHeader v-else design :back="courseBack" :title="course?.title" />
+      <view v-if="loading" class="course-state" role="status"><text>{{ t.learning.courseLoading }}</text></view>
+      <view v-else-if="error" class="course-state" role="alert" aria-live="assertive">
         <text class="block" style="text-wrap: pretty">{{ errorText }}</text>
         <text v-if="error === 'courseIdMissing'" class="block active:opacity-70" style="margin-top: 12px; color: var(--v5-brand)" role="button" tabindex="0" :aria-label="t.learning.centerTitle" @click="backToCourses" @keydown.enter.prevent="onKeyboardActivate($event, backToCourses)" @keydown.space.prevent="onKeyboardActivate($event, backToCourses)">{{ t.learning.centerTitle }}</text>
         <text v-else class="block active:opacity-70" style="margin-top: 12px; color: var(--v5-brand)" role="button" tabindex="0" :aria-label="t.ui.retry" @click="load" @keydown.enter.prevent="onKeyboardActivate($event, load)" @keydown.space.prevent="onKeyboardActivate($event, load)">{{ t.ui.retry }}</text>
       </view>
-      <view v-else-if="course">
+      <view v-else-if="course && serverCompleted" class="course-completed">
+        <view class="course-result" role="status" aria-live="polite">
+          <view class="course-result__badge" aria-hidden="true"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10" /></svg></view>
+          <text class="course-result__title">{{ course.questions.length ? completionCopy.quizPassed : t.learning.resultPassed }}</text>
+          <text data-testid="learning-result-details" class="course-result__summary" :aria-label="[completionSummary, attemptsLine, rewardStatusLine].filter(Boolean).join(' · ')">{{ completionSummary }}</text>
+          <text v-if="resultDetails" class="course-result__reward" :class="{ 'course-result__reward--pending': !resultDetails.rewardGranted }">{{ completionReward }}</text>
+        </view>
+        <view class="course-next-section">
+          <view v-if="recommendedNext" class="course-next">
+            <text class="course-next__label">{{ auditCopy.nextCourse }}</text>
+            <text class="course-next__title">{{ recommendedNext.title }}</text>
+            <view class="course-next__meta"><text>{{ nextCourseMeta }} · {{ completionCopy.reward }} </text><text class="course-next__reward">{{ formatAmount(recommendedNext.rewardNex) }} UVT</text></view>
+            <NxButton data-testid="learning-next-course" class="course-next__cta" variant="primary" :label="completionCopy.startNext" @click="openNextCourse" />
+          </view>
+          <view v-else-if="nextLoading" class="course-next-state" role="status"><text>{{ completionCopy.nextLoading }}</text></view>
+          <view v-else-if="nextError" class="course-next-state" role="alert">
+            <text>{{ completionCopy.nextUnavailable }}</text>
+            <NxButton class="course-next__retry" variant="text" :label="t.ui.retry" @click="loadNextCourses" />
+          </view>
+          <view v-else-if="nextOverview" class="course-next-state"><text>{{ auditCopy.allCoursesDone }}</text><text class="course-next__reward">{{ fmt(auditCopy.earned, { n: formatAmount(nextOverview.earnedNex) }) }}</text></view>
+          <NxButton class="course-result__back" variant="text" :label="completionCopy.backToCenter" @click="backToCourses" />
+        </view>
+      </view>
+      <view v-else-if="course" class="course-lesson">
         <text class="block" style="font-size: 20px; font-weight: 600">{{ course.title }}</text>
+        <view class="course-read-progress" role="progressbar" :aria-valuenow="serverCompleted ? 100 : course.progress" aria-valuemin="0" aria-valuemax="100"><view :style="{width:(serverCompleted ? 100 : course.progress)+'%'}" /></view>
         <text class="block" style="margin-top: 10px; color: var(--v5-ink-2); text-wrap: pretty">{{ course.body }}</text>
         <text class="block" style="margin-top: 8px; color: var(--v5-ink-3)">{{ versionLine }}</text>
         <text v-if="startState === 'pending'" class="block" style="margin-top: 8px; color: var(--v5-ink-3); text-wrap: pretty" role="status" aria-live="polite">{{ t.learning.courseStartConfirming }}</text>
@@ -23,23 +54,12 @@
                改用 radiogroup(组名 = 题干)+ radio + aria-checked。 -->
           <view role="radiogroup" :aria-label="question.question" :data-course-question-index="index">
             <view v-for="(option, optionIndex) in question.options" :key="option" :class="interactionLocked ? '' : 'active:opacity-70'" style="margin-top: 8px" role="radio" :tabindex="!interactionLocked && (answers[index] === optionIndex || (answers[index] === undefined && optionIndex === 0)) ? 0 : -1" :aria-label="option" :aria-checked="answers[index] === optionIndex ? 'true' : 'false'" :aria-disabled="interactionLocked ? 'true' : 'false'" @click="selectAnswer(index, optionIndex)" @keydown.enter.prevent="onKeyboardActivate($event, () => selectAnswer(index, optionIndex))" @keydown.space.prevent="onKeyboardActivate($event, () => selectAnswer(index, optionIndex))" @keydown.up.prevent="moveAnswer(index, optionIndex, -1)" @keydown.down.prevent="moveAnswer(index, optionIndex, 1)">
-              <text>{{ answers[index] === optionIndex ? "●" : "○" }} {{ option }}</text>
+              <view class="course-radio" :class="{selected: answers[index] === optionIndex}" aria-hidden="true" /><text>{{ option }}</text>
             </view>
           </view>
         </view>
 
-        <text
-          class="block"
-          :class="canSubmit ? 'active:opacity-70' : ''"
-          :style="{ marginTop: '20px', color: canSubmit ? 'var(--v5-brand)' : 'var(--v5-ink-4)' }"
-          role="button"
-          :tabindex="canSubmit ? 0 : -1"
-          :aria-label="course.questions.length ? t.learning.submitQuiz : t.learning.completeCourse"
-          :aria-disabled="canSubmit ? 'false' : 'true'"
-          @click="finish"
-          @keydown.enter.prevent="onKeyboardActivate($event, finish)"
-          @keydown.space.prevent="onKeyboardActivate($event, finish)"
-        >{{ course.questions.length ? t.learning.submitQuiz : t.learning.completeCourse }}</text>
+        <NxButton style="margin-top:20px" variant="primary" :disabled="!canSubmit" :label="course.questions.length ? t.learning.submitQuiz : t.learning.completeCourse" @click="finish" />
         <text v-if="course.questions.length && !pendingAttempt && !allAnswered && !serverCompleted" class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3)">{{ t.learning.answerAllFirst }}</text>
         <text v-if="pendingAttempt" class="block active:opacity-70" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3); text-wrap: pretty" role="button" tabindex="0" :aria-label="pendingStatusText" @click="load" @keydown.enter.prevent="onKeyboardActivate($event, load)" @keydown.space.prevent="onKeyboardActivate($event, load)">{{ pendingStatusText }}</text>
         <text v-if="resultDetails" data-testid="learning-result-details" class="block tabular-nums" style="margin-top: 12px; color: var(--v5-ink-2); text-wrap: pretty">{{ resultDetails.passed ? t.learning.resultPassed : t.learning.resultFailed }} · {{ scoreLine }} · {{ attemptsLine }} · {{ rewardStatusLine }}</text>
@@ -49,10 +69,15 @@
 </template>
 
 <script setup lang="ts">
+import NxButton from "@/components/ui/nx-button.vue";
+import { useAuditUiCopy } from "@/i18n/audit-ui";
+import { selectRecommendedCourse } from "@/lib/learning-recommendation";
+import type { LearningOverview } from "@/api/learning-api";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import {
   currentPendingLearningAttempt,
@@ -66,7 +91,8 @@ import { remoteApiEnabled } from "@/api/runtime";
 import { captureRuntimeRevision } from "@/api/order-api";
 import type { LearningCourse, LearningQuizReceiptStatus, LearningResult } from "@/api/learning-api";
 import { ApiError } from "@/api/errors";
-import { navReplace, takeNavigationQuery } from "@/lib/route";
+import { navTo, navBack, navReplace, takeNavigationQuery } from "@/lib/route";
+import { courseDurationText } from "@/lib/course-duration";
 import { preserveCourseSourceInH5, resolveCourseNavigation } from "./course-navigation";
 import { fmt } from "@/i18n/format";
 import { useT } from "@/i18n/use-t";
@@ -115,7 +141,7 @@ const canSubmit = computed(() => !!course.value
   && (!course.value.questions.length || (pendingAttempt.value
     ? pendingAnswersValid.value && ["ABSENT", "FAILED"].includes(String(pendingReceiptStatus.value))
     : allAnswered.value)));
-const language = computed(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code : "zh");
+const language = computed(() => locale.code === "zh" || locale.code === "vi" ? locale.code : "en");
 const versionLine = computed(() => course.value
   ? fmt(t.value.learning.courseVersionMeta, { version: course.value.version, nex: formatAmount(course.value.rewardNex) })
   : "");
@@ -424,4 +450,85 @@ onUnmounted(() => { mounted = false; generation += 1; resetLoadCoalescer(); });
 watch(() => String(app.accountKey), refreshForScopeChange);
 watch(() => app.accountBindingEpoch, refreshForScopeChange);
 watch(() => language.value, refreshForScopeChange);
+
+const auditCopy = useAuditUiCopy();
+const nextOverview = ref<LearningOverview | null>(null);
+const nextLoading = ref(false);
+const nextError = ref(false);
+const completionCopy = computed(() => ({
+  zh: { quizPassed: "测验通过", progress: "已学完 {done}/{total} 课", credited: "+{n} UVT 已到账", questions: "{n} 道小测", reward: "奖励", startNext: "开始下一课", backToCenter: "返回教程中心", nextLoading: "正在读取下一课…", nextUnavailable: "下一课暂不可用，请重试。" },
+  en: { quizPassed: "Quiz passed", progress: "{done}/{total} courses completed", credited: "+{n} UVT credited", questions: "{n} quiz questions", reward: "Reward", startNext: "Start next course", backToCenter: "Back to learning center", nextLoading: "Loading next course…", nextUnavailable: "The next course is unavailable. Please retry." },
+  vi: { quizPassed: "Đã vượt qua bài kiểm tra", progress: "Đã học {done}/{total} bài", credited: "Đã nhận +{n} UVT", questions: "{n} câu hỏi", reward: "Thưởng", startNext: "Bắt đầu bài tiếp theo", backToCenter: "Về trung tâm học tập", nextLoading: "Đang tải bài tiếp theo…", nextUnavailable: "Chưa tải được bài tiếp theo. Vui lòng thử lại." },
+}[language.value]));
+const completionSummary = computed(() => {
+  const progress = nextOverview.value ? fmt(completionCopy.value.progress, { done: nextOverview.value.completedCourses, total: nextOverview.value.totalCourses }) : "";
+  return [course.value?.questions.length ? scoreLine.value : "", progress].filter(Boolean).join(" · ") || t.value.learning.resultPassed;
+});
+const completionReward = computed(() => resultDetails.value?.rewardGranted
+  ? fmt(completionCopy.value.credited, { n: formatAmount(resultDetails.value.rewardNex) })
+  : rewardStatusLine.value);
+const recommendedNext = computed(() => selectRecommendedCourse((nextOverview.value?.courses ?? []).filter(item => item.id !== courseId.value)));
+const nextCourseMeta = computed(() => {
+  const next = recommendedNext.value;
+  if (!next) return "";
+  const duration = courseDurationText(next.duration, t.value.learning.durationMinutes);
+  return next.questions.length ? duration + " · " + fmt(completionCopy.value.questions, { n: next.questions.length }) : duration;
+});
+function openNextCourse() {
+  const next = recommendedNext.value;
+  if (next) navTo(`/pages/learn/course?id=${encodeURIComponent(next.id)}`);
+}
+let nextRequest = 0;
+function resetNextCourses() { nextRequest++; nextOverview.value = null; nextLoading.value = false; nextError.value = false; }
+async function loadNextCourses() {
+  resetNextCourses();
+  if (!serverCompleted.value || !remoteApiEnabled || !mounted) return;
+  const request = nextRequest;
+  const scope = fence();
+  nextLoading.value = true;
+  try {
+    const next = await learningApi.courses(language.value);
+    if (request === nextRequest && current(scope) && serverCompleted.value) nextOverview.value = next;
+  } catch {
+    if (request === nextRequest && current(scope)) nextError.value = true;
+  } finally {
+    if (request === nextRequest && current(scope)) nextLoading.value = false;
+  }
+}
+watch(() => [serverCompleted.value, courseId.value, app.accountKey, app.accountBindingEpoch, language.value] as const, () => { void loadNextCourses(); });
+onHide(resetNextCourses);
+onUnmounted(resetNextCourses);
 </script>
+
+<style scoped>
+.learning-course { --learning-reward: var(--v5-nex); padding-bottom: var(--v5-space-6); color: var(--v5-ink); font-family: var(--font-v5); }
+.learning-course :deep(.spv--design) { grid-template-columns: 56px minmax(0, 1fr) 56px; margin: 0; }
+.course-state, .course-lesson { padding: 20px 16px 0; }
+.course-result-header { display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px; align-items: center; box-sizing: border-box; height: 56px; padding: 0 6px; }
+.course-result-header__close { position: relative; display: grid; place-items: center; width: 44px; height: 44px; margin-left: 6px; border-radius: 50%; color: var(--v5-ink-2); cursor: pointer; }
+.course-result-header__close > svg { position: relative; z-index: 1; }
+.course-result-header__close:active { opacity: .7; }
+.course-result-header__close:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
+.course-result-header__title { overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; font-weight: 600; line-height: 24px; }
+.course-result { display: flex; flex-direction: column; align-items: center; padding: 56px 24px 0; text-align: center; }
+.course-result__badge { display: grid; place-items: center; flex: none; width: 84px; height: 84px; border-radius: 50%; color: var(--v5-on-brand); background: linear-gradient(160deg, var(--ui-lime-pale), var(--v5-brand)); box-shadow: 0 0 0 10px color-mix(in srgb, var(--v5-brand) 10%, transparent), 0 0 0 22px color-mix(in srgb, var(--v5-brand) 5%, transparent), 0 14px 40px color-mix(in srgb, var(--v5-brand) 35%, transparent); }
+.course-result__title { display: block; margin-top: 18px; font-size: var(--v5-type-h2); font-weight: 600; line-height: 38px; overflow-wrap: anywhere; }
+.course-result__summary { display: block; margin-top: 6px; font-size: 13.5px; line-height: 20px; color: var(--v5-ink-3); font-variant-numeric: tabular-nums; text-wrap: pretty; }
+.course-result__reward { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 32px; margin-top: var(--v5-space-4); padding: var(--v5-space-1) 14px; border-radius: var(--v5-radius-full); background: color-mix(in srgb, var(--learning-reward) 16%, transparent); color: var(--learning-reward); font-size: 14px; font-weight: 600; line-height: 24px; font-variant-numeric: tabular-nums; }
+.course-result__reward--pending { background: var(--v5-surface); color: var(--v5-ink-3); }
+.course-next-section { padding: var(--v5-space-10) var(--v5-space-4) 0; }
+.course-next { position: relative; overflow: hidden; padding: 18px; border: 1px solid var(--v5-border); border-radius: var(--ui-radius-surface); background: radial-gradient(60% 70% at 100% 0%, color-mix(in srgb, var(--v5-brand) 16%, transparent), transparent 65%), linear-gradient(180deg, var(--ui-spotlight-top), var(--ui-ticket-bottom)); }
+.course-next__label { display: block; font-size: 12.5px; font-weight: 500; line-height: 18px; color: var(--v5-brand); }
+.course-next__title { display: block; margin-top: 6px; font-size: 18px; font-weight: 600; line-height: 24px; overflow-wrap: anywhere; }
+.course-next__meta { margin-top: 6px; font-size: 12.5px; line-height: 18px; color: var(--v5-ink-3); overflow-wrap: anywhere; }
+.course-next__reward { color: var(--learning-reward); font-variant-numeric: tabular-nums; }
+.learning-course .course-next__cta { display: flex; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: var(--v5-space-4); padding: 0 var(--v5-space-4); font-size: var(--v5-type-button); font-weight: 600; }
+.course-next-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; text-align: center; font-size: 13.5px; line-height: 20px; color: var(--v5-ink-3); }
+.learning-course .course-result__back { display: flex; box-sizing: border-box; width: 100%; min-height: 44px; margin-top: var(--v5-space-2); padding: var(--v5-space-2) var(--v5-space-3); font-size: 14px; font-weight: 400; color: var(--v5-ink-2); }
+.course-next__retry { margin-top: var(--v5-space-1); }
+[role="radio"] { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 12px; border: 1px solid var(--v5-border); border-radius: 14px; font: 400 14px/1.5 var(--font-v5); }
+[role="radio"][aria-checked="true"] { border-color: var(--v5-brand); background: color-mix(in srgb,var(--v5-brand) 6%,transparent); }
+.course-radio { width: 18px; height: 18px; border: 1px solid var(--v5-ink-3); border-radius: 50%; flex: none; }
+.course-radio.selected { border: 5px solid var(--v5-brand); }
+.course-read-progress { height: 4px; background: var(--v5-surface-3); margin-top:16px;border-radius:4px;overflow:hidden; }.course-read-progress > view { height:100%;background:var(--v5-brand); }
+</style>

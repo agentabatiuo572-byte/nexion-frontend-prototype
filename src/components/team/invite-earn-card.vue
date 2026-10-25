@@ -3,14 +3,14 @@
     <view aria-hidden="true" :style="gridStyle" />
 
     <view class="invite-card__header">
-      <text class="invite-card__title">💰 {{ rewardReady && rewardEnabled ? t.team.earnForEachFriend : t.team.inviteTitle }}</text>
-      <view class="invite-card__settlement">
+      <text class="invite-card__title">{{ rewardReady && rewardEnabled ? t.team.earnForEachFriend : t.team.inviteTitle }}</text>
+      <view v-if="referralCode" class="invite-card__settlement">
         <PulseDot v-if="rewardReady" color="var(--v5-success)" :size="6" />
         <text class="font-mono-tabular tabular-nums">{{ settlementStatus }}</text>
       </view>
     </view>
 
-    <view class="nx-invite-body" :style="bodyGridStyle">
+    <view v-if="referralCode" class="nx-invite-body" :style="bodyGridStyle">
       <view class="invite-card__reward" role="status" :aria-busy="rewards.loading">
         <template v-if="rewardReady">
           <template v-if="rewardEnabled">
@@ -23,7 +23,7 @@
           </template>
           <text v-else :style="cooldownStyle">{{ t.team.sharingStillAvailable }}</text>
           <view v-if="lifetimeEarned > 0" class="invite-card__earned" :style="earnedPillStyle">
-            <text>💎</text><text>+{{ formatAmount(lifetimeEarned) }} UVT</text>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 8 4-5h8l4 5-8 13ZM4 8h16M8 3l4 18 4-18"/></svg><text>+{{ formatAmount(lifetimeEarned) }} UVT</text>
           </view>
         </template>
         <text v-else :style="cooldownStyle">-</text>
@@ -52,18 +52,19 @@
       </view>
     </view>
 
-    <view class="invite-card__history" :style="tickerWrapStyle">
+    <view v-else class="invite-card__unavailable" role="status" :aria-busy="rewards.loading">
+      <text>{{ rewards.loading ? t.team.rewardLoading : t.share.linkUnavailable }}</text>
+      <view class="invite-card__retry" role="button" :tabindex="rewards.loading ? -1 : 0" :aria-disabled="rewards.loading" :aria-busy="rewards.loading" @click="!rewards.loading && rewards.refresh()" @keydown.enter.prevent="!rewards.loading && rewards.refresh()" @keydown.space.prevent="!rewards.loading && rewards.refresh()"><text>{{ t.network.retry }}</text></view>
+    </view>
+    <view v-if="referralCode && rewards.error" class="invite-card__retry" role="button" tabindex="0" :aria-busy="rewards.loading" @click="rewards.refresh()"><text>{{ t.network.retry }}</text></view>
+    <view v-if="rewardReady" class="invite-card__history" :style="tickerWrapStyle">
       <view v-if="tickerItem && rewardReady" :key="tickerIdx" class="invite-card__ticker nx-step-in">
-        <text class="invite-card__ticker-symbol">⚡</text>
+        <svg class="invite-card__ticker-symbol" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m13 2-8 12h6l-1 8 9-12h-6Z"/></svg>
         <text class="invite-card__ticker-name">{{ tickerItem.name }}</text>
         <text class="invite-card__ticker-action">{{ tickerItem.action }}</text>
         <text class="font-mono-tabular tabular-nums invite-card__ticker-amount" :style="tickerAmtStyle">{{ tickerItem.amount }}</text>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10M7 17 17 7"/></svg>
       </view>
-      <view v-else-if="rewards.error && remoteApiEnabled" class="invite-card__retry" role="button" tabindex="0" :aria-busy="rewards.loading" @click="rewards.refresh()">
-        <text>{{ rewards.loading ? t.team.rewardLoading : t.team.rewardHistoryUnavailable }}</text>
-      </view>
-      <text v-else-if="rewards.loading">{{ t.team.rewardLoading }}</text>
       <text v-else-if="rewardReady">{{ t.team.noSettledRewards }}</text>
     </view>
   </view>
@@ -293,6 +294,8 @@ const tickerAmtStyle: CSSProperties = { marginLeft: "auto", color: "var(--v5-bra
 .invite-card__ticker-action { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .invite-card__earned { display: inline-flex; align-items: center; color: var(--v5-tech-cyan-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .invite-card__retry { min-height: 44px; display: flex; align-items: center; }
+.invite-card__unavailable {position:relative;display:flex;align-items:center;justify-content:space-between;gap:var(--ui-space-3,12px);color:var(--v5-ink-3);font:400 var(--ui-text-caption,12px)/1.5 var(--font-v5);}
+.invite-card__unavailable .invite-card__retry {flex-shrink:0;padding:0 var(--ui-space-2,8px);color:var(--v5-ink-2);}
 @media (max-width: 350px) {
   .nx-invite-body { grid-template-columns: minmax(0, 1fr); }
   .nx-invite-actions { width: 100%; }

@@ -6,13 +6,13 @@ import test from "node:test";
 const root = path.resolve(import.meta.dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
-test("home exposes the server NEX trend with a fail-closed retry", () => {
+test("home omits the market card and wallet valuation remains authority-gated", () => {
   const home = read("src/pages/index/index.vue");
-  const card = read("src/components/home/nex-price-card.vue");
-  assert.match(home, /<NexPriceCard/);
+  const card = read("src/components/me/wallet-card.vue");
+  assert.doesNotMatch(home, /<NexPriceCard/);
   assert.match(card, /market\.remoteReady/);
-  assert.match(card, /market\.syncRemote\(\)/);
-  assert.doesNotMatch(card, /Hidden for current stage/);
+  assert.match(card, /if \(!marketReady\.value\) return "≈ — USDT/);
+  assert.match(card, /fundsReadable\.value \? formatAmount\(nex\.value \* price\) : "—"/);
 });
 
 test("NEX market page remains server-backed after comparable tokens retire", () => {

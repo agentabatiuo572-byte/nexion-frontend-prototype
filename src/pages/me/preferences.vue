@@ -53,22 +53,88 @@
         </view>
         <text class="block mx-1" :style="footerStyle">{{ w.notifFooter }}</text>
       </view>
+
+      <view class="mx-4 notification-management">
+        <text class="block" :style="headingStyle">{{ t.notifs.drawerTitle }}</text>
+        <text v-if="notifs.loading" class="block" role="status" aria-live="polite">{{ t.help.loadingMore }}</text>
+        <view v-if="notifs.error" class="notification-management-error" role="alert" data-testid="notification-clear-error">
+          <text>{{ t.notifs.loadFailed }}</text>
+          <view class="family-control preferences-retry" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="refreshNotifications"><LiquidGlass :radius="24" /><text>{{ t.ui.retry }}</text></view>
+        </view>
+        <view class="family-control notification-clear-read" role="button" :tabindex="clearingRead || notifs.loading ? -1 : 0" :aria-disabled="clearingRead || notifs.loading" :aria-label="t.notifs.clearReadAria" @click="confirmClearRead"><LiquidGlass :radius="24" /><text>{{ t.notifs.clearReadAria }}</text></view>
+      </view>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import LiquidGlass from "@/components/liquid-glass.vue";
 import ToggleRow from "@/components/me/preference-toggle-row.vue";
 import { useT } from "@/i18n/use-t";
 import { isMandatoryNotifKind, usePreferences, type NotifKind } from "@/store/preferences";
+import { useNotifications } from "@/store/notifications";
+import { useApp } from "@/store/app";
+import { remoteAccountScope } from "@/lib/remote-account-epoch";
+import { confirm as uiConfirm, useUI } from "@/store/ui";
 
 const t = useT();
 const w = computed(() => t.value.preferences);
 const prefs = usePreferences();
+const notifs = useNotifications();
+const app = useApp();
+const ui = useUI();
+const clearingRead = ref(false);
+const confirmOwner = `notification-settings:${typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+  ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+let pageGeneration = 0;
+let pageVisible = true;
+let disposed = false;
+function captureIntent() {
+  return { generation: pageGeneration, account: remoteAccountScope.snapshot() };
+}
+function isCurrentIntent(intent: ReturnType<typeof captureIntent>) {
+  return !disposed && pageVisible && intent.generation === pageGeneration
+    && remoteAccountScope.isCurrent(intent.account);
+}
+function refreshNotifications() {
+  const intent = captureIntent();
+  if (!isCurrentIntent(intent) || notifs.loading) return;
+  return notifs.refreshRemote(undefined, () => isCurrentIntent(intent));
+}
+async function confirmClearRead() {
+  const intent = captureIntent();
+  if (!isCurrentIntent(intent) || clearingRead.value || notifs.loading) return;
+  clearingRead.value = true;
+  try {
+    const accepted = await uiConfirm({
+      owner: confirmOwner,
+      title: t.value.notifs.clearReadAria,
+      message: t.value.notifs.clearReadMessage,
+      confirmLabel: t.value.notifs.clearReadAria,
+      icon: "warn",
+    });
+    if (accepted && isCurrentIntent(intent)) await notifs.clearRead();
+  } finally {
+    if (isCurrentIntent(intent)) clearingRead.value = false;
+  }
+}
+function invalidatePendingIntents() {
+  pageGeneration += 1;
+  clearingRead.value = false;
+  ui.clearConfirmsBy(confirmOwner);
+}
+watch(() => [app.accountKey, app.accountBindingEpoch], invalidatePendingIntents, { flush: "sync" });
+onShow(() => {
+  if (disposed) return;
+  pageVisible = true;
+  void refreshNotifications();
+});
+onHide(() => { pageVisible = false; invalidatePendingIntents(); });
+onUnmounted(() => { disposed = true; pageVisible = false; invalidatePendingIntents(); });
 const preferenceError = computed(() => {
   const labels = t.value.preferences as typeof t.value.preferences & Record<"updateFailed" | "unavailable", string>;
   return prefs.error === "updateFailed" ? labels.updateFailed : labels.unavailable;
@@ -117,6 +183,10 @@ const footerStyle: CSSProperties = {
 
 <style scoped>
 .preferences-retry { margin-top: 8px; }
+.notification-management { margin-top: 20px; }
+.notification-clear-read { min-height: 44px; margin-top: 8px; }
+.notification-management-error { color: var(--v5-danger); }
+.notification-management [aria-disabled="true"] { opacity: .5; pointer-events: none; }
 </style>
 
 <style src="@/styles/message-family.css"></style>

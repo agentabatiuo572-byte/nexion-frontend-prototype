@@ -1,17 +1,7 @@
-<!--
-  Store (main list page) — ported from Nexion-prototype/app/(main)/store/page.tsx.
-  v5 light-fintech tier ladder upgrade flow, top→bottom:
-    StoreHero → ClusterLadder → VsPhoneHero → TradeinWindowBanner →
-    "Recommended" header + featured ProductCard → PurchaseTicker →
-    "More tiers" header + rest ProductCards → "Coming soon" LockedProductCards →
-    footer note. (Orders entry moved to Me → Account — see me.vue.)
-  Phase-gated products (Pro v2 / Rack P2, unlocksAtPhase): shown as live cards
-  once the platform phase is reached, otherwise as locked "Coming soon" cards.
-  Wrapped in <AppChassis active="store">; entrance via <CardStagger>.
--->
+<!-- Live catalogue, voucher benefits and upgrade recommendations; pricing and eligibility remain store-owned. -->
 <template>
   <AppChassis active="store">
-    <CardStagger class="px-4 pt-3 pb-4 space-y-6" style="color: var(--v5-ink)">
+    <CardStagger class="store-content">
       <view v-if="activityId" class="promotion store-promotion-scope" data-testid="store-promotion-scope">
         <view class="store-promotion-actions">
           <text v-if="activity" class="promotion-badge">{{ t.promotion.activityProducts }}</text>
@@ -25,18 +15,14 @@
         <view v-if="activity" class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId))"><text>{{ t.promotion.bundle }}</text></view>
       </view>
       <template v-else-if="!publicOnly">
-        <StoreHero :multiplier="upgrade?.multiplier ?? null" />
-        <view class="nx-glass-card flex items-center justify-between active:opacity-70" data-testid="store-bundle-entry"
-          role="button" tabindex="0" :aria-label="t.promotion.bundle"
-          style="min-height: 48px; padding: 12px 16px; color: var(--v5-brand); font-size: 15px; font-weight: 600"
-          @click="navTo('/pages/store/bundle')"
-          @keydown.enter.prevent="navTo('/pages/store/bundle')" @keydown.space.prevent="navTo('/pages/store/bundle')">
-          <text>{{ t.promotion.bundle }}</text>
-          <text aria-hidden="true">›</text>
+        <view v-if="voucherOffers.length" class="store-voucher-ticket" data-testid="store-voucher-ticket" role="button" tabindex="0" @click="openStoreVouchers" @keydown.enter.prevent="openStoreVouchers" @keydown.space.prevent="openStoreVouchers">
+          <view class="store-voucher-ticket__value"><text v-if="voucherBenefit.amount != null" class="store-voucher-ticket__currency">$</text><text>{{ voucherBenefit.amount != null ? fmtMoney(voucherBenefit.amount).replace(/^\$/, '').replace(/\.00$/, '') : voucherBenefit.percent != null ? voucherBenefit.percent + '%' : '–' }}</text></view>
+          <view class="store-voucher-ticket__rule" aria-hidden="true" />
+          <view class="store-voucher-ticket__copy"><text class="store-voucher-ticket__title">{{ auditCopy.voucherShort }} · {{ fmt(auditCopy.voucherShortCount,{n:voucherOffers.length}) }}</text><view class="store-voucher-ticket__hint"><view>{{ voucherBenefit.amount != null ? auditCopy.upToOff : auditCopy.voucherDiscount }}</view><view>{{ voucherClaimable.length ? auditCopy.claimToUse : auditCopy.autoApplyVoucher }}</view></view></view>
+          <image class="store-voucher-ticket__art" src="/static/img/home-glass-20260928/coupon.webp" mode="aspectFit" aria-hidden="true" />
         </view>
-        <PromotionEntry mode="home" />
-        <ClusterLadder :authority="yieldAuthority" :owned="ownedHardware" />
-        <VsPhoneHero v-if="upgrade" :authority="yieldAuthority" :comparison="upgrade" />
+        <PromotionEntry class="store-campaign" mode="home" />
+        <UpgradeSpotlight v-if="upgrade" :base="upgrade.base" :base-image-url="upgradeBaseImageUrl" :target="upgrade.target" />
       </template>
 
       <view v-if="publicOnly" class="promotion" data-testid="promotion-public-store">
@@ -46,7 +32,7 @@
       <template v-else>
 
       <!-- Sprint 2 finale — phase + legacy-ownership trade-in window -->
-      <TradeinWindowBanner v-if="!activityId" />
+
 
       <!-- Goal-recommendation context (BUG 71). Arriving from an earning goal
            carries `focus`; the card locates the recommended SKU instead of
@@ -79,51 +65,26 @@
       </view>
       <view v-if="activity&&promotionStatus==='ready'&&catalogStatus==='ready'&&!unlockedProducts.length" class="promotion-flat"><text class="promotion-copy">{{ t.promotion.noMatchingProducts }}</text><view class="promotion-link" role="button" tabindex="0" @click="clearPromotion"><text>{{ t.promotion.allProducts }}</text></view></view>
       <template v-if="catalogHasProducts">
-        <SectionHeader v-if="!activityId" :title="t.store.secRecommended" style="height: 44px">
-          <template #right>
-            <view style="height: 44px; max-width: 65%; display: flex; align-items: center; overflow: hidden">
-              <text v-if="catalogStatus === 'loading'" role="status" style="font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ t.store.catalogLoadingTitle }}</text>
-              <view v-else-if="catalogStatus === 'error'" role="button" tabindex="0"
-                :aria-label="`${t.store.catalogErrorTitle} · ${t.store.catalogRetry}`"
-                style="height: 44px; min-width: 0; display: flex; flex-direction: column; justify-content: center; font-size: 12px; line-height: 18px"
-                @click="retryCatalog"  @keydown.enter.prevent="retryCatalog" @keydown.space.prevent="retryCatalog">
-                <text style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ t.store.catalogErrorTitle }}</text>
-                <text style="color: var(--v5-brand)">{{ t.store.catalogRetry }}</text>
-              </view>
-              <text v-else class="font-mono-tabular inline-flex items-center gap-1" :style="amberTagStyle">{{ t.store.secRecommendedTag }}</text>
-            </view>
-          </template>
-        </SectionHeader>
-        <ProductCard v-if="featured" :key="featured.id" :product="featured" :promotion="activity" :activity-id="activityId" :promotion-ready="promotionStatus==='ready'" featured />
-
-        <PurchaseTicker v-if="!activityId" />
-
-        <SectionHeader v-if="restProducts.length > 0&&!activityId" :title="t.store.secMoreTiers" />
-        <ProductCard v-for="p in restProducts" :key="p.id" :product="p" :promotion="activity" :activity-id="activityId" :promotion-ready="promotionStatus==='ready'" />
-
-        <!-- "Coming soon" — gen-2 phase-locked -->
-        <view v-if="lockedProducts.length > 0">
-          <SectionHeader :title="t.store.secComingSoon">
-            <template #right>
-              <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.store.comingSoonNote }}</text>
-            </template>
-          </SectionHeader>
-          <view class="space-y-2.5">
-            <LockedProductCard v-for="p in lockedProducts" :key="p.id" :product="p" />
+        <NxSection class="store-catalogue" :title="t.store.allProducts" :meta="String(unlockedProducts.length)" :action="catalogStatus === 'error' ? t.store.catalogRetry : undefined" @action="retryCatalog">
+          <view class="store-product-grid">
+            <ProductCard v-for="p in catalogProducts" :key="p.id" :product="p" :promotion="activity" :activity-id="activityId" :promotion-ready="promotionStatus==='ready'" compact />
           </view>
-        </view>
+          <text class="store-estimate-note">{{ t.store.cardEstimateNote }}</text>
+        </NxSection>
+        <NxListGroup v-if="(!activityId && genesisCfg.config.showcaseEnabled) || lockedProducts.length" class="store-more">
+          <NxListRow v-if="!activityId && genesisCfg.config.showcaseEnabled" :title="t.store.secGenesis" :subtitle="t.store.genesisCardPerks" @click="navTo('/pages/genesis/genesis')"><template #leading><view class="store-more__icon store-more__icon--gold"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 4 10h12l4-10-5 3-5-7-5 7z" /></svg></view></template></NxListRow>
+          <NxListRow v-if="lockedProducts.length" :title="t.store.secComingSoon" :subtitle="lockedProducts.map(p => p.name).join(' · ')" :value="comingSoonOpen ? auditCopy.close : undefined" @click="comingSoonOpen = !comingSoonOpen"><template #leading><view class="store-more__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></view></template></NxListRow>
+        </NxListGroup>
+        <view v-if="comingSoonOpen && lockedProducts.length" class="store-locked-list"><LockedProductCard v-for="p in lockedProducts" :key="p.id" :product="p" /></view>
       </template>
 
-      <!-- 尊享席位 — Genesis 独立金融 SKU 入口(升级阶梯压轴;规格 FEAT-GEN07,
-           非设备目录成员,经济模型与当前服务端资格投影在 store/genesis.ts)。
-           showcaseEnabled 运营开关(FEAT-GEN09):关=整区隐藏,预售页/二级不受影响。-->
-      <view v-if="!activityId&&genesisCfg.config.showcaseEnabled">
-        <SectionHeader :title="t.store.secGenesis" />
-        <GenesisShowcaseCard />
+      <view v-if="!publicOnly && !activityId" class="store-bundle-entry" data-testid="store-bundle-entry" role="button" tabindex="0" :aria-label="t.promotion.bundle"
+        @click="navTo('/pages/store/bundle')" @keydown.enter.prevent="navTo('/pages/store/bundle')" @keydown.space.prevent="navTo('/pages/store/bundle')">
+        <text>{{ t.promotion.bundle }}</text><text aria-hidden="true">›</text>
       </view>
 
       <!-- 《02》§7:Mono 仅限 <5 词短标签/数字;这是 8 词促销 callout 整句,改正文字体 -->
-      <text class="block text-center" style="margin-top: 20px; padding-bottom: 8px; font-size: 12px; line-height: 16px; color: var(--v5-ink-3)">{{ t.store.pageFooter }}</text>
+      <text class="store-footer">{{ t.store.pageFooter }}</text>
       </template>
     </CardStagger>
   </AppChassis>
@@ -133,11 +94,7 @@
 import { onUnmounted, ref, computed, nextTick, onMounted, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
-import SectionHeader from "@/components/store/section-header.vue";
-import StoreHero from "@/components/store/store-hero.vue";
-import ClusterLadder from "@/components/store/cluster-ladder.vue";
-import VsPhoneHero from "@/components/store/vs-phone-hero.vue";
-import TradeinWindowBanner from "@/components/store/tradein-window-banner.vue";
+import UpgradeSpotlight from "@/components/store/upgrade-spotlight.vue";
 import ProductCard from "@/components/store/product-card.vue";
 import PromotionEntry from '@/components/promotion/promotion-entry.vue';
 import PromotionProduct from '@/components/promotion/promotion-product.vue';
@@ -146,14 +103,19 @@ import { promotionBundleHref,promotionStoreHref } from '@/lib/promotion-entry';
 import { localized } from '@/lib/promotion-display';
 import { useLocaleStore } from '@/store/locale';
 import { navTo,takeNavigationQuery } from '@/lib/route';
-import PurchaseTicker from "@/components/store/purchase-ticker.vue";
 import LockedProductCard from "@/components/store/locked-product-card.vue";
-import GenesisShowcaseCard from "@/components/store/genesis-showcase-card.vue";
 import { onHide, onLoad, onShow } from "@/composables/use-tab-page-lifecycle";
 import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesis } from "@/store/genesis";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { fmt, fmtMoney } from "@/i18n/format";
+import { useAuditUiCopy } from "@/i18n/audit-ui";
+import { useVoucher } from "@/store/voucher";
+import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
+import { voucherBenefitSummary } from "@/lib/voucher-benefit-summary";
+import NxSection from "@/components/ui/nx-section.vue";
+import NxListGroup from "@/components/ui/nx-list-group.vue";
+import NxListRow from "@/components/ui/nx-list-row.vue";
 import { PRODUCTS } from "@/mock/products";
 import { productCatalogState, productCatalogPresentation, refreshProductCatalog } from "@/store/product-catalog";
 import { refreshServerProductPhase } from "@/store/server-product-phase";
@@ -170,6 +132,8 @@ import { reportDayOnePageObservation } from "@/lib/day-one-page-observation";
 import { behaviorTracker, createStoreViewEvent } from "@/services/behavior-analytics";
 
 const t = useT();
+const auditCopy = useAuditUiCopy(), voucher = useVoucher(), comingSoonOpen = ref(false);
+const voucherClaimSheet = useVoucherClaimSheet();
 const app = useApp();
 const locale=useLocaleStore();
 const activityId=ref('');
@@ -209,6 +173,7 @@ onShow(() => {
   storePageVisible = true;
   if(publicOnly.value)return;
   genesisCfg.refresh();
+  void voucher.refreshRemote();
   // G4's public state owns supply independently of the configuration fields.
   // Re-read it whenever the store becomes visible so a prior failed 0/0
   // bootstrap can recover without an account rebind or a Genesis-detail visit.
@@ -323,6 +288,17 @@ const lockedProducts = computed(() =>
 );
 
 const upgrade = computed(() => storeUpgrade(unlockedProducts.value, ownedDevices.value));
+const upgradeBaseImageUrl = computed(() => {
+  const base = upgrade.value?.base;
+  return base ? displayProducts.value.find(p => p.id === base.kind)?.imageUrl : undefined;
+});
+const voucherClaimable = computed(() => voucher.claimableVouchers.filter(offer => offer.claimSurfaces.includes('store')));
+const voucherOffers = computed(() => [...new Map([...voucherClaimable.value, ...voucher.claimedUnused].map(offer => [offer.id, offer])).values()]);
+const voucherBenefit = computed(() => voucherBenefitSummary(voucherOffers.value));
+function openStoreVouchers() {
+  if (voucherClaimable.value.length) voucherClaimSheet.show('store');
+  else if (voucherOffers.value.length) navTo('/pages/me/rewards-list?cat=voucher');
+}
 
 // Goal-recommendation landing context (BUG 71) is declared above, before the
 // lifecycle hooks that clear it.
@@ -363,6 +339,10 @@ const featured = computed(
 const restProducts = computed(() =>
   unlockedProducts.value.filter((p) => p.id !== featured.value?.id),
 );
+
+const catalogProducts = computed(() => focusFeatured.value
+  ? [focusFeatured.value, ...unlockedProducts.value.filter(p => p.id !== focusFeatured.value?.id)]
+  : unlockedProducts.value);
 
 function retryCatalog() {
   void refreshProductCatalog(true);
@@ -445,6 +425,40 @@ const goalFocusRetryStyle: CSSProperties = {
 </script>
 <style src="@/components/promotion/promotion.css"></style>
 <style scoped>
-.store-promotion-scope { display:flex;flex-direction:column;gap:12px; }
-.store-promotion-actions { display:flex;align-items:center;justify-content:space-between;gap:12px; }
+.store-content { padding:12px 16px 16px; color:var(--v5-ink); }
+.store-content > * + * { margin-top:16px; }
+.store-voucher-ticket { position:relative; display:flex; align-items:center; gap:14px; min-height:88px; box-sizing:border-box; padding:6px 18px; overflow:hidden; border:1px solid var(--v5-border); border-radius:22px; background:radial-gradient(60% 120% at 100% 50%,color-mix(in srgb,var(--v5-brand) 18%,transparent),transparent 65%),linear-gradient(90deg,var(--ui-ticket-top),var(--ui-ticket-bottom)); }
+.store-voucher-ticket::before,.store-voucher-ticket::after { content:''; position:absolute; top:50%; width:18px; height:18px; margin-top:-9px; border-radius:50%; background:var(--v5-bg); border:1px solid var(--v5-border); }
+.store-voucher-ticket::before { left:-10px; }.store-voucher-ticket::after { right:-10px; }
+.store-voucher-ticket__value { display:flex; align-items:baseline; gap:2px; flex:none; font:600 30px/34px var(--font-v5); letter-spacing:-.02em; color:var(--ui-lime-pale); font-variant-numeric:tabular-nums; }
+.store-voucher-ticket__currency { font-size:15px; color:var(--ui-lime-soft); }
+.store-voucher-ticket__rule { align-self:stretch; margin:6px 0; border-left:1px dashed var(--v5-border-strong); }
+.store-voucher-ticket__copy { flex:1; min-width:0; }
+.store-voucher-ticket__title { display:block; font:600 15px/20px var(--font-v5); }
+.store-voucher-ticket__hint { display:block; margin-top:2px; font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
+.store-voucher-ticket__art { width:72px; height:72px; margin:-4px -6px -4px 0; flex:none; animation:ticket-bob 4.6s ease-in-out infinite; }
+.store-voucher-ticket:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
+.store-campaign :deep(.entry-advert) { height:146px; padding:18px; border-radius:22px; border:1px solid var(--v5-border); box-shadow:none; background:radial-gradient(70% 90% at 82% 72%,color-mix(in srgb,var(--v5-brand) 24%,transparent),transparent 62%),linear-gradient(135deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); }
+.store-campaign :deep(.entry-label) { top:18px; left:18px; padding:0; border:0; background:transparent; color:var(--ui-lime-soft); font:500 12.5px/18px var(--font-v5); }
+.store-campaign :deep(.entry-title) { font-size:19px; line-height:25px; }
+.store-catalogue { margin-top:20px; }
+.store-catalogue :deep(.nx-section__heading) { padding:0 2px; }
+.store-catalogue :deep(.nx-section__meta) { font-size:13px; font-weight:500; }
+.store-product-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-items:stretch; }
+.store-estimate-note { display:block; margin-top:10px; padding:0 2px; font:400 12.5px/1.6 var(--font-v5); color:var(--v5-ink-3); }
+.store-more__icon { display:grid; place-items:center; width:36px; height:36px; border-radius:12px; background:var(--ui-content-surface-2); }
+.store-more__icon--gold { color:var(--v5-warning-ink); background:linear-gradient(160deg,color-mix(in srgb,var(--v5-warning) 32%,transparent),color-mix(in srgb,var(--v5-warning) 8%,transparent)); box-shadow:inset 0 1px 0 color-mix(in srgb,var(--v5-warning) 35%,transparent); }
+.store-more :deep(.nx-list-row__subtitle) { color:var(--v5-ink-3); }
+.store-locked-list { display:flex; flex-direction:column; gap:10px; }
+.store-bundle-entry { display:flex; align-items:center; justify-content:flex-end; gap:6px; min-height:44px; padding:0 2px; color:var(--v5-brand); font:500 13px/18px var(--font-v5); cursor:pointer; }
+.store-bundle-entry:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; border-radius:8px; }
+.store-bundle-entry:active { opacity:.75; }
+.store-footer { display:block; margin-top:20px; padding-bottom:8px; font:400 12px/18px var(--font-v5); text-align:center; color:var(--v5-ink-3); }
+.store-promotion-scope { display:flex; flex-direction:column; gap:12px; }
+.store-promotion-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+@keyframes ticket-bob { 0%,100% { transform:translateY(0) rotate(-10deg); } 50% { transform:translateY(-3px) rotate(-8deg); } }
+@media(max-width:350px) { .store-voucher-ticket { gap:8px; padding-inline:14px; }.store-voucher-ticket__art { width:54px; height:54px; }.store-voucher-ticket__value { font-size:26px; } }
+@media(prefers-reduced-motion:reduce) { .store-voucher-ticket__art { animation:none; } }
 </style>
+
+<style scoped>.store-voucher-ticket__hint > text {display:block;} @media(max-width:350px) {.store-voucher-ticket {gap:10px;padding-inline:14px;}.store-voucher-ticket__art {width:58px;margin-right:-10px;}.store-voucher-ticket__copy {position:relative;z-index:1;}.store-voucher-ticket__hint {white-space:normal;}}</style>

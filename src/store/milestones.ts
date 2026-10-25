@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
+import { claimAutoPopupBudget } from '@/lib/auto-popup-budget';
 
 /**
  * Earnings milestone store. Ported from
@@ -183,6 +184,7 @@ export const useMilestones = defineStore("milestones", () => {
     if (screenBusy) return false;
     if (active.value || pendingCelebrations.value.length === 0) return false;
     if (Date.now() < coolUntil) return false;
+    if (!claimAutoPopupBudget(boundKey)) return false;
     const [next, ...rest] = pendingCelebrations.value;
     active.value = next;
     pendingCelebrations.value = rest;

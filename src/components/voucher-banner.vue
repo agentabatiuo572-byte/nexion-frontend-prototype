@@ -1,20 +1,13 @@
 <!-- Shared claim entry; eligibility and claim-sheet state remain store-owned. -->
 <template>
   <view v-if="visible" class="vb-wrap" :class="{ 'vb-wrap--embedded': embedded }">
-    <view class="vb-card" role="button" tabindex="0" :aria-label="t.voucher.bannerTitle" @click="open">
-      <view class="vb-aura" aria-hidden="true" />
-      <view class="vb-art" aria-hidden="true">
-        <view class="nx-home-art" />
+    <view class="vb-card" role="button" tabindex="0" :aria-label="t.voucher.bannerTitle" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
+      <view class="vb-art" aria-hidden="true"><view class="nx-home-art" /></view>
+      <view class="vb-meta"><view class="vb-heading"><text class="vb-title">{{ copy.voucherShort }}</text><text class="vb-count">{{ fmt(copy.voucherShortCount,{n:offers.length}) }}</text></view>
+        <view class="vb-value"><text v-if="maxDiscount != null" class="vb-currency">$</text><text>{{ faceValue }}</text></view><text class="vb-sub">{{ maxDiscount != null ? copy.upToOff : copy.voucherDiscount }}</text>
       </view>
-      <view class="vb-meta">
-        <text class="vb-title">{{ t.voucher.bannerTitle }}</text>
-        <text class="vb-sub">{{ t.voucher.bannerSub }}</text>
-        <view class="vb-cta" aria-hidden="true">
-          <LiquidGlass :radius="999" tone="control" />
-          <text>{{ t.voucher.bannerCta }}</text>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7 7 7-7 7" /></svg>
-        </view>
-      </view>
+      <view class="vb-rule" aria-hidden="true" />
+      <view class="vb-footer"><text>{{ claimable.length ? copy.claimToUse : copy.autoApplyVoucher }}</text><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></view>
     </view>
   </view>
 </template>
@@ -25,7 +18,10 @@ import { useVoucher } from "@/store/voucher";
 import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { useT } from "@/i18n/use-t";
 import type { VoucherSurface } from "@/mock/vouchers";
-import LiquidGlass from "@/components/liquid-glass.vue";
+import { useAuditUiCopy } from '@/i18n/audit-ui';
+import { fmt, fmtMoney } from '@/i18n/format';
+import { navTo } from '@/lib/route';
+import { voucherBenefitSummary } from '@/lib/voucher-benefit-summary';
 
 const props = defineProps<{ surface: VoucherSurface; embedded?: boolean }>();
 
@@ -33,44 +29,39 @@ const voucher = useVoucher();
 const sheet = useVoucherClaimSheet();
 const t = useT();
 
-const visible = computed(() => voucher.hasClaimableForSurface(props.surface));
+const copy = useAuditUiCopy();
+const claimable = computed(() => voucher.claimableVouchers.filter(row => row.claimSurfaces.includes(props.surface)));
+const offers = computed(() => [...new Map([...claimable.value, ...voucher.claimedUnused].map(row => [row.id,row])).values()]);
+const summary = computed(() => voucherBenefitSummary(offers.value));
+const maxDiscount = computed(() => summary.value.amount);
+const faceValue = computed(() => maxDiscount.value != null ? fmtMoney(maxDiscount.value).replace(/^\$/, '').replace(/\.00$/, '') : summary.value.percent != null ? summary.value.percent + '%' : '–');
+const visible = computed(() => offers.value.length > 0);
 
 function open() {
-  sheet.show(props.surface);
+  if (claimable.value.length) sheet.show(props.surface);
+  else navTo('/pages/me/rewards-list?cat=voucher');
 }
 
 
 </script>
 
 <style scoped>
-.vb-wrap { padding: 12px 16px 0; }
-.vb-card { position: relative; overflow: hidden; isolation: isolate; min-height: 164px; padding: 22px 24px; border-radius: 22px; background: var(--v5-surface); transition: transform 180ms ease; }
-.vb-card:active { transform: scale(.985); }
-.vb-card:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-.vb-meta { position: relative; width: 57%; }
-.vb-title { display: block; max-width: 6.8em; font: 600 20px/1.3 var(--font-v5); letter-spacing: -.025em; color: var(--v5-ink); overflow-wrap: anywhere; }
-.vb-sub { display: block; margin-top: 8px; font-size: 13px; line-height: 1.45; color: var(--v5-ink-2); }
-.vb-cta { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin-top: 14px; padding: 0 16px; gap: 10px; font-size: 14px; font-weight: 600; color: var(--v5-ink); border-radius: 999px; }
-.vb-cta > text, .vb-cta > svg { position: relative; z-index: 1; }
-.vb-cta > svg { flex: none; }
-.vb-art { position: absolute; width: 48%; aspect-ratio: 1; right: 2px; top: 50%; margin-top: -24%; pointer-events: none; }
-.vb-art .nx-home-art { width: 100%; height: 100%; background-position: 0 0; }
-.vb-aura { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(ellipse at 83% 63%, color-mix(in srgb, var(--v5-brand) 14%, transparent), transparent 65%); }
-.vb-wrap--embedded { padding: 0; min-width: 0; display: flex; }
-.vb-wrap--embedded .vb-card { display: flex; flex-direction: column; width: 100%; min-width: 0; padding: 0; }
-.vb-wrap--embedded .vb-art { position: relative; width: 100%; height: 116px; aspect-ratio: auto; top: auto; right: auto; margin: 0; }
-.vb-wrap--embedded .vb-art .nx-home-art { width: 150px; height: 150px; margin: -16px auto 0; }
-.vb-wrap--embedded .vb-meta { display: flex; flex: 1; flex-direction: column; width: auto; padding: 12px 16px 16px; border-top: 1px dashed var(--v5-border); }
-.vb-wrap--embedded .vb-meta::before, .vb-wrap--embedded .vb-meta::after { content: ''; position: absolute; top: -7px; width: 14px; height: 14px; border-radius: 50%; background: var(--v5-bg); }
-.vb-wrap--embedded .vb-meta::before { left: -7px; }
-.vb-wrap--embedded .vb-meta::after { right: -7px; }
-.vb-wrap--embedded .vb-title { font-size: 17px; max-width: none; }
-.vb-wrap--embedded .vb-sub { margin: 6px 0 16px; font-size: 13px; }
-.vb-wrap--embedded .vb-cta { align-self: flex-start; margin-top: auto; }
-@media (prefers-reduced-motion: reduce) { .vb-card { transition: none; } }
-@media (max-width: 350px) {
-  .vb-wrap:not(.vb-wrap--embedded) .vb-card { padding: 20px 18px; }
-  .vb-wrap:not(.vb-wrap--embedded) .vb-meta { width: 60%; }
-  .vb-wrap:not(.vb-wrap--embedded) .vb-art { width: 43%; right: 0; margin-top: -21.5%; }
-}
+.vb-wrap { min-width: 0; }
+.vb-card { position: relative; overflow: hidden; height: 184px; box-sizing:border-box; border-radius: 22px; border: 1px solid var(--v5-border); color: var(--v5-ink); background: radial-gradient(80% 60% at 92% 8%,color-mix(in srgb,var(--v5-brand) 20%,transparent),transparent 62%),linear-gradient(180deg,var(--ui-ticket-top),var(--ui-ticket-bottom)); }
+.vb-card::before,.vb-card::after { content:''; position:absolute; top:110px; width:18px; height:18px; border-radius:50%; background:var(--v5-bg); border:1px solid var(--v5-border); z-index:2; }
+.vb-card::before { left:-10px; }.vb-card::after { right:-10px; }
+.vb-card:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
+.vb-art { position:absolute; right:-18px; top:-6px; width:112px; height:112px; pointer-events:none; }
+.vb-art .nx-home-art { width:100%;height:100%; transform:rotate(-8deg); }
+.vb-meta { position:relative;padding:14px 14px 0; }
+.vb-heading { display:flex;align-items:center;gap:6px; }
+.vb-title { font:500 12.5px/20px var(--font-v5);color:var(--ui-lime-soft); }
+.vb-count { display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:color-mix(in srgb,var(--v5-brand) 16%,transparent);color:var(--ui-lime-soft);font:600 11.5px/1 var(--font-v5);white-space:nowrap; }
+.vb-value { display:flex;align-items:baseline;gap:2px;margin-top:22px;font:600 34px/38px var(--font-v5);letter-spacing:-.02em;color:var(--ui-lime-pale);font-variant-numeric:tabular-nums; }
+.vb-currency { font-size:16px;color:var(--ui-lime-soft); }
+.vb-sub { display:block;margin-top:2px;font:400 12.5px/18px var(--font-v5);color:var(--v5-ink-3); }
+.vb-rule { position:absolute;left:14px;right:14px;top:119px;border-top:1px dashed var(--v5-border-strong); }
+.vb-footer { position:absolute;left:14px;right:12px;bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:4px;font:400 12.5px/18px var(--font-v5);color:var(--v5-ink-2); }
+.vb-footer svg { flex:none;color:var(--v5-ink-4); }
+@media(max-width:350px) { .vb-heading { gap:3px;flex-wrap:wrap; }.vb-meta { padding-inline:12px; }.vb-value { font-size:30px;margin-top:16px; }.vb-art { width:94px;height:94px; }.vb-footer { font-size:11px; } }
 </style>

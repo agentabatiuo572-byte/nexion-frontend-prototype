@@ -3,46 +3,48 @@
     <template #pageFixed="{ top }">
     <view class="message-center message-page" :style="{ top: top + 'px' }">
       <view class="message-nav">
-        <view class="message-button message-icon-button" role="button" tabindex="0" :aria-label="t.profile.back" @click="navBack('/pages/me/me')"><LiquidGlass :radius="24" /><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m14 5-7 7 7 7" /></svg></view>
-        <text class="message-title" :class="{ 'message-title--hidden': !headerState.title }" :aria-hidden="!headerState.title" role="heading" aria-level="1">{{ t.notifs.drawerTitle }}</text>
-        <view class="message-button message-icon-button" role="button" tabindex="0" :aria-label="t.notifs.preferences" @click="navTo('/pages/me/preferences')"><LiquidGlass :radius="24" /><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 3 6 0 1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z"/><circle cx="12" cy="12" r="3"/></svg></view>
+        <view class="message-button message-icon-button" role="button" tabindex="0" :aria-label="t.profile.back" @click="navBack('/pages/me/me')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg></view>
+        <view class="message-button message-icon-button" role="button" tabindex="0" :aria-label="t.notifs.preferences" @click="navTo('/pages/me/preferences')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></view>
       </view>
       <view class="message-compact" :class="{ 'message-compact--visible': !headerState.title }" :aria-hidden="headerState.title"><text>{{ t.notifs.drawerTitle }} · {{ section === 'service' ? t.notifs.serviceTab : t.notifs.notificationsTab }}</text></view>
       <view class="message-collapse" :class="{ 'message-collapse--hidden': !headerState.title }" :style="collapseStyle('title')" :aria-hidden="!headerState.title" :inert="!headerState.title ? true : undefined" @focusin="headerFocused = true" @focusout="headerFocused = false">
         <view class="message-heading">
-          <view class="message-subtitle" role="status"><view class="message-unread-label"><view v-if="center.totalUnread" class="message-status-dot" /><text>{{ unreadLabel }}</text></view></view>
-          <view v-if="section === 'notifications' && hasRead" class="message-button message-clear-read" role="button" :tabindex="headerState.title ? 0 : -1" :aria-label="t.notifs.clearReadAria" @click="confirmClearRead"><text>{{ t.notifs.clearReadAria }}</text></view>
+          <text class="message-title" :class="{ 'message-title--hidden': !headerState.title }" :aria-hidden="!headerState.title" role="heading" aria-level="1">{{ t.notifs.drawerTitle }}</text>
+          <view class="message-summary">
+            <view class="message-subtitle" role="status"><view v-if="center.totalUnread" class="message-status-dot" aria-hidden="true" /><text>{{ unreadLabel }}</text></view>
+            <view v-if="section === 'notifications' && notifs.unread > 0" class="message-button message-mark-all" role="button" :tabindex="headerState.title && !markingAll ? 0 : -1" :aria-disabled="markingAll" :aria-label="t.notifs.markAll" @click="markAll"><text>{{ t.notifs.markAll }}</text></view>
+          </view>
+          <view v-if="center.error" class="message-summary-recovery"><view class="message-button" role="button" :tabindex="center.loading ? -1 : 0" :aria-disabled="center.loading" :aria-label="t.ui.retry" @click="center.refresh()"><text>{{ t.ui.retry }}</text></view></view>
         </view>
       </view>
       <view class="message-collapse message-primary-wrap" :class="{ 'message-collapse--hidden': !headerState.primary }" :style="collapseStyle('primary')" :aria-hidden="!headerState.primary" :inert="!headerState.primary ? true : undefined" @focusin="headerFocused = true" @focusout="headerFocused = false">
-        <view class="message-primary-inner"><GlassSegments v-model="section" :options="accessibleSectionOptions" :label="t.notifs.drawerTitle" class="message-primary" /></view>
+        <view class="message-primary-inner"><GlassSegments v-model="section" :options="accessibleSectionOptions" :label="t.notifs.drawerTitle" class="message-primary">
+          <template #option="{ option }"><text class="message-option-label">{{ option.label }}</text><view v-if="option.hasUnread" class="message-status-dot" aria-hidden="true" /></template>
+        </GlassSegments></view>
       </view>
       <GlassSegments v-if="section === 'service'" v-model="serviceFilter" :options="serviceFilters" layout="scroll" semantics="radio" :label="t.notifs.serviceFilterLabel" class="message-filters">
-        <template #option="{ option }"><text>{{ option.label }}</text><view v-if="option.count && option.value !== 'all'" class="message-category-dot" aria-hidden="true" /></template>
+        <template #option="{ option }"><text class="message-option-label">{{ option.label }}</text><view v-if="option.count && option.value !== 'all'" class="message-category-dot" aria-hidden="true" /></template>
       </GlassSegments>
       <GlassSegments v-else :label="t.notifs.filterGroupLabel" semantics="radio" v-model="filter" :options="filterOptions" layout="scroll" class="message-filters">
-        <template #option="{ option }"><text>{{ option.label }}</text><view v-if="option.hasUnread && option.value !== 'all'" class="message-category-dot" aria-hidden="true" /></template>
+        <template #option="{ option }"><text class="message-option-label">{{ option.label }}</text><view v-if="option.hasUnread && option.value !== 'all'" class="message-category-dot" aria-hidden="true" /></template>
       </GlassSegments>
       <scroll-view :key="section" scroll-y class="message-scroll" :show-scrollbar="false" @scroll="onMessageScroll" @wheel="onScrollInput" @touchmove="onScrollInput" @keydown.up="onScrollInput" @keydown.down="onScrollInput" @keydown.home="onScrollInput" @keydown.end="onScrollInput" @keydown.page-up="onScrollInput" @keydown.page-down="onScrollInput">
       <ServiceMessageList v-if="section === 'service'" :filter="serviceFilter" hide-filters />
       <view v-else class="notification-feed">
-        <view v-if="notifs.unread > 0" class="message-actions">
-          <view v-if="notifs.unread > 0" class="message-button message-action" role="button" :tabindex="markingAll ? -1 : 0" :aria-disabled="markingAll" :aria-label="t.notifs.markAll" @click="markAll"><LiquidGlass :radius="22" /><text>{{ t.notifs.markAll }}</text></view>
-        </view>
         <view v-if="notifs.error" data-testid="notification-error" class="message-state" role="alert"><text>{{ notifsErrorText }}</text><view class="message-button" role="button" tabindex="0" :aria-label="t.ui.retry" @click="notifs.retryRemote()"><LiquidGlass :radius="22" /><text>{{ t.ui.retry }}</text></view></view>
         <view v-if="!notifs.loading && !notifs.error && notifs.nextCursor && filtered.length === 0" role="status" class="message-state"><text>{{ t.notifs.moreToCheck }}</text></view>
         <EmptyState v-if="!notifs.loading && !notifs.error && !notifs.nextCursor && filtered.length === 0" kind="empty-list" :title="emptyTitle" :desc="notifs.items.length === 0 ? t.notifs.emptyBody : undefined" />
-        <view v-for="(n, index) in filtered" :key="n.id" class="notification-item" :class="{ 'notification-item--read': !!n.readAt }">
+        <view v-for="(n, index) in filtered" :key="n.id" class="notification-item" :class="{ 'notification-item--read': !!n.readAt, 'notification-item--last': index === filtered.length - 1 }">
           <text v-if="index === 0 || dateHeading(n.ts) !== dateHeading(filtered[index - 1].ts)" class="notification-date" role="heading" aria-level="2">{{ dateHeading(n.ts) }}</text>
-          <view class="notification-row" role="button" tabindex="0" :aria-label="platformDisplayText(n.title)" :aria-expanded="n.ctaHref ? undefined : expandedId === n.id" @click="toggle(n)" @touchstart="onTouchStart(n, $event)" @touchend="onTouchEnd(n, $event)">
+          <view class="notification-row" role="button" tabindex="0" :aria-label="platformDisplayText(n.title)" :aria-expanded="directNotice(n) ? undefined : expandedId === n.id" @click="toggle(n)" @touchstart="onTouchStart(n, $event)" @touchend="onTouchEnd(n, $event)">
             <view class="notification-icon" aria-hidden="true" v-html="kindIcon(n)" />
-            <view class="notification-content"><view class="notification-top"><text class="notification-title">{{ platformDisplayText(n.title) }}</text><text v-if="n.priority === 'critical' || n.priority === 'high'" class="notification-important">{{ t.notifs.important }}</text><text class="notification-time">{{ timeAgo(n.ts) }}</text><view v-if="!n.readAt" class="message-status-dot" /></view><text v-if="n.body && expandedId !== n.id" class="notification-preview">{{ platformDisplayText(n.body) }}</text></view>
+            <view class="notification-content"><view class="notification-top"><view class="notification-heading"><text class="notification-title">{{ platformDisplayText(n.title) }}</text><text v-if="n.priority === 'critical' || n.priority === 'high'" class="notification-important">{{ t.notifs.important }}</text></view><view class="notification-meta"><text class="notification-time">{{ timeAgo(n.ts) }}</text><view v-if="!n.readAt" class="message-status-dot" aria-hidden="true" /></view></view><text v-if="n.body && expandedId !== n.id" class="notification-preview">{{ platformDisplayText(n.body) }}</text></view>
+            <svg v-if="n.ctaHref" class="notification-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
           </view>
-          <view v-if="expandedId === n.id" class="notification-detail"><text v-if="n.body" class="notification-body">{{ platformDisplayText(n.body) }}</text><view v-if="n.ctaLabel && n.ctaHref" class="message-button notification-cta" role="button" tabindex="0" :aria-label="platformDisplayText(n.ctaLabel)" @click.stop="onTap(n)"><LiquidGlass :radius="22" /><text>{{ platformDisplayText(n.ctaLabel) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></view></view>
+          <view v-if="expandedId === n.id" class="notification-detail"><text v-if="n.body" class="notification-body">{{ platformDisplayText(n.body) }}</text><view v-if="n.ctaHref" class="message-button notification-cta" role="button" tabindex="0" :aria-label="platformDisplayText(n.ctaLabel || t.me.open)" @click.stop="onTap(n)"><LiquidGlass :radius="22" /><text>{{ platformDisplayText(n.ctaLabel || t.me.open) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></view></view>
         </view>
         <view v-if="notifs.loading" class="message-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
         <view v-if="notifs.nextCursor" class="message-more"><view class="message-button" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.notifs.loadMore" @click="notifs.loadMoreRemote()"><LiquidGlass :radius="22" /><text>{{ notifs.loading ? t.help.loadingMore : t.notifs.loadMore }}</text></view></view>
-        <view v-if="remoteApiEnabled && notifs.items.length" class="message-original"><text>{{ t.notifs.originalTextNote }}</text></view>
       </view>
       <view class="message-scroll-compensation" :style="{ height: headerCompensation + 'px' }" aria-hidden="true" />
       </scroll-view>
@@ -68,7 +70,6 @@ import { useNotifications, type Notification } from "@/store/notifications";
 import { navTo, navBack, takeNavigationQuery } from "@/lib/route";
 import { remoteApiEnabled } from "@/api/runtime";
 import { isLeftConversionSwipe, type SwipePoint } from "@/lib/notification-swipe";
-import { confirm as uiConfirm, useUI } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { remoteAccountScope } from "@/lib/remote-account-epoch";
 
@@ -76,9 +77,6 @@ const t = useT();
 const locale = useLocaleStore();
 const notifs = useNotifications();
 const app = useApp();
-const ui = useUI();
-const confirmOwner = `notifications:${typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-  ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 let pageGeneration = 0;
 let pageVisible = true;
 let disposed = false;
@@ -127,8 +125,8 @@ onLoad(query => {
   else preserveSectionInH5();
 });
 const sectionOptions = computed(() => [
-  { value: "notifications", label: t.value.notifs.notificationsTab, count: notifs.unread },
-  { value: "service", label: t.value.notifs.serviceTab, count: center.serviceUnread },
+  { value: "notifications", label: t.value.notifs.notificationsTab, hasUnread: notifs.unread > 0 },
+  { value: "service", label: t.value.notifs.serviceTab, hasUnread: center.serviceUnread > 0 },
 ]);
 const unreadLabel = computed(() => center.error ? t.value.notifs.unreadUnavailable : center.totalUnread > 0 ? fmt(t.value.notifs.unreadCount, { n: center.totalUnread }) : center.loading ? t.value.notifs.unreadUnavailable : t.value.notifs.allCaughtUp);
 type Filter = "all" | NotificationCategory;
@@ -138,20 +136,20 @@ const visibleFilterIds = computed(() => filterIds);
 const expandedId = ref<string | null>(null);
 const categoryKeys = { finance: "categoryFinance", device: "categoryDevice", team: "kindTeam", rewards: "categoryRewards", system: "kindSystem" } as const;
 const categoryIcons: Record<NotificationCategory, string> = {
-  finance: '<rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 9h18M16 14h2"/>',
-  device: '<rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8M12 16v5"/>',
-  team: '<circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 4a4 4 0 0 1 0 7M22 21v-2a6 6 0 0 0-3-5"/>',
-  rewards: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13M12 8H7a3 3 0 1 1 3-3zm0 0h5a3 3 0 1 0-3-3z"/>',
+  finance: '<path d="M19 7V5a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2"/><path d="M3 6v12a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-3"/>',
+  device: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  team: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/>',
+  rewards: '<path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
   system: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
 };
 function kindIcon(n: Notification) { return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${categoryIcons[notificationCategory(n)]}</svg>`; }
-const hasRead = computed(() => notifs.items.some(item => !!item.readAt));
 function countOf(id: Filter) { return id === "all" ? notifs.items.length : notifs.items.filter(n => notificationCategory(n) === id).length; }
 const filtered = computed(() => filter.value === "all" ? notifs.items : notifs.items.filter(n => notificationCategory(n) === filter.value));
 function filterLabel(id: Filter) { return id === "all" ? t.value.notifs.filterAll : t.value.notifs[categoryKeys[id]]; }
 const emptyTitle = computed(() => notifs.items.length === 0 ? t.value.notifs.emptyAllTitle : fmt(t.value.notifs.emptyFilterTitle, { filter: filterLabel(filter.value) }));
+function directNotice(n: Notification) { return !!n.ctaHref && (n.body?.length ?? 0) <= 100 && !n.body?.includes('\n'); }
 function toggle(n: Notification) {
-  if (n.ctaHref) { void onTap(n); return; }
+  if (directNotice(n)) { void onTap(n); return; }
   void notifs.markRead(n.id);
   expandedId.value = expandedId.value === n.id ? null : n.id;
 }
@@ -183,10 +181,19 @@ function dateHeading(ts: number): string {
 }
 
 function timeAgo(ts: number): string {
-  const mins = Math.max(1, Math.floor((Date.now() - ts) / 60_000));
+  const date = new Date(ts), now = new Date(), yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    const clock = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    return `${t.value.notifs.yesterday} ${clock}`;
+  }
+  // Compare local calendar dates, not elapsed 24-hour periods (including DST).
+  const days = Math.round((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+    - Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())) / 86_400_000);
+  if (days > 1) return fmt(t.value.tickets.timeDaysAgo, { n: days });
+  const mins = Math.max(1, Math.floor((now.getTime() - ts) / 60_000));
   if (mins < 60) return fmt(t.value.tickets.timeMinutesAgo, { n: mins });
-  if (mins < 1440) return fmt(t.value.tickets.timeHoursAgo, { n: Math.floor(mins / 60) });
-  return fmt(t.value.tickets.timeDaysAgo, { n: Math.floor(mins / 1440) });
+  return fmt(t.value.tickets.timeHoursAgo, { n: Math.floor(mins / 60) });
 }
 
 async function onTap(n: Notification) {
@@ -208,19 +215,6 @@ async function onTap(n: Notification) {
   }
   await notifs.markRead(n.id);
   // Missing CTA is the PC operator's explicit "no navigation" choice.
-}
-
-async function confirmClearRead() {
-  const intent = captureIntent();
-  if (!isCurrentIntent(intent)) return;
-  const accepted = await uiConfirm({
-    owner: confirmOwner,
-    title: t.value.notifs.clearReadAria,
-    message: t.value.notifs.clearReadMessage,
-    confirmLabel: t.value.notifs.clearReadAria,
-    icon: "warn",
-  });
-  if (accepted && isCurrentIntent(intent)) await notifs.clearRead();
 }
 
 type UniTouchEvent = { changedTouches?: ArrayLike<{ clientX: number; clientY: number }> };
@@ -253,7 +247,6 @@ function invalidatePendingIntents() {
   pageGeneration += 1;
   touchStarts.clear();
   suppressedClick = null;
-  ui.clearConfirmsBy(confirmOwner);
 }
 function invalidatePage() {
   pageVisible = false;
@@ -273,7 +266,7 @@ onUnmounted(() => { disposed = true; invalidatePage(); });
 import GlassSegments from "@/components/glass-segments.vue";
 const filterOptions = computed(() => visibleFilterIds.value.map(value => {
   const count = value === 'all' ? notifs.unread : notifs.unreadByCategory[value];
-  return { value, label: filterLabel(value), hasUnread: count > 0, count: value === 'all' || notifs.unreadByCategoryExact ? count : undefined };
+  return { value, label: filterLabel(value), hasUnread: count > 0 };
 }));
 
 import { advanceMessageHeader, createMessageHeaderState } from "@/lib/message-header-scroll";
@@ -302,12 +295,12 @@ async function measureHeader() {
 }
 onMounted(measureHeader);
 onResize(measureHeader);
-watch([unreadLabel, sectionOptions, hasRead, section], measureHeader);
+watch([unreadLabel, sectionOptions, section, () => center.error], measureHeader);
 let lastScrollInputAt = -Infinity;
 function onScrollInput() { lastScrollInputAt = Date.now(); }
 const serviceFilter = ref<"all" | "advisor">("all");
 const serviceFilters = computed(() => [
-  { value: "all", label: t.value.notifs.filterAll, count: center.serviceUnread }, { value: "advisor", label: t.value.conversations.typeAdvisor, count: center.humanUnread },
+  { value: "all", label: t.value.notifs.filterAll, hasUnread: center.serviceUnread > 0 }, { value: "advisor", label: t.value.conversations.typeAdvisor, count: center.humanUnread },
 ]);
 function onMessageScroll(event: { detail: { scrollTop: number } }) {
   const now = Date.now();
@@ -319,17 +312,24 @@ watch(section, () => { resetHeader(); preserveSectionInH5(); });
 
 <style src="@/styles/message-center.css"></style>
 <style scoped>
-.message-center .message-nav { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: center; gap: 12px; }
-.message-center .message-nav > .message-icon-button:last-child { grid-column: 3; }
-.message-center .message-nav .message-title { min-width: 0; font-size: 26px; line-height: 1.25; text-align: center; transition: opacity 180ms ease; }
-.message-center .message-nav .message-title--hidden { opacity: 0; }
-.message-center .message-compact { cursor: default; }
-.message-center .message-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding-bottom: 12px; }
-.message-center .message-subtitle { min-width: 0; margin-top: 0; line-height: 20px; text-align: start; }
-.message-center .message-clear-read { padding-inline: 0; margin-left: auto; flex-shrink: 0; max-width: 45%; font-size: 12px; border-radius: 0; text-align: end; }
-.message-unread-label { position: relative; display: inline-flex; align-items: center; margin-left: 15px; }
-.message-unread-label .message-status-dot { position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); }
-.message-center .message-filters { align-self: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; }
-.message-category-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--v5-brand); flex-shrink: 0; align-self: center; transform: translateY(-5px); }
-@media (prefers-reduced-motion: reduce) { .message-center .message-nav .message-title { transition: none; } }
+/* Keep the shared segment semantics and keyboard handling; only this page's
+   rails use the reference's green primary selection and neutral category glass. */
+.message-center .message-primary { height: 50px; box-sizing: border-box; padding: 4px; gap: 4px; border-radius: 999px; border: 1px solid var(--message-glass-border); background: var(--message-glass-fill); box-shadow: var(--message-glass-shadow); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); }
+.message-center .message-primary::before,
+.message-center .message-filters :deep(.nx-glass-option--selected::before) { content: ""; position: absolute; inset: 1px; z-index: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(120% 60% at 30% 0%, color-mix(in srgb, var(--message-glass-white) 22%, transparent), transparent 55%); }
+.message-option-label, .message-category-dot { position: relative; z-index: 1; }
+.message-center .message-primary :deep(.nx-glass-track-viewport),
+.message-center .message-primary :deep(.nx-glass-indicator),
+.message-center .message-filters :deep(.nx-glass-track-viewport),
+.message-center .message-filters :deep(.nx-glass-indicator) { display: none; }
+.message-center .message-primary :deep(.nx-glass-option) { min-height: 0; height: 40px; padding: 0 10px; gap: 6px; border: 1px solid transparent; border-radius: 999px; color: var(--v5-ink-2); font-size: 15px; line-height: 20px; font-weight: 500; }
+.message-center .message-primary :deep(.nx-glass-option--selected) { color: var(--ui-lime-soft, var(--v5-brand)); font-weight: 600; background: linear-gradient(180deg, color-mix(in srgb, var(--v5-brand) 30%, transparent), color-mix(in srgb, var(--v5-brand) 10%, transparent)); border-color: color-mix(in srgb, var(--ui-lime-soft, var(--v5-brand)) 45%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--message-selected-highlight) 55%, transparent), inset 0 -1px 2px color-mix(in srgb, var(--v5-brand) 25%, transparent), 0 4px 14px color-mix(in srgb, var(--v5-brand) 18%, transparent); }
+.message-center .message-filters { align-self: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; height: 34px; min-height: 34px; padding: 0; gap: 6px; border-radius: 0; background: transparent; }
+.message-center .message-filters :deep(.nx-glass-option) { min-height: 34px; height: 34px; padding: 0 13px; gap: 5px; border: 0; border-radius: 999px; color: var(--v5-ink-3); font-size: 13.5px; line-height: normal; font-weight: 400; }
+.message-center .message-filters :deep(.nx-glass-option--selected) { color: var(--v5-ink); font-weight: 600; border: 1px solid var(--message-glass-border); background: var(--message-glass-fill); box-shadow: var(--message-glass-shadow); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); }
+.message-category-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--v5-brand); flex-shrink: 0; align-self: center; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .message-center .message-icon-button, .message-center .message-primary, .message-center .message-filters :deep(.nx-glass-option--selected) { background: var(--v5-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .message-center .message-primary :deep(.nx-glass-option--selected) { background: var(--v5-brand-soft); }
+}
 </style>

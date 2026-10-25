@@ -16,7 +16,7 @@
       <!-- Tilted product image layer -->
       <view :style="tiltLayerStyle">
         <video v-if="video" :src="video" :poster="videoPoster" controls :autoplay="false" preload="metadata" playsinline style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain" @error="fallbackProductVideo" />
-        <image v-else-if="photo" :key="photo.src" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" />
+        <image v-else-if="photo" :style="{viewTransitionName:'catalog-'+productId.replace(/[^a-zA-Z0-9_-]/g,'-')}" :key="photo.src" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" />
       </view>
       <!-- Bottom vignette (flat) so the brand overlay reads cleanly -->
       <view aria-hidden :style="vignetteStyle" />

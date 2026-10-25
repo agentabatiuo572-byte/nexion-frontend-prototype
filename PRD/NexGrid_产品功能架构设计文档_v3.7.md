@@ -948,278 +948,55 @@ flowchart TD
 
 ---
 
-## 5. Home Dashboard
+## 5. Home Dashboard（2026-10-25 更新）
 
-`/` 路由,从上到下 14 个 section,集中展示用户最关心的实时数据。
+本节按用户批准的 UI/UX 审查和最终设计画布修订，取代原 14/16 模块首页。设计依据见 `docs/audit/2026-10-25-ux-audit.md`；后续明确要求为：除底部 Liquid Glass 导航外按最终画布还原，福利卡也使用画布的并排票券/试用设计。历史模块的出现位置不再作为当前首页验收标准。
 
-### 5.1 个性化问候(Greeting Header)
+### 5.1 页面结构与问候
 
-- 时间感知:`Good morning/afternoon/evening, <用户首名>`(高亮名字)
-- 副标:`Your phone is earning $0.04 today`(显示手机设备 today earnings,实时跳动)
+顺序为问候与今日收益、每日签到、我的福利、待办、我的设备、单个活动位、网络实况；底部保留信任中心文字入口。可选内容按实际资格、可用资料和未处理状态出现，不以样例补齐空位。常规内容左右 16px，区块间距 20px，单一内容面圆角 22px；玻璃用于导航和操作控件。首页不再嵌行情、设备对比、收益流水、设备规格或快捷四宫格。
 
-### 5.2 今日收益 Hero(双引擎)
+问候和今日收益的现有视觉、光晕、网格、实时标签保持；昵称来自当前账号完整资料，不擅自截短。顶栏独立搜索与消息玻璃按钮，滚动背板保护文字可读性；底部导航沿用现有折射与交互效果。
 
-- **标题行**:`EARNINGS · TODAY` 左 + `+5.2% 24h` chip 右
-- **大字数字**:`$X.XX`,实时跳动。**作用域:跨所有收入流的今日总入账** = `earnings.today`(设备 mining 当日聚合)+ `useCommission.todayUSDT()`(今日 0:00 起入账的团队佣金)。Earn 页 `Compute earned · today` 只算前者(纯设备),因此 Home Hero 数字永远 ≥ Earn Today,差额即"团队 commission 今日入账"。真后台:`GET /api/me/earnings?range=today` 服务端合并返回(TBD;candidate,见 §9.11c.1)
-- **增量 chip**:每次跳动触发 `+$0.000X` 小 chip 在标题行右侧出现(无位移,不挡数字)
-- **副标**:`3 of 3 devices streaming · since 9:41`
-- **NEX 持仓 chip**(链 `/me/wallet`):`NEX badge + 持仓数(toLocaleString) + "+X today" 增量 + $0.171 价格 + +20.4% 24h chip(涨 / 跌)`
-- **分隔线 + 双引擎内嵌**:
-  - **Static**:今日 +$X.XX · {N} mining · live dot(链接 `/earn`)
-  - **Dynamic**:今日 +$Y.YY · {M} network · {K} commissions(链接 `/team/commissions`)
+### 5.2 今日收益
 
-### 5.3 升级推荐 Chip(Boost Upsell)
+继续显示服务端首页汇总，不在客户端重新更改财务口径。设备、团队等实际收入与 Earn 页设备收益有不同范围；范围解释放在赚取页。读取失败显示缺值和可恢复状态，不把缺值转成 0，不用样例金额替换真实账号。
 
-Fleet-aware 4 slot 每 8 秒轮换,每条带 CTA:
+### 5.3 每日签到
 
-| Slot | 文案 | CTA | 触发条件 |
-|---|---|---|---|
-| Pro vs Phone | `Pro owners earned +$1.74 more today` | Add Pro → `/store/stellarbox-pro` | 用户没 Pro |
-| Rack day rate | `Rack owners just hit $8.00/day per node` | See math → `/store/stellarrack-p1` | 用户没 Rack |
-| Genesis floor | `Genesis floor up +18% · 7d on OpenSea` | Browse → `/genesis/marketplace` | 始终 |
-| Staking APY | `180-day vault APY just hit 95% for 24h` | Lock now → `/staking` | 始终 |
+收益区之后保留签到：连续天数、今天的已发布奖励、7 天进度与签到按钮。奖励数量、签到日及完成状态由现有签到接口返回；不硬写第 7 天奖励。用户点击才签到，等待结果期间禁重复提交，成功按读回状态更新；已签到仍可查看签到详情。账号切换、离开页面后不应用旧结果。
 
-### 5.4 我的设备 Fleet
+### 5.4 我的福利
 
-显示用户 fleet(phone + 已购 box):
+两列等宽，间隔 12px；每张卡高 184px。票券使用裁口、虚线和金属插图；面额来自可领取及未使用券的实际定义，非可叠加券不得求和。若存在无封顶折扣券，不将其他券的有限金额称作整体最高金额。试用使用设备插图、真实天数和短领取按钮，保留“购机抵扣、不可提现”含义，不采用未经确认的随时取消承诺。弹层中的抵扣上限、资格与领取操作继续由现有接口控制。
 
-每行:
-- 设备 icon + 型号名(Your phone / NexGridBox S1 / Pro / Rack)
-- GPU 型号 + 实时温度 + 负载 / 状态(online / paused / offline)
-- 今日产出 +$X.XX(实时)
+无可用福利时整区消失；已领取券入口进入券列表，可领取券打开领取弹层。首页不自动打开福利弹层，chassis 不向其他 tab 重复注入。
 
-**底部 Add CTA**:
-- 显示下一档没拥有的设备 + 倍数(8× / 30× / 133×)+ 价格
-- 点击直跳 `/store/[productId]`
+### 5.5 待办
 
-### 5.5 实时网络任务(On NexGrid Grid)
+单一列表容器：手机绑定、新手任务、待支付订单、已有券、试用进度、安全提醒及继续学习。默认最多 3 个待办；更多通过查看全部展开。已处理状态不持续占位。手机执行权限只属于 APP；H5 不提供校准、绑定、心跳或执行任务入口。
 
-显示当前正在跑的 3 个 AI 任务(每 5s 刷新):
-- 客户 logo + AI 模型(SDXL Turbo / Llama 3.2 / Whisper)+ 客户名 + 城市
-- 右侧:GPU 数 + 持续时长
+课程推荐优先未完成且已有进度的课，其次已发布推荐课，再次首个未完成课；全部完成改为复习/查看教程中心。推荐课和奖励均来自接口。
 
-底部统计:`28,432 devices · +$7.9/sec network`(在线数绑平台实时统计;速率 = 日发放锚 ÷ 86,400)
+### 5.6 我的设备
 
-### 5.6 V 级进度卡
+设备改为行：48px 缩略图、名称、真实运行状态、今日收益和详情箭头。异常设备优先，首页最多显示 4 台，其余通过管理查看。设备总数与剩余槽位来自现有状态。读取失败不把设备当作 0 台；有同账号确认过的快照时可在后台刷新期间保留。添加设备入口继续遵守资格与原生/H5 边界。
 
-链接 `/team/rank`:
-- 当前 V 级 + 头衔
-- 距下一阶 进度条
-- 仍需条件文字描述
-- 等级奖励 chip(培育奖 NEX)
+### 5.7 活动位
 
-### 5.7 $NEX 代币行情(当前阶段隐藏)
+仅展示有效且 `placement=home.purchase-promotion` 的活动；每次一个，用户手动切换，有页码指示，无自动轮播。优先已发布活动图片；无图时标题、实际商品和赠品图来自活动规则与目录，不把条款作为广告副标题。规则、截止时间与退款条件仍在操作前可查看。可选活动无数据时隐藏，不自行补活动或紧迫数字。
 
-当前阶段首页不展示此卡(组件保留未渲染)。恢复渲染时规格:
+### 5.8 网络实况
 
-链接 `/market`:
-- 当前价 + 24h 涨幅(`$0.171 +20.4%`)
-- 24h sparkline(从 useMarket.klineHourly)
+三栏：已发布注册用户展示数、已发布在线设备展示数、当前账号真实排名。注册用户展示数可消费新增可选起跳值、锚点、间隔和步长；尚无有效跳动配置时沿用 H9 发布的 `networkPulse.registeredUsers`。使用跳动估算时标注估算，不能写入真实人口、财务或排名。
 
-### 5.8 全球领导池快照
+去掉更新时间和假历史折线。个人排名独立读真实排名接口，H9 失败不能抹掉已取得的个人排名。数据无效显示缺值与重试，不用其他口径填充。后台配置项和发布契约是后续服务任务。
 
-链接 `/team/leadership-pool`:
-- 本周池子总额(`$487.3K · ends in 3d`)
-- 用户预估分红 + 占比
-- V<3 用户显示"V3+ to unlock"提示
+### 5.9 状态与验收
 
-### 5.9 Quick Action 3 件套
+320/390px、中/英/越、亮暗主题与减少动画均须检查；长文自然换行，不裁掉金额或关键条件。每日自动奖励提示按账号和 UTC 日限频，不影响实际奖励发放或账本。页面滚动留足底部导航安全区，浮标不挡主要操作。
 
-横排 3 个 chip:
-- Stake → `/staking`(显示 `180% APY`)
-- Genesis → `/genesis`(显示 `150 left`,红框 urgent)
-- Daily Check-in → `/daily`(显示当前 streak)
-
-### 5.10 实时活动流卡 (LiveFeedCard)
-
-单卡 tab-切换合并两类社会证明 feed,共享 chrome 不重复占用 home 流量。挂在 MissionControl 转化区(ZONE 1 hook),紧跟 DayOneQuestCard 之后,作为 conversion stack 之后的 social proof 锚点。
-
-**Tab 1 — Activity**(全网视角平台动态,默认激活):
-- 实时滚动 6 行全平台事件,每 ~3.2s 替换一条
-- 事件类型(随机生成,dot 区分):
-
-| kind | who 标签 | 文案模板 | tone |
-|---|---|---|---|
-| ok | `You` | `{model} @ {client}` | success |
-| live | `Peer` | `{name} · {region} — {model} @ {client}` | tech-cyan |
-| warn | `Lock` | `{model} @ {client} — needs {vram}GB` | warning |
-
-- 行内字段:`ts(相对) · who tag · msg · val`(`val` = 收益 $X.XXXX 或 `locked`)
-- Live 指示:脉冲 dot + "live" chip
-
-**Tab 2 — Earnings**(用户视角佣金 / 同行购买):
-- 3 行,每 ~6.5s 推一条新事件
-- 文案 `{name} bought {product}` + 右侧 `+${amount}`
-- mock 名字池 7 个 / 3 档产品(S1 $29.9 / Pro $89.9 / Rack $349.9)
-- Live 指示:脉冲 dot + "live" chip
-- 底部 `See all →` footer cue,整卡 `<Link href="/team/commissions">` 包装
-
-**结构规则**:
-- Tab 切换 iOS-style segmented control;**live chip 随 tab 走**(Activity=tech-cyan / Earnings=success)
-- sr-only span 保留 `Live platform activity · Live network earnings` 双 needle 字符串,确保 verify.sh 在任一 tab 激活时都能命中
-
-**节奏**(两条 ticker 并行运行):
-- Activity:每 3.2s 替换 1 行,counter ref 永递增防 React key 冲突
-- Earnings:每 6.5s 推 1 行,id ref 同上
-- 两条独立 useEffect interval,切 tab 后台依然在 tick,切回直接显示最新状态
-
-**SSR 处理**:服务端直出 placeholder 行(deterministic seed),客户端 mount 后才进入 random tick 模式,避免 hydration mismatch。
-
-**i18n**:`home.liveActivityLabel / liveNetworkEarnings` + `Activity / Earnings` tab labels(en + zh 镜像)。
-
-### 5.11 收益事件流(Earnings Ledger)
-
-5 条最新收益,每 5.8s 推一条新行:
-- 客户 logo + 模型 + 客户名 + 城市
-- 金额 +$0.000XX + 时间
-- 新行入场:mc-ledger-in
-
-### 5.12 网络脉搏(Network Pulse)
-
-三格展示注册用户、在线设备、你的排名；移除更新时间。前两项由 H9 配置公开投影：人数按公布基数/月增长率/时间锚计算，在线设备与首页数字增长共用持久化随机批次。配置刷新时更新快照，不增加秒级请求。排名继续使用本人真实数据，不使用公布数字计算。异常不默认为零。详见[现行规则 §2](UVEL_首页信任与活动规则_20261025.md)。
-
-### 5.13 设备对比卡(Math Card)
-
-`Your phone needs 27 days to earn $1.62. NexGridBox S1 earns it in 90 seconds.`
-- 双 bar 对比(phone 长 vs box 短)
-- CTA:`See the math` → `/store`
-
-### 5.14 信任标识(Trust Chip Wall)
-
-底部 chip 列表:NVIDIA / Intel / AMD / CertiK ✓ / SOC 2 / GDPR / ISO 27001
-- 链接 `/trust`
-- 副标:`Reserve proof on-chain · 102.4% backed · Trust Center →`
-
-### 5.15 首日任务(Day-One Quest)— 3 phase 状态机
-
-新用户引导任务卡,渲染位置在 GreetingHeader 之后、EarningsHero 之前。
-
-#### 5.15.1 3 phase 状态机(Sprint Quest-A+B 改造)
-
-| Phase | 时间窗 | 完成奖励 | Badge | 文案 | Home 占位 |
-|---|---|---|---|---|---|
-| **active** | 0-24h | 500 NEX | Day-One Hero | 倒计时 chip | 渲染 |
-| **grace** | 24-72h | 200 NEX(降 60%) | Latecomer Hero | banner `First 24h closed. Grace window: claim 200 NEX...` | 渲染 |
-| **expired** | 72h+ | 0 | — | — | **不渲染**(`QuestHero` return null,让出 Home 黄金位置) |
-
-**铁律**:expired phase 不渲染 — 任务窗口已过,在 Home 顶部展示 6 行灰显失败任务违反 §1 转化优先原则。用户已 claim 的 Day-One Hero / Latecomer Hero badge 保留在 `/me/achievements`,作为成就 closure 真正应在的位置。
-
-**实现**:
-- `lib/mock/quest.ts` 提供 `getQuestState(elapsed, claimedFinal): "active" | "grace" | "expired"` 纯函数
-- `lib/mock/quest.ts` 提供 `rewardNexForState(state): number`(500 / 200 / 0)
-- `useQuest.claimFinal(phase)` 参数化 — phase = "active" 解锁 Day-One Hero badge,phase = "grace" 解锁 Latecomer Hero badge,phase = "expired" 拒绝(reward = 0,不应到达)
-- `useQuest` zustand persist v2 + `migrate` — 老 localStorage 自动 backfill `claimedPhase = null`
-- `<QuestHero>` `if (phase === "expired") return null` 守卫整张卡隐藏
-
-#### 5.15.2 UI 规格(active / grace 通用)
-
-- 顶部行:Trophy icon + phase 标签(`Day-One Quest` / `Day-One Quest · Grace window` / `Day-One Quest Complete`)+ 右侧 chip:
-  - active / grace 未完成 + timer 未到 0:倒计时 `⏰ HH:MM:SS`
-  - 全部完成:右侧 `6/6 done`
-- 进度 bar(by completed/total)
-- 6 任务 row:`<QuestRow>` **默认展开**(`expanded` state true)— 直接渲染 6 行任务列表给出具体完成路径。`allDone` 强制 expand。底部 collapse bar 仍保留供用户主动收起。设计目的:转化优先 — 用户首次看到 Quest 时立即获知 6 个完成动作,比单看进度条更能驱动行动
-- 卡片底部三层交互区(参 §5.15.4)
-
-**Timer 起算**:基于 `useQuest.startedAt`,QuestHero mount 时 `ensureStarted()` set `Date.now()`,persist 锁定。新老 mock 用户首次访问 Home 都会触发一次完整 3 phase 体验。
-
-#### 5.15.3 6 任务清单
-- 进度行:`{done} of {total} tasks` / 右侧累计 `+N NEX`(已完成任务的 rewardNex 之和)
-- progress bar(by completed/total)
-- 6 任务 row(纵向,固定顺序按 funnel 难度):
-  - 未完成态:序号圆点(1-6 数字)+ 任务名 + 右侧奖励 `+NN NEX` + ArrowRight
-  - 已完成态:勾选圆点 + 任务名(line-through)+ 右侧奖励 `+NN NEX`(invite 行额外 `+$1`)
-  - 每行整体是 `<Link href={task.href}>`,点击直接跳触发路由
-
-| # | id | 标题 i18n | 跳转 | 完成触发 | 奖励 |
-|---|---|---|---|---|---|
-| 1 | bind_bank_card | Link a bank card | `/me/wallet/cards/new` | 绑卡页绑卡成功(server-canonical `card.bound`)时 markComplete | +50 NEX |
-| 2 | visit_earn | Open Earn tab | `/earn` | QuestRouteWatcher 监听 pathname | +30 NEX |
-| 3 | visit_store | Browse the store | `/store` | QuestRouteWatcher 监听 pathname | +50 NEX |
-| 4 | view_product_roi | View a NexGridBox ROI | `/store/stellarbox-s1` | QuestRouteWatcher 监听 `/store/{id}`(排除 `/store/orders` 和 `/store/checkout`)| +100 NEX |
-| 5 | setup_profile | Set up your profile | `/me/profile` | Profile 页 Save 时 markComplete | +80 NEX |
-| 6 | invite_friend | Invite 1 friend | `/team` | Team 页 copyCode 时 markComplete | +200 NEX + $1 USDT |
-
-#### 5.15.4 底部交互区(三层分层 hint + 主 CTA + 次 CTA)
-
-未完成态下,卡片底部按视觉权重分三层:
-
-**L1 — 完成提示行**(plain text,inline icon)
-- active:文案 `Complete all 6 to unlock +500 NEX bonus` + 右侧 Trophy icon
-- grace:文案 `Complete all 6 to unlock +200 NEX bonus` + Trophy icon
-- 设计目的:告诉用户最终目标存在,但不喧宾夺主
-
-**L2 — 主 CTA bar**(整宽)
-- 文案 i18n `quest.buyCta`:
-  - zh `购首台 NexGridBox · 启动 $38/日永续收益`
-  - en `Get your first NexGridBox · earn $38/day forever`
-- 左侧 Sparkles icon + 右侧 ArrowRight icon
-- href = `/store/stellarbox-s1`(主推 SKU 详情页)
-- 设计目的:服务 [转化优先级第一原则](#§1 NexGridBox 购买导向),把 Day-One Quest 直接接到入金动作。点击同时也会触发 task #4 `view_product_roi` 自动完成(+100 NEX),双重激励
-
-**L3 — 次 CTA bar**(整宽)
-- 文案 i18n `quest.expand`(`查看 6 项任务` / `View 6 tasks`)+ ChevronDown icon
-- 展开后切换 `quest.collapse`(`收起任务` / `Hide tasks`)+ ChevronUp icon
-- 设计目的:Apple Music / Spotify "Show More" 模式,让用户主动选择展开任务列表;不与主 CTA 抢注意力
-
-**全部完成态**(allDone=true)
-- L1/L2/L3 替换为整宽 claim button(原 footer claim 逻辑保留):
-  - active 未领:button `Claim +500 NEX bonus` → `claimFinal("active")` + `creditNex(500)` + `useAchievements.unlock("day_one_hero")`
-  - grace 未领:button `Claim Latecomer +200 NEX` → `claimFinal("grace")` + `creditNex(200)` + `useAchievements.unlock("day_one_latecomer")`
-  - 已领奖:phase-color 卡显示 `🎉 Day-One Hero badge + 500 NEX claimed` 或 `🎉 Latecomer Hero badge + 200 NEX claimed`(由 `claimedPhase` 派发)
-
-#### 5.15.5 Nova 召回 push
-
-| Push | 触发条件 | 文案钩子 | CTA href |
-|---|---|---|---|
-| `questGraceReminderPush` | 进入 grace + 未 claim + 未完成所有任务 | `Your Day-One Quest just rolled into the grace window. You can still claim +200 NEX (down from 500)...` | `/`(回 Home 继续 quest) |
-| `questFinalExpiredPush` | 进入 expired + 未 claim | `Day-One Quest has fully closed. Your activity log remains in the achievements page — check whether you unlocked the Day-One Hero or Latecomer Hero badge.` | `/me/achievements` |
-
-**接入位置**:`<StellaTriggers>` `useQuest.startedAt + claimedFinal + completed.length` 订阅,5 min tick + 7 day cooldown(实际一次性 push per phase transition)。
-
-#### 5.15.6 实现细节
-
-- **SSR 处理**:`useState<number | null>(null)` mounted 守卫,server 输出 null,client mount 后才渲染倒计时,避免 Date.now hydration mismatch
-- **路由监听器** `QuestRouteWatcher`:挂在 `(main)/layout.tsx` 的 silent client 组件,`usePathname` listener,自动 markComplete 路由型任务(visit_earn / visit_store / view_product_roi)。非路由型任务在对应动作的 click handler 内手动 `useQuest.getState().markComplete(...)`
-- **partial reward 一致性**:`nexEarned = useMemo(() => progressNexEarned(completed), [completed])` 紧跟 useState 声明,**必须放在所有 early-return 之前**(rules-of-hooks)。React 保证 `completed.length`(用于 progress text `已完成 X/Y`)与 `nexEarned`(用于 `+N NEX` 累计奖励)在同一 commit 内呈现一致状态,杜绝"3/6 + 0 NEX"或"0/6 + 180 NEX"类不一致瞬态
-- **expand toggle**:`useState(true)` 默认展开(详见 §5.15.2 设计意图 — 转化优先,用户首屏即看到 6 个具体任务路径);`effectiveExpanded = expanded || allDone` 衍生,6/6 完成时强制保持展开让 claim 按钮可见;底部 collapse bar 仍允许用户主动收起
-- **i18n**:`quest.*` namespace
-  - phase / 状态 keys:`title / titleGrace / completeTitle / progress / completed / finalBonusHint / claimBonus / claimLatecomer / bonusClaimed / latecomerClaimed`
-  - 交互 keys:`buyCta`(主 CTA 文案)/ `expand`(展开任务列表,带 `{n}` 任务数 placeholder)/ `collapse`(收起任务列表)
-  - 6 task titles:`t_bind_bank_card / t_visit_earn / t_visit_store / t_view_product_roi / t_setup_profile / t_invite_friend`
-  - grace phase 不再渲染独立警示 banner — 窗口紧迫感由 §5.15.2 的 phase styling + 顶部倒计时 chip + L1 hint + L2 主 CTA 四点共同暗示
-  - expired phase 整张卡 return null,无相关文案 keys
-
-#### 5.15.7 路由型任务自动完成派奖
-
-路由型任务(visit_earn / visit_store / view_product_roi)无需用户点击"完成",平台监听用户落地页自动判定完成并派奖:
-
-- 平台以固定节奏(每 1 秒一拍)读取当前页面,页面变化时映射到对应任务:`/earn` → `visit_earn`、`/store` → `visit_store`、商品详情页 `/store/{id}` → `view_product_roi`(排除 `/store/orders`、`/store/checkout`)。
-- 首次落在匹配页 → `markComplete(id)` 返回该任务的奖励(NEX,部分含 USDT);仅在**首次完成**时入账 NEX / USDT 并弹 `+N NEX` toast。
-- 幂等:已完成任务重复访问返回 `firstTime:false`,不重复派奖(完成态持久化于 `nexgrid-quest-v1`,刷新后不再触发)。
-- 非路由型任务(bind_bank_card / setup_profile / invite_friend)在对应动作处(绑卡成功 / Profile 保存 / 分享邀请)手动调 `markComplete` 派奖,不由本监听覆盖;首次派奖同步写账单 bonus 行。
-
-```mermaid
-sequenceDiagram
-    participant Watch as 路由监听(每 1s)
-    participant Q as useQuest
-    participant App as 钱包余额
-
-    Watch->>Watch: 读取当前路由
-    alt 路由未变
-        Watch-->>Watch: 无操作
-    else 路由变化且映射到任务 id
-        Watch->>Q: markComplete(id)
-        alt 首次完成
-            Q-->>Watch: firstTime=true · 返回 rewardNex / rewardUsdt
-            Watch->>App: creditNex(rewardNex) / creditBalance(rewardUsdt)
-            Watch-->>Watch: toast "+N NEX"
-        else 已完成(幂等)
-            Q-->>Watch: firstTime=false · 奖励 0
-        end
-    end
-```
-
-> 真后台对接:任务定义 `GET /api/quest`;完成派奖 `POST /api/quest/complete` 返回 `{ firstTime, rewardNex, rewardUsdt }` + canonical 余额 / 账本行,替换本地判定对调用方零改动。
+最终画布版本为 `1792868600-583d`（artifact `7cc57828-35e5-42d6-b889-f92286cb8aad`）。视觉评分与运行截图是前端隔离证据；真实 TEST 服务和 Android 真机另行验收，不能用构建或测试响应代替。
 
 ---
 
@@ -4607,7 +4384,7 @@ Events 分两大类:
 #### 11.12.14 Home 行情入口(Sprint A-2 / D.2)
 
 - `<MarketBoard>` 主体在 `/earn`(操作时的决策辅助)+ `/market` 专用路由
-- 不在 Home `<MissionControl>` 渲染:Home 16 sections 已聚焦"状态总览 + 转化触发",再嵌 MarketBoard 会重复 4 子卡内容并稀释主转化注意力(Earnings hero → Quest → Buy)
+- 不在 Home `<MissionControl>` 渲染:Home 当前结构已聚焦"状态总览 + 转化触发",再嵌 MarketBoard 会重复 4 子卡内容并稀释主转化注意力(Earnings hero → Quest → Buy)
 
 #### 11.12.15 邀请 promo chip(Sprint 3 第三阶段 / inviteBonusMultiplier)
 

@@ -12,29 +12,25 @@
 -->
 <template>
   <!-- 《08》§2:tap 反馈 active:scale+opacity(禁 hover 做移动端反馈) -->
-  <view ref="cardRef" class="product-card relative overflow-hidden block" :class="{ 'promotion-catalog-card': marketingPromotion, 'product-card--in-view': cardInView }" :style="marketingPromotion ? promotionCardStyle : cardStyle" @click="goDetail">
+  <view ref="cardRef" class="product-card relative overflow-hidden block" :class="{ 'promotion-catalog-card': marketingPromotion, 'product-card--in-view': cardInView, 'product-card--compact': compact, 'product-card--entered': entered }" :style="marketingPromotion ? promotionCardStyle : cardStyle" :role="compact ? 'link' : undefined" :tabindex="compact ? 0 : -1" :aria-label="compact ? nexGridBrandText(product.name) : undefined" @click="goDetail">
 
     <!-- ───── Catalog photo or neutral placeholder ───── -->
-    <view class="product-media relative overflow-hidden" :style="renderWrapStyle" role="button" tabindex="0" :aria-label="nexGridBrandText(product.name)" @click.stop="goDetail"  @keydown.enter.prevent.stop="goDetail" @keydown.space.prevent.stop="goDetail">
-      <image class="product-art" v-if="photo" :key="photo.src" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" />
+    <view class="product-media relative overflow-hidden" :style="renderWrapStyle" :role="compact ? undefined : 'button'" :tabindex="compact ? -1 : 0" :aria-label="compact ? undefined : nexGridBrandText(product.name)" @click.stop="goDetail"  @keydown.enter.prevent.stop="goDetail" @keydown.space.prevent.stop="goDetail">
+      <view v-if="photo" class="product-art-entry"><image class="product-art" :style="{viewTransitionName:'catalog-'+product.id.replace(/[^a-zA-Z0-9_-]/g,'-')}" :key="photo.src" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" /></view>
       <view v-else class="absolute inset-0 grid place-items-center" style="color: var(--v5-ink-3)">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
       </view>
 
       <!-- Badge ribbon -->
-      <view v-if="copy.badge" class="absolute" :style="ribbonStyle">
+      <view v-if="copy.badge" class="product-ribbon absolute" :style="ribbonStyle">
         <text>{{ copy.badge }}</text>
       </view>
 
-      <!-- Tier-code chip + Legacy chip (photo) -->
-      <view v-if="photo && !isShare" class="absolute flex flex-col items-start gap-1.5" style="bottom: 12px; left: 14px; pointer-events: none">
-        <text class="font-mono-tabular" :style="tierChipStyle">{{ photo.tierCode }}</text>
-        <text v-if="product.status === 'legacy'" class="font-mono-tabular" :style="legacyChipStyle">{{ t.store.cardLegacyBadge }}</text>
-      </view>
+
     </view>
 
     <!-- ───── Body ───── -->
-    <view class="relative" style="padding: 14px 16px">
+    <view v-if="!compact" class="relative" style="padding: 14px 16px">
       <view>
         <view class="min-w-0">
           <text class="block" :style="nameStyle">{{ nexGridBrandText(product.name) }}</text>
@@ -92,8 +88,18 @@
       <PromotionProduct v-if="marketingPromotion" :activity="marketingPromotion" :product-no="product.id" />
     </view>
 
+    <view v-if="compact" class="product-compact-body">
+      <text class="product-compact-name">{{ nexGridBrandText(product.name) }}</text>
+      <text class="product-compact-tagline">{{ copy.tagline }}</text>
+      <view class="product-compact-bottom">
+        <text class="product-compact-price">{{ fmtMoney(product.price).replace(/\.00$/, '') }}</text>
+        <text class="product-compact-estimate" :aria-label="(isShare ? t.store.shareReferenceAnnual : t.store.cardYouEarn) + ' · ' + (isShare ? shareYieldText : fmtMoney(product.dailyEarn) + t.store.cardPerDaySuffix)">{{ isShare ? t.store.shareReferenceAnnual + ' · ' + shareYieldText : estimateLabel + ' · ' + fmtMoney(product.dailyEarn).replace(/\.00$/, '') + t.store.cardPerDaySuffix }}</text>
+      </view>
+      <text v-if="stockUnavailable || catalogUnavailable || (remoteApiEnabled && eligibility.status === 'ready' && !eligibility.eligible)" class="product-compact-status">{{ buyLabel }}</text>
+    </view>
+
     <!-- ───── Footer: price + Buy CTA ───── -->
-    <view class="product-footer grid items-center gap-3" :style="footerStyle">
+    <view v-if="!compact" class="product-footer grid items-center gap-3" :style="footerStyle">
       <view class="min-w-0">
         <text class="block font-mono-tabular" :style="priceEyebrowStyle">{{ t.store.cardPriceLabel }}</text>
         <view class="tabular-nums flex items-baseline" :style="priceRowStyle">
@@ -121,7 +127,7 @@ import { useDeviceEligibility } from "@/composables/use-device-eligibility";
 import { computeTradeInCredit } from "@/mock/tradein-config";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
-import { fmt } from "@/i18n/format";
+import { fmt, fmtMoney } from "@/i18n/format";
 import { navTo } from "@/lib/route";
 import { usePurchaseGate } from "@/composables/use-purchase-gate";
 import { productCopy } from "@/lib/product-copy";
@@ -138,11 +144,12 @@ import PromotionProduct from '@/components/promotion/promotion-product.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
 import { canPreviewPromotion,isPromotionActive,promotionCheckoutHref,promotionDetailHref } from '@/lib/promotion-entry';
 
-const props = withDefaults(defineProps<{ product: Product; featured?: boolean; promotion?:PublicPromotion|null; activityId?:string; promotionReady?:boolean }>(), {
+const props = withDefaults(defineProps<{ product: Product; featured?: boolean; compact?: boolean; promotion?:PublicPromotion|null; activityId?:string; promotionReady?:boolean }>(), {
   featured: false,
 });
 const t = useT();
 const locale = useLocaleStore();
+const estimateLabel = computed(() => locale.code === 'zh' ? '预估' : locale.code === 'vi' ? 'Ước tính' : 'Est.');
 const earnConfig = useEarnConfig();
 prepareEarnConfig();
 const copy = computed(() => productCopy(t.value, props.product, remoteApiEnabled, locale.code, earnConfig.taskPricing.value?.taskClasses));
@@ -179,6 +186,8 @@ const showTradein = computed(() => !remoteApiEnabled && bestTradeinCredit.value 
 // eligibility response is the only source that can unlock this card.
 const localPurchaseGate = remoteApiEnabled ? null : usePurchaseGate(() => props.product);
 const { elRef: cardRef, inView: cardInView } = useScrollGrowProgress({ threshold: 0.01, fallbackInView: false });
+const entered = ref(false);
+watch(cardInView, visible => { if (visible) entered.value = true; });
 const { eligibility, retry: retryEligibility } = useRemotePurchaseEligibility(() => props.product.id, cardInView);
 const gate = computed(() => stockUnavailable.value
   ? {
@@ -299,10 +308,20 @@ const nexPerDayText = computed(() => fmt(t.value.store.cardNexPerDay, { n: forma
 const tradeCreditText = computed(() =>
   fmt(t.value.store.cardTradeCredit, { n: formatAmount(bestTradeinCredit.value) }),
 );
-const priceText = computed(() => formatAmount(props.product.price));
+const priceText = computed(() => fmtMoney(props.product.price).replace(/^\$/, ""));
 const stockHintText = computed(() => fmt(t.value.store.cardStockCompact, { n: props.product.stock ?? 0 }));
 
 function goDetail() {
+  // #ifdef H5
+  const transitionDocument = typeof document === 'undefined' ? undefined : document as Document & {
+    startViewTransition?: (update: () => Promise<void>) => { finished: Promise<void> };
+  };
+  if(typeof transitionDocument?.startViewTransition === 'function' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const transition=transitionDocument.startViewTransition(async()=>{await navTo(promotionDetailHref(props.product.id,props.activityId));});
+    void transition.finished.catch(()=>{}); // Unsupported snapshots must never cancel navigation.
+    return;
+  }
+  // #endif
   navTo(promotionDetailHref(props.product.id,props.activityId));
 }
 function goCheckout() {
@@ -313,15 +332,15 @@ function goDevices() {
 }
 
 // ───── styles ─────
-const promotionCardStyle: CSSProperties = { background:'var(--v5-surface)',borderRadius:'20px' };
+const promotionCardStyle: CSSProperties = { background:'var(--ui-content-surface)',borderRadius:'22px' };
 const cardStyle: CSSProperties = {
-  background: "var(--v5-surface)",
+  background: "var(--ui-content-surface)",
   borderRadius: "22px",
 };
 const renderWrapStyle: CSSProperties = {
   width: "100%",
   aspectRatio: "1.45",
-  background: "radial-gradient(ellipse at 50% 65%, var(--v5-surface-3), var(--v5-surface-2) 70%)",
+  background: "radial-gradient(70% 22% at 50% 86%, color-mix(in srgb, var(--ui-lime-soft) 30%, transparent), transparent 70%), radial-gradient(90% 85% at 50% 58%, var(--ui-content-surface-3), var(--ui-content-surface-2) 55%, var(--ui-content-surface) 100%)",
 };
 const vignetteStyle: CSSProperties = {
   position: "absolute",
@@ -493,13 +512,42 @@ import { getProductMedia } from "@/lib/product-media";
 .product-card { transition: transform 180ms ease; }
 .product-card:active { transform: scale(.99); }
 .product-media:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -3px; }
-.product-art { transform-origin: 50% 55%; animation: product-float 7s ease-in-out infinite; animation-play-state: paused; }
+.product-art-entry { position: absolute; inset: 0; }
+.product-card--entered .product-art-entry { animation: product-enter 420ms ease-out both; }
+@keyframes product-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.product-media::after { content: ''; position:absolute; inset:0; pointer-events:none; background: linear-gradient(105deg, transparent 25%, rgba(255,255,255,.18) 50%, transparent 75%); transform: translateX(-110%); }
+.product-card:active .product-media::after { transform: translateX(110%); transition: transform 450ms ease; }
+.product-card:nth-child(even) .product-art { animation-delay: -1.5s; }
+.product-art { transform-origin: 50% 55%; animation: product-float 4s ease-in-out infinite; animation-play-state: paused; }
 .product-card--in-view .product-art { animation-play-state: running; }
 @keyframes product-float { 0%, 100% { transform: translateY(2px) scale(1); } 50% { transform: translateY(-4px) scale(1.015); } }
-@media (prefers-reduced-motion: reduce) { .product-card { transition: none; } .product-art { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .product-card { transition: none; } .product-art, .product-card--entered .product-art-entry { animation: none; } .product-media::after { display: none; } }
 
 .promotion-buy { --v5-liquid-tint:transparent; }
 .promotion-buy :deep(.nx-liquid-glass[data-glass-strategy="solid"]),
 .promotion-buy :deep(.nx-liquid-glass[data-glass-strategy="solid"] .nx-liquid-optics) { background:inherit; }
 .promotion-buy > text,.promotion-buy > svg { position:relative;z-index:1; }
+</style>
+
+<style scoped>
+.product-card--compact { display:flex; flex-direction:column; min-width:0; border:1px solid var(--v5-border); border-radius:22px; background:var(--ui-content-surface); cursor:pointer; }
+.product-card--compact:active { transform:scale(.98); }
+.product-card--compact:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
+.product-card--compact .product-media { height:150px; aspect-ratio:auto !important; flex:none; }
+.product-card--compact .product-art-entry { display:flex; align-items:center; justify-content:center; padding:0; }
+.product-card--compact .product-art { position:relative !important; inset:auto !important; width:min(172px,100%) !important; height:auto !important; aspect-ratio:1; max-width:172px; margin:0; animation-name:product-compact-float; animation-duration:4.2s; }
+@keyframes product-compact-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
+.product-card--compact .product-ribbon { top:10px !important; left:10px !important; min-height:24px; display:flex; align-items:center; padding:0 9px !important; border:1px solid var(--v5-liquid-rim); border-radius:999px !important; background:linear-gradient(180deg,var(--v5-liquid-highlight),var(--v5-liquid-tint)) !important; color:var(--ui-lime-soft) !important; font:600 12px/20px var(--font-v5) !important; box-shadow:inset 0 1px 0 var(--v5-liquid-highlight); backdrop-filter:blur(16px) saturate(170%); }
+.product-compact-body { flex:1; display:flex; flex-direction:column; padding:10px 14px 14px; }
+.product-compact-name { font:600 15px/20px var(--font-v5); color:var(--v5-ink); overflow-wrap:anywhere; }
+.product-compact-tagline { margin-top:2px; font:400 12.5px/17px var(--font-v5); color:var(--v5-ink-3); }
+.product-compact-bottom { display:flex; flex-direction:column; align-items:flex-start; gap:4px; margin-top:auto; padding-top:10px; font-variant-numeric:tabular-nums; }
+.product-compact-price { color:var(--v5-ink); font:600 18px/22px var(--font-v5); }
+.product-compact-estimate { font:400 12.5px/16px var(--font-v5); color:var(--v5-brand); }
+.product-compact-status { display:block; margin-top:8px; font:400 12px/17px var(--font-v5); color:var(--v5-warning-ink); }
+.product-card--compact:nth-child(2n) .product-art { animation-delay:-1.1s; }
+.product-card--compact:nth-child(3n) .product-art { animation-delay:-2.2s; }
+.product-card--compact:nth-child(4n) .product-art { animation-delay:-3.1s; }
+@media(hover:hover) { .product-card--compact:hover .product-media::after { transform:translateX(110%); transition:transform 900ms ease; } }
+@media(prefers-reduced-motion:reduce) { .product-card--compact { transition:none; }.product-card--compact .product-art,.product-card--compact .product-art-entry { animation:none; } }
 </style>

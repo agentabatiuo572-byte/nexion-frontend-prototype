@@ -1,6 +1,18 @@
 import { expect, it } from "vitest";
 import { selectRecommendedCourse } from "./learning-recommendation";
 
+it("resumes an unfinished course before a featured course and advances after completion", () => {
+  const courses = [
+    { id: 'featured', featured: true, completed: false, progress: 0 },
+    { id: 'started', featured: false, completed: false, progress: 25 },
+    { id: 'done', featured: true, completed: true, progress: 100 },
+  ];
+  expect(selectRecommendedCourse(courses)?.id).toBe('started');
+  courses[1].completed = true;
+  courses[1].progress = 100;
+  expect(selectRecommendedCourse(courses)?.id).toBe('featured');
+});
+
 it("advances through unfinished featured courses, then ordinary courses in published order", () => {
   const courses = [
     { id: "ordinary-first", featured: false, completed: false },

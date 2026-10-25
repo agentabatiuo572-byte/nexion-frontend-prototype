@@ -1,6 +1,6 @@
 <!--
   VBadge — ported from Nexion-prototype/app/components/v3/v-badge.tsx.
-  V-rank title pill (V0-V12); colour climbs with level. showTitle toggles the
+  V-rank title pill (server-published ranks); colour climbs with level. showTitle toggles the
   title text —— 显示名按语言取(中文界面出中文头衔,2026-08-17 起收在 lib/v-rank-copy)。
   Gradient badges (V10+) add a text-shadow for legibility.
   Reused by team.vue + binary.vue. <span>→<text> (badge is inline text).
@@ -43,14 +43,6 @@ const COLORS: Record<number, ColorSpec> = {
   2: { bg: "color-mix(in srgb, var(--v5-ink-3) 20%, transparent)", text: "var(--v5-ink)" },
   3: { bg: "color-mix(in srgb, var(--v5-brand) 12%, transparent)", text: "var(--v5-brand)" },
   4: { bg: "color-mix(in srgb, var(--v5-brand) 16%, transparent)", text: "var(--v5-brand-deep)" },
-  5: { bg: "color-mix(in srgb, var(--v5-tech-cyan) 18%, transparent)", text: "var(--v5-tech-cyan)" },
-  6: { bg: "color-mix(in srgb, var(--v5-nex) 22%, transparent)", text: "var(--v5-nex)" },
-  7: { bg: "color-mix(in srgb, var(--v5-warning) 18%, transparent)", text: "var(--v5-warning)" },
-  8: { bg: "color-mix(in srgb, var(--v5-warning) 22%, transparent)", text: "var(--v5-warning)" },
-  9: { bg: "color-mix(in srgb, var(--v5-brand-2) 26%, transparent)", text: "var(--v5-brand-2)" },
-  10: { bg: "linear-gradient(135deg,var(--v5-brand) 0%,var(--v5-tech-cyan) 100%)", text: "var(--v5-ink)" },
-  11: { bg: "linear-gradient(135deg,var(--v5-tech-cyan) 0%,var(--v5-warning) 100%)", text: "var(--v5-ink)" },
-  12: { bg: "linear-gradient(135deg,var(--v5-warning) 0%,var(--v5-brand-2) 50%,var(--v5-brand) 100%)", text: "var(--v5-ink)" },
 };
 
 const SIZES = {
@@ -61,7 +53,7 @@ const SIZES = {
 
 const vRank = useVRank();
 const locale = useLocaleStore();
-const c = computed(() => COLORS[props.v]);
+const c = computed(() => COLORS[props.v] ?? COLORS[3]);
 const sz = computed(() => SIZES[props.size]);
 const isGradient = computed(() => c.value.bg.startsWith("linear"));
 

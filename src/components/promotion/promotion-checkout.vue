@@ -11,7 +11,13 @@
         <text class="promotion-title">{{ p.selected }}</text>
         <view v-for="item in items" :key="item.productNo" class="promotion-row">
           <image v-if="getProduct(item.productNo)?.imageUrl" :src="getProduct(item.productNo)!.imageUrl" class="promotion-image" mode="aspectFill" />
-          <view class="promotion-grow"><text style="display:block;font-weight:600">{{ selectedItemName(item) }}</text><text class="promotion-copy">{{ p.quantity }} · {{ item.quantity }}</text></view>
+          <view class="promotion-grow"><text style="display:block;font-weight:600">{{ selectedItemName(item) }}</text><text class="promotion-copy">{{ p.quantity }} · {{ item.quantity }}</text>
+            <view class="checkout-item-quantity" :aria-label="selectedItemName(item)+' · '+p.quantity">
+              <view class="checkout-item-quantity-button" data-testid="checkout-item-decrease" role="button" :tabindex="canChangeQuantity(item.productNo,-1)?0:-1" :aria-disabled="!canChangeQuantity(item.productNo,-1)" :aria-label="t.uiChrome.decreaseQty" @click="changeQuantity(item.productNo,-1)" @keydown.enter.prevent="changeQuantity(item.productNo,-1,$event)" @keydown.space.prevent="changeQuantity(item.productNo,-1,$event)">−</view>
+              <text class="checkout-item-quantity-value" aria-live="polite">{{ item.quantity }}</text>
+              <view class="checkout-item-quantity-button" data-testid="checkout-item-increase" role="button" :tabindex="canChangeQuantity(item.productNo,1)?0:-1" :aria-disabled="!canChangeQuantity(item.productNo,1)" :aria-label="t.uiChrome.increaseQty" @click="changeQuantity(item.productNo,1)" @keydown.enter.prevent="changeQuantity(item.productNo,1,$event)" @keydown.space.prevent="changeQuantity(item.productNo,1,$event)">+</view>
+            </view>
+          </view>
           <text v-if="quote" class="promotion-price">{{ formatAmount(quote.items.find(l=>l.productNo===item.productNo)?.subtotalUsdt) }} USDT</text>
         </view>
       </view>
@@ -36,7 +42,7 @@
           <text class="promotion-copy">{{ p.orderNo }} · {{ order.orderNo }}</text>
           <text class="promotion-title">{{ order.paymentStatus==='PAID' ? p.paid : order.paymentStatus==='REFUNDED' ? p.refunded : order.paymentStatus==='PENDING' ? p.pending : order.paymentStatus==='CANCELLED' ? p.rewardCancelled : order.paymentStatus==='EXPIRED' ? t.orders.statusExpired : p.unavailable }}</text>
           <text v-if="order.paymentStatus==='PENDING'&&payWindow!==true" class="promotion-notice">{{ payWindow===false?t.orders.statusExpired:p.unknown }}</text>
-          <PromotionAction v-if="order.paymentStatus==='PENDING'&&!unknown" class="promotion-action primary" role="button" tabindex="0" :aria-disabled="!canPay" @click="pay"><text>{{ p.pay }}</text></PromotionAction>
+
           <PromotionAction class="promotion-action" role="button" tabindex="0" :aria-disabled="busy" @click="recover"><text>{{ p.query }}</text></PromotionAction>
           <view class="promotion-link" role="button" tabindex="0" @click="viewOrder"><text>{{ p.viewOrder }}</text></view>
           <PromotionAction v-if="!openedOriginal&&!props.orderNo&&props.items.length&&canStartNew" class="promotion-action primary" role="button" tabindex="0" :aria-disabled="busy" @click="startNewPurchase"><text>{{ p.buyAgain }}</text></PromotionAction>
@@ -46,11 +52,12 @@
           <text v-if="quote&&!quoteFresh" class="promotion-notice">{{ p.quoteExpired }}</text>
           <text v-if="quote && !completeTerms" class="promotion-notice">{{ p.termsMissing }}</text>
           <text v-if="quote&&quote.eligibility!=='ELIGIBLE'" class="promotion-notice">{{ p.disabledNote }}</text>
-          <PromotionAction v-if="quote" class="promotion-action primary" role="button" tabindex="0" :aria-disabled="!canCreate" @click="createOrder"><text>{{ p.confirmOrder }}</text></PromotionAction>
+
           <PromotionAction v-if="!openedOriginal" class="promotion-action" role="button" tabindex="0" :aria-disabled="busy||!!session.record.pending" @click="loadQuote"><text>{{ p.quote }}</text></PromotionAction>
         </template>
       </template>
     </template>
+    <slot name="review-footer" />
     <PromotionTerms :open="termsOpen" :title="localized(promotion?.title,locale.code)" :terms="order ? '' : localized(promotion?.terms,locale.code)" :disclosures="disclosures" @close="termsOpen=false" />
     <view v-if="leaveOpen" class="promotion-overlay">
       <view class="promotion-overlay-dismiss" aria-hidden="true" @click="finishLeave(false)" />
@@ -59,7 +66,7 @@
   </view>
 </template>
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
 import PromotionAction from '@/components/promotion/promotion-action.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
 import { computed,ref,shallowRef,watch,onMounted,onBeforeUnmount } from 'vue';
@@ -69,6 +76,7 @@ import { onBeforeRouteLeave } from 'vue-router';
 import { promotionApi,deviceE3Api } from '@/api/runtime';
 import type { PublicPromotion,ExpectedReward } from '@/api/promotion-api';
 import type { PromotionItem } from '@/api/promotion-api';
+import { validatePromotionItems } from '@/api/promotion-api';
 import type { LocalizedText,RewardDisclosure } from '@/api/promotion-contracts';
 import { useT } from '@/i18n/use-t';import { useLocaleStore } from '@/store/locale';import { useApp } from '@/store/app';import { useAuth } from '@/store/auth';
 import { useVoucher } from '@/store/voucher';
@@ -84,6 +92,9 @@ import { useDialogA11y } from '@/composables/use-dialog-a11y';
 import { displayDeadline,localized } from '@/lib/promotion-display';
 import RewardRows from './reward-rows.vue';import PromotionTerms from './promotion-terms.vue';
 const props=defineProps<{activityId:string;items:PromotionItem[];orderNo?:string}>();
+function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
+  return formatPlainAmount(value).replace(/\B(?=(\d{3})+\.)/g, ',');
+}
 function getProduct(id:string){void productCatalogState.status;return readProduct(id);}
 const t=useT(),p=computed(()=>t.value.promotion),locale=useLocaleStore(),app=useApp(),auth=useAuth(),voucher=useVoucher();
 function selectedItemName(item:{productNo:string;productName?:string}){return item.productName??getProduct(item.productNo)?.name??productCatalogPresentation.value?.products.find(product=>product.id===item.productNo)?.name??p.value.unknown;}
@@ -98,7 +109,21 @@ const session=new PromotionCheckoutSession({api:promotionApi,current,key:key=>ac
 const freshQuoteReady=ref(false),revision=ref(0),quote=computed(()=>{revision.value;return session.record.pending||session.record.order||freshQuoteReady.value?session.record.quote:null;}),order=computed(()=>{revision.value;return session.record.order;}),unknown=computed(()=>{revision.value;return session.unknown;});
 const promotion=shallowRef<PublicPromotion|null>(null),loading=ref(true),busy=ref(false),error=ref(''),termsOpen=ref(false),leaveOpen=ref(false);
 const voucherId=ref(session.record.voucherId??null);const selectedVoucherName=computed(()=>voucher.catalog.find(v=>v.id===voucherId.value)?.name??p.value.noVoucher);
-const items=computed(()=>order.value?.items??quote.value?.items??props.items);const rewards=computed(()=>order.value?.rewards??quote.value?.expectedRewards??[]);
+const selection=ref(props.items.map(({productNo,quantity})=>({productNo,quantity})));
+const items=computed(()=>order.value?.items??quote.value?.items??selection.value);const rewards=computed(()=>order.value?.rewards??quote.value?.expectedRewards??[]);
+function canChangeQuantity(productNo:string,delta:-1|1):boolean {
+  const item=selection.value.find(item=>item.productNo===productNo);
+  return current()&&visible&&auth.isAuthenticated&&!loading.value&&!busy.value
+    &&!openedOriginal&&!props.orderNo&&!session.record.pending&&!order.value&&!unknown.value
+    &&!!item&&item.quantity+delta>=1&&selection.value.reduce((sum,item)=>sum+item.quantity,0)+delta<=100;
+}
+async function changeQuantity(productNo:string,delta:-1|1,event?:KeyboardEvent):Promise<void> {
+  if(event?.repeat||!canChangeQuantity(productNo,delta))return;
+  const next=selection.value.map(item=>item.productNo===productNo?{...item,quantity:item.quantity+delta}:item);
+  validatePromotionItems(next);
+  selection.value=next;
+  await loadQuote();
+}
 function disclosure(r:ExpectedReward):RewardDisclosure|null {const d=r.disclosure;return d&&[d.title,d.terms,d.refundTerms,d.benefitDescription].every(x=>x&&['zh','en','vi'].every(l=>typeof x[l as keyof LocalizedText]==='string'&&x[l as keyof LocalizedText].trim()))?d:null;}
 const disclosures=computed(()=>rewards.value.map(disclosure).filter((d):d is RewardDisclosure=>!!d));const completeTerms=computed(()=>disclosures.value.length===rewards.value.length);
 let receivedAt:number|null=null,promotionReceivedAt:number|null=null,orderClock:{serverNow:number;at:number}|null=null,clockGeneration=0;const quoteFresh=ref(false),payWindow=ref<boolean|null>(null);let timer:ReturnType<typeof setInterval>|undefined;
@@ -131,13 +156,25 @@ async function loadQuote(){
       if(readCurrent(generation)&&value.state==='ACTIVE'){promotion.value=value;promotionReceivedAt=sampledAt;updateClock();}
     }).catch(()=>{});
     try{
-      const result=await promotionApi.quote(props.items,props.activityId||null,voucherId.value);
+      const requestedItems=selection.value.map(item=>({...item}));
+      const result=await promotionApi.quote(requestedItems,props.activityId||null,voucherId.value);
       if(!readCurrent(generation))return;
+      if(result.items.length!==requestedItems.length||requestedItems.some(item=>!result.items.some(line=>line.productNo===item.productNo&&line.quantity===item.quantity)))throw new Error('QUOTE_INPUT_CHANGED');
       session.setQuote(result,voucherId.value);freshQuoteReady.value=true;receivedAt=sampledAt;revision.value++;updateClock();
     }catch(cause){if(readCurrent(generation))throw cause;}
   });
 }
-async function chooseVoucher(){if(openedOriginal||busy.value||session.record.pending||order.value||items.value.length!==1)return;await voucher.refreshRemote();if(!current())return;const options=voucher.claimedUnused;uni.showActionSheet({itemList:[p.value.noVoucher,...options.map(v=>v.name)],success:result=>{if(!current())return;voucherId.value=result.tapIndex===0?null:options[result.tapIndex-1]?.id??null;void loadQuote();}});}
+async function chooseVoucher(){
+  if(openedOriginal||busy.value||session.record.pending||order.value||items.value.length!==1)return;
+  const generation=readGeneration;
+  const selectable=()=>readCurrent(generation)&&!busy.value&&!session.record.pending&&!order.value;
+  await voucher.refreshRemote();if(!selectable())return;
+  const options=voucher.claimedUnused;
+  uni.showActionSheet({itemList:[p.value.noVoucher,...options.map(v=>v.name)],success:result=>{
+    if(!selectable())return;
+    voucherId.value=result.tapIndex===0?null:options[result.tapIndex-1]?.id??null;void loadQuote();
+  }});
+}
 async function createOrder(){if(!canCreate.value)return;await run(()=>session.create());}
 const paymentDialogOwner=`promotion-payment:${Date.now()}:${Math.random()}`;
 let paymentConfirming=false;
@@ -162,7 +199,7 @@ async function recover(){await run(async()=>{await session.recover();if(!current
 async function startNewPurchase(){if(!canStartNew.value||props.orderNo||openedOriginal)return;session.startNewPurchase();asked='';voucherId.value=null;revision.value++;await loadQuote();}
 async function cancelOrder(){if(!canCancel.value)return;const ok=await confirm({title:p.value.cancelTitle,message:p.value.cancelBody,confirmLabel:p.value.cancelOrder,cancelLabel:p.value.keep,danger:true});if(ok&&current())await run(()=>session.cancel());}
 function viewOrder(){if(order.value)void navTo('/pages/store/order-detail?id='+encodeURIComponent(order.value.orderNo));}
-function signIn(){void navTo('/pages/login/login?return='+encodeURIComponent('/pages/store/checkout?activityId='+props.activityId+'&items='+encodeURIComponent(JSON.stringify(props.items))));}
+function signIn(){void navTo('/pages/login/login?return='+encodeURIComponent('/pages/store/checkout?activityId='+props.activityId+'&items='+encodeURIComponent(JSON.stringify(selection.value))));}
 let leaveResolver:((allowed:boolean)=>void)|null=null;let asked='';let disposeGuard:(()=>void)|null=null;
 function finishLeave(allowed:boolean){leaveOpen.value=false;leaveResolver?.(allowed);leaveResolver=null;}
 function requestLeave():Promise<boolean>{
@@ -198,7 +235,15 @@ function show(){
   if(session.record.pending||session.record.order)void recover();else if(!props.orderNo)void loadQuote();
 }
 watch(busy,value=>{if(!value&&refreshOnIdle){refreshOnIdle=false;if(visible&&current())show();}});
-defineExpose({back,hide,show});
+const footer = computed(() => {
+  if (loading.value || !auth.isAuthenticated || unknown.value) return null;
+  const rawAmount = order.value?.amountUsdt ?? quote.value?.amountUsdt;
+  const amount = rawAmount == null ? '-' : '$'+formatAmount(rawAmount);
+  if (order.value?.paymentStatus === 'PENDING') return { amount, label: p.value.pay, disabled: !canPay.value, action: pay };
+  if (!order.value) return { amount, label: p.value.confirmOrder, disabled: !canCreate.value, action: createOrder };
+  return null;
+});
+defineExpose({back,hide,show,footer});
 onMounted(async()=>{
   disposeGuard=registerCheckoutLeaveGuard(requestLeave);timer=setInterval(updateClock,1000);
   // Catalog and current campaign visibility cannot block an original order or
@@ -218,3 +263,13 @@ onMounted(async()=>{
 onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);});
 </script>
 <style src="./promotion.css"></style>
+
+<style scoped>
+.promotion-main { padding-bottom:140px; }
+.checkout-item-quantity { display:inline-flex; align-items:center; margin-top:6px; border:1px solid var(--v5-border); border-radius:999px; background:var(--ui-content-surface-2); }
+.checkout-item-quantity-button { display:grid; place-items:center; width:32px; min-height:36px; border-radius:999px; font:400 18px/20px var(--font-v5); cursor:pointer; }
+.checkout-item-quantity-button[aria-disabled="true"] { opacity:.35; cursor:default; }
+.checkout-item-quantity-button:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; }
+.checkout-item-quantity-value { min-width:24px; text-align:center; font:600 15px/20px var(--font-v5); font-variant-numeric:tabular-nums; }
+.promotion-summary.total { min-height:55px; box-sizing:border-box; }
+</style>

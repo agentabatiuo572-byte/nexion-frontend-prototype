@@ -76,7 +76,7 @@
               <text>{{ copy.badge }}</text>
             </view>
             <!-- Live activity danmaku -->
-            <LiveSocialProof :product="product" />
+
           </view>
 
           <view class="relative" style="padding: 20px">
@@ -86,14 +86,13 @@
                 <text class="block truncate" :style="nameStyle">{{ nexGridBrandText(product.name) }}</text>
                 <text class="block" style="margin-top: 4px; font-size: 13px; color: var(--v5-ink-3)">{{ copy.tagline }}</text>
               </view>
-              <text v-if="!isShare && speedup > 0" class="shrink-0 tabular-nums" :style="multBadgeStyle">{{ speedup }}×</text>
             </view>
 
             <!-- trust chips -->
             <view class="flex flex-wrap" style="margin-top: 14px; gap: 8px">
               <text class="font-mono-tabular" :style="codeChip('success')">✓ {{ soldText }} {{ t.store.liveProof.cumulativeSalesLabel }}</text>
               <text v-if="stockUnavailable" class="font-mono-tabular" :style="codeChip('amber')">{{ t.store.temporarilyOutOfStock }}</text>
-              <text v-if="stockLow" class="font-mono-tabular" :style="codeChip('amber')">🔥 {{ product.stock }} {{ t.store.onlyXLeft }}</text>
+              <text v-if="stockLow" class="font-mono-tabular" :style="codeChip('amber')">{{ product.stock }} {{ t.store.onlyXLeft }}</text>
             </view>
           </view>
         </view>
@@ -104,14 +103,6 @@
           <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
           <text v-else-if="activity&&(!promotionAvailable||!activity.productNos.includes(product.id))" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
           <PromotionProduct v-if="activity" :activity="activity" :product-no="product.id" expanded />
-          <view v-if="activity" class="promotion-summary" style="align-items:center;margin-top:16px">
-            <text>{{ t.promotion.quantity }}</text>
-            <view class="promotion-quantity-stepper">
-              <view role="button" :tabindex="qty<=1?-1:0" :aria-disabled="qty<=1" :aria-label="t.uiChrome.decreaseQty" @click="dec">−</view>
-              <text aria-live="polite">{{ qty }}</text>
-              <view role="button" :aria-label="t.uiChrome.increaseQty" :tabindex="qty>=100?-1:0" :aria-disabled="qty>=100" @click="inc">+</view>
-            </view>
-          </view>
           <view v-if="activity" class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId,[{productNo:product.id,quantity:qty}]))"><text>{{ t.promotion.bundle }}</text></view>
           <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionDetailHref(id))"><text>{{ t.promotion.ordinary }}</text></view>
         </view>
@@ -139,7 +130,7 @@
           <text class="shrink-0" style="font-size: 12px; color: var(--v5-ink-4)">↔</text>
           <view class="flex-1 flex items-center justify-end min-w-0" style="gap: 6px; font-size: 12px; color: var(--v5-warning)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
-            <text class="tabular-nums" style="font-family: var(--font-v5); font-weight: 600">${{ dailyEarnText }}/d</text>
+            <text class="tabular-nums" style="font-family: var(--font-v5); font-weight: 600">${{ dailyEarnText }}{{ t.store.cardPerDaySuffix }}</text>
           </view>
           <text v-if="speedup > 0" class="shrink-0" :style="vsMultChipStyle">{{ speedup }}×</text>
         </view>
@@ -148,21 +139,6 @@
         <template v-if="!isShare&&!activityId">
           <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detEstReturns" :count="t.store.detEstReturnsMeta" /></view>
           <view class="mx-4 nx-glass-card" :style="roiCardStyle">
-            <!-- qty stepper -->
-            <view class="flex items-center justify-between">
-              <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.detQuantity }}</text>
-              <view class="flex items-center" :style="stepperStyle">
-                <view class="grid place-items-center active:scale-[0.95] transition-transform" :style="qtyBtnStyle(qty <= 1)" role="button" :tabindex="qty <= 1 ? -1 : 0" :aria-disabled="qty <= 1" :aria-label="t.uiChrome.decreaseQty" @click.stop="dec">
-                  <text>−</text>
-                </view>
-                <text class="tabular-nums text-center" :style="qtyNumStyle">{{ qty }}</text>
-                <view class="grid place-items-center active:scale-[0.95] transition-transform" :style="qtyBtnStyle(qty >= 6)" role="button" :tabindex="qty >= 6 ? -1 : 0" :aria-disabled="qty >= 6" :aria-label="t.uiChrome.increaseQty" @click.stop="inc">
-                  <text>+</text>
-                </view>
-              </view>
-            </view>
-
-            <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 8px">{{ t.store.detQuantityHint }}</text>
             <!-- Daily and monthly estimates from the current catalog; no hardware payback promise. -->
             <view class="grid" style="margin-top: 16px; grid-template-columns: 1fr 1fr">
               <view :style="roiCellStyle(0)">
@@ -260,7 +236,7 @@ import LockedProductCard from "@/components/store/locked-product-card.vue";
 import { useT } from "@/i18n/use-t";
 import { useEarnConfig } from "@/store/earn-config";
 import { useLocaleStore } from "@/store/locale";
-import { fmt } from "@/i18n/format";
+import { fmt, fmtMoney } from "@/i18n/format";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { getProduct, type Product } from "@/mock/products";
 import { useProductPhase } from "@/composables/use-product-phase";
@@ -456,7 +432,7 @@ useSetPageHeader(() => ({
     : catalogStatus.value === "loading" ? t.value.store.catalogLoadingTitle
     : catalogStatus.value === "error" ? t.value.store.catalogErrorTitle
       : product.value?.name ?? t.value.store.coProductNotFound,
-  subtitle: publicOnly.value ? undefined : product.value?.tier,
+  subtitle: undefined,
   backHref: activityId.value ? '/pages/store/store?activityId='+encodeURIComponent(activityId.value) : "/store",
 }));
 
@@ -588,7 +564,7 @@ const monthlyPctText = computed(() =>
 const annualPctText = computed(() =>
   totalPrice.value > 0 ? ((annualYield.value / totalPrice.value) * 100).toFixed(0) : "0",
 );
-const priceText = computed(() => formatAmount((product.value?.price ?? 0)));
+const priceText = computed(() => fmtMoney(product.value ? product.value.price * qty.value : null));
 
 function dec() {
   if (qty.value > 1) qty.value -= 1;
@@ -683,7 +659,8 @@ function publishStickyCTA() {
       return;
     }
     sticky.show({
-      href: activityId.value ? promotionCheckoutHref([{productNo:product.value.id,quantity:qty.value}],activityId.value) : `/pages/store/checkout?product=${product.value.id}`,
+      href: activityId.value || qty.value > 1 ? promotionCheckoutHref([{productNo:product.value.id,quantity:qty.value}],activityId.value) : `/pages/store/checkout?product=${product.value.id}`,
+      quantity: { value:qty.value,min:1,max:activityId.value?100:6,decrease:dec,increase:inc },
       amount: `${priceText.value}`,
       amountSubtext: isShare.value ? undefined : `${t.value.store.detDaily}: ${dailyEarnText.value}`,
       buttonLabel: t.value.store.cardBuyNow,

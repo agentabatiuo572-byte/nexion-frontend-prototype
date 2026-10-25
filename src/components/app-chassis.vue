@@ -19,17 +19,20 @@
 
     <!-- Header brand row — TAB routes only (sub-pages carry their own back row) -->
     <view v-if="isTabRoute" class="nx-header" :style="{ top: statusBarHeight + 'px' }">
+      <view class="nx-header-surface" aria-hidden="true"><LiquidGlass :radius="0" tone="control" backdrop=".nx-page-enter" /></view>
       <view class="nx-header__l">
-        <BrandLockup :height="40" aria-hidden="true" />
+        <view class="nx-canvas-brand" role="img" aria-label="UVEL"><svg width="30" height="22" viewBox="0 0 30 22" aria-hidden="true"><path d="M3 5c0 9 4.5 13 9 13s7-4 7-9" fill="none" stroke="var(--v5-brand)" stroke-width="4" stroke-linecap="round"/><path d="M11 9c0-3 2.5-5 6-5s7 3 7 8-3 7-6 7" fill="none" stroke="var(--ui-lime-soft)" stroke-width="4" stroke-linecap="round"/></svg><text>UVEL</text></view>
       </view>
       <view class="nx-header__center" />
       <view class="nx-header__r">
-        <LiquidGlass :radius="24" tone="control" backdrop=".nx-page-enter" />
-        <view class="nx-icon-btn" role="button" tabindex="0" :aria-label="t.headerTitles.search" @click="goSearch"  @keydown.enter.prevent="onKeyboardActivate($event, goSearch)" @keydown.space.prevent="onKeyboardActivate($event, goSearch)">
-          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+
+        <view class="nx-icon-btn nx-design-glass" role="button" tabindex="0" :aria-label="t.headerTitles.search" @click="goSearch"  @keydown.enter.prevent="onKeyboardActivate($event, goSearch)" @keydown.space.prevent="onKeyboardActivate($event, goSearch)">
+          <LiquidGlass :radius="22" tone="control" backdrop=".nx-page-enter" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
         </view>
-	        <view class="nx-icon-btn nx-bell" role="button" tabindex="0" :aria-label="unread > 0 ? t.notifs.drawerTitle + ' · ' + unreadLabel : t.notifs.drawerTitle" @click="goNotifications"  @keydown.enter.prevent="onKeyboardActivate($event, goNotifications)" @keydown.space.prevent="onKeyboardActivate($event, goNotifications)">
-          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
+	        <view class="nx-icon-btn nx-bell nx-design-glass" role="button" tabindex="0" :aria-label="unread > 0 ? t.notifs.drawerTitle + ' · ' + unreadLabel : t.notifs.drawerTitle" @click="goNotifications"  @keydown.enter.prevent="onKeyboardActivate($event, goNotifications)" @keydown.space.prevent="onKeyboardActivate($event, goNotifications)">
+          <LiquidGlass :radius="22" tone="control" backdrop=".nx-page-enter" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
           <view v-if="unread > 0" class="nx-badge"><text class="nx-badge__t">{{ unreadLabel }}</text></view>
         </view>
       </view>
@@ -102,7 +105,6 @@
           <!-- Voucher fallback banner — chassis-injected at content top so the
                5 protected tab pages stay untouched (ALIGNMENT red-line). Self-
                hides unless a claimable voucher targets the current surface. -->
-          <VoucherBanner v-if="bannerSurface && !tabHost" :surface="bannerSurface" />
           <slot />
         </view>
       </view>
@@ -126,7 +128,7 @@
       <DeviceHomeIndicator />
     </view>
 
-    <NovaBubble v-if="isTabRoute" :dimmed="scrolling" />
+    <NovaBubble v-if="isTabRoute && activeTab !== 'home' && activeTab !== 'store'" v-show="!scrolling" />
 
     <!-- Chassis-level overlays (each self-gates on its own store's open state,
          mirroring the prototype IOSFrame). Ported P-043. -->
@@ -151,7 +153,6 @@
 import { rememberGlassNavigation, consumeGlassNavigation } from "@/lib/liquid-glass-core";
 import { ref, computed, watch, onMounted, onUnmounted, onActivated, nextTick, provide, type CSSProperties, getCurrentInstance } from "vue";
 import GlobalUi from "@/components/global-ui.vue";
-import BrandLockup from "@/components/brand-lockup.vue";
 import NovaBubble from "@/components/nova/nova-bubble.vue";
 import TrialClaimSheet from "@/components/trial-claim-sheet.vue";
 import SlotActionSheet from "@/components/slot-action-sheet.vue";
@@ -160,7 +161,6 @@ import PendingCheckoutBar from "@/components/pending-checkout-bar.vue";
 import TradeinSheets from "@/components/tradein-sheets.vue";
 import LuckySpinSheet from "@/components/lucky-spin-sheet.vue";
 import VoucherClaimSheet from "@/components/voucher-claim-sheet.vue";
-import VoucherBanner from "@/components/voucher-banner.vue";
 import DeviceHomeIndicator from "@/components/device/device-home-indicator.vue";
 import DeviceStatusBar from "@/components/device/device-status-bar.vue";
 import { useT } from "@/i18n/use-t";
@@ -176,7 +176,7 @@ import { useVoucher } from "@/store/voucher";
 import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { usePendingCheckout } from "@/store/pending-checkout";
 import { PENDING_BAR_INSET_KEY } from "@/store/pending-checkout-core";
-import { usePopupArbiter, runPriorityRound, type AutoPushCandidate, type PopupId } from "@/store/popup-arbiter";
+import { usePopupArbiter, type PopupId } from "@/store/popup-arbiter";
 import { navBack as navBackTo, navTo } from "@/lib/route";
 import { isCurrentNativeTab } from "@/lib/native-tab-navigation";
 import { isStaticReviewRoute } from "@/lib/static-review-routes";
@@ -229,7 +229,7 @@ function isCurrentVoucherPopupScope(scope: VoucherPopupRequestScope): boolean {
 
 let autoPushMounted = false;
 const voucherPopupScheduler = createVoucherPopupScheduler<VoucherPopupRequestScope>({
-  isHome: () => autoPushMounted && props.hostVisible && readRoute() === "pages/index/index",
+  isHome: () => false, // Marketing is user-initiated from the single home benefit slot.
   isObservationModalOpen: isAcceptanceObservationModalOpen,
   isBlockingSheetOpen: () => popupArbiter.current !== null || popupArbiter.visitClaimed,
   sessionShownCount: () => voucherClaimSheet.sessionShownCount,
@@ -271,61 +271,8 @@ function bindVoucherClaimSheetScope(): void {
 // 逐个问「你现在够条件吗」,第一个够的拿走令牌。
 // 🔴 B1「一次进首页只弹一个」由「只评出一个赢家、评出即停表」自然成立 —— 不另设闩:
 //    赢家关掉之后不会再有第二个候选被评,因为表已经停了。
-const SETTLE_RETRY_MS = 300;
-// 资格复算窗口:只在安顿点评一次会重演缺陷 ②(异步目录还没到货)。
-// 有界重试 205 × 300ms ≈ 61.5s；H7 的长冷却不靠这里轮询，而由权威 nextEligibleAt 调度。
-const SETTLE_MAX_TICKS = 205;
-let settleTimer: ReturnType<typeof setTimeout> | null = null;
-let settleRetry: ReturnType<typeof setInterval> | null = null;
-let settleTicks = 0;
-
-// 顺序**不在这里定**(按 POPUP_PRIORITY 排),这里只声明每个 id 的资格与推送方式。
-const autoPushCandidates: AutoPushCandidate[] = [
-  {
-    id: "trial-claim",
-    // 先等 H7 目录到货；若当前有到点的首页券，由独立权威调度器先拿本次首页名额。
-    eligible: () => voucher.catalogReady && !voucher.autoPopupDueNow
-      && trialConfig.config.autoPushEnabled && freeTrial.canStart(),
-    ready: () => voucher.catalogReady,
-    push: () =>
-      trialClaimSheet.tryAutoPush({
-        cooldownHours: trialConfig.config.autoPushCooldownHours,
-        maxPerSession: trialConfig.config.autoPushMaxPerSession,
-      }),
-  },
-];
-
-// 延迟回归本职「让首屏先安顿」,不再兼任优先级。取各候选配置延迟的较大值,
-// 保证每个候选都过了它自己那份 autoPushDelayMs 才被评。
-function settleDelayMs(): number {
-  return Math.max(trialConfig.config.autoPushDelayMs, voucher.autoPopupCadence?.delayMs ?? 0);
-}
-
-/** 按优先级评一轮。返回 true = 该停表(有人弹出来了,或已离开首页)。 */
-// 评选逻辑本体在 store/popup-arbiter.ts 的 runPriorityRound —— 放在 store 层是为了让
-// 机器门能测**正主**;埋在组件里时门只能用正则猜写法,而正则对改名 / 挪位 / 装饰性
-// 保留一概判绿(独立审计实测:两条旧定时器改个变量名搬回来,门 57/57 全绿)。
-function runAutoPushRound(): boolean {
-  if (!props.hostVisible || readRoute() !== "pages/index/index") return true;
-  return runPriorityRound({
-    currentHolder: () => popupArbiter.current,
-    acquire: (id) => popupArbiter.acquire(id),
-    release: (id) => popupArbiter.release(id),
-    candidates: autoPushCandidates,
-    waitForReady: settleTicks < SETTLE_MAX_TICKS,
-  });
-}
-
-function stopAutoPush() {
-  if (settleTimer) {
-    clearTimeout(settleTimer);
-    settleTimer = null;
-  }
-  if (settleRetry) {
-    clearInterval(settleRetry);
-    settleRetry = null;
-  }
-}
+// Marketing sheets open only after an explicit user action.
+function stopAutoPush() { voucherPopupScheduler.cancel(); }
 
 // 令牌跟着弹层的真实开合走 —— 从 banner 手动打开的也算占屏,庆祝浮层同样要让路。
 // 写成 watch 而不是散在各个关闭路径上:关闭出口有好几个(hide / closeTransient /
@@ -536,14 +483,7 @@ function beginHomeAutoPush(newVisit: boolean) {
     stopObservationClosed = onAcceptanceObservationModalClosed(({ token }) => {
       voucherPopupScheduler.onObservationModalClosed(token);
     });
-    settleTicks = 0;
-    settleTimer = setTimeout(() => {
-      if (runAutoPushRound()) return;
-      settleRetry = setInterval(() => {
-        settleTicks += 1;
-        if (runAutoPushRound() || settleTicks >= SETTLE_MAX_TICKS) stopAutoPush();
-      }, SETTLE_RETRY_MS);
-    }, settleDelayMs());
+
   }
 }
 watch(() => [props.logicalRoute, props.tabLocationKey], () => {
@@ -595,17 +535,6 @@ const isTabRoute = computed(() => routeTab.value !== undefined || (route.value =
 const activeTab = computed(() => routeTab.value ?? props.active ?? "home");
 const isHome = computed(() => activeTab.value === "home");
 
-// Voucher fallback banner surface = current tab route (home/store/me/earn). team
-// is not a configured claim surface. The VoucherBanner self-hides unless a
-// claimable voucher targets the surface, so this only maps the route → surface.
-const bannerSurface = computed<"home" | "store" | "me" | "earn" | null>(() => {
-  // Tab pages only — sub-pages (checkout/detail/…) pass active="store" etc. but
-  // must NOT carry the banner (it's scoped to the 4 first-level surfaces).
-  if (!isTabRoute.value) return null;
-  const tab = activeTab.value;
-  return tab === "store" || tab === "me" || tab === "earn" ? tab : null;
-});
-
 // Sub-page nav header (registered via useSetPageHeader). Null on tab routes → brand
 // row. navHeaderH drives both the row height and the content-top inset, so only
 // converted sub-pages get the inset (un-converted ones keep contentTop+0, unchanged).
@@ -633,7 +562,7 @@ const statusBarHeight = computed(() => {
     return h5DevicePreviewStatusBarHeight();
   }
 });
-const HEADER_H = 52;
+const HEADER_H = 56;
 // Floor breathing (owner 2026-07-09: 加大底部呼吸). Both give ~18px clear space
 // below the last element so it isn't jammed against the tabbar / screen edge.
 const TABBAR_INSET = 104; // floating pill (64) + home indicator (22) + 18 breathing (was 92)
@@ -775,8 +704,11 @@ export default chassisView;
   -webkit-backdrop-filter: saturate(180%) blur(24px);
   pointer-events: none;
 }
+.nx-header-surface { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 160ms; }
+.nx-chassis[data-scrolled="true"] .nx-header-surface { opacity: 1; }
+.nx-chassis[data-scrolling="true"] :deep(.nx-nova-bubble) { visibility: hidden; pointer-events: none; }
 .nx-header {
-  background: linear-gradient(180deg, var(--v5-bg) 45%, color-mix(in srgb, var(--v5-bg) 92%, transparent) 80%, transparent);
+  isolation: isolate;
   position: absolute;
   left: 0;
   right: 0;
@@ -1035,3 +967,16 @@ export default chassisView;
   margin: 0 12px;
 }
 </style>
+
+<style scoped>
+.nx-header { height:56px;padding-inline:16px; }
+.nx-header__r { gap:8px;padding:0; }
+.nx-icon-btn { isolation:isolate;border-radius:50%; }
+.nx-icon-btn > svg { position:relative;z-index:1; }
+</style>
+
+<style scoped>
+.nx-canvas-brand {display:flex;align-items:center;gap:8px;} .nx-canvas-brand text {font:600 21px/26px var(--font-v5);letter-spacing:.02em;} .nx-badge {right:4px;background:#FFCB4D;z-index:2;} .nx-badge__t {font-size:10.5px;color:#0A0A0A;}
+</style>
+
+<style scoped>.nx-header__l {justify-content:flex-start;}</style>

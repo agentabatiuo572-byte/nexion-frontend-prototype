@@ -15,5 +15,9 @@ export function rewardStateKey(state: RewardState): 'rewardPending'|'rewardGrant
 }
 export function displayDeadline(value: string, language: string): string {
   const date=new Date(value);if(!Number.isFinite(date.getTime()))return '';
-  return date.toLocaleString(language==='zh'?'zh-CN':language==='vi'?'vi-VN':'en-GB',{timeZone:'UTC',year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' · UTC';
+  // Native runtimes may ignore Intl's timeZone and return the device's local time.
+  const two=(part:number)=>String(part).padStart(2,'0');
+  const year=date.getUTCFullYear(),month=two(date.getUTCMonth()+1),day=two(date.getUTCDate());
+  const calendar=language==='zh'?`${year}-${month}-${day}`:`${day}/${month}/${year}`;
+  return `${calendar} ${two(date.getUTCHours())}:${two(date.getUTCMinutes())} · UTC`;
 }

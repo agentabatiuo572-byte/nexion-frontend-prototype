@@ -12,6 +12,26 @@
   <AppChassis active="team">
     <view class="pb-4" style="padding-top: 12px; color: var(--v5-ink)">
       <view class="px-4" style="display: flex; flex-direction: column; gap: 24px">
+        <!-- This month ledger -->
+        <TeamLedgerCard
+          v-if="ledgerVisible"
+          :total-u-s-d-t-lifetime="totalUSDTLifetime"
+          :contributors="commissionAggregate.contributorCount"
+          :direct-u-s-d-t="directUSDT"
+          :extended-u-s-d-t="extendedUSDT"
+          :month-u-s-d-t="monthUSDT"
+          :month-n-e-x="monthNEX"
+          :unlocked-u-s-d-t="unlockedUSDT"
+          :cooling-u-s-d-t="coolingUSDT"
+        />
+        <view v-else-if="ledgerFailed" class="active:opacity-95" :style="toolCellStyle(0)" role="button" tabindex="0" :aria-label="t.network.retry" @click="refreshRemoteLedger"  @keydown.enter.prevent="refreshRemoteLedger" @keydown.space.prevent="refreshRemoteLedger">
+          <text class="block" :style="toolTitleStyle">{{ t.network.projectionErrorDesc }}</text>
+          <text class="block" :style="toolSubStyle">{{ t.network.retry }}</text>
+        </view>
+        <view v-if="ledgerLoading" :style="toolCellStyle(0)" role="status" aria-live="polite">
+          <text class="block" :style="toolSubStyle">{{ ledgerVisible ? t.network.projectionRefreshing : t.network.projectionLoadingTitle }}</text>
+        </view>
+
         <!-- Invite hero -->
         <InviteEarnCard ref="inviteCard" />
         <!-- #ifdef APP-PLUS -->
@@ -60,7 +80,7 @@
           <!-- Leaderboard -->
           <view class="nx-team-leaderboard-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/leaderboard')">
             <view :style="quickRowMainStyle">
-              <view :style="quickIconStyle('var(--v5-warning)')">
+              <view :style="quickIconStyle('var(--v5-ink-2)')">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z" /></svg>
               </view>
               <view class="flex-1 min-w-0">
@@ -78,7 +98,7 @@
           <!-- Royalty network -->
           <view class="nx-team-royalty-network-link"   role="button" tabindex="0" :aria-label="t.teamV3.sevenLayerNetwork" :style="quickRowStyle" @click="openReferralNetwork">
             <view :style="quickRowMainStyle">
-              <view :style="quickIconStyle('var(--v5-brand)')">
+              <view :style="quickIconStyle('var(--v5-ink-2)')">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
               </view>
               <view class="flex-1 min-w-0">
@@ -97,7 +117,7 @@
           <!-- Binary -->
           <view class="nx-team-binary-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/binary')">
             <view :style="quickRowMainStyle">
-              <view :style="quickIconStyle('var(--v5-warning)')">
+              <view :style="quickIconStyle('var(--v5-ink-2)')">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
               </view>
               <view class="flex-1 min-w-0">
@@ -116,7 +136,7 @@
           <!-- Leadership pool -->
           <view class="nx-team-leadership-pool-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/leadership-pool')">
             <view :style="quickRowMainStyle">
-              <view :style="quickIconStyle('var(--v5-tech-cyan)')">
+              <view :style="quickIconStyle('var(--v5-ink-2)')">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
               </view>
               <view class="flex-1 min-w-0">
@@ -132,69 +152,12 @@
 
         </view>
 
-        <!-- This month ledger -->
-        <TeamLedgerCard
-          v-if="ledgerVisible"
-          :total-u-s-d-t-lifetime="totalUSDTLifetime"
-          :contributors="commissionAggregate.contributorCount"
-          :direct-u-s-d-t="directUSDT"
-          :extended-u-s-d-t="extendedUSDT"
-          :month-u-s-d-t="monthUSDT"
-          :month-n-e-x="monthNEX"
-          :unlocked-u-s-d-t="unlockedUSDT"
-          :cooling-u-s-d-t="coolingUSDT"
-        />
-        <view v-else-if="ledgerFailed" class="active:opacity-95" :style="toolCellStyle(0)" role="button" tabindex="0" :aria-label="t.network.retry" @click="refreshRemoteLedger"  @keydown.enter.prevent="refreshRemoteLedger" @keydown.space.prevent="refreshRemoteLedger">
-          <text class="block" :style="toolTitleStyle">{{ t.network.projectionErrorDesc }}</text>
-          <text class="block" :style="toolSubStyle">{{ t.network.retry }}</text>
-        </view>
-        <view v-if="ledgerLoading" :style="toolCellStyle(0)" role="status" aria-live="polite">
-          <text class="block" :style="toolSubStyle">{{ ledgerVisible ? t.network.projectionRefreshing : t.network.projectionLoadingTitle }}</text>
-        </view>
-
-        <!-- Team tools -->
-        <view class="grid team-tools" :style="toolGridStyle">
-          <view class="nx-glass-card team-tool active:opacity-95" :style="toolCellStyle(0)" role="link" tabindex="0" @click="go('/pages/team/quota')">
-            <view class="flex items-start justify-between">
-              <view :style="toolIconStyle('var(--v5-warning-soft)')">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5M12 12v10" /></svg>
-              </view>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7" /></svg>
-            </view>
-            <text class="block" :style="toolTitleStyle">{{ t.teamV3.hardwareQuota }}</text>
-            <text class="block" :style="toolSubStyle">{{ t.teamV3.quotaSubtitle }}</text>
-          </view>
-          <view class="nx-glass-card team-tool active:opacity-95" :style="toolCellStyle(1)" role="link" tabindex="0" @click="go('/pages/team/agent')">
-            <view class="flex items-start justify-between">
-              <view :style="toolIconStyle('var(--v5-brand-2-soft)')">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              </view>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7" /></svg>
-            </view>
-            <text class="block" :style="toolTitleStyle">{{ t.teamV3.ambassador }}</text>
-            <text class="block" :style="toolSubStyle">{{ t.teamV3.ambassadorSubtitle }}</text>
-          </view>
-          <view class="nx-glass-card team-tool active:opacity-95" :style="toolCellStyle(2)" role="link" tabindex="0" @click="go('/pages/team/network')">
-            <view class="flex items-start justify-between">
-              <view :style="toolIconStyle('var(--v5-tech-cyan-soft)')">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="4" r="3"/><circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/><path d="m10 6-4 9m8-9 4 9M8 18h8"/></svg>
-              </view>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7" /></svg>
-            </view>
-            <text class="block" :style="toolTitleStyle">{{ t.teamV3.visualizations.influenceNetwork }}</text>
-            <text class="block" :style="toolSubStyle">{{ t.teamV3.visualizations.orbitLiveMap }}</text>
-          </view>
-          <view class="nx-glass-card team-tool active:opacity-95" :style="toolCellStyle(3)" role="link" tabindex="0" @click="go('/pages/team/tree')">
-            <view class="flex items-start justify-between">
-              <view :style="toolIconStyle('var(--v5-brand-soft)')">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="16" y="16" width="6" height="6" rx="1"/><path d="M12 8v4M5 16v-4h14v4"/></svg>
-              </view>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7" /></svg>
-            </view>
-            <text class="block" :style="toolTitleStyle">{{ t.teamV3.visualizations.genealogy }}</text>
-            <text class="block" :style="toolSubStyle">{{ t.teamV3.visualizations.genealogySubtitle }}</text>
-          </view>
-        </view>
+        <NxListGroup class="team-tools">
+          <NxListRow :title="t.teamV3.hardwareQuota" :subtitle="t.teamV3.quotaSubtitle" @click="go('/pages/team/quota')" />
+          <NxListRow :title="t.teamV3.ambassador" :subtitle="t.teamV3.ambassadorSubtitle" @click="go('/pages/team/agent')" />
+          <NxListRow :title="t.teamV3.visualizations.influenceNetwork" :subtitle="t.teamV3.visualizations.orbitLiveMap" @click="go('/pages/team/network')" />
+          <NxListRow :title="t.teamV3.visualizations.genealogy" :subtitle="t.teamV3.visualizations.genealogySubtitle" @click="go('/pages/team/tree')" />
+        </NxListGroup>
       </view>
     </view>
   </AppChassis>
@@ -207,6 +170,8 @@ import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow } from "@/composables/use-tab-page-lifecycle";
 import AppChassis from "@/components/tab-page-frame.vue";
+import NxListGroup from "@/components/ui/nx-list-group.vue";
+import NxListRow from "@/components/ui/nx-list-row.vue";
 import InviteEarnCard from "@/components/team/invite-earn-card.vue";
 // #ifdef APP-PLUS
 import InviteScanEntry from "@/components/team/invite-scan-entry.vue";

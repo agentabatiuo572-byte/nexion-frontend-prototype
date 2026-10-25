@@ -219,7 +219,7 @@
         "src/pages/me/wallet-topup.vue",
         "src/pages/me/wallet-bills.vue",
         "src/pages/me/security.vue",
-        "src/pages/me/support-tickets.vue",
+        "src/pages/me/notifications.vue",
         "src/pages/store/order-detail.vue",
         "src/pages/register/success.vue",
         "src/pages/index/index.vue",
@@ -242,7 +242,6 @@
         "src/pages/me/wallet-exchange.vue",
         "src/pages/me/wallet-nex.vue",
         "src/pages/me/wallet-bills.vue",
-        "src/pages/me/support-tickets.vue",
         "src/pages/events/events.vue",
         "src/pages/team/commissions.vue",
         "src/pages/me/help.vue",
@@ -301,6 +300,7 @@
     }
   },
   "steps": {
+    "test:design-token-budget": { "kind": "test", "always": true, "inputs": ["src/**", "scripts/design-token-budget.mjs", "scripts/design-token-budget.json"] },
     "test:app-h5-sync": {
       "kind": "test",
       "always": true,

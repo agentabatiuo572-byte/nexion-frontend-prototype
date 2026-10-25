@@ -3,12 +3,12 @@
   Progress hero + categorized list with unlock state, reward + claim button.
   Unlock conditions auto-evaluate on mount against live app store. Cross-store
   claim orchestration 走 postMoneyBills 收口点(资金与账单同生共死),仍在 handler 里。
-  Wrapped in <AppChassis active="me">.
+  Wrapped in <NxPageContent :embedded="embedded" active="me">.
 -->
 <template>
-  <AppChassis active="me">
+  <NxPageContent :embedded="embedded" active="me">
     <view style="padding-bottom: 24px">
-      <SubPageHeader back="/pages/me/me" />
+      <SubPageHeader v-if="!embedded" back="/pages/me/me" />
 
       <!-- Progress hero -->
       <view class="mx-4" :style="heroStyle">
@@ -124,14 +124,15 @@
         </view>
       </view>
     </view>
-  </AppChassis>
+  </NxPageContent>
 </template>
 
 <script setup lang="ts">
+const { embedded = false } = defineProps<{ embedded?: boolean }>();
 import { formatAmount } from "@/lib/amount-display";
-import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { onMounted, computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
-import AppChassis from "@/components/app-chassis.vue";
+import NxPageContent from "@/components/ui/nx-page-content.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { dailyMilestoneRewardText, dailyRewardLabels } from "@/pages/daily/daily-reward-view";
 import { useT } from "@/i18n/use-t";
@@ -244,6 +245,11 @@ async function refreshRemote() {
   remoteLoading.value = false;
 }
 
+onMounted(() => {
+  if (!embedded) return;
+  pageVisible = true;
+  if (remoteApiEnabled) void refreshRemote(); else evaluate();
+});
 onShow(() => {
   if (disposed) return;
   pageVisible = true;

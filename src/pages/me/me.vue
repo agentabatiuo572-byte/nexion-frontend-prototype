@@ -29,46 +29,19 @@
 
       <WalletCard />
 
-      <!-- Hero slot — zero-cost trial activation right after wallet.
-           BUG 173: 三态占位 —— 首次读取期间渲染固定高度骨架,已确认后才一次性
-           呈现最终卡片,避免卡片延迟出现把下面的模块整体推下去。 -->
-      <view v-if="!trialIsActive && trial.promoSlot === 'pending'" aria-hidden="true" :style="trialSkeletonStyle" data-me-trial-state="pending">
-        <view :style="trialSkeletonTitleStyle" />
-        <view :style="trialSkeletonSubStyle" />
-      </view>
-      <TrialEntry v-if="trialIsHero" />
-
-      <view v-for="section in quickSections" :key="section.key">
-        <SectionHeader :title="section.title" :count="section.count" />
-        <view class="nx-glass-card" :style="quickGridCardStyle">
-          <view class="nx-quick-grid" :style="quickGridStyle">
-            <view
-              v-for="item in section.items"
-              :key="item.key"
-              class="active:opacity-80"
-              :data-quick-key="item.key"
-              role="button" tabindex="0" :aria-label="item.label"
-              :style="quickItemStyle"
-              @click="handleQuickItem(item)"
-
-              @keydown.enter.prevent="handleQuickItem(item)" @keydown.space.prevent="handleQuickItem(item)"
-            >
-              <view :style="quickIconStyle(item.tone)">
-                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path v-for="path in iconPaths[item.icon]" :key="path" :d="path" />
-                </svg>
-                <text v-if="item.badge" :style="quickBadgeStyle">{{ item.badge }}</text>
-                <view v-else-if="item.dot" :style="quickDotStyle" />
-              </view>
-              <text :style="quickLabelStyle">{{ item.label }}</text>
-              <text v-if="item.meta" :style="quickMetaStyle(item.tone)">{{ item.meta }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <!-- Active-state row once trial is running -->
-      <TrialEntry v-if="trialIsActive" />
+      <NxListGroup v-if="twoFactorEnabled === false" class="me-security-hint">
+        <NxListRow :title="t.me.secNoTwoFa" :value="t.me.security" @click="navTo('/pages/me/security')" />
+      </NxListGroup>
+      <NxSection v-for="section in quickSections" :key="section.key" :title="section.title" :meta="section.count == null ? undefined : String(section.count)">
+        <NxListGroup>
+          <NxListRow v-for="item in section.items" :key="item.key" :data-quick-key="item.key" :title="item.label" :value="item.meta" @click="handleQuickItem(item)">
+            <template #leading><view class="me-row-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path v-for="path in iconPaths[item.icon]" :key="path" :d="path" /></svg>
+              <view v-if="item.dot || item.badge" class="me-row-dot" />
+            </view></template>
+          </NxListRow>
+        </NxListGroup>
+      </NxSection>
 
       <view v-if="remoteApiEnabled && remoteOrdersLoading" class="mx-0 flex items-center" style="gap: 8px; min-height: 32px" data-me-orders-state="loading">
         <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.orders.refreshing }}</text>
@@ -101,10 +74,12 @@ import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow, onUnload } from "@/composables/use-tab-page-lifecycle";
 import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
-import SectionHeader from "@/components/me/section-header.vue";
+import NxSection from "@/components/ui/nx-section.vue";
+import NxListGroup from "@/components/ui/nx-list-group.vue";
+import NxListRow from "@/components/ui/nx-list-row.vue";
 import ProfileRow from "@/components/me/profile-row.vue";
 import WalletCard from "@/components/me/wallet-card.vue";
-import TrialEntry from "@/components/me/trial-entry.vue";
+
 import OrdersCard from "@/components/me/orders-card.vue";
 import ThemePickerSheet from "@/components/me/theme-picker-sheet.vue";
 import { useT } from "@/i18n/use-t";
@@ -648,3 +623,5 @@ const signOutStyle: CSSProperties = {
   .nx-quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 </style>
+
+<style scoped>.me-row-icon { position: relative; display: grid; place-items: center; color: var(--v5-ink-2); }.me-row-dot { position: absolute; right: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: var(--v5-warning); }.me-security-hint { color: var(--v5-warning); }</style>

@@ -7,7 +7,7 @@
   round glass surface. An optional action replaces the message bell.
 -->
 <template>
-  <view class="spv" :class="{ 'spv--plain': plain, 'spv--pill': pill }" :style="{ top: (statusBarHeight + pendingBarInset) + 'px', height: rowH + 'px' }">
+  <view class="spv" :class="{ 'spv--plain': plain, 'spv--pill': pill, 'spv--design': design }" :style="{ top: (statusBarHeight + pendingBarInset) + 'px', height: rowH + 'px' }">
     <view
       class="spv-side spv-back"
       role="button"
@@ -17,8 +17,8 @@
 
       @keydown.enter.prevent="onKeyboardActivate($event, goBack)" @keydown.space.prevent="onKeyboardActivate($event, goBack)"
     >
-      <view class="spv-glass">
-        <LiquidGlass :radius="plain ? 22 : 18" tone="navigation" />
+      <view class="spv-glass nx-design-glass">
+        <LiquidGlass :radius="plain || design ? 22 : 18" tone="navigation" />
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       </view>
     </view>
@@ -27,10 +27,10 @@
       <text v-if="subtitle" class="spv-sub">{{ subtitle }}</text>
     </view>
     <view v-if="actionLabel && action" class="spv-action" role="button" tabindex="0" :aria-label="actionLabel" @click="action" @keydown.enter.prevent="onKeyboardActivate($event, action)" @keydown.space.prevent="onKeyboardActivate($event, action)">
-      <view class="spv-action-surface"><LiquidGlass :radius="18" /></view>
+      <view v-if="!design" class="spv-action-surface"><LiquidGlass :radius="18" /></view>
       <text>{{ actionLabel }}</text>
     </view>
-    <view v-else-if="!plain"
+    <view v-else-if="!plain && !design"
       class="spv-side spv-bell relative"
       role="button"
       tabindex="0"
@@ -39,7 +39,7 @@
 
       @keydown.enter.prevent="onKeyboardActivate($event, goBell)" @keydown.space.prevent="onKeyboardActivate($event, goBell)"
     >
-      <view class="spv-glass">
+      <view class="spv-glass nx-design-glass">
         <LiquidGlass :radius="18" tone="navigation" />
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
         <view v-if="unread > 0" class="spv-belldot" />
@@ -57,7 +57,7 @@ import { resolveHeaderTitleText, routeFromH5Hash } from "@/lib/header-title";
 import { navBack } from "@/lib/route";
 import { h5DevicePreviewStatusBarHeight } from "@/lib/device-preview";
 
-const props = defineProps<{ back: string; title?: string; subtitle?: string; backAction?: () => void; plain?: boolean; pill?: boolean; actionLabel?: string; action?: () => void }>();
+const props = defineProps<{ back: string; title?: string; subtitle?: string; backAction?: () => void; plain?: boolean; pill?: boolean; design?: boolean; actionLabel?: string; action?: () => void }>();
 // 待支付浮动条在场时 chassis 让内容整体下让一带,并把同一个值 provide 下来:sticky 行钉在带的下沿,
 // 不与浮动条重叠(chassis 外渲染 / 无条时为 0)。
 const pendingBarInset = inject(PENDING_BAR_INSET_KEY, ref(0));
@@ -65,7 +65,7 @@ const pendingBarInset = inject(PENDING_BAR_INSET_KEY, ref(0));
 const drawer = useMessageDrawer();
 const t = useT();
 const unread = computed(() => drawer.totalUnread);
-const rowH = computed(() => (props.subtitle ? 56 : 44));
+const rowH = computed(() => (props.design || props.subtitle ? 56 : 44));
 
 // Current uni route — last entry in getCurrentPages() (same readRoute() pattern
 // as app-chassis.vue). Used to derive a route-based title when none is passed.
@@ -223,4 +223,13 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   border-radius: 50%;
   background: var(--v5-brand-2);
 }
+</style>
+
+<style scoped>
+.spv--design { display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:0;margin:0 0 12px;padding:0 6px;border-radius:0; }
+.spv--design .spv-back { margin-left:6px; }
+.spv--design .spv-glass { width:44px;height:44px;border-radius:50%; }
+.spv--design .spv-glass svg { width:20px;height:20px; }
+.spv--design .spv-title { font-size:18px;line-height:24px;font-weight:600; }
+.spv--design .spv-action { width:72px;padding:0 4px;font-size:14px; }
 </style>

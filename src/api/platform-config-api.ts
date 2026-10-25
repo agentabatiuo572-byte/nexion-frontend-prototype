@@ -342,20 +342,22 @@ function parseVerifiedStats(value: unknown): PlatformVerifiedStats | null {
 
 function parsePublicStats(value: unknown): PublicStatsConfig {
   const projection = record(value);
+  const estimateValues = projection.values && typeof projection.values === "object" && !Array.isArray(projection.values) ? projection.values as Record<string,unknown> : projection;
   const realUserCount = finiteNumber(projection.realUserCount);
   if (!Number.isInteger(realUserCount) || realUserCount < 0 || realUserCount > 100_000_000) {
     return invalid("H9_PUBLIC_STATS_RESPONSE_INVALID");
   }
-  // Legacy servers may still send operator-configured values. Never install them
-  // into the public store: old surfaces could render them as measured facts.
-  // Invalid sentinels keep every H9-derived public display unavailable.
+  // Optional estimate parameters are rendered only with an explicit estimate label.
+  // Invalid or missing values are hidden by publicStatsHealth; they never replace realUserCount.
   return {
     fleetDevices: 0,
     onlineRatePct: 0,
     onlineJitter: -1,
-    registeredUsersBase: 0,
+    registeredUsersBase: typeof estimateValues.registeredUsersBase === "number" ? estimateValues.registeredUsersBase : -1,
     registeredUsersMonthlyGrowthPct: -1,
-    registeredUsersAnchorAt: 0,
+    registeredUsersAnchorAt: typeof estimateValues.registeredUsersAnchorAt === "number" ? estimateValues.registeredUsersAnchorAt : -1,
+    registeredUsersTickIntervalSec: typeof estimateValues.registeredUsersTickIntervalSec === "number" ? estimateValues.registeredUsersTickIntervalSec : undefined,
+    registeredUsersTickStep: typeof estimateValues.registeredUsersTickStep === "number" ? estimateValues.registeredUsersTickStep : undefined,
     realUserCount,
     virtualUserCount: -1,
     hashratePercentileTable: [],

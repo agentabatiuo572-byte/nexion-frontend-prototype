@@ -4,6 +4,7 @@ import type { CanonicalNotificationPage } from "@/api/notification-api";
 import type { Conversation, Ticket } from "@/domain/support";
 import { installSupportStorage } from "@/test/storage-setup";
 import { navBack, navTo, takeNavigationQuery } from "@/lib/route";
+import { nativeTabUrl } from "@/lib/native-tab-navigation";
 import chassisSource from "@/components/app-chassis.vue?raw";
 import headerSource from "@/components/sub-page-header.vue?raw";
 import meSource from "@/pages/me/me.vue?raw";
@@ -183,7 +184,8 @@ describe("shared message center", () => {
     expect(takeNavigationQuery("/pages/me/notifications")).toBe("?section=service");
     pages = [{ route: "pages/me/notifications" }];
     navBack("/pages/me/me");
-    expect(pages).toEqual([{ route: "pages/me/me" }]);
+    // Vitest executes the APP-PLUS branch; the physical tab host carries the logical target.
+    expect(pages).toEqual([{ route: nativeTabUrl("/pages/me/me").replace(/^\//, "") }]);
     expect(chassisSource).not.toContain("<MessageDrawer");
   });
 

@@ -68,6 +68,8 @@ it.each([en, zh, vietnamese])('renders actual network metric slots through missi
   const remoteRank = Vue.reactive({ status: 'error', snapshot: null as null | { currentRank: number | null; state: string }, refresh: vi.fn(), bindAccount: vi.fn() });
   const blank = { render: () => null };
   const dependencies: Record<string, unknown> = {
+    '@/components/ui/nx-section.vue': {default:{setup:(_p:any,{slots}:any)=>()=>Vue.h('view',slots.default?.())}},
+    '@/i18n/audit-ui': {useAuditUiCopy:()=>Vue.ref({network:'Network',details:'Details'})},
     vue: Vue, '@/i18n/use-t': { useT: () => Vue.ref(copy) },
     '@/store/app': { useApp: () => ({ accountKey: 'user:1' }) }, '@/store/config': { useConfig: () => cfg },
     '@/store/network-rank': { useNetworkRank: () => remoteRank },

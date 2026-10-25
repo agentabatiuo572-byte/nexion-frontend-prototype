@@ -1,6 +1,6 @@
 <template>
   <!-- Toast host -->
-  <view v-if="showBusinessOverlays" class="nx-toast-host">
+  <view v-if="showBusinessOverlays" class="nx-toast-host" :class="{ 'nx-toast-host--checkout': route.includes('store/checkout') || route.includes('promotion-checkout') }">
     <view
       v-for="t in ui.toasts"
       :key="t.id"
@@ -149,7 +149,7 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
 /* ───── Toasts ───── */
 .nx-toast-host {
   position: fixed;
-  top: 64px;
+  bottom: calc(96px + env(safe-area-inset-bottom));
   left: 0;
   right: 0;
   z-index: 9000;
@@ -238,7 +238,7 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 46px;
+  min-height: 48px;
   border-radius: var(--v5-radius-full);
 }
 .nx-btn--primary { background: var(--v5-brand); }
@@ -255,3 +255,5 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
   color: var(--v5-ink-3);
 }
 </style>
+
+<style scoped>.nx-toast-host--checkout {bottom:calc(112px + env(safe-area-inset-bottom));}</style>

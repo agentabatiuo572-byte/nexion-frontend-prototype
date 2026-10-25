@@ -3,7 +3,17 @@
   三格:注册用户 / 在线设备 / 设备预估排名。
 -->
 <template>
-  <view data-home-section="network-pulse">
+  <NxSection v-if="compactView" :title="copy.network" :action="copy.details" @action="navTo('/pages/globe/globe')" data-home-section="network">
+    <view class="network-compact">
+      <view v-for="(m,i) in metrics" :key="m.k" class="network-compact__cell" :role="m.tap ? 'button' : undefined" :tabindex="m.tap ? 0 : -1" @click="activate(m.tap)" @keydown.enter.prevent="activate(m.tap)" @keydown.space.prevent="activate(m.tap)">
+        <text class="network-compact__label">{{ i === 0 && estimated ? copy.memberEstimateLabel : m.k }}</text>
+        <text class="network-compact__value" :style="m.vSize ? {fontSize:m.vSize} : {}">{{ i === 0 && registeredDisplay != null ? registeredDisplay.toLocaleString() : m.v }}</text>
+        <text v-if="m.subTap" class="network-compact__retry" role="button" tabindex="0" @click.stop="m.subTap()" @keydown.enter.stop.prevent="m.subTap()" @keydown.space.stop.prevent="m.subTap()">{{ m.sub }}</text>
+        <text v-else-if="m.v === '-'" class="network-compact__retry">{{ m.sub }}</text>
+      </view>
+    </view>
+  </NxSection>
+  <view v-else data-home-section="network-pulse">
     <view class="flex items-center justify-between" style="margin: 8px 2px 10px">
       <text style="font-family: var(--font-v5); font-weight: 600; font-size: 15px; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.networkPulseTitle }}</text>
     </view>
@@ -17,7 +27,7 @@
           class="grid items-center gap-2"
           :class="m.tap ? 'active:opacity-70' : ''"
           :role="m.tap ? 'button' : undefined"
-          :tabindex="m.tap ? 0 : undefined"
+          :tabindex="m.tap ? 0 : -1"
           :style="{ gridTemplateColumns: '1fr', padding: '12px', borderRight: i < metrics.length - 1 ? '1px solid var(--v5-border)' : 'none', minWidth: 0 }"
           v-on="m.tap ? { click: m.tap } : {}"
 
@@ -59,6 +69,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import NxSection from '@/components/ui/nx-section.vue';
+import { useAuditUiCopy } from '@/i18n/audit-ui';
+defineProps<{compactView?:boolean;estimated?:boolean;registeredDisplay?:number|null}>();
+const copy = useAuditUiCopy();
 import { useT } from "@/i18n/use-t";
 import { useApp } from "@/store/app";
 import { useConfig } from "@/store/config";
@@ -66,6 +80,7 @@ import { useNetworkRank } from "@/store/network-rank";
 import { remoteApiEnabled } from "@/api/runtime";
 import { compactNumber as compact } from "@/lib/platform-stats";
 import { confirm } from "@/store/ui";
+import { navTo } from "@/lib/route";
 
 const t = useT();
 const app = useApp();
@@ -183,3 +198,13 @@ const metrics = computed<Cell[]>(() => {
 
 
 </script>
+<style scoped>
+.network-compact {position:relative;overflow:hidden;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:16px 0;border-radius:22px;border:1px solid var(--v5-border);background:var(--v5-surface);}
+.network-compact::before {content:'';position:absolute;inset:0;background-image:radial-gradient(color-mix(in srgb,var(--v5-brand) 10%,transparent) 1px,transparent 1.2px);background-size:10px 10px;mask-image:radial-gradient(80% 120% at 70% 50%,#000,transparent 75%);pointer-events:none;}
+.network-compact__cell {position:relative;min-width:0;padding:0 14px;border-left:1px solid var(--v5-border);}
+.network-compact__cell:first-child {border:0;padding-left:16px;}
+.network-compact__label,.network-compact__retry {display:block;font:400 12.5px/18px var(--font-v5);color:var(--v5-ink-3);}
+.network-compact__label {min-height:36px;}
+.network-compact__value {display:block;margin-top:4px;font:600 18px/24px var(--font-v5);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.network-compact__retry {font-size:11px;}
+</style>

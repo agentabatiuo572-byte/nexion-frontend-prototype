@@ -1,32 +1,33 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { onScopeDispose, ref } from "vue";
 import { remoteApiEnabled, vRankApi } from "@/api/runtime";
 import type { CanonicalVRankLadder, CanonicalVRankState } from "@/api/v-rank-api";
 import { asApiError } from "@/api/errors";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import { normalizeAccountKey } from "@/store/account-cloud";
 import { readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
-import { captureRuntimeRevision, isCurrentRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
 
 /**
  * Ported from Nexion-prototype/lib/v3/v-rank.ts (zustand persist → Pinia + uni storage).
- * ⚠️ MOCK-ONLY V_RANKS table (13-tier ladder, conditions + bonuses + prizes).
+ * ⚠️ MOCK-ONLY V_RANKS table (9-tier preview ladder, conditions + bonuses + prizes).
  * Production: GET /api/config/v-ranks returns server-authoritative ladder.
  * Promotion judging (nextRankProgress / nextRankGap) is preview-only; server is
  * the sole canonical authority for V-rank promotion (PRD §13.2).
  *
- * V0→V12 13 阶,每升一阶解锁 unilevel 深度 +1 / 平级奖(V3+) / 领导池权重 / 培育奖 NEX。
+ * V0→V8 9 阶,每升一阶解锁 unilevel 深度 +1 / 平级奖(V3+) / 领导池权重 / 培育奖 NEX。
  * 晋级条件、权益与奖励应完整展示；正式等级以服务端发布的阶梯为准。
  * 奖励为可配 NEX(cultivationBonus);实物奖品已删(与运营后台 F1 同步,2026-06)。
  */
 
-export type VRank = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+/** Rank IDs are validated at the API boundary; never clamp an existing account rank. */
+export type VRank = number;
 
 export interface VRankConditions {
   selfBuyUSD?: number;        // 自买设备累计
   directRefs?: number;        // 直推数
   teamVolumeUSD?: number;     // 团队总业绩
-  vDownlines?: Partial<Record<VRank, number>>; // 下面需要 N 个 V 级
+  vDownlines?: Record<VRank, number>; // 下面需要 N 个 V 级
 }
 
 export interface VRankDef {
@@ -124,34 +125,7 @@ export const V_RANKS: VRankDef[] = [
     peerBonus: 0.05, leadershipVotes: 32,
     cultivationBonus: 10_000_000, rewards: [],
   },
-  {
-    v: 9, title: "Galaxy Lord", cnTitle: "星河领主",
-    conditions: { teamVolumeUSD: 10_000_000 },
-    directBonus: 0.10, unilevelDepth: 10,
-    peerBonus: 0.05, leadershipVotes: 64,
-    cultivationBonus: 0, rewards: [],
-  },
-  {
-    v: 10, title: "UVEL Founder", cnTitle: "联合创始",
-    conditions: { teamVolumeUSD: 30_000_000 },
-    directBonus: 0.10, unilevelDepth: 99,
-    peerBonus: 0.05, leadershipVotes: 128,
-    cultivationBonus: 0, rewards: [],
-  },
-  {
-    v: 11, title: "Cosmic Sovereign", cnTitle: "宇宙至尊",
-    conditions: { teamVolumeUSD: 100_000_000 },
-    directBonus: 0.10, unilevelDepth: 99,
-    peerBonus: 0.05, leadershipVotes: 256,
-    cultivationBonus: 0, rewards: [],
-  },
-  {
-    v: 12, title: "Singularity", cnTitle: "奇点",
-    conditions: { teamVolumeUSD: 500_000_000 },
-    directBonus: 0.10, unilevelDepth: 99,
-    peerBonus: 0.05, leadershipVotes: 512,
-    cultivationBonus: 0, rewards: [],
-  },
+
 ];
 
 /**
@@ -164,7 +138,7 @@ export interface VRankData {
   selfBuyUSD: number;
   directRefs: number;
   teamVolumeUSD: number;
-  vDownlineCounts: Partial<Record<VRank, number>>;
+  vDownlineCounts: Record<VRank, number>;
 }
 
 export type VRankProgressPatch = Partial<Omit<VRankData, "myRank">>;
@@ -226,7 +200,7 @@ export const useVRank = defineStore("vRank", () => {
   const selfBuyUSD = ref(init.selfBuyUSD);
   const directRefs = ref(init.directRefs);
   const teamVolumeUSD = ref(init.teamVolumeUSD);
-  const vDownlineCounts = ref<Partial<Record<VRank, number>>>(init.vDownlineCounts);
+  const vDownlineCounts = ref<Record<VRank, number>>(init.vDownlineCounts);
   const ladder = ref<VRankDef[]>(remoteApiEnabled ? [] : V_RANKS);
   // 服务端能力位:某类收益今天是否真的会派发(与佣金指南同源)。等级阶梯里的
   // peerBonus 是「配置比例」,不是「已生效权益」—— 渲染时必须靠这个位区分(#79)。
@@ -306,7 +280,7 @@ export const useVRank = defineStore("vRank", () => {
       teamVolumeUSD.value = remoteCurrent.progress.teamVolumeUSD;
       vDownlineCounts.value = Object.fromEntries(
         Object.entries(remoteCurrent.progress.vDownlineCounts).map(([rank, count]) => [Number(rank) as VRank, count]),
-      ) as Partial<Record<VRank, number>>;
+      ) as Record<VRank, number>;
       remoteReady.value = true;
       remoteError.value = null;
     };
@@ -336,6 +310,14 @@ export const useVRank = defineStore("vRank", () => {
       remoteError.value = "V_RANK_REMOTE_AUTHORITY_UNAVAILABLE";
     }
   }
+
+  // A catalogue refresh invalidates in-flight rank reads too. Start a read in
+  // the new revision so discarding the old response cannot strand the loading
+  // state. Keep the account/revision/generation fences on both success and error.
+  const unsubscribeRuntime = subscribeRuntimeRevision(() => {
+    if (remoteApiEnabled) void refreshCanonicalVRank();
+  });
+  onScopeDispose(unsubscribeRuntime);
 
   function setMyRank(v: VRank) {
     if (remoteApiEnabled) return;

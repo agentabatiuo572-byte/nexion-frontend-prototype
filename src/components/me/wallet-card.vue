@@ -18,13 +18,15 @@
         <view class="nx-wallet-coin" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM8 15V9l8 6V9" /></svg></view>
         <text class="tabular-nums">{{ nexLabel }} UVT</text>
       </view>
-    </view>
     <view class="nx-wallet-details">
-      <text class="block nx-wallet-pending tabular-nums">{{ pendingLine }}</text>
+      <text v-if="pendingLine" class="block nx-wallet-pending tabular-nums">{{ pendingLine }}</text>
       <view class="nx-wallet-valuation">
         <text>{{ nexMarketLabel }}</text>
-        <view class="nx-wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" ><text>{{ billsThisMonth }} {{ t.me.billsThisMonth }}</text><text aria-hidden="true"> ›</text></view>
+        <view class="nx-wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" ><text>{{ fmt(t.me.billsThisMonth, {n:billsThisMonth}) }}</text><text aria-hidden="true"> ›</text></view>
       </view>
+    </view>
+    </view>
+    <view class="nx-wallet-actions">
         <!-- Quick actions strip -->
         <view :style="actionsBlockStyle">
           <text class="block" style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; color: var(--v5-ink-4); margin-bottom: 8px">{{ t.me.quickActions }}</text>
@@ -62,7 +64,8 @@ import { formatAmount } from "@/lib/amount-display";
 import { navReset, navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
-import { fmt, openSlotsTemplate } from "@/i18n/format";
+import { useAuditUiCopy } from "@/i18n/audit-ui";
+import { fmt, fmtMoney, openSlotsTemplate } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { earningsReleaseHasSnapshot, earningsReleaseSnapshot, earningsReleaseStatus } from "@/store/earning-release";
 import { useBills } from "@/store/bills";
@@ -99,12 +102,11 @@ const usdt = computed(() => app.user.usdtBalance);
 const usdtText = computed(() => formatAmount(usdt.value));
 const intPart = computed(() => usdtText.value.split(".")[0]);
 const fracPart = computed(() => usdtText.value.split(".")[1]);
-const pendingLine = computed(() =>
-  fmt(t.value.me.walletBucketsHint, {
-    review: bucketsReadable.value ? formatAmount(buckets.value.pendingReviewUsdt) : "—",
-    locked: bucketsReadable.value ? formatAmount(buckets.value.bonusLockedUsdt) : "—",
-  }),
-);
+const auditCopy = useAuditUiCopy();
+const pendingLine = computed(() => {
+  if (!bucketsReadable.value) return `${auditCopy.value.confirming} -- · ${auditCopy.value.locked} --`;
+  return [buckets.value.pendingReviewUsdt > 0 ? `${auditCopy.value.confirming} ${fmtMoney(buckets.value.pendingReviewUsdt)}` : '', buckets.value.bonusLockedUsdt > 0 ? `${auditCopy.value.locked} ${fmtMoney(buckets.value.bonusLockedUsdt)}` : ''].filter(Boolean).join(' · ');
+});
 
 const nex = computed(() => app.user.nexBalance);
 const nexLabel = computed(() => fundsReadable.value ? formatAmount(nex.value) : "—");
@@ -254,8 +256,8 @@ const pulseDotStyle: CSSProperties = {
 const addDeviceBtnStyle: CSSProperties = {
   minHeight: "44px",
   padding: "11px 16px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 16%, transparent)",
-  color: "var(--v5-brand-2-ink)",
+  background: "var(--v5-surface-2)",
+  color: "var(--v5-ink-2)",
   borderRadius: "999px",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,

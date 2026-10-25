@@ -3,7 +3,7 @@
   GreetingHeader). Time-of-day greeting line only ("早上好, Alex").
 -->
 <template>
-  <view class="px-1">
+  <view>
     <text class="block" style="font-family: var(--font-v5); font-size: 20px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; color: var(--v5-ink)">{{ greetingLine }}</text>
   </view>
 </template>

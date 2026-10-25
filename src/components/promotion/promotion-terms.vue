@@ -1,31 +1,28 @@
 <template>
-  <view v-if="open" class="promotion-overlay">
-    <view class="promotion-overlay-dismiss" aria-hidden="true" @click="emit('close')" />
-    <view class="promotion-modal promotion-terms" role="dialog" aria-modal="true" :aria-label="t.promotion.rules" tabindex="-1">
-      <LiquidGlass :radius="28" tone="navigation" />
-      <view class="promotion-modal-content">
-      <text class="promotion-title">{{ title || t.promotion.rules }}</text>
-      <text class="promotion-copy" style="white-space:pre-wrap;margin-top:14px">{{ terms }}</text>
-      <template v-for="(entry,index) in disclosures" :key="index">
-        <view class="promotion-row"><view class="promotion-grow"><text class="promotion-title">{{ localized(entry.title,locale.code) }}</text><DisclosureDetails :disclosure="entry" /></view></view>
-      </template>
-      <PromotionAction class="promotion-action primary" style="margin-top:24px" role="button" tabindex="0" @click="emit('close')"><text>{{ t.promotion.back }}</text></PromotionAction>
-      </view>
+  <NxSheet :open="open" :title="title || t.promotion.rules" @close="emit('close')">
+    <view v-for="(entry,index) in uniqueDisclosures" :key="index" class="promotion-rule-section">
+      <text class="promotion-title">{{ localized(entry.title,locale.code) }}</text>
+      <DisclosureDetails :disclosure="entry" />
     </view>
-  </view>
+    <text v-if="uniqueTerms" class="promotion-copy" style="white-space:pre-wrap;margin-top:14px">{{ uniqueTerms }}</text>
+  </NxSheet>
 </template>
 <script setup lang="ts">
-import PromotionAction from '@/components/promotion/promotion-action.vue';
-import LiquidGlass from '@/components/liquid-glass.vue';
-import { toRef } from 'vue';
+import NxSheet from '@/components/ui/nx-sheet.vue';
+import { computed } from 'vue';
 import { useT } from '@/i18n/use-t';
 import { useLocaleStore } from '@/store/locale';
-import { useDialogA11y } from '@/composables/use-dialog-a11y';
 import { localized } from '@/lib/promotion-display';
 import type { RewardDisclosure } from '@/api/promotion-contracts';
 import DisclosureDetails from './disclosure-details.vue';
 const props=defineProps<{open:boolean;title?:string;terms?:string;disclosures?:RewardDisclosure[]}>();
 const emit=defineEmits<{(e:'close'):void}>();const t=useT();const locale=useLocaleStore();
-useDialogA11y(toRef(props,'open'),'.promotion-terms',()=>emit('close'));
+const uniqueDisclosures = computed(() => Array.from(new Map((props.disclosures ?? []).map(entry => [JSON.stringify(entry), entry])).values()));
+const uniqueTerms = computed(() => {
+  const value = props.terms?.trim() ?? '';
+  return uniqueDisclosures.value.some(entry => localized(entry.terms,locale.code).trim() === value) ? '' : value;
+});
 </script>
 <style src="./promotion.css"></style>
+
+<style scoped>.promotion-rule-section + .promotion-rule-section { margin-top:24px;padding-top:24px;border-top:1px solid var(--v5-border); }</style>

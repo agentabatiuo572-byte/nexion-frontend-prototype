@@ -1,21 +1,14 @@
 <!-- One large, accessible card per active device; manage opens the inventory. -->
 <template>
-  <view class="hf-section">
-    <view class="hf-heading">
-      <view class="hf-title-group">
-        <text class="hf-title">{{ t.home.myFleet }}</text>
-        <text class="hf-count font-mono-tabular">{{ fleetCountText }}</text>
-      </view>
-      <view class="hf-manage nx-home-glass-item" role="button" tabindex="0" @click="goManage"  @keydown.enter.stop.prevent="goManage" @keydown.space.stop.prevent="goManage">
-        <view class="nx-home-glass-panel" aria-hidden="true" />
-        <text>{{ t.home.fleetManage }}</text>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7" /></svg>
-      </view>
-    </view>
-    <view class="hf-grid">
+  <view class="hf-section" data-home-section="fleet">
+    <NxSection :title="t.home.myFleet" :meta="fleetCountText" :action="t.home.fleetManage" @action="goManage">
+    <view v-if="fleetReady" class="hf-grid">
       <DeviceRow v-for="d in devices" :key="d.id" :device="d" :runtime-confirmed="fleetReady" />
       <AddDeviceRow v-if="fleetReady && slotDevices.length < app.slotCap" />
     </view>
+    <view v-else-if="app.remoteFleetStatus !== 'error'" class="hf-grid hf-loading" role="status" aria-live="polite" aria-busy="true"><text class="sr-only">{{ copy.fleetLoading }}</text><view v-for="n in 2" :key="n" class="hf-skeleton-row" aria-hidden="true"><view class="hf-skeleton-art"/><view class="hf-skeleton-copy"><view/><view/></view></view></view>
+    <view v-else class="hf-unavailable"><text>{{ copy.fleetUnavailable }}</text><NxButton size="small" variant="text" :label="t.home.fleetManage" @click="goManage" /></view>
+    </NxSection>
   </view>
 </template>
 
@@ -26,16 +19,22 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { remoteApiEnabled } from "@/api/runtime";
-import DeviceSlot from "./device-slot.vue";
+import { useAuditUiCopy } from '@/i18n/audit-ui';
+import NxSection from "@/components/ui/nx-section.vue";
+import NxButton from "@/components/ui/nx-button.vue";
 import DeviceRow from "./device-row.vue";
 import AddDeviceRow from "./add-device-row.vue";
 import { isActiveSlotDevice } from "@/lib/device-slot-policy";
+import { deviceOnlineState } from '@/lib/hashpower';
 
 const t = useT();
+const copy = useAuditUiCopy();
 const app = useApp();
 
-const devices = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null));
-const slotDevices = computed(() => devices.value.filter(isActiveSlotDevice));
+const allDevices = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null)
+  .sort((a,b) => Number(deviceOnlineState(a,Date.now(),fleetReady.value) === 'online') - Number(deviceOnlineState(b,Date.now(),fleetReady.value) === 'online')));
+const devices = computed(() => allDevices.value.slice(0,4));
+const slotDevices = computed(() => allDevices.value.filter(isActiveSlotDevice));
 // Read-only fleet presentation may retain this account's last confirmed
 // snapshot while a background refresh is pending. Actions remain governed by
 // their existing authoritative checks.
@@ -61,6 +60,9 @@ function goManage() {
 .hf-count { font-size: 12px; line-height: 18px; color: var(--v5-ink-3); white-space: nowrap; }
 .hf-manage { display: flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: var(--v5-radius-full); font: 500 13px/20px var(--font-v5); color: var(--v5-ink); }
 .hf-manage > text, .hf-manage > svg { position: relative; }
-.hf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.hf-grid > :nth-child(even) { --home-art-delay: -2s; }
+.hf-grid { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--ui-radius-surface); background: var(--v5-surface); border:1px solid var(--v5-border); }
+.hf-unavailable { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: var(--ui-radius-surface); background: var(--v5-surface); color: var(--v5-ink-3); font-size: 12px; }
+.hf-grid > :deep(.nx-device-row + .nx-device-row) { border-top: 1px solid var(--v5-border); }
 </style>
+
+<style scoped>.hf-skeleton-row {display:flex;align-items:center;gap:12px;height:68px;padding:10px 16px;box-sizing:border-box;}.hf-skeleton-row + .hf-skeleton-row {border-top:1px solid var(--v5-border);}.hf-skeleton-art {width:48px;height:48px;border-radius:14px;background:var(--v5-surface-2);}.hf-skeleton-copy {flex:1;}.hf-skeleton-copy > view {height:12px;width:65%;border-radius:6px;background:var(--v5-surface-2);}.hf-skeleton-copy > view + view {margin-top:10px;width:40%;}</style>

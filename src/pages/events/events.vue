@@ -7,7 +7,7 @@
   + writes a bill. Decomposed into src/components/events/* (FeaturedHero /
   Card) — each carries its own scroll-grow bar.
 
-  Wrapped in <AppChassis active="home"> (reached from Home). SetPageHeader
+  Wrapped in <NxPageContent :embedded="embedded" active="home"> (reached from Home). SetPageHeader
   backHref="/" → SubPageHeader back="/pages/index/index". SegmentedControl →
   inline pill tabs. The source's live evaluateEventProgress() is replaced by
   the mock's `trackable`/`done` flags (self-contained, backend-replaceable).
@@ -17,9 +17,9 @@
   Achievements unlock on claim is omitted (no achievements store ported).
 -->
 <template>
-  <AppChassis active="home">
+  <NxPageContent :embedded="embedded" active="home">
     <CardStagger class="pb-8" style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/index/index" />
+      <SubPageHeader v-if="!embedded" back="/pages/index/index" />
 
       <view class="px-4 space-y-3">
         <GlassSegments :label="t.promotion.events" v-model="eventSource" :options="sourceOptions" />
@@ -73,14 +73,15 @@
         </template>
       </view>
     </CardStagger>
-  </AppChassis>
+  </NxPageContent>
 </template>
 
 <script setup lang="ts">
+const { embedded = false } = defineProps<{ embedded?: boolean }>();
 import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, nextTick, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import { onLoad, onHide, onShow } from "@dcloudio/uni-app";
-import AppChassis from "@/components/app-chassis.vue";
+import NxPageContent from "@/components/ui/nx-page-content.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import CardStagger from "@/components/card-stagger.vue";

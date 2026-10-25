@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createPinia, setActivePinia } from "pinia";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createPinia, disposePinia, setActivePinia } from "pinia";
 import { advanceRuntimeRevision } from "@/api/order-api";
 import type { VRankData, VRankDef } from "./v-rank";
 
@@ -12,12 +12,15 @@ vi.mock("@/api/runtime", () => remote);
 
 const { useVRank, nextRankGap, nextRankProgress } = await import("./v-rank");
 
+let pinia: ReturnType<typeof createPinia>;
 beforeEach(() => {
-  setActivePinia(createPinia());
+  pinia = createPinia();
+  setActivePinia(pinia);
   advanceRuntimeRevision(null);
   remote.vRankApi.ladder.mockReset();
   remote.vRankApi.current.mockReset();
 });
+afterEach(() => { disposePinia(pinia); });
 
 describe("V-rank remote authority state", () => {
   it("never presents zero as a loaded rank when either canonical request fails", async () => {
@@ -79,8 +82,10 @@ describe("V-rank remote authority state", () => {
   it("discards a late canonical response after its runtime revision changes", async () => {
     let resolveLadder!: (value: unknown) => void;
     let resolveCurrent!: (value: unknown) => void;
-    remote.vRankApi.ladder.mockReturnValue(new Promise((resolve) => { resolveLadder = resolve; }));
-    remote.vRankApi.current.mockReturnValue(new Promise((resolve) => { resolveCurrent = resolve; }));
+    remote.vRankApi.ladder.mockReturnValueOnce(new Promise((resolve) => { resolveLadder = resolve; }))
+      .mockReturnValue(new Promise(() => {}));
+    remote.vRankApi.current.mockReturnValueOnce(new Promise((resolve) => { resolveCurrent = resolve; }))
+      .mockReturnValue(new Promise(() => {}));
     const store = useVRank();
 
     const pending = store.refreshCanonicalVRank();

@@ -16,16 +16,6 @@
 -->
 <template>
   <AppChassis active="earn">
-    <template #pageTop>
-      <CardStagger class="pt-3 space-y-6" style="color: var(--v5-ink)">
-        <!-- Trial entries -->
-        <view class="mx-4">
-          <TrialHeroBanner class="w-full" />
-        </view>
-        <TrialGhostSlot class="mx-4" />
-      </CardStagger>
-    </template>
-
     <CardStagger class="pt-6 pb-4 space-y-6" style="color: var(--v5-ink)">
       <view v-if="app.remoteFleetStatus === 'error'" class="mx-4 rounded-xl" style="padding: 12px; background: var(--v5-danger-soft); color: var(--v5-danger)">
         <text class="block" style="font-size: 13px; font-weight: 600">{{ t.wallet.syncFailedTitle }}</text>
@@ -50,15 +40,10 @@
       <!-- ===== HERO: total earned card ===== -->
       <view class="mx-4">
         <view class="relative overflow-hidden" :style="totalCardStyle">
-          <!-- drifting dots (particle effect; card background removed per design) -->
-          <view aria-hidden style="position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden">
-            <view v-for="(d, i) in HERO_DOTS" :key="i" :style="heroDotStyle(d)" />
-          </view>
-
           <view class="relative" style="z-index: 1">
             <view class="flex justify-between items-center gap-2">
-              <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-4); letter-spacing: 0.04em">{{ t.earn.computeEarned }} · {{ rangeLabel(range) }}</text>
-              <text class="font-mono-tabular" :style="usdtTagStyle">USDT</text>
+              <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-4); letter-spacing: 0.04em">{{ auditCopy.deviceRevenue }} · {{ rangeLabel(range) }}</text>
+              <text class="earn-scope">{{ auditCopy.revenueScope }}</text>
             </view>
 
             <view class="mt-2.5 flex items-baseline gap-1" style="font-family: var(--font-v5); font-weight: 600; letter-spacing: -0.024em; line-height: 1; color: var(--v5-ink)">
@@ -111,9 +96,8 @@
         <DeviceCardPC v-for="(d, i) in devices" :key="d.id" :device="d" :expanded="expandedId === d.id" :divider="i !== 0" @toggle="toggleDevice(d.id)" />
       </EmptySlotsHint>
 
-      <ComputeShareEntry />
-      <!-- Loss-aversion — moved directly above the market board -->
-      <MissedIncomeBanner />
+      <EarningsLedgerCard class="mx-4" />
+      <NxSection class="mx-4" :title="auditCopy.moreWays"><ComputeShareEntry /><TrialGhostSlot /></NxSection>
       <MarketBoard />
       <TaskCenter />
       <!-- FEAT-DEV01: W-CAP1 任务产能说明弹层(单实例;设备卡/补贴 badge/提示线共用入口) -->
@@ -128,11 +112,13 @@ import { onUnmounted, computed, nextTick, ref, watch, type CSSProperties } from 
 import { onHide, onShow } from "@/composables/use-tab-page-lifecycle";
 import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
-import TrialHeroBanner from "@/components/trial-hero-banner.vue";
+import NxSection from "@/components/ui/nx-section.vue";
+import EarningsLedgerCard from "@/components/home/earnings-ledger-card.vue";
+import { useAuditUiCopy } from "@/i18n/audit-ui";
 import TrialGhostSlot from "@/components/trial-ghost-slot.vue";
 import DeviceCardPC from "@/components/earn/device-card-pc.vue";
 import CapacityExplainerSheet from "@/components/earn/capacity-explainer-sheet.vue";
-import MissedIncomeBanner from "@/components/earn/missed-income-banner.vue";
+
 import ComputeShareEntry from "@/components/earn/compute-share-entry.vue";
 import EmptySlotsHint from "@/components/earn/empty-slots-hint.vue";
 import MarketBoard from "@/components/earn/market-board.vue";
@@ -152,6 +138,7 @@ const RANGES: Range[] = ["Today", "Week", "Month", "All"];
 
 const app = useApp();
 const t = useT();
+const auditCopy = useAuditUiCopy();
 const range = ref<Range>("Today");
 const freeTrial = useFreeTrial();
 let earnPageVisible = false;
@@ -345,3 +332,5 @@ const usdtTagStyle: CSSProperties = {
 import GlassSegments from "@/components/glass-segments.vue";
 const rangeOptions = computed(() => RANGES.map(value => ({ value, label: rangeLabel(value) })));
 </script>
+
+<style scoped>.earn-scope { color: var(--v5-ink-2); font: 400 12px/1.4 var(--font-v5); text-align: right; max-width: 50%; }</style>

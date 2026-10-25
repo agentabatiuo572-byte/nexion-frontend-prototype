@@ -40,7 +40,7 @@ function mountPage() {
     "@/store/ui": { confirm: async () => true, useUI: () => ({ clearConfirmsBy: vi.fn() }) },
     "@/store/app": { useApp: () => ({ accountKey: "fixture", accountBindingEpoch: 0 }) },
   };
-  const page = new Function("require", "exports", output + ";return { t, notifs, filter, filtered, countOf, filterLabel, emptyTitle, confirmClearRead, visibleFilterIds, serviceFilters };")(
+  const page = new Function("require", "exports", output + ";return { t, notifs, filter, filtered, countOf, filterLabel, emptyTitle, visibleFilterIds, serviceFilters };")(
     (name: string) => {
       if (name.endsWith(".vue")) return {};
       if (!(name in modules)) throw new Error(`Unexpected dependency: ${name}`);
@@ -100,7 +100,8 @@ describe("notification empty-state context", () => {
   it("keeps the selected category visible after clearing its last read notification", async () => {
     const { page } = mountPage();
     page.filter.value = "team";
-    await page.confirmClearRead();
+    // The secondary settings page mutates this shared store; the list keeps its filter.
+    await page.notifs.clearRead();
     expect(page.filtered.value).toHaveLength(0);
     expect(page.notifs.items).toHaveLength(1);
     // 断言行为而非模板文本:清空「team」最后一条已读后,该分类必须仍在可见清单里,
@@ -112,7 +113,7 @@ describe("notification empty-state context", () => {
   it("renders the category empty title rather than implying all notifications are gone", async () => {
     const { page } = mountPage();
     page.filter.value = "team";
-    await page.confirmClearRead();
+    await page.notifs.clearRead();
     const title = source.match(/<EmptyState[^>]*:title="([^\"]+)"/)![1];
     expect(evaluateBinding(title, vue.proxyRefs(page))).toBe(fmt(zh.notifs.emptyFilterTitle, { filter: zh.notifs.kindTeam }));
   });

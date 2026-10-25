@@ -13,6 +13,7 @@ export interface StickyCTAPayload {
   /** Price string; a leading "$" is split into a small dim prefix. */
   amount: string;
   amountSubtext?: string;
+  quantity?: { value: number; min: number; max: number; decrease: () => void; increase: () => void };
   buttonLabel: string;
   /** Disabled CTA remains visible but never navigates or vibrates. */
   disabled?: boolean;

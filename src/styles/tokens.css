@@ -25,6 +25,12 @@
 /* v2 palette — pure black + lime green + retain v1 dot-grid / pulse-node effects.
    Legacy tokens — kept until each module is migrated to v5. */
 :root {
+  --ui-radius-surface: 22px;
+  --ui-action: var(--v5-brand);
+  --ui-asset: var(--v5-nex);
+  --ui-attention: var(--v5-warning-ink);
+  --ui-error: var(--v5-danger);
+  --ui-space-section: 20px;
   --bg-base: #000000;
   --bg-app: #000000;
   --bg-card: #0F0F0F;
@@ -179,12 +185,12 @@
      Defining them here makes all three usages (--font-v5 / body / .font-mono-
      tabular) valid → clean sans-serif even before the web fonts load. (P-038) */
   --font-display: "General Sans", "Manrope", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   --font-jet-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* v5 font stack — for use in inline style fontFamily. */
   --font-v5: "General Sans", var(--font-display), "Manrope", -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
 
   /* Radius ladder — 《03 空间圆角边框分层》阶梯落 token(vibe-playbook P2-F 2026-07-22)。
      主题无关;新代码优先引用,存量迁移随「尺寸迁移工程」分批。
@@ -992,3 +998,17 @@ html {
 uni-input {
   min-height: 44px;
 }
+
+/* Final canvas geometry with owner-requested original neutral card palette. */
+:root { --ui-content-surface:#fff;--ui-content-surface-2:#FAF7F0;--ui-content-surface-3:#F0EBE0;--ui-ticket-top:#FFFFFF;--ui-ticket-bottom:#FAF7F0;--ui-trial-top:#FFFFFF;--ui-lime-soft:var(--v5-brand);--ui-lime-pale:var(--v5-brand);--ui-spotlight-top:#FFFFFF;--ui-perk:#FAF7F0; }
+:root:not([data-theme="light"]), [data-theme="dark"] { --ui-content-surface:#141414;--ui-content-surface-2:#1F1F1F;--ui-content-surface-3:#2A2A2A;--ui-ticket-top:#171717;--ui-ticket-bottom:#111111;--ui-trial-top:#171717;--ui-lime-soft:#C8F25A;--ui-lime-pale:#E6FF9E;--ui-spotlight-top:#181818;--ui-perk:#1F1F1F; }
+.nx-page-enter { --v5-surface:var(--ui-content-surface);--v5-surface-2:var(--ui-content-surface-2);--v5-surface-3:var(--ui-content-surface-3); }
+
+/* Canvas controls retain the LiquidGlass optical renderer; only their surface
+   layers adopt the approved high-light treatment. Bottom navigation excluded. */
+.nx-design-glass { --ui-glass-rgb:0,0,0; }
+:root:not([data-theme="light"]) .nx-design-glass, [data-theme="dark"] .nx-design-glass { --ui-glass-rgb:255,255,255; }
+.nx-design-glass > .nx-liquid-glass { backdrop-filter:blur(16px) saturate(170%);-webkit-backdrop-filter:blur(16px) saturate(170%); }
+.nx-design-glass > .nx-liquid-glass > .nx-liquid-tint { background:linear-gradient(180deg,rgba(var(--ui-glass-rgb),.16),rgba(var(--ui-glass-rgb),.05) 46%,rgba(var(--ui-glass-rgb),.03));box-shadow:inset 0 1px 0 rgba(var(--ui-glass-rgb),.42),inset 0 -1px 1px rgba(var(--ui-glass-rgb),.08),inset 0 0 14px rgba(var(--ui-glass-rgb),.05),0 8px 24px rgba(0,0,0,.5); }
+.nx-design-glass > .nx-liquid-glass > .nx-liquid-rim { border:1px solid rgba(var(--ui-glass-rgb),.18);box-shadow:none; }
+.nx-design-glass > .nx-liquid-glass > .nx-liquid-specular { inset:1px;background:radial-gradient(120% 60% at 30% 0%,rgba(var(--ui-glass-rgb),.22),transparent 55%);opacity:1;filter:none;mix-blend-mode:normal; }

@@ -48,6 +48,7 @@
       </view>
     </view>
 
+    <view v-if="showManage && (phoneLocalReady || degradable)" class="flex justify-end" style="padding:8px 16px"><NxButton size="small" :label="t.home.fleetManage" @click="openMenu" /></view>
     <!-- Collapsed row header (always visible; tap toggles detail) -->
     <view
       class="nx-device-card__header active:opacity-70 transition-opacity"
@@ -378,6 +379,7 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import NxButton from "@/components/ui/nx-button.vue";
 import { computed, nextTick, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { advanceMonotonicHighWater, deadlineRemainingDays, deadlineRemainingMs, projectServerNow, readMonotonicNowMs } from "@/lib/server-deadline-clock";
 import { useApp } from "@/store/app";
@@ -403,7 +405,7 @@ import { fmt } from "@/i18n/format";
 import { remoteApiEnabled } from "@/api/runtime";
 import { localClockTime, todayCompletedTasks } from "@/lib/today-completed-tasks";
 
-const props = defineProps<{ device: Device; expanded?: boolean; divider?: boolean }>();
+const props = defineProps<{ device: Device; expanded?: boolean; divider?: boolean; showManage?: boolean }>();
 const emit = defineEmits<{ toggle: [] }>();
 const app = useApp();
 const session = useSession();

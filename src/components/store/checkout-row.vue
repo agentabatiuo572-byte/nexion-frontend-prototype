@@ -4,7 +4,7 @@
 -->
 <template>
   <view class="flex items-center justify-between">
-    <text style="font-size: 13px; color: var(--v5-ink-3)">{{ label }}</text>
+    <text style="font-size: 14px; line-height: 20px; color: var(--v5-ink-2)">{{ label }}</text>
     <text class="tabular-nums" :style="valueStyle">{{ value }}</text>
   </view>
 </template>

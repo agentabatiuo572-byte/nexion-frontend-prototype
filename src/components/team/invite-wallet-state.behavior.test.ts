@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { createPinia, setActivePinia } from "pinia";
 import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, compileStyle, parse } from "@vue/compiler-sfc";
@@ -9,7 +10,9 @@ import walletSource from "../me/wallet-card.vue?raw";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
-import { fmt, openSlotsTemplate } from "@/i18n/format";
+import { fmt, fmtMoney, openSlotsTemplate } from "@/i18n/format";
+import { auditUiCopy, useAuditUiCopy } from "@/i18n/audit-ui";
+import { useLocaleStore } from "@/store/locale";
 import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 import type { ReferralRewardSnapshot } from "@/api/referral-reward-api";
 
@@ -88,8 +91,8 @@ async function invitation(copy = en) {
   return { root, rewards, copyText, recordShareEvent, notifyUnavailableShareLink, toast };
 }
 
-beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.useRealTimers(); });
+beforeEach(() => { vi.useFakeTimers(); setActivePinia(createPinia()); });
+afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); setActivePinia(undefined); vi.useRealTimers(); });
 
 test.each([en, zh, vietnamese])("disabled invitation rewards keep sharing without reward or cooldown promises", async copy => {
   const card = await invitation(copy);
@@ -97,10 +100,10 @@ test.each([en, zh, vietnamese])("disabled invitation rewards keep sharing withou
   const status = text(find(card.root, "invite-card__reward"));
   expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.referralRewardsDisabled);
   expect(status).toContain(copy.team.sharingStillAvailable);
-  expect(status).toContain("+7.00 NEX"); // Historical settled earnings remain facts.
+  expect(status).toContain("+7.00 UVT"); // Historical settled earnings remain facts; protocol fields stay Nex.
   expect(status).not.toContain(copy.team.serverRewardPerSettlement);
   expect(status).not.toContain(copy.team.perFriendCooldown);
-  expect(status).not.toContain("0.00 NEX");
+  expect(status).not.toContain("0.00 UVT");
   expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
   expect(text(find(card.root, "invite-card__header"))).not.toContain(copy.team.earnForEachFriend);
   expect(text(card.root)).not.toContain(copy.team.rewardRules);
@@ -118,13 +121,13 @@ test("the same invitation card follows server enablement, unavailable reads and 
   const card = await invitation();
   card.rewards.snapshot = snapshot(true); await Vue.nextTick();
   let status = text(find(card.root, "invite-card__reward"));
-  expect(status).toContain("12.00 NEX");
+  expect(status).toContain("12.00 UVT");
   expect(status).toContain(en.team.perFriendCooldown);
   expect(text(find(card.root, "invite-card__header"))).toContain(fmt(en.team.settlementStatus, { settled: 1, pending: 1 }));
   card.rewards.error = "read failed"; await Vue.nextTick();
   status = text(find(card.root, "invite-card__reward"));
   expect(status).toBe("-");
-  expect(status).not.toContain("12.00 NEX");
+  expect(status).not.toContain("12.00 UVT");
   const retry = find(card.root, "invite-card__retry");
   expect(retry.props.role).toBe("button");
   card.rewards.refresh.mockClear();
@@ -144,28 +147,36 @@ test("the same invitation card follows server enablement, unavailable reads and 
   expect(text(find(card.root, "invite-card__reward"))).toBe("-");
   resolveRead(); await refresh; await Vue.nextTick();
   expect(find(card.root, "invite-card__retry")).toBeUndefined();
-  expect(text(find(card.root, "invite-card__reward"))).toContain("12.00 NEX");
+  expect(text(find(card.root, "invite-card__reward"))).toContain("12.00 UVT");
   expect(text(find(card.root, "invite-card__reward"))).toContain(en.team.perFriendCooldown);
   card.rewards.error = ""; card.rewards.snapshot = null; card.rewards.loading = true; await Vue.nextTick();
-  expect(text(find(card.root, "invite-card__reward"))).toBe("-");
-  expect(find(card.root, "nx-team-share-now").props["aria-disabled"]).toBe(true);
+  expect(find(card.root, "invite-card__reward")).toBeUndefined();
+  expect(find(card.root, "nx-team-share-now")).toBeUndefined();
+  expect(find(card.root, "invite-card__retry").props["aria-disabled"]).toBe(true);
+  card.rewards.loading = false; card.rewards.error = 'unavailable'; await Vue.nextTick();
+  card.rewards.refresh.mockImplementationOnce(async () => {
+    card.rewards.snapshot = snapshot(true); card.rewards.error = ''; return true;
+  });
+  await find(card.root, "invite-card__retry").props.onClick(); await Vue.nextTick();
+  expect(find(card.root, "nx-team-share-now").props["aria-disabled"]).toBe(false);
+  expect(find(card.root, "invite-card__unavailable")).toBeUndefined();
 });
 
 test.each([en, zh, vietnamese])("H5 share emphasis only names a reward after a successful enabled server read", async copy => {
   const card = await invitation(copy);
   card.rewards.snapshot = snapshot(true); await Vue.nextTick();
-  expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12.00 NEX" }));
+  expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12.00 UVT" }));
   expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.earnForEachFriend);
   card.rewards.loading = true; await Vue.nextTick();
   expect(text(find(card.root, "invite-card__reward"))).toBe("-");
   expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
-  expect(text(card.root)).not.toContain("12.00 NEX");
-  expect(text(card.root)).not.toContain("+7.00 NEX");
+  expect(text(card.root)).not.toContain("12.00 UVT");
+  expect(text(card.root)).not.toContain("+7.00 UVT");
   expect(text(card.root)).not.toContain(copy.team.perFriendCooldown);
   card.rewards.loading = false; card.rewards.error = "unavailable"; await Vue.nextTick();
   expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
   expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.settlementUnavailable);
-  expect(text(card.root)).not.toContain("12.00 NEX");
+  expect(text(card.root)).not.toContain("12.00 UVT");
 });
 
 test.each([en, zh, vietnamese])("invitation money keeps two decimals without Native Intl or locale number formatting", async copy => {
@@ -174,8 +185,8 @@ test.each([en, zh, vietnamese])("invitation money keeps two decimals without Nat
   try {
     const card = await invitation(copy);
     card.rewards.snapshot = snapshot(true); await Vue.nextTick();
-    expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12.00 NEX" }));
-    expect(text(find(card.root, "invite-card__reward"))).toContain("+7.00 NEX");
+    expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12.00 UVT" }));
+    expect(text(find(card.root, "invite-card__reward"))).toContain("+7.00 UVT");
   } finally {
     nativeLocale.mockRestore();
     vi.unstubAllGlobals();
@@ -193,13 +204,14 @@ test("restored sharing tools retain clipboard failure feedback and all empty-cod
   expect(text(find(card.root, "nx-team-copy-code"))).not.toContain(en.team.copied);
   expect(text(find(card.root, "nx-team-copy-link"))).not.toContain(en.team.copied);
   expect(card.recordShareEvent).not.toHaveBeenCalled();
+  const oldTools = ["nx-team-share-poster", "nx-team-copy-code", "nx-team-copy-link", "nx-team-share-now"].map(name=>find(card.root,name));
   card.rewards.snapshot!.referralCode = ""; await Vue.nextTick();
   card.copyText.mockClear(); card.toast.info.mockClear();
-  for (const name of ["nx-team-share-poster", "nx-team-copy-code", "nx-team-copy-link", "nx-team-share-now"]) {
-    const tool = find(card.root, name);
-    expect(tool.props.role).toBe("button");
-    expect(tool.props.tabindex).toBe("0");
-    expect(tool.props["aria-disabled"]).toBe(true);
+  expect(find(card.root,"nx-invite-actions")).toBeUndefined();
+  expect(find(card.root,"invite-card__unavailable")).toBeDefined();
+  for (const tool of oldTools) {
+    // Previously captured handlers must still reject an emptied code after the
+    // controls are replaced by the compact unavailable state.
     await tool.props.onClick();
   }
   expect(card.copyText).not.toHaveBeenCalled();
@@ -209,8 +221,10 @@ test("restored sharing tools retain clipboard failure feedback and all empty-cod
 });
 
 async function wallet(copy = en, initialBalance = 11, confirmed = true) {
+  useLocaleStore().setLocale(copy === zh ? "zh" : copy === vietnamese ? "vi" : "en");
   const market = Vue.reactive({ isMockMode: false, remoteReady: true, nexPriceUSDT: 0.124,
     change24hAvailable: false, change24hPct: 0 });
+  const bills = Vue.reactive({ summaryStatus: "ready", summary: { monthBillCount: 0 } as { monthBillCount: number } | null });
   const navTo = vi.fn();
   const navReset = vi.fn();
   const app = Vue.reactive({ user: { usdtBalance: initialBalance, nexBalance: 124,
@@ -227,17 +241,18 @@ async function wallet(copy = en, initialBalance = 11, confirmed = true) {
       confirmed ? { serverCanonical: true, buckets: { pending_review: 0, bonus_locked: 0 } } : null),
   };
   const root = await mount(walletSource, {
-    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt, openSlotsTemplate },
+    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt, fmtMoney, openSlotsTemplate },
+    "@/i18n/audit-ui": { useAuditUiCopy },
     "@/store/app": { useApp: () => app },
     "@/store/earning-release": release,
     "@/lib/remote-authority-display": { remoteAuthorityStatus },
-    "@/store/bills": { useBills: () => ({ summaryStatus: "ready", summary: { monthBillCount: 0 } }) },
+    "@/store/bills": { useBills: () => bills },
     "@/store/market": { useMarket: () => market }, "@/api/runtime": { fundsServerEnabled: true, remoteApiEnabled: true },
     "@/store/free-trial": { trialReservesSlotNow: () => false, useFreeTrial: () => trial },
     "@/store/slot-action-sheet": { useSlotActionSheet: () => ({}) },
     "@/lib/route": { navTo, navReset },
   });
-  return { root, app, market, trial, release, navTo, navReset };
+  return { root, app, market, bills, trial, release, navTo, navReset };
 }
 
 const balanceDisplays = [
@@ -273,15 +288,52 @@ test.each([en, zh, vietnamese])("wallet balance uses decimal rounding and two de
   await checkWalletBalance(copy);
 });
 
+test.each([en, zh, vietnamese])("wallet monthly bills interpolate the count and keep unavailable reads distinct from zero", async copy => {
+  const { root, app, bills, navTo } = await wallet(copy);
+  const assertCount = (count: number | string) => {
+    const link = find(root, "nx-wallet-bills");
+    expect(link.props.role).toBe("link");
+    expect(link.props.tabindex).toBe("0");
+    expect(text(link)).toBe(`${fmt(copy.me.billsThisMonth, { n: count })} ›`);
+    expect(text(link)).not.toContain("{n}");
+  };
+  assertCount(0);
+  bills.summary = { monthBillCount: 7 };
+  await Vue.nextTick(); assertCount(7);
+  for (const status of ["idle", "loading", "error"]) {
+    bills.summaryStatus = status;
+    await Vue.nextTick(); assertCount("--");
+    expect(text(find(root, "nx-wallet-amount"))).toBe("11.00");
+    expect(text(find(root, "nx-wallet-nex"))).toBe("124.00 UVT");
+  }
+  bills.summaryStatus = "ready"; bills.summary = null;
+  await Vue.nextTick(); assertCount("--");
+  bills.summary = { monthBillCount: 19 };
+  app.remoteFleetHasSnapshot = false; app.remoteFleetStatus = "error";
+  await Vue.nextTick(); assertCount(19);
+  expect(text(find(root, "nx-wallet-amount"))).toBe("—");
+  expect(text(find(root, "nx-wallet-nex"))).toBe("— UVT");
+  find(root, "nx-wallet-bills").props.onClick();
+  expect(navTo).toHaveBeenCalledExactlyOnceWith("/pages/me/wallet-bills");
+  bills.summaryStatus = "idle"; bills.summary = null;
+  await Vue.nextTick(); assertCount("--");
+});
+
 test.each([en, zh, vietnamese])("wallet fixtures keep unknown reads separate from confirmed zero and refresh snapshots", async copy => {
   const { root, app, trial, release } = await wallet(copy, 0, false);
   app.user.nexBalance = 0; app.slotCap = 6;
   await Vue.nextTick();
-  const pending = (review: string, locked: string) => fmt(copy.me.walletBucketsHint, { review, locked });
+  const auditCopy = auditUiCopy[copy === zh ? "zh" : copy === vietnamese ? "vi" : "en"];
+  const pending = (review: string, locked: string) => `${auditCopy.confirming} ${review} · ${auditCopy.locked} ${locked}`;
+  const assertPending = (expected: string) => {
+    const line = find(root, "nx-wallet-pending");
+    expect(line).toBeDefined();
+    expect(text(line)).toBe(expected);
+  };
   const assertUnknown = () => {
     expect(text(find(root, "nx-wallet-amount"))).toBe("—");
-    expect(text(find(root, "nx-wallet-nex"))).toContain("— NEX");
-    expect(text(find(root, "nx-wallet-pending"))).toBe(pending("—", "—"));
+    expect(text(find(root, "nx-wallet-nex"))).toBe("— UVT");
+    assertPending(pending("--", "--"));
     expect(find(root, "nx-wallet-slot-block")).toBeUndefined();
   };
   assertUnknown();
@@ -291,32 +343,56 @@ test.each([en, zh, vietnamese])("wallet fixtures keep unknown reads separate fro
   app.remoteWalletReceiptHasSnapshot = true;
   await Vue.nextTick();
   expect(text(find(root, "nx-wallet-amount"))).toBe("0.00");
-  expect(text(find(root, "nx-wallet-nex"))).toContain("— NEX");
-  expect(text(find(root, "nx-wallet-pending"))).toBe(pending("—", "—"));
+  expect(text(find(root, "nx-wallet-nex"))).toBe("— UVT");
+  assertPending(pending("--", "--"));
   expect(find(root, "nx-wallet-slot-block")).toBeUndefined();
 
   app.remoteFleetHasSnapshot = true; app.remoteFleetStatus = "ready";
   await Vue.nextTick();
-  expect(text(find(root, "nx-wallet-nex"))).toContain("0 NEX");
+  expect(text(find(root, "nx-wallet-nex"))).toBe("0.00 UVT");
   expect(find(root, "nx-wallet-slot-block")).toBeUndefined();
   for (const status of ["idle", "loading", "error"]) {
     release.earningsReleaseStatus.value = status;
     await Vue.nextTick();
-    expect(text(find(root, "nx-wallet-pending"))).toBe(pending("—", "—"));
+    assertPending(pending("--", "--"));
   }
   trial.authorityStatus = "ready"; trial.authorityServerState = "ELIGIBLE";
   release.earningsReleaseHasSnapshot.value = true;
   release.earningsReleaseSnapshot.value = { serverCanonical: true, buckets: { pending_review: 0, bonus_locked: 0 } };
   release.earningsReleaseStatus.value = "ready";
   await Vue.nextTick();
-  expect(text(find(root, "nx-wallet-pending"))).toBe(pending("0.00", "0.00"));
+  expect(find(root, "nx-wallet-pending")).toBeUndefined(); // Confirmed zero buckets are hidden.
   expect(find(root, "nx-wallet-slot-block")).toBeDefined();
   app.remoteFleetStatus = "loading"; trial.authorityStatus = "loading";
   release.earningsReleaseStatus.value = "loading";
   await Vue.nextTick();
   expect(text(find(root, "nx-wallet-amount"))).toBe("0.00");
-  expect(text(find(root, "nx-wallet-pending"))).toBe(pending("0.00", "0.00"));
+  expect(find(root, "nx-wallet-pending")).toBeUndefined();
   expect(find(root, "nx-wallet-slot-block")).toBeDefined();
+
+  // Canonical buckets remain visible during refresh; local leftovers cannot override them.
+  app.user.earningBuckets = { pendingReviewUsdt: 999, bonusLockedUsdt: 888 };
+  release.earningsReleaseSnapshot.value = { serverCanonical: true, buckets: { pending_review: 1.005, bonus_locked: 2.675 } };
+  await Vue.nextTick();
+  assertPending(pending("$1.01", "$2.68"));
+  expect(text(find(root, "nx-wallet-amount"))).toBe("0.00"); // Held buckets are outside the available balance.
+  release.earningsReleaseSnapshot.value.buckets.pending_review = 0;
+  await Vue.nextTick();
+  assertPending(`${auditCopy.locked} $2.68`);
+  release.earningsReleaseSnapshot.value.buckets = { pending_review: 0.005, bonus_locked: 0 };
+  await Vue.nextTick();
+  assertPending(`${auditCopy.confirming} <$0.01`);
+
+  release.earningsReleaseStatus.value = "error";
+  await Vue.nextTick();
+  assertPending(pending("--", "--"));
+  release.earningsReleaseStatus.value = "ready";
+  release.earningsReleaseSnapshot.value.serverCanonical = false;
+  await Vue.nextTick();
+  assertPending(pending("--", "--"));
+  release.earningsReleaseSnapshot.value.serverCanonical = true;
+  await Vue.nextTick();
+  assertPending(`${auditCopy.confirming} <$0.01`);
 
   app.remoteFleetHasSnapshot = false; app.remoteWalletReceiptHasSnapshot = false;
   trial.authorityStatus = "unknown"; trial.authorityServerState = null;
@@ -338,6 +414,16 @@ test.each([en, zh, vietnamese].flatMap(copy => [false, true].map(withoutIntl => 
     }
   },
 );
+
+test("wallet keeps its details inside the card", async () => {
+  const { root } = await wallet();
+  const summary = find(root, "nx-wallet-summary");
+  const details = find(root, "nx-wallet-details");
+  expect(find(summary, "nx-wallet-details")).toBeDefined();
+  expect(details.parent === summary).toBe(true);
+  expect(find(details, "nx-wallet-valuation")).toBeDefined();
+  expect(text(find(root, "nx-wallet-actions"))).toContain(en.me.quickActions);
+});
 
 test("wallet keeps the original lower-right arc and adds only five decorative dots", async () => {
   const { root } = await wallet();
@@ -366,9 +452,9 @@ test("wallet keeps the original lower-right arc and adds only five decorative do
 
 test("wallet valuation names USDT for both values and preserves the remote unavailable state", async () => {
   const { root, app, market, navTo, navReset } = await wallet();
-  expect(text(find(root, "nx-wallet-valuation"))).toContain("≈ 15.38 USDT · 1 NEX = 0.124 USDT");
+  expect(text(find(root, "nx-wallet-valuation"))).toContain("≈ 15.38 USDT · 1 UVT = 0.124 USDT");
   market.remoteReady = false; await Vue.nextTick();
-  expect(text(find(root, "nx-wallet-valuation"))).toContain("≈ — USDT · 1 NEX = — USDT");
+  expect(text(find(root, "nx-wallet-valuation"))).toContain("≈ — USDT · 1 UVT = — USDT");
   expect(text(find(root, "nx-wallet-valuation"))).not.toContain("0.124");
   find(root, "nx-wallet-heading").props.onClick();
   expect(navTo).toHaveBeenCalledExactlyOnceWith("/pages/me/wallet-bills");

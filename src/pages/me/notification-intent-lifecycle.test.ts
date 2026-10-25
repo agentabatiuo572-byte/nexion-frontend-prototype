@@ -4,6 +4,7 @@ import ts from "typescript";
 import * as vue from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import pageSource from "./notifications.vue?raw";
+import settingsSource from "./preferences.vue?raw";
 import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
 import { zh } from "@/i18n/messages/zh";
 import { fmt } from "@/i18n/format";
@@ -20,7 +21,7 @@ const scopes: vue.EffectScope[] = [];
 afterEach(() => { for (const scope of scopes.splice(0)) scope.stop(); vi.unstubAllGlobals(); });
 
 // Run the actual SFC worker with controlled IO and real Vue watchers.
-function mount(remote = true, realQueue = false, navigationQuery = "", initialAccountKey = "a") {
+function mount(remote = true, realQueue = false, navigationQuery = "", initialAccountKey = "a", settings = false) {
   const epoch = createRemoteAccountEpoch(initialAccountKey);
   const app = vue.reactive({ accountKey: initialAccountKey, accountBindingEpoch: 0 });
   setActivePinia(createPinia());
@@ -30,7 +31,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
   const read = deferred<void>();
   const hooks: Record<string, Array<(...args: any[]) => void>> = { load: [], show: [], hide: [], unmount: [], mounted: [] };
   const notifs = vue.reactive({
-    items: [], unread: 0, error: null, loading: false, nextCursor: null,
+    items: [] as Array<{ id: string; kind: string; readAt: number | null }>, unread: 0, error: null as string | null, loading: false, nextCursor: null,
     clearRead: vi.fn(async () => {}), refreshRemote: vi.fn(),
     recordCta: vi.fn(() => action.promise), recordSwipeConversion: vi.fn(() => action.promise),
     markRead: vi.fn(() => read.promise), markAllRead: vi.fn(),
@@ -57,6 +58,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
     "@/i18n/use-t": { useT: () => vue.ref(zh) }, "@/i18n/format": { fmt },
     "@/lib/unread-badge": { formatUnreadBadge },
     "@/store/notifications": { useNotifications: () => notifs },
+    "@/store/preferences": { usePreferences: () => ({}), isMandatoryNotifKind: (kind: string) => kind === "system" },
     "@/store/message-drawer": { useMessageDrawer: () => drawer },
     "@/lib/route": { navTo, takeNavigationQuery: () => navigationQuery }, "@/api/runtime": { remoteApiEnabled: remote },
     "@/lib/remote-account-epoch": { remoteAccountScope: account },
@@ -64,11 +66,13 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
     "@/store/ui": { confirm, useUI: () => ui },
     "@/store/app": { useApp: () => app },
   };
-  const source = pageSource;
+  const source = settings ? settingsSource : pageSource;
   const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
   const output = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope(); scopes.push(scope);
-  const worker = scope.run(() => new Function("require", "exports", output + ";return { confirmClearRead, toggle, dateHeading, onTap, onTouchStart, onTouchEnd, section, filter, serviceFilter, expandedId, headerFocused, headerState, onMessageScroll };")((name: string) => {
+  const exposed = settings ? "{ confirmClearRead, clearingRead, refreshNotifications }"
+    : "{ toggle, dateHeading, timeAgo, onTap, onTouchStart, onTouchEnd, section, filter, serviceFilter, expandedId, headerFocused, headerState, onMessageScroll }";
+  const worker = scope.run(() => new Function("require", "exports", output + `;return ${exposed};`)((name: string) => {
     if (name.endsWith(".vue")) return {};
     if (!(name in modules)) throw new Error(`Unexpected dependency ${name}`);
     return modules[name];
@@ -78,6 +82,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
 }
 const notification = { id: "fixture", ctaHref: "/pages/team/team" };
 const touch = (x: number) => ({ changedTouches: [{ clientX: x, clientY: 20 }] });
+const mountSettings = (realQueue = false) => mount(true, realQueue, "", "a", true);
 
 describe("notification pending intent isolation", () => {
   it("shares its section with the bell, accepts native/H5 route parameters and ignores unknown sections", () => {
@@ -103,8 +108,8 @@ describe("notification pending intent isolation", () => {
     expect(pageSource).toContain('<scroll-view :key="section"');
   });
   for (const invalidation of ["hide", "unmount", "account", "rebind"]) {
-    it(`cancels only this page's queued confirmation on ${invalidation}`, async () => {
-      const h = mount(true, true);
+    it(`settings cancels only its queued confirmation on ${invalidation}`, async () => {
+      const h = mountSettings(true);
       const pending = h.worker.confirmClearRead();
       const foreign = h.ui.confirm({ title: "Another page", owner: "foreign" });
       if (invalidation === "account") h.account.bind("b");
@@ -116,8 +121,8 @@ describe("notification pending intent isolation", () => {
     });
   }
   for (const invalidation of ["account", "rebind", "hide-show", "unmount"]) {
-    it(`does not clear notifications when confirmation outlives ${invalidation}`, async () => {
-      const h = mount();
+    it(`settings does not clear notifications when confirmation outlives ${invalidation}`, async () => {
+      const h = mountSettings();
       const pending = h.worker.confirmClearRead();
       if (invalidation === "account") h.account.bind("b");
       if (invalidation === "rebind") h.account.bind("a");
@@ -128,8 +133,12 @@ describe("notification pending intent isolation", () => {
     });
   }
   for (const accepted of [true, false]) {
-    it(`honors a current confirmation (${accepted})`, async () => {
-      const h = mount(); const pending = h.worker.confirmClearRead();
+    it(`settings honors a current confirmation (${accepted})`, async () => {
+      const h = mountSettings(); const pending = h.worker.confirmClearRead();
+      expect(h.confirm).toHaveBeenCalledWith(expect.objectContaining({
+        title: zh.notifs.clearReadAria, message: zh.notifs.clearReadMessage,
+        confirmLabel: zh.notifs.clearReadAria, icon: "warn",
+      }));
       h.confirmation.resolve(accepted); await pending;
       expect(h.notifs.clearRead).toHaveBeenCalledTimes(accepted ? 1 : 0);
     });
@@ -166,9 +175,52 @@ describe("notification pending intent isolation", () => {
     const h = mount(); h.fire("show");
     expect(h.notifs.refreshRemote).toHaveBeenCalledTimes(1);
     h.fire("unmount"); h.fire("show"); h.confirmation.resolve(true);
-    await h.worker.confirmClearRead();
+    await h.worker.onTap(notification);
     expect(h.notifs.refreshRemote).toHaveBeenCalledTimes(1);
+    expect(h.notifs.recordCta).not.toHaveBeenCalled();
+    expect(h.navTo).not.toHaveBeenCalled();
+  });
+});
+
+describe("notification management in secondary settings", () => {
+  it("refreshes on return and blocks refresh/confirmation after disposal", async () => {
+    const h = mountSettings(); h.fire("show");
+    expect(h.notifs.refreshRemote).toHaveBeenCalledOnce();
+    h.fire("unmount"); h.fire("show");
+    await h.worker.confirmClearRead();
+    await h.worker.refreshNotifications();
+    expect(h.notifs.refreshRemote).toHaveBeenCalledOnce();
     expect(h.confirm).not.toHaveBeenCalled();
+  });
+  it("coalesces confirmation and waits for the server before changing the visible items", async () => {
+    const h = mountSettings();
+    h.notifs.items = [{ id: "read", kind: "team", readAt: 1 }, { id: "unread", kind: "system", readAt: null }];
+    const done = deferred<void>();
+    h.notifs.clearRead.mockImplementationOnce(async () => { await done.promise; h.notifs.items = h.notifs.items.filter(n => !n.readAt); });
+    const pending = h.worker.confirmClearRead(); await h.worker.confirmClearRead();
+    expect(h.confirm).toHaveBeenCalledOnce(); expect(h.worker.clearingRead.value).toBe(true);
+    expect(h.notifs.clearRead).not.toHaveBeenCalled();
+    h.confirmation.resolve(true); await Promise.resolve();
+    expect(h.notifs.clearRead).toHaveBeenCalledOnce(); expect(h.notifs.items).toHaveLength(2);
+    await h.worker.confirmClearRead(); expect(h.confirm).toHaveBeenCalledOnce();
+    done.resolve(); await pending;
+    expect(h.notifs.items).toEqual([{ id: "unread", kind: "system", readAt: null }]);
+    expect(h.worker.clearingRead.value).toBe(false);
+  });
+  it("preserves mutation errors, releases the control and offers a fenced refresh retry", async () => {
+    const h = mountSettings();
+    h.notifs.clearRead.mockImplementationOnce(async () => { h.notifs.error = "NOTIFICATION_UPDATE_FAILED"; });
+    const pending = h.worker.confirmClearRead(); h.confirmation.resolve(true); await pending;
+    expect(h.notifs.error).toBe("NOTIFICATION_UPDATE_FAILED"); expect(h.worker.clearingRead.value).toBe(false);
+    h.worker.refreshNotifications();
+    expect(h.notifs.refreshRemote).toHaveBeenCalledWith(undefined, expect.any(Function));
+    const active = (h.notifs.refreshRemote.mock.calls[0] as unknown as [undefined, () => boolean])[1];
+    expect(active()).toBe(true); h.fire("hide"); expect(active()).toBe(false);
+  });
+  it("does not open a destructive confirmation while notifications are loading", async () => {
+    const h = mountSettings(); h.notifs.loading = true;
+    await h.worker.confirmClearRead(); h.worker.refreshNotifications();
+    expect(h.confirm).not.toHaveBeenCalled(); expect(h.notifs.refreshRemote).not.toHaveBeenCalled();
   });
 });
 
@@ -334,3 +386,17 @@ it("expands messages with no destination without inventing navigation", () => {
   h.worker.toggle({ id: 'plain', ctaHref: '' });
   expect(h.worker.expandedId.value).toBeNull();
 });
+
+for (const body of ['Long message '.repeat(12), 'First line\nSecond line']) {
+  it(`keeps long/multiline notification content expandable before the CTA (${body.length})`, async () => {
+    const h = mount(); const row = { ...notification, body };
+    h.worker.toggle(row);
+    expect(h.worker.expandedId.value).toBe(row.id);
+    expect(h.notifs.markRead).toHaveBeenCalledWith(row.id);
+    expect(h.notifs.recordCta).not.toHaveBeenCalled(); expect(h.navTo).not.toHaveBeenCalled();
+    const action = h.worker.onTap(row);
+    expect(h.notifs.recordCta).toHaveBeenCalledWith(row.id);
+    h.action.resolve('/pages/team/team'); await action;
+    expect(h.navTo).toHaveBeenCalledWith('/pages/team/team');
+  });
+}

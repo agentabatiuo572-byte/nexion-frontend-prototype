@@ -39,7 +39,7 @@ function scenario() {
     capacityQuote: vi.fn(async () => ({ decision: "CAPACITY_AVAILABLE" })),
   };
   const deps = {
-    ref, tradein, deviceE3Api, remoteApiEnabled: true,
+    ref, tradein, deviceE3Api, remoteApiEnabled: true, tradeinAvailable: ref(false),
     remoteTradeinRecoveryRequired: ref(false), removedTradein: ref(true),
     toast: { warn: vi.fn() }, t: ref({ tradein: { errPleaseRetry: "Please retry", errNoActiveDevice: "No active device" } }),
     trialConversionMode: ref(false), productId: ref(identity.productNo),
@@ -132,4 +132,9 @@ describe("actual checkout trade-in re-add async result", () => {
     expect(s.deps.removedTradein.value).toBe(false);
     expect(s.deps.toast.warn).toHaveBeenCalledTimes(1);
   });
+});
+
+it('initial checkout validates capacity but never opens an unsolicited sheet', async () => {
+  const s=scenario();const operation=s.page.fireTradeinIntercept();s.result.resolve(eligible());await operation;await settle();
+  expect(s.deps.tradeinAvailable.value).toBe(true);expect(s.deps.tradein.showChoice).not.toHaveBeenCalled();expect(s.deps.tradein.showCanonicalReplace).not.toHaveBeenCalled();
 });

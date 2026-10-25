@@ -39,6 +39,9 @@ export interface PublicStatsShape {
   registeredUsersBase: number;
   registeredUsersMonthlyGrowthPct: number;
   registeredUsersAnchorAt: number;
+  /** Optional until the public estimate settings are published. Seconds / users. */
+  registeredUsersTickIntervalSec?: number;
+  registeredUsersTickStep?: number;
   realUserCount: number;
   virtualUserCount: number;
   hashratePercentileTable: ReadonlyArray<{ tops: number; cumPct: number }>;
@@ -62,8 +65,12 @@ export function publicStatsHealth(ps: PublicStatsShape | undefined | null): {
   const jitterOk = inRange(ps.onlineJitter, 0, 500);
   const devicesOk = fleetOk && rateOk && jitterOk;
   const membersOk = inRange(ps.registeredUsersBase, 0, 100_000_000)
-    && inRange(ps.registeredUsersMonthlyGrowthPct, 0, 50)
-    && fin(ps.registeredUsersAnchorAt);
+    && Number.isInteger(ps.registeredUsersBase)
+    && inRange(ps.registeredUsersTickIntervalSec, 1, 86_400)
+    && Number.isInteger(ps.registeredUsersTickIntervalSec)
+    && inRange(ps.registeredUsersTickStep, 0, 100_000_000)
+    && Number.isInteger(ps.registeredUsersTickStep)
+    && fin(ps.registeredUsersAnchorAt) && ps.registeredUsersAnchorAt >= 0;
   const rankOk = inRange(ps.realUserCount, 0, 100_000_000)
     && inRange(ps.virtualUserCount, 0, 10_000_000);
   return { fleetOk, rateOk, jitterOk, membersOk, devicesOk, rankOk };
@@ -83,17 +90,21 @@ export function payoutPerSecUsdOf(ps: PublicStatsShape): number { return dailyPa
 export function monthlyPayoutUsdOf(ps: PublicStatsShape): number { return dailyPayoutUsdOf(ps) * 30; }
 
 /**
- * 注册用户展示值:从锚点按月增速**推算**,不累加、不回退(规格 FEAT-HOME02 ③,
+ * 注册用户展示值:从锚点按公布间隔和增量**推算**,不累加、不回退(规格 FEAT-HOME02 ③,
  * 与上面 PAYOUT 同范式)。刷新页面得到同一时刻同一值;运营改基数即重置锚点。
  * 该值只用于营销展示；排名分母使用服务端 realUserCount，避免公布基数影响真实资格口径。
  */
 export function derivedRegisteredUsers(
-  ps: { registeredUsersBase: number; registeredUsersMonthlyGrowthPct: number; registeredUsersAnchorAt: number },
+  ps: Pick<PublicStatsShape, 'registeredUsersBase' | 'registeredUsersAnchorAt' | 'registeredUsersTickIntervalSec' | 'registeredUsersTickStep'>,
   now: number,
 ): number {
-  const months = Math.max(0, (now - ps.registeredUsersAnchorAt) / (30 * 24 * 3_600_000));
-  const v = ps.registeredUsersBase * Math.pow(1 + ps.registeredUsersMonthlyGrowthPct / 100, months);
-  return Number.isFinite(v) ? Math.floor(v) : Number.NaN;
+  const { registeredUsersBase: base, registeredUsersAnchorAt: anchor, registeredUsersTickIntervalSec: interval, registeredUsersTickStep: step } = ps;
+  if (!Number.isFinite(now) || !Number.isFinite(anchor) || anchor < 0
+      || !Number.isInteger(base) || base < 0 || base > 100_000_000
+      || interval == null || !Number.isInteger(interval) || interval < 1 || interval > 86_400
+      || step == null || !Number.isInteger(step) || step < 0 || step > 100_000_000) return Number.NaN;
+  const value = base + Math.floor(Math.max(0, now - anchor) / (interval * 1000)) * step;
+  return Number.isSafeInteger(value) ? value : Number.NaN;
 }
 
 /** ≈ $20.5M — the "this month" round expression (30-day anchor month). */

@@ -3,10 +3,10 @@
     <text class="promotion-title">{{ t.promotion.inviteTitle }}</text><text class="promotion-copy">{{ t.promotion.inviteNote }}</text>
     <text v-if="loading" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
     <view v-for="activity in activities" :key="activity.activityId" class="promotion-row"><view class="promotion-grow"><text style="display:block;font-weight:600">{{ localized(activity.title,locale.code) }}</text><template v-if="progress[activity.activityId]"><view class="promotion-summary"><text>{{ t.promotion.friendPaid }}</text><text>{{ progress[activity.activityId].qualifyingOrders }}</text></view><RewardRows :rewards="progress[activity.activityId].ownRewards" /></template><view class="promotion-link" role="button" tabindex="0" :aria-disabled="loading" @click="loadProgress(activity.activityId)"><text>{{ t.promotion.refresh }}</text></view></view></view>
-    <text v-if="error" class="promotion-copy" role="alert">{{ t.promotion.error }}</text><text class="promotion-copy">{{ t.promotion.privacy }}</text>
+    <text v-if="error" class="promotion-copy" role="alert">{{ t.promotion.error }}</text>
     <view v-if="error" class="promotion-link" role="button" tabindex="0" :aria-disabled="loading" @click="loadActivities"><text>{{ t.promotion.retry }}</text></view>
     <view v-if="hasMore" class="promotion-link" role="button" tabindex="0" :aria-disabled="loading" @click="loadActivities"><text>{{ t.promotion.more }}</text></view>
-    <view class="promotion-action primary" role="button" tabindex="0" @click="emit('share')"><text>{{ t.promotion.existingInvite }}</text></view>
+    <view class="promotion-link" role="button" tabindex="0" @click="emit('share')"><text>{{ t.promotion.existingInvite }}</text></view>
   </view>
 </template>
 <script setup lang="ts">

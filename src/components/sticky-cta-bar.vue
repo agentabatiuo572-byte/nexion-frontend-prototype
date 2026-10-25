@@ -29,6 +29,11 @@
         <text v-if="cta.amountSubtext" class="scb-subtext" :style="subtextStyle">{{ cta.amountSubtext }}</text>
       </view>
 
+      <view v-if="cta.quantity" class="scb-quantity" role="group" :aria-label="t.store.detQuantity">
+        <NxButton size="small" :label="t.uiChrome.decreaseQty" :disabled="cta.quantity.value <= cta.quantity.min || cta.disabled" @click="cta.quantity.decrease"><text aria-hidden="true">−</text></NxButton>
+        <text aria-live="polite">{{ cta.quantity.value }}</text>
+        <NxButton size="small" :label="t.uiChrome.increaseQty" :disabled="cta.quantity.value >= cta.quantity.max || cta.disabled" @click="cta.quantity.increase"><text aria-hidden="true">+</text></NxButton>
+      </view>
       <view
         class="scb-cta"
         :style="ctaStyle"
@@ -47,6 +52,7 @@
 </template>
 
 <script setup lang="ts">
+import NxButton from "@/components/ui/nx-button.vue";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -171,3 +177,5 @@ function onTap() {
   white-space: nowrap;
 }
 </style>
+
+<style scoped>.scb-quantity { display:flex;align-items:center;gap:6px;color:var(--v5-ink);font-variant-numeric:tabular-nums; }.scb-bar:has(.scb-quantity) { flex-wrap:wrap;gap:12px; }.scb-bar:has(.scb-quantity) .scb-info { flex:1;min-width:110px; }.scb-bar:has(.scb-quantity) .scb-cta { width:100%; }</style>

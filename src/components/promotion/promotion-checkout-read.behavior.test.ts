@@ -12,6 +12,7 @@ import { projectServerNow } from '@/lib/server-deadline-clock';
 import { displayDeadline,localized } from '@/lib/promotion-display';
 import { formatAmount } from '@/lib/amount-display';
 import { fmt } from '@/i18n/format';
+import { validatePromotionItems } from '@/api/promotion-api';
 import type { OrderReceipt,PublicPromotion,Quote } from '@/api/promotion-contracts';
 
 const serverTime='2026-10-08T00:00:00Z',text={zh:'原赠品条件',en:'Original gift terms',vi:'Điều khoản quà tặng'};
@@ -29,8 +30,8 @@ const render=new Function('Vue',ts.transpileModule(renderCode,{compilerOptions:{
 
 // Execute the entire production setup and session. Only external transports,
 // storage and native notifications are adapters; no copy of the read lifecycle.
-function screen(stored?:PromotionCheckoutRecord){
-  const props=Vue.reactive({activityId:'a1',items:[{productNo:'sku',quantity:1}],orderNo:undefined as string|undefined});
+function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items?:{productNo:string;quantity:number}[]}){
+  const props=Vue.reactive({activityId:input?.activityId??'a1',items:input?.items??[{productNo:'sku',quantity:1}],orderNo:undefined as string|undefined});
   const intent=JSON.stringify([props.activityId,props.items]);
   let rows:Record<string,PromotionCheckoutRecord>=stored?{[intent]:structuredClone(stored)}:{};
   let writable=true;
@@ -42,14 +43,16 @@ function screen(stored?:PromotionCheckoutRecord){
   const getProduct=vi.fn().mockReturnValue({name:'Selected device'}),catalog=Vue.reactive({status:'ready'}),presentation=Vue.ref<{products:{id:string;name:string}[]}|null>({products:[{id:'sku',name:'Selected device'}]});
   vi.stubGlobal('setInterval',vi.fn(()=>0));vi.stubGlobal('clearInterval',vi.fn());
   const confirm=vi.fn().mockResolvedValue(false),clearConfirmsBy=vi.fn();
+  const vouchers={catalog:[] as {id:string;name:string}[],claimedUnused:[] as {id:string;name:string}[],refreshRemote:vi.fn()};
   const modules:Record<string,unknown>={
     '@/lib/amount-display':{formatAmount},
     '@/i18n/format':{fmt},
     vue:{...Vue,onMounted:(fn:()=>Promise<void>)=>mounted.push(fn),onBeforeUnmount:(fn:()=>void)=>unmounted.push(fn)},
     'vue-router':{onBeforeRouteLeave:vi.fn()},
     '@/api/runtime':{promotionApi:api,deviceE3Api:{fleet}},'@/api/errors':{asApiError},
+    '@/api/promotion-api':{validatePromotionItems},
     '@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/store/locale':{useLocaleStore:()=>({code:'zh'})},'@/store/app':{useApp:()=>app},'@/store/auth':{useAuth:()=>({isAuthenticated:true})},
-    '@/store/voucher':{useVoucher:()=>({catalog:[],claimedUnused:[],refreshRemote:vi.fn()})},'@/mock/products':{getProduct},
+    '@/store/voucher':{useVoucher:()=>vouchers},'@/mock/products':{getProduct},
     '@/store/product-catalog':{productCatalogState:catalog,productCatalogPresentation:presentation,refreshProductCatalog:vi.fn().mockResolvedValue(true)},
     '@/lib/route':{navTo:vi.fn(),navBack:vi.fn()},'@/store/ui':{confirm,useUI:()=>({clearConfirmsBy})},
     '@/lib/promotion-checkout-session':{PromotionCheckoutSession,selectPromotionCheckoutRecord},
@@ -67,8 +70,8 @@ function screen(stored?:PromotionCheckoutRecord){
   const scope=Vue.effectScope(),view=scope.run(()=>componentExports.default.setup(props,{expose:value=>{exposed=value;}}))!;
   cleanup.push(()=>{unmounted.forEach(fn=>fn());scope.stop();});
   const passthrough={setup:(_props:unknown,{slots}:Vue.SetupContext)=>()=>Vue.h('view',slots.default?.())};
-  const html=()=>renderToString(Vue.createSSRApp({components:{PromotionAction:passthrough,PromotionTerms:empty,RewardRows:empty,LiquidGlass:empty},render:()=>render(Vue.proxyRefs({...Vue.toRefs(props),...view}),[])}));
-  return{view,exposed,api,save,key,app,fleet,props,getProduct,catalog,presentation,html,confirm,clearConfirmsBy,start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
+  const html=()=>renderToString(Vue.createSSRApp({components:{PromotionAction:passthrough,PromotionTerms:empty,RewardRows:empty,LiquidGlass:empty},render:()=>render(Vue.proxyRefs({$slots:{},...Vue.toRefs(props),...view}),[])}));
+  return{view,exposed,api,save,key,app,fleet,props,vouchers,getProduct,catalog,presentation,html,confirm,clearConfirmsBy,start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
 }
 
 it('payment confirmation cancels without a command, then an explicit acceptance pays the same order once',async()=>{
@@ -168,4 +171,101 @@ it('an original command failure while hidden keeps its pending key, quote and un
   const write=page.view.createOrder();page.exposed.hide();response.reject(new Error('offline'));await write;
   expect(page.saved().pending?.key).toBe('original-key');expect(page.saved().quote?.quoteId).toBe('q1');expect(page.view.unknown.value).toBe(true);expect(page.view.error.value).toBe(zh.promotion.errorNote);
   page.exposed.show();await flush();expect(page.api.command).toHaveBeenCalledWith('original-key','createOrder','q1');expect(page.saved().pending?.key).toBe('original-key');expect(page.api.quote).toHaveBeenCalledOnce();
+});
+
+function selectedQuote(items:{productNo:string;quantity:number}[],overrides:Partial<Quote>={}):Quote {
+  return {...quote('changed'),itemCount:items.length,quantity:items.reduce((sum,item)=>sum+item.quantity,0),
+    items:items.map((item,index)=>({...item,lineId:'line-'+index,unitPriceUsdt:'1299',subtotalUsdt:'2598',discountUsdt:'17.13',payableUsdt:'2580.87'})),
+    subtotalUsdt:'2598',discountUsdt:'17.13',amountUsdt:'2580.87',expectedRewards:[],...overrides};
+}
+
+it('an activity-free multi-item entry only reads a quote until the explicit footer action',async()=>{
+  const page=screen(undefined,{activityId:'',items:[{productNo:'sku',quantity:2}]});
+  page.api.quote.mockResolvedValueOnce(selectedQuote(page.props.items,{activityId:null,activityVersion:null}));await page.start();
+  expect(page.api.quote).toHaveBeenCalledWith([{productNo:'sku',quantity:2}],null,null);
+  expect(page.api.get).not.toHaveBeenCalled();expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
+  expect(page.view.canChangeQuantity('sku',-1)).toBe(true);expect(page.exposed.footer.value.disabled).toBe(false);
+});
+
+it('quantity edits discard the old quote and rewards before awaiting canonical eligibility, discounts and payable',async()=>{
+  const page=screen();await page.start();page.view.voucherId.value='voucher-7';
+  const next=deferred<Quote>();page.api.quote.mockReturnValueOnce(next.promise);
+  const edit=page.view.changeQuantity('sku',1);
+  expect(page.api.quote).toHaveBeenLastCalledWith([{productNo:'sku',quantity:2}],'a1','voucher-7');
+  expect(page.props.items).toEqual([{productNo:'sku',quantity:1}]);
+  expect(page.view.items.value).toEqual([{productNo:'sku',quantity:2}]);
+  expect(page.saved().quote).toBeNull();expect(page.view.quote.value).toBeNull();expect(page.view.rewards.value).toEqual([]);
+  expect(page.exposed.footer.value).toMatchObject({amount:'-',disabled:true});
+  await page.view.changeQuantity('sku',1);await page.exposed.footer.value.action();
+  expect(page.api.quote).toHaveBeenCalledTimes(2);expect(page.api.create).not.toHaveBeenCalled();
+  next.resolve(selectedQuote([{productNo:'sku',quantity:2}]));await edit;
+  expect(page.exposed.footer.value).toMatchObject({amount:'$2,580.87',disabled:false});
+  const html=await page.html();expect(html).toContain('2,598.00 USDT');expect(html).toContain('17.13 USDT');
+  expect(page.view.quote.value.amountUsdt).toBe('2580.87');expect(page.api.pay).not.toHaveBeenCalled();
+  expect(html).toContain('data-testid="checkout-item-decrease"');expect(html).toContain('data-testid="checkout-item-increase"');
+  page.api.quote.mockResolvedValueOnce(quote('single-again'));await page.view.changeQuantity('sku',-1);
+  expect(page.api.quote).toHaveBeenLastCalledWith([{productNo:'sku',quantity:1}],'a1','voucher-7');
+  expect(page.view.canChangeQuantity('sku',-1)).toBe(false);
+});
+
+it.each(['ineligible','error','mismatched quantity'] as const)('a new %s quote cannot reuse the previous payable or create an order',async outcome=>{
+  const page=screen();await page.start();
+  if(outcome==='error')page.api.quote.mockRejectedValueOnce(new Error('offline'));
+  else page.api.quote.mockResolvedValueOnce(selectedQuote([{productNo:'sku',quantity:outcome==='mismatched quantity'?1:2}],{eligibility:outcome==='ineligible'?'INELIGIBLE':'ELIGIBLE'}));
+  await page.view.changeQuantity('sku',1);await page.view.createOrder();
+  expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();expect(page.view.canCreate.value).toBe(false);
+  expect(page.view.rewards.value).toEqual([]);
+  if(outcome!=='ineligible'){expect(page.view.quote.value).toBeNull();expect(page.exposed.footer.value.amount).toBe('-');}
+  expect(page.view.canChangeQuantity('sku',-1)).toBe(true);
+});
+
+it.each(['hide','account'] as const)('late quantity quote after %s cannot restore a payable or issue a command',async change=>{
+  const page=screen();await page.start();const next=deferred<Quote>();page.api.quote.mockReturnValueOnce(next.promise);
+  const edit=page.view.changeQuantity('sku',1);
+  if(change==='hide')page.exposed.hide();else page.app.accountBindingEpoch++;
+  next.resolve(selectedQuote([{productNo:'sku',quantity:2}]));await edit;
+  expect(page.view.quote.value).toBeNull();expect(page.view.rewards.value).toEqual([]);
+  expect(page.view.canChangeQuantity('sku',1)).toBe(false);expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
+});
+
+it('bundle edits preserve the other SKU, enforce total 100 and require explicit creation and payment',async()=>{
+  const page=screen(undefined,{items:[{productNo:'sku',quantity:1},{productNo:'sku-2',quantity:1}]});
+  page.api.quote.mockResolvedValueOnce(selectedQuote(page.props.items));await page.start();
+  const updated=selectedQuote([{productNo:'sku',quantity:2},{productNo:'sku-2',quantity:1}]);page.api.quote.mockResolvedValueOnce(updated);
+  await page.view.changeQuantity('sku',1);
+  expect(page.api.quote).toHaveBeenLastCalledWith([{productNo:'sku',quantity:2},{productNo:'sku-2',quantity:1}],'a1',null);
+  expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
+  page.api.create.mockResolvedValueOnce({...receipt(updated),quantity:3,amountUsdt:updated.amountUsdt,items:updated.items.map(item=>({...item,productName:item.productNo})),rewards:[]});
+  await page.exposed.footer.value.action();
+  expect(page.api.create).toHaveBeenCalledWith(updated,'original-key',null);expect(page.api.pay).not.toHaveBeenCalled();
+  expect(page.view.canChangeQuantity('sku',-1)).toBe(false);await page.view.changeQuantity('sku',-1);expect(page.api.quote).toHaveBeenCalledTimes(2);
+});
+
+it('quantity boundaries and repeated keydown do not read or mutate',async()=>{
+  const page=screen();await page.start();
+  await page.view.changeQuantity('sku',-1);await page.view.changeQuantity('missing',1);
+  await page.view.changeQuantity('sku',1,{repeat:true});
+  expect(page.api.quote).toHaveBeenCalledOnce();expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
+  const full=screen(undefined,{items:[{productNo:'sku',quantity:99},{productNo:'sku-2',quantity:1}]});
+  full.api.quote.mockResolvedValueOnce(selectedQuote(full.props.items));await full.start();
+  await full.view.changeQuantity('sku',1);await full.view.changeQuantity('sku-2',1);
+  expect(full.api.quote).toHaveBeenCalledOnce();expect(full.api.create).not.toHaveBeenCalled();expect(full.api.pay).not.toHaveBeenCalled();
+});
+
+it('an unresolved original command locks quantity even after a NOT_FOUND read allows retry',async()=>{
+  const q=quote(),page=screen({quote:q,order:null,pending:{key:'original-key',operation:'createOrder',targetId:q.quoteId}});
+  page.api.command.mockResolvedValueOnce({status:'NOT_FOUND',order:null});await page.start();
+  expect(page.view.session.retryOriginal).toBe(true);expect(page.view.canChangeQuantity('sku',1)).toBe(false);
+  await page.view.changeQuantity('sku',1);expect(page.saved().quote?.quoteId).toBe(q.quoteId);expect(page.saved().pending?.key).toBe('original-key');
+  expect(page.api.quote).not.toHaveBeenCalled();expect(page.api.create).not.toHaveBeenCalled();
+});
+
+it('a voucher picker opened for the old quantity cannot apply after the quantity changes',async()=>{
+  const page=screen();await page.start();page.vouchers.claimedUnused=[{id:'voucher-old',name:'Old voucher'}];
+  let choose!:(value:{tapIndex:number})=>void;
+  vi.stubGlobal('uni',{showActionSheet:vi.fn(options=>{choose=options.success;})});
+  await page.view.chooseVoucher();
+  page.api.quote.mockResolvedValueOnce(selectedQuote([{productNo:'sku',quantity:2}]));await page.view.changeQuantity('sku',1);
+  choose({tapIndex:1});await flush();
+  expect(page.view.voucherId.value).toBeNull();expect(page.api.quote).toHaveBeenCalledTimes(2);
 });

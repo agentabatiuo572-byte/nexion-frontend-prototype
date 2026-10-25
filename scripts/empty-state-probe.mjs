@@ -176,7 +176,6 @@ const ROUTES = [
   { r: "pages/me/wallet-exchange" },
   { r: "pages/me/wallet-nex", unreachable: "🔴 mock 恒非空:activity computed 里硬塞了 5 条 mining 记录,当前空态不可达;接真后台后才可能为空(空态本身该留)" },
   { r: "pages/me/wallet-bills" },
-  { r: "pages/me/support-tickets" },
   { r: "pages/events/events", unreachable: "按 tab 过滤 EVENTS 常量,需切到无结果的 tab" },
   { r: "pages/team/commissions" },
   { r: "pages/me/help", type: TYPE_JUNK },

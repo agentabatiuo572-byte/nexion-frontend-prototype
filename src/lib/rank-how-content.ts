@@ -9,8 +9,8 @@ const COPY = {
   zh: {
     headline: "看懂晋升条件，了解每阶权益。", unavailable: "等级说明暂不可用，请稍后重试。", loading: "正在加载等级说明…",
     example: "完整范例 · 按当前规则演示", noThreshold: "本阶未设置此门槛", noReferralMinimum: "0.00 USDT（不要求正数自购）", noExample: "当前没有可演示的相邻等级门槛。", emptyLadder: "暂无可展示的等级", retry: "重新加载",
-    protected: "已开启保级；业绩回落时保留当前等级。已结算奖励的退款和撤销仍按结算规则处理。",
-    unprotected: "未开启保级；业绩或合格条件变化后，可能降至当前符合条件的等级。",
+    protected: "已开启保级；算力额回落时保留当前等级。已结算奖励的退款和撤销仍按结算规则处理。",
+    unprotected: "未开启保级；算力额或合格条件变化后，可能降至当前符合条件的等级。",
     leadershipReady: "领导池参与资格、限额和到账以实际结算结果为准。",
     leadershipHold: "领导池暂不可结算；票数不代表已获得分红。",
     peerUnavailable: "平级奖励暂未开放，当前不派发；等级中显示的比例不代表已生效权益。",

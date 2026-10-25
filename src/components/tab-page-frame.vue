@@ -1,7 +1,6 @@
 <template>
   <template v-if="hosted">
     <slot name="pageTop" />
-    <VoucherBanner v-if="bannerSurface" :surface="bannerSurface" />
     <slot />
   </template>
   <AppChassis v-else-if="!native" v-bind="$attrs" :active="active">
@@ -11,15 +10,13 @@
   <view v-else />
 </template>
 <script setup lang="ts">
-import { computed, inject, onMounted } from "vue";
+import { inject, onMounted } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
-import VoucherBanner from "@/components/voucher-banner.vue";
 import { TAB_HOST } from "@/composables/use-tab-page-lifecycle";
 import { navReplace } from "@/lib/route";
 defineOptions({ inheritAttrs: false });
 const props = defineProps<{ active?: "home" | "earn" | "store" | "team" | "me" }>();
 const hosted = inject(TAB_HOST, false);
-const bannerSurface = computed(() => props.active && props.active !== "team" && props.active !== "home" ? props.active : null);
 let native = false;
 // #ifdef APP-PLUS
 native = true;

@@ -109,30 +109,15 @@ const amountParts = computed(() => formatAmount(displayAmount.value).split("."))
 const intPart = computed(() => amountParts.value[0]);
 const cents = computed(() => amountParts.value[1]);
 
-interface Dot {
-  left: string;
-  delay: number;
-  color: string;
-}
+interface Dot { left:string; top:string; color:string; delay:number }
 const dots: Dot[] = [
-  { left: "12%", delay: 0, color: "var(--v5-tech-cyan-ink)" },
-  { left: "32%", delay: 1.6, color: "var(--v5-brand)" },
-  { left: "54%", delay: 3.2, color: "var(--v5-brand-2-ink)" },
-  { left: "72%", delay: 4.8, color: "var(--v5-tech-cyan-ink)" },
-  { left: "88%", delay: 6.4, color: "var(--v5-brand)" },
+  { left:'72%',top:'22px',color:'var(--v5-tech-cyan-ink)',delay:0 },
+  { left:'88%',top:'64px',color:'var(--v5-brand)',delay:-2 },
+  { left:'24%',top:'92px',color:'var(--v5-tech-cyan-ink)',delay:-4 },
 ];
-function dotStyle(d: Dot): CSSProperties {
-  return {
-    position: "absolute",
-    bottom: "-6px",
-    left: d.left,
-    width: "4px",
-    height: "4px",
-    borderRadius: "50%",
-    background: d.color,
-    opacity: 0,
-    animation: "v5-dot-drift 8s linear infinite",
-    animationDelay: `${d.delay}s`,
-  };
+function dotStyle(d:Dot):CSSProperties {
+  return { position:'absolute',left:d.left,top:d.top,width:'4px',height:'4px',borderRadius:'50%',background:d.color,opacity:.7,animation:'home-earning-dot 8s ease-in-out infinite',animationDelay:d.delay+'s' };
 }
 </script>
+
+<style scoped>@keyframes home-earning-dot {0%,100% {transform:translateY(0);opacity:.7;}50% {transform:translateY(-7px);opacity:1;}}</style>

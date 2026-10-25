@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import type { VRank } from "./v-rank";
+import { V_RANKS, type VRank } from "./v-rank";
 
 /**
  * Ported from Nexion-prototype/lib/v3/leadership-pool.ts (zustand → Pinia).
@@ -12,7 +12,7 @@ import type { VRank } from "./v-rank";
  *
  * 玩法 — 全球领导奖池(头部集中虹吸,真派生):
  *   每周平台 GMV 的 poolRatio(默认 5%) 注入池子 → poolUSDT = weeklyGmv × ratio。
- *   V3+ 领袖按指数票权(V3=1 … V12=512, 每升一阶翻倍)分配,share = myVotes / totalVotes。
+ *   V3+ 领袖按指数票权(V3=1 … V8=32, 每升一阶翻倍)分配,share = myVotes / totalVotes。
  *   头部集中是「真事实」而非文案: 高阶领袖稀少但指数票权碾压,顶部 10 名领袖
  *   (恰为 V8 星上将及以上)凭票权分走约 topConcentrationPct(当前 seed ≈61%) 奖池。
  *   该集中度由 (分布 × 票权) 运行时派生,永不硬编码 —— 调 seed/权重即同步变。
@@ -36,10 +36,8 @@ export const UNLOCK_RANK: VRank = 3;
 export const POOL_TOP_N = 10;
 
 /** V 级 → 票数(指数翻倍)。单源 = v-rank.ts 各阶 leadershipVotes,二者必一致。 */
-export const V_VOTES: Record<VRank, number> = {
-  0: 0, 1: 0, 2: 0,
-  3: 1, 4: 2, 5: 4, 6: 8, 7: 16, 8: 32, 9: 64, 10: 128, 11: 256, 12: 512,
-};
+export const V_VOTES: Record<VRank, number> = Object.fromEntries(V_RANKS.map(rank => [rank.v, rank.leadershipVotes]));
+const PREVIEW_LEADERSHIP_RANKS = V_RANKS.filter(rank => rank.v >= UNLOCK_RANK).map(rank => rank.v);
 
 /**
  * 全网 V 级人口分布(seed)。真实领袖金字塔:高阶稀少但存在,让指数票权真正集中到头部。
@@ -55,10 +53,6 @@ const GLOBAL_V_DISTRIBUTION: Record<VRank, number> = {
   6: 11,
   7: 6,
   8: 4,
-  9: 2,
-  10: 2,
-  11: 1,
-  12: 1,
 };
 
 export interface LeadershipPayout {
@@ -112,14 +106,14 @@ export const useLeadershipPool = defineStore("leadershipPool", () => {
   function totalVotes() {
     const dist = globalVDistribution.value;
     let sum = 0;
-    for (let v = UNLOCK_RANK; v <= 12; v++) {
+    for (const v of PREVIEW_LEADERSHIP_RANKS) {
       sum += (dist[v as VRank] ?? 0) * V_VOTES[v as VRank];
     }
     return sum;
   }
 
   function myVotes(myRank: VRank) {
-    return V_VOTES[myRank];
+    return V_VOTES[myRank] ?? 0;
   }
 
   function mySharePct(myRank: VRank) {
@@ -136,7 +130,7 @@ export const useLeadershipPool = defineStore("leadershipPool", () => {
   function qualifierCount() {
     const dist = globalVDistribution.value;
     let n = 0;
-    for (let v = UNLOCK_RANK; v <= 12; v++) n += dist[v as VRank] ?? 0;
+    for (const v of PREVIEW_LEADERSHIP_RANKS) n += dist[v as VRank] ?? 0;
     return n;
   }
 
@@ -150,7 +144,7 @@ export const useLeadershipPool = defineStore("leadershipPool", () => {
     if (total === 0) return 0;
     let remaining = topN;
     let sum = 0;
-    for (let v = 12; v >= UNLOCK_RANK; v--) {
+    for (const v of [...PREVIEW_LEADERSHIP_RANKS].reverse()) {
       const c = dist[v as VRank] ?? 0;
       if (c <= 0) continue;
       const take = Math.min(c, remaining);

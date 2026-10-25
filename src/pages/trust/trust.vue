@@ -17,6 +17,30 @@
           </view>
         </view>
 
+        <view v-if="financialMetrics.length" class="trust-summary">
+          <view v-for="metric in financialMetrics.slice(0,3)" :key="metric.key"><text class="trust-summary__value">{{ metric.value }}</text><text class="trust-summary__label">{{ metric.label }}</text></view>
+        </view>
+        <NxSection :title="resources.disclosures">
+          <NxListGroup><view v-for="item in categories" :key="item.key" class="trust-category">
+            <NxListRow :title="item.title" :value="openCategory === item.key ? '−' : '+'" @click="openCategory = openCategory === item.key ? '' : item.key" :aria-expanded="openCategory === item.key" />
+            <view v-if="openCategory === item.key" class="trust-category-body">
+              <template v-if="item.key === 'team' && verifiedLeadershipRows.length"><text v-for="row in verifiedLeadershipRows" :key="row.Name" class="block">{{ row.Name }} · {{ row.Role }}</text></template>
+              <template v-else-if="item.key === 'audit' && verifiedAuditRows.length"><NxListRow v-for="row in verifiedAuditRows" :key="row.Primary" :title="row.Primary" :subtitle="row.Secondary" @click="openHref(row.Url)" /></template>
+              <template v-else-if="item.material.content || item.material.rows.length">
+                <text v-if="item.material.content" class="block trust-material-copy">{{ item.material.content }}</text>
+                <view v-for="(row, index) in item.material.rows" :key="index" class="trust-material"
+                  :class="{ 'trust-material--link': row.href }" :role="row.href ? 'link' : undefined" :tabindex="row.href ? 0 : -1"
+                  @click="row.href && openHref(row.href)" @keydown.enter.prevent="row.href && openHref(row.href)">
+                  <text class="block trust-material-title">{{ row.title || resources.viewDocument }}</text>
+                  <text v-if="row.body" class="block trust-material-copy">{{ row.body }}</text>
+                  <text v-if="row.metadata" class="block">{{ row.metadata }}</text>
+                </view>
+              </template>
+              <NxButton v-else-if="item.href" variant="text" :label="item.title" @click="openHref(item.href)" />
+              <text v-else>{{ resources.pending }}</text>
+            </view>
+          </view></NxListGroup>
+        </NxSection>
         <SectionHeader :label="resources.resources" />
         <view class="trust-surface" :style="listCardStyle">
           <view v-for="(resource, index) in resources.items" :key="resource.href" role="link" tabindex="0"
@@ -30,17 +54,14 @@
           </view>
         </view>
 
-        <view class="trust-surface" v-if="loading" :style="stateCardStyle"><text :style="bodyStyle">{{ tr.loadingDisclosure }}</text></view>
-        <view class="trust-surface" v-else-if="hasError" :style="stateCardStyle">
-          <text :style="bodyStyle">{{ remoteApiEnabled ? tr.errorUnavailable : tr.errorOffline }}</text>
-          <text v-if="remoteApiEnabled" class="block active:opacity-70" role="button" tabindex="0" :style="retryStyle" @click="loadTrustSections">{{ t.ui.retry }}</text>
-        </view>
+        <view v-if="loading" class="trust-loading" aria-busy="true" />
+        <NxButton v-else-if="hasError && remoteApiEnabled" variant="text" size="small" :label="t.ui.retry" @click="loadTrustSections" />
 
-        <template v-else>
-          <template v-if="financialSection && financialMetrics.length">
+        <template>
+          <template v-if="financialMetrics.length > 3">
             <SectionHeader :label="resources.data" />
             <view class="trust-surface grid grid-cols-2" :style="gridCardStyle">
-              <view v-for="metric in financialMetrics" :key="metric.key" :style="metricStyle">
+              <view v-for="metric in financialMetrics.slice(3)" :key="metric.key" :style="metricStyle">
                 <text class="block" :style="labelStyle">{{ metric.label }}</text>
                 <view class="flex items-baseline" style="gap: 6px; margin-top: 4px">
                   <text :style="metricValueStyle">{{ metric.value }}</text>
@@ -58,7 +79,7 @@
                 @click="openHref(row.Url)" @keydown.enter.prevent="openHref(row.Url)">
                 <view class="min-w-0" style="flex: 1">
                   <text class="block" :style="titleStyle">{{ row.Primary }}</text>
-                  <text v-if="row.Secondary" class="block" :style="bodyStyle">{{ row.Secondary }}</text>
+                  <text v-if="row.Secondary" class="block" :style="bodyStyle">{{ row.Secondary }}</text><text v-if="row.Type || row.Date || row.Size" class="block" :style="bodyStyle">{{ [row.Type, row.Date, row.Size].filter(Boolean).join(" · ") }}</text>
                   <text v-if="!safeHref(row.Url)" class="block" :style="bodyStyle">{{ tr.linkUnavailable }}</text>
                 </view>
                 <text v-if="safeHref(row.Url)" :style="linkStyle">↗</text>
@@ -88,13 +109,18 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
-import { computed, onUnmounted, type CSSProperties } from "vue";
+import { computed, ref, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import NxSection from '@/components/ui/nx-section.vue';
+import NxListGroup from '@/components/ui/nx-list-group.vue';
+import NxListRow from '@/components/ui/nx-list-row.vue';
+import NxButton from '@/components/ui/nx-button.vue';
 import SectionHeader from "@/components/trust/trust-section-header.vue";
 import { trustResources } from "./trust-resources";
+import { trustCategoryMaterial } from "./trust-category-material";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { useConfig } from "@/store/config";
@@ -107,12 +133,16 @@ import { recordPublishedTrustViews, usePublishedTrust } from "@/composables/use-
 import { subscribeRuntimeRevision } from "@/api/order-api";
 
 const t = useT();
+const openCategory = ref('');
 const cfg = useConfig();
 const tr = computed(() => t.value.trust);
 const locale = useLocaleStore();
 const language = computed<TrustLocale>(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code as TrustLocale : "en");
 const resources = computed(() => trustResources(language.value));
 const { sections, status, refresh } = usePublishedTrust();
+const categories = computed(() => resources.value.categories.map(item => ({
+  ...item, material: trustCategoryMaterial(sections.value, item.key, language.value, safeHref),
+})));
 const loading = computed(() => remoteApiEnabled && (status.value === "idle" || status.value === "loading"));
 const hasError = computed(() => !remoteApiEnabled || status.value === "error");
 
@@ -151,7 +181,7 @@ const financialMetrics = computed(() => {
     { key: "payoutsProcessedValue", label: tr.value.completedPayouts, value: formatAmount(v.completedPayoutUsdt.value), delta: null },
   ];
 });
-const auditRows = computed(() => trustNumberedRows(auditSection.value?.fields ?? [], "document", ["Primary", "Secondary", "Url"] as const, language.value));
+const auditRows = computed(() => trustNumberedRows(auditSection.value?.fields ?? [], "document", ["Primary", "Secondary", "Url", "Type", "Date", "Size"] as const, language.value));
 const verifiedAuditRows = computed(() => auditRows.value.filter((row) => safeHref(row.Url)));
 const leadershipRows = computed(() => trustNumberedRows(leadershipSection.value?.fields ?? [], "leader", ["Name", "Role", "Previous", "Url"] as const, language.value));
 const verifiedLeadershipRows = computed(() => leadershipRows.value.filter((row) => safeHref(row.Url)));
@@ -249,3 +279,15 @@ const retryStyle: CSSProperties = { minHeight: "44px", display: "flex", alignIte
 
 
 </script>
+
+<style scoped>
+.trust-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; padding: 16px 0; border-block: 1px solid var(--v5-border); }
+.trust-summary__value { display: block; font: 600 18px/1.4 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
+.trust-summary__label { display: block; margin-top: 4px; font: 400 12px/1.5 var(--font-v5); color: var(--v5-ink-2); }
+.trust-material { margin-top: 12px; overflow-wrap: anywhere; }
+.trust-material-title { color: var(--v5-ink); font-weight: 500; }
+.trust-material-copy { white-space: pre-line; overflow-wrap: anywhere; }
+.trust-material--link { cursor: pointer; }
+.trust-material--link .trust-material-title { color: var(--v5-brand); }
+.trust-material--link:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 4px; }
+.trust-category + .trust-category { border-top:1px solid var(--v5-border); }.trust-category-body { padding:0 16px 16px;font:400 13px/1.6 var(--font-v5);color:var(--v5-ink-2); }.trust-loading { height:80px;background:var(--v5-surface);border-radius:20px; }</style>
