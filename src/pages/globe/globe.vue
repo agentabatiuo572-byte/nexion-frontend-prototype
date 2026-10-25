@@ -137,9 +137,9 @@
           />
 
           <!-- Region nodes -->
-          <g v-for="r in regions" :key="r.id" class="cursor-pointer" role="button" tabindex="0" :aria-label="regionName(r)" @click="select(r)"  @keydown.enter.prevent="select(r)" @keydown.space.prevent="select(r)">
+          <g v-for="r in regions" :key="r.id" class="cursor-pointer" pointer-events="none" role="button" tabindex="0" :aria-label="regionName(r)" @click="select(r)"  @keydown.enter.prevent="select(r)" @keydown.space.prevent="select(r)">
             <circle :cx="r.cx * W" :cy="r.cy * H" r="18" :fill="`url(#${r.isYou ? 'you-glow' : 'globe-glow'})`" />
-            <circle :cx="r.cx * W" :cy="r.cy * H" r="5" :fill="r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)'" />
+            <circle :cx="r.cx * W" :cy="r.cy * H" r="5" pointer-events="auto" :fill="r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)'" />
             <!-- Pulse ring -->
             <circle
               v-if="pulseRegionId === r.id"
@@ -369,7 +369,7 @@ const nativeYouGlowId = `${nativeGlowId}-you`;
 function nativeNodeStyle(r: GlobeRegion): CSSProperties {
   return {
     position: "absolute", left: `${r.cx * 100}%`, top: `${r.cy * 100}%`,
-    width: "44px", height: "44px", transform: "translate(-50%, -50%)",
+    width: "44px", height: "44px", transform: "translate(-50%, -50%)", pointerEvents: "none",
   };
 }
 // #endif
@@ -632,6 +632,7 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-globe-drawer", () =>
   border-radius: 50%;
   pointer-events: none;
 }
+.nx-globe-native-dot { pointer-events:auto; }
 .nx-globe-native-pulse {
   border: 1px solid;
   animation: nx-globe-native-pulse 1.6s;

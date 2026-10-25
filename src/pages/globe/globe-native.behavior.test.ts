@@ -263,10 +263,10 @@ test.each(["app", "h5"] as const)("%s keeps list and drawer latency compact acro
     const row = all(page.root).find(item => item.props.role === "button" && !item.props["aria-label"] && text(item).includes("Mobile region"))!;
     const listValue = all(row).find(item => hasClass(item, "block") && hasClass(item, "tabular-nums"))!;
     expect(text(listValue)).toBe(`${fmt(copy.globe.regionDevices, { n: "0" })} · -`);
-    expect(text(row)).toContain("0.0k/h"); expect(text(row)).not.toContain("-ms");
+    expect(text(row)).toContain(`0${copy.globe.jobsPerHour}`); expect(text(row)).not.toContain("-ms");
     emit(row, "onClick"); await settle();
     const values = all(page.drawer()!).filter(item => hasClass(item, "tabular-nums") && style(item)?.fontSize === "15px").map(text);
-    expect(values).toEqual(["0", "0.0k/h", "-"]);
+    expect(values).toEqual(["0", "0", "-"]);
     expect(text(page.drawer()!)).toContain(copy.globe.latencyTelemetryMissingHint);
     emit(all(page.drawer()!).find(item => item.props["aria-label"] === copy.trial.sheetCloseAria)!, "onClick"); await settle();
   }

@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "c78cd7e707987855091c93f67719a66f735fe362",
-  "sourceRef": "c78cd7e707987855091c93f67719a66f735fe362",
+  "sourceHead": "5a9d49cc96ac5b8ca3b2a602d9b2ed1edf82a4d8",
+  "sourceRef": "5a9d49cc96ac5b8ca3b2a602d9b2ed1edf82a4d8",
   "sourceRefKind": "commit",
-  "sourceTree": "43e86b8b58f1fefd6ddedf3b900894479143a843",
+  "sourceTree": "d44a1d3a21ef4fe36590fa92bc71c3d8e1e9e772",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -14636,10 +14636,10 @@
       "mode": "100644"
     },
     "src/pages/globe/globe-native.behavior.test.ts": {
-      "sourceBlob": "a084754a2308eb4b8bb35b049819627118ee8b56",
-      "sourceSha256": "43bf5923062248f3af6413c43bf9f7f9a31661daa3fdbf83d7066818c064eca0",
-      "targetBlob": "a084754a2308eb4b8bb35b049819627118ee8b56",
-      "targetSha256": "43bf5923062248f3af6413c43bf9f7f9a31661daa3fdbf83d7066818c064eca0",
+      "sourceBlob": "d88985f85d7aa50190811811772e4accef05a4bc",
+      "sourceSha256": "221f9c89d812ff1f0d85db77fc072ce39c4dd8b2d97499e2fe6e4600ed648691",
+      "targetBlob": "d88985f85d7aa50190811811772e4accef05a4bc",
+      "targetSha256": "221f9c89d812ff1f0d85db77fc072ce39c4dd8b2d97499e2fe6e4600ed648691",
       "mode": "100644"
     },
     "src/pages/globe/globe-remote-epoch.test.ts": {
@@ -14650,10 +14650,10 @@
       "mode": "100644"
     },
     "src/pages/globe/globe.vue": {
-      "sourceBlob": "25d6045fea8eb09093b27ce9de425d7fbe182e0e",
-      "sourceSha256": "38a46538fc21d7a9faf555e23e8ad08834b33cd6fa210bd8ceb5f7458e8a7fd9",
-      "targetBlob": "25d6045fea8eb09093b27ce9de425d7fbe182e0e",
-      "targetSha256": "38a46538fc21d7a9faf555e23e8ad08834b33cd6fa210bd8ceb5f7458e8a7fd9",
+      "sourceBlob": "5b168aaf878e7af8634ff6a75c0b4acb9dc54b37",
+      "sourceSha256": "19e594b91d9ed0699b66ed1a9f852247c585193641ae8ab72011fefca41b0368",
+      "targetBlob": "5b168aaf878e7af8634ff6a75c0b4acb9dc54b37",
+      "targetSha256": "19e594b91d9ed0699b66ed1a9f852247c585193641ae8ab72011fefca41b0368",
       "mode": "100644"
     },
     "src/pages/h3-observation-wiring.contract.test.ts": {
@@ -15609,10 +15609,10 @@
       "mode": "100644"
     },
     "src/pages/me/wallet-repurchase.vue": {
-      "sourceBlob": "2c08de7310be10c79cca6b727a351a9dcb53fbb0",
-      "sourceSha256": "5504e77f13d8a572b9a410370c999497649957732c4ee4d1aa4866a75f456c15",
-      "targetBlob": "2c08de7310be10c79cca6b727a351a9dcb53fbb0",
-      "targetSha256": "5504e77f13d8a572b9a410370c999497649957732c4ee4d1aa4866a75f456c15",
+      "sourceBlob": "44a812ed60678bc2ce02a8158ff4e86181ef72ca",
+      "sourceSha256": "b35180f17382f0652b3d49399da9048438b1406426a0e8994848176d0a7c6920",
+      "targetBlob": "44a812ed60678bc2ce02a8158ff4e86181ef72ca",
+      "targetSha256": "b35180f17382f0652b3d49399da9048438b1406426a0e8994848176d0a7c6920",
       "mode": "100644"
     },
     "src/pages/me/wallet-review-status.test.ts": {
