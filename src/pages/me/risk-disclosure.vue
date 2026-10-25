@@ -8,8 +8,9 @@
 -->
 <template>
   <AppChassis active="me">
-    <scroll-view :key="nativeScrollSurface.key" class="risk-scroll-surface" :class="{ 'risk-scroll-surface--scrolled': scrollTop > 12 }" scroll-y :show-scrollbar="false" :scroll-top="scrollTop" style="height: 100vh" :onScroll="nativeScrollSurface.events.scroll" :onScrolltolower="nativeScrollSurface.events.scrolltolower">
-    <view style="padding-bottom: 32px">
+    <template #pageFixed="{ top }">
+    <scroll-view :key="nativeScrollSurface.key" class="risk-scroll-surface" :class="{ 'risk-scroll-surface--scrolled': scrollTop > 12 }" scroll-y :show-scrollbar="false" :scroll-top="scrollTop" :onScroll="nativeScrollSurface.events.scroll" :onScrolltolower="nativeScrollSurface.events.scrolltolower">
+    <view :style="{ paddingTop: top + 'px', paddingBottom: '40px' }">
       <SubPageHeader :back="returnTo" />
 
       <!-- Hero -->
@@ -109,6 +110,7 @@
       </view>
     </view>
     </scroll-view>
+    </template>
   </AppChassis>
 </template>
 
@@ -459,6 +461,7 @@ const disclaimerStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", col
 </script>
 
 <style scoped>
+.risk-scroll-surface { position:absolute;inset:0;width:100%;height:100%; }
 .risk-scroll-surface,
 .risk-scroll-surface :deep(.uni-scroll-view) { scrollbar-width: none; -ms-overflow-style: none; }
 .risk-scroll-surface::-webkit-scrollbar,

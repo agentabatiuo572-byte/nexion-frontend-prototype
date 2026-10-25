@@ -69,6 +69,7 @@
             <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ t.developer.requestAccess }}</text>
           </view>
           <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-bottom: var(--ui-space-inline)">{{ t.developer.requestAccessHint }}</text>
+          <text v-if="remoteApiEnabled && latestLoading" role="status" class="developer-loading">{{ t.developer.loading }}</text>
           <view v-if="remoteApiEnabled && latestRequest" class="nx-glass-inset rounded-xl" :style="requestStatusStyle">
             <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-tech-cyan)">{{ latestRequest.requestNo }} · {{ latestRequestStatusLabel }}</text>
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ new Date(latestRequest.submittedAt).toLocaleString(dateLocale()) }}</text>
@@ -121,6 +122,7 @@
             <view v-if="!remoteApiEnabled" class="mt-3 rounded-lg" :style="docsComingStyle"><text style="font-size: 12px; color: color-mix(in srgb, var(--v5-warning) 90%, transparent)">{{ t.developer.docsTabComing }}</text></view>
             <view v-if="docs" class="mt-3 rounded-lg" :style="requestStatusStyle"><text class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.developer.docsEvents, { events: docs.events.join(" · ") }) }}</text></view>
           </template>
+          <text v-else role="status" class="developer-loading">{{ t.developer.loading }}</text>
         </view>
       </view>
 
@@ -129,6 +131,7 @@
         <view class="rounded-2xl" :style="formCardStyle">
           <view v-if="!remoteApiEnabled" class="rounded-xl" :style="requestStatusStyle"><text style="font-size: 12px; color: var(--v5-warning)">{{ t.developer.remoteRequired }}</text></view>
           <view v-else>
+            <text v-if="resourcesLoading" role="status" class="developer-loading">{{ t.developer.loading }}</text>
             <view v-if="resourcesApprovalRequired" class="rounded-xl" :style="requestStatusStyle">
               <text class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.developer.approvalRequired }}</text>
               <view role="button" tabindex="0" :aria-label="t.developer.requestAccess" style="min-height: 44px; display: grid; place-items: center" @click="tab = 'overview'"  @keydown.enter.prevent="tab = 'overview'" @keydown.space.prevent="tab = 'overview'"><text>{{ t.developer.requestAccess }}</text></view>
@@ -155,6 +158,7 @@
         <view class="rounded-2xl" :style="formCardStyle">
           <view v-if="!remoteApiEnabled" class="rounded-xl" :style="requestStatusStyle"><text style="font-size: 12px; color: var(--v5-warning)">{{ t.developer.remoteRequired }}</text></view>
           <view v-else>
+            <text v-if="resourcesLoading" role="status" class="developer-loading">{{ t.developer.loading }}</text>
             <view v-if="resourcesApprovalRequired" class="rounded-xl" :style="requestStatusStyle">
               <text class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.developer.approvalRequired }}</text>
               <view role="button" tabindex="0" :aria-label="t.developer.requestAccess" style="min-height: 44px; display: grid; place-items: center" @click="tab = 'overview'"  @keydown.enter.prevent="tab = 'overview'" @keydown.space.prevent="tab = 'overview'"><text>{{ t.developer.requestAccess }}</text></view>
@@ -211,7 +215,7 @@ import { createDeveloperDocsFenceReader, type DeveloperDocsFence } from "./devel
 import { isApiKeyRevoked, isWebhookDeleted, isWebhookEnabled, readDeveloperResourceSnapshot } from "./developer-resource-reconciliation";
 import { createDeveloperRotationJournal, developerRotationUniStorage, type DeveloperRotationRecoveryState } from "./developer-rotation-journal";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
-import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
 import { createDeveloperDocsApi, type DeveloperDocs } from "@/api/developer-docs-api";
 import { useLocaleStore } from "@/store/locale";
@@ -245,6 +249,7 @@ const accessIssue = ref<DeveloperFormIssue | null>(null);
 const submitting = ref(false);
 const latestRequest = ref<DeveloperAccessReceipt | null>(null);
 const latestLoadFailed = ref(false);
+const latestLoading = ref(false);
 const apiKeys = ref<DeveloperApiKey[]>([]);
 const webhooks = ref<DeveloperWebhook[]>([]);
 const webhookDeliveries = ref<Record<number, DeveloperWebhookDelivery[]>>({});
@@ -277,7 +282,7 @@ const rotationJournal = createDeveloperRotationJournal(
 );
 const requestState = computed(() => developerAccessState(latestRequest.value));
 const requestReviewReason = computed(() => developerAccessReviewReasonKey(latestRequest.value));
-const canSubmitAccessRequest = computed(() => requestState.value?.canReapply ?? true);
+const canSubmitAccessRequest = computed(() => !latestLoading.value && !latestLoadFailed.value && (requestState.value?.canReapply ?? true));
 const developerCopy = computed(() => t.value.developer as unknown as Record<DeveloperAccessCopyKey, string>);
 const latestRequestStatusLabel = computed(() => requestState.value ? developerCopy.value[requestState.value.label] : "");
 const latestRequestStatusDetail = computed(() => requestState.value ? developerCopy.value[requestState.value.detail] : "");
@@ -521,6 +526,7 @@ function loadLatestRequest() {
   const generation = ++requestGeneration;
   latestRequest.value = null;
   latestLoadFailed.value = false;
+  latestLoading.value = true;
   const current = () => generation === requestGeneration && accountKey === String(app.accountKey)
     && isCurrentAccountScope(accountScope) && isCurrentRuntimeRevision(runScope);
   void developerAccessApi.latest().then((value) => {
@@ -534,7 +540,7 @@ function loadLatestRequest() {
   }).catch(() => {
     if (current()) latestLoadFailed.value = true;
     else if (generation === requestGeneration) { latestRequest.value = null; latestLoadFailed.value = false; }
-  });
+  }).finally(() => { if (current()) latestLoading.value = false; });
 }
 async function loadResources(fence = resourceFence()) {
   if (!remoteApiEnabled || !resourceFenceCurrent(fence)) return;
@@ -784,20 +790,40 @@ async function rotateWebhook(item: DeveloperWebhook) {
 function deliveryFailureLabel(value: string): string {
   return /^[A-Z0-9_:-]{1,120}$/.test(value) ? value : t.value.developer.deliveryFailureRedacted;
 }
+let developerPageVisible = false;
+// Runtime/catalog hydration can invalidate all reads without changing the account.
+// Clear the old authority and immediately read the current scope while visible.
+const unsubscribeDeveloperRuntime = subscribeRuntimeRevision(() => {
+  if (!developerPageVisible || !remoteApiEnabled) return;
+  clearDeveloperConfirms();
+  requestGeneration += 1;
+  requestKey = null;
+  submitting.value = false;
+  resetDocsScope();
+  resetResourceScope();
+  loadLatestRequest();
+  void loadResources();
+  void loadDocs();
+});
 onShow(() => {
+  developerPageVisible = true;
   loadLatestRequest();
   void loadResources();
   void loadDocs();
 });
 onHide(() => {
+  developerPageVisible = false;
   clearDeveloperConfirms();
   requestGeneration += 1;
   latestRequest.value = null;
   latestLoadFailed.value = false;
+  latestLoading.value = false;
   resetDocsScope();
   resetResourceScope();
 });
 onUnmounted(() => {
+  developerPageVisible = false;
+  unsubscribeDeveloperRuntime();
   clearDeveloperConfirms();
   requestGeneration += 1;
   resetDocsScope();
@@ -996,6 +1022,7 @@ import GlassSegments from "@/components/glass-segments.vue";
 </script>
 
 <style scoped>
+.developer-loading { display:block;color:var(--v5-ink-3);font:400 var(--ui-text-body)/1.5 var(--font-v5);padding-block:var(--ui-space-inline); }
 .nx-dev-ph {
   color: var(--v5-ink-4);
 }

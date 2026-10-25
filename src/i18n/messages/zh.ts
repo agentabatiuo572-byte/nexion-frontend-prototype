@@ -4001,6 +4001,7 @@ sandboxPayHint: "体验支付不涉及真实资金，完成后可查看订单状
     a_diamond_miner_d: "累计收益达 $1,000.00",
   },
   developer: {
+    loading: "加载中…",
     requestStatusPending: "处理中",
     requestStatusApproved: "访问已开通",
     requestStatusRejected: "需要补充资料",

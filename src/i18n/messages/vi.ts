@@ -3978,6 +3978,7 @@ sandboxPayHint: "Thanh toán trải nghiệm không dùng tiền thật. Xem tr�
     a_diamond_miner_d: "Thu nhập tích lũy đạt $1,000.00",
   },
   developer: {
+    loading: "Đang tải…",
     requestStatusPending: "Đang xử lý",
     requestStatusApproved: "Quyền truy cập đang hoạt động",
     requestStatusRejected: "Cần bổ sung thông tin",

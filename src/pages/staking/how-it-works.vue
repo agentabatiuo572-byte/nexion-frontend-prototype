@@ -74,11 +74,11 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z" /><path d="M2 9v1c0 1.1.9 2 2 2h1" /><path d="M16 11h.01" /></svg>
         </template>
         <view style="display: flex; flex-direction: column; gap: 10px">
-          <HowFaqRow :q="w.faqQ1" :a="w.faqA1" />
-          <HowFaqRow :q="w.faqQ2" :a="w[faqAnswerKey]" />
-          <HowFaqRow :q="w.faqQ3" :a="w.faqA3" />
-          <HowFaqRow :q="w.faqQ4" :a="stakingAvailable === true ? w.faqA4 : stakingAvailable === false ? w.faqA4Paused : w.faqA4Unknown" />
-          <HowFaqRow :q="w.faqQ5" :a="w.faqA5" />
+          <HowFaqRow open :q="w.faqQ1" :a="w.faqA1" />
+          <HowFaqRow open :q="w.faqQ2" :a="w[faqAnswerKey]" />
+          <HowFaqRow open :q="w.faqQ3" :a="w.faqA3" />
+          <HowFaqRow open :q="w.faqQ4" :a="stakingAvailable === true ? w.faqA4 : stakingAvailable === false ? w.faqA4Paused : w.faqA4Unknown" />
+          <HowFaqRow open :q="w.faqQ5" :a="w.faqA5" />
           <view v-if="exchangeReadFailed && !staking.remoteError" class="flex items-center justify-center" :style="retryStyle" role="button" :aria-disabled="retrying" :tabindex="retrying ? -1 : 0" @click="retryRemote" @keydown.enter.prevent="retryRemote" @keydown.space.prevent="retryRemote"><text>{{ copy.retry }}</text></view>
         </view>
       </HowSection>

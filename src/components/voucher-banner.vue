@@ -52,6 +52,9 @@ function open() {
 .vb-card::before,.vb-card::after { content:''; position:absolute; top:110px; width:18px; height:18px; border-radius:50%; background:var(--v5-bg); border:1px solid var(--v5-border); z-index:2; }
 .vb-card::before { left:-10px; }.vb-card::after { right:-10px; }
 .vb-card:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
+.vb-wrap--embedded .vb-card { height:100%;min-height:184px; }
+.vb-wrap--embedded .vb-card::before,.vb-wrap--embedded .vb-card::after { top:auto;bottom:55px; }
+.vb-wrap--embedded .vb-rule { top:auto;bottom:64px; }
 .vb-art { position:absolute; right:-18px; top:-6px; width:112px; height:112px; pointer-events:none; }
 .vb-art .nx-home-art { width:100%;height:100%; transform:rotate(-8deg); animation:voucher-float 4.6s ease-in-out infinite; }
 @keyframes voucher-float { 0%,100% { transform:translateY(0) rotate(-8deg); } 50% { transform:translateY(-4px) rotate(-6deg); } }

@@ -4,6 +4,7 @@ import { createWithdrawalApi, toCanonicalWithdrawal } from "./withdrawal-api";
 // @ts-expect-error Standalone loopback fixture is outside the App TS source tree.
 import { bankDemo } from "../../scripts/lib/prototype-demo-bank.mjs";
 import type { ApiRequest } from "./api-client";
+import { bankOrderOutcome } from "@/lib/bank-withdrawal-state";
 
 const quote = {
   quoteNo: "BQ-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", amountUsdt: "100.000000", feeUsdt: "1.000000", netUsdt: "99.000000",
@@ -32,19 +33,23 @@ describe("loopback bank demo uses the production contract", () => {
     expect((await api.config()).unresolvedIntent).toBeNull();
     state.bankState = "settled";
     expect(await api.get(order.withdrawalNo)).toMatchObject({ status: "CONFIRMED", settlementEvidence: { status: "paid" } });
+    expect(bankOrderOutcome(await api.get(order.withdrawalNo))).toBe("paid");
     state.bankState = "rejected";
     expect(await api.get(order.withdrawalNo)).toMatchObject({ status: "REFUNDED", settlementEvidence: { status: "refunded" } });
+    expect(bankOrderOutcome(await api.get(order.withdrawalNo))).toBe("refunded");
     const abandoned = await api.quote("20");
     expect(await api.abandon(abandoned.quoteNo)).toEqual({ state: "ABANDONED" });
     await expect(api.submit(abandoned.quoteNo, "abandoned")).rejects.toThrow("BANK_QUOTE_EXPIRED");
   });
-  test("replacement validates the local OTP and returns a pending account", async () => {
+  test("replacement validates the local OTP and activates the routed account immediately", async () => {
     const { api } = harness();
     const otp = await api.sendOtp();
     const body = { bankCode: "", account: "00123456789", holder: "DEMO PERSON", accountRoutingConfirmed: true as const, challengeNo: otp.challengeNo, code: "000000" };
     await expect(api.bind(body, "wrong-otp")).rejects.toThrow("OTP_INVALID");
     const saved = await api.bind({ ...body, code: "123456" }, "demo-bind");
-    expect(saved).toMatchObject({ maskedAccount: "••••6789", canWithdraw: false });
+    expect(saved).toMatchObject({ maskedAccount: "••••6789", canWithdraw: true });
+    expect(Date.parse(saved.effectiveAt)).toBeLessThanOrEqual(Date.now());
+    expect(saved.nextChangeAt).toBe(saved.effectiveAt);
     expect((await api.config()).beneficiary).toEqual(saved);
     expect(await api.bind({ ...body, code: "123456" }, "demo-bind")).toEqual(saved);
   });

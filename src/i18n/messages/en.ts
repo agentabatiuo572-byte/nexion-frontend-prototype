@@ -4066,6 +4066,7 @@ sandboxPayHint: "Demo payments use no real funds. Check the order status after c
     a_diamond_miner_d: "Cumulative earnings reach $1,000.00",
   },
   developer: {
+    loading: "Loading…",
     requestStatusPending: "Processing",
     requestStatusApproved: "Access active",
     requestStatusRejected: "Action needed",

@@ -416,7 +416,7 @@ const subtitleStyle: CSSProperties = {
   fontSize: "13px",
   color: "var(--v5-ink-3)",
 };
-const closeBtnStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "999px", color: "var(--v5-ink-3)" };
+const closeBtnStyle: CSSProperties = { width: "44px", height: "44px", flexShrink: 0, borderRadius: "999px", color: "var(--v5-ink-3)" };
 const amountWrapStyle: CSSProperties = { background: "var(--v5-surface-2)", borderRadius: "16px", padding: "16px" };
 const amountLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -448,13 +448,13 @@ const usdtStyle: CSSProperties = {
 function presetStyle(p: number): CSSProperties {
   const active = amount.value === p;
   return {
-    height: "40px",
+    height: "44px",
     borderRadius: "999px",
     fontFamily: "var(--font-v5)",
     fontSize: "13px",
     fontWeight: 500,
     background: active ? "var(--v5-brand)" : "var(--v5-surface)",
-    color: active ? "var(--v5-ink)" : "var(--v5-ink-2)",
+    color: active ? "var(--v5-on-brand)" : "var(--v5-ink-2)",
     border: active ? "1px solid var(--v5-brand)" : "1px solid var(--v5-border)",
     display: "flex",
     alignItems: "center",
@@ -467,7 +467,7 @@ const balanceRowStyle: CSSProperties = {
   fontSize: "13px",
   color: "var(--v5-ink-3)",
 };
-const maxStyle: CSSProperties = { color: "var(--v5-brand)", fontWeight: 600, fontSize: "13px" };
+const maxStyle: CSSProperties = { color: "var(--v5-brand)", fontWeight: 600, fontSize: "13px", minWidth: "44px", minHeight: "44px", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" };
 const projectionStyle: CSSProperties = {
   marginTop: "12px",
   background: "var(--v5-surface-2)",

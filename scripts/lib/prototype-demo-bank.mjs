@@ -44,7 +44,7 @@ export function bankDemo(url, state, request) {
     const settled = state.bankState === 'settled', rejected = state.bankState === 'rejected';
     return { ...snapshot(row), providerState: settled ? 'PAID' : rejected ? 'FAILED' : 'PENDING',
       withdrawal: { ...row.withdrawal, status: settled ? 'CONFIRMED' : rejected ? 'REFUNDED' : 'PROCESSING' },
-      settlementEvidence: { status: settled ? 'paid' : rejected ? 'refunded' : 'unconfirmed', evidenceRef: settled || rejected ? 'DEMO-' + row.withdrawalNo : null, providerOrderId: null, providerStatus: null, checkedAt: new Date(now).toISOString(), amountUsdt: row.bank.amountUsdt } };
+      settlementEvidence: { status: settled ? 'paid' : rejected ? 'refunded' : 'unconfirmed', evidenceRef: settled || rejected ? 'DEMO-' + row.withdrawalNo : null, providerOrderId: settled ? 'DEMO-PROVIDER-' + row.withdrawalNo : null, providerStatus: settled ? 3 : null, checkedAt: new Date(now).toISOString(), amountUsdt: row.bank.amountUsdt } };
   };
   if (path === '/api/withdrawals/bank/config' && method === 'GET') return config();
   if (path === '/api/withdrawals/bank/beneficiary/otp' && method === 'POST') return challenge('bank');
@@ -52,7 +52,7 @@ export function bankDemo(url, state, request) {
     const body = input();
     if (config().beneficiary) validateOtp('bank');
     if (!/^\d{6,32}$/.test(body.account) || !String(body.holder || '').trim() || body.bankCode !== '' || body.accountRoutingConfirmed !== true) fail('BANK_DETAILS_INVALID', 400);
-    demo.beneficiary = { bankCode: '', bankName: 'ACCOUNT_ROUTED', bankRoutingVerified: true, maskedAccount: '••••' + body.account.slice(-4), effectiveAt: new Date(now + DAY).toISOString(), nextChangeAt: new Date(now + 30 * DAY).toISOString(), beneficiaryNo: 'DEMO-BANK-2', canWithdraw: false };
+    demo.beneficiary = { bankCode: '', bankName: 'ACCOUNT_ROUTED', bankRoutingVerified: true, maskedAccount: '••••' + body.account.slice(-4), effectiveAt: new Date(now).toISOString(), nextChangeAt: new Date(now).toISOString(), beneficiaryNo: 'DEMO-BANK-2', canWithdraw: true };
     delete demo.bankOtp;
     return { beneficiary: snapshot(demo.beneficiary) };
   });

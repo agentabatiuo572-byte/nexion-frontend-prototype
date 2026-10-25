@@ -1,6 +1,6 @@
 <!-- Trial eligibility and claim flow remain owned by the existing trial stores. -->
 <template>
-  <view v-if="visible" class="nx-trial-hero" :class="{ 'nx-trial-hero--embedded': embedded }" role="button" :tabindex="canClaim ? 0 : -1" :aria-disabled="canClaim ? 'false' : 'true'"
+  <view v-if="visible" class="nx-trial-hero" :class="{ 'nx-trial-hero--embedded': embedded, 'nx-trial-hero--long-copy': embedded && locale.code !== 'zh' }" role="button" :tabindex="canClaim ? 0 : -1" :aria-disabled="canClaim ? 'false' : 'true'"
     :aria-busy="trial.authorityStatus === 'loading'" :aria-label="t.trial.heroDeviceName + ' · ' + claimCtaText"
     @click="onClick"  @keydown.enter.prevent="onClick" @keydown.space.prevent="onClick">
     <view class="trial-aura" aria-hidden="true" />
@@ -26,6 +26,7 @@ import { useFreeTrial } from "@/store/free-trial";
 import { useTrialConfig, computeTrialOffset } from "@/store/trial-config";
 import { useTrialClaimSheet } from "@/store/trial-claim-sheet";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
 import { useAuditUiCopy } from '@/i18n/audit-ui';
 import LiquidGlass from "@/components/liquid-glass.vue";
@@ -36,6 +37,7 @@ const trial = useFreeTrial();
 const trialCfg = useTrialConfig();
 const claimSheet = useTrialClaimSheet();
 const t = useT(), copy = useAuditUiCopy();
+const locale = useLocaleStore();
 
 const eligibility = computed(() => trial.eligibility());
 const canClaim = computed(() => trial.status === "none"
@@ -119,6 +121,10 @@ function retryEligibility() {
 .nx-trial-hero--embedded .trial-title { font:600 18px/22px var(--font-v5);margin-top:8px;letter-spacing:0; }
 .trial-reassurance { display:flex;flex-direction:column;max-width:110px;margin-top:6px;font:400 13px/18px var(--font-v5);color:var(--v5-ink-3); }
 .nx-trial-hero--embedded .trial-cta { position:absolute;left:14px;bottom:14px;min-height:32px;margin:0;padding:0 14px;font:600 13px/1.3 var(--font-v5); }
+.nx-trial-hero--long-copy { display:flex;flex-direction:column;box-sizing:border-box;height:auto;min-height:216px; }
+.nx-trial-hero--long-copy .trial-meta { order:1; }
+.nx-trial-hero--long-copy .trial-reassurance { max-width:none; }
+.nx-trial-hero--long-copy .trial-art { position:relative;order:2;align-self:flex-end;right:-6px;bottom:auto;flex:none;margin:4px 0 8px; }
 @media(max-width:350px) {
   .nx-trial-hero--embedded { display:flex;flex-direction:column;box-sizing:border-box;height:auto;min-height:216px; }
   .nx-trial-hero--embedded .trial-meta { order:1;padding-inline:12px; }
