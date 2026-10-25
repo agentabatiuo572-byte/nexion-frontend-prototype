@@ -1,12 +1,13 @@
 import { computed, effectScope, nextTick, reactive, ref, watch } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import pageSource from "./risk-disclosure.vue?raw";
 import type { RiskDisclosureCurrent } from "@/api/risk-disclosure-api";
 import * as reading from "@/lib/risk-disclosure-reading-gate";
 
 const cleanups: Array<() => void> = [];
-afterEach(() => cleanups.splice(0).forEach((cleanup) => cleanup()));
+beforeEach(() => { vi.useFakeTimers(); });
+afterEach(() => { cleanups.splice(0).forEach((cleanup) => cleanup()); vi.useRealTimers(); });
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => { resolve = done; });
@@ -14,7 +15,7 @@ function deferred<T>() {
 }
 const document = (version: string) => ({
   jurisdiction: "VN", version, acknowledgmentToken: `fixture-${version}`,
-  acknowledged: false, chapters: [],
+  acknowledged: false, chapters: [], minimumReadingSeconds: 30,
 }) as unknown as RiskDisclosureCurrent;
 
 function actualPage() {
@@ -64,6 +65,29 @@ function actualPage() {
 }
 
 describe("Risk disclosure page lifecycle", () => {
+  it("does not submit before the server's minimum reading time even after scrolling and checking", async () => {
+    const page = actualPage();
+    page.risk.refresh.mockImplementationOnce(async () => { page.risk.current = document("v1"); });
+    await page.mount(); page.state.nativeEvents().scrolltolower(); page.state.toggleCheck();
+    expect(page.state.canAccept.value).toBe(false);
+    await page.state.onAccept(); expect(page.risk.accept).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(29_999); expect(page.state.canAccept.value).toBe(false);
+    vi.advanceTimersByTime(1); expect(page.state.canAccept.value).toBe(true);
+    await page.state.onAccept(); expect(page.risk.accept).toHaveBeenCalledOnce();
+  });
+
+  it("starts a fresh reading wait for a rotated token and disposes the clock when hidden", async () => {
+    const page = actualPage();
+    page.risk.refresh.mockImplementationOnce(async () => { page.risk.current = document("v1"); });
+    await page.mount(); vi.advanceTimersByTime(30_000);
+    page.risk.current = { ...document("v1"), acknowledgmentToken: "rotated-token" };
+    await nextTick(); page.state.nativeEvents().scrolltolower(); page.state.toggleCheck();
+    expect(page.state.canAccept.value).toBe(false);
+    expect(vi.getTimerCount()).toBe(1);
+    page.hide(); expect(vi.getTimerCount()).toBe(0);
+    page.unmount(); expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("does not rearm a hidden page when its initial request finishes", async () => {
     const page = actualPage(), refresh = deferred<void>();
     page.risk.refresh.mockReturnValueOnce(refresh.promise);
@@ -85,6 +109,7 @@ describe("Risk disclosure page lifecycle", () => {
     expect(page.state.scrollTop.value).toBe(0);
     expect(page.state.scrolledToBottom.value).toBe(false);
     page.state.nativeEvents().scrolltolower(); page.state.toggleCheck();
+    vi.advanceTimersByTime(30_000);
     expect(page.state.canAccept.value).toBe(true);
   });
 
@@ -106,6 +131,7 @@ describe("Risk disclosure page lifecycle", () => {
     page.risk.refresh.mockImplementation(async () => { page.risk.current = document("v1"); });
     page.risk.accept.mockReturnValueOnce(accepted.promise);
     await page.mount(); page.state.nativeEvents().scrolltolower(); page.state.toggleCheck();
+    vi.advanceTimersByTime(30_000);
     const accepting = page.state.onAccept(); page.hide(); await page.show();
     accepted.resolve(true); await accepting;
     expect(page.toast.success).not.toHaveBeenCalled(); expect(page.navBack).not.toHaveBeenCalled();
@@ -131,6 +157,7 @@ describe("Risk disclosure page lifecycle", () => {
     page.risk.refresh.mockImplementationOnce(async () => { page.risk.current = document("v1"); });
     page.risk.accept.mockReturnValueOnce(accepted.promise);
     await page.mount(); page.state.scrolledToBottom.value = true; page.state.checked.value = true;
+    vi.advanceTimersByTime(30_000);
     const accepting = page.state.onAccept();
     expect(page.risk.accept).toHaveBeenCalledOnce(); page.unmount(); accepted.resolve(true); await accepting;
     expect(page.toast.success).not.toHaveBeenCalled(); expect(page.navBack).not.toHaveBeenCalled();
@@ -140,12 +167,14 @@ describe("Risk disclosure page lifecycle", () => {
     const page = actualPage();
     page.risk.refresh.mockImplementationOnce(async () => { page.risk.current = document("v1"); });
     await page.mount();
+    vi.advanceTimersByTime(30_000);
     const old = page.observers.at(-1)!;
     old.callback([{ isIntersecting: true }]); page.state.toggleCheck(); expect(page.state.canAccept.value).toBe(true);
     page.risk.current = document("v2"); old.callback([{ isIntersecting: true }]);
     expect(page.state.scrolledToBottom.value).toBe(false); expect(page.state.checked.value).toBe(false);
     expect(page.state.canAccept.value).toBe(false); await nextTick();
     page.observers.at(-1)!.callback([{ isIntersecting: true }]); page.state.toggleCheck();
+    vi.advanceTimersByTime(30_000);
     expect(page.state.canAccept.value).toBe(true);
   });
 });

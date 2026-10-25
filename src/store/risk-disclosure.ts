@@ -83,6 +83,19 @@ export const useRiskDisclosure = defineStore("riskDisclosure", () => {
       apply(snapshot);
       return accepted.value;
     } catch (cause) {
+      // A rejected command does not prove that the published document vanished.
+      // Keep only a fresh server snapshot, and retain account/generation guards.
+      if (!requestIsCurrent(request, generation)) return false;
+      try {
+        const snapshot = await riskDisclosureApi.current();
+        if (!requestIsCurrent(request, generation)) return false;
+        apply(snapshot);
+        if (accepted.value) return true;
+        error.value = cause instanceof Error ? cause.message : "RISK_DISCLOSURE_ACKNOWLEDGEMENT_FAILED";
+        return false;
+      } catch (recoveryError) {
+        cause = recoveryError;
+      }
       if (requestIsCurrent(request, generation)) {
         apply(null);
         publicationUnavailable.value = cause instanceof ApiError && cause.kind === "http"

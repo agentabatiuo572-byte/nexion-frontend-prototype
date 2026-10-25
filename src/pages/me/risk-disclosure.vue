@@ -104,8 +104,9 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
             <text>{{ w.alreadyAcceptedCta }}</text>
           </template>
-          <text v-else>{{ w.acceptCta }}</text>
+          <text v-else>{{ readingSecondsRemaining > 0 ? fmt(w.minimumReadingWait, { n: readingSecondsRemaining }) : w.acceptCta }}</text>
         </view>
+        <text v-if="risk.error && disclosure && !accepted" class="block text-center" :style="hintTextStyle" role="alert">{{ w.acknowledgmentError }}</text>
         <text class="block text-center" :style="disclaimerStyle">{{ disclaimerText }}</text>
       </view>
     </view>
@@ -144,7 +145,7 @@ const disclosure = computed(() => risk.current);
 // BUG #60: an unprovisioned/ambiguous region mapping is a configuration fact, not a
 // transient failure. Telling the user to retry (and offering the retry CTA) hides the
 // real, diagnosable cause behind a network-style message.
-const loadError = computed(() => !risk.error ? "" : risk.jurisdictionUnmapped
+const loadError = computed(() => !risk.error || disclosure.value ? "" : risk.jurisdictionUnmapped
   ? w.value.jurisdictionUnmapped
   : risk.publicationUnavailable ? w.value.publicationUnavailable : w.value.loadErrorRegion);
 const canRetryLoad = computed(() => !risk.jurisdictionUnmapped);
@@ -181,6 +182,26 @@ let pageActive = true;
 let pageGeneration = 0;
 let nativeGeneration = 0;
 const nativeScrollSurface = ref(createNativeScrollSurface(null));
+const readingSecondsRemaining = ref(0);
+let readingTimer: ReturnType<typeof setInterval> | null = null;
+
+function stopReadingClock() {
+  if (readingTimer !== null) clearInterval(readingTimer);
+  readingTimer = null;
+}
+function resetReadingClock() {
+  stopReadingClock();
+  // Count from receipt of this exact token; the server remains the authority.
+  // A hidden or replaced document must not leave a running page timer behind.
+  readingSecondsRemaining.value = disclosure.value?.acknowledgmentToken && !accepted.value
+    ? disclosure.value.minimumReadingSeconds : 0;
+  if (!pageActive || disposed || readingSecondsRemaining.value <= 0) return;
+  const readyAt = Date.now() + readingSecondsRemaining.value * 1000;
+  readingTimer = setInterval(() => {
+    readingSecondsRemaining.value = Math.max(0, Math.ceil((readyAt - Date.now()) / 1000));
+    if (readingSecondsRemaining.value === 0) stopReadingClock();
+  }, 250);
+}
 
 function createNativeScrollSurface(identity: string | null) {
   const generation = ++nativeGeneration;
@@ -270,6 +291,7 @@ watch(documentIdentity, (nextIdentity, previousIdentity) => {
     selectedBlock: selectedBlock.value,
   }));
   readingIdentity.value = nextIdentity;
+  resetReadingClock();
   if (pageActive) void armReading(nextIdentity, generation);
 }, { flush: "sync" });
 
@@ -278,6 +300,7 @@ onHide(() => {
   pageActive = false;
   pageGeneration += 1;
   nativeGeneration += 1;
+  stopReadingClock();
   stopBottomObserver();
   scrollEventIdentity.value = null;
   setReadingState();
@@ -292,6 +315,7 @@ onUnmounted(() => {
   pageActive = false;
   pageGeneration += 1;
   nativeGeneration += 1;
+  stopReadingClock();
   stopBottomObserver();
   scrollEventIdentity.value = null;
 });
@@ -306,7 +330,7 @@ function sectionSelectedLabel(n: number): string {
   return fmt(w.value.sectionSelected, { n: String(n).padStart(2, "0") });
 }
 
-const canAccept = computed(() => canAcknowledgeRiskDisclosure({
+const canAccept = computed(() => readingSecondsRemaining.value === 0 && canAcknowledgeRiskDisclosure({
   disclosure: disclosure.value,
   documentIdentity: documentIdentity.value,
   readingIdentity: readingIdentity.value,
@@ -361,6 +385,7 @@ async function reload() {
   const nativeKey = surface.identity === identity && surface.key === nativeGeneration
     ? surface.key : identity ? resetScrollSurface(identity) : nativeGeneration;
   await armReading(identity, nativeKey);
+  if (!disposed && pageActive && generation === pageGeneration) resetReadingClock();
 }
 
 // Spotlight hero (whitelist ≤1):零 border(《03》§3,C2 第二轮起中性边也删)——

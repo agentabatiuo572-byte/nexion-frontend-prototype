@@ -215,6 +215,48 @@ describe("risk disclosure remote request generation", () => {
     expect(remote.riskDisclosureApi.current).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps a valid server readback after a rejected acknowledgement without claiming acceptance", async () => {
+    remote.riskDisclosureApi.current.mockResolvedValue(disclosure("v1", false));
+    remote.riskDisclosureApi.acknowledge.mockRejectedValue(new Error("request rejected"));
+    const store = useRiskDisclosure(); await store.refresh();
+    expect(await store.accept()).toBe(false);
+    expect(store.current?.chapters).toHaveLength(7);
+    expect(store.current?.acknowledgmentToken).toBe("ack-v1");
+    expect(store.accepted).toBe(false);
+    expect(store.error).toBe("request rejected");
+    expect(store.publicationUnavailable).toBe(false);
+  });
+
+  it("recovers an acknowledgement only when the fresh authoritative readback confirms it", async () => {
+    remote.riskDisclosureApi.current.mockResolvedValueOnce(disclosure("v1", false))
+      .mockResolvedValueOnce(disclosure("v1", true));
+    remote.riskDisclosureApi.acknowledge.mockRejectedValue(new Error("response interrupted"));
+    const store = useRiskDisclosure(); await store.refresh();
+    expect(await store.accept()).toBe(true);
+    expect(store.accepted).toBe(true); expect(store.error).toBeNull();
+  });
+
+  it("keeps an unavailable recovery closed and does not reuse the old token", async () => {
+    remote.riskDisclosureApi.current.mockResolvedValueOnce(disclosure("v1", false))
+      .mockRejectedValueOnce(new Error("offline"));
+    remote.riskDisclosureApi.acknowledge.mockRejectedValue(new Error("request interrupted"));
+    const store = useRiskDisclosure(); await store.refresh();
+    expect(await store.accept()).toBe(false);
+    expect(store.current).toBeNull(); expect(store.accepted).toBe(false);
+  });
+
+  it("does not apply a recovery read from an account that changed during the failed acknowledgement", async () => {
+    const recovered = deferred<RiskDisclosureCurrent>();
+    remote.riskDisclosureApi.current.mockResolvedValueOnce(disclosure("account-a", false))
+      .mockReturnValueOnce(recovered.promise).mockResolvedValueOnce(disclosure("account-b", false));
+    remote.riskDisclosureApi.acknowledge.mockRejectedValue(new Error("request interrupted"));
+    const store = useRiskDisclosure(); await store.refresh(); const accepting = store.accept();
+    await flush(); remoteAccountScope.bind("account-b"); store.bindAccount(); await flush();
+    recovered.resolve(disclosure("account-a", true)); await accepting;
+    expect(store.current?.version).toBe("account-b"); expect(store.accepted).toBe(false);
+    expect(store.error).toBeNull();
+  });
+
   it("does not let a delayed acknowledgement response overwrite a newer refresh", async () => {
     const acknowledgement = deferred<RiskDisclosureCurrent>();
     const refreshed = deferred<RiskDisclosureCurrent>();

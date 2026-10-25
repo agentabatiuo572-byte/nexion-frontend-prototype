@@ -7,6 +7,17 @@ import { stakingDemo } from "../../scripts/lib/prototype-demo-staking.mjs";
 import { demoFixture, demoDefaults } from "../../scripts/lib/prototype-demo-data.mjs";
 
 describe("standalone staking demo through production parsers", () => {
+  it("isolates a staking read failure from platform access and recovers without replacing the state", () => {
+    const state = { ...demoDefaults, stakingState: "error" };
+    const get = (path: string) => demoFixture(new URL(path, 'http://127.0.0.1'), 'zh', state, { method: () => 'GET' });
+    expect(get('/api/config/platform').featureFlags.stakingVisible).toBe(true);
+    for (const path of ['/api/config/staking/pools', '/api/stakes']) {
+      expect(() => get(path)).toThrow('DEMO_STAKING_READ_UNAVAILABLE');
+    }
+    state.stakingState = "enabled";
+    expect(get('/api/config/staking/pools')).toBeTruthy();
+    expect(get('/api/stakes')).toBeTruthy();
+  });
   it("exposes a real disabled flag while preserving unrelated platform and share state", () => {
     const state = { ...demoDefaults }, read = () => demoFixture(new URL('/api/config/platform', 'http://127.0.0.1'), 'zh', state, { method: () => 'GET' });
     expect(read().featureFlags.stakingVisible).toBe(true);

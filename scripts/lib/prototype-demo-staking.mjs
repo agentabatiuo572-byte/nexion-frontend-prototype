@@ -40,6 +40,7 @@ export function createStakingDemoFixture({ empty = false, now = Date.now() } = {
 export function stakingDemo(url, state, request) {
   if (request.method() !== "GET") return undefined;
   if (url.pathname !== "/api/config/staking/pools" && url.pathname !== "/api/stakes") return undefined;
+  if (state.stakingState === "error") throw Object.assign(new Error("DEMO_STAKING_READ_UNAVAILABLE"), { status: 503 });
   const fixture = createStakingDemoFixture({ empty: state.dataState === "empty", now: state.stakingNow });
   if (url.pathname === "/api/config/staking/pools") return fixture.pools;
   const pageNum = Math.max(1, Number(url.searchParams.get("pageNum") || 1));
