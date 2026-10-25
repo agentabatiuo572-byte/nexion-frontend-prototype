@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { courseRewardHref, preserveCourseSourceInH5, resolveCourseNavigation } from "./course-navigation";
 
 describe("course return after a cold H5 refresh", () => {
-  it("returns home recommendations to home on native entry and cold H5 refresh", () => {
-    expect(resolveCourseNavigation({ id: "account-security", source: "home" }, "")).toEqual({
-      id: "account-security", source: "home", back: "/pages/index/index",
+  it.each([['home','/pages/index/index'],['missions','/pages/missions/missions']])("returns %s recommendations to their entry on native and cold H5 refresh", (source, back) => {
+    expect(resolveCourseNavigation({ id: "account-security", source }, "")).toEqual({
+      id: "account-security", source, back,
     });
     const location = { pathname: "/app/", search: "", hash: "#/pages/learn/course?id=account-security" };
     const history = { state: {}, replaceState: vi.fn((_state, _title, url: string) => {
@@ -12,9 +12,9 @@ describe("course return after a cold H5 refresh", () => {
     }) };
     vi.stubGlobal("window", { location, history });
     try {
-      preserveCourseSourceInH5("account-security", "home");
-      expect(resolveCourseNavigation(undefined, location.hash.split("?")[1]).back).toBe("/pages/index/index");
-      preserveCourseSourceInH5("account-security", "home");
+      preserveCourseSourceInH5("account-security", source);
+      expect(resolveCourseNavigation(undefined, location.hash.split("?")[1]).back).toBe(back);
+      preserveCourseSourceInH5("account-security", source);
       expect(history.replaceState).toHaveBeenCalledOnce();
     } finally { vi.unstubAllGlobals(); }
   });

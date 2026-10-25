@@ -26,6 +26,12 @@
    Legacy tokens — kept until each module is migrated to v5. */
 :root {
   --ui-radius-surface: 22px;
+  --ui-radius-icon: 12px;
+  --ui-text-body: 15px;
+  --ui-text-caption: 13px;
+  --ui-space-inline: 12px;
+  --ui-space-inset: 16px;
+  --ui-space-row-y: 10px;
   --ui-action: var(--v5-brand);
   --ui-asset: var(--v5-nex);
   --ui-attention: var(--v5-warning-ink);

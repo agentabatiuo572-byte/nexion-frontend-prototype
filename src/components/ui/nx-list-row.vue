@@ -11,7 +11,7 @@ const emit = defineEmits<{ (event: 'click'): void }>();
 function activate(event?: Event) { if (!props.disabled && !(event as KeyboardEvent)?.repeat) emit('click'); }
 </script>
 <style scoped>
-.nx-list-row { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 16px; color: var(--v5-ink); cursor: pointer; }
+.nx-list-row { display: flex; align-items: center; gap: var(--ui-space-inline); min-height: 64px; padding: var(--ui-space-row-y) var(--ui-space-inset); color: var(--v5-ink); cursor: pointer; }
 .nx-list-row:active { background: var(--v5-surface-2); }
 .nx-list-row:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
 .nx-list-row__leading { display: grid; place-items: center; flex: none; width: 36px; color: var(--v5-ink-2); }

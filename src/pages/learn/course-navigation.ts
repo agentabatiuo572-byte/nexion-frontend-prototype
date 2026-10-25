@@ -7,6 +7,7 @@ export function courseRewardHref(id: string): string {
 
 function courseBackTarget(source: string | null | undefined): string {
   if (source === "home") return "/pages/index/index";
+  if (source === "missions") return "/pages/missions/missions";
   return source === REWARDS_SOURCE ? "/pages/me/rewards-list?cat=nex" : "/pages/learn/courses";
 }
 
@@ -14,11 +15,11 @@ export function resolveCourseNavigation(options: Record<string, string> | undefi
   const query = new URLSearchParams(queryString);
   const id = typeof options?.id === "string" ? options.id : (query.get("id") ?? "");
   const source = typeof options?.source === "string" ? options.source : query.get("source");
-  return { id, source: source === REWARDS_SOURCE || source === "home" ? source : null, back: courseBackTarget(source) };
+  return { id, source: source === REWARDS_SOURCE || source === "home" || source === "missions" ? source : null, back: courseBackTarget(source) };
 }
 
 export function preserveCourseSourceInH5(id: string, source: string | null): void {
-  if (!id || (source !== REWARDS_SOURCE && source !== "home") || typeof window === "undefined" || typeof window.history?.replaceState !== "function") return;
+  if (!id || (source !== REWARDS_SOURCE && source !== "home" && source !== "missions") || typeof window === "undefined" || typeof window.history?.replaceState !== "function") return;
   const hash = window.location.hash.replace(/^#/, "");
   const question = hash.indexOf("?");
   if ((question < 0 ? hash : hash.slice(0, question)) !== COURSE_PATH) return;

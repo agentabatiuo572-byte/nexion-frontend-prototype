@@ -18,7 +18,7 @@
     <view class="missions-content">
       <SubPageHeader back="/pages/index/index" />
       <view class="mx-4"><GlassSegments :label="t.missions.heroTitle" v-model="activePanel" :options="panels" /></view>
-      <view v-if="activePanel === 'today'" class="mx-4 space-y-4" style="margin-top:20px"><DailyCheckInRow /><DayOneQuestCard v-model:expanded="dayOneExpanded" /></view>
+      <view v-if="activePanel === 'today'" class="mx-4 space-y-4" style="margin-top:20px"><DailyCheckInRow /><DayOneQuestCard v-model:expanded="dayOneExpanded" /><FeaturedLearningCard /></view>
       <view v-else-if="activePanel === 'week'" style="margin-top:20px"><view class="mx-4"><WeeklyQuestHero /></view><WeeklyQuestList /></view>
       <EventsContent v-else-if="activePanel === 'events'" embedded />
       <AchievementsContent v-else embedded />
@@ -33,6 +33,7 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import GlassSegments from '@/components/glass-segments.vue';
 import DailyCheckInRow from '@/components/home/daily-check-in-row.vue';
+import FeaturedLearningCard from '@/components/home/featured-learning-card.vue';
 import EventsContent from '@/pages/events/events.vue';
 import AchievementsContent from '@/pages/me/achievements.vue';
 import CardStagger from "@/components/card-stagger.vue";

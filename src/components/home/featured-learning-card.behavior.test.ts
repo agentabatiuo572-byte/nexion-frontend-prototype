@@ -82,7 +82,7 @@ it.each(["zh", "en", "vi"] as const)("renders recommendation, progress, next cou
   expect(card.text()).toContain(learningRecommendationCopy[language].resume);
   expect(card.progress()?.props["aria-valuenow"]).toBe(30);
   card.link()!.props.onClick();
-  expect(card.navTo).toHaveBeenLastCalledWith("/pages/learn/course?id=featured&source=home");
+  expect(card.navTo).toHaveBeenLastCalledWith("/pages/learn/course?id=featured&source=missions");
   card.hidden(); await Vue.nextTick(); expect(card.text()).toBe("");
   current.completed = true; current.progress = 100; card.shown(); await flush();
   expect(card.text()).toContain("ordinary"); expect(card.text()).not.toContain("featured");
