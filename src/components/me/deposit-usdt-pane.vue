@@ -79,7 +79,7 @@
         <view class="grid place-items-center" :style="stateIconBoxStyle">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M10 15V9" /><path d="M14 15V9" /></svg>
         </view>
-        <view><text class="block text-center" style="margin-top: 10px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.45; max-width: 260px">{{ t.topupChrome.allNetworksPaused }}</text></view>
+        <view><text class="block text-center" style="margin-top: 10px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.45; max-width: 260px">{{ unavailableMessage }}</text></view>
       </view>
 
       <!-- ── 可用专属地址警示:地址恒定 + 错网络不可找回(规格 ⑦ 语义)── -->
@@ -215,6 +215,10 @@ let loadGeneration = 0;
 const serverAddress = ref("");
 const serverEnabled = ref(false);
 const serverCreditEnabled = ref(false);
+const serverUnavailableReason = ref("");
+const unavailableMessage = computed(() => fundsServerEnabled
+  && serverUnavailableReason.value === "CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN"
+  ? t.value.topupChrome.accountNotOpen : t.value.topupChrome.allNetworksPaused);
 type PaneDepositRecord = Omit<DepositRecord, "status"> & {
   status: DepositRecord["status"] | "reorg_investigating" | "provider_conflict_hold" | "reorg_reversed";
   reviewHold?: boolean;
@@ -245,6 +249,7 @@ function load(background = false) {
             || bindingEpoch !== app.accountBindingEpoch || !remoteSessionReady.value) return;
         serverEnabled.value = snapshot.enabled;
         serverCreditEnabled.value = snapshot.creditEnabled === true;
+        serverUnavailableReason.value = snapshot.enabled ? "" : snapshot.reason ?? "";
         serverAddress.value = snapshot.enabled ? snapshot.address ?? "" : "";
         minDeposit.value = snapshot.minDepositUsdt ?? MIN_DEPOSIT_USDT;
         feeUsdt.value = snapshot.feeUsdt ?? 0;
@@ -271,6 +276,7 @@ function load(background = false) {
           serverAddress.value = "";
           serverEnabled.value = false;
           serverCreditEnabled.value = false;
+          serverUnavailableReason.value = "";
           phase.value = "error";
         }
       }
@@ -288,6 +294,7 @@ watch([remoteSessionReady, () => app.accountKey, () => app.accountBindingEpoch],
   serverAddress.value = "";
   serverEnabled.value = false;
   serverCreditEnabled.value = false;
+  serverUnavailableReason.value = "";
   serverRecords.value = [];
   copied.value = false;
   phase.value = "loading";
@@ -319,7 +326,7 @@ const activeNet = computed<ChainDepositChannel | null>(() => {
 const activeLabel = computed(() => (activeNet.value ? CHANNEL_SHORT[activeNet.value] : ""));
 function pickNet(id: ChainDepositChannel) {
   if (!isEnabled(id)) {
-    toast.info(t.value.topupChrome.channelPaused);
+    toast.info(fundsServerEnabled ? unavailableMessage.value : t.value.topupChrome.channelPaused);
     return;
   }
   net.value = id;

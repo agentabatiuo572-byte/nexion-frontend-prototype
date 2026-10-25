@@ -87,7 +87,7 @@ type BankHistoryStore = Pick<ReturnType<typeof useDeposits>, "records" | "remote
 async function pane(response: object, records: unknown[] | Promise<unknown[]> = [], messages: Messages = zh,
   options: { dep?: BankHistoryStore; cold?: boolean } = {}) {
   const request = vi.fn(async ({ path }: { path: string }) => path.startsWith("/api/deposits/address") ? response : records);
-  const api = createCregisDepositApi({ request } as unknown as ApiClient), navTo = vi.fn();
+  const api = createCregisDepositApi({ request } as unknown as ApiClient), navTo = vi.fn(), info = vi.fn();
   const app = Vue.reactive({ accountKey: options.cold ? "default" : "user:7", accountBindingEpoch: 1 });
   const auth = Vue.reactive({ isAuthenticated: !options.cold, accountId: "user:7" });
   const sessionUserId = Vue.ref<number | null>(options.cold ? null : 7);
@@ -101,7 +101,7 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
     "@/lib/binary-session-ready": { binarySessionReady },
     "@/store/app": { useApp: () => app }, "@/store/auth": { useAuth: () => auth },
     "@/i18n/use-t": { useT: () => Vue.ref(messages) }, "@/i18n/format": { fmt },
-    "@/lib/route": { navTo }, "@/store/ui": { toast: { info: vi.fn() } },
+    "@/lib/route": { navTo }, "@/store/ui": { toast: { info } },
     "@/store/deposits": { useDeposits: () => dep },
     "@/store/server-time": { mockServerNow: () => 1_791_072_060_000 }, "@/store/deposits-core": depositsCore,
   };
@@ -117,8 +117,44 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
   cleanups.push(() => mounted.unmount());
   await new Promise<void>(resolve => setTimeout(resolve, 0));
   await Vue.nextTick();
-  return { root, navTo, request, state, app, auth, sessionUserId, dep, text: () => textOf(root) };
+  return { root, navTo, info, request, state, app, auth, sessionUserId, dep, text: () => textOf(root) };
 }
+
+test.each([zh, en, vietnamese])("account access is distinct from a paused channel, including its disabled button", async messages => {
+  const h = await pane({ enabled: false, network: "BEP20", reason: "CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN" }, [], messages);
+  expect(h.text()).toContain(messages.topupChrome.accountNotOpen);
+  expect(h.text()).not.toContain(messages.topupChrome.allNetworksPaused);
+  (h.state.pickNet as (id: string) => void)("usdt-bep20");
+  expect(h.info).toHaveBeenCalledWith(messages.topupChrome.accountNotOpen);
+  expect(nodesOf(h.root).filter(n => n.kind === "image")).toHaveLength(0);
+});
+
+test.each([undefined, "CREGIS_DEPOSIT_PAUSED", "UNKNOWN_REASON"])("missing or channel reason %s does not infer account access", async reason => {
+  const h = await pane({ enabled: false, network: "BEP20", reason });
+  expect(h.text()).toContain(zh.topupChrome.allNetworksPaused);
+  expect(h.text()).not.toContain(zh.topupChrome.accountNotOpen);
+});
+
+test("account reason clears on failure, retry recovery and account change", async () => {
+  const h = await pane({ enabled: false, network: "BEP20", reason: "CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN" });
+  const load = h.state.load as () => void;
+  h.request.mockRejectedValueOnce(new Error("NETWORK_DOWN"));
+  load();
+  await vi.waitFor(() => expect(h.text()).toContain(zh.topupChrome.addrLoadFailed));
+  expect((h.state.serverUnavailableReason as Vue.Ref<string>).value).toBe("");
+  h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address") ? address : []);
+  (controls(h.root, "nx-dep-retry-cta")[0].props.onClick as () => void)();
+  await vi.waitFor(() => expect((h.state.serverEnabled as Vue.Ref<boolean>).value).toBe(true));
+  expect(h.text()).not.toContain(zh.topupChrome.accountNotOpen);
+  h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address")
+    ? { enabled: false, network: "BEP20", reason: "CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN" } : []);
+  load();
+  await vi.waitFor(() => expect(h.text()).toContain(zh.topupChrome.accountNotOpen));
+  h.auth.isAuthenticated = false;
+  await Vue.nextTick();
+  expect((h.state.serverUnavailableReason as Vue.Ref<string>).value).toBe("");
+  expect(h.text()).not.toContain(zh.topupChrome.accountNotOpen);
+});
 
 // Read the real store's canonical projection and generation fence; only transport is replaced.
 const bankSnapshots: VietQrIntentSnapshot[] = [

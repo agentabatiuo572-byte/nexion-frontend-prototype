@@ -41,6 +41,17 @@ describe("Cregis deposit API", () => {
     await expect(api.address()).resolves.toEqual(response);
   });
 
+  it.each(["CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN", "CREGIS_DEPOSIT_PAUSED", "UNKNOWN_REASON"])("preserves unavailable reason %s", async reason => {
+    const response = { enabled: false, network: "BEP20", reason };
+    const api = createCregisDepositApi({ request: vi.fn().mockResolvedValue(response) } as unknown as ApiClient);
+    await expect(api.address()).resolves.toEqual(response);
+  });
+
+  it.each([null, false, 1])("rejects malformed unavailable reason %s", async reason => {
+    const api = createCregisDepositApi({ request: vi.fn().mockResolvedValue({ enabled: false, network: "BEP20", reason }) } as unknown as ApiClient);
+    await expect(api.address()).rejects.toThrow("CREGIS_ADDRESS_INVALID");
+  });
+
   it("accepts all current states together and preserves historical credit", async () => {
     const statuses: CregisDeposit["status"][] = ["CONFIRMING", "CREDITED", "DUST_HOLD", "REVIEW_HOLD",
       "REORG_INVESTIGATING", "PROVIDER_CONFLICT_HOLD", "REFUNDED", "REORG_REVERSED"];

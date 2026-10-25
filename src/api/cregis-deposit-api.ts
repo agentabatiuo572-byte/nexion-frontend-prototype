@@ -4,6 +4,7 @@ import { ApiError } from "./errors";
 export interface CregisAddress {
   enabled: boolean;
   creditEnabled?: boolean;
+  reason?: string;
   network: "BEP20";
   address?: string;
   confirmations?: number;
@@ -32,6 +33,7 @@ export function createCregisDepositApi(client: ApiClient) {
       });
       if (!value || value.network !== "BEP20" || typeof value.enabled !== "boolean"
           || (value.creditEnabled !== undefined && typeof value.creditEnabled !== "boolean")
+          || (value.reason !== undefined && typeof value.reason !== "string")
           || (value.enabled && (typeof value.address !== "string"
               || !/^0x[0-9a-f]{40}$/i.test(value.address)
               || typeof value.confirmations !== "number"
