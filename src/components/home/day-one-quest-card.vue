@@ -47,6 +47,7 @@
       <!-- 去线(主人 2026-08-17 全站令):总间距沿用有线时代的 12+12 -->
       <text v-if="claimState.empty" class="block" style="margin-top:12px;color:var(--v5-ink-3);font-size:13px">{{ t.home.dayOneNoActiveTasks }}</text>
       <view v-if="expanded && !claimState.empty" style="margin-top: 24px; display: flex; flex-direction: column; gap: 4px">
+        <text v-if="remoteApiEnabled && !questUnavailable && !claimState.unverified && !claimState.claimed && !dayOneExpired" class="newcomer-task__reward-hint">{{ t.home.dayOneCompleteAllHint }}</text>
         <view
           v-for="task in tasks"
           :key="task.id"
@@ -73,7 +74,7 @@
             <text class="truncate" :style="labelStyle(task)">{{ task.label }}</text>
             <text :style="catStyle(task)">{{ task.cat }}</text>
           </view>
-          <text :style="rewardStyle(task)">{{ task.nex === null ? "—" : `+${formatAmount(task.nex)} UVT` }}<text v-if="task.usdt" :style="{ color: isDone(task) ? 'var(--v5-ink-4)' : 'var(--v5-brand-2)', marginLeft: '4px' }">+${{ formatAmount(task.usdt) }}</text></text>
+          <text v-if="task.nex !== null" :style="rewardStyle(task)">{{ `+${formatAmount(task.nex)} UVT` }}<text v-if="task.usdt" :style="{ color: isDone(task) ? 'var(--v5-ink-4)' : 'var(--v5-brand-2)', marginLeft: '4px' }">+${{ formatAmount(task.usdt) }}</text></text>
           <view>
             <svg v-if="isActionable(task)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7">
               <path d="M9 18l6-6-6-6" />
@@ -352,7 +353,7 @@ const barStyle = computed<CSSProperties>(() => ({
 function rowStyle(task: QuestTask): CSSProperties {
   return {
     display: "grid",
-    gridTemplateColumns: "20px 1fr auto 14px",
+    gridTemplateColumns: task.nex === null ? "20px minmax(0, 1fr) 14px" : "20px minmax(0, 1fr) auto 14px",
     gap: "10px",
     alignItems: "center",
     padding: "8px 0",
@@ -435,6 +436,7 @@ const toggleStyle: CSSProperties = {
 </script>
 
 <style scoped>
+.newcomer-task__reward-hint { margin-bottom: 8px; font-size: 12px; color: var(--v5-ink-3); }
 .newcomer-task__observation { margin-top: 12px; color: var(--v5-ink-2); font-size: 15px; }
 .newcomer-task__observation-item { margin-top: 8px; }
 .newcomer-task__observation-actions { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -696,6 +696,7 @@ sandboxSponsorEnvironmentMismatch: "Mã mời này không dùng được. Kiểm
     dayOneEarnedSuffix: "đã nhận",
     dayOneRewardClaimed: "Đã nhận thưởng",
     dayOneRewardUnclaimed: "Chưa nhận thưởng",
+    dayOneCompleteAllHint: "Hoàn thành tất cả nhiệm vụ để nhận thưởng",
     dayOneNoActiveTasks: "Tài khoản này không có nhiệm vụ người mới đang hoạt động.",
     dayOneSnapshotUnverified: "Lịch sử nhiệm vụ chỉ để xem; chưa thể xác minh phần thưởng",
     dayOneClaimReward: "Nhận thưởng nhiệm vụ tân thủ",

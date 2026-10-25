@@ -698,6 +698,7 @@ sandboxSponsorEnvironmentMismatch: "This invitation code can't be used. Check it
     dayOneEarnedSuffix: "earned",
     dayOneRewardClaimed: "Reward claimed",
     dayOneRewardUnclaimed: "Reward not claimed",
+    dayOneCompleteAllHint: "Complete all tasks to claim the reward",
     dayOneNoActiveTasks: "No onboarding tasks are active for this account.",
     dayOneSnapshotUnverified: "Task history is read-only; its reward cannot be verified",
     dayOneClaimReward: "Claim Day-One reward",
