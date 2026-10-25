@@ -1,11 +1,29 @@
 // @ts-expect-error Vitest executes this page-copy contract in Node.
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi as vitest } from "vitest";
+import * as Vue from 'vue';
+import { compileScript, parse } from '@vue/compiler-sfc';
+import ts from 'typescript';
+import topupSource from './wallet-topup.vue?raw';
 
 const page = readFileSync(new URL("./usdt-guide.vue", import.meta.url), "utf8");
 const zh = readFileSync(new URL("../../i18n/messages/zh.ts", import.meta.url), "utf8");
 const en = readFileSync(new URL("../../i18n/messages/en.ts", import.meta.url), "utf8");
 const vi = readFileSync(new URL("../../i18n/messages/vi.ts", import.meta.url), "utf8");
+
+function setup(raw: string, dependencies: Record<string, unknown>) {
+  const script = compileScript(parse(raw).descriptor, { id: 'topup-return' });
+  const code = ts.transpileModule(script.content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+  const output: any = {};
+  new Function('require', 'exports', code)((id: string) => {
+    if (id.endsWith('.vue')) return {};
+    if (id === 'vue') return Vue;
+    if (!(id in dependencies)) throw new Error(`Unexpected import: ${id}`);
+    return dependencies[id];
+  }, output);
+  return output.default.setup({}, { expose() {} });
+}
+afterEach(() => vitest.unstubAllGlobals());
 
 function guideCopy(messages: string): string {
   const start = messages.indexOf("  usdtGuide:");
@@ -14,9 +32,40 @@ function guideCopy(messages: string): string {
 }
 
 describe("USDT guide accuracy", () => {
-  it("always sends the explicit return-to-top-up CTA to top-up", () => {
-    expect(page).toContain('navReplace("/pages/me/wallet-topup")');
-    expect(page).not.toContain('navBack("/pages/me/wallet-topup")');
+  it.each(['pages/me/wallet-topup', '/pages/me/wallet-topup', 'pages/me/wallet', undefined])('returns to the original top-up instance only when it is the previous page (%s)', previous => {
+    vitest.stubGlobal('getCurrentPages', () => previous ? [{ route: previous }, { route: 'pages/me/usdt-guide' }] : [{ route: 'pages/me/usdt-guide' }]);
+    const navBack = vitest.fn(), navReplace = vitest.fn();
+    const state = setup(page, { '@/i18n/use-t': { useT: () => Vue.ref({}) }, '@/lib/route': { navBack, navReplace } });
+    state.goBack();
+    const hasTopup = previous?.endsWith('/wallet-topup');
+    expect(hasTopup ? navBack : navReplace).toHaveBeenCalledExactlyOnceWith('/pages/me/wallet-topup?channel=crypto');
+    expect(hasTopup ? navReplace : navBack).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [true, 'crypto', 'crypto'], [true, 'bank', 'bank'], [true, 'card', 'bank'],
+    [true, 'javascript:alert(1)', 'bank'], [true, ['crypto'], 'bank'], [true, '', 'bank'],
+    [false, 'card', 'card'], [false, undefined, 'crypto'],
+  ])('restricts the top-up channel to enabled options (remote=%s, query=%s)', (remote, channel, expected) => {
+    let load!: (query: unknown) => void;
+    const state = setup(topupSource, {
+      '@dcloudio/uni-app': { onLoad: (callback: typeof load) => { load = callback; } },
+      '@/lib/route': { takeNavigationQuery: () => '' }, '@/api/runtime': { remoteApiEnabled: remote },
+      '@/i18n/use-t': { useT: () => Vue.ref({}) }, '@/store/deposits': { useDeposits: () => ({}) },
+    });
+    load({ channel }); expect(state.seg.value).toBe(expected);
+  });
+
+  it('consumes only the top-up navigation fallback query when onLoad omits it', () => {
+    let load!: (query: unknown) => void;
+    const takeNavigationQuery = vitest.fn(() => '?channel=crypto&address=untrusted&amount=999');
+    const state = setup(topupSource, {
+      '@dcloudio/uni-app': { onLoad: (callback: typeof load) => { load = callback; } },
+      '@/lib/route': { takeNavigationQuery }, '@/api/runtime': { remoteApiEnabled: true },
+      '@/i18n/use-t': { useT: () => Vue.ref({}) }, '@/store/deposits': { useDeposits: () => ({}) },
+    });
+    load({}); expect(state.seg.value).toBe('crypto');
+    expect(takeNavigationQuery).toHaveBeenCalledExactlyOnceWith('/pages/me/wallet-topup');
   });
 
   it.each([zh, en, vi])("does not make a fixed network, timing, or recovery promise", (messages) => {

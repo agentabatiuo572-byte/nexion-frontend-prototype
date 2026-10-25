@@ -1,4 +1,6 @@
 import { notificationCategory } from "@/lib/notification-category";
+import { isDirectNotificationSummary } from "@/lib/notification-summary";
+import { notificationActionsCopy } from "@/i18n/notification-actions";
 import { advanceMessageHeader, createMessageHeaderState } from "@/lib/message-header-scroll";
 import ts from "typescript";
 import * as vue from "vue";
@@ -25,6 +27,8 @@ function mountPage() {
     "@dcloudio/uni-app": { onResize: vi.fn(), onLoad: vi.fn(), onShow: vi.fn(), onHide: vi.fn() },
     "@/lib/remote-account-epoch": { remoteAccountScope: createRemoteAccountEpoch("fixture") },
     "@/lib/notification-category": { notificationCategory },
+    "@/lib/notification-summary": { isDirectNotificationSummary },
+    "@/i18n/notification-actions": { notificationActionsCopy },
     "@/lib/message-header-scroll": { advanceMessageHeader, createMessageHeaderState },
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 },
     "@/store/pending-checkout-core": { PENDING_BAR_INSET_KEY: Symbol() },

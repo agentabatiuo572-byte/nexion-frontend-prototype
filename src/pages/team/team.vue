@@ -1,20 +1,27 @@
-<!--
-  Team — invitation network hub: InviteEarnCard → royalty hero (V3+) → V-rank summary
-  → unified quick-nav (leaderboard / royalty network / binary / leadership pool) →
-  TeamLedgerCard → network composition → tool grid.
-  Tab page → <AppChassis active="team">.
-  Reuses v-rank / network / commission / leadership-pool stores (all ported).
-  zustand selectors → computed off Pinia store; mount-effect unlockMatured @60s →
-  onMounted/onUnmounted interval. framer scroll-grow bar → CSS width transition.
-  Nav targets to not-yet-ported sub-pages degrade via fail:()=>{} (see report §7).
--->
 <template>
   <AppChassis active="team">
     <view class="pb-4" style="padding-top: 12px; color: var(--v5-ink)">
       <view class="px-4" style="display: flex; flex-direction: column; gap: 24px">
+        <!-- This month ledger -->
+        <TeamLedgerCard
+          :available="ledgerVisible"
+          :loading="ledgerLoading"
+          :failed="ledgerFailed"
+          :total-u-s-d-t-lifetime="totalUSDTLifetime"
+          :contributors="commissionAggregate.contributorCount"
+          :direct-u-s-d-t="directUSDT"
+          :extended-u-s-d-t="extendedUSDT"
+          :month-u-s-d-t="monthUSDT"
+          :month-n-e-x="monthNEX"
+          :unlocked-u-s-d-t="unlockedUSDT"
+          :cooling-u-s-d-t="coolingUSDT"
+          @retry="refreshRemoteLedger"
+        />
+
         <!-- Invite hero -->
         <InviteEarnCard ref="inviteCard" />
 
+        <view class="team-overview-grid">
         <TeamSummaryCard
           :status="teamSummaryStatus"
           :total="network.totalMembers"
@@ -24,60 +31,28 @@
           @retry="network.refreshCanonicalNetwork()"
         />
 
-        <!-- V3+ royalty hero -->
-        <view v-if="!remoteApiEnabled && myRank >= 3" class="nx-glass-card rounded-2xl relative overflow-hidden active:opacity-95" role="button" tabindex="0" :aria-label="t.teamV3.royaltyHeroLabel" :style="royaltyHeroStyle" @click="go('/pages/team/unilevel')">
-          <view class="flex items-center font-mono-tabular" :style="royaltyCapStyle">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
-            <text>{{ t.teamV3.royaltyHeroLabel }}</text>
-          </view>
-          <text class="block font-display tabular-nums" :style="royaltyAmtStyle">${{ formatAmount(monthUSDT) }}</text>
-          <text class="block" :style="royaltySubStyle">{{ t.teamV3.royaltyHeroSubtitle }}</text>
-          <view class="flex items-center justify-between" style="margin-top: 8px">
-            <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-tech-cyan-ink)' }">+{{ formatAmount(monthNEX) }} UVT</text>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-          </view>
-        </view>
-
         <!-- My V-rank summary -->
         <view class="nx-team-rank-link team-rank" role="link" tabindex="0" :aria-label="t.team.rankBenefits" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
-          <TeamRankEmblem :rank="remoteApiEnabled && !vrank.remoteReady ? null : myRank" :size="92" />
-          <view class="team-rank__body">
-            <text class="team-rank__title">{{ designCopy.myRank }}</text>
+          <view class="team-rank__header"><text class="team-rank__title">{{ designCopy.myRank }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></view>
+          <view class="team-rank__emblem">
+            <svg width="68" height="78" viewBox="0 0 68 78" fill="none" aria-hidden="true"><path d="M34 2 65 20v38L34 76 3 58V20Z" fill="var(--v5-surface)" stroke="var(--v5-ink-2)" stroke-width="2"/><path d="M34 6 61 22v34L34 72 7 56V22Z" stroke="var(--v5-brand)" stroke-opacity=".25"/></svg>
             <text class="team-rank__level">{{ remoteApiEnabled && !vrank.remoteReady ? 'V—' : `V${myRank}` }}</text>
-            <text class="team-rank__hint">{{ designCopy.promotionRequirements }} · {{ designCopy.benefitsAndRewards }}</text>
           </view>
-          <svg class="team-rank__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+          <text class="team-rank__hint">{{ designCopy.benefitsAndRewards }}</text>
+        </view>
+
         </view>
 
         <ReferralProgress @share="inviteCard?.openShare()" />
 
-        <!-- This month ledger -->
-        <TeamLedgerCard
-          v-if="ledgerVisible"
-          :total-u-s-d-t-lifetime="totalUSDTLifetime"
-          :contributors="commissionAggregate.contributorCount"
-          :direct-u-s-d-t="directUSDT"
-          :extended-u-s-d-t="extendedUSDT"
-          :month-u-s-d-t="monthUSDT"
-          :month-n-e-x="monthNEX"
-          :unlocked-u-s-d-t="unlockedUSDT"
-          :cooling-u-s-d-t="coolingUSDT"
-        />
-        <view v-else-if="ledgerFailed" class="active:opacity-95" :style="toolCellStyle(0)" role="button" tabindex="0" :aria-label="t.network.retry" @click="refreshRemoteLedger"  @keydown.enter.prevent="refreshRemoteLedger" @keydown.space.prevent="refreshRemoteLedger">
-          <text class="block" :style="toolTitleStyle">{{ t.network.projectionErrorDesc }}</text>
-          <text class="block" :style="toolSubStyle">{{ t.network.retry }}</text>
-        </view>
-        <view v-if="ledgerLoading" :style="toolCellStyle(0)" role="status" aria-live="polite">
-          <text class="block" :style="toolSubStyle">{{ ledgerVisible ? t.network.projectionRefreshing : t.network.projectionLoadingTitle }}</text>
-        </view>
-
         <!-- Unified quick nav -->
         <view class="nx-team-quick-panel" :style="quickPanelStyle">
+          <text class="team-section-title">{{ designCopy.teamRewards }}</text>
           <!-- Leaderboard -->
           <view class="nx-team-leaderboard-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/leaderboard')">
             <view :style="quickRowMainStyle">
               <view :style="quickIconStyle('var(--v5-ink-2)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z" /></svg>
               </view>
               <view class="flex-1 min-w-0">
                 <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.leaderboardCard.title }}</text>
@@ -114,7 +89,7 @@
           <view class="nx-team-binary-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/binary')">
             <view :style="quickRowMainStyle">
               <view :style="quickIconStyle('var(--v5-ink-2)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
               </view>
               <view class="flex-1 min-w-0">
                 <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.todayMatch }}</text>
@@ -133,7 +108,7 @@
           <view class="nx-team-leadership-pool-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/leadership-pool')">
             <view :style="quickRowMainStyle">
               <view :style="quickIconStyle('var(--v5-ink-2)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
               </view>
               <view class="flex-1 min-w-0">
                 <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.weeklyPool }}</text>
@@ -148,19 +123,22 @@
 
         </view>
 
+        <view>
+        <text class="team-section-title">{{ designCopy.moreTools }}</text>
         <NxListGroup class="team-tools">
-          <NxListRow :title="t.teamV3.hardwareQuota" :subtitle="t.teamV3.quotaSubtitle" @click="go('/pages/team/quota')" />
-          <NxListRow :title="t.teamV3.ambassador" :subtitle="t.teamV3.ambassadorSubtitle" @click="go('/pages/team/agent')" />
-          <NxListRow :title="t.teamV3.visualizations.influenceNetwork" :subtitle="t.teamV3.visualizations.orbitLiveMap" @click="go('/pages/team/network')" />
-          <NxListRow :title="t.teamV3.visualizations.genealogy" :subtitle="t.teamV3.visualizations.genealogySubtitle" @click="go('/pages/team/tree')" />
+          <NxListRow :title="t.teamV3.hardwareQuota" :subtitle="t.teamV3.quotaSubtitle" @click="go('/pages/team/quota')"><template #leading><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5M12 12v10"/></svg></template></NxListRow>
+          <NxListRow :title="t.teamV3.ambassador" :subtitle="t.teamV3.ambassadorSubtitle" @click="go('/pages/team/agent')"><template #leading><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></template></NxListRow>
+          <NxListRow :title="t.teamV3.visualizations.influenceNetwork" :subtitle="t.teamV3.visualizations.orbitLiveMap" @click="go('/pages/team/network')"><template #leading><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="4" r="3"/><circle cx="4" cy="19" r="3"/><circle cx="20" cy="19" r="3"/><path d="m10.5 7-5 9m9-9 5 9M7 19h10"/></svg></template></NxListRow>
+          <NxListRow :title="t.teamV3.visualizations.genealogy" :subtitle="t.teamV3.visualizations.genealogySubtitle" @click="go('/pages/team/tree')"><template #leading><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 22v-3a7 7 0 0 1 14 0v3M16 3a4 4 0 0 1 0 8M22 22v-3a7 7 0 0 0-5-6.7"/></svg></template></NxListRow>
         </NxListGroup>
+        </view>
       </view>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
 import { formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
 import ReferralProgress from '@/components/promotion/referral-progress.vue';
 import { navTo } from "@/lib/route";
@@ -168,7 +146,6 @@ import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from
 import { onLoad, onShow, onHide } from "@/composables/use-tab-page-lifecycle";
 import { takeNavigationQuery } from "@/lib/route";
 import AppChassis from "@/components/tab-page-frame.vue";
-import TeamRankEmblem from '@/components/team/team-rank-emblem.vue';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import NxListGroup from "@/components/ui/nx-list-group.vue";
 import NxListRow from "@/components/ui/nx-list-row.vue";
@@ -297,7 +274,7 @@ const binary = computed(() => {
   const match = Math.min(Math.min(L / 30, R / 30) * 0.1, 5000);
   return { binaryMatch: match, leftVol: L, rightVol: R };
 });
-const binaryMatchText = computed(() => binary.value === null ? "—" : `$${formatAmount(binary.value.binaryMatch)}`);
+const binaryMatchText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.binaryMatch));
 const leftVolText = computed(() => formatComputePoints(remoteApiEnabled ? commission.binarySnapshot?.trackAComputePoints : sumComputePoints(members.value.filter(m => m.binary === 'left').map(m => m.monthComputePoints)), locale.code));
 const rightVolText = computed(() => formatComputePoints(remoteApiEnabled ? commission.binarySnapshot?.trackBComputePoints : sumComputePoints(members.value.filter(m => m.binary === 'right').map(m => m.monthComputePoints)), locale.code));
 
@@ -308,7 +285,7 @@ const projectedPayout = computed(() => remoteApiEnabled ? remotePool.value?.proj
 const leadershipPoolUnlocked = computed(() => myVotes.value > 0);
 const leadershipPoolTotal = computed(() => remoteApiEnabled ? remotePool.value?.currentWeekPoolUSDT ?? 0 : pool.currentWeekPoolUSDT);
 const leadershipPoolPrimary = computed(() =>
-  remoteApiEnabled && remotePoolState.value !== "ready" ? "—" : leadershipPoolUnlocked.value ? `$${formatAmount(projectedPayout.value)}` : `$${formatAmount(leadershipPoolTotal.value)}`,
+  remoteApiEnabled && remotePoolState.value !== "ready" ? "—" : formatUsd(leadershipPoolUnlocked.value ? projectedPayout.value : leadershipPoolTotal.value),
 );
 const leadershipPoolLineA = computed(() =>
   remoteApiEnabled && remotePoolState.value !== "ready" ? (remotePoolState.value === "hold" ? t.value.pool.settlementHoldShort : remotePoolState.value === "loading" ? t.value.pool.loading : t.value.network.projectionErrorDesc) : leadershipPoolUnlocked.value ? `${myVotes.value} ${t.value.teamV3.votes}` : `V${leadershipUnlockRank.value}`,
@@ -488,10 +465,11 @@ function quickIconStyle(color: string): CSSProperties {
     display: "grid",
     placeItems: "center",
     flexShrink: 0,
-    background: `color-mix(in srgb, ${color} 14%, transparent)`,
+    background: "transparent",
+    color,
   };
 }
-const quickRowTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, lineHeight: 1.2, color: "var(--v5-ink)" };
+const quickRowTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, lineHeight: 1.2, color: "var(--v5-ink)" };
 const quickRowMetaStyle: CSSProperties = {
   marginTop: "4px",
   fontSize: "12px",
@@ -509,7 +487,7 @@ const quickRowValueStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, l
 const quickRowValueWarnStyle: CSSProperties = { ...quickRowValueStyle, color: "var(--v5-warning-ink)" };
 const quickDividerStyle: CSSProperties = {
   height: "1px",
-  marginLeft: "62px",
+  marginLeft: "0",
   background: "var(--v5-border)",
 };
 const toolGridStyle: CSSProperties = {
@@ -561,18 +539,24 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 </script>
 
 <style scoped>
-.team-rank { display: flex; align-items: center; gap: var(--ui-space-inline); padding: 18px 16px; border-radius: 22px; background: var(--v5-surface); }
+.team-overview-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--ui-space-inline); align-items: stretch; }
+.team-rank { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px; min-width: 0; padding: var(--ui-space-inline); border: 1px solid var(--v5-border); border-radius: 22px; background: radial-gradient(ellipse at 50% 68%,color-mix(in srgb,var(--v5-brand) 7%,transparent),transparent 70%),var(--v5-surface); }
+.team-rank__header { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 32px; gap: 4px; }
+.team-rank__header > svg { flex-shrink: 0; color: var(--v5-ink-3); }
 .team-rank:active { opacity: .8; }
 .team-rank:focus-visible, .team-tool:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-.team-rank__emblem { flex-shrink: 0; color: var(--v5-tech-cyan); filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--v5-tech-cyan) 32%, transparent)); }
-.team-rank__body { min-width: 0; flex: 1; }
-.team-rank__title { display: block; font-size: 20px; font-weight: 600; }
-.team-rank__level { display: block; margin-top: 8px; font-size: 28px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
-.team-rank__hint { display: block; margin-top: 8px; font-size: 12px; line-height: 1.4; color: var(--v5-ink-3); }
-.team-rank__chevron { flex-shrink: 0; }
-.team-tool { min-width: 0; }
-.team-tools { background: transparent; border: 0; border-radius: 0; }
-.team-tools :deep(.nx-list-row) { padding-left: 0; padding-right: 0; }
+.team-rank__emblem { position: relative; display: grid; place-items: center; flex: none; width: 68px; height: 78px; }
+.team-rank__emblem > svg { position: absolute; inset: 0; }
+.team-rank__title { display: block; font: 600 15px/1.4 var(--font-v5); }
+.team-rank__level { position: relative; display: block; font: 600 24px/1.3 var(--font-v5); color: var(--v5-brand); }
+.team-rank__hint { display: block; margin-top: 4px; text-align: center; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
+.team-section-title { display: block; font: 600 15px/1.4 var(--font-v5); margin-bottom: 8px; }
+.team-tools { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: var(--ui-space-inset); background: transparent; border: 0; border-radius: 0; }
+.team-tools :deep(.nx-list-row) { padding-left: 0; padding-right: 0; min-width: 0; border: 0; }
+.team-tools :deep(.nx-list-row__subtitle) { font-size: 12px; overflow-wrap: normal; word-break:normal; }
+.team-tools :deep(.nx-list-row__title) { font-size: 14px; overflow-wrap: normal; word-break:normal; }
+.team-tools :deep(.nx-list-row__leading) { width:24px; }
+@media(max-width:359px) { .team-tools { grid-template-columns:minmax(0,1fr); } }
 .team-estimate { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
 .team-estimate__label { font: 400 11px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 .team-tool :deep(svg) { color: var(--v5-brand); stroke: var(--v5-brand); }

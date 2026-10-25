@@ -1,8 +1,8 @@
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import source from "./checkout.vue?raw";
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
 import { fmt } from "@/i18n/format";
 import { zh } from "@/i18n/messages/zh";
 import { en } from "@/i18n/messages/en";
@@ -10,6 +10,11 @@ import { vi as vietnamese } from "@/i18n/messages/vi";
 
 const handler = ts.transpileModule(source.slice(source.indexOf("let purchaseConfirmationOpen = false;"),
   source.indexOf("async function onConfirmPay()")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+const amountCode = ts.transpileModule(source.slice(source.indexOf('function formatAmount('), source.indexOf('const locale = useLocaleStore();')),
+  { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+const formatAmount = new Function('formatPlainAmount', amountCode + ';return formatAmount;')(formatPlainAmount);
+const totalCode = ts.transpileModule(source.slice(source.indexOf('const confirmTotalText ='), source.indexOf('const paymentLabel =')),
+  { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 
 function screen(messages = zh) {
   let current = true;
@@ -21,12 +26,26 @@ function screen(messages = zh) {
     confirm: vi.fn(() => new Promise<boolean>(resolve => { accept = resolve; })),
     onConfirmPay: vi.fn().mockResolvedValue(undefined), toast: { warn: vi.fn() },
   };
-  const pay = new Function(...Object.keys(deps),
-    `let confirming = false, dialogsOpen = 0; ${handler}; return requestConfirmPay;`)(...Object.values(deps));
+  const confirmTotalText = new Function('computed','netPrice','cardFee','formatPlainAmount','formatAmount',totalCode+';return confirmTotalText;')(computed,deps.netPrice,deps.cardFee,formatPlainAmount,formatAmount);
+  const pay = new Function(...Object.keys(deps),'confirmTotalText',
+    `let confirming = false, dialogsOpen = 0; ${handler}; return requestConfirmPay;`)(...Object.values(deps),confirmTotalText);
   return { ...deps, pay, accept: (value: boolean) => accept(value), leave: () => { current = false; } };
 }
 
 describe("checkout purchase confirmation", () => {
+  it('keeps the legacy cent-settled card total free of binary float noise', async () => {
+    const page=screen();page.netPrice.value=0.1;page.cardFee.value=0.2;
+    const pending=page.pay();expect(page.confirm).toHaveBeenCalledWith(expect.objectContaining({message:fmt(zh.store.coConfirmPurchaseMessage,{amount:'0.30'})}));
+    page.accept(false);await pending;
+  });
+  it.each([[0,'0.00'],[0.000001,'0.000001'],[0.004,'0.004'],[0.009,'0.009'],[0.01,'0.01'],[1.234567,'1.234567']])('discloses the effective precision of %s USDT before payment', async (amount, display) => {
+    const page = screen();page.netPrice.value = amount as number;
+    const pending = page.pay();
+    expect(page.confirm).toHaveBeenCalledWith(expect.objectContaining({message: fmt(zh.store.coConfirmPurchaseMessage, { amount: display })}));
+    expect(page.netPrice.value).toBe(amount);
+    page.accept(false);await pending;expect(page.onConfirmPay).not.toHaveBeenCalled();
+  });
+
   it.each([zh, en, vietnamese])("shows the exact two-decimal amount and pays only after acceptance", async messages => {
     const page = screen(messages);
     const pending = page.pay();

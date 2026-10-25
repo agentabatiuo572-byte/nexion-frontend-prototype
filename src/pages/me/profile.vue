@@ -19,7 +19,7 @@
 
       <!-- Avatar + email — de-carded: identity sits on the page floor. -->
       <view :style="avatarBlockStyle">
-        <view class="flex items-center" style="gap: 16px">
+        <view class="flex items-center" style="gap: var(--ui-space-inset)">
           <view class="relative">
             <view class="grid place-items-center overflow-hidden" :style="avatarStyle">
               <image v-if="avatarUrl" :src="avatarUrl" mode="aspectFill" style="width: 64px; height: 64px" />
@@ -94,12 +94,12 @@
       <!-- Wallet binding — navigates to address management, so it is a link. -->
       <view class="nx-glass-card mx-4 flex items-center active:opacity-90" :style="walletCardStyle" role="link" tabindex="0" :aria-label="`${t.profile.walletAddress} · ${walletAction}`" @click="goWallet">
         <view class="grid place-items-center shrink-0" :style="walletIconStyle">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></svg>
         </view>
         <view class="flex-1 min-w-0">
           <view class="flex items-center" style="gap: 6px">
             <text :style="walletTitleStyle">{{ t.profile.walletAddress }}</text>
-            <svg v-if="paired" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
+            <svg v-if="paired" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
           </view>
           <text class="block truncate" :style="walletSubStyle">{{ walletSub }}</text>
         </view>
@@ -107,7 +107,7 @@
       </view>
 
       <!-- Save bar -->
-      <view style="padding: 0 16px; margin-top: 20px">
+      <view style="padding: 0 16px; margin-top: var(--ui-space-section)">
         <!-- 未改动时这个按钮点了没用,原先只是「不给按下反馈」—— 那是把禁用态藏起来。
              显式 aria-disabled 让读屏用户也知道现在按不动(《05》§6.1 disabled 公式)。 -->
         <view class="w-full flex items-center justify-center" :class="dirty ? 'active:opacity-90' : ''" :style="saveBtnStyle" role="button" tabindex="0" :aria-disabled="dirty ? 'false' : 'true'" :aria-label="t.profile.saveChanges" @click="handleSave">
@@ -552,7 +552,7 @@ const fieldsWrapStyle: CSSProperties = {
   padding: "0 2px",
   display: "flex",
   flexDirection: "column",
-  gap: "16px",
+  gap: "var(--ui-space-inset)",
 };
 const fieldLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -567,7 +567,7 @@ const nameRowStyle: CSSProperties = {
   background: "var(--v5-surface)",
   borderRadius: "8px",
   padding: "0 12px",
-  gap: "10px",
+  gap: "var(--ui-space-row-y)",
 };
 const nameValueStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -621,16 +621,16 @@ const tierProgressStyle: CSSProperties = {
 // Wallet-binding nav row keeps its surface (nav-list whitelist) — border dropped.
 const walletCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "20px",
-  gap: "12px",
+  gap: "var(--ui-space-inline)",
   background: "var(--nx-glass-fill)",
   borderRadius: "var(--nx-glass-radius)",
-  padding: "16px",
+  padding: "var(--ui-space-inset)",
 };
 const walletIconStyle: CSSProperties = {
   width: "40px",
   height: "40px",
   borderRadius: "12px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)",
+  background: "var(--v5-surface-2)",
 };
 const walletTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -648,7 +648,7 @@ const walletActionStyle = computed<CSSProperties>(() => ({
   fontFamily: "var(--font-v5)",
   fontSize: "12px",
   fontWeight: 500,
-  color: paired.value ? "var(--v5-brand-2)" : "var(--v5-brand)",
+  color: paired.value ? "var(--v5-ink-2)" : "var(--v5-brand)",
 }));
 const saveBtnStyle = computed<CSSProperties>(() => ({
   height: "44px",

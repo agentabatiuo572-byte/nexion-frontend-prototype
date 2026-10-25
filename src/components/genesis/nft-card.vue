@@ -2,7 +2,7 @@
 <template>
   <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
     <GenesisArtwork context="holding" :serial="id" style="border-radius: 10px" />
-    <view class="flex items-baseline justify-between" style="margin-top: 6px">
+    <view class="nft-listing-meta">
       <text class="tabular-nums" :style="priceStyle">${{ formatGenesisPrice(price) }}</text>
       <text :style="agoStyle">{{ agoText }}</text>
     </view>
@@ -48,6 +48,8 @@ const idLineStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
 };
 const priceStyle: CSSProperties = {
+  minWidth: 0,
+  overflowWrap: "anywhere",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
   fontSize: "15px",
@@ -55,10 +57,14 @@ const priceStyle: CSSProperties = {
   letterSpacing: "-0.014em",
 };
 const agoStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
-  color: "var(--v5-ink-4)",
+  color: "var(--v5-ink-2)",
+  overflowWrap: "anywhere",
 };
 
 import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 </script>
+<style scoped>
+.nft-listing-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; margin-top: 6px; min-width: 0; }
+</style>

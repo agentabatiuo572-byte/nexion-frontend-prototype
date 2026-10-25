@@ -5,6 +5,8 @@ import { renderToString } from "@vue/server-renderer";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import pageSource from "./staking.vue?raw";
+import rulesSource from "./how-it-works.vue?raw";
+import * as faqAvailability from "./staking-faq-availability";
 import statusSource from "@/components/staking/staking-read-status.vue?raw";
 import positionSource from "@/components/staking/position-row.vue?raw";
 import vaultSource from "@/components/staking/vault-row.vue?raw";
@@ -24,7 +26,7 @@ const storeModule = await import("@/store/staking");
 const slot = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("section", slots.default?.()) });
 const hidden = Vue.defineComponent({ setup: () => () => null });
 
-function component(source: string): Vue.Component {
+function component(source: string, overrides: Record<string, unknown> = {}): Vue.Component {
   const compiled = compileScript(parse(source).descriptor, { id: "staking-review", inlineTemplate: true,
     templateOptions: { compilerOptions: { isCustomElement: tag => ["view", "text"].includes(tag) } } });
   const js = ts.transpileModule(compiled.content.replace(/import\.meta\.env\.DEV/g, "false"), {
@@ -39,9 +41,12 @@ function component(source: string): Vue.Component {
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "A", accountBindingEpoch: 1 }) },
     "@/store/ui": { useUI: () => ({ clearConfirmsBy: vi.fn() }), toast: {}, confirm: vi.fn() },
     "@/lib/route": {}, "@/api/geo-policy-error": {}, "@/lib/money-receipt": {},
+    "@/api/runtime": { ...remote, exchangeApi: { fetchCaps: async () => ({ swapEnabled: true }) } },
+    "./staking-faq-availability": faqAvailability,
     "@dcloudio/uni-app": { onShow: vi.fn(), onHide: vi.fn() },
   };
   function requireModule(path: string): unknown {
+    if (path in overrides) return overrides[path];
     if (path.endsWith("staking-read-status.vue")) return { default: component(statusSource) };
     if (path.endsWith("position-row.vue")) return { default: component(positionSource) };
     if (path.endsWith("vault-row.vue")) return { default: component(vaultSource) };
@@ -74,6 +79,71 @@ beforeEach(() => {
 });
 
 describe("actual staking templates and real read state", () => {
+  it.each([
+    ["calculator", pageSource, "@/components/staking/compound-calculator.vue"],
+    ["rules", rulesSource, "@/components/how/how-hero.vue"],
+  ])("keeps the %s page mounted during a background config refresh, but removes it after authority is revoked", async (_label, source, probePath) => {
+    vi.useFakeTimers();
+    await storeModule.useStaking().syncRemote();
+    const config = Vue.reactive({ configStatus: "ready", syncFailed: false, visible: true,
+      isEnabled() { return !this.syncFailed && this.visible; } });
+    let mounts = 0, disposals = 0;
+    let draft!: Vue.Ref<string>;
+    const calculator = Vue.defineComponent({ setup() {
+      mounts++;
+      draft = Vue.ref("1000 / 180");
+      Vue.onUnmounted(() => disposals++);
+      return () => Vue.h("span", draft.value);
+    } });
+    type Host = { parent: Host | null; children: Host[] };
+    const node = (): Host => ({ parent: null, children: [] });
+    const renderer = Vue.createRenderer<Host, Host>({
+      createElement: node, createText: node, createComment: node,
+      setText: () => {}, setElementText: () => {}, patchProp: () => {},
+      parentNode: child => child.parent,
+      nextSibling: child => child.parent?.children[child.parent.children.indexOf(child) + 1] ?? null,
+      insert(child, parent, anchor) {
+        if (child.parent) child.parent.children = child.parent.children.filter(item => item !== child);
+        child.parent = parent;
+        const at = anchor ? parent.children.indexOf(anchor) : -1;
+        parent.children.splice(at < 0 ? parent.children.length : at, 0, child);
+      },
+      remove(child) { if (child.parent) child.parent.children = child.parent.children.filter(item => item !== child); },
+    });
+    const app = renderer.createApp(component(source, {
+      "@/store/config": { useConfig: () => config },
+      [probePath]: { default: calculator },
+    }));
+    try {
+      app.mount(node());
+      await Vue.nextTick();
+      draft.value = "2345 / 90";
+      config.configStatus = "loading";
+      await Vue.nextTick();
+      expect(mounts).toBe(1);
+      expect(disposals).toBe(0);
+      expect(draft.value).toBe("2345 / 90");
+      config.configStatus = "ready";
+      await Vue.nextTick();
+      expect(mounts).toBe(1);
+      expect(draft.value).toBe("2345 / 90");
+      config.syncFailed = true;
+      config.configStatus = "failed";
+      await Vue.nextTick();
+      expect(disposals).toBe(1);
+      config.configStatus = "loading";
+      await Vue.nextTick();
+      expect(mounts).toBe(1);
+      config.visible = false;
+      config.syncFailed = false;
+      config.configStatus = "ready";
+      await Vue.nextTick();
+      expect(mounts).toBe(1);
+    } finally {
+      app.unmount();
+      vi.useRealTimers();
+    }
+  });
   it("cold failure renders unknown values and one recovery, never zero assets or an empty account", async () => {
     const store = storeModule.useStaking();
     remote.stakingApi.fetchStakingPositions.mockRejectedValue(new Error("503"));

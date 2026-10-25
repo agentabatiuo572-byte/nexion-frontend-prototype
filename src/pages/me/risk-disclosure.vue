@@ -8,7 +8,7 @@
 -->
 <template>
   <AppChassis active="me">
-    <scroll-view :key="nativeScrollSurface.key" scroll-y :scroll-top="scrollTop" style="height: 100vh" :onScroll="nativeScrollSurface.events.scroll" :onScrolltolower="nativeScrollSurface.events.scrolltolower">
+    <scroll-view :key="nativeScrollSurface.key" class="risk-scroll-surface" :class="{ 'risk-scroll-surface--scrolled': scrollTop > 12 }" scroll-y :show-scrollbar="false" :scroll-top="scrollTop" style="height: 100vh" :onScroll="nativeScrollSurface.events.scroll" :onScrolltolower="nativeScrollSurface.events.scrolltolower">
     <view style="padding-bottom: 32px">
       <SubPageHeader :back="returnTo" />
 
@@ -457,3 +457,14 @@ const disclaimerStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", col
 
 
 </script>
+
+<style scoped>
+.risk-scroll-surface,
+.risk-scroll-surface :deep(.uni-scroll-view) { scrollbar-width: none; -ms-overflow-style: none; }
+.risk-scroll-surface::-webkit-scrollbar,
+.risk-scroll-surface :deep(.uni-scroll-view::-webkit-scrollbar) { display: none; width: 0; height: 0; }
+.risk-scroll-surface--scrolled :deep(.spv-titlewrap) { opacity: 0; visibility: hidden; transform: translateY(-18px); }
+@media (prefers-reduced-motion: reduce) {
+  .risk-scroll-surface--scrolled :deep(.spv-titlewrap) { transform: none; }
+}
+</style>

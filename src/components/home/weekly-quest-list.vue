@@ -18,7 +18,7 @@
       <text :style="tier2LabelStyle">{{ w.tier2Label }}</text>
       <view style="text-align: right">
         <text class="block tabular-nums" :style="countStyle">{{ progressText }}</text>
-        <text v-if="tier2Quests[0]" class="block tabular-nums" :style="periodStyle">{{ periodText }}</text>
+        <text v-if="periodText && !wq.tier1Quests.some(q=>q.eligibleUntil===tier2Quests[0]?.eligibleUntil)" class="block tabular-nums" :style="periodStyle">{{ periodText }}</text>
       </view>
     </view>
 
@@ -128,7 +128,9 @@ const progressText = computed(() => fmt(t.value.quest.progress, {
 }));
 const periodText = computed(() => {
   const remainingMs = Date.parse(tier2Quests.value[0]?.eligibleUntil ?? "") - nowTick.value * 1000;
-  if (!Number.isFinite(remainingMs) || remainingMs <= 0) return fmt(w.value.periodEndsIn, { time: "00:00:00" });
+  if (!Number.isFinite(remainingMs)) return '';
+  if (remainingMs <= 0) return w.value.periodEnded;
+  if (remainingMs > 86_400_000) return fmt(w.value.periodDays, { n: Math.ceil(remainingMs / 86_400_000) });
   const totalMinutes = Math.floor(remainingMs / 60_000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;

@@ -7,7 +7,7 @@
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/wallet-topup" :title="t.usdtGuide.title" :subtitle="t.usdtGuide.subtitle" />
+      <SubPageHeader :back="topupFallback" :title="t.usdtGuide.title" :subtitle="t.usdtGuide.subtitle" />
 
       <view class="mx-4" style="padding: 0 2px">
         <!-- intro -->
@@ -39,9 +39,7 @@
         </view>
 
         <!-- back to top-up CTA -->
-        <view class="nx-usdt-guide-back-cta grid place-items-center active:opacity-85" :style="backCtaStyle" role="button" tabindex="0" @click="goBack">
-          <text :style="backCtaTextStyle">{{ t.usdtGuide.backCta }}</text>
-        </view>
+        <NxButton class="nx-usdt-guide-back-cta" variant="secondary" :label="t.usdtGuide.backCta" style="display:flex; margin:20px 0 8px" @click="goBack" />
       </view>
     </view>
   </AppChassis>
@@ -51,10 +49,12 @@
 import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import NxButton from "@/components/ui/nx-button.vue";
 import { useT } from "@/i18n/use-t";
-import { navReplace } from "@/lib/route";
+import { navBack, navReplace } from "@/lib/route";
 
 const t = useT();
+const topupFallback = '/pages/me/wallet-topup?channel=crypto';
 
 const steps = computed(() => {
   const g = t.value.usdtGuide;
@@ -67,7 +67,13 @@ const steps = computed(() => {
 });
 
 function goBack() {
-  navReplace("/pages/me/wallet-topup");
+  let previousRoute = '';
+  try {
+    const pages = getCurrentPages();
+    previousRoute = pages[pages.length - 2]?.route ?? '';
+  } catch { /* A direct-open guide has no prior top-up instance. */ }
+  if (previousRoute.replace(/^\//, '') === 'pages/me/wallet-topup') navBack(topupFallback);
+  else void navReplace(topupFallback);
 }
 
 // ── styles ──
@@ -125,19 +131,5 @@ const warnBodyStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-warning)",
   lineHeight: 1.45,
-};
-const backCtaStyle: CSSProperties = {
-  marginTop: "20px",
-  marginBottom: "8px",
-  height: "48px",
-  borderRadius: "999px",
-  background: "var(--v5-brand)",
-  boxShadow: "var(--v5-spotlight-brand)",
-};
-const backCtaTextStyle: CSSProperties = {
-  fontFamily: "var(--font-v5)",
-  fontSize: "15px",
-  fontWeight: 600,
-  color: "var(--v5-on-brand)",
 };
 </script>

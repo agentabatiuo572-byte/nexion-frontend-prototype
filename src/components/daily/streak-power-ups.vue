@@ -306,7 +306,10 @@ const activatedBadgeStyle: CSSProperties = {
 function activateBtnStyle(p: PowerUp): CSSProperties {
   return {
     gap: "3px",
-    height: "32px",
+    minHeight: "44px",
+    minWidth: "44px",
+    justifyContent: "center",
+    flexShrink: 0,
     padding: "0 12px",
     borderRadius: "999px",
     background: p.tint,

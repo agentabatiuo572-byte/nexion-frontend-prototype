@@ -32,7 +32,7 @@
         <template v-if="dailyFactsReady">
         <!-- Streak hero -->
         <view class="nx-glass-card relative overflow-hidden text-center" :style="heroStyle">
-          <text aria-hidden :style="fireStyle">🔥</text>
+          <view aria-hidden="true" :style="fireStyle"><svg width="140" height="140" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5 5 9.5A5 5 0 0 1 7 12.5C7 10 9 8.5 9 6.5 10.5 7.5 11 9 11 9s1-2.5 1-6z"/></svg></view>
           <view class="relative">
             <text class="block tabular-nums" :style="streakNumStyle">{{ streak }}</text>
             <text class="block" :style="streakLblStyle">{{ t.daily.activeStreak }}</text>
@@ -77,7 +77,7 @@
                   <path :d="m.iconPath" />
                   <path v-if="m.iconPath2" :d="m.iconPath2" />
                 </svg>
-                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
               </view>
               <view class="flex-1 min-w-0">
                 <view class="flex items-center" style="gap: 8px">
@@ -114,7 +114,7 @@
         </view>
 
         <!-- Top Streakers -->
-        <view class="nx-glass-card overflow-hidden" :style="leaderCardStyle">
+        <view :style="leaderCardStyle">
           <view class="px-4 flex items-center justify-between" style="padding-top: 12px; padding-bottom: 8px">
             <text :style="leaderLabelStyle">{{ t.daily.topStreakers.label }}</text>
             <text :style="leaderBestStyle">{{ yourBestText }}</text>
@@ -127,7 +127,7 @@
                 <text class="truncate" :style="streakerNameStyle">{{ s.name }}</text>
                 <text style="font-size: 12px">{{ s.countryCode }}</text>
               </view>
-              <text class="tabular-nums" :style="streakerCountStyle">🔥 {{ s.streak }}</text>
+              <view class="tabular-nums inline-flex items-center" :style="streakerCountStyle"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5 5 9.5A5 5 0 0 1 7 12.5C7 10 9 8.5 9 6.5 10.5 7.5 11 9 11 9s1-2.5 1-6z"/></svg><text>{{ s.streak }}</text></view>
             </view>
           </view>
           <text class="block px-4" :style="leaderSubStyle">{{ t.daily.topStreakers.sub }}</text>
@@ -178,7 +178,7 @@
         <!-- History -->
         <view>
           <text class="block px-1" :style="historyLabelStyle">{{ t.daily.recent }}</text>
-          <view class="nx-glass-card overflow-hidden" :style="historyCardStyle">
+          <view :style="historyCardStyle">
             <view v-if="remoteApiEnabled && bills.summaryStatus !== 'ready'" class="p-4">
               <text>{{ bills.summaryStatus === 'error' ? t.home.quickFactsFailed : t.home.quickFactsLoading }}</text>
               <view v-if="bills.summaryStatus === 'error'" class="inline-flex active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshLedger()"  @keydown.enter.prevent="refreshLedger()" @keydown.space.prevent="refreshLedger()">
@@ -207,7 +207,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatGroupedAmount as formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -461,7 +461,7 @@ const heroLineText = computed(() =>
       }) : t.value.daily.noNextMilestone,
 );
 const nextClaimText = computed(() => fmt(t.value.daily.nextClaimIn, { time: formatCountdown(nextResetMs.value) }));
-const saverHeadlineText = computed(() => fmt(t.value.daily.saver.headline, { n: streak.value || "0" }));
+const saverHeadlineText = computed(() => t.value.daily.saver.headline);
 const saverCountText = computed(() =>
   faucet.streakSavers > 0 ? fmt(t.value.daily.saver.count, { n: faucet.streakSavers }) : t.value.daily.saver.empty,
 );
@@ -768,7 +768,7 @@ function milestoneIconStyle(m: Milestone): CSSProperties {
     height: "36px",
     borderRadius: "10px",
     background: claimed ? "rgba(255,255,255,0.5)" : `color-mix(in srgb, ${m.tint} 10%, transparent)`,
-    color: claimed ? "var(--v5-ink-4)" : reached ? m.tint : "var(--v5-ink-4)",
+    color: claimed ? "var(--v5-ink-2)" : reached ? m.tint : "var(--v5-ink-2)",
   };
 }
 const milestoneDayStyle: CSSProperties = {
@@ -792,7 +792,7 @@ function milestoneBtnStyle(m: Milestone): CSSProperties {
     padding: "0 14px",
     borderRadius: "999px",
     background: canClaim ? "var(--v5-brand)" : "transparent",
-    color: canClaim ? "var(--v5-ink)" : "var(--v5-ink-4)",
+    color: canClaim ? "var(--v5-on-brand)" : "var(--v5-ink-2)",
     fontFamily: "var(--font-v5)",
     fontWeight: 500,
     fontSize: "12px",
@@ -833,7 +833,7 @@ const saverBtnStyle = computed<CSSProperties>(() => ({
   padding: "0 16px",
   borderRadius: "999px",
   background: streakBroken.value ? "var(--v5-brand-2)" : "var(--v5-surface-2)",
-  color: streakBroken.value ? "var(--v5-on-brand-2)" : "var(--v5-ink-4)",
+  color: streakBroken.value ? "var(--v5-on-brand-2)" : "var(--v5-ink-2)",
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
   fontSize: "13px",
@@ -843,11 +843,8 @@ const saverBtnStyle = computed<CSSProperties>(() => ({
   justifyContent: "center",
   flexShrink: 0,
 }));
-// Form-b: filled container, no border — the social streak list stays grouped.
-const leaderCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
-  background: "var(--nx-glass-fill)",
-  borderRadius: "var(--nx-glass-radius)",
-};
+// An open ranking list; the check-in action and saver card remain separate.
+const leaderCardStyle: CSSProperties = { paddingBlock: "4px" };
 const leaderLabelStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
@@ -858,13 +855,13 @@ const leaderLabelStyle: CSSProperties = {
 const leaderBestStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
-  color: "var(--v5-ink-4)",
+  color: "var(--v5-ink-2)",
 };
 const rankStyle: CSSProperties = {
   width: "20px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
-  color: "var(--v5-ink-4)",
+  color: "var(--v5-ink-2)",
 };
 const avatarStyle: CSSProperties = {
   width: "28px",
@@ -936,11 +933,8 @@ const historyLabelStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
   letterSpacing: "0.06em",
 };
-// Form-b: filled container, no border — rows already hairline-separated.
-const historyCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
-  background: "var(--nx-glass-fill)",
-  borderRadius: "var(--nx-glass-radius)",
-};
+// Open history rows keep their separators.
+const historyCardStyle: CSSProperties = { paddingBlock: "4px" };
 const historyEmptyStyle: CSSProperties = { padding: "24px", fontSize: "13px", color: "var(--v5-ink-3)" };
 function historyRowStyle(isLast: boolean): CSSProperties {
   return { padding: "10px 16px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
@@ -950,7 +944,7 @@ const historyTimeStyle: CSSProperties = {
   marginTop: "2px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
-  color: "var(--v5-ink-4)",
+  color: "var(--v5-ink-2)",
 };
 function historyDeltaStyle(delta: number): CSSProperties {
   return {
@@ -966,7 +960,7 @@ const remoteErrorStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-warning) 8%, transparent)",
 };
 const retryBtnStyle: CSSProperties = {
-  minHeight: "32px",
+  minHeight: "44px",
   padding: "0 10px",
   borderRadius: "999px",
   background: "var(--v5-surface-2)",

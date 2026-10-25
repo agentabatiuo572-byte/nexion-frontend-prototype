@@ -3,7 +3,7 @@
   三格:注册用户 / 在线设备 / 设备预估排名。
 -->
 <template>
-  <NxSection v-if="compactView" :title="copy.network" :action="copy.details" @action="navTo('/pages/globe/globe')" data-home-section="network">
+  <NxSection v-if="compactView && compactAvailable" :title="copy.network" :action="copy.details" @action="navTo('/pages/globe/globe')" data-home-section="network">
     <view class="network-compact">
       <view v-for="(m,i) in metrics" :key="m.k" class="network-compact__cell" :role="m.tap ? 'button' : undefined" :tabindex="m.tap ? 0 : -1" @click="activate(m.tap)" @keydown.enter.prevent="activate(m.tap)" @keydown.space.prevent="activate(m.tap)">
         <text class="network-compact__label">{{ i === 0 && estimated ? copy.memberEstimateLabel : m.k }}</text>
@@ -13,7 +13,7 @@
       </view>
     </view>
   </NxSection>
-  <view v-else data-home-section="network-pulse">
+  <view v-else-if="!compactView" data-home-section="network-pulse">
     <view class="flex items-center justify-between" style="margin: 8px 2px 10px">
       <text style="font-family: var(--font-v5); font-weight: 600; font-size: 15px; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.networkPulseTitle }}</text>
     </view>
@@ -71,7 +71,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import NxSection from '@/components/ui/nx-section.vue';
 import { useAuditUiCopy } from '@/i18n/audit-ui';
-defineProps<{compactView?:boolean;estimated?:boolean;registeredDisplay?:number|null}>();
+const props = defineProps<{compactView?:boolean;estimated?:boolean;registeredDisplay?:number|null}>();
 const copy = useAuditUiCopy();
 import { useT } from "@/i18n/use-t";
 import { useApp } from "@/store/app";
@@ -107,6 +107,7 @@ watch(() => cfg.loading, (l, was) => {
 const showSkeleton = ref(false);
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null;
 watch(() => cfg.loading, (l) => {
+  if (props.compactView) return;
   if (l) {
     skeletonTimer = setTimeout(() => { showSkeleton.value = true; }, 300);
   } else {
@@ -118,13 +119,24 @@ onUnmounted(() => { if (skeletonTimer !== null) clearTimeout(skeletonTimer); });
 
 // Only the current bound phone participates; no account-total or local fallback.
 const rank = computed(() => {
-  if (!remoteApiEnabled || remoteRank.status === "error" || remoteRank.snapshot === null) {
-    return { kind: "unavailable" } as const;
-  }
+  if (!remoteApiEnabled) return { kind: "unavailable" } as const;
+  if (remoteRank.snapshot === null) return { kind: "unavailable" } as const;
   const snapshot = remoteRank.snapshot;
   return snapshot.state === "ranked"
     ? { kind: "ranked", rank: snapshot.currentRank! } as const
     : { kind: snapshot.state };
+});
+// This optional home summary is shown only when all three cells are usable.
+// The full card retains its existing explanations and retry controls.
+const compactAvailable = computed(() => {
+  const members = props.estimated ? props.registeredDisplay : cfg.config.networkPulse?.registeredUsers;
+  const devices = cfg.config.networkPulse?.onlineDevices;
+  const currentRank = rank.value;
+  return !cfg.loading && !cfg.syncFailed && remoteRank.status !== 'error'
+    && typeof members === 'number' && Number.isSafeInteger(members) && members >= 0
+    && typeof devices === 'number' && Number.isSafeInteger(devices) && devices >= 0
+    && (currentRank.kind === 'unranked'
+      || (currentRank.kind === 'ranked' && Number.isSafeInteger(currentRank.rank) && currentRank.rank > 0));
 });
 function explainRank() {
   const state = rank.value.kind;
@@ -173,24 +185,27 @@ const metrics = computed<Cell[]>(() => {
   const pulse = failed ? null : cfg.config.networkPulse;
   // H9 supplies the published counts and the server supplies the device estimate.
   const displayCell = (label: string, value: number | null | undefined, color: string): Cell =>
-    value === null || value === undefined
+    value === null || value === undefined || !Number.isSafeInteger(value) || value < 0
       ? placeholderCell(label)
       : { k: label, v: compact(value), tone: "var(--v5-ink)", sub: "", data: null, color };
-  const members = displayCell(t.value.home.networkMembers, pulse?.registeredUsers, "var(--v5-brand)");
+  const memberValue = props.compactView && props.estimated ? props.registeredDisplay : pulse?.registeredUsers;
+  const members = displayCell(t.value.home.networkMembers, memberValue, "var(--v5-brand)");
   const devices = displayCell(t.value.home.networkDevices, pulse?.onlineDevices, "var(--v5-tech-cyan-ink)");
 
   const r = rank.value;
+  const retainedRank = remoteRank.status === "error" && remoteRank.snapshot !== null;
   const rankCell: Cell = {
     k: t.value.home.networkYourRank,
     v: r.kind === "ranked" ? `#${compact(r.rank)}`
       : r.kind === "unranked" ? t.value.home.networkRankUnranked : "-",
     vSize: r.kind === "ranked" ? "20px" : "12px",
     tone: r.kind === "ranked" ? "var(--v5-brand)" : "var(--v5-ink-3)",
-    sub: r.kind === "unavailable" ? t.value.home.networkStatRetry : t.value.home.networkRankExplanation,
+    sub: retainedRank ? t.value.home.networkStale
+      : r.kind === "unavailable" ? t.value.home.networkStatRetry : t.value.home.networkRankExplanation,
     subTone: "var(--v5-tech-cyan-ink)",
     skeleton: remoteApiEnabled && remoteRank.status === "loading" && remoteRank.snapshot === null,
     tap: explainRank,
-    subTap: r.kind === "unavailable" ? () => { void remoteRank.refresh(); } : undefined,
+    subTap: r.kind === "unavailable" || retainedRank ? () => { void remoteRank.refresh(); } : undefined,
   };
 
   return [members, devices, rankCell];

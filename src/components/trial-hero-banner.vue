@@ -8,6 +8,7 @@
     <view class="trial-meta">
       <text class="trial-badge">{{ embedded ? fmt(copy.freeTrialDays,{n:trialDays}) : t.trial.heroBadge }}</text>
       <text class="trial-title">{{ t.trial.heroDeviceName }}</text>
+      <view v-if="embedded" class="trial-reassurance"><text>{{ t.trial.homeFreeTrial }}</text><text>{{ t.trial.homeNoPayment }}</text></view>
       <template v-if="!embedded"><text class="trial-tagline">{{ taglineText }}</text><view class="trial-estimate"><text class="trial-estimate-label">{{ earnLabelText }}</text><text class="trial-value font-mono-tabular">${{ formatAmount(est) }}</text></view><text class="trial-estimate-label">{{ creditBasisText }}</text></template>
     </view>
     <view class="trial-cta nx-design-glass" aria-hidden="true"><LiquidGlass :radius="999" tone="control" /><text>{{ canClaim && embedded ? t.voucher.bannerCta : claimCtaText }}</text></view>
@@ -110,14 +111,22 @@ function retryEligibility() {
 .trial-aura { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(ellipse at 83% 54%, color-mix(in srgb, var(--v5-brand) 12%, transparent), transparent 65%); }
 .nx-trial-hero--embedded { min-height:0;height:184px;min-width:0;padding:0;border:1px solid var(--v5-border);background:radial-gradient(70% 45% at 70% 92%,color-mix(in srgb,var(--v5-brand) 22%,transparent),transparent 70%),linear-gradient(180deg,var(--ui-trial-top),var(--ui-ticket-bottom)); }
 .nx-trial-hero--embedded .trial-art { position:absolute;right:-6px;bottom:8px;top:auto;width:118px;height:118px;margin:0; }
-.nx-trial-hero--embedded .trial-art .nx-home-art { width:118px;height:118px;margin:0; }
+.nx-trial-hero--embedded .trial-art .nx-home-art { width:118px;height:118px;margin:0; animation:trial-home-float 4.2s ease-in-out infinite; }
+@keyframes trial-home-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
 .nx-trial-hero--embedded .trial-aura {inset:auto;right:6px;bottom:18px;width:110px;height:22px;background:radial-gradient(closest-side,rgba(158,220,29,.42),transparent);filter:blur(2px);}
 .nx-trial-hero--embedded .trial-meta { position:relative;width:auto;padding:14px 14px 0; }
 .nx-trial-hero--embedded .trial-badge { display:block;padding:0;background:none;border-radius:0;color:var(--ui-lime-soft);font:500 12.5px/20px var(--font-v5); }
 .nx-trial-hero--embedded .trial-title { font:600 18px/22px var(--font-v5);margin-top:8px;letter-spacing:0; }
+.trial-reassurance { display:flex;flex-direction:column;max-width:110px;margin-top:6px;font:400 13px/18px var(--font-v5);color:var(--v5-ink-3); }
 .nx-trial-hero--embedded .trial-cta { position:absolute;left:14px;bottom:14px;min-height:32px;margin:0;padding:0 14px;font:600 13px/1.3 var(--font-v5); }
-@media(max-width:350px) { .nx-trial-hero--embedded .trial-art,.nx-trial-hero--embedded .trial-art .nx-home-art {width:102px;height:102px;} .nx-trial-hero--embedded .trial-meta { padding-inline:12px; }.nx-trial-hero--embedded .trial-title { font-size:16px; }}
-@media (prefers-reduced-motion: reduce) { .nx-trial-hero { transition: none; } }
+@media(max-width:350px) {
+  .nx-trial-hero--embedded { display:flex;flex-direction:column;box-sizing:border-box;height:auto;min-height:216px; }
+  .nx-trial-hero--embedded .trial-meta { order:1;padding-inline:12px; }
+  .nx-trial-hero--embedded .trial-title { font-size:16px; }
+  .nx-trial-hero--embedded .trial-art { position:relative;order:2;align-self:flex-end;right:-6px;bottom:auto;flex:none;width:102px;height:102px;margin:4px 0 8px; }
+  .nx-trial-hero--embedded .trial-art .nx-home-art {width:102px;height:102px;}
+}
+@media (prefers-reduced-motion: reduce) { .nx-trial-hero { transition: none; } .nx-trial-hero--embedded .trial-art .nx-home-art { animation:none; } }
 @media (max-width: 350px) {
   .nx-trial-hero:not(.nx-trial-hero--embedded) { padding: 18px; }
   .nx-trial-hero:not(.nx-trial-hero--embedded) .trial-meta { width: 62%; }

@@ -29,7 +29,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
         </template>
         <text class="block" :style="paraStyle">{{ w.s1Para1 }}</text>
-        <view class="nx-glass-card" :style="tableStyle">
+        <view :style="tableStyle">
           <view class="flex" :style="tableHeadStyle">
             <text class="text-left" :style="thWhat">{{ w.colWhat }}</text>
             <text class="text-left" :style="thCell">USDT</text>
@@ -212,24 +212,23 @@ const stateTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2
 const retryStyle: CSSProperties = { marginTop: "8px", minHeight: "44px", display: "inline-flex", alignItems: "center", fontSize: "13px", color: "var(--v5-brand)" };
 const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
-const tableStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
+const tableStyle: CSSProperties = {
   marginTop: "12px",
-  borderRadius: "var(--nx-glass-radius)",
-  background: "var(--nx-glass-fill)",
-  overflow: "hidden",
+  paddingBlock: "4px",
 };
-const tableHeadStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.14em", color: "var(--v5-ink-3)" };
-const thWhat: CSSProperties = { flex: "1.2", padding: "8px 12px", fontWeight: 500 };
-const thCell: CSSProperties = { flex: "1", padding: "8px 12px", fontWeight: 500 };
+const tableHeadStyle: CSSProperties = { fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-2)", borderBottom: "1px solid var(--v5-border)" };
+const thWhat: CSSProperties = { flex: "1.2 1 0", minWidth: 0, overflowWrap: "anywhere", padding: "10px 6px", fontWeight: 500 };
+const thCell: CSSProperties = { flex: "1 1 0", minWidth: 0, overflowWrap: "anywhere", padding: "10px 6px", fontWeight: 500 };
 function tableRowStyle(isFirst: boolean): CSSProperties {
   return {
-    fontSize: "12px",
+    fontSize: "13px",
+    lineHeight: 1.6,
     borderTop: isFirst ? "none" : "1px solid color-mix(in srgb, var(--v5-border) 60%, transparent)",
   };
 }
-const tdWhat: CSSProperties = { flex: "1.2", padding: "8px 12px", color: "var(--v5-ink-3)" };
-const tdUsdt: CSSProperties = { flex: "1", padding: "8px 12px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)" };
-const tdNex: CSSProperties = { flex: "1", padding: "8px 12px", color: "var(--v5-ink)" };
+const tdWhat: CSSProperties = { flex: "1.2 1 0", minWidth: 0, overflowWrap: "anywhere", padding: "10px 6px", color: "var(--v5-ink-3)" };
+const tdUsdt: CSSProperties = { flex: "1 1 0", minWidth: 0, overflowWrap: "anywhere", padding: "10px 6px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)" };
+const tdNex: CSSProperties = { flex: "1 1 0", minWidth: 0, overflowWrap: "anywhere", padding: "10px 6px", color: "var(--v5-ink)" };
 const demandBoxStyle: CSSProperties = {
   marginTop: "12px",
   borderRadius: "12px",

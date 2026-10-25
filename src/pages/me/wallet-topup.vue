@@ -21,6 +21,8 @@
 
 <script setup lang="ts">
 import { ref, nextTick, type CSSProperties, computed } from "vue";
+import { onLoad } from "@dcloudio/uni-app";
+import { takeNavigationQuery } from "@/lib/route";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import TopupCardForm from "@/components/me/topup-card-form.vue";
@@ -35,6 +37,12 @@ type Seg = "crypto" | "bank" | "card";
 const SEGMENTS: { id: Seg }[] = [{ id: "crypto" }, { id: "bank" }, { id: "card" }];
 const segments = remoteApiEnabled ? SEGMENTS.filter((item) => item.id !== "card") : SEGMENTS;
 const seg = ref<Seg>(remoteApiEnabled ? "bank" : "crypto");
+onLoad((query) => {
+  const pending = new URLSearchParams(takeNavigationQuery('/pages/me/wallet-topup'));
+  const channel = query?.channel ?? pending.get('channel');
+  const allowed = segments.find(item => item.id === channel);
+  if (allowed) seg.value = allowed.id;
+});
 function segLabel(id: Seg): string {
   const tc = t.value.topupChrome;
   if (id === "crypto") return tc.segUsdt;

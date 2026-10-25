@@ -58,9 +58,19 @@ export function matchingCourseResult(
 export function validAnswersForCourse(course: LearningCourse, answers: number[] | null): boolean {
   return Array.isArray(answers)
     && answers.length === course.questions.length
-    && answers.every((answer, index) => Number.isSafeInteger(answer)
-      && answer >= 0
-      && answer < course.questions[index].options.length);
+    && course.questions.every((question, index) => Number.isSafeInteger(answers[index])
+      && answers[index] >= 0
+      && answers[index] < question.options.length);
+}
+
+export function initialQuizAnswers(course: LearningCourse): number[] {
+  return Array.from({ length: course.questions.length }, () => -1);
+}
+
+export function quizOptionTabIndex(answer: number | undefined, optionIndex: number, optionCount: number, locked: boolean): 0 | -1 {
+  if (locked) return -1;
+  const selected = Number.isSafeInteger(answer) && answer! >= 0 && answer! < optionCount ? answer : 0;
+  return selected === optionIndex ? 0 : -1;
 }
 
 export type LearningAttemptRecoveryAction = "RESTORE" | "REPLAY" | "RETIRE" | "HOLD";

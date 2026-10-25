@@ -37,7 +37,7 @@
       <!-- REWARD + PROGRESS row -->
       <view class="mt-3 flex items-center" style="gap: 12px">
         <view class="inline-flex items-center shrink-0" :style="rewardStyle">
-          <view style="margin-right: 6px"><EventIcon kind="gift" :size="14" /></view>
+          <view style="margin-right: 6px"><EventIcon kind="gift" :size="14" :style="{color:rewardColor}" /></view>
           <text>{{ ev.reward }}</text>
         </view>
         <view v-if="ev.progress" class="flex-1 flex items-center min-w-0" style="gap: 8px">
@@ -63,8 +63,8 @@
         <text style="font-size: 13px; font-weight: 500; color: var(--v5-ink-3); pointer-events: none">{{ t.events.claimedLabel }}</text>
         <template v-if="ev.useHref">
           <text style="font-size: 13px; color: var(--v5-ink-4); margin: 0 8px; pointer-events: none">·</text>
-          <text :style="{ fontSize: '13px', fontWeight: 600, color: ev.tint, pointerEvents: 'none' }">{{ t.events.useCta }}</text>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" :stroke="ev.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
+          <text :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-brand)', pointerEvents: 'none' }">{{ t.events.useCta }}</text>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
         </template>
       </view>
       <view v-else-if="showProgressAction" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="neutralBtnStyle" role="button" tabindex="0" :aria-label="t.events.viewProgress" @click="openHref"  @keydown.enter.prevent="openHref" @keydown.space.prevent="openHref">
@@ -92,6 +92,7 @@ import { eventOpenTarget, shouldShowDecorativeAction, shouldShowJoinedProgressAc
 type EnrichedEvent = NexEvent & { _trackable: boolean; _done: boolean; _claimed: boolean };
 
 const props = withDefaults(defineProps<{ ev: EnrichedEvent; rewardNex: number; busy?: boolean }>(), { busy: false });
+const rewardColor = computed(() => /\b(?:UVT|NEX)\b/i.test(props.ev.reward) ? 'var(--v5-nex)' : 'var(--v5-brand)');
 const emit = defineEmits<{ (e: "join"): void; (e: "claim"): void; (e: "cta"): void }>();
 
 const t = useT();
@@ -127,8 +128,8 @@ const statusChip = computed<StatusChip | null>(() => {
   if (showClaim.value) {
     return {
       label: t.value.events.progress.ready,
-      color: ev.tint,
-      bg: `color-mix(in srgb, ${ev.tint} 12%, transparent)`,
+      color: "var(--v5-brand)",
+      bg: "var(--v5-brand-soft)",
       icon: "check",
     };
   }
@@ -178,20 +179,21 @@ const hairlineStyle = computed<CSSProperties>(() => ({
   left: "0",
   bottom: "0",
   width: "2px",
-  background: `linear-gradient(180deg, transparent, ${props.ev.tint}, transparent)`,
+  background: "var(--v5-border)",
   opacity: 0.85,
 }));
 const emojiChipStyle = computed<CSSProperties>(() => ({
   width: "40px",
   height: "40px",
   borderRadius: "8px",
-  background: `color-mix(in srgb, ${props.ev.tint} 8%, transparent)`,
+  background: "var(--v5-surface-2)",
 }));
 const kindLineStyle = computed<CSSProperties>(() => ({
   fontSize: "12px",
-  letterSpacing: "0.12em",
+  letterSpacing: "0.04em",
+  fontFamily: "var(--font-v5)",
   textTransform: "uppercase",
-  color: props.ev.tint,
+  color: "var(--v5-ink-3)",
   opacity: 0.85,
 }));
 const titleStyle: CSSProperties = {
@@ -219,7 +221,7 @@ const chipStyle = computed<CSSProperties>(() => ({
 const rewardStyle = computed<CSSProperties>(() => ({
   fontSize: "12px",
   fontWeight: 600,
-  color: props.ev.tint,
+  color: rewardColor.value,
   fontFamily: "var(--font-v5)",
 }));
 const barFillStyle = computed<CSSProperties>(() => ({
@@ -244,7 +246,7 @@ const neutralBtnStyle: CSSProperties = {
 };
 const claimedUseBtnStyle = computed<CSSProperties>(() => ({
   height: "44px",
-  background: `color-mix(in srgb, ${props.ev.tint} 6%, transparent)`,
+  background: "var(--v5-surface-2)",
 }));
 
 

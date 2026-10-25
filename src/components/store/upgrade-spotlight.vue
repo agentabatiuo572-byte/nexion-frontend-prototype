@@ -16,11 +16,11 @@
       </view>
     </view>
     <view class="upgrade-comparison">
-      <view><text class="upgrade-comparison__label">{{ comparisonCopy.current }}</text><text class="upgrade-comparison__device">{{ nexGridBrandText(base.name) }}</text><text class="upgrade-comparison__value">{{ fmtMoney(base.baseRate) }}{{ t.store.cardPerDaySuffix }}</text></view>
-      <view><text class="upgrade-comparison__label">{{ comparisonCopy.upgraded }}</text><text class="upgrade-comparison__device">{{ nexGridBrandText(target.name) }}</text><text class="upgrade-comparison__value upgrade-comparison__value--target">{{ fmtMoney(target.dailyEarn) }}{{ t.store.cardPerDaySuffix }}</text></view>
+      <view><text class="upgrade-comparison__label">{{ comparisonCopy.current }}</text><text class="upgrade-comparison__value">{{ fmtMoney(base.baseRate) }}{{ t.store.cardPerDaySuffix }}</text></view>
+      <view><text class="upgrade-comparison__label">{{ comparisonCopy.upgraded }}</text><text class="upgrade-comparison__value upgrade-comparison__value--target">{{ fmtMoney(target.dailyEarn) }}{{ t.store.cardPerDaySuffix }}</text></view>
     </view>
     <text class="upgrade-note">{{ t.store.cardYouEarn }} · {{ t.store.cardEstimateNote }}</text>
-    <NxButton class="upgrade-action" variant="tertiary" :label="copy.details" @click="open" />
+    <NxButton class="upgrade-action" variant="secondary" size="medium" :label="copy.details" @click="open" />
   </view>
 </template>
 <script setup lang="ts">
@@ -69,12 +69,11 @@ function open() { navTo('/pages/store/detail?id=' + encodeURIComponent(props.tar
 .upgrade-art__target-shadow { position:absolute; right:6px; bottom:8px; width:150px; height:22px; border-radius:50%; background:radial-gradient(closest-side,color-mix(in srgb,var(--ui-lime-soft) 45%,transparent),transparent); }
 .upgrade-comparison { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:4px; }
 .upgrade-comparison__label { display:block; font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
-.upgrade-comparison__device { display:block; margin-top:2px; font:400 12px/17px var(--font-v5); color:var(--v5-ink-3); overflow-wrap:anywhere; }
 .upgrade-comparison__value { display:block; margin-top:2px; font:600 16px/22px var(--font-v5); font-variant-numeric:tabular-nums; }
 .upgrade-comparison__value--target { color:var(--v5-brand); }
 .upgrade-note { display:block; margin-top:10px; font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
-.upgrade-spotlight .upgrade-action { position:relative; overflow:hidden; display:flex; margin-top:14px; min-height:44px; padding:10px 16px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(180deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.05) 46%,rgba(255,255,255,.03) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.42),inset 0 -1px 1px rgba(255,255,255,.08),inset 0 0 14px rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.5); backdrop-filter:blur(16px) saturate(170%); -webkit-backdrop-filter:blur(16px) saturate(170%); }
-.upgrade-action::before { content:''; position:absolute; inset:1px; border-radius:inherit; background:radial-gradient(120% 60% at 30% 0%,rgba(255,255,255,.22),transparent 55%); pointer-events:none; }
+.upgrade-spotlight .upgrade-action { display:flex; margin-top:14px; min-height:44px; padding:0; }
+.upgrade-action :deep(.nx-button__surface) { min-height:44px; }
 @keyframes upgrade-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
 @media(max-width:350px) { .upgrade-art__base { left:0; width:min(84px,34%); }.upgrade-art__target { width:min(136px,50%); }.upgrade-art__arrow { left:36%; } }
 @media(prefers-reduced-motion:reduce) { .upgrade-art__target { animation:none; } }

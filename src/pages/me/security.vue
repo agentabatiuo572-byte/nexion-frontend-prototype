@@ -147,7 +147,7 @@
             </view>
           </template>
           <text v-if="phoneError" class="block" :style="errStyle" role="alert">{{ phoneError }}</text>
-          <view v-if="!phonePolicy" role="button" tabindex="0" :style="rowSubStyle" @click="loadPhonePolicy" @keydown.enter.prevent="loadPhonePolicy">
+          <view v-if="!phonePolicy" role="button" tabindex="0" :style="[rowSubStyle, { minHeight: '44px', display: 'flex', alignItems: 'center' }]" @click="loadPhonePolicy" @keydown.enter.prevent="loadPhonePolicy" @keydown.space.prevent="loadPhonePolicy">
             {{ t.ui.retry }}
           </view>
         </view>
@@ -1125,7 +1125,7 @@ const remoteSecurityUnavailableTextStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
 };
 const remoteSecurityRetryStyle: CSSProperties = {
-  minHeight: "32px",
+  minHeight: "44px",
   padding: "0 10px",
   borderRadius: "7px",
   background: "var(--v5-surface-3)",

@@ -1,3 +1,5 @@
+import { teamLogicCopy } from '@/i18n/team-logic-copy';
+import { teamEventDate } from '@/lib/team-event-date';
 import * as Vue from "vue";
 import { formatAmount } from "@/lib/amount-display";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
@@ -71,6 +73,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const defaults: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
     "@/i18n/network-reaudit": { networkReauditCopy },
+    "@/i18n/team-logic-copy": { teamLogicCopy }, "@/lib/team-event-date": { teamEventDate },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/team/reward-page-surface.vue": { default: slot },

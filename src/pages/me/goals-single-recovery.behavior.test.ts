@@ -1,7 +1,7 @@
 import * as Vue from "vue";
 import { expect, it, vi } from "vitest";
 import { all, flush, mountEntry, slot, text } from "@/lib/entry-review.test-support";
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { fmt } from "@/i18n/format";
 import { zh } from "@/i18n/messages/zh";
 import type { Goal } from "@/store/goals";
@@ -24,7 +24,7 @@ it("offers one recovery action, then saves and reads back 500/90 days and delete
   let actions!: { refreshRemoteGoals(force?: boolean): Promise<void>; onSave(): Promise<void> };
   const page = mountEntry(source.replace("</script>", 'import { capture } from "test:probe"; capture({ refreshRemoteGoals, onSave });\n</script>'), {
     "test:probe": { capture: (value: typeof actions) => { actions = value; } },
-    "@/lib/amount-display": { formatAmount }, "@/lib/route": { navReset: vi.fn() },
+    "@/lib/amount-display": { formatAmount, formatGroupedAmount }, "@/lib/route": { navReset: vi.fn() },
     "@dcloudio/uni-app": { onShow: vi.fn(), onHide: vi.fn() },
     "@/components/app-chassis.vue": slot, "@/components/sub-page-header.vue": { default: { render: () => null } },
     "@/components/me/goal-progress-bar.vue": { default: { render: () => null } },

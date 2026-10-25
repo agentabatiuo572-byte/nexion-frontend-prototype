@@ -53,17 +53,18 @@
                而且没有题目级分组名 —— 用户既以为能多选,也听不出这几个选项属于哪道题。
                改用 radiogroup(组名 = 题干)+ radio + aria-checked。 -->
           <view role="radiogroup" :aria-label="question.question" :data-course-question-index="index">
-            <view v-for="(option, optionIndex) in question.options" :key="option" :class="interactionLocked ? '' : 'active:opacity-70'" style="margin-top: 8px" role="radio" :tabindex="!interactionLocked && (answers[index] === optionIndex || (answers[index] === undefined && optionIndex === 0)) ? 0 : -1" :aria-label="option" :aria-checked="answers[index] === optionIndex ? 'true' : 'false'" :aria-disabled="interactionLocked ? 'true' : 'false'" @click="selectAnswer(index, optionIndex)" @keydown.enter.prevent="onKeyboardActivate($event, () => selectAnswer(index, optionIndex))" @keydown.space.prevent="onKeyboardActivate($event, () => selectAnswer(index, optionIndex))" @keydown.up.prevent="moveAnswer(index, optionIndex, -1)" @keydown.down.prevent="moveAnswer(index, optionIndex, 1)">
+            <view v-for="(option, optionIndex) in question.options" :key="option" :class="interactionLocked ? '' : 'active:opacity-70'" style="margin-top: 8px" role="radio" :tabindex="quizOptionTabIndex(answers[index], optionIndex, question.options.length, interactionLocked || loading)" :aria-label="option" :aria-checked="answers[index] === optionIndex ? 'true' : 'false'" :aria-disabled="interactionLocked ? 'true' : 'false'" @click="selectAnswer(index, optionIndex)" @keydown.enter.prevent="onKeyboardActivate($event, () => selectAnswer(index, optionIndex))" @keydown.space.prevent="onKeyboardActivate($event, () => selectAnswer(index, optionIndex))" @keydown.up.prevent="moveAnswer(index, optionIndex, -1)" @keydown.down.prevent="moveAnswer(index, optionIndex, 1)">
               <view class="course-radio" :class="{selected: answers[index] === optionIndex}" aria-hidden="true" /><text>{{ option }}</text>
             </view>
           </view>
         </view>
 
-        <NxButton style="margin-top:20px" variant="primary" :disabled="!canSubmit" :label="course.questions.length ? t.learning.submitQuiz : t.learning.completeCourse" @click="finish" />
+        <NxButton v-if="!resultDetails || resultDetails.passed" style="margin-top:20px" variant="primary" :disabled="!canSubmit" :label="course.questions.length ? t.learning.submitQuiz : t.learning.completeCourse" @click="finish" />
         <text v-if="course.questions.length && !pendingAttempt && !allAnswered && !serverCompleted" class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3)">{{ t.learning.answerAllFirst }}</text>
         <text v-if="pendingAttempt" class="block active:opacity-70" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3); text-wrap: pretty" role="button" tabindex="0" :aria-label="pendingStatusText" @click="load" @keydown.enter.prevent="onKeyboardActivate($event, load)" @keydown.space.prevent="onKeyboardActivate($event, load)">{{ pendingStatusText }}</text>
-        <text v-if="resultDetails" data-testid="learning-result-details" class="block tabular-nums" style="margin-top: 12px; color: var(--v5-ink-2); text-wrap: pretty">{{ resultDetails.passed ? t.learning.resultPassed : t.learning.resultFailed }} · {{ scoreLine }} · {{ attemptsLine }} · {{ rewardStatusLine }}</text>
-        <NxButton v-if="resultDetails && !resultDetails.passed && !interactionLocked" style="margin-top:12px" variant="secondary" :label="retryQuizLabel" @click="restartQuiz" />
+        <view v-if="resultDetails" data-testid="learning-result-details" class="course-quiz-result" role="status"><text class="course-quiz-result__title">{{ resultDetails.passed ? t.learning.resultPassed : t.learning.resultFailed }}</text><text class="course-quiz-result__score">{{ scoreLine }}</text><text class="course-quiz-result__meta">{{ attemptsLine }} · {{ rewardStatusLine }}</text>
+          <NxButton v-if="!resultDetails.passed && !interactionLocked" class="course-quiz-result__retry" variant="primary" :label="retryQuizLabel" @click="restartQuiz" />
+        </view>
       </view>
     </view>
   </AppChassis>
@@ -102,7 +103,7 @@ import { useApp } from "@/store/app";
 import { bindPageVisibilityRefresh, createPageVisibilityRefresh } from "@/lib/page-visibility-refresh";
 import { createLearningPageFenceReader, type LearningPageFence } from "./learning-page-fence";
 import { createLearningCourseStartLoadCoalescer, loadPublishedCourseWithStart } from "./learning-course-start";
-import { learningAttemptRecoveryAction, learningResultDetails, matchingCourseResult, matchingReceiptResult, validAnswersForCourse } from "./learning-result-details";
+import { initialQuizAnswers, quizOptionTabIndex, learningAttemptRecoveryAction, learningResultDetails, matchingCourseResult, matchingReceiptResult, validAnswersForCourse } from "./learning-result-details";
 
 // 存 key 不存译文：译好的串快照进 ref 后不再跟随语言（见 courses.vue 同处注释）。
 type CourseError = "" | "courseOffline" | "courseIdMissing" | "courseUnavailable" | "courseUpdated" | "submitUnconfirmed";
@@ -116,6 +117,10 @@ const courseBack = ref("/pages/learn/courses");
 const courseSource = ref<string | null>(null);
 const course = ref<LearningCourse | null>(null);
 const result = ref<LearningResult | null>(null);
+const answeringAgain = ref(false);
+// Keep the last acknowledged attempt count when a retake hides the old result.
+// An older course readback must not retire a newer unresolved submission.
+const confirmedAttempts = ref(0);
 const answers = ref<number[]>([]);
 const pendingAttempt = ref<LearningPendingAttempt | null>(null);
 const pendingReceiptStatus = ref<LearningQuizReceiptStatus | null>(null);
@@ -125,9 +130,8 @@ const error = ref<CourseError>("");
 
 const errorText = computed(() => error.value ? t.value.learning[error.value] : "");
 const allAnswered = computed(() => !!course.value
-  && answers.value.length === course.value.questions.length
-  && answers.value.every((answer) => answer >= 0));
-const resultDetails = computed(() => learningResultDetails(course.value, result.value));
+  && validAnswersForCourse(course.value, answers.value));
+const resultDetails = computed(() => answeringAgain.value && !result.value ? null : learningResultDetails(course.value, result.value));
 const serverCompleted = computed(() => !!course.value?.completed || !!result.value?.completed);
 const pendingAnswersValid = computed(() => !!course.value
   && !!pendingAttempt.value
@@ -185,14 +189,19 @@ function attemptIdentity(expectedCourse: LearningCourse): LearningAttemptIdentit
 }
 function selectAnswer(questionIndex: number, optionIndex: number) {
   if (loading.value || interactionLocked.value) return;
+  const question = course.value?.questions[questionIndex];
+  if (!question || !Number.isSafeInteger(optionIndex) || optionIndex < 0 || optionIndex >= question.options.length) return;
   answers.value[questionIndex] = optionIndex;
 }
 const retryQuizLabel = computed(() => ({zh:'重新作答',en:'Try quiz again',vi:'Làm lại bài kiểm tra'}[language.value]));
 function restartQuiz() {
-  if (interactionLocked.value || loading.value || serverCompleted.value) return;
-  answers.value = [];
+  if (!course.value || interactionLocked.value || loading.value || serverCompleted.value) return;
+  answers.value = initialQuizAnswers(course.value);
+  result.value = null;
+  answeringAgain.value = true;
+  const scope = fence();
   void nextTick(() => {
-    if (typeof document === 'undefined') return;
+    if (!current(scope) || typeof document === 'undefined') return;
     const first = document.querySelector<HTMLElement>('[data-course-question-index="0"] [role="radio"]');
     first?.scrollIntoView({behavior:'smooth', block:'center'});
     first?.focus({preventScroll:true});
@@ -237,6 +246,7 @@ async function recoverPendingReceipt(scope: LearningPageFence, expectedCourse: L
         return false;
       }
       result.value = recovered;
+      confirmedAttempts.value = Math.max(confirmedAttempts.value, recovered.attempts);
       retireAttempt(identity, pending.key);
       return true;
     }
@@ -260,6 +270,8 @@ async function performLoad() {
   error.value = "";
   course.value = null;
   result.value = null;
+  answeringAgain.value = false;
+  confirmedAttempts.value = 0;
   pendingAttempt.value = null;
   pendingReceiptStatus.value = null;
   startState.value = "idle";
@@ -288,7 +300,8 @@ async function performLoad() {
       publish: (published, start) => {
         if (!current(scope)) return;
         course.value = published;
-        answers.value = Array(published.questions.length).fill(-1);
+        confirmedAttempts.value = published.attempts;
+        answers.value = initialQuizAnswers(published);
         startState.value = start;
         loading.value = false;
       },
@@ -317,7 +330,12 @@ async function recoverAuthoritative(scope: LearningPageFence, expectedCourse: Le
   const fresh = await learningApi.course(expectedCourse.id, language.value);
   if (!current(scope)) return false;
   course.value = fresh;
-  return fresh.completed || fresh.attempts > expectedCourse.attempts;
+  const recovered = fresh.completed || fresh.attempts > Math.max(expectedCourse.attempts, confirmedAttempts.value);
+  if (recovered) {
+    confirmedAttempts.value = fresh.attempts;
+    answeringAgain.value = false;
+  }
+  return recovered;
 }
 
 function acceptResult(
@@ -331,6 +349,7 @@ function acceptResult(
   const accepted = matchingCourseResult(expectedCourse, submitted);
   if (!accepted) return false;
   result.value = accepted;
+  confirmedAttempts.value = Math.max(confirmedAttempts.value, accepted.attempts);
   retireAttempt(identity, attemptKey);
   return true;
 }
@@ -417,6 +436,8 @@ async function finish() {
 function resetCourseState() {
   course.value = null;
   result.value = null;
+  answeringAgain.value = false;
+  confirmedAttempts.value = 0;
   answers.value = [];
   pendingAttempt.value = null;
   pendingReceiptStatus.value = null;
@@ -535,7 +556,12 @@ onUnmounted(resetNextCourses);
 .course-next__title { display: block; margin-top: 6px; font-size: 18px; font-weight: 600; line-height: 24px; overflow-wrap: anywhere; }
 .course-next__meta { margin-top: 6px; font-size: 12.5px; line-height: 18px; color: var(--v5-ink-3); overflow-wrap: anywhere; }
 .course-next__reward { color: var(--learning-reward); font-variant-numeric: tabular-nums; }
-.learning-course .course-next__cta { display: flex; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: var(--v5-space-4); padding: 0 var(--v5-space-4); font-size: var(--v5-type-button); font-weight: 600; }
+.learning-course .course-next__cta { display: flex; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: var(--v5-space-4); padding: 0; font-size: var(--v5-type-button); font-weight: 600; }
+.course-quiz-result { display:flex;flex-direction:column;gap:8px;margin-top:20px;padding-top:20px;border-top:1px solid var(--v5-border); }
+.course-quiz-result__title { font:600 18px/25px var(--font-v5);color:var(--v5-ink); }
+.course-quiz-result__score { font:600 28px/36px var(--font-v5);font-variant-numeric:tabular-nums; }
+.course-quiz-result__meta { font:400 13px/20px var(--font-v5);color:var(--v5-ink-2); }
+.course-quiz-result__retry { width:100%;margin-top:8px; }
 .course-next-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; text-align: center; font-size: 13.5px; line-height: 20px; color: var(--v5-ink-3); }
 .learning-course .course-result__back { display: flex; box-sizing: border-box; width: 100%; min-height: 44px; margin-top: var(--v5-space-2); padding: var(--v5-space-2) var(--v5-space-3); font-size: 14px; font-weight: 400; color: var(--v5-ink-2); }
 .course-next__retry { margin-top: var(--v5-space-1); }

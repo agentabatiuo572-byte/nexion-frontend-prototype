@@ -33,9 +33,9 @@
            merge into — owner 2026-07-09). -->
       <view class="flex items-center" :style="topRowStyle">
         <view class="inline-flex items-center shrink-0 active:scale-[0.98]" :style="howStyle" role="button" tabindex="0" :aria-label="t.exchange.howItWorksEntry" @click="goHowItWorks"  @keydown.enter.prevent="goHowItWorks" @keydown.space.prevent="goHowItWorks">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></svg>
           <text style="margin: 0 6px">{{ t.exchange.howItWorksEntry }}</text>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
         <view class="grid place-items-center active:opacity-70" :style="refreshBtnStyle" role="button" tabindex="0" :aria-disabled="remoteApiEnabled && exchangeAuthorityStatus === 'loading'" :aria-label="t.exchange.refreshRate" @click="onRefresh"  @keydown.enter.prevent="onRefresh" @keydown.space.prevent="onRefresh">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>
@@ -125,7 +125,7 @@
 
       <!-- NEX info -->
       <view class="flex items-start" :style="infoStyle">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
         <text style="margin-left: 8px">{{ t.exchange.nexInfo }}</text>
       </view>
 
@@ -1057,10 +1057,10 @@ const howStyle: CSSProperties = {
   height: "44px",  // 《07》tap≥44(原 34)
   padding: "0 12px",
   borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 10%, transparent)",
+  background: "var(--v5-surface-2)",
   fontSize: "12px",
   fontWeight: 500,
-  color: "var(--v5-brand-2)",
+  color: "var(--v5-ink-2)",
 };
 const refreshBtnStyle: CSSProperties = {
   marginLeft: "auto",
@@ -1133,9 +1133,9 @@ const infoStyle: CSSProperties = {
   margin: "16px 16px 0",
   padding: "10px 12px",
   borderRadius: "12px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 8%, transparent)",
+  background: "var(--v5-surface-2)",
   fontSize: "12px",
-  color: "color-mix(in srgb, var(--v5-brand-2) 90%, transparent)",
+  color: "var(--v5-ink-2)",
   lineHeight: 1.625,
 };
 // De-carded: the risk-control dashboard sits on the page floor; the mono title

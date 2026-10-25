@@ -9,7 +9,7 @@
 
       <view class="relative">
         <!-- mono 11/500 label — warning accent -->
-        <view class="inline-flex items-center" :style="labelStyle">
+        <view class="inline-flex items-center weekly-label" :style="labelStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>
           <text>{{ w.heroLabel }}</text>
           <text v-if="quest" :style="categoryStyle">{{ categoryText }}</text>
@@ -22,39 +22,36 @@
         <text class="block" :style="bodyStyle">{{ bodyText }}</text>
         <text v-if="quest && wq.error && wq.claimErrorQuestCode === quest.questCode" class="block" role="status" :style="claimErrorStyle">{{ claimErrorText }}</text>
 
-        <view class="mt-3 flex items-center justify-between" style="gap: 10px">
-          <view class="flex items-baseline" style="gap: 4px">
+        <view class="mt-3 flex items-center justify-between weekly-actions" style="gap: 10px">
+          <view class="flex items-baseline weekly-reward" style="gap: 4px">
             <!-- Page H1 24 / 600 warning amber + tabular -->
             <text class="tabular-nums" :style="rewardStyle">+{{ rewardDisplay }}</text>
             <text :style="nexUnitStyle">UVT</text>
             <text v-if="mult > 1" class="inline-flex items-center" :style="promoChipStyle">{{ promoChipText }}</text>
           </view>
 
-          <!-- primary h-md pill warning amber (quest accent) -->
-          <!-- 🔴 目标业务已暂停时,CTA 不能还是「去完成」(zentao #127/#155)。
-               此前只有 onClick 被 questTargetClosed 挡住,标签、琥珀色 pill 和
-               role=button/tabindex=0 全都照旧 —— 用户看到的仍是一个可点的进行中任务,
-               点下去却什么也不发生,而任务卡还挂着倒计时。conversion-banner(首页周任务卡)
-               早就这么做:停用态改文案、撤 role/tabindex 并置灰。这里对齐同一形态。 -->
-          <view
+          <!-- 导航用玻璃次按钮；目标暂停时禁用并说明状态，已完成仍走真实领取分支。 -->
+          <NxButton
             v-if="!completed"
-            class="inline-flex items-center shrink-0"
-            :class="questTargetClosed ? 'opacity-60' : 'active:opacity-85'"
-            :role="questTargetClosed ? undefined : 'button'"
-            :tabindex="questTargetClosed ? -1 : 0"
-            :aria-disabled="questTargetClosed ? 'true' : 'false'"
-            :style="questTargetClosed ? closedCtaStyle : ctaStyle"
+            variant="secondary"
+            size="medium"
+            style="min-height:44px"
+            :label="questTargetClosed ? w.targetClosed : ctaText"
+            :disabled="questTargetClosed || periodExpired"
+            :busy="wq.loading"
             @click="onCta"
           >
             <text>{{ questTargetClosed ? w.targetClosed : ctaText }}</text>
             <svg v-if="!questTargetClosed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
-          </view>
+          </NxButton>
           <view
             v-else
             class="inline-flex items-center shrink-0 active:opacity-85"
             role="button" tabindex="0"
             :style="claimStyle"
             @click="onClaim"
+            @keydown.enter.prevent="onClaim"
+            @keydown.space.prevent="onClaim"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /></svg>
             <text>{{ claimText }}</text>
@@ -84,6 +81,7 @@ import { useNow } from "@/composables/use-now";
 import { isCurrentQuest } from "@/lib/actionable-quest";
 import { toast } from "@/store/ui";
 import { weeklyQuestDisplayName } from "@/lib/quest-presentation";
+import NxButton from "@/components/ui/nx-button.vue";
 
 const t = useT();
 const stakingDisplay = useConfig();
@@ -152,7 +150,9 @@ const claimErrorText = computed(() => wq.error === "WEEKLY_QUEST_CLAIM_OUTCOME_U
 const claimErrorStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-danger)" };
 const periodText = computed(() => {
   const remainingMs = Date.parse(quest.value?.eligibleUntil ?? "") - nowTick.value * 1000;
-  if (!Number.isFinite(remainingMs) || remainingMs <= 0) return fmt(w.value.periodEndsIn, { time: "00:00:00" });
+  if (!Number.isFinite(remainingMs)) return '';
+  if (remainingMs <= 0) return w.value.periodEnded;
+  if (remainingMs > 86_400_000) return fmt(w.value.periodDays, { n: Math.ceil(remainingMs / 86_400_000) });
   const totalMinutes = Math.floor(remainingMs / 60_000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -288,26 +288,6 @@ const promoChipStyle: CSSProperties = {
   fontSize: "12px",
   fontWeight: 500,
 };
-const ctaStyle: CSSProperties = {
-  gap: "6px",
-  height: "44px",
-  padding: "0 16px",
-  borderRadius: "999px",
-  background: "var(--v5-brand)",
-  color: "var(--v5-on-brand)",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "13px",
-  letterSpacing: "-0.005em",
-  whiteSpace: "nowrap",
-};
-/** 停用态:不再用「可点的主操作」配色 —— 灰底 + 次级墨色,与 conversion-banner 同形。 */
-const closedCtaStyle: CSSProperties = {
-  ...ctaStyle,
-  background: "var(--v5-surface-2)",
-  color: "var(--v5-ink-4)",
-  border: "1px solid var(--v5-border)",
-};
 const claimStyle: CSSProperties = {
   gap: "6px",
   height: "44px",
@@ -324,3 +304,8 @@ const claimStyle: CSSProperties = {
 
 
 </script>
+<style scoped>
+.weekly-label,.weekly-actions,.weekly-reward { flex-wrap: wrap; }
+.weekly-actions > view,.weekly-actions > :deep(.nx-button) { max-width:100%; box-sizing:border-box; }
+@media(max-width:350px) { .weekly-actions { align-items:flex-start; }.weekly-reward { flex-basis:100%; } }
+</style>

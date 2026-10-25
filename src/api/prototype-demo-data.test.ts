@@ -1,4 +1,6 @@
 import { createProofApi } from "./proof-api";
+import { createComputeShareApi } from './compute-share-api';
+import { parseAppHomeOverview } from './app-home-api';
 import { createDirectReferralApi } from "./direct-referral-api";
 import { describe, expect, it } from 'vitest';
 import type { ApiClient } from './api-client';
@@ -56,6 +58,7 @@ import { createPayoutAddressApi } from './payout-address-api';
 import { createNotificationPreferencesApi } from './notification-preferences-api';
 import { createBankWithdrawalApi } from './bank-withdrawal-api';
 import { createPurchaseEligibilityApi } from './purchase-eligibility-api';
+import { resolvePurchaseEligibilityMessage, purchaseEligibilityUnlockHref } from '../lib/purchase-eligibility-copy';
 import { createTeamQuotaApi } from './team-quota-api';
 import { directBankBindingAvailable } from '../lib/bank-binding-form';
 // Development fixture remains outside the production dependency graph.
@@ -66,6 +69,45 @@ function demo(locale='zh',patch:Record<string,unknown>={}) {
   const client={request:async(input:{path:string;body?:unknown;method?:string;idempotencyKey?:string})=>get(input.path,input.body,input.method||'GET',input.idempotencyKey)} as ApiClient;
   return {state,get,client};
 }
+describe('prototype account and compute-share readbacks', () => {
+  it('saves a nickname, handles a repeated save, and preserves language', async () => {
+    const d = demo();
+    const api = createProfileApi(d.client);
+    expect((await api.profile()).nickname).toBe('Alex');
+    await expect(api.updateNickname('Alex', 'Silver River 42', 'demo-profile')).resolves.toBe('Silver River 42');
+    await expect(api.updateNickname('Alex', 'Silver River 42', 'demo-profile')).resolves.toBe('Silver River 42');
+    await expect(api.updateNickname('Alex', 'Golden River 43', 'demo-conflict')).rejects.toThrow('PROFILE_NICKNAME_CONFLICT');
+    await expect(api.updateLanguage('vi')).resolves.toBe('vi');
+    expect(await api.profile()).toMatchObject({ nickname: 'Silver River 42', language: 'vi' });
+  });
+  it('supports pending, connected and expired pairing through the real API parser', async () => {
+    const d = demo();
+    const api = createComputeShareApi(d.client);
+    const created = await api.create('NVIDIA RTX 4090', 'demo-pairing');
+    expect(created).toMatchObject({ status: 'PENDING', pairingCode: '482719', deviceId: null });
+    expect(await api.create('NVIDIA RTX 4090', 'demo-pairing')).toEqual(created);
+    d.state.pairingState = 'connected';
+    expect(await api.status(created.enrollmentNo)).toMatchObject({ status: 'CONNECTED', deviceId: 43, pairingCode: null });
+    d.state.pairingState = 'expired';
+    expect(await api.status(created.enrollmentNo)).toMatchObject({ status: 'EXPIRED', deviceId: null, pairingCode: null });
+    await expect(api.status('CSE-UNKNOWN')).rejects.toThrow('COMPUTE_SHARE_ENROLLMENT_NOT_FOUND');
+  });
+  it('provides settled micro-amount examples and a truly empty ledger', () => {
+    const d = demo();
+    const data = parseAppHomeOverview(d.get('/api/app/home/overview'));
+    expect(data.earningsLedger.map(row => row.rewardUsdt)).toEqual([2.34, .00032, .00005]);
+    d.state.dataState = 'empty';
+    expect(parseAppHomeOverview(d.get('/api/app/home/overview')).earningsLedger).toEqual([]);
+  });
+  it('keeps the proof streak consistent with the check-in source', async () => {
+    for (const patch of [{}, { checkedIn: true }, { streakState: 'broken' }, { streakState: 'broken', saverUsed: true }, { streakState: 'broken', saverUsed: true, checkedIn: true }]) {
+      const d = demo('zh', patch);
+      expect(d.get('/api/app/proof').currentStreak).toBe(d.get('/api/points/state').streak.currentStreak);
+      expect(d.get('/api/app/proof').longestStreak).toBe(d.get('/api/points/state').streak.longestStreak);
+    }
+  });
+});
+
 describe('prototype team-guide publications', () => {
   const keys = ['team-unilevel-how', 'team-binary-how', 'team-commissions-how'] as const;
   it.each(['zh', 'en', 'vi'])('publishes all three %s documents through the real parser with explicit demo scope', async locale => {
@@ -237,7 +279,10 @@ describe('isolated prototype data uses the real read contracts',()=>{
   });
   it('supports failed quiz, retry, receipt recovery and recommendation readback',async()=>{
     const d=demo(),api=createLearningApi(d.client),id='review-course-3';
-    expect((await api.course(id,'zh')).questions).toHaveLength(2);
+    const course = await api.course(id,'zh');
+    expect(course.questions).toHaveLength(2);
+    expect(course.body).toContain('验证码');
+    expect(course.questions[0].question).toContain('验证码');
     const failed=await api.submitQuiz(id,'v1',[1,0],'demo-quiz-failed');
     expect(failed).toMatchObject({passed:false,completed:false,score:0,attempts:1,rewardGranted:false});
     expect((await api.quizReceipt(id,'v1','demo-quiz-failed')).result).toEqual(failed);
@@ -246,6 +291,18 @@ describe('isolated prototype data uses the real read contracts',()=>{
     expect(passed).toMatchObject({passed:true,completed:true,score:100,attempts:2,rewardGranted:true});
     expect(await api.course(id,'zh')).toMatchObject({completed:true,progress:100,lastScore:100,attempts:2});
     expect((await api.courses('zh')).completedCourses).toBe(1);
+  });
+  it('exposes precise raffle awards and enforces the same simulated time window on entry',async()=>{
+    const small=demo('zh',{raffleState:'small-usdt'}), smallApi=createGenesisRaffleApi(small.client);
+    const state=await smallApi.state();
+    expect(state.draws[0].prizes.map(row=>[row.rewardType,row.amount])).toEqual([['USDT','0.00032'],['USDT','0.00005']]);
+    expect(state.draws[2].myResults.map(row=>row.amount)).toEqual(['0.00032','0.00005']);
+    for(const mode of ['upcoming','ended']){
+      const closed=demo('zh',{raffleState:mode}), api=createGenesisRaffleApi(closed.client);
+      await api.state();
+      await expect(api.enter('demo-draw-0',1,'closed-'+mode)).rejects.toThrow('not accepting entries');
+      expect((await api.state()).availableTickets).toBe(3);
+    }
   });
   it('restores a broken streak and reads claimed earnings without repeating the reward',async()=>{
     const d=demo('zh',{streakState:'broken'}),api=createPointsApi(d.client);
@@ -301,7 +358,9 @@ describe('isolated prototype data uses the real read contracts',()=>{
   it('permits all six demo purchases through both eligibility policies and exposes restricted conditions',async()=>{
     const d=demo(),api=createPurchaseEligibilityApi(d.client);
     for(const p of d.get('/api/store/catalog').products)expect((await api.get(p.id)).eligible).toBe(true);
-    d.state.catalogState='restricted';expect((await api.get('stellarbox-s1')).eligible).toBe(false);
+    d.state.catalogState='restricted';const restricted=await api.get('stellarbox-s1');expect(restricted.eligible).toBe(false);
+    expect(resolvePurchaseEligibilityMessage('ready',restricted)).toBe('ineligible');
+    expect(purchaseEligibilityUnlockHref(restricted,'stellarbox-s1')).toBe('/pages/team/rank');
     expect((await createTeamQuotaApi(d.client).snapshot()).tiers).toHaveLength(5);
   });
   it('opens personal-center goals, receipts and cards through their real contracts',async()=>{
@@ -347,7 +406,7 @@ describe('isolated prototype data uses the real read contracts',()=>{
   });
   it.each(['zh','en','vi'])('loads proof and referral rule samples through actual %s API readers',async locale=>{
     const d=demo(locale),proof=createProofApi(d.client),direct=createDirectReferralApi(d.client);
-    expect(await proof.snapshot()).toMatchObject({referralCode:'UVELDEMO',currentStreak:7,team:{totalMembers:8}});
+    expect(await proof.snapshot()).toMatchObject({referralCode:'UVELDEMO',currentStreak:2,team:{totalMembers:8}});
     expect(await direct.policy()).toMatchObject({configured:true,deviceEarning:{totalRatePct:5}});
     expect((await direct.snapshot('month',1,20,null,'device_earning')).events[0]).toMatchObject({kind:'direct_device_earning',sourceDeviceId:'REVIEW-S1'});
     d.state.dataState='empty';expect(await proof.snapshot()).toMatchObject({currentStreak:0,topPercentile:null,availability:{status:'EMPTY'}});
@@ -409,7 +468,7 @@ describe('isolated prototype data uses the real read contracts',()=>{
   });
   it('marks only the selected notification read and preserves its destination',()=>{
     const d=demo();d.get('/api/notifications/901/read',{},'POST');expect(d.get('/api/notifications').unread).toBe(2);
-    expect(d.get('/api/notifications/902/actions',{},'POST').route).toBe('/pages/store/orders');
+    expect(d.get('/api/notifications/902/actions',{},'POST').route).toBe('/pages/store/order-detail?id=DEMO-ORDER-002');
   });
   it('reads team commissions, leaderboard, pools, raffle and all reward statuses',async()=>{
     const d=demo(),team=createTeamInsightsApi(d.client);
@@ -443,6 +502,16 @@ describe('isolated prototype data uses the real read contracts',()=>{
     expect((await createTrustSectionApi(d.client).current())).toHaveLength(6);
     expect((await createPromotionApi(d.client).list()).items).toHaveLength(5);
     expect((await createPromotionApi(d.client).get('demo-promo-1')).template).toBe('FIRST_PURCHASE');
+  });
+  it('keeps the design offer, carousel, quote and reward record on the same S1 / Cloud Share gift',async()=>{
+    const d=demo(),api=createPromotionApi(d.client);
+    const home=await api.list({placement:'home.purchase-promotion'});
+    expect(home.items).toHaveLength(3);
+    expect(home.items[0].title.zh).toBe('买 UVELBox S1');
+    expect(home.items[0].rewardRules[0].buyerReward).toMatchObject({type:'DEVICE',giftProductNo:'cloud-share',quantity:1});
+    const quote=await api.quote([{productNo:'stellarbox-s1',quantity:1}],'demo-promo-0');
+    expect(quote.expectedRewards[0].reward).toMatchObject({type:'DEVICE',giftProductNo:'cloud-share',quantity:1});
+    expect((await api.rewards()).items[0].reward).toMatchObject({type:'DEVICE',giftProductNo:'cloud-share',quantity:1});
   });
   it.each(['phased','available','soldout','restricted'])('contains all six SKUs in %s',mode=>{
     const d=demo('zh',{catalogState:mode}),catalog=parseProductCatalogPayload(d.get('/api/store/catalog'));
@@ -497,7 +566,10 @@ describe('isolated prototype data uses the real read contracts',()=>{
   });
   it('reads wallet summaries and records through normal parsing',async()=>{
     const d=demo(),api=createWalletBillsApi(d.client);
-    expect((await api.summary()).monthBillCount).toBe(4);
-    expect((await api.list()).bills).toHaveLength(4);
+    expect((await api.summary()).monthBillCount).toBe(6);
+    expect((await api.list()).bills).toHaveLength(6);
+    const rewards=(await api.list(1,50,{asset:'USDT',category:'REWARD'})).bills;
+    expect(rewards).toHaveLength(2);expect(rewards.every(row=>row.asset==='USDT'&&row.direction==='IN')).toBe(true);
+    expect(rewards.some(row=>row.amount===0.00032)).toBe(true);
   });
 });

@@ -29,8 +29,8 @@ async function header(plain = false, actionLabel?: string) {
 describe("independent sub-page header controls", () => {
   it("renders a glass surface for each control and none around the title", async () => {
     const html = await header();
-    expect(html.match(/data-glass-radius="18"/g)).toHaveLength(2);
-    expect(html).toMatch(/class="spv-glass(?: [^"]*)?"><i data-glass-radius="18"/);
+    expect(html.match(/data-glass-radius="22"/g)).toHaveLength(2);
+    expect(html).toMatch(/class="spv-glass(?: [^"]*)?"><i data-glass-radius="22"/);
     expect(html).toMatch(/class="spv-titlewrap"><text class="spv-title">Wallet/);
     expect(html).toContain('aria-label="Messages · 3"');
   });

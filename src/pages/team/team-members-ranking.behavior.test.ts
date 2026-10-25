@@ -7,6 +7,8 @@ import rosterSource from "@/components/team/team-roster-section.vue?raw";
 import leaderboardSource from "./leaderboard.vue?raw";
 import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
+import buttonSource from "@/components/ui/nx-button.vue?raw";
 import { formatComputePoints } from "@/i18n/compute-points";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { rankLabel } from "@/lib/v-rank-copy";
@@ -93,6 +95,8 @@ test.each(["en", "zh", "vi"] as const)("ranking keeps server order, actual curre
   const shown: Array<() => void> = [];
   const navTo = vi.fn(), read = vi.fn().mockRejectedValueOnce(new Error("503")).mockResolvedValue(snapshot());
   const page = mountEntry(leaderboardSource, {
+    "@/lib/usd-display": { formatUsd },
+    "@/components/ui/nx-button.vue": compileComponent(buttonSource, { "@/components/liquid-glass.vue": slot }),
     "@/lib/amount-display": { formatAmount }, "@/lib/route": { navTo }, "@dcloudio/uni-app": { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn() },
     "@/components/app-chassis.vue": slot, "@/components/sub-page-header.vue": slot,
     "@/components/team/team-art.vue": slot, "@/components/team/team-rank-emblem.vue": slot,
@@ -115,9 +119,9 @@ test.each(["en", "zh", "vi"] as const)("ranking keeps server order, actual curre
   expect(all(page.nodes("leader-podium")[0]).filter(node => node.props["data-rank"]).map(node => node.props["data-rank"])).toEqual([1, 2, 3]);
   expect(all(page.nodes("leader-flat")[0]).filter(node => node.props["data-rank"]).map(node => node.props["data-rank"])).toEqual([4]);
   expect(text(page.nodes("leader-row")[0])).toContain("Revenue leader");
-  expect(text(page.nodes("leader-row")[0])).toContain("81.25USDT");
-  expect(text(page.nodes("leader-row")[1])).toContain("0.00USDT");
-  const invite = page.nodes("leader-cta");
+  expect(text(page.nodes("leader-row")[0])).toContain("$81.25");
+  expect(text(page.nodes("leader-row")[1])).toContain("$0.00");
+  const invite = page.nodes("leader-share");
   expect(invite).toHaveLength(1);
   expect(text(invite[0])).toContain(dictionaries[language].leaderboard.cta.share);
   press(invite[0], " "); expect(navTo).toHaveBeenCalledExactlyOnceWith("/pages/team/team?intent=share");

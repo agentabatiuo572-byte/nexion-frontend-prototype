@@ -18,7 +18,7 @@ const implementation = ts.transpileModule(source.slice(start, end), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
 }).outputText;
 const compile = new Function('computed', 'cfg', 'rank', 't', 'compact', 'showSkeleton',
-  'remoteApiEnabled', 'remoteRank', 'explainRank', `${implementation}; return metrics;`);
+  'remoteApiEnabled', 'remoteRank', 'explainRank', 'props', `${implementation}; return metrics;`);
 
 function scenario(kind = 'ranked', status = 'ready') {
   const configRefresh = vi.fn();
@@ -28,7 +28,7 @@ function scenario(kind = 'ranked', status = 'ready') {
   const metrics = compile((run: () => unknown) => run(),
     { syncFailed: true, config: {}, load: configRefresh }, { value: { kind, rank: 7 } },
     { value: { home: messages } }, String, { value: false }, true,
-    { status, snapshot: null, refresh: rankRefresh }, explain);
+    { status, snapshot: null, refresh: rankRefresh }, explain, {});
   return { metrics, configRefresh, rankRefresh, explain };
 }
 
@@ -92,7 +92,8 @@ it.each([en, zh, vietnamese])('renders actual network metric slots through missi
   remoteRank.snapshot = { currentRank: null, state: 'unranked' }; expect(await values()).toEqual(['0', '0', copy.home.networkRankUnranked]);
   remoteRank.snapshot = { currentRank: null, state: 'disabled' }; expect(await values()).toEqual(['0', '0', '-']);
   remoteRank.snapshot = { currentRank: null, state: 'unavailable' }; expect(await values()).toEqual(['0', '0', '-']);
-  remoteRank.snapshot = { currentRank: 7, state: 'ranked' }; remoteRank.status = 'error'; expect(await values()).toEqual(['0', '0', '-']);
+  remoteRank.snapshot = { currentRank: 7, state: 'ranked' }; remoteRank.status = 'error'; expect(await values()).toEqual(['0', '0', '#7']);
+  expect(await renderToString(Vue.createSSRApp(exports.default))).toContain(copy.home.networkStale);
   remoteRank.snapshot = null; remoteRank.status = 'loading'; expect(await values()).toEqual(['0', '0']);
   remoteRank.status = 'error'; expect(await values()).toEqual(['0', '0', '-']);
   cfg.config.networkPulse = { registeredUsers: 12345, onlineDevices: 28432 };

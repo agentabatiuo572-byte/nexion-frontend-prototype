@@ -1,4 +1,4 @@
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 // @ts-expect-error Node is used only by the test runner.
 import { readFileSync } from "node:fs";
 import { compile } from "@vue/compiler-dom";
@@ -45,7 +45,7 @@ async function show(
         noEligibleProduct: "No eligible product", recPath: "", recReasonServer: "", shopCta: "Shop", saveCta: "Save",
         activeGoals: "Active goals", deadlineRow: "{n} days", achievedBadge: "Achieved", minTargetWarn: "", savedToast: "",
         targetPresetsLabel: "Quick target amounts", targetPresetOption: "Target {amount} USDT",
-        deadlinePresetOption: "{days}-day term", removeGoalLabel: "Delete goal ${amount}",
+        deadlinePresetOption: "{days}-day term", deadlinePresetLabel: "{days} days", removeGoalLabel: "Delete goal ${amount}",
       }, ui: { retry: "Retry" } },
       // The template formats its preset/remove accessible names through the shared helper.
       fmt: (template: string, params: Record<string, string>) =>
@@ -76,7 +76,7 @@ describe("earning-goal read recovery", () => {
       recommendationStatus: "idle", recommendation: null, recommendationError: null,
       ensure: vi.fn(async () => {}), refreshRecommendation: vi.fn(async () => {}) });
     const modules: Record<string, unknown> = {
-      "@/lib/amount-display": { formatAmount },
+      "@/lib/amount-display": { formatAmount, formatGroupedAmount },
       vue: { ...Vue, onMounted() {}, onUnmounted() {} },
       "@dcloudio/uni-app": { onShow() {}, onHide() {} },
       "@/store/goals": { useGoals: () => goalsStore }, "@/store/app": { useApp: () => ({ accountKey: "user:1", accountBindingEpoch: 1 }) },

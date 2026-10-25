@@ -1,10 +1,12 @@
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { trustSectionApi } from "@/api/runtime";
 import type { PublishedTrustSection, TrustLocale } from "@/api/trust-section-api";
 import { subscribeRuntimeRevision } from "@/api/order-api";
 
 const sections = ref<PublishedTrustSection[]>([]);
 const status = ref<"idle" | "loading" | "ready" | "error">("idle");
+const refreshing = computed(() => sections.value.length > 0 && status.value === "loading");
+const refreshError = computed(() => sections.value.length > 0 && status.value === "error");
 let inflight: Promise<boolean> | null = null;
 let authorityGeneration = 0;
 
@@ -27,7 +29,8 @@ export function refreshPublishedTrust(force = false): Promise<boolean> {
     return status.value === "ready";
   }).catch(() => {
     if (generation !== authorityGeneration) return false;
-    sections.value = [];
+    // current() validates all six sections before resolving. Keep the last
+    // complete snapshot only within this runtime generation; never merge rows.
     status.value = "error";
     return false;
   });
@@ -43,5 +46,5 @@ export function recordPublishedTrustViews(sectionKeys: string[], locale: TrustLo
 }
 
 export function usePublishedTrust() {
-  return { sections, status, refresh: refreshPublishedTrust };
+  return { sections, status, refreshing, refreshError, refresh: refreshPublishedTrust };
 }

@@ -1,4 +1,5 @@
 import { networkReauditCopy } from "@/i18n/network-reaudit";
+import { continuityCopy } from "@/i18n/continuity-fixes";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -65,6 +66,7 @@ function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
     vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn() },
     "@/lib/amount-display": { formatAmount },
     "@/i18n/network-reaudit": { networkReauditCopy },
+    "@/i18n/continuity-fixes": { continuityCopy },
     "./trust-resources": { trustResources }, "./trust-category-material": { trustCategoryMaterial },
     "@/lib/trust-fields": trustFields,
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) },
@@ -73,7 +75,10 @@ function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
     "@/store/ui": { toast: { error } }, "@/lib/route": { navTo },
     "@/api/runtime": { remoteApiEnabled: true },
     "@/api/order-api": { subscribeRuntimeRevision: () => () => {} },
-    "@/composables/use-published-trust": { usePublishedTrust: () => ({ sections, status, refresh }), recordPublishedTrustViews: vi.fn() },
+    "@/composables/use-published-trust": { usePublishedTrust: () => ({ sections, status, refresh,
+      refreshing: Vue.computed(() => sections.value.length > 0 && status.value === 'loading'),
+      refreshError: Vue.computed(() => sections.value.length > 0 && status.value === 'error'),
+    }), recordPublishedTrustViews: vi.fn() },
     "@/components/app-chassis.vue": { default: slot }, "@/components/card-stagger.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: slot }, "@/components/trust/trust-section-header.vue": { default: slot },
     "@/components/ui/nx-section.vue": { default: slot }, "@/components/ui/nx-list-group.vue": { default: slot },
@@ -98,6 +103,22 @@ function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
   };
 }
 const links = (root: Host) => all(root).filter(item => item.props.role === "link");
+
+it.each(['zh', 'en', 'vi'] as const)('retains readable materials and marks stale refresh failures in %s', async language => {
+  const screen = mount([section('nexNarrative', { [`hostingContent.${language}`]: 'Confirmed hosting' })], language);
+  await screen.expand('hosting');
+  screen.status.value = 'loading'; await Vue.nextTick();
+  expect(text(screen.body())).toContain('Confirmed hosting');
+  expect(text(screen.root)).toContain(continuityCopy(language).trustRefreshing);
+  screen.status.value = 'error'; await Vue.nextTick();
+  expect(text(screen.body())).toContain('Confirmed hosting');
+  expect(text(screen.root)).toContain(continuityCopy(language).trustRefreshFailed);
+  const retry = all(screen.root).find(item => item.props.onClick && text(item) === dictionaries[language].ui.retry)!;
+  screen.refresh.mockImplementationOnce(async () => { screen.status.value = 'ready'; return true; });
+  retry.props.onClick(); await Vue.nextTick();
+  expect(screen.refresh).toHaveBeenLastCalledWith(true);
+  expect(text(screen.root)).not.toContain(continuityCopy(language).trustRefreshFailed);
+});
 
 describe("Trust categories consume published materials", () => {
   it.each(['zh', 'en', 'vi'] as const)('R07 keeps real after-sales/security routes available without published materials in %s', async language => {

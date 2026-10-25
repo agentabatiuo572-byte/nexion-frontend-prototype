@@ -1,4 +1,6 @@
-import { formatAmount } from "@/lib/amount-display";
+import * as brandCopy from "@/lib/brand-copy";
+import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
 import * as Vue from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -56,7 +58,9 @@ async function mount(localeCode: "zh" | "en" | "vi", rows: Bill[]) {
     refresh: vi.fn(async () => {}), loadMore: vi.fn(async () => {}) });
   const shown: Array<() => void> = [], chassis = Vue.defineComponent({ setup: (_props, { slots }) => () => Vue.h("main", slots.default?.()) });
   const modules: Record<string, unknown> = {
-    "@/lib/amount-display": { formatAmount },
+    "@/lib/brand-copy": brandCopy,
+    "@/lib/amount-display": { formatAmount, formatGroupedAmount },
+    "@/lib/usd-display": { formatUsd },
     vue: Vue, "@dcloudio/uni-app": { onLoad: (callback: (options: { cat: string }) => void) => callback({ cat: rows[0]?.symbol === "NEX" ? "nex" : "usdt" }),
       onShow: (callback: () => void) => shown.push(callback) },
     "@/components/app-chassis.vue": { default: chassis }, "@/components/empty-state.vue": { default: Vue.defineComponent(() => () => Vue.h("empty")) },
@@ -84,7 +88,7 @@ async function mount(localeCode: "zh" | "en" | "vi", rows: Bill[]) {
   }, exports);
   const root = node(), app = renderer.createApp(exports.default);
   app.mount(root); cleanups.push(() => app.unmount()); shown.forEach(callback => callback()); await Vue.nextTick();
-  return { locale, pager, amounts: () => nodes(root).filter(entry => entry.tag === "text"
+  return { locale, pager, styles: () => nodes(root).filter(entry => entry.tag === "text" && entry.props.class === "block tabular-nums").map(entry => entry.props.style as Record<string, string>), amounts: () => nodes(root).filter(entry => entry.tag === "text"
     && entry.props.class === "block tabular-nums").map(textOf) };
 }
 beforeEach(() => {
@@ -101,8 +105,9 @@ describe("mounted reward detail precision", () => {
         ...fixture(Number(amountExact), symbol), amountExact,
       }));
       const before = JSON.stringify(rows), page = await mount(locale, rows);
-      expect(page.amounts()).toEqual([`+1000000000000.00 ${symbol}`, `-1000000000000.00 ${symbol}`,
-        `+0.00 ${symbol}`, `+1.00 ${symbol}`, `0.00 ${symbol}`]);
+      const visibleSymbol = symbol === 'NEX' ? 'UVT' : symbol;
+      expect(page.amounts()).toEqual([`+1,000,000,000,000.00 ${visibleSymbol}`, `−1,000,000,000,000.00 ${visibleSymbol}`,
+        `+<${symbol === 'USDT' ? '0.0001' : '0.01'} ${visibleSymbol}`, `+1.00 ${visibleSymbol}`, `0.00 ${visibleSymbol}`]);
       expect(JSON.stringify(rows)).toBe(before);
     }
   });
@@ -110,8 +115,8 @@ describe("mounted reward detail precision", () => {
   it.each(["zh", "en", "vi"] as const)("keeps six non-zero decimals, symbols, compact NEX and signs in %s", async locale => {
     const rows = [fixture(0.045005), fixture(0.000001), fixture(1234.045005), fixture(-0.045005)];
     const before = JSON.stringify(rows), page = await mount(locale, rows);
-    expect(page.amounts()).toEqual(["+0.05 USDT", "+0.00 USDT", "+1234.05 USDT", "-0.05 USDT"]);
-    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146.00 NEX"]);
+    expect(page.amounts()).toEqual(["+0.045 USDT", "+<0.0001 USDT", "+1,234.045 USDT", "−0.045 USDT"]);
+    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146.00 UVT"]);
     expect(JSON.stringify(rows)).toBe(before);
   });
 
@@ -119,17 +124,24 @@ describe("mounted reward detail precision", () => {
     vi.stubGlobal("Intl", undefined);
     const nativeFormat = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("NATIVE_LOCALE_FORMAT_UNAVAILABLE"); });
     const page = await mount(locale, [fixture(0.045005), fixture(0.000001), fixture(-1234.045005)]);
-    expect(page.amounts()).toEqual(["+0.05 USDT", "+0.00 USDT", "-1234.05 USDT"]);
-    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146.00 NEX"]);
+    expect(page.amounts()).toEqual(["+0.045 USDT", "+<0.0001 USDT", "−1,234.045 USDT"]);
+    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146.00 UVT"]);
     expect(nativeFormat).not.toHaveBeenCalled();
   });
 
   it("reacts to the locale picker without rereading or changing the authoritative amount", async () => {
     const rows = [fixture(1234.045005)], page = await mount("en", rows), before = JSON.stringify(rows);
-    expect(page.amounts()).toEqual(["+1234.05 USDT"]);
-    page.locale.setLocale("vi"); await Vue.nextTick(); expect(page.amounts()).toEqual(["+1234.05 USDT"]);
-    page.locale.setLocale("zh"); await Vue.nextTick(); expect(page.amounts()).toEqual(["+1234.05 USDT"]);
+    expect(page.amounts()).toEqual(["+1,234.045 USDT"]);
+    page.locale.setLocale("vi"); await Vue.nextTick(); expect(page.amounts()).toEqual(["+1,234.045 USDT"]);
+    page.locale.setLocale("zh"); await Vue.nextTick(); expect(page.amounts()).toEqual(["+1,234.045 USDT"]);
     expect(page.pager.refresh).toHaveBeenCalledOnce(); expect(page.pager.loadMore).not.toHaveBeenCalled();
     expect(JSON.stringify(rows)).toBe(before);
   });
+});
+it("distinguishes debit, credit and zero without mutating ledger precision", async () => {
+ const rows = ["-1299.000001", "1299.000001", "-0.000000"].map(amountExact => ({ ...fixture(Number(amountExact)), amountExact }));
+ const before = JSON.stringify(rows), page = await mount("zh", rows);
+ expect(page.amounts()).toEqual(["−1,299.00 USDT", "+1,299.00 USDT", "0.00 USDT"]);
+ expect(page.styles().map(style => style.color)).toEqual(["var(--v5-brand-2-ink)", "var(--v5-brand)", "var(--v5-ink-2)"]);
+ expect(JSON.stringify(rows)).toBe(before);
 });

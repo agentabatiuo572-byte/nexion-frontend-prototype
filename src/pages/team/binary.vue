@@ -26,7 +26,7 @@
 
         <view class="reward-summary-panel">
         <RewardHero kind="balance" :label="estimateText">
-          <text class="reward-amount">+${{ formatAmount(periodMatch) }}</text>
+          <text class="reward-amount">+${{ formatFinanceAmount(periodMatch) }}</text>
           <template #footer><view class="reward-cta reward-rule-link" role="button" tabindex="0" @click="go('/pages/team/binary-how')" @keydown.enter.prevent="go('/pages/team/binary-how')" @keydown.space.prevent="go('/pages/team/binary-how')"><text>{{ t.binary.howItWorksEntry }}</text></view></template>
         </RewardHero>
 
@@ -106,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
 import { useLocaleStore } from "@/store/locale";
 import { computed, onMounted, watch, type CSSProperties } from "vue";
@@ -244,7 +244,7 @@ const gapHintText = computed(() => fmt(t.value.binary.gapHint, { freq: periodFre
 const formulaText = computed(() =>
   fmt(t.value.binary.formula, {
     rate: (MATCH_RATE.value * 100).toLocaleString(dateLocale(), { maximumFractionDigits: 8 }),
-    cap: formatAmount(DAILY_CAP.value),
+    cap: formatFinanceAmount(DAILY_CAP.value),
     freq: periodFreqLabel.value,
   }),
 );
@@ -256,7 +256,7 @@ const blockedDetailText = computed(() => {
   }
   return fmt(t.value.binary.blockedDetail, {
     side: weakSide.value === "left" ? t.value.binary.left : t.value.binary.right,
-    vol: formatAmount(weakVol.value),
+    vol: formatFinanceAmount(weakVol.value),
   });
 });
 const blockedGuidance = computed(() => binaryBlockedGuidance({
@@ -282,7 +282,7 @@ function go(url: string) {
 }
 
 function binaryAmountLabel(event: { amountUSDT: number; status?: string }): string {
-  const amount = formatAmount(event.amountUSDT);
+  const amount = formatFinanceAmount(event.amountUSDT);
   if (event.status === "reversed") return `−$${amount}`;
   if (event.status === "frozen" || event.status === "rejected") return `$${amount}`;
   return `+$${amount}`;

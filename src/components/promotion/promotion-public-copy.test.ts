@@ -56,8 +56,8 @@ const internal=/服务端|数据库|接口|投影|本地(?:数据|模拟|不会)
 const readCopy = (copy: unknown, key: string): string => key.split('.').reduce<unknown>(
   (node, segment) => (node as Record<string, unknown>)[segment], copy) as string;
 it.each([{ locale: 'zh', copy: zh }, { locale: 'en', copy: en }, { locale: 'vi', copy: vi }])(
-  '$locale all 61 approved public keys keep their real consumers and format every placeholder without engineering prose', ({ copy }) => {
-    expect(reviewedCopyR2).toHaveLength(61);
+  '$locale all retained public keys keep their real consumers and format every placeholder without engineering prose', ({ copy }) => {
+    expect(reviewedCopyR2).toHaveLength(57);
     for (const item of reviewedCopyR2) {
       const value = readCopy(copy, item.key);
       expect(value, item.key).toBeTruthy();
@@ -133,14 +133,14 @@ const consumers:{key:string;sources:string[]}[]=[
   {key:'orders.refreshing',sources:[orderSource,meSource]},
   {key:'store.relatedMaterialsEmpty',sources:[detailSource]},
   {key:'pool.loading',sources:[poolSource,teamSource,poolPageSource,poolHowSource]},
-  {key:'promotion.existingInvite',sources:[inviteSource]},
+  {key:'promotion.existingInvite',sources:[rewardDetailSource]},
 ];
 it.each([{locale:'zh',copy:zh},{locale:'en',copy:en},{locale:'vi',copy:vi}])('$locale task-page copy has actual consumers and excludes internal explanations',({copy})=>{
   for(const {key,sources} of consumers){
     const [namespace,name]=key.split('.');
     const value=(copy as unknown as Record<string,Record<string,string>>)[namespace][name];
     expect(value,key).toBeTruthy();expect(value,key).not.toMatch(internal);
-    for(const source of sources)expect(source,key).toContain(key);
+    for(const source of sources)expect(source,key).toContain(key === 'promotion.existingInvite' ? 'p.existingInvite' : key);
   }
   expect(copy.promotion).not.toHaveProperty('statusRead');expect(copy.promotion).not.toHaveProperty('specNote');
   expect(rewardDetailSource).not.toContain('p.statusRead');expect(rewardDetailSource).toContain('p.existingInvite');

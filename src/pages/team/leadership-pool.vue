@@ -15,7 +15,7 @@
 
         <view class="reward-summary-panel">
         <RewardHero kind="balance" :label="t.pool.weekPool" :sub="weeklyDescText">
-          <text class="reward-amount">${{ formatAmount(currentWeekPoolUSDT) }}</text>
+          <text class="reward-amount">${{ formatFinanceAmount(currentWeekPoolUSDT) }}</text>
           <template #footer><view class="reward-cta reward-rule-link" role="button" tabindex="0" @click="go('/pages/team/leadership-pool-how')" @keydown.enter.prevent="go('/pages/team/leadership-pool-how')" @keydown.space.prevent="go('/pages/team/leadership-pool-how')"><text>{{ t.pool.howItWorksEntry }}</text></view></template>
         </RewardHero>
 
@@ -26,7 +26,7 @@
               <text class="font-mono-tabular" :style="statusCapStyle('var(--v5-ink-2)')">{{ t.pool.projectedDividend }}</text>
               <VBadge :v="myRank" size="sm" />
             </view>
-            <text class="block font-display tabular-nums" :style="projectedStyle">${{ formatAmount(projectedPayout) }}</text>
+            <text class="block font-display tabular-nums" :style="projectedStyle">${{ formatFinanceAmount(projectedPayout) }}</text>
             <view class="pool-votes">
               <view><text :style="statLabelStyle">{{ auditCopy.votes }}</text><text class="block" :style="statValueStyle">{{ myVotes }}</text></view>
               <view><text :style="statLabelStyle">{{ auditCopy.totalVotes }}</text><text class="block" :style="statValueStyle">{{ totalVotes }}</text></view>
@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
@@ -209,14 +209,14 @@ const voteRows = computed(() => {
       isMine: remoteApiEnabled ? canonical?.isMine === true : v === vState.myRank,
       peopleVotes: fmt(t.value.pool.peopleVotesEa, { count: count.toLocaleString(), votes: votes ?? "—" }),
       shareOfPool,
-      perPerson: formatAmount((currentWeekPoolUSDT.value * shareOfPool) / Math.max(count, 1)),
+      perPerson: formatFinanceAmount((currentWeekPoolUSDT.value * shareOfPool) / Math.max(count, 1)),
     };
   });
 });
 
 function poolTotalText(h: LeadershipPayout): string {
   if (remoteApiEnabled && h.poolUSDT <= 0) return "";
-  return fmt(t.value.pool.poolTotalShort, { k: formatAmount(h.poolUSDT / 1000), n: h.totalVotes.toLocaleString() });
+  return fmt(t.value.pool.poolTotalShort, { k: formatFinanceAmount(h.poolUSDT / 1000), n: h.totalVotes.toLocaleString() });
 }
 
 function go(url: string) {
@@ -224,7 +224,7 @@ function go(url: string) {
 }
 function historyAmount(value: number | null | undefined): string {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return '—';
-  return `${value > 0 ? '+' : ''}$${formatAmount(value)}`;
+  return `${value > 0 ? '+' : ''}$${formatFinanceAmount(value)}`;
 }
 function retryRemotePool() {
   if (remoteState.value === 'loading') return;

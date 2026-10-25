@@ -13,7 +13,7 @@
             <view class="ss-ch ss-row" role="button" :aria-label="channelMeta(c.key).label" :tabindex="channelDisabled(c) ? -1 : 0" :aria-busy="channelBusy" :aria-disabled="channelDisabled(c)" @click="onChannel(c)" @keydown.enter.prevent="onChannel(c)" @keydown.space.prevent="onChannel(c)"><view class="ss-row__icon" aria-hidden="true" v-html="channelMeta(c.key).svg" /><text class="ss-row__label">{{ channelMeta(c.key).label }}</text><svg class="ss-row__arrow" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></view>
           </template>
           <view class="ss-rules-toggle ss-row" role="button" tabindex="0" :aria-label="copy.inviteRules" :aria-expanded="rulesOpen" aria-controls="share-invite-rules" @click="rulesOpen=!rulesOpen" @keydown.enter.prevent="rulesOpen=!rulesOpen" @keydown.space.prevent="rulesOpen=!rulesOpen"><svg class="ss-row__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h10l4 4v14H5ZM9 11h6M9 15h6" /></svg><text class="ss-row__label">{{ copy.inviteRules }}</text><text class="ss-row__arrow" aria-hidden="true">{{ rulesOpen ? '−' : '+' }}</text></view>
-          <view v-if="rulesOpen" id="share-invite-rules" class="ss-rules" role="region" :aria-label="copy.inviteRules"><text>{{ copy.inviteRuleSummary }}</text><text>{{ copy.inviteRuleSettlement }}</text></view>
+          <view v-if="rulesOpen" id="share-invite-rules" class="ss-rules" role="region" :aria-label="copy.inviteRules"><text>{{ copy.inviteRuleSummary }}</text><text>{{ copy.inviteRuleSettlement }}</text><view class="ss-rules-support" role="link" tabindex="0" @click="contactSupport" @keydown.enter.prevent="contactSupport" @keydown.space.prevent="contactSupport"><text>{{ copy.contactSupport }}</text><text aria-hidden="true">›</text></view></view>
         </view>
         <view class="ss-cancel" role="button" tabindex="0" @click="emit('close')" @keydown.enter.prevent="emit('close')" @keydown.space.prevent="emit('close')"><text>{{ t.share.cancel }}</text></view>
       </view>
@@ -28,6 +28,7 @@ import { useApp } from '@/store/app';
 import { useLocaleStore } from '@/store/locale';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { formatAmount } from "@/lib/amount-display";
+import { navTo } from '@/lib/route';
 import { computed, onUnmounted, ref, watch } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -48,6 +49,7 @@ const app = useApp();
 const locale = useLocaleStore();
 const copy = computed(() => teamRedesignCopy(locale.code));
 const rulesOpen = ref(false);
+function contactSupport() { emit('close'); navTo('/pages/me/support'); }
 const channelBusy = ref(false);
 const retrying = ref(false);
 let actionEpoch = 0;
@@ -211,10 +213,12 @@ useDialogA11y(computed(() => props.open), ".ss-root", () => emit("close"));
 .ss-sheet { position:fixed;left:0;right:0;bottom:0;z-index:8001;display:flex;flex-direction:column;max-height:86vh;overflow:hidden;border-radius:24px 24px 0 0;background:var(--nx-glass-fill);box-shadow:var(--nx-glass-edge);padding-bottom:env(safe-area-inset-bottom,0px);animation:ss-up .25s ease; }
 .ss-grab { flex:none;width:36px;height:4px;border-radius:9px;background:var(--v5-surface-3);margin:var(--ui-space-row-y) auto 0; }.ss-head { flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--ui-space-inline);padding:var(--ui-space-row-y) 20px; }.ss-head__t { font:600 20px/1.4 var(--font-v5);color:var(--v5-ink);overflow-wrap:anywhere; }
 .ss-head__x { position:relative;isolation:isolate;flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--v5-ink);cursor:pointer; }.ss-head__x svg { position:relative; }
-.ss-body { min-height:0;overflow-y:auto;overscroll-behavior-y:contain;padding:0 20px 12px; }.ss-reward { display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:4px 0 24px; }.ss-reward__t { font:400 13px/1.6 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }.ss-reward__t--amount { font:600 30px/1.25 var(--font-v5);color:var(--v5-ink); }.ss-reward__hint { font:400 12px/1.5 var(--font-v5);color:var(--v5-ink-3); }
+.ss-body { min-height:0;overflow-y:auto;overscroll-behavior-y:contain;padding:0 20px 12px;scrollbar-width:none; }.ss-body::-webkit-scrollbar {display:none;width:0;height:0;}.ss-reward { display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:4px 0 24px; }.ss-reward__t { font:400 13px/1.6 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }.ss-reward__t--amount { font:600 30px/1.25 var(--font-v5);color:var(--v5-ink); }.ss-reward__hint { font:400 12px/1.5 var(--font-v5);color:var(--v5-ink-3); }
 .ss-status { display:flex;align-items:center;gap:var(--ui-space-inline);margin-bottom:var(--ui-space-inset); }.ss-status__text { flex:1;min-width:0;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.ss-retry { position:relative;isolation:isolate;flex:none;min-height:44px;padding:0 16px;display:flex;align-items:center;border-radius:999px;color:var(--v5-ink);font-size:12px; }.ss-retry text { position:relative; }
 .ss-row { display:flex;align-items:center;gap:var(--ui-space-inline);min-height:62px;padding:var(--ui-space-row-y) 0;border-bottom:1px solid var(--v5-border);color:var(--v5-ink);cursor:pointer; }.ss-row__icon,.ss-row__arrow { flex:none;display:flex;align-items:center;justify-content:center; }.ss-row__label { flex:1;min-width:0;font:500 14px/1.5 var(--font-v5);overflow-wrap:anywhere; }.ss-code__value { max-width:42%;font:500 12px/1.5 var(--font-v5);color:var(--v5-ink-2);text-align:right;overflow-wrap:anywhere; }
 .ss-row[aria-disabled="true"],.ss-retry[aria-disabled="true"] { opacity:.45;cursor:default; }.ss-rules { padding:var(--ui-space-inset) 0;border-bottom:1px solid var(--v5-border); }.ss-rules text { display:block;margin-bottom:6px;font:400 12px/1.7 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.ss-cancel { display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:6px;font:400 13px/1.5 var(--font-v5);color:var(--v5-ink-3);cursor:pointer; }
+.ss-rules-support { min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px; }
+.ss-rules-support text { margin:0;color:var(--v5-ink-2); }
 .ss-sheet [tabindex="0"]:focus-visible { outline:2px solid var(--v5-brand);outline-offset:2px; }
 @keyframes ss-up { from { transform:translateY(100%); } to { transform:translateY(0); } }
 @media(prefers-reduced-motion:reduce) { .ss-sheet { animation:none; } }

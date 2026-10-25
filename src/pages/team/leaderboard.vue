@@ -37,16 +37,16 @@
                   <text class="leader-meta">{{ rankLabel(row.vRank, locale.code, []) }} · {{ fmt(t.leaderboard.chips.directs, { n: row.directs }) }}</text>
                   <text class="leader-meta">{{ fmt(t.leaderboard.chips.teamSize, { n: row.teamSize.toLocaleString() }) }}</text>
                 </view>
-                <view class="leader-earnings"><text class="tabular-nums">{{ formatAmount(row.earnedUSDT) }}</text><text class="leader-currency">USDT</text></view>
+                <view class="leader-earnings"><text class="tabular-nums">{{ formatUsd(row.earnedUSDT) }}</text></view>
               </view>
               </view>
             </view>
             <view v-if="hasMore" class="leader-more" role="button" :tabindex="remoteLoadingMore ? -1 : 0" :aria-disabled="remoteLoadingMore" :aria-busy="remoteLoadingMore" @click="loadMore" @keydown.enter.prevent="loadMore" @keydown.space.prevent="loadMore">
               <text>{{ remoteLoadingMore ? t.leaderboard.loading : remoteLoadMoreError ? t.leaderboard.retry : t.leaderboard.cta.loadMore }}</text><text aria-hidden="true">↓</text>
             </view>
-            <view class="leader-cta" role="button" tabindex="0" @click="go('/pages/team/team?intent=share')" @keydown.enter.prevent="go('/pages/team/team?intent=share')" @keydown.space.prevent="go('/pages/team/team?intent=share')">
+            <NxButton class="leader-share" variant="secondary" :label="t.leaderboard.cta.share" @click="go('/pages/team/team?intent=share')">
               <text>{{ t.leaderboard.cta.share }}</text><text aria-hidden="true">→</text>
-            </view>
+            </NxButton>
             <text class="block text-center" :style="footerNoteStyle">{{ period === 'all' ? t.leaderboard.noteAllTime : t.leaderboard.note }}</text>
           </template>
         </template>
@@ -57,11 +57,13 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from '@/lib/usd-display';
 import { navTo } from "@/lib/route";
 import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import NxButton from '@/components/ui/nx-button.vue';
 import TeamArt from "@/components/team/team-art.vue";
 import TeamRankEmblem from "@/components/team/team-rank-emblem.vue";
 import { rankLabel } from "@/lib/v-rank-copy";
@@ -260,6 +262,7 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 .leader-currency { display: block; margin-top: 4px; font-size: 11px; color: var(--v5-ink-3); }
 .leader-cta { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inset); min-height: 48px; padding: var(--ui-space-inline) 20px; box-sizing: border-box; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); background: color-mix(in srgb, var(--v5-ink) 6%, transparent); font-size: 14px; font-weight: 500; }
 .leader-more { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: 13px; color: var(--v5-ink-2); }
+.leader-share { width:100%; }
 .leader-state { display: flex; flex-direction: column; gap: 14px; padding: 32px 0; color: var(--v5-ink-2); font-size: 13px; line-height: 1.6; }
 .leader-state-title { font-size: 17px; font-weight: 600; color: var(--v5-ink); }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }

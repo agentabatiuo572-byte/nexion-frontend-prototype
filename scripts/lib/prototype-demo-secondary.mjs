@@ -50,8 +50,18 @@ export function secondaryDemo(url,state,request){
     const myRank=state.highestRank?8:2,distribution=empty?[]:[2,4,6,8].map(vRank=>({vRank,people:2,votes:vRank})),totalVotes=distribution.reduce((s,r)=>s+r.people*r.votes,0),myVotes=empty?0:myRank,mySharePct=totalVotes?myVotes/totalVotes:0;
     return {...proof,currentWeekPoolUSDT:empty?0:5000,myRank,myVotes,totalVotes,mySharePct,projectedPayoutUSDT:5000*mySharePct,distribution,history:empty?[]:[{weekId:'2026-W42',payoutUSDT:120}],nextPayoutAt:new Date(now+3*day).toISOString(),unlockRank:2,injectRate:.05,topN:100};
   }
-  if(p==='/api/events/genesis-raffle')return {availableTickets:empty?0:3-(state.raffleEntries||0),draws:empty||state.eventState==='empty'?[]:['OPEN','PROCESSING','DRAWN'].map((status,i)=>({id:'demo-draw-'+i,titleZh:['成长抽奖','上一期抽奖','已开奖记录'][i],titleEn:['Growth draw','Previous draw','Draw results'][i],titleVi:['Vòng quay tăng trưởng','Kỳ trước','Kết quả'][i],startsAt:new Date(now-2*day).toISOString(),drawAt:new Date(now+(i===0?day:-day)).toISOString(),status,revision:1,myEntries:i===0?state.raffleEntries||0:2,totalEntries:120+(i===0?state.raffleEntries||0:0),prizes:[{id:'demo-prize',nameZh:'100 UVT 奖励',nameEn:'100 UVT reward',nameVi:'Thưởng 100 UVT',rewardType:'NEX',amount:'100',quantity:10}],myResults:i===2?[{prizeId:'demo-prize',rewardType:'NEX',amount:'100',receiptId:'DEMO-RAFFLE-RECEIPT',status:'PAID'}]:[]}))};
+  if(p==='/api/events/genesis-raffle') {
+    const anchor=state.raffleScenarioAt??(state.raffleScenarioAt=now), mode=state.raffleState;
+    const startsAt=mode==='upcoming'?anchor+60000:anchor-2*day;
+    const drawAt=mode==='ending'?anchor+60000:mode==='ended'?anchor-1000:anchor+day;
+    const prizes=mode==='small-usdt'
+      ? ['0.00032','0.00005'].map((amount,i)=>({id:'demo-prize-'+i,nameZh:amount+' USDT 奖励',nameEn:amount+' USDT reward',nameVi:'Thưởng '+amount+' USDT',rewardType:'USDT',amount,quantity:10}))
+      : [{id:'demo-prize',nameZh:'100 UVT 奖励',nameEn:'100 UVT reward',nameVi:'Thưởng 100 UVT',rewardType:'NEX',amount:'100',quantity:10}];
+    return {availableTickets:empty?0:3-(state.raffleEntries||0),draws:empty||state.eventState==='empty'?[]:['OPEN','PROCESSING','DRAWN'].map((status,i)=>({id:'demo-draw-'+i,titleZh:['成长抽奖','上一期抽奖','已开奖记录'][i],titleEn:['Growth draw','Previous draw','Draw results'][i],titleVi:['Vòng quay tăng trưởng','Kỳ trước','Kết quả'][i],startsAt:new Date(i===0?startsAt:anchor-2*day).toISOString(),drawAt:new Date(i===0?drawAt:anchor-day).toISOString(),status,revision:1,myEntries:i===0?state.raffleEntries||0:2,totalEntries:120+(i===0?state.raffleEntries||0:0),prizes,myResults:i===2?prizes.map(prize=>({prizeId:prize.id,rewardType:prize.rewardType,amount:prize.amount,receiptId:'DEMO-RAFFLE-RECEIPT-'+prize.id,status:'PAID'})):[]}))};
+  }
   if(p==='/api/events/genesis-raffle/demo-draw-0/enter'){
+    const anchor=state.raffleScenarioAt??now;
+    if((state.raffleState==='upcoming'&&now<anchor+60000)||(state.raffleState==='ending'&&now>=anchor+60000)||state.raffleState==='ended')throw new Error('Demo draw is not accepting entries');
     const tickets=request.postDataJSON().tickets;if(!Number.isInteger(tickets)||tickets<1||tickets>3-(state.raffleEntries||0))throw new Error('Invalid demo tickets');
     state.raffleEntries=(state.raffleEntries||0)+tickets;return {drawId:'demo-draw-0',enteredTickets:tickets,availableTickets:3-state.raffleEntries};
   }

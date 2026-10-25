@@ -1,3 +1,4 @@
+import { formatFinanceAmount } from '@/lib/finance-amount-display';
 import * as Vue from 'vue';
 import { afterEach, expect, it, vi } from 'vitest';
 import source from './quota.vue?raw';
@@ -34,7 +35,7 @@ function page(locale: keyof typeof dictionaries = 'en', product = '') {
   // UniApp image is native; preserve its attributes in the in-memory host.
   const adapted = source.replace(/<image\b/g, '<view data-native-image="true"');
   const p = mountEntry(adapted, {
-    '@/lib/amount-display': { formatAmount }, '@/lib/product-media': { getProductMedia },
+    '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount }, '@/lib/product-media': { getProductMedia },
     '@/lib/route': { navTo, takeNavigationQuery: () => '' },
     '@dcloudio/uni-app': { onLoad: (fn: (q: object) => void) => load.push(fn), onShow: (fn: () => void) => show.push(fn), onHide: (fn: () => void) => hide.push(fn), onUnload: vi.fn() },
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': { default: Vue.defineComponent({ props: ['back'], setup: props => () => Vue.h('view', { 'data-back': props.back }) }) },
@@ -55,7 +56,7 @@ it.each(['zh', 'en', 'vi'] as const)('keeps %s focused product identity, stock a
   const p = page(locale, 'stellarrack-p1'); await p.show();
   expect(p.tiers()).toHaveLength(1);
   expect(p.tiers()[0].props['data-facts']).toMatchObject({ productId: 'stellarrack-p1', name: 'Catalog product 2', price: 2299,
-    monthlyStock: 60, soldThisMonth: 42, available: true, conditions: [{ current: 12800, required: 20000, kind: 'volume', pointsUnavailable: false }] });
+    monthlyStock: 60, soldThisMonth: 42, available: true, conditions: [{ current: 12800, required: 20000, kind: 'volume' }] });
   expect(text(p.root)).not.toContain('Catalog product 1');
   expect(all(p.root).find(n => n.props['data-native-image'])!.props.src).toBe(getProductMedia('stellarrack-p1')!.src);
   expect(all(p.root).find(n => n.props['data-back'])!.props['data-back']).toBe('/pages/store/detail?id=stellarrack-p1');

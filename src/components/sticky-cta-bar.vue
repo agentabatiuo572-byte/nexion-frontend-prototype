@@ -106,10 +106,11 @@ function onTap() {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .scb-info {
   flex: 1;
-  min-width: 0;
+  min-width: max-content;
 }
 .scb-eyebrow {
   display: block;
@@ -174,8 +175,11 @@ function onTap() {
   font-size: 13px;
   letter-spacing: -0.005em;
   color: var(--v5-on-brand);
-  white-space: nowrap;
+  white-space: normal;
 }
+.scb-cta { max-width:100%; box-sizing:border-box; min-height:44px; height:auto; padding-block:10px; text-align:center; }
+.scb-cta svg { flex:none; }
+@media(max-width:350px) { .scb-cta { flex:1 1 100%; } }
 </style>
 
 <style scoped>.scb-quantity { display:flex;align-items:center;gap:6px;color:var(--v5-ink);font-variant-numeric:tabular-nums; }.scb-bar:has(.scb-quantity) { flex-wrap:wrap;gap:12px; }.scb-bar:has(.scb-quantity) .scb-info { flex:1;min-width:110px; }.scb-bar:has(.scb-quantity) .scb-cta { width:100%; }</style>

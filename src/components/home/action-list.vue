@@ -46,7 +46,8 @@ const rows = computed<HomeActionRow[]>(() => {
   if (voucher.claimedUnused.length) list.push({ key:'voucher', title:copy.value.vouchers, subtitle:fmt(copy.value.voucherCount,{n:voucher.claimedUnused.length}), href:'/pages/me/rewards-list?cat=voucher' });
   if (trial.status === 'active' || trial.status === 'grace') list.push({ key:'trial', title:copy.value.trialActive, href:'/pages/me/trial' });
   if (securityNeedsAction.value) list.push({ key:'security', title:copy.value.security, subtitle:copy.value.securityHint, href:'/pages/me/security' });
-  return list;
+  const priority = ['phone', 'orders', 'quest', 'voucher', 'trial', 'security'];
+  return list.sort((a, b) => priority.indexOf(a.key) - priority.indexOf(b.key));
 });
 const shown = computed(() => expanded.value ? rows.value : rows.value.slice(0,3));
 async function refresh() {

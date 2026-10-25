@@ -1,5 +1,5 @@
 <template>
-  <view class="promotion">
+  <view class="promotion promotion-reward-rows">
     <view v-for="entry in entries" :key="entry.key" class="promotion-row">
       <view class="promotion-symbol" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v4H3z M5 12v9h14v-9 M12 8v13 M12 8C6 8 5 5 7 3c2-2 5 2 5 5 M12 8c6 0 7-3 5-5-2-2-5 2-5 5" /></svg></view>
       <view class="promotion-grow">
@@ -9,7 +9,7 @@
         <text v-if="entry.reward.type==='DISCOUNT_USDT'" class="promotion-copy">{{ t.promotion.orderDiscountNote }}</text>
         <text v-else-if="!entry.state" class="promotion-copy">{{ t.promotion.settle }}</text>
         <text v-if="entry.message" class="promotion-copy">{{ localized(entry.message,locale.code) }}</text>
-        <text v-if="entry.state" class="promotion-badge">{{ displayState(entry.state,entry.refundHold) }}</text>
+        <text v-if="entry.state" class="promotion-badge" :class="'promotion-reward-state--'+stateTone(entry.state,entry.refundHold)">{{ displayState(entry.state,entry.refundHold) }}</text>
         <view v-if="entry.obligationId&&linkDetails!==false" class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/events/promotion-reward-detail?obligationId='+encodeURIComponent(entry.obligationId))"><text>{{ t.promotion['reward-detail'] }}</text></view>
       </view>
     </view>
@@ -27,6 +27,11 @@ import { navTo } from '@/lib/route';
 const props=withDefaults(defineProps<{ expected?:ExpectedReward[]; rewards?:Reward[]; specs?:PublicRewardSpec[]; productNo?:string; lines?:{lineId:string;productNo:string;productName?:string;quantity?:number}[];linkDetails?:boolean }>(),{linkDetails:true});
 const t=useT();const locale=useLocaleStore();
 function displayState(state:Reward['state'],hold:boolean){return hold&&!['CANCELLED','REVERSED'].includes(state)?t.value.promotion.rewardHold:t.value.promotion[rewardStateKey(state)];}
+function stateTone(state:Reward['state'],hold:boolean):'success'|'pending'|'attention'|'closed' {
+  if (state === 'CANCELLED' || state === 'REVERSED') return 'closed';
+  if (hold || ['RETRYABLE_FAILED','OUTCOME_UNKNOWN','MANUAL_REVIEW','REVERSAL_PENDING'].includes(state)) return 'attention';
+  return state === 'ISSUED' ? 'success' : 'pending';
+}
 const productName=(id:string)=>{void productCatalogState.status;return getProduct(id)?.name ?? t.value.promotion.devices;};
 const entries=computed(()=>[
   ...(props.expected??[]).map(r=>({key:r.lineId+':'+r.rewardRuleId,deviceName:r.disclosure?.deviceName,productName:props.lines?.find(l=>l.lineId===r.lineId)?.productName,productNo:props.lines?.find(l=>l.lineId===r.lineId)?.productNo??props.productNo,quantity:props.lines?.find(l=>l.lineId===r.lineId)?.quantity,reward:r.reward,groups:r.groups,message:r.message,state:null,refundHold:false,obligationId:null})),

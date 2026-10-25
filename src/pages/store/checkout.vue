@@ -4,6 +4,7 @@
     <template #pageTop><SubPageHeader class="checkout-header" design :back="checkoutBackHref" :title="auditCopy.review" /></template>
     <PromotionCheckout class="checkout-promotion" v-if="promotionRoute" :key="app.accountKey+':'+app.accountBindingEpoch" ref="promotionCheckout" :activity-id="promotionRoute.activityId" :items="promotionRoute.items" :order-no="promotionRoute.orderNo" :voucher-id="promotionRoute.voucherId" :upgrade-activity-id="promotionRoute.upgradeActivityId">
       <template #review-footer>
+        <view class="checkout-policy-notice" data-testid="checkout-policy-notice"><text>{{ policyHasDevice ? policyCopy.deviceScope+t.store.faq.refund.a : policyCopy.review }}</text><button class="checkout-policy-link" @click="purchasePolicyOpen=true">{{ policyCopy.entry }}</button></view>
         <view class="checkout-legal"><text>{{ legalCopy.before }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/onboarding/terms')" @keydown.enter.prevent="navTo('/pages/onboarding/terms')">{{ auditCopy.terms }}</text><text>{{ legalCopy.join }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/me/risk-disclosure')" @keydown.enter.prevent="navTo('/pages/me/risk-disclosure')">{{ t.me.riskRow }}</text><text>{{ legalCopy.end }}</text></view>
         <view class="checkout-cancel" role="button" tabindex="0" @click.stop="promotionCheckout?.back()" @keydown.enter.prevent.stop="promotionCheckout?.back()" @keydown.space.prevent.stop="promotionCheckout?.back()"><text>{{ t.store.coCancel }}</text></view>
       </template>
@@ -110,6 +111,7 @@
             </view>
             <text v-if="trialZeroDue" class="checkout-note">{{ t.store.coTrialZeroNote }}</text>
             <view v-if="capped" class="checkout-note checkout-note--warning"><text>{{ slotsFullText }}</text></view>
+            <view class="checkout-policy-notice" data-testid="checkout-policy-notice"><text>{{ policyHasDevice ? policyCopy.deviceScope+t.store.faq.refund.a : policyCopy.review }}</text><button class="checkout-policy-link" @click="purchasePolicyOpen=true">{{ policyCopy.entry }}</button></view>
             <view class="checkout-legal"><text>{{ legalCopy.before }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/onboarding/terms')" @keydown.enter.prevent="navTo('/pages/onboarding/terms')">{{ auditCopy.terms }}</text><text>{{ legalCopy.join }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/me/risk-disclosure')" @keydown.enter.prevent="navTo('/pages/me/risk-disclosure')">{{ t.me.riskRow }}</text><text>{{ legalCopy.end }}</text></view>
             <view class="checkout-cancel" role="button" tabindex="0" @click.stop="cancelCheckout" @keydown.enter.prevent.stop="cancelCheckout" @keydown.space.prevent.stop="cancelCheckout"><text>{{ t.store.coCancel }}</text></view>
           </view>
@@ -191,6 +193,15 @@
         </view>
       </template>
     </view>
+    <NxSheet :open="purchasePolicyOpen" :title="policyCopy.entry" @close="purchasePolicyOpen=false">
+      <view class="checkout-policy-body">
+        <view v-if="policyHasDevice" class="checkout-policy-section"><text class="checkout-policy-title">{{ policyCopy.deviceScope }}{{ t.store.faq.refund.q }}</text><text>{{ t.store.faq.refund.a }}</text></view>
+        <view v-for="section in [t.store.faq.location,t.store.faq.demand]" :key="section.q" class="checkout-policy-section"><text class="checkout-policy-title">{{ section.q }}</text><text>{{ section.a }}</text></view>
+        <text class="checkout-policy-section">{{ policyCopy.review }}</text>
+        <text v-if="promotionRoute && promotionCheckout?.hasRewardTerms" class="checkout-policy-section">{{ policyCopy.rewards }}</text>
+        <view class="checkout-policy-links"><button class="checkout-policy-link" @click="navTo('/pages/onboarding/terms')">{{ auditCopy.terms }}</button><button class="checkout-policy-link" @click="navTo('/pages/me/risk-disclosure')">{{ t.me.riskRow }}</button></view>
+      </view>
+    </NxSheet>
     <template #pageFixed>
       <view v-if="promotionRoute && promotionCheckout?.footer" class="checkout-sticky">
         <view class="checkout-sticky-copy"><text class="checkout-total">{{ promotionCheckout.footer.amount }}</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
@@ -208,6 +219,7 @@
 import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
 import { ref, nextTick, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import NxButton from "@/components/ui/nx-button.vue";
+import NxSheet from "@/components/ui/nx-sheet.vue";
 import { useAuditUiCopy } from "@/i18n/audit-ui";
 import { onHide, onLoad, onShow, onUnload, onBackPress } from "@dcloudio/uni-app";
 import PromotionCheckout from '@/components/promotion/promotion-checkout.vue';
@@ -284,11 +296,25 @@ interface PaymentMethod {
 }
 
 const t = useT();
-// Keep decimal rounding in the shared helper; grouping is display-only.
 function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
-  return formatPlainAmount(value).replace(/\B(?=(\d{3})+\.)/g, ',');
+  // Preserve the effective precision of the payable in both the review and
+  // confirmation; the original amount remains authoritative for commands.
+  if (formatPlainAmount(value) === '-') return '-';
+  const [, sign, integer, fraction = '', exponent = '0'] = String(value).trim().match(/^([+-]?)(\d+)(?:\.(\d*))?(?:e([+-]?\d+))?$/i)!;
+  const digits = integer + fraction, point = integer.length + Number(exponent);
+  const whole = (point > 0 ? digits.slice(0, point).padEnd(point, '0') : '0').replace(/^0+(?=\d)/, '');
+  const tail = ((point < 0 ? '0'.repeat(-point) : '') + digits.slice(Math.max(point, 0))).replace(/0+$/, '').padEnd(2, '0');
+  return (sign === '-' && /[1-9]/.test(digits) ? '-' : '') + whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + tail;
 }
 const locale = useLocaleStore();
+const purchasePolicyOpen = ref(false);
+// Reuse the published store FAQ verbatim; this sheet introduces no refund or
+// warranty promises. Reward-specific recovery terms remain in PromotionTerms.
+const policyCopy = computed(() => locale.code === 'zh'
+  ? { entry:'购买、退款与售后说明', deviceScope:'设备商品（不含 Cloud Share）：', review:'请在付款前阅读用户协议及风险提示，确认所选商品的购买与售后条件。', rewards:'活动奖励的退款与回收条件，请查看结算页的「活动说明」。' }
+  : locale.code === 'vi'
+    ? { entry:'Mua hàng, hoàn tiền và hậu mãi', deviceScope:'Thiết bị (không gồm Cloud Share): ', review:'Trước khi thanh toán, hãy đọc thỏa thuận người dùng và thông tin rủi ro, đồng thời xác nhận điều kiện mua hàng và hậu mãi của sản phẩm đã chọn.', rewards:'Xem điều khoản ưu đãi tại trang thanh toán để biết cách xử lý và thu hồi phần thưởng khi hoàn tiền.' }
+    : { entry:'Purchase, refund and after-sales information', deviceScope:'Devices (excluding Cloud Share): ', review:'Before paying, read the user agreement and risk disclosure and confirm the purchase and after-sales conditions for your selected products.', rewards:'See the offer terms on checkout for reward refund and recovery conditions.' });
 const reviewCopy = computed(()=>commerceCopy(locale.code));
 const legalCopy = computed(() => locale.code === 'zh'
   ? { before: '支付前请阅读', join: '及', end: '。' }
@@ -298,6 +324,7 @@ const legalCopy = computed(() => locale.code === 'zh'
 const app = useApp();
 const promotionRoute=ref<({activityId:string;items:PromotionItem[];orderNo?:string}&VoucherEntryContext)|null>(null);
 const promotionCheckout=ref<InstanceType<typeof PromotionCheckout>|null>(null);
+const policyHasDevice=computed(()=>promotionRoute.value ? promotionCheckout.value?.hasDevicePolicy===true : !!product.value&&product.value.productType!=='SHARE');
 onBackPress(()=>promotionRoute.value ? (promotionCheckout.value?.back()??false) : false);
 const auth = useAuth();
 const orders = useOrders();
@@ -612,16 +639,19 @@ function trialQuoteAt(now: number): TrialQuote {
   const r = resolveTrialAt(freeTrial.snapshot(), now, cfg);
   const trialProductId = resolveTrialCheckoutProductId(cfg.trialProductId);
   if ((r.status !== "active" && r.status !== "grace") || !trialProductId || productId.value !== trialProductId) return NO_TRIAL;
-  // 影子口径与 free-trial.liveShadow* 同一条规则(active 按冻结窗口累计 /
-  // grace 取边界定格值),但锚在本次解析出的行上,不再各读各的时钟。
-  const acc = accruedShadow(r, now, cfg);
-  const split = computeTrialOffset(cfg, r.status === "active" ? acc.usd : r.shadowFrozenAtUSD);
+  // Remote credit is the same server projection shown by free-trial.liveShadow*.
+  // Only local mode accrues by time; recomputing remote credit would quote a
+  // different discount from the trial page and the conversion authority.
+  const acc = remoteApiEnabled
+    ? { usd: freeTrial.authoritativeShadowUSD, nex: freeTrial.authoritativeShadowNEX }
+    : accruedShadow(r, now, cfg);
+  const split = computeTrialOffset(cfg, remoteApiEnabled || r.status === "active" ? acc.usd : r.shadowFrozenAtUSD);
   return {
     applied: true,
     promo: computeDiscountedPrice(cfg).discount,
     offsetUSD: split.offsetUSD,
     remainderUSD: split.remainderUSD,
-    shadowNEX: r.status === "active" ? acc.nex : r.shadowFrozenAtNEX,
+    shadowNEX: remoteApiEnabled || r.status === "active" ? acc.nex : r.shadowFrozenAtNEX,
   };
 }
 
@@ -1025,7 +1055,11 @@ const netPriceText = computed(() => formatAmount(netPrice.value));
 const cardFee = computed(() => (remoteApiEnabled && appliedTradeinView.value?.canonicalQuote
   ? 0 : isCard.value ? cardFeeUsd(netPrice.value) : 0));
 const cardFeeText = computed(() => formatAmount(cardFee.value));
-const confirmTotalText = computed(() => formatAmount((netPrice.value + cardFee.value)));
+// The legacy card debit is settled in cents; keep its sum's binary float noise
+// out of the display while retaining canonical fee-free USDT precision.
+const confirmTotalText = computed(() => cardFee.value > 0
+  ? formatPlainAmount(netPrice.value + cardFee.value).replace(/\B(?=(\d{3})+\.)/g, ',')
+  : formatAmount(netPrice.value));
 const paymentLabel = computed(() => PAYMENT_METHODS.value.find((m) => m.id === payment.value)?.label ?? "");
 const slotsFullText = computed(() => fmt(t.value.store.coSlotsFull, { max: app.slotCap }));
 const activatingSubText = computed(() => {
@@ -1129,7 +1163,7 @@ async function requestConfirmPay() {
   try {
     const accepted = await confirm({
       title: t.value.store.coConfirmPurchase,
-      message: fmt(t.value.store.coConfirmPurchaseMessage, { amount: formatAmount(amount) }),
+      message: fmt(t.value.store.coConfirmPurchaseMessage, { amount: confirmTotalText.value }),
       confirmLabel: t.value.store.coConfirmPayment,
       cancelLabel: t.value.store.coCancel,
       owner: dialogOwner,
@@ -1754,6 +1788,7 @@ onShow(() => {
   restoreReceiptRecovery();
 });
 onHide(() => {
+  purchasePolicyOpen.value = false;
   tradein.hide();
   if(promotionRoute.value){promotionCheckout.value?.hide();return;}
   pageVisible = false;
@@ -2337,12 +2372,16 @@ const receiptFailureCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-r
 .checkout-product-price { display:block; margin-top:4px; font:600 15px/20px var(--font-v5); font-variant-numeric:tabular-nums; }
 .checkout-quantity { flex:none; text-align:center; }
 .checkout-quantity-controls { display:flex; align-items:center; margin-top:4px; border:1px solid var(--v5-border); border-radius:999px; background:var(--ui-content-surface-2); }
-.checkout-quantity-button { display:grid; place-items:center; width:32px; min-height:36px; border-radius:999px; font:400 18px/20px var(--font-v5); cursor:pointer; }
+.checkout-quantity-button { display:grid; place-items:center; width:44px; min-height:44px; border-radius:999px; font:400 18px/20px var(--font-v5); cursor:pointer; }
 .checkout-quantity-button[aria-disabled="true"],.checkout-quantity-button[disabled] { opacity:.35; cursor:default; }
 button.checkout-quantity-button {margin:0;padding:0;background:transparent;color:inherit;border:0;}
 button.checkout-quantity-button::after {border:0;}
 .checkout-quantity-button:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; }
 .checkout-quantity-value { display:block; min-width:20px; font:600 15px/20px var(--font-v5); font-variant-numeric:tabular-nums; }
+@media(max-width:389px) {
+  .checkout-product { display:grid;grid-template-columns:68px minmax(0,1fr);gap:10px 12px; }
+  .checkout-quantity { grid-column:2;justify-self:start;text-align:left; }
+}
 .checkout-section { margin:20px 16px 0; }
 .checkout-section-heading { display:flex; align-items:center; min-height:44px; padding:0 2px; font:600 15px/20px var(--font-v5); letter-spacing:-.012em; }
 .checkout-option { display:flex; align-items:center; gap:12px; min-height:64px; padding:10px 16px; border-bottom:1px solid var(--v5-border); }
@@ -2376,6 +2415,14 @@ button.checkout-quantity-button::after {border:0;}
 .checkout-legal { margin:12px 2px 0; font:400 12.5px/20px var(--font-v5); color:var(--v5-ink-3); }
 .checkout-legal-link { display:inline; color:var(--v5-brand); cursor:pointer; }
 .checkout-legal-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; border-radius:2px; }
+.checkout-policy-notice { margin-top:12px; font:400 13px/20px var(--font-v5); color:var(--v5-ink-2); overflow-wrap:anywhere; }
+button.checkout-policy-link { display:block; width:100%; min-height:44px; margin:0; padding:8px 0; border:0; border-radius:0; background:transparent; color:var(--v5-brand); font:500 13px/20px var(--font-v5); text-align:left; overflow-wrap:anywhere; }
+button.checkout-policy-link::after { border:0; }
+.checkout-policy-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; }
+.checkout-policy-body { color:var(--v5-ink-2); font:400 14px/22px var(--font-v5); overflow-wrap:anywhere; }
+.checkout-policy-section { display:block; margin-bottom:20px; }
+.checkout-policy-title { display:block; margin-bottom:6px; color:var(--v5-ink); font-weight:600; }
+.checkout-policy-links { border-top:1px solid var(--v5-border); }
 .checkout-cancel { display:grid; place-items:center; min-height:44px; margin-top:4px; font:400 13px/18px var(--font-v5); color:var(--v5-ink-3); cursor:pointer; }
 .checkout-sticky { position:absolute; bottom:0; left:0; right:0; z-index:36; display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:100px; padding:12px 16px calc(30px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,color-mix(in srgb,var(--ui-ticket-top) 70%,transparent),color-mix(in srgb,var(--ui-ticket-bottom) 94%,transparent)); border-top:1px solid var(--v5-border-strong); box-shadow:inset 0 1px 0 var(--v5-border); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); }
 .checkout-sticky-copy { min-width:0; }
@@ -2384,7 +2431,8 @@ button.checkout-quantity-button::after {border:0;}
 .checkout-promotion { padding:8px 16px 120px; color:var(--v5-ink); }
 .checkout-promotion :deep(.promotion-flat) { border:1px solid var(--v5-border); border-radius:22px; background:var(--ui-content-surface); padding:16px; }
 .checkout-promotion :deep(.promotion-summary) { min-height:40px; font-size:14px; }
-.checkout-promotion :deep(.promotion-image) { width:68px; height:68px; border-radius:16px; flex:none; }
+.checkout-promotion :deep(.promotion-summary.total) { min-height:55px; font-size:18px; }
+.checkout-promotion :deep(.promotion-image) { width:74px; height:74px; border-radius:16px; flex:none; }
 .checkout-promotion :deep(.promotion-price) { font-size:15px; font-weight:600; }
 .checkout-voucher:focus-visible,.checkout-payment:focus-visible,.checkout-cancel:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; }
 .checkout-voucher:active,.checkout-payment:active,.checkout-cancel:active { opacity:.8; }

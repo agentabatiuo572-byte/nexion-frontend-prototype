@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { formatAmount } from "./amount-display";
+import { formatAmount, formatGroupedAmount } from "./amount-display";
 
 describe("amount display", () => {
+  it('groups display amounts without Number coercion or changing the two-decimal rounding',()=>{
+    expect(formatGroupedAmount('999999999999999999999999.995')).toBe('1,000,000,000,000,000,000,000,000.00');
+    expect(formatGroupedAmount('-1299')).toBe('-1,299.00');expect(formatGroupedAmount(null)).toBe('-');
+  });
   it("keeps two decimals when native number localization is unavailable", () => {
     const native = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("UNAVAILABLE"); });
     try { expect(formatAmount("50.123456")).toBe("50.12"); expect(formatAmount(50)).toBe("50.00"); expect(native).not.toHaveBeenCalled(); }

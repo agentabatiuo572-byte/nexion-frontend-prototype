@@ -45,6 +45,9 @@
         </view>
         <view v-if="notifs.loading" class="message-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
         <view v-if="notifs.nextCursor" class="message-more"><view class="message-button" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.notifs.loadMore" @click="notifs.loadMoreRemote()"><LiquidGlass :radius="22" /><text>{{ notifs.loading ? t.help.loadingMore : t.notifs.loadMore }}</text></view></view>
+        <view v-if="notifs.items.length || notifs.nextCursor" class="notification-management">
+          <view class="message-button" role="button" :tabindex="clearingRead || markingAll || notifs.loading ? -1 : 0" :aria-disabled="clearingRead || markingAll || notifs.loading" @click="confirmClearRead"><LiquidGlass :radius="22" /><text>{{ actionCopy.clearRead }}</text></view>
+        </view>
       </view>
       <view class="message-scroll-compensation" :style="{ height: headerCompensation + 'px' }" aria-hidden="true" />
       </scroll-view>
@@ -72,11 +75,18 @@ import { remoteApiEnabled } from "@/api/runtime";
 import { isLeftConversionSwipe, type SwipePoint } from "@/lib/notification-swipe";
 import { useApp } from "@/store/app";
 import { remoteAccountScope } from "@/lib/remote-account-epoch";
+import { isDirectNotificationSummary } from "@/lib/notification-summary";
+import { notificationActionsCopy } from "@/i18n/notification-actions";
+import { confirm, useUI } from "@/store/ui";
 
 const t = useT();
 const locale = useLocaleStore();
 const notifs = useNotifications();
 const app = useApp();
+const ui = useUI();
+const actionCopy = computed(() => notificationActionsCopy[locale.code === 'zh' || locale.code === 'vi' ? locale.code : 'en']);
+const clearingRead = ref(false);
+const confirmOwner = `notification-center:${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let pageGeneration = 0;
 let pageVisible = true;
 let disposed = false;
@@ -147,14 +157,27 @@ function countOf(id: Filter) { return id === "all" ? notifs.items.length : notif
 const filtered = computed(() => filter.value === "all" ? notifs.items : notifs.items.filter(n => notificationCategory(n) === filter.value));
 function filterLabel(id: Filter) { return id === "all" ? t.value.notifs.filterAll : t.value.notifs[categoryKeys[id]]; }
 const emptyTitle = computed(() => notifs.items.length === 0 ? t.value.notifs.emptyAllTitle : fmt(t.value.notifs.emptyFilterTitle, { filter: filterLabel(filter.value) }));
-function directNotice(n: Notification) { return !!n.ctaHref && (n.body?.length ?? 0) <= 100 && !n.body?.includes('\n'); }
+function directNotice(n: Notification) { return !!n.ctaHref && isDirectNotificationSummary(n.body); }
 function toggle(n: Notification) {
   if (directNotice(n)) { void onTap(n); return; }
   void notifs.markRead(n.id);
   expandedId.value = expandedId.value === n.id ? null : n.id;
 }
 const markingAll = ref(false);
-async function markAll() { if (markingAll.value) return; markingAll.value = true; try { await notifs.markAllRead(); } finally { markingAll.value = false; } }
+async function markAll() { if (markingAll.value || clearingRead.value) return; markingAll.value = true; try { await notifs.markAllRead(); } finally { markingAll.value = false; } }
+async function confirmClearRead() {
+  const intent = captureIntent();
+  if (!isCurrentIntent(intent) || clearingRead.value || markingAll.value || notifs.loading) return;
+  clearingRead.value = true;
+  try {
+    const copy = actionCopy.value;
+    const accepted = await confirm({ owner: confirmOwner, title: copy.title, message: copy.message,
+      confirmLabel: copy.confirm, cancelLabel: copy.cancel, icon: 'warn', danger: true });
+    if (accepted && isCurrentIntent(intent)) await notifs.clearRead();
+  } finally {
+    if (isCurrentIntent(intent)) clearingRead.value = false;
+  }
+}
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, ([nextKey, nextEpoch], [previousKey]) => {
   // Reapply only the first startup intent after the existing store reset.
   // A second bind (including the same account) is a real reset, even in one tick.
@@ -245,6 +268,8 @@ async function onTouchEnd(n: Notification, event: UniTouchEvent) {
 }
 function invalidatePendingIntents() {
   pageGeneration += 1;
+  clearingRead.value = false;
+  ui.clearConfirmsBy(confirmOwner);
   touchStarts.clear();
   suppressedClick = null;
 }
@@ -312,24 +337,24 @@ watch(section, () => { resetHeader(); preserveSectionInH5(); });
 
 <style src="@/styles/message-center.css"></style>
 <style scoped>
+.notification-management { display: flex; justify-content: flex-end; padding: 4px 0 8px; }
 /* Keep the shared segment semantics and keyboard handling; only this page's
    rails use the reference's green primary selection and neutral category glass. */
-.message-center .message-primary { height: 50px; box-sizing: border-box; padding: 4px; gap: 4px; border-radius: 999px; border: 1px solid var(--message-glass-border); background: var(--message-glass-fill); box-shadow: var(--message-glass-shadow); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); }
-.message-center .message-primary::before,
-.message-center .message-filters :deep(.nx-glass-option--selected::before) { content: ""; position: absolute; inset: 1px; z-index: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(120% 60% at 30% 0%, color-mix(in srgb, var(--message-glass-white) 22%, transparent), transparent 55%); }
+.message-center .message-primary { height: 50px; box-sizing: border-box; padding: 3px 0; gap: 4px; border: 0; background: transparent; box-shadow: none; }
+.message-center .message-filters :deep(.nx-glass-option--selected::before) { content: ""; position: absolute; inset: 5px 0; z-index: 0; border-radius: 999px; pointer-events: none; border: 1px solid var(--message-glass-border); background: var(--message-glass-fill); box-shadow: var(--message-glass-shadow); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); }
 .message-option-label, .message-category-dot { position: relative; z-index: 1; }
 .message-center .message-primary :deep(.nx-glass-track-viewport),
 .message-center .message-primary :deep(.nx-glass-indicator),
 .message-center .message-filters :deep(.nx-glass-track-viewport),
 .message-center .message-filters :deep(.nx-glass-indicator) { display: none; }
-.message-center .message-primary :deep(.nx-glass-option) { min-height: 0; height: 40px; padding: 0 10px; gap: 6px; border: 1px solid transparent; border-radius: 999px; color: var(--v5-ink-2); font-size: 15px; line-height: 20px; font-weight: 500; }
+.message-center .message-primary :deep(.nx-glass-option) { min-height: 44px; height: 44px; padding: 0 10px; gap: 6px; border: 1px solid transparent; border-radius: 999px; color: var(--v5-ink-2); font-size: 15px; line-height: 20px; font-weight: 500; }
 .message-center .message-primary :deep(.nx-glass-option--selected) { color: var(--ui-lime-soft, var(--v5-brand)); font-weight: 600; background: linear-gradient(180deg, color-mix(in srgb, var(--v5-brand) 30%, transparent), color-mix(in srgb, var(--v5-brand) 10%, transparent)); border-color: color-mix(in srgb, var(--ui-lime-soft, var(--v5-brand)) 45%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--message-selected-highlight) 55%, transparent), inset 0 -1px 2px color-mix(in srgb, var(--v5-brand) 25%, transparent), 0 4px 14px color-mix(in srgb, var(--v5-brand) 18%, transparent); }
-.message-center .message-filters { align-self: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; height: 34px; min-height: 34px; padding: 0; gap: 6px; border-radius: 0; background: transparent; }
-.message-center .message-filters :deep(.nx-glass-option) { min-height: 34px; height: 34px; padding: 0 13px; gap: 5px; border: 0; border-radius: 999px; color: var(--v5-ink-3); font-size: 13.5px; line-height: normal; font-weight: 400; }
-.message-center .message-filters :deep(.nx-glass-option--selected) { color: var(--v5-ink); font-weight: 600; border: 1px solid var(--message-glass-border); background: var(--message-glass-fill); box-shadow: var(--message-glass-shadow); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); }
+.message-center .message-filters { align-self: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; height: 44px; min-height: 44px; margin-block: 7px -5px; padding: 0; gap: 6px; border-radius: 0; background: transparent; }
+.message-center .message-filters :deep(.nx-glass-option) { min-height: 44px; height: 44px; padding: 0 9px; gap: 4px; border: 0; border-radius: 999px; color: var(--v5-ink-3); font-size: 13.5px; line-height: normal; font-weight: 400; }
+.message-center .message-filters :deep(.nx-glass-option--selected) { color: var(--v5-ink); font-weight: 600; background: transparent; }
 .message-category-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--v5-brand); flex-shrink: 0; align-self: center; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .message-center .message-icon-button, .message-center .message-primary, .message-center .message-filters :deep(.nx-glass-option--selected) { background: var(--v5-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .message-center .message-icon-button, .message-center .message-primary :deep(.nx-glass-option--selected), .message-center .message-filters :deep(.nx-glass-option--selected::before) { background: var(--v5-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
   .message-center .message-primary :deep(.nx-glass-option--selected) { background: var(--v5-brand-soft); }
 }
 </style>

@@ -9,6 +9,7 @@
           <text class="invite-detail__paragraph">{{ copy.inviteRuleSummary }}</text>
           <text class="invite-detail__paragraph">{{ copy.inviteRuleSettlement }}</text>
           <text v-if="rewards.snapshot?.rewardEnabled === false" class="invite-detail__paragraph">{{ t.team.referralRewardsDisabled }}</text>
+          <NxButton class="invite-detail__support" :label="copy.contactSupport" @click="contactSupport" />
           <NxButton :label="copy.rewardRecords" @click="emit('records')" />
         </template>
         <template v-else>
@@ -17,7 +18,7 @@
             <view class="invite-detail__total"><text>{{ copy.totalEarned }}</text><text>{{ formatAmount(rewards.snapshot.lifetimeInviterNex) }} UVT</text></view>
             <view class="invite-detail__counts"><text>{{ copy.settled }} {{ rewards.snapshot.settledCount }}</text><text>{{ copy.pending }} {{ rewards.snapshot.pendingCount }}</text></view>
             <text class="invite-detail__caption">{{ copy.recentRewards }}</text>
-            <view v-for="row in rewards.snapshot.recentRewards" :key="row.settlementNo" class="invite-detail__record"><view><text>{{ date(row.settledAt) }}</text><text class="invite-detail__muted">{{ row.releaseBucket === 'withdrawable' ? t.team.settledToWallet : t.team.settledProtected }}</text></view><text>+{{ formatAmount(row.amountNex) }} UVT</text></view>
+            <view v-for="row in rewards.snapshot.recentRewards" :key="row.settlementNo" class="invite-detail__record"><view><text>{{ date(row.settledAt) }}</text><text class="invite-detail__muted">{{ referralSettlementStatus(locale.code,row.releaseBucket) }}</text></view><text>+{{ formatAmount(row.amountNex) }} UVT</text></view>
             <text v-if="!rewards.snapshot.recentRewards.length" class="invite-detail__paragraph">{{ t.team.noSettledRewards }}</text>
             <text v-else class="invite-detail__muted">{{ copy.latestRecords }}</text>
           </template>
@@ -31,9 +32,10 @@ import { computed } from 'vue';
 import { useReferralReward } from '@/store/referral-reward';
 import { useLocaleStore } from '@/store/locale';
 import { useT } from '@/i18n/use-t';
-import { teamRedesignCopy } from '@/i18n/team-redesign';
+import { teamRedesignCopy, referralSettlementStatus } from '@/i18n/team-redesign';
 import { dateLocale } from '@/i18n/format';
 import { formatAmount } from '@/lib/amount-display';
+import { navTo } from '@/lib/route';
 import { useDialogA11y } from '@/composables/use-dialog-a11y';
 import TeamArt from './team-art.vue';
 import NxButton from '@/components/ui/nx-button.vue';
@@ -44,6 +46,7 @@ const t = useT(), locale = useLocaleStore(), rewards = useReferralReward();
 const copy = computed(() => teamRedesignCopy(locale.code));
 const title = computed(() => props.mode === 'rules' ? copy.value.inviteRules : copy.value.rewardRecords);
 function date(value: string) { return new Intl.DateTimeFormat(dateLocale(), { month: 'short', day: 'numeric' }).format(new Date(value)); }
+function contactSupport() { emit('close'); navTo('/pages/me/support'); }
 useDialogA11y(computed(() => props.open), '.invite-detail', () => emit('close'));
 </script>
 <style scoped>
@@ -55,6 +58,7 @@ useDialogA11y(computed(() => props.open), '.invite-detail', () => emit('close'))
 .invite-detail__close > text { position: relative; z-index: 1; }
 .invite-detail__body { min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; padding-top: 16px; font: 400 14px/1.6 var(--font-v5); }
 .invite-detail__art { display: flex; justify-content: center; }
+.invite-detail__support { margin-bottom:12px; }
 .invite-detail__paragraph { display: block; margin-bottom: var(--ui-space-section); color: var(--v5-ink-2); }
 .invite-detail__total { display: flex; flex-direction: column; gap: 6px; }
 .invite-detail__total > text:last-child { font-size: 28px; font-weight: 600; overflow-wrap: anywhere; }

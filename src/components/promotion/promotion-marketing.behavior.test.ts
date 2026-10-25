@@ -94,6 +94,20 @@ function purchaseRule(type:'DEVICE'|'DISCOUNT_USDT'|'NEX'):PublicPromotion['rewa
   return {ruleId:'rule',productNo:'sku',minBuyQty:2,repeatMode:'PER_GROUP',maxGroups:{mode:'LIMITED',value:3},maxGroupsPerPerson:{mode:'LIMITED',value:4},inviterReward:null,buyerReward:type==='DEVICE'?{...common,type,giftProductNo:'gift',quantity:1}:{...common,type,calculation:'FIXED',amount:'50'}};
 }
 
+it('cycles actual home offers and leaves absolute expiry and purchase conditions inside rules',async()=>{
+  const first=activity({rewardRules:[purchaseRule('DEVICE')],endsAt:'2026-11-06T00:00:00Z'});
+  const screen=advert([first,activity({activityId:'a2'}),activity({activityId:'a3'})]);
+  const html=await screen.html();
+  expect(html).toContain('剩 29 天');expect(html).toContain('购机赠礼');expect(html).toContain('活动规则');
+  find(screen.node(),'entry-home-deadline')!.props!.onClick({stopPropagation(){}});
+  expect(screen.view.termsText.value).toContain('2026-11-06 00:00 · UTC');
+  expect(screen.view.termsRules.value[0].text).toContain('2');
+  find(screen.node(),'entry-pagination')!.props!.onClick();
+  expect(screen.view.visibleItems.value[0].activityId).toBe('a2');
+  screen.view.cycleOffer(-1);screen.view.cycleOffer(-1);
+  expect(screen.view.visibleItems.value[0].activityId).toBe('a3');
+});
+
 it.each([['DEVICE','gift','Actual gift device × 1'],['DISCOUNT_USDT','coupon','50.00 USDT'],['NEX','spark','50.00 UVT']] as const)('renders %s from published rewards without inventing claim or completion state',async(type,kind,benefit)=>{
   const offer=activity({rewardRules:[purchaseRule(type)]}),screen=advert([offer]);screen.props.mode='events';
   const html=await screen.html();expect(html).toContain(`data-activity-kind="${kind}"`);expect(html).toContain(benefit);

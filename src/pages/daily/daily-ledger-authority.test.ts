@@ -1,4 +1,4 @@
-import { formatAmount } from "@/lib/amount-display";
+import { formatGroupedAmount as formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { computed, reactive, ref } from "vue";
@@ -151,7 +151,7 @@ async function mountedDaily() {
   const toast = { success: vi.fn(), error: vi.fn(), warn: vi.fn(), info: vi.fn() }, shows: Array<() => void> = [], hides: Array<() => void> = [];
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
   const deps: Record<string, unknown> = {
-    "@/lib/amount-display": { formatAmount },
+    "@/lib/amount-display": { formatAmount, formatGroupedAmount },
     vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => void) => shows.push(fn), onHide: (fn: () => void) => hides.push(fn) },
     "@/api/runtime": remote, "@/store/app": { useApp: () => app }, "@/store/nex-faucet": { useNexFaucet: () => faucet },
     "@/store/bills": { useBills: () => bills }, "@/store/auth": { useAuth: () => auth }, "@/store/lucky-spin": { useLuckySpin: () => ({}) },

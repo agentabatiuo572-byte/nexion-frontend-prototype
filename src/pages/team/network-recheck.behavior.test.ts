@@ -1,3 +1,6 @@
+import { teamLogicCopy } from '@/i18n/team-logic-copy';
+import { formatLegacyUSD } from '@/lib/v-rank-copy';
+import * as draftSession from '@/lib/ambassador-draft-session';
 import * as Vue from 'vue';
 import { compileScript, parse } from '@vue/compiler-sfc';
 import { renderToString } from '@vue/server-renderer';
@@ -40,7 +43,8 @@ test.each(['zh', 'en', 'vi'] as const)('R02 distinguishes qualification, availab
   const tier = { productId: 'sample', name: 'Sample', price: 1299, monthlyStock: 60, soldThisMonth: 42, available: false,
     unlockKind: 'all', conditions: [{ label: 'Rank', current: 2, required: 3, kind: 'invites' }], perks: [], tint: 'var(--v5-brand)' };
   const card = component(quotaSource, {
-    '@/lib/amount-display': { formatAmount }, '@/i18n/compute-points': { formatComputePoints },
+    '@/i18n/team-logic-copy': { teamLogicCopy }, '@/lib/v-rank-copy': { formatLegacyUSD },
+    '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/compute-points': { formatComputePoints },
     '@/store/locale': { useLocaleStore: () => ({ code: language }) }, '@/i18n/network-reaudit': { networkReauditCopy },
     '@/i18n/use-t': { useT: () => Vue.ref(copy) }, '@/i18n/format': { fmt },
     '@/lib/product-media': { getProductMedia }, '@/components/ui/nx-button.vue': slot,
@@ -49,6 +53,7 @@ test.each(['zh', 'en', 'vi'] as const)('R02 distinguishes qualification, availab
   });
   const show = (value: typeof tier) => renderToString(Vue.createSSRApp(card, { tier: value }));
   const restricted = await show(tier);
+  expect(restricted).toContain(fmt(copy.quota.priceLine, { price: formatFinanceAmount(tier.price) }));
   expect(restricted).toContain(copy.store.purchaseEligibilityIneligible);
   expect(restricted).not.toContain(copy.quota.stockUnavailable);
   const qualified = { ...tier, conditions: [{ ...tier.conditions[0], current: 3 }] };
@@ -56,6 +61,18 @@ test.each(['zh', 'en', 'vi'] as const)('R02 distinguishes qualification, availab
   expect(await show({ ...qualified, soldThisMonth: 60 })).toContain(copy.quota.stockUnavailable);
   expect(await show({ ...qualified, available: true })).toContain(fmt(copy.quota.buyCta, { name: 'Sample' }));
   expect(tier.soldThisMonth).toBe(42); expect(tier.conditions[0].current).toBe(2);
+  const legacy = { ...qualified, available: true, conditions: [{ label: copy.quota.condTeamVol, current: 6000, required: 5000, kind: 'legacyUSD' }] };
+  const legacyText = await show(legacy);
+  expect(legacyText).toContain(teamLogicCopy(language).legacyTeam);
+  expect(legacyText).toContain(`${formatLegacyUSD(6000, language)} / ${formatLegacyUSD(5000, language)}`);
+  expect(legacyText).toContain(copy.quota.unlocked);
+  expect(legacyText).toContain(teamLogicCopy(language).pointsUnavailable);
+  expect(await show({ ...legacy, conditions: [{ ...legacy.conditions[0], current: 4999 }] })).toContain(copy.quota.locked);
+  const modernText = await show({ ...legacy, conditions: [{ ...legacy.conditions[0], kind: 'volume' }] });
+  expect(modernText).toContain(formatComputePoints(6000, language));
+  expect(modernText).not.toContain(teamLogicCopy(language).legacyTeam);
+  expect(modernText).not.toContain('USD');
+
 });
 
 test.each(['zh', 'en', 'vi'] as const)('R02 fallback daily output remains an estimate with its real token amount in %s', language => {
@@ -71,7 +88,7 @@ test('R12 reward currency keeps original credited, frozen, rejected and reversal
   const script = parse(binarySource).descriptor.scriptSetup!.content;
   const body = script.slice(script.indexOf('function binaryAmountLabel'), script.indexOf('\n}', script.indexOf('function binaryAmountLabel')) + 2);
   const compiled = ts.transpileModule(body, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const label = new Function('formatAmount', compiled + '\nreturn binaryAmountLabel;')(formatAmount);
+  const label = new Function('formatFinanceAmount', compiled + '\nreturn binaryAmountLabel;')(formatFinanceAmount);
   for (const [status, expected] of [['unlocked', '+$120.00'], ['frozen', '$120.00'], ['rejected', '$120.00'], ['reversed', '−$120.00']]) {
     const event = Object.freeze({ amountUSDT: 120, status }); expect(label(event)).toBe(expected); expect(event.amountUSDT).toBe(120);
   }
@@ -86,6 +103,8 @@ test.each(['zh', 'en', 'vi'] as const)('R13 keeps real budget bounds, neutral pr
   const nativeInput = { default: Vue.defineComponent({ props: ['modelValue', 'disabled'], setup: props => () => Vue.h('input', { disabled: props.disabled, value: props.modelValue }) }) };
   const adapted = agentSource.replace('<script setup lang="ts">', '<script setup lang="ts">\nimport UniInput from "./network-test-input.vue";').replace(/<input\b/g, '<UniInput');
   const page = mountEntry(adapted, {
+    '@/i18n/team-logic-copy': { teamLogicCopy },
+    '@/lib/ambassador-draft-session': { ...draftSession, ambassadorDraftCache: draftSession.createAmbassadorDraftCache() },
     './network-test-input.vue': nativeInput,
     '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount },
     '@/lib/route': { navTo }, '@dcloudio/uni-app': { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn(), onUnload: vi.fn() },

@@ -1,3 +1,4 @@
+import { teamLogicCopy } from "@/i18n/team-logic-copy";
 import { computePointsCopy, formatComputePoints } from "@/i18n/compute-points";
 // V 级晋升缺口的本地化文案。
 //
@@ -70,12 +71,17 @@ export function rankLabel(v: number, locale: LocaleCode, ladder: readonly VRankD
   return title ? `V${v} ${title}` : `V${v}`;
 }
 
+export function formatLegacyUSD(value: number | null | undefined, locale: string): string {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? `${formatHowNumber(value, locale)} USD` : "—";
+}
+
 /** 一条晋升缺口 → 当前语言的一句话。 */
 export function rankGapText(t: Messages, gap: RankGap, locale: LocaleCode, ladder: readonly VRankDef[]): string {
   switch (gap.kind) {
     case "selfBuy":
+      return fmt(teamLogicCopy(locale).legacyNeedSelf, { amount: formatLegacyUSD(gap.amount, locale) });
     case "teamVolume":
-      return computePointsCopy(locale).conditionsPending;
+      return fmt(teamLogicCopy(locale).legacyNeedTeam, { amount: formatLegacyUSD(gap.amount, locale) });
     case "selfComputePoints":
     case "teamComputePoints":
       if (gap.amount === undefined) return computePointsCopy(locale).conditionsPending;
@@ -107,10 +113,10 @@ export function rankConditionsText(t: Messages, conds: {
   const parts: string[] = [];
   const pointsCopy = computePointsCopy(locale);
   if (conds.selfComputePoints !== undefined) parts.push(`${pointsCopy.self} ≥ ${formatComputePoints(conds.selfComputePoints, locale)}`);
-  else if (conds.selfBuyUSD !== undefined) parts.push(pointsCopy.conditionsPending);
+  else if (conds.selfBuyUSD !== undefined) parts.push(`${teamLogicCopy(locale).legacySelf} ≥ ${formatLegacyUSD(conds.selfBuyUSD, locale)}`);
   if (conds.directRefs) parts.push(fmt(t.rank.cond.directRefs, { n: formatHowNumber(conds.directRefs, locale) }));
   if (conds.teamComputePoints !== undefined) parts.push(`${pointsCopy.team} ≥ ${formatComputePoints(conds.teamComputePoints, locale)}`);
-  else if (conds.teamVolumeUSD !== undefined && !parts.includes(pointsCopy.conditionsPending)) parts.push(pointsCopy.conditionsPending);
+  else if (conds.teamVolumeUSD !== undefined) parts.push(`${teamLogicCopy(locale).legacyTeam} ≥ ${formatLegacyUSD(conds.teamVolumeUSD, locale)}`);
   if (conds.vDownlines) {
     for (const [v, n] of Object.entries(conds.vDownlines)) if (n > 0) parts.push(fmt(t.rank.cond.vDownlines, { n: formatHowNumber(n, locale), v }));
   }

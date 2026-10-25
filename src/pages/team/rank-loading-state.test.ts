@@ -1,3 +1,7 @@
+import { teamLogicCopy } from '@/i18n/team-logic-copy';
+import { increasedRankBenefitKeys, rankBenefitIncreaseHeading } from '@/lib/team-rank-benefits';
+import { teamRankRequirements } from '@/lib/team-rank-progress';
+import { formatLegacyUSD } from '@/lib/v-rank-copy';
 import * as Vue from 'vue';
 import { formatAmount } from '@/lib/amount-display';
 import type { Component } from 'vue';
@@ -75,6 +79,7 @@ const facts = (): VRankData & { ladder: VRankDef[] } => ({
   myRank: 0, selfBuyUSD: 0, directRefs: 0, teamVolumeUSD: 0, vDownlineCounts: {}, ladder: ladder(),
 });
 async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
+  const auth = Vue.reactive({ accountId: 'user:rank-review-A' });
   const refreshCanonicalVRank = vi.fn(() => {});
   const state = Vue.reactive({ ...facts(), remoteReady: !!initial, remoteError: null as string | null,
     capabilities: { peer: false, genesis: false }, prizeName: '', ...initial,
@@ -84,10 +89,12 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
   const navTo = vi.fn();
   const shows: Array<() => void> = [];
   const dependencies: Record<string, unknown> = {
+    '@/lib/team-rank-benefits': { increasedRankBenefitKeys, rankBenefitIncreaseHeading },
+    '@/i18n/team-logic-copy': { teamLogicCopy }, '@/lib/team-rank-progress': { teamRankRequirements },
     '@/lib/amount-display': { formatAmount },
     vue: Vue, '@/lib/route': { navTo }, '@/lib/brand-copy': { platformDisplayText },
     '@/lib/rank-entitlement-label': { isEntitlementVRankReward, rankEntitlementLabel },
-    '@/lib/v-rank-copy': { rankGapText, rankConditionsText, rankLabel, rankCultivationCopy },
+    '@/lib/v-rank-copy': { rankGapText, rankConditionsText, rankLabel, rankCultivationCopy, formatLegacyUSD },
     '@/lib/rank-how-content': { formatHowNumber },
     '@/i18n/compute-points': { computePointsCopy, formatComputePoints },
     '@/i18n/format': { fmt },
@@ -95,13 +102,14 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
     '@/components/ui/nx-button.vue': { default: { props: ['label'], setup: (props: any) => () => Vue.h('text', props.label) } },
     '@/components/ui/nx-section.vue': { default: slot },
     '@/components/ui/nx-list-group.vue': { default: slot },
-    '@/components/ui/nx-list-row.vue': { default: { props: ['title'], setup: (props: any) => () => Vue.h('text', props.title) } },
+    '@/components/ui/nx-list-row.vue': { default: { props: ['title', 'subtitle'], setup: (props: any) => () => Vue.h('text', { 'data-gap-action': props.subtitle }, props.title) } },
     '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[locale]) },
     '@/store/locale': { useLocaleStore: () => ({ code: locale }) },
+    '@/store/auth': { useAuth: () => auth },
     '@/store/v-rank': { useVRank: () => state, nextRankProgress },
     '@/api/runtime': { remoteApiEnabled: true },
     '@dcloudio/uni-app': { onShow: (callback: () => void) => shows.push(callback) },
-    '@/components/app-chassis.vue': { default: slot }, '@/components/sub-page-header.vue': { default: { render: () => Vue.h('header') } },
+    '@/components/app-chassis.vue': { default: slot }, '@/components/sub-page-header.vue': { default: { props: ['actionLabel', 'action'], setup: (props: any) => () => Vue.h('view', { role: 'link', onClick: props.action }, props.actionLabel) } },
     '@/components/team/team-rank-emblem.vue': { default: { props: ['rank', 'size'], setup: (props: any) => () => Vue.h('view', { 'data-rank-emblem': props.rank, 'data-size': props.size }) } },
     '@/components/team/v-badge-icon.vue': { default: { render: () => Vue.h('view') } },
     '@/composables/use-scroll-grow-progress': {
@@ -122,10 +130,48 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
     await Vue.nextTick();
   };
   if (initial) await ready(); else await Vue.nextTick();
-  return { root, state, navTo, ready, show: async () => { shows.forEach(callback => callback()); await Vue.nextTick(); } };
+  return { root, state, auth, navTo, ready, show: async () => { shows.forEach(callback => callback()); await Vue.nextTick(); } };
 }
 
 describe('rank page canonical read and next-rank progress', () => {
+  it.each(['en', 'zh', 'vi'] as const)('keeps the selected %s tier and intentional collapse through same-account rereads', async locale => {
+    const loaded = facts(); loaded.myRank = 2;
+    const p = await page(locale, loaded);
+    const heading = (v: number) => all(p.root).find(item => item.props['aria-controls'] === `rank-details-${v}`)!;
+    const opened = () => all(p.root).filter(item => item.props['aria-controls']?.startsWith('rank-details-') && item.props['aria-expanded']).map(item => item.props['aria-controls']);
+    expect(opened()).toEqual(['rank-details-3']);
+    heading(8).props.onClick(); await Vue.nextTick();
+    expect(opened()).toEqual(['rank-details-8']);
+    all(p.root).find(item => item.props.role === 'link')!.props.onClick();
+    expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/rank-how');
+    await p.show();
+    // A failed reread clears rank facts in the store. It is not an account change.
+    p.state.ladder = []; p.state.remoteError = 'unavailable'; await Vue.nextTick();
+    await p.ready(loaded);
+    expect(opened()).toEqual(['rank-details-8']);
+    await p.show(); await p.ready({ ...loaded, myRank: 3 });
+    expect(opened()).toEqual(['rank-details-8']);
+    heading(8).props.onClick(); await Vue.nextTick();
+    expect(opened()).toEqual([]);
+    await p.show(); await p.ready(loaded);
+    expect(opened()).toEqual([]);
+  });
+
+  it('reinitializes the tier only for a different account or a removed published tier', async () => {
+    const loaded = facts(); loaded.myRank = 2;
+    const p = await page('en', loaded);
+    const heading = (v: number) => all(p.root).find(item => item.props['aria-controls'] === `rank-details-${v}`)!;
+    const opened = () => all(p.root).filter(item => item.props['aria-controls']?.startsWith('rank-details-') && item.props['aria-expanded']).map(item => item.props['aria-controls']);
+    heading(8).props.onClick(); await Vue.nextTick();
+    await p.show(); await p.ready({ ...loaded, ladder: loaded.ladder.filter(rank => rank.v !== 8) });
+    expect(opened()).toEqual(['rank-details-3']);
+    heading(7).props.onClick(); await Vue.nextTick();
+    await p.show(); p.auth.accountId = 'user:rank-review-B'; await Vue.nextTick();
+    await p.ready({ ...loaded, myRank: 4 });
+    expect(opened()).toEqual(['rank-details-5']);
+    expect(p.state.myRank).toBe(4);
+  });
+
   it.each(['en', 'zh', 'vi'] as const)('keeps %s unknown/error/retry separate from a loaded rank', async locale => {
     const p = await page(locale), copy = dictionaries[locale];
     const unknown = () => {
@@ -203,6 +249,9 @@ describe('rank page canonical read and next-rank progress', () => {
     const descriptions = all(p.root).filter(item => item.props.class === 'rank-reward-description').map(text);
     expect(descriptions).toEqual([trigger, trigger.replace('900.00', '880.00')]);
     expect(all(p.root).filter(item => item.props.class === 'rank-reward-title').map(text)).toEqual([title, title]);
+    // The displayed amount belongs to the same individual reward as its trigger
+    // and recipient; the aggregate bonus and self/direct rewards cannot leak in.
+    expect(all(p.root).filter(item => item.props.class === 'rank-reward-amount').map(text)).toEqual(['900.00 UVT', '880.00 UVT']);
     const recipients = all(p.root).filter(item => item.props.class === 'rank-reward-note').map(text);
     expect(recipients).toHaveLength(2);
     for (const recipient of recipients) expect(recipient).toContain(fallback);
@@ -225,15 +274,16 @@ describe('rank page canonical read and next-rank progress', () => {
     expect(text(p.root)).not.toContain('$');
   });
 
-  it.each(['en', 'zh', 'vi'] as const)('keeps legacy and missing %s point facts unknown, then refreshes them independently', async locale => {
+  it.each(['en', 'zh', 'vi'] as const)('discloses legacy USD gates and keeps missing %s point facts unknown after migration', async locale => {
     const loaded = facts(); loaded.selfBuyUSD = 39.8; loaded.teamVolumeUSD = 99999;
     loaded.ladder[1].conditions = { selfBuyUSD: 500, teamVolumeUSD: 5000, directRefs: 3 };
     const p = await page(locale, loaded);
-    const pending = computePointsCopy(locale).conditionsPending;
-    expect(text(p.root)).toContain(pending); expect(text(p.root)).not.toContain('$');
-    const pointBars = () => all(p.root).filter(item => item.props.role === 'progressbar' && String(item.props['aria-label']).includes(pending));
-    expect(pointBars()).toHaveLength(2);
-    expect(pointBars().every(bar => bar.props['aria-valuenow'] === undefined && bar.props['aria-valuetext'] === '— / —')).toBe(true);
+    const pending = teamLogicCopy(locale).unknownProgress;
+    expect(text(p.root)).toContain(teamLogicCopy(locale).legacySelf);
+    expect(text(p.root)).toContain(formatLegacyUSD(500, locale));
+    const moneyBars = all(p.root).filter(item => item.props.role === 'progressbar' && String(item.props['aria-label']).includes('USD'));
+    expect(moneyBars).toHaveLength(2);
+    expect(moneyBars.map(bar => bar.props['aria-valuenow'])).toEqual([8, 100]);
     expect(p.state.selfBuyUSD).toBe(39.8); expect(p.state.myRank).toBe(0);
     p.state.ladder[1].conditions = { selfComputePoints: 2000, teamComputePoints: 20000 };
     await Vue.nextTick();
@@ -324,8 +374,59 @@ describe('rank page canonical read and next-rank progress', () => {
     const loaded = facts(); loaded.ladder = loaded.ladder.slice(0, 9); loaded.myRank = 8;
     const p = await page(locale, loaded), copy = dictionaries[locale];
     expect(text(p.root)).toContain(locale === 'zh' ? 'V8 公开 8' : 'V8 Published 8');
+    expect(all(p.root).filter(item => item.props.class === 'rank-current-level').map(text)).toEqual(['V8']);
+    expect(all(p.root).some(item => item.props['data-rank-emblem'] === 8 && item.props['data-size'] === 76)).toBe(true);
     expect(text(p.root)).not.toContain(copy.rank.next); expect(text(p.root)).not.toContain(copy.rank.upgradeCta);
     expect(text(p.root)).not.toContain(' / '); expect(text(p.root)).not.toContain('100%');
     expect(text(p.root)).not.toContain(copy.rank.needSelfBuy); expect(text(p.root)).not.toContain('V9');
   });
+});
+
+
+it.each(['zh', 'en', 'vi'] as const)('TI-F06 counts all active preceding gaps and actions separately from unknowns in %s', async locale => {
+  const loaded = facts(); loaded.myRank = 2; loaded.selfComputePoints = 90; loaded.teamComputePoints = 20000; loaded.directRefs = 1;
+  loaded.ladder[1].conditions = { selfComputePoints: 100, directRefs: 3 };
+  loaded.ladder[2].conditions = { teamComputePoints: 5000 };
+  loaded.ladder[3].conditions = { teamComputePoints: 20000 };
+  const p = await page(locale, loaded);
+  expect(text(p.root)).toContain(fmt(auditUiCopy[locale].remainingConditions, { n: 2 }));
+  const actions = () => all(p.root).filter(item => item.props['data-gap-action']);
+  expect(actions()).toHaveLength(2);
+  expect(actions().every(item => item.props['data-gap-action'].startsWith('V1 ·'))).toBe(true);
+  p.state.selfComputePoints = undefined; await Vue.nextTick();
+  expect(text(p.root)).toContain(fmt(auditUiCopy[locale].remainingConditions, { n: 1 }));
+  expect(text(p.root)).toContain(fmt(teamLogicCopy(locale).unknownConditions, { n: 1 }));
+  expect(actions()).toHaveLength(1);
+  expect(p.state.myRank).toBe(2);
+  p.state.selfComputePoints = 100; p.state.directRefs = 3; await Vue.nextTick();
+  expect(actions()).toHaveLength(0);
+});
+
+it.each(['zh', 'en', 'vi'] as const)('R1-TV05 shows only published increases in %s while keeping full benefits and dispatch restrictions', async locale => {
+  const loaded = facts(); loaded.myRank = 2;
+  loaded.ladder[2].unilevelDepth = 3;
+  loaded.ladder[3].unilevelDepth = 4;
+  loaded.ladder[3].leadershipVotes = 1;
+  const p = await page(locale, loaded), copy = dictionaries[locale];
+  const upcoming = () => all(p.root).find(item => item.props.class === 'rank-upcoming')!;
+  const full = () => all(p.root).find(item => item.props.id === 'rank-details-3')!;
+  expect(text(upcoming())).toContain(rankBenefitIncreaseHeading(locale));
+  expect(text(upcoming())).toContain('L1–L4');
+  expect(text(upcoming())).not.toContain(copy.rank.chips.direct);
+  expect(text(full())).toContain(copy.rank.chips.direct);
+  expect(text(full())).toContain('10%');
+  const peerNotice = fmt(copy.rank.chips.peerNotDispatched, { n: '5' });
+  expect(text(upcoming())).toContain(peerNotice); // Unchanged, undispatched peer benefit is still disclosed.
+  expect(text(full())).toContain(peerNotice);
+  p.state.capabilities.peer = true; await Vue.nextTick();
+  expect(text(upcoming())).not.toContain(peerNotice);
+  p.state.ladder[3].peerBonus = .1; await Vue.nextTick();
+  expect(text(upcoming())).toContain(copy.rank.chips.peer);
+  expect(text(upcoming())).toContain('10%');
+  // Missing current rank must not become a fabricated zero baseline.
+  p.state.ladder = p.state.ladder.filter(rank => rank.v !== 2); await Vue.nextTick();
+  expect(text(upcoming())).toContain(auditUiCopy[locale].nextBenefits);
+  expect(text(upcoming())).toContain(copy.rank.chips.direct);
+  expect(text(upcoming())).not.toContain(rankBenefitIncreaseHeading(locale));
+  expect(p.state.myRank).toBe(2);
 });

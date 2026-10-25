@@ -73,6 +73,7 @@ const unmounts: Array<() => void> = [];
 function mount(messages = en, throughEntry = false) {
   const account = Vue.reactive({ accountKey: "user:1", accountBindingEpoch: 1, user: { referralCode: "UNCONFIRMED_LOCAL_CODE" } });
   const dependencies: Record<string, unknown> = {
+    "@/lib/route": { navTo: vi.fn() },
     vue: Vue, "@/lib/amount-display": { formatAmount }, "@/i18n/format": { fmt },
     "@/i18n/use-t": { useT: () => Vue.ref(messages) },
     "@/composables/use-product-phase": { useProductPhase: () => Vue.ref({ inviteBonusMultiplier: 1 }) },

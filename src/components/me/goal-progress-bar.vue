@@ -34,7 +34,7 @@ const trackStyle: CSSProperties = {
 const fillStyle = computed<CSSProperties>(() => ({
   height: "100%",
   width: `${inView.value ? props.pct : 0}%`,
-  background: "linear-gradient(to right, var(--v5-warning), var(--v5-brand))",
+  background: "linear-gradient(to right, var(--v5-brand), var(--v5-brand))",
   transition: inView.value ? PROGRESS_GROW_TRANSITION : "none",
   willChange: "width",
 }));

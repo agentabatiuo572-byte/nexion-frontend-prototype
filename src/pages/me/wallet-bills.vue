@@ -70,7 +70,7 @@
             <view class="text-right shrink-0" style="margin-left: 8px">
               <view :style="amountStyle(b)">
                 <text>{{ isDebit(b) ? "-" : "+" }}{{ fmtAmount(b) }}</text>
-                <text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 4px">{{ platformDisplayText(b.symbol) }}</text>
+                <text style="font-size: 12px; color: var(--v5-ink-2); margin-left: 4px">{{ platformDisplayText(b.symbol) }}</text>
               </view>
               <text
                 v-if="b.balanceAfter !== undefined && b.symbol === 'USDT'"
@@ -107,7 +107,7 @@
 <script setup lang="ts">
 import { platformDisplayText } from "@/lib/brand-copy";
 
-import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
 import { computed, nextTick, onBeforeUnmount, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -279,20 +279,19 @@ function billMemo(b: Bill): string {
   return resolveWalletBillMemo(b, t.value.bills.memo as Record<string, string>, courseTitles.value);
 }
 function toggleSourceRef(id: string) { sourceRefOpen.value = sourceRefOpen.value === id ? "" : id; }
-function decimalLabel(exact: string | undefined, fallback: number): string {
-  const [whole, fraction] = formatAmount(exact === undefined ? Math.abs(fallback) : exact.replace(/^-/, "")).split(".");
-  if (fraction === undefined) return whole;
-  const vietnamese = dateLocale().startsWith("vi");
-  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, vietnamese ? "." : ",") + (vietnamese ? "," : ".") + fraction;
+function decimalLabel(exact: string | undefined, fallback: number, symbol: Bill['symbol']): string {
+  const amount = exact === undefined ? Math.abs(fallback) : exact.replace(/^-/, "");
+  const formatted = formatUsd(amount, symbol === 'USDT' ? 'detail' : 'overview').replace('$', '');
+  return dateLocale().startsWith('vi') ? formatted.replace(/[.,]/g, mark => mark === '.' ? ',' : '.') : formatted;
 }
 function isDebit(b: Bill): boolean {
   return b.amountExact === undefined ? b.amount < 0 : b.amountExact.startsWith("-");
 }
 function runningBalanceLabel(b: Bill): string {
-  return `${t.value.bills.runningBalance}: ${decimalLabel(b.balanceAfterExact, b.balanceAfter!)}`;
+  return `${t.value.bills.runningBalance}: ${decimalLabel(b.balanceAfterExact, b.balanceAfter!, b.symbol)}`;
 }
 function fmtAmount(b: Bill): string {
-  return decimalLabel(b.amountExact, b.amount);
+  return decimalLabel(b.amountExact, b.amount, b.symbol);
 }
 function fmtTime(ts: number): string {
   return walletBillTimeLabel(ts, dateLocale());
@@ -505,7 +504,7 @@ function statusBadgeStyle(s: BillStatus): CSSProperties {
   return { ...base, background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)", color: "var(--v5-brand-2)" };
 }
 const memoStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const timeStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-4)" };
+const timeStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-2)" };
 function amountStyle(b: Bill): CSSProperties {
   return {
     fontFamily: "var(--font-v5)",
@@ -515,7 +514,7 @@ function amountStyle(b: Bill): CSSProperties {
     fontVariantNumeric: "tabular-nums",
   };
 }
-const balanceAfterStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-4)" };
+const balanceAfterStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-2)" };
 const footerStyle: CSSProperties = {
   margin: "12px 24px 24px",
   textAlign: "center",

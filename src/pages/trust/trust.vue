@@ -20,8 +20,12 @@
         <view v-if="financialMetrics.length" class="trust-summary">
           <view v-for="metric in financialMetrics.slice(0,3)" :key="metric.key"><text class="trust-summary__value">{{ metric.value }}</text><text class="trust-summary__label">{{ metric.label }}</text></view>
         </view>
+        <view v-if="refreshing || refreshError" class="trust-refresh-status" role="status" aria-live="polite">
+          <text>{{ refreshing ? continuity.trustRefreshing : continuity.trustRefreshFailed }}</text>
+          <NxButton v-if="refreshError" variant="text" :label="t.ui.retry" @click="loadTrustSections" />
+        </view>
         <NxSection :title="resources.disclosures">
-          <NxListGroup><view v-for="item in categories" :key="item.key" class="trust-category">
+          <view class="trust-categories"><view v-for="item in categories" :key="item.key" class="trust-category">
             <view class="trust-category-toggle" role="button" tabindex="0" :aria-expanded="openCategory === item.key" @click="openCategory = openCategory === item.key ? '' : item.key" @keydown.enter.prevent="openCategory = openCategory === item.key ? '' : item.key" @keydown.space.prevent="openCategory = openCategory === item.key ? '' : item.key">
               <text>{{ item.title }}</text><text aria-hidden="true">{{ openCategory === item.key ? '−' : '+' }}</text>
             </view>
@@ -54,7 +58,7 @@
                 <NxButton variant="text" :label="auditCopy.securitySettings" @click="openHref('/pages/me/security')" />
               </template>
             </view>
-          </view></NxListGroup>
+          </view></view>
         </NxSection>
         <SectionHeader :label="resources.resources" />
         <view class="trust-surface" :style="listCardStyle">
@@ -106,6 +110,7 @@
 
 <script setup lang="ts">
 import { networkReauditCopy } from "@/i18n/network-reaudit";
+import { continuityCopy } from "@/i18n/continuity-fixes";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -138,12 +143,13 @@ const locale = useLocaleStore();
 const language = computed<TrustLocale>(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code as TrustLocale : "en");
 const auditCopy = computed(() => networkReauditCopy(language.value));
 const resources = computed(() => trustResources(language.value));
-const { sections, status, refresh } = usePublishedTrust();
+const continuity = computed(() => continuityCopy(language.value));
+const { sections, status, refreshing, refreshError, refresh } = usePublishedTrust();
 const categories = computed(() => resources.value.categories.map(item => ({
   ...item, material: trustCategoryMaterial(sections.value, item.key, language.value, safeHref),
 })));
-const loading = computed(() => remoteApiEnabled && (status.value === "idle" || status.value === "loading"));
-const hasError = computed(() => !remoteApiEnabled || status.value === "error");
+const loading = computed(() => remoteApiEnabled && !sections.value.length && (status.value === "idle" || status.value === "loading"));
+const hasError = computed(() => !remoteApiEnabled || (!sections.value.length && status.value === "error"));
 
 function section(key: PublishedTrustSection["sectionKey"]) {
   return sections.value.find((item) => item.sectionKey === key);
@@ -266,7 +272,7 @@ const metricStyle: CSSProperties = { padding: "14px", borderRight: "1px solid va
 const labelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const metricValueStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, color: "var(--v5-ink)" };
 const deltaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-success)" };
-const listCardStyle: CSSProperties = { borderRadius: "22px", overflow: "hidden", background: "var(--v5-surface)" };
+const listCardStyle: CSSProperties = { borderRadius: "0", background: "transparent" };
 function listRowStyle(last: boolean): CSSProperties { return { display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderBottom: last ? "none" : "1px solid var(--v5-border)" }; }
 const titleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
 const bodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
@@ -280,7 +286,9 @@ const retryStyle: CSSProperties = { minHeight: "44px", display: "flex", alignIte
 </script>
 
 <style scoped>
-.trust-category-toggle { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:64px; padding:12px 16px; color:var(--v5-ink); font-size:15px; }
+.trust-category + .trust-category { border-top: 1px solid var(--v5-border); }
+.trust-refresh-status { font:400 13px/1.6 var(--font-v5); color:var(--v5-ink-2); overflow-wrap:anywhere; }
+.trust-category-toggle { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:64px; padding:12px 0; color:var(--v5-ink); font-size:15px; }
 .trust-category-toggle:focus-visible, .trust-document:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; }
 .trust-document { padding:12px 0; border-bottom:1px solid var(--v5-border); }
 .trust-document:last-child { border-bottom:0; }

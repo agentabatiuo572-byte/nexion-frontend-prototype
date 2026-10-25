@@ -1,7 +1,7 @@
 <template>
-  <view v-if="enabled" class="nx-glass-card mx-4" :style="rootStyle" data-proof="compute-share-entry">
+  <view v-if="enabled" class="nx-glass-card compute-share-entry" :class="{ 'mx-4': context === 'devices' }" :style="rootStyle" data-proof="compute-share-entry">
     <view :style="iconStyle">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="12" rx="2" />
         <path d="M8 21h8" />
         <path d="m12 16 1 5" />
@@ -13,18 +13,13 @@
       <text class="block" :style="titleStyle">{{ t.computeShare.entryTitle }}</text>
       <text class="block" :style="bodyStyle">{{ slotsFull ? t.computeShare.entryFull : t.computeShare.entryBody }}</text>
     </view>
-    <view class="active:opacity-85" :style="ctaStyle" @click="goDownload">
-      <text>{{ t.computeShare.entryCta }}</text>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 12h14" />
-        <path d="m12 5 7 7-7 7" />
-      </svg>
-    </view>
+    <NxButton class="compute-share-entry__cta" size="small" :label="t.computeShare.entryCta" @click="goDownload" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { navTo } from "@/lib/route";
+import NxButton from "@/components/ui/nx-button.vue";
 import { computed, type CSSProperties } from "vue";
 import { useApp } from "@/store/app";
 import { useConfig } from "@/store/config";
@@ -37,16 +32,18 @@ const app = useApp();
 const cfg = useConfig();
 const t = useT();
 
-const enabled = computed(() => cfg.isEnabled("computeShareEnabled"));
+const enabled = computed(() => cfg.configStatus === "ready" && cfg.isEnabled("computeShareEnabled"));
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
 const slotsFull = computed(() => app.activeSlotCount + trialSlot.value >= app.slotCap);
 
 function goDownload() {
+  if (!enabled.value) return;
   navTo("/pages/compute-share/download");
 }
 
 const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
-  display: "flex",
+  display: "grid",
+  gridTemplateColumns: "40px minmax(0, 1fr)",
   alignItems: "center",
   gap: "12px",
   marginTop: "12px",
@@ -60,13 +57,13 @@ const iconStyle: CSSProperties = {
   borderRadius: "10px",
   display: "grid",
   placeItems: "center",
-  background: "color-mix(in srgb, var(--v5-tech-cyan) 13%, transparent)",
+  background: "var(--v5-surface-2)",
   flexShrink: 0,
 };
 const eyebrowStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
-  color: "var(--v5-tech-cyan-ink)",
+  color: "var(--v5-ink-2)",
   letterSpacing: "0.06em",
 };
 const titleStyle: CSSProperties = {
@@ -80,23 +77,12 @@ const bodyStyle: CSSProperties = {
   marginTop: "2px",
   fontSize: "12px",
   lineHeight: 1.35,
-  color: "var(--v5-ink-3)",
-};
-const ctaStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "4px",
-  minHeight: "36px",
-  padding: "0 10px",
-  borderRadius: "999px",
-  background: "var(--v5-surface-2)",
-  color: "var(--v5-tech-cyan-ink)",
-  fontFamily: "var(--font-v5)",
-  fontSize: "12px",
-  fontWeight: 600,
-  flexShrink: 0,
+  color: "var(--v5-ink-2)",
 };
 
 
 </script>
+
+<style scoped>
+.compute-share-entry__cta { grid-column: 2; justify-self: start; max-width: 100%; }
+</style>

@@ -31,6 +31,7 @@
                 <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-ink)">{{ amount(event.amountNEX) }} UVT</text>
               </view>
             </view>
+            <text class="block nx-unilevel-details">{{ logicCopy.eventAt }}: {{ teamEventDate(event.ts, locale.code) }}</text>
             <view style="margin-top: 6px"><text class="nx-royalty-status">{{ statusText(event) }}</text></view>
             <text v-if="event.status === 'recovery_pending'" class="block nx-direct-amount" style="margin-top: 4px; font-size: 12px; color: var(--v5-warning)">{{ fmt(auditCopy.pendingRecovery, { usdt: '$' + amount(event.recoveryPendingUSDT), uvt: amount(event.recoveryPendingNEX) }) }}</text>
             <view role="button" tabindex="0" class="nx-unilevel-focus nx-unilevel-details-toggle" :aria-expanded="expandedRecords.includes(event.id)" @click="toggleRecord(event.id)" @keydown.enter.prevent="toggleRecord(event.id)" @keydown.space.prevent="toggleRecord(event.id)"><text>{{ expandedRecords.includes(event.id) ? auditCopy.hideDetails : auditCopy.recordDetails }}</text></view>
@@ -38,6 +39,8 @@
               <text class="block">{{ filter === 'device_earning' ? t.directReferral.receipt : t.directReferral.order }} · {{ sourceReference(event) }}</text>
               <text v-if="'sourceDeviceId' in event && event.sourceDeviceId" class="block">{{ t.directReferral.device }}: {{ event.sourceDeviceId }}</text>
               <text class="block">{{ t.directReferral.settlement }}: {{ event.id }}</text>
+              <text class="block">{{ logicCopy.settledAt }}: {{ logicCopy.dateUnavailable }}</text>
+              <text v-if="event.status === 'cooling' || ('statusUSDT' in event && event.statusUSDT === 'cooling') || ('statusNEX' in event && event.statusNEX === 'cooling')" class="block">{{ logicCopy.expectedUnlockAt }}: {{ teamEventDate(event.unlockAt, locale.code) }}</text>
             </view>
           </view>
           <EmptyState v-if="remoteSnapshot.totalRows === 0" kind="no-filter-results" :title="t.directReferral.empty" :desc="t.directReferral.emptyDesc" />
@@ -69,6 +72,8 @@
 </template>
 
 <script setup lang="ts">
+import { teamLogicCopy } from "@/i18n/team-logic-copy";
+import { teamEventDate } from "@/lib/team-event-date";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onShow } from "@dcloudio/uni-app";
@@ -96,6 +101,7 @@ import { formatHowNumber } from "@/lib/rank-how-content";
 
 const t = useT(), app = useApp(), auth = useAuth();
 const locale = useLocaleStore();
+const logicCopy = computed(() => teamLogicCopy(locale.code));
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const expandedRecords = ref<string[]>([]);
 const showSettlementDetails = ref(false);

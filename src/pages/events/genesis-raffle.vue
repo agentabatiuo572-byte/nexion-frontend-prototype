@@ -2,9 +2,12 @@
   <AppChassis active="home"><view class="raffle-page">
     <SubPageHeader back="/pages/events/events?source=legacy" :title="copy.title" />
     <text class="raffle-copy">{{ copy.intro }}</text>
-    <text v-if="loading" class="raffle-copy" role="status">{{ copy.loading }}</text>
-    <view v-else-if="error" class="nx-glass-card raffle-card" role="alert"><text>{{ copy.error }}</text><view class="raffle-link" role="button" tabindex="0" @click="load" @keydown.enter.prevent="activate($event, load)" @keydown.space.prevent="activate($event, load)"><text>{{ copy.retry }}</text></view></view>
-    <template v-else-if="snapshot">
+    <view class="raffle-status" role="status" aria-live="polite">
+      <text v-if="loading">{{ copy.loading }}</text>
+      <text v-else-if="error && snapshot">{{ copy.refreshError }}</text>
+    </view>
+    <view v-if="error && !snapshot" class="nx-glass-card raffle-card" role="alert"><text>{{ copy.error }}</text><view class="raffle-link" role="button" tabindex="0" @click="load" @keydown.enter.prevent="activate($event, load)" @keydown.space.prevent="activate($event, load)"><text>{{ copy.retry }}</text></view></view>
+    <template v-if="snapshot">
       <view class="raffle-row"><text>{{ copy.available }}</text><text class="raffle-number">{{ snapshot.availableTickets }}</text></view>
       <text v-if="!snapshot.draws.length" class="raffle-copy">{{ copy.empty }}</text>
       <view v-for="draw in snapshot.draws" :key="draw.id" class="nx-glass-card raffle-card">
@@ -32,7 +35,7 @@
         </template>
         <text v-if="notice[draw.id]" class="raffle-copy" role="status">{{ copy[notice[draw.id]] }}</text>
       </view>
-      <view class="raffle-link" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="!!busy" @click="!busy && load()" @keydown.enter.prevent="!busy && activate($event, load)" @keydown.space.prevent="!busy && activate($event, load)"><text>{{ copy.refresh }}</text></view>
+      <view class="raffle-link" role="button" :tabindex="busy || loading ? -1 : 0" :aria-disabled="!!busy || loading" @click="!busy && !loading && load()" @keydown.enter.prevent="!busy && !loading && activate($event, load)" @keydown.space.prevent="!busy && !loading && activate($event, load)"><text>{{ error ? copy.retry : copy.refresh }}</text></view>
     </template>
   </view></AppChassis>
 </template>
@@ -51,6 +54,7 @@ import { useApp } from "@/store/app";
 import { useLocaleStore } from "@/store/locale";
 import { displayDeadline } from "@/lib/promotion-display";
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
 const app = useApp(), locale = useLocaleStore(), api = createGenesisRaffleApi(apiClient);
 const language = computed(() => locale.code === "zh" || locale.code === "vi" ? locale.code : "en");
 const copy = computed(() => genesisRaffleCopy[language.value]);
@@ -58,13 +62,40 @@ const snapshot = ref<GenesisRaffleState | null>(null), loading = ref(true), erro
 const pending = ref<Record<string, PendingRaffleEntry | null>>({}), tickets = ref<Record<string, string>>({});
 const notice = ref<Record<string, "success" | "error" | "pending">>({}), now = ref(Date.now());
 let visible = false, generation = 0;
+let boundaryTimer: ReturnType<typeof setTimeout> | null = null;
+function clearBoundaryTimer() {
+  if (boundaryTimer !== null) clearTimeout(boundaryTimer);
+  boundaryTimer = null;
+}
+function scheduleBoundary() {
+  clearBoundaryTimer();
+  if (!visible || !snapshot.value) return;
+  const clock = Date.now();
+  const next = Math.min(...snapshot.value.draws
+    .filter(draw => draw.status === 'OPEN')
+    .flatMap(draw => [Date.parse(draw.startsAt), Date.parse(draw.drawAt)])
+    .filter(time => Number.isFinite(time) && time > clock));
+  if (!Number.isFinite(next)) return;
+  boundaryTimer = setTimeout(() => {
+    boundaryTimer = null;
+    if (!visible) return;
+    now.value = Date.now();
+    // Long deadlines and a clock moving backwards need another bounded timer.
+    if (now.value < next) { scheduleBoundary(); return; }
+    // An in-flight entry must keep its generation and persisted idempotency key.
+    // Its completion already reads state back, including an uncertain outcome.
+    if (busy.value) scheduleBoundary();
+    else void load();
+  }, Math.min(next - clock, 2_147_483_647));
+}
 const accountScope = () => `${apiRuntimeConfig.baseUrl}:${app.accountKey}`;
 const identity = () => `${accountScope()}:${app.accountBindingEpoch}:${language.value}:${captureRuntimeRevision().epoch}`;
-function reset() { generation += 1; snapshot.value = null; pending.value = {}; tickets.value = {}; notice.value = {}; busy.value = ""; }
+function reset() { clearBoundaryTimer(); generation += 1; snapshot.value = null; pending.value = {}; tickets.value = {}; notice.value = {}; busy.value = ""; }
 async function load() {
   if (!visible) return;
+  clearBoundaryTimer();
   const request = ++generation, scope = identity(), account = accountScope();
-  loading.value = true; error.value = false; snapshot.value = null;
+  loading.value = true; error.value = false;
   const current = () => visible && request === generation && scope === identity();
   try {
     const value = await api.state();
@@ -72,14 +103,17 @@ async function load() {
     const entries = Object.fromEntries(value.draws.map(draw => [draw.id, pendingRaffleEntry(account, draw.id)]));
     snapshot.value = value; pending.value = entries; now.value = Date.now();
   } catch { if (current()) error.value = true; }
-  finally { if (current()) loading.value = false; }
+  finally { if (current()) { loading.value = false; scheduleBoundary(); } }
 }
 function localizedTitle(draw: GenesisRaffleDraw) { return language.value === "zh" ? draw.titleZh : language.value === "vi" ? draw.titleVi : draw.titleEn; }
 function localizedName(prize: GenesisRafflePrize) { return language.value === "zh" ? prize.nameZh : language.value === "vi" ? prize.nameVi : prize.nameEn; }
-function rewardText(prize: Pick<GenesisRafflePrize, "rewardType" | "amount">) { return `${formatAmount(prize.amount)} ${prize.rewardType === "NEX" ? "UVT" : prize.rewardType === "DEVICE" ? copy.value.device : "USDT"}`; }
+function rewardText(prize: Pick<GenesisRafflePrize, "rewardType" | "amount">) {
+  if (prize.rewardType === "USDT") return formatUsd(prize.amount, "detail");
+  return `${formatAmount(prize.amount)} ${prize.rewardType === "NEX" ? "UVT" : copy.value.device}`;
+}
 function entryOpen(draw: GenesisRaffleDraw) { return draw.status === "OPEN" && now.value >= Date.parse(draw.startsAt) && now.value < Date.parse(draw.drawAt); }
 function canEnter(draw: GenesisRaffleDraw) {
-  if (busy.value || loading.value || !snapshot.value) return false;
+  if (!visible || busy.value || loading.value || error.value || !snapshot.value) return false;
   if (pending.value[draw.id]) return true;
   const count = Number(tickets.value[draw.id] ?? 1);
   return entryOpen(draw) && Number.isSafeInteger(count) && count > 0 && count <= snapshot.value.availableTickets;
@@ -89,6 +123,7 @@ function setTickets(id: string, event: unknown) {
   tickets.value[id] = input.detail?.value ?? input.target?.value ?? "";
 }
 async function enter(draw: GenesisRaffleDraw) {
+  now.value = Date.now();
   if (!canEnter(draw)) return;
   const scope = identity(), request = generation, account = accountScope();
   const current = () => visible && scope === identity() && request === generation;
@@ -121,6 +156,7 @@ onUnmounted(() => { visible = false; reset(); unsubscribe(); });
 .raffle-card { margin-top:14px; padding:16px; border-radius:var(--nx-glass-radius); background:var(--nx-glass-fill); box-shadow:var(--nx-glass-edge); }
 .raffle-title { display:block; font-size:18px; font-weight:600; overflow-wrap:anywhere; }
 .raffle-copy { display:block; margin-top:10px; font-size:12px; color:var(--v5-ink-3); line-height:1.6; }
+.raffle-status { min-height: 20px; margin-top: 10px; font-size: 12px; color: var(--v5-ink-2); line-height: 20px; }
 .raffle-row, .raffle-prize { display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:6px 12px; margin-top:12px; font-size:12px; line-height:1.5; }
 .raffle-prize { padding:10px 0; border-bottom:1px solid var(--v5-border); }
 .raffle-heading { display:block; margin-top:18px; font-size:14px; font-weight:600; }

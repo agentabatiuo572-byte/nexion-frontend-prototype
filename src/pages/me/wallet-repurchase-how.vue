@@ -4,8 +4,8 @@
   Reuses shared how-* components + an inline worked-example panel. lemon accent.
 -->
 <template>
-  <AppChassis v-if="visibility.configStatus === 'ready' && visibility.isEnabled('stakingVisible')" active="me">
-    <HowPublishedContent v-if="remoteApiEnabled" content-key="wallet-repurchase-how" back="/pages/me/wallet-repurchase" />
+  <AppChassis v-if="visibility.isEnabled('stakingVisible')" active="me">
+    <HowPublishedContent v-if="remoteApiEnabled" content-key="wallet-repurchase-how" back="/pages/me/wallet-repurchase" neutral />
     <view v-if="!remoteApiEnabled" style="padding-bottom: 32px">
       <SubPageHeader back="/pages/me/wallet-repurchase" />
 

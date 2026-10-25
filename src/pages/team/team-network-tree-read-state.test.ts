@@ -30,7 +30,7 @@ async function renderTree(remoteStatus: "idle" | "loading" | "ready" | "error", 
     },
     setup: () => ({
       formatAmount, formatComputePoints, locale: {code:"en"},
-      remoteApiEnabled: remote,
+      remoteApiEnabled: remote, rosterMounted: !remote || remoteStatus === 'ready',
       network: { remoteStatus, refreshCanonicalNetwork: vi.fn(), ensureCanonicalNetwork: vi.fn() },
       t: { network: en.network, tree: en.tree },
       members: [], direct: [], extended: [], totalVol: 0, directSubtitle: "", extendedSubtitle: "",
@@ -102,11 +102,12 @@ describe("team network and tree remote read states", () => {
       refreshCanonicalNetwork: vi.fn(),
     };
 
-    new Function("remoteApiEnabled", "network", "onMounted", "onShow", "setInterval", compiled)(
+    new Function("remoteApiEnabled", "network", "onMounted", "onShow", "onHide", "setInterval", compiled)(
       true,
       network,
       (callback: () => void) => mounted.push(callback),
       (callback: () => void) => shown.push(callback),
+      () => undefined,
       () => 1,
     );
     mounted.forEach((callback) => callback());

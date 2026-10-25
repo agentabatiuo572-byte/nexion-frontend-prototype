@@ -17,8 +17,8 @@
       <!-- Hero -->
       <view class="mx-4" :style="heroStyle">
         <view class="flex items-center" style="gap: 8px; margin-bottom: 6px">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
-          <text class="font-mono-tabular" :style="heroLabelStyle">{{ t.goals.heroLabel }}</text>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
+          <text :style="heroLabelStyle">{{ t.goals.heroLabel }}</text>
         </view>
         <text class="block" :style="heroTitleStyle">{{ t.goals.heroTitle }}</text>
         <text v-if="editorHasSnapshot" class="block" :style="heroSubStyle">{{ heroSubLine }}</text>
@@ -75,7 +75,7 @@
 
             @keydown.enter.prevent="selectDays(d)" @keydown.space.prevent="selectDays(d)" @keydown.left.prevent="moveDays(di, -1)" @keydown.right.prevent="moveDays(di, 1)"
           >
-            <text :style="presetDeadlineLabelStyle(d)">{{ d }}d</text>
+            <text :style="presetDeadlineLabelStyle(d)">{{ fmt(t.goals.deadlinePresetLabel, { days: String(d) }) }}</text>
           </view>
         </view>
       </view>
@@ -139,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatGroupedAmount as formatAmount } from "@/lib/amount-display";
 import { navReset } from "@/lib/route";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -418,7 +418,7 @@ function presetTargetStyle(p: number): CSSProperties {
     height: "44px",
     borderRadius: "8px",
     // 未选中原 surface-2 与页面底同色不可辨(亮色 ΔE 2.2),预设块直接坐在页面底上 → 改 L1
-    background: target.value === p ? "var(--v5-warning)" : "var(--v5-surface)",
+    background: target.value === p ? "var(--v5-brand)" : "var(--v5-surface)",
   };
 }
 function presetTargetLabelStyle(p: number): CSSProperties {
@@ -431,6 +431,9 @@ function presetTargetLabelStyle(p: number): CSSProperties {
 function presetDeadlineStyle(d: number): CSSProperties {
   return {
     height: "44px",
+    minWidth: 0,
+    padding: "0 4px",
+    boxSizing: "border-box",
     borderRadius: "8px",
     // 同上:与目标预设同容器同尺寸,未选中态一并改 L1
     background: days.value === d ? "var(--v5-brand)" : "var(--v5-surface)",
@@ -438,8 +441,12 @@ function presetDeadlineStyle(d: number): CSSProperties {
 }
 function presetDeadlineLabelStyle(d: number): CSSProperties {
   return {
-    fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+    fontFamily: "var(--font-v5)",
     fontSize: "12px",
+    lineHeight: "18px",
+    whiteSpace: "nowrap",
+    textAlign: "center",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: days.value === d ? 600 : 400,
     color: days.value === d ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
   };
@@ -450,9 +457,11 @@ function presetDeadlineLabelStyle(d: number): CSSProperties {
 // 2px inset (mx-4 + this) aligns with the labels + groups below at 18px.
 const heroStyle: CSSProperties = { padding: "0 2px" };
 const heroLabelStyle: CSSProperties = {
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
-  letterSpacing: "0.16em",
-  color: "var(--v5-warning)",
+  lineHeight: "18px",
+  letterSpacing: "0.04em",
+  color: "var(--v5-brand)",
 };
 const heroTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -460,6 +469,8 @@ const heroTitleStyle: CSSProperties = {
   fontWeight: 600,
   color: "var(--v5-ink)",
   lineHeight: 1.25,
+  textWrap: "balance",
+  wordBreak: "normal",
 };
 const heroSubStyle: CSSProperties = {
   marginTop: "6px",
@@ -489,7 +500,7 @@ const inputBoxStyle: CSSProperties = {
 const dollarStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontSize: "20px",
-  color: "var(--v5-warning)",
+  color: "var(--v5-brand)",
 };
 const targetInputStyle: CSSProperties = {
   height: "40px",
@@ -542,7 +553,7 @@ const saveBtnStyle: CSSProperties = {
   gap: "6px",
   height: "48px",
   borderRadius: "999px",
-  background: "var(--v5-warning)",
+  background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
 };
 const saveBtnPendingStyle: CSSProperties = { background: "var(--v5-surface-2)", color: "var(--v5-ink-3)" };
@@ -580,8 +591,9 @@ const goalTargetStyle: CSSProperties = {
   color: "var(--v5-ink)",
 };
 const goalRemoveStyle: CSSProperties = {
-  width: "28px",
-  height: "28px",
+  width: "44px",
+  height: "44px",
+  flexShrink: 0,
   borderRadius: "6px",
   background: "var(--v5-surface-2)",
 };
@@ -599,7 +611,7 @@ const goalFootMutedStyle: CSSProperties = {
 const goalFootPctStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
-  color: "var(--v5-warning)",
+  color: "var(--v5-brand)",
 };
 const achievedBadgeStyle: CSSProperties = {
   marginTop: "8px",

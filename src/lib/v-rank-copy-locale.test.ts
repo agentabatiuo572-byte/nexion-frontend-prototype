@@ -1,3 +1,4 @@
+import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import { describe, expect, it, vi } from "vitest";
 import { rankConditionsText, rankCultivationCopy, rankGapText, rankLabel, rankName } from "./v-rank-copy";
 import { en } from "@/i18n/messages/en";
@@ -69,12 +70,15 @@ describe("canonical V-rank title locale", () => {
     ["en", en, "Compute requirements pending"],
     ["zh", zh, "算力条件待公布"],
     ["vi", vietnamese, "Chưa công bố điều kiện điểm"],
-  ] as const)("keeps unpublished %s point thresholds unknown instead of relabeling legacy money", (locale, copy, pending) => {
+  ] as const)("discloses real %s legacy USD thresholds without relabeling money as points", (locale, copy, pending) => {
     vi.stubGlobal("Intl", undefined);
     try {
-      expect(rankGapText(copy, { kind: "selfBuy", amount: 500 - 499.999999 }, locale, [])).toBe(pending);
-      expect(rankGapText(copy, { kind: "teamVolume", amount: 2_000 - 1234.123456 }, locale, [])).toBe(pending);
-      expect(rankConditionsText(copy, { teamVolumeUSD: 1234.123456 }, locale)).toBe(pending);
+      expect(rankGapText(copy, { kind: "selfBuy", amount: 500 - 499.999999 }, locale, [])).toContain(locale === "vi" ? "0,000001 USD" : "0.000001 USD");
+      expect(rankGapText(copy, { kind: "teamVolume", amount: 2_000 - 1234.123456 }, locale, [])).toContain("USD");
+      const legacy = rankConditionsText(copy, { teamVolumeUSD: 1234.123456 }, locale);
+      expect(legacy).toContain(teamLogicCopy(locale).legacyTeam);
+      expect(legacy).toContain(locale === "vi" ? "1.234,123456 USD" : "1,234.123456 USD");
+      expect(legacy).not.toContain(pending);
     } finally { vi.unstubAllGlobals(); }
   });
 });

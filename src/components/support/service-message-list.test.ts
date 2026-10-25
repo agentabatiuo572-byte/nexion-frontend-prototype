@@ -31,13 +31,14 @@ function mount() {
   return { worker, props, navTo, emit, refresh, conversations, tickets };
 }
 describe("unified service rows", () => {
-  it("shows one customer window with combined human unread and excludes retained ticket data", () => {
+  it("keeps each conversation's unread count, latest preview and target together", () => {
     const h = mount();
-    expect(h.worker.rows.value.map((row: { kind: string }) => row.kind)).toEqual(["advisor"]);
+    expect(h.worker.rows.value.map((row: { kind: string }) => row.kind)).toEqual(["advisor", "advisor"]);
     expect(h.worker.rows.value[0].preview).toBe("Advisor reply");
-    expect(h.worker.rows.value[0].unread).toBe(3);
-    h.props.filter = "advisor"; expect(h.worker.rows.value).toHaveLength(1);
-    h.props.filter = "support"; expect(h.worker.rows.value).toHaveLength(1);
+    expect(h.worker.rows.value.map((row: { unread: number }) => row.unread)).toEqual([2, 1]);
+    expect(h.worker.rows.value[1].preview).toBe('Latest server summary');
+    h.props.filter = "advisor"; expect(h.worker.rows.value).toHaveLength(2);
+    h.props.filter = "support"; expect(h.worker.rows.value).toHaveLength(2);
     h.props.filter = "ticket"; expect(h.worker.rows.value).toHaveLength(0);
     expect(source).not.toContain("support-tickets");
   });
@@ -45,8 +46,18 @@ describe("unified service rows", () => {
     const h = mount();
     h.worker.openRow(h.worker.rows.value[0]);
     expect(h.navTo).toHaveBeenCalledWith("/pages/support/chat?cid=advisor%2F1");
-    expect(h.worker.rows.value[0].unread).toBe(3);
+    expect(h.worker.rows.value[0].unread).toBe(2);
     expect(h.tickets.tickets[0].unread).toBe(3); expect(h.emit).toHaveBeenCalledWith("navigate");
+  });
+  it('does not attach an older unread conversation to the newest read conversation', () => {
+    const h = mount();
+    h.conversations.byType = kind => kind === 'advisor'
+      ? [{ id: 'new/read', lastTs: 80, lastMessage: 'Read', messages: [], unread: 0, roleKey: 'typeAdvisor' }]
+      : [{ id: 'old/unread', lastTs: 20, lastMessage: 'Pending', messages: [], unread: 5, roleKey: 'typeSupport' }];
+    expect(h.worker.rows.value.map((row: { id: string; unread: number }) => [row.id, row.unread])).toEqual([['new/read', 0], ['old/unread', 5]]);
+    h.worker.openRow(h.worker.rows.value[1]);
+    expect(h.navTo).toHaveBeenCalledWith('/pages/support/chat?cid=old%2Funread');
+    expect(h.worker.rows.value[1].unread).toBe(5);
   });
   it("refreshes failed sources once and keeps conversation management in its existing page", () => {
     const h = mount();

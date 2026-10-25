@@ -20,7 +20,7 @@
     <!-- Header brand row — TAB routes only (sub-pages carry their own back row) -->
     <view v-if="isTabRoute" class="nx-header" :style="{ top: statusBarHeight + 'px' }">
       <view class="nx-header__l">
-        <view class="nx-canvas-brand" role="img" aria-label="UVEL"><svg width="30" height="22" viewBox="0 0 30 22" aria-hidden="true"><path d="M3 5c0 9 4.5 13 9 13s7-4 7-9" fill="none" stroke="var(--v5-brand)" stroke-width="4" stroke-linecap="round"/><path d="M11 9c0-3 2.5-5 6-5s7 3 7 8-3 7-6 7" fill="none" stroke="var(--ui-lime-soft)" stroke-width="4" stroke-linecap="round"/></svg><text>UVEL</text></view>
+        <BrandLockup :height="50" />
       </view>
       <view class="nx-header__center" />
       <view class="nx-header__r">
@@ -150,6 +150,7 @@
 <script setup lang="ts">
 import { rememberGlassNavigation, consumeGlassNavigation } from "@/lib/liquid-glass-core";
 import { ref, computed, watch, onMounted, onUnmounted, onActivated, nextTick, provide, type CSSProperties, getCurrentInstance } from "vue";
+import BrandLockup from "@/components/brand-lockup.vue";
 import GlobalUi from "@/components/global-ui.vue";
 import NovaBubble from "@/components/nova/nova-bubble.vue";
 import TrialClaimSheet from "@/components/trial-claim-sheet.vue";
@@ -800,10 +801,8 @@ export default chassisView;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  /* 品牌包给横版定的最小渲染宽度是 120px(低于它 8 个节点糊成一团),槽宽跟着它走。
-     原值 104px 是旧字标 logo 的宽度,装不下新标会溢出到中间区。 */
-  width: 132px;
-  height: 44px;
+  width: 146px;
+  height: 50px;
   justify-content: center;
   flex-shrink: 0;
   transition: transform 200ms cubic-bezier(.23,1,.32,1), opacity 200ms, visibility 0s;
@@ -971,7 +970,7 @@ export default chassisView;
 </style>
 
 <style scoped>
-.nx-canvas-brand {display:flex;align-items:center;gap:8px;} .nx-canvas-brand text {font:600 21px/26px var(--font-v5);letter-spacing:.02em;} .nx-badge {right:4px;background:#FFCB4D;z-index:2;} .nx-badge__t {font-size:10.5px;color:#0A0A0A;}
+.nx-badge {right:4px;background:#FFCB4D;z-index:2;} .nx-badge__t {font-size:10.5px;color:#0A0A0A;}
 </style>
 
 <style scoped>.nx-header__l {justify-content:flex-start;}</style>

@@ -24,6 +24,39 @@
         "modules" : { "Barcode": {} },
         /* 应用发布信息 */
         "distribute" : {
+            "icons": {
+                "android": {
+                    "mdpi": "static/app-icons/android/icon-48.png",
+                    "hdpi": "static/app-icons/android/icon-72.png",
+                    "xhdpi": "static/app-icons/android/icon-96.png",
+                    "xxhdpi": "static/app-icons/android/icon-144.png",
+                    "xxxhdpi": "static/app-icons/android/icon-192.png"
+                },
+                "ios": {
+                    "appstore": "static/app-icons/ios/icon-1024.png",
+                    "iphone": {
+                        "app@2x": "static/app-icons/ios/icon-120.png",
+                        "app@3x": "static/app-icons/ios/icon-180.png",
+                        "notification@2x": "static/app-icons/ios/icon-40.png",
+                        "notification@3x": "static/app-icons/ios/icon-60.png",
+                        "settings@2x": "static/app-icons/ios/icon-58.png",
+                        "settings@3x": "static/app-icons/ios/icon-87.png",
+                        "spotlight@2x": "static/app-icons/ios/icon-80.png",
+                        "spotlight@3x": "static/app-icons/ios/icon-120.png"
+                    },
+                    "ipad": {
+                        "app": "static/app-icons/ios/icon-76.png",
+                        "app@2x": "static/app-icons/ios/icon-152.png",
+                        "proapp@2x": "static/app-icons/ios/icon-167.png",
+                        "notification": "static/app-icons/ios/icon-20.png",
+                        "notification@2x": "static/app-icons/ios/icon-40.png",
+                        "settings": "static/app-icons/ios/icon-29.png",
+                        "settings@2x": "static/app-icons/ios/icon-58.png",
+                        "spotlight": "static/app-icons/ios/icon-40.png",
+                        "spotlight@2x": "static/app-icons/ios/icon-80.png"
+                    }
+                }
+            },
             /* android打包配置 */
             "android" : {
                 "enableOAID": false,

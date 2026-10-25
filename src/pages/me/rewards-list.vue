@@ -110,7 +110,7 @@
               <text v-if="sourceRefOpen === b.id && b.memoKey === 'learningReward'" class="block" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
             </view>
             <view class="text-right shrink-0" style="margin-left: 8px">
-              <text class="block tabular-nums" :style="rewardAmountStyle">{{ (b.amountExact === undefined ? Math.sign(b.amount) === -1 : b.amountExact.startsWith('-')) ? '' : '+' }}{{ formatAmount(b.amountExact ?? b.amount) }} {{ platformDisplayText(b.symbol) }}</text>
+              <text class="block tabular-nums" :style="rewardAmountStyle(b)">{{ rewardAmountText(b) }} {{ platformDisplayText(b.symbol) }}</text>
               <text class="block" :style="rowDateStyle">{{ rewardStatusLabel(b.status) }}</text>
               <text class="block" :style="rowDateStyle">{{ shortDate(b.ts) }}</text>
             </view>
@@ -140,6 +140,7 @@
 import { platformDisplayText } from "@/lib/brand-copy";
 
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
 import { computed, ref, watch, watchEffect, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -427,14 +428,25 @@ const rowTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 500, color:
 const rowSubStyle: CSSProperties = { marginTop: "3px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const rowSubTightStyle: CSSProperties = { marginTop: "1px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const rowDateStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-4)" };
-const rewardAmountStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "13px",
-  fontWeight: 600,
-  color: "var(--v5-brand)",
-};
+function rewardAmountText(bill: Bill): string {
+  return formatUsd(bill.amountExact ?? bill.amount, bill.symbol === 'USDT' ? 'detail' : 'overview', true).replace('$', '');
+}
+function rewardAmountSign(bill: Bill): -1 | 0 | 1 {
+  const raw = String(bill.amountExact ?? bill.amount).trim();
+  if (!/[1-9]/.test(raw.split(/[eE]/)[0])) return 0;
+  return raw.startsWith("-") ? -1 : 1;
+}
+function rewardAmountStyle(bill: Bill): CSSProperties {
+  const sign = rewardAmountSign(bill);
+  return {
+    fontFamily: "var(--font-v5)",
+    fontSize: "13px",
+    fontWeight: 600,
+    color: sign < 0 ? "var(--v5-brand-2-ink)" : sign > 0 ? "var(--v5-brand)" : "var(--v5-ink-2)",
+  };
+}
 const useBtnStyle: CSSProperties = {
-  minHeight: "30px",
+  minHeight: "44px",
   padding: "0 13px",
   borderRadius: "999px",
   background: "var(--v5-brand)",
@@ -463,7 +475,7 @@ const emptyStyle: CSSProperties = {
 const emptyTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "13px", color: "var(--v5-ink-2)" };
 const emptyHintStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.6 };
 const remoteErrorStyle: CSSProperties = { margin: "0 16px 12px", padding: "10px 12px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-danger) 10%, transparent)", color: "var(--v5-danger)", fontSize: "12px", gap: "12px" };
-const retryBtnStyle: CSSProperties = { minHeight: "32px", padding: "0 10px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink)", fontSize: "12px" };
+const retryBtnStyle: CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: "44px", minHeight: "44px", padding: "0 10px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink)", fontSize: "12px" };
 const loadingStyle: CSSProperties = { margin: "0 16px", padding: "32px", textAlign: "center", color: "var(--v5-ink-3)" };
-const manualLoadMoreStyle: CSSProperties = { minHeight: "40px", margin: "8px 16px 0", padding: "0 14px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "12px" };
+const manualLoadMoreStyle: CSSProperties = { minHeight: "44px", margin: "8px 16px 0", padding: "0 14px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "12px" };
 </script>

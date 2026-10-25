@@ -86,7 +86,7 @@ it.each([[{productNo:'sku',quantity:2}],[{productNo:'sku',quantity:1},{productNo
 it.each(['[]','[{"productNo":"sku","quantity":0}]','broken'])('rejects invalid items rather than purchasing a fallback SKU: %s',async items=>{
   const page=routeScreen();await page.load({items});expect(page.promotionRoute.value).toBeNull();expect(page.toast.warn).toHaveBeenCalled();
 });
-it.each([[1299,'1,299.00'],['999999999999.995','1,000,000,000,000.00'],[-1299.5,'-1,299.50'],[null,'-']])('groups only the displayed amount %s', (input,expected)=>{
+it.each([[1299,'1,299.00'],['999999999999.995','999,999,999,999.995'],[-1299.5,'-1,299.50'],[null,'-'],['0.004000','0.004']])('groups the displayed amount %s without rounding its effective precision', (input,expected)=>{
   const display=new Function('formatPlainAmount',declarations(['formatAmount'])+';return formatAmount;')(formatPlainAmount);
   expect(display(input)).toBe(expected);
 });

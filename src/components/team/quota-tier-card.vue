@@ -12,10 +12,11 @@
     <view v-if="tier.conditions.length" class="quota-conditions">
       <text class="quota-section-label">{{ tier.unlockKind === 'either' ? t.quota.unlockEither : t.quota.unlockAll }}</text>
       <view v-for="(condition, index) in tier.conditions" :key="index" class="quota-condition">
-        <view class="quota-stat-line"><text>{{ condition.label }}</text><text class="quota-condition__values">{{ conditionValue(condition) }}</text></view>
-        <QuotaConditionBar v-if="!condition.pointsUnavailable" :pct="condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="condition.current >= condition.required" :tint="tier.tint" :label="condition.label" :value-text="conditionValue(condition)" />
+        <view class="quota-stat-line"><text>{{ conditionLabel(condition) }}</text><text class="quota-condition__values">{{ conditionValue(condition) }}</text></view>
+        <QuotaConditionBar :pct="condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="condition.current >= condition.required" :tint="tier.tint" :label="conditionLabel(condition)" :value-text="conditionValue(condition)" />
       </view>
     </view>
+    <text v-if="tier.conditions.some(condition => condition.kind === 'legacyUSD') && !tier.conditions.some(condition => condition.kind === 'volume')" class="quota-unavailable">{{ logicCopy.pointsUnavailable }}</text>
     <view v-if="tier.perks.length" class="quota-perks"><text v-for="(perk, index) in tier.perks" :key="index">{{ perk }}</text></view>
     <view class="quota-actions">
       <NxButton v-if="unlocked && stockLeft > 0 && tier.available !== false" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" @click="openProduct"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
@@ -27,7 +28,9 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
-import { formatAmount } from '@/lib/amount-display';
+import { formatFinanceAmount } from '@/lib/finance-amount-display';
+import { teamLogicCopy } from '@/i18n/team-logic-copy';
+import { formatLegacyUSD } from '@/lib/v-rank-copy';
 import { formatComputePoints } from '@/i18n/compute-points';
 import { useLocaleStore } from '@/store/locale';
 import { networkReauditCopy } from '@/i18n/network-reaudit';
@@ -42,8 +45,7 @@ export interface QuotaCondition {
   label: string;
   current: number;
   required: number;
-  kind: "invites" | "volume";
-  pointsUnavailable?: boolean;
+  kind: "invites" | "volume" | "legacyUSD";
 }
 export interface QuotaTier {
   available?: boolean;
@@ -70,6 +72,7 @@ const props = defineProps<{ tier: QuotaTier }>();
 const emit = defineEmits<{ navigate: [url: string] }>();
 const t = useT();
 const locale = useLocaleStore();
+const logicCopy = computed(() => teamLogicCopy(locale.code));
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const displayName = computed(() => nexGridBrandText(props.tier.name));
 const productImage = computed(() => getProductMedia(props.tier.productId)?.src ?? props.tier.imageUrl);
@@ -80,11 +83,15 @@ const unlocked = computed(() => {
 });
 const stockPct = computed(() => props.tier.monthlyStock > 0 ? Math.min(1, props.tier.soldThisMonth / props.tier.monthlyStock) : 1);
 const stockLeft = computed(() => Math.max(0, props.tier.monthlyStock - props.tier.soldThisMonth));
-const priceLineText = computed(() => fmt(t.value.quota.priceLine, { price: formatAmount(props.tier.price) }));
+const priceLineText = computed(() => fmt(t.value.quota.priceLine, { price: formatFinanceAmount(props.tier.price) }));
 const stockFillStyle = computed(() => ({ width: `${stockBarInView.value ? stockPct.value * 100 : 0}%`, transition: stockBarInView.value ? PROGRESS_GROW_TRANSITION : 'none' }));
+function conditionLabel(condition: QuotaCondition) {
+  return condition.kind === 'legacyUSD' ? logicCopy.value.legacyTeam : condition.label;
+}
 function conditionValue(condition: QuotaCondition) {
+  if (condition.kind === 'legacyUSD') return `${formatLegacyUSD(condition.current, locale.code)} / ${formatLegacyUSD(condition.required, locale.code)}`;
   return condition.kind === 'volume'
-    ? `${formatComputePoints(condition.pointsUnavailable ? null : condition.current, locale.code)} / ${formatComputePoints(condition.pointsUnavailable ? null : condition.required, locale.code)}`
+    ? `${formatComputePoints(condition.current, locale.code)} / ${formatComputePoints(condition.required, locale.code)}`
     : `${condition.current} / ${condition.required}`;
 }
 function openProduct() { emit('navigate', `/pages/store/detail?id=${encodeURIComponent(props.tier.productId)}`); }

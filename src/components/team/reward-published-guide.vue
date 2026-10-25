@@ -21,7 +21,7 @@
       <HowHero :kind="kind" :label="heroLabel(content.contentKey)" :title="content.blocks[0]?.title ?? heroLabel(content.contentKey)" :sub="content.blocks[0]?.body ?? ''" accent="purple" />
       <view v-if="content.blocks[0]?.items?.length" class="mx-4" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
         <view v-for="(item, itemIndex) in content.blocks[0].items" :key="itemIndex" style="display: flex; gap: 8px">
-          <text style="color: var(--v5-brand);">•</text><text :style="bodyStyle">{{ item }}</text>
+          <text class="reward-rule-marker" style="color: var(--v5-brand);">•</text><text :style="bodyStyle">{{ item }}</text>
         </view>
       </view>
       <template v-for="(block, index) in content.blocks.slice(1)" :key="block.id">
@@ -29,7 +29,7 @@
           <text class="block" :style="bodyStyle">{{ block.body }}</text>
           <view v-if="block.items?.length" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px">
             <view v-for="(item, itemIndex) in block.items" :key="itemIndex" style="display: flex; gap: 8px">
-              <text style="color: var(--v5-ink-3)">{{ itemIndex + 1 }}.</text><text :style="bodyStyle">{{ item }}</text>
+              <text class="reward-rule-marker" style="color: var(--v5-ink-3)">{{ itemIndex + 1 }}.</text><text :style="bodyStyle">{{ item }}</text>
             </view>
           </view>
         </HowSection>
@@ -58,7 +58,7 @@ const t = useT();
 const content = ref<HowContentDocument | null>(null);
 const loading = ref(true);
 const error = ref(false);
-const bodyStyle = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 };
+const bodyStyle = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65, minWidth: 0 };
 const requestFence = new PublishedContentRequestFence();
 
 const languageFallback = computed(() => !!content.value
@@ -120,3 +120,6 @@ watch(
 );
 onUnmounted(() => requestFence.invalidate());
 </script>
+<style scoped>
+.reward-rule-marker { flex-shrink:0; min-width:18px; white-space:nowrap; font:400 13px/1.65 var(--font-v5); }
+</style>

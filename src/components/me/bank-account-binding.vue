@@ -4,7 +4,7 @@
     <view class="binding-body">
       <view class="binding-head">
         <view class="binding-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
         </view>
         <view>
           <text class="head-title">{{ c.type }}</text>
@@ -133,7 +133,7 @@ function done() { void navReplace(props.returnTo === "/pages/me/wallet-cards" ? 
 .bank-binding { color: var(--v5-ink); }
 .binding-body { padding: 0 16px 28px; }
 .binding-head { display: flex; align-items: center; gap: 12px; padding: 0 2px 14px; border-bottom: 1px solid color-mix(in srgb, var(--v5-border) 70%, transparent); }
-.binding-icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 8px; background: color-mix(in srgb, var(--v5-brand-2) 15%, transparent); }
+.binding-icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 8px; background: var(--v5-surface-2); }
 .head-title { display: block; font-size: 13px; font-weight: 600; }
 .head-note { display: block; margin-top: 2px; font-size: 12px; color: var(--v5-ink-3); }
 .binding-fields { padding: 16px 2px 0; }

@@ -49,9 +49,9 @@
         <text v-if="rewardEffectiveAtText" class="ps-reward__t">{{ rewardEffectiveAtText }}</text>
       </view>
 
-      <view class="ps-toggle">
+      <view class="ps-toggle" role="switch" tabindex="0" :aria-checked="showUsername" :aria-label="t.share.showUsername" @click="toggleUsername">
         <text class="ps-toggle__lb">{{ t.share.showUsername }}</text>
-        <view class="ps-sw active:opacity-70" :class="{ 'ps-sw--on': showUsername }" role="switch" tabindex="0" :aria-checked="showUsername" :aria-label="t.share.showUsername" @click="toggleUsername"  @keydown.enter.prevent="toggleUsername" @keydown.space.prevent="toggleUsername">
+        <view class="ps-sw active:opacity-70" :class="{ 'ps-sw--on': showUsername }" aria-hidden="true">
           <view class="ps-sw__knob" />
         </view>
       </view>
@@ -98,6 +98,7 @@
 <script setup lang="ts">
 import LiquidGlass from '@/components/liquid-glass.vue';
 import { useLocaleStore } from '@/store/locale';
+import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { formatAmount } from "@/lib/amount-display";
 import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from "vue";
@@ -120,6 +121,7 @@ const emit = defineEmits<{ (e: "close"): void }>();
 
 const t = useT();
 const locale = useLocaleStore();
+const logicCopy = computed(() => teamLogicCopy(locale.code));
 const copy = computed(() => teamRedesignCopy(locale.code));
 const app = useApp();
 const cfg = useConfig();
@@ -317,7 +319,7 @@ function paint(link: string, myToken: number) {
   const bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, "#242629"); bg.addColorStop(1, "#101113");
   ctx.setFillStyle(bg); ctx.fillRect(0, 0, W, H);
-  if (brandLogoPath) ctx.drawImage(brandLogoPath, 16, 10, 120, 40);
+  if (brandLogoPath) ctx.drawImage(brandLogoPath, 16, 10, 144, 144 * 246 / 712);
   else fitText(ctx, "UVEL", 20, 37, 120, 15, INK_ON_DARK);
   ctx.setTextAlign("right"); fitText(ctx, ts(), W - 20, 34, 150, 9, FAINT_ON_DARK); ctx.setTextAlign("left");
 
@@ -330,7 +332,7 @@ function paint(link: string, myToken: number) {
   } else if (tpl.value === "yield") {
     const today = yieldTodayUsdt.value;
     if (today === null) throw new Error("yield authority unavailable");
-    fitText(ctx, t.value.share.posterYieldCap, 20, 76, W - 40, 11, MUTED_ON_DARK);
+    fitText(ctx, logicCopy.value.posterYieldCap, 20, 76, W - 40, 11, MUTED_ON_DARK);
     fitText(ctx, `+${formatAmount(today)}`, 20, 117, W - 100, 36, INK_ON_DARK);
     fitText(ctx, "USDT", W - 65, 117, 45, 12, MUTED_ON_DARK);
     paintInviteArt(ctx, 85, 128, 164);

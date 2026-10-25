@@ -380,9 +380,7 @@ function confirmTerms(event?: Event) {
 
 /* Numbered sections */
 .tos-sections {
-  border-radius: 16px;
-  background: var(--v5-surface);
-  padding: 2px 18px;
+  padding: 2px 0;
   display: flex;
   flex-direction: column;
 }

@@ -75,8 +75,8 @@
                   <stop offset="100%" stop-color="var(--v5-brand)" stop-opacity="0" />
                 </radialGradient>
                 <radialGradient :id="nativeYouGlowId" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stop-color="var(--v5-tech-cyan)" stop-opacity="1" />
-                  <stop offset="100%" stop-color="var(--v5-tech-cyan)" stop-opacity="0" />
+                  <stop offset="0%" stop-color="var(--v5-brand)" stop-opacity="1" />
+                  <stop offset="100%" stop-color="var(--v5-brand)" stop-opacity="0" />
                 </radialGradient>
               </defs>
               <circle v-for="(d, i) in dots" :key="`dot-${i}`" :cx="d.x" :cy="d.y" :r="d.r"
@@ -91,8 +91,8 @@
             :style="nativeNodeStyle(r)" role="button" tabindex="0" :aria-label="regionName(r)"
             @click="select(r)"  @keydown.enter.prevent="select(r)" @keydown.space.prevent="select(r)">
             <view v-if="pulseRegionId === r.id" :key="`pulse-${r.id}-${pulseTick}`" class="nx-globe-native-pulse"
-              :style="{ borderColor: r.isYou ? 'var(--v5-tech-cyan)' : 'var(--v5-brand)' }" />
-            <view class="nx-globe-native-dot" :style="{ background: r.isYou ? 'var(--v5-tech-cyan)' : 'var(--v5-brand)' }" />
+              :style="{ borderColor: r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)' }" />
+            <view class="nx-globe-native-dot" :style="{ background: r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)' }" />
           </view>
           <text v-if="me" class="nx-globe-native-you" :style="{ left: `${me.cx * 100}%`, top: `${me.cy * 100}%` }">{{ t.globe.yourNodeBadge }}</text>
         </view>
@@ -106,8 +106,8 @@
               <stop offset="100%" stop-color="var(--v5-brand)" stop-opacity="0" />
             </radialGradient>
             <radialGradient id="you-glow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="var(--v5-tech-cyan)" stop-opacity="1" />
-              <stop offset="100%" stop-color="var(--v5-tech-cyan)" stop-opacity="0" />
+              <stop offset="0%" stop-color="var(--v5-brand)" stop-opacity="1" />
+              <stop offset="100%" stop-color="var(--v5-brand)" stop-opacity="0" />
             </radialGradient>
           </defs>
 
@@ -139,7 +139,7 @@
           <!-- Region nodes -->
           <g v-for="r in regions" :key="r.id" class="cursor-pointer" role="button" tabindex="0" :aria-label="regionName(r)" @click="select(r)"  @keydown.enter.prevent="select(r)" @keydown.space.prevent="select(r)">
             <circle :cx="r.cx * W" :cy="r.cy * H" r="18" :fill="`url(#${r.isYou ? 'you-glow' : 'globe-glow'})`" />
-            <circle :cx="r.cx * W" :cy="r.cy * H" r="5" :fill="r.isYou ? 'var(--v5-tech-cyan)' : 'var(--v5-brand)'" />
+            <circle :cx="r.cx * W" :cy="r.cy * H" r="5" :fill="r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)'" />
             <!-- Pulse ring -->
             <circle
               v-if="pulseRegionId === r.id"
@@ -148,7 +148,7 @@
               :cy="r.cy * H"
               r="5"
               fill="none"
-              :stroke="r.isYou ? 'var(--v5-tech-cyan)' : 'var(--v5-brand)'"
+              :stroke="r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)'"
               stroke-width="1"
             >
               <animate attributeName="r" values="5;24" dur="1.6s" repeatCount="1" />
@@ -158,7 +158,7 @@
               v-if="r.isYou"
               :x="r.cx * W + 8"
               :y="r.cy * H - 8"
-              fill="var(--v5-tech-cyan)"
+              fill="var(--v5-brand)"
               font-size="10"
               font-weight="600"
               font-family="ui-monospace, monospace"
@@ -184,7 +184,7 @@
           @keydown.enter.prevent="select(r)" @keydown.space.prevent="select(r)"
         >
           <view class="grid place-items-center shrink-0" :style="regionIconBox(r.isYou)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="r.isYou ? 'var(--v5-tech-cyan)' : 'var(--v5-brand)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
           </view>
           <view class="flex-1 min-w-0">
             <view class="flex items-center" style="gap: 8px">
@@ -193,7 +193,7 @@
             </view>
             <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ regionDevicesText(r) }} · {{ regionLatencyText(r) }}</text>
           </view>
-          <text class="shrink-0 tabular-nums" :style="regionRateStyle">{{ (r.jobsPerHour / 1000).toFixed(1) }}k/h</text>
+          <view class="shrink-0 text-right"><text class="block tabular-nums" :style="regionRateStyle">{{ r.jobsPerHour.toLocaleString() }}</text><text class="block" style="font-size: 11px; color: var(--v5-ink-3)">{{ t.globe.jobsPerHour }}</text></view>
         </view>
       </view>
 
@@ -206,11 +206,11 @@
           </view>
           <view class="flex items-center" style="gap: 12px">
             <view class="grid place-items-center" :style="drawerIconBox(selected.isYou)">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="selected.isYou ? 'var(--v5-tech-cyan)' : 'var(--v5-brand)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="selected.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
             </view>
             <view class="flex-1 min-w-0">
               <text class="block" style="font-size: 20px; font-weight: 600; color: var(--v5-ink)">{{ regionName(selected) }}</text>
-              <text v-if="selected.isYou" class="block" style="font-size: 12px; color: var(--v5-brand-2); margin-top: 2px">{{ t.globe.youAre }}</text>
+              <text v-if="selected.isYou" class="block" style="font-size: 12px; color: var(--v5-ink-2); margin-top: 2px">{{ t.globe.youAre }}</text>
             </view>
           </view>
           <view class="grid grid-cols-3 gap-2 mt-4">
@@ -221,7 +221,7 @@
             </view>
             <view class="nx-glass-inset rounded-xl text-center" :style="drawerStatStyle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg>
-              <text class="block tabular-nums" :style="drawerStatValStyle">{{ (selected.jobsPerHour / 1000).toFixed(1) }}k/h</text>
+              <text class="block tabular-nums" :style="drawerStatValStyle">{{ selected.jobsPerHour.toLocaleString() }}</text>
               <text class="block" :style="drawerStatLabelStyle">{{ t.globe.jobsPerHour }}</text>
             </view>
             <view class="nx-glass-inset rounded-xl text-center" :style="drawerStatStyle">
@@ -553,7 +553,7 @@ function regionIconBox(isYou?: boolean): CSSProperties {
     height: "40px",
     borderRadius: "12px",
     background: isYou
-      ? "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)"
+      ? "var(--v5-surface-2)"
       : "color-mix(in srgb, var(--v5-brand) 10%, transparent)",
   };
 }
@@ -561,8 +561,8 @@ const youChipStyle: CSSProperties = {
   fontSize: "12px",
   padding: "2px 6px",
   borderRadius: "8px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)",
-  color: "var(--v5-brand-2)",
+  background: "var(--v5-surface-2)",
+  color: "var(--v5-ink-2)",
 };
 const regionRateStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -591,7 +591,7 @@ function drawerIconBox(isYou?: boolean): CSSProperties {
     height: "48px",
     borderRadius: "12px",
     background: isYou
-      ? "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)"
+      ? "var(--v5-surface-2)"
       : "color-mix(in srgb, var(--v5-brand) 10%, transparent)",
   };
 }
@@ -643,7 +643,7 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-globe-drawer", () =>
 .nx-globe-native-you {
   position: absolute;
   transform: translate(8px, -18px);
-  color: var(--v5-tech-cyan);
+  color: var(--v5-brand);
   font-size: 12px;
   font-weight: 600;
   font-family: ui-monospace, monospace;

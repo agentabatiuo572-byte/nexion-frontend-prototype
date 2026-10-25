@@ -38,7 +38,7 @@
 
       <!-- REWARD pill -->
       <view class="mt-4 inline-flex items-center" :style="rewardPillStyle">
-        <EventIcon :size="16" style="margin-right:6px" />
+        <EventIcon :size="16" :style="{marginRight:'6px',color:rewardColor}" />
         <text style="font-family: var(--font-v5)">{{ ev.reward }}</text>
       </view>
 
@@ -47,7 +47,7 @@
         <view class="flex items-center justify-between font-mono-tabular" style="font-size: 12px; margin-bottom: 6px">
           <text style="color: var(--v5-ink-3); text-transform: uppercase; letter-spacing: 0.08em">{{ ev.progress.label }}</text>
           <text class="tabular-nums" style="color: var(--v5-ink)">
-            <text :style="{ color: ev.tint, fontWeight: 600 }">{{ ev.progress.current.toLocaleString() }}</text>
+            <text style="color:var(--v5-brand);font-weight:600">{{ ev.progress.current.toLocaleString() }}</text>
             <text style="color: var(--v5-ink-4)"> / {{ ev.progress.total.toLocaleString() }}</text>
           </text>
         </view>
@@ -67,8 +67,8 @@
         <text style="font-size: 13px; font-weight: 500; color: var(--v5-ink-3); pointer-events: none">{{ t.events.claimedLabel }}</text>
         <template v-if="ev.useHref">
           <text style="font-size: 13px; color: var(--v5-ink-4); margin: 0 8px; pointer-events: none">·</text>
-          <text :style="{ fontSize: '13px', fontWeight: 600, color: ev.tint, pointerEvents: 'none' }">{{ t.events.useCta }}</text>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" :stroke="ev.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
+          <text :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-brand)', pointerEvents: 'none' }">{{ t.events.useCta }}</text>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
         </template>
       </view>
       <view v-else-if="showJoinAction" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="joinBtnStyle" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" :aria-label="ev.ctaLabel ?? t.events.joinCta" @click="emitUnlessBusy('join')">
@@ -97,6 +97,7 @@ import { eventOpenTarget } from "./event-open-target";
 type EnrichedEvent = NexEvent & { _trackable: boolean; _done: boolean; _claimed: boolean };
 
 const props = withDefaults(defineProps<{ ev: EnrichedEvent; rewardNex: number; busy?: boolean }>(), { busy: false });
+const rewardColor = computed(() => /\b(?:UVT|NEX)\b/i.test(props.ev.reward) ? 'var(--v5-nex)' : 'var(--v5-brand)');
 const emit = defineEmits<{ (e: "join"): void; (e: "claim"): void; (e: "cta"): void }>();
 
 const t = useT();
@@ -147,13 +148,14 @@ const hairlineStyle = computed<CSSProperties>(() => ({
   right: "0",
   top: "0",
   height: "1px",
-  background: `linear-gradient(90deg, transparent, ${props.ev.tint}, transparent)`,
+  background: "var(--v5-border)",
   opacity: 0.6,
 }));
 const capLabelStyle = computed<CSSProperties>(() => ({
   fontSize: "12px",
-  letterSpacing: "0.18em",
-  color: props.ev.tint,
+  letterSpacing: "0.04em",
+  fontFamily: "var(--font-v5)",
+  color: "var(--v5-ink-3)",
 }));
 const titleStyle: CSSProperties = {
   fontSize: "20px",
@@ -176,13 +178,13 @@ const rewardPillStyle = computed<CSSProperties>(() => ({
   borderRadius: "999px",
   fontSize: "13px",
   fontWeight: 600,
-  background: `color-mix(in srgb, ${props.ev.tint} 10%, transparent)`,
-  color: props.ev.tint,
+  background: `color-mix(in srgb, ${rewardColor.value} 10%, transparent)`,
+  color: rewardColor.value,
 }));
 const barFillStyle = computed<CSSProperties>(() => ({
   width: `${barInView.value ? progressPct.value : 0}%`,
-  background: `linear-gradient(90deg, ${props.ev.tint}, color-mix(in srgb, ${props.ev.tint} 80%, transparent))`,
-  boxShadow: `0 0 8px color-mix(in srgb, ${props.ev.tint} 53%, transparent)`,
+  background: "var(--v5-brand)",
+  boxShadow: "none",
   transition: barInView.value ? PROGRESS_GROW_TRANSITION : "none",
   willChange: "width",
 }));
@@ -193,7 +195,7 @@ const claimBtnStyle = computed<CSSProperties>(() => ({
 }));
 const claimedPillStyle = computed<CSSProperties>(() => ({
   height: "48px",
-  background: `color-mix(in srgb, ${props.ev.tint} 6%, transparent)`,
+  background: "var(--v5-surface-2)",
 }));
 const joinBtnStyle = computed<CSSProperties>(() => ({
   height: "48px",

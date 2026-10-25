@@ -58,6 +58,9 @@ describe("earn history Proof-of-Compute interaction", () => {
 
 import * as Vue from 'vue';
 import { formatAmount } from '@/lib/amount-display';
+import { formatUsdOverviewParts } from '@/lib/usd-display';
+import { remainderUiCopy } from '@/i18n/remainder-ui';
+import { auditUiCopy } from '@/i18n/audit-ui';
 import { compileScript, compileTemplate, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import { createPinia, setActivePinia } from 'pinia';
@@ -105,6 +108,11 @@ async function setup() {
   const noChild={render:()=>null}; const navigation={navTo:vi.fn()};
   const imports=(id:string):any=>{
     if(id==='@/lib/amount-display')return{formatAmount};
+    if(id==='@/lib/usd-display')return{formatUsdOverviewParts};
+    if(id==='@/i18n/remainder-ui')return{useRemainderUiCopy:()=>Vue.ref(remainderUiCopy.zh)};
+    if(id==='@/i18n/audit-ui')return{useAuditUiCopy:()=>Vue.ref(auditUiCopy.zh)};
+    if(id==='@/store/config')return{useConfig:()=>({configStatus:'ready',isEnabled:()=>false})};
+    if(id==='@/lib/native-phone-runtime')return{hasNativeAndroidPhoneRuntime:()=>true};
     if(id==='vue')return Vue;
     if(id==='@dcloudio/uni-app'||id==='@/composables/use-tab-page-lifecycle')return{onShow:(f:Function)=>shows.push(f),onHide:(f:Function)=>hides.push(f)};
     if(id==='@/store/app')return{useApp:()=>app};

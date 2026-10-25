@@ -81,7 +81,7 @@ const rows = computed<Row[]>(() => {
 
   const selected = props.hideFilters ? props.filter : filter.value;
   return human.filter(row => selected === "all" || row.kind === (selected === "support" ? "advisor" : selected))
-    .sort((a, b) => b.ts - a.ts || a.key.localeCompare(b.key)).slice(0, 1).map(row => ({ ...row, unread: human.reduce((sum,item)=>sum+item.unread,0) }));
+    .sort((a, b) => b.ts - a.ts || a.key.localeCompare(b.key));
 });
 function timeAgo(ts: number) {
   const minutes = Math.max(1, Math.floor((Date.now() - ts) / 60_000));

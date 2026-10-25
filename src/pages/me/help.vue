@@ -145,7 +145,7 @@
       <view class="mx-4" :style="contactRowStyle">
         <view class="flex items-center" style="gap: 12px">
           <view class="grid place-items-center" :style="mailBoxStyle">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
           </view>
           <view class="min-w-0" style="flex: 1">
             <text class="block" :style="contactTitleStyle">{{ w.contactSupport }}</text>
@@ -635,7 +635,7 @@ const contactRowStyle: CSSProperties = {
   padding: "16px 2px 0",
   borderTop: "1px solid var(--v5-border)",
 };
-const mailBoxStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-brand) 10%, transparent)" };
+const mailBoxStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "12px", background: "var(--v5-surface-2)" };
 const contactTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
 const contactHintStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
 const contactCtaStyle: CSSProperties = {

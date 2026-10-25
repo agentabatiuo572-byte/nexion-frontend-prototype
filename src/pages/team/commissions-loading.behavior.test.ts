@@ -1,5 +1,5 @@
 import * as Vue from "vue";
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -72,7 +72,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const exports = { default: {} as Component };
   const shows: Array<() => void> = [];
   const defaults: Record<string, unknown> = {
-    "@/lib/amount-display": { formatAmount },
+    "@/lib/amount-display": { formatAmount, formatGroupedAmount },
     "@/i18n/network-reaudit": { networkReauditCopy },
     "@/lib/trial-date": { formatTrialDate },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },

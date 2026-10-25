@@ -29,7 +29,7 @@
           <view class="nx-glass-card" v-for="card in cards" :key="card.tokenId" :style="cardRowStyle">
           <view class="flex items-center" :style="cardRowHeadStyle">
             <view class="grid place-items-center shrink-0" :style="cardIconStyle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
             </view>
             <view class="flex-1 min-w-0">
               <view class="flex items-center" style="gap: 6px">
@@ -184,7 +184,7 @@ const cardRowStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   background: "var(--nx-glass-fill)",
   overflow: "hidden",
 };
-const cardRowHeadStyle: CSSProperties = { padding: "16px 20px", gap: "12px" };
+const cardRowHeadStyle: CSSProperties = { padding: "var(--ui-space-inset) 20px", gap: "var(--ui-space-inline)" };
 const cardIconStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "8px", background: "var(--v5-surface-2)" };
 const cardNameStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
 const defaultBadgeStyle: CSSProperties = {
@@ -219,13 +219,13 @@ const unavailableBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px"
 const unavailableCtaStyle: CSSProperties = { minHeight: "44px", marginTop: "16px", borderRadius: "999px", background: "var(--v5-surface-2)" };
 const unavailableCtaTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink-2)" };
 const refreshErrorStyle: CSSProperties = {
-  padding: "12px 14px",
+  padding: "var(--ui-space-inline) 14px",
   background: "color-mix(in srgb, var(--v5-warning) 10%, var(--v5-surface))",
   borderRadius: "16px",
 };
 const refreshErrorTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)" };
 const refreshRetryStyle: CSSProperties = {
-  minHeight: "34px",
+  minHeight: "44px",
   marginTop: "8px",
   padding: "0 12px",
   borderRadius: "999px",

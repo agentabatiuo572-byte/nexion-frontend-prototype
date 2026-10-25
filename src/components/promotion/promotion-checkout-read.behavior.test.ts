@@ -10,17 +10,20 @@ import { prepareProductCatalog,refreshProductCatalog } from '@/store/product-cat
 import type { CanonicalE3Fleet } from '@/api/device-e3-api';
 import type { ProductCatalogSnapshot } from '@/api/product-catalog-api';
 import source from './promotion-checkout.vue?raw';
+import checkoutSource from '@/pages/store/checkout.vue?raw';
 import { zh } from '@/i18n/messages/zh';
+import { en } from '@/i18n/messages/en';
+import { vi as vietnamese } from '@/i18n/messages/vi';
 import { asApiError,ApiError } from '@/api/errors';
 import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
 import { projectServerNow } from '@/lib/server-deadline-clock';
-import { displayDeadline,localized } from '@/lib/promotion-display';
+import { displayDeadline,localized,rewardSummary } from '@/lib/promotion-display';
 import { formatAmount } from '@/lib/amount-display';
 import { nexGridBrandText } from '@/lib/brand-copy';
 import { computeVoucherDiscount,isVoucherValid,voucherAppliesToSku,type VoucherDef } from '@/mock/vouchers';
 import { commerceCopy } from '@/lib/commerce-review';
 import { fmt } from '@/i18n/format';
-import { validatePromotionItems } from '@/api/promotion-api';
+import { validatePromotionItems,createPromotionApi,parsePromotedOrder } from '@/api/promotion-api';
 import * as entry from '@/lib/promotion-entry';
 import type { OrderReceipt,PublicPromotion,Quote } from '@/api/promotion-contracts';
 import voucherOnlyFixture from './fixtures/black-friday-voucher-quote.json';
@@ -83,7 +86,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
     '@/lib/promotion-entry':entry,
     '@/store/account-scoped-storage':{readAccountRow:()=>rows,writeAccountRow:save,acquireAccountCommandKey:key},
     '@/lib/promotion-leave-guard':{registerCheckoutLeaveGuard:guardRegistration,requestCheckoutLeave:vi.fn().mockResolvedValue(true)},
-    '@/lib/server-deadline-clock':{readTrustedMonotonicNowMs:()=>100,projectServerNow},'@/composables/use-dialog-a11y':{useDialogA11y:vi.fn()},'@/lib/promotion-display':{displayDeadline,localized},
+    '@/lib/server-deadline-clock':{readTrustedMonotonicNowMs:()=>100,projectServerNow},'@/composables/use-dialog-a11y':{useDialogA11y:vi.fn()},'@/lib/promotion-display':{displayDeadline,localized,rewardSummary},
   };
   const empty={render:()=>null},componentExports={default:{} as {setup:(input:typeof props,context:{expose:(value:Record<string,any>)=>void})=>Record<string,any>}};
   new Function('require','exports',setupCode)((id:string)=>{
@@ -108,6 +111,28 @@ it('order creation, recovery and payment keep the UVEL display name without rewr
     await action();const html=await page.html();expect(html).toContain('UVELBox S1');expect(html).not.toContain(originalName);
     expect(page.saved().order?.items?.[0]?.productName).toBe(originalName);
   }
+});
+
+it('summarizes one eligible buyer device gift and retains its published rules entry',async()=>{
+  const q=quote(),reward=q.expectedRewards[0];
+  reward.reward={rewardRuleId:'gift',beneficiaryRole:'BUYER',type:'DEVICE',giftProductNo:'share',quantity:1,deviceRightsProfile:{policyId:'policy',version:1,contentHash:'hash'}};
+  reward.disclosure.deviceName='Cloud Share';
+  const page=screen();page.api.quote.mockResolvedValue(q);await page.start();
+  const html=await page.html();expect(page.view.compactGift.value).toBeTruthy();
+  expect(html).toContain('data-testid="checkout-gift-summary"');expect(html).toContain('Cloud Share × 1');
+  expect(html).toContain(zh.promotion.checkoutGiftSettlement);expect(html).toContain(zh.promotion.rulesLink);
+  expect(html).not.toContain('checkout-rewards-heading');expect(page.view.canCreate.value).toBe(true);
+});
+it.each(['inviter','message','ineligible','multiple','receipt'] as const)('does not compact a %s reward into an unconditional gift',async scenario=>{
+  const q=quote(),reward=q.expectedRewards[0];
+  reward.reward={rewardRuleId:'gift',beneficiaryRole:'BUYER',type:'DEVICE',giftProductNo:'share',quantity:1,deviceRightsProfile:{policyId:'policy',version:1,contentHash:'hash'}};
+  reward.disclosure.deviceName='Cloud Share';
+  if(scenario==='inviter'){reward.beneficiaryRole='DIRECT_INVITER';reward.reward.beneficiaryRole='DIRECT_INVITER';}
+  if(scenario==='message')reward.message=text;
+  if(scenario==='ineligible')reward.eligibility='INELIGIBLE';
+  if(scenario==='multiple')q.expectedRewards.push({...reward,rewardRuleId:'gift-2'});
+  const page=screen(scenario==='receipt'?{quote:q,order:receipt(q),pending:null}:undefined);page.api.quote.mockResolvedValue(q);await page.start();
+  expect(page.view.compactGift.value).toBeNull();expect(await page.html()).not.toContain('data-testid="checkout-gift-summary"');
 });
 
 it('an order discount keeps the quoted amount through create, recovery and payment without subtracting it twice',async()=>{
@@ -561,4 +586,103 @@ it.each(['hide','account'] as const)('catalog completion after %s cannot launch 
   if(boundary==='hide')page.exposed.hide();else app.bindAccount('user:8');
   catalogRead.resolve(catalogSnapshot);await initial;
   expect(walletRemote.deviceE3Api.fleet).not.toHaveBeenCalled();expect(page.view.walletState.value).not.toBe('ready');expect(page.view.canPay.value).toBe(false);
+});
+
+it.each([
+  ['0.000000','0.00'],['0.000001','0.000001'],['0.004000','0.004'],
+  ['0.009000','0.009'],['0.010000','0.01'],['1.234567','1.234567'],
+])('R1-F1: %s USDT stays exact in quote, receipt, fees, footer and payment confirmation',async(amount,display)=>{
+  const q={...quote(),amountUsdt:amount,subtotalUsdt:amount,discountUsdt:'0.000000',expectedRewards:[],items:quote().items.map(item=>({...item,unitPriceUsdt:amount,subtotalUsdt:amount,discountUsdt:'0.000000',payableUsdt:amount}))};
+  const original={...receipt(q),amountUsdt:amount,subtotalUsdt:amount,discountUsdt:'0.000000',rewards:[]};
+  expect((await createPromotionApi({request:vi.fn().mockResolvedValue(q)} as any).quote([{productNo:'sku',quantity:1}],'a1')).amountUsdt).toBe(amount);
+  expect(parsePromotedOrder(original).amountUsdt).toBe(amount);
+  const page=screen();page.api.quote.mockResolvedValue(q);page.api.create.mockResolvedValue(original);page.api.findOrder.mockResolvedValue(original);
+  page.api.pay.mockResolvedValue({...original,paymentStatus:'PAID',orderStatus:'COMPLETED'});
+  await page.start();expect(page.exposed.footer.value.amount).toBe(display+' USDT');
+  expect(await page.html()).toContain(display+' USDT');
+  await page.view.createOrder();await page.view.recover();
+  expect(page.exposed.footer.value.amount).toBe(display+' USDT');
+  expect(await page.html()).toMatch(new RegExp('class="promotion-summary total"[^]*?'+display.replace('.', '\\.')+' USDT'));
+  await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();
+  expect(page.confirm).toHaveBeenLastCalledWith(expect.objectContaining({message:fmt(zh.store.coConfirmPurchaseMessage,{amount:display})}));
+  page.confirm.mockResolvedValueOnce(true);await page.view.pay();
+  expect(page.api.pay).toHaveBeenCalledWith(original.orderNo,'original-key');
+  expect(page.api.create.mock.calls[0][0].amountUsdt).toBe(amount);
+  expect(page.saved().order).toMatchObject({amountUsdt:amount,paymentStatus:'PAID'});expect(page.view.unknown.value).toBe(false);
+});
+
+it.each([[undefined,'-'],[null,'-'],['invalid','-'],['9007199254740993.123456','9,007,199,254,740,993.123456'],[1e-7,'0.0000001']])('checkout display preserves unknown/precise value %s',async(value,display)=>{
+  const page=screen();await page.start();expect(page.view.formatAmount(value)).toBe(display);
+});
+
+it.each(['0.000000','10.000000',undefined])('voucher row attributes only explicitly voucher-only discounts (promotion %s)',async promotionDiscountUsdt=>{
+  const page=screen(undefined,eventEntry);page.vouchers.claimedUnused=[bf20];page.vouchers.catalog=[bf20];
+  const q={...voucherOnlyQuote('sku'),discountUsdt:'20.000000',promotionDiscountUsdt};page.api.quote.mockResolvedValue(q);await page.start();
+  const html=await page.html(),coupon=html.split('data-testid="checkout-event-voucher"')[1].split('data-testid="checkout-payment"')[0];
+  if(promotionDiscountUsdt==='0.000000'){
+    expect(page.view.voucherOnlyDiscount.value).toBe('20.000000');expect(coupon).toContain('−20.00 USDT');expect(html).not.toContain('data-testid="checkout-total-discount"');
+  }else{
+    expect(page.view.voucherOnlyDiscount.value).toBeUndefined();expect(coupon).not.toContain('- USDT');expect(html).toContain('data-testid="checkout-total-discount"');
+  }
+  expect(html).toContain('−20.00 USDT');expect(page.saved().quote?.discountUsdt).toBe('20.000000');
+});
+
+it('regular selected voucher shows only its confirmed deduction, while no voucher stays unclaimed',async()=>{
+  const page=screen();page.vouchers.catalog=[bf20];page.vouchers.claimedUnused=[bf20];
+  page.api.quote.mockImplementation(async(_items,_activity,voucherId)=>voucherId?{...voucherOnlyQuote('sku'),discountUsdt:'20.000000'}:{...quote(),expectedRewards:[]});
+  await page.start();const html=await page.html();
+  expect(html).toMatch(/class="checkout-discount-row promotion-link checkout-voucher-row"[^]*?−20.00 USDT/);
+  expect(page.saved().voucherId).toBe('BF20');
+  await page.view.chooseVoucher();await page.view.selectVoucher(null);
+  expect(await page.html()).toContain(zh.promotion.noVoucher);expect(page.view.voucherOnlyDiscount.value).toBeUndefined();
+  expect(await page.html()).not.toContain('−20.00 USDT');
+});
+
+it('an unresolved event-voucher order keeps its total deduction when the editable voucher row is hidden',async()=>{
+  const q=voucherOnlyQuote('sku'),pending={operation:'createOrder' as const,targetId:q.quoteId,key:'original-event-order'};
+  const page=screen({quote:q,order:null,pending,voucherId:'BF20'},eventEntry);
+  page.api.command.mockResolvedValue({status:'OUTCOME_UNKNOWN',order:null});await page.start();
+  expect(page.view.unknown.value).toBe(true);expect(page.exposed.footer.value).toBeNull();
+  const html=await page.html();expect(html).not.toContain('data-testid="checkout-event-voucher"');
+  expect(html).toContain('data-testid="checkout-total-discount"');expect(html).toContain('−20.00 USDT');
+  expect(page.saved().pending).toEqual(pending);expect(page.api.pay).not.toHaveBeenCalled();
+});
+
+it('discount signs do not turn zero or unknown into a positive deduction or lose sub-cent precision',async()=>{
+  const page=screen();await page.start();
+  for(const [value,display] of [['0','0.00'],['0.000001','−0.000001'],['50','−50.00'],[undefined,'-']] as const)expect(page.view.formatDiscount(value)).toBe(display);
+  const original={...receipt(),promotionQuoteId:'other-quote',discountUsdt:undefined};
+  const recovered=screen({quote:quote(),order:original,pending:null});recovered.api.findOrder.mockResolvedValue(original);await recovered.start();
+  expect(await recovered.html()).toContain('- USDT');expect(recovered.view.summary.value.discountUsdt).toBeUndefined();
+});
+
+const policySetup=ts.transpileModule(checkoutSource.slice(checkoutSource.indexOf('const purchasePolicyOpen ='),checkoutSource.indexOf('const reviewCopy =')),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+const policyTemplate=checkoutSource.slice(checkoutSource.indexOf('<NxSheet :open="purchasePolicyOpen"'),checkoutSource.indexOf('</NxSheet>')+'</NxSheet>'.length);
+const policyRender=new Function('Vue',compile(policyTemplate,{mode:'function',prefixIdentifiers:true,isCustomElement:tag=>['view','text'].includes(tag)}).code)(Vue);
+it.each(['zh','en','vi'])('R1-F2: %s policy points only to reward terms actually exposed by checkout',async code=>{
+  const page=screen(undefined,{activityId:'',items:[{productNo:'sku',quantity:2}]});
+  page.api.quote.mockResolvedValue({...quote(),quantity:2,items:quote().items.map(item=>({...item,quantity:2})),expectedRewards:[]});
+  await page.start();
+  const state=new Function('computed','ref','locale',policySetup+';return {purchasePolicyOpen,policyCopy};')(Vue.computed,Vue.ref,{code});state.purchasePolicyOpen.value=true;
+  const messages=code==='zh'?zh:code==='vi'?vietnamese:en;
+  const ctx=Vue.proxyRefs({...state,policyHasDevice:true,t:messages,auditCopy:{terms:'Agreement'},promotionRoute:page.props,promotionCheckout:Vue.proxyRefs(page.exposed),navTo:vi.fn()});
+  const NxSheet={props:['open'],setup:(props:any,{slots}:any)=>()=>props.open?Vue.h('view',slots.default?.()):null};
+  let sheet:Vue.VNode;
+  const html=()=>renderToString(Vue.createSSRApp({components:{NxSheet},render:()=>{sheet=policyRender(ctx,[]);return sheet;}}));
+  expect(page.exposed.hasRewardTerms.value).toBe(false);expect(await page.html()).not.toContain(zh.promotion.rulesLink);
+  expect(await html()).not.toContain(state.policyCopy.value.rewards);expect(await html()).toContain(messages.store.faq.refund.a);
+  page.api.quote.mockResolvedValue(quote());await page.view.loadQuote();
+  // Quantity must still match the requested basket for a quote to be accepted.
+  expect(page.exposed.hasRewardTerms.value).toBe(false);
+  page.api.quote.mockResolvedValue({...quote(),quantity:2,items:quote().items.map(item=>({...item,quantity:2}))});await page.view.loadQuote();
+  expect(page.exposed.hasRewardTerms.value).toBe(true);expect(await page.html()).toContain(zh.promotion.rulesLink);
+  expect(await html()).toContain(state.policyCopy.value.rewards);
+  const before=JSON.stringify(page.saved());sheet!.props!.onClose();expect(state.purchasePolicyOpen.value).toBe(false);expect(JSON.stringify(page.saved())).toBe(before);
+});
+
+it.each(['PENDING','PAID','CANCELLED','EXPIRED','REFUNDED'] as const)('step highlight respects %s without inventing activation',async paymentStatus=>{
+  const original={...receipt(),paymentStatus},page=screen({quote:quote(),order:original,pending:null});page.api.findOrder.mockResolvedValue(original);await page.start();
+  const html=await page.html();expect(page.view.checkoutStep.value).toBe(['PENDING','PAID'].includes(paymentStatus)?1:-1);
+  expect((html.match(/checkout-step-fill--active/g)??[]).length).toBe(['PENDING','PAID'].includes(paymentStatus)?2:0);
+  expect(page.view.checkoutStep.value).not.toBe(2);
 });

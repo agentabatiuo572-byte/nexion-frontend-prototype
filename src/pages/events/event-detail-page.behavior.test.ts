@@ -8,6 +8,7 @@ import source from "./detail.vue?raw";
 import { eventDetailCopy, eventReminderCopy } from "@/i18n/event-detail";
 import * as display from "./event-detail-display";
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
 import { displayDeadline } from "@/lib/promotion-display";
 import type { EventDetail } from "@/api/event-detail-api";
 
@@ -31,12 +32,14 @@ function mount() {
     vue: { ...Vue, onUnmounted: (fn: () => void) => { hooks.unmount = fn; } },
     "@dcloudio/uni-app": { onLoad: (fn: () => void) => { hooks.load = fn; }, onShow: (fn: () => void) => { hooks.show = fn; }, onHide: (fn: () => void) => { hooks.hide = fn; } },
     "@/components/app-chassis.vue": {}, "@/components/sub-page-header.vue": {},
+    "@/components/ui/nx-button.vue": {},
     "@/api/runtime": { apiClient: {}, eventsApi: { join, claim }, remoteApiEnabled: true },
     "@/api/order-api": { captureRuntimeRevision: () => runtime, subscribeRuntimeRevision: (fn: () => void) => { hooks.runtime = fn; return unsubscribe; } },
     "@/api/event-detail-api": { createEventDetailApi: () => ({ detail: read }) },
     "@/store/app": { useApp: () => account }, "@/store/locale": { useLocaleStore: () => locale },
     "@/i18n/event-detail": { eventDetailCopy, eventReminderCopy }, "@/lib/route": { navTo, takeNavigationQuery: () => "" },
     "@/lib/promotion-display": { displayDeadline }, "@/lib/amount-display": { formatAmount }, "./event-detail-display": display,
+    "@/lib/usd-display": { formatUsd },
   };
   const output: any = {};
   new Function("require", "exports", code)((id: string) => modules[id], output);
@@ -51,26 +54,29 @@ const flush = async () => { await Promise.resolve(); await Vue.nextTick(); };
 const render=new Function('Vue',compile(parse(source).descriptor.template!.content,{mode:'function',prefixIdentifiers:true,isCustomElement:tag=>['view','text'].includes(tag)}).code)(Vue);
 async function renderSnapshot(detail:EventDetail,language='zh') {
   const page=mount();page.read.mockResolvedValue(detail);page.locale.code=language;await flush();await page.state.load();
-  return renderToString(Vue.createSSRApp({render,setup:()=>({...page.state}),components:{AppChassis:{setup:(_props:unknown,{slots}:any)=>()=>slots.default?.()},SubPageHeader:{render:()=>null}}}));
+  return renderToString(Vue.createSSRApp({render,setup:()=>({...page.state}),components:{AppChassis:{props:['active'],setup:(_props:unknown,{slots}:any)=>()=>slots.default?.()},SubPageHeader:{render:()=>null}}}));
 }
-it.each(['zh','en','vi'] as const)('renders regional personal and regional total rewards separately at six decimals in %s',async language=>{
+it.each(['zh','en','vi'] as const)('renders regional personal and regional total rewards separately at up to four decimals in %s',async language=>{
   const value=snapshot('CLAIMED');value.event.kind='regional';value.event.state='ended';value.targetValue=1;
   value.myRewardAmount=0.002634;value.results=[{region:'CN',rank:1,volume:7554.1,rewardAmount:1}];
   const html=await renderSnapshot(value,language),copy=eventDetailCopy[language];
-  expect(html).toContain(copy.myReward);expect(html).toContain('0.002634 USDT');
-  expect(html).toContain(copy.regionPrize);expect(html).toContain('1.000000 USDT');
+  expect(html).toContain(copy.myReward);expect(html).toContain('$0.0026');
+  expect(html).toContain(copy.regionPrize);expect(html).toContain('$1.00');
+  expect(html).toContain('$7,554.10');
+  expect(value.myRewardAmount).toBe(0.002634);
   expect(html).not.toContain(copy.progress);expect(html).not.toContain('role="progressbar"');
 });
 it.each([null,undefined,0])('does not turn personal pool reward %s into another status or a pool estimate',async amount=>{
   const value=snapshot('CLAIMED');value.event.kind='regional';value.event.state='ended';value.myRewardAmount=amount;
   value.results=[{region:'CN',rewardAmount:1}];const html=await renderSnapshot(value);
   if(amount==null)expect(html).not.toContain(eventDetailCopy.zh.myReward);
-  else {expect(html).toContain(eventDetailCopy.zh.myReward);expect(html).toContain('0.000000 USDT');}
+  else {expect(html).toContain(eventDetailCopy.zh.myReward);expect(html).toContain('$0.00');}
 });
 it('keeps meaningful holding progress while showing only its returned personal payment',async()=>{
   const value=snapshot('CLAIMED');value.event.kind='holding';value.myRewardAmount=0.17196;
   const html=await renderSnapshot(value);
-  expect(html).toContain('role="progressbar"');expect(html).toContain('0.171960 USDT');
+  expect(html).toContain('role="progressbar"');expect(html).toContain('$0.172');
+  expect(value.myRewardAmount).toBe(0.17196);
 });
 
 it("coalesces repeated taps and resolves a lost join response from authoritative readback", async () => {

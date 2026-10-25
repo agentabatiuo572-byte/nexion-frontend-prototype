@@ -1,67 +1,55 @@
-<!--
-  StakeAlternativeCard — ported from me/wallet/withdraw/page.tsx StakeAlternativeCard.
-  Reverse-talk card: shows what the withdrawal amount would become if staked
-  instead (30/90/180-day USDT lockup APYs 12% / 35% / 80% — matched to the
-  /staking destination page, per the source's Round-7 mismatch fix). 3 tier cells
-  + headline + "Stake for +$delta in {days} days" CTA → /staking.
--->
+<!-- Optional withdrawal-page disclosure. Pool eligibility remains canonical. -->
 <template>
-  <view v-if="config.isEnabled('stakingVisible') && hasEligiblePool" class="nx-glass-card mx-4 mt-3 relative overflow-hidden" :style="cardStyle">
-    <view aria-hidden :style="washStyle" />
-    <view class="relative">
-      <view class="flex items-center" :style="labelStyle">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 3 1.9 4.6L16 9.5l-4.6 1.9L9.5 16l-1.9-4.6L3 9.5l4.6-1.9z" /></svg>
-        <text style="margin-left: 6px">{{ w.label }}</text>
+  <view v-if="config.isEnabled('stakingVisible') && hasEligiblePool" class="stake-alternative mx-4 mt-3">
+    <view class="stake-alternative-toggle" role="button" tabindex="0" :aria-expanded="expanded" aria-controls="stake-alternative-details" @click="expanded = !expanded" @keydown.enter.prevent="expanded = !expanded" @keydown.space.prevent="expanded = !expanded">
+      <text>{{ w.label }}</text>
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" :style="{ transform: expanded ? 'rotate(180deg)' : undefined }"><path d="m6 9 6 6 6-6" /></svg>
+    </view>
+    <view v-if="expanded" id="stake-alternative-details" class="stake-alternative-details">
+      <text class="block">{{ fmt(w.basis, { amount: formatGroupedAmount(amountNum) }) }}</text>
+      <view v-for="tier in displayTiers" :key="tier.days" class="stake-alternative-row">
+        <text>{{ fmt(w.term, { days: tier.days, rate: formatStakingPercentage(tier.apy) }) }}</text>
+        <text class="tabular-nums">{{ fmt(w.estimate, { amount: formatGroupedAmount(tierDelta(tier)) }) }}</text>
       </view>
-      <text class="block" style="font-size: 13px; color: var(--v5-ink); line-height: 1.55">{{ headlineText }}</text>
-
-      <view class="grid grid-cols-3" style="gap: 8px; margin-top: 14px">
-        <view v-for="tier in displayTiers" :key="tier.days" class="text-center" :style="tierCellStyle(tier.tone)">
-          <text class="block font-mono-tabular" :style="tierLabelStyle(tier.tone)">{{ tierLabelText(tier.days) }}</text>
-          <text class="block tabular-nums" :style="tierValueStyle">${{ formatAmount(tierValue(tier)) }}</text>
-          <text class="block tabular-nums" :style="tierDeltaStyle(tier.tone)">+${{ formatAmount(tierDelta(tier)) }}</text>
-        </view>
-      </view>
-
-      <view class="flex items-center justify-between w-full active:opacity-85" :style="ctaStyle" role="button" tabindex="0" @click="goStaking"  @keydown.enter.prevent="goStaking" @keydown.space.prevent="goStaking">
-        <text>{{ ctaText }}</text>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+      <text class="block stake-alternative-note">{{ w.assumptions }}</text>
+      <text class="block stake-alternative-note">{{ w.lockup }}</text>
+      <view class="stake-alternative-link" role="button" tabindex="0" @click="goStaking" @keydown.enter.prevent="goStaking" @keydown.space.prevent="goStaking">
+        <text>{{ w.rules }}</text>
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 5 7 7-7 7" /></svg>
       </view>
     </view>
-    <text class="block" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-4); line-height: 1.375">{{ w.disclaimer }}</text>
   </view>
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatGroupedAmount } from "@/lib/amount-display";
+import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { navTo } from "@/lib/route";
-import { computed, onMounted, type CSSProperties } from "vue";
-import { useT } from "@/i18n/use-t";
+import { computed, onMounted, ref } from "vue";
+import { useLocaleStore } from "@/store/locale";
+import { stakeAlternativeCopy } from "@/i18n/stake-alternative-copy";
 import { fmt } from "@/i18n/format";
 import { useStaking, STAKING_APY, STAKING_PENALTY, STAKING_MIN, type StakingTerm } from "@/store/staking";
 import { useConfig } from "@/store/config";
 import { canRecommendStakingPool, resolveStakingPool } from "@/lib/staking-canonical";
 
 const props = defineProps<{ amountNum: number }>();
-const t = useT();
-const w = computed(() => t.value.walletV3.stakeAlt);
+const locale = useLocaleStore();
+const w = computed(() => stakeAlternativeCopy[locale.code === "zh" || locale.code === "vi" ? locale.code : "en"]);
+const expanded = ref(false);
 const staking = useStaking();
 const config = useConfig();
 onMounted(() => {
   if (!staking.isMockMode) void staking.syncRemote();
 });
 
-type Tone = "ok" | "warn" | "hot";
-// APY 读质押主表单源(STAKING_APY),不再硬编码镜像 —— 防主表调档后此卡漂移。
-// (核查表「5/12/20」为误报:Round-7 已手动 matched 到 12/35/80,此处进一步焊单源根治。)
-const tiers = computed(() => ([30, 90, 180] as StakingTerm[]).map((days, index) => {
-  const tone: Tone = index === 0 ? "ok" : index === 1 ? "warn" : "hot";
+const tiers = computed(() => ([30, 90, 180] as StakingTerm[]).map(days => {
   const pool = resolveStakingPool(
     { isMockMode: staking.isMockMode, remoteReady: staking.remoteReady, pools: staking.pools },
     days,
     { apy: STAKING_APY[days], penalty: STAKING_PENALTY[days], minAmountUsdt: STAKING_MIN[days] },
   );
-  return pool ? { days, apy: pool.apy, penalty: pool.penalty, minAmountUsdt: pool.minAmountUsdt, tone, pool } : null;
+  return pool ? { days, apy: pool.apy, pool } : null;
 }));
 const displayTiers = computed(() => tiers.value.filter((tier): tier is NonNullable<typeof tier> =>
   tier !== null && canRecommendStakingPool(
@@ -72,111 +60,22 @@ const displayTiers = computed(() => tiers.value.filter((tier): tier is NonNullab
   ),
 ));
 const hasEligiblePool = computed(() => displayTiers.value.length > 0);
-const peak = computed(() => displayTiers.value[displayTiers.value.length - 1]);
-const peakValue = computed(() => {
-  const p = peak.value;
-  return p ? props.amountNum * (1 + (p.apy * p.days) / 365) : 0;
-});
-const peakDelta = computed(() => peakValue.value - props.amountNum);
-
-const headlineText = computed(() =>
-  fmt(w.value.headline, {
-    amount: formatAmount(props.amountNum),
-    peak: formatAmount(peakValue.value),
-    days: peak.value?.days ?? 180,
-  }),
-);
-const ctaText = computed(() => fmt(w.value.cta, { delta: `${formatAmount(peakDelta.value)}`, days: peak.value?.days ?? 180 }));
-function tierLabelText(days: number): string {
-  return fmt(w.value.tierLabel, { n: days });
-}
-function tierValue(tier: { days: number; apy: number }): number {
-  return props.amountNum * (1 + (tier.apy * tier.days) / 365);
-}
 function tierDelta(tier: { days: number; apy: number }): number {
-  return tierValue(tier) - props.amountNum;
+  return props.amountNum * tier.apy * tier.days / 365;
 }
-function toneColor(tone: Tone): string {
-  return tone === "ok" ? "var(--v5-ink-3)" : tone === "warn" ? "var(--v5-warning)" : "var(--v5-brand)";
-}
-
 function goStaking() {
   if (!hasEligiblePool.value) return;
   navTo("/pages/staking/staking");
 }
-
-// ── styles ──
-const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
-  padding: "16px",
-  borderRadius: "var(--nx-glass-radius)",
-  background: "var(--nx-glass-fill)",
-  border: "none",
-};
-const washStyle: CSSProperties = {
-  position: "absolute",
-  inset: "-20%",
-  background:
-    "radial-gradient(45% 55% at 85% 15%, var(--v5-brand-2-soft) 0%, transparent 60%), radial-gradient(35% 45% at 15% 90%, var(--v5-success-soft) 0%, transparent 60%)",
-  filter: "blur(8px)",
-  pointerEvents: "none",
-  opacity: 0.85,
-};
-const labelStyle: CSSProperties = {
-  gap: "6px",
-  marginBottom: "10px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-  color: "var(--v5-brand-2)",
-  letterSpacing: "0.06em",
-};
-function tierCellStyle(tone: Tone): CSSProperties {
-  const c = toneColor(tone);
-  return {
-    padding: "10px",
-    borderRadius: "10px",
-    background: `color-mix(in oklab, ${c} 12%, transparent)`,
-    border: `1px solid color-mix(in oklab, ${c} 30%, transparent)`,
-  };
-}
-function tierLabelStyle(tone: Tone): CSSProperties {
-  return {
-    fontSize: "12px",
-    fontWeight: 500,
-    color: toneColor(tone),
-    letterSpacing: "0.06em",
-  };
-}
-const tierValueStyle: CSSProperties = {
-  marginTop: "4px",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "15px",
-  letterSpacing: "-0.014em",
-  color: "var(--v5-ink)",
-  lineHeight: 1,
-};
-function tierDeltaStyle(tone: Tone): CSSProperties {
-  return {
-    marginTop: "2px",
-    fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-    fontSize: "12px",
-    color: toneColor(tone),
-  };
-}
-const ctaStyle: CSSProperties = {
-  marginTop: "14px",
-  padding: "0 18px",
-  height: "50px",
-  borderRadius: "999px",
-  background: "var(--v5-brand-2)",
-  boxShadow: "var(--v5-spotlight-brand-2)",
-  color: "var(--v5-on-brand-2)",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 500,
-  fontSize: "13px",
-  letterSpacing: "-0.005em",
-};
-
-
 </script>
+
+<style scoped>
+.stake-alternative { border-top:1px solid var(--v5-border); color:var(--v5-ink-2); font-family:var(--font-v5); font-size:13px; line-height:1.6; }
+.stake-alternative-toggle,.stake-alternative-link { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; padding:8px 0; box-sizing:border-box; }
+.stake-alternative-toggle svg,.stake-alternative-link svg { flex-shrink:0; }
+.stake-alternative-details { padding-bottom:8px; }
+.stake-alternative-row { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; padding:8px 0; border-bottom:1px solid var(--v5-border); }
+.stake-alternative-note { margin-top:10px; }
+.stake-alternative-link { justify-content:flex-start; text-decoration:underline; text-underline-offset:3px; }
+.stake-alternative-toggle:focus-visible,.stake-alternative-link:focus-visible { outline:2px solid var(--v5-ink-2); outline-offset:2px; }
+</style>

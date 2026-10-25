@@ -1,4 +1,6 @@
+import * as brandCopy from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
 import * as Vue from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -74,7 +76,9 @@ async function mount(localeCode: Locale, rows: Bill[] = [], page: keyof typeof c
   const account = Vue.reactive({ accountKey: "user:7", accountBindingEpoch: 1 });
   const shown: Array<() => void> = [], navTo = vi.fn();
   const modules: Record<string, unknown> = {
+    "@/lib/brand-copy": brandCopy,
     "@/lib/amount-display": { formatAmount },
+    "@/lib/usd-display": { formatUsd },
     vue: Vue, "@dcloudio/uni-app": {
       onLoad: (callback: (options: { cat: string; activityId: string; orderNo: string }) => void) => callback({ cat: category ?? (rows[0]?.symbol === "USDT" ? "usdt" : "nex"), activityId: "campaign-A", orderNo: "order-A" }),
       onShow: (callback: () => void) => shown.push(callback), onHide: vi.fn(),
@@ -250,7 +254,7 @@ describe("mounted reward state presentation", () => {
       expect(page.text()).not.toContain(t.bills.memo.refer);
       expect(page.text()).toContain(`${t.rewards.typeRefer} · F2-NETWORK-NEX-376`);
     }
-    expect(page.text()).toContain("+99.50 NEX");
+    expect(page.text()).toContain("+99.50 UVT");
     expect(JSON.stringify(rows)).toBe(before);
     expect(page.pager.refresh).toHaveBeenCalledOnce(); expect(page.pager.loadMore).not.toHaveBeenCalled();
   });
@@ -268,7 +272,7 @@ describe("mounted reward state presentation", () => {
     const rows: Bill[] = [{ ...fixture("pending", "achievement"), amount: 0.045005, memoKey: "learningReward", ref: "intro-uvel@v1" }];
     const before = JSON.stringify(rows), page = await mount(locale, rows), t = dicts[locale];
     expect(page.text()).toContain(`${t.bills.memo.learningReward} · UVEL intro`);
-    expect(page.text()).toContain("+0.05 NEX");
+    expect(page.text()).toContain("+0.05 UVT");
     expect(nodes(page.root).find(entry => entry.tag === "header")?.props.back).toBe("/pages/me/rewards");
     const link = nodes(page.root).find(entry => entry.props.role === "link")!;
     (link.props.onClick as () => void)();
@@ -290,7 +294,7 @@ describe("mounted reward state presentation", () => {
     expect(page.text()).toContain(en.bills.statusPosted); expect(page.text()).toContain(en.bills.memo.refer);
     page.locale.setLocale("vi"); await Vue.nextTick();
     expect(page.text()).toContain(vietnamese.bills.statusPosted); expect(page.text()).toContain(vietnamese.bills.memo.refer);
-    expect(page.text()).toContain("+99.50 NEX"); expect(rows[0].amount).toBe(99.5);
+    expect(page.text()).toContain("+99.50 UVT"); expect(rows[0].amount).toBe(99.5);
     expect(page.pager.refresh).toHaveBeenCalledOnce();
   });
 });

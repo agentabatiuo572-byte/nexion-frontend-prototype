@@ -3,8 +3,9 @@ const COPY = {
     estimated: '预估',
     rules: '规则',
     inviteRules: '邀请奖励规则',
-    inviteRuleSummary: '好友满足当前奖励条件后，可获得所示奖励。',
+    inviteRuleSummary: '达标条件暂不可用，请联系客服确认后再参与。',
     inviteRuleSettlement: '到账时间与可用状态以奖励记录为准。',
+    contactSupport: '联系客服',
     recentRewards: '最近奖励',
     settled: '已结算',
     pending: '待结算',
@@ -25,6 +26,10 @@ const COPY = {
     promotionRequirements: '晋级条件',
     benefitsAndRewards: '权益与奖励',
     teamIncome: '团队收入',
+    monthIncome: '本月团队收入',
+    lifetimeBreakdown: '累计收入构成',
+    settlementScope: '累计结算状态',
+    moreTools: '更多功能',
     teamRewards: '团队奖励',
     invitationRewards: '邀请奖励',
     twoGroupRewards: '双区贡献奖励',
@@ -36,8 +41,9 @@ const COPY = {
     estimated: 'Estimated',
     rules: 'Rules',
     inviteRules: 'Invitation reward rules',
-    inviteRuleSummary: 'The reward shown may be earned when a friend meets the current reward conditions.',
+    inviteRuleSummary: 'Qualifying conditions are unavailable. Contact support before participating.',
     inviteRuleSettlement: 'Payment timing and availability follow the reward records.',
+    contactSupport: 'Contact support',
     recentRewards: 'Recent rewards',
     settled: 'Settled',
     pending: 'Pending settlement',
@@ -58,6 +64,10 @@ const COPY = {
     promotionRequirements: 'Promotion requirements',
     benefitsAndRewards: 'Benefits & rewards',
     teamIncome: 'Team income',
+    monthIncome: 'Team income this month',
+    lifetimeBreakdown: 'Lifetime income breakdown',
+    settlementScope: 'Lifetime settlement status',
+    moreTools: 'More tools',
     teamRewards: 'Team rewards',
     invitationRewards: 'Invitation rewards',
     twoGroupRewards: 'Two-group contribution rewards',
@@ -69,8 +79,9 @@ const COPY = {
     estimated: 'Ước tính',
     rules: 'Quy tắc',
     inviteRules: 'Quy tắc thưởng mời bạn',
-    inviteRuleSummary: 'Có thể nhận phần thưởng hiển thị khi bạn bè đáp ứng điều kiện thưởng hiện tại.',
+    inviteRuleSummary: 'Điều kiện nhận thưởng hiện chưa khả dụng. Vui lòng liên hệ hỗ trợ trước khi tham gia.',
     inviteRuleSettlement: 'Thời điểm nhận và trạng thái sử dụng theo bản ghi thưởng.',
+    contactSupport: 'Liên hệ hỗ trợ',
     recentRewards: 'Phần thưởng gần đây',
     settled: 'Đã quyết toán',
     pending: 'Chờ quyết toán',
@@ -91,6 +102,10 @@ const COPY = {
     promotionRequirements: 'Điều kiện thăng hạng',
     benefitsAndRewards: 'Quyền lợi và phần thưởng',
     teamIncome: 'Thu nhập đội nhóm',
+    monthIncome: 'Thu nhập đội nhóm tháng này',
+    lifetimeBreakdown: 'Cơ cấu thu nhập tích lũy',
+    settlementScope: 'Trạng thái quyết toán tích lũy',
+    moreTools: 'Tiện ích khác',
     teamRewards: 'Thưởng đội nhóm',
     invitationRewards: 'Thưởng mời bạn',
     twoGroupRewards: 'Thưởng đóng góp hai nhóm',
@@ -103,4 +118,13 @@ const COPY = {
 export function teamRedesignCopy(locale: string) {
   const language = locale.toLowerCase().split(/[-_]/)[0];
   return COPY[language as keyof typeof COPY] ?? COPY.en;
+}
+
+export function referralSettlementStatus(locale: string, bucket: 'withdrawable' | 'pending_review' | 'bonus_locked') {
+  const labels = {
+    zh: { withdrawable: '已入账 · 可用', pending_review: '已入账 · 待审核', bonus_locked: '已入账 · 奖励锁定' },
+    en: { withdrawable: 'Credited · Available', pending_review: 'Credited · Under review', bonus_locked: 'Credited · Reward locked' },
+    vi: { withdrawable: 'Đã ghi có · Khả dụng', pending_review: 'Đã ghi có · Chờ xét duyệt', bonus_locked: 'Đã ghi có · Thưởng bị khóa' },
+  };
+  return (labels[locale.toLowerCase().split(/[-_]/)[0] as keyof typeof labels] ?? labels.en)[bucket];
 }

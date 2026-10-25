@@ -5,6 +5,8 @@ import { dayOnePageObservationFixture } from "@/lib/day-one-page-observation.tes
 import { readFileSync } from "node:fs";
 import { compile } from "@vue/compiler-dom";
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsdOverviewParts } from "@/lib/usd-display";
+import { remainderUiCopy } from "@/i18n/remainder-ui";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import { renderToString } from "@vue/server-renderer";
 import ts from "typescript";
@@ -21,7 +23,7 @@ const script = compileScript(descriptor, { id: "earn-summary-read-state" });
 const code = ts.transpileModule(script.content, {
   compilerOptions: { target: ts.ScriptTarget.ES2018, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
 }).outputText;
-const render = new Function("Vue", compile(descriptor.template!.content, { mode: "function", prefixIdentifiers: true }).code)(Vue);
+const render = new Function("Vue", compile(descriptor.template!.content, { mode: "function", prefixIdentifiers: true, isCustomElement: tag => ["view", "text"].includes(tag) }).code)(Vue);
 const scopes: Vue.EffectScope[] = [];
 afterEach(() => { for (const scope of scopes.splice(0)) scope.stop(); });
 type Range = "Today" | "Week" | "Month" | "All";
@@ -36,6 +38,11 @@ function hero(range: Range, homeTruth: unknown, realized: { usdt: number; nex: n
     refreshHomeTruth: async () => true, refreshRemoteFleet: async () => true });
   const load = (id: string) => {
     if (id === "@/lib/amount-display") return { formatAmount };
+    if (id === "@/lib/usd-display") return { formatUsdOverviewParts };
+    if (id === "@/i18n/remainder-ui") return { useRemainderUiCopy: () => Vue.ref(remainderUiCopy[copy === zh ? "zh" : copy === vietnamese ? "vi" : "en"]) };
+    if (id === "@/store/config") return { useConfig: () => ({ configStatus: "ready", isEnabled: () => false }) };
+    if (id === "@/lib/native-phone-runtime") return { hasNativeAndroidPhoneRuntime: () => true };
+    if (id === "@/lib/route") return { navTo: () => {} };
     if (id === "@/lib/day-one-page-observation") return dayOnePageObservationFixture();
     if (id === "vue") return { ...Vue, onUnmounted: () => {} };
     if (id === "@dcloudio/uni-app" || id === "@/composables/use-tab-page-lifecycle") return { onShow: () => {}, onHide: () => {} };
@@ -113,6 +120,7 @@ function expectUnknown(view: ReturnType<typeof hero>) {
   expect(view.total.value).toBeNull();
   expect(view.totalKnown.value).toBe(false);
   expect(view.totalInt.value).toBe("—");
+  expect(view.totalPrefix.value).toBe("");
   expect(view.totalCents.value).toBe("");
   expect(view.nexTotal.value).toBeNull();
   expect(view.nexFmt.value).toBe("—");
@@ -124,11 +132,53 @@ async function rendered(view: ReturnType<typeof hero>) {
   const app = Vue.createSSRApp({ render, setup: () => Vue.proxyRefs(view) });
   const wrapper = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("main", [slots.pageTop?.(), slots.default?.()]) });
   for (const name of ["AppChassis", "CardStagger", "TrialHeroBanner", "TrialGhostSlot", "DeviceCardPC",
-    "CapacityExplainerSheet", "MissedIncomeBanner", "ComputeShareEntry", "EmptySlotsHint", "MarketBoard", "TaskCenter"]) {
+    "CapacityExplainerSheet", "MissedIncomeBanner", "ComputeShareEntry", "EmptySlotsHint", "MarketBoard", "TaskCenter",
+    "GlassSegments", "NxSection", "NxButton", "EarningsLedgerCard"]) {
     app.component(name, wrapper);
   }
   return renderToString(app);
 }
+
+async function renderedMoney(view: ReturnType<typeof hero>) {
+  const html = await rendered(view);
+  const amount = html.match(/<view class="mt-2\.5 flex items-baseline gap-1"[^>]*>([\s\S]*?)<\/view>/)?.[1];
+  expect(amount).toBeDefined();
+  return { markup: amount!, text: amount!.replace(/<[^>]*>/g, "").replace(/&lt;/g, "<").trim() };
+}
+
+describe("contextual earn USD hero", () => {
+  for (const copy of [en, zh, vietnamese]) {
+    it.each([
+      [0, "$0.00"], [-0, "$0.00"], [0.00032, "<$0.01"], [0.009999, "<$0.01"],
+      [0.01, "$0.01"], [1234.56789, "$1,234.57"], [-0.00032, "−<$0.01"],
+    ] as const)(`${copy.earn.todayEarnings}: renders %s without rounding the source amount`, async (amount, expected) => {
+      const truth = { earnings: { ...emptyTruth.earnings, today: { usdt: amount, nex: 3, jobCount: 2 } } };
+      const view = hero("Today", truth, null, "ready", copy);
+      const output = await renderedMoney(view);
+      expect(output.text).toBe(expected);
+      expect(output.markup).toContain("font-size:20px");
+      expect(output.markup).toContain("font-size:56px");
+      expect(output.markup).toContain("font-size:36px");
+      expect(view.total.value).toBe(amount);
+      expect(view.app.homeTruth).toEqual(truth);
+      expect(view.nexFmt.value).toBe("3.00");
+    });
+  }
+
+  it("removes the currency prefix during a failed read, then recovers the small-value threshold", async () => {
+    const truth = { earnings: { ...emptyTruth.earnings, today: { usdt: 0.00032, nex: 3, jobCount: 2 } } };
+    const view = hero("Today", truth, null);
+    expect((await renderedMoney(view)).text).toBe("<$0.01");
+    view.app.homeTruthStatus = "error";
+    const unknown = await renderedMoney(view);
+    expect(unknown.text).toBe("—");
+    expect(unknown.markup).not.toContain("font-size:20px");
+    expect(unknown.markup).not.toContain("font-size:36px");
+    expect(view.app.homeTruth).toEqual(truth);
+    view.app.homeTruthStatus = "ready";
+    expect((await renderedMoney(view)).text).toBe("<$0.01");
+  });
+});
 
 const zeroPeriod = { usdt: 0, nex: 0, jobCount: 0 };
 const zeroTruth = { earnings: { today: zeroPeriod, week: zeroPeriod, month: zeroPeriod, all: zeroPeriod } };

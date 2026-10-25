@@ -127,10 +127,13 @@ describe("message page header content contract", () => {
     expect(source).not.toContain("revealSections");
   });
 
-  it("keeps mark-all beside the count and moves clear-read into the reachable settings page", async () => {
+  it("keeps mark-all beside the count and bulk cleanup reachable in the feed and settings", async () => {
     const clear = all.find(node => hasClass(node, 'message-mark-all'))!;
     expect(source).not.toContain('message-secondary-actions');
-    expect(source).not.toContain('confirmClearRead');
+    const management = all.find(node => hasClass(node, 'notification-management'))!;
+    expect(management.loc.source).toContain('@click="confirmClearRead"');
+    expect(management.loc.source).toContain('LiquidGlass');
+    expect(elements(heading.children)).not.toContain(management);
     expect(nav.loc.source).toContain("navTo('/pages/me/preferences')");
     expect(settingsSource).toContain('@click="confirmClearRead"');
     expect(settingsSource).toContain(':aria-label="t.notifs.clearReadAria"');
@@ -171,10 +174,10 @@ describe("message page header content contract", () => {
     expect(compiled.errors).toEqual([]);
     expect(compiled.code).toContain('.nx-glass-option--selected::before');
     const highlight = scoped.match(/\.nx-glass-option--selected::before\)\s*\{([^}]+)\}/)![1];
-    expect(highlight).toContain('inset: 1px'); expect(highlight).toContain('z-index: 0');
+    expect(highlight).toContain('inset: 5px 0'); expect(highlight).toContain('z-index: 0');
     expect(highlight).toContain('pointer-events: none');
-    expect(highlight).toContain('radial-gradient(120% 60% at 30% 0%');
-    expect(highlight).toContain('var(--message-glass-white) 22%');
+    expect(highlight).toContain('var(--message-glass-fill)');
+    expect(highlight).toContain('var(--message-glass-shadow)');
     expect(scoped).toMatch(/\.message-option-label, \.message-category-dot\s*\{[^}]*z-index:\s*1/);
     expect(pageStyles).toContain('--message-glass-white: #fff');
     expect(pageStyles).toContain('--message-selected-highlight: #E6FFA0');
@@ -190,7 +193,7 @@ describe("message page header content contract", () => {
     for (const rule of [category, date]) {
       expect(rule).toContain('line-height: normal'); expect(rule).not.toMatch(/transform|translate|top:/);
     }
-    expect(category).toContain('height: 34px'); expect(date).toContain('margin: 18px 2px 2px');
+    expect(category).toContain('height: 44px'); expect(date).toContain('margin: 18px 2px 2px');
     expect(source + pageStyles + settingsSource).not.toMatch(/#(?:0F131B|171B24|232938|121722|0D1017)\b/i);
   });
 });

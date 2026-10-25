@@ -137,6 +137,8 @@ function toggleRule(id: string) { openRule.value = openRule.value === id ? null 
 </script>
 
 <style scoped>
+.how-ladder-scroll :deep(.uni-scroll-view) { scrollbar-width: none; }
+.how-ladder-scroll :deep(.uni-scroll-view::-webkit-scrollbar) { display: none; }
 .rank-how-page { color:var(--v5-ink);padding-bottom:28px; }.rank-how-content { padding:0 20px; }
 .how-hero { padding:var(--ui-space-inline) 0 28px; }.how-hero__heading { display:flex;align-items:center;gap:14px;margin-bottom:var(--ui-space-inset); }.how-hero__copy { flex:1;min-width:0; }
 .how-headline { display:block;font:600 25px/1.25 var(--font-v5);letter-spacing:-.02em;overflow-wrap:anywhere; }

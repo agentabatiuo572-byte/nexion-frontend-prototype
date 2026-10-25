@@ -16,21 +16,21 @@
         <view v-if="detail.event.startsAt" class="event-row"><text>{{ copy.start }}</text><text>{{ displayDeadline(detail.event.startsAt, language) }}</text></view>
         <view v-if="detail.event.endsAt" class="event-row"><text>{{ copy.end }}</text><text>{{ displayDeadline(detail.event.endsAt, language) }}</text></view>
       </view>
+      <view v-if="detail.rewards.length" class="nx-glass-card event-section">
+        <text class="event-heading">{{ copy.rewards }}</text>
+        <text v-for="(reward, index) in detail.rewards" :key="index" class="event-copy">{{ reward.type === 'USDT' ? `${reward.pool ? `${copy.labels.poolUsdt} · ` : ''}${formatUsd(reward.quantity ?? reward.amount, 'detail')}` : eventDetailReward(reward, copy) }}</text>
+      </view>
       <view class="event-section event-section--plain">
         <text class="event-heading">{{ copy.rules }}</text>
         <view v-for="row in ruleRows" :key="row.label" class="event-row" :class="{'event-rule-paragraph':[copy.labels.description,copy.labels.terms].includes(row.label)}"><text>{{ row.label }}</text><text>{{ row.value }}</text></view>
-        <template v-if="!ruleRows.length"><text class="event-copy">{{ copy.rulesUnavailable }}</text><view class="event-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load"><text>{{ copy.retry }}</text></view></template>
-      </view>
-      <view v-if="detail.rewards.length" class="nx-glass-card event-section">
-        <text class="event-heading">{{ copy.rewards }}</text>
-        <text v-for="(reward, index) in detail.rewards" :key="index" class="event-copy">{{ eventDetailReward(reward, copy) }}</text>
+        <template v-if="!ruleRows.length"><text class="event-copy">{{ copy.rulesUnavailable }}</text><view class="event-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ copy.retry }}</text></view></template>
       </view>
       <view v-if="detail.event.kind !== 'regional' && detail.targetValue > 0" class="event-section event-section--plain">
         <view class="event-row"><text class="event-heading">{{ copy.progress }}</text><text>{{ formatAmount(detail.progressValue) }} / {{ formatAmount(detail.targetValue) }}</text></view>
         <view class="event-progress" role="progressbar" :aria-label="copy.progress" :aria-valuenow="Math.min(detail.progressValue, detail.targetValue)" :aria-valuemin="0" :aria-valuemax="detail.targetValue"><view :style="{ width: `${Math.min(100, detail.progressValue / detail.targetValue * 100)}%` }" /></view>
       </view>
       <view v-if="detail.myRewardAmount != null" class="nx-glass-card event-section">
-        <view class="event-row"><text class="event-heading">{{ copy.myReward }}</text><text>{{ detail.myRewardAmount.toFixed(6) }} USDT</text></view>
+        <view class="event-row"><text class="event-heading">{{ copy.myReward }}</text><text>{{ formatUsd(detail.myRewardAmount, 'detail') }}</text></view>
       </view>
       <view v-if="detail.results.length || detail.event.state === 'ended'" class="event-section event-section--plain">
         <text class="event-heading">{{ copy.results }}</text>
@@ -38,12 +38,13 @@
         <view v-for="(result, index) in detail.results" :key="index" class="event-result">
           <view v-if="result.region" class="event-row"><text>{{ copy.region }}</text><text>{{ result.region }}</text></view>
           <view v-if="result.rank != null" class="event-row"><text>{{ copy.rank }}</text><text>{{ result.rank }}</text></view>
-          <view v-if="result.volume != null" class="event-row"><text>{{ copy.volume }}</text><text>{{ formatAmount(result.volume) }} USDT</text></view>
-          <view v-if="result.rewardAmount != null" class="event-row"><text>{{ detail.event.kind === 'regional' ? copy.regionPrize : copy.prize }}</text><text>{{ result.rewardAmount.toFixed(6) }} USDT</text></view>
+          <view v-if="result.volume != null" class="event-row"><text>{{ copy.volume }}</text><text>{{ formatUsd(result.volume, 'detail') }}</text></view>
+          <view v-if="result.rewardAmount != null" class="event-row"><text>{{ detail.event.kind === 'regional' ? copy.regionPrize : copy.prize }}</text><text>{{ formatUsd(result.rewardAmount, 'detail') }}</text></view>
         </view>
       </view>
       <text v-if="commandError" class="event-copy" role="alert">{{ copy.pending }}</text>
-      <view v-if="action" class="event-primary" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" @click="run" @keydown.enter.prevent="activate($event, run)" @keydown.space.prevent="activate($event, run)"><text>{{ busy ? copy.busy : action === 'remind' ? reminderCopy.remind : copy[action] }}</text></view>
+      <NxButton v-if="action==='open'" class="event-navigate" variant="secondary" :label="copy.open" :busy="busy" @click="run"><text>{{ copy.open }}</text><text aria-hidden="true">→</text></NxButton>
+      <view v-else-if="action" class="event-primary" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" @click="run" @keydown.enter.prevent="activate($event, run)" @keydown.space.prevent="activate($event, run)"><text>{{ busy ? copy.busy : action === 'remind' ? reminderCopy.remind : copy[action] }}</text></view>
       <text v-else-if="detail.event.state === 'ongoing' && detail.enabled" class="event-copy">{{ copy.automatic }}</text>
       <view class="event-action" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" @click="!busy && load()" @keydown.enter.prevent="!busy && activate($event, load)" @keydown.space.prevent="!busy && activate($event, load)"><text>{{ copy.refresh }}</text></view>
     </template>
@@ -54,6 +55,7 @@ import { computed, onUnmounted, ref, watch } from "vue";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import NxButton from '@/components/ui/nx-button.vue';
 import { apiClient, eventsApi, remoteApiEnabled } from "@/api/runtime";
 import { captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { createEventDetailApi, type EventDetail } from "@/api/event-detail-api";
@@ -64,6 +66,7 @@ import { eventReminderCopy } from "@/i18n/event-detail";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { displayDeadline } from "@/lib/promotion-display";
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
 import { eventDetailAction, eventDetailRules, eventDetailReward, eventClaimCommandKey, eventDetailHref } from "./event-detail-display";
 
 const app = useApp(), locale = useLocaleStore(), api = createEventDetailApi(apiClient);
@@ -132,6 +135,7 @@ onUnmounted(() => { visible = false; reset(); unsubscribe(); });
 .event-result + .event-result { margin-top:14px; border-top:1px solid var(--v5-border); }
 .event-action, .event-primary { display:flex; justify-content:center; margin-top:16px; padding:13px 16px; border-radius:24px; font-size:13px; font-weight:600; color:var(--v5-brand); }
 .event-primary { background:var(--v5-brand); color:var(--v5-on-brand); }
+.event-navigate { margin-top:16px; width:100%; }
 .event-rule-paragraph { display:block; }
 .event-rule-paragraph > text { display:block;white-space:pre-wrap;text-align:left;overflow-wrap:anywhere; }
 .event-rule-paragraph > text + text { margin-top:6px;color:var(--v5-ink-2); }

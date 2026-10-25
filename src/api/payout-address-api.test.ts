@@ -1,6 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ApiClient } from "./api-client";
+import type { ApiClient, ApiRequest } from "./api-client";
 import { createPayoutAddressApi, payoutAddressEpochMs } from "./payout-address-api";
+// @ts-expect-error Standalone demo is intentionally outside production sources.
+import { bankDemo } from "../../scripts/lib/prototype-demo-bank.mjs";
+
+it("loopback address replacement validates OTP, reads back pending state and reuses its command", async () => {
+  const state = { dataState: "normal" };
+  const api = createPayoutAddressApi({ request: async (r: ApiRequest) => bankDemo(new URL(r.path, "http://127.0.0.1"), state, {
+    method: () => r.method || "GET", postDataJSON: () => r.body, headers: () => ({ "idempotency-key": r.idempotencyKey }),
+  }) } as never);
+  const otp = await api.sendOtp();
+  const input = { network: "USDT-BEP20" as const, address: '0x' + '2'.repeat(40), challengeNo: otp.challengeNo, code: '000000', idempotencyKey: 'local-address' };
+  await expect(api.save(input)).rejects.toThrow('OTP_INVALID');
+  input.code = '123456';
+  const saved = await api.save(input);
+  expect(saved.changePending).toBe(true);
+  expect(await api.save(input)).toEqual(saved);
+  expect((await api.list()).addresses).toEqual([saved]);
+  await expect(api.save({ ...input, address: '0x' + '3'.repeat(40) })).rejects.toThrow('IDEMPOTENCY_CONFLICT');
+});
 
 const productionSnapshot = {
   addresses: [],

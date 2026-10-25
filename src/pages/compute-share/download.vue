@@ -492,9 +492,9 @@ const heroStyle: CSSProperties = {
   padding: "0 2px",
 };
 const eyebrowStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
-  color: "var(--v5-tech-cyan)",
+  color: "var(--v5-ink-3)",
   letterSpacing: "0.08em",
 };
 const headlineStyle: CSSProperties = {
@@ -518,7 +518,7 @@ const urlBoxStyle: CSSProperties = {
   padding: "10px 12px",
 };
 const urlLabelStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
   color: "var(--v5-ink-4)",
 };
@@ -554,14 +554,14 @@ const devicesButtonStyle: CSSProperties = {
   fontSize: "13px",
   fontWeight: 600,
 };
-// De-carded: the demo panel sits on the floor as a second section; its mono
+// The demo panel sits on the page floor as a second section; its
 // eyebrow (demoLabel) opens the section. 20px section gap above.
 const demoStyle: CSSProperties = {
   marginTop: "20px",
   padding: "0 2px",
 };
 const demoLabelStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
   color: "var(--v5-brand)",
   letterSpacing: "0.06em",
@@ -582,8 +582,8 @@ const demoBodyStyle: CSSProperties = {
 const tierPillStyle: CSSProperties = {
   borderRadius: "999px",
   padding: "5px 8px",
-  background: "color-mix(in srgb, var(--v5-tech-cyan) 14%, transparent)",
-  color: "var(--v5-tech-cyan)",
+  background: "var(--v5-surface-2)",
+  color: "var(--v5-ink-2)",
   fontFamily: "var(--font-v5)",
   fontSize: "12px",
   fontWeight: 600,
@@ -609,10 +609,10 @@ const modelInputStyle: CSSProperties = {
 function modelButtonStyle(model: string): CSSProperties {
   const on = selectedModel.value === model;
   return {
-    minHeight: "42px",
+    minHeight: "44px",
     borderRadius: "10px",
-    background: on ? "color-mix(in srgb, var(--v5-tech-cyan) 14%, transparent)" : "var(--v5-surface-2)",
-    color: on ? "var(--v5-tech-cyan)" : "var(--v5-ink-2)",
+    background: on ? "var(--v5-brand-soft)" : "var(--v5-surface-2)",
+    color: on ? "var(--v5-brand)" : "var(--v5-ink-2)",
     display: "grid",
     placeItems: "center",
     textAlign: "center",
@@ -633,8 +633,8 @@ const tierSummaryStyle: CSSProperties = {
 const pairingStyle: CSSProperties = {
   padding: "12px",
   borderRadius: "12px",
-  background: "color-mix(in srgb, var(--v5-tech-cyan) 10%, var(--v5-surface-2))",
-  border: "1px solid color-mix(in srgb, var(--v5-tech-cyan) 28%, transparent)",
+  background: "var(--v5-surface-2)",
+  border: "1px solid var(--v5-border)",
 };
 const pairingLabelStyle: CSSProperties = {
   fontSize: "12px",
@@ -645,7 +645,7 @@ const pairingCodeStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "26px",
   letterSpacing: "0.18em",
-  color: "var(--v5-tech-cyan)",
+  color: "var(--v5-ink)",
 };
 const pairingBodyStyle: CSSProperties = {
   marginTop: "8px",

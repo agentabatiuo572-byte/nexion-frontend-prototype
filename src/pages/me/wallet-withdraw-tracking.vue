@@ -20,7 +20,7 @@
       </view>
       <view v-else-if="trackingReadError" class="px-5 text-center">
         <text class="block" :style="emptyTextStyle">{{ t.empty.errorDesc }}</text>
-        <view class="active:opacity-70" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; margin-top: 4px" role="button" tabindex="0" @click.stop="retryTrackedWithdrawal">
+        <view class="active:opacity-70" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; margin-top: 4px" role="button" tabindex="0" @click.stop="retryTrackedWithdrawal" @keydown.enter.prevent="retryTrackedWithdrawal" @keydown.space.prevent="retryTrackedWithdrawal">
           <text :style="emptyLinkStyle">{{ t.empty.errorCta }}</text>
         </view>
       </view>
@@ -211,9 +211,11 @@ const trackedWithdrawalRead = createWithdrawalTrackingRead<WithdrawalDetailSnaps
   setStatus: (status) => { trackingReadStatus.value = status; },
 });
 
-const trackingReadPending = computed(() => deepLinkId.value !== null
-  && (trackingReadStatus.value === "waiting" || trackingReadStatus.value === "loading"));
-const trackingReadError = computed(() => deepLinkId.value !== null && trackingReadStatus.value === "error");
+const trackingReadPending = computed(() => remoteApiEnabled && (deepLinkId.value !== null
+  ? trackingReadStatus.value === "waiting" || trackingReadStatus.value === "loading"
+  : !app.remoteWithdrawalListHasSnapshot && app.remoteWithdrawalListStatus !== "ready" && app.remoteWithdrawalListStatus !== "error"));
+const trackingReadError = computed(() => remoteApiEnabled && (deepLinkId.value !== null
+  ? trackingReadStatus.value === "error" : app.remoteWithdrawalListStatus === "error"));
 const wd = computed(() => {
   if (deepLinkId.value) {
     if (remoteApiEnabled && trackingReadStatus.value === "not-found") return null;
@@ -241,6 +243,7 @@ watch(() => wd.value, openBankTracking);
 
 function refreshTrackedWithdrawal(): void {
   if (deepLinkId.value) void trackedWithdrawalRead.refresh();
+  else if (remoteApiEnabled && app.remoteWithdrawalListStatus !== "loading") void app.refreshRemoteWithdrawalList();
 }
 
 function retryTrackedWithdrawal(): void {

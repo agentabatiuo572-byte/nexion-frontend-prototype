@@ -30,9 +30,9 @@
       <template v-if="amountNum > 0">
         <!-- Single bar -->
         <view class="flex items-center" style="margin-top: 8px; gap: 10px">
-          <view ref="singleBarRef" class="flex-1 relative overflow-hidden" :style="barTrackStyle">
-            <view :style="singleFillStyle" />
-            <text class="block absolute flex items-center" :style="barLabelStyle">{{ singleLabel }}</text>
+          <view class="flex-1 min-w-0">
+            <text class="block" :style="barLabelStyle">{{ singleLabel }}</text>
+            <view ref="singleBarRef" class="relative overflow-hidden" :style="barTrackStyle"><view :style="singleFillStyle" /></view>
           </view>
           <view class="text-right" style="min-width: 88px">
             <text class="block tabular-nums" :style="barAmtStyle('var(--v5-ink)')">${{ singleText }}</text>
@@ -42,9 +42,9 @@
 
         <!-- Compound bar -->
         <view class="flex items-center" style="margin-top: 8px; gap: 10px">
-          <view ref="compoundBarRef" class="flex-1 relative overflow-hidden" :style="barTrackStyle">
-            <view :style="compoundFillStyle" />
-            <text class="block absolute flex items-center" :style="barLabelStyle">{{ compoundLabel }}</text>
+          <view class="flex-1 min-w-0">
+            <text class="block" :style="barLabelStyle">{{ compoundLabel }}</text>
+            <view ref="compoundBarRef" class="relative overflow-hidden" :style="barTrackStyle"><view :style="compoundFillStyle" /></view>
           </view>
           <view class="text-right" style="min-width: 88px">
             <text class="block tabular-nums" :style="barAmtStyle('var(--v5-brand)')">${{ compoundText }}</text>
@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatGroupedAmount as formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import CalculatorWebviewAccessibility from "./calculator-webview-accessibility.vue";
 import { ref, computed, nextTick, watch, type CSSProperties } from "vue";
@@ -253,7 +253,7 @@ function segPillStyle(active: boolean): CSSProperties {
   };
 }
 const barTrackStyle: CSSProperties = {
-  height: "28px",
+  height: "8px",
   borderRadius: "6px",
   background: "var(--v5-surface-2)",
 };
@@ -268,17 +268,16 @@ const singleFillStyle = computed<CSSProperties>(() => ({
 const compoundFillStyle = computed<CSSProperties>(() => ({
   height: "100%",
   width: `${compoundBarInView.value ? compoundBarPct : 0}%`,
-  background: "linear-gradient(90deg, var(--v5-brand) 0%, var(--v5-tech-cyan) 100%)",
+  background: "var(--v5-brand)",
   borderRadius: "6px",
   transition: compoundBarInView.value ? PROGRESS_GROW_TRANSITION : "none",
   willChange: "width",
 }));
 const barLabelStyle: CSSProperties = {
-  top: 0,
-  bottom: 0,
-  left: "12px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  marginBottom: "6px",
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
+  lineHeight: "18px",
   color: "var(--v5-ink)",
   fontWeight: 500,
   pointerEvents: "none",

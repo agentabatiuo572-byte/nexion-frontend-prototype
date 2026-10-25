@@ -1,5 +1,7 @@
 import * as Vue from "vue";
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
+import { deviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -104,6 +106,8 @@ async function mount(copy: Messages, device = serverDevice()) {
   const sfc = (value: Component) => ({ __esModule: true, default: value });
   const dependencies: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/usd-display": { formatUsd },
+    "@/i18n/device-statistics-capability": { useDeviceStatisticsCapabilityCopy: () => Vue.ref(deviceStatisticsCapabilityCopy[copy === zh ? "zh" : copy === vietnamese ? "vi" : "en"]) },
     vue: Vue, "@dcloudio/uni-app": { onLoad: (callback: (query: object) => void) => callback({ id: device.id }),
       onShow: (callback: () => void) => onShow.push(callback) },
     "@/components/app-chassis.vue": sfc(passthrough), "@/components/empty-state.vue": sfc(blank),
@@ -142,6 +146,25 @@ async function mount(copy: Messages, device = serverDevice()) {
   return { root, device, navTo, setPhoneRuntime, refreshRemoteFleet };
 }
 
+test.each([en, zh, vietnamese])("shows supported device statistics and current status without inventing history", async copy => {
+  const device = Vue.reactive(serverDevice({ todayEarnings: 0.00032, cumulativeEarningsUsdt: 1234.56789 }));
+  const view = await mount(copy, device);
+  const statistics = find(view.root, "device-statistics")!;
+  const capabilityCopy = deviceStatisticsCapabilityCopy[copy === zh ? "zh" : copy === vietnamese ? "vi" : "en"];
+  expect(text(statistics)).toContain("<$0.01");
+  expect(text(statistics)).toContain("$1,234.57");
+  expect(text(find(view.root, "device-statistics__scope")!)).toBe(capabilityCopy.scope);
+  expect(text(find(view.root, "device-statistics__status")!)).toContain(copy.earn.offline);
+  expect(text(statistics)).not.toContain(copy.coreReview.historyUnavailable);
+  expect(text(statistics)).not.toContain(copy.coreReview.onlineRateUnavailable);
+  device.runtimeStatus = "ONLINE"; await Vue.nextTick();
+  expect(text(find(view.root, "device-statistics__status")!)).toContain(copy.earn.online);
+  device.runtimeStatus = "UNKNOWN"; await Vue.nextTick();
+  expect(text(find(view.root, "device-statistics__status")!)).toContain(copy.earn.runtimeUnknown);
+  expect(device.todayEarnings).toBe(0.00032);
+  expect(device.cumulativeEarningsUsdt).toBe(1234.56789);
+});
+
 async function fire(target: Host, event: "click" | "Enter" | " ") {
   const nativeEvent = { key: event, stopPropagation: vi.fn(), preventDefault: vi.fn() };
   const handlers = event === "click" ? target.props.onClick : target.props.onKeydown;
@@ -157,7 +180,7 @@ for (const [locale, copy] of languages) {
     const original = JSON.stringify(view.device);
     const card = find(view.root, "nx-device-card")!;
     const originalCardText = text(card);
-    for (const value of ["CTA-pending", "$0.43", "$0.00", "0.00 UVT"]) expect(originalCardText).toContain(value);
+    for (const value of ["CTA-pending", "$0.425", "$0.00", "0.00 UVT"]) expect(originalCardText).toContain(value);
     const badge = find(view.root, "nx-device-explainer")!;
     expect(text(badge)).toBe(fmt(copy.earn.subsidyBadge, { n: 28 }));
     expect(find(view.root, "nx-capacity-explainer-root")).toBeUndefined();
@@ -216,15 +239,16 @@ test("unknown remote capacity does not invent a subsidy/capacity entry", async (
   expect(view.device.capacityPct).toBeNull();
 });
 
-test('detail has one earnings summary, known totals, explicit missing history, and a working statistics action', async () => {
+test('detail has one earnings summary, known totals, an accurate capability note, and a working statistics action', async () => {
   const view = await mount(zh, serverDevice({ todayEarnings: 12.34, cumulativeEarningsUsdt: 567.89 }));
   expect(find(view.root, 'nx-device-card__header')).toBeUndefined();
-  expect(text(view.root).split(zh.earn.todayEarnings)).toHaveLength(2);
+  expect(all(view.root).filter(entry => entry.children.length === 0 && text(entry) === zh.earn.todayEarnings)).toHaveLength(1);
   const stats = all(view.root).find(entry => entry.props.id === 'device-statistics')!;
   expect(text(stats)).toContain('$12.34');
   expect(text(stats)).toContain('$567.89');
-  expect(text(stats)).toContain(zh.coreReview.historyUnavailable);
-  expect(text(stats)).toContain(zh.coreReview.onlineRateUnavailable);
+  expect(text(stats)).toContain(deviceStatisticsCapabilityCopy.zh.scope);
+  expect(text(stats)).not.toContain(zh.coreReview.historyUnavailable);
+  expect(text(stats)).not.toContain(zh.coreReview.onlineRateUnavailable);
   expect(text(stats)).not.toContain('100%');
   expect(text(view.root)).toContain(zh.coreReview.management);
   expect(text(view.root)).toContain(zh.coreReview.jobs);

@@ -32,7 +32,7 @@ function fallbackFor(content: Vue.Ref<unknown>, locale: { code: string }): Vue.C
 async function show(blocks: Array<Record<string, unknown>>, document: Record<string, unknown> = {}, requestedLocale = "zh") {
   const content = Vue.ref({ contentKey: "wallet-exchange-how", version: "fixture-v1", versionSource: "ENTRY", locale: "zh", blocks, ...document });
   const app = Vue.createSSRApp({ render, setup: () => ({
-    loading: false, error: false, back: "/pages/me/wallet", bodyStyle: {},
+    loading: false, error: false, neutral: false, back: "/pages/me/wallet", bodyStyle: {},
     content, languageFallback: fallbackFor(content, { code: requestedLocale }),
     t: messages[requestedLocale.split(/[-_]/)[0].toLowerCase() as keyof typeof messages], load: () => undefined,
     heroLabel: () => "Guide",

@@ -150,6 +150,9 @@
 
               @keydown.enter.prevent="openSelf" @keydown.space.prevent="openSelf"
             >
+              <!-- Match the member hit area: 64 viewBox units still exceed 44 CSS
+                   pixels at the supported 320px phone width. The orb stays 36. -->
+              <rect x="148" y="148" width="64" height="64" fill="transparent" pointer-events="all" />
               <circle cx="180" cy="180" r="18" fill="url(#networkSilver)" stroke="var(--v5-brand)" stroke-width="0.8" />
               <SvgText x="180" y="181" text-anchor="middle" dominant-baseline="middle" font-family="var(--font-v5)" font-weight="600" font-size="11" fill="var(--v5-ink)">{{ t.network.diagramYou }}</SvgText>
               <SvgText x="180" y="158" text-anchor="middle" font-family="var(--font-v5)" font-weight="600" font-size="9" fill="color-mix(in srgb, var(--v5-brand) 85%, transparent)" letter-spacing="1.5">{{ myRankText }}</SvgText>
@@ -237,7 +240,7 @@ import { rankTitle, rankLabel } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { remoteApiEnabled } from "@/api/runtime";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import { navTo } from "@/lib/route";
 
 const VIEW = 360;
@@ -274,26 +277,43 @@ const selected = computed<NetworkMember | null>({
 // Clear invalid IDs before a later snapshot can reopen an old account's sheet.
 watch(selected, member => { if (!member) selectedId.value = null; }, { flush: "sync" });
 const pulseId = ref<string | null>(null);
-let pulseTimer: ReturnType<typeof setInterval> | null = null;
-let pulseCursor = 0;
-
-// page-level interval (P-034): deterministic decorative pulse every 1.2s.
-// It never fabricates a member or metric and does not use client randomness.
+let pulseTimer: ReturnType<typeof setTimeout> | null = null;
+const reducedMotion = ref(false);
+let motionQuery: MediaQueryList | null = null;
+let pageVisible = true;
+function stopPulse() {
+  if (pulseTimer) clearTimeout(pulseTimer);
+  pulseTimer = null;
+  pulseId.value = null;
+}
+function syncMotion() {
+  reducedMotion.value = motionQuery?.matches ?? false;
+  if (reducedMotion.value) stopPulse();
+}
+// A single acknowledgement follows selection; decorative pulses never imply
+// a new online event and never run while the page is hidden or motion is reduced.
+watch(selectedId, id => {
+  stopPulse();
+  if (!id || reducedMotion.value || !pageVisible) return;
+  pulseId.value = id;
+  pulseTimer = setTimeout(stopPulse, 1000);
+});
 onMounted(() => {
   if (remoteApiEnabled) void network.ensureCanonicalNetwork();
-  pulseTimer = setInterval(() => {
-    const pool = members.value.filter((m) => m.status === "active");
-    if (pool.length === 0) return;
-    const pick = pool[pulseCursor % pool.length];
-    pulseCursor += 1;
-    pulseId.value = pick.id;
-  }, 1200);
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    syncMotion();
+    motionQuery.addEventListener('change', syncMotion);
+  }
 });
 onShow(() => {
+  pageVisible = true;
   if (remoteApiEnabled) void network.ensureCanonicalNetwork();
 });
+onHide(() => { pageVisible = false; stopPulse(); });
 onUnmounted(() => {
-  if (pulseTimer) clearInterval(pulseTimer);
+  stopPulse();
+  motionQuery?.removeEventListener('change', syncMotion);
 });
 
 const plotted = computed<Plotted[]>(() => {
@@ -374,10 +394,10 @@ function statusColor(status: MemberStatus): string {
 }
 
 // Metrics stay on the floor; the interactive graph has one quiet canvas.
-const metricCardStyle: CSSProperties = { padding: "12px 4px" };
+const metricCardStyle: CSSProperties = { padding: "12px 4px", display: "flex", flexDirection: "column" };
 const errorStateStyle: CSSProperties = { padding: "12px 0", borderBottom: "1px solid var(--v5-border)", color: "var(--v5-ink)" };
 const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", borderRadius: "999px", border: "1px solid var(--v5-border)", background: "color-mix(in srgb, var(--v5-ink) 6%, transparent)", color: "var(--v5-ink)" };
-const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
+const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5, flex: 1 };
 function metricValueStyle(color: string): CSSProperties {
   return { fontSize: "26px", fontWeight: 600, marginTop: "8px", color };
 }

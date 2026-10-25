@@ -33,6 +33,6 @@ describe("ambassador agent request fence", () => {
     // matching historical application as this command's successful receipt.
     expect(agentSource).toMatch(/await refreshLatest\(requestScope\);[\s\S]*requestIsCurrent\(requestScope\)/);
     expect(agentSource).not.toContain("matches(input, authoritative)");
-    expect(agentSource).toMatch(/finally \{[\s\S]*if \(requestIsCurrent\(requestScope\)\) submitting\.value = false;/);
+    expect(agentSource).toMatch(/finally \{[\s\S]*endAmbassadorDraftSubmit\(submittedDraft, submitToken\);/);
   });
 });

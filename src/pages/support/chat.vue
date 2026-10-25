@@ -844,8 +844,8 @@ const dotStyle = computed<CSSProperties>(() =>
 );
 const headerIcon = computed(() => (humanType.value === "advisor" ? ADVISOR_ICON : SUPPORT_ICON));
 const avaStyle = computed<CSSProperties>(() => ({
-  color: headerTint.value,
-  background: `color-mix(in srgb, ${headerTint.value} 14%, transparent)`,
+  color: "var(--v5-ink-2)",
+  background: "var(--v5-surface-2)",
 }));
 
 const inputPlaceholder = computed(() =>

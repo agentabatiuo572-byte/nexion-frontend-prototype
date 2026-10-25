@@ -10,20 +10,20 @@ import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { formatComputePoints } from "@/i18n/compute-points";
 
 const source = readFileSync(new URL("./binary.vue", import.meta.url), "utf8");
 const start = source.indexOf("const formulaText = computed(");
 const end = source.indexOf("const blockedDetailText", start);
 if (start < 0 || end <= start) throw new Error("Binary formula binding not found");
-const build = new Function("computed", "fmt", "t", "MATCH_RATE", "DAILY_CAP", "periodFreqLabel", "dateLocale", "formatAmount", `${source.slice(start, end)}; return formulaText;`);
+const build = new Function("computed", "fmt", "t", "MATCH_RATE", "DAILY_CAP", "periodFreqLabel", "dateLocale", "formatFinanceAmount", `${source.slice(start, end)}; return formulaText;`);
 describe("Binary formula follows the PC projection rate", () => {
   for (const [locale, dict] of [["en-US", en], ["zh-CN", zh], ["vi-VN", vi]] as const) {
     it(`renders updated fractional rates in ${locale}`, () => {
       const rate = ref(0.075);
-      const formula = build(computed, fmt, ref(dict), rate, ref(5000), ref("monthly"), () => locale, formatAmount);
-      expect(formula.value).toContain("5000.00");
+      const formula = build(computed, fmt, ref(dict), rate, ref(5000), ref("monthly"), () => locale, formatFinanceAmount);
+      expect(formula.value).toContain("5,000.00");
       expect(formula.value).toContain(`${(7.5).toLocaleString(locale)}%`);
       expect(formula.value).not.toContain("10%");
       rate.value = 0.123456;
@@ -53,7 +53,7 @@ async function showBasis(points: [number | null, number | null], dict = en, loca
   return renderToString(Vue.createSSRApp({ render, setup: () => ({
     t: dict, locale: { code: locale }, formatComputePoints,
     lowerComputePoints: lower(computed, ref(points[0]), ref(points[1])),
-    formulaText: build(computed, fmt, ref(dict), ref(.1375), ref(4321), ref(period), () => locale, formatAmount),
+    formulaText: build(computed, fmt, ref(dict), ref(.1375), ref(4321), ref(period), () => locale, formatFinanceAmount),
     gapHintText: fmt(dict.binary.gapHint, { freq: period }),
   }) }));
 }
@@ -64,7 +64,7 @@ describe("visible binary calculation basis", () => {
     expect(html).toContain(formatComputePoints(1480, locale));
     expect(html).toContain(`${(13.75).toLocaleString(locale)}%`);
     expect(html).toContain(dict.binary.settlePeriodLabel.weekly);
-    expect(html).toContain("4321.00");
+    expect(html).toContain("4,321.00");
     expect(html).toContain(dict.binary.gapHint);
     expect(html).not.toContain("$1480");
     expect(html).not.toContain("10%");

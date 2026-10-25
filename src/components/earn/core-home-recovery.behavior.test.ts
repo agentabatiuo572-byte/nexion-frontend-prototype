@@ -16,8 +16,9 @@ import { homeEarningsSubtitle } from '../home/home-real-copy';
 import { homeTaskSummary } from '../home/home-task-summary';
 import { fmt } from '@/i18n/format';
 import { formatAmount } from '@/lib/amount-display';
-import { dailyBaseReward } from '@/pages/daily/daily-reward-view';
+import { dailyBaseReward, dailyMilestoneRewardText, dailyRewardLabels } from '@/pages/daily/daily-reward-view';
 import { dailyCheckInSuccessCopy } from '@/pages/daily/daily-success-copy';
+import { continuityCopy } from '@/i18n/continuity-fixes';
 import * as workload from '@/lib/workload-label';
 import { nexGridBrandText } from '@/lib/brand-copy';
 
@@ -97,16 +98,38 @@ test('a failed earnings retry remains recoverable', async () => {
 });
 
 test('check-in reserves seven cells before its read, then replaces them in place', async () => {
-  const faucet = Vue.reactive({ remoteReadState: 'loading', remoteCheckedInToday: false, signInStreak: 2, remoteRules: [], ensureRemote: vi.fn() });
+  const faucet = Vue.reactive({ remoteReadState: 'loading', remoteCheckedInToday: false, signInStreak: 2, remoteRules: [], remoteMilestones:[{milestoneId:7,milestoneDay:7,rewardType:'NEX',rewardAmount:40,badgeCode:null,status:'LOCKED'}], ensureRemote: vi.fn() });
   const root = mount(dailyRaw, { ...common(), '@/store/nex-faucet': { useNexFaucet: () => faucet }, '@/store/app': { useApp: () => ({}) },
     '@/composables/use-tab-page-lifecycle': { onShow: () => {}, onHide: () => {} }, '@/lib/route': { navTo: vi.fn() },
     '@/i18n/audit-ui': { useAuditUiCopy: () => Vue.ref(auditUiCopy.zh) }, '@/store/ui': { toast: {} },
-    '@/pages/daily/daily-success-copy': { dailyCheckInSuccessCopy }, '@/pages/daily/daily-reward-view': { dailyBaseReward }, '@/components/ui/nx-button.vue': blank });
+    '@/i18n/continuity-fixes': { continuityCopy }, '@/store/locale': { useLocaleStore: () => ({ code: 'zh' }) },
+    '@/pages/daily/daily-success-copy': { dailyCheckInSuccessCopy }, '@/pages/daily/daily-reward-view': { dailyBaseReward, dailyMilestoneRewardText, dailyRewardLabels }, '@/components/ui/nx-button.vue': blank });
   expect(classNode(root, 'daily-check-in-row__days')!.children).toHaveLength(9); // seven cells plus fragment anchors
   expect(classNode(root, 'daily-check-in-row__days')!.props['aria-busy']).toBe('true');
   faucet.remoteReadState = 'ready'; await Vue.nextTick();
   expect(classNode(root, 'daily-check-in-row__days')!.children).toHaveLength(9);
   expect(text(root)).toContain(auditUiCopy.zh.today);
+  expect(text(classNode(root,'gift')!)).toContain('+40');expect(text(root)).toContain('UVT 40.00');
+  faucet.remoteMilestones[0].status='CLAIMED';await Vue.nextTick();expect(classNode(root,'gift')).toBeUndefined();
+});
+
+test.each(['zh', 'en', 'vi'] as const)('checked-in copy in %s uses the published base reward or a non-numeric tomorrow hint', async language => {
+  const copy = { zh, en, vi: vietnamese }[language], labels = auditUiCopy[language];
+  const faucet = Vue.reactive({ remoteReadState: 'ready', remoteCheckedInToday: false, signInStreak: 2,
+    remoteRules: [{ key: 'baseline', value: '17' }], ensureRemote: vi.fn() });
+  const root = mount(dailyRaw, { ...common(copy), '@/store/nex-faucet': { useNexFaucet: () => faucet }, '@/store/app': { useApp: () => ({}) },
+    '@/composables/use-tab-page-lifecycle': { onShow: () => {}, onHide: () => {} }, '@/lib/route': { navTo: vi.fn() },
+    '@/i18n/audit-ui': { useAuditUiCopy: () => Vue.ref(labels) }, '@/store/ui': { toast: {} },
+    '@/i18n/continuity-fixes': { continuityCopy }, '@/store/locale': { useLocaleStore: () => ({ code: language }) },
+    '@/pages/daily/daily-success-copy': { dailyCheckInSuccessCopy }, '@/pages/daily/daily-reward-view': { dailyBaseReward }, '@/components/ui/nx-button.vue': blank });
+  const hint = () => text(classNode(root, 'daily-check-in-row__meta')!);
+  expect(hint()).toBe(fmt(labels.todayReward, { n: 17 }));
+  faucet.remoteCheckedInToday = true; await Vue.nextTick();
+  expect(hint()).toBe(fmt(continuityCopy(language).tomorrowBaseReward, { n: 17 }));
+  for (const value of ['', 'invalid', '-1', '0']) {
+    faucet.remoteRules[0].value = value; await Vue.nextTick(); expect(hint()).toBe(labels.tomorrow);
+  }
+  faucet.remoteReadState = 'error'; await Vue.nextTick(); expect(hint()).toBe(labels.viewDaily);
 });
 
 test('to-do waits for its initial reads and trial progress opens the trial page', async () => {

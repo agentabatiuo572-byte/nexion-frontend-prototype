@@ -39,3 +39,12 @@
 
 .promotion-modal { position:relative; isolation:isolate; }
 .promotion-modal-content { position:relative; z-index:1; }
+
+/* Reward state styling is confined to RewardRows; other business badges keep their own role. */
+.promotion-reward-rows .promotion-reward-state--success { color:var(--v5-success-ink); background:var(--v5-success-soft); }
+.promotion-reward-rows .promotion-reward-state--pending { color:var(--v5-ink-2); background:var(--v5-surface-2); }
+.promotion-reward-rows .promotion-reward-state--attention { color:var(--v5-warning-ink); background:var(--v5-warning-soft); }
+.promotion-reward-rows .promotion-reward-state--closed { color:var(--v5-ink-3); background:var(--v5-surface-2); }
+.promotion-reward-detail > .promotion-rule-section { min-width:0; padding:4px 0 16px; border-bottom:1px solid var(--v5-border); }
+.promotion-reward-detail > .promotion-rule-section > .promotion-title { font-size:17px; margin-bottom:8px; }
+.promotion-reward-detail > .promotion-rule-section .promotion-copy { color:var(--v5-ink-2); }

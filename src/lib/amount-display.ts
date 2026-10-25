@@ -1,4 +1,8 @@
 /** Display only: keep API, ledger and command amounts at their original precision. */
+export function formatGroupedAmount(value: number | string | null | undefined): string {
+  const fixed = formatAmount(value), [whole, fraction] = fixed.split('.');
+  return fraction === undefined ? fixed : whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + fraction;
+}
 export function formatAmount(value: number | string | null | undefined): string {
   if (typeof value === "number" && !Number.isFinite(value)) return "-";
   const match = String(value ?? "").trim().match(/^([+-]?)(\d+)(?:\.(\d*))?(?:e([+-]?\d+))?$/i);

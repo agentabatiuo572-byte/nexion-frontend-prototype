@@ -44,9 +44,9 @@
             </view>
 
             <view class="inline-flex items-center active:opacity-80" :style="viewMarketStyle" role="link" tabindex="0" :aria-label="t.nexWallet.viewMarket" @click="goMarket">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z" /></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z" /></svg>
               <text style="margin: 0 4px">{{ t.nexWallet.viewMarket }}</text>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
         </view>
@@ -114,7 +114,7 @@
             <text :style="cardLabelStyle">{{ t.nexWallet.activity.label }}</text>
             <view class="inline-flex items-center active:opacity-70" :style="viewAllStyle" role="link" tabindex="0" :aria-label="t.nexWallet.activity.viewAll" @click="goBills">
               <text>{{ t.nexWallet.activity.viewAll }}</text>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
           <view v-if="remoteApiEnabled && bills.summaryStatus === 'error'" :style="activityEmptyStyle">
@@ -331,11 +331,11 @@ const heroStyle: CSSProperties = {
   padding: "0 2px",
 };
 const heroLabelStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
   fontWeight: 500,
   letterSpacing: "0.06em",
-  color: "var(--v5-brand-2)",
+  color: "var(--v5-ink-2)",
 };
 const heroNumStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -378,11 +378,11 @@ const viewMarketStyle: CSSProperties = {
   minHeight: "44px",
   padding: "0 10px",
   borderRadius: "8px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
   fontWeight: 500,
   letterSpacing: "0.04em",
-  color: "var(--v5-brand-2)",
+  color: "var(--v5-ink-2)",
 };
 // Quick action cells — filled tiles, no border (single visual difference).
 const quickCellStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
@@ -481,7 +481,7 @@ const viewAllStyle: CSSProperties = {
   padding: "0 10px",
   borderRadius: "6px",
   fontSize: "12px",
-  color: "var(--v5-brand-2)",
+  color: "var(--v5-ink-2)",
   gap: "2px",
 };
 const activityEmptyStyle: CSSProperties = { padding: "24px 2px", textAlign: "center", fontSize: "12px", color: "var(--v5-ink-3)" };

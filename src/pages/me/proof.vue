@@ -30,7 +30,7 @@
 
         <!-- Share card -->
         <view v-if="!remoteApiEnabled || remoteSnapshot" class="nx-glass-card relative overflow-hidden" :style="shareCardStyle">
-          <text v-if="!remoteApiEnabled || remoteSnapshot?.sourceEnvironment === 'SANDBOX'" class="block" style="margin-bottom: 12px; font-size: 12px; color: var(--v5-ink-3)">{{ t.proof.shareDemo }}</text>
+          <text v-if="!remoteApiEnabled || remoteSnapshot?.sourceEnvironment === 'SANDBOX'" class="block" style="margin-bottom: var(--ui-space-inline); font-size: 12px; color: var(--v5-ink-3)">{{ t.proof.shareDemo }}</text>
           <!-- brand -->
           <view class="flex items-center" style="gap: 8px">
             <BrandLockup :height="40" />
@@ -38,7 +38,7 @@
           </view>
 
           <!-- profile -->
-          <view class="flex items-center justify-between" style="margin-top: 16px">
+          <view class="flex items-center justify-between" style="margin-top: var(--ui-space-inset)">
             <view class="min-w-0">
               <text class="block truncate" :style="profileNameStyle">{{ profileName }}</text>
               <text class="block" :style="memberSinceStyle">{{ memberSinceText }}</text>
@@ -50,11 +50,11 @@
           </view>
 
           <!-- variant hero stat -->
-          <view v-if="variant === 'earnings'" style="margin-top: 16px">
+          <view v-if="variant === 'earnings'" style="margin-top: var(--ui-space-inset)">
             <text class="block font-mono-tabular" :style="heroKickerStyle('var(--v5-brand)')">{{ t.proof.totalEarned }}</text>
             <text class="block font-display tabular-nums" :style="heroBigStyle">${{ earningsTotalText }}</text>
           </view>
-          <view v-else-if="variant === 'streak'" style="margin-top: 16px">
+          <view v-else-if="variant === 'streak'" style="margin-top: var(--ui-space-inset)">
             <text class="block font-mono-tabular" :style="heroKickerStyle('var(--v5-brand-2)')">{{ t.proof.longestStreak }}</text>
             <view class="flex items-baseline" style="margin-top: 4px; gap: 6px">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>
@@ -62,7 +62,7 @@
               <text v-if="longestOrCurrent !== null" :style="heroUnitStyle">{{ t.proof.daysShort }}</text>
             </view>
           </view>
-          <view v-else style="margin-top: 16px">
+          <view v-else style="margin-top: var(--ui-space-inset)">
             <text class="block font-mono-tabular" :style="heroKickerStyle('var(--v5-brand-2)')">{{ t.proof.teamReach }}</text>
             <view class="flex items-baseline" style="margin-top: 4px; gap: 6px">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
@@ -71,7 +71,7 @@
           </view>
 
           <!-- secondary stats -->
-          <view class="grid grid-cols-3" style="margin-top: 16px; gap: 8px">
+          <view class="grid grid-cols-3" style="margin-top: var(--ui-space-inset); gap: 8px">
             <view :style="miniStatStyle">
               <text class="block truncate" :style="miniLabelStyle">{{ t.proof.activeDays }}</text>
               <text class="block font-display tabular-nums" :style="miniValueStyle">{{ activeDays === null ? "—" : activeDays }}</text>
@@ -87,7 +87,7 @@
           </view>
 
           <!-- achievement chips -->
-          <view style="margin-top: 12px">
+          <view style="margin-top: var(--ui-space-inline)">
             <text class="block font-mono-tabular" :style="chipsLabelStyle">{{ t.proof.achievementsRow }}</text>
             <view class="flex" style="gap: 6px; flex-wrap: wrap">
               <text class="inline-block font-mono-tabular" :style="chipStyle('var(--v5-brand)')">{{ vRankChip }}</text>
@@ -113,7 +113,7 @@
                 @keydown.enter.stop.prevent="copyLink" @keydown.space.stop.prevent="copyLink"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-                <text style="margin-left: 4px; pointer-events: none">{{ referralLink }}</text>
+                <text style="margin-left: 4px; min-width: 0; flex: 1; overflow-wrap: anywhere; pointer-events: none">{{ referralLink }}</text>
               </view>
             </view>
             <view class="grid place-items-center shrink-0" :style="qrBoxStyle">
@@ -125,7 +125,7 @@
         </view>
 
         <!-- Quick native share -->
-        <view style="margin-top: 12px">
+        <view style="margin-top: var(--ui-space-inline)">
           <view
             class="flex items-center justify-center active:scale-[0.98]"
             :style="nativeBtnStyle"
@@ -143,7 +143,7 @@
         </view>
 
         <!-- Destination grid 6 -->
-        <view class="grid grid-cols-3" style="margin-top: 12px; gap: 8px">
+        <view class="grid grid-cols-3" style="margin-top: var(--ui-space-inline); gap: 8px">
           <view
             v-for="d in destinations"
             :key="d.label"
@@ -354,13 +354,19 @@ const topPct = computed(() => remoteApiEnabled ? remoteSnapshot.value?.topPercen
 const topPctText = computed(() => topPct.value === null ? "—" : `Top ${topPct.value}%`);
 
 const shareText = computed(() => {
+  const copy = t.value.proof;
+  const link = referralLink.value;
   if (variant.value === "streak")
     return longestOrCurrent.value === null
-      ? `🔥 My UVEL streak is not available right now. Daily check-ins = passive UVT. Join me: ${referralLink.value}`
-      : `🔥 ${longestOrCurrent.value}-day streak on UVEL. Daily check-ins = passive UVT. Join me: ${referralLink.value}`;
+      ? fmt(copy.shareIntro, { link })
+      : fmt(copy.shareStreak, { days: longestOrCurrent.value, link });
   if (variant.value === "network")
-    return `🌐 My UVEL network has ${totalMembers.value ?? "—"} members. Explore UVEL: ${referralLink.value}`;
-  return `💸 Earned ${earningsTotalText.value} on UVEL in ${activeDays.value ?? "—"} days. Join my network: ${referralLink.value}`;
+    return totalMembers.value === null
+      ? fmt(copy.shareIntro, { link })
+      : fmt(copy.shareNetwork, { members: totalMembers.value, link });
+  return earningsTotal.value === null || activeDays.value === null
+    ? fmt(copy.shareIntro, { link })
+    : fmt(copy.shareEarnings, { amount: earningsTotalText.value, days: activeDays.value, link });
 });
 
 // ── derived labels ──
@@ -396,7 +402,7 @@ function nativeShare() {
       provider: "weixin",
       type: 0,
       href: referralLink.value,
-      title: "UVEL · Proof of Contribution",
+      title: t.value.proof.shareTitle,
       summary: text,
       success: () => {},
       fail: () => { if (current()) void copyText(text, t.value.proof.sharedToast, "", current); },
@@ -409,7 +415,7 @@ function copyLink() {
   return copyText(referralLink.value, t.value.proof.copiedToast);
 }
 function copyShareText(networkName: string) {
-  return copyText(shareText.value, t.value.proof.sharedToast, `Open ${networkName} and paste`);
+  return copyText(shareText.value, t.value.proof.sharedToast, fmt(t.value.proof.sharePasteHint, { channel: networkName }));
 }
 const POSTER_WIDTH = 1080;
 const POSTER_HEIGHT = 1350;
@@ -459,22 +465,23 @@ const qrCells = computed<boolean[]>(() => {
   return modules;
 });
 
-function drawProofPoster(): Promise<void> {
+async function drawProofPoster(): Promise<void> {
+  const logoPath = await new Promise<string>((resolve, reject) => uni.getImageInfo({
+    src: "/static/img/brand/header-logo-dark.png",
+    success: image => image.path ? resolve(image.path) : reject(new Error("PROOF_LOGO_EMPTY")),
+    fail: reject,
+  }));
   return new Promise((resolve, reject) => {
     try {
       const ctx = uni.createCanvasContext("proofPosterCanvas");
-      ctx.setFillStyle("#07101f");
+      ctx.setFillStyle("#0b0b0b");
       ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
-      ctx.setFillStyle("#b7ff3c");
-      ctx.fillRect(72, 72, 18, 76);
-      ctx.setFillStyle("#f7fbff");
-      ctx.setFontSize(54);
-      ctx.fillText("UVEL", 116, 128);
+      ctx.drawImage(logoPath, 72, 40, 356, 123);
       ctx.setFillStyle("#9cabbd");
       ctx.setFontSize(24);
       ctx.fillText("PROOF OF CONTRIBUTION", 72, 204);
 
-      ctx.setFillStyle("#111d30");
+      ctx.setFillStyle("#171717");
       ctx.fillRect(72, 254, 936, 948);
       ctx.setFillStyle("#f7fbff");
       ctx.setFontSize(46);
@@ -608,7 +615,7 @@ function tint(svg: string, color: string): string {
 
 // ── styles ──
 const bodyStyle: CSSProperties = { padding: "0 16px 32px" };
-const remoteErrorStyle: CSSProperties = { margin: "0 16px 12px", padding: "12px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)" };
+const remoteErrorStyle: CSSProperties = { margin: "0 16px 12px", padding: "var(--ui-space-inline)", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)" };
 const remoteRetryStyle: CSSProperties = { minHeight: "44px", display: "grid", placeItems: "center", marginTop: "6px", color: "var(--v5-warning)" };
 const variantLabelStyle: CSSProperties = {
   marginBottom: "6px",
@@ -633,7 +640,7 @@ function variantPillTextStyle(v: Variant): CSSProperties {
   const on = variant.value === v;
   return { fontSize: "12px", fontWeight: 600, color: on ? "var(--v5-on-brand)" : "var(--v5-ink-3)" };
 }
-const shareCardStyle: CSSProperties = { marginTop: "12px", padding: "20px" };
+const shareCardStyle: CSSProperties = { marginTop: "12px", padding: "var(--ui-space-section)" };
 const profileNameStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, color: "var(--v5-ink)" };
 const memberSinceStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
 function heroKickerStyle(color: string): CSSProperties {
@@ -680,9 +687,9 @@ function chipStyle(tintColor: string): CSSProperties {
 }
 const refBlockStyle: CSSProperties = {
   marginTop: "16px",
-  padding: "12px",
+  padding: "var(--ui-space-inline)",
   borderRadius: "12px",
-  gap: "12px",
+  gap: "var(--ui-space-inline)",
   background: "color-mix(in srgb, var(--v5-surface-2) 70%, transparent)",
 };
 const refLabelStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.18em", color: "var(--v5-brand)" };
@@ -694,6 +701,12 @@ const refCodeStyle: CSSProperties = {
   color: "var(--v5-ink)",
 };
 const refLinkStyle: CSSProperties = {
+  width: "100%",
+  maxWidth: "100%",
+  minWidth: "0",
+  boxSizing: "border-box",
+  overflowWrap: "anywhere",
+  wordBreak: "break-all",
   marginTop: "4px",
   minHeight: "44px",
   marginLeft: "-4px",
@@ -711,7 +724,7 @@ const qrGridStyle = computed<CSSProperties>(() => ({
   padding: "4px",
 }));
 function qrCellStyle(on: boolean): CSSProperties {
-  return { width: "100%", height: "100%", background: on ? "var(--v5-on-brand)" : "transparent" };
+  return { width: "100%", height: "100%", background: on ? "#121212" : "transparent" };
 }
 const posterCanvasStyle: CSSProperties = {
   position: "fixed",
@@ -728,7 +741,7 @@ const nativeHintStyle: CSSProperties = { marginTop: "6px", textAlign: "center", 
 const destBtnStyle: CSSProperties = {
   background: "var(--v5-surface)",
   borderRadius: "16px",
-  padding: "12px",
+  padding: "var(--ui-space-inline)",
   textAlign: "center",
 };
 function destIconStyle(color: string): CSSProperties {
@@ -736,8 +749,8 @@ function destIconStyle(color: string): CSSProperties {
 }
 const destLabelStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-2)", lineHeight: 1.25 };
 const tipStyle: CSSProperties = {
-  margin: "16px 0 8px",
-  padding: "12px",
+  margin: "var(--ui-space-inset) 0 8px",
+  padding: "var(--ui-space-inline)",
   borderRadius: "12px",
   background: "color-mix(in srgb, var(--v5-warning) 8%, transparent)",
 };

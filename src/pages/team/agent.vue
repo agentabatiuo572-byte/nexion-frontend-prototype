@@ -119,6 +119,7 @@
             <text>{{ unlocked ? t.agent.submitForReview : t.agent.lockedV5 }}</text><text aria-hidden="true">{{ submitting ? '…' : '→' }}</text>
           </view>
 
+          <view v-if="draft.touched" class="agent-cta" role="button" :tabindex="submitting ? -1 : 0" :aria-disabled="submitting" @click="discardDraft"><text>{{ logicCopy.discardDraft }}</text></view>
           <text v-if="!unlocked" class="block text-center" :style="previewOnlyStyle">{{ fmt(t.agent.previewOnly, { rank: requiredRankLabel }) }}</text>
         </view>
 
@@ -127,11 +128,16 @@
           <text class="block font-mono-tabular" :style="approvedCapStyle">{{ t.agent.serverApplication }}</text>
           <view :style="casesGroupStyle">
             <view v-for="(application, index) in applications" :key="application.applicationId ?? index" :style="caseRowStyle(index === applications.length - 1)">
-              <view class="flex items-start justify-between">
+              <view class="agent-application-heading">
                 <view>
                   <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ application.city }} · {{ application.eventDate }}</text>
                 </view>
-                <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-brand)' }">{{ applicationStatusText(application) }}</text>
+                <text class="font-mono-tabular" :style="{ fontSize: '12px', color: applicationStatusColor(application) }">{{ applicationStatusText(application) }}</text>
+              </view>
+              <view class="agent-application-details">
+                <text>{{ application.bucket ? t.agent.buckets[application.bucket].title : '—' }}</text>
+                <text class="agent-application-budget">{{ t.agent.budgetRequested }} · {{ applicationBudget(application.budgetUsdt) }}</text>
+                <text>{{ applicationIdLabel }} · {{ application.applicationId ?? '—' }}</text>
               </view>
             </view>
           </view>
@@ -146,7 +152,7 @@
                   <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ c.name }}</text>
                   <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ hostedByText(c) }}</text>
                 </view>
-                <text class="font-display tabular-nums" :style="{ fontSize: '15px', fontWeight: 600, color: 'var(--v5-ink)' }">${{ formatAmount(c.amount) }}</text>
+                <text class="font-display tabular-nums" :style="{ fontSize: '15px', fontWeight: 600, color: 'var(--v5-ink)' }">${{ formatFinanceAmount(c.amount) }}</text>
               </view>
             </view>
           </view>
@@ -157,9 +163,10 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { teamLogicCopy } from "@/i18n/team-logic-copy";
+import { ambassadorDraftCache, clearAmbassadorDraft, beginAmbassadorDraftSubmit, endAmbassadorDraftSubmit, type AmbassadorDraftForm } from "@/lib/ambassador-draft-session";
 import { navTo } from "@/lib/route";
-import { ref, computed, watch, type CSSProperties } from "vue";
+import { ref, shallowRef, computed, watch, type CSSProperties } from "vue";
 import { onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -193,6 +200,7 @@ import {
 const t = useT();
 const vrank = useVRank();
 const locale = useLocaleStore();
+const logicCopy = computed(() => teamLogicCopy(locale.code));
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const app = useApp();
 
@@ -243,18 +251,40 @@ const APPROVED_CASES: ApprovedCase[] = [
   { name: "São Paulo AI Devcon", host: "Diego P.", amount: 6700, attendees: 198 },
 ];
 
-const date = ref("");
-const city = ref("");
-const budgetText = ref("3000");
-const selectedBucketTitle = ref("");
-const selectedBucketId = ref<AmbassadorApplicationInput["bucket"] | "">("");
-const submitting = ref(false);
+const draft = shallowRef(ambassadorDraftCache.forAccount({ accountKey: app.accountKey, accountEpoch: app.accountBindingEpoch }));
+function draftField<K extends keyof AmbassadorDraftForm>(key: K) {
+  return computed({ get: () => draft.value.form[key], set: (value: AmbassadorDraftForm[K]) => {
+    if (draft.value.pending) return;
+    draft.value.form[key] = value;
+    draft.value.touched = true;
+  } });
+}
+const date = draftField('date');
+const city = draftField('city');
+const budgetText = draftField('budgetText');
+const selectedBucketTitle = draftField('bucketTitle');
+const selectedBucketId = draftField('bucketId');
+const submitting = computed(() => draft.value.pending !== null);
 const latestApplication = ref<AmbassadorApplication>({ applicationId: null, status: "NONE", city: null,
   eventDate: null, budgetUsdt: null, bucket: null, submittedAt: null, source: "server",
   sourceEnvironment: "PRODUCTION", runId: "" });
 const applications = ref<AmbassadorApplication[]>([]);
 
 const applicationStatusText = (application: AmbassadorApplication) => t.value.agent.applicationStatuses[application.status];
+const applicationIdLabel = computed(() => locale.code === 'zh' ? '申请编号' : locale.code === 'vi' ? 'Mã đơn đề nghị' : 'Application ID');
+// This is a submitted budget, not a two-decimal balance overview. Keep every
+// accepted decimal from the contract, and never feed this display into commands.
+function applicationBudget(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return '— USDT';
+  const [integer, fraction] = String(value).split('.');
+  return `${integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${fraction ? `.${fraction}` : '.00'} USDT`;
+}
+const applicationStatusColor = (application: AmbassadorApplication) => ({
+  NONE: 'var(--v5-ink-3)',
+  PENDING: 'var(--v5-warning-ink)',
+  APPROVED: 'var(--v5-success-ink)',
+  REJECTED: 'var(--v5-danger)',
+}[application.status]);
 
 let agentMounted = true;
 let agentRequestGeneration = 0;
@@ -283,20 +313,19 @@ function invalidateAgentRequests(): void {
 function clearAgentFormState(form: AmbassadorAgentFormState = {
   date: "", city: "", budgetText: "3000", bucketId: "", bucketTitle: "",
 }): void {
-  date.value = form.date;
-  city.value = form.city;
-  budgetText.value = form.budgetText;
-  selectedBucketId.value = form.bucketId;
-  selectedBucketTitle.value = form.bucketTitle;
+  clearAmbassadorDraft(draft.value);
+  Object.assign(draft.value.form, form);
 }
 function resetAgentPageState(): void {
   invalidateAgentRequests();
   pageReadState.value = remoteApiEnabled ? "loading" : "ready";
-  clearAgentFormState();
   latestApplication.value = emptyApplication();
   applications.value = [];
   policy.value = null;
-  submitting.value = false;
+}
+function discardDraft(): void {
+  if (submitting.value) return;
+  clearAmbassadorDraft(draft.value, String(policy.value?.defaultBudgetUsdt ?? 3000));
 }
 
 const lockedSubText = computed(() =>
@@ -329,6 +358,7 @@ async function refreshHistory(requestScope = captureAgentRequest()): Promise<Amb
 }
 
 async function submit() {
+  if (submitting.value || !agentMounted || (remoteApiEnabled && pageReadState.value !== "ready")) return;
   if (!unlocked.value) {
     toast.error(t.value.agent.toastV5Required, fmt(t.value.agent.toastV5RequiredSub, { rank: requiredRankLabel.value }));
     return;
@@ -370,12 +400,21 @@ async function submit() {
       toast.error(t.value.agent.toastRemoteFailed, t.value.agent.submitUnconfirmedBody);
       return;
     }
-    submitting.value = true;
+    const submittedDraft = draft.value;
+    const submitToken = beginAmbassadorDraftSubmit(submittedDraft);
+    if (!submitToken) return;
     try {
       const result = await ambassadorApplicationApi.submit(input, key);
-      if (!requestIsCurrent(requestScope)) return;
-      latestApplication.value = result;
+      // A successful command can settle the same account's cached draft while
+      // hidden/unloaded. Page reads/receipts still require the full request fence.
+      if (requestScope.accountKey !== app.accountKey || requestScope.accountEpoch !== app.accountBindingEpoch) return;
       finishAmbassadorCommand(requestScope.accountKey, identity);
+      endAmbassadorDraftSubmit(submittedDraft, submitToken, true);
+      if (!requestIsCurrent(requestScope)) {
+        if (agentMounted) { invalidateAgentRequests(); refreshAgentPage(); }
+        return;
+      }
+      latestApplication.value = result;
       void refreshHistory(requestScope).catch(() => undefined);
     } catch (error) {
       if (!requestIsCurrent(requestScope)) return;
@@ -394,12 +433,12 @@ async function submit() {
         pending ? t.value.agent.pendingApplicationBody : t.value.agent.submitUnconfirmedBody);
       return;
     } finally {
-      if (requestIsCurrent(requestScope)) submitting.value = false;
+      endAmbassadorDraftSubmit(submittedDraft, submitToken);
     }
   }
   toast.success(
     t.value.agent.toastSubmitted,
-    fmt(t.value.agent.toastSubmittedSub, { city: input.city, budget: formatAmount(input.budgetUsdt) }),
+    fmt(t.value.agent.toastSubmittedSub.replace('${budget}', '{budget}'), { city: input.city, budget: applicationBudget(input.budgetUsdt) }),
   );
   const settled = successfulAmbassadorApplicationState(latestApplication.value);
   latestApplication.value = settled.receipt;
@@ -422,7 +461,11 @@ function refreshAgentPage(): void {
     ambassadorApplicationApi.policy().then((value) => {
       if (!requestIsCurrent(requestScope)) return;
       policy.value = value;
-      budgetText.value = String(value.defaultBudgetUsdt);
+      if (!draft.value.touched && !submitting.value) draft.value.form.budgetText = String(value.defaultBudgetUsdt);
+      // Preserve an edited/removed selection for validation against the new
+      // policy; never silently replace a user's budget or selected category.
+      const bucket = value.buckets.find(row => row.id === selectedBucketId.value);
+      if (bucket) draft.value.form.bucketTitle = t.value.agent.buckets[bucket.id]?.title || bucket.title;
     }),
     // 等级读单独吞掉自己的失败:它只喂资格横幅(rankReady/unlocked),失败由 store 记进
     // remoteError、由横幅渲染未知态。挂在这里是为了让「等级不是本页的就绪前提」成为本页
@@ -441,11 +484,13 @@ function retryAgentPage(): void {
 }
 
 watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
+  draft.value = ambassadorDraftCache.forAccount({ accountKey: app.accountKey, accountEpoch: app.accountBindingEpoch });
   resetAgentPageState();
   if (agentMounted) refreshAgentPage();
-});
+}, { flush: "sync" });
 
 onShow(() => {
+  draft.value = ambassadorDraftCache.forAccount({ accountKey: app.accountKey, accountEpoch: app.accountBindingEpoch });
   agentMounted = true;
   resetAgentPageState();
   refreshAgentPage();
@@ -492,6 +537,10 @@ function caseRowStyle(isLast: boolean): CSSProperties {
 </script>
 
 <style scoped>
+.agent-application-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; }
+.agent-application-heading > view { min-width: 0; overflow-wrap: anywhere; }
+.agent-application-details { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; font: 400 12px/1.5 var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
+.agent-application-budget { color: var(--v5-ink-2); font-variant-numeric: tabular-nums; }
 .agent-content { display: flex; flex-direction: column; gap: 24px; padding: var(--ui-space-inset) 20px 24px; }
 .agent-hero { display: flex; align-items: center; gap: var(--ui-space-inline); }
 .agent-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }

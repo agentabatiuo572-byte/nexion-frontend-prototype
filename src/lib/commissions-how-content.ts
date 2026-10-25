@@ -1,5 +1,5 @@
 import { platformDisplayText } from "./brand-copy";
-import { formatAmount } from "./amount-display";
+import { formatGroupedAmount as formatAmount } from "./amount-display";
 import type { HowContentDocument } from "@/api/how-content-api";
 import type { CommissionGuideRates, CommissionGuideRules } from "@/api/commission-guide-api";
 import type { DirectReferralPolicy, DirectReferralRule } from "@/api/direct-referral-api";

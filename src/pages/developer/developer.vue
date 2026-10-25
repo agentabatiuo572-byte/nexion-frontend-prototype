@@ -32,7 +32,7 @@
 
       <!-- Tabs — SegmentedControl (HIG 44pt, accent = tech-cyan) -->
       <view class="mx-4 mt-3">
-        <GlassSegments :label="t.developer.headline" v-model="tab" :options="tabOptions"  />
+        <GlassSegments :label="t.developer.headline" v-model="tab" :options="tabOptions" layout="scroll" />
       </view>
 
       <!-- Overview -->
@@ -68,7 +68,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
             <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ t.developer.requestAccess }}</text>
           </view>
-          <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-bottom: 12px">{{ t.developer.requestAccessHint }}</text>
+          <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-bottom: var(--ui-space-inline)">{{ t.developer.requestAccessHint }}</text>
           <view v-if="remoteApiEnabled && latestRequest" class="nx-glass-inset rounded-xl" :style="requestStatusStyle">
             <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-tech-cyan)">{{ latestRequest.requestNo }} · {{ latestRequestStatusLabel }}</text>
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ new Date(latestRequest.submittedAt).toLocaleString(dateLocale()) }}</text>
@@ -167,9 +167,9 @@
               <view role="button" tabindex="0" :aria-label="t.network.retry" style="min-height: 44px; display: grid; place-items: center; margin-top: 6px" @click="retryLoadResources"><text>{{ t.network.retry }}</text></view>
             </view>
             <view v-for="item in (canManageResources ? webhooks : [])" :key="item.id" :style="resourceRowStyle">
-              <view class="flex items-center">
-                <view class="flex-1"><text class="block" style="font-size: 13px; font-weight: 600">{{ item.name }}</text><text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 3px">{{ item.url }} · {{ item.deliveryStatus }}</text></view>
-                <view v-if="item.status !== 'DELETED'" class="flex" style="gap: 5px; flex-wrap: wrap; justify-content: flex-end"><view class="rounded-lg" :style="resourceActionStyle(smallActionBtnStyle, `toggle-webhook:${item.id}`)" role="button" tabindex="0" @click="setWebhookEnabled(item, item.status !== 'ACTIVE')"><text style="font-size: 12px">{{ item.status === 'ACTIVE' ? t.developer.disable : t.developer.enable }}</text></view><view class="rounded-lg" :style="resourceActionStyle(smallActionBtnStyle, `deliveries-webhook:${item.id}`)" role="button" tabindex="0" @click="loadWebhookDeliveries(item)"><text style="font-size: 12px">{{ t.developer.deliveryAttempts }}</text></view><view class="rounded-lg" :style="resourceActionStyle(smallActionBtnStyle, `rotate-webhook:${item.id}`)" role="button" tabindex="0" @click="rotateWebhook(item)"><text style="font-size: 12px">{{ t.developer.rotate }}</text></view><view class="rounded-lg" :style="resourceActionStyle(dangerBtnStyle, `delete-webhook:${item.id}`)" role="button" tabindex="0" @click="deleteWebhook(item.id)"><text style="font-size: 12px">{{ t.developer.delete }}</text></view></view>
+              <view style="display: flex; flex-direction: column; gap: 8px">
+                <view class="min-w-0" style="overflow-wrap: anywhere"><text class="block" style="font-size: 13px; font-weight: 600">{{ item.name }}</text><text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 3px">{{ item.url }} · {{ item.deliveryStatus }}</text></view>
+                <view v-if="item.status !== 'DELETED'" class="flex" style="gap: 8px; flex-wrap: wrap"><view class="rounded-lg" :style="resourceActionStyle(smallActionBtnStyle, `toggle-webhook:${item.id}`)" role="button" tabindex="0" @click="setWebhookEnabled(item, item.status !== 'ACTIVE')"><text style="font-size: 12px">{{ item.status === 'ACTIVE' ? t.developer.disable : t.developer.enable }}</text></view><view class="rounded-lg" :style="resourceActionStyle(smallActionBtnStyle, `deliveries-webhook:${item.id}`)" role="button" tabindex="0" @click="loadWebhookDeliveries(item)"><text style="font-size: 12px">{{ t.developer.deliveryAttempts }}</text></view><view class="rounded-lg" :style="resourceActionStyle(smallActionBtnStyle, `rotate-webhook:${item.id}`)" role="button" tabindex="0" @click="rotateWebhook(item)"><text style="font-size: 12px">{{ t.developer.rotate }}</text></view><view class="rounded-lg" :style="resourceActionStyle(dangerBtnStyle, `delete-webhook:${item.id}`)" role="button" tabindex="0" @click="deleteWebhook(item.id)"><text style="font-size: 12px">{{ t.developer.delete }}</text></view></view>
               </view>
               <view v-if="rotationRecovery[item.id]" class="mt-2 rounded-xl" :style="requestStatusStyle"><text class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.developer.rotationUnknownWarning }}</text></view>
               <view v-if="webhookDeliveries[item.id]?.length" class="mt-2 rounded-xl" :style="requestStatusStyle">
@@ -828,7 +828,7 @@ const heroStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxSh
   background:
     "var(--nx-glass-fill)",
   borderColor: "transparent",
-  padding: "20px",
+  padding: "var(--ui-space-section)",
 };
 const heroIconBoxStyle: CSSProperties = {
   top: "12px",
@@ -888,7 +888,7 @@ const apiListStyle: CSSProperties = {
 function apiRowStyle(last: boolean): CSSProperties {
   return {
     padding: "14px 0",
-    gap: "12px",
+    gap: "var(--ui-space-inline)",
     borderBottom: last ? "none" : "1px solid var(--v5-border)",
   };
 }
@@ -906,13 +906,13 @@ const partnerTitleStyle: CSSProperties = {
   fontWeight: 600,
   color: "var(--v5-ink-3)",
   letterSpacing: "-0.025em",
-  padding: "12px 8px 4px",
+  padding: "var(--ui-space-inline) 8px 4px",
 };
 const partnerGridStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   background: "var(--nx-glass-fill)",
-  padding: "16px",
+  padding: "var(--ui-space-inset)",
   gridTemplateColumns: "repeat(4, 1fr)",
-  gap: "12px",
+  gap: "var(--ui-space-inline)",
 };
 const partnerCellStyle: CSSProperties = {
   aspectRatio: "3 / 2",
@@ -921,7 +921,7 @@ const partnerCellStyle: CSSProperties = {
 };
 const formCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   background: "var(--nx-glass-fill)",
-  padding: "16px",
+  padding: "var(--ui-space-inset)",
 };
 const formInputStyle: CSSProperties = {
   width: "100%",
@@ -951,20 +951,21 @@ const fieldErrorStyle: CSSProperties = {
 };
 const submitBtnStyle: CSSProperties = {
   minHeight: "48px",
-  padding: "12px 20px",
+  padding: "var(--ui-space-inline) 20px",
   boxSizing: "border-box",
   borderRadius: "999px",
   background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
 };
-const requestStatusStyle: CSSProperties = { padding: "10px 12px", marginBottom: "12px", };
-const resourceRowStyle: CSSProperties = { padding: "12px 0", gap: "10px", borderBottom: "1px solid var(--v5-border)" };
-const dangerBtnStyle: CSSProperties = { padding: "7px 10px", color: "var(--v5-warning)", background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)" };
-const smallActionBtnStyle: CSSProperties = { padding: "7px 10px", color: "var(--v5-tech-cyan)", background: "color-mix(in srgb, var(--v5-tech-cyan) 10%, transparent)" };
+const requestStatusStyle: CSSProperties = { padding: "var(--ui-space-row-y) 12px", marginBottom: "12px", };
+const resourceRowStyle: CSSProperties = { padding: "var(--ui-space-inline) 0", gap: "var(--ui-space-row-y)", borderBottom: "1px solid var(--v5-border)" };
+const resourceButtonLayout: CSSProperties = { minHeight: "44px", minWidth: "44px", display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 12px", boxSizing: "border-box" };
+const dangerBtnStyle: CSSProperties = { ...resourceButtonLayout, color: "var(--v5-warning)", background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)" };
+const smallActionBtnStyle: CSSProperties = { ...resourceButtonLayout, color: "var(--v5-ink-2)", background: "var(--v5-surface-2)" };
 const snippetWrapStyle: CSSProperties = {
   background: "var(--v5-surface-3)",
   borderRadius: "8px",
-  padding: "12px",
+  padding: "var(--ui-space-inline)",
   whiteSpace: "nowrap",
 };
 const snippetTextStyle: CSSProperties = {

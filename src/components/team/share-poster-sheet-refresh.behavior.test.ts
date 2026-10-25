@@ -1,3 +1,4 @@
+import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import * as Vue from "vue";
 import { teamRedesignCopy } from "@/i18n/team-redesign";
 import { useLocaleStore } from "@/store/locale";
@@ -180,6 +181,7 @@ async function mount(platform: "h5" | "native" = "h5", messages = en) {
     throw new Error(`Unexpected segments import: ${id}`);
   }, segments, { update() {} });
   const dependencies: Record<string, unknown> = {
+    "@/i18n/team-logic-copy": { teamLogicCopy },
     "@/lib/amount-display": { formatAmount },
     "@/store/locale": { useLocaleStore }, "@/i18n/team-redesign": { teamRedesignCopy },
     "@/components/liquid-glass.vue": { default: { render: () => Vue.h("decoration") } },
@@ -480,4 +482,19 @@ describe("approved decorative art and real poster QR", () => {
     s.app.bindAccount("user:2002"); await flush(); copied.resolve(true); await action;
     expect(s.toast.success).not.toHaveBeenCalled(); expect(s.toast.info).not.toHaveBeenCalled();
   });
+});
+
+
+it.each([['zh', zh], ['en', en], ['vi', vietnamese]] as const)('TI-F09 localizes the actual %s yield drawing and activates the whole 44px switch row', async (locale, messages) => {
+  const s = await mount('native', messages);
+  s.tab(messages.share.tplYield)!.props.onClick({ currentTarget: {} }); await s.generate(); await s.finish();
+  expect(s.canvas.at(-1)!.texts).toContain(teamLogicCopy(locale).posterYieldCap);
+  if (locale !== 'en') expect(s.canvas.at(-1)!.texts).not.toContain("TODAY'S EARNINGS");
+  const toggle = all(s.root).find(entry => entry.props.role === 'switch')!;
+  expect(toggle.props.class).toContain('ps-toggle'); expect(toggle.props.tabindex).toBe('0');
+  expect(toggle.props['aria-checked']).toBe(true);
+  expect(source).toMatch(/\.ps-toggle\s*\{[^}]*min-height:\s*44px/);
+  toggle.props.onClick(); await flush(); expect(toggle.props['aria-checked']).toBe(false);
+  expect(all(toggle).filter(entry => entry.props.role === 'switch')).toHaveLength(1);
+  s.app.bindAccount('user:2002'); await flush(); expect(s.open.value).toBe(false);
 });

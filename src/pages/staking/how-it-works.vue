@@ -6,13 +6,13 @@
   <AppChassis active="me">.
 -->
 <template>
-  <AppChassis v-if="config.configStatus === 'ready' && config.isEnabled('stakingVisible')" active="me">
+  <AppChassis v-if="config.isEnabled('stakingVisible')" active="me">
     <view style="padding-bottom: 32px">
       <SubPageHeader back="/pages/staking/staking" />
 
-      <HowHero :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="amber" />
+      <HowHero :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="neutral" />
 
-      <HowSection :title="w.s1Title">
+      <HowSection :title="w.s1Title" accent="neutral">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
         </template>
@@ -20,12 +20,12 @@
         <text class="block" :style="paraStyle2">{{ w.s1Para2 }}</text>
       </HowSection>
 
-      <HowSection :title="w.s2Title">
+      <HowSection :title="w.s2Title" accent="neutral">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
         </template>
         <text class="block" :style="captionStyle">{{ w.s2Caption }}</text>
-        <view v-if="configAvailable" class="nx-glass-card" :style="tableStyle">
+        <view v-if="configAvailable" :style="tableStyle">
           <view class="flex" :style="tableHeadStyle">
             <text class="text-left" :style="thCellLeft">{{ w.colTerm }}</text>
             <text class="text-right" :style="thCellRight">{{ w.colApy }}</text>
@@ -43,16 +43,16 @@
         <text class="block" :style="footnoteStyle">{{ w.s2Footnote }}</text>
       </HowSection>
 
-      <HowSection :title="w.s3Title">
+      <HowSection :title="w.s3Title" accent="neutral">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
         </template>
         <text v-if="stakingAvailable !== true" class="block" :style="unavailableStyle">{{ stakingAvailable === false ? w.newStakesPaused : w.newStakesUnknown }}</text>
         <text v-else class="block" :style="introStyle">{{ w.s3Intro }}</text>
         <view v-if="stakingAvailable === true" style="display: flex; flex-direction: column; gap: 14px">
-          <HowStepRow :n="1" :title="w.s3Step1Title" :body="w.s3Step1Body" accent="amber" />
-          <HowStepRow :n="2" :title="w.s3Step2Title" :body="w.s3Step2Body" accent="amber" />
-          <HowStepRow :n="3" :title="w.s3Step3Title" :body="w.s3Step3Body" accent="amber" />
+          <HowStepRow :n="1" :title="w.s3Step1Title" :body="w.s3Step1Body" accent="neutral" />
+          <HowStepRow :n="2" :title="w.s3Step2Title" :body="w.s3Step2Body" accent="neutral" />
+          <HowStepRow :n="3" :title="w.s3Step3Title" :body="w.s3Step3Body" accent="neutral" />
         </view>
       </HowSection>
 
@@ -69,7 +69,7 @@
         </view>
       </HowSection>
 
-      <HowSection :title="w.faqTitle" accent="purple">
+      <HowSection :title="w.faqTitle" accent="neutral">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z" /><path d="M2 9v1c0 1.1.9 2 2 2h1" /><path d="M16 11h.01" /></svg>
         </template>
@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatGroupedAmount as formatAmount } from "@/lib/amount-display";
 import { navTo, navReset } from "@/lib/route";
 import { useConfig } from "@/store/config";
 import { onShow, onHide } from "@dcloudio/uni-app";
@@ -208,27 +208,28 @@ const paraStyle2: CSSProperties = { ...paraStyle, marginTop: "10px" };
 const captionStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
 const retryStyle: CSSProperties = { minHeight: "44px", marginTop: "8px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px" };
 const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" };
-const tableStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
-  borderRadius: "var(--nx-glass-radius)",
-  background: "var(--nx-glass-fill)",
-  overflow: "hidden",
+const tableStyle: CSSProperties = {
+  paddingBlock: "4px",
 };
 const tableHeadStyle: CSSProperties = {
   fontSize: "12px",
-  letterSpacing: "0.14em",
-  color: "var(--v5-ink-3)",
+  lineHeight: 1.5,
+  color: "var(--v5-ink-2)",
+  borderBottom: "1px solid var(--v5-border)",
 };
-const thCellLeft: CSSProperties = { flex: "1 1 0", minWidth: 0, padding: "8px 6px", fontWeight: 500 };
+const thCellLeft: CSSProperties = { flex: "1 1 0", minWidth: 0, overflowWrap: "anywhere", padding: "8px 6px", fontWeight: 500 };
 const thCellRight: CSSProperties = { ...thCellLeft };
 function tableRowStyle(isFirst: boolean): CSSProperties {
   return {
-    fontSize: "12px",
+    fontSize: "13px",
+    lineHeight: 1.6,
     borderTop: isFirst ? "none" : "1px solid color-mix(in srgb, var(--v5-border) 60%, transparent)",
   };
 }
 const tdTermStyle: CSSProperties = {
   flex: "1 1 0",
   minWidth: 0,
+  overflowWrap: "anywhere",
   padding: "8px 6px",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
@@ -239,7 +240,7 @@ const tdMinStyle: CSSProperties = { ...tdTermStyle, color: "var(--v5-ink-2)" };
 const tdReturnStyle: CSSProperties = {
   ...tdTermStyle,
   fontFamily: "var(--font-v5)",
-  color: "var(--v5-brand-2)",
+  color: "var(--v5-brand)",
 };
 const footnoteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const unavailableStyle: CSSProperties = { marginTop: "4px", padding: "12px", borderRadius: "10px", background: "var(--v5-warning-soft)", fontSize: "13px", color: "var(--v5-ink-2)" };

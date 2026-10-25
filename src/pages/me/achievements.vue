@@ -133,7 +133,7 @@
 
 <script setup lang="ts">
 const { embedded = false } = defineProps<{ embedded?: boolean }>();
-import { formatAmount } from "@/lib/amount-display";
+import { formatGroupedAmount as formatAmount } from "@/lib/amount-display";
 import { onMounted, computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import NxPageContent from "@/components/ui/nx-page-content.vue";

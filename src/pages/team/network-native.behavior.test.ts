@@ -82,6 +82,7 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
   const t = Vue.computed(() => dictionaries[locale.code]);
   const navTo = vi.fn();
   const shows: Array<() => void> = [];
+  const hides: Array<() => void> = [];
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
   const deps: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
@@ -97,7 +98,7 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
     "@/lib/v-rank-copy": { rankLabel, rankTitle }, "@/store/locale": { useLocaleStore: () => locale },
     "@/composables/use-dialog-a11y": { useDialogA11y: () => {} },
     "@/api/runtime": { remoteApiEnabled: true },
-    "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
+    "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback), onHide: (callback: () => void) => hides.push(callback) },
     "@/lib/route": { navTo },
   };
   const exports = { default: {} as Component };
@@ -112,7 +113,7 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
   await Vue.nextTick();
   const controls = () => all(root).filter((item) => item.props.role === "button" && item.props["aria-label"]);
   const self = () => controls().find((item) => item.props["aria-label"] === fmt(t.value.network.selfNodeLabel, { n: rank.remoteReady ? `V${rank.myRank}` : "—" }))!;
-  return { root, network, rank, locale, navTo, shows, controls, self };
+  return { root, network, rank, locale, navTo, shows, hides, controls, self };
 }
 
 function member(id: string, layer: NetworkMember["layer"], status: NetworkMember["status"] = "active"): NetworkMember {
@@ -120,7 +121,7 @@ function member(id: string, layer: NetworkMember["layer"], status: NetworkMember
     joinedAt: Date.now() - 86400000, monthVolumeUSD: 17, totalVolumeUSD: null, monthComputePoints: 320, lifetimeComputePoints: null, city: "Fixture City" };
 }
 beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { unmounts.splice(0).forEach((unmount) => unmount()); vi.useRealTimers(); });
+afterEach(() => { unmounts.splice(0).forEach((unmount) => unmount()); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 test("APP empty network uses a square positioned view graph, not unknown SVG and inline labels", async () => {
   const page = await mount();
@@ -200,15 +201,17 @@ test("mounted APP labels follow late rank and all three locale dictionaries", as
   }
 });
 
-test("APP pulse uses only actual active nodes and is cleaned up before a fresh visit", async () => {
+test("APP acknowledges only selection, stays still when idle and clears the pulse on hide", async () => {
   const page = await mount();
   page.network.members = [member("active", 1), member("idle", 2, "idle"), member("offline", 2, "offline")];
   await Vue.nextTick(); vi.advanceTimersByTime(1200); await Vue.nextTick();
+  expect(all(page.root).some((item) => hasClass(item, 'nx-net-native-pulse'))).toBe(false);
+  emit(page.controls().find(item=>item.props['aria-label'].startsWith('Member active'))!, 'onClick');
+  await Vue.nextTick();
   const pulses = all(page.root).filter((item) => hasClass(item, "nx-net-native-pulse"));
   expect(pulses).toHaveLength(1);
   expect(pulses[0].parent?.props["aria-label"]).toContain("Member active");
-  page.network.members = [member("offline", 2, "offline")];
-  await Vue.nextTick(); vi.advanceTimersByTime(1200); await Vue.nextTick();
+  page.hides.forEach(fn=>fn()); await Vue.nextTick();
   expect(all(page.root).some((item) => hasClass(item, "nx-net-native-pulse"))).toBe(false);
   unmounts.pop()!();
   expect(vi.getTimerCount()).toBe(0);
@@ -236,9 +239,26 @@ test("H5 retains SVG geometry, keyboard self/member activation, pulse and single
   const control = page.controls().find((item) => item.props["aria-label"].startsWith("Member keyboard"))!;
   emit(control, "onKeydown", { key: " ", preventDefault }); await Vue.nextTick();
   expect(text(all(page.root).find((item) => item.props.role === "dialog")!)).toContain("Member keyboard");
-  vi.advanceTimersByTime(1200); await Vue.nextTick();
   expect(all(svg).filter((item) => item.tag === "animate")).toHaveLength(2);
   expect(all(svg).some((item) => item.tag === "set")).toBe(true);
+  vi.advanceTimersByTime(1000); await Vue.nextTick();
+  expect(all(svg).filter((item) => item.tag === 'animate')).toHaveLength(0);
+});
+
+test('H5 does not mount SVG animations with reduced motion and responds to setting changes',async()=>{
+  let changed!:()=>void;
+  const media={matches:true,addEventListener:vi.fn((_event:string,listener:()=>void)=>{changed=listener;}),removeEventListener:vi.fn()};
+  vi.stubGlobal('window',{matchMedia:vi.fn(()=>media)});
+  const page=await mount('h5');page.network.members=[member('A',1),member('B',1)];await Vue.nextTick();
+  emit(page.controls().find(item=>item.props['aria-label'].startsWith('Member A'))!,'onClick');await Vue.nextTick();
+  expect(all(page.root).filter(item=>item.tag==='animate')).toHaveLength(0);
+  expect(vi.getTimerCount()).toBe(0);
+  media.matches=false;changed();
+  emit(page.controls().find(item=>item.props['aria-label'].startsWith('Member B'))!,'onClick');await Vue.nextTick();
+  expect(all(page.root).filter(item=>item.tag==='animate')).toHaveLength(2);
+  media.matches=true;changed();await Vue.nextTick();
+  expect(all(page.root).filter(item=>item.tag==='animate')).toHaveLength(0);
+  expect(vi.getTimerCount()).toBe(0);
 });
 
 async function selectedCanonicalPage(platform: "app" | "h5") {

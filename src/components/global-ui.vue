@@ -207,6 +207,7 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
   padding: 24px;
 }
 .nx-modal { border-radius: var(--nx-glass-radius); box-shadow: var(--nx-glass-edge);
+  box-sizing: border-box;
   width: 100%;
   max-width: 320px;
   background: var(--nx-glass-fill);
@@ -235,17 +236,25 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
 }
 .nx-btn {
   flex: 1;
+  box-sizing: border-box;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 48px;
+  padding: 10px 14px;
   border-radius: var(--v5-radius-full);
 }
 .nx-btn--primary { background: var(--v5-brand); }
 .nx-btn--danger { background: var(--v5-danger); }
 .nx-btn--ghost { background: var(--v5-surface-2); }
 .nx-btn__label {
+  min-width: 0;
   font-size: 15px;
+  line-height: 20px;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
   font-weight: 600;
   color: var(--v5-on-brand);
 }

@@ -11,6 +11,8 @@ import { fmt } from "@/i18n/format";
 import { formatUnreadBadge } from "@/lib/unread-badge";
 import { createPinia, setActivePinia } from "pinia";
 import { useUI } from "@/store/ui";
+import { notificationActionsCopy } from "@/i18n/notification-actions";
+import { isDirectNotificationSummary } from "@/lib/notification-summary";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -51,6 +53,8 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
     vue: { ...vue, inject: (_key: unknown, fallback: unknown) => fallback, onMounted: (fn: () => void) => hooks.mounted.push(fn), onUnmounted: (fn: () => void) => hooks.unmount.push(fn) },
     "@dcloudio/uni-app": { onResize: vi.fn(), onLoad: (fn: (...args: any[]) => void) => hooks.load.push(fn), onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn) },
     "@/lib/notification-category": { notificationCategory },
+    "@/lib/notification-summary": { isDirectNotificationSummary },
+    "@/i18n/notification-actions": { notificationActionsCopy },
     "@/lib/message-header-scroll": { advanceMessageHeader, createMessageHeaderState },
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 },
     "@/store/pending-checkout-core": { PENDING_BAR_INSET_KEY: Symbol() },
@@ -71,7 +75,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
   const output = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope(); scopes.push(scope);
   const exposed = settings ? "{ confirmClearRead, clearingRead, refreshNotifications }"
-    : "{ toggle, dateHeading, timeAgo, onTap, onTouchStart, onTouchEnd, section, filter, serviceFilter, expandedId, headerFocused, headerState, onMessageScroll }";
+    : "{ confirmClearRead, clearingRead, directNotice, toggle, dateHeading, timeAgo, onTap, onTouchStart, onTouchEnd, section, filter, serviceFilter, expandedId, headerFocused, headerState, onMessageScroll }";
   const worker = scope.run(() => new Function("require", "exports", output + `;return ${exposed};`)((name: string) => {
     if (name.endsWith(".vue")) return {};
     if (!(name in modules)) throw new Error(`Unexpected dependency ${name}`);
@@ -85,6 +89,60 @@ const touch = (x: number) => ({ changedTouches: [{ clientX: x, clientY: 20 }] })
 const mountSettings = (realQueue = false) => mount(true, realQueue, "", "a", true);
 
 describe("notification pending intent isolation", () => {
+  it('confirms bulk cleanup once with distinct impact/action copy and leaves deletion to the store', async () => {
+    const h = mount();
+    const pending = h.worker.confirmClearRead();
+    await h.worker.confirmClearRead();
+    expect(h.confirm).toHaveBeenCalledOnce();
+    expect(h.notifs.clearRead).not.toHaveBeenCalled();
+    expect(h.confirm).toHaveBeenCalledWith(expect.objectContaining({
+      title: notificationActionsCopy.zh.title, message: notificationActionsCopy.zh.message,
+      confirmLabel: '清空', cancelLabel: '取消', danger: true,
+    }));
+    h.confirmation.resolve(true); await pending;
+    expect(h.notifs.clearRead).toHaveBeenCalledOnce();
+    expect(h.worker.clearingRead.value).toBe(false);
+  });
+  it('does nothing when cleanup is cancelled or the list is loading', async () => {
+    const h = mount(); h.notifs.loading = true;
+    await h.worker.confirmClearRead(); expect(h.confirm).not.toHaveBeenCalled();
+    h.notifs.loading = false;
+    const pending = h.worker.confirmClearRead(); h.confirmation.resolve(false); await pending;
+    expect(h.notifs.clearRead).not.toHaveBeenCalled();
+  });
+  for (const invalidation of ['account', 'rebind', 'hide-show', 'unmount']) {
+    it(`center cleanup cannot outlive ${invalidation}`, async () => {
+      const h = mount(); const pending = h.worker.confirmClearRead();
+      if (invalidation === 'account') h.account.bind('b');
+      if (invalidation === 'rebind') h.account.bind('a');
+      if (invalidation === 'hide-show') { h.fire('hide'); h.fire('show'); }
+      if (invalidation === 'unmount') h.fire('unmount');
+      h.confirmation.resolve(true); await pending;
+      expect(h.notifs.clearRead).not.toHaveBeenCalled();
+      expect(h.worker.clearingRead.value).toBe(false);
+    });
+  }
+  it('removes only the center confirmation when leaving', async () => {
+    const h = mount(true, true); const pending = h.worker.confirmClearRead();
+    const foreign = h.ui.confirm({ title: 'Other action', owner: 'foreign' });
+    h.fire('hide'); await pending;
+    expect(h.ui.confirmQueue.map(row => row.owner)).toEqual(['foreign']);
+    expect(h.notifs.clearRead).not.toHaveBeenCalled();
+    h.ui.clearConfirmsBy('foreign'); await foreign;
+  });
+  it('expands long text before navigation and uses the canonical route only for short text', async () => {
+    const h = mount();
+    const long = { ...notification, body: '通知'.repeat(40) };
+    h.worker.toggle(long);
+    expect(h.worker.expandedId.value).toBe(long.id);
+    expect(h.notifs.markRead).toHaveBeenCalledWith(long.id);
+    expect(h.notifs.recordCta).not.toHaveBeenCalled();
+    expect(h.worker.directNotice({ body: '已到账。' })).toBe(false);
+    h.worker.toggle({ ...notification, body: '已到账。' });
+    h.action.resolve('/pages/store/order-detail?id=canonical');
+    await Promise.resolve(); await Promise.resolve();
+    expect(h.navTo).toHaveBeenCalledWith('/pages/store/order-detail?id=canonical');
+  });
   it("shares its section with the bell, accepts native/H5 route parameters and ignores unknown sections", () => {
     const h = mount(true, false, "?section=service");
     h.fire("load", {});

@@ -1,5 +1,7 @@
 import * as Vue from "vue";
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
+import { deviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -66,6 +68,8 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const dependencies: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/usd-display": { formatUsd },
+    "@/i18n/device-statistics-capability": { useDeviceStatisticsCapabilityCopy: () => Vue.ref(deviceStatisticsCapabilityCopy[copy === zh ? "zh" : copy === vietnamese ? "vi" : "en"]) },
     vue: Vue, "@/components/home/device-slot.vue": { __esModule: true, default: blank },
     "@/components/ui/nx-button.vue": { __esModule: true, default: blank },
     "@/store/app": { useApp: () => app },

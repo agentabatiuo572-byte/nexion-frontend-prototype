@@ -81,7 +81,7 @@
         <view class="earn-device-amount">
           <!-- Compact rows use neutral realized earnings; detailed pending/warning states retain their semantics. -->
           <text class="earn-device-amount-label">{{ t.earn.todayEarnings }}</text>
-          <text class="earn-device-value tabular-nums">{{ phoneLocalReady ? `$${formatAmount(device.todayEarnings)}` : '—' }}</text>
+          <text class="earn-device-value tabular-nums">{{ phoneLocalReady ? formatUsd(device.todayEarnings) : '—' }}</text>
         </view>
         <view class="grid place-items-center shrink-0 active:opacity-60" :style="chevronBtnStyle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }"><path d="m6 9 6 6 6-6" /></svg>
@@ -186,11 +186,11 @@
     <view v-if="detailPage" id="device-statistics" class="device-statistics" tabindex="-1" :aria-label="t.coreReview.statistics">
       <text class="block device-section-title">{{ t.coreReview.statistics }}</text>
       <view class="device-statistics__values">
-        <view><text class="block device-statistics__label">{{ t.earn.todayEarnings }}</text><text class="block device-statistics__amount">{{ phoneLocalReady ? `$${formatAmount(device.todayEarnings)}` : '—' }}</text><text class="block device-statistics__label">{{ phoneLocalReady ? `${formatAmount(device.todayEarningsNEX)} UVT` : '—' }}</text></view>
-        <view><text class="block device-statistics__label">{{ t.coreReview.cumulativeEarnings }}</text><text class="block device-statistics__amount">{{ phoneLocalReady && device.cumulativeEarningsUsdt != null ? `$${formatAmount(device.cumulativeEarningsUsdt)}` : '—' }}</text></view>
+        <view><text class="block device-statistics__label">{{ t.earn.todayEarnings }}</text><text class="block device-statistics__amount">{{ phoneLocalReady ? formatUsd(device.todayEarnings) : '—' }}</text><text class="block device-statistics__label">{{ phoneLocalReady ? `${formatAmount(device.todayEarningsNEX)} UVT` : '—' }}</text></view>
+        <view><text class="block device-statistics__label">{{ t.coreReview.cumulativeEarnings }}</text><text class="block device-statistics__amount">{{ phoneLocalReady ? formatUsd(device.cumulativeEarningsUsdt) : '—' }}</text></view>
       </view>
-      <view class="device-statistics__unavailable"><text>{{ t.coreReview.earningsHistory }}</text><text class="device-statistics__label">{{ t.coreReview.historyUnavailable }}</text></view>
-      <view class="device-statistics__unavailable"><text>{{ t.coreReview.onlineRate }}</text><text class="device-statistics__label">{{ t.coreReview.onlineRateUnavailable }}</text></view>
+      <view v-if="remoteApiEnabled && phoneLocalReady" class="device-statistics__status"><text>{{ statisticsCopy.currentStatus }}</text><text class="device-statistics__label">{{ device.runtimeStatus === 'ONLINE' ? t.earn.online : device.runtimeStatus === 'OFFLINE' ? t.earn.offline : t.earn.runtimeUnknown }}</text></view>
+      <text class="block device-statistics__scope">{{ statisticsCopy.scope }}</text>
     </view>
     <text v-if="detailPage" class="block device-section-title" style="padding:16px 20px 12px">{{ t.coreReview.jobs }}</text>
     <!-- Phone: reconnecting -->
@@ -256,7 +256,7 @@
       <view v-if="task.status !== 'PAUSED'" class="mt-1.5 flex items-center justify-between" style="font-size: 12px; color: var(--v5-ink-3)">
         <text v-if="awaitingExecutionResultConfirmation">{{ t.earn.taskAwaitingExecutionResultConfirmation }}</text>
         <text v-else>~{{ elapsedRemaining }} {{ t.earn.remaining }}</text>
-        <text style="color: var(--v5-warning-ink)">{{ t.earn.reward }} +${{ formatAmount(task.reward) }}</text>
+        <text style="color: var(--v5-success-ink)">{{ t.earn.reward }} {{ formatUsd(task.reward, 'detail', true) }}</text>
       </view>
     </view>
 
@@ -291,7 +291,7 @@
           style="min-height: 28px; font-size: 12px"
         >
           <text class="flex-1 truncate min-w-0" style="color: var(--v5-ink-2)">{{ task.model }}<text style="color: var(--v5-ink-4); margin: 0 4px">·</text><text style="color: var(--v5-ink-3)">{{ workloadLabel(task.category) }}</text></text>
-          <text class="tabular-nums shrink-0" style="font-family: var(--font-v5); color: var(--v5-success-ink)">+${{ formatAmount(task.reward) }}</text>
+          <text class="tabular-nums shrink-0" style="font-family: var(--font-v5); color: var(--v5-success-ink)">{{ formatUsd(task.reward, 'detail', true) }}</text>
           <text class="tabular-nums text-right shrink-0" style="font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-4); width: 38px">{{ localClockTime(task.completedAt) }}</text>
         </view>
       </view>
@@ -381,7 +381,7 @@
       <view class="flex items-baseline gap-2.5" style="margin-top: 4px">
         <!-- 《09》§3 正收益=success:本组是「今日已实现收益」(USDT 主数 + NEX 增量),
              与卡内 −$锁定日产 / 未解锁潜在收益(仍 warning=Pending)语义不同,不可混用。 -->
-        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; line-height: 1; font-weight: 600; color: var(--v5-success-ink); letter-spacing: -0.014em">${{ formatAmount(device.todayEarnings) }}</text>
+        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; line-height: 1; font-weight: 600; color: var(--v5-success-ink); letter-spacing: -0.014em">{{ formatUsd(device.todayEarnings) }}</text>
         <view class="font-mono-tabular flex items-center gap-1 tabular-nums" style="font-size: 12px; color: var(--v5-success-ink); font-weight: 600">
           <text style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--v5-success) 75%, transparent)">+</text>
           <text>{{ formatAmount(device.todayEarningsNEX) }} UVT</text>
@@ -394,6 +394,8 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
+import { useDeviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
 import NxButton from "@/components/ui/nx-button.vue";
 import { computed, nextTick, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { advanceMonotonicHighWater, deadlineRemainingDays, deadlineRemainingMs, projectServerNow, readMonotonicNowMs } from "@/lib/server-deadline-clock";
@@ -426,6 +428,7 @@ const app = useApp();
 const session = useSession();
 const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
 const t = useT();
+const statisticsCopy = useDeviceStatisticsCapabilityCopy();
 const phoneActivationGuidance = computed(() => resolvePhoneActivationGuidance(nativePhoneAvailable, t.value.myDevices));
 prepareEarnConfig();
 const earnConfig = useEarnConfig();
@@ -677,13 +680,13 @@ const lifecycle = computed(() => {
 });
 const chipColor = computed(() => {
   const s = lifecycle.value;
-  if (!s) return "var(--v5-tech-cyan)";
-  return s.efficiency >= 0.85 ? "var(--v5-tech-cyan)" : s.efficiency >= 0.65 ? "var(--v5-warning)" : "var(--v5-brand-2)";
+  if (!s) return "var(--v5-ink-3)";
+  return s.efficiency >= 0.85 ? "var(--v5-brand)" : s.efficiency >= 0.65 ? "var(--v5-warning)" : "var(--v5-brand-2)";
 });
 const monthsLabel = computed(() => {
   const s = lifecycle.value;
   if (!s) return "";
-  return s.monthsOwned < 1 ? `${Math.floor(s.monthsOwned * 30)}d` : `${s.monthsOwned.toFixed(1)}mo`;
+  return s.monthsOwned < 1 ? fmt(t.value.earn.lifecycleAgeDays,{n:Math.floor(s.monthsOwned * 30)}) : fmt(t.value.earn.lifecycleAgeMonths,{n:s.monthsOwned.toFixed(1)});
 });
 
 // ── FEAT-DEV01: 任务产能口径(补贴 badge / 产能行 / 硬件 loss-ad / W-CAP1 入口)──
@@ -957,10 +960,12 @@ import DeviceSlot from "@/components/home/device-slot.vue";
 .device-statistics__values { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-block:16px; }
 .device-statistics__amount { font:600 24px/32px var(--font-v5);font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
 .device-statistics__label { color:var(--v5-ink-3);font:400 12px/18px var(--font-v5); }
-.device-statistics__unavailable { display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding-top:12px;font:500 13px/18px var(--font-v5); }
+.device-statistics__status { display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding-top:12px;font:500 13px/18px var(--font-v5); }
+.device-statistics__scope { margin-top:12px;color:var(--v5-ink-3);font:400 12px/18px var(--font-v5);overflow-wrap:anywhere; }
 @keyframes earn-detail-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .nx-device-card__details { animation: none; } }
 .nx-device-card__spec { flex: 1 1 160px; min-width: min(100%, 160px); line-height: 1.35; }
+.nx-device-explainer { min-height:44px; min-width:44px; box-sizing:border-box; }
 .nx-device-card__hash-label { flex: 1 1 150px; min-width: min(100%, 150px); }
 .nx-device-card__cap-chip { flex: none; white-space: nowrap; }
 .nx-device-card__hash-heading { row-gap: 6px; }

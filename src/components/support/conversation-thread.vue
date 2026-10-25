@@ -129,7 +129,8 @@
       </view>
     </view>
     <!-- Input row -->
-    <view v-else-if="!closed" class="nx-conv-input-row">
+    <view v-else-if="!closed" class="nx-conv-composer">
+    <view class="nx-conv-input-row">
       <view v-if="imageLabels" class="nx-conv-attach-trigger family-control" role="button" tabindex="0" :aria-label="imageLabels.attach" :aria-disabled="attachDisabled ? 'true' : 'false'" :style="attachDisabled ? { opacity: 0.45 } : undefined" @click="!attachDisabled && emit('attach')" @keydown.enter.prevent="!attachDisabled && emit('attach')" @keydown.space.prevent="!attachDisabled && emit('attach')"><LiquidGlass :radius="22" /><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></view>
       <input
         class="nx-conv-input"
@@ -147,7 +148,8 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg>
       </view>
     </view>
-    <view v-if="!closed && attachUnavailable" class="nx-conv-image-caption" role="status"><text>{{ attachUnavailable }}</text><view v-if="attachRetry" class="family-control" role="button" tabindex="0" @click="emit('retry-policy')" @keydown.enter.prevent="emit('retry-policy')" @keydown.space.prevent="emit('retry-policy')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.retryPolicy }}</text></view></view>
+    <view v-if="attachUnavailable" class="nx-conv-image-caption nx-conv-policy-caption" role="status"><text>{{ attachUnavailable }}</text><view v-if="attachRetry" class="family-control" role="button" tabindex="0" @click="emit('retry-policy')" @keydown.enter.prevent="emit('retry-policy')" @keydown.space.prevent="emit('retry-policy')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.retryPolicy }}</text></view></view>
+    </view>
     <view v-if="previewImage" class="nx-conv-image-overlay" role="dialog" aria-modal="true" :aria-label="imageLabels?.view">
       <view role="button" tabindex="0" class="nx-conv-image-close family-control" @click="closePreview" @keydown.enter.prevent="closePreview" @keydown.space.prevent="closePreview"><LiquidGlass :radius="22" /><text>{{ imageLabels?.close }}</text></view>
       <image :src="previewImage" class="nx-conv-image-full" mode="widthFix" />
@@ -544,14 +546,18 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   font-size: 12px;
   white-space: nowrap; /* never wrap the label; long labels scroll horizontally */
 }
+.nx-conv-composer {
+  flex: none;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 22px);
+  border-top: 1px solid var(--v5-border);
+}
+.nx-conv-policy-caption { padding: 0 16px 8px; overflow-wrap: anywhere; }
+.nx-conv-policy-caption [role="button"] { min-height: 44px; display: flex; align-items: center; justify-content: center; }
 .nx-conv-input-row {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  /* lift the input clear of the iOS home indicator (P-040 nova pattern) */
-  padding-bottom: calc(env(safe-area-inset-bottom) + 22px);
-  border-top: 1px solid var(--v5-border);
 }
 .nx-conv-closedbar {
   padding: 10px 12px;

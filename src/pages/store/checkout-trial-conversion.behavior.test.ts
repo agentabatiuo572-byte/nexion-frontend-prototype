@@ -4,6 +4,41 @@ import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import source from "./checkout.vue?raw";
 import { en } from "@/i18n/messages/en";
+import { resolveTrialAt, accruedShadow, type TrialRowSnapshot } from "@/store/trial-boundary";
+import { DEFAULT_TRIAL_CONFIG, computeDiscountedPrice, computeTrialOffset, resolveTrialCheckoutProductId } from "@/store/trial-config";
+
+describe("trial credit in the actual checkout quote", () => {
+  const quoteCode = ts.transpileModule(source.slice(source.indexOf("function trialQuoteAt(now:"), source.indexOf("const trialView =")),
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  function quoteHarness(remoteApiEnabled: boolean) {
+    const day = 86_400_000;
+    const cfg = { ...DEFAULT_TRIAL_CONFIG, trialProductId: "stellarbox-s1", shadowDailyUSD: 38.52, shadowDailyNEX: 30, trialOffsetCapUSD: 100 };
+    const row: TrialRowSnapshot = { status: "active", startedAt: 1, expiresAt: 3 * day + 1, graceEndsAt: 4 * day + 1,
+      finishedAt: null, shadowFrozenAtUSD: 12.84, shadowFrozenAtNEX: 10, legacyCardMigrated: false };
+    const freeTrial = { snapshot: () => row, authoritativeShadowUSD: 12.84, authoritativeShadowNEX: 10 };
+    const deps = { remoteApiEnabled, freeTrial, trialCfg: ref(cfg), productId: ref("stellarbox-s1"), resolveTrialAt, accruedShadow,
+      computeTrialOffset, computeDiscountedPrice, resolveTrialCheckoutProductId,
+      NO_TRIAL: { applied: false, promo: 0, offsetUSD: 0, remainderUSD: 0, shadowNEX: 0 } };
+    const quote = new Function(...Object.keys(deps), quoteCode + "\nreturn trialQuoteAt;")(...Object.values(deps));
+    return { quote, day, freeTrial, cfg, row };
+  }
+  it("uses the server amount shown on the trial page, never client time accrual", () => {
+    const h = quoteHarness(true);
+    expect(h.quote(h.day + 1)).toMatchObject({ applied: true, offsetUSD: 12.84, shadowNEX: 10 });
+    h.freeTrial.authoritativeShadowUSD = 4.25;
+    h.freeTrial.authoritativeShadowNEX = 3;
+    expect(h.quote(2 * h.day + 1)).toMatchObject({ offsetUSD: computeTrialOffset(h.cfg, 4.25).offsetUSD, shadowNEX: 3 });
+    h.row.status = "grace";
+    expect(h.quote(3 * h.day + 2)).toMatchObject({ offsetUSD: 4.25, shadowNEX: 3 });
+    expect(h.quote(5 * h.day)).toMatchObject({ applied: false, offsetUSD: 0 });
+  });
+  it("keeps local-only accrual and the frozen grace boundary", () => {
+    const h = quoteHarness(false);
+    expect(h.quote(h.day + 1)).toMatchObject({ applied: true, offsetUSD: 38.52, shadowNEX: 30 });
+    h.row.status = "grace";
+    expect(h.quote(3 * h.day + 2)).toMatchObject({ offsetUSD: 12.84, shadowNEX: 10 });
+  });
+});
 
 const handler = ts.transpileModule(source.slice(source.indexOf("async function onConfirmPay()"),
   source.indexOf("/** 恢复一张仍在窗内的发票")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;

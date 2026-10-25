@@ -55,12 +55,12 @@ describe('ticket detail header controls', () => {
       expect(surface).toBeDefined();
       const glass = elements(surface).filter(isGlass);
       expect(glass).toHaveLength(1);
-      expect(glass[0].props.some(prop => prop.type === 6 && prop.name === 'data-radius' && prop.value?.content === '18')).toBe(true);
+      expect(glass[0].props.some(prop => prop.type === 6 && prop.name === 'data-radius' && prop.value?.content === '22')).toBe(true);
     }
     const title = elements(row).find(child => hasClass(child, 'spv-titlewrap'))!;
     expect(title).toBeDefined();
     expect(descendants(title).filter(isGlass)).toHaveLength(0);
-    expect(source).toMatch(/\.spv-glass\s*\{[^}]*width:\s*36px;[^}]*height:\s*36px;[^}]*border-radius:\s*50%/);
+    expect(source).toMatch(/\.spv-glass\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;[^}]*border-radius:\s*50%/);
   });
   it('opts in only ticket detail, preserving create-mode return and list routing', () => {
     expect(ticketSource).toContain(':plain="mode.kind === \'detail\'"');
@@ -74,6 +74,6 @@ describe('ticket detail header controls', () => {
     expect(source).toContain('if (event.repeat) return;');
     expect(source).toContain('min-height: 44px');
     expect(source).toContain('.spv--plain .spv-glass { width: 44px; height: 44px; }');
-    expect(source).toContain('grid-template-columns: 92px minmax(0, 1fr) 92px');
+    expect(source).toContain('grid-template-columns: 72px minmax(0, 1fr) 72px');
   });
 });

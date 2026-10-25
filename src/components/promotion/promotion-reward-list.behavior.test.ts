@@ -28,6 +28,8 @@ type View = {
   rewards: Vue.Ref<Reward[]>; state: Vue.Ref<RewardState | null>; loading: Vue.Ref<boolean>;
   error: Vue.Ref<boolean>; hasMore: Vue.Ref<boolean>; sessionReady: Vue.ComputedRef<boolean>;
   load: (reset: boolean) => Promise<void>; chooseState: () => void;
+  stateSheetOpen: Vue.Ref<boolean>; selectState: (value: RewardState | null) => void;
+  stateOptions: Vue.ComputedRef<Array<{ value: RewardState | null; label: string }>>;
 };
 function mount(ready = true, activate = true) {
   const app = Vue.reactive({ accountKey: ready ? "user:7" : "guest", accountBindingEpoch: 1 });
@@ -43,6 +45,7 @@ function mount(ready = true, activate = true) {
     "@dcloudio/uni-app": { onShow: (fn: () => void) => shown.push(fn), onHide: (fn: () => void) => hidden.push(fn) },
     "@/components/promotion/promotion-action.vue": { default: {} },
     "@/components/promotion/reward-rows.vue": { default: {} },
+    "@/components/ui/nx-sheet.vue": { default: {} },
     "@/i18n/use-t": { useT: () => Vue.ref(en) },
     "@/store/app": { useApp: () => app }, "@/store/auth": { useAuth: () => auth },
     "@/api/runtime": { promotionApi: { rewards }, remoteApiEnabled: true,
@@ -151,15 +154,18 @@ describe("promotion rewards shared by the existing category and legacy route", (
     expect(screen.view.error.value).toBe(false); expect(screen.view.rewards.value).toEqual([]);
   });
 
-  it("uses translated state choices and fences an old account's pending action sheet", async () => {
+  it("uses translated themed choices and fences an old account's pending sheet", async () => {
     const screen = mount(); await flush(); screen.view.chooseState();
-    const first = screen.showActionSheet.mock.calls[0][0];
-    expect(first.itemList).toEqual([en.promotion.allStates, ...(["PENDING", "READY", "PROCESSING", "ISSUED", "RETRYABLE_FAILED", "OUTCOME_UNKNOWN", "CANCELLED", "REVERSAL_PENDING", "REVERSED", "MANUAL_REVIEW"] as RewardState[]).map(state => en.promotion[rewardStateKey(state)])]);
-    first.success({ tapIndex: 4 }); await flush();
+    expect(screen.view.stateSheetOpen.value).toBe(true);
+    expect(screen.view.stateOptions.value.map(option => option.label)).toEqual([en.promotion.allStates, ...(["PENDING", "READY", "PROCESSING", "ISSUED", "RETRYABLE_FAILED", "OUTCOME_UNKNOWN", "CANCELLED", "REVERSAL_PENDING", "REVERSED", "MANUAL_REVIEW"] as RewardState[]).map(state => en.promotion[rewardStateKey(state)])]);
+    expect(screen.showActionSheet).not.toHaveBeenCalled();
+    screen.view.selectState("ISSUED"); await flush();
+    expect(screen.view.stateSheetOpen.value).toBe(false);
     expect(screen.view.state.value).toBe("ISSUED");
     expect(screen.rewards).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: null, state: "ISSUED" }));
-    screen.view.chooseState(); const stale = screen.showActionSheet.mock.calls[1][0]; screen.bind(8); await flush();
-    const calls = screen.rewards.mock.calls.length; stale.success({ tapIndex: 1 }); await flush();
+    screen.view.chooseState(); screen.bind(8); await flush();
+    expect(screen.view.stateSheetOpen.value).toBe(false);
+    const calls = screen.rewards.mock.calls.length; screen.view.selectState("PENDING"); await flush();
     expect(screen.rewards).toHaveBeenCalledTimes(calls);
     expect(screen.view.state.value).toBe("ISSUED");
   });

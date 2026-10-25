@@ -10,7 +10,7 @@ const code = ts.transpileModule(script.content, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
 type Progress = { activityId: string; qualifyingOrders: number; ownRewards: never[] };
-type View = { loading: Vue.Ref<boolean>; error: Vue.Ref<boolean>; hasMore: Vue.Ref<boolean>; activities: Vue.Ref<Array<{activityId:string}>>; expandedActivity: Vue.Ref<string|null>; progress: Vue.Ref<Record<string, Progress>>; loadProgress: (id: string) => Promise<void>; loadActivities: () => Promise<void>; showProgress: (id:string) => void; qualifyingCount: (id:string) => number|string };
+type View = { loading: Vue.Ref<boolean>; error: Vue.Ref<boolean>; progressErrors:Vue.Ref<Record<string,boolean>>; progressBusy:Vue.Ref<Record<string,boolean>>; termsActivity:Vue.Ref<unknown>; hasMore: Vue.Ref<boolean>; activities: Vue.Ref<Array<{activityId:string}>>; expandedActivity: Vue.Ref<string|null>; progress: Vue.Ref<Record<string, Progress>>; loadProgress: (id: string) => Promise<void>; loadActivities: () => Promise<void>; showProgress: (id:string) => void; qualifyingCount: (id:string) => number|string };
 const cleanups: Array<() => void> = [];
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); await Vue.nextTick(); };
 function mount() {
@@ -28,6 +28,7 @@ function mount() {
     '@/i18n/use-t': { useT: () => Vue.ref({ promotion: {} }) },
     '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) },
     '@/lib/promotion-display': { localized: () => '' }, './reward-rows.vue': { default: {} },
+    '@/lib/promotion-entry': { promotionDisclosures: () => [] }, './promotion-terms.vue': { default: {} },
     '@/i18n/team-redesign': { teamRedesignCopy },
     '@/components/team/team-art.vue': { default: {} },
     '@/components/ui/nx-button.vue': { default: {} },
@@ -48,11 +49,11 @@ afterEach(() => cleanups.splice(0).forEach(fn => fn()));
 it('clears the failed read when refreshing the same invitation progress successfully', async () => {
   const screen = mount(); await flush();
   screen.referral.mockRejectedValueOnce(new Error('offline'));
-  await screen.view.loadProgress('A'); expect(screen.view.error.value).toBe(true);
+  await screen.view.loadProgress('A'); expect(screen.view.progressErrors.value.A).toBe(true);
   screen.referral.mockResolvedValueOnce({ activityId: 'A', qualifyingOrders: 2, ownRewards: [] });
   await screen.view.loadProgress('A');
   expect(screen.view.progress.value.A.qualifyingOrders).toBe(2);
-  expect(screen.view.error.value).toBe(false); expect(screen.view.loading.value).toBe(false);
+  expect(screen.view.progressErrors.value.A).toBe(false); expect(screen.view.progressBusy.value.A).toBe(false);
 });
 it('does not let a previous account failure overwrite a new account result', async () => {
   const screen = mount(); await flush();
@@ -115,4 +116,26 @@ it('clears old pagination and errors immediately while the next account is loadi
   expect(screen.view.hasMore.value).toBe(false);expect(screen.view.error.value).toBe(false);
   expect(screen.view.activities.value).toEqual([]);expect(screen.view.qualifyingCount('A')).toBe('-');
   resolve({items:[],nextCursor:null,hasMore:false});await flush();expect(screen.view.loading.value).toBe(false);
+});
+
+it('keeps another activity readable when one progress request fails and retries only that activity',async()=>{
+  const screen=mount();await flush();
+  screen.list.mockResolvedValueOnce({items:[{activityId:'A',template:'DIRECT_REFERRAL'},{activityId:'B',template:'DIRECT_REFERRAL'}],nextCursor:null,hasMore:false});
+  screen.referral.mockImplementation(async id=>{if(id==='A')throw new Error('offline');return{activityId:id,qualifyingOrders:2,ownRewards:[]};});
+  await screen.view.loadActivities();
+  expect(screen.view.error.value).toBe(false);
+  expect(screen.view.progressErrors.value.A).toBe(true);
+  expect(screen.view.qualifyingCount('A')).toBe('-');
+  expect(screen.view.qualifyingCount('B')).toBe(2);
+  screen.referral.mockResolvedValueOnce({activityId:'A',qualifyingOrders:3,ownRewards:[]});
+  await screen.view.loadProgress('A');
+  expect(screen.view.qualifyingCount('A')).toBe(3);
+  expect(screen.view.qualifyingCount('B')).toBe(2);
+});
+
+it('closes activity terms on account change with the associated private progress',async()=>{
+  const screen=mount();await flush();
+  screen.view.termsActivity.value={activityId:'A'};
+  screen.app.accountBindingEpoch++;await flush();
+  expect(screen.view.termsActivity.value).toBeNull();
 });

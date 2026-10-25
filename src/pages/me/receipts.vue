@@ -281,7 +281,7 @@ function remoteReceiptAmountStyle(receipt: ServerReceiptListItem): CSSProperties
   const presentation = presentVietQrReceipt(receipt.status, receipt.creditedUsdt);
   return {
     ...remoteAmountStyle,
-    color: presentation.credited ? "var(--v5-brand-2)" : "var(--v5-ink-3)",
+    color: presentation.credited ? "var(--v5-brand)" : "var(--v5-ink-3)",
   };
 }
 
@@ -668,7 +668,7 @@ function rowAmountStyle(r: Receipt): CSSProperties {
     fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
     fontSize: "13px",
     fontWeight: 600,
-    color: r.category === "KY" ? "var(--v5-brand-2)" : "var(--v5-brand)",
+    color: "var(--v5-brand)",
   };
 }
 const rowDateStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-4)" };
@@ -676,7 +676,7 @@ const remoteAmountStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "13px",
   fontWeight: 600,
-  color: "var(--v5-brand-2)",
+  color: "var(--v5-brand)",
 };
 const footerStyle: CSSProperties = {
   margin: "16px 24px 24px",

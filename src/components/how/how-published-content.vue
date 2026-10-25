@@ -6,7 +6,7 @@
       <view style="padding: 14px; border-radius: 12px; background: var(--v5-surface-2); color: var(--v5-ink-2);">
         <text class="block" style="font-size: 15px; font-weight: 600;">{{ t.howPublished.unavailableTitle }}</text>
         <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3);">{{ t.howPublished.unavailableBody }}</text>
-        <view class="flex items-center justify-center" style="margin-top: 12px; min-height: 44px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load">
+        <view class="flex items-center justify-center" style="margin-top: 12px; min-height: 44px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
           <text>{{ t.ui.retry }}</text>
         </view>
       </view>
@@ -14,7 +14,7 @@
     <view v-else-if="content" class="pb-8">
       <view v-if="languageFallback" class="mx-4" style="margin: 16px; padding: 14px; border-radius: 12px; background: var(--v5-surface-2);" role="status" aria-live="polite">
         <text class="block" :style="bodyStyle">{{ t.howPublished.languageFallback }}</text>
-        <view class="flex items-center justify-center" style="margin-top: 12px; height: 40px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
+        <view class="flex items-center justify-center" style="margin-top: 12px; min-height: 44px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
           <text>{{ t.ui.retry }}</text>
         </view>
       </view>
@@ -25,7 +25,7 @@
         </view>
       </view>
       <template v-for="(block, index) in content.blocks.slice(1)" :key="block.id">
-        <HowSection v-if="block.kind !== 'callout'" :title="block.title" :accent="index % 2 ? 'purple' : 'lemon'">
+        <HowSection v-if="block.kind !== 'callout'" :title="block.title" :accent="neutral ? 'neutral' : index % 2 ? 'purple' : 'lemon'">
           <text class="block" :style="bodyStyle">{{ block.body }}</text>
           <view v-if="block.items?.length" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px">
             <view v-for="item in block.items" :key="item" style="display: flex; gap: 8px">
@@ -33,7 +33,7 @@
             </view>
           </view>
         </HowSection>
-        <HowCalloutBox v-else class="mx-4" :title="block.title" :body="block.body" tone="purple" />
+        <HowCalloutBox v-else class="mx-4" :title="block.title" :body="block.body" :tone="neutral ? 'neutral' : 'purple'" />
       </template>
     </view>
   </view>
@@ -51,7 +51,7 @@ import { useLocaleStore } from "@/store/locale";
 import { useT } from "@/i18n/use-t";
 import { PublishedContentRequestFence } from "./p3-14-published-request-fence";
 
-const props = defineProps<{ contentKey: HowContentKey; back: string }>();
+const props = defineProps<{ contentKey: HowContentKey; back: string; neutral?: boolean }>();
 const emit = defineEmits<{ unavailable: [] }>();
 const locale = useLocaleStore();
 const t = useT();

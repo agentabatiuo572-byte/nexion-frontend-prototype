@@ -42,12 +42,12 @@
         <view class="relative overflow-hidden" :style="totalCardStyle">
           <view class="relative" style="z-index: 1">
             <view class="flex justify-between items-center gap-2">
-              <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-4); letter-spacing: 0.04em">{{ auditCopy.deviceRevenue }} · {{ rangeLabel(range) }}</text>
+              <text style="font-size: 13px; color: var(--v5-ink-2)">{{ auditCopy.deviceRevenue }} · {{ rangeLabel(range) }}</text>
               <text class="earn-scope">{{ auditCopy.revenueScope }}</text>
             </view>
 
             <view class="mt-2.5 flex items-baseline gap-1" style="font-family: var(--font-v5); font-weight: 600; letter-spacing: -0.024em; line-height: 1; color: var(--v5-ink)">
-              <text style="font-size: 20px; color: var(--v5-ink-3); font-weight: 500">$</text>
+              <text v-if="totalKnown" style="font-size: 20px; color: var(--v5-ink-3); font-weight: 500">{{ totalPrefix }}</text>
               <text class="tabular-nums" style="font-size: 56px">{{ totalInt }}<text v-if="totalKnown" style="font-size: 36px; color: var(--v5-ink-3); font-weight: 600">.{{ totalCents }}</text></text>
             </view>
             <text class="block mt-2 font-mono-tabular tabular-nums" style="font-size: 15px; color: var(--v5-nex); font-weight: 600">+{{ nexFmt }} <text style="font-size: 12px; font-weight: 500; letter-spacing: 0.06em">UVT</text></text>
@@ -74,21 +74,21 @@
       <!-- My devices header -->
       <view class="mx-4 mt-2 mb-1 px-1 flex items-center justify-between">
         <text style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.myFleet }}</text>
-        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-4)">{{ fleetCountText }}</text>
+        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-2)">{{ fleetCountText }}</text>
       </view>
       <!-- FEAT-DEV01: 任务池升级提示线(信息态 · 行内展开;详情入口 → W-CAP1 说明弹层) -->
       <!-- 仅 @click:uni 编译器在小程序端将 click 映射为 tap;H5 下 @tap+@click 双绑会双触发(本页实测,开关类必单绑) -->
-      <view class="mx-4 mb-2 rounded-xl active:opacity-90" style="background: var(--v5-tech-cyan-soft); padding: 9px 12px; min-height: 44px; display: flex; flex-direction: column; justify-content: center" role="button" tabindex="0" :aria-label="t.earn.taskPoolLineTitle" :aria-expanded="taskPoolOpen" @click="taskPoolOpen = !taskPoolOpen">
+      <view class="mx-4 mb-2 rounded-xl active:opacity-90" style="background: var(--v5-surface-1); padding: 9px 12px; min-height: 44px; display: flex; flex-direction: column; justify-content: center" role="button" tabindex="0" :aria-label="t.earn.taskPoolLineTitle" :aria-expanded="taskPoolOpen" @click="taskPoolOpen = !taskPoolOpen" @keydown.enter.stop.prevent="taskPoolOpen = !taskPoolOpen" @keydown.space.stop.prevent="taskPoolOpen = !taskPoolOpen">
         <view class="flex items-center justify-between gap-2">
           <view class="flex items-center gap-1.5 min-w-0">
-            <svg class="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
+            <svg class="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
             <text class="truncate" style="font-size: 12px; font-weight: 600; color: var(--v5-ink-2)">{{ t.earn.taskPoolLineTitle }}</text>
           </view>
           <svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: taskPoolOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }"><path d="m6 9 6 6 6-6" /></svg>
         </view>
         <view v-if="taskPoolOpen" style="margin-top: 6px">
           <text style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.55">{{ t.earn.taskPoolLineBody }}</text>
-          <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-brand); font-weight: 600" role="button" tabindex="0" :aria-label="t.earn.capExplainTitle" @click.stop="openExplainer">{{ t.earn.capExplainTitle }} →</text>
+          <text class="block" style="min-height: 44px; display: flex; align-items: center; margin-top: 6px; font-size: 12px; color: var(--v5-brand); font-weight: 600" role="button" tabindex="0" :aria-label="t.earn.capExplainTitle" @click.stop="openExplainer" @keydown.enter.stop.prevent="openExplainer" @keydown.space.stop.prevent="openExplainer">{{ t.earn.capExplainTitle }} →</text>
         </view>
       </view>
       <!-- Device pool — one card, accordion rows (one detail open at a time) -->
@@ -97,7 +97,25 @@
       </EmptySlotsHint>
 
       <EarningsLedgerCard class="mx-4" />
-      <NxSection class="mx-4" :title="auditCopy.moreWays"><ComputeShareEntry /><TrialGhostSlot /></NxSection>
+      <NxSection class="mx-4" :title="auditCopy.moreWays">
+        <view class="earn-way nx-glass-card">
+          <text class="earn-way__title">{{ remainderCopy.phoneTitle }}</text>
+          <text class="earn-way__body">{{ remainderCopy.phoneBody }}</text>
+          <!-- #ifdef H5 -->
+          <NxButton size="small" :label="remainderCopy.downloadApp" @click="goPhoneDownload" />
+          <!-- #endif -->
+          <!-- #ifndef H5 -->
+          <NxButton size="small" :label="nativePhoneAvailable ? remainderCopy.phoneAction : remainderCopy.phoneReadOnly" @click="goPhoneCompute" />
+          <!-- #endif -->
+        </view>
+        <view v-if="stakingVisible" class="earn-way nx-glass-card">
+          <text class="earn-way__title">{{ remainderCopy.stakingTitle }}</text>
+          <text class="earn-way__body">{{ remainderCopy.stakingBody }}</text>
+          <NxButton size="small" :label="remainderCopy.stakingAction" @click="goStaking" />
+        </view>
+        <ComputeShareEntry />
+        <TrialGhostSlot />
+      </NxSection>
       <MarketBoard />
       <TaskCenter />
       <!-- FEAT-DEV01: W-CAP1 任务产能说明弹层(单实例;设备卡/补贴 badge/提示线共用入口) -->
@@ -108,13 +126,19 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import { formatUsdOverviewParts } from "@/lib/usd-display";
 import { onUnmounted, computed, nextTick, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@/composables/use-tab-page-lifecycle";
 import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import NxSection from "@/components/ui/nx-section.vue";
+import NxButton from "@/components/ui/nx-button.vue";
 import EarningsLedgerCard from "@/components/home/earnings-ledger-card.vue";
 import { useAuditUiCopy } from "@/i18n/audit-ui";
+import { useRemainderUiCopy } from "@/i18n/remainder-ui";
+import { useConfig } from "@/store/config";
+import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
+import { navTo } from "@/lib/route";
 import TrialGhostSlot from "@/components/trial-ghost-slot.vue";
 import DeviceCardPC from "@/components/earn/device-card-pc.vue";
 import CapacityExplainerSheet from "@/components/earn/capacity-explainer-sheet.vue";
@@ -139,6 +163,23 @@ const RANGES: Range[] = ["Today", "Week", "Month", "All"];
 const app = useApp();
 const t = useT();
 const auditCopy = useAuditUiCopy();
+const remainderCopy = useRemainderUiCopy();
+const config = useConfig();
+const stakingVisible = computed(() => config.configStatus === "ready" && config.isEnabled("stakingVisible"));
+const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
+
+// H5 exposes a download guide, never a phone calibration or execution action.
+// #ifdef H5
+function goPhoneDownload() { navTo("/pages/register/success?download=1"); }
+// #endif
+// #ifndef H5
+function goPhoneCompute() {
+  navTo(nativePhoneAvailable ? "/pages/onboarding/connect?mode=recalibrate" : "/pages/me/devices");
+}
+// #endif
+function goStaking() {
+  if (stakingVisible.value) navTo("/pages/staking/staking");
+}
 const range = ref<Range>("Today");
 const freeTrial = useFreeTrial();
 let earnPageVisible = false;
@@ -261,10 +302,11 @@ const mockTotal = computed(() => {
   return range.value === "Today" ? e.today : range.value === "Week" ? e.thisWeek : range.value === "Month" ? e.thisMonth : e.total;
 });
 const total = computed(() => remoteApiEnabled ? serverPeriodValue.value?.usdt ?? null : mockTotal.value);
-const totalKnown = computed(() => total.value !== null);
-const totalParts = computed(() => formatAmount(total.value).split("."));
-const totalInt = computed(() => total.value === null ? "—" : totalParts.value[0]);
-const totalCents = computed(() => total.value === null ? "" : totalParts.value[1]);
+const totalParts = computed(() => formatUsdOverviewParts(total.value));
+const totalKnown = computed(() => totalParts.value !== null);
+const totalPrefix = computed(() => totalParts.value?.prefix ?? "");
+const totalInt = computed(() => totalParts.value?.integer ?? "—");
+const totalCents = computed(() => totalParts.value?.fraction ?? "");
 const nexTotal = computed(() => remoteApiEnabled ? serverPeriodValue.value?.nex ?? null : (() => { const e = app.earnings; const ratio = e.today > 0 ? e.todayNEX / e.today : 0; return mockTotal.value * ratio; })());
 const nexFmt = computed(() => nexTotal.value === null ? "—" : formatAmount(nexTotal.value));
 const jobsCount = computed(() => {
@@ -333,4 +375,10 @@ import GlassSegments from "@/components/glass-segments.vue";
 const rangeOptions = computed(() => RANGES.map(value => ({ value, label: rangeLabel(value) })));
 </script>
 
-<style scoped>.earn-scope { color: var(--v5-ink-2); font: 400 12px/1.4 var(--font-v5); text-align: right; max-width: 50%; }</style>
+<style scoped>
+.earn-scope { color: var(--v5-ink-2); font: 400 12px/1.4 var(--font-v5); text-align: right; max-width: 50%; }
+.earn-way { margin-top: 12px; padding: 12px; border-radius: var(--nx-glass-radius); background: var(--nx-glass-fill); }
+.earn-way__title { display: block; color: var(--v5-ink); font: 600 15px/1.4 var(--font-v5); }
+.earn-way__body { display: block; margin-block: 4px 8px; color: var(--v5-ink-2); font: 400 13px/1.55 var(--font-v5); }
+.earn-way :deep(.nx-button) { max-width: 100%; }
+</style>

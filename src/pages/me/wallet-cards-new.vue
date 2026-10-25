@@ -23,7 +23,7 @@
         <view :style="formCardStyle">
           <view class="flex items-center" :style="formHeadStyle">
             <view class="grid place-items-center shrink-0" :style="formHeadIconStyle">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
             </view>
             <view class="flex-1 min-w-0">
               <text class="block" :style="formHeadTitleStyle">{{ t.cards.formCardType }}</text>
@@ -289,13 +289,13 @@ const formCardStyle: CSSProperties = {
 const formHeadStyle: CSSProperties = {
   padding: "0 2px 14px",
   borderBottom: "1px solid color-mix(in srgb, var(--v5-border) 70%, transparent)",
-  gap: "12px",
+  gap: "var(--ui-space-inline)",
 };
 const formHeadIconStyle: CSSProperties = {
   width: "36px",
   height: "36px",
   borderRadius: "8px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)",
+  background: "var(--v5-surface-2)",
 };
 const formHeadTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
 const formHeadNoteStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
@@ -306,7 +306,7 @@ const brandChipStyle: CSSProperties = {
   borderRadius: "6px",
   padding: "4px 8px",
 };
-const formFieldsStyle: CSSProperties = { padding: "16px 2px 0" };
+const formFieldsStyle: CSSProperties = { padding: "var(--ui-space-inset) 2px 0" };
 const labelStyle: CSSProperties = { marginBottom: "4px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const inputStyle: CSSProperties = {
   // uni <input> renders taller than a native one — pin a fixed 40px box (=
@@ -345,10 +345,10 @@ const disclaimerStyle: CSSProperties = { marginTop: "12px", padding: "0 4px", fo
 
 <style scoped>
 /* Separate the bound account, fields and conditions without changing their gates. */
-.bank-binding-layout :deep(.bound-summary) { margin-top: 12px; padding: 12px; border-bottom: 0; border-radius: 12px; background: var(--v5-surface); }
+.bank-binding-layout :deep(.bound-summary) { margin-top: var(--ui-space-inline); padding: var(--ui-space-inline); border-bottom: 0; border-radius: 12px; background: var(--v5-surface); }
 .bank-binding-layout :deep(.binding-head) { border-bottom: 0; padding-bottom: 4px; }
 .bank-binding-layout :deep(.binding-fields > .hint) { margin: 4px 0 12px; }
 .bank-binding-layout :deep(.field-label) { margin-top: 8px; margin-bottom: 6px; }
-.bank-binding-layout :deep(.disclaimer) { margin-top: 10px; line-height: 1.6; }
+.bank-binding-layout :deep(.disclaimer) { margin-top: var(--ui-space-row-y); line-height: 1.6; }
 .bank-binding-layout :deep(.default-row) { flex-wrap: wrap; }
 </style>

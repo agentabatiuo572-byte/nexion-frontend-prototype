@@ -5,7 +5,7 @@
   isolated backend route exists. Wrapped in <AppChassis active="me">.
 -->
 <template>
-  <AppChassis v-if="visibility.configStatus === 'ready' && visibility.isEnabled('stakingVisible')" active="me">
+  <AppChassis v-if="visibility.isEnabled('stakingVisible')" active="me">
     <view style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/wallet" />
 
@@ -24,9 +24,9 @@
               </view>
             </view>
             <view class="inline-flex items-center shrink-0 active:scale-[0.98]" :style="howLinkStyle" role="button" tabindex="0" @click="goHow"  @keydown.enter.prevent="goHow" @keydown.space.prevent="goHow">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
               <text style="margin: 0 6px">{{ w.howItWorksEntry }}</text>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
             </view>
           </view>
 
@@ -534,17 +534,17 @@ onUnmounted(() => {
   isMounted.value = false;
 });
 
-// Secondary nav pill — soft brand-2 tint carries the affordance, no border (chip rule).
+// Ordinary rule navigation uses the same neutral surface as other secondary controls.
 const howLinkStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   padding: "0 12px",
   height: "44px",  // 《07》tap≥44(原 34)
   borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 10%, transparent)",
+  background: "var(--v5-surface-2)",
   fontSize: "12px",
   fontWeight: 500,
-  color: "var(--v5-brand-2)",
+  color: "var(--v5-ink-2)",
 };
 // Spotlight hero kept (single per screen) but neutralised: the accent floor-adjacent
 // glow is dropped;描边已整条删除(《03》§3 零 border,C2 第二轮)。The colourful

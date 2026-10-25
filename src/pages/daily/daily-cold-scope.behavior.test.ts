@@ -1,4 +1,4 @@
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { createPinia, setActivePinia } from "pinia";
@@ -100,7 +100,7 @@ async function page(messages: Messages = en) {
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
   const shows: Array<() => void> = [], hides: Array<() => void> = [];
   const dependencies: Record<string, unknown> = {
-    "@/lib/amount-display": { formatAmount },
+    "@/lib/amount-display": { formatAmount, formatGroupedAmount },
     vue: Vue, "@dcloudio/uni-app": {
       onShow: (callback: () => void) => shows.push(callback),
       onHide: (callback: () => void) => hides.push(callback),

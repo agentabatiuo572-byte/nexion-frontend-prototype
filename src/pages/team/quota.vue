@@ -9,7 +9,7 @@
       </view>
       <view v-else class="quota-content">
         <view class="quota-hero">
-          <view v-if="heroTier" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-eyebrow">{{ t.quota.pageTitle }}</text><text class="quota-headline">{{ heroTier.name }}</text><text v-if="heroTier" class="quota-hero__price">{{ fmt(t.quota.priceLine, { price: formatAmount(heroTier.price) }) }}</text></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
+          <view v-if="heroTier" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-eyebrow">{{ t.quota.pageTitle }}</text><text class="quota-headline">{{ heroTier.name }}</text><text v-if="heroTier" class="quota-hero__price">{{ fmt(t.quota.priceLine, { price: formatFinanceAmount(heroTier.price) }) }}</text></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
           <view class="quota-invite-count"><text>{{ t.quota.yourInvites }}</text><view><text class="quota-invite-count__number">{{ activeDirectText }}</text><text class="quota-caption">{{ remoteApiEnabled && !remoteSnapshot ? '—' : fmt(t.quota.totalSuffix, { n: directInvites }) }}</text></view></view>
           <text class="quota-body">{{ t.quota.heroBody }}</text>
         </view>
@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { computed, ref, watch } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
@@ -174,7 +175,7 @@ function buildTier(productId: string, tint: string): QuotaTier | null {
   if (g.activeDirectMin != null)
     conditions.push({ label: t.value.quota.condActivatedDirect, current: activeDirect.value, required: g.activeDirectMin, kind: "invites" });
   if (g.teamVolumeMin != null)
-    conditions.push({ label: t.value.quota.condTeamVol, current: vRank.teamVolumeUSD, required: g.teamVolumeMin, kind: "volume", pointsUnavailable: true });
+    conditions.push({ label: t.value.quota.condTeamVol, current: vRank.teamVolumeUSD, required: g.teamVolumeMin, kind: "legacyUSD" });
   return {
     productId,
     imageUrl: p.imageUrl,
@@ -259,8 +260,7 @@ const tiers = computed<QuotaTier[]>(() =>
           : condition.kind === "rank" ? fmt(t.value.quota.condRank, { v: condition.required })
           : t.value.quota.condActivatedDirect,
         current: condition.current, required: condition.required,
-        kind: condition.kind === "teamVolume" || condition.kind === "teamComputePoints" ? "volume" : "invites",
-        pointsUnavailable: condition.kind === "teamVolume",
+        kind: condition.kind === "teamVolume" ? "legacyUSD" : condition.kind === "teamComputePoints" ? "volume" : "invites",
       })), perks: catalogProductPerks(tier.productId, tier.perks),
       roiBasis: catalogProductRoiBasis(tier.productId), tint: index % 2 ? "var(--v5-warning)" : "var(--v5-brand)",
     }))

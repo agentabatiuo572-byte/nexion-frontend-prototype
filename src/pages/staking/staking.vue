@@ -10,7 +10,10 @@
   (入账 ⊗ 记账,见 lib/money-receipt.ts) in the page handlers.
 -->
 <template>
-  <AppChassis v-if="config.configStatus === 'ready' && config.isEnabled('stakingVisible')" active="me">
+  <!-- isEnabled stays authoritative: it is false before a valid response,
+       on failure and on delisting. A background loading status alone must not
+       unmount the page and discard the calculator draft or scroll position. -->
+  <AppChassis v-if="config.isEnabled('stakingVisible')" active="me">
     <CardStagger style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/wallet" />
       <!-- 开发诊断,不是产品文案:所以① 只在 DEV 构建渲染 ② 文案是裸英文字面量,不进三语词典 ——
@@ -124,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatGroupedAmount as formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { navTo, navReset } from "@/lib/route";
 import { useConfig } from "@/store/config";

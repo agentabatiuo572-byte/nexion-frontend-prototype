@@ -91,3 +91,27 @@ it.each([
   const back = all(p.root).find(n => n.props.role === 'button' && n.props['aria-label'] === dictionaries[locale].rankHowItWorks.ctaBack)!;
   back.props.onClick(); expect(p.navBack).toHaveBeenCalledWith('/pages/team/rank');
 });
+
+it.each(['zh', 'en', 'vi'] as const)('R1-R01 renders the real %s guide steps and referral condition with precise legacy USD', async locale => {
+  const p = page(locale);
+  const legacyPolicy = policy();
+  legacyPolicy.rules.qualifiedReferralSelfBuyUSD = 0.000001;
+  legacyPolicy.sections = legacyPolicy.sections.map(section => ({ ...section, body:
+    section.id === 'requirement-self' || section.id === 'example-self' ? '{selfBuy}'
+      : section.id === 'requirement-team' || section.id === 'example-team' ? '{teamVolume}'
+        : section.id === 'requirement-direct' ? '{referralThreshold}' : section.body }));
+  const legacyRanks = ranks.map(rank => ({ ...rank, selfComputePoints: undefined, teamComputePoints: undefined,
+    selfBuyUSD: 0.000001, teamVolumeUSD: 299.000001 }));
+  const before = JSON.stringify({ legacyPolicy, legacyRanks });
+  p.published.mockResolvedValueOnce(legacyPolicy);
+  p.ladder.mockResolvedValueOnce({ ranks: legacyRanks, capabilities: { peer: false, genesis: false } });
+  await p.show();
+  const tiny = locale === 'vi' ? '0,000001 USD' : '0.000001 USD';
+  const team = locale === 'vi' ? '299,000001 USD' : '299.000001 USD';
+  expect(p.nodes('how-state')).toHaveLength(0);
+  expect(text(p.nodes('how-step')[0])).toContain(tiny);
+  expect(text(p.nodes('how-step')[1])).toContain(team);
+  expect(text(p.nodes('how-rule__body')[0])).toContain(tiny);
+  expect(all(p.root).map(node => node.text).join('\n')).not.toContain('USDT');
+  expect(JSON.stringify({ legacyPolicy, legacyRanks })).toBe(before);
+});

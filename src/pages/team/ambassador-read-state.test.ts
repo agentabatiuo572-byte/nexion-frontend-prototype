@@ -9,11 +9,17 @@ import { zh } from '@/i18n/messages/zh';
 import { en } from '@/i18n/messages/en';
 import { vi } from '@/i18n/messages/vi';
 import type { AmbassadorApplication } from '@/api/ambassador-application-api';
+import { transpileModule } from 'typescript';
 
 const source = readFileSync(new URL('./agent.vue', import.meta.url), 'utf8');
+const presentationStart = source.indexOf('const applicationStatusText =');
+const presentationEnd = source.indexOf('\nlet agentMounted', presentationStart);
+if (presentationStart < 0 || presentationEnd <= presentationStart) throw new Error('Missing actual application presentation');
+const presentationScript = transpileModule(source.slice(presentationStart, presentationEnd), { compilerOptions: { target: 7 } }).outputText;
+const presentation = new Function('computed', 'locale', 't', `${presentationScript}; return { applicationStatusText, applicationStatusColor, applicationBudget, applicationIdLabel };`);
 const implementation = source.match(/function refreshAgentPage\(\): void \{[\s\S]*?\n\}/)?.[0]?.replace('(): void', '()');
 if (!implementation) throw new Error('Missing ambassador page read function');
-const compile = new Function('remoteApiEnabled', 'captureAgentRequest', 'requestIsCurrent', 'refreshLatest', 'refreshHistory', 'ambassadorApplicationApi', 'vrank', 'policy', 'budgetText', 'pageReadState', `${implementation}; return refreshAgentPage;`);
+const compile = new Function('remoteApiEnabled', 'captureAgentRequest', 'requestIsCurrent', 'refreshLatest', 'refreshHistory', 'ambassadorApplicationApi', 'vrank', 'policy', 'budgetText', 'pageReadState', 'draft', 'submitting', 'selectedBucketId', 't', `${implementation}; return refreshAgentPage;`);
 const tick = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 function scenario(failing?: 'latest' | 'history' | 'policy' | 'rank', stale = false) {
   const state = { value: 'loading' };
@@ -21,9 +27,9 @@ function scenario(failing?: 'latest' | 'history' | 'policy' | 'rank', stale = fa
   const read = (name: string) => failing === name ? Promise.reject(new Error(name)) : Promise.resolve();
   const run = compile(true, () => ({}), () => !stale,
     () => read('latest'), () => read('history'),
-    { policy: () => read('policy').then(() => ({ defaultBudgetUsdt: 3000 })) },
+    { policy: () => read('policy').then(() => ({ defaultBudgetUsdt: 3000, buckets: [] })) },
     { remoteReady: failing !== 'rank', refreshCanonicalVRank: () => Promise.resolve() },
-    policy, { value: '' }, state);
+    policy, { value: '' }, state, { value: { touched: false, form: {} } }, { value: false }, { value: '' }, { value: en });
   run();
   return state;
 }
@@ -84,22 +90,28 @@ describe('ambassador application cards expose business information only', () => 
       it(`${locale}/${theme} keeps every application status and date without internal provenance`, async () => {
         const applications: AmbassadorApplication[] = (['PENDING', 'APPROVED', 'REJECTED'] as const).map((status, index) => ({
           applicationId: index + 1, status, city: `Event ${index + 1}`, eventDate: '2026-10-18',
-          budgetUsdt: 3000, bucket: 'venue', submittedAt: '2026-10-17T08:00:00Z',
+          budgetUsdt: index === 0 ? 100.123456 : 3000, bucket: 'venue', submittedAt: '2026-10-17T08:00:00Z',
           source: 'server', sourceEnvironment: 'PRODUCTION', runId: '',
         }));
         const before = JSON.stringify(applications);
         const state = {
           remoteApiEnabled: true, applications, t: messages,
           casesBlockStyle: {}, approvedCapStyle: {}, casesGroupStyle: {}, caseRowStyle: () => ({}),
-          applicationStatusText: (application: AmbassadorApplication) => messages.agent.applicationStatuses[application.status],
+          ...presentation(Vue.computed, { code: locale }, Vue.ref(messages)),
           applicationProof: (application: AmbassadorApplication) => `${application.sourceEnvironment} · ${application.source}`,
         };
         const renderCards = () => renderToString(Vue.createSSRApp({ render: () => Vue.h('section', { 'data-theme': theme }, [Vue.h({ render, setup: () => state })]) }));
         const html = await renderCards();
         expect(html).toContain(messages.agent.serverApplication);
+        expect(html).toContain(messages.agent.buckets.venue.title);
+        expect(html).toContain('100.123456 USDT');
+        expect(html).toContain('3,000.00 USDT');
+        expect(html).toContain(state.applicationIdLabel.value);
+        for (const color of ['--v5-warning-ink', '--v5-success-ink', '--v5-danger']) expect(html).toContain(`color:var(${color})`);
         for (const application of applications) {
           expect(html).toContain(`${application.city} · ${application.eventDate}`);
           expect(html).toContain(messages.agent.applicationStatuses[application.status]);
+          expect(html).toContain(`· ${application.applicationId}`);
         }
         expect(html).not.toMatch(/PRODUCTION|server/);
         expect(JSON.stringify(applications)).toBe(before);

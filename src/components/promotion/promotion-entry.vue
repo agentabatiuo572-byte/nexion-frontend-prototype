@@ -1,5 +1,5 @@
 <template>
-  <view v-if="items.length || status !== 'ready' || mode !== 'home'" class="promotion promotion-entry" :data-testid="'promotion-entry-'+mode">
+  <view v-if="items.length || status !== 'ready' || mode !== 'home'" class="promotion promotion-entry" :class="{'promotion-entry-home':mode==='home'}" :data-testid="'promotion-entry-'+mode">
     <view v-if="mode==='events'" class="entry-navigation">
       <text class="promotion-title">{{ t.promotion.promotionList }}</text>
       <view class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/rewards-list?cat=promotion')" @keydown.enter.prevent="navTo('/pages/me/rewards-list?cat=promotion')" @keydown.space.prevent="navTo('/pages/me/rewards-list?cat=promotion')"><text>{{ t.promotion.rewards }}</text><text aria-hidden="true">›</text></view>
@@ -19,10 +19,10 @@
       <view v-if="mode==='home'&&!bannerReady(activity)&&promoImages(activity).length" class="entry-product-art" aria-hidden="true"><image v-for="(src,index) in promoImages(activity)" :key="src" :src="src" mode="aspectFit" :class="index ? 'entry-gift-image' : 'entry-main-image'" @error="failedProductImages.add(src)" /></view>
       <view v-if="mode==='events'&&activityKind(activity)!=='plain'" class="entry-event-art"><TeamArt :kind="activityArt(activity)" :size="activityKind(activity)==='spark'?88:144" /></view>
       <view v-if="mode==='home'&&!bannerReady(activity)" class="entry-copy">
-        <text class="entry-label">{{ t.promotion.activityBadge }}</text>
+        <text class="entry-label">{{ activityKind(activity)==='gift' ? t.promotion.giftBadge : t.promotion.activityBadge }}</text>
         <text class="entry-title">{{ localized(activity.title,locale.code) }}</text>
         <text v-if="homeRewardSummary(activity)" class="entry-benefit">{{ homeRewardSummary(activity) }}</text>
-        <text class="entry-home-deadline" role="button" tabindex="0" :aria-label="t.promotion.rulesLink" @click.stop="termsActivity=activity" @keydown.enter.stop.prevent="termsActivity=activity" @keydown.space.stop.prevent="termsActivity=activity">{{ displayDeadline(activity.endsAt,locale.code) }} · {{ t.promotion.rulesLink }} ›</text>
+        <text class="entry-home-deadline" role="button" tabindex="0" :aria-label="t.promotion.homeRulesLink" @click.stop="termsActivity=activity" @keydown.enter.stop.prevent="termsActivity=activity" @keydown.space.stop.prevent="termsActivity=activity">{{ homeRemaining(activity) }} · {{ t.promotion.homeRulesLink }} ›</text>
       </view>
       <view v-if="mode==='events'" class="entry-event-copy">
         <text class="entry-eyebrow">{{ t.promotion.activityBadge }}</text>
@@ -44,8 +44,8 @@
         </view>
       </view>
     </view>
-    <view v-if="mode==='home'&&items.length>1" class="entry-pagination" :aria-label="t.promotion.events">
-      <view v-for="(_,index) in items" :key="index" class="entry-page-dot" role="button" tabindex="0" :aria-label="`${index+1} / ${items.length}`" :aria-current="activeIndex===index" @click="activeIndex=index" @keydown.enter.prevent="activeIndex=index" @keydown.space.prevent="activeIndex=index"><view :class="{selected:activeIndex===index}" /></view>
+    <view v-if="mode==='home'&&items.length>1" class="entry-pagination" role="button" tabindex="0" :aria-label="`${t.promotion.nextOffer} · ${activeIndex+1} / ${items.length}`" @click="cycleOffer(1)" @keydown.enter.prevent="cycleOffer(1)" @keydown.space.prevent="cycleOffer(1)" @keydown.right.prevent="cycleOffer(1)" @keydown.left.prevent="cycleOffer(-1)">
+      <view v-for="(_,index) in items" :key="index" class="entry-page-dot" :class="{selected:activeIndex===index}" aria-hidden="true" />
     </view>
     <NxButton v-if="hasMore&&mode==='events'" class="entry-cta" size="medium" :busy="status==='loading'" :label="status==='loading'?t.promotion.loading:t.promotion.more" @click="load(false)"><text>{{ status==='loading'?t.promotion.loading:t.promotion.more }}</text><text aria-hidden="true">→</text></NxButton>
     <PromotionTerms :open="!!termsActivity" :title="localized(termsActivity?.title,locale.code)" :terms="termsText" :rules="termsRules" :disclosures="promotionDisclosures(termsActivity)" @close="termsActivity=null" />
@@ -108,6 +108,13 @@ function homeRewardSummary(activity:PublicPromotion) {
   return localized(reward.disclosure.benefitDescription,locale.code)
     || rewardSummary(reward,t.value.promotion,reward.disclosure.deviceName || (reward.type==='DEVICE'?publicName(reward.giftProductNo):null));
 }
+function homeRemaining(activity:PublicPromotion) {
+  // Use the published clock, refreshed with each offer read, rather than the device timezone.
+  const remaining=Date.parse(activity.endsAt)-Date.parse(activity.serverTime);
+  if(!Number.isFinite(remaining)||remaining<=0)return t.value.promotion.ended;
+  return remaining<86400000?t.value.promotion.endsToday:fmt(t.value.promotion.daysRemaining,{n:Math.ceil(remaining/86400000)});
+}
+function cycleOffer(delta:number){if(items.value.length)activeIndex.value=(activeIndex.value+delta+items.value.length)%items.value.length;}
 const termsRules=computed(()=>termsActivity.value?rewardSummaries(termsActivity.value):[]);
 const termsText=computed(()=>termsActivity.value?[localized(termsActivity.value.terms,locale.code),t.value.promotion.deadline+' · '+displayDeadline(termsActivity.value.endsAt,locale.code)].join('\n\n'):'');
 async function load(reset:boolean){
@@ -143,26 +150,32 @@ onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 <style src="./promotion.css"></style>
 <style scoped>
 .promotion-entry { display: flex; flex-direction: column; gap: var(--ui-space-inset); }
+.promotion-entry-home { gap: 0; }
 .entry-status { display: flex; flex-direction: column; align-items: flex-start; gap: var(--ui-space-row-y); padding: var(--ui-space-inline) 0; }
 .entry-advert,.entry-event { position: relative; overflow: hidden; border: 1px solid var(--v5-border); border-radius: 24px; background: linear-gradient(140deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); }
-.entry-advert { min-height: 146px; }
+.entry-advert { min-height: 146px; border: 0; background: radial-gradient(70% 90% at 82% 72%,rgba(158,220,29,.24),transparent 62%),radial-gradient(50% 70% at 100% 0%,rgba(255,255,255,.08),transparent 60%),linear-gradient(135deg,#171717,#101010); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+.entry-advert::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle,rgba(255,255,255,.07) 1px,transparent 1px) 0 0/14px 14px; mask-image: linear-gradient(90deg,transparent 30%,#000 75%); pointer-events: none; }
 .entry-advert-target { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
 .entry-advert-target:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -3px; }
 .entry-artwork { position: absolute; inset: 0; width: 100%; height: 100%; }
-.entry-advert .entry-copy { position: relative; display: flex; flex-direction: column; padding: 18px; min-height: 146px; box-sizing: border-box; }
+.entry-advert .entry-copy { position: relative; display: flex; flex-direction: column; padding: 18px 18px 16px; min-height: 146px; box-sizing: border-box; color: #f5f7fa; }
 .entry-advert:has(.entry-product-art) .entry-copy { padding-right: 148px; }
 .entry-label,.entry-eyebrow { display: block; color: var(--v5-brand); font: 500 12px/1.5 var(--font-v5); }
 .entry-title { display: block; margin-top: 7px; font: 600 23px/1.3 var(--font-v5); overflow-wrap: anywhere; }
-.entry-advert .entry-title { font-size: 19px; line-height: 25px; }
+.entry-advert .entry-label { font-size: 12.5px; color: #c8f25a; }
+.entry-advert .entry-title { margin-top: 6px; font-size: 19px; line-height: 25px; }
 .entry-advert .promotion-copy { color: var(--v5-ink-2); font-size: 12px; line-height: 1.5; }
 .entry-copy,.entry-event-copy { min-width: 0; }
 .entry-benefit { display: block; margin-top: 5px; color: var(--v5-ink-2); font: 500 14px/1.5 var(--font-v5); overflow-wrap: anywhere; }
-.entry-advert .entry-benefit { font-size: 12px; font-weight: 400; }
-.entry-home-deadline { position: relative; z-index: 2; margin-top: auto; padding-top: 8px; color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
+.entry-advert .entry-benefit { margin-top: 0; color: inherit; font: 600 19px/25px var(--font-v5); }
+.entry-home-deadline { position: relative; z-index: 2; align-self: flex-start; margin-top: auto; padding: 13px 0; margin-bottom: -13px; color: #9aa2b2; font: 400 12px/18px var(--font-v5); white-space: nowrap; }
 .entry-home-deadline:focus-visible { outline: 2px solid var(--v5-brand); }
 .entry-product-art { position: absolute; right: 0; width: 160px; inset-block: 0; pointer-events: none; }
-.entry-main-image { position: absolute; right: 30px; top: 4px; width: 118px; height: 118px; }
-.entry-gift-image { position: absolute; right: -6px; bottom: 6px; width: 84px; height: 84px; }
+.entry-product-art::before { content: ''; position: absolute; right: 18px; bottom: 16px; width: 120px; height: 20px; background: radial-gradient(ellipse,rgba(200,242,90,.4),transparent 70%); }
+.entry-main-image { position: absolute; right: 30px; top: 4px; width: 118px; height: 118px; animation: promotion-float 4.2s ease-in-out infinite; }
+.entry-gift-image { position: absolute; right: -6px; bottom: 6px; width: 84px; height: 84px; animation: promotion-float 4.2s ease-in-out -1.6s infinite; }
+@keyframes promotion-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@media(prefers-reduced-motion:reduce) { .entry-main-image,.entry-gift-image { animation: none; } }
 .entry-event { display: grid; grid-template-columns: minmax(0,1fr) 128px; padding: var(--ui-space-section); gap: var(--ui-space-inset) 0; }
 .entry-event-copy { position: relative; z-index: 1; grid-column: 1; grid-row: 1; }
 .entry-event-art { display: flex; align-items: center; justify-content: center; grid-column: 2; grid-row: 1; pointer-events: none; }
@@ -191,15 +204,16 @@ onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 .entry-kind-spark .entry-benefit { font-size: 20px; }
 .entry-kind-plain .entry-event-copy { grid-column: 1 / -1; }
 .entry-pagination,.entry-navigation { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); }
-.entry-pagination { justify-content: center; gap: 0; margin-top: -10px; }
-.entry-page-dot { display: grid; place-items: center; width: 28px; height: 28px; cursor: pointer; }
-.entry-page-dot > view { width: 6px; height: 6px; border-radius: 999px; background: var(--v5-surface-3); }
-.entry-page-dot > .selected { width: 16px; background: var(--v5-brand); }
-.entry-page-dot:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
+.entry-pagination { position: relative; justify-content: center; gap: 6px; min-height: 44px; margin: -9px 0 -19px; cursor: pointer; }
+.entry-page-dot { width: 6px; height: 6px; border-radius: 999px; background: #3e4655; }
+.entry-page-dot.selected { width: 16px; background: var(--v5-brand); }
+.entry-pagination:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; border-radius: 12px; }
 @media(max-width:350px) {
-  .entry-advert:has(.entry-product-art) .entry-copy { padding-right: 120px; }
-  .entry-product-art { right: -15px; }
-  .entry-advert .entry-title { font-size: 17px; line-height: 22px; }
+  .entry-advert:has(.entry-product-art) .entry-copy { padding-right: 105px; }
+  .entry-product-art { right: -10px; width: 130px; }
+  .entry-main-image { right: 22px; width: 100px; height: 100px; }
+  .entry-gift-image { right: -2px; width: 72px; height: 72px; }
+  .entry-advert .entry-title,.entry-advert .entry-benefit { font-size: 17px; line-height: 22px; }
   .entry-home-deadline { font-size: 11px; }
   .entry-event { padding: var(--ui-space-inset); grid-template-columns: minmax(0,1fr) 104px; }
   .entry-title { font-size: 20px; }

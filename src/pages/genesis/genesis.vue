@@ -1,6 +1,5 @@
 <!--
-  Genesis Node — creator-node presale (1000 slots / $9,999 / sales ticker /
-  dividend). Ported from Nexion-prototype/app/(main)/genesis/page.tsx.
+  Genesis Node — creator-node presale with canonical supply and pricing. Ported from Nexion-prototype/app/(main)/genesis/page.tsx.
 
   Wrapped in <AppChassis active="me"> (sub-page reached from /me). The source's
   chassis-level GenesisDockHost (sticky gold CTA) + GenesisSheetHost (confirm
@@ -25,17 +24,7 @@
         <GenesisArtwork style="border-radius: 18px" />
         <!-- ════ HERO — dark obsidian gold ════ -->
         <view class="relative overflow-hidden" :style="heroStyle">
-          <!-- Gold dust particles -->
-          <view aria-hidden class="absolute inset-0 overflow-hidden" style="pointer-events: none; z-index: 0">
-            <view v-for="(d, i) in dust" :key="i" class="gen-anim" :style="d" />
-          </view>
-          <!-- Diagonal pinstripe -->
-          <view aria-hidden class="gen-anim" :style="engraveStyle" />
-          <!-- Top-right glow blob -->
-          <view aria-hidden class="gen-anim" :style="glowStyle" />
-          <!-- Sweeping light pass -->
-          <view aria-hidden class="gen-anim" :style="sheenStyle" />
-
+          <!-- Product artwork owns the continuous motion budget. -->
           <view class="relative" style="z-index: 2">
             <!-- Crown chip + rules-intro pill share the top row (gold-toned pill
                  so it reads on the obsidian-gold hero; owner 2026-07-09 kill gap). -->
@@ -54,18 +43,14 @@
             <!-- Title — punchy, restrained (high-end OG seat, not a bark) -->
             <text class="block" :style="titleStyle">{{ t.genesis.heroTitle }}</text>
 
-            <!-- Sub + disclaimer。🔴 heroSub 是**稀缺性/紧迫感**文案(「限量 1000 · 售完即止」),
-                 与同页其它紧迫感元素同源判定:市场关闭 / 熔断 / 配置未知时不得渲染 ——
-                 否则页面一边说「暂未开放」一边催「售完即止」(zentao #190)。 -->
-            <text v-if="showUrgency" class="block" :style="heroSubStyle">{{ t.genesis.heroSub }}</text>
+            <!-- Supply copy shares the confirmed count and sale availability gate. -->
+            <text v-if="showUrgency && supplyDisplay.known" class="block" :style="heroSubStyle">{{ supplyCaption }}</text>
             <text class="block" :style="heroDiscStyle">{{ t.genesis.heroDisc }}</text>
 
             <!-- Sales bar -->
             <view style="margin-top: 18px">
               <view ref="salesBarRef" :style="barTrackStyle">
-                <view class="relative overflow-hidden" :style="barFillStyle">
-                  <view aria-hidden class="gen-anim" :style="barShimmerStyle" />
-                </view>
+                <view :style="barFillStyle" />
               </view>
               <view class="flex items-center justify-between tabular-nums" :style="barMetaStyle">
                 <text v-if="supplyDisplay.known">
@@ -75,7 +60,7 @@
                 <text v-else>—</text>
                 <!-- 🔴 关闭态 / 售罄态不展示剩余名额紧迫文案(规格 FEAT-GEN10 ④:
                      不对不可购买的东西制造紧迫感)。判据来自 showUrgency 单源,不在此处自判。 -->
-                <text v-if="showUrgency" class="gen-anim" :style="urgentStyle">{{ remaining }} {{ t.genesis.leftSuffix }}</text>
+                <text v-if="showUrgency" :style="urgentStyle">{{ remaining }} {{ t.genesis.leftSuffix }}</text>
               </view>
             </view>
           </view>
@@ -156,7 +141,6 @@
         <template v-if="dockActive">
           <view aria-hidden :style="dockSpecularStyle" />
           <view aria-hidden :style="dockRimStyle" />
-          <view aria-hidden class="gen-anim" :style="dockSheenStyle" />
         </template>
         <!-- 🔴 这层的 color 供给 crown 图标与倒计时(它们用 currentColor / 继承),
              同样必须跟 dockActive 走 —— 只改 dockLabelStyle 会剩下图标和倒计时还是金色,
@@ -202,6 +186,7 @@ import GenesisPurchaseSheet from "@/components/genesis/purchase-sheet.vue";
 import GenesisEligibilitySheet from "@/components/genesis/eligibility-sheet.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import { useRemainderUiCopy } from "@/i18n/remainder-ui";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { useGenesis, GENESIS_ELIGIBILITY_POLICY } from "@/store/genesis";
 import { useGenesisConfig } from "@/store/genesis-config";
@@ -276,6 +261,7 @@ onUnmounted(() => {
   stopGenesisRevision();
 });
 const locale = useLocaleStore();
+const remainderCopy = useRemainderUiCopy();
 const { eligible, gate } = useGenesisEligibility();
 const { block, marketClosed, secondaryBlock, showUrgency, blockText, preSale, showTime, countdownDays, countdownClock } =
   useGenesisSaleGate();
@@ -322,6 +308,9 @@ const total = computed(() => genesis.totalSlots);
 const price = computed(() => genesis.unitPriceUSDT);
 const remaining = computed(() => total.value - sold.value);
 const supplyDisplay = computed(() => genesisSupplyDisplay(sold.value, total.value, genesis.remoteSupplyKnown));
+const supplyCaption = computed(() => supplyDisplay.value.known
+  ? fmt(remainderCopy.value.genesisSupply, { n: total.value.toLocaleString(locale.code) })
+  : "");
 const liveMarket = computed(() => remoteApiEnabled
   ? genesis.remoteListings.slice(0, 2).map((listing) => ({
       id: listing.tokenId,
@@ -330,8 +319,16 @@ const liveMarket = computed(() => remoteApiEnabled
     }))
   : []);
 function ageText(ts: number): string {
-  const mins = Math.max(1, Math.floor((Date.now() - ts) / 60_000));
-  return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h`;
+  // NftCard adds the localized "ago" suffix; pass a duration, not a full sentence.
+  const minutes = Math.max(0, Math.floor((Date.now() - ts) / 60_000));
+  const copy = remainderCopy.value;
+  if (minutes < 60) return minutes === 1 && "listingMinute" in copy ? copy.listingMinute : fmt(copy.listingMinutes, { n: minutes });
+  if (minutes < 1440) {
+    const hours = Math.floor(minutes / 60);
+    return hours === 1 && "listingHour" in copy ? copy.listingHour : fmt(copy.listingHours, { n: hours });
+  }
+  const days = Math.floor(minutes / 1440);
+  return days === 1 && "listingDay" in copy ? copy.listingDay : fmt(copy.listingDays, { n: days });
 }
 
 // Dock 文案:**阻断原因来自唯一派生 `block`**(composable),本页不再自排优先级。
@@ -488,63 +485,13 @@ const howPillStyle: CSSProperties = {
 const heroStyle: CSSProperties = {
   padding: "24px 22px 22px",
   borderRadius: "16px",
-  background:
-    "radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--v5-genesis-gold-on-dark) 20%, transparent) 0%, transparent 55%)," +
-    "radial-gradient(circle at 0% 100%, rgba(132,90,42,0.30) 0%, transparent 60%)," +
-    "linear-gradient(160deg, #1B140A 0%, #0E0A05 60%, #1A1208 100%)",
+  background: "var(--v5-surface)",
   border: "1px solid color-mix(in srgb, var(--v5-genesis-gold-on-dark) 35%, transparent)",
   boxShadow:
     "inset 0 1px 0 color-mix(in srgb, var(--v5-genesis-gold-on-dark) 22%, transparent)," +
     "inset 0 -1px 0 rgba(0,0,0,0.45)," +
     "0 12px 32px rgba(0,0,0,0.20)",
   color: "var(--v5-genesis-gold-pale-on-dark)",
-};
-const dustPos = ["12%", "32%", "54%", "72%", "86%"];
-const dustDur = [7, 8, 6.5, 9, 7.5];
-const dustDelay = [0, 1.4, 3.0, 4.6, 2.2];
-const dust = computed<CSSProperties[]>(() =>
-  [0, 1, 2, 3, 4].map((i) => ({
-    position: "absolute",
-    bottom: "0",
-    left: dustPos[i],
-    width: "2px",
-    height: "2px",
-    borderRadius: "50%",
-    background: "#E2C97C",
-    boxShadow: "0 0 4px rgba(226,201,124,0.7)",
-    opacity: 0,
-    animation: `gen-dust-rise ${dustDur[i]}s linear infinite`,
-    animationDelay: `${dustDelay[i]}s`,
-  })),
-);
-const engraveStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  backgroundImage: "repeating-linear-gradient(135deg, color-mix(in srgb, var(--v5-genesis-gold-on-dark) 5%, transparent) 0 1px, transparent 1px 14px)",
-  mixBlendMode: "screen",
-  opacity: 0.6,
-  pointerEvents: "none",
-  animation: "gen-engrave 30s linear infinite",
-};
-const glowStyle: CSSProperties = {
-  position: "absolute",
-  top: "-60px",
-  right: "-60px",
-  width: "200px",
-  height: "200px",
-  background: "radial-gradient(circle, color-mix(in srgb, var(--v5-genesis-gold-on-dark) 28.000000000000004%, transparent), transparent 70%)",
-  filter: "blur(4px)",
-  pointerEvents: "none",
-  animation: "gen-glow-drift 9s ease-in-out infinite",
-};
-const sheenStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "linear-gradient(110deg, transparent 30%, color-mix(in srgb, var(--v5-genesis-gold-on-dark) 18%, transparent) 50%, transparent 70%)",
-  transform: "translateX(-100%)",
-  animation: "gen-sheen 5.5s ease-in-out infinite",
-  pointerEvents: "none",
-  zIndex: 1,
 };
 const crownChipStyle: CSSProperties = {
   padding: "4px 10px",
@@ -592,13 +539,6 @@ const barFillStyle = computed<CSSProperties>(() => ({
   transition: salesBarInView.value ? PROGRESS_GROW_TRANSITION : "none",
   willChange: "width",
 }));
-const barShimmerStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)",
-  transform: "translateX(-100%)",
-  animation: "gen-bar-shimmer 2.4s ease-in-out infinite",
-};
 const barMetaStyle: CSSProperties = {
   marginTop: "8px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
@@ -609,7 +549,6 @@ const barMetaStyle: CSSProperties = {
 const urgentStyle: CSSProperties = {
   color: "var(--v5-genesis-gold-on-dark)",
   fontWeight: 500,
-  animation: "gen-urgent 1.8s ease-in-out infinite",
 };
 // Live social-proof bubble — filled surface, no border (chat-bubble idiom).
 const socialStyle: CSSProperties = {
@@ -788,14 +727,6 @@ const dockRimStyle: CSSProperties = {
   bottom: "1px",
   height: "1px",
   background: "linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--v5-genesis-gold-on-dark) 55%, transparent) 50%, transparent 100%)",
-  pointerEvents: "none",
-};
-const dockSheenStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%)",
-  transform: "translateX(-100%)",
-  animation: "gen-sheen 4.5s ease-in-out infinite",
   pointerEvents: "none",
 };
 // 🔴 判据必须与 dockBtnStyle 用**同一个** `dockActive`,不能一个问 dockActive、

@@ -1,6 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
 import { createBankWithdrawalApi, hasVerifiedBankIdentity, parseBankQuote, parseBankRecovery } from "./bank-withdrawal-api";
 import { createWithdrawalApi, toCanonicalWithdrawal } from "./withdrawal-api";
+// @ts-expect-error Standalone loopback fixture is outside the App TS source tree.
+import { bankDemo } from "../../scripts/lib/prototype-demo-bank.mjs";
+import type { ApiRequest } from "./api-client";
 
 const quote = {
   quoteNo: "BQ-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", amountUsdt: "100.000000", feeUsdt: "1.000000", netUsdt: "99.000000",
@@ -8,6 +11,44 @@ const quote = {
   expiresAt: "2026-09-15T10:05:00Z",
 };
 const receipt = { state: "COMMITTED", withdrawalNo: "WD-TEST", withdrawal: { withdrawalNo: "WD-TEST", chain: "BANK-VND", status: "SENT" }, providerState: "PENDING", bank: quote };
+describe("loopback bank demo uses the production contract", () => {
+  function harness() {
+    const state = { dataState: "normal", bankState: "pending" };
+    const api = createBankWithdrawalApi({ request: async (r: ApiRequest) => bankDemo(new URL(r.path, "http://127.0.0.1"), state, {
+      method: () => r.method || "GET", postDataJSON: () => r.body, headers: () => ({ "idempotency-key": r.idempotencyKey }),
+    }) } as never);
+    return { api, state };
+  }
+  test("quotes, resumes, submits once and reads each demo settlement", async () => {
+    const { api, state } = harness();
+    expect((await api.config()).beneficiary?.canWithdraw).toBe(true);
+    const q = await api.quote("100");
+    expect(q).toMatchObject({ amountUsdt: 100, feeUsdt: 1, netUsdt: 99, amountVnd: 2475000 });
+    expect((await api.config()).unresolvedIntent?.quoteNo).toBe(q.quoteNo);
+    expect(await api.recover(q.quoteNo)).toMatchObject({ state: "NOT_SUBMITTED", quote: q });
+    const order = await api.submit(q.quoteNo, "demo-bank-command");
+    expect(order).toMatchObject({ state: "COMMITTED", status: "PROCESSING", providerState: "PENDING" });
+    expect(await api.submit(q.quoteNo, "demo-bank-command")).toEqual(order);
+    expect((await api.config()).unresolvedIntent).toBeNull();
+    state.bankState = "settled";
+    expect(await api.get(order.withdrawalNo)).toMatchObject({ status: "CONFIRMED", settlementEvidence: { status: "paid" } });
+    state.bankState = "rejected";
+    expect(await api.get(order.withdrawalNo)).toMatchObject({ status: "REFUNDED", settlementEvidence: { status: "refunded" } });
+    const abandoned = await api.quote("20");
+    expect(await api.abandon(abandoned.quoteNo)).toEqual({ state: "ABANDONED" });
+    await expect(api.submit(abandoned.quoteNo, "abandoned")).rejects.toThrow("BANK_QUOTE_EXPIRED");
+  });
+  test("replacement validates the local OTP and returns a pending account", async () => {
+    const { api } = harness();
+    const otp = await api.sendOtp();
+    const body = { bankCode: "", account: "00123456789", holder: "DEMO PERSON", accountRoutingConfirmed: true as const, challengeNo: otp.challengeNo, code: "000000" };
+    await expect(api.bind(body, "wrong-otp")).rejects.toThrow("OTP_INVALID");
+    const saved = await api.bind({ ...body, code: "123456" }, "demo-bind");
+    expect(saved).toMatchObject({ maskedAccount: "••••6789", canWithdraw: false });
+    expect((await api.config()).beneficiary).toEqual(saved);
+    expect(await api.bind({ ...body, code: "123456" }, "demo-bind")).toEqual(saved);
+  });
+});
 describe("bank withdrawal server contract", () => {
   test("binding rejects a receipt for another bank/account and never accepts an unmasked recipient", async () => {
     const saved = { bankCode: "", bankName: "BANKQR", maskedAccount: "****6789", effectiveAt: "2026-09-17T00:00:00Z", nextChangeAt: "2026-09-23T00:00:00Z", canWithdraw: true };

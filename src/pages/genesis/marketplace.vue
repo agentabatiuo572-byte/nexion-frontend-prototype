@@ -13,12 +13,12 @@
     <view style="padding-bottom: 24px">
       <SubPageHeader back="/pages/genesis/genesis" />
 
-      <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
+      <view class="px-4" style="display: flex; flex-direction: column; gap: var(--ui-space-inline)">
         <!-- Collection hero — de-carded: sits on the page floor. -->
         <view :style="heroStyle">
-          <view class="flex items-start" style="gap: 12px">
+          <view class="flex items-start" style="gap: var(--ui-space-inline)">
             <view class="grid place-items-center shrink-0" :style="avatarStyle">
-              <text style="font-size: 28px">👑</text>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" /><path d="M5 20h14" /></svg>
             </view>
             <view class="flex-1 min-w-0">
               <text class="block truncate" :style="collTitleStyle">UVEL Genesis Node</text>
@@ -98,7 +98,7 @@
               </view>
             </scroll-view>
 
-            <view class="grid grid-cols-2" style="gap: 10px">
+            <view class="grid grid-cols-2" style="gap: var(--ui-space-row-y)">
               <ListingCard v-for="l in sortedListings" :key="l.tokenId" :l="l" :disabled="secondaryBlock !== null || buyPending" @buy="handleBuy(l)" />
             </view>
           </template>
@@ -125,13 +125,13 @@
           <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable'" kind="empty-list" :compact="secondaryBlock !== null"
             :title="t.marketplace.marketUnavailable" :desc="t.marketplace.marketUnavailableHint"
           />
-          <view v-else-if="mergedActivity.length > 0" class="nx-glass-card overflow-hidden" :style="listCardStyle">
+          <view v-else-if="mergedActivity.length > 0" :style="listCardStyle">
             <ActivityRow v-for="(e, i) in mergedActivity" :key="e.id" :e="e" :is-last="i === mergedActivity.length - 1" />
           </view>
           <!-- 同上:零事件时原样渲染 listCardStyle 会留一个零高度的空 surface 盒子。 -->
           <EmptyState v-else kind="empty-list" :title="t.empty.genesisActivityTitle" :desc="t.empty.genesisActivityDesc" />
           <view v-if="genesis.activityPage.cursor" class="active:opacity-70" role="button" tabindex="0" :aria-disabled="genesis.activityPage.busy ? 'true' : 'false'"
-            :aria-busy="genesis.activityPage.busy ? 'true' : 'false'" style="padding:12px;text-align:center;color:var(--v5-brand)" @click="!genesis.activityPage.busy && genesis.loadMoreActivity()">
+            :aria-busy="genesis.activityPage.busy ? 'true' : 'false'" style="padding:var(--ui-space-inline);text-align:center;color:var(--v5-brand)" @click="!genesis.activityPage.busy && genesis.loadMoreActivity()">
             <text>{{ genesis.activityPage.error ? t.orders.retry : t.orders.loadMore }}</text>
           </view>
         </template>
@@ -151,7 +151,7 @@
               <text>{{ primaryEntryLabel }}</text>
             </view>
           </view>
-          <view v-else class="grid grid-cols-2" style="gap: 10px">
+          <view v-else class="grid grid-cols-2" style="gap: var(--ui-space-row-y)">
             <MyTokenCard v-for="id in ownedTokenIds" :key="id" :token-id="id" :page-scope="listingPageScope" />
           </view>
         </template>
@@ -498,8 +498,8 @@ const avatarStyle: CSSProperties = {
   width: "56px",
   height: "56px",
   borderRadius: "16px",
-  background: "linear-gradient(135deg, var(--v5-genesis-gold-on-dark) 0%, #E2C97C 100%)",
-  boxShadow: "0 4px 12px color-mix(in srgb, var(--v5-genesis-gold-on-dark) 25%, transparent)",
+  background: "var(--v5-surface-2)",
+  color: "var(--v5-genesis-gold-on-dark)",
 };
 const collTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -554,7 +554,7 @@ const closedNoticeStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)",
   color: "var(--v5-warning-ink)",
   borderRadius: "14px",
-  padding: "12px 14px",
+  padding: "var(--ui-space-inline) 14px",
 };
 const closedNoticeTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
@@ -615,11 +615,8 @@ function sortPillStyle(active: boolean): CSSProperties {
     justifyContent: "center",
   };
 }
-// Activity feed — single filled surface container, no border (rows carry hairlines).
-const listCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
-  borderRadius: "var(--nx-glass-radius)",
-  background: "var(--nx-glass-fill)",
-};
+// Activity is an open ledger; listings and owned tokens retain their entity cards.
+const listCardStyle: CSSProperties = { paddingBlock: "4px" };
 // Empty state — dashed outline, no fill (whitelist empty-state idiom).
 const emptyCardStyle: CSSProperties = {
   borderRadius: "16px",

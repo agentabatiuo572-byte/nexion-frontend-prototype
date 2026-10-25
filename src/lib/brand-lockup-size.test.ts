@@ -7,21 +7,19 @@ describe("brandLockupBox", () => {
     expect(brandLockupBox(100, "lockup")).toEqual({ width: 289, height: 100 });
   });
 
-  it("纯图形是正方形", () => {
-    expect(brandLockupBox(60, "mark")).toEqual({ width: 60, height: 60 });
+  it("独立符号保留官方490:361的非正方形比例", () => {
+    expect(brandLockupBox(60, "mark")).toEqual({ width: 81, height: 60 });
   });
 
-  // 🔴 下面几条就是下限门本身。它们变红 = 有人把标又缩回「糊成一个绿点」的尺寸。
-  it("横版换算宽度不足 120px 时被抬到下限,而不是照传入值缩小", () => {
-    // 40 × (712/246) = 115.8,不足 120;盒子要按当前素材比例抬高。
-    expect(brandLockupBox(40, "lockup")).toEqual({ width: 120, height: 41 });
-    expect(brandLockupBox(27, "lockup")).toEqual({ width: 120, height: 41 });
-    expect(brandLockupBox(1, "lockup").width).toBe(120);
+  it("紧凑组合标保留144px可辨字标下限", () => {
+    expect(brandLockupBox(40, "lockup")).toEqual({ width: 144, height: 50 });
+    expect(brandLockupBox(27, "lockup")).toEqual({ width: 144, height: 50 });
+    expect(brandLockupBox(1, "lockup").width).toBe(144);
   });
 
-  it("纯图形不足 32px 时被抬到 32", () => {
-    expect(brandLockupBox(22, "mark")).toEqual({ width: 32, height: 32 });
-    expect(brandLockupBox(0, "mark")).toEqual({ width: 32, height: 32 });
+  it("独立符号宽度至少24px且不被拉成方形", () => {
+    expect(brandLockupBox(22, "mark")).toEqual({ width: 30, height: 22 });
+    expect(brandLockupBox(0, "mark")).toEqual({ width: 24, height: 18 });
   });
 
   it("达标尺寸原样透传,不被下限顶大", () => {

@@ -1,3 +1,4 @@
+import { formatFinanceAmount } from '@/lib/finance-amount-display';
 import { afterEach, expect, it, vi } from 'vitest';
 import { reactive, ref } from 'vue';
 import source from './leadership-pool.vue?raw';
@@ -36,7 +37,7 @@ function mount(language: 'zh' | 'en' | 'vi' = 'en') {
     '@/components/team/reward-compact-hero.vue': slot, '@/components/sub-page-header.vue': slot,
     '@/components/team/v-badge.vue': slot, '@/components/team/v-badge-icon.vue': slot,
     '@/i18n/use-t': { useT: () => ref(dictionary) }, '@/i18n/format': { fmt },
-    '@/i18n/network-reaudit': { networkReauditCopy }, '@/lib/amount-display': { formatAmount },
+    '@/i18n/network-reaudit': { networkReauditCopy }, '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount },
     '@/store/locale': { useLocaleStore: () => ({ code: language }) },
     '@/store/app': { useApp: () => app },
     '@/store/v-rank': { useVRank: () => ({ remoteReady: true, ladder: [], refreshCanonicalVRank: vi.fn() }) },

@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { ref, computed, nextTick, onMounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
@@ -180,7 +180,7 @@ const noKindText = computed(() =>
 
 function eventMeta(e: CommissionEvent): string {
   const kindLabel = t.value.commissions.kind[e.kind];
-  const order = e.sourceRef ? ` · ${e.kind === "direct_purchase" ? t.value.directReferral.order : t.value.directReferral.receipt} ${e.sourceRef}` : e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${e.orderAmountUSD}` : "";
+  const order = e.sourceRef ? ` · ${e.kind === "direct_purchase" ? t.value.directReferral.order : t.value.directReferral.receipt} ${e.sourceRef}` : e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${formatGroupedAmount(e.orderAmountUSD)}` : "";
   const device = e.sourceDeviceId ? ` · ${t.value.directReferral.device}: ${e.sourceDeviceId}` : "";
   const date = formatTrialDate(e.ts);
   return `${kindLabel}${order}${device} · ${date}`;

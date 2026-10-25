@@ -38,8 +38,9 @@ function setup(language = "zh") {
   const toast = { success: vi.fn(), info: vi.fn(), error: vi.fn() };
   let clipboard = "AUDIT_SENTINEL";
   const copyText = vi.fn(async (value: string) => { clipboard = value; return true; });
-  const ctx = { setFillStyle: vi.fn(), fillRect: vi.fn(), setFontSize: vi.fn(), fillText: vi.fn(), draw: vi.fn((_reserve: boolean, done: () => void) => done()) };
+  const ctx = { setFillStyle: vi.fn(), fillRect: vi.fn(), setFontSize: vi.fn(), fillText: vi.fn(), drawImage: vi.fn(), draw: vi.fn((_reserve: boolean, done: () => void) => done()) };
   const uni = {
+    getImageInfo: vi.fn((options: { success(value: { path: string }): void }) => options.success({ path: "/local/official-logo.png" })),
     share: vi.fn(), createCanvasContext: vi.fn(() => ctx),
     canvasToTempFilePath: vi.fn((options: { success(value: { tempFilePath: string }): void }) => options.success({ tempFilePath: "test-poster.png" })),
     saveImageToPhotosAlbum: vi.fn((options: { success(): void }) => options.success()),
@@ -89,8 +90,20 @@ it.each(["zh", "en", "vi"])("keeps the clipboard sentinel and hides sharing on c
   expect(text(p.page.root)).toContain("123.45");
   await p.actions.copyLink(); expect(p.clipboard()).toBe("https://example.invalid/ref/TESTCODE");
   expect(p.toast.success).toHaveBeenCalledWith(p.copy.proof.copiedToast, "");
+  for (const [variant, fact] of [["earnings", "123.45"], ["streak", "7"], ["network", "9"]]) {
+    p.actions.variant.value = variant;
+    await p.actions.copyShareText("Telegram");
+    expect(p.clipboard()).toContain(fact);
+    expect(p.clipboard()).toContain("https://example.invalid/ref/TESTCODE");
+    expect(p.clipboard()).not.toMatch(/\{\w+\}|passive UVT/);
+    p.actions.nativeShare();
+    expect(p.uni.share.mock.lastCall?.[0]).toMatchObject({ title: p.copy.proof.shareTitle, summary: p.clipboard() });
+  }
+  p.actions.variant.value = "earnings";
+  await p.actions.copyLink();
   await p.actions.downloadPng();
   expect(p.ctx.fillText).toHaveBeenCalledWith("123.45", 124, 580);
+  expect(p.ctx.drawImage).toHaveBeenCalledWith("/local/official-logo.png", 72, 40, 356, 123);
   expect(p.ctx.fillText).toHaveBeenCalledWith(p.clipboard(), 124, 986);
   expect(p.uni.saveImageToPhotosAlbum).toHaveBeenCalledOnce();
   p.copyText.mockClear(); p.toast.success.mockClear(); p.uni.createCanvasContext.mockClear();
@@ -135,6 +148,7 @@ it("does not run a native-share fallback or save an export after an account rebi
   let finishDraw!: () => void;
   p.ctx.draw.mockImplementationOnce((_reserve, done) => { finishDraw = done; });
   const exporting = p.actions.downloadPng();
+  await flush();
   p.app.accountBindingEpoch += 1; shareOptions.fail(); finishDraw(); await exporting; await flush();
   expect(p.copyText).not.toHaveBeenCalled(); expect(p.uni.canvasToTempFilePath).not.toHaveBeenCalled(); expect(p.toast.success).not.toHaveBeenCalled();
   p.page.unmount();

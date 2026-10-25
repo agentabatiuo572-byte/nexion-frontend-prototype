@@ -22,7 +22,7 @@
           <TeamArt kind="members" :size="112" />
         </view>
 
-        <template v-if="!remoteApiEnabled || network.remoteStatus === 'ready'">
+        <view v-if="rosterMounted" v-show="!remoteApiEnabled || network.remoteStatus === 'ready'">
           <!-- Direct section -->
           <TeamRosterSection
             color="var(--v5-brand)"
@@ -54,8 +54,8 @@
             :show-contribution="!remoteApiEnabled"
             @toggle="expanded.extended = !expanded.extended"
           />
-        </template>
-        <view v-else-if="remoteApiEnabled && (network.remoteStatus === 'idle' || network.remoteStatus === 'loading')" :style="readStateStyle" role="status" aria-busy="true">
+        </view>
+        <view v-if="remoteApiEnabled && (network.remoteStatus === 'idle' || network.remoteStatus === 'loading')" :style="readStateStyle" role="status" aria-busy="true">
           <text>{{ t.network.projectionLoadingTitle }}</text>
         </view>
         <view class="tree-network-link" role="button" tabindex="0" @click="navTo('/pages/team/network')" @keydown.enter.prevent="navTo('/pages/team/network')" @keydown.space.prevent="navTo('/pages/team/network')">
@@ -72,7 +72,7 @@ import { navTo } from "@/lib/route";
 import { formatAmount } from "@/lib/amount-display";
 import { computePointsCopy, formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
 import { useLocaleStore } from "@/store/locale";
-import { computed, onMounted, reactive, type CSSProperties } from "vue";
+import { computed, onMounted, reactive, ref, watch, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -90,6 +90,10 @@ onMounted(() => { if (remoteApiEnabled) void network.ensureCanonicalNetwork(); }
 onShow(() => { if (remoteApiEnabled) void network.ensureCanonicalNetwork(); });
 
 const members = computed(() => network.members);
+// Keep an already opened member mounted during the same account's read refresh.
+// Fresh loading/error states must not mount empty rosters before the first result.
+const rosterMounted = ref(!remoteApiEnabled || network.remoteStatus === 'ready');
+watch(() => network.remoteStatus, (status) => { if (status === 'ready') rosterMounted.value = true; });
 const direct = computed(() => members.value.filter((m) => m.layer === 1));
 const extended = computed(() => members.value.filter((m) => m.layer !== 1));
 
