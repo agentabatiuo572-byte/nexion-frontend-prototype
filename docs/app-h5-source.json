@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "5a9d49cc96ac5b8ca3b2a602d9b2ed1edf82a4d8",
-  "sourceRef": "5a9d49cc96ac5b8ca3b2a602d9b2ed1edf82a4d8",
+  "sourceHead": "46ff83ca58c47675be2b064bc9ddc1ce4ffb53c5",
+  "sourceRef": "46ff83ca58c47675be2b064bc9ddc1ce4ffb53c5",
   "sourceRefKind": "commit",
-  "sourceTree": "d44a1d3a21ef4fe36590fa92bc71c3d8e1e9e772",
+  "sourceTree": "8a00b65f17a32b9d6eead7eab0377894cbb524dc",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -4696,10 +4696,10 @@
       "mode": "100644"
     },
     "scripts/lib/prototype-demo-data.mjs": {
-      "sourceBlob": "71934111619daa8865493a1014b09615528978ba",
-      "sourceSha256": "a32c1af0aeb309afba9d0f3e39d078b2dd5f5e72ee9e4936b3878e88875cd6b6",
-      "targetBlob": "71934111619daa8865493a1014b09615528978ba",
-      "targetSha256": "a32c1af0aeb309afba9d0f3e39d078b2dd5f5e72ee9e4936b3878e88875cd6b6",
+      "sourceBlob": "e7bb838a84967c3321a3fc15fe58d1b46a3cb739",
+      "sourceSha256": "3671f821dae175ff11a024491791a682ea73ddad4acaf00b01defb1b326379d3",
+      "targetBlob": "e7bb838a84967c3321a3fc15fe58d1b46a3cb739",
+      "targetSha256": "3671f821dae175ff11a024491791a682ea73ddad4acaf00b01defb1b326379d3",
       "mode": "100644"
     },
     "scripts/lib/prototype-demo-finance.mjs": {
@@ -4728,6 +4728,13 @@
       "sourceSha256": "2c7b480b1420deadbb583d48194e9983a4fe0c546c0773a3d27ba361e3faf4b9",
       "targetBlob": "5240e1104630ce95eebca3878203511daec1b585",
       "targetSha256": "2c7b480b1420deadbb583d48194e9983a4fe0c546c0773a3d27ba361e3faf4b9",
+      "mode": "100644"
+    },
+    "scripts/lib/prototype-demo-risk.mjs": {
+      "sourceBlob": "78087a2367edd50589f4634fe326d6361796e5bb",
+      "sourceSha256": "7f41db42d276306f401fe67818fcfb2e0afc2ed8b53a9defdf672700b6180656",
+      "targetBlob": "78087a2367edd50589f4634fe326d6361796e5bb",
+      "targetSha256": "7f41db42d276306f401fe67818fcfb2e0afc2ed8b53a9defdf672700b6180656",
       "mode": "100644"
     },
     "scripts/lib/prototype-demo-secondary.mjs": {
@@ -5081,17 +5088,17 @@
       "mode": "100644"
     },
     "scripts/prototype-preview-server.mjs": {
-      "sourceBlob": "1950e4be2628befa2d86f25eb0c8defdc8c2bcb2",
-      "sourceSha256": "a13837de858231531954f9261f190f682c9ba6d1dac4e0e0ddc2d88a66f5ccfa",
-      "targetBlob": "1950e4be2628befa2d86f25eb0c8defdc8c2bcb2",
-      "targetSha256": "a13837de858231531954f9261f190f682c9ba6d1dac4e0e0ddc2d88a66f5ccfa",
+      "sourceBlob": "5060b3a5dda73e51a51e47e75961a5049be7c239",
+      "sourceSha256": "22c6935ab4f698ce83904a51ee43e8077c0d9709ee1731f75cfb58b47082622a",
+      "targetBlob": "5060b3a5dda73e51a51e47e75961a5049be7c239",
+      "targetSha256": "22c6935ab4f698ce83904a51ee43e8077c0d9709ee1731f75cfb58b47082622a",
       "mode": "100644"
     },
     "scripts/prototype-preview.html": {
-      "sourceBlob": "5e5b9c340f5af501a0278d2d7550a86d15d25e4e",
-      "sourceSha256": "970a8477313da6968b78df391550aa021cab177a3387309bbedd35c01924318a",
-      "targetBlob": "5e5b9c340f5af501a0278d2d7550a86d15d25e4e",
-      "targetSha256": "970a8477313da6968b78df391550aa021cab177a3387309bbedd35c01924318a",
+      "sourceBlob": "6c8587cf03eb59546fdd7f4b010fc815b841668d",
+      "sourceSha256": "a76df8e0d240d7312b8a14e7002cb7b3e7c755a267dab13a0d2d1afa35311618",
+      "targetBlob": "6c8587cf03eb59546fdd7f4b010fc815b841668d",
+      "targetSha256": "a76df8e0d240d7312b8a14e7002cb7b3e7c755a267dab13a0d2d1afa35311618",
       "mode": "100644"
     },
     "scripts/purchase-eligibility-checkout-contract.test.mjs": {
@@ -7209,10 +7216,10 @@
       "mode": "100644"
     },
     "src/api/risk-disclosure-api.test.ts": {
-      "sourceBlob": "519ce6f638793fd4d52ee9dd6bc6766d6cea8930",
-      "sourceSha256": "425ca0badc3ed70724c2aeebef0e0436d858d3c5bd113c6f50ab77ced6c6f61c",
-      "targetBlob": "519ce6f638793fd4d52ee9dd6bc6766d6cea8930",
-      "targetSha256": "425ca0badc3ed70724c2aeebef0e0436d858d3c5bd113c6f50ab77ced6c6f61c",
+      "sourceBlob": "5e116998e74e6897283aaee36c88cb02a79ff93c",
+      "sourceSha256": "55155a92b10e4f47d65b79f9de3ac53295b6adbde5891c8e87917fe11f83a848",
+      "targetBlob": "5e116998e74e6897283aaee36c88cb02a79ff93c",
+      "targetSha256": "55155a92b10e4f47d65b79f9de3ac53295b6adbde5891c8e87917fe11f83a848",
       "mode": "100644"
     },
     "src/api/risk-disclosure-api.ts": {

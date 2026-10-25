@@ -25,6 +25,7 @@ http.createServer(async(req,res)=>{
         if(update.reset){for(const key of Object.keys(state))delete state[key];Object.assign(state,structuredClone(demoDefaults));}
         for(const [key,options] of Object.entries(demoOptions)) if(options.some(([value])=>value===update[key]))state[key]=update[key];
         if(update.taskState)for(const key of ['weekClaims','dayOneClaimed'])delete state[key];
+        if(update.riskState)delete state.riskDemo;
         if(update.streakState){delete state.saverUsed;state.checkedIn=false;state.milestoneClaims=[];}
         if(typeof update.allCoursesDone==='boolean'){delete state.learningResults;delete state.learningReceipts;}
         if(update.ambassadorState)for(const key of ['ambassadorSubmission','ambassadorCommands'])delete state[key];
@@ -40,7 +41,7 @@ http.createServer(async(req,res)=>{
     if(/^\/(api|auth)\//.test(url.pathname)) {
       if(url.pathname==='/auth/users/refresh')return sendJson(res,{code:0,message:'OK',data:{accessToken:'local-demo-token',refreshToken:null,tokenType:'Bearer',user:{userId:900001,countryCode:'+86',phone:'13800000000',nickname:'Alex',onboardingComplete:true}}});
       const modeledBankWrite=/^\/api\/(withdrawals\/bank\/(beneficiary(?:\/otp)?|quotes(?:\/BQ-[a-f0-9]{32}\/abandon)?|orders)|payout-addresses(?:\/otp\/send)?)$/.test(url.pathname);
-      if(req.method!=='GET'&&!modeledWrite.test(url.pathname)&&!modeledBankWrite)return sendJson(res,{code:409,message:'该演示操作尚未配置，请使用外侧面板切换状态',data:null},409);
+      if(req.method!=='GET'&&!modeledWrite.test(url.pathname)&&!modeledBankWrite&&url.pathname!=='/api/legal/risk-disclosure/acknowledgment')return sendJson(res,{code:409,message:'该演示操作尚未配置，请使用外侧面板切换状态',data:null},409);
       const businessRead=req.method==='GET'&&/^\/api\/(config\/(platform|v-rank|exchange|repurchase|staking|commission)|store\/(catalog|purchase-eligibility)|team\/(rank|binary)|app\/(team|payments|deposits|home\/overview|proof|network|security|support|developer)|content\/(learning|trust|how-it-works)|quests\/state|events|points\/state|devices\/earnings|exchange|repurchase|withdrawals|payout-addresses|deposits|notifications|goals|promotions|promotion-rewards|tasks|payment-methods|developer|public\/referrals|legal\/(privacy|risk)|staking|stakes)/.test(url.pathname);
       if(businessRead&&state.dataState==='error')return sendJson(res,{code:503,message:'暂时无法加载，请重试',data:null},503);
       if(businessRead&&state.dataState==='loading')await new Promise(resolve=>setTimeout(resolve,5000));

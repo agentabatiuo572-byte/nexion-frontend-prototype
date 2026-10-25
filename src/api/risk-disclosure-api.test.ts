@@ -1,6 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ApiClient } from "./api-client";
 import { createRiskDisclosureApi } from "./risk-disclosure-api";
+// @ts-expect-error Loopback-only fixtures are outside the App TS source tree.
+import { riskDemo } from "../../scripts/lib/prototype-demo-risk.mjs";
+import type { ApiRequest } from "./api-client";
+
+it("demo first reading uses the real parser, minimum duration, acknowledgment and reload", async () => {
+  vi.useFakeTimers();
+  try {
+    vi.setSystemTime(new Date("2026-10-26T00:00:00Z"));
+    const state = { riskState: "unread", dataState: "normal" };
+    const api = createRiskDisclosureApi({ request: async (r: ApiRequest) => riskDemo(new URL(r.path, "http://127.0.0.1"), "zh", state, {
+      method: () => r.method || "GET", postDataJSON: () => r.body,
+    }) } as unknown as ApiClient);
+    const unread = await api.current();
+    expect(unread).toMatchObject({ acknowledged: false, acknowledgedAt: null, minimumReadingSeconds: 30 });
+    expect(unread.acknowledgmentToken).toBeTruthy();
+    await expect(api.acknowledge(unread)).rejects.toThrow("DEMO_READING_REQUIRED");
+    vi.advanceTimersByTime(30000);
+    await expect(api.acknowledge({ ...unread, acknowledgmentToken: "wrong-token" })).rejects.toThrow("DEMO_READING_REQUIRED");
+    const accepted = await api.acknowledge(unread);
+    expect(accepted).toMatchObject({ acknowledged: true, acknowledgmentToken: null, acknowledgedAt: "2026-10-26T00:00:30.000Z" });
+    expect(await api.current()).toEqual(accepted);
+  } finally { vi.useRealTimers(); }
+});
 
 describe("risk disclosure gate API", () => {
   it("reads a published disclosure without a session or acknowledgement token", async () => {
