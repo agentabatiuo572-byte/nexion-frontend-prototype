@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "0f6f4ef4dc6aa7fcac413243b844e2ba41d6bdf8",
-  "sourceRef": "0f6f4ef4dc6aa7fcac413243b844e2ba41d6bdf8",
+  "sourceHead": "18dc86ad74f68d665e43a23626b96450f6eb0028",
+  "sourceRef": "18dc86ad74f68d665e43a23626b96450f6eb0028",
   "sourceRefKind": "commit",
-  "sourceTree": "42aad9e72a6d9d3a01c8ae59ad11812d6aac81a9",
+  "sourceTree": "7934313f2a46d291c58c2ec2d2a06bc5802ec9fe",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -339,6 +339,27 @@
       "sourceSha256": "23ccbacd3392b4272ce6d4ab05302138b67469790978c2db096388db9d0fe315",
       "targetBlob": "df6d34a549fd417c1553a0b7addaf34c1f89ca67",
       "targetSha256": "23ccbacd3392b4272ce6d4ab05302138b67469790978c2db096388db9d0fe315",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-fidelity-recheck.md": {
+      "sourceBlob": "93a27fab6a9a5de5fa3a415dfe8500470b019bc3",
+      "sourceSha256": "cdcf7ef4517199fdf27e44fbade0506b80fe32189f447e6fc18ed00075e6ec46",
+      "targetBlob": "93a27fab6a9a5de5fa3a415dfe8500470b019bc3",
+      "targetSha256": "cdcf7ef4517199fdf27e44fbade0506b80fe32189f447e6fc18ed00075e6ec46",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-imagegen-prompts.md": {
+      "sourceBlob": "9f4bd5fe048016bda44a37f703d9fb3db68d9993",
+      "sourceSha256": "ca92d2a10f705596da7e729c705dab3d0ae298ff5fd4360d806e8359f74aa7ed",
+      "targetBlob": "9f4bd5fe048016bda44a37f703d9fb3db68d9993",
+      "targetSha256": "ca92d2a10f705596da7e729c705dab3d0ae298ff5fd4360d806e8359f74aa7ed",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-review-signoffs.json": {
+      "sourceBlob": "8e260f7cbfed506a216cf7de48c80ac86841e4b9",
+      "sourceSha256": "a52f08fb27b4e0bf080e3fd1c8d7df4f9a0e09751dc956e916a5d2c0dafaa6b5",
+      "targetBlob": "8e260f7cbfed506a216cf7de48c80ac86841e4b9",
+      "targetSha256": "a52f08fb27b4e0bf080e3fd1c8d7df4f9a0e09751dc956e916a5d2c0dafaa6b5",
       "mode": "100644"
     },
     "docs/audit/spec4-security-runtime.png": {
