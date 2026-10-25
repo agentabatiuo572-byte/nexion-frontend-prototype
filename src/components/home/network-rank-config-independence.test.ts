@@ -100,8 +100,8 @@ it.each([en, zh, vietnamese])('renders actual network metric slots through missi
   remoteRank.snapshot.currentRank = null; expect(await values()).toEqual(['0', '0', copy.home.networkRankUnranked]);
   remoteRank.snapshot = null; remoteRank.status = 'loading'; expect(await values()).toEqual(['0', '0']);
   remoteRank.status = 'error'; expect(await values()).toEqual(['0', '0', '-']);
-  cfg.config.networkPulse = { registeredUsers: 999999, onlineDevices: 28432 };
-  cfg.config.publicStats.realUserCount = 12345;
+  cfg.config.networkPulse = { registeredUsers: 12345, onlineDevices: 28432 };
+  cfg.config.publicStats.realUserCount = 999999;
   remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, rankChange24h: null };
   expect(await values()).toEqual([compactNumber(12345), compactNumber(28432), '#7']);
   cfg.config.networkPulse.onlineDevices = null;

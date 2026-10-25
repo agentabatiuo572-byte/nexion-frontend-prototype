@@ -200,14 +200,12 @@ const metrics = computed<Cell[]>(() => {
   const h = health.value;
   const failed = cfg.syncFailed;
   const pulse = failed ? null : cfg.config.networkPulse;
-  // Registered users use the verified count, never a configured display baseline.
+  // H9 owns these display values; verified measurements and personal rank stay separate.
   const displayCell = (label: string, value: number | null | undefined, color: string): Cell =>
     value === null || value === undefined
       ? placeholderCell(label)
       : { k: label, v: compact(value), tone: "var(--v5-ink)", sub: "", data: null, color };
-  const realMembers = !failed && (!remoteApiEnabled || cfg.publicStatsAuthority)
-    ? cfg.config.publicStats?.realUserCount : null;
-  const members = displayCell(t.value.home.networkMembers, realMembers, "var(--v5-brand)");
+  const members = displayCell(t.value.home.networkMembers, pulse?.registeredUsers, "var(--v5-brand)");
   const devices = displayCell(t.value.home.networkDevices, pulse?.onlineDevices, "var(--v5-tech-cyan-ink)");
 
   // 格 3 你的排名 —— 三态(规格 ⑤/异常1/异常2);rankOk 缺失同走占位
