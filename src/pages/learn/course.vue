@@ -88,7 +88,7 @@ import {
 } from "@/api/learning-attempt-key";
 import { learningApi } from "@/api/learning-runtime";
 import { remoteApiEnabled } from "@/api/runtime";
-import { captureRuntimeRevision } from "@/api/order-api";
+import { captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import type { LearningCourse, LearningQuizReceiptStatus, LearningResult } from "@/api/learning-api";
 import { ApiError } from "@/api/errors";
 import { navTo, navBack, navReplace, takeNavigationQuery } from "@/lib/route";
@@ -450,6 +450,8 @@ onUnmounted(() => { mounted = false; generation += 1; resetLoadCoalescer(); });
 watch(() => String(app.accountKey), refreshForScopeChange);
 watch(() => app.accountBindingEpoch, refreshForScopeChange);
 watch(() => language.value, refreshForScopeChange);
+const stopRuntimeRefresh = subscribeRuntimeRevision(refreshForScopeChange);
+onUnmounted(stopRuntimeRefresh);
 
 const auditCopy = useAuditUiCopy();
 const nextOverview = ref<LearningOverview | null>(null);

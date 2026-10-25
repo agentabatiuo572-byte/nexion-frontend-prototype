@@ -84,6 +84,7 @@ import { useT } from "@/i18n/use-t";
 import { toast } from "@/store/ui";
 import { buildShareLink, copyText, notifyUnavailableShareLink } from "@/lib/share";
 import { remoteApiEnabled } from "@/api/runtime";
+import { subscribeRuntimeRevision } from "@/api/order-api";
 import { fmt } from "@/i18n/format";
 
 const t = useT();
@@ -190,6 +191,8 @@ watch(() => tickerItems.value.length, (length) => {
   }, 4200);
 });
 onMounted(() => void rewards.refresh());
+const stopRuntimeRefresh = subscribeRuntimeRevision(() => { if (remoteApiEnabled) void rewards.refresh(); });
+onUnmounted(stopRuntimeRefresh);
 onUnmounted(() => {
   if (tickerTimer) clearInterval(tickerTimer);
 });

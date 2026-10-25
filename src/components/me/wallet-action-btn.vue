@@ -8,12 +8,12 @@
   fail:()=>{} 兜未接入的目标。
 -->
 <template>
-  <view class="flex flex-col items-center text-center active:opacity-90" style="gap: 6px; padding: 6px 2px; min-height: 44px" :data-me-action="`wallet:${props.href}`" role="button" tabindex="0" :aria-label="props.label" @click="go" @keydown.enter.prevent="go" @keydown.space.prevent="go">
-    <view class="grid place-items-center shrink-0" :style="iconStyle">
+  <view class="flex flex-col items-center text-center active:opacity-90" :class="{'wallet-action--compact nx-glass-pill': compact}" style="gap: 6px; padding: 6px 2px; min-height: 44px" :data-me-action="`wallet:${props.href}`" role="button" tabindex="0" :aria-label="props.label" @click="go" @keydown.enter.prevent="go" @keydown.space.prevent="go">
+    <view class="grid place-items-center shrink-0" :style="compact ? {color:'var(--v5-brand)'} : iconStyle">
       <slot />
     </view>
     <text :style="labelStyle">{{ label }}</text>
-    <text v-if="sub" :style="subStyle">{{ sub }}</text>
+    <text v-if="sub && !compact" :style="subStyle">{{ sub }}</text>
   </view>
 </template>
 
@@ -25,6 +25,7 @@ const props = defineProps<{
   href: string;
   label: string;
   sub?: string;
+  compact?: boolean;
 }>();
 
 function go() {
@@ -59,3 +60,7 @@ const subStyle: CSSProperties = {
   whiteSpace: "nowrap",
 };
 </script>
+<style scoped>
+.wallet-action--compact { flex-direction: row; justify-content: center; border-radius: var(--v5-radius-full); background: var(--v5-surface-2); box-shadow: inset 0 1px 0 var(--v5-liquid-highlight); }
+.wallet-action--compact:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
+</style>

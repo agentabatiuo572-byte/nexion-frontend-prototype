@@ -1,6 +1,6 @@
 <!-- Balances retain their existing sources; the summary follows the approved wallet design. -->
 <template>
-  <view class="nx-wallet">
+  <view class="nx-wallet" :class="{'nx-wallet--compact': compact}">
     <view class="nx-glass-card nx-glass-hero nx-wallet-summary">
       <view class="nx-wallet-arc" aria-hidden="true" />
       <view class="nx-wallet-particles" aria-hidden="true">
@@ -9,6 +9,7 @@
       <view class="nx-wallet-heading" data-me-action="wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" >
         <view class="nx-wallet-symbol" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h13v4M3 5v14a2 2 0 0 0 2 2h15V7M20 12h-5v5h5" /></svg></view>
         <text class="nx-wallet-title">{{ t.me.myWallet }}</text>
+        <text v-if="compact" class="nx-wallet-heading-bills">{{ t.me.walletBillsShort }}</text>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
       </view>
       <view class="nx-wallet-total" :aria-label="t.me.usdtBalance + ': $' + usdtLabel">
@@ -22,29 +23,29 @@
       <text v-if="pendingLine" class="block nx-wallet-pending tabular-nums">{{ pendingLine }}</text>
       <view class="nx-wallet-valuation">
         <text>{{ nexMarketLabel }}</text>
-        <view class="nx-wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" ><text>{{ fmt(t.me.billsThisMonth, {n:billsThisMonth}) }}</text><text aria-hidden="true"> ›</text></view>
+        <view v-if="!compact" class="nx-wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" ><text>{{ fmt(t.me.billsThisMonth, {n:billsThisMonth}) }}</text><text aria-hidden="true"> ›</text></view>
       </view>
     </view>
     </view>
     <view class="nx-wallet-actions">
         <!-- Quick actions strip -->
-        <view :style="actionsBlockStyle">
-          <text class="block" style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; color: var(--v5-ink-4); margin-bottom: 8px">{{ t.me.quickActions }}</text>
+        <view :style="compact ? {marginTop:'var(--v5-space-3)'} : actionsBlockStyle">
+          <text v-if="!compact" class="block" style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; color: var(--v5-ink-4); margin-bottom: 8px">{{ t.me.quickActions }}</text>
           <view class="grid grid-cols-3" style="gap: 8px">
-            <WalletActionBtn href="/pages/me/wallet-topup" :label="t.me.topup" sub="USDT">
+            <WalletActionBtn :compact="compact" href="/pages/me/wallet-topup" :label="t.me.topup" sub="USDT">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V3" /><path d="m6 11 6 6 6-6" /><path d="M19 21H5" /></svg>
             </WalletActionBtn>
-            <WalletActionBtn href="/pages/me/wallet-withdraw-method" :label="t.me.withdraw" sub="USDT / VND">
+            <WalletActionBtn :compact="compact" href="/pages/me/wallet-withdraw-method" :label="t.me.withdraw" sub="USDT / VND">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14" /><path d="m6 9 6-6 6 6" /><path d="M19 21H5" /></svg>
             </WalletActionBtn>
-            <WalletActionBtn href="/pages/me/wallet-exchange" :label="t.me.exchange" sub="USDT ⇄ UVT">
+            <WalletActionBtn :compact="compact" href="/pages/me/wallet-exchange" :label="t.me.exchange" sub="USDT ⇄ UVT">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 3 1.9 4.6L16 9.5l-4.6 1.9L9.5 16l-1.9-4.6L3 9.5l4.6-1.9z" /><path d="M19 14v6" /><path d="M22 17h-6" /></svg>
             </WalletActionBtn>
           </view>
         </view>
 
         <!-- Empty-slot conversion hook -->
-        <view v-if="slotsReadable && emptySlots > 0" class="grid items-center nx-wallet-slot-block" :style="slotBlockStyle">
+        <view v-if="!compact && slotsReadable && emptySlots > 0" class="grid items-center nx-wallet-slot-block" :style="slotBlockStyle">
           <view style="min-width: 0">
             <view class="flex items-center" style="gap: 6px">
               <view aria-hidden :style="pulseDotStyle" />
@@ -77,6 +78,7 @@ import SectionHeader from "@/components/me/section-header.vue";
 import WalletActionBtn from "@/components/me/wallet-action-btn.vue";
 
 const t = useT();
+defineProps<{compact?: boolean}>();
 const app = useApp();
 const bills = useBills();
 const market = useMarket();
@@ -296,4 +298,12 @@ const usdtLabel = computed(() => usdtBalanceReadable.value ? usdtText.value : "�
   .nx-wallet-particle { opacity: .5 !important; }
 }
 .nx-wallet-heading:active, .nx-wallet-bills:active { opacity: .7; }
+.nx-wallet--compact .nx-wallet-summary { padding: var(--v5-space-4); }
+.nx-wallet--compact .nx-wallet-title { font-size: var(--v5-type-body-m); }
+.nx-wallet-heading-bills { font-size: var(--v5-type-caption); color: var(--v5-ink-3); white-space: nowrap; }
+.nx-wallet--compact .nx-wallet-total { margin: var(--v5-space-3) 0; }
+.nx-wallet--compact .nx-wallet-amount { font-size: var(--v5-type-display-l); }
+.nx-wallet--compact .nx-wallet-nex { font-size: var(--v5-type-body-m); padding-bottom: 0; }
+.nx-wallet--compact .nx-wallet-coin { width: var(--v5-space-6); height: var(--v5-space-6); }
+.nx-wallet--compact .nx-wallet-details { padding: var(--v5-space-2) 0 0; }
 </style>

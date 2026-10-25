@@ -36,6 +36,8 @@
   --ui-asset: var(--v5-nex);
   --ui-attention: var(--v5-warning-ink);
   --ui-error: var(--v5-danger);
+  --ui-device-ink: #157A9E;
+  --ui-device-soft: #E3F3FB;
   --ui-space-section: 20px;
   --bg-base: #000000;
   --bg-app: #000000;
@@ -442,6 +444,8 @@
   --v5-warning-ink: #FFCB4D;
   --v5-success-ink: #9EDC1D;
   --v5-tech-cyan-ink: #8E72FF;
+  --ui-device-ink: #65C9F4;
+  --ui-device-soft: #142C38;
   --v5-brand-2-ink: #FF7A3D;
   --v5-genesis-gold: #D4AF5A;
   --v5-genesis-gold-hi: #F4E5C2;

@@ -2,7 +2,7 @@ import ts from "typescript";
 import nativeRuntime from "@dcloudio/uni-app-plus/dist/uni.runtime.esm.js?raw";
 import * as vue from "vue";
 import { initPreContext, preJs } from "@dcloudio/uni-cli-shared/dist/preprocess";
-import { createPinia, setActivePinia } from "pinia";
+import { createPinia, disposePinia, setActivePinia } from "pinia";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import source from "./profile.vue?raw";
 import { zh } from "@/i18n/messages/zh";
@@ -31,7 +31,8 @@ const flush = async () => { await vue.nextTick(); for (let n = 0; n < 8; n++) aw
 
 // Runs the actual page worker and Pinia V-rank store. All network edges are synthetic.
 function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "app") {
-  setActivePinia(createPinia()); runtimeRevision.advanceRuntimeRevision(null);
+  const pinia = createPinia();
+  setActivePinia(pinia); runtimeRevision.advanceRuntimeRevision(null);
   const reads: Array<{ ladder: ReturnType<typeof deferred>; current: ReturnType<typeof deferred> }> = [];
   remote.vRankApi.ladder.mockReset().mockImplementation(() => {
     const row = { ladder: deferred(), current: deferred() }; reads.push(row); return row.ladder.promise;
@@ -40,6 +41,7 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
   const rank = useVRank();
   const app = vue.reactive({ accountKey: "A", accountBindingEpoch: 1, user: { tier: "L5", joinedAt: 1 } });
   const auth = vue.reactive({ accountId: "A", email: "" });
+  const session = { accessToken: "fixture-access-token" };
   const profile = vue.reactive({ displayName: "Confirmed", phoneE164: "", nicknameCandidates: [],
     refreshNicknameCandidates: vi.fn(async () => true),
     setDisplayName: vi.fn(async () => true),
@@ -58,7 +60,7 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
   const modules: Record<string, unknown> = {
     vue: { ...vue, onMounted: (fn: () => void) => hooks.mount.push(fn), onUnmounted: (fn: () => void) => hooks.unmount.push(fn) },
     "@dcloudio/uni-app": { onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn) },
-    "@/api/runtime": { remoteApiEnabled: true, profileApi: { profile: profileRead, uploadAvatar } },
+    "@/api/runtime": { remoteApiEnabled: true, profileApi: { profile: profileRead, uploadAvatar }, sessionVault: { read: () => session } },
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => vue.ref({ zh, en, vi: vietnamese }[localeCode]) },
     "@/i18n/format": { dateLocale: () => "zh-CN" }, "@/store/app": { useApp: () => app },
     "@/store/auth": { useAuth: () => auth }, "@/store/profile": { useProfile: () => profile },
@@ -86,7 +88,7 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
     return modules[id];
   }, {}, { chooseImage }));
   const fire = (event: string) => hooks[event].forEach(fn => fn());
-  cleanups.push(() => { fire("unmount"); scope.stop(); });
+  cleanups.push(() => { fire("unmount"); scope.stop(); disposePinia(pinia); });
   const accept = (index: number, value: number, published = false) => {
     reads[index].ladder.resolve({ ranks: Array.from({ length: 13 }, (_, v) => {
       const title = published && v < 2 ? ["注册会员", "活跃新星"][v] : `级别${v}`;
@@ -94,7 +96,7 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
     }) });
     reads[index].current.resolve({ rankCode: `V${value}`, progress: { selfBuyUSD: 0, directRefs: 0, teamVolumeUSD: 0, vDownlineCounts: {} } });
   };
-  return { page, rank, reads, accept, app, auth, payout, profile, profileReads, toast, fire, chooseImage, uploadAvatar, cryptoUuid };
+  return { page, rank, reads, accept, app, auth, session, payout, profile, profileReads, toast, fire, chooseImage, uploadAvatar, cryptoUuid };
 }
 
 // Execute the installed native chooser's actionSheet cancel and its real failure
@@ -308,10 +310,23 @@ describe("profile authoritative read lifecycle", () => {
   }
   it("does not launch runtime reads while hidden and unsubscribes on unmount", async () => {
     const h = mount(); h.fire("hide"); runtimeRevision.advanceRuntimeRevision("hidden");
-    await h.page.refreshVRankForCurrentAccount(); expect(h.reads).toHaveLength(0);
-    h.fire("show"); expect(h.reads).toHaveLength(1); h.accept(0, 3); await flush();
-    h.fire("unmount"); runtimeRevision.advanceRuntimeRevision("gone");
+    // The account store refreshes globally; the hidden page must add no reads.
     await h.page.refreshVRankForCurrentAccount(); expect(h.reads).toHaveLength(1);
+    expect(h.profileReads).toHaveLength(0);
+    h.fire("show"); expect(h.reads).toHaveLength(2); h.accept(1, 3); await flush();
+    h.fire("unmount"); runtimeRevision.advanceRuntimeRevision("gone");
+    await h.page.refreshVRankForCurrentAccount(); expect(h.reads).toHaveLength(3);
+    expect(h.profileReads).toHaveLength(1);
+  });
+  it("waits for server session restore before initial profile reads", async () => {
+    const h = mount(); h.session.accessToken = "";
+    h.fire("show"); h.fire("mount"); await flush();
+    expect(h.profileReads).toHaveLength(0);
+    expect(h.profile.refreshNicknameCandidates).not.toHaveBeenCalled();
+    expect(h.toast.error).not.toHaveBeenCalled();
+    h.session.accessToken = "restored-token"; h.app.accountBindingEpoch++;
+    await flush(); expect(h.profileReads).toHaveLength(1);
+    expect(h.profile.refreshNicknameCandidates).toHaveBeenCalledOnce();
   });
   for (const event of ["hide", "account", "rebind"]) {
     it(`discards old profile identity after ${event}`, async () => {

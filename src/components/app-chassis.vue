@@ -128,7 +128,8 @@
       <DeviceHomeIndicator />
     </view>
 
-    <NovaBubble v-if="isTabRoute && activeTab !== 'home' && activeTab !== 'store'" v-show="!scrolling" />
+    <!-- Personal-center help stays in the support row and message button, clear of the shortcut grid. -->
+    <NovaBubble v-if="isTabRoute && activeTab !== 'home' && activeTab !== 'store' && activeTab !== 'me'" v-show="!scrolling" />
 
     <!-- Chassis-level overlays (each self-gates on its own store's open state,
          mirroring the prototype IOSFrame). Ported P-043. -->

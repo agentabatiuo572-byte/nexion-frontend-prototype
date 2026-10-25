@@ -1,41 +1,34 @@
-<!--
-  Me — ported from Nexion-prototype/app/(main)/me/page.tsx (13 sections).
-  Top→bottom: ProfileRow → WalletCard
-  → TrialEntry (hero, if eligible) → OKX-style quick sections (network / devices
-  / account / preferences / help) → TrialEntry (active row, if
-  trial running) → OrdersCard (if any orders) → Sign out → version footer.
-
-  Account section carries the "My rewards" entry (/me/rewards) with an unread
-  dot: unused valid vouchers OR reward credits newer than the seen-watermark
-  (rewards-seen store). Risk disclosure lives in Help & Support (moved from
-  account, 2026-07-09).
-
-  Wrapped in <AppChassis active="me">; entrance via <CardStagger>.
-
-  Secondary settings-row display values are wired to authenticated Java
-  projections (security 2FA / notifications unread / orders).
-
-  Account section's "orders" row was relocated here from store.vue's old
-  bottom Orders chip (single canonical entry point, not scroll-buried);
-  account section's "notifications" row was removed (duplicated the chassis
-  header bell → message drawer already present on every tab route).
-
-  Settings-row value formatting matches the source: mono-tabular accent text.
--->
+<!-- Account overview, essential shortcuts, network tiles and grouped settings. -->
 <template>
   <AppChassis active="me">
     <CardStagger class="px-4 pt-3 pb-4 space-y-3" style="color: var(--v5-ink)">
       <ProfileRow />
 
-      <WalletCard />
+      <WalletCard compact />
 
       <NxListGroup v-if="twoFactorEnabled === false" class="me-security-hint">
         <NxListRow :title="t.me.secNoTwoFa" :value="t.me.security" @click="navTo('/pages/me/security')" />
       </NxListGroup>
-      <NxSection v-for="section in quickSections" :key="section.key" :title="section.title" :meta="section.count == null ? undefined : String(section.count)">
+      <NxSection :title="t.me.frequentFunctions" :action="t.me.deviceAddLabel" class="me-shortcuts" @action="navTo('/pages/store/store')">
+        <view class="me-shortcut-grid">
+          <view v-for="item in frequentItems" :key="item.key" class="me-shortcut" :data-quick-key="item.key" role="button" tabindex="0" @click="handleQuickItem(item)" @keydown.enter.prevent="handleQuickItem(item)" @keydown.space.prevent="handleQuickItem(item)">
+            <view class="me-row-icon me-shortcut__icon" :class="'me-tone--' + (item.tone || 'muted')"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-for="path in iconPaths[item.icon]" :key="path" :d="path" /></svg><view v-if="item.dot || item.badge" class="me-row-dot" /></view>
+            <text class="me-shortcut__label">{{ item.label }}</text>
+          </view>
+        </view>
+      </NxSection>
+      <NxSection :title="t.me.myNetwork">
+        <view class="me-network-grid">
+          <view v-for="item in networkItems" :key="item.key" class="me-network-item" :data-quick-key="item.key" role="button" tabindex="0" @click="handleQuickItem(item)" @keydown.enter.prevent="handleQuickItem(item)" @keydown.space.prevent="handleQuickItem(item)">
+            <view class="me-row-icon" :class="'me-tone--' + (item.tone || 'muted')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-for="path in iconPaths[item.icon]" :key="path" :d="path" /></svg></view>
+            <view class="me-network-item__copy"><text class="me-network-item__label">{{ item.label }}</text><text class="me-network-item__meta">{{ item.meta }}</text></view>
+          </view>
+        </view>
+      </NxSection>
+      <NxSection v-for="section in settingSections" :key="section.key" :title="section.title" :meta="section.count == null ? undefined : String(section.count)">
         <NxListGroup>
           <NxListRow v-for="item in section.items" :key="item.key" :data-quick-key="item.key" :title="item.label" :value="item.meta" @click="handleQuickItem(item)">
-            <template #leading><view class="me-row-icon">
+            <template #leading><view class="me-row-icon" :class="'me-tone--' + (item.tone || 'muted')">
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path v-for="path in iconPaths[item.icon]" :key="path" :d="path" /></svg>
               <view v-if="item.dot || item.badge" class="me-row-dot" />
             </view></template>
@@ -52,7 +45,6 @@
           <text>{{ t.orders.retry }}</text>
         </view>
       </view>
-      <OrdersCard v-if="orderCount > 0" />
 
       <!-- Sign out -->
       <view class="w-full inline-flex items-center justify-center active:opacity-90" :style="signOutStyle" data-me-action="sign-out" role="button" tabindex="0" :aria-label="t.me.signOut" @click="handleSignOut"  @keydown.enter.prevent="handleSignOut" @keydown.space.prevent="handleSignOut">
@@ -80,7 +72,6 @@ import NxListRow from "@/components/ui/nx-list-row.vue";
 import ProfileRow from "@/components/me/profile-row.vue";
 import WalletCard from "@/components/me/wallet-card.vue";
 
-import OrdersCard from "@/components/me/orders-card.vue";
 import ThemePickerSheet from "@/components/me/theme-picker-sheet.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt, openSlotsTemplate } from "@/i18n/format";
@@ -116,6 +107,7 @@ import { subscribeRuntimeRevision } from "@/api/order-api";
 import { binarySessionReady } from "@/lib/binary-session-ready";
 import { settleRemoteMeLoaders } from "@/lib/remote-me-refresh";
 import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
+import { refreshEarningsReleaseStatus } from "@/store/earning-release";
 import { compiledResourceVersion, formatResourceVersion, readNativeResourceVersion } from "@/lib/app-version";
 
 const versionFooter = ref("UVEL");
@@ -173,6 +165,7 @@ const iconPaths = {
   plus: ["M12 5v14", "M5 12h14"],
   slots: ["M4 4h6v6H4z", "M14 4h6v6h-6z", "M4 14h6v6H4z", "M14 14h6v6h-6z"],
   target: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12", "M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4"],
+  trend: ["M3 3v18h18", "m6 15 5-5 4 3 6-7", "M16 6h5v5"],
   trophy: ["M6 9H4.5a2.5 2.5 0 0 1 0-5H6", "M18 9h1.5a2.5 2.5 0 0 0 0-5H18", "M4 22h16", "M10 14.7V17c0 .55-.47.98-.97 1.2A4 4 0 0 0 7 22", "M14 14.7V17c0 .55.47.98.97 1.2A4 4 0 0 1 17 22", "M18 2H6v7a6 6 0 0 0 12 0z"],
   flame: ["M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.1-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"],
   book: ["M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"],
@@ -202,7 +195,7 @@ const iconPaths = {
 } as const;
 
 type QuickIcon = keyof typeof iconPaths;
-type QuickTone = "brand" | "purple" | "orange" | "success" | "warning" | "muted" | "danger";
+type QuickTone = "brand" | "blue" | "purple" | "orange" | "success" | "warning" | "muted" | "danger";
 
 interface QuickItem {
   key: string;
@@ -301,7 +294,7 @@ const quickSections = computed<QuickSection[]>(() => [
       { key: "rewards", label: t.value.rewards.entry, href: "/me/rewards", icon: "gift", dot: rewardsDot.value, tone: "brand" },
       { key: "receipts", label: t.value.me.receiptsRow, href: "/me/receipts", icon: "receipt", tone: "brand" },
       { key: "orders", label: t.value.store.ordersChip, href: "/store/orders?from=me", icon: "package", meta: orderCount.value > 0 ? deviceOrdersMeta.value : undefined, tone: "purple" },
-      { key: "genesis", label: t.value.me.genesisNode, href: "/genesis/holder", icon: "crown", meta: ownsGenesis.value ? myGenesisValue.value : undefined, tone: "orange" },
+      { key: "genesis", label: t.value.me.genesisNode, href: ownsGenesis.value ? "/genesis/holder" : "/genesis", icon: "crown", meta: ownsGenesis.value ? myGenesisValue.value : undefined, tone: "orange" },
       { key: "cards", label: t.value.me.walletCardsRow, href: "/me/wallet-cards", icon: "card", meta: t.value.me.walletCardsMeta, tone: "muted" },
       { key: "profile", label: t.value.me.profile, href: "/me/profile", icon: "user", meta: profileName.value, tone: "muted" },
       { key: "security", label: t.value.me.security, href: "/me/security", icon: "lock", meta: twoFactorEnabled.value === null ? "—" : twoFactorEnabled.value ? t.value.me.secWithPasskey : t.value.me.secNoTwoFa, tone: twoFactorEnabled.value === null ? "muted" : twoFactorEnabled.value ? "muted" : "orange" },
@@ -331,6 +324,14 @@ const quickSections = computed<QuickSection[]>(() => [
     ],
   },
 ]);
+const frequentKeys = ['inventory', 'orders', 'missions', 'rewards', 'receipts', 'goals', 'genesis', 'learning'] as const;
+const frequentItems = computed(() => frequentKeys.map((key) => {
+  const item = quickSections.value.flatMap(section => section.items).find(item => item.key === key)!;
+  const tones: Record<string, QuickTone> = { inventory:'blue', orders:'purple', missions:'brand', rewards:'orange', receipts:'blue', goals:'purple', genesis:'orange', learning:'purple' };
+  return { ...item, label: t.value.me.shortcutLabels[key], icon: key === 'goals' ? 'trend' as const : item.icon, tone: tones[key] };
+}));
+const networkItems = computed(() => quickSections.value.find(section => section.key === 'network')?.items ?? []);
+const settingSections = computed(() => quickSections.value.filter(section => !['network','devices'].includes(section.key)).map(section => ({ ...section, items: section.items.filter(item => !frequentKeys.some(key => key === item.key) && item.key !== 'profile') })));
 
 async function refreshRemoteFunds() {
   await deposits.refreshRemoteVietQrDeposits();
@@ -377,7 +378,7 @@ async function refreshRemoteMe() {
   if (!remoteApiEnabled) return;
   await settleRemoteMeLoaders([
     ["home", () => app.refreshHomeTruth()],
-    ["fleet", () => refreshRemoteFleetAfterCatalog(app.accountKey)],
+    ["fleet", async () => { await refreshRemoteFleetAfterCatalog(app.accountKey); await refreshEarningsReleaseStatus(); }],
     ["funds", refreshRemoteFunds],
     ["orders", refreshRemoteOrders],
     ["security", refreshRemoteSecurity],
@@ -619,10 +620,24 @@ const signOutStyle: CSSProperties = {
 </script>
 
 <style scoped>
-.nx-quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 350px) {
-  .nx-quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
+.me-shortcut-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--v5-space-3) var(--v5-space-1); padding: var(--v5-space-3) 0 var(--v5-space-1); }
+.me-shortcut { display: flex; flex-direction: column; align-items: center; gap: var(--v5-space-2); min-width: 0; min-height: 80px; cursor: pointer; }
+.me-shortcut__label { font-size: var(--v5-type-body-s); line-height: var(--v5-type-body-s-lh); text-align: center; overflow-wrap: anywhere; }
+.me-row-icon { --me-icon: var(--v5-ink-2); --me-icon-bg: var(--v5-surface-3); position: relative; display: grid; place-items: center; flex: none; width: var(--v5-space-8); height: var(--v5-space-8); border-radius: var(--v5-radius-s); color: var(--me-icon); background: var(--me-icon-bg); }
+.me-shortcut__icon { width: var(--v5-space-10); height: var(--v5-space-10); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--me-icon) 14%, transparent); }
+.me-tone--brand { --me-icon: var(--v5-brand); --me-icon-bg: var(--v5-brand-soft); }
+.me-tone--blue { --me-icon: var(--ui-device-ink); --me-icon-bg: var(--ui-device-soft); }
+.me-tone--purple { --me-icon: var(--v5-nex); --me-icon-bg: var(--v5-nex-soft); }
+.me-tone--orange, .me-tone--warning { --me-icon: var(--v5-warning-ink); --me-icon-bg: var(--v5-warning-soft); }
+.me-tone--success { --me-icon: var(--v5-success-ink); --me-icon-bg: var(--v5-success-soft); }
+.me-tone--danger { --me-icon: var(--v5-danger); --me-icon-bg: var(--v5-danger-soft); }
+.me-row-dot { position: absolute; right: 0; top: 0; width: var(--v5-space-2); height: var(--v5-space-2); border-radius: var(--v5-radius-full); background: var(--v5-danger); box-shadow: 0 0 0 2px var(--v5-bg); }
+.me-network-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v5-space-3); padding: var(--v5-space-3) 0; }
+.me-network-item { display: flex; align-items: center; gap: var(--v5-space-2); min-width: 0; min-height: 56px; cursor: pointer; }
+.me-network-item__copy { display: flex; flex-direction: column; gap: var(--v5-space-1); min-width: 0; }
+.me-network-item__label { font-size: var(--v5-type-body-m); line-height: var(--v5-type-body-m-lh); }
+.me-network-item__meta { font-size: var(--v5-type-body-s); line-height: var(--v5-type-body-s-lh); color: var(--v5-ink-3); overflow-wrap: anywhere; }
+.me-shortcut:focus-visible, .me-network-item:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; border-radius: var(--v5-radius-s); }
+.me-shortcut:active, .me-network-item:active { opacity: .72; }
+.me-security-hint { color: var(--v5-warning-ink); }
 </style>
-
-<style scoped>.me-row-icon { position: relative; display: grid; place-items: center; color: var(--v5-ink-2); }.me-row-dot { position: absolute; right: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: var(--v5-warning); }.me-security-hint { color: var(--v5-warning); }</style>

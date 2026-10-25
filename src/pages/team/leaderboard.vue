@@ -172,7 +172,7 @@
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
@@ -183,7 +183,7 @@ import type { TeamLeaderboardSnapshot } from "@/api/team-insights-api";
 import { asApiError } from "@/api/errors";
 import { useApp } from "@/store/app";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
-import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
 const t = useT();
 const app = useApp();
@@ -298,8 +298,13 @@ async function loadRemote(page = 1, append = false) {
   }
 }
 
-onShow(() => { if (remoteApiEnabled) void loadRemote(1, false); });
-onUnmounted(() => { mounted = false; remoteRequest += 1; remoteSnapshot.value = null; });
+let pageVisible = false;
+const stopRuntimeRefresh = subscribeRuntimeRevision(() => {
+  if (remoteApiEnabled && mounted && pageVisible) void loadRemote(1, false);
+});
+onShow(() => { pageVisible = true; if (remoteApiEnabled) void loadRemote(1, false); });
+onHide(() => { pageVisible = false; remoteRequest += 1; });
+onUnmounted(() => { stopRuntimeRefresh(); mounted = false; remoteRequest += 1; remoteSnapshot.value = null; });
 
 // Podium display order: #2 (left) / #1 (center, raised) / #3 (right)
 const podiumDisplay = computed(() => {

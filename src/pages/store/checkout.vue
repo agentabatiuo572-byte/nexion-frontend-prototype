@@ -198,7 +198,7 @@
       </view>
       <view v-if="!promotionRoute && product && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
         <view class="checkout-sticky-copy"><text class="checkout-total">${{ confirmTotalText }}</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
-        <NxButton variant="primary" :disabled="checkoutWalletRefreshing || purchaseUnavailable || quantitySwitching" :busy="checkoutWalletRefreshing || quantitySwitching" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
+        <NxButton variant="primary" :disabled="checkoutWalletRefreshing || (remoteApiEnabled && !checkoutWalletReadable) || purchaseUnavailable || quantitySwitching" :busy="checkoutWalletRefreshing || quantitySwitching" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
       </view>
     </template>
   </AppChassis>
@@ -1005,7 +1005,7 @@ const stepLabels = computed(() => [
 ]);
 const stepDisplay = computed(() => ['confirmed','activating','live'].includes(step.value) ? 2 : ['pay-instructions','awaiting'].includes(step.value) ? 1 : 0);
 async function submitReview() {
-  if (quantitySwitching.value) return;
+  if (quantitySwitching.value || (remoteApiEnabled && !checkoutWalletReadable.value)) return;
   if (step.value === 'select-payment') { goConfirm(); await nextTick(); }
   if (step.value === 'confirm') await requestConfirmPay();
 }

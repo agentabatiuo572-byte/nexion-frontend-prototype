@@ -123,7 +123,7 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
-import { computed, type CSSProperties } from "vue";
+import { computed, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import WalletListRow from "@/components/me/wallet-list-row.vue";
@@ -139,6 +139,7 @@ import type { WithdrawalStatus } from "@/store/types";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import { remoteApiEnabled, developmentPaymentEnabled } from "@/api/runtime";
 import { resolveWalletTodayEarnings } from "@/lib/wallet-today-earnings";
+import { subscribeRuntimeRevision } from "@/api/order-api";
 
 const t = useT();
 const app = useApp();
@@ -146,11 +147,17 @@ const commission = useCommission();
 const cards = useCards();
 const cfg = useConfig();
 let visibilityTimer: ReturnType<typeof setInterval> | null = null;
+let pageVisible = false;
+const stopReleaseRefresh = subscribeRuntimeRevision(() => {
+  if (remoteApiEnabled && pageVisible) void refreshEarningsReleaseStatus().catch(() => undefined);
+});
+onUnmounted(stopReleaseRefresh);
 
 // uni pages remain alive in the navigation stack. Refresh the server-owned
 // wallet projection whenever this page becomes visible so a completed exchange
 // cannot send the user back to a stale pre-exchange balance.
 onShow(() => {
+  pageVisible = true;
   void cfg.load();
   if (visibilityTimer) clearInterval(visibilityTimer);
   if (remoteApiEnabled) visibilityTimer = setInterval(() => { void cfg.load(); }, 15_000);
@@ -161,6 +168,7 @@ onShow(() => {
   }
 });
 onHide(() => {
+  pageVisible = false;
   if (visibilityTimer) clearInterval(visibilityTimer);
   visibilityTimer = null;
 });

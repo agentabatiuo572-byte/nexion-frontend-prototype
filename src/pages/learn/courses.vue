@@ -69,7 +69,7 @@ import { selectRecommendedCourse } from "@/lib/learning-recommendation";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { useApp } from "@/store/app";
-import { captureRuntimeRevision } from "@/api/order-api";
+import { captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { createLearningPageFenceReader, type LearningPageFence } from "./learning-page-fence";
 import { bindPageVisibilityRefresh, createPageVisibilityRefresh } from "@/lib/page-visibility-refresh";
 import type { LearningCourse, LearningOverview } from "@/api/learning-api";
@@ -164,6 +164,8 @@ function refreshForScopeChange() {
 watch(() => String(app.accountKey), refreshForScopeChange);
 watch(() => app.accountBindingEpoch, refreshForScopeChange);
 watch(() => language.value, refreshForScopeChange);
+const stopRuntimeRefresh = subscribeRuntimeRevision(refreshForScopeChange);
+onUnmounted(stopRuntimeRefresh);
 
 
 </script>

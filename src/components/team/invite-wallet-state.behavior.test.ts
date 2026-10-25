@@ -15,6 +15,7 @@ import { auditUiCopy, useAuditUiCopy } from "@/i18n/audit-ui";
 import { useLocaleStore } from "@/store/locale";
 import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 import type { ReferralRewardSnapshot } from "@/api/referral-reward-api";
+import { advanceRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
 // Run the production SFC scripts and templates. These isolated read states
 // supplement the device acceptance; they are not evidence of a live backend.
@@ -84,6 +85,7 @@ async function invitation(copy = en) {
     "@/store/app": { useApp: () => ({ user: { referralCode: "STALE_LOCAL_CODE" } }) },
     "@/store/referral-reward": { useReferralReward: () => rewards },
     "@/api/runtime": { remoteApiEnabled: true },
+    "@/api/order-api": { subscribeRuntimeRevision },
     "@/store/ui": { toast },
     "@/lib/share": { copyText, recordShareEvent, notifyUnavailableShareLink,
       buildShareLink: (code: string) => code ? `https://invite.example/?ref=${code}` : "" },
@@ -93,6 +95,10 @@ async function invitation(copy = en) {
 
 beforeEach(() => { vi.useFakeTimers(); setActivePinia(createPinia()); });
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); setActivePinia(undefined); vi.useRealTimers(); });
+test('visible invitation refreshes after a catalog revision invalidates its snapshot', async () => {
+  const card=await invitation();const before=card.rewards.refresh.mock.calls.length;
+  advanceRuntimeRevision();await Vue.nextTick();expect(card.rewards.refresh.mock.calls.length).toBe(before+1);
+});
 
 test.each([en, zh, vietnamese])("disabled invitation rewards keep sharing without reward or cooldown promises", async copy => {
   const card = await invitation(copy);

@@ -108,6 +108,7 @@ import { EVENTS, type EventStatus, type NexEvent } from "@/mock/events";
 import { remoteEventView, type EventActionLabels } from "./remote-event-view";
 import { runRemoteEventAction } from "./remote-event-action";
 import { registerActivePageRefresh } from "@/lib/active-page-refresh";
+import { subscribeRuntimeRevision } from "@/api/order-api";
 import { genesisRaffleCopy } from "@/i18n/genesis-raffle";
 
 type TabId = "all" | EventStatus | "joined";
@@ -181,6 +182,10 @@ async function loadRemoteEvents() {
 function retryRemoteEvents() {
   void loadRemoteEvents();
 }
+const stopRuntimeRefresh = subscribeRuntimeRevision(() => {
+  if (mounted) void loadRemoteEvents();
+});
+onUnmounted(stopRuntimeRefresh);
 
 const eventVisibility = createPageVisibilityRefresh((reason) => {
   if (!remoteApiEnabled) return;

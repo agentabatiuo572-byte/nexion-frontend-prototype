@@ -133,7 +133,7 @@ import { navTo } from "@/lib/route";
 import { displayNickname } from "@/lib/brand-copy";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
-import { profileApi, remoteApiEnabled } from "@/api/runtime";
+import { profileApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import AppChassis from "@/components/app-chassis.vue";
 import NicknameSheet from "@/components/me/nickname-sheet.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -217,6 +217,9 @@ function clearProfileAccountState() {
 
 function refreshProfileForCurrentAccount() {
   if (!profilePageVisible || !remoteApiEnabled) return;
+  // A restored UI shell can mount before its server session is ready.
+  // The account-binding watcher refreshes after successful session restore.
+  if (!sessionVault.read()?.accessToken) return;
   void refreshPayoutForCurrentAccount();
   void loadProfileCandidates();
   void loadRemoteProfile();
@@ -249,7 +252,8 @@ onShow(() => {
   refreshProfileForCurrentAccount();
 });
 const unsubscribeProfileRankRuntime = subscribeRuntimeRevision(() => {
-  if (profilePageVisible && remoteApiEnabled) void refreshVRankForCurrentAccount();
+  if (!profilePageVisible || !remoteApiEnabled) return;
+  void refreshVRankForCurrentAccount();
 });
 onHide(() => {
   profilePageVisible = false;
