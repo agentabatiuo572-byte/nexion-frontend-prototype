@@ -53,9 +53,6 @@
               :style="{ fontSize: '12px', color: m.subTone ?? 'var(--v5-ink-4)' }"
             >{{ m.sub }}</text>
           </view>
-          <view style="height: 32px">
-            <HomeSparkline v-if="m.data" :data="m.data" :color="m.color" :height="32" />
-          </view>
         </view>
       </view>
     </view>
@@ -75,7 +72,6 @@ import { computeRank } from "@/lib/network-rank";
 import { publicStatsHealth, compactNumber as compact } from "@/lib/platform-stats";
 import { toast } from "@/store/ui";
 import { navTo } from "@/lib/route";
-import HomeSparkline from "./home-sparkline.vue";
 
 const t = useT();
 const app = useApp();
@@ -138,8 +134,6 @@ watch(() => cfg.loading, (l) => {
   }
 });
 onUnmounted(() => { if (skeletonTimer !== null) clearTimeout(skeletonTimer); }); // R3 P2 卫生债
-/** 装饰性走势(确定性,从当前值倒推 8 点缓坡;不声称历史数据,只是视觉纹理)。 */
-const ramp = (v: number) => Array.from({ length: 8 }, (_, i) => v * (0.997 + i * 0.0004));
 
 // 健康度共享一份(三格 + 排名入参守卫同源)
 const health = computed(() => publicStatsHealth(cfg.config.publicStats));
@@ -206,12 +200,14 @@ const metrics = computed<Cell[]>(() => {
   const h = health.value;
   const failed = cfg.syncFailed;
   const pulse = failed ? null : cfg.config.networkPulse;
-  // H9 owns these display values; verified measurements and personal rank stay separate.
+  // Registered users use the verified count, never a configured display baseline.
   const displayCell = (label: string, value: number | null | undefined, color: string): Cell =>
     value === null || value === undefined
       ? placeholderCell(label)
-      : { k: label, v: compact(value), tone: "var(--v5-ink)", sub: "", data: ramp(value), color };
-  const members = displayCell(t.value.home.networkMembers, pulse?.registeredUsers, "var(--v5-brand)");
+      : { k: label, v: compact(value), tone: "var(--v5-ink)", sub: "", data: null, color };
+  const realMembers = !failed && (!remoteApiEnabled || cfg.publicStatsAuthority)
+    ? cfg.config.publicStats?.realUserCount : null;
+  const members = displayCell(t.value.home.networkMembers, realMembers, "var(--v5-brand)");
   const devices = displayCell(t.value.home.networkDevices, pulse?.onlineDevices, "var(--v5-tech-cyan-ink)");
 
   // 格 3 你的排名 —— 三态(规格 ⑤/异常1/异常2);rankOk 缺失同走占位
@@ -241,8 +237,7 @@ const metrics = computed<Cell[]>(() => {
       tone: "var(--v5-brand)",
        sub: rankSnapshotStale.value ? t.value.home.networkStale
          : displayDelta.value !== null ? fmt(t.value.home.networkRankUp24h, { n: displayDelta.value }) : "",
-      // 名次越小越好:走势画成向下缓坡(视觉「在前进」),数据仍是确定性装饰
-      data: Array.from({ length: 8 }, (_, i) => -r.rank * (1 + (7 - i) * 0.0004)),
+      data: null,
       color: "var(--v5-brand)",
       tap: () => toast.info(t.value.home.networkRankTipRanked),
     };

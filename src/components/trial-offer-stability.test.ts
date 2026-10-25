@@ -101,8 +101,13 @@ describe("earn hero quotes the creditable trial offset, not the raw accrual", ()
       const config = { trialDays: 3, shadowDailyUSD, trialOffsetCapUSD: 50 };
       const { est } = heroCredit(config);
       expect(est.value).toBeLessThanOrEqual(50);
-      expect(est.value).toBe(Math.round(Math.min(config.trialDays * shadowDailyUSD, 50)));
+      expect(est.value).toBe(Math.min(config.trialDays * shadowDailyUSD, 50));
     }
+  });
+
+  it("preserves fractional credit instead of rounding above the configured cap", () => {
+    const { est } = heroCredit({ trialDays: 3, shadowDailyUSD: 40, trialOffsetCapUSD: 49.99 });
+    expect(est.value).toBe(49.99);
   });
 
   it("states the cap as the credit basis when the cap bites, and the rate line otherwise", () => {

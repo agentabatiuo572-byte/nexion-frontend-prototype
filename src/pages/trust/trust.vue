@@ -4,7 +4,7 @@
       <SubPageHeader back="/pages/me/me" pill />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
-        <view class="nx-glass-card" :style="heroStyle">
+        <view class="trust-intro" :style="heroStyle">
           <view class="flex items-center" style="gap: 10px">
             <view class="grid place-items-center" :style="heroIconStyle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
@@ -18,7 +18,7 @@
         </view>
 
         <SectionHeader :label="resources.resources" />
-        <view class="nx-glass-card" :style="listCardStyle">
+        <view class="trust-surface" :style="listCardStyle">
           <view v-for="(resource, index) in resources.items" :key="resource.href" role="link" tabindex="0"
             class="active:opacity-75" :style="listRowStyle(index === resources.items.length - 1)"
             @click="openHref(resource.href)" @keydown.enter.prevent="openHref(resource.href)">
@@ -30,16 +30,16 @@
           </view>
         </view>
 
-        <view class="nx-glass-card" v-if="loading" :style="stateCardStyle"><text :style="bodyStyle">{{ tr.loadingDisclosure }}</text></view>
-        <view class="nx-glass-card" v-else-if="hasError" :style="stateCardStyle">
+        <view class="trust-surface" v-if="loading" :style="stateCardStyle"><text :style="bodyStyle">{{ tr.loadingDisclosure }}</text></view>
+        <view class="trust-surface" v-else-if="hasError" :style="stateCardStyle">
           <text :style="bodyStyle">{{ remoteApiEnabled ? tr.errorUnavailable : tr.errorOffline }}</text>
-          <text v-if="remoteApiEnabled" class="block active:opacity-70" :style="retryStyle" @click="loadTrustSections">{{ t.ui.retry }}</text>
+          <text v-if="remoteApiEnabled" class="block active:opacity-70" role="button" tabindex="0" :style="retryStyle" @click="loadTrustSections">{{ t.ui.retry }}</text>
         </view>
 
         <template v-else>
           <template v-if="financialSection && financialMetrics.length">
             <SectionHeader :label="resources.data" />
-            <view class="nx-glass-card grid grid-cols-2" :style="gridCardStyle">
+            <view class="trust-surface grid grid-cols-2" :style="gridCardStyle">
               <view v-for="metric in financialMetrics" :key="metric.key" :style="metricStyle">
                 <text class="block" :style="labelStyle">{{ metric.label }}</text>
                 <view class="flex items-baseline" style="gap: 6px; margin-top: 4px">
@@ -52,7 +52,7 @@
 
           <template v-if="auditSection && verifiedAuditRows.length">
             <SectionHeader :label="resources.documents" />
-            <view class="nx-glass-card" :style="listCardStyle">
+            <view class="trust-surface" :style="listCardStyle">
               <view v-for="(row, index) in verifiedAuditRows" :key="row.Primary" class="active:opacity-75" :style="listRowStyle(index === verifiedAuditRows.length - 1)"
                 role="link" :tabindex="safeHref(row.Url) ? 0 : -1" :aria-disabled="safeHref(row.Url) ? 'false' : 'true'"
                 @click="openHref(row.Url)" @keydown.enter.prevent="openHref(row.Url)">
@@ -68,7 +68,7 @@
 
           <template v-if="leadershipSection && verifiedLeadershipRows.length">
             <SectionHeader :label="sectionLabel(sectionKey.leadership)" :suffix="leadershipSection.version" />
-            <view class="nx-glass-card" :style="listCardStyle">
+            <view class="trust-surface" :style="listCardStyle">
               <view v-for="(row, index) in verifiedLeadershipRows" :key="row.Name" :style="listRowStyle(index === verifiedLeadershipRows.length - 1)" @click="openHref(row.Url)">
                 <view class="grid place-items-center" :style="avatarStyle"><text :style="avatarTextStyle">{{ initials(row.Name) }}</text></view>
                 <view class="min-w-0" style="flex: 1">
@@ -226,26 +226,26 @@ onUnmounted(() => {
   unsubscribeTrustRuntime();
 });
 
-const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", padding: "16px", background: "var(--nx-glass-fill)" };
-const heroIconStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)" };
+const heroStyle: CSSProperties = { padding: "8px 2px 20px" };
+const heroIconStyle: CSSProperties = { width: "40px", height: "40px", flexShrink: 0, borderRadius: "12px", background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)" };
 const heroLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-brand-2)" };
-const heroHeadlineStyle: CSSProperties = { marginTop: "3px", fontSize: "20px", fontWeight: 600, lineHeight: 1.3, color: "var(--v5-ink)" };
-const heroBodyStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
-const stateCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "16px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
-const gridCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", overflow: "hidden", background: "var(--nx-glass-fill)" };
+const heroHeadlineStyle: CSSProperties = { marginTop: "3px", fontSize: "26px", fontWeight: 600, lineHeight: 1.25, color: "var(--v5-ink)" };
+const heroBodyStyle: CSSProperties = { marginTop: "10px", fontSize: "14px", lineHeight: 1.6, color: "var(--v5-ink-3)" };
+const stateCardStyle: CSSProperties = { padding: "16px", borderRadius: "22px", background: "var(--v5-surface)" };
+const gridCardStyle: CSSProperties = { borderRadius: "22px", overflow: "hidden", background: "var(--v5-surface)" };
 const metricStyle: CSSProperties = { padding: "14px", borderRight: "1px solid var(--v5-border)", borderBottom: "1px solid var(--v5-border)" };
 const labelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const metricValueStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, color: "var(--v5-ink)" };
 const deltaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-success)" };
-const listCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", overflow: "hidden", background: "var(--nx-glass-fill)" };
+const listCardStyle: CSSProperties = { borderRadius: "22px", overflow: "hidden", background: "var(--v5-surface)" };
 function listRowStyle(last: boolean): CSSProperties { return { display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderBottom: last ? "none" : "1px solid var(--v5-border)" }; }
-const titleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
+const titleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
 const bodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 const roleStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-brand)" };
 const linkStyle: CSSProperties = { fontSize: "15px", color: "var(--v5-brand)" };
 const avatarStyle: CSSProperties = { width: "38px", height: "38px", borderRadius: "999px", background: "var(--v5-brand-soft)" };
 const avatarTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-brand)" };
-const retryStyle: CSSProperties = { marginTop: "12px", fontSize: "13px", fontWeight: 600, color: "var(--v5-brand)" };
+const retryStyle: CSSProperties = { minHeight: "44px", display: "flex", alignItems: "center", marginTop: "12px", fontSize: "13px", fontWeight: 600, color: "var(--v5-brand)" };
 
 
 </script>

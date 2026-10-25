@@ -15,9 +15,10 @@
         <GreetingHeader />
         <TechMoneyCard />
       </view>
+      <QuickActionRow />
+      <HomeBenefits />
       <TrialGhostSlot />
-      <view v-if="phoneNeedsBinding" class="phone-policy-notice nx-home-glass-item" role="status">
-        <view class="nx-home-glass-panel" aria-hidden="true" />
+      <view v-if="phoneNeedsBinding" class="phone-policy-notice" role="status">
         <view class="phone-policy-icon" aria-hidden="true">
           <svg width="24" height="32" viewBox="0 0 24 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="2" width="16" height="28" rx="4" /><path d="M10 5h4m-4 22h4" /></svg>
         </view>
@@ -92,7 +93,6 @@
       <FeaturedLearningCard />
 
       <!-- ZONE 2: status — your fleet, the grid, network pulse -->
-      <QuickActionRow />
       <MyFleetSection />
       <OnGridSection />
       <NetworkPulseCard />
@@ -130,6 +130,7 @@ import DayOneQuestCard from "@/components/home/day-one-quest-card.vue";
 import LiveFeedCard from "@/components/home/live-feed-card.vue";
 import FeaturedLearningCard from "@/components/home/featured-learning-card.vue";
 import QuickActionRow from "@/components/home/quick-action-row.vue";
+import HomeBenefits from "@/components/home/home-benefits.vue";
 import MyFleetSection from "@/components/home/my-fleet-section.vue";
 import OnGridSection from "@/components/home/on-grid-section.vue";
 import NetworkPulseCard from "@/components/home/network-pulse-card.vue";
@@ -485,9 +486,9 @@ onLoad(() => {
 }
 </style>
 <style scoped>
-.phone-policy-notice { min-height: 176px; padding: 18px; border-radius: var(--v5-radius-2xl); color: var(--v5-ink-2); font: 400 13px/1.6 var(--font-v5); text-align: center; cursor: default; }
-.phone-policy-icon { position: relative; display: block; width: 24px; height: 32px; margin: 0 auto 10px; color: var(--v5-ink); }
-.phone-policy-copy { position: relative; display: block; max-width: 24em; margin: 0 auto; text-wrap: balance; }
-.phone-policy-action { margin-top: 14px; width: 100%; padding: 10px 16px; font-size: 15px; line-height: 24px; }
+.phone-policy-notice { display: flex; align-items: center; gap: 12px; padding: 12px 0; color: var(--v5-ink-2); font: 400 13px/1.6 var(--font-v5); cursor: default; }
+.phone-policy-icon { position: relative; display: block; flex-shrink: 0; width: 24px; height: 32px; color: var(--v5-ink); }
+.phone-policy-copy { position: relative; display: block; flex: 1; min-width: 0; }
+.phone-policy-action { flex-shrink: 0; max-width: 42%; padding: 10px 14px; font-size: 14px; line-height: 24px; }
 .phone-policy-action:focus-visible { outline: 2px solid var(--v5-ink); outline-offset: 3px; }
 </style>

@@ -28,6 +28,7 @@ function mountPage() {
     "@/lib/message-header-scroll": { advanceMessageHeader, createMessageHeaderState },
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 },
     "@/store/pending-checkout-core": { PENDING_BAR_INSET_KEY: Symbol() },
+    "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/i18n/use-t": { useT: () => vue.ref(zh) },
     "@/i18n/format": { fmt },
     "@/lib/unread-badge": { formatUnreadBadge },

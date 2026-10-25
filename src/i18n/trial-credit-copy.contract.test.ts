@@ -15,15 +15,15 @@ function trialStoreCopy(messages: typeof en): string {
 describe("trial credit product language", () => {
   it.each(Object.entries({ zh, en, vi }))("preserves current trial consequences in %s", (_locale, messages) => {
     expect(messages.trial).not.toHaveProperty("legacyMigratedNote");
-    expect(messages.trial.cancelConfirmMsg).toContain("NEX");
+    expect(messages.trial.cancelConfirmMsg).toContain("UVT");
     expect(messages.trial.cancelConfirmMsg).not.toMatch(/无法再次领取|prevents this account|không thể nhận.*lần nữa/i);
-    expect(messages.trial.rulesAfter).toContain("NEX");
-    expect(messages.trial.rulesExpiry).toContain("NEX");
+    expect(messages.trial.rulesAfter).toContain("UVT");
+    expect(messages.trial.rulesExpiry).toContain("UVT");
     expect(messages.trial.rulesExpiry).not.toContain("{days}");
-    expect(messages.trial.endedDesc).toContain("NEX");
+    expect(messages.trial.endedDesc).toContain("UVT");
     expect(messages.trial.endedDesc).not.toContain("{time}");
     for (const message of [messages.trial.endedToast, messages.trial.urgencyGrace24h, messages.trial.urgencyGrace1h]) {
-      expect(message).toContain("NEX");
+      expect(message).toContain("UVT");
     }
     expect(messages.trial.urgencyGrace24h).toContain("${amount}");
     expect(messages.trial.urgencyGrace1h).toContain("${amount}");

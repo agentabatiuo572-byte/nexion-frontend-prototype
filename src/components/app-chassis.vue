@@ -603,7 +603,7 @@ const bannerSurface = computed<"home" | "store" | "me" | "earn" | null>(() => {
   // must NOT carry the banner (it's scoped to the 4 first-level surfaces).
   if (!isTabRoute.value) return null;
   const tab = activeTab.value;
-  return tab === "home" || tab === "store" || tab === "me" || tab === "earn" ? tab : null;
+  return tab === "store" || tab === "me" || tab === "earn" ? tab : null;
 });
 
 // Sub-page nav header (registered via useSetPageHeader). Null on tab routes → brand
@@ -776,6 +776,7 @@ export default chassisView;
   pointer-events: none;
 }
 .nx-header {
+  background: linear-gradient(180deg, var(--v5-bg) 45%, color-mix(in srgb, var(--v5-bg) 92%, transparent) 80%, transparent);
   position: absolute;
   left: 0;
   right: 0;

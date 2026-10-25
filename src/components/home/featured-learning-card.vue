@@ -1,5 +1,5 @@
 <template>
-  <view v-if="courses.length" class="nx-glass-card learning-card active:opacity-70" role="link" tabindex="0" @click="open" @keydown.enter.prevent="onKeyboardActivate($event)">
+  <view v-if="courses.length" class="learning-card active:opacity-70" role="link" tabindex="0" @click="open" @keydown.enter.prevent="onKeyboardActivate($event)">
     <text class="block" style="font-size:12px;color:var(--v5-brand)">{{ t.learning.featuredLabel }}</text>
     <template v-if="featuredCourse">
       <text class="block learning-title" style="margin-top:8px;font-size:15px;font-weight:600">{{ featuredCourse.title }}</text>
@@ -73,7 +73,7 @@ onUnmounted(() => { hide(); unsubscribeRuntime(); });
 watch(() => [app.accountKey, app.accountBindingEpoch, language.value], () => { void refresh(); });
 </script>
 <style scoped>
-.learning-card { padding:16px; border-radius:var(--nx-glass-radius); background:var(--nx-glass-fill); box-shadow:var(--nx-glass-edge); color:var(--v5-ink); }
+.learning-card { padding: 20px; border-radius: 22px; background: var(--v5-surface); color: var(--v5-ink); }
 .learning-title, .learning-meta { overflow-wrap:anywhere; }
 .learning-meta { margin-top:6px; font-size:12px; line-height:1.5; color:var(--v5-ink-3); }
 .learning-progress { margin-top:14px; height:4px; border-radius:4px; overflow:hidden; background:var(--v5-brand-soft); }

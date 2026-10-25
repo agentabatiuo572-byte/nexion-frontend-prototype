@@ -73,7 +73,8 @@ describe('actual homepage remote ranking is independent of H9 estimates', () => 
 
 it.each([en, zh, vietnamese])('renders actual network metric slots through missing, failure, zero and recovery', async copy => {
   const cfg = Vue.reactive({ loading: false, syncFailed: false,
-    config: { publicStats: {}, networkPulse: null as null | { registeredUsers: number | null; onlineDevices: number | null } }, load: vi.fn() });
+    publicStatsAuthority: null as null | object,
+    config: { publicStats: { realUserCount: undefined as number | undefined }, networkPulse: null as null | { registeredUsers: number | null; onlineDevices: number | null } }, load: vi.fn() });
   const remoteRank = Vue.reactive({ status: 'error', snapshot: null as null | { currentRank: number | null; rankChange24h: number | null }, refresh: vi.fn(), bindAccount: vi.fn() });
   const blank = { render: () => null };
   const dependencies: Record<string, unknown> = {
@@ -93,13 +94,14 @@ it.each([en, zh, vietnamese])('renders actual network metric slots through missi
     .matchAll(/class="block mt-0.5 tabular-nums"[^>]*>([^<]*)<\/text>/g)].map(match => match[1]);
   expect(await values()).toEqual(['-', '-', '-']);
   cfg.syncFailed = true; expect(await values()).toEqual(['-', '-', '-']);
-  cfg.syncFailed = false; cfg.config.networkPulse = { registeredUsers: 0, onlineDevices: 0 };
+  cfg.syncFailed = false; cfg.publicStatsAuthority = {}; cfg.config.publicStats.realUserCount = 0; cfg.config.networkPulse = { registeredUsers: 0, onlineDevices: 0 };
   remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, rankChange24h: null };
   expect(await values()).toEqual(['0', '0', '#7']);
   remoteRank.snapshot.currentRank = null; expect(await values()).toEqual(['0', '0', copy.home.networkRankUnranked]);
   remoteRank.snapshot = null; remoteRank.status = 'loading'; expect(await values()).toEqual(['0', '0']);
   remoteRank.status = 'error'; expect(await values()).toEqual(['0', '0', '-']);
-  cfg.config.networkPulse = { registeredUsers: 12345, onlineDevices: 28432 };
+  cfg.config.networkPulse = { registeredUsers: 999999, onlineDevices: 28432 };
+  cfg.config.publicStats.realUserCount = 12345;
   remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, rankChange24h: null };
   expect(await values()).toEqual([compactNumber(12345), compactNumber(28432), '#7']);
   cfg.config.networkPulse.onlineDevices = null;

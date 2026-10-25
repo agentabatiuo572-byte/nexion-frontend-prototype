@@ -12,12 +12,11 @@
 -->
 <template>
   <!-- 《08》§2:tap 反馈 active:scale+opacity(禁 hover 做移动端反馈) -->
-  <view ref="cardRef" class="relative overflow-hidden block active:scale-[0.98] active:opacity-80" :class="marketingPromotion ? 'promotion-catalog-card' : 'nx-glass-card'" :style="marketingPromotion ? promotionCardStyle : cardStyle" @click="goDetail">
-    <view v-if="featured&&!marketingPromotion" aria-hidden :style="featuredGlowStyle" />
+  <view ref="cardRef" class="product-card relative overflow-hidden block" :class="{ 'promotion-catalog-card': marketingPromotion, 'product-card--in-view': cardInView }" :style="marketingPromotion ? promotionCardStyle : cardStyle" @click="goDetail">
 
     <!-- ───── Catalog photo or neutral placeholder ───── -->
-    <view class="relative overflow-hidden" :style="renderWrapStyle" role="button" tabindex="0" :aria-label="nexGridBrandText(product.name)" @click.stop="goDetail"  @keydown.enter.prevent.stop="goDetail" @keydown.space.prevent.stop="goDetail">
-      <image v-if="photo" :key="photo.src" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" />
+    <view class="product-media relative overflow-hidden" :style="renderWrapStyle" role="button" tabindex="0" :aria-label="nexGridBrandText(product.name)" @click.stop="goDetail"  @keydown.enter.prevent.stop="goDetail" @keydown.space.prevent.stop="goDetail">
+      <image class="product-art" v-if="photo" :key="photo.src" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" />
       <view v-else class="absolute inset-0 grid place-items-center" style="color: var(--v5-ink-3)">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
       </view>
@@ -44,7 +43,7 @@
 
       <!-- ROI 4-line hero -->
       <!-- 去线(主人 2026-08-17 全站令):mt-6 = 原 mt-3 + pt-3 的总间距 -->
-      <view v-if="!marketingPromotion" class="mt-6">
+      <view v-if="!marketingPromotion" class="mt-3">
         <!-- Eyebrow -->
         <view class="font-mono-tabular inline-flex items-center gap-1.5" :style="earnEyebrowStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
@@ -57,10 +56,10 @@
           <text v-else class="tabular-nums" :style="bigEarnStyle">${{ dailyEarnText }}<text style="font-size: 15px; color: var(--v5-ink-3); font-weight: 500">{{ t.store.cardPerDaySuffix }}</text></text>
           <!-- 「/天」单位后缀恒用弱化色,不跟数字的强调色走 —— 与同行美元侧同一档 ink-3
                (主人 2026-08-17:两侧 /天 字色必须一致) -->
-          <text class="font-mono-tabular tabular-nums" style="font-size: 13px; color: var(--v5-warning-ink); font-weight: 500">{{ nexPerDayText }}<text style="color: var(--v5-ink-3)">{{ t.store.cardPerDaySuffix }}</text></text>
+          <text class="font-mono-tabular tabular-nums" style="font-size: 13px; color: var(--v5-quest-violet-ink); font-weight: 500">{{ nexPerDayText }}<text style="color: var(--v5-ink-3)">{{ t.store.cardPerDaySuffix }}</text></text>
           <text v-if="stockLow" class="font-mono-tabular tabular-nums" :style="stockHintStyle">{{ stockHintText }}</text>
         </view>
-        <text v-if="isShare" class="block mt-1.5" style="font-size: 12px; line-height: 1.35; color: var(--v5-ink-4)">{{ t.store.shareYieldDisclaimer }}</text>
+        <text class="block mt-1.5" style="font-size: 12px; line-height: 1.5; color: var(--v5-ink-3)">{{ isShare ? t.store.shareYieldDisclaimer : t.store.cardEstimateNote }}</text>
 
         <!-- FEAT-DEV01: 高阶任务能力线(算力越高可接任务面越大 · 数据取 SKU 解锁算力池) -->
         <view v-if="copy.unlocks" class="mt-1.5 flex items-center gap-1.5">
@@ -69,7 +68,7 @@
         </view>
 
         <!-- Purchase gate — remote mode is server-authoritative and fail-closed. -->
-        <view v-if="gateLockedView" class="nx-glass-inset mt-2.5 active:opacity-70" :style="gateBoxStyle" role="button" tabindex="0" @click.stop="toggleGateDetails">
+        <view v-if="gateLockedView" class="mt-2.5 active:opacity-70" :style="gateBoxStyle" role="button" tabindex="0" @click.stop="toggleGateDetails">
           <view class="flex items-center justify-between">
             <view class="flex items-center gap-1.5" :style="gateEyebrowStyle">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
@@ -85,7 +84,7 @@
         </view>
 
         <!-- Trade-in callout (legacy) -->
-        <view v-if="showTradein" class="nx-glass-inset mt-2.5 flex items-center justify-between gap-2 font-mono-tabular" :style="tradeinBoxStyle">
+        <view v-if="showTradein" class="mt-2.5 flex items-center justify-between gap-2 font-mono-tabular" :style="tradeinBoxStyle">
           <text>{{ t.store.cardTradeUp }} · <text style="color: var(--v5-success-ink); font-weight: 500">{{ tradeCreditText }}</text></text>
           <text class="whitespace-nowrap active:opacity-70" style="color: var(--v5-brand); font-weight: 500; font-family: var(--font-v5); min-height: 44px; display: flex; align-items: center" role="button" tabindex="0" @click.stop="goDevices">{{ t.store.cardTradeInCta }}</text>
         </view>
@@ -94,7 +93,7 @@
     </view>
 
     <!-- ───── Footer: price + Buy CTA ───── -->
-    <view class="nx-glass-inset grid items-center gap-3" :style="footerStyle">
+    <view class="product-footer grid items-center gap-3" :style="footerStyle">
       <view class="min-w-0">
         <text class="block font-mono-tabular" :style="priceEyebrowStyle">{{ t.store.cardPriceLabel }}</text>
         <view class="tabular-nums flex items-baseline" :style="priceRowStyle">
@@ -315,23 +314,14 @@ function goDevices() {
 
 // ───── styles ─────
 const promotionCardStyle: CSSProperties = { background:'var(--v5-surface)',borderRadius:'20px' };
-const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
-  background: "var(--nx-glass-fill)",
-  borderRadius: "var(--nx-glass-radius)",
-};
-const featuredGlowStyle: CSSProperties = {
-  position: "absolute",
-  inset: "-20%",
-  background: "radial-gradient(40% 50% at 80% 0%, var(--v5-tech-cyan-soft) 0%, transparent 60%)",
-  filter: "blur(12px)",
-  opacity: 0.6,
-  pointerEvents: "none",
+const cardStyle: CSSProperties = {
+  background: "var(--v5-surface)",
+  borderRadius: "22px",
 };
 const renderWrapStyle: CSSProperties = {
   width: "100%",
-  aspectRatio: "1",
-  borderRadius: "var(--v5-radius-m)",
-  background: "var(--v5-surface-2)",
+  aspectRatio: "1.45",
+  background: "radial-gradient(ellipse at 50% 65%, var(--v5-surface-3), var(--v5-surface-2) 70%)",
 };
 const vignetteStyle: CSSProperties = {
   position: "absolute",
@@ -382,7 +372,7 @@ const legacyChipStyle: CSSProperties = {
 const nameStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "26px",
+  fontSize: "22px",
   color: "var(--v5-ink)",
   letterSpacing: "-0.022em",
   lineHeight: 1.15,
@@ -390,14 +380,14 @@ const nameStyle: CSSProperties = {
 const earnEyebrowStyle: CSSProperties = {
   fontSize: "12px",
   fontWeight: 500,
-  letterSpacing: "0.08em",
-  color: "var(--v5-warning-ink)",
+  letterSpacing: "0.02em",
+  color: "var(--v5-ink-3)",
 };
 const bigEarnStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 400,
-  fontSize: "26px",
-  color: "var(--v5-warning-ink)",
+  fontSize: "24px",
+  color: "var(--v5-ink)",
   letterSpacing: "-0.022em",
   lineHeight: 1,
 };
@@ -417,7 +407,7 @@ const tradeinBoxStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
 };
 const footerStyle: CSSProperties = {
-  padding: "13px 16px",
+  padding: "16px",
   borderTop: "1px solid var(--v5-border)",
   gridTemplateColumns: "1fr auto",
 };
@@ -500,6 +490,14 @@ const gateMetaStyle: CSSProperties = {
 import { getProductMedia } from "@/lib/product-media";
 </script>
 <style scoped>
+.product-card { transition: transform 180ms ease; }
+.product-card:active { transform: scale(.99); }
+.product-media:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -3px; }
+.product-art { transform-origin: 50% 55%; animation: product-float 7s ease-in-out infinite; animation-play-state: paused; }
+.product-card--in-view .product-art { animation-play-state: running; }
+@keyframes product-float { 0%, 100% { transform: translateY(2px) scale(1); } 50% { transform: translateY(-4px) scale(1.015); } }
+@media (prefers-reduced-motion: reduce) { .product-card { transition: none; } .product-art { animation: none; } }
+
 .promotion-buy { --v5-liquid-tint:transparent; }
 .promotion-buy :deep(.nx-liquid-glass[data-glass-strategy="solid"]),
 .promotion-buy :deep(.nx-liquid-glass[data-glass-strategy="solid"] .nx-liquid-optics) { background:inherit; }

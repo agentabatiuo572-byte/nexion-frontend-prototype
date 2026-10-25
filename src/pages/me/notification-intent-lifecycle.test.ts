@@ -53,6 +53,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
     "@/lib/message-header-scroll": { advanceMessageHeader, createMessageHeaderState },
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 },
     "@/store/pending-checkout-core": { PENDING_BAR_INSET_KEY: Symbol() },
+    "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/i18n/use-t": { useT: () => vue.ref(zh) }, "@/i18n/format": { fmt },
     "@/lib/unread-badge": { formatUnreadBadge },
     "@/store/notifications": { useNotifications: () => notifs },
@@ -67,7 +68,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
   const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
   const output = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope(); scopes.push(scope);
-  const worker = scope.run(() => new Function("require", "exports", output + ";return { confirmClearRead, onTap, onTouchStart, onTouchEnd, section, filter, serviceFilter, expandedId, headerFocused, headerState, onMessageScroll };")((name: string) => {
+  const worker = scope.run(() => new Function("require", "exports", output + ";return { confirmClearRead, toggle, dateHeading, onTap, onTouchStart, onTouchEnd, section, filter, serviceFilter, expandedId, headerFocused, headerState, onMessageScroll };")((name: string) => {
     if (name.endsWith(".vue")) return {};
     if (!(name in modules)) throw new Error(`Unexpected dependency ${name}`);
     return modules[name];
@@ -312,4 +313,24 @@ describe("message primary partition route lifecycle", () => {
     expect(primaryQuery(browser.location)).toBe("notifications");
     expect(h.notifs.markRead).not.toHaveBeenCalled();
   });
+});
+
+ it("opens an actionable notification in one tap while retaining the canonical route gate", async () => {
+  const h = mount();
+  h.worker.toggle(notification);
+  expect(h.notifs.recordCta).toHaveBeenCalledWith(notification.id);
+  expect(h.navTo).not.toHaveBeenCalled();
+  expect(h.worker.expandedId.value).toBeNull();
+  h.action.resolve('/pages/store/order-detail?id=canonical');
+  await Promise.resolve(); await Promise.resolve();
+  expect(h.navTo).toHaveBeenCalledWith('/pages/store/order-detail?id=canonical');
+});
+it("expands messages with no destination without inventing navigation", () => {
+  const h = mount();
+  h.worker.toggle({ id: 'plain', ctaHref: '' });
+  expect(h.worker.expandedId.value).toBe('plain');
+  expect(h.notifs.recordCta).not.toHaveBeenCalled();
+  expect(h.notifs.markRead).toHaveBeenCalledWith('plain');
+  h.worker.toggle({ id: 'plain', ctaHref: '' });
+  expect(h.worker.expandedId.value).toBeNull();
 });

@@ -16,7 +16,7 @@ import { captureRuntimeRevision, isCurrentRuntimeRevision, type RuntimeRevisionS
  * the sole canonical authority for V-rank promotion (PRD §13.2).
  *
  * V0→V12 13 阶,每升一阶解锁 unilevel 深度 +1 / 平级奖(V3+) / 领导池权重 / 培育奖 NEX。
- * 心理设计:V0→V3 易("上钩"),V3→V6 拼命,V7+ 画大饼,V12 永远没人到。
+ * 晋级条件、权益与奖励应完整展示；正式等级以服务端发布的阶梯为准。
  * 奖励为可配 NEX(cultivationBonus);实物奖品已删(与运营后台 F1 同步,2026-06)。
  */
 

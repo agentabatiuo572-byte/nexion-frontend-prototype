@@ -55,3 +55,5 @@
 .message-center .nx-liquid-glass--selection { --v5-liquid-selected: transparent; }
 .message-center .md-view-all { color: var(--v5-bg); }
 .message-center .md-view-all > svg { stroke: currentColor; }
+
+.message-center .notification-date { display: block; padding-top: 20px; color: var(--v5-ink-3); font-size: 12px; font-weight: 600; letter-spacing: .025em; }

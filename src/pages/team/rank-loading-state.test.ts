@@ -208,7 +208,9 @@ describe('rank page canonical read and next-rank progress', () => {
     p.state.vDownlineCounts = { 1: 2, 2: 1, 3: 1 }; await Vue.nextTick();
     const prior = `V2 · 4× V1 · ${copy.rank.progressLabel} 4 / 4`;
     const target = `V3 · 2× V2 · ${copy.rank.progressLabel} 2 / 2`;
-    expect(conditionTexts(p.root, prior)).toEqual([prior, copy.rank.done]);
+    expect(conditionTexts(p.root, prior)).toEqual([]); // Completed earlier gates remain available in their own tier.
+    p.state.vDownlineCounts = { 1: 1, 2: 1, 3: 1 }; await Vue.nextTick();
+    expect(conditionTexts(p.root, prior.replace("4 / 4", "3 / 4"))).toHaveLength(2);
     expect(conditionTexts(p.root, target)).toEqual([target, copy.rank.done]);
   });
 
@@ -236,8 +238,8 @@ describe('rank page canonical read and next-rank progress', () => {
       expect(conditionTexts(p.root, target)).toEqual([target, copy.rank.done]);
       // Satisfying every preceding gate updates the observation, never myRank.
       p.state.selfBuyUSD = 500; p.state.directRefs = 3; await Vue.nextTick();
-      expect(conditionTexts(p.root, labels.buy.replace('$39.80 /', '$500.00 /'))[1]).toBe(copy.rank.done);
-      expect(conditionTexts(p.root, labels.refs.replace('0 / 3', '3 / 3'))[1]).toBe(copy.rank.done);
+      expect(conditionTexts(p.root, labels.buy.replace('$39.80 /', '$500.00 /'))).toEqual([]);
+      expect(conditionTexts(p.root, labels.refs.replace('0 / 3', '3 / 3'))).toEqual([]);
       expect(p.state.myRank).toBe(current);
     }
     p.state.teamVolumeUSD = 4_000; await Vue.nextTick();

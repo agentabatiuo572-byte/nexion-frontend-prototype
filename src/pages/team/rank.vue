@@ -34,7 +34,7 @@
 
         <!-- Active rank ladder — single surface container (form b): outer border
              dropped, the fill is the single visual difference; rows hairlined. -->
-        <view v-if="rankAvailable" class="nx-glass-card rounded-2xl overflow-hidden" :style="ladderCardStyle">
+        <view v-if="rankAvailable" class="rounded-2xl overflow-hidden" :style="ladderCardStyle">
           <view
             v-for="(r, idx) in rankDefs"
             :key="r.v"
@@ -43,14 +43,16 @@
           >
             <VBadgeIcon :v="r.v" :size="36" />
             <view class="flex-1 min-w-0">
-              <view class="flex items-center" style="gap: 8px; flex-wrap: wrap">
+              <view class="rank-row-heading flex items-center" role="button" tabindex="0" :aria-label="rankLabel(r.v, locale.code, rankDefs)" :aria-expanded="expandedRank === r.v" :aria-controls="`rank-details-${r.v}`" @click="expandedRank = expandedRank === r.v ? null : r.v">
                 <text class="font-display" :style="rowTitleStyle">{{ rankLabel(r.v, locale.code, rankDefs) }}</text>
                 <view v-if="rowStatus(r.v) === 'done'" class="flex items-center" style="gap: 2px">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   <text :style="{ fontSize: '12px', color: 'var(--v5-brand)', fontWeight: 500 }">{{ t.rank.done }}</text>
                 </view>
                 <text v-else-if="rowStatus(r.v) === 'current'" class="font-mono-tabular" :style="currentTagStyle">{{ t.rank.current }}</text>
+                <svg class="rank-row-chevron" :class="{ 'rank-row-chevron--open': expandedRank === r.v }" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
               </view>
+              <view v-if="expandedRank === r.v" :id="`rank-details-${r.v}`">
               <view class="rank-detail">
                 <text class="rank-detail__label">{{ t.rank.conditionsLabel }}</text>
                 <text>{{ formatConditions(r) }}</text>
@@ -68,10 +70,11 @@
                 <text class="rank-detail__label">{{ t.rank.progressLabel }}</text>
                 <view v-for="condition in nextConditions" :key="condition.key" style="margin-top: 6px">
                   <text class="block">{{ condition.label }} · {{ t.rank.progressLabel }} {{ condition.values }}</text>
+                  <view class="rank-progress-track" role="progressbar" :aria-label="condition.label" :aria-valuenow="condition.percent" :aria-valuemin="0" :aria-valuemax="100" :aria-valuetext="condition.values"><view :style="{ width: condition.percent + '%' }" /></view>
                   <text class="block">{{ condition.gap }}</text>
                 </view>
               </view>
-
+              </view>
 
             </view>
           </view>
@@ -93,7 +96,7 @@ import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { platformDisplayText } from "@/lib/brand-copy";
 import { isEntitlementVRankReward, rankEntitlementLabel } from "@/lib/rank-entitlement-label";
-import { computed, onMounted, type CSSProperties } from "vue";
+import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import VBadgeIcon from "@/components/team/v-badge-icon.vue";
@@ -126,10 +129,14 @@ const previewData = computed(() => ({
   ])) as Partial<Record<VRank, number>>,
 }));
 const prog = computed(() => nextRankProgress(previewData.value, rankDefs.value));
+const expandedRank = ref<VRank | null>(null);
+watch(() => [rankAvailable.value, myRank.value, prog.value.next?.v] as const, ([ready]) => {
+  if (ready) expandedRank.value = prog.value.next?.v ?? myRank.value;
+}, { immediate: true });
 const nextConditions = computed(() => {
   const next = prog.value.next;
   if (!next) return [];
-  const rows: { key: string; label: string; values: string; gap: string }[] = [];
+  const rows: { key: string; label: string; values: string; gap: string; percent: number }[] = [];
   // The server evaluates every preceding tier, even when rank protection retains
   // the current rank after a refund. Keep each threshold tied to its source tier.
   for (const rank of rankDefs.value.filter((r) => r.v > 0 && r.v <= next.v)) {
@@ -138,12 +145,14 @@ const nextConditions = computed(() => {
     const add = (conditions: VRankConditions, current: number, required: number, kind: RankGap["kind"], vLevel?: number) => {
       const gap = preview.missing.find((item) => item.kind === kind
         && (item.kind !== "vDownlines" || item.vLevel === vLevel));
+      if (rank.v < next.v && !gap) return;
       const unit = kind === "selfBuy" || kind === "teamVolume" ? "$" : "";
       rows.push({
         key: `${rank.v}-${kind}-${vLevel ?? ""}`,
         label: `V${rank.v} · ${rankConditionsText(t.value, conditions, locale.code)}`,
         values: `${unit}${unit ? formatAmount(current) : formatHowNumber(current, locale.code)} / ${unit}${unit ? formatAmount(required) : formatHowNumber(required, locale.code)}`,
         gap: gap ? rankGapText(t.value, gap, locale.code, rankDefs.value) : t.value.rank.done,
+        percent: Math.min(100, Math.max(0, Math.round(current / required * 100))),
       });
     };
     if (c.selfBuyUSD) add({ selfBuyUSD: c.selfBuyUSD }, vState.selfBuyUSD, c.selfBuyUSD, "selfBuy");
@@ -260,7 +269,14 @@ function benefitText(r: VRankDef): string {
 </script>
 
 <style scoped>
-.rank-detail { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-2); overflow-wrap: anywhere; }
+.rank-row-heading { gap: 8px; flex-wrap: wrap; min-height: 44px; cursor: pointer; }
+.rank-row-heading:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; border-radius: 6px; }
+.rank-row-chevron { margin-left: auto; color: var(--v5-ink-3); transition: transform 180ms ease; }
+.rank-row-chevron--open { transform: rotate(180deg); }
+.rank-progress-track { height: 5px; margin: 7px 0; background: var(--v5-surface-3); border-radius: 99px; overflow: hidden; }
+.rank-progress-track > view { height: 100%; background: var(--v5-brand); border-radius: inherit; }
+@media (prefers-reduced-motion: reduce) { .rank-row-chevron { transition: none; } }
+.rank-detail { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; line-height: 1.6; color: var(--v5-ink-2); overflow-wrap: anywhere; }
 .rank-detail__label { font-weight: 600; color: var(--v5-ink-3); }
 .rank-detail__hint { color: var(--v5-ink-3); }
 .rank-next-progress { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--v5-border); font-size: 12px; line-height: 1.7; color: var(--v5-ink-3); }

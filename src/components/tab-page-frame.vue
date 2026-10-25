@@ -19,7 +19,7 @@ import { navReplace } from "@/lib/route";
 defineOptions({ inheritAttrs: false });
 const props = defineProps<{ active?: "home" | "earn" | "store" | "team" | "me" }>();
 const hosted = inject(TAB_HOST, false);
-const bannerSurface = computed(() => props.active && props.active !== "team" ? props.active : null);
+const bannerSurface = computed(() => props.active && props.active !== "team" && props.active !== "home" ? props.active : null);
 let native = false;
 // #ifdef APP-PLUS
 native = true;
