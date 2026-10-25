@@ -54,8 +54,8 @@ describe("September 6 action surfaces", () => {
 
     expect(source).toContain("const spinSubmitting = ref(false)");
     expect(source).toContain("if (spinSubmitting.value) return");
-    expect(source).toContain("const key = pendingSpinKeys.get(eventCode) ?? createSpinIdempotencyKey()");
-    expect(source).toContain("const result = await spin.spinRemote(eventCode, key)");
+    expect(source).not.toContain("pendingSpinKeys");
+    expect(source).toContain("const result = await spin.spinRemote(eventCode, retrying)");
     expect(source).toContain("if (generation !== accountGeneration) return");
     expect(source).toContain("if (result.stale) return");
     expect(source).toContain("void doSpin(true)");

@@ -60,21 +60,20 @@
       <view v-if="prizes.length > 0 && !spin.remoteEnded && !spin.remoteError" class="lss-wheel-wrap">
         <!-- pointer(顶部固定指针)-->
         <view class="lss-pointer" />
-        <svg viewBox="0 0 200 200" width="248" height="248" class="lss-wheel-svg">
-          <!-- rim -->
-          <circle :cx="CX" :cy="CY" :r="R + 4" fill="none" stroke="var(--v5-border-strong)" stroke-width="3" />
-          <!-- Slices + their SVG <text> labels are injected via v-html so uni's H5
-               compiler doesn't rewrite the in-SVG <text> into <uni-text> (which the
-               browser won't render as SVG text → invisible prize labels, P-007 family). -->
-          <g :style="wheelStyle" @transitionend="onWheelTransitionEnd" v-html="slicesSvg" />
-          <!-- hub -->
-          <circle :cx="CX" :cy="CY" r="20" fill="var(--v5-surface-3)" stroke="var(--v5-border-strong)" stroke-width="2" />
-        </svg>
+        <!-- A complete SVG root preserves its namespace in the App view renderer. -->
+        <view class="lss-wheel-svg" :style="wheelStyle" @transitionend="onWheelTransitionEnd" v-html="wheelSvg" />
+        <view class="lss-wheel-fixed" v-html="wheelDecorationSvg" />
       </view>
 
       <!-- ───────── CTA 区(phase 驱动)───────── -->
       <view class="lss-cta-zone">
-        <view v-if="spin.remoteLoading && spin.phase === 'idle'" class="lss-nospin" role="status">
+        <view v-if="hasPendingSpin && spin.phase === 'idle'" class="lss-nospin" role="status">
+          <text class="lss-nospin-hint">{{ t.luckySpin.spinUnknown }}</text>
+          <view class="lss-earn-cta" role="button" tabindex="0" :aria-disabled="spinSubmitting" @click="doSpin(true)">
+            <text class="lss-earn-cta-t">{{ t.luckySpin.retryOriginal }}</text>
+          </view>
+        </view>
+        <view v-else-if="spin.remoteLoading && spin.phase === 'idle'" class="lss-nospin" role="status">
           <text class="lss-nospin-title">{{ statusCopy.loading }}</text>
         </view>
         <view v-else-if="spin.remoteError && spin.phase === 'idle'" class="lss-nospin">
@@ -248,11 +247,10 @@ const slices = computed(() =>
   }),
 );
 
-// Wheel slices rendered as a raw SVG string (path + label <text> per slice).
-// v-html'd into the rotating <g> so the in-SVG <text> survives uni's H5 tag
-// rewriting (a template <text> inside <svg> becomes <uni-text> → not real SVG
-// text → invisible labels). Label style is inlined (9px/600, ink, font-v5).
-const slicesSvg = computed(() =>
+// Inject the full SVG into a view: App creates template SVG tags in the HTML
+// namespace, while H5 rewrites template <text>. Keep untrusted labels escaped.
+const wheelSvg = computed(() =>
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="248" height="248">' +
   slices.value
     .map(
       (s) =>
@@ -262,8 +260,11 @@ const slicesSvg = computed(() =>
         `style="font-size:12px;font-weight:600;fill:var(--v5-ink);font-family:var(--font-v5);">${escapeSvgText(lsShort(s.sp))}</text>` +
         `</g>`,
     )
-    .join(""),
+    .join("") + '</svg>',
 );
+const wheelDecorationSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="248" height="248">' +
+  `<circle cx="${CX}" cy="${CY}" r="${R + 4}" fill="none" stroke="var(--v5-border-strong)" stroke-width="3" />` +
+  `<circle cx="${CX}" cy="${CY}" r="20" fill="var(--v5-surface-3)" stroke="var(--v5-border-strong)" stroke-width="2" />` + '</svg>';
 
 const wonPrize = computed(() =>
   spin.lastWonPrizeId ? prizes.value.find((p) => p.id === spin.lastWonPrizeId) ?? null : null,
@@ -292,7 +293,7 @@ const historyRows = computed(() => {
 // ── inline styles (token-driven; CSSProperties) ──
 const wheelStyle = computed<CSSProperties>(() => ({
   transform: `rotate(${spin.wheelAngle}deg)`,
-  transformOrigin: "100px 100px",
+  transformOrigin: "50% 50%",
   transition: spin.phase === "spinning" ? "transform 3.6s cubic-bezier(0.16,1,0.3,1)" : "none",
 }));
 const wonCardStyle = computed<CSSProperties>(() => ({
@@ -375,14 +376,15 @@ async function doSpin(skipConfirm = false) {
 }
 
 async function executeSpin(skipConfirm = false) {
-  if (spin.availableSpins() <= 0) return;
+  const retrying = remoteApiEnabled && (spin.pendingSpin !== null || spin.pendingStorageError);
+  if (!retrying && spin.availableSpins() <= 0) return;
   const generation = accountGeneration;
   const eventCode = spin.activeEventCode;
   const usingBonus = !spin.hasFreeSpinToday();
 
   // bonus 票为稀缺资源 → 二次确认;免费次数零门槛不弹(转化优先)。
   // 网络失败重试沿用上次确认,不重复弹窗(skipConfirm)。
-  if (usingBonus && !skipConfirm) {
+  if (usingBonus && !skipConfirm && !retrying) {
     const ok = await confirm({
       title: t.value.luckySpin.confirmTicketTitle,
       message: t.value.luckySpin.confirmTicketMsg,
@@ -409,24 +411,26 @@ async function executeSpin(skipConfirm = false) {
   }
 
   if (remoteApiEnabled) {
-    const key = pendingSpinKeys.get(eventCode) ?? createSpinIdempotencyKey();
-    pendingSpinKeys.set(eventCode, key);
-    const result = await spin.spinRemote(eventCode, key);
+    const result = await spin.spinRemote(eventCode, retrying);
     if (generation !== accountGeneration) return;
     if (result.stale) return;
     if (!result.ok) {
+      if (!result.failure || !result.failure.ambiguous) {
+        toast.warn(t.value.luckySpin.spinFailedTitle, t.value.luckySpin[result.failure?.messageKey ?? "spinUnavailable"]);
+        return;
+      }
       netError.show({
-        title: t.value.luckySpin.netErrorTitle,
-        message: t.value.luckySpin.netErrorMsg,
+        title: t.value.luckySpin.spinFailedTitle,
+        message: t.value.luckySpin[result.failure.messageKey],
         retryAfterMs: null,
         onRetry: () => {
+          if (generation !== accountGeneration || eventCode !== spin.activeEventCode) return;
           netError.hide();
           void doSpin(true);
         },
       });
       return;
     }
-    pendingSpinKeys.delete(eventCode);
     clearSettleTimer();
     settleTimer = setTimeout(() => {
       settleTimer = null;
@@ -453,10 +457,9 @@ async function executeSpin(skipConfirm = false) {
   }, 3650);
 }
 
-const pendingSpinKeys = new Map<string, string>();
+const hasPendingSpin = computed(() => remoteApiEnabled && (spin.pendingSpin !== null || spin.pendingStorageError));
 watch(() => app.accountKey, () => {
   accountGeneration += 1;
-  pendingSpinKeys.clear();
   clearSettleTimer();
 });
 watch(() => [spin.activeEventCode, spin.open], () => {
@@ -464,14 +467,6 @@ watch(() => [spin.activeEventCode, spin.open], () => {
   clearSettleTimer();
   netError.hide();
 }, { flush: "sync" });
-let spinKeySequence = 0;
-function createSpinIdempotencyKey(): string {
-  const randomUuid = globalThis.crypto?.randomUUID;
-  if (typeof randomUuid === "function") return `lucky-spin-${randomUuid()}`;
-  spinKeySequence += 1;
-  return `lucky-spin-${Date.now().toString(36)}-${spinKeySequence}`;
-}
-
 function onSpinClick() {
   if (spin.phase === "spinning") return;
   void doSpin();
@@ -674,9 +669,20 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
   border-right: 11px solid transparent;
   border-top: 18px solid var(--v5-ink);
 }
-.lss-wheel-svg {
+.lss-wheel-svg,
+.lss-wheel-fixed {
   display: block;
+  width: 100%;
+  height: 100%;
+  line-height: 0;
+}
+.lss-wheel-svg {
   filter: drop-shadow(0 0 18px color-mix(in srgb, var(--v5-brand) 22%, transparent));
+}
+.lss-wheel-fixed {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 /* cta zone */

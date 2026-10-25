@@ -1,7 +1,10 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { eventsApi, remoteApiEnabled } from "@/api/runtime";
+import { apiRuntimeConfig, eventsApi, remoteApiEnabled } from "@/api/runtime";
+import { ApiError } from "@/api/errors";
 import type { EventSpinHistory, EventSpinSegment } from "@/api/events-api";
+import { spinFailure, type SpinFailure } from "@/lib/lucky-spin-failure";
+import { acquirePendingSpin, finishPendingSpin, readPendingSpin, type PendingSpin } from "@/lib/lucky-spin-pending";
 import { mockServerNow } from "./server-time";
 import { createAccountRowCommit } from "./account-scoped-storage";
 
@@ -150,15 +153,34 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   const remoteHistory = ref<EventSpinHistory[]>([]);
   const remoteLoading = ref(false);
   const remoteError = ref(false);
+  const remoteFailure = ref<SpinFailure | null>(null);
+  const pendingSpin = ref<PendingSpin | null>(null);
+  const pendingStorageError = ref(false);
+  let boundAccount = "default";
+  const pendingScope = () => `${apiRuntimeConfig.environment}:${apiRuntimeConfig.baseUrl.replace(/\/$/, "")}:${boundAccount}`;
+  let remoteSubmitting = false;
   const remoteEnded = ref(false);
   let remoteGeneration = 0;
   const activeEventCode = ref("evt-spring-spin");
   const remoteState = ref<{
+    eventId: string;
+    serverDate: string;
     freeAvailable: boolean;
     bonusTickets: number;
     availableSpins: number;
     nextResetAtUtc: string;
   } | null>(null);
+
+  function loadPendingSpin() {
+    try {
+      pendingSpin.value = readPendingSpin(pendingScope(), activeEventCode.value);
+      pendingStorageError.value = false;
+      return pendingSpin.value;
+    } catch {
+      pendingStorageError.value = true;
+      throw new Error("WHEEL_COMMAND_STORAGE_UNAVAILABLE");
+    }
+  }
 
   // 落盘唯一出口:乐观并发提交器。票是**每日配额 + 稀缺资源**,覆盖式写会让两个标签页
   // 各花掉同一张票各中一次奖(组件抽完直接 creditPrize → 白发奖)。
@@ -184,6 +206,11 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   /** 账号切换重绑:装载该账号的转盘持久态(票/记录),并重置本地会话态(转盘动画/弹层)。 */
   function bindAccount(rawAccountKey: string) {
     remoteGeneration += 1;
+    boundAccount = rawAccountKey;
+    pendingSpin.value = null;
+    pendingStorageError.value = false;
+    if (remoteApiEnabled) { try { loadPendingSpin(); } catch { /* Keep recovery blocked until storage can be read. */ } }
+    remoteFailure.value = null;
     remoteState.value = null;
     remoteSegments.value = [];
     remoteHistory.value = [];
@@ -242,13 +269,16 @@ export const useLuckySpin = defineStore("luckySpin", () => {
   async function refreshRemoteState(eventCode = activeEventCode.value): Promise<boolean> {
     if (!remoteApiEnabled) return false;
     const generation = remoteGeneration;
+    const scope = pendingScope();
     remoteLoading.value = true;
     remoteError.value = false;
     try {
       const next = await eventsApi.spinState(eventCode);
-      if (generation !== remoteGeneration) return false;
+      if (generation !== remoteGeneration || scope !== pendingScope()) return false;
       remoteEnded.value = next.ended === true;
       remoteState.value = {
+        eventId: next.eventId,
+        serverDate: next.serverDate,
         freeAvailable: next.freeAvailable,
         bonusTickets: next.bonusTickets,
         availableSpins: next.availableSpins,
@@ -261,20 +291,23 @@ export const useLuckySpin = defineStore("luckySpin", () => {
       remoteHistory.value = next.history;
       return true;
     } catch {
-      if (generation === remoteGeneration) {
+      if (generation === remoteGeneration && scope === pendingScope()) {
         remoteState.value = null;
         remoteError.value = true;
       }
       return false;
     } finally {
-      if (generation === remoteGeneration) remoteLoading.value = false;
+      if (generation === remoteGeneration && scope === pendingScope()) remoteLoading.value = false;
     }
   }
 
   // ── actions ──
   function openSheet(eventCode = "evt-spring-spin") {
     remoteGeneration += 1;
+    remoteFailure.value = null;
     activeEventCode.value = eventCode;
+    pendingSpin.value = null;
+    if (remoteApiEnabled) { try { loadPendingSpin(); } catch { /* Show the storage recovery state. */ } }
     remoteState.value = null;
     remoteSegments.value = [];
     remoteHistory.value = [];
@@ -337,17 +370,45 @@ export const useLuckySpin = defineStore("luckySpin", () => {
 
   async function spinRemote(
     eventCode: string,
-    idempotencyKey: string,
-  ): Promise<{ ok: boolean; prizeId: string | null; stale?: boolean }> {
+    recoveryOnly = false,
+  ): Promise<{ ok: boolean; prizeId: string | null; stale?: boolean; failure?: SpinFailure }> {
     if (!remoteApiEnabled) return spin();
     if (eventCode !== activeEventCode.value) return { ok: false, prizeId: null, stale: true };
-    if (remoteEnded.value || remoteLoading.value || remoteError.value) return { ok: false, prizeId: null };
-    if (availableSpins() <= 0) return { ok: false, prizeId: null };
-    if (remoteSegments.value.length === 0) return { ok: false, prizeId: null };
+    if (remoteSubmitting) return { ok: false, prizeId: null, stale: true };
     const generation = remoteGeneration;
+    const scope = pendingScope();
+    let original: PendingSpin | null = null;
+    let replay = true;
+    remoteSubmitting = true;
+    remoteFailure.value = null;
     try {
-      const result = await eventsApi.spin(eventCode, idempotencyKey);
-      if (generation !== remoteGeneration) return { ok: false, prizeId: null, stale: true };
+      original = loadPendingSpin();
+      replay = !!original;
+      if (recoveryOnly && !original) return { ok: false, prizeId: null };
+      if (!original && (remoteEnded.value || remoteLoading.value || remoteError.value || availableSpins() <= 0 || remoteSegments.value.length === 0 || !remoteState.value)) return { ok: false, prizeId: null };
+      if (!original) {
+        const acquired = acquirePendingSpin(scope, eventCode, remoteState.value!.eventId, remoteState.value!.serverDate);
+        original = acquired.entry;
+        replay = !acquired.created;
+      }
+      pendingSpin.value = original;
+      if (replay) {
+        const refreshed = await refreshRemoteState(eventCode);
+        if (generation !== remoteGeneration || scope !== pendingScope()) return { ok: false, prizeId: null, stale: true };
+        // The server hashes the UTC day; preserve cross-day intentions for read-only review.
+        // Never infer a new spin from an older intention whose result is still unknown.
+        if (!refreshed || remoteState.value?.serverDate !== original.serverDate) {
+          const failure: SpinFailure = {kind:"configuration",businessCode:"WHEEL_REPLAY_REQUIRES_REVIEW",ambiguous:true,messageKey:refreshed?"spinReview":"spinUnknown"};
+          remoteFailure.value = failure;
+          return {ok:false,prizeId:null,failure};
+        }
+      }
+      const result = await eventsApi.spin(eventCode, original.key);
+      if (generation !== remoteGeneration || scope !== pendingScope()) return { ok: false, prizeId: null, stale: true };
+      // spin/state returns a numeric event ID; spin's receipt uses the event code.
+      if (result.eventId !== eventCode) throw new ApiError({ kind: "protocol", message: "WHEEL_RECEIPT_SCOPE_INVALID" });
+      try { finishPendingSpin(scope, eventCode, original.key); pendingSpin.value = null; }
+      catch { pendingStorageError.value = true; }
       const prizeId = result.tierId;
       const receiptPrize = mapRemoteSegment({ tierId: result.tierId, rewardType: result.rewardType,
         rewardAmount: result.rewardAmount, rewardName: result.rewardName,
@@ -361,8 +422,21 @@ export const useLuckySpin = defineStore("luckySpin", () => {
       wheelAngle.value = targetAngleFor(prizeId, wheelAngle.value, prizes);
       void refreshRemoteState(eventCode);
       return { ok: true, prizeId };
-    } catch {
-      return { ok: false, prizeId: null };
+    } catch (cause) {
+      if (generation !== remoteGeneration || scope !== pendingScope()) return { ok: false, prizeId: null, stale: true };
+      const observed = spinFailure(cause);
+      // A retry refusal says nothing about the original uncertain transaction.
+      const failure: SpinFailure = replay ? { ...observed, ambiguous: true, messageKey: observed.kind === "auth" ? "spinSession" : "spinUnknown" } : observed;
+      remoteFailure.value = failure;
+      if (!failure.ambiguous && original) {
+        try { finishPendingSpin(scope, eventCode, original.key); pendingSpin.value = null; }
+        catch { pendingStorageError.value = true; failure.ambiguous = true; failure.messageKey = "spinUnknown"; }
+        await refreshRemoteState(eventCode);
+        if (generation !== remoteGeneration || scope !== pendingScope()) return { ok: false, prizeId: null, stale: true };
+      }
+      return { ok: false, prizeId: null, failure };
+    } finally {
+      remoteSubmitting = false;
     }
   }
 
@@ -431,6 +505,9 @@ export const useLuckySpin = defineStore("luckySpin", () => {
     remoteHistory,
     remoteLoading,
     remoteError,
+    remoteFailure,
+    pendingSpin,
+    pendingStorageError,
     remoteEnded,
     hasFreeSpinToday,
     availableSpins,

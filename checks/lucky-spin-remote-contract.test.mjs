@@ -16,7 +16,7 @@ test("remote wheel path cannot roll or credit locally", () => {
   const store = read("src/store/lucky-spin.ts");
   const sheet = read("src/components/lucky-spin-sheet.vue");
   assert.match(store, /remoteApiEnabled/);
-  assert.match(store, /eventsApi\.state\(\)/);
+  assert.match(store, /const next = await eventsApi\.spinState\(eventCode\)/);
   assert.match(store, /eventsApi\.spinState/);
   assert.match(store, /eventsApi\.spin/);
   assert.match(sheet, /remoteApiEnabled/);
@@ -35,13 +35,13 @@ test("account rebinding clears the authoritative remote wheel snapshot", () => {
 test("late remote state responses are discarded after an account switch", () => {
   const store = read("src/store/lucky-spin.ts");
   assert.match(store, /const generation = remoteGeneration;/);
-  assert.match(store, /await eventsApi\.spinState\(eventCode\);\s*if \(generation !== remoteGeneration\) return false;/);
+  assert.match(store, /await eventsApi\.spinState\(eventCode\);\s*if \(generation !== remoteGeneration \|\| scope !== pendingScope\(\)\) return false;/);
 });
 
 test("late remote spin responses cannot mutate the new account", () => {
   const store = read("src/store/lucky-spin.ts");
-  assert.match(store, /const generation = remoteGeneration;[\s\S]*?await eventsApi\.spin\(eventCode, idempotencyKey\);/);
-  assert.match(store, /if \(generation !== remoteGeneration\) return \{ ok: false, prizeId: null, stale: true \};/);
+  assert.match(store, /acquirePendingSpin\(scope, eventCode,[\s\S]*?await eventsApi\.spin\(eventCode, original\.key\);/);
+  assert.match(store, /if \(generation !== remoteGeneration \|\| scope !== pendingScope\(\)\) return \{ ok: false, prizeId: null, stale: true \};/);
 });
 
 test("the wheel sheet drops stale spin outcomes before settle or success toast", () => {
@@ -49,7 +49,7 @@ test("the wheel sheet drops stale spin outcomes before settle or success toast",
   assert.match(sheet, /let accountGeneration = 0;/);
   assert.match(sheet, /function settleSpin\(expectedGeneration = accountGeneration\)/);
   assert.match(sheet, /if \(expectedGeneration !== accountGeneration\) return;/);
-  assert.match(sheet, /const generation = accountGeneration;[\s\S]*?await spin\.spinRemote\("evt-spring-spin", key\);[\s\S]*?if \(generation !== accountGeneration\) return;/);
+  assert.match(sheet, /const generation = accountGeneration;[\s\S]*?await spin\.spinRemote\(eventCode, retrying\);[\s\S]*?if \(generation !== accountGeneration\) return;/);
   assert.match(sheet, /if \(result\.stale\) return;/);
 });
 

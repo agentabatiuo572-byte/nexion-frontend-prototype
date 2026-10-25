@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
+  "sourcePath": "D:\\workspace\\.worktrees\\team-v8-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "b9fa65984fa84443909fb8ab5ffce933557c4a0e",
-  "sourceRef": "b9fa65984fa84443909fb8ab5ffce933557c4a0e",
+  "sourceHead": "df820e4671fa40fce0f53fea8dd6926172c9e026",
+  "sourceRef": "df820e4671fa40fce0f53fea8dd6926172c9e026",
   "sourceRefKind": "commit",
-  "sourceTree": "ca883b0f059f403977f33af09b046f74da8bb758",
+  "sourceTree": "36672f2cd81140e014e107b7f791af00f875842c",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -125,17 +125,17 @@
       "mode": "100644"
     },
     "PRD/UVEL_首页信任与活动规则_20261025.md": {
-      "sourceBlob": "19cab077a0a062fdadf9ab393badac3413f771d7",
-      "sourceSha256": "e5dac0018df476f3c6dbf3de780596e9ad00d2855333e906800b9107a682490c",
-      "targetBlob": "19cab077a0a062fdadf9ab393badac3413f771d7",
-      "targetSha256": "e5dac0018df476f3c6dbf3de780596e9ad00d2855333e906800b9107a682490c",
+      "sourceBlob": "4384bb7fad3a7e327d0db7151f6750e1575c427b",
+      "sourceSha256": "8440b1f6012ea1c91ec48748114de73e12b19c3e028cfe3fdb8383111956bda8",
+      "targetBlob": "4384bb7fad3a7e327d0db7151f6750e1575c427b",
+      "targetSha256": "8440b1f6012ea1c91ec48748114de73e12b19c3e028cfe3fdb8383111956bda8",
       "mode": "100644"
     },
     "checks/lucky-spin-remote-contract.test.mjs": {
-      "sourceBlob": "5d25f1ceafe132bcc8fe2776ba5f76dcefd1684b",
-      "sourceSha256": "6a7c3776f97d440841df284dd8ca433a37326bd4923eaa3123a77a2f731a0b9f",
-      "targetBlob": "5d25f1ceafe132bcc8fe2776ba5f76dcefd1684b",
-      "targetSha256": "6a7c3776f97d440841df284dd8ca433a37326bd4923eaa3123a77a2f731a0b9f",
+      "sourceBlob": "d557077ea8157e019018b3d8ea75b4d83855aa4c",
+      "sourceSha256": "d923b45f029d8841fccd4c8f6156f30d7df162c199c9caaeddf92180febed31f",
+      "targetBlob": "d557077ea8157e019018b3d8ea75b4d83855aa4c",
+      "targetSha256": "d923b45f029d8841fccd4c8f6156f30d7df162c199c9caaeddf92180febed31f",
       "mode": "100644"
     },
     "docs/2026-09-05-six-bug-repair.md": {
@@ -4737,6 +4737,13 @@
       "targetSha256": "80e3aad3bf35d8a3a4e1e442ef2e805657f7fa2ddd23fff5744781dae8a90450",
       "mode": "100644"
     },
+    "scripts/lucky-spin-svg.browser.test.mjs": {
+      "sourceBlob": "a40e4c5aaeeda1f329748a7bd19befa4819de942",
+      "sourceSha256": "4219a193b82657e203e75266798f6325b111760875584dfe2c52b074404e3dad",
+      "targetBlob": "a40e4c5aaeeda1f329748a7bd19befa4819de942",
+      "targetSha256": "4219a193b82657e203e75266798f6325b111760875584dfe2c52b074404e3dad",
+      "mode": "100644"
+    },
     "scripts/m-support-authority-contract.test.mjs": {
       "sourceBlob": "e2d4d03e186304a35f36db4830544f141b3f196f",
       "sourceSha256": "4d8e00f9c8e3a680d0892ebca9323cce70d5add2554c49b4b9785e1f8e83fbb8",
@@ -8454,11 +8461,18 @@
       "targetSha256": "5a1b599b03569546ca41945269342ddc395ce5c503def69cc2b2a63543dbeabc",
       "mode": "100644"
     },
+    "src/components/lucky-spin-recovery.behavior.test.ts": {
+      "sourceBlob": "ca4914f22538429929b41b4c479c95988839a94b",
+      "sourceSha256": "2961414ac331a8b07d184c6603548a9edfa76d77f78c7b7f62dd7a3f9e522656",
+      "targetBlob": "ca4914f22538429929b41b4c479c95988839a94b",
+      "targetSha256": "2961414ac331a8b07d184c6603548a9edfa76d77f78c7b7f62dd7a3f9e522656",
+      "mode": "100644"
+    },
     "src/components/lucky-spin-sheet.vue": {
-      "sourceBlob": "4a47f91bec17ae262d00894c01778faf7bd98422",
-      "sourceSha256": "9396ed823ab6abcebc6da4c2f46d391f44faeed2d67fe01e00c724ef4fdbfc55",
-      "targetBlob": "4a47f91bec17ae262d00894c01778faf7bd98422",
-      "targetSha256": "9396ed823ab6abcebc6da4c2f46d391f44faeed2d67fe01e00c724ef4fdbfc55",
+      "sourceBlob": "00559a86f00fdc8abb22e55d42493a999c5e1c76",
+      "sourceSha256": "4fbffa2fb66c74efc4d81c98959053a0fe7f64269cfdba5fd2828b5a3d5407ef",
+      "targetBlob": "00559a86f00fdc8abb22e55d42493a999c5e1c76",
+      "targetSha256": "4fbffa2fb66c74efc4d81c98959053a0fe7f64269cfdba5fd2828b5a3d5407ef",
       "mode": "100644"
     },
     "src/components/market/nex-chart.native.test.ts": {
@@ -10037,10 +10051,10 @@
       "mode": "100644"
     },
     "src/i18n/messages/en.ts": {
-      "sourceBlob": "4d90db208efd4ba3296d47184cb4327ffe5a251e",
-      "sourceSha256": "f9b5523d97e51f305fcd525d7b7b8d7875160da4e00888e20c4e8bd8e512ea5d",
-      "targetBlob": "4d90db208efd4ba3296d47184cb4327ffe5a251e",
-      "targetSha256": "f9b5523d97e51f305fcd525d7b7b8d7875160da4e00888e20c4e8bd8e512ea5d",
+      "sourceBlob": "71151a1943ac62df7c72aae42c29d283ed78d17f",
+      "sourceSha256": "221d19064b495e481bf575e54c17e1c43aebd136c99f5e873fb661f9fe37e17b",
+      "targetBlob": "71151a1943ac62df7c72aae42c29d283ed78d17f",
+      "targetSha256": "221d19064b495e481bf575e54c17e1c43aebd136c99f5e873fb661f9fe37e17b",
       "mode": "100644"
     },
     "src/i18n/messages/genesis-cta-copy.test.ts": {
@@ -10058,17 +10072,17 @@
       "mode": "100644"
     },
     "src/i18n/messages/vi.ts": {
-      "sourceBlob": "1771eda47626c577736abbe8ab92fedea43eaa94",
-      "sourceSha256": "f680ddde29e5813a5c714668c3d6b679f46cd76eab9e7554a6b21a142bc41f9b",
-      "targetBlob": "1771eda47626c577736abbe8ab92fedea43eaa94",
-      "targetSha256": "f680ddde29e5813a5c714668c3d6b679f46cd76eab9e7554a6b21a142bc41f9b",
+      "sourceBlob": "0b44c36b8e6672b6207c5e6e19432e4bd1821aa6",
+      "sourceSha256": "f95c01515a1e81bece84a85e24d03bb9c5d53e6fe91589f75bf473b47279ceaa",
+      "targetBlob": "0b44c36b8e6672b6207c5e6e19432e4bd1821aa6",
+      "targetSha256": "f95c01515a1e81bece84a85e24d03bb9c5d53e6fe91589f75bf473b47279ceaa",
       "mode": "100644"
     },
     "src/i18n/messages/zh.ts": {
-      "sourceBlob": "e1c15f682042fcae1bba7582ac6d0c4a41de6a0c",
-      "sourceSha256": "3ec008e4eff6abea4e088e592c08e606ea8648424dc778cf672501f9b7bf56dc",
-      "targetBlob": "e1c15f682042fcae1bba7582ac6d0c4a41de6a0c",
-      "targetSha256": "3ec008e4eff6abea4e088e592c08e606ea8648424dc778cf672501f9b7bf56dc",
+      "sourceBlob": "a2909209fb791ed6cdba9363e2d9de5e27c9a1ac",
+      "sourceSha256": "f03ff251ad068890a41208efed2436fb2cf0147aa5a32833eeea66b1a7d674db",
+      "targetBlob": "a2909209fb791ed6cdba9363e2d9de5e27c9a1ac",
+      "targetSha256": "f03ff251ad068890a41208efed2436fb2cf0147aa5a32833eeea66b1a7d674db",
       "mode": "100644"
     },
     "src/i18n/open-slots.test.ts": {
@@ -11483,6 +11497,20 @@
       "sourceSha256": "bc6eadb290a56bb0b398914ba860917e51fac9d1cbe4b26df2216871934562d4",
       "targetBlob": "e590a86988df5d71056c212cf226002a39b22225",
       "targetSha256": "bc6eadb290a56bb0b398914ba860917e51fac9d1cbe4b26df2216871934562d4",
+      "mode": "100644"
+    },
+    "src/lib/lucky-spin-failure.ts": {
+      "sourceBlob": "fa6bc1f2793a12b18e36a5795265701be96fb4e5",
+      "sourceSha256": "a3bfd605839dfcc52fe00246cf26dd12a3d75c376940231ddf29bbb4d5de7c66",
+      "targetBlob": "fa6bc1f2793a12b18e36a5795265701be96fb4e5",
+      "targetSha256": "a3bfd605839dfcc52fe00246cf26dd12a3d75c376940231ddf29bbb4d5de7c66",
+      "mode": "100644"
+    },
+    "src/lib/lucky-spin-pending.ts": {
+      "sourceBlob": "531262aaca08b0055bdab18b32b6f141899b8477",
+      "sourceSha256": "e4bcebde660997d3d4de89451dd0a112b2a5a5fc7ce85277431927089d3c6738",
+      "targetBlob": "531262aaca08b0055bdab18b32b6f141899b8477",
+      "targetSha256": "e4bcebde660997d3d4de89451dd0a112b2a5a5fc7ce85277431927089d3c6738",
       "mode": "100644"
     },
     "src/lib/market-24h-summary.ts": {
@@ -15189,10 +15217,10 @@
       "mode": "100644"
     },
     "src/pages/sep06e-action-surface.contract.test.ts": {
-      "sourceBlob": "4b7e76e466daea248abc94d09f8efdc3e920d69c",
-      "sourceSha256": "5eb684656f18572c05df520a5d78992099e39ac2a2ea14c4786d865f68217cf2",
-      "targetBlob": "4b7e76e466daea248abc94d09f8efdc3e920d69c",
-      "targetSha256": "5eb684656f18572c05df520a5d78992099e39ac2a2ea14c4786d865f68217cf2",
+      "sourceBlob": "820654680b6d4e87acd3fc2ceec2bc97feb89015",
+      "sourceSha256": "933fcf390d2c9c0a2ddb6c6b9757845141e35aeff0ec57b2e5391797b51b0abc",
+      "targetBlob": "820654680b6d4e87acd3fc2ceec2bc97feb89015",
+      "targetSha256": "933fcf390d2c9c0a2ddb6c6b9757845141e35aeff0ec57b2e5391797b51b0abc",
       "mode": "100644"
     },
     "src/pages/session/kicked.vue": {
@@ -17121,10 +17149,10 @@
       "mode": "100644"
     },
     "src/store/lucky-spin.ts": {
-      "sourceBlob": "126c550460254b4980b3943981723d99d230e678",
-      "sourceSha256": "0657359c36b20da983da03a0e29a460e9469d8bd9b3f7ee1d4d6b75fa6954b94",
-      "targetBlob": "126c550460254b4980b3943981723d99d230e678",
-      "targetSha256": "0657359c36b20da983da03a0e29a460e9469d8bd9b3f7ee1d4d6b75fa6954b94",
+      "sourceBlob": "8c05b97185b6af34247cd9fd417da32f181b4c6a",
+      "sourceSha256": "6e300f380a79a0f2b70c366733d30d3751bc6b5f8e2f02b9a4b9a67f13e3bc15",
+      "targetBlob": "8c05b97185b6af34247cd9fd417da32f181b4c6a",
+      "targetSha256": "6e300f380a79a0f2b70c366733d30d3751bc6b5f8e2f02b9a4b9a67f13e3bc15",
       "mode": "100644"
     },
     "src/store/market.test.ts": {
@@ -17555,10 +17583,10 @@
       "mode": "100644"
     },
     "src/store/sep06e-lucky-spin-event-scope.test.ts": {
-      "sourceBlob": "8a8b852c6f0aa76d1abc943c08e408c8a2e24092",
-      "sourceSha256": "9c91a9f4eaaa5774bf1a20b8dca9bbc91a00beb7a14bd0148f0b451725927cf1",
-      "targetBlob": "8a8b852c6f0aa76d1abc943c08e408c8a2e24092",
-      "targetSha256": "9c91a9f4eaaa5774bf1a20b8dca9bbc91a00beb7a14bd0148f0b451725927cf1",
+      "sourceBlob": "a65bad2a908df2acd53e31dedf27193adadb21b6",
+      "sourceSha256": "3feac4b4c34a42ac5dd63f2b2b26bb1b8acd16ed994ba126ca26d2ec312496eb",
+      "targetBlob": "a65bad2a908df2acd53e31dedf27193adadb21b6",
+      "targetSha256": "3feac4b4c34a42ac5dd63f2b2b26bb1b8acd16ed994ba126ca26d2ec312496eb",
       "mode": "100644"
     },
     "src/store/sep06e-repurchase-workflow.test.ts": {
