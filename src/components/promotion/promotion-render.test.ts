@@ -11,6 +11,7 @@ import orderRewardsSource from './order-rewards.vue?raw';
 import rewardDetailSource from '@/pages/events/promotion-reward-detail.vue?raw';
 import checkoutSource from './promotion-checkout.vue?raw';
 import termsSource from './promotion-terms.vue?raw';
+import sheetSource from '@/components/ui/nx-sheet.vue?raw';
 import entrySource from './promotion-entry.vue?raw';
 import { promotionZH, promotionEN, promotionVI } from '@/i18n/messages/promotion';
 import { localized, rewardSummary, rewardStateKey } from '@/lib/promotion-display';
@@ -126,29 +127,55 @@ it('a recovered device keeps its receipt without sending the owner to a removed 
   expect(await html('ISSUED')).toContain(promotionZH.viewDevice);
 });
 
-it.each([[checkoutSource, 'finishLeave'], [termsSource, 'emit']] as const)('separate promotion masks close with Uni normalized events without closing from modal children', (source, action) => {
-  const template = parse(source).descriptor.template!.content;
-  const renderCode = compile(template, { mode: 'function', prefixIdentifiers: true, isTS: true, expressionPlugins: ['typescript'], isCustomElement: tag => ['view', 'text'].includes(tag) }).code;
-  const render = new Function('Vue', ts.transpileModule(renderCode, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText)(Vue);
-  const calls: unknown[][] = [];
-  const context = { auth: { isAuthenticated: false }, p: promotionZH, t: { promotion: promotionZH }, leaveOpen: true, open: true,
-    loading: false, unknown: false, error: '', openedOriginal: false, order: null, quote: null, items: [], rewards: [],
-    disclosures: [], title: '', terms: '', locale: { code: 'zh' }, deadline: '', promotion: null, localized,
-    finishLeave: (...args: unknown[]) => calls.push(args), emit: (...args: unknown[]) => calls.push(args) };
-  let vnode!: Vue.VNode;
-  const app = Vue.createSSRApp({ render: () => { vnode = render(context, []); return vnode; } });
-  // A real render context preserves component resolution; the sibling mask is
-  // tested with the distinct target wrappers emitted by Uni H5.
-  return renderToString(app).then(() => {
-    function find(node: Vue.VNode, className: string): Vue.VNode | undefined {
-      if (typeof node.props?.class === 'string' && node.props.class.split(' ').includes(className)) return node;
-      if (Array.isArray(node.children)) for (const child of node.children) {
-        if (Vue.isVNode(child)) { const result = find(child, className); if (result) return result; }
-      }
-    }
-    const overlay = find(vnode, 'promotion-overlay')!, mask = find(vnode, 'promotion-overlay-dismiss')!, modal = find(vnode, 'promotion-modal')!;
-    expect(mask).toBeTruthy(); expect(overlay.props?.onClick).toBeUndefined(); expect(modal.props?.onClick).toBeUndefined();
-    mask.props!.onClick({ target: { id: 'mask' }, currentTarget: { id: 'mask' } });
-    expect(calls).toEqual(action === 'finishLeave' ? [[false]] : [['close']]);
-  });
+function templateRender(source:string) {
+  const code=compile(parse(source).descriptor.template!.content,{mode:'function',prefixIdentifiers:true,isTS:true,expressionPlugins:['typescript'],isCustomElement:tag=>['view','text'].includes(tag)}).code;
+  return new Function('Vue',ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(Vue);
+}
+function findVNode(node:Vue.VNode,className:string):Vue.VNode|undefined {
+  if(typeof node.props?.class==='string'&&node.props.class.split(' ').includes(className))return node;
+  if(Array.isArray(node.children))for(const child of node.children)if(Vue.isVNode(child)){const found=findVNode(child,className);if(found)return found;}
+}
+it('checkout leave mask keeps the purchase open and never closes from modal children',async()=>{
+  const render=templateRender(checkoutSource),calls:unknown[][]=[];
+  const context={$slots:{},auth:{isAuthenticated:false},p:promotionZH,t:{promotion:promotionZH},leaveOpen:true,voucherOpen:false,
+    loading:false,unknown:false,error:'',openedOriginal:false,order:null,quote:null,items:[],rewards:[],voucherOptions:[],
+    disclosures:[],locale:{code:'zh'},promotion:null,localized,finishLeave:(...args:unknown[])=>calls.push(args)};
+  let vnode!:Vue.VNode;
+  await renderToString(Vue.createSSRApp({render:()=>{vnode=render(context,[]);return vnode;}}));
+  const overlay=findVNode(vnode,'promotion-overlay')!,mask=findVNode(vnode,'promotion-overlay-dismiss')!,modal=findVNode(vnode,'promotion-modal')!;
+  expect(mask).toBeTruthy();expect(overlay.props?.onClick).toBeUndefined();expect(modal.props?.onClick).toBeUndefined();
+  mask.props!.onClick({target:{id:'mask'},currentTarget:{id:'mask'}});
+  expect(calls).toEqual([[false]]);
+});
+it('promotion terms forwards only the shared NxSheet close event',async()=>{
+  const render=templateRender(termsSource),calls:unknown[][]=[];
+  let vnode!:Vue.VNode;
+  await renderToString(Vue.createSSRApp({components:{NxSheet:{render:()=>null}},render:()=>{
+    vnode=render({open:true,title:'Rules',t:{promotion:promotionZH},uniqueDisclosures:[],uniqueTerms:'Terms',locale:{code:'zh'},localized,emit:(...args:unknown[])=>calls.push(args)},[]);return vnode;
+  }}));
+  expect(vnode.props?.open).toBe(true);expect(vnode.props?.title).toBe('Rules');
+  expect(calls).toEqual([]);vnode.props!.onClose();expect(calls).toEqual([['close']]);
+});
+it('retains matching per-person limits in each separate product rule',async()=>{
+  const render=templateRender(termsSource);
+  const rules=['S1','P1','Cloud Share'].map((sku,index)=>({id:`rule-${index}`,text:`${sku}\nUp to 1 reward per order · Up to 1 reward per person`}));
+  const html=await renderToString(Vue.createSSRApp({components:{NxSheet:{setup:(_:unknown,{slots}:any)=>()=>Vue.h('view',slots.default?.())}},render:()=>render({open:true,title:'Rules',t:{promotion:promotionEN},uniqueDisclosures:[],uniqueTerms:'Shared refund terms',rules,locale:{code:'en'},localized,emit:()=>{}},[])}));
+  expect(html.match(/Up to 1 reward per person/g)).toHaveLength(3);
+  for(const rule of rules)expect(html).toContain(rule.text);
+});
+it('real NxSheet mask closes only on its backdrop or close control, and renders nothing when closed',async()=>{
+  const render=templateRender(sheetSource),calls:string[]=[];
+  const context={open:true,id:'sheet-test',title:'Rules',copy:{close:'Close'},$slots:{default:()=>[Vue.h('text','Terms')]},$emit:(event:string)=>calls.push(event)};
+  let vnode!:Vue.VNode;
+  const html=()=>renderToString(Vue.createSSRApp({render:()=>{vnode=render(context,[]);return vnode;}}));
+  expect(await html()).toContain('role="dialog"');
+  const mask=findVNode(vnode,'nx-sheet-mask')!,body=findVNode(vnode,'nx-sheet__body')!;
+  expect(body.props?.onClick).toBeUndefined();
+  const backdrop={id:'backdrop'},child={id:'child'};
+  mask.props!.onClick({target:child,currentTarget:backdrop});expect(calls).toEqual([]);
+  mask.props!.onClick({target:backdrop,currentTarget:backdrop});expect(calls).toEqual(['close']);
+  const header=findVNode(vnode,'nx-sheet__header')!;
+  const button=(header.children as Vue.VNode[]).find(node=>node.props?.onClick)!;
+  button.props!.onClick();expect(calls).toEqual(['close','close']);
+  context.open=false;expect(await html()).not.toContain('role="dialog"');
 });

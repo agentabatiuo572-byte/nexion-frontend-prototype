@@ -6,10 +6,12 @@ export interface TeamNetworkMember {
   id: string; name: string; avatarUrl: string | null; vRank: number; layer: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   leg: "A" | "B" | null; joinedAt: string;
   monthVolumeUsdt: number; lifetimeVolumeUsdt: number | null; status: "ACTIVE" | "IDLE" | "OFFLINE"; region: string | null;
+  monthComputePoints?: number | null; lifetimeComputePoints?: number | null;
 }
 export interface TeamNetworkSnapshot {
   totalMembers: number; directMembers: number; activeMembers: number;
   monthVolumeUsdt: number; lifetimeVolumeUsdt: number | null; members: TeamNetworkMember[];
+  monthComputePoints?: number | null; lifetimeComputePoints?: number | null;
   source: "server"; sourceEnvironment: "PRODUCTION" | "SANDBOX"; runId: string;
   serverCanonical: true; generatedAt: string;
   nextCursor?: string | null;
@@ -22,6 +24,7 @@ function text(value: unknown, nullable = false): string | null { if (nullable &&
 function count(value: unknown): number { if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) return invalid(); return value; }
 function amount(value: unknown): number { if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return invalid(); return value; }
 function optionalAmount(value: unknown): number | null { return value === null ? null : amount(value); }
+function points(value: unknown): number | null { return value == null ? null : amount(value); }
 
 function member(value: unknown): TeamNetworkMember {
   const source = row(value); const layer = count(source.layer); const vRank = count(source.vRank);
@@ -33,7 +36,9 @@ function member(value: unknown): TeamNetworkMember {
   return { id: text(source.id) as string, name: text(source.name) as string,
     avatarUrl: text(source.avatarUrl, true), vRank, layer: layer as TeamNetworkMember["layer"], leg,
     joinedAt, monthVolumeUsdt: amount(source.monthVolumeUsdt),
-    lifetimeVolumeUsdt: optionalAmount(source.lifetimeVolumeUsdt), status, region: text(source.region, true) };
+    lifetimeVolumeUsdt: optionalAmount(source.lifetimeVolumeUsdt),
+    monthComputePoints: points(source.monthComputePoints), lifetimeComputePoints: points(source.lifetimeComputePoints),
+    status, region: text(source.region, true) };
 }
 
 function provenance(source: Record<string, unknown>, mode: ApiEnvironment): { sourceEnvironment: TeamNetworkSnapshot["sourceEnvironment"]; runId: string } {
@@ -54,7 +59,9 @@ function snapshot(value: unknown, mode: ApiEnvironment): TeamNetworkSnapshot {
       || activeMembers !== members.filter((item) => item.status === "ACTIVE").length
       || new Set(members.map((item) => item.id)).size !== members.length || !Number.isFinite(Date.parse(generatedAt))) return invalid();
   return { totalMembers, directMembers, activeMembers, monthVolumeUsdt: amount(source.monthVolumeUsdt),
-    lifetimeVolumeUsdt: optionalAmount(source.lifetimeVolumeUsdt), members, source: "server", ...proof,
+    lifetimeVolumeUsdt: optionalAmount(source.lifetimeVolumeUsdt),
+    monthComputePoints: points(source.monthComputePoints), lifetimeComputePoints: points(source.lifetimeComputePoints),
+    members, source: "server", ...proof,
     serverCanonical: true, generatedAt, nextCursor: source.nextCursor === undefined || source.nextCursor === null ? null : text(source.nextCursor) };
 }
 
@@ -81,6 +88,8 @@ export function createTeamNetworkApi(client: ApiClient, mode: ApiEnvironment = "
         directMembers: result.directMembers + page.directMembers,
         activeMembers: result.activeMembers + page.activeMembers,
         monthVolumeUsdt: result.monthVolumeUsdt + page.monthVolumeUsdt,
+        monthComputePoints: result.monthComputePoints == null || page.monthComputePoints == null ? null : result.monthComputePoints + page.monthComputePoints,
+        lifetimeComputePoints: result.lifetimeComputePoints == null || page.lifetimeComputePoints == null ? null : result.lifetimeComputePoints + page.lifetimeComputePoints,
         lifetimeVolumeUsdt: result.lifetimeVolumeUsdt === null || page.lifetimeVolumeUsdt === null ? null
           : result.lifetimeVolumeUsdt + page.lifetimeVolumeUsdt,
       };

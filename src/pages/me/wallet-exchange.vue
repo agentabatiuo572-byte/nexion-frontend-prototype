@@ -37,7 +37,7 @@
           <text style="margin: 0 6px">{{ t.exchange.howItWorksEntry }}</text>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
-        <view class="grid place-items-center active:opacity-70" :style="refreshBtnStyle" role="button" tabindex="0" :aria-label="t.exchange.refreshRate" @click="onRefresh"  @keydown.enter.prevent="onRefresh" @keydown.space.prevent="onRefresh">
+        <view class="grid place-items-center active:opacity-70" :style="refreshBtnStyle" role="button" tabindex="0" :aria-disabled="remoteApiEnabled && exchangeAuthorityStatus === 'loading'" :aria-label="t.exchange.refreshRate" @click="onRefresh"  @keydown.enter.prevent="onRefresh" @keydown.space.prevent="onRefresh">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>
         </view>
       </view>
@@ -192,12 +192,9 @@
       </view>
 
       <!-- History -->
-      <view style="margin: 20px 16px 24px">
+      <view v-if="!remoteApiEnabled || exchangeAuthorityStatus === 'ready'" style="margin: 20px 16px 24px">
         <text class="block" :style="historyTitleStyle">{{ t.exchange.historyTitle }}</text>
-        <view v-if="remoteApiEnabled && exchangeAuthorityStatus !== 'ready'" :style="historyAuthorityStateStyle" role="status" aria-live="polite" :aria-busy="exchangeAuthorityStatus === 'loading' ? 'true' : 'false'">
-          <text>{{ exchangeAuthorityStatus === "loading" ? t.wallet.loadingTransactions : t.exchange.remoteUnavailableClosed }}</text>
-        </view>
-        <EmptyState v-else-if="history.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" compact />
+        <EmptyState v-if="history.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" compact />
         <view v-else :style="historyListStyle">
           <view v-for="(h, i) in history" :key="h.id" class="flex items-center" :style="historyRowStyle(i)">
             <view class="grid place-items-center shrink-0" :style="historyIconStyle">
@@ -220,7 +217,7 @@
 <script setup lang="ts">
 import { platformDisplayText } from "@/lib/brand-copy";
 
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { onLoad, onHide, onShow } from "@dcloudio/uni-app";
 import { navTo } from "@/lib/route";
 import { exchangeQuote } from "@/lib/exchange-quote";
@@ -533,9 +530,8 @@ onShow(() => {
   if (remoteApiEnabled) {
     const scope = captureExchangeScope();
     const runScope = captureRuntimeRevision();
-    void syncRemoteState(scope, runScope).catch(() => {
-      toastIfRemoteScopeCurrent(scope, runScope, () => toast.error(t.value.exchange.remoteUnavailableToast));
-    });
+    // The inline authority state owns read failures and its refresh action.
+    void syncRemoteState(scope, runScope).catch(() => undefined);
     return;
   }
   // Explicit mock mode only: local counters and local wallet receipts are never remote success.
@@ -717,6 +713,7 @@ function flip() {
 
 function onRefresh() {
   if (remoteApiEnabled) {
+    if (exchangeAuthorityStatus.value === "loading") return;
     const scope = captureExchangeScope();
     const runScope = captureRuntimeRevision();
     void syncRemoteState(scope, runScope)
@@ -724,9 +721,7 @@ function onRefresh() {
         if (!applied) return;
         toastIfRemoteScopeCurrent(scope, runScope, () => toast.info(t.value.exchange.remoteRefreshed));
       })
-      .catch(() => {
-        toastIfRemoteScopeCurrent(scope, runScope, () => toast.error(t.value.exchange.remoteUnavailableToast));
-      });
+      .catch(() => undefined);
     return;
   }
   exchange.refreshRate();

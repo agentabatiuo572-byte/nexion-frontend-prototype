@@ -1,4 +1,6 @@
 import * as Vue from "vue";
+import { teamRedesignCopy } from "@/i18n/team-redesign";
+import { useLocaleStore } from "@/store/locale";
 import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { createPinia, setActivePinia } from "pinia";
@@ -8,6 +10,10 @@ import ts from "typescript";
 // @ts-expect-error Installed UniApp preprocessing is JavaScript without published declarations.
 import { preprocess } from "@dcloudio/uni-cli-shared/lib/preprocess/lib/preprocess.js";
 import qrcode from "qrcode-generator";
+// @ts-expect-error Existing Node-only QR decoder has no published declarations.
+import QrCode from "qrcode-reader";
+import { zh } from "@/i18n/messages/zh";
+import { vi as vietnamese } from "@/i18n/messages/vi";
 import { createApiClient, type HttpResponse } from "@/api/api-client";
 import { createSessionVault } from "@/api/session-vault";
 import { createAppHomeApi } from "@/api/app-home-api";
@@ -109,7 +115,8 @@ function home(today: number | null = null) {
     source: "server:nx_compute_receipt,nx_compute_task,nx_user_device,nx_compute_datacenter,nx_product,nx_growth_promo_banner" };
 }
 const response = (data: unknown): HttpResponse => ({ status: 200, headers: {}, data: { code: 0, message: "success", data } });
-async function mount(platform: "h5" | "native" = "h5") {
+async function mount(platform: "h5" | "native" = "h5", messages = en) {
+  useLocaleStore().setLocale(messages === zh ? "zh" : messages === vietnamese ? "vi" : "en");
   const vault = createSessionVault();
   const session = (userId: number) => vault.save({ accessToken: "fixture-access", refreshToken: "fixture-refresh", tokenType: "Bearer",
     user: { userId, countryCode: "+86", phone: "10000000000", nickname: "Fixture", onboardingComplete: true } });
@@ -134,13 +141,21 @@ async function mount(platform: "h5" | "native" = "h5") {
     sourceEnvironment: "PRODUCTION", runId: null, factSources: [], refreshedAt: "2026-10-01T00:00:00Z" };
   await Promise.all([app.refreshRemoteFleet(), app.refreshHomeTruth()]);
   expect(app.remoteFleetStatus).toBe("ready"); expect(app.homeTruthStatus).toBe("ready");
-  const canvas: Array<{ texts: string[] }> = [], exports: Array<{ success: (value: { tempFilePath: string }) => void }> = [];
+  type Drawing = { texts: string[]; images: any[][]; clips: number[][]; fills: Array<{ color: string; bounds: number[] }>; textPositions: Array<{ value: string; x: number; y: number; size: number }> };
+  const canvas: Drawing[] = [], exports: Array<{ success: (value: { tempFilePath: string }) => void }> = [];
   const native = {
-    getStorageSync: () => "", setStorageSync: vi.fn(), getImageInfo: ({ success }: any) => success({ path: "/fixture-logo.png" }),
+    getStorageSync: () => "", setStorageSync: vi.fn(), getImageInfo: vi.fn(({ src, success }: any) => success({ path: src.includes("atlas") ? "/fixture-atlas.png" : "/fixture-logo.png" })),
     createCanvasContext: () => {
-      const drawing = { texts: [] as string[] }; canvas.push(drawing);
+      const drawing: Drawing = { texts: [], images: [], clips: [], fills: [], textPositions: [] }; canvas.push(drawing);
+      let color = "", fontSize = 12, clip: number[] = [];
       return new Proxy({}, { get: (_target, key) => {
-        if (key === "fillText") return (value: string) => drawing.texts.push(value);
+        if (key === "fillText") return (value: string, x: number, y: number) => { drawing.texts.push(value); drawing.textPositions.push({ value, x, y, size: fontSize }); };
+        if (key === "setFontSize") return (value: number) => { fontSize = value; };
+        if (key === "setFillStyle") return (value: string) => { color = value; };
+        if (key === "fillRect") return (...bounds: number[]) => drawing.fills.push({ color, bounds });
+        if (key === "drawImage") return (...args: any[]) => drawing.images.push(args);
+        if (key === "rect") return (...bounds: number[]) => { clip = bounds; };
+        if (key === "clip") return () => drawing.clips.push(clip);
         if (key === "createLinearGradient" || key === "createCircularGradient") return () => ({ addColorStop() {} });
         if (key === "draw") return (_reserve: boolean, done: () => void) => done();
         return () => {};
@@ -166,7 +181,9 @@ async function mount(platform: "h5" | "native" = "h5") {
   }, segments, { update() {} });
   const dependencies: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
-    vue: Vue, "qrcode-generator": { default: qrcode }, "@/i18n/use-t": { useT: () => Vue.ref(en) }, "@/i18n/format": { fmt, dateLocale },
+    "@/store/locale": { useLocaleStore }, "@/i18n/team-redesign": { teamRedesignCopy },
+    "@/components/liquid-glass.vue": { default: { render: () => Vue.h("decoration") } },
+    vue: Vue, "qrcode-generator": { default: qrcode }, "@/i18n/use-t": { useT: () => Vue.ref(messages) }, "@/i18n/format": { fmt, dateLocale },
     "@/lib/brand-copy": { displayNickname }, "@/api/runtime": remote, "@/lib/device-slot-policy": { isActiveSlotDevice },
     "@/store/app": { useApp }, "@/store/config": { useConfig }, "@/store/profile": { useProfile: () => ({ displayName: "Fixture" }) },
     "@/store/ui": { toast },
@@ -385,5 +402,82 @@ describe("mounted native save callbacks use the same operation fence", () => {
     const s = await mount("native"); await s.selectYield(); s.control(en.share.saveImage).props.onClick();
     const current = s.native.saveImageToPhotosAlbum.mock.calls[0][0]; expect(current.filePath).toBe(s.image());
     current.success(); expect(s.toast.success).toHaveBeenCalledExactlyOnceWith(en.share.saved); expect(s.fetchImage).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("approved decorative art and real poster QR", () => {
+  it.each([en, zh, vietnamese])("composes one invite tile, fits localized text and decodes the generated QR to the confirmed link", async messages => {
+    const s = await mount("h5", messages); await s.generate(); await s.finish();
+    const drawing = s.canvas.at(-1)!;
+    expect(drawing.images.filter(args => args[0] === "/fixture-atlas.png")).toEqual([["/fixture-atlas.png", 69, 108, 618, 618]]);
+    expect(drawing.clips).toEqual([[69, 108, 206, 206]]);
+    expect(drawing.texts.join(" ")).not.toContain("41,286");
+    for (const position of drawing.textPositions) {
+      expect(position.y).toBeLessThanOrEqual(446);
+      if (position.x === 20 && position.y >= 325 && position.y < 352) expect(position.y).toBeLessThanOrEqual(340);
+    }
+    const white = drawing.fills.find(fill => fill.color === "#FFFFFF")!;
+    const [x, y, size] = white.bounds;
+    const dimension = 288, scale = dimension / size;
+    const data = new Uint8ClampedArray(dimension * dimension * 4).fill(255);
+    for (const { color, bounds: [left, top, width, height] } of drawing.fills.filter(fill => fill.color === "#000000")) {
+      expect(color).toBe("#000000"); expect(left).toBeGreaterThan(x); expect(top).toBeGreaterThan(y);
+      for (let row = Math.round((top - y) * scale); row < Math.round((top + height - y) * scale); row++) {
+        for (let col = Math.round((left - x) * scale); col < Math.round((left + width - x) * scale); col++) {
+          const offset = (row * dimension + col) * 4; data[offset] = data[offset + 1] = data[offset + 2] = 0;
+        }
+      }
+    }
+    const decoded = await new Promise<string>((resolve, reject) => {
+      const reader = new QrCode(); reader.callback = (error: unknown, result: { result: string }) => error ? reject(error) : resolve(result.result);
+      reader.decode({ width: dimension, height: dimension, data });
+    });
+    expect(decoded).toBe(buildShareLink());
+    const body = all(s.root).find(entry => String(entry.props.class).includes("ps-body"))!;
+    const head = all(s.root).find(entry => entry.props.class === "ps-head")!;
+    expect(body.parent).toBe(head.parent);
+    expect(all(body).some(entry => entry.props["aria-label"] === messages.ui.close)).toBe(false);
+    expect(all(body)).toContain(s.control(messages.share.saveImage));
+  });
+
+  it("exports a real QR even when the decorative atlas fails to load", async () => {
+    const s = await mount();
+    s.native.getImageInfo.mockImplementation(({ src, success, fail }: any) => src.includes("atlas") ? fail() : success({ path: "/fixture-logo.png" }));
+    await s.generate(); await s.finish();
+    expect(s.image()).toBe("/fixture-poster.png");
+    expect(s.canvas.at(-1)!.images.every(args => args[0] !== "/fixture-atlas.png")).toBe(true);
+    expect(s.canvas.at(-1)!.fills.some(fill => fill.color === "#000000")).toBe(true);
+  });
+
+  it.each([zh, en, vietnamese])("keeps zero newcomer rewards off promotional posters without changing inviter rewards", async messages => {
+    const s = await mount("h5", messages);
+    s.cfg.config.rewards.enabled = true;
+    s.cfg.config.rewards.welcomeGift.usdtAmount = 0;
+    s.cfg.config.rewards.welcomeGift.nexAmount = 0;
+    await flush();
+    expect(s.tab(messages.share.tplGift)).toBeUndefined();
+    await s.generate(); await s.finish();
+    const printed = s.canvas.at(-1)!.texts.join(" ");
+    expect(printed).toContain(messages.share.posterBrandSubNoReward);
+    expect(printed).not.toContain(fmt(messages.share.posterRewardLine, { usd: "0.00", nex: "0.00" }));
+  });
+
+  it("invalidates a gift poster when configured recipient rewards change", async () => {
+    const s = await mount(); s.cfg.config.rewards.enabled = true; s.cfg.config.rewards.welcomeGift.usdtAmount = 1; await flush();
+    s.tab(en.share.tplGift)!.props.onClick({ currentTarget: {} }); await s.generate(); await s.finish();
+    s.cfg.config.rewards.welcomeGift.usdtAmount = 8; s.cfg.config.rewards.welcomeGift.nexAmount = 25; await flush();
+    expect(s.control(en.share.saveImage).props["aria-disabled"]).toBe(true);
+    await s.generate(); await s.finish();
+    expect(s.canvas.at(-1)!.texts).toContain(fmt(en.share.posterGiftAmount, { usd: "8.00", nex: "25.00" }));
+    expect(s.canvas.at(-1)!.texts.join(" ")).not.toContain(en.share.posterGiftSub2);
+  });
+
+  it("suppresses late clipboard feedback after the account epoch changes", async () => {
+    const s = await mount(); await s.generate(); await s.finish();
+    const copied = deferred<boolean>(); s.copyText.mockReturnValueOnce(copied.promise);
+    const action = s.control(en.share.copyLink).props.onClick();
+    s.app.bindAccount("user:2002"); await flush(); copied.resolve(true); await action;
+    expect(s.toast.success).not.toHaveBeenCalled(); expect(s.toast.info).not.toHaveBeenCalled();
   });
 });

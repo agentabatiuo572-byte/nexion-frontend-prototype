@@ -1,5 +1,6 @@
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { expect, test, vi } from "vitest";
-import { directPage, deferred, eventFixture, snapshotFixture, policyFixture, flush, text, click } from "./direct-referral.test-support";
+import { directPage, deferred, eventFixture, snapshotFixture, policyFixture, flush, text, click, all } from "./direct-referral.test-support";
 import { dictionaries } from "./direct-referral.test-support";
 
 const cutoff = "2026-10-05T00:00:00Z";
@@ -17,11 +18,11 @@ test("purchase totals use unilevel once; the device tab has its own server-filte
   await flush();
   expect(snapshot).not.toHaveBeenCalled();
   expect(unilevel).toHaveBeenLastCalledWith("month", 1, 20, null, "direct");
-  expect(text(page.root)).toContain("110.00USDT4100.00NEX");
+  expect(text(page.root)).toContain("$110.004100.00UVT");
   await click(page.root, "Device earnings reward");
   expect(snapshot).toHaveBeenLastCalledWith("month", 1, 20, cutoff, "device_earning");
-  expect(text(page.root)).toContain("0.33USDT22.00NEX");
-  expect(text(page.root)).not.toContain("600.00USDT");
+  expect(text(page.root)).toContain("$0.3322.00UVT");
+  expect(text(page.root)).not.toContain("$600.00");
 });
 
 test("network selection queries before pagination and discards a late direct response", async () => {
@@ -39,8 +40,8 @@ test.each(["en", "zh", "vi"] as const)("%s renders a network group's different c
   const unilevel = vi.fn().mockResolvedValue(purchase("extended", [event]));
   const page = await directPage({ locale, purchaseApi: { unilevel } }); await flush();
   await click(page.root, dictionaries[locale].directReferral.networkPurchase);
-  expect(text(page.root)).toContain(`USDT ${dictionaries[locale].commissions.reversedTag} · NEX ${dictionaries[locale].commissions.readyTag}`);
-  expect(text(page.root)).toContain("4000.00 NEX");
+  expect(text(page.root)).toContain(`USDT ${dictionaries[locale].commissions.reversedTag} · UVT ${dictionaries[locale].commissions.readyTag}`);
+  expect(text(page.root)).toContain("4000.00 UVT");
 });
 
 test("waiting price is visible and a stale environment read cannot replace a fresh snapshot", async () => {
@@ -67,5 +68,7 @@ test.each(["en", "zh", "vi"] as const)("%s explains an unconfigured purchase blo
   await flush();
   expect(text(page.root)).not.toContain("10%");
   await click(page.root, locale === "zh" ? "设备收益分成" : locale === "vi" ? "Thưởng thu nhập thiết bị" : "Device earnings reward");
+  expect(text(page.root)).not.toContain("70%");
+  all(page.root).find(n=>n.props.role === "button" && text(n).startsWith(networkReauditCopy(locale).settlementDetails))!.props.onClick(); await flush();
   expect(text(page.root)).toContain("70%");
 });

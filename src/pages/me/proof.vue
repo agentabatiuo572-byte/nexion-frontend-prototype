@@ -15,13 +15,13 @@
       <view style="color: var(--v5-ink)">
         <SubPageHeader back="/pages/me/me" :title="t.proof.title" />
 
-        <view v-if="remoteApiEnabled && remoteError" :style="remoteErrorStyle">
-          <text class="block" style="font-weight: 600">{{ t.network.projectionErrorTitle }}</text>
-          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.network.projectionErrorDesc }}</text>
-          <view role="button" tabindex="0" :style="remoteRetryStyle" @click="refreshRemoteProof"  @keydown.enter.stop.prevent="refreshRemoteProof" @keydown.space.stop.prevent="refreshRemoteProof"><text>{{ t.network.retry }}</text></view>
+        <view v-if="!proofReady" :style="remoteErrorStyle" role="status" :aria-busy="remoteLoading">
+          <text class="block" style="font-weight: 600">{{ recoveryTitle }}</text>
+          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ recoveryHint }}</text>
+          <view v-if="!remoteLoading" role="button" tabindex="0" :style="remoteRetryStyle" @click="refreshRemoteProof" @keydown.enter.stop.prevent="refreshRemoteProof" @keydown.space.stop.prevent="refreshRemoteProof"><text>{{ t.ui.retry }}</text></view>
         </view>
 
-      <view :style="bodyStyle">
+      <view v-if="proofReady" :style="bodyStyle">
         <!-- Variant tabs -->
         <view>
           <text class="block font-mono-tabular" :style="variantLabelStyle">{{ t.proof.variantLabel }}</text>
@@ -202,6 +202,8 @@ import { isDeviceOnline } from "@/lib/hashpower";
 import { useVRank } from "@/store/v-rank";
 import { rankTitle } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
+import { useConfig } from "@/store/config";
+import { proofRecoveryCopyFor } from "./proof-recovery-copy";
 import { useNetwork } from "@/store/network";
 import { useNexFaucet } from "@/store/nex-faucet";
 import { proofApi, remoteApiEnabled } from "@/api/runtime";
@@ -219,6 +221,8 @@ const app = useApp();
 const profile = useProfile();
 const vRank = useVRank();
 const locale = useLocaleStore();
+const config = useConfig();
+const recoveryCopy = computed(() => proofRecoveryCopyFor(locale.code));
 const network = useNetwork();
 const faucet = useNexFaucet();
 
@@ -236,6 +240,7 @@ function moveVariant(index: number, delta: number): void {
 const exportingPoster = ref(false);
 const remoteSnapshot = ref<ProofSnapshot | null>(null);
 const remoteError = ref(false);
+const remoteLoading = ref(remoteApiEnabled);
 let remoteRequest = 0;
 let remoteMounted = true;
 
@@ -243,6 +248,7 @@ function clearRemoteProof(): void {
   remoteRequest += 1;
   remoteSnapshot.value = null;
   remoteError.value = false;
+  remoteLoading.value = false;
 }
 
 function invalidateRemoteProof(): void {
@@ -252,8 +258,10 @@ function invalidateRemoteProof(): void {
 }
 
 async function refreshRemoteProof() {
+  if (!remoteMounted) return;
   const request = ++remoteRequest;
   remoteError.value = false;
+  remoteLoading.value = true;
   const expectedAccount = app.accountKey;
   const accountScope = captureAccountScope();
   const runScope = captureRuntimeRevision();
@@ -262,10 +270,16 @@ async function refreshRemoteProof() {
     && isCurrentAccountScope(accountScope)
     && isCurrentRuntimeRevision(runScope);
   try {
-    const value = await proofApi.snapshot();
-    if (current()) remoteSnapshot.value = value;
+    // Both facts and the published link base are required for sharing. Their
+    // failures stay distinct: a missing base does not invalidate proof facts.
+    const [facts] = await Promise.allSettled([proofApi.snapshot(), config.load()]);
+    if (!current()) return;
+    if (facts.status === "fulfilled") remoteSnapshot.value = facts.value;
+    else { remoteSnapshot.value = null; remoteError.value = true; }
   } catch {
     if (current()) { remoteSnapshot.value = null; remoteError.value = true; }
+  } finally {
+    if (current()) remoteLoading.value = false;
   }
 }
 
@@ -275,7 +289,7 @@ watch([() => String(app.accountKey), () => app.accountBindingEpoch], () => {
   remoteSnapshot.value = null;
   remoteError.value = false;
   void refreshRemoteProof();
-});
+}, { flush: "sync" });
 const unsubscribeProofRun = subscribeRuntimeRevision(() => {
   if (!remoteApiEnabled || !remoteMounted) return;
   clearRemoteProof();
@@ -326,6 +340,15 @@ const activeDays = computed<number | null>(() => remoteApiEnabled ? remoteSnapsh
 // [FEAT-SHARE1] 链接单源收编:构造走 lib/share(禁自拼 nexgrid.ai/ref/)。
 const refCode = computed(() => remoteApiEnabled ? remoteSnapshot.value?.referralCode ?? "—" : app.user.referralCode);
 const referralLink = computed(() => refCode.value === "—" ? "" : buildShareLink(refCode.value));
+const proofReady = computed(() => remoteMounted && !remoteLoading.value
+  && (!remoteApiEnabled || (!remoteError.value && remoteSnapshot.value !== null))
+  && referralLink.value.trim().length > 0);
+const recoveryTitle = computed(() => remoteLoading.value ? recoveryCopy.value.loading
+  : remoteApiEnabled && (remoteError.value || !remoteSnapshot.value) ? recoveryCopy.value.unavailable
+  : recoveryCopy.value.linkUnavailable);
+const recoveryHint = computed(() => remoteLoading.value ? recoveryCopy.value.loadingHint
+  : remoteApiEnabled && (remoteError.value || !remoteSnapshot.value) ? recoveryCopy.value.unavailableHint
+  : recoveryCopy.value.linkUnavailableHint);
 
 const topPct = computed(() => remoteApiEnabled ? remoteSnapshot.value?.topPercentile ?? null : null);
 const topPctText = computed(() => topPct.value === null ? "—" : `Top ${topPct.value}%`);
@@ -349,7 +372,24 @@ const devicesChip = computed(() => fmt(t.value.proof.badges.devices, { n: String
 const daysActiveChip = computed(() => fmt(t.value.proof.badges.daysActive, { n: String(activeDays.value ?? "—") }));
 
 // ── share actions (P-028: uni.share? + setClipboardData fallback) ──
+function beginProofAction(): (() => boolean) | null {
+  if (!proofReady.value || !remoteMounted) return null;
+  const request = remoteRequest;
+  const snapshot = remoteSnapshot.value;
+  const link = referralLink.value;
+  const expectedAccount = app.accountKey;
+  const expectedBinding = app.accountBindingEpoch;
+  const accountScope = captureAccountScope();
+  const runScope = captureRuntimeRevision();
+  return () => remoteMounted && proofReady.value && request === remoteRequest
+    && snapshot === remoteSnapshot.value && link === referralLink.value
+    && expectedAccount === app.accountKey && expectedBinding === app.accountBindingEpoch
+    && isCurrentAccountScope(accountScope) && isCurrentRuntimeRevision(runScope);
+}
 function nativeShare() {
+  const current = beginProofAction();
+  if (!current) return;
+  const text = shareText.value;
   const share = (uni as { share?: (o: unknown) => void }).share;
   if (typeof share === "function") {
     share({
@@ -357,40 +397,48 @@ function nativeShare() {
       type: 0,
       href: referralLink.value,
       title: "UVEL · Proof of Contribution",
-      summary: shareText.value,
+      summary: text,
       success: () => {},
-      fail: () => copyText(shareText.value, t.value.proof.sharedToast),
+      fail: () => { if (current()) void copyText(text, t.value.proof.sharedToast, "", current); },
     });
   } else {
-    copyText(shareText.value, t.value.proof.sharedToast);
+    void copyText(text, t.value.proof.sharedToast, "", current);
   }
 }
 function copyLink() {
-  copyText(referralLink.value, t.value.proof.copiedToast);
+  return copyText(referralLink.value, t.value.proof.copiedToast);
 }
 function copyShareText(networkName: string) {
-  copyText(shareText.value, t.value.proof.sharedToast, `Open ${networkName} and paste`);
+  return copyText(shareText.value, t.value.proof.sharedToast, `Open ${networkName} and paste`);
 }
 const POSTER_WIDTH = 1080;
 const POSTER_HEIGHT = 1350;
 
 async function downloadPng() {
-  if (exportingPoster.value) return;
+  const current = beginProofAction();
+  if (!current || exportingPoster.value) return;
+  const posterVariant = variant.value;
+  const posterCurrent = () => current() && posterVariant === variant.value;
   exportingPoster.value = true;
   try {
     await drawProofPoster();
+    if (!posterCurrent()) return;
     const tempFilePath = await exportProofCanvas();
+    if (!posterCurrent()) return;
+    if (!tempFilePath.trim()) throw new Error("PROOF_EXPORT_EMPTY");
     if (typeof document !== "undefined") downloadProofOnH5(tempFilePath);
     else await saveProofToAlbum(tempFilePath);
-    toast.success(t.value.proof.downloadToast, "");
+    if (posterCurrent()) toast.success(t.value.proof.downloadToast, "");
   } catch {
-    toast.error(t.value.proof.downloadErrorToast);
+    if (posterCurrent()) toast.error(t.value.proof.downloadErrorToast);
   } finally {
     exportingPoster.value = false;
   }
 }
-async function copyText(data: string, title: string, desc = "") {
+async function copyText(data: string, title: string, desc = "", current = beginProofAction()) {
+  if (!data.trim() || !current?.()) return;
   const copied = await copyToClipboard(data).catch(() => false);
+  if (!current()) return;
   if (copied) toast.success(title, desc);
   else toast.info(t.value.share.copyFailed);
 }

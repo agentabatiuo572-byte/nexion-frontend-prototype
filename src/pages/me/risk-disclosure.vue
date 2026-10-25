@@ -10,7 +10,7 @@
   <AppChassis active="me">
     <scroll-view :key="nativeScrollSurface.key" scroll-y :scroll-top="scrollTop" style="height: 100vh" :onScroll="nativeScrollSurface.events.scroll" :onScrolltolower="nativeScrollSurface.events.scrolltolower">
     <view style="padding-bottom: 32px">
-      <SubPageHeader :back="returnTo" pill />
+      <SubPageHeader :back="returnTo" />
 
       <!-- Hero -->
       <view class="nx-glass-card mx-4" :style="heroStyle">

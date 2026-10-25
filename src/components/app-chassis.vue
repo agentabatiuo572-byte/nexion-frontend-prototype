@@ -19,7 +19,6 @@
 
     <!-- Header brand row — TAB routes only (sub-pages carry their own back row) -->
     <view v-if="isTabRoute" class="nx-header" :style="{ top: statusBarHeight + 'px' }">
-      <view class="nx-header-surface" aria-hidden="true"><LiquidGlass :radius="0" tone="control" backdrop=".nx-page-enter" /></view>
       <view class="nx-header__l">
         <view class="nx-canvas-brand" role="img" aria-label="UVEL"><svg width="30" height="22" viewBox="0 0 30 22" aria-hidden="true"><path d="M3 5c0 9 4.5 13 9 13s7-4 7-9" fill="none" stroke="var(--v5-brand)" stroke-width="4" stroke-linecap="round"/><path d="M11 9c0-3 2.5-5 6-5s7 3 7 8-3 7-6 7" fill="none" stroke="var(--ui-lime-soft)" stroke-width="4" stroke-linecap="round"/></svg><text>UVEL</text></view>
       </view>
@@ -30,10 +29,10 @@
           <LiquidGlass :radius="22" tone="control" backdrop=".nx-page-enter" />
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
         </view>
-	        <view class="nx-icon-btn nx-bell nx-design-glass" role="button" tabindex="0" :aria-label="unread > 0 ? t.notifs.drawerTitle + ' · ' + unreadLabel : t.notifs.drawerTitle" @click="goNotifications"  @keydown.enter.prevent="onKeyboardActivate($event, goNotifications)" @keydown.space.prevent="onKeyboardActivate($event, goNotifications)">
+	        <view class="nx-icon-btn nx-bell nx-design-glass" role="button" tabindex="0" :aria-label="unread !== null && unread > 0 ? t.notifs.drawerTitle + ' · ' + unreadLabel : unread === null ? t.notifs.drawerTitle + ' · ' + t.notifs.unreadUnavailable : t.notifs.drawerTitle" @click="goNotifications"  @keydown.enter.prevent="onKeyboardActivate($event, goNotifications)" @keydown.space.prevent="onKeyboardActivate($event, goNotifications)">
           <LiquidGlass :radius="22" tone="control" backdrop=".nx-page-enter" />
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
-          <view v-if="unread > 0" class="nx-badge"><text class="nx-badge__t">{{ unreadLabel }}</text></view>
+          <view v-if="unread !== null && unread > 0" class="nx-badge"><text class="nx-badge__t">{{ unreadLabel }}</text></view>
         </view>
       </view>
     </view>
@@ -52,11 +51,11 @@
         <text class="nx-nav-title">{{ navHeader.title }}</text>
         <text v-if="navHeader.subtitle" class="nx-nav-sub">{{ navHeader.subtitle }}</text>
       </view>
-	      <view class="nx-nav-side" role="button" tabindex="0" :aria-label="unread > 0 ? t.notifs.drawerTitle + ' · ' + unreadLabel : t.notifs.drawerTitle" @click="goNotifications"  @keydown.enter.prevent="onKeyboardActivate($event, goNotifications)" @keydown.space.prevent="onKeyboardActivate($event, goNotifications)">
+	      <view class="nx-nav-side" role="button" tabindex="0" :aria-label="unread !== null && unread > 0 ? t.notifs.drawerTitle + ' · ' + unreadLabel : unread === null ? t.notifs.drawerTitle + ' · ' + t.notifs.unreadUnavailable : t.notifs.drawerTitle" @click="goNotifications"  @keydown.enter.prevent="onKeyboardActivate($event, goNotifications)" @keydown.space.prevent="onKeyboardActivate($event, goNotifications)">
         <view class="nx-nav-glass">
           <LiquidGlass v-if="!navCapsule" :radius="18" tone="navigation" backdrop=".nx-page-enter" />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
-          <view v-if="unread > 0" class="nx-nav-belldot" />
+          <view v-if="unread !== null && unread > 0" class="nx-nav-belldot" />
         </view>
       </view>
     </view>
@@ -106,6 +105,7 @@
                5 protected tab pages stay untouched (ALIGNMENT red-line). Self-
                hides unless a claimable voucher targets the current surface. -->
           <slot />
+          <NovaBubble v-if="isTabRoute && activeTab !== 'home' && activeTab !== 'store' && activeTab !== 'me'" />
         </view>
       </view>
     </view>
@@ -127,9 +127,6 @@
       </GlassSegments>
       <DeviceHomeIndicator />
     </view>
-
-    <!-- Personal-center help stays in the support row and message button, clear of the shortcut grid. -->
-    <NovaBubble v-if="isTabRoute && activeTab !== 'home' && activeTab !== 'store' && activeTab !== 'me'" v-show="!scrolling" />
 
     <!-- Chassis-level overlays (each self-gates on its own store's open state,
          mirroring the prototype IOSFrame). Ported P-043. -->
@@ -552,7 +549,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   action();
 }
 
-const unread = computed(() => messageDrawer.totalUnread);
+const unread = computed(() => messageDrawer.actionableUnread);
 const unreadLabel = computed(() => formatUnreadBadge(unread.value));
 
 // ── layout insets ──
@@ -705,9 +702,6 @@ export default chassisView;
   -webkit-backdrop-filter: saturate(180%) blur(24px);
   pointer-events: none;
 }
-.nx-header-surface { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 160ms; }
-.nx-chassis[data-scrolled="true"] .nx-header-surface { opacity: 1; }
-.nx-chassis[data-scrolling="true"] :deep(.nx-nova-bubble) { visibility: hidden; pointer-events: none; }
 .nx-header {
   isolation: isolate;
   position: absolute;

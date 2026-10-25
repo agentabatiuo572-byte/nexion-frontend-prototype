@@ -1,83 +1,24 @@
-<!--
-  VBadge — ported from Nexion-prototype/app/components/v3/v-badge.tsx.
-  V-rank title pill (server-published ranks); colour climbs with level. showTitle toggles the
-  title text —— 显示名按语言取(中文界面出中文头衔,2026-08-17 起收在 lib/v-rank-copy)。
-  Gradient badges (V10+) add a text-shadow for legibility.
-  Reused by team.vue + binary.vue. <span>→<text> (badge is inline text).
--->
 <template>
-  <text class="nx-vbadge font-mono-tabular" :style="badgeStyle">
-    <text :style="vTextStyle">V{{ v }}</text>
-    <text v-if="showTitle && vRank.remoteReady" class="font-display" :style="titleStyle">{{ rankTitle(v, locale.code, vRank.ladder) }}</text>
-  </text>
+  <view class="nx-vbadge" :class="`nx-vbadge--${size}`">
+    <TeamRankEmblem :rank="v" :size="emblemSize" />
+    <text class="nx-vbadge__level">V{{ v }}</text>
+    <text v-if="showTitle && vRank.remoteReady" class="nx-vbadge__title">{{ rankTitle(v, locale.code, vRank.ladder) }}</text>
+  </view>
 </template>
-
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
-import { useVRank, type VRank } from "@/store/v-rank";
-import { rankTitle } from "@/lib/v-rank-copy";
-import { useLocaleStore } from "@/store/locale";
-
-const props = withDefaults(
-  defineProps<{ v: VRank; size?: "sm" | "md" | "lg"; showTitle?: boolean }>(),
-  { size: "md", showTitle: true },
-);
-
-interface ColorSpec {
-  bg: string;
-  text: string;
-}
-
-const COLORS: Record<number, ColorSpec> = {
-  // V 军衔色阶(2026-07-23 C1 重定)。原表 text 一半走 token、一半写死**亮色**
-  // (#B0B8C5 / #D4FF55 / #A88FFF / #FFCB5F …)——那批是照暗主题调的,落到亮主题的
-  // 卡面上实测最低 **1.59:1**(V1),等于看不见;且 3/5/7 档 token 文字 + 字面底色
-  // 在亮主题下还异色系(蓝字柠檬底 / 青字紫底)。
-  // 现改为**每档 bg / text 同源于一个 token**:同族内靠透明度爬坡区分档位,
-  // 徽章内部两个主题下都同色系且都跟主题。
-  // ⚠️ 5-9 档的绝对对比度仍受限于亮主题语义色本身的取值(warning 2.79 / tech-cyan 1.88,
-  //    = 待拍板项 A2「亮主题语义色整体不达 AA」),那是 token 值层面的问题,不在本组件;
-  //    A2 定案后这里自动跟着变好,无需再改本表。
-  0: { bg: "color-mix(in srgb, var(--v5-ink-3) 15%, transparent)", text: "var(--v5-ink-3)" },
-  1: { bg: "color-mix(in srgb, var(--v5-ink-3) 18%, transparent)", text: "var(--v5-ink-2)" },
-  2: { bg: "color-mix(in srgb, var(--v5-ink-3) 20%, transparent)", text: "var(--v5-ink)" },
-  3: { bg: "color-mix(in srgb, var(--v5-brand) 12%, transparent)", text: "var(--v5-brand)" },
-  4: { bg: "color-mix(in srgb, var(--v5-brand) 16%, transparent)", text: "var(--v5-brand-deep)" },
-};
-
-const SIZES = {
-  sm: { padding: "2px 6px", fontSize: "12px", gap: "4px" },
-  md: { padding: "3px 8px", fontSize: "12px", gap: "4px" },
-  lg: { padding: "4px 10px", fontSize: "13px", gap: "6px" },
-} as const;
-
+import { computed } from 'vue';
+import TeamRankEmblem from './team-rank-emblem.vue';
+import { useVRank, type VRank } from '@/store/v-rank';
+import { rankTitle } from '@/lib/v-rank-copy';
+import { useLocaleStore } from '@/store/locale';
+const props = withDefaults(defineProps<{ v: VRank; size?: 'sm' | 'md' | 'lg'; showTitle?: boolean }>(), { size: 'md', showTitle: true });
 const vRank = useVRank();
 const locale = useLocaleStore();
-const c = computed(() => COLORS[props.v] ?? COLORS[3]);
-const sz = computed(() => SIZES[props.size]);
-const isGradient = computed(() => c.value.bg.startsWith("linear"));
-
-const badgeStyle = computed<CSSProperties>(() => ({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: sz.value.gap,
-  padding: sz.value.padding,
-  borderRadius: "6px",
-  fontWeight: 600,
-  letterSpacing: "0.05em",
-  fontSize: sz.value.fontSize,
-  background: c.value.bg,
-  color: c.value.text,
-}));
-
-const vTextStyle = computed<CSSProperties>(() => ({
-  color: c.value.text,
-  textShadow: isGradient.value ? "0 1px 2px rgba(0,0,0,0.4)" : undefined,
-}));
-
-const titleStyle = computed<CSSProperties>(() => ({
-  fontWeight: 600,
-  color: c.value.text,
-  textShadow: isGradient.value ? "0 1px 2px rgba(0,0,0,0.4)" : undefined,
-}));
+const emblemSize = computed(() => ({ sm: 24, md: 30, lg: 40 })[props.size]);
 </script>
+<style scoped>
+.nx-vbadge { display:inline-flex;align-items:center;gap:6px;max-width:100%;vertical-align:middle;color:var(--v5-ink);font:500 12px/1.5 var(--font-v5); }
+.nx-vbadge__level { flex:none;font-variant-numeric:tabular-nums;font-weight:600; }
+.nx-vbadge__title { min-width:0;overflow-wrap:anywhere;color:var(--v5-ink-2); }
+.nx-vbadge--lg { font-size:14px;gap:8px; }
+</style>

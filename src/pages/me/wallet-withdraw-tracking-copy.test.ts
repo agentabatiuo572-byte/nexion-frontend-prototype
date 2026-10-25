@@ -11,6 +11,7 @@ import { fmt } from "@/i18n/format";
 import { riskReasonLines, terminalReasonLine } from "@/lib/risk-reason-text";
 import * as trackingRead from "./wallet-withdraw-tracking-read";
 import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 
 const source = readFileSync(new URL("./wallet-withdraw-tracking.vue", import.meta.url), "utf8");
 const { descriptor } = parse(source, { filename: "wallet-withdraw-tracking.vue" });
@@ -28,6 +29,7 @@ function actualPage(dictionary: typeof zh | typeof en | typeof vi) {
   });
   const imports: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/finance-amount-display": { formatFinanceAmount },
     vue: { ...Vue, onUnmounted: () => {} },
     "@dcloudio/uni-app": { onLoad: () => {}, onShow: () => {}, onHide: () => {} },
     "@/api/runtime": { remoteApiEnabled: true, sessionVault: { read: () => null, revision: () => 0 }, withdrawalApi: {} },

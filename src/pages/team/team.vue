@@ -12,32 +12,11 @@
   <AppChassis active="team">
     <view class="pb-4" style="padding-top: 12px; color: var(--v5-ink)">
       <view class="px-4" style="display: flex; flex-direction: column; gap: 24px">
-        <!-- This month ledger -->
-        <TeamLedgerCard
-          v-if="ledgerVisible"
-          :total-u-s-d-t-lifetime="totalUSDTLifetime"
-          :contributors="commissionAggregate.contributorCount"
-          :direct-u-s-d-t="directUSDT"
-          :extended-u-s-d-t="extendedUSDT"
-          :month-u-s-d-t="monthUSDT"
-          :month-n-e-x="monthNEX"
-          :unlocked-u-s-d-t="unlockedUSDT"
-          :cooling-u-s-d-t="coolingUSDT"
-        />
-        <view v-else-if="ledgerFailed" class="active:opacity-95" :style="toolCellStyle(0)" role="button" tabindex="0" :aria-label="t.network.retry" @click="refreshRemoteLedger"  @keydown.enter.prevent="refreshRemoteLedger" @keydown.space.prevent="refreshRemoteLedger">
-          <text class="block" :style="toolTitleStyle">{{ t.network.projectionErrorDesc }}</text>
-          <text class="block" :style="toolSubStyle">{{ t.network.retry }}</text>
-        </view>
-        <view v-if="ledgerLoading" :style="toolCellStyle(0)" role="status" aria-live="polite">
-          <text class="block" :style="toolSubStyle">{{ ledgerVisible ? t.network.projectionRefreshing : t.network.projectionLoadingTitle }}</text>
-        </view>
-
         <!-- Invite hero -->
         <InviteEarnCard ref="inviteCard" />
         <!-- #ifdef APP-PLUS -->
         <InviteScanEntry />
         <!-- #endif -->
-        <ReferralProgress @share="inviteCard?.openShare()" />
 
         <TeamSummaryCard
           :status="teamSummaryStatus"
@@ -63,20 +42,40 @@
         </view>
 
         <!-- My V-rank summary -->
-        <view class="nx-glass-card nx-team-rank-link team-rank" role="link" tabindex="0" :aria-label="t.team.rankBenefits" @click="go('/pages/team/rank')">
-          <view class="team-rank__emblem" aria-hidden="true">
-            <svg width="60" height="66" viewBox="0 0 60 66" fill="none" stroke="var(--v5-tech-cyan)" stroke-width="2" stroke-linejoin="round"><path d="M30 5 54 19 30 33 6 19Z" fill="color-mix(in srgb, var(--v5-tech-cyan) 50%, transparent)"/><path d="M6 19v28l24 14V33Z" fill="color-mix(in srgb, var(--v5-tech-cyan) 28%, transparent)"/><path d="M54 19v28L30 61V33Z" fill="color-mix(in srgb, var(--v5-tech-cyan) 65%, transparent)"/><path d="m30 14 15 9-15 9-15-9Z" fill="var(--v5-bg)" stroke="none"/></svg>
-          </view>
+        <view class="nx-team-rank-link team-rank" role="link" tabindex="0" :aria-label="t.team.rankBenefits" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
+          <TeamRankEmblem :rank="remoteApiEnabled && !vrank.remoteReady ? null : myRank" :size="92" />
           <view class="team-rank__body">
-            <text class="team-rank__title">{{ t.teamV3.yourRank }}</text>
-            <text class="team-rank__level">{{ myRankDisplay }}</text>
-            <text class="team-rank__hint">{{ t.team.rankBenefits }}</text>
+            <text class="team-rank__title">{{ designCopy.myRank }}</text>
+            <text class="team-rank__level">{{ remoteApiEnabled && !vrank.remoteReady ? 'V—' : `V${myRank}` }}</text>
+            <text class="team-rank__hint">{{ designCopy.promotionRequirements }} · {{ designCopy.benefitsAndRewards }}</text>
           </view>
           <svg class="team-rank__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
         </view>
 
+        <ReferralProgress @share="inviteCard?.openShare()" />
+
+        <!-- This month ledger -->
+        <TeamLedgerCard
+          v-if="ledgerVisible"
+          :total-u-s-d-t-lifetime="totalUSDTLifetime"
+          :contributors="commissionAggregate.contributorCount"
+          :direct-u-s-d-t="directUSDT"
+          :extended-u-s-d-t="extendedUSDT"
+          :month-u-s-d-t="monthUSDT"
+          :month-n-e-x="monthNEX"
+          :unlocked-u-s-d-t="unlockedUSDT"
+          :cooling-u-s-d-t="coolingUSDT"
+        />
+        <view v-else-if="ledgerFailed" class="active:opacity-95" :style="toolCellStyle(0)" role="button" tabindex="0" :aria-label="t.network.retry" @click="refreshRemoteLedger"  @keydown.enter.prevent="refreshRemoteLedger" @keydown.space.prevent="refreshRemoteLedger">
+          <text class="block" :style="toolTitleStyle">{{ t.network.projectionErrorDesc }}</text>
+          <text class="block" :style="toolSubStyle">{{ t.network.retry }}</text>
+        </view>
+        <view v-if="ledgerLoading" :style="toolCellStyle(0)" role="status" aria-live="polite">
+          <text class="block" :style="toolSubStyle">{{ ledgerVisible ? t.network.projectionRefreshing : t.network.projectionLoadingTitle }}</text>
+        </view>
+
         <!-- Unified quick nav -->
-        <view class="nx-glass-card nx-team-quick-panel rounded-2xl overflow-hidden" :style="quickPanelStyle">
+        <view class="nx-team-quick-panel" :style="quickPanelStyle">
           <!-- Leaderboard -->
           <view class="nx-team-leaderboard-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/leaderboard')">
             <view :style="quickRowMainStyle">
@@ -126,7 +125,7 @@
               </view>
             </view>
             <view :style="quickRowValueWrapStyle">
-              <text class="font-display tabular-nums" :style="quickRowValueWarnStyle">{{ binaryMatchText }}</text>
+              <view class="team-estimate"><text class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ binaryMatchText }}</text></view>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
@@ -145,7 +144,7 @@
               </view>
             </view>
             <view :style="quickRowValueWrapStyle">
-              <text class="font-display tabular-nums" :style="quickRowValueWarnStyle">{{ leadershipPoolPrimary }}</text>
+              <view class="team-estimate"><text v-if="leadershipPoolUnlocked && (!remoteApiEnabled || remotePoolState === 'ready')" class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ leadershipPoolPrimary }}</text></view>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
@@ -165,11 +164,15 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import { formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
 import ReferralProgress from '@/components/promotion/referral-progress.vue';
 import { navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
-import { onShow } from "@/composables/use-tab-page-lifecycle";
+import { onLoad, onShow, onHide } from "@/composables/use-tab-page-lifecycle";
+import { takeNavigationQuery } from "@/lib/route";
 import AppChassis from "@/components/tab-page-frame.vue";
+import TeamRankEmblem from '@/components/team/team-rank-emblem.vue';
+import { teamRedesignCopy } from '@/i18n/team-redesign';
 import NxListGroup from "@/components/ui/nx-list-group.vue";
 import NxListRow from "@/components/ui/nx-list-row.vue";
 import InviteEarnCard from "@/components/team/invite-earn-card.vue";
@@ -212,6 +215,7 @@ const remotePoolState = ref<"idle" | "loading" | "ready" | "error" | "hold">(rem
 let remotePoolRequest = 0;
 let remotePoolMounted = true;
 
+const designCopy = computed(() => teamRedesignCopy(locale.code));
 const myRank = computed(() => vrank.myRank);
 // 头衔显示名按语言取(中文界面出中文头衔),拼法收在 lib/v-rank-copy;远端档位未到仍显示 V—
 const myRankDisplay = computed(() => (remoteApiEnabled && !vrank.remoteReady ? "V—" : rankLabel(vrank.myRank, locale.code, vrank.ladder)));
@@ -226,10 +230,12 @@ const rankInfo = computed(() =>
   nextRankProgress({
     myRank: vrank.myRank,
     selfBuyUSD: vrank.selfBuyUSD,
+    selfComputePoints: vrank.selfComputePoints,
     directRefs: vrank.directRefs,
   teamVolumeUSD: vrank.teamVolumeUSD,
+  teamComputePoints: vrank.teamComputePoints,
   vDownlineCounts: vrank.vDownlineCounts,
-}, vrank.ladder),
+}, vrank.ladder, "compute-points"),
 );
 
 const byLayerBuckets = computed(() => network.byLayer());
@@ -297,18 +303,18 @@ const binary = computed(() => {
   const match = Math.min(Math.min(L / 30, R / 30) * 0.1, 5000);
   return { binaryMatch: match, leftVol: L, rightVol: R };
 });
-const binaryMatchText = computed(() => binary.value === null ? "—" : `+${formatAmount(binary.value.binaryMatch)} USDT`);
-const leftVolText = computed(() => binary.value === null ? "—" : `${formatAmount(binary.value.leftVol)} USDT`);
-const rightVolText = computed(() => binary.value === null ? "—" : `${formatAmount(binary.value.rightVol)} USDT`);
+const binaryMatchText = computed(() => binary.value === null ? "—" : `$${formatAmount(binary.value.binaryMatch)}`);
+const leftVolText = computed(() => formatComputePoints(remoteApiEnabled ? commission.binarySnapshot?.trackAComputePoints : sumComputePoints(members.value.filter(m => m.binary === 'left').map(m => m.monthComputePoints)), locale.code));
+const rightVolText = computed(() => formatComputePoints(remoteApiEnabled ? commission.binarySnapshot?.trackBComputePoints : sumComputePoints(members.value.filter(m => m.binary === 'right').map(m => m.monthComputePoints)), locale.code));
 
 const myVotes = computed(() => remoteApiEnabled ? remotePool.value?.myVotes ?? 0 : pool.myVotes(vrank.myRank));
 const leadershipUnlockRank = computed(() => remoteApiEnabled ? remotePool.value?.unlockRank ?? 3 : 3);
 const myShare = computed(() => remoteApiEnabled ? remotePool.value?.mySharePct ?? 0 : pool.mySharePct(vrank.myRank));
 const projectedPayout = computed(() => remoteApiEnabled ? remotePool.value?.projectedPayoutUSDT ?? 0 : pool.myProjectedPayout(vrank.myRank));
 const leadershipPoolUnlocked = computed(() => myVotes.value > 0);
-const leadershipPoolKText = computed(() => (remoteApiEnabled ? remotePool.value?.currentWeekPoolUSDT ?? 0 : pool.currentWeekPoolUSDT) / 1000);
+const leadershipPoolTotal = computed(() => remoteApiEnabled ? remotePool.value?.currentWeekPoolUSDT ?? 0 : pool.currentWeekPoolUSDT);
 const leadershipPoolPrimary = computed(() =>
-  remoteApiEnabled && remotePoolState.value !== "ready" ? "—" : leadershipPoolUnlocked.value ? `+${formatAmount(projectedPayout.value)} USDT` : `${formatAmount(leadershipPoolKText.value)}K USDT`,
+  remoteApiEnabled && remotePoolState.value !== "ready" ? "—" : leadershipPoolUnlocked.value ? `$${formatAmount(projectedPayout.value)}` : `$${formatAmount(leadershipPoolTotal.value)}`,
 );
 const leadershipPoolLineA = computed(() =>
   remoteApiEnabled && remotePoolState.value !== "ready" ? (remotePoolState.value === "hold" ? t.value.pool.settlementHoldShort : remotePoolState.value === "loading" ? t.value.pool.loading : t.value.network.projectionErrorDesc) : leadershipPoolUnlocked.value ? `${myVotes.value} ${t.value.teamV3.votes}` : `V${leadershipUnlockRank.value}`,
@@ -464,13 +470,10 @@ const rankPrizeValueStyle: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const quickPanelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
-  // 《03》§6:带 bg 填充零 border
-  background: "var(--nx-glass-fill)",
-};
+const quickPanelStyle: CSSProperties = { background: 'transparent', borderRadius: '0', boxShadow: 'none' };
 const quickRowStyle: CSSProperties = {
   minHeight: "74px",
-  padding: "14px",
+  padding: "14px 0",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -544,20 +547,40 @@ const orbDotStyle: CSSProperties = {
 
 import TeamSummaryCard from "@/components/team/team-summary-card.vue";
 const inviteCard = ref<InstanceType<typeof InviteEarnCard> | null>(null);
+// Consume an explicit invitation intent once after the invite card has its code.
+const pendingShareIntent = ref(false);
+const invitePageVisible = ref(false);
+onLoad((query) => {
+  const fallback = new URLSearchParams(takeNavigationQuery('/pages/team/team'));
+  pendingShareIntent.value = (query?.intent ?? fallback.get('intent')) === 'share';
+});
+onShow(() => { invitePageVisible.value = true; });
+onHide(() => { invitePageVisible.value = false; pendingShareIntent.value = false; });
+watch(() => app.accountKey, () => { pendingShareIntent.value = false; });
+watch([pendingShareIntent, invitePageVisible, inviteCard, () => referralRewards.snapshot?.referralCode, () => referralRewards.loading], () => {
+  if (!pendingShareIntent.value || !invitePageVisible.value || !inviteCard.value || referralRewards.loading) return;
+  if (remoteApiEnabled && !referralRewards.snapshot?.referralCode) return;
+  pendingShareIntent.value = false;
+  inviteCard.value.openShare();
+}, { flush: 'post' });
 const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus : "ready");
 </script>
 
 <style scoped>
-.team-rank { display: flex; align-items: center; gap: 16px; padding: 20px; }
+.team-rank { display: flex; align-items: center; gap: var(--ui-space-inline); padding: 18px 16px; border-radius: 22px; background: var(--v5-surface); }
 .team-rank:active { opacity: .8; }
 .team-rank:focus-visible, .team-tool:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .team-rank__emblem { flex-shrink: 0; color: var(--v5-tech-cyan); filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--v5-tech-cyan) 32%, transparent)); }
 .team-rank__body { min-width: 0; flex: 1; }
 .team-rank__title { display: block; font-size: 20px; font-weight: 600; }
-.team-rank__level { display: block; margin-top: 8px; font-size: 20px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.team-rank__level { display: block; margin-top: 8px; font-size: 28px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
 .team-rank__hint { display: block; margin-top: 8px; font-size: 12px; line-height: 1.4; color: var(--v5-ink-3); }
 .team-rank__chevron { flex-shrink: 0; }
 .team-tool { min-width: 0; }
+.team-tools { background: transparent; border: 0; border-radius: 0; }
+.team-tools :deep(.nx-list-row) { padding-left: 0; padding-right: 0; }
+.team-estimate { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.team-estimate__label { font: 400 11px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 .team-tool :deep(svg) { color: var(--v5-brand); stroke: var(--v5-brand); }
 .team-tool :deep(svg:first-child) { flex-shrink: 0; }
 .nx-team-royalty-network-link:active { opacity: .7; }

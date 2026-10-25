@@ -112,3 +112,32 @@ it("reads the active V0-V8 ladder from F1 without fabricating higher ranks", asy
     ranks: ladder().slice(0, 9) });
   expect((await createVRankApi({ request } as never).ladder()).ranks.map(r => r.v)).toEqual([0,1,2,3,4,5,6,7,8]);
 });
+
+describe("independent canonical compute points", () => {
+  const ladderResponse = (fields: Record<string, unknown>) => ({ source: "server", serverCanonical: true,
+    sourceEnvironment: "PRODUCTION", runId: "", prizeName: "Ranks", ranks: [{ ...row(0), ...fields }] });
+  it("keeps point counts separate from legacy dollar values, including zero", async () => {
+    const request = vi.fn().mockResolvedValueOnce(ladderResponse({ selfBuyUSD: 299, teamVolumeUSD: 5000, selfComputePoints: 0, teamComputePoints: 20000.125 }))
+      .mockResolvedValueOnce({ ...current, progress: { ...current.progress, selfComputePoints: 1280, teamComputePoints: 12800.5 } });
+    const api = createVRankApi({ request } as never);
+    expect((await api.ladder()).ranks[0]).toMatchObject({ selfBuyUSD: 299, teamVolumeUSD: 5000, selfComputePoints: 0, teamComputePoints: 20000.125 });
+    expect((await api.current()).progress).toMatchObject({ selfBuyUSD: 100, teamVolumeUSD: 300, selfComputePoints: 1280, teamComputePoints: 12800.5 });
+  });
+  it("leaves absent points unknown in both endpoints without deriving from USD", async () => {
+    const request = vi.fn().mockResolvedValueOnce(ladderResponse({ selfBuyUSD: 299, teamVolumeUSD: 5000 })).mockResolvedValueOnce(current);
+    const api = createVRankApi({ request } as never);
+    for (const value of [(await api.ladder()).ranks[0], (await api.current()).progress]) {
+      expect(value.selfComputePoints).toBeUndefined();
+      expect(value.teamComputePoints).toBeUndefined();
+    }
+  });
+  for (const field of ["selfComputePoints", "teamComputePoints"]) {
+    it.each([-1, NaN, Infinity, -Infinity, "1280", "", null, true, {}])(`rejects invalid ${field} in row and progress: %s`, async value => {
+      const request = vi.fn().mockResolvedValueOnce(ladderResponse({ [field]: value }))
+        .mockResolvedValueOnce({ ...current, progress: { ...current.progress, [field]: value } });
+      const api = createVRankApi({ request } as never);
+      await expect(api.ladder()).rejects.toMatchObject({ message: "V_RANK_RESPONSE_INVALID" });
+      await expect(api.current()).rejects.toMatchObject({ message: "V_RANK_RESPONSE_INVALID" });
+    });
+  }
+});

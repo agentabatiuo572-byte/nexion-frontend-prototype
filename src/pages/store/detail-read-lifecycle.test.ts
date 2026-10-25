@@ -109,19 +109,20 @@ describe("store detail canonical read lifecycle", () => {
     const sticky = { show: vi.fn(), hide: vi.fn() };
     new Function(
       "watch", "stickyPageVisible", "catalogStatus", "product", "isShare", "isLocked",
-      "purchaseUnavailable", "stockUnavailable", "priceText", "dailyEarnText", "paybackLabel",
+      "purchaseUnavailable", "stockUnavailable", "priceText", "dailyEarnText", "dailyYieldText", "paybackLabel",
       "purchaseGate", "eligibility", "purchaseEligibilityMessage", "sticky", "stickyOwner",
       "remoteApiEnabled", "t", "paybackDays", "fmt", "purchaseEligibilityUnlockHref",
       "activityId", "promotionStatus", "promotionAvailable", "activity", "qty", "voucherContext", "dec", "inc",
       ctaCode,
     )(
       watch, ref(true), catalogStatus, product, ref(false), ref(false), ref(false), ref(false),
-      ref("1199"), ref("13"), ref("93"), ref({ blocked: false }), ref({ status: "ready", eligible: true }),
-      ref(""), sticky, Symbol("detail"), true, ref({ store: { cardBuyNow: "Buy", detPaybackUnavailableNote: "Unavailable" } }),
+      ref("1199"), ref("13"), ref("13.00"), ref("93"), ref({ blocked: false }), ref({ status: "ready", eligible: true }),
+      ref(""), sticky, Symbol("detail"), true, ref(en),
       ref(null), vi.fn(), vi.fn(),
       ref(""), ref("idle"), ref(false), ref(null), ref(1), ref({}), vi.fn(), vi.fn(),
     );
     expect(sticky.show).toHaveBeenCalledOnce();
+    expect(sticky.show.mock.calls[0][0].amountSubtext).toBe(`${en.bundle.estimatedDaily}: $13.00`);
     catalogStatus.value = "loading";
     await nextTick();
     expect(sticky.hide).toHaveBeenCalledOnce();
@@ -330,7 +331,7 @@ const stickyEnd = page.indexOf("// ─── styles", stickyStart);
 if (stickyStart < 0 || stickyEnd < stickyStart) throw new Error("store detail sticky lifecycle source is required");
 const runSticky = new Function("dependencies", ts.transpileModule(`
   const { ref, watch, useStickyCTA, catalogStatus, product, isShare, isLocked,
-    purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, paybackLabel,
+    purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, dailyYieldText, paybackLabel,
     purchaseGate, eligibility, purchaseEligibilityMessage, remoteApiEnabled, t,
     purchaseEligibilityUnlockHref, activityId, promotionStatus, promotionAvailable,
     activity, qty, voucherContext, dec, inc, promotionCheckoutHref, onShow, onHide, onUnload, onActivated,
@@ -373,6 +374,7 @@ async function stickyNavigation() {
         isShare: ref(false), isLocked: ref(false), purchaseUnavailable: ref(false), stockUnavailable: ref(false),
         priceText: computed(() => catalog.value.price.toLocaleString()),
         dailyEarnText: computed(() => catalog.value.dailyEarn.toFixed(2)),
+        dailyYieldText: computed(() => (catalog.value.dailyEarn * qty.value).toFixed(2)),
         paybackLabel: computed(() => translations.value.store.detPaybackUnavailable),
         purchaseGate: ref({ blocked: false }), eligibility: ref({ status: "ready", eligible: true }),
         purchaseEligibilityMessage: ref(""), remoteApiEnabled: true, t: translations,
@@ -431,6 +433,7 @@ describe("store detail sticky lifecycle with real KeepAlive", () => {
     expect(query.get("activityId")).toBe("USDT current");
     expect(JSON.parse(query.get("items")!)).toEqual([{ productNo: "stellarbox-pro", quantity: 4 }]);
     expect(p.sticky.cta!.buttonLabel).toBe(vietnamese.store.cardBuyNow);
+    expect(p.sticky.cta!.amountSubtext).toBe(`${vietnamese.bundle.estimatedDaily}: $52.00`);
   });
 
   it("keeps a replacement instance's CTA through the old owner's late hide and unmount", async () => {
@@ -480,6 +483,8 @@ it('a normal single-model detail preserves BF20 and edited quantity across hide 
   detail.activityId.value='';detail.voucherContext.value={voucherId:'BF20',upgradeActivityId:'pro-upgrade'};detail.qty.value=3;
   await nextTick();let query=new URL(p.sticky.cta!.href,'https://app.test').searchParams;
   expect(query.get('voucherId')).toBe('BF20');expect(query.has('activityId')).toBe(false);expect(JSON.parse(query.get('items')!)).toEqual([{productNo:'stellarbox-pro',quantity:3}]);
+  expect(p.sticky.cta!.amountSubtext).toBe(`${en.bundle.estimatedDaily}: $39.00`);
   await p.go('store');expect(p.sticky.cta).toBeNull();await p.go('detail');
   query=new URL(p.sticky.cta!.href,'https://app.test').searchParams;expect(query.get('voucherId')).toBe('BF20');expect(query.get('upgradeActivityId')).toBe('pro-upgrade');
+  expect(p.sticky.cta!.amountSubtext).toBe(`${en.bundle.estimatedDaily}: $39.00`);
 });

@@ -2,16 +2,16 @@
   <AppChassis active="home">
     <view class="entry-index" data-entry-surface="index">
       <view class="entry-index__head">
-        <text class="entry-index__eyebrow">{{ t.entrySurface.indexEyebrow }}</text>
-        <text class="entry-index__title">{{ t.entrySurface.indexTitle }}</text>
-        <text class="entry-index__body">{{ t.entrySurface.indexBody }}</text>
+        <text class="entry-index__eyebrow">{{ copy.eyebrow }}</text>
+        <text class="entry-index__title">{{ copy.title }}</text>
+        <text class="entry-index__body">{{ copy.body }}</text>
       </view>
 
       <view class="entry-index__list">
-        <view v-for="item in links" :key="item.route" class="entry-index__row" role="button" tabindex="0" :aria-label="item.label" @click="open(item.route)">
+        <view v-for="item in links" :key="item.route" class="entry-index__row" role="button" tabindex="0" :aria-label="item.label" @click="open(item.route)" @keydown.enter.prevent="open(item.route)" @keydown.space.prevent="open(item.route)">
           <view class="entry-index__row-copy">
             <text class="entry-index__row-label">{{ item.label }}</text>
-            <text class="entry-index__row-url">{{ item.fullUrl }}</text>
+            <text class="entry-index__row-summary">{{ item.summary }}</text>
           </view>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M7 17 17 7" />
@@ -27,40 +27,29 @@
 import { computed } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import { useSetPageHeader } from "@/composables/use-page-header";
-import { useT } from "@/i18n/use-t";
+import { useEntrySurfaceCopy, type EntrySurfaceKey } from "@/components/entry-surfaces/entry-surface-copy";
 import { navTo } from "@/lib/route";
 
-const t = useT();
+const copy = useEntrySurfaceCopy();
 
 // 行标题走 i18n;route 是地址不是文案,不翻。
-const LINKS: ReadonlyArray<{ key: keyof typeof t.value.entrySurface.surfaces; route: string }> = [
+const LINKS: ReadonlyArray<{ key: EntrySurfaceKey; route: string }> = [
   { key: "signed", route: "/pages/entry-surfaces/signed" },
   { key: "h5", route: "/pages/entry-surfaces/h5" },
   { key: "white", route: "/pages/entry-surfaces/white?entry=white-app" },
 ];
 
-// The displayed URL must match wherever the app is actually served — a hardcoded
-// origin is wrong on any other port (worktree dev server) or deployed host.
-// pathname carries the deploy base path ("/" in dev, "/app/" under a sub-path);
-// non-H5 targets have no `window`, so those fall back to the route alone.
-const origin = computed(() =>
-  typeof window !== "undefined" && window.location
-    ? `${window.location.origin}${window.location.pathname}`
-    : "",
-);
-
 const links = computed(() =>
   LINKS.map((l) => ({
     ...l,
-    label: t.value.entrySurface.surfaces[l.key].linkLabel,
-    fullUrl: `${origin.value}#${l.route}`,
+    label: copy.value.surfaces[l.key].linkLabel,
+    summary: copy.value.surfaces[l.key].summary,
   })),
 );
 
 // getter 形式 —— 切语言时 nav header 跟着变。
 useSetPageHeader(() => ({
-  title: t.value.entrySurface.indexNavTitle,
-  subtitle: t.value.entrySurface.indexNavSubtitle,
+  title: copy.value.navTitle,
   backHref: "/",
 }));
 
@@ -147,11 +136,10 @@ function open(route: string) {
   font-weight: 600;
 }
 
-.entry-index__row-url {
+.entry-index__row-summary {
   display: block;
   margin-top: 7px;
   color: var(--v5-ink-3);
-  font-family: var(--font-jet-mono);
   font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;

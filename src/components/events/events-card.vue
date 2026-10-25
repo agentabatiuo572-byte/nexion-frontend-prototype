@@ -19,7 +19,7 @@
       <!-- HEADER row -->
       <view class="flex items-start" style="gap: 12px">
         <view class="grid place-items-center shrink-0" :style="emojiChipStyle">
-          <text style="font-size: 20px">{{ ev.emoji }}</text>
+          <EventIcon :kind="ev.kind" :size="22" />
         </view>
         <view class="flex-1 min-w-0">
           <text class="block font-mono-tabular" :style="kindLineStyle">{{ kindLabel }}<text v-if="ev.ribbon" style="color: var(--v5-ink-4)"> · {{ ev.ribbon }}</text></text>
@@ -37,7 +37,7 @@
       <!-- REWARD + PROGRESS row -->
       <view class="mt-3 flex items-center" style="gap: 12px">
         <view class="inline-flex items-center shrink-0" :style="rewardStyle">
-          <text style="margin-right: 6px">🎁</text>
+          <view style="margin-right: 6px"><EventIcon kind="gift" :size="14" /></view>
           <text>{{ ev.reward }}</text>
         </view>
         <view v-if="ev.progress" class="flex-1 flex items-center min-w-0" style="gap: 8px">
@@ -80,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import EventIcon from "./event-icon.vue";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -223,19 +224,19 @@ const rewardStyle = computed<CSSProperties>(() => ({
 }));
 const barFillStyle = computed<CSSProperties>(() => ({
   width: `${barInView.value ? progressPct.value : 0}%`,
-  background: props.ev.tint,
+  background: "var(--v5-brand)",
   transition: barInView.value ? PROGRESS_GROW_TRANSITION : "none",
   willChange: "width",
 }));
 const claimBtnStyle = computed<CSSProperties>(() => ({
   height: "44px",
-  background: props.ev.tint,
-  boxShadow: `0 0 18px color-mix(in srgb, ${props.ev.tint} 33%, transparent)`,
+  background: "var(--v5-brand)",
+  boxShadow: `0 0 18px color-mix(in srgb, var(--v5-brand) 20%, transparent)`,
 }));
 const softTintBtnStyle = computed<CSSProperties>(() => ({
   height: "44px",
-  background: `color-mix(in srgb, ${props.ev.tint} 10%, transparent)`,
-  color: props.ev.tint,
+  background: "var(--v5-surface-2)",
+  color: "var(--v5-ink-2)",
 }));
 const neutralBtnStyle: CSSProperties = {
   height: "44px",

@@ -1,4 +1,4 @@
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { compile } from "@vue/compiler-dom";
@@ -56,9 +56,10 @@ function pane(fx: ReturnType<typeof useFx>) {
   const args = { ref: Vue.ref, computed: Vue.computed, watch: Vue.watch, fx, paymentSessionReady: Vue.ref(true), remoteApiEnabled: true, MIN_DEPOSIT_USDT: 10,
     BANK_MAX_DEPOSIT_USDT: 5000, dep, toast, t: Vue.ref(en), fmt, fmtVnd, vndForUsdt,
     runRecoverableFundsOperation, ApiError, autoResumePending: Vue.ref(false), viewIntentId: Vue.ref(null),
-    paidPressed: Vue.ref(false), pageActive: Vue.ref(true), openHostedOrder: vi.fn(),
+    readError: Vue.ref(""), readBusy: Vue.ref(false), paidPressed: Vue.ref(false), pageActive: Vue.ref(true), openHostedOrder: vi.fn(),
     app: Vue.reactive({ accountKey: "user:7", accountBindingEpoch: 1 }) };
   const bindings = new Function("formatAmount", ...Object.keys(args), code)(formatAmount, ...Object.values(args));
+  bindings.amount.value = "25"; // Simulate the amount explicitly entered by the user.
   return { bindings, dep, toast };
 }
 
@@ -87,7 +88,7 @@ test("unknown capacity survives real API and FX store, renders no fake limit, an
   expect(fx).toMatchObject({ configReady: true, dailyCapacityKnown: false, todayRemainingDepositUsdt: 0 });
   expect(view.bindings.ctaEnabled.value).toBe(true);
   const html = await show(view, fx);
-  expect(html).toContain(fmt(en.bankPane.limitNote, { min: "$10.00", max: "$5000.00" }));
+  expect(html).toContain(fmt(en.bankPane.limitNote, { min: "$10.00", max: "$5,000.00" }));
   expect(html).not.toContain(fmt(en.bankPane.todayRemainingNote, { remaining: "$0.00" }));
   expect(html).not.toContain(en.bankPane.dailyCapacityExhaustedTitle.replaceAll("'", "&#39;"));
   expect(html).not.toMatch(/Infinity|∞/);

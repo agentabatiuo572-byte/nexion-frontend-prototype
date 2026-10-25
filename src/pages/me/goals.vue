@@ -21,7 +21,12 @@
           <text class="font-mono-tabular" :style="heroLabelStyle">{{ t.goals.heroLabel }}</text>
         </view>
         <text class="block" :style="heroTitleStyle">{{ t.goals.heroTitle }}</text>
-        <text class="block" :style="heroSubStyle">{{ heroSubLine }}</text>
+        <text v-if="editorHasSnapshot" class="block" :style="heroSubStyle">{{ heroSubLine }}</text>
+      </view>
+
+      <view v-if="remoteApiEnabled && !editorHasSnapshot" class="mx-4" :style="emptyStateStyle" role="status" :aria-busy="goalsStore.status !== 'error'">
+        <text>{{ goalsStore.status === 'error' ? t.goals.serverUnavailable : t.goals.loading }}</text>
+        <view v-if="goalsStore.status === 'error'" class="inline-flex items-center active:opacity-80" :style="recCtaStyle" role="button" tabindex="0" :aria-label="t.ui.retry" @click="retryGoals" @keydown.enter.prevent="retryGoals" @keydown.space.prevent="retryGoals"><text :style="recCtaLabelStyle">{{ t.ui.retry }}</text></view>
       </view>
 
       <!-- Setter — de-carded: labels + L1-filled input sit on the page floor -->
@@ -74,9 +79,6 @@
           </view>
         </view>
       </view>
-      <view v-else class="mx-4" :style="emptyStateStyle" role="status">
-        <text>{{ goalsStore.status === 'error' ? t.goals.serverUnavailable : t.goals.loading }}</text>
-      </view>
 
       <!-- Recommendation -->
       <view v-if="editorHasSnapshot && target > 0 && remoteApiEnabled && goalsStore.recommendationStatus === 'loading'" class="nx-glass-card mx-4" :style="recCardStyle">
@@ -101,23 +103,14 @@
       </view>
 
       <!-- Save -->
-      <view style="padding: 0 16px; margin-top: 12px">
+      <view v-if="editorHasSnapshot" style="padding: 0 16px; margin-top: 12px">
         <view class="w-full flex items-center justify-center active:scale-[0.98]" :style="[saveBtnStyle, saveBlocked ? saveBtnPendingStyle : {}]" role="button" :tabindex="saveBlocked ? -1 : 0" :aria-label="t.goals.saveCta" :aria-disabled="saveBlocked" @click="onSave"  @keydown.enter.prevent="onSave" @keydown.space.prevent="onSave">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
           <text :style="saveLabelStyle" style="pointer-events: none">{{ t.goals.saveCta }}</text>
         </view>
       </view>
 
       <!-- Active goals — de-carded: transparent hairline group on the page floor -->
-      <view v-if="remoteApiEnabled && goalsStore.status === 'loading' && goals.length === 0" class="mx-4" :style="emptyStateStyle"><text>{{ t.goals.loading }}</text></view>
-      <view v-else-if="remoteApiEnabled && goalsStore.status === 'error' && goals.length === 0" class="mx-4" :style="emptyStateStyle">
-        <text>{{ t.goals.serverUnavailable }}</text>
-        <view class="inline-flex items-center active:opacity-80" :style="recCtaStyle" role="button" tabindex="0" :aria-label="t.ui.retry" @click="retryGoals"  @keydown.enter.prevent="retryGoals" @keydown.space.prevent="retryGoals"><text :style="recCtaLabelStyle">{{ t.ui.retry }}</text></view>
-      </view>
-      <view v-if="remoteApiEnabled && goalsStore.status === 'error' && goals.length > 0" class="mx-4" :style="emptyStateStyle">
-        <text>{{ t.goals.serverUnavailable }}</text>
-        <view class="inline-flex items-center active:opacity-80" :style="recCtaStyle" role="button" tabindex="0" :aria-label="t.ui.retry" @click="retryGoals"  @keydown.enter.prevent="retryGoals" @keydown.space.prevent="retryGoals"><text :style="recCtaLabelStyle">{{ t.ui.retry }}</text></view>
-      </view>
       <view v-if="goals.length > 0">
         <text class="block" :style="sectionLabelStyle">{{ t.goals.activeGoals }}</text>
         <view :style="goalGroupStyle">
@@ -204,9 +197,7 @@ const recommendation = computed(() => {
 });
 
 const heroSubLine = computed(() => {
-  if (remoteApiEnabled && !editorHasSnapshot.value) {
-    return goalsStore.status === "error" ? t.value.goals.serverUnavailable : t.value.goals.loading;
-  }
+  if (!editorHasSnapshot.value) return "";
   return fmt(t.value.goals.heroSubtitle, { current: formatAmount(lifeTimeEarnings.value) });
 });
 const recPathLine = computed(() =>
@@ -552,13 +543,14 @@ const saveBtnStyle: CSSProperties = {
   height: "48px",
   borderRadius: "999px",
   background: "var(--v5-warning)",
+  color: "var(--v5-on-brand)",
 };
-const saveBtnPendingStyle: CSSProperties = { opacity: 0.65 };
+const saveBtnPendingStyle: CSSProperties = { background: "var(--v5-surface-2)", color: "var(--v5-ink-3)" };
 const saveLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontSize: "15px",
   fontWeight: 600,
-  color: "var(--v5-on-brand)",
+  color: "inherit",
 };
 const sectionLabelStyle: CSSProperties = {
   margin: "22px 18px 12px",

@@ -24,5 +24,5 @@ test("paired recovery amounts and every state remain readable", async () => {
   const events = ["cooling", "unlocked", "frozen", "reversed", "rejected", "recovery_pending"].map((status, i) => ({ ...eventFixture(String(i)), status, recoveryPendingUSDT: 2, recoveryPendingNEX: 3 }));
   const page = await directPage({ api: { policy: vi.fn().mockResolvedValue(policyFixture()), snapshot: vi.fn().mockResolvedValue(snapshotFixture(events)) } }); await flush();
   for (const status of ["cooling", "Credited", "Frozen", "Reversed", "Rejected", "Recovery pending"]) expect(text(page.root)).toContain(status);
-  expect(text(page.root)).toContain("2.00 USDT + 3.00 NEX");
+  expect(text(page.root)).toContain("$2.00 + 3.00 UVT");
 });

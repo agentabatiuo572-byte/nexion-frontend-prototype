@@ -1,3 +1,4 @@
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -56,11 +57,14 @@ afterEach(() => { unmounts.splice(0).forEach(stop => stop()); vi.unstubAllGlobal
 function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
   const locale = Vue.reactive({ code: language });
   const sections = Vue.ref(initial);
+  const status = Vue.ref("ready"), refresh = vi.fn(async () => true);
+  const shown: Array<() => void> = [];
   const navTo = vi.fn(), error = vi.fn(), open = vi.fn(() => ({}));
   vi.stubGlobal("window", { open });
   const dependencies: Record<string, unknown> = {
-    vue: Vue, "@dcloudio/uni-app": { onShow: vi.fn(), onHide: vi.fn() },
+    vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn() },
     "@/lib/amount-display": { formatAmount },
+    "@/i18n/network-reaudit": { networkReauditCopy },
     "./trust-resources": { trustResources }, "./trust-category-material": { trustCategoryMaterial },
     "@/lib/trust-fields": trustFields,
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) },
@@ -69,12 +73,12 @@ function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
     "@/store/ui": { toast: { error } }, "@/lib/route": { navTo },
     "@/api/runtime": { remoteApiEnabled: true },
     "@/api/order-api": { subscribeRuntimeRevision: () => () => {} },
-    "@/composables/use-published-trust": { usePublishedTrust: () => ({ sections, status: Vue.ref("ready"), refresh: vi.fn() }), recordPublishedTrustViews: vi.fn() },
+    "@/composables/use-published-trust": { usePublishedTrust: () => ({ sections, status, refresh }), recordPublishedTrustViews: vi.fn() },
     "@/components/app-chassis.vue": { default: slot }, "@/components/card-stagger.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: slot }, "@/components/trust/trust-section-header.vue": { default: slot },
     "@/components/ui/nx-section.vue": { default: slot }, "@/components/ui/nx-list-group.vue": { default: slot },
     "@/components/ui/nx-list-row.vue": { default: row },
-    "@/components/ui/nx-button.vue": { default: { props: ["label"], setup: (props: any) => () => Vue.h("view", props.label) } },
+    "@/components/ui/nx-button.vue": { default: { props: ["label"], emits: ["click"], setup: (props: any, { emit }: any) => () => Vue.h("view", { role: "button", onClick: () => emit("click") }, props.label) } },
   };
   const exports = { default: {} as Component };
   new Function("require", "exports", code)((id: string) => {
@@ -82,9 +86,9 @@ function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
     return dependencies[id];
   }, exports);
   const root = node(), app = renderer.createApp(exports.default);
-  app.mount(root); unmounts.push(() => app.unmount());
+  app.mount(root); shown.forEach(fn => fn()); unmounts.push(() => app.unmount());
   const body = () => all(root).find(item => item.props.class === "trust-category-body")!;
-  return { root, sections, locale, navTo, error, open, body,
+  return { root, sections, status, refresh, locale, navTo, error, open, body,
     expand: async (key: TrustCategoryKey) => {
       const title = trustResources(locale.code).categories.find(item => item.key === key)!.title;
       all(root).find(item => item.props["aria-expanded"] !== undefined && text(item).includes(title))!.props.onClick();
@@ -96,6 +100,19 @@ function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
 const links = (root: Host) => all(root).filter(item => item.props.role === "link");
 
 describe("Trust categories consume published materials", () => {
+  it.each(['zh', 'en', 'vi'] as const)('R07 keeps real after-sales/security routes available without published materials in %s', async language => {
+    const page = mount([], language), copy = networkReauditCopy(language);
+    for (const state of ['ready', 'error', 'loading']) {
+      page.status.value = state;
+      const warranty = await page.expand('warranty');
+      all(warranty).find(n => n.props.role === 'button' && text(n) === copy.afterSales)!.props.onClick();
+      expect(page.navTo).toHaveBeenLastCalledWith('/pages/support/chat');
+      const security = await page.expand('security');
+      all(security).find(n => n.props.role === 'button' && text(n) === copy.securitySettings)!.props.onClick();
+      expect(page.navTo).toHaveBeenLastCalledWith('/pages/me/security');
+      expect(text(security)).not.toContain('已启用');
+    }
+  });
   it.each(["zh", "vi", "en"] as const)("renders existing compliance fields and linked metadata in %s", async language => {
     const view = mount([section("complianceBadges", {
       [`badge1Label.${language}`]: "Published credential", [`badge1Body.${language}`]: "Published scope",
@@ -159,7 +176,7 @@ describe("Trust categories consume published materials", () => {
     "keeps a document without a usable URL pending: %j", async url => {
       const view = mount([section("nexNarrative", { securityDocument1Primary: "Title alone", securityDocument1Url: url, securityDocument1Date: "2026-10-25" })]);
       const body = await view.expand("security");
-      expect(text(body)).toBe(trustResources("zh").pending);
+      expect(text(body)).toBe(trustResources("zh").pending + networkReauditCopy('zh').securitySettings);
       expect(links(body)).toHaveLength(0);
       expect(view.open).not.toHaveBeenCalled();
     },
@@ -172,7 +189,7 @@ describe("Trust categories consume published materials", () => {
       section("auditsReserves", { hostingContent: "Wrong source", document1Primary: "Audit", document1Url: "https://documents.example.test/audit" }),
     ]);
     for (const key of ["hosting", "warranty", "security", "compliance"] as const) {
-      expect(text(await view.expand(key))).toBe(trustResources("zh").pending);
+      expect(text(await view.expand(key))).toBe(trustResources("zh").pending + (key === 'warranty' ? networkReauditCopy('zh').afterSales : key === 'security' ? networkReauditCopy('zh').securitySettings : ''));
     }
   });
 
@@ -181,7 +198,7 @@ describe("Trust categories consume published materials", () => {
     await view.expand("warranty");
     expect(text(view.body())).toContain("Published conditions");
     view.sections.value = []; await Vue.nextTick();
-    expect(text(view.body())).toBe(trustResources("zh").pending);
+    expect(text(view.body())).toBe(trustResources("zh").pending + networkReauditCopy('zh').afterSales);
     expect(links(view.body())).toHaveLength(0);
   });
 
@@ -197,4 +214,40 @@ describe("Trust categories consume published materials", () => {
     expect(request).toHaveBeenCalledOnce();
     expect(request).toHaveBeenCalledWith({ method: "GET", path: "/api/content/trust/sections/current", authenticated: false });
   });
+});
+
+
+it.each(["zh", "en", "vi"] as const)("N07 keeps loading/failure/unpublished/published mutually exclusive in %s", async language => {
+  const screen = mount([], language); const copy = networkReauditCopy(language);
+  screen.status.value = "loading"; await screen.expand("hosting");
+  expect(text(screen.body())).toContain(copy.loading);
+  expect(text(screen.body())).not.toContain(trustResources(language).pending);
+  screen.status.value = "error"; await Vue.nextTick();
+  expect(text(screen.body())).toContain(copy.error);
+  expect(text(screen.body())).not.toContain(trustResources(language).pending);
+  expect(text(screen.body())).toContain(dictionaries[language].ui.retry);
+  screen.refresh.mockImplementationOnce(async () => {
+    screen.sections.value = [section("nexNarrative", { [`hostingContent.${language}`]: "Published hosting" })];
+    screen.status.value = "ready"; return true;
+  });
+  const retry = all(screen.body()).find(item => item.props.onClick && text(item) === dictionaries[language].ui.retry)!;
+  expect(retry).toBeDefined(); retry.props.onClick(); await Vue.nextTick(); await Vue.nextTick();
+  expect(text(screen.body())).toContain("Published hosting");
+  expect(text(screen.body())).not.toContain(copy.error);
+  screen.sections.value = []; await Vue.nextTick();
+  expect(text(screen.body())).toBe(trustResources(language).pending);
+});
+
+it("N13 shows supplied audit metadata and explains missing links without fabricating them", async () => {
+  const screen = mount([section("auditsReserves", {
+    "document1Primary.zh": "Audit report", document1Type: "PDF", document1Date: "2026-10-25", document1Size: "120 KB", document1Url: "https://documents.example.test/a.pdf",
+    "document2Primary.zh": "Pending link", document2Type: "PDF",
+  })]);
+  const body = await screen.expand("audit");
+  expect(text(body)).toContain("PDF · 2026-10-25 · 120 KB");
+  expect(text(body)).toContain("Pending link"); expect(text(body)).toContain(zh.trust.linkUnavailable);
+  const docs = links(body); expect(docs).toHaveLength(2);
+  expect(docs[1].props["aria-disabled"]).toBe(true); expect(docs[1].props.tabindex).toBe(-1);
+  docs[1].props.onClick(); expect(screen.open).not.toHaveBeenCalled();
+  docs[0].props.onClick(); expect(screen.open).toHaveBeenCalledOnce();
 });

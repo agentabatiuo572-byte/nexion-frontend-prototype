@@ -63,6 +63,7 @@
         <text v-if="course.questions.length && !pendingAttempt && !allAnswered && !serverCompleted" class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3)">{{ t.learning.answerAllFirst }}</text>
         <text v-if="pendingAttempt" class="block active:opacity-70" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3); text-wrap: pretty" role="button" tabindex="0" :aria-label="pendingStatusText" @click="load" @keydown.enter.prevent="onKeyboardActivate($event, load)" @keydown.space.prevent="onKeyboardActivate($event, load)">{{ pendingStatusText }}</text>
         <text v-if="resultDetails" data-testid="learning-result-details" class="block tabular-nums" style="margin-top: 12px; color: var(--v5-ink-2); text-wrap: pretty">{{ resultDetails.passed ? t.learning.resultPassed : t.learning.resultFailed }} · {{ scoreLine }} · {{ attemptsLine }} · {{ rewardStatusLine }}</text>
+        <NxButton v-if="resultDetails && !resultDetails.passed && !interactionLocked" style="margin-top:12px" variant="secondary" :label="retryQuizLabel" @click="restartQuiz" />
       </view>
     </view>
   </AppChassis>
@@ -185,6 +186,17 @@ function attemptIdentity(expectedCourse: LearningCourse): LearningAttemptIdentit
 function selectAnswer(questionIndex: number, optionIndex: number) {
   if (loading.value || interactionLocked.value) return;
   answers.value[questionIndex] = optionIndex;
+}
+const retryQuizLabel = computed(() => ({zh:'重新作答',en:'Try quiz again',vi:'Làm lại bài kiểm tra'}[language.value]));
+function restartQuiz() {
+  if (interactionLocked.value || loading.value || serverCompleted.value) return;
+  answers.value = [];
+  void nextTick(() => {
+    if (typeof document === 'undefined') return;
+    const first = document.querySelector<HTMLElement>('[data-course-question-index="0"] [role="radio"]');
+    first?.scrollIntoView({behavior:'smooth', block:'center'});
+    first?.focus({preventScroll:true});
+  });
 }
 /** 上下方向键移一格并选上,焦点跟到新选中项(与 theme-row.vue 的左右键同形)。 */
 function moveAnswer(questionIndex: number, optionIndex: number, delta: number) {
@@ -395,9 +407,8 @@ async function finish() {
     }
     try {
       if (await recoverAuthoritative(scope, submittedCourse)) return;
-    } catch {
-      if (current(scope)) error.value = "submitUnconfirmed";
-    }
+    } catch { /* An unavailable readback still leaves the submission unconfirmed. */ }
+    if (current(scope)) error.value = "submitUnconfirmed";
   } finally {
     if (current(scope)) loading.value = false;
   }

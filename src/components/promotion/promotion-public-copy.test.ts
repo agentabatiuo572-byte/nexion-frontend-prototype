@@ -111,8 +111,8 @@ it.each([
   expect(copy.onboarding.policyLine3).toContain('120');
 });
 it.each([
-  {locale:'zh',copy:zh,text:'上方设备规格为估算值，已校准算力暂不可用；任务状态单独展示。'},
-  {locale:'en',copy:en,text:'The device specifications above are estimates; calibrated compute capacity is unavailable. Task status is shown separately.'},
+  {locale:'zh',copy:zh,text:'上方设备规格为估算值，已校准算力暂不可用；作业状态单独展示。'},
+  {locale:'en',copy:en,text:'The device specifications above are estimates; calibrated compute capacity is unavailable. Job status is shown separately.'},
   {locale:'vi',copy:vi,text:'Thông số thiết bị ở trên chỉ là ước tính; công suất đã hiệu chuẩn chưa có. Trạng thái tác vụ được hiển thị riêng.'},
 ])('$locale unavailable hashpower keeps two explanations and a dash in compact metric slots',({copy,text})=>{
   expect(deviceSource.match(/t(?:\.value)?\.earn\.hashCapabilityUnknown/g)).toHaveLength(2);

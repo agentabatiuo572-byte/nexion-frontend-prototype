@@ -13,6 +13,12 @@ const labels = {
 };
 
 describe("rank-how server policy boundary", () => {
+  it("formats canonical points independently of legacy dollar labels", () => {
+    expect(formatCanonicalRankConditions({ v: 1, conditions: { selfBuyUSD: 299, teamVolumeUSD: 5000, selfComputePoints: 2000, teamComputePoints: 20000 } }, labels, "zh"))
+      .toEqual(["自购算力 ≥ 2,000 算力点", "团队算力 ≥ 20,000 算力点"]);
+    expect(formatCanonicalRankConditions({ v: 1, conditions: { selfComputePoints: 0 } }, labels, "vi"))
+      .toEqual(["Năng lực tự mua ≥ 0 điểm tính toán"]);
+  });
   it("uses the canonical ladder in both development and production", () => {
     expect(rankHowPresentation("prod", true)).toBe("canonical-ladder");
     expect(rankHowPresentation("dev", true)).toBe("canonical-ladder");
@@ -24,7 +30,7 @@ describe("rank-how server policy boundary", () => {
     expect(formatCanonicalRankConditions({
       v: 4,
       conditions: { selfBuyUSD: 299, teamVolumeUSD: 50_000, vDownlines: { 2: 3 } },
-    }, labels)).toEqual(["Self-buy ≥ $299.00", "Team $50000.00", "3× V2"]);
+    }, labels)).toEqual(["Own compute · Compute requirements pending", "Team compute · Compute requirements pending", "3× V2"]);
     expect(formatCanonicalRankConditions({ v: 0, conditions: {} }, labels))
       .toEqual(["Register immediately"]);
   });
@@ -37,17 +43,18 @@ describe("rank-how page source contract", () => {
     eager: true,
   })["./rank-how.vue"] ?? "") as string;
 
-  it("restores all six shared layout sections for the formal app", () => {
-    expect((source.match(/<HowSection\b/g) ?? []).length).toBe(6);
-    for (const component of ["HowHero", "HowCalloutBox", "HowIconRow", "HowStepRow", "HowFaqRow", "VBadgeIcon"]) expect(source).toContain(`<${component}`);
+  it("keeps published rules, the dynamic ladder and examples in the flat layout", () => {
+    for (const binding of ['content.ladder', 'phases', 'requirements', 'unlocks', 'results', 'faqs', 'sectionId.protection', 'sectionId.stepwise']) expect(source).toContain(binding);
+    for (const component of ['TeamArt', 'VBadgeIcon']) expect(source).toContain(`<${component}`);
     expect(source).not.toContain('v-if="!remoteApiEnabled"');
     expect(source).toContain("buildRankHowContent");
   });
 
   it("must not use prototype stories, account requests or unsafe HTML", () => {
-    expect(source).not.toMatch(/w\.value\.(req\dBody|s5Phase\dBody|faqA\d)|w\.(s1Para\d|s5StartBody|s5Unlock\d)|useVRank|v-html|\.current\(/);
+    expect(source).not.toMatch(/\bw\.(?:value\.)?(req\d\w*|s1Para\d|s5\w*|faqA\d)|useVRank|v-html|\.current\(/);
     expect(source).toContain("createRankHowResource");
-    expect(source).toContain('@keydown.enter.prevent="goBack"');
-    expect(source).toContain('@keydown.space.prevent="goBack"');
+    expect(source).toContain('@click="goBack"');
+    expect(source).toContain('@keydown.enter.prevent="toggleRule(group.id)"');
+    expect(source).toContain('@keydown.space.prevent="toggleRule(group.id)"');
   });
 });

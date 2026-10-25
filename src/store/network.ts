@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { onScopeDispose, ref } from "vue";
+import { sumComputePoints } from "@/i18n/compute-points";
 import type { VRank } from "./v-rank";
 import { remoteApiEnabled, teamNetworkApi } from "@/api/runtime";
 import {
@@ -33,6 +34,8 @@ export interface NetworkMember {
   joinedAt: number; // epoch ms
   monthVolumeUSD: number;
   totalVolumeUSD: number | null;
+  monthComputePoints?: number | null;
+  lifetimeComputePoints?: number | null;
   status: MemberStatus;
   city: string;
 }
@@ -79,6 +82,8 @@ function mk(
     joinedAt: Date.now() - (((i * 11) % 90) + 1) * ONE_DAY,
     monthVolumeUSD: monthVol,
     totalVolumeUSD: totalVol,
+    monthComputePoints: opts.monthComputePoints ?? 320 + ((i * 53) % 17) * 80,
+    lifetimeComputePoints: opts.lifetimeComputePoints ?? 1280 + ((i * 31) % 19) * 160,
     status: opts.status ?? (i % 5 === 0 ? "idle" : i % 11 === 0 ? "offline" : "active"),
     city: CITIES[i % CITIES.length],
   };
@@ -136,6 +141,8 @@ export const useNetwork = defineStore("network", () => {
   const totalMembers = ref(initial.length);
   const totalMonthVolumeUSD = ref(initial.reduce((s, m) => s + m.monthVolumeUSD, 0));
   const totalAllTimeVolumeUSD = ref<number | null>(initial.reduce((s, m) => s + (m.totalVolumeUSD ?? 0), 0));
+  const totalMonthComputePoints = ref<number | null>(remoteApiEnabled ? null : sumComputePoints(initial.map(m => m.monthComputePoints)));
+  const totalLifetimeComputePoints = ref<number | null>(remoteApiEnabled ? null : sumComputePoints(initial.map(m => m.lifetimeComputePoints)));
   const remoteStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
   const hasRemoteSnapshot = ref(false);
   let accountEpoch = 0;
@@ -148,6 +155,8 @@ export const useNetwork = defineStore("network", () => {
     totalMembers.value = 0;
     totalMonthVolumeUSD.value = 0;
     totalAllTimeVolumeUSD.value = null;
+    totalMonthComputePoints.value = null;
+    totalLifetimeComputePoints.value = null;
     remoteStatus.value = "idle";
     hasRemoteSnapshot.value = false;
   }
@@ -192,12 +201,15 @@ export const useNetwork = defineStore("network", () => {
         binary: member.leg === "A" ? "left" : member.leg === "B" ? "right" : "unassigned",
         isSpillover: false, joinedAt: Date.parse(member.joinedAt), monthVolumeUSD: member.monthVolumeUsdt,
         totalVolumeUSD: member.lifetimeVolumeUsdt,
+        monthComputePoints: member.monthComputePoints ?? null, lifetimeComputePoints: member.lifetimeComputePoints ?? null,
         status: member.status === "ACTIVE" ? "active" : member.status === "IDLE" ? "idle" : "offline",
         city: member.region ?? "—",
       }));
       totalMembers.value = snapshot.totalMembers;
       totalMonthVolumeUSD.value = snapshot.monthVolumeUsdt;
       totalAllTimeVolumeUSD.value = snapshot.lifetimeVolumeUsdt;
+      totalMonthComputePoints.value = snapshot.monthComputePoints ?? null;
+      totalLifetimeComputePoints.value = snapshot.lifetimeComputePoints ?? null;
       remoteStatus.value = "ready";
       hasRemoteSnapshot.value = true;
       return true;
@@ -217,6 +229,8 @@ export const useNetwork = defineStore("network", () => {
     totalMembers.value = next.length;
     totalMonthVolumeUSD.value = next.reduce((sum, member) => sum + member.monthVolumeUSD, 0);
     totalAllTimeVolumeUSD.value = remoteApiEnabled ? null : next.reduce((sum, member) => sum + (member.totalVolumeUSD ?? 0), 0);
+    totalMonthComputePoints.value = remoteApiEnabled ? null : sumComputePoints(next.map(m => m.monthComputePoints));
+    totalLifetimeComputePoints.value = remoteApiEnabled ? null : sumComputePoints(next.map(m => m.lifetimeComputePoints));
     remoteStatus.value = remoteApiEnabled ? "idle" : "ready";
     if (remoteApiEnabled) void refreshCanonicalNetwork();
   }
@@ -286,7 +300,7 @@ export const useNetwork = defineStore("network", () => {
   }
 
   return {
-    members, totalMembers, totalMonthVolumeUSD, totalAllTimeVolumeUSD,
+    members, totalMembers, totalMonthVolumeUSD, totalAllTimeVolumeUSD, totalMonthComputePoints, totalLifetimeComputePoints,
     byLayer, byBinary, leftVolumeMonth, rightVolumeMonth,
     binaryMatchToday, vDownlineCounts, addSpillover, remoteStatus, hasRemoteSnapshot, refreshCanonicalNetwork, ensureCanonicalNetwork, bindAccount,
   };

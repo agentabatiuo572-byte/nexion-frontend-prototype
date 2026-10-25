@@ -20,6 +20,8 @@ export interface CanonicalNotificationPage {
   items: CanonicalNotification[];
   nextCursor: string | null;
   unread: number;
+  /** Account-wide actionable count. Missing/null means the server has not supplied this policy. */
+  actionableUnread?: number | null;
   /** Account-wide counts, independent of the requested page. Omitted by older servers. */
   unreadByKind?: Record<string, number>;
 }
@@ -98,12 +100,18 @@ function parsePage(value: unknown): CanonicalNotificationPage {
       || (row.nextCursor != null && nextCursor === null)) {
     return invalid();
   }
+  const actionableUnread = row.actionableUnread;
+  if (actionableUnread != null && (typeof actionableUnread !== "number"
+      || !Number.isSafeInteger(actionableUnread) || actionableUnread < 0 || actionableUnread > unread)) {
+    return invalid("NOTIFICATION_ACTIONABLE_UNREAD_INVALID");
+  }
+  const actionable = actionableUnread === undefined ? {} : { actionableUnread: actionableUnread as number | null };
   const items = row.items.map(parseNotification);
   const ids = new Set(items.map((item) => item.id));
   if (ids.size !== items.length) {
     return invalid("NOTIFICATION_PAGE_INCONSISTENT");
   }
-  if (!Object.prototype.hasOwnProperty.call(row, "unreadByKind")) return { items, nextCursor, unread };
+  if (!Object.prototype.hasOwnProperty.call(row, "unreadByKind")) return { items, nextCursor, unread, ...actionable };
   const summary = record(row.unreadByKind);
   if (!summary) return invalid("NOTIFICATION_UNREAD_SUMMARY_INVALID");
   let total = 0;
@@ -126,7 +134,7 @@ function parsePage(value: unknown): CanonicalNotificationPage {
       return invalid("NOTIFICATION_PAGE_INCONSISTENT");
     }
   }
-  return { items, nextCursor, unread, unreadByKind };
+  return { items, nextCursor, unread, unreadByKind, ...actionable };
 }
 
 function parseCount(value: unknown): number {

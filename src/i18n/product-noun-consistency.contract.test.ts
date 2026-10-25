@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { en } from "./messages/en";
 import { vi } from "./messages/vi";
 import { zh } from "./messages/zh";
-import zhSource from "./messages/zh.ts?raw";
 
 /**
  * BUG 186 / BUG 191 / BUG 180 的文案契约。
@@ -39,24 +38,28 @@ describe("repurchase page names one product", () => {
     expect(messages.repurchase.lockedNotice).toMatch(/90|锁|lock|khóa/i);
   });
 
-  it("keeps NEX buyback copy out of the repurchase rename", () => {
-    // zh :1184/:3380/:4141 的「回购」指 NEX 回购(销毁/底价/回购流),语义正确 ——
-    // 复投改名不得误伤,这三处必须逐字保留。
-    const preserved = [
-      "受 AI 推理需求 / 回购流 / 加密市场环境影响",
-      "综合 DEX 交易数据 + 月度回购底价",
-      "30% 平台手续费用于回购销毁,无限增发不存在",
-    ];
-    for (const line of preserved) expect(zhSource).toContain(line);
-    expect(zhSource.match(/回购/g)).toHaveLength(3);
+  it.each(LOCALES)("%s keeps token buyback distinct from the re-investment product", ({ messages }) => {
+    // Protect the meaning at its actual keys, without pinning an obsolete fee/burn claim.
+    for (const text of [messages.riskDisclosure.s3Body, messages.exchangeHowItWorks.faqA1]) {
+      expect(text).toMatch(/回购|buyback|mua lại/i);
+      expect(text).not.toMatch(/复投|re-invest|tái đầu tư/i);
+    }
+  });
+
+  it.each(LOCALES)("%s keeps token disclosure tied to published records without a fixed burn claim", ({ messages }) => {
+    const disclosure = messages.nexHowItWorks.s4BurnBody;
+    expect(disclosure).toMatch(/已发布规则|published rules|quy tắc đã công bố/i);
+    expect(disclosure).toMatch(/真实记录|actual records|bản ghi thực tế/i);
+    expect(disclosure).toMatch(/不承诺价格|not promise a price|không cam kết kết quả về giá/i);
+    expect(disclosure).not.toMatch(/\d+(?:[.,]\d+)?\s*%|无限增发不存在/);
   });
 });
 
-describe("genesis tier premium copy states the price relation", () => {
-  it("reads as a price comparison in Chinese and stays mirrored in en/vi", () => {
-    expect(zh.genesis.tier.premium).toBe("较白名单价高 50%");
-    expect(en.genesis.tier.premium).toBe("+50% over whitelist");
-    expect(vi.genesis.tier.premium).toBe("+50% so với whitelist");
+describe("genesis tier copy does not invent a price relation", () => {
+  it.each([zh,en,vi])("keeps a neutral price heading without an unsupported premium", (copy) => {
+    expect(copy.genesis.tier.title).toBeTruthy();
+    expect(copy.genesis.tier).not.toHaveProperty("premium");
+    expect(JSON.stringify(copy.genesis.tier)).not.toContain("50%");
   });
 });
 

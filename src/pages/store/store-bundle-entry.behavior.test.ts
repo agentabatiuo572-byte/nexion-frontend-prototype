@@ -49,7 +49,7 @@ function page(overrides: Record<string, unknown> = {}) {
   const voucher = overrides.voucher ?? { claimableVouchers: [], claimedUnused: [] };
   const voucherPresentation = createVoucherPresentation(Vue.computed, voucher, voucherClaimSheet, navTo, voucherBenefitSummary);
   const context = Vue.proxyRefs({
-    t: zh, navTo, activityId: "", activity: null, publicOnly: false,
+    t: zh, navTo, voucherContext:{}, activityId: "", activity: null, publicOnly: false,
     auditCopy, fmt, fmtMoney, ...voucherPresentation,
     promotionStatus: "ready", promotionAvailable: false, upgrade: null,
     yieldAuthority: {}, ownedHardware: null, focusProductId: "",
@@ -97,7 +97,7 @@ describe("ordinary store bundle entry", () => {
   });
 
   it("retains the activity-specific bundle destination in activity scope", () => {
-    const view = page({ activityId: "ACT-1", activity: { title: {} }, promotionAvailable: true });
+    const view = page({ activityId: "ACT-1", activity: { title: {} }, promotionAvailable: true, unlockedProducts:[{id:"a"},{id:"b"}] });
     expect(view.entry).toBeUndefined();
     const action = view.rendered.find(node => node.props?.onClick && nodes(node).some(child => child.children === zh.promotion.bundle));
     expect(action).toBeDefined();
@@ -154,4 +154,9 @@ describe("ordinary store voucher ticket", () => {
     expect(view.navTo).not.toHaveBeenCalled();
     expect(event.preventDefault).toHaveBeenCalledOnce();
   });
+});
+
+it.each([{products:[]},{products:[{id:'one'}]},{products:[{id:'one'},{id:'share',productType:'SHARE'}]}])('does not offer a two-product bundle for insufficient actual hardware scope %j',({products:unlockedProducts})=>{
+  const view=page({activityId:'ACT-1',activity:{title:{}},promotionAvailable:true,unlockedProducts});
+  expect(view.rendered.find(node=>node.props?.onClick&&nodes(node).some(child=>child.children===zh.promotion.bundle))).toBeUndefined();
 });

@@ -217,6 +217,7 @@ import CardStagger from "@/components/card-stagger.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import StreakPowerUps from "@/components/daily/streak-power-ups.vue";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
 import { formatTrialDateTime } from "@/lib/trial-date";
 import { useNexFaucet } from "@/store/nex-faucet";
@@ -273,6 +274,7 @@ const t = useT();
 const faucet = useNexFaucet();
 const dailyFactsReady = computed(() => !remoteApiEnabled || faucet.remoteReadState === 'ready');
 const app = useApp();
+const locale = useLocaleStore();
 const auth = useAuth();
 const remoteSessionReady = computed(() => accountSessionReady({
   remote: remoteApiEnabled, authenticated: auth.isAuthenticated,
@@ -485,7 +487,9 @@ const historyRows = computed(() => remoteApiEnabled
     }))
   : faucet.history.slice(0, 10));
 function daysLeftText(day: number): string {
-  return fmt(t.value.daily.milestones.daysLeft, { n: day - streak.value });
+    const remaining = Math.max(0, day - streak.value);
+    if (remaining === 0) return locale.code === 'zh' ? '领取资格待确认' : locale.code === 'vi' ? 'Đang chờ xác nhận điều kiện' : 'Eligibility awaiting confirmation';
+    return fmt(t.value.daily.milestones.daysLeft, { n: remaining });
 }
 function formatTs(ts: number): string {
   return Number.isFinite(new Date(ts).getTime()) ? formatTrialDateTime(ts) : "—";

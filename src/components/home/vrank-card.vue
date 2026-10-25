@@ -20,7 +20,7 @@
     <template v-if="vrank.remoteReady && next">
       <view class="mt-3 flex justify-between items-baseline font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">
         <text>{{ t.home.rankNext }} · <text style="color: var(--v5-brand); font-weight: 500">{{ rankLabel(next.v, locale.code, vrank.ladder) }}</text></text>
-        <text class="tabular-nums" style="color: var(--v5-success); font-weight: 500">{{ pct }}%</text>
+        <text class="tabular-nums" style="color: var(--v5-success); font-weight: 500">{{ rankInfo.progressKnown ? `${pct}%` : '—' }}</text>
       </view>
       <view ref="elRef" class="mt-1.5 h-1.5 rounded-full overflow-hidden" style="background: var(--v5-surface-3)">
         <view class="h-full rounded-full" :style="barStyle" />
@@ -53,7 +53,7 @@ const { elRef, inView } = useScrollGrowProgress();
 const myRank = computed(() => vrank.myRank);
 const totalRanks = computed(() => vrank.ladder.length);
 const myTitle = computed(() => rankTitle(myRank.value, locale.code, vrank.ladder));
-const rankInfo = computed(() => nextRankProgress(vrank, vrank.ladder));
+const rankInfo = computed(() => nextRankProgress(vrank, vrank.ladder, "compute-points"));
 const next = computed(() => rankInfo.value.next);
 const pct = computed(() => Math.round(rankInfo.value.progressPct * 100));
 const missing = computed(() => rankInfo.value.missing);
@@ -65,7 +65,7 @@ const rewardNex = computed(() => next.value?.cultivationBonus ?? 0);
 const rewardText = computed(() => fmt(t.value.home.rankReward, { n: formatAmount(rewardNex.value) }));
 
 const barStyle = computed<CSSProperties>(() => ({
-  width: `${inView.value ? pct.value : 0}%`,
+  width: `${inView.value && rankInfo.value.progressKnown ? pct.value : 0}%`,
   transition: inView.value ? PROGRESS_GROW_TRANSITION : "none",
   willChange: "width",
   background: "linear-gradient(90deg, var(--v5-brand), var(--v5-success))",

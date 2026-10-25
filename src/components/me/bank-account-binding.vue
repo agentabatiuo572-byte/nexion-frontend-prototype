@@ -43,22 +43,21 @@
             <view class="text-action" role="button" tabindex="0" data-testid="bank-send-otp" :aria-disabled="!canSendOtp" @click="sendOtp" @keydown.enter.prevent="sendOtp" @keydown.space.prevent="sendOtp"><text>{{ resendSeconds > 0 ? c.otpResendIn.replace('{s}', String(resendSeconds)) : t.bankWithdrawal.sendCode }}</text></view>
             <text v-if="state.challengeNo" class="hint" role="status" data-testid="bank-otp-status">{{ state.otpExpiresAt > now ? t.bankWithdrawal.otpSent : c.otpExpired }}</text>
           </view>
-          <view class="default-row" role="group" :aria-label="`${c.defaultLabel} · ${t.cards.formDefaultOn}`">
-            <view class="default-check" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.4"><path d="m5 12 4 4L19 6" /></svg></view>
-            <text>{{ c.defaultLabel }}</text><text class="default-state">{{ t.cards.formDefaultOn }}</text>
-          </view>
-          <text class="hint">{{ c.singleAccount }}</text>
+          <text class="hint" data-testid="bank-default-summary">{{ c.singleAccount }}</text>
         </view>
         <view v-if="!review" class="submit" :class="{ ready: canSubmit }" role="button" tabindex="0" data-testid="bank-bind-continue" :aria-disabled="!canSubmit" @click="submitBinding" @keydown.enter.prevent="submitBinding" @keydown.space.prevent="submitBinding">
           <text>{{ state.busy ? t.bankWithdrawal.loading : state.phase === 'uncertain' ? c.retryOriginal : canSubmit ? c.continue : t.cards.formSubmitDisabled }}</text>
         </view>
-        <text class="disclaimer">{{ c.disclaimer }}</text>
+        <text class="disclaimer">{{ copy.bankFooter }}</text>
       </template>
       <template v-else>
         <text class="saved-note" role="status" data-testid="bank-bind-saved">{{ t.bankWithdrawal.bound }}</text>
         <view class="submit ready" role="button" tabindex="0" data-testid="bank-bind-done" @click="done" @keydown.enter.prevent="done" @keydown.space.prevent="done"><text>{{ c.done }}</text></view>
       </template>
-      <text v-if="state.config && directBankBindingAvailable(state.config)" class="disclaimer">{{ t.bankWithdrawal.bindingNotice }}</text>
+      <view v-if="state.config && directBankBindingAvailable(state.config)">
+        <view class="text-action" role="button" tabindex="0" :aria-expanded="rulesOpen" @click="rulesOpen = !rulesOpen" @keydown.enter.prevent="rulesOpen = !rulesOpen" @keydown.space.prevent="rulesOpen = !rulesOpen"><text>{{ copy.bankRules }}</text></view>
+        <text v-if="rulesOpen" class="hint">{{ t.bankWithdrawal.bindingNotice }}</text>
+      </view>
     </view>
 
   </view>
@@ -77,9 +76,12 @@ import { createBankBindingForm, directBankBindingAvailable } from "@/lib/bank-bi
 import { bankAccountNotice } from "@/lib/bank-withdrawal-state";
 import { navReplace } from "@/lib/route";
 import { requireAccountPhone } from "@/lib/require-account-phone";
+import { useFinanceReviewCopy } from "@/lib/finance-review-copy";
 
 const props = defineProps<{ active: boolean; returnTo: string }>();
 const t = useT(), c = computed(() => t.value.bankBinding), app = useApp();
+const copy = useFinanceReviewCopy();
+const rulesOpen = ref(false);
 const identity = () => `${app.accountKey}:${app.accountBindingEpoch}:${captureRuntimeRevision().epoch}`;
 const form = createBankBindingForm(createBankWithdrawalApi(apiClient), identity);
 const state = form.state, now = ref(Date.now());

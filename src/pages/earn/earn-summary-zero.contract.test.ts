@@ -38,7 +38,8 @@ function hero(range: Range, homeTruth: unknown, realized: { usdt: number; nex: n
     if (id === "@/lib/amount-display") return { formatAmount };
     if (id === "@/lib/day-one-page-observation") return dayOnePageObservationFixture();
     if (id === "vue") return { ...Vue, onUnmounted: () => {} };
-    if (id === "@dcloudio/uni-app") return { onShow: () => {}, onHide: () => {} };
+    if (id === "@dcloudio/uni-app" || id === "@/composables/use-tab-page-lifecycle") return { onShow: () => {}, onHide: () => {} };
+    if (id === "@/i18n/audit-ui") return { useAuditUiCopy: () => Vue.ref({ deviceRevenue: 'Device earnings', revenueScope: 'Excludes team commissions' }) };
     if (id === "@/store/app") return { useApp: () => app };
     if (id === "@/i18n/use-t") return { useT: () => Vue.ref(copy) };
     if (id === "@/i18n/format") return { fmt };

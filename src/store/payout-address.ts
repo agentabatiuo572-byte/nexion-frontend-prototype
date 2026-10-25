@@ -59,6 +59,7 @@ export interface PayoutAddressServerClock {
 }
 
 export type PayoutAddressChangeBlockReason = PayoutChangeBlockReason | "time-unknown";
+export type PayoutAddressReadStatus = "idle" | "loading" | "error" | "ready";
 
 function remoteBook(snapshot: PayoutAddressSnapshot): PayoutAddressBook {
   const result = emptyBook();
@@ -180,7 +181,7 @@ export const usePayoutAddress = defineStore("payoutAddress", () => {
   const remoteServerClock = ref<PayoutAddressServerClock | null>(null);
   let remoteLoadVersion = 0;
 
-  function applyRemoteSnapshot(snapshot: PayoutAddressSnapshot) {
+  function applyRemoteSnapshot(snapshot: PayoutAddressSnapshot, scope: PayoutRemoteRequest) {
     book.value = remoteBook(snapshot);
     remoteProvenance.value = snapshot;
     remoteChangeCooldownDays.value = snapshot.changeCooldownDays;
@@ -189,6 +190,7 @@ export const usePayoutAddress = defineStore("payoutAddress", () => {
     remoteServerClock.value = snapshot.serverNowEpochMs === null || receivedMonotonicAt === null
       ? null
       : { serverNowEpochMs: snapshot.serverNowEpochMs, receivedMonotonicAt };
+    remoteReadState.value = { scope, status: "ready" };
   }
 
   function persist(): boolean {
@@ -197,6 +199,7 @@ export const usePayoutAddress = defineStore("payoutAddress", () => {
   }
 
   type PayoutRemoteRequest = RemoteAccountRequest & { commerceRun: RuntimeRevisionScope };
+  const remoteReadState = ref<{ scope: PayoutRemoteRequest; status: PayoutAddressReadStatus } | null>(null);
 
   function requestScope(): PayoutRemoteRequest {
     return { ...remoteAccountEpoch.snapshot(), commerceRun: captureRuntimeRevision() };
@@ -205,6 +208,15 @@ export const usePayoutAddress = defineStore("payoutAddress", () => {
   function scopeIsCurrent(request: PayoutRemoteRequest): boolean {
     return remoteAccountEpoch.isCurrent(request) && request.accountKey === boundKey
       && isCurrentRuntimeRevision(request.commerceRun);
+  }
+
+  // A superseded refresh returning true is not proof of a successful read.
+  // Consumers observe the latest read for their current account/runtime instead.
+  function readStatusFor(accountKey: string): PayoutAddressReadStatus {
+    if (!payoutAddressServerEnabled) return "ready";
+    const state = remoteReadState.value;
+    return state && state.scope.accountKey === normalizeAccountKey(accountKey) && scopeIsCurrent(state.scope)
+      ? state.status : "idle";
   }
 
   function scopeChangedError(): Error {
@@ -217,16 +229,22 @@ export const usePayoutAddress = defineStore("payoutAddress", () => {
     if (!payoutAddressServerEnabled) return true;
     const version = ++remoteLoadVersion;
     const request = requestScope();
+    remoteReadState.value = { scope: request, status: "loading" };
     try {
       const snapshot = await payoutAddressApi.list();
       if (version !== remoteLoadVersion || !scopeIsCurrent(request)) return true;
-      if (!runtimeProvenanceValid(snapshot)) return false;
-      applyRemoteSnapshot(snapshot);
+      if (!runtimeProvenanceValid(snapshot)) {
+        remoteReadState.value = { scope: request, status: "error" };
+        return false;
+      }
+      applyRemoteSnapshot(snapshot, request);
       return true;
     } catch {
       // A stale failure belongs to the previous account/request and must not
       // surface an error or clear the current account's canonical state.
-      return !scopeIsCurrent(request);
+      if (version !== remoteLoadVersion || !scopeIsCurrent(request)) return true;
+      remoteReadState.value = { scope: request, status: "error" };
+      return false;
     }
   }
 
@@ -284,7 +302,7 @@ export const usePayoutAddress = defineStore("payoutAddress", () => {
     remoteLoadVersion += 1;
     if (!scopeIsCurrent(request)) throw scopeChangedError();
     if (!runtimeProvenanceValid(snapshot)) throw new Error("PAYOUT_ADDRESS_PROVENANCE_INVALID");
-    applyRemoteSnapshot(snapshot);
+    applyRemoteSnapshot(snapshot, request);
   }
 
   /** 账号切换重绑:装载该账号的地址簿(防跨账号继承地址与历史)。 */
@@ -298,6 +316,7 @@ export const usePayoutAddress = defineStore("payoutAddress", () => {
       remoteEffectiveDelayHours.value = null;
       remoteProvenance.value = null;
       remoteServerClock.value = null;
+      remoteReadState.value = null;
       void refreshRemote();
     } else {
       book.value = hydrate(boundKey);
@@ -448,6 +467,7 @@ export const usePayoutAddress = defineStore("payoutAddress", () => {
     effectiveDelayHours: computed(() => remoteEffectiveDelayHours.value),
     provenance: computed(() => remoteProvenance.value),
     serverClock: computed(() => remoteServerClock.value),
+    readStatusFor,
     hasAnyAddress,
     stateFor,
     currentFor,

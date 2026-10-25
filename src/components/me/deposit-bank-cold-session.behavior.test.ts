@@ -1,4 +1,5 @@
 import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { compile } from "@vue/compiler-dom";
@@ -144,6 +145,7 @@ function harness(options: { warm?: boolean; quoteFailure?: boolean; existing?: b
   const fx = useFx(), open = vi.fn(), navTo = vi.fn();
   const modules: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/finance-amount-display": { formatFinanceAmount },
     vue: Vue, "@/store/fx": { useFx: () => fx }, "@/store/app": { useApp: () => app },
     "@/store/auth": { useAuth: () => auth }, "@/store/deposits": { useDeposits: () => dep },
     "@/api/runtime": { remoteApiEnabled: true, sessionVault: vault }, "@/api/errors": { ApiError },
@@ -354,7 +356,7 @@ test.each([zh, en, vietnamese])("a fresh canonical list offers an explicit exist
   (h.state().createError as Vue.Ref<string>).value = messages.bankPane.hostedRejectedNote;
   (choice.props.onClick as () => void)(); await Vue.nextTick();
   expect((h.state().viewIntentId as Vue.Ref<string>).value).toBe(existing20.intentId);
-  expect(h.text()).toContain("527800.00₫"); expect(h.text()).toContain(messages.bankPane.hostedContinueCta);
+  expect(h.text()).toContain("527,800 ₫"); expect(h.text()).toContain(messages.bankPane.hostedContinueCta);
   expect(h.text()).not.toContain(messages.bankPane.expiredTitle); expect(existingControl(h)).toBeUndefined();
   expect((h.state().createError as Vue.Ref<string>).value).toBe(""); expect(h.dep.intents).toEqual(before);
   expect(h.dep.records).toEqual([]); expect(h.dep.remoteReceipts).toEqual([]);

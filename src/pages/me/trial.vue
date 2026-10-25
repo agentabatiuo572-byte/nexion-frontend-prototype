@@ -165,7 +165,7 @@ import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import CountdownHero from "@/components/me/trial-countdown-hero.vue";
+import CountdownHero from "@/components/earn/trial-progress-hero.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { formatTrialDateTime } from "@/lib/trial-date";

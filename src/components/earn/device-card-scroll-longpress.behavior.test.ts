@@ -67,6 +67,7 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const dependencies: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
     vue: Vue, "@/components/home/device-slot.vue": { __esModule: true, default: blank },
+    "@/components/ui/nx-button.vue": { __esModule: true, default: blank },
     "@/store/app": { useApp: () => app },
     "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => calibrated }) },
     "@/store/config": { useConfig: () => ({ config: { onlineBonus: {} } }) },
@@ -239,6 +240,14 @@ test("keyboard/context-menu access and Escape remain available", async () => {
   expect(menu(view.root)).toBeUndefined();
   await fire(header, "onContextmenu");
   expect(menu(view.root)).toBeDefined();
+});
+
+test("statistics navigates to this device's real section and closes the menu", async () => {
+  const view = await mount(zh, { ...cloudDevice(), id: 'cloud / 1' });
+  await fire(find(view.root, 'nx-device-card__header')!, 'onContextmenu');
+  await fire(find(view.root, 'nx-device-quick-stats')!, 'onClick');
+  expect(view.navTo).toHaveBeenCalledExactlyOnceWith('/pages/earn/device-detail?id=cloud%20%2F%201&section=statistics');
+  expect(menu(view.root)).toBeUndefined();
 });
 
 test("ordinary subsidy tap still opens the real shared explainer switch", async () => {

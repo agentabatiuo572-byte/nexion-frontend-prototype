@@ -116,6 +116,7 @@ async function confirmClearRead() {
       message: t.value.notifs.clearReadMessage,
       confirmLabel: t.value.notifs.clearReadAria,
       icon: "warn",
+      danger: true,
     });
     if (accepted && isCurrentIntent(intent)) await notifs.clearRead();
   } finally {

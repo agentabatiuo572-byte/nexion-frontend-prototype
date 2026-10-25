@@ -5,9 +5,6 @@
     :segments-config="configuration" :change:segments-config="segmentsView.update"
   >
     <LiquidGlass v-if="variant === 'navigation'" :radius="34" tone="navigation" backdrop=".nx-page-enter" class="nx-glass-track nx-glass-backdrop" />
-    <view v-else class="nx-glass-track-viewport" aria-hidden="true">
-      <view class="nx-glass-backdrop nx-glass-track--filter" />
-    </view>
     <LiquidGlass
       class="nx-glass-indicator" :radius="variant === 'navigation' ? 28 : 23"
       tone="selection" :backdrop="variant === 'navigation' ? '.nx-page-enter' : ''"
@@ -111,8 +108,7 @@ export default viewImplementation;
 <style scoped>
 .nx-glass-segments { position: relative; display: flex; gap: 3px; padding: 4px; border-radius: 28px; min-width: 0; }
 .nx-glass-backdrop { z-index: 0; }
-.nx-glass-track-viewport { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
-.nx-glass-track--filter { position: absolute; inset: 0; border-radius: inherit; background: color-mix(in srgb, var(--v5-surface-2) 82%, transparent); pointer-events: none; }
+.nx-glass-segments--filter { background: transparent; border: 0; box-shadow: none; }
 .nx-glass-segments--equal, .nx-glass-segments--equal .nx-glass-option { touch-action: pan-y; user-select: none; }
 .nx-glass-segments[data-glass-dragging="true"] { cursor: grabbing; }
 .nx-glass-indicator { inset: auto; left: 0; top: 0; z-index: 1; transform-origin: 0 0; visibility: hidden; }
@@ -124,7 +120,6 @@ export default viewImplementation;
 .nx-glass-option__label { font-family: var(--font-v5); font-size: 12px; font-weight: 600; line-height: 17px; text-align: center; overflow-wrap: anywhere; }
 .nx-glass-option__count { font-size: 12px; font-variant-numeric: tabular-nums; }
 .nx-glass-segments--scroll { overflow-x: auto; scrollbar-width: none; }
-.nx-glass-segments--scroll .nx-glass-track-viewport { overflow: clip; }
 .nx-glass-segments--scroll::-webkit-scrollbar { display: none; }
 .nx-glass-segments--scroll .nx-glass-option { flex: 0 0 auto; white-space: nowrap; padding-inline: 16px; }
 .nx-glass-segments--wrap { flex-wrap: wrap; }
@@ -137,5 +132,5 @@ export default viewImplementation;
 .nx-glass-segments--navigation :deep(.nx-tab__icon) { filter: drop-shadow(0 1px 1px var(--v5-tabbar-ink-halo)); transition: transform 160ms cubic-bezier(.2,.8,.2,1); }
 .nx-glass-segments--navigation .nx-glass-option--selected :deep(.nx-tab__icon) { transform: translateY(-1px); }
 @media (prefers-reduced-motion: reduce) { .nx-glass-option, .nx-glass-indicator { transition: none; } .nx-glass-option:active, .nx-glass-option--selected :deep(.nx-tab__icon) { transform: none; } }
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .nx-glass-segments { background: var(--v5-surface); } .nx-glass-option--selected { background: var(--v5-brand-soft); } }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .nx-glass-segments--navigation { background: var(--v5-surface); } .nx-glass-option--selected { background: var(--v5-brand-soft); } }
 </style>

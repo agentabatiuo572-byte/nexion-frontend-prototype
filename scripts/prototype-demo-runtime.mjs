@@ -10,7 +10,7 @@ const browser=await chromium.launch(),records=[],errors=[];
 const routes=['index/index','store/store','missions/missions','events/events','events/events?source=legacy','daily/daily','me/achievements','learn/courses','genesis/genesis','me/devices','store/orders','me/wallet','me/wallet-bills','me/rewards','team/team','team/rank','earn/earn','me/me','me/notifications?section=notifications','trust/trust','me/security'];
 routes.push('team/commissions','team/leaderboard','team/leadership-pool','events/promotion-rewards','events/genesis-raffle',...['stellarbox-s1','stellarbox-pro','stellarbox-pro-v2','stellarrack-p1','stellarrack-p2','cloud-share'].map(id=>'store/detail?id='+id));
 routes.push('me/goals','me/receipts','me/wallet-cards','me/profile','me/support','me/preferences');
-const readyText={'index/index':/2\s*\/\s*6/,'learn/courses':/认识算力作业/,'me/wallet':/52800.64/,'me/me':/52800.64/,'earn/earn':/2\s*\/\s*6/,'team/team':/UVEL-DEMO/,'store/store':/Cloud Share/,'team/commissions':/250/,'team/leaderboard':/Maya/,'team/leadership-pool':/周池/,'events/genesis-raffle':/已开奖记录/,'events/promotion-rewards':/UVEL\s*Box S1/};
+const readyText={'index/index':/2\s*\/\s*6/,'learn/courses':/认识算力作业/,'me/wallet':/52800.64/,'me/me':/52800.64/,'earn/earn':/2\s*\/\s*6/,'team/team':/UVELDEMO/,'store/store':/Cloud Share/,'team/commissions':/250/,'team/leaderboard':/Maya/,'team/leadership-pool':/周池/,'events/genesis-raffle':/已开奖记录/,'events/promotion-rewards':/UVEL\s*Box S1/};
 try {
   const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
   page.on('pageerror',error=>errors.push(error.message));

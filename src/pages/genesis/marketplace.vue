@@ -67,6 +67,9 @@
           <view style="flex: 1; margin-left: 8px">
             <text class="block" :style="closedNoticeTitleStyle">{{ secondaryBlockText }}</text>
             <text class="block" :style="closedNoticeSubStyle">{{ secondaryBlockSub }}</text>
+            <view class="nx-market-info" role="button" tabindex="0" @click="goGenesis" @keydown.enter.prevent="goGenesis" @keydown.space.prevent="goGenesis">
+              <text>{{ consumerCopy.learn }}</text>
+            </view>
           </view>
         </view>
 
@@ -75,14 +78,13 @@
 
         <!-- LISTINGS TAB -->
         <template v-if="tab === 'listings'">
-          <!-- 市场**被运营关闭**时不再渲染「市场数据暂不可用 + 重试」:那不是连接故障,
-               重试也修不好,而两个错误态并排会让用户分不清是未开放还是网络问题(#123)。
-               关闭原因由上方关闭说明条唯一承载。 -->
-          <EmptyState v-if="genesis.remotePublicReadState === 'loading' && secondaryBlock === null" kind="empty-list"
+          <!-- A closed market and a failed read are independent. Keep read feedback
+               compact when closed, and never present an unread list as empty. -->
+          <EmptyState v-if="genesis.remotePublicReadState === 'loading'" kind="empty-list" :compact="secondaryBlock !== null"
             :title="t.marketplace.marketLoading" :desc="t.marketplace.marketLoadingHint" />
-          <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable' && secondaryBlock === null" kind="empty-list"
+          <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable'" kind="empty-list" :compact="secondaryBlock !== null"
             :title="t.marketplace.marketUnavailable" :desc="t.marketplace.marketUnavailableHint"
-            :cta-label="t.marketplace.retry" emphasis @cta="retryMarketplaceFacts()" />
+          />
           <template v-else-if="sortedListings.length > 0">
             <scroll-view scroll-x class="nx-sort-row">
               <view class="flex items-center" style="gap: 6px; white-space: nowrap" role="radiogroup" :aria-label="t.marketplace.sortLabel">
@@ -108,8 +110,8 @@
             v-else
             kind="empty-list"
             :title="t.empty.genesisListingsTitle"
-            :desc="t.empty.genesisListingsDesc"
-            :cta-label="secondaryBlock === null ? t.marketplace.reservePrimary : undefined"
+            :desc="primaryAvailable ? t.empty.genesisListingsDesc : consumerCopy.empty"
+            :cta-label="secondaryBlock === null ? primaryEntryLabel : undefined"
             emphasis
             @cta="goGenesis"
           />
@@ -117,12 +119,12 @@
 
         <!-- ACTIVITY TAB(真实成交 + 虚拟成交混排,FEAT-GEN10)-->
         <template v-else-if="tab === 'activity'">
-          <!-- 同 LISTINGS:关闭态不叠加连接错误态(#123)。 -->
-          <EmptyState v-if="genesis.remotePublicReadState === 'loading' && secondaryBlock === null" kind="empty-list"
+          <!-- The shared footer retries reads without changing the market gate. -->
+          <EmptyState v-if="genesis.remotePublicReadState === 'loading'" kind="empty-list" :compact="secondaryBlock !== null"
             :title="t.marketplace.marketLoading" :desc="t.marketplace.marketLoadingHint" />
-          <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable' && secondaryBlock === null" kind="empty-list"
+          <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable'" kind="empty-list" :compact="secondaryBlock !== null"
             :title="t.marketplace.marketUnavailable" :desc="t.marketplace.marketUnavailableHint"
-            :cta-label="t.marketplace.retry" emphasis @cta="retryMarketplaceFacts()" />
+          />
           <view v-else-if="mergedActivity.length > 0" class="nx-glass-card overflow-hidden" :style="listCardStyle">
             <ActivityRow v-for="(e, i) in mergedActivity" :key="e.id" :e="e" :is-last="i === mergedActivity.length - 1" />
           </view>
@@ -139,17 +141,14 @@
           <view v-if="genesis.remoteAccountReadState !== 'ready'" class="text-center" :style="emptyCardStyle">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 8px"><path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="10" /></svg>
             <text class="block" style="font-size: 13px; color: var(--v5-ink)">{{ genesis.remoteAccountReadState === 'loading' ? t.marketplace.accountLoading : t.marketplace.accountUnavailable }}</text>
-            <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ t.marketplace.accountUnavailableHint }}</text>
-            <view v-if="genesis.remoteAccountReadState === 'unavailable'" class="inline-block active:scale-95" :style="reserveBtnStyle" @click="retryMarketplaceFacts()">
-              <text>{{ t.marketplace.retry }}</text>
-            </view>
+            <text v-if="genesis.remoteAccountReadState !== 'loading'" class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ t.marketplace.accountUnavailableHint }}</text>
           </view>
           <view v-else-if="ownedCount === 0" class="text-center" :style="emptyCardStyle">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 8px"><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></svg>
             <text class="block" style="font-size: 13px; color: var(--v5-ink)">{{ t.marketplace.noTokensTitle }}</text>
-            <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ t.marketplace.noTokensSub }}</text>
-            <view class="inline-block active:scale-95" :style="reserveBtnStyle" @click="goGenesis">
-              <text>{{ t.marketplace.reservePrimary }}</text>
+            <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ primaryAvailable ? t.marketplace.noTokensSub : consumerCopy.empty }}</text>
+            <view class="inline-block active:scale-95" :style="reserveBtnStyle" role="button" tabindex="0" @click="goGenesis" @keydown.enter.prevent="goGenesis" @keydown.space.prevent="goGenesis">
+              <text>{{ primaryEntryLabel }}</text>
             </view>
           </view>
           <view v-else class="grid grid-cols-2" style="gap: 10px">
@@ -158,6 +157,10 @@
         </template>
 
         <text class="block px-2" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.625">{{ marketplaceRoyaltyText }}</text>
+        <view v-if="marketReadNeedsRetry" class="nx-market-retry" role="button" :tabindex="marketplaceRead.busy ? -1 : 0" :aria-busy="marketplaceRead.busy" :aria-disabled="marketplaceRead.busy"
+          @click="retryMarketplaceFacts()" @keydown.enter.prevent="retryMarketplaceFacts()" @keydown.space.prevent="retryMarketplaceFacts()">
+          <text>{{ marketplaceRead.busy ? t.marketplace.marketLoading : t.marketplace.retry }}</text>
+        </view>
       </view>
     </view>
 
@@ -179,6 +182,8 @@ import MyTokenCard from "@/components/genesis/my-token-card.vue";
 import GenesisEligibilitySheet from "@/components/genesis/eligibility-sheet.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
+import { genesisConsumerCopyFor } from "./genesis-consumer-copy";
 import { fmt } from "@/i18n/format";
 import { useGenesis, GENESIS_ELIGIBILITY_POLICY } from "@/store/genesis";
 import { useGenesisConfig } from "@/store/genesis-config";
@@ -195,6 +200,8 @@ import { registerActivePageRefresh } from "@/lib/active-page-refresh";
 import { presentGenesisFloorDelta, presentGenesisMarketplaceActivityDescription, presentGenesisRoyalty } from "@/lib/genesis-marketplace-presentation";
 
 const t = useT();
+const locale = useLocaleStore();
+const consumerCopy = computed(() => genesisConsumerCopyFor(locale.code));
 const genesis = useGenesis();
 const cfg = useGenesisConfig();
 let marketplacePageVisible = false;
@@ -202,6 +209,7 @@ let refreshInFlight: Promise<boolean> | null = null;
 let refreshRequested = false;
 let marketplaceObservationEpoch = 0;
 const listingPageScope = reactive({ visible: false, epoch: 0 });
+const marketplaceRead = reactive({ busy: false });
 let releaseActiveRefresh = () => {};
 
 async function refreshMarketplaceFacts(): Promise<void> {
@@ -233,6 +241,7 @@ async function retryMarketplaceFacts(recheck = false): Promise<boolean> {
   }
   // Recovery only reads projections. Runtime revisions must re-read after an
   // in-flight result is fenced out, without replaying the weekly observation.
+  marketplaceRead.busy = true;
   const operation = (async () => {
     try {
       let loaded = false;
@@ -243,10 +252,13 @@ async function retryMarketplaceFacts(recheck = false): Promise<boolean> {
         loaded = await genesis.syncRemote();
       } while (refreshRequested && marketplacePageVisible);
       return loaded;
+    } catch {
+      return false;
     } finally {
       // Release with the final loop decision, before a queued revision can
       // mistake a completed operation for a read that will consume its flag.
       refreshInFlight = null;
+      marketplaceRead.busy = false;
     }
   })();
   refreshInFlight = operation;
@@ -285,7 +297,13 @@ onUnmounted(() => {
   stopMarketplaceRevision();
 });
 const { gate, eligible, gatesSecondary } = useGenesisEligibility();
-const { marketClosed, secondaryBlock, blockText } = useGenesisSaleGate();
+const { block, marketClosed, secondaryBlock, blockText } = useGenesisSaleGate();
+const primaryAvailable = computed(() => block.value === null && secondaryBlock.value === null);
+const primaryEntryLabel = computed(() => primaryAvailable.value ? t.value.marketplace.reservePrimary : consumerCopy.value.learn);
+const marketReadNeedsRetry = computed(() => secondaryBlock.value === "configUnavailable"
+  || genesis.remotePublicReadState === "unavailable"
+  || genesis.remoteAccountReadState === "unavailable"
+  || presentGenesisRoyalty(genesis.remoteRoyaltyPct) === null);
 /** 阻断说明文案 —— 走 blockText 唯一出口(P1-3 收口:此前 4 处各写一份同款 switch)。
  *  二级的三种阻断(配置未知/关闭/熔断)与主判定共享同一批高优先档,blockText 恒能覆盖;
  *  兜底只防 TS 层面的 null(渲染点有 v-if 闸,可购买态整块不渲染)。
@@ -634,6 +652,16 @@ const sortOptions = computed(() => [
 </script>
 
 <style scoped>
+.nx-market-info, .nx-market-retry {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--v5-brand);
+  font-size: 13px;
+  font-weight: 600;
+}
+.nx-market-retry { align-self: flex-start; padding: 0 12px; }
+.nx-market-retry[aria-disabled="true"] { opacity: 0.6; }
 .nx-sort-row {
   width: 100%;
   white-space: nowrap;

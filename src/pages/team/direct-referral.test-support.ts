@@ -1,5 +1,6 @@
 import * as Vue from "vue";
 import { formatAmount } from "@/lib/amount-display";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -41,7 +42,7 @@ const copyComponent = (name: string) => Vue.defineComponent({
   props: ["label", "title", "sub", "body", "q", "a"],
   setup: (props, { slots }) => () => Vue.h("view", { "data-component": name }, [
     ...Object.values(props).filter(value => value != null).map(value => Vue.h("text", String(value))),
-    ...(slots.default?.() ?? []),
+    ...(slots.default?.() ?? []), ...(slots.footer?.() ?? []),
   ]),
 });
 const emptyState = Vue.defineComponent({
@@ -69,8 +70,17 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const shows: Array<() => void> = [];
   const defaults: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/i18n/network-reaudit": { networkReauditCopy },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
+    "@/components/team/reward-page-surface.vue": { default: slot },
+    "@/components/team/reward-compact-hero.vue": { default: copyComponent("hero") },
+    "@/components/team/reward-rule-block.vue": { default: Vue.defineComponent({
+      props: ["label", "title", "sub", "body", "q", "a", "n"],
+      setup: (props, { slots }) => () => Vue.h("view", { "data-component": slots.default ? "section" : "rule" }, [
+        ...Object.values(props).filter(value => value != null).map(value => Vue.h("text", String(value))), ...(slots.default?.() ?? []),
+      ]),
+    }) },
     "@/components/sub-page-header.vue": { default: header },
     "@/components/empty-state.vue": { default: emptyState },
     "@/components/glass-segments.vue": { default: segments },
@@ -128,6 +138,7 @@ export async function directPage(options: { locale?: keyof typeof dictionaries; 
   } };
   const navTo = vi.fn();
   const page = await mount(directSource, {
+    "@/store/locale": { useLocaleStore: () => Vue.reactive({ get code() { return locale.value; } }) },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.value]) },
     "@/i18n/format": { fmt, dateLocale: () => locale.value === "vi" ? "vi-VN" : locale.value === "zh" ? "zh-CN" : "en-US" },
     "@/store/app": { useApp: () => app }, "@/store/auth": { useAuth: () => auth },

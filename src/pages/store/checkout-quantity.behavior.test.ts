@@ -19,7 +19,7 @@ function screen(overrides:Record<string,unknown>={}) {
   const scope={accountKey:'user:7',accountEpoch:1,productNo:'real-sku',generation:1};
   const deps={pageAlive:true,pageVisible:true,quantityReady:ref(true),checkoutRouteInitialized:true,activeCheckoutLoad:null,
     promotionRoute:ref(null),product:ref({id:'real-sku'}),purchaseUnavailable:ref(false),step:ref('select-payment'),
-    quantitySwitching:ref(false),confirming:false,purchaseConfirmationOpen:false,dialogsOpen:0,
+    quantitySwitching:ref(false),voucherSelecting:ref(false),confirming:false,purchaseConfirmationOpen:false,dialogsOpen:0,
     trialCheckoutSource:false,trialConversionMode:ref(false),appliedTradeinView:ref(null),reAddingTradein:ref(false),
     remoteTradeinRecoveryRequired:ref(false),activeSession:ref(null),resumeSessionId:null,orderId:ref(null),
     remoteOrderFailure:ref(null),receiptWriteFailure:ref(null),captureCheckoutRoute:()=>scope,

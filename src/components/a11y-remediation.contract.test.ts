@@ -112,7 +112,14 @@ describe("accessibility remediation contracts", () => {
     expect(segments).toContain('@keydown="onKeydown($event, option)"');
     expect(segments).toContain('choose(target, "arrow")');
     expect(segments).toContain('?.focus()');
-    expect(developer).toContain('role="button" tabindex="0" :aria-label="t.developer.formSubmit"');
+    const submit = developer.match(/<view\b[^>]*:aria-label="t\.developer\.formSubmit"[^>]*>/)?.[0] ?? "";
+    expect(submit).toContain('role="button"');
+    expect(submit).toContain(':tabindex="submitting ? -1 : 0"');
+    expect(submit).toContain(':aria-disabled="submitting ? \'true\' : \'false\'"');
+    expect(submit).toContain(':aria-busy="submitting ? \'true\' : \'false\'"');
+    expect(submit).toContain('@click="submitRequest"');
+    expect(submit).toContain('@keydown.enter.prevent="submitRequest"');
+    expect(submit).toContain('@keydown.space.prevent="submitRequest"');
 
     const proof = read("../pages/me/proof.vue");
     expect(proof).toContain('@keydown.enter.stop.prevent="refreshRemoteProof"');

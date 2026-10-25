@@ -119,7 +119,7 @@ describe("earning-goal read recovery", () => {
     const html = await show("loading", []);
     expect(html).not.toContain("<input");
     expect(html).toContain("Loading");
-    expect(html).toContain('aria-disabled="true"');
+    expect(html).not.toContain('aria-label="Save"');
     expect(html).not.toMatch(/<text[^>]*>Recommendation<\/text>/);
   });
 
@@ -209,8 +209,9 @@ describe("earning-goal read recovery", () => {
 
   it("offers retry on an initial list failure without inventing an active goal", async () => {
     const html = await show("error", []);
-    expect(html).toContain("Read unavailable");
+    expect(html.split("Read unavailable")).toHaveLength(2);
     expect(html).toContain("Retry");
+    expect(html).not.toContain('aria-label="Save"');
     expect(html).not.toContain("90 days");
   });
 

@@ -1,3 +1,4 @@
+import { commerceOrderTitle, commerceCopy } from "@/lib/commerce-review";
 import { formatAmount } from "@/lib/amount-display";
 import { compile } from "@vue/compiler-dom";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -77,6 +78,8 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
     if (id === "@dcloudio/uni-app") return {
       onLoad: (callback: typeof onLoad) => { onLoad = callback; }, onShow: () => {}, onHide: () => {}, onUnload: () => {},
     };
+    if (id === "@/lib/commerce-review") return {commerceOrderTitle,commerceCopy};
+    if (id === "@/store/locale") return {useLocaleStore:()=>({code:Vue.toRaw(copyRef.value)===zh?"zh":Vue.toRaw(copyRef.value)===en?"en":"vi"})};
     if (id === "@/store/orders") return { useOrders: () => orders, timelineFor };
     if (id === "@/store/app") return { useApp: () => ({}) };
     if (id === "@/store/auth") return { useAuth: () => ({ isAuthenticated: true, accountId: "user:server-truth" }) };
@@ -111,6 +114,25 @@ async function rendered(view: Awaited<ReturnType<typeof detail>>["view"]) {
 }
 
 describe("BUG 381 canonical order data-center and activation truth", () => {
+  it.each(['payment_failed','provisioning_failed','chargeback','expired'] as const)('offers read-only recovery for %s without unlocking payment or cancellation',async status=>{
+    const {view}=await detail('Cloud-Global',en,status);
+    const html=await rendered(view);
+    expect(html).toContain(en.orders.copyAndSupport);
+    expect(html).toContain(en.store.catalogRetry);
+    expect(view.canPayFromWallet.value).toBe(false);
+    expect(view.cancellable.value).toBe(false);
+    expect(view.canBuyAgain.value).toBe(status==='expired');
+    await view.handleWalletPayment();await view.handleCancel();
+    expect(remote.orderApi.pay).not.toHaveBeenCalled();expect(remote.orderApi.cancel).not.toHaveBeenCalled();
+  });
+  it.each(copies)('%s unpaid cancellation never promises a refund',(_language,copy)=>{
+    expect(copy.orders.cancelConfirm+' '+copy.orders.cancelDoneToast).not.toMatch(/退款|refund|hoàn tiền|1[–-]3/i);
+  });
+  it('formats authoritative order amounts with thousands separators without changing the amount',async()=>{
+    const {view,orders}=await detail('Cloud-Global');
+    orders.orders[0].total=12999;
+    expect(await rendered(view)).toContain('$12,999.00');expect(orders.orders[0].total).toBe(12999);
+  });
   it.each(["Cloud-Global", "Frankfurt DC", "Singapore DC", "Other Region", "Cloud-Frankfurt", null, ""])(
     "preserves the canonical data-center %s instead of inferring a region", async (dataCenter) => {
       const { orders, row } = await detail(dataCenter);
@@ -145,7 +167,8 @@ describe("BUG 381 canonical order data-center and activation truth", () => {
     it.each([null, "", "   "])(`${language} renders unknown data-center %s neutrally`, async (dataCenter) => {
       const { view } = await detail(dataCenter, copy);
       const html = await rendered(view);
-      expect(html).toContain(copy.orders.activatedHint.replace("{dc}", "—"));
+      expect(html).toContain(commerceCopy(language.toLowerCase()).activatedLocationPending);
+      expect(html).not.toContain(copy.orders.activatedHint.replace("{dc}", "—"));
       expect(html).not.toContain(copy.store.coDcSingapore);
       expect(html).not.toContain(copy.store.coDcFrankfurt);
     });

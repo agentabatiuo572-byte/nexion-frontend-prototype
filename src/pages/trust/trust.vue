@@ -1,7 +1,7 @@
 <template>
   <AppChassis active="me">
     <CardStagger style="padding-bottom: 24px">
-      <SubPageHeader back="/pages/me/me" pill />
+      <SubPageHeader back="/pages/me/me" />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <view class="trust-intro" :style="heroStyle">
@@ -22,10 +22,22 @@
         </view>
         <NxSection :title="resources.disclosures">
           <NxListGroup><view v-for="item in categories" :key="item.key" class="trust-category">
-            <NxListRow :title="item.title" :value="openCategory === item.key ? '−' : '+'" @click="openCategory = openCategory === item.key ? '' : item.key" :aria-expanded="openCategory === item.key" />
+            <view class="trust-category-toggle" role="button" tabindex="0" :aria-expanded="openCategory === item.key" @click="openCategory = openCategory === item.key ? '' : item.key" @keydown.enter.prevent="openCategory = openCategory === item.key ? '' : item.key" @keydown.space.prevent="openCategory = openCategory === item.key ? '' : item.key">
+              <text>{{ item.title }}</text><text aria-hidden="true">{{ openCategory === item.key ? '−' : '+' }}</text>
+            </view>
             <view v-if="openCategory === item.key" class="trust-category-body">
-              <template v-if="item.key === 'team' && verifiedLeadershipRows.length"><text v-for="row in verifiedLeadershipRows" :key="row.Name" class="block">{{ row.Name }} · {{ row.Role }}</text></template>
-              <template v-else-if="item.key === 'audit' && verifiedAuditRows.length"><NxListRow v-for="row in verifiedAuditRows" :key="row.Primary" :title="row.Primary" :subtitle="row.Secondary" @click="openHref(row.Url)" /></template>
+              <NxButton v-if="item.href" variant="text" :label="item.title" @click="openHref(item.href)" />
+              <text v-else-if="loading" role="status" aria-live="polite">{{ auditCopy.loading }}</text>
+              <view v-else-if="hasError" role="alert"><text>{{ auditCopy.error }}</text><NxButton variant="text" size="small" :label="t.ui.retry" @click="loadTrustSections" /></view>
+              <template v-else-if="item.key === 'team' && verifiedLeadershipRows.length"><text v-for="row in verifiedLeadershipRows" :key="row.Name" class="block">{{ row.Name }} · {{ row.Role }}</text></template>
+              <template v-else-if="item.key === 'audit' && verifiedAuditRows.length">
+                <view v-for="row in verifiedAuditRows" :key="row.Primary" class="trust-document" role="link" :tabindex="safeHref(row.Url) ? 0 : -1" :aria-disabled="!safeHref(row.Url)" @click="safeHref(row.Url) && openHref(row.Url)" @keydown.enter.prevent="safeHref(row.Url) && openHref(row.Url)">
+                  <text class="block trust-material-title">{{ row.Primary }}</text>
+                  <text v-if="row.Secondary" class="block">{{ row.Secondary }}</text>
+                  <text v-if="row.Type || row.Date || row.Size" class="block">{{ [row.Type, row.Date, row.Size].filter(Boolean).join(' · ') }}</text>
+                  <text v-if="!safeHref(row.Url)" class="block">{{ tr.linkUnavailable }}</text>
+                </view>
+              </template>
               <template v-else-if="item.material.content || item.material.rows.length">
                 <text v-if="item.material.content" class="block trust-material-copy">{{ item.material.content }}</text>
                 <view v-for="(row, index) in item.material.rows" :key="index" class="trust-material"
@@ -36,8 +48,11 @@
                   <text v-if="row.metadata" class="block">{{ row.metadata }}</text>
                 </view>
               </template>
-              <NxButton v-else-if="item.href" variant="text" :label="item.title" @click="openHref(item.href)" />
               <text v-else>{{ resources.pending }}</text>
+              <NxButton v-if="item.key === 'warranty'" variant="text" :label="auditCopy.afterSales" @click="openHref('/pages/support/chat')" />
+              <template v-if="item.key === 'security'">
+                <NxButton variant="text" :label="auditCopy.securitySettings" @click="openHref('/pages/me/security')" />
+              </template>
             </view>
           </view></NxListGroup>
         </NxSection>
@@ -54,8 +69,6 @@
           </view>
         </view>
 
-        <view v-if="loading" class="trust-loading" aria-busy="true" />
-        <NxButton v-else-if="hasError && remoteApiEnabled" variant="text" size="small" :label="t.ui.retry" @click="loadTrustSections" />
 
         <template>
           <template v-if="financialMetrics.length > 3">
@@ -67,22 +80,6 @@
                   <text :style="metricValueStyle">{{ metric.value }}</text>
                   <text v-if="metric.delta" :style="deltaStyle">{{ metric.delta }}</text>
                 </view>
-              </view>
-            </view>
-          </template>
-
-          <template v-if="auditSection && verifiedAuditRows.length">
-            <SectionHeader :label="resources.documents" />
-            <view class="trust-surface" :style="listCardStyle">
-              <view v-for="(row, index) in verifiedAuditRows" :key="row.Primary" class="active:opacity-75" :style="listRowStyle(index === verifiedAuditRows.length - 1)"
-                role="link" :tabindex="safeHref(row.Url) ? 0 : -1" :aria-disabled="safeHref(row.Url) ? 'false' : 'true'"
-                @click="openHref(row.Url)" @keydown.enter.prevent="openHref(row.Url)">
-                <view class="min-w-0" style="flex: 1">
-                  <text class="block" :style="titleStyle">{{ row.Primary }}</text>
-                  <text v-if="row.Secondary" class="block" :style="bodyStyle">{{ row.Secondary }}</text><text v-if="row.Type || row.Date || row.Size" class="block" :style="bodyStyle">{{ [row.Type, row.Date, row.Size].filter(Boolean).join(" · ") }}</text>
-                  <text v-if="!safeHref(row.Url)" class="block" :style="bodyStyle">{{ tr.linkUnavailable }}</text>
-                </view>
-                <text v-if="safeHref(row.Url)" :style="linkStyle">↗</text>
               </view>
             </view>
           </template>
@@ -108,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, ref, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
@@ -138,6 +136,7 @@ const cfg = useConfig();
 const tr = computed(() => t.value.trust);
 const locale = useLocaleStore();
 const language = computed<TrustLocale>(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code as TrustLocale : "en");
+const auditCopy = computed(() => networkReauditCopy(language.value));
 const resources = computed(() => trustResources(language.value));
 const { sections, status, refresh } = usePublishedTrust();
 const categories = computed(() => resources.value.categories.map(item => ({
@@ -182,7 +181,7 @@ const financialMetrics = computed(() => {
   ];
 });
 const auditRows = computed(() => trustNumberedRows(auditSection.value?.fields ?? [], "document", ["Primary", "Secondary", "Url", "Type", "Date", "Size"] as const, language.value));
-const verifiedAuditRows = computed(() => auditRows.value.filter((row) => safeHref(row.Url)));
+const verifiedAuditRows = computed(() => auditRows.value.filter((row) => row.Primary));
 const leadershipRows = computed(() => trustNumberedRows(leadershipSection.value?.fields ?? [], "leader", ["Name", "Role", "Previous", "Url"] as const, language.value));
 const verifiedLeadershipRows = computed(() => leadershipRows.value.filter((row) => safeHref(row.Url)));
 
@@ -281,6 +280,11 @@ const retryStyle: CSSProperties = { minHeight: "44px", display: "flex", alignIte
 </script>
 
 <style scoped>
+.trust-category-toggle { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:64px; padding:12px 16px; color:var(--v5-ink); font-size:15px; }
+.trust-category-toggle:focus-visible, .trust-document:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; }
+.trust-document { padding:12px 0; border-bottom:1px solid var(--v5-border); }
+.trust-document:last-child { border-bottom:0; }
+.trust-document[aria-disabled="false"] { cursor:pointer; }
 .trust-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; padding: 16px 0; border-block: 1px solid var(--v5-border); }
 .trust-summary__value { display: block; font: 600 18px/1.4 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
 .trust-summary__label { display: block; margin-top: 4px; font: 400 12px/1.5 var(--font-v5); color: var(--v5-ink-2); }

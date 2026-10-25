@@ -24,6 +24,8 @@ import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevis
 export type VRank = number;
 
 export interface VRankConditions {
+  selfComputePoints?: number;
+  teamComputePoints?: number;
   selfBuyUSD?: number;        // 自买设备累计
   directRefs?: number;        // 直推数
   teamVolumeUSD?: number;     // 团队总业绩
@@ -135,6 +137,8 @@ export const V_RANKS: VRankDef[] = [
  */
 export interface VRankData {
   myRank: VRank;
+  selfComputePoints?: number;
+  teamComputePoints?: number;
   selfBuyUSD: number;
   directRefs: number;
   teamVolumeUSD: number;
@@ -150,6 +154,8 @@ const EMPTY_V_RANK: VRankDef = {
 
 function canonicalRank(row: Awaited<ReturnType<typeof vRankApi.ladder>>["ranks"][number]): VRankDef {
   const conditions: VRankConditions = {};
+  if (row.selfComputePoints !== undefined) conditions.selfComputePoints = row.selfComputePoints;
+  if (row.teamComputePoints !== undefined) conditions.teamComputePoints = row.teamComputePoints;
   if (row.selfBuyUSD !== undefined) conditions.selfBuyUSD = row.selfBuyUSD;
   if (row.directRefs !== undefined) conditions.directRefs = row.directRefs;
   if (row.teamVolumeUSD !== undefined) conditions.teamVolumeUSD = row.teamVolumeUSD;
@@ -195,8 +201,10 @@ export const useVRank = defineStore("vRank", () => {
   // 账号维度。boot 期落 "default";账号确定后由 lib/account-scope 的
   // rebindAccountScopedStores 统一重绑(P-031 store 不互 import)。
   let boundKey = "default";
-  const init = remoteApiEnabled ? { myRank: 0 as VRank, selfBuyUSD: 0, directRefs: 0, teamVolumeUSD: 0, vDownlineCounts: {} } : hydrate(boundKey);
+  const init: VRankData = remoteApiEnabled ? { myRank: 0 as VRank, selfBuyUSD: 0, directRefs: 0, teamVolumeUSD: 0, vDownlineCounts: {} } : hydrate(boundKey);
   const myRank = ref<VRank>(init.myRank);
+  const selfComputePoints = ref<number | undefined>(init.selfComputePoints);
+  const teamComputePoints = ref<number | undefined>(init.teamComputePoints);
   const selfBuyUSD = ref(init.selfBuyUSD);
   const directRefs = ref(init.directRefs);
   const teamVolumeUSD = ref(init.teamVolumeUSD);
@@ -213,6 +221,8 @@ export const useVRank = defineStore("vRank", () => {
 
   function clearRemoteFacts(): void {
     myRank.value = 0;
+    selfComputePoints.value = undefined;
+    teamComputePoints.value = undefined;
     selfBuyUSD.value = 0;
     directRefs.value = 0;
     teamVolumeUSD.value = 0;
@@ -227,6 +237,8 @@ export const useVRank = defineStore("vRank", () => {
     if (remoteApiEnabled) return;
     writeAccountRow<VRankData>(ACCOUNTS_KEY, boundKey, {
       myRank: myRank.value,
+      selfComputePoints: selfComputePoints.value,
+      teamComputePoints: teamComputePoints.value,
       selfBuyUSD: selfBuyUSD.value,
       directRefs: directRefs.value,
       teamVolumeUSD: teamVolumeUSD.value,
@@ -245,6 +257,8 @@ export const useVRank = defineStore("vRank", () => {
     }
     const next = hydrate(boundKey);
     myRank.value = next.myRank;
+    selfComputePoints.value = next.selfComputePoints;
+    teamComputePoints.value = next.teamComputePoints;
     selfBuyUSD.value = next.selfBuyUSD;
     directRefs.value = next.directRefs;
     teamVolumeUSD.value = next.teamVolumeUSD;
@@ -275,6 +289,8 @@ export const useVRank = defineStore("vRank", () => {
       prizeName.value = remoteLadder.prizeName;
       capabilities.value = remoteLadder.capabilities;
       myRank.value = Number(remoteCurrent.rankCode.slice(1)) as VRank;
+      selfComputePoints.value = remoteCurrent.progress.selfComputePoints;
+      teamComputePoints.value = remoteCurrent.progress.teamComputePoints;
       selfBuyUSD.value = remoteCurrent.progress.selfBuyUSD;
       directRefs.value = remoteCurrent.progress.directRefs;
       teamVolumeUSD.value = remoteCurrent.progress.teamVolumeUSD;
@@ -326,6 +342,8 @@ export const useVRank = defineStore("vRank", () => {
   }
   function setProgress(p: VRankProgressPatch) {
     if (remoteApiEnabled) return;
+    if ("selfComputePoints" in p) selfComputePoints.value = p.selfComputePoints;
+    if ("teamComputePoints" in p) teamComputePoints.value = p.teamComputePoints;
     if (p.selfBuyUSD !== undefined) selfBuyUSD.value = p.selfBuyUSD;
     if (p.directRefs !== undefined) directRefs.value = p.directRefs;
     if (p.teamVolumeUSD !== undefined) teamVolumeUSD.value = p.teamVolumeUSD;
@@ -334,6 +352,7 @@ export const useVRank = defineStore("vRank", () => {
   }
 
   return {
+    selfComputePoints, teamComputePoints,
     myRank, selfBuyUSD, directRefs, teamVolumeUSD, vDownlineCounts, ladder, prizeName,
     capabilities,
     remoteReady, remoteError,
@@ -350,6 +369,7 @@ export const useVRank = defineStore("vRank", () => {
  * (`src/lib/v-rank-copy.ts` 的 `rankGapText`),store 只给事实。
  */
 export type RankGap =
+  | { kind: "selfComputePoints" | "teamComputePoints"; amount: number | undefined }
   | { kind: "selfBuy"; amount: number }
   | { kind: "directRefs"; n: number }
   | { kind: "teamVolume"; amount: number }
@@ -358,50 +378,26 @@ export type RankGap =
   | { kind: "vDownlines"; n: number; vLevel: number };
 
 /** 计算到下一阶的进度(0-1) */
-export function nextRankProgress(state: VRankData, ladder: VRankDef[] = []): {
+export function nextRankProgress(state: VRankData, ladder: VRankDef[] = [], mode: RankProgressMode = "legacy-compatible"): {
   next: VRankDef | null;
   progressPct: number;
+  progressKnown: boolean;
   missing: RankGap[];
 } {
   const next = ladder[state.myRank + 1];
-  if (!next) return { next: null, progressPct: 1, missing: [] };
-  const c = next.conditions;
-  const missing: RankGap[] = [];
-  const checks: number[] = [];
-
-  if (c.selfBuyUSD) {
-    checks.push(Math.min(1, state.selfBuyUSD / c.selfBuyUSD));
-    if (state.selfBuyUSD < c.selfBuyUSD) {
-      missing.push({ kind: "selfBuy", amount: c.selfBuyUSD - state.selfBuyUSD });
-    }
-  }
-  if (c.directRefs) {
-    checks.push(Math.min(1, state.directRefs / c.directRefs));
-    if (state.directRefs < c.directRefs) {
-      missing.push({ kind: "directRefs", n: c.directRefs - state.directRefs });
-    }
-  }
-  if (c.teamVolumeUSD) {
-    checks.push(Math.min(1, state.teamVolumeUSD / c.teamVolumeUSD));
-    if (state.teamVolumeUSD < c.teamVolumeUSD) {
-      missing.push({ kind: "teamVolume", amount: c.teamVolumeUSD - state.teamVolumeUSD });
-    }
-  }
-  if (c.vDownlines) {
-    for (const [v, n] of Object.entries(c.vDownlines)) {
-      const have = state.vDownlineCounts[Number(v) as VRank] ?? 0;
-      checks.push(Math.min(1, have / n));
-      if (have < n) missing.push({ kind: "vDownlines", n: n - have, vLevel: Number(v) });
-    }
-  }
-
-  const progressPct = checks.length
-    ? checks.reduce((a, b) => a + b, 0) / checks.length
-    : 1;
-  return { next, progressPct, missing };
+  if (!next) return { next: null, progressPct: 1, progressKnown: true, missing: [] };
+  const { progressPct, progressKnown, gaps } = rankConditionChecks(state, next.conditions, mode);
+  const missing: RankGap[] = gaps.map((gap): RankGap => {
+    if (gap.kind === "directRefs") return { kind: gap.kind, n: gap.remaining };
+    if (gap.kind === "vDownlines") return { kind: gap.kind, n: gap.remaining, vLevel: gap.vLevel };
+    if (gap.kind === "selfBuy" || gap.kind === "teamVolume") return { kind: gap.kind, amount: gap.remaining };
+    return { kind: gap.kind, amount: gap.remaining };
+  });
+  return { next, progressPct, progressKnown, missing };
 }
 
 export type PrimaryGap =
+  | { kind: "selfComputePoints" | "teamComputePoints"; remaining: number | undefined; progress: number }
   | { kind: "teamVolume"; remaining: number; progress: number }
   | { kind: "selfBuy"; remaining: number; progress: number }
   | { kind: "directRefs"; remaining: number; progress: number }
@@ -417,6 +413,7 @@ export type PerkUnlock =
 export interface NextRankGapInfo {
   next: VRankDef | null;
   progressPct: number;
+  progressKnown: boolean;
   primaryGap: PrimaryGap | null;
   unmetCount: number;
   topUnlocks: PerkUnlock[];
@@ -433,59 +430,66 @@ const PERK_WEIGHT: Record<PerkUnlock["kind"], number> = {
 
 const TOP_UNLOCKS_CAP = 2; // UI keeps perk line single-line at 414w mobile
 
-export function nextRankGap(state: VRankData, ladder: VRankDef[] = []): NextRankGapInfo {
+/** Display-only estimates; never changes the server-authoritative myRank. */
+export type RankProgressMode = "legacy-compatible" | "compute-points";
+
+function rankConditionChecks(state: VRankData, c: VRankConditions, mode: RankProgressMode) {
+  const gaps: PrimaryGap[] = [];
+  const checks: number[] = [];
+  let progressKnown = true;
+  const points = (kind: "selfComputePoints" | "teamComputePoints", required: number | undefined) => {
+    const have = state[kind];
+    const known = required !== undefined && have !== undefined;
+    const progress = known ? required === 0 ? 1 : Math.min(1, Math.max(0, have / required)) : 0;
+    checks.push(progress);
+    if (!known || progress < 1) gaps.push({ kind, remaining: known ? Math.max(0, required - have) : undefined, progress });
+    if (!known) progressKnown = false;
+  };
+  if (c.selfComputePoints !== undefined || (mode === "compute-points" && c.selfBuyUSD !== undefined)) {
+    points("selfComputePoints", c.selfComputePoints);
+  } else if (c.selfBuyUSD) {
+    const progress = Math.min(1, state.selfBuyUSD / c.selfBuyUSD);
+    checks.push(progress);
+    if (progress < 1) gaps.push({ kind: "selfBuy", remaining: c.selfBuyUSD - state.selfBuyUSD, progress });
+  }
+  if (c.directRefs) {
+    const progress = Math.min(1, state.directRefs / c.directRefs);
+    checks.push(progress);
+    if (progress < 1) gaps.push({ kind: "directRefs", remaining: c.directRefs - state.directRefs, progress });
+  }
+  if (c.teamComputePoints !== undefined || (mode === "compute-points" && c.teamVolumeUSD !== undefined)) {
+    points("teamComputePoints", c.teamComputePoints);
+  } else if (c.teamVolumeUSD) {
+    const progress = Math.min(1, state.teamVolumeUSD / c.teamVolumeUSD);
+    checks.push(progress);
+    if (progress < 1) gaps.push({ kind: "teamVolume", remaining: c.teamVolumeUSD - state.teamVolumeUSD, progress });
+  }
+  for (const [rank, required] of Object.entries(c.vDownlines ?? {})) {
+    if (!required) continue;
+    const vLevel = Number(rank);
+    const have = state.vDownlineCounts[vLevel] ?? 0;
+    const progress = Math.min(1, have / required);
+    checks.push(progress);
+    if (progress < 1) gaps.push({ kind: "vDownlines", remaining: required - have, progress, vLevel });
+  }
+  return { gaps, progressKnown, progressPct: checks.length ? checks.reduce((sum, value) => sum + value, 0) / checks.length : 1 };
+}
+
+export function nextRankGap(state: VRankData, ladder: VRankDef[] = [], mode: RankProgressMode = "legacy-compatible"): NextRankGapInfo {
   const current = ladder[state.myRank] ?? EMPTY_V_RANK;
   const next = ladder[state.myRank + 1];
   if (!next) {
     return {
       next: null,
       progressPct: 1,
+      progressKnown: true,
       primaryGap: null,
       unmetCount: 0,
       topUnlocks: [],
     };
   }
 
-  const c = next.conditions;
-  const gaps: PrimaryGap[] = [];
-  const checks: number[] = [];
-
-  if (c.selfBuyUSD) {
-    const progress = Math.min(1, state.selfBuyUSD / c.selfBuyUSD);
-    checks.push(progress);
-    if (state.selfBuyUSD < c.selfBuyUSD) {
-      gaps.push({ kind: "selfBuy", remaining: c.selfBuyUSD - state.selfBuyUSD, progress });
-    }
-  }
-  if (c.directRefs) {
-    const progress = Math.min(1, state.directRefs / c.directRefs);
-    checks.push(progress);
-    if (state.directRefs < c.directRefs) {
-      gaps.push({ kind: "directRefs", remaining: c.directRefs - state.directRefs, progress });
-    }
-  }
-  if (c.teamVolumeUSD) {
-    const progress = Math.min(1, state.teamVolumeUSD / c.teamVolumeUSD);
-    checks.push(progress);
-    if (state.teamVolumeUSD < c.teamVolumeUSD) {
-      gaps.push({ kind: "teamVolume", remaining: c.teamVolumeUSD - state.teamVolumeUSD, progress });
-    }
-  }
-  if (c.vDownlines) {
-    for (const [v, n] of Object.entries(c.vDownlines)) {
-      const vLevel = Number(v) as VRank;
-      const have = state.vDownlineCounts[vLevel] ?? 0;
-      const progress = Math.min(1, have / n);
-      checks.push(progress);
-      if (have < n) {
-        gaps.push({ kind: "vDownlines", remaining: n - have, progress, vLevel });
-      }
-    }
-  }
-
-  const progressPct = checks.length
-    ? checks.reduce((a, b) => a + b, 0) / checks.length
-    : 1;
+  const { gaps, progressPct, progressKnown } = rankConditionChecks(state, next.conditions, mode);
 
   const primaryGap = gaps.length
     ? gaps.reduce((worst, g) => (g.progress < worst.progress ? g : worst))
@@ -515,5 +519,5 @@ export function nextRankGap(state: VRankData, ladder: VRankDef[] = []): NextRank
     .sort((a, b) => PERK_WEIGHT[b.kind] - PERK_WEIGHT[a.kind])
     .slice(0, TOP_UNLOCKS_CAP);
 
-  return { next, progressPct, primaryGap, unmetCount: gaps.length, topUnlocks };
+  return { next, progressPct, progressKnown, primaryGap, unmetCount: gaps.length, topUnlocks };
 }

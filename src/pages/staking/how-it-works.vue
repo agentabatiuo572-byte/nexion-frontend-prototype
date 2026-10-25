@@ -33,16 +33,13 @@
             <text class="text-right" :style="thCellRight">{{ w.colReturn }}</text>
           </view>
           <view v-for="(row, i) in visibleRows" :key="row.term" class="flex" :style="tableRowStyle(i === 0)">
-            <text class="text-left tabular-nums" :style="tdTermStyle">{{ row.term }}d</text>
+            <text class="text-left tabular-nums" :style="tdTermStyle">{{ copy.days(row.term) }}</text>
             <text class="text-right tabular-nums" :style="tdApyStyle">{{ row.apyPct }}</text>
             <text class="text-right tabular-nums" :style="tdMinStyle">{{ row.minText }}</text>
             <text class="text-right tabular-nums" :style="tdReturnStyle">{{ row.ret }}</text>
           </view>
         </view>
-        <text v-else class="block" :style="unavailableStyle">{{ t.staking.remoteUnavailableClosed }}</text>
-        <view v-if="!staking.isMockMode && staking.remoteError" class="flex items-center justify-center active:opacity-70" :style="retryStyle" role="button" tabindex="0" @click="retryRemote">
-          <text>{{ retrying ? "…" : t.ui.retry }}</text>
-        </view>
+        <StakingReadStatus :has-snapshot="staking.isMockMode || staking.remoteHasSnapshot" :loading="staking.remoteLoading" :failed="!!staking.remoteError && !staking.remoteReady" @retry="retryRemote" />
         <text class="block" :style="footnoteStyle">{{ w.s2Footnote }}</text>
       </HowSection>
 
@@ -65,9 +62,10 @@
         </template>
         <text class="block" :style="introStyle">{{ w.s4Intro }}</text>
         <view style="display: flex; flex-direction: column; gap: 10px">
-          <IconRow emoji="🔒" :label="w.r1Label" :body="w.r1Body" />
-          <IconRow emoji="⚠️" :label="w.r2Label" :body="fmt(w.r2Body, { penalties: penaltiesText })" />
-          <IconRow emoji="📉" :label="w.r3Label" :body="w.r3Body" />
+          <view v-for="rule in [{ label: w.r1Label, body: w.r1Body }, { label: w.r2Label, body: fmt(w.r2Body, { penalties: penaltiesText }) }, { label: w.r3Label, body: w.r3Body }]" :key="rule.label">
+            <text class="block" style="font-size: 14px; font-weight: 600; color: var(--v5-ink)">{{ rule.label }}</text>
+            <text class="block" :style="paraStyle">{{ rule.body }}</text>
+          </view>
         </view>
       </HowSection>
 
@@ -81,11 +79,12 @@
           <HowFaqRow :q="w.faqQ3" :a="w.faqA3" />
           <HowFaqRow :q="w.faqQ4" :a="stakingAvailable === true ? w.faqA4 : stakingAvailable === false ? w.faqA4Paused : w.faqA4Unknown" />
           <HowFaqRow :q="w.faqQ5" :a="w.faqA5" />
+          <view v-if="exchangeReadFailed && !staking.remoteError" class="flex items-center justify-center" :style="retryStyle" role="button" :aria-disabled="retrying" :tabindex="retrying ? -1 : 0" @click="retryRemote" @keydown.enter.prevent="retryRemote" @keydown.space.prevent="retryRemote"><text>{{ copy.retry }}</text></view>
         </view>
       </HowSection>
 
       <view class="mx-4" style="margin-top: 24px">
-        <view class="flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" @click="goStaking">
+        <view class="flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" @click="goStaking" @keydown.enter.prevent="goStaking" @keydown.space.prevent="goStaking">
           <text>{{ w.ctaBack }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
@@ -106,7 +105,8 @@ import HowHero from "@/components/how/how-hero.vue";
 import HowSection from "@/components/how/how-section.vue";
 import HowStepRow from "@/components/how/how-step-row.vue";
 import HowFaqRow from "@/components/how/how-faq-row.vue";
-import IconRow from "@/components/how/how-icon-row.vue";
+import StakingReadStatus from "@/components/staking/staking-read-status.vue";
+import { useStakingReviewCopy } from "@/lib/staking-review-copy";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -116,6 +116,7 @@ import { exchangeApi, remoteApiEnabled } from "@/api/runtime";
 import { stakingFaqAnswerKey } from "./staking-faq-availability";
 
 const t = useT();
+const copy = useStakingReviewCopy();
 const config = useConfig();
 let pageVisible = false;
 let visibilityTimer: ReturnType<typeof setInterval> | null = null;
@@ -135,10 +136,11 @@ onHide(() => {
   if (visibilityTimer) clearInterval(visibilityTimer);
   visibilityTimer = null;
 });
-const w = computed(() => t.value.stakingHowItWorks);
+const w = computed(() => ({ ...t.value.stakingHowItWorks, ...copy.value.rules }));
 const staking = useStaking();
 const retrying = ref(false);
 const exchangeAvailable = ref<boolean | null>(remoteApiEnabled ? null : true);
+const exchangeReadFailed = ref(false);
 const stakingAvailable = ref<boolean | null>(staking.isMockMode ? true : null);
 const faqAnswerKey = computed(() => stakingFaqAnswerKey(stakingAvailable.value, exchangeAvailable.value));
 const STAKING_RULE_EXAMPLE_PRINCIPAL = 100;
@@ -155,8 +157,8 @@ async function refreshStakingAvailability() {
 async function refreshExchangeAvailability() {
   if (!remoteApiEnabled) return;
   exchangeAvailable.value = null;
-  try { exchangeAvailable.value = (await exchangeApi.fetchCaps()).swapEnabled; }
-  catch { exchangeAvailable.value = null; }
+  try { exchangeAvailable.value = (await exchangeApi.fetchCaps()).swapEnabled; exchangeReadFailed.value = false; }
+  catch { exchangeAvailable.value = null; exchangeReadFailed.value = true; }
 }
 async function retryRemote() {
   if (retrying.value) return;
@@ -169,7 +171,7 @@ async function retryRemote() {
 const tableRows = computed(() =>
   ([30, 90, 180, 365] as StakingTerm[]).map((termDays) => {
     const pool = resolveStakingPool(
-      { isMockMode: staking.isMockMode, remoteReady: staking.remoteReady, pools: staking.pools },
+      { isMockMode: staking.isMockMode, remoteReady: staking.remoteHasSnapshot, pools: staking.pools },
       termDays,
       { apy: STAKING_APY[termDays], penalty: STAKING_PENALTY[termDays], minAmountUsdt: STAKING_MIN[termDays] },
     );
@@ -188,11 +190,11 @@ const visibleRows = computed(() => tableRows.value.filter((row): row is NonNulla
 const penaltiesText = computed(() => {
   const values = ([30, 90, 180, 365] as StakingTerm[]).map((termDays) => {
     const pool = resolveStakingPool(
-      { isMockMode: staking.isMockMode, remoteReady: staking.remoteReady, pools: staking.pools },
+      { isMockMode: staking.isMockMode, remoteReady: staking.remoteHasSnapshot, pools: staking.pools },
       termDays,
       { apy: STAKING_APY[termDays], penalty: STAKING_PENALTY[termDays], minAmountUsdt: STAKING_MIN[termDays] },
     );
-    return pool ? `${formatStakingPercentage(pool.penalty)}% (${termDays}d)` : null;
+    return pool ? `${formatStakingPercentage(pool.penalty)}% (${copy.value.days(termDays)})` : null;
   });
   return values.every(Boolean) ? values.join(", ") : "—";
 });
@@ -204,7 +206,7 @@ function goStaking() {
 const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const paraStyle2: CSSProperties = { ...paraStyle, marginTop: "10px" };
 const captionStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
-const retryStyle: CSSProperties = { minHeight: "44px", marginTop: "8px", color: "var(--v5-brand)", fontSize: "12px" };
+const retryStyle: CSSProperties = { minHeight: "44px", marginTop: "8px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px" };
 const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" };
 const tableStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   borderRadius: "var(--nx-glass-radius)",
@@ -216,8 +218,8 @@ const tableHeadStyle: CSSProperties = {
   letterSpacing: "0.14em",
   color: "var(--v5-ink-3)",
 };
-const thCellLeft: CSSProperties = { flex: "1", padding: "8px 12px", fontWeight: 500 };
-const thCellRight: CSSProperties = { flex: "1", padding: "8px 12px", fontWeight: 500 };
+const thCellLeft: CSSProperties = { flex: "1 1 0", minWidth: 0, padding: "8px 6px", fontWeight: 500 };
+const thCellRight: CSSProperties = { ...thCellLeft };
 function tableRowStyle(isFirst: boolean): CSSProperties {
   return {
     fontSize: "12px",
@@ -225,17 +227,17 @@ function tableRowStyle(isFirst: boolean): CSSProperties {
   };
 }
 const tdTermStyle: CSSProperties = {
-  flex: "1",
-  padding: "8px 12px",
+  flex: "1 1 0",
+  minWidth: 0,
+  padding: "8px 6px",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
   color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)",
 };
-const tdApyStyle: CSSProperties = { flex: "1", padding: "8px 12px", fontFamily: "var(--font-v5)", color: "var(--v5-brand)" };
-const tdMinStyle: CSSProperties = { flex: "1", padding: "8px 12px", fontFamily: "var(--font-v5)", color: "var(--v5-ink-2)" };
+const tdApyStyle: CSSProperties = { ...tdTermStyle, color: "var(--v5-brand)" };
+const tdMinStyle: CSSProperties = { ...tdTermStyle, color: "var(--v5-ink-2)" };
 const tdReturnStyle: CSSProperties = {
-  flex: "1",
-  padding: "8px 12px",
+  ...tdTermStyle,
   fontFamily: "var(--font-v5)",
   color: "var(--v5-brand-2)",
 };

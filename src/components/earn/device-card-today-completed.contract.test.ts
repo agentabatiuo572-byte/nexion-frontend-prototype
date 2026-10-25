@@ -201,6 +201,7 @@ async function setup(name: string) {
     '@/components/sub-page-header.vue': { __esModule: true, default: blank },
     '@/components/earn/capacity-explainer-sheet.vue': { __esModule: true, default: blank },
     '@/components/home/device-slot.vue': { __esModule: true, default: blank },
+    '@/components/ui/nx-button.vue': { __esModule: true, default: blank },
   };
   const imports = (id: string) => {
     if (!(id in deps)) throw new Error('UNEXPECTED_IMPORT ' + id);

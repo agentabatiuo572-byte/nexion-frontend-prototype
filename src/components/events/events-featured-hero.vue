@@ -33,12 +33,12 @@
           <text class="block" :style="titleStyle">{{ ev.title }}</text>
           <text class="block" style="font-size: 13px; color: var(--v5-ink-3); margin-top: 6px; line-height: 1.375">{{ ev.subtitle }}</text>
         </view>
-        <text aria-hidden class="shrink-0" :style="emojiStyle">{{ ev.emoji }}</text>
+        <EventIcon :kind="ev.kind" :size="40" />
       </view>
 
       <!-- REWARD pill -->
       <view class="mt-4 inline-flex items-center" :style="rewardPillStyle">
-        <text style="font-size: 14px; margin-right: 6px">🎁</text>
+        <EventIcon :size="16" style="margin-right:6px" />
         <text style="font-family: var(--font-v5)">{{ ev.reward }}</text>
       </view>
 
@@ -85,6 +85,7 @@
 </template>
 
 <script setup lang="ts">
+import EventIcon from "./event-icon.vue";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -165,7 +166,7 @@ const titleStyle: CSSProperties = {
 const emojiStyle = computed<CSSProperties>(() => ({
   fontSize: "44px",
   lineHeight: 1,
-  filter: `drop-shadow(0 4px 12px color-mix(in srgb, ${props.ev.tint} 33%, transparent))`,
+  filter: `drop-shadow(0 4px 12px color-mix(in srgb, var(--v5-brand) 20%, transparent))`,
 }));
 const rewardPillStyle = computed<CSSProperties>(() => ({
   paddingLeft: "12px",
@@ -187,8 +188,8 @@ const barFillStyle = computed<CSSProperties>(() => ({
 }));
 const claimBtnStyle = computed<CSSProperties>(() => ({
   height: "48px",
-  background: props.ev.tint,
-  boxShadow: `0 0 24px color-mix(in srgb, ${props.ev.tint} 40%, transparent)`,
+  background: "var(--v5-brand)",
+  boxShadow: `0 0 24px color-mix(in srgb, var(--v5-brand) 20%, transparent)`,
 }));
 const claimedPillStyle = computed<CSSProperties>(() => ({
   height: "48px",
@@ -196,8 +197,8 @@ const claimedPillStyle = computed<CSSProperties>(() => ({
 }));
 const joinBtnStyle = computed<CSSProperties>(() => ({
   height: "48px",
-  background: props.ev.tint,
-  boxShadow: `0 0 24px color-mix(in srgb, ${props.ev.tint} 33%, transparent)`,
+  background: "var(--v5-brand)",
+  boxShadow: `0 0 24px color-mix(in srgb, var(--v5-brand) 20%, transparent)`,
 }));
 
 

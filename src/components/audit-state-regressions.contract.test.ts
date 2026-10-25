@@ -12,7 +12,7 @@ describe("server state presentation regressions", () => {
     expect(page).not.toMatch(/const remoteReady = computed\([^;]+repurchase\.history/);
   });
   it("does not render a child-page unread dot without unread notifications", () => {
-    expect(source("./app-chassis.vue")).toContain('v-if="unread > 0" class="nx-nav-belldot"');
+    expect(source("./app-chassis.vue")).toContain('v-if="unread !== null && unread > 0" class="nx-nav-belldot"');
   });
   it("places the idle/loading branch ahead of the task-history empty state", () => {
     const template = source("./earn/task-center.vue");

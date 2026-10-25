@@ -17,7 +17,7 @@ async function header(plain = false, actionLabel?: string) {
       setup: props => () => Vue.h("i", { "data-glass-radius": props.radius }),
     }) },
     setup: () => ({
-      plain, actionLabel, action: actionLabel ? () => {} : undefined,
+      plain, design: false, actionLabel, action: actionLabel ? () => {} : undefined,
       statusBarHeight: 44, pendingBarInset: 60, rowH: 44,
       displayTitle: "Wallet", subtitle: undefined, unread: 3,
       t: { profile: { back: "Back" }, notifs: { drawerTitle: "Messages" } },
@@ -30,7 +30,7 @@ describe("independent sub-page header controls", () => {
   it("renders a glass surface for each control and none around the title", async () => {
     const html = await header();
     expect(html.match(/data-glass-radius="18"/g)).toHaveLength(2);
-    expect(html).toMatch(/class="spv-glass"><i data-glass-radius="18"/);
+    expect(html).toMatch(/class="spv-glass(?: [^"]*)?"><i data-glass-radius="18"/);
     expect(html).toMatch(/class="spv-titlewrap"><text class="spv-title">Wallet/);
     expect(html).toContain('aria-label="Messages · 3"');
   });

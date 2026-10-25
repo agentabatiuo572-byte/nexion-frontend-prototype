@@ -105,7 +105,8 @@ test("runtime read rejection is consumed and a later retry starts another read",
   await view.retryMarketplaceFacts();
   expect(view.genesis.syncRemote).toHaveBeenCalledTimes(3);
   expect(view.report).not.toHaveBeenCalled();
-  expect(page.match(/@(?:click|cta)="retryMarketplaceFacts\(\)"/g)).toHaveLength(3);
+  // One recovery entry remains available independently of the selected tab.
+  expect(page.match(/@click="retryMarketplaceFacts\(\)"/g)).toHaveLength(1);
   view.removed[0]();
 });
 

@@ -11,7 +11,7 @@
       <SubPageHeader v-if="!embedded" back="/pages/me/me" />
 
       <!-- Progress hero -->
-      <view class="mx-4" :style="heroStyle">
+      <view v-if="total !== 0" class="mx-4" :style="heroStyle">
         <view class="flex items-center" style="gap: 12px">
           <view class="grid place-items-center" :style="heroIconBoxStyle">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" /><circle cx="12" cy="8" r="6" /></svg>
@@ -42,6 +42,10 @@
           </view>
         </view>
         <template v-if="remoteSnapshot">
+          <view v-if="!remoteGroups.length && !remoteError" class="mx-4" style="padding:24px 0;color:var(--v5-ink-3)" role="status">
+            <text class="block">{{ emptyAchievements }}</text>
+            <view role="button" tabindex="0" :style="retryBtnStyle" @click="refreshRemote" @keydown.enter.prevent="refreshRemote"><text>{{ w.retry }}</text></view>
+          </view>
           <view v-for="grp in remoteGroups" :key="grp.key" class="mx-4">
             <text class="block" :style="catHeadStyle">{{ grp.label }}</text>
             <view class="nx-glass-card" :style="listStyle">
@@ -148,6 +152,9 @@ import type { BadgeAchievementStatus, DailySnapshot, DailyMilestoneStatus, Earni
 import { readAchievementsForCurrentSession, type AchievementRemoteReadFailure } from "./achievements-remote-read";
 
 const t = useT();
+import { useLocaleStore } from '@/store/locale';
+const locale = useLocaleStore();
+const emptyAchievements = computed(() => locale.code === 'zh' ? '暂时没有可参与的成就' : locale.code === 'vi' ? 'Hiện chưa có thành tích khả dụng' : 'No achievements available yet');
 const w = computed(() => t.value.achievements);
 const app = useApp();
 const ach = useAchievements();

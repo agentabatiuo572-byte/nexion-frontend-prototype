@@ -653,3 +653,34 @@ describe("account-wide unread categories", () => {
     expect(store.unreadByCategory).toEqual({ ...empty, team: 1 });
   });
 });
+
+
+describe("actionable unread is never reconstructed from paginated rows", () => {
+  const marketing = { id: 91, kind: "marketing", priority: "normal" as const, title: "Offer", body: "", ctaLabel: "", ctaHref: "", createdAt: 91, readAt: null };
+  it("maps marketing to its opt-out preference and activities, but trusts the separate badge count", async () => {
+    remote.notificationApi.page.mockResolvedValue({ items: [marketing], unread: 12, actionableUnread: 7, nextCursor: "older" });
+    const store = useNotifications(); await store.refreshRemote();
+    expect(store.items[0]).toMatchObject({ kind: "market", rawKind: "marketing" });
+    expect(store.unread).toBe(12); expect(store.actionableUnread).toBe(7);
+    expect(store.unreadByCategory.rewards).toBe(1); expect(store.unreadByCategory.system).toBe(0);
+    remote.notificationApi.page.mockResolvedValue({ items: [], unread: 12, actionableUnread: 7, nextCursor: null });
+    await store.loadMoreRemote(); expect(store.actionableUnread).toBe(7);
+  });
+  it("keeps unknown distinct from authoritative zero, including with unreadByKind", async () => {
+    const store = useNotifications();
+    remote.notificationApi.page.mockResolvedValue({ items: [marketing], unread: 1, unreadByKind: { marketing: 1 }, nextCursor: null });
+    await store.refreshRemote(); expect(store.actionableUnread).toBeNull();
+    remote.notificationApi.page.mockResolvedValue({ items: [marketing], unread: 1, actionableUnread: 0, nextCursor: null });
+    await store.refreshRemote(); expect(store.actionableUnread).toBe(0); expect(store.unread).toBe(1);
+    remote.notificationApi.page.mockRejectedValue(new Error("offline"));
+    await store.refreshRemote(); expect(store.actionableUnread).toBeNull();
+  });
+  it("re-reads authority after acknowledgement and isolates the next account", async () => {
+    const store = useNotifications();
+    remote.notificationApi.page.mockResolvedValueOnce({ items: [marketing], unread: 10, actionableUnread: 4, nextCursor: "older" })
+      .mockResolvedValueOnce({ items: [], unread: 3, actionableUnread: 2, nextCursor: null });
+    await store.refreshRemote(); await store.markRead("91");
+    expect(store.actionableUnread).toBe(2); expect(store.unread).toBe(3);
+    store.bindAccount("default"); expect(store.actionableUnread).toBeNull();
+  });
+});

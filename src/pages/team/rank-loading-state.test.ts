@@ -12,8 +12,9 @@ import { fmt } from '@/i18n/format';
 import { auditUiCopy } from '@/i18n/audit-ui';
 import { platformDisplayText } from '@/lib/brand-copy';
 import { isEntitlementVRankReward, rankEntitlementLabel } from '@/lib/rank-entitlement-label';
-import { rankGapText, rankConditionsText, rankLabel } from '@/lib/v-rank-copy';
+import { rankGapText, rankConditionsText, rankLabel, rankCultivationCopy } from '@/lib/v-rank-copy';
 import { formatHowNumber } from '@/lib/rank-how-content';
+import { computePointsCopy, formatComputePoints } from '@/i18n/compute-points';
 import { nextRankProgress, type VRank, type VRankData, type VRankDef } from '@/store/v-rank';
 
 vi.mock('@/api/runtime', () => ({ remoteApiEnabled: true, vRankApi: {} }));
@@ -86,8 +87,9 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
     '@/lib/amount-display': { formatAmount },
     vue: Vue, '@/lib/route': { navTo }, '@/lib/brand-copy': { platformDisplayText },
     '@/lib/rank-entitlement-label': { isEntitlementVRankReward, rankEntitlementLabel },
-    '@/lib/v-rank-copy': { rankGapText, rankConditionsText, rankLabel },
+    '@/lib/v-rank-copy': { rankGapText, rankConditionsText, rankLabel, rankCultivationCopy },
     '@/lib/rank-how-content': { formatHowNumber },
+    '@/i18n/compute-points': { computePointsCopy, formatComputePoints },
     '@/i18n/format': { fmt },
     '@/i18n/audit-ui': { useAuditUiCopy: () => Vue.ref(auditUiCopy[locale]) },
     '@/components/ui/nx-button.vue': { default: { props: ['label'], setup: (props: any) => () => Vue.h('text', props.label) } },
@@ -99,7 +101,8 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
     '@/store/v-rank': { useVRank: () => state, nextRankProgress },
     '@/api/runtime': { remoteApiEnabled: true },
     '@dcloudio/uni-app': { onShow: (callback: () => void) => shows.push(callback) },
-    '@/components/app-chassis.vue': { default: slot }, '@/components/sub-page-header.vue': { default: { props:['action','actionLabel'], setup:(props:any)=>()=>Vue.h('view',{role:'link',onClick:props.action},props.actionLabel) } },
+    '@/components/app-chassis.vue': { default: slot }, '@/components/sub-page-header.vue': { default: { render: () => Vue.h('header') } },
+    '@/components/team/team-rank-emblem.vue': { default: { props: ['rank', 'size'], setup: (props: any) => () => Vue.h('view', { 'data-rank-emblem': props.rank, 'data-size': props.size }) } },
     '@/components/team/v-badge-icon.vue': { default: { render: () => Vue.h('view') } },
     '@/composables/use-scroll-grow-progress': {
       useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: '',
@@ -146,59 +149,102 @@ describe('rank page canonical read and next-rank progress', () => {
     expect(text(p.root)).toContain(copy.rank.loading); unknown(); // Retained data is hidden during reread.
   });
 
-  it('shows each enabled condition with real current values, requirements and independent gaps', async () => {
+  it('renders independent point conditions, unchanged rewards and the rules destination', async () => {
     const loaded = facts();
-    loaded.ladder[1].conditions = { selfBuyUSD: 300, directRefs: 3, teamVolumeUSD: 5_000, vDownlines: { 0: 2, 1: 3 } };
-    Object.assign(loaded, { selfBuyUSD: 120, directRefs: 2, teamVolumeUSD: 2_000, vDownlineCounts: { 0: 4, 1: 1 } });
-    const p = await page('en', loaded), rendered = texts(p.root);
-    expect(rendered).toContain('V1 Published 1');
+    loaded.ladder[1].conditions = { selfBuyUSD: 299, teamVolumeUSD: 5000, selfComputePoints: 2000, teamComputePoints: 20000, directRefs: 3 };
+    Object.assign(loaded, { selfBuyUSD: 9000, teamVolumeUSD: 90000, selfComputePoints: 1280, teamComputePoints: 12800, directRefs: 2 });
+    const p = await page('en', loaded);
     for (const [label, gap] of [
-      ['V1 · Self-buy ≥ $300.00 · $120.00 / $300.00', 'Self-buy $180.00 more'],
+      ['V1 · Own compute ≥ 2,000 compute pts · 1,280 compute pts / 2,000 compute pts', '720 compute pts more own compute'],
+      ['V1 · Team compute ≥ 20,000 compute pts · 12,800 compute pts / 20,000 compute pts', '7,200 compute pts more team compute'],
       ['V1 · Direct refs ≥ 3 · 2 / 3', '1 more direct referral meeting the self-purchase requirement'],
-      ['V1 · Team compute amount ≥ $5000.00 · $2000.00 / $5000.00', '$3000.00 more team compute amount'],
-      ['V1 · 2× V0 · 5 / 2', 'Done'],
-      ['V1 · 3× V1 · 1 / 3', '2 more Published 1 (V1)'],
     ]) expect(conditionTexts(p.root, label)).toEqual([label, gap]);
-    expect(p.state.myRank).toBe(0); // The preview does not promote the account.
-    expect(text(p.root)).toContain('900.00 UVT'); expect(text(p.root)).toContain(en.rank.cultivationRecipient);
-    const rules = all(p.root).find(item => item.props.role === 'link')!;
-    rules.props.onClick(); expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/rank-how');
-    expect(text(p.root)).not.toContain(en.rank.upgradeCta);
+    const bars = all(p.root).filter(item => item.props.role === 'progressbar');
+    expect(bars.map(bar => bar.props['aria-valuenow'])).toEqual([64, 67, 64]);
+    expect(text(p.root)).not.toContain('$'); expect(text(p.root)).not.toContain('90,000');
+    expect(text(p.root)).toContain('When a directly invited member reaches V1, the corresponding reward is 900.00 UVT; payment status follows the reward records.');
+    expect(text(p.root)).toContain(rankCultivationCopy('en').recipient);
+    all(p.root).find(item => item.props.role === 'link')!.props.onClick();
+    expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/rank-how');
+    expect(p.state.myRank).toBe(0); expect(p.state.selfBuyUSD).toBe(9000);
+  });
+
+  it('opens the existing share flow from both rank invitation actions', async () => {
+    const loaded = facts(); loaded.ladder[1].conditions = { directRefs: 3 };
+    const p = await page('en', loaded);
+    const actions = all(p.root).filter(item => item.props.onClick && text(item) === en.team.inviteFriends);
+    expect(actions).toHaveLength(2);
+    for (const action of actions) {
+      action.props.onClick();
+      expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/team?intent=share');
+    }
+    expect(p.navTo).toHaveBeenCalledTimes(2);
   });
 
   it.each([
-    ['en', 'V1 Published 1', 'V1 · Self-buy ≥ $300.00 · $120.00 / $300.00', 'Self-buy $180.00 more', 'V1 · Direct refs ≥ 3 · 2 / 3'],
-    ['zh', 'V1 公开 1', 'V1 · 自买 ≥ $300.00 · $120.00 / $300.00', '再自买 $180.00', 'V1 · 直接邀请 ≥ 3 · 2 / 3'],
-    ['vi', 'V1 Published 1', 'V1 · Tự mua ≥ $300.00 · $120.00 / $300.00', 'Tự mua thêm $180.00', 'V1 · Mời trực tiếp ≥ 3 · 2 / 3'],
-  ] as const)('formats %s target, threshold, value and gap through existing localized copy', async (locale, target, buy, gap, refs) => {
-    const loaded = facts(); loaded.ladder[1].conditions = { selfBuyUSD: 300, directRefs: 3 };
-    Object.assign(loaded, { selfBuyUSD: 120, directRefs: 2 });
-    const p = await page(locale, loaded), rendered = texts(p.root);
-    for (const expected of [target, buy, gap, refs]) expect(rendered).toContain(expected);
+    ['zh', '成员成长奖励', '直接邀请的成员晋升至 V1 时，对应奖励为 900.00 UVT；到账状态以奖励记录为准。', '无推荐人时，由晋升者本人获得'],
+    ['en', 'Member growth reward', 'When a directly invited member reaches V1, the corresponding reward is 900.00 UVT; payment status follows the reward records.', 'If there is no referrer, the promoted member receives it'],
+    ['vi', 'Thưởng phát triển thành viên', 'Khi thành viên được mời trực tiếp đạt V1, phần thưởng tương ứng là 900.00 UVT; trạng thái chi trả theo bản ghi thưởng.', 'Nếu không có người giới thiệu, thành viên thăng hạng tự nhận thưởng'],
+  ] as const)('shows the %s trigger and recipient only for confirmed cultivation rewards', async (locale, title, trigger, fallback) => {
+    const loaded = facts();
+    loaded.ladder[1].cultivationBonus = 7777;
+    loaded.ladder[1].rewards = [
+      { type: 'NEX', amount: 900 },
+      { type: 'NEX', amount: 880, customLabel: 'cultivation' },
+      { type: 'NEX', amount: 700, customLabel: 'SELF promotion' },
+      { type: 'NEX', amount: 600, customLabel: 'Direct reward' },
+      { type: 'NEX', amount: 0 },
+      { type: 'USDT', amount: 500 },
+      { type: 'VOUCHER', voucherId: 'voucher-1', displayName: 'Device voucher' },
+      { type: 'SKU', skuId: 'sku-1', displayName: 'Device reward' },
+      { type: 'CUSTOM', customLabel: 'Custom access' },
+    ];
+    const p = await page(locale, loaded);
+    const descriptions = all(p.root).filter(item => item.props.class === 'rank-reward-description').map(text);
+    expect(descriptions).toEqual([trigger, trigger.replace('900.00', '880.00')]);
+    expect(all(p.root).filter(item => item.props.class === 'rank-reward-title').map(text)).toEqual([title, title]);
+    const recipients = all(p.root).filter(item => item.props.class === 'rank-reward-note').map(text);
+    expect(recipients).toHaveLength(2);
+    for (const recipient of recipients) expect(recipient).toContain(fallback);
+    for (const ordinary of ['700.00 UVT', '600.00 UVT', '0.00 UVT', '500.00 USDT', 'Device voucher', 'Device reward', 'Custom access']) {
+      expect(all(p.root).filter(item => item.props.class === 'rank-reward').map(text)).toContain(ordinary);
+    }
+    expect(text(p.root)).not.toContain('7777');
+    expect(p.state.myRank).toBe(0);
   });
 
-  it('uses the current next target and omits disabled conditions without a mock fallback', async () => {
-    const loaded = facts(); loaded.myRank = 2; loaded.teamVolumeUSD = 6_000;
-    loaded.ladder[3].conditions = { selfBuyUSD: 0, directRefs: 0, teamVolumeUSD: 5_000, vDownlines: { 1: 0 } };
-    const p = await page('en', loaded), rendered = texts(p.root);
-    expect(rendered).toContain('V3 Published 3');
-    expect(conditionTexts(p.root, 'V3 · Team compute amount ≥ $5000.00 · $6000.00 / $5000.00'))
-      .toEqual(['V3 · Team compute amount ≥ $5000.00 · $6000.00 / $5000.00', 'Done']);
-    expect(text(p.root)).not.toContain('Self-buy'); expect(text(p.root)).not.toContain('Direct refs');
-    expect(text(p.root)).not.toContain('× V1'); expect(text(p.root)).not.toContain('more team compute amount');
-    expect(p.state.myRank).toBe(2);
+  it.each([
+    ['en', 'Own compute ≥ 2,000 compute pts', '1,280 compute pts / 2,000 compute pts', '720 compute pts more own compute'],
+    ['zh', '自购算力 ≥ 2,000 算力点', '1,280 算力点 / 2,000 算力点', '自购算力还差 720 算力点'],
+    ['vi', 'Năng lực tự mua ≥ 2.000 điểm tính toán', '1.280 điểm tính toán / 2.000 điểm tính toán', 'Còn thiếu 720 điểm tính toán tự mua'],
+  ] as const)('renders canonical %s count units in the actual page', async (locale, condition, values, gap) => {
+    const loaded = facts(); loaded.ladder[1].conditions = { selfComputePoints: 2000 };
+    loaded.selfComputePoints = 1280;
+    const p = await page(locale, loaded);
+    expect(conditionTexts(p.root, `V1 · ${condition} · ${values}`)).toEqual([`V1 · ${condition} · ${values}`, gap]);
+    expect(text(p.root)).not.toContain('$');
   });
 
-  it('renders the current TEST172 account and published V1 thresholds without replacing its purchase total', async () => {
-    const loaded = facts(); loaded.selfBuyUSD = 39.8;
-    loaded.ladder[1].conditions = { selfBuyUSD: 500, directRefs: 3, teamVolumeUSD: 0 };
-    const p = await page('en', loaded);
-    expect(conditionTexts(p.root, 'V1 · Self-buy ≥ $500.00 · $39.80 / $500.00'))
-      .toEqual(['V1 · Self-buy ≥ $500.00 · $39.80 / $500.00', 'Self-buy $460.20 more']);
-    expect(conditionTexts(p.root, 'V1 · Direct refs ≥ 3 · 0 / 3'))
-      .toEqual(['V1 · Direct refs ≥ 3 · 0 / 3', '3 more direct referrals meeting the self-purchase requirement']);
-    expect(text(p.root)).not.toContain('Team compute amount ≥ $0'); expect(text(p.root)).not.toContain('× V');
-    expect(text(p.root)).not.toContain('19.9'); expect(p.state.selfBuyUSD).toBe(39.8); expect(p.state.myRank).toBe(0);
+  it.each(['en', 'zh', 'vi'] as const)('keeps legacy and missing %s point facts unknown, then refreshes them independently', async locale => {
+    const loaded = facts(); loaded.selfBuyUSD = 39.8; loaded.teamVolumeUSD = 99999;
+    loaded.ladder[1].conditions = { selfBuyUSD: 500, teamVolumeUSD: 5000, directRefs: 3 };
+    const p = await page(locale, loaded);
+    const pending = computePointsCopy(locale).conditionsPending;
+    expect(text(p.root)).toContain(pending); expect(text(p.root)).not.toContain('$');
+    const pointBars = () => all(p.root).filter(item => item.props.role === 'progressbar' && String(item.props['aria-label']).includes(pending));
+    expect(pointBars()).toHaveLength(2);
+    expect(pointBars().every(bar => bar.props['aria-valuenow'] === undefined && bar.props['aria-valuetext'] === '— / —')).toBe(true);
+    expect(p.state.selfBuyUSD).toBe(39.8); expect(p.state.myRank).toBe(0);
+    p.state.ladder[1].conditions = { selfComputePoints: 2000, teamComputePoints: 20000 };
+    await Vue.nextTick();
+    expect(text(p.root)).toContain(pending);
+    expect(all(p.root).filter(item => item.props.role === 'progressbar').every(bar => bar.props['aria-valuenow'] === undefined)).toBe(true);
+    p.state.selfComputePoints = 1280; p.state.teamComputePoints = 12800; await Vue.nextTick();
+    expect(text(p.root)).not.toContain(pending);
+    expect(all(p.root).filter(item => item.props.role === 'progressbar').map(bar => bar.props['aria-valuenow'])).toEqual([64, 64]);
+    p.state.teamComputePoints = undefined; await Vue.nextTick();
+    expect(text(p.root)).toContain(pending);
+    expect(text(p.root)).not.toContain('$');
   });
 
   it.each(['en', 'zh', 'vi'] as const)('counts exact L1 buckets at or above the required V rank in %s', async locale => {
@@ -224,74 +270,55 @@ describe('rank page canonical read and next-rank progress', () => {
     const target = `V3 · 2× V2 · 2 / 2`;
     expect(conditionTexts(p.root, prior)).toEqual([]); // Completed earlier gates remain available in their own tier.
     p.state.vDownlineCounts = { 1: 1, 2: 1, 3: 1 }; await Vue.nextTick();
+    const toggle=all(p.root).find(item=>item.props["aria-controls"]==="inherited-conditions")!;
+    expect(toggle.props["aria-expanded"]).toBe(false);toggle.props.onClick();await Vue.nextTick();
     expect(conditionTexts(p.root, prior.replace("4 / 4", "3 / 4"))).toHaveLength(2);
     expect(conditionTexts(p.root, target)).toEqual([target, copy.rank.done]);
   });
 
-  it.each(['en', 'zh', 'vi'] as const)('keeps blocking preceding conditions visible after rank protection or a refund in %s', async locale => {
-    const loaded = facts(); loaded.selfBuyUSD = 39.8;
-    loaded.ladder[1].conditions = { selfBuyUSD: 500, directRefs: 3 };
-    loaded.ladder[2].conditions = { teamVolumeUSD: 5_000 };
-    loaded.ladder[3].conditions = { teamVolumeUSD: 20_000, vDownlines: { 2: 2 } };
-    const p = await page(locale, loaded), copy = dictionaries[locale];
-    const labels = locale === 'zh'
-      ? { buy: 'V1 · 自买 ≥ $500.00 · $39.80 / $500.00', buyGap: '再自买 $460.20', refs: 'V1 · 直接邀请 ≥ 3 · 0 / 3', refsGap: '还差 3 位满足自购条件的直接邀请' }
-      : locale === 'vi'
-        ? { buy: 'V1 · Tự mua ≥ $500.00 · $39.80 / $500.00', buyGap: 'Tự mua thêm $460.20', refs: 'V1 · Mời trực tiếp ≥ 3 · 0 / 3', refsGap: 'Cần thêm 3 người được giới thiệu trực tiếp đáp ứng điều kiện tự mua' }
-        : { buy: 'V1 · Self-buy ≥ $500.00 · $39.80 / $500.00', buyGap: 'Self-buy $460.20 more', refs: 'V1 · Direct refs ≥ 3 · 0 / 3', refsGap: '3 more direct referrals meeting the self-purchase requirement' };
-    for (const current of [1, 2] as const) {
-      Object.assign(p.state, { myRank: current, selfBuyUSD: 39.8, directRefs: 0,
-        teamVolumeUSD: current === 1 ? 5_000 : 20_000, vDownlineCounts: { 2: 1, 3: 1 } });
-      await Vue.nextTick();
-      expect(conditionTexts(p.root, labels.buy)).toEqual([labels.buy, labels.buyGap]);
-      expect(conditionTexts(p.root, labels.refs)).toEqual([labels.refs, labels.refsGap]);
-      const targetVolume = current === 1 ? '5000.00' : '20000.00';
-      const target = locale === 'zh' ? `V${current + 1} · 团队算力额 ≥ $${targetVolume} · $${targetVolume} / $${targetVolume}`
-        : locale === 'vi' ? `V${current + 1} · Giá trị công suất nhóm $${targetVolume} · $${targetVolume} / $${targetVolume}`
-          : `V${current + 1} · Team compute amount ≥ $${targetVolume} · $${targetVolume} / $${targetVolume}`;
-      expect(conditionTexts(p.root, target)).toEqual([target, copy.rank.done]);
-      // Satisfying every preceding gate updates the observation, never myRank.
-      p.state.selfBuyUSD = 500; p.state.directRefs = 3; await Vue.nextTick();
-      expect(conditionTexts(p.root, labels.buy.replace('$39.80 /', '$500.00 /'))).toEqual([]);
-      expect(conditionTexts(p.root, labels.refs.replace('0 / 3', '3 / 3'))).toEqual([]);
-      expect(p.state.myRank).toBe(current);
-    }
-    p.state.teamVolumeUSD = 4_000; await Vue.nextTick();
-    const volumes = locale === 'zh'
-      ? [['V2 · 团队算力额 ≥ $5000.00 · $4000.00 / $5000.00', '团队算力额还差 $1000.00'], ['V3 · 团队算力额 ≥ $20000.00 · $4000.00 / $20000.00', '团队算力额还差 $16000.00']]
-      : locale === 'vi'
-        ? [['V2 · Giá trị công suất nhóm $5000.00 · $4000.00 / $5000.00', 'Thêm $1000.00 giá trị công suất nhóm'], ['V3 · Giá trị công suất nhóm $20000.00 · $4000.00 / $20000.00', 'Thêm $16000.00 giá trị công suất nhóm']]
-        : [['V2 · Team compute amount ≥ $5000.00 · $4000.00 / $5000.00', '$1000.00 more team compute amount'], ['V3 · Team compute amount ≥ $20000.00 · $4000.00 / $20000.00', '$16000.00 more team compute amount']];
-    for (const [label, gap] of volumes) expect(conditionTexts(p.root, label)).toEqual([label, gap]);
+
+  it.each(['en', 'zh', 'vi'] as const)('retains unmet preceding point requirements after rank protection in %s', async locale => {
+    const loaded = facts(); loaded.myRank = 2; loaded.selfComputePoints = 1280; loaded.teamComputePoints = 20000;
+    loaded.ladder[1].conditions = { selfComputePoints: 2000, directRefs: 3 };
+    loaded.ladder[2].conditions = { teamComputePoints: 5000 };
+    loaded.ladder[3].conditions = { teamComputePoints: 20000, vDownlines: { 2: 2 } };
+    const p = await page(locale, loaded);
+    const barLabels = () => all(p.root).filter(item => item.props.role === 'progressbar').map(bar => String(bar.props['aria-label']));
+    expect(barLabels().some(label => label.startsWith('V1 ·'))).toBe(false);
+    const toggle=all(p.root).find(item=>item.props['aria-controls']==='inherited-conditions')!;
+    expect(toggle.props['aria-expanded']).toBe(false);toggle.props.onClick();await Vue.nextTick();
+    expect(barLabels().some(label => label.startsWith('V1 ·') && label.includes(computePointsCopy(locale).self))).toBe(true);
+    expect(barLabels().some(label => label.startsWith('V2 ·'))).toBe(false);
+    p.state.selfComputePoints = 2000; p.state.directRefs = 3; await Vue.nextTick();
+    expect(barLabels().some(label => label.startsWith('V1 ·'))).toBe(false);
+    p.state.teamComputePoints = 4000; await Vue.nextTick();
+    expect(barLabels().filter(label => label.includes(computePointsCopy(locale).team))).toHaveLength(2);
+    expect(text(p.root)).not.toContain('$'); expect(p.state.myRank).toBe(2);
   });
 
-  const twoDecimalCopy = [
-    ['en', 'V1 · Self-buy ≥ $500.00 · $500.00 / $500.00', 'Self-buy $0.00 more',
-      'V1 · Team compute amount ≥ $2000.00 · $2000.00 / $2000.00', '$0.00 more team compute amount', '$765.88 more team compute amount'],
-    ['zh', 'V1 · 自买 ≥ $500.00 · $500.00 / $500.00', '再自买 $0.00',
-      'V1 · 团队算力额 ≥ $2000.00 · $2000.00 / $2000.00', '团队算力额还差 $0.00', '团队算力额还差 $765.88'],
-    ['vi', 'V1 · Tự mua ≥ $500.00 · $500.00 / $500.00', 'Tự mua thêm $0.00',
-      'V1 · Giá trị công suất nhóm $2000.00 · $2000.00 / $2000.00', 'Thêm $0.00 giá trị công suất nhóm', 'Thêm $765.88 giá trị công suất nhóm'],
-  ] as const;
   for (const intl of ['present', 'absent'] as const) {
-    it.each(twoDecimalCopy)(`renders two-decimal %s money while qualification uses raw values with Intl ${intl}`, async (locale, buy, buyGap, team, teamGap, otherGap) => {
+    it.each(['en', 'zh', 'vi'] as const)(`keeps six-decimal %s point gaps and raw eligibility with Intl ${intl}`, async locale => {
       if (intl === 'absent') vi.stubGlobal('Intl', undefined);
-      const loaded = facts(); loaded.selfBuyUSD = 499.999999; loaded.teamVolumeUSD = 1999.999999;
-      loaded.ladder[1].conditions = { selfBuyUSD: 500, teamVolumeUSD: 2_000 };
-      const p = await page(locale, loaded), copy = dictionaries[locale];
-      expect(p.state.selfBuyUSD).toBe(499.999999);
-      expect(p.state.teamVolumeUSD).toBe(1999.999999);
-      expect(conditionTexts(p.root, buy)).toEqual([buy, buyGap]);
-      expect(conditionTexts(p.root, team)).toEqual([team, teamGap]);
-      expect(texts(p.root)).not.toContain(copy.rank.done);
-      p.state.teamVolumeUSD = 1234.123456; await Vue.nextTick();
-      expect(texts(p.root)).toContain(otherGap);
-      p.state.selfBuyUSD = 500; p.state.teamVolumeUSD = 2_000; await Vue.nextTick();
-      expect(texts(p.root).filter(item => item === copy.rank.done)).toHaveLength(2);
-      expect(texts(p.root)).not.toContain(buyGap); expect(texts(p.root)).not.toContain(teamGap);
-      expect(p.state.myRank).toBe(0);
+      const loaded = facts(); loaded.selfComputePoints = 499.999999; loaded.teamComputePoints = 1999.999999;
+      loaded.ladder[1].conditions = { selfComputePoints: 500, teamComputePoints: 2000 };
+      const p = await page(locale, loaded);
+      const tiny = locale === 'vi' ? '0,000001 điểm tính toán' : locale === 'zh' ? '0.000001 算力点' : '0.000001 compute pts';
+      expect(text(p.root)).toContain(tiny); expect(text(p.root)).not.toContain('$');
+      expect(texts(p.root)).not.toContain(dictionaries[locale].rank.done);
+      p.state.selfComputePoints = 500; p.state.teamComputePoints = 2000; await Vue.nextTick();
+      expect(texts(p.root).filter(item => item === dictionaries[locale].rank.done)).toHaveLength(2);
+      expect(text(p.root)).not.toContain(tiny); expect(p.state.myRank).toBe(0);
     });
   }
+
+  it('renders published zero point thresholds without division by zero', async () => {
+    const loaded = facts(); loaded.selfComputePoints = 0; loaded.ladder[1].conditions = { selfComputePoints: 0 };
+    const p = await page('en', loaded);
+    expect(conditionTexts(p.root, 'V1 · Own compute ≥ 0 compute pts · 0 compute pts / 0 compute pts'))
+      .toEqual(['V1 · Own compute ≥ 0 compute pts · 0 compute pts / 0 compute pts', 'Done']);
+    expect(all(p.root).find(item => item.props.role === 'progressbar')!.props['aria-valuenow']).toBe(100);
+    expect(text(p.root)).not.toContain('NaN');
+  });
 
   it.each(['en', 'zh', 'vi'] as const)('keeps a confirmed highest rank free of a fabricated %s next target or zero gaps', async locale => {
     const loaded = facts(); loaded.ladder = loaded.ladder.slice(0, 9); loaded.myRank = 8;

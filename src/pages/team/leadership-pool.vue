@@ -1,67 +1,48 @@
-<!--
-  Global Leadership Pool — ported from
-  Nexion-prototype/app/(main)/team/leadership-pool/page.tsx.
-  Week-pool hero de-carded (DECARD form c): $X K sits directly on the page floor
-  (card gradient/radial + accent border deleted, not tuned). My-status block =
-  frosted-glass card, zero border (owner 2026-07-09; unlocked: projected dividend
-  + votes/share stats / locked: V3-gate + path CTA). V-rank vote-weight table = single surface
-  container (form b, no border, mine-row tinted). Past-pools history = transparent
-  hairline group (form a). Sub-page → <AppChassis active="team"> w/ back → /team.
-  Reuses leadership-pool + v-rank stores + VBadge/VBadgeIcon. useMemo → computed.
-  <Link>→<view @click>.
--->
 <template>
   <AppChassis active="team">
+    <RewardPageSurface>
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/team" :title="t.pool.pageTitle" />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <view v-if="remoteApiEnabled && remoteState !== 'ready'" class="text-center" style="padding: 48px 20px">
           <text class="block" :style="{ color: 'var(--v5-ink-2)', fontSize: '13px' }">{{ remoteState === 'loading' ? t.pool.loading : remoteState === 'hold' ? t.pool.settlementHold : t.pool.loadError }}</text>
-          <view v-if="remoteState === 'error'" class="inline-flex items-center justify-center active:opacity-70" style="margin-top: 14px; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--v5-brand)" @click="loadRemotePool">
+          <view v-if="remoteState === 'error' || remoteState === 'hold'" class="reward-cta" style="margin-top: 14px" role="button" tabindex="0" @click="retryRemotePool" @keydown.enter.prevent="retryRemotePool" @keydown.space.prevent="retryRemotePool">
             <text :style="{ color: 'var(--v5-on-brand)', fontSize: '13px', fontWeight: 600 }">{{ t.pool.retry }}</text>
           </view>
         </view>
         <template v-else>
-        <!-- Week pool hero — de-carded: big number sits directly on the page
-             floor (card gradient/radial would be a floor aura → deleted per
-             owner call 2026-07-08, accent border dropped with it). Rules-intro
-             pill rides the cap row (owner 2026-07-09: kill the empty gap above). -->
-        <view class="text-center" :style="heroStyle">
-          <view class="flex items-center justify-between" style="gap: 8px">
-            <view class="flex items-center justify-center font-mono-tabular" :style="heroCapStyle">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /><path d="M5 21h14" /></svg>
-              <text>{{ t.pool.weekPool }}</text>
-            </view>
-            <view class="inline-flex items-center shrink-0 active:scale-[0.98] transition-transform" :style="howEntryStyle" @click="go('/pages/team/leadership-pool-how')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-              <text>{{ t.pool.howItWorksEntry }}</text>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-            </view>
-          </view>
-          <text class="block font-display tabular-nums" :style="heroBigStyle">${{ formatAmount(currentWeekPoolUSDT / 1000) }}K</text>
-          <text class="block" :style="heroDescStyle">{{ weeklyDescText }}</text>
-        </view>
 
-        <!-- My status — frosted-glass card (owner 2026-07-09), fill only /
-             zero border; both unlocked & locked variants share the shell. -->
+        <view class="reward-summary-panel">
+        <RewardHero kind="balance" :label="t.pool.weekPool" :sub="weeklyDescText">
+          <text class="reward-amount">${{ formatAmount(currentWeekPoolUSDT) }}</text>
+          <template #footer><view class="reward-cta reward-rule-link" role="button" tabindex="0" @click="go('/pages/team/leadership-pool-how')" @keydown.enter.prevent="go('/pages/team/leadership-pool-how')" @keydown.space.prevent="go('/pages/team/leadership-pool-how')"><text>{{ t.pool.howItWorksEntry }}</text></view></template>
+        </RewardHero>
+
+
         <view :style="statusStyle">
           <template v-if="unlocked">
             <view class="flex items-center justify-between">
-              <text class="font-mono-tabular" :style="statusCapStyle('var(--v5-brand)')">{{ t.pool.projectedDividend }}</text>
+              <text class="font-mono-tabular" :style="statusCapStyle('var(--v5-ink-2)')">{{ t.pool.projectedDividend }}</text>
               <VBadge :v="myRank" size="sm" />
             </view>
             <text class="block font-display tabular-nums" :style="projectedStyle">${{ formatAmount(projectedPayout) }}</text>
+            <view class="pool-votes">
+              <view><text :style="statLabelStyle">{{ auditCopy.votes }}</text><text class="block" :style="statValueStyle">{{ myVotes }}</text></view>
+              <view><text :style="statLabelStyle">{{ auditCopy.totalVotes }}</text><text class="block" :style="statValueStyle">{{ totalVotes }}</text></view>
+              <view><text :style="statLabelStyle">{{ auditCopy.share }}</text><text class="block" :style="statValueStyle">{{ shareLabel }}</text></view>
+            </view>
+            <text v-if="myVotes === 0" class="block" :style="lockedSubStyle">{{ auditCopy.qualified }} · {{ auditCopy.noVotes }}</text>
           </template>
           <template v-else>
             <text class="block font-mono-tabular" :style="statusCapStyle('var(--v5-ink-3)')">{{ t.pool.locked }}</text>
             <text class="block" :style="lockedHeadStyle">
               <text>{{ requiresUnlockRankParts[0] }}</text>
-              <text :style="{ color: 'var(--v5-brand)', fontWeight: 600 }">{{ requiresUnlockRankParts[1] }}</text>
+              <text :style="{ color: 'var(--v5-ink)', fontWeight: 600 }">{{ requiresUnlockRankParts[1] }}</text>
               <text>{{ requiresUnlockRankParts[2] }}</text>
             </text>
             <text class="block" :style="lockedSubStyle">{{ currentlyVText }}</text>
-            <view class="inline-flex items-center active:scale-[0.97] transition-transform" :style="pathCtaStyle" @click="go('/pages/team/rank')">
+            <view class="reward-cta" style="margin-top: 14px" role="button" tabindex="0" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
               <text>{{ pathCtaText }}</text>
             </view>
@@ -69,7 +50,8 @@
         </view>
 
 
-        <!-- Past pools — transparent hairline group (form a, ledger idiom). -->
+
+        </view>
         <view v-if="poolHistory.length > 0" :style="pastGroupStyle">
           <text class="block font-mono-tabular" :style="pastHeadStyle">{{ t.pool.pastPools }}</text>
           <view
@@ -82,12 +64,13 @@
               <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink)' }">{{ h.weekId }}</text>
               <text v-if="poolTotalText(h)" class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ poolTotalText(h) }}</text>
             </view>
-            <text class="font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: h.payoutUSDT > 0 ? 'var(--v5-brand)' : 'var(--v5-ink-3)' }">{{ h.payoutUSDT > 0 ? `+$${formatAmount(h.payoutUSDT)}` : "—" }}</text>
+            <text class="font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-ink)' }">{{ historyAmount(h.payoutUSDT) }}</text>
           </view>
         </view>
         </template>
       </view>
     </view>
+    </RewardPageSurface>
   </AppChassis>
 </template>
 
@@ -97,6 +80,8 @@ import { navTo } from "@/lib/route";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import RewardHero from "@/components/team/reward-compact-hero.vue";
+import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import VBadge from "@/components/team/v-badge.vue";
 import VBadgeIcon from "@/components/team/v-badge-icon.vue";
@@ -105,6 +90,7 @@ import { fmt } from "@/i18n/format";
 import { useLeadershipPool, V_VOTES, POOL_TOP_N, type LeadershipPayout } from "@/store/leadership-pool";
 import { useVRank, type VRank } from "@/store/v-rank";
 import { rankLabel, rankTitle } from "@/lib/v-rank-copy";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { useLocaleStore } from "@/store/locale";
 import { remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
 import type { TeamLeadershipPoolSnapshot } from "@/api/team-insights-api";
@@ -137,7 +123,8 @@ const payoutClock = createPayoutClock({
 
 const myRank = computed(() => (remoteApiEnabled ? remotePool.value?.myRank ?? 0 : vState.myRank) as VRank);
 const poolUnlockRank = computed(() => (remoteApiEnabled ? remotePool.value?.unlockRank ?? 3 : 3) as VRank);
-const unlocked = computed(() => remoteApiEnabled ? (remotePool.value?.myVotes ?? 0) > 0 : myRank.value >= poolUnlockRank.value);
+// Rank eligibility and this period's allocation are separate facts.
+const unlocked = computed(() => myRank.value >= poolUnlockRank.value);
 const dist = computed(() => {
   if (!remoteApiEnabled) return pool.globalVDistribution;
   const result = {} as Record<VRank, number>;
@@ -170,6 +157,9 @@ const weeklyDescText = computed(() => {
   return fmt(t.value.pool.weeklyDesc, { n });
 });
 const locale = useLocaleStore();
+const auditCopy = computed(() => networkReauditCopy(locale.code));
+const shareLabel = computed(() => totalVotes.value > 0 && Number.isFinite(myShare.value)
+  ? `${(myShare.value * 100).toLocaleString(locale.code, { maximumFractionDigits: 2 })}%` : '—');
 const rankReady = computed(() => vState.remoteReady);
 const poolUnlockRankLabel = computed(() => rankReady.value ? rankLabel(poolUnlockRank.value, locale.code, vState.ladder) : "—");
 const requiresUnlockRankParts = computed(() => {
@@ -232,6 +222,14 @@ function poolTotalText(h: LeadershipPayout): string {
 function go(url: string) {
   navTo(url);
 }
+function historyAmount(value: number | null | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return '—';
+  return `${value > 0 ? '+' : ''}$${formatAmount(value)}`;
+}
+function retryRemotePool() {
+  if (remoteState.value === 'loading') return;
+  void loadRemotePool();
+}
 
 async function loadRemotePool() {
   if (!remoteApiEnabled || !pageVisible) return;
@@ -287,75 +285,19 @@ onUnmounted(() => {
   remotePool.value = null;
 });
 
-// ─── styles ───
-// Soft tint only — pills carry no border (chip/pill whitelist rule).
-const howEntryStyle: CSSProperties = {
-  gap: "6px",
-  padding: "0 12px",
-  height: "34px",
-  borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 10%, transparent)",
-  fontSize: "12px",
-  fontWeight: 500,
-  color: "var(--v5-brand-2)",
-};
-
-// De-carded hero: no surface/border/glow — the big number sits directly on the
-// page floor with a 2px optical inset (leaderboard.vue prize-hero idiom).
-const heroStyle: CSSProperties = { padding: "10px 2px 0" };
-const heroCapStyle: CSSProperties = { gap: "6px", fontSize: "12px", letterSpacing: "0.16em", color: "var(--v5-brand-2)" };
-const heroBigStyle: CSSProperties = { marginTop: "8px", fontSize: "56px", fontWeight: 600, lineHeight: 1, color: "var(--v5-ink)" };
-const heroDescStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)" };
-
-// Frosted-glass status card (owner 2026-07-09) — chassis glass-tile token,
-// fill only / zero border (bg-filled cards carry no border line).
 const statusStyle: CSSProperties = {
-  padding: "16px",
-  borderRadius: "16px",
-  background: "var(--v5-glass-bg)",
-  backdropFilter: "blur(18px) saturate(180%)",
+  padding: "16px 0",
+  background: "transparent",
 };
 function statusCapStyle(color: string): CSSProperties {
   return { fontSize: "12px", letterSpacing: "0.16em", color };
 }
-const projectedStyle: CSSProperties = { marginTop: "8px", fontSize: "34px", fontWeight: 600, lineHeight: 1, color: "var(--v5-brand)" };
+const projectedStyle: CSSProperties = { marginTop: "8px", fontSize: "28px", fontWeight: 600, lineHeight: 1.2, color: "var(--v5-ink)" };
 const statLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const statValueStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)", marginTop: "2px" };
 const lockedHeadStyle: CSSProperties = { marginTop: "8px", fontSize: "15px", color: "var(--v5-ink)" };
 // SKILL leading-snug = 1.375 (原版 .mt-1.5 text-[12px] leading-snug; was 1.45)
 const lockedSubStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375 };
-const pathCtaStyle: CSSProperties = {
-  marginTop: "12px",
-  gap: "6px",
-  padding: "0 16px",
-  height: "44px",
-  borderRadius: "999px",
-  background: "var(--v5-brand)",
-  color: "var(--v5-on-brand)",
-  fontSize: "13px",
-  fontWeight: 600,
-};
-
-const concentrationStripStyle: CSSProperties = {
-  padding: "10px 14px",
-  borderRadius: "12px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 9%, transparent)",
-};
-const concentrationTextStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-brand-2)", lineHeight: 1.45 };
-
-// Form b container — no border (fill is the single visual difference);
-// overflow-hidden stays: the tinted mine-row must clip to the radius.
-const tableCardStyle: CSSProperties = { background: "var(--v5-surface)", borderRadius: "16px" };
-const tableHeadStyle: CSSProperties = { padding: "14px 16px 8px" };
-const tableHeadCapStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.16em", color: "var(--v5-ink-3)" };
-function voteRowStyle(isMine: boolean, isLast: boolean): CSSProperties {
-  return {
-    padding: "10px 16px",
-    gap: "12px",
-    background: isMine ? "color-mix(in srgb, var(--v5-brand) 5%, transparent)" : "transparent",
-    borderBottom: isLast ? "none" : "1px solid var(--v5-border)",
-  };
-}
 // Transparent hairline group (form a) — border-top opens the group, rows keep
 // their hairlines, content sits on the 2px optical inset.
 const pastGroupStyle: CSSProperties = { marginTop: "12px", padding: "0 2px", borderTop: "1px solid var(--v5-border)" };
@@ -364,3 +306,7 @@ function historyRowStyle(isLast: boolean): CSSProperties {
   return { padding: "12px 0", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
 }
 </script>
+
+<style scoped>
+.pool-votes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--ui-space-inline); margin-top:var(--ui-space-inset); overflow-wrap:anywhere; }
+</style>

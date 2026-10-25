@@ -1,58 +1,38 @@
-<!--
-  Influence Network — ported from Nexion-prototype/app/(main)/team/network/page.tsx.
-  2-orbit orb visualization: center YOU + inner orbit (Direct, lemon) + outer orbit
-  (Extended, purple). Top metrics (members/active/direct) + SVG orb (orbit guides +
-  connection lines + member nodes w/ random active-pulse + center node + orbit
-  labels) + legend + footer note + member detail bottom sheet (tap a node).
-  No L1-L7 / binary wings / 4-color layers (de-MLM'd). Sub-page → <AppChassis
-  active="team"> w/ back → /team. Reuses network + v-rank stores + VBadge.
-  React effect interval → onMounted/onUnmounted (P-034). React sheet state → ref +
-  page mount (P-032). SVG <g @click> node taps (globe.vue pattern). SVG <animate>
-  renders (P-013). banned hex #06080C→var(--v5-bg), #3A3A3A→var(--v5-ink-4).
--->
 <template>
   <AppChassis active="team">
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/team" :title="t.network.pageTitle" />
 
-      <view class="px-4" style="display: flex; flex-direction: column; gap: 12px; padding-top: 16px">
+      <view class="network-content">
         <view v-if="remoteApiEnabled && network.remoteStatus === 'error'" :style="errorStateStyle">
           <text class="block" style="font-weight: 600">{{ t.network.projectionErrorTitle }}</text>
           <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.network.projectionErrorDesc }}</text>
-          <view role="button" tabindex="0" :style="retryStyle" @click="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text></view>
+          <view role="button" tabindex="0" :style="retryStyle" @click="network.refreshCanonicalNetwork()" @keydown.enter.prevent="network.refreshCanonicalNetwork()" @keydown.space.prevent="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text><text aria-hidden="true">→</text></view>
         </view>
-        <!-- Top metrics — filled stat tiles, no border (single visual difference).
-             A background re-read keeps the last confirmed snapshot, so the tiles
-             only show the unavailable placeholder when nothing was ever read
-             (BUG 63: flipping every figure to "—" mid-refresh blanked the page). -->
-        <view class="grid grid-cols-3" style="gap: 8px">
-          <view class="nx-glass-card rounded-2xl text-center" :style="metricCardStyle">
+        <view class="grid grid-cols-3 network-metrics" style="gap: 8px">
+          <view class="text-center" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.network.members }}</text>
             <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink)')">{{ metricsUnavailable ? '—' : members.length }}</text>
           </view>
-          <view class="nx-glass-card rounded-2xl text-center" :style="metricCardStyle">
+          <view class="text-center" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.network.activeNow }}</text>
             <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ metricsUnavailable ? '—' : activeCount }}</text>
           </view>
-          <view class="nx-glass-card rounded-2xl text-center" :style="metricCardStyle">
+          <view class="text-center" :style="metricCardStyle">
             <text class="block" :style="metricLabelStyle">{{ t.network.direct }}</text>
-            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-tech-cyan)')">{{ metricsUnavailable ? '—' : directCount }}</text>
+            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink-2)')">{{ metricsUnavailable ? '—' : directCount }}</text>
           </view>
         </view>
 
-        <!-- Network orb — kept as a whitelist visualization card: the in-card
-             radial wash + clipping boundary belong to the orb graphic (bg +
-             overflow-hidden = legal in-card glow, NOT a floor aura). De-carding
-             it would strand the wash on the page floor → conservative keep,
-             neutral token border. -->
-        <view class="relative overflow-hidden rounded-2xl" :style="orbCardStyle">
+        <view v-if="metricsUnavailable && network.remoteStatus !== 'error'" role="status" aria-busy="true" class="network-read-state"><text>{{ t.network.projectionLoadingTitle }}</text></view>
+        <view class="relative network-graph" :style="orbCardStyle">
           <!-- APP-vue creates template SVG as HTML unknown elements. Keep this
                interactive graph in supported view/text nodes with the same 360
                coordinate system; do not broaden the small-icon SVG adapter. -->
           <!-- #ifdef APP-PLUS -->
           <view class="nx-net-native" style="position: relative; width: 100%; height: 0; padding-top: 100%">
             <view class="nx-net-native-orbit" :style="nativeOrbitStyle(DIRECT_RADIUS, false)" />
-            <view class="nx-net-native-orbit" :style="nativeOrbitStyle(132, true)" />
+            <view class="nx-net-native-orbit" :style="nativeOrbitStyle(140, true)" />
             <view :style="{ ...nativePosition(CENTER, CENTER), width: '28%', height: '28%', borderRadius: '50%', background: 'radial-gradient(circle, var(--v5-brand-soft), transparent)', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }" />
             <view v-for="p in directPlotted" :key="`conn-${p.m.id}`" class="nx-net-native-connection" :style="nativeConnectionStyle(p)" />
             <view
@@ -68,7 +48,8 @@
               @keydown.enter.prevent="selected = p.m" @keydown.space.prevent="selected = p.m"
             >
               <view v-if="pulseId === p.m.id" class="nx-net-native-pulse" :style="{ borderColor: p.kind === 'direct' ? DIRECT_COLOR : EXTENDED_COLOR }" />
-              <view :style="{ width: p.kind === 'direct' ? '10px' : '7px', height: p.kind === 'direct' ? '10px' : '7px', borderRadius: '50%', background: p.m.status === 'offline' ? 'var(--v5-ink-4)' : (p.kind === 'direct' ? DIRECT_COLOR : EXTENDED_COLOR), opacity: p.m.status === 'offline' ? 0.6 : 0.95 }" />
+              <view :style="{ width: p.kind === 'direct' ? '12px' : '8px', height: p.kind === 'direct' ? '12px' : '8px', borderRadius: '50%', background: 'linear-gradient(145deg, var(--v5-ink-2), var(--v5-surface-3))', border: `1px solid ${p.kind === 'direct' ? DIRECT_COLOR : EXTENDED_COLOR}`, opacity: p.m.status === 'offline' ? 0.6 : 0.95 }" />
+              <text class="network-native-name">{{ compactMemberName(p.m.name) }}</text>
             </view>
             <view
               class="nx-net-node cursor-pointer"
@@ -80,18 +61,21 @@
 
               @keydown.enter.prevent="openSelf" @keydown.space.prevent="openSelf"
             >
-              <view style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--v5-brand)">
-                <text style="font-family: var(--font-v5); font-weight: 600; font-size: 12px; color: var(--v5-on-brand)">{{ t.network.diagramYou }}</text>
+              <view style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(145deg, var(--v5-ink-3), var(--v5-surface-3)); border: 1px solid var(--v5-brand)">
+                <text style="font-family: var(--font-v5); font-weight: 600; font-size: 11px; color: var(--v5-ink)">{{ t.network.diagramYou }}</text>
               </view>
             </view>
             <text :style="nativeLabelStyle(158, 'var(--v5-brand)', 9)">{{ myRankText }}</text>
-            <text :style="nativeLabelStyle(118, 'var(--v5-brand)', 7)">{{ t.network.badgeDirect }}</text>
-            <text :style="nativeLabelStyle(8, 'var(--v5-nex)', 7)">{{ t.network.badgeExtended }}</text>
           </view>
           <!-- #endif -->
           <!-- #ifndef APP-PLUS -->
           <svg viewBox="0 0 360 360" class="block w-full" preserveAspectRatio="xMidYMid meet" style="width: 100%">
             <defs>
+              <linearGradient id="networkSilver" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="var(--v5-ink-3)" />
+                <stop offset="45%" stop-color="var(--v5-surface-2)" />
+                <stop offset="100%" stop-color="var(--v5-ink-4)" />
+              </linearGradient>
               <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stop-color="rgba(198,255,58,0.35)" />
                 <stop offset="60%" stop-color="rgba(198,255,58,0.10)" />
@@ -100,8 +84,8 @@
             </defs>
 
             <!-- 2 orbit guides -->
-            <circle cx="180" cy="180" r="58" fill="none" stroke="rgba(198,255,58,0.18)" stroke-width="0.8" stroke-dasharray="1 0" />
-            <circle cx="180" cy="180" r="132" fill="none" stroke="rgba(124,92,255,0.18)" stroke-width="0.8" stroke-dasharray="2 6" />
+            <circle cx="180" cy="180" :r="DIRECT_RADIUS" fill="none" stroke="rgba(198,255,58,0.18)" stroke-width="0.8" stroke-dasharray="1 0" />
+            <circle cx="180" cy="180" r="140" fill="none" stroke="var(--v5-ink-3)" stroke-opacity="0.25" stroke-width="0.8" stroke-dasharray="2 6" />
 
             <circle cx="180" cy="180" r="50" fill="url(#centerGlow)" />
 
@@ -113,7 +97,7 @@
               y1="180"
               :x2="p.x"
               :y2="p.y"
-              :stroke="p.m.status === 'active' ? 'rgba(198,255,58,0.30)' : 'rgba(255,255,255,0.06)'"
+              :stroke="p.m.status === 'active' ? 'rgba(198,255,58,0.30)' : 'var(--v5-border)'"
               stroke-width="0.6"
             />
 
@@ -134,6 +118,7 @@
 
               @keydown.enter.prevent="selected = p.m" @keydown.space.prevent="selected = p.m"
             >
+              <rect :x="p.x - 32" :y="p.y - 32" width="64" height="64" fill="transparent" pointer-events="all" />
               <circle v-if="pulseId === p.m.id" :cx="p.x" :cy="p.y" r="10">
                 <animate attributeName="r" values="4;18;4" dur="1s" repeatCount="1" />
                 <animate attributeName="opacity" values="0.6;0;0.6" dur="1s" repeatCount="1" />
@@ -143,9 +128,12 @@
                 :cx="p.x"
                 :cy="p.y"
                 :r="p.kind === 'direct' ? 5 : 3.5"
-                :fill="p.m.status === 'offline' ? 'var(--v5-ink-4)' : (p.kind === 'direct' ? DIRECT_COLOR : EXTENDED_COLOR)"
+                fill="url(#networkSilver)"
+                :stroke="p.kind === 'direct' ? DIRECT_COLOR : EXTENDED_COLOR"
+                stroke-width="0.8"
                 :fill-opacity="p.m.status === 'offline' ? 0.6 : 0.95"
               />
+              <SvgText :x="p.x" :y="p.y + 19" text-anchor="middle" font-family="var(--font-v5)" font-size="11" fill="var(--v5-ink-2)" pointer-events="none">{{ compactMemberName(p.m.name) }}</SvgText>
             </g>
 
             <!-- center YOU node — also a real focusable control. The member orbs
@@ -162,14 +150,12 @@
 
               @keydown.enter.prevent="openSelf" @keydown.space.prevent="openSelf"
             >
-              <circle cx="180" cy="180" r="14" fill="var(--v5-brand)" />
-              <SvgText x="180" y="181" text-anchor="middle" dominant-baseline="middle" font-family="var(--font-v5)" font-weight="600" font-size="11" fill="var(--v5-on-brand)">{{ t.network.diagramYou }}</SvgText>
+              <circle cx="180" cy="180" r="18" fill="url(#networkSilver)" stroke="var(--v5-brand)" stroke-width="0.8" />
+              <SvgText x="180" y="181" text-anchor="middle" dominant-baseline="middle" font-family="var(--font-v5)" font-weight="600" font-size="11" fill="var(--v5-ink)">{{ t.network.diagramYou }}</SvgText>
               <SvgText x="180" y="158" text-anchor="middle" font-family="var(--font-v5)" font-weight="600" font-size="9" fill="color-mix(in srgb, var(--v5-brand) 85%, transparent)" letter-spacing="1.5">{{ myRankText }}</SvgText>
             </g>
 
             <!-- orbit labels -->
-            <SvgText x="180" y="118" text-anchor="middle" font-family="var(--font-jet-mono)" font-size="7" fill="color-mix(in srgb, var(--v5-brand) 85%, transparent)" letter-spacing="1.5">{{ t.network.badgeDirect }}</SvgText>
-            <SvgText x="180" y="8" text-anchor="middle" font-family="var(--font-jet-mono)" font-size="7" fill="color-mix(in srgb, var(--v5-nex) 85%, transparent)" letter-spacing="1.5">{{ t.network.badgeExtended }}</SvgText>
           </svg>
           <!-- #endif -->
 
@@ -191,50 +177,43 @@
           <text v-if="idleCount > 0">{{ idleSuffixText }}</text>
           <text>{{ t.network.legend }}</text>
         </view>
+        <view v-if="members.length" class="network-member-index">
+          <view v-for="member in members.slice(0, 12)" :key="member.id" class="network-member-pick" role="button" tabindex="0" :aria-label="member.name" @click="selected=member" @keydown.enter.prevent="selected=member" @keydown.space.prevent="selected=member">
+            <view class="network-member-dot" :style="{background:member.layer===1 ? DIRECT_COLOR : EXTENDED_COLOR}" /><text class="network-member-name">{{ member.name }}</text><text class="network-member-rank">V{{ member.vRank }}</text>
+          </view>
+        </view>
+        <view class="network-list-link" role="button" tabindex="0" @click="navTo('/pages/team/tree')" @keydown.enter.prevent="navTo('/pages/team/tree')" @keydown.space.prevent="navTo('/pages/team/tree')"><text>{{ t.tree.pageTitle }}</text><text aria-hidden="true">→</text></view>
       </view>
 
-      <!-- Member detail bottom sheet -->
-      <view v-if="selected" class="nx-net-sheet-wrap" role="dialog" aria-modal="true">
+      <!-- The only surfaced container is the modal member detail. -->
+      <view v-if="selected" class="nx-net-sheet-wrap" role="dialog" aria-modal="true" :aria-label="selected.name">
         <view class="nx-net-scrim" @click="selected = null" />
         <view class="nx-glass-sheet nx-net-sheet" :style="sheetStyle">
-          <view class="flex items-start justify-between">
-            <view class="flex items-center" style="gap: 12px">
-              <view class="rounded-full grid place-items-center" :style="sheetAvatarStyle">
-                <text style="font-size: 26px; line-height: 1">{{ selected.avatar }}</text>
-              </view>
-              <view>
-                <text class="block" :style="{ fontSize: '15px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ selected.name }}</text>
-                <view class="flex items-center" style="margin-top: 2px; gap: 6px">
-                  <VBadge :v="selected.vRank" size="sm" :show-title="false" />
-                  <text class="font-mono-tabular" :style="sheetBadgeStyle(selected)">{{ selected.layer === 1 ? t.network.badgeDirect : t.network.badgeExtended }}</text>
-                  <text :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">· {{ selected.city }}</text>
-                </view>
-              </view>
+          <view class="sheet-handle" aria-hidden="true" />
+          <view class="sheet-heading">
+            <TeamRankEmblem :rank="selected.vRank" :size="60" />
+            <view class="sheet-identity">
+              <text class="sheet-name">{{ selected.name }}</text>
+              <text class="sheet-rank">{{ rankLabel(selected.vRank, locale.code, vRank.ladder) }}</text>
+              <text class="sheet-relation" :style="{ color: selected.layer === 1 ? DIRECT_COLOR : EXTENDED_COLOR }">{{ selected.layer === 1 ? t.network.badgeDirect : t.network.badgeExtended }}<text v-if="selected.city"> · {{ selected.city }}</text></text>
             </view>
-            <view class="grid place-items-center active:opacity-60" :style="sheetCloseStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="selected = null"  @keydown.enter.prevent="selected = null" @keydown.space.prevent="selected = null">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+            <view class="grid place-items-center active:opacity-60" :style="sheetCloseStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="selected = null" @keydown.enter.prevent="selected = null" @keydown.space.prevent="selected = null">
+              <text aria-hidden="true">×</text>
             </view>
           </view>
-          <view class="grid grid-cols-3 text-center" style="margin-top: 12px; gap: 8px">
+          <view class="sheet-metrics">
             <view>
               <text class="block" :style="sheetStatLabelStyle">{{ t.network.monthVolume }}</text>
-              <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-brand)')">${{ formatAmount(selected.monthVolumeUSD) }}</text>
+              <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-brand)')">{{ formatComputePoints(selected.monthComputePoints, locale.code) }}</text>
             </view>
             <view>
               <text class="block" :style="sheetStatLabelStyle">{{ t.network.allTime }}</text>
-              <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-ink)')">{{ selected.totalVolumeUSD === null ? '—' : `$${formatAmount(selected.totalVolumeUSD)}` }}</text>
-            </view>
-            <view>
-              <text class="block" :style="sheetStatLabelStyle">{{ t.network.joined }}</text>
-              <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-ink)')">{{ daysJoined(selected) }}d</text>
+              <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-ink)')">{{ formatComputePoints(selected.lifetimeComputePoints, locale.code) }}</text>
             </view>
           </view>
-          <view :style="{ marginTop: '12px', fontSize: '12px', color: 'var(--v5-ink-3)' }">
-            <text>{{ t.network.title }}: </text>
-            <text :style="{ color: 'var(--v5-ink)' }">{{ memberRankTitle(selected) }}</text>
-            <text> · {{ t.network.status }}: </text>
-            <text :style="{ color: statusColor(selected.status) }">{{ selected.status }}</text>
-          </view>
+          <view class="sheet-detail-row"><text>{{ t.network.joined }}</text><text>{{ networkReauditCopy(locale.code).days.replace('{n}', String(daysJoined(selected))) }}</text></view>
+          <view class="sheet-detail-row"><text>{{ t.network.status }}</text><text :style="{ color: statusColor(selected.status) }">{{ networkReauditCopy(locale.code)[selected.status] }}</text></view>
+          <view v-if="memberRankTitle(selected)" class="sheet-detail-row"><text>{{ t.network.title }}</text><text>{{ memberRankTitle(selected) }}</text></view>
         </view>
       </view>
     </view>
@@ -243,12 +222,13 @@
 
 <script setup lang="ts">
 import { displayNickname } from "@/lib/brand-copy";
-import { formatAmount } from "@/lib/amount-display";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
+import { formatComputePoints } from "@/i18n/compute-points";
 import { computed, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import SvgText from "@/components/svg-text";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import VBadge from "@/components/team/v-badge.vue";
+import TeamRankEmblem from "@/components/team/team-rank-emblem.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNetwork, type NetworkMember, type MemberStatus } from "@/store/network";
@@ -263,10 +243,10 @@ import { navTo } from "@/lib/route";
 const VIEW = 360;
 const CENTER = VIEW / 2;
 const DIRECT_COLOR = "var(--v5-brand)";
-const EXTENDED_COLOR = "var(--v5-tech-cyan)";
-const DIRECT_RADIUS = 58;
-const EXTENDED_RADIUS_MIN = 96;
-const EXTENDED_RADIUS_MAX = 168;
+const EXTENDED_COLOR = "var(--v5-ink-2)";
+const DIRECT_RADIUS = 72;
+const EXTENDED_RADIUS_MIN = 140;
+const EXTENDED_RADIUS_MAX = 140;
 
 interface Plotted {
   m: NetworkMember;
@@ -285,7 +265,7 @@ const myRank = computed(() => vRank.myRank);
 // Unavailable only when this account has never produced a projection. A
 // background re-read keeps the confirmed snapshot on screen (BUG 63).
 const metricsUnavailable = computed(() => remoteApiEnabled && !network.hasRemoteSnapshot);
-const myRankText = computed(() => remoteApiEnabled && !vRank.remoteReady ? "—" : `V${myRank.value}`);
+const myRankText = computed(() => remoteApiEnabled && !vRank.remoteReady ? "—" : rankLabel(myRank.value, locale.code, vRank.ladder));
 const selectedId = ref<string | null>(null);
 const selected = computed<NetworkMember | null>({
   get: () => members.value.find(member => member.id === selectedId.value) ?? null,
@@ -317,8 +297,8 @@ onUnmounted(() => {
 });
 
 const plotted = computed<Plotted[]>(() => {
-  const direct = members.value.filter((m) => m.layer === 1);
-  const extended = members.value.filter((m) => m.layer !== 1);
+  const direct = members.value.filter((m) => m.layer === 1).slice(0,6);
+  const extended = members.value.filter((m) => m.layer !== 1).slice(0,12);
   const out: Plotted[] = [];
   const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -342,7 +322,7 @@ const directPlotted = computed(() => plotted.value.filter((p) => p.kind === "dir
 function nativePosition(x: number, y: number): CSSProperties {
   return { position: "absolute", left: `${x / VIEW * 100}%`, top: `${y / VIEW * 100}%` };
 }
-function nativeNodeStyle(x: number, y: number, size = 32): CSSProperties {
+function nativeNodeStyle(x: number, y: number, size = 48): CSSProperties {
   return { ...nativePosition(x, y), width: `${size}px`, height: `${size}px`, display: "flex", alignItems: "center", justifyContent: "center", transform: "translate(-50%, -50%)" };
 }
 function nativeOrbitStyle(radius: number, extended: boolean): CSSProperties {
@@ -384,6 +364,7 @@ function openSelf() {
   void navTo("/pages/team/rank");
 }
 
+function compactMemberName(name: string): string { const chars = Array.from(name); return chars.length > 8 ? chars.slice(0,7).join('') + '…' : name; }
 function nodeLabel(p: Plotted): string {
   const relation = p.kind === "direct" ? t.value.network.badgeDirect : t.value.network.badgeExtended;
   return `${p.m.name} · ${rankLabel(p.m.vRank, locale.code, vRank.ladder)} · ${relation}`;
@@ -392,62 +373,32 @@ function statusColor(status: MemberStatus): string {
   return status === "active" ? "var(--v5-brand)" : status === "idle" ? "var(--v5-warning)" : "var(--v5-ink-4)";
 }
 
-// ─── styles ───
-// Filled stat tile, no border (single visual difference).
-const metricCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderRadius: "var(--nx-glass-radius)", padding: "12px" };
-const errorStateStyle: CSSProperties = { padding: "14px", borderRadius: "14px", background: "var(--v5-warning-soft)", color: "var(--v5-ink)" };
-const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "grid", placeItems: "center", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink-2)" };
-const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
+// Metrics stay on the floor; the interactive graph has one quiet canvas.
+const metricCardStyle: CSSProperties = { padding: "12px 4px" };
+const errorStateStyle: CSSProperties = { padding: "12px 0", borderBottom: "1px solid var(--v5-border)", color: "var(--v5-ink)" };
+const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", borderRadius: "999px", border: "1px solid var(--v5-border)", background: "color-mix(in srgb, var(--v5-ink) 6%, transparent)", color: "var(--v5-ink)" };
+const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
 function metricValueStyle(color: string): CSSProperties {
-  return { fontSize: "20px", fontWeight: 600, marginTop: "4px", color };
+  return { fontSize: "26px", fontWeight: 600, marginTop: "8px", color };
 }
-
-// Visualization card (whitelist): flat part of the bg equals the page floor, so
-// the neutral border IS the card boundary — dropping it would turn the radial
-// wash into a floor aura (which must then be deleted, degrading the orb).
-//
-// 🔴 C2 第二轮实测复核(2026-07-23):上面这句是对的,别再删。运行时两主题实测
-// 卡片自身底色与第一个不透明祖先**逐值相同**(dark 都是 rgb(0,0,0)、light 都是
-// rgb(244,241,233))→ 平底层与页面地板零色差,《03》§3「零 border 靠 surface 微差色
-// 分层」的前提(存在可用的 surface 微差)在这里**不成立**。按 §3 本体,这是
-// 「**透明容器**」形态(平底=地板,可见的只有装饰性 radial wash),而 border
-// **正是**规范允许透明容器使用的边界。已登记 ZERO-BORDER-ALLOWLIST。
-// 🔴 wash 用 --v5-nex-soft,不写死 rgba(124,92,255,0.18):后者是**暗色调过的紫**,
-// 双主题恒定,落到米色底上是一团发灰的紫晕(2026-08-18 实测)。这层 wash 又不能删
-// (见上,它是本卡的可见主体),所以按全站其余 54 层同一个写法走 *-soft 档:
-// 亮色 #ECE7FF 淡紫、暗色 rgba(180,127,255,0.20)。
 const orbCardStyle: CSSProperties = {
-  background: "radial-gradient(60% 50% at 50% 50%, var(--v5-nex-soft) 0%, transparent 65%), var(--v5-bg)",
-  border: "1px solid var(--v5-border)",
+  background: "color-mix(in srgb, var(--v5-ink) 3%, var(--v5-bg))",
+  border: "1px solid var(--v5-border)", borderRadius: "24px",
+  padding: "8px", boxSizing: "border-box",
 };
-const legendWrapStyle: CSSProperties = { padding: "4px 12px 12px", gap: "16px", fontSize: "12px", color: "var(--v5-ink-3)" };
-// SKILL leading-relaxed = 1.625 (原版 .text-[12px] leading-relaxed; was 1.6)
-const footerStyle: CSSProperties = { padding: "0 4px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
-
-const sheetStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
-  width: "100%",
-  background: "var(--nx-glass-fill)",
-  borderRadius: "var(--nx-glass-radius) var(--nx-glass-radius) 0 0",
-  padding: "16px",
-  borderTop: "none",
+const legendWrapStyle: CSSProperties = { padding: "12px 0", gap: "16px", flexWrap: "wrap", fontSize: "12px", color: "var(--v5-ink-3)" };
+const footerStyle: CSSProperties = { display: "flex", flexDirection: "column", gap: "4px", textAlign: "center", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
+const sheetStyle: CSSProperties = {
+  boxShadow: "var(--nx-glass-edge)", width: "100%", maxWidth: "520px",
+  maxHeight: "80vh", overflowY: "auto", boxSizing: "border-box",
+  background: "var(--nx-glass-fill)", backdropFilter: "blur(24px)",
+  borderRadius: "28px 28px 0 0", border: "1px solid var(--v5-border)",
+  padding: "12px 24px calc(24px + env(safe-area-inset-bottom))",
 };
-const sheetAvatarStyle: CSSProperties = { width: "48px", height: "48px", background: "var(--v5-surface-2)" };
-function sheetBadgeStyle(m: NetworkMember): CSSProperties {
-  const isDirect = m.layer === 1;
-  const color = isDirect ? "var(--v5-brand)" : "var(--v5-tech-cyan)";
-  return {
-    fontSize: "12px",
-    letterSpacing: "0.12em",
-    padding: "1px 4px",
-    borderRadius: "4px",
-    background: `color-mix(in srgb, ${color} 18%, transparent)`,
-    color,
-  };
-}
-const sheetCloseStyle: CSSProperties = { width: "32px", height: "32px" };
-const sheetStatLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
+const sheetCloseStyle: CSSProperties = { width: "44px", height: "44px", flexShrink: 0, fontSize: "24px", color: "var(--v5-ink-2)" };
+const sheetStatLabelStyle: CSSProperties = { fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 function sheetStatValStyle(color: string): CSSProperties {
-  return { fontSize: "15px", fontWeight: 600, marginTop: "2px", color };
+  return { fontSize: "24px", fontWeight: 600, marginTop: "8px", overflowWrap: "anywhere", color };
 }
 
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
@@ -458,6 +409,29 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () 
 </script>
 
 <style scoped>
+.network-content { display: flex; flex-direction: column; gap: var(--ui-space-section); padding: var(--ui-space-inline) 20px 24px; }
+.network-metrics { border-bottom: 1px solid var(--v5-border); padding-bottom: 12px; }
+.network-graph { width: 100%; max-width: 520px; align-self: center; }
+.network-read-state { color: var(--v5-ink-3); font-size: 13px; text-align: center; padding: var(--ui-space-inline) 0; }
+.network-member-index { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;margin-bottom:var(--ui-space-section); }
+.network-member-pick { display:flex;align-items:center;gap:8px;min-height:48px;border-bottom:1px solid var(--v5-border);font-size:13px; }
+.network-member-dot { width:5px;height:5px;border-radius:50%;flex-shrink:0; }
+.network-member-name { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1; }
+.network-member-rank { font-size:11px;color:var(--v5-ink-3); }
+.network-native-name { position:absolute;top:32px;left:50%;transform:translateX(-50%);font-size:10px;white-space:nowrap;color:var(--v5-ink-2);pointer-events:none; }
+.network-list-link { display: flex; align-items: center; justify-content: center; gap: var(--ui-space-inline); min-height: 48px; padding: var(--ui-space-row-y) 20px; border: 1px solid var(--v5-border); border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 6%, transparent); font-size: 14px; }
+.sheet-handle { width: 36px; height: 3px; border-radius: 999px; background: var(--v5-ink-4); margin: 0 auto 20px; }
+.sheet-heading { display: flex; align-items: center; gap: var(--ui-space-inline); }
+.sheet-identity { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sheet-name { display: block; font-size: 20px; font-weight: 600; }
+.sheet-rank { display: block; margin-top: 4px; font-size: 12px; color: var(--v5-ink-2); }
+.sheet-relation { display: block; font-size: 12px; line-height: 1.5; margin-top: 4px; }
+.sheet-metrics { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ui-space-section); padding: 24px 0; }
+.sheet-detail-row { display: flex; align-items: start; justify-content: space-between; gap: var(--ui-space-section); padding: var(--ui-space-inset) 0; border-top: 1px solid var(--v5-border); font-size: 13px; color: var(--v5-ink-3); line-height: 1.5; }
+.sheet-detail-row > :last-child { text-align: right; color: var(--v5-ink); overflow-wrap: anywhere; }
+[role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .nx-net-native-pulse { animation: none !important; } }
+
 /* #ifdef APP-PLUS */
 .nx-net-native-pulse {
   position: absolute;

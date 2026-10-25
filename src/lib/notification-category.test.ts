@@ -7,7 +7,7 @@ describe("notification display groups", () => {
       finance: ["wallet", "payment_method", "withdrawal", "order", "commission", "staking", "nova_commission"],
       device: ["device", "dailysummary", "nova_dailysummary", "nova_upgrade", "nova_tradein"],
       team: ["team", "nova_team", "nova_team_event"],
-      rewards: ["market", "nova_market", "nova_staking", "nova_staking_event", "nova_market_event", "genesis", "nova_genesis", "reward", "nova_eventclaim", "nova_quest", "nova_tasklockmonthly"],
+      rewards: ["marketing", "market", "nova_market", "nova_staking", "nova_staking_event", "nova_market_event", "genesis", "nova_genesis", "reward", "nova_eventclaim", "nova_quest", "nova_tasklockmonthly"],
       system: ["security", "system", "nova_welcome", "nova_wrapped", "nova_social", "future_unknown_kind"],
     };
     for (const [group, kinds] of Object.entries(groups)) {

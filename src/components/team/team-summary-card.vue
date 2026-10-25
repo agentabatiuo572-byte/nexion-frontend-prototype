@@ -1,57 +1,35 @@
 <template>
-  <view class="nx-glass-card team-summary" data-testid="team-summary" :aria-busy="status === 'idle' || status === 'loading'">
-    <view class="team-summary__header">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      <text class="team-summary__title">{{ t.team.summaryTitle }}</text>
-      <view v-if="status === 'ready' && total > 0" class="team-summary__arrow" role="link" tabindex="0" :aria-label="t.team.summaryView" @click="$emit('open')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
-      </view>
-    </view>
-    <template v-if="status === 'ready' && total > 0">
-      <view class="team-summary__metrics">
-        <view><text class="team-summary__number">{{ total }}</text><text class="team-summary__label">{{ t.team.summaryMembers }}</text></view>
-        <view><text class="team-summary__number">{{ direct }}</text><text class="team-summary__label">{{ t.team.summaryDirect }}</text></view>
-      </view>
-      <view class="team-summary__cta" role="link" tabindex="0" @click="$emit('open')"><text>{{ t.team.summaryView }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></view>
-    </template>
-    <template v-else-if="status === 'ready'">
-      <view class="team-summary__empty">
-        <svg width="84" height="72" viewBox="0 0 84 72" fill="none" stroke="var(--v5-ink-3)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="42" cy="25" r="10"/><circle cx="17" cy="34" r="8"/><circle cx="67" cy="34" r="8"/><path d="M25 66V56a17 17 0 0 1 34 0v10M5 66v-8a12 12 0 0 1 17-11M79 66v-8a12 12 0 0 0-17-11M42 3v5M18 8l4 5M66 8l-4 5"/></svg>
-        <text class="team-summary__empty-title">{{ t.team.summaryEmpty }}</text>
-      </view>
-      <view class="team-summary__cta team-summary__cta--secondary" role="button" tabindex="0" @click="$emit('invite')"><text>{{ t.team.summaryInvite }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></view>
-    </template>
-    <view v-else class="team-summary__status" role="status">
-      <text>{{ status === 'error' ? t.team.summaryUnavailable : t.team.summaryLoading }}</text>
-      <view v-if="status === 'error'" class="team-summary__retry" role="button" tabindex="0" @click="$emit('retry')"><text>{{ t.network.retry }}</text></view>
-    </view>
+  <view class="team-summary" data-testid="team-summary" :role="canOpen ? 'link' : undefined" :tabindex="canOpen ? 0 : undefined" :aria-label="canOpen ? t.team.summaryView : undefined" :aria-busy="status === 'idle' || status === 'loading'" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
+    <view class="team-summary__header"><text class="team-summary__title">{{ copy.myTeam }}</text><text v-if="canOpen" class="team-summary__arrow" aria-hidden="true">›</text></view>
+    <view class="team-summary__body"><view class="team-summary__metrics"><view><text class="team-summary__number">{{ status === 'ready' ? total : '—' }}</text><text class="team-summary__label">{{ copy.members }}</text></view><view><text class="team-summary__number">{{ status === 'ready' ? direct : '—' }}</text><text class="team-summary__label">{{ copy.directInvites }}</text></view></view><TeamArt kind="members" :size="124" /></view>
+    <view v-if="status === 'ready' && !total" class="team-summary__empty"><text>{{ t.team.summaryEmpty }}</text><NxButton :label="copy.inviteFriends" size="medium" @click="$emit('invite')" /></view>
+    <view v-else-if="status !== 'ready'" class="team-summary__status" role="status"><text>{{ status === 'error' ? t.team.summaryUnavailable : t.team.summaryLoading }}</text><NxButton v-if="status === 'error'" :label="t.network.retry" size="medium" @click="$emit('retry')" /></view>
   </view>
 </template>
-
 <script setup lang="ts">
-import { useT } from "@/i18n/use-t";
-defineProps<{ status: "idle" | "loading" | "ready" | "error"; total: number; direct: number }>();
-defineEmits<{ (event: "invite"): void; (event: "open"): void; (event: "retry"): void }>();
-const t = useT();
+import { computed } from 'vue';
+import { useT } from '@/i18n/use-t';
+import { useLocaleStore } from '@/store/locale';
+import { teamRedesignCopy } from '@/i18n/team-redesign';
+import TeamArt from './team-art.vue';
+import NxButton from '@/components/ui/nx-button.vue';
+const props=defineProps<{status:'idle'|'loading'|'ready'|'error'; total:number; direct:number}>();
+const emit=defineEmits<{(event:'invite'):void;(event:'open'):void;(event:'retry'):void}>();
+const t=useT(), locale=useLocaleStore(), copy=computed(()=>teamRedesignCopy(locale.code));
+const canOpen=computed(()=>props.status==='ready' && props.total>0);
+function open(){if(canOpen.value)emit('open');}
 </script>
-
 <style scoped>
-.team-summary { padding: 20px; }
-.team-summary__header { display: flex; align-items: center; gap: 12px; }
-.team-summary__title { font-size: 20px; font-weight: 600; }
-.team-summary__arrow { display: grid; place-items: center; min-width: 44px; min-height: 44px; margin: -8px -10px -8px auto; }
-.team-summary__metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 24px 0; }
-.team-summary__metrics > view { min-width: 0; }
-.team-summary__metrics > view + view { border-left: 1px solid var(--v5-border); padding-left: 24px; }
-.team-summary__number { display: block; font-size: clamp(18px, 6vw, 30px); line-height: 1.2; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.team-summary__label { display: block; margin-top: 6px; font-size: 13px; color: var(--v5-ink-3); }
-.team-summary__cta { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 48px; padding: 10px 14px; border-radius: 999px; background: transparent; color: var(--v5-ink-2); font-size: 15px; font-weight: 500; }
-.team-summary__cta:active, .team-summary__retry:active, .team-summary__arrow:active { opacity: .75; }
-.team-summary__empty { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 26px 0; }
-.team-summary__empty-title { font-size: 20px; font-weight: 500; }
-.team-summary__status { display: flex; align-items:center; justify-content:space-between; gap: 12px; padding: 12px 0 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.5; }
-.team-summary__retry { min-height: 44px; padding:0 8px;flex-shrink:0;display: grid; place-items: center; color: var(--v5-ink-2); }
-.team-summary [tabindex="0"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+.team-summary { padding: var(--ui-space-inline) 0 16px; color: var(--v5-ink); border-bottom: 1px solid var(--v5-border); }
+.team-summary__header { display: flex; align-items: center; justify-content: space-between; min-height: 44px; gap: var(--ui-space-inline); }
+.team-summary__title { font: 600 20px/1.4 var(--font-v5); }
+.team-summary__arrow { font-size: 26px; color: var(--v5-ink-3); }
+.team-summary__body { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.team-summary__metrics { display: grid; flex: 1; min-width: 0; grid-template-columns: 1fr 1.25fr; gap: 14px; }
+.team-summary__number { display: block; font: 600 clamp(24px,8vw,34px)/1.2 var(--font-v5); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.team-summary__label { display: block; margin-top: 7px; color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
+.team-summary__empty,.team-summary__status { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); color: var(--v5-ink-3); font-size: 13px; line-height: 1.5; }
+.team-summary[role='link'] { cursor: pointer; }
+.team-summary[role='link']:active { opacity: .8; }
+.team-summary:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 </style>
-
-<style scoped>.team-summary__cta--secondary {background:transparent;box-shadow:none;color:var(--v5-ink-2);font-weight:500;min-height:44px;}</style>

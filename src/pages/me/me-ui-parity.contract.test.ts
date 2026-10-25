@@ -60,7 +60,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "achievements.vue": "e7cfef2560a4a60747043f2a4d76b875a0faad0383b5cbcf1fb15deeab98e60f",
   "devices.vue": "227aa03a6c8ba621deb6d5e69fa1672cd80e918fc18cf37deeac446818adb125",
   // Keep #223 authority gates; hide the removed internal recommendation footnote.
-  "goals.vue": "2ecbc0a56d928f5e7cdabe370fd01ff02ae81845839310ecf761475bc79e40c8",
+  // N01: one read-recovery region; no save action without a current snapshot.
+  "goals.vue": "7552b82fcbd4824ee8cc2b2cf114e33016b998d3af0d2609089d308844c4f469",
   "help.vue": "3eeec6995d290e03d6a008b83f3a2ba8365f702b6c59d3acb306eab055437d7d",
   "language.vue": "147e4114cec9c44704a643c833d582e043565ee17240fe474622f656ae104da9",
   // Owner requested removal of the unsolicited overview withdrawal warning.
@@ -71,7 +72,8 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   "preferences.vue": "f671d2462d5c346657790bfb9f75c92cfb0a63d1039c886ed8ad02cd6789e3cc",
   // #633: narrow nickname display helper; raw edit/CAS value and layout stay unchanged.
   "profile.vue": "977b5e1226621ec07476dd0611d3d7fe6348f26e41ade0a0361e483754b72586",
-  "proof.vue": "956e804b2c96dced42cc10cb0dd757e7abd5c4a6a3596c56bca63490e93f3616",
+  // N02: proof-specific recovery; sharing requires current facts and a nonempty link.
+  "proof.vue": "a1d26717ebed2db908459515e1f9b5a7aeea3cf414fe662a4c805c8cbe9f2488",
   "receipts.vue": "aaf76128cf09b5a8648eb547e453964efb1be7cf30063e17bb941366166ff891",
   // Approved promotion category reuses the existing reward hub and list.
   "rewards-list.vue": "450f0917d2ba2af0b8215ad9ea8e0f126357a6858ead54038f226700278a1da9",
@@ -279,7 +281,7 @@ describe("Me page 5174 normal-state UI parity", () => {
 
   it("derives the unified Message Center badge from the same total as the bell", () => {
     expect(source).toContain('import { useMessageDrawer } from "@/store/message-drawer"');
-    expect(source).toContain("const messageUnread = computed(() => messageCenter.totalUnread)");
+    expect(source).toContain("const messageUnread = computed(() => messageCenter.actionableUnread)");
     expect(source).toContain('key: "messages", label: t.value.notifs.drawerTitle, href: "/me/notifications"');
     expect(source).toContain('badge: formatUnreadBadge(messageUnread.value) || undefined');
   });

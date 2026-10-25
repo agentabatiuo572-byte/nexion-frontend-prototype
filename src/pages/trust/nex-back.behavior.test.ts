@@ -206,7 +206,7 @@ describe("mounted NEX Back to Trust Center", () => {
     }
     expect(s.uni.navigateTo).not.toHaveBeenCalled(); expect(s.uni.navigateBack).not.toHaveBeenCalled();
     expect(s.uni.reLaunch).toHaveBeenCalledTimes(2);
-    trustHeaderBack(); expect(s.pages).toEqual([{ route: "/pages/me/me" }]);
+    trustHeaderBack(); expect(s.pages).toEqual([{ route: "/pages/tabs/tabs?target=%2Fpages%2Fme%2Fme" }]);
   });
 
   it("leaves no NEX or duplicate Trust entry after repeated warm visits", async () => {

@@ -14,7 +14,7 @@ function harness() {
   let current = true;
   const scope = { accountKey: "fixture-a", accountEpoch: 1, productNo: "stellarbox-s1", generation: 1 };
   const deps = {
-    ref, remoteApiEnabled: true, checkoutWalletRefreshing: ref(false), step: ref("confirm"),
+    ref, voucherSelecting:ref(false), remoteApiEnabled: true, checkoutWalletRefreshing: ref(false), step: ref("confirm"),
     captureCheckoutRoute: () => scope, isCurrentCheckoutRoute: () => current,
     resumeServerOrder: vi.fn().mockResolvedValue(false), product: ref({ id: scope.productNo }),
     trialView: ref({ applied: true }), trialQuoteAt: vi.fn().mockReturnValue({ applied: true }), mockServerNow: () => 0,

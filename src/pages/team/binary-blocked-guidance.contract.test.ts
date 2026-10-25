@@ -31,10 +31,13 @@ describe("binary blocked guidance page contract", () => {
     expect(vi).not.toContain('nâng khoản thưởng tháng này');
   });
 
-  it("describes the smaller-track formula without implying that a member can choose a track or increase payout", () => {
-    expect(zh).toContain('成员按安置规则分配，是否结算以最终确认状态为准');
-    expect(en).toContain('Members follow placement rules; settlement eligibility depends on the confirmed status');
-    expect(vi).toContain('Thành viên được phân theo quy tắc sắp xếp; điều kiện kết toán theo trạng thái đã xác nhận');
+  it("describes comparison without converting points into money or promising payment", () => {
+    expect(zh).toContain('算力点仅用于比较 A/B 两组贡献，不用于直接换算奖励金额');
+    expect(en).toContain('they do not directly convert into a reward amount');
+    expect(vi).toContain('không quy đổi trực tiếp thành tiền thưởng');
+    expect(zh).toContain('奖励金额以结算预估为准，实际到账以最终结算为准');
+    expect(en).toContain('Rewards shown are settlement estimates; actual payments depend on final settlement');
+    expect(vi).toContain('Số tiền hiển thị là ước tính quyết toán; khoản thực nhận theo quyết toán cuối cùng');
     expect(zh).not.toContain('继续邀请较小一轨提升{freq}发放');
     expect(en).not.toContain('Grow the smaller track to lift your {freq} payout');
     expect(vi).not.toContain('Bồi thêm nhánh nhỏ để nâng khoản thưởng {freq} của bạn');

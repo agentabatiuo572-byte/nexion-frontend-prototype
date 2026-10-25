@@ -105,6 +105,33 @@ beforeEach(() => {
 });
 
 describe("payout address remote account scope", () => {
+  it.each([true, false])("only the newest same-account read owns final status (latest succeeds: %s)", async latestSucceeds => {
+    const older = deferred<PayoutAddressSnapshot>(), latest = deferred<PayoutAddressSnapshot>();
+    remote.payoutAddressApi.list.mockReturnValueOnce(older.promise).mockReturnValueOnce(latest.promise);
+    const store = usePayoutAddress();
+    expect(store.readStatusFor("default")).toBe("idle");
+    const first = store.refreshRemote(), second = store.refreshRemote();
+    expect(store.readStatusFor("default")).toBe("loading");
+    if (latestSucceeds) latest.resolve(snapshot("B")); else latest.reject(new Error("503"));
+    expect(await second).toBe(latestSucceeds);
+    if (latestSucceeds) older.reject(new Error("late 503")); else older.resolve(snapshot("A"));
+    expect(await first).toBe(true); // Compatibility: superseded is not a new error.
+    expect(store.readStatusFor("default")).toBe(latestSucceeds ? "ready" : "error");
+    expect(store.readStatusFor("another-account")).toBe("idle");
+    expect(store.currentFor("usdt-trc20")?.address).toBe(latestSucceeds ? row("B").address : undefined);
+  });
+
+  it("treats invalid provenance as a final error and clears it only on a valid snapshot", async () => {
+    const store = usePayoutAddress();
+    remote.payoutAddressApi.list.mockResolvedValueOnce({ ...snapshot("A"), serverCanonical: false });
+    expect(await store.refreshRemote()).toBe(false);
+    expect(store.readStatusFor("default")).toBe("error");
+    expect(store.provenance).toBeNull();
+    remote.payoutAddressApi.list.mockResolvedValueOnce(snapshot("A"));
+    expect(await store.refreshRemote()).toBe(true);
+    expect(store.readStatusFor("default")).toBe("ready");
+  });
+
   it("keeps an address visible without a monotonic clock and recovers on a new snapshot", async () => {
     vi.stubGlobal("performance", undefined);
     remote.payoutAddressApi.list.mockResolvedValue(snapshot("A"));
@@ -167,6 +194,8 @@ describe("payout address remote account scope", () => {
     await flush();
 
     expect(store.currentFor("usdt-trc20")?.address).toBe(row("B").address);
+    expect(store.readStatusFor("A")).toBe("idle");
+    expect(store.readStatusFor("B")).toBe("ready");
   });
 
   it("drops a late list failure after switching accounts", async () => {
@@ -183,6 +212,8 @@ describe("payout address remote account scope", () => {
     await expect(flush()).resolves.toBeUndefined();
 
     expect(store.currentFor("usdt-trc20")?.address).toBe(row("B").address);
+    expect(store.readStatusFor("A")).toBe("idle");
+    expect(store.readStatusFor("B")).toBe("ready");
   });
 
   it("rejects a late OTP success or failure without exposing the old result", async () => {

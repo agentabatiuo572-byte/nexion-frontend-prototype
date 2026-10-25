@@ -77,7 +77,8 @@ describe("native goal save without Array.at", () => {
         if (status === "ready") expect(subtitle).toContain("$0.00");
         else {
           expect(subtitle).not.toContain("$0.00");
-          expect(subtitle).toBe(status === "error" ? zh.goals.serverUnavailable : zh.goals.loading);
+          // The single recovery region owns loading/error copy; the hero stays quiet.
+          expect(subtitle).toBe("");
         }
       } finally { scope.stop(); }
     }

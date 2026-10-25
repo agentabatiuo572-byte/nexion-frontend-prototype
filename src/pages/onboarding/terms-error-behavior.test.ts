@@ -2,6 +2,7 @@ import { computed, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import source from "./terms.vue?raw";
+import headerSource from "@/components/sub-page-header.vue?raw";
 import { sameLegalTermsSession, sameLegalTermsRun, shouldBlockLegalTermsExit } from "@/lib/legal-terms-gate";
 import { createLegalTermsRequestFence } from "@/lib/legal-terms-request-fence";
 import { isProfileLocaleHydrationError } from "@/lib/locale-profile-hydration";
@@ -78,7 +79,8 @@ describe("terms localized failure behavior", () => {
   });
 
   it("renders the effective date and version from the same server snapshot", () => {
-    expect(source).toContain("`${serverTerms.effectiveAt} · ${serverTerms.version}`");
+    expect(source).toContain("`${effectiveDate} · ${serverTerms.version}`");
+    expect(source).toContain("formatLegalEffectiveDate(serverTerms.value?.effectiveAt, dateLocale())");
     expect(source).not.toContain("`${t.terms.effectiveLabel} · ${serverTerms.version}`");
     expect(source).not.toContain("`${serverTerms.summary} · ${serverTerms.effectiveAt}`");
   });
@@ -207,10 +209,13 @@ describe("terms localized failure behavior", () => {
   });
 
   it("passes keyboard events to every activation handler and rejects repeat events", () => {
-    for (const handler of ["goBack", "retryTerms", "goRisk", "confirmTerms"]) {
+    for (const handler of ["retryTerms", "goRisk", "confirmTerms"]) {
       expect(source).toContain(`@keydown.enter.prevent="${handler}($event)"`);
     }
-    expect(source).toContain('@keydown.space.prevent="goBack($event)"');
+    expect(source).toContain(':back-action="goBack"');
+    expect(headerSource).toContain('@keydown.enter.prevent="onKeyboardActivate($event, goBack)"');
+    expect(headerSource).toContain('@keydown.space.prevent="onKeyboardActivate($event, goBack)"');
+    expect(headerSource).toContain('if (event.repeat) return;');
     expect(source).toContain('@keydown.space.prevent="retryTerms($event)"');
     expect(source).toContain('@keydown.space.prevent="confirmTerms($event)"');
     expect(source).toContain("function repeatedKeyboardActivation(event?: Event)");

@@ -1019,6 +1019,8 @@ uni-input {
 .nx-design-glass { --ui-glass-rgb:0,0,0; }
 :root:not([data-theme="light"]) .nx-design-glass, [data-theme="dark"] .nx-design-glass { --ui-glass-rgb:255,255,255; }
 .nx-design-glass > .nx-liquid-glass { backdrop-filter:blur(16px) saturate(170%);-webkit-backdrop-filter:blur(16px) saturate(170%); }
-.nx-design-glass > .nx-liquid-glass > .nx-liquid-tint { background:linear-gradient(180deg,rgba(var(--ui-glass-rgb),.16),rgba(var(--ui-glass-rgb),.05) 46%,rgba(var(--ui-glass-rgb),.03));box-shadow:inset 0 1px 0 rgba(var(--ui-glass-rgb),.42),inset 0 -1px 1px rgba(var(--ui-glass-rgb),.08),inset 0 0 14px rgba(var(--ui-glass-rgb),.05),0 8px 24px rgba(0,0,0,.5); }
+.nx-design-glass > .nx-liquid-glass > .nx-liquid-tint { background:linear-gradient(180deg,rgba(var(--ui-glass-rgb),.16),rgba(var(--ui-glass-rgb),.05) 46%,rgba(var(--ui-glass-rgb),.03));box-shadow:inset 0 1px 0 rgba(var(--ui-glass-rgb),.22),inset 0 -1px 1px rgba(var(--ui-glass-rgb),.08),inset 0 0 14px rgba(var(--ui-glass-rgb),.05),0 8px 24px rgba(0,0,0,.5); }
 .nx-design-glass > .nx-liquid-glass > .nx-liquid-rim { border:1px solid rgba(var(--ui-glass-rgb),.18);box-shadow:none; }
-.nx-design-glass > .nx-liquid-glass > .nx-liquid-specular { inset:1px;background:radial-gradient(120% 60% at 30% 0%,rgba(var(--ui-glass-rgb),.22),transparent 55%);opacity:1;filter:none;mix-blend-mode:normal; }
+/* The renderer supplies the optical map. Keep it aligned with the outer rim
+   and attenuated, so a small pill never gains a second white contour. */
+.nx-design-glass > .nx-liquid-glass > .nx-liquid-specular { inset:0;opacity:.18;filter:blur(.7px);mix-blend-mode:screen; }

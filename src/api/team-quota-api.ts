@@ -5,7 +5,7 @@ import { matchesRuntimeProvenance } from "./runtime-provenance";
 
 export type TeamQuotaEnvironment = "PRODUCTION";
 export interface TeamQuotaFacts { rank: number; directRefs: number; directInvites: number | null; activeDirect: number; teamVolumeUSD: number }
-export interface TeamQuotaCondition { kind: "rank" | "directRefs" | "teamVolume"; required: number; current: number }
+export interface TeamQuotaCondition { kind: "rank" | "directRefs" | "teamVolume" | "teamComputePoints"; required: number; current: number }
 export interface TeamQuotaTier {
   productId: string; quotaCode: string; name: string; price: number; monthlyStock: number; soldThisMonth: number;
   unlockKind: "ALL" | "EITHER"; conditions: TeamQuotaCondition[]; perks: string[]; available: boolean;
@@ -34,7 +34,7 @@ function parse(value: unknown, mode: ApiEnvironment): TeamQuotaSnapshot {
     if (unlockKind !== "ALL" && unlockKind !== "EITHER" || typeof item.available !== "boolean" || !Array.isArray(item.conditions) || !Array.isArray(item.perks)) return invalid();
     const conditions = item.conditions.map((raw): TeamQuotaCondition => {
       const condition = row(raw); const kind = condition.kind;
-      if (kind !== "rank" && kind !== "directRefs" && kind !== "teamVolume") return invalid();
+      if (kind !== "rank" && kind !== "directRefs" && kind !== "teamVolume" && kind !== "teamComputePoints") return invalid();
       return { kind, required: num(condition.required), current: num(condition.current) };
     });
     return { productId: text(item.productId), quotaCode: text(item.quotaCode), name: text(item.name), price: num(item.price),

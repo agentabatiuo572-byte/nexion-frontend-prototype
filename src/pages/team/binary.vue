@@ -1,15 +1,6 @@
-<!--
-  Binary — ported from Nexion-prototype/app/(main)/team/binary/page.tsx.
-  Balance Match (Track A vs Track B): remote amounts and rates come from the canonical projection. Demo daily cap from
-  phase (P1-P3 $5K → P4+ $2K). Blocked if either track < $1,000/mo. De-carded:
-  floor hero → tint block warning → 2 filled wing columns (top member + VBadge)
-  → transparent gap block → auto-placement tint row → recent matches
-  (transparent hairline group). Sub-page → <AppChassis active="team"> with
-  in-page back row. Reuses network + commission stores + use-product-phase.
-  De-MLM'd copy preserved (Track A/B / 平衡匹配, no "binary leg"/"spillover" in UI).
--->
 <template>
   <AppChassis active="team">
+    <RewardPageSurface>
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/team" :title="t.headerTitles.teamBinary" :subtitle="t.headerSubtitles.teamBinary" />
 
@@ -32,63 +23,63 @@
             aria-busy="true"
           />
           <template v-if="pageState.primary === 'ready'">
-        <!-- match hero — de-carded: the number sits on the page floor. Rules-intro
-             pill rides the cap row (owner 2026-07-09: kill the empty gap above the hero). -->
-        <view :style="heroStyle">
-          <view class="flex items-center justify-between" style="gap: 8px">
-            <text class="block font-mono-tabular" :style="heroCapStyle">{{ estimateText }}</text>
-            <view class="inline-flex items-center shrink-0 active:scale-[0.98]" :style="howItWorksStyle" role="button" tabindex="0" @click="go('/pages/team/binary-how')"  @keydown.enter.prevent="go('/pages/team/binary-how')" @keydown.space.prevent="go('/pages/team/binary-how')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-              <text>{{ t.binary.howItWorksEntry }}</text>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-            </view>
-          </view>
-          <text class="block font-display tabular-nums" :style="heroAmtStyle">+${{ formatAmount(periodMatch) }}</text>
-        </view>
 
-        <!-- blocked warning -->
-        <view v-if="blocked" class="rounded-2xl flex items-start" :style="blockedStyle">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+        <view class="reward-summary-panel">
+        <RewardHero kind="balance" :label="estimateText">
+          <text class="reward-amount">+${{ formatAmount(periodMatch) }}</text>
+          <template #footer><view class="reward-cta reward-rule-link" role="button" tabindex="0" @click="go('/pages/team/binary-how')" @keydown.enter.prevent="go('/pages/team/binary-how')" @keydown.space.prevent="go('/pages/team/binary-how')"><text>{{ t.binary.howItWorksEntry }}</text></view></template>
+        </RewardHero>
+
+
+        <view v-if="blocked" class="flex items-start" :style="blockedStyle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
           <view style="font-size: 12px; line-height: 1.375">
             <text class="block" :style="{ color: 'var(--v5-ink)', fontWeight: 600 }">{{ blockedTitleText }}</text>
             <text class="block" :style="{ color: 'var(--v5-ink-3)', marginTop: '4px' }">{{ blockedRecoveryText }}</text>
-            <view v-if="showGrowthRecoveryCta" class="inline-flex items-center active:opacity-70" :style="inviteCtaStyle" @click="go('/pages/team/team')">
+            <view v-if="showGrowthRecoveryCta" class="reward-cta" style="margin-top: 12px" role="button" tabindex="0" @keydown.enter.prevent="go('/pages/team/team')" @keydown.space.prevent="go('/pages/team/team')" @click="go('/pages/team/team')">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
               <text>{{ t.binary.inviteCta }}</text>
             </view>
           </view>
         </view>
 
-        <!-- two wings -->
-        <view class="grid grid-cols-2" style="gap: 10px">
-          <view v-for="wing in wings" :key="wing.key" class="nx-glass-card rounded-2xl" :style="wingStyle(wing.isWeak)">
+
+        <view class="reward-wings">
+          <view v-for="wing in wings" :key="wing.key" class="reward-wing" :style="wingStyle(wing.isWeak)">
             <view class="flex items-center justify-between">
               <text class="font-display" :style="{ fontSize: '13px', fontWeight: 600, color: wing.color }">{{ wing.name }}</text>
               <text v-if="wing.isWeak" class="font-mono-tabular" :style="weakBadgeStyle">{{ t.binary.weakBadge }}</text>
             </view>
-            <text class="block font-display tabular-nums" :style="wingVolStyle">${{ formatAmount(wing.monthVol) }}</text>
+            <text class="block font-display tabular-nums" :style="wingVolStyle">{{ formatComputePoints(wing.computePoints, locale.code) }}</text>
             <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '4px' }">{{ wingMembersText(wing.count) }}</text>
-            <view v-if="wing.top" class="flex items-center border-t" :style="topMemberStyle">
-              <text :style="{ fontSize: '15px' }">{{ wing.top.avatar }}</text>
-              <view class="flex-1 min-w-0">
+            <view v-if="wing.top" class="reward-wing-member border-t" :style="topMemberStyle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-2a8 8 0 0 1 16 0v2"/></svg>
+              <view class="reward-wing-member__body">
                 <text class="block truncate" :style="{ fontSize: '12px' }">{{ wing.top.name }}</text>
-                <view class="flex items-center" style="gap: 4px; margin-top: 2px">
-                  <VBadge :v="wing.top.vRank" size="sm" :show-title="false" />
-                  <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">${{ formatAmount(wing.top.monthVolumeUSD) }}</text>
+                <view class="reward-wing-member__facts">
+                  <VBadge class="reward-wing-member__rank" :v="wing.top.vRank" size="sm" :show-title="false" />
+                  <text class="reward-wing-member__points font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ formatComputePoints(wing.top.monthComputePoints, locale.code) }}</text>
                 </view>
               </view>
             </view>
           </view>
         </view>
 
-        <view v-if="remoteApiEnabled && pageState.memberDetails === 'error'" class="rounded-xl flex items-center justify-between" :style="memberReadErrorStyle">
+        </view>
+        <view class="reward-binary-basis">
+          <text class="block reward-caption">{{ t.binary.weak }} · {{ formatComputePoints(lowerComputePoints, locale.code) }}</text>
+          <text class="block reward-caption">{{ formulaText }}</text>
+          <text class="block reward-caption">{{ gapHintText }}</text>
+        </view>
+
+        <view v-if="remoteApiEnabled && pageState.memberDetails === 'error'" class="flex items-center justify-between" :style="memberReadErrorStyle">
           <text :style="{ fontSize: '12px', color: 'var(--v5-ink-2)' }">{{ t.binary.memberDetailsUnavailable }}</text>
-          <view role="button" tabindex="0" class="active:opacity-70" :style="memberReadRetryStyle" @click="retryNetworkMembers"  @keydown.enter.prevent="retryNetworkMembers" @keydown.space.prevent="retryNetworkMembers">
+          <view role="button" tabindex="0" class="reward-cta" @click="retryNetworkMembers"  @keydown.enter.prevent="retryNetworkMembers" @keydown.space.prevent="retryNetworkMembers">
             <text>{{ t.network.retry }}</text>
           </view>
         </view>
 
-        <!-- recent matches — transparent hairline group -->
+
         <view v-if="recentBinaries.length > 0" :style="recentBlockStyle">
           <text class="block font-mono-tabular" :style="recentCapStyle">{{ t.binary.recentMatches }}</text>
           <view :style="recentGroupStyle">
@@ -98,25 +89,30 @@
             class="flex items-center"
             :style="recentRowStyle(i === recentBinaries.length - 1)"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
             <view class="flex-1 min-w-0">
               <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink)' }">{{ e.sourceUserName }}</text>
               <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ formatTrialDate(e.ts) }}</text>
             </view>
-            <text class="font-mono-tabular tabular-nums" :style="{ fontSize: '13px', color: binaryAmountColor(e.status), fontWeight: 600 }">{{ binaryAmountLabel(e) }}</text>
+            <view class="reward-match-amount"><text class="font-mono-tabular tabular-nums" :style="{ fontSize: '14px', color: binaryAmountColor(e.status), fontWeight: 600 }">{{ binaryAmountLabel(e) }}</text><text v-if="binaryStatusLabel(e.status)" class="reward-caption">{{ binaryStatusLabel(e.status) }}</text></view>
           </view>
           </view>
         </view>
           </template>
         </view>
       </view>
+    </RewardPageSurface>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import { formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
+import { useLocaleStore } from "@/store/locale";
 import { computed, onMounted, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
+import RewardHero from "@/components/team/reward-compact-hero.vue";
+import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import EmptyState from "@/components/empty-state.vue";
 import VBadge from "@/components/team/v-badge.vue";
@@ -144,6 +140,7 @@ const commission = useCommission();
 const phase = useProductPhase();
 const auth = useAuth();
 const app = useApp();
+const locale = useLocaleStore();
 const canonicalReadCoalescer = createScopedReadCoalescer();
 
 const snapshot = computed(() => commission.binarySnapshot);
@@ -167,6 +164,12 @@ const MIN_THRESHOLD = computed(() => remoteApiEnabled ? snapshot.value?.threshol
 const MATCH_RATE = computed(() => remoteApiEnabled ? snapshot.value?.matchRate ?? 0 : 0.1);
 const DAILY_CAP = computed(() => remoteApiEnabled ? snapshot.value?.dailyCap ?? 0 : phase.value.binaryDailyCapUSD);
 const sides = computed(() => network.byBinary());
+const leftPoints = computed(() => remoteApiEnabled ? snapshot.value?.trackAComputePoints ?? null : sumComputePoints(sides.value.left.map(m => m.monthComputePoints)));
+const rightPoints = computed(() => remoteApiEnabled ? snapshot.value?.trackBComputePoints ?? null : sumComputePoints(sides.value.right.map(m => m.monthComputePoints)));
+const lowerComputePoints = computed(() => leftPoints.value === null || rightPoints.value === null
+  ? null : Math.min(leftPoints.value, rightPoints.value));
+const smallerPointSide = computed(() => leftPoints.value === null || rightPoints.value === null || leftPoints.value === rightPoints.value
+  ? null : leftPoints.value < rightPoints.value ? "left" : "right");
 const leftMonthVol = computed(() => remoteApiEnabled ? remoteTrackA.value : network.leftVolumeMonth());
 const rightMonthVol = computed(() => remoteApiEnabled ? remoteTrackB.value : network.rightVolumeMonth());
 const weakSide = computed(() => (leftMonthVol.value <= rightMonthVol.value ? "left" : "right"));
@@ -193,7 +196,7 @@ const recentBinaries = computed(() =>
 const spilloverCount = computed(() => remoteApiEnabled ? snapshot.value?.autoPlacedMembers ?? 0 : network.members.filter((m) => m.isSpillover).length);
 
 function topOf(members: NetworkMember[]): NetworkMember | undefined {
-  return [...members].sort((a, b) => b.monthVolumeUSD - a.monthVolumeUSD)[0];
+  return [...members].sort((a, b) => (b.monthComputePoints ?? -1) - (a.monthComputePoints ?? -1))[0];
 }
 
 interface Wing {
@@ -201,6 +204,7 @@ interface Wing {
   name: string;
   count: number;
   monthVol: number;
+  computePoints: number | null;
   isWeak: boolean;
   color: string;
   top: NetworkMember | undefined;
@@ -212,8 +216,9 @@ const wings = computed<Wing[]>(() => [
     count: remoteApiEnabled && pageState.value.memberDetails !== "ready"
       ? snapshot.value?.trackAMembers ?? 0 : sides.value.left.length,
     monthVol: leftMonthVol.value,
-    isWeak: weakSide.value === "left",
-    color: "var(--v5-brand)",
+    computePoints: leftPoints.value,
+    isWeak: smallerPointSide.value === "left",
+    color: "var(--v5-ink)",
     top: pageState.value.memberDetails === "ready" ? topOf(sides.value.left) : undefined,
   },
   {
@@ -222,8 +227,9 @@ const wings = computed<Wing[]>(() => [
     count: remoteApiEnabled && pageState.value.memberDetails !== "ready"
       ? snapshot.value?.trackBMembers ?? 0 : sides.value.right.length,
     monthVol: rightMonthVol.value,
-    isWeak: weakSide.value === "right",
-    color: "var(--v5-tech-cyan)",
+    computePoints: rightPoints.value,
+    isWeak: smallerPointSide.value === "right",
+    color: "var(--v5-ink)",
     top: pageState.value.memberDetails === "ready" ? topOf(sides.value.right) : undefined,
   },
 ]);
@@ -277,16 +283,26 @@ function go(url: string) {
 
 function binaryAmountLabel(event: { amountUSDT: number; status?: string }): string {
   const amount = formatAmount(event.amountUSDT);
-  if (event.status === "reversed") return `−${amount}`;
-  if (event.status === "frozen" || event.status === "rejected") return amount;
-  return `+${amount}`;
+  if (event.status === "reversed") return `−$${amount}`;
+  if (event.status === "frozen" || event.status === "rejected") return `$${amount}`;
+  return `+$${amount}`;
+}
+
+function binaryStatusLabel(status?: string): string {
+  if (status === "cooling") return t.value.commissions.cooling;
+  if (status === "unlocked") return t.value.commissions.readyTag;
+  if (status === "withdrawn") return t.value.commissions.withdrawnTag;
+  if (status === "frozen") return t.value.commissions.frozenTag;
+  if (status === "reversed") return t.value.commissions.reversedTag;
+  if (status === "rejected") return t.value.commissions.rejectedTag;
+  return "";
 }
 
 function binaryAmountColor(status?: string): string {
   if (status === "rejected") return "var(--v5-danger)";
-  if (status === "frozen") return "var(--v5-tech-cyan)";
+  if (status === "frozen") return "var(--v5-ink-2)";
   if (status === "reversed") return "var(--v5-ink-4)";
-  return "var(--v5-warning)";
+  return "var(--v5-ink)";
 }
 
 function retryCanonicalData(): void {
@@ -320,61 +336,21 @@ onShow(() => {
   if (remoteApiEnabled) retryCanonicalData();
 });
 
-// ─── styles ───
-// Soft tint pill — chip idiom, fill only (no border, single visual difference).
-const howItWorksStyle: CSSProperties = {
-  gap: "6px",
-  padding: "0 12px",
-  height: "44px",  // 《07》tap≥44(原 34)
-  borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 10%, transparent)",
-  fontSize: "12px",
-  fontWeight: 500,
-  color: "var(--v5-brand-2)",
-};
-// De-carded hero — cap + number + formula on the page floor. The old radial
-// glow card was a page-floor aura → deleted outright (owner call 2026-07-08).
-const heroStyle: CSSProperties = { padding: "6px 2px 0" };
-const heroCapStyle: CSSProperties = { fontSize: "12px", fontWeight: 500, letterSpacing: "0.06em", color: "var(--v5-warning)" };
-const heroAmtStyle: CSSProperties = {
-  marginTop: "8px",
-  fontSize: "34px",
-  fontWeight: 600,
-  lineHeight: 1,
-  letterSpacing: "-0.022em",
-  color: "var(--v5-warning)",
-};
-const heroFormulaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "6px" };
-
-// Status callout — tint fill only, border chrome dropped (single difference).
 const blockedStyle: CSSProperties = {
-  padding: "14px",
+  padding: "14px 0",
   gap: "10px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 12%, transparent)",
-};
-const inviteCtaStyle: CSSProperties = {
-  marginTop: "8px",
-  gap: "4px",
-  fontSize: "12px",
-  color: "var(--v5-brand)",
-  textDecoration: "underline",
+  background: "transparent",
 };
 
-// Filled wing columns (podium idiom) — weak side takes the warning-soft fill;
-// single visual difference, no borders, no hardcoded hex.
 function wingStyle(isWeak: boolean): CSSProperties {
   return {
-    padding: "14px",
-    // 非弱侧原用 surface-2,与页面底同色(亮色 ΔE 2.2)不可辨,改 L1 surface。
-    background: isWeak ? "var(--v5-warning-soft)" : "var(--v5-surface)",
+    padding: "12px 0",
+    background: "transparent",
   };
 }
 const weakBadgeStyle: CSSProperties = {
   fontSize: "12px",
-  background: "color-mix(in srgb, var(--v5-warning) 20%, transparent)",
-  color: "var(--v5-warning)",
-  padding: "2px 6px",
-  borderRadius: "4px",
+  color: "var(--reward-accent)",
 };
 const wingVolStyle: CSSProperties = { marginTop: "8px", fontSize: "20px", fontWeight: 600, lineHeight: 1 };
 const topMemberStyle: CSSProperties = {
@@ -384,49 +360,9 @@ const topMemberStyle: CSSProperties = {
   gap: "6px",
 };
 const memberReadErrorStyle: CSSProperties = {
-  padding: "10px 12px",
+  padding: "12px 0",
   gap: "12px",
-  background: "var(--v5-surface-2)",
-};
-const memberReadRetryStyle: CSSProperties = {
-  minHeight: "36px",
-  padding: "0 10px",
-  display: "inline-flex",
-  alignItems: "center",
-  borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-brand) 12%, transparent)",
-  color: "var(--v5-brand)",
-  fontSize: "12px",
-  fontWeight: 600,
-};
-
-// Frosted-glass gap block (owner 2026-07-09) — chassis glass-tile token,
-// fill only / zero border; +12px top margin keeps the 24px section rhythm.
-const gapBlockStyle: CSSProperties = {
-  marginTop: "12px",
-  padding: "16px",
-  borderRadius: "16px",
-  background: "var(--v5-glass-bg)",
-  backdropFilter: "blur(18px) saturate(180%)",
-};
-const gapCapStyle: CSSProperties = {
-  fontSize: "12px",
-  fontWeight: 500,
-  letterSpacing: "0.06em",
-  color: "var(--v5-ink-3)",
-  marginBottom: "10px",
-};
-const gapBarTrackStyle: CSSProperties = { height: "8px", background: "color-mix(in srgb, var(--v5-surface-2) 50%, transparent)" };
-
-// Nav row tile — soft tint fill only, border chrome dropped.
-const spilloverStyle: CSSProperties = {
-  padding: "14px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 10%, transparent)",
-};
-const spilloverIconStyle: CSSProperties = {
-  width: "36px",
-  height: "36px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 20%, transparent)",
+  borderBottom: "1px solid var(--v5-border)",
 };
 
 // Transparent hairline group — cap label outside, border-top opens the rows.
@@ -450,3 +386,17 @@ function recentRowStyle(isLast: boolean): CSSProperties {
 
 
 </script>
+
+<style scoped>
+.reward-wings { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 24px; margin-top: var(--ui-space-inline); }
+.reward-wing { min-width: 0; }
+.reward-wing-member { display: flex; align-items: flex-start; }
+.reward-wing-member > svg { flex: 0 0 18px; margin-top: 2px; }
+.reward-wing-member__body { flex: 1; min-width: 0; }
+.reward-wing-member__facts { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-top: 4px; min-width: 0; }
+.reward-wing-member__rank { flex: none; }
+.reward-wing-member__points { display: block; max-width: 100%; overflow-wrap: anywhere; line-height: 1.5; }
+.reward-binary-basis { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 12px; border-bottom: 1px solid var(--v5-border); }
+.reward-match-amount { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 48%; }
+@media (max-width: 360px) { .reward-wings { gap: 14px; } }
+</style>

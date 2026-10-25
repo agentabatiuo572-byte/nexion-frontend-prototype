@@ -8,7 +8,7 @@ import { vi } from "@/i18n/messages/vi";
 import { productCopy, specRow, specText } from "@/lib/product-copy";
 import type { Product } from "@/mock/products";
 
-const declarations = page.slice(page.indexOf("const hardwareSpecs ="), page.indexOf("const productAuditSection ="));
+const declarations = page.slice(page.indexOf("const hardwareSpecs ="), page.indexOf("const aiExpanded ="));
 const code = ts.transpileModule(`${declarations}; return { hardwareSpecs, aiPerfRows };`, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
 }).outputText;
@@ -48,11 +48,13 @@ describe("current catalog drives the complete detail specifications", () => {
     expect(view.aiPerfRows.value.every((row: { v: string }) => row.v === "-")).toBe(true);
   });
 
-  it("keeps empty material separate from load failure and offers no misleading retry", () => {
+  it("keeps empty material separate from load failure and offers retry only for failed reads", () => {
     const material = page.slice(page.indexOf("<!-- === Section 7:"), page.indexOf("<!-- === Section 8:"));
     expect(material).toContain("relatedMaterialsEmpty");
     expect(material).toContain("trustStatus === 'error' ? t.store.relatedMaterialsLoadFailed : t.store.relatedMaterialsEmpty");
-    expect(material).not.toContain("retry");
+    expect(material).toContain('v-if="trustStatus === \'error\'" class="product-material-retry"');
+    expect(material).toContain('@click="refreshTrustMaterial"');
+    expect(page).toContain("if (trustStatus.value === 'error') void refreshTrust(true)");
     expect(material).not.toContain("t.trust.errorUnavailable");
     expect(material).toContain("@click=\"openTrustUrl(row.Url)\"");
     expect(page).not.toContain("remoteApiEnabled ? null : product.value?.ai");

@@ -31,7 +31,7 @@
         <svg class="service-chevron" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 5 7 7-7 7" /></svg>
       </view>
     </view>
-    <view class="service-note"><text>{{ t.notifs.serviceReadHint }}</text></view>
+
     <view class="service-links">
       <view class="service-button" role="button" tabindex="0" @click="go('/pages/support/messages')"><LiquidGlass :radius="22" /><text>{{ t.notifs.contactService }}</text></view>
     </view>

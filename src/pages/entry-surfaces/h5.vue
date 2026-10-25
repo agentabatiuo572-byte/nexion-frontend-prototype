@@ -5,14 +5,13 @@
 <script setup lang="ts">
 import EntrySurfaceHome from "@/components/entry-surfaces/entry-surface-home.vue";
 import { useSetPageHeader } from "@/composables/use-page-header";
-import { useT } from "@/i18n/use-t";
+import { useEntrySurfaceCopy } from "@/components/entry-surfaces/entry-surface-copy";
 
-const t = useT();
+const copy = useEntrySurfaceCopy();
 
-// getter 形式 —— 切语言时 nav header 跟着变。标题/副标题复用入口页行标题与算力模式,不另起 key。
+// Keep the header in sync when the reader changes language.
 useSetPageHeader(() => ({
-  title: t.value.entrySurface.surfaces.h5.linkLabel,
-  subtitle: t.value.entrySurface.surfaces.h5.modeValue,
+  title: copy.value.surfaces.h5.linkLabel,
   backHref: "/pages/entry-surfaces/index",
 }));
 </script>

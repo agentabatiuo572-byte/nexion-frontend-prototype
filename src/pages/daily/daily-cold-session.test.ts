@@ -16,7 +16,7 @@ function setup() {
   const show:Array<()=>void> = [];
   const hide:Array<()=>void> = [];
   const dispose:Array<()=>void> = [];
-  const deps = {ref,computed,watch,remoteApiEnabled:true,useT:()=>ref({}),useNexFaucet:()=>faucet,useApp:()=>app,useBills:()=>bills,useLuckySpin:()=>({}),useAuth:()=>auth,accountSessionReady,createScopedReadCoalescer,sessionVault:{read:()=>({user:{userId:607}})},captureRuntimeRevision:()=>({epoch:1,runId:null}),subscribeRuntimeRevision:()=>()=>{},onShow:(f:()=>void)=>show.push(f),onHide:(f:()=>void)=>hide.push(f),onUnmounted:(f:()=>void)=>dispose.push(f)};
+  const deps = {ref,computed,watch,remoteApiEnabled:true,useLocaleStore:()=>({code:"en"}),useT:()=>ref({}),useNexFaucet:()=>faucet,useApp:()=>app,useBills:()=>bills,useLuckySpin:()=>({}),useAuth:()=>auth,accountSessionReady,createScopedReadCoalescer,sessionVault:{read:()=>({user:{userId:607}})},captureRuntimeRevision:()=>({epoch:1,runId:null}),subscribeRuntimeRevision:()=>()=>{},onShow:(f:()=>void)=>show.push(f),onHide:(f:()=>void)=>hide.push(f),onUnmounted:(f:()=>void)=>dispose.push(f)};
   const scope=effectScope();
   const result=scope.run(()=>new Function(...Object.keys(deps),code)(...Object.values(deps)));
   return {app,auth,faucet,bills,result,show:()=>show.forEach(f=>f()),hide:()=>hide.forEach(f=>f()),close:()=>{dispose.forEach(f=>f());scope.stop();}};

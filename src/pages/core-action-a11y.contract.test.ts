@@ -22,7 +22,9 @@ describe("core financial and ambassador controls", () => {
     expect(value.match(/<view[^>]*@click="go\('\/pages\/team\/rank'\)"[^>]*>/s)?.[0]).toContain('role="button"');
     const submit = value.match(/<view[^>]*@click="submit"[^>]*>/s)?.[0] ?? "";
     expect(submit).toContain('role="button"');
-    expect(submit).toContain('tabindex="0"');
+    expect(submit).toContain(':tabindex="unlocked && !submitting ? 0 : -1"');
+    expect(submit).toContain('@keydown.enter.prevent="submit"');
+    expect(submit).toContain('@keydown.space.prevent="submit"');
     expect(submit).toContain(":aria-disabled=");
   });
 

@@ -38,7 +38,7 @@
           :style="orderRowStyle(i === orderList.length - 1)"
           role="button"
           tabindex="0"
-          :aria-label="`${nexGridBrandText(o.productName)} ${o.id}`"
+          :aria-label="`${commerceOrderTitle(o,locale.code)} ${o.id}`"
           @click.stop="goOrder(o)"
         >
           <view class="flex items-start" style="gap: 12px">
@@ -47,7 +47,7 @@
             </view>
             <view class="flex-1 min-w-0">
               <view class="flex items-center justify-between" style="gap: 8px">
-                <text class="truncate" style="font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--v5-ink) 95%, transparent)">{{ nexGridBrandText(o.productName) }}</text>
+                <text style="overflow-wrap:anywhere; line-height:1.5; font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--v5-ink) 95%, transparent)">{{ commerceOrderTitle(o,locale.code) }}</text>
                 <text class="shrink-0" :style="statusChipStyle(o.status)">{{ badge(o.status).label }}</text>
               </view>
               <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ t.orders.orderId }} <text class="font-mono">{{ o.id }}</text></text>
@@ -82,7 +82,9 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { commerceOrderTitle } from "@/lib/commerce-review";
+import { useLocaleStore } from "@/store/locale";
+import { commerceAmount as formatAmount } from "@/lib/commerce-review";
 import { computed, ref, watch, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -109,6 +111,7 @@ import {
 } from "@/lib/remote-commerce-refresh";
 
 const t = useT();
+const locale = useLocaleStore();
 const app = useApp();
 const auth = useAuth();
 const orders = useOrders();

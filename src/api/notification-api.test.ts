@@ -105,3 +105,22 @@ describe("notification unread summary contract", () => {
       .rejects.toMatchObject({ message: "NOTIFICATION_PAGE_INCONSISTENT" });
   });
 });
+
+
+describe("actionable notification authority", () => {
+  const requestPage = (extra: Record<string, unknown>, cursor?: string) => createNotificationApi({
+    request: vi.fn().mockResolvedValue({ items: [{ id: 1, kind: "marketing", priority: "normal", title: "Offer", body: "", ctaLabel: "", ctaHref: "", createdAt: createdInstant, readAt: null }], unread: 8, nextCursor: "older", ...extra }),
+  } as never).page(cursor);
+  it("keeps reading unread and actionable counts separate on every page", async () => {
+    expect(await requestPage({ actionableUnread: 3 })).toMatchObject({ unread: 8, actionableUnread: 3 });
+    expect(await requestPage({ actionableUnread: 3, nextCursor: null }, "older")).toMatchObject({ unread: 8, actionableUnread: 3 });
+    expect(await requestPage({ actionableUnread: 0 })).toMatchObject({ unread: 8, actionableUnread: 0 });
+  });
+  it("leaves older/unknown policy unknown, even with a full kind summary", async () => {
+    expect((await requestPage({ unreadByKind: { marketing: 8 } })).actionableUnread).toBeUndefined();
+    expect((await requestPage({ actionableUnread: null })).actionableUnread).toBeNull();
+  });
+  it.each([-1, 0.5, "0", true, {}, 9, Infinity, Number.MAX_SAFE_INTEGER + 1])("rejects invalid actionable count %j", async actionableUnread => {
+    await expect(requestPage({ actionableUnread })).rejects.toMatchObject({ message: "NOTIFICATION_ACTIONABLE_UNREAD_INVALID" });
+  });
+});

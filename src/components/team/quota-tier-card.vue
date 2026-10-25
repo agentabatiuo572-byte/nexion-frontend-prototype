@@ -1,87 +1,54 @@
-<!--
-  QuotaTierCard — one gated hardware tier (ported from quota/page.tsx TierCard).
-  Header (lock/check + name + stock line + UNLOCKED/LOCKED badge) → stock bar
-  (scroll-grow) → unlock conditions (each a QuotaConditionBar) → perks → CTA
-  (buy product if unlocked / invite to unlock otherwise). Owns the stock bar's
-  scroll-grow hook here (parent maps tiers, can't call hook per-iteration).
-  Condition `kind` ("invites"|"volume") drives $ formatting instead of locale
-  string-matching. `${tint}10` alpha-hex → color-mix. banned hex #0F0F0F →
-  var(--v5-surface). emits navigate('/pages/store/detail?id=...') for CTA.
-  DECARD 2026-07-09: whitelist tier card (selection/comparison semantics) —
-  fill kept, outer border dropped (filled no border, single visual difference);
-  locked-state rgba-white fills → surface-2 token.
--->
 <template>
-  <view class="nx-glass-card rounded-2xl" :style="cardStyle">
-    <!-- header -->
-    <view class="flex items-start justify-between">
-      <view class="flex items-center" style="gap: 8px">
-        <view class="rounded-xl grid place-items-center" :style="iconBoxStyle">
-          <svg v-if="unlocked" width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="tier.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-        </view>
-        <view>
-          <text class="block font-display" :style="nameStyle">{{ displayName }}</text>
-          <text class="block font-mono-tabular" :style="stockLineStyle">{{ priceLineText }}</text>
-        </view>
-      </view>
-      <text class="font-mono-tabular" :style="badgeStyle">{{ unlocked ? t.quota.unlocked : t.quota.locked }}</text>
+  <view class="quota-tier">
+    <view class="quota-product" role="link" tabindex="0" :aria-label="displayName" @click="openProduct" @keydown.enter.prevent="openProduct" @keydown.space.prevent="openProduct">
+      <image v-if="productImage" :src="productImage" mode="aspectFit" class="quota-product__image" :alt="displayName" />
+      <view class="quota-product__copy"><text class="quota-product__name">{{ displayName }}</text><text class="quota-product__price">{{ priceLineText }}</text><text class="quota-product__qualification" :class="{ 'quota-product__qualification--met': unlocked }">{{ unlocked ? t.quota.unlocked : t.quota.locked }}</text></view>
+      <svg class="quota-product__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
     </view>
-
-    <view v-if="tier.conditions.length" style="margin-top: 18px; display: flex; flex-direction: column; gap: 12px">
-      <text :style="unlockHeadStyle">{{ tier.unlockKind === 'either' ? t.quota.unlockEither : t.quota.unlockAll }}</text>
-      <view v-for="(condition, index) in tier.conditions" :key="index">
-        <view class="flex items-center justify-between" style="gap: 12px; margin-bottom: 6px; font-size: 12px">
-          <text style="color: var(--v5-ink-2)">{{ condition.label }}</text>
-          <text class="font-mono-tabular" :style="{ color: condition.current >= condition.required ? 'var(--v5-success)' : 'var(--v5-ink)' }">{{ condition.kind === 'volume' ? `$${formatAmount(condition.current)} / $${formatAmount(condition.required)}` : `${condition.current} / ${condition.required}` }}</text>
-        </view>
-        <QuotaConditionBar :pct="condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="condition.current >= condition.required" :tint="tier.tint" />
+    <view class="quota-stock">
+      <view class="quota-stat-line"><text>{{ fmt(t.quota.leftLabel, { n: stockLeft }) }}</text><text>{{ fmt(t.quota.soldPct, { pct: Math.round(stockPct * 100) }) }}</text></view>
+      <view ref="stockBarRef" class="quota-stock__track"><view :style="stockFillStyle" /></view>
+    </view>
+    <view v-if="tier.conditions.length" class="quota-conditions">
+      <text class="quota-section-label">{{ tier.unlockKind === 'either' ? t.quota.unlockEither : t.quota.unlockAll }}</text>
+      <view v-for="(condition, index) in tier.conditions" :key="index" class="quota-condition">
+        <view class="quota-stat-line"><text>{{ condition.label }}</text><text class="quota-condition__values">{{ conditionValue(condition) }}</text></view>
+        <QuotaConditionBar v-if="!condition.pointsUnavailable" :pct="condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="condition.current >= condition.required" :tint="tier.tint" :label="condition.label" :value-text="conditionValue(condition)" />
       </view>
     </view>
-
-    <!-- perks -->
-    <view :style="perksWrapStyle">
-      <view v-for="(p, i) in tier.perks" :key="i" class="flex items-start" style="gap: 8px">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="tier.tint" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0"><polyline points="20 6 9 17 4 12" /></svg>
-        <text :style="{ fontSize: '12px', color: 'var(--v5-ink-2)' }">{{ p }}</text>
-      </view>
-    </view>
-
-    <!-- CTA -->
-    <view style="margin-top: 12px">
-      <view v-if="unlocked && stockLeft > 0 && tier.available !== false" class="flex items-center justify-center active:opacity-90" :style="buyCtaStyle" role="button" tabindex="0" :aria-label="fmt(t.quota.buyCta, { name: displayName })" @click="emit('navigate', `/pages/store/detail?id=${tier.productId}`)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>
-        <text :style="{ color: 'var(--v5-on-brand)' }" style="pointer-events: none">{{ fmt(t.quota.buyCta, { name: displayName }) }}</text>
-      </view>
-      <view v-else-if="stockLeft <= 0 || tier.available === false" class="flex items-center justify-center" :style="lockedCtaStyle" aria-disabled="true">
-        <text>{{ t.quota.stockUnavailable }}</text>
-      </view>
-      <view v-else class="flex items-center justify-center active:opacity-80" :style="lockedCtaStyle" role="button" tabindex="0" :aria-label="t.store.purchaseEligibilityIneligible" @click="emit('navigate', `/pages/store/detail?id=${tier.productId}`)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-        <text :style="{ color: 'var(--v5-ink-2)' }" style="pointer-events: none">{{ t.store.purchaseEligibilityIneligible }}</text>
-      </view>
+    <view v-if="tier.perks.length" class="quota-perks"><text v-for="(perk, index) in tier.perks" :key="index">{{ perk }}</text></view>
+    <view class="quota-actions">
+      <NxButton v-if="unlocked && stockLeft > 0 && tier.available !== false" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" @click="openProduct"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
+      <text v-else-if="stockLeft <= 0" class="quota-unavailable" aria-disabled="true">{{ t.quota.stockUnavailable }}</text>
+      <text v-else-if="unlocked && tier.available === false" class="quota-unavailable" aria-disabled="true">{{ auditCopy.quotaUnavailable }}</text>
+      <NxButton v-else variant="secondary" :label="t.store.purchaseEligibilityIneligible" @click="openProduct"><text>{{ t.store.purchaseEligibilityIneligible }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
     </view>
   </view>
 </template>
-
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
-import { computed, type CSSProperties } from "vue";
-import QuotaConditionBar from "./quota-condition-bar.vue";
-import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
-import { nexGridBrandText } from "@/lib/brand-copy";
-import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
-
+import { computed } from 'vue';
+import { formatAmount } from '@/lib/amount-display';
+import { formatComputePoints } from '@/i18n/compute-points';
+import { useLocaleStore } from '@/store/locale';
+import { networkReauditCopy } from '@/i18n/network-reaudit';
+import QuotaConditionBar from './quota-condition-bar.vue';
+import NxButton from '@/components/ui/nx-button.vue';
+import { useT } from '@/i18n/use-t';
+import { fmt } from '@/i18n/format';
+import { nexGridBrandText } from '@/lib/brand-copy';
+import { getProductMedia } from '@/lib/product-media';
+import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from '@/composables/use-scroll-grow-progress';
 export interface QuotaCondition {
   label: string;
   current: number;
   required: number;
   kind: "invites" | "volume";
+  pointsUnavailable?: boolean;
 }
 export interface QuotaTier {
   available?: boolean;
   productId: string;
+  imageUrl?: string;
   name: string;
   price: number;
   monthlyStock: number;
@@ -98,96 +65,41 @@ export interface QuotaTier {
   roiBasis?: { dailyEarn: number; price: number; roi: number; revision?: string | null };
 }
 
+
 const props = defineProps<{ tier: QuotaTier }>();
 const emit = defineEmits<{ navigate: [url: string] }>();
-
 const t = useT();
+const locale = useLocaleStore();
+const auditCopy = computed(() => networkReauditCopy(locale.code));
 const displayName = computed(() => nexGridBrandText(props.tier.name));
+const productImage = computed(() => getProductMedia(props.tier.productId)?.src ?? props.tier.imageUrl);
 const { elRef: stockBarRef, inView: stockBarInView } = useScrollGrowProgress();
-
 const unlocked = computed(() => {
-  const met = props.tier.conditions.map((c) => c.current >= c.required);
-  return props.tier.unlockKind === "either" ? met.some(Boolean) : met.every(Boolean);
+  const met = props.tier.conditions.map(condition => condition.current >= condition.required);
+  return props.tier.unlockKind === 'either' ? met.some(Boolean) : met.every(Boolean);
 });
 const stockPct = computed(() => props.tier.monthlyStock > 0 ? Math.min(1, props.tier.soldThisMonth / props.tier.monthlyStock) : 1);
 const stockLeft = computed(() => Math.max(0, props.tier.monthlyStock - props.tier.soldThisMonth));
-const priceLineText = computed(() =>
-  fmt(t.value.quota.priceLine, { price: formatAmount(props.tier.price) }),
-);
-
-// ─── styles ───
-// Whitelist tier card: fill only, no border — unlocked keeps the tint-wash
-// gradient as the single visual difference vs the locked plain surface.
-const cardStyle = computed<CSSProperties>(() => ({ borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
-  padding: "16px",
-  background: "var(--nx-glass-fill)",
-}));
-const iconBoxStyle = computed<CSSProperties>(() => ({
-  width: "40px",
-  height: "40px",
-  background: unlocked.value ? `color-mix(in srgb, ${props.tier.tint} 25%, transparent)` : "var(--v5-surface-2)",
-}));
-const nameStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, lineHeight: 1.1, color: "var(--v5-ink)" };
-const stockLineStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
-const badgeStyle = computed<CSSProperties>(() => ({
-  fontSize: "12px",
-  letterSpacing: "0.04em",
-  padding: "1px 6px",
-  borderRadius: "4px",
-  fontWeight: 600,
-  background: unlocked.value ? `color-mix(in srgb, ${props.tier.tint} 25%, transparent)` : "var(--v5-surface-2)",
-  color: unlocked.value ? props.tier.tint : "var(--v5-ink-4)",
-}));
-
-const stockTrackStyle: CSSProperties = { height: "6px", background: "var(--v5-surface-2)" };
-const stockFillStyle = computed<CSSProperties>(() => ({
-  height: "100%",
-  width: `${stockBarInView.value ? stockPct.value * 100 : 0}%`,
-  transition: stockBarInView.value ? PROGRESS_GROW_TRANSITION : "none",
-  willChange: "width",
-  background: props.tier.tint,
-}));
-const stockStatsStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)" };
-
-const unlockHeadStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.04em", color: "var(--v5-ink-3)" };
-const perksWrapStyle: CSSProperties = {
-  marginTop: "12px",
-  paddingTop: "12px",
-  borderTop: "1px solid var(--v5-border)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "6px",
-};
-
-const roiBasisWrapStyle: CSSProperties = {
-  marginTop: "10px",
-  paddingTop: "10px",
-  borderTop: "1px solid var(--v5-border)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "4px",
-};
-const roiBasisStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-2)" };
-const roiNoteStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
-
-const buyCtaStyle = computed<CSSProperties>(() => ({
-  width: "100%",
-  height: "44px",
-  borderRadius: "999px",
-  fontSize: "13px",
-  fontWeight: 600,
-  gap: "6px",
-  background: props.tier.tint,
-}));
-const lockedCtaStyle: CSSProperties = {
-  width: "100%",
-  height: "44px",
-  borderRadius: "999px",
-  fontSize: "13px",
-  fontWeight: 600,
-  gap: "6px",
-  background: "var(--v5-surface-2)",
-};
-
-
+const priceLineText = computed(() => fmt(t.value.quota.priceLine, { price: formatAmount(props.tier.price) }));
+const stockFillStyle = computed(() => ({ width: `${stockBarInView.value ? stockPct.value * 100 : 0}%`, transition: stockBarInView.value ? PROGRESS_GROW_TRANSITION : 'none' }));
+function conditionValue(condition: QuotaCondition) {
+  return condition.kind === 'volume'
+    ? `${formatComputePoints(condition.pointsUnavailable ? null : condition.current, locale.code)} / ${formatComputePoints(condition.pointsUnavailable ? null : condition.required, locale.code)}`
+    : `${condition.current} / ${condition.required}`;
+}
+function openProduct() { emit('navigate', `/pages/store/detail?id=${encodeURIComponent(props.tier.productId)}`); }
 </script>
+<style scoped>
+.quota-tier { padding:var(--ui-space-section) 18px 22px;margin-bottom:18px;border:1px solid var(--v5-border);border-radius:24px;background:var(--v5-surface);color:var(--v5-ink); }
+.quota-product { display:flex;align-items:center;gap:14px;min-height:80px;cursor:pointer; }
+.quota-product__image { width:76px;height:80px;flex:none; }.quota-product__copy { min-width:0;flex:1; }
+.quota-product__name { display:block;font:600 17px/1.4 var(--font-v5);overflow-wrap:anywhere; }.quota-product__price { display:block;margin-top:4px;font:500 14px/1.5 var(--font-v5);color:var(--v5-ink-2); }
+.quota-product__qualification { display:block;margin-top:6px;font:500 11px/1.5 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.quota-product__qualification--met { color:var(--v5-brand); }.quota-product__arrow { flex:none;color:var(--v5-ink-3); }
+.quota-stock { margin-top:18px; }.quota-stat-line { display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }
+.quota-stock__track { height:3px;background:var(--v5-surface-3);border-radius:9px;overflow:hidden;margin-top:8px; }.quota-stock__track > view { height:100%;background:var(--v5-ink-3);border-radius:inherit; }
+.quota-conditions { margin-top:22px; }.quota-section-label { display:block;font:600 13px/1.5 var(--font-v5); }.quota-condition { margin-top:var(--ui-space-inset); }.quota-condition__values { margin-left:auto;font-weight:500;color:var(--v5-ink);font-variant-numeric:tabular-nums;text-align:right; }
+.quota-perks { display:flex;flex-direction:column;gap:6px;margin-top:18px;color:var(--v5-ink-3);font:400 12px/1.6 var(--font-v5);overflow-wrap:anywhere; }.quota-actions { margin-top:var(--ui-space-section); }.quota-actions :deep(.nx-button) { width:100%;box-sizing:border-box; }
+.quota-unavailable { display:block;font:400 13px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
+.quota-product:focus-visible { outline:2px solid var(--v5-brand);outline-offset:4px; }
+@media(max-width:350px) { .quota-product { gap:var(--ui-space-row-y); }.quota-product__image { width:64px;height:72px; } }
+</style>

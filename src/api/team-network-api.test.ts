@@ -17,6 +17,17 @@ function page(startId: number, size: number, nextCursor: string | null = null) {
 }
 
 describe("team network API", () => {
+  it("keeps independent point quantities and never infers them from monetary totals", async () => {
+    const data = page(1, 1);
+    const request = vi.fn().mockResolvedValue(data);
+    const api = createTeamNetworkApi({ request } as unknown as ApiClient, "prod");
+    expect((await api.snapshot()).monthComputePoints).toBeNull();
+    Object.assign(data, {monthComputePoints: 320, lifetimeComputePoints: 1280});
+    Object.assign(data.members[0], {monthComputePoints: 320, lifetimeComputePoints: 1280});
+    expect(await api.snapshot()).toMatchObject({monthVolumeUsdt:1,monthComputePoints:320,members:[{monthComputePoints:320}]});
+    Object.assign(data, {monthComputePoints:-1});
+    await expect(api.snapshot()).rejects.toMatchObject({kind:'protocol'});
+  });
   it("accepts a server-owned seven-level projection", async () => {
     const request = vi.fn().mockResolvedValue({
       totalMembers: 1, directMembers: 1, activeMembers: 1,

@@ -121,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";

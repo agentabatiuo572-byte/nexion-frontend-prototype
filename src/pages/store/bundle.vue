@@ -127,7 +127,7 @@
             <view class="flex-1 min-w-0 text-left">
               <text class="block truncate" :style="suggestionNameStyle">{{ nexGridBrandText(p.name) }}</text>
               <text class="block" :style="itemMetaStyle">
-                <text style="color: var(--v5-ink-4)">{{ t.uiChrome.price }} </text>${{ formatAmount(p.price) }}<text style="color: var(--v5-ink-4)"> · </text><text style="color: var(--v5-success)">{{ fmt(t.uiChrome.earnsPerDay, { amount: `+$${formatAmount(p.dailyEarn)}` }) }}</text>
+                <text style="color: var(--v5-ink-4)">{{ t.uiChrome.price }} </text>${{ formatAmount(p.price) }}<text style="color: var(--v5-ink-4)"> · </text><text style="color: var(--v5-success)">{{ bundleProductYieldText(p) }}</text>
               </text>
               <text v-if="remoteApiEnabled && purchaseEligibilityStore.state(p.id).status !== 'ready'" class="block" :style="itemMetaStyle">{{ purchaseEligibilityStore.state(p.id).status === 'error' ? t.store.purchaseEligibilityError : t.store.purchaseEligibilityLoading }}</text>
               <text v-else-if="remoteApiEnabled && !purchaseEligibilityStore.state(p.id).eligible" class="block" :style="itemMetaStyle">{{ t.store.gateBlockedToast }}</text>
@@ -163,8 +163,8 @@
           </view>
           <!-- Combined daily -->
           <view class="flex items-center justify-between" style="min-height: 24px">
-            <text :style="rowLabelStyle(false)">{{ t.bundle.combinedDaily }}</text>
-            <text class="tabular-nums" :style="rowValueStyle('var(--v5-success)')">+${{ formatAmount(cumulativeDailyEarn) }}/d</text>
+            <text :style="rowLabelStyle(false)">{{ t.bundle.estimatedDaily }}</text>
+            <text class="tabular-nums" :style="rowValueStyle('var(--v5-success)')">${{ formatAmount(cumulativeDailyEarn) }}{{ t.store.cardPerDaySuffix }}</text>
           </view>
           <!-- Checkout CTA — 结算不可用时置灰 + 换文案(禁用原因),下一步走 CTA 下方那句 hint。
                箭头 / 上传图标一并撤掉:禁用态上留着「向前」的箭头是反语义的。 -->
@@ -195,7 +195,11 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { promotionCheckoutHref } from "@/lib/promotion-entry";
+function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
+  return formatPlainAmount(value).replace(/\B(?=(\d{3})+\.)/g, ",");
+}
+import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
 import { computed, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -300,7 +304,7 @@ const discountUSD = computed(() => bundleQuote.value?.discountUsdt ?? Number.NaN
 const total = computed(() => bundleQuote.value?.amountUsdt ?? Number.NaN);
 const cumulativeDailyEarn = computed(() => products.value.reduce((s, p) => s + (p.productType === "SHARE" ? 0 : p.dailyEarn), 0));
 function bundleProductYieldText(p: Product): string {
-  if (p.productType !== "SHARE") return fmt(t.value.uiChrome.earnsPerDay, { amount: `+${formatAmount(p.dailyEarn)}` });
+  if (p.productType !== "SHARE") return `${t.value.bundle.estimatedDaily} · $${formatAmount(p.dailyEarn)}`;
   const range = p.shareYieldMin != null && p.shareYieldMax != null
     ? `${p.shareYieldMin}%–${p.shareYieldMax}%`
     : t.value.store.shareAnnualUnavailable;
@@ -366,7 +370,7 @@ function formatBundleUsdt(value: number): string {
 }
 const totalText = computed(() => formatBundleUsdt(total.value));
 const discountLabel = computed(() => fmt(t.value.bundle.bundleDiscount, { pct: (discountPct.value * 100).toFixed(0) }));
-const checkoutCtaText = computed(() => fmt(t.value.bundle.checkoutCta, { total: totalText.value }));
+const checkoutCtaText = computed(() => t.value.promotion.continue);
 const submitting = ref(false);
 const walletRefreshing = ref(false);
 let walletRefreshSequence = 0;
@@ -529,10 +533,28 @@ async function offerBundleWalletTopup(requiredUsdt: number): Promise<void> {
   if (accepted && isCurrentAccountScope(accountScope)) navTo("/pages/me/wallet-topup");
 }
 
+// Existing durable commands stay in their original recovery path. New bundles
+// use the shared items review, legal terms and explicit payment confirmation.
+async function openBundleReview(list:Product[]):Promise<boolean> {
+  if(receiptWriteFailure.value)return true;
+  submitting.value=true;
+  try {
+    const rows=readAccountRow<PendingBundleCommands>(BUNDLE_COMMAND_KEY,orders.currentAccountKey(),true);
+    const commands=rows?.commands??{};
+    if(Object.keys(commands).length){
+      if(commands[bundleFingerprint(list)])return false;
+      toast.warn(t.value.bundle.checkoutOutcomeUnknown);void navTo('/pages/store/orders');return true;
+    }
+    await navTo(promotionCheckoutHref(list.map(product=>({productNo:product.id,quantity:1}))));
+  }catch{toast.warn(t.value.bundle.checkoutOutcomeUnknown);}
+  finally{submitting.value=false;}
+  return true;
+}
 async function onCheckout() {
   const list = products.value;
   if (list.length < 2 || submitting.value || walletRefreshing.value) return;
   if (remoteApiEnabled) {
+    if(await openBundleReview(list))return;
     const submissionScope = captureAccountScope();
     const accountKey = orders.currentAccountKey();
     const scopeIsCurrent = () => isCurrentAccountScope(submissionScope)
@@ -600,10 +622,8 @@ async function onCheckout() {
         // Order + wallet receipt are already canonical. Fleet projection is
         // best effort and must never cause a second payment submission.
         void app.refreshRemoteFleet(walletReceiptScope);
-        const successBody = t.value.bundle.checkoutSuccessBody;
-        toast.success(t.value.bundle.checkoutSuccessTitle,
-          fmt(successBody, { count: created.itemCount }));
-        navTo("/pages/store/orders");
+        toast.success(t.value.orders.statusActivated);
+        navTo(`/pages/store/order-detail?id=${encodeURIComponent(created.orderNo)}`);
       } catch (error) {
         const policyStale = error instanceof ApiError && error.message === "BUNDLE_DISCOUNT_POLICY_STALE";
         const quoteStale = error instanceof ApiError && error.message === "BUNDLE_QUOTE_STALE";

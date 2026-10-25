@@ -1,8 +1,7 @@
 <template>
   <StandalonePageShell>
+    <SubPageHeader :back="returnTo" :back-action="goBack" :title="t.privacy.title" plain design />
     <view class="privacy-page">
-      <view role="button" tabindex="0" class="privacy-back" data-system-chrome-primary @click="goBack" @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack"><text>← {{ t.privacy.back }}</text></view>
-      <text class="privacy-title">{{ t.privacy.title }}</text>
       <text v-if="loading" class="privacy-copy">{{ t.terms.loading }}</text>
       <view v-else-if="failed" role="alert">
         <text class="privacy-copy">{{ t.privacy.unavailable }}</text>
@@ -24,6 +23,7 @@
 import { onLoad } from "@dcloudio/uni-app";
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
+import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { privacyPolicyApi } from "@/api/runtime";
@@ -55,8 +55,7 @@ onUnmounted(() => { generation += 1; });
 </script>
 
 <style scoped>
-.privacy-page { padding: 24px 20px 48px; color: var(--v5-ink); }
-.privacy-title { display: block; font-size: 26px; font-weight: 700; margin: 24px 0 16px; }
+.privacy-page { padding: 0 20px 48px; color: var(--v5-ink); }
 .privacy-back { color: var(--v5-brand); padding: 8px 0; cursor: pointer; }
 .privacy-section { margin-top: 24px; }
 .privacy-section-title { display: block; font-size: 15px; font-weight: 600; }

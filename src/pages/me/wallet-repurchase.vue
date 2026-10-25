@@ -13,8 +13,8 @@
         <!-- hero — rules-intro pill rides the title row (owner 2026-07-09: kill
              the empty gap above the hero). -->
         <view class="nx-glass-card" :style="heroStyle">
-          <view class="flex items-center justify-between" style="gap: 8px">
-            <view class="flex items-center" style="gap: 8px">
+          <view class="flex items-center justify-between" style="gap: 8px; flex-wrap: wrap">
+            <view class="flex items-center" style="gap: 8px; min-width: 0">
               <view class="grid place-items-center" :style="heroIconBoxStyle">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>
               </view>
@@ -31,8 +31,8 @@
           </view>
 
           <view class="grid grid-cols-2" :style="benefitsGridStyle">
-            <view v-for="(b, i) in benefitTiles" :key="b.text" class="flex items-center nx-step-in" :style="benefitStyle(b.tint, i)">
-              <view v-html="b.icon" />
+            <view v-for="(b, i) in benefitTiles" :key="b.text" class="flex items-center nx-step-in" :style="benefitStyle(i)">
+              <view class="shrink-0" v-html="b.icon" />
               <text :style="benefitTextStyle">{{ b.text }}</text>
             </view>
           </view>
@@ -123,7 +123,7 @@
 
         <text class="block" :style="lockedNoticeStyle">{{ isRemote ? fmt(w.confirmMessage, { amount: formatAmount(amount), days: repurchase.config?.lockDays ?? '—', penalty: repurchase.config?.earlyPenaltyPct ?? '—' }) : w.lockedNotice }}</text>
         </template>
-        <view v-if="isRemote" :style="cardStyle">
+        <view v-if="isRemote && remoteReady" :style="cardStyle">
           <text class="block" :style="heroTitleStyle">{{ w.ordersTitle }}</text>
           <view role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading" :style="retryCtaStyle" @click="refreshOrders"  @keydown.enter.prevent="refreshOrders" @keydown.space.prevent="refreshOrders"><text>{{ repurchase.loading ? w.loading : w.retry }}</text></view>
           <text v-if="!repurchase.loading && !repurchase.error && !repurchase.orders.length">{{ w.ordersEmpty }}</text>
@@ -142,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -548,7 +548,7 @@ const howLinkStyle: CSSProperties = {
 };
 // Spotlight hero kept (single per screen) but neutralised: the accent floor-adjacent
 // glow is dropped;描边已整条删除(《03》§3 零 border,C2 第二轮)。The colourful
-// benefit tiles inside carry the visual interest.
+// benefit tiles use the same neutral surface as the financial data.
 const heroStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   borderRadius: "var(--nx-glass-radius)",
   padding: "16px",
@@ -558,16 +558,17 @@ const heroIconBoxStyle: CSSProperties = { width: "40px", height: "40px", borderR
 const heroTitleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontWeight: 600, fontSize: "20px", letterSpacing: "-0.014em", color: "var(--v5-ink)" };
 const heroPtsStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
 const benefitsGridStyle: CSSProperties = { marginTop: "12px", gap: "8px" };
-function benefitStyle(tint: string, i: number): CSSProperties {
+function benefitStyle(i: number): CSSProperties {
   return {
     gap: "6px",
     padding: "8px",
     borderRadius: "8px",
-    background: `color-mix(in srgb, ${tint} 12%, transparent)`,
+    background: "var(--v5-surface-2)",
+    minWidth: "0",
     animationDelay: `${i * 0.08}s`,
   };
 }
-const benefitTextStyle: CSSProperties = { fontSize: "12px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)" };
+const benefitTextStyle: CSSProperties = { fontSize: "12px", lineHeight: 1.5, overflowWrap: "anywhere", color: "var(--v5-ink-2)" };
 // De-carded data sections (amount input, projection) on the page floor, 2px inset.
 const cardStyle: CSSProperties = { padding: "0 2px" };
 const monoLabelStyle: CSSProperties = { fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", fontWeight: 500, color: "var(--v5-ink-3)", letterSpacing: "0.06em" };
@@ -605,7 +606,7 @@ const lockedNoticeStyle: CSSProperties = { padding: "0 8px", fontSize: "12px", c
 const unavailableStyle: CSSProperties = { padding: "16px", borderRadius: "12px", background: "var(--v5-surface-2)" };
 const unavailableTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
 const unavailableBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
-const retryCtaStyle: CSSProperties = { marginTop: "12px", height: "44px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "13px", fontWeight: 600 };
+const retryCtaStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", marginTop: "12px", minHeight: "44px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "13px", fontWeight: 600 };
 // 余额不足提示:warning 描边 + 一句原因 + 一个充值出口。读屏靠 role="status" 播报,
 // 视觉靠 warning 色与主按钮的置灰形成对照。
 const insufficientNoticeStyle: CSSProperties = { padding: "12px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-warning) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--v5-warning) 40%, transparent)" };

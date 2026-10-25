@@ -91,9 +91,9 @@ export function channelIntentUrl(def: ShareChannelDef, link: string, text: strin
 }
 
 // 渠道可见性([FEAT-SHARE3] 平台矩阵):enabled 过滤;H5 上 system 需
-// navigator.share 支持(异常2),scheme 型保留(点击走复制降级,异常4)。
+// navigator.share 支持。scheme 当前只有复制降级，不冒充可用的外部渠道。
 export function visibleChannels(): ShareChannelDef[] {
-  const list = useConfig().config.share.channels.filter((c) => c.enabled);
+  const list = useConfig().config.share.channels.filter((c) => c.enabled && c.intentType !== "scheme");
   // #ifdef H5
   return list.filter(
     (c) => c.intentType !== "system" || (typeof navigator !== "undefined" && typeof navigator.share === "function"),
@@ -109,7 +109,11 @@ export function visibleChannels(): ShareChannelDef[] {
 
 export function copyText(data: string): Promise<boolean> {
   return new Promise((resolve) => {
-    uni.setClipboardData({ data, showToast: false, success: () => resolve(true), fail: () => resolve(false) });
+    try {
+      uni.setClipboardData({ data, showToast: false, success: () => resolve(true), fail: () => resolve(false) });
+    } catch {
+      resolve(false);
+    }
   });
 }
 
@@ -135,11 +139,17 @@ export function shareIntentRecordsEvent(intentType: ShareChannelDef["intentType"
 
 export async function activateChannel(def: ShareChannelDef, surface: ShareSurface, label: string): Promise<void> {
   const t = useT();
-  const link = buildShareLink();
+  const accountScope = captureAccountScope();
+  const referralCode = currentShareReferralCode();
+  const link = buildShareLink(referralCode);
   if (!link) {
     notifyUnavailableShareLink();
     return;
   }
+  // External actions cannot be recalled. Their late result belongs only to
+  // the initiating account generation and its confirmed invitation link.
+  const current = () => isCurrentAccountScope(accountScope)
+    && currentShareReferralCode() === referralCode && buildShareLink() === link;
   const remoteRewardEnabled = useReferralReward().snapshot?.rewardEnabled === true;
   const text = remoteApiEnabled
     ? referralShareText(
@@ -173,10 +183,12 @@ export async function activateChannel(def: ShareChannelDef, surface: ShareSurfac
       }
       // #endif
       if (opened) {
+        if (!current()) return;
         await recordShareEvent(def.key, surface);
       } else {
         // 异常3:intent 被拦 → 复制降级;复制也失败则禁误报、不计事件(防白耗一次性任务奖励)。
         const ok = await copyText(text);
+        if (!current()) return;
         if (ok) {
           toast.info(fmt(t.value.share.openFailedCopied, { channel: label }));
         } else {
@@ -188,6 +200,7 @@ export async function activateChannel(def: ShareChannelDef, surface: ShareSurfac
     case "scheme": {
       // 当前 scheme 渠道只提供复制引导,并未确认内容已发送。
       const ok = await copyText(text);
+      if (!current()) return;
       if (ok) {
         toast.info(fmt(t.value.share.schemeCopied, { channel: label }));
       } else {
@@ -203,6 +216,7 @@ export async function activateChannel(def: ShareChannelDef, surface: ShareSurfac
       //   一次纯本地操作被说成了一次失败的分享。
       //   scheme 和 web 拦截后的复制降级同样不能证明内容已发送。
       const ok = await copyText(link);
+      if (!current()) return;
       if (ok) {
         toast.success(t.value.team.inviteLinkCopied);
       } else {
@@ -214,10 +228,11 @@ export async function activateChannel(def: ShareChannelDef, surface: ShareSurfac
       // #ifdef H5
       try {
         await navigator.share({ title: "UVEL", text, url: link });
+        if (!current()) return;
         await recordShareEvent(def.key, surface);
-      } catch {
-        // 取消与真实失败在此均静默不计事件:取消不该报错;AbortError 与其它
-        // 异常无法可靠区分,宁可少计不误报(诊断依赖后端 share.performed 对账)。
+      } catch (error) {
+        // Dismissal is silent; a real failure leaves a useful local recovery path.
+        if (current() && (error as { name?: string } | null)?.name !== "AbortError") toast.info(t.value.share.actionFailed);
       }
       // #endif
       break;

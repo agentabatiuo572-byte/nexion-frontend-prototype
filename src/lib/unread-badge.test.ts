@@ -109,9 +109,8 @@ describe("message unread badge display", () => {
       const sections = computedValue<CountOption[]>(notifications, "sectionOptions", { t, notifs: { unread: count }, center: { serviceUnread: count } });
       const types = computedValue<CountOption[]>(conversations, "typeOptions", { TYPES: Vue.ref([{ key: "advisor" }, { key: "support" }, { key: "ai" }]), typeLabel: (key: string) => key, typeUnreadBadge: normalTypeBadge(count) });
       for (const option of sections) {
-        expect(option.count).toBe(count);
-        const html = await renderBadge(markup.segment, { option });
-        expect(html.match(/<text[^>]*>([^<]*)<\/text>/)?.[1]).toBe(String(count));
+        expect(option.count).toBeUndefined();
+        expect((option as { hasUnread: boolean }).hasUnread).toBe(count > 0);
       }
       for (const option of types) {
         expect(option.count).toBe(label || undefined);
@@ -129,10 +128,10 @@ describe("message unread badge display", () => {
         const invalid = !Number.isSafeInteger(count) || (count as number) < 0;
         for (const failed of [false, true]) {
           const serviceCheck = sourceFunction<(row: { unread: unknown; kind: string }) => boolean>(services, "unreadUnavailable", { tickets: { error: "ticket failed" }, conversations: { error: failed ? "read failed" : "", categoryAvailabilityStatus: "ready" } });
-          for (const kind of ["advisor", "ticket"]) {
+          for (const kind of ["advisor", "support"]) {
             const row = { unread: count, kind };
             const html = await renderBadge(markup.service, { row, unreadUnavailable: serviceCheck, formatUnreadBadge });
-            const expected = invalid || failed || kind === "ticket" ? "-" : formatUnreadBadge(count as number);
+            const expected = invalid || failed ? "-" : formatUnreadBadge(count as number);
             expect(html.match(/<text[^>]*>([^<]*)<\/text>/)?.[1] || "").toBe(expected);
           }
           const conversationCheck = sourceFunction<(row: { unread: unknown; isAi: boolean }) => boolean>(conversations, "unreadUnavailable", { humanReadFailed: Vue.ref(failed) });
@@ -148,7 +147,7 @@ describe("message unread badge display", () => {
       }
       const categoryFailed = sourceFunction<(row: { unread: number; kind: string }) => boolean>(services, "unreadUnavailable", { tickets: {}, conversations: { categoryAvailabilityStatus: "failed" } });
       expect(categoryFailed({ unread: 0, kind: "advisor" })).toBe(true);
-      expect(categoryFailed({ unread: 0, kind: "ticket" })).toBe(false);
+      expect(categoryFailed({ unread: 0, kind: "support" })).toBe(true);
       expect(computedValue<boolean>(conversations, "humanReadFailed", { convStore: { categoryAvailabilityStatus: "failed" } })).toBe(true);
       expect(services).toContain('@click="openRow(row)"');
       expect(conversations).toContain('@click="openRow(r)"');
@@ -160,11 +159,14 @@ describe("message unread badge display", () => {
         visibleFilterIds: Vue.ref(['all', 'finance', 'device']), filterLabel: (value: string) => value,
         notifs: { unread: 111, unreadByCategory: { finance: 100, device: 0 }, unreadByCategoryExact: exact },
       });
-      expect(options[0].count).toBe(111);
+      expect(options[0].count).toBeUndefined();
+      expect(options[0].hasUnread).toBe(true);
       expect(options[1].hasUnread).toBe(true);
       expect(options[2].hasUnread).toBe(false);
-      expect(options[1].count).toBe(exact ? 100 : undefined);
-      expect(options[2].count).toBe(exact ? 0 : undefined);
+      expect(options[1].count).toBeUndefined();
+      expect(options[2].count).toBeUndefined();
     }
   });
 });
+
+it("does not display unknown actionable authority as zero", () => { expect(formatUnreadBadge(null)).toBe("—"); expect(formatUnreadBadge(0)).toBe(""); });

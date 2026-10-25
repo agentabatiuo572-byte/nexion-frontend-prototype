@@ -3,6 +3,7 @@ import type { RankHowPolicy } from "@/api/rank-how-policy-api";
 import type { CanonicalVRankRow, CommissionCapabilities } from "@/api/v-rank-api";
 import type { RankHowConditionLabels } from "./v-rank-how-policy";
 import { formatAmount } from "./amount-display";
+import { formatComputePoints } from "../i18n/compute-points";
 
 // Interface/status copy only. Published business explanations come from the policy API.
 const COPY = {
@@ -11,8 +12,8 @@ const COPY = {
     example: "完整范例 · 按当前规则演示", noThreshold: "本阶未设置此门槛", noReferralMinimum: "0.00 USDT（不要求正数自购）", noExample: "当前没有可演示的相邻等级门槛。", emptyLadder: "暂无可展示的等级", retry: "重新加载",
     protected: "已开启保级；算力额回落时保留当前等级。已结算奖励的退款和撤销仍按结算规则处理。",
     unprotected: "未开启保级；算力额或合格条件变化后，可能降至当前符合条件的等级。",
-    leadershipReady: "领导池参与资格、限额和到账以实际结算结果为准。",
-    leadershipHold: "领导池暂不可结算；票数不代表已获得分红。",
+    leadershipReady: "团队激励池参与资格、限额和到账以实际结算结果为准。",
+    leadershipHold: "团队激励池暂不可结算；票数不代表奖励已到账。",
     peerUnavailable: "平级奖励暂未开放，当前不派发；等级中显示的比例不代表已生效权益。",
   },
   en: {
@@ -20,8 +21,8 @@ const COPY = {
     example: "Worked example · current rules", noThreshold: "No threshold set for this rank", noReferralMinimum: "0.00 USDT (no positive self-purchase minimum)", noExample: "No adjacent rank thresholds are currently available for an example.", emptyLadder: "No visible ranks", retry: "Reload",
     protected: "Rank protection is enabled: falling performance retains the current rank. Refunds and reversals still follow settlement rules.",
     unprotected: "Rank protection is disabled: changes in performance or qualification may lower the rank to the level currently reached.",
-    leadershipReady: "Leadership pool eligibility, limits and payment are subject to actual settlement.",
-    leadershipHold: "Leadership pool settlement is currently unavailable. Votes do not mean a dividend has been received.",
+    leadershipReady: "Team incentive pool eligibility, limits and payment are subject to actual settlement.",
+    leadershipHold: "Team incentive pool settlement is currently unavailable. Votes do not mean rewards have been received.",
     peerUnavailable: "Peer rewards are not available and are not currently paid. Rates shown for a rank do not represent active benefits.",
   },
   vi: {
@@ -29,8 +30,8 @@ const COPY = {
     example: "Ví dụ · theo quy tắc hiện tại", noThreshold: "Bậc này không đặt ngưỡng", noReferralMinimum: "0.00 USDT (không yêu cầu mức tự mua dương)", noExample: "Hiện chưa có ngưỡng của hai bậc liền nhau để minh họa.", emptyLadder: "Chưa có hạng được hiển thị", retry: "Tải lại",
     protected: "Đã bật bảo vệ hạng: giữ hạng khi doanh số giảm. Hoàn tiền và thu hồi thưởng vẫn theo quy tắc quyết toán.",
     unprotected: "Chưa bật bảo vệ hạng: thay đổi doanh số hoặc điều kiện có thể làm giảm hạng về mức thực tế đạt được.",
-    leadershipReady: "Điều kiện tham gia, hạn mức và thanh toán của quỹ lãnh đạo theo kết quả quyết toán thực tế.",
-    leadershipHold: "Quỹ lãnh đạo hiện chưa thể quyết toán. Phiếu bầu không đồng nghĩa với cổ tức đã nhận.",
+    leadershipReady: "Điều kiện tham gia, hạn mức và thanh toán của quỹ khuyến khích đội nhóm theo kết quả quyết toán thực tế.",
+    leadershipHold: "Quỹ khuyến khích đội nhóm hiện chưa thể quyết toán. Phiếu bầu không đồng nghĩa với phần thưởng đã nhận.",
     peerUnavailable: "Thưởng đồng cấp chưa mở và hiện không được chi trả. Tỷ lệ hiển thị theo hạng chưa phải là quyền lợi đang có hiệu lực.",
   },
 };
@@ -67,11 +68,11 @@ export function formatHowNumber(value: number | string, locale: string) {
 export function buildRankHowContent(policy: RankHowPolicy | null, ranks: CanonicalVRankRow[], capabilities: CommissionCapabilities, locale: string, labels: RankHowConditionLabels) {
   const copy = rankHowCopy(locale);
   const ladder = ranks.filter(rank => rank.visible).sort((a, b) => a.v - b.v);
-  const hasGate = (rank: CanonicalVRankRow) => [rank.selfBuyUSD, rank.directRefs, rank.teamVolumeUSD].some(value => (value ?? 0) > 0)
+  const hasGate = (rank: CanonicalVRankRow) => [rank.selfComputePoints, rank.teamComputePoints, rank.selfBuyUSD, rank.directRefs, rank.teamVolumeUSD].some(value => (value ?? 0) > 0)
     || ((rank.requiredDownlineRank ?? 0) > 0 && (rank.requiredDownlineCount ?? 0) > 0);
   const pairs = ladder.filter(rank => rank.v > 0 && hasGate(rank) && ladder.some(previous => previous.v === rank.v - 1));
   // Prefer an example containing both team and qualified-leg conditions; never invent thresholds.
-  const target = pairs.find(rank => (rank.teamVolumeUSD ?? 0) > 0 && (rank.requiredDownlineCount ?? 0) > 0) ?? pairs[0];
+  const target = pairs.find(rank => (rank.teamComputePoints ?? rank.teamVolumeUSD ?? 0) > 0 && (rank.requiredDownlineCount ?? 0) > 0) ?? pairs[0];
   const example = target ? { from: ladder.find(rank => rank.v === target.v - 1)!, to: target } : null;
   const number = (value: number) => formatHowNumber(value, locale);
   const money = (value: number | undefined) => value !== undefined && value > 0 ? `${formatAmount(value)} USDT` : copy.noThreshold;
@@ -83,6 +84,9 @@ export function buildRankHowContent(policy: RankHowPolicy | null, ranks: Canonic
   if (example) {
     Object.assign(tokens, {
       fromRank: `V${example.from.v}`, toRank: `V${example.to.v}`,
+      // New point tokens never fall back to the legacy monetary tokens below.
+      selfComputePoints: target.selfComputePoints === undefined ? undefined : formatComputePoints(target.selfComputePoints, locale),
+      teamComputePoints: target.teamComputePoints === undefined ? undefined : formatComputePoints(target.teamComputePoints, locale),
       selfBuy: money(target.selfBuyUSD), directRefs: (target.directRefs ?? 0) > 0 ? number(target.directRefs!) : copy.noThreshold,
       teamVolume: money(target.teamVolumeUSD),
       rankLegs: (target.requiredDownlineRank ?? 0) > 0 && (target.requiredDownlineCount ?? 0) > 0

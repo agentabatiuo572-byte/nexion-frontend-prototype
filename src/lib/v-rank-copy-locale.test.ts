@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { rankConditionsText, rankGapText, rankLabel, rankName } from "./v-rank-copy";
+import { rankConditionsText, rankCultivationCopy, rankGapText, rankLabel, rankName } from "./v-rank-copy";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import type { VRankDef } from "@/store/v-rank";
 import { HAN_SCRIPT_RE } from "./native-unicode-regex";
+import { computePointsCopy, formatComputePoints } from "@/i18n/compute-points";
+import { teamRedesignCopy } from "@/i18n/team-redesign";
+import { fmt } from "@/i18n/format";
 
 const published = [
   ["注册会员", "Registered Member", "Thành viên đã đăng ký"],
@@ -23,6 +26,21 @@ const published = [
 ] as const;
 
 describe("canonical V-rank title locale", () => {
+  it.each([
+    ['zh', '直接邀请的成员', '奖励发给晋升者的推荐人', '无推荐人时，由晋升者本人获得'],
+    ['en', 'directly invited member', 'promoted member’s referrer', 'If there is no referrer, the promoted member receives it'],
+    ['vi', 'thành viên được mời trực tiếp', 'người giới thiệu của thành viên thăng hạng', 'Nếu không có người giới thiệu, thành viên thăng hạng tự nhận thưởng'],
+  ])('keeps the %s growth trigger, referrer recipient and no-referrer fallback explicit', (locale, direct, recipient, fallback) => {
+    const copy = rankCultivationCopy(locale);
+    expect(copy.title).toBe(teamRedesignCopy(locale).memberGrowthReward);
+    const trigger = fmt(copy.trigger, { n: 4, amount: '321.12 UVT' });
+    expect(trigger).toContain(direct);
+    expect(trigger).toContain('V4');
+    expect(trigger).toContain('321.12 UVT');
+    expect(trigger).toMatch(/奖励记录|reward records|bản ghi thưởng/);
+    expect(copy.recipient).toContain(recipient);
+    expect(copy.recipient).toContain(fallback);
+  });
   it("translates every published F1 name while preserving the server rank", () => {
     const ladder = published.map(([zh]) => ({ title: zh, cnTitle: zh })) as VRankDef[];
     published.forEach(([zh, en, vi], v) => {
@@ -48,15 +66,38 @@ describe("canonical V-rank title locale", () => {
     expect(rankName({ title: "Server Rank", cnTitle: "注册会员" }, "en")).toBe("Server Rank");
   });
   it.each([
-    ["en", en, "Self-buy $0.00 more", "$765.88 more team compute amount", "Team compute amount ≥ $1234.12"],
-    ["zh", zh, "再自买 $0.00", "团队算力额还差 $765.88", "团队算力额 ≥ $1234.12"],
-    ["vi", vietnamese, "Tự mua thêm $0.00", "Thêm $765.88 giá trị công suất nhóm", "Giá trị công suất nhóm $1234.12"],
-  ] as const)("renders %s monetary thresholds and gaps with two decimals without Intl", (locale, copy, tiny, teamGap, threshold) => {
+    ["en", en, "Compute requirements pending"],
+    ["zh", zh, "算力条件待公布"],
+    ["vi", vietnamese, "Chưa công bố điều kiện điểm"],
+  ] as const)("keeps unpublished %s point thresholds unknown instead of relabeling legacy money", (locale, copy, pending) => {
     vi.stubGlobal("Intl", undefined);
     try {
-      expect(rankGapText(copy, { kind: "selfBuy", amount: 500 - 499.999999 }, locale, [])).toBe(tiny);
-      expect(rankGapText(copy, { kind: "teamVolume", amount: 2_000 - 1234.123456 }, locale, [])).toBe(teamGap);
-      expect(rankConditionsText(copy, { teamVolumeUSD: 1234.123456 }, locale)).toBe(threshold);
+      expect(rankGapText(copy, { kind: "selfBuy", amount: 500 - 499.999999 }, locale, [])).toBe(pending);
+      expect(rankGapText(copy, { kind: "teamVolume", amount: 2_000 - 1234.123456 }, locale, [])).toBe(pending);
+      expect(rankConditionsText(copy, { teamVolumeUSD: 1234.123456 }, locale)).toBe(pending);
     } finally { vi.unstubAllGlobals(); }
+  });
+});
+
+describe("platform point formatting and copy", () => {
+  it.each([
+    ["zh", zh, "1,280.125 算力点", "自购算力还差 720 算力点", "团队算力 ≥ 20,000 算力点"],
+    ["en", en, "1,280.125 compute pts", "720 compute pts more own compute", "Team compute ≥ 20,000 compute pts"],
+    ["vi", vietnamese, "1.280,125 điểm tính toán", "Còn thiếu 720 điểm tính toán tự mua", "Năng lực đội ≥ 20.000 điểm tính toán"],
+  ] as const)("formats independent %s points without Intl, currency signs or money rounding", (locale, copy, formatted, gap, condition) => {
+    vi.stubGlobal("Intl", undefined);
+    try {
+      expect(formatComputePoints(1280.125, locale)).toBe(formatted);
+      expect(rankGapText(copy, { kind: "selfComputePoints", amount: 720 }, locale, [])).toBe(gap);
+      expect(rankConditionsText(copy, { teamComputePoints: 20000, teamVolumeUSD: 5000 }, locale)).toBe(condition);
+      expect(rankGapText(copy, { kind: "teamComputePoints", amount: undefined }, locale, [])).toBe(computePointsCopy(locale).conditionsPending);
+      expect(formatComputePoints(0, locale)).toBe(`0 ${computePointsCopy(locale).unit}`);
+    } finally { vi.unstubAllGlobals(); }
+  });
+  it("expands exponents, rounds decimal ties and preserves unknown values", () => {
+    expect(formatComputePoints(1e21, "en")).toBe("1,000,000,000,000,000,000,000 compute pts");
+    expect(formatComputePoints(0.0000005, "zh")).toBe("0.000001 算力点");
+    expect(formatComputePoints(9.9999995, "vi")).toBe("10 điểm tính toán");
+    for (const value of [undefined, null, -1, NaN, Infinity]) expect(formatComputePoints(value, "en")).toBe("—");
   });
 });

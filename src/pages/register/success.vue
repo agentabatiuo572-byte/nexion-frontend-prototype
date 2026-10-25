@@ -95,7 +95,7 @@
         <view v-else class="rs-h5-download__action rs-h5-download__action--disabled" role="status" aria-disabled="true">
           <text class="rs-h5-download__pending">{{ t.register.doneOfficialDownloadPending }}</text>
         </view>
-        <view v-if="!officialDownloadUrl" class="rs-retry active-press" role="button" :tabindex="cfg.loading ? -1 : 0" :aria-disabled="cfg.loading" @click="retryDownloadConfig">
+        <view v-if="!officialDownloadUrl" class="rs-retry active-press" role="button" :tabindex="cfg.loading ? -1 : 0" :aria-disabled="cfg.loading" @click="retryDownloadConfig" @keydown.enter.prevent="retryDownloadConfig" @keydown.space.prevent="retryDownloadConfig">
           <text>{{ t.ui.retry }}</text>
         </view>
       </view>
@@ -343,8 +343,8 @@ onBackPress(() => {
 <style scoped>
 .rs-root { position: fixed; inset: 0; background: var(--v5-bg); overflow-y: auto; }
 .rs-pending { min-height: 100%; display: flex; align-items: center; justify-content: center; color: var(--v5-ink-3); }
-.rs-wrap { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 100%; padding: 0 24px; box-sizing: border-box; text-align: center; }
-.rs-main { position: absolute; inset: 0 24px; display: flex; align-items: center; justify-content: center; padding: 24px 0; box-sizing: border-box; }
+.rs-wrap { position: relative; display: flex; flex-direction: column; min-height: 100%; padding: 0 24px calc(env(safe-area-inset-bottom, 0px) + 114px); box-sizing: border-box; text-align: center; }
+.rs-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 0 20px; box-sizing: border-box; }
 .rs-content { width: 100%; }
 .rs-badge { width: 74px; height: 74px; border-radius: 9999px; margin: 0 auto; background: color-mix(in srgb, var(--v5-brand) 16%, transparent); display: flex; align-items: center; justify-content: center; }
 .rs-badge__in { width: 52px; height: 52px; border-radius: 9999px; background: var(--v5-brand); display: flex; align-items: center; justify-content: center; }
@@ -367,7 +367,7 @@ onBackPress(() => {
 .rs-why__r:last-child { border-bottom: none; }
 .rs-why__ic { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .rs-why__t { flex: 1; font-size: 12px; color: var(--v5-ink-2); line-height: 1.5; text-wrap: pretty; }
-.rs-h5-download { position: absolute; right: 24px; bottom: calc(env(safe-area-inset-bottom, 0px) + 102px); left: 24px; }
+.rs-h5-download { flex-shrink: 0; margin-bottom: 16px; }
 .rs-retry { min-height: 44px; margin-top: 4px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: var(--v5-surface); color: var(--v5-brand); font-size: 12px; }
 .rs-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .rs-h5-download__hint { display: block; font-size: 12px; color: var(--v5-ink-2); line-height: 1.5; text-wrap: pretty; }
@@ -403,10 +403,9 @@ onBackPress(() => {
   .rs-gift__note { margin-top: 5px; }
   .rs-why { margin-top: 6px; }
   .rs-why__r { padding: 4px 12px; }
-  .rs-h5-download__hint { display: none; }
   .rs-wrap--gift { height: auto; min-height: 100%; padding-top: 18px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 114px); }
   .rs-wrap--gift .rs-main { position: static; flex: 1; min-height: 0; padding: 0 0 12px; }
-  .rs-wrap--gift .rs-h5-download { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 102px); z-index: 2; margin-bottom: 12px; background: var(--v5-bg); }
+  .rs-wrap--gift .rs-h5-download { margin-bottom: 12px; }
   .rs-wrap--web-setup.rs-wrap--gift .rs-h5-download { position: static; }
 }
 </style>

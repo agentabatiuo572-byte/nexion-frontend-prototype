@@ -233,3 +233,17 @@ describe("shared message center", () => {
     expect(supportSource).not.toContain('href: "/pages/me/support-tickets?mode=create"');
   });
 });
+
+
+it("bells use actionable authority while inbox reading unread retains marketing", async () => {
+  const center = useMessageDrawer(), notifications = useNotifications();
+  notifications.unread = 9;
+  expect(center.totalUnread).toBe(9); expect(center.actionableUnread).toBeNull();
+  notifications.actionableUnread = 0;
+  expect(center.actionableUnread).toBe(0);
+  runtime.supportApi.conversations.mockResolvedValue({ items: [human("advisor", "advisor", 2)], total: 1 });
+  runtime.notificationApi.page.mockResolvedValue({ ...notificationPage(9), actionableUnread: 0 });
+  await center.refresh(); expect(center.actionableUnread).toBe(2); expect(center.totalUnread).toBe(11);
+  notifications.actionableUnread = 4; expect(center.actionableUnread).toBe(6);
+  notifications.error = "offline"; expect(center.actionableUnread).toBeNull();
+});

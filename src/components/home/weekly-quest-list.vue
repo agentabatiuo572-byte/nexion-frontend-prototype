@@ -1,6 +1,12 @@
 <!-- Weekly Tier 2 is server-authoritative; pending rows use PC-configured routes. -->
 <template>
-  <view v-if="mounted && wq.error && !wq.snapshot" class="nx-glass-card mx-4 mt-3 px-4 py-3 active:opacity-70" :style="cardStyle" role="button" tabindex="0" @click="retry">
+  <view v-if="!mounted && !wq.snapshot" class="nx-glass-card mx-4 mt-3 px-4 py-3" :style="cardStyle" role="status" aria-busy="true">
+    <text :style="pendingLabelStyle">{{ w.loading }}</text>
+    <view v-for="row in 3" :key="row" style="height: 46px; padding-top: 14px">
+      <view :style="{ width: row === 2 ? '56%' : '72%', height: '12px', borderRadius: '4px', background: 'var(--v5-surface-2)' }" />
+    </view>
+  </view>
+  <view v-else-if="mounted && wq.error && !wq.snapshot" class="nx-glass-card mx-4 mt-3 px-4 py-3 active:opacity-70" :style="cardStyle" role="button" tabindex="0" @click="retry">
     <text :style="pendingLabelStyle">{{ w.loadError }}</text>
   </view>
   <view v-else-if="mounted && !wq.snapshot" class="nx-glass-card mx-4 mt-3 px-4 py-3" :style="cardStyle">

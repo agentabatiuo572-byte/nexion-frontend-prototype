@@ -10,6 +10,7 @@
       <HomeActionList />
       <MyFleetSection />
       <PromotionEntry v-if="homePromotions.length" mode="home" :activities="homePromotions" />
+      <view v-else-if="homePromotionStatus === 'idle' || homePromotionStatus === 'loading'" class="home-promotion-skeleton" role="status" aria-busy="true" :aria-label="t.coreReview.loadingOffers"><view /><view /></view>
       <HomeNetworkSnapshot />
     </view>
   </AppChassis>
@@ -63,4 +64,7 @@ watch(() => [app.accountKey, app.accountBindingEpoch, locale.code], () => { fenc
 .home-overview { display: flex; flex-direction: column; gap: 20px; padding: 12px 16px 16px; color: var(--v5-ink); }
 .home-earnings-cluster { display: flex; flex-direction: column; gap: 8px; }
 .home-overview > .daily-check-in-row { margin-top:-6px; }
+.home-promotion-skeleton { min-height:180px;box-sizing:border-box;padding:20px;border-radius:22px;background:var(--v5-surface);border:1px solid var(--v5-border); }
+.home-promotion-skeleton > view { width:70%;height:18px;margin-bottom:14px;border-radius:8px;background:var(--v5-surface-2); }
+.home-promotion-skeleton > view + view { width:45%;height:44px;margin-top:36px; }
 </style>

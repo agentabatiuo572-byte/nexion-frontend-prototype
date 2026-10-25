@@ -2,7 +2,7 @@ import type { OrderReceipt, Quote } from '../api/promotion-contracts';
 import type { PromotionApi, PromotionOperation } from '../api/promotion-api';
 
 export interface PromotionPendingCommand { key: string; operation: PromotionOperation; targetId: string }
-export interface PromotionCheckoutRecord { quote: Quote | null; order: OrderReceipt | null; pending: PromotionPendingCommand | null; voucherId?:string|null; leavePromptShown?:boolean }
+export interface PromotionCheckoutRecord { quote: Quote | null; order: OrderReceipt | null; pending: PromotionPendingCommand | null; voucherId?:string|null; voucherMode?:'auto'|'manual'; leavePromptShown?:boolean }
 export function selectPromotionCheckoutRecord(records:Record<string,PromotionCheckoutRecord>,input:{activityId:string;items:{productNo:string;quantity:number}[];orderNo?:string;voucherId?:string;upgradeActivityId?:string}){
   const requested=input.orderNo?JSON.stringify(['order',input.orderNo]):JSON.stringify([input.activityId,input.items,...(input.voucherId?[input.voucherId,input.upgradeActivityId??'']:[])]);
   const entries=Object.entries(records),pending=entries.find(([,record])=>!!record.pending);
@@ -32,10 +32,14 @@ export class PromotionCheckoutSession {
   }
   setQuote(quote: Quote,voucherId:string|null=null): void {
     if (this.busy || this.record.pending || this.record.order) throw new Error('ORIGINAL_ORDER_UNRESOLVED');
-    this.persist({ quote, order: null, pending: null,voucherId,...(this.record.leavePromptShown?{leavePromptShown:true}:{}) });
+    this.persist({ ...this.record, quote, order: null, pending: null,voucherId,voucherMode:this.record.voucherMode??(this.record.voucherId!==undefined?'manual':'auto') });
     this.confirmed = false;
   }
-  invalidateQuote():void {if(this.busy||this.record.pending||this.record.order)throw new Error('ORIGINAL_ORDER_UNRESOLVED');this.persist({quote:null,order:null,pending:null,...(this.record.leavePromptShown?{leavePromptShown:true}:{})});this.confirmed=false;}
+  invalidateQuote():void {if(this.busy||this.record.pending||this.record.order)throw new Error('ORIGINAL_ORDER_UNRESOLVED');this.persist({...this.record,quote:null,order:null,pending:null});this.confirmed=false;}
+  selectVoucher(voucherId:string|null):void {
+    if(this.busy||this.record.pending||this.record.order)throw new Error('ORIGINAL_ORDER_UNRESOLVED');
+    this.persist({...this.record,quote:null,voucherId,voucherMode:'manual'});this.confirmed=false;
+  }
   rememberLeavePrompt():void {this.persist({...this.record,leavePromptShown:true});}
   private persist(record: PromotionCheckoutRecord): void {
     if (!this.ports.current()) throw new Error('ACCOUNT_SCOPE_CHANGED');

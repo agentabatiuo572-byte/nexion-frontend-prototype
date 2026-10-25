@@ -19,18 +19,18 @@
             <text class="newcomer-task__eyebrow">{{ t.home.dayOneFirstDayReward }}</text>
             <text class="newcomer-task__count">{{ taskCountText }}</text>
           </view>
-          <view class="newcomer-task__reward">
+          <view v-if="!claimState.empty" class="newcomer-task__reward">
             <text class="newcomer-task__reward-value">{{ rewardText === "—" ? "—" : `+${rewardText}` }}</text>
             <text style="font-size: 13px; color: var(--v5-nex); font-family: var(--font-jet-mono), ui-monospace, monospace; font-weight: 500; margin-left: 2px">UVT</text>
           </view>
         </view>
-        <view v-if="!questUnavailable && (!remoteApiEnabled || dayOneWindow)" style="text-align: right; flex-shrink: 0">
+        <view v-if="!claimState.empty && !questUnavailable && (!remoteApiEnabled || dayOneWindow)" style="text-align: right; flex-shrink: 0">
           <text v-if="!dayOneExpired" class="block" style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; color: var(--v5-ink-4); letter-spacing: 0.04em">{{ t.home.dayOneEndsIn }}</text>
           <text class="block" :style="{ marginTop: dayOneExpired ? '0' : '4px' }" style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-weight: 500; font-size: 15px; color: var(--v5-quest-violet-ink); font-variant-numeric: tabular-nums; line-height: 1" :aria-label="dayOneExpired ? t.home.dayOneExpired : undefined">{{ dayOneExpired ? t.quest.expired : remainingLabel }}</text>
         </view>
       </view>
 
-      <view style="margin-top: 10px">
+      <view v-if="!claimState.empty" style="margin-top: 10px">
         <view ref="elRef" style="height: 6px; border-radius: 999px; overflow: hidden; background: var(--v5-surface-2); position: relative">
           <view :style="barStyle" />
         </view>
@@ -45,7 +45,8 @@
       </view>
 
       <!-- 去线(主人 2026-08-17 全站令):总间距沿用有线时代的 12+12 -->
-      <view v-if="expanded" style="margin-top: 24px; display: flex; flex-direction: column; gap: 4px">
+      <text v-if="claimState.empty" class="block" style="margin-top:12px;color:var(--v5-ink-3);font-size:13px">{{ t.home.dayOneNoActiveTasks }}</text>
+      <view v-if="expanded && !claimState.empty" style="margin-top: 24px; display: flex; flex-direction: column; gap: 4px">
         <view
           v-for="task in tasks"
           :key="task.id"
@@ -112,6 +113,7 @@
     </text>
 
     <view
+      v-if="!claimState.empty || questLoadError"
       class="nx-glass-action newcomer-task__toggle"
       :style="toggleStyle"
       role="button"

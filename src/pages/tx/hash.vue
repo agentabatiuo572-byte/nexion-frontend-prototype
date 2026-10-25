@@ -10,8 +10,14 @@
       <SubPageHeader back="/pages/me/wallet-bills" />
 
       <view v-if="remoteApiEnabled" class="nx-glass-card mx-4" data-testid="tx-detail-hold" :style="holdStyle">
-        <text class="block" :style="holdTitleStyle">{{ w.detailUnavailableTitle }}</text>
-        <text class="block" :style="holdBodyStyle">{{ w.detailUnavailableBody }}</text>
+        <text class="block" :style="holdTitleStyle">{{ hash ? w.detailUnavailableTitle : hashProvided ? recoveryCopy.txInvalidTitle : recoveryCopy.txMissingTitle }}</text>
+        <text class="block" :style="holdBodyStyle">{{ hash ? w.detailUnavailableBody : hashProvided ? recoveryCopy.txInvalidBody : recoveryCopy.txMissingBody }}</text>
+        <view v-if="hash" style="margin-top: 16px">
+          <text class="block" :style="holdBodyStyle">{{ recoveryCopy.txHashLabel }}</text>
+          <text class="block tx-retained-hash" selectable :style="hashStyle">{{ hash }}</text>
+          <view :style="copyBtnStyle" role="button" :tabindex="copyBusy ? -1 : 0" :aria-disabled="copyBusy" :aria-busy="copyBusy" @click="copyHash" @keydown.enter.prevent="copyHash" @keydown.space.prevent="copyHash"><text>{{ copyButtonText }}</text></view>
+        </view>
+        <view class="tx-bills-link" role="link" tabindex="0" :style="copyBtnStyle" @click="viewBills" @keydown.enter.prevent="viewBills"><text>{{ recoveryCopy.viewBills }}</text></view>
       </view>
 
       <template v-else>
@@ -77,10 +83,17 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
 import { remoteApiEnabled } from "@/api/runtime";
+import { navTo } from "@/lib/route";
+import { validatedTransactionHash } from "@/lib/transaction-hash-input";
+import { useEntryRecoveryCopy } from "@/i18n/entry-recovery";
 
 const t = useT();
+const recoveryCopy = useEntryRecoveryCopy();
 const w = computed(() => t.value.tx);
 const hash = ref("");
+const hashProvided = ref(false);
+const copyBusy = ref(false);
+let copyVersion = 0;
 const copyState = ref<"idle" | "copied" | "failed">("idle");
 let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -98,7 +111,12 @@ const qTo = ref<string | null>(null);
 const qAgeMin = ref<number | null>(null);
 
 onLoad((options) => {
-  hash.value = options?.hash ?? "";
+  copyVersion += 1;
+  copyState.value = "idle";
+  copyBusy.value = false;
+  if (copyResetTimer) clearTimeout(copyResetTimer);
+  hashProvided.value = typeof options?.hash === "string" && !!options.hash.trim();
+  hash.value = validatedTransactionHash(options?.hash);
   const amt = parseFloat(String(options?.amount ?? ""));
   qAmount.value = Number.isFinite(amt) && amt > 0 && amt <= 1e9 ? amt : null;
   const confs = parseInt(String(options?.confs ?? ""), 10);
@@ -212,14 +230,22 @@ function resetCopyStateSoon() {
 }
 
 async function copyHash() {
+  if (!hash.value || copyBusy.value) return;
+  const version = copyVersion;
+  copyBusy.value = true;
   const ok = await writeClipboard(hash.value);
+  if (version !== copyVersion) return;
+  copyBusy.value = false;
   copyState.value = ok ? "copied" : "failed";
   if (ok) toast.success(w.value.hashCopied);
   else toast.error(w.value.hashCopyFailed);
   resetCopyStateSoon();
 }
 
+function viewBills() { navTo("/pages/me/wallet-bills"); }
+
 onUnmounted(() => {
+  copyVersion += 1;
   if (copyResetTimer) clearTimeout(copyResetTimer);
 });
 
@@ -272,3 +298,10 @@ const holdBodyStyle: CSSProperties = { marginTop: "6px", fontSize: "13px", lineH
 
 
 </script>
+
+<style scoped>
+.tx-retained-hash { margin-top: 6px; user-select: text; overflow-wrap: anywhere; }
+.tx-bills-link { display: flex !important; justify-content: center; }
+[role="button"][aria-disabled="true"] { opacity: 0.5; }
+[tabindex="0"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
+</style>

@@ -9,9 +9,15 @@
 -->
 <template>
   <view class="mx-4" style="padding: 0 2px">
-    <FxRateLine v-if="paymentSessionReady" :key="app.accountBindingEpoch" />
-    <view v-if="createError || readError" style="margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--v5-danger-soft)">
-      <text class="block break-all" style="font-size: 12px; line-height: 1.5; color: var(--v5-danger)">{{ createError || readError }}</text>
+    <FxRateLine v-if="paymentSessionReady" :style="readFailure ? { display: 'none' } : undefined" :key="app.accountBindingEpoch" />
+    <view v-if="readFailure" class="nx-bank-read-error" style="margin-top: 10px; font-size: 12px; color: var(--v5-ink-2)" role="status">
+      <text>{{ readFailure }}</text>
+      <view class="nx-bank-read-retry" role="button" :tabindex="readRetryBusy ? -1 : 0" :aria-disabled="readRetryBusy" style="min-height: 44px; display: flex; align-items: center; color: var(--v5-brand)" @click="retryReadData" @keydown.enter.prevent="retryReadData" @keydown.space.prevent="retryReadData">
+        <text>{{ readRetryBusy ? t.help.loadingMore : t.ui.retry }}</text>
+      </view>
+    </view>
+    <view v-if="createError" style="margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--v5-danger-soft)">
+      <text class="block break-all" style="font-size: 12px; line-height: 1.5; color: var(--v5-danger)">{{ createError }}</text>
       <view v-if="createRecovery" class="nx-bank-setup-recovery active-press" role="button" tabindex="0"
         @click="goCreateRecovery" @keydown.enter.prevent="goCreateRecovery" @keydown.space.prevent="goCreateRecovery"
         style="min-height: 44px; display: flex; align-items: center; color: var(--v5-brand)">
@@ -20,7 +26,7 @@
     </view>
 
     <!-- ── 下单前:金额输入 + 生成付款单 ── -->
-    <template v-if="paneView === 'form' && paymentSessionReady">
+    <template v-if="paneView === 'form' && paymentSessionReady && fx.configReady && !fx.syncFailed">
       <!-- 收款账户池无可用账户 → 通道维护空状态([FEAT-PAY02] ⑤;segment 侧同步置灰) -->
       <view v-if="!bankRailAvailable" class="flex flex-col items-center" style="padding: 36px 0 28px">
         <view class="grid place-items-center" :style="pausedIconStyle">
@@ -298,7 +304,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { ref, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import FxRateLine from "@/components/me/fx-rate-line.vue";
 import { useT } from "@/i18n/use-t";
@@ -343,6 +349,20 @@ const autoResumePending = ref(true);
 const openingHosted = ref(false);
 const pageActive = ref(false);
 const readError = ref("");
+const readRetryPending = ref(false);
+const readRetryBusy = computed(() => readRetryPending.value || fx.loading || dep.serverStatus === "loading");
+const readFailure = computed(() => readError.value || (paymentSessionReady.value && fx.syncFailed ? t.value.bankPane.createFxUnavailable : ""));
+async function retryReadData() {
+  if (!pageActive.value || !paymentSessionReady.value || readRetryBusy.value) return;
+  const accountKey = app.accountKey, bindingEpoch = app.accountBindingEpoch;
+  readRetryPending.value = true;
+  try {
+    const results = await Promise.allSettled([fx.load(), dep.refreshRemoteVietQrDeposits()]);
+    if (!pageActive.value || !paymentSessionReady.value || accountKey !== app.accountKey || bindingEpoch !== app.accountBindingEpoch) return;
+    readError.value = dep.serverStatus === "error" || results.some(result => result.status === "rejected")
+      ? t.value.topupChrome.depositOpFailedNote : "";
+  } finally { readRetryPending.value = false; }
+}
 type PaymentReadScope = { accountKey: string; bindingEpoch: number };
 type ExistingPaymentChoice = PaymentReadScope & { intentId: string; usdtAmount: number; expireAt: number; paymentUrl: string };
 let pendingPaymentRead: (PaymentReadScope & { intents: DepositIntent[] }) | null = null;
@@ -454,7 +474,7 @@ watch(
 function recoveryAmount(): string {
   const draft = dep.bankRecoveryDraft;
   return paymentSessionReady.value && dep.currentAccountKey() === app.accountKey
-    && draft?.accountKey === app.accountKey ? draft.amount : "25";
+    && draft?.accountKey === app.accountKey ? draft.amount : "";
 }
 const amount = ref(recoveryAmount());
 watch(() => [app.accountKey, paymentSessionReady.value], () => { amount.value = recoveryAmount(); });
@@ -485,7 +505,7 @@ const inRange = computed(() =>
 function usdtLabel(value: number): string {
   return `$${formatAmount(value)}`;
 }
-function fmtVnd(value: number): string { return `${formatAmount(value)}₫`; }
+function fmtVnd(value: number): string { return `${formatAmount(value, "VND")} ₫`; }
 const minLabel = computed(() => usdtLabel(minDeposit.value));
 const maxLabel = computed(() => usdtLabel(maxDeposit.value));
 const limitLine = computed(() => fx.configReady
@@ -522,7 +542,7 @@ const vndPreview = computed(() =>
     ? fmt(t.value.bankPane.approx, { vnd: fmtVnd(vndForUsdt(amountNum.value, fx.quoteRate)) })
     : fmt(t.value.bankPane.approx, { vnd: "—" }),
 );
-const ctaEnabled = computed(() => fxUsable.value && inRange.value && !creating.value);
+const ctaEnabled = computed(() => fxUsable.value && inRange.value && !creating.value && !readError.value);
 
 // ── 生成付款单(mock ~600ms 延迟演加载态:按钮内联 spinner「生成中…」)──
 const creating = ref(false);
@@ -549,7 +569,7 @@ let createTimer: ReturnType<typeof setTimeout> | undefined;
 function createOrder(presetUsdt?: number) {
   const usdt = presetUsdt ?? amountNum.value;
   if ((presetUsdt === undefined && !amountValid.value) || !Number.isFinite(usdt)
-    || creating.value || !fxUsable.value || usdt < minDeposit.value
+    || creating.value || readError.value || !fxUsable.value || usdt < minDeposit.value
     || usdt > maxDeposit.value || (dailyCapacityKnown.value && usdt > todayRemainingDeposit.value)) return;
   creating.value = true;
   createRecovery.value = null;

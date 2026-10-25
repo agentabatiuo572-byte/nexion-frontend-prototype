@@ -46,7 +46,7 @@ describe("checkout wallet balance hint", () => {
       remoteWalletReceiptHasSnapshot: false,
       remoteFleetStatus: "ready",
     }));
-    expect(v.walletBalanceHint.value).toBe("USDT balance · $1299.00");
+    expect(v.walletBalanceHint.value).toBe("USDT balance · 1299.00 USDT");
   });
 
   it("states loading and unavailable instead of a stale number", () => {

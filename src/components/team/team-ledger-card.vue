@@ -1,8 +1,8 @@
 <template>
-  <view class="nx-glass-card team-ledger">
+  <view class="team-ledger">
     <view class="team-ledger__header">
       <text class="team-ledger__title">{{ t.teamV3.thisMonth }}</text>
-      <view class="nx-team-commissions-link team-ledger__details" role="link" tabindex="0" @click="goCommissions">
+      <view class="nx-team-commissions-link team-ledger__details" role="link" tabindex="0" @click="goCommissions" @keydown.enter.prevent="goCommissions" @keydown.space.prevent="goCommissions">
         <text>{{ t.teamV3.viewDetails }}</text>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
       </view>
@@ -13,7 +13,7 @@
 
     <view class="team-ledger__bar" aria-hidden="true">
       <view :style="{ width: directPct + '%', background: 'var(--v5-brand)' }" />
-      <view :style="{ width: extendedPct + '%', background: 'var(--v5-brand-2)' }" />
+      <view :style="{ width: extendedPct + '%', background: 'var(--v5-ink-3)' }" />
     </view>
     <view class="team-ledger__split">
       <view>
@@ -158,24 +158,24 @@ const metricValueStyle: CSSProperties = {
 </script>
 
 <style scoped>
-.team-ledger { padding: 8px 20px 16px; }
-.team-ledger__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.team-ledger { background: transparent; box-shadow: none; border-radius: 0; padding: 8px 0 16px; }
+.team-ledger__header { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); }
 .team-ledger__title { font-size: 15px; font-weight: 600; }
 .team-ledger__details { display: flex; align-items: center; justify-content: flex-end; gap: 5px; min-height: 44px; color: var(--v5-ink-3); font-size: 12px; flex-shrink: 0; }
 .team-ledger__details:active { opacity: .7; }
 .team-ledger__details:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .team-ledger__amount { display: block; font-family: var(--font-v5); font-size: 34px; line-height: 1.1; font-weight: 600; letter-spacing: -.03em; overflow-wrap: anywhere; }
-.team-ledger__nex { display: block; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--v5-tech-cyan-ink); overflow-wrap: anywhere; }
+.team-ledger__nex { display: block; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--v5-ink-2); overflow-wrap: anywhere; }
 .team-ledger__lifetime { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); }
 .team-ledger__bar { display: flex; height: 6px; margin-top: 8px; border-radius: 999px; overflow: hidden; background: var(--v5-surface-2); }
 .team-ledger__bar > view { height: 100%; }
-.team-ledger__split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 12px; }
+.team-ledger__split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-space-inset); margin-top: var(--ui-space-inline); }
 .team-ledger__split > view { min-width: 0; }
 .team-ledger__label { display: flex; align-items: center; gap: 7px; font-size: 12px; line-height: 1.4; color: var(--v5-ink-3); }
 .team-ledger__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--v5-brand); }
-.team-ledger__dot--extended { background: var(--v5-brand-2); }
+.team-ledger__dot--extended { background: var(--v5-ink-3); }
 .team-ledger__value { display: block; margin: 2px 0 0 15px; font-size: 20px; font-weight: 600; line-height: 1.1; overflow-wrap: anywhere; }
 .team-ledger__settlement { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--v5-border); display: flex; flex-direction: column; }
-.team-ledger__settlement > view { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; font-size: 13px; line-height: 1.5; color: var(--v5-ink-3); }
+.team-ledger__settlement > view { display: flex; justify-content: space-between; align-items: baseline; gap: var(--ui-space-inset); font-size: 13px; line-height: 1.5; color: var(--v5-ink-3); }
 .team-ledger__settlement .tabular-nums { color: var(--v5-ink); text-align: right; overflow-wrap: anywhere; min-width: 0; }
 </style>

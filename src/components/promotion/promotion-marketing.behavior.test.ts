@@ -5,6 +5,7 @@ import { renderToString } from '@vue/server-renderer';
 import ts from 'typescript';
 import { afterEach,expect,it,vi } from 'vitest';
 import entrySource from './promotion-entry.vue?raw';
+import buttonSource from '@/components/ui/nx-button.vue?raw';
 import productSource from './promotion-product.vue?raw';
 import bundleSource from './promotion-bundle.vue?raw';
 import contextSource from '@/composables/use-promotion-context.ts?raw';
@@ -19,6 +20,7 @@ import { fmt } from '@/i18n/format';
 import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from '@/lib/amount-display';
 import * as entry from '@/lib/promotion-entry';
+import { commerceCopy } from '@/lib/commerce-review';
 import * as display from '@/lib/promotion-display';
 
 const code=(source:string)=>ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
@@ -34,6 +36,7 @@ function evaluate(source:string,modules:Record<string,unknown>){
   },exports);
   return exports;
 }
+const button=evaluate(code(compileScript(parse(buttonSource).descriptor,{id:'marketing-button',inlineTemplate:true,templateOptions:{compilerOptions:{isCustomElement:tag=>['view','text'].includes(tag)}}}).content),{vue:Vue}).default;
 const cleanups:Array<()=>void>=[];
 afterEach(()=>cleanups.splice(0).forEach(cleanup=>cleanup()));
 const flush=async()=>{await Promise.resolve();await Vue.nextTick();await Promise.resolve();};
@@ -46,6 +49,7 @@ function platform(){
   const modules:Record<string,unknown>={
     '@/lib/brand-copy':{platformDisplayText},
     '@/lib/amount-display':{formatAmount},
+    '@/lib/commerce-review':{commerceCopy},
     vue:{...Vue,onMounted:(fn:()=>void)=>mounted.push(fn),onBeforeUnmount:()=>{}},
     '@dcloudio/uni-app':{onShow:(fn:()=>void)=>shown.push(fn),onHide:(fn:()=>void)=>hidden.push(fn)},
     '@/store/app':{useApp:()=>app},'@/store/locale':{useLocaleStore:()=>locale},
@@ -66,7 +70,7 @@ function renderer(source:string,context:Record<string,unknown>){
   const template=source.includes('<template>')?parse(source).descriptor.template!.content:source;
   const render=new Function('Vue',compile(template,{mode:'function',prefixIdentifiers:true,isCustomElement:tag=>['view','text','image'].includes(tag)}).code)(Vue);
   let node!:Vue.VNode;
-  return{node:()=>node,html:()=>renderToString(Vue.createSSRApp({components:{LiquidGlass:empty,PromotionTerms:empty,PromotionProduct:empty,RewardRows:empty,DisclosureDetails:empty},render:()=>{node=render(Vue.proxyRefs(context),[]);return node;}}))};
+  return{node:()=>node,html:()=>renderToString(Vue.createSSRApp({components:{NxButton:button,TeamArt:empty,LiquidGlass:empty,PromotionTerms:empty,PromotionProduct:empty,RewardRows:empty,DisclosureDetails:empty},render:()=>{node=render(Vue.proxyRefs(context),[]);return node;}}))};
 }
 function find(node:Vue.VNode,className:string):Vue.VNode|undefined{
   if(String(node.props?.class??'').split(/\s+/).includes(className))return node;
@@ -83,6 +87,53 @@ function advert(activities?:PublicPromotion[],copy=promotionZH){
   const view=screen.scope.run(()=>component.setup(props,{expose(){}}))!;
   return{...screen,props,view,list,navTo,...renderer(entrySource,{...Vue.toRefs(props),...view})};
 }
+
+function purchaseRule(type:'DEVICE'|'DISCOUNT_USDT'|'NEX'):PublicPromotion['rewardRules'][number]{
+  const disclosure={title:{zh:'活动奖励',en:'Offer reward',vi:'Thưởng ưu đãi'},terms:{zh:'满足条件',en:'Conditions apply',vi:'Theo điều kiện'},refundTerms:{zh:'退款撤回',en:'Reversed on refund',vi:'Thu hồi khi hoàn tiền'},benefitDescription:{zh:'',en:'',vi:''},deviceRights:null,deviceName:type==='DEVICE'?'Actual gift device':null};
+  const common={rewardRuleId:'reward',beneficiaryRole:'BUYER' as const,disclosure};
+  return {ruleId:'rule',productNo:'sku',minBuyQty:2,repeatMode:'PER_GROUP',maxGroups:{mode:'LIMITED',value:3},maxGroupsPerPerson:{mode:'LIMITED',value:4},inviterReward:null,buyerReward:type==='DEVICE'?{...common,type,giftProductNo:'gift',quantity:1}:{...common,type,calculation:'FIXED',amount:'50'}};
+}
+
+it.each([['DEVICE','gift','Actual gift device × 1'],['DISCOUNT_USDT','coupon','50.00 USDT'],['NEX','spark','50.00 UVT']] as const)('renders %s from published rewards without inventing claim or completion state',async(type,kind,benefit)=>{
+  const offer=activity({rewardRules:[purchaseRule(type)]}),screen=advert([offer]);screen.props.mode='events';
+  const html=await screen.html();expect(html).toContain(`data-activity-kind="${kind}"`);expect(html).toContain(benefit);
+  expect(html).toContain('nx-button--secondary');expect(html).not.toContain('nx-button--primary');
+  expect(html).not.toContain('role="progressbar"');expect(html).not.toContain(promotionZH.rewardGranted);
+  find(screen.node(),'entry-cta')!.props!.onClick();expect(screen.navTo).toHaveBeenCalledExactlyOnceWith('/pages/store/store?activityId=a1');
+  find(find(screen.node(),'entry-event-actions')!,'promotion-link')!.props!.onClick();
+  expect(screen.view.termsActivity.value.activityId).toBe('a1');
+  expect(screen.view.termsRules.value.map((rule:{text:string})=>rule.text).join(' ')).toContain(fmt(promotionZH.orderRewardLimit,{n:3}));
+  expect(screen.view.termsRules.value.map((rule:{text:string})=>rule.text).join(' ')).toContain(fmt(promotionZH.personRewardLimit,{n:4}));
+});
+
+it('does not assign a gift or milestone to an offer with no published rewards',async()=>{
+  const screen=advert([activity({template:'FIRST_PURCHASE'})]);screen.props.mode='events';
+  expect(await screen.html()).toContain('data-activity-kind="plain"');
+  expect(find(screen.node(),'entry-event-art')).toBeUndefined();
+  expect(find(screen.node(),'entry-benefits')).toBeUndefined();
+});
+
+it.each([promotionZH,promotionEN,promotionVI])('keeps ineligibility and the full refund disclosures reachable with compact event copy',async copy=>{
+  const offer=activity({rewardRules:[purchaseRule('DISCOUNT_USDT')],eligibility:'INELIGIBLE',eligibilityMessage:{zh:'暂不符合活动条件',en:'Not eligible',vi:'Chưa đủ điều kiện'}}),screen=advert([offer],copy);screen.props.mode='events';
+  expect(await screen.html()).toContain('暂不符合活动条件');
+  find(find(screen.node(),'entry-event-actions')!,'promotion-link')!.props!.onClick();
+  expect(entry.promotionDisclosures(screen.view.termsActivity.value)[0].refundTerms.zh).toBe('退款撤回');
+  expect(screen.view.termsRules.value.map((rule:{text:string})=>rule.text).join(' ')).toContain(copy.orderDiscount);
+});
+
+it('event pagination deduplicates records and the retry resets the cursor after failure',async()=>{
+  const screen=advert();screen.props.mode='events';screen.list.mockResolvedValueOnce({items:[activity()],nextCursor:'page-2',hasMore:true});
+  await screen.view.load(true);expect(screen.view.hasMore.value).toBe(true);
+  screen.list.mockResolvedValueOnce({items:[activity(),activity({activityId:'a2'})],nextCursor:'page-3',hasMore:true});
+  await screen.view.load(false);expect(screen.list).toHaveBeenLastCalledWith({limit:20,cursor:'page-2'},true);
+  expect(screen.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1','a2']);
+  screen.list.mockRejectedValueOnce(new Error('offline'));await screen.view.load(false);
+  expect(screen.view.status.value).toBe('error');expect(await screen.html()).toContain(promotionZH.retry);
+  screen.list.mockResolvedValueOnce(page([activity({activityId:'recovered'})]));
+  find(screen.node(),'entry-cta')!.props!.onClick();await flush();
+  expect(screen.list).toHaveBeenLastCalledWith({limit:20,cursor:null},true);
+  expect(screen.view.items.value[0].activityId).toBe('recovered');expect(screen.view.status.value).toBe('ready');
+});
 
 it.each(['DRAFT','SCHEDULED','PAUSED','ENDED','ARCHIVED'] as const)('the shared read removes %s marketing without hiding active personal-ineligible offers',async state=>{
   const screen=context();screen.get.mockResolvedValueOnce(activity({eligibility:'INELIGIBLE'}));await screen.view.refresh();

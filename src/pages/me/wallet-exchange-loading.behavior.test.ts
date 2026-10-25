@@ -1,5 +1,6 @@
 import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -83,6 +84,7 @@ async function mount(direction = "nex2usdt") {
     const response = deferred<ExchangeSnapshot>(); requests.push(response); return response.promise;
   });
   const swap = vi.fn(), confirm = vi.fn(), navTo = vi.fn();
+  const toast = { error: vi.fn(), info: vi.fn(), success: vi.fn() };
   const chassis = Vue.defineComponent({ setup: (_props, { slots }) => () => Vue.h("chassis", slots.default?.()) });
   const empty = Vue.defineComponent({ props: ["title"], setup: props => () => Vue.h("empty", props.title) });
   const header = Vue.defineComponent({ props: ["title"], setup: props => () => Vue.h("header", props.title) });
@@ -90,6 +92,7 @@ async function mount(direction = "nex2usdt") {
   const dependencies: Record<string, unknown> = {
     "@/lib/brand-copy": { platformDisplayText },
     "@/lib/amount-display": { formatAmount },
+    "@/lib/finance-amount-display": { formatFinanceAmount },
     vue: Vue,
     "@dcloudio/uni-app": {
       onLoad: (callback: (options: { direction: string }) => void) => callback({ direction }),
@@ -103,7 +106,7 @@ async function mount(direction = "nex2usdt") {
     "@/i18n/format": { dateLocale: () => "en", fmt: (text: string, values: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_match, key) => values[key]) },
     "@/api/geo-policy-error": { geoPolicyUserMessage: vi.fn() },
     "@/lib/remote-authority-display": { remoteAuthorityStatus },
-    "@/store/ui": { toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() }, confirm },
+    "@/store/ui": { toast, confirm },
     "@/store/app": { useApp: () => ({ accountKey, user: { usdtBalance: 9999, nexBalance: 9999 } }) },
     "@/lib/money-receipt": { postMoneyBills: vi.fn() },
     "@/lib/exchange-pending-mutation": exchangePending, "@/lib/exchange-cancel": exchangeCancel,
@@ -135,7 +138,7 @@ async function mount(direction = "nex2usdt") {
   ];
   show(); await flush();
   return {
-    requests, fetchState, swap, confirm, navTo, show, button, compactValues,
+    requests, fetchState, swap, confirm, navTo, show, button, compactValues, toast,
     receive: () => textContent(label(en.exchange.netReceive).parent!.children[1].children[0]),
     hide: () => hidden.forEach(callback => callback()), text: () => textContent(root),
     enter: async (amount: string) => { find(root, entry => entry.tag === "input").props.onInput({ detail: { value: amount } }); await Vue.nextTick(); },
@@ -168,7 +171,9 @@ describe("mounted exchange balance authority", () => {
     expect(s.text()).not.toContain(en.exchange.belowFee);
     expect(s.button(en.exchange.confirm).props["aria-disabled"]).toBe("true");
     s.requests.at(-1)!.reject(new Error("authority unavailable")); await flush();
-    expect(s.text()).toContain(en.exchange.remoteUnavailableClosed);
+    expect(s.text().split(en.exchange.remoteUnavailableClosed)).toHaveLength(2);
+    expect(s.toast.error).not.toHaveBeenCalled();
+    expect(s.text()).not.toContain(en.empty.listTitle);
     expect(s.compactValues()).toEqual(["-", "-", "-", "-"]);
     expect(s.text()).not.toContain(insufficient(sym));
     expect(s.text()).not.toContain(en.exchange.belowFee);

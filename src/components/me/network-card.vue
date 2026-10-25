@@ -11,7 +11,7 @@
     <SectionHeader :title="t.me.myNetwork" link="/pages/team/team" :link-label="t.me.team" />
 
     <!-- Max-rank end state -->
-    <view v-if="!gap.next" class="nx-glass-card block active:opacity-90" :style="maxCardStyle" @click="goTeam">
+    <view v-if="vrank.remoteReady && !gap.next" class="nx-glass-card block active:opacity-90" :style="maxCardStyle" @click="goTeam">
       <view :style="maxIconStyle" :aria-label="maxRankLine">
         <text style="font-size: 20px">{{ maxPrizeIcon }}</text>
       </view>
@@ -22,7 +22,7 @@
     </view>
 
     <!-- In-progress state -->
-    <view v-else class="nx-glass-card block active:opacity-90" :style="cardStyle" @click="goTeam">
+    <view v-else-if="vrank.remoteReady" class="nx-glass-card block active:opacity-90" :style="cardStyle" @click="goTeam">
       <!-- Aspiration hero anchor(实物奖已删) -->
       <view :style="prizeHeroStyle" :aria-label="towardLine">
         <text style="font-size: 26px">{{ prizeHeroIcon }}</text>
@@ -47,12 +47,13 @@
           <view ref="elRef" class="overflow-hidden" style="flex: 1; height: 6px; border-radius: 3px; background: var(--v5-surface-3)">
             <view :style="barFillStyle" />
           </view>
-          <text class="font-mono-tabular tabular-nums" :style="pctStyle">{{ pctInt }}%</text>
+          <text class="font-mono-tabular tabular-nums" :style="pctStyle">{{ gap.progressKnown ? `${pctInt}%` : '—' }}</text>
         </view>
       </view>
 
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="m9 18 6-6-6-6" /></svg>
     </view>
+    <text v-else>—</text>
   </view>
 </template>
 
@@ -66,6 +67,7 @@ import { fmt } from "@/i18n/format";
 import { useLocaleStore } from "@/store/locale";
 import { useVRank, nextRankGap, type PrimaryGap, type PerkUnlock } from "@/store/v-rank";
 import { rankTitle } from "@/lib/v-rank-copy";
+import { computePointsCopy, formatComputePoints } from "@/i18n/compute-points";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
 const t = useT();
@@ -74,7 +76,7 @@ const locale = useLocaleStore();
 const { elRef, inView } = useScrollGrowProgress();
 
 const myRank = computed(() => vrank.myRank);
-const gap = computed(() => nextRankGap(vrank));
+const gap = computed(() => nextRankGap(vrank, vrank.ladder, "compute-points"));
 
 // 头衔的中英取舍收在 lib/v-rank-copy(主人 2026-08-17 拍板 V3 = 舰长;此前三处各写一份判断,
 // 中文界面出现「舰长 / 队长 / Captain」三种写法)
@@ -86,7 +88,7 @@ const maxRankLine = computed(() => fmt(t.value.me.networkCardMaxRank, { title: t
 
 // ── In-progress derived values ──
 const nextV = computed(() => gap.value.next?.v ?? 0);
-const progressPct = computed(() => gap.value.progressPct);
+const progressPct = computed(() => gap.value.progressKnown ? gap.value.progressPct : 0);
 const pctInt = computed(() => Math.round(progressPct.value * 100));
 const isHot = computed(() => progressPct.value >= 0.8);
 
@@ -100,9 +102,13 @@ const towardLine = computed(() =>
 function formatPrimaryGap(g: PrimaryGap): string {
   switch (g.kind) {
     case "teamVolume":
-      return fmt(t.value.me.networkCardGapTeamVolume, { amount: formatAmount(g.remaining) });
     case "selfBuy":
-      return fmt(t.value.me.networkCardGapSelfBuy, { amount: formatAmount(g.remaining) });
+      return computePointsCopy(locale.code).conditionsPending;
+    case "selfComputePoints":
+    case "teamComputePoints":
+      if (g.remaining === undefined) return computePointsCopy(locale.code).conditionsPending;
+      return (g.kind === "selfComputePoints" ? computePointsCopy(locale.code).needSelf : computePointsCopy(locale.code).needTeam)
+        .replace("{n}", formatComputePoints(g.remaining, locale.code));
     case "directRefs":
       return fmt(t.value.me.networkCardGapDirectRefs, {
         n: g.remaining,
@@ -133,7 +139,7 @@ function formatPerk(u: PerkUnlock): string {
 }
 
 const gapLine = computed(() =>
-  gap.value.primaryGap ? formatPrimaryGap(gap.value.primaryGap) : t.value.me.networkCardServerEligible,
+  !gap.value.progressKnown ? computePointsCopy(locale.code).conditionsPending : gap.value.primaryGap ? formatPrimaryGap(gap.value.primaryGap) : t.value.me.networkCardServerEligible,
 );
 const moreCount = computed(() => Math.max(0, gap.value.unmetCount - 1));
 const moreCountLabel = computed(() => fmt(t.value.me.networkCardMoreCount, { n: moreCount.value }));

@@ -17,7 +17,7 @@ async function header(plain: boolean, t = zh) {
       props: { radius: { type: Number, required: true } },
       setup: props => () => Vue.h('span', { 'data-glass': true, 'data-radius': props.radius }),
     }) },
-    setup: () => ({ plain, statusBarHeight: 0, pendingBarInset: 0, rowH: 44, t, subtitle: '', displayTitle: t.tickets.detailTitle, unread: 8, actionLabel: plain ? t.tickets.viewTicketList : undefined, action: plain ? () => {} : undefined, goBack: () => {}, goBell: () => {}, onKeyboardActivate: () => {} }),
+    setup: () => ({ plain, design: false, statusBarHeight: 0, pendingBarInset: 0, rowH: 44, t, subtitle: '', displayTitle: t.tickets.detailTitle, unread: 8, actionLabel: plain ? t.tickets.viewTicketList : undefined, action: plain ? () => {} : undefined, goBack: () => {}, goBell: () => {}, onKeyboardActivate: () => {} }),
     render,
   }));
 }

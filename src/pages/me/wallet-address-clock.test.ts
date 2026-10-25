@@ -6,6 +6,8 @@ import { renderToString } from "@vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import { advanceMonotonicHighWater, projectServerNow, readTrustedMonotonicNowMs } from "@/lib/server-deadline-clock";
+import { useFinanceReviewCopy } from "@/lib/finance-review-copy";
+import { useLocaleStore } from "@/store/locale";
 
 const source = readFileSync(new URL("./wallet-address-rebind.vue", import.meta.url), "utf8");
 const start = source.indexOf("const mockNow = ref(mockServerNow());");
@@ -37,6 +39,8 @@ function setup() {
     serverClock: { serverNowEpochMs: 1_800_000_000_000, receivedMonotonicAt: 1000 } as
       { serverNowEpochMs: number; receivedMonotonicAt: number } | null,
     refreshRemote: vi.fn().mockResolvedValue(true),
+    readStatus: "ready",
+    readStatusFor: (): string => payout.readStatus,
   });
   const toast = { error: vi.fn() };
   const runtime = { epoch: 1 };
@@ -48,15 +52,17 @@ function setup() {
     t: Vue.ref({ addrRebind: { startFailed: "Read failed" } }), payoutAddressServerEnabled: true,
     mockServerNow: () => Date.now(), readTrustedMonotonicNowMs, advanceMonotonicHighWater, projectServerNow,
     captureRuntimeRevision: () => runtime.epoch, isCurrentRuntimeRevision: (epoch: number) => epoch === runtime.epoch,
+    subscribeRuntimeRevision: () => () => {},
     onMounted: (fn: () => void) => hooks.mount.push(fn), onShow: (fn: () => void) => hooks.show.push(fn),
     onHide: (fn: () => void) => hooks.hide.push(fn), onUnmounted: (fn: () => void) => hooks.unmount.push(fn),
     setInterval: (fn: () => void) => { tick = fn; return 7; }, clearInterval: clear, resendTimer: undefined,
   };
-  const execute = new Function(...Object.keys(dependencies), `${implementation}; return { projectedServerNow, retryRemoteSnapshot, remoteRefreshPending };`);
+  const execute = new Function(...Object.keys(dependencies), `${implementation}; return { projectedServerNow, retryRemoteSnapshot, remoteRefreshPending, remoteReadFailed };`);
   const scope = Vue.effectScope(); scopes.push(scope);
   const page = scope.run(() => execute(...Object.values(dependencies))) as {
     projectedServerNow: Vue.ComputedRef<number | null>; retryRemoteSnapshot: () => Promise<void>;
     remoteRefreshPending: Vue.Ref<boolean>;
+    remoteReadFailed: Vue.Ref<boolean>;
   };
   return { page, hooks, clock, app, payout, toast, runtime, tick: () => tick(), clear };
 }
@@ -116,39 +122,47 @@ describe("address page server clock and read recovery", () => {
     expect(s.page.projectedServerNow.value).toBeNull();
   });
 
-  it("deduplicates reads and restores retry after false or rejected failures", async () => {
+  it("deduplicates reads and observes store failure even when its own superseded read returns true", async () => {
     const s = setup(); const first = deferred();
-    s.payout.refreshRemote.mockReturnValueOnce(first.promise);
+    s.payout.refreshRemote.mockImplementationOnce(() => { s.payout.readStatus = "loading"; return first.promise; });
     s.hooks.show[0](); s.hooks.mount[0]();
     expect(s.payout.refreshRemote).toHaveBeenCalledTimes(1);
     expect(s.page.remoteRefreshPending.value).toBe(true);
-    first.resolve(false); await first.promise; await Promise.resolve();
-    expect(s.toast.error).toHaveBeenCalledTimes(1);
+    s.payout.readStatus = "error";
+    first.resolve(true); await first.promise; await Promise.resolve();
+    expect(s.page.remoteReadFailed.value).toBe(true);
+    expect(s.toast.error).not.toHaveBeenCalled();
     expect(s.page.remoteRefreshPending.value).toBe(false);
-    s.payout.refreshRemote.mockRejectedValueOnce(new Error("network"));
+    s.payout.refreshRemote.mockResolvedValueOnce(false);
     await s.page.retryRemoteSnapshot();
-    expect(s.toast.error).toHaveBeenCalledTimes(2);
+    expect(s.page.remoteReadFailed.value).toBe(true);
+    expect(s.toast.error).not.toHaveBeenCalled();
     expect(s.page.remoteRefreshPending.value).toBe(false);
+    s.payout.readStatus = "ready";
+    await s.page.retryRemoteSnapshot();
+    expect(s.page.remoteReadFailed.value).toBe(false);
   });
 
   it("ignores a hidden page's failure without clearing the new visible request", async () => {
     const s = setup(); const old = deferred(); const fresh = deferred();
-    s.payout.refreshRemote.mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise);
+    s.payout.refreshRemote.mockReturnValueOnce(old.promise).mockImplementationOnce(() => { s.payout.readStatus = "loading"; return fresh.promise; });
     s.hooks.mount[0](); s.hooks.hide[0](); s.hooks.show[0]();
     old.resolve(false); await old.promise; await Promise.resolve();
     expect(s.toast.error).not.toHaveBeenCalled();
     expect(s.page.remoteRefreshPending.value).toBe(true);
+    s.payout.readStatus = "ready";
     fresh.resolve(true); await fresh.promise; await Promise.resolve();
     expect(s.page.remoteRefreshPending.value).toBe(false);
   });
 
-  it.each(["account", "runtime", "unmount"] as const)("drops late read errors after %s changes", async (boundary) => {
+  it.each(["account", "runtime", "unmount"] as const)("does not turn a superseded read result into an error after %s changes", async (boundary) => {
     const s = setup(); const old = deferred(); s.payout.refreshRemote.mockReturnValueOnce(old.promise);
     s.hooks.mount[0]();
     if (boundary === "account") s.app.accountBindingEpoch += 1;
     if (boundary === "runtime") s.runtime.epoch += 1;
     if (boundary === "unmount") s.hooks.unmount[0]();
-    old.reject(new Error("stale")); await old.promise.catch(() => {}); await Promise.resolve();
+    old.resolve(true); await old.promise; await Promise.resolve();
+    expect(s.page.remoteReadFailed.value).toBe(false);
     expect(s.toast.error).not.toHaveBeenCalled();
     expect(s.page.remoteRefreshPending.value).toBe(false);
     if (boundary === "unmount") expect(s.clear).toHaveBeenCalledWith(7);
@@ -162,7 +176,8 @@ import { asApiError } from '@/api/errors';
 import { formatClock, isChainAddressValid, maskAddressMid } from '@/store/payout-address-core';
 import { deadlineRemainingMs } from '@/lib/server-deadline-clock';
 
-const boundary = vi.hoisted(() => ({ app: null as any, runtimeEpoch: 1, payoutAddressApi: {} as any }));
+const boundary = vi.hoisted(() => ({ app: null as any, runtimeEpoch: 1, payoutAddressApi: {} as any,
+  runtimeListeners: new Set<(scope: number) => void>() }));
 vi.mock('@/api/runtime', () => ({ payoutAddressServerEnabled: true, payoutAddressApi: boundary.payoutAddressApi }));
 vi.mock('@/store/app', () => ({ useApp: () => boundary.app }));
 vi.mock('@/store/account-scoped-storage', () => ({ readAccountRow: () => null, writeAccountRow: () => true }));
@@ -185,12 +200,12 @@ function snapshot() { return { ...proof, addresses: [row()], serverNowEpochMs: 1
 function addressScopeDeferred<T>() { let resolve!: (v: T) => void; let reject!: (e: unknown) => void; const promise = new Promise<T>((a,b) => { resolve=a; reject=b; }); return { promise, resolve, reject }; }
 async function flush() { for (let i=0;i<8;i++) await Promise.resolve(); await Vue.nextTick(); }
 
-beforeEach(() => { setActivePinia(createPinia()); boundary.runtimeEpoch=1; boundary.app=Vue.reactive({ accountKey: 'A', accountBindingEpoch: 1, inFlightWithdrawals: [] }); vi.stubGlobal('performance', { now: () => 100 }); vi.stubGlobal('fetch', () => { throw new Error('NETWORK_NOT_ALLOWED'); }); });
+beforeEach(() => { setActivePinia(createPinia()); boundary.runtimeEpoch=1; boundary.runtimeListeners.clear(); boundary.app=Vue.reactive({ accountKey: 'A', accountBindingEpoch: 1, inFlightWithdrawals: [] }); vi.stubGlobal('performance', { now: () => 100 }); vi.stubGlobal('fetch', () => { throw new Error('NETWORK_NOT_ALLOWED'); }); });
 afterEach(() => { effects.splice(0).forEach(s => s.stop()); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
-async function addressScopeSetup() {
+async function addressScopeSetup(initialFailure = false, selectedNetwork?: string) {
   const writes: any[] = [];
   const request = vi.fn(async (input: any) => {
-    if(input.method === 'GET') return snapshot();
+    if(input.method === 'GET') { if (initialFailure) throw new Error('503'); return snapshot(); }
     if(input.method === 'PUT') { writes.push({ account: boundary.app.accountKey, epoch: boundary.app.accountBindingEpoch, ...input }); return row('B'); }
     throw new Error('UNEXPECTED_CONTROLLED_REQUEST');
   });
@@ -199,9 +214,11 @@ async function addressScopeSetup() {
   const hooks = { hide: [] as Function[], show: [] as Function[], unmount: [] as Function[] };
   const dict = { changeConfirmTitle: 'Change', changeConfirmBody: 'Cooldown {days}', changeConfirmYes: 'Yes', startFailed: 'Failed', inFlightBlocked: 'Blocked' };
   const dependencies = {
+    useFinanceReviewCopy,
     computed: Vue.computed, ref: Vue.ref, watch: Vue.watch, nextTick: Vue.nextTick, getCurrentInstance: () => ({ uid: 17 }),
-    onLoad: () => {}, onMounted: () => {}, onUnmounted: (f: Function) => hooks.unmount.push(f), onHide: (f: Function) => hooks.hide.push(f), onShow: (f: Function) => hooks.show.push(f),
+    onLoad: (f: Function) => { if (selectedNetwork) f({ network: selectedNetwork }); }, onMounted: () => {}, onUnmounted: (f: Function) => hooks.unmount.push(f), onHide: (f: Function) => hooks.hide.push(f), onShow: (f: Function) => hooks.show.push(f),
     captureRuntimeRevision: () => boundary.runtimeEpoch, isCurrentRuntimeRevision: (v: number) => v===boundary.runtimeEpoch,
+    subscribeRuntimeRevision: (listener: (scope: number) => void) => { boundary.runtimeListeners.add(listener); return () => boundary.runtimeListeners.delete(listener); },
     payoutAddressServerEnabled: true, asApiError, useT: () => Vue.ref({ addrRebind: dict }), fmt: (s: string, values: any) => s?.replace(/\{(\w+)\}/g, (_,k) => String(values[k] ?? '')),
     useApp: () => boundary.app, usePayoutAddress: () => payout, useUI, useConfig: () => ({ config: { withdrawRules: { rebindCooldownDays: 7, newAddressHoldHours: 24 } } }),
     uiConfirm, toast, navBack: vi.fn(), navTo: vi.fn(), mockServerNow: () => 1_800_000_000_000,
@@ -209,16 +226,165 @@ async function addressScopeSetup() {
     formatClock, isChainAddressValid, maskAddressMid, advanceMonotonicHighWater, deadlineRemainingMs, projectServerNow, readTrustedMonotonicNowMs,
     setInterval: () => 5, clearInterval: () => {},
   };
-  const execute = new Function(...Object.keys(dependencies), `${addressScopeImplementation}; return { confirmOtp, applyAfterOtp, startChange, otpCode, otpRequestId, otpCommandKey, otpVerifying, newAddress, explicitStep, mode };`);
+  const execute = new Function(...Object.keys(dependencies), `${addressScopeImplementation}; return { confirmOtp, applyAfterOtp, startChange, otpCode, otpRequestId, otpCommandKey, otpVerifying, newAddress, explicitStep, mode, step, network, retryRemoteSnapshot, remoteReadFailed, remoteRefreshPending, holdNoteText, copy, stateBodyStyle, primaryCtaStyle };`);
   const effect = Vue.effectScope(); effects.push(effect);
   const page = effect.run(() => execute(...Object.values(dependencies))) as any;
-  page.startChange(); expect(page.mode.value).toBe('change');
+  if (!initialFailure) { page.startChange(); expect(page.mode.value).toBe('change'); }
   page.newAddress.value=address('B'); page.otpRequestId.value='PAYOUT-FIXTURE1'; page.otpCode.value='123456'; page.otpCommandKey.value='payout-address:original-fixture-key';
   return { page, payout, hooks, writes, request, ui: useUI() };
 }
 function accept(ui: ReturnType<typeof useUI>, ok=true) { const queued=ui.confirmQueue[0]; expect(queued).toBeDefined(); ui.resolveConfirm(queued.id,ok); }
 function rebind(s: Awaited<ReturnType<typeof addressScopeSetup>>, account: string) { boundary.app.accountKey=account; boundary.app.accountBindingEpoch++; s.payout.bindAccount(account); }
+function publishRuntime() {
+  boundary.runtimeEpoch++;
+  boundary.runtimeListeners.forEach(listener => listener(boundary.runtimeEpoch));
+}
+async function renderReadStatus(page: Awaited<ReturnType<typeof addressScopeSetup>>['page']) {
+  const start = source.indexOf('<view v-if="step === \'unknown\'"');
+  const end = source.indexOf('<!-- ── 成功态', start);
+  const render = new Function('Vue', compile(source.slice(start, end), {
+    mode: 'function', prefixIdentifiers: true, isCustomElement: tag => ['view', 'text'].includes(tag),
+  }).code)(Vue);
+  return renderToString(Vue.createSSRApp({ render, setup: () => page }));
+}
 describe('real address SFC + real store/parser controlled boundary', () => {
+  const coldOrders = (['zh', 'en'] as const).flatMap(locale =>
+    (['old-first', 'latest-first'] as const).flatMap(order =>
+      (['success', 'failure'] as const).map(oldOutcome => ({ locale, order, oldOutcome }))));
+  it.each(coldOrders)('cold BEP20 runtime hydration ends with one enabled retry: $locale/$order/$oldOutcome', async ({ locale, order, oldOutcome }) => {
+    const s = await addressScopeSetup(true, 'usdt-bep20');
+    useLocaleStore().setLocale(locale);
+    const pageRead = addressScopeDeferred<any>(), runtimeRead = addressScopeDeferred<any>(), latest = addressScopeDeferred<any>();
+    s.request.mockImplementationOnce(() => pageRead.promise).mockImplementationOnce(() => runtimeRead.promise).mockImplementationOnce(() => latest.promise);
+    const before = s.request.mock.calls.length;
+    const pending = s.page.retryRemoteSnapshot();
+    publishRuntime();
+    s.payout.bindAccount('A');
+    expect(s.request.mock.calls.length - before).toBe(3);
+    expect(s.page.network.value).toBe('usdt-bep20');
+    expect(s.page.remoteRefreshPending.value).toBe(true);
+    const settleOld = () => {
+      if (oldOutcome === 'success') { pageRead.resolve(snapshot()); runtimeRead.resolve(snapshot()); }
+      else { pageRead.reject(new Error('503')); runtimeRead.reject(new Error('503')); }
+    };
+    if (order === 'old-first') {
+      settleOld(); await flush();
+      expect(s.page.remoteRefreshPending.value).toBe(true);
+      latest.reject(new Error('503'));
+    } else {
+      latest.reject(new Error('503')); await flush();
+      expect(s.page.remoteReadFailed.value).toBe(true);
+      expect(s.page.remoteRefreshPending.value).toBe(false);
+      settleOld();
+    }
+    await pending; await flush();
+    expect(s.page.step.value).toBe('unknown');
+    expect(s.page.remoteReadFailed.value).toBe(true);
+    expect(s.page.remoteRefreshPending.value).toBe(false);
+    const html = await renderReadStatus(s.page);
+    expect(html).toContain(s.page.copy.value.addressUnavailable);
+    expect(html.match(/class="nx-rebind-read-retry /g)).toHaveLength(1);
+    expect(html).toContain('aria-disabled="false"');
+    expect(html).not.toMatch(/未设置|0\s*小时|0\s*hours/);
+    s.request.mockImplementation(async input => {
+      if (input.method !== 'GET') throw new Error('WRITE_FORBIDDEN');
+      return { ...snapshot(), addresses: [] };
+    });
+    await s.page.retryRemoteSnapshot();
+    expect(s.page.step.value).toBe('form');
+    expect(s.page.remoteReadFailed.value).toBe(false);
+    expect(s.payout.effectiveDelayHours).toBe(24);
+    expect(s.writes).toHaveLength(0);
+  });
+
+  it('refreshes after a runtime-only transition and ignores the old snapshot without relying on account rebinding', async () => {
+    const s = await addressScopeSetup(true);
+    const old = addressScopeDeferred<any>(), current = addressScopeDeferred<any>();
+    s.request.mockImplementationOnce(() => old.promise).mockImplementationOnce(() => current.promise);
+    const pending = s.page.retryRemoteSnapshot();
+    publishRuntime();
+    current.reject(new Error('503')); await flush();
+    old.resolve(snapshot()); await pending; await flush();
+    expect(s.page.remoteReadFailed.value).toBe(true);
+    expect(s.payout.provenance).toBeNull();
+    expect(s.page.remoteRefreshPending.value).toBe(false);
+  });
+
+  it('retains warm failure/retry and does not let an older failure displace a newer snapshot', async () => {
+    const s = await addressScopeSetup(); s.page.explicitStep.value = 'base';
+    expect(s.page.step.value).toBe('view');
+    s.request.mockRejectedValueOnce(new Error('503'));
+    await s.page.retryRemoteSnapshot();
+    expect(s.page.remoteReadFailed.value).toBe(true);
+    expect(s.payout.currentFor('usdt-trc20')?.address).toBe(address('A'));
+    const older = addressScopeDeferred<any>();
+    s.request.mockImplementationOnce(() => older.promise).mockResolvedValue(snapshot());
+    const pending = s.page.retryRemoteSnapshot();
+    await s.payout.refreshRemote();
+    older.reject(new Error('503')); await pending;
+    expect(s.page.step.value).toBe('view');
+    expect(s.page.remoteReadFailed.value).toBe(false);
+  });
+
+  it('starts the current runtime read only when visible and unsubscribes on disposal', async () => {
+    const s = await addressScopeSetup(true);
+    s.hooks.hide[0]();
+    const before = s.request.mock.calls.length;
+    publishRuntime();
+    expect(s.request).toHaveBeenCalledTimes(before);
+    s.hooks.show[0](); await flush();
+    expect(s.page.remoteReadFailed.value).toBe(true);
+    expect(s.request).toHaveBeenCalledTimes(before + 1);
+    s.hooks.unmount[0]();
+    expect(boundary.runtimeListeners.size).toBe(0);
+    publishRuntime();
+    expect(s.request).toHaveBeenCalledTimes(before + 1);
+  });
+
+  it.each(['success', 'failure'] as const)('cold startup observes the latest external read error after an older page %s', async outcome => {
+    const s = await addressScopeSetup(true);
+    const older = addressScopeDeferred<any>(), latest = addressScopeDeferred<any>();
+    s.request.mockImplementationOnce(() => older.promise).mockImplementationOnce(() => latest.promise);
+    const pageRead = s.page.retryRemoteSnapshot();
+    // Account hydration can rebind the same account after the page has started.
+    s.payout.bindAccount('A');
+    latest.reject(new Error('503')); await flush();
+    if (outcome === 'success') older.resolve(snapshot());
+    else older.reject(new Error('503'));
+    await pageRead; await flush();
+    expect(s.page.step.value).toBe('unknown');
+    expect(s.page.remoteReadFailed.value).toBe(true);
+    expect(s.page.remoteRefreshPending.value).toBe(false);
+    expect(s.writes).toHaveLength(0);
+  });
+
+  it('keeps a failed cold read unknown, renders one retry, and uses canonical empty state only after recovery', async () => {
+    const s = await addressScopeSetup(true);
+    expect(s.page.step.value).toBe('unknown');
+    await s.page.retryRemoteSnapshot();
+    expect(s.page.remoteReadFailed.value).toBe(true);
+    expect(s.page.step.value).toBe('unknown');
+    const start = source.indexOf('<view v-if="step === \'unknown\'"');
+    const end = source.indexOf('<!-- ── 成功态', start);
+    const render = new Function('Vue', compile(source.slice(start, end), {
+      mode: 'function', prefixIdentifiers: true, isCustomElement: tag => ['view', 'text'].includes(tag),
+    }).code)(Vue);
+    const html = await renderToString(Vue.createSSRApp({ render, setup: () => s.page }));
+    expect(html).toContain(s.page.copy.value.addressUnavailable);
+    expect(html).toContain('nx-rebind-read-retry');
+    expect(html).not.toContain('nx-rebind-address-input');
+    expect(html).not.toMatch(/未设置|0\s*小时/);
+    s.request.mockImplementation(async (input: any) => {
+      if (input.method !== 'GET') throw new Error('WRITE_FORBIDDEN');
+      return { ...snapshot(), addresses: [] };
+    });
+    await s.page.retryRemoteSnapshot();
+    expect(s.page.remoteReadFailed.value).toBe(false);
+    expect(s.page.step.value).toBe('form');
+    expect(s.payout.effectiveDelayHours).toBe(24);
+    expect(s.writes).toHaveLength(0);
+  });
+
   it('page cancellation settles only its owner and preserves a foreign draft', async () => {
     const s=await addressScopeSetup(); const pending=s.page.confirmOtp();
     const foreign=s.ui.confirm({ title:'Foreign', owner:'other-page' });

@@ -36,6 +36,6 @@ describe("locked task teasers", () => {
     }
     expect(en.earn.lockedPotentialDisclaimer).toMatch(/device limits.*availability.*eligibility/i);
     expect(vi.earn.lockedPotentialDisclaimer).toMatch(/Giới hạn thiết bị.*nguồn việc.*tài khoản/i);
-    expect(zh.earn.lockedPotentialDisclaimer).toMatch(/设备上限.*任务供应.*账号资格/);
+    expect(zh.earn.lockedPotentialDisclaimer).toMatch(/设备上限.*作业供应.*账号资格/);
   });
 });

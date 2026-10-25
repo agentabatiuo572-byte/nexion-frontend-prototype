@@ -9,10 +9,10 @@
           <text class="entry-title">{{ data.title }}</text>
           <text class="entry-body">{{ data.body }}</text>
           <view class="entry-actions">
-            <view class="entry-action entry-action--primary" role="button" tabindex="0" :aria-label="data.primary.label" @click="go(data.primary.href)">
+            <view class="entry-action entry-action--primary" role="button" tabindex="0" :aria-label="data.primary.label" @click="go(data.primary.href)" @keydown.enter.prevent="go(data.primary.href)" @keydown.space.prevent="go(data.primary.href)">
               <text>{{ data.primary.label }}</text>
             </view>
-            <view class="entry-action entry-action--ghost" role="button" tabindex="0" :aria-label="data.secondary.label" @click="go(data.secondary.href)">
+            <view class="entry-action entry-action--ghost" role="button" tabindex="0" :aria-label="data.secondary.label" @click="go(data.secondary.href)" @keydown.enter.prevent="go(data.secondary.href)" @keydown.space.prevent="go(data.secondary.href)">
               <text>{{ data.secondary.label }}</text>
             </view>
           </view>
@@ -33,18 +33,6 @@
         </view>
       </view>
 
-      <view class="entry-mode">
-        <text class="entry-mode-label">{{ data.modeLabel }}</text>
-        <text class="entry-mode-value">{{ data.modeValue }}</text>
-      </view>
-
-      <view class="entry-grid">
-        <view v-for="metric in data.metrics" :key="metric.label" class="entry-metric">
-          <text class="entry-metric-value">{{ metric.value }}</text>
-          <text class="entry-metric-label">{{ metric.label }}</text>
-        </view>
-      </view>
-
       <view class="entry-flow">
         <view v-for="step in data.steps" :key="step.title" class="entry-step">
           <view class="entry-step-dot" />
@@ -55,8 +43,8 @@
         </view>
       </view>
 
-      <view class="entry-link" role="button" tabindex="0" :aria-label="t.entrySurface.fullLinks" @click="go('/pages/entry-surfaces/index')">
-        <text>{{ t.entrySurface.fullLinks }}</text>
+      <view class="entry-link" role="button" tabindex="0" :aria-label="entryCopy.otherWays" @click="go('/pages/entry-surfaces/index')" @keydown.enter.prevent="go('/pages/entry-surfaces/index')" @keydown.space.prevent="go('/pages/entry-surfaces/index')">
+        <text>{{ entryCopy.otherWays }}</text>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M7 17 17 7" />
           <path d="M8 7h9v9" />
@@ -69,16 +57,15 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
-import { useT } from "@/i18n/use-t";
+import { useEntrySurfaceCopy } from "./entry-surface-copy";
 import { navTo } from "@/lib/route";
 
 type SurfaceKey = "signed" | "h5" | "white";
 
 const props = defineProps<{ surface: SurfaceKey }>();
-const t = useT();
+const entryCopy = useEntrySurfaceCopy();
 
-// 文案在 i18n(entrySurface.surfaces.*);这里只留跟语言无关的东西:
-// 目的地路由 + hero 插画的 SVG path。
+// Keep navigation and decorative artwork separate from consumer guidance.
 const SHELLS: Record<SurfaceKey, { primaryHref: string; secondaryHref: string; iconPath: string }> = {
   signed: {
     primaryHref: "/",
@@ -98,19 +85,16 @@ const SHELLS: Record<SurfaceKey, { primaryHref: string; secondaryHref: string; i
 };
 
 const shell = computed(() => SHELLS[props.surface]);
-const copy = computed(() => t.value.entrySurface.surfaces[props.surface]);
+const copy = computed(() => entryCopy.value.surfaces[props.surface]);
 const data = computed(() => {
   const c = copy.value;
   return {
     kicker: c.kicker,
     title: c.title,
     body: c.body,
-    modeLabel: c.modeLabel,
-    modeValue: c.modeValue,
     primary: { label: c.primaryLabel, href: shell.value.primaryHref },
     secondary: { label: c.secondaryLabel, href: shell.value.secondaryHref },
-    metrics: [c.metrics.a, c.metrics.b, c.metrics.c],
-    steps: [c.steps.a, c.steps.b, c.steps.c],
+    steps: c.steps,
     iconPath: shell.value.iconPath,
   };
 });
@@ -136,7 +120,6 @@ function go(href: string) {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 18px;
-  min-height: 430px;
   padding: 0 0 10px;
 }
 
@@ -191,8 +174,9 @@ function go(href: string) {
   align-items: center;
   justify-content: center;
   min-height: 48px;
-  padding: 0 16px;
-  border-radius: 8px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
   text-align: center;
@@ -216,7 +200,7 @@ function go(href: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 238px;
+  min-height: 160px;
   border-radius: 8px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--v5-surface) 82%, transparent), color-mix(in srgb, var(--v5-surface-2) 68%, transparent)),
@@ -225,62 +209,8 @@ function go(href: string) {
 }
 
 .entry-visual-svg {
-  width: min(236px, 100%);
+  width: min(160px, 100%);
   height: auto;
-}
-
-.entry-mode {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 52px;
-  padding: 12px;
-  border-radius: 8px;
-  background: var(--v5-surface);
-}
-
-.entry-mode-label {
-  color: var(--v5-ink-3);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.entry-mode-value {
-  color: var(--v5-brand);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.entry-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.entry-metric {
-  min-width: 0;
-  min-height: 82px;
-  padding: 12px 10px;
-  border-radius: 8px;
-  background: var(--v5-surface);
-}
-
-.entry-metric-value {
-  display: block;
-  color: var(--v5-ink);
-  font-size: 15px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.entry-metric-label {
-  display: block;
-  margin-top: 6px;
-  color: var(--v5-ink-3);
-  font-size: 12px;
-  line-height: 1.35;
 }
 
 .entry-flow {
@@ -338,7 +268,6 @@ function go(href: string) {
   margin-top: 12px;
   padding: 0 14px;
   border-radius: 8px;
-  /* 可点链接行直接坐在 entry-page 底(--v5-bg)上,surface-2 与页面底同色不可辨 → 改 L1 surface,与同级 entry-mode / entry-metric 对齐 */
   background: var(--v5-surface);
   color: var(--v5-ink-2);
   font-size: 13px;

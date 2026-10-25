@@ -112,6 +112,9 @@ export const useStaking = defineStore("staking", () => {
   const walletBalanceUsdt = ref(0);
   const remoteError = ref<string | null>(null);
   const remoteReady = ref(isMockMode);
+  const remoteHasSnapshot = ref(isMockMode);
+  const remoteLoading = ref(false);
+  let remoteReadId = 0;
   let serverClock: { time: number; receivedAt: number } | null = null;
   const monotonicNow = () => typeof performance !== "undefined" ? performance.now() : Date.now();
   function currentTime(): number {
@@ -205,6 +208,9 @@ export const useStaking = defineStore("staking", () => {
   }
 
   function clearRemoteState() {
+    remoteReadId += 1;
+    remoteHasSnapshot.value = false;
+    remoteLoading.value = false;
     serverClock = null;
     pools.value = [];
     positions.value = [];
@@ -229,27 +235,33 @@ export const useStaking = defineStore("staking", () => {
     walletBalanceUsdt.value = snapshot.walletBalanceUsdt;
     remoteError.value = null;
     remoteReady.value = true;
+    remoteHasSnapshot.value = true;
   }
 
   // 权威不可达是常态输入,不 reject(resilience 门);失败信号走返回值/remoteError。
   async function syncRemote(request: RemoteAccountRequest = remoteAccountEpoch.snapshot()): Promise<boolean> {
     if (isMockMode) return true;
     if (!remoteAccountEpoch.isCurrent(request)) return false;
+    const readId = ++remoteReadId;
+    remoteLoading.value = true;
     const revision = remoteStateRevision;
-    if (!(await waitForRemoteMutations(request)) || revision !== remoteStateRevision) return false;
     try {
+      if (!(await waitForRemoteMutations(request)) || revision !== remoteStateRevision) return false;
       const [nextPools, snapshot] = await Promise.all([
         stakingApi.fetchStakingPools(),
         stakingApi.fetchStakingPositions(),
       ]);
-      if (!remoteAccountEpoch.isCurrent(request) || revision !== remoteStateRevision) return false;
+      if (!remoteAccountEpoch.isCurrent(request) || revision !== remoteStateRevision || readId !== remoteReadId) return false;
       pools.value = nextPools;
       applyRemoteSnapshot(snapshot);
       return true;
     } catch {
-      if (!remoteAccountEpoch.isCurrent(request) || revision !== remoteStateRevision) return false;
+      if (!remoteAccountEpoch.isCurrent(request) || revision !== remoteStateRevision || readId !== remoteReadId) return false;
       remoteError.value = "G1_REMOTE_AUTHORITY_UNAVAILABLE";
+      remoteReady.value = false;
       return false;
+    } finally {
+      if (readId === remoteReadId) remoteLoading.value = false;
     }
   }
 
@@ -567,6 +579,8 @@ export const useStaking = defineStore("staking", () => {
     walletBalanceUsdt,
     remoteError,
     remoteReady,
+    remoteHasSnapshot,
+    remoteLoading,
     positions,
     totalLocked,
     totalEarnedSoFar,

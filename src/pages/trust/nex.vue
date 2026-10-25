@@ -14,17 +14,17 @@
       </view>
       <view v-else-if="narrative.state === 'error'" class="mx-4" :style="stateCardStyle">
         <text class="block" :style="stateTextStyle">{{ t.trust.nexNarrativeError }}</text>
-        <text class="block active:opacity-70" :style="retryStyle" role="button" tabindex="0" @click="loadNarrative(true)">{{ t.ui.retry }}</text>
+        <text class="block active:opacity-70" :style="retryStyle" role="button" tabindex="0" @click="loadNarrative(true)" @keydown.enter.prevent="loadNarrative(true)" @keydown.space.prevent="loadNarrative(true)">{{ t.ui.retry }}</text>
       </view>
       <view v-else-if="narrative.state === 'unpublished'" class="mx-4" :style="stateCardStyle">
         <text class="block" :style="stateTextStyle">{{ t.trust.nexNarrativeUnavailable }}</text>
-        <text class="block active:opacity-70" :style="retryStyle" role="button" tabindex="0" @click="loadNarrative(true)">{{ t.ui.retry }}</text>
+        <text class="block active:opacity-70" :style="retryStyle" role="button" tabindex="0" @click="loadNarrative(true)" @keydown.enter.prevent="loadNarrative(true)" @keydown.space.prevent="loadNarrative(true)">{{ t.ui.retry }}</text>
       </view>
 
       <template v-else>
-      <HowHero :label="`${w.heroLabel} · ${narrative.version}`" :title="narrative.hero" :sub="narrative.subhero ?? ''" accent="nex" />
+      <HowHero :label="`${w.heroLabel} · ${narrative.version}`" :title="narrative.hero" :sub="narrative.subhero ?? ''" accent="purple" />
 
-      <HowSection :title="w.s1Title" accent="nex">
+      <HowSection :title="w.s1Title" accent="purple">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
         </template>
@@ -43,31 +43,31 @@
         </view>
       </HowSection>
 
-      <HowSection :title="w.s2Title" accent="nex">
+      <HowSection :title="w.s2Title" accent="purple">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="m16.71 13.88.7.71-2.82 2.82" /></svg>
         </template>
         <text class="block" :style="introStyle">{{ w.s2Intro }}</text>
         <view style="display: flex; flex-direction: column; gap: 10px">
-          <IconRow emoji="⚙️" :label="w.src1Label" :body="w.src1Body" />
-          <IconRow emoji="🤝" :label="w.src2Label" :body="w.src2Body" />
-          <IconRow emoji="📈" :label="w.src3Label" :body="w.src3Body" />
-          <IconRow emoji="🎁" :label="w.src4Label" :body="src4Body" />
+          <view class="nex-copy-row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8v8H8z"/></svg><view><text class="block nex-copy-label">{{ w.src1Label }}</text><text class="block" :style="paraStyle">{{ w.src1Body }}</text></view></view>
+          <view class="nex-copy-row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/></svg><view><text class="block nex-copy-label">{{ w.src2Label }}</text><text class="block" :style="paraStyle">{{ w.src2Body }}</text></view></view>
+          <view class="nex-copy-row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 6-6 4 4 8-10M15 5h6v6"/></svg><view><text class="block nex-copy-label">{{ w.src3Label }}</text><text class="block" :style="paraStyle">{{ w.src3Body }}</text></view></view>
+          <view class="nex-copy-row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h18v13H3zM12 8v13M2 8h20V5H2z"/></svg><view><text class="block nex-copy-label">{{ w.src4Label }}</text><text class="block" :style="paraStyle">{{ src4Body }}</text></view></view>
         </view>
       </HowSection>
 
-      <HowSection :title="w.s3Title" accent="nex">
+      <HowSection :title="w.s3Title" accent="purple">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg>
         </template>
         <text class="block" :style="introStyle">{{ w.s3Intro }}</text>
         <view style="display: flex; flex-direction: column; gap: 10px">
-          <IconRow emoji="💱" :label="w.use1Label" :body="w.use1Body" />
-          <IconRow emoji="💸" :label="w.use3Label" :body="w.use3Body" />
+          <view class="nex-copy-row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18m-4-4 4 4-4 4M21 17H3m4-4-4 4 4 4"/></svg><view><text class="block nex-copy-label">{{ w.use1Label }}</text><text class="block" :style="paraStyle">{{ w.use1Body }}</text></view></view>
+          <view class="nex-copy-row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v14H3zM7 12h10"/></svg><view><text class="block nex-copy-label">{{ w.use3Label }}</text><text class="block" :style="paraStyle">{{ w.use3Body }}</text></view></view>
         </view>
       </HowSection>
 
-      <HowSection :title="w.s4Title" accent="nex">
+      <HowSection :title="w.s4Title" accent="purple">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
         </template>
@@ -78,15 +78,15 @@
         </view>
         <view :style="burnBoxStyle">
           <view class="flex items-center" :style="burnLabelRowStyle">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>
             <text :style="burnLabelTextStyle">{{ w.s4BurnLabel }}</text>
           </view>
           <text class="block" :style="burnBodyStyle">{{ w.s4BurnBody }}</text>
         </view>
-        <CalloutBox :title="`💡 ${w.s4HintTitle}`" :body="w.s4HintBody" tone="nex" />
+        <view :style="demandBoxStyle"><text class="block nex-copy-label">{{ w.s4HintTitle }}</text><text class="block" :style="paraStyle">{{ w.s4HintBody }}</text></view>
       </HowSection>
 
-      <HowSection :title="w.faqTitle" accent="nex">
+      <HowSection :title="w.faqTitle" accent="purple">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
         </template>
@@ -123,8 +123,6 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import HowHero from "@/components/how/how-hero.vue";
 import HowSection from "@/components/how/how-section.vue";
 import HowFaqRow from "@/components/how/how-faq-row.vue";
-import IconRow from "@/components/how/how-icon-row.vue";
-import CalloutBox from "@/components/how/how-callout-box.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
@@ -231,30 +229,30 @@ function tableRowStyle(isFirst: boolean): CSSProperties {
 }
 const tdWhat: CSSProperties = { flex: "1.2", padding: "8px 12px", color: "var(--v5-ink-3)" };
 const tdUsdt: CSSProperties = { flex: "1", padding: "8px 12px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)" };
-const tdNex: CSSProperties = { flex: "1", padding: "8px 12px", color: "var(--v5-nex)" };
+const tdNex: CSSProperties = { flex: "1", padding: "8px 12px", color: "var(--v5-ink)" };
 const demandBoxStyle: CSSProperties = {
   marginTop: "12px",
   borderRadius: "12px",
-  background: "color-mix(in srgb, var(--v5-tech-cyan) 10%, var(--v5-surface))",
-  padding: "16px",
+  background: "transparent",
+  padding: "12px 0",
 };
-const demandLabelStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.14em", color: "var(--v5-brand-2)", marginBottom: "8px" };
+const demandLabelStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.14em", color: "var(--v5-ink)", marginBottom: "8px" };
 const demandBodyStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-2)", lineHeight: 1.625 };
 const burnBoxStyle: CSSProperties = {
   marginTop: "8px",
   borderRadius: "12px",
-  background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)",
-  padding: "16px",
+  background: "transparent",
+  padding: "12px 0",
 };
 const burnLabelRowStyle: CSSProperties = { marginBottom: "8px" };
-const burnLabelTextStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.14em", color: "var(--v5-warning)" };
+const burnLabelTextStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.14em", color: "var(--v5-ink)" };
 const burnBodyStyle: CSSProperties = { fontSize: "12px", color: "color-mix(in srgb, var(--v5-ink) 80%, transparent)", lineHeight: 1.625 };
 const ctaExchangeStyle: CSSProperties = {
   gap: "8px",
   width: "100%",
   height: "48px",
   borderRadius: "999px",
-  background: "linear-gradient(90deg, var(--v5-tech-cyan), var(--v5-brand-2))",
+  background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
   fontSize: "15px",
   fontWeight: 600,
@@ -272,3 +270,8 @@ const ctaBackStyle: CSSProperties = {
 
 
 </script>
+
+<style scoped>
+.nex-copy-row { display:grid;grid-template-columns:20px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--v5-border);color:var(--v5-ink-2); }
+.nex-copy-label { font-size:13px;font-weight:600;color:var(--v5-ink);margin-bottom:5px; }
+</style>

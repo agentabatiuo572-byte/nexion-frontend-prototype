@@ -48,11 +48,26 @@ function clipboardFixture(throws = false) {
   const page = sources["./proof.vue"].match(/<script setup lang="ts">([\s\S]*?)<\/script>/)?.[1] ?? "";
   const toast = { success: vi.fn(), info: vi.fn() };
   const t = { value: { share: { copyFailed: "Copy failed" } } };
-  const copyText = new Function("uni", "copyToClipboard", "toast", "t", `${compiledFunction(page, "copyText")}\nreturn copyText;`)(uni, copyToClipboard, toast, t);
-  return { uni, toast, copyText, callbacks: () => uni.setClipboardData.mock.calls[0][0] };
+  let current = true;
+  const beginProofAction = () => () => current;
+  const copyText = new Function("uni", "copyToClipboard", "toast", "t", "beginProofAction", `${compiledFunction(page, "copyText")}\nreturn copyText;`)(uni, copyToClipboard, toast, t, beginProofAction);
+  return { uni, toast, copyText, invalidate: () => { current = false; }, callbacks: () => uni.setClipboardData.mock.calls[0][0] };
 }
 
 describe("proof clipboard completion feedback", () => {
+  it.each(["", "   "])("does not copy empty content %j or report success", async data => {
+    const fixture = clipboardFixture();
+    await fixture.copyText(data, "Copied");
+    expect(fixture.uni.setClipboardData).not.toHaveBeenCalled();
+    expect(fixture.toast.success).not.toHaveBeenCalled();
+  });
+
+  it("discards clipboard completion feedback after the action scope changes", async () => {
+    const fixture = clipboardFixture();
+    const completion = fixture.copyText("https://example.invalid/ref/fixture", "Copied");
+    fixture.invalidate(); fixture.callbacks().success?.(); await completion;
+    expect(fixture.toast.success).not.toHaveBeenCalled();
+  });
   it("keeps the success toast pending until the actual API success callback", async () => {
     const fixture = clipboardFixture();
     const completion = fixture.copyText("https://example.invalid/ref/fixture", "Copied", "Link");

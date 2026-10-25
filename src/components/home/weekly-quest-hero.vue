@@ -206,7 +206,7 @@ const accentLineStyle: CSSProperties = {
   right: "0",
   top: "0",
   height: "2px",
-  background: "linear-gradient(90deg, transparent, var(--v5-warning), transparent)",
+  background: "linear-gradient(90deg, transparent, var(--v5-brand), transparent)",
   opacity: 0.7,
   pointerEvents: "none",
 };
@@ -217,7 +217,7 @@ const washStyle: CSSProperties = {
   width: "120px",
   height: "120px",
   borderRadius: "50%",
-  background: "radial-gradient(circle, var(--v5-warning-soft), transparent 70%)",
+  background: "radial-gradient(circle, var(--v5-brand-soft), transparent 70%)",
   opacity: 0.55,
   pointerEvents: "none",
 };
@@ -226,14 +226,14 @@ const labelStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
   fontWeight: 500,
-  color: "var(--v5-warning)",
+  color: "var(--v5-brand)",
   letterSpacing: "0.06em",
 };
 const categoryStyle: CSSProperties = {
   marginLeft: "4px",
   padding: "2px 6px",
   borderRadius: "999px",
-  background: "var(--v5-warning-soft)",
+  background: "var(--v5-brand-soft)",
   color: "var(--v5-ink-3)",
   letterSpacing: "normal",
 };
@@ -293,7 +293,7 @@ const ctaStyle: CSSProperties = {
   height: "44px",
   padding: "0 16px",
   borderRadius: "999px",
-  background: "var(--v5-warning)",
+  background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
@@ -313,7 +313,7 @@ const claimStyle: CSSProperties = {
   height: "44px",
   padding: "0 16px",
   borderRadius: "999px",
-  background: "linear-gradient(90deg, var(--v5-warning), var(--v5-success))",
+  background: "linear-gradient(90deg, var(--v5-brand), var(--v5-success))",
   color: "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,

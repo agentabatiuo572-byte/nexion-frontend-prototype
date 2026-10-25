@@ -93,7 +93,7 @@
               :aria-describedby="accessIssue === ISSUE_USE_CASE ? 'dev-usecase-error' : undefined" />
             <text v-if="accessIssue === ISSUE_USE_CASE" id="dev-usecase-error" class="block" :style="fieldErrorStyle" role="alert">{{ t.developer.useCaseInvalid }}</text>
           </view>
-          <view v-if="canSubmitAccessRequest" class="mt-3 rounded-xl flex items-center justify-center active:opacity-85" :style="submitBtnStyle" role="button" tabindex="0" :aria-label="t.developer.formSubmit" :aria-busy="submitting ? 'true' : 'false'" @click="submitRequest">
+          <view v-if="canSubmitAccessRequest" class="mt-3 flex items-center justify-center active:opacity-85" :style="submitBtnStyle" role="button" :tabindex="submitting ? -1 : 0" :aria-label="t.developer.formSubmit" :aria-disabled="submitting ? 'true' : 'false'" :aria-busy="submitting ? 'true' : 'false'" @click="submitRequest" @keydown.enter.prevent="submitRequest" @keydown.space.prevent="submitRequest">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
             <text style="font-size: 13px; font-weight: 600; color: var(--v5-on-brand)">{{ submitting ? "…" : t.developer.formSubmit }}</text>
           </view>
@@ -950,8 +950,12 @@ const fieldErrorStyle: CSSProperties = {
   color: "var(--v5-danger)",
 };
 const submitBtnStyle: CSSProperties = {
-  height: "48px",
-  background: "var(--v5-tech-cyan)",
+  minHeight: "48px",
+  padding: "12px 20px",
+  boxSizing: "border-box",
+  borderRadius: "999px",
+  background: "var(--v5-brand)",
+  color: "var(--v5-on-brand)",
 };
 const requestStatusStyle: CSSProperties = { padding: "10px 12px", marginBottom: "12px", };
 const resourceRowStyle: CSSProperties = { padding: "12px 0", gap: "10px", borderBottom: "1px solid var(--v5-border)" };

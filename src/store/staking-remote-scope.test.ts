@@ -94,6 +94,60 @@ beforeEach(() => {
 });
 
 describe("staking remote account scope", () => {
+  it("distinguishes an unread account from a confirmed empty account and recovers on retry", async () => {
+    const store = useStaking();
+    remote.stakingApi.fetchStakingPools.mockRejectedValue(new Error("503"));
+    remote.stakingApi.fetchStakingPositions.mockRejectedValue(new Error("503"));
+    expect(await store.syncRemote()).toBe(false);
+    expect(store.remoteHasSnapshot).toBe(false);
+    expect(store.remoteReady).toBe(false);
+    expect(store.remoteLoading).toBe(false);
+    remote.stakingApi.fetchStakingPools.mockResolvedValue([pool("A")]);
+    remote.stakingApi.fetchStakingPositions.mockResolvedValue({ ...snapshot("A"), positions: [], walletBalanceUsdt: 0 });
+    expect(await store.syncRemote()).toBe(true);
+    expect(store.remoteHasSnapshot).toBe(true);
+    expect(store.remoteReady).toBe(true);
+    expect(store.remoteError).toBeNull();
+    expect(store.positions).toEqual([]);
+  });
+
+  it("retains the last successful snapshot on refresh failure, fences new actions, then restores readiness", async () => {
+    const store = useStaking();
+    await bindReady(store);
+    const previous = structuredClone({ positions: store.positions.map(p => ({ ...p })), balance: store.walletBalanceUsdt });
+    remote.stakingApi.fetchStakingPositions.mockRejectedValue(new Error("503"));
+    expect(await store.syncRemote()).toBe(false);
+    expect(store.remoteHasSnapshot).toBe(true);
+    expect(store.remoteReady).toBe(false);
+    expect(store.positions).toEqual(previous.positions);
+    expect(store.walletBalanceUsdt).toBe(previous.balance);
+    const next = deferred<StakingSnapshot>();
+    remote.stakingApi.fetchStakingPositions.mockReturnValue(next.promise);
+    const retry = store.syncRemote();
+    expect(store.remoteLoading).toBe(true);
+    next.resolve(snapshot("A"));
+    expect(await retry).toBe(true);
+    expect(store.remoteReady).toBe(true);
+    expect(store.remoteLoading).toBe(false);
+    store.bindAccount("B");
+    expect(store.remoteHasSnapshot).toBe(false);
+  });
+
+  it("does not let an older failed refresh replace a newer successful read", async () => {
+    const store = useStaking();
+    await bindReady(store);
+    const old = deferred<StakingSnapshot>();
+    remote.stakingApi.fetchStakingPositions.mockReturnValueOnce(old.promise).mockResolvedValue(snapshot("B"));
+    const first = store.syncRemote();
+    await flush();
+    expect(await store.syncRemote()).toBe(true);
+    old.reject(new Error("late 503"));
+    expect(await first).toBe(false);
+    expect(store.positions[0]?.id).toBe("B-position");
+    expect(store.remoteError).toBeNull();
+    expect(store.remoteReady).toBe(true);
+  });
+
   it("queries the original command independently of wallet/product readiness and never refreshes maturity", async () => {
     const store = useStaking();
     await bindReady(store);

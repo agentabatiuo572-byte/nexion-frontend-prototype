@@ -183,7 +183,7 @@ import { apiEnvironmentBadgeLabel } from "@/api/runtime-config";
 import type { OAuthProvider } from "@/api/auth-api";
 import { ApiError } from "@/api/errors";
 import type { UserSession } from "@/api/contracts";
-import { dialCodeForLocale, phoneFormatHint, sanitizePhoneInput, validateNationalPhone } from "@/auth/phone-number";
+import { dialCodeForLocale, isSelectablePhoneDialCode, phoneFormatHint, sanitizePhoneInput, validateNationalPhone } from "@/auth/phone-number";
 import { resolveRemoteLoginErrorKind } from "@/lib/remote-login-error";
 
 const t = useT();
@@ -350,6 +350,7 @@ const captchaPurpose = ref<"otp" | "password" | "replay">("otp");
 
 const phoneClean = computed(() => sanitizePhoneInput(phone.value));
 const phoneOk = computed(() => validateNationalPhone(country.value, phoneClean.value));
+const invalidPhoneMessage = computed(() => fmt(t.value.countryCodes.phoneInvalidHint, { example: phoneFormatHint(country.value) }));
 const phoneFormatMessage = computed(() => {
   const params = { example: phoneFormatHint(country.value) };
   return phone.value && !phoneOk.value
@@ -397,7 +398,7 @@ const canPrimary = computed(() => {
 });
 const primaryDisabledReason = computed(() => {
   if (step.value === 1) {
-    if (!phoneOk.value) return t.value.login.errorInvalidPhone;
+    if (!phoneOk.value) return invalidPhoneMessage.value;
     if (mode.value === "password" && !pwdOk.value) return t.value.login.errorInvalidPassword;
   }
   if (step.value === 2 && !codeOk.value) return t.value.login.errorInvalidCode;
@@ -501,8 +502,10 @@ function onCode(i: number, e: Event) {
   if (next.every(Boolean)) verifyCode();
 }
 function pickCountry(c: string) {
+  if (!isSelectablePhoneDialCode(c)) return;
   invalidateOtpFlow();
   country.value = c;
+  error.value = null;
   showCountries.value = false;
 }
 
@@ -701,7 +704,7 @@ function resend() {
 
 function goSendCode() {
   error.value = null;
-  if (!phoneOk.value) { error.value = t.value.login.errorInvalidPhone; return; }
+  if (!phoneOk.value) { error.value = invalidPhoneMessage.value; return; }
   void requestCode();
 }
 function remoteLoginError(error: unknown): string {
@@ -714,7 +717,7 @@ function remoteLoginError(error: unknown): string {
   if (geoMessage) return geoMessage;
   switch (resolveRemoteLoginErrorKind(code)) {
     case "invalidCredentials": return t.value.login.errorInvalidCredentials;
-    case "invalidPhone": return t.value.login.errorInvalidPhone;
+    case "invalidPhone": return invalidPhoneMessage.value;
     case "otpInvalid": return t.value.login.errorRemoteOtpInvalid;
     case "twoFactorInvalid": return t.value.security.twoFactorCodeInvalid;
     case "temporarilyLocked": return t.value.login.errorTemporarilyLocked;
@@ -728,7 +731,8 @@ function remoteLoginError(error: unknown): string {
 async function signInWithPassword(captchaTicket?: string) {
   if (loading.value || signInTimer) return;
   error.value = null;
-  if (!phoneOk.value || !pwdOk.value) { error.value = t.value.login.errorInvalidPassword; return; }
+  if (!phoneOk.value) { error.value = invalidPhoneMessage.value; return; }
+  if (!pwdOk.value) { error.value = t.value.login.errorInvalidPassword; return; }
   const phoneAtSignIn = fullPhone.value;
   const flowVersion = ++otpFlowVersion;
   const passwordAttempt: PasswordAttemptContext = {

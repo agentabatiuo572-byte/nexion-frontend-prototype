@@ -8,9 +8,6 @@
 <template>
   <view v-if="configAvailable && hasSellablePlan" class="nx-glass-card relative overflow-hidden nx-compound-calculator" :style="cardStyle">
     <CalculatorWebviewAccessibility :amount-label="w.amountLabel" />
-    <!-- aurora + grid -->
-    <view aria-hidden class="gen-anim" :style="auroraStyle" />
-    <view aria-hidden :style="gridStyle" />
 
     <view class="relative">
       <!-- meta-row -->
@@ -19,7 +16,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
           <text>{{ w.label }}</text>
         </text>
-        <text class="tabular-nums" :style="apyChipStyle">{{ formatStakingPercentage(apy) }}% · {{ term }}d</text>
+        <text class="tabular-nums" :style="apyChipStyle">{{ formatStakingPercentage(apy) }}% · {{ copy.days(term) }}</text>
       </view>
 
       <!-- Input row -->
@@ -78,7 +75,8 @@
 import { formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import CalculatorWebviewAccessibility from "./calculator-webview-accessibility.vue";
-import { ref, computed, onMounted, nextTick, watch, type CSSProperties } from "vue";
+import { ref, computed, nextTick, watch, type CSSProperties } from "vue";
+import { useStakingReviewCopy } from "@/lib/staking-review-copy";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useStaking, STAKING_APY, STAKING_PENALTY, STAKING_MIN, type StakingTerm } from "@/store/staking";
@@ -87,11 +85,9 @@ import { compoundDurationDays, reinvestmentCount } from "@/lib/compound-cycles";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
 const t = useT();
+const copy = useStakingReviewCopy();
 const w = computed(() => t.value.stakingV3.calc);
 const staking = useStaking();
-onMounted(() => {
-  if (!staking.isMockMode) void staking.syncRemote();
-});
 
 const terms: StakingTerm[] = [30, 90, 180, 365];
 const DEFAULT_TERM: StakingTerm = 180;
@@ -323,5 +319,5 @@ const unavailableStyle: CSSProperties = {
 };
 
 import GlassSegments from "@/components/glass-segments.vue";
-const termOptions = computed(() => sellableTerms.value.map(value => ({ value, label: `${value}d` })));
+const termOptions = computed(() => sellableTerms.value.map(value => ({ value, label: copy.value.days(value) })));
 </script>

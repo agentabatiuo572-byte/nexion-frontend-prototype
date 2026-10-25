@@ -36,6 +36,7 @@ function mount() {
   let beforeDelivery: (() => void) | undefined;
   const modules: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/store/locale": { useLocaleStore: () => ({code:"zh"}) },
     vue: { ...vue, onUnmounted: (fn: () => void) => hooks.unmount.push(fn) },
     "@dcloudio/uni-app": { onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn) },
     "@/pages/daily/daily-reward-view": { dailyMilestoneRewardText: () => "", dailyRewardLabels: () => ({}) },
@@ -56,11 +57,11 @@ function mount() {
   const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
   const output = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope(); scopes.push(scope);
-  const worker = scope.run(() => new Function("require", "exports", output + ";return {refreshRemote,claimRemote,remoteSnapshot,remoteLoading,remoteError,remoteFailure,remoteBusy};")((name: string) => {
+  const worker = scope.run(() => new Function("require", "exports", "defineProps", output + ";return {refreshRemote,claimRemote,remoteSnapshot,remoteLoading,remoteError,remoteFailure,remoteBusy};")((name: string) => {
     if (name.endsWith(".vue")) return {};
     if (!(name in modules)) throw Error(`Unexpected dependency ${name}`);
     return modules[name];
-  }, {}));
+  }, {}, () => ({embedded:false})));
   const fire = (name: string) => hooks[name].forEach(fn => fn());
   const rebind = (other = false) => {
     if (other) { session = { accessToken: "other-fixture", user: { userId: 456 } }; app.accountKey = "user:456"; }

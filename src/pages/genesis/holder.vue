@@ -4,7 +4,7 @@
   由 genesis.dividendsOpen（全平台上所信号，fail-closed）决定：
   - 上所前(!dividendsOpen)：排放优先额度 + 上所进度 + 积分榜，无 live 排放 / 无可领余额。
   - 上所后(dividendsOpen)：NEX 排放（vesting 曲线：已释放/锁定中）+ 排放明细，NEX 计价。
-  myOwned === 0 → 空状态 CTA + preview（no fake holder numbers）。
+  myOwned === 0 → consumer guidance and canonical eligibility facts.
   Wrapped in <AppChassis active="me" class="gh-chassis" :class="{ 'gh-chassis--owned': hasNodes }">. 排放数据源 = store emissionSnapshot()（backend-replaceable）。
 -->
 <template>
@@ -15,7 +15,7 @@
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <!-- ══ Empty state (no seats) ══ -->
         <template v-if="!hasNodes">
-          <view class="active:scale-[0.98]" :style="ctaCardStyle" @click="goGenesis">
+          <view class="active:scale-[0.98]" :style="ctaCardStyle" role="button" tabindex="0" :aria-label="consumerCopy.learn" @click="goGenesis" @keydown.enter.prevent="goGenesis" @keydown.space.prevent="goGenesis">
             <view class="flex items-center" style="gap: 12px">
               <view class="grid place-items-center shrink-0" :style="ctaIconStyle">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" /><path d="M5 20h14" /></svg>
@@ -23,13 +23,13 @@
               <view class="flex-1 min-w-0">
                 <text class="block" :style="ctaTitleStyle">{{ remoteApiEnabled && genesis.remoteAccountReadState !== "ready" ? t.holderFacts.unconfirmed : t.genesisHolder.notHolderTitle }}</text>
                 <text class="block" :style="ctaBodyStyle">{{ notHolderBodyText }}</text>
+                <text class="gh-empty-link">{{ consumerCopy.learn }}</text>
               </view>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
-          <view v-if="!remoteApiEnabled || genesis.remoteAccountReadState === 'ready'" :style="previewStyle">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
-            <text :style="previewTextStyle">{{ t.genesisHolder.previewModeBanner }}</text>
+          <view class="gh-empty-trust" role="button" tabindex="0" @click="goTrust" @keydown.enter.prevent="goTrust" @keydown.space.prevent="goTrust">
+            <text>{{ consumerCopy.trust }}</text>
           </view>
           <view v-if="remoteApiEnabled" :style="serverFactsEmptyStyle">
             <text class="block" :style="cardTitleStyle">{{ t.holderFacts.title }}</text>
@@ -244,6 +244,8 @@ import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
+import { genesisConsumerCopyFor } from "./genesis-consumer-copy";
 import { dateLocale, fmt } from "@/i18n/format";
 import { useGenesis, GENESIS_EMISSION } from "@/store/genesis";
 import { useGenesisConfig } from "@/store/genesis-config";
@@ -258,6 +260,8 @@ const DAY = 86400_000;
 const NEX_REF_USDT = 0.189;
 
 const t = useT();
+const locale = useLocaleStore();
+const consumerCopy = computed(() => genesisConsumerCopyFor(locale.code));
 const genesis = useGenesis();
 const config = useConfig();
 onShow(() => { void config.load(); });
@@ -266,14 +270,11 @@ const genesisPoints = useGenesisPoints();
 const perkKeys = ["a", "b", "c", "d", "e", "f"] as const;
 
 const owned = computed(() => genesis.myOwned);
-const hasNodes = computed(() => owned.value > 0);
+const hasNodes = computed(() => (!remoteApiEnabled || genesis.remoteAccountReadState === "ready") && owned.value > 0);
 const remaining = computed(() => genesis.totalSlots - genesis.soldSlots);
 const dividendsOpen = computed(() => genesis.dividendsOpen);
 
-// 🔴 「还剩 N 席」同属名额紧迫文案(独立验收 P2-14),阻断态改说状态,不催单。
-// 🔴 阻断说明走 blockText 唯一出口(独立验收 P1-3):上一版写死 `.default`,
-//   售罄时这里说「暂未开放」而创世页说「已售罄」,同刻自相矛盾。售罄档落 `ctaSoldOut`。
-const { showUrgency, blockText } = useGenesisSaleGate();
+const { blockText } = useGenesisSaleGate();
 let releaseActiveRefresh = () => {};
 // 页面每次露出重读配置(hydrate-once 修复;理由同 genesis.vue)。
 onShow(() => {
@@ -286,13 +287,11 @@ onShow(() => {
 onHide(() => releaseActiveRefresh());
 onUnmounted(() => releaseActiveRefresh());
 const notHolderBodyText = computed(() =>
-  showUrgency.value
-    ? fmt(t.value.genesisHolder.notHolderBody, { n: remaining.value })
-    : (blockText.value ?? t.value.genesis.ctaSoldOut),
+  blockText.value ?? consumerCopy.value.holderIntro,
 );
 
 // ── 上所前：额度 + 优先级（mock，backend-replaceable）──
-const remoteHolderFact = computed(() => genesis.remoteEligibility);
+const remoteHolderFact = computed(() => remoteApiEnabled && genesis.remoteAccountReadState !== "ready" ? null : genesis.remoteEligibility);
 const holderFactStale = computed(() => {
   const fact = remoteHolderFact.value;
   if (!remoteApiEnabled || !fact) return false;
@@ -417,6 +416,9 @@ function mintedText(ms: number): string {
 
 function goGenesis() {
   navTo("/pages/genesis/genesis");
+}
+function goTrust() {
+  navTo("/pages/trust/trust");
 }
 function goMarketplace() {
   navTo("/pages/genesis/marketplace");
@@ -678,15 +680,6 @@ const ctaTitleStyle: CSSProperties = {
   letterSpacing: "-0.008em",
 };
 const ctaBodyStyle: CSSProperties = { marginTop: "3px", fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.4 };
-const previewStyle: CSSProperties = {
-  borderRadius: "16px",
-  background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)",
-  padding: "12px",
-  display: "flex",
-  alignItems: "flex-start",
-  gap: "8px",
-};
-const previewTextStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-warning)", lineHeight: 1.625 };
 // holdings
 const sectionLabelStyle: CSSProperties = {
   marginBottom: "10px",
@@ -807,6 +800,8 @@ const noteStyle: CSSProperties = {
 </script>
 
 <style scoped>
+.gh-empty-link { display: block; margin-top: 10px; color: var(--v5-brand); font-size: 13px; font-weight: 600; }
+.gh-empty-trust { display: flex; align-items: center; min-height: 44px; color: var(--v5-brand); font-size: 13px; }
 .gh-chassis--owned { background-image: url("/static/img/genesis/obsidian-light.webp") !important; background-size: cover !important; background-position: center !important; }
 :global(html[data-theme="dark"] .gh-chassis--owned) { background-image: url("/static/img/genesis/obsidian-dark.webp") !important; }
 .gh-chassis--owned :deep(.nx-top-chrome) { background: transparent; }

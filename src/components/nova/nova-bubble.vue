@@ -8,8 +8,8 @@
   only when unread > 0 — but the COMPONENT mounts unconditionally on tab routes
   so its push triggers run (the button appears once the first push lands).
 
-  Position: fixed, bottom-right, above the floating-pill TabBar (~100px) — the
-  chassis is position:fixed inset:0 on uni so fixed == device viewport.
+  Position: in the chassis content flow, after the page body and before its
+  bottom inset. The support entry never overlays page actions or the tab bar.
 
   Timers are module-light: started in onMounted, cleared in onUnmounted (uni
   components don't fire onUnload — P-021). Cooldown gating lives in the Pinia
@@ -18,11 +18,13 @@
 -->
 <template>
   <view>
-    <view v-if="visible" class="nx-nova-bubble"    :class="{ 'nx-nova-bubble--dimmed': dimmed }" role="button" tabindex="0" :aria-label="t.conversations.title" @click="open"  @keydown.enter.prevent="open" @keydown.space.prevent="open">
+    <view v-if="visible" class="nx-nova-bubble" role="button" tabindex="0" :aria-label="t.coreReview.novaHelp" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
       <view class="nx-nova-btn nx-nova-motion">
-        <NovaAvatar :size="36" :pulse="showUnreadBadge && !dimmed" class="nx-nova-avatar" />
+        <NovaAvatar :size="36" :pulse="showUnreadBadge" class="nx-nova-avatar" />
         <view v-if="showUnreadBadge" :key="totalUnread" class="nx-nova-badge"><text class="nx-nova-badge-t">{{ unreadLabel }}</text></view>
       </view>
+      <view class="nx-nova-copy"><text>{{ t.coreReview.novaHelp }}</text><text class="nx-nova-hint">{{ t.coreReview.novaHint }}</text></view>
+      <text aria-hidden="true">→</text>
     </view>
   </view>
 </template>
@@ -44,12 +46,6 @@ import { fmt } from "@/i18n/format";
 import NovaAvatar from "./nova-avatar.vue";
 import { NOVA_SUPPORT_VISIBLE } from "@/lib/nova-visibility";
 import { formatUnreadBadge } from "@/lib/unread-badge";
-
-// dimmed:chassis 在页面滚动期间置真 —— 浮标横在内容上,滚动时先让路(淡出 +
-// 不吃点击),停下由 chassis 复位再淡回。不传 = 旧行为(undefined 即 falsy)。
-// 🔴 不要写成 `const { dimmed } = defineProps(...)`:响应式解构是 Vue 3.5 特性,
-//    本仓锁 3.4.21,那样写会静默丢响应性(浮标从此永不淡出)。模板直接用 prop 名。
-defineProps<{ dimmed?: boolean }>();
 
 const t = useT();
 const nova = useNova();
@@ -204,32 +200,26 @@ onUnmounted(() => {
 
 <style scoped>
 .nx-nova-bubble {
-  position: fixed;
-  right: 16px;
-  bottom: 100px;
-  z-index: 40;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 16px 20px;
+  padding: 12px 16px;
+  background: var(--v5-surface-2);
+  color: var(--v5-ink);
   transition: opacity 150ms, transform 120ms cubic-bezier(.2,.8,.2,1);
-  /* 命中区跟着视觉走。这层是 48×48 的**方框**,而看得见的球是内切圆 —— 四角那
-     22% 面积是透明的却照样截走点击(实测 144 点网格:144 点全被吃,只有 112 点
-     在圆内)。实付:赚取页「添加设备」按钮左上角约 1/4 面积点下去开的是 Nova。
-     border-radius 参与命中测试,加上它四角就还给页面了;圆内与溢出在外的未读
-     角标都不受影响(角标是子元素,不被父级圆角裁剪)。 */
-  border-radius: 999px;
+  border-radius: 20px;
 }
+.nx-nova-copy { flex: 1; min-width: 0; font: 600 14px/20px var(--font-v5); }
+.nx-nova-hint { display: block; margin-top: 2px; color: var(--v5-ink-3); font: 400 12px/18px var(--font-v5); }
 /* Press belongs to the outer hit target; idle float belongs to the inner visual. */
 .nx-nova-bubble:active {
   transform: scale(.94);
 }
-/* 滚动让路态。注意它压不过上面的 :active(带伪类,特异性更高)—— 靠的是
-   pointer-events:none 让 :active 根本无从成立,不是靠选择器权重或书写顺序。
-   淡出淡入沿用上面那条 0.15s 过渡,不新造时长档。opacity 归零而非
-   visibility/display:后两者没有过渡帧,会闪。 */
-.nx-nova-bubble--dimmed {
-  opacity: 0;
-  pointer-events: none;
-}
 .nx-nova-btn {
   position: relative;
+  flex-shrink: 0;
   width: 48px;
   height: 48px;
   border-radius: 999px;
@@ -240,7 +230,6 @@ onUnmounted(() => {
 /* Float the avatar and badge together while keeping the outer hit target stationary. */
 .nx-nova-motion { position: relative; z-index: 1; animation: nx-nova-float 3.4s ease-in-out infinite; }
 @keyframes nx-nova-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-.nx-nova-bubble--dimmed .nx-nova-motion { animation-play-state: paused; }
 .nx-nova-badge {
   position: absolute;
   z-index: 2;

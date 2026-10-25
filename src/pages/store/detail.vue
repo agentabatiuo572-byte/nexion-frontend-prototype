@@ -14,7 +14,7 @@
   disclosures; unavailable material is shown as unavailable.
 -->
 <template>
-  <AppChassis active="store" nav-capsule>
+  <AppChassis active="store">
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
     <view style="color: var(--v5-ink); padding-top: 24px">
@@ -104,19 +104,19 @@
           <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
           <text v-else-if="activity&&(!promotionAvailable||!activity.productNos.includes(product.id))" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
           <PromotionProduct v-if="activity" :activity="activity" :product-no="product.id" expanded />
-          <view v-if="activity" class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId,[{productNo:product.id,quantity:qty}]))"><text>{{ t.promotion.bundle }}</text></view>
+          <view v-if="canBundleActivity" class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId,[{productNo:product.id,quantity:qty}]))"><text>{{ t.promotion.bundle }}</text></view>
           <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionDetailHref(id))"><text>{{ t.promotion.ordinary }}</text></view>
         </view>
 
         <!-- === Cloud Share E1 annual reference and NEX allocation === -->
         <view v-if="isShare" class="mx-4 mt-3 nx-glass-card" style="padding: 16px 18px">
-          <view class="font-mono-tabular inline-flex items-center" style="gap: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; color: var(--v5-warning)">
+          <view class="font-mono-tabular inline-flex items-center" style="gap: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; color: var(--v5-brand)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
             <text>{{ t.store.shareReferenceAnnual }}</text>
           </view>
           <view class="flex items-baseline flex-wrap" style="margin-top: 6px; gap: 8px">
-            <text class="tabular-nums" style="font-family: var(--font-v5); font-weight: 600; font-size: 34px; color: var(--v5-warning); letter-spacing: -0.022em; line-height: 1">{{ shareYieldText }}</text>
-            <text class="font-mono-tabular tabular-nums" style="margin-left: auto; font-size: 13px; color: var(--v5-warning); font-weight: 500">{{ fmt(t.store.cardNexPerDay, { n: product.dailyEarnNEX }) }}{{ t.store.cardPerDaySuffix }}</text>
+            <text class="tabular-nums" style="font-family: var(--font-v5); font-weight: 600; font-size: 34px; color: var(--v5-brand); letter-spacing: -0.022em; line-height: 1">{{ shareYieldText }}</text>
+            <text class="font-mono-tabular tabular-nums" style="margin-left: auto; font-size: 13px; color: var(--v5-brand); font-weight: 500">{{ fmt(t.store.cardNexPerDay, { n: product.dailyEarnNEX }) }}{{ t.store.cardPerDaySuffix }}</text>
           </view>
           <text class="block" style="margin-top: 8px; font-size: 12px; line-height: 1.4; color: var(--v5-ink-4)">{{ t.store.shareYieldDisclaimer }}</text>
         </view>
@@ -126,10 +126,10 @@
           <view class="flex items-center min-w-0" style="gap: 6px; font-size: 12px; color: var(--v5-ink-3)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></svg>
             <text class="truncate">{{ t.store.detYourPhone }}</text>
-            <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-warning)">{{ phoneDailyEarnText }}</text>
+            <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-brand)">{{ phoneDailyEarnText }}</text>
           </view>
           <text class="shrink-0" style="font-size: 12px; color: var(--v5-ink-4)">↔</text>
-          <view class="flex-1 flex items-center justify-end min-w-0" style="gap: 6px; font-size: 12px; color: var(--v5-warning)">
+          <view class="flex-1 flex items-center justify-end min-w-0" style="gap: 6px; font-size: 12px; color: var(--v5-brand)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
             <text class="tabular-nums" style="font-family: var(--font-v5); font-weight: 600">${{ dailyEarnText }}{{ t.store.cardPerDaySuffix }}</text>
           </view>
@@ -143,7 +143,7 @@
             <!-- Daily and monthly estimates from the current catalog; no hardware payback promise. -->
             <view class="grid" style="margin-top: 16px; grid-template-columns: 1fr 1fr">
               <view :style="roiCellStyle(0)">
-                <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.store.detDaily }}</text>
+                <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.bundle.estimatedDaily }}</text>
                 <text class="block tabular-nums" :style="roiValStyle('success')">${{ dailyYieldText }}</text>
                 <text v-if="phoneDailyEarnValue > 0" class="block" :style="roiSubStyle">{{ vsPhoneSubText }}</text>
               </view>
@@ -160,9 +160,12 @@
         <SpecTable :rows="hardwareSpecs" />
 
         <!-- === Section 6: AI performance spec === -->
-        <template v-if="!isShare || aiPerfRows.length > 0">
-          <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detAiPerf" /></view>
-          <SpecTable :rows="aiPerfRows" brand-value />
+        <template v-if="aiPerfRows.length">
+          <view v-if="hasAiPerformance" style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detAiPerf" /></view>
+          <view v-else style="margin: 12px 16px 0; min-height: 44px; display: flex; align-items: center; justify-content: space-between" role="button" tabindex="0" :aria-expanded="aiExpanded" @click="aiExpanded=!aiExpanded" @keydown.enter.prevent="aiExpanded=!aiExpanded" @keydown.space.prevent="aiExpanded=!aiExpanded">
+            <SectionHeader :title="t.store.detAiPerf" /><text aria-hidden="true">{{ aiExpanded ? '−' : '+' }}</text>
+          </view>
+          <SpecTable v-if="hasAiPerformance || aiExpanded" :rows="aiPerfRows" brand-value />
         </template>
 
         <!-- === Section 7: Trust material === -->
@@ -193,6 +196,7 @@
             </template>
             <template v-else>
               <text class="block" :style="trustBodyStyle">{{ trustStatus === 'error' ? t.store.relatedMaterialsLoadFailed : t.store.relatedMaterialsEmpty }}</text>
+              <view v-if="trustStatus === 'error'" class="product-material-retry" role="button" tabindex="0" @click="refreshTrustMaterial" @keydown.enter.prevent="refreshTrustMaterial" @keydown.space.prevent="refreshTrustMaterial"><text>{{ t.network.retry }}</text><text aria-hidden="true">→</text></view>
             </template>
           </view>
         </template>
@@ -213,14 +217,17 @@
 
         <!-- Bottom spacer — clears the chassis-level <StickyCtaBar> (driven by
              useStickyCTA below; renders inside the bezel, absolute not fixed). -->
-        <view aria-hidden style="height: 96px" />
+        <view aria-hidden data-testid="detail-cta-clearance" style="height: calc(180px + env(safe-area-inset-bottom)); flex-shrink: 0" />
       </template>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
+  return formatPlainAmount(value).replace(/\B(?=(\d{3})+\.)/g, ",");
+}
+import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { ref, computed, watch, onActivated, onDeactivated, onUnmounted, nextTick, type CSSProperties } from "vue";
 import { onLoad, onHide, onShow, onUnload } from "@dcloudio/uni-app";
@@ -268,6 +275,7 @@ const locale = useLocaleStore();
 const phase = useProductPhase();
 const trustLanguage = computed<TrustLocale>(() => ["zh", "vi", "en"].includes(locale.code) ? locale.code as TrustLocale : "en");
 const { sections: trustSections, status: trustStatus, refresh: refreshTrust } = usePublishedTrust();
+function refreshTrustMaterial() { if (trustStatus.value === 'error') void refreshTrust(true); }
 
 const app = useApp();
 const id = ref("");
@@ -504,6 +512,9 @@ const aiPerfRows = computed<{ k: string; v: string }[]>(() => {
   rows.push({ k: s.aiRowUnlocks, v: copy.value.unlocks || "-" });
   return rows;
 });
+const canBundleActivity = computed(()=>promotionAvailable.value&&(productCatalogPresentation.value?.products??[]).filter(p=>p.productType!=='SHARE'&&activity.value?.productNos.includes(p.id)&&isProductAvailable(p,phase.value)).length>=2);
+const aiExpanded = ref(false);
+const hasAiPerformance = computed(() => aiPerfRows.value.some(row => row.v !== '-'));
 
 const productAuditSection = computed(() => trustSections.value.find((section) => section.sectionKey === "auditsReserves"));
 const productTrustTitle = computed(() => t.value.store.detTrustedBy);
@@ -666,7 +677,7 @@ function publishStickyCTA() {
       href: activityId.value || voucherContext.value.voucherId || qty.value > 1 ? promotionCheckoutHref([{productNo:product.value.id,quantity:qty.value}],activityId.value,voucherContext.value) : `/pages/store/checkout?product=${product.value.id}`,
       quantity: { value:qty.value,min:1,max:activityId.value?100:6,decrease:dec,increase:inc },
       amount: `${priceText.value}`,
-      amountSubtext: isShare.value ? undefined : `${t.value.store.detDaily}: ${dailyEarnText.value}`,
+      amountSubtext: isShare.value ? undefined : `${t.value.bundle.estimatedDaily}: $${dailyYieldText.value}`,
       buttonLabel: t.value.store.cardBuyNow,
       showTabBar: false,
     }, stickyOwner);
@@ -830,7 +841,7 @@ function roiCellStyle(index: number): CSSProperties {
 const roiLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)" };
 function roiValStyle(tone: "success" | "brand" | "ink"): CSSProperties {
   const color =
-    tone === "success" ? "var(--v5-warning)" : tone === "brand" ? "var(--v5-brand)" : "var(--v5-ink)";
+    tone === "success" ? "var(--v5-brand)" : tone === "brand" ? "var(--v5-brand)" : "var(--v5-ink)";
   return {
     fontFamily: "var(--font-v5)",
     fontSize: "20px",
@@ -887,6 +898,8 @@ const faqQStyle: CSSProperties = {
 </script>
 <style src="@/components/promotion/promotion.css"></style>
 <style scoped>
+.product-material-retry { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 16px; margin-top: 12px; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); font-size: 13px; }
+.product-material-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .promotion-quantity-stepper { display:flex;align-items:center;border:1px solid var(--v5-border);border-radius:999px;overflow:hidden; }
 .promotion-quantity-stepper view { min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--v5-surface-2); }
 .promotion-quantity-stepper text { min-width:36px;text-align:center;font-variant-numeric:tabular-nums; }

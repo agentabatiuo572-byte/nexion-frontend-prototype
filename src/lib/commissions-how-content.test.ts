@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 // @ts-expect-error Native compatibility witness executes in Node.
 import { spawnSync } from "node:child_process";
 import { buildCommissionsHowContent, createCommissionsHowResource, COMMISSIONS_HOW_SLOTS, type CommissionsHowSnapshot } from "./commissions-how-content";
+import { teamRedesignCopy } from "@/i18n/team-redesign";
 const snapshot = (): CommissionsHowSnapshot => ({
   document: { contentKey: "team-commissions-how", version: "2026.10.05-direct-referral", versionSource: "ENTRY", status: "PUBLISHED",
     source: "server", sourceEnvironment: "PRODUCTION", runId: "", locale: "en",
@@ -18,6 +19,22 @@ const snapshot = (): CommissionsHowSnapshot => ({
   ranks: [{ v: 4, title: "Live", cnTitle: "Live", directBonus: .123456, unilevelDepth: 7, peerBonus: .0375, leadershipVotes: 9, cultivationBonus: 321.123456, rewards: [], visible: true }],
 });
 describe("published direct and independent reward explanations", () => {
+  it.each(['zh', 'en', 'vi'])('uses neutral %s reward terms without turning configured amounts into payments', locale => {
+    const facts = snapshot();
+    facts.document.blocks.find(block => block.id === 'cultivation')!.title = 'Published cultivation title';
+    const view = buildCommissionsHowContent(facts, locale);
+    const terms = teamRedesignCopy(locale);
+    expect(view.section('cultivation').body.toLowerCase()).toContain(terms.memberGrowthReward.toLowerCase());
+    expect(view.section('cultivation').body).toMatch(/接收人和到账金额|recipient and amount received|người nhận và số tiền đã nhận/);
+    expect(view.section('cultivation').title).toBe('Published cultivation title');
+    expect(view.section('leadership').body.toLowerCase()).toContain(terms.teamIncentivePool.toLowerCase());
+    expect(view.section('example-network').body.toLowerCase()).toMatch(/团队奖励|team reward|thưởng đội nhóm/);
+    expect(view.section('example-cultivation').body.toLowerCase()).toContain(terms.memberGrowthReward.toLowerCase());
+    expect(view.section('example-cultivation').body).toMatch(/不代表个人到账|not a personal payment|không phải khoản cá nhân đã nhận/);
+    expect(view.amounts.cultivation).toContain('321.12 UVT');
+    expect(view.amounts.cultivation).toContain(view.copy.configured);
+    expect(view.amounts.network).toBe(view.copy.pendingAmount);
+  });
   it.each(["en", "zh", "vi"])("accepts a matching seven-layer v2 publication and refuses incomplete semantics in %s", locale => {
     const facts = snapshot();
     Object.assign(facts.directPolicy, { schemaVersion: 2, settlementMode: "SEVEN_V2", purchaseSplit: { enabled: true, usdtSharePct: 60 },

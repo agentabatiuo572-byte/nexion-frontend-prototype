@@ -55,7 +55,7 @@ async function mount(locale: keyof typeof translations, trialStatus: "active" | 
     vue: Vue,
     "@/components/app-chassis.vue": { default: { setup: (_props: unknown, context: { slots: Vue.Slots }) => () => Vue.h("chassis", context.slots.default?.()) } },
     "@/components/sub-page-header.vue": { default: { render: () => null } },
-    "@/components/me/trial-countdown-hero.vue": { default: { render: () => null } },
+    "@/components/earn/trial-progress-hero.vue": { default: { render: () => null } },
     "@/i18n/use-t": { useT: () => Vue.ref(translations[locale]) },
     "@/i18n/format": { fmt },
     "@/lib/trial-date": { formatTrialDateTime: () => "" },

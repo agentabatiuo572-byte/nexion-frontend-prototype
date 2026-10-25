@@ -57,12 +57,12 @@
             <g v-for="(s, i) in satellites" :key="`sat-${i}`">
               <circle :cx="s.x" :cy="s.y" r="6" fill="var(--v5-brand)" opacity="0.12" filter="url(#orb-soft)" />
               <circle :cx="s.x" :cy="s.y" r="2.4" fill="var(--v5-brand)" opacity="0.75">
-                <animate attributeName="opacity" values="0.75;0.3;0.75" :dur="`${2.2 + i * 0.4}s`" repeatCount="indefinite" />
+                <animate v-if="motionAllowed" attributeName="opacity" values="0.75;0.3;0.75" :dur="`${2.2 + i * 0.4}s`" repeatCount="indefinite" />
               </circle>
             </g>
 
             <!-- Active orbiting node + comet halo -->
-            <g>
+            <g v-if="motionAllowed">
               <circle r="7" fill="var(--v5-brand)" opacity="0.25">
                 <animateMotion dur="9s" repeatCount="indefinite" :path="orbitPath" rotate="auto" />
               </circle>
@@ -70,15 +70,19 @@
                 <animateMotion dur="9s" repeatCount="indefinite" :path="orbitPath" rotate="auto" />
               </circle>
             </g>
+            <g v-else transform="translate(120 12)">
+              <circle r="7" fill="var(--v5-brand)" opacity="0.25" />
+              <circle r="3.4" fill="var(--v5-brand)" />
+            </g>
 
             <!-- Expanding pulse rings (2× staggered) -->
             <circle cx="120" cy="120" r="36" fill="none" stroke="var(--v5-brand)" stroke-width="1.4">
-              <animate attributeName="r" from="36" to="92" dur="2.6s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.55;0;0" keyTimes="0;0.75;1" dur="2.6s" repeatCount="indefinite" />
+              <animate v-if="motionAllowed" attributeName="r" from="36" to="92" dur="2.6s" repeatCount="indefinite" />
+              <animate v-if="motionAllowed" attributeName="opacity" values="0.55;0;0" keyTimes="0;0.75;1" dur="2.6s" repeatCount="indefinite" />
             </circle>
             <circle cx="120" cy="120" r="36" fill="none" stroke="var(--v5-brand)" stroke-width="1.4">
-              <animate attributeName="r" from="36" to="92" dur="2.6s" begin="1.3s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.55;0;0" keyTimes="0;0.75;1" dur="2.6s" begin="1.3s" repeatCount="indefinite" />
+              <animate v-if="motionAllowed" attributeName="r" from="36" to="92" dur="2.6s" begin="1.3s" repeatCount="indefinite" />
+              <animate v-if="motionAllowed" attributeName="opacity" values="0.55;0;0" keyTimes="0;0.75;1" dur="2.6s" begin="1.3s" repeatCount="indefinite" />
             </circle>
 
             <!-- Middle thin ring —— 此前写死一个深灰色号,浅色档就是那圈扎眼的黑环。
@@ -169,8 +173,10 @@ import { useT } from "@/i18n/use-t";
 import { LOCALES, type LocaleCode } from "@/i18n";
 import { useLocaleStore } from "@/store/locale";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
+import { useIntroMotion } from "@/composables/use-intro-motion";
 
 const t = useT();
+const motionAllowed = useIntroMotion();
 const locale = useLocaleStore();
 const langOpen = ref(false);
 function closeLang() {
@@ -579,5 +585,8 @@ function goPrivacy() {
 @keyframes intro-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro-root :deep(*) { animation: none !important; transition: none !important; }
 }
 </style>

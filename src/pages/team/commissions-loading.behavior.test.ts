@@ -1,5 +1,6 @@
 import * as Vue from "vue";
 import { formatAmount } from "@/lib/amount-display";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -14,6 +15,7 @@ import { formatTrialDate } from "@/lib/trial-date";
 import { formatHowNumber } from "@/lib/rank-how-content";
 import { buildCommissionsHowContent, createCommissionsHowResource, COMMISSIONS_HOW_SLOTS, type CommissionsHowSnapshot } from "@/lib/commissions-how-content";
 import type { CommissionEvent, CommissionKind } from "@/store/commission";
+import type { TeamCommissionSnapshot } from "@/api/team-insights-api";
 
 // Mount the production page scripts/templates with isolated read boundaries.
 // The fixtures describe render states; they are not live server business facts.
@@ -42,7 +44,7 @@ const copyComponent = (name: string) => Vue.defineComponent({
   props: ["label", "title", "sub", "body", "q", "a"],
   setup: (props, { slots }) => () => Vue.h("view", { "data-component": name }, [
     ...Object.values(props).filter(value => value != null).map(value => Vue.h("text", String(value))),
-    ...(slots.default?.() ?? []),
+    ...(slots.default?.() ?? []), ...(slots.footer?.() ?? []),
   ]),
 });
 const emptyState = Vue.defineComponent({
@@ -55,8 +57,9 @@ const emptyState = Vue.defineComponent({
 const segments = Vue.defineComponent({
   props: ["modelValue", "options"], emits: ["update:modelValue"],
   setup: (props, { emit }) => () => Vue.h("view", { role: "tablist" },
-    props.options.map((item: { value: string; label: string }) => Vue.h("view", {
+    props.options.map((item: { value: string; label: string; count?: number }) => Vue.h("view", {
       role: "tab", "aria-selected": item.value === props.modelValue,
+      "data-count": item.count,
       onClick: () => emit("update:modelValue", item.value),
     }, item.label))),
 });
@@ -70,9 +73,18 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const shows: Array<() => void> = [];
   const defaults: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/i18n/network-reaudit": { networkReauditCopy },
     "@/lib/trial-date": { formatTrialDate },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
+    "@/components/team/reward-page-surface.vue": { default: slot },
+    "@/components/team/reward-compact-hero.vue": { default: copyComponent("hero") },
+    "@/components/team/reward-rule-block.vue": { default: Vue.defineComponent({
+      props: ["label", "title", "sub", "body", "q", "a", "n"],
+      setup: (props, { slots }) => () => Vue.h("view", { "data-component": slots.default ? "section" : "rule" }, [
+        ...Object.values(props).filter(value => value != null).map(value => Vue.h("text", String(value))), ...(slots.default?.() ?? []),
+      ]),
+    }) },
     "@/components/sub-page-header.vue": { default: slot },
     "@/components/empty-state.vue": { default: emptyState },
     "@/components/glass-segments.vue": { default: segments },
@@ -110,7 +122,7 @@ const event = (kind: CommissionKind): CommissionEvent => ({
 async function commissions(code: Locale = "en") {
   const locale = Vue.ref(code);
   const commission = Vue.reactive({
-    eventsStatus: "idle", events: [] as CommissionEvent[], eventsEvidence: null, eventsTotalRows: 0,
+    eventsStatus: "idle", events: [] as CommissionEvent[], eventsEvidence: null as { aggregate: Partial<TeamCommissionSnapshot['aggregate']> } | null, eventsTotalRows: 0,
     eventsLoadMoreStatus: "idle", unlockMatured: vi.fn(), loadMoreCanonicalEvents: vi.fn(),
     unlockedUSDT: () => 0, unlockedNEX: () => 0, coolingUSDT: () => 0, monthUSDT: () => 0, totalUSDTLifetime: () => 0,
     byKind: () => Object.fromEntries(kinds.map(kind => [kind, { usdt: 0, nex: 0, count: 0 }])),
@@ -251,7 +263,7 @@ test("commissions true error keeps its retry; two Rules returns retain Peer, and
   expect(text(page.root)).toContain(en.network.projectionLoadingTitle);
   expect(buttons(page.root)).toHaveLength(0);
   page.reads[1].resolve([event("peer"), event("binary")]); await flush();
-  const peer = all(page.root).find(item => item.props.role === "radio" && String(item.props["aria-label"]).startsWith(en.commissions.kind.peer))!;
+  const peer = all(page.root).find(item => item.props.role === "tab" && text(item) === en.commissions.kind.peer)!;
   peer.props.onClick(); await Vue.nextTick();
   for (let returnNumber = 0; returnNumber < 2; returnNumber++) {
     all(page.root).find(item => item.props.role === "link")!.props.onClick();
@@ -276,7 +288,7 @@ test.each(["en", "zh", "vi"] as const)("guide %s pending has one loading notice;
     expect(text(page.root)).not.toContain(copy.unavailable);
     expect(text(page.root)).not.toContain(copy.missing);
     expect(all(page.root).some(item => item.props["data-component"] === "hero" || item.props["data-component"] === "section")).toBe(false);
-    expect(buttons(page.root).map(text)).toEqual([dictionaries[code].commissionsHowItWorks.ctaBack]);
+    expect(buttons(page.root).map(text)).toEqual([networkReauditCopy(code).backCommissions]);
   }
   expect(page.published).toHaveBeenCalledOnce(); // Same-locale pending reads stay deduplicated.
   page.reads[0].resolve(guideSnapshot()); await flush();
@@ -293,6 +305,7 @@ test("guide failed read shows one real error and keyboard Retry, then replaces i
   const copy = buildCommissionsHowContent(null, "en").copy;
   page.reads[0].reject(new Error("isolated failed guide")); await flush();
   expect(text(page.root).split(copy.unavailable)).toHaveLength(2);
+  expect(buttons(page.root).at(-1) && text(buttons(page.root).at(-1)!)).toBe(networkReauditCopy('en').backCommissions);
   expect(all(page.root).some(item => item.props["data-component"] === "section")).toBe(false);
   const retry = buttons(page.root).find(item => text(item) === copy.retry)!;
   expect(retry.props.tabindex).toBe("0");
@@ -315,6 +328,7 @@ test("guide refresh hides prior published rules while pending and preserves inco
   page.reads[1].resolve(incomplete); await flush();
   const copy = buildCommissionsHowContent(incomplete, "en").copy;
   expect(text(page.root)).toContain(copy.unavailable);
+  expect(text(buttons(page.root).at(-1)!)).toBe(networkReauditCopy('en').backCommissions);
   expect(buttons(page.root).some(item => text(item) === copy.retry)).toBe(true);
   expect(all(page.root).some(item => item.props["data-component"] === "hero" || item.props["data-component"] === "section")).toBe(false);
   expect(text(page.root)).not.toContain("13 USDT"); // Incomplete published context still suppresses amounts.
@@ -328,8 +342,8 @@ test.each(["en", "zh", "vi"] as const)("577 %s promotion and other filters prese
   const other = {...event("other"), id:"CM-900", amountUSDT:3, amountNEX:0};
   page.reads[0].resolve([promotion, other, event("genesis")]); await flush();
   for (const kind of ["promotion", "other", "genesis"] as const) {
-    const selector = all(page.root).find(item => item.props.role === "radio"
-      && String(item.props["aria-label"]).startsWith(dictionaries[code].commissions.kind[kind]))!;
+    const selector = all(page.root).find(item => item.props.role === "tab"
+      && text(item) === dictionaries[code].commissions.kind[kind])!;
     expect(selector).toBeDefined(); selector.props.onClick(); await Vue.nextTick();
     expect(text(page.root)).toContain(`Event ${kind}`);
     for (const excluded of ["promotion", "other", "genesis"].filter(item => item !== kind))
@@ -338,4 +352,56 @@ test.each(["en", "zh", "vi"] as const)("577 %s promotion and other filters prese
       .toEqual([dictionaries[code].commissions.kind[kind]]);
   }
   expect(promotion).toMatchObject({id:"CM-389",amountUSDT:100,amountNEX:50,orderId:"PROMOTION-1",status:"cooling",unlockAt:1793863394000});
+});
+
+
+test.each(['en', 'zh', 'vi'] as const)('T1 %s filter keeps pagination reachable until matching records have loaded', async language => {
+  const page = await commissions(language); await page.show();
+  page.reads[0].resolve(Array.from({ length: 20 }, (_, i) => ({ ...event('direct_purchase'), id: `first-${i}` }))); await flush();
+  const copy = dictionaries[language];
+  page.commission.eventsTotalRows = 21;
+  page.commission.byKind = () => Object.fromEntries(kinds.map(kind => [kind, { usdt: kind === 'leadership' ? 1 : 0, nex: 0, count: kind === 'leadership' ? 1 : 20 }]));
+  await flush();
+  const tab = (label: string) => all(page.root).find(n => n.props.role === 'tab' && text(n) === label)!;
+  expect(tab(copy.commissions.all).props['data-count']).toBe(21);
+  tab(copy.commissions.kind.leadership).props.onClick(); await flush();
+  expect(text(page.root)).not.toContain(copy.empty.filterTitle);
+  expect(text(page.root)).not.toContain('Event leadership');
+  const nextReads: Array<ReturnType<typeof deferred<CommissionEvent[]>>> = [];
+  page.commission.loadMoreCanonicalEvents.mockImplementation(async () => {
+    page.commission.eventsLoadMoreStatus = 'loading';
+    const read = deferred<CommissionEvent[]>(); nextReads.push(read);
+    try { page.commission.events.push(...await read.promise); page.commission.eventsLoadMoreStatus = 'idle'; }
+    catch { page.commission.eventsLoadMoreStatus = 'error'; }
+  });
+  const load = buttons(page.root).find(n => text(n) === copy.unilevel.loadMore)!;
+  expect(load).toBeDefined();
+  load.props.onClick(); load.props.onClick(); await flush();
+  expect(page.commission.loadMoreCanonicalEvents).toHaveBeenCalledTimes(1);
+  expect(load.props['aria-busy']).toBe(true);
+  nextReads[0].reject(new Error('page unavailable')); await flush();
+  expect(text(page.root)).not.toContain(copy.empty.filterTitle);
+  buttons(page.root).find(n => text(n) === copy.network.retry)!.props.onClick(); await flush();
+  nextReads[1].resolve([{ ...event('leadership'), sourceUserName: 'Audit20', amountUSDT: 1 }]); await flush();
+  expect(text(page.root)).toContain('Audit20');
+  expect(text(page.root)).toContain('+$1.00');
+  expect(buttons(page.root).some(n => text(n) === copy.unilevel.loadMore)).toBe(false);
+  expect(tab(copy.commissions.kind.leadership).props['aria-selected']).toBe(true);
+  tab(copy.commissions.kind.promotion).props.onClick(); await flush();
+  expect(text(page.root)).toContain(copy.empty.filterTitle);
+});
+
+test.each(['en', 'zh', 'vi'] as const)('T6 %s monthly and lifetime summaries keep independent USD and UVT aggregates', async language => {
+  const page = await commissions(language); await page.show(); page.reads[0].resolve([]); await flush();
+  page.commission.eventsEvidence = { aggregate: { monthUSDT: 250, monthNEX: 40, totalUSDT: 1250, totalNEX: 70 } };
+  await flush();
+  const hero = all(page.root).find(n => n.props['data-component'] === 'hero')!;
+  const lifetime = all(page.root).find(n => String(n.props.class).split(' ').includes('reward-income-lifetime'))!;
+  expect(text(hero)).toContain('$250.0040.00 UVT');
+  expect(text(lifetime)).toContain('$1250.0070.00 UVT');
+  page.commission.eventsEvidence = { aggregate: { monthUSDT: 0, monthNEX: 0, totalUSDT: 0, totalNEX: 0 } }; await flush();
+  expect(text(hero)).toContain('$0.000.00 UVT');
+  page.commission.eventsEvidence = { aggregate: { monthUSDT: 250, totalUSDT: 1250 } }; await flush();
+  expect(text(hero)).toContain('$250.00— UVT');
+  expect(text(lifetime)).toContain('$1250.00— UVT');
 });

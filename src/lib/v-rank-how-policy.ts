@@ -1,9 +1,11 @@
-import { formatAmount } from "./amount-display";
+import { computePointsCopy, formatComputePoints } from "@/i18n/compute-points";
 export type RankHowRuntime = "dev" | "prod";
 
 export type RankHowPresentation = "canonical-ladder" | "hold";
 
 export interface RankHowConditions {
+  selfComputePoints?: number;
+  teamComputePoints?: number;
   selfBuyUSD?: number;
   directRefs?: number;
   teamVolumeUSD?: number;
@@ -30,16 +32,19 @@ export function rankHowPresentation(runtime: RankHowRuntime, remoteReady: boolea
 export function formatCanonicalRankConditions(
   rank: RankHowCanonicalRank,
   labels: RankHowConditionLabels,
+  locale = "en",
 ): string[] {
   const conditions = rank.conditions;
   const parts: string[] = [];
-  const money = (value: number) => `$${formatAmount(value)}`;
   const interpolate = (label: string, value: string) => label
     .replace("${n}", value)
     .replace("{n}", value);
-  if (conditions.selfBuyUSD !== undefined) parts.push(interpolate(labels.selfBuy, money(conditions.selfBuyUSD)));
+  const copy = computePointsCopy(locale);
+  if (conditions.selfComputePoints !== undefined) parts.push(`${copy.self} ≥ ${formatComputePoints(conditions.selfComputePoints, locale)}`);
+  else if (conditions.selfBuyUSD !== undefined) parts.push(`${copy.self} · ${copy.conditionsPending}`);
   if (conditions.directRefs !== undefined) parts.push(interpolate(labels.directRefs, String(conditions.directRefs)));
-  if (conditions.teamVolumeUSD !== undefined) parts.push(interpolate(labels.teamVol, money(conditions.teamVolumeUSD)));
+  if (conditions.teamComputePoints !== undefined) parts.push(`${copy.team} ≥ ${formatComputePoints(conditions.teamComputePoints, locale)}`);
+  else if (conditions.teamVolumeUSD !== undefined) parts.push(`${copy.team} · ${copy.conditionsPending}`);
   if (conditions.vDownlines) {
     for (const [v, count] of Object.entries(conditions.vDownlines)) {
       parts.push(labels.vDownlines.replace("{n}", String(count)).replace("{v}", v));

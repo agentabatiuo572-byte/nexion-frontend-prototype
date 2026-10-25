@@ -70,7 +70,6 @@
             <view class="flex-1 min-w-0">
               <text class="block" :style="phoneActivationTitleStyle">{{ phoneActivationGuidance.title }}</text>
               <text class="block" :style="phoneActivationBodyStyle">{{ phoneActivationGuidance.body }}</text>
-              <text class="block" :style="phoneActivationRewardStyle">{{ t.myDevices.phoneActivationRewardGate }}</text>
             </view>
           </view>
           <view v-if="nativePhoneAvailable" class="flex items-center justify-center active:scale-[0.98]" :style="phoneActivationCtaStyle" role="button" tabindex="0" @click="goPhoneActivation"  @keydown.enter.prevent="goPhoneActivation" @keydown.space.prevent="goPhoneActivation">
@@ -767,9 +766,9 @@ const ctaLabelStyle: CSSProperties = {
 const phoneActivationCardStyle: CSSProperties = {
   marginTop: "12px",
   borderRadius: "16px",
-  border: "1px solid color-mix(in oklab, var(--v5-brand) 35%, var(--v5-border))",
-  background: "color-mix(in oklab, var(--v5-brand) 8%, var(--v5-surface))",
-  padding: "14px",
+  border: "1px solid var(--v5-border)",
+  background: "var(--v5-surface)",
+  padding: "12px",
 };
 const phoneActivationIconStyle: CSSProperties = {
   width: "40px",
@@ -789,13 +788,6 @@ const phoneActivationBodyStyle: CSSProperties = {
   fontSize: "12px",
   lineHeight: 1.5,
   color: "var(--v5-ink-3)",
-};
-const phoneActivationRewardStyle: CSSProperties = {
-  marginTop: "6px",
-  fontFamily: "var(--font-v5)",
-  fontSize: "12px",
-  lineHeight: 1.5,
-  color: "var(--v5-warning)",
 };
 const phoneActivationCtaStyle: CSSProperties = {
   marginTop: "12px",

@@ -15,7 +15,7 @@ describe('promotion checkout original-command safety',()=>{
     save.mockImplementation(record=>{saved=JSON.parse(JSON.stringify(record));});
     session.setQuote(quote,'old-voucher');session.rememberLeavePrompt();expect(saved.leavePromptShown).toBe(true);
     const restored=new PromotionCheckoutSession({api,save,key,current},saved);
-    restored.invalidateQuote();expect(restored.record.voucherId).toBeUndefined();expect(saved.leavePromptShown).toBe(true);
+    restored.invalidateQuote();expect(restored.record.voucherId).toBe('old-voucher');expect(saved.leavePromptShown).toBe(true);
     restored.setQuote(quote);expect(saved.leavePromptShown).toBe(true);expect(restored.record.voucherId).toBeNull();
     await restored.create();expect(saved.leavePromptShown).toBe(true);
     const original=new PromotionCheckoutSession({api,save,key,current},saved);await original.recover();

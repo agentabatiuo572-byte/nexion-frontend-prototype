@@ -48,9 +48,14 @@
       </view>
     </view>
 
-    <view v-if="showManage && (phoneLocalReady || degradable)" class="flex justify-end" style="padding:8px 16px"><NxButton size="small" :label="t.home.fleetManage" @click="openMenu" /></view>
+    <view v-if="detailPage" class="device-management-heading">
+      <view><text class="block device-section-title">{{ t.coreReview.management }}</text><text class="block" style="font-size:12px;margin-top:4px" :style="{ color: statusColor }">{{ statusLabel }}</text></view>
+      <NxButton v-if="phoneLocalReady || degradable" size="small" :label="t.home.fleetManage" @click="openMenu" />
+    </view>
+    <view v-else-if="showManage && (phoneLocalReady || degradable)" class="flex justify-end" style="padding:8px 16px"><NxButton size="small" :label="t.home.fleetManage" @click="openMenu" /></view>
     <!-- Collapsed row header (always visible; tap toggles detail) -->
     <view
+      v-if="!detailPage"
       class="nx-device-card__header active:opacity-70 transition-opacity"
       role="button"
       tabindex="0"
@@ -178,6 +183,16 @@
       <text class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.earn.hashCapabilityUnknown }}</text>
     </view>
 
+    <view v-if="detailPage" id="device-statistics" class="device-statistics" tabindex="-1" :aria-label="t.coreReview.statistics">
+      <text class="block device-section-title">{{ t.coreReview.statistics }}</text>
+      <view class="device-statistics__values">
+        <view><text class="block device-statistics__label">{{ t.earn.todayEarnings }}</text><text class="block device-statistics__amount">{{ phoneLocalReady ? `$${formatAmount(device.todayEarnings)}` : '—' }}</text><text class="block device-statistics__label">{{ phoneLocalReady ? `${formatAmount(device.todayEarningsNEX)} UVT` : '—' }}</text></view>
+        <view><text class="block device-statistics__label">{{ t.coreReview.cumulativeEarnings }}</text><text class="block device-statistics__amount">{{ phoneLocalReady && device.cumulativeEarningsUsdt != null ? `$${formatAmount(device.cumulativeEarningsUsdt)}` : '—' }}</text></view>
+      </view>
+      <view class="device-statistics__unavailable"><text>{{ t.coreReview.earningsHistory }}</text><text class="device-statistics__label">{{ t.coreReview.historyUnavailable }}</text></view>
+      <view class="device-statistics__unavailable"><text>{{ t.coreReview.onlineRate }}</text><text class="device-statistics__label">{{ t.coreReview.onlineRateUnavailable }}</text></view>
+    </view>
+    <text v-if="detailPage" class="block device-section-title" style="padding:16px 20px 12px">{{ t.coreReview.jobs }}</text>
     <!-- Phone: reconnecting -->
     <view v-if="reconnecting && device.kind === 'phone'" style="padding: 0 20px 16px">
       <text class="block mb-2" :style="sectionLabelStyle">{{ t.earn.currentTask }}</text>
@@ -361,7 +376,7 @@
     </view>
 
     <!-- Earnings — today only (est-this-hour removed per accordion redesign) -->
-    <view v-if="phoneLocalReady" style="padding: 16px 20px 20px; border-top: 1px solid color-mix(in srgb, var(--v5-border) 70%, transparent)">
+    <view v-if="phoneLocalReady && !detailPage" style="padding: 16px 20px 20px; border-top: 1px solid color-mix(in srgb, var(--v5-border) 70%, transparent)">
       <text class="block" :style="sectionLabelStyle">{{ t.earn.todayEarnings }}</text>
       <view class="flex items-baseline gap-2.5" style="margin-top: 4px">
         <!-- 《09》§3 正收益=success:本组是「今日已实现收益」(USDT 主数 + NEX 增量),
@@ -405,8 +420,8 @@ import { fmt } from "@/i18n/format";
 import { remoteApiEnabled } from "@/api/runtime";
 import { localClockTime, todayCompletedTasks } from "@/lib/today-completed-tasks";
 
-const props = defineProps<{ device: Device; expanded?: boolean; divider?: boolean; showManage?: boolean }>();
-const emit = defineEmits<{ toggle: [] }>();
+const props = defineProps<{ device: Device; expanded?: boolean; divider?: boolean; showManage?: boolean; detailPage?: boolean }>();
+const emit = defineEmits<{ toggle: []; statistics: [] }>();
 const app = useApp();
 const session = useSession();
 const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
@@ -529,12 +544,12 @@ const statusGlow = computed(() => phoneLocalReady.value && !props.device.pending
 
 const elapsedRemaining = computed(() => {
   const tk = task.value;
-  if (!tk) return "0m 00s";
+  if (!tk) return fmt(t.value.coreReview.minutesSeconds, { minutes: 0, seconds: 0 });
   const elapsed = Math.floor((liveTaskNow.value - tk.startedAt) / 1000);
   const remaining = Math.max(0, tk.totalSec - elapsed);
   const min = Math.floor(remaining / 60);
   const sec = remaining % 60;
-  return `${min}m ${String(sec).padStart(2, "0")}s`;
+  return fmt(t.value.coreReview.minutesSeconds, { minutes: min, seconds: sec });
 });
 
 // Reconnecting hold copy
@@ -757,6 +772,7 @@ const flooredCtaLabelStyle: CSSProperties = {
 // Long-press quick menu
 const menuOpen = ref(false);
 const pressFiredMenu = ref(false);
+let navigatingToStatistics = false;
 let longPress: ReturnType<typeof setTimeout> | null = null;
 function cardRoot(): HTMLElement | undefined {
   if (typeof document === "undefined") return undefined;
@@ -803,11 +819,12 @@ watch(menuOpen, async (open) => {
     if (open) document.addEventListener("keydown", onDocumentMenuKeydown, true);
   }
   await nextTick();
+  if (!open && navigatingToStatistics) { navigatingToStatistics = false; return; }
   const root = cardRoot();
   if (!root) return;
   const target = open
     ? root.querySelector<HTMLElement>(".nx-device-quick-menu [tabindex='0']")
-    : root.querySelector<HTMLElement>(".nx-device-card__header");
+    : root.querySelector<HTMLElement>(props.detailPage ? ".device-management-heading [role='button']" : ".nx-device-card__header");
   target?.focus();
 });
 function onPressStart() {
@@ -835,9 +852,10 @@ function onRowTap() {
   emit("toggle");
 }
 function goStatsMenu() {
+  navigatingToStatistics = true;
   closeMenu();
-  // Source routes to /earn (a detailed-stats view); we're already on earn, so
-  // close the menu (the dedicated stats page isn't a separate route in uni yet).
+  if (props.detailPage) emit('statistics');
+  else navTo(`/pages/earn/device-detail?id=${encodeURIComponent(props.device.id)}&section=statistics`);
 }
 function goTradeinMenu() {
   closeMenu();
@@ -932,6 +950,14 @@ import DeviceSlot from "@/components/home/device-slot.vue";
 .earn-device-amount-label { display: block; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 .earn-device-value { display: block; margin-top: 4px; font: 600 15px/1.3 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
 .nx-device-card__details { animation: earn-detail-in .2s ease-out; }
+.device-management-heading { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px; }
+.device-section-title { font:600 15px/22px var(--font-v5);color:var(--v5-ink); }
+.device-statistics { padding:20px;border-block:1px solid var(--v5-border);scroll-margin-top:76px; }
+.device-statistics:focus-visible { outline:2px solid var(--v5-brand);outline-offset:-2px; }
+.device-statistics__values { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-block:16px; }
+.device-statistics__amount { font:600 24px/32px var(--font-v5);font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+.device-statistics__label { color:var(--v5-ink-3);font:400 12px/18px var(--font-v5); }
+.device-statistics__unavailable { display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding-top:12px;font:500 13px/18px var(--font-v5); }
 @keyframes earn-detail-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .nx-device-card__details { animation: none; } }
 .nx-device-card__spec { flex: 1 1 160px; min-width: min(100%, 160px); line-height: 1.35; }

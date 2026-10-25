@@ -1,3 +1,5 @@
+import * as networkReaudit from "@/i18n/network-reaudit";
+import * as computePoints from "@/i18n/compute-points";
 import { displayNickname } from "@/lib/brand-copy";
 import * as Vue from "vue";
 import { formatAmount } from "@/lib/amount-display";
@@ -83,11 +85,13 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
   const deps: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/i18n/network-reaudit": networkReaudit,
+    "@/i18n/compute-points": computePoints,
     "@/lib/brand-copy": { displayNickname },
     vue: Vue, "@/components/svg-text": { default: SvgText },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: { render: () => Vue.h("view") } },
-    "@/components/team/v-badge.vue": { default: { props: ["v"], render: () => Vue.h("view") } },
+    "@/components/team/team-rank-emblem.vue": { default: { props: ["rank"], render: () => Vue.h("view") } },
     "@/i18n/use-t": { useT: () => t }, "@/i18n/format": { fmt },
     "@/store/network": { useNetwork: () => network }, "@/store/v-rank": { useVRank: () => rank },
     "@/lib/v-rank-copy": { rankLabel, rankTitle }, "@/store/locale": { useLocaleStore: () => locale },
@@ -113,7 +117,7 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
 
 function member(id: string, layer: NetworkMember["layer"], status: NetworkMember["status"] = "active"): NetworkMember {
   return { id, name: `Member ${id}`, avatar: "M", vRank: 2, layer, status, binary: "unassigned", isSpillover: false,
-    joinedAt: Date.now() - 86400000, monthVolumeUSD: 17, totalVolumeUSD: null, city: "Fixture City" };
+    joinedAt: Date.now() - 86400000, monthVolumeUSD: 17, totalVolumeUSD: null, monthComputePoints: 320, lifetimeComputePoints: null, city: "Fixture City" };
 }
 beforeEach(() => { vi.useFakeTimers(); });
 afterEach(() => { unmounts.splice(0).forEach((unmount) => unmount()); vi.useRealTimers(); });
@@ -126,11 +130,11 @@ test("APP empty network uses a square positioned view graph, not unknown SVG and
   expect(all(graph!).some((item) => item.tag === "svg")).toBe(false);
   const orbits = all(graph!).filter((item) => hasClass(item, "nx-net-native-orbit"));
   expect(orbits).toHaveLength(2);
-  expect(orbits.map((item) => style(item).width)).toEqual([`${116 / 360 * 100}%`, `${264 / 360 * 100}%`]);
+  expect(orbits.map((item) => style(item).width)).toEqual([`${144 / 360 * 100}%`, `${280 / 360 * 100}%`]);
   const labels = all(graph!).filter((item) => item.tag === "text");
-  expect(labels.map(text)).toEqual([en.network.diagramYou, "V0", en.network.badgeDirect, en.network.badgeExtended]);
+  expect(labels.map(text)).toEqual([en.network.diagramYou, "V0"]);
   expect(labels.slice(1).every((item) => style(item).position === "absolute")).toBe(true);
-  expect(new Set(labels.slice(1).map((item) => style(item).top)).size).toBe(3);
+  expect(new Set(labels.slice(1).map((item) => style(item).top)).size).toBe(1);
   expect(page.self().tag).toBe("view");
   emit(page.self(), "onClick");
   expect(page.navTo).toHaveBeenCalledExactlyOnceWith("/pages/team/rank");
@@ -142,19 +146,19 @@ test("APP real projection binds direct/extended nodes, touch details, close and 
   await Vue.nextTick();
   const graph = all(page.root).find((item) => hasClass(item, "nx-net-native"))!;
   expect(graph).toBeDefined();
-  const members = page.controls().filter((item) => item.props["aria-label"].startsWith("Member "));
+  const members = page.controls().filter((item) => hasClass(item, "nx-net-node") && item.props["aria-label"].startsWith("Member "));
   expect(members).toHaveLength(3);
   expect(members.every((item) => item.tag === "view")).toBe(true);
   expect(members[0].props["aria-label"]).toBe(`Member one · V2 · ${en.network.badgeDirect}`);
   expect(members[2].props["aria-label"]).toBe(`Member three · V2 · ${en.network.badgeExtended}`);
   expect(style(members[0]).left).toBe("50%");
-  expect(style(members[0]).top).toBe(`${122 / 360 * 100}%`);
+  expect(style(members[0]).top).toBe(`${108 / 360 * 100}%`);
   expect(all(graph).filter((item) => hasClass(item, "nx-net-native-connection"))).toHaveLength(2);
   emit(members[2], "onClick"); await Vue.nextTick();
   let sheet = all(page.root).find((item) => item.props.role === "dialog")!;
   expect(text(sheet)).toContain("Member three");
   expect(text(sheet)).toContain("Fixture City");
-  expect(text(sheet)).toContain("$17");
+  expect(text(sheet)).toContain("320 compute pts");
   expect(text(sheet)).toContain("—"); // Unknown all-time volume remains unknown.
   emit(all(sheet).find((item) => item.props["aria-label"] === en.ui.close)!, "onClick");
   await Vue.nextTick();
@@ -191,7 +195,7 @@ test("mounted APP labels follow late rank and all three locale dictionaries", as
     const dictionary = { en, zh, vi: viMessages }[code];
     expect(page.self().props["aria-label"]).toBe(fmt(dictionary.network.selfNodeLabel, { n: "V3" }));
     expect(text(page.self())).toContain(dictionary.network.diagramYou);
-    expect(text(page.root)).toContain(dictionary.network.badgeDirect);
+    expect(text(page.root)).toContain(dictionary.network.legendDirect);
     expect(page.self().props["aria-label"]).not.toContain("VV3");
   }
 });
@@ -220,8 +224,8 @@ test("H5 retains SVG geometry, keyboard self/member activation, pulse and single
   expect(all(page.root).some((item) => hasClass(item, "nx-net-native"))).toBe(false);
   const svg = all(page.root).find((item) => item.tag === "svg" && item.props.viewBox === "0 0 360 360")!;
   expect(svg).toBeDefined();
-  expect(all(svg).filter((item) => item.tag === "circle").map((item) => item.props.r)).toEqual(["58", "132", "50", "14"]);
-  expect(all(svg).filter((item) => item.tag === "text")).toHaveLength(4);
+  expect(all(svg).filter((item) => item.tag === "circle").map((item) => item.props.r)).toEqual([72, "140", "50", "18"]);
+  expect(all(svg).filter((item) => item.tag === "text")).toHaveLength(2);
   expect(page.self().tag).toBe("g"); expect(page.self().props.tabindex).toBe("0");
   expect(page.self().props["aria-label"]).not.toContain("VV0");
   const preventDefault = vi.fn();
@@ -287,10 +291,10 @@ test.each(["app", "h5"] as const)("%s confirmed selection survives retry and rea
   page.network.remoteStatus = "error";
   await Vue.nextTick();
   expect(text(page.sheet()!)).toContain("Fixture City");
-  page.network.members = [{ ...member("original", 1), name: "Updated canonical member", monthVolumeUSD: 93, city: "Updated city" }];
+  page.network.members = [{ ...member("original", 1), name: "Updated canonical member", monthVolumeUSD: 93, monthComputePoints: 1440, city: "Updated city" }];
   await Vue.nextTick();
   expect(text(page.sheet()!)).toContain("Updated canonical member");
-  expect(text(page.sheet()!)).toContain("$93");
+  expect(text(page.sheet()!)).toContain("1,440 compute pts");
   expect(text(page.sheet()!)).toContain("Updated city");
   expect(text(page.sheet()!)).not.toContain("Member original");
   expect(text(page.sheet()!)).not.toContain("Fixture City");

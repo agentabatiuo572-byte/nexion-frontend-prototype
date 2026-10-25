@@ -25,12 +25,12 @@ async function page(paused: boolean, period: string, t: typeof en, poolUSD = 0, 
     pauseCapturedAt: "2026-10-08T12:30:00Z",
     heroCapStyle: () => ({}), fmtCompactUSD: () => `$${poolUSD}`, prize: { poolUSD, topN: poolUSD > 0 ? 21 : 0 },
     payoutToText: "PAYOUT_TO_FROZEN_21",
-    totalRows: 0, myRankDisplay: "—", gapText: t.leaderboard.myRank.notRanked,
-    podiumDisplay: [], visibleRest: [], hasMore: false, periodOptions: [],
+    totalRows: 0, me: { rank: null }, myRankDisplay: "—", gapText: t.leaderboard.myRank.notRanked,
+    visibleRows: [], rankingGroups: [], hasMore: false, periodOptions: [],
     go() {}, selectPeriod() {}, loadRemote() {},
   }) });
   const wrapper = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("section", slots.default?.()) });
-  for (const component of ["AppChassis", "SubPageHeader", "GlassSegments"]) app.component(component, wrapper);
+  for (const component of ["AppChassis", "SubPageHeader", "GlassSegments", "TeamArt", "TeamRankEmblem"]) app.component(component, wrapper);
   return renderToString(app);
 }
 
@@ -79,9 +79,12 @@ describe("leaderboard paused presentation", () => {
       expect(html).not.toContain(en.leaderboard.note);
     });
   }
-  it("keeps the payout prompt on an active positive-pool snapshot", async () => {
+  it("closes the additional payout promotion even on an active positive-pool snapshot", async () => {
     const html = await page(false, "week", en, 100);
-    expect(html).toContain("PAYOUT_TO_FROZEN_21");
+    expect(html).not.toContain("PAYOUT_TO_FROZEN_21");
+    expect(html).not.toContain(en.leaderboard.pool.resetsIn);
+    expect(html.split(en.leaderboard.cta.share)).toHaveLength(2);
+    expect(html).not.toContain(en.leaderboard.myRank.climb);
   });
   it("does not use another period or a local fixture as a paused server fact", () => {
     expect(readPaused(true, { value: { period: "week", paused: true } }, { value: "week" })).toBe(true);

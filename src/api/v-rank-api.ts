@@ -19,8 +19,10 @@ export interface CanonicalVRankRow {
   title: string;
   cnTitle: string;
   selfBuyUSD?: number;
+  selfComputePoints?: number;
   directRefs?: number;
   teamVolumeUSD?: number;
+  teamComputePoints?: number;
   requiredDownlineRank?: number;
   requiredDownlineCount?: number;
   directBonus: number;
@@ -76,8 +78,10 @@ export interface CanonicalVRankState {
   rankCode: string;
   progress: {
     selfBuyUSD: number;
+    selfComputePoints?: number;
     directRefs: number;
     teamVolumeUSD: number;
+    teamComputePoints?: number;
     vDownlineCounts: Record<string, number>;
   };
 }
@@ -110,6 +114,13 @@ function number(value: unknown, minimum = 0): number {
 function optionalNumber(value: unknown, minimum = 0): number | undefined {
   if (value === null || value === undefined || value === "") return undefined;
   return number(value, minimum);
+}
+
+/** Additive platform-count fields. Missing is unknown; never coerce money or strings. */
+function optionalComputePoints(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return invalid();
+  return value;
 }
 
 function integer(value: unknown, minimum = 0): number {
@@ -150,8 +161,10 @@ function rankRow(value: unknown): CanonicalVRankRow {
     title: text(source.title),
     cnTitle: text(source.cnTitle),
     selfBuyUSD: optionalNumber(source.selfBuyUSD),
+    selfComputePoints: optionalComputePoints(source.selfComputePoints),
     directRefs: optionalNumber(source.directRefs),
     teamVolumeUSD: optionalNumber(source.teamVolumeUSD),
+    teamComputePoints: optionalComputePoints(source.teamComputePoints),
     requiredDownlineRank: requiredRank,
     requiredDownlineCount: optionalNumber(source.requiredDownlineCount),
     directBonus: number(source.directBonus),
@@ -213,8 +226,10 @@ function current(value: unknown, mode: ApiEnvironment): CanonicalVRankState {
     rankCode,
     progress: {
       selfBuyUSD: number(progress.selfBuyUSD),
+      selfComputePoints: optionalComputePoints(progress.selfComputePoints),
       directRefs: integer(progress.directRefs),
       teamVolumeUSD: number(progress.teamVolumeUSD),
+      teamComputePoints: optionalComputePoints(progress.teamComputePoints),
       vDownlineCounts: counts,
     },
   };

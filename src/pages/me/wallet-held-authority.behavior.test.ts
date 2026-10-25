@@ -1,4 +1,5 @@
 import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -72,6 +73,8 @@ async function mount(remoteApiEnabled = true) {
   const chassis = { setup: (_props: unknown, { slots }: { slots: Vue.Slots }) => () => Vue.h("view", slots.default?.()) };
   const modules: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/finance-amount-display": { formatFinanceAmount },
+    "@/api/order-api": { subscribeRuntimeRevision: () => () => {} },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shown.push(callback), onHide: () => {} },
     "@/components/app-chassis.vue": { default: chassis },
     "@/components/sub-page-header.vue": { default: { render: () => null } },
@@ -171,7 +174,7 @@ describe("actual wallet held authority", () => {
     s.app.homeTruth.earnings.all.usdt = 12.25; s.commission.eventsEvidence!.aggregate.totalUSDT = 4.5;
     await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$16.75");
   });
-  it.each([[1.005, "$1.01"], [2.675, "$2.68"], [0.145, "$0.15"], [999.995, "$1000.00"]] as const)(
+  it.each([[1.005, "$1.01"], [2.675, "$2.68"], [0.145, "$0.15"], [999.995, "$1,000.00"]] as const)(
     "rounds balance and held displays at the decimal half without changing the source: %s", async (amount, expected) => {
       const s = await mount();
       s.app.user.usdtBalance = amount;

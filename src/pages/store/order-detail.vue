@@ -15,7 +15,6 @@
 -->
 <template>
   <AppChassis active="store">
-    <OrderRewards v-if="remoteApiEnabled && id" :order-no="id" />
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
     <view style="color: var(--v5-ink); padding-top: 24px">
@@ -50,7 +49,7 @@
             </view>
             <view class="flex-1 min-w-0">
               <text class="block" :style="heroLabelStyle">{{ statusLabel(order.status) }}</text>
-              <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ nexGridBrandText(order.productName) }}</text>
+              <text class="block" style="overflow-wrap:anywhere; line-height:1.5; font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ commerceOrderTitle(order,locale.code) }}</text>
             </view>
           </view>
 
@@ -62,6 +61,18 @@
             <text v-if="order.status === 'provisioning'" class="block" :style="{ fontSize: '12px', marginTop: '8px', lineHeight: '1.5', color: statusColor }">{{ dynamicHint }}</text>
           </view>
         </view>
+
+        <view v-if="needsRecovery" class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px" data-testid="order-recovery">
+          <text class="block" style="font-size: 13px; line-height: 1.6; color: var(--v5-ink-2)">{{ recoveryHint }}</text>
+          <view class="order-recovery-actions">
+            <view role="button" tabindex="0" :aria-disabled="remoteOrderRefreshing" :style="notFoundBtnStyle" @click="refreshOrder" @keydown.enter.prevent="refreshOrder" @keydown.space.prevent="refreshOrder"><text>{{ t.store.catalogRetry }}</text></view>
+            <view role="button" tabindex="0" :style="notFoundBtnStyle" @click="contactOrderSupport" @keydown.enter.prevent="contactOrderSupport" @keydown.space.prevent="contactOrderSupport"><text>{{ t.orders.copyAndSupport }}</text></view>
+          </view>
+        </view>
+        <view v-if="canBuyAgain" class="mx-4" style="margin-top: 12px">
+          <view class="grid place-items-center" role="button" tabindex="0" :style="notFoundBtnStyle" @click="goStore" @keydown.enter.prevent="goStore" @keydown.space.prevent="goStore"><text>{{ t.promotion.buyAgain }}</text></view>
+        </view>
+        <OrderRewards v-if="remoteApiEnabled && id" :order-no="id" />
 
         <!-- Activated → Earn jump -->
         <view v-if="order.status === 'activated'" class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
@@ -186,7 +197,9 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { commerceOrderTitle, commerceCopy } from "@/lib/commerce-review";
+import { useLocaleStore } from "@/store/locale";
+import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
 import OrderRewards from '@/components/promotion/order-rewards.vue';
 import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
@@ -208,6 +221,7 @@ import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope"
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
 const t = useT();
+const locale = useLocaleStore();
 const orders = useOrders();
 const app = useApp();
 const auth = useAuth();
@@ -413,6 +427,21 @@ const paymentExpired = computed(() => order.value?.expiresAt != null
 const canPayFromWallet = computed(() => remoteApiEnabled
   && cancellable.value && !walletRefreshing.value && !paymentExpired.value);
 const isProvisioning = computed(() => order.value?.status === "provisioning");
+const needsRecovery = computed(() => !!order.value && ['payment_failed','provisioning_failed','chargeback','expired'].includes(order.value.status));
+const recoveryHint = computed(() => order.value?.status === 'expired' ? t.value.orders.expiredNext : t.value.orders.recoveryNext);
+const canBuyAgain = computed(() => !!order.value && ['activated','cancelled','expired','refunded'].includes(order.value.status)
+  && !payingFromWallet.value && !cancellingOrder.value && !remoteOrderRefreshing.value && !remoteOrderError.value);
+function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
+  return formatPlainAmount(value).replace(/\B(?=(\d{3})+\.)/g, ',');
+}
+function goStore() { if(canBuyAgain.value)void navTo('/store'); }
+function contactOrderSupport() {
+  if(!needsRecovery.value||!order.value)return;
+  const scope=captureDetailScope();
+  uni.setClipboardData({data:order.value.id,success:()=>{
+    if(isCurrentDetailScope(scope))void navTo('/pages/support/chat?start=support');
+  }});
+}
 const STATUS_COLORS: Record<OrderStatus, string> = {
   placed: "var(--v5-ink-3)",
   paid: "var(--v5-brand)",
@@ -473,11 +502,12 @@ const dataCenterLabel = computed(() => {
 const dynamicHint = computed(() => {
   const o = order.value;
   if (!o) return "";
+  if (!o.dataCenter?.trim()) return o.status === "provisioning" ? commerceCopy(locale.code).provisioningLocationPending : commerceCopy(locale.code).activatedLocationPending;
   const tmpl = o.status === "provisioning" ? t.value.orders.provisioningHint : t.value.orders.activatedHint;
   return tmpl.replace("{dc}", () => dataCenterLabel.value);
 });
 const activatedHint = computed(() =>
-  order.value ? t.value.orders.activatedHint.replace("{dc}", () => dataCenterLabel.value) : "",
+  !order.value ? "" : !order.value.dataCenter?.trim() ? commerceCopy(locale.code).activatedLocationPending : t.value.orders.activatedHint.replace("{dc}", () => dataCenterLabel.value),
 );
 
 function eventFor(stage: OrderStatus) {
@@ -730,4 +760,9 @@ const retryBtnStyle: CSSProperties = { minHeight: "32px", padding: "0 10px", bor
 @media (prefers-reduced-motion: reduce) {
   .nx-spin { animation: none; }
 }
+</style>
+
+<style scoped>
+.order-recovery-actions { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+.order-recovery-actions > view { display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.5; }
 </style>

@@ -43,6 +43,9 @@ export interface CanonicalBinaryState {
   asOfDate: string;
   trackA: number;
   trackB: number;
+  trackAComputePoints?: number | null;
+  trackBComputePoints?: number | null;
+  thresholdComputePoints?: number | null;
   trackAMembers: number;
   trackBMembers: number;
   autoPlacedMembers: number;
@@ -232,6 +235,9 @@ function parseBinary(value: unknown, mode: ApiEnvironment): CanonicalBinaryState
     asOfDate: isoDate(source.asOfDate),
     trackA,
     trackB,
+    trackAComputePoints: source.trackAComputePoints == null ? null : number(source.trackAComputePoints),
+    trackBComputePoints: source.trackBComputePoints == null ? null : number(source.trackBComputePoints),
+    thresholdComputePoints: source.thresholdComputePoints == null ? null : number(source.thresholdComputePoints),
     trackAMembers: integer(source.trackAMembers),
     trackBMembers: integer(source.trackBMembers),
     autoPlacedMembers: integer(source.autoPlacedMembers),

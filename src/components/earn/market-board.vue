@@ -10,7 +10,7 @@
   tasks banner below it on /earn.
 -->
 <template>
-  <view class="nx-earn-market-board nx-glass-card mx-4 p-4">
+  <view v-if="(!remoteApiEnabled || app.homeTruthStatus !== 'error') && (priceIndex.length || deviceRankings.length)" class="nx-earn-market-board nx-glass-card mx-4 p-4">
     <view class="flex items-center justify-between mb-2 px-0">
       <text style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.market.title }}</text>
       <view class="flex items-center gap-1" style="font-size: 12px; color: var(--v5-ink-3)">
@@ -20,7 +20,7 @@
     </view>
 
     <!-- Price Index -->
-    <view>
+    <view v-if="priceIndex.length">
       <text class="block" :style="sectionLabelStyle">{{ t.market.priceIndex }}</text>
       <text v-if="!priceIndex.length" class="block py-2.5" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.uiChrome.unavailable }}</text>
       <view
@@ -47,7 +47,7 @@
     </view>
 
     <!-- Device earnings ranking -->
-    <view class="mt-4 pt-4" style="border-top: 1px solid var(--v5-border)">
+    <view v-if="deviceRankings.length" :class="priceIndex.length ? 'mt-4 pt-4' : ''" :style="{ borderTop: priceIndex.length ? '1px solid var(--v5-border)' : 'none' }">
       <text class="block" :style="sectionLabelStyle">{{ t.market.deviceRanking }}</text>
       <text v-if="!deviceRankings.length" class="block py-2.5" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.uiChrome.unavailable }}</text>
       <view
@@ -64,7 +64,7 @@
           <text class="block truncate" :style="{ fontSize: '15px', color: d.isPhone ? 'var(--v5-ink-3)' : 'var(--v5-ink-2)', fontWeight: d.isPhone ? 400 : 600 }">{{ d.name ?? t.market.yourPhone }}</text>
           <text class="block truncate" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 2px">#{{ d.rank }}<template v-if="d.bestFor"> · {{ d.bestFor }}</template></text>
         </view>
-        <text class="tabular-nums shrink-0" :style="{ fontFamily: 'var(--font-v5)', fontSize: '14.5px', fontWeight: 400, color: 'var(--v5-warning-ink)' }">{{ d.dailyEarn === null ? "—" : `$${formatAmount(d.dailyEarn)}/d` }}</text>
+        <text class="tabular-nums shrink-0" :style="{ fontFamily: 'var(--font-v5)', fontSize: '14.5px', fontWeight: 400, color: 'var(--v5-warning-ink)' }">{{ d.dailyEarn === null ? "—" : `$${formatAmount(d.dailyEarn)}${t.coreReview.perDay}` }}</text>
         <svg v-if="d.kind" class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
     </view>

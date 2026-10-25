@@ -103,3 +103,13 @@ it.each(["send", "activate"])("silently discards stale %s preflight failures", a
     expect(h.sendHumanMessage).not.toHaveBeenCalled(); expect(h.convStore.saveComposer).not.toHaveBeenCalled();
   }
 });
+
+
+it.each([zh, en, vietnamese])("N10 keeps failed/refreshing advisor identity out of the title", messages => {
+  const h = harness(messages); h.cid.value = ""; h.conv.value = undefined; h.startType.value = "advisor";
+  h.store.advisor.assignmentState = "ASSIGNED"; h.store.advisor.currentAdvisorName = "";
+  h.store.advisorError = true; expect(h.state.headerName.value).toBe(messages.conversations.typeAdvisor);
+  expect(h.state.headerName.value).not.toBe(messages.conversations.image.advisorUnavailable);
+  h.store.advisorError = false; h.store.advisorLoading = true;
+  expect(h.state.headerName.value).toBe(messages.conversations.typeAdvisor);
+});

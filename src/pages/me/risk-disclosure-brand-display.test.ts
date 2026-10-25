@@ -17,5 +17,5 @@ it.each(["zh", "en", "vi"] as const)("converts remote %s chapter display without
   expect(blocks.value).toEqual([{ n: 1, title: authored.title.replace(/NEX/g, "UVT"), body: authored.body.replace("NEX", "UVT") }]);
   expect(original).toEqual(before); expect(disclosure.value).toEqual(before);
   expect(riskDisclosureDocumentIdentity(original)).toBe(identity);
-  expect(pageSource).toContain('<SubPageHeader :back="returnTo" pill />');
+  expect(pageSource).toContain('<SubPageHeader :back="returnTo" />');
 });

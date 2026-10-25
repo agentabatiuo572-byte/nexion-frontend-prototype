@@ -14,7 +14,7 @@ const handler = ts.transpileModule(source.slice(source.indexOf("let purchaseConf
 function screen(messages = zh) {
   let current = true;
   let accept!: (value: boolean) => void;
-  const deps = {
+  const deps = { voucherSelecting: ref(false),
     checkoutWalletRefreshing: ref(false), step: ref("confirm"), netPrice: ref(50), cardFee: ref(0),
     captureCheckoutRoute: () => ({}), isCurrentCheckoutRoute: () => current,
     t: ref(messages), formatAmount, fmt, dialogOwner: "test-checkout",

@@ -113,6 +113,7 @@ import { useTrialConfig, computeDiscountedPrice } from "@/store/trial-config";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { trialCardLabels } from "@/lib/trial-card-copy";
+import { formatTrialRemaining } from "@/i18n/core-review";
 
 const ONE_DAY = 86_400_000;
 
@@ -159,15 +160,7 @@ const tint = computed(() =>
   trial.status === "grace" ? "var(--v5-warning)" : "var(--v5-brand-2)",
 );
 
-const etaLabel = computed(() => {
-  const m = ms.value;
-  const days = Math.floor(m / ONE_DAY);
-  const hours = Math.floor((m % ONE_DAY) / 3_600_000);
-  const minutes = Math.floor((m % 3_600_000) / 60_000);
-  return days > 0
-    ? `${days}d ${String(hours).padStart(2, "0")}h`
-    : `${hours}h ${String(minutes).padStart(2, "0")}m`;
-});
+const etaLabel = computed(() => formatTrialRemaining(ms.value, t.value.coreReview));
 
 const progressPct = computed(() => {
   const cfg = trialCfg.config;

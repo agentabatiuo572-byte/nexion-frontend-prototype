@@ -34,7 +34,7 @@
 
       <view class="cp-meta">
         <text class="cp-name">{{ headerName }}</text>
-        <view class="cp-role">
+        <view v-if="headerRole" class="cp-role">
           <view class="cp-dot" :style="dotStyle" />
           <text class="cp-role-t">{{ headerRole }}</text>
         </view>
@@ -42,9 +42,13 @@
       <view v-if="isAi && remoteApiEnabled" class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" :aria-label="t.conversations.restartSession" @click="onStartNewConversation"  @keydown.enter.prevent="onKeyboardActivate($event, onStartNewConversation)" @keydown.space.prevent="onKeyboardActivate($event, onStartNewConversation)"><LiquidGlass :radius="22" />
         <text>{{ t.conversations.restartSession }}</text>
       </view>
-      <view v-if="advisorApplies && convStore.advisorError" class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" :aria-label="t.conversations.image.retryPolicy" @click="convStore.refreshAdvisor()"  @keydown.enter.prevent="convStore.refreshAdvisor()" @keydown.space.prevent="convStore.refreshAdvisor()"><LiquidGlass :radius="22" /><text>{{ t.conversations.image.retryPolicy }}</text></view>
+
     </view>
 
+    <view v-if="advisorApplies && convStore.advisorError" class="cp-ai-history" role="alert">
+      <text class="cp-ai-history-t">{{ t.conversations.image.advisorUnavailable }}</text>
+      <view class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" @click="convStore.refreshAdvisor()" @keydown.enter.prevent="convStore.refreshAdvisor()" @keydown.space.prevent="convStore.refreshAdvisor()"><LiquidGlass :radius="22" /><text>{{ t.conversations.image.retryPolicy }}</text></view>
+    </view>
     <view v-if="isAi && remoteApiEnabled" class="cp-ai-safety" role="note">
       <text class="cp-ai-safety-t">{{ t.nova.localSafetyNotice }}</text>
     </view>
@@ -765,8 +769,8 @@ const headerName = computed(() => {
   if (isAi.value) return t.value.nova.name;
   if (advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.image.unassigned;
   if (advisorApplies.value && convStore.advisor?.currentAdvisorName) return convStore.advisor.currentAdvisorName;
-  if (advisorApplies.value && convStore.advisorError) return t.value.conversations.image.advisorUnavailable;
-  if (advisorApplies.value && convStore.advisorLoading) return t.value.conversations.image.loadingAdvisor;
+  if (advisorApplies.value && convStore.advisorError) return t.value.conversations.typeAdvisor;
+  if (advisorApplies.value && convStore.advisorLoading) return t.value.conversations.typeAdvisor;
   if (conv.value) return displayAgentName(conv.value.agentName);
   return humanType.value ? t.value.conversations.typeAdvisor : "";
 });
@@ -810,7 +814,7 @@ const headerRole = computed(() => {
     return remoteApiEnabled ? t.value.nova.localRole : t.value.conversations.roleAi;
   }
   if (!supportSessionReady.value) return t.value.conversations.connecting;
-  if (advisorApplies.value && convStore.advisorError) return t.value.conversations.image.advisorUnavailable;
+  if (advisorApplies.value && convStore.advisorError) return "";
   if (startType.value && advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.waitingAgent;
   if (startType.value && advisorApplies.value && convStore.advisor?.assignmentState === "ADVISOR_DISABLED") return t.value.conversations.image.disabledAdvisor;
   if (startType.value && advisorApplies.value && convStore.advisor?.availability === "BUSY") return t.value.conversations.image.busyAdvisor;
@@ -862,6 +866,7 @@ const inputLabel = computed(() =>
     : t.value.conversations.inputPlaceholder,
 );
 const emptyHint = computed(() => {
+  if (advisorApplies.value && convStore.advisorError) return "";
   if (isAi.value && novaStatusLoading.value) return t.value.nova.localConnecting;
   if (isAi.value && novaProviderHold.value) return t.value.nova.localUnavailable;
   if (isAi.value) return remoteApiEnabled ? t.value.nova.localEmptyHint : t.value.nova.emptyHint;

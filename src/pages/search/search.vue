@@ -54,7 +54,8 @@
       <EmptyState
         v-else-if="searchResultState.body === 'recoverable-error'"
         kind="recoverable-error"
-        :title="t.authOtp.errorServiceUnavailable"
+        :title="recoveryCopy.unavailable"
+        :desc="recoveryCopy.retryHint"
         :cta-label="t.ui.retry"
         @cta="retrySearchSources"
       />
@@ -69,15 +70,10 @@
         @cta="openHelp"
       />
 
-      <EmptyState
-        v-if="searchResultState.showSourceError"
-        class="mx-4 mt-4"
-        kind="recoverable-error"
-        :title="t.authOtp.errorServiceUnavailable"
-        :cta-label="t.ui.retry"
-        compact
-        @cta="retrySearchSources"
-      />
+      <view v-if="searchResultState.showSourceError" class="nx-search-source-note mx-4 mt-3" role="status">
+        <text>{{ recoveryCopy.partial }}</text>
+        <view class="nx-search-source-retry" role="button" tabindex="0" @click="retrySearchSources" @keydown.enter.prevent="retrySearchSources" @keydown.space.prevent="retrySearchSources"><text>{{ t.ui.retry }}</text></view>
+      </view>
 
       <!-- Results -->
       <view v-if="searchResultState.body === 'results'" class="mx-4 mt-3 space-y-3">
@@ -134,6 +130,7 @@ import { searchStakingRateSummary } from "@/lib/search-staking-rate";
 import { resolveSearchResultState, type SearchRemoteStatus } from "@/lib/search-source-state";
 import { beginNavigationAttempt, completeNavigationAttempt } from "@/lib/navigation-attempt";
 import { fmt } from "@/i18n/format";
+import { searchCopyFor } from "./search-copy";
 
 type Group = "route" | "device" | "product" | "member" | "faq" | "help";
 interface Hit {
@@ -147,6 +144,7 @@ const t = useT();
 const app = useApp();
 const network = useNetwork();
 const locale = useLocaleStore();
+const recoveryCopy = computed(() => searchCopyFor(locale.code));
 const staking = useStaking();
 const config = useConfig();
 onShow(() => { void config.load(); });
@@ -453,6 +451,25 @@ function rowStyle(isLast: boolean): CSSProperties {
 </script>
 
 <style scoped>
+.nx-search-source-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--v5-ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.nx-search-source-note > text { flex: 1; min-width: 0; }
+.nx-search-source-retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  flex-shrink: 0;
+  color: var(--v5-brand);
+  font-weight: 600;
+}
 .nx-search-ph {
   color: var(--v5-ink-4);
 }

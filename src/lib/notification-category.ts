@@ -14,10 +14,18 @@ export function notificationCategory(notification: Pick<Notification, "kind" | "
       return "device";
     case "team": case "nova_team": case "nova_team_event":
       return "team";
-    case "market": case "nova_market": case "nova_staking": case "nova_staking_event": case "nova_market_event":
+    case "marketing": case "market": case "nova_market": case "nova_staking": case "nova_staking_event": case "nova_market_event":
     case "genesis": case "nova_genesis": case "reward": case "nova_eventclaim": case "nova_quest": case "nova_tasklockmonthly":
       return "rewards";
     default:
       return "system";
   }
+}
+
+/** Keep existing preference keys; only documented/observed aliases are normalized. */
+export function notificationPreferenceKind(value: string): Notification["kind"] {
+  const kind = value.trim().toLowerCase();
+  if (["marketing", "market", "nova_market", "nova_market_event"].includes(kind)) return "market";
+  if (["commission", "team", "staking", "genesis", "system"].includes(kind)) return kind as Notification["kind"];
+  return "system";
 }

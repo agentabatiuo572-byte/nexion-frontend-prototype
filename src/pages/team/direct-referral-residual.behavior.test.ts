@@ -1,7 +1,8 @@
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import {expect, test, vi} from "vitest";
 import {createDirectReferralApi} from "@/api/direct-referral-api";
 import type {ApiClient} from "@/api/api-client";
-import {directPage, dictionaries, deferred, eventFixture, snapshotFixture, policyFixture, flush, text, click} from "./direct-referral.test-support";
+import {directPage, dictionaries, deferred, eventFixture, snapshotFixture, policyFixture, flush, text, click, all} from "./direct-referral.test-support";
 
 test("a failed current period can retry while the previous period is still pending", async () => {
   const old = deferred<ReturnType<typeof snapshotFixture>>();
@@ -20,6 +21,9 @@ test.each(["en", "zh", "vi"] as const)("%s shows policy version/time, device ide
   const groups = {...snapshotFixture([event]), split: {purchase: {amountUSDT: 0, amountNEX: 0, count: 0}, deviceEarning: {amountUSDT: 0, amountNEX: 0, count: 1}}};
   const page = await directPage({locale, api: {policy: vi.fn().mockResolvedValue(policyFixture()), snapshot: vi.fn().mockResolvedValue(groups)}}); await flush();
   await click(page.root, dictionaries[locale].directReferral.deviceEarning);
+  expect(text(page.root)).not.toContain("DEVICE-REAL-7");
+  await click(page.root,networkReauditCopy(locale).recordDetails);
+  all(page.root).find(n=>n.props.role === "button" && text(n).startsWith(networkReauditCopy(locale).settlementDetails))!.props.onClick(); await flush();
   expect(text(page.root)).toContain("DEVICE-REAL-7");
   expect(text(page.root)).toContain("settlement-7"); expect(text(page.root)).toContain("2026-10-01T00:00:00Z");
   const copy = dictionaries[locale].directReferral as unknown as Record<string, string>;
@@ -37,8 +41,9 @@ test("production page reads a real adapter's terminal groups while unconfigured/
   const page = await directPage({api: createDirectReferralApi({request} as unknown as ApiClient)}); await flush();
   await click(page.root, dictionaries.en.directReferral.deviceEarning);
   expect(text(page.root)).toContain(dictionaries.en.directReferral.unconfigured);
-  expect(text(page.root)).toContain("canonical-group"); expect(text(page.root)).toContain("USDT");
-  expect(text(page.root)).toContain("1 settlement groups"); expect(text(page.root)).toContain("2.00 USDT + 3.00 NEX");
+  await click(page.root,networkReauditCopy("en").recordDetails);
+  expect(text(page.root)).toContain("canonical-group");
+  expect(text(page.root)).toContain("1 settlement groups"); expect(text(page.root)).toContain("$2.00 + 3.00 UVT");
   expect(request.mock.calls.map(call => call[0].path)).toEqual(expect.arrayContaining([
     "/api/app/team/insights/direct-referral?period=month&page=1&pageSize=20&snapshotAt=2026-10-05T00%3A00%3A00Z&schemaVersion=2&kind=device_earning", "/api/config/commission/direct-referral?schemaVersion=2"]));
 });

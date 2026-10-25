@@ -157,6 +157,7 @@ async function mountedDaily() {
     "@/store/bills": { useBills: () => bills }, "@/store/auth": { useAuth: () => auth }, "@/store/lucky-spin": { useLuckySpin: () => ({}) },
     "@/store/ui": { toast }, "@/i18n/use-t": { useT: () => ref(en) }, "@/i18n/format": { fmt, dateLocale: () => "en-US" },
     "@/lib/trial-date": { formatTrialDateTime },
+    "@/store/locale": { useLocaleStore: () => ({ code: "en" }) },
     "@/lib/binary-session-ready": { binarySessionReady }, "@/lib/binary-read-coalescer": { createScopedReadCoalescer },
     "@/api/order-api": { captureRuntimeRevision, subscribeRuntimeRevision }, "@/lib/route": { navTo: vi.fn() },
     "@/lib/wallet-bill-display": { resolveWalletBillMemo }, "@/api/geo-policy-error": { geoPolicyUserMessage: () => null },

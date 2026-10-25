@@ -200,6 +200,7 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
     const item = items.reduce((best, el) => Math.abs(el.offsetLeft + el.offsetWidth / 2 - center) < Math.abs(best.offsetLeft + best.offsetWidth / 2 - center) ? el : best);
     moveTo(item, item.dataset.glassValue!);
     item.dataset.glassActivation = "drag";
+    item.focus({ preventScroll: true });
     item.click(); // The Vue owner commits once; drag previews never change business state.
     delete item.dataset.glassActivation;
   }

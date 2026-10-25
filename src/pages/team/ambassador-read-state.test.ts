@@ -37,7 +37,7 @@ describe('ambassador required read results', () => {
         remoteApiEnabled: true, pageReadState, retryAgentPage() {},
         t: { headerTitles: { teamAgent: 'Ambassador' }, agent: { loading: 'Loading records', loadError: 'Read failed', retry: 'Retry' } },
       }) });
-      for (const component of ['AppChassis', 'SubPageHeader', 'VBadge']) app.component(component, wrapper);
+      for (const component of ['AppChassis', 'SubPageHeader', 'VBadge', 'TeamArt', 'TeamRankEmblem']) app.component(component, wrapper);
       const html = await renderToString(app);
       expect(html).toContain(pageReadState === 'loading' ? 'Loading records' : 'Read failed');
       expect(html).not.toContain('<input');

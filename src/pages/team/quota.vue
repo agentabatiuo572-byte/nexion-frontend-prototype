@@ -1,78 +1,32 @@
-<!--
-  Hardware Quota — ported from Nexion-prototype/app/(main)/team/quota/page.tsx.
-  Higher tiers (UVELBox Pro / Rack P1) gated behind activated-direct-invite /
-  team-volume milestones. De-carded hero (active-invites count directly on the
-  page floor, hairline footer) + 2 QuotaTierCards (whitelist tier cards, fill
-  no border) + invite CTA (tint fill, border dropped) → /team. Sub-page →
-  <AppChassis active="team"> w/ back → /team. Reuses network + v-rank stores.
-  useMemo → computed. condition `kind` flag replaces locale string-match.
-  banned hex #11131A → var(--v5-surface). <Link>→<view @click>.
--->
 <template>
   <AppChassis active="team">
-    <view class="pb-6" style="color: var(--v5-ink)">
-      <SubPageHeader :back="focusedProductId ? `/pages/store/detail?id=${encodeURIComponent(focusedProductId)}` : '/pages/team/team'" :title="t.quota.pageTitle" />
-
-      <!-- 🔴 zentao #246:请求聚焦的商品不在配额档位里时**明说** ——
-           静默展示无关档位,正是「查看解锁条件跳到另一商品的配额页」的成因。 -->
-      <view v-if="!focusedTierPresent" class="px-4" style="padding-top: 14px">
-        <text class="block" :style="heroCapStyle">{{ focusedProductName }}</text>
-        <text class="block" :style="focusedMissingStyle" role="note">{{ t.quota.focusedTierMissing }}</text>
-        <view class="inline-flex items-center justify-center active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="go(focusedProductHref)" @keydown.enter.prevent="go(focusedProductHref)" @keydown.space.prevent="go(focusedProductHref)">
-          <text>{{ t.store.gateLockedCta }}</text>
-        </view>
+    <view class="quota-page">
+      <SubPageHeader :back="focusedProductId ? `/pages/store/detail?id=${encodeURIComponent(focusedProductId)}` : '/pages/team/team'" :title="t.quota.pageTitle" plain design />
+      <view v-if="!focusedTierPresent" class="quota-content quota-state">
+        <text class="quota-headline">{{ focusedProductName }}</text>
+        <text class="quota-body" role="note">{{ t.quota.focusedTierMissing }}</text>
+        <NxButton variant="secondary" :label="t.store.gateLockedCta" @click="go(focusedProductHref)"><text>{{ t.store.gateLockedCta }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
       </view>
-
-      <view v-else class="px-4" style="display: flex; flex-direction: column; gap: 12px; padding-top: 18px">
-        <!-- Hero — de-carded: invites count sits directly on the page floor.
-             The bordered card + page-floor radial glow were deleted outright
-             (owner call 2026-07-08: floor auras are removed, not re-tuned). -->
-        <view :style="heroStyle">
-          <view class="flex items-start justify-between">
-            <view>
-              <text class="block font-mono-tabular" :style="heroCapStyle">{{ t.quota.yourInvites }}</text>
-              <view class="flex items-baseline" style="margin-top: 8px; gap: 6px">
-                <text class="font-display tabular-nums" :style="heroBigStyle">{{ activeDirectText }}</text>
-                <text class="font-mono-tabular" :style="heroSuffixStyle">{{ remoteApiEnabled && !remoteSnapshot ? "—" : fmt(t.quota.totalSuffix, { n: directInvites }) }}</text>
-              </view>
-            </view>
-            <view class="rounded-2xl grid place-items-center" :style="heroIconStyle">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-            </view>
-          </view>
+      <view v-else class="quota-content">
+        <view class="quota-hero">
+          <view v-if="heroTier" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-eyebrow">{{ t.quota.pageTitle }}</text><text class="quota-headline">{{ heroTier.name }}</text><text v-if="heroTier" class="quota-hero__price">{{ fmt(t.quota.priceLine, { price: formatAmount(heroTier.price) }) }}</text></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
+          <view class="quota-invite-count"><text>{{ t.quota.yourInvites }}</text><view><text class="quota-invite-count__number">{{ activeDirectText }}</text><text class="quota-caption">{{ remoteApiEnabled && !remoteSnapshot ? '—' : fmt(t.quota.totalSuffix, { n: directInvites }) }}</text></view></view>
+          <text class="quota-body">{{ t.quota.heroBody }}</text>
         </view>
 
-        <view v-if="remoteApiEnabled && remoteError" class="rounded-2xl" :style="remoteErrorStyle">
-          <view class="flex items-center justify-between" style="gap: 12px">
-            <text :style="{ color: 'var(--v5-warning)', fontSize: '12px' }">{{ remoteError }}</text>
-            <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" :aria-disabled="remoteRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="refreshRemoteQuota">
-              <text>{{ t.store.catalogRetry }}</text>
-            </view>
-          </view>
+        <view v-if="remoteApiEnabled && remoteError" class="quota-state" role="alert"><text class="quota-body">{{ auditCopy.quotaLoadError }}</text><NxButton variant="secondary" :label="t.store.catalogRetry" :busy="remoteRefreshing" @click="refreshRemoteQuota" /></view>
+        <view v-else-if="remoteApiEnabled && !remoteSnapshot" class="quota-state" role="status" aria-live="polite" aria-busy="true"><text>{{ auditCopy.loading }}</text></view>
+        <view v-if="remoteApiEnabled && productCatalogState.status !== 'ready'" class="quota-state" :role="productCatalogState.status === 'error' ? 'alert' : 'status'">
+          <text class="quota-body">{{ productCatalogState.status === 'error' ? t.store.catalogErrorTitle : t.store.catalogLoadingTitle }}</text>
+          <NxButton v-if="productCatalogState.status === 'error'" variant="secondary" :label="t.store.catalogRetry" @click="retryCatalog" />
         </view>
-
-        <view v-if="remoteApiEnabled && productCatalogState.status !== 'ready'" class="rounded-2xl" :style="remoteErrorStyle">
-          <text>{{ productCatalogState.status === 'error' ? t.store.catalogErrorTitle : t.store.catalogLoadingTitle }}</text>
-          <view v-if="productCatalogState.status === 'error'" :style="retryBtnStyle" role="button" tabindex="0" @click="retryCatalog" @keydown.enter.prevent="retryCatalog" @keydown.space.prevent="retryCatalog">
-            <text>{{ t.store.catalogRetry }}</text>
-          </view>
-        </view>
-
-        <!-- Tier cards -->
+        <view v-if="quotaReady && !focusedTiers.length" class="quota-state" role="status"><text>{{ t.empty.listTitle }}</text></view>
         <QuotaTierCard v-for="tier in focusedTiers" :key="tier.productId" :tier="tier" @navigate="go" />
 
-        <!-- Invite CTA -->
-        <view class="rounded-2xl active:scale-[0.98] transition-transform" :style="inviteCtaStyle" @click="go('/pages/team/team')">
-          <view class="flex items-center" style="gap: 12px">
-            <view class="rounded-xl grid place-items-center" :style="inviteIconStyle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-            </view>
-            <view class="flex-1 min-w-0">
-              <text class="block" :style="inviteTitleStyle">{{ t.quota.inviteFriendsTitle }}</text>
-              <text class="block" :style="inviteHintStyle">{{ inviteHint }}</text>
-            </view>
-            <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-brand)' }">{{ t.quota.shareTag }}</text>
-          </view>
+        <view class="quota-footer">
+          <NxButton variant="secondary" :label="t.empty.devicesCta" @click="go('/pages/store/store')"><text>{{ t.empty.devicesCta }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
+          <view class="quota-route" role="link" tabindex="0" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')"><text>{{ t.rank.conditionsLabel }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg></view>
+          <view class="quota-route" role="link" tabindex="0" @click="go('/pages/team/team?intent=share')" @keydown.enter.prevent="go('/pages/team/team?intent=share')" @keydown.space.prevent="go('/pages/team/team?intent=share')"><view><text>{{ t.quota.inviteFriendsTitle }}</text><text v-if="!remoteApiEnabled" class="quota-caption">{{ inviteHint }}</text></view><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></view>
         </view>
       </view>
     </view>
@@ -82,12 +36,17 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { navTo, takeNavigationQuery } from "@/lib/route";
-import { computed, ref, watch, type CSSProperties } from "vue";
+import { computed, ref, watch } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import NxButton from '@/components/ui/nx-button.vue';
+import TeamArt from '@/components/team/team-art.vue';
+import { getProductMedia } from '@/lib/product-media';
 import QuotaTierCard, { type QuotaTier, type QuotaCondition } from "@/components/team/quota-tier-card.vue";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { fmt } from "@/i18n/format";
 import { remoteApiEnabled, teamQuotaApi } from "@/api/runtime";
 import type { TeamQuotaSnapshot } from "@/api/team-quota-api";
@@ -102,6 +61,8 @@ import { isCurrentTeamP31718Request, type TeamP31718Request } from "@/lib/team-p
 import { isAnnualizedQuotaPerk } from "@/lib/quota-perk";
 
 const t = useT();
+const locale = useLocaleStore();
+const auditCopy = computed(() => networkReauditCopy(locale.code));
 const network = useNetwork();
 const vRank = useVRank();
 const cfg = useConfig();
@@ -142,7 +103,7 @@ async function refreshRemoteQuota() {
     const value = await teamQuotaApi.snapshot();
     if (quotaRequestIsCurrent(request)) remoteSnapshot.value = value;
   } catch {
-    if (quotaRequestIsCurrent(request)) remoteError.value = t.value.authOtp.errorServiceUnavailable;
+    if (quotaRequestIsCurrent(request)) remoteError.value = auditCopy.value.quotaLoadError;
   } finally {
     if (quotaRequestIsCurrent(request)) remoteRefreshing.value = false;
   }
@@ -213,9 +174,10 @@ function buildTier(productId: string, tint: string): QuotaTier | null {
   if (g.activeDirectMin != null)
     conditions.push({ label: t.value.quota.condActivatedDirect, current: activeDirect.value, required: g.activeDirectMin, kind: "invites" });
   if (g.teamVolumeMin != null)
-    conditions.push({ label: t.value.quota.condTeamVol, current: vRank.teamVolumeUSD, required: g.teamVolumeMin, kind: "volume" });
+    conditions.push({ label: t.value.quota.condTeamVol, current: vRank.teamVolumeUSD, required: g.teamVolumeMin, kind: "volume", pointsUnavailable: true });
   return {
     productId,
+    imageUrl: p.imageUrl,
     name: p.name,
     price: p.price,
     monthlyStock: g.quotaCap ?? 0,
@@ -223,7 +185,7 @@ function buildTier(productId: string, tint: string): QuotaTier | null {
     unlockKind: g.mode,
     conditions,
     perks: [
-      fmt(t.value.quota.perkGen, { n: formatAmount(p.dailyEarnNEX) }),
+      fmt(auditCopy.value.estimatedDaily, { n: formatAmount(p.dailyEarnNEX) }),
       `${specText(t.value, p.gpu, "-")} · ${specText(t.value, p.vram, "-")}`,
     ],
     roiBasis: p.productType === "SHARE" ? undefined : { dailyEarn: p.dailyEarn, price: p.price, roi: mockAnnualRoiPct(p) },
@@ -250,7 +212,7 @@ function catalogProductPerks(productId: string, fallback: readonly string[]): st
   if (!p) return fallback.filter((perk) => !isAnnualizedQuotaPerk(perk)).map(quotaPerkText);
   // Annualized output is rendered only with its complete calculation basis.
   return [
-    fmt(t.value.quota.perkGen, { n: formatAmount(p.dailyEarnNEX) }),
+    fmt(auditCopy.value.estimatedDaily, { n: formatAmount(p.dailyEarnNEX) }),
     `${specText(t.value, p.gpu, "-")} · ${specText(t.value, p.vram, "-")}`,
   ];
 }
@@ -268,13 +230,13 @@ function catalogProductRoiBasis(productId: string): QuotaTier["roiBasis"] {
 // ("80.000000 NEX/day"). Until the catalog read lands they are the only facts
 // available, so render them through the same localized, two-decimal
 // line the catalog path uses (BUG 33) instead of printing the raw column.
-const QUOTA_PERK_GEN = /^(\d+(?:\.\d+)?)\s*NEX\s*\/\s*day$/i;
+const QUOTA_PERK_GEN = /^(\d+(?:\.\d+)?)\s*(?:NEX|UVT)\s*\/\s*day$/i;
 function quotaPerkText(perk: string): string {
   const match = QUOTA_PERK_GEN.exec(perk.trim());
   if (!match) return perk;
   const amount = Number(match[1]);
   if (!Number.isFinite(amount)) return perk;
-  return fmt(t.value.quota.perkGen, { n: formatAmount(match[1]) });
+  return fmt(auditCopy.value.estimatedDaily, { n: formatAmount(match[1]) });
 }
 
 /** 请求聚焦的商品是否确实在配额档位里(空 id = 未指定,不提示)。 */
@@ -288,16 +250,17 @@ const focusedTiers = computed(() => focusedProductId.value
 const tiers = computed<QuotaTier[]>(() =>
   remoteApiEnabled
     ? (productCatalogState.status !== "ready" ? [] : remoteSnapshot.value?.tiers ?? []).map((tier, index) => ({
-      productId: tier.productId, name: catalogProductName(tier.productId, tier.name), price: catalogProduct(tier.productId)?.price ?? tier.price,
+      productId: tier.productId, imageUrl: catalogProduct(tier.productId)?.imageUrl, name: catalogProductName(tier.productId, tier.name), price: catalogProduct(tier.productId)?.price ?? tier.price,
       monthlyStock: tier.monthlyStock, soldThisMonth: tier.soldThisMonth,
       available: tier.available,
       unlockKind: tier.unlockKind === "EITHER" ? "either" : "all",
       conditions: tier.conditions.map((condition) => ({
-        label: condition.kind === "teamVolume" ? t.value.quota.condTeamVol
+        label: condition.kind === "teamVolume" || condition.kind === "teamComputePoints" ? t.value.quota.condTeamVol
           : condition.kind === "rank" ? fmt(t.value.quota.condRank, { v: condition.required })
           : t.value.quota.condActivatedDirect,
         current: condition.current, required: condition.required,
-        kind: condition.kind === "teamVolume" ? "volume" : "invites",
+        kind: condition.kind === "teamVolume" || condition.kind === "teamComputePoints" ? "volume" : "invites",
+        pointsUnavailable: condition.kind === "teamVolume",
       })), perks: catalogProductPerks(tier.productId, tier.perks),
       roiBasis: catalogProductRoiBasis(tier.productId), tint: index % 2 ? "var(--v5-warning)" : "var(--v5-brand)",
     }))
@@ -310,38 +273,18 @@ function go(url: string) {
   navTo(url);
 }
 
-// ─── styles ───
-// De-carded hero: no surface/border/glow — content sits directly on the page
-// floor (leaderboard prize-hero idiom, 2px optical inset).
-const focusedMissingStyle: CSSProperties = {
-  fontSize: "12px",
-  lineHeight: 1.5,
-  color: "var(--v5-ink-3)",
-};
-
-const heroStyle: CSSProperties = { padding: "6px 2px 0" };
-const heroIconStyle: CSSProperties = { width: "48px", height: "48px", background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)" };
-const heroCapStyle: CSSProperties = { fontSize: "12px", fontWeight: 500, color: "var(--v5-brand-2)", letterSpacing: "0.06em" };
-const heroBigStyle: CSSProperties = { fontSize: "34px", fontWeight: 600, lineHeight: 1, letterSpacing: "-0.022em", color: "var(--v5-ink)" };
-const heroSuffixStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
-// -2px side margins pull the hairline back to full width (hero has a 2px optical inset).
-const heroFooterStyle: CSSProperties = { margin: "12px -2px 0", padding: "12px 2px 0", borderTop: "1px solid var(--v5-border)" };
-const heroBodyStyle: CSSProperties = {
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
-  // SKILL leading-relaxed = 1.625 (原版 .text-[12px] leading-relaxed; was 1.6)
-  lineHeight: 1.625,
-};
-
-// Conversion entry — tint fill only, border dropped (filled no border: single
-// visual difference).
-const inviteCtaStyle: CSSProperties = {
-  padding: "16px",
-  background: "color-mix(in srgb, var(--v5-brand) 10%, transparent)",
-};
-const inviteIconStyle: CSSProperties = { width: "40px", height: "40px", background: "color-mix(in srgb, var(--v5-brand) 20%, transparent)" };
-const inviteTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
-const inviteHintStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const remoteErrorStyle: CSSProperties = { padding: "10px 12px", background: "color-mix(in srgb, var(--v5-warning) 8%, transparent)" };
-const retryBtnStyle: CSSProperties = { minHeight: "32px", padding: "0 10px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink)", fontSize: "12px" };
+const heroTier = computed(() => focusedTiers.value[0]);
+const heroImage = computed(() => heroTier.value ? getProductMedia(heroTier.value.productId)?.src ?? heroTier.value.imageUrl : undefined);
+const quotaReady = computed(() => !remoteApiEnabled || (remoteSnapshot.value !== null && productCatalogState.status === 'ready'));
 </script>
+
+<style scoped>
+.quota-page { color:var(--v5-ink);padding-bottom:28px; }.quota-content { padding:0 20px; }
+.quota-hero { padding:var(--ui-space-inline) 0 26px;border-bottom:1px solid var(--v5-border); }.quota-hero__main { display:flex;align-items:center;gap:8px; }.quota-hero__copy { flex:1;min-width:0; }
+.quota-eyebrow { display:block;margin-bottom:var(--ui-space-row-y);font:400 12px/1.5 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.quota-headline { display:block;font:600 25px/1.3 var(--font-v5);letter-spacing:-.02em;overflow-wrap:anywhere; }.quota-hero__price { display:block;margin-top:var(--ui-space-row-y);font:500 19px/1.4 var(--font-v5); }
+.quota-hero__image { flex:none;width:42%;height:170px;object-fit:contain; }.quota-invite-count { display:flex;justify-content:space-between;align-items:center;gap:var(--ui-space-inset);margin:18px 0;font:400 13px/1.5 var(--font-v5);color:var(--v5-ink-2); }.quota-invite-count > view { display:flex;align-items:baseline;gap:8px;flex-wrap:wrap; }.quota-invite-count__number { font:600 27px/1.2 var(--font-v5);color:var(--v5-ink); }
+.quota-body { display:block;margin-top:8px;font:400 13px/1.7 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }.quota-caption { display:block;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
+.quota-state { padding-block:28px;display:flex;flex-direction:column;gap:var(--ui-space-inset); }.quota-footer { margin-top:28px; }.quota-footer > :deep(.nx-button) { width:100%;box-sizing:border-box; }
+.quota-route { display:flex;justify-content:space-between;align-items:center;gap:14px;padding:var(--ui-space-inset) 0;min-height:44px;font:500 13px/1.6 var(--font-v5);color:var(--v5-ink-2);cursor:pointer; }.quota-route + .quota-route { border-top:1px solid var(--v5-border); }.quota-route > view { flex:1;min-width:0;overflow-wrap:anywhere; }.quota-route svg { flex:none; }.quota-route:focus-visible { outline:2px solid var(--v5-brand);outline-offset:3px; }
+@media(max-width:350px) { .quota-content { padding-inline:16px; }.quota-headline { font-size:22px; }.quota-hero__image { height:146px; } }
+</style>

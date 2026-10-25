@@ -44,8 +44,15 @@
         <GlassSegments :label="t.events.categoryGroupLabel" v-model="tab" :options="tabOptions" layout="scroll"  />
 
         <!-- Event list -->
+        <view v-if="remoteEventsLoading && filtered.length === 0" class="space-y-2.5" aria-busy="true" role="status" :aria-label="locale.code === 'zh' ? '加载中' : locale.code === 'vi' ? 'Đang tải' : 'Loading'">
+          <view v-for="row in 3" :key="row" class="nx-glass-card" style="height: 132px; padding: 18px">
+            <view style="width: 58%; height: 18px; border-radius: 6px; background: var(--v5-surface-3)" />
+            <view style="width: 86%; height: 12px; margin-top: 16px; border-radius: 4px; background: var(--v5-surface-2)" />
+            <view style="width: 35%; height: 12px; margin-top: 10px; border-radius: 4px; background: var(--v5-surface-2)" />
+          </view>
+        </view>
         <EmptyState
-          v-if="remoteEventsError"
+          v-else-if="remoteEventsError"
           kind="recoverable-error"
           :title="t.events.loadErrorTitle"
           :desc="t.events.loadErrorBody"

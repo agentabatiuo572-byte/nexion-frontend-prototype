@@ -11,6 +11,15 @@ const valid = {
 };
 
 describe("team quota API", () => {
+  it("keeps an independent point condition and rejects invalid point counts", async () => {
+    const payload = structuredClone(valid);
+    payload.tiers[0].conditions = [{ kind: "teamComputePoints", required: 20000, current: 12800 }];
+    const request = vi.fn().mockResolvedValue(payload);
+    const api = createTeamQuotaApi({request} as unknown as ApiClient);
+    expect((await api.snapshot()).tiers[0].conditions[0]).toEqual({kind:"teamComputePoints",required:20000,current:12800});
+    payload.tiers[0].conditions[0].current = -1;
+    await expect(api.snapshot()).rejects.toMatchObject({message:"TEAM_QUOTA_RESPONSE_INVALID"});
+  });
   it("accepts server-owned quota projection", async () => {
     const request = vi.fn().mockResolvedValue(valid);
     const api = createTeamQuotaApi({ request } as unknown as ApiClient);

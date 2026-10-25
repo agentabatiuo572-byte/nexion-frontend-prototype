@@ -7,6 +7,7 @@ import { zh } from "@/i18n/messages/zh";
 import { vi } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import { formatAmount } from "@/lib/amount-display";
+import { formatComputePoints } from "@/i18n/compute-points";
 
 /**
  * zentao #206:团队页「本周领导池」的摘要行是**紧凑行**,却把整段错误说明
@@ -26,25 +27,31 @@ function binding(name: string, deps: string[]) {
 }
 
 describe("team page leadership-pool summary row stays compact", () => {
-  it("names USDT in A/B volume and estimated rewards while missing binary data remains unknown", () => {
+  it("keeps A/B platform points separate from monetary rewards and leaves missing points unknown", () => {
     const names = ["leftVolText", "rightVolText", "binaryMatchText"];
     const declarations = names.map(name => source.split("\n").find((line: string) => line.startsWith(`const ${name} = computed(`)));
     expect(declarations.every(Boolean)).toBe(true);
     const binary = ref<{ leftVol: number; rightVol: number; binaryMatch: number } | null>(null);
-    const text = new Function("computed", "binary", "formatAmount", `${declarations.join("\n")}; return { ${names.join(",")} };`)(computed, binary, formatAmount);
+    const snapshot = ref<{ trackAComputePoints?: number; trackBComputePoints?: number } | null>(null);
+    const commission = { get binarySnapshot() { return snapshot.value; } };
+    const text = new Function("computed", "binary", "formatAmount", "formatComputePoints", "remoteApiEnabled", "commission", "locale", `${declarations.join("\n")}; return { ${names.join(",")} };`)(computed, binary, formatAmount, formatComputePoints, true, commission, {code:"zh"});
     expect(names.map(name => text[name].value)).toEqual(["—", "—", "—"]);
     binary.value = { leftVol: 0, rightVol: 0, binaryMatch: 0 };
-    expect(names.map(name => text[name].value)).toEqual(["0.00 USDT", "0.00 USDT", "+0.00 USDT"]);
+    snapshot.value = {trackAComputePoints:0,trackBComputePoints:0};
+    expect(names.map(name => text[name].value)).toEqual(["0 算力点", "0 算力点", "$0.00"]);
     binary.value = { leftVol: 125, rightVol: 75, binaryMatch: 7.5 };
-    expect(names.map(name => text[name].value)).toEqual(["125.00 USDT", "75.00 USDT", "+7.50 USDT"]);
+    snapshot.value = {trackAComputePoints:1720,trackBComputePoints:1480};
+    expect(names.map(name => text[name].value)).toEqual(["1,720 算力点", "1,480 算力点", "$7.50"]);
+    snapshot.value = {};
+    expect(names.map(name => text[name].value)).toEqual(["—", "—", "$7.50"]);
   });
 
-  it("names USDT in the ready weekly pool or projected payout without showing unavailable money", () => {
+  it("formats ordinary monetary summaries consistently without showing unavailable money", () => {
     const state = ref("ready"), unlocked = ref(false);
-    const primary = binding("leadershipPoolPrimary", ["computed", "remoteApiEnabled", "remotePoolState", "leadershipPoolUnlocked", "projectedPayout", "leadershipPoolKText", "formatAmount"])
+    const primary = binding("leadershipPoolPrimary", ["computed", "remoteApiEnabled", "remotePoolState", "leadershipPoolUnlocked", "projectedPayout", "leadershipPoolTotal", "formatAmount"])
       (computed, true, state, unlocked, ref(12.5), ref(0), formatAmount);
-    expect(primary.value).toBe("0.00K USDT");
-    unlocked.value = true; expect(primary.value).toBe("+12.50 USDT");
+    expect(primary.value).toBe("$0.00");
+    unlocked.value = true; expect(primary.value).toBe("$12.50");
     for (const status of ["loading", "error", "hold"]) {
       state.value = status; expect(primary.value).toBe("—");
     }

@@ -4,16 +4,18 @@ import { describe, expect, it } from "vitest";
 
 const source = readFileSync(new URL("./share-channel-sheet.vue", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
-describe("team share sheet 5174 parity", () => {
-  it("renders only server-configured share channels", () => {
+describe("team share sheet configuration and reward boundaries", () => {
+  it("reads optional channels from server configuration", () => {
     expect(source).toContain("const channels = computed<ShareChannelDef[]>(() => visibleChannels())");
     expect(source).not.toContain("FALLBACK_TEXT");
   });
 
   it("keeps the server reward amount while localizing the explanatory copy", () => {
-    expect(source).toContain("t.value.team.serverRewardPerSettlement");
+    expect(source).toContain("rewards.snapshot?.inviterRewardNex");
+    expect(source).toContain("`${formatAmount(nex)} UVT`");
+    expect(source).toContain("copy.value.qualifiedFriendReward");
     expect(source).not.toContain("Server-set reward:");
     expect(source).not.toContain("Server invitation reward unavailable");
-    expect(source).toMatch(/\.ss-reward \{[^}]*min-height: 65px/);
+    expect(source).toMatch(/\.ss-reward__t \{[^}]*overflow-wrap:anywhere/);
   });
 });

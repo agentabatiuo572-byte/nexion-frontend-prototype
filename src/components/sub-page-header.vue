@@ -7,7 +7,7 @@
   round glass surface. An optional action replaces the message bell.
 -->
 <template>
-  <view class="spv" :class="{ 'spv--plain': plain, 'spv--pill': pill, 'spv--design': design }" :style="{ top: (statusBarHeight + pendingBarInset) + 'px', height: rowH + 'px' }">
+  <view class="spv" :class="{ 'spv--plain': plain, 'spv--design': design }" :style="{ top: (statusBarHeight + pendingBarInset) + 'px', height: rowH + 'px' }">
     <view
       class="spv-side spv-back"
       role="button"
@@ -34,7 +34,7 @@
       class="spv-side spv-bell relative"
       role="button"
       tabindex="0"
-      :aria-label="unread > 0 ? t.notifs.drawerTitle + ' · ' + unread : t.notifs.drawerTitle"
+      :aria-label="unread !== null && unread > 0 ? t.notifs.drawerTitle + ' · ' + unread : unread === null ? t.notifs.drawerTitle + ' · ' + t.notifs.unreadUnavailable : t.notifs.drawerTitle"
       @click="goBell"
 
       @keydown.enter.prevent="onKeyboardActivate($event, goBell)" @keydown.space.prevent="onKeyboardActivate($event, goBell)"
@@ -42,7 +42,7 @@
       <view class="spv-glass nx-design-glass">
         <LiquidGlass :radius="18" tone="navigation" />
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
-        <view v-if="unread > 0" class="spv-belldot" />
+        <view v-if="unread !== null && unread > 0" class="spv-belldot" />
       </view>
     </view>
   </view>
@@ -57,14 +57,14 @@ import { resolveHeaderTitleText, routeFromH5Hash } from "@/lib/header-title";
 import { navBack } from "@/lib/route";
 import { h5DevicePreviewStatusBarHeight } from "@/lib/device-preview";
 
-const props = defineProps<{ back: string; title?: string; subtitle?: string; backAction?: () => void; plain?: boolean; pill?: boolean; design?: boolean; actionLabel?: string; action?: () => void }>();
+const props = defineProps<{ back: string; title?: string; subtitle?: string; backAction?: () => void; plain?: boolean; design?: boolean; actionLabel?: string; action?: () => void }>();
 // 待支付浮动条在场时 chassis 让内容整体下让一带,并把同一个值 provide 下来:sticky 行钉在带的下沿,
 // 不与浮动条重叠(chassis 外渲染 / 无条时为 0)。
 const pendingBarInset = inject(PENDING_BAR_INSET_KEY, ref(0));
 
 const drawer = useMessageDrawer();
 const t = useT();
-const unread = computed(() => drawer.totalUnread);
+const unread = computed(() => drawer.actionableUnread);
 const rowH = computed(() => (props.design || props.subtitle ? 56 : 44));
 
 // Current uni route — last entry in getCurrentPages() (same readRoute() pattern
@@ -121,8 +121,6 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 </script>
 
 <style scoped>
-.spv--pill { background: var(--v5-surface); border: 1px solid var(--v5-border-strong); box-shadow: inset 0 1px 1px color-mix(in srgb, var(--v5-ink) 8%, transparent); }
-.spv--pill :deep(.spv-glass > .nx-liquid-glass) { display: none; }
 
 .spv {
   position: sticky;

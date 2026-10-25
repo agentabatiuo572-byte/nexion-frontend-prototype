@@ -127,9 +127,18 @@ describe("Genesis card confirmation and response ownership", () => {
   it("declares keyboard controls and an accessible price name for the shared activation layer", () => {
     for (const handler of ["handleList", "handleCancel"]) {
       const tag = source.match(new RegExp(`<view[^>]*@click="${handler}"[^>]*>`))?.[0] ?? "";
-      expect(tag).toContain('role="button"'); expect(tag).toContain('tabindex="0"');
+      expect(tag).toContain('role="button"');
+      if (handler === "handleList") {
+        expect(tag).toContain(':tabindex="listBlocked || pending ? -1 : 0"');
+        expect(tag).toContain(':aria-disabled="listBlocked || pending"');
+        expect(tag).toContain('@keydown.enter.prevent="handleList"');
+        expect(tag).toContain('@keydown.space.prevent="handleList"');
+      } else {
+        expect(tag).toContain('tabindex="0"');
+      }
     }
     expect(source.match(/<input[^>]*>/)?.[0]).toContain(':aria-label="t.marketplace.listForSale"');
+    expect(source.match(/<input[^>]*>/)?.[0]).toContain(':disabled="listBlocked || pending"');
   });
 });
 

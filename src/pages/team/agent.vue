@@ -1,12 +1,3 @@
-<!--
-  Agent — ported from Nexion-prototype/app/(main)/team/agent/page.tsx.
-  Regional Ambassador dashboard (V5+ gated), de-carded: floor hero →
-  eligibility tint banner (eligible / locked + path CTA) → 4 reimbursable
-  buckets (transparent hairline rows) → application form on the floor
-  (recessed fields, gated submit) → approved-case rows. Sub-page →
-  <AppChassis active="team"> with in-page back row. Reuses v-rank store +
-  v-badge. lucide → inline SVG; <input>→uni input; toast via store/ui.
--->
 <template>
   <AppChassis active="team">
     <view class="pb-6" style="color: var(--v5-ink)">
@@ -14,83 +5,64 @@
 
       <view v-if="remoteApiEnabled && pageReadState !== 'ready'" class="px-4 text-center" style="padding-top: 32px" role="status" aria-live="polite" :aria-busy="pageReadState === 'loading'">
         <text class="block" style="font-size: 13px; color: var(--v5-ink-2)">{{ pageReadState === 'loading' ? t.agent.loading : t.agent.loadError }}</text>
-        <view v-if="pageReadState === 'error'" role="button" tabindex="0" style="padding: 14px; color: var(--v5-brand)" @click="retryAgentPage" @keydown.enter.prevent="retryAgentPage" @keydown.space.prevent="retryAgentPage"><text>{{ t.agent.retry }}</text></view>
+        <view v-if="pageReadState === 'error'" class="agent-cta agent-retry" role="button" tabindex="0" @click="retryAgentPage" @keydown.enter.prevent="retryAgentPage" @keydown.space.prevent="retryAgentPage"><text>{{ t.agent.retry }}</text><text aria-hidden="true">→</text></view>
       </view>
-      <view v-else class="px-4" style="display: flex; flex-direction: column; gap: 12px; padding-top: 18px">
-        <!-- hero — de-carded: sits on the page floor (radial glow deleted outright) -->
-        <view :style="heroStyle">
-          <view class="flex items-center" style="gap: 10px">
-            <view class="rounded-xl grid place-items-center" :style="heroIconStyle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></svg>
-            </view>
-            <view class="flex-1">
-              <text class="block font-mono-tabular" :style="heroCapStyle">{{ t.agent.heroLabel }}</text>
-              <text class="block font-display" :style="heroHeadlineStyle">{{ t.agent.heroHeadline }}</text>
-            </view>
+      <view v-else class="agent-content">
+        <view class="agent-hero">
+          <view class="agent-hero-copy">
+            <text class="agent-eyebrow">{{ t.agent.heroLabel }}</text>
+            <text class="agent-headline">{{ t.agent.heroHeadline }}</text>
           </view>
-          <text class="block" :style="heroBodyStyle">{{ fmt(t.agent.heroBody, { rank: requiredRankLabel }) }}</text>
+          <TeamArt kind="growth" :size="112" />
         </view>
+        <text class="agent-intro">{{ fmt(t.agent.heroBody, { rank: requiredRankLabel }) }}</text>
 
-        <!-- eligibility -->
-        <view v-if="unlocked" class="rounded-2xl" :style="eligibleStyle">
-          <view class="flex items-center" style="gap: 12px">
-            <view class="rounded-xl grid place-items-center" :style="eligibleIconStyle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
+        <view class="agent-eligibility">
+          <TeamRankEmblem :rank="rankReady ? myRank : null" :size="52" />
+          <view class="agent-eligibility-copy">
+            <view class="agent-rank-summary">
+              <view><text class="agent-rank-label">{{ t.rank.currentRank }}</text><VBadge v-if="rankReady" :v="myRank" size="sm" :show-title="false" /><text v-else>—</text></view>
+              <view><text class="agent-rank-label">{{ t.rank.conditionsLabel }}</text><text>{{ requiredRankLabel }}+</text></view>
             </view>
-            <view class="flex-1">
-              <view class="flex items-center" style="gap: 6px">
-                <text :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ t.agent.eligible }}</text>
-                <VBadge :v="myRank" size="sm" :show-title="false" />
-              </view>
-              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.agent.budgetReviewHint }}</text>
-            </view>
+            <text v-if="unlocked" class="agent-eligible-heading">{{ t.agent.eligible }}</text>
+            <text class="agent-eligibility-note">{{ unlocked ? t.agent.budgetReviewHint : rankReady ? fmt(t.agent.previewOnly, { rank: requiredRankLabel }) : t.profile.rankUnavailable }}</text>
           </view>
-        </view>
-        <view v-else class="rounded-2xl" :style="lockedStyle">
-          <view class="flex items-center" style="gap: 12px">
-            <view class="rounded-xl grid place-items-center" :style="lockedIconStyle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-            </view>
-            <view class="flex-1">
-              <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ fmt(t.agent.lockedReq, { rank: requiredRankLabel }) }}</text>
-              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ lockedSubText }}</text>
-            </view>
-            <view class="shrink-0 rounded-full flex items-center active:scale-95" :style="pathCtaStyle" role="button" tabindex="0" @click="go('/pages/team/rank')">
-              <text>{{ t.agent.pathCta }}</text>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-            </view>
+          <view v-if="!unlocked" class="agent-cta agent-path" :style="pathCtaStyle" role="button" tabindex="0" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
+            <text>{{ t.agent.pathCta }}</text><text aria-hidden="true">→</text>
           </view>
         </view>
 
         <!-- buckets — transparent hairline rows -->
         <view :style="bucketsGroupStyle">
-          <!-- 反馈用 scale 不用 opacity:bucketRowStyle 在 inline style 里写了 opacity(锁定态 0.7),
-               inline 优先级压过 class 生成的 .active\:opacity-70:active,写 opacity 反馈两种状态下都失效。 -->
           <view
             v-for="(b, i) in BUCKETS"
             :key="b.id"
-            class="flex items-start active:scale-[0.98] transition-transform"
+            class="flex items-start agent-bucket" :class="{ 'agent-bucket--selected': selectedBucketId === b.id }"
             :style="bucketRowStyle(i === BUCKETS.length - 1)"
             role="button"
-            tabindex="0"
+            :tabindex="submitting ? -1 : 0"
             :aria-label="b.title"
+            :aria-pressed="selectedBucketId === b.id"
+            :aria-disabled="submitting"
             @click.capture="selectBucket(b)"
+            @keydown.enter.prevent="selectBucket(b)"
+            @keydown.space.prevent="selectBucket(b)"
           >
-            <view class="rounded-xl grid place-items-center shrink-0" :style="bucketIconStyle(b.tint)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="b.tint" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-for="(p, pi) in b.paths" :key="pi" :d="p" /></svg>
+            <view class="grid place-items-center shrink-0" :style="bucketIconStyle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="b.tint" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path v-for="(p, pi) in b.paths" :key="pi" :d="p" /></svg>
             </view>
             <view class="flex-1 min-w-0">
-              <view class="flex items-center justify-between">
+              <view class="flex items-center justify-between" style="gap: 6px; flex-wrap: wrap">
                 <text :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ b.title }}</text>
-                <text class="font-display tabular-nums" :style="{ fontSize: '13px', fontWeight: 600, color: b.tint }">{{ b.range }}</text>
+                <text class="font-display tabular-nums" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ b.range }}</text>
               </view>
-              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px', lineHeight: 1.375 }">{{ b.rule }}</text> <!-- SKILL: leading-snug=1.375 (was 1.4) -->
+              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '4px', lineHeight: 1.6 }">{{ b.rule }}</text>
             </view>
           </view>
         </view>
         <text v-if="selectedBucketTitle" class="block text-center" :style="selectedBucketStyle">{{ selectedBucketTitle }} · {{ t.agent.newApplication }}</text>
 
-        <!-- application form — transparent block, recessed fields -->
+        <!-- The form stays on the floor; only its input controls have borders. -->
         <view :style="formBlockStyle">
           <text class="block font-mono-tabular" :style="formCapStyle">{{ t.agent.newApplication }}</text>
           <view style="display: flex; flex-direction: column; gap: 8px">
@@ -103,7 +75,7 @@
                 v-model="date"
                 :aria-label="t.agent.fieldEventDate"
                 type="text"
-                :disabled="!unlocked"
+                :disabled="!unlocked || submitting"
                 placeholder="YYYY-MM-DD"
                 :style="inputStyle"
                 placeholder-style="color: var(--v5-ink-2)"
@@ -118,7 +90,7 @@
                 v-model="city"
                 :aria-label="t.agent.fieldCity"
                 type="text"
-                :disabled="!unlocked"
+                :disabled="!unlocked || submitting"
                 :placeholder="t.agent.cityPlaceholder"
                 :style="inputStyle"
                 placeholder-style="color: var(--v5-ink-2)"
@@ -127,25 +99,24 @@
             <view :style="fieldStyle">
               <view class="flex items-center" style="gap: 6px; margin-bottom: 4px">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></svg>
-                <text class="font-mono-tabular" :style="fieldLabelStyle">{{ t.agent.fieldBudget }}</text>
+                <text class="font-mono-tabular" :style="fieldLabelStyle">{{ auditCopy.budgetLabel }}</text>
               </view>
-              <view class="flex items-center">
-                <text class="font-display" :style="{ fontSize: '13px', color: 'var(--v5-ink-3)', marginRight: '4px' }">$</text>
+              <view class="flex items-center agent-budget-control">
+                <text class="font-display" :style="{ fontSize: '13px', color: 'var(--v5-ink-3)', marginRight: '12px' }">USDT</text>
                 <input
                   v-model="budgetText"
-                  :aria-label="t.agent.fieldBudget"
+                  :aria-label="auditCopy.budgetLabel"
                   type="text"
                   inputmode="decimal"
-                  :disabled="!unlocked"
+                  :disabled="!unlocked || submitting"
                   :style="budgetInputStyle"
                 />
               </view>
             </view>
           </view>
 
-          <view class="rounded-full flex items-center justify-center active:scale-[0.98]" :style="submitStyle" role="button" tabindex="0" :aria-disabled="unlocked ? 'false' : 'true'" @click="submit">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="unlocked ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
-            <text>{{ unlocked ? t.agent.submitForReview : t.agent.lockedV5 }}</text>
+          <view class="agent-cta agent-submit" :style="submitStyle" role="button" :tabindex="unlocked && !submitting ? 0 : -1" :aria-disabled="!unlocked || submitting ? 'true' : 'false'" :aria-busy="submitting" @click="submit" @keydown.enter.prevent="submit" @keydown.space.prevent="submit">
+            <text>{{ unlocked ? t.agent.submitForReview : t.agent.lockedV5 }}</text><text aria-hidden="true">{{ submitting ? '…' : '→' }}</text>
           </view>
 
           <text v-if="!unlocked" class="block text-center" :style="previewOnlyStyle">{{ fmt(t.agent.previewOnly, { rank: requiredRankLabel }) }}</text>
@@ -175,7 +146,7 @@
                   <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ c.name }}</text>
                   <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ hostedByText(c) }}</text>
                 </view>
-                <text class="font-display tabular-nums" :style="{ fontSize: '15px', fontWeight: 600, color: 'var(--v5-brand)' }">${{ formatAmount(c.amount) }}</text>
+                <text class="font-display tabular-nums" :style="{ fontSize: '15px', fontWeight: 600, color: 'var(--v5-ink)' }">${{ formatAmount(c.amount) }}</text>
               </view>
             </view>
           </view>
@@ -193,9 +164,13 @@ import { onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import VBadge from "@/components/team/v-badge.vue";
+import TeamArt from "@/components/team/team-art.vue";
+import TeamRankEmblem from "@/components/team/team-rank-emblem.vue";
 import { useVRank } from "@/store/v-rank";
 import { rankTitle, rankLabel } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
@@ -218,6 +193,7 @@ import {
 const t = useT();
 const vrank = useVRank();
 const locale = useLocaleStore();
+const auditCopy = computed(() => networkReauditCopy(locale.code));
 const app = useApp();
 
 const myRank = computed(() => vrank.myRank);
@@ -248,7 +224,9 @@ const pageReadState = ref<"loading" | "ready" | "error">(remoteApiEnabled ? "loa
 const BUCKETS = computed<Bucket[]>(() => (policy.value?.buckets ?? []).map((bucket) => {
   const copy = t.value.agent.buckets[bucket.id];
   return {
-    id: bucket.id, title: copy?.title || bucket.title, range: bucket.range, rule: copy?.rule || bucket.rule,
+    id: bucket.id, title: copy?.title || bucket.title,
+    range: `${formatFinanceAmount(bucket.minBudgetUsdt)}–${formatFinanceAmount(bucket.maxBudgetUsdt)} USDT`,
+    rule: copy?.rule || bucket.rule,
     ...BUCKET_VISUALS[bucket.id],
   };
 }));
@@ -329,6 +307,7 @@ function hostedByText(c: ApprovedCase): string {
 }
 
 function selectBucket(b: Bucket) {
+  if (submitting.value) return;
   selectedBucketTitle.value = b.title;
   selectedBucketId.value = b.id as AmbassadorApplicationInput["bucket"];
 }
@@ -486,135 +465,52 @@ function go(url: string) {
   navTo(url);
 }
 
-// ─── styles ───
-// De-carded hero on the page floor — the old radial glow card was a page-floor
-// aura → deleted outright (owner call 2026-07-08), not re-tuned.
-const heroStyle: CSSProperties = { padding: "6px 2px 0" };
-const heroIconStyle: CSSProperties = {
-  width: "40px",
-  height: "40px",
-  background: "color-mix(in srgb, var(--v5-warning) 20%, transparent)",
-};
-const heroCapStyle: CSSProperties = { fontSize: "12px", fontWeight: 500, letterSpacing: "0.06em", color: "var(--v5-warning)" };
-const heroHeadlineStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, lineHeight: 1.25, marginTop: "2px" }; // SKILL: leading-tight=1.25 (was 1.2)
-// Paragraph tier: 13.5 / 1.65 / ink-2 (body copy must not sit in ink-3).
-const heroBodyStyle: CSSProperties = { marginTop: "10px", fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 };
-
-// Status banners — tint fill only, border chrome dropped (single difference).
-const eligibleStyle: CSSProperties = {
-  padding: "16px",
-  background: "color-mix(in srgb, var(--v5-brand) 8%, transparent)",
-};
-const eligibleIconStyle: CSSProperties = {
-  width: "40px",
-  height: "40px",
-  background: "color-mix(in srgb, var(--v5-brand) 20%, transparent)",
-};
-const lockedStyle: CSSProperties = {
-  padding: "16px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 10%, transparent)",
-};
-const lockedIconStyle: CSSProperties = {
-  width: "40px",
-  height: "40px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 20%, transparent)",
-};
-const pathCtaStyle: CSSProperties = {
-  padding: "0 12px",
-  height: "44px",
-  gap: "4px",
-  background: "var(--v5-brand-2)",
-  color: "var(--v5-on-brand-2)", // bright brand-2 fill → on-brand-2 text (incl. svg stroke)
-  fontSize: "12px",
-  fontWeight: 600,
-};
-
-// Transparent hairline rows — border-top opens the group, +12px top margin for
-// 24px section rhythm. SKILL: opacity still gates on unlocked (1 / 0.7).
-const bucketsGroupStyle: CSSProperties = { marginTop: "12px", padding: "0 2px", borderTop: "1px solid var(--v5-border)" };
+// Rules and records stay flat; eligibility and input controls have distinct boundaries.
+const pathCtaStyle: CSSProperties = { color: "var(--v5-ink)" };
+const bucketsGroupStyle: CSSProperties = { borderTop: "1px solid var(--v5-border)" };
 function bucketRowStyle(isLast: boolean): CSSProperties {
-  return {
-    padding: "13px 0",
-    gap: "12px",
-    opacity: unlocked.value ? 1 : 0.7,
-    borderBottom: isLast ? "none" : "1px solid var(--v5-border)",
-  };
+  return { padding: "18px 0", gap: "12px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
 }
-const selectedBucketStyle: CSSProperties = {
-  marginTop: "-4px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  color: "var(--v5-brand-2)",
-};
-function bucketIconStyle(tint: string): CSSProperties {
-  return {
-    width: "40px",
-    height: "40px",
-    // SKILL: prototype `${tint}18` is 8-digit hex alpha 0x18=24/255≈9% (was mis-ported as 18%)
-    background: `color-mix(in srgb, ${tint} 9%, transparent)`,
-  };
-}
-
-// Transparent form block — 2px optical inset, +12px top margin (24px rhythm).
-const formBlockStyle: CSSProperties = { marginTop: "12px", padding: "0 2px" };
-const formCapStyle: CSSProperties = {
-  fontSize: "12px",
-  fontWeight: 500,
-  letterSpacing: "0.06em",
-  color: "var(--v5-ink-3)",
-  marginBottom: "12px",
-};
-// 输入框零描边。外层 formBlockStyle 只有 margin/padding 无底色 → 字段贴页面底;
-// 原 surface-3 亮色下对页面底仅 ΔE 2.7(分不出),改 L1。
-const fieldStyle: CSSProperties = {
-  background: "var(--v5-surface)",
-  borderRadius: "12px",
-  padding: "10px 12px",
-};
-const fieldLabelStyle: CSSProperties = { fontSize: "12px", letterSpacing: "0.05em", color: "var(--v5-ink-3)" };
-const inputStyle: CSSProperties = {
-  width: "100%",
-  background: "transparent",
-  fontSize: "15px",
-  color: "var(--v5-ink)",
-};
-const budgetInputStyle: CSSProperties = {
-  flex: "1",
-  background: "transparent",
-  fontSize: "15px",
-  color: "var(--v5-ink)",
-  fontFamily: "var(--font-v5)",
-};
+const selectedBucketStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-2)", lineHeight: 1.5 };
+const bucketIconStyle: CSSProperties = { width: "32px", height: "32px" };
+const formBlockStyle: CSSProperties = { paddingTop: "8px" };
+const formCapStyle: CSSProperties = { fontSize: "17px", fontWeight: 600, color: "var(--v5-ink)", marginBottom: "12px" };
+const fieldStyle: CSSProperties = { padding: "8px 0" };
+const fieldLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
+const inputStyle: CSSProperties = { width: "100%", minHeight: "44px", padding: "0 12px", boxSizing: "border-box", border: "1px solid var(--v5-border)", borderRadius: "10px", background: "transparent", fontSize: "15px", color: "var(--v5-ink)" };
+const budgetInputStyle: CSSProperties = { flex: "1", minWidth: 0, minHeight: "44px", background: "transparent", fontSize: "15px", color: "var(--v5-ink)", fontFamily: "var(--font-v5)" };
 const submitStyle = computed<CSSProperties>(() => ({
-  marginTop: "12px",
-  height: "48px",
-  gap: "6px",
-  fontSize: "15px",
-  fontWeight: 600,
-  background: unlocked.value ? "var(--v5-brand)" : "var(--v5-surface-2)",
-  color: unlocked.value ? "var(--v5-on-brand)" : "var(--v5-ink-4)",
+  marginTop: "24px", opacity: unlocked.value && !submitting.value ? 1 : 0.45,
 }));
-const previewOnlyStyle: CSSProperties = {
-  marginTop: "8px",
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
-};
-
-// Transparent hairline rows — cap label outside, border-top opens the group.
-const casesBlockStyle: CSSProperties = { marginTop: "12px" };
-const approvedCapStyle: CSSProperties = {
-  padding: "0 2px",
-  marginBottom: "8px",
-  fontSize: "12px",
-  fontWeight: 500,
-  letterSpacing: "0.06em",
-  color: "var(--v5-ink-3)",
-};
-const casesGroupStyle: CSSProperties = { padding: "0 2px", borderTop: "1px solid var(--v5-border)" };
+const previewOnlyStyle: CSSProperties = { marginTop: "12px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
+const casesBlockStyle: CSSProperties = { paddingTop: "8px" };
+const approvedCapStyle: CSSProperties = { marginBottom: "16px", fontSize: "17px", fontWeight: 600, color: "var(--v5-ink)" };
+const casesGroupStyle: CSSProperties = { borderTop: "1px solid var(--v5-border)" };
 function caseRowStyle(isLast: boolean): CSSProperties {
-  return {
-    padding: "12px 0",
-    borderBottom: isLast ? "none" : "1px solid var(--v5-border)",
-  };
+  return { padding: "16px 0", borderBottom: isLast ? "none" : "1px solid var(--v5-border)", overflowWrap: "anywhere" };
 }
 </script>
+
+<style scoped>
+.agent-content { display: flex; flex-direction: column; gap: 24px; padding: var(--ui-space-inset) 20px 24px; }
+.agent-hero { display: flex; align-items: center; gap: var(--ui-space-inline); }
+.agent-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.agent-eyebrow { display: block; font-size: 12px; color: var(--v5-ink-3); line-height: 1.5; }
+.agent-headline { display: block; font-size: 25px; font-weight: 600; line-height: 1.3; margin-top: 8px; }
+.agent-intro { display: block; font-size: 13px; color: var(--v5-ink-2); line-height: 1.7; margin-top: -12px; }
+.agent-eligibility { display: grid; grid-template-columns:52px minmax(0,1fr); align-items: center; gap: var(--ui-space-inline); padding: var(--ui-space-inset); border: 1px solid var(--v5-border); border-radius: 20px; background: color-mix(in srgb, var(--v5-ink) 4%, var(--v5-bg)); }
+.agent-eligibility-copy { min-width: 0; overflow-wrap: break-word; }
+.agent-rank-summary { display: flex; flex-wrap: wrap; gap: var(--ui-space-inline) 20px; font-size: 14px; margin-bottom: 8px; }
+.agent-rank-label { display: block; font-size: 11px; line-height: 1.5; color: var(--v5-ink-3); margin-bottom: 4px; }
+.agent-budget-control { padding: 0 12px; border: 1px solid var(--v5-border); border-radius: 10px; }
+.agent-eligible-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 600; }
+.agent-eligibility-note { display: block; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3); margin-top: 6px; }
+.agent-cta { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); min-height: 48px; padding: var(--ui-space-inline) 20px; box-sizing: border-box; border: 1px solid var(--v5-border); border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 6%, transparent); color: var(--v5-ink); font-size: 14px; font-weight: 500; }
+.agent-retry { margin-top: var(--ui-space-section); }
+.agent-path { grid-column:1/-1; justify-self:stretch; padding: var(--ui-space-row-y) 14px; min-height: 44px; font-size: 12px; }
+.agent-bucket { position: relative; }
+.agent-bucket--selected::before { content: ""; position: absolute; left: -10px; top: 18px; bottom: 18px; width: 2px; background: var(--v5-brand); }
+.agent-submit[aria-disabled="true"] { cursor: default; }
+[role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+@media (max-width: 380px) { .agent-content { padding-left: 16px; padding-right: 16px; } .agent-headline { font-size: 22px; } .agent-hero :deep(.team-art) { width: 88px !important; height: 88px !important; }  }
+</style>

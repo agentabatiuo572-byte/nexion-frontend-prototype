@@ -1,4 +1,5 @@
 import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { compile } from "@vue/compiler-dom";
 import { parse } from "@vue/compiler-sfc";
@@ -173,6 +174,7 @@ function pane(providerStatus: DepositIntent["providerStatus"] = "rejected", tran
   const mounted: Array<() => void> = [], unmounted: Array<() => void> = [];
   const modules: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/finance-amount-display": { formatFinanceAmount },
     vue: { ...Vue, onMounted: (callback: () => void) => mounted.push(callback),
       onUnmounted: (callback: () => void) => unmounted.push(callback) },
     "@/components/me/fx-rate-line.vue": {}, "@/i18n/use-t": { useT: () => Vue.ref(translations) },
@@ -252,6 +254,7 @@ test.each([zh, en, vietnamese])("precise safe 503 reasons render translated guid
 test.each([zh, en, vietnamese])("unknown 503 messages and raw provider text retain neutral generic guidance", async messages => {
   for (const reason of ["HDPAY_ORDER_SUBMISSION_UNKNOWN", "HDPAY_ORDER_READ_AFTER_WRITE_FAILED", "NEW_SERVER_REASON", "<script>private-token</script>", "FX_QUOTE_UNAVAILABLE\nprivate-token"]) {
     const view = pane("rejected", messages); view.dep.intents = [];
+    view.state.amount.value = "25";
     const mounted = view.mount(), flow = creationFlow(view.dep, [503], memoryStorage(), "user:7", undefined,
       { providerReason: "private-token" }, reason);
     view.dep.createRemoteBankIntent.mockImplementation(flow.create);
@@ -423,12 +426,12 @@ test("account changes clear the visible recovery input and reject another accoun
   click(action(mounted.root, "nx-bank-setup-recovery")!);
   first.auth.accountId = "user:8"; first.app.accountKey = "user:8"; first.app.accountBindingEpoch++;
   await Vue.nextTick();
-  expect(input(mounted.root)!.props.value).toBe("25");
+  expect(input(mounted.root)!.props.value).toBe("");
   first.state.goCreateRecovery();
   expect(first.navTo).toHaveBeenCalledOnce();
   mounted.unmount();
   const returned = pane("rejected", zh, first), remounted = returned.mount();
-  expect(input(remounted.root)!.props.value).toBe("25");
+  expect(input(remounted.root)!.props.value).toBe("");
   expect(first.dep.createRemoteBankIntent).toHaveBeenCalledOnce();
 });
 
@@ -701,6 +704,8 @@ test.each(["cancelled", "return_pending"] as const)("a real %s form submits with
   expect(view.state.paneView.value).toBe("form");
   expect(mounted.retry()).toBeUndefined();
   expect(errorBanner(mounted.root)).toBeDefined();
+  (input(mounted.root)!.props.onInput as (event: unknown) => void)({ detail: { value: "25" } });
+  await Vue.nextTick();
   const submit = action(mounted.root, "nx-bank-create-cta")!;
   expect(submit.props["aria-disabled"]).toBe(false);
   click(submit);

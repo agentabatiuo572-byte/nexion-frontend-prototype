@@ -1,24 +1,24 @@
 <template>
   <AppChassis active="team">
+    <RewardPageSurface>
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/team" :title="t.directReferral.title" :action-label="t.unilevel.howItWorksEntry" :action="openRules" plain />
       <view class="px-4" style="display: flex; flex-direction: column; gap: 16px">
-        <GlassSegments :label="t.directReferral.period" v-model="period" :options="periodOptions" layout="scroll" />
         <EmptyState v-if="remoteState === 'error'" kind="recoverable-error" :title="updateRequired ? t.directReferral.updateRequired : t.network.projectionErrorTitle" :desc="updateRequired ? t.directReferral.updateHint : t.network.projectionErrorDesc" :cta-label="t.network.retry" @cta="retryRemote" />
         <view v-else-if="remoteState !== 'ready'" role="status" aria-busy="true"><text>{{ t.network.projectionLoadingTitle }}</text></view>
         <template v-else-if="remoteSnapshot">
-          <view>
+          <RewardHero kind="members" panel>
             <text class="block" style="font-size: 15px; font-weight: 600">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : t.directReferral.purchaseTotal }}</text>
             <view class="nx-royalty-totals" :class="{ 'nx-royalty-totals-large': wideAmount(remoteTotalUSDT) || wideAmount(remoteTotalNEX) }">
-              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalUSDT).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-brand)' }">{{ amount(remoteTotalUSDT) }}</text><text>USDT</text></view>
-              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalNEX).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-brand-2)' }">{{ amount(remoteTotalNEX) }}</text><text>UVT</text></view>
+              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalUSDT).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-ink)' }">${{ amount(remoteTotalUSDT) }}</text></view>
+              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalNEX).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ amount(remoteTotalNEX) }}</text><text>UVT</text></view>
             </view>
             <text class="block" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">{{ remoteGroupCount }} {{ t.directReferral.settlementGroups }}</text>
-            <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ t.directReferral.netHint }}</text>
-          </view>
+            <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ auditCopy.netSummary }}</text>
+          </RewardHero>
         </template>
+        <GlassSegments :label="t.directReferral.period" v-model="period" :options="periodOptions" layout="scroll" />
         <GlassSegments :label="t.directReferral.source" v-model="filter" :options="filterOptions" layout="wrap" />
-        <view v-if="filter === 'device_earning'" style="padding: 14px; border-radius: 14px; background: var(--v5-surface)"><text style="font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ t.directReferral.platformPays }}</text></view>
         <view v-if="remoteState === 'ready' && remoteSnapshot" style="border-top: 1px solid var(--v5-border)">
           <view v-for="event in remoteSnapshot.events" :key="event.id" class="nx-direct-event" style="padding: 14px 0; border-bottom: 1px solid var(--v5-border)">
             <view :class="{ 'nx-royalty-event-large': wideAmount(event.amountUSDT) || wideAmount(event.amountNEX) }" style="display: flex; justify-content: space-between; gap: 10px">
@@ -27,33 +27,44 @@
                 <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : filter === 'direct' ? t.directReferral.purchase : t.directReferral.networkPurchase }}</text>
               </view>
               <view style="max-width: 58%; text-align: right">
-                <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-brand)">{{ amount(event.amountUSDT) }} USDT</text>
-                <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-brand-2)">{{ amount(event.amountNEX) }} UVT</text>
+                <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-ink)">${{ amount(event.amountUSDT) }}</text>
+                <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-ink)">{{ amount(event.amountNEX) }} UVT</text>
               </view>
             </view>
-            <text class="block" style="margin-top: 6px; font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ filter === 'device_earning' ? t.directReferral.receipt : t.directReferral.order }} · {{ sourceReference(event) }}</text>
-            <text v-if="'sourceDeviceId' in event && event.sourceDeviceId" class="block" style="margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ t.directReferral.device }}: {{ event.sourceDeviceId }}</text>
-            <text class="block" style="margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ t.directReferral.settlement }}: {{ event.id }}</text>
             <view style="margin-top: 6px"><text class="nx-royalty-status">{{ statusText(event) }}</text></view>
-            <text v-if="event.status === 'recovery_pending'" class="block nx-direct-amount" style="margin-top: 4px; font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: amount(event.recoveryPendingUSDT), nex: amount(event.recoveryPendingNEX) }) }}</text>
+            <text v-if="event.status === 'recovery_pending'" class="block nx-direct-amount" style="margin-top: 4px; font-size: 12px; color: var(--v5-warning)">{{ fmt(auditCopy.pendingRecovery, { usdt: '$' + amount(event.recoveryPendingUSDT), uvt: amount(event.recoveryPendingNEX) }) }}</text>
+            <view role="button" tabindex="0" class="nx-unilevel-focus nx-unilevel-details-toggle" :aria-expanded="expandedRecords.includes(event.id)" @click="toggleRecord(event.id)" @keydown.enter.prevent="toggleRecord(event.id)" @keydown.space.prevent="toggleRecord(event.id)"><text>{{ expandedRecords.includes(event.id) ? auditCopy.hideDetails : auditCopy.recordDetails }}</text></view>
+            <view v-if="expandedRecords.includes(event.id)" class="nx-unilevel-details">
+              <text class="block">{{ filter === 'device_earning' ? t.directReferral.receipt : t.directReferral.order }} · {{ sourceReference(event) }}</text>
+              <text v-if="'sourceDeviceId' in event && event.sourceDeviceId" class="block">{{ t.directReferral.device }}: {{ event.sourceDeviceId }}</text>
+              <text class="block">{{ t.directReferral.settlement }}: {{ event.id }}</text>
+            </view>
           </view>
           <EmptyState v-if="remoteSnapshot.totalRows === 0" kind="no-filter-results" :title="t.directReferral.empty" :desc="t.directReferral.emptyDesc" />
-          <view v-if="remoteSnapshot.totalRows === 0" role="button" tabindex="0" class="nx-unilevel-focus" style="min-height: 44px; display: flex; align-items: center; justify-content: center; color: var(--v5-brand)" @click="go('/pages/team/team')"><text>{{ t.directReferral.invite }}</text></view>
-          <view v-if="remoteSnapshot.events.length < remoteSnapshot.totalRows" class="nx-unilevel-load-more nx-unilevel-focus" role="button" tabindex="0" :aria-disabled="remoteLoadMoreStatus === 'loading'" style="min-height: 44px; display: flex; align-items: center; justify-content: center" @click="loadMoreRemote"><text>{{ remoteLoadMoreStatus === 'loading' ? t.network.projectionLoadingTitle : remoteLoadMoreStatus === 'error' ? t.network.retry : t.unilevel.loadMore }}</text></view>
+          <view v-if="remoteSnapshot.totalRows === 0" role="button" tabindex="0" class="nx-unilevel-focus reward-cta" @click="go('/pages/team/team')" @keydown.enter.prevent="go('/pages/team/team')" @keydown.space.prevent="go('/pages/team/team')"><text>{{ t.directReferral.invite }}</text></view>
+          <view v-if="remoteSnapshot.events.length < remoteSnapshot.totalRows" class="nx-unilevel-load-more nx-unilevel-focus reward-cta reward-cta--wide" role="button" tabindex="0" :aria-disabled="remoteLoadMoreStatus === 'loading'"  @click="loadMoreRemote" @keydown.enter.prevent="loadMoreRemote" @keydown.space.prevent="loadMoreRemote"><text>{{ remoteLoadMoreStatus === 'loading' ? t.network.projectionLoadingTitle : remoteLoadMoreStatus === 'error' ? t.network.retry : t.unilevel.loadMore }}</text></view>
         </view>
         <view v-if="policyState === 'error'" role="alert">
           <text class="block">{{ t.directReferral.policyError }}</text>
-          <view role="button" tabindex="0" class="nx-unilevel-focus" style="min-height: 44px; display: flex; align-items: center; color: var(--v5-brand)" @click="retryRemote"><text>{{ t.network.retry }}</text></view>
+          <view role="button" tabindex="0" class="nx-unilevel-focus reward-cta" @click="retryRemote" @keydown.enter.prevent="retryRemote" @keydown.space.prevent="retryRemote"><text>{{ t.network.retry }}</text></view>
         </view>
         <view v-else-if="policyState !== 'ready'" role="status" aria-busy="true"><text>{{ t.network.projectionLoadingTitle }}</text></view>
         <view v-else-if="policy" style="display: flex; flex-direction: column; gap: 8px">
           <text v-if="!policy.configured" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.directReferral.unconfigured }}</text>
           <text v-else-if="policy.nexUsdtPrice === null" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.priceUnavailable }}</text>
-          <text style="font-size: 12px; overflow-wrap: anywhere; color: var(--v5-ink-3)">{{ t.directReferral.policyVersion }}: {{ policy.policyVersion }} · {{ t.directReferral.effectiveAt }}: {{ policy.effectiveAt ?? '—' }}</text>
-          <text style="font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ ruleDescription }}</text>
+        </view>
+        <view role="button" tabindex="0" class="nx-unilevel-focus nx-unilevel-details-toggle" :aria-expanded="showSettlementDetails" @click="showSettlementDetails = !showSettlementDetails" @keydown.enter.prevent="showSettlementDetails = !showSettlementDetails" @keydown.space.prevent="showSettlementDetails = !showSettlementDetails"><text>{{ auditCopy.settlementDetails }}</text><text aria-hidden="true">{{ showSettlementDetails ? '−' : '+' }}</text></view>
+        <view v-if="showSettlementDetails" class="nx-unilevel-details">
+          <text class="block">{{ t.directReferral.netHint }}</text>
+          <text v-if="filter === 'device_earning'" class="block">{{ t.directReferral.platformPays }}</text>
+          <template v-if="policyState === 'ready' && policy">
+            <text class="block">{{ t.directReferral.policyVersion }}: {{ policy.policyVersion }} · {{ t.directReferral.effectiveAt }}: {{ policy.effectiveAt ?? '—' }}</text>
+            <text class="block">{{ ruleDescription }}</text>
+          </template>
         </view>
       </view>
     </view>
+    </RewardPageSurface>
   </AppChassis>
 </template>
 
@@ -62,10 +73,14 @@ import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import RewardHero from "@/components/team/reward-compact-hero.vue";
+import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import EmptyState from "@/components/empty-state.vue";
 import GlassSegments from "@/components/glass-segments.vue";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { fmt, dateLocale } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
@@ -80,6 +95,14 @@ import { navTo } from "@/lib/route";
 import { formatHowNumber } from "@/lib/rank-how-content";
 
 const t = useT(), app = useApp(), auth = useAuth();
+const locale = useLocaleStore();
+const auditCopy = computed(() => networkReauditCopy(locale.code));
+const expandedRecords = ref<string[]>([]);
+const showSettlementDetails = ref(false);
+function toggleRecord(id: string) {
+  expandedRecords.value = expandedRecords.value.includes(id)
+    ? expandedRecords.value.filter(value => value !== id) : [...expandedRecords.value, id];
+}
 const directApi = createDirectReferralApi(apiClient, expectedApiEnvironment);
 const purchaseApi = createTeamInsightsApi(apiClient, expectedApiEnvironment);
 let readCoalescer = createScopedReadCoalescer();
@@ -139,6 +162,7 @@ function retryRemote() {
   void readCoalescer.run({ accountKey: app.accountKey, accountBindingEpoch: app.accountBindingEpoch, runtime: captureRuntimeRevision() }, loadRemote);
 }
 function invalidate(resetSnapshot = true) {
+  expandedRecords.value = []; showSettlementDetails.value = false;
   remoteRequest++; remoteSnapshot.value = null; policy.value = null; remoteState.value = "loading"; policyState.value = "loading"; remoteLoadMoreStatus.value = "idle";
   if (resetSnapshot) querySnapshotAt = null;
   readCoalescer = createScopedReadCoalescer();
@@ -198,13 +222,19 @@ function openRules() { go('/pages/team/unilevel-how'); }
 </script>
 
 <style scoped>
-.nx-direct-amount { white-space: nowrap; }
-.nx-royalty-totals { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 12px; }
-.nx-royalty-totals > view + view { padding-left: 16px; border-left: 1px solid var(--v5-border); }
-.nx-royalty-totals-large { grid-template-columns: minmax(0, 1fr); }
-.nx-royalty-totals-large > view + view { padding-left: 0; padding-top: 12px; border-left: 0; border-top: 1px solid var(--v5-border); }
+.nx-direct-amount { overflow-wrap: anywhere; }
+.nx-royalty-totals { display: flex; flex-direction: column; gap: 4px; margin-top: var(--ui-space-row-y); }
+.nx-royalty-totals > view:first-child > text { font-size: 32px !important; }
+.nx-royalty-totals > view + view { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.nx-royalty-totals > view + view > text:first-child { font-size: 16px !important; }
+
+.nx-royalty-totals-large > view:first-child > text { font-size: 22px !important; }
+
 .nx-royalty-event-large { flex-direction: column; }
 .nx-royalty-event-large > view + view { max-width: 100% !important; text-align: left !important; font-size: 13px; }
-.nx-royalty-status { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 12px; color: var(--v5-ink-2); background: var(--v5-surface); }
+.nx-royalty-status { display: block; padding: 2px 0; font-size: 12px; color: var(--v5-ink-2); }
 .nx-unilevel-focus:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
+.nx-unilevel-details-toggle { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); color: var(--v5-ink-2); font-size: 12px; }
+.nx-unilevel-details { color: var(--v5-ink-3); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.nx-unilevel-details > text { margin-bottom: 8px; }
 </style>

@@ -79,12 +79,12 @@
         </view>
         <view class="flex items-center justify-between" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">
           <text v-if="withdrawalFactsDisplayable">{{ t.wallet.withdrawableAvailable }} <text class="tabular-nums" style="color: var(--v5-ink-2); font-family: var(--font-v5)">${{ formatAmount(maxWithdrawable) }}</text></text>
-          <text v-else>{{ withdrawalFactsStatusText }}</text>
+          <text v-else>{{ t.wallet.withdrawableAvailable }} —</text>
           <text v-if="withdrawalFactsDisplayable">{{ minAmountLine }}</text>
           <text v-else>—</text>
         </view>
         <text v-if="withdrawalFactsRefreshing" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ withdrawalFactsStatusText }}</text>
-        <text v-else-if="withdrawalFactsStale" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-warning)">{{ withdrawalFactsStatusText }}</text>
+        <text v-else-if="!withdrawalActionsFresh" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-2)" role="status">{{ withdrawalActionStatusText }}</text>
         <view v-if="withdrawalFactsNeedsRetry" class="inline-flex items-center active:opacity-70" style="min-height: 44px; margin-top: 2px" role="button" tabindex="0" :aria-label="t.wallet.retryFunds" @click="retryWithdrawalFacts"  @keydown.enter.prevent="retryWithdrawalFacts" @keydown.space.prevent="retryWithdrawalFacts">
           <text style="font-size: 12px; color: var(--v5-brand); text-decoration: underline">{{ t.wallet.retryFunds }}</text>
         </view>
@@ -201,6 +201,7 @@
       <!-- 🔴 加载态必须排在失败态**前面**(2026-07-31 复验漏网点):
            重试只可能从失败态发起,若失败态 v-if 在前,骨架永远抢不到 —— 那是死 UI。
            顺序:加载中 > 不可用 > 未输入金额 > 默认。 -->
+      <template v-if="withdrawalPolicyCurrent">
       <view v-if="feeConfigLoading" class="mx-4 mt-4 space-y-1.5" style="padding: 0 2px">
         <view v-for="i in 3" :key="i" class="flex items-center justify-between">
           <view :style="feeSkeletonLabelStyle" />
@@ -231,7 +232,7 @@
            在给一个根本提交不了的金额背书,只有最底下按钮的小字说余额不够。
            低于最低额($19)同理。报价必须只对真能提交的金额出。 -->
       <view v-else-if="quoteBlocked" class="mx-4 mt-4" style="padding: 0 2px">
-        <text class="block" style="font-size: 12px; color: var(--v5-warning); line-height: 1.4">{{ submitDisabledReason }}</text>
+        <text v-if="withdrawalActionsFresh" class="block" style="font-size: 12px; color: var(--v5-warning); line-height: 1.4">{{ submitDisabledReason }}</text>
       </view>
       <view v-else class="mx-4 mt-4 space-y-1.5" style="padding: 0 2px">
         <!-- FEAT-WD02:单行网络确认费(每笔固定,按当前绑定网络取键;$0 显示 $0.00 不藏行)。
@@ -259,8 +260,9 @@
         </view>
       </view>
 
-      <!-- Warnings -->
-      <view class="mx-4 mt-3 rounded-2xl" :style="warnBoxStyle">
+      </template>
+      <!-- Known withdrawal conditions; read failures have one recovery above. -->
+      <view v-if="withdrawalPolicyCurrent && dailyFactsDisplayable" class="mx-4 mt-3 rounded-2xl" :style="warnBoxStyle">
         <view class="flex items-start" style="gap: 8px; font-size: 12px; color: var(--v5-warning)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" style="margin-top: 2px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
           <view class="space-y-1" style="line-height: 1.4">
@@ -277,17 +279,13 @@
                  分隔空格用 {{ ' ' }} 显式写,直接写在标签间的前导空格会被编译器吃掉
                  (实测渲染成 `$20.The fee…` 粘在一起)。 -->
             <text v-if="withdrawalPolicyCurrent" class="block">{{ minWithdrawNoteText }}<text v-if="feeConfigUsable && amountNum > 0 && !quoteBlocked">{{ t.wallet.minWithdrawNoteOffset }}</text></text>
-            <text v-else class="block">{{ t.help.loadingMore }}</text>
             <!-- 🔴 这句只在**闸真的会拦**时才出现:limitCount ≤0 = 服务端没配 / policy 拉不到,
                  判定层按「不限制」走,这时再说一句「每日限额:0 笔/日」就是当场撒谎
                  (实景实测:后端不可达时它真的渲染成 0 笔/日)。
                  「有没有这句话」与「闸生不生效」从此是同一个条件,不会再各走各的。 -->
             <text v-if="dailyFactsDisplayable && limitFacts.dailyLimitConfigured" class="block">{{ dailyUsageText }}</text>
             <text v-else-if="dailyFactsDisplayable && withdrawalPolicy" class="block">{{ t.wallet.dailyWithdrawalCountNotSet }}</text>
-            <text v-else class="block">{{ dailyFactsStatusText }}</text>
             <text v-if="dailyFactsDisplayable && withdrawalPolicy" class="block">{{ t.wallet.dailyWithdrawalAmountNotSet }}</text>
-            <text v-if="dailyFactsRefreshing" class="block" style="margin-top: 2px; color: var(--v5-ink-4)">{{ dailyFactsStatusText }}</text>
-            <text v-else-if="dailyFactsState === 'stale'" class="block" style="margin-top: 2px; color: var(--v5-warning)">{{ dailyFactsStatusText }}</text>
           </view>
         </view>
       </view>
@@ -366,7 +364,7 @@
             <template v-else>
               <view class="grid place-items-center" style="gap: 2px">
                 <text>{{ t.walletV3.submitCtaDisabled }}</text>
-                <text v-if="submitDisabledReason" style="font-size: 12px; font-weight: 400; color: var(--v5-ink-3)">{{ submitDisabledReason }}</text>
+                <text v-if="submitHintVisible" style="font-size: 12px; font-weight: 400; color: var(--v5-ink-3)">{{ submitDisabledReason }}</text>
               </view>
             </template>
           </view>
@@ -377,7 +375,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { ref, computed, nextTick, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import { platformDayIndex } from "@/store/withdrawal-eligibility-core";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
@@ -1287,6 +1285,10 @@ function disabledReasonFor(amount: number, decision: WithdrawalEligibility): str
   return "";
 }
 const submitDisabledReason = computed(() => disabledReasonFor(amountNum.value, eligibility.value));
+// Read/fee failures and invalid entered quotes already have an inline explanation.
+const submitHintVisible = computed(() => Boolean(submitDisabledReason.value)
+  && withdrawalActionsFresh.value && feeConfigUsable.value
+  && (amountNum.value <= 0 || !quoteBlocked.value));
 
 function fmtNex(n: number): string {
   return formatAmount(n);

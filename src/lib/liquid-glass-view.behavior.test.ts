@@ -19,6 +19,7 @@ function harness(top = 0, maximum = 800) {
   const title = element(), navTitle = element(), logo = element();
   let targets = [title, navTitle, logo];
   const root = {
+    dataset: {} as Record<string, string>,
     querySelector: vi.fn(() => scroll),
     querySelectorAll: vi.fn(() => targets),
   };
@@ -55,12 +56,14 @@ function motionHarness() {
     const listeners = new Map<string, Function>();
     const lens = { style: {} as Record<string, string> };
     const values = ["home", "earn", "store", "team", "me"];
+    let focused = 0;
     const items = values.map((value, index) => ({
       offsetLeft: 5 + 60 * index, offsetTop: 5, offsetWidth: 58, offsetHeight: 58,
       dataset: { glassValue: value } as Record<string, string>,
       parentElement: null as unknown,
       getAttribute: () => null,
       closest() { return this; },
+      focus() { focused = index; },
       click() { listeners.get("click")!({ target: this, detail: 0 }); activations.push({ ...this.dataset }); },
     }));
     const activations: Record<string, string>[] = [];
@@ -82,6 +85,8 @@ function motionHarness() {
     step(); step();
     return {
       lens, activations,
+      focused: () => values[focused],
+      arrow: (key: string) => listeners.get("keydown")!({target:items[focused],key,preventDefault(){},stopPropagation(){}}),
       x: () => Number(lens.style.transform.match(/translate3d\(([^p]+)/)![1]),
       click: (index: number) => items[index].click(),
       update: (value: string) => segmentsView.methods.update.call(instance, { ...configuration, value }),
@@ -162,6 +167,15 @@ describe("glass navigation animation ownership", () => {
     const target = h.mount("home", true);
     expect(target.x()).toBe(5);
     target.destroy();
+  });
+  it("continues keyboard selection from the item committed by a drag", () => {
+    const h = motionHarness(), selector = h.mount("home", false, undefined, "filter");
+    selector.drag(0,274);
+    expect(selector.focused()).toBe("me");
+    selector.update("me"); selector.arrow("ArrowRight");
+    expect(selector.focused()).toBe("home");
+    expect(selector.activations.map(item=>item.glassValue)).toEqual(["me","home"]);
+    selector.destroy();
   });
   it("preserves ordinary selectors and respects reduced motion on native arrival", () => {
     const h = motionHarness(), selector = h.mount("me", true, undefined, "filter");

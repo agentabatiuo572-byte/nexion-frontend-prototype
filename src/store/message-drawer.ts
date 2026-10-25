@@ -16,6 +16,10 @@ export const useMessageDrawer = defineStore("messageDrawer", () => {
   const ticketUnread = computed(() => 0);
   const serviceUnread = computed(() => humanUnread.value + ticketUnread.value);
   const totalUnread = computed(() => notifications.unread + serviceUnread.value);
+  // The inbox still shows reading-unread. Bells use only the separate authority.
+  // Never count loaded notification rows or reinterpret unreadByKind as backend policy.
+  const actionableUnread = computed(() => notifications.actionableUnread == null || error.value
+    ? null : notifications.actionableUnread + serviceUnread.value);
   const loading = computed(() => notifications.loading || conversations.loading);
   const error = computed(() => notifications.error || conversations.error
     || (conversations.categoryAvailabilityStatus === "failed" ? "SUPPORT_CATEGORIES_UNAVAILABLE" : null));
@@ -82,6 +86,6 @@ export const useMessageDrawer = defineStore("messageDrawer", () => {
     section.value = "notifications";
   }
 
-  return { section, show, advisorUnread, supportUnread, humanUnread, ticketUnread, serviceUnread, totalUnread,
+  return { section, show, advisorUnread, supportUnread, humanUnread, ticketUnread, serviceUnread, totalUnread, actionableUnread,
     loading, error, refresh, startRefresh, stopRefresh, bindAccount };
 });

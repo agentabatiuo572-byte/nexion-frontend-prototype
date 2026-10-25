@@ -7,9 +7,11 @@
         <DeviceSlot class="device-detail-art" :device="device" :online="false" />
         <DeviceCardPC
           show-manage
+          detail-page
           :device="device"
           :expanded="expanded"
           @toggle="expanded = !expanded"
+          @statistics="focusStatistics"
         />
       </view>
 
@@ -59,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, type CSSProperties } from "vue";
+import { computed, nextTick, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -81,12 +83,14 @@ const rawRouteId = ref("");
 const backHref = ref("/pages/earn/earn");
 const loaded = ref(false);
 const expanded = ref(true);
+const requestedSection = ref('');
 const fleetReadStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
 let fleetReadSequence = 0;
 
 onLoad((options) => {
   const routeOptions = (options || {}) as Record<string, string>;
   const fallback = new URLSearchParams(takeNavigationQuery("/pages/earn/device-detail"));
+  requestedSection.value = routeOptions.section || fallback.get('section') || '';
   const fallbackId = fallback.get("id") || "";
   const rawId = routeOptions.id || fallbackId;
   rawRouteId.value = rawId;
@@ -106,6 +110,24 @@ onLoad((options) => {
 });
 onShow(() => { preserveDeviceDetailQueryInH5(); void retryFleet(); });
 watch(() => app.accountBindingEpoch, () => { if (loaded.value) void retryFleet(); });
+
+function focusStatistics() {
+  expanded.value = true;
+  void nextTick(() => {
+    if (typeof document !== 'undefined') {
+      const target = document.getElementById('device-statistics');
+      target?.scrollIntoView({ block: 'start' });
+      target?.focus({ preventScroll: true });
+      return;
+    }
+    // App logic and its WebView have separate DOM access.
+    // #ifdef APP-PLUS
+    const pages = getCurrentPages();
+    const page = pages[pages.length - 1] as unknown as { $getAppWebview?: () => { evalJS: (script: string) => void } };
+    page?.$getAppWebview?.().evalJS("var target=document.getElementById('device-statistics');if(target){target.scrollIntoView({block:'start'});target.focus({preventScroll:true});}");
+    // #endif
+  });
+}
 
 function preserveDeviceDetailQueryInH5() {
   // Uni H5 can drop navigateTo's visible query. Persist the selected device
@@ -170,6 +192,10 @@ async function retryFleet() {
   const current = app.captureRemoteAccountRequest();
   if (sequence !== fleetReadSequence || request.accountKey !== current.accountKey || request.epoch !== current.epoch) return;
   fleetReadStatus.value = refreshed && app.remoteFleetStatus === "ready" ? "ready" : "error";
+  if (fleetReadStatus.value === 'ready' && requestedSection.value === 'statistics') {
+    requestedSection.value = '';
+    focusStatistics();
+  }
 }
 
 const loadingStyle: CSSProperties = {

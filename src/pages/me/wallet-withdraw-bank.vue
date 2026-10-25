@@ -9,7 +9,7 @@
         <view class="status-mark" aria-hidden="true"><text>{{ outcome === 'paid' ? '✓' : outcome === 'refunded' ? '↶' : '⋯' }}</text></view>
         <text class="screen-title" data-testid="bank-order-status" role="status" aria-live="polite" aria-atomic="true">{{ statusLabel }}</text>
         <text class="intro">{{ c.resultNotes[outcome] }}</text>
-        <view class="amount-card"><text class="muted">{{ c.receiveLabel }}</text><text class="money">{{ money(order.bank.amountVnd) }}</text><text class="currency">VND</text></view>
+        <view class="amount-card"><text class="muted">{{ c.receiveLabel }}</text><text class="money">{{ formatAmount(order.bank.amountVnd, 'VND') }}</text><text class="currency">VND</text></view>
         <view class="account-card"><text class="muted">{{ useTranslations.bankBinding.accountRoutedLabel }}</text><text class="account-number">{{ order.bank.maskedAccount }}</text></view>
         <view class="details">
           <view class="row"><text>{{ c.orderNumber }}</text><text>{{ order.withdrawalNo }}</text></view>
@@ -42,7 +42,7 @@
         <view v-if="(config.beneficiary && !hasVerifiedBankIdentity(config.beneficiary)) || (quote && !hasVerifiedBankIdentity(quote))" class="notice" role="status"><text>{{ c.bankRoutingUnverified }}</text></view>
 
         <template v-if="quote">
-          <view class="amount-card"><text class="muted">{{ c.receiveLabel }}</text><text class="money">{{ money(quote.amountVnd) }}</text><text class="currency">VND</text></view>
+          <view class="amount-card"><text class="muted">{{ c.receiveLabel }}</text><text class="money">{{ formatAmount(quote.amountVnd, 'VND') }}</text><text class="currency">VND</text></view>
           <view class="details">
             <view class="row"><text>{{ c.totalDebit }}</text><text>{{ money(quote.amountUsdt) }} USDT</text></view>
             <view class="row"><text>{{ c.fee }}</text><text>{{ money(quote.feeUsdt) }}</text></view>
@@ -92,7 +92,7 @@
 
 <script setup lang="ts">
 import { formatHowNumber } from "@/lib/rank-how-content";
-import { formatAmount } from "@/lib/amount-display";
+import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { computed, ref, watch } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";

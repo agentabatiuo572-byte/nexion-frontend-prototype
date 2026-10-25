@@ -1,3 +1,4 @@
+import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import * as Vue from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { formatAmount } from "@/lib/amount-display";
@@ -5,12 +6,14 @@ import type { Component } from "vue";
 import { compileScript, compileStyle, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import detailSource from "./invite-detail-sheet.vue?raw";
+import { teamRedesignCopy } from "@/i18n/team-redesign";
 import inviteSource from "./invite-earn-card.vue?raw";
 import walletSource from "../me/wallet-card.vue?raw";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
-import { fmt, fmtMoney, openSlotsTemplate } from "@/i18n/format";
+import { fmt, fmtMoney, openSlotsTemplate, dateLocale } from "@/i18n/format";
 import { auditUiCopy, useAuditUiCopy } from "@/i18n/audit-ui";
 import { useLocaleStore } from "@/store/locale";
 import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
@@ -42,7 +45,7 @@ const hasClass = (target: Host, name: string) => Vue.normalizeClass(target.props
 const find = (root: Host, name: string) => all(root).find(target => hasClass(target, name))!;
 const unmounts: Array<() => void> = [];
 
-async function mount(source: string, dependencies: Record<string, unknown>) {
+function compile(source: string, dependencies: Record<string, unknown>) {
   const { descriptor } = parse(source);
   const script = compileScript(descriptor, { id: "invite-wallet-state", inlineTemplate: true,
     // The in-memory host has no HTML parser for Vue's static SVG cache.
@@ -52,14 +55,19 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   }).outputText;
   const exports = { default: {} as Component };
   new Function("require", "exports", code)((id: string) => {
+    if (id === "@/lib/finance-amount-display") return { formatFinanceAmount };
     if (id === "@/lib/amount-display") return { formatAmount };
     if (id === "vue") return Vue;
     if (id in dependencies) return dependencies[id];
+    if (id === "./invite-detail-sheet.vue") return { default: compile(detailSource, dependencies) };
     if (id.endsWith(".vue")) return { default: { render: () => Vue.h("view") } };
     throw new Error(`Unexpected component import: ${id}`);
   }, exports);
+  return exports.default;
+}
+async function mount(source: string, dependencies: Record<string, unknown>) {
   const root = node("root");
-  const app = renderer.createApp(exports.default);
+  const app = renderer.createApp(compile(source, dependencies));
   app.mount(root); unmounts.push(() => app.unmount());
   await Vue.nextTick();
   return root;
@@ -74,6 +82,7 @@ function snapshot(rewardEnabled = false): ReferralRewardSnapshot {
 }
 
 async function invitation(copy = en) {
+  useLocaleStore().setLocale(copy === zh ? "zh" : copy === vietnamese ? "vi" : "en");
   const rewards = Vue.reactive({ snapshot: snapshot() as ReferralRewardSnapshot | null,
     error: "", loading: false, refresh: vi.fn(async () => true) });
   const copyText = vi.fn(async () => true);
@@ -81,7 +90,9 @@ async function invitation(copy = en) {
   const notifyUnavailableShareLink = vi.fn();
   const toast = { info: vi.fn(), success: vi.fn() };
   const root = await mount(inviteSource, {
-    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt },
+    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt, dateLocale },
+    "@/store/locale": { useLocaleStore }, "@/i18n/team-redesign": { teamRedesignCopy },
+    "@/composables/use-dialog-a11y": { useDialogA11y: () => {} },
     "@/store/app": { useApp: () => ({ user: { referralCode: "STALE_LOCAL_CODE" } }) },
     "@/store/referral-reward": { useReferralReward: () => rewards },
     "@/api/runtime": { remoteApiEnabled: true },
@@ -104,18 +115,20 @@ test.each([en, zh, vietnamese])("disabled invitation rewards keep sharing withou
   const card = await invitation(copy);
   expect(card.rewards.refresh).toHaveBeenCalledOnce();
   const status = text(find(card.root, "invite-card__reward"));
-  expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.referralRewardsDisabled);
+  expect(status).toContain(copy.team.referralRewardsDisabled);
   expect(status).toContain(copy.team.sharingStillAvailable);
-  expect(status).toContain("+7.00 UVT"); // Historical settled earnings remain facts; protocol fields stay Nex.
+  find(card.root, "invite-card__records").props.onClick(); await Vue.nextTick();
+  expect(text(find(card.root, "invite-detail__total"))).toContain("7.00 UVT");
+  expect(text(find(card.root, "invite-detail__counts"))).toContain(teamRedesignCopy(useLocaleStore().code).settled + " 1");
   expect(status).not.toContain(copy.team.serverRewardPerSettlement);
   expect(status).not.toContain(copy.team.perFriendCooldown);
   expect(status).not.toContain("0.00 UVT");
-  expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
+  expect(text(find(card.root, "nx-team-share-now"))).toBe(teamRedesignCopy(useLocaleStore().code).inviteFriends);
   expect(text(find(card.root, "invite-card__header"))).not.toContain(copy.team.earnForEachFriend);
-  expect(text(card.root)).not.toContain(copy.team.rewardRules);
+  expect(find(card.root, "invite-card__rules").props.role).toBe("button");
   expect(all(card.root).some(target => target.props.role === "link")).toBe(false);
   for (const name of ["nx-team-share-poster", "nx-team-copy-code", "nx-team-copy-link", "nx-team-share-now"]) {
-    expect(find(card.root, name).props["aria-disabled"]).toBe(false);
+    expect(find(card.root, name).props["aria-disabled"]).not.toBe(true);
   }
   await find(card.root, "nx-team-copy-code").props.onClick();
   await find(card.root, "nx-team-copy-link").props.onClick();
@@ -127,13 +140,13 @@ test("the same invitation card follows server enablement, unavailable reads and 
   const card = await invitation();
   card.rewards.snapshot = snapshot(true); await Vue.nextTick();
   let status = text(find(card.root, "invite-card__reward"));
-  expect(status).toContain("12.00 UVT");
-  expect(status).toContain(en.team.perFriendCooldown);
-  expect(text(find(card.root, "invite-card__header"))).toContain(fmt(en.team.settlementStatus, { settled: 1, pending: 1 }));
+  expect(status).toContain("12UVT");
+  expect(status).not.toContain(en.team.perFriendCooldown);
+  expect(status).toContain(teamRedesignCopy("en").qualifiedFriendReward);
   card.rewards.error = "read failed"; await Vue.nextTick();
   status = text(find(card.root, "invite-card__reward"));
-  expect(status).toBe("-");
-  expect(status).not.toContain("12.00 UVT");
+  expect(text(find(card.root, "invite-card__amount"))).toBe("—");
+  expect(status).not.toContain("12UVT");
   const retry = find(card.root, "invite-card__retry");
   expect(retry.props.role).toBe("button");
   card.rewards.refresh.mockClear();
@@ -149,12 +162,12 @@ test("the same invitation card follows server enablement, unavailable reads and 
   });
   const refresh = retry.props.onClick(); await Vue.nextTick();
   expect(card.rewards.refresh).toHaveBeenCalledOnce();
-  expect(find(card.root, "invite-card__retry").props["aria-busy"]).toBe(true);
-  expect(text(find(card.root, "invite-card__reward"))).toBe("-");
+  expect(find(card.root, "invite-card__reward").props["aria-busy"]).toBe(true);
+  expect(text(find(card.root, "invite-card__amount"))).toBe("—");
   resolveRead(); await refresh; await Vue.nextTick();
   expect(find(card.root, "invite-card__retry")).toBeUndefined();
-  expect(text(find(card.root, "invite-card__reward"))).toContain("12.00 UVT");
-  expect(text(find(card.root, "invite-card__reward"))).toContain(en.team.perFriendCooldown);
+  expect(text(find(card.root, "invite-card__reward"))).toContain("12UVT");
+  expect(text(find(card.root, "invite-card__reward"))).not.toContain(en.team.perFriendCooldown);
   card.rewards.error = ""; card.rewards.snapshot = null; card.rewards.loading = true; await Vue.nextTick();
   expect(find(card.root, "invite-card__reward")).toBeUndefined();
   expect(find(card.root, "nx-team-share-now")).toBeUndefined();
@@ -164,42 +177,46 @@ test("the same invitation card follows server enablement, unavailable reads and 
     card.rewards.snapshot = snapshot(true); card.rewards.error = ''; return true;
   });
   await find(card.root, "invite-card__retry").props.onClick(); await Vue.nextTick();
-  expect(find(card.root, "nx-team-share-now").props["aria-disabled"]).toBe(false);
+  expect(find(card.root, "nx-team-share-now").props["aria-disabled"]).not.toBe(true);
   expect(find(card.root, "invite-card__unavailable")).toBeUndefined();
 });
 
 test.each([en, zh, vietnamese])("H5 share emphasis only names a reward after a successful enabled server read", async copy => {
   const card = await invitation(copy);
   card.rewards.snapshot = snapshot(true); await Vue.nextTick();
-  expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12.00 UVT" }));
-  expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.earnForEachFriend);
+  expect(text(find(card.root, "nx-team-share-now"))).toBe(teamRedesignCopy(useLocaleStore().code).inviteFriends);
+  expect(text(find(card.root, "invite-card__reward"))).toContain(teamRedesignCopy(useLocaleStore().code).qualifiedFriendReward);
   card.rewards.loading = true; await Vue.nextTick();
-  expect(text(find(card.root, "invite-card__reward"))).toBe("-");
-  expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
-  expect(text(card.root)).not.toContain("12.00 UVT");
+  expect(text(find(card.root, "invite-card__amount"))).toBe("—");
+  expect(text(find(card.root, "nx-team-share-now"))).toBe(teamRedesignCopy(useLocaleStore().code).inviteFriends);
+  expect(text(card.root)).not.toContain("12UVT");
   expect(text(card.root)).not.toContain("+7.00 UVT");
   expect(text(card.root)).not.toContain(copy.team.perFriendCooldown);
   card.rewards.loading = false; card.rewards.error = "unavailable"; await Vue.nextTick();
-  expect(text(find(card.root, "nx-team-share-now"))).toBe(copy.team.shareInvite);
-  expect(text(find(card.root, "invite-card__header"))).toContain(copy.team.settlementUnavailable);
-  expect(text(card.root)).not.toContain("12.00 UVT");
+  expect(text(find(card.root, "nx-team-share-now"))).toBe(teamRedesignCopy(useLocaleStore().code).inviteFriends);
+  expect(text(find(card.root, "invite-card__unavailable"))).toContain(copy.team.settlementUnavailable);
+  expect(text(card.root)).not.toContain("12UVT");
 });
 
-test.each([en, zh, vietnamese])("invitation money keeps two decimals without Native Intl or locale number formatting", async copy => {
+test.each([en, zh, vietnamese])("invitation amounts remain accurate without Native Intl or locale number formatting", async copy => {
   vi.stubGlobal("Intl", undefined);
   const nativeLocale = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("NATIVE_LOCALE_UNAVAILABLE"); });
   try {
     const card = await invitation(copy);
     card.rewards.snapshot = snapshot(true); await Vue.nextTick();
-    expect(text(find(card.root, "nx-team-share-now"))).toBe(fmt(copy.team.shareAndEarn, { n: "12.00 UVT" }));
-    expect(text(find(card.root, "invite-card__reward"))).toContain("+7.00 UVT");
+    expect(text(find(card.root, "nx-team-share-now"))).toBe(teamRedesignCopy(useLocaleStore().code).inviteFriends);
+    expect(text(find(card.root, "invite-card__amount"))).toBe("12");
+    card.rewards.snapshot!.inviterRewardNex = 12.34; await Vue.nextTick();
+    expect(text(find(card.root, "invite-card__amount"))).toBe("12.34");
+    find(card.root, "invite-card__records").props.onClick(); await Vue.nextTick();
+    expect(text(find(card.root, "invite-detail__total"))).toContain("7.00 UVT");
   } finally {
     nativeLocale.mockRestore();
     vi.unstubAllGlobals();
   }
 });
 
-test("restored sharing tools retain clipboard failure feedback and all empty-code guards", async () => {
+test("sharing tools retain clipboard failure feedback and never copy or export an empty code", async () => {
   const card = await invitation();
   card.copyText.mockResolvedValue(false);
   await find(card.root, "nx-team-copy-code").props.onClick();
@@ -216,13 +233,13 @@ test("restored sharing tools retain clipboard failure feedback and all empty-cod
   expect(find(card.root,"nx-invite-actions")).toBeUndefined();
   expect(find(card.root,"invite-card__unavailable")).toBeDefined();
   for (const tool of oldTools) {
-    // Previously captured handlers must still reject an emptied code after the
-    // controls are replaced by the compact unavailable state.
+    // Stale actions may open recovery, but cannot copy/export missing data.
     await tool.props.onClick();
   }
   expect(card.copyText).not.toHaveBeenCalled();
   expect(card.toast.info).toHaveBeenCalledExactlyOnceWith(en.share.noCodeYet);
-  expect(card.notifyUnavailableShareLink).toHaveBeenCalledTimes(3);
+  expect(card.notifyUnavailableShareLink).not.toHaveBeenCalled();
+  expect(all(card.root).filter(node => node.props.open === true)).toHaveLength(1);
   expect(card.recordShareEvent).not.toHaveBeenCalled();
 });
 
@@ -267,12 +284,12 @@ const balanceDisplays = [
   [11, "11.00"],
   [0.045005, "0.05"],
   [0.000001, "0.00"],
-  [999.995001, "1000.00"],
-  [1234567.123456, "1234567.12"],
+  [999.995001, "1,000.00"],
+  [1234567.123456, "1,234,567.12"],
   [1.005, "1.01"],
   [2.675, "2.68"],
   [0.145, "0.15"],
-  [999.995, "1000.00"],
+  [999.995, "1,000.00"],
 ] as const;
 
 async function checkWalletBalance(copy: typeof en) {

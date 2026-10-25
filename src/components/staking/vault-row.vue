@@ -6,16 +6,15 @@
 <template>
   <view :class="['nx-staking-vault-row', `nx-staking-vault-row-${term}`, 'active:opacity-70']" :style="rowStyle" role="button" :aria-disabled="disabled" :tabindex="disabled ? -1 : 0" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
     <!-- Tier code-tag -->
-    <text :style="tierChipStyle">{{ term }}D</text>
+    <text :style="tierChipStyle">{{ copy.days(term) }}</text>
 
     <!-- Middle column -->
     <view style="min-width: 0">
       <view class="flex items-baseline flex-wrap" style="gap: 6px">
         <text class="tabular-nums" :style="apyStyle">{{ apyPct }}%</text>
         <text :style="apyUnitStyle">APY</text>
-        <text v-if="ribbon" :style="ribbonStyle">{{ ribbon.label }}</text>
       </view>
-      <text class="block" :style="blurbStyle">{{ disabled ? t.home.quickStakeStopped : blurb }}</text>
+      <text v-if="disabled" class="block" :style="blurbStyle">{{ t.home.quickStakeStopped }}</text>
       <text class="block tabular-nums" :style="metaStyle">{{ fmt(t.stakingV3.vaultMin, { amount: `$${minText}` }) }} · {{ penaltyPct }}% {{ penaltySuffix }}</text>
     </view>
 
@@ -31,6 +30,7 @@ import { computed, type CSSProperties } from "vue";
 import type { StakingTerm } from "@/store/staking";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import { useStakingReviewCopy } from "@/lib/staking-review-copy";
 
 interface Ribbon {
   label: string;
@@ -47,15 +47,14 @@ const props = defineProps<{
   apy: number;
   penalty: number;
   min: number;
-  blurb: string;
   penaltySuffix: string;
-  ribbon?: Ribbon;
   isLast: boolean;
   disabled?: boolean;
 }>();
 const emit = defineEmits<{ open: [] }>();
 function open() { if (!props.disabled) emit("open"); }
 const t = useT();
+const copy = useStakingReviewCopy();
 
 const TIER_TONES: Record<StakingTerm, TierTone> = {
   30: { softBg: "var(--v5-success-soft)", text: "var(--v5-success)" },
@@ -79,12 +78,12 @@ const rowStyle = computed<CSSProperties>(() => ({
 }));
 const tierChipStyle = computed<CSSProperties>(() => ({
   padding: "4px 10px",
-  background: tone.value.softBg,
+  background: "var(--v5-surface-3)",
   borderRadius: "999px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
   fontWeight: 500,
-  color: tone.value.text,
+  color: "var(--v5-ink-2)",
   letterSpacing: "0.02em",
   whiteSpace: "nowrap",
 }));
@@ -102,16 +101,6 @@ const apyUnitStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
   fontWeight: 500,
 };
-const ribbonStyle = computed<CSSProperties>(() => ({
-  padding: "2px 7px",
-  borderRadius: "999px",
-  background: props.ribbon?.tone === "cyan" ? "var(--v5-tech-cyan-soft)" : "var(--v5-warning-soft)",
-  color: props.ribbon?.tone === "cyan" ? "var(--v5-tech-cyan)" : "var(--v5-warning)",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-  letterSpacing: "0.02em",
-}));
 const blurbStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontSize: "13px",

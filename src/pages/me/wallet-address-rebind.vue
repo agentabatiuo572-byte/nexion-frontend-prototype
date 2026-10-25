@@ -36,8 +36,12 @@
         </view>
       </view>
 
+      <view v-if="step === 'unknown'" class="mx-4 nx-rebind-read-status" role="status" aria-live="polite" :aria-busy="remoteRefreshPending" style="padding: 16px 2px">
+        <text class="block" :style="stateBodyStyle">{{ remoteReadFailed ? copy.addressUnavailable : copy.addressLoading }}</text>
+        <view v-if="remoteReadFailed" class="nx-rebind-read-retry w-full grid place-items-center" :style="primaryCtaStyle" role="button" :aria-disabled="remoteRefreshPending" :tabindex="remoteRefreshPending ? -1 : 0" @click="retryRemoteSnapshot" @keydown.enter.prevent="retryRemoteSnapshot" @keydown.space.prevent="retryRemoteSnapshot"><text>{{ remoteRefreshPending ? copy.addressLoading : copy.retry }}</text></view>
+      </view>
       <!-- ── 成功态 ── -->
-      <view v-if="step === 'success'" class="mx-4 nx-step-in" style="padding: 0 2px">
+      <view v-else-if="step === 'success'" class="mx-4 nx-step-in" style="padding: 0 2px">
         <view class="flex flex-col items-center" style="padding: 32px 0 0">
           <view class="grid place-items-center" :style="successIconBoxStyle">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
@@ -247,7 +251,7 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
-import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
+import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { asApiError } from "@/api/errors";
 import { payoutAddressServerEnabled } from "@/api/runtime";
 import AppChassis from "@/components/app-chassis.vue";
@@ -266,8 +270,10 @@ import { otpSend, otpVerify } from "@/store/auth-otp";
 import { formatClock, isChainAddressValid, maskAddressMid } from "@/store/payout-address-core";
 import { advanceMonotonicHighWater, deadlineRemainingMs, projectServerNow, readTrustedMonotonicNowMs } from "@/lib/server-deadline-clock";
 import type { ChainDepositChannel } from "@/store/types";
+import { useFinanceReviewCopy } from "@/lib/finance-review-copy";
 
 const t = useT();
+const copy = useFinanceReviewCopy();
 const app = useApp();
 const payout = usePayoutAddress();
 const cfg = useConfig();
@@ -297,7 +303,8 @@ const current = computed(() => payout.currentFor(network.value));
 const history = computed(() => payout.stateFor(network.value).history);
 const historyDesc = computed(() => [...history.value].reverse());
 const historyOpen = ref(false);
-const step = computed<"view" | "form" | "otp" | "success">(() => {
+const step = computed<"unknown" | "view" | "form" | "otp" | "success">(() => {
+  if (payoutAddressServerEnabled && (remoteReadStatus.value !== "ready" || !payout.provenance)) return "unknown";
   if (explicitStep.value === "otp") return "otp";
   if (explicitStep.value === "success") return "success";
   if (explicitStep.value === "form") return "form";
@@ -600,10 +607,16 @@ function backToBase() {
 const mockNow = ref(mockServerNow());
 const monotonicNow = ref<number | null>(readTrustedMonotonicNowMs());
 const clockFault = ref(false);
-const remoteRefreshPending = ref(false);
+const readRuntimeScope = ref(captureRuntimeRevision());
+const remoteReadStatus = computed(() => {
+  // Runtime revisions are published outside Vue; subscribing makes scope checks reactive.
+  void readRuntimeScope.value;
+  return payout.readStatusFor(app.accountKey);
+});
+const remoteRefreshPending = computed(() => remoteReadStatus.value === "loading");
+const remoteReadFailed = computed(() => remoteReadStatus.value === "error");
 let tickTimer: ReturnType<typeof setInterval> | undefined;
 let pageVisible = true;
-let refreshGeneration = 0;
 let commandGeneration = 0;
 
 function captureCommandScope() {
@@ -630,26 +643,15 @@ watch(() => payout.serverClock, (anchor) => {
 
 async function retryRemoteSnapshot() {
   if (!payoutAddressServerEnabled || !pageVisible || remoteRefreshPending.value) return;
-  const generation = ++refreshGeneration;
-  const accountKey = app.accountKey;
-  const accountEpoch = app.accountBindingEpoch;
-  const runtime = captureRuntimeRevision();
-  const isCurrent = () => pageVisible && generation === refreshGeneration
-    && accountKey === app.accountKey && accountEpoch === app.accountBindingEpoch
-    && isCurrentRuntimeRevision(runtime);
-  remoteRefreshPending.value = true;
-  try {
-    if (!await payout.refreshRemote() && isCurrent()) toast.error(t.value.addrRebind.startFailed);
-  } catch {
-    if (isCurrent()) toast.error(t.value.addrRebind.startFailed);
-  } finally {
-    if (generation === refreshGeneration) remoteRefreshPending.value = false;
-  }
+  // Store-owned account/runtime/version guards decide the final read status,
+  // including reads started by account hydration rather than by this page.
+  await payout.refreshRemote();
 }
-function invalidatePageRefresh() {
-  refreshGeneration += 1;
-  remoteRefreshPending.value = false;
-}
+const stopRuntimeRead = subscribeRuntimeRevision(scope => {
+  readRuntimeScope.value = scope;
+  invalidatePageCommand();
+  if (pageVisible) void retryRemoteSnapshot();
+});
 onShow(() => {
   pageVisible = true;
   void retryRemoteSnapshot();
@@ -657,11 +659,9 @@ onShow(() => {
 onHide(() => {
   pageVisible = false;
   invalidatePageCommand();
-  invalidatePageRefresh();
 });
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
   invalidatePageCommand();
-  invalidatePageRefresh();
   void retryRemoteSnapshot();
 }, { flush: "sync" });
 onMounted(() => {
@@ -680,7 +680,7 @@ onMounted(() => {
 onUnmounted(() => {
   pageVisible = false;
   invalidatePageCommand();
-  invalidatePageRefresh();
+  stopRuntimeRead();
   if (tickTimer) clearInterval(tickTimer);
   if (resendTimer) clearInterval(resendTimer);
 });

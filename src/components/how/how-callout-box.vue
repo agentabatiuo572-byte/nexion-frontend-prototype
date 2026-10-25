@@ -10,11 +10,12 @@
 <script setup lang="ts">
 import { computed, type CSSProperties } from "vue";
 
-type Accent = "lemon" | "purple" | "amber" | "violet" | "nex";
+type Accent = "neutral" | "lemon" | "purple" | "amber" | "violet" | "nex";
 
 const props = withDefaults(defineProps<{ title: string; body: string; tone?: Accent }>(), { tone: "amber" });
 
 const ACCENT_TEXT: Record<Accent, string> = {
+  neutral: "var(--v5-ink)",
   nex: "var(--v5-nex)",
   lemon: "var(--v5-success)",
   purple: "var(--v5-brand)",
@@ -50,7 +51,7 @@ const ACCENT_TEXT: Record<Accent, string> = {
 // ⚠️ 改这里必须先实测**双主题**对比度 —— 本轮踩过「换底色反而把对比度打下去」的坑。
 const boxStyle = computed<CSSProperties>(() => ({
   marginTop: "10px",
-  background: `color-mix(in srgb, ${ACCENT_TEXT[props.tone]} 14%, var(--v5-surface))`,
+  background: props.tone === "neutral" ? "var(--v5-surface-2)" : `color-mix(in srgb, ${ACCENT_TEXT[props.tone]} 14%, var(--v5-surface))`,
   borderRadius: "12px",
   padding: "10px 14px",
 }));

@@ -7,7 +7,8 @@
       <view v-if="scopeId&&contextStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshContext"><text>{{ t.promotion.retry }}</text></view></view>
       <text v-if="scopeId&&activity&&contextStatus==='ready'&&!available" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
     </view>
-    <template v-if="!scopeId||activity">
+    <view v-if="singleActivityProduct" class="promotion-flat" data-testid="single-activity-guidance"><text class="promotion-copy">{{ commerceCopy(locale.code).singleActivity }}</text><view class="promotion-action primary" role="button" tabindex="0" @click="openSingleProduct" @keydown.enter.prevent="openSingleProduct" @keydown.space.prevent="openSingleProduct"><text>{{ commerceCopy(locale.code).singlePurchase }}</text></view></view>
+    <template v-else-if="!scopeId||activity">
     <view class="promotion-flat">
       <text class="promotion-title">{{ t.promotion.selected }}</text>
       <text v-if="!selection.length" class="promotion-copy">{{ t.promotion.selectTwo }}</text>
@@ -66,6 +67,7 @@
 import { formatAmount } from "@/lib/amount-display";
 import { computed,onBeforeUnmount,onMounted,ref,watch } from 'vue';
 import { onHide,onShow } from '@dcloudio/uni-app';
+import { commerceCopy } from '@/lib/commerce-review';
 import { promotionApi,sessionVault } from '@/api/runtime';
 import type { Quote } from '@/api/promotion-contracts';
 import { useT } from '@/i18n/use-t';
@@ -115,6 +117,8 @@ const ruleTerms=computed(()=>activity.value?[
 ].join('\n\n'):'');
 const totalUnits=computed(()=>selection.value.reduce((total,item)=>total+item.quantity,0));
 const signedIn=computed(()=>{void app.accountBindingEpoch;void app.accountKey;return !!sessionVault.read();});
+const singleActivityProduct=computed(()=>{if(!scopeId.value||!available.value||catalogStatus.value!=='ready')return null;const products=catalog.value.filter(p=>p.productType!=='SHARE'&&isProductAvailable(p,phase.value)&&activity.value?.productNos.includes(p.id));return products.length===1?products[0]:null;});
+function openSingleProduct(){if(singleActivityProduct.value)void navTo(promotionDetailHref(singleActivityProduct.value.id,scopeId.value));}
 const suggestions=computed(()=>catalog.value.filter(product=>!selection.value.some(item=>item.productNo===product.id)&&product.productType!=='SHARE'&&isProductAvailable(product,phase.value)&&(!scopeId.value||activity.value?.productNos.includes(product.id))));
 const productsReady=computed(()=>catalogStatus.value==='ready'&&selection.value.every(item=>{const product=productFor(item.productNo);return product&&isProductAvailable(product,phase.value)&&(!scopeId.value||activity.value?.productNos.includes(item.productNo));}));
 const canQuote=computed(()=>signedIn.value&&validEntryItems(selection.value,2)&&productsReady.value&&(!scopeId.value||available.value)&&quoteStatus.value!=='loading');
@@ -148,7 +152,7 @@ onBeforeUnmount(()=>{visible=false;fence.invalidate();if(expiryTimer)clearInterv
 <style src="./promotion.css"></style>
 <style scoped>
 .bundle-name { display:block;font-size:15px;font-weight:600;overflow-wrap:anywhere; }
-.bundle-stepper { display:flex;align-items:center;border:1px solid var(--v5-border);border-radius:999px;width:max-content;max-width:100%;margin-top:10px;overflow:hidden; }
+.bundle-stepper { display:flex;align-items:center;border:1px solid var(--v5-border);border-radius:999px;width:max-content;max-width:100%;margin-top:var(--ui-space-row-y);overflow:hidden; }
 .bundle-stepper view,.bundle-add,.bundle-remove { min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:20px; }
 .bundle-stepper view { background:var(--v5-surface-2); }
 .bundle-stepper text { min-width:32px;text-align:center;font-variant-numeric:tabular-nums; }

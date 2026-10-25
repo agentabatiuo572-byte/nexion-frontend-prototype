@@ -2,7 +2,7 @@
   <AppChassis active="home"><view class="event-detail">
     <SubPageHeader back="/pages/events/events?source=legacy" :title="copy.title" />
     <text v-if="loading" class="event-copy" role="status">{{ copy.loading }}</text>
-    <view v-else-if="error || !detail" class="nx-glass-card event-section" role="alert">
+    <view v-else-if="error || !detail" class="event-section event-section--plain" role="alert">
       <text class="event-copy">{{ copy.unavailable }}</text>
       <view class="event-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="activate($event, load)" @keydown.space.prevent="activate($event, load)"><text>{{ copy.retry }}</text></view>
     </view>
@@ -16,22 +16,23 @@
         <view v-if="detail.event.startsAt" class="event-row"><text>{{ copy.start }}</text><text>{{ displayDeadline(detail.event.startsAt, language) }}</text></view>
         <view v-if="detail.event.endsAt" class="event-row"><text>{{ copy.end }}</text><text>{{ displayDeadline(detail.event.endsAt, language) }}</text></view>
       </view>
-      <view v-if="ruleRows.length" class="nx-glass-card event-section">
+      <view class="event-section event-section--plain">
         <text class="event-heading">{{ copy.rules }}</text>
-        <view v-for="row in ruleRows" :key="row.label" class="event-row"><text>{{ row.label }}</text><text>{{ row.value }}</text></view>
+        <view v-for="row in ruleRows" :key="row.label" class="event-row" :class="{'event-rule-paragraph':[copy.labels.description,copy.labels.terms].includes(row.label)}"><text>{{ row.label }}</text><text>{{ row.value }}</text></view>
+        <template v-if="!ruleRows.length"><text class="event-copy">{{ copy.rulesUnavailable }}</text><view class="event-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load"><text>{{ copy.retry }}</text></view></template>
       </view>
       <view v-if="detail.rewards.length" class="nx-glass-card event-section">
         <text class="event-heading">{{ copy.rewards }}</text>
         <text v-for="(reward, index) in detail.rewards" :key="index" class="event-copy">{{ eventDetailReward(reward, copy) }}</text>
       </view>
-      <view v-if="detail.event.kind !== 'regional' && detail.targetValue > 0" class="nx-glass-card event-section">
+      <view v-if="detail.event.kind !== 'regional' && detail.targetValue > 0" class="event-section event-section--plain">
         <view class="event-row"><text class="event-heading">{{ copy.progress }}</text><text>{{ formatAmount(detail.progressValue) }} / {{ formatAmount(detail.targetValue) }}</text></view>
         <view class="event-progress" role="progressbar" :aria-label="copy.progress" :aria-valuenow="Math.min(detail.progressValue, detail.targetValue)" :aria-valuemin="0" :aria-valuemax="detail.targetValue"><view :style="{ width: `${Math.min(100, detail.progressValue / detail.targetValue * 100)}%` }" /></view>
       </view>
       <view v-if="detail.myRewardAmount != null" class="nx-glass-card event-section">
         <view class="event-row"><text class="event-heading">{{ copy.myReward }}</text><text>{{ detail.myRewardAmount.toFixed(6) }} USDT</text></view>
       </view>
-      <view v-if="detail.results.length || detail.event.state === 'ended'" class="nx-glass-card event-section">
+      <view v-if="detail.results.length || detail.event.state === 'ended'" class="event-section event-section--plain">
         <text class="event-heading">{{ copy.results }}</text>
         <text v-if="!detail.results.length" class="event-copy">{{ copy.noResults }}</text>
         <view v-for="(result, index) in detail.results" :key="index" class="event-result">
@@ -119,6 +120,7 @@ onUnmounted(() => { visible = false; reset(); unsubscribe(); });
 <style scoped>
 .event-detail { padding:0 16px 28px; color:var(--v5-ink); }
 .event-section { margin-top:12px; padding:16px; border-radius:var(--nx-glass-radius); background:var(--nx-glass-fill); box-shadow:var(--nx-glass-edge); }
+.event-section--plain { padding:var(--ui-space-inset) 0; border-radius:0; background:transparent; box-shadow:none; border-top:1px solid var(--v5-border); }
 .event-title { display:block; font-size:20px; font-weight:600; line-height:1.4; overflow-wrap:anywhere; }
 .event-heading { display:block; font-size:14px; font-weight:600; }
 .event-copy { display:block; margin-top:10px; font-size:13px; line-height:1.6; color:var(--v5-ink-3); white-space:pre-wrap; overflow-wrap:anywhere; }
@@ -130,4 +132,7 @@ onUnmounted(() => { visible = false; reset(); unsubscribe(); });
 .event-result + .event-result { margin-top:14px; border-top:1px solid var(--v5-border); }
 .event-action, .event-primary { display:flex; justify-content:center; margin-top:16px; padding:13px 16px; border-radius:24px; font-size:13px; font-weight:600; color:var(--v5-brand); }
 .event-primary { background:var(--v5-brand); color:var(--v5-on-brand); }
+.event-rule-paragraph { display:block; }
+.event-rule-paragraph > text { display:block;white-space:pre-wrap;text-align:left;overflow-wrap:anywhere; }
+.event-rule-paragraph > text + text { margin-top:6px;color:var(--v5-ink-2); }
 </style>

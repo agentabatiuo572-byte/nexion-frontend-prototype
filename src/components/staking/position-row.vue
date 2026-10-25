@@ -8,10 +8,10 @@
 <template>
   <view class="nx-glass-card" :style="cardStyle">
     <!-- row1: principal + term-chip -->
-    <view class="flex items-baseline justify-between">
+    <view class="flex items-baseline justify-between flex-wrap" style="gap: 8px">
       <text class="block tabular-nums" :style="principalStyle">${{ amountText }}</text>
-      <view class="flex items-center" style="gap: 6px">
-        <text :style="termChipStyle">{{ p.termDays }}d · {{ apyPct }}% APY</text>
+      <view class="flex items-center flex-wrap" style="gap: 6px">
+        <text :style="termChipStyle">{{ copy.days(p.termDays) }} · {{ apyPct }}% APY</text>
         <text v-if="isClaimed" :style="statusChipStyle('var(--v5-success)')">{{ t.stakingV3.position.claimed }}</text>
         <text v-if="isEarlyOut" :style="statusChipStyle('var(--v5-brand-2)')">{{ t.stakingV3.position.earlyWithdrew }}</text>
         <text v-if="isMatured && !isClaimed && !isEarlyOut" :style="maturedChipStyle">{{ t.stakingV3.position.matured }}</text>
@@ -36,18 +36,18 @@
         </view>
         <view>
           <text class="block" :style="cellKStyle">{{ isMatured ? t.stakingV3.position.statusLabel : t.stakingV3.position.remainingLabel }}</text>
-          <text class="block tabular-nums" :style="cellVStyle(false)">{{ isMatured ? t.stakingV3.position.unlocked : `${remainingDays}d` }}</text>
+          <text class="block tabular-nums" :style="cellVStyle(false)">{{ isMatured ? t.stakingV3.position.unlocked : copy.days(remainingDays) }}</text>
         </view>
       </view>
 
       <!-- Actions -->
       <view class="flex" style="margin-top: 12px; gap: 8px">
-        <view v-if="isMatured" class="flex-1 inline-flex items-center justify-center active:opacity-85" :style="claimBtnStyle" role="button" tabindex="0" @click="emit('claim')"  @keydown.enter.prevent="emit('claim')" @keydown.space.prevent="emit('claim')">
+        <view v-if="isMatured" class="flex-1 inline-flex items-center justify-center active:opacity-85" :style="claimBtnStyle" role="button" :aria-disabled="disabled" :tabindex="disabled ? -1 : 0" @click="claim" @keydown.enter.prevent="claim" @keydown.space.prevent="claim">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M20 6 9 17l-5-5" /></svg>
           <text>{{ claimText }}</text>
         </view>
         <template v-else>
-          <view class="flex-1 active:opacity-80 inline-flex items-center justify-center" :style="earlyBtnStyle" role="button" tabindex="0" @click="emit('earlyWithdraw')"  @keydown.enter.prevent="emit('earlyWithdraw')" @keydown.space.prevent="emit('earlyWithdraw')">
+          <view class="flex-1 active:opacity-80 inline-flex items-center justify-center" :style="earlyBtnStyle" role="button" :aria-disabled="disabled" :tabindex="disabled ? -1 : 0" @click="earlyWithdraw" @keydown.enter.prevent="earlyWithdraw" @keydown.space.prevent="earlyWithdraw">
             <text>{{ t.stakingV3.position.earlyWithdraw }}</text>
           </view>
           <view class="flex-1 inline-flex items-center justify-center active:opacity-85" :style="trackBtnStyle" role="button" tabindex="0" @click="onTrack"  @keydown.enter.prevent="onTrack" @keydown.space.prevent="onTrack">
@@ -73,13 +73,17 @@ import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import type { StakingPosition } from "@/store/staking";
 import { toast } from "@/store/ui";
+import { useStakingReviewCopy } from "@/lib/staking-review-copy";
 
 const ONE_DAY_MS = 86400 * 1000;
 
-const props = defineProps<{ p: StakingPosition; now: number }>();
+const props = defineProps<{ p: StakingPosition; now: number; disabled?: boolean }>();
 const emit = defineEmits<{ claim: []; earlyWithdraw: [] }>();
+function claim() { if (!props.disabled) emit("claim"); }
+function earlyWithdraw() { if (!props.disabled) emit("earlyWithdraw"); }
 
 const t = useT();
+const copy = useStakingReviewCopy();
 
 const elapsed = computed(() => Math.min(props.now, props.p.unlockTs) - props.p.startTs);
 const total = computed(() => props.p.unlockTs - props.p.startTs);
@@ -145,7 +149,7 @@ const progressTrackStyle: CSSProperties = {
 const progressFillStyle = computed<CSSProperties>(() => ({
   height: "100%",
   width: `${pct.value * 100}%`,
-  background: "linear-gradient(90deg, #36D4FF, var(--v5-success))",
+  background: "var(--v5-ink-3)",
   borderRadius: "3px",
   transition: "width 0.6s ease",
 }));

@@ -24,7 +24,8 @@ function harness() {
     orderApi: { create: vi.fn().mockResolvedValue({ ...order, voucherRedemption: null }),
       list: vi.fn().mockImplementation(async () => ({ orders: [{ ...order }] })), pay: vi.fn() },
     remoteOrderKey: () => "same-key", remoteOrderIntent: () => "same-intent", rememberCheckoutOrder: vi.fn(),
-    forgetCheckoutOrder: vi.fn(), orders: { currentAccountKey: () => "a" },
+    forgetCheckoutOrder: vi.fn(), orders: { currentAccountKey: () => "a", refreshRemote:vi.fn().mockResolvedValue(true), orders:[{id:'ORDER-1',status:'activated'}] },
+    orderId:ref<string|null>(null),remoteOrderFailure:ref<string|null>(null),voucher:{refreshRemote:vi.fn()},
     retireRemoteOrderKey: vi.fn(), navReplace: vi.fn().mockResolvedValue(true), asApiError,
     resumeServerOrder: vi.fn().mockResolvedValue(true),
   };
@@ -33,6 +34,17 @@ function harness() {
 }
 
 describe("real checkout handler outcome recovery", () => {
+  it.each([true,false])("successful payment navigates to the original result and keeps recovery until navigation succeeds=%s",async navigated=>{
+    const h=harness();h.navReplace.mockResolvedValue(navigated);
+    h.app.adoptCommerceWallet.mockReturnValue(true);
+    h.orderApi.pay.mockResolvedValue({orderNo:'ORDER-1',paymentMethod:'WALLET',walletBalanceAfterUsdt:0});
+    await h.submit();
+    expect(h.orderId.value).toBe('ORDER-1');expect(h.step.value).toBe('live');
+    expect(h.orderApi.create).toHaveBeenCalledOnce();expect(h.orderApi.pay).toHaveBeenCalledOnce();
+    expect(h.navReplace).toHaveBeenCalledWith('/pages/store/order-detail?id=ORDER-1');
+    expect(h.forgetCheckoutOrder).toHaveBeenCalledTimes(navigated?1:0);
+    expect(h.rememberCheckoutOrder).toHaveBeenCalledOnce();
+  });
   it("never coalesces recovery across account generations or products", async () => {
     const body = source.slice(source.indexOf("let serverOrderRecovery:"), source.indexOf("function onKeyboardActivate("));
     const js = ts.transpileModule(body + "\nreturn resumeServerOrder;", { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;

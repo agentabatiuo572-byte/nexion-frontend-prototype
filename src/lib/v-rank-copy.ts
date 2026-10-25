@@ -1,4 +1,4 @@
-import { formatAmount } from "./amount-display";
+import { computePointsCopy, formatComputePoints } from "@/i18n/compute-points";
 // V 级晋升缺口的本地化文案。
 //
 // 为什么要这一层(2026-08-17,英文文案哨兵配套):`nextRankProgress` 原来直接返回**英文句子**
@@ -16,6 +16,28 @@ import type { RankGap, VRankDef } from "@/store/v-rank";
 import { fmt } from "@/i18n/format";
 import { HAN_SCRIPT_RE } from "@/lib/native-unicode-regex";
 import { formatHowNumber } from "./rank-how-content";
+
+const CULTIVATION_COPY = {
+  zh: {
+    title: "成员成长奖励",
+    trigger: "直接邀请的成员晋升至 V{n} 时，对应奖励为 {amount}；到账状态以奖励记录为准。",
+    recipient: "奖励发给晋升者的推荐人；无推荐人时，由晋升者本人获得。",
+  },
+  en: {
+    title: "Member growth reward",
+    trigger: "When a directly invited member reaches V{n}, the corresponding reward is {amount}; payment status follows the reward records.",
+    recipient: "The reward goes to the promoted member’s referrer. If there is no referrer, the promoted member receives it.",
+  },
+  vi: {
+    title: "Thưởng phát triển thành viên",
+    trigger: "Khi thành viên được mời trực tiếp đạt V{n}, phần thưởng tương ứng là {amount}; trạng thái chi trả theo bản ghi thưởng.",
+    recipient: "Phần thưởng được trả cho người giới thiệu của thành viên thăng hạng. Nếu không có người giới thiệu, thành viên thăng hạng tự nhận thưởng.",
+  },
+};
+
+export function rankCultivationCopy(locale: string) {
+  return CULTIVATION_COPY[locale.split("-")[0] as keyof typeof CULTIVATION_COPY] ?? CULTIVATION_COPY.en;
+}
 
 /**
  * F1 正式公开等级名称。服务端目前把同一中文配置写入 title/cnTitle，
@@ -52,7 +74,13 @@ export function rankLabel(v: number, locale: LocaleCode, ladder: readonly VRankD
 export function rankGapText(t: Messages, gap: RankGap, locale: LocaleCode, ladder: readonly VRankDef[]): string {
   switch (gap.kind) {
     case "selfBuy":
-      return fmt(t.rank.needSelfBuy, { n: formatAmount(gap.amount) });
+    case "teamVolume":
+      return computePointsCopy(locale).conditionsPending;
+    case "selfComputePoints":
+    case "teamComputePoints":
+      if (gap.amount === undefined) return computePointsCopy(locale).conditionsPending;
+      return (gap.kind === "selfComputePoints" ? computePointsCopy(locale).needSelf : computePointsCopy(locale).needTeam)
+        .replace("{n}", formatComputePoints(gap.amount, locale));
     case "directRefs":
       // 🔴 英文单复数:改成读词典时我漏了旧码的 `invite${n === 1 ? "" : "s"}`,n=1 渲染成
       //    「1 more direct invites」(独立验收抓到,我先前「en 逐字未变」那句话对 n=1 是错的)。
@@ -62,8 +90,6 @@ export function rankGapText(t: Messages, gap: RankGap, locale: LocaleCode, ladde
       //    (词法判据才抗变异),该改的是我的写法。
       if (gap.n === 1) return fmt(t.rank.needRefsOne, { n: formatHowNumber(gap.n, locale) });
       return fmt(t.rank.needRefs, { n: formatHowNumber(gap.n, locale) });
-    case "teamVolume":
-      return fmt(t.rank.needTeam, { n: formatAmount(gap.amount) });
     case "vDownlines":
       return fmt(t.rank.needV, { n: formatHowNumber(gap.n, locale), title: rankTitle(gap.vLevel, locale, ladder), v: gap.vLevel });
   }
@@ -71,15 +97,20 @@ export function rankGapText(t: Messages, gap: RankGap, locale: LocaleCode, ladde
 
 /** 一阶 V 级的达成条件 → 当前语言的一句话(条件之间用 ` + ` 连,无条件时给「注册即得」)。 */
 export function rankConditionsText(t: Messages, conds: {
+  selfComputePoints?: number;
+  teamComputePoints?: number;
   selfBuyUSD?: number;
   directRefs?: number;
   teamVolumeUSD?: number;
   vDownlines?: Record<string, number>;
 }, locale: LocaleCode = "en"): string {
   const parts: string[] = [];
-  if (conds.selfBuyUSD) parts.push(fmt(t.rank.cond.selfBuy, { n: formatAmount(conds.selfBuyUSD) }));
+  const pointsCopy = computePointsCopy(locale);
+  if (conds.selfComputePoints !== undefined) parts.push(`${pointsCopy.self} ≥ ${formatComputePoints(conds.selfComputePoints, locale)}`);
+  else if (conds.selfBuyUSD !== undefined) parts.push(pointsCopy.conditionsPending);
   if (conds.directRefs) parts.push(fmt(t.rank.cond.directRefs, { n: formatHowNumber(conds.directRefs, locale) }));
-  if (conds.teamVolumeUSD) parts.push(fmt(t.rank.cond.teamVol, { n: formatAmount(conds.teamVolumeUSD) }));
+  if (conds.teamComputePoints !== undefined) parts.push(`${pointsCopy.team} ≥ ${formatComputePoints(conds.teamComputePoints, locale)}`);
+  else if (conds.teamVolumeUSD !== undefined && !parts.includes(pointsCopy.conditionsPending)) parts.push(pointsCopy.conditionsPending);
   if (conds.vDownlines) {
     for (const [v, n] of Object.entries(conds.vDownlines)) if (n > 0) parts.push(fmt(t.rank.cond.vDownlines, { n: formatHowNumber(n, locale), v }));
   }

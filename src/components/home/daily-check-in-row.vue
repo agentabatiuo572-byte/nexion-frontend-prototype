@@ -8,6 +8,7 @@
     </view>
     <NxButton variant="primary" :label="checkInLabel" size="medium" :busy="submitting" @click="checkIn"><text>{{ checkInLabel }}</text><text v-if="checked" aria-hidden="true">✓</text></NxButton>
     <view v-if="ready" class="daily-check-in-row__days"><view v-for="day in days" :key="day.n" :aria-label="fmt(copy.day,{n:day.n}) + (day.done ? ' · ' + copy.checkedIn : day.today ? ' · ' + copy.today : '')" :class="{ filled: day.done, today: day.today }"><svg v-if="day.done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg><text v-else class="day-mark" aria-hidden="true">{{ day.today ? '+' + (dailyBaseReward(faucet.remoteRules) ?? '•') : '·' }}</text><text>{{ day.today ? copy.today : day.n }}</text></view></view>
+    <view v-else class="daily-check-in-row__days" :aria-busy="faucet.remoteReadState === 'idle' || faucet.remoteReadState === 'loading' ? 'true' : 'false'" :aria-label="copy.viewDaily"><view v-for="n in 7" :key="n" aria-hidden="true"><text class="day-mark">—</text></view></view>
   </view>
 </template>
 <script setup lang="ts">

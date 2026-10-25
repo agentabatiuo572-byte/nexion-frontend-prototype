@@ -22,7 +22,6 @@
           <view class="flex items-center justify-between" style="gap: 8px">
             <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-brand-2-ink); font-weight: 600; letter-spacing: 0.04em">{{ t.store.comingSoonHeading }}</text>
             <view class="flex items-center shrink-0" style="gap: 6px">
-              <text class="font-mono-tabular tabular-nums" :style="stageChipStyle">{{ t.store.comingSoonHeading }}</text>
               <view class="grid place-items-center" :style="toggleStyle">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
               </view>

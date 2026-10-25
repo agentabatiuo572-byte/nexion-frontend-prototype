@@ -87,6 +87,7 @@
           <text :style="secTitleStyle">{{ t.genesis.tier.title }}</text>
         </view>
         <view :style="ladderCardStyle">
+          <text v-if="!showUrgency" class="block" :style="tierMetaStyle">{{ dockCtaText }}</text>
           <view v-for="tr in tiers" :key="tr.id" class="flex items-center" :style="tierRowStyle(tr.state)">
             <view class="flex-1 min-w-0">
               <view class="flex items-center" style="gap: 8px">
@@ -104,7 +105,7 @@
               <text v-if="tr.state === 'current'" class="block" :style="tierCurrentStyle">{{ t.genesis.tier.current }}</text>
             </view>
           </view>
-          <text class="block" :style="tierPremiumStyle">{{ t.genesis.tier.premium }}</text>
+          <view class="genesis-refresh" role="button" tabindex="0" :aria-disabled="refreshing" @click="retryGenesis" @keydown.enter.prevent="retryGenesis" @keydown.space.prevent="retryGenesis"><text>{{ refreshing ? t.promotion.loading : t.genesis.refresh }}</text></view>
         </view>
 
         <!-- ════ Value / perks ════ -->
@@ -112,7 +113,10 @@
           <text :style="secTitleStyle">{{ t.genesis.value.title }}</text>
         </view>
         <view :style="perksCardStyle">
-          <PerkRow v-for="(p, i) in PERKS" :key="p.name" :ico="p.ico" :name="p.name" :desc="p.desc" :is-last="i === PERKS.length - 1" />
+          <view v-for="(p, i) in PERKS" :key="p.name" class="genesis-perk-row" :class="{'genesis-perk-last':i===PERKS.length-1}">
+            <view class="genesis-perk-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path :d="p.path" /></svg></view>
+            <view><text class="block" style="font-size:15px;font-weight:600">{{ p.name }}</text><text class="block" style="margin-top:3px;font-size:13px;line-height:1.6;color:var(--v5-ink-3)">{{ p.desc }}</text></view>
+          </view>
         </view>
 
         <!-- ════ Live market ════ -->
@@ -184,13 +188,15 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
+function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
+  return formatPlainAmount(value).replace(/\B(?=(\d{3})+\.)/g, ",");
+}
 import { navTo } from "@/lib/route";
 import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import PerkRow from "@/components/genesis/perk-row.vue";
 import NftCard from "@/components/genesis/nft-card.vue";
 import GenesisPurchaseSheet from "@/components/genesis/purchase-sheet.vue";
 import GenesisEligibilitySheet from "@/components/genesis/eligibility-sheet.vue";
@@ -214,6 +220,12 @@ import { presentGenesisRoyalty } from "@/lib/genesis-marketplace-presentation";
 const t = useT();
 const genesis = useGenesis();
 const cfg = useGenesisConfig();
+const refreshing = ref(false);
+async function retryGenesis() {
+  if(refreshing.value)return;
+  refreshing.value=true;
+  try { await refreshGenesisPage(true); } finally { refreshing.value=false; }
+}
 let refreshInFlight: Promise<void> | null = null;
 let genesisPageVisible = false;
 let refreshRequested = false;
@@ -281,13 +293,13 @@ const PERKS = computed(() => {
     const p = cp[i];
     const cName = p ? (isZh ? p.nameZh : p.nameEn) : "";
     const cDesc = p ? (isZh ? p.descZh : p.descEn) : "";
-    return { name: cName || name, desc: cDesc || desc };
+    return { name: (cName || name).replace(/\bDAO\b\s*/gi, ""), desc: (cDesc || desc).replace(/vesting/gi, fb.releaseTerm) };
   };
   return [
-    { ico: "🪙", ...pick(0, fb.emissionName, fb.emissionDesc) },
-    { ico: "🌐", ...pick(1, fb.poolName, fb.poolDesc) },
-    { ico: "🗳", ...pick(2, fb.daoName, fb.daoDesc) },
-    { ico: "🎁", ...pick(3, fb.airdropName, fb.airdropDesc) },
+    { path: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM8 10l4 4 4-4M12 7v10", ...pick(0, fb.emissionName, fb.emissionDesc) },
+    { path: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18", ...pick(1, fb.poolName, fb.poolDesc) },
+    { path: "M5 11v9h14v-9M8 5l5-2 4 7-5 3-4-8ZM4 11h4M16 11h4", ...pick(2, fb.daoName, fb.daoDesc) },
+    { path: "M3 8h18v4H3ZM5 12v9h14v-9M12 8v13M12 8H8a3 3 0 1 1 3-3l1 3Zm0 0h4a3 3 0 1 0-3-3l-1 3Z", ...pick(3, fb.airdropName, fb.airdropDesc) },
   ];
 });
 
@@ -697,11 +709,6 @@ const tierCurrentStyle: CSSProperties = {
   color: "var(--v5-genesis-gold)",
   letterSpacing: "0.02em",
 };
-const tierPremiumStyle: CSSProperties = {
-  marginTop: "10px",
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
-};
 // De-carded: floor hairline group + typed Q/A layering (title ink, body ink-2).
 const faqWrapStyle: CSSProperties = {
   padding: "0 2px",
@@ -816,6 +823,13 @@ import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 </script>
 
 <style scoped>
+.genesis-refresh { display:flex; align-items:center; justify-content:center; min-height:44px; margin-top:12px; color:var(--v5-ink); font-size:13px; cursor:pointer; }
+.genesis-refresh:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; }
+.genesis-refresh[aria-disabled="true"] { opacity:.5; }
+.genesis-perk-row { display:grid; grid-template-columns:36px minmax(0,1fr); gap:12px; padding:14px 0; border-bottom:1px solid var(--v5-border); }
+.genesis-perk-last { border-bottom:0; }
+.genesis-perk-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; background:var(--v5-brand-soft); color:var(--v5-brand); }
+
 .nx-genesis-dock {
   position: fixed;
   left: 0;

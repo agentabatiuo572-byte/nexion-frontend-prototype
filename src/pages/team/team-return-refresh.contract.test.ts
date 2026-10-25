@@ -3,7 +3,7 @@ import source from "./team.vue?raw";
 
 describe("team tab return refresh", () => {
   it("refreshes every server-authoritative team projection when the tab becomes visible again", () => {
-    expect(source).toContain('import { onShow } from "@/composables/use-tab-page-lifecycle"');
+    expect(source).toContain('import { onLoad, onShow, onHide } from "@/composables/use-tab-page-lifecycle"');
     expect(source).toContain("onShow(() => {");
     expect(source).toContain("void vrank.refreshCanonicalVRank()");
     expect(source).toContain("void commission.refreshCanonicalBinary()");

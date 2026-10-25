@@ -9,6 +9,7 @@ import source from './promotion-checkout.vue?raw';
 import { projectServerNow } from '@/lib/server-deadline-clock';
 import { promotionZH } from '@/i18n/messages/promotion';
 import { formatAmount } from '@/lib/amount-display';
+import { commerceCopy } from '@/lib/commerce-review';
 import { fmt } from '@/i18n/format';
 import { zh } from '@/i18n/messages/zh';
 import { PromotionCheckoutSession,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
@@ -111,7 +112,8 @@ function purchaseHarness({rewardRows=[] as unknown[],built=false,busy=false,unkn
   let now:number|null=clock?100:null;
   const canExecute=vi.fn(()=>executable),create=vi.fn(async()=>{}),pay=vi.fn(async()=>{}),recover=vi.fn(async()=>{});
   const fleet=vi.fn(async()=>({serverNow:Date.parse(serverTime),devices:[]}));
-  const deps={computed,current:()=>current,visible:true,readGeneration:0,readCurrent:()=>current,
+  const walletState=ref('ready'),refreshWallet=vi.fn(async()=>{walletState.value='ready';});
+  const deps={walletState,refreshWallet,computed,current:()=>current,visible:true,readGeneration:0,readCurrent:()=>current,
     confirm:vi.fn().mockResolvedValue(true),fmt,formatAmount,t:ref(zh),busy:ref(busy),unknown:ref(unknown),error:ref(''),
     props:{items:[]},quote:ref({expectedRewards:rewardRows,eligibility,items:bundle?[{},{}]:[{}],serverTime,expiresAt:fresh?'2026-10-08T00:00:05Z':serverTime}),
     order:ref(built?{orderNo:'ORD-1',amountUsdt:'50.00',rewards:rewardRows,paymentStatus:status,payBy:paymentDeadline}:null),quoteFresh:ref(fresh),payWindow:ref<boolean|null>(null),
@@ -282,15 +284,17 @@ const checkoutRenderCode=compile(parse(source).descriptor.template!.content,{mod
 const checkoutRender=new Function('Vue',ts.transpileModule(checkoutRenderCode,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(Vue);
 it.each([null,false] as const)('the real template explains an unavailable payment without inventing expiry: %j',async payWindow=>{
   const action={setup:(_props:unknown,{slots}:Vue.SetupContext)=>()=>Vue.h('view',slots.default?.())};
-  const html=await renderToString(Vue.createSSRApp({components:{LiquidGlass:{render:()=>null},PromotionAction:action,PromotionTerms:{render:()=>null},RewardRows:{render:()=>null}},render:checkoutRender,setup:()=>({
+  const html=await renderToString(Vue.createSSRApp({components:{LiquidGlass:{render:()=>null},PromotionAction:action,PromotionTerms:{render:()=>null},RewardRows:{render:()=>null},NxSheet:{render:()=>null}},render:checkoutRender,setup:()=>({
     formatAmount,
     auth:{isAuthenticated:true},p:promotionZH,t:{orders:{statusExpired:'支付已过期'},wallet:{usdtBalance:'余额'}},
     loading:false,unknown:false,error:'',openedOriginal:false,order:{orderNo:'cold-original',paymentStatus:'PENDING',payBy:'2026-10-08T00:00:10Z',amountUsdt:'10'},quote:null,
-    items:[],rewards:[],payWindow,app:{remoteFleetHasSnapshot:false},props:{items:[]},promotion:null,locale:{code:'zh'},
+    reviewCopy:commerceCopy('zh'),walletState:'error',rewardsReleased:false,items:[],rewards:[],payWindow,app:{remoteFleetHasSnapshot:false},props:{items:[]},promotion:null,locale:{code:'zh'},
     busy:false,canPay:false,canCancel:false,canStartNew:false,session:{record:{}},termsOpen:false,leaveOpen:false,disclosures:[],
     displayDeadline:()=>'',localized:()=>'',pay:()=>{},recover:()=>{},viewOrder:()=>{},navTo:()=>{},
   })}));
-  expect(html).toContain(promotionZH.query);expect(html).toContain('aria-disabled="true"');
+  expect(html).toContain(promotionZH.query);
+  const page=purchaseHarness({built:true,quoteClock:false,clock:false});
+  page.deps.payWindow.value=payWindow;expect(page.canPay.value).toBe(false);
   expect(html).toContain('class="promotion-notice">'+(payWindow===false?'支付已过期':promotionZH.unknown));
   if(payWindow===null)expect(html).not.toContain('支付已过期');
 });

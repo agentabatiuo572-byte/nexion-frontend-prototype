@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CanonicalVRankRow } from "@/api/v-rank-api";
 import type { RankHowPolicy } from "@/api/rank-how-policy-api";
 import { buildRankHowContent, createRankHowResource } from "./rank-how-content";
+import { teamRedesignCopy } from "@/i18n/team-redesign";
 
 const labels = { selfBuy: "自购 ${n}", directRefs: "合格直推 {n}", teamVol: "团队 ${n}", register: "注册", vDownlines: "{n} 个 V{v}" };
 const rank = (v: number, patch: Partial<CanonicalVRankRow> = {}): CanonicalVRankRow => ({ v, title: `Title ${v}`, cnTitle: `头衔${v}`, directBonus: .123456, unilevelDepth: 99, peerBonus: .0275, leadershipVotes: 17, cultivationBonus: 321.123456, rewards: [], visible: true, ...patch });
@@ -16,6 +17,66 @@ const policy: RankHowPolicy = { version: "p1", locale: "zh", hero: "Published he
 ] };
 
 describe("rank-how published presentation", () => {
+  it.each(['zh', 'en', 'vi'])('uses the %s incentive-pool term while retaining the settlement gate and published wording', locale => {
+    const input = { ...policy, sections: [
+      { id: 'status', title: 'Published leadership title', body: '{leadershipStatus}', order: 1 },
+      { id: 'plain', title: 'Published title', body: 'Leadership pool: published wording', order: 2 },
+    ] };
+    const held = buildRankHowContent(input, ranks, enabled, locale, labels);
+    const ready = buildRankHowContent({ ...input, rules: { ...input.rules, leadershipConfigured: true } }, ranks, enabled, locale, labels);
+    const pool = teamRedesignCopy(locale).teamIncentivePool.toLowerCase();
+    expect(held.section('status').body.toLowerCase()).toContain(pool);
+    expect(ready.section('status').body.toLowerCase()).toContain(pool);
+    expect(held.section('status').body).toMatch(/暂不可结算|currently unavailable|chưa thể quyết toán/);
+    expect(held.section('status').body).toMatch(/票数不代表奖励已到账|Votes do not mean rewards have been received|Phiếu bầu không đồng nghĩa với phần thưởng đã nhận/);
+    expect(ready.section('status').body).toMatch(/实际结算|actual settlement|quyết toán thực tế/);
+    expect(held.section('plain')).toMatchObject({ title: 'Published title', body: 'Leadership pool: published wording' });
+  });
+  it.each([
+    ["zh", "自购算力", "团队算力", "2,000 算力点", "20,000 算力点"],
+    ["en", "Own compute", "Team compute", "2,000 compute pts", "20,000 compute pts"],
+    ["vi", "Năng lực tự mua", "Năng lực đội", "2.000 điểm tính toán", "20.000 điểm tính toán"],
+  ])("renders published point requirements and examples without legacy dollars in %s", (locale, self, team, ownValue, teamValue) => {
+    const pointsPolicy = { ...policy, sections: [
+      { id: "requirement-self", title: self, body: "{selfComputePoints}", order: 1 },
+      { id: "requirement-team", title: team, body: "{teamComputePoints}", order: 2 },
+      { id: "example-self", title: self, body: "{fromRank} → {toRank}: {selfComputePoints}", order: 3 },
+      { id: "example-team", title: team, body: "{fromRank} → {toRank}: {teamComputePoints}", order: 4 },
+    ] };
+    const changed = ranks.map(row => row.v === 2 ? { ...row, selfComputePoints: 2000, teamComputePoints: 20000 } : row);
+    vi.stubGlobal("Intl", undefined);
+    try {
+      const content = buildRankHowContent(pointsPolicy, changed, enabled, locale, labels);
+      expect(content.section("requirement-self")).toMatchObject({ available: true, body: ownValue });
+      expect(content.section("requirement-team")).toMatchObject({ available: true, body: teamValue });
+      expect(content.section("example-self").body).toBe(`V1 → V2: ${ownValue}`);
+      expect(content.section("example-team").body).toBe(`V1 → V2: ${teamValue}`);
+      for (const { id } of pointsPolicy.sections) {
+        expect(content.section(id).body).not.toMatch(/\$|USDT|45678|987/);
+        const missing = buildRankHowContent(pointsPolicy, ranks, enabled, locale, labels).section(id);
+        expect(missing.available).toBe(false);
+        expect(missing.body).not.toMatch(/\$|USDT|45678|987/);
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+  it("binds new point policy tokens only to canonical point fields and leaves legacy financial tokens alone", () => {
+    const pointsPolicy = { ...policy, sections: [{ id: "points", title: "Points", body: "{selfComputePoints} / {teamComputePoints}", order: 1 }, ...policy.sections] };
+    const changed = ranks.map(r => r.v === 2 ? { ...r, selfComputePoints: 2000, teamComputePoints: 20000 } : r);
+    const content = buildRankHowContent(pointsPolicy, changed, enabled, "zh", labels);
+    expect(content.section("points")).toMatchObject({ available: true, body: "2,000 算力点 / 20,000 算力点" });
+    expect(content.section("example").body).toContain("45678.12 USDT");
+    expect(content.section("rewards").body).toContain("321.12 UVT");
+    const missing = buildRankHowContent(pointsPolicy, ranks, enabled, "zh", labels);
+    expect(missing.section("points").available).toBe(false);
+    expect(missing.section("points").body).not.toContain("45678");
+  });
+  it("selects a point-only example without requiring legacy monetary thresholds", () => {
+    const p = { ...policy, sections: [{ id: "points", title: "{fromRank} → {toRank}", body: "{selfComputePoints} / {teamComputePoints}", order: 1 }] };
+    const content = buildRankHowContent(p, [rank(0), rank(1, { selfComputePoints: 0, teamComputePoints: 20000.125 })], enabled, "vi", labels);
+    expect(content.section("points")).toMatchObject({ available: true, title: "V0 → V1", body: "0 điểm tính toán / 20.000,125 điểm tính toán" });
+  });
   it("displays canonical money with two decimals and preserves rate precision", () => {
     const content = buildRankHowContent(policy, ranks, enabled, "zh", labels);
     expect(content.section("example").title).toBe("V1 → V2");

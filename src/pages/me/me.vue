@@ -260,7 +260,7 @@ const twoFactorEnabled = computed<boolean | null>(() => remoteApiEnabled
   ? remoteSecurity.value?.twoFactorEnabled ?? null
   : security.twoFactorEnabled);
 // The Me entry and both bells share the notification + human + ticket unread total.
-const messageUnread = computed(() => messageCenter.totalUnread);
+const messageUnread = computed(() => messageCenter.actionableUnread);
 // My Rewards unread dot — unused valid vouchers keep it lit (state-based)
 // OR reward credits newer than the seen-watermark (cleared on page open).
 const rewardsDot = computed(() => voucher.claimedUnused.length > 0 || rewardsSeen.hasUnseen);

@@ -106,6 +106,7 @@ async function page(messages: Messages = en) {
       onHide: (callback: () => void) => hides.push(callback),
     },
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(messages) },
+    "@/store/locale": { useLocaleStore: () => ({ code: "en" }) },
     "@/i18n/format": { fmt, dateLocale: () => "en-US" }, "@/store/nex-faucet": { useNexFaucet: () => faucet },
     "@/lib/trial-date": { formatTrialDateTime },
     "@/store/app": { useApp: () => app }, "@/store/auth": { useAuth: () => auth },

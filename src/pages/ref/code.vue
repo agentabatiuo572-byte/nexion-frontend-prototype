@@ -72,15 +72,18 @@
         <text style="margin: 0 8px">{{ t.register.create }}</text>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
-      <view v-if="remoteApiEnabled && remotePreviewState === 'unavailable'" class="text-center" style="padding: 28px 12px">
-        <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.ref.previewUnavailable }}</text>
+      <view v-if="remoteApiEnabled && (remotePreviewState === 'unavailable' || remotePreviewState === 'loading')" class="ref-preview-status" role="status" aria-live="polite" :aria-busy="remotePreviewState === 'loading'">
+        <text>{{ remotePreviewState === 'loading' ? recoveryCopy.referralLoading : requestedCode ? recoveryCopy.referralUnavailable : recoveryCopy.referralInvalid }}</text>
+        <view v-if="requestedCode" class="ref-preview-retry" role="button" :tabindex="remotePreviewState === 'loading' ? -1 : 0" :aria-disabled="remotePreviewState === 'loading'" @click="loadRemotePreview" @keydown.enter.prevent="loadRemotePreview" @keydown.space.prevent="loadRemotePreview">
+          <text>{{ t.ui.retry }}</text>
+        </view>
       </view>
       <view v-if="authed" class="ref-cta w-full flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" data-system-chrome-primary @click="enterApp"  @keydown.enter.prevent="enterApp" @keydown.space.prevent="enterApp">
         <text style="margin: 0 8px">{{ t.ref.enterApp }}</text>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
       </view>
 
-      <view v-if="!authed" class="text-center" style="margin-top: 8px">
+      <view v-if="!authed" class="ref-signin-row" style="margin-top: 8px">
         <text :style="signinStyle">{{ t.ref.signinInstead }} </text>
         <text
           :style="signinLinkStyle"
@@ -132,6 +135,7 @@ import { onLoad, onUnload } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
 import BrandLockup from "@/components/brand-lockup.vue";
 import { useT } from "@/i18n/use-t";
+import { useEntryRecoveryCopy } from "@/i18n/entry-recovery";
 import { fmt } from "@/i18n/format";
 import Stat from "@/components/trust/trust-stat.vue";
 import { pickSponsor } from "@/mock/sponsors";
@@ -147,6 +151,7 @@ import { referralCtaMode, resolveReferralAttributionCode, type ReferralPreviewSt
 
 const PARTNER_LOGOS = ["NVIDIA", "Intel", "AMD", "OpenRouter", "OPPO", "TechCrunch"];
 const t = useT();
+const recoveryCopy = useEntryRecoveryCopy();
 const code = ref("");
 const requestedCode = ref<string | null>(null);
 const cfg = useConfig();
@@ -186,7 +191,7 @@ const giftUsdt = computed(() => remoteApiEnabled
 const giftNex = computed(() => remoteApiEnabled
   ? (rewardEnabled.value ? remotePreview.value?.gift.nexAmount ?? 0 : 0)
   : localGift.value.nexAmount);
-const referralCta = computed(() => referralCtaMode(remoteApiEnabled, remotePreviewState.value));
+const referralCta = computed(() => remotePreviewState.value === "loading" ? "ordinary" : referralCtaMode(remoteApiEnabled, remotePreviewState.value));
 const referralAttribution = computed(() => resolveReferralAttributionCode(
   remoteApiEnabled,
   remotePreviewState.value,
@@ -203,7 +208,7 @@ onLoad(async (options) => {
   const incomingCode = options?.code ?? forwarded.get("code") ?? undefined;
   privacyHref.value = privacyPolicyHref("/pages/ref/code", incomingCode);
   referralMounted = true;
-  const loadVersion = ++referralLoadVersion;
+  referralLoadVersion += 1;
   if (remoteApiEnabled) {
     code.value = "";
     remotePreview.value = null;
@@ -215,27 +220,34 @@ onLoad(async (options) => {
       remotePreviewState.value = rawCode ? "unavailable" : "idle";
       return;
     }
-    remotePreviewState.value = "loading";
-    try {
-      const preview = await publicSponsorPreviewApi.preview(norm);
-      if (!isCurrentReferralLoad(loadVersion)) return;
-      remotePreview.value = preview;
-      code.value = preview.code;
-      remotePreviewState.value = "ready";
-    } catch (cause) {
-      if (!isCurrentReferralLoad(loadVersion)) return;
-      code.value = "";
-      remotePreview.value = null;
-      remotePreviewState.value = "unavailable";
-      if (cause instanceof ApiError && ["REFERRAL_PREVIEW_INVALID", "REFERRAL_PREVIEW_NOT_FOUND"].includes(cause.message))
-        requestedCode.value = null;
-    }
+    await loadRemotePreview();
     return;
   }
   const norm = normalizeRefCode(options?.code ?? "");
   code.value = norm ?? "";
   if (norm) sponsorship?.capturePending(norm);
 });
+async function loadRemotePreview() {
+  if (!remoteApiEnabled || !referralMounted || !requestedCode.value || remotePreviewState.value === "loading") return;
+  const loadVersion = ++referralLoadVersion;
+  const requested = requestedCode.value;
+  remotePreviewState.value = "loading";
+  remotePreview.value = null;
+  code.value = "";
+  try {
+    const preview = await publicSponsorPreviewApi.preview(requested);
+    if (!isCurrentReferralLoad(loadVersion)) return;
+    // A response for another code must not replace this invitation.
+    if (preview.code !== requested) throw new Error("REFERRAL_PREVIEW_CODE_MISMATCH");
+    remotePreview.value = preview;
+    code.value = preview.code;
+    remotePreviewState.value = "ready";
+  } catch (cause) {
+    if (!isCurrentReferralLoad(loadVersion)) return;
+    remotePreviewState.value = "unavailable";
+    if (cause instanceof ApiError && ["REFERRAL_PREVIEW_INVALID", "REFERRAL_PREVIEW_NOT_FOUND"].includes(cause.message)) requestedCode.value = null;
+  }
+}
 function cleanupReferralLoad() {
   referralMounted = false;
   referralLoadVersion += 1;
@@ -403,14 +415,20 @@ const partnerChipStyle: CSSProperties = {
   color: "color-mix(in srgb, var(--v5-ink) 85%, transparent)",
 };
 const badgeRowStyle: CSSProperties = { marginTop: "12px", flexWrap: "wrap", gap: "4px 12px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const footerStyle: CSSProperties = { marginTop: "24px", fontSize: "12px", color: "var(--v5-ink-4)", lineHeight: 1.625, padding: "0 16px" };
+const footerStyle: CSSProperties = { display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "0 6px", marginTop: "24px", fontSize: "12px", color: "var(--v5-ink-4)", lineHeight: 1.625, padding: "0 16px" };
 // inline 目标吃 WCAG 2.5.8 豁免,纵向 padding 只扩热区不撑行高(原 61×14)
-const footerLinkStyle: CSSProperties = { color: "var(--v5-ink-3)", padding: "15px 10px", margin: "0 -10px" };
+const footerLinkStyle: CSSProperties = { color: "var(--v5-ink-3)", display: "inline-flex", alignItems: "center", minHeight: "44px", padding: "0 2px" };
 
 
 </script>
 
 <style scoped>
+.ref-signin-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 6px; }
+.ref-preview-status { display: flex; align-items: center; gap: 12px; padding: 16px 0; font-size: 13px; line-height: 1.55; color: var(--v5-ink-3); }
+.ref-preview-status > text { flex: 1; }
+.ref-preview-retry { flex-shrink: 0; min-height: 44px; padding: 0 14px; display: flex; align-items: center; border-radius: 9999px; background: var(--v5-surface); color: var(--v5-brand); }
+.ref-preview-retry[aria-disabled="true"] { opacity: 0.5; }
+.ref-preview-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 /* 《08》§2:footer 的两个法务链接是 inline style 对象驱动的,加不了 :active,故走 class。
    纵向 padding 已在 footerLinkStyle 里扩过热区(inline 元素纵向 padding 不撑行高)。 */
 .nx-ref-footer-link {

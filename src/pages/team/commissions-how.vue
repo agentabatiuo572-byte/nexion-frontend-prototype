@@ -1,14 +1,14 @@
-<!-- Reference five-section layout; all explanations and rule values come from public server APIs. -->
 <template>
   <AppChassis active="team">
+    <RewardPageSurface>
     <view class="pb-8" style="color: var(--v5-ink)">
       <SubPageHeader :title="t.headerTitles.teamCommissions + t.headerTitles.howItWorksSuffix" back="/pages/team/commissions" />
 
-      <HowHero v-if="!state.loading && !state.error && !content.incomplete" :label="w.heroLabel" :title="s(sectionId.hero).title" :sub="s(sectionId.hero).body" accent="lemon" />
+      <HowHero kind="ledger" v-if="!state.loading && !state.error && !content.incomplete" :label="w.heroLabel" :title="s(sectionId.hero).title" :sub="s(sectionId.hero).body" accent="lemon" />
 
-      <view v-if="state.loading || state.error || content.incomplete" class="mx-4 rounded-xl" style="padding: 14px; background: var(--v5-surface-2)" aria-live="polite">
+      <view v-if="state.loading || state.error || content.incomplete" class="mx-4" style="padding: 18px 0; border-block: 1px solid var(--v5-border)" aria-live="polite">
         <text class="block" :style="paraStyle">{{ state.loading ? content.copy.loading : content.copy.unavailable }}</text>
-        <view v-if="!state.loading" role="button" tabindex="0" style="margin-top: 10px; color: var(--v5-brand); cursor: pointer" @click="reload" @keydown.enter.prevent="reload" @keydown.space.prevent="reload"><text>{{ content.copy.retry }}</text></view>
+        <view v-if="!state.loading" role="button" tabindex="0" class="reward-cta" style="margin-top: 12px" @click="reload" @keydown.enter.prevent="reload" @keydown.space.prevent="reload"><text>{{ content.copy.retry }}</text></view>
       </view>
 
       <template v-if="!state.loading && !state.error && !content.incomplete">
@@ -25,7 +25,7 @@
         </template>
         <text class="block" :style="captionStyle">{{ s(sectionId.channels).body }}</text>
         <view style="display: flex; flex-direction: column; gap: 10px">
-          <HowIconRow v-for="item in channels" :key="item.id" :emoji="item.emoji" :label="item.title" :body="item.body" />
+          <HowIconRow v-for="(item, index) in channels" :key="item.id" :n="index + 1" :label="item.title" :body="item.body" />
         </view>
       </HowSection>
 
@@ -34,21 +34,21 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
         </template>
         <text class="block" :style="captionStyle">{{ s(sectionId.lifecycle).body }}</text>
-        <view class="rounded-xl border" :style="statusBoxStyle">
-          <view class="flex items-start" style="gap: 10px">
-            <text class="shrink-0 font-mono-tabular" :style="statusChipStyle('var(--v5-warning)')">{{ s(sectionId.cooling).title }}</text>
+        <view  :style="statusBoxStyle">
+          <view class="commission-guide-status">
+            <text class="font-mono-tabular" :style="statusChipStyle('var(--v5-warning)')">{{ s(sectionId.cooling).title }}</text>
             <text :style="statusDescStyle">{{ s(sectionId.cooling).body }}</text>
           </view>
-          <view class="flex items-start" style="gap: 10px">
-            <text class="shrink-0 font-mono-tabular" :style="statusChipStyle('var(--v5-brand)')">{{ s(sectionId.unlocked).title }}</text>
+          <view class="commission-guide-status">
+            <text class="font-mono-tabular" :style="statusChipStyle('var(--v5-ink-2)')">{{ s(sectionId.unlocked).title }}</text>
             <text :style="statusDescStyle">{{ s(sectionId.unlocked).body }}</text>
           </view>
-          <view class="flex items-start" style="gap: 10px">
-            <text class="shrink-0 font-mono-tabular" :style="statusChipStyle('var(--v5-brand-2)')">{{ s(sectionId.withdrawn).title }}</text>
+          <view class="commission-guide-status">
+            <text class="font-mono-tabular" :style="statusChipStyle('var(--v5-ink-2)')">{{ s(sectionId.withdrawn).title }}</text>
             <text :style="statusDescStyle">{{ s(sectionId.withdrawn).body }}</text>
           </view>
         </view>
-        <HowCalloutBox :title="`💡 ${s(sectionId.coolingNote).title}`" :body="s(sectionId.coolingNote).body" tone="amber" />
+        <HowCalloutBox :title="s(sectionId.coolingNote).title" :body="s(sectionId.coolingNote).body" tone="amber" />
       </HowSection>
 
       <HowSection :title="s(sectionId.example).title" accent="lemon">
@@ -62,28 +62,28 @@
           <view style="display: flex; flex-direction: column; gap: 10px">
             <view class="flex items-center justify-between" style="gap: 8px">
               <view class="flex items-center min-w-0" style="gap: 6px">
-                <text class="shrink-0">👥</text>
+
                 <text class="block" :style="exampleLabelStyle">{{ s(sectionId.exampleNetwork).body }}</text>
               </view>
-              <text class="font-display tabular-nums" :style="exampleAmtStyle('var(--v5-brand)')">{{ content.amounts.network }}</text>
+              <text class="font-display tabular-nums" :style="exampleAmtStyle('var(--v5-ink-2)')">{{ content.amounts.network }}</text>
             </view>
             <view class="flex items-center justify-between" style="gap: 8px">
               <view class="flex items-center min-w-0" style="gap: 6px">
-                <text class="shrink-0">🌱</text>
+
                 <text class="block" :style="exampleLabelStyle">{{ s(sectionId.exampleCultivation).body }}</text>
               </view>
-              <text class="font-display tabular-nums" :style="exampleAmtStyle('var(--v5-brand-2)')">{{ content.amounts.cultivation }}</text>
+              <text class="font-display tabular-nums" :style="exampleAmtStyle('var(--v5-ink-2)')">{{ content.amounts.cultivation }}</text>
             </view>
             <view class="flex items-center justify-between" style="gap: 8px">
               <view class="flex items-center min-w-0" style="gap: 6px">
-                <text class="shrink-0">🤝</text>
+
                 <text class="block" :style="exampleLabelStyle">{{ s(sectionId.examplePeer).body }}</text>
               </view>
-              <text class="font-display tabular-nums" :style="exampleAmtStyle('var(--v5-brand)')">{{ content.amounts.peer }}</text>
+              <text class="font-display tabular-nums" :style="exampleAmtStyle('var(--v5-ink-2)')">{{ content.amounts.peer }}</text>
             </view>
             <view class="flex items-center justify-between" style="gap: 8px">
               <view class="flex items-center min-w-0" style="gap: 6px">
-                <text class="shrink-0">👑</text>
+
                 <text class="block" :style="exampleLabelStyle">{{ s(sectionId.exampleLeadership).body }}</text>
               </view>
               <text class="font-display tabular-nums" :style="exampleAmtStyle('var(--v5-warning)')">{{ content.amounts.leadership }}</text>
@@ -112,12 +112,13 @@
       </template>
 
       <view class="mx-4 mt-6">
-        <view class="flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" role="button" tabindex="0" @click="goBack" @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack">
-          <text :style="ctaTextStyle">{{ s(sectionId.footer, w.ctaBack).title }}</text>
+        <view class="flex items-center justify-center active:scale-[0.98] reward-cta reward-cta--wide" role="button" tabindex="0" @click="goBack" @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack">
+          <text >{{ state.loading || state.error || content.incomplete ? auditCopy.backCommissions : s(sectionId.footer, w.ctaBack).title }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
         </view>
       </view>
     </view>
+    </RewardPageSurface>
   </AppChassis>
 </template>
 
@@ -125,14 +126,16 @@
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import HowHero from "@/components/how/how-hero.vue";
-import HowSection from "@/components/how/how-section.vue";
-import HowIconRow from "@/components/how/how-icon-row.vue";
-import HowCalloutBox from "@/components/how/how-callout-box.vue";
-import HowFaqRow from "@/components/how/how-faq-row.vue";
+import HowHero from "@/components/team/reward-compact-hero.vue";
+import HowSection from "@/components/team/reward-rule-block.vue";
+import HowIconRow from "@/components/team/reward-rule-block.vue";
+import HowCalloutBox from "@/components/team/reward-rule-block.vue";
+import HowFaqRow from "@/components/team/reward-rule-block.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { apiClient, expectedApiEnvironment, howContentApi, vRankApi } from "@/api/runtime";
 import { createCommissionGuideApi } from "@/api/commission-guide-api";
 import { createDirectReferralApi } from "@/api/direct-referral-api";
@@ -142,6 +145,7 @@ import { navBack } from "@/lib/route";
 const t = useT();
 const w = computed(() => t.value.commissionsHowItWorks);
 const locale = useLocaleStore();
+const auditCopy = computed(() => networkReauditCopy(locale.code));
 const state = ref<CommissionsHowState>({ loading: true, error: false, snapshot: null });
 const commissionGuideApi = createCommissionGuideApi(apiClient, expectedApiEnvironment);
 const directReferralApi = createDirectReferralApi(apiClient, expectedApiEnvironment);
@@ -166,8 +170,8 @@ const sectionId = {
   faq: "faq", faqOrder: "faq-order", faqWithdraw: "faq-withdraw", faqReversal: "faq-reversal",
   faqCultivation: "faq-cultivation", footer: "footer",
 } as const;
-const channels = computed(() => ["network", "binary", "peer", "cultivation", "leadership", "genesis"].map((id, index) => ({
-  ...s(id), emoji: ["👥", "⚖️", "🤝", "🌱", "👑", "💎"][index],
+const channels = computed(() => ["network", "binary", "peer", "cultivation", "leadership", "genesis"].map(id => ({
+  ...s(id),
 })));
 function reload() { void resource.load(locale.code); }
 onShow(reload);
@@ -185,10 +189,10 @@ const noteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "v
 
 const statusBoxStyle: CSSProperties = {
   marginTop: "12px",
-  background: "var(--v5-surface)",
+  background: "transparent",
   borderColor: "var(--v5-border)",
-  borderRadius: "12px",
-  padding: "12px",
+  borderRadius: "0",
+  padding: "12px 0",
   display: "flex",
   flexDirection: "column",
   gap: "8px",
@@ -198,7 +202,7 @@ function statusChipStyle(color: string): CSSProperties {
   return {
     padding: "1px 8px",
     borderRadius: "6px",
-    background: `color-mix(in srgb, ${color} 15%, transparent)`,
+    background: "transparent",
     color,
     fontSize: "12px",
   };
@@ -207,9 +211,9 @@ const statusDescStyle: CSSProperties = { color: "var(--v5-ink-3)", lineHeight: 1
 
 const exampleBoxStyle: CSSProperties = {
   marginTop: "12px",
-  padding: "16px",
-  borderRadius: "12px",
-  background: "var(--v5-surface-2)",
+  padding: "12px 0",
+  borderRadius: "0",
+  background: "transparent",
 };
 const exampleDayStyle: CSSProperties = {
   marginBottom: "8px",
@@ -240,21 +244,12 @@ const exampleTotalValueStyle: CSSProperties = {
   fontWeight: 600,
   fontSize: "20px",
   letterSpacing: "-0.014em",
-  color: "var(--v5-brand)",
+  color: "var(--v5-ink)",
 };
 
-const ctaStyle: CSSProperties = {
-  gap: "6px",
-  height: "50px",
-  borderRadius: "999px",
-  background: "var(--v5-brand)",
-  boxShadow: "var(--v5-spotlight-brand)",
-};
-const ctaTextStyle: CSSProperties = {
-  color: "var(--v5-on-brand)",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 500,
-  fontSize: "15px",
-  letterSpacing: "-0.005em",
-};
 </script>
+
+<style scoped>
+.commission-guide-status { display:flex;flex-direction:column;align-items:flex-start;gap:6px; }
+.commission-guide-status > text { display:block;max-width:100%;overflow-wrap:break-word; }
+</style>

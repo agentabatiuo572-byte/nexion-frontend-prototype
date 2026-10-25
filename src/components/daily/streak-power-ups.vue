@@ -50,7 +50,7 @@
                不能继续给「激活」入口 —— 用户投入 30/60 天后会撞上一个不可用的页面。
                改为明确说明暂停,并保留档位可见(不隐藏已获得的权益说明)。 -->
           <text v-else-if="!isBusinessReady(p)" :style="lockedLabelStyle">{{ isBusinessSuspended(p) ? w.suspended : w.pending }}</text>
-          <view v-else-if="isUnlocked(p)" class="inline-flex items-center active:opacity-85" :style="activateBtnStyle(p)" @click="handleClaim(p)">
+          <view v-else-if="isUnlocked(p)" class="inline-flex items-center active:opacity-85" role="button" tabindex="0" :aria-disabled="claimBusy" :aria-busy="claimBusy" :style="activateBtnStyle(p)" @click="handleClaim(p)">
             <text>{{ w.activate }}</text>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 3px"><path d="m9 18 6-6-6-6" /></svg>
           </view>
@@ -80,7 +80,7 @@
 
 <script setup lang="ts">
 import { navTo } from "@/lib/route";
-import { computed, type CSSProperties } from "vue";
+import { computed, ref, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNexFaucet } from "@/store/nex-faucet";
@@ -108,11 +108,15 @@ interface PowerUp {
 }
 
 const t = useT();
+import { useLocaleStore } from '@/store/locale';
+import { powerUpEffectText } from '@/lib/power-up-copy';
+const locale = useLocaleStore();
 // `w` indexes dynamic `${key}_label/_desc` props → type as a string record.
 const w = computed(() => t.value.daily.powerUps as unknown as Record<string, string>);
 const faucet = useNexFaucet();
 const config = useConfig();
 const powerUp = useDailyPowerUp();
+const claimBusy = ref(false);
 
 const POWERUPS: PowerUp[] = [
   { id: "royalty_boost", threshold: 7, tint: "var(--v5-success)", key: "royalty_boost", href: "/pages/team/team" },
@@ -126,7 +130,7 @@ const powerUps = computed<PowerUp[]>(() => (remoteApiEnabled
       id: item.powerUpCode.toLowerCase() as StreakPowerUpId,
       threshold: item.unlockStreakDays,
       tint: "var(--v5-success)", key: item.powerUpCode.toLowerCase() as PowerUp["key"], href: item.targetPath,
-      labelText: item.name, descText: `${item.effectType}: ${item.effectValue}`,
+      labelText: item.name, descText: powerUpEffectText(item.effectType, item.effectValue, locale.code),
       status: item.status,
       // 服务端的可用性判定是权威:它读的是各域自己的读模型,比客户端本地推断更准。
       serverBusinessAvailable: item.businessAvailable,
@@ -142,7 +146,7 @@ function isUnlocked(p: PowerUp): boolean {
 }
 
 function isClaimed(id: StreakPowerUpId): boolean {
-  if (remoteApiEnabled) return powerUps.value.find((p) => p.id === id)?.status === "ACTIVATED";
+  if (remoteApiEnabled) return powerUps.value.find((p) => p.id === id)?.status === "ACTIVATED" || powerUp.hasClaimed(id);
   return powerUp.hasClaimed(id);
 }
 
@@ -204,9 +208,14 @@ const footerNextText = computed(() =>
 const footerAllText = computed(() => fmt(w.value.footerAll, { n: activatedCount.value }));
 
 async function handleClaim(p: PowerUp) {
-  if (!isBusinessReady(p)) return;
+  if (!isBusinessReady(p) || claimBusy.value || isClaimed(p.id)) return;
   if (remoteApiEnabled) {
+    claimBusy.value = true;
+    try {
     if (await powerUp.claimRemote(p.id)) {
+      // This component renders the faucet snapshot, so refresh that read model too.
+      await faucet.refreshRemote();
+      if (!isClaimed(p.id)) return;
       toast.success(fmt(w.value.toastTitle, { name: p.labelText ?? w.value[`${p.key}_label`] }), p.descText ?? w.value.toastBody);
       // Remote targetPath is the server canonical href. Navigate only after
       // activation is confirmed; a failed claim remains retryable in the store.
@@ -215,6 +224,7 @@ async function handleClaim(p: PowerUp) {
     } else {
       toast.error(t.value.authOtp.errorServiceUnavailable);
     }
+    } finally { claimBusy.value = false; }
     return;
   }
   const r = powerUp.claim(p.id);
@@ -251,7 +261,7 @@ function liStyle(isLast: boolean): CSSProperties {
   return { borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
 }
 function iconBoxStyle(p: PowerUp): CSSProperties {
-  const unlocked = streak.value >= p.threshold;
+  const unlocked = isUnlocked(p);
   return {
     width: "36px",
     height: "36px",
@@ -261,7 +271,7 @@ function iconBoxStyle(p: PowerUp): CSSProperties {
   };
 }
 function thresholdChipStyle(p: PowerUp): CSSProperties {
-  const unlocked = streak.value >= p.threshold;
+  const unlocked = isUnlocked(p);
   return {
     padding: "1px 6px",
     borderRadius: "4px",
@@ -273,8 +283,8 @@ function thresholdChipStyle(p: PowerUp): CSSProperties {
   };
 }
 function labelStyle(p: PowerUp): CSSProperties {
-  const claimed = powerUp.hasClaimed(p.id);
-  const unlocked = streak.value >= p.threshold;
+  const claimed = isClaimed(p.id);
+  const unlocked = isUnlocked(p);
   return {
     fontFamily: "var(--font-v5)",
     fontWeight: 600,

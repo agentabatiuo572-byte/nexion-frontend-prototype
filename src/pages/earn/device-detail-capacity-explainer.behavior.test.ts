@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import source from "./device-detail.vue?raw";
 import cardSource from "../../components/earn/device-card-pc.vue?raw";
 import sheetSource from "../../components/earn/capacity-explainer-sheet.vue?raw";
+import buttonSource from "../../components/ui/nx-button.vue?raw";
 import { useCapacityExplainer } from "@/composables/use-capacity-explainer";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import * as deadline from "@/lib/server-deadline-clock";
@@ -68,7 +69,7 @@ const unmounts: Array<() => void> = [];
 const now = 1_800_000_000_000;
 const day = 86_400_000;
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(now); useCapacityExplainer().close(); });
-afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); useCapacityExplainer().close(); vi.useRealTimers(); });
+afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); useCapacityExplainer().close(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 // Existing E3 server-device contract shape; only static render inputs, no requests.
 function serverDevice(overrides: Partial<Device> = {}): Device {
@@ -107,6 +108,7 @@ async function mount(copy: Messages, device = serverDevice()) {
       onShow: (callback: () => void) => onShow.push(callback) },
     "@/components/app-chassis.vue": sfc(passthrough), "@/components/empty-state.vue": sfc(blank),
     "@/components/sub-page-header.vue": sfc(blank), "@/components/home/device-slot.vue": sfc(blank),
+    "@/components/liquid-glass.vue": sfc(blank),
     "@/store/app": { useApp: () => app },
     "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => true }) },
     "@/store/config": { useConfig: () => ({ config: { onlineBonus: {} } }) },
@@ -123,6 +125,7 @@ async function mount(copy: Messages, device = serverDevice()) {
     "@/lib/today-completed-tasks": completions, "@/lib/device-detail-navigation": detailNavigation,
     "@/i18n/format": { fmt },
   };
+  dependencies["@/components/ui/nx-button.vue"] = sfc(component(buttonSource, "detail-button", dependencies));
   dependencies["@/components/earn/device-card-pc.vue"] = sfc(component(cardSource, "detail-card", dependencies));
   dependencies["@/components/earn/capacity-explainer-sheet.vue"] = sfc(component(sheetSource, "detail-explainer", dependencies));
   const root = node();
@@ -154,7 +157,7 @@ for (const [locale, copy] of languages) {
     const original = JSON.stringify(view.device);
     const card = find(view.root, "nx-device-card")!;
     const originalCardText = text(card);
-    for (const value of ["CTA-pending", "$0.43", "$0.00", "0.00 NEX"]) expect(originalCardText).toContain(value);
+    for (const value of ["CTA-pending", "$0.43", "$0.00", "0.00 UVT"]) expect(originalCardText).toContain(value);
     const badge = find(view.root, "nx-device-explainer")!;
     expect(text(badge)).toBe(fmt(copy.earn.subsidyBadge, { n: 28 }));
     expect(find(view.root, "nx-capacity-explainer-root")).toBeUndefined();
@@ -211,4 +214,28 @@ test("unknown remote capacity does not invent a subsidy/capacity entry", async (
   expect(find(view.root, "nx-capacity-explainer-root")).toBeUndefined();
   expect(useCapacityExplainer().visible.value).toBe(false);
   expect(view.device.capacityPct).toBeNull();
+});
+
+test('detail has one earnings summary, known totals, explicit missing history, and a working statistics action', async () => {
+  const view = await mount(zh, serverDevice({ todayEarnings: 12.34, cumulativeEarningsUsdt: 567.89 }));
+  expect(find(view.root, 'nx-device-card__header')).toBeUndefined();
+  expect(text(view.root).split(zh.earn.todayEarnings)).toHaveLength(2);
+  const stats = all(view.root).find(entry => entry.props.id === 'device-statistics')!;
+  expect(text(stats)).toContain('$12.34');
+  expect(text(stats)).toContain('$567.89');
+  expect(text(stats)).toContain(zh.coreReview.historyUnavailable);
+  expect(text(stats)).toContain(zh.coreReview.onlineRateUnavailable);
+  expect(text(stats)).not.toContain('100%');
+  expect(text(view.root)).toContain(zh.coreReview.management);
+  expect(text(view.root)).toContain(zh.coreReview.jobs);
+  await fire(all(view.root).find(entry => entry.props['aria-label'] === zh.home.fleetManage)!, 'click');
+  const target = { scrollIntoView: vi.fn(), focus: vi.fn() };
+  vi.stubGlobal('document', { getElementById: vi.fn(() => target), querySelectorAll: () => [], removeEventListener: vi.fn() });
+  await fire(find(view.root, 'nx-device-quick-stats')!, 'click');
+  await Vue.nextTick();
+  expect(target.scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+  expect(target.focus).toHaveBeenCalledWith({ preventScroll: true });
+  expect(find(view.root, 'nx-device-quick-menu')).toBeUndefined();
+  expect(view.navTo).not.toHaveBeenCalled();
+  expect(view.refreshRemoteFleet).not.toHaveBeenCalled();
 });

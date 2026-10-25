@@ -2,12 +2,12 @@
 const ROOT = "/static/img/products/uvel-v3";
 
 export const PRODUCT_MEDIA = {
-  "stellarbox-s1": { src: `${ROOT}/stellarbox-s1.png`, tierCode: "S1" },
-  "stellarbox-pro": { src: `${ROOT}/stellarbox-pro.png`, tierCode: "Pro" },
-  "stellarbox-pro-v2": { src: `${ROOT}/stellarbox-pro-v2.png`, tierCode: "Pro v2" },
-  "stellarrack-p1": { src: `${ROOT}/stellarrack-p1.png`, tierCode: "Rack P1" },
-  "stellarrack-p2": { src: `${ROOT}/stellarrack-p2.png`, tierCode: "Rack P2" },
-  "cloud-share": { src: `${ROOT}/cloud-share.png`, tierCode: "Cloud Share" },
+  "stellarbox-s1": { src: "/static/img/home-glass-20260928/s1.webp", tierCode: "S1" },
+  "stellarbox-pro": { src: "/static/img/home-glass-20260928/pro.webp", tierCode: "Pro" },
+  "stellarbox-pro-v2": { src: "/static/img/products/uvel-pedestal/stellarbox-pro-v2.webp", tierCode: "Pro v2" },
+  "stellarrack-p1": { src: "/static/img/products/uvel-pedestal/stellarrack-p1.webp", tierCode: "Rack P1" },
+  "stellarrack-p2": { src: "/static/img/products/uvel-pedestal/stellarrack-p2.webp", tierCode: "Rack P2" },
+  "cloud-share": { src: "/static/img/home-glass-20260928/cloud.webp", tierCode: "Cloud Share" },
 } as const;
 
 export type ProductMediaId = keyof typeof PRODUCT_MEDIA;

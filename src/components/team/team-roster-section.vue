@@ -1,64 +1,44 @@
-<!--
-  TeamRosterSection — collapsible Direct / Extended roster (ported from
-  tree/page.tsx RosterSection + MemberRow). Header badge + title + subtitle +
-  chevron (tap to toggle) → member rows (avatar + name + VBadge + status dot +
-  city/age + per-member royalty contribution). Members sorted by month volume.
-  Each member's contribution = month vol × layer rate (UNILEVEL_USDT; direct = 10%).
-  <button>→<view @click>. <span>/<div> text leaves→<text>. emits toggle.
-  DECARD 2026-07-09: form-b row container — surface fill kept, outer border
-  dropped (rows already hairline-separated inside).
--->
 <template>
-  <view class="nx-glass-card rounded-2xl overflow-hidden" :style="cardStyle">
-    <view class="flex items-center active:opacity-90" :style="headerStyle" @click="emit('toggle')">
-      <text class="rounded-xl grid place-items-center font-display" :style="badgeStyle">{{ badge }}</text>
-      <view class="flex-1 text-left min-w-0">
-        <text class="block" :style="titleStyle">{{ title }}</text>
-        <text class="block font-mono-tabular" :style="subtitleStyle">{{ subtitle }}</text>
+  <view class="team-roster">
+    <view class="roster-heading" role="button" tabindex="0" :aria-expanded="isOpen" :aria-controls="`roster-${kind}`" @click="emit('toggle')" @keydown.enter.prevent="emit('toggle')" @keydown.space.prevent="emit('toggle')">
+      <view class="roster-heading-copy">
+        <view class="roster-title"><view class="relation-dot" :style="{ background: color }" /><text>{{ title }}</text><text class="roster-count">{{ members.length }}</text></view>
+        <text class="roster-subtitle">{{ subtitle }}</text>
       </view>
-      <svg v-if="isOpen" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6" /></svg>
-      <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+      <text class="roster-chevron" aria-hidden="true">{{ isOpen ? '−' : '+' }}</text>
     </view>
-
-    <template v-if="isOpen">
-      <view v-if="sortedMembers.length === 0" class="text-center" :style="emptyStyle">
-        <text>{{ emptyLabel }}</text>
-      </view>
-      <view v-else style="border-top: 1px solid var(--v5-border)">
-        <view
-          v-for="(m, i) in sortedMembers"
-          :key="m.id"
-          class="flex items-center"
-          :style="rowStyle(i === sortedMembers.length - 1)"
-        >
-          <view class="rounded-full grid place-items-center shrink-0" :style="avatarStyle">
-            <text style="font-size: 20px; line-height: 1">{{ m.avatar }}</text>
+    <view v-if="isOpen" :id="`roster-${kind}`">
+      <text v-if="sortedMembers.length === 0" class="roster-empty">{{ emptyLabel }}</text>
+      <view v-for="m in sortedMembers" :key="m.id" class="member-row">
+        <view class="member-trigger" role="button" tabindex="0" :aria-expanded="expandedMemberId === m.id" :aria-controls="`member-${kind}-${m.id}`" @click="toggleMember(m.id)" @keydown.enter.prevent="toggleMember(m.id)" @keydown.space.prevent="toggleMember(m.id)">
+          <TeamRankEmblem :rank="m.vRank" :size="44" />
+          <view class="member-identity">
+            <text class="member-name">{{ displayNickname(m.name) }}</text>
+            <view class="member-meta"><text>{{ rankLabel(m.vRank, locale.code, []) }}</text><view class="relation-dot" :style="{ background: statusColor(m.status) }" /><text>{{ auditCopy[m.status] }}</text></view>
           </view>
-          <view class="flex-1 min-w-0">
-            <view class="flex items-center" style="gap: 6px">
-              <text class="truncate" :style="{ fontSize: '13px', color: 'var(--v5-ink)' }">{{ displayNickname(m.name) }}</text>
-              <VBadge :v="m.vRank" size="sm" :show-title="false" />
-            </view>
-            <view class="flex items-center" style="margin-top: 2px; gap: 6px">
-              <view class="rounded-full" :style="statusDotStyle(m.status)" />
-              <text :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ m.city }} · {{ fmt(t.uiChrome.joinedDaysAgo, { n: daysAgo(m.joinedAt) }) }}</text>
-            </view>
-          </view>
-          <view class="text-right shrink-0">
-            <text v-if="showContribution" class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: accentText }">+${{ formatAmount(contribution(m)) }}</text>
-            <text class="block font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ fmt(t.uiChrome.volumeShort, { amount: `$${formatAmount(m.monthVolumeUSD)}` }) }}</text>
-          </view>
+          <view class="member-points"><text class="tabular-nums">{{ formatComputePoints(m.monthComputePoints, locale.code) }}</text><text class="member-points-label">{{ t.network.monthVolume }}</text></view>
+          <text class="roster-chevron" aria-hidden="true">{{ expandedMemberId === m.id ? '−' : '+' }}</text>
+        </view>
+        <view v-if="expandedMemberId === m.id" :id="`member-${kind}-${m.id}`" class="member-details">
+          <view class="member-detail"><text>{{ t.network.joined }}</text><text>{{ fmt(t.uiChrome.joinedDaysAgo, { n: daysAgo(m.joinedAt) }) }}</text></view>
+          <view class="member-detail"><text>{{ t.network.allTime }}</text><text class="tabular-nums">{{ formatComputePoints(m.lifetimeComputePoints, locale.code) }}</text></view>
+          <view class="member-detail"><text>{{ m.layer === 1 ? t.network.badgeDirect : t.network.badgeExtended }}</text><text>{{ m.city }}</text></view>
+          <text v-if="showContribution" class="member-contribution tabular-nums">+${{ formatAmount(contribution(m)) }}</text>
         </view>
       </view>
-    </template>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
-import { computed, type CSSProperties } from "vue";
-import VBadge from "./v-badge.vue";
+import { formatComputePoints } from "@/i18n/compute-points";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
+import { rankLabel } from "@/lib/v-rank-copy";
+import { useLocaleStore } from "@/store/locale";
+import { computed, ref, watch } from "vue";
+import TeamRankEmblem from "./team-rank-emblem.vue";
 import type { NetworkMember, MemberStatus } from "@/store/network";
 import { UNILEVEL_USDT } from "@/store/commission";
 import { useT } from "@/i18n/use-t";
@@ -80,12 +60,18 @@ const props = defineProps<{
 const emit = defineEmits<{ toggle: [] }>();
 const t = useT();
 const showContribution = computed(() => props.showContribution !== false);
-
-const sortedMembers = computed(() => [...props.members].sort((a, b) => b.monthVolumeUSD - a.monthVolumeUSD));
-
+const locale = useLocaleStore();
+const auditCopy = computed(() => networkReauditCopy(locale.code));
+const sortedMembers = computed(() => [...props.members].sort((a, b) => (b.monthComputePoints ?? -1) - (a.monthComputePoints ?? -1)));
+const expandedMemberId = ref<string | null>(null);
+function toggleMember(id: string): void {
+  expandedMemberId.value = expandedMemberId.value === id ? null : id;
+}
+watch(() => props.members, (members) => {
+  if (!members.some(member => member.id === expandedMemberId.value)) expandedMemberId.value = null;
+});
 function contribution(m: NetworkMember): number {
-  const layer = m.layer;
-  return props.kind === "direct" ? m.monthVolumeUSD * 0.1 : m.monthVolumeUSD * (UNILEVEL_USDT[layer] ?? 0);
+  return props.kind === "direct" ? m.monthVolumeUSD * 0.1 : m.monthVolumeUSD * (UNILEVEL_USDT[m.layer] ?? 0);
 }
 function daysAgo(joinedAt: number): number {
   return Math.floor((Date.now() - joinedAt) / 86400000);
@@ -93,31 +79,29 @@ function daysAgo(joinedAt: number): number {
 function statusColor(status: MemberStatus): string {
   return status === "active" ? "var(--v5-brand)" : status === "idle" ? "var(--v5-warning)" : "var(--v5-ink-4)";
 }
-
-// ─── styles ───
-// Row container: fill only, no border (radius via rounded-2xl class;
-// overflow-hidden kept — it clips row corners inside the rounded fill).
-const cardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)" };
-const headerStyle: CSSProperties = { width: "100%", padding: "12px 16px", gap: "12px" };
-const badgeStyle = computed<CSSProperties>(() => ({
-  width: "36px",
-  height: "36px",
-  fontWeight: 600,
-  fontSize: "12px",
-  background: props.accentBg,
-  color: props.accentText,
-  letterSpacing: "0.06em",
-}));
-const titleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
-const subtitleStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const emptyStyle: CSSProperties = { padding: "24px 16px", fontSize: "12px", color: "var(--v5-ink-3)", borderTop: "1px solid var(--v5-border)" };
-function rowStyle(isLast: boolean): CSSProperties {
-  return { padding: "10px 16px", gap: "12px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
-}
-const avatarStyle: CSSProperties = { width: "36px", height: "36px", background: "var(--v5-surface-2)" };
-function statusDotStyle(status: MemberStatus): CSSProperties {
-  return { width: "6px", height: "6px", background: statusColor(status) };
-}
-
-
 </script>
+
+<style scoped>
+.team-roster { min-width: 0; }
+.roster-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); padding: 0 0 14px; min-height: 44px; }
+.roster-heading-copy { min-width: 0; flex: 1; }
+.roster-title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 16px; font-weight: 600; }
+.roster-count { font-size: 13px; font-weight: 400; color: var(--v5-ink-3); }
+.roster-subtitle { display: block; margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); overflow-wrap: anywhere; }
+.relation-dot { width: 5px; height: 5px; border-radius: 50%; flex: 0 0 auto; }
+.roster-chevron { color: var(--v5-ink-3); font-size: 16px; flex-shrink: 0; }
+.roster-empty { display: block; padding: 22px 0; border-top: 1px solid var(--v5-border); font-size: 13px; color: var(--v5-ink-3); }
+.member-row { border-top: 1px solid var(--v5-border); }
+.member-trigger { display: flex; align-items: center; gap: var(--ui-space-row-y); padding: var(--ui-space-inset) 0; min-height: 72px; }
+.member-identity { flex: 1; min-width: 0; }
+.member-name { display: block; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.member-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 5px; font-size: 11px; color: var(--v5-ink-3); }
+.member-points { text-align: right; font-size: 16px; color: var(--v5-ink); max-width: 34%; overflow-wrap: anywhere; }
+.member-points-label { display: block; margin-top: 4px; font-size: 11px; color: var(--v5-ink-3); line-height: 1.4; }
+.member-details { margin-left: 54px; padding: 0 0 16px; display: flex; flex-direction: column; gap: var(--ui-space-inline); }
+.member-detail { display: flex; justify-content: space-between; gap: var(--ui-space-inset); font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); }
+.member-detail > :last-child { text-align: right; color: var(--v5-ink-2); overflow-wrap: anywhere; }
+.member-contribution { color: var(--v5-ink-2); text-align: right; font-size: 12px; }
+[role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+@media (max-width: 360px) { .member-trigger { gap: 8px; } .member-details { margin-left: 0; } .member-points { font-size: 14px; } }
+</style>

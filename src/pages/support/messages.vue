@@ -13,7 +13,7 @@
       <SubPageHeader back="/pages/me/me" :title="t.conversations.title" />
 
       <view class="nx-conv-center">
-        <GlassSegments v-model="selectedType" :options="typeOptions" class="nx-conv-rail" :label="t.conversations.typeGroupLabel" />
+        <GlassSegments v-if="typeOptions.length > 1" v-model="selectedType" :options="typeOptions" class="nx-conv-rail" :label="t.conversations.typeGroupLabel" />
 
         <!-- Conversation list -->
         <view class="nx-conv-listcol">
@@ -26,14 +26,14 @@
             <text>{{ t.help.loadingMore }}</text>
           </view>
           <template v-else>
-          <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.realtimeFallback" class="nx-conv-refresh-warning" role="status" aria-live="polite">
+          <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.realtimeFallback && !humanReadFailed && !convStore.advisorError" class="nx-conv-refresh-warning" role="status" aria-live="polite">
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.realtimeFallback }}</text>
             <view role="button" tabindex="0" class="nx-conv-refresh-warning__retry family-control" @click="retryConversations"  @keydown.enter.prevent="retryConversations" @keydown.space.prevent="retryConversations">
               <LiquidGlass :radius="24" />
               <text>{{ t.conversations.retry }}</text>
             </view>
           </view>
-          <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.advisorError" class="nx-conv-refresh-warning" role="alert">
+          <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.advisorError && !humanReadFailed" class="nx-conv-refresh-warning" role="alert">
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.image.advisorUnavailable }}</text>
             <view role="button" tabindex="0" class="nx-conv-refresh-warning__retry family-control" :aria-label="t.conversations.retry"
               @click="convStore.refreshAdvisor()"  @keydown.enter.prevent="convStore.refreshAdvisor()" @keydown.space.prevent="convStore.refreshAdvisor()">

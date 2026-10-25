@@ -9,17 +9,8 @@
 -->
 <template>
   <StandalonePageShell class="tos-root" :reserve-bottom="false">
-    <!-- Sticky back header + brand -->
-    <view class="tos-top">
-      <view class="tos-back active:opacity-60" :class="{ 'tos-back--blocked': exitBlocked }" role="button" tabindex="0" :aria-disabled="exitBlocked ? 'true' : 'false'" :aria-label="t.login.back" @click="goBack" @keydown.enter.prevent="goBack($event)" @keydown.space.prevent="goBack($event)">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-      </view>
-      <view class="tos-brand">
-        <BrandLockup variant="mark" :height="32" />
-        <text class="tos-brand__name">{{ t.terms.navTitle }}</text>
-      </view>
-      <view class="tos-top__spacer" />
-    </view>
+    <SubPageHeader :back="returnTo" :back-action="goBack" :title="t.terms.navTitle" plain design
+      class="tos-header" :class="{ 'tos-header--blocked': exitBlocked }" role="group" :aria-disabled="exitBlocked" />
 
     <view class="tos-wrap">
       <!-- Hero -->
@@ -27,7 +18,7 @@
         <text class="tos-eyebrow">{{ loadError ?? t.terms.loading }}</text>
       </view>
       <view v-else-if="serverTerms" class="tos-hero">
-        <text class="tos-eyebrow">{{ `${serverTerms.effectiveAt} · ${serverTerms.version}` }}</text>
+        <text class="tos-eyebrow">{{ `${effectiveDate} · ${serverTerms.version}` }}</text>
         <text class="tos-title">{{ platformDisplayText(serverTerms.title) }}</text>
         <text class="tos-sub">{{ platformDisplayText(serverTerms.summary) }}</text>
       </view>
@@ -101,7 +92,9 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBackPress, onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import StandalonePageShell from "@/components/device/standalone-page-shell.vue";
-import BrandLockup from "@/components/brand-lockup.vue";
+import SubPageHeader from "@/components/sub-page-header.vue";
+import { dateLocale } from "@/i18n/format";
+import { formatLegalEffectiveDate } from "@/lib/legal-effective-date";
 import { platformDisplayText } from "@/lib/brand-copy";
 import { useT } from "@/i18n/use-t";
 import { navBack, navTo } from "@/lib/route";
@@ -125,6 +118,7 @@ import { createLegalTermsRequestFence } from "@/lib/legal-terms-request-fence";
 const t = useT();
 const locale = useLocaleStore();
 const serverTerms = ref<LegalTermsCurrent | null>(null);
+const effectiveDate = computed(() => formatLegalEffectiveDate(serverTerms.value?.effectiveAt, dateLocale()));
 type TermsErrorKey = "loadFailed" | "sessionChanged" | "runChanged" | "loginRequired" | "ackFailed" | "languageSyncFailed";
 const loadErrorKey = ref<TermsErrorKey | null>(null);
 const loadError = computed(() => loadErrorKey.value ? t.value.terms[loadErrorKey.value] : null);
@@ -337,52 +331,13 @@ function confirmTerms(event?: Event) {
   overflow-y: auto;
 }
 
-/* Top bar */
-.tos-top {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  padding: 10px 16px;
-  background: color-mix(in srgb, var(--v5-bg) 86%, transparent);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--v5-border);
-}
-.tos-back {
-  width: 44px;
-  height: 44px;
-  margin-left: -8px;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  justify-self: start;
-}
-.tos-back--blocked {
-  opacity: 0.35;
-}
-.tos-brand {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-self: center;
-}
-.tos-brand__name {
-  color: var(--v5-ink);
-  font-weight: 600;
-  font-family: var(--font-v5);
-  font-size: 15px;
-  letter-spacing: -0.02em;
-}
-.tos-top__spacer {
-  justify-self: end;
-}
+/* This page is its own padded scrollport; the shell already reserves the status bar. */
+.tos-header { top: 0 !important; }
+.tos-header--blocked :deep(.spv-back) { opacity: 0.35; }
 
 /* Body */
 .tos-wrap {
-  padding: 16px 20px calc(env(safe-area-inset-bottom, 0px) + 40px);
+  padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 40px);
 }
 .tos-hero {
   margin-bottom: 18px;

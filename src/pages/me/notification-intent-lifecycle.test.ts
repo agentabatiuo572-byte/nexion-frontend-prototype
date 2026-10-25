@@ -137,7 +137,7 @@ describe("notification pending intent isolation", () => {
       const h = mountSettings(); const pending = h.worker.confirmClearRead();
       expect(h.confirm).toHaveBeenCalledWith(expect.objectContaining({
         title: zh.notifs.clearReadAria, message: zh.notifs.clearReadMessage,
-        confirmLabel: zh.notifs.clearReadAria, icon: "warn",
+        confirmLabel: zh.notifs.clearReadAria, icon: "warn", danger: true,
       }));
       h.confirmation.resolve(accepted); await pending;
       expect(h.notifs.clearRead).toHaveBeenCalledTimes(accepted ? 1 : 0);

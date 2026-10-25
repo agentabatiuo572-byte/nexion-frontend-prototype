@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
-import { notificationCategory, type NotificationCategory } from "@/lib/notification-category";
+import { notificationPreferenceKind, notificationCategory, type NotificationCategory } from "@/lib/notification-category";
 import { notificationApi, remoteApiEnabled } from "@/api/runtime";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
@@ -25,7 +25,7 @@ export interface Notification {
 export interface PushInput { id?: string; kind: NotifKind; priority?: NotifPriority; title: string; body?: string; ctaLabel?: string; ctaHref?: string; }
 
 const KEY = "nexgrid-notifications-accounts-v1";
-const knownKind = (value: string): NotifKind => ["commission", "team", "staking", "market", "genesis", "system"].includes(value) ? value as NotifKind : "system";
+const knownKind = notificationPreferenceKind;
 function hydrate(accountKey: string): Notification[] {
   const rows = readAccountRow<{ items?: Notification[] }>(KEY, accountKey)?.items ?? [];
   // 存量行可能是改名(2026-07-22)之前落盘的旧品牌标题,读侧一并归一。
@@ -38,6 +38,7 @@ export const useNotifications = defineStore("notifications", () => {
   const remoteAccountEpoch = createRemoteAccountEpoch(boundKey);
   const items = ref<Notification[]>(remoteApiEnabled ? [] : hydrate(boundKey));
   const unread = ref(items.value.filter((item) => !item.readAt).length);
+  const actionableUnread = ref<number | null>(null);
   const unreadByKind = ref<Record<string, number> | null>(null);
   const unreadByCategoryExact = computed(() => !remoteApiEnabled || unread.value === 0 || unreadByKind.value !== null);
   // Without a server summary, positive counts describe only the loaded rows and
@@ -94,6 +95,7 @@ export const useNotifications = defineStore("notifications", () => {
       historyLoaded = true;
     }
     unread.value = page.unread;
+    actionableUnread.value = page.actionableUnread ?? null;
     unreadByKind.value = page.unreadByKind ? { ...page.unreadByKind } : null;
     if (!head || !historyLoaded || !page.nextCursor || !overlaps) nextCursor.value = page.nextCursor;
   }
@@ -117,6 +119,7 @@ export const useNotifications = defineStore("notifications", () => {
       appendRemote(page, true);
     } catch (cause) {
       if (!isCurrent()) return;
+      actionableUnread.value = null;
       error.value = cause instanceof Error ? cause.message : "NOTIFICATION_UNAVAILABLE";
     } finally {
       if (generation === refreshGeneration && remoteAccountEpoch.isCurrent(request)) loading.value = false;
@@ -147,7 +150,7 @@ export const useNotifications = defineStore("notifications", () => {
       appendRemote(page, false);
     }
     catch (cause) {
-      if (isCurrent()) error.value = cause instanceof Error ? cause.message : "NOTIFICATION_UNAVAILABLE";
+      if (isCurrent()) { actionableUnread.value = null; error.value = cause instanceof Error ? cause.message : "NOTIFICATION_UNAVAILABLE"; }
     }
     finally {
       if (isCurrent()) loading.value = false;
@@ -181,6 +184,7 @@ export const useNotifications = defineStore("notifications", () => {
     refreshGeneration += 1;
     mutations = { pending: 0, tail: Promise.resolve() };
     unreadByKind.value = null;
+    actionableUnread.value = null;
     if (remoteApiEnabled) {
       items.value = [];
       unread.value = 0;
@@ -210,7 +214,8 @@ export const useNotifications = defineStore("notifications", () => {
     unread.value = Math.max(0, unread.value - 1);
   }
   async function reconcileConfirmedRead(id: string, request: RemoteAccountRequest) {
-    const hasSummary = unreadByKind.value !== null;
+    const hasSummary = unreadByKind.value !== null || actionableUnread.value !== null;
+    actionableUnread.value = null;
     confirmRead(id);
     if (!hasSummary) return;
     try {
@@ -218,6 +223,7 @@ export const useNotifications = defineStore("notifications", () => {
       const page = await notificationApi.page();
       if (!remoteAccountEpoch.isCurrent(request)) return;
       unread.value = page.unread;
+      actionableUnread.value = page.actionableUnread ?? null;
       unreadByKind.value = page.unreadByKind ? { ...page.unreadByKind } : null;
     } catch (cause) {
       if (remoteAccountEpoch.isCurrent(request)) error.value = cause instanceof Error ? cause.message : 'NOTIFICATION_UPDATE_FAILED';
@@ -260,6 +266,7 @@ export const useNotifications = defineStore("notifications", () => {
         error.value = null;
         items.value = items.value.map((item) => item.readAt ? item : { ...item, readAt: Date.now() });
         unread.value = 0;
+        actionableUnread.value = null;
         unreadByKind.value = {};
         return true;
       });
@@ -341,5 +348,5 @@ export const useNotifications = defineStore("notifications", () => {
   async function recordSwipeConversion(id: string) { return recordRemoteAction(id, "swipe_conversion"); }
   function clearAll() { if (remoteApiEnabled) { void refreshRemote(); return; } items.value = []; recount(); persist(); }
   function removeOne(id: string) { if (remoteApiEnabled) return; items.value = items.value.filter((item) => item.id !== id); recount(); persist(); }
-  return { items, unread, unreadByKind, unreadByCategory, unreadByCategoryExact, loading, error, nextCursor, push, markRead, markAllRead, clearRead, clearAll, removeOne, bindAccount, refreshRemote, cancelRefresh, loadMoreRemote, retryRemote, recordCta, recordSwipeConversion };
+  return { items, unread, actionableUnread, unreadByKind, unreadByCategory, unreadByCategoryExact, loading, error, nextCursor, push, markRead, markAllRead, clearRead, clearAll, removeOne, bindAccount, refreshRemote, cancelRefresh, loadMoreRemote, retryRemote, recordCta, recordSwipeConversion };
 });

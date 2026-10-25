@@ -1,37 +1,25 @@
-<!--
-  Genealogy — ported from Nexion-prototype/app/(main)/team/tree/page.tsx.
-  Sprint-1.5 royalty roster: two metric stat tiles (total network / monthly
-  volume; DECARD 2026-07-09: fill only, borders dropped) + Direct section +
-  Extended section (each a collapsible TeamRosterSection row container).
-  No 7-layer sections / binary wing / L1-L7 labels (de-MLM'd). Sub-page →
-  <AppChassis active="team"> w/ back → /team. Reuses network + commission
-  (UNILEVEL_USDT) stores. useMemo → computed. React Set/Record toggle state →
-  reactive(Record) per P-027. <div>→<view>, text leaves→<text>.
--->
 <template>
   <AppChassis active="team">
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/team" :title="t.tree.pageTitle" />
 
-      <view class="px-4" style="display: flex; flex-direction: column; gap: 12px; padding-top: 16px">
+      <view class="team-tree-content">
         <view v-if="remoteApiEnabled && network.remoteStatus === 'error'" :style="errorStateStyle">
           <text class="block" style="font-weight: 600">{{ t.network.projectionErrorTitle }}</text>
           <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.network.projectionErrorDesc }}</text>
-          <view role="button" tabindex="0" :style="retryStyle" @click="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text></view>
+          <view role="button" tabindex="0" :style="retryStyle" @click="network.refreshCanonicalNetwork()" @keydown.enter.prevent="network.refreshCanonicalNetwork()" @keydown.space.prevent="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text><text aria-hidden="true">→</text></view>
         </view>
-        <!-- Top metrics — stat tiles: fill only, borders dropped (single
-             visual difference; ticket-stat-box idiom). -->
-        <view class="grid grid-cols-2" style="gap: 8px">
-          <view class="nx-glass-card rounded-2xl" :style="metricCardStyle">
+        <view class="tree-hero">
+          <view class="tree-hero-copy">
             <text class="block" :style="metricLabelStyle">{{ t.tree.totalNetwork }}</text>
-            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : members.length }}</text>
-            <text class="block" :style="metricSuffixStyle">{{ members.length === 1 ? t.tree.member : t.tree.membersPlural }}</text>
-          </view>
-          <view class="nx-glass-card rounded-2xl" :style="metricCardStyle">
+            <view class="tree-total">
+              <text class="font-display tabular-nums">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : members.length }}</text>
+              <text class="tree-total-unit">{{ members.length === 1 ? t.tree.member : t.tree.membersPlural }}</text>
+            </view>
             <text class="block" :style="metricLabelStyle">{{ t.tree.monthlyVolume }}</text>
-            <text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : `$${formatAmount(totalVol / 1000)}K` }}</text>
-            <text class="block" :style="metricSuffixStyle">{{ t.tree.acrossNetwork }}</text>
+            <text class="block tree-points tabular-nums">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : formatComputePoints(network.totalMonthComputePoints, locale.code) }}</text>
           </view>
+          <TeamArt kind="members" :size="112" />
         </view>
 
         <template v-if="!remoteApiEnabled || network.remoteStatus === 'ready'">
@@ -40,7 +28,7 @@
             color="var(--v5-brand)"
             :title="t.tree.directTitle"
             :subtitle="directSubtitle"
-            accent-bg="color-mix(in srgb, var(--v5-brand) 12%, transparent)"
+            accent-bg="transparent"
             accent-text="var(--v5-brand)"
             :badge="t.tree.badgeDirect"
             :members="direct"
@@ -53,11 +41,11 @@
 
           <!-- Extended section -->
           <TeamRosterSection
-            color="var(--v5-tech-cyan)"
+            color="var(--v5-ink-2)"
             :title="t.tree.extendedTitle"
             :subtitle="extendedSubtitle"
-            accent-bg="color-mix(in srgb, var(--v5-tech-cyan) 14%, transparent)"
-            accent-text="var(--v5-tech-cyan)"
+            accent-bg="transparent"
+            accent-text="var(--v5-ink-2)"
             :badge="t.tree.badgeExtended"
             :members="extended"
             :is-open="expanded.extended"
@@ -70,13 +58,20 @@
         <view v-else-if="remoteApiEnabled && (network.remoteStatus === 'idle' || network.remoteStatus === 'loading')" :style="readStateStyle" role="status" aria-busy="true">
           <text>{{ t.network.projectionLoadingTitle }}</text>
         </view>
+        <view class="tree-network-link" role="button" tabindex="0" @click="navTo('/pages/team/network')" @keydown.enter.prevent="navTo('/pages/team/network')" @keydown.space.prevent="navTo('/pages/team/network')">
+          <text>{{ t.network.pageTitle }}</text><text aria-hidden="true">→</text>
+        </view>
       </view>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
+import TeamArt from "@/components/team/team-art.vue";
+import { navTo } from "@/lib/route";
 import { formatAmount } from "@/lib/amount-display";
+import { computePointsCopy, formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
+import { useLocaleStore } from "@/store/locale";
 import { computed, onMounted, reactive, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
@@ -89,6 +84,7 @@ import { UNILEVEL_USDT } from "@/store/commission";
 import { remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
+const locale = useLocaleStore();
 const network = useNetwork();
 onMounted(() => { if (remoteApiEnabled) void network.ensureCanonicalNetwork(); });
 onShow(() => { if (remoteApiEnabled) void network.ensureCanonicalNetwork(); });
@@ -97,7 +93,6 @@ const members = computed(() => network.members);
 const direct = computed(() => members.value.filter((m) => m.layer === 1));
 const extended = computed(() => members.value.filter((m) => m.layer !== 1));
 
-const totalVol = computed(() => members.value.reduce((s, m) => s + m.monthVolumeUSD, 0));
 const directVol = computed(() => direct.value.reduce((s, m) => s + m.monthVolumeUSD, 0));
 const extendedRoyalty = computed(() =>
   extended.value.reduce((sum, m: NetworkMember) => sum + m.monthVolumeUSD * (UNILEVEL_USDT[m.layer] ?? 0), 0),
@@ -106,29 +101,32 @@ const directRoyalty = computed(() => directVol.value * UNILEVEL_USDT[1]);
 
 const directSubtitle = computed(() =>
   remoteApiEnabled
-    ? fmt(t.value.tree.serverVolumeSubtitle, { n: direct.value.length, volume: formatAmount(directVol.value) })
+    ? computePointsCopy(locale.code).memberSummary.replace('{n}', String(direct.value.length)).replace('{points}', formatComputePoints(sumComputePoints(direct.value.map(m => m.monthComputePoints)), locale.code))
     : fmt(t.value.tree.directSubtitle, { n: direct.value.length, amount: formatAmount(directRoyalty.value) }),
 );
 const extendedSubtitle = computed(() =>
   remoteApiEnabled
-    ? fmt(t.value.tree.serverVolumeSubtitle, { n: extended.value.length, volume: formatAmount(extended.value.reduce((sum, m) => sum + m.monthVolumeUSD, 0)) })
+    ? computePointsCopy(locale.code).memberSummary.replace('{n}', String(extended.value.length)).replace('{points}', formatComputePoints(sumComputePoints(extended.value.map(m => m.monthComputePoints)), locale.code))
     : fmt(t.value.tree.extendedSubtitle, { n: extended.value.length, amount: formatAmount(extendedRoyalty.value) }),
 );
 
 // expand toggle: reactive(Record) per P-027 (Vue Set/ref-toggle pitfall)
 const expanded = reactive<Record<"direct" | "extended", boolean>>({ direct: true, extended: true });
 
-// ─── styles ───
-// Stat tile: fill only, no border (radius via rounded-2xl class).
-const metricCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", padding: "14px" };
-const errorStateStyle: CSSProperties = { padding: "14px", borderRadius: "14px", background: "var(--v5-warning-soft)", color: "var(--v5-ink)" };
-const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "grid", placeItems: "center", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink-2)" };
-const readStateStyle: CSSProperties = { minHeight: "88px", display: "grid", placeItems: "center", borderRadius: "14px", background: "var(--v5-surface)", color: "var(--v5-ink-3)", fontSize: "13px" };
-const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
-function metricValueStyle(color: string): CSSProperties {
-  return { fontSize: "20px", fontWeight: 600, marginTop: "4px", lineHeight: 1, color };
-}
-const metricSuffixStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)" };
-
-
+const errorStateStyle: CSSProperties = { padding: "12px 0", borderBottom: "1px solid var(--v5-border)", color: "var(--v5-ink)" };
+const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", padding: "8px 16px", borderRadius: "999px", border: "1px solid var(--v5-border)", background: "color-mix(in srgb, var(--v5-ink) 6%, transparent)", color: "var(--v5-ink)" };
+const readStateStyle: CSSProperties = { minHeight: "88px", display: "grid", placeItems: "center", color: "var(--v5-ink-3)", fontSize: "13px" };
+const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
 </script>
+
+<style scoped>
+.team-tree-content { display: flex; flex-direction: column; gap: 28px; padding: var(--ui-space-inset) 20px 24px; }
+.tree-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); padding: 4px 0 12px; }
+.tree-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.tree-total { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 4px 0 18px; font-size: 36px; font-weight: 600; line-height: 1.15; }
+.tree-total-unit { font-size: 12px; color: var(--v5-ink-3); font-weight: 400; }
+.tree-points { margin-top: 4px; font-size: 19px; color: var(--v5-brand); }
+.tree-network-link { display: flex; align-items: center; justify-content: center; gap: var(--ui-space-inline); min-height: 48px; padding: var(--ui-space-row-y) 20px; border: 1px solid var(--v5-border); border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 6%, transparent); font-size: 14px; }
+[role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+@media (max-width: 360px) { .team-tree-content { padding-right: 16px; padding-left: 16px; } .tree-hero :deep(.team-art) { width: 88px !important; height: 88px !important; } }
+</style>

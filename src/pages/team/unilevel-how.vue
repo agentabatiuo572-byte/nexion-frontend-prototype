@@ -1,18 +1,11 @@
-<!--
-  Influence Network Royalty · How it works — ported from
-  Nexion-prototype/app/(main)/team/unilevel/how-it-works/page.tsx.
-  HowHero + 6 HowSections: what-is + partner-status tier table + bonus signals
-  (A/B cards) + worked-math card + 3 levers (StepRow) + FAQ + footer CTA.
-  Deep sub-page → <AppChassis active="team">. SetPageHeader → <SubPageHeader>. table → view
-  grid rows. lucide → inline <svg>. De-MLM'd wording kept (royalty/network/track).
--->
 <template>
   <AppChassis active="team">
-    <HowPublishedContent v-if="howMode === 'published'" content-key="team-unilevel-how" back="/pages/team/unilevel" />
+    <RewardPageSurface>
+    <HowPublishedContent :back-label="w.ctaBack" v-if="howMode === 'published'" kind="members" content-key="team-unilevel-how" back="/pages/team/unilevel" />
     <view v-if="howMode === 'local'" class="pb-8" style="color: var(--v5-ink)">
       <SubPageHeader :title="t.headerTitles.teamUnilevel + t.headerTitles.howItWorksSuffix" back="/pages/team/unilevel" />
 
-      <HowHero :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="lemon" />
+      <HowHero kind="members" :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="lemon" />
 
       <HowSection :title="w.s1Title" accent="lemon">
         <template #icon>
@@ -27,7 +20,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" /><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" /><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" /></svg>
         </template>
         <text class="block" :style="captionStyle">{{ w.s2Caption }}</text>
-        <view class="rounded-xl border overflow-hidden" :style="tableCardStyle">
+        <view class="overflow-hidden" :style="tableCardStyle">
           <view class="flex items-center" :style="tableHeadStyle">
             <text :style="thLeftStyle">{{ w.colTier }}</text>
             <text :style="thMidStyle">{{ w.colMonthlyVolume }}</text>
@@ -53,7 +46,7 @@
         </template>
         <text class="block" :style="captionStyle">{{ w.s3Intro }}</text>
         <view style="display: flex; flex-direction: column; gap: 10px">
-          <view class="rounded-xl border" :style="signalCardStyle">
+          <view  :style="signalCardStyle">
             <view class="flex items-start" style="gap: 10px">
               <text class="grid place-items-center shrink-0" :style="signalBadgeStyle">A</text>
               <view class="flex-1 min-w-0">
@@ -62,7 +55,7 @@
               </view>
             </view>
           </view>
-          <view class="rounded-xl border" :style="signalCardStyle">
+          <view  :style="signalCardStyle">
             <view class="flex items-start" style="gap: 10px">
               <text class="grid place-items-center shrink-0" :style="signalBadgeStyle">B</text>
               <view class="flex-1 min-w-0">
@@ -72,7 +65,7 @@
             </view>
           </view>
         </view>
-        <HowCalloutBox :title="`💡 ${w.s3HintTitle}`" :body="w.s3HintBody" tone="purple" />
+        <HowCalloutBox :title="w.s3HintTitle" :body="w.s3HintBody" tone="purple" />
       </HowSection>
 
       <HowSection :title="w.s4Title" accent="lemon">
@@ -86,11 +79,11 @@
           <view style="display: flex; flex-direction: column; gap: 6px">
             <view class="flex items-center justify-between">
               <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ w.s4DirectLabel }}</text>
-              <text class="font-mono-tabular" :style="{ fontSize: '12px', fontWeight: 600, color: 'var(--v5-brand)' }">{{ w.s4DirectValue }}</text>
+              <text class="font-mono-tabular" :style="{ fontSize: '12px', fontWeight: 600, color: 'var(--v5-ink-2)' }">{{ w.s4DirectValue }}</text>
             </view>
             <view class="flex items-center justify-between">
               <text class="font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ w.s4BonusLabel }}</text>
-              <text class="font-mono-tabular" :style="{ fontSize: '12px', fontWeight: 600, color: 'var(--v5-brand-2)' }">{{ w.s4BonusValue }}</text>
+              <text class="font-mono-tabular" :style="{ fontSize: '12px', fontWeight: 600, color: 'var(--v5-ink-2)' }">{{ w.s4BonusValue }}</text>
             </view>
           </view>
           <view class="flex items-center justify-between" :style="mathTotalRowStyle">
@@ -126,27 +119,29 @@
       </HowSection>
 
       <view class="mx-4 mt-6">
-        <view class="flex items-center justify-center active:scale-[0.98]" :style="ctaStyle" @click="goBack">
-          <text :style="ctaTextStyle">{{ w.ctaBack }}</text>
+        <view class="flex items-center justify-center active:scale-[0.98] reward-cta reward-cta--wide" role="button" tabindex="0" @click="goBack" @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack">
+          <text >{{ w.ctaBack }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
         </view>
       </view>
     </view>
+    </RewardPageSurface>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
 import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
-import HowPublishedContent from "@/components/how/how-published-content.vue";
+import RewardPageSurface from "@/components/team/reward-page-surface.vue";
+import HowPublishedContent from "@/components/team/reward-published-guide.vue";
 import { remoteApiEnabled } from "@/api/runtime";
 import { howContentMode } from "@/lib/team-how-content-mode";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import HowHero from "@/components/how/how-hero.vue";
-import HowSection from "@/components/how/how-section.vue";
-import HowStepRow from "@/components/how/how-step-row.vue";
-import HowCalloutBox from "@/components/how/how-callout-box.vue";
-import HowFaqRow from "@/components/how/how-faq-row.vue";
+import HowHero from "@/components/team/reward-compact-hero.vue";
+import HowSection from "@/components/team/reward-rule-block.vue";
+import HowStepRow from "@/components/team/reward-rule-block.vue";
+import HowCalloutBox from "@/components/team/reward-rule-block.vue";
+import HowFaqRow from "@/components/team/reward-rule-block.vue";
 import { useT } from "@/i18n/use-t";
 import { navBack } from "@/lib/route";
 
@@ -156,9 +151,9 @@ const w = computed(() => t.value.unilevelHowItWorks);
 
 const tiers = computed(() => [
   { name: w.value.tierStandardName, vol: w.value.tierStandardVolume, perk: w.value.tierStandardPerk, color: "var(--v5-ink-3)" },
-  { name: w.value.tierVerifiedName, vol: w.value.tierVerifiedVolume, perk: w.value.tierVerifiedPerk, color: "var(--v5-brand)" },
-  { name: w.value.tierEliteName, vol: w.value.tierEliteVolume, perk: w.value.tierElitePerk, color: "var(--v5-tech-cyan)" },
-  { name: w.value.tierDiamondName, vol: w.value.tierDiamondVolume, perk: w.value.tierDiamondPerk, color: "var(--v5-brand-2)" },
+  { name: w.value.tierVerifiedName, vol: w.value.tierVerifiedVolume, perk: w.value.tierVerifiedPerk, color: "var(--v5-ink-2)" },
+  { name: w.value.tierEliteName, vol: w.value.tierEliteVolume, perk: w.value.tierElitePerk, color: "var(--v5-ink-2)" },
+  { name: w.value.tierDiamondName, vol: w.value.tierDiamondVolume, perk: w.value.tierDiamondPerk, color: "var(--v5-ink-2)" },
 ]);
 
 function goBack() {
@@ -171,7 +166,7 @@ const captionStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)"
 const footnoteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const noteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 }; // readability: body note 12/1.5 (was 11.5/1.375)
 
-const tableCardStyle: CSSProperties = { background: "var(--v5-surface)", borderColor: "var(--v5-border)", borderRadius: "12px" };
+const tableCardStyle: CSSProperties = { background: "transparent", borderColor: "var(--v5-border)", borderRadius: "0" };
 const tableHeadStyle: CSSProperties = {
   padding: "8px 12px",
   fontSize: "12px",
@@ -194,13 +189,13 @@ function tierPerkStyle(color: string): CSSProperties {
   return { flex: "1.4", textAlign: "right", fontWeight: 600, color };
 }
 
-const signalCardStyle: CSSProperties = { background: "var(--v5-surface)", borderColor: "var(--v5-border)", borderRadius: "12px", padding: "12px" };
+const signalCardStyle: CSSProperties = { background: "transparent", borderColor: "var(--v5-border)", borderRadius: "0", padding: "12px 0" };
 const signalBadgeStyle: CSSProperties = {
   width: "28px",
   height: "28px",
   borderRadius: "8px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 20%, transparent)",
-  color: "var(--v5-brand-2)",
+  background: "transparent",
+  color: "var(--v5-ink-2)",
   fontSize: "12px",
   fontWeight: 600,
 };
@@ -209,19 +204,12 @@ const signalBodyStyle: CSSProperties = { marginTop: "5px", fontSize: "13px", col
 
 const mathCardStyle: CSSProperties = {
   marginTop: "12px",
-  background: "linear-gradient(135deg, color-mix(in srgb, var(--v5-brand) 8%, transparent) 0%, var(--v5-on-brand) 50%, color-mix(in srgb, var(--v5-tech-cyan) 8%, transparent) 100%)",
-  borderRadius: "12px",
-  padding: "16px",
+  background: "transparent",
+  borderRadius: "0",
+  padding: "12px 0",
 };
 const scenarioStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginBottom: "4px" };
 const setupStyle: CSSProperties = { fontSize: "13px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)", lineHeight: 1.625, marginBottom: "12px" }; // SKILL: leading-relaxed=1.625 (was 1.5)
 const mathTotalRowStyle: CSSProperties = { marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--v5-border)" };
 
-const ctaStyle: CSSProperties = {
-  gap: "8px",
-  height: "48px",
-  borderRadius: "999px",
-  background: "var(--v5-brand)",
-};
-const ctaTextStyle: CSSProperties = { color: "var(--v5-on-brand)", fontSize: "15px", fontWeight: 600 };
 </script>

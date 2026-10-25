@@ -18,8 +18,8 @@
   <AppChassis active="earn">
     <CardStagger class="pt-6 pb-4 space-y-6" style="color: var(--v5-ink)">
       <view v-if="app.remoteFleetStatus === 'error'" class="mx-4 rounded-xl" style="padding: 12px; background: var(--v5-danger-soft); color: var(--v5-danger)">
-        <text class="block" style="font-size: 13px; font-weight: 600">{{ t.wallet.syncFailedTitle }}</text>
-        <text class="block" style="font-size: 12px; margin-top: 4px">{{ t.wallet.syncFailedBody }}</text>
+        <text class="block" style="font-size: 13px; font-weight: 600">{{ t.coreReview.fleetReadFailed }}</text>
+        <text class="block" style="font-size: 12px; margin-top: 4px">{{ t.coreReview.fleetReadRetry }}</text>
         <!-- 文案必须裹 <text>:uni 下 <view> 里的裸 {{ }} 在 App 端不保证渲染。
              顺带补 role/tabindex —— 这是个真控件(重试),本仓禁原生 button,
              键盘语义由 lib/a11y-activate.ts 平台层按 role+tabindex 自动补上。 -->

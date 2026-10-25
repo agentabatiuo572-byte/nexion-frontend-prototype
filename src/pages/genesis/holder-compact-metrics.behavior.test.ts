@@ -10,6 +10,8 @@ import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import { formatAmount } from "@/lib/amount-display";
+import { platformDisplayText } from "@/lib/brand-copy";
+import { genesisConsumerCopyFor } from "./genesis-consumer-copy";
 import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { refreshActivePage, registerActivePageRefresh, resetActivePageRefreshForTest } from "@/lib/active-page-refresh";
 import source from "./holder.vue?raw";
@@ -52,6 +54,9 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
   const pointsRefresh = vi.fn(async () => {});
   const wrapper = { setup: (_props: unknown, { slots }: { slots: Vue.Slots }) => () => Vue.h("view", slots.default?.()) };
   const dependencies: Record<string, unknown> = {
+    "@/lib/brand-copy": { platformDisplayText },
+    "@/store/locale": { useLocaleStore: () => ({ code: copy === zh ? "zh" : copy === vietnamese ? "vi" : "en" }) },
+    "./genesis-consumer-copy": { genesisConsumerCopyFor },
     "@/lib/amount-display": { formatAmount },
     "@/lib/genesis-marketplace-presentation": { formatGenesisPrice },
     vue: Vue, "@dcloudio/uni-app": { onShow: (hook: () => void) => shows.push(hook), onHide: (hook: () => void) => hides.push(hook) },
@@ -81,6 +86,11 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
     genesis.myOwned = owned;
     await genesis.syncRemote();
     let page = await show(); expect(page.allocation).toBe("-");
+    if (owned === 0) {
+      expect(page.html).not.toContain(copy.genesisHolder.previewModeBanner);
+      expect(page.html).not.toContain(copy.genesis.ctaSoldOut);
+      expect(page.html).toContain(genesisConsumerCopyFor(copy === zh ? "zh" : copy === vietnamese ? "vi" : "en").trust);
+    }
     expect(page.html).toContain(copy.holderFacts.confirmed);
     expect(page.html).toContain(copy.holderFacts.allocationUnavailable);
     expect(page.html).not.toContain(copy.holderFacts.unavailable);
@@ -89,11 +99,11 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
     expect(page.html).toContain(copy.holderFacts.reasons.HOLDINGS_CONFIRMED);
     expect(page.html).toContain(copy.holderFacts.allocationUnavailable);
     payload.reservedAllocation = 0; await genesis.syncRemote();
-    page = await show(); expect(page.allocation).toBe("0.00 NEX");
+    page = await show(); expect(page.allocation).toBe("0.00 UVT");
     expect(page.html).toContain(copy.holderFacts.reasons.HOLDINGS_CONFIRMED);
     expect(page.html).not.toContain(copy.holderFacts.allocationUnavailable);
     payload.reservedAllocation = 1.234567; await genesis.syncRemote();
-    expect((await show()).allocation).toBe("1.23 NEX");
+    expect((await show()).allocation).toBe("1.23 UVT");
     expect(genesis.remoteEligibility?.reservedAllocation).toBe(1.234567);
     for (const status of ["CONFIG_UNAVAILABLE", "NOT_EFFECTIVE", "NOT_ELIGIBLE"]) {
       payload.status = status; payload.reservedAllocation = null; await genesis.syncRemote();
@@ -112,6 +122,13 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
     expect(genesis.remoteEligibility).toMatchObject({ reservedAllocation: null });
   }
 
+  genesis.remoteAccountReadState = "unavailable";
+  const unavailable = await show();
+  expect(unavailable.html).toContain(copy.holderFacts.unconfirmed);
+  expect(unavailable.html).not.toContain(copy.genesisHolder.notHolderTitle);
+  expect(unavailable.html).not.toContain('class="gh-hero gh-surface"');
+  genesis.remoteAccountReadState = "ready";
+
   const lifecyclePage = Vue.defineComponent({ setup(props, context) {
     (exports.default as { setup: (props: object, context: unknown) => unknown }).setup(props, context);
     return () => null;
@@ -124,7 +141,7 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
   expect((await show()).html).toContain(copy.holderFacts.allocationUnavailable);
   payload.reservedAllocation = 0; request.mockClear();
   await refreshActivePage(); expect(request).toHaveBeenCalledTimes(1);
-  const recovered = await show(); expect(recovered.allocation).toBe("0.00 NEX");
+  const recovered = await show(); expect(recovered.allocation).toBe("0.00 UVT");
   expect(recovered.html).not.toContain(copy.holderFacts.allocationUnavailable);
   holderHide(); request.mockClear(); await refreshActivePage(); expect(request).not.toHaveBeenCalled();
 

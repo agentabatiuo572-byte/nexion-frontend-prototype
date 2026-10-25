@@ -66,7 +66,7 @@ test.each(["GOOGLE", "APPLE", "TELEGRAM"] as ThirdPartyProvider[])("%s retains a
       normalizeRegistrationSponsorCode, referralAttribution, navTo, requestedCode: Vue.ref(null), ApiError,
       publicSponsorPreviewApi: { preview: vi.fn().mockResolvedValue({ code }) },
       isCurrentReferralLoad: () => true,
-    }, ["goLogin", "goRegister"]);
+    }, ["goLogin", "goRegister", "loadRemotePreview"]);
     await landingPage.load(queryFallback ? {} : { code });
     // The preview-confirmed landing route carries the code to either auth page.
     expect(referralAttribution.value).toBe(code);
@@ -118,7 +118,7 @@ test.each(["network", "REFERRAL_PREVIEW_NOT_FOUND"])("landing preserves the code
     remoteApiEnabled: true, code: Vue.ref(""), remotePreview: Vue.ref(null), remotePreviewState: Vue.ref("idle"),
     normalizeRegistrationSponsorCode, referralAttribution: Vue.ref(null), navTo, requestedCode, ApiError,
     publicSponsorPreviewApi: { preview: () => pending }, isCurrentReferralLoad: () => true,
-  }, ["goLogin", "goRegister"]);
+  }, ["goLogin", "goRegister", "loadRemotePreview"]);
   const loading = entry.load({});
   entry.goLogin(); expect(navTo).toHaveBeenLastCalledWith(`/pages/login/login?ref=${code}`);
   reject(message === "network" ? new Error(message) : new ApiError({ kind: "business", code: 404, message }));

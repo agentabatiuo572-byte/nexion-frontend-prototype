@@ -11,6 +11,8 @@ import { fmt } from "@/i18n/format";
 import { formatTrialDateTime } from "@/lib/trial-date";
 import { leadershipHowFacts } from "@/lib/leadership-how-facts";
 import { leadershipPoolFailureState } from "@/lib/leadership-pool-state";
+import { networkReauditCopy } from "@/i18n/network-reaudit";
+import { rankLabel } from "@/lib/v-rank-copy";
 
 // Real SFC script/template; only remote reads and chassis children are isolated.
 type Host = { text: string; props: Record<string, any>; parent: Host | null; children: Host[] };
@@ -40,25 +42,30 @@ const code = ts.transpileModule(compileScript(parse(source).descriptor, {
 }).content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
 const unmounts: Array<() => void> = [];
 async function flush() { for (let i = 0; i < 8; i++) await Promise.resolve(); await Vue.nextTick(); }
-async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>) {
+async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>, rankOverrides: Record<string, unknown> = {}) {
   const locale = Vue.ref<Locale>("zh");
-  const snapshot = Object.freeze({ nextPayoutAt, injectRate: .05, unlockRank: 3, distribution: [] });
+  const snapshot = Object.freeze({ nextPayoutAt, injectRate: .05, unlockRank: 3, distribution: [], myVotes: 2, totalVotes: 40, mySharePct: .05 });
   const api = vi.fn(remoteRead ?? (async () => snapshot));
   const navBack = vi.fn();
+  const rankState = Vue.reactive({ remoteReady: true, remoteError: false, ladder: [] as any[], refreshCanonicalVRank: vi.fn(), ...rankOverrides });
   const shows: Array<() => void> = [];
   const dependencies: Record<string, unknown> = {
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
+    "@/components/team/reward-page-surface.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: slot },
-    "@/components/how/how-hero.vue": { default: slot },
-    "@/components/how/how-section.vue": { default: slot },
+    "@/components/team/reward-compact-hero.vue": { default: slot },
+    "@/components/team/reward-rule-block.vue": { default: slot },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.value]) },
+    "@/store/locale": { useLocaleStore: () => Vue.reactive({ get code() { return locale.value; } }) },
+    "@/i18n/network-reaudit": { networkReauditCopy },
     "@/i18n/format": { fmt, dateLocale: () => ({ en: "en-US", zh: "zh-CN", vi: "vi-VN" })[locale.value] },
     "@/lib/trial-date": { formatTrialDateTime },
     "@/lib/route": { navBack },
     "@/api/runtime": { remoteApiEnabled: true, teamInsightsApi: { leadershipPool: api } },
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:3778" }) },
-    "@/store/v-rank": { useVRank: () => ({ remoteReady: true, remoteError: false, refreshCanonicalVRank: vi.fn() }) },
+    "@/store/v-rank": { useVRank: () => rankState },
+    "@/lib/v-rank-copy": { rankLabel },
     "@/lib/leadership-pool-state": { leadershipPoolFailureState },
     "@/lib/leadership-how-facts": { leadershipHowFacts },
     "@/lib/account-scope": { captureAccountScope: () => 1, isCurrentAccountScope: () => true },
@@ -72,7 +79,7 @@ async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>)
   const root = node();
   const app = renderer.createApp(exports.default);
   app.mount(root); unmounts.push(() => app.unmount());
-  return { root, locale, snapshot, api, navBack, show: async () => { shows.forEach(callback => callback()); await flush(); } };
+  return { root, locale, snapshot, api, navBack, rankState, show: async () => { shows.forEach(callback => callback()); await flush(); } };
 }
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
@@ -122,4 +129,59 @@ test("481 no snapshot keeps loading; failed read keeps error and retry", async (
   await page.show();
   expect(text(page.root)).toContain(zh.pool.loadError); expect(text(page.root)).toContain(zh.pool.retry);
   expect(text(page.root)).not.toContain("下一次结算时间");
+});
+
+test.each(['zh', 'en', 'vi'] as const)('R10 shows only current returned votes/share and links records in %s', async language => {
+  const page = await mount('2026-10-11T23:59:00Z'); page.locale.value = language; await page.show();
+  const copy = networkReauditCopy(language);
+  expect(text(page.root)).toContain(copy.votes + '2');
+  expect(text(page.root)).toContain(copy.totalVotes + '40');
+  expect(text(page.root)).toContain(copy.share + '5%');
+  expect(text(page.root)).toContain(copy.poolRulesPending);
+  all(page.root).find(n => n.props.role === 'button' && text(n) === copy.poolRecords)!.props.onClick();
+  expect(page.navBack).toHaveBeenCalledWith('/pages/team/leadership-pool');
+});
+
+test.each([0, undefined])('R10 zero or missing vote total %s never invents a share', async totalVotes => {
+  const page = await mount('', async () => ({ unlockRank: 2, injectRate: .05, nextPayoutAt: '', distribution: [], myVotes: 0, totalVotes, mySharePct: 0 }));
+  await page.show(); expect(text(page.root)).toContain(networkReauditCopy('zh').share + '—');
+  expect(text(page.root)).not.toContain('0%');
+});
+
+
+const distributionFixture = [2, 4, 6, 8].map(vRank => ({ vRank, people: 2, votes: vRank }));
+const configuredLadder = Array.from({ length: 9 }, (_, v) => ({ v, title: '', cnTitle: '', leadershipVotes: v }));
+const hasClass = (node: Host, name: string) => String(node.props.class).split(' ').includes(name);
+test.each(['zh', 'en', 'vi'] as const)('T4 %s shows configured weights separately from this period distribution', async language => {
+  const page = await mount('', async () => ({ unlockRank: 2, injectRate: .05, nextPayoutAt: '', myVotes: 2, totalVotes: 40, mySharePct: .05, distribution: distributionFixture }), { ladder: configuredLadder });
+  page.locale.value = language; await page.show();
+  const weights = all(page.root).filter(n => hasClass(n, 'pool-how-weight-row')).map(text);
+  expect(weights).toEqual([2,3,4,5,6,7,8].map(v => `V${v}${v}`));
+  const rows = all(page.root).filter(n => hasClass(n, 'pool-how-distribution-row')).map(text);
+  expect(rows).toHaveLength(4);
+  for (const [i, rank] of [2,4,6,8].entries()) {
+    expect(rows[i]).toContain(`V${rank}`);
+    expect(rows[i]).toContain(fmt(dictionaries[language].pool.peopleVotesEa, { count: 2, votes: rank }));
+    expect(rows[i]).toContain(`${dictionaries[language].poolHowItWorks.colVotes}: ${2*rank}`);
+  }
+  expect(text(page.root)).toContain(networkReauditCopy(language).poolRulesPending);
+  expect(text(page.root)).not.toContain(dictionaries[language].poolHowItWorks.s1Para1);
+});
+test('T4 known zero configured weights stay zero and absent weights/participation stay unknown', async () => {
+  const page = await mount('', async () => ({ unlockRank: 2, nextPayoutAt: '', distribution: [], myVotes: 0, totalVotes: 0, mySharePct: 0 }),
+    { ladder: [{ v: 2, leadershipVotes: 0 }, { v: 3, leadershipVotes: undefined }] });
+  await page.show();
+  expect(all(page.root).filter(n => hasClass(n, 'pool-how-weight-row')).map(text)).toEqual(['V20','V3—']);
+  expect(all(page.root).filter(n => hasClass(n, 'pool-how-distribution-row'))).toHaveLength(0);
+  expect(text(page.root)).toContain(zh.poolHowItWorks.noVoteRows);
+});
+test('T4 a rank configuration failure does not hide known current distribution and has its own retry', async () => {
+  const page = await mount('', async () => ({ unlockRank: 2, nextPayoutAt: '', distribution: distributionFixture, myVotes: 2, totalVotes: 40, mySharePct: .05 }),
+    { remoteReady: false, remoteError: true });
+  await page.show();
+  expect(all(page.root).filter(n => hasClass(n, 'pool-how-distribution-row'))).toHaveLength(4);
+  expect(all(page.root).filter(n => hasClass(n, 'pool-how-weight-row'))).toHaveLength(0);
+  const count = page.rankState.refreshCanonicalVRank.mock.calls.length;
+  all(page.root).find(n => n.props.role === 'button' && text(n) === zh.pool.retry)!.props.onClick();
+  expect(page.rankState.refreshCanonicalVRank).toHaveBeenCalledTimes(count + 1);
 });

@@ -1,13 +1,6 @@
-<!--
-  Commissions — ported from Nexion-prototype/app/(main)/team/commissions/page.tsx.
-  5+1-kind commission event stream: overview hero (de-carded, floor-sitting) →
-  6-kind summary tiles (tap to filter) → filter pills → event list (transparent
-  hairline group). Sub-page → <AppChassis active="team"> with
-  in-page back row (back → /team). Reuses commission store. mount-effect
-  unlockMatured → onMounted. lucide kind icons → inline SVG. <button>→<view @click>.
--->
 <template>
   <AppChassis active="team">
+    <RewardPageSurface>
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/team" :title="t.headerTitles.teamCommissions" :subtitle="t.headerSubtitles.teamCommissions" />
 
@@ -22,86 +15,40 @@
           @cta="commission.refreshCanonicalEvents()"
         />
         <template v-if="!remoteApiEnabled || commission.eventsStatus === 'ready'">
-        <!-- overview — de-carded: the two headline numbers sit on the page floor.
-             Dual-number hero (Withdrawable/Cooling grid) has no single cap to host
-             the rules-intro pill, so the pill rides a tight top-right row hugging
-             the grid (owner 2026-07-09: kill the empty gap above the hero). -->
-        <view :style="heroWrapStyle">
-          <!-- rules-intro pill hugs the top-right; 4px above the grid so no empty gap. -->
-          <view class="flex items-center justify-end" style="margin-bottom: 4px">
-            <view class="nx-commissions-focusable inline-flex items-center shrink-0 active:scale-[0.98]" :style="howItWorksStyle" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-              <text>{{ t.commissions.howItWorksEntry }}</text>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-            </view>
+
+        <RewardHero kind="ledger" panel :label="t.commissions.thisMonth">
+          <text class="reward-amount">{{ assetTotal(monthTotals.usdt, 'usdt') }}</text>
+          <text class="block reward-income-uvt">{{ assetTotal(monthTotals.nex, 'nex') }}</text>
+          <template #footer><view class="reward-cta reward-rule-link nx-commissions-focusable" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')" @keydown.enter.prevent="go('/pages/team/commissions-how')" @keydown.space.prevent="go('/pages/team/commissions-how')"><text>{{ t.commissions.howItWorksEntry }}</text></view></template>
+        </RewardHero>
+        <view class="reward-income-summary">
+          <view>
+            <text class="block reward-caption">{{ t.directReferral.creditedTotal }}</text>
+            <text class="block reward-income-summary__amount">${{ formatAmount(commission.unlockedUSDT()) }}</text>
+            <text class="block reward-caption">{{ formatAmount(commission.unlockedNEX()) }} UVT</text>
           </view>
-          <view class="grid grid-cols-2" style="gap: 12px">
-            <view>
-              <text class="block font-mono-tabular" :style="overviewCapStyle">{{ t.directReferral.creditedTotal }}</text>
-              <text class="block tabular-nums" :style="overviewBigStyle('var(--v5-brand)')">${{ formatAmount(commission.unlockedUSDT()) }}</text>
-              <text class="block font-mono-tabular" :style="overviewSmallStyle">{{ formatAmount(commission.unlockedNEX()) }} UVT</text>
-            </view>
-            <view>
-              <text class="block font-mono-tabular" :style="overviewCapStyle">{{ t.commissions.cooling }}</text>
-              <text class="block tabular-nums" :style="overviewBigStyle('var(--v5-warning)')">${{ formatAmount(commission.coolingUSDT()) }}</text>
-              <text class="block font-mono-tabular" :style="overviewSmallStyle">{{ coolingOverviewText }}</text>
-            </view>
-          </view>
-          <view class="grid grid-cols-2" :style="heroFooterStyle">
-            <view class="flex items-center justify-between">
-              <text :style="{ color: 'var(--v5-ink-3)' }">{{ t.commissions.thisMonth }}</text>
-              <text class="font-display tabular-nums" :style="{ fontWeight: 600 }">${{ formatAmount(commission.monthUSDT()) }}</text>
-            </view>
-            <view class="flex items-center justify-between">
-              <text :style="{ color: 'var(--v5-ink-3)' }">{{ t.commissions.lifetime }}</text>
-              <text class="font-display tabular-nums" :style="{ fontWeight: 600 }">${{ formatAmount(commission.totalUSDTLifetime()) }}</text>
-            </view>
+          <view>
+            <text class="block reward-caption">{{ t.commissions.cooling }}</text>
+            <text class="block reward-income-summary__amount">${{ formatAmount(commission.coolingUSDT()) }}</text>
+            <text class="block reward-caption">{{ coolingOverviewText }}</text>
           </view>
         </view>
-
-        <!-- 6-kind summary。这些卡片与下方 pill 行驱动**同一个** filter,是互斥单选组;
-             原先 role="button" + aria-pressed 被浏览器当 toggle button,读屏按复选框朗读
-             (zentao #94)。改 radiogroup/radio + aria-checked + roving tabindex,与下方
-             tablist 同为「选中即筛选」的语义,键盘行为一致。 -->
-        <view class="grid grid-cols-3" style="gap: 8px" role="radiogroup" :aria-label="t.commissions.kindFilterLabel">
-          <view
-            v-for="(k, i) in KIND_ORDER"
-            :key="k"
-            class="nx-commissions-focusable text-left active:scale-[0.97]"
-            :style="kindCardStyle(k)"
-            role="radio"
-            :tabindex="filter === k || (filter === 'all' && i === 0) ? 0 : -1"
-            :aria-label="kindCardLabel(k)"
-            :aria-checked="filter === k ? 'true' : 'false'"
-            @click="filter = k"
+        <view class="reward-income-lifetime"><text>{{ t.commissions.lifetime }}</text><view class="reward-income-lifetime__amounts"><text>{{ assetTotal(lifetimeTotals.usdt, 'usdt') }}</text><text>{{ assetTotal(lifetimeTotals.nex, 'nex') }}</text></view></view>
 
 
-             @keydown.enter.prevent="filter = k" @keydown.space.prevent="filter = k" @keydown.left.prevent="moveKindCard(i, -1)" @keydown.right.prevent="moveKindCard(i, 1)"
-          >
-            <text :style="{ color: KIND[k].color }">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="KIND[k].color" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-for="(p, pi) in KIND[k].paths" :key="pi" :d="p" /></svg>
-            </text>
-            <text class="block tabular-nums" :style="kindAmtStyle">${{ formatAmount(byKind[k].usdt) }}</text>
-            <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.commissions.kind[k] }}</text>
-            <text class="block font-mono-tabular" :style="kindCountStyle">{{ byKind[k].count }} {{ t.commissions.events }}</text>
-          </view>
-        </view>
-
-        <text v-if="remoteApiEnabled" class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.commissions.recentEventsHint, { n: events.length }) }}</text>
-
-        <!-- filter pills -->
         <GlassSegments :label="t.commissions.pageTitle" v-model="filter" :options="filterOptions" layout="scroll"  />
 
-        <!-- event list — transparent hairline group on the page floor -->
-        <EmptyState v-if="filtered.length === 0" :kind="filter === 'all' ? 'empty-list' : 'no-filter-results'" :title="filter === 'all' ? t.empty.commissionsTitle : t.empty.filterTitle" :desc="filter === 'all' ? t.empty.commissionsDesc : t.empty.filterDesc" />
-        <view v-else :style="listGroupStyle">
+        <view v-if="filter !== 'all'" class="commission-filter-summary"><text>{{ t.commissions.kind[filter] }}</text><text>${{ formatAmount(byKind[filter].usdt) }} · {{ formatAmount(byKind[filter].nex) }} UVT</text></view>
+
+        <EmptyState v-if="filtered.length === 0 && !hasMoreEvents" :kind="filter === 'all' ? 'empty-list' : 'no-filter-results'" :title="filter === 'all' ? t.empty.commissionsTitle : t.empty.filterTitle" :desc="filter === 'all' ? t.empty.commissionsDesc : t.empty.filterDesc" />
+        <view v-if="filtered.length > 0" :style="listGroupStyle">
             <view
               v-for="(e, i) in filtered"
               :key="e.id"
-              class="flex items-center"
+              class="flex items-center reward-income-event"
               :style="eventRowStyle(i === filtered.length - 1)"
             >
-              <view class="grid place-items-center shrink-0" :style="eventIconStyle(e.kind)">
+              <view class="grid place-items-center shrink-0 reward-income-icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="KIND[e.kind].color" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-for="(p, pi) in KIND[e.kind].paths" :key="pi" :d="p" /></svg>
               </view>
               <view class="flex-1 min-w-0">
@@ -117,7 +64,7 @@
                 <text v-if="e.status === 'cooling'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-warning)', marginTop: '2px' }">{{ coolingTag(e) }}</text>
                 <text v-else-if="e.status === 'unlocked'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-success)', marginTop: '2px' }">{{ t.commissions.readyTag }}</text>
                 <text v-else-if="e.status === 'withdrawn'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.commissions.withdrawnTag }}</text>
-                <text v-else-if="e.status === 'frozen'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-tech-cyan)', marginTop: '2px' }">{{ t.commissions.frozenTag }}</text>
+                <text v-else-if="e.status === 'frozen'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-2)', marginTop: '2px' }">{{ t.commissions.frozenTag }}</text>
                 <text v-else-if="e.status === 'reversed'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-4)', marginTop: '2px' }">{{ t.commissions.reversedTag }}</text>
                 <text v-else-if="e.status === 'rejected'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-danger)', marginTop: '2px' }">{{ t.commissions.rejectedTag }}</text>
                 <text v-else-if="e.status === 'waiting_calculation'" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.waitingCalculation }}</text>
@@ -125,22 +72,23 @@
                 <text v-if="e.status === 'recovery_pending' && e.recoveryPendingUSDT !== undefined && e.recoveryPendingNEX !== undefined" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: formatAmount(e.recoveryPendingUSDT), nex: formatAmount(e.recoveryPendingNEX) }) }}</text>
               </view>
             </view>
+        </view>
             <view
-              v-if="remoteApiEnabled && commission.events.length < commission.eventsTotalRows"
-              class="flex items-center justify-center active:opacity-70"
-              :style="loadMoreStyle"
+              v-if="hasMoreEvents"
+              class="reward-cta reward-cta--wide"
               role="button"
-              tabindex="0"
+              :tabindex="commission.eventsLoadMoreStatus === 'loading' ? -1 : 0"
               :aria-disabled="commission.eventsLoadMoreStatus === 'loading'"
-              @click="commission.loadMoreCanonicalEvents()"
+              :aria-busy="commission.eventsLoadMoreStatus === 'loading'"
+              @click="loadMoreEvents"
               @keydown="activateLoadMore"
             >
               <text>{{ commission.eventsLoadMoreStatus === "loading" ? "…" : commission.eventsLoadMoreStatus === "error" ? t.network.retry : t.unilevel.loadMore }}</text>
             </view>
-        </view>
         </template>
       </view>
     </view>
+    </RewardPageSurface>
   </AppChassis>
 </template>
 
@@ -150,6 +98,8 @@ import { navTo } from "@/lib/route";
 import { ref, computed, nextTick, onMounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import RewardHero from "@/components/team/reward-compact-hero.vue";
+import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
@@ -171,16 +121,16 @@ interface KindSpec {
   paths: string[];
 }
 const KIND: Record<CommissionKind, KindSpec> = {
-  direct_purchase: { color: "var(--v5-brand)", paths: ["M3 3h2l3 12h11l2-8H6", "M9 20h.01M18 20h.01"] },
-  direct_device_earning: { color: "var(--v5-brand-2)", paths: ["M4 3h16v14H4z", "M8 21h8M12 17v4"] },
-  unilevel: { color: "var(--v5-brand)", paths: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"] },
-  binary: { color: "var(--v5-warning)", paths: ["M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"] },
-  peer: { color: "var(--v5-tech-cyan)", paths: ["m11 17 2 2a1 1 0 1 0 3-3", "m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4", "M21 3v9h-9"] },
-  cultivation: { color: "var(--v5-success)", paths: ["M7 20h10", "M10 20c5.5-2.5.8-6.4 3-10", "M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z", "M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"] },
-  leadership: { color: "var(--v5-tech-cyan)", paths: ["m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"] },
-  promotion: { color: "var(--v5-success)", paths: ["M12 3v18M5 10l7-7 7 7"] },
-  other: { color: "var(--v5-brand-2)", paths: ["M4 4h16v16H4z", "M8 12h8"] },
-  genesis: { color: "var(--v5-brand-2)", paths: ["M6 3h12l4 6-10 13L2 9z", "M11 3 8 9l4 13 4-13-3-6", "M2 9h20"] },
+  direct_purchase: { color: "var(--v5-ink-2)", paths: ["M3 3h2l3 12h11l2-8H6", "M9 20h.01M18 20h.01"] },
+  direct_device_earning: { color: "var(--v5-ink-2)", paths: ["M4 3h16v14H4z", "M8 21h8M12 17v4"] },
+  unilevel: { color: "var(--v5-ink-2)", paths: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"] },
+  binary: { color: "var(--v5-ink-2)", paths: ["M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"] },
+  peer: { color: "var(--v5-ink-2)", paths: ["m11 17 2 2a1 1 0 1 0 3-3", "m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4", "M21 3v9h-9"] },
+  cultivation: { color: "var(--v5-ink-2)", paths: ["M7 20h10", "M10 20c5.5-2.5.8-6.4 3-10", "M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z", "M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"] },
+  leadership: { color: "var(--v5-ink-2)", paths: ["m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"] },
+  promotion: { color: "var(--v5-ink-2)", paths: ["M12 3v18M5 10l7-7 7 7"] },
+  other: { color: "var(--v5-ink-2)", paths: ["M4 4h16v16H4z", "M8 12h8"] },
+  genesis: { color: "var(--v5-ink-2)", paths: ["M6 3h12l4 6-10 13L2 9z", "M11 3 8 9l4 13 4-13-3-6", "M2 9h20"] },
 };
 
 onMounted(() => {
@@ -193,6 +143,23 @@ const byKind = computed(() => commission.byKind());
 const filtered = computed(() =>
   filter.value === "all" ? events.value : events.value.filter((e) => e.kind === filter.value),
 );
+const hasMoreEvents = computed(() => remoteApiEnabled && commission.events.length < commission.eventsTotalRows);
+// Read canonical totals directly so a missing asset remains unknown instead of
+// inheriting a store helper's zero fallback. Never total the current page.
+const monthTotals = computed(() => remoteApiEnabled
+  ? { usdt: commission.eventsEvidence?.aggregate.monthUSDT, nex: commission.eventsEvidence?.aggregate.monthNEX }
+  : { usdt: commission.monthUSDT(), nex: commission.monthNEX() });
+const lifetimeTotals = computed(() => remoteApiEnabled
+  ? { usdt: commission.eventsEvidence?.aggregate.totalUSDT, nex: commission.eventsEvidence?.aggregate.totalNEX }
+  : { usdt: commission.totalUSDTLifetime(), nex: commission.totalNEXLifetime() });
+function assetTotal(value: number | null | undefined, asset: 'usdt' | 'nex'): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return asset === 'nex' ? '— UVT' : '— USD';
+  return asset === 'usdt' ? `$${formatAmount(value)}` : `${formatAmount(value)} UVT`;
+}
+function loadMoreEvents() {
+  if (!hasMoreEvents.value || commission.eventsLoadMoreStatus === 'loading') return;
+  void commission.loadMoreCanonicalEvents();
+}
 
 const coolingOverviewText = computed(() => {
   if (remoteApiEnabled) {
@@ -224,7 +191,7 @@ function coolingTag(e: CommissionEvent): string {
 }
 
 function commissionAmountLabel(e: CommissionEvent): string {
-  const amount = `${formatAmount(e.amountUSDT)} USDT`;
+  const amount = `$${formatAmount(e.amountUSDT)}`;
   if (e.status === "reversed") return `−${amount}`;
   if (e.status === "frozen" || e.status === "rejected" || e.status === "recovery_pending") return amount;
   return `+${amount}`;
@@ -241,10 +208,10 @@ function commissionAmountStyle(e: CommissionEvent, asset: "usdt" | "nex"): CSSPr
   const color = e.status === "rejected"
     ? "var(--v5-danger)"
     : e.status === "frozen"
-      ? "var(--v5-tech-cyan)"
+      ? "var(--v5-ink-2)"
       : e.status === "reversed"
         ? "var(--v5-ink-4)"
-        : asset === "usdt" ? "var(--v5-brand)" : "var(--v5-warning)";
+        : "var(--v5-ink)";
   return { fontSize: asset === "usdt" ? "13px" : "12px", fontWeight: asset === "usdt" ? 600 : 400, color };
 }
 
@@ -291,114 +258,17 @@ function moveKindCard(index: number, delta: -1 | 1) {
 }
 
 function activateLoadMore(event: KeyboardEvent) {
-  if (event.key !== "Enter" && event.key !== " ") return;
+  if (event.repeat || (event.key !== "Enter" && event.key !== " ")) return;
   event.preventDefault();
-  void commission.loadMoreCanonicalEvents();
+  loadMoreEvents();
 }
-
-// ─── styles ───
-// Soft tint pill — chip idiom, fill only (no border, single visual difference).
-const howItWorksStyle: CSSProperties = {
-  gap: "6px",
-  padding: "0 12px",
-  height: "44px",  // 《07》tap≥44(原 34)
-  borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 10%, transparent)",
-  fontSize: "12px",
-  fontWeight: 500,
-  color: "var(--v5-brand-2)",
-};
-// De-carded overview hero — numbers on the page floor; hairline footer closes the block.
-const heroWrapStyle: CSSProperties = { padding: "6px 2px 0" };
-// -2px side margins pull the hairline back to full width (2px optical inset above).
-const heroFooterStyle: CSSProperties = {
-  margin: "12px -2px 0",
-  padding: "12px 2px 0",
-  borderTop: "1px solid var(--v5-border)",
-  gap: "8px",
-  fontSize: "12px",
-};
-const overviewCapStyle: CSSProperties = {
-  fontSize: "12px",
-  fontWeight: 500,
-  color: "var(--v5-ink-3)",
-  letterSpacing: "0.06em",
-};
-function overviewBigStyle(color: string): CSSProperties {
-  return {
-    marginTop: "4px",
-    fontFamily: "var(--font-v5)",
-    fontWeight: 600,
-    fontSize: "20px",
-    letterSpacing: "-0.018em",
-    color,
-  };
-}
-const overviewSmallStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
-
-// Selection tiles — filled, no border/ring; active = soft kind tint (single difference).
-function kindCardStyle(k: CommissionKind): CSSProperties {
-  const active = filter.value === k;
-  return {
-    padding: "10px",
-    borderRadius: "12px",
-    background: active ? `color-mix(in srgb, ${KIND[k].color} 12%, transparent)` : "var(--v5-surface)",
-  };
-}
-const kindAmtStyle: CSSProperties = {
-  marginTop: "6px",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "15px",
-  letterSpacing: "-0.014em",
-  color: "var(--v5-ink)",
-  lineHeight: 1,
-};
-const kindCountStyle: CSSProperties = {
-  marginTop: "2px",
-  fontSize: "12px",
-  color: "var(--v5-ink-4)",
-};
-
-function pillStyle(active: boolean, color: string): CSSProperties {
-  return {
-    height: "44px",
-    padding: "0 16px",
-    // 未选中态原用 surface-2,与页面底同色(亮色 ΔE 2.2)不可辨,改 L1 surface。
-    background: active ? color : "var(--v5-surface)",
-  };
-}
-// Bright active fill → on-brand text (brand-2 fill takes on-brand-2), incl. inactive fallback.
-function pillTextStyle(active: boolean, color: string): CSSProperties {
-  return {
-    fontSize: "12px",
-    fontWeight: 600,
-    color: active
-      ? color === "var(--v5-brand-2)"
-        ? "var(--v5-on-brand-2)"
-        : "var(--v5-on-brand)"
-      : "var(--v5-ink-3)",
-  };
-}
-
-// Empty state — dashed outline hint, no fill (V5 empty-state idiom).
-const emptyStyle: CSSProperties = { borderRadius: "16px", border: "1px dashed var(--v5-border-strong)", padding: "32px", fontSize: "12px", color: "var(--v5-ink-3)" };
 // Transparent hairline group — border-top opens the group, rows separate with hairlines.
 const listGroupStyle: CSSProperties = { padding: "0 2px", borderTop: "1px solid var(--v5-border)" };
-const loadMoreStyle: CSSProperties = { minHeight: "44px", color: "var(--v5-ink-3)", fontSize: "13px" };
 function eventRowStyle(isLast: boolean): CSSProperties {
   return {
     padding: "12px 0",
     gap: "12px",
     borderBottom: isLast ? "none" : "1px solid var(--v5-border)",
-  };
-}
-function eventIconStyle(kind: CommissionKind): CSSProperties {
-  return {
-    width: "36px",
-    height: "36px",
-    borderRadius: "12px",
-    background: `color-mix(in srgb, ${KIND[kind].color} 20%, transparent)`,
   };
 }
 const directBadgeStyle: CSSProperties = {
@@ -412,8 +282,8 @@ const directBadgeStyle: CSSProperties = {
 const extendedBadgeStyle: CSSProperties = {
   fontSize: "12px",
   fontWeight: 500,
-  color: "var(--v5-brand-2)",
-  background: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)",
+  color: "var(--v5-ink-2)",
+  background: "var(--v5-surface)",
   padding: "0 4px",
   borderRadius: "4px",
 };
@@ -421,12 +291,20 @@ const eventMetaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3
 
 import GlassSegments from "@/components/glass-segments.vue";
 const filterOptions = computed(() => [
-  { value: "all", label: t.value.commissions.all, count: commission.events.length },
+  { value: "all", label: t.value.commissions.all, count: remoteApiEnabled ? commission.eventsTotalRows : commission.events.length },
   ...KIND_ORDER.map(value => ({ value, label: t.value.commissions.kind[value], count: byKind.value[value].count })),
 ]);
 </script>
 
 <style scoped>
+.reward-income-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 24px; padding: var(--ui-space-inline) 0; border-bottom: 1px solid var(--v5-border); }
+.reward-income-summary__amount { margin: 6px 0 4px; font-size: 23px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.reward-income-uvt { margin-top: 6px; font-size: 16px; font-variant-numeric: tabular-nums; }
+.reward-income-lifetime { display: flex; justify-content: space-between; gap: var(--ui-space-inline); font-size: 12px; color: var(--v5-ink-3); padding-bottom: 8px; }
+.reward-income-lifetime__amounts { display: flex; flex-direction: column; gap: 4px; text-align: right; font-variant-numeric: tabular-nums; }
+.reward-income-icon { width: 32px; height: 32px; color: var(--v5-ink-2); }
+.reward-income-event { align-items: flex-start; }
+.commission-filter-summary { display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;color:var(--v5-ink-2);font-size:12px; }
 /* Keyboard focus must be visible on the self-drawn tiles/pills — they are
    focusable now (role+tabindex), and without this the focus ring is the
    browser default outline clipped by the scroll-view on the pill row. */
