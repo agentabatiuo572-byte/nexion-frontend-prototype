@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\team-v8-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "0958f975a900ccd6067cafc124587f7d07502c2e",
-  "sourceRef": "0958f975a900ccd6067cafc124587f7d07502c2e",
+  "sourceHead": "36c9af4f64b7e700b093792c0a61e6259edf7e0a",
+  "sourceRef": "36c9af4f64b7e700b093792c0a61e6259edf7e0a",
   "sourceRefKind": "commit",
-  "sourceTree": "be02c56564a3a84fdcd7ddbe5f9c65ee99a92563",
+  "sourceTree": "455f17d1870727fbb39c33d2418600510d8e3b55",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -125,10 +125,10 @@
       "mode": "100644"
     },
     "PRD/UVEL_首页信任与活动规则_20261025.md": {
-      "sourceBlob": "990229adfc8f21622e642f8cfb2f6d9a2002e92e",
-      "sourceSha256": "0ae6f580d4e353a47b9b0d2d715bc9aa7da817669601ec84f4f586c4a6a3d3cd",
-      "targetBlob": "990229adfc8f21622e642f8cfb2f6d9a2002e92e",
-      "targetSha256": "0ae6f580d4e353a47b9b0d2d715bc9aa7da817669601ec84f4f586c4a6a3d3cd",
+      "sourceBlob": "de7f65358d823cc028fcfda8a77dabd349e0bcb3",
+      "sourceSha256": "c66727351da907d44ca0c9f42f1bdae8a80f1d06552c98e738723dc0982ad828",
+      "targetBlob": "de7f65358d823cc028fcfda8a77dabd349e0bcb3",
+      "targetSha256": "c66727351da907d44ca0c9f42f1bdae8a80f1d06552c98e738723dc0982ad828",
       "mode": "100644"
     },
     "checks/lucky-spin-remote-contract.test.mjs": {
