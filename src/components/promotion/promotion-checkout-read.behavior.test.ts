@@ -74,6 +74,20 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   return{view,exposed,api,save,key,app,fleet,props,vouchers,getProduct,catalog,presentation,html,confirm,clearConfirmsBy,start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
 }
 
+it('an order discount keeps the quoted amount through create, recovery and payment without subtracting it twice',async()=>{
+  const q=quote();q.subtotalUsdt='1299.000000';q.discountUsdt='500.000000';q.promotionDiscountUsdt='500.000000';q.amountUsdt='799.000000';
+  q.items=[{...q.items[0],unitPriceUsdt:q.subtotalUsdt,subtotalUsdt:q.subtotalUsdt,discountUsdt:q.discountUsdt,promotionDiscountUsdt:q.promotionDiscountUsdt,payableUsdt:q.amountUsdt}];
+  q.expectedRewards=[{...q.expectedRewards[0],reward:{rewardRuleId:'gift',beneficiaryRole:'BUYER',type:'DISCOUNT_USDT',calculation:'FIXED',amount:'500.000000'}}];
+  const order={...receipt(q),amountUsdt:q.amountUsdt},page=screen();
+  page.api.quote.mockResolvedValue(q);page.api.create.mockResolvedValue(order);page.api.findOrder.mockResolvedValue(order);page.api.pay.mockResolvedValue({...order,paymentStatus:'PAID',orderStatus:'COMPLETED'});
+  await page.start();expect(page.exposed.footer.value.amount).toBe('$799.00');
+  await page.view.createOrder();expect(page.saved().order?.amountUsdt).toBe('799.000000');expect(page.saved().order?.rewards?.[0].reward.type).toBe('DISCOUNT_USDT');
+  await page.view.recover();expect(page.exposed.footer.value.amount).toBe('$799.00');
+  page.confirm.mockResolvedValueOnce(true);await page.view.pay();
+  expect(page.confirm).toHaveBeenCalledWith(expect.objectContaining({message:'确认支付 799.00 USDT 购买所选商品？'}));
+  expect(page.api.pay).toHaveBeenCalledOnce();expect(page.saved().order?.paymentStatus).toBe('PAID');
+});
+
 it('payment confirmation cancels without a command, then an explicit acceptance pays the same order once',async()=>{
   const page=screen({quote:quote(),order:receipt(),pending:null});await page.start();
   await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();expect(page.saved().order?.paymentStatus).toBe('PENDING');

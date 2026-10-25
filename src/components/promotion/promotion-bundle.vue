@@ -63,7 +63,6 @@
   </view>
 </template>
 <script setup lang="ts">
-import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { computed,onBeforeUnmount,onMounted,ref,watch } from 'vue';
 import { onHide,onShow } from '@dcloudio/uni-app';
@@ -78,7 +77,7 @@ import { isProductAvailable } from '@/store/product-availability';
 import { usePromotionContext } from '@/composables/use-promotion-context';
 import { readAccountRow,writeAccountRow } from '@/store/account-scoped-storage';
 import { catalogProductImageUrl } from '@/lib/product-image';
-import { localized,displayDeadline,rewardAmount } from '@/lib/promotion-display';
+import { localized,displayDeadline,rewardSummary } from '@/lib/promotion-display';
 import { navTo } from '@/lib/route';
 import { fmt } from '@/i18n/format';
 import { createPromotionReadFence,isEntryQuoteFresh,restoreEntrySelection,promotionBundleHref,promotionCheckoutHref,promotionDetailHref,promotionDisclosures,promotionStoreHref,validEntryItems,type EntryItem,type EntrySelectionDraft } from '@/lib/promotion-entry';
@@ -110,7 +109,7 @@ const ruleTerms=computed(()=>activity.value?[
     `${nameFor(rule.productNo)} · ${t.value.promotion.rulePer} ${rule.minBuyQty} · ${rule.repeatMode==='PER_GROUP'?t.value.promotion.perGroup:t.value.promotion.oncePerOrder}`,
     `${t.value.promotion.orderGroupLimit} · ${rule.maxGroups.mode==='LIMITED'?rule.maxGroups.value:t.value.promotion.unlimitedGroups}`,
     `${t.value.promotion.personGroupLimit} · ${rule.maxGroupsPerPerson.mode==='LIMITED'?rule.maxGroupsPerPerson.value:t.value.promotion.unlimitedGroups}`,
-    ...[rule.buyerReward,rule.inviterReward].filter(reward=>!!reward).map(reward=>reward?`${reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter} · ${reward.type==='DEVICE'?(reward.disclosure.deviceName || t.value.promotion.unknown)+' × '+rewardAmount(reward):rewardAmount(reward)+' '+platformDisplayText(reward.type)}`:''),
+    ...[rule.buyerReward,rule.inviterReward].filter(reward=>!!reward).map(reward=>reward?`${reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter} · ${rewardSummary(reward,t.value.promotion,reward.disclosure.deviceName)}`:''),
   ].join('\n')),
   `${t.value.promotion.deadline} · ${displayDeadline(activity.value.endsAt,locale.code)}`,
 ].join('\n\n'):'');

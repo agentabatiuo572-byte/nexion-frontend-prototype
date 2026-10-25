@@ -2,12 +2,13 @@
   <view v-if="loading || error || receipt?.promotionQuoteId || rewards.length" class="promotion promotion-flat" style="margin:20px 16px">
     <text class="promotion-title">{{ t.promotion.orderRewards }}</text><text class="promotion-copy">{{ t.promotion.refundNote }}</text>
     <text v-if="loading" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
+    <RewardRows :expected="receipt?.rewards?.filter(row=>row.reward.type==='DISCOUNT_USDT')" :lines="receipt?.items" />
     <RewardRows v-if="rewards.length" :rewards="rewards" :lines="receipt?.items" />
-    <RewardRows v-else :expected="receipt?.rewards" :lines="receipt?.items" />
+    <RewardRows v-else :expected="receipt?.rewards?.filter(row=>row.reward.type!=='DISCOUNT_USDT')" :lines="receipt?.items" />
     <text v-if="error" class="promotion-copy" role="alert">{{ t.promotion.error }}</text>
     <view class="promotion-link" role="button" tabindex="0" :aria-disabled="loading" @click="load"><text>{{ t.promotion.refresh }}</text></view>
     <PromotionAction v-if="receipt?.paymentStatus==='PENDING'" class="promotion-action primary" role="button" tabindex="0" @click="resume"><text>{{ t.promotion.resume }}</text></PromotionAction>
-    <view class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/rewards-list?cat=promotion&orderNo='+encodeURIComponent(orderNo))"><text>{{ t.promotion.rewards }}</text></view>
+    <view v-if="rewards.length||receipt?.rewards?.some(row=>row.reward.type!=='DISCOUNT_USDT')" class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/rewards-list?cat=promotion&orderNo='+encodeURIComponent(orderNo))"><text>{{ t.promotion.rewards }}</text></view>
   </view>
 </template>
 <script setup lang="ts">

@@ -39,7 +39,6 @@
   </view>
 </template>
 <script setup lang="ts">
-import { platformDisplayText } from "@/lib/brand-copy";
 import { computed,onBeforeUnmount,onMounted,ref,watch } from 'vue';
 import { onHide,onShow } from '@/composables/use-tab-page-lifecycle';
 import { apiRuntimeConfig,promotionApi,remoteApiEnabled,sessionVault } from '@/api/runtime';
@@ -50,7 +49,7 @@ import { useT } from '@/i18n/use-t';
 import { getProduct } from '@/mock/products';
 import { productCatalogState } from '@/store/product-catalog';
 import { navTo } from '@/lib/route';
-import { localized,displayDeadline,rewardAmount } from '@/lib/promotion-display';
+import { localized,displayDeadline,rewardSummary } from '@/lib/promotion-display';
 import { createPromotionReadFence,isPromotionActive,promotionDisclosures,promotionStoreHref } from '@/lib/promotion-entry';
 import LiquidGlass from '@/components/liquid-glass.vue';
 import PromotionTerms from './promotion-terms.vue';
@@ -77,13 +76,13 @@ function clear(resetBanners=true){items.value=[];cursor.value=null;hasMore.value
 function publicName(id:string){void productCatalogState.status;return sessionVault.read()?getProduct(id)?.name??id:id;}
 function rewardSummaries(activity:PublicPromotion){return activity.rewardRules.map(rule=>{
   const rewards=[rule.buyerReward,rule.inviterReward].filter((reward):reward is NonNullable<typeof reward>=>!!reward);
-  return publicName(rule.productNo)+' · '+t.value.promotion.rulePer+' '+rule.minBuyQty+' · '+(rule.repeatMode==='PER_GROUP'?t.value.promotion.perGroup:t.value.promotion.oncePerOrder)+'\n'+rewards.map(reward=>(reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter)+' · '+(reward.type==='DEVICE'?(reward.disclosure.deviceName || t.value.promotion.unknown)+' × '+rewardAmount(reward):rewardAmount(reward)+' '+platformDisplayText(reward.type))).join(' / ')+'\n'+t.value.promotion.orderGroupLimit+' · '+(rule.maxGroups.mode==='LIMITED'?rule.maxGroups.value:t.value.promotion.unlimitedGroups)+'\n'+t.value.promotion.personGroupLimit+' · '+(rule.maxGroupsPerPerson.mode==='LIMITED'?rule.maxGroupsPerPerson.value:t.value.promotion.unlimitedGroups);
+  return publicName(rule.productNo)+' · '+t.value.promotion.rulePer+' '+rule.minBuyQty+' · '+(rule.repeatMode==='PER_GROUP'?t.value.promotion.perGroup:t.value.promotion.oncePerOrder)+'\n'+rewards.map(reward=>(reward.beneficiaryRole==='BUYER'?t.value.promotion.buyer:t.value.promotion.inviter)+' · '+rewardSummary(reward,t.value.promotion,reward.disclosure.deviceName)).join(' / ')+'\n'+t.value.promotion.orderGroupLimit+' · '+(rule.maxGroups.mode==='LIMITED'?rule.maxGroups.value:t.value.promotion.unlimitedGroups)+'\n'+t.value.promotion.personGroupLimit+' · '+(rule.maxGroupsPerPerson.mode==='LIMITED'?rule.maxGroupsPerPerson.value:t.value.promotion.unlimitedGroups);
 });}
 function homeRewardSummary(activity:PublicPromotion) {
   const reward=activity.rewardRules[0]?.buyerReward;
   if(!reward)return '';
   return localized(reward.disclosure.benefitDescription,locale.code)
-    || (reward.type==='DEVICE' ? (reward.disclosure.deviceName || publicName(reward.giftProductNo))+' × '+rewardAmount(reward) : rewardAmount(reward)+' '+platformDisplayText(reward.type));
+    || rewardSummary(reward,t.value.promotion,reward.disclosure.deviceName || (reward.type==='DEVICE'?publicName(reward.giftProductNo):null));
 }
 const termsText=computed(()=>termsActivity.value?[localized(termsActivity.value.terms,locale.code),...rewardSummaries(termsActivity.value),t.value.promotion.deadline+' · '+displayDeadline(termsActivity.value.endsAt,locale.code)].join('\n\n'):'');
 async function load(reset:boolean){

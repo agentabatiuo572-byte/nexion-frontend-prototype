@@ -10,6 +10,29 @@ const receipt={orderNo:'o1',paymentStatus:'PENDING',orderStatus:'PENDING_PAYMENT
 function setup(){const request=vi.fn();return{request,api:createPromotionApi({request}as unknown as ApiClient)};}
 const activity:PublicPromotion={activityId:'a1',version:2,template:'SKU_GIFT',state:'ACTIVE',startsAt:'2026-10-07T00:00:00Z',endsAt:'2026-10-30T00:00:00Z',serverTime:'2026-10-08T00:00:00Z',title:text,terms:text,placement:'home.purchase-promotion',target:'STORE',productNos:['sku-a'],minimumClientCapabilities:PROMOTION_CAPABILITIES,eligibility:'ESTIMATE_ELIGIBLE',eligibilityMessage:null,rewardRules:[]};
 describe('promotion transport',()=>{
+  it('accepts buyer order discounts in public terms, exact quotes and immutable order receipts',async()=>{
+    const{api,request}=setup();
+    const discount={rewardRuleId:'discount',beneficiaryRole:'BUYER' as const,type:'DISCOUNT_USDT' as const,calculation:'FIXED' as const,amount:'500.000000'};
+    const expected={...quote.expectedRewards[0],rewardRuleId:'discount',groups:1,reward:discount};
+    const discounted={...quote,promotionDiscountUsdt:'500.000000',subtotalUsdt:'1299.000000',discountUsdt:'500.000000',amountUsdt:'799.000000',items:[{...quote.items[0],promotionDiscountUsdt:'500.000000',unitPriceUsdt:'433.000000',subtotalUsdt:'1299.000000',discountUsdt:'500.000000',payableUsdt:'799.000000'}],expectedRewards:[expected]};
+    const rule={ruleId:'rule',productNo:'sku-a',minBuyQty:3,repeatMode:'ONCE_PER_ORDER',maxGroups:{mode:'UNLIMITED'},maxGroupsPerPerson:{mode:'UNLIMITED'},buyerReward:{...discount,disclosure},inviterReward:null};
+    request.mockResolvedValue({...activity,rewardRules:[rule]});expect((await api.get('a1')).rewardRules[0].buyerReward.type).toBe('DISCOUNT_USDT');
+    request.mockResolvedValue({...activity,rewardRules:[{...rule,inviterReward:rule.buyerReward}]});await expect(api.get('a1')).rejects.toThrow('PROMOTION_RESPONSE_INVALID');
+    request.mockResolvedValue(discounted);expect(await api.quote([{productNo:'sku-a',quantity:3}],'a1')).toEqual(discounted);
+    request.mockResolvedValue({...receipt,amountUsdt:'799.000000',rewards:[expected]});expect((await api.create(discounted,'discount-order')).rewards?.[0].reward).toEqual(discount);
+    for(const reward of [{...discount,beneficiaryRole:'DIRECT_INVITER'},{...discount,calculation:'PERCENT'},{...discount,assetPolicy:spec.assetPolicy},{...discount,amount:'0.000000'}]){
+      request.mockResolvedValue({...discounted,expectedRewards:[{...expected,reward}]});await expect(api.quote([{productNo:'sku-a',quantity:3}],'a1')).rejects.toThrow('PROMOTION_RESPONSE_INVALID');
+    }
+    request.mockResolvedValue({...discounted,expectedRewards:[{...expected,beneficiaryRole:'DIRECT_INVITER'}]});await expect(api.quote([{productNo:'sku-a',quantity:3}],'a1')).rejects.toThrow('PROMOTION_RESPONSE_INVALID');
+    for(const fields of [{promotionDiscountUsdt:500},{items:[{...discounted.items[0],promotionDiscountUsdt:'-500'}]}]){
+      request.mockResolvedValue({...discounted,...fields});await expect(api.quote([{productNo:'sku-a',quantity:3}],'a1')).rejects.toThrow('PROMOTION_RESPONSE_INVALID');
+    }
+  });
+  it('does not accept an order discount as a wallet reward obligation',async()=>{
+    const{api,request}=setup();
+    request.mockResolvedValue({items:[{obligationId:'invalid-discount',orderNo:'o1',activityId:'a1',orderLineId:'l1',updatedAt:'2026-10-25T00:00:00Z',reward:{rewardRuleId:'discount',beneficiaryRole:'BUYER',type:'DISCOUNT_USDT',calculation:'FIXED',amount:'500'},disclosure}],nextCursor:null,hasMore:false});
+    await expect(api.rewards()).rejects.toThrow('PROMOTION_RESPONSE_INVALID');
+  });
   it('accepts only the current activity and version banner path without arbitrary URLs',async()=>{
     const{api,request}=setup();
     for(const bannerImageUrl of [undefined,null,'/api/promotions/a1/banner/2']){

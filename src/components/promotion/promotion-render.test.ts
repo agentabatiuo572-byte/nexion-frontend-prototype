@@ -5,15 +5,18 @@ import { renderToString } from '@vue/server-renderer';
 import { compileScript, parse } from '@vue/compiler-sfc';
 import { compile } from '@vue/compiler-dom';
 import ts from 'typescript';
-import { expect, it } from 'vitest';
+import { afterEach, expect, it } from 'vitest';
 import rewardRowsSource from './reward-rows.vue?raw';
 import orderRewardsSource from './order-rewards.vue?raw';
 import rewardDetailSource from '@/pages/events/promotion-reward-detail.vue?raw';
 import checkoutSource from './promotion-checkout.vue?raw';
 import termsSource from './promotion-terms.vue?raw';
 import entrySource from './promotion-entry.vue?raw';
-import { promotionZH } from '@/i18n/messages/promotion';
-import { localized, rewardAmount, rewardStateKey } from '@/lib/promotion-display';
+import { promotionZH, promotionEN, promotionVI } from '@/i18n/messages/promotion';
+import { localized, rewardSummary, rewardStateKey } from '@/lib/promotion-display';
+
+let promotionCopy=promotionZH;
+afterEach(()=>{promotionCopy=promotionZH;});
 
 const descriptor=parse(rewardRowsSource,{filename:'reward-rows.vue'}).descriptor;
 const script=compileScript(descriptor,{id:'reward-rows-behavior',inlineTemplate:true,templateOptions:{compilerOptions:{isCustomElement:tag=>['view','text'].includes(tag)}}});
@@ -22,16 +25,26 @@ const dependencies:Record<string,unknown>={
     "@/lib/brand-copy": { platformDisplayText },
     "@/lib/amount-display": { formatAmount },
   vue:Vue,
-  '@/i18n/use-t':{useT:()=>Vue.ref({promotion:promotionZH})},
+  '@/i18n/use-t':{useT:()=>Vue.ref({promotion:promotionCopy})},
   '@/store/locale':{useLocaleStore:()=>({code:'zh'})},
   '@/mock/products':{getProduct:(id:string)=>({name:({'sku-a':'Device Alpha','sku-b':'Device Beta'} as Record<string,string>)[id]??'Actual gift'})},
   '@/store/product-catalog':{productCatalogState:Vue.reactive({status:'ready'})},
-  '@/lib/promotion-display':{localized,rewardAmount,rewardStateKey},
+  '@/lib/promotion-display':{localized,rewardSummary,rewardStateKey},
   '@/lib/route':{navTo:()=>Promise.resolve(true)},
 };
 const componentExports={default:{} as Vue.Component};
 new Function('require','exports',code)((id:string)=>{if(!(id in dependencies))throw new Error('Unexpected import '+id);return dependencies[id];},componentExports);
 const reward={obligationId:'reward-1',reward:{rewardRuleId:'r1',type:'USDT',amount:'3.000000',beneficiaryRole:'BUYER'},state:'ISSUED',refundHold:false};
+const discount={lineId:'900101',rewardRuleId:'discount',groups:1,reward:{rewardRuleId:'discount',type:'DISCOUNT_USDT',amount:'500.000000',calculation:'FIXED',beneficiaryRole:'BUYER'},disclosure:{deviceName:null}};
+
+it.each([promotionZH,promotionEN,promotionVI])('discount rows use localized deduction terms without an issuance promise',async copy=>{
+  promotionCopy=copy;
+  for(const props of [{expected:[discount]},{specs:[{...discount.reward,disclosure:discount.disclosure}]}]){
+    const html=await renderToString(Vue.createSSRApp(componentExports.default,props));
+    expect(html).toContain(copy.orderDiscount+' · 500.00 USDT');expect(html).toContain(copy.orderDiscountNote);
+    expect(html).not.toContain('DISCOUNT_USDT');expect(html).not.toContain(copy.settle);expect(html).not.toContain(copy.rewardPending);expect(html).not.toContain(copy.rewardGranted);
+  }
+});
 
 it('home advert copy keeps AA contrast against captured light background samples',()=>{
   const styles=parse(entrySource).descriptor.styles.find(style=>style.scoped)!.content;
@@ -98,6 +111,11 @@ it('first-load double failure leaves a visible order reward error and retry',asy
 });
 it('loading has status feedback while a confirmed ordinary order does not claim rewards',async()=>{
   expect(await orderHtml(false,true)).toContain(promotionZH.loading);expect(await orderHtml(false)).not.toContain(promotionZH.orderRewards);
+});
+it('paid order details retain the discount beside issued rewards and omit a wallet-reward link for discount-only orders',async()=>{
+  const html=async(rewards:unknown[])=>renderToString(Vue.createSSRApp({components:{RewardRows:componentExports.default,PromotionAction:{render:()=>Vue.h('view')}},render:orderRender,setup:()=>({error:false,loading:false,receipt:{promotionQuoteId:'q1',paymentStatus:'PAID',items:[],rewards:[discount]},rewards,orderNo:'o1',t:{promotion:promotionZH},load:()=>{},navTo:()=>{},resume:()=>{}})}));
+  const only=await html([]);expect(only).toContain('订单立减 · 500.00 USDT');expect(only).not.toContain(promotionZH.rewards);expect(only).not.toContain(promotionZH.settle);
+  const mixed=await html([reward]);expect(mixed).toContain('订单立减 · 500.00 USDT');expect(mixed).toContain('3.00 USDT');expect(mixed).toContain(promotionZH.rewardGranted);
 });
 
 it('a recovered device keeps its receipt without sending the owner to a removed device',async()=>{
