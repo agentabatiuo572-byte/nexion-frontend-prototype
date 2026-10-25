@@ -217,6 +217,9 @@ onUnmounted(() => {
   remoteRequestFence.invalidate();
   remoteCommandFence.invalidate();
 });
+watch(() => luckySpin.open, (open, wasOpen) => {
+  if (remoteApiEnabled && mounted && wasOpen && !open) void loadRemoteEvents();
+});
 watch([() => String(app.accountKey), () => app.accountBindingEpoch, () => language.value], ([accountKey]) => {
   remoteCommandFence.invalidate();
   if (!remoteApiEnabled) return;
