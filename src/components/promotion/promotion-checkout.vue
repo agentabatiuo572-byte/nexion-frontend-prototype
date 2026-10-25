@@ -8,7 +8,7 @@
       <view v-if="error" class="promotion-notice" role="alert"><text>{{ error }}</text></view>
       <view v-if="openedOriginal" class="promotion-notice" role="status"><text>{{ p.openedOriginal }}</text></view>
       <view v-if="eventVoucherId&&!order&&!openedOriginal&&!session.record.pending" class="promotion-flat" data-testid="checkout-event-voucher">
-        <text class="promotion-title">{{ p.eventVoucher }} · {{ eventVoucherId }}</text><text class="promotion-copy">{{ p.eventVoucherTerms }}</text>
+        <text class="promotion-title">{{ p.eventVoucher }}</text><text class="promotion-copy">{{ p.eventVoucherTerms }}</text>
         <PromotionAction v-if="eventVoucherStatus==='claimable'" class="promotion-action primary" role="button" tabindex="0" :aria-disabled="busy" @click="claimEventVoucher"><text>{{ p.claimEventVoucher }}</text></PromotionAction>
         <text v-else-if="eventVoucherStatus==='unavailable'" class="promotion-notice">{{ p.eventVoucherUnavailable }}</text>
       </view>
@@ -72,6 +72,7 @@
 </template>
 <script setup lang="ts">
 import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
+import { nexGridBrandText } from '@/lib/brand-copy';
 import PromotionAction from '@/components/promotion/promotion-action.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
 import { computed,ref,shallowRef,watch,onMounted,onBeforeUnmount } from 'vue';
@@ -103,7 +104,7 @@ function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
 }
 function getProduct(id:string){void productCatalogState.status;return readProduct(id);}
 const t=useT(),p=computed(()=>t.value.promotion),locale=useLocaleStore(),app=useApp(),auth=useAuth(),voucher=useVoucher();
-function selectedItemName(item:{productNo:string;productName?:string}){return item.productName??getProduct(item.productNo)?.name??productCatalogPresentation.value?.products.find(product=>product.id===item.productNo)?.name??p.value.unknown;}
+function selectedItemName(item:{productNo:string;productName?:string}){return nexGridBrandText(item.productName??getProduct(item.productNo)?.name??productCatalogPresentation.value?.products.find(product=>product.id===item.productNo)?.name??p.value.unknown);}
 const account=app.accountKey,epoch=app.accountBindingEpoch;let alive=true,visible=true,readGeneration=0,refreshOnIdle=false;const current=()=>alive&&app.accountKey===account&&app.accountBindingEpoch===epoch;
 const readCurrent=(generation:number)=>current()&&visible&&generation===readGeneration;
 const TABLE='nexgrid-promotion-checkout-v1';
@@ -195,7 +196,7 @@ async function claimEventVoucher(){
   let claimed=false;
   await run(async()=>{claimed=await voucher.claimRemote(eventVoucherId,'store');if(!claimed&&readCurrent(generation))throw new Error('VOUCHER_CLAIM_FAILED');});
   // A repeated claim receipt is idempotent; only a fresh voucher-state read can authorize use.
-  if(claimed&&readCurrent(generation))await loadQuote();
+  if((claimed||voucher.remoteStatus==='ready')&&readCurrent(generation))await loadQuote();
 }
 async function chooseVoucher(){
   if(eventVoucherId||openedOriginal||busy.value||session.record.pending||order.value||items.value.length!==1)return;

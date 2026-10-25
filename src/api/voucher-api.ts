@@ -56,7 +56,7 @@ export interface VoucherSnapshot {
 export interface VoucherClaimResult {
   voucherId: string;
   grantId: string;
-  status: "AVAILABLE";
+  status: Exclude<VoucherGrantStatus, "UNCLAIMED">;
   replay: boolean;
   serverCanonical: true;
   source: string;
@@ -232,16 +232,17 @@ function parseClaim(value: unknown): VoucherClaimResult {
   const row = record(value);
   const voucherId = text(row?.voucherId);
   const grantId = text(row?.grantId);
+  const status = text(row?.status) as VoucherClaimResult["status"];
   const replay = bool(row?.replay);
   const serverCanonical = bool(row?.serverCanonical);
   const source = text(row?.source);
   const sourceEnvironment = text(row?.sourceEnvironment)?.toUpperCase();
   const runId = typeof row?.runId === "string" ? row.runId.trim() : null;
-  if (!row || !voucherId || !grantId || row.status !== "AVAILABLE" || replay === null
+  if (!row || !voucherId || !grantId || !["AVAILABLE", "USED", "REVOKED", "EXPIRED"].includes(status) || replay === null
       || serverCanonical !== true || !source || sourceEnvironment !== "PRODUCTION" || runId !== "") {
     return invalid("VOUCHER_CLAIM_RESPONSE_INVALID");
   }
-  return { voucherId, grantId, status: "AVAILABLE", replay, serverCanonical, source,
+  return { voucherId, grantId, status, replay, serverCanonical, source,
     sourceEnvironment: "PRODUCTION", runId: "" };
 }
 

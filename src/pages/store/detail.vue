@@ -97,7 +97,7 @@
           </view>
         </view>
 
-        <view v-if="voucherContext.voucherId" class="mx-4 mt-3 promotion promotion-flat"><text class="promotion-title">{{ t.promotion.eventVoucher }} · {{ voucherContext.voucherId }}</text><text class="promotion-copy">{{ t.promotion.eventVoucherTerms }}</text></view>
+        <view v-if="voucherContext.voucherId" class="mx-4 mt-3 promotion promotion-flat"><text class="promotion-title">{{ t.promotion.eventVoucher }}</text><text class="promotion-copy">{{ t.promotion.eventVoucherTerms }}</text></view>
         <view v-if="activityId" class="mx-4 mt-3 promotion promotion-flat" data-testid="detail-promotion">
           <text class="promotion-title">{{ activity?t.promotion.gift:promotionStatus==='ready'?t.promotion.disabled:promotionStatus==='error'?t.promotion.error:t.promotion.loading }}</text>
           <text v-if="promotionStatus==='loading'||promotionStatus==='idle'" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>

@@ -131,7 +131,7 @@ function hide() {
 async function onClaim(v: VoucherDef) {
   if (remoteApiEnabled) {
     if (await voucher.claimRemote(v.id, sheet.surface)) toast.success(t.value.voucher.claimedToast);
-    else toast.error(t.value.authOtp.errorServiceUnavailable);
+    else toast.error(voucher.remoteStatus === 'ready' ? t.value.promotion.eventVoucherUnavailable : t.value.authOtp.errorServiceUnavailable);
     return;
   }
   const r = voucher.claim(v.id);

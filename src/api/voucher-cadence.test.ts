@@ -23,6 +23,18 @@ const canonicalSnapshot = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe("voucher popup cadence", () => {
+  it.each(["AVAILABLE", "USED", "REVOKED", "EXPIRED"])("preserves the canonical %s claim state without resetting a replay", async status => {
+    const request = vi.fn().mockResolvedValue({voucherId:"V-1",grantId:"G-1",status,replay:true,serverCanonical:true,source:"nx_growth_voucher_grant",sourceEnvironment:"PRODUCTION",runId:""});
+    await expect(createVoucherApi({request} as never).claim("V-1","store","same-claim"))
+      .resolves.toMatchObject({grantId:"G-1",status,replay:true});
+  });
+
+  it.each(["UNCLAIMED", "UNKNOWN", null])("rejects an invalid claim state %s", async status => {
+    const request = vi.fn().mockResolvedValue({voucherId:"V-1",grantId:"G-1",status,replay:true,serverCanonical:true,source:"nx_growth_voucher_grant",sourceEnvironment:"PRODUCTION",runId:""});
+    await expect(createVoucherApi({request} as never).claim("V-1","store","same-claim"))
+      .rejects.toThrow("VOUCHER_CLAIM_RESPONSE_INVALID");
+  });
+
   it("accepts only a server-authoritative cadence with provenance", () => {
     expect(parseVoucherCadence({
       enabled: true, delayMs: 1300, cooldownHours: 24, maxPerSession: 1,

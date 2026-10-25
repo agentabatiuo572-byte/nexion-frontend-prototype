@@ -11,6 +11,7 @@ import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCh
 import { projectServerNow } from '@/lib/server-deadline-clock';
 import { displayDeadline,localized } from '@/lib/promotion-display';
 import { formatAmount } from '@/lib/amount-display';
+import { nexGridBrandText } from '@/lib/brand-copy';
 import { fmt } from '@/i18n/format';
 import { validatePromotionItems } from '@/api/promotion-api';
 import * as entry from '@/lib/promotion-entry';
@@ -45,9 +46,10 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   const getProduct=vi.fn().mockReturnValue({name:'Selected device'}),catalog=Vue.reactive({status:'ready'}),presentation=Vue.ref<{products:{id:string;name:string}[]}|null>({products:[{id:'sku',name:'Selected device'}]});
   vi.stubGlobal('setInterval',vi.fn(()=>0));vi.stubGlobal('clearInterval',vi.fn());
   const confirm=vi.fn().mockResolvedValue(false),clearConfirmsBy=vi.fn();
-  const vouchers={catalog:[] as {id:string;name:string}[],claimedUnused:[] as {id:string;name:string}[],claimableVouchers:[] as {id:string;name:string;claimSurfaces:string[]}[],refreshRemote:vi.fn().mockResolvedValue(true),claimRemote:vi.fn().mockResolvedValue(true)};
+  const vouchers={remoteStatus:'ready',catalog:[] as {id:string;name:string}[],claimedUnused:[] as {id:string;name:string}[],claimableVouchers:[] as {id:string;name:string;claimSurfaces:string[]}[],refreshRemote:vi.fn().mockResolvedValue(true),claimRemote:vi.fn().mockResolvedValue(true)};
   const modules:Record<string,unknown>={
     '@/lib/amount-display':{formatAmount},
+    '@/lib/brand-copy':{nexGridBrandText},
     '@/i18n/format':{fmt},
     vue:{...Vue,onMounted:(fn:()=>Promise<void>)=>mounted.push(fn),onBeforeUnmount:(fn:()=>void)=>unmounted.push(fn)},
     'vue-router':{onBeforeRouteLeave:vi.fn()},
@@ -76,6 +78,17 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   const html=()=>renderToString(Vue.createSSRApp({components:{PromotionAction:passthrough,PromotionTerms:empty,RewardRows:empty,LiquidGlass:empty},render:()=>render(Vue.proxyRefs({$slots:{},...Vue.toRefs(props),...view}),[])}));
   return{view,exposed,api,save,key,app,fleet,props,vouchers,getProduct,catalog,presentation,html,confirm,clearConfirmsBy,start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
 }
+
+it('order creation, recovery and payment keep the UVEL display name without rewriting the receipt snapshot',async()=>{
+  const page=screen(),originalName='NexGridBox S1',order={...receipt(),items:[{lineId:'9001',productNo:'sku',productName:originalName,quantity:1}]};
+  page.getProduct.mockReturnValue({name:'UVELBox S1'});
+  page.api.create.mockResolvedValue(order);page.api.findOrder.mockResolvedValue(order);page.api.pay.mockResolvedValue({...order,paymentStatus:'PAID',orderStatus:'COMPLETED'});
+  await page.start();expect(await page.html()).toContain('UVELBox S1');
+  for(const action of [()=>page.view.createOrder(),()=>page.view.recover(),()=>{page.confirm.mockResolvedValueOnce(true);return page.view.pay();}]){
+    await action();const html=await page.html();expect(html).toContain('UVELBox S1');expect(html).not.toContain(originalName);
+    expect(page.saved().order?.items?.[0]?.productName).toBe(originalName);
+  }
+});
 
 it('an order discount keeps the quoted amount through create, recovery and payment without subtracting it twice',async()=>{
   const q=quote();q.subtotalUsdt='1299.000000';q.discountUsdt='500.000000';q.promotionDiscountUsdt='500.000000';q.amountUsdt='799.000000';
@@ -312,10 +325,11 @@ it.each(['ordinary','eligible-pro','ineligible-pro','closed-pro'] as const)('BF2
   expect(page.api.quote).toHaveBeenCalledWith(page.props.items,scenario==='eligible-pro'?'pro-upgrade':null,'BF20',false);
   expect(page.vouchers.claimRemote).not.toHaveBeenCalled();
 });
-it('an idempotent claim receipt cannot authorize an already-used voucher',async()=>{
+it.each([true,false])('an idempotent claim result %s cannot authorize an already-used voucher',async claimed=>{
   const page=screen(undefined,eventEntry);page.vouchers.claimableVouchers=[bf20];await page.start();
-  page.vouchers.claimRemote.mockImplementation(async()=>{page.vouchers.claimableVouchers=[];return true;});await page.view.claimEventVoucher();
+  page.vouchers.claimRemote.mockImplementation(async()=>{page.vouchers.claimableVouchers=[];return claimed;});await page.view.claimEventVoucher();
   expect(page.view.eventVoucherStatus.value).toBe('unavailable');expect(page.api.quote).not.toHaveBeenCalled();expect(page.exposed.footer.value.disabled).toBe(true);
+  expect(await page.html()).toContain(zh.promotion.eventVoucherUnavailable);
 });
 it.each(['unavailable','state-failure','multi-sku'] as const)('BF20 %s cannot silently become an undiscounted or multi-SKU checkout',async scenario=>{
   const page=screen(undefined,{...eventEntry,...(scenario==='multi-sku'?{items:[{productNo:'sku',quantity:1},{productNo:'second',quantity:1}]}:{})});

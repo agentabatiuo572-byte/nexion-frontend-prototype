@@ -360,17 +360,29 @@ describe("voucher remote account scope", () => {
     );
   });
 
-  it("keeps the typed canonical claim receipt when its follow-up GET fails", async () => {
+  it.each(["AVAILABLE", "USED", "REVOKED", "EXPIRED"] as const)("uses fresh %s state after an old AVAILABLE claim receipt", async status => {
+    const store = await createStore();
+    remote.voucherApi.state.mockResolvedValue(snapshot("receipt",status));
+    await store.refreshRemote();
+    remote.voucherApi.claim.mockResolvedValue({...claimReceipt("receipt-voucher"),replay:true});
+    await expect(store.claimRemote("receipt-voucher","store")).resolves.toBe(status === "AVAILABLE");
+    expect(store.catalog).toMatchObject([{id:"receipt-voucher",grantStatus:status}]);
+    expect(store.claimedUnused.map(item=>item.id)).toEqual(status === "AVAILABLE" ? ["receipt-voucher"] : []);
+    if(status === "USED")expect(store.claimed).toMatchObject([{id:"receipt-voucher",usedAt:0}]);
+  });
+
+  it("does not promote an old AVAILABLE receipt when its follow-up GET fails", async () => {
     const store = await createStore();
     remote.voucherApi.state.mockResolvedValueOnce(snapshot("receipt", "UNCLAIMED"));
     await expect(store.refreshRemote()).resolves.toBe(true);
     remote.voucherApi.claim.mockResolvedValue(claimReceipt("receipt-voucher"));
     remote.voucherApi.state.mockRejectedValueOnce(new Error("readback unavailable"));
 
-    await expect(store.claimRemote("receipt-voucher", "me")).resolves.toBe(true);
+    await expect(store.claimRemote("receipt-voucher", "me")).resolves.toBe(false);
 
-    expect(store.claimed).toMatchObject([{ id: "receipt-voucher", usedAt: null }]);
-    expect(store.catalog).toMatchObject([{ id: "receipt-voucher", grantId: "receipt-voucher-grant", grantStatus: "AVAILABLE", claimable: false }]);
-    expect(store.claimedUnused.map((item) => item.id)).toEqual(["receipt-voucher"]);
+    expect(store.claimed).toEqual([]);
+    expect(store.catalog).toMatchObject([{ id: "receipt-voucher", grantStatus: "UNCLAIMED" }]);
+    expect(store.claimedUnused).toEqual([]);
+    expect(store.remoteStatus).toBe("error");
   });
 });

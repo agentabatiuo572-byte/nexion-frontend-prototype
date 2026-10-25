@@ -1,10 +1,25 @@
 import { computed,ref } from 'vue';
+import * as Vue from 'vue';
 import { parse } from '@vue/compiler-sfc';
+import { compile } from '@vue/compiler-dom';
+import { renderToString } from '@vue/server-renderer';
 import ts from 'typescript';
 import { expect,it,vi } from 'vitest';
 import storeSource from './store.vue?raw';
+import detailSource from './detail.vue?raw';
+import checkoutSource from '@/components/promotion/promotion-checkout.vue?raw';
 import productSource from '@/components/store/product-card.vue?raw';
 import * as entry from '@/lib/promotion-entry';
+import { promotionZH,promotionEN,promotionVI } from '@/i18n/messages/promotion';
+
+it.each([['store',storeSource],['detail',detailSource],['checkout',checkoutSource]])('%s voucher title keeps the translated label without exposing the transport ID',async(_page,source)=>{
+  const title=parse(source).descriptor.template!.content.match(/<text class="promotion-title">{{ (?:t\.promotion|p)\.eventVoucher }}[\s\S]*?<\/text>/)![0];
+  const render=new Function('Vue',compile(title,{mode:'function',prefixIdentifiers:true,isCustomElement:tag=>tag==='text'}).code)(Vue);
+  for(const p of [promotionZH,promotionEN,promotionVI]){
+    const id='vc-mvnjn50x-8gjpyz',html=await renderToString(Vue.createSSRApp({render,setup:()=>({p,t:{promotion:p},eventVoucherId:id,voucherContext:{voucherId:id}})}));
+    expect(html).toContain(p.eventVoucher);expect(html).not.toContain(id);
+  }
+});
 
 function functions(source:string,names:string[]){
   const ast=ts.createSourceFile('entry.ts',parse(source).descriptor.scriptSetup!.content,ts.ScriptTarget.Latest,true);

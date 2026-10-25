@@ -184,13 +184,12 @@ export const useVoucher = defineStore("voucher", () => {
     const runScope = captureRuntimeRevision();
     const generation = ++remoteGeneration;
     try {
-      const receipt = await voucherApi.claim(id, surface, `h7-voucher-claim:${id}`);
+      await voucherApi.claim(id, surface, `h7-voucher-claim:${id}`);
       if (!remoteRequestIsCurrent(request, runScope, generation)) return false;
-      claimed.value = [{ id, claimedAt: mockServerNow(), usedAt: null }, ...claimed.value.filter((item) => item.id !== id)];
-      remoteCatalog.value = remoteCatalog.value.map((item) => item.id === id
-        ? { ...item, grantId: receipt.grantId, grantStatus: receipt.status, claimable: false } : item);
-      await refreshRemote();
-      return remoteAccountEpoch.isCurrent(request) && isCurrentRuntimeRevision(runScope);
+      // A same-key receipt can predate redemption; only the current GET authorizes use.
+      const refreshed = await refreshRemote();
+      return refreshed && remoteAccountEpoch.isCurrent(request) && isCurrentRuntimeRevision(runScope)
+        && claimedUnused.value.some((item) => item.id === id);
     } catch {
       recoverCurrentRemoteRead(request, runScope, generation);
       return false;
