@@ -26,6 +26,14 @@ function voucher(overrides: Partial<RemoteVoucherAuthority> = {}): RemoteVoucher
 }
 
 describe("server-authoritative home voucher availability", () => {
+  it.each(["home", "store", "me", "earn"] as const)("accepts unrestricted offers on %s without relaxing eligibility or explicit scopes", surface => {
+    const unrestricted = voucher({ claimSurfaces: [] });
+    expect(remoteClaimableForSurface([unrestricted], surface)).toEqual([unrestricted]);
+    expect(remoteClaimableForSurface([voucher({ claimSurfaces: [], claimable: false })], surface)).toEqual([]);
+    expect(remoteClaimableForSurface([voucher({ claimSurfaces: [], audienceEligible: false })], surface)).toEqual([]);
+    expect(remoteClaimableForSurface([voucher({ claimSurfaces: ["home"] })], surface)).toHaveLength(surface === "home" ? 1 : 0);
+    expect(remoteVoucherPopupPolicy([unrestricted], surface)?.voucherId).toBe(unrestricted.id);
+  });
   it("never advertises a voucher that the Java response marked unclaimable", () => {
     expect(remoteClaimableForSurface([voucher({ claimable: false })], "home")).toEqual([]);
     expect(remoteClaimableForSurface([voucher({ audienceEligible: false })], "home")).toEqual([]);

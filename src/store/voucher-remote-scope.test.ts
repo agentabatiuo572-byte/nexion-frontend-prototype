@@ -104,6 +104,15 @@ afterEach(() => {
 });
 
 describe("voucher remote account scope", () => {
+  it("advertises unrestricted offers across all valid entry surfaces using current server eligibility", async () => {
+    const store = await createStore();
+    remote.voucherApi.state.mockResolvedValueOnce({ vouchers: [{ ...voucher("any", "UNCLAIMED"), claimSurfaces: [] }], source: "test" });
+    await store.refreshRemote();
+    for (const surface of ["home", "store", "me", "earn"] as const) expect(store.hasClaimableForSurface(surface)).toBe(true);
+    remote.voucherApi.state.mockResolvedValueOnce({ vouchers: [{ ...voucher("any", "UNCLAIMED"), claimSurfaces: [], claimable: false }], source: "test" });
+    await store.refreshRemote();
+    for (const surface of ["home", "store", "me", "earn"] as const) expect(store.hasClaimableForSurface(surface)).toBe(false);
+  });
   it("removes the previous runtime's selectable vouchers before the replacement catalog arrives", async () => {
     const store = await createStore();
     remote.voucherApi.state.mockResolvedValueOnce({
@@ -344,6 +353,51 @@ describe("voucher remote account scope", () => {
 
     expect(store.claimedUnused).toEqual([]);
     expect(store.bestVoucherFor("any-sku", 100)).toBeNull();
+  });
+
+  it.each([false, true])("keeps a paused definition's AVAILABLE grant usable, including deleted=%s, without reopening claims", async definitionDeleted => {
+    const store = await createStore();
+    const owned = { ...voucher("paused"), status: "paused", definitionDeleted, startAt: Date.now() - 60_000, endAt: Date.now() + 60_000 };
+    remote.voucherApi.state.mockResolvedValue({ vouchers: [owned], source: "test" });
+    await store.refreshRemote();
+    expect(store.claimedUnused.map(item => item.id)).toEqual([owned.id]);
+    expect(store.expiredVouchers).toEqual([]);
+    expect(store.bestVoucherFor("any-sku", 100)?.def.id).toBe(owned.id);
+    expect(store.claimableVouchers).toEqual([]);
+    expect(store.autoPopupCadence).toBeNull();
+  });
+
+  it.each(["EXPIRED", "REVOKED", "USED", "UNCLAIMED"] as const)("never restores a paused %s grant as usable", async grantStatus => {
+    const store = await createStore();
+    remote.voucherApi.state.mockResolvedValue({ vouchers: [{ ...voucher("paused", grantStatus), status: "paused", claimable: false }], source: "test" });
+    await store.refreshRemote();
+    expect(store.claimedUnused).toEqual([]);
+    expect(store.bestVoucherFor("any-sku", 100)).toBeNull();
+    expect(store.expiredVouchers).toHaveLength(grantStatus === "EXPIRED" ? 1 : 0);
+    expect(store.claimableVouchers).toEqual([]);
+  });
+
+  it("retains time-window checks without classifying a future-start grant as expired", async () => {
+    const store = await createStore(), now = Date.now();
+    remote.voucherApi.state.mockResolvedValue({ vouchers: [
+      { ...voucher("past"), status: "paused", endAt: now - 60_000 },
+      { ...voucher("future"), status: "paused", startAt: now + 60_000, endAt: now + 120_000 },
+    ], source: "test" });
+    await store.refreshRemote();
+    expect(store.claimedUnused).toEqual([]);
+    expect(store.bestVoucherFor("any-sku", 100)).toBeNull();
+    expect(store.expiredVouchers.map(item => item.id)).toEqual(["past-voucher"]);
+  });
+
+  it("reads paused grant reservation and cancellation state without changing its identity", async () => {
+    const store = await createStore();
+    for (const grantStatus of ["AVAILABLE", "USED", "AVAILABLE"] as const) {
+      remote.voucherApi.state.mockResolvedValue({ vouchers: [{ ...voucher("paused", grantStatus), status: "paused" }], source: "test" });
+      await store.refreshRemote();
+      expect(store.claimedUnused.map(item => item.id)).toEqual(grantStatus === "AVAILABLE" ? ["paused-voucher"] : []);
+      expect(store.expiredVouchers).toEqual([]);
+      expect(store.catalog).toMatchObject([{ id: "paused-voucher", grantId: "paused-grant", grantStatus }]);
+    }
   });
 
   it("passes the visible entry surface to the canonical claim command", async () => {

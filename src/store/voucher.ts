@@ -12,6 +12,7 @@ import { mockServerNow } from "./server-time";
 import { createAccountRowCommit } from "./account-scoped-storage";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import { remoteClaimable, remoteVoucherPopupPolicy } from "./voucher-home-authority";
+import { voucherSupportsSurface } from "@/lib/voucher-sheet-authority";
 import {
   listVouchers,
   getVoucher,
@@ -332,7 +333,11 @@ export const useVoucher = defineStore("voucher", () => {
   /** Claimed, unused, still-valid vouchers — the user's redeemable wallet. */
   const claimedUnused = computed<VoucherDef[]>(() => {
     if (remoteApiEnabled) {
-      return remoteCatalog.value.filter((voucher) => voucher.grantStatus === "AVAILABLE" && isVoucherValid(voucher));
+      // Pausing/deleting the offer stops new claims, not already granted rights.
+      const now = mockServerNow();
+      return remoteCatalog.value.filter((voucher) => voucher.grantStatus === "AVAILABLE"
+        && (voucher.startAt === 0 || voucher.startAt <= now)
+        && (voucher.endAt === 0 || voucher.endAt >= now));
     }
     const out: VoucherDef[] = [];
     for (const c of claimed.value) {
@@ -347,8 +352,9 @@ export const useVoucher = defineStore("voucher", () => {
    *  the My Rewards page. */
   const expiredVouchers = computed<VoucherDef[]>(() => {
     if (remoteApiEnabled) {
+      const now = mockServerNow();
       return remoteCatalog.value.filter((voucher) => voucher.grantStatus === "EXPIRED"
-        || voucher.grantStatus === "AVAILABLE" && !isVoucherValid(voucher));
+        || voucher.grantStatus === "AVAILABLE" && voucher.endAt > 0 && voucher.endAt < now);
     }
     const out: VoucherDef[] = [];
     for (const c of claimed.value) {
@@ -362,7 +368,7 @@ export const useVoucher = defineStore("voucher", () => {
   /** Whether any claim banner should advertise on `surface` (claimable vouchers
    *  targeting it). */
   function hasClaimableForSurface(surface: VoucherDef["claimSurfaces"][number]): boolean {
-    return claimableVouchers.value.some((d) => d.claimSurfaces.includes(surface));
+    return claimableVouchers.value.some((d) => voucherSupportsSurface(d, surface));
   }
 
   /**

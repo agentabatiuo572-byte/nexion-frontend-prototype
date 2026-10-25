@@ -114,6 +114,7 @@ import { useAuditUiCopy } from "@/i18n/audit-ui";
 import { useVoucher } from "@/store/voucher";
 import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
 import { voucherBenefitSummary } from "@/lib/voucher-benefit-summary";
+import { voucherSupportsSurface } from "@/lib/voucher-sheet-authority";
 import NxSection from "@/components/ui/nx-section.vue";
 import NxListGroup from "@/components/ui/nx-list-group.vue";
 import NxListRow from "@/components/ui/nx-list-row.vue";
@@ -295,7 +296,7 @@ const upgradeBaseImageUrl = computed(() => {
   const base = upgrade.value?.base;
   return base ? displayProducts.value.find(p => p.id === base.kind)?.imageUrl : undefined;
 });
-const voucherClaimable = computed(() => voucher.claimableVouchers.filter(offer => offer.claimSurfaces.includes('store')));
+const voucherClaimable = computed(() => voucher.claimableVouchers.filter(offer => voucherSupportsSurface(offer, 'store')));
 const voucherOffers = computed(() => [...new Map([...voucherClaimable.value, ...voucher.claimedUnused].map(offer => [offer.id, offer])).values()]);
 const voucherBenefit = computed(() => voucherBenefitSummary(voucherOffers.value));
 function openStoreVouchers() {

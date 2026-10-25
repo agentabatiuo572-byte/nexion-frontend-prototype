@@ -5055,7 +5055,7 @@ realPrizeActive(): boolean             // 售罄 / 降级 → false(真实奖档
 | applicableSkus | string[] | 适用设备 product id 列表(空 = 全设备 → 领取 CTA 跳商城) |
 | audience | "new" \| "all" | 受众:新人礼 / 全部活动 |
 | startAt / endAt | number | 有效期起止(epoch ms;endAt=0 → 长期无到期) |
-| claimSurfaces | ("home"\|"store"\|"me"\|"earn")[] | 关闭弹窗后展示领券 banner 的页面 |
+| claimSurfaces | ("home"\|"store"\|"me"\|"earn")[] | 允许领取的页面；空数组表示不限入口，非空只允许指定页面。入口和领取弹层统一判断，仍遵守当前领取资格及弹窗频率 |
 | popupEnabled | boolean | 是否参与首页自动弹窗 |
 | stackWithTrial / stackWithOthers / splittable | boolean | 叠加试用收益 / 叠加其它优惠 / 可拆分(默认均 false) |
 | status | "active" \| "paused" | 投放中 / 暂停 |
@@ -5065,6 +5065,8 @@ realPrizeActive(): boolean             // 售罄 / 降级 → false(真实奖档
 派生:`claimableVouchers`(可领:active + 有效期内 + 受众匹配 + 未领)/ `claimedUnused`(已领未用且有效)/ `expiredVouchers`(已领未用但过期);`bestVoucherFor(skuId, price)` 在已领适用券中选抵扣最大者;纯函数 `computeVoucherDiscount(def, subtotal)` 为单源折扣算法(满减按门槛、折扣按封顶、抵扣不超小计)。
 
 **写操作**:领取 `claim`(`POST /api/vouchers/:id/claim`,每券每用户限领一次)、核销 `markUsed`(下单成功后置 usedAt,单次)。代金券折扣只在结算抵扣价格、**永不计入可提现余额**(不可提现由设计保证)。后台对端为运营控制台 H7 代金券域,其 `OpsVoucher` 是本结构的结构化超集(字段级镜像门),两端映射同一后端资源。
+
+**已领取权益**：暂停投放或删除定义只停止新发放；个人券的最新状态为 `AVAILABLE` 且处于有效期内时，App/H5 我的奖励与结算继续提供使用，不根据定义投放状态将其归为过期。`USED`、`REVOKED`、`EXPIRED` 不可用；只有真实到期或个人状态为 `EXPIRED` 才进入过期列表，未开始不等于过期。取消未付订单后以同一 grant 最新读回状态决定恢复。
 
 ---
 

@@ -9,6 +9,7 @@ import { vi as vietnamese } from "@/i18n/messages/vi";
 import { promotionBundleHref } from "@/lib/promotion-entry";
 import { fmt, fmtMoney } from "@/i18n/format";
 import { voucherBenefitSummary } from "@/lib/voucher-benefit-summary";
+import { voucherSupportsSurface } from "@/lib/voucher-sheet-authority";
 import source from "./store.vue?raw";
 
 // Render the actual page template with inert decorative components. Execute its
@@ -25,7 +26,7 @@ const voucherSource = setup.statements.filter(node =>
   (ts.isVariableStatement(node) && node.declarationList.declarations.some(d => voucherBindings.has(d.name.getText(setup))))
   || (ts.isFunctionDeclaration(node) && node.name?.text === "openStoreVouchers"),
 ).map(node => node.getText(setup)).join("\n");
-const createVoucherPresentation = new Function("computed", "voucher", "voucherClaimSheet", "navTo", "voucherBenefitSummary",
+const createVoucherPresentation = new Function("computed", "voucher", "voucherClaimSheet", "navTo", "voucherBenefitSummary", "voucherSupportsSurface",
   ts.transpileModule(voucherSource, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
   + "; return { voucherClaimable, voucherOffers, voucherBenefit, openStoreVouchers };",
 );
@@ -47,9 +48,9 @@ function page(overrides: Record<string, unknown> = {}) {
   const navTo = vi.fn();
   const voucherClaimSheet = { show: vi.fn() };
   const voucher = overrides.voucher ?? { claimableVouchers: [], claimedUnused: [] };
-  const voucherPresentation = createVoucherPresentation(Vue.computed, voucher, voucherClaimSheet, navTo, voucherBenefitSummary);
+  const voucherPresentation = createVoucherPresentation(Vue.computed, voucher, voucherClaimSheet, navTo, voucherBenefitSummary, voucherSupportsSurface);
   const context = Vue.proxyRefs({
-    t: zh, navTo, voucherContext:{}, activityId: "", activity: null, publicOnly: false,
+    t: zh, navTo, activityId: "", activity: null, voucherContext: {}, publicOnly: false,
     auditCopy, fmt, fmtMoney, ...voucherPresentation,
     promotionStatus: "ready", promotionAvailable: false, upgrade: null,
     yieldAuthority: {}, ownedHardware: null, focusProductId: "",
@@ -115,6 +116,13 @@ describe("ordinary store voucher ticket", () => {
   const homeOnly = { ...claimable, id: "home-offer", claimSurfaces: ["home"] };
   const claimed = { ...homeOnly, id: "claimed-offer", amountUSD: 100 };
   const ticketText = (view: ReturnType<typeof page>) => nodes(view.ticket).map(node => typeof node.children === "string" ? node.children : "").join(" ");
+
+  it("offers an unrestricted voucher and opens the actual store claim sheet", () => {
+    const view = page({ voucher: { claimableVouchers: [{ ...claimable, claimSurfaces: [] }], claimedUnused: [] } });
+    expect(view.ticket).toBeDefined();
+    view.ticket!.props!.onClick();
+    expect(view.voucherClaimSheet.show).toHaveBeenCalledExactlyOnceWith("store");
+  });
 
   it.each([{ claimableVouchers: [] }, { claimableVouchers: [homeOnly] }])("hides without store-claimable or claimed-unused offers: %j", ({ claimableVouchers }) => {
     expect(page({ voucher: { claimableVouchers, claimedUnused: [] } }).ticket).toBeUndefined();

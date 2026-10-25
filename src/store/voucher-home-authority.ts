@@ -1,4 +1,5 @@
 import type { VoucherSurface } from "@/mock/vouchers";
+import { voucherSupportsSurface } from "@/lib/voucher-sheet-authority";
 
 export interface RemoteVoucherAuthority {
   id: string;
@@ -33,7 +34,7 @@ export function remoteClaimableForSurface<T extends RemoteVoucherAuthority>(
   vouchers: T[],
   surface: VoucherSurface,
 ): T[] {
-  return remoteClaimable(vouchers).filter((voucher) => voucher.claimSurfaces.includes(surface));
+  return remoteClaimable(vouchers).filter((voucher) => voucherSupportsSurface(voucher, surface));
 }
 
 /** Select the exact H7 cadence attached to a server-approved Home voucher. */

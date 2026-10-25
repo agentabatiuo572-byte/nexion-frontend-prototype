@@ -1,5 +1,10 @@
 import type { VoucherDef, VoucherSurface } from "@/mock/vouchers";
 
+/** H7's empty surface list allows every supported claim entry. */
+export function voucherSupportsSurface(voucher: Pick<VoucherDef, "claimSurfaces">, surface: VoucherSurface): boolean {
+  return voucher.claimSurfaces.length === 0 || voucher.claimSurfaces.includes(surface);
+}
+
 /** Keep the visible claim list on the exact page surface that opened the sheet. */
 export function visibleVoucherCatalog<T extends VoucherDef>(
   catalog: T[],
@@ -11,5 +16,5 @@ export function visibleVoucherCatalog<T extends VoucherDef>(
     ...claimable.map((voucher) => voucher.id),
     ...claimedUnused.map((voucher) => voucher.id),
   ]);
-  return catalog.filter((voucher) => showable.has(voucher.id) && voucher.claimSurfaces.includes(surface));
+  return catalog.filter((voucher) => showable.has(voucher.id) && voucherSupportsSurface(voucher, surface));
 }

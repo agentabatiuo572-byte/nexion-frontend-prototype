@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
+  "sourcePath": "D:\\workspace\\.worktrees\\team-v8-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "493d67b55f36bf00c4c1a533adcff92b04c275eb",
-  "sourceRef": "493d67b55f36bf00c4c1a533adcff92b04c275eb",
+  "sourceHead": "86b7485823350f10c83efb28a690a8e419efe351",
+  "sourceRef": "86b7485823350f10c83efb28a690a8e419efe351",
   "sourceRefKind": "commit",
-  "sourceTree": "93bf72bc62338d0fecf04e92819e2eca3c158d79",
+  "sourceTree": "8072231b8c1e515514b8954cceca2271d378ffd7",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -111,10 +111,10 @@
       "mode": "100644"
     },
     "PRD/NexGrid_产品功能架构设计文档_v3.7.md": {
-      "sourceBlob": "1c17e1e487cd8668848d2762f953a14069b1c851",
-      "sourceSha256": "9768c132cefce6b783beed6fb1883c6f9ec59fbc59a3c2ca97a668c941e7a5dd",
-      "targetBlob": "1c17e1e487cd8668848d2762f953a14069b1c851",
-      "targetSha256": "9768c132cefce6b783beed6fb1883c6f9ec59fbc59a3c2ca97a668c941e7a5dd",
+      "sourceBlob": "8d66042348027b20fd1b1cf059e4846eea71fb8c",
+      "sourceSha256": "fadaba5bfa009bf6633815d2b162627b90fa4e74a01dcd9141d9e0efc0fbd6dc",
+      "targetBlob": "8d66042348027b20fd1b1cf059e4846eea71fb8c",
+      "targetSha256": "fadaba5bfa009bf6633815d2b162627b90fa4e74a01dcd9141d9e0efc0fbd6dc",
       "mode": "100644"
     },
     "PRD/UVEL_体验与运营配置同步_20261025.md": {
@@ -125,10 +125,10 @@
       "mode": "100644"
     },
     "PRD/UVEL_首页信任与活动规则_20261025.md": {
-      "sourceBlob": "46f4c6c1de027e208a0def4ffe59f7c3c5897d21",
-      "sourceSha256": "6737f0680558fde6613512d1666b2929f4805665ee60f5c3bb9b9b2f7fd38233",
-      "targetBlob": "46f4c6c1de027e208a0def4ffe59f7c3c5897d21",
-      "targetSha256": "6737f0680558fde6613512d1666b2929f4805665ee60f5c3bb9b9b2f7fd38233",
+      "sourceBlob": "156e09b27c280db2b8b721a39e77bc185be79faa",
+      "sourceSha256": "aff704d9078cdd2f553dcebd44d830949c32399bf74bee566c5eaaf51df926ea",
+      "targetBlob": "156e09b27c280db2b8b721a39e77bc185be79faa",
+      "targetSha256": "aff704d9078cdd2f553dcebd44d830949c32399bf74bee566c5eaaf51df926ea",
       "mode": "100644"
     },
     "checks/lucky-spin-remote-contract.test.mjs": {
@@ -10015,11 +10015,18 @@
       "targetSha256": "425da8cf2e6f94241a754dba96f45779b57072dd71c9d2e570a6c04b4723e649",
       "mode": "100644"
     },
+    "src/components/voucher-banner.behavior.test.ts": {
+      "sourceBlob": "94b3752d023d3ce1152d2c6304464f876ffa572c",
+      "sourceSha256": "a57793dca8c822f60055c0abe2a76545cc3fd9116eec1e8d4480a917b0d291c9",
+      "targetBlob": "94b3752d023d3ce1152d2c6304464f876ffa572c",
+      "targetSha256": "a57793dca8c822f60055c0abe2a76545cc3fd9116eec1e8d4480a917b0d291c9",
+      "mode": "100644"
+    },
     "src/components/voucher-banner.vue": {
-      "sourceBlob": "ec9351e7c4dcf9aedd946644adc17db669b5e5f7",
-      "sourceSha256": "7b5fd67a100c43142c7f5433828a3c1a216072df9104195b3bb1640e342f4a9b",
-      "targetBlob": "ec9351e7c4dcf9aedd946644adc17db669b5e5f7",
-      "targetSha256": "7b5fd67a100c43142c7f5433828a3c1a216072df9104195b3bb1640e342f4a9b",
+      "sourceBlob": "fdbbd05ddc83024d44aa2f38d0bd525cc1335f0a",
+      "sourceSha256": "707687d77e68171c4cffb0a23ffd15013997c00730277370c885e2abf34b8485",
+      "targetBlob": "fdbbd05ddc83024d44aa2f38d0bd525cc1335f0a",
+      "targetSha256": "707687d77e68171c4cffb0a23ffd15013997c00730277370c885e2abf34b8485",
       "mode": "100644"
     },
     "src/components/voucher-claim-sheet.vue": {
@@ -13509,17 +13516,17 @@
       "mode": "100644"
     },
     "src/lib/voucher-sheet-authority.test.ts": {
-      "sourceBlob": "37dc6d5722b128dfee46cb3457719d47ff96730c",
-      "sourceSha256": "6821daaaddb095441243d2cc2d5e5ce3d83e980a20497616aaaad7191fff714e",
-      "targetBlob": "37dc6d5722b128dfee46cb3457719d47ff96730c",
-      "targetSha256": "6821daaaddb095441243d2cc2d5e5ce3d83e980a20497616aaaad7191fff714e",
+      "sourceBlob": "0323f85ca8e6f1bdefc1833e36eb67347cf15c39",
+      "sourceSha256": "ead52d3dba4b38657af1b095142558665c538e8dcf39ead8365bdc0022fa2fdc",
+      "targetBlob": "0323f85ca8e6f1bdefc1833e36eb67347cf15c39",
+      "targetSha256": "ead52d3dba4b38657af1b095142558665c538e8dcf39ead8365bdc0022fa2fdc",
       "mode": "100644"
     },
     "src/lib/voucher-sheet-authority.ts": {
-      "sourceBlob": "9a9dd992f044a14936e840fdd259da76b75778b9",
-      "sourceSha256": "ced679ff68a2313cb5576d8a4a1158f53012970fef00ecbcc42a9d7a52be0d64",
-      "targetBlob": "9a9dd992f044a14936e840fdd259da76b75778b9",
-      "targetSha256": "ced679ff68a2313cb5576d8a4a1158f53012970fef00ecbcc42a9d7a52be0d64",
+      "sourceBlob": "884735ca469978b7dd05c517ffc69c283702499e",
+      "sourceSha256": "ffa64fb979528fcdc0bbdb1bb2e7b9374f0d5a1a36591cc0d7bf6604d7089724",
+      "targetBlob": "884735ca469978b7dd05c517ffc69c283702499e",
+      "targetSha256": "ffa64fb979528fcdc0bbdb1bb2e7b9374f0d5a1a36591cc0d7bf6604d7089724",
       "mode": "100644"
     },
     "src/lib/wallet-bill-commission-direction.test.ts": {
@@ -16155,17 +16162,17 @@
       "mode": "100644"
     },
     "src/pages/store/store-bundle-entry.behavior.test.ts": {
-      "sourceBlob": "2ec757a03cb9cf9455378524b1ae6d383693431a",
-      "sourceSha256": "03ffcc5267efc39d4b88e992fc3a90b5f99c6f75acafaba68c0b77d9ce77d204",
-      "targetBlob": "2ec757a03cb9cf9455378524b1ae6d383693431a",
-      "targetSha256": "03ffcc5267efc39d4b88e992fc3a90b5f99c6f75acafaba68c0b77d9ce77d204",
+      "sourceBlob": "fedc6e8a59ada308c6031af9e1b9267330171a3f",
+      "sourceSha256": "0e65835d4c72722547af6d31c589f35f0a82ed1d5ae8fef8b6d41ed76a1244ff",
+      "targetBlob": "fedc6e8a59ada308c6031af9e1b9267330171a3f",
+      "targetSha256": "0e65835d4c72722547af6d31c589f35f0a82ed1d5ae8fef8b6d41ed76a1244ff",
       "mode": "100644"
     },
     "src/pages/store/store.vue": {
-      "sourceBlob": "f5ca145935cdefcfe2ef80149f17778c6e41a5d8",
-      "sourceSha256": "a37d1d1f2ead1555870436c44a9fb2714717198ebd52a16b0c2f100501cc699a",
-      "targetBlob": "f5ca145935cdefcfe2ef80149f17778c6e41a5d8",
-      "targetSha256": "a37d1d1f2ead1555870436c44a9fb2714717198ebd52a16b0c2f100501cc699a",
+      "sourceBlob": "e4b1f2901e64967157f538eb3b88153102bbe4b7",
+      "sourceSha256": "8ce06779b3244abe759d244fec211af2cc9bc51149750e3ac39118915b09fa73",
+      "targetBlob": "e4b1f2901e64967157f538eb3b88153102bbe4b7",
+      "targetSha256": "8ce06779b3244abe759d244fec211af2cc9bc51149750e3ac39118915b09fa73",
       "mode": "100644"
     },
     "src/pages/support/chat-conversation.contract.test.ts": {
@@ -18479,24 +18486,24 @@
       "mode": "100644"
     },
     "src/store/voucher-home-authority.test.ts": {
-      "sourceBlob": "07f47a74310e7b00fb49a502791fdcfff6677100",
-      "sourceSha256": "d5b442986f8f8df4f6c37e908516e0b392421e525eec82af29056689c9a2d0d7",
-      "targetBlob": "07f47a74310e7b00fb49a502791fdcfff6677100",
-      "targetSha256": "d5b442986f8f8df4f6c37e908516e0b392421e525eec82af29056689c9a2d0d7",
+      "sourceBlob": "12cade1f036d116c44829455d04706f836671105",
+      "sourceSha256": "18e20b13841749bb68a148a2f2096308da7f309f32b983786bb298d4ef3c65c0",
+      "targetBlob": "12cade1f036d116c44829455d04706f836671105",
+      "targetSha256": "18e20b13841749bb68a148a2f2096308da7f309f32b983786bb298d4ef3c65c0",
       "mode": "100644"
     },
     "src/store/voucher-home-authority.ts": {
-      "sourceBlob": "8ee43ea1948e5dcfb02f78b21eca427f25755bbf",
-      "sourceSha256": "a9df9ada430bd7d6c591653147eeaa8dac47e5c103184cf9ebc9b767ae547c8a",
-      "targetBlob": "8ee43ea1948e5dcfb02f78b21eca427f25755bbf",
-      "targetSha256": "a9df9ada430bd7d6c591653147eeaa8dac47e5c103184cf9ebc9b767ae547c8a",
+      "sourceBlob": "b40729d450e70d0ba2810246cb567c31a13d12eb",
+      "sourceSha256": "18416499c2989eb1451dcc78acb84d4b0bb0c65a455df6fc49acc397055c600b",
+      "targetBlob": "b40729d450e70d0ba2810246cb567c31a13d12eb",
+      "targetSha256": "18416499c2989eb1451dcc78acb84d4b0bb0c65a455df6fc49acc397055c600b",
       "mode": "100644"
     },
     "src/store/voucher-remote-scope.test.ts": {
-      "sourceBlob": "64a320335217fd93639677470003a82463004f5e",
-      "sourceSha256": "564057faa89ed9cded1ef3c67bc174f84e5740b5961302751caaa12336cfe06d",
-      "targetBlob": "64a320335217fd93639677470003a82463004f5e",
-      "targetSha256": "564057faa89ed9cded1ef3c67bc174f84e5740b5961302751caaa12336cfe06d",
+      "sourceBlob": "7c0142aada807665ed264872190729528430aa1e",
+      "sourceSha256": "e239b2385974a77474f372690209716652ba169149e797987d2c2a3fe189d57d",
+      "targetBlob": "7c0142aada807665ed264872190729528430aa1e",
+      "targetSha256": "e239b2385974a77474f372690209716652ba169149e797987d2c2a3fe189d57d",
       "mode": "100644"
     },
     "src/store/voucher.redeem.test.ts": {
@@ -18507,10 +18514,10 @@
       "mode": "100644"
     },
     "src/store/voucher.ts": {
-      "sourceBlob": "4ebbfc944698b8e3c682301908ffe19c1525ed9c",
-      "sourceSha256": "44c1c1ee3798df71d185072cbb73ca38a9f5066b80764235e4767f086fc9747a",
-      "targetBlob": "4ebbfc944698b8e3c682301908ffe19c1525ed9c",
-      "targetSha256": "44c1c1ee3798df71d185072cbb73ca38a9f5066b80764235e4767f086fc9747a",
+      "sourceBlob": "14ce4d4bfc89aedbaa1495343c94df84bd0745f0",
+      "sourceSha256": "2edeb1cede9586b2ae1b69a1407d34bc05374694806c0f208358ac2adc254dbf",
+      "targetBlob": "14ce4d4bfc89aedbaa1495343c94df84bd0745f0",
+      "targetSha256": "2edeb1cede9586b2ae1b69a1407d34bc05374694806c0f208358ac2adc254dbf",
       "mode": "100644"
     },
     "src/store/wallet-ledger-pager.ts": {

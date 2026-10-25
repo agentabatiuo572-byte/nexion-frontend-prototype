@@ -22,6 +22,7 @@ import { useAuditUiCopy } from '@/i18n/audit-ui';
 import { fmt, fmtMoney } from '@/i18n/format';
 import { navTo } from '@/lib/route';
 import { voucherBenefitSummary } from '@/lib/voucher-benefit-summary';
+import { voucherSupportsSurface } from '@/lib/voucher-sheet-authority';
 
 const props = defineProps<{ surface: VoucherSurface; embedded?: boolean }>();
 
@@ -30,7 +31,7 @@ const sheet = useVoucherClaimSheet();
 const t = useT();
 
 const copy = useAuditUiCopy();
-const claimable = computed(() => voucher.claimableVouchers.filter(row => row.claimSurfaces.includes(props.surface)));
+const claimable = computed(() => voucher.claimableVouchers.filter(row => voucherSupportsSurface(row, props.surface)));
 const offers = computed(() => [...new Map([...claimable.value, ...voucher.claimedUnused].map(row => [row.id,row])).values()]);
 const summary = computed(() => voucherBenefitSummary(offers.value));
 const maxDiscount = computed(() => summary.value.amount);

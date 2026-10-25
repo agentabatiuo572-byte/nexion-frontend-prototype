@@ -12,6 +12,11 @@ function def(id: string, claimSurfaces: VoucherDef["claimSurfaces"]): VoucherDef
 }
 
 describe("voucher claim sheet surface authority", () => {
+  it.each(["home", "store", "me", "earn"] as const)("shows unrestricted claimable and owned offers on %s, but never unavailable offers", surface => {
+    const claimable = def("all-unclaimed", []), owned = def("all-owned", []), unavailable = def("all-unavailable", []);
+    expect(visibleVoucherCatalog([claimable, owned, unavailable], [claimable], [owned], surface).map(row => row.id))
+      .toEqual([claimable.id, owned.id]);
+  });
   it("shows and therefore claims only vouchers assigned to the opening surface", () => {
     const home = def("home-only", ["home"]);
     const store = def("store-only", ["store"]);
