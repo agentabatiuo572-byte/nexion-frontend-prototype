@@ -1,4 +1,5 @@
 const DAY_MS = 86_400_000;
+let trustedClock: (() => unknown) | null = null;
 
 export function hasMonotonicClock(): boolean {
   return typeof performance !== "undefined" && typeof performance.now === "function";
@@ -7,9 +8,21 @@ export function hasMonotonicClock(): boolean {
 /** A remote deadline must never substitute the device wall clock. */
 export function readTrustedMonotonicNowMs(): number | null {
   try {
-    if (!hasMonotonicClock()) return null;
-    const now = performance.now();
-    return Number.isFinite(now) && now >= 0 ? now : null;
+    if (!trustedClock) {
+      // Keep one epoch for every live server-time anchor, including after a bridge failure.
+      // #ifdef APP-PLUS
+      if (typeof plus !== "undefined" && plus.os?.name === "Android" && typeof plus.android?.invoke === "function") {
+        const android = plus.android;
+        // elapsedRealtime includes deep sleep; wall time and uptimeMillis do not satisfy this contract.
+        trustedClock = () => android.invoke("android.os.SystemClock", "elapsedRealtime");
+      }
+      // #endif
+      if (!trustedClock && hasMonotonicClock()) {
+        trustedClock = () => hasMonotonicClock() ? performance.now() : undefined;
+      }
+    }
+    const now = trustedClock?.();
+    return typeof now === "number" && Number.isFinite(now) && now >= 0 ? now : null;
   } catch {
     return null;
   }

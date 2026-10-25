@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\team-v8-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "86b7485823350f10c83efb28a690a8e419efe351",
-  "sourceRef": "86b7485823350f10c83efb28a690a8e419efe351",
+  "sourceHead": "cb5113d3a984ff3365febc30c9df4da393fc0f4d",
+  "sourceRef": "cb5113d3a984ff3365febc30c9df4da393fc0f4d",
   "sourceRefKind": "commit",
-  "sourceTree": "8072231b8c1e515514b8954cceca2271d378ffd7",
+  "sourceTree": "3cfa57d22127cd87dc8fa0052126b70839ca3a13",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -104,17 +104,17 @@
       "mode": "100644"
     },
     "PRD/NexGrid_APP端开发落地规格.md": {
-      "sourceBlob": "244a2af81156541d818c955095fe6bc8f2259ca3",
-      "sourceSha256": "bc4a51f2c9d8e985cc00d99b61926811629958153419a52b6127b2a1aeb4e8d6",
-      "targetBlob": "244a2af81156541d818c955095fe6bc8f2259ca3",
-      "targetSha256": "bc4a51f2c9d8e985cc00d99b61926811629958153419a52b6127b2a1aeb4e8d6",
+      "sourceBlob": "b57bd13c3204c2f7b0501b547f530bae11cc4739",
+      "sourceSha256": "3b4d256a629949fe03d4177788d3f406783caad195cdd52a2912fbbb64446103",
+      "targetBlob": "b57bd13c3204c2f7b0501b547f530bae11cc4739",
+      "targetSha256": "3b4d256a629949fe03d4177788d3f406783caad195cdd52a2912fbbb64446103",
       "mode": "100644"
     },
     "PRD/NexGrid_产品功能架构设计文档_v3.7.md": {
-      "sourceBlob": "8d66042348027b20fd1b1cf059e4846eea71fb8c",
-      "sourceSha256": "fadaba5bfa009bf6633815d2b162627b90fa4e74a01dcd9141d9e0efc0fbd6dc",
-      "targetBlob": "8d66042348027b20fd1b1cf059e4846eea71fb8c",
-      "targetSha256": "fadaba5bfa009bf6633815d2b162627b90fa4e74a01dcd9141d9e0efc0fbd6dc",
+      "sourceBlob": "7497c9463109a05fce93f6b1888acf3c3d09b888",
+      "sourceSha256": "c75e54bfa678f4a21c2baaa9866acc6221ed58aa5e4081e4b3d6371f1d494ffe",
+      "targetBlob": "7497c9463109a05fce93f6b1888acf3c3d09b888",
+      "targetSha256": "c75e54bfa678f4a21c2baaa9866acc6221ed58aa5e4081e4b3d6371f1d494ffe",
       "mode": "100644"
     },
     "PRD/UVEL_体验与运营配置同步_20261025.md": {
@@ -125,10 +125,10 @@
       "mode": "100644"
     },
     "PRD/UVEL_首页信任与活动规则_20261025.md": {
-      "sourceBlob": "156e09b27c280db2b8b721a39e77bc185be79faa",
-      "sourceSha256": "aff704d9078cdd2f553dcebd44d830949c32399bf74bee566c5eaaf51df926ea",
-      "targetBlob": "156e09b27c280db2b8b721a39e77bc185be79faa",
-      "targetSha256": "aff704d9078cdd2f553dcebd44d830949c32399bf74bee566c5eaaf51df926ea",
+      "sourceBlob": "4a5597792eaa2e252a5c3b8a82248377c6652e03",
+      "sourceSha256": "fd818d3e7b26a338b1de90a553b704bb0b2dae853f962d8c663298aaa52e361d",
+      "targetBlob": "4a5597792eaa2e252a5c3b8a82248377c6652e03",
+      "targetSha256": "fd818d3e7b26a338b1de90a553b704bb0b2dae853f962d8c663298aaa52e361d",
       "mode": "100644"
     },
     "checks/lucky-spin-remote-contract.test.mjs": {
@@ -13040,17 +13040,17 @@
       "mode": "100644"
     },
     "src/lib/server-deadline-clock.test.ts": {
-      "sourceBlob": "2a0d18faac77d0505233540109d947b57abe9aa7",
-      "sourceSha256": "ec81a86eb1a2094f17dcea3715550958e3bbc435b69b210159774e08d85e5098",
-      "targetBlob": "2a0d18faac77d0505233540109d947b57abe9aa7",
-      "targetSha256": "ec81a86eb1a2094f17dcea3715550958e3bbc435b69b210159774e08d85e5098",
+      "sourceBlob": "fa810a4c99316ccaf4dd731086a30e8f150e4087",
+      "sourceSha256": "dee0321bb166a3eb3cbb801aef813c37980a469b7aa8b5c63cfd9413609a2ce6",
+      "targetBlob": "fa810a4c99316ccaf4dd731086a30e8f150e4087",
+      "targetSha256": "dee0321bb166a3eb3cbb801aef813c37980a469b7aa8b5c63cfd9413609a2ce6",
       "mode": "100644"
     },
     "src/lib/server-deadline-clock.ts": {
-      "sourceBlob": "0e379bbe35c4ce42abeeb11a6ec10b9533f8c4aa",
-      "sourceSha256": "dac4962f126d38c312ecb4ba354277fcf122371ef94211a4f7f5b74040d633b6",
-      "targetBlob": "0e379bbe35c4ce42abeeb11a6ec10b9533f8c4aa",
-      "targetSha256": "dac4962f126d38c312ecb4ba354277fcf122371ef94211a4f7f5b74040d633b6",
+      "sourceBlob": "119b5f31655fdcd97662bfc0318e8dc2f93f0bb7",
+      "sourceSha256": "b771390783e6590946e4f11ae7d469429a089e44226bbbf33d0e95353439e819",
+      "targetBlob": "119b5f31655fdcd97662bfc0318e8dc2f93f0bb7",
+      "targetSha256": "b771390783e6590946e4f11ae7d469429a089e44226bbbf33d0e95353439e819",
       "mode": "100644"
     },
     "src/lib/share-channel-account-scope.behavior.test.ts": {

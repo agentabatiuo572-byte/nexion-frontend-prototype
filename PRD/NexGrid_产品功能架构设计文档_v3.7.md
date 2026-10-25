@@ -5601,6 +5601,8 @@ Skeleton 视觉实现统一使用 `<Skeleton.{Line/Card/Circle/Hero/Block}>` 组
 
 ### 18.1 功能验收
 
+2026-10-25 正式 TEST 活动与优惠券实际结果见[首页与活动规则 §6.1](UVEL_首页信任与活动规则_20261025.md#61-2026-10-25-test-实际验收结果)：按立减/取消、库存 readiness、空入口领券、暂停权益、并发额度、原生报价 TTL 与 PC 面值分别记录通过范围及未执行边界。历史脚本统计不替代这些实际业务回执，也不代表重复退款 API、新期赠机并发或券有效期自然跨时已经完成。
+
 `bash scripts/verify.sh all` → **232/232 全过**
 `npx tsc --noEmit` → **0 errors**
 
