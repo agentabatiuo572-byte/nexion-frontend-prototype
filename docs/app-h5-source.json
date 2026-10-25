@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\team-v8-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "df820e4671fa40fce0f53fea8dd6926172c9e026",
-  "sourceRef": "df820e4671fa40fce0f53fea8dd6926172c9e026",
+  "sourceHead": "522ee05afff736ad5d1390cecfa7916356d92251",
+  "sourceRef": "522ee05afff736ad5d1390cecfa7916356d92251",
   "sourceRefKind": "commit",
-  "sourceTree": "36672f2cd81140e014e107b7f791af00f875842c",
+  "sourceTree": "fc991035a5daa105d75fc27b78a007285161add4",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -125,10 +125,10 @@
       "mode": "100644"
     },
     "PRD/UVEL_首页信任与活动规则_20261025.md": {
-      "sourceBlob": "4384bb7fad3a7e327d0db7151f6750e1575c427b",
-      "sourceSha256": "8440b1f6012ea1c91ec48748114de73e12b19c3e028cfe3fdb8383111956bda8",
-      "targetBlob": "4384bb7fad3a7e327d0db7151f6750e1575c427b",
-      "targetSha256": "8440b1f6012ea1c91ec48748114de73e12b19c3e028cfe3fdb8383111956bda8",
+      "sourceBlob": "9355241c1cd43bcecaab2b836bc0c49d00a94d82",
+      "sourceSha256": "ca1773d999aebd73fc53692a8d7c5afeb7aeca9fc2cb250a6b0a0ab24059fa31",
+      "targetBlob": "9355241c1cd43bcecaab2b836bc0c49d00a94d82",
+      "targetSha256": "ca1773d999aebd73fc53692a8d7c5afeb7aeca9fc2cb250a6b0a0ab24059fa31",
       "mode": "100644"
     },
     "checks/lucky-spin-remote-contract.test.mjs": {
@@ -14285,6 +14285,13 @@
       "targetSha256": "30386fc9bbf627a7ec6a41e9d6f072e4cb7ae9acc94783d5bba2c94a8bc37820",
       "mode": "100644"
     },
+    "src/pages/me/me-missions-entry.contract.test.ts": {
+      "sourceBlob": "b49a2f59170d91645dae0e861f76e3ca2dbfa2a9",
+      "sourceSha256": "7cc0dfeaf7e303ad3976a34d64cd23b3bb82ae8ca47f756bc5506804a643bba0",
+      "targetBlob": "b49a2f59170d91645dae0e861f76e3ca2dbfa2a9",
+      "targetSha256": "7cc0dfeaf7e303ad3976a34d64cd23b3bb82ae8ca47f756bc5506804a643bba0",
+      "mode": "100644"
+    },
     "src/pages/me/me-orders-runtime-revision.test.ts": {
       "sourceBlob": "104e24cc12d1a63567e63fd9d97018c9789a6f1a",
       "sourceSha256": "59cad1455b23b3dc6a9b7786c811aae7a6c4765ba40d019b4d4ca2affa68d5d7",
@@ -14314,10 +14321,10 @@
       "mode": "100644"
     },
     "src/pages/me/me.vue": {
-      "sourceBlob": "8a33ccbc46f23e35cbd8ad67c4047e45a7f31c2d",
-      "sourceSha256": "85d57f79004835bdb88092bbfbd928834d7a5d84626eb6f5dc5d147d9162a74b",
-      "targetBlob": "8a33ccbc46f23e35cbd8ad67c4047e45a7f31c2d",
-      "targetSha256": "85d57f79004835bdb88092bbfbd928834d7a5d84626eb6f5dc5d147d9162a74b",
+      "sourceBlob": "749278bdba5c49e7defd8039cc73e34887f8f3d5",
+      "sourceSha256": "86491a291a7447ac36d1d775370f2893d5b597364b0b17f0a9f191cfe8de7df9",
+      "targetBlob": "749278bdba5c49e7defd8039cc73e34887f8f3d5",
+      "targetSha256": "86491a291a7447ac36d1d775370f2893d5b597364b0b17f0a9f191cfe8de7df9",
       "mode": "100644"
     },
     "src/pages/me/notification-intent-lifecycle.test.ts": {

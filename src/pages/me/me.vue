@@ -297,6 +297,7 @@ const quickSections = computed<QuickSection[]>(() => [
     key: "account",
     title: t.value.me.secAccount,
     items: [
+      { key: "missions", label: t.value.me.missionsRow, href: "/pages/missions/missions", icon: "target", tone: "brand" },
       { key: "rewards", label: t.value.rewards.entry, href: "/me/rewards", icon: "gift", dot: rewardsDot.value, tone: "brand" },
       { key: "receipts", label: t.value.me.receiptsRow, href: "/me/receipts", icon: "receipt", tone: "brand" },
       { key: "orders", label: t.value.store.ordersChip, href: "/store/orders?from=me", icon: "package", meta: orderCount.value > 0 ? deviceOrdersMeta.value : undefined, tone: "purple" },
