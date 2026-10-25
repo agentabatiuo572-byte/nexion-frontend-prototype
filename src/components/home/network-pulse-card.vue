@@ -1,6 +1,6 @@
 <!--
   NetworkPulseCard — ZONE 2 global-grid metrics(规格 FEAT-HOME02)。
-  三格:注册用户 / 在线设备 / 你的排名 —— 全部由展示配置与真实派生驱动,零写死值。
+  三格:注册用户 / 在线设备 / 设备预估排名。
 -->
 <template>
   <view data-home-section="network-pulse">
@@ -21,10 +21,10 @@
           :style="{ gridTemplateColumns: '1fr', padding: '12px', borderRight: i < metrics.length - 1 ? '1px solid var(--v5-border)' : 'none', minWidth: 0 }"
           v-on="m.tap ? { click: m.tap } : {}"
 
-          @keydown.space.stop.prevent="activate(m.tap)"
+          @keydown.enter.stop.prevent="activate(m.tap)" @keydown.space.stop.prevent="activate(m.tap)"
         >
           <view class="min-w-0">
-            <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ m.k }}</text>
+            <text class="block font-mono-tabular" style="font-size: 12px; line-height: 14px; min-height: 28px; color: var(--v5-ink-3)">{{ m.k }}</text>
             <!-- 骨架条:只属**占位格**(健康格有活数据,刷新期间保持旧值,不糊骨架 ——
                  R2 审计:下拉链 900ms 后 load 600ms,任何纯时长防抖都会被常量击穿,
                  「有值不换骨架」才是真防闪;300ms 防抖只管占位格自己的拉取显示)。 -->
@@ -34,9 +34,7 @@
               class="block mt-0.5 tabular-nums"
               :style="{ fontFamily: 'var(--font-v5)', fontWeight: 600, fontSize: m.vSize ?? '20px', color: m.tone, letterSpacing: '-0.014em', lineHeight: 1.05, whiteSpace: 'nowrap' }"
             >{{ m.v }}</text>
-            <!-- 可点副行(未上榜引导 CTA)才挂监听 + active 反馈;纯展示副行零监听 ——
-                 无条件挂 handler 会让 tap-feedback 探针把不可点的格也计为 tap 目标(P-059 同轮抓的)。
-                 热区:负 margin 抵消的 padding 把可点面拉到 ≥40px,视觉不变。 -->
+            <!-- Retry has its own tap target; explanation uses the whole rank cell. -->
             <text
               v-if="m.subTap"
               class="block mt-1 font-mono-tabular truncate active:opacity-70"
@@ -62,53 +60,21 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { useConfig } from "@/store/config";
-import { useRankSnapshot } from "@/store/rank-snapshot";
 import { useNetworkRank } from "@/store/network-rank";
 import { remoteApiEnabled } from "@/api/runtime";
-import { computeRank } from "@/lib/network-rank";
-import { publicStatsHealth, compactNumber as compact } from "@/lib/platform-stats";
-import { toast } from "@/store/ui";
-import { navTo } from "@/lib/route";
+import { compactNumber as compact } from "@/lib/platform-stats";
+import { confirm } from "@/store/ui";
 
 const t = useT();
 const app = useApp();
 const cfg = useConfig();
-const snap = useRankSnapshot();
 const remoteRank = useNetworkRank();
-const rankSnapshotStale = computed(() => remoteApiEnabled
-  && remoteRank.status === "error" && remoteRank.snapshot !== null);
-
-// 🔴 时间锚的真实机制(2026-08-06 审计纠正,上一版注释说的「下拉刷新带动重渲」不成立):
-//   挂载取一次 + **配置重拉完成沿再取一次**(下拉刷新会触发 cfg.load,见 store/refresh.ts)。
-//   两个刷新点之间冻结 —— 名次确定性正来自于此;秒级时钟属于创世倒计时,不属于这里。
-const nowTs = ref(Date.now());
-// 🔴 24h 前进量:**冻结成普通 ref,再提交**(第二次结构反思·族A)。
-//   R1 是「computed 里落盘」,R2 证明「先读后滚」照样死 —— commit 写快照源,
-//   展示 computed 追踪着它,paint 前被失效重算成 null。响应式系统里「顺序」不是「隔离」;
-//   真隔离 = 展示值在时点定格进普通 ref(它不追踪任何源),提交爱怎么写怎么写。
-const displayDelta = ref<number | null>(null);
 function refreshRankMoment() {
-  if (remoteApiEnabled) {
-    void remoteRank.refresh();
-    displayDelta.value = remoteRank.snapshot?.rankChange24h ?? null;
-    return;
-  }
-  nowTs.value = Date.now();
-  const r = rank.value;
-  if (r.kind === "ranked") {
-    displayDelta.value = snap.preview(r.rank, nowTs.value); // 先冻结
-    snap.commit(r.rank, nowTs.value);                       // 后滚动,写不回展示值
-  } else {
-    displayDelta.value = null;
-  }
+  if (remoteApiEnabled) void remoteRank.refresh();
 }
 onMounted(refreshRankMoment);
-watch(() => remoteRank.snapshot, (next) => {
-  if (remoteApiEnabled) displayDelta.value = next?.rankChange24h ?? null;
-});
 watch(() => app.accountKey, (accountKey) => {
   if (!remoteApiEnabled) return;
   // Defensive rebind for direct session restore/account mutations; the central
@@ -135,34 +101,25 @@ watch(() => cfg.loading, (l) => {
 });
 onUnmounted(() => { if (skeletonTimer !== null) clearTimeout(skeletonTimer); }); // R3 P2 卫生债
 
-// 健康度共享一份(三格 + 排名入参守卫同源)
-const health = computed(() => publicStatsHealth(cfg.config.publicStats));
-// ── 格 3:名次(每次渲染由当下算力 + 当下配置现算,禁缓存名次)──
-//   🔴 入参守卫(R2 P2):分母吃服务端真实账号数，营销公布基数不参与资格排名。
-//   是它自己的输入坏了,同判 unavailable;ps 整段缺席(机器门最小桩)同理,不裸解引。
+// Only the current bound phone participates; no account-total or local fallback.
 const rank = computed(() => {
-  if (remoteApiEnabled) {
-    if (remoteRank.snapshot === null) return { kind: "unavailable" } as const;
-    return remoteRank.snapshot.currentRank === null
-      ? { kind: "unranked" } as const
-      : { kind: "ranked", rank: remoteRank.snapshot.currentRank } as const;
+  if (!remoteApiEnabled || remoteRank.status === "error" || remoteRank.snapshot === null) {
+    return { kind: "unavailable" } as const;
   }
-  const ps = cfg.config.publicStats;
-  const h = health.value;
-  if (!ps || !h.membersOk || !h.rankOk) return { kind: "unavailable" } as const;
-  return computeRank({
-    myTotalHashrate: app.myTotalHashrateAt(nowTs.value),
-    table: ps.hashratePercentileTable,
-    realPopulation: ps.realUserCount,
-    virtualPopulation: ps.virtualUserCount,
-  });
+  const snapshot = remoteRank.snapshot;
+  return snapshot.state === "ranked"
+    ? { kind: "ranked", rank: snapshot.currentRank! } as const
+    : { kind: snapshot.state };
 });
-// R3 降级 P2:rank 会随设备增减在已挂载页面上活翻(6s 订单 tick 在任意页发货)——
-// **kind 一迁移**就重取时刻(补落基线/清滞留值)。只盯 kind 不盯名次值:名次里掺着
-// 时间派生的人口,盯值会让 refreshRankMoment 的 nowTs 触发自转;displayDelta 是普通 ref、
-// commit 不在展示读路径,kind-watch 不会重开族A写读环。必须放在 rank 声明之后
-// (watch 源 getter 创建即求值,放前面是 TDZ 崩页 —— 首跑实锤,5 个浏览器齿轮全灭)。
-watch(() => rank.value.kind, (k, was) => { if (k !== was) refreshRankMoment(); });
+function explainRank() {
+  const state = rank.value.kind;
+  const status = state === "unranked" ? t.value.home.networkRankTipUnranked
+    : state === "disabled" ? t.value.home.networkRankDisabled
+    : state === "unavailable" ? t.value.home.networkRankUnavailable : "";
+  void confirm({ title: t.value.home.networkYourRank,
+    message: [status, t.value.home.networkRankTipRanked].filter(Boolean).join("\n\n"),
+    hideCancel: true, icon: "info" });
+}
 
 interface Cell {
   k: string;
@@ -197,10 +154,9 @@ function placeholderCell(label: string, retry?: () => void, skeleton = showSkele
 }
 
 const metrics = computed<Cell[]>(() => {
-  const h = health.value;
   const failed = cfg.syncFailed;
   const pulse = failed ? null : cfg.config.networkPulse;
-  // H9 owns these display values; verified measurements and personal rank stay separate.
+  // H9 supplies the published counts and the server supplies the device estimate.
   const displayCell = (label: string, value: number | null | undefined, color: string): Cell =>
     value === null || value === undefined
       ? placeholderCell(label)
@@ -208,38 +164,19 @@ const metrics = computed<Cell[]>(() => {
   const members = displayCell(t.value.home.networkMembers, pulse?.registeredUsers, "var(--v5-brand)");
   const devices = displayCell(t.value.home.networkDevices, pulse?.onlineDevices, "var(--v5-tech-cyan-ink)");
 
-  // 格 3 你的排名 —— 三态(规格 ⑤/异常1/异常2);rankOk 缺失同走占位
   const r = rank.value;
-  let rankCell: Cell;
-  if (r.kind === "unavailable" || (!remoteApiEnabled && (failed || !h.rankOk))) {
-    rankCell = remoteApiEnabled
-      ? placeholderCell(t.value.home.networkYourRank, () => { void remoteRank.refresh(); }, remoteRank.status === "loading")
-      : placeholderCell(t.value.home.networkYourRank);
-  } else if (r.kind === "unranked") {
-    rankCell = {
-      k: t.value.home.networkYourRank,
-      // 未上榜整态降档(槽位契约:vi 全称 20px 放不下,≤12px 才进 89.3px 槽 —— 见 en.ts 注)
-      v: t.value.home.networkRankUnranked,
-      vSize: "12.5px",
-      tone: "var(--v5-ink-2)",
-      sub: t.value.home.networkRankUnrankedHint,
-      subTone: "var(--v5-brand)",
-      data: null,
-      tap: () => toast.info(t.value.home.networkRankTipUnranked),
-      subTap: () => navTo("/store"), // 引导整条即 CTA(规格 ⑥:设备/商城既有入口)
-    };
-  } else {
-    rankCell = {
-      k: t.value.home.networkYourRank,
-      v: `#${compact(r.rank)}`,
-      tone: "var(--v5-brand)",
-       sub: rankSnapshotStale.value ? t.value.home.networkStale
-         : displayDelta.value !== null ? fmt(t.value.home.networkRankUp24h, { n: displayDelta.value }) : "",
-      data: null,
-      color: "var(--v5-brand)",
-      tap: () => toast.info(t.value.home.networkRankTipRanked),
-    };
-  }
+  const rankCell: Cell = {
+    k: t.value.home.networkYourRank,
+    v: r.kind === "ranked" ? `#${compact(r.rank)}`
+      : r.kind === "unranked" ? t.value.home.networkRankUnranked : "-",
+    vSize: r.kind === "ranked" ? "20px" : "12px",
+    tone: r.kind === "ranked" ? "var(--v5-brand)" : "var(--v5-ink-3)",
+    sub: r.kind === "unavailable" ? t.value.home.networkStatRetry : t.value.home.networkRankExplanation,
+    subTone: "var(--v5-tech-cyan-ink)",
+    skeleton: remoteApiEnabled && remoteRank.status === "loading" && remoteRank.snapshot === null,
+    tap: explainRank,
+    subTap: r.kind === "unavailable" ? () => { void remoteRank.refresh(); } : undefined,
+  };
 
   return [members, devices, rankCell];
 });

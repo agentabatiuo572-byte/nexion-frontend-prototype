@@ -8,9 +8,7 @@ import { renderToString } from '@vue/server-renderer';
 import { en } from '@/i18n/messages/en';
 import { zh } from '@/i18n/messages/zh';
 import { vi as vietnamese } from '@/i18n/messages/vi';
-import { fmt } from '@/i18n/format';
-import { publicStatsHealth, compactNumber } from '@/lib/platform-stats';
-import { computeRank } from '@/lib/network-rank';
+import { compactNumber } from '@/lib/platform-stats';
 
 const source = readFileSync(new URL('./network-pulse-card.vue', import.meta.url), 'utf8');
 const start = source.indexOf('function placeholderCell(');
@@ -19,55 +17,47 @@ if (start < 0 || end < 0) throw new Error('Actual metrics implementation not fou
 const implementation = ts.transpileModule(source.slice(start, end), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
 }).outputText;
-const compile = new Function('computed', 'cfg', 'health', 'registered', 'app', 'rank',
-  't', 'compact', 'fmt', 'ramp', 'toast', 'navTo', 'rankSnapshotStale', 'displayDelta',
-  'showSkeleton', 'remoteApiEnabled', 'remoteRank', `${implementation}; return metrics;`);
+const compile = new Function('computed', 'cfg', 'rank', 't', 'compact', 'showSkeleton',
+  'remoteApiEnabled', 'remoteRank', 'explainRank', `${implementation}; return metrics;`);
 
-function scenario({ remote = true, failed = false, rankOk = false, kind = 'ranked', status = 'ready' } = {}) {
+function scenario(kind = 'ranked', status = 'ready') {
   const configRefresh = vi.fn();
   const rankRefresh = vi.fn();
-  const messages = new Proxy({}, { get: (_, key) => key === 'networkStatUnverified' ? '-' : String(key) });
+  const explain = vi.fn();
+  const messages = new Proxy({}, { get: (_, key) => String(key) });
   const metrics = compile((run: () => unknown) => run(),
-    { syncFailed: failed, config: { publicStats: { registeredUsersMonthlyGrowthPct: 1 } }, load: configRefresh },
-    { value: { membersOk: true, devicesOk: true, rankOk } }, { value: 100 },
-    { global: { activeDevices: 20 } }, { value: { kind, rank: 7 } },
-    { value: { home: messages } }, String, (text: string) => text, () => [],
-    { info: vi.fn() }, vi.fn(), { value: false }, { value: null },
-    { value: true }, remote, { status, refresh: rankRefresh });
-  return { metrics, configRefresh, rankRefresh };
+    { syncFailed: true, config: {}, load: configRefresh }, { value: { kind, rank: 7 } },
+    { value: { home: messages } }, String, { value: false }, true,
+    { status, snapshot: null, refresh: rankRefresh }, explain);
+  return { metrics, configRefresh, rankRefresh, explain };
 }
 
-describe('actual homepage remote ranking is independent of H9 estimates', () => {
-  it('keeps a successful real rank when legacy virtual population is invalid', () => {
-    expect(scenario().metrics[2].v).toBe('#7');
-  });
-  it('keeps a successful real rank when public configuration fails', () => {
-    const { metrics, configRefresh } = scenario({ failed: true, rankOk: true });
-    expect(metrics[2].v).toBe('#7');
-    // Missing H9 display values remain placeholders and retain the existing retry.
-    expect(metrics[0].v).toBe('-');
-    expect(metrics[1].v).toBe('-');
+describe('homepage estimated device rank', () => {
+  it('keeps the independently fetched estimate when the public configuration fails', () => {
+    const { metrics, configRefresh, explain } = scenario();
+    expect(metrics.map((cell: { v: string }) => cell.v)).toEqual(['-', '-', '#7']);
     metrics[0].tap(); expect(configRefresh).toHaveBeenCalledOnce();
+    metrics[2].tap(); expect(explain).toHaveBeenCalledOnce();
+    expect(metrics[2].sub).toBe('networkRankExplanation');
   });
-  it('keeps an authoritative unranked state when public configuration fails', () => {
-    expect(scenario({ failed: true, kind: 'unranked' }).metrics[2].v).toBe('networkRankUnranked');
+  it('explains an unranked phone without directing users to buy unrelated devices', () => {
+    const { metrics, explain } = scenario('unranked');
+    expect(metrics[2].v).toBe('networkRankUnranked');
+    metrics[2].tap(); expect(explain).toHaveBeenCalledOnce();
+    expect(metrics[2].subTap).toBeUndefined();
   });
-  it('retries the rank endpoint rather than H9 when the rank is unavailable', () => {
-    const result = scenario({ kind: 'unavailable', status: 'error' });
-    result.metrics[2].tap();
-    expect(result.rankRefresh).toHaveBeenCalledOnce();
-    expect(result.configRefresh).not.toHaveBeenCalled();
-    expect(result.metrics[2].skeleton).toBe(false);
-  });
-  it('uses rank loading state for its own placeholder', () => {
-    expect(scenario({ kind: 'unavailable', status: 'loading' }).metrics[2].skeleton).toBe(true);
-  });
-  it('preserves the configuration guard and retry for local estimates', () => {
-    const result = scenario({ remote: false });
+  it('offers retry for unavailable estimates and explains disabled ones without a numeric fallback', () => {
+    const result = scenario('unavailable', 'error');
     expect(result.metrics[2].v).toBe('-');
-    result.metrics[2].tap();
-    expect(result.configRefresh).toHaveBeenCalledOnce();
-    expect(result.rankRefresh).not.toHaveBeenCalled();
+    result.metrics[2].subTap(); expect(result.rankRefresh).toHaveBeenCalledOnce();
+    expect(result.configRefresh).not.toHaveBeenCalled();
+    const disabled = scenario('disabled');
+    expect(disabled.metrics[2].v).toBe('-');
+    expect(disabled.metrics[2].subTap).toBeUndefined();
+    disabled.metrics[2].tap(); expect(disabled.explain).toHaveBeenCalledOnce();
+  });
+  it('uses rank loading state for its own empty placeholder', () => {
+    expect(scenario('unavailable', 'loading').metrics[2].skeleton).toBe(true);
   });
 });
 
@@ -75,14 +65,14 @@ it.each([en, zh, vietnamese])('renders actual network metric slots through missi
   const cfg = Vue.reactive({ loading: false, syncFailed: false,
     publicStatsAuthority: null as null | object,
     config: { publicStats: { realUserCount: undefined as number | undefined }, networkPulse: null as null | { registeredUsers: number | null; onlineDevices: number | null } }, load: vi.fn() });
-  const remoteRank = Vue.reactive({ status: 'error', snapshot: null as null | { currentRank: number | null; rankChange24h: number | null }, refresh: vi.fn(), bindAccount: vi.fn() });
+  const remoteRank = Vue.reactive({ status: 'error', snapshot: null as null | { currentRank: number | null; state: string }, refresh: vi.fn(), bindAccount: vi.fn() });
   const blank = { render: () => null };
   const dependencies: Record<string, unknown> = {
-    vue: Vue, '@/i18n/use-t': { useT: () => Vue.ref(copy) }, '@/i18n/format': { fmt },
+    vue: Vue, '@/i18n/use-t': { useT: () => Vue.ref(copy) },
     '@/store/app': { useApp: () => ({ accountKey: 'user:1' }) }, '@/store/config': { useConfig: () => cfg },
-    '@/store/rank-snapshot': { useRankSnapshot: () => ({}) }, '@/store/network-rank': { useNetworkRank: () => remoteRank },
-    '@/api/runtime': { remoteApiEnabled: true }, '@/lib/network-rank': { computeRank },
-    '@/lib/platform-stats': { publicStatsHealth, compactNumber }, '@/store/ui': { toast: { info: vi.fn() } },
+    '@/store/network-rank': { useNetworkRank: () => remoteRank },
+    '@/api/runtime': { remoteApiEnabled: true },
+    '@/lib/platform-stats': { compactNumber }, '@/store/ui': { confirm: vi.fn() },
     '@/lib/route': { navTo: vi.fn() }, './pulse-dot.vue': { default: blank }, './home-sparkline.vue': { default: blank },
   };
   const script = compileScript(parse(source).descriptor, { id: 'network-slots', inlineTemplate: true });
@@ -95,14 +85,17 @@ it.each([en, zh, vietnamese])('renders actual network metric slots through missi
   expect(await values()).toEqual(['-', '-', '-']);
   cfg.syncFailed = true; expect(await values()).toEqual(['-', '-', '-']);
   cfg.syncFailed = false; cfg.publicStatsAuthority = {}; cfg.config.publicStats.realUserCount = 0; cfg.config.networkPulse = { registeredUsers: 0, onlineDevices: 0 };
-  remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, rankChange24h: null };
+  remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, state: 'ranked' };
   expect(await values()).toEqual(['0', '0', '#7']);
-  remoteRank.snapshot.currentRank = null; expect(await values()).toEqual(['0', '0', copy.home.networkRankUnranked]);
+  remoteRank.snapshot = { currentRank: null, state: 'unranked' }; expect(await values()).toEqual(['0', '0', copy.home.networkRankUnranked]);
+  remoteRank.snapshot = { currentRank: null, state: 'disabled' }; expect(await values()).toEqual(['0', '0', '-']);
+  remoteRank.snapshot = { currentRank: null, state: 'unavailable' }; expect(await values()).toEqual(['0', '0', '-']);
+  remoteRank.snapshot = { currentRank: 7, state: 'ranked' }; remoteRank.status = 'error'; expect(await values()).toEqual(['0', '0', '-']);
   remoteRank.snapshot = null; remoteRank.status = 'loading'; expect(await values()).toEqual(['0', '0']);
   remoteRank.status = 'error'; expect(await values()).toEqual(['0', '0', '-']);
   cfg.config.networkPulse = { registeredUsers: 12345, onlineDevices: 28432 };
   cfg.config.publicStats.realUserCount = 999999;
-  remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, rankChange24h: null };
+  remoteRank.status = 'ready'; remoteRank.snapshot = { currentRank: 7, state: 'ranked' };
   expect(await values()).toEqual([compactNumber(12345), compactNumber(28432), '#7']);
   cfg.config.networkPulse.onlineDevices = null;
   expect(await values()).toEqual([compactNumber(12345), '-', '#7']);
@@ -112,4 +105,23 @@ it.each([en, zh, vietnamese])('renders actual network metric slots through missi
   expect(html).not.toContain('2026-10');
   expect(source).not.toContain('verifiedStats');
   expect(source).not.toContain('setInterval');
+  expect(source).not.toContain('rankChange24h');
+  expect(source).not.toContain('myTotalHashrate');
+  expect(html).toContain(copy.home.networkYourRank);
+});
+
+it.each([en, zh, vietnamese])('opens the localized explanation for every state', copy => {
+  const start = source.indexOf('function explainRank()');
+  const end = source.indexOf('interface Cell', start);
+  const compiled = ts.transpileModule(source.slice(start, end), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+  for (const [kind, status] of [['ranked', ''], ['unranked', copy.home.networkRankTipUnranked],
+    ['disabled', copy.home.networkRankDisabled], ['unavailable', copy.home.networkRankUnavailable]]) {
+    const confirm = vi.fn();
+    new Function('rank', 't', 'confirm', `${compiled}; explainRank();`)(
+      { value: { kind } }, { value: copy }, confirm);
+    expect(confirm).toHaveBeenCalledWith({ title: copy.home.networkYourRank, hideCancel: true, icon: 'info',
+      message: [status, copy.home.networkRankTipRanked].filter(Boolean).join('\n\n') });
+  }
 });

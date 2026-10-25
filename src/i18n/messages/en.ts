@@ -571,57 +571,16 @@ sandboxSponsorEnvironmentMismatch: "This invitation code can't be used. Check it
     networkGlobalGrid: "Global grid · live",
     networkMembers: "Members",
     networkDevices: "Devices",
-    networkYourRank: "Your rank",
-    // FEAT-HOME02 pulse metric subs + rank tri-state (ranked / unranked / config unavailable)
-    //
-    // 🔴 槽位契约(2026-08-05 三次独立 DOM probe 实测,375px 视口 / network-pulse-card.vue 三格):
-    //   值槽 = 89.3px(1、2 格)/ 90.3px(第 3 格「你的排名」),General Sans 20px/600、
-    //   letter-spacing -0.28px,white-space:nowrap 且「无 truncate」(实测 text-overflow:clip),
-    //   卡片外层 overflow:hidden → 超宽是「硬裁」,不是省略号。
-    //   副文本槽 = 89.3px(1、2 格)/ 90.34px(第 3 格,与值槽同因:排名格宽 1px 差),
-    //   JetBrains Mono 12px/400,.truncate 挂在 <text> 那层
-    //   (overflow:hidden + text-overflow:ellipsis;叶子 <span> 上读到 clip 是读错了层)
-    //   → 超宽是「省略号」,不致命。
-    //   放进值槽的任何语言必须 ≤ 89.3px@20px;放不下的整态降档渲染,别指望裁切。
-    //
-    // 🔴 量插值键必须代「真实会渲染的值」,不是随手挑的位数 —— JetBrains Mono 12px 每字符 7.2px,
-    //   位数差一位就够翻转 ✓/✗。本表的代入值逐键写在末列,别再用字面 {n} 或拍脑袋的位数量。
-    //   (第三支 probe 正是这样抓到上一版把 networkMembersSub 按 1 位数字量成 79.2 ✓,
-    //    而它真实代入的是 mock/platform-config.ts:32 的 2.9 → 93.6 ✗。)
-    //
-    // 🔴 量法(2026-08-05 定案):宽度随 webfont 加载态漂移 —— en/zh 不漂,只有 vi 漂,
-    //   同一 vi 串在字体未就绪 / 已就绪两态下会量出互相矛盾的数字(第三轮那三条
-    //   「更正」全部改反了方向,根因即此)。契约数字一律取 fonts.ready 之后的定态值:
-    //   写进真实槽节点触发真字体栈,等 document.fonts.ready,连续两趟一致才作数;
-    //   字体未就绪时量出的 vi 宽度一律作废,不得拿去「更正」下表。下表 vi 列已全部为定态值。
-    //   书写精度:本表记 probe 原值(两位小数);vi.ts 同键注释按 1 位圆整(78.5/139.1),
-    //   与本表 78.48/139.14 是「同一次定态测量的两种写法」(差 ≤0.04px),不是两套数据,
-    //   下轮 diff 对比时别当「契约不一致」误报。
-    //
-    //   逐键实测宽(px;✗ = 超槽)。🔴 2026-08-06 审计后收口:副槽全部换短式入槽,
-    //   hint 也换短式(en "Get ranked" 72.0 / vi "Lên hạng" 55.7,无数字串同法定态实测),
-    //   「留给接线方」的作业就此清账 —— 下表即现网串的实测值,全部 ✓:
-    //     键                       槽      en       zh       vi        {n} 代入值
-    //     networkStatUpdating      值 89.3  87.3     59.2     78.48    —
-    //     networkRankUnranked      值 90.3  73.4     59.2    139.14 ✗  —      ← 值槽 ✗ 由降档解决(卡片 12.5px 渲染),见 vi.ts 同键注释
-    //     networkMembersSub        副 89.3  64.8     67.2     79.2     2.9(种子,恒 3 字符)
-    //     networkDevicesSub        副 89.3  86.4     60.0     79.2     —
-    //     networkRankUp24h         副 89.3  72.0     69.6     79.2     12(2 位典型)
-    //     networkRankUp24h         副 89.3  79.2     76.8     86.41    128(3 位上界)
-    //     networkRankUnrankedHint  副 89.3  72.0     84.0     55.7     —      ← vi 实测 55.7 略低于 7.2/字×8 的算术 57.6:无数字串不受 tabular 影响,字距实测偏窄;以实测为准
-    //   别用字符数估宽:vi 13 字符 = 139.14px、zh 5 字 = 59.2px。旧长式与其实测值
-    //   (93.6/115.2/122.41/158.4/144.0 各 ✗)已随本次换串退役,不再是现网形态。
+    networkRankExplanation: "How it works",
+    networkRankDisabled: "Estimated device ranking is not available yet.",
+    networkRankUnavailable: "The estimated device rank could not be loaded. Please try again later.",
+    networkYourRank: "Estimated device rank",
+    // Estimated device ranking uses a wrapped label and a compact unranked value.
     networkMembersSub: "+{n}% /mo",
     networkDevicesSub: "running jobs",
-    networkRankUp24h: "+{n} in 24h",
     networkRankUnranked: "No rank",
-    // 🔴 归属定案(2026-08-05,原规格 line 78「『未上榜』引导文案内的 CTA」没交代归属):
-    //   「本条 hint 整条即 CTA」 —— 未上榜时它是可点元素,点进设备/商城既有入口。
-    //   卡片一格只有一行副文本槽,放不下独立按钮,故不另立 CTA 文案键。
-    //   接线方:别就地硬编码一句按钮文案,也别把它渲染成不可点的纯说明。
-    networkRankUnrankedHint: "View devices",
-    networkRankTipRanked: "Your rank goes by the total hashpower of your active devices — more hashpower, higher rank.",
-    networkRankTipUnranked: "You are not ranked yet. Rank is based on effective hashpower from eligible running devices. Activation alone does not guarantee a rank.",
+    networkRankTipRanked: "This estimate compares the effective compute power of the phone bound to your account with a simulated device distribution based on the online device count. Equal compute power shares a rank. It is a reference estimate, not a real user ranking, and does not affect earnings or rewards.",
+    networkRankTipUnranked: "The phone bound to your account has no eligible compute power for ranking yet.",
     networkStatUpdating: "Updating",
     networkStatRetry: "Retry",
     networkStale: "Last confirmed",

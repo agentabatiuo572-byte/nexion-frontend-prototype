@@ -566,18 +566,19 @@ sandboxSponsorEnvironmentMismatch: "Mã mời này không dùng được. Kiểm
     networkGlobalGrid: "Lưới toàn cầu · trực tiếp",
     networkMembers: "Thành viên",
     networkDevices: "Thiết bị",
-    networkYourRank: "Hạng của bạn",
+    networkRankExplanation: "Cách tính",
+    networkRankDisabled: "Tính năng xếp hạng thiết bị ước tính chưa mở.",
+    networkRankUnavailable: "Chưa thể tải hạng thiết bị ước tính. Vui lòng thử lại sau.",
+    networkYourRank: "Hạng thiết bị ước tính",
     // FEAT-HOME02 phụ đề 3 ô nhịp mạng + 3 trạng thái hạng
     networkMembersSub: "+{n}%/tháng",
     networkDevicesSub: "chạy tác vụ",
-    networkRankUp24h: "+{n} bậc/24h",
     // 🔴 值槽 90.3px@20px 装不下任何含 "hạng" 的越南语说法(实测:Chưa xếp hạng 139.1 /
     //   Chưa có hạng 127.8 / Không hạng 110.0 / Chưa hạng 101.1),故保留最地道的标准说法,
     //   由接线方对「未上榜整态降档」渲染:≤12px 时 "Chưa xếp hạng" = 83.5px 才放得下。
     networkRankUnranked: "Chưa xếp hạng",
-    networkRankUnrankedHint: "Xem thiết bị",
-    networkRankTipRanked: "Hạng của bạn tính theo tổng sức mạnh tính toán của các thiết bị đang hoạt động — càng mạnh thì hạng càng cao.",
-    networkRankTipUnranked: "Bạn chưa được xếp hạng. Thứ hạng dựa trên sức mạnh tính toán hiệu dụng của các thiết bị đang chạy và đáp ứng điều kiện. Chỉ kích hoạt thiết bị chưa đảm bảo có thứ hạng.",
+    networkRankTipRanked: "Ước tính này so sánh sức mạnh tính toán hiệu dụng của điện thoại liên kết với tài khoản với phân bố thiết bị mô phỏng theo số thiết bị trực tuyến. Sức mạnh bằng nhau được xếp đồng hạng. Đây chỉ là tham khảo, không phải xếp hạng người dùng thực và không ảnh hưởng đến thu nhập hay phần thưởng.",
+    networkRankTipUnranked: "Điện thoại liên kết với tài khoản chưa có sức mạnh tính toán đủ điều kiện để xếp hạng.",
     // 值槽 89.3px@20px 放不下 "Đang cập nhật"(实测 135.0px),换 "Đang tải" = 78.5px。
     networkStatUpdating: "Đang tải",
     networkStatRetry: "Thử lại",

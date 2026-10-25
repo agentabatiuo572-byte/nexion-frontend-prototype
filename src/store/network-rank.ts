@@ -38,7 +38,7 @@ export const useNetworkRank = defineStore("networkRank", () => {
     if (!epoch.isCurrent(request)) return Promise.resolve(false);
     const runScope = captureRuntimeRevision();
     if (!isCurrentRuntimeRevision(runScope)) return Promise.resolve(false);
-    if (snapshot.value !== null && status.value === "ready"
+    if (snapshot.value !== null && snapshot.value.state !== "unavailable" && status.value === "ready"
       && lastSuccessRun !== null && isCurrentRuntimeRevision(lastSuccessRun)
       && Date.now() - lastSuccessAt < HEALTHY_SNAPSHOT_MS) {
       return Promise.resolve(true);
@@ -60,9 +60,11 @@ export const useNetworkRank = defineStore("networkRank", () => {
         lastSuccessRun = runScope;
         return true;
       } catch {
-        // A transient rank failure must not erase the last server-confirmed
-        // placement. Status stays actionable so callers render stale/error UI.
-        if (current()) status.value = "error";
+        // Failed estimates cannot reappear as a fallback while a retry is loading.
+        if (current()) {
+          snapshot.value = null;
+          status.value = "error";
+        }
         return false;
       }
     })();
