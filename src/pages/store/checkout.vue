@@ -460,7 +460,7 @@ onLoad(async (options) => {
   const o = { ...navigationQuery, ...(options || {}) } as Record<string, string>;
   if (o.items !== undefined || o.activityId || o.voucherId || o.promotion==='1') {
     try {
-      const items:PromotionItem[]=o.items ? JSON.parse(o.items) : o.product ? [{productNo:o.product,quantity:Number(o.quantity??1)}] : [];
+      const items:PromotionItem[]=o.items ? JSON.parse(o.items.trim().startsWith('%')?decodeURIComponent(o.items):o.items) : o.product ? [{productNo:o.product,quantity:Number(o.quantity??1)}] : [];
       if(!o.orderNo)validatePromotionItems(items);
       const context=voucherEntryContext(o);
       promotionRoute.value={activityId:context.voucherId?'':o.activityId??'',items,orderNo:o.orderNo,...context};

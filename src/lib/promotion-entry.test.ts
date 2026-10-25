@@ -79,6 +79,13 @@ describe('selection and original checkout routing',()=>{
     expect(promotionStoreHref()).toBe('/pages/store/store?scope=all');
     expect(promotionBundleHref('P',items)).toContain('activityId=P&items=');
   });
+  it('also parses App onLoad encoded bundle items without decoding characters inside JSON twice',()=>{
+    const items=[{productNo:'sku%2F+&',quantity:3}];
+    expect(parseEntryItems(encodeURIComponent(JSON.stringify(items)))).toEqual(items);
+    expect(parseEntryItems(JSON.stringify(items))).toEqual(items);
+    expect(parseEntryItems('%E0')).toBeNull();
+    expect(parseEntryItems(encodeURIComponent(encodeURIComponent(JSON.stringify(items))))).toBeNull();
+  });
 });
 describe('late reads',()=>{
   it('expires estimates at the server TTL independent of the browser date',()=>{

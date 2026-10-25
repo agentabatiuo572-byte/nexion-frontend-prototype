@@ -65,7 +65,7 @@ export function promotionBundleHref(activityId?: string, items?: EntryItem[]): s
 export function parseEntryItems(raw: string | null | undefined): EntryItem[] | null {
   if (!raw) return null;
   try {
-    const value: unknown = JSON.parse(raw);
+    const value: unknown = JSON.parse(raw.trim().startsWith('%') ? decodeURIComponent(raw) : raw);
     if (!Array.isArray(value)) return null;
     const items = value.map(item => ({ productNo: item?.productNo, quantity: item?.quantity }));
     return validEntryItems(items) ? items : null;

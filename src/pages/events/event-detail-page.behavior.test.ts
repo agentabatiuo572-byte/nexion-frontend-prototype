@@ -1,5 +1,7 @@
 import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
+import { compile } from "@vue/compiler-dom";
+import { renderToString } from "@vue/server-renderer";
 import ts from "typescript";
 import { afterEach, expect, it, vi } from "vitest";
 import source from "./detail.vue?raw";
@@ -45,6 +47,31 @@ function mount() {
   return { state, account, locale, runtime, hooks, unsubscribe, read, join, claim, navTo };
 }
 const flush = async () => { await Promise.resolve(); await Vue.nextTick(); };
+
+const render=new Function('Vue',compile(parse(source).descriptor.template!.content,{mode:'function',prefixIdentifiers:true,isCustomElement:tag=>['view','text'].includes(tag)}).code)(Vue);
+async function renderSnapshot(detail:EventDetail,language='zh') {
+  const page=mount();page.read.mockResolvedValue(detail);page.locale.code=language;await flush();await page.state.load();
+  return renderToString(Vue.createSSRApp({render,setup:()=>({...page.state}),components:{AppChassis:{setup:(_props:unknown,{slots}:any)=>()=>slots.default?.()},SubPageHeader:{render:()=>null}}}));
+}
+it.each(['zh','en','vi'] as const)('renders regional personal and regional total rewards separately at six decimals in %s',async language=>{
+  const value=snapshot('CLAIMED');value.event.kind='regional';value.event.state='ended';value.targetValue=1;
+  value.myRewardAmount=0.002634;value.results=[{region:'CN',rank:1,volume:7554.1,rewardAmount:1}];
+  const html=await renderSnapshot(value,language),copy=eventDetailCopy[language];
+  expect(html).toContain(copy.myReward);expect(html).toContain('0.002634 USDT');
+  expect(html).toContain(copy.regionPrize);expect(html).toContain('1.000000 USDT');
+  expect(html).not.toContain(copy.progress);expect(html).not.toContain('role="progressbar"');
+});
+it.each([null,undefined,0])('does not turn personal pool reward %s into another status or a pool estimate',async amount=>{
+  const value=snapshot('CLAIMED');value.event.kind='regional';value.event.state='ended';value.myRewardAmount=amount;
+  value.results=[{region:'CN',rewardAmount:1}];const html=await renderSnapshot(value);
+  if(amount==null)expect(html).not.toContain(eventDetailCopy.zh.myReward);
+  else {expect(html).toContain(eventDetailCopy.zh.myReward);expect(html).toContain('0.000000 USDT');}
+});
+it('keeps meaningful holding progress while showing only its returned personal payment',async()=>{
+  const value=snapshot('CLAIMED');value.event.kind='holding';value.myRewardAmount=0.17196;
+  const html=await renderSnapshot(value);
+  expect(html).toContain('role="progressbar"');expect(html).toContain('0.171960 USDT');
+});
 
 it("coalesces repeated taps and resolves a lost join response from authoritative readback", async () => {
   const page = mount(); await flush();

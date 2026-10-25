@@ -95,3 +95,17 @@ it('a BF20 route preserves coupon and upgrade context without turning the whole 
   const page=routeScreen();await page.load({product:'ordinary',quantity:'3',voucherId:'BF20',upgradeActivityId:'pro-upgrade',activityId:'unrelated'});
   expect(page.promotionRoute.value).toEqual({activityId:'',items:[{productNo:'ordinary',quantity:3}],orderNo:undefined,voucherId:'BF20',upgradeActivityId:'pro-upgrade'});
 });
+
+it.each([false,true])('preserves the selected SKU and quantity with App-encoded items=%s',async encoded=>{
+  const items=[{productNo:'sku%2F+&',quantity:3}],page=routeScreen();
+  const href=promotionCheckoutHref(items,undefined,{voucherId:'BF20',upgradeActivityId:'pro-upgrade'});
+  const query=Object.fromEntries(href.split('?')[1].split('&').map(pair=>pair.split('=')));
+  await page.load({...query,items:encoded?query.items:JSON.stringify(items)});
+  expect(page.promotionRoute.value).toEqual({activityId:'',items,orderNo:undefined,voucherId:'BF20',upgradeActivityId:'pro-upgrade'});
+  expect(page.navTo).not.toHaveBeenCalled();expect(page.toast.warn).not.toHaveBeenCalled();
+});
+
+it.each(['%E0','%255B%255D','%5B%7B%22productNo%22%3A%22sku%22%2C%22quantity%22%3A0%7D%5D'])('rejects malformed or invalid encoded selections: %s',async items=>{
+  const page=routeScreen();await page.load({items,voucherId:'BF20'});
+  expect(page.promotionRoute.value).toBeNull();expect(page.toast.warn).toHaveBeenCalledOnce();
+});

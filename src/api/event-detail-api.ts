@@ -13,6 +13,7 @@ export interface EventDetail {
   eligibilityReason: EventEligibilityReason;
   progressValue: number;
   targetValue: number;
+  myRewardAmount?: number | null;
   rewards: Array<{ type: string; amount: string | number; productNo?: string; quantity?: number; pool?: boolean }>;
   results: Array<{ region?: string; rank?: number; volume?: number; rewardAmount?: number }>;
   userStatus: CanonicalEventUserStatus;
@@ -52,6 +53,7 @@ export function parseEventDetail(value: unknown): EventDetail {
     ...(Array.isArray(row.claimKeys) && row.claimKeys.every((key: unknown) => typeof key === "string" && key) ? { claimKeys: row.claimKeys } : {}),
     ...(typeof row.reminderSubscribed === "boolean" ? { reminderSubscribed: row.reminderSubscribed } : {}),
     progressValue: nonnegative(row.progressValue), targetValue: nonnegative(row.targetValue),
+    ...(row.myRewardAmount !== undefined ? { myRewardAmount: row.myRewardAmount === null ? null : nonnegative(row.myRewardAmount) } : {}),
     rewards: row.rewards.map(value => {
       const item = record(value);
       if (typeof item.type !== "string" || !item.type.trim()) throw new ApiError({ kind: "protocol", message: "EVENT_DETAIL_INVALID" });

@@ -51,7 +51,7 @@ export function remoteEventView(event: CanonicalEvent, labels: EventActionLabels
     emoji: "✦",
     tint: TINT_BY_KIND[event.kind],
     reward: event.kind === "wheel" || !["USDT", "NEX"].includes(event.rewardType) ? platformDisplayText(event.rewardName) : `${formatAmount(event.rewardAmount)} ${platformDisplayText(event.rewardName)}`,
-    progress: event.trackable
+    progress: event.trackable && event.kind !== "regional"
       ? { current: event.progressValue, total: event.targetValue, label: labels.progress }
       : null,
     joined: ["JOINED", "CLAIMABLE", "CLAIMED"].includes(event.userStatus),

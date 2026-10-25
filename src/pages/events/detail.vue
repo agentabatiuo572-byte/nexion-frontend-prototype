@@ -24,9 +24,12 @@
         <text class="event-heading">{{ copy.rewards }}</text>
         <text v-for="(reward, index) in detail.rewards" :key="index" class="event-copy">{{ eventDetailReward(reward, copy) }}</text>
       </view>
-      <view v-if="detail.targetValue > 0" class="nx-glass-card event-section">
+      <view v-if="detail.event.kind !== 'regional' && detail.targetValue > 0" class="nx-glass-card event-section">
         <view class="event-row"><text class="event-heading">{{ copy.progress }}</text><text>{{ formatAmount(detail.progressValue) }} / {{ formatAmount(detail.targetValue) }}</text></view>
         <view class="event-progress" role="progressbar" :aria-label="copy.progress" :aria-valuenow="Math.min(detail.progressValue, detail.targetValue)" :aria-valuemin="0" :aria-valuemax="detail.targetValue"><view :style="{ width: `${Math.min(100, detail.progressValue / detail.targetValue * 100)}%` }" /></view>
+      </view>
+      <view v-if="detail.myRewardAmount != null" class="nx-glass-card event-section">
+        <view class="event-row"><text class="event-heading">{{ copy.myReward }}</text><text>{{ detail.myRewardAmount.toFixed(6) }} USDT</text></view>
       </view>
       <view v-if="detail.results.length || detail.event.state === 'ended'" class="nx-glass-card event-section">
         <text class="event-heading">{{ copy.results }}</text>
@@ -35,7 +38,7 @@
           <view v-if="result.region" class="event-row"><text>{{ copy.region }}</text><text>{{ result.region }}</text></view>
           <view v-if="result.rank != null" class="event-row"><text>{{ copy.rank }}</text><text>{{ result.rank }}</text></view>
           <view v-if="result.volume != null" class="event-row"><text>{{ copy.volume }}</text><text>{{ formatAmount(result.volume) }} USDT</text></view>
-          <view v-if="result.rewardAmount != null" class="event-row"><text>{{ copy.prize }}</text><text>{{ formatAmount(result.rewardAmount) }} USDT</text></view>
+          <view v-if="result.rewardAmount != null" class="event-row"><text>{{ detail.event.kind === 'regional' ? copy.regionPrize : copy.prize }}</text><text>{{ result.rewardAmount.toFixed(6) }} USDT</text></view>
         </view>
       </view>
       <text v-if="commandError" class="event-copy" role="alert">{{ copy.pending }}</text>

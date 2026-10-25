@@ -42,6 +42,12 @@ function canonicalEvent(overrides: Partial<CanonicalEvent> = {}): CanonicalEvent
 }
 
 describe("remoteEventView", () => {
+  it("hides regional placeholder progress without changing participation or other event progress", () => {
+    const event = canonicalEvent({ kind: "regional", trackable: true, userStatus: "JOINED", targetValue: 1, progressValue: 0 });
+    const view = remoteEventView(event, labels);
+    expect(view.progress).toBeNull();expect(view.trackable).toBe(true);expect(view.joined).toBe(true);
+    expect(remoteEventView({ ...event, kind: "holding" }, labels).progress).toEqual({ current: 0, total: 1, label: labels.progress });
+  });
   it("displays configured composite rewards without a fictitious numeric prefix", () => {
     expect(remoteEventView(canonicalEvent({ rewardType: "COMPOSITE", rewardAmount: 0, rewardName: "200 UVT + 1 streak saver" }), labels).reward)
       .toBe("200 UVT + 1 streak saver");

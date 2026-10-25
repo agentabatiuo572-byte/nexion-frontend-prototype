@@ -39,6 +39,21 @@ it("encodes a fresh shell URL for resets/deep links without losing nested query 
   expect(() => tabLocation("/pages/store/store?focus=%E0")).toThrow(URIError);
 });
 
+it.each(["/pages/store/store", "/pages/earn/earn", "/pages/team/team", "/pages/me/me"])("opens %s when App onLoad preserves the encoded target", path => {
+  // App's encodeQueryString encodes values again before parseUrl decodes once.
+  const href = `${path}?voucherId=BF%2B20&upgradeActivityId=Pro%20%26%20Max&focusName=literal%252F`;
+  const target = nativeTabUrl(href).split("?target=")[1];
+  const expected = tabLocation(href);
+  expect(nativeTabEntry({ target })).toEqual(expected);
+  expect(nativeTabEntry({ target: href })).toEqual(expected);
+  expect(logicalNativePage({ route: "pages/tabs/tabs", options: { target } })).toEqual({ route: path.slice(1), options: expected!.query });
+  expect(expected!.query).toEqual({ voucherId: "BF+20", upgradeActivityId: "Pro & Max", focusName: "literal%2F" });
+});
+
+it.each(["%E0", "/pages/store/store?focus=%E0", "%2Fpages%2Flogin%2Flogin"])("keeps invalid or non-tab targets out of the tab shell: %s", target => {
+  expect(nativeTabEntry({ target })).toEqual(nativeTabEntry());
+});
+
 it("unregisters ownership without letting an old page clear a newly mounted shell", () => {
   const first = { route: "pages/tabs/tabs", $page: { id: 1 } }, second = { route: "pages/tabs/tabs", $page: { id: 2 } };
   const oldStop = registerNativeTabHost({ page: first, location: () => nativeTabEntry(), select: vi.fn() });

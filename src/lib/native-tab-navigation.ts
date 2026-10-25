@@ -37,7 +37,9 @@ export function nativeTabUrl(href: string): string {
 
 export function nativeTabEntry(options: Record<string, unknown> = {}): TabLocation {
   try {
-    return tabLocation(typeof options.target === "string" ? options.target : "") ?? tabLocation(TAB_PATHS.home)!;
+    const target = typeof options.target === "string" ? options.target : "";
+    // App onLoad retains our outer encoding; already-decoded links keep their inner query intact.
+    return tabLocation(target) ?? tabLocation(decodeURIComponent(target)) ?? tabLocation(TAB_PATHS.home)!;
   } catch { return tabLocation(TAB_PATHS.home)!; }
 }
 

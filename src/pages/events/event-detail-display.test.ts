@@ -4,6 +4,7 @@ import type { ApiClient } from "@/api/api-client";
 import { eventDetailCopy } from "@/i18n/event-detail";
 import { eventDetailAction, eventDetailRules, eventDetailReward, eventClaimCommandKey, eventDetailHref } from "./event-detail-display";
 import { promotionDetailHref,promotionCheckoutHref,voucherEntryContext } from '@/lib/promotion-entry';
+import { nativeTabEntry,nativeTabUrl } from '@/lib/native-tab-navigation';
 
 function queryValues(query:URLSearchParams){const values:Record<string,string>={};query.forEach((value,key)=>{values[key]=value;});return values;}
 function detail(): EventDetail {
@@ -14,7 +15,9 @@ it('seasonal BF20 keeps the whole hardware store and passes voucher context thro
   const value=detail();value.event.kind='seasonal';value.event.trackable=false;value.rules={voucherId:'BF20',promotionActivityId:'Pro upgrade'};
   const store=new URL(eventDetailHref(value),'https://app.test');
   expect(store.pathname).toBe('/pages/store/store');expect(store.searchParams.get('scope')).toBe('all');expect(store.searchParams.has('activityId')).toBe(false);
-  const context=voucherEntryContext(queryValues(store.searchParams));
+  const nativeStore=nativeTabEntry({target:nativeTabUrl(eventDetailHref(value)).split('?target=')[1]});
+  expect(nativeStore.tab).toBe('store');expect(nativeStore.query).toEqual(queryValues(store.searchParams));
+  const context=voucherEntryContext(nativeStore.query);
   const product=new URL(promotionDetailHref('ordinary sku',undefined,context),'https://app.test');
   const checkout=new URL(promotionCheckoutHref([{productNo:'ordinary sku',quantity:3}],undefined,voucherEntryContext(queryValues(product.searchParams))),'https://app.test');
   expect(checkout.searchParams.get('voucherId')).toBe('BF20');expect(checkout.searchParams.get('upgradeActivityId')).toBe('Pro upgrade');expect(checkout.searchParams.has('activityId')).toBe(false);
@@ -60,6 +63,14 @@ it("rejects missing eligibility, corrupt money/progress and mismatched event ide
   const api = createEventDetailApi({ request } as unknown as ApiClient);
   await expect(api.detail("wrong-event", "zh")).rejects.toThrow("EVENT_DETAIL_SCOPE_MISMATCH");
   expect(request.mock.calls[0][0].path).toBe("/api/events/wrong-event/detail?locale=zh");
+});
+
+it('keeps personal paid pool rewards distinct from missing results, including paid zero',()=>{
+  expect(parseEventDetail(detail()).myRewardAmount).toBeUndefined();
+  expect(parseEventDetail({...detail(),myRewardAmount:null}).myRewardAmount).toBeNull();
+  for(const amount of [0,0.17196,0.002634,0.000001])expect(parseEventDetail({...detail(),myRewardAmount:amount}).myRewardAmount).toBe(amount);
+  expect(parseEventDetail({...detail(),myRewardAmount:'0.171960'}).myRewardAmount).toBe(0.17196);
+  for(const amount of [-1,NaN,Infinity,'',false,{},'not-paid'])expect(()=>parseEventDetail({...detail(),myRewardAmount:amount})).toThrow('EVENT_DETAIL_INVALID');
 });
 
 it("keeps earned rewards claimable after closure or expiry without reopening participation", () => {
