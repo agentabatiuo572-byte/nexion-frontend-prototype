@@ -6591,7 +6591,6 @@ openSeaErrorPool: {
     confirmDelayed: "Network congested — confirmation is taking longer",
     channelPaused: "Paused — please choose another network",
     allNetworksPaused: "Deposit channels are temporarily unavailable. Try again later or contact support.",
-    accountNotOpen: "USDT on-chain deposits are not yet available for this account. Contact support for help.",
     copyAddress: "Copy address",
     addrCopied: "Address copied",
     topupNotCreditedYet: "Confirming your deposit — funds aren't lost. Refresh shortly.",

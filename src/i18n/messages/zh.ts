@@ -6472,7 +6472,6 @@ openSeaErrorPool: {
     confirmDelayed: "网络拥堵,确认时间延长",
     channelPaused: "暂停服务,请选择其他网络",
     allNetworksPaused: "充值通道暂不可用，请稍后重试或联系客服。",
-    accountNotOpen: "当前账号暂未开放 USDT 链上充值，如需帮助请联系客服。",
     copyAddress: "复制地址",
     addrCopied: "地址已复制",
     topupNotCreditedYet: "入账确认中,资金不会丢失;稍后刷新查看",

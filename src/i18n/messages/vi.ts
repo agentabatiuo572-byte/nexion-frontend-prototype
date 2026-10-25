@@ -6479,7 +6479,6 @@ openSeaErrorPool: {
     confirmDelayed: "Mạng tắc nghẽn, xác nhận lâu hơn bình thường",
     channelPaused: "Tạm dừng dịch vụ, vui lòng chọn mạng khác",
     allNetworksPaused: "Các kênh nạp tiền tạm thời chưa khả dụng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.",
-    accountNotOpen: "Tài khoản này chưa được mở tính năng nạp USDT on-chain. Vui lòng liên hệ hỗ trợ nếu cần trợ giúp.",
     copyAddress: "Sao chép địa chỉ",
     addrCopied: "Đã sao chép địa chỉ",
     topupNotCreditedYet: "Đang xác nhận khoản nạp — tiền không bị mất. Làm mới lại sau nhé.",

@@ -120,40 +120,32 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
   return { root, navTo, info, request, state, app, auth, sessionUserId, dep, text: () => textOf(root) };
 }
 
-test.each([zh, en, vietnamese])("account access is distinct from a paused channel, including its disabled button", async messages => {
-  const h = await pane({ enabled: false, network: "BEP20", reason: "CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN" }, [], messages);
-  expect(h.text()).toContain(messages.topupChrome.accountNotOpen);
-  expect(h.text()).not.toContain(messages.topupChrome.allNetworksPaused);
+test.each([zh, en, vietnamese])("paused channel and disabled button use the same message without account allowlisting", async messages => {
+  const h = await pane({ enabled: false, network: "BEP20", reason: "CREGIS_DEPOSIT_PAUSED" }, [], messages);
+  expect(h.text()).toContain(messages.topupChrome.allNetworksPaused);
   (h.state.pickNet as (id: string) => void)("usdt-bep20");
-  expect(h.info).toHaveBeenCalledWith(messages.topupChrome.accountNotOpen);
+  expect(h.info).toHaveBeenCalledWith(messages.topupChrome.allNetworksPaused);
   expect(nodesOf(h.root).filter(n => n.kind === "image")).toHaveLength(0);
 });
 
-test.each([undefined, "CREGIS_DEPOSIT_PAUSED", "UNKNOWN_REASON"])("missing or channel reason %s does not infer account access", async reason => {
+test.each([undefined, "CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN", "UNKNOWN_REASON"])("legacy or missing reason %s does not introduce account permission UI", async reason => {
   const h = await pane({ enabled: false, network: "BEP20", reason });
   expect(h.text()).toContain(zh.topupChrome.allNetworksPaused);
-  expect(h.text()).not.toContain(zh.topupChrome.accountNotOpen);
+  expect(h.text()).not.toContain("当前账号暂未开放");
 });
 
-test("account reason clears on failure, retry recovery and account change", async () => {
-  const h = await pane({ enabled: false, network: "BEP20", reason: "CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN" });
-  const load = h.state.load as () => void;
+test("paused channel recovers after network failure and retry without retaining account data", async () => {
+  const h = await pane({ enabled: false, network: "BEP20", reason: "CREGIS_DEPOSIT_PAUSED" });
   h.request.mockRejectedValueOnce(new Error("NETWORK_DOWN"));
-  load();
+  (h.state.load as () => void)();
   await vi.waitFor(() => expect(h.text()).toContain(zh.topupChrome.addrLoadFailed));
-  expect((h.state.serverUnavailableReason as Vue.Ref<string>).value).toBe("");
   h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address") ? address : []);
   (controls(h.root, "nx-dep-retry-cta")[0].props.onClick as () => void)();
   await vi.waitFor(() => expect((h.state.serverEnabled as Vue.Ref<boolean>).value).toBe(true));
-  expect(h.text()).not.toContain(zh.topupChrome.accountNotOpen);
-  h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address")
-    ? { enabled: false, network: "BEP20", reason: "CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN" } : []);
-  load();
-  await vi.waitFor(() => expect(h.text()).toContain(zh.topupChrome.accountNotOpen));
+  expect(h.text()).not.toContain(zh.topupChrome.allNetworksPaused);
   h.auth.isAuthenticated = false;
   await Vue.nextTick();
-  expect((h.state.serverUnavailableReason as Vue.Ref<string>).value).toBe("");
-  expect(h.text()).not.toContain(zh.topupChrome.accountNotOpen);
+  expect((h.state.serverAddress as Vue.Ref<string>).value).toBe("");
 });
 
 // Read the real store's canonical projection and generation fence; only transport is replaced.
