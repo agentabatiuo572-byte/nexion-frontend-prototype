@@ -1,3 +1,4 @@
+import voucherOnlyFixture from '@/components/promotion/fixtures/black-friday-voucher-quote.json';
 import {describe,expect,it,vi} from 'vitest';
 import {createPromotionApi,validatePromotionItems,PROMOTION_CAPABILITIES} from './promotion-api';
 import type{ApiClient}from'./api-client';
@@ -61,4 +62,9 @@ it('an explicit event voucher disables automatic promotion selection while prese
   const {api,request}=setup();request.mockResolvedValue(quote);
   await api.quote([{productNo:'sku-a',quantity:3}],null,'BF20',false);
   expect(request.mock.calls[0][0].body).toEqual({items:[{productNo:'sku-a',quantity:3}],activityId:null,voucherId:'BF20',autoSelectPromotion:false,clientCapabilities:PROMOTION_CAPABILITIES});
+});
+
+it('accepts the captured backend BF20-only quote with purchase eligibility and no promotion',async()=>{
+  const {api,request}=setup();request.mockResolvedValue(voucherOnlyFixture);
+  expect(await api.quote([{productNo:'S1',quantity:1}],null,'BF20',false)).toEqual(voucherOnlyFixture);
 });

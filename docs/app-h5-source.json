@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\team-v8-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "08a73680d40b4ef98837d4ece037a972256c2298",
-  "sourceRef": "08a73680d40b4ef98837d4ece037a972256c2298",
+  "sourceHead": "06f6ac4ab32cb8b9dde662fa0f1ce1451e2b8f51",
+  "sourceRef": "06f6ac4ab32cb8b9dde662fa0f1ce1451e2b8f51",
   "sourceRefKind": "commit",
-  "sourceTree": "d96497cd269418f9aee6dabff1150005ce8db7c7",
+  "sourceTree": "734f949ec1d647a438978fe27f40ef376091d64f",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -6964,10 +6964,10 @@
       "mode": "100644"
     },
     "src/api/promotion-api.test.ts": {
-      "sourceBlob": "3e5d9e811393b16d1cda73411090652227e5db50",
-      "sourceSha256": "ac65b27291bceb4691cede13d4c30d4a7e7bb71558f6b186bb28eb4007e540c5",
-      "targetBlob": "3e5d9e811393b16d1cda73411090652227e5db50",
-      "targetSha256": "ac65b27291bceb4691cede13d4c30d4a7e7bb71558f6b186bb28eb4007e540c5",
+      "sourceBlob": "46d65dce42f51ad5c8ad92d037916ef162b27d5e",
+      "sourceSha256": "bb28cb2a199e2a8c80346f5a38411572957be08606f21242ec66f79b3b899c36",
+      "targetBlob": "46d65dce42f51ad5c8ad92d037916ef162b27d5e",
+      "targetSha256": "bb28cb2a199e2a8c80346f5a38411572957be08606f21242ec66f79b3b899c36",
       "mode": "100644"
     },
     "src/api/promotion-api.ts": {
@@ -9063,6 +9063,13 @@
       "targetSha256": "d04660b0a66a16fde03ef62621cde457e904621581344045c8623f8886b559d7",
       "mode": "100644"
     },
+    "src/components/promotion/fixtures/black-friday-voucher-quote.json": {
+      "sourceBlob": "f8cfff2faaf076f076ef2a6873c13045a5b214e4",
+      "sourceSha256": "9b99958c4d903122a902b6486453622ed180049b9ce2053929539328ac0e90c5",
+      "targetBlob": "f8cfff2faaf076f076ef2a6873c13045a5b214e4",
+      "targetSha256": "9b99958c4d903122a902b6486453622ed180049b9ce2053929539328ac0e90c5",
+      "mode": "100644"
+    },
     "src/components/promotion/order-rewards.vue": {
       "sourceBlob": "6eacb5890908dfa5ec4ae8b4136ca1c6388996b5",
       "sourceSha256": "6370014b27b19ef109b34012472ff663cedbbae8b15a821faefb941e4411bd94",
@@ -9085,17 +9092,17 @@
       "mode": "100644"
     },
     "src/components/promotion/promotion-checkout-read.behavior.test.ts": {
-      "sourceBlob": "db25731bed05ce80271d3b17c76cf36255ad8500",
-      "sourceSha256": "dd368465a27aefab43d667d2285364e7e2ca4a0b31d75cdd2133b5c7cdd5bc41",
-      "targetBlob": "db25731bed05ce80271d3b17c76cf36255ad8500",
-      "targetSha256": "dd368465a27aefab43d667d2285364e7e2ca4a0b31d75cdd2133b5c7cdd5bc41",
+      "sourceBlob": "a9015e33794dbc8edeb4589357cbbb684ee31a2d",
+      "sourceSha256": "04ef76be14eb1ab5c1a3b3dd2e61d709e391e7a4cb4d229376e1be3bb4c287f7",
+      "targetBlob": "a9015e33794dbc8edeb4589357cbbb684ee31a2d",
+      "targetSha256": "04ef76be14eb1ab5c1a3b3dd2e61d709e391e7a4cb4d229376e1be3bb4c287f7",
       "mode": "100644"
     },
     "src/components/promotion/promotion-checkout.vue": {
-      "sourceBlob": "a283a18f3190d0d419198f8dbe982fdd82494eb1",
-      "sourceSha256": "cd81ed5c8c54e0d25b6c150a6658da598ef22f57f6c7a8a000f9246b1ad8517f",
-      "targetBlob": "a283a18f3190d0d419198f8dbe982fdd82494eb1",
-      "targetSha256": "cd81ed5c8c54e0d25b6c150a6658da598ef22f57f6c7a8a000f9246b1ad8517f",
+      "sourceBlob": "74c8c0623c8b9d45a6097250ff20dbc6641dc482",
+      "sourceSha256": "ef4ef52c34a30b47d7b0cfaf64fb0ec556285c5a75d0c137a84be1aa3330db65",
+      "targetBlob": "74c8c0623c8b9d45a6097250ff20dbc6641dc482",
+      "targetSha256": "ef4ef52c34a30b47d7b0cfaf64fb0ec556285c5a75d0c137a84be1aa3330db65",
       "mode": "100644"
     },
     "src/components/promotion/promotion-entry.vue": {

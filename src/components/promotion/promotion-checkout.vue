@@ -171,7 +171,7 @@ async function loadQuote(){
         const refreshed=await voucher.refreshRemote();if(!readCurrent(generation))return;
         if(!refreshed)throw new Error('VOUCHER_STATE_UNAVAILABLE');
         const available=voucher.claimedUnused.some(offer=>offer.id===eventVoucherId);
-        const claimable=voucher.claimableVouchers.some(offer=>offer.id===eventVoucherId&&offer.claimSurfaces.includes('store'));
+        const claimable=voucher.claimableVouchers.some(offer=>offer.id===eventVoucherId&&(!offer.claimSurfaces.length||offer.claimSurfaces.includes('store')));
         eventVoucherStatus.value=requestedItems.length!==1?'unavailable':available?'available':claimable?'claimable':'unavailable';
         if(eventVoucherStatus.value!=='available')return;
         voucherId.value=eventVoucherId;activityId=null;
