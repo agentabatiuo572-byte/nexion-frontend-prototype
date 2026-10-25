@@ -6,6 +6,7 @@ import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import { afterEach, expect, test, vi } from "vitest";
 import nativeSource from "./native-svg.vue?raw";
+import eventIconSource from "./events/event-icon.vue?raw";
 import { svgMarkup } from "@/lib/native-svg-markup";
 
 const require = createRequire(import.meta.url);
@@ -26,6 +27,9 @@ function compile(source: string, filename: string, vue: typeof Vue): Component {
   }).outputText;
   const exports = { default: {} as Component };
   const dependencies: Record<string, unknown> = { vue, "@/lib/native-svg-markup": { svgMarkup } };
+  if (source.includes('from "@/components/native-svg.vue"')) {
+    dependencies["@/components/native-svg.vue"] = { default: compile(nativeSource, "native-svg.vue", vue) };
+  }
   new Function("require", "exports", code)((id: string) => {
     if (!(id in dependencies)) throw new Error(`Unexpected production import: ${id}`);
     return dependencies[id];
@@ -95,6 +99,22 @@ function transformedParent(): string {
 }
 
 for (const { name, vue } of runtimes) {
+  test(`${name}: real event icons render every kind and update card/reward sizes`, async () => {
+    const icon = mount(vue, eventIconSource, { kind: "wheel", size: 22 });
+    const shapes = { referral: 'cx="9"', wheel: 'r="9"', regional: "<ellipse", boost: 'd="m13 2', holding: 'd="m12 3', gift: "<rect", promotion: "<rect" };
+    for (const [kind, shape] of Object.entries(shapes)) {
+      icon.props.kind = kind;
+      await vue.nextTick();
+      expect(icon.markup()).toContain(shape);
+      expect(icon.markup()).toContain('width="22" height="22"');
+      expect(icon.markup()).not.toContain("<template");
+    }
+    icon.props.size = 14;
+    await vue.nextTick();
+    expect(icon.markup()).toContain('width="14" height="14"');
+    expect(icon.view().props.style).toMatchObject({ width: "14px", height: "14px" });
+  });
+
   test.each<Mode[]>([["dark", "light", "system", "dark"], ["system", "dark"]])(
     `${name}: parent-rendered theme paths follow %s transitions in the same NativeSvg instance`, async (...modes) => {
       const icon = mount(vue, transformedParent(), { mode: modes[0] });
