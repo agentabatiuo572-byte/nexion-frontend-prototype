@@ -11,10 +11,20 @@
       </NxListGroup>
       <NxSection :title="t.me.frequentFunctions" :action="t.me.deviceAddLabel" class="me-shortcuts" @action="navTo('/pages/store/store')">
         <view class="me-shortcut-grid">
-          <view v-for="item in frequentItems" :key="item.key" class="me-shortcut" :data-quick-key="item.key" role="button" tabindex="0" @click="handleQuickItem(item)" @keydown.enter.prevent="handleQuickItem(item)" @keydown.space.prevent="handleQuickItem(item)">
+          <template v-for="item in frequentItems" :key="item.key">
+          <!-- #ifdef APP-PLUS -->
+          <InviteScanEntry v-if="item.key === 'scan'" shortcut :label="item.label" data-quick-key="scan">
+            <template #default="{ busy }">
+              <view class="me-row-icon me-shortcut__icon me-tone--brand"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-for="path in iconPaths.scan" :key="path" :d="path" /></svg></view>
+              <text class="me-shortcut__label">{{ busy ? t.inviteScan.scanning : item.label }}</text>
+            </template>
+          </InviteScanEntry>
+          <!-- #endif -->
+          <view v-if="item.key !== 'scan' || !nativeScanner" class="me-shortcut" :data-quick-key="item.key" role="button" tabindex="0" @click="handleQuickItem(item)" @keydown.enter.prevent="handleQuickItem(item)" @keydown.space.prevent="handleQuickItem(item)">
             <view class="me-row-icon me-shortcut__icon" :class="'me-tone--' + (item.tone || 'muted')"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-for="path in iconPaths[item.icon]" :key="path" :d="path" /></svg><view v-if="item.dot || item.badge" class="me-row-dot" /></view>
             <text class="me-shortcut__label">{{ item.label }}</text>
           </view>
+          </template>
         </view>
       </NxSection>
       <NxSection :title="t.me.myNetwork">
@@ -71,6 +81,9 @@ import NxListGroup from "@/components/ui/nx-list-group.vue";
 import NxListRow from "@/components/ui/nx-list-row.vue";
 import ProfileRow from "@/components/me/profile-row.vue";
 import WalletCard from "@/components/me/wallet-card.vue";
+// #ifdef APP-PLUS
+import InviteScanEntry from "@/components/team/invite-scan-entry.vue";
+// #endif
 
 import ThemePickerSheet from "@/components/me/theme-picker-sheet.vue";
 import { useT } from "@/i18n/use-t";
@@ -157,6 +170,7 @@ let remoteOrdersRequest = 0;
 let remoteMeActive = false;
 
 const iconPaths = {
+  scan: ["M8 3H5a2 2 0 0 0-2 2v3", "M16 3h3a2 2 0 0 1 2 2v3", "M21 16v3a2 2 0 0 1-2 2h-3", "M8 21H5a2 2 0 0 1-2-2v-3", "M3 12h18"],
   network: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 7a4 4 0 1 0 0 .01", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"],
   rank: ["m12 3 2.6 5.3 5.9.9-4.3 4.2 1 5.9L12 16.7l-5.2 3.2 1-5.9-4.3-4.2 5.9-.9z"],
   invite: ["M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7", "M16 6l-4-4-4 4", "M12 2v14"],
@@ -324,8 +338,13 @@ const quickSections = computed<QuickSection[]>(() => [
     ],
   },
 ]);
-const frequentKeys = ['inventory', 'orders', 'missions', 'rewards', 'receipts', 'goals', 'genesis', 'learning'] as const;
-const frequentItems = computed(() => frequentKeys.map((key) => {
+let nativeScanner = false;
+// #ifdef APP-PLUS
+nativeScanner = true;
+// #endif
+const frequentKeys = ['inventory', 'orders', 'missions', 'rewards', 'scan', 'receipts', 'goals', 'learning'] as const;
+const frequentItems = computed<QuickItem[]>(() => frequentKeys.map((key) => {
+  if (key === 'scan') return { key, label: t.value.me.shortcutLabels.scan, href: '', icon: 'scan' as const, tone: 'brand' as QuickTone };
   const item = quickSections.value.flatMap(section => section.items).find(item => item.key === key)!;
   const tones: Record<string, QuickTone> = { inventory:'blue', orders:'purple', missions:'brand', rewards:'orange', receipts:'blue', goals:'purple', genesis:'orange', learning:'purple' };
   return { ...item, label: t.value.me.shortcutLabels[key], icon: key === 'goals' ? 'trend' as const : item.icon, tone: tones[key] };
@@ -422,6 +441,10 @@ onUnmounted(() => {
 });
 
 function handleQuickItem(item: QuickItem) {
+  if (item.key === 'scan') {
+    toast.info(t.value.me.scanAppOnly);
+    return;
+  }
   if (item.key === "theme") {
     themePickerOpen.value = true;
     return;
