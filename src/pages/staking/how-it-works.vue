@@ -141,7 +141,11 @@ const staking = useStaking();
 const retrying = ref(false);
 const exchangeAvailable = ref<boolean | null>(remoteApiEnabled ? null : true);
 const exchangeReadFailed = ref(false);
-const stakingAvailable = ref<boolean | null>(staking.isMockMode ? true : null);
+const stakingAvailable = computed<boolean | null>(() => {
+  if (staking.isMockMode) return true;
+  if (!staking.remoteReady || !staking.remoteHasSnapshot || staking.remoteError) return null;
+  return staking.pools.some((pool) => pool.enabled && !pool.killed && pool.status === "ACTIVE");
+});
 const faqAnswerKey = computed(() => stakingFaqAnswerKey(stakingAvailable.value, exchangeAvailable.value));
 const STAKING_RULE_EXAMPLE_PRINCIPAL = 100;
 onMounted(() => {
@@ -150,9 +154,9 @@ onMounted(() => {
 });
 async function refreshStakingAvailability() {
   if (staking.isMockMode) return;
-  stakingAvailable.value = null;
-  const ready = await staking.syncRemote();
-  stakingAvailable.value = ready ? staking.pools.some((pool) => pool.enabled && !pool.killed && pool.status === "ACTIVE") : null;
+  // A concurrent account refresh may supersede this read. Availability follows
+  // the store's current authority, never the completion boolean of an old read.
+  await staking.syncRemote();
 }
 async function refreshExchangeAvailability() {
   if (!remoteApiEnabled) return;

@@ -38,7 +38,8 @@ describe("staking rules explanation", () => {
   });
 
   it("shows opening steps only for a sellable server plan and explains paused or unknown states", () => {
-    expect(page).toContain('stakingAvailable.value = ready ? staking.pools.some((pool) => pool.enabled && !pool.killed && pool.status === "ACTIVE") : null;');
+    expect(page).toContain('if (!staking.remoteReady || !staking.remoteHasSnapshot || staking.remoteError) return null;');
+    expect(page).toContain('return staking.pools.some((pool) => pool.enabled && !pool.killed && pool.status === "ACTIVE");');
     expect(page).toContain('v-if="stakingAvailable === true" style="display: flex; flex-direction: column; gap: 14px"');
     expect(page).toContain('stakingAvailable === false ? w.newStakesPaused : w.newStakesUnknown');
     expect(page).toContain('stakingAvailable === false ? w.faqA4Paused : w.faqA4Unknown');
