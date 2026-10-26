@@ -164,13 +164,17 @@ it.each(['sent', 'read'] as const)('animates a new pending human send once, then
   expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(1);
 });
 
-it('retains the mounted bubble and remaining entrance when an acknowledgement arrives before the first animation finishes', async () => {
+it.each(['atomic', 'store-before-outbox'] as const)('retains the mounted bubble and remaining entrance for a fast %s acknowledgement', async sequence => {
   const screen = mount([message('history', 'left')]);
   const pending = message('pending-fast', 'right', { localSend: true, deliveryState: 'sending' });
   screen.props.messages.push(pending); await flush();
   const key = screen.view.messageKey(pending);
   await vi.advanceTimersByTimeAsync(12);
   const confirmed = message('server-fast', 'right', { deliveryState: 'sent' });
+  if (sequence === 'store-before-outbox') {
+    screen.props.messages = [screen.props.messages[0], confirmed, pending]; await flush();
+    expect(screen.view.messageKey(confirmed)).toBe('server-fast');
+  }
   screen.props.messages = [screen.props.messages[0], confirmed]; await flush();
   expect(screen.view.messageKey(confirmed)).toBe(key);
   expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(1);

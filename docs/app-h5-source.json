@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "03c7e8e7d95e571a24e9c433ad4751bcc41d30bc",
-  "sourceRef": "03c7e8e7d95e571a24e9c433ad4751bcc41d30bc",
+  "sourceHead": "abdca3ab1e0906347bc51739b34d2a399b129570",
+  "sourceRef": "abdca3ab1e0906347bc51739b34d2a399b129570",
   "sourceRefKind": "commit",
-  "sourceTree": "954cecf6abdc76754b03454efd5c4d54e0b36ca5",
+  "sourceTree": "7b8d80098ee5d748e5c1cd4e8d7f1e0d67f6299a",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -10688,10 +10688,10 @@
       "mode": "100644"
     },
     "src/components/support/conversation-entrance.ts": {
-      "sourceBlob": "28e5d3e50e026ea3b40baac93acf975c37f6a6bc",
-      "sourceSha256": "1f9ec752808140fb4a00676a922daf3dd3f5ed2c61141b619a300d1488dd0770",
-      "targetBlob": "28e5d3e50e026ea3b40baac93acf975c37f6a6bc",
-      "targetSha256": "1f9ec752808140fb4a00676a922daf3dd3f5ed2c61141b619a300d1488dd0770",
+      "sourceBlob": "935a10b64d31ed4d21f5473eaf119d720b1e2624",
+      "sourceSha256": "dd8b9b7a6cb35f183c9637f95e091bf18f7f030456c20545a7be3c670eb60afa",
+      "targetBlob": "935a10b64d31ed4d21f5473eaf119d720b1e2624",
+      "targetSha256": "dd8b9b7a6cb35f183c9637f95e091bf18f7f030456c20545a7be3c670eb60afa",
       "mode": "100644"
     },
     "src/components/support/conversation-scroll.ts": {
@@ -10702,10 +10702,10 @@
       "mode": "100644"
     },
     "src/components/support/conversation-thread.behavior.test.ts": {
-      "sourceBlob": "3e46ff795d4b79fbebf9d3b781b07bb2a586fb00",
-      "sourceSha256": "66fe95ab1c1c298dd25c11bc59c50d9926805adb7711f1149a9814456db04c5f",
-      "targetBlob": "3e46ff795d4b79fbebf9d3b781b07bb2a586fb00",
-      "targetSha256": "66fe95ab1c1c298dd25c11bc59c50d9926805adb7711f1149a9814456db04c5f",
+      "sourceBlob": "e17ee5137e1c083b8a0c5069b65285bce17c403d",
+      "sourceSha256": "6ab0bcad0084a61bc73189a4ba4b1e81509e9caf433bc78845d9b359e9582e8c",
+      "targetBlob": "e17ee5137e1c083b8a0c5069b65285bce17c403d",
+      "targetSha256": "6ab0bcad0084a61bc73189a4ba4b1e81509e9caf433bc78845d9b359e9582e8c",
       "mode": "100644"
     },
     "src/components/support/conversation-thread.vue": {

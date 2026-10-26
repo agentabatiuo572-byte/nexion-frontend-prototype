@@ -9,6 +9,7 @@ export function useConversationEntrance(source: () => Snapshot, onIncoming?: () 
   const active = ref<Record<string, { token: number; identity: string; expiresAt: number }>>({});
   const renderKeys = ref<Record<string, string>>({});
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  const acknowledgedTails = new Map<string, string>();
   let identity: string | undefined, previous: string[] = [], seen = new Set<string>(), serial = 0;
   let previouslyReady = false, previouslyVisible = false;
   let previousMessages: ThreadMsg[] = [];
@@ -26,19 +27,21 @@ export function useConversationEntrance(source: () => Snapshot, onIncoming?: () 
   }, () => {
     const current = source(), ids = current.messages.map(m => m.id);
     const changed = identity !== current.identity;
-    if (changed) { clear(); identity = current.identity; seen = new Set(); renderKeys.value = {}; }
+    if (changed) { clear(); identity = current.identity; seen = new Set(); renderKeys.value = {}; acknowledgedTails.clear(); }
     // A fast authoritative acknowledgement replaces the local outbox ID. Keep
     // the mounted bubble and its running animation, without delaying the receipt
     // or inferring delivery from matching body text. Only a unique tail replacement
     // in this already-live view can adopt the local render key.
     const oldTail = previousMessages[previousMessages.length - 1];
-    if (!changed && previouslyVisible && previouslyReady && current.visible && current.ready
-        && oldTail?.localSend && !ids.includes(oldTail.id)) {
+    if (!changed && previouslyVisible && previouslyReady && current.visible && current.ready && oldTail?.localSend) {
       const candidates = current.messages.slice(previousMessages.length - 1)
         .filter(message => message.side === 'right' && !message.localSend && !previous.includes(message.id));
       const samePrefix = previous.slice(0, -1).every((id, index) => ids[index] === id);
-      if (samePrefix && candidates.length === 1) {
-        const replacement = candidates[0];
+      // The store can publish the confirmed record one microtask before the
+      // page retires its pending row. Remember that unique insertion as well.
+      if (samePrefix && candidates.length === 1) acknowledgedTails.set(oldTail.id, candidates[0].id);
+      const replacement = current.messages.find(message => message.id === acknowledgedTails.get(oldTail.id));
+      if (!ids.includes(oldTail.id) && replacement) {
         renderKeys.value = { ...renderKeys.value, [replacement.id]: renderKeys.value[oldTail.id] ?? oldTail.id };
         seen.add(replacement.id);
         const entry = active.value[oldTail.id];
@@ -50,6 +53,7 @@ export function useConversationEntrance(source: () => Snapshot, onIncoming?: () 
         }
       }
     }
+    for (const id of acknowledgedTails.keys()) if (!ids.includes(id)) acknowledgedTails.delete(id);
     for (const id of Object.keys(active.value)) if (!ids.includes(id)) finish(id, active.value[id].token);
     if (!current.visible || !current.ready) clear();
     const oldTailKey = oldTail && (renderKeys.value[oldTail.id] ?? oldTail.id);
