@@ -1,0 +1,19 @@
+{
+  "sourceCommit": "c6322ad3b40b00af057b20ded7edb41742a5e3f8",
+  "preview": "http://127.0.0.1:5232/preview",
+  "mainScript": "/assets/index-0pG6J2ZA.js",
+  "floatingEntry": {
+    "class": "nx-nova-bubble nx-nova-bubble--light",
+    "clicked": true,
+    "resultRoute": "#/pages/me/notifications?section=service",
+    "selectedTab": "服务"
+  },
+  "notificationSwitch": {
+    "body": true,
+    "mainScript": "/assets/index-0pG6J2ZA.js",
+    "overflow": false,
+    "route": "#/pages/me/notifications?section=notifications",
+    "selectedTab": "通知"
+  },
+  "scope": "Local mock UI only; no messages sent and no real backend acceptance"
+}

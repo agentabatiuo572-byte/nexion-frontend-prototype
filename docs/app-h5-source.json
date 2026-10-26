@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "c6322ad3b40b00af057b20ded7edb41742a5e3f8",
-  "sourceRef": "c6322ad3b40b00af057b20ded7edb41742a5e3f8",
+  "sourceHead": "c17d42d464fdd82c0cdc62b69fed825d8a5a4a02",
+  "sourceRef": "c17d42d464fdd82c0cdc62b69fed825d8a5a4a02",
   "sourceRefKind": "commit",
-  "sourceTree": "2a34f05b1f69261ef1c2751a2ba29c95354ebb03",
+  "sourceTree": "2d99af93e1aefa6ba20b7bfe165a365eab5ff5f0",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -349,10 +349,10 @@
       "mode": "100644"
     },
     "docs/audit/2026-10-26-catalog-support.md": {
-      "sourceBlob": "5cd1a085c9f8579ce3c3f0e73cdb774d49f09621",
-      "sourceSha256": "c3ab4b0ee6dda7ae7c66b678ea5f12189dd6327bdaa244c1a06261ea2e023820",
-      "targetBlob": "5cd1a085c9f8579ce3c3f0e73cdb774d49f09621",
-      "targetSha256": "c3ab4b0ee6dda7ae7c66b678ea5f12189dd6327bdaa244c1a06261ea2e023820",
+      "sourceBlob": "3fa7970876159644fd29afacb3206458736ace89",
+      "sourceSha256": "eadf55c25f33122b43289225659b4b06170c97b68c3a96ba70202db6ba0b1714",
+      "targetBlob": "3fa7970876159644fd29afacb3206458736ace89",
+      "targetSha256": "eadf55c25f33122b43289225659b4b06170c97b68c3a96ba70202db6ba0b1714",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-catalog-support/app-compile.json": {
@@ -474,6 +474,55 @@
       "targetSha256": "8e0ded673b50f709d14092783076bd384b441a09596074eddc3c9763a856523e",
       "mode": "100644"
     },
+    "docs/audit/2026-10-26-catalog-support/integrated-build-evidence.json": {
+      "sourceBlob": "4095015f1d1581f96ad72ae52b35768eabab7c18",
+      "sourceSha256": "091c161c2cd20677515babab132e28c6a748934cc6fafbc9ef855510d6861424",
+      "targetBlob": "4095015f1d1581f96ad72ae52b35768eabab7c18",
+      "targetSha256": "091c161c2cd20677515babab132e28c6a748934cc6fafbc9ef855510d6861424",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/integrated-home-light.png": {
+      "sourceBlob": "9674a5843e3bfc2c23ee21f1fe09c7c0b351f6b8",
+      "sourceSha256": "74245f9878bedc39cf9a4a21420eac8ddcf852fb6c698f06de498bd43af1cbeb",
+      "targetBlob": "9674a5843e3bfc2c23ee21f1fe09c7c0b351f6b8",
+      "targetSha256": "74245f9878bedc39cf9a4a21420eac8ddcf852fb6c698f06de498bd43af1cbeb",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/integrated-notifications.png": {
+      "sourceBlob": "b4da08b03a8cad6c697e775c8c1bc9d3cb5fbe3c",
+      "sourceSha256": "bca1ecac3ab148ff3e01f54d5ab575c8fddd2949076dce0bd2f4f7988ae86450",
+      "targetBlob": "b4da08b03a8cad6c697e775c8c1bc9d3cb5fbe3c",
+      "targetSha256": "bca1ecac3ab148ff3e01f54d5ab575c8fddd2949076dce0bd2f4f7988ae86450",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/integrated-runtime.json": {
+      "sourceBlob": "6649295c388a53ee917d91ede85073fcf965348a",
+      "sourceSha256": "e20ce7184d2a7790f68995371dd3898343fa77cb2ecd3afb5d895c25a8ee9081",
+      "targetBlob": "6649295c388a53ee917d91ede85073fcf965348a",
+      "targetSha256": "e20ce7184d2a7790f68995371dd3898343fa77cb2ecd3afb5d895c25a8ee9081",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/integrated-service.png": {
+      "sourceBlob": "1570f33e2f61b68e24646a3490985bc5613e81e1",
+      "sourceSha256": "bed7d9d160cf052395c801848d8cc8078c3dd78f0ef21a30074ff387678fdb98",
+      "targetBlob": "1570f33e2f61b68e24646a3490985bc5613e81e1",
+      "targetSha256": "bed7d9d160cf052395c801848d8cc8078c3dd78f0ef21a30074ff387678fdb98",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/light-activity-pending-user.png": {
+      "sourceBlob": "97ce51f2c07f5f4ba77634340a2bd3f45dd17ce0",
+      "sourceSha256": "a77a2650def87e949cc33318e16569bc00ab168ca8fbc88ed838a353a381230a",
+      "targetBlob": "97ce51f2c07f5f4ba77634340a2bd3f45dd17ce0",
+      "targetSha256": "a77a2650def87e949cc33318e16569bc00ab168ca8fbc88ed838a353a381230a",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/message-header-pending-user.png": {
+      "sourceBlob": "dc95caeac9bf04f5e32b457a1bf7dcce084e5908",
+      "sourceSha256": "42450979dfd5a5566fd77f3878ca2e3066c6e7f82f671a4f7b2b9e879fd8afd8",
+      "targetBlob": "dc95caeac9bf04f5e32b457a1bf7dcce084e5908",
+      "targetSha256": "42450979dfd5a5566fd77f3878ca2e3066c6e7f82f671a4f7b2b9e879fd8afd8",
+      "mode": "100644"
+    },
     "docs/audit/2026-10-26-catalog-support/store-320-en-final.png": {
       "sourceBlob": "622e749957bd02d88a0fa725a0c03d60e06b74f0",
       "sourceSha256": "19d643a175927ef873ad2610cb848c788b291a25beda9fc5354235805704b2aa",
@@ -559,10 +608,10 @@
       "mode": "100644"
     },
     "docs/audit/2026-10-26-fidelity-recheck.md": {
-      "sourceBlob": "dda046ea6d3342d370ab131b6396cb7d5e6c3546",
-      "sourceSha256": "5671376ff78252ac559ae9f334fc191a9303d5e5a4b92b43f1f88dac86e0a1d5",
-      "targetBlob": "dda046ea6d3342d370ab131b6396cb7d5e6c3546",
-      "targetSha256": "5671376ff78252ac559ae9f334fc191a9303d5e5a4b92b43f1f88dac86e0a1d5",
+      "sourceBlob": "ada53ade9213a3b96a05e3047146776328b663bb",
+      "sourceSha256": "a02dd959fe2b5abc8775e89e22860a30e53b0e0b36d7b7d8cf04f39ce09ff4a4",
+      "targetBlob": "ada53ade9213a3b96a05e3047146776328b663bb",
+      "targetSha256": "a02dd959fe2b5abc8775e89e22860a30e53b0e0b36d7b7d8cf04f39ce09ff4a4",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-globe-native-acceptance.md": {
@@ -4374,10 +4423,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "0fecbe1283c627acee0e4421520a8bbd23ee6a71",
-      "sourceSha256": "16dcb254253d9d99e84a4a1b67f1fc7a4e06a33a28befac2ed16ca6d8ce1d3c8",
-      "targetBlob": "0fecbe1283c627acee0e4421520a8bbd23ee6a71",
-      "targetSha256": "16dcb254253d9d99e84a4a1b67f1fc7a4e06a33a28befac2ed16ca6d8ce1d3c8",
+      "sourceBlob": "0779e4c063a1b8786aa57deda7c6226eff50a7c9",
+      "sourceSha256": "4b6cac57cd7e5c5865e609bd9f25fd5218e201a57990bc5cbf49760d950dae01",
+      "targetBlob": "0779e4c063a1b8786aa57deda7c6226eff50a7c9",
+      "targetSha256": "4b6cac57cd7e5c5865e609bd9f25fd5218e201a57990bc5cbf49760d950dae01",
       "mode": "100644"
     },
     "index.html": {

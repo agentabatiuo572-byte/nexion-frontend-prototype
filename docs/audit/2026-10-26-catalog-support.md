@@ -52,8 +52,15 @@
 - H5商城实测后台切换Pro赠S1、升级P1→P2，文字和机器图同步；目录缺图显示占位，恢复图片后目标浮动恢复。商城无额外客服浮标，浅色文案rgb(19,20,26)，未见横向溢出。
 - H5截图：[首页浅色](2026-10-26-catalog-support/h5-home-light-final.png)、[客服服务页](2026-10-26-catalog-support/h5-support-service-final.png)、[团队短屏](2026-10-26-catalog-support/h5-team-320-light-final.png)、[机型切换](2026-10-26-catalog-support/h5-store-alternate-final.png)、[缺图占位](2026-10-26-catalog-support/h5-store-missing-final.png)。本节随后以文档提交同轮同步，不修改已验收功能代码。
 
+## 合入推送前远端更新后的复验
+
+- fetch发现APP远端e403c03a、H5远端ab1921a新增消息通知原生兼容与TEST验收记录。两端rebase保留全部远端提交，合并更新日志的两个新增段落，重新固定同步来源；没有强推或覆盖远端内容。
+- 与重排前7092572b相比，本轮20个源码/资源Git blob全部未变。远端新增的通知摘要与Unicode兼容代码加入针对性回归后，16个Vitest文件261/261通过；H5类型检查0错误，APP-PLUS及H5重新构建通过。同步检查2858个受控文件一致。
+- [集成构建证据](2026-10-26-catalog-support/integrated-build-evidence.json)独立保存新的APP/H5指纹，不改写前面历史证据。实际浏览器加载index-0pG6J2ZA.js，在独立验收页点击浅色浮标进入“服务”，再切换“通知”，正文可见且无横向溢出；[实际读回](2026-10-26-catalog-support/integrated-runtime.json)、[服务截图](2026-10-26-catalog-support/integrated-service.png)、[通知截图](2026-10-26-catalog-support/integrated-notifications.png)。
+- 本段之后仅追加用户新队列和验收文档，不再修改功能或视觉代码。新队列LIGHT-01、MSG-03、CTRL-01、SHADOW-01/02明确待实施，见[统一队列](2026-10-26-fidelity-recheck.md)。
+
 ## 验证边界
 
 本轮是本地模拟浏览器与组件行为验证，不代表真实后台发布、生产部署、APK/IPA安装或iOS/Android实体机已验收。原生图片缓存的迟到事件覆盖来自行为测试，真实离线缓存损坏及系统手势区仍需设备复验。完整活动Banner的真实后台上传/发布链路不在本轮本地验收范围。
 
-MSG-01/02仅入队；既存全站公共文案检查中的3项globe失败另列，不用当前专项测试绿灯替代全站验收。
+MSG-01/02仅入队；用户新增LIGHT-01“浅色活动卡仍用深色外观”同样待实施，本轮商城文字色修复不代表整个活动卡主题适配完成。既存全站公共文案检查中的3项globe失败另列，不用当前专项测试绿灯替代全站验收。

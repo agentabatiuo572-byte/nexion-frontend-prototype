@@ -1,0 +1,196 @@
+{
+  "timestamp": "2026-10-26T18:25:52.4636153+09:00",
+  "sourceCommit": "c6322ad3b40b00af057b20ded7edb41742a5e3f8",
+  "integratedRemoteApp": "e403c03a",
+  "integratedRemoteH5": "ab1921a",
+  "source": [
+    {
+      "path": "scripts/lib/prototype-demo-data.mjs",
+      "sourceBlob": "dc7dff678e22808c79d25784a74be04086ac9ae6",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "0C0B91004939968D4941E645E5B55DBD8EB759FBDF18A9DDA912DCAAC78A3033"
+    },
+    {
+      "path": "scripts/nova-local-ai-contract.test.mjs",
+      "sourceBlob": "6f2acc799d58c7a236cf9d88faf648e511365837",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "95312C6C9BA205B122BE5D056A662F97E77023BE8D6801E71D3DA7637A54131A"
+    },
+    {
+      "path": "scripts/prototype-machine-images.test.mjs",
+      "sourceBlob": "3e1093e87102213b829dae89a8b7805cb319da73",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "3C9FB048E3F7A2CA94A61F962EB0D67E01CB80B8E09D9B1A9CDCE7C23F60CD4C"
+    },
+    {
+      "path": "scripts/prototype-preview.html",
+      "sourceBlob": "b7c6f955825acb859edc07bfffaaaa173193e5cb",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "E3B4D905CF840172CBF095198EB2BEDEDAB522FC9D5CFDB12A5E6E6D1A1EEB16"
+    },
+    {
+      "path": "src/components/app-chassis.vue",
+      "sourceBlob": "0f55dab4328a4e8a382854c7f74752d0b6041961",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "83DE8983303954FAC727E620C7250DECE0C71E315729614D099E56E297C5B07C"
+    },
+    {
+      "path": "src/components/catalog-machine-image.behavior.test.ts",
+      "sourceBlob": "cbf574814014f7cebe0ef46b68c246517c0f074c",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "632EAD1793DD0C2229786851264D4F86F2FCEEF19816E70E66043FCEFCBBFBA3"
+    },
+    {
+      "path": "src/components/catalog-machine-image.ts",
+      "sourceBlob": "155349c13dd4a8bc93177fd3b7c3e77a5e62a235",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "396827EDA8B83E347BBE3AB1762DF84ED6A5488E7D42AAC5F2A3AF8B597BA51E"
+    },
+    {
+      "path": "src/components/catalog-machine-image.vue",
+      "sourceBlob": "7ef485fdad2d7fa32e73901a553ba081f651b1a4",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "838C570C39EF90B185B3BBDD719413A523A67381BB8564100AFB36B59FFE81F3"
+    },
+    {
+      "path": "src/components/nova/nova-avatar.vue",
+      "sourceBlob": "d6808ebadb902362ffc682cbb1bec5e44aa54f77",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "1D6936FE64D073C49460C5AF1D4DECE2AE2C915ABAB246276632BD1C80772DAF"
+    },
+    {
+      "path": "src/components/nova/nova-bubble.vue",
+      "sourceBlob": "03300beb6a807e5ae74e3c0f2629984b2334d4ee",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "3132C32B098B9851260419F0FA8944771928445F38BE5EB2F96C4D49D05FD996"
+    },
+    {
+      "path": "src/components/promotion/promotion-entry.vue",
+      "sourceBlob": "b987f42377ec133b4572bd8d563a9260b137c789",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "F75E7628206CE8A38E3F19E41DA300215A0ED49CE4BEA2209C1E4AD63F3E78BA"
+    },
+    {
+      "path": "src/components/promotion/promotion-marketing.behavior.test.ts",
+      "sourceBlob": "46532551805bf77458374b4118f716a46cea1164",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "100F110C574041E90FF1B017B01F8A5E5B39B9E55D0F3E640708BB692563CF54"
+    },
+    {
+      "path": "src/components/promotion/promotion-refresh.behavior.test.ts",
+      "sourceBlob": "8f95b1e13d01bae32a7bde19d6bd28ddc5b3b38b",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "EBE9076F797AA05F3BA26096F9D98B46914B0C439DCFFBC200B349A52E34DE4E"
+    },
+    {
+      "path": "src/components/promotion/referral-progress.behavior.test.ts",
+      "sourceBlob": "588977dd4f746179e2e30a74213ea21b27523597",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "C3EA7FE23AF435E43B732296C62C9F293D932ADAE114C818D15857BC9832AA67"
+    },
+    {
+      "path": "src/components/promotion/referral-progress.vue",
+      "sourceBlob": "72b84a12e6ff9ba25119815d6510d05c60a5f308",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "B67495BEBCCDCC731EE97A808B45712CBDBAA9F64B35878FD4E0CA599B2429BA"
+    },
+    {
+      "path": "src/components/store/upgrade-spotlight.behavior.test.ts",
+      "sourceBlob": "aee5f5fbccb575a993b21c04acf776e759fc2a5e",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "45C19964832531DDB72210575ADA743112385BA8C13A43464EFF197EFEC4BA01"
+    },
+    {
+      "path": "src/components/store/upgrade-spotlight.vue",
+      "sourceBlob": "9d20ae0ac8bfabe3153731e9a5060b578f74de0a",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "2DB91F2D18D0E803F1B67A8A49021D4A042A999AE013D9AF1562E48A906C2F04"
+    },
+    {
+      "path": "src/composables/use-page-header.lifecycle.test.ts",
+      "sourceBlob": "c3dad95c2e086768744d75d9599ae69d59605bd9",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "703850427544093A141FFACE36499CBFFD49EE64A6E1601A75A4C36C5AC940AE"
+    },
+    {
+      "path": "src/pages/store/store.vue",
+      "sourceBlob": "a86fcd36894208003519f50474514d8e33ada92b",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "02768BBF9228CDE74FC0CB3A9D232CCC59DE003A93642E58AF92AE85ACFD14C5"
+    },
+    {
+      "path": "src/static/img/marketing/nova-avatar-light-20261026.webp",
+      "sourceBlob": "e8f4fd8923e73fb7a1b9121e27332b4a73bf9f2d",
+      "unchangedSinceSignoff": true,
+      "currentSha256": "AAE0965A94A14AA8B5053E5536D2A9EE78BD13A6F5DAFAF4A1922ECFF6962086"
+    }
+  ],
+  "checks": {
+    "vitestFiles": 16,
+    "vitestPassed": 261,
+    "vitestFailed": 0,
+    "h5VueTscErrors": 0,
+    "appPlusBuildExit": 0,
+    "h5BuildExit": 0,
+    "syncFiles": 2858,
+    "sync": "pass"
+  },
+  "appBuild": [
+    {
+      "path": "dist/build/app/app-service.js",
+      "sha256": "B9F2EF7C7274E51122BEBF20B3B20661871F12BF25BCAF13DEBB0FB00130DE49"
+    },
+    {
+      "path": "dist/build/app/app-renderjs.js",
+      "sha256": "73F33044FD81F164FBEC2573F371BB21FCBA980359F26B61D7765505C3D7C926"
+    },
+    {
+      "path": "dist/build/app/app.css",
+      "sha256": "5AAD43811F5030E755DA58F3432209B40326016A7D648152086CFB8C2E0C3819"
+    },
+    {
+      "path": "dist/build/app/manifest.json",
+      "sha256": "66381274932210C8AD2426A4D73713DE38DCCD8C89F32C28671E554F4598CA28"
+    }
+  ],
+  "h5IndexSha256": "38F2021A1999D46484A41E4F91721362849B024844AA8436E07FE971CFB9FEFF",
+  "h5Build": [
+    {
+      "path": "app-chassis-DHPwioeC.css",
+      "sha256": "FEB8235984463E47D975C8087B9DC9D96405047E7F11490B79F09AB773FEE5E9"
+    },
+    {
+      "path": "app-chassis.BSYFQ5E4.js",
+      "sha256": "611EBDB6EE01EEFFE8A6E177502F0635F7C25B54145776A7C6357EFAB5C4264A"
+    },
+    {
+      "path": "catalog-machine-image-Sr0pZ4Bd.css",
+      "sha256": "5A450EDB56049A3C771605CDA2217DD1FABB502242A3C8E2F938514D934F392C"
+    },
+    {
+      "path": "catalog-machine-image.CIVZi79r.js",
+      "sha256": "B8F2603EECE32F0E661BA08AFCE8662FA5F467D8DCE67AD94BEE73A5FB39CCEE"
+    },
+    {
+      "path": "notifications-CCtn684d.css",
+      "sha256": "82B1B5D67D588632E407EC8B188CAF572B597BDC303B3AEE2E19E29AB7E496F7"
+    },
+    {
+      "path": "promotion-entry-c6bNs5_-.css",
+      "sha256": "5B27AD4F8C614A69C1141B78F7A15819F81A6F8813C452CDF4C952BCAA4FC734"
+    },
+    {
+      "path": "promotion-entry.B-nntUba.js",
+      "sha256": "7E8DDFDA10F6CC370D8B0A86C7900994655CE051CB3FDABA2C55A6FA00AC1DC0"
+    },
+    {
+      "path": "promotion-entry.BsDQgY_C.js",
+      "sha256": "A6F3A12CC793541A6E09E0D61EF1F36DEA32553EFEA11F553B0E5A1B353E3FAF"
+    },
+    {
+      "path": "store-DRIHMilu.css",
+      "sha256": "951862BB30FFC68BF581B6EBF8FA735696C8915C5945065658A5D411423CEB3C"
+    }
+  ],
+  "scope": "Post-rebase compilation and local simulation; no new native device acceptance"
+}
