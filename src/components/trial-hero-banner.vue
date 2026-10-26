@@ -122,16 +122,17 @@ function retryEligibility() {
 .nx-trial-hero--embedded .trial-title { font:600 18px/22px var(--font-v5);margin-top:8px;letter-spacing:0; }
 .trial-reassurance { display:flex;flex-direction:column;max-width:110px;margin-top:6px;font:400 13px/18px var(--font-v5);color:var(--v5-ink-3); }
 .nx-trial-hero--embedded .trial-cta { position:absolute;left:14px;bottom:14px;min-height:32px;margin:0;padding:0 14px;font:600 13px/1.3 var(--font-v5); }
-.nx-trial-hero--long-copy { display:flex;flex-direction:column;box-sizing:border-box;height:auto;min-height:216px; }
+.nx-trial-hero--long-copy { display:flex;flex-direction:column;box-sizing:border-box;height:auto;min-height:200px; }
 .nx-trial-hero--long-copy .trial-meta { order:1; }
 .nx-trial-hero--long-copy .trial-reassurance { max-width:none; }
-.nx-trial-hero--long-copy .trial-art { position:relative;order:2;align-self:flex-end;right:-6px;bottom:auto;flex:none;margin:4px 0 8px; }
+.nx-trial-hero--long-copy .trial-art { position:relative;order:2;align-self:flex-end;right:-6px;bottom:auto;flex:none;width:102px;height:102px;margin:0 0 8px; }
+.nx-trial-hero--long-copy .trial-art .nx-home-art { width:102px;height:102px; }
 @media(max-width:350px) {
-  .nx-trial-hero--embedded { display:flex;flex-direction:column;box-sizing:border-box;height:auto;min-height:216px; }
+  .nx-trial-hero--embedded { display:flex;flex-direction:column;box-sizing:border-box;height:auto;min-height:200px; }
   .nx-trial-hero--embedded .trial-meta { order:1;padding-inline:12px; }
   .nx-trial-hero--embedded .trial-title { font-size:16px; }
-  .nx-trial-hero--embedded .trial-art { position:relative;order:2;align-self:flex-end;right:-6px;bottom:auto;flex:none;width:102px;height:102px;margin:4px 0 8px; }
-  .nx-trial-hero--embedded .trial-art .nx-home-art {width:102px;height:102px;}
+  .nx-trial-hero--embedded .trial-art { position:relative;order:2;align-self:flex-end;right:-6px;bottom:auto;flex:none;width:92px;height:92px;margin:0 0 8px; }
+  .nx-trial-hero--embedded .trial-art .nx-home-art {width:92px;height:92px;}
 }
 @media (prefers-reduced-motion: reduce) { .nx-trial-hero { transition: none; } .nx-trial-hero--embedded .trial-art .nx-home-art { animation:none; } }
 @media (max-width: 350px) {

@@ -4,7 +4,7 @@
     <view class="vb-card" role="button" tabindex="0" :aria-label="t.voucher.bannerTitle" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
       <view class="vb-art" aria-hidden="true"><view class="nx-home-art" /></view>
       <view class="vb-meta"><view class="vb-heading"><text class="vb-title">{{ copy.voucherShort }}</text><text class="vb-count">{{ fmt(copy.voucherShortCount,{n:offers.length}) }}</text></view>
-        <view class="vb-value"><text v-if="maxDiscount != null" class="vb-currency">$</text><text>{{ faceValue }}</text></view><text class="vb-sub">{{ maxDiscount != null ? copy.upToOff : copy.voucherDiscount }}</text>
+        <view class="vb-amount"><view class="vb-value"><text v-if="maxDiscount != null" class="vb-currency">$</text><text>{{ faceValue }}</text></view><text class="vb-sub">{{ maxDiscount != null ? copy.upToOff : copy.voucherDiscount }}</text></view>
       </view>
       <view class="vb-rule" aria-hidden="true" />
       <view class="vb-footer"><text>{{ claimable.length ? copy.claimToUse : copy.autoApplyVoucher }}</text><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></view>
@@ -53,8 +53,13 @@ function open() {
 .vb-card::before { left:-10px; }.vb-card::after { right:-10px; }
 .vb-card:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
 .vb-wrap--embedded .vb-card { height:100%;min-height:184px; }
-.vb-wrap--embedded .vb-card::before,.vb-wrap--embedded .vb-card::after { top:auto;bottom:55px; }
-.vb-wrap--embedded .vb-rule { top:auto;bottom:64px; }
+.vb-wrap--embedded .vb-card::before,.vb-wrap--embedded .vb-card::after { top:auto;bottom:43px; }
+.vb-wrap--embedded .vb-rule { top:auto;bottom:52px; }
+.vb-wrap--embedded .vb-meta { display:flex; flex-direction:column; height:calc(100% - 52px); box-sizing:border-box; padding-bottom:12px; }
+.vb-wrap--embedded .vb-heading { flex-shrink:0; }
+.vb-wrap--embedded .vb-amount { margin-block:auto; padding-top:8px; }
+.vb-wrap--embedded .vb-value { margin-top:0; }
+.vb-wrap--embedded .vb-footer { bottom:0; min-height:52px; box-sizing:border-box; padding:7px 0; }
 .vb-art { position:absolute; right:-18px; top:-6px; width:112px; height:112px; pointer-events:none; }
 .vb-art .nx-home-art { width:100%;height:100%; transform:rotate(-8deg); animation:voucher-float 4.6s ease-in-out infinite; }
 @keyframes voucher-float { 0%,100% { transform:translateY(0) rotate(-8deg); } 50% { transform:translateY(-4px) rotate(-6deg); } }
@@ -71,8 +76,7 @@ function open() {
 .vb-footer svg { flex:none;color:var(--v5-ink-4); }
 @media(max-width:350px) { .vb-heading { gap:3px;flex-wrap:wrap; }.vb-meta { padding-inline:12px; }.vb-value { font-size:30px;margin-top:16px; }.vb-art { width:94px;height:94px; }.vb-footer { font-size:11px; } }
 @media(max-width:350px) {
-  .vb-wrap--embedded .vb-card { height:100%;min-height:216px; }
-  .vb-wrap--embedded .vb-card::before,.vb-wrap--embedded .vb-card::after { top:auto;bottom:55px; }
-  .vb-wrap--embedded .vb-rule { top:auto;bottom:64px; }
+  .vb-wrap--embedded .vb-card { height:100%;min-height:200px; }
+  .vb-wrap--embedded .vb-art { width:82px;height:82px;right:-12px; }
 }
 </style>

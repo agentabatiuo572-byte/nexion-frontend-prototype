@@ -13,9 +13,13 @@
   <view class="nx-conv-thread message-family" @touchstart="sounds.unlock" @mousedown="sounds.unlock" @keydown="sounds.unlock">
     <!-- Message list. :scroll-into-view drives auto-scroll on App (native); on H5 it
          stays "" and domToBottom() handles it (uni's declarative scroll lands short
-         of a freshly-laid-out bubble). -->
-    <scroll-view ref="listHost" scroll-y class="nx-conv-list" :scroll-top="scrollTop" :scroll-into-view="scrollAnchor" :scroll-with-animation="scrollAnimated" :show-scrollbar="false" @scroll="onThreadScroll">
+         of a freshly-laid-out bubble). Programmatic positioning is immediate:
+         a UniApp content transition can otherwise commit an obsolete target later. -->
+    <scroll-view ref="listHost" scroll-y class="nx-conv-list" :scroll-top="scrollTop" :scroll-into-view="scrollAnchor" :scroll-with-animation="false" :show-scrollbar="false" @scroll="onThreadScroll">
       <view class="nx-conv-content" :style="{ paddingTop: (topInset || 0) + 'px', paddingBottom: composerVisible ? (composerMeasured ? composerSpace + 'px' : 'calc(' + composerSpace + 'px + env(safe-area-inset-bottom))') : undefined }">
+      <view v-if="$slots['history-prefix']" class="nx-conv-history-prefix" :class="{ 'nx-conv-history-prefix--measured': historyPrefixMeasured }" :style="{ height: historyPrefixMeasured ? historyPrefixHeight + 'px' : undefined }">
+        <view ref="historyPrefixHost" class="nx-conv-history-content"><slot name="history-prefix" /></view>
+      </view>
       <view v-if="messages.length === 0 && emptyHint" class="nx-conv-empty">
         <text class="nx-conv-empty-t">{{ emptyHint }}</text>
       </view>
@@ -40,7 +44,7 @@
                 <text class="nx-conv-image-caption">{{ imageLabels?.view }}</text>
               </view>
               <text v-else-if="m.imageLoading" class="nx-conv-image-caption">{{ imageLabels?.loading }}</text>
-              <view v-else-if="m.imageError" class="nx-conv-image-open family-control" role="button" tabindex="0" @click="m.imageAttachmentId && emit('retry-image', m.imageAttachmentId)" @keydown.enter.prevent="m.imageAttachmentId && emit('retry-image', m.imageAttachmentId)" @keydown.space.prevent="m.imageAttachmentId && emit('retry-image', m.imageAttachmentId)"><LiquidGlass :radius="22" /><text class="nx-conv-image-caption">{{ imageLabels?.failed }}</text></view>
+              <view v-else-if="m.imageError" class="nx-conv-image-open family-control" role="button" tabindex="0" @click="m.imageAttachmentId && emit('retry-image', m.imageAttachmentId)" @keydown.enter.prevent="m.imageAttachmentId && emit('retry-image', m.imageAttachmentId)" @keydown.space.prevent="m.imageAttachmentId && emit('retry-image', m.imageAttachmentId)"><LiquidGlass rendering="frosted" :radius="22" /><text class="nx-conv-image-caption">{{ imageLabels?.failed }}</text></view>
               <view v-for="(line, li) in formatLines(m.text)" :key="li" class="nx-conv-line">
                 <text
                   v-for="(seg, si) in line"
@@ -51,7 +55,7 @@
                 <text v-if="line.length === 0" class="nx-conv-seg">{{ " " }}</text>
               </view>
             </view>
-	            <view v-if="m.ctaLabel && m.ctaHref" class="nx-conv-cta-row family-control" role="link" tabindex="0" :aria-label="m.ctaLabel" @click="onCta(m)" @keydown.enter.prevent="onKeyboardActivate($event, () => onCta(m))"><LiquidGlass :radius="22" />
+	            <view v-if="m.ctaLabel && m.ctaHref" class="nx-conv-cta-row family-control" role="link" tabindex="0" :aria-label="m.ctaLabel" @click="onCta(m)" @keydown.enter.prevent="onKeyboardActivate($event, () => onCta(m))"><LiquidGlass rendering="frosted" :radius="22" />
               <text class="nx-conv-cta-t">{{ m.ctaLabel }}</text>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg>
             </view>
@@ -68,14 +72,14 @@
           <view v-if="m.queue.state === 'editing'" class="nx-conv-edit">
             <textarea class="nx-conv-edit-input" :value="edits[m.queue.turnId] ?? m.text" :maxlength="2000" :aria-label="queueLabels.edit" auto-height @input="onEditInput(m.queue.turnId, $event)" />
             <view class="nx-conv-queue-actions">
-              <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="saveQueueEdit(m)" @keydown.enter.prevent="onKeyboardActivate($event, () => saveQueueEdit(m))" @keydown.space.prevent="onKeyboardActivate($event, () => saveQueueEdit(m))"><LiquidGlass :radius="22" /><text>{{ queueLabels.save }}</text></view>
-              <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="runQueueAction(m, 'cancel-edit')" @keydown.enter.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel-edit'))" @keydown.space.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel-edit'))"><LiquidGlass :radius="22" /><text>{{ queueLabels.cancelEdit }}</text></view>
+              <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="saveQueueEdit(m)" @keydown.enter.prevent="onKeyboardActivate($event, () => saveQueueEdit(m))" @keydown.space.prevent="onKeyboardActivate($event, () => saveQueueEdit(m))"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ queueLabels.save }}</text></view>
+              <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="runQueueAction(m, 'cancel-edit')" @keydown.enter.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel-edit'))" @keydown.space.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel-edit'))"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ queueLabels.cancelEdit }}</text></view>
             </view>
           </view>
           <view v-else class="nx-conv-queue-actions">
-            <template v-if="m.queue.state === 'queued' && m.queue.editable">
-              <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="startEdit(m)" @keydown.enter.prevent="onKeyboardActivate($event, () => startEdit(m))" @keydown.space.prevent="onKeyboardActivate($event, () => startEdit(m))"><LiquidGlass :radius="22" /><text>{{ queueLabels.edit }}</text></view>
-              <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="runQueueAction(m, 'cancel')" @keydown.enter.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel'))" @keydown.space.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel'))"><LiquidGlass :radius="22" /><text>{{ queueLabels.cancel }}</text></view>
+            <template v-if="(m.queue.state === 'queued' || m.queue.state === 'failed') && m.queue.editable">
+              <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="startEdit(m)" @keydown.enter.prevent="onKeyboardActivate($event, () => startEdit(m))" @keydown.space.prevent="onKeyboardActivate($event, () => startEdit(m))"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ queueLabels.edit }}</text></view>
+              <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="runQueueAction(m, 'cancel')" @keydown.enter.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel'))" @keydown.space.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel'))"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ queueLabels.cancel }}</text></view>
             </template>
           </view>
         </view>
@@ -101,7 +105,7 @@
     <!-- Quick reply chips (AI only) -->
     <scroll-view v-if="quickChips && quickChips.length" scroll-x class="nx-conv-chips" :show-scrollbar="false">
       <view class="nx-conv-chips-inner">
-	        <view v-for="q in quickChips" :key="q.key" class="nx-conv-chip family-control" role="button" tabindex="0" :aria-label="q.label" @click="emit('chip', q.key)" @keydown.enter.prevent="onKeyboardActivate($event, () => emit('chip', q.key))" @keydown.space.prevent="onKeyboardActivate($event, () => emit('chip', q.key))"><LiquidGlass :radius="22" />
+	        <view v-for="q in quickChips" :key="q.key" class="nx-conv-chip family-control" role="button" tabindex="0" :aria-label="q.label" @click="emit('chip', q.key)" @keydown.enter.prevent="onKeyboardActivate($event, () => emit('chip', q.key))" @keydown.space.prevent="onKeyboardActivate($event, () => emit('chip', q.key))"><LiquidGlass rendering="frosted" :radius="22" />
           <text class="nx-conv-chip-emoji">{{ q.emoji }}</text>
           <text class="nx-conv-chip-t">{{ q.label }}</text>
         </view>
@@ -111,7 +115,7 @@
     <!-- Closed session → the input is retired; one CTA restarts with a fresh agent.
          The "why" (timeout notice) is already a system message inside the thread. -->
     <view v-if="closed" class="nx-conv-closedbar">
-	      <view class="nx-conv-restart active:opacity-80 family-control family-control--primary" role="button" tabindex="0" :aria-label="restartLabel" @click="emit('restart')" @keydown.enter.prevent="onKeyboardActivate($event, () => emit('restart'))" @keydown.space.prevent="onKeyboardActivate($event, () => emit('restart'))"><LiquidGlass :radius="22" tone="selection" />
+	      <view class="nx-conv-restart active:opacity-80 family-control family-control--primary" role="button" tabindex="0" :aria-label="restartLabel" @click="emit('restart')" @keydown.enter.prevent="onKeyboardActivate($event, () => emit('restart'))" @keydown.space.prevent="onKeyboardActivate($event, () => emit('restart'))"><LiquidGlass rendering="frosted" :radius="22" tone="selection" />
         <text class="nx-conv-restart-t">{{ restartLabel }}</text>
       </view>
     </view>
@@ -120,23 +124,24 @@
       <view v-if="attachmentPreviewSrc" class="nx-conv-image-open" role="button" tabindex="0" :aria-label="imageLabels?.view" @click="openPreview(attachmentPreviewSrc)" @keydown.enter.prevent="openPreview(attachmentPreviewSrc)" @keydown.space.prevent="openPreview(attachmentPreviewSrc)"><image class="nx-conv-image" :src="attachmentPreviewSrc" mode="aspectFill" /></view>
       <text>{{ attachmentDraft.label }}</text>
       <view class="nx-conv-attachment-actions">
-        <view v-if="attachmentDraft.state === 'failed' && !attachmentDraft.replaceOnly" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('retry-upload')" @keydown.enter.prevent="emit('retry-upload')" @keydown.space.prevent="emit('retry-upload')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.retryUpload }}</text></view>
-        <view v-if="attachmentDraft.state !== 'uploading'" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('replace-attachment')" @keydown.enter.prevent="emit('replace-attachment')" @keydown.space.prevent="emit('replace-attachment')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.replace }}</text></view>
-        <view role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('cancel-attachment')" @keydown.enter.prevent="emit('cancel-attachment')" @keydown.space.prevent="emit('cancel-attachment')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.cancel }}</text></view>
+        <view v-if="attachmentDraft.state === 'failed' && !attachmentDraft.replaceOnly" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('retry-upload')" @keydown.enter.prevent="emit('retry-upload')" @keydown.space.prevent="emit('retry-upload')"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ imageLabels?.retryUpload }}</text></view>
+        <view v-if="attachmentDraft.state !== 'uploading'" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('replace-attachment')" @keydown.enter.prevent="emit('replace-attachment')" @keydown.space.prevent="emit('replace-attachment')"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ imageLabels?.replace }}</text></view>
+        <view role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('cancel-attachment')" @keydown.enter.prevent="emit('cancel-attachment')" @keydown.space.prevent="emit('cancel-attachment')"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ imageLabels?.cancel }}</text></view>
       </view>
     </view>
     <view v-if="!closed && failedSendLabel && canDiscardSend" class="nx-conv-recovery-actions">
       <view class="nx-conv-attachment-actions">
-        <view v-if="canDiscardSend" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('edit-message')" @keydown.enter.prevent="emit('edit-message')" @keydown.space.prevent="emit('edit-message')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.editSend }}</text></view>
-        <view v-if="canDiscardSend" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('discard-message')" @keydown.enter.prevent="emit('discard-message')" @keydown.space.prevent="emit('discard-message')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.discard }}</text></view>
+        <view v-if="canDiscardSend" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('edit-message')" @keydown.enter.prevent="emit('edit-message')" @keydown.space.prevent="emit('edit-message')"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ imageLabels?.editSend }}</text></view>
+        <view v-if="canDiscardSend" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('discard-message')" @keydown.enter.prevent="emit('discard-message')" @keydown.space.prevent="emit('discard-message')"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ imageLabels?.discard }}</text></view>
       </view>
     </view>
     <!-- Input row -->
     <view v-else-if="!closed" ref="composerHost" class="nx-conv-composer">
     <view class="nx-conv-input-row">
-      <view v-if="imageLabels" class="nx-conv-attach-trigger family-control" role="button" :tabindex="attachDisabled ? -1 : 0" :aria-label="attachDisabled && attachUnavailable ? imageLabels.attach + ' · ' + attachUnavailable : imageLabels.attach" :aria-disabled="attachDisabled ? 'true' : 'false'" :style="attachDisabled ? { opacity: 0.45 } : undefined" @click="!attachDisabled && emit('attach')" @keydown.enter.prevent="!attachDisabled && emit('attach')" @keydown.space.prevent="!attachDisabled && emit('attach')"><LiquidGlass :radius="22" /><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></view>
-      <view class="nx-conv-compose-field">
-      <LiquidGlass :radius="25" />
+      <view v-if="imageLabels" class="nx-conv-attach-trigger family-control" role="button" :tabindex="attachDisabled ? -1 : 0" :aria-label="attachDisabled && attachUnavailable ? imageLabels.attach + ' · ' + attachUnavailable : imageLabels.attach" :aria-disabled="attachDisabled ? 'true' : 'false'" :style="attachDisabled ? { opacity: 0.45 } : undefined" @click="!attachDisabled && emit('attach')" @keydown.enter.prevent="!attachDisabled && emit('attach')" @keydown.space.prevent="!attachDisabled && emit('attach')"><LiquidGlass rendering="frosted" :radius="22" /><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></view>
+      <view class="nx-conv-compose-field" :style="composerLightStyle">
+      <LiquidGlass rendering="sampled" backdrop=".nx-conv-list" :radius="25" :blur="24" />
+      <view class="nx-conv-compose-content">
       <textarea
         class="nx-conv-input"
         :value="draft"
@@ -153,16 +158,17 @@
         @linechange="onInputLines"
         @blur="emit('typing', false)"
       />
+      <view v-if="showInputLength" class="nx-conv-length" :class="{ 'nx-conv-length--over': inputOverLimit }" role="status"><text>{{ inputLength }} / {{ inputLimit }}</text><text v-if="inputOverLimit">{{ inputLimitHint }}</text></view>
+      <view v-if="attachRetry" class="nx-conv-policy-retry" role="button" tabindex="0" @click="emit('retry-policy')" @keydown.enter.prevent="emit('retry-policy')" @keydown.space.prevent="emit('retry-policy')"><text>{{ imageLabels?.retryPolicy }}</text></view>
+      </view>
       <view class="nx-conv-send" :class="{ 'nx-conv-send--ready': canSend || sendFeedback || sendTurning, 'nx-conv-send--feedback': sendFeedback, 'nx-conv-send--turning': sendTurning }" role="button" :tabindex="canSend ? 0 : -1" :aria-label="sendLabel" :aria-disabled="!canSend" :aria-busy="sendTurning" @click="onSend" @keydown.enter.prevent="onKeyboardActivate($event, onSend)" @keydown.space.prevent="onKeyboardActivate($event, onSend)">
-        <view class="nx-conv-send-face" aria-hidden="true"><LiquidGlass :radius="22" /><svg class="nx-conv-send-plane" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg></view>
+        <view class="nx-conv-send-face" aria-hidden="true"><LiquidGlass rendering="frosted" :radius="22" /><svg class="nx-conv-send-plane" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg></view>
       </view>
       </view>
     </view>
-    <view v-if="draft.trim().length >= inputLimit * .9" class="nx-conv-length" :class="{ 'nx-conv-length--over': draft.trim().length > inputLimit }" role="status"><text>{{ draft.trim().length }} / {{ inputLimit }}</text><text v-if="draft.trim().length > inputLimit">{{ inputLimitHint }}</text></view>
-    <view v-if="attachRetry" class="nx-conv-policy-retry" role="button" tabindex="0" @click="emit('retry-policy')" @keydown.enter.prevent="emit('retry-policy')" @keydown.space.prevent="emit('retry-policy')"><text>{{ imageLabels?.retryPolicy }}</text></view>
     </view>
     <view v-if="previewImage" class="nx-conv-image-overlay" role="dialog" aria-modal="true" :aria-label="imageLabels?.view">
-      <view role="button" tabindex="0" class="nx-conv-image-close family-control" @click="closePreview" @keydown.enter.prevent="closePreview" @keydown.space.prevent="closePreview"><LiquidGlass :radius="22" /><text>{{ imageLabels?.close }}</text></view>
+      <view role="button" tabindex="0" class="nx-conv-image-close family-control" @click="closePreview" @keydown.enter.prevent="closePreview" @keydown.space.prevent="closePreview"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ imageLabels?.close }}</text></view>
       <image :src="previewImage" class="nx-conv-image-full" mode="aspectFit" />
     </view>
   </view>
@@ -181,12 +187,14 @@ import { createConversationAudio } from '@/lib/conversation-audio';
 import { useConversationEntrance } from './conversation-entrance';
 import { conversationScrollChange, preservedConversationTop } from './conversation-scroll';
 import { buildConversationTimeGroups, formatConversationTime, type ConversationTimeOptions } from './conversation-time';
-import { bubbleViewportPosition, bubbleFill, compactMessageGroups } from './conversation-bubble-layout';
+import { bubbleViewportPosition, bubbleFill, compactMessageGroups, composerReflection, type ConversationRect } from './conversation-bubble-layout';
 
 const props = defineProps<{
   messages: ThreadMsg[];
   /** Measured floating header height; only the first message reserves it. */
   topInset?: number;
+  /** Changes when the scrolling history slot changes its notice/action layout. */
+  historyContentKey?: string;
   /** False while an authoritative history snapshot is being read. */
   entranceReady?: boolean;
   timeLocale?: string;
@@ -308,6 +316,9 @@ const inputHeight = ref(24);
 const composerHost = ref<unknown>(null), composerSpace = ref(86), composerMeasured = ref(false);
 const composerVisible = computed(() => !props.closed && !(props.failedSendLabel && props.canDiscardSend));
 const inputLimit = computed(() => props.maxInputLength ?? 2000);
+const inputLength = computed(() => draft.value.trim().length);
+const showInputLength = computed(() => inputLength.value >= inputLimit.value * .9);
+const inputOverLimit = computed(() => inputLength.value > inputLimit.value);
 function onInputLines(event: { detail: { height: number } }) {
   if (Number.isFinite(event.detail.height)) inputHeight.value = Math.max(24, Math.min(144, event.detail.height));
 }
@@ -374,6 +385,9 @@ function onDraft(e: Event) {
 
 function onSend() {
   if (!canSend.value) return;
+  // Sending is an explicit request to reveal the new reply; passive incoming
+  // messages must not interrupt somebody reading earlier history.
+  followingTail = true;
   sounds.unlock();
   clearTimeout(sendReturnTimer);
   const epoch = ++sendVisualEpoch, started = Date.now();
@@ -404,28 +418,53 @@ function onCta(m: ThreadMsg) {
   if (m.ctaHref) emit("cta", m.ctaHref, m.ctaLabel ?? "");
 }
 
-// Appends follow the tail; older pages retain the same viewport offset.
-const scrollAnchor = ref(""), scrollTop = ref(0), scrollAnimated = ref(true), listHost = ref<unknown>(null);
+// Appends follow only while already at the tail; history stays at its anchor.
+const scrollAnchor = ref(""), scrollTop = ref(0), listHost = ref<unknown>(null);
 const threadInstance = getCurrentInstance();
+const historyPrefixHost = ref<unknown>(null), historyPrefixHeight = ref(0);
+const historyPrefixBaseline = ref<number | null>(null);
+const historyPrefixMeasured = ref(false);
+// Initially the slot flows naturally, even if its first measurement fails.
+// Adopting that height must not compensate space which was already present.
+const positionInset = computed(() => (props.topInset || 0) + historyPrefixHeight.value - (historyPrefixBaseline.value ?? 0));
 let scrollGeneration = 0, scrollTimer: ReturnType<typeof setTimeout> | undefined;
+let pendingTailGeneration: number | undefined;
 let lastScrollTop = 0;
 let followingTail = true, measuredViewportHeight = 0;
-let preparedHistory: { id: string; prefix: number; owner: string } | null = null;
+const HISTORY_MEASURE_MS = 500;
+let positionTimer: ReturnType<typeof setTimeout> | undefined, historyDisposed = false;
+let preparedHistory: { id: string; prefix: number; inset: number; owner: string; host: unknown; root: unknown } | null = null;
+type PositionAdjustment = { owner: string; host: unknown; root: unknown; top: number; inset: number; tail: boolean; id?: string; prefix?: number;
+  expiresAt: number; settled: Promise<boolean>; settle: (applied: boolean) => void };
+let pendingPosition: PositionAdjustment | null = null;
 let historyPreparation = 0;
 const historyOwner = () => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey, props.revealTick]);
-function cancelScroll() { scrollGeneration++; clearTimeout(scrollTimer); scrollAnchor.value = ''; }
-onScopeDispose(cancelScroll);
-onHide(cancelScroll);
-onHide(() => { preparedHistory = null; historyPreparation++; });
-onScopeDispose(() => { historyPreparation++; });
+const listRoot = () => (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
+function settlePosition(applied = false) {
+  const position = pendingPosition;
+  pendingPosition = null;
+  clearTimeout(positionTimer); positionTimer = undefined;
+  position?.settle(applied);
+}
+function cancelScroll(keepPosition = false) {
+  scrollGeneration++; clearTimeout(scrollTimer); clearTimeout(positionTimer); scrollAnchor.value = '';
+  pendingTailGeneration = undefined;
+  if (!keepPosition) settlePosition();
+}
+function invalidateHistoryPosition() { cancelScroll(); preparedHistory = null; historyPreparation++; }
+onScopeDispose(() => { historyDisposed = true; invalidateHistoryPosition(); });
+onHide(invalidateHistoryPosition);
+watch(() => [historyOwner(), listHost.value, listRoot()], invalidateHistoryPosition, { flush: 'sync' });
 function scroller(): HTMLElement | undefined {
-  const host = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
+  const host = listRoot();
   if (!host?.querySelectorAll) return;
   return [host, ...Array.from(host.querySelectorAll('*'))].find(node =>
     (node as HTMLElement).scrollHeight - (node as HTMLElement).clientHeight > 4) as HTMLElement | undefined;
 }
 function onThreadScroll(event: { detail: { scrollTop: number; scrollHeight?: number } }) {
+  pendingTailGeneration = undefined;
   // Mirror the native position so a later prepend can reapply the same target.
+  if (pendingPosition) pendingPosition.top += event.detail.scrollTop - lastScrollTop;
   lastScrollTop = event.detail.scrollTop;
   scrollTop.value = lastScrollTop;
   const node = scroller();
@@ -436,100 +475,230 @@ function onThreadScroll(event: { detail: { scrollTop: number; scrollHeight?: num
 }
 function messageRowId(id: string) { return 'nx-conv-message-' + Array.from(id).map(char=>char.charCodeAt(0).toString(16)).join('-'); }
 function measurePrefix(firstId: string, done: (height: number | null) => void) {
-  const root = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
-  const content = root?.querySelector?.('.nx-conv-content'), first = root?.querySelector?.('#' + messageRowId(firstId));
-  if (content && first) { done(first.getBoundingClientRect().top - content.getBoundingClientRect().top); return; }
-  if (typeof uni === 'undefined' || !uni.createSelectorQuery) { done(null); return; }
+  const root = listRoot(), host = listHost.value, owner = historyOwner();
+  const finish = (height: number | null) => done(!historyDisposed && threadVisible.value && host === listHost.value
+    && root === listRoot() && owner === historyOwner() && height !== null && Number.isFinite(height) ? height : null);
   try {
-  const query = uni.createSelectorQuery().in(threadInstance);
-  query.select('.nx-conv-content').boundingClientRect(); query.select('#' + messageRowId(firstId)).boundingClientRect();
-  query.exec(rows => {
-    const [body, anchor] = rows as UniApp.NodeInfo[];
-    done(typeof body?.top === 'number' && typeof anchor?.top === 'number' ? anchor.top - body.top : null);
-  });
-  } catch { done(null); }
+    const content = root?.querySelector?.('.nx-conv-content'), first = root?.querySelector?.('#' + messageRowId(firstId));
+    if (content && first) { finish(first.getBoundingClientRect().top - content.getBoundingClientRect().top); return; }
+    if (typeof uni === 'undefined' || !uni.createSelectorQuery) { finish(null); return; }
+    const query = uni.createSelectorQuery().in(threadInstance);
+    query.select('.nx-conv-content').boundingClientRect(); query.select('#' + messageRowId(firstId)).boundingClientRect();
+    query.exec(rows => {
+      const [body, anchor] = (Array.isArray(rows) ? rows : []) as UniApp.NodeInfo[];
+      finish(typeof body?.top === 'number' && typeof anchor?.top === 'number' ? anchor.top - body.top : null);
+    });
+  } catch { finish(null); }
 }
 // Capture before the request mutates history. Native selector queries are async;
 // waiting here also accounts for a first-row date marker disappearing on prepend.
 async function prepareHistoryPrepend(): Promise<boolean> {
+  const owner = historyOwner(), host = listHost.value, root = listRoot(), preparation = ++historyPreparation;
+  const current = () => !historyDisposed && threadVisible.value && preparation === historyPreparation
+    && owner === historyOwner() && host === listHost.value && root === listRoot();
+  if (!current()) return false;
+  // The parent finishes its data request before the native post-layout callback.
+  // Wait for that bounded transaction; never erase its unpaid prefix delta.
+  if (pendingPosition && !await pendingPosition.settled) return false;
+  if (!current()) return false;
   cancelScroll(); preparedHistory = null;
-  const id = props.messages[0]?.id, owner = historyOwner(), preparation = ++historyPreparation;
+  const id = props.messages[0]?.id, inset = positionInset.value;
   if (!id) return false;
   return new Promise<boolean>(resolve => {
-    let expired = false;
-    const timeout = setTimeout(() => { expired = true; resolve(false); }, 500);
+    let finished = false;
+    const timeout = setTimeout(() => { finished = true; resolve(false); }, HISTORY_MEASURE_MS);
     measurePrefix(id, prefix => {
+      if (finished) return;
+      finished = true;
       clearTimeout(timeout);
-      const valid = !expired && typeof prefix === 'number' && Number.isFinite(prefix)
-        && preparation === historyPreparation && threadVisible.value && owner === historyOwner() && props.messages[0]?.id === id;
-      if (valid) preparedHistory = { id, prefix: prefix as number, owner };
+      const valid = typeof prefix === 'number' && Number.isFinite(prefix) && current()
+        && props.messages[0]?.id === id && inset === positionInset.value;
+      if (valid) preparedHistory = { id, prefix: prefix as number, inset, owner, host, root };
       resolve(valid);
     });
   });
 }
 defineExpose({ prepareHistoryPrepend });
-function scrollToEnd(animate = true) {
+function scrollToEnd() {
   cancelScroll(); const ticket = scrollGeneration;
+  pendingTailGeneration = ticket;
   const messages = props.messages.map(message=>message.id).join('\u0000');
   const owner = JSON.stringify([app.accountKey,app.accountBindingEpoch,props.composerKey,props.revealTick]);
-  const current = () => ticket === scrollGeneration && threadVisible.value
+  const current = () => ticket === scrollGeneration && !historyDisposed && threadVisible.value
+    && followingTail
     && messages === props.messages.map(message=>message.id).join('\u0000')
     && owner === JSON.stringify([app.accountKey,app.accountBindingEpoch,props.composerKey,props.revealTick]);
-  scrollAnimated.value = animate;
   followingTail = true;
   const apply = () => {
     if (!current()) return;
     const node = scroller();
-    if (node) { node.scrollTop = node.scrollHeight; lastScrollTop = node.scrollTop; }
+    if (node) {
+      node.scrollTop = node.scrollHeight; lastScrollTop = node.scrollTop;
+      // UniApp also reapplies this prop during mounting; do not leave a stale
+      // zero command behind while waiting for the DOM scroll event.
+      scrollTop.value = lastScrollTop; pendingTailGeneration = undefined;
+    }
     else { scrollAnchor.value = ''; void nextTick(() => { if (current()) scrollAnchor.value = 'nx-conv-end'; }); }
     scheduleBubblePositions();
   };
   void nextTick(() => {
+    if (!current()) return;
     apply(); scrollTimer = setTimeout(apply, 90);
   });
 }
-function preserveHistoryPosition(firstId: string) {
-  const node = scroller(), top = node?.scrollTop ?? lastScrollTop;
-  let oldPrefix: number | null = preparedHistory?.id === firstId && preparedHistory.owner === historyOwner() ? preparedHistory.prefix : null;
-  // H5 has synchronous geometry even for a consumer that does not pre-capture.
-  if (node) measurePrefix(firstId, value => { oldPrefix = value; });
-  preparedHistory = null;
-  cancelScroll(); const ticket = scrollGeneration; scrollAnimated.value = false;
-  // A missing native measurement is not a measured zero. The page blocks the
-  // fetch on preparation failure; never guess if another consumer skips it.
-  if (oldPrefix === null || !Number.isFinite(oldPrefix)) return;
-  const previousPrefix = oldPrefix;
+function beginPosition(previousInset: number, node?: HTMLElement): PositionAdjustment {
+  let settle!: (applied: boolean) => void;
+  const settled = new Promise<boolean>(resolve => { settle = resolve; });
+  return { owner: historyOwner(), host: listHost.value, root: listRoot(), top: node?.scrollTop ?? lastScrollTop, inset: previousInset,
+    // A new layout can precede the first queued tail placement. Its old DOM
+    // position is not evidence that the user chose to read earlier history.
+    tail: (followingTail && pendingTailGeneration === scrollGeneration)
+      || (node ? node.scrollHeight - node.clientHeight - node.scrollTop <= 24 : followingTail),
+    expiresAt: Date.now() + HISTORY_MEASURE_MS, settled, settle };
+}
+function preservePosition(previousInset: number, firstId?: string) {
+  const node = scroller(), owner = historyOwner(), host = listHost.value, root = listRoot();
+  // Keep the original reading anchor while native measurements are pending.
+  // A later header resize or second prepend supersedes the measurement, not
+  // the baseline; its total prefix delta will be applied exactly once.
+  if (pendingPosition && (pendingPosition.owner !== owner || pendingPosition.host !== host || pendingPosition.root !== root)) cancelScroll();
+  const adjustment = pendingPosition ?? beginPosition(previousInset, node);
+  if (firstId && !adjustment.id) {
+    let prefix: number | null = null;
+    if (preparedHistory?.id === firstId && preparedHistory.owner === owner && preparedHistory.host === host && preparedHistory.root === root)
+      prefix = preparedHistory.prefix + adjustment.inset - preparedHistory.inset;
+    // H5 can capture the still-unpatched DOM synchronously. Normalize its
+    // header/prefix space to the transaction's original inset.
+    if (node) measurePrefix(firstId, value => { prefix = value === null ? null : value + adjustment.inset - previousInset; });
+    preparedHistory = null;
+    if (prefix === null || !Number.isFinite(prefix)) { cancelScroll(); return; }
+    adjustment.id = firstId; adjustment.prefix = prefix;
+  }
+  cancelScroll(true); pendingPosition = adjustment;
+  const ticket = scrollGeneration, inset = positionInset.value;
+  const ids = props.messages.map(message => message.id).join('\u0000');
+  const current = () => ticket === scrollGeneration && pendingPosition === adjustment && !historyDisposed && threadVisible.value
+    && owner === historyOwner() && host === listHost.value && root === listRoot() && inset === positionInset.value
+    && ids === props.messages.map(message => message.id).join('\u0000');
+  // Coalescing another layout change keeps the original deadline. Unknown geometry
+  // releases the transaction without guessing a delta or moving a history reader.
+  positionTimer = setTimeout(() => { if (pendingPosition === adjustment && ticket === scrollGeneration) settlePosition(); },
+    Math.max(0, adjustment.expiresAt - Date.now()));
+  const apply = (delta: number) => {
+    if (!current() || !Number.isFinite(delta)) return;
+    settlePosition(true);
+    const nextTop = preservedConversationTop(adjustment.top, delta), target = scroller();
+    if (target) target.scrollTop = nextTop;
+    scrollTop.value = nextTop; lastScrollTop = nextTop;
+    scheduleBubblePositions();
+  };
   void nextTick(() => {
-    measurePrefix(firstId, prefixHeight => {
-      if (ticket !== scrollGeneration || !threadVisible.value || prefixHeight === null || !Number.isFinite(prefixHeight)) return;
-      const nextTop = preservedConversationTop(top, prefixHeight - previousPrefix);
-      const current = scroller(); if (current) current.scrollTop = nextTop;
-      scrollTop.value = nextTop; lastScrollTop = nextTop;
-      scheduleBubblePositions();
-    });
+    if (!current()) return;
+    if (adjustment.id && adjustment.prefix !== undefined) {
+      measurePrefix(adjustment.id, prefix => {
+        if (!current()) return;
+        if (prefix !== null && Number.isFinite(prefix)) apply(prefix - adjustment.prefix!);
+        else settlePosition();
+      });
+    } else if (adjustment.tail && followingTail) { settlePosition(true); scrollToEnd(); }
+    else apply(inset - adjustment.inset);
   });
 }
 watch(
-  () => [props.messages.map(message => message.id), props.typing, props.revealTick, props.composerKey] as const,
-  ([ids, typing, reveal, key], previous) => {
+  () => [props.messages.map(message => message.id), props.typing, props.revealTick, props.composerKey, positionInset.value] as const,
+  ([ids, typing, reveal, key, inset], previous) => {
     if (!threadVisible.value) { cancelScroll(); return; }
     if (!previous || reveal !== previous[2] || key !== previous[3]) { scrollToEnd(); return; }
+    if (inset !== previous[4]) historyPreparation++;
     const change = conversationScrollChange(previous[0], ids);
-    if (change === 'prepend') preserveHistoryPosition(previous[0][0]);
-    else if (change === 'append' || (typing && !previous[1])) scrollToEnd();
+    if (change === 'prepend' || pendingPosition || inset !== previous[4])
+      preservePosition(previous[4], change === 'prepend' ? previous[0][0] : undefined);
+    else if ((change === 'append' || (typing && !previous[1])) && followingTail) scrollToEnd();
   },
 );
 onMounted(() => {
   scrollToEnd();
 });
-function measureComposer(follow = followingTail) {
-  const owner = historyOwner();
+let historyPrefixMeasureEpoch = 0;
+let historyPrefixObserver: ResizeObserver | undefined;
+let historyPrefixTimer: ReturnType<typeof setTimeout> | undefined;
+const historyPrefixRoot = () => (historyPrefixHost.value as { $el?: HTMLElement } | null)?.$el ?? historyPrefixHost.value as HTMLElement | null;
+function invalidateHistoryPrefixMeasure() {
+  historyPrefixMeasureEpoch++; clearTimeout(historyPrefixTimer); historyPrefixTimer = undefined;
+}
+function measureHistoryPrefix() {
+  invalidateHistoryPrefixMeasure();
+  const epoch = historyPrefixMeasureEpoch, owner = historyOwner();
+  const host = historyPrefixHost.value, root = historyPrefixRoot(), deadline = Date.now() + HISTORY_MEASURE_MS;
+  let finished = false;
+  const current = () => !finished && !historyDisposed && threadVisible.value && epoch === historyPrefixMeasureEpoch
+    && owner === historyOwner() && host === historyPrefixHost.value && root === historyPrefixRoot();
+  if (!host || !current()) return;
+  const finish = () => { finished = true; clearTimeout(historyPrefixTimer); historyPrefixTimer = undefined; };
+  const fallback = () => {
+    if (!current()) return;
+    finish();
+    // An old zero/short height must not clip newly available history controls.
+    // Release to natural flow without inventing an unmeasured scroll delta.
+    historyPrefixMeasured.value = false;
+  };
+  historyPrefixTimer = setTimeout(fallback, HISTORY_MEASURE_MS);
   void nextTick(() => {
+    if (!current()) return;
+    const apply = (height?: number) => {
+      if (!current()) return;
+      if (Date.now() > deadline || typeof height !== 'number' || !Number.isFinite(height) || height < 0) { fallback(); return; }
+      finish();
+      const nextHeight = !historyPrefixMeasured.value || Math.abs(height - historyPrefixHeight.value) > .25 ? height : historyPrefixHeight.value;
+      if (historyPrefixBaseline.value === null) historyPrefixBaseline.value = nextHeight;
+      else if (!historyPrefixMeasured.value) {
+        // Natural flow already occupied this space during the failed read.
+        historyPrefixBaseline.value += nextHeight - historyPrefixHeight.value;
+      }
+      historyPrefixHeight.value = nextHeight;
+      historyPrefixMeasured.value = true;
+    };
+    try {
+      if (root?.getBoundingClientRect) { apply(root.getBoundingClientRect().height); return; }
+      if (typeof uni === 'undefined' || !uni.createSelectorQuery) { fallback(); return; }
+      const query = uni.createSelectorQuery().in(threadInstance);
+      query.select('.nx-conv-history-content').boundingClientRect();
+      query.exec(rows => apply((rows?.[0] as UniApp.NodeInfo)?.height));
+    } catch { fallback(); }
+  });
+}
+function observeHistoryPrefix() {
+  historyPrefixObserver?.disconnect(); historyPrefixObserver = undefined;
+  invalidateHistoryPrefixMeasure();
+  if (historyDisposed || !threadVisible.value) return;
+  measureHistoryPrefix();
+  const root = historyPrefixRoot(), host = historyPrefixHost.value, owner = historyOwner();
+  if (typeof ResizeObserver !== 'undefined' && root?.getBoundingClientRect) {
+    historyPrefixObserver = new ResizeObserver(() => {
+      if (!historyDisposed && threadVisible.value && root === historyPrefixRoot() && host === historyPrefixHost.value && owner === historyOwner()) measureHistoryPrefix();
+    });
+    historyPrefixObserver.observe(root);
+  }
+}
+watch(() => [historyOwner(), historyPrefixHost.value, historyPrefixRoot(), threadVisible.value], invalidateHistoryPrefixMeasure, { flush: 'sync' });
+watch(() => [historyOwner(), historyPrefixHost.value, historyPrefixRoot(), threadVisible.value], observeHistoryPrefix, { flush: 'post' });
+watch(() => [props.historyContentKey, props.timeLocale], measureHistoryPrefix, { flush: 'post' });
+onMounted(observeHistoryPrefix);
+onScopeDispose(() => { invalidateHistoryPrefixMeasure(); historyPrefixObserver?.disconnect(); });
+let composerMeasureEpoch = 0;
+function invalidateComposerMeasure() { composerMeasureEpoch++; }
+onHide(invalidateComposerMeasure);
+onScopeDispose(invalidateComposerMeasure);
+watch(historyOwner, invalidateComposerMeasure, { flush: 'sync' });
+function measureComposer(follow = followingTail) {
+  const owner = historyOwner(), epoch = ++composerMeasureEpoch;
+  void nextTick(() => {
+    if (epoch !== composerMeasureEpoch || !threadVisible.value || !composerVisible.value) return;
     const apply = (height: number | undefined) => {
-      if (!threadVisible.value || owner !== historyOwner() || !height || !Number.isFinite(height)) return;
+      if (epoch !== composerMeasureEpoch || !threadVisible.value || !composerVisible.value || owner !== historyOwner() || !height || !Number.isFinite(height)) return;
       composerSpace.value = height;
       composerMeasured.value = true;
-      if (follow && !preparedHistory) scrollToEnd(false);
+      if (follow && followingTail && !preparedHistory && !pendingPosition) scrollToEnd();
       else scheduleBubblePositions();
     };
     const node = (composerHost.value as { $el?: HTMLElement } | null)?.$el ?? composerHost.value as HTMLElement | null;
@@ -543,64 +712,90 @@ function measureComposer(follow = followingTail) {
   });
 }
 let composerResizeObserver: ResizeObserver | undefined;
-onMounted(() => {
+function observeComposer() {
+  composerResizeObserver?.disconnect();
+  composerResizeObserver = undefined;
+  invalidateComposerMeasure();
   measureComposer();
   const node = (composerHost.value as { $el?: HTMLElement } | null)?.$el ?? composerHost.value as HTMLElement | null;
   if (typeof ResizeObserver !== 'undefined' && node?.getBoundingClientRect) {
     composerResizeObserver = new ResizeObserver(() => measureComposer());
     composerResizeObserver.observe(node);
   }
-});
+}
+watch(composerHost, observeComposer, { flush: 'post' });
+onMounted(observeComposer);
 onScopeDispose(() => composerResizeObserver?.disconnect());
-watch(() => [inputHeight.value, draft.value.trim().length >= inputLimit.value * .9, composerVisible.value], () => {
+watch(() => [inputHeight.value, showInputLength.value, inputOverLimit.value, composerVisible.value,
+  props.attachRetry, props.imageLabels?.retryPolicy, props.inputLimitHint, props.timeLocale], () => {
   const node = scroller();
   const atTail = node ? node.scrollHeight - node.clientHeight - node.scrollTop <= 24 : followingTail;
   // Native fallback is ready immediately; layout measurement replaces it with
   // the exact input, counter and safe-area height once the bridge responds.
-  composerSpace.value = inputHeight.value + 62 + (draft.value.trim().length >= inputLimit.value * .9 ? 36 : 0);
+  composerSpace.value = inputHeight.value + 62 + (showInputLength.value ? 36 : 0) + (inputOverLimit.value ? 36 : 0) + (props.attachRetry ? 44 : 0);
   composerMeasured.value = false;
   measureComposer(atTail);
-  if (atTail && threadVisible.value) scrollToEnd(false);
+  if (atTail && threadVisible.value && !pendingPosition) scrollToEnd();
   else void nextTick(scheduleBubblePositions);
 });
 
 // Sample the whole visible conversation, never a gradient inside an individual bubble.
 // Scroll events coalesce; no polling or permanent animation loop is needed.
 const bubblePositions = ref<Record<string, number>>({});
+const composerLight = ref(composerReflection(undefined, []));
+const composerLightStyle = computed(() => ({ '--nx-rim-strength': composerLight.value.strength,
+  '--nx-rim-x': composerLight.value.x + '%', '--nx-rim-width': composerLight.value.width + '%',
+  '--nx-rim-dark': composerLight.value.dark, '--nx-rim-light': composerLight.value.light } as CSSProperties));
 let bubblePositionTimer: ReturnType<typeof setTimeout> | undefined;
 let bubbleMeasureEpoch = 0;
+let bubbleMeasurementDisposed = false;
 let bubbleResizeObserver: ResizeObserver | undefined;
 function cancelBubblePositions() { clearTimeout(bubblePositionTimer); bubblePositionTimer = undefined; bubbleMeasureEpoch++; }
 function scheduleBubblePositions() {
-  if (!threadVisible.value || bubblePositionTimer !== undefined) return;
+  if (bubbleMeasurementDisposed || !threadVisible.value || bubblePositionTimer !== undefined) return;
   bubblePositionTimer = setTimeout(() => { bubblePositionTimer = undefined; measureBubblePositions(); }, 16);
 }
 function measureBubblePositions() {
-  const epoch = ++bubbleMeasureEpoch;
-  const messages = props.messages.filter(m => m.side === 'right' && m.tone !== 'system');
-  const apply = (viewport: { top?: number; height?: number } | undefined, rects: Array<{ top?: number; height?: number }>) => {
-    if (epoch !== bubbleMeasureEpoch || !threadVisible.value || !viewport?.height || viewport.top === undefined) return;
+  if (bubbleMeasurementDisposed) return;
+  const epoch = ++bubbleMeasureEpoch, owner = historyOwner();
+  const measuredList = listHost.value, measuredComposer = composerHost.value;
+  const messages = props.messages.filter(m => m.tone !== 'system');
+  const apply = (viewport: { top?: number; height?: number } | undefined, rects: Array<Partial<ConversationRect>>, field?: ConversationRect) => {
+    if (epoch !== bubbleMeasureEpoch || !threadVisible.value || owner !== historyOwner()
+      || measuredList !== listHost.value || measuredComposer !== composerHost.value || !viewport?.height || viewport.top === undefined) return;
     measuredViewportHeight = viewport.height;
     const next: Record<string, number> = {};
     messages.forEach((message, index) => {
       const rect = rects[index];
-      if (rect?.top !== undefined && rect.height !== undefined) next[message.id] = bubbleViewportPosition(rect.top, rect.height, viewport.top! + (props.topInset || 0), Math.max(1, viewport.height! - (props.topInset || 0) - (composerVisible.value ? composerSpace.value : 0)));
+      if (message.side === 'right' && rect?.top !== undefined && rect.height !== undefined) next[message.id] = bubbleViewportPosition(rect.top, rect.height, viewport.top! + (props.topInset || 0), Math.max(1, viewport.height! - (props.topInset || 0) - (composerVisible.value ? composerSpace.value : 0)));
     });
     if (JSON.stringify(next) !== JSON.stringify(bubblePositions.value)) bubblePositions.value = next;
+    composerLight.value = composerReflection(composerVisible.value ? field : undefined,
+      messages.map((message, index) => ({ top: rects[index]?.top ?? NaN, left: rects[index]?.left ?? NaN,
+        width: rects[index]?.width ?? NaN, height: rects[index]?.height ?? NaN,
+        outgoing: message.side === 'right', position: next[message.id] ?? .5 })));
   };
   const root = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
   if (root?.getBoundingClientRect && root.querySelectorAll) {
-    apply(root.getBoundingClientRect(), Array.from(root.querySelectorAll('.nx-conv-right .nx-conv-bubble')).map(node => node.getBoundingClientRect()));
+    const composer = (composerHost.value as { $el?: HTMLElement } | null)?.$el ?? composerHost.value as HTMLElement | null;
+    apply(root.getBoundingClientRect(), Array.from(root.querySelectorAll('.nx-conv-bubble')).map(node => node.getBoundingClientRect()), composer?.querySelector('.nx-conv-compose-field')?.getBoundingClientRect());
     return;
   }
   if (typeof uni === 'undefined' || !uni.createSelectorQuery) return;
   try {
     const query = uni.createSelectorQuery().in(threadInstance);
     query.select('.nx-conv-list').boundingClientRect();
-    query.selectAll('.nx-conv-right .nx-conv-bubble').boundingClientRect();
-    query.exec(rows => apply(rows[0] as UniApp.NodeInfo, rows[1] as UniApp.NodeInfo[]));
+    query.selectAll('.nx-conv-bubble').boundingClientRect();
+    query.select('.nx-conv-compose-field').boundingClientRect();
+    query.exec(rows => apply(rows[0] as UniApp.NodeInfo, rows[1] as UniApp.NodeInfo[], rows[2] as ConversationRect));
   } catch { /* An unavailable native bridge keeps a safe, uniform theme colour. */ }
 }
+watch(() => [historyOwner(), listHost.value, composerHost.value, threadVisible.value, composerVisible.value], () => {
+  cancelBubblePositions();
+  bubblePositions.value = {};
+  composerLight.value = composerReflection(undefined, []);
+  void nextTick(scheduleBubblePositions);
+}, { flush: 'sync' });
 watch(() => [props.messages.map(m => [m.id, m.text, m.imageSrc, m.deliveryState]), props.composerKey, props.revealTick, props.timeLocale, props.topInset], () => {
   cancelBubblePositions(); void nextTick(scheduleBubblePositions);
 }, { flush: 'post' });
@@ -615,7 +810,7 @@ onMounted(() => {
 });
 onShow(() => { void nextTick(scheduleBubblePositions); });
 onHide(cancelBubblePositions);
-onScopeDispose(() => { cancelBubblePositions(); bubbleResizeObserver?.disconnect(); });
+onScopeDispose(() => { bubbleMeasurementDisposed = true; cancelBubblePositions(); bubbleResizeObserver?.disconnect(); });
 
 function bubbleStyle(m: ThreadMsg): CSSProperties {
   const position = bubblePositions.value[m.id] ?? 0.5;
@@ -644,6 +839,10 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 </script>
 
 <style scoped>
+.nx-conv-history-prefix { position: relative; }
+.nx-conv-history-prefix--measured { overflow: hidden; }
+.nx-conv-history-content { display: flex; flex-direction: column; }
+.nx-conv-history-prefix--measured > .nx-conv-history-content { position: absolute; inset: 0 0 auto; }
 .nx-conv-thread {
   position: relative;
   display: flex;
@@ -737,8 +936,6 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 }
 .nx-conv-bubble {
   position: relative;
-  isolation: isolate;
-  contain: paint;
   --nx-bubble-fill: var(--nx-chat-incoming);
   display: flow-root;
   max-width: 89%;
@@ -746,7 +943,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   padding: 6px 10px 5px;
   border-radius: 17px;
   border: 1px solid var(--nx-chat-stroke);
-  background-color: transparent;
+  background-color: var(--nx-bubble-fill);
   background-image: none;
   color: var(--v5-ink);
   font-family: var(--font-v5);
@@ -754,19 +951,9 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   line-height: 21px;
   overflow-wrap: anywhere;
 }
-/* One continuous paint layer, independent of inline text/float compositing. */
-.nx-conv-bubble::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: inherit;
-  background-color: var(--nx-bubble-fill);
-  background-image: none;
-  -webkit-backdrop-filter: blur(16px) saturate(125%);
-  backdrop-filter: blur(16px) saturate(125%);
-}
+/* On the plain conversation canvas, one translucent tint gives the frosted
+   surface without an independent backdrop filter per scrolling message.
+   Text and metadata share this paint; only floating controls sample content. */
 .nx-conv-right .nx-conv-bubble {
   --nx-bubble-fill: var(--nx-chat-out-bottom);
   --nx-bubble-fill: var(--nx-bubble-fill-dark, var(--nx-chat-out-bottom));
@@ -930,28 +1117,29 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 }
 :global([data-theme="light"] .nx-conv-input-row) { --v5-liquid-tint: rgba(255,255,255,.58); }
 .nx-conv-compose-field {
-  position: relative; isolation: isolate; display: flex; align-items: flex-end;
+  position: relative; display: flex; align-items: flex-end;
   gap: 6px; flex: 1; min-width: 0; padding: 5px 5px 5px 14px;
   border: 1px solid transparent; border-radius: 25px;
   background: transparent;
-  -webkit-backdrop-filter: blur(24px) saturate(135%); backdrop-filter: blur(24px) saturate(135%);
   --v5-liquid-tint: rgba(40,43,42,.46);
   --v5-liquid-shadow: inset 0 1px 1px rgba(255,255,255,.1);
 }
 .nx-conv-compose-field > :not(.nx-liquid-glass) { position: relative; }
+.nx-conv-compose-content { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .nx-conv-compose-field > :deep(.nx-liquid-glass[data-glass-strategy="frosted"]) { -webkit-backdrop-filter: blur(24px) saturate(135%); backdrop-filter: blur(24px) saturate(135%); }
-.nx-conv-compose-field::before {
-  content: ''; position: absolute; z-index: -1; inset: -1px 18px auto; height: 12px;
-  border-radius: 50%; pointer-events: none;
-  background: radial-gradient(ellipse at top, rgba(133,181,46,.28), transparent 72%);
-  filter: blur(3px);
+.nx-conv-compose-field::before, .nx-conv-compose-field::after {
+  content: ''; position: absolute; z-index: 1; inset: -1px 12px auto; height: 22px;
+  border-radius: inherit; pointer-events: none; opacity: var(--nx-rim-strength, 0);
+  background: radial-gradient(ellipse var(--nx-rim-width, 60%) 85% at var(--nx-rim-x, 50%) 0%, var(--nx-rim-dark, transparent), transparent 72%);
+  filter: blur(4px);
 }
+.nx-conv-compose-field::after { height: 2px; filter: blur(.6px); }
 :global([data-theme="light"] .nx-conv-compose-field) { --v5-liquid-tint: rgba(255,255,255,.58); --v5-liquid-shadow: inset 0 1px 1px rgba(255,255,255,.8); }
-:global([data-theme="light"] .nx-conv-compose-field::before) { background: radial-gradient(ellipse at top, rgba(103,83,235,.28), transparent 72%); }
+:global([data-theme="light"] .nx-conv-compose-field::before), :global([data-theme="light"] .nx-conv-compose-field::after) { background: radial-gradient(ellipse var(--nx-rim-width, 60%) 85% at var(--nx-rim-x, 50%) 0%, var(--nx-rim-light, transparent), transparent 72%); }
 .nx-conv-compose-field .nx-conv-send { flex-shrink: 0; }
 .nx-conv-compose-field :deep(textarea:focus-within),
 .nx-conv-compose-field .nx-conv-input:focus-within { outline: none; }
-.nx-conv-length { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; padding:0 18px 4px; color:var(--v5-ink-3); font-size:11px; line-height:16px; }
+.nx-conv-length { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px 8px; padding:0 0 4px; overflow-wrap:anywhere; color:var(--v5-ink-3); font-size:11px; line-height:16px; }
 .nx-conv-length--over { color:var(--v5-danger); }
 .nx-conv-closedbar {
   padding: 10px 12px;
@@ -974,7 +1162,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   color: inherit;
 }
 .nx-conv-input {
-  flex: 1;
+  flex: none;
   min-width: 0;
   width: 100%; min-height: 24px; max-height: min(144px, 34dvh);
   margin: 10px 0; padding: 0;
@@ -1013,6 +1201,11 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   transition: transform 80ms ease-out, color 120ms ease-out;
 }
 .nx-conv-send-face > svg { position: relative; z-index: 1; }
+/* The send button sits on the already frosted input surface. Reuse that
+   sample and keep its own tint/rim; a second backdrop here creates tile seams. */
+.nx-conv-compose-field .nx-conv-send-face > :deep(.nx-liquid-glass--frosted) {
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
 .nx-conv-send-plane { transform: rotate(0deg); transform-origin: center; transition: transform 200ms ease-out; }
 .nx-conv-send--turning .nx-conv-send-plane { transform: rotate(-25deg); transition-duration: 160ms; }
 .nx-conv-send--ready .nx-conv-send-face {
@@ -1024,10 +1217,13 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 }
 .nx-conv-send--ready .nx-conv-send-face :deep(.nx-liquid-tint) { background-image: linear-gradient(155deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .04) 44%, transparent 62%, rgba(0, 0, 0, .15)); }
 .nx-conv-send--ready .nx-conv-send-face :deep(.nx-liquid-specular) { opacity: .6; }
+.nx-conv-send--ready .nx-conv-send-face > :deep(.nx-liquid-glass--frosted) { background-image: linear-gradient(155deg, rgba(255,255,255,.26), rgba(255,255,255,.04) 44%, transparent 62%, rgba(0,0,0,.15)); }
+.nx-conv-send--ready .nx-conv-send-face > :deep(.nx-liquid-glass--frosted[data-glass-strategy="solid"]) { background: var(--v5-brand); }
 .nx-conv-send[aria-disabled="false"]:active .nx-conv-send-face { transform: scale(.92); }
 .nx-conv-send--feedback .nx-conv-send-face { animation: nx-conv-send-tap 200ms cubic-bezier(.2,.8,.3,1) both; }
 @keyframes nx-conv-send-tap { 0% { transform: scale(1); } 35% { transform: scale(.9); } 100% { transform: scale(1); } }
 .message-family .nx-conv-send, .message-family .nx-conv-attach-trigger { width: 44px; padding: 0; flex-shrink: 0; }
+.message-family .nx-conv-receipt[role="button"]:focus-visible { outline-offset: -3px; border-radius: 8px; }
 .message-family .nx-conv-cta-row { margin: 0 12px 10px; padding: 0 16px; }
 .message-family .nx-conv-queue-action, .message-family .nx-conv-chip { padding-inline: 16px; }
 .nx-conv-thread .nx-conv-cta-row, .nx-conv-thread .nx-conv-chip { --v5-liquid-shadow: inset 0 1px 0 var(--v5-border); }

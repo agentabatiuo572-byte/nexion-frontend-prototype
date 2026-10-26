@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ApiClient } from "./api-client";
+import { createApiClient, type ApiClient } from "./api-client";
 import { createNovaAiApi } from "./nova-ai-api";
+import { createSessionVault } from './session-vault';
+import { novaFailure } from '@/lib/nova-failure';
 import { MessageTextValidationError } from '@/lib/message-length-policy';
 
 function fakeClient(result: unknown): ApiClient {
@@ -12,6 +14,21 @@ function fakeClient(result: unknown): ApiClient {
 }
 
 describe("Nova AI API", () => {
+  it('preserves the backend HTTP status, numeric biz code and input-rejection message', async () => {
+    const vault = createSessionVault();
+    vault.save({ accessToken: 'test', refreshToken: 'test-refresh', tokenType: 'Bearer',
+      user: { userId: 42, countryCode: '+84', phone: '912345678', nickname: 'Fixture', onboardingComplete: true } });
+    const request = vi.fn(async () => ({ status: 400, headers: {},
+      data: { code: 400, message: 'NOVA_AI_INPUT_INVALID', data: null } }));
+    const api = createNovaAiApi(createApiClient({ baseUrl: 'https://example.test', vault, transport: { request } }));
+    const cause = await api.chat({ message: 'x'.repeat(1001), language: 'en',
+      conversationId: '6f0b5c55-0ec5-4a31-85eb-1d4531c1e8df', turnId: '8c12eaf3-744d-405e-b2fb-64b3d81267be',
+    }).catch(error => error);
+    expect(cause).toMatchObject({ kind: 'http', status: 400, code: 400, message: 'NOVA_AI_INPUT_INVALID' });
+    expect(novaFailure(cause)).toBe('input-rejected');
+    expect(request).toHaveBeenCalledOnce();
+  });
+
   it('uses the shared trimmed 2000 UTF-16 contract without changing turn identity or timeout', async () => {
     const conversationId = '6f0b5c55-0ec5-4a31-85eb-1d4531c1e8df';
     const turnId = '8c12eaf3-744d-405e-b2fb-64b3d81267be';

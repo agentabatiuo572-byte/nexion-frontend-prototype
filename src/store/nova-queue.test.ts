@@ -1,6 +1,8 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useNova } from "./nova";
+import type { NovaFailure } from '@/lib/nova-failure';
+import * as secureId from '@/lib/secure-command-id';
 
 beforeEach(() => setActivePinia(createPinia()));
 const setup = () => {
@@ -9,6 +11,99 @@ const setup = () => {
   return nova;
 };
 const add = (nova: ReturnType<typeof useNova>, id: string, text = id) => nova.enqueueRemote(id, text, "zh");
+
+describe('Nova confirmed input rejection recovery', () => {
+  function rejected() {
+    const nova = setup(); add(nova, 'original', 'Original text'); add(nova, 'next', 'Next question');
+    nova.claimRemote(); nova.failRemote('original', 'input-rejected');
+    return nova;
+  }
+
+  it('edits a rejected head under a fresh turn id, ignores old completions and continues in order', () => {
+    const nova = rejected();
+    expect(nova.canEditRemote('original')).toBe(true);
+    expect(nova.editRemote('original')).toBe(true);
+    expect(nova.claimRemote()).toBeUndefined();
+    expect(nova.saveRemoteEdit('original', 'Corrected text')).toBe(true);
+    const revised = nova.pendingRemote[0];
+    expect(revised.turnId).not.toBe('original'); expect(revised.id).toBe(`${revised.turnId}:user`);
+    expect(revised.attempted).toBeUndefined(); expect(revised.replyDeadlineAt).toBeUndefined();
+    expect(nova.claimRemote()).toMatchObject({ turnId: revised.turnId, text: 'Corrected text', language: 'zh' });
+    nova.completeRemote('original', 'Stale answer'); nova.failRemote('original', 'input-rejected');
+    expect(nova.pendingRemote[0].delivery).toBe('processing');
+    nova.completeRemote(revised.turnId!, 'Corrected answer');
+    expect(nova.claimRemote()?.turnId).toBe('next');
+    expect(nova.messages.map(row => row.text)).toEqual(['Corrected text', 'Corrected answer', 'Next question']);
+  });
+
+  it('removes a definitely rejected head without removing the waiting question', () => {
+    const nova = rejected();
+    expect(nova.cancelRemote('original')).toBe(true);
+    expect(nova.claimRemote()?.turnId).toBe('next');
+    expect(nova.messages.map(row => row.text)).toEqual(['Next question']);
+  });
+
+  it('cancels edits and hides without retrying; an unchanged save and explicit retry retain the original id', () => {
+    const nova = rejected();
+    expect(nova.editRemote('original')).toBe(true);
+    expect(nova.cancelRemoteEdit('original')).toBe(true);
+    expect(nova.pendingRemote[0].delivery).toBe('failed');
+    nova.editRemote('original'); nova.interruptRemote();
+    expect(nova.pendingRemote[0]).toMatchObject({ delivery: 'failed', failure: 'input-rejected' });
+    nova.editRemote('original'); expect(nova.saveRemoteEdit('original', ' Original text ')).toBe(true);
+    expect(nova.claimRemote()).toBeUndefined();
+    expect(nova.retryRemote('original')).toBe(true);
+    expect(nova.claimRemote()).toMatchObject({ turnId: 'original', text: 'Original text' });
+    nova.failRemote('original', 'input-rejected');
+    expect(nova.canEditRemote('original')).toBe(true);
+  });
+
+  it.each<NovaFailure>(['failed', 'timeout', 'network', 'busy', 'unavailable', 'auth', 'interrupted'])(
+    'never unlocks a head after %s even if a later replay receives the input rejection', previous => {
+      const nova = setup(); add(nova, 'original'); add(nova, 'next'); nova.claimRemote();
+      nova.failRemote('original', previous);
+      expect(nova.canEditRemote('original')).toBe(false);
+      expect(nova.editRemote('original')).toBe(false); expect(nova.cancelRemote('original')).toBe(false);
+      nova.retryRemote('original'); nova.claimRemote(); nova.failRemote('original', 'input-rejected');
+      expect(nova.canEditRemote('original')).toBe(false);
+      expect(nova.editRemote('original')).toBe(false); expect(nova.cancelRemote('original')).toBe(false);
+      expect(nova.saveRemoteEdit('original', 'Changed')).toBe(false);
+      expect(nova.pendingRemote.map(row => row.turnId)).toEqual(['original', 'next']);
+      nova.retryRemote('original'); expect(nova.claimRemote()).toMatchObject({ turnId: 'original', text: 'original' });
+    },
+  );
+
+  it('retains uncertainty through tracking and later validation before replay', () => {
+    const nova = setup(); add(nova, 'original'); nova.claimRemote(); nova.trackRemote('original');
+    expect(nova.editRemote('original')).toBe(false); expect(nova.cancelRemote('original')).toBe(false);
+    nova.claimRemote(); nova.failRemote('original', 'input-rejected');
+    expect(nova.canEditRemote('original')).toBe(false);
+    expect(nova.cancelRemote('original')).toBe(false);
+  });
+
+  it('invalidates rejection and edit actions across account boundaries', () => {
+    const nova = rejected(); nova.editRemote('original'); nova.bindRemoteAccount('other');
+    add(nova, 'other-turn'); nova.claimRemote();
+    nova.failRemote('original', 'input-rejected');
+    expect(nova.saveRemoteEdit('original', 'Old private edit')).toBe(false);
+    expect(nova.cancelRemote('original')).toBe(false);
+    expect(nova.pendingRemote[0]).toMatchObject({ turnId: 'other-turn', delivery: 'processing' });
+    expect(nova.messages.map(row => row.text)).toEqual(['other-turn']);
+  });
+
+  it.each(['unavailable', 'duplicate'])('keeps the original rejected edit when a fresh UUID is %s', reason => {
+    const nova = rejected(); nova.editRemote('original');
+    const generate = vi.spyOn(secureId, 'requireCryptoUuid').mockImplementation(() => {
+      if (reason === 'unavailable') throw new Error('CRYPTO_RANDOM_UUID_UNAVAILABLE');
+      return 'original';
+    });
+    try {
+      expect(nova.saveRemoteEdit('original', 'Corrected text')).toBe(false);
+      expect(nova.pendingRemote[0]).toMatchObject({ turnId: 'original', text: 'Original text', delivery: 'editing', failure: 'input-rejected' });
+      expect(nova.claimRemote()).toBeUndefined();
+    } finally { generate.mockRestore(); }
+  });
+});
 
 describe("Nova serial pending turns", () => {
   it("allows one active and three waiting turns, rejecting overflow without adding a bubble", () => {
@@ -73,6 +168,7 @@ describe("Nova serial pending turns", () => {
     nova.completeRemote("a", "answer");
     expect(nova.claimRemote()).toBeUndefined();
     expect(nova.saveRemoteEdit("b", "  changed  ")).toBe(true);
+    expect(nova.pendingRemote[0].turnId).not.toBe('b');
     expect(nova.claimRemote()?.text).toBe("changed");
     add(nova, "c");
     expect(nova.cancelRemote("c")).toBe(true);

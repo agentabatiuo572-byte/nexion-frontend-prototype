@@ -62,7 +62,11 @@ export function createPrototypeMessages({state,fixtureFor}) {
         } catch(error) {return fail(error.status||500,error.message);}
       };
       if(operation!=='read')receipts.set(key,saved);
-      saved.pending=execute().then(response=>{saved.response=structuredClone(response);});
+      saved.pending=execute().then(response=>{
+        saved.response=structuredClone(response);
+        // A restored fixture may reject this payload while the original key remains replayable.
+        if(response.status===409&&receipts.get(key)===saved)receipts.delete(key);
+      });
       await saved.pending;
       if(operation!=='read'&&scenario==='unknown'&&saved.response.status===200) {
         saved.hidden=true;

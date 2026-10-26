@@ -1,6 +1,49 @@
 import { describe, expect, it } from 'vitest';
-import { bubbleFill, bubbleViewportPosition, compactMessageGroups } from './conversation-bubble-layout';
+import { bubbleFill, bubbleViewportPosition, compactMessageGroups, composerReflection, type ReflectionBubble } from './conversation-bubble-layout';
 import type { ThreadMsg } from './thread-types';
+
+describe('composer reflection follows nearby conversation geometry', () => {
+  const field = { top: 600, left: 64, width: 314, height: 56 };
+  const bubble = (gap: number, extras: Partial<ReflectionBubble> = {}): ReflectionBubble => ({ top: 560 - gap, left: 180, width: 190, height: 40, outgoing: true, position: 1, ...extras });
+  it('fades smoothly with distance and is fully absent beyond 72px', () => {
+    const strengths = [0, 8, 36, 60, 72, 280].map(gap => composerReflection(field, [bubble(gap)]).strength);
+    expect(strengths[0]).toBe(1); expect(strengths[1]).toBeGreaterThan(.95);
+    expect(strengths[2]).toBe(.5); expect(strengths[3]).toBeLessThan(.1);
+    expect(strengths.slice(4)).toEqual([0, 0]);
+  });
+  it('reflects the actual nearest hue and horizontal position, not a permanent theme stripe', () => {
+    const reflected = composerReflection(field, [bubble(8)]);
+    expect(reflected.dark).toBe('rgba(73, 125, 108, .78)');
+    expect(reflected.light).toBe('rgba(28, 78, 221, .66)');
+    expect(reflected.x).toBeGreaterThan(60);
+    expect(reflected.width).toBeGreaterThan(50);
+    expect(composerReflection(field, [bubble(8, { position: 0 })]).light).not.toBe(reflected.light);
+  });
+  it('chooses the nearby bubble over a distant bubble and uses neutral reflection for incoming', () => {
+    const near = bubble(8, { outgoing: false, left: 12, width: 250 });
+    expect(composerReflection(field, [bubble(60), near])).toEqual(composerReflection(field, [near]));
+    expect(composerReflection(field, [near]).light).toBe('rgba(161, 171, 185, .66)');
+  });
+  it('keeps the rim lit while a bubble passes directly behind it', () => {
+    expect(composerReflection(field, [bubble(-20)]).strength).toBe(1);
+    expect(composerReflection(field, [bubble(-50)]).strength).toBe(0);
+  });
+  it('does not reflect a bubble with no horizontal overlap', () => {
+    expect(composerReflection(field, [bubble(0, { left: 0, width: 40 })]).strength).toBe(0);
+  });
+  it.each([undefined, { ...field, width: 0 }, { ...field, top: NaN }])('clears stale reflection for an unavailable input measurement', invalid => {
+    expect(composerReflection(invalid, [bubble(0)]).strength).toBe(0);
+  });
+  it('rejects invalid or missing bubble geometry', () => {
+    expect(composerReflection(field, []).strength).toBe(0);
+    expect(composerReflection(field, [bubble(0, { top: NaN }), bubble(0, { width: -1 })]).strength).toBe(0);
+  });
+  it('recalculates when multiline input grows towards a previously distant bubble', () => {
+    const source = bubble(130);
+    expect(composerReflection(field, [source]).strength).toBe(0);
+    expect(composerReflection({ ...field, top: 480, height: 176 }, [source]).strength).toBeGreaterThan(.9);
+  });
+});
 
 describe('bubble colour position in the visible viewport', () => {
   it('resolves one flat translucent paint per bubble with independent dark and light palettes', () => {

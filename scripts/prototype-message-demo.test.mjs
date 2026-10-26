@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { supportDemo } from './lib/prototype-demo-support.mjs';
+import './lib/prototype-demo-support.test.mjs';
 const read=(state,path='/api/app/support/conversations/DEMO-SUPPORT-1')=>supportDemo(new URL(path,'http://127.0.0.1'),'zh',state,{method:()=> 'GET'});
 test('receipt scenarios supply explicit both-side states and retain missing/system receipts',()=>{
   const state={messageState:'receipts'},first=read(state);
@@ -33,5 +34,7 @@ test('timeline fixture exposes a 24-hour boundary plus short gaps and a midnight
   const previous=read(state,'/api/app/support/conversations/DEMO-SUPPORT-1?beforeMessageId=17');
   assert.equal(new Date(first.messages[0].createdAt)-new Date(previous.messages.at(-1).createdAt),120000);
   assert.notEqual(new Date(first.messages[0].createdAt).getDate(),new Date(previous.messages.at(-1).createdAt).getDate());
+  const oldest=read(state,'/api/app/support/conversations/DEMO-SUPPORT-1?beforeMessageId=9');
+  assert.equal(new Date(previous.messages[0].createdAt)-new Date(oldest.messages.at(-1).createdAt),86399999);
   assert.equal(first.nextCursor,17);assert.equal(previous.nextCursor,9);
 });

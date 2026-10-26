@@ -1,10 +1,12 @@
 import { createLiquidGlassRuntimeAssets, type LiquidGlassRuntimeAssets } from "@lollipopkit/liquid-glass";
 import { glassGeometry, type GlassTone } from "./liquid-glass-core";
 import type { WebGLSurface } from "simple-liquid-glass/webgl";
+import { mountConversationGlassSample } from "./conversation-glass-sample";
 
-export interface GlassConfiguration { hostId?: string; radius: number; tone: GlassTone; backdrop?: string; }
+export interface GlassConfiguration { hostId?: string; radius: number; tone: GlassTone; backdrop?: string; blur?: number; rendering?: "refractive" | "frosted" | "sampled"; }
 let serial = 0;
 const svgNS = "http://www.w3.org/2000/svg";
+const effectiveBlur = (value?: number) => Number.isFinite(value) ? Math.max(0, Math.min(32, value!)) : .35;
 
 /** View-layer adapter, shared by H5 and App renderjs. Never called in App logic. */
 export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration) {
@@ -14,6 +16,7 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
   let config = initial, disposed = false, generation = 0, raf = 0, intersecting = true;
   let assets: LiquidGlassRuntimeAssets | undefined, webgl: WebGLSurface | undefined;
   let geometryKey = "", svg: SVGSVGElement | undefined;
+  let sampledSource: HTMLElement | null = null;
   let stopWatchingSource = () => {};
   const transparency = matchMedia("(prefers-reduced-transparency: reduce)");
   const contrast = matchMedia("(prefers-contrast: more)");
@@ -22,6 +25,7 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
 
   function release() {
     stopWatchingSource(); stopWatchingSource = () => {};
+    sampledSource = null;
     webgl?.destroy(); webgl = undefined;
     svg?.remove(); svg = undefined;
     assets?.dispose(); assets = undefined;
@@ -42,12 +46,49 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
     const width = host.offsetWidth, height = host.offsetHeight;
     if (!width || !height || !host.getClientRects().length) return;
     const opaque = transparency.matches || contrast.matches;
-    const nextKey = [Math.round(width), Math.round(height), config.radius, config.tone, config.backdrop, opaque].join(":");
-    if (nextKey === geometryKey) return;
+    const blur = effectiveBlur(config.blur);
+    const saturation = config.blur === undefined ? 1.05 : 1.35;
+    const sampleScope = config.rendering === "sampled" ? host.closest<HTMLElement>(".cp-root") : null;
+    const nextSampleSource = sampleScope && config.backdrop ? sampleScope.querySelector<HTMLElement>(config.backdrop) : null;
+    const nextKey = [Math.round(width), Math.round(height), config.radius, config.tone, config.backdrop || "", blur, saturation, config.rendering || "refractive", opaque].join(":");
+    if (nextKey === geometryKey && nextSampleSource === sampledSource) return;
     geometryKey = nextKey;
     const ownGeneration = ++generation;
     release();
     if (opaque) { mark("solid", "system-preference"); return; }
+    if (config.rendering === "sampled") {
+      const scope = sampleScope, source = nextSampleSource;
+      sampledSource = source;
+      let stopSample = () => {};
+      // Page reuse can replace the list without resizing the composer. Observe
+      // identity, not message mutations, and discard the old scene immediately.
+      const ownerChanges = new MutationObserver(() => {
+        if (disposed || ownGeneration !== generation) return;
+        const currentScope = host.closest<HTMLElement>(".cp-root");
+        const currentSource = currentScope && config.backdrop ? currentScope.querySelector<HTMLElement>(config.backdrop) : null;
+        if (currentScope === scope && currentSource === source) return;
+        generation++; stopSample(); ownerChanges.disconnect(); geometryKey = ""; schedule();
+      });
+      if (scope) ownerChanges.observe(scope, { childList: true, subtree: true });
+      stopWatchingSource = () => { stopSample(); ownerChanges.disconnect(); };
+      // This mode is deliberately limited to the independent conversation list.
+      // Missing source keeps neutral glass; never fall back to the failing blur.
+      if (!scope || !source || source.contains(host) || host.contains(source)) {
+        mark("sampled", "source-unavailable"); return;
+      }
+      stopSample = mountConversationGlassSample(host, source, config.blur === undefined ? 24 : blur);
+      mark("sampled", "explicit-conversation-sample"); return;
+    }
+    // Rapidly scrolling chat surfaces use the browser's bounded CSS blur path.
+    // Avoid SVG backdrop/displacement filters spanning separately composited
+    // message, header and composer layers. Navigation keeps the optical path.
+    if (config.rendering === "frosted") {
+      const material = `blur(${config.blur === undefined ? 18 : blur}px) saturate(135%)`;
+      host.style.backdropFilter = material;
+      host.style.setProperty("-webkit-backdrop-filter", material);
+      mark("frosted", "scrolling-surface");
+      return;
+    }
     mark("frosted", "preparing");
     try {
       const next = await createLiquidGlassRuntimeAssets(glassGeometry(width, height, config.radius, config.tone), {
@@ -64,7 +105,9 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
         svg.setAttribute("width", "0"); svg.setAttribute("height", "0");
         svg.style.cssText = "position:absolute;pointer-events:none";
         // Only generated blob URLs and numeric optical parameters enter this SVG.
-        svg.innerHTML = `<filter id="${filterId}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="0.35" result="soft"/><feImage href="${next.displacementUrl}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" result="lens"/><feDisplacementMap in="soft" in2="lens" scale="${next.maxDisplacement}" xChannelSelector="R" yChannelSelector="G" result="refracted"/><feColorMatrix in="refracted" type="saturate" values="1.05"/></filter>`;
+        // Frost and refraction share one backdrop sample. Consumers must not
+        // blur an ancestor as well: nested sampling can produce clipped tiles.
+        svg.innerHTML = `<filter id="${filterId}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="${blur}" result="soft"/><feImage href="${next.displacementUrl}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" result="lens"/><feDisplacementMap in="soft" in2="lens" scale="${next.maxDisplacement}" xChannelSelector="R" yChannelSelector="G" result="refracted"/><feColorMatrix in="refracted" type="saturate" values="${saturation}"/></filter>`;
         host.append(svg);
         // Apply at the material root. A filtered child under specular compositing
         // can lose access to the page backdrop (covered by the pixel-difference test).
@@ -89,7 +132,7 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
         // This displacement map has no blue-channel highlights; the generated
         // specular image above supplies the same optical rim on both engines.
         specular: 0, classic: false, neutralPoint: 128 / 255,
-        radius: next.params.radius, blur: 0, saturation: 105,
+        radius: next.params.radius, blur: config.blur === undefined ? 0 : blur, saturation: saturation * 100,
       }, status => {
         if (disposed || ownGeneration !== generation) return;
         engineStatus = status;
@@ -163,10 +206,10 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
   const visibilityObserver = new IntersectionObserver(entries => {
     intersecting = entries.some(entry => entry.isIntersecting);
     if (intersecting) schedule();
-    else if (!svgBackdrop) { generation++; stopWatchingSource(); webgl?.destroy(); webgl = undefined; geometryKey = ""; mark("frosted", "offscreen"); }
+    else if (!svgBackdrop || config.rendering === "sampled") { generation++; stopWatchingSource(); webgl?.destroy(); webgl = undefined; geometryKey = ""; mark("frosted", "offscreen"); }
   });
   visibilityObserver.observe(host);
-  function preferenceChanged() { geometryKey = ""; schedule(); }
+  function preferenceChanged() { generation++; geometryKey = ""; schedule(); }
   transparency.addEventListener("change", preferenceChanged);
   contrast.addEventListener("change", preferenceChanged);
   // Rebuild on theme changes, including recovery after a rejected capture.
@@ -179,7 +222,20 @@ export function mountLiquidGlass(host: HTMLElement, initial: GlassConfiguration)
   document.addEventListener("visibilitychange", visibility);
   schedule();
   return {
-    update(next: GlassConfiguration) { config = next; schedule(); },
+    update(next: GlassConfiguration) {
+      if (disposed) return;
+      const changed = config.radius !== next.radius || config.tone !== next.tone
+        || (config.backdrop || "") !== (next.backdrop || "")
+        || effectiveBlur(config.blur) !== effectiveBlur(next.blur)
+        || (config.blur === undefined) !== (next.blur === undefined)
+        || (config.rendering || "refractive") !== (next.rendering || "refractive");
+      config = next;
+      // Invalidate at the intent change, before the next frame. Otherwise an
+      // earlier pending asset can briefly install its SVG after choosing frost.
+      // Reset the key as well so that cancelling a pending render is recoverable.
+      if (changed) { generation++; geometryKey = ""; }
+      schedule();
+    },
     destroy() {
       disposed = true; generation++; cancelAnimationFrame(raf); observer.disconnect(); visibilityObserver.disconnect(); themeObserver.disconnect();
       transparency.removeEventListener("change", preferenceChanged); contrast.removeEventListener("change", preferenceChanged);

@@ -65,6 +65,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
   const openConversation = vi.fn(async () => conversation);
   const watchRealtime=vi.fn();
   const humanComposers = vue.reactive<Record<string, any>>({});
+  const toast = { warn: vi.fn(), info: vi.fn(), error: vi.fn() };
   const modules: Record<string, unknown> = {
     vue: { ...vue, onUnmounted: (fn: () => void) => { hooks.unmount = fn; } },
     "@dcloudio/uni-app": Object.fromEntries(["onLoad", "onUnload", "onShow", "onHide"].map(name => [name, (fn: () => void) => { hooks[name] = fn; }])),
@@ -109,7 +110,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/store/auth": { useAuth: () => auth },
     "@/lib/binary-session-ready": { binarySessionReady },
     "@/store/app": { useApp: () => app },
-    "@/store/ui": { toast: { warn: vi.fn(), info: vi.fn(), error: vi.fn() }, confirm: async () => true,
+    "@/store/ui": { toast, confirm: async () => true,
       useUI: () => ({ clearConfirmsBy: vi.fn() }) },
     "@/mock/nova-templates": {},
     "@/api/runtime": { novaAiApi: api, remoteApiEnabled: realtime.remote ?? true, sessionVault,
@@ -134,7 +135,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
   ));
   cleanups.push(() => { page.cleanup(); scope.stop(); });
   hooks.onLoad(query);
-  return { page, hooks, app, rebind, api, startConversation, sendUser, openConversation,watchRealtime, nova: useNova(), currentLocale, locale, navigation: modules["@/lib/route"] as { navTo: ReturnType<typeof vi.fn>; navBack: ReturnType<typeof vi.fn> } };
+  return { page, hooks, app, rebind, api, startConversation, sendUser, openConversation,watchRealtime, nova: useNova(), currentLocale, locale, toast, navigation: modules["@/lib/route"] as { navTo: ReturnType<typeof vi.fn>; navBack: ReturnType<typeof vi.fn> } };
 }
 
 const cleanups: Array<() => void> = [];
@@ -539,6 +540,161 @@ describe("human chat realtime presence", () => {
     expect(closed.page.headerRole.value).toBe(zh.conversations.agentTyping);
     expect(transferred.page.headerRole.value).toBe(zh.conversations.sessionTransferred);
     unknown.page.cleanup(); local.page.cleanup(); ai.page.cleanup(); closed.page.cleanup(); transferred.page.cleanup();
+  });
+});
+
+describe('Nova page confirmed input rejection recovery', () => {
+  const inputRejected = () => new ApiError({ kind: 'http', status: 400, code: 400, message: 'NOVA_AI_INPUT_INVALID' });
+
+  describe('NOVA-RECOVERY-UX-01 save feedback', () => {
+    for (const [language, copy] of [['zh', zh], ['en', en], ['vi', vietnamese]] as const) {
+      it.each(['unavailable', 'duplicate'])(`${language}: preserves a valid edit after %s UUID failure and permits a later save`, async reason => {
+        const current = mount(); current.currentLocale.value = copy; await current.hooks.onShow();
+        current.api.chat.mockRejectedValueOnce(inputRejected()).mockResolvedValue({ reply: 'Corrected answer' });
+        await current.page.onSend('Original question'); await vi.advanceTimersByTimeAsync(0);
+        const turnId = current.nova.pendingRemote[0].turnId!;
+        current.page.onQueueAction(turnId, 'edit');
+        const before = JSON.stringify(current.nova.pendingRemote);
+        const generate = vi.spyOn(secureId, 'requireCryptoUuid').mockImplementation(() => {
+          if (reason === 'unavailable') throw new Error('CRYPTO_RANDOM_UUID_UNAVAILABLE');
+          return turnId;
+        });
+        current.page.onQueueSave(turnId, 'Corrected question'); await vi.advanceTimersByTimeAsync(5000);
+        expect(current.toast.warn).toHaveBeenCalledExactlyOnceWith(copy.security.opFailed);
+        expect(current.toast.warn).not.toHaveBeenCalledWith(copy.nova.queue.invalid);
+        expect(JSON.stringify(current.nova.pendingRemote)).toBe(before);
+        expect(current.api.chat).toHaveBeenCalledOnce();
+        expect(current.nova.pendingRemote[0].delivery).toBe('editing');
+        generate.mockRestore(); current.toast.warn.mockClear();
+        current.page.onQueueSave(turnId, 'Corrected question'); await vi.advanceTimersByTimeAsync(2000);
+        expect(current.api.chat).toHaveBeenCalledTimes(2);
+        expect(current.api.chat.mock.calls[1][0].message).toBe('Corrected question');
+        expect(current.api.chat.mock.calls[1][0].turnId).not.toBe(turnId);
+        expect(current.nova.pendingRemote).toEqual([]); expect(current.toast.warn).not.toHaveBeenCalled();
+      });
+
+      it.each([' \n\t', 'x'.repeat(2001)])(`${language}: reserves the input hint for invalid text %#`, async text => {
+        const current = mount(); current.currentLocale.value = copy; await current.hooks.onShow();
+        current.api.chat.mockRejectedValue(inputRejected());
+        await current.page.onSend('Original question'); await vi.advanceTimersByTimeAsync(0);
+        const turnId = current.nova.pendingRemote[0].turnId!; current.page.onQueueAction(turnId, 'edit');
+        const generate = vi.spyOn(secureId, 'requireCryptoUuid');
+        current.page.onQueueSave(turnId, text);
+        expect(current.toast.warn).toHaveBeenCalledExactlyOnceWith(copy.nova.queue.invalid);
+        expect(generate).not.toHaveBeenCalled(); expect(current.api.chat).toHaveBeenCalledOnce();
+        expect(current.nova.pendingRemote[0]).toMatchObject({ turnId, text: 'Original question', delivery: 'editing' });
+      });
+    }
+
+    it('saves unchanged text without allocating a UUID or retrying the rejected turn', async () => {
+      const current = mount(); await current.hooks.onShow(); current.api.chat.mockRejectedValue(inputRejected());
+      await current.page.onSend('Original question'); await vi.advanceTimersByTimeAsync(0);
+      const turnId = current.nova.pendingRemote[0].turnId!; current.page.onQueueAction(turnId, 'edit');
+      const generate = vi.spyOn(secureId, 'requireCryptoUuid').mockImplementation(() => { throw new Error('CRYPTO_RANDOM_UUID_UNAVAILABLE'); });
+      current.page.onQueueSave(turnId, ' Original question '); await vi.advanceTimersByTimeAsync(5000);
+      expect(generate).not.toHaveBeenCalled(); expect(current.toast.warn).not.toHaveBeenCalled();
+      expect(current.nova.pendingRemote[0]).toMatchObject({ turnId, text: 'Original question', delivery: 'failed', failure: 'input-rejected' });
+      expect(current.api.chat).toHaveBeenCalledOnce();
+    });
+
+    it('ignores a late save after editing ends without blaming its text', async () => {
+      const current = mount(); await current.hooks.onShow(); current.api.chat.mockRejectedValue(inputRejected());
+      await current.page.onSend('Original question'); await vi.advanceTimersByTimeAsync(0);
+      const turnId = current.nova.pendingRemote[0].turnId!; current.page.onQueueAction(turnId, 'edit');
+      current.page.onQueueAction(turnId, 'cancel-edit'); current.page.onQueueSave(turnId, 'Corrected question');
+      expect(current.toast.warn).not.toHaveBeenCalled(); expect(current.api.chat).toHaveBeenCalledOnce();
+      expect(current.nova.pendingRemote[0]).toMatchObject({ turnId, text: 'Original question', delivery: 'failed' });
+    });
+  });
+
+  it.each(['edit', 'cancel', 'retry'])('allows %s after confirmed rejection and resumes the waiting question', async action => {
+    const current = mount(); await current.hooks.onShow();
+    const first = deferred(); current.api.chat.mockReturnValueOnce(first.promise).mockResolvedValue({ reply: 'Answer' });
+    await current.page.onSend('Original question'); await current.page.onSend('Next question');
+    const original = current.api.chat.mock.calls[0][0];
+    first.reject(inputRejected()); await vi.advanceTimersByTimeAsync(0);
+    expect(current.nova.pendingRemote[0]).toMatchObject({ delivery: 'failed', failure: 'input-rejected' });
+    expect(current.page.threadMessages.value[0].queue).toMatchObject({ state: 'failed', editable: true, label: zh.nova.queue.failed });
+    expect(current.api.chat).toHaveBeenCalledOnce();
+    current.page.onQueueAction(original.turnId, action);
+    if (action === 'edit') {
+      expect(current.nova.pendingRemote[0].delivery).toBe('editing');
+      await vi.advanceTimersByTimeAsync(1000); expect(current.api.chat).toHaveBeenCalledOnce();
+      current.page.onQueueSave(original.turnId, 'Corrected question');
+    }
+    await vi.advanceTimersByTimeAsync(5000);
+    const requests = current.api.chat.mock.calls.map(([request]) => request);
+    if (action === 'edit') {
+      expect(requests[1]).toMatchObject({ message: 'Corrected question', conversationId: original.conversationId, language: original.language });
+      expect(requests[1].turnId).not.toBe(original.turnId);
+    } else if (action === 'retry') expect(requests[1]).toEqual(original);
+    expect(requests.at(-1).message).toBe('Next question');
+    expect(requests).toHaveLength(action === 'cancel' ? 2 : 3);
+    expect(current.nova.pendingRemote).toEqual([]);
+    expect(current.page.sendSuccessRevision.value).toBe(action === 'cancel' ? 1 : 2);
+  });
+
+  it('keeps rejected edits paused when abandoned, unchanged, or hidden', async () => {
+    const current = mount(); await current.hooks.onShow(); current.api.chat.mockRejectedValue(inputRejected());
+    await current.page.onSend('Original question'); await vi.advanceTimersByTimeAsync(0);
+    const turnId = current.nova.pendingRemote[0].turnId!;
+    current.page.onQueueAction(turnId, 'edit'); current.page.onQueueAction(turnId, 'cancel-edit');
+    current.page.onQueueAction(turnId, 'edit'); current.page.onQueueSave(turnId, ' Original question ');
+    expect(current.nova.pendingRemote[0]).toMatchObject({ turnId, delivery: 'failed' });
+    current.page.onQueueAction(turnId, 'edit'); current.hooks.onHide(); await current.hooks.onShow();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(current.nova.pendingRemote[0]).toMatchObject({ turnId, delivery: 'failed' });
+    expect(current.api.chat).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    new ApiError({ kind: 'http', status: 400, code: 400, message: 'UNRECOGNIZED_REJECTION' }),
+    new ApiError({ kind: 'http', status: 400, message: 'NOVA_AI_INPUT_INVALID' }),
+    new ApiError({ kind: 'http', status: 500, code: 500, message: 'UNKNOWN' }),
+    new ApiError({ kind: 'network', message: 'NETWORK_UNAVAILABLE' }),
+    new ApiError({ kind: 'http', status: 504, message: 'NOVA_AI_TIMEOUT' }),
+  ])('blocks edit and removal for unconfirmed failure %# without changing the request', async cause => {
+    const current = mount(); await current.hooks.onShow(); current.api.chat.mockRejectedValue(cause);
+    await current.page.onSend('Original question'); await current.page.onSend('Next question');
+    await vi.advanceTimersByTimeAsync(0);
+    const original = current.api.chat.mock.calls[0][0], state = current.nova.pendingRemote[0].delivery;
+    expect(current.page.threadMessages.value[0].queue.editable).toBe(false);
+    current.page.onQueueAction(original.turnId, 'edit'); current.page.onQueueSave(original.turnId, 'Unsafe replacement');
+    current.page.onQueueAction(original.turnId, 'cancel');
+    expect(current.nova.pendingRemote.map(row => row.text)).toEqual(['Original question', 'Next question']);
+    expect(current.nova.pendingRemote[0]).toMatchObject({ turnId: original.turnId, delivery: state });
+    expect(current.api.chat).toHaveBeenCalledOnce();
+  });
+
+  it('cannot reinterpret an unknown result as safe to replace when validation precedes replay', async () => {
+    const current = mount(); await current.hooks.onShow();
+    current.api.chat.mockRejectedValueOnce(new ApiError({ kind: 'network', message: 'NETWORK_UNAVAILABLE' }))
+      .mockRejectedValue(inputRejected());
+    await current.page.onSend('Original question'); await current.page.onSend('Next question');
+    await vi.advanceTimersByTimeAsync(3000);
+    const original = current.api.chat.mock.calls[0][0];
+    expect(current.api.chat.mock.calls[1][0]).toEqual(original);
+    expect(current.page.threadMessages.value[0].queue).toMatchObject({ state: 'failed', editable: false });
+    current.page.onQueueAction(original.turnId, 'edit'); current.page.onQueueAction(original.turnId, 'cancel');
+    current.page.onQueueSave(original.turnId, 'Unsafe replacement');
+    current.page.onQueueAction(original.turnId, 'retry'); await vi.advanceTimersByTimeAsync(1000);
+    expect(current.api.chat.mock.calls[2][0]).toEqual(original);
+    expect(current.nova.pendingRemote.map(row => row.text)).toEqual(['Original question', 'Next question']);
+  });
+
+  it.each(['other account', 'A to B to A'])('discards a stale rejection and edit/remove actions after %s', async boundary => {
+    const current = mount(); await current.hooks.onShow();
+    const old = deferred(); current.api.chat.mockReturnValueOnce(old.promise).mockReturnValue(new Promise(() => {}));
+    await current.page.onSend('Old question'); const oldId = current.api.chat.mock.calls[0][0].turnId;
+    current.rebind('user:2'); await vi.advanceTimersByTimeAsync(0);
+    if (boundary === 'A to B to A') { current.rebind('user:1'); await vi.advanceTimersByTimeAsync(0); }
+    await current.page.onSend('New question');
+    old.reject(inputRejected()); await vi.advanceTimersByTimeAsync(0);
+    current.page.onQueueAction(oldId, 'edit'); current.page.onQueueSave(oldId, 'Old private edit'); current.page.onQueueAction(oldId, 'cancel');
+    expect(current.nova.pendingRemote).toHaveLength(1);
+    expect(current.nova.pendingRemote[0]).toMatchObject({ text: 'New question', delivery: 'processing' });
+    expect(current.page.threadMessages.value[0].queue.editable).toBe(false);
+    expect(current.api.chat).toHaveBeenCalledTimes(2);
   });
 });
 

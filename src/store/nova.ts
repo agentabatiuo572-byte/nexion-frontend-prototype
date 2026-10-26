@@ -47,6 +47,8 @@ export interface NovaMessage {
   delivery?: "queued" | "processing" | "tracking" | "editing" | "failed";
   failure?: NovaFailure;
   attempted?: boolean;
+  /** Sticky for this turn: validation runs before replay and cannot settle an earlier unknown result. */
+  outcomeUnknown?: boolean;
   /** The server may still own this turn after a client timeout or transport abort. */
   serverPending?: boolean;
   /** Absolute deadline for this attempt; survives hidden/remounted chat pages. */
@@ -207,6 +209,7 @@ export const useNova = defineStore("nova", () => {
     messages.value[index].delivery = undefined;
     messages.value[index].failure = undefined;
     messages.value[index].serverPending = undefined;
+    messages.value[index].outcomeUnknown = undefined;
     messages.value[index].replyDeadlineAt = undefined;
     messages.value.splice(index + 1, 0, { id: `${turnId}:nova`, sender: "nova",
       kind: "nova-reply", text: reply, ts: Date.now() });
@@ -215,9 +218,10 @@ export const useNova = defineStore("nova", () => {
   function failRemote(turnId: string, failure: NovaFailure) {
     const head = pendingRemote.value[0];
     if (head?.turnId !== turnId || !["processing", "tracking"].includes(head.delivery!)) return;
+    if (failure !== "input-rejected") head.outcomeUnknown = true;
     head.delivery = "failed";
-    head.failure = failure;
-    head.serverPending = failure === "timeout" ? true : undefined;
+    head.failure = failure === "input-rejected" && head.outcomeUnknown ? "failed" : failure;
+    head.serverPending = head.serverPending || failure === "timeout" ? true : undefined;
   }
 
   function trackRemote(turnId: string): boolean {
@@ -226,6 +230,7 @@ export const useNova = defineStore("nova", () => {
     head.delivery = "tracking";
     head.failure = undefined;
     head.serverPending = true;
+    head.outcomeUnknown = true;
     return true;
   }
 
@@ -238,31 +243,45 @@ export const useNova = defineStore("nova", () => {
     return true;
   }
 
+  function canEditRemote(turnId: string): boolean {
+    const item = pendingRemote.value.find(m => m.turnId === turnId);
+    if (!item || item.outcomeUnknown) return false;
+    return (!item.attempted && ["queued", "editing"].includes(item.delivery!))
+      || (item.failure === "input-rejected" && ["failed", "editing"].includes(item.delivery!));
+  }
+
   function editRemote(turnId: string): boolean {
     const item = pendingRemote.value.find(m => m.turnId === turnId);
-    if (item?.delivery !== "queued" || item.attempted) return false;
+    if (!item || !["queued", "failed"].includes(item.delivery!) || !canEditRemote(turnId)) return false;
     item.delivery = "editing";
     return true;
   }
 
   function saveRemoteEdit(turnId: string, text: string): boolean {
     const item = pendingRemote.value.find(m => m.turnId === turnId);
-    if (item?.delivery !== "editing" || !text.trim() || text.length > 2000) return false;
-    item.text = text.trim();
-    item.delivery = "queued";
+    if (item?.delivery !== "editing" || !canEditRemote(turnId) || !text.trim() || text.length > 2000) return false;
+    const changed = text.trim();
+    if (changed === item.text) return cancelRemoteEdit(turnId);
+    let nextTurnId: string;
+    try { nextTurnId = requireCryptoUuid(); } catch { return false; }
+    if (messages.value.some(message => message.turnId === nextTurnId)) return false;
+    // Changed content is a new intent; never reuse a turn bound to another payload.
+    Object.assign(item, { id: `${nextTurnId}:user`, turnId: nextTurnId, text: changed,
+      attempted: undefined, failure: undefined, outcomeUnknown: undefined, serverPending: undefined,
+      replyDeadlineAt: undefined, status: "sent", delivery: "queued" });
     return true;
   }
 
   function cancelRemoteEdit(turnId: string): boolean {
     const item = pendingRemote.value.find(m => m.turnId === turnId);
-    if (item?.delivery !== "editing") return false;
-    item.delivery = "queued";
+    if (item?.delivery !== "editing" || !canEditRemote(turnId)) return false;
+    item.delivery = item.failure === "input-rejected" ? "failed" : "queued";
     return true;
   }
 
   function cancelRemote(turnId: string): boolean {
     const item = pendingRemote.value.find(m => m.turnId === turnId);
-    if (!item || item.attempted || !["queued", "editing"].includes(item.delivery!)) return false;
+    if (!item || !canEditRemote(turnId)) return false;
     messages.value = messages.value.filter(m => m !== item);
     return true;
   }
@@ -270,7 +289,7 @@ export const useNova = defineStore("nova", () => {
   function interruptRemote() {
     for (const item of pendingRemote.value) {
       if (item.delivery === "processing") trackRemote(item.turnId!);
-      if (item.delivery === "editing") item.delivery = "queued";
+      if (item.delivery === "editing") cancelRemoteEdit(item.turnId!);
     }
   }
 
@@ -356,6 +375,6 @@ export const useNova = defineStore("nova", () => {
     open, close, push, sendUser, markUserRead, setTyping, reset, startNewConversation,
     bindRemoteAccount, hydrateRemote, ensureRemoteHistory, loadEarlierRemote,
     pendingRemote, historyLoaded, historyTruncated, historyNextCursor, enqueueRemote, claimRemote, completeRemote, failRemote,
-    retryRemote, trackRemote, editRemote, saveRemoteEdit, cancelRemoteEdit, cancelRemote, interruptRemote,
+    retryRemote, trackRemote, canEditRemote, editRemote, saveRemoteEdit, cancelRemoteEdit, cancelRemote, interruptRemote,
   };
 });

@@ -1,6 +1,7 @@
 // @ts-expect-error Node-only SFC test harness.
 import { readFileSync } from "node:fs";
 import { compileScript, parse } from "@vue/compiler-sfc";
+import { compile as compileTemplate, parse as parseTemplate } from '@vue/compiler-dom';
 import ts from "typescript";
 import * as Vue from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -311,6 +312,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
   const hooks: Record<string, (...args: any[]) => any> = {};
   const navigation = { navTo: vi.fn(), navBack: vi.fn(), navReplace: vi.fn(async () => true) };
   const toast = { warn: vi.fn(), info: vi.fn(), error: vi.fn() };
+  const sendBudgets = chatLimiter.createConversationSendBudgets();
   const modules: Record<string, unknown> = {
     vue: { ...Vue, onUnmounted: (fn: () => void) => { hooks.unmount = fn; } },
     "@dcloudio/uni-app": Object.fromEntries(["onLoad", "onUnload", "onShow", "onHide"].map(name => [name, (fn: () => void) => { hooks[name] = fn; }])),
@@ -318,7 +320,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/lib/support-idle-message": { localizedIdleClose },
     "@/lib/brand-copy": { catalogSkuBrandText, catalogSkuRecommendationBody },
     "@/lib/nova-visibility": { NOVA_SUPPORT_VISIBLE: false },
-    "@/lib/route": navigation, "@/lib/send-limiter": { ...chatLimiter, conversationSendLimiter: chatLimiter.createConversationSendBudgets() },
+    "@/lib/route": navigation, "@/lib/send-limiter": { ...chatLimiter, conversationSendLimiter: sendBudgets },
     '@/lib/message-length-policy': messagePolicy,
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 }, "@/lib/hashpower": { isDeviceOnline: () => false },
     "@/store/conversations": { useConversations: () => store }, "@/store/nova": { useNova }, "@/store/app": { useApp: () => app },
@@ -333,20 +335,183 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/lib/secure-command-id": chatSecure, "@/lib/nova-thinking": chatThinking, "./conversation-realtime-page": chatRealtime,
   };
   const scope = Vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, retryHumanSend, sendSuccessRevision, sendSuccessOwner, cid, startType, draftText, failedHumanSend, failedHumanLabel, humanSendBusy, supportSessionReady, localHumanSend, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
+  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, retryHumanSend, sendSuccessRevision, sendSuccessOwner, cid, startType, draftText, failedHumanSend, failedHumanLabel, humanSendBusy, supportSessionReady, localHumanSend, measureTopOverlay, topOverlayHeight, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
     if (name.endsWith(".vue")) return {}; if (!(name in modules)) throw new Error(`Unexpected chat dependency: ${name}`); return modules[name];
   }, {}));
   hooks.onLoad(query); chatCleanups.push(() => { page.cleanup(); scope.stop(); });
   function rebind(key = app.accountKey) { bindSession(key); store.bindAccount(key); app.accountKey = key; app.accountBindingEpoch += 1; }
-  const waitForHistory = () => vi.waitFor(() => expect(watchRealtime).toHaveBeenLastCalledWith(query.cid));
+  const waitForHistory = () => vi.waitFor(() => expect(watchRealtime).toHaveBeenLastCalledWith(query.cid?.trim()));
   async function show() {
     await hooks.onShow(); await Vue.nextTick();
     // onShow now schedules the real post-flush watcher; observe its result.
-    if (query.cid) await waitForHistory();
-    else if (query.start) await vi.waitFor(() => expect(store.categoryAvailabilityStatus).toBe("ready"));
+    if (query.cid?.trim()) await waitForHistory();
+    else if (page.startType.value) await vi.waitFor(() => expect(store.categoryAvailabilityStatus).toBe("ready"));
   }
-  return { page, hooks, show, waitForHistory, store, app, navigation, rebind, watchRealtime, toast };
+  return { page, hooks, show, waitForHistory, store, app, navigation, rebind, watchRealtime, toast, sendBudgets };
 }
+
+describe('human chat route admission', () => {
+  it.each<Record<string, string>>([{}, { cid: '' }, { cid: ' \t' }, { start: 'ai' }, { cid: '', start: 'invalid' }])(
+    'redirects a route without a usable conversation or start target: %j', async query => {
+      const current = mountRealHumanChat(query);
+      expect(current.navigation.navReplace).toHaveBeenCalledExactlyOnceWith('/pages/support/messages');
+      expect(current.page.cid.value).toBe(''); expect(current.page.startType.value).toBeNull();
+      await current.show();
+      expect(chatTransport.conversation).not.toHaveBeenCalled();
+      expect(chatTransport.startConversation).not.toHaveBeenCalled();
+      expect(chatTransport.replyConversation).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['pending', 'failed'])('preserves the draft and send budget while targetless navigation is %s', async outcome => {
+    const current = mountRealHumanChat({}); await current.show();
+    current.navigation.navReplace.mockImplementation(() => outcome === 'pending' ? new Promise<boolean>(() => {}) : Promise.resolve(false));
+    const limiter = current.sendBudgets(current.app.accountKey, 'start:null');
+    const acquire = vi.spyOn(limiter, 'tryAcquire'), restore = vi.fn(), settled = vi.fn();
+    await current.page.onSend('Keep this draft', restore, settled);
+    await current.page.onSend('Keep this draft', restore, settled);
+    expect(restore).toHaveBeenCalledTimes(2);
+    expect(settled.mock.calls).toEqual([[false], [false]]);
+    expect(acquire).not.toHaveBeenCalled(); expect(limiter.peek().ok).toBe(true);
+    const failed = { text: 'Original retry', settled: true, retryable: true, kind: 'failed', attempts: 1 };
+    current.page.failedHumanSend.value = failed;
+    await current.page.retryHumanSend();
+    expect(current.page.failedHumanSend.value).toEqual(failed);
+    expect(acquire).not.toHaveBeenCalled();
+    expect(current.page.localHumanSend.value).toBeNull();
+    expect(current.toast.warn).not.toHaveBeenCalled();
+    expect(chatTransport.startConversation).not.toHaveBeenCalled();
+    expect(chatTransport.replyConversation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['', 'support'], ['', 'advisor'], [' \t', 'support'], [' \t', 'advisor'],
+  ])('accepts empty cid %j with valid start %s and creates on the first send', async (cid, start) => {
+    const current = mountRealHumanChat({ cid, start });
+    expect(current.page.cid.value).toBe(''); expect(current.page.startType.value).toBe(start);
+    expect(current.navigation.navReplace).not.toHaveBeenCalled();
+    await current.show();
+    const limiter = current.sendBudgets(current.app.accountKey, `start:${start}`);
+    const acquire = vi.spyOn(limiter, 'tryAcquire'), restore = vi.fn(), settled = vi.fn();
+    expect(acquire).not.toHaveBeenCalled();
+    expect(chatTransport.startConversation).not.toHaveBeenCalled();
+    await current.page.onSend('First opening', restore, settled);
+    expect(acquire).toHaveBeenCalledOnce(); expect(restore).not.toHaveBeenCalled();
+    expect(settled).toHaveBeenCalledExactlyOnceWith(true);
+    expect(chatTransport.startConversation).toHaveBeenCalledOnce();
+    expect(chatTransport.startConversation.mock.calls[0][0]).toBe(start);
+    expect(chatTransport.replyConversation).not.toHaveBeenCalled();
+    expect(current.page.cid.value).toBe('CV-cold'); expect(current.page.startType.value).toBeNull();
+    expect(current.navigation.navReplace).toHaveBeenCalledExactlyOnceWith('/pages/support/chat?cid=CV-cold');
+  });
+
+  it('prioritizes a trimmed conversation id over start and replies to that conversation', async () => {
+    const current = mountRealHumanChat({ cid: ' CV-cold ', start: 'support' });
+    expect(current.page.cid.value).toBe('CV-cold'); expect(current.page.startType.value).toBeNull();
+    await current.show();
+    const restore = vi.fn(); await current.page.onSend('Existing conversation', restore);
+    expect(restore).not.toHaveBeenCalled();
+    expect(chatTransport.replyConversation).toHaveBeenCalledOnce();
+    expect(chatTransport.replyConversation.mock.calls[0][0].id).toBe('CV-cold');
+    expect(chatTransport.startConversation).not.toHaveBeenCalled();
+    expect(current.navigation.navReplace).not.toHaveBeenCalled();
+  });
+});
+
+describe('scrolling history controls', () => {
+  const template = parse(readFileSync(new URL('./chat.vue', import.meta.url), 'utf8')).descriptor.template!.content;
+  const nodes = (node: any): any[] => [node, ...(node.children ?? []).flatMap(nodes)];
+  const tree = nodes(parseTemplate(template));
+  const hasClass = (node: any, name: string) => node.props?.some((prop: any) => prop.type === 6 && prop.name === 'class' && prop.value?.content.split(/\s+/).includes(name));
+  const thread = tree.find(node => node.tag === 'ConversationThread');
+  const slot = nodes(thread).find(node => node.tag === 'template' && node.props?.some((prop: any) => prop.type === 7 && prop.name === 'slot' && prop.arg?.content === 'history-prefix'));
+
+  it('keeps all history actions and notices in the list slot, outside the floating identity header', () => {
+    const overlay = tree.find(node => hasClass(node, 'cp-top-overlay'));
+    expect(nodes(overlay).filter(node => hasClass(node, 'cp-history-text-action') || hasClass(node, 'cp-history-error') || hasClass(node, 'cp-ai-history'))).toHaveLength(0);
+    expect(nodes(overlay).some(node => hasClass(node, 'cp-identity'))).toBe(true);
+    expect(slot).toBeDefined();
+    expect(nodes(slot).filter(node => hasClass(node, 'cp-history-text-action'))).toHaveLength(4);
+    expect(nodes(slot).filter(node => hasClass(node, 'cp-history-error'))).toHaveLength(2);
+  });
+
+  it.each([zh, en, vietnamese])('preserves localized disclosure and the actual loading/retry handlers in the scrolling slot', async copy => {
+    const current = mountRealHumanChat({ cid: 'CV-cold' }, copy); await current.show();
+    const row = current.store.get('CV-cold')!; row.historyNextCursor = 1; row.historyTruncated = true;
+    const load = vi.spyOn(current.store, 'loadEarlier').mockResolvedValue(undefined);
+    const refresh = vi.spyOn(current.store, 'refresh').mockResolvedValue(undefined);
+    current.page.conversationThread.value = { prepareHistoryPrepend: vi.fn(async () => true) };
+    const render = new Function('Vue', compileTemplate(slot.children.map((child: any) => child.loc.source).join(''), {
+      mode: 'function', prefixIdentifiers: true, isCustomElement: tag => ['view', 'text'].includes(tag),
+    }).code)(Vue);
+    const scope = Vue.proxyRefs({ ...current.page, t: copy, advisorApplies: false, convStore: current.store,
+      isAi: false, remoteApiEnabled: true, humanHistoryRetryBusy: false });
+    const root = element('root'), view = renderer.createApp({ render: () => render(scope, []) });
+    view.component('LiquidGlass', { render: () => null }); view.mount(root); mounted.push(view);
+    const actions = () => flatten(root).filter(node => String(node.props.class).split(/\s+/).includes('cp-history-text-action'));
+    const allText = () => flatten(root).map(node => node.text).join('');
+    expect(allText()).toContain(copy.conversations.historyTruncated);
+    expect(allText()).toContain(copy.conversations.loadEarlier);
+    current.page.humanEarlierBusy.value = true; await Vue.nextTick();
+    expect(actions()[0].props['aria-disabled']).toBe(true);
+    await actions()[0].props.onClick(); expect(load).not.toHaveBeenCalled();
+    current.page.humanEarlierBusy.value = false; await Vue.nextTick();
+    await actions()[0].props.onClick(); expect(load).toHaveBeenCalledOnce();
+    current.page.humanHistoryListError.value = true; await Vue.nextTick();
+    expect(allText()).toContain(copy.conversations.loadError);
+    expect(allText()).toContain(copy.conversations.retry);
+    await actions().at(-1)!.props.onClick(); expect(refresh).toHaveBeenCalledOnce();
+    expect(current.page.humanHistoryListError.value).toBe(false);
+  });
+});
+
+describe('native top overlay measurement ownership', () => {
+  async function measuringChat() {
+    const current = mountRealHumanChat(); await current.show(); await Vue.nextTick();
+    const pending: Array<(rows: unknown[]) => void> = [];
+    vi.stubGlobal('uni', { createSelectorQuery: () => {
+      const query: Record<string, any> = { in: () => query,
+        select: (selector: string) => { expect(selector).toBe('.cp-top-overlay'); return query; },
+        boundingClientRect: () => query, exec: (done: (rows: unknown[]) => void) => pending.push(done) };
+      return query;
+    } });
+    const request = async () => {
+      const count = pending.length;
+      current.page.measureTopOverlay(); await Vue.nextTick(); await Vue.nextTick();
+      expect(pending.length).toBeGreaterThan(count);
+      return pending[pending.length - 1];
+    };
+    return { ...current, request, pending };
+  }
+
+  it('keeps the newer 74px top inset when the old 180px native result arrives last', async () => {
+    const current = await measuringChat();
+    (await current.request())([{ height: 120 }]);
+    expect(current.page.topOverlayHeight.value).toBe(120);
+    const older = await current.request(), newer = await current.request();
+    newer([{ height: 74 }]); expect(current.page.topOverlayHeight.value).toBe(74);
+    older([{ height: 180 }]); expect(current.page.topOverlayHeight.value).toBe(74);
+  });
+
+  it.each(['hide', 'return', 'dispose'] as const)('ignores an old native top inset after %s', async boundary => {
+    const current = await measuringChat();
+    (await current.request())([{ height: 120 }]);
+    const older = await current.request();
+    if (boundary === 'dispose') current.page.cleanup();
+    else current.hooks.onHide();
+    if (boundary === 'return') await current.show();
+    older([{ height: 180 }]); await Vue.nextTick();
+    expect(current.page.topOverlayHeight.value).toBe(120);
+    if (boundary === 'return') {
+      (await current.request())([{ height: 74 }]);
+      expect(current.page.topOverlayHeight.value).toBe(74);
+    } else {
+      const count = current.pending.length;
+      current.page.measureTopOverlay(); await Vue.nextTick();
+      expect(current.pending).toHaveLength(count);
+    }
+  });
+});
 
 describe('attachment policy and native history read ownership', () => {
   it.each(['disabled', 'failed'] as const)('keeps the newest %s policy when an old available result arrives late', async outcome => {
