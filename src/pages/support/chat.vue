@@ -212,6 +212,11 @@ const ticketCreationBlockText = computed(() => {
 const draftText = ref("");
 const attachmentPolicy = ref<SupportAttachmentPolicy | null>(null);
 const attachmentPolicyError = ref(false);
+let attachmentPolicyGeneration = 0;
+function resetAttachmentPolicy() {
+  attachmentPolicyGeneration++;
+  attachmentPolicy.value = null; attachmentPolicyError.value = false;
+}
 const imageSources = ref<Record<string, string>>({});
 const imageFailures = ref<Record<string, boolean>>({});
 let imageEpoch = 0;
@@ -226,7 +231,7 @@ function clearPrivateImages() {
 watch(() => [app.accountBindingEpoch, convStore.scopeInvalidated], () => {
   humanComposerResetting = true;
   try {
-    clearPrivateImages(); imageDraft.value = null; failedHumanSend.value = null; draftText.value = ""; attachmentPolicy.value = null; attachmentPolicyError.value = false;
+    clearPrivateImages(); imageDraft.value = null; failedHumanSend.value = null; draftText.value = ""; resetAttachmentPolicy();
     ticketCreationBlock.value = null;
   } finally { humanComposerResetting = false; }
   if (novaPageVisible && !isAi.value && remoteApiEnabled && supportSessionReady.value) { void convStore.refreshAdvisor(); void loadAttachmentPolicy(); }
@@ -294,13 +299,13 @@ async function chooseSupportImage() {
   if (chatDisposed || !supportSessionReady.value) return;
   if (isAi.value || imageDraft.value || failedHumanSend.value) return;
   const binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, key = humanComposerKey.value;
-  const current = () => !chatDisposed && supportSessionReady.value && binding === app.accountBindingEpoch
+  const current = () => !chatDisposed && novaPageVisible && supportSessionReady.value && binding === app.accountBindingEpoch
     && scope === convStore.scopeInvalidated && key === humanComposerKey.value;
   try {
-    const policy = attachmentPolicy.value ?? await supportApi.attachmentPolicy();
+    if (!attachmentPolicy.value) await loadAttachmentPolicy();
     if (!current()) return;
-    attachmentPolicy.value = policy;
-    if (!policy.available) { toast.info(t.value.conversations.image.unavailable, ""); return; }
+    const policy = attachmentPolicy.value, generation = attachmentPolicyGeneration;
+    if (!policy?.available) return;
     const selected = await new Promise<UniNamespace.ChooseImageSuccessCallbackResult | null>((resolve, reject) =>
       uni.chooseImage({ count: 1, sizeType: ["original"], sourceType: ["album", "camera"], success: resolve, fail: (cause) => {
         let cancelled = /^(?:chooseImage:fail\s+)?cancel(?:led|ed)?$/i.test(cause instanceof Error ? cause.message : cause.errMsg);
@@ -311,7 +316,7 @@ async function chooseSupportImage() {
         // #endif
         if (cancelled) resolve(null); else reject(cause);
       } }));
-    if (!selected || !current()) return;
+    if (!selected || !current() || generation !== attachmentPolicyGeneration || attachmentPolicy.value !== policy) return;
     const path = selected.tempFilePaths[0];
     if (!path) return;
     const selectedFile = Array.isArray(selected.tempFiles) ? selected.tempFiles[0] : selected.tempFiles;
@@ -325,15 +330,18 @@ async function chooseSupportImage() {
   }
 }
 async function loadAttachmentPolicy() {
-  if (!supportSessionReady.value) return;
-  if (!remoteApiEnabled) return;
-  const binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated;
+  if (!supportSessionReady.value || !remoteApiEnabled || !novaPageVisible || chatDisposed) return;
+  const binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, key = humanComposerKey.value;
+  const generation = ++attachmentPolicyGeneration;
+  const current = () => generation === attachmentPolicyGeneration && !chatDisposed && novaPageVisible && supportSessionReady.value
+    && binding === app.accountBindingEpoch && scope === convStore.scopeInvalidated && key === humanComposerKey.value;
+  attachmentPolicy.value = null;
   attachmentPolicyError.value = false;
   try {
     const result = await supportApi.attachmentPolicy();
-    if (binding === app.accountBindingEpoch && scope === convStore.scopeInvalidated) attachmentPolicy.value = result;
+    if (current()) attachmentPolicy.value = result;
   } catch {
-    if (binding === app.accountBindingEpoch && scope === convStore.scopeInvalidated) { attachmentPolicy.value = null; attachmentPolicyError.value = true; }
+    if (current()) { attachmentPolicy.value = null; attachmentPolicyError.value = true; }
   }
 }
 async function retrySupportUpload() {
@@ -685,6 +693,7 @@ onShow(async () => {
 });
 onHide(() => {
   novaPageVisible = false;
+  resetAttachmentPolicy();
   cancelHistoryRetry();
   clearPrivateImages();
   categoryGate = null;
@@ -907,7 +916,7 @@ function receiptFor(status: "sent" | "read" | undefined, isLatestReceipt: boolea
   return status === "read" ? t.value.conversations.receiptRead : t.value.conversations.receiptSent;
 }
 
-const conversationThread = ref<{ prepareHistoryPrepend(): Promise<void> } | null>(null);
+const conversationThread = ref<{ prepareHistoryPrepend(): Promise<boolean> } | null>(null);
 
 function humanMessageRecommendation(message: ConvMessage): Partial<ThreadMsg> {
   if (message.kind !== "SKU" && message.kind !== "LINK") return {};
@@ -988,8 +997,9 @@ async function loadEarlierHumanHistory() {
   humanEarlierBusy.value=true;
   const request=historyRetryGeneration;
   try {
-    await conversationThread.value?.prepareHistoryPrepend();
+    const prepared = await conversationThread.value?.prepareHistoryPrepend();
     if (!humanRealtime.isCurrent(scope.epoch, scope.id) || request !== historyRetryGeneration) return;
+    if (prepared !== true) { toast.warn(t.value.security.opFailed); return; }
     const earlier = humanHistory.value.find(row=>row.historyNextCursor);
     if (earlier) await convStore.loadEarlier(earlier.id, () => humanRealtime.isCurrent(scope.epoch, scope.id));
   } catch {
@@ -1089,8 +1099,9 @@ async function loadEarlierNovaHistory() {
   const epoch=++novaHistoryEpoch;
   novaHistoryLoading.value=true;
   try {
-    await conversationThread.value?.prepareHistoryPrepend();
+    const prepared = await conversationThread.value?.prepareHistoryPrepend();
     if (!novaPageVisible || epoch !== novaHistoryEpoch) return;
+    if (prepared !== true) { toast.warn(t.value.nova.localFailed, t.value.nova.localRetry); return; }
     await nova.loadEarlierRemote(app.accountKey, cursor => novaAiApi.history(nova.conversationId, cursor));
   } catch {
     if(novaPageVisible&&epoch===novaHistoryEpoch)toast.warn(t.value.nova.localFailed, t.value.nova.localRetry);
@@ -1192,6 +1203,7 @@ function cancelNovaThinking() {
 function cleanup() {
   chatDisposed = true;
   novaPageVisible = false;
+  resetAttachmentPolicy();
   clearPrivateImages();
   categoryGate = null;
   novaStatusEpoch += 1;

@@ -189,9 +189,11 @@ it('preserves native history offsets using scoped row measurements and ignores s
     boundingClientRect: () => query, exec: (done: (rows: unknown[]) => void) => pending.push(done) };
   vi.stubGlobal('uni', { createSelectorQuery: () => query });
   const screen = mount([message('old/1')]); screen.view.onThreadScroll({ detail: { scrollTop: 150 } });
+  const ready = screen.view.prepareHistoryPrepend(); pending.shift()!([{ top: 10 }, { top: 10 }]); await ready;
   screen.props.messages = [message('older'), ...screen.props.messages]; await flush();
   pending.shift()!([{ top: 10 }, { top: 310 }]); expect(screen.view.scrollTop.value).toBe(450);
   expect(selectors).toContain('#' + screen.view.messageRowId('old/1'));
+  const next = screen.view.prepareHistoryPrepend(); pending.shift()!([{ top: 10 }, { top: 10 }]); await next;
   screen.props.messages = [message('oldest'), ...screen.props.messages]; await flush();
   const stale = pending.shift()!; screen.props.composerKey = 'conversation:B'; await flush();
   stale([{ top: 10 }, { top: 9999 }]); expect(screen.view.scrollTop.value).toBe(450);
@@ -210,6 +212,7 @@ it('reapplies an identical native history target after the user scrolls back bet
   for (const id of ['older', 'oldest']) {
     nativeTop = 150;
     screen.view.onThreadScroll({ detail: { scrollTop: nativeTop } }); await flush();
+    const ready = screen.view.prepareHistoryPrepend(); pending.shift()!([{ top: 10 }, { top: 10 }]); await ready;
     screen.props.messages = [message(id), ...screen.props.messages]; await flush();
     pending.shift()!([{ top: 10 }, { top: 310 }]); await flush();
     expect(nativeTop).toBe(450);
@@ -228,6 +231,45 @@ it('retains the bubble anchor when a prepended page removes its previous leading
   screen.props.messages = [message('older'), ...screen.props.messages]; await flush();
   pending.shift()!([{ top: 0 }, { top: 300 }]); await flush();
   expect(screen.view.scrollTop.value).toBe(408); // 150 + 300 - old 42px date header
+});
+
+it.each(['timeout', 'empty', 'invalid', 'hidden', 'binding', 'superseded'] as const)('does not authorize native prepend when the previous anchor is %s', async failure => {
+  const pending: Array<(rows: unknown[]) => void> = [];
+  const query: Record<string, any> = { in: () => query, select: () => query,
+    boundingClientRect: () => query, exec: (done: (rows: unknown[]) => void) => pending.push(done) };
+  vi.stubGlobal('uni', { createSelectorQuery: () => query });
+  const screen = mount([message('old')]); screen.view.onThreadScroll({ detail: { scrollTop: 150 } });
+  const preparing = screen.view.prepareHistoryPrepend(), oldRead = pending.shift()!;
+  if (failure === 'empty') oldRead([]);
+  if (failure === 'invalid') oldRead([{ top: 0 }, { top: NaN }]);
+  if (failure === 'hidden') { screen.hide(); oldRead([{ top: 0 }, { top: 42 }]); }
+  if (failure === 'binding') { screen.app.accountBindingEpoch++; oldRead([{ top: 0 }, { top: 42 }]); }
+  if (failure === 'superseded') {
+    const latest = screen.view.prepareHistoryPrepend(); pending.shift()!([{ top: 0 }, { top: 42 }]);
+    expect(await latest).toBe(true); oldRead([{ top: 0 }, { top: 999 }]);
+  }
+  await vi.advanceTimersByTimeAsync(501);
+  expect(await preparing).toBe(false);
+  if (failure === 'timeout') oldRead([{ top: 0 }, { top: 999 }]);
+  expect(screen.view.scrollTop.value).toBe(150); expect(screen.props.messages.map(m => m.id)).toEqual(['old']);
+  if (failure === 'superseded') {
+    screen.props.messages = [message('older'), ...screen.props.messages]; await flush();
+    pending.shift()!([{ top: 0 }, { top: 300 }]); await flush();
+    expect(screen.view.scrollTop.value).toBe(408);
+  }
+});
+
+it('accepts a measured native zero prefix and retries after a failed measurement', async () => {
+  const pending: Array<(rows: unknown[]) => void> = [];
+  const query: Record<string, any> = { in: () => query, select: () => query,
+    boundingClientRect: () => query, exec: (done: (rows: unknown[]) => void) => pending.push(done) };
+  vi.stubGlobal('uni', { createSelectorQuery: () => query });
+  const screen = mount([message('old')]); screen.view.onThreadScroll({ detail: { scrollTop: 150 } });
+  const failed = screen.view.prepareHistoryPrepend(); pending.shift()!([]); await vi.advanceTimersByTimeAsync(501);
+  expect(await failed).toBe(false);
+  const retry = screen.view.prepareHistoryPrepend(); pending.shift()!([{ top: 0 }, { top: 0 }]); expect(await retry).toBe(true);
+  screen.props.messages = [message('older'), ...screen.props.messages]; await flush();
+  pending.shift()!([{ top: 0 }, { top: 300 }]); await flush(); expect(screen.view.scrollTop.value).toBe(450);
 });
 
 it('renders date/gap markers independently of precise per-message times and does not animate a clock refresh', async () => {
@@ -258,6 +300,21 @@ it('disables unavailable image input without a visible caption while text sendin
   screen.props.attachRetry = true; node = await screen.node();
   findAll(node, 'nx-conv-policy-retry')[0].props!.onClick();
   expect(screen.emit).toHaveBeenCalledWith('retry-policy');
+});
+
+it('makes valid send the primary action and gives one bounded tap response without enabling duplicate sends', async () => {
+  const screen = mount(); let button = findAll(await screen.node(), 'nx-conv-send')[0];
+  expect(button.props?.['aria-disabled']).toBe(true); expect(button.props?.tabindex).toBe(-1);
+  button.props!.onClick(); expect(screen.view.sendFeedback.value).toBe(false);
+  screen.view.onDraft({ detail: { value: 'Ready to send' } }); button = findAll(await screen.node(), 'nx-conv-send')[0];
+  expect(String(button.props?.class)).toContain('nx-conv-send--ready'); expect(button.props?.tabindex).toBe(0);
+  button.props!.onClick(); button.props!.onClick();
+  expect(screen.emit.mock.calls.filter(call => call[0] === 'send')).toHaveLength(1);
+  expect(screen.view.sendFeedback.value).toBe(true); expect(screen.view.canSend.value).toBe(false);
+  await vi.advanceTimersByTimeAsync(221); expect(screen.view.sendFeedback.value).toBe(false);
+  screen.view.onDraft({ detail: { value: 'Second' } }); screen.view.onSend(); screen.hide();
+  expect(screen.view.sendFeedback.value).toBe(false); await vi.advanceTimersByTimeAsync(221);
+  expect(screen.view.sendFeedback.value).toBe(false);
 });
 
 it('has linear bounded motion, a reduced-motion override and only local inset shadows', () => {

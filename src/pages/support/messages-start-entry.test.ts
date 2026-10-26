@@ -293,6 +293,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
   chatTransport.commandResult.mockReset().mockResolvedValue(null);
   chatTransport.convertConversationToTicket.mockReset().mockResolvedValue({ conversation: humanSnapshot(), ticket: { id: "TK-fixture" } });
   chatTransport.conversationCategories.mockReset().mockResolvedValue({ advisor: true, support: true, ai: false });
+  chatTransport.attachmentPolicy.mockReset().mockResolvedValue({ available: false });
   const store = useConversations(); store.bindAccount("user:1");
   const watchRealtime = vi.spyOn(store, "watchRealtime");
   const app = Vue.reactive({ accountKey: "user:1", accountBindingEpoch: 1, visibleDevices: [], earnings: { today: 0 } });
@@ -326,7 +327,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/lib/secure-command-id": chatSecure, "@/lib/nova-thinking": chatThinking, "./conversation-realtime-page": chatRealtime,
   };
   const scope = Vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
+  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
     if (name.endsWith(".vue")) return {}; if (!(name in modules)) throw new Error(`Unexpected chat dependency: ${name}`); return modules[name];
   }, {}));
   hooks.onLoad(query); chatCleanups.push(() => { page.cleanup(); scope.stop(); });
@@ -340,6 +341,47 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
   }
   return { page, hooks, show, waitForHistory, store, app, navigation, rebind, watchRealtime, toast };
 }
+
+describe('attachment policy and native history read ownership', () => {
+  it.each(['disabled', 'failed'] as const)('keeps the newest %s policy when an old available result arrives late', async outcome => {
+    const current = mountRealHumanChat(); await current.show();
+    const old = chatDeferred(); chatTransport.attachmentPolicy.mockImplementationOnce(() => old.promise);
+    const first = current.page.loadAttachmentPolicy();
+    if (outcome === 'failed') chatTransport.attachmentPolicy.mockRejectedValueOnce(new Error('offline'));
+    else chatTransport.attachmentPolicy.mockResolvedValueOnce({ available: false });
+    await current.page.loadAttachmentPolicy(); old.resolve({ available: true }); await first;
+    expect(current.page.attachmentPolicy.value?.available === true).toBe(false);
+    expect(current.page.attachmentPolicyError.value).toBe(outcome === 'failed');
+    chatTransport.attachmentPolicy.mockResolvedValueOnce({ available: true });
+    await current.page.loadAttachmentPolicy(); expect(current.page.attachmentPolicy.value.available).toBe(true);
+    expect(current.page.attachmentPolicyError.value).toBe(false);
+  });
+
+  it.each(['hide', 'return', 'rebind', 'dispose'] as const)('discards an attachment policy response after %s', async boundary => {
+    const current = mountRealHumanChat(); await current.show();
+    const old = chatDeferred(); chatTransport.attachmentPolicy.mockImplementationOnce(() => old.promise);
+    const first = current.page.loadAttachmentPolicy();
+    if (boundary === 'hide' || boundary === 'return') current.hooks.onHide();
+    if (boundary === 'return') { await current.show(); await Vue.nextTick(); }
+    if (boundary === 'rebind') { current.rebind(); await Vue.nextTick(); }
+    if (boundary === 'dispose') current.page.cleanup();
+    old.resolve({ available: true }); await first;
+    expect(current.page.attachmentPolicy.value?.available === true).toBe(false);
+  });
+
+  it('keeps history intact when premeasurement fails and allows exactly one later retry', async () => {
+    const current = mountRealHumanChat(); chatTransport.conversation.mockResolvedValue({ ...humanSnapshot(), historyNextCursor: 1 });
+    await current.show();
+    const loadEarlier = vi.spyOn(current.store, 'loadEarlier').mockResolvedValue(undefined);
+    const prepare = vi.fn(async () => false); current.page.conversationThread.value = { prepareHistoryPrepend: prepare };
+    await current.page.loadEarlierHumanHistory(); expect(loadEarlier).not.toHaveBeenCalled();
+    expect(current.page.humanEarlierBusy.value).toBe(false); expect(current.toast.warn).toHaveBeenCalled();
+    const measurement = chatDeferred(); prepare.mockImplementationOnce(() => measurement.promise);
+    const retry = current.page.loadEarlierHumanHistory(); await current.page.loadEarlierHumanHistory();
+    expect(prepare).toHaveBeenCalledTimes(2); expect(loadEarlier).not.toHaveBeenCalled();
+    measurement.resolve(true); await retry; expect(loadEarlier).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe("human chat assignment belongs to the current conversation", () => {
   it.each(["warm", "cold", "reload"])("keeps %s closed support history independent of the account advisor", async entry => {

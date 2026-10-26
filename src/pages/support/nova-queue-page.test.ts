@@ -118,7 +118,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/lib/nova-thinking": thinking,
     "./conversation-realtime-page": realtimePage,
   };
-  const page = new Function("require", "exports", script + "; return { isClosedSession, headerRole, dotStyle, onRestart, onSend, onQueueAction, onQueueSave, onStartNewConversation, threadMessages, cleanup };")(
+  const page = new Function("require", "exports", script + "; return { isClosedSession, headerRole, dotStyle, onRestart, onSend, onQueueAction, onQueueSave, onStartNewConversation, threadMessages, loadEarlierNovaHistory, conversationThread, novaHistoryLoading, cleanup };")(
     (name: string) => {
       if (name.endsWith(".vue")) return {};
       if (!(name in modules)) throw new Error(`Unmocked dependency: ${name}`);
@@ -131,6 +131,18 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
 
 beforeEach(() => { setActivePinia(createPinia()); vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+it('keeps the shared history path unchanged after failed anchor preparation and permits a successful retry', async () => {
+  const current = mount(); await current.hooks.onShow();
+  const loadEarlier = vi.spyOn(current.nova, 'loadEarlierRemote').mockResolvedValue(undefined);
+  const prepare = vi.fn(async () => false); current.page.conversationThread.value = { prepareHistoryPrepend: prepare };
+  try {
+    await current.page.loadEarlierNovaHistory(); expect(loadEarlier).not.toHaveBeenCalled();
+    expect(current.page.novaHistoryLoading.value).toBe(false);
+    prepare.mockResolvedValueOnce(true); await current.page.loadEarlierNovaHistory();
+    expect(loadEarlier).toHaveBeenCalledTimes(1);
+  } finally { current.page.cleanup(); }
+});
 
 describe("human message timestamp projection", () => {
   it.each(["support", "advisor"])("keeps compact local times and the original %s history when native locale options are ignored", type => {

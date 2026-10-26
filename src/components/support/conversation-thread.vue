@@ -152,8 +152,8 @@
         @blur="emit('typing', false)"
         @confirm="onSend"
       />
-	      <view class="nx-conv-send family-control family-control--primary" :style="sendStyle" role="button" tabindex="0" :aria-label="sendLabel" :aria-disabled="!canSend" @click="onSend" @keydown.enter.prevent="onKeyboardActivate($event, onSend)" @keydown.space.prevent="onKeyboardActivate($event, onSend)"><LiquidGlass :radius="22" tone="selection" />
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg>
+      <view class="nx-conv-send" :class="{ 'nx-conv-send--ready': canSend || sendFeedback, 'nx-conv-send--feedback': sendFeedback }" role="button" :tabindex="canSend ? 0 : -1" :aria-label="sendLabel" :aria-disabled="!canSend" @click="onSend" @keydown.enter.prevent="onKeyboardActivate($event, onSend)" @keydown.space.prevent="onKeyboardActivate($event, onSend)">
+        <view class="nx-conv-send-face" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg></view>
       </view>
     </view>
     <view v-if="attachRetry" class="nx-conv-policy-retry" role="button" tabindex="0" @click="emit('retry-policy')" @keydown.enter.prevent="emit('retry-policy')" @keydown.space.prevent="emit('retry-policy')"><text>{{ imageLabels?.retryPolicy }}</text></view>
@@ -258,6 +258,12 @@ function receiptText(message: ThreadMsg): string | undefined {
 }
 
 const draft = ref(props.initialDraft ?? "");
+const sendFeedback = ref(false);
+let sendFeedbackTimer: ReturnType<typeof setTimeout> | undefined;
+function clearSendFeedback() { clearTimeout(sendFeedbackTimer); sendFeedback.value = false; }
+onHide(clearSendFeedback);
+onScopeDispose(clearSendFeedback);
+watch(() => [props.composerKey, props.revealTick, app.accountBindingEpoch], clearSendFeedback);
 const previewImage = ref("");
 function openPreview(src: string) {
   // #ifdef APP-PLUS
@@ -307,6 +313,8 @@ function onDraft(e: Event) {
 
 function onSend() {
   if (!canSend.value) return;
+  clearSendFeedback(); sendFeedback.value = true;
+  sendFeedbackTimer = setTimeout(clearSendFeedback, 220);
   const text = draft.value.trim();
   draft.value = "";
   emit("draft-change", "");
@@ -346,31 +354,35 @@ function onThreadScroll(event: { detail: { scrollTop: number } }) {
   scrollTop.value = lastScrollTop;
 }
 function messageRowId(id: string) { return 'nx-conv-message-' + Array.from(id).map(char=>char.charCodeAt(0).toString(16)).join('-'); }
-function measurePrefix(firstId: string, done: (height: number) => void) {
+function measurePrefix(firstId: string, done: (height: number | null) => void) {
   const root = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
   const content = root?.querySelector?.('.nx-conv-content'), first = root?.querySelector?.('#' + messageRowId(firstId));
   if (content && first) { done(first.getBoundingClientRect().top - content.getBoundingClientRect().top); return; }
-  if (typeof uni === 'undefined' || !uni.createSelectorQuery) return;
+  if (typeof uni === 'undefined' || !uni.createSelectorQuery) { done(null); return; }
+  try {
   const query = uni.createSelectorQuery().in(threadInstance);
   query.select('.nx-conv-content').boundingClientRect(); query.select('#' + messageRowId(firstId)).boundingClientRect();
   query.exec(rows => {
     const [body, anchor] = rows as UniApp.NodeInfo[];
-    if (typeof body?.top === 'number' && typeof anchor?.top === 'number') done(anchor.top - body.top);
+    done(typeof body?.top === 'number' && typeof anchor?.top === 'number' ? anchor.top - body.top : null);
   });
+  } catch { done(null); }
 }
 // Capture before the request mutates history. Native selector queries are async;
 // waiting here also accounts for a first-row date marker disappearing on prepend.
-async function prepareHistoryPrepend(): Promise<void> {
+async function prepareHistoryPrepend(): Promise<boolean> {
   cancelScroll(); preparedHistory = null;
   const id = props.messages[0]?.id, owner = historyOwner(), preparation = ++historyPreparation;
-  if (!id) return;
-  await new Promise<void>(resolve => {
+  if (!id) return false;
+  return new Promise<boolean>(resolve => {
     let expired = false;
-    const timeout = setTimeout(() => { expired = true; resolve(); }, 500);
+    const timeout = setTimeout(() => { expired = true; resolve(false); }, 500);
     measurePrefix(id, prefix => {
       clearTimeout(timeout);
-      if (!expired && preparation === historyPreparation && threadVisible.value && owner === historyOwner() && props.messages[0]?.id === id) preparedHistory = { id, prefix, owner };
-      resolve();
+      const valid = !expired && typeof prefix === 'number' && Number.isFinite(prefix)
+        && preparation === historyPreparation && threadVisible.value && owner === historyOwner() && props.messages[0]?.id === id;
+      if (valid) preparedHistory = { id, prefix: prefix as number, owner };
+      resolve(valid);
     });
   });
 }
@@ -395,15 +407,19 @@ function scrollToEnd() {
 }
 function preserveHistoryPosition(firstId: string) {
   const node = scroller(), top = node?.scrollTop ?? lastScrollTop;
-  let oldPrefix = preparedHistory?.id === firstId && preparedHistory.owner === historyOwner() ? preparedHistory.prefix : 0;
+  let oldPrefix: number | null = preparedHistory?.id === firstId && preparedHistory.owner === historyOwner() ? preparedHistory.prefix : null;
   // H5 has synchronous geometry even for a consumer that does not pre-capture.
   if (node) measurePrefix(firstId, value => { oldPrefix = value; });
   preparedHistory = null;
   cancelScroll(); const ticket = scrollGeneration; scrollAnimated.value = false;
+  // A missing native measurement is not a measured zero. The page blocks the
+  // fetch on preparation failure; never guess if another consumer skips it.
+  if (oldPrefix === null || !Number.isFinite(oldPrefix)) return;
+  const previousPrefix = oldPrefix;
   void nextTick(() => {
     measurePrefix(firstId, prefixHeight => {
-      if (ticket !== scrollGeneration || !threadVisible.value) return;
-      const nextTop = preservedConversationTop(top, prefixHeight - oldPrefix);
+      if (ticket !== scrollGeneration || !threadVisible.value || prefixHeight === null || !Number.isFinite(prefixHeight)) return;
+      const nextTop = preservedConversationTop(top, prefixHeight - previousPrefix);
       const current = scroller(); if (current) current.scrollTop = nextTop;
       scrollTop.value = nextTop; lastScrollTop = nextTop;
     });
@@ -445,10 +461,6 @@ function formatLines(text: string): { text: string; bold: boolean }[][] {
       ),
   );
 }
-
-const sendStyle = computed<CSSProperties>(() => ({
-  opacity: canSend.value ? 1 : 0.45,
-}));
 
 function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   if (event.repeat) return;
@@ -717,12 +729,22 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  transition: opacity 0.15s;
+  position: relative;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
-/* 《08》§2:发送是这个界面的主动作,原先按下去零反馈 */
-.nx-conv-send:active {
-  opacity: 0.7;
+.nx-conv-send[aria-disabled="true"] { cursor: default; }
+.nx-conv-send-face {
+  width: 44px; height: 44px; border-radius: inherit;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--v5-surface-3); color: var(--v5-ink-3);
+  box-shadow: inset 0 0 0 1px var(--v5-border);
+  transition: transform 80ms ease-out, background-color 120ms ease-out, color 120ms ease-out;
 }
+.nx-conv-send--ready .nx-conv-send-face { background: var(--v5-brand); color: var(--v5-on-brand); box-shadow: none; }
+.nx-conv-send[aria-disabled="false"]:active .nx-conv-send-face { transform: scale(.92); }
+.nx-conv-send--feedback .nx-conv-send-face { animation: nx-conv-send-tap 200ms cubic-bezier(.2,.8,.3,1) both; }
+@keyframes nx-conv-send-tap { 0% { transform: scale(1); } 35% { transform: scale(.9); } 100% { transform: scale(1); } }
 .message-family .nx-conv-send, .message-family .nx-conv-attach-trigger { width: 44px; padding: 0; flex-shrink: 0; }
 .message-family .nx-conv-cta-row { margin: 0 12px 10px; padding: 0 16px; }
 .message-family .nx-conv-queue-action, .message-family .nx-conv-chip { padding-inline: 16px; }
@@ -730,7 +752,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .nx-conv-queue-actions { flex-wrap: wrap; }
 .nx-conv-attachment-actions { gap: 8px; margin-top: 8px; }
 .nx-conv-image-caption { overflow-wrap: anywhere; }
-@media (prefers-reduced-motion: reduce) { .nx-conv-send { transition: none; } .nx-conv-typing-dots view { animation: none; opacity: .65; } }
+@media (prefers-reduced-motion: reduce) { .nx-conv-send .nx-conv-send-face { transition: none; animation: none; transform: none; } .nx-conv-typing-dots view { animation: none; opacity: .65; } }
 </style>
 
 <style src="@/styles/message-family.css"></style>
