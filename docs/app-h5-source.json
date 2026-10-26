@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "ac5af7d68cf729a5ec82ba07fdbcd6688af5483b",
-  "sourceRef": "ac5af7d68cf729a5ec82ba07fdbcd6688af5483b",
+  "sourceHead": "2cd4c31d312ff6cfa9574d7a0ec272bb8db442cd",
+  "sourceRef": "2cd4c31d312ff6cfa9574d7a0ec272bb8db442cd",
   "sourceRefKind": "commit",
-  "sourceTree": "12c9fc46fec06c8f18e6e514c22df14f049a2e0a",
+  "sourceTree": "f6f1e70fd01a52ec24153a87e25947a6cb3aeb8b",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -671,24 +671,17 @@
       "mode": "100644"
     },
     "docs/audit/2026-10-26-message-theme/README.md": {
-      "sourceBlob": "7bf0c4e5034717ca4aae00aaa9ab7d15d798278e",
-      "sourceSha256": "6623780522e212fb70bb52e3509cde8d472945a048053acacf1f8fdb77ffeba8",
-      "targetBlob": "7bf0c4e5034717ca4aae00aaa9ab7d15d798278e",
-      "targetSha256": "6623780522e212fb70bb52e3509cde8d472945a048053acacf1f8fdb77ffeba8",
+      "sourceBlob": "fdcf274dc717369cbeaf0319a7243c656696fbad",
+      "sourceSha256": "e857c1b9dbbf9b73ea181e30e97b9663d1a02b1b3cc17639bd85f6d5ecaaa0b6",
+      "targetBlob": "fdcf274dc717369cbeaf0319a7243c656696fbad",
+      "targetSha256": "e857c1b9dbbf9b73ea181e30e97b9663d1a02b1b3cc17639bd85f6d5ecaaa0b6",
       "mode": "100644"
     },
-    "docs/audit/2026-10-26-message-theme/app-r18-public-phone-dark390.png": {
-      "sourceBlob": "b587d9b7625467df94188c4df62354d22914681c",
-      "sourceSha256": "2182f3cc27e0849506b98b0791343f268d17c657b42c02168f97cb7dcc88ffb6",
-      "targetBlob": "b587d9b7625467df94188c4df62354d22914681c",
-      "targetSha256": "2182f3cc27e0849506b98b0791343f268d17c657b42c02168f97cb7dcc88ffb6",
-      "mode": "100644"
-    },
-    "docs/audit/2026-10-26-message-theme/app-r18-public-phone-light320.png": {
-      "sourceBlob": "eb15f11044511adcac707a9a65cc545f1d05071b",
-      "sourceSha256": "9c9b25ff007309613b69ac8f7fe058b18b26ea0f5f3054681233dfd44f1ff58f",
-      "targetBlob": "eb15f11044511adcac707a9a65cc545f1d05071b",
-      "targetSha256": "9c9b25ff007309613b69ac8f7fe058b18b26ea0f5f3054681233dfd44f1ff58f",
+    "docs/audit/2026-10-26-message-theme/app-r18-delivery-phone-dark390.png": {
+      "sourceBlob": "4640a2ac7341f00e3e67429d138bee00ff690faf",
+      "sourceSha256": "ec65ec4e637d47e8869e352f04a4fc5249a4b791720d872e7b5889be4fe50e6e",
+      "targetBlob": "4640a2ac7341f00e3e67429d138bee00ff690faf",
+      "targetSha256": "ec65ec4e637d47e8869e352f04a4fc5249a4b791720d872e7b5889be4fe50e6e",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-message-theme/checks/final-fingerprints.json": {
@@ -712,11 +705,11 @@
       "targetSha256": "71756cb9fa81a8769902aa94fcd0c5311ded5526474890b803ef8c0c541fc06a",
       "mode": "100644"
     },
-    "docs/audit/2026-10-26-message-theme/h5-r18-public-phone-light320.png": {
-      "sourceBlob": "75a6e9206bca9c2e0b723dfb981ee230d396b85c",
-      "sourceSha256": "8272dc9ffc55e6041450ce44c9d34a8b789e5dcf118389540dbe5eb27a760c19",
-      "targetBlob": "75a6e9206bca9c2e0b723dfb981ee230d396b85c",
-      "targetSha256": "8272dc9ffc55e6041450ce44c9d34a8b789e5dcf118389540dbe5eb27a760c19",
+    "docs/audit/2026-10-26-message-theme/h5-r18-delivery-phone-light320.png": {
+      "sourceBlob": "c21b78507a3f87095f850c992f57915326950540",
+      "sourceSha256": "685bf2c49e93c4aa2aa21aaed11fd4c746206f3679c08e46adaab1ae709a958f",
+      "targetBlob": "c21b78507a3f87095f850c992f57915326950540",
+      "targetSha256": "685bf2c49e93c4aa2aa21aaed11fd4c746206f3679c08e46adaab1ae709a958f",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-message-theme/message-limits-review.md": {
