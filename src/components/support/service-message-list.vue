@@ -4,13 +4,13 @@
     <view v-if="loading" class="service-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
     <view v-if="failed" class="service-state" role="alert">
       <text>{{ rows.length ? t.conversations.staleSnapshot : t.conversations.loadError }}</text>
-      <view class="service-button" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retry">
-        <LiquidGlass :radius="22" /><text>{{ t.ui.retry }}</text>
+      <view class="service-button service-retry" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry">
+        <text>{{ t.ui.retry }}</text>
       </view>
     </view>
     <view v-else-if="conversations.realtimeFallback" class="service-state" role="status">
       <text>{{ t.conversations.realtimeFallback }}</text>
-      <view class="service-button" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retry"><LiquidGlass :radius="22" /><text>{{ t.ui.retry }}</text></view>
+      <view class="service-button service-retry" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry"><text>{{ t.ui.retry }}</text></view>
     </view>
     <view v-if="!loading && !failed && !rows.length" class="service-state service-empty">
       <text class="service-empty-title">{{ t.notifs.serviceEmpty }}</text>
@@ -122,6 +122,8 @@ function retry() {
 .service-empty-title { color: var(--v5-ink); font-size: 15px; font-weight: 600; }
 .service-button { position: relative; min-height: 44px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 22px; color: var(--v5-brand); font-size: 13px; cursor: pointer; }
 .service-button > text { position: relative; }
+.service-avatar, .service-button { --v5-liquid-shadow: inset 0 1px 0 var(--v5-border); }
+.service-retry { align-self: stretch; width: 100%; padding: 0; border: 0; background: none; box-shadow: none; }
 .service-button:active { opacity: .78; }
 .service-button[aria-disabled="true"] { opacity: .5; }
 .service-links { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 20px; }

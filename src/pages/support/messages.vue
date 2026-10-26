@@ -28,16 +28,14 @@
           <template v-else>
           <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.realtimeFallback && !humanReadFailed && !convStore.advisorError" class="nx-conv-refresh-warning" role="status" aria-live="polite">
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.realtimeFallback }}</text>
-            <view role="button" tabindex="0" class="nx-conv-refresh-warning__retry family-control" @click="retryConversations"  @keydown.enter.prevent="retryConversations" @keydown.space.prevent="retryConversations">
-              <LiquidGlass :radius="24" />
+            <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" class="nx-conv-refresh-warning__retry family-control" @click="retryConversations"  @keydown.enter.prevent="retryConversations" @keydown.space.prevent="retryConversations">
               <text>{{ t.conversations.retry }}</text>
             </view>
           </view>
           <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.advisorError && !humanReadFailed" class="nx-conv-refresh-warning" role="alert">
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.image.advisorUnavailable }}</text>
-            <view role="button" tabindex="0" class="nx-conv-refresh-warning__retry family-control" :aria-label="t.conversations.retry"
-              @click="convStore.refreshAdvisor()"  @keydown.enter.prevent="convStore.refreshAdvisor()" @keydown.space.prevent="convStore.refreshAdvisor()">
-              <LiquidGlass :radius="24" />
+            <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" class="nx-conv-refresh-warning__retry family-control" :aria-label="t.conversations.retry"
+              @click="retryConversations"  @keydown.enter.prevent="retryConversations" @keydown.space.prevent="retryConversations">
               <text>{{ t.conversations.retry }}</text>
             </view>
           </view>
@@ -64,14 +62,13 @@
             class="nx-conv-refresh-warning"
           >
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.staleSnapshot }}</text>
-            <view role="button" tabindex="0" class="nx-conv-refresh-warning__retry family-control" @click="retryConversations">
-              <LiquidGlass :radius="24" />
+            <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" class="nx-conv-refresh-warning__retry family-control" @click="retryConversations">
               <text>{{ t.conversations.retry }}</text>
             </view>
           </view>
           <view v-if="(convStore.error || convStore.categoryAvailabilityStatus === 'failed') && rows.length === 0" class="nx-conv-retry-state">
             <EmptyState kind="recoverable-error" :title="t.conversations.loadError" :desc="t.conversations.loadErrorDesc" compact />
-            <view class="family-control" role="button" tabindex="0" :aria-label="t.conversations.retry" @click="retryConversations"><LiquidGlass :radius="24" /><text>{{ t.conversations.retry }}</text></view>
+            <view class="family-control family-control--text" role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" :aria-label="t.conversations.retry" @click="retryConversations" @keydown.enter.prevent="retryConversations" @keydown.space.prevent="retryConversations"><text>{{ t.conversations.retry }}</text></view>
           </view>
           <EmptyState
             v-else-if="convStore.categoryAvailabilityStatus === 'ready' && TYPES.length === 0"
@@ -156,7 +153,11 @@ const app = useApp();
 const selectedType = ref<ConversationType>("advisor");
 const removeError = ref("");
 let inboxVisible = false;
+const retrying = ref(false);
+let retryGeneration = 0;
+function cancelRetry() { retryGeneration++; retrying.value = false; }
 watch(() => [app.accountKey, app.accountBindingEpoch], () => {
+  cancelRetry();
   removeError.value = "";
   // Account binding invalidates in-flight store reads. A visible page must start
   // replacements after the synchronous account-scoped stores have been rebound.
@@ -185,17 +186,20 @@ onShow(async () => {
 });
 function leaveInbox() {
   inboxVisible = false;
+  cancelRetry();
   releaseActiveRefresh();
 }
 onHide(leaveInbox);
 onUnmounted(leaveInbox);
 
-function retryConversations() {
-  if (convStore.realtimeFallback) {
-    convStore.stopRealtime();
-    convStore.startRealtime();
-  }
-  void refreshInbox();
+async function retryConversations(event?: Event) {
+  if (!inboxVisible || retrying.value || (event as KeyboardEvent)?.repeat || convStore.loading || convStore.categoryLoading) return;
+  const generation = retryGeneration;
+  retrying.value = true;
+  try {
+    if (convStore.realtimeFallback) { convStore.stopRealtime(); convStore.startRealtime(); }
+    await refreshInbox();
+  } finally { if (generation === retryGeneration) retrying.value = false; }
 }
 
 const humanConversations = computed(() => [...convStore.byType("advisor"), ...convStore.byType("support")].sort((a, b) => b.lastTs - a.lastTs || a.id.localeCompare(b.id)));
@@ -488,6 +492,7 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
 }
 .nx-conv-refresh-warning {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 10px;
   margin: 8px 0;
@@ -503,12 +508,13 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
   color: var(--v5-ink-3);
 }
 .nx-conv-refresh-warning__retry {
+  width: 100%;
   min-height: 44px;
   padding: 0 16px;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--v5-surface);
+  background: transparent;
   color: var(--v5-ink-2);
   font-size: 12px;
   font-weight: 600;

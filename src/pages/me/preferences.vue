@@ -9,8 +9,8 @@
       <SubPageHeader back="/pages/me/me" />
       <view v-if="prefs.error" class="mx-4" style="margin-bottom: 12px; color: var(--v5-danger);" data-testid="notification-preferences-error">
         <text>{{ preferenceError }}</text>
-        <view class="family-control preferences-retry" role="button" tabindex="0" :aria-label="t.ui.retry" @click="prefs.refreshRemote()">
-          <LiquidGlass :radius="24" /><text>{{ t.ui.retry }}</text>
+        <view class="family-control family-control--text preferences-retry" role="button" tabindex="0" :aria-label="t.ui.retry" @click="prefs.refreshRemote()">
+          <text>{{ t.ui.retry }}</text>
         </view>
       </view>
 
@@ -59,7 +59,7 @@
         <text v-if="notifs.loading" class="block" role="status" aria-live="polite">{{ t.help.loadingMore }}</text>
         <view v-if="notifs.error" class="notification-management-error" role="alert" data-testid="notification-clear-error">
           <text>{{ t.notifs.loadFailed }}</text>
-          <view class="family-control preferences-retry" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="refreshNotifications"><LiquidGlass :radius="24" /><text>{{ t.ui.retry }}</text></view>
+          <view class="family-control family-control--text preferences-retry" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="refreshNotifications"><text>{{ t.ui.retry }}</text></view>
         </view>
         <view class="family-control notification-clear-read" role="button" :tabindex="clearingRead || notifs.loading ? -1 : 0" :aria-disabled="clearingRead || notifs.loading" :aria-label="t.notifs.clearReadAria" @click="confirmClearRead"><LiquidGlass :radius="24" /><text>{{ t.notifs.clearReadAria }}</text></view>
       </view>

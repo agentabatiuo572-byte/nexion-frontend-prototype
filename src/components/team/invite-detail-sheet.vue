@@ -13,7 +13,7 @@
           <NxButton :label="copy.rewardRecords" @click="emit('records')" />
         </template>
         <template v-else>
-          <view v-if="rewards.loading || rewards.error || !rewards.snapshot" class="invite-detail__read" role="status" :aria-busy="rewards.loading"><text>{{ rewards.loading ? t.team.rewardLoading : t.team.settlementUnavailable }}</text><NxButton v-if="!rewards.loading" :label="t.network.retry" size="medium" @click="rewards.refresh()" /></view>
+          <view v-if="rewards.loading || rewards.error || !rewards.snapshot" class="invite-detail__read" role="status" :aria-busy="rewards.loading"><text>{{ rewards.loading ? t.team.rewardLoading : t.team.settlementUnavailable }}</text><NxButton v-if="!rewards.loading" :label="t.network.retry" variant="text" size="medium" @click="rewards.refresh()" /></view>
           <template v-else>
             <view class="invite-detail__total"><text>{{ copy.totalEarned }}</text><text>{{ formatAmount(rewards.snapshot.lifetimeInviterNex) }} UVT</text></view>
             <view class="invite-detail__counts"><text>{{ copy.settled }} {{ rewards.snapshot.settledCount }}</text><text>{{ copy.pending }} {{ rewards.snapshot.pendingCount }}</text></view>
@@ -69,6 +69,6 @@ useDialogA11y(computed(() => props.open), '.invite-detail', () => emit('close'))
 .invite-detail__record > view > text { display: block; }
 .invite-detail__record > text { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .invite-detail__muted { display: block; margin-top: 4px; color: var(--v5-ink-3); font-size: 12px; }
-.invite-detail__read { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: var(--ui-space-row-y) 0 24px; }
+.invite-detail__read { display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 14px; padding: var(--ui-space-row-y) 0 24px; }
 .invite-detail [tabindex='0']:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 </style>

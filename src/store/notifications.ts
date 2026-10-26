@@ -156,7 +156,14 @@ export const useNotifications = defineStore("notifications", () => {
       if (isCurrent()) loading.value = false;
     }
   }
-  async function retryRemote() { await refreshRemote(); }
+  let retryInFlight: { request: RemoteAccountRequest; cancellation: number } | null = null;
+  async function retryRemote() {
+    if (loading.value || (retryInFlight && retryInFlight.cancellation === cancelGeneration && remoteAccountEpoch.isCurrent(retryInFlight.request))) return;
+    const attempt = { request: remoteAccountEpoch.snapshot(), cancellation: cancelGeneration };
+    retryInFlight = attempt;
+    try { await refreshRemote(attempt.request); }
+    finally { if (retryInFlight === attempt) retryInFlight = null; }
+  }
   function cancelRefresh() {
     cancelGeneration += 1;
     refreshGeneration += 1;

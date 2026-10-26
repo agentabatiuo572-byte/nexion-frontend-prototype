@@ -39,6 +39,22 @@ beforeEach(() => {
 });
 
 describe("notifications remote authority", () => {
+  it("coalesces repeated user retries and allows a fresh retry after cancellation", async () => {
+    let finish!: (page: CanonicalNotificationPage) => void;
+    remote.notificationApi.page.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const store = useNotifications();
+    const first = store.retryRemote();
+    await store.retryRemote();
+    expect(remote.notificationApi.page).toHaveBeenCalledTimes(1);
+    store.cancelRefresh();
+    await store.retryRemote();
+    expect(remote.notificationApi.page).toHaveBeenCalledTimes(2);
+    finish({ items: [], unread: 99, nextCursor: null }); await first;
+    expect(store.unread).toBe(0);
+    expect(store.loading).toBe(false);
+    await store.retryRemote();
+    expect(remote.notificationApi.page).toHaveBeenCalledTimes(3);
+  });
   it("keeps the last good snapshot when a refresh fails", async () => {
     remote.notificationApi.page
       .mockResolvedValueOnce({

@@ -994,7 +994,7 @@ export default chassisView;
 </style>
 
 <style scoped>
-.nx-badge {right:4px;background:#FFCB4D;z-index:2;} .nx-badge__t {font-size:10.5px;color:#0A0A0A;}
+.nx-badge {right:4px;background:var(--ui-unread-badge);z-index:2;} .nx-badge__t {font-size:10.5px;color:var(--ui-unread-badge-ink);}
 </style>
 
 <style scoped>.nx-header__l {justify-content:flex-start;}</style>

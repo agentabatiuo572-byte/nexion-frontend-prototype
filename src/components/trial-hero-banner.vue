@@ -106,6 +106,7 @@ function retryEligibility() {
 .trial-value { display: block; margin-top: 3px; font: 600 26px/1.15 var(--font-v5); }
 .trial-cta { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; max-width: 100%; gap: 8px; margin-top: 12px; padding: 0 16px; border-radius: 999px; font: 600 14px/1.4 var(--font-v5); }
 .trial-cta > text, .trial-cta > svg { position: relative; z-index: 1; }
+.trial-cta.nx-design-glass :deep(.nx-liquid-tint) { box-shadow: inset 0 1px 0 rgba(var(--ui-glass-rgb),.42), inset 0 -1px 1px rgba(var(--ui-glass-rgb),.08), inset 0 0 14px rgba(var(--ui-glass-rgb),.05); }
 .trial-cta text { white-space: normal; overflow-wrap: anywhere; }
 .trial-cta svg { flex: none; }
 .trial-art { position: absolute; width: 43%; aspect-ratio: 1; right: 0; top: 50%; margin-top: -21.5%; pointer-events: none; }

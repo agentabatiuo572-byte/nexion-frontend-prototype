@@ -6,7 +6,7 @@
         <view v-if="state.loading" class="how-state" role="status" aria-live="polite" aria-busy="true"><text>{{ statusText }}</text></view>
         <view v-else-if="state.error || incomplete" class="how-state" :role="state.error ? 'alert' : 'status'">
           <text>{{ statusText }}</text>
-          <NxButton :label="content.copy.retry" variant="secondary" @click="reload" />
+          <NxButton :label="content.copy.retry" variant="text" @click="reload" />
         </view>
         <template v-else>
           <view class="how-hero" data-rank-how="published">

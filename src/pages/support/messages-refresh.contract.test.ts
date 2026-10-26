@@ -56,6 +56,6 @@ describe("conversation-center refresh failure contract", () => {
     expect(source).not.toContain("selectedType !== 'ai' && (convStore.error || convStore.categoryAvailabilityStatus === 'failed')");
     expect(source).toContain("convStore.error || convStore.categoryAvailabilityStatus === 'failed'");
     expect(source).toContain('@click="retryConversations"');
-    expect(source).toContain('class="family-control" role="button" tabindex="0" :aria-label="t.conversations.retry"');
+    expect(source).toContain('class="family-control family-control--text" role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" :aria-label="t.conversations.retry"');
   });
 });

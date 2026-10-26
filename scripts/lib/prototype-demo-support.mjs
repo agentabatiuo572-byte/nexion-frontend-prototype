@@ -8,6 +8,37 @@ export function supportDemo(url,locale,state,request) {
   if(p===root+'/attachments/policy')return {available:false,allowedMimeTypes:[],maxBytes:null,maxPixels:null,ttlSeconds:null,unavailableReason:text('演示暂不上传附件','Attachments are unavailable in this demo','Bản mẫu chưa hỗ trợ tệp đính kèm')};
   if(p===root+'/conversation-categories')return [{type:'advisor',enabled:true},{type:'support',enabled:true},{type:'ai',enabled:false}];
   state.supportConversations??=[{conversation:{id:1,conversationNo:'DEMO-SUPPORT-1',conversationType:'support',status:'OPEN',version:1,ownerAgentName:text('演示客服','Demo support','Hỗ trợ mẫu'),unreadCount:1,lastMessage:text('你好，这里是原型演示会话。','Hello, this is a prototype conversation.','Xin chào, đây là hội thoại mẫu.'),lastMessageAt:now,lastPublicMessageId:1},messages:[{id:1,senderType:'agent',senderName:text('演示客服','Demo support','Hỗ trợ mẫu'),content:text('你好，这里是原型演示会话。','Hello, this is a prototype conversation.','Xin chào, đây là hội thoại mẫu.'),createdAt:now}],historyTruncated:false,nextCursor:null}];
+  // Every receipt here is an explicit server fixture, never inferred by the UI.
+  const scenario=state.messageState||'normal';
+  if(state.supportScenario!==scenario) {
+    const detail=state.supportConversations[0];
+    state.supportHistory=scenario==='history'||scenario==='incoming'&&state.supportHistory;
+    if(scenario==='history') {
+      detail.messages=Array.from({length:24},(_,index)=>({id:index+1,senderType:index%2?'user':'agent',content:text('第'+(index+1)+'条历史消息。这里保留设备查询与服务沟通的完整内容，方便检查长正文换行。','History message '+(index+1)+'. The full device and service discussion remains available for checking long text wrapping.','Tin nhắn lịch sử '+(index+1)+'. Nội dung đầy đủ về thiết bị và hỗ trợ được giữ lại để kiểm tra văn bản dài.'),createdAt:new Date(Date.now()-(25-index)*60000).toISOString(),receiptStatus:index%2?'read':'sent'}));
+      detail.messages[19]={...detail.messages[19],kind:'IMAGE',attachmentId:'demo-image',content:'',senderType:'agent'};
+      detail.messages[21]={...detail.messages[21],kind:'SKU',skuId:'stellarbox-s1',skuName:'UVELBox S1',targetAvailability:'AVAILABLE',senderType:'agent',content:'UVELBox S1'};
+      Object.assign(detail.conversation,{unreadCount:2,lastMessage:detail.messages.at(-1).content,lastMessageAt:detail.messages.at(-1).createdAt,lastPublicMessageId:24});
+    } else if(scenario==='receipts') {
+      const samples=[
+        ['agent',text('你好，请问需要什么帮助？','Hello, how can I help?','Xin chào, bạn cần hỗ trợ gì?'),'read'],
+        ['user',text('请帮我确认设备状态。','Please check my device status.','Vui lòng kiểm tra trạng thái thiết bị.'),'read'],
+        ['agent',text('设备运行正常。详细记录可以在设备页面查看。','Your device is running normally. Details are available on the device page.','Thiết bị đang hoạt động bình thường. Bạn có thể xem chi tiết trên trang thiết bị.'),'sent'],
+        ['system',text('会话已连接','Conversation connected','Đã kết nối hội thoại'),null],
+        ['agent',text('这条消息未提供回执。','No receipt was provided for this message.','Tin nhắn này không có thông tin xác nhận.'),null],
+        ['user',text('谢谢，我稍后查看。','Thank you. I will check shortly.','Cảm ơn, tôi sẽ kiểm tra sau.'),'sent'],
+      ];
+      detail.messages=samples.map(([senderType,content,receiptStatus],index)=>({id:index+1,senderType,content,createdAt:new Date(Date.now()-(samples.length-index)*60000).toISOString(),...(receiptStatus?{receiptStatus}:{}),...(senderType==='agent'?{senderName:text('演示客服','Demo support','Hỗ trợ mẫu')}:{})}));
+      Object.assign(detail.conversation,{unreadCount:2,lastMessage:detail.messages.at(-1).content,lastMessageAt:detail.messages.at(-1).createdAt,lastPublicMessageId:detail.messages.at(-1).id});
+    } else if(scenario==='incoming') {
+      const lastUser=detail.messages.filter(item=>item.senderType==='user').at(-1);if(lastUser)lastUser.receiptStatus='read';
+      const id=Math.max(0,...detail.messages.map(item=>item.id))+1;
+      const content=text('已收到你的消息，我会继续跟进。','I have received your message and will follow up.','Tôi đã nhận được tin nhắn và sẽ tiếp tục hỗ trợ.');
+      detail.messages.push({id,senderType:'agent',senderName:text('演示客服','Demo support','Hỗ trợ mẫu'),content,createdAt:now,receiptStatus:'sent'});
+      Object.assign(detail.conversation,{unreadCount:detail.conversation.unreadCount+1,lastMessage:content,lastMessageAt:now,lastPublicMessageId:id});
+    } else detail.conversation.unreadCount=scenario==='long-count'?1298:scenario==='read'?0:1;
+    detail.conversation.version++;
+    state.supportScenario=scenario;
+  }
   state.supportDismissals??=[];
   if(p===root+'/conversation-dismissals')return state.supportDismissals;
   if(p===root+'/tickets/cursor')return {records:[],pageSize:100,total:0};
@@ -26,6 +57,12 @@ export function supportDemo(url,locale,state,request) {
       const id=detail.messages.length+1;detail.messages.push({id,clientMessageId:input.clientMessageId,senderType:'user',content:input.body,createdAt:now,receiptStatus:'sent'});
       Object.assign(detail.conversation,{version:detail.conversation.version+1,lastMessage:input.body,lastMessageAt:now,lastPublicMessageId:id});
     }
-    return structuredClone(detail);
+    const result=structuredClone(detail);
+    if(state.supportHistory) {
+      const cursor=Number(url.searchParams.get('beforeMessageId'))||Infinity;
+      const available=result.messages.filter(item=>item.id<cursor);result.messages=available.slice(-8);
+      result.historyTruncated=available.length>8;result.nextCursor=result.historyTruncated?result.messages[0].id:null;
+    }
+    return result;
   }
 }

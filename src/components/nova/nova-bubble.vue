@@ -237,7 +237,7 @@ onUnmounted(() => {
   height: 18px;
   padding: 0 4px;
   border-radius: 999px;
-  background: var(--v5-brand-2);
+  background: var(--ui-unread-badge);
   display: grid;
   place-items: center;
   border: 1px solid var(--v5-bg);
@@ -248,7 +248,7 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 600;
   font-family: var(--font-v5);
-  color: var(--v5-on-brand-2);
+  color: var(--ui-unread-badge-ink);
   line-height: 1;
 }
 .nx-nova-avatar { position: relative; z-index: 1; }

@@ -11,6 +11,8 @@ import { catalogSkuBrandText, catalogSkuRecommendationBody } from "@/lib/brand-c
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import { formatUnreadBadge } from "@/lib/unread-badge";
 import { installSupportStorage } from "@/test/storage-setup";
+import * as conversationEntrance from '@/components/support/conversation-entrance';
+import * as conversationScroll from '@/components/support/conversation-scroll';
 
 installSupportStorage();
 beforeEach(() => {
@@ -56,8 +58,9 @@ function mount(type: "advisor" | "support", state: "empty" | "ended" | "active" 
   const navTo = vi.fn();
   const account = Vue.reactive({ accountKey: "user:1", accountBindingEpoch: 1 });
   const currentLocale = Vue.ref(locale);
+  const shown: Array<() => Promise<void>> = [];
   const modules: Record<string, unknown> = {
-    vue: Vue, "@dcloudio/uni-app": { onShow: vi.fn(), onHide: vi.fn() },
+    vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => Promise<void>) => shown.push(fn), onHide: vi.fn() },
     "@/i18n/use-t": { useT: () => currentLocale }, "@/i18n/format": { fmt: (value: string) => value },
     "@/lib/support-idle-message": { localizedIdleClose },
     "@/lib/brand-copy": { catalogSkuBrandText, catalogSkuRecommendationBody },
@@ -65,7 +68,7 @@ function mount(type: "advisor" | "support", state: "empty" | "ended" | "active" 
     "@/lib/nova-visibility": { NOVA_SUPPORT_VISIBLE: false },
     "@/lib/route": { navTo }, "@/store/conversations": { useConversations: () => providedStore ?? store },
     "@/store/nova": { useNova: () => ({ messages: [], unread: 0 }) }, "@/store/app": { useApp: () => account },
-    "@/api/runtime": { remoteApiEnabled: true }, "@/lib/active-page-refresh": { registerActivePageRefresh: vi.fn() },
+    "@/api/runtime": { remoteApiEnabled: true }, "@/lib/active-page-refresh": { registerActivePageRefresh: vi.fn(() => () => {}) },
     "@/components/app-chassis.vue": { default: { setup: (_props: unknown, { slots }: any) => () => Vue.h("main", slots.default?.()) } },
     "@/components/empty-state.vue": { default: { props: ["title", "desc", "ctaLabel"], setup: (props: any) => () => Vue.h("empty-state", props, [props.title, props.desc]) } },
   };
@@ -75,7 +78,7 @@ function mount(type: "advisor" | "support", state: "empty" | "ended" | "active" 
     throw new Error(`Unexpected dependency: ${name}`);
   }, {});
   const root = element("root"); const app = renderer.createApp(component); app.mount(root); mounted.push(app);
-  return { root, store, navTo, account, rows, currentLocale };
+  return { root, store, navTo, account, rows, currentLocale, show: async () => { for (const fn of shown) await fn(); await Vue.nextTick(); } };
 }
 
 describe("human conversation contact entry", () => {
@@ -100,12 +103,13 @@ describe("human conversation contact entry", () => {
     chatTransport.advisor.mockClear();
     chatTransport.startConversation.mockClear(); chatTransport.replyConversation.mockClear();
     const current = mount(type, state, en, store);
+    await current.show(); store.advisorError = true; chatTransport.advisor.mockClear(); await Vue.nextTick();
     const warning = () => flatten(current.root).find(node => node.props.role === "alert"
       && node.props.class === "nx-conv-refresh-warning");
     expect(warning()).toBeDefined();
     expect(flatten(warning()!).some(node => node.text === en.conversations.image.advisorUnavailable)).toBe(true);
     const retry = flatten(warning()!).find(node => node.props.role === "button")!;
-    expect(retry.props.tabindex).toBe("0");
+    expect(Number(retry.props.tabindex)).toBe(0);
     expect(retry.props["aria-label"]).toBe(en.conversations.retry);
     if (activation === "click") retry.props.onClick();
     else {
@@ -642,6 +646,10 @@ describe("rendered human composer account boundary", () => {
     const thread = new Function("require", "exports", composerScript + ";return exports.default;")((name: string) => {
       if (name === "vue") return { ...Vue, onMounted: vi.fn() };
       if (name === "@/composables/use-dialog-a11y") return { useDialogA11y: vi.fn() };
+      if (name === "@/composables/use-tab-page-lifecycle") return { onShow: vi.fn(), onHide: vi.fn() };
+      if (name === "@/store/app") return { useApp: () => state };
+      if (name === "./conversation-entrance") return conversationEntrance;
+      if (name === "./conversation-scroll") return conversationScroll;
       if (name === "@/components/liquid-glass.vue") return { default: { render: () => null } };
       throw new Error(`Unexpected composer dependency: ${name}`);
     }, {});

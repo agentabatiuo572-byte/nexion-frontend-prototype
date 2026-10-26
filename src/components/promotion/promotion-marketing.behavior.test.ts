@@ -45,7 +45,7 @@ function deferred<T>(){let resolve!:(result:T)=>void,reject!:(error:Error)=>void
 const activity=(extra:Partial<PublicPromotion>={}):PublicPromotion=>({activityId:'a1',version:2,template:'SKU_GIFT',state:'ACTIVE',startsAt:'2026-10-07T00:00:00Z',endsAt:'2026-10-30T00:00:00Z',serverTime:'2026-10-08T00:00:00Z',title:{zh:'真实活动',en:'Live offer',vi:'Ưu đãi đang mở'},terms:{zh:'真实条件',en:'Live terms',vi:'Điều khoản'},placement:'home.purchase-promotion',target:'STORE',productNos:['sku'],minimumClientCapabilities:[],eligibility:'ESTIMATE_ELIGIBLE',eligibilityMessage:null,rewardRules:[],...extra});
 const page=(items:PublicPromotion[]):PublicPromotionPage=>({items,nextCursor:null,hasMore:false});
 function platform(){
-  const app=Vue.reactive({accountKey:'user:7',accountBindingEpoch:1}),locale=Vue.reactive({code:'zh'});
+  const app=Vue.reactive({accountKey:'user:7',accountBindingEpoch:1}),locale=Vue.reactive({code:'zh'}),theme=Vue.reactive({resolved:'dark'});
   const shown:Array<()=>void>=[],hidden:Array<()=>void>=[],mounted:Array<()=>void>=[];
   const modules:Record<string,unknown>={
     '@/lib/brand-copy':{platformDisplayText},
@@ -54,12 +54,13 @@ function platform(){
     vue:{...Vue,onMounted:(fn:()=>void)=>mounted.push(fn),onBeforeUnmount:()=>{}},
     '@dcloudio/uni-app':{onShow:(fn:()=>void)=>shown.push(fn),onHide:(fn:()=>void)=>hidden.push(fn)},
     '@/store/app':{useApp:()=>app},'@/store/locale':{useLocaleStore:()=>locale},
+    '@/store/theme':{useTheme:()=>theme},
     '@/lib/promotion-entry':entry,'@/lib/promotion-display':display,
     '@/components/catalog-machine-image':{promotionMachineSlots},
     '@/i18n/format':{fmt},
   };
   const scope=Vue.effectScope();cleanups.push(()=>{hidden.forEach(fn=>fn());scope.stop();});
-  return{app,locale,modules,scope,start:()=>mounted.forEach(fn=>fn()),show:()=>shown.forEach(fn=>fn()),hide:()=>hidden.forEach(fn=>fn())};
+  return{app,locale,theme,modules,scope,start:()=>mounted.forEach(fn=>fn()),show:()=>shown.forEach(fn=>fn()),hide:()=>hidden.forEach(fn=>fn())};
 }
 function context(){
   const screen=platform(),get=vi.fn<(...args:unknown[])=>Promise<PublicPromotion>>();
@@ -149,7 +150,7 @@ it('event pagination deduplicates records and the retry resets the cursor after 
   screen.list.mockRejectedValueOnce(new Error('offline'));await screen.view.load(false);
   expect(screen.view.status.value).toBe('error');expect(await screen.html()).toContain(promotionZH.retry);
   screen.list.mockResolvedValueOnce(page([activity({activityId:'recovered'})]));
-  find(screen.node(),'entry-cta')!.props!.onClick();await flush();
+  find(screen.node(),'entry-retry')!.props!.onClick();await flush();
   expect(screen.list).toHaveBeenLastCalledWith({limit:20,cursor:null},true);
   expect(screen.view.items.value[0].activityId).toBe('recovered');expect(screen.view.status.value).toBe('ready');
 });
@@ -207,6 +208,21 @@ it.each([promotionZH,promotionEN,promotionVI])('the complete uploaded image repl
 it('fallback uses the whole existing banner width and has no fixed artwork dependency',()=>{
   const styles=parse(entrySource).descriptor.styles.find(style=>style.scoped)!.content;
   expect(styles).not.toContain('purchase-gift-reference');expect(styles).not.toContain('44%');expect(styles).not.toContain('45%');
+});
+it.each([promotionZH,promotionEN,promotionVI])('theme changes use published structured content in light and fence late dark banner events',async copy=>{
+  const offer=activity({bannerImageUrl:'/api/promotions/a1/banner/2',rewardRules:[purchaseRule('DEVICE')]}),screen=advert([offer],copy);
+  await screen.html();const old=find(screen.node(),'entry-artwork')!;
+  old.props!.onReady(true);expect(await screen.html()).not.toContain('class="entry-copy"');
+  screen.theme.resolved='light';await flush();
+  const light=await screen.html();expect(find(screen.node(),'entry-artwork')).toBeUndefined();
+  expect(light).toContain('data-color-scheme="light"');expect(light).toContain('class="entry-copy"');
+  expect(screen.view.promoSlots(offer).map((slot:{sku:string})=>slot.sku)).toEqual(['sku','gift']);
+  old.props!.onReady(true);expect(screen.view.bannerReady(offer)).toBe(false);
+  find(screen.node(),'entry-advert-target')!.props!.onClick();expect(screen.navTo).toHaveBeenCalledWith('/pages/store/store?activityId=a1');
+  find(screen.node(),'entry-home-deadline')!.props!.onClick({stopPropagation(){}});expect(screen.view.termsActivity.value).toEqual(offer);
+  screen.theme.resolved='dark';await flush();await screen.html();const current=find(screen.node(),'entry-artwork')!;
+  expect(current.key).not.toBe(old.key);old.props!.onReady(true);expect(screen.view.bannerReady(offer)).toBe(false);
+  current.props!.onReady(true);expect(await screen.html()).not.toContain('class="entry-copy"');
 });
 it('a carousel rerender preserves a loaded banner while a closed activity still disappears',async()=>{
   const offer=activity({bannerImageUrl:'/api/promotions/a1/banner/2'}),screen=advert([offer]);

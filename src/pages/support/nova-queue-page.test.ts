@@ -359,13 +359,13 @@ describe("human chat receipt projection", () => {
   it.each([
     ["SENT", zh.conversations.receiptSent],
     ["READ", zh.conversations.receiptRead],
-  ] as const)("shows the latest USER backend %s receipt without placing one under an AGENT message", async (status, label) => {
+  ] as const)("shows latest USER %s and explicitly provided AGENT receipts", async (status, label) => {
     const conversation = await conversationWithReceipts(status);
     const current = mount({ cid: conversation.id }, conversation);
 
     expect(current.page.threadMessages.value.map((message: { tone: string; receipt?: string }) => ({ tone: message.tone, receipt: message.receipt }))).toEqual([
       { tone: "user", receipt: undefined },
-      { tone: "agent", receipt: undefined },
+      { tone: "agent", receipt: zh.conversations.receiptRead },
       { tone: "user", receipt: label },
     ]);
     current.page.cleanup();
@@ -375,7 +375,8 @@ describe("human chat receipt projection", () => {
     const conversation = await conversationWithReceipts(null);
     const current = mount({ cid: conversation.id }, conversation);
 
-    expect(current.page.threadMessages.value.every((message: { receipt?: string }) => message.receipt === undefined)).toBe(true);
+    expect(current.page.threadMessages.value.filter((message: { tone: string }) => message.tone === "user").every((message: { receipt?: string }) => message.receipt === undefined)).toBe(true);
+    expect(current.page.threadMessages.value.find((message: { tone: string }) => message.tone === "agent")?.receipt).toBe(zh.conversations.receiptRead);
     current.page.cleanup();
   });
 

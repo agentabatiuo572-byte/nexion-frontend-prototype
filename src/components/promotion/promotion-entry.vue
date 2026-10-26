@@ -7,13 +7,13 @@
     <view v-if="status==='loading'&&!items.length" class="entry-status" role="status" aria-live="polite"><text>{{ t.promotion.loading }}</text></view>
     <view v-if="status==='error'" class="entry-status" role="alert">
       <text class="promotion-title">{{ t.promotion.error }}</text><text class="promotion-copy">{{ t.promotion.errorNote }}</text>
-      <NxButton class="entry-cta" size="medium" :label="t.promotion.retry" @click="load(true)"><text>{{ t.promotion.retry }}</text><text aria-hidden="true">→</text></NxButton>
+      <NxButton class="entry-retry" variant="text" size="medium" :label="t.promotion.retry" @click="load(true)"><text>{{ t.promotion.retry }}</text><text aria-hidden="true">→</text></NxButton>
     </view>
     <view v-if="status==='ready'&&!items.length&&mode==='events'" class="entry-status">
       <text class="promotion-title">{{ t.promotion.empty }}</text><text class="promotion-copy">{{ t.promotion.emptyNote }}</text>
       <NxButton class="entry-cta" size="medium" :label="t.promotion.allProducts" @click="navTo(promotionStoreHref())"><text>{{ t.promotion.allProducts }}</text><text aria-hidden="true">→</text></NxButton>
     </view>
-    <view v-for="activity in visibleItems" :key="activity.activityId" :class="[mode==='home'?'entry-advert':'entry-event', 'entry-kind-'+activityKind(activity)]" :data-activity-id="activity.activityId" :data-activity-kind="activityKind(activity)">
+    <view v-for="activity in visibleItems" :key="activity.activityId" :class="[mode==='home'?'entry-advert':'entry-event', 'entry-kind-'+activityKind(activity)]" :data-color-scheme="theme.resolved" :data-activity-id="activity.activityId" :data-activity-kind="activityKind(activity)">
       <view v-if="mode==='home'" class="entry-advert-target" role="button" :tabindex="active ? 0 : -1" :aria-hidden="!active" :aria-label="localized(activity.title,locale.code)+' · '+t.promotion.browse" @click="active && navTo(promotionStoreHref(activity.activityId))" @keydown.enter.prevent="active && navTo(promotionStoreHref(activity.activityId))" @keydown.space.prevent="active && navTo(promotionStoreHref(activity.activityId))" />
       <CatalogMachineImage v-if="mode==='home'&&bannerUrl(activity)" :key="bannerKey(activity)" v-show="bannerReady(activity)" class="entry-artwork" v-bind="bannerImageProps(activity)" />
       <view v-if="mode==='home'&&!bannerReady(activity)&&promoSlots(activity).length" class="entry-product-art" aria-hidden="true"><CatalogMachineImage v-for="slot in promoSlots(activity)" :key="slot.role" :sku="slot.sku" :image-url="slot.imageUrl" :scope-key="activity.activityId+':'+slot.role" :refresh-key="catalogRefreshKey" :class="slot.role==='purchase' ? 'entry-main-image' : 'entry-gift-image'" /></view>
@@ -59,6 +59,7 @@ import { apiRuntimeConfig,promotionApi,remoteApiEnabled,sessionVault } from '@/a
 import type { PublicPromotion } from '@/api/promotion-contracts';
 import { useApp } from '@/store/app';
 import { useLocaleStore } from '@/store/locale';
+import { useTheme } from '@/store/theme';
 import { useT } from '@/i18n/use-t';
 import { getProduct } from '@/mock/products';
 import { productCatalogState,refreshProductCatalog } from '@/store/product-catalog';
@@ -71,7 +72,7 @@ import PromotionTerms from './promotion-terms.vue';
 import CatalogMachineImage from '@/components/catalog-machine-image.vue';
 import { promotionMachineSlots } from '@/components/catalog-machine-image';
 const props=withDefaults(defineProps<{mode?:'home'|'events';activities?:PublicPromotion[];active?:boolean}>(),{mode:'home',active:true});
-const app=useApp(),locale=useLocaleStore(),t=useT();
+const app=useApp(),locale=useLocaleStore(),theme=useTheme(),t=useT();
 const items=ref<PublicPromotion[]>([]),status=ref<'idle'|'loading'|'ready'|'error'>('idle');
 const cursor=ref<string|null>(null),hasMore=ref(false),activeIndex=ref(0),termsActivity=ref<PublicPromotion|null>(null);
 const loadedBanners=ref(new Set<string>()),imageRefresh=ref(0);
@@ -92,7 +93,9 @@ function promoSlots(activity:PublicPromotion) {
 }
 const fence=createPromotionReadFence();let visible=true;
 const visibleItems=computed(()=>props.mode==='home'?items.value.slice(activeIndex.value,activeIndex.value+1):items.value);
-function bannerUrl(activity:PublicPromotion){return activity.bannerImageUrl?apiRuntimeConfig.baseUrl.replace(/\/+$/,'')+activity.bannerImageUrl:null;}
+// The published banner contract has no theme variants. In light mode use the
+// same published rules and catalog images in a theme-aware, readable layout.
+function bannerUrl(activity:PublicPromotion){return theme.resolved==='dark'&&activity.bannerImageUrl?apiRuntimeConfig.baseUrl.replace(/\/+$/,'')+activity.bannerImageUrl:null;}
 function bannerKey(activity:PublicPromotion){return JSON.stringify([app.accountKey,app.accountBindingEpoch,locale.code,activity.activityId,activity.version,bannerUrl(activity),imageRefresh.value]);}
 function bannerReady(activity:PublicPromotion){return !!bannerUrl(activity)&&loadedBanners.value.has(bannerKey(activity));}
 function bannerImageProps(activity:PublicPromotion){
@@ -152,6 +155,7 @@ watch([()=>app.accountKey,()=>app.accountBindingEpoch,()=>locale.code],()=>{
   if(visible)void load(true);
 });
 watch(()=>props.activities,(next,previous)=>{if(visible&&(next!==undefined||previous!==undefined))void load(true,true);},{immediate:true});
+watch(()=>theme.resolved,()=>{imageRefresh.value++;loadedBanners.value.clear();});
 onMounted(()=>{void load(true);});onShow(()=>{visible=true;void load(true);});
 onHide(()=>{visible=false;fence.invalidate();clear();status.value='idle';});
 onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
@@ -160,9 +164,15 @@ onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 <style scoped>
 .promotion-entry { display: flex; flex-direction: column; gap: var(--ui-space-inset); }
 .promotion-entry-home { gap: 0; }
+.entry-retry { width: 100%; }
 .entry-status { display: flex; flex-direction: column; align-items: flex-start; gap: var(--ui-space-row-y); padding: var(--ui-space-inline) 0; }
 .entry-advert,.entry-event { position: relative; overflow: hidden; border: 1px solid var(--v5-border); border-radius: 24px; background: linear-gradient(140deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); }
 .entry-advert { min-height: 146px; border: 0; background: radial-gradient(70% 90% at 82% 72%,rgba(158,220,29,.24),transparent 62%),radial-gradient(50% 70% at 100% 0%,rgba(255,255,255,.08),transparent 60%),linear-gradient(135deg,#171717,#101010); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+.entry-advert[data-color-scheme="light"] { --promotion-copy-ink: var(--v5-ink); background: radial-gradient(70% 90% at 82% 72%,color-mix(in srgb,var(--v5-brand) 12%,transparent),transparent 64%),linear-gradient(135deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.entry-advert[data-color-scheme="light"]::before { background-image: radial-gradient(circle,color-mix(in srgb,var(--v5-brand) 12%,transparent) 1px,transparent 1px); }
+.entry-advert[data-color-scheme="light"] .entry-label { color: var(--v5-brand); }
+.entry-advert[data-color-scheme="light"] .entry-home-deadline { color: var(--v5-ink-3); }
+.entry-advert[data-color-scheme="light"] .entry-product-art::before { background: radial-gradient(ellipse,color-mix(in srgb,var(--v5-brand) 22%,transparent),transparent 70%); }
 .entry-advert::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle,rgba(255,255,255,.07) 1px,transparent 1px) 0 0/14px 14px; mask-image: linear-gradient(90deg,transparent 30%,#000 75%); pointer-events: none; }
 .entry-advert-target { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
 .entry-advert-target:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -3px; }
@@ -214,7 +224,7 @@ onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 .entry-kind-plain .entry-event-copy { grid-column: 1 / -1; }
 .entry-pagination,.entry-navigation { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); }
 .entry-pagination { position: relative; justify-content: center; gap: 6px; min-height: 44px; margin: -9px 0 -19px; cursor: pointer; }
-.entry-page-dot { width: 6px; height: 6px; border-radius: 999px; background: #3e4655; }
+.entry-page-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--v5-ink-4); }
 .entry-page-dot.selected { width: 16px; background: var(--v5-brand); }
 .entry-pagination:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; border-radius: 12px; }
 @media(max-width:350px) {

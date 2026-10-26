@@ -41,6 +41,9 @@
 /* v2 palette — pure black + lime green + retain v1 dot-grid / pulse-node effects.
    Legacy tokens — kept until each module is migrated to v5. */
 :root {
+  /* Notification badges share one palette across both themes and entry points. */
+  --ui-unread-badge: #FFCB4D;
+  --ui-unread-badge-ink: #0A0A0A;
   /* Overlay spacing reserves native gestures and the H5 preview indicator. */
   --nx-overlay-safe-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
   --nx-overlay-bottom: calc(16px + var(--nx-overlay-safe-bottom));

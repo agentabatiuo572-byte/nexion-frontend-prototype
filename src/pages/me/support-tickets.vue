@@ -41,7 +41,7 @@
 
         <view v-if="ticketsStore.error" class="ticket-error">
           <EmptyState kind="recoverable-error" :title="t.empty.errorTitle" :desc="t.empty.errorDesc" />
-          <view class="family-control" role="button" tabindex="0" :aria-label="t.empty.errorCta" @click="reloadTickets"><LiquidGlass :radius="24" /><text>{{ t.empty.errorCta }}</text></view>
+          <view class="family-control family-control--text" role="button" tabindex="0" :aria-label="t.empty.errorCta" @click="reloadTickets"><text>{{ t.empty.errorCta }}</text></view>
         </view>
         <EmptyState v-else-if="supportSessionReady && !ticketsStore.loading && filtered.length === 0" :kind="tab === 'all' ? 'empty-list' : 'no-filter-results'" :title="tab === 'all' ? t.empty.listTitle : t.empty.filterTitle" :desc="tab === 'all' ? t.empty.listDesc : t.empty.filterDesc" />
         <view v-else style="padding: 0 2px; border-top: 1px solid var(--v5-border)">
@@ -61,7 +61,7 @@
           <text v-if="enforcedCreationPolicy && !enforcedCreationPolicy.allowed && enforcedCreationPolicy.retryAfterSeconds > 0" class="block">{{ fmt(t.tickets.policyRetryAfter, { n: Math.max(1, Math.ceil(enforcedCreationPolicy.retryAfterSeconds / 60)) }) }}</text>
           <view class="ticket-creation-notice-actions">
             <view v-if="enforcedCreationPolicy?.existingTicketNo" class="family-control" role="button" tabindex="0" @click="openTicket(enforcedCreationPolicy.existingTicketNo)"><LiquidGlass :radius="24" /><text>{{ t.tickets.policyViewTicket }}</text></view>
-            <view v-if="remoteApiEnabled && !creationPolicyLoading && (creationPolicyError || enforcedCreationPolicy?.allowed === false)" class="family-control" role="button" tabindex="0" @click="loadCreationPolicy"><LiquidGlass :radius="24" /><text>{{ t.ui.retry }}</text></view>
+            <view v-if="remoteApiEnabled && !creationPolicyLoading && (creationPolicyError || enforcedCreationPolicy?.allowed === false)" class="family-control family-control--text" role="button" tabindex="0" @click="loadCreationPolicy"><text>{{ t.ui.retry }}</text></view>
           </view>
         </view>
         <view>

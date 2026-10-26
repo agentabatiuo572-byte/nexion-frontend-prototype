@@ -45,9 +45,9 @@
 
     </view>
 
-    <view v-if="advisorApplies && convStore.advisorError" class="cp-ai-history" role="alert">
+    <view v-if="advisorApplies && convStore.advisorError" class="cp-history-error" role="alert">
       <text class="cp-ai-history-t">{{ t.conversations.image.advisorUnavailable }}</text>
-      <view class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" @click="convStore.refreshAdvisor()" @keydown.enter.prevent="convStore.refreshAdvisor()" @keydown.space.prevent="convStore.refreshAdvisor()"><LiquidGlass :radius="22" /><text>{{ t.conversations.image.retryPolicy }}</text></view>
+      <view class="cp-history-text-action" role="button" :tabindex="convStore.advisorLoading ? -1 : 0" :aria-disabled="convStore.advisorLoading" :aria-busy="convStore.advisorLoading" @click="!convStore.advisorLoading && convStore.refreshAdvisor()" @keydown.enter.prevent="!convStore.advisorLoading && convStore.refreshAdvisor()" @keydown.space.prevent="!convStore.advisorLoading && convStore.refreshAdvisor()"><text>{{ t.conversations.image.retryPolicy }}</text></view>
     </view>
     <view v-if="isAi && remoteApiEnabled" class="cp-ai-safety" role="note">
       <text class="cp-ai-safety-t">{{ t.nova.localSafetyNotice }}</text>
@@ -59,24 +59,25 @@
     <view v-if="isAi && remoteApiEnabled && nova.historyTruncated" class="cp-ai-history" role="status" aria-live="polite">
       <text class="cp-ai-history-t">{{ t.nova.historyTruncated }}</text>
     </view>
-    <view v-if="isAi && remoteApiEnabled && nova.historyNextCursor" class="cp-ai-history cp-ai-history-action family-control" role="button" tabindex="0"
-      :aria-label="t.nova.loadEarlier" @click="loadEarlierNovaHistory"  @keydown.enter.prevent="onKeyboardActivate($event, loadEarlierNovaHistory)" @keydown.space.prevent="onKeyboardActivate($event, loadEarlierNovaHistory)"><LiquidGlass :radius="22" />
+    <view v-if="isAi && remoteApiEnabled && nova.historyNextCursor" class="cp-history-text-action" role="button" :tabindex="novaHistoryLoading ? -1 : 0" :aria-disabled="novaHistoryLoading" :aria-busy="novaHistoryLoading"
+      :aria-label="t.nova.loadEarlier" @click="loadEarlierNovaHistory"  @keydown.enter.prevent="onKeyboardActivate($event, loadEarlierNovaHistory)" @keydown.space.prevent="onKeyboardActivate($event, loadEarlierNovaHistory)">
       <text class="cp-ai-history-t">{{ t.nova.loadEarlier }}</text>
     </view>
     <view v-if="!isAi && conv?.historyTruncated" class="cp-ai-history" role="status" aria-live="polite">
       <text class="cp-ai-history-t">{{ t.conversations.historyTruncated }}</text>
     </view>
-    <view v-if="!isAi && conv?.historyNextCursor" class="cp-ai-history cp-ai-history-action family-control" role="button" tabindex="0"
-      :aria-label="t.conversations.loadEarlier" @click="loadEarlierHumanHistory"  @keydown.enter.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)" @keydown.space.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)"><LiquidGlass :radius="22" />
+    <view v-if="!isAi && conv?.historyNextCursor" class="cp-history-text-action" role="button" :tabindex="humanEarlierBusy || humanHistoryRetryBusy ? -1 : 0" :aria-disabled="humanEarlierBusy || humanHistoryRetryBusy" :aria-busy="humanEarlierBusy"
+      :aria-label="t.conversations.loadEarlier" @click="loadEarlierHumanHistory"  @keydown.enter.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)" @keydown.space.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)">
       <text class="cp-ai-history-t">{{ t.conversations.loadEarlier }}</text>
     </view>
-    <view v-if="humanHistoryError || humanHistoryListError" class="cp-ai-history" role="alert"><text>{{ t.conversations.loadError }}</text><view role="button" tabindex="0" @click="retryHumanHistory" @keydown.enter.prevent="retryHumanHistory"><text>{{ t.conversations.retry }}</text></view></view>
+    <view v-if="humanHistoryError || humanHistoryListError" class="cp-history-error" role="alert"><text>{{ t.conversations.loadError }}</text><view class="cp-history-text-action" role="button" :tabindex="humanHistoryRetryBusy || humanEarlierBusy ? -1 : 0" :aria-disabled="humanHistoryRetryBusy || humanEarlierBusy" :aria-busy="humanHistoryRetryBusy" @click="retryHumanHistory" @keydown.enter.prevent="onKeyboardActivate($event, retryHumanHistory)" @keydown.space.prevent="onKeyboardActivate($event, retryHumanHistory)"><text>{{ t.conversations.retry }}</text></view></view>
     <view v-if="showUnassignedReceived" class="cp-ai-history" role="status"><text class="cp-ai-history-t">{{ t.conversations.image.unassignedReceived }}</text></view>
 
     <!-- Thread body (messages + chips + input) -->
     <ConversationThread
       @typing="!isAi && convStore.setTyping($event)"
       :messages="threadMessages"
+      :entrance-ready="isAi ? !novaHistoryLoading : humanOpenRequest === null && !humanHistoryRetryBusy && !humanEarlierBusy"
 	      :input-placeholder="inputPlaceholder"
 	      :input-label="inputLabel"
 	      :send-label="t.conversations.send"
@@ -680,6 +681,7 @@ onShow(async () => {
 });
 onHide(() => {
   novaPageVisible = false;
+  cancelHistoryRetry();
   clearPrivateImages();
   categoryGate = null;
   ++handoffAttemptEpoch;
@@ -725,11 +727,18 @@ watch(() => app.accountKey, () => {
 const humanHistoryError = ref(false);
 const humanHistoryListError = ref(false);
 const humanHistoryRetry = ref(0);
+const humanHistoryRetryBusy = ref(false), humanEarlierBusy = ref(false);
+let historyRetryGeneration = 0;
+function cancelHistoryRetry() { historyRetryGeneration++; humanHistoryRetryBusy.value=false; humanEarlierBusy.value=false; }
+watch([cid,()=>app.accountBindingEpoch],cancelHistoryRetry,{flush:'sync'});
 async function retryHumanHistory() {
-  const binding=app.accountBindingEpoch, id=cid.value;
-  const current=()=>novaPageVisible && binding===app.accountBindingEpoch && id===cid.value;
+  if(!novaPageVisible||!supportSessionReady.value||humanHistoryRetryBusy.value||humanEarlierBusy.value)return;
+  const binding=app.accountBindingEpoch, id=cid.value, request=++historyRetryGeneration, scope=convStore.scopeInvalidated;
+  humanHistoryRetryBusy.value=true;
+  const current=()=>novaPageVisible && request===historyRetryGeneration && binding===app.accountBindingEpoch && scope===convStore.scopeInvalidated && id===cid.value;
   try { await convStore.refresh(current); if(current()) { humanHistoryListError.value=false; humanHistoryRetry.value++; } }
   catch { if(current()) humanHistoryListError.value=true; }
+  finally { if(request===historyRetryGeneration)humanHistoryRetryBusy.value=false; }
 }
 const humanHistory = computed(() => convStore.conversations.filter(row => row.type !== "ai"));
 const conv = computed(() => {
@@ -887,8 +896,8 @@ const quickChips = computed<QuickChip[]>(() =>
     : [],
 );
 
-// Human messages carry the authenticated user's delivery/read receipt. Show it
-// only under the newest outgoing USER bubble; Nova has its own projection above.
+// Keep the latest outgoing receipt and explicitly supplied incoming receipts.
+// An incoming read status is this user's server-acknowledged read, never inferred.
 function receiptFor(status: "sent" | "read" | undefined, isLatestReceipt: boolean): string | undefined {
   if (!status || !isLatestReceipt) return undefined;
   return status === "read" ? t.value.conversations.receiptRead : t.value.conversations.receiptSent;
@@ -960,7 +969,7 @@ const threadMessages = computed<ThreadMsg[]>(() => {
     imageLoading: !!m.attachmentId && !imageSources.value[m.attachmentId] && !imageFailures.value[m.attachmentId],
     imageError: !!m.attachmentId && !!imageFailures.value[m.attachmentId],
     meta: `${m.sender === "user" ? t.value.conversations.image.you : m.authorName || (c.type === "advisor" ? t.value.conversations.typeAdvisor : t.value.conversations.typeSupport)} · ${humanMessageTime(m.ts)}`,
-    receipt: receiptFor(m.status, i === lastUser),
+    receipt: receiptFor(m.status, i === lastUser || m.sender === "agent"),
     authorAvatarSrc: imageSources.value[avatarImageKey(m) ?? ""],
     ...humanMessageRecommendation(m),
   }));
@@ -974,16 +983,18 @@ const threadMessages = computed<ThreadMsg[]>(() => {
 });
 
 async function loadEarlierHumanHistory() {
-  if (!supportSessionReady.value) return;
+  if (!supportSessionReady.value || humanEarlierBusy.value || humanHistoryRetryBusy.value) return;
   const activeId = cid.value;
   const scope = activeId ? humanRealtime.capture(activeId) : null;
   if (!scope) return;
+  humanEarlierBusy.value=true;
+  const request=historyRetryGeneration;
   try {
     const earlier = humanHistory.value.find(row=>row.historyNextCursor);
     if (earlier) await convStore.loadEarlier(earlier.id, () => humanRealtime.isCurrent(scope.epoch, scope.id));
   } catch {
     if (humanRealtime.isCurrent(scope.epoch, scope.id)) toast.warn(t.value.security.opFailed);
-  }
+  } finally { if(request===historyRetryGeneration)humanEarlierBusy.value=false; }
 }
 
 // Restart returns to the same server-backed compose path. A durable conversation
@@ -1074,12 +1085,14 @@ async function refreshNovaHistory() {
 }
 
 async function loadEarlierNovaHistory() {
-  if (!remoteApiEnabled || !isAi.value || !novaPageVisible) return;
+  if (!remoteApiEnabled || !isAi.value || !novaPageVisible || novaHistoryLoading.value) return;
+  const epoch=++novaHistoryEpoch;
+  novaHistoryLoading.value=true;
   try {
     await nova.loadEarlierRemote(app.accountKey, cursor => novaAiApi.history(nova.conversationId, cursor));
   } catch {
-    toast.warn(t.value.nova.localFailed, t.value.nova.localRetry);
-  }
+    if(novaPageVisible&&epoch===novaHistoryEpoch)toast.warn(t.value.nova.localFailed, t.value.nova.localRetry);
+  } finally { if(epoch===novaHistoryEpoch)novaHistoryLoading.value=false; }
 }
 
 function quickLabel(k: QuickPromptKey): string {
@@ -1680,6 +1693,10 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 .cp-back > svg { position: relative; z-index: 1; }
 .cp-root .cp-ai-history-action { background: transparent; border: none; margin: 6px 16px; }
 .cp-root .cp-ai-history-action .cp-ai-history-t { position: relative; }
+.cp-history-error { padding:7px 16px; text-align:center; color:var(--v5-ink-3); font-size:12px; }
+.cp-history-text-action { display:flex; align-items:center; justify-content:center; min-height:44px; padding:0 16px; box-sizing:border-box; border:0; background:transparent; color:var(--v5-ink-2); font-size:13px; text-align:center; cursor:pointer; }
+.cp-history-text-action[aria-disabled="true"] { opacity:.5; cursor:default; }
+.cp-history-text-action:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; }
 .cp-role-t { overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { .cp-dot { animation: none; } }
 </style>

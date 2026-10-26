@@ -14,11 +14,11 @@
           <text class="quota-body">{{ t.quota.heroBody }}</text>
         </view>
 
-        <view v-if="remoteApiEnabled && remoteError" class="quota-state" role="alert"><text class="quota-body">{{ auditCopy.quotaLoadError }}</text><NxButton variant="secondary" :label="t.store.catalogRetry" :busy="remoteRefreshing" @click="refreshRemoteQuota" /></view>
+        <view v-if="remoteApiEnabled && remoteError" class="quota-state" role="alert"><text class="quota-body">{{ auditCopy.quotaLoadError }}</text><NxButton variant="text" :label="t.store.catalogRetry" :busy="remoteRefreshing" @click="refreshRemoteQuota" /></view>
         <view v-else-if="remoteApiEnabled && !remoteSnapshot" class="quota-state" role="status" aria-live="polite" aria-busy="true"><text>{{ auditCopy.loading }}</text></view>
         <view v-if="remoteApiEnabled && productCatalogState.status !== 'ready'" class="quota-state" :role="productCatalogState.status === 'error' ? 'alert' : 'status'">
           <text class="quota-body">{{ productCatalogState.status === 'error' ? t.store.catalogErrorTitle : t.store.catalogLoadingTitle }}</text>
-          <NxButton v-if="productCatalogState.status === 'error'" variant="secondary" :label="t.store.catalogRetry" @click="retryCatalog" />
+          <NxButton v-if="productCatalogState.status === 'error'" variant="text" :label="t.store.catalogRetry" @click="retryCatalog" />
         </view>
         <view v-if="quotaReady && !focusedTiers.length" class="quota-state" role="status"><text>{{ t.empty.listTitle }}</text></view>
         <QuotaTierCard v-for="tier in focusedTiers" :key="tier.productId" :tier="tier" @navigate="go" />

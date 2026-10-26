@@ -27,7 +27,7 @@ describe("notification foreground and clear-read accessibility", () => {
 
   it("keeps mark-all and notification rows keyboard-operable", () => {
     expect(source).toContain(':aria-label="t.notifs.markAll"');
-    expect(source).toMatch(/role="button"[^>]*:tabindex="headerState.title && !markingAll \? 0 : -1"[^>]*@click="markAll"/);
+    expect(source).toMatch(/role="button"[^>]*:tabindex="headerState.title && !markingAll && !clearingRead \? 0 : -1"[^>]*@click="markAll"/);
     expect(source).toMatch(/class="notification-row" role="button" tabindex="0"[^>]*@click="toggle\(n\)"/);
     expect(activation).toContain("Enter");
     expect(activation).toContain("click");
@@ -46,7 +46,7 @@ describe("notification foreground and clear-read accessibility", () => {
     expect(segments).toContain('@keydown="onKeydown($event, option)"');
     expect(segments).toContain('choose(target, "arrow")');
     expect(segments).toContain('?.focus()');
-    expect(source).toMatch(/role="button" tabindex="0"[^>]*@click="notifs.retryRemote\(\)"/);
+    expect(source).toMatch(/role="button" :tabindex="notifs.loading \? -1 : 0"[^>]*@click="notifs.retryRemote\(\)"/);
     expect(source).toMatch(/role="button" :tabindex="notifs.loading \? -1 : 0"[^>]*@click="notifs.loadMoreRemote\(\)"/);
   });
 

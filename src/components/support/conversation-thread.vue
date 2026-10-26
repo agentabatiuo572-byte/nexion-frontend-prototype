@@ -14,19 +14,24 @@
     <!-- Message list. :scroll-into-view drives auto-scroll on App (native); on H5 it
          stays "" and domToBottom() handles it (uni's declarative scroll lands short
          of a freshly-laid-out bubble). -->
-    <scroll-view scroll-y class="nx-conv-list" :scroll-into-view="scrollAnchor" :scroll-with-animation="true" :show-scrollbar="false">
+    <scroll-view ref="listHost" scroll-y class="nx-conv-list" :scroll-top="scrollTop" :scroll-into-view="scrollAnchor" :scroll-with-animation="scrollAnimated" :show-scrollbar="false" @scroll="onThreadScroll">
+      <view class="nx-conv-content">
       <view v-if="messages.length === 0 && emptyHint" class="nx-conv-empty">
         <text class="nx-conv-empty-t">{{ emptyHint }}</text>
       </view>
 
-      <view v-for="m in messages" :key="m.id" class="nx-conv-msg-row">
+      <view v-for="m in messages" :key="m.id" :id="messageRowId(m.id)" class="nx-conv-msg-row">
         <!-- system notice -->
         <view v-if="m.tone === 'system'" class="nx-conv-sys">
           <text class="nx-conv-sys-t">{{ m.text }}</text>
         </view>
         <!-- chat bubble -->
-        <view v-else class="nx-conv-bubble-row" :class="m.side === 'right' ? 'nx-conv-right' : 'nx-conv-left'">
+        <view v-else class="nx-conv-bubble-row" :class="m.side === 'right' ? 'nx-conv-right' : 'nx-conv-left'" v-bind="entranceBindings(m)">
           <image v-if="m.authorAvatarSrc" class="nx-conv-author-avatar" :src="m.authorAvatarSrc" mode="aspectFill" :aria-label="m.meta" />
+          <view class="nx-conv-bubble-line" :class="m.side === 'right' ? 'nx-conv-bubble-line--right' : ''">
+          <view v-if="m.side === 'right' && receiptText(m)" class="nx-conv-receipt" :data-state="m.queue?.state">
+            <text class="nx-conv-receipt-t" :role="m.queue ? m.queue.state === 'failed' ? 'alert' : 'status' : undefined" :aria-live="m.queue ? 'polite' : undefined">{{ receiptText(m) }}</text>
+          </view>
           <view class="nx-conv-bubble" :style="bubbleStyle(m)">
             <view class="nx-conv-bubble-body">
               <view v-if="m.imageSrc" class="nx-conv-image-open" role="button" tabindex="0" :aria-label="imageLabels?.view"
@@ -52,14 +57,13 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg>
             </view>
           </view>
+          <view v-if="m.side === 'left' && receiptText(m)" class="nx-conv-receipt" :data-state="m.queue?.state">
+            <text class="nx-conv-receipt-t" :role="m.queue ? m.queue.state === 'failed' ? 'alert' : 'status' : undefined" :aria-live="m.queue ? 'polite' : undefined">{{ receiptText(m) }}</text>
+          </view>
+          </view>
           <text v-if="m.meta" class="nx-conv-message-meta">{{ m.meta }}</text>
         </view>
-        <!-- delivery receipt (user messages only, pre-localised by the page) -->
-        <view v-if="m.receipt && !m.queue" class="nx-conv-receipt" :class="m.side === 'left' ? 'nx-conv-receipt--left' : ''">
-          <text class="nx-conv-receipt-t">{{ m.receipt }}</text>
-        </view>
         <view v-if="m.queue && queueLabels" class="nx-conv-queue" :data-state="m.queue.state">
-          <text class="nx-conv-queue-status" :role="m.queue.state === 'failed' ? 'alert' : 'status'" aria-live="polite">{{ m.queue.label }}</text>
           <view v-if="m.queue.state === 'editing'" class="nx-conv-edit">
             <textarea class="nx-conv-edit-input" :value="edits[m.queue.turnId] ?? m.text" :maxlength="2000" :aria-label="queueLabels.edit" auto-height @input="onEditInput(m.queue.turnId, $event)" />
             <view class="nx-conv-queue-actions">
@@ -91,6 +95,7 @@
         </view>
       </view>
       <view id="nx-conv-end" class="nx-conv-bottom-anchor" />
+      </view>
     </scroll-view>
 
     <!-- Quick reply chips (AI only) -->
@@ -158,13 +163,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, type CSSProperties } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onScopeDispose, getCurrentInstance, type CSSProperties } from "vue";
 import LiquidGlass from "@/components/liquid-glass.vue";
 import type { ThreadMsg, QuickChip } from "./thread-types";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
+import { onHide, onShow } from '@/composables/use-tab-page-lifecycle';
+import { useApp } from '@/store/app';
+import { useConversationEntrance } from './conversation-entrance';
+import { conversationScrollChange, preservedConversationTop } from './conversation-scroll';
 
 const props = defineProps<{
   messages: ThreadMsg[];
+  /** False while an authoritative history snapshot is being read. */
+  entranceReady?: boolean;
   inputPlaceholder: string;
   /** 输入框的**名称**(稳定),与 inputPlaceholder(提示,随可用性变)分开。
       见 lib/a11y-field-label.ts 的契约:placeholder 在输入后就消失,不是稳定的名称,
@@ -211,6 +222,17 @@ const emit = defineEmits<{
   (e: "queue-save", turnId: string, text: string): void;
   (e: "attach" | "retry-upload" | "replace-attachment" | "cancel-attachment" | "retry-message" | "edit-message" | "discard-message" | "retry-policy"): void;
 }>();
+
+const app = useApp(), threadVisible = ref(true), entranceReveal = ref(0);
+onHide(() => { threadVisible.value = false; });
+onShow(() => { entranceReveal.value++; threadVisible.value = true; });
+const { entranceBindings } = useConversationEntrance(() => ({
+  identity: JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey, props.revealTick, entranceReveal.value]),
+  visible: threadVisible.value, ready: props.entranceReady === true, messages: props.messages,
+}));
+function receiptText(message: ThreadMsg): string | undefined {
+  return message.queue ? props.queueLabels ? message.queue.label : undefined : message.receipt;
+}
 
 const draft = ref(props.initialDraft ?? "");
 const previewImage = ref("");
@@ -276,46 +298,72 @@ function onCta(m: ThreadMsg) {
   if (m.ctaHref) emit("cta", m.ctaHref, m.ctaLabel ?? "");
 }
 
-// ── auto-scroll to newest. uni's declarative :scroll-top / :scroll-into-view both
-// compute against the pre-layout height, so a freshly-added reply bubble leaves
-// them stopping short of the real bottom. On H5 we drive the real overflow node
-// directly (scrollTop = scrollHeight), scoped to THIS thread's scroll-view via its
-// ref (so a hidden sibling chat instance is never targeted); a delayed second pass
-// compensates async bubble layout. On non-H5 (App) we fall back to scroll-into-view
-// against the bottom anchor. ──
-const scrollAnchor = ref("");
+// Appends follow the tail; older pages retain the same viewport offset.
+const scrollAnchor = ref(""), scrollTop = ref(0), scrollAnimated = ref(true), listHost = ref<unknown>(null);
+const threadInstance = getCurrentInstance();
+let scrollGeneration = 0, scrollTimer: ReturnType<typeof setTimeout> | undefined;
+let lastScrollTop = 0;
+function cancelScroll() { scrollGeneration++; clearTimeout(scrollTimer); scrollAnchor.value = ''; }
+onScopeDispose(cancelScroll);
+onHide(cancelScroll);
+function scroller(): HTMLElement | undefined {
+  const host = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
+  if (!host?.querySelectorAll) return;
+  return [host, ...Array.from(host.querySelectorAll('*'))].find(node =>
+    (node as HTMLElement).scrollHeight - (node as HTMLElement).clientHeight > 4) as HTMLElement | undefined;
+}
+function onThreadScroll(event: { detail: { scrollTop: number } }) { lastScrollTop = event.detail.scrollTop; }
+function messageRowId(id: string) { return 'nx-conv-message-' + Array.from(id).map(char=>char.charCodeAt(0).toString(16)).join('-'); }
+function measurePrefix(firstId: string, done: (height: number) => void) {
+  const root = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
+  const content = root?.querySelector?.('.nx-conv-content'), first = root?.querySelector?.('#' + messageRowId(firstId));
+  if (content && first) { done(first.getBoundingClientRect().top - content.getBoundingClientRect().top); return; }
+  if (typeof uni === 'undefined' || !uni.createSelectorQuery) return;
+  const query = uni.createSelectorQuery().in(threadInstance);
+  query.select('.nx-conv-content').boundingClientRect(); query.select('#' + messageRowId(firstId)).boundingClientRect();
+  query.exec(rows => {
+    const [body, anchor] = rows as UniApp.NodeInfo[];
+    if (typeof body?.top === 'number' && typeof anchor?.top === 'number') done(anchor.top - body.top);
+  });
+}
 function scrollToEnd() {
+  cancelScroll(); const ticket = scrollGeneration;
+  const messages = props.messages.map(message=>message.id).join('\u0000');
+  const owner = JSON.stringify([app.accountKey,app.accountBindingEpoch,props.composerKey,props.revealTick]);
+  const current = () => ticket === scrollGeneration && threadVisible.value
+    && messages === props.messages.map(message=>message.id).join('\u0000')
+    && owner === JSON.stringify([app.accountKey,app.accountBindingEpoch,props.composerKey,props.revealTick]);
+  scrollAnimated.value = true;
+  const apply = () => {
+    if (!current()) return;
+    const node = scroller();
+    if (node) { node.scrollTop = node.scrollHeight; lastScrollTop = node.scrollTop; }
+    else { scrollAnchor.value = ''; void nextTick(() => { if (current()) scrollAnchor.value = 'nx-conv-end'; }); }
+  };
   void nextTick(() => {
-    // #ifdef H5
-    domToBottom();
-    setTimeout(domToBottom, 90);
-    // #endif
-    // #ifndef H5
-    scrollAnchor.value = "";
-    void nextTick(() => { scrollAnchor.value = "nx-conv-end"; });
-    setTimeout(() => { scrollAnchor.value = ""; void nextTick(() => { scrollAnchor.value = "nx-conv-end"; }); }, 90);
-    // #endif
+    apply(); scrollTimer = setTimeout(apply, 90);
   });
 }
-// #ifdef H5
-function domToBottom() {
-  // Drive the real overflow node directly. uni renders TWO nested nodes whose class
-  // includes "uni-scroll-view" — only the deeper one actually overflows — so we pick
-  // the descendant that truly scrolls (scrollHeight > clientHeight) rather than the
-  // first class match (which is a non-scrolling wrapper). Every mounted list is
-  // pinned to its bottom: only one chat thread is visible at a time, and a hidden
-  // keep-alive sibling being scrolled is harmless (it should also open at bottom).
-  document.querySelectorAll(".nx-conv-list").forEach((host) => {
-    const scroller = [host, ...Array.from(host.querySelectorAll("*"))]
-      .find((e) => (e as HTMLElement).scrollHeight - (e as HTMLElement).clientHeight > 4) as HTMLElement | undefined;
-    if (scroller) scroller.scrollTop = scroller.scrollHeight;
+function preserveHistoryPosition(firstId: string) {
+  const node = scroller(), top = node?.scrollTop ?? lastScrollTop;
+  cancelScroll(); const ticket = scrollGeneration; scrollAnimated.value = false;
+  void nextTick(() => {
+    measurePrefix(firstId, prefixHeight => {
+      if (ticket !== scrollGeneration || !threadVisible.value) return;
+      const nextTop = preservedConversationTop(top, prefixHeight);
+      const current = scroller(); if (current) current.scrollTop = nextTop;
+      scrollTop.value = nextTop; lastScrollTop = nextTop;
+    });
   });
 }
-// #endif
 watch(
-  () => [props.messages.length, props.typing, props.revealTick] as const,
-  () => {
-    scrollToEnd();
+  () => [props.messages.map(message => message.id), props.typing, props.revealTick, props.composerKey] as const,
+  ([ids, typing, reveal, key], previous) => {
+    if (!threadVisible.value) { cancelScroll(); return; }
+    if (!previous || reveal !== previous[2] || key !== previous[3]) { scrollToEnd(); return; }
+    const change = conversationScrollChange(previous[0], ids);
+    if (change === 'prepend') preserveHistoryPosition(previous[0][0]);
+    else if (change === 'append' || (typing && !previous[1])) scrollToEnd();
   },
 );
 onMounted(() => {
@@ -432,6 +480,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 }
 .nx-conv-bubble {
   max-width: 82%;
+  min-width: 0;
   border-radius: 18px;
   overflow: hidden;
 }
@@ -470,13 +519,23 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 }
 .nx-conv-receipt {
   display: flex;
-  justify-content: flex-end;
-  padding: 3px 4px 0;
+  flex: 0 0 auto;
+  max-width: 34%;
+  padding-bottom: 3px;
 }
 .nx-conv-receipt-t {
   font-size: 12px;
   color: var(--v5-ink-4);
+  overflow-wrap: anywhere;
 }
+.nx-conv-receipt[data-state="failed"] .nx-conv-receipt-t { color: var(--v5-danger); }
+.nx-conv-bubble-line { display:flex; align-items:flex-end; gap:6px; width:100%; min-width:0; }
+.nx-conv-bubble-line--right { justify-content:flex-end; }
+.nx-conv-enter-right { animation:nx-conv-enter-right 180ms linear both; }
+.nx-conv-enter-left { animation:nx-conv-enter-left 180ms linear both; }
+@keyframes nx-conv-enter-right { from { opacity:0; transform:translateX(12px) scale(.98); } to { opacity:1; transform:translateX(0) scale(1); } }
+@keyframes nx-conv-enter-left { from { opacity:0; transform:translateX(-12px) scale(.98); } to { opacity:1; transform:translateX(0) scale(1); } }
+@media(prefers-reduced-motion:reduce) { .nx-conv-enter-left,.nx-conv-enter-right { animation:none; transform:none; opacity:1; } }
 .nx-conv-typing {
   display: flex;
   align-items: center;
@@ -484,7 +543,6 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   padding: 10px 14px;
   background: var(--v5-surface-2);
 }
-.nx-conv-receipt--left { justify-content: flex-start; }
 .nx-conv-typing-dots {
   display: flex;
   gap: 4px;
@@ -615,6 +673,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .message-family .nx-conv-send, .message-family .nx-conv-attach-trigger { width: 44px; padding: 0; flex-shrink: 0; }
 .message-family .nx-conv-cta-row { margin: 0 12px 10px; padding: 0 16px; }
 .message-family .nx-conv-queue-action, .message-family .nx-conv-chip { padding-inline: 16px; }
+.nx-conv-thread .nx-conv-cta-row, .nx-conv-thread .nx-conv-chip { --v5-liquid-shadow: inset 0 1px 0 var(--v5-border); }
 .nx-conv-queue-actions { flex-wrap: wrap; }
 .nx-conv-attachment-actions { gap: 8px; margin-top: 8px; }
 .nx-conv-image-caption { overflow-wrap: anywhere; }

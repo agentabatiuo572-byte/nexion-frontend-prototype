@@ -15,15 +15,15 @@
 .message-center .message-button:active, .message-center .notification-row:active { opacity: .75; }
 .message-center .message-button:focus-visible, .message-center .notification-row:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .message-center .message-button[aria-disabled="true"] { opacity: .5; pointer-events: none; }
-.message-center .message-icon-button { width: 44px; height: 44px; padding: 0; border-radius: 999px; color: var(--v5-ink); border: 1px solid var(--message-glass-border); background: var(--message-glass-fill); box-shadow: var(--message-glass-shadow); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); }
-.message-center .message-icon-button::before { content: ""; position: absolute; inset: 1px; border-radius: inherit; pointer-events: none; background: radial-gradient(120% 60% at 30% 0%, color-mix(in srgb, var(--message-glass-white) 22%, transparent), transparent 55%); }
+.message-center .message-icon-button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px; color: var(--v5-ink-2); background: transparent; }
 .message-center .message-heading { padding: 4px 2px 0; }
-.message-center .message-title { display: block; font-size: 30px; font-weight: 600; line-height: 38px; color: var(--v5-ink); overflow-wrap: anywhere; }
-.message-center .message-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
-.message-center .message-subtitle { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--v5-ink-2); font-size: 13.5px; line-height: 20px; overflow-wrap: anywhere; }
-.message-center .message-mark-all { flex-shrink: 0; max-width: 55%; padding: 0; border-radius: 0; text-align: end; }
-.message-center .message-summary-recovery { display: flex; justify-content: flex-start; }
-.message-center .message-summary-recovery .message-button { padding: 0; color: var(--v5-brand); }
+.message-center .message-heading-row { display: flex; align-items: center; gap: 8px; min-height: 52px; }
+.message-center .message-title { flex-shrink: 0; display: block; font-size: 28px; font-weight: 600; line-height: 38px; color: var(--v5-ink); }
+.message-center .message-subtitle { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--v5-ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.message-center .message-mark-all { flex-shrink: 0; margin-left: auto; padding: 0; border-radius: 0; font-size: 12px; text-align: end; white-space: nowrap; }
+.message-center .message-summary-recovery { display: flex; justify-content: center; }
+.message-center .message-summary-recovery .message-button, .message-center .message-retry { width: 100%; padding: 0; color: var(--v5-brand); background: none; border: 0; box-shadow: none; }
+@media (max-width:350px) { .message-center .message-heading-row { gap: 6px; } .message-center .message-title { font-size: 24px; line-height: 32px; } }
 .message-center .message-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--v5-brand); flex-shrink: 0; }
 .message-center .message-primary-inner { padding-top: 4px; }
 .message-center .message-filters { flex-shrink: 0; margin: 12px 0 0; }
@@ -47,6 +47,8 @@
 .message-center .message-state { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 0; font-size: 13px; line-height: 1.6; color: var(--v5-ink-3); text-align: center; }
 .message-center .message-more { padding: 24px 0; text-align: center; }
 .message-center .service-messages { padding-inline: 0; }
+/* Embedded list controls keep their glass rim without an external cast shadow. */
+.message-center .message-scroll .message-button { --v5-liquid-shadow: inset 0 1px 0 var(--v5-border); }
 
 .message-center.message-page { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 34px); display: flex; flex-direction: column; min-height: 0; box-sizing: border-box; padding-bottom: 0; background: var(--v5-bg); }
 .message-center .message-scroll { flex: 1; height: 0; min-height: 0; }

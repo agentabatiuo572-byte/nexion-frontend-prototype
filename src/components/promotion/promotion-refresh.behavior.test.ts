@@ -84,6 +84,7 @@ function platform(signedIn = true) {
       '@/composables/use-tab-page-lifecycle': { onShow: (fn: () => void) => shown.push(fn), onHide: (fn: () => void) => hidden.push(fn) },
       '@/api/runtime': runtime, '@/store/app': { useApp: () => app }, '@/store/auth': { useAuth: () => ({ get isAuthenticated() { return signed.value; } }) },
       '@/store/locale': { useLocaleStore: () => ({ code: 'zh' }) }, '@/i18n/use-t': { useT: () => Vue.ref({ promotion: promotionZH }) },
+      '@/store/theme': { useTheme: () => ({ resolved: 'dark' }) },
       '@/i18n/team-redesign': { teamRedesignCopy }, '@/i18n/format': { fmt }, '@/lib/route': { navTo() {} },
       '@/mock/products': { getProduct: (id: string) => products.find(p => p.id === id) }, '@/store/product-catalog': catalog,
       '@/lib/promotion-entry': promotionEntry, '@/lib/promotion-display': display, '@/components/catalog-machine-image': { promotionMachineSlots },

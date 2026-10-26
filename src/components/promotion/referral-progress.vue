@@ -19,7 +19,7 @@
         <view class="referral-rule-link" role="button" tabindex="0" @click="termsActivity=activity" @keydown.enter.prevent="termsActivity=activity" @keydown.space.prevent="termsActivity=activity"><text>{{ t.promotion.rulesLink }}</text><text aria-hidden="true">›</text></view>
       </view>
     </view>
-    <view v-if="error" class="referral-recovery"><text class="promotion-copy" role="alert">{{ t.promotion.error }}</text><NxButton class="referral-cta" size="medium" :busy="loading" :label="t.promotion.retry" @click="loadActivities(true)"><text>{{ t.promotion.retry }}</text><text aria-hidden="true">→</text></NxButton></view>
+    <view v-if="error" class="referral-recovery"><text class="promotion-copy" role="alert">{{ t.promotion.error }}</text><NxButton class="referral-retry" variant="text" size="medium" :busy="loading" :label="t.promotion.retry" @click="loadActivities(true)"><text>{{ t.promotion.retry }}</text><text aria-hidden="true">→</text></NxButton></view>
     <NxButton v-if="hasMore" class="referral-cta referral-more" size="medium" :busy="loading" :label="t.promotion.more" @click="loadActivities(false)"><text>{{ t.promotion.more }}</text><text aria-hidden="true">→</text></NxButton>
     <PromotionTerms :open="!!termsActivity" :title="localized(termsActivity?.title,locale.code)" :terms="localized(termsActivity?.terms,locale.code)" :disclosures="promotionDisclosures(termsActivity)" @close="termsActivity=null" />
   </view>
@@ -107,7 +107,8 @@ onBeforeUnmount(()=>{alive=false;visible=false;generation++;});
 .referral-details { margin-top: var(--ui-space-inset); padding-top: 16px; border-top: 1px solid var(--v5-border); }
 .referral-activity-title { display: block; margin-bottom: 6px; font: 600 14px/1.5 var(--font-v5); }
 .referral-details > .referral-cta { margin-top: var(--ui-space-inline); }
-.referral-recovery { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-space-inline); margin-top: var(--ui-space-inline); }
+.referral-retry { width: 100%; }
+.referral-recovery { display: flex; flex-direction: column; align-items: center; gap: var(--ui-space-inline); margin-top: var(--ui-space-inline); }
 .referral-more { margin-top: var(--ui-space-inset); }
 .referral-rule-link { display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;margin-top:8px;color:var(--v5-ink-3);font:400 12px/1.5 var(--font-v5); }
 .referral-rule-link:focus-visible { outline:2px solid var(--v5-brand);outline-offset:2px; }

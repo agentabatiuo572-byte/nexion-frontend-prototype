@@ -5,6 +5,7 @@ import * as Vue from "vue";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { fmt } from "@/i18n/format";
+import { notificationActionsCopy } from "@/i18n/notification-actions";
 import { zh } from "@/i18n/messages/zh";
 import { en } from "@/i18n/messages/en";
 import { vi } from "@/i18n/messages/vi";
@@ -46,7 +47,7 @@ async function renderHeader(translations: typeof zh | typeof en | typeof vi, tot
   const render = new Function("Vue", code)(Vue) as Vue.RenderFunction;
   const app = Vue.createSSRApp({
     components: { LiquidGlass: { render: () => null } },
-    setup: () => ({ t: translations, center: { totalUnread, error: null, loading: false, refresh: () => {} }, notifs: { unread: totalUnread }, markingAll: false, markAll: () => {}, section: 'notifications', headerState: { title: expanded }, unreadLabel: unreadLabel(translations, totalUnread), navBack: () => {}, navTo: () => {}, ...overrides }),
+    setup: () => ({ t: translations, actionCopy: notificationActionsCopy[translations === zh ? 'zh' : translations === en ? 'en' : 'vi'], center: { totalUnread, error: null, loading: false, refresh: () => {} }, notifs: { unread: totalUnread }, markingAll: false, clearingRead: false, markAll: () => {}, section: 'notifications', headerState: { title: expanded }, unreadLabel: unreadLabel(translations, totalUnread), navBack: () => {}, navTo: () => {}, ...overrides }),
     render,
   });
   return renderToString(app);
@@ -140,7 +141,7 @@ describe("message page header content contract", () => {
     expect(elements(heading.children)).toContain(clear);
     expect(clear.loc.source).not.toContain('LiquidGlass');
     expect(clear.loc.source).toContain('@click="markAll"');
-    expect(clear.loc.source).toContain('headerState.title && !markingAll ? 0 : -1');
+    expect(clear.loc.source).toContain('headerState.title && !markingAll && !clearingRead ? 0 : -1');
     const wrapper = all.find(node => node.children.includes(heading))!;
     expect(wrapper.loc.source).toContain(':inert="!headerState.title ? true : undefined"');
     expect(wrapper.loc.source).toContain('@focusin="headerFocused = true"');
@@ -177,7 +178,7 @@ describe("message page header content contract", () => {
     expect(highlight).toContain('inset: 5px 0'); expect(highlight).toContain('z-index: 0');
     expect(highlight).toContain('pointer-events: none');
     expect(highlight).toContain('var(--message-glass-fill)');
-    expect(highlight).toContain('var(--message-glass-shadow)');
+    expect(highlight).toContain('box-shadow: inset 0 1px 0');
     expect(scoped).toMatch(/\.message-option-label, \.message-category-dot\s*\{[^}]*z-index:\s*1/);
     expect(pageStyles).toContain('--message-glass-white: #fff');
     expect(pageStyles).toContain('--message-selected-highlight: #E6FFA0');

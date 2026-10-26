@@ -2,6 +2,7 @@
 .message-family { font-family: var(--font-v5); }
 .message-family .family-control { position: relative; box-sizing: border-box; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: 24px; background: transparent; color: var(--v5-ink-2); font-family: var(--font-v5); font-size: 13px; cursor: pointer; }
 .message-family .family-control > :not(.nx-liquid-glass) { position: relative; }
+.message-family .family-control--text { width: 100%; padding-inline: 0; background: none; border: 0; box-shadow: none; color: var(--v5-brand); }
 .message-family .family-control:active { opacity: .75; }
 .message-family .family-control:focus-visible, .message-family [role="button"]:focus-visible, .message-family [role="radio"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .message-family .family-control[aria-disabled="true"] { opacity: .45; cursor: default; }

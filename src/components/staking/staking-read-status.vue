@@ -17,6 +17,6 @@ function retry() { if (!props.loading) emit("retry"); }
 
 <style scoped>
 .nx-staking-read-status { padding: 12px 16px; color: var(--v5-ink-2); font-size: 13px; line-height: 1.6; }
-.nx-staking-read-retry { display: flex; align-items: center; justify-content: center; min-height: 44px; margin-top: 8px; padding: 0 16px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand); font-weight: 600; }
+.nx-staking-read-retry { display: flex; align-items: center; justify-content: center; min-height: 44px; margin-top: 8px; padding: 0 16px; border-radius: 999px; background: transparent; color: var(--v5-brand); font-weight: 600; }
 .nx-staking-read-retry[aria-disabled="true"] { opacity: .55; }
 </style>

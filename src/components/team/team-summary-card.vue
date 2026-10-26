@@ -4,7 +4,7 @@
     <view class="team-summary__body" :class="{ 'team-summary__body--long-count': status === 'ready' && String(total).length > 6 }"><TeamArt kind="members" :size="56" /><view class="team-summary__metrics"><text class="team-summary__number" :style="{ '--team-summary-count-units': countUnits }">{{ status === 'ready' ? total : '—' }}</text><text class="team-summary__label">{{ copy.members }}</text></view></view>
     <view class="team-summary__direct"><text>{{ copy.directInvites }}</text><text>{{ status === 'ready' ? direct : '—' }}</text></view>
     <view v-if="status === 'ready' && !total" class="team-summary__empty"><text>{{ t.team.summaryEmpty }}</text><NxButton class="team-summary__action" :label="copy.inviteFriends" variant="secondary" size="medium" @click="$emit('invite')" /></view>
-    <view v-else-if="status !== 'ready'" class="team-summary__status" role="status"><text>{{ status === 'error' ? t.team.summaryUnavailable : t.team.summaryLoading }}</text><NxButton v-if="status === 'error'" class="team-summary__action" :label="t.network.retry" size="medium" @click="$emit('retry')" /></view>
+    <view v-else-if="status !== 'ready'" class="team-summary__status" role="status"><text>{{ status === 'error' ? t.team.summaryUnavailable : t.team.summaryLoading }}</text><NxButton v-if="status === 'error'" class="team-summary__action" :label="t.network.retry" variant="text" size="medium" @click="$emit('retry')" /></view>
   </view>
 </template>
 <script setup lang="ts">

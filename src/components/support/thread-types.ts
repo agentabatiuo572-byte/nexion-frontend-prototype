@@ -17,7 +17,7 @@ export interface ThreadMsg {
   imageAttachmentId?: string;
   authorAvatarSrc?: string;
   meta?: string;
-  /** Pre-localised delivery receipt shown under the bubble (user messages only). */
+  /** Pre-localised, authoritative receipt placed beside its own bubble. */
   receipt?: string;
   ctaLabel?: string;
   /** Logical route (mapped by lib/route navTo at tap time). */
