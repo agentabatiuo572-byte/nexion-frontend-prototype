@@ -20,7 +20,7 @@
 .message-center .message-heading-row { display: flex; align-items: center; gap: 8px; min-height: 52px; }
 .message-center .message-title { flex-shrink: 0; display: block; font-size: 28px; font-weight: 600; line-height: 38px; color: var(--v5-ink); }
 .message-center .message-subtitle { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--v5-ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
-.message-center .message-mark-all { flex-shrink: 0; margin-left: auto; padding: 0; border-radius: 0; font-size: 12px; text-align: end; white-space: nowrap; }
+.message-center .message-mark-all { flex-shrink: 0; min-width: 44px; margin-left: auto; padding: 0; border-radius: 0; font-size: 12px; text-align: end; white-space: nowrap; }
 .message-center .message-summary-recovery { display: flex; justify-content: center; }
 .message-center .message-summary-recovery .message-button, .message-center .message-retry { width: 100%; padding: 0; color: var(--v5-brand); background: none; border: 0; box-shadow: none; }
 @media (max-width:350px) { .message-center .message-heading-row { gap: 6px; } .message-center .message-title { font-size: 24px; line-height: 32px; } }
