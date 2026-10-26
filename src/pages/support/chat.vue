@@ -27,22 +27,23 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       </view>
 
-      <NovaAvatar v-if="isAi" :size="40" pulse />
-      <view v-else class="cp-ava" :style="avaStyle">
-        <view v-html="headerIcon" />
-      </view>
-
-      <view class="cp-meta">
-        <text class="cp-name">{{ headerName }}</text>
-        <view v-if="headerRole" class="cp-role">
-          <view class="cp-dot" :style="dotStyle" />
-          <text class="cp-role-t">{{ headerRole }}</text>
+      <view class="cp-identity">
+        <NovaAvatar v-if="isAi" :size="32" pulse />
+        <view v-else class="cp-ava" :style="avaStyle" aria-hidden="true">
+          <view class="cp-ava-icon" v-html="headerIcon" />
+        </view>
+        <view class="cp-meta">
+          <text class="cp-name">{{ headerName }}</text>
+          <view v-if="headerRole" class="cp-role">
+            <view class="cp-dot" :style="dotStyle" />
+            <text class="cp-role-t">{{ headerRole }}</text>
+          </view>
         </view>
       </view>
-      <view v-if="isAi && remoteApiEnabled" class="cp-ticket active:opacity-70 family-control" role="button" tabindex="0" :aria-label="t.conversations.restartSession" @click="onStartNewConversation"  @keydown.enter.prevent="onKeyboardActivate($event, onStartNewConversation)" @keydown.space.prevent="onKeyboardActivate($event, onStartNewConversation)"><LiquidGlass :radius="22" />
-        <text>{{ t.conversations.restartSession }}</text>
+      <view v-if="isAi && remoteApiEnabled" class="cp-ticket active:opacity-70" role="button" tabindex="0" :aria-label="t.conversations.restartSession" @click="onStartNewConversation"  @keydown.enter.prevent="onKeyboardActivate($event, onStartNewConversation)" @keydown.space.prevent="onKeyboardActivate($event, onStartNewConversation)"><LiquidGlass :radius="22" />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12v6a2 2 0 0 1-2 2H6l-3 2V6a2 2 0 0 1 2-2h6" /><path d="M17 2v8m-4-4h8" /></svg>
       </view>
-
+      <view v-else class="cp-head-spacer" aria-hidden="true" />
     </view>
 
     <view v-if="advisorApplies && convStore.advisorError" class="cp-history-error" role="alert">
@@ -710,7 +711,7 @@ onHide(() => {
 });
 
 const ADVISOR_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M6 21a6 6 0 0 1 12 0" /></svg>`;
-const SUPPORT_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2" /><path d="M21 16a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2zM3 16a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2z" /></svg>`;
+const SUPPORT_ICON = `<svg width="20" height="20" viewBox="0 -1.5 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2" /><path d="M21 16a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2zM3 16a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2z" /></svg>`;
 
 watch(() => app.accountKey, () => {
   if (!isAi.value || !remoteApiEnabled) return;
@@ -1606,11 +1607,12 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   background: var(--v5-bg);
 }
 .cp-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 10px 16px 16px;
+  column-gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 16px 12px;
   /* top padding is bound inline to the device status-bar height (see cp-head :style) */
   border-bottom: 1px solid color-mix(in srgb, var(--v5-border) 55%, transparent);
 }
@@ -1636,43 +1638,44 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   line-height: 1.45;
   color: var(--v5-ink-2);
 }
-.cp-back {
-  /* 《07》tap≥44:原 36×36。负 margin 由 -6 调到 -10,图标视觉位置不动、只有热区变大 */
+.cp-back, .cp-ticket {
   width: 44px;
   height: 44px;
   margin-left: 0;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  border-radius: 50%;
+  position: relative;
+}
+.cp-head-spacer { width: 44px; height: 44px; pointer-events: none; }
+.cp-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: center;
+  min-width: 0;
+  max-width: 100%;
 }
 .cp-ava {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
+.cp-ava-icon { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; line-height: 0; }
+.cp-ava-icon :deep(svg) { display: block; }
 .cp-meta {
-  flex: 1;
-  min-width: 100px;
-}
-.cp-ticket {
-  min-height: 44px;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  color: var(--v5-ink-2);
-  font-size: 12px;
-  font-weight: 500;
-  margin-left: auto;
-  max-width: 100%;
+  min-width: 0;
 }
 .cp-name {
   display: block;
   font-family: var(--font-v5);
   font-weight: 600;
   font-size: 20px;
+  line-height: 1.3;
   overflow-wrap: anywhere;
   letter-spacing: -0.008em;
   color: var(--v5-ink);
@@ -1687,10 +1690,12 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   width: 6px;
   height: 6px;
   border-radius: 999px;
+  flex-shrink: 0;
   animation: mc-pulse 1.6s ease-in-out infinite;
 }
 .cp-role-t {
   font-size: 12px;
+  line-height: 1.4;
   color: var(--v5-ink-3);
 }
 /* Home Indicator overlay — pinned to the bottom safe area over the input row's
@@ -1703,8 +1708,8 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   z-index: 110;
   pointer-events: none;
 }
-.cp-back { position: relative; overflow: visible; }
-.cp-back > svg { position: relative; z-index: 1; }
+.cp-back, .cp-ticket { overflow: visible; }
+.cp-back > svg, .cp-ticket > svg { position: relative; z-index: 1; }
 .cp-root .cp-ai-history-action { background: transparent; border: none; margin: 6px 16px; }
 .cp-root .cp-ai-history-action .cp-ai-history-t { position: relative; }
 .cp-history-error { padding:7px 16px; text-align:center; color:var(--v5-ink-3); font-size:12px; }

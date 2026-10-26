@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "d65ee0b64a30739e44644e613511563239c2218c",
-  "sourceRef": "d65ee0b64a30739e44644e613511563239c2218c",
+  "sourceHead": "af11d29a88f88eda9087a83d52963336b4b14fdc",
+  "sourceRef": "af11d29a88f88eda9087a83d52963336b4b14fdc",
   "sourceRefKind": "commit",
-  "sourceTree": "b8b089cb28daa12e7ca1bc579e89bd6a7627936f",
+  "sourceTree": "3b92cd3a6e81f09c123794f70bf21278932cceea",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -4430,10 +4430,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "e471118422b76ab5004ad3a48a533f7efc527451",
-      "sourceSha256": "c98abf5cdb34525cd38f089c9896daa6e774591491056f025b41ec87229b3f6d",
-      "targetBlob": "e471118422b76ab5004ad3a48a533f7efc527451",
-      "targetSha256": "c98abf5cdb34525cd38f089c9896daa6e774591491056f025b41ec87229b3f6d",
+      "sourceBlob": "ccdf03b44dc38336b1b86659a9cf35f46f0d8c83",
+      "sourceSha256": "4c282e727ccb0bf03bf5aec5bbc7c60d465a3b13cdad97e9c16765712bf5be15",
+      "targetBlob": "ccdf03b44dc38336b1b86659a9cf35f46f0d8c83",
+      "targetSha256": "4c282e727ccb0bf03bf5aec5bbc7c60d465a3b13cdad97e9c16765712bf5be15",
       "mode": "100644"
     },
     "index.html": {
@@ -17408,10 +17408,10 @@
       "mode": "100644"
     },
     "src/pages/support/chat.vue": {
-      "sourceBlob": "79f324b5b483486fce8e0f552d58847d3957a9e9",
-      "sourceSha256": "58f7fa888efb1522b413372cc07ca8c6eba5020306e430e00fe0bff3bb2e307c",
-      "targetBlob": "79f324b5b483486fce8e0f552d58847d3957a9e9",
-      "targetSha256": "58f7fa888efb1522b413372cc07ca8c6eba5020306e430e00fe0bff3bb2e307c",
+      "sourceBlob": "40c5abf1eeaac2c3faefa9459611d3701bc79c36",
+      "sourceSha256": "69e4621b7c88c0cdd5325600fbcff344fc7482a15236a64eef215a345877a243",
+      "targetBlob": "40c5abf1eeaac2c3faefa9459611d3701bc79c36",
+      "targetSha256": "69e4621b7c88c0cdd5325600fbcff344fc7482a15236a64eef215a345877a243",
       "mode": "100644"
     },
     "src/pages/support/conversation-realtime-page.test.ts": {
