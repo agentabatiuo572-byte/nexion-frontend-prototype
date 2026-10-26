@@ -4,34 +4,46 @@ import ts from 'typescript';
 import { afterEach, expect, it, vi } from 'vitest';
 import source from './referral-progress.vue?raw';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
+import { promotionMachineSlots } from '@/components/catalog-machine-image';
+import type { PublicPromotion } from '@/api/promotion-contracts';
+import { isPromotionActive } from '@/lib/promotion-entry';
 
 const script = compileScript(parse(source).descriptor, { id: 'referral-progress-behavior' });
 const code = ts.transpileModule(script.content, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
 type Progress = { activityId: string; qualifyingOrders: number; ownRewards: never[] };
-type View = { loading: Vue.Ref<boolean>; error: Vue.Ref<boolean>; progressErrors:Vue.Ref<Record<string,boolean>>; progressBusy:Vue.Ref<Record<string,boolean>>; termsActivity:Vue.Ref<unknown>; hasMore: Vue.Ref<boolean>; activities: Vue.Ref<Array<{activityId:string}>>; expandedActivity: Vue.Ref<string|null>; progress: Vue.Ref<Record<string, Progress>>; loadProgress: (id: string) => Promise<void>; loadActivities: () => Promise<void>; showProgress: (id:string) => void; qualifyingCount: (id:string) => number|string };
+type View = { loading: Vue.Ref<boolean>; error: Vue.Ref<boolean>; progressErrors:Vue.Ref<Record<string,boolean>>; progressBusy:Vue.Ref<Record<string,boolean>>; termsActivity:Vue.Ref<unknown>; hasMore: Vue.Ref<boolean>; activities: Vue.Ref<Array<{activityId:string}>>; expandedActivity: Vue.Ref<string|null>; progress: Vue.Ref<Record<string, Progress>>; loadProgress: (id: string) => Promise<void>; loadActivities: (reset?:boolean) => Promise<void>; showProgress: (id:string) => void; qualifyingCount: (id:string) => number|string; referralImageProps:(activity:PublicPromotion)=>{sku?:string;imageUrl?:string;refreshKey:string} };
 const cleanups: Array<() => void> = [];
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); await Vue.nextTick(); };
 function mount() {
   const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1 });
   const auth = Vue.reactive({ isAuthenticated: true });
-  const list = vi.fn().mockResolvedValue({ items: [{ activityId: 'A', template: 'DIRECT_REFERRAL' }], nextCursor: null, hasMore: false });
+  const products=Vue.reactive<Record<string,{imageUrl?:string}>>({});
+  const catalog=Vue.reactive({status:'ready',revision:'1'});
+  const list = vi.fn().mockResolvedValue({ items: [{ activityId: 'A', template: 'DIRECT_REFERRAL', state:'ACTIVE' }], nextCursor: null, hasMore: false });
+  const refreshProductCatalog=vi.fn().mockResolvedValue(true);
   const referral = vi.fn<(id: string) => Promise<Progress>>().mockImplementation(async id => ({ activityId: id, qualifyingOrders: 1, ownRewards: [] }));
   const unmounted: Array<() => void> = [];
+  const shown:Array<()=>void>=[],hidden:Array<()=>void>=[];
   const modules: Record<string, unknown> = {
     vue: { ...Vue, onBeforeUnmount: (fn: () => void) => unmounted.push(fn) },
-    '@/api/runtime': { remoteApiEnabled: true, promotionApi: {
+    '@/composables/use-tab-page-lifecycle': {onShow:(fn:()=>void)=>shown.push(fn),onHide:(fn:()=>void)=>hidden.push(fn)},
+    '@/api/runtime': { remoteApiEnabled: true, sessionVault:{read:()=>auth.isAuthenticated?{user:{userId:7}}:null}, promotionApi: {
       list, referral,
     } },
     '@/store/app': { useApp: () => app }, '@/store/auth': { useAuth: () => auth },
     '@/i18n/use-t': { useT: () => Vue.ref({ promotion: {} }) },
     '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) },
     '@/lib/promotion-display': { localized: () => '' }, './reward-rows.vue': { default: {} },
-    '@/lib/promotion-entry': { promotionDisclosures: () => [] }, './promotion-terms.vue': { default: {} },
+    '@/lib/promotion-entry': { isPromotionActive,promotionDisclosures: () => [] }, './promotion-terms.vue': { default: {} },
     '@/i18n/team-redesign': { teamRedesignCopy },
     '@/components/team/team-art.vue': { default: {} },
     '@/components/ui/nx-button.vue': { default: {} },
+    '@/components/catalog-machine-image.vue': { default: {} },
+    '@/components/catalog-machine-image': { promotionMachineSlots },
+    '@/mock/products': { getProduct:(id:string)=>products[id] },
+    '@/store/product-catalog': { productCatalogState:catalog,refreshProductCatalog },
   };
   const exports = { default: {} as { setup: (props: object, context: { emit: () => void; expose: () => void }) => View } };
   new Function('require', 'exports', code)((id: string) => {
@@ -42,7 +54,7 @@ function mount() {
   const view = scope.run(() => exports.default.setup({}, { emit() {}, expose() {} }))!;
   const unmount = () => { unmounted.forEach(fn => fn()); scope.stop(); };
   cleanups.push(unmount);
-  return { app, auth, view, list, referral, unmount };
+  return { app, auth, view, list, referral, unmount, products, catalog, refreshProductCatalog, show:()=>shown.forEach(fn=>fn()), hide:()=>hidden.forEach(fn=>fn()) };
 }
 afterEach(() => cleanups.splice(0).forEach(fn => fn()));
 
@@ -100,9 +112,9 @@ it('opening progress refreshes real rewards and collapses on account generation 
 
 it('keeps pagination reachable through a page without referral activities and deduplicates subsequent results',async()=>{
   const screen=mount();await flush();
-  screen.list.mockResolvedValueOnce({items:[{activityId:'gift',template:'SKU_GIFT'}],nextCursor:'next-page',hasMore:true});
+  screen.list.mockResolvedValueOnce({items:[{activityId:'gift',template:'SKU_GIFT',state:'ACTIVE'}],nextCursor:'next-page',hasMore:true});
   await screen.view.loadActivities();expect(screen.view.hasMore.value).toBe(true);
-  screen.list.mockResolvedValueOnce({items:[{activityId:'A',template:'DIRECT_REFERRAL'},{activityId:'B',template:'DIRECT_REFERRAL'}],nextCursor:null,hasMore:false});
+  screen.list.mockResolvedValueOnce({items:[{activityId:'A',template:'DIRECT_REFERRAL',state:'ACTIVE'},{activityId:'B',template:'DIRECT_REFERRAL',state:'ACTIVE'}],nextCursor:null,hasMore:false});
   await screen.view.loadActivities();
   expect(screen.list).toHaveBeenLastCalledWith({cursor:'next-page',limit:20},true);
   expect(screen.view.activities.value.map(row=>row.activityId)).toEqual(['A','B']);
@@ -120,7 +132,7 @@ it('clears old pagination and errors immediately while the next account is loadi
 
 it('keeps another activity readable when one progress request fails and retries only that activity',async()=>{
   const screen=mount();await flush();
-  screen.list.mockResolvedValueOnce({items:[{activityId:'A',template:'DIRECT_REFERRAL'},{activityId:'B',template:'DIRECT_REFERRAL'}],nextCursor:null,hasMore:false});
+  screen.list.mockResolvedValueOnce({items:[{activityId:'A',template:'DIRECT_REFERRAL',state:'ACTIVE'},{activityId:'B',template:'DIRECT_REFERRAL',state:'ACTIVE'}],nextCursor:null,hasMore:false});
   screen.referral.mockImplementation(async id=>{if(id==='A')throw new Error('offline');return{activityId:id,qualifyingOrders:2,ownRewards:[]};});
   await screen.view.loadActivities();
   expect(screen.view.error.value).toBe(false);
@@ -138,4 +150,29 @@ it('closes activity terms on account change with the associated private progress
   screen.view.termsActivity.value={activityId:'A'};
   screen.app.accountBindingEpoch++;await flush();
   expect(screen.view.termsActivity.value).toBeNull();
+});
+
+it('shows the first qualifying purchase SKU and follows catalog replacements without borrowing a reward image',async()=>{
+  const screen=mount();await flush();
+  const activity={activityId:'A',version:1,rewardRules:[{productNo:'purchase',buyerReward:{type:'DEVICE',giftProductNo:'buyer-gift'},inviterReward:{type:'DEVICE',giftProductNo:'inviter-gift'}},{productNo:'other',inviterReward:{type:'DEVICE',giftProductNo:'other-gift'}}]} as PublicPromotion;
+  screen.products['buyer-gift']={imageUrl:'https://images.example/buyer'};
+  expect(screen.view.referralImageProps(activity)).toMatchObject({sku:'purchase',imageUrl:undefined});
+  screen.products.purchase={imageUrl:'https://images.example/purchase'};
+  expect(screen.view.referralImageProps(activity).imageUrl).toBe('https://images.example/purchase');
+  activity.rewardRules[0].productNo='new-purchase';screen.products['new-purchase']={imageUrl:'https://images.example/changed'};
+  expect(screen.view.referralImageProps(activity).imageUrl).toBe('https://images.example/changed');
+  delete screen.products['new-purchase'].imageUrl;
+  expect(screen.view.referralImageProps(activity)).toMatchObject({sku:'new-purchase',imageUrl:undefined});
+  activity.rewardRules=[];expect(screen.view.referralImageProps(activity)).toMatchObject({sku:undefined,imageUrl:undefined});
+  expect(source).not.toContain('first-purchase-v2.png');
+});
+
+it('refreshes the same purchase URL with progress retry and hides it when the catalog or account is unavailable',async()=>{
+  const screen=mount();await flush();
+  const activity={activityId:'A',version:1,rewardRules:[{productNo:'purchase',inviterReward:{type:'DEVICE',giftProductNo:'gift'}}]} as PublicPromotion;
+  screen.products.purchase={imageUrl:'https://images.example/purchase'};
+  const first=screen.view.referralImageProps(activity);await screen.view.loadProgress('A');
+  const retry=screen.view.referralImageProps(activity);expect(retry.imageUrl).toBe(first.imageUrl);expect(retry.refreshKey).not.toBe(first.refreshKey);
+  screen.catalog.status='error';expect(screen.view.referralImageProps(activity).imageUrl).toBeUndefined();
+  screen.catalog.status='ready';screen.auth.isAuthenticated=false;expect(screen.view.referralImageProps(activity).imageUrl).toBeUndefined();
 });

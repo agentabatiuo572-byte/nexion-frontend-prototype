@@ -22,6 +22,7 @@ import { formatAmount } from '@/lib/amount-display';
 import * as entry from '@/lib/promotion-entry';
 import { commerceCopy } from '@/lib/commerce-review';
 import * as display from '@/lib/promotion-display';
+import { promotionMachineSlots } from '@/components/catalog-machine-image';
 
 const code=(source:string)=>ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const script=(source:string)=>code(compileScript(parse(source).descriptor,{id:'promotion-marketing'}).content);
@@ -54,6 +55,7 @@ function platform(){
     '@dcloudio/uni-app':{onShow:(fn:()=>void)=>shown.push(fn),onHide:(fn:()=>void)=>hidden.push(fn)},
     '@/store/app':{useApp:()=>app},'@/store/locale':{useLocaleStore:()=>locale},
     '@/lib/promotion-entry':entry,'@/lib/promotion-display':display,
+    '@/components/catalog-machine-image':{promotionMachineSlots},
     '@/i18n/format':{fmt},
   };
   const scope=Vue.effectScope();cleanups.push(()=>{hidden.forEach(fn=>fn());scope.stop();});
@@ -70,7 +72,7 @@ function renderer(source:string,context:Record<string,unknown>){
   const template=source.includes('<template>')?parse(source).descriptor.template!.content:source;
   const render=new Function('Vue',compile(template,{mode:'function',prefixIdentifiers:true,isCustomElement:tag=>['view','text','image'].includes(tag)}).code)(Vue);
   let node!:Vue.VNode;
-  return{node:()=>node,html:()=>renderToString(Vue.createSSRApp({components:{NxButton:button,TeamArt:empty,LiquidGlass:empty,PromotionTerms:empty,PromotionProduct:empty,RewardRows:empty,DisclosureDetails:empty},render:()=>{node=render(Vue.proxyRefs(context),[]);return node;}}))};
+  return{node:()=>node,html:()=>renderToString(Vue.createSSRApp({components:{NxButton:button,TeamArt:empty,CatalogMachineImage:empty,LiquidGlass:empty,PromotionTerms:empty,PromotionProduct:empty,RewardRows:empty,DisclosureDetails:empty},render:()=>{node=render(Vue.proxyRefs(context),[]);return node;}}))};
 }
 function find(node:Vue.VNode,className:string):Vue.VNode|undefined{
   if(String(node.props?.class??'').split(/\s+/).includes(className))return node;
@@ -78,14 +80,17 @@ function find(node:Vue.VNode,className:string):Vue.VNode|undefined{
 }
 function advert(activities?:PublicPromotion[],copy=promotionZH){
   const screen=platform(),list=vi.fn<(...args:unknown[])=>Promise<PublicPromotionPage>>().mockResolvedValue(page([])),navTo=vi.fn();
+  const products=Vue.reactive<Record<string,{name:string;imageUrl?:string}>>({});
+  const catalog=Vue.reactive<{status:string;revision:string|null}>({status:'ready',revision:null});
+  const refreshProductCatalog=vi.fn().mockResolvedValue(true);
   Object.assign(screen.modules,{
     '@/api/runtime':{apiRuntimeConfig:{baseUrl:'https://api.example.test/'},promotionApi:{list},remoteApiEnabled:true,sessionVault:{read:()=>({user:{userId:7}})}},
-    '@/i18n/use-t':{useT:()=>Vue.ref({promotion:copy})},'@/mock/products':{getProduct:()=>({name:'Actual device'})},
-    '@/store/product-catalog':{productCatalogState:Vue.reactive({status:'ready'})},'@/lib/route':{navTo},
+    '@/i18n/use-t':{useT:()=>Vue.ref({promotion:copy})},'@/mock/products':{getProduct:(id:string)=>products[id]??({name:'Actual device'})},
+    '@/store/product-catalog':{productCatalogState:catalog,refreshProductCatalog},'@/lib/route':{navTo},
   });
   const props=Vue.reactive({mode:'home',active:true,activities}),component=evaluate(script(entrySource),screen.modules).default;
   const view=screen.scope.run(()=>component.setup(props,{expose(){}}))!;
-  return{...screen,props,view,list,navTo,...renderer(entrySource,{...Vue.toRefs(props),...view})};
+  return{...screen,props,view,list,navTo,products,catalog,refreshProductCatalog,...renderer(entrySource,{...Vue.toRefs(props),...view})};
 }
 
 function purchaseRule(type:'DEVICE'|'DISCOUNT_USDT'|'NEX'):PublicPromotion['rewardRules'][number]{
@@ -190,14 +195,14 @@ it.each(['account','locale'] as const)('an independent advert clears marketing a
 it.each([promotionZH,promotionEN,promotionVI])('the complete uploaded image replaces fallback copy while retaining a localized whole-banner action',async copy=>{
   const screen=advert([activity({bannerImageUrl:'/api/promotions/a1/banner/2'})],copy);
   expect(await screen.html()).toContain(copy.browse);
-  const image=find(screen.node(),'entry-artwork')!;expect(image.props).toMatchObject({src:'https://api.example.test/api/promotions/a1/banner/2',mode:'aspectFit'});
-  image.props!.onLoad();const loaded=await screen.html();
+  const image=find(screen.node(),'entry-artwork')!;expect(image.props).toMatchObject({imageUrl:'https://api.example.test/api/promotions/a1/banner/2',sku:'a1'});
+  image.props!.onReady(true);const loaded=await screen.html();
   expect(loaded).not.toContain('class="entry-copy"');expect(loaded).not.toContain('class="entry-label"');
   const action=find(screen.node(),'entry-advert-target')!;expect(action.props).toMatchObject({role:'button',tabindex:0,'aria-label':'真实活动 · '+copy.browse});
   action.props!.onClick();expect(screen.navTo).toHaveBeenCalledWith('/pages/store/store?activityId=a1');
   screen.props.active=false;await screen.html();expect(find(screen.node(),'entry-advert-target')?.props?.tabindex).toBe(-1);
-  screen.props.active=true;await screen.html();find(screen.node(),'entry-artwork')!.props!.onError();
-  const failed=await screen.html();expect(failed).toContain('class="entry-copy"');expect(failed).toContain(copy.browse);expect(failed).not.toContain('entry-artwork');expect(failed).not.toContain('purchase-gift-reference');
+  screen.props.active=true;await screen.html();find(screen.node(),'entry-artwork')!.props!.onReady(false);
+  const failed=await screen.html();expect(failed).toContain('class="entry-copy"');expect(failed).toContain(copy.browse);expect(screen.view.bannerReady(screen.view.items.value[0])).toBe(false);expect(failed).not.toContain('purchase-gift-reference');
 });
 it('fallback uses the whole existing banner width and has no fixed artwork dependency',()=>{
   const styles=parse(entrySource).descriptor.styles.find(style=>style.scoped)!.content;
@@ -205,7 +210,7 @@ it('fallback uses the whole existing banner width and has no fixed artwork depen
 });
 it('a carousel rerender preserves a loaded banner while a closed activity still disappears',async()=>{
   const offer=activity({bannerImageUrl:'/api/promotions/a1/banner/2'}),screen=advert([offer]);
-  await screen.html();find(screen.node(),'entry-artwork')!.props!.onLoad();await screen.html();
+  await screen.html();find(screen.node(),'entry-artwork')!.props!.onReady(true);await screen.html();
   const imageKey=find(screen.node(),'entry-artwork')!.key;
   screen.props.activities=[{...offer}];screen.props.active=false;await flush();
   expect(await screen.html()).not.toContain('class="entry-copy"');
@@ -217,12 +222,69 @@ it('a carousel rerender preserves a loaded banner while a closed activity still 
 });
 it.each(['account','epoch','locale'] as const)('a supplied banner remounts and reloads after the %s boundary',async boundary=>{
   const offer=activity({bannerImageUrl:'/api/promotions/a1/banner/2'}),screen=advert([offer]);
-  await screen.html();find(screen.node(),'entry-artwork')!.props!.onLoad();await screen.html();
+  await screen.html();find(screen.node(),'entry-artwork')!.props!.onReady(true);await screen.html();
   const imageKey=find(screen.node(),'entry-artwork')!.key;
   if(boundary==='account')screen.app.accountKey='user:8';else if(boundary==='epoch')screen.app.accountBindingEpoch++;else screen.locale.code='en';
   await flush();expect(await screen.html()).toContain('class="entry-copy"');
   const image=find(screen.node(),'entry-artwork')!;expect(image.key).not.toBe(imageKey);
-  image.props!.onLoad();expect(await screen.html()).not.toContain('class="entry-copy"');
+  image.props!.onReady(true);expect(await screen.html()).not.toContain('class="entry-copy"');
+});
+
+it('keeps purchase and gift slots from the first rule when the purchase image is missing',async()=>{
+  const rule=purchaseRule('DEVICE');rule.productNo='purchase-b';
+  if(rule.buyerReward.type==='DEVICE')rule.buyerReward.giftProductNo='gift-c';
+  const screen=advert([activity({rewardRules:[rule,purchaseRule('DEVICE')]})]);
+  screen.products['gift-c']={name:'Gift C',imageUrl:'https://images.example/gift-c'};
+  await screen.html();
+  expect(find(screen.node(),'entry-main-image')!.props!.sku).toBe('purchase-b');
+  expect(find(screen.node(),'entry-main-image')!.props!['image-url']).toBeUndefined();
+  expect(find(screen.node(),'entry-gift-image')!.props).toMatchObject({sku:'gift-c','image-url':'https://images.example/gift-c'});
+  screen.products['purchase-b']={name:'Purchase B',imageUrl:'https://images.example/purchase-b'};
+  await screen.html();expect(find(screen.node(),'entry-main-image')!.props!['image-url']).toBe('https://images.example/purchase-b');
+  delete screen.products['gift-c'].imageUrl;await screen.html();
+  expect(find(screen.node(),'entry-gift-image')!.props!['image-url']).toBeUndefined();
+  expect(find(screen.node(),'entry-main-image')!.props!.sku).toBe('purchase-b');
+});
+
+it('keeps distinct roles for the same SKU and reloads current URLs after catalog recovery',async()=>{
+  const rule=purchaseRule('DEVICE');if(rule.buyerReward.type==='DEVICE')rule.buyerReward.giftProductNo='sku';
+  const screen=advert([activity({rewardRules:[rule]})]);screen.products.sku={name:'Same SKU',imageUrl:'https://images.example/same'};
+  await screen.html();const purchase=find(screen.node(),'entry-main-image')!,gift=find(screen.node(),'entry-gift-image')!;
+  expect(purchase.key).not.toBe(gift.key);expect(purchase.props!['image-url']).toBe('https://images.example/same');expect(purchase.props!['image-url']).toBe(gift.props!['image-url']);
+  const refresh=purchase.props!['refresh-key'];
+  screen.catalog.status='error';await screen.html();expect(find(screen.node(),'entry-main-image')!.props!['image-url']).toBeUndefined();
+  screen.catalog.status='ready';screen.catalog.revision='next';await screen.html();
+  expect(find(screen.node(),'entry-main-image')!.props!['image-url']).toBe('https://images.example/same');
+  expect(find(screen.node(),'entry-main-image')!.props!['refresh-key']).not.toBe(refresh);
+});
+
+it.each(['account','epoch','locale','version','url','refresh','hide'] as const)('rejects stale banner readiness after %s',async boundary=>{
+  const offer=activity({bannerImageUrl:'/api/promotions/a1/banner/2'}),screen=advert([offer]);
+  await screen.html();const old=find(screen.node(),'entry-artwork')!;
+  if(boundary==='account')screen.app.accountKey='user:8';
+  if(boundary==='epoch')screen.app.accountBindingEpoch++;
+  if(boundary==='locale')screen.locale.code='en';
+  if(boundary==='version')screen.props.activities=[{...offer,version:3}];
+  if(boundary==='url')screen.props.activities=[{...offer,version:3,bannerImageUrl:'/api/promotions/a1/banner/3'}];
+  if(boundary==='refresh')await screen.view.load(true);
+  if(boundary==='hide')screen.hide();
+  await flush();old.props!.onReady(true);
+  const pending=await screen.html();if(boundary!=='hide')expect(pending).toContain('class="entry-copy"');
+  expect(screen.view.items.value.every((item:PublicPromotion)=>!screen.view.bannerReady(item))).toBe(true);
+  if(boundary!=='hide'){
+    const current=find(screen.node(),'entry-artwork')!;current.props!.onReady(true);old.props!.onReady(false);
+    expect(await screen.html()).not.toContain('class="entry-copy"');
+  }
+});
+
+it('retries a failed complete banner at the same URL on refresh and preserves its priority',async()=>{
+  const offer=activity({bannerImageUrl:'/api/promotions/a1/banner/2',rewardRules:[purchaseRule('DEVICE')]}),screen=advert([offer]);
+  await screen.html();const failed=find(screen.node(),'entry-artwork')!;failed.props!.onReady(false);
+  expect(await screen.html()).toContain('class="entry-copy"');expect(find(screen.node(),'entry-main-image')).toBeDefined();
+  await screen.view.load(true);await screen.html();const retry=find(screen.node(),'entry-artwork')!;
+  expect(retry.key).not.toBe(failed.key);expect(retry.props!.imageUrl).toBe(failed.props!.imageUrl);
+  retry.props!.onReady(true);failed.props!.onReady(false);
+  expect(await screen.html()).not.toContain('class="entry-copy"');expect(find(screen.node(),'entry-main-image')).toBeUndefined();
 });
 it('the production bundle clears quote rewards and open terms synchronously when activity is cleared for a new read',()=>{
   const screen=platform(),current=Vue.ref<PublicPromotion|null>(activity());

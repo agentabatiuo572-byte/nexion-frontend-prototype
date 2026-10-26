@@ -1,0 +1,337 @@
+[
+  {
+    "label": "home-390-zh",
+    "bubble": {
+      "bottom": 742,
+      "height": 48,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "1",
+      "width": 48,
+      "x": 326,
+      "y": 694
+    },
+    "copies": 1,
+    "indicator": {
+      "bottom": 844,
+      "height": 22,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 390,
+      "x": 0,
+      "y": 822
+    },
+    "nav": {
+      "bottom": 822,
+      "height": 68,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "首页赚取商城团队我的",
+      "width": 366,
+      "x": 12,
+      "y": 754
+    },
+    "overflow": false,
+    "route": "#/pages/index/index"
+  },
+  {
+    "label": "home-after-service-read",
+    "bubble": {
+      "bottom": 742,
+      "height": 48,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "",
+      "width": 48,
+      "x": 326,
+      "y": 694
+    },
+    "copies": 1,
+    "indicator": {
+      "bottom": 844,
+      "height": 22,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 390,
+      "x": 0,
+      "y": 822
+    },
+    "nav": {
+      "bottom": 822,
+      "height": 68,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "首页赚取商城团队我的",
+      "width": 366,
+      "x": 12,
+      "y": 754
+    },
+    "overflow": false,
+    "route": "#/pages/index/index"
+  },
+  {
+    "label": "home-scroll",
+    "bubble": {
+      "bottom": 742,
+      "height": 48,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 48,
+      "x": 326,
+      "y": 694
+    },
+    "copies": 1,
+    "indicator": {
+      "bottom": 844,
+      "height": 22,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 390,
+      "x": 0,
+      "y": 822
+    },
+    "nav": {
+      "bottom": 822,
+      "height": 68,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "首页赚取商城团队我的",
+      "width": 366,
+      "x": 12,
+      "y": 754
+    },
+    "overflow": false,
+    "route": "#/pages/index/index"
+  },
+  {
+    "label": "home-scroll-idle",
+    "bubble": {
+      "bottom": 742,
+      "height": 48,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "",
+      "width": 48,
+      "x": 326,
+      "y": 694
+    },
+    "copies": 1,
+    "indicator": {
+      "bottom": 844,
+      "height": 22,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 390,
+      "x": 0,
+      "y": 822
+    },
+    "nav": {
+      "bottom": 822,
+      "height": 68,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "首页赚取商城团队我的",
+      "width": 366,
+      "x": 12,
+      "y": 754
+    },
+    "overflow": false,
+    "route": "#/pages/index/index"
+  },
+  {
+    "label": "earn-390-light",
+    "bubble": {
+      "bottom": 742,
+      "height": 48,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "",
+      "width": 48,
+      "x": 326,
+      "y": 694
+    },
+    "copies": 1,
+    "indicator": {
+      "bottom": 844,
+      "height": 22,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 390,
+      "x": 0,
+      "y": 822
+    },
+    "nav": {
+      "bottom": 822,
+      "height": 68,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "首页赚取商城团队我的",
+      "width": 366,
+      "x": 12,
+      "y": 754
+    },
+    "overflow": false,
+    "route": "#/pages/earn/earn"
+  },
+  {
+    "label": "earn-320-short-light",
+    "bubble": {
+      "bottom": 466,
+      "height": 48,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "",
+      "width": 48,
+      "x": 256,
+      "y": 418
+    },
+    "copies": 1,
+    "indicator": {
+      "bottom": 568,
+      "height": 22,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 320,
+      "x": 0,
+      "y": 546
+    },
+    "nav": {
+      "bottom": 546,
+      "height": 68,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "首页赚取商城团队我的",
+      "width": 296,
+      "x": 12,
+      "y": 478
+    },
+    "overflow": false,
+    "route": "#/pages/earn/earn"
+  },
+  {
+    "label": "team-320-short-light",
+    "bubble": {
+      "bottom": 466,
+      "height": 48,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "",
+      "width": 48,
+      "x": 256,
+      "y": 418
+    },
+    "copies": 1,
+    "indicator": {
+      "bottom": 568,
+      "height": 22,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 320,
+      "x": 0,
+      "y": 546
+    },
+    "nav": {
+      "bottom": 546,
+      "height": 68,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "首页赚取商城团队我的",
+      "width": 296,
+      "x": 12,
+      "y": 478
+    },
+    "overflow": false,
+    "route": "#/pages/team/team"
+  },
+  {
+    "label": "team-320-vi-dark-scroll",
+    "bubble": {
+      "bottom": 591.3333740234375,
+      "height": 48,
+      "opacity": "0",
+      "pointer": "none",
+      "text": "",
+      "width": 48,
+      "x": 256,
+      "y": 543.3333740234375
+    },
+    "copies": 1,
+    "indicator": {
+      "bottom": 693.3333740234375,
+      "height": 22,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 320,
+      "x": 0,
+      "y": 671.3333740234375
+    },
+    "nav": {
+      "bottom": 671.3333740234375,
+      "height": 68,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "Trang chủSinh lờiCửa hàngĐội nhómCủa tôi",
+      "width": 296,
+      "x": 12,
+      "y": 603.3333740234375
+    },
+    "overflow": false,
+    "route": "#/pages/team/team"
+  },
+  {
+    "label": "team-320-vi-dark-idle",
+    "bubble": {
+      "bottom": 591.3333740234375,
+      "height": 48,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "",
+      "width": 48,
+      "x": 256,
+      "y": 543.3333740234375
+    },
+    "copies": 1,
+    "indicator": {
+      "bottom": 693.3333740234375,
+      "height": 22,
+      "opacity": "1",
+      "pointer": "none",
+      "text": "",
+      "width": 320,
+      "x": 0,
+      "y": 671.3333740234375
+    },
+    "nav": {
+      "bottom": 671.3333740234375,
+      "height": 68,
+      "opacity": "1",
+      "pointer": "auto",
+      "text": "Trang chủSinh lờiCửa hàngĐội nhómCủa tôi",
+      "width": 296,
+      "x": 12,
+      "y": 603.3333740234375
+    },
+    "overflow": false,
+    "route": "#/pages/team/team"
+  },
+  {
+    "event": "service-navigation",
+    "home": "click,conversation read,back twice; human badge 1→0",
+    "earn": "Enter opens service then returns",
+    "team": [
+      "The focused UI element is 289 AXWebArea UVEL, URL: 127.0.0.1:5231/?nx_device=off#/pages/me/notifications?section=service"
+    ],
+    "lastTeamRoute": [
+      "The focused UI element is 289 AXWebArea UVEL, URL: 127.0.0.1:5231/?nx_device=off#/pages/team/tree"
+    ]
+  }
+]

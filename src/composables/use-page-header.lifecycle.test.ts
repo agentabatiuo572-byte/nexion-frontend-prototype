@@ -56,6 +56,7 @@ function chassis(translations: Vue.Ref<typeof en>, back: ReturnType<typeof vi.fn
   const sheet = { open: false, closeTransient: idle, bindScope: idle, sessionShownCount: 0 };
   const dependencies: Record<string, unknown> = {
     vue: Vue, "@/i18n/use-t": { useT: () => translations },
+    "@/store/ui": { toast: idle },
     "@/store/page-header": { usePageHeader }, "@/store/notifications": { useNotifications: () => ({ unread: 0 }) },
     "@/store/message-drawer": { useMessageDrawer: () => ({ show: messages }) },
     "@/store/refresh": { useRefresh: () => ({ isRefreshing: false }) },
@@ -93,6 +94,9 @@ function chassis(translations: Vue.Ref<typeof en>, back: ReturnType<typeof vi.fn
     if (id === "@/components/liquid-glass.vue") return { default: Vue.defineComponent({
       props: { radius: { type: Number, required: true } },
       setup: props => () => Vue.h("glass", { "data-radius": props.radius }),
+    }) };
+    if (id === "@/components/nova/nova-bubble.vue") return { default: Vue.defineComponent({
+      props: ["dimmed"], setup: props => () => Vue.h("support-shortcut", { dimmed: props.dimmed }),
     }) };
     if (id.endsWith(".vue")) return { default: blank };
     if (!(id in dependencies)) throw new Error(`Unexpected chassis dependency: ${id}`);

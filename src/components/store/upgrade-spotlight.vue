@@ -4,16 +4,10 @@
     <view class="upgrade-title"><text>{{ nexGridBrandText(base.name) }}</text><text class="upgrade-title__target">→ {{ nexGridBrandText(target.name) }}</text></view>
     <view class="upgrade-art" aria-hidden="true">
       <view v-if="baseReady" class="upgrade-art__base-shadow" />
-      <view class="upgrade-art__base" :data-image-state="baseReady ? 'ready' : baseImage ? 'loading' : 'unavailable'">
-        <view v-if="!baseReady" class="upgrade-art__placeholder"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5v8l-9 5-9-5V8zM3 8l9 5 9-5M12 13v8" /></svg></view>
-        <image v-if="baseImage" :key="baseImage" class="upgrade-art__image" :class="{ 'upgrade-art__image--ready': baseReady }" :src="baseImage" mode="aspectFit" @load="baseReady = true" @error="baseImageError" />
-      </view>
+      <CatalogMachineImage class="upgrade-art__base" v-bind="baseImageProps" />
       <svg class="upgrade-art__arrow" width="40" height="20" viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10h34" stroke-dasharray="3 4" /><path d="m30 4 6 6-6 6" /></svg>
       <view v-if="targetReady" class="upgrade-art__target-shadow" />
-      <view class="upgrade-art__target" :class="{ 'upgrade-art__target--ready': targetReady }" :data-image-state="targetReady ? 'ready' : imageSrc ? 'loading' : 'unavailable'">
-        <view v-if="!targetReady" class="upgrade-art__placeholder"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5v8l-9 5-9-5V8zM3 8l9 5 9-5M12 13v8" /></svg></view>
-        <image v-if="imageSrc" :key="imageSrc" class="upgrade-art__image" :class="{ 'upgrade-art__image--ready': targetReady }" :src="imageSrc" mode="aspectFit" @load="targetReady = true" @error="imageError" />
-      </view>
+      <CatalogMachineImage class="upgrade-art__target" :class="{ 'upgrade-art__target--ready': targetReady }" v-bind="targetImageProps" />
     </view>
     <view class="upgrade-comparison">
       <view><text class="upgrade-comparison__label">{{ comparisonCopy.current }}</text><text class="upgrade-comparison__value">{{ fmtMoney(base.baseRate) }}{{ t.store.cardPerDaySuffix }}</text></view>
@@ -25,7 +19,9 @@
 </template>
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useProductImage } from '@/composables/use-product-image';
+import CatalogMachineImage from '@/components/catalog-machine-image.vue';
+import { useApp } from '@/store/app';
+import { productCatalogState } from '@/store/product-catalog';
 import { useAuditUiCopy } from '@/i18n/audit-ui';
 import { useT } from '@/i18n/use-t';
 import { useLocaleStore } from '@/store/locale';
@@ -42,14 +38,23 @@ const comparisonCopy = computed(() => locale.code === 'zh'
   : locale.code === 'vi'
     ? { current: 'Hiện tại · ước tính', upgraded: 'Sau nâng cấp · ước tính' }
     : { current: 'Now · estimated', upgraded: 'After upgrade · estimated' });
-const { imageSrc, imageError } = useProductImage(() => props.target.imageUrl ?? undefined);
-const { imageSrc: baseImage, imageError: baseImageError } = useProductImage(() => props.baseImageUrl
-  || (props.base.kind === 'phone' ? '/static/img/home-glass-20260928/phone.webp' : undefined));
 const baseReady = ref(false), targetReady = ref(false);
-// A resolved URL is not a decoded image. Keep a neutral placeholder until @load;
-// URL changes and native-cache retries reset readiness before the next render.
-watch(baseImage, () => { baseReady.value = false; }, { flush: 'sync' });
-watch(imageSrc, () => { targetReady.value = false; }, { flush: 'sync' });
+const app = useApp();
+const catalogRefreshKey = computed(() => JSON.stringify([productCatalogState.status, productCatalogState.revision]));
+const baseIdentity = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.base.kind, props.baseImageUrl, catalogRefreshKey.value]));
+const targetIdentity = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.target.id, props.target.imageUrl, catalogRefreshKey.value]));
+const baseImageProps = computed(() => {
+  const identity = baseIdentity.value;
+  return { sku: props.base.kind, imageUrl: productCatalogState.status === 'ready' ? props.baseImageUrl : undefined, scopeKey: 'upgrade-base', refreshKey: catalogRefreshKey.value,
+    onReady: (ready: boolean) => { if (identity === baseIdentity.value) baseReady.value = ready; } };
+});
+const targetImageProps = computed(() => {
+  const identity = targetIdentity.value;
+  return { sku: props.target.id, imageUrl: productCatalogState.status === 'ready' ? props.target.imageUrl : undefined, scopeKey: 'upgrade-target', refreshKey: catalogRefreshKey.value,
+    onReady: (ready: boolean) => { if (identity === targetIdentity.value) targetReady.value = ready; } };
+});
+watch(baseIdentity, () => { baseReady.value = false; }, { flush: 'sync' });
+watch(targetIdentity, () => { targetReady.value = false; }, { flush: 'sync' });
 function open() { navTo('/pages/store/detail?id=' + encodeURIComponent(props.target.id)); }
 </script>
 <style scoped>
@@ -61,9 +66,6 @@ function open() { navTo('/pages/store/detail?id=' + encodeURIComponent(props.tar
 .upgrade-art__base { position:absolute; left:10px; bottom:10px; width:min(96px,34%); aspect-ratio:1; opacity:.75; }
 .upgrade-art__target { position:absolute; right:0; bottom:6px; width:min(150px,50%); aspect-ratio:1; }
 .upgrade-art__target--ready { animation:upgrade-float 4.2s ease-in-out infinite; }
-.upgrade-art__image { position:absolute; inset:0; width:100%; height:100%; opacity:0; }
-.upgrade-art__image--ready { opacity:1; }
-.upgrade-art__placeholder { position:absolute; inset:12%; display:grid; place-items:center; border:1px solid var(--v5-border-strong); border-radius:18px; color:var(--v5-ink-3); background:linear-gradient(145deg,var(--ui-content-surface-3),var(--ui-content-surface-2)); }
 .upgrade-art__arrow { position:absolute; left:42%; top:46px; color:var(--v5-ink-3); }
 .upgrade-art__base-shadow { position:absolute; left:16px; bottom:12px; width:86px; height:14px; border-radius:50%; background:radial-gradient(closest-side,color-mix(in srgb,var(--v5-ink) 18%,transparent),transparent); }
 .upgrade-art__target-shadow { position:absolute; right:6px; bottom:8px; width:150px; height:22px; border-radius:50%; background:radial-gradient(closest-side,color-mix(in srgb,var(--ui-lime-soft) 45%,transparent),transparent); }

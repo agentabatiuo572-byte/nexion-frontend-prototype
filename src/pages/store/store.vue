@@ -442,7 +442,7 @@ const goalFocusRetryStyle: CSSProperties = {
 .store-voucher-ticket__hint { display:block; margin-top:2px; font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
 .store-voucher-ticket__art { width:72px; height:72px; margin:-4px -6px -4px 0; flex:none; animation:ticket-bob 4.6s ease-in-out infinite; }
 .store-voucher-ticket:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
-.store-campaign :deep(.entry-advert) { height:auto; min-height:146px; padding:0; border-radius:22px; border:1px solid var(--v5-border); box-shadow:none; background:radial-gradient(70% 90% at 82% 72%,color-mix(in srgb,var(--v5-brand) 24%,transparent),transparent 62%),linear-gradient(135deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); }
+.store-campaign :deep(.entry-advert) { --promotion-copy-ink:var(--v5-ink); height:auto; min-height:146px; padding:0; border-radius:22px; border:1px solid var(--v5-border); box-shadow:none; background:radial-gradient(70% 90% at 82% 72%,color-mix(in srgb,var(--v5-brand) 24%,transparent),transparent 62%),linear-gradient(135deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); }
 .store-campaign :deep(.entry-label) { top:18px; left:18px; padding:0; border:0; background:transparent; color:var(--ui-lime-soft); font:500 12.5px/18px var(--font-v5); }
 .store-campaign :deep(.entry-title) { font-size:19px; line-height:25px; }
 .store-catalogue { margin-top:20px; }

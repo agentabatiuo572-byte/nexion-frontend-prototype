@@ -11,7 +11,7 @@
   <view class="relative inline-block shrink-0" :style="{ width: size + 'px', height: size + 'px' }">
     <image
       class="block rounded-full"
-      src="/static/img/marketing/nova-avatar.png"
+      :src="appearance === 'light' ? '/static/img/marketing/nova-avatar-light-20261026.webp' : '/static/img/marketing/nova-avatar.png'"
       mode="aspectFill"
       :style="{
         width: size + 'px',
@@ -32,9 +32,10 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{ size?: number; pulse?: boolean }>(), {
+withDefaults(defineProps<{ size?: number; pulse?: boolean; appearance?: 'light' | 'dark' }>(), {
   size: 36,
   pulse: false,
+  appearance: 'dark',
 });
 
 

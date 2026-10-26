@@ -59,7 +59,7 @@ test("floating human support stays available while Nova remains hidden", () => {
   const bubble = read("src/components/nova/nova-bubble.vue");
   const visibility = read("src/lib/nova-visibility.ts");
   assert.match(visibility, /NOVA_SUPPORT_VISIBLE = false/);
-  assert.match(chassis, /<NovaBubble v-if="isTabRoute"[^>]*\/>/);
+  assert.match(chassis, /<NovaBubble v-if="showFloatingSupport"[^>]*\/>/);
   assert.doesNotMatch(chassis, /<NovaBubble[^>]*v-(show|else)/);
   assert.doesNotMatch(chassis, /NovaBubble[^>]+!remoteApiEnabled/);
   assert.match(bubble, /const visible = computed\(\(\) => !NOVA_SUPPORT_VISIBLE \|\| remoteApiEnabled \|\| totalUnread\.value > 0\)/);

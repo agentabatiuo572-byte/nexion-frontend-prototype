@@ -1,0 +1,33 @@
+{
+  "source": [
+    {
+      "sha256": "E72E7F5052C47A0E25EBEF5A62F9385A4DF890DC98F2399AE4034B6634FD2762",
+      "path": "src/components/app-chassis.vue"
+    },
+    {
+      "sha256": "3132C32B098B9851260419F0FA8944771928445F38BE5EB2F96C4D49D05FD996",
+      "path": "src/components/nova/nova-bubble.vue"
+    },
+    {
+      "sha256": "1D6936FE64D073C49460C5AF1D4DECE2AE2C915ABAB246276632BD1C80772DAF",
+      "path": "src/components/nova/nova-avatar.vue"
+    },
+    {
+      "sha256": "AAE0965A94A14AA8B5053E5536D2A9EE78BD13A6F5DAFAF4A1922ECFF6962086",
+      "path": "src/static/img/marketing/nova-avatar-light-20261026.webp"
+    }
+  ],
+  "indexSha256": "FE22BF7BA103E5E65651EFEF637F3D80FED00D1B2FCC03A3F4DB90FA42EF767E",
+  "build": [
+    {
+      "sha256": "92F304912D1BE1CF7484BB680062F62C5330E0E36D54EE341839E7DA34BCA965",
+      "path": "app-chassis-CwdvXhIq.css"
+    },
+    {
+      "sha256": "4687744B274D2F52352D869969A012014CDD28CDEBFF26B8B7AA73EDDF1A305B",
+      "path": "app-chassis.1MlOIGny.js"
+    }
+  ],
+  "stage": "support-final-source",
+  "preview": "http://127.0.0.1:5231/preview"
+}

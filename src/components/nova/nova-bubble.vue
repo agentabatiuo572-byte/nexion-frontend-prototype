@@ -3,13 +3,9 @@
   Nexion-prototype/app/components/nova/nova-bubble.tsx (+ a focused port of
   nova-triggers / nova-triggers-v3 so the unread badge actually populates).
 
-  Visibility: the chassis mounts this ONLY on tab routes (home/earn/store/team/
-  me), so route-gating lives in the chassis. The floating button itself shows
-  only when unread > 0 — but the COMPONENT mounts unconditionally on tab routes
-  so its push triggers run (the button appears once the first push lands).
-
-  Position: in the chassis content flow, after the page body and before its
-  bottom inset. The support entry never overlays page actions or the tab bar.
+  The chassis mounts one shortcut on home/earn/team, above its navigation pill.
+  Human support stays available with or without unread replies. Route gating
+  lives in the chassis; its measured navigation height includes the safe area.
 
   Timers are module-light: started in onMounted, cleared in onUnmounted (uni
   components don't fire onUnload — P-021). Cooldown gating lives in the Pinia
@@ -17,16 +13,12 @@
   chassis per navigation can't double-fire welcome / spam the channels.
 -->
 <template>
-  <view>
-    <view v-if="visible" class="nx-nova-bubble" role="button" tabindex="0" :aria-label="t.coreReview.novaHelp" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
+    <view v-if="visible" class="nx-nova-bubble" :class="{ 'nx-nova-bubble--dimmed': dimmed, 'nx-nova-bubble--light': theme.resolved === 'light' }" role="button" :tabindex="dimmed ? -1 : 0" :aria-hidden="dimmed || undefined" :aria-label="t.coreReview.novaHelp" @click="open" @keydown.enter.prevent="!dimmed && open()" @keydown.space.prevent="!dimmed && open()">
       <view class="nx-nova-btn nx-nova-motion">
-        <NovaAvatar :size="36" :pulse="showUnreadBadge" class="nx-nova-avatar" />
+        <NovaAvatar :size="36" :pulse="showUnreadBadge && !dimmed" :appearance="theme.resolved" class="nx-nova-avatar" />
         <view v-if="showUnreadBadge" :key="totalUnread" class="nx-nova-badge"><text class="nx-nova-badge-t">{{ unreadLabel }}</text></view>
       </view>
-      <view class="nx-nova-copy"><text>{{ t.coreReview.novaHelp }}</text><text class="nx-nova-hint">{{ t.coreReview.novaHint }}</text></view>
-      <text aria-hidden="true">→</text>
     </view>
-  </view>
 </template>
 
 <script setup lang="ts">
@@ -46,8 +38,12 @@ import { fmt } from "@/i18n/format";
 import NovaAvatar from "./nova-avatar.vue";
 import { NOVA_SUPPORT_VISIBLE } from "@/lib/nova-visibility";
 import { formatUnreadBadge } from "@/lib/unread-badge";
+import { useTheme } from "@/store/theme";
+
+defineProps<{ dimmed?: boolean }>();
 
 const t = useT();
+const theme = useTheme();
 const nova = useNova();
 const config = useConfig();
 const conversations = useConversations();
@@ -200,19 +196,21 @@ onUnmounted(() => {
 
 <style scoped>
 .nx-nova-bubble {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 8px 16px 20px;
-  padding: 12px 16px;
-  background: var(--v5-surface-2);
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 12px);
+  z-index: 1;
   color: var(--v5-ink);
   transition: opacity 150ms, transform 120ms cubic-bezier(.2,.8,.2,1);
-  border-radius: 20px;
+  /* Rounded hit area returns transparent corners to the underlying content. */
+  border-radius: 999px;
 }
-.nx-nova-copy { flex: 1; min-width: 0; font: 600 14px/20px var(--font-v5); }
-.nx-nova-hint { display: block; margin-top: 2px; color: var(--v5-ink-3); font: 400 12px/18px var(--font-v5); }
+.nx-nova-bubble--dimmed { opacity: 0; pointer-events: none; }
+.nx-nova-bubble--dimmed .nx-nova-motion { animation-play-state: paused; }
+.nx-nova-bubble--light .nx-nova-btn {
+  background: linear-gradient(155deg, #fff, #eef2e5);
+  box-shadow: 0 3px 12px rgba(42, 53, 24, .14), inset 0 0 0 1px #dde4d3;
+}
 /* Press belongs to the outer hit target; idle float belongs to the inner visual. */
 .nx-nova-bubble:active {
   transform: scale(.94);

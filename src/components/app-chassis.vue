@@ -118,7 +118,6 @@
                5 protected tab pages stay untouched (ALIGNMENT red-line). Self-
                hides unless a claimable voucher targets the current surface. -->
           <slot />
-          <NovaBubble v-if="isTabRoute && activeTab !== 'home' && activeTab !== 'store' && activeTab !== 'me'" />
         </view>
       </view>
     </view>
@@ -127,6 +126,8 @@
 
     <!-- Bottom chrome: floating pill TabBar (tab routes) + home indicator (always) -->
     <view class="nx-tabbar-wrap">
+      <!-- Anchor to the actual navigation height, including its safe area. -->
+      <NovaBubble v-if="showFloatingSupport" :dimmed="scrolling" />
       <GlassSegments v-if="isTabRoute" :key="navigationReset" class="nx-tabbar-pill" variant="navigation" :options="navigationOptions" :model-value="activeTab" :from-value="navigationReset ? undefined : navigationFrom" :navigation-on-arrival="tabHost ? false : undefined" @select="selectNavigation">
         <template #option="{ option: tab, selected }">
           <svg class="nx-tab__icon" width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -365,9 +366,8 @@ function pageScrollKey(): string {
   }
 }
 // ── Nova 浮标让路 —— 滚动中淡出,停下再淡回 ──
-// 浮标 fixed 在右下角,而内容区一直延伸到它下面(内容底部只留 TABBAR_INSET=104px,
-// 浮标含浮动动画顶到 152px)→ 它永远横在正在读的内容上。滚动 = 用户在看内容,
-// 此刻让它隐身;停下 SCROLL_IDLE_MS 后淡回(主人 2026-08-17 拍板)。
+// 浮标锚定导航上方；滚动时让出正在阅读的内容，停下后淡回。
+// 页尾另加空间，确保最后一个操作可以完整滚过浮标。
 // 复位靠 debounce 而非 scrollend:后者 Safari / uni webview 都还没有。
 const SCROLL_IDLE_MS = 200;
 const scrolling = ref(false);
@@ -584,7 +584,9 @@ const HEADER_H = 56;
 const TABBAR_INSET = 104; // floating pill (64) + home indicator (22) + 18 breathing (was 92)
 const SUB_BOTTOM = 40; //  home indicator (~22) + 18 breathing (was 26)
 const contentTop = computed(() => statusBarHeight.value + (isTabRoute.value ? HEADER_H : navHeaderH.value));
-const contentBottom = computed(() => (isTabRoute.value ? TABBAR_INSET : SUB_BOTTOM));
+const showFloatingSupport = computed(() => isTabRoute.value && ['home', 'earn', 'team'].includes(activeTab.value));
+// Let the last page action scroll fully above the floating support shortcut.
+const contentBottom = computed(() => (isTabRoute.value ? TABBAR_INSET + (showFloatingSupport.value ? 60 : 0) : SUB_BOTTOM));
 // ── 待支付浮动条的落位 ──
 // 浮动条永远占 chrome 之下自己的一条带(top = contentTop + 8),页面内容整体下让 PENDING_BAR_INSET,
 // 任何页都不被盖住:tab 页 / useSetPageHeader 子页的 chassis 头在带之上;用 sub-page-header(内容内
@@ -977,6 +979,10 @@ export default chassisView;
 .nx-tabbar-pill {
   margin: 0 12px;
 }
+/* APP's view thread supplies this state when the logic thread has no DOM. */
+.nx-chassis[data-scrolling="true"] :deep(.nx-nova-bubble) { opacity: 0; pointer-events: none; }
+.nx-chassis[data-scrolling="true"] :deep(.nx-nova-motion),
+.nx-chassis[data-scrolling="true"] :deep(.nx-nova-halo) { animation-play-state: paused; }
 </style>
 
 <style scoped>

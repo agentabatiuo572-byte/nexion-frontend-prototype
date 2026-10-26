@@ -22,8 +22,9 @@ const demoStartedAt = Date.now();
 const localized = (locale,zh,en,vi) => locale === 'zh' ? zh : locale === 'vi' ? vi : en;
 const voucherDiscount=(state,id,total)=>id==='V-DESIGN'&&!state.voucherUsed&&(state.voucherClaimed||['claimed','grace'].includes(state.benefitState))?Math.min(50,total):0;
 const bundleRate=count=>count>=4?.11:count===3?.07:count===2?.04:0;
-export const demoDefaults = {catalogState:'available',taskState:'pending',eventState:'mixed',raffleState:'normal',pairingState:'pending',benefitState:'available',dataState:'normal',stakingState:'enabled',bankState:'pending',riskState:'accepted',streakState:'normal',ambassadorState:'none',highestRank:false,checkedIn:false,offers:true,messages:true,promotions:true,completed:[],read:false};
+export const demoDefaults = {machineImageState:'normal',catalogState:'available',taskState:'pending',eventState:'mixed',raffleState:'normal',pairingState:'pending',benefitState:'available',dataState:'normal',stakingState:'enabled',bankState:'pending',riskState:'accepted',streakState:'normal',ambassadorState:'none',highestRank:false,checkedIn:false,offers:true,messages:true,promotions:true,completed:[],read:false};
 export const demoOptions = {
+  machineImageState:[['normal','原活动机型'],['alternate','后台换机型（Pro 赠 S1）'],['missing-main','主购缺图（赠品保持原位）'],['missing','目录未发布图片'],['broken','图片加载失败']],
   catalogState:[['phased','完整目录（含即将上线）'],['available','全部 SKU 可购'],['soldout','S1 售罄'],['restricted','购买条件未满足']],
   taskState:[['pending','任务进行中'],['complete','全部完成·待领取'],['claimed','奖励已领取'],['expired','任务已过期'],['empty','暂无任务'],['legacy','任务信息待补全']],
   eventState:[['mixed','全部活动状态'],['available','可参与'],['joined','已参与'],['claimable','奖励待领取'],['claimed','奖励已领取'],['upcoming','即将开始'],['ended','已结束'],['empty','暂无活动']],
@@ -55,7 +56,7 @@ export function demoProducts(state,origin='http://127.0.0.1:5190',locale='zh') {
       releaseState:upcoming?'LOCKED':'RELEASED',releasePhaseId:upcoming?'phase-next':'phase-current',unlocksAtPhase:null,purchaseGate:null,
       ...(share?{shareYieldMin:8,shareYieldMax:12}:{}),
     };
-  });
+  }).map(product=>({...product,imageUrl:state.machineImageState==='missing'||(state.machineImageState==='missing-main'&&product.id==='stellarbox-s1')?undefined:state.machineImageState==='broken'?new URL('/static/demo-missing-'+product.id+'.webp',origin).href:product.imageUrl}));
 }
 
 const orderStates={placed:['PENDING','PENDING_PAYMENT','WAITING_PAYMENT'],paid:['PAID','PAID','WAITING_PROVISIONING'],provisioning:['PAID','PROCESSING','PROVISIONING'],activated:['PAID','COMPLETED','ACTIVATED'],payment_failed:['FAILED','PAYMENT_FAILED','WAITING_PAYMENT'],expired:['EXPIRED','EXPIRED','WAITING_PAYMENT'],provisioning_failed:['PAID','PROVISIONING_FAILED','PROVISIONING_FAILED'],refunded:['REFUNDED','REFUNDED','REFUNDED'],chargeback:['CHARGEBACK','CHARGEBACK','DEACTIVATED'],cancelled:['CANCELLED','CANCELLED','WAITING_PAYMENT']};
@@ -209,15 +210,20 @@ export function demoFixture(url,locale,state,request) {
   if(pathname==='/api/promotions'||/^\/api\/promotions\/demo-promo-\d+$/.test(pathname)) {
     const sample=base('/api/promotions').items[0];
     const configs=[['SKU_GIFT','买 UVELBox S1','Buy UVELBox S1','Mua UVELBox S1','stellarbox-s1'],['FIRST_PURCHASE','首购成长礼','First purchase reward','Quà mua lần đầu','stellarbox-s1'],['DIRECT_REFERRAL','邀请好友购机礼','Referral purchase reward','Quà giới thiệu','stellarbox-pro'],['MULTI_PRODUCT','算力组合礼','Compute bundle offer','Ưu đãi kết hợp','stellarrack-p1'],['REPURCHASE','老用户加购礼','Returning member offer','Ưu đãi mua thêm','cloud-share']];
+    if(state.machineImageState==='alternate'){
+      configs[0]=['SKU_GIFT','买 UVELBox Pro','Buy UVELBox Pro','Mua UVELBox Pro','stellarbox-pro'];
+      configs[2][4]='stellarrack-p1';
+    }
     const items=empty||state.eventState==='empty'?[]:configs.map(([template,zh,en,vi,productNo],i)=>{
       const item=structuredClone(sample);item.activityId='demo-promo-'+i;item.template=template;item.title={zh,en,vi};item.productNos=template==='MULTI_PRODUCT'?['stellarbox-pro','stellarrack-p1','stellarbox-s1']:[productNo];item.placement=[0,1,4].includes(i)?'home.purchase-promotion':null;
       item.rewardRules[0].productNo=productNo;item.rewardRules[0].ruleId='demo-rule-'+i;
       item.serverTime=iso;
       if(i===0){
         item.endsAt=new Date(now+29*day).toISOString();
-        const reward=item.rewardRules[0].buyerReward;reward.giftProductNo='cloud-share';reward.quantity=1;
-        reward.disclosure.deviceName='Cloud Share';
-        reward.disclosure.benefitDescription={zh:'送 Cloud Share 1 份',en:'Get 1 Cloud Share',vi:'Tặng 1 Cloud Share'};
+        const alternate=state.machineImageState==='alternate',giftName=alternate?'UVELBox S1':'Cloud Share';
+        const reward=item.rewardRules[0].buyerReward;reward.giftProductNo=alternate?'stellarbox-s1':'cloud-share';reward.quantity=1;
+        reward.disclosure.deviceName=giftName;
+        reward.disclosure.benefitDescription={zh:'送 '+giftName+' 1 份',en:'Get 1 '+giftName,vi:'Tặng 1 '+giftName};
       }
       if(i>0){const d=item.rewardRules[0].buyerReward.disclosure;d.deviceName=null;d.title={zh:'购机奖励',en:'Purchase reward',vi:'Thưởng mua hàng'};d.benefitDescription={zh:'领取 '+(i*50)+' UVT',en:'Receive '+(i*50)+' UVT',vi:'Nhận '+(i*50)+' UVT'};item.rewardRules[0].buyerReward={rewardRuleId:'demo-reward-'+i,beneficiaryRole:'BUYER',type:'NEX',amount:String(i*50),disclosure:d};}
       if(state.eventState==='upcoming'){item.state='SCHEDULED';item.startsAt=new Date(now+day).toISOString();}else if(state.eventState==='ended'){item.state='ENDED';item.endsAt=new Date(now-day).toISOString();}
@@ -297,6 +303,7 @@ export function demoFixture(url,locale,state,request) {
   if(pathname==='/api/devices/earnings') {
     const data=base();data.walletUsdt=empty?0:state.walletBalance??52800.64;data.walletNex=empty?0:1280;data.dailyUsdt=empty?0:28.6;data.dailyNex=empty?0:15;
     data.devices=empty?[]:data.devices.concat({...data.devices[0],id:42,instanceNo:'DEMO-PRO',name:'UVELBox Pro',productCode:'STELLARBOX-PRO',dailyUsdt:22.4,dailyNex:12,todayEarningsUsdt:13.9,todayEarningsNex:2,actualPaidUsdt:4999}).map(device=>({...device,runtimeStatus:'ONLINE'}));
+    if(!empty&&state.machineImageState==='alternate')Object.assign(data.devices.at(-1),{instanceNo:'DEMO-RACK',name:'UVELRack P1',productCode:'STELLARRACK-P1',dailyUsdt:45,dailyNex:30,actualPaidUsdt:12999});
     if(!empty)for(const order of state.createdOrders||[])if(order.canonicalStatus==='activated')for(const [i,line]of order.lineItems.entries())for(let unit=0;unit<line.quantity;unit++){
       const product=products.find(p=>p.id===line.sku),instanceNo=order.orderNo+'-'+i+'-'+unit;
       state.deviceIds??={};state.deviceIds[instanceNo]??=(state.deviceSequence=(state.deviceSequence||1000)+1);
