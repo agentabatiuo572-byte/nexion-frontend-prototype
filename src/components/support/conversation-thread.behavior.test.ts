@@ -164,6 +164,49 @@ it.each(['sent', 'read'] as const)('animates a new pending human send once, then
   expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(1);
 });
 
+it('retains the mounted bubble and remaining entrance when an acknowledgement arrives before the first animation finishes', async () => {
+  const screen = mount([message('history', 'left')]);
+  const pending = message('pending-fast', 'right', { localSend: true, deliveryState: 'sending' });
+  screen.props.messages.push(pending); await flush();
+  const key = screen.view.messageKey(pending);
+  await vi.advanceTimersByTimeAsync(12);
+  const confirmed = message('server-fast', 'right', { deliveryState: 'sent' });
+  screen.props.messages = [screen.props.messages[0], confirmed]; await flush();
+  expect(screen.view.messageKey(confirmed)).toBe(key);
+  expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(1);
+  expect(screen.sound.play).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(187); await flush();
+  expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(2); await flush();
+  expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(0);
+  expect(screen.view.messageKey(confirmed)).toBe(key);
+});
+
+it('continues a quick acknowledgement while independently animating a simultaneous incoming reply', async () => {
+  const screen = mount([message('history', 'left')]);
+  screen.props.messages.push(message('pending-fast', 'right', { localSend: true })); await flush();
+  screen.props.messages = [screen.props.messages[0], message('confirmed'), message('incoming', 'left')]; await flush();
+  const node = await screen.node();
+  expect(screen.view.messageKey(screen.props.messages[1])).toBe('pending-fast');
+  expect(findAll(node, 'nx-conv-enter-right')).toHaveLength(1);
+  expect(findAll(node, 'nx-conv-enter-left')).toHaveLength(1);
+  expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('receive');
+});
+
+it('does not merge ambiguous outgoing replacements or carry visual aliases into another conversation', async () => {
+  const screen = mount([message('history', 'left')]);
+  screen.props.messages.push(message('pending', 'right', { localSend: true })); await flush();
+  screen.props.messages = [screen.props.messages[0], message('a'), message('b')]; await flush();
+  expect(screen.view.messageKey(screen.props.messages[1])).toBe('a');
+  expect(screen.view.messageKey(screen.props.messages[2])).toBe('b');
+  screen.props.messages.push(message('pending-next', 'right', { localSend: true })); await flush();
+  screen.props.messages = [...screen.props.messages.slice(0, -1), message('server-next')]; await flush();
+  expect(screen.view.messageKey(screen.props.messages.at(-1))).toBe('pending-next');
+  screen.props.composerKey = 'conversation:B'; await flush();
+  expect(screen.view.messageKey(screen.props.messages.at(-1))).toBe('server-next');
+  expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(0);
+});
+
 it.each(['queued', 'sending', 'failed', 'unknown', 'sent', 'read'] as const)('renders an accessible %s status icon and permits retry only for unresolved local sends', async deliveryState => {
   const original = message('pending-original', 'right', { text: 'Original text', localSend: true, deliveryState });
   const screen = mount([original]), node = await screen.node();

@@ -515,6 +515,7 @@ describe("human chat realtime presence", () => {
     expect(reconnecting.page.dotStyle.value).toMatchObject({ animation: "none" });
     expect(online.page.headerRole.value).toBe(zh.conversations.online);
     expect(online.page.dotStyle.value.animation).toBeUndefined();
+    expect(online.page.dotStyle.value.background).toBe('var(--nx-presence-green)');
     expect(offline.page.headerRole.value).toBe(zh.conversations.offline);
     expect(offline.page.dotStyle.value).toMatchObject({ animation: "none" });
     reconnecting.page.cleanup(); online.page.cleanup(); offline.page.cleanup();

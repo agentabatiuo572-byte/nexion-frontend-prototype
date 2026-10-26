@@ -34,7 +34,7 @@
         </view>
         <view class="cp-meta">
           <text class="cp-name">{{ headerName }}</text>
-          <view v-if="headerRole" class="cp-role">
+          <view v-if="headerRole" class="cp-role" :class="{ 'cp-role--online': !isAi && headerRole === t.conversations.online }">
             <view class="cp-dot" :style="dotStyle" />
             <text class="cp-role-t">{{ headerRole }}</text>
           </view>
@@ -899,7 +899,7 @@ const headerTint = computed(() =>
 const dotStyle = computed<CSSProperties>(() =>
   humanPresence.value.mutedDot
     ? { background: "var(--v5-ink-4)", animation: "none" }
-    : { background: headerTint.value },
+    : { background: isAi.value ? headerTint.value : "var(--nx-presence-green)" },
 );
 const headerIcon = computed(() => (humanType.value === "advisor" ? ADVISOR_ICON : SUPPORT_ICON));
 const avaStyle = computed<CSSProperties>(() => ({
@@ -1685,6 +1685,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   background: var(--v5-bg);
 }
 .cp-head {
+  --nx-presence-green: #37C96A;
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
@@ -1776,6 +1777,8 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   line-height: 1.4;
   color: var(--v5-ink-3);
 }
+:global([data-theme="light"] .cp-head) { --nx-presence-green: #177D3B; }
+.cp-role--online .cp-role-t { color: var(--nx-presence-green); }
 /* Home Indicator overlay — pinned to the bottom safe area over the input row's
    padding (.cp-root is position:fixed, so absolute anchors to it). */
 .cp-home {
