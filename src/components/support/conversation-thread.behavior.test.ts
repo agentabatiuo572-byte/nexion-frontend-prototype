@@ -287,6 +287,15 @@ it('renders date/gap markers independently of precise per-message times and does
   expect(findAll(await screen.node(), 'nx-conv-enter-left')).toHaveLength(0);
 });
 
+it('labels a fresh arrival as today between clock ticks without hiding a genuinely future timestamp', async () => {
+  const start = new Date(2026, 9, 26, 14, 0).getTime(); vi.setSystemTime(start);
+  const screen = mount(); vi.setSystemTime(start + 20_000);
+  screen.props.messages = [message('live', 'left', { timestamp: start + 20_000 })]; await flush();
+  expect(screen.view.timeGroups.value.live).toBe('今天 14:00');
+  screen.props.messages = [...screen.props.messages, message('future', 'left', { timestamp: start + 320_000 })]; await flush();
+  expect(screen.view.timeGroups.value.future).toContain('2026年10月26日');
+});
+
 it('disables unavailable image input without a visible caption while text sending and policy recovery remain usable', async () => {
   const screen = mount(); screen.props.attachDisabled = true; screen.props.attachUnavailable = 'Images unavailable';
   let node = await screen.node(); const attach = findAll(node, 'nx-conv-attach-trigger')[0];

@@ -246,6 +246,11 @@ const timeOptions = computed<ConversationTimeOptions>(() => {
 });
 const timeGroups = computed(() => buildConversationTimeGroups(props.messages, timeOptions.value));
 const messageTimes = computed(() => Object.fromEntries(props.messages.map(message => [message.id, formatConversationTime(message.timestamp, timeOptions.value)])));
+// New messages can arrive between minute ticks. Refresh the display clock from
+// the device, so an ordinary live message is not briefly labelled as future.
+watch(() => props.messages.map(message => [message.id, message.timestamp]), () => {
+  if (threadVisible.value) clockNow.value = Date.now();
+});
 function messageMeta(message: ThreadMsg) { return [message.meta, messageTimes.value[message.id]?.clock].filter(Boolean).join(' · '); }
 onHide(() => { threadVisible.value = false; });
 onShow(() => { entranceReveal.value++; threadVisible.value = true; });
