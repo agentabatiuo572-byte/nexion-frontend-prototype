@@ -153,7 +153,7 @@
         @confirm="onSend"
       />
       <view class="nx-conv-send" :class="{ 'nx-conv-send--ready': canSend || sendFeedback, 'nx-conv-send--feedback': sendFeedback }" role="button" :tabindex="canSend ? 0 : -1" :aria-label="sendLabel" :aria-disabled="!canSend" @click="onSend" @keydown.enter.prevent="onKeyboardActivate($event, onSend)" @keydown.space.prevent="onKeyboardActivate($event, onSend)">
-        <view class="nx-conv-send-face" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg></view>
+        <view class="nx-conv-send-face" aria-hidden="true"><LiquidGlass :radius="22" /><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg></view>
       </view>
     </view>
     <view v-if="attachRetry" class="nx-conv-policy-retry" role="button" tabindex="0" @click="emit('retry-policy')" @keydown.enter.prevent="emit('retry-policy')" @keydown.space.prevent="emit('retry-policy')"><text>{{ imageLabels?.retryPolicy }}</text></view>
@@ -741,12 +741,14 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .nx-conv-send[aria-disabled="true"] { cursor: default; }
 .nx-conv-send-face {
   width: 44px; height: 44px; border-radius: inherit;
+  position: relative;
   display: flex; align-items: center; justify-content: center;
-  background: var(--v5-surface-3); color: var(--v5-ink-3);
-  box-shadow: inset 0 0 0 1px var(--v5-border);
-  transition: transform 80ms ease-out, background-color 120ms ease-out, color 120ms ease-out;
+  background: transparent; color: var(--v5-ink-3);
+  --v5-liquid-shadow: inset 0 0 0 .5px var(--v5-border);
+  transition: transform 80ms ease-out, color 120ms ease-out;
 }
-.nx-conv-send--ready .nx-conv-send-face { background: var(--v5-brand); color: var(--v5-on-brand); box-shadow: none; }
+.nx-conv-send-face > svg { position: relative; z-index: 1; }
+.nx-conv-send--ready .nx-conv-send-face { --v5-liquid-tint: color-mix(in srgb, var(--v5-brand) 82%, transparent); color: var(--v5-on-brand); }
 .nx-conv-send[aria-disabled="false"]:active .nx-conv-send-face { transform: scale(.92); }
 .nx-conv-send--feedback .nx-conv-send-face { animation: nx-conv-send-tap 200ms cubic-bezier(.2,.8,.3,1) both; }
 @keyframes nx-conv-send-tap { 0% { transform: scale(1); } 35% { transform: scale(.9); } 100% { transform: scale(1); } }
