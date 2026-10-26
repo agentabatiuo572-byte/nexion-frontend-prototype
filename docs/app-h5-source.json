@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "31e43645c96b666c61ed119cf4d4035b3db2a980",
-  "sourceRef": "31e43645c96b666c61ed119cf4d4035b3db2a980",
+  "sourceHead": "f80c088ae40f24cd96e3b2dc889fe4752a2356f4",
+  "sourceRef": "f80c088ae40f24cd96e3b2dc889fe4752a2356f4",
   "sourceRefKind": "commit",
-  "sourceTree": "8ac60c93f1049fba17840cf29a4d6c93ad76add6",
+  "sourceTree": "73940a3426bfc982c00a900ff3ddbfb05829c4f5",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -4430,10 +4430,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "a8a04828aa74097eefd73522ba9522a5a7bbb2b0",
-      "sourceSha256": "ca402b8653407f3980e5a443dbbe130801c4114acb52dc996f2d8677f47255ef",
-      "targetBlob": "a8a04828aa74097eefd73522ba9522a5a7bbb2b0",
-      "targetSha256": "ca402b8653407f3980e5a443dbbe130801c4114acb52dc996f2d8677f47255ef",
+      "sourceBlob": "016cebdeca83b2cf5cd56be61ac989b9dee7d5f0",
+      "sourceSha256": "232faed1744532b64804f297af3d1fb16507496ca6c4f2972c26a74cc4608d4c",
+      "targetBlob": "016cebdeca83b2cf5cd56be61ac989b9dee7d5f0",
+      "targetSha256": "232faed1744532b64804f297af3d1fb16507496ca6c4f2972c26a74cc4608d4c",
       "mode": "100644"
     },
     "index.html": {
@@ -6005,10 +6005,10 @@
       "mode": "100644"
     },
     "scripts/prototype-preview.html": {
-      "sourceBlob": "3bfb8ab6303443ac1f1502f75a752152f6ed3afe",
-      "sourceSha256": "72d36bb5a7664c76e0edcd4e6a1afd4009a5a13c578b3290162649f99ebb2581",
-      "targetBlob": "3bfb8ab6303443ac1f1502f75a752152f6ed3afe",
-      "targetSha256": "72d36bb5a7664c76e0edcd4e6a1afd4009a5a13c578b3290162649f99ebb2581",
+      "sourceBlob": "d25877c07f6f05102504cd203c13ef194200b762",
+      "sourceSha256": "36bf5ae6c24b9d34308976d4d81e37f4551d33fc441b4e79d4ee7a16ef509033",
+      "targetBlob": "d25877c07f6f05102504cd203c13ef194200b762",
+      "targetSha256": "36bf5ae6c24b9d34308976d4d81e37f4551d33fc441b4e79d4ee7a16ef509033",
       "mode": "100644"
     },
     "scripts/purchase-eligibility-checkout-contract.test.mjs": {
