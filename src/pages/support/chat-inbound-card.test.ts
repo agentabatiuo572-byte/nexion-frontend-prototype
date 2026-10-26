@@ -11,7 +11,7 @@ import routeSource from "@/lib/route.ts?raw";
 
 const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
 const ast = ts.createSourceFile("chat.ts", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-const wanted = new Set(["threadMessages", "humanMessageRecommendation", "avatarImageKey", "loadPrivateImages", "clearPrivateImages", "humanMessageTime", "receiptFor"]);
+const wanted = new Set(["threadMessages", "humanMessageRecommendation", "avatarImageKey", "loadPrivateImages", "clearPrivateImages", "receiptFor"]);
 const nodes = ast.statements.filter(node => ts.isFunctionDeclaration(node) ? wanted.has(node.name?.text ?? "")
   : ts.isVariableStatement(node) && node.declarationList.declarations.some(d => wanted.has(d.name.getText(ast))));
 const code = ts.transpileModule(nodes.map(node => node.getText(ast)).join("\n"), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;

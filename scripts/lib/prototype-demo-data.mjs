@@ -24,7 +24,7 @@ const voucherDiscount=(state,id,total)=>id==='V-DESIGN'&&!state.voucherUsed&&(st
 const bundleRate=count=>count>=4?.11:count===3?.07:count===2?.04:0;
 export const demoDefaults = {messageState:'normal',machineImageState:'normal',catalogState:'available',taskState:'pending',eventState:'mixed',raffleState:'normal',pairingState:'pending',benefitState:'available',dataState:'normal',stakingState:'enabled',bankState:'pending',riskState:'accepted',streakState:'normal',ambassadorState:'none',highestRank:false,checkedIn:false,offers:true,messages:true,promotions:true,completed:[],read:false};
 export const demoOptions = {
-  messageState:[['normal','普通会话 · 1条未读'],['receipts','双向回执样例'],['history','三页历史与图文消息'],['incoming','追加客服消息（原页刷新）'],['long-count','长未读计数 · 1298'],['read','会话全部已读']],
+  messageState:[['normal','普通会话 · 1条未读'],['receipts','双向回执样例'],['history','三页历史与图文消息'],['timeline','时间分组 · 跨日与5分钟'],['incoming','追加客服消息（原页刷新）'],['long-count','长未读计数 · 1298'],['read','会话全部已读']],
   machineImageState:[['normal','原活动机型'],['alternate','后台换机型（Pro 赠 S1）'],['missing-main','主购缺图（赠品保持原位）'],['missing','目录未发布图片'],['broken','图片加载失败']],
   catalogState:[['phased','完整目录（含即将上线）'],['available','全部 SKU 可购'],['soldout','S1 售罄'],['restricted','购买条件未满足']],
   taskState:[['pending','任务进行中'],['complete','全部完成·待领取'],['claimed','奖励已领取'],['expired','任务已过期'],['empty','暂无任务'],['legacy','任务信息待补全']],

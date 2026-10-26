@@ -12,11 +12,21 @@ export function supportDemo(url,locale,state,request) {
   const scenario=state.messageState||'normal';
   if(state.supportScenario!==scenario) {
     const detail=state.supportConversations[0];
-    state.supportHistory=scenario==='history'||scenario==='incoming'&&state.supportHistory;
-    if(scenario==='history') {
+    state.supportHistory=['history','timeline'].includes(scenario)||scenario==='incoming'&&state.supportHistory;
+    if(['history','timeline'].includes(scenario)) {
       detail.messages=Array.from({length:24},(_,index)=>({id:index+1,senderType:index%2?'user':'agent',content:text('第'+(index+1)+'条历史消息。这里保留设备查询与服务沟通的完整内容，方便检查长正文换行。','History message '+(index+1)+'. The full device and service discussion remains available for checking long text wrapping.','Tin nhắn lịch sử '+(index+1)+'. Nội dung đầy đủ về thiết bị và hỗ trợ được giữ lại để kiểm tra văn bản dài.'),createdAt:new Date(Date.now()-(25-index)*60000).toISOString(),receiptStatus:index%2?'read':'sent'}));
       detail.messages[19]={...detail.messages[19],kind:'IMAGE',attachmentId:'demo-image',content:'',senderType:'agent'};
       detail.messages[21]={...detail.messages[21],kind:'SKU',skuId:'stellarbox-s1',skuName:'UVELBox S1',targetAvailability:'AVAILABLE',senderType:'agent',content:'UVELBox S1'};
+      if(scenario==='timeline') {
+        const today=new Date();today.setHours(0,0,0,0);
+        const at=(days,hours,minutes)=>{const date=new Date(today);date.setDate(date.getDate()+days);date.setHours(hours,minutes,0,0);return date.toISOString();};
+        const minutes=[1,2,7,9,10,11,16,17];
+        detail.messages.forEach((message,index)=>{
+          message.createdAt=index<8?at(-3,14,index):index<16?at(-1,23,52+index-8):at(0,0,minutes[index-16]);
+        });
+        const previousYear=new Date(today);previousYear.setFullYear(previousYear.getFullYear()-1,11,31);previousYear.setHours(10,0,0,0);
+        detail.messages[0].createdAt=previousYear.toISOString();
+      }
       Object.assign(detail.conversation,{unreadCount:2,lastMessage:detail.messages.at(-1).content,lastMessageAt:detail.messages.at(-1).createdAt,lastPublicMessageId:24});
     } else if(scenario==='receipts') {
       const samples=[

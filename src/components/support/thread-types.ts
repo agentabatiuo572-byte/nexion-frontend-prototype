@@ -17,6 +17,8 @@ export interface ThreadMsg {
   imageAttachmentId?: string;
   authorAvatarSrc?: string;
   meta?: string;
+  /** Original message creation instant in epoch milliseconds; never receipt/retry time. */
+  timestamp?: number;
   /** Pre-localised, authoritative receipt placed beside its own bubble. */
   receipt?: string;
   ctaLabel?: string;

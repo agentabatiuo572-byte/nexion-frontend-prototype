@@ -75,6 +75,8 @@
 
     <!-- Thread body (messages + chips + input) -->
     <ConversationThread
+      ref="conversationThread"
+      :time-locale="locale.code"
       @typing="!isAi && convStore.setTyping($event)"
       :messages="threadMessages"
       :entrance-ready="isAi ? !novaHistoryLoading : humanOpenRequest === null && !humanHistoryRetryBusy && !humanEarlierBusy"
@@ -905,15 +907,7 @@ function receiptFor(status: "sent" | "read" | undefined, isLatestReceipt: boolea
   return status === "read" ? t.value.conversations.receiptRead : t.value.conversations.receiptSent;
 }
 
-// Native engines can ignore locale options; retain each language's local clock.
-function humanMessageTime(timestamp: number): string {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "—";
-  const hour = date.getHours(), minute = String(date.getMinutes()).padStart(2, "0");
-  return locale.code === "zh" || locale.code === "vi"
-    ? `${String(hour).padStart(2, "0")}:${minute}`
-    : `${String(hour % 12 || 12).padStart(2, "0")}:${minute} ${hour < 12 ? "AM" : "PM"}`;
-}
+const conversationThread = ref<{ prepareHistoryPrepend(): Promise<void> } | null>(null);
 
 function humanMessageRecommendation(message: ConvMessage): Partial<ThreadMsg> {
   if (message.kind !== "SKU" && message.kind !== "LINK") return {};
@@ -941,6 +935,7 @@ const threadMessages = computed<ThreadMsg[]>(() => {
       side: m.sender === "user" ? "right" : "left",
       tone: m.sender === "user" ? "user" : "agent",
       text: m.text,
+      timestamp: m.ts,
       receipt: receiptFor(m.status, i === lastUser),
       queue: m.delivery ? {
         turnId: m.turnId!, state: m.delivery,
@@ -970,7 +965,8 @@ const threadMessages = computed<ThreadMsg[]>(() => {
     imageAttachmentId: m.attachmentId,
     imageLoading: !!m.attachmentId && !imageSources.value[m.attachmentId] && !imageFailures.value[m.attachmentId],
     imageError: !!m.attachmentId && !!imageFailures.value[m.attachmentId],
-    meta: `${m.sender === "user" ? t.value.conversations.image.you : m.authorName || (c.type === "advisor" ? t.value.conversations.typeAdvisor : t.value.conversations.typeSupport)} · ${humanMessageTime(m.ts)}`,
+    timestamp: m.ts,
+    meta: m.sender === "user" ? t.value.conversations.image.you : m.authorName || (c.type === "advisor" ? t.value.conversations.typeAdvisor : t.value.conversations.typeSupport),
     receipt: receiptFor(m.status, i === lastUser || m.sender === "agent"),
     authorAvatarSrc: imageSources.value[avatarImageKey(m) ?? ""],
     ...humanMessageRecommendation(m),
@@ -980,7 +976,7 @@ const threadMessages = computed<ThreadMsg[]>(() => {
     ? localizedIdleClose(c.lastMessage, t.value.conversations) : null;
   return idleClose ? [...messages, {
     id: `idle-close:${c.id}:${c.lastTs}`, side: "left" as const,
-    tone: "system" as const, text: idleClose,
+    tone: "system" as const, text: idleClose, timestamp: c.lastTs,
   }] : messages;
 });
 
@@ -992,6 +988,8 @@ async function loadEarlierHumanHistory() {
   humanEarlierBusy.value=true;
   const request=historyRetryGeneration;
   try {
+    await conversationThread.value?.prepareHistoryPrepend();
+    if (!humanRealtime.isCurrent(scope.epoch, scope.id) || request !== historyRetryGeneration) return;
     const earlier = humanHistory.value.find(row=>row.historyNextCursor);
     if (earlier) await convStore.loadEarlier(earlier.id, () => humanRealtime.isCurrent(scope.epoch, scope.id));
   } catch {
@@ -1091,6 +1089,8 @@ async function loadEarlierNovaHistory() {
   const epoch=++novaHistoryEpoch;
   novaHistoryLoading.value=true;
   try {
+    await conversationThread.value?.prepareHistoryPrepend();
+    if (!novaPageVisible || epoch !== novaHistoryEpoch) return;
     await nova.loadEarlierRemote(app.accountKey, cursor => novaAiApi.history(nova.conversationId, cursor));
   } catch {
     if(novaPageVisible&&epoch===novaHistoryEpoch)toast.warn(t.value.nova.localFailed, t.value.nova.localRetry);

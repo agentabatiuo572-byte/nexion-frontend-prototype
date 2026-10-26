@@ -13,6 +13,7 @@ import { formatUnreadBadge } from "@/lib/unread-badge";
 import { installSupportStorage } from "@/test/storage-setup";
 import * as conversationEntrance from '@/components/support/conversation-entrance';
 import * as conversationScroll from '@/components/support/conversation-scroll';
+import * as conversationTime from '@/components/support/conversation-time';
 
 installSupportStorage();
 beforeEach(() => {
@@ -651,6 +652,7 @@ function humanThreadComponent(state: unknown) {
     if (name === '@/store/app') return { useApp: () => state };
     if (name === './conversation-entrance') return conversationEntrance;
     if (name === './conversation-scroll') return conversationScroll;
+    if (name === './conversation-time') return conversationTime;
     if (name === '@/components/liquid-glass.vue') return { default: { render: () => null } };
     throw new Error(`Unexpected composer dependency: ${name}`);
   }, {});
@@ -691,6 +693,7 @@ describe("rendered human composer account boundary", () => {
       if (name === "@/store/app") return { useApp: () => state };
       if (name === "./conversation-entrance") return conversationEntrance;
       if (name === "./conversation-scroll") return conversationScroll;
+      if (name === "./conversation-time") return conversationTime;
       if (name === "@/components/liquid-glass.vue") return { default: { render: () => null } };
       throw new Error(`Unexpected composer dependency: ${name}`);
     }, {});

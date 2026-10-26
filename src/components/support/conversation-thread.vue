@@ -20,13 +20,16 @@
         <text class="nx-conv-empty-t">{{ emptyHint }}</text>
       </view>
 
-      <view v-for="m in messages" :key="m.id" :id="messageRowId(m.id)" class="nx-conv-msg-row">
+      <view v-for="m in messages" :key="m.id" class="nx-conv-msg-row">
+        <view v-if="timeGroups[m.id]" class="nx-conv-time-divider" role="separator" :aria-label="messageTimes[m.id]?.full">
+          <text>{{ timeGroups[m.id] }}</text>
+        </view>
         <!-- system notice -->
-        <view v-if="m.tone === 'system'" class="nx-conv-sys">
+        <view v-if="m.tone === 'system'" :id="messageRowId(m.id)" class="nx-conv-sys" :title="messageTimes[m.id]?.full">
           <text class="nx-conv-sys-t">{{ m.text }}</text>
         </view>
         <!-- chat bubble -->
-        <view v-else class="nx-conv-bubble-row" :class="m.side === 'right' ? 'nx-conv-right' : 'nx-conv-left'" v-bind="entranceBindings(m)">
+        <view v-else :id="messageRowId(m.id)" class="nx-conv-bubble-row" :class="m.side === 'right' ? 'nx-conv-right' : 'nx-conv-left'" v-bind="entranceBindings(m)">
           <image v-if="m.authorAvatarSrc" class="nx-conv-author-avatar" :src="m.authorAvatarSrc" mode="aspectFill" :aria-label="m.meta" />
           <view class="nx-conv-bubble-line" :class="m.side === 'right' ? 'nx-conv-bubble-line--right' : ''">
           <view v-if="m.side === 'right' && receiptText(m)" class="nx-conv-receipt" :data-state="m.queue?.state">
@@ -61,7 +64,7 @@
             <text class="nx-conv-receipt-t" :role="m.queue ? m.queue.state === 'failed' ? 'alert' : 'status' : undefined" :aria-live="m.queue ? 'polite' : undefined">{{ receiptText(m) }}</text>
           </view>
           </view>
-          <text v-if="m.meta" class="nx-conv-message-meta">{{ m.meta }}</text>
+          <text v-if="messageMeta(m)" class="nx-conv-message-meta" :title="messageTimes[m.id]?.full" :aria-label="[m.meta, messageTimes[m.id]?.full].filter(Boolean).join(' · ')">{{ messageMeta(m) }}</text>
         </view>
         <view v-if="m.queue && queueLabels" class="nx-conv-queue" :data-state="m.queue.state">
           <view v-if="m.queue.state === 'editing'" class="nx-conv-edit">
@@ -171,11 +174,13 @@ import { onHide, onShow } from '@/composables/use-tab-page-lifecycle';
 import { useApp } from '@/store/app';
 import { useConversationEntrance } from './conversation-entrance';
 import { conversationScrollChange, preservedConversationTop } from './conversation-scroll';
+import { buildConversationTimeGroups, formatConversationTime, type ConversationTimeOptions } from './conversation-time';
 
 const props = defineProps<{
   messages: ThreadMsg[];
   /** False while an authoritative history snapshot is being read. */
   entranceReady?: boolean;
+  timeLocale?: string;
   inputPlaceholder: string;
   /** 输入框的**名称**(稳定),与 inputPlaceholder(提示,随可用性变)分开。
       见 lib/a11y-field-label.ts 的契约:placeholder 在输入后就消失,不是稳定的名称,
@@ -224,6 +229,24 @@ const emit = defineEmits<{
 }>();
 
 const app = useApp(), threadVisible = ref(true), entranceReveal = ref(0);
+const clockNow = ref(Date.now());
+let clockTimer: ReturnType<typeof setInterval> | undefined;
+function stopClock() { clearInterval(clockTimer); clockTimer = undefined; }
+function startClock() {
+  stopClock(); clockNow.value = Date.now();
+  clockTimer = setInterval(() => { clockNow.value = Date.now(); }, 60_000);
+}
+onMounted(startClock);
+onShow(startClock);
+onHide(stopClock);
+onScopeDispose(stopClock);
+const timeOptions = computed<ConversationTimeOptions>(() => {
+  const language = props.timeLocale ?? 'zh';
+  return { locale: language === 'zh' || language === 'vi' ? language : 'en' as const, now: clockNow.value };
+});
+const timeGroups = computed(() => buildConversationTimeGroups(props.messages, timeOptions.value));
+const messageTimes = computed(() => Object.fromEntries(props.messages.map(message => [message.id, formatConversationTime(message.timestamp, timeOptions.value)])));
+function messageMeta(message: ThreadMsg) { return [message.meta, messageTimes.value[message.id]?.clock].filter(Boolean).join(' · '); }
 onHide(() => { threadVisible.value = false; });
 onShow(() => { entranceReveal.value++; threadVisible.value = true; });
 const { entranceBindings } = useConversationEntrance(() => ({
@@ -303,9 +326,14 @@ const scrollAnchor = ref(""), scrollTop = ref(0), scrollAnimated = ref(true), li
 const threadInstance = getCurrentInstance();
 let scrollGeneration = 0, scrollTimer: ReturnType<typeof setTimeout> | undefined;
 let lastScrollTop = 0;
+let preparedHistory: { id: string; prefix: number; owner: string } | null = null;
+let historyPreparation = 0;
+const historyOwner = () => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey, props.revealTick]);
 function cancelScroll() { scrollGeneration++; clearTimeout(scrollTimer); scrollAnchor.value = ''; }
 onScopeDispose(cancelScroll);
 onHide(cancelScroll);
+onHide(() => { preparedHistory = null; historyPreparation++; });
+onScopeDispose(() => { historyPreparation++; });
 function scroller(): HTMLElement | undefined {
   const host = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
   if (!host?.querySelectorAll) return;
@@ -330,6 +358,23 @@ function measurePrefix(firstId: string, done: (height: number) => void) {
     if (typeof body?.top === 'number' && typeof anchor?.top === 'number') done(anchor.top - body.top);
   });
 }
+// Capture before the request mutates history. Native selector queries are async;
+// waiting here also accounts for a first-row date marker disappearing on prepend.
+async function prepareHistoryPrepend(): Promise<void> {
+  cancelScroll(); preparedHistory = null;
+  const id = props.messages[0]?.id, owner = historyOwner(), preparation = ++historyPreparation;
+  if (!id) return;
+  await new Promise<void>(resolve => {
+    let expired = false;
+    const timeout = setTimeout(() => { expired = true; resolve(); }, 500);
+    measurePrefix(id, prefix => {
+      clearTimeout(timeout);
+      if (!expired && preparation === historyPreparation && threadVisible.value && owner === historyOwner() && props.messages[0]?.id === id) preparedHistory = { id, prefix, owner };
+      resolve();
+    });
+  });
+}
+defineExpose({ prepareHistoryPrepend });
 function scrollToEnd() {
   cancelScroll(); const ticket = scrollGeneration;
   const messages = props.messages.map(message=>message.id).join('\u0000');
@@ -350,11 +395,15 @@ function scrollToEnd() {
 }
 function preserveHistoryPosition(firstId: string) {
   const node = scroller(), top = node?.scrollTop ?? lastScrollTop;
+  let oldPrefix = preparedHistory?.id === firstId && preparedHistory.owner === historyOwner() ? preparedHistory.prefix : 0;
+  // H5 has synchronous geometry even for a consumer that does not pre-capture.
+  if (node) measurePrefix(firstId, value => { oldPrefix = value; });
+  preparedHistory = null;
   cancelScroll(); const ticket = scrollGeneration; scrollAnimated.value = false;
   void nextTick(() => {
     measurePrefix(firstId, prefixHeight => {
       if (ticket !== scrollGeneration || !threadVisible.value) return;
-      const nextTop = preservedConversationTop(top, prefixHeight);
+      const nextTop = preservedConversationTop(top, prefixHeight - oldPrefix);
       const current = scroller(); if (current) current.scrollTop = nextTop;
       scrollTop.value = nextTop; lastScrollTop = nextTop;
     });
@@ -449,6 +498,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .nx-conv-image-caption { color: var(--v5-ink-3); font-size: 12px; line-height: 1.5; }
 .nx-conv-right .nx-conv-image-caption { color: var(--v5-ink-2); }
 .nx-conv-message-meta { display: block; color: var(--v5-ink-3); font-size: 12px; padding: 4px 3px 0; }
+.nx-conv-time-divider { display:flex; justify-content:center; padding:10px 0 14px; color:var(--v5-ink-3); font-family:var(--font-v5); font-size:12px; line-height:18px; text-align:center; overflow-wrap:anywhere; }
 .nx-conv-attachment { margin: 6px 14px; padding: 10px 0; border-top: 1px solid var(--v5-border); color: var(--v5-ink); font-size: 13px; }
 .nx-conv-attachment-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .nx-conv-attachment-action { display: flex; align-items: center; min-height: 44px; color: var(--v5-brand); }

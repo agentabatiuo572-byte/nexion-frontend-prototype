@@ -26,3 +26,11 @@ test('history pages have decreasing cursors without overlaps and include image a
   assert.equal(second.nextCursor,9);assert.equal(third.nextCursor,null);
   assert.equal(new Set([...third.messages,...second.messages,...first.messages].map(m=>m.id)).size,24);
 });
+test('timeline fixture exposes exact five-minute boundaries and a two-minute midnight transition',()=>{
+  const state={messageState:'timeline'},first=read(state);
+  assert.equal(new Date(first.messages[2].createdAt)-new Date(first.messages[1].createdAt),300000);
+  const previous=read(state,'/api/app/support/conversations/DEMO-SUPPORT-1?beforeMessageId=17');
+  assert.equal(new Date(first.messages[0].createdAt)-new Date(previous.messages.at(-1).createdAt),120000);
+  assert.notEqual(new Date(first.messages[0].createdAt).getDate(),new Date(previous.messages.at(-1).createdAt).getDate());
+  assert.equal(first.nextCursor,17);assert.equal(previous.nextCursor,9);
+});

@@ -493,15 +493,14 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
 .nx-conv-refresh-warning {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 4px;
   margin: 8px 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--v5-warning-soft);
+  padding: 0;
+  background: transparent;
 }
 .nx-conv-refresh-warning__text {
-  flex: 1;
+  flex: 0 0 auto;
   min-width: 0;
   font-size: 12px;
   line-height: 1.45;
@@ -602,8 +601,6 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
 .nx-conv-retry-state { text-align: center; padding-bottom: 16px; }
 .nx-conv-rowtop { flex-wrap: wrap; }
 .nx-conv-rowname { overflow-wrap: anywhere; white-space: normal; }
-.nx-conv-refresh-warning { flex-wrap: wrap; }
-.nx-conv-refresh-warning__text { flex-basis: 180px; }
 </style>
 
 <style src="@/styles/message-family.css"></style>

@@ -8,6 +8,7 @@ import source from './conversation-thread.vue?raw';
 import chatSource from '@/pages/support/chat.vue?raw';
 import { useConversationEntrance } from './conversation-entrance';
 import { conversationScrollChange, preservedConversationTop } from './conversation-scroll';
+import * as conversationTime from './conversation-time';
 import type { ThreadMsg } from './thread-types';
 import { createSupportApi } from '@/api/support-api';
 import { zh } from '@/i18n/messages/zh';
@@ -35,7 +36,7 @@ function findAll(node: Vue.VNode, className: string): Vue.VNode[] {
 function mount(initial: ThreadMsg[] = []) {
   const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1 });
   const shown: Array<() => void> = [], hidden: Array<() => void> = [];
-  const props = Vue.reactive({ messages: initial, entranceReady: true, composerKey: 'conversation:A', revealTick: 0,
+  const props = Vue.reactive({ messages: initial, entranceReady: true, timeLocale: 'zh' as 'zh' | 'en' | 'vi', composerKey: 'conversation:A', revealTick: 0,
     inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send', queueLabels: zh.nova.queue,
     imageLabels: zh.conversations.image, sendBlocked: false });
   const exports: Record<string, any> = {}, emit = vi.fn();
@@ -44,6 +45,7 @@ function mount(initial: ThreadMsg[] = []) {
     '@/composables/use-dialog-a11y': { useDialogA11y() {} }, '@/store/app': { useApp: () => app },
     '@/composables/use-tab-page-lifecycle': { onShow: (fn: () => void) => shown.push(fn), onHide: (fn: () => void) => hidden.push(fn) },
     './conversation-entrance': { useConversationEntrance }, './conversation-scroll': { conversationScrollChange, preservedConversationTop },
+    './conversation-time': conversationTime,
   };
   new Function('require', 'exports', code)((id: string) => { if (!(id in modules)) throw new Error(id); return modules[id]; }, exports);
   const scope = Vue.effectScope(), view = scope.run(() => exports.default.setup(props, { emit, expose() {} }))!;
@@ -171,9 +173,9 @@ it.each(['existing', 'new'] as const)('keeps the rendered %s composer private ac
 
 it('retains the reading anchor when history prepends, including a simultaneous new tail, and cancels delayed bottom scrolling', async () => {
   const screen = mount([message('old-1'), message('old-2', 'left')]);
-  let prefix = 0;
+  let prefix = 0, reads = 0;
   const host = { scrollTop: 220, scrollHeight: 1000, clientHeight: 400, querySelectorAll: () => [],
-    querySelector: (selector: string) => ({ getBoundingClientRect: () => ({ top: selector === '.nx-conv-content' ? 0 : prefix }) }) };
+    querySelector: (selector: string) => ({ getBoundingClientRect: () => ({ top: selector === '.nx-conv-content' ? 0 : reads++ === 0 ? 0 : prefix }) }) };
   screen.view.listHost.value = host; screen.view.scrollToEnd();
   prefix = 300; host.scrollHeight = 1400;
   screen.props.messages = [message('older'), ...screen.props.messages, message('new-tail', 'left')]; await flush();
@@ -215,6 +217,34 @@ it('reapplies an identical native history target after the user scrolls back bet
   expect(applied.filter(top => top === 450)).toHaveLength(2);
 });
 
+it('retains the bubble anchor when a prepended page removes its previous leading time divider', async () => {
+  const pending: Array<(rows: unknown[]) => void> = [];
+  const query: Record<string, any> = { in: () => query, select: () => query,
+    boundingClientRect: () => query, exec: (done: (rows: unknown[]) => void) => pending.push(done) };
+  vi.stubGlobal('uni', { createSelectorQuery: () => query });
+  const screen = mount([message('old')]); screen.view.onThreadScroll({ detail: { scrollTop: 150 } });
+  const prepared = screen.view.prepareHistoryPrepend();
+  pending.shift()!([{ top: 0 }, { top: 42 }]); await prepared;
+  screen.props.messages = [message('older'), ...screen.props.messages]; await flush();
+  pending.shift()!([{ top: 0 }, { top: 300 }]); await flush();
+  expect(screen.view.scrollTop.value).toBe(408); // 150 + 300 - old 42px date header
+});
+
+it('renders date/gap markers independently of precise per-message times and does not animate a clock refresh', async () => {
+  const day = new Date(2026, 9, 26, 0, 0).getTime(); vi.setSystemTime(day + 3600000);
+  const screen = mount([message('one', 'left', { timestamp: day + 60000, meta: 'Support' }),
+    message('two', 'right', { timestamp: day + 120000, meta: 'You' }),
+    message('three', 'left', { timestamp: day + 420000, meta: 'Support' })]);
+  expect(findAll(await screen.node(), 'nx-conv-time-divider')).toHaveLength(2);
+  expect(screen.view.timeGroups.value.one).toContain('今天');
+  expect(screen.view.messageMeta(screen.props.messages[1])).toBe('You · 00:02');
+  vi.setSystemTime(new Date(2026, 9, 27, 0, 1)); screen.hide(); screen.show(); await flush();
+  expect(screen.view.timeGroups.value.one).toContain('昨天');
+  screen.props.timeLocale = 'vi'; await flush();
+  expect(screen.view.timeGroups.value.one).toContain('Hôm qua');
+  expect(findAll(await screen.node(), 'nx-conv-enter-left')).toHaveLength(0);
+});
+
 it('has linear bounded motion, a reduced-motion override and only local inset shadows', () => {
   const css = descriptor.styles.find(style => style.scoped)!.content;
   expect(css).toContain('180ms linear both'); expect(css).toContain('translateX(-12px)'); expect(css).toContain('translateX(12px)');
@@ -232,7 +262,7 @@ function projection(conversation: unknown, copy = zh) {
   return new Function('deps', `const {computed,ref}=deps, t=ref(deps.copy), conv=ref(deps.conversation),
     isAi=ref(false),nova={},locale={code:'zh'},imageSources=ref({}),imageFailures=ref({});
     const avatarImageKey=()=>undefined,humanMessageRecommendation=()=>({}),localizedIdleClose=()=>null;
-    ${extract(['receiptFor', 'humanMessageTime', 'threadMessages'])}; return threadMessages;`)(
+    ${extract(['receiptFor', 'threadMessages'])}; return threadMessages;`)(
     { computed: Vue.computed, ref: Vue.ref, copy, conversation });
 }
 function response(receipt: string | null | undefined, sender = 'agent') {

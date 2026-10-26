@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 import * as vue from "vue";
+import { formatConversationTime } from '@/components/support/conversation-time';
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useNova } from "@/store/nova";
@@ -131,7 +132,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
 beforeEach(() => { setActivePinia(createPinia()); vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
-describe("human message native clock", () => {
+describe("human message timestamp projection", () => {
   it.each(["support", "advisor"])("keeps compact local times and the original %s history when native locale options are ignored", type => {
     vi.spyOn(Date.prototype, "toLocaleTimeString").mockReturnValue("18:57:08 GMT+0900 (JST)");
     const messages = [
@@ -146,14 +147,15 @@ describe("human message native clock", () => {
       for (const [code, dictionary, times] of [
         ["zh", zh, ["18:57", "18:57", "18:59", "19:00"]],
         ["vi", vietnamese, ["18:57", "18:57", "18:59", "19:00"]],
-        ["en", en, ["06:57 PM", "06:57 PM", "06:59 PM", "07:00 PM"]],
+        ["en", en, ["18:57", "18:57", "18:59", "19:00"]],
       ] as const) {
         current.locale.code = code;
         current.currentLocale.value = dictionary;
         expect(current.page.threadMessages.value.map((message: { meta: string }) => message.meta)).toEqual([
-          `${dictionary.conversations.image.you} · ${times[0]}`,
-          ...times.slice(1).map(time => `superadmin · ${time}`),
+          dictionary.conversations.image.you, ...times.slice(1).map(() => 'superadmin'),
         ]);
+        expect(current.page.threadMessages.value.map((message: { timestamp: number }) => message.timestamp)).toEqual(messages.map(message => message.ts));
+        expect(current.page.threadMessages.value.map((message: { timestamp: number }) => formatConversationTime(message.timestamp, { locale: code, now: Date.now() })?.clock)).toEqual(times);
         expect(current.page.threadMessages.value.map((message: { id: string; text: string; side: string }) =>
           ({ id: message.id, text: message.text, side: message.side }))).toEqual(messages.map(message =>
           ({ id: message.id, text: message.text, side: message.sender === "user" ? "right" : "left" })));
@@ -164,31 +166,31 @@ describe("human message native clock", () => {
     } finally { current.page.cleanup(); }
   });
 
-  it("preserves English AM/PM through midnight and noon while Chinese and Vietnamese use 24 hours", () => {
+  it("uses the shared 24-hour clock through midnight and noon in all three languages", () => {
     vi.spyOn(Date.prototype, "toLocaleTimeString").mockReturnValue("00:07:45 GMT+0900 (JST)");
     const messages = [0, 12, 23].map((hour, index) => ({ id: `time-${index}`, sender: "agent", authorName: "Agent",
       text: "Reply", ts: new Date(2026, 9, 4, hour, 7, 45).getTime() }));
     const current = mount({ cid: "CV-boundaries" }, { type: "support", status: "open", agentName: "Agent", messages });
     try {
       for (const [code, expected] of [
-        ["en", ["12:07 AM", "12:07 PM", "11:07 PM"]],
+        ["en", ["00:07", "12:07", "23:07"]],
         ["zh", ["00:07", "12:07", "23:07"]],
         ["vi", ["00:07", "12:07", "23:07"]],
       ] as const) {
         current.locale.code = code;
-        expect(current.page.threadMessages.value.map((message: { meta: string }) => message.meta))
-          .toEqual(expected.map(time => `Agent · ${time}`));
+        expect(current.page.threadMessages.value.map((message: { timestamp: number }) => formatConversationTime(message.timestamp, { locale: code, now: Date.now() })?.clock)).toEqual(expected);
       }
     } finally { current.page.cleanup(); }
   });
 
-  it("uses the existing compact-clock placeholder for an invalid message date", () => {
+  it("does not replace an unknown message time with a current or 1970 timestamp", () => {
     const current = mount({ cid: "CV-invalid-time" }, { type: "support", status: "open", agentName: "Agent",
       messages: [{ id: "invalid-time", sender: "agent", authorName: "Agent", text: "Reply", ts: NaN }] });
     try {
-      for (const code of ["zh", "vi", "en"]) {
+      for (const code of ["zh", "vi", "en"] as const) {
         current.locale.code = code;
-        expect(current.page.threadMessages.value[0].meta).toBe("Agent · —");
+        expect(current.page.threadMessages.value[0].meta).toBe('Agent');
+        expect(formatConversationTime(current.page.threadMessages.value[0].timestamp, { locale: code, now: Date.now() })).toBeNull();
       }
     } finally { current.page.cleanup(); }
   });
