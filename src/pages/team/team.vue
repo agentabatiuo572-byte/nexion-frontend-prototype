@@ -35,7 +35,7 @@
         <view class="nx-team-rank-link team-rank" role="link" tabindex="0" :aria-label="t.team.rankBenefits" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
           <view class="team-rank__header"><text class="team-rank__title">{{ designCopy.myRank }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></view>
           <view class="team-rank__emblem">
-            <svg width="68" height="78" viewBox="0 0 68 78" fill="none" aria-hidden="true"><path d="M34 2 65 20v38L34 76 3 58V20Z" fill="var(--v5-surface)" stroke="var(--v5-ink-2)" stroke-width="2"/><path d="M34 6 61 22v34L34 72 7 56V22Z" stroke="var(--v5-brand)" stroke-opacity=".25"/></svg>
+            <view class="team-rank__outline"><svg width="68" height="78" viewBox="0 0 68 78" fill="none" aria-hidden="true"><path d="M34 2 65 20v38L34 76 3 58V20Z" fill="var(--v5-surface)" stroke="var(--v5-ink-2)" stroke-width="2"/><path d="M34 6 61 22v34L34 72 7 56V22Z" stroke="var(--v5-brand)" stroke-opacity=".25"/></svg></view>
             <text class="team-rank__level">{{ remoteApiEnabled && !vrank.remoteReady ? 'V—' : `V${myRank}` }}</text>
           </view>
           <text class="team-rank__hint">{{ designCopy.benefitsAndRewards }}</text>
@@ -546,7 +546,7 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-rank:active { opacity: .8; }
 .team-rank:focus-visible, .team-tool:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .team-rank__emblem { position: relative; display: grid; place-items: center; flex: none; width: 68px; height: 78px; }
-.team-rank__emblem > svg { position: absolute; inset: 0; }
+.team-rank__outline { position: absolute; inset: 0; }
 .team-rank__title { display: block; font: 600 15px/1.4 var(--font-v5); }
 .team-rank__level { position: relative; display: block; font: 600 24px/1.3 var(--font-v5); color: var(--v5-brand); }
 .team-rank__hint { display: block; margin-top: 4px; text-align: center; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }

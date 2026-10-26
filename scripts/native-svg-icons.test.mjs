@@ -13,7 +13,8 @@ test("native build converts tab and wallet icons while leaving large illustratio
     assert.ok(transformed);
     assert.match(transformed, /<NxNativeSvg[^>]*\bwidth="22" height="22"/);
     assert.match(transformed, /<path :d="tab\.icon"\s*\/>/);
-    assert.equal((transformed.match(/<NxNativeSvg/g) ?? []).length, 6);
+    // Includes both scanner header variants added to the chassis.
+    assert.equal((transformed.match(/<NxNativeSvg/g) ?? []).length, 8);
 
     const mixed = '<template><svg width="24" height="24"><path d="M1" /></svg><svg width="248" height="248"><path d="M2" /></svg></template>';
     assert.equal(plugin.transform(mixed, "test.vue")?.code,
