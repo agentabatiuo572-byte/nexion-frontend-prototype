@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\globe-native-app-20261026",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "2e4cae9434606dc975eefa7a25cd434ae41b26ea",
-  "sourceRef": "2e4cae9434606dc975eefa7a25cd434ae41b26ea",
+  "sourceHead": "c17bd559bd2d35b7a567f3e96416fe7bd3e684a3",
+  "sourceRef": "c17bd559bd2d35b7a567f3e96416fe7bd3e684a3",
   "sourceRefKind": "commit",
-  "sourceTree": "85355c786e9a527520f58cfa29d7237477450ce5",
+  "sourceTree": "80fba38df6c6d7b8461b299bb777189daa2fa5c6",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -349,10 +349,10 @@
       "mode": "100644"
     },
     "docs/audit/2026-10-26-fidelity-recheck.md": {
-      "sourceBlob": "8329883de8fc87fe0e4cd23583a0612c45483fe3",
-      "sourceSha256": "08a528791d2b436dab8e2d3143a85688b04cd6b30cdc8496be5729aaaf89c2fc",
-      "targetBlob": "8329883de8fc87fe0e4cd23583a0612c45483fe3",
-      "targetSha256": "08a528791d2b436dab8e2d3143a85688b04cd6b30cdc8496be5729aaaf89c2fc",
+      "sourceBlob": "2b56d1ba594d8d92ff8fd4715b4f5fc0945ffcd2",
+      "sourceSha256": "1033423936c12dd45d5e830aa0bde370e40d7913aa729f7649bc25b8c668ef7b",
+      "targetBlob": "2b56d1ba594d8d92ff8fd4715b4f5fc0945ffcd2",
+      "targetSha256": "1033423936c12dd45d5e830aa0bde370e40d7913aa729f7649bc25b8c668ef7b",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-globe-native-acceptance.md": {
