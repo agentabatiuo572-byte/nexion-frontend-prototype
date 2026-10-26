@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\usdt-auto-pool-app-20261026",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "2eaaf271bb1fc868ce9d14e25912a238515410d6",
-  "sourceRef": "2eaaf271bb1fc868ce9d14e25912a238515410d6",
+  "sourceHead": "78409c8ade5dec50f9e6250ffafd5b0e21244cc5",
+  "sourceRef": "78409c8ade5dec50f9e6250ffafd5b0e21244cc5",
   "sourceRefKind": "commit",
-  "sourceTree": "ff0b1ef9aac25d1cfa656a1de87551386db1d722",
+  "sourceTree": "d94e83336c5d2d776a50db54a711b688c55e9df0",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -118,10 +118,10 @@
       "mode": "100644"
     },
     "PRD/UVEL_体验与运营配置同步_20261025.md": {
-      "sourceBlob": "a9cd083266c40686cb5d574162a5b06c8a5e99b7",
-      "sourceSha256": "c4f161c84483dfe535199f2def6652caf65bf9d31750ad0b124d3c3701dd0a94",
-      "targetBlob": "a9cd083266c40686cb5d574162a5b06c8a5e99b7",
-      "targetSha256": "c4f161c84483dfe535199f2def6652caf65bf9d31750ad0b124d3c3701dd0a94",
+      "sourceBlob": "ab97258952811df262b9eb500c8826b00fd0d073",
+      "sourceSha256": "7bdccdb362707511fddf42fcfaf3b7900de43047e1e64c23d8d73dce50feadba",
+      "targetBlob": "ab97258952811df262b9eb500c8826b00fd0d073",
+      "targetSha256": "7bdccdb362707511fddf42fcfaf3b7900de43047e1e64c23d8d73dce50feadba",
       "mode": "100644"
     },
     "PRD/UVEL_设计审查功能同步_20261026.md": {
