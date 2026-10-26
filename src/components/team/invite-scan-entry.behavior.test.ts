@@ -6,6 +6,7 @@ import source from "./invite-scan-entry.vue?raw";
 import login from "@/pages/login/login.vue?raw";
 import team from "@/pages/team/team.vue?raw";
 import me from "@/pages/me/me.vue?raw";
+import chassis from "@/components/app-chassis.vue?raw";
 import { scannedInvitationCode } from "@/lib/invite-scan";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
@@ -62,7 +63,7 @@ async function fixture(copy = en, authenticated = false, load = async () => {}) 
   };
   const exports = { default: {} as Vue.Component };
   new Function("require", "exports", compiled)((id: string) => { if (!(id in imports)) throw new Error(id); return imports[id]; }, exports);
-  const root = node("root"), props = Vue.reactive({ disabled: false, shortcut: false, label: undefined as string | undefined });
+  const root = node("root"), props = Vue.reactive({ disabled: false, shortcut: false, iconOnly: false, label: undefined as string | undefined });
   const app = renderer.createApp({ render: () => Vue.h(exports.default, props) });
   app.mount(root); unmounts.push(() => app.unmount()); await Vue.nextTick();
   const button = () => all(root).find(item => item.props.role === "button")!;
@@ -153,11 +154,14 @@ it("does not open the camera after public-config wait changes account or the par
   f.props.disabled = true; await Vue.nextTick(); await f.click(); expect(f.scanCode).not.toHaveBeenCalled();
 });
 
-it("login and Me compile the scanner only for APP-PLUS; Team has no duplicate entry", () => {
+it("Me header replaces search with the APP scanner and leaves exactly seven shortcuts", () => {
   expect(team).not.toContain("InviteScanEntry");
-  expect(me).toContain("['inventory', 'orders', 'missions', 'rewards', 'scan', 'receipts', 'goals', 'learning']");
-  expect(me).toContain("toast.info(t.value.me.scanAppOnly)");
-  for (const page of [login, me]) {
+  expect(me).toContain("['inventory', 'orders', 'missions', 'rewards', 'receipts', 'goals', 'learning']");
+  expect(me).not.toContain("InviteScanEntry");
+  expect(chassis).toContain("<template v-if=\"activeTab === 'me'\">");
+  expect(chassis).toContain("<view v-else class=\"nx-icon-btn nx-design-glass\"");
+  expect(chassis).toContain("toast.info(t.me.scanAppOnly)");
+  for (const page of [login, chassis]) {
     expect(page).toMatch(/<!-- #ifdef APP-PLUS -->\s*<InviteScanEntry[\s\S]*?<!-- #endif -->/);
     expect(page).toMatch(/\/\/ #ifdef APP-PLUS\s*import InviteScanEntry[\s\S]*?\/\/ #endif/);
     const h5 = page.replace(/<!-- #ifdef APP-PLUS -->[\s\S]*?<!-- #endif -->/g, "")
@@ -166,9 +170,9 @@ it("login and Me compile the scanner only for APP-PLUS; Team has no duplicate en
   }
 });
 
-it("Me shortcut uses Scan label and reports failures as a toast without expanding the grid", async () => {
+it("Me header uses Scan label and reports failures as a toast without expanding the header", async () => {
   const f = await fixture(zh, true);
-  Object.assign(f.props, { shortcut: true, label: zh.me.shortcutLabels.scan });
+  Object.assign(f.props, { iconOnly: true, label: zh.me.shortcutLabels.scan });
   await Vue.nextTick();
   expect(f.button().props['aria-label']).toBe('扫一扫');
   const scan = f.click(); await flush();

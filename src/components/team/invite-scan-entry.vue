@@ -1,9 +1,9 @@
 <template>
-  <view class="invite-scan" :class="{ 'invite-scan--shortcut': shortcut }">
-    <view class="invite-scan__button" role="button" tabindex="0" :aria-disabled="busy || disabled" :aria-label="label || t.inviteScan.open" :aria-busy="busy" @click="scan" @keydown.enter.prevent="scan" @keydown.space.prevent="scan">
+  <view class="invite-scan" :class="{ 'invite-scan--shortcut': shortcut, 'invite-scan--icon': iconOnly }">
+    <view class="invite-scan__button" :class="{ 'nx-design-glass': iconOnly }" role="button" tabindex="0" :aria-disabled="busy || disabled" :aria-label="label || t.inviteScan.open" :aria-busy="busy" @click="scan" @keydown.enter.prevent="scan" @keydown.space.prevent="scan">
       <slot :busy="busy"><text>{{ busy ? t.inviteScan.scanning : (label || t.inviteScan.open) }}</text></slot>
     </view>
-    <text v-if="error && !shortcut" class="invite-scan__error" role="alert">{{ error }}</text>
+    <text v-if="error && !shortcut && !iconOnly" class="invite-scan__error" role="alert">{{ error }}</text>
   </view>
 </template>
 
@@ -19,10 +19,10 @@ import { scannedInvitationCode } from "@/lib/invite-scan";
 import { navTo } from "@/lib/route";
 import { toast } from "@/store/ui";
 
-const props = defineProps<{ disabled?: boolean; shortcut?: boolean; label?: string }>();
+const props = defineProps<{ disabled?: boolean; shortcut?: boolean; iconOnly?: boolean; label?: string }>();
 const t = useT(), auth = useAuth(), config = useConfig();
 const busy = ref(false), error = ref("");
-watch(error, value => { if (props.shortcut && value) toast.error(value); });
+watch(error, value => { if ((props.shortcut || props.iconOnly) && value) toast.error(value); });
 let alive = true;
 function dispose() { alive = false; }
 onUnmounted(dispose);
@@ -80,4 +80,6 @@ async function scan() {
 .invite-scan__button[aria-disabled="true"] { opacity: .5; color: var(--v5-ink-3); }
 .invite-scan__error { color: var(--v5-ink-2); font-size: 13px; line-height: 20px; }
 .invite-scan--shortcut .invite-scan__button { flex-direction: column; justify-content: flex-start; gap: var(--v5-space-2); min-height: 80px; padding: 0; border: 0; background: transparent; }
+.invite-scan--icon .invite-scan__button { position: relative; isolation: isolate; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; }
+.invite-scan--icon .invite-scan__button:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
 </style>
