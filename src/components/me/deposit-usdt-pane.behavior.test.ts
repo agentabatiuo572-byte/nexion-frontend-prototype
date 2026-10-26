@@ -82,6 +82,12 @@ const rows = statuses.map((status, index) => ({ depositId: `CR-${index + 1}`, st
   createdAt: 1_791_072_000_000 + index,
 }));
 type Messages = typeof zh | typeof en | typeof vietnamese;
+test("paused deposits retain historical credits and risk records", async () => {
+  const h=await pane({enabled:false,creditEnabled:false,network:"BEP20",reason:"CREGIS_DEPOSIT_PAUSED"},rows);
+  expect((h.state.serverRecords as Vue.Ref<unknown[]>).value).toHaveLength(rows.length);
+  expect(h.text()).toContain("CR-2");
+  expect(controls(h.root,"nx-dep-qr-box")).toHaveLength(0);
+});
 type BankHistoryStore = Pick<ReturnType<typeof useDeposits>, "records" | "remoteReceiptInitialStatus"
   | "currentAccountKey" | "refreshRemoteVietQrDeposits">;
 async function pane(response: object, records: unknown[] | Promise<unknown[]> = [], messages: Messages = zh,
@@ -247,7 +253,7 @@ test("an unfinished bank read stays unknown while receipt-only pagination leaves
   expect(controls(h.root, "nx-dep-history-loading")).toHaveLength(0);
 });
 
-test("a kept-alive 30-second chain poll preserves appended bank receipts and their cursor", async () => {
+test("a kept-alive staggered chain poll preserves appended bank receipts and their cursor", async () => {
   const dep = await bankStore(bankSnapshots);
   const receipt = (n: number) => ({ receiptNo: `R${n}`, intentNo: bankSnapshots[0].intentNo,
     viewType: "credited", status: "credited", creditedUsdt: 1299, createdAt: bankSnapshots[0].createdAt! });
@@ -255,7 +261,7 @@ test("a kept-alive 30-second chain poll preserves appended bank receipts and the
   bankRuntime.paymentApi.listVietQrReceipts.mockResolvedValue({ items: [first], nextOffset: 50 });
   let tick!: () => void;
   vi.stubGlobal("setInterval", (callback: () => void, delay: number) => {
-    expect(delay).toBe(5_000); tick = callback; return 1;
+    expect(delay).toBe(1_000); tick = callback; return 1;
   });
   vi.stubGlobal("clearInterval", vi.fn());
   const h = await pane(address, [], zh, { dep });
@@ -268,7 +274,7 @@ test("a kept-alive 30-second chain poll preserves appended bank receipts and the
   const intentReads = bankRuntime.paymentApi.listVietQrIntents.mock.calls.length;
   const receiptReads = bankRuntime.paymentApi.listVietQrReceipts.mock.calls.length;
   h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address") ? address : [rows[1]]);
-  const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 30_001);
+  const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 45_001);
   tick();
   clock.mockRestore();
   await vi.waitFor(() => expect(controls(h.root, "nx-dep-record-row")).toHaveLength(3));
@@ -503,4 +509,15 @@ test.each([zh,en,vietnamese])("empty pool prepares automatically without an erro
   await new Promise(resolve=>setTimeout(resolve,0));await Vue.nextTick();
   expect(h.text()).not.toContain(messages.topupChrome.addrPreparing);
   expect((h.state.serverAddress as Vue.Ref<string>).value).toBe(address.address);
+});
+
+
+test("polling is independently staggered and error recovery backs off", async () => {
+  const h=await pane(address);
+  const delay=h.state.pollDelay as (state:string,failures?:number)=>number;
+  const random=vi.spyOn(Math,"random");
+  random.mockReturnValue(0);expect(delay("preparing")).toBe(5000);expect(delay("ready")).toBe(30000);
+  random.mockReturnValue(0.999999);expect(delay("preparing")).toBe(10000);expect(delay("ready")).toBe(45000);
+  expect(delay("error",0)).toBe(15000);expect(delay("error",2)).toBe(45000);expect(delay("error",20)).toBe(45000);
+  random.mockRestore();
 });

@@ -220,7 +220,13 @@ let pollTimer: ReturnType<typeof setInterval> | undefined;
 let loadGeneration = 0;
 let pageVisible = true;
 let requestRunning = false;
-let lastRefresh = 0;
+let nextPollAt = 0;
+let pollFailures = 0;
+function pollDelay(state: "preparing" | "ready" | "error", failures = 0): number {
+  if (state === "preparing") return 5_000 + Math.floor(Math.random() * 5_001);
+  if (state === "ready") return 30_000 + Math.floor(Math.random() * 15_001);
+  return Math.min(60_000, 10_000 * 2 ** Math.min(failures, 2)) + Math.floor(Math.random() * 5_001);
+}
 const serverAddress = ref("");
 const serverEnabled = ref(false);
 const serverCreditEnabled = ref(false);
@@ -246,13 +252,14 @@ function load(background = false) {
     if (!background) refreshBankHistory();
     const generation = ++loadGeneration;
     requestRunning = true;
-    lastRefresh = Date.now();
+    nextPollAt = Number.POSITIVE_INFINITY;
     const account = app.accountKey;
     const bindingEpoch = app.accountBindingEpoch;
     void (async () => {
       try {
         const snapshot = await cregisDepositApi.address();
-        const deposits = await cregisDepositApi.list();
+        const deposits = !snapshot.enabled && snapshot.reason === "CREGIS_ADDRESS_PREPARING"
+          ? [] : await cregisDepositApi.list();
         if (generation !== loadGeneration || account !== app.accountKey
             || bindingEpoch !== app.accountBindingEpoch || !remoteSessionReady.value) return;
         serverEnabled.value = snapshot.enabled;
@@ -277,6 +284,8 @@ function load(background = false) {
           createdAt: row.createdAt, creditedAt: row.creditedAt ?? undefined,
         }));
         phase.value = !snapshot.enabled && snapshot.reason === "CREGIS_ADDRESS_PREPARING" ? "preparing" : "ready";
+        pollFailures = 0;
+        nextPollAt = Date.now() + pollDelay(phase.value);
       } catch {
         if (generation === loadGeneration && account === app.accountKey
             && bindingEpoch === app.accountBindingEpoch && remoteSessionReady.value) {
@@ -284,6 +293,7 @@ function load(background = false) {
           serverEnabled.value = false;
           serverCreditEnabled.value = false;
           phase.value = "error";
+          nextPollAt = Date.now() + pollDelay("error", pollFailures++);
         }
       } finally {
         if (generation === loadGeneration) requestRunning = false;
@@ -311,8 +321,8 @@ onMounted(() => {
   if (!fundsServerEnabled) load();
   if (fundsServerEnabled) pollTimer = setInterval(() => {
     if (!pageVisible || (typeof document !== "undefined" && document.hidden)) return;
-    if (phase.value === "preparing" || (phase.value === "ready" && Date.now() - lastRefresh >= 30_000)) load(true);
-  }, 5_000);
+    if (phase.value !== "loading" && Date.now() >= nextPollAt) load(true);
+  }, 1_000);
 });
 onShow(() => { pageVisible = true; if (fundsServerEnabled) load(true); });
 onHide(() => { pageVisible = false; loadGeneration++; requestRunning = false; });
