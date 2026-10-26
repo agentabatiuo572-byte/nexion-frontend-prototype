@@ -10,25 +10,26 @@
   carry over (P-013). Source dot hex (#1F2D1A bright olive / #101418 dim) →
   var(--v5-brand) low-opacity (matches "brighter green = denser cluster"
   legend) / var(--v5-ink-4). Drawer is position:fixed so it overlays the
-  whole chassis. Sandbox decorative values come from the named deterministic
-  fixture; production never promotes fixture values to telemetry.
+  whole chassis. Center node figures and headline counters are simulated
+  presentation data; API telemetry is never overwritten by these values.
 -->
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/me" />
 
-      <!-- Top stats -->
+      <!-- Simulation is presentation-only, separate from API telemetry. -->
+      <text class="block mx-4 mb-2" style="font-size: 11px; color: var(--v5-ink-3)">{{ t.globe.simulatedData }}</text>
       <view class="mx-4 mb-3 grid grid-cols-2 gap-2">
         <view class="rounded-2xl" :style="statTileStyle">
-          <view class="flex items-center" style="gap: 6px">
+          <view class="flex items-center" style="gap: 6px; min-height: 36px">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
             <text style="font-size: 12px; letter-spacing: 0.16em; color: var(--v5-ink-3)">{{ t.globe.activeNodes }}</text>
           </view>
           <text class="block tabular-nums" :style="statValStyle">{{ activeNodesText }}</text>
         </view>
         <view class="rounded-2xl" :style="statTileStyle">
-          <view class="flex items-center" style="gap: 6px">
+          <view class="flex items-center" style="gap: 6px; min-height: 36px">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg>
             <text style="font-size: 12px; letter-spacing: 0.16em; color: var(--v5-ink-3)">{{ t.globe.activeJobs }}</text>
           </view>
@@ -36,29 +37,6 @@
         </view>
       </view>
 
-      <view v-if="showProjectionBlockingState" class="mx-4 mt-4">
-        <EmptyState
-          :kind="projectionStatus === 'error' ? 'recoverable-error' : 'empty-list'"
-          :title="projectionStateTitle"
-          :desc="projectionStateDesc"
-          :cta-label="projectionStatus === 'error' ? t.ui.retry : undefined"
-          emphasis
-          compact
-          @cta="loadRegions"
-        />
-      </view>
-
-      <template v-else>
-      <view v-if="showProjectionInlineError" class="mx-4 mb-3">
-        <EmptyState
-          kind="recoverable-error"
-          :title="t.globe.regionProjectionErrorTitle"
-          :desc="t.globe.regionProjectionErrorDesc"
-          :cta-label="t.ui.retry"
-          compact
-          @cta="loadRegions"
-        />
-      </view>
       <!-- Map — de-carded (border dropped); relative + overflow-hidden retained
            to clip the region glow halos at the rounded panel edge (functional). -->
       <view class="nx-glass-card mx-4 rounded-2xl relative overflow-hidden" :style="mapCardStyle">
@@ -83,6 +61,7 @@
                 :fill="d.bright ? 'var(--v5-brand)' : 'var(--v5-ink-4)'" :opacity="d.bright ? 0.5 : 0.25" />
               <line v-for="r in otherRegions" :key="`line-${r.id}`" :x1="meX" :y1="meY" :x2="r.cx * W" :y2="r.cy * H"
                 stroke="var(--v5-brand)" stroke-opacity="0.08" stroke-width="0.6" stroke-dasharray="2 3" />
+              <line v-for="r in regions" :key="`anchor-${r.id}`" :x1="r.anchorX * W" :y1="r.anchorY * H" :x2="r.cx * W" :y2="r.cy * H" stroke="var(--v5-brand)" stroke-opacity="0.35" stroke-width="0.7" pointer-events="none" />
               <circle v-for="r in regions" :key="`glow-${r.id}`" :cx="r.cx * W" :cy="r.cy * H" r="18"
                 :fill="`url(#${r.isYou ? nativeYouGlowId : nativeGlowId})`" />
             </NativeSvg>
@@ -94,7 +73,7 @@
               :style="{ borderColor: r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)' }" />
             <view class="nx-globe-native-dot" :style="{ background: r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)' }" />
           </view>
-          <text v-if="me" class="nx-globe-native-you" :style="{ left: `${me.cx * 100}%`, top: `${me.cy * 100}%` }">{{ t.globe.yourNodeBadge }}</text>
+          <text v-if="me" class="nx-globe-native-you" :style="{ left: `${me.cx * 100}%`, top: `${me.cy * 100}%` }">{{ t.globe.referenceCenterShort }}</text>
         </view>
         <!-- #endif -->
         <!-- #ifndef APP-PLUS -->
@@ -136,6 +115,7 @@
             stroke-dasharray="2 3"
           />
 
+          <line v-for="r in regions" :key="`anchor-${r.id}`" :x1="r.anchorX * W" :y1="r.anchorY * H" :x2="r.cx * W" :y2="r.cy * H" stroke="var(--v5-brand)" stroke-opacity="0.35" stroke-width="0.7" pointer-events="none" />
           <!-- Region nodes -->
           <g v-for="r in regions" :key="r.id" class="cursor-pointer" pointer-events="none" role="button" tabindex="0" :aria-label="regionName(r)" @click="select(r)"  @keydown.enter.prevent="select(r)" @keydown.space.prevent="select(r)">
             <circle :cx="r.cx * W" :cy="r.cy * H" r="18" :fill="`url(#${r.isYou ? 'you-glow' : 'globe-glow'})`" />
@@ -162,11 +142,11 @@
               font-size="10"
               font-weight="600"
               font-family="ui-monospace, monospace"
-            >{{ t.globe.yourNodeBadge }}</SvgText>
+            >{{ t.globe.referenceCenterShort }}</SvgText>
           </g>
         </svg>
         <!-- #endif -->
-        <text class="block text-center" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 8px">{{ t.globe.tapHint }} · {{ t.globe.legend }}</text>
+        <text class="block text-center" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 8px">{{ t.globe.tapHint }} · {{ t.globe.simulationLegend }}</text>
       </view>
 
       <!-- Region list — de-carded: transparent hairline group (earnings-ledger
@@ -189,9 +169,9 @@
           <view class="flex-1 min-w-0">
             <view class="flex items-center" style="gap: 8px">
               <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ regionName(r) }}</text>
-              <text v-if="r.isYou" :style="youChipStyle">{{ t.globe.youAre }}</text>
+              <text v-if="r.isYou" :style="youChipStyle">{{ t.globe.referenceCenter }}</text>
             </view>
-            <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ regionDevicesText(r) }} · {{ regionLatencyText(r) }}</text>
+            <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ t.globe.superComputeCenter }}</text>
           </view>
           <view class="shrink-0 text-right"><text class="block tabular-nums" :style="regionRateStyle">{{ r.jobsPerHour.toLocaleString() }}</text><text class="block" style="font-size: 11px; color: var(--v5-ink-3)">{{ t.globe.jobsPerHour }}</text></view>
         </view>
@@ -210,13 +190,13 @@
             </view>
             <view class="flex-1 min-w-0">
               <text class="block" style="font-size: 20px; font-weight: 600; color: var(--v5-ink)">{{ regionName(selected) }}</text>
-              <text v-if="selected.isYou" class="block" style="font-size: 12px; color: var(--v5-ink-2); margin-top: 2px">{{ t.globe.youAre }}</text>
+              <text v-if="selected.isYou" class="block" style="font-size: 12px; color: var(--v5-ink-2); margin-top: 2px">{{ t.globe.referenceCenter }}</text>
             </view>
           </view>
           <view class="grid grid-cols-3 gap-2 mt-4">
             <view class="nx-glass-inset rounded-xl text-center" :style="drawerStatStyle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
-              <text class="block tabular-nums" :style="drawerStatValStyle">{{ selected.devices.toLocaleString() }}</text>
+              <text class="block tabular-nums" :style="drawerStatValStyle">{{ regionNodeDisplay(selected) }}</text>
               <text class="block" :style="drawerStatLabelStyle">{{ t.globe.activeNodes }}</text>
             </view>
             <view class="nx-glass-inset rounded-xl text-center" :style="drawerStatStyle">
@@ -230,132 +210,68 @@
               <text class="block" :style="drawerStatLabelStyle">{{ t.uiChrome.latency }}</text>
             </view>
           </view>
-          <text class="block" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 12px; line-height: 1.625">{{ regionJobsText(selected) }} · {{ remoteApiEnabled ? fmt(t.globe.projectionUpdatedAt, { at: generatedAtText }) : fmt(t.globe.uptimeLine, { v: uptimeText }) }}</text>
-          <text v-if="remoteApiEnabled && selected.avgLatencyMs === null" class="block" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 4px; line-height: 1.625">{{ t.globe.latencyTelemetryMissingHint }}</text>
+          <text class="block" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 12px; line-height: 1.625">{{ t.globe.simulationHint }}</text>
         </view>
       </view>
-      </template>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
+import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
 import SvgText from "@/components/svg-text";
 // #ifdef APP-PLUS
 import NativeSvg from "@/components/native-svg.vue";
 // #endif
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import EmptyState from "@/components/empty-state.vue";
 import { useT } from "@/i18n/use-t";
-import { useApp } from "@/store/app";
-import { useConfig } from "@/store/config";
-import { publicStatsHealth } from "@/lib/platform-stats";
-import { MOCK_GLOBE_FIXTURE_ID, REGIONS, type RegionData } from "@/mock/globe-regions";
-import { fmt } from "@/i18n/format";
-import { formatTrialDateTime } from "@/lib/trial-date";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
-import { networkRegionsApi, remoteApiEnabled } from "@/api/runtime";
-import type { NetworkRegionProjection } from "@/api/network-regions-api";
 import { onHide, onShow } from "@dcloudio/uni-app";
-import { registerActivePageRefresh } from "@/lib/active-page-refresh";
-import { captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
+
+import { globeSimulation, GLOBE_SIMULATION_INTERVAL_MS } from "@/lib/globe-simulation";
 
 const t = useT();
-const app = useApp();
-const cfg = useConfig();
 
 const W = 440;
 const H = 240;
-type GlobeRegion = {
-  id: string;
-  i18nKey?: RegionData["i18nKey"];
-  displayName?: string;
-  cx: number;
-  cy: number;
-  devices: number;
-  activeJobs: number;
-  jobsPerHour: number;
-  avgLatencyMs: number | null;
-  isYou?: boolean;
-};
-
-const selected = ref<GlobeRegion | null>(null);
-const networkProjection = ref<NetworkRegionProjection | null>(null);
-const projectionStatus = ref<"loading" | "ready" | "empty" | "error">(remoteApiEnabled ? "loading" : "ready");
-let projectionRequest = 0;
-let projectionFlight: { scope: string; promise: Promise<void> } | null = null;
-let disposed = false;
+type GlobeRegion = { id: string; displayName: string; cx: number; cy: number; anchorX: number; anchorY: number; devices: number;
+  activeJobs: number; jobsPerHour: number; avgLatencyMs: number; isYou: boolean };
+const selectedId = ref<string | null>(null);
 let pageActive = true;
 const pulseTick = ref(0);
+const simulationStep = ref(Math.floor(Date.now() / GLOBE_SIMULATION_INTERVAL_MS));
 let pulseTimer = 0;
-
-const global = computed(() => app.global);
-const activeNodesText = computed(() => {
-  if (remoteApiEnabled) return networkProjection.value?.activeNodes === undefined ? "—" : networkProjection.value.activeNodes.toLocaleString();
-  const health = publicStatsHealth(cfg.config.publicStats);
-  return cfg.syncFailed || !health.devicesOk
-    ? t.value.home.networkStatUpdating
-    : global.value.activeDevices.toLocaleString();
+const simulatedStats = computed(() => globeSimulation(simulationStep.value));
+const activeNodesText = computed(() => simulatedStats.value.nodes.toLocaleString());
+const activeJobsText = computed(() => simulatedStats.value.jobs.toLocaleString());
+// Display offsets separate nearby centers; leader lines preserve geographic anchors.
+const mapPositions: Record<string, readonly [number, number]> = {
+  uk: [198, 37], fr: [212, 76], de: [244, 47], sg: [345, 136], vn: [335, 102],
+};
+const regions = computed<GlobeRegion[]>(() => simulatedStats.value.regions.map(center => ({
+  id: center.id, displayName: t.value.globe[center.nameKey],
+  cx: mapPositions[center.id] ? mapPositions[center.id][0] / W : (center.lon + 180) / 360,
+  cy: mapPositions[center.id] ? mapPositions[center.id][1] / H : (90 - center.lat) / 180,
+  anchorX: (center.lon + 180) / 360, anchorY: (90 - center.lat) / 180,
+  devices: center.nodes, activeJobs: center.activeJobs, jobsPerHour: center.jobsPerHour,
+  avgLatencyMs: center.avgLatencyMs, isYou: center.id === "sg",
+})));
+const selected = computed<GlobeRegion | null>({
+  get: () => regions.value.find(region => region.id === selectedId.value) ?? null,
+  set: region => { selectedId.value = region?.id ?? null; },
 });
-const activeJobsText = computed(() => {
-  if (remoteApiEnabled) return networkProjection.value?.activeJobs === undefined ? "—" : networkProjection.value.activeJobs.toLocaleString();
-  return global.value.activeJobs.toLocaleString();
-});
-
-const regions = computed<GlobeRegion[]>(() => remoteApiEnabled
-  ? (networkProjection.value?.regions ?? []).map((region, index, all) => ({
-      id: region.id,
-      displayName: region.displayName,
-      cx: region.longitude === null ? (index + 1) / (all.length + 1) : (region.longitude + 180) / 360,
-      cy: region.latitude === null ? 0.38 + (index % 3) * 0.14 : (90 - region.latitude) / 180,
-      devices: region.activeNodes,
-      activeJobs: region.activeJobs,
-      jobsPerHour: region.jobsPerHour,
-      avgLatencyMs: null,
-      isYou: region.isUserRegion,
-    }))
-  : REGIONS.map((region) => ({ ...region, activeJobs: 0 })));
 const me = computed(() => regions.value.find((r) => r.isYou) ?? null);
 const meX = computed(() => (me.value?.cx ?? 0) * W);
 const meY = computed(() => (me.value?.cy ?? 0) * H);
 const otherRegions = computed(() => regions.value.filter((r) => !r.isYou));
 
-// Deterministic pulse selection is decorative only; it must never become a metric source.
+// Pulse timing also drives explicitly simulated counters; neither is API telemetry.
 const pulseRegionId = computed<string | null>(() => {
   if (pulseTick.value === 0) return null;
   if (regions.value.length === 0) return null;
   return regions.value[(pulseTick.value - 1) % regions.value.length]?.id ?? null;
 });
-
-// Mock-only fixture value. Remote mode renders unavailable telemetry instead.
-const uptimeText = computed(() => remoteApiEnabled
-  ? t.value.globe.metricUnavailable
-  : `${MOCK_GLOBE_FIXTURE_ID} · 99.20%`);
-const generatedAtText = computed(() => {
-  const timestamp = Date.parse(networkProjection.value?.generatedAt ?? "");
-  return Number.isFinite(timestamp)
-    ? formatTrialDateTime(timestamp)
-    : t.value.globe.metricUnavailable;
-});
-const projectionStateTitle = computed(() => projectionStatus.value === "error"
-  ? t.value.globe.regionProjectionErrorTitle
-  : projectionStatus.value === "empty"
-    ? t.value.globe.regionProjectionEmptyTitle
-    : t.value.globe.regionProjectionLoadingTitle);
-const projectionStateDesc = computed(() => projectionStatus.value === "error"
-  ? t.value.globe.regionProjectionErrorDesc
-  : projectionStatus.value === "empty"
-    ? t.value.globe.regionProjectionEmptyDesc
-    : t.value.globe.regionProjectionLoadingDesc);
-const hasUsableProjection = computed(() => (networkProjection.value?.regions.length ?? 0) > 0);
-const showProjectionBlockingState = computed(() => remoteApiEnabled
-  && !hasUsableProjection.value
-  && projectionStatus.value !== "ready");
-const showProjectionInlineError = computed(() => remoteApiEnabled
-  && hasUsableProjection.value
-  && projectionStatus.value === "error");
 
 const dots = computed(() => generateDotMap(W, H));
 
@@ -374,96 +290,21 @@ function nativeNodeStyle(r: GlobeRegion): CSSProperties {
 }
 // #endif
 
-function regionName(r: GlobeRegion): string {
-  if (r.displayName) return r.displayName;
-  const g = t.value.globe as Record<string, string>;
-  return r.i18nKey ? g[r.i18nKey] ?? r.id : r.id;
-}
-function regionDevicesText(r: GlobeRegion): string {
-  return fmt(t.value.globe.regionDevices, { n: r.devices.toLocaleString() });
-}
-// Missing latency stays compact; the existing drawer explains its availability.
-function regionLatencyText(r: GlobeRegion): string {
-  if (r.avgLatencyMs === null) return t.value.globe.latencyTelemetryMissing;
-  return fmt(t.value.globe.regionLatency, { n: String(r.avgLatencyMs) });
-}
-function regionJobsText(r: GlobeRegion): string {
-  return fmt(t.value.globe.regionJobs, { n: r.jobsPerHour.toLocaleString() });
-}
-
-function projectionScope(): string {
-  return `${String(app.accountKey)}:${app.accountBindingEpoch}:${captureRuntimeRevision().epoch}`;
-}
-
-function loadRegions(): Promise<void> {
-  if (!remoteApiEnabled || disposed || !pageActive) return Promise.resolve();
-  const scope = projectionScope();
-  if (projectionFlight?.scope === scope) return projectionFlight.promise;
-  const request = ++projectionRequest;
-  projectionStatus.value = "loading";
-  const promise = (async () => {
-    try {
-      const next = await networkRegionsApi.list();
-      if (request !== projectionRequest || scope !== projectionScope()) return;
-      networkProjection.value = next;
-      projectionStatus.value = next.regions.length > 0 ? "ready" : "empty";
-    } catch {
-      if (request !== projectionRequest || scope !== projectionScope()) return;
-      projectionStatus.value = "error";
-    }
-  })();
-  const flight = { scope, promise };
-  projectionFlight = flight;
-  const clear = () => {
-    if (projectionFlight === flight) projectionFlight = null;
-  };
-  void promise.then(clear, clear);
-  return promise;
-}
-
-let releaseActiveRefresh = () => {};
-function activatePageRefresh() {
-  releaseActiveRefresh();
-  releaseActiveRefresh = registerActivePageRefresh(loadRegions);
-}
-
+function regionName(r: GlobeRegion): string { return r.displayName; }
+function regionNodeDisplay(r: GlobeRegion): string { return `${(r.devices / 10000).toFixed(1)}W+`; }
 onMounted(() => {
   pulseTimer = setInterval(() => {
+    if (!pageActive) return;
     pulseTick.value += 1;
+    simulationStep.value = Math.floor(Date.now() / GLOBE_SIMULATION_INTERVAL_MS);
   }, 1800) as unknown as number;
 });
 onShow(() => {
-  if (disposed) return;
   pageActive = true;
-  activatePageRefresh();
-  void loadRegions();
+  simulationStep.value = Math.floor(Date.now() / GLOBE_SIMULATION_INTERVAL_MS);
 });
-onHide(() => {
-  pageActive = false;
-  projectionRequest += 1;
-  projectionFlight = null;
-  selected.value = null;
-  releaseActiveRefresh();
-});
-function resetProjection() {
-  if (disposed) return;
-  projectionRequest += 1;
-  projectionFlight = null;
-  selected.value = null;
-  networkProjection.value = null;
-  projectionStatus.value = remoteApiEnabled ? "loading" : "ready";
-  void loadRegions();
-}
-watch(() => [String(app.accountKey), app.accountBindingEpoch] as const, resetProjection);
-const unsubscribeRuntime = subscribeRuntimeRevision(resetProjection);
-onUnmounted(() => {
-  disposed = true;
-  projectionRequest += 1;
-  projectionFlight = null;
-  unsubscribeRuntime();
-  releaseActiveRefresh();
-  if (pulseTimer) clearInterval(pulseTimer);
-});
+onHide(() => { pageActive = false; selected.value = null; });
+onUnmounted(() => { if (pulseTimer) clearInterval(pulseTimer); });
 
 // Procedural dot-map silhouette (loose continent blobs).
 function generateDotMap(w: number, h: number): Array<{ x: number; y: number; r: number; bright: boolean }> {
@@ -573,6 +414,9 @@ const regionRateStyle: CSSProperties = {
 const drawerCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   width: "100%",
   maxWidth: "420px",
+  maxHeight: "100%",
+  overflowY: "auto",
+  boxSizing: "border-box",
   background: "var(--nx-glass-fill)",
   borderColor: "transparent",
   padding: "20px",
@@ -663,7 +507,8 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-globe-drawer", () =>
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0 12px 16px;
+  box-sizing: border-box;
+  padding: 12px 12px calc(16px + max(env(safe-area-inset-bottom, 0px), 24px));
 }
 .nx-globe-scrim {
   position: absolute;

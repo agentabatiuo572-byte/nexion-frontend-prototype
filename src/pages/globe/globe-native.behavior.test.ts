@@ -5,16 +5,13 @@ import { initPreContext, preHtml, preJs } from "@dcloudio/uni-cli-shared/dist/pr
 import ts from "typescript";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import raw from "./globe.vue?raw";
+import { GLOBE_CENTERS, globeSimulation, GLOBE_SIMULATION_INTERVAL_MS } from "@/lib/globe-simulation";
 import nativeRaw from "@/components/native-svg.vue?raw";
 import SvgText from "@/components/svg-text";
 import { svgMarkup } from "@/lib/native-svg-markup";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as viMessages } from "@/i18n/messages/vi";
-import { fmt } from "@/i18n/format";
-import { formatTrialDateTime } from "@/lib/trial-date";
-import type { NetworkRegionProjection } from "@/api/network-regions-api";
-import { advanceRuntimeRevision, captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
 // Compile both production SFCs through the installed Uni conditional parser.
 // Reparse its output so compileScript consumes the correct template AST.
@@ -62,261 +59,255 @@ function emit(target: Host, key: string, event = {}) {
 }
 const unmounts: Array<() => void> = [];
 const settle = async () => { for (let n = 0; n < 4; n++) await Vue.nextTick(); };
-const projection = (): NetworkRegionProjection => ({
-  activeNodes: 0, activeJobs: 0, countryCount: 2, source: "server", generatedAt: "2026-10-01T00:00:00Z",
-  regions: [
-    { id: "self", displayName: "Mobile region", location: "Mobile", latitude: 0, longitude: 0, isUserRegion: true },
-    { id: "us", displayName: "Virginia", location: "US", latitude: 45, longitude: -90, isUserRegion: false },
-    { id: "unknown", displayName: "Unknown location", location: "Unknown", latitude: null, longitude: null, isUserRegion: false },
-  ].map(region => ({ ...region, activeNodes: 0, activeJobs: 0, jobsPerHour: 0 })),
-});
+type Platform = "app" | "h5";
+const dictionaries = { en, zh, vi: viMessages };
+const INITIAL_STEP = 120;
+const fixedLabels = ["23.6W+", "25.3W+", "16.3W+", "24.9W+", "20.8W+", "21.7W+", "31.6W+", "28.4W+"];
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
-  return { promise, resolve, reject };
-}
-
-async function mount(platform: "app" | "h5" = "app", failInitially = false, initialRead?: Promise<NetworkRegionProjection>) {
+async function mount(platform: Platform) {
   initPreContext(platform);
   const native = compile(nativeRaw, "native-svg.vue", { vue: Vue, "@/lib/native-svg-markup": { svgMarkup } });
-  const locale = Vue.ref<"en" | "zh" | "vi">("en");
-  const dictionaries = { en, zh, vi: viMessages };
+  const locale = Vue.ref<keyof typeof dictionaries>("en");
   const t = Vue.computed(() => dictionaries[locale.value]);
-  const account = Vue.reactive({ accountKey: "user:fixture", accountBindingEpoch: 1, global: { activeDevices: 0, activeJobs: 0 } });
-  const api = { list: vi.fn().mockResolvedValue(projection()) };
-  if (failInitially) api.list.mockRejectedValueOnce(new Error("offline"));
-  if (initialRead) api.list.mockReturnValueOnce(initialRead);
-  const shows: Array<() => void> = [];
+  const shows: Array<() => void> = [], hides: Array<() => void> = [];
+  let dialogOpen: Vue.Ref<boolean> | undefined;
+  let closeDialog: (() => void) | undefined;
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
-  const empty = { props: ["kind", "title", "desc", "ctaLabel"], emits: ["cta"],
-    setup: (props: any, { emit }: any) => () => Vue.h("view", { class: "test-empty-state" }, [
-      Vue.h("text", props.title), props.ctaLabel ? Vue.h("button", { onClick: () => emit("cta") }, props.ctaLabel) : null,
-    ]) };
+  // Deliberately provide no API/store imports: this page must mount without either.
   const deps = {
     vue: Vue, "@/components/native-svg.vue": { default: native }, "@/components/svg-text": { default: SvgText },
     "@/components/app-chassis.vue": { default: slot }, "@/components/sub-page-header.vue": { default: slot },
-    "@/components/empty-state.vue": { default: empty }, "@/i18n/use-t": { useT: () => t },
-    "@/store/app": { useApp: () => account }, "@/store/config": { useConfig: () => ({ config: { publicStats: {} } }) },
-    "@/lib/platform-stats": { publicStatsHealth: () => ({ devicesOk: true }) },
-    "@/mock/globe-regions": { MOCK_GLOBE_FIXTURE_ID: "unused", REGIONS: [] },
-    "@/i18n/format": { fmt, dateLocale: () => "en-US" },
-    "@/lib/trial-date": { formatTrialDateTime },
-    "@/composables/use-dialog-a11y": { useDialogA11y: () => {} },
-    "@/api/runtime": { remoteApiEnabled: true, networkRegionsApi: api },
-    "@dcloudio/uni-app": { onShow: (cb: () => void) => shows.push(cb), onHide: () => {} },
-    "@/lib/active-page-refresh": { registerActivePageRefresh: () => () => {} },
-    "@/api/order-api": { captureRuntimeRevision, subscribeRuntimeRevision },
+    "@/i18n/use-t": { useT: () => t },
+    "@/lib/globe-simulation": { globeSimulation, GLOBE_SIMULATION_INTERVAL_MS },
+    "@/composables/use-dialog-a11y": { useDialogA11y: (open: Vue.Ref<boolean>, _selector: string, close: () => void) => {
+      dialogOpen = open; closeDialog = close;
+    } },
+    "@dcloudio/uni-app": { onShow: (cb: () => void) => shows.push(cb), onHide: (cb: () => void) => hides.push(cb) },
   };
   const root = node("root");
   const app = renderer.createApp(compile(raw, "globe.vue", deps));
-  app.mount(root); unmounts.push(() => app.unmount());
+  app.mount(root);
+  const unmount = () => app.unmount();
+  unmounts.push(unmount);
   shows.forEach(cb => cb()); await settle();
   const graph = () => all(root).find(item => hasClass(item, "nx-globe-native"));
-  const controls = () => all(graph() ?? node()).filter(item => item.props.role === "button" && item.props["aria-label"]);
+  const svg = () => all(root).find(item => item.tag === "svg" && item.props.viewBox === "0 0 440 240");
+  const controls = () => all((platform === "app" ? graph() : svg())!).filter(item => item.props.role === "button" && item.props["aria-label"]);
+  const rows = () => all(root).filter(item => item.props.role === "button" && !item.props["aria-label"]);
   const markup = () => String(all(graph() ?? root).find(item => hasClass(item, "nx-native-svg"))?.props.innerHTML ?? "");
   const drawer = () => all(root).find(item => item.props.role === "dialog");
-  return { root, api, account, locale, shows, graph, controls, markup, drawer };
+  const drawerValues = () => all(drawer()!).filter(item => hasClass(item, "tabular-nums") && style(item)?.fontSize === "15px").map(text);
+  const headline = () => all(root).filter(item => hasClass(item, "tabular-nums") && style(item)?.fontSize === "20px").map(text);
+  const closeButton = () => all(drawer()!).find(item => item.props["aria-label"] === t.value.trial.sheetCloseAria)!;
+  const hide = async () => { hides.forEach(cb => cb()); await settle(); };
+  const show = async () => { shows.forEach(cb => cb()); await settle(); };
+  const dispose = () => { unmounts.splice(unmounts.indexOf(unmount), 1); unmount(); };
+  return { root, locale, graph, svg, controls, rows, markup, drawer, drawerValues, headline, closeButton,
+    hide, show, dispose, dialogOpen: () => dialogOpen!.value, closeDialog: () => closeDialog!() };
 }
-beforeEach(() => vi.useFakeTimers());
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(INITIAL_STEP * GLOBE_SIMULATION_INTERVAL_MS);
+});
 afterEach(() => {
   unmounts.splice(0).forEach(unmount => unmount());
   vi.restoreAllMocks();
-  vi.unstubAllEnvs();
   vi.useRealTimers();
 });
 
-for (const [zone, expected] of [
-  ["Asia/Tokyo", "2026-10-04 00:02:46"],
-  ["Asia/Ho_Chi_Minh", "2026-10-03 22:02:46"],
-]) {
-  test.each(["english fallback", "throws"])(`BUG 415 ${zone} renders local numeric drawer dates when Android locale %s`, async (mode) => {
-    vi.stubEnv("TZ", zone);
-    const localeSpy = vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(() => {
-      if (mode === "throws") throw new Error("Android locale formatter unavailable");
-      return "Sun Oct 04 2026 00:02:46 GMT+0900 (JST)";
-    });
-    for (const generatedAt of ["2026-10-03T15:02:46Z", "2026-10-04T00:02:46+09:00"]) {
-      const page = await mount("app", false, Promise.resolve({ ...projection(), generatedAt }));
-      emit(page.controls()[0], "onClick"); await settle();
-      for (const code of ["en", "vi", "zh"] as const) {
-        page.locale.value = code; await settle();
-        const copy = { en, zh, vi: viMessages }[code].globe;
-        expect(text(page.drawer()!)).toContain(fmt(copy.projectionUpdatedAt, { at: expected }));
-        expect(text(page.drawer()!)).not.toMatch(/Sun Oct|GMT\+|Invalid Date/);
-      }
-      emit(all(page.drawer()!).find(item => item.props["aria-label"] === zh.trial.sheetCloseAria)!, "onClick"); await settle();
-      const row = all(page.root).find(item => item.props.role === "button" && text(item).includes("Mobile region"))!;
-      emit(row, "onClick"); await settle();
-      expect(text(page.drawer()!)).toContain(fmt(zh.globe.projectionUpdatedAt, { at: expected }));
-      expect(page.api.list).toHaveBeenCalledOnce();
-    }
-    expect(localeSpy).not.toHaveBeenCalled();
-  });
-}
-
-test.each(["invalid", "", "+275761-01-01T00:00:00Z"])("BUG 415 renders the existing unavailable date for invalid generatedAt %s", async (generatedAt) => {
-  const page = await mount("app", false, Promise.resolve({ ...projection(), generatedAt }));
-  emit(page.controls()[0], "onClick"); await settle();
-  for (const code of ["en", "vi", "zh"] as const) {
-    page.locale.value = code; await settle();
-    const copy = { en, zh, vi: viMessages }[code].globe;
-    expect(text(page.drawer()!)).toContain(fmt(copy.projectionUpdatedAt, { at: copy.metricUnavailable }));
-    expect(text(page.drawer()!)).not.toMatch(/Invalid Date|NaN/);
-  }
-});
-
-test.each(["app", "h5"] as const)("%s exits cold-start loading after account and runtime rebinding succeeds", async (platform) => {
-  const old = deferred<NetworkRegionProjection>();
-  const current = deferred<NetworkRegionProjection>();
-  const page = await mount(platform, false, old.promise);
-  page.api.list.mockReturnValue(current.promise);
-
-  // Bootstrap binds the account before synchronously notifying the runtime;
-  // Vue flushes the account watcher afterwards, in the same final scope.
-  page.account.accountKey = "user:rebound";
-  page.account.accountBindingEpoch += 1;
-  advanceRuntimeRevision("cold-start account binding");
-  await settle();
-  old.resolve({ ...projection(), regions: [{ ...projection().regions[0], displayName: "OLD ACCOUNT" }] });
-  await settle();
-  expect(text(page.root)).not.toContain("OLD ACCOUNT");
-  expect(text(page.root)).toContain(en.globe.regionProjectionLoadingTitle);
-
-  current.resolve(projection());
-  await settle();
-  expect(text(page.root)).toContain("Mobile region");
-  expect(text(page.root)).not.toContain(en.globe.regionProjectionLoadingTitle);
-  expect(text(page.root)).not.toContain(en.globe.regionProjectionErrorTitle);
-});
-
-test.each(["app", "h5"] as const)("%s exposes Retry after cold-start rebinding fails and recovers through the CTA", async (platform) => {
-  const old = deferred<NetworkRegionProjection>();
-  const current = deferred<NetworkRegionProjection>();
-  const page = await mount(platform, false, old.promise);
-  page.api.list.mockReturnValue(current.promise);
-  page.account.accountKey = "user:rebound";
-  page.account.accountBindingEpoch += 1;
-  advanceRuntimeRevision("cold-start account binding");
-  await settle();
-  old.resolve(projection());
-  await settle();
-  current.reject(new Error("current network read failed"));
-  await settle();
-  expect(text(page.root)).not.toContain(en.globe.regionProjectionLoadingTitle);
-  expect(text(page.root)).toContain(en.globe.regionProjectionErrorTitle);
-  expect(text(page.root)).not.toContain("Mobile region");
-
-  page.api.list.mockResolvedValue(projection());
-  const retry = all(page.root).find(item => item.tag === "button")!;
-  expect(retry).toBeDefined();
-  emit(retry, "onClick");
-  await settle();
-  expect(text(page.root)).toContain("Mobile region");
-  expect(text(page.root)).not.toContain(en.globe.regionProjectionErrorTitle);
-});
-
-test("APP renders the real serialized dot map and regions even with zero active nodes", async () => {
-  const page = await mount();
-  expect(page.graph()).toBeDefined();
+test("APP serializes eight centers, reference connections and geographic leaders into native SVG", async () => {
+  const page = await mount("app");
   expect(style(page.graph()!).paddingTop).toBe(`${240 / 440 * 100}%`);
   expect(all(page.graph()!).some(item => item.tag === "svg" || item.tag === "g")).toBe(false);
   expect(page.markup()).toContain('viewBox="0 0 440 240"');
-  expect(page.markup()).toContain('width="100%" height="100%"');
   expect((page.markup().match(/<circle /g) ?? []).length).toBeGreaterThan(200);
-  expect((page.markup().match(/<line /g) ?? []).length).toBe(2);
-  const gradientIds = [...page.markup().matchAll(/<radialGradient id="([^"]+)"/g)].map(match => match[1]);
-  expect(gradientIds).toHaveLength(2);
-  gradientIds.forEach(id => expect(page.markup()).toContain(`fill="url(#${id})"`));
-  expect(page.markup()).toContain('x1="220" y1="120" x2="110" y2="60"');
+  expect((page.markup().match(/<line /g) ?? []).length).toBe(15);
+  const ids = [...page.markup().matchAll(/<radialGradient id="([^"]+)"/g)].map(match => match[1]);
+  expect(ids).toHaveLength(2);
+  ids.forEach(id => expect(page.markup()).toContain(`fill="url(#${id})"`));
   expect(page.markup()).not.toMatch(/onClick|onclick|<animate|<script/);
-  expect(page.controls().map(item => item.props["aria-label"])).toEqual(["Mobile region", "Virginia", "Unknown location"]);
-  expect(page.controls().map(item => [style(item).left, style(item).top])).toEqual([["50%", "50%"], ["25%", "25%"], ["75%", "66%"]]);
-  expect(page.controls().every(item => item.tag === "view" && item.props.tabindex === "0")).toBe(true);
-  expect(page.controls().every(item => style(item).width === "44px" && style(item).height === "44px")).toBe(true);
-  expect(text(page.graph()!)).toContain(en.globe.yourNodeBadge);
+  expect(page.controls()).toHaveLength(8);
+  page.controls().forEach(control => {
+    expect(control.tag).toBe("view");
+    expect(control.props.tabindex).toBe("0");
+    expect(style(control).width).toBe("44px");
+    expect(style(control).height).toBe("44px");
+  });
+  expect(text(page.graph()!)).toContain(en.globe.referenceCenterShort);
 });
 
-test("APP touch and keyboard nodes open the existing drawer and keep unavailable latency honest", async () => {
-  const page = await mount();
-  emit(page.controls()[0], "onClick"); await settle();
-  expect(text(page.drawer()!)).toContain("Mobile region");
-  expect(text(page.drawer()!)).toContain(en.globe.latencyTelemetryMissingHint);
-  expect(text(page.drawer()!)).toContain(en.globe.metricUnavailable);
-  emit(all(page.drawer()!).find(item => item.props["aria-label"] === en.trial.sheetCloseAria)!, "onClick"); await settle();
-  expect(page.drawer()).toBeUndefined();
-  const preventDefault = vi.fn();
-  emit(page.controls()[1], "onKeydown", { key: "Enter", preventDefault }); await settle();
-  expect(text(page.drawer()!)).toContain("Virginia"); expect(preventDefault).toHaveBeenCalled();
-  emit(all(page.drawer()!).find(item => hasClass(item, "nx-globe-scrim"))!, "onClick"); await settle();
-  emit(page.controls()[2], "onKeydown", { key: " ", preventDefault }); await settle();
-  expect(text(page.drawer()!)).toContain("Unknown location");
-  expect(page.api.list).toHaveBeenCalledOnce();
-});
-
-test.each(["app", "h5"] as const)("%s keeps list and drawer latency compact across locales while preserving real zero", async platform => {
-  const page = await mount(platform);
-  for (const locale of ["en", "zh", "vi"] as const) {
-    page.locale.value = locale; await settle();
-    const copy = { en, zh, vi: viMessages }[locale];
-    const row = all(page.root).find(item => item.props.role === "button" && !item.props["aria-label"] && text(item).includes("Mobile region"))!;
-    const listValue = all(row).find(item => hasClass(item, "block") && hasClass(item, "tabular-nums"))!;
-    expect(text(listValue)).toBe(`${fmt(copy.globe.regionDevices, { n: "0" })} · -`);
-    expect(text(row)).toContain(`0${copy.globe.jobsPerHour}`); expect(text(row)).not.toContain("-ms");
-    emit(row, "onClick"); await settle();
-    const values = all(page.drawer()!).filter(item => hasClass(item, "tabular-nums") && style(item)?.fontSize === "15px").map(text);
-    expect(values).toEqual(["0", "0", "-"]);
-    expect(text(page.drawer()!)).toContain(copy.globe.latencyTelemetryMissingHint);
-    emit(all(page.drawer()!).find(item => item.props["aria-label"] === copy.trial.sheetCloseAria)!, "onClick"); await settle();
-  }
-});
-
-test("APP labels and decorative pulse update without creating telemetry or retaining timers", async () => {
-  const page = await mount();
-  expect(page.graph()).toBeDefined();
-  expect(all(page.graph()!).some(item => hasClass(item, "nx-globe-native-pulse"))).toBe(false);
-  vi.advanceTimersByTime(1800); await settle();
-  expect(all(page.graph()!).filter(item => hasClass(item, "nx-globe-native-pulse"))).toHaveLength(1);
-  for (const code of ["zh", "vi", "en"] as const) {
-    page.locale.value = code; await settle();
-    expect(text(page.graph()!)).toContain({ en, zh, vi: viMessages }[code].globe.yourNodeBadge);
-    expect(page.controls().map(item => item.props["aria-label"])).toEqual(["Mobile region", "Virginia", "Unknown location"]);
-  }
-  expect(page.api.list).toHaveBeenCalledOnce();
-  unmounts.pop()!(); expect(vi.getTimerCount()).toBe(0);
-});
-
-test("APP blocks absent data, recovers on Retry, and preserves the confirmed map on refresh error", async () => {
-  const page = await mount("app", true);
-  expect(page.graph()).toBeUndefined(); expect(text(page.root)).toContain(en.globe.regionProjectionErrorTitle);
-  emit(all(page.root).find(item => item.tag === "button")!, "onClick"); await settle();
-  expect(page.controls()).toHaveLength(3);
-  const confirmed = page.markup();
-  page.api.list.mockRejectedValueOnce(new Error("refresh failed"));
-  page.shows.forEach(cb => cb()); await settle();
-  expect(page.markup()).toBe(confirmed); expect(text(page.root)).toContain(en.globe.regionProjectionErrorTitle);
-  emit(all(page.root).find(item => item.tag === "button")!, "onClick"); await settle();
-  expect(text(page.root)).not.toContain(en.globe.regionProjectionErrorTitle);
-  emit(page.controls()[0], "onClick"); await settle();
-  expect(text(page.drawer()!)).toContain("Mobile region");
-  page.api.list.mockResolvedValueOnce({ ...projection(), regions: [] });
-  page.account.accountBindingEpoch += 1; await settle();
-  expect(page.graph()).toBeUndefined(); expect(page.drawer()).toBeUndefined();
-  expect(text(page.root)).toContain(en.globe.regionProjectionEmptyTitle);
-});
-
-test("H5 retains its original SVG, clickable regions, keyboard activation and SMIL pulse", async () => {
+test("H5 retains eight SVG controls, leader lines and SMIL pulse", async () => {
   const page = await mount("h5");
-  expect(page.graph()).toBeUndefined(); expect(page.markup()).toBe("");
-  const svg = all(page.root).find(item => item.tag === "svg" && item.props.viewBox === "0 0 440 240")!;
-  expect(svg).toBeDefined();
-  expect(all(svg).filter(item => item.tag === "circle").length).toBeGreaterThan(200);
-  expect(all(svg).filter(item => item.tag === "line")).toHaveLength(2);
-  const controls = all(svg).filter(item => item.tag === "g" && item.props.role === "button");
-  expect(controls).toHaveLength(3);
-  emit(controls[1], "onKeydown", { key: "Enter", preventDefault: vi.fn() }); await settle();
-  expect(text(page.drawer()!)).toContain("Virginia");
+  expect(page.graph()).toBeUndefined();
+  expect(all(page.svg()!).filter(item => item.tag === "circle").length).toBeGreaterThan(200);
+  expect(all(page.svg()!).filter(item => item.tag === "line")).toHaveLength(15);
+  expect(page.controls()).toHaveLength(8);
+  page.controls().forEach(control => {
+    const dot = all(control).find(item => item.tag === "circle" && item.props["pointer-events"] === "auto")!;
+    expect(dot).toBeDefined();
+  });
   vi.advanceTimersByTime(1800); await settle();
-  expect(all(svg).filter(item => item.tag === "animate")).toHaveLength(2);
+  expect(all(page.svg()!).filter(item => item.tag === "animate")).toHaveLength(2);
 });
+
+for (const platform of ["app", "h5"] as const) {
+  test(`${platform} separates dense center dots and connects display positions to geographic anchors`, async () => {
+    const page = await mount(platform);
+    const points = page.controls().map(control => {
+      if (platform === "app") return [parseFloat(String(style(control).left)) / 100 * 440, parseFloat(String(style(control).top)) / 100 * 240];
+      const dot = all(control).find(item => item.tag === "circle" && item.props["pointer-events"] === "auto")!;
+      return [Number(dot.props.cx), Number(dot.props.cy)];
+    });
+    points.forEach(([x, y], i) => {
+      expect(x).toBeGreaterThan(5); expect(x).toBeLessThan(435);
+      expect(y).toBeGreaterThan(5); expect(y).toBeLessThan(235);
+      for (const [otherX, otherY] of points.slice(i + 1)) {
+        // ViewBox units: visible dots need a clear gap, without pinning layout coordinates.
+        expect(Math.hypot(x - otherX, y - otherY)).toBeGreaterThanOrEqual(24);
+      }
+    });
+    const lines: Record<string, unknown>[] = platform === "app"
+      ? [...page.markup().matchAll(/<line\s+([^>]+)>/g)].map(match => Object.fromEntries(
+        [...match[1].matchAll(/([\w-]+)="([^"]*)"/g)].map(attribute => [attribute[1], attribute[2]])))
+      : all(page.svg()!).filter(item => item.tag === "line").map(item => item.props);
+    const leaders = lines.filter(line => Number(line["stroke-opacity"]) === .35);
+    expect(leaders).toHaveLength(8);
+    leaders.forEach((line, i) => {
+      expect(Number(line.x1)).toBeCloseTo((GLOBE_CENTERS[i].lon + 180) / 360 * 440);
+      expect(Number(line.y1)).toBeCloseTo((90 - GLOBE_CENTERS[i].lat) / 180 * 240);
+      expect(Number(line.x2)).toBeCloseTo(points[i][0]);
+      expect(Number(line.y2)).toBeCloseTo(points[i][1]);
+      expect(line["pointer-events"]).toBe("none");
+    });
+    const connections = lines.filter(line => line["stroke-dasharray"] === "2 3");
+    expect(connections).toHaveLength(7);
+    connections.forEach((line, i) => {
+      expect(Number(line.x1)).toBeCloseTo(points[0][0]); expect(Number(line.y1)).toBeCloseTo(points[0][1]);
+      expect(Number(line.x2)).toBeCloseTo(points[i + 1][0]); expect(Number(line.y2)).toBeCloseTo(points[i + 1][1]);
+    });
+  });
+
+  test(`${platform} renders eight translated center rows, fixed nodes and simulated metrics`, async () => {
+    const page = await mount(platform);
+    const snapshot = globeSimulation(INITIAL_STEP);
+    expect(page.headline()).toEqual([snapshot.nodes.toLocaleString(), snapshot.jobs.toLocaleString()]);
+    for (const locale of ["en", "zh", "vi"] as const) {
+      page.locale.value = locale; await settle();
+      const copy = dictionaries[locale];
+      expect(copy.globe.simulatedData).toBeTruthy();
+      expect(text(page.root)).toContain(copy.globe.simulatedData);
+      expect(copy.globe.simulationLegend).toBeTruthy();
+      expect(text(page.root)).toContain(copy.globe.simulationLegend);
+      expect(page.rows()).toHaveLength(8);
+      expect(page.controls().map(control => control.props["aria-label"])).toEqual(GLOBE_CENTERS.map(c => copy.globe[c.nameKey]));
+      for (const [i, row] of page.rows().entries()) {
+        expect(copy.globe[GLOBE_CENTERS[i].nameKey]).toBeTruthy();
+        expect(text(row)).toContain(copy.globe.superComputeCenter);
+        expect(text(row)).toContain(snapshot.regions[i].jobsPerHour.toLocaleString());
+        expect(text(row)).not.toContain("ms");
+        emit(row, "onClick"); await settle();
+        expect(page.drawerValues()).toEqual([fixedLabels[i], snapshot.regions[i].jobsPerHour.toLocaleString(), `${snapshot.regions[i].avgLatencyMs}ms`]);
+        expect(text(page.drawer()!)).toContain(copy.globe.simulationHint);
+        emit(page.closeButton(), "onClick"); await settle();
+        expect(page.drawer()).toBeUndefined();
+      }
+    }
+  });
+
+  test(`${platform} opens map and list controls by touch, Enter and Space, and closes the dialog`, async () => {
+    const page = await mount(platform);
+    emit(page.controls()[0], "onClick"); await settle();
+    expect(text(page.drawer()!)).toContain(en.globe.centerSingapore);
+    expect(page.dialogOpen()).toBe(true);
+    emit(page.closeButton(), "onClick"); await settle();
+    expect(page.drawer()).toBeUndefined();
+    for (const [index, key] of [[1, "Enter"], [2, " "]] as const) {
+      const preventDefault = vi.fn();
+      emit(page.controls()[index], "onKeydown", { key, preventDefault }); await settle();
+      expect(preventDefault).toHaveBeenCalledOnce();
+      expect(text(page.drawer()!)).toContain(en.globe[GLOBE_CENTERS[index].nameKey]);
+      emit(all(page.drawer()!).find(item => hasClass(item, "nx-globe-scrim"))!, "onClick"); await settle();
+      expect(page.drawer()).toBeUndefined();
+    }
+    for (const key of ["Enter", " "]) {
+      emit(page.rows()[7], "onKeydown", { key, preventDefault: vi.fn() }); await settle();
+      expect(text(page.drawer()!)).toContain(en.globe.centerSanJose);
+      emit(page.closeButton(), "onKeydown", { key, preventDefault: vi.fn() }); await settle();
+      expect(page.drawer()).toBeUndefined();
+    }
+    emit(page.rows()[3], "onClick"); await settle();
+    page.closeDialog(); await settle();
+    expect(page.drawer()).toBeUndefined();
+    expect(page.dialogOpen()).toBe(false);
+  });
+
+  test(`${platform} preserves the selected center across language changes without resampling`, async () => {
+    const page = await mount(platform);
+    emit(page.rows()[5], "onClick"); await settle();
+    const values = page.drawerValues(), totals = page.headline();
+    for (const locale of ["zh", "vi", "en"] as const) {
+      page.locale.value = locale; await settle();
+      expect(text(page.drawer()!)).toContain(dictionaries[locale].globe.centerFrankfurt);
+      expect(text(page.drawer()!)).toContain(dictionaries[locale].globe.simulationHint);
+      expect(page.drawerValues()).toEqual(values);
+      expect(page.headline()).toEqual(totals);
+    }
+  });
+
+  test(`${platform} refreshes totals, list and an open drawer from one 5.4-second snapshot`, async () => {
+    const page = await mount(platform);
+    emit(page.rows()[1], "onClick"); await settle();
+    const before = page.drawerValues(), totals = page.headline();
+    vi.advanceTimersByTime(GLOBE_SIMULATION_INTERVAL_MS - 1); await settle();
+    expect(page.headline()).toEqual(totals);
+    expect(page.drawerValues()).toEqual(before);
+    vi.advanceTimersByTime(1); await settle();
+    const next = globeSimulation(INITIAL_STEP + 1);
+    expect(page.headline()).toEqual([next.nodes.toLocaleString(), next.jobs.toLocaleString()]);
+    expect(page.headline()).not.toEqual(totals);
+    expect(page.drawerValues()).toEqual(["25.3W+", next.regions[1].jobsPerHour.toLocaleString(), `${next.regions[1].avgLatencyMs}ms`]);
+    expect(text(page.rows()[1])).toContain(next.regions[1].jobsPerHour.toLocaleString());
+    vi.advanceTimersByTime(GLOBE_SIMULATION_INTERVAL_MS * 11); await settle();
+    expect(page.drawerValues()).not.toEqual(before);
+    expect(page.drawerValues()[0]).toBe("25.3W+");
+  });
+
+  test(`${platform} freezes hidden data and pulses, closes selection and resumes the current snapshot`, async () => {
+    const page = await mount(platform);
+    vi.advanceTimersByTime(1800); await settle();
+    emit(page.rows()[0], "onClick"); await settle();
+    await page.hide();
+    expect(page.drawer()).toBeUndefined();
+    const pulses = () => all(page.root).filter(item => hasClass(item, "nx-globe-native-pulse") || item.tag === "animate");
+    const hiddenText = text(page.root), hiddenPulses = pulses();
+    expect(hiddenPulses).toHaveLength(platform === "app" ? 1 : 2);
+    vi.advanceTimersByTime(GLOBE_SIMULATION_INTERVAL_MS * 24); await settle();
+    expect(text(page.root)).toBe(hiddenText);
+    expect(pulses()).toHaveLength(hiddenPulses.length);
+    pulses().forEach((pulse, i) => expect(pulse).toBe(hiddenPulses[i]));
+    await page.show();
+    const snapshot = globeSimulation(Math.floor(Date.now() / GLOBE_SIMULATION_INTERVAL_MS));
+    expect(page.headline()).toEqual([snapshot.nodes.toLocaleString(), snapshot.jobs.toLocaleString()]);
+    expect(text(page.root)).not.toBe(hiddenText);
+    expect(page.drawer()).toBeUndefined();
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
+  test(`${platform} keeps one timer across show/hide cycles and clears it on unmount`, async () => {
+    const page = await mount(platform);
+    for (let i = 0; i < 3; i++) { await page.hide(); await page.show(); await page.show(); }
+    expect(vi.getTimerCount()).toBe(1);
+    page.dispose();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(GLOBE_SIMULATION_INTERVAL_MS * 2); await settle();
+    expect(page.root.children).toHaveLength(0);
+  });
+
+  test(`${platform} remounts the same time slot without drawing a new random sample`, async () => {
+    const first = await mount(platform), second = await mount(platform);
+    expect(first.headline()).toEqual(second.headline());
+    expect(first.rows().map(text)).toEqual(second.rows().map(text));
+    expect(text(first.root)).not.toContain(en.globe.youAre);
+    expect(text(first.rows()[0])).toContain(en.globe.referenceCenter);
+  });
+}
