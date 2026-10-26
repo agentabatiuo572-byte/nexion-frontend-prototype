@@ -59,6 +59,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
   const api = { status: vi.fn(async () => ({ available: true })),
     history: vi.fn(async () => ({ conversationId: null, messages: [] })), chat: vi.fn() };
   const startConversation = vi.fn(async (_type: string, _text: string) => "new-conversation");
+  const sendUser = vi.fn(async () => true);
   const openConversation = vi.fn(async () => conversation);
   const watchRealtime=vi.fn();
   const humanComposers = vue.reactive<Record<string, any>>({});
@@ -99,6 +100,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
       refreshCategories: async () => "applied",
       categoryEnabled: (type: string) => enabled.includes(type),
       startConversation,
+      sendUser,
     }) },
     "@/store/nova": { useNova },
     "@/store/auth": { useAuth: () => auth },
@@ -126,11 +128,36 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     }, {},
   );
   hooks.onLoad(query);
-  return { page, hooks, app, rebind, api, startConversation, openConversation,watchRealtime, nova: useNova(), currentLocale, locale, navigation: modules["@/lib/route"] as { navTo: ReturnType<typeof vi.fn>; navBack: ReturnType<typeof vi.fn> } };
+  return { page, hooks, app, rebind, api, startConversation, sendUser, openConversation,watchRealtime, nova: useNova(), currentLocale, locale, navigation: modules["@/lib/route"] as { navTo: ReturnType<typeof vi.fn>; navBack: ReturnType<typeof vi.fn> } };
 }
 
 beforeEach(() => { setActivePinia(createPinia()); vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+it.each(['success', 'failure'])('settles the human send visual only after the actual %s result', async result => {
+  const current = mount({ cid: 'support-1' }, { type: 'support', status: 'open', agentName: 'Support' });
+  await current.hooks.onShow();
+  const reply = deferred<boolean>(); current.sendUser.mockReturnValueOnce(reply.promise);
+  const settled = vi.fn(); const pending = current.page.onSend('Please check', undefined, settled);
+  await vi.waitFor(() => expect(current.sendUser).toHaveBeenCalledOnce());
+  await vi.advanceTimersByTimeAsync(1000); expect(settled).not.toHaveBeenCalled();
+  if (result === 'success') reply.resolve(true); else reply.reject(new Error('offline'));
+  await pending; expect(settled).toHaveBeenCalledExactlyOnceWith(result === 'success'); current.page.cleanup();
+});
+
+it('keeps queued Nova sends turning until their own outcome and settles remaining visuals on hide', async () => {
+  const current = mount(); await current.hooks.onShow();
+  const reply = deferred<{ reply: string }>(); current.api.chat.mockReturnValueOnce(reply.promise);
+  const first = vi.fn(), second = vi.fn();
+  await current.page.onSend('First', undefined, first);
+  await current.page.onSend('Second', undefined, second);
+  expect(first).not.toHaveBeenCalled(); expect(second).not.toHaveBeenCalled();
+  const turnId = current.nova.pendingRemote[0].turnId!;
+  current.nova.failRemote(turnId, 'timeout');
+  expect(first).toHaveBeenCalledOnce(); expect(second).not.toHaveBeenCalled();
+  current.hooks.onHide(); expect(second).toHaveBeenCalledOnce(); current.page.cleanup();
+  expect(first).toHaveBeenCalledOnce(); expect(second).toHaveBeenCalledOnce();
+});
 
 it('keeps the shared history path unchanged after failed anchor preparation and permits a successful retry', async () => {
   const current = mount(); await current.hooks.onShow();

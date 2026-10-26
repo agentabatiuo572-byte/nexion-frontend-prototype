@@ -5,7 +5,7 @@ export const CONVERSATION_ENTRANCE_MS = 180;
 type Snapshot = { identity: string; visible: boolean; ready: boolean; messages: ThreadMsg[] };
 
 /** Only unseen tail additions in a live thread enter; history snapshots merely seed IDs. */
-export function useConversationEntrance(source: () => Snapshot) {
+export function useConversationEntrance(source: () => Snapshot, onIncoming?: () => void) {
   const active = ref<Record<string, { token: number; identity: string }>>({});
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   let identity: string | undefined, previous: string[] = [], seen = new Set<string>(), serial = 0;
@@ -30,14 +30,17 @@ export function useConversationEntrance(source: () => Snapshot) {
     const tail = previous.length ? ids.indexOf(previous[previous.length - 1]) : -1;
     const canAppend = !previous.length || tail !== -1;
     if (!changed && previouslyVisible && previouslyReady && current.visible && current.ready && canAppend) {
+      let incoming = false;
       for (let index = tail + 1; index < current.messages.length; index++) {
         const message = current.messages[index];
         if (seen.has(message.id) || message.tone === 'system') continue;
+        if (message.side === 'left') incoming = true;
         const token = ++serial;
         active.value = { ...active.value, [message.id]: { token, identity: current.identity } };
         // Also expire when reduced motion prevents animationend from firing.
         timers.set(message.id, setTimeout(() => finish(message.id, token), CONVERSATION_ENTRANCE_MS + 20));
       }
+      if (incoming) onIncoming?.();
     }
     ids.forEach(id => seen.add(id)); previous = ids;
     previouslyReady = current.ready; previouslyVisible = current.visible;

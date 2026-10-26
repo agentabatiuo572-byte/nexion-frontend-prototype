@@ -199,6 +199,22 @@ type FailedHumanSend = { text: string; attachmentId?: string; kind: "unknown" | 
 const imageDraft = ref<ImageDraft | null>(null);
 const failedHumanSend = ref<FailedHumanSend | null>(null);
 const humanSendBusy = ref(false);
+const queuedSendVisuals = new Map<string, (accepted?: boolean) => void>();
+function clearQueuedSendVisuals() {
+  const callbacks = [...queuedSendVisuals.values()]; queuedSendVisuals.clear();
+  callbacks.forEach(done => done(false));
+}
+function settleQueuedSendVisuals() {
+  for (const [turnId, done] of queuedSendVisuals) {
+    const item = nova.pendingRemote.find(row => row.turnId === turnId);
+    if (!item || item.delivery === 'failed') {
+      queuedSendVisuals.delete(turnId);
+      done(!item && nova.messages.some(row => row.turnId === turnId && !row.delivery));
+    }
+  }
+}
+watch(() => nova.pendingRemote.map(row => [row.turnId, row.delivery]), settleQueuedSendVisuals, { flush: 'sync' });
+watch(() => [app.accountKey, app.accountBindingEpoch, nova.conversationBoundary], clearQueuedSendVisuals, { flush: 'sync' });
 const ticketCreationBlock = ref<TicketCreationPolicy | null>(null);
 const ticketCreationBlockText = computed(() => {
   const policy = ticketCreationBlock.value;
@@ -694,6 +710,7 @@ onShow(async () => {
 });
 onHide(() => {
   novaPageVisible = false;
+  clearQueuedSendVisuals();
   resetAttachmentPolicy();
   cancelHistoryRetry();
   clearPrivateImages();
@@ -1204,6 +1221,7 @@ function cancelNovaThinking() {
 function cleanup() {
   chatDisposed = true;
   novaPageVisible = false;
+  clearQueuedSendVisuals();
   resetAttachmentPolicy();
   clearPrivateImages();
   categoryGate = null;
@@ -1265,7 +1283,10 @@ async function waitForNovaReply<T>(reply: Promise<T>, abort: () => void, remaini
   } finally { if (timer !== undefined) clearTimeout(timer); }
 }
 
-async function onSend(text: string, restore?: () => void) {
+async function onSend(text: string, restore?: () => void, settled?: (accepted?: boolean) => void) {
+  let queuedVisualTurn: string | undefined;
+  let accepted = false;
+  try {
   if (!isAi.value && !supportSessionReady.value) { restore?.(); return; }
   if (isAi.value && remoteApiEnabled) {
     const accountKey = app.accountKey;
@@ -1310,10 +1331,12 @@ async function onSend(text: string, restore?: () => void) {
     }
     // Bound admission by queue capacity. Only the serial worker sends requests.
     try {
-      if (!nova.enqueueRemote(requireCryptoUuid(), text,
+      const turnId = requireCryptoUuid();
+      if (!nova.enqueueRemote(turnId, text,
         locale.code === "zh" || locale.code === "vi" ? locale.code : "en")) {
         restore?.(); toast.warn(t.value.nova.queue.failed); return;
       }
+      queuedVisualTurn = turnId;
     } catch { restore?.(); toast.error(t.value.nova.queue.failed); return; }
     void drainNovaQueue();
     return;
@@ -1345,6 +1368,7 @@ async function onSend(text: string, restore?: () => void) {
   }
   if (isAi.value) {
     nova.sendUser(text);
+    accepted = true;
     nova.markUserRead(); // Nova reads instantly
     schedule(() => nova.setTyping(true), AI_TYPING_ON_MS);
     schedule(() => {
@@ -1353,8 +1377,13 @@ async function onSend(text: string, restore?: () => void) {
     }, AI_REPLY_MS);
     return;
   }
-  await sendHumanMessage(text, imageDraft.value?.state === "ready" ? imageDraft.value.attachmentId : undefined, restore);
+  accepted = (await sendHumanMessage(text, imageDraft.value?.state === "ready" ? imageDraft.value.attachmentId : undefined, restore)) === true;
   } finally { humanSendBusy.value = false; }
+  } finally {
+    if (queuedVisualTurn && settled && novaPageVisible && !chatDisposed) {
+      queuedSendVisuals.set(queuedVisualTurn, settled); settleQueuedSendVisuals();
+    } else settled?.(accepted);
+  }
 }
 
 async function sendHumanMessage(text: string, attachmentId?: string, restore?: () => void, attempts = 1) {
@@ -1393,6 +1422,7 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
       if (imageDraft.value?.attachmentId === attachmentId) imageDraft.value = null;
       convStore.saveComposer(`start:${type}`, { text: draftText.value, imageDraft: null, failedSend: null, recoveredId: createdId });
       restoreCompletedHumanCreate(true);
+      return true;
     } catch (cause) {
       if (!humanCreateRecovery.isCurrent(creation) || supportScope !== convStore.scopeInvalidated) return;
       humanSendFailed(text, attachmentId, cause, attempts);
@@ -1413,6 +1443,7 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
     if (replyBinding !== app.accountBindingEpoch || cid.value !== id || supportScope !== convStore.scopeInvalidated) return;
     if (imageDraft.value?.attachmentId === attachmentId) imageDraft.value = null;
     if (humanComposerKey.value) convStore.saveComposer(humanComposerKey.value, { text: draftText.value, imageDraft: imageDraft.value, failedSend: null });
+    return true;
   } catch (cause) {
     if (replyBinding !== app.accountBindingEpoch || cid.value !== id || supportScope !== convStore.scopeInvalidated) return;
     humanSendFailed(text, attachmentId, cause, attempts);

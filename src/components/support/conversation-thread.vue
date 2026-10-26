@@ -10,7 +10,7 @@
   class names give automation real click/fill targets (P-048).
 -->
 <template>
-  <view class="nx-conv-thread message-family">
+  <view class="nx-conv-thread message-family" @touchstart="sounds.unlock" @mousedown="sounds.unlock" @keydown="sounds.unlock">
     <!-- Message list. :scroll-into-view drives auto-scroll on App (native); on H5 it
          stays "" and domToBottom() handles it (uni's declarative scroll lands short
          of a freshly-laid-out bubble). -->
@@ -152,8 +152,8 @@
         @blur="emit('typing', false)"
         @confirm="onSend"
       />
-      <view class="nx-conv-send" :class="{ 'nx-conv-send--ready': canSend || sendFeedback, 'nx-conv-send--feedback': sendFeedback }" role="button" :tabindex="canSend ? 0 : -1" :aria-label="sendLabel" :aria-disabled="!canSend" @click="onSend" @keydown.enter.prevent="onKeyboardActivate($event, onSend)" @keydown.space.prevent="onKeyboardActivate($event, onSend)">
-        <view class="nx-conv-send-face" aria-hidden="true"><LiquidGlass :radius="22" /><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg></view>
+      <view class="nx-conv-send" :class="{ 'nx-conv-send--ready': canSend || sendFeedback || sendTurning, 'nx-conv-send--feedback': sendFeedback, 'nx-conv-send--turning': sendTurning }" role="button" :tabindex="canSend ? 0 : -1" :aria-label="sendLabel" :aria-disabled="!canSend" :aria-busy="sendTurning" @click="onSend" @keydown.enter.prevent="onKeyboardActivate($event, onSend)" @keydown.space.prevent="onKeyboardActivate($event, onSend)">
+        <view class="nx-conv-send-face" aria-hidden="true"><LiquidGlass :radius="22" /><svg class="nx-conv-send-plane" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg></view>
       </view>
     </view>
     <view v-if="attachRetry" class="nx-conv-policy-retry" role="button" tabindex="0" @click="emit('retry-policy')" @keydown.enter.prevent="emit('retry-policy')" @keydown.space.prevent="emit('retry-policy')"><text>{{ imageLabels?.retryPolicy }}</text></view>
@@ -172,6 +172,8 @@ import type { ThreadMsg, QuickChip } from "./thread-types";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { onHide, onShow } from '@/composables/use-tab-page-lifecycle';
 import { useApp } from '@/store/app';
+import { usePreferences } from '@/store/preferences';
+import { createConversationAudio } from '@/lib/conversation-audio';
 import { useConversationEntrance } from './conversation-entrance';
 import { conversationScrollChange, preservedConversationTop } from './conversation-scroll';
 import { buildConversationTimeGroups, formatConversationTime, type ConversationTimeOptions } from './conversation-time';
@@ -216,7 +218,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   /** restore() puts the text back in the input — call it when the send is rejected
       (e.g. rate-limited) so the user's typed message isn't silently swallowed. */
-  (e: "send", text: string, restore: () => void): void;
+  (e: "send", text: string, restore: () => void, settled: (accepted?: boolean) => void): void;
   (e: "typing", active: boolean): void;
   (e: "draft-change", text: string): void;
   (e: "retry-image", attachmentId: string): void;
@@ -254,21 +256,32 @@ watch(() => props.messages.map(message => [message.id, message.timestamp]), () =
 function messageMeta(message: ThreadMsg) { return [message.meta, messageTimes.value[message.id]?.clock].filter(Boolean).join(' · '); }
 onHide(() => { threadVisible.value = false; });
 onShow(() => { entranceReveal.value++; threadVisible.value = true; });
+const preferences = usePreferences();
+const sounds = createConversationAudio({ enabled: () => preferences.soundEnabled, visible: () => threadVisible.value });
+onHide(sounds.stop);
+onScopeDispose(sounds.destroy);
+watch(() => [preferences.soundEnabled, app.accountKey, app.accountBindingEpoch, props.composerKey], sounds.stop, { flush: 'sync' });
 const { entranceBindings } = useConversationEntrance(() => ({
   identity: JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey, props.revealTick, entranceReveal.value]),
   visible: threadVisible.value, ready: props.entranceReady === true, messages: props.messages,
-}));
+}), () => sounds.play('receive'));
 function receiptText(message: ThreadMsg): string | undefined {
   return message.queue ? props.queueLabels ? message.queue.label : undefined : message.receipt;
 }
 
 const draft = ref(props.initialDraft ?? "");
 const sendFeedback = ref(false);
+const sendTurning = ref(false);
+let sendVisualEpoch = 0;
+let sendReturnTimer: ReturnType<typeof setTimeout> | undefined;
 let sendFeedbackTimer: ReturnType<typeof setTimeout> | undefined;
 function clearSendFeedback() { clearTimeout(sendFeedbackTimer); sendFeedback.value = false; }
-onHide(clearSendFeedback);
-onScopeDispose(clearSendFeedback);
-watch(() => [props.composerKey, props.revealTick, app.accountBindingEpoch], clearSendFeedback);
+function resetSendVisuals() {
+  ++sendVisualEpoch; clearTimeout(sendReturnTimer); sendTurning.value = false; clearSendFeedback();
+}
+onHide(resetSendVisuals);
+onScopeDispose(resetSendVisuals);
+watch(() => [props.composerKey, props.revealTick, app.accountKey, app.accountBindingEpoch], resetSendVisuals, { flush: 'sync' });
 const previewImage = ref("");
 function openPreview(src: string) {
   // #ifdef APP-PLUS
@@ -311,6 +324,7 @@ function onEditInput(turnId: string, e: Event) {
 }
 
 function onDraft(e: Event) {
+  sounds.unlock();
   draft.value = (e as unknown as { detail: { value: string } }).detail.value;
   emit("draft-change", draft.value);
   emit("typing", Boolean(draft.value.trim()));
@@ -318,6 +332,11 @@ function onDraft(e: Event) {
 
 function onSend() {
   if (!canSend.value) return;
+  sounds.unlock();
+  clearTimeout(sendReturnTimer);
+  const epoch = ++sendVisualEpoch, started = Date.now();
+  let settled = false;
+  sendTurning.value = true;
   clearSendFeedback(); sendFeedback.value = true;
   sendFeedbackTimer = setTimeout(clearSendFeedback, 220);
   const text = draft.value.trim();
@@ -325,8 +344,18 @@ function onSend() {
   emit("draft-change", "");
   emit("typing", false);
   emit("send", text, () => {
+    if (epoch !== sendVisualEpoch) return;
     draft.value = text;
     emit("draft-change", text);
+  }, accepted => {
+    if (settled || epoch !== sendVisualEpoch) return;
+    settled = true;
+    if (accepted) sounds.play('send');
+    // The timer only preserves the short turn on fast acknowledgements; it never
+    // treats an elapsed duration as delivery success or retries the message.
+    sendReturnTimer = setTimeout(() => {
+      if (epoch === sendVisualEpoch) sendTurning.value = false;
+    }, Math.max(0, 160 - (Date.now() - started)));
   });
 }
 
@@ -748,7 +777,17 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   transition: transform 80ms ease-out, color 120ms ease-out;
 }
 .nx-conv-send-face > svg { position: relative; z-index: 1; }
-.nx-conv-send--ready .nx-conv-send-face { --v5-liquid-tint: color-mix(in srgb, var(--v5-brand) 82%, transparent); color: var(--v5-on-brand); }
+.nx-conv-send-plane { transform: rotate(0deg); transform-origin: center; transition: transform 200ms ease-out; }
+.nx-conv-send--turning .nx-conv-send-plane { transform: rotate(-25deg); transition-duration: 160ms; }
+.nx-conv-send--ready .nx-conv-send-face {
+  --v5-liquid-tint: color-mix(in srgb, var(--v5-brand) 82%, transparent);
+  --v5-liquid-highlight: rgba(255, 255, 255, .72);
+  --v5-liquid-bottom: rgba(0, 0, 0, .38);
+  --v5-liquid-shadow: inset 0 1px 2px rgba(255, 255, 255, .32), inset 0 -2px 3px rgba(0, 0, 0, .2);
+  color: var(--v5-on-brand);
+}
+.nx-conv-send--ready .nx-conv-send-face :deep(.nx-liquid-tint) { background-image: linear-gradient(155deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .04) 44%, transparent 62%, rgba(0, 0, 0, .15)); }
+.nx-conv-send--ready .nx-conv-send-face :deep(.nx-liquid-specular) { opacity: .6; }
 .nx-conv-send[aria-disabled="false"]:active .nx-conv-send-face { transform: scale(.92); }
 .nx-conv-send--feedback .nx-conv-send-face { animation: nx-conv-send-tap 200ms cubic-bezier(.2,.8,.3,1) both; }
 @keyframes nx-conv-send-tap { 0% { transform: scale(1); } 35% { transform: scale(.9); } 100% { transform: scale(1); } }
@@ -762,6 +801,8 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 @media (prefers-reduced-motion: reduce) {
   .nx-conv-send .nx-conv-send-face,
   .nx-conv-send[aria-disabled="false"]:active .nx-conv-send-face { transition: none; animation: none; transform: none; }
+  .nx-conv-send .nx-conv-send-plane,
+  .nx-conv-send--turning .nx-conv-send-plane { transition: none; transform: none; }
   .nx-conv-typing-dots view { animation: none; opacity: .65; }
 }
 </style>

@@ -9,6 +9,7 @@ import chatSource from '@/pages/support/chat.vue?raw';
 import { useConversationEntrance } from './conversation-entrance';
 import { conversationScrollChange, preservedConversationTop } from './conversation-scroll';
 import * as conversationTime from './conversation-time';
+import { createConversationAudio } from '@/lib/conversation-audio';
 import type { ThreadMsg } from './thread-types';
 import { createSupportApi } from '@/api/support-api';
 import { zh } from '@/i18n/messages/zh';
@@ -40,18 +41,21 @@ function mount(initial: ThreadMsg[] = []) {
     inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send', queueLabels: zh.nova.queue,
     imageLabels: zh.conversations.image, sendBlocked: false, attachDisabled: false, attachUnavailable: '', attachRetry: false });
   const exports: Record<string, any> = {}, emit = vi.fn();
+  const sound = { unlock: vi.fn(), play: vi.fn(), stop: vi.fn(), destroy: vi.fn() };
   const modules: Record<string, unknown> = {
     vue: { ...Vue, onMounted() {} }, '@/components/liquid-glass.vue': { default: { render: () => null } },
     '@/composables/use-dialog-a11y': { useDialogA11y() {} }, '@/store/app': { useApp: () => app },
     '@/composables/use-tab-page-lifecycle': { onShow: (fn: () => void) => shown.push(fn), onHide: (fn: () => void) => hidden.push(fn) },
     './conversation-entrance': { useConversationEntrance }, './conversation-scroll': { conversationScrollChange, preservedConversationTop },
     './conversation-time': conversationTime,
+    '@/store/preferences': { usePreferences: () => ({ soundEnabled: false }) },
+    '@/lib/conversation-audio': { createConversationAudio: () => sound },
   };
   new Function('require', 'exports', code)((id: string) => { if (!(id in modules)) throw new Error(id); return modules[id]; }, exports);
   const scope = Vue.effectScope(), view = scope.run(() => exports.default.setup(props, { emit, expose() {} }))!;
   cleanups.push(() => scope.stop());
   let node!: Vue.VNode; const renderCache: unknown[] = [];
-  return { props, app, view, emit, hide: () => hidden.forEach(fn => fn()), show: () => shown.forEach(fn => fn()), stop: () => scope.stop(),
+  return { props, app, view, emit, sound, hide: () => hidden.forEach(fn => fn()), show: () => shown.forEach(fn => fn()), stop: () => scope.stop(),
     async node() {
       await renderToString(Vue.createSSRApp({ components: { LiquidGlass: { render: () => null } }, render: () => {
         node = render(Vue.proxyRefs({ ...Vue.toRefs(props), ...view }), renderCache); return node;
@@ -305,7 +309,7 @@ it('disables unavailable image input without a visible caption while text sendin
   expect(findAll(node, 'nx-conv-policy-caption')).toHaveLength(0);
   expect(findAll(node, 'nx-conv-policy-retry')).toHaveLength(0);
   screen.view.onDraft({ detail: { value: 'Text still works' } }); screen.view.onSend();
-  expect(screen.emit).toHaveBeenCalledWith('send', 'Text still works', expect.any(Function));
+  expect(screen.emit).toHaveBeenCalledWith('send', 'Text still works', expect.any(Function), expect.any(Function));
   screen.props.attachRetry = true; node = await screen.node();
   findAll(node, 'nx-conv-policy-retry')[0].props!.onClick();
   expect(screen.emit).toHaveBeenCalledWith('retry-policy');
@@ -331,6 +335,69 @@ it('has linear bounded motion, a reduced-motion override and only local inset sh
   expect(css).toContain('180ms linear both'); expect(css).toContain('translateX(-12px)'); expect(css).toContain('translateX(12px)');
   expect(css).toMatch(/@media\(prefers-reduced-motion:reduce\)[\s\S]*?animation:none; transform:none; opacity:1/);
   expect(css).toMatch(/\.nx-conv-thread \.nx-conv-cta-row, \.nx-conv-thread \.nx-conv-chip \{ --v5-liquid-shadow: inset 0 1px 0 var\(--v5-border\)/);
+});
+
+it('holds the plane until the matching send settles, then returns even on a fast acknowledgement', async () => {
+  const screen = mount();
+  screen.view.onDraft({ detail: { value: 'Pending acknowledgement' } }); screen.view.onSend();
+  const settle = screen.emit.mock.calls.find(call => call[0] === 'send')![3];
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(screen.view.sendTurning.value).toBe(true);
+  expect(screen.view.sendFeedback.value).toBe(false);
+  settle(); await vi.advanceTimersByTimeAsync(1);
+  expect(screen.view.sendTurning.value).toBe(false);
+  screen.view.onDraft({ detail: { value: 'Fast acknowledgement' } }); screen.view.onSend();
+  screen.emit.mock.calls.filter(call => call[0] === 'send').at(-1)![3]();
+  await vi.advanceTimersByTimeAsync(159); expect(screen.view.sendTurning.value).toBe(true);
+  await vi.advanceTimersByTimeAsync(1); expect(screen.view.sendTurning.value).toBe(false);
+});
+
+it.each(['hide', 'account', 'conversation', 'dispose'])('discards a late plane completion and draft restore after %s', async boundary => {
+  const screen = mount(); screen.view.onDraft({ detail: { value: 'Old text' } }); screen.view.onSend();
+  const [, , restore, settle] = screen.emit.mock.calls.find(call => call[0] === 'send')!;
+  if (boundary === 'hide') screen.hide();
+  else if (boundary === 'account') screen.app.accountBindingEpoch++;
+  else if (boundary === 'conversation') screen.props.composerKey = 'conversation:B';
+  else screen.stop();
+  await flush(); expect(screen.view.sendTurning.value).toBe(false);
+  screen.view.onDraft({ detail: { value: 'New text' } }); restore(); settle();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(screen.view.draft.value).toBe('New text'); expect(screen.view.sendTurning.value).toBe(false);
+});
+
+it('does not let an earlier send completion reset a later plane turn', async () => {
+  const screen = mount();
+  screen.view.onDraft({ detail: { value: 'First' } }); screen.view.onSend();
+  const first = screen.emit.mock.calls.find(call => call[0] === 'send')![3];
+  screen.view.onDraft({ detail: { value: 'Second' } }); screen.view.onSend();
+  const second = screen.emit.mock.calls.filter(call => call[0] === 'send').at(-1)![3];
+  first(); await vi.advanceTimersByTimeAsync(400); expect(screen.view.sendTurning.value).toBe(true);
+  second(); await vi.advanceTimersByTimeAsync(1); expect(screen.view.sendTurning.value).toBe(false);
+});
+
+it('plays send audio for an authoritative success once, never for failure or stale completion', async () => {
+  const screen = mount();
+  screen.view.onDraft({ detail: { value: 'Hello' } }); screen.view.onSend();
+  const settled = screen.emit.mock.calls.find(call => call[0] === 'send')![3];
+  settled(true); settled(true); expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+  screen.view.onDraft({ detail: { value: 'Failed' } }); screen.view.onSend();
+  screen.emit.mock.calls.filter(call => call[0] === 'send').at(-1)![3](false);
+  expect(screen.sound.play).toHaveBeenCalledOnce();
+  screen.view.onDraft({ detail: { value: 'Left page' } }); screen.view.onSend(); screen.hide();
+  screen.emit.mock.calls.filter(call => call[0] === 'send').at(-1)![3](true);
+  expect(screen.sound.play).toHaveBeenCalledOnce();
+});
+
+it('sounds only for unseen live incoming messages, not history, receipts, systems or return', async () => {
+  const screen = mount([message('old', 'left')]); await flush();
+  expect(screen.sound.play).not.toHaveBeenCalled();
+  screen.props.messages.push(message('new', 'left')); await flush();
+  expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('receive');
+  screen.props.messages[1].receipt = 'Read'; await flush();
+  screen.props.messages.unshift(message('older', 'left')); await flush();
+  screen.props.messages.push(message('system', 'left', { tone: 'system' })); await flush();
+  screen.hide(); screen.props.messages.push(message('hidden', 'left')); await flush(); screen.show(); await flush();
+  expect(screen.sound.play).toHaveBeenCalledOnce();
 });
 
 const pageAst = ts.createSourceFile('chat.ts', chatSource.split('<script setup lang="ts">')[1].split('</script>')[0], ts.ScriptTarget.Latest, true);
