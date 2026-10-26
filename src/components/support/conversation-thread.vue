@@ -15,7 +15,7 @@
          stays "" and domToBottom() handles it (uni's declarative scroll lands short
          of a freshly-laid-out bubble). -->
     <scroll-view ref="listHost" scroll-y class="nx-conv-list" :scroll-top="scrollTop" :scroll-into-view="scrollAnchor" :scroll-with-animation="scrollAnimated" :show-scrollbar="false" @scroll="onThreadScroll">
-      <view class="nx-conv-content">
+      <view class="nx-conv-content" :style="{ paddingTop: (topInset || 0) + 'px', paddingBottom: composerVisible ? (composerMeasured ? composerSpace + 'px' : 'calc(' + composerSpace + 'px + env(safe-area-inset-bottom))') : undefined }">
       <view v-if="messages.length === 0 && emptyHint" class="nx-conv-empty">
         <text class="nx-conv-empty-t">{{ emptyHint }}</text>
       </view>
@@ -132,25 +132,33 @@
       </view>
     </view>
     <!-- Input row -->
-    <view v-else-if="!closed" class="nx-conv-composer">
+    <view v-else-if="!closed" ref="composerHost" class="nx-conv-composer">
     <view class="nx-conv-input-row">
       <view v-if="imageLabels" class="nx-conv-attach-trigger family-control" role="button" :tabindex="attachDisabled ? -1 : 0" :aria-label="attachDisabled && attachUnavailable ? imageLabels.attach + ' · ' + attachUnavailable : imageLabels.attach" :aria-disabled="attachDisabled ? 'true' : 'false'" :style="attachDisabled ? { opacity: 0.45 } : undefined" @click="!attachDisabled && emit('attach')" @keydown.enter.prevent="!attachDisabled && emit('attach')" @keydown.space.prevent="!attachDisabled && emit('attach')"><LiquidGlass :radius="22" /><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></view>
-      <input
+      <view class="nx-conv-compose-field">
+      <LiquidGlass :radius="25" />
+      <textarea
         class="nx-conv-input"
         :value="draft"
-        :maxlength="maxInputLength ?? 140"
+        :maxlength="-1"
+        :style="{ height: inputHeight + 'px' }"
+        :auto-height="false"
+        :show-confirm-bar="false"
+        :fixed="true"
         :placeholder="inputPlaceholder"
         :aria-label="inputLabel"
         placeholder-class="nx-conv-input-ph"
-        confirm-type="send"
+        confirm-type="return"
         @input="onDraft"
+        @linechange="onInputLines"
         @blur="emit('typing', false)"
-        @confirm="onSend"
       />
       <view class="nx-conv-send" :class="{ 'nx-conv-send--ready': canSend || sendFeedback || sendTurning, 'nx-conv-send--feedback': sendFeedback, 'nx-conv-send--turning': sendTurning }" role="button" :tabindex="canSend ? 0 : -1" :aria-label="sendLabel" :aria-disabled="!canSend" :aria-busy="sendTurning" @click="onSend" @keydown.enter.prevent="onKeyboardActivate($event, onSend)" @keydown.space.prevent="onKeyboardActivate($event, onSend)">
         <view class="nx-conv-send-face" aria-hidden="true"><LiquidGlass :radius="22" /><svg class="nx-conv-send-plane" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg></view>
       </view>
+      </view>
     </view>
+    <view v-if="draft.trim().length >= inputLimit * .9" class="nx-conv-length" :class="{ 'nx-conv-length--over': draft.trim().length > inputLimit }" role="status"><text>{{ draft.trim().length }} / {{ inputLimit }}</text><text v-if="draft.trim().length > inputLimit">{{ inputLimitHint }}</text></view>
     <view v-if="attachRetry" class="nx-conv-policy-retry" role="button" tabindex="0" @click="emit('retry-policy')" @keydown.enter.prevent="emit('retry-policy')" @keydown.space.prevent="emit('retry-policy')"><text>{{ imageLabels?.retryPolicy }}</text></view>
     </view>
     <view v-if="previewImage" class="nx-conv-image-overlay" role="dialog" aria-modal="true" :aria-label="imageLabels?.view">
@@ -173,10 +181,12 @@ import { createConversationAudio } from '@/lib/conversation-audio';
 import { useConversationEntrance } from './conversation-entrance';
 import { conversationScrollChange, preservedConversationTop } from './conversation-scroll';
 import { buildConversationTimeGroups, formatConversationTime, type ConversationTimeOptions } from './conversation-time';
-import { bubbleViewportPosition, compactMessageGroups } from './conversation-bubble-layout';
+import { bubbleViewportPosition, bubbleFill, compactMessageGroups } from './conversation-bubble-layout';
 
 const props = defineProps<{
   messages: ThreadMsg[];
+  /** Measured floating header height; only the first message reserves it. */
+  topInset?: number;
   /** False while an authoritative history snapshot is being read. */
   entranceReady?: boolean;
   timeLocale?: string;
@@ -189,6 +199,7 @@ const props = defineProps<{
   statusLabels?: Record<MessageDeliveryState, string> & { retry: string };
   /** Authoritative successes across send, retry and quick actions; independent of button motion. */
   sendSuccessRevision?: number;
+  sendSuccessOwner?: string;
   quickChips?: QuickChip[];
   emptyHint?: string;
   /** "Agent is typing" indicator (pre-localised aria label via typingLabel). */
@@ -203,6 +214,7 @@ const props = defineProps<{
   composerKey?: string;
   initialDraft?: string;
   maxInputLength?: number;
+  inputLimitHint?: string;
   imageLabels?: { view: string; loading: string; failed: string; attach: string; retryUpload: string; replace: string; cancel: string; retrySend: string; editSend: string; discard: string; retryPolicy: string; expired: string; close: string };
   attachDisabled?: boolean;
   attachUnavailable?: string;
@@ -262,7 +274,8 @@ onHide(sounds.stop);
 onScopeDispose(sounds.destroy);
 watch(() => [preferences.soundEnabled, app.accountKey, app.accountBindingEpoch, props.composerKey], sounds.stop, { flush: 'sync' });
 watch(() => props.sendSuccessRevision, (revision, previous) => {
-  if (previous !== undefined && revision !== undefined && revision > previous) sounds.play('send');
+  const owner = JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey]);
+  if (threadVisible.value && props.sendSuccessOwner === owner && previous !== undefined && revision !== undefined && revision > previous) sounds.play('send');
 }, { flush: 'post' });
 const { entranceBindings, messageKey } = useConversationEntrance(() => ({
   identity: JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey, props.revealTick, entranceReveal.value]),
@@ -291,6 +304,14 @@ function retryStatus(message: ThreadMsg) {
 }
 
 const draft = ref(props.initialDraft ?? "");
+const inputHeight = ref(24);
+const composerHost = ref<unknown>(null), composerSpace = ref(86), composerMeasured = ref(false);
+const composerVisible = computed(() => !props.closed && !(props.failedSendLabel && props.canDiscardSend));
+const inputLimit = computed(() => props.maxInputLength ?? 2000);
+function onInputLines(event: { detail: { height: number } }) {
+  if (Number.isFinite(event.detail.height)) inputHeight.value = Math.max(24, Math.min(144, event.detail.height));
+}
+watch(draft, value => { if (!value) inputHeight.value = 24; });
 const sendFeedback = ref(false);
 const sendTurning = ref(false);
 let sendVisualEpoch = 0;
@@ -313,7 +334,7 @@ function openPreview(src: string) {
 }
 function closePreview() { previewImage.value = ""; }
 useDialogA11y(computed(() => !!previewImage.value), ".nx-conv-image-overlay", closePreview);
-const canSend = computed(() => !props.sendBlocked && (Boolean(draft.value.trim()) || props.attachmentDraft?.state === "ready") && props.attachmentDraft?.state !== "failed" && props.attachmentDraft?.state !== "uploading");
+const canSend = computed(() => !props.sendBlocked && draft.value.trim().length <= inputLimit.value && (Boolean(draft.value.trim()) || props.attachmentDraft?.state === "ready") && props.attachmentDraft?.state !== "failed" && props.attachmentDraft?.state !== "uploading");
 const edits = ref<Record<string, string>>({});
 watch(() => props.composerKey, () => { draft.value = props.initialDraft ?? ""; edits.value = {}; previewImage.value = ""; });
 watch(() => props.revealTick, () => { previewImage.value = ""; });
@@ -388,6 +409,7 @@ const scrollAnchor = ref(""), scrollTop = ref(0), scrollAnimated = ref(true), li
 const threadInstance = getCurrentInstance();
 let scrollGeneration = 0, scrollTimer: ReturnType<typeof setTimeout> | undefined;
 let lastScrollTop = 0;
+let followingTail = true, measuredViewportHeight = 0;
 let preparedHistory: { id: string; prefix: number; owner: string } | null = null;
 let historyPreparation = 0;
 const historyOwner = () => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey, props.revealTick]);
@@ -402,10 +424,14 @@ function scroller(): HTMLElement | undefined {
   return [host, ...Array.from(host.querySelectorAll('*'))].find(node =>
     (node as HTMLElement).scrollHeight - (node as HTMLElement).clientHeight > 4) as HTMLElement | undefined;
 }
-function onThreadScroll(event: { detail: { scrollTop: number } }) {
+function onThreadScroll(event: { detail: { scrollTop: number; scrollHeight?: number } }) {
   // Mirror the native position so a later prepend can reapply the same target.
   lastScrollTop = event.detail.scrollTop;
   scrollTop.value = lastScrollTop;
+  const node = scroller();
+  if (node) followingTail = node.scrollHeight - node.clientHeight - node.scrollTop <= 24;
+  else if (event.detail.scrollHeight !== undefined && measuredViewportHeight > 0)
+    followingTail = event.detail.scrollHeight - measuredViewportHeight - lastScrollTop <= 24;
   scheduleBubblePositions();
 }
 function messageRowId(id: string) { return 'nx-conv-message-' + Array.from(id).map(char=>char.charCodeAt(0).toString(16)).join('-'); }
@@ -442,14 +468,15 @@ async function prepareHistoryPrepend(): Promise<boolean> {
   });
 }
 defineExpose({ prepareHistoryPrepend });
-function scrollToEnd() {
+function scrollToEnd(animate = true) {
   cancelScroll(); const ticket = scrollGeneration;
   const messages = props.messages.map(message=>message.id).join('\u0000');
   const owner = JSON.stringify([app.accountKey,app.accountBindingEpoch,props.composerKey,props.revealTick]);
   const current = () => ticket === scrollGeneration && threadVisible.value
     && messages === props.messages.map(message=>message.id).join('\u0000')
     && owner === JSON.stringify([app.accountKey,app.accountBindingEpoch,props.composerKey,props.revealTick]);
-  scrollAnimated.value = true;
+  scrollAnimated.value = animate;
+  followingTail = true;
   const apply = () => {
     if (!current()) return;
     const node = scroller();
@@ -495,6 +522,47 @@ watch(
 onMounted(() => {
   scrollToEnd();
 });
+function measureComposer(follow = followingTail) {
+  const owner = historyOwner();
+  void nextTick(() => {
+    const apply = (height: number | undefined) => {
+      if (!threadVisible.value || owner !== historyOwner() || !height || !Number.isFinite(height)) return;
+      composerSpace.value = height;
+      composerMeasured.value = true;
+      if (follow && !preparedHistory) scrollToEnd(false);
+      else scheduleBubblePositions();
+    };
+    const node = (composerHost.value as { $el?: HTMLElement } | null)?.$el ?? composerHost.value as HTMLElement | null;
+    if (node?.getBoundingClientRect) { apply(node.getBoundingClientRect().height); return; }
+    if (typeof uni === 'undefined' || !uni.createSelectorQuery) return;
+    try {
+      const query = uni.createSelectorQuery().in(threadInstance);
+      query.select('.nx-conv-composer').boundingClientRect();
+      query.exec(rows => apply((rows[0] as UniApp.NodeInfo)?.height));
+    } catch { /* The conservative initial spacing stays available without a bridge. */ }
+  });
+}
+let composerResizeObserver: ResizeObserver | undefined;
+onMounted(() => {
+  measureComposer();
+  const node = (composerHost.value as { $el?: HTMLElement } | null)?.$el ?? composerHost.value as HTMLElement | null;
+  if (typeof ResizeObserver !== 'undefined' && node?.getBoundingClientRect) {
+    composerResizeObserver = new ResizeObserver(() => measureComposer());
+    composerResizeObserver.observe(node);
+  }
+});
+onScopeDispose(() => composerResizeObserver?.disconnect());
+watch(() => [inputHeight.value, draft.value.trim().length >= inputLimit.value * .9, composerVisible.value], () => {
+  const node = scroller();
+  const atTail = node ? node.scrollHeight - node.clientHeight - node.scrollTop <= 24 : followingTail;
+  // Native fallback is ready immediately; layout measurement replaces it with
+  // the exact input, counter and safe-area height once the bridge responds.
+  composerSpace.value = inputHeight.value + 62 + (draft.value.trim().length >= inputLimit.value * .9 ? 36 : 0);
+  composerMeasured.value = false;
+  measureComposer(atTail);
+  if (atTail && threadVisible.value) scrollToEnd(false);
+  else void nextTick(scheduleBubblePositions);
+});
 
 // Sample the whole visible conversation, never a gradient inside an individual bubble.
 // Scroll events coalesce; no polling or permanent animation loop is needed.
@@ -512,10 +580,11 @@ function measureBubblePositions() {
   const messages = props.messages.filter(m => m.side === 'right' && m.tone !== 'system');
   const apply = (viewport: { top?: number; height?: number } | undefined, rects: Array<{ top?: number; height?: number }>) => {
     if (epoch !== bubbleMeasureEpoch || !threadVisible.value || !viewport?.height || viewport.top === undefined) return;
+    measuredViewportHeight = viewport.height;
     const next: Record<string, number> = {};
     messages.forEach((message, index) => {
       const rect = rects[index];
-      if (rect?.top !== undefined && rect.height !== undefined) next[message.id] = bubbleViewportPosition(rect.top, rect.height, viewport.top!, viewport.height!);
+      if (rect?.top !== undefined && rect.height !== undefined) next[message.id] = bubbleViewportPosition(rect.top, rect.height, viewport.top! + (props.topInset || 0), Math.max(1, viewport.height! - (props.topInset || 0) - (composerVisible.value ? composerSpace.value : 0)));
     });
     if (JSON.stringify(next) !== JSON.stringify(bubblePositions.value)) bubblePositions.value = next;
   };
@@ -532,7 +601,7 @@ function measureBubblePositions() {
     query.exec(rows => apply(rows[0] as UniApp.NodeInfo, rows[1] as UniApp.NodeInfo[]));
   } catch { /* An unavailable native bridge keeps a safe, uniform theme colour. */ }
 }
-watch(() => [props.messages.map(m => [m.id, m.text, m.imageSrc, m.deliveryState]), props.composerKey, props.revealTick, props.timeLocale], () => {
+watch(() => [props.messages.map(m => [m.id, m.text, m.imageSrc, m.deliveryState]), props.composerKey, props.revealTick, props.timeLocale, props.topInset], () => {
   cancelBubblePositions(); void nextTick(scheduleBubblePositions);
 }, { flush: 'post' });
 onMounted(() => {
@@ -549,7 +618,9 @@ onHide(cancelBubblePositions);
 onScopeDispose(() => { cancelBubblePositions(); bubbleResizeObserver?.disconnect(); });
 
 function bubbleStyle(m: ThreadMsg): CSSProperties {
-  return m.side === 'right' ? { '--nx-bubble-position': `${((bubblePositions.value[m.id] ?? 0.5) * 100).toFixed(1)}%` } as CSSProperties : {};
+  const position = bubblePositions.value[m.id] ?? 0.5;
+  return m.side === 'right' ? { '--nx-bubble-position': `${(position * 100).toFixed(1)}%`,
+    '--nx-bubble-fill-dark': bubbleFill(position, false), '--nx-bubble-fill-light': bubbleFill(position, true) } as CSSProperties : {};
 }
 
 // ── **bold** + \n → render segments. Bare text must live in <text> (P-026). ──
@@ -574,6 +645,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 
 <style scoped>
 .nx-conv-thread {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -596,7 +668,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .nx-conv-list {
   flex: 1;
   min-height: 0; /* allow the scroll area to shrink so the input row stays visible */
-  padding: 12px;
+  padding: 12px 12px 0;
 }
 /* Hide native scrollbars on both scroll areas — a mobile app shows no bars while
    keeping scroll/swipe. uni renders the real overflow node as an inner
@@ -666,6 +738,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .nx-conv-bubble {
   position: relative;
   isolation: isolate;
+  contain: paint;
   --nx-bubble-fill: var(--nx-chat-incoming);
   display: flow-root;
   max-width: 89%;
@@ -696,10 +769,11 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 }
 .nx-conv-right .nx-conv-bubble {
   --nx-bubble-fill: var(--nx-chat-out-bottom);
-  --nx-bubble-fill: color-mix(in srgb, var(--nx-chat-out-top) calc(100% - var(--nx-bubble-position, 50%)), var(--nx-chat-out-bottom) var(--nx-bubble-position, 50%));
+  --nx-bubble-fill: var(--nx-bubble-fill-dark, var(--nx-chat-out-bottom));
   color: var(--nx-chat-out-ink);
   border-bottom-right-radius: 6px;
 }
+:global([data-theme="light"] .nx-conv-right .nx-conv-bubble) { --nx-bubble-fill: var(--nx-bubble-fill-light, var(--nx-chat-out-bottom)); }
 .nx-conv-left .nx-conv-bubble { border-bottom-left-radius: 6px; }
 .nx-conv-msg-row--joined .nx-conv-right .nx-conv-bubble { border-top-right-radius: 6px; }
 .nx-conv-msg-row--joined .nx-conv-left .nx-conv-bubble { border-top-left-radius: 6px; }
@@ -840,17 +914,45 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   white-space: nowrap; /* never wrap the label; long labels scroll horizontally */
 }
 .nx-conv-composer {
-  flex: none;
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+  pointer-events: none;
   padding-bottom: calc(env(safe-area-inset-bottom) + 22px);
-  border-top: 1px solid var(--v5-border);
+  background: transparent;
 }
+.nx-conv-composer > * { pointer-events: auto; }
 .nx-conv-policy-retry { min-height:44px; display:flex; align-items:center; justify-content:center; padding:0 16px; color:var(--v5-ink-3); font-size:12px; }
 .nx-conv-input-row {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 0 12px 8px;
+  --v5-liquid-tint: rgba(40,43,42,.46);
 }
+:global([data-theme="light"] .nx-conv-input-row) { --v5-liquid-tint: rgba(255,255,255,.58); }
+.nx-conv-compose-field {
+  position: relative; isolation: isolate; display: flex; align-items: flex-end;
+  gap: 6px; flex: 1; min-width: 0; padding: 5px 5px 5px 14px;
+  border: 1px solid transparent; border-radius: 25px;
+  background: transparent;
+  -webkit-backdrop-filter: blur(24px) saturate(135%); backdrop-filter: blur(24px) saturate(135%);
+  --v5-liquid-tint: rgba(40,43,42,.46);
+  --v5-liquid-shadow: inset 0 1px 1px rgba(255,255,255,.1);
+}
+.nx-conv-compose-field > :not(.nx-liquid-glass) { position: relative; }
+.nx-conv-compose-field > :deep(.nx-liquid-glass[data-glass-strategy="frosted"]) { -webkit-backdrop-filter: blur(24px) saturate(135%); backdrop-filter: blur(24px) saturate(135%); }
+.nx-conv-compose-field::before {
+  content: ''; position: absolute; z-index: -1; inset: -1px 18px auto; height: 12px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse at top, rgba(133,181,46,.28), transparent 72%);
+  filter: blur(3px);
+}
+:global([data-theme="light"] .nx-conv-compose-field) { --v5-liquid-tint: rgba(255,255,255,.58); --v5-liquid-shadow: inset 0 1px 1px rgba(255,255,255,.8); }
+:global([data-theme="light"] .nx-conv-compose-field::before) { background: radial-gradient(ellipse at top, rgba(103,83,235,.28), transparent 72%); }
+.nx-conv-compose-field .nx-conv-send { flex-shrink: 0; }
+.nx-conv-compose-field :deep(textarea:focus-within),
+.nx-conv-compose-field .nx-conv-input:focus-within { outline: none; }
+.nx-conv-length { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; padding:0 18px 4px; color:var(--v5-ink-3); font-size:11px; line-height:16px; }
+.nx-conv-length--over { color:var(--v5-danger); }
 .nx-conv-closedbar {
   padding: 10px 12px;
   /* mirrors the input row's safe-area lift (it replaces that row) */
@@ -874,19 +976,18 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .nx-conv-input {
   flex: 1;
   min-width: 0;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: var(--v5-surface-2);
+  width: 100%; min-height: 24px; max-height: min(144px, 34dvh);
+  margin: 10px 0; padding: 0;
+  background: transparent;
   border: none;
   color: var(--v5-ink);
   font-family: var(--font-v5);
-  font-size: 13px;
+  font-size: 15px; line-height: 24px;
 }
-/* P-048: pin the inner native input height so the visible host == the real target. */
-.nx-conv-input :deep(.uni-input-input) {
+.nx-conv-input :deep(.uni-textarea-wrapper), .nx-conv-input :deep(.uni-textarea-textarea) {
   height: 100%;
   min-height: 24px;
+  resize: none; scrollbar-width: none;
 }
 .nx-conv-input-ph {
   color: var(--v5-ink-4);

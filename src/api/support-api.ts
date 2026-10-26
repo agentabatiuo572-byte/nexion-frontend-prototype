@@ -1,6 +1,7 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 import { MESSAGE_ACK_TIMEOUT_MS } from '@/lib/conversation-delivery-policy';
+import { normalizeMessageText } from '@/lib/message-length-policy';
 import { parseTicketCreationCapability, requireTicketCreationResult, ticketCreationDenials, type TicketCreationCapability } from './support-ticket-policy';
 import { parseServerTimestamp } from "./server-time";
 import type { Conversation, ConversationCategoryAvailability, ConvMessage, SupportFaq, SupportSlaTarget, Ticket, TicketCategory, TicketMessage, TicketPriority, TicketStatus } from "@/domain/support";
@@ -299,8 +300,14 @@ export function createSupportApi(client: ApiClient): SupportApi {
     ticketCreationPolicy: async () => parseTicketCreationCapability(await client.request({ method: 'GET', path: await supportPath('/tickets/creation-policy') })),
     ticket: async (id, beforeMessageId) => parseTicketDetail(await client.request({ method: "GET", path: `${await supportPath(`/tickets/${pathId(id)}`)}${pathCursor(beforeMessageId)}` })),
     markTicketRead: async ticket => parseTicketDetail(await client.request({ method: "POST", path: await supportPath(`/tickets/${pathId(ticket.id)}/read`), body: { expectedStatus: ticket.status.toUpperCase(), expectedVersion: ticket.version } })),
-    createTicket: async (input, key) => parseTicketDetail(requireTicketCreationResult(await client.request({ method: "POST", path: await supportPath("/tickets"), idempotencyKey: requiredKey(key), body: { category: input.category, title: input.subject.trim(), body: input.body.trim(), clientMessageId: key }, acceptedResponses: ticketCreationDenials }))),
-    replyTicket: async (ticket, body, key) => parseTicketDetail(await client.request({ method: "POST", path: await supportPath(`/tickets/${pathId(ticket.id)}/replies`), idempotencyKey: requiredKey(key), body: { body: body.trim(), expectedStatus: ticket.status.toUpperCase(), expectedVersion: ticket.version, clientMessageId: key } })),
+    createTicket: async (input, key) => {
+      const body = normalizeMessageText(input.body);
+      return parseTicketDetail(requireTicketCreationResult(await client.request({ method: "POST", path: await supportPath("/tickets"), idempotencyKey: requiredKey(key), body: { category: input.category, title: input.subject.trim(), body, clientMessageId: key }, acceptedResponses: ticketCreationDenials })));
+    },
+    replyTicket: async (ticket, body, key) => {
+      const text = normalizeMessageText(body);
+      return parseTicketDetail(await client.request({ method: "POST", path: await supportPath(`/tickets/${pathId(ticket.id)}/replies`), idempotencyKey: requiredKey(key), body: { body: text, expectedStatus: ticket.status.toUpperCase(), expectedVersion: ticket.version, clientMessageId: key } }));
+    },
     closeTicket: async (ticket, key) => parseTicketDetail(await client.request({ method: "POST", path: await supportPath(`/tickets/${pathId(ticket.id)}/close`), idempotencyKey: requiredKey(key), body: { expectedStatus: ticket.status.toUpperCase(), expectedVersion: ticket.version, clientMessageId: key } })),
     conversations: allConversations,
     conversationDismissals: async () => {
@@ -329,8 +336,14 @@ export function createSupportApi(client: ApiClient): SupportApi {
       method: "POST", path: await supportPath(`/conversations/${pathId(conversation.id)}/read`),
       body: { lastSeenMessageId, expectedStatus: conversation.status.toUpperCase(), expectedVersion: conversation.version },
     })),
-    startConversation: async (conversationType, openingText, key, attachmentId) => parseConversationDetail(await client.request({ method: "POST", path: await supportPath("/conversations"), timeoutMs: MESSAGE_ACK_TIMEOUT_MS, idempotencyKey: requiredKey(key), body: { conversationType: conversationType.toUpperCase(), openingText: openingText.trim(), clientMessageId: key, ...(attachmentId ? { kind: "IMAGE", attachmentId } : {}) } })),
-    replyConversation: async (conversation, body, key, attachmentId) => parseConversationDetail(await client.request({ method: "POST", path: await supportPath(`/conversations/${pathId(conversation.id)}/replies`), timeoutMs: MESSAGE_ACK_TIMEOUT_MS, idempotencyKey: requiredKey(key), body: { body: body.trim(), expectedStatus: conversation.status.toUpperCase(), expectedVersion: conversation.version, clientMessageId: key, ...(attachmentId ? { kind: "IMAGE", attachmentId } : {}) } })),
+    startConversation: async (conversationType, openingText, key, attachmentId) => {
+      const text = normalizeMessageText(openingText, { allowEmpty: Boolean(attachmentId) });
+      return parseConversationDetail(await client.request({ method: "POST", path: await supportPath("/conversations"), timeoutMs: MESSAGE_ACK_TIMEOUT_MS, idempotencyKey: requiredKey(key), body: { conversationType: conversationType.toUpperCase(), openingText: text, clientMessageId: key, ...(attachmentId ? { kind: "IMAGE", attachmentId } : {}) } }));
+    },
+    replyConversation: async (conversation, body, key, attachmentId) => {
+      const text = normalizeMessageText(body, { allowEmpty: Boolean(attachmentId) });
+      return parseConversationDetail(await client.request({ method: "POST", path: await supportPath(`/conversations/${pathId(conversation.id)}/replies`), timeoutMs: MESSAGE_ACK_TIMEOUT_MS, idempotencyKey: requiredKey(key), body: { body: text, expectedStatus: conversation.status.toUpperCase(), expectedVersion: conversation.version, clientMessageId: key, ...(attachmentId ? { kind: "IMAGE", attachmentId } : {}) } }));
+    },
     attachmentPolicy: async () => parseAttachmentPolicy(await client.request({ path: `${supportRoot}/attachments/policy` })),
     uploadAttachment: async (filePath, clientUploadId, key) => parseAttachment(await client.upload({
       path: `${supportRoot}/attachments`, filePath, name: "file", idempotencyKey: requiredKey(key),

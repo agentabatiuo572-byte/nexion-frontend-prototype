@@ -20,7 +20,8 @@
     <!-- Simulated device status bar (preview shell only) — bare page draws its own. -->
     <DeviceStatusBar />
 
-    <!-- Header -->
+    <!-- Only the individual controls paint glass; messages scroll beneath this transparent overlay. -->
+    <view ref="topOverlayHost" class="cp-top-overlay">
     <view class="cp-head" :style="{ paddingTop: statusBarHeight + 10 + 'px' }">
       <view class="cp-back active:opacity-60" role="button" tabindex="0" :aria-label="t.conversations.back" @click="goBack"  @keydown.enter.prevent="onKeyboardActivate($event, goBack)" @keydown.space.prevent="onKeyboardActivate($event, goBack)">
         <LiquidGlass :radius="22" />
@@ -28,10 +29,8 @@
       </view>
 
       <view class="cp-identity">
+        <LiquidGlass :radius="24" />
         <NovaAvatar v-if="isAi" :size="32" pulse />
-        <view v-else class="cp-ava" :style="avaStyle" aria-hidden="true">
-          <view class="cp-ava-icon" v-html="headerIcon" />
-        </view>
         <view class="cp-meta">
           <text class="cp-name">{{ headerName }}</text>
           <view v-if="headerRole" class="cp-role" :class="{ 'cp-role--online': !isAi && headerRole === t.conversations.online }">
@@ -73,10 +72,12 @@
     </view>
     <view v-if="humanHistoryError || humanHistoryListError" class="cp-history-error" role="alert"><text>{{ t.conversations.loadError }}</text><view class="cp-history-text-action" role="button" :tabindex="humanHistoryRetryBusy || humanEarlierBusy ? -1 : 0" :aria-disabled="humanHistoryRetryBusy || humanEarlierBusy" :aria-busy="humanHistoryRetryBusy" @click="retryHumanHistory" @keydown.enter.prevent="onKeyboardActivate($event, retryHumanHistory)" @keydown.space.prevent="onKeyboardActivate($event, retryHumanHistory)"><text>{{ t.conversations.retry }}</text></view></view>
     <view v-if="showUnassignedReceived" class="cp-ai-history" role="status"><text class="cp-ai-history-t">{{ t.conversations.image.unassignedReceived }}</text></view>
+    </view>
 
     <!-- Thread body (messages + chips + input) -->
     <ConversationThread
       ref="conversationThread"
+      :top-inset="topOverlayHeight"
       :time-locale="locale.code"
       @typing="!isAi && convStore.setTyping($event)"
       :messages="threadMessages"
@@ -86,6 +87,7 @@
 	      :send-label="t.conversations.send"
       :status-labels="t.conversations.delivery"
       :send-success-revision="sendSuccessRevision"
+      :send-success-owner="sendSuccessOwner"
       :quick-chips="quickChips"
       :empty-hint="emptyHint"
       :typing="agentTyping"
@@ -96,7 +98,8 @@
       :queue-labels="isAi && remoteApiEnabled ? t.nova.queue : undefined"
       :composer-key="isAi ? app.accountKey + ':' + nova.conversationId : app.accountBindingEpoch + ':' + convStore.scopeInvalidated + ':' + (cid || startType || '')"
       :initial-draft="!isAi ? draftText : undefined"
-      :max-input-length="isAi && remoteApiEnabled ? 2000 : undefined"
+      :max-input-length="MESSAGE_MAX_LENGTH"
+      :input-limit-hint="fmt(t.conversations.messageTooLong, { n: MESSAGE_MAX_LENGTH })"
       :image-labels="!isAi ? t.conversations.image : undefined"
       :attach-disabled="!isAi && (!supportSessionReady || attachmentPolicy?.available !== true)"
       :attach-unavailable="!isAi && attachmentPolicy?.available !== true ? (!remoteApiEnabled || attachmentPolicyError || attachmentPolicy?.available === false ? t.conversations.image.unavailable : t.conversations.image.checkingPolicy) : undefined"
@@ -147,7 +150,7 @@
 
 <script setup lang="ts">
 import { catalogSkuBrandText, catalogSkuRecommendationBody } from "@/lib/brand-copy";
-import { ref, shallowRef, computed, watch, onUnmounted, type CSSProperties } from "vue";
+import { ref, shallowRef, computed, watch, nextTick, onMounted, onUnmounted, getCurrentInstance, type CSSProperties } from "vue";
 import { onLoad, onUnload, onShow, onHide } from "@dcloudio/uni-app";
 import NovaAvatar from "@/components/nova/nova-avatar.vue";
 import ConversationThread from "@/components/support/conversation-thread.vue";
@@ -160,7 +163,8 @@ import { fmt } from "@/i18n/format";
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import { navTo, navBack, navReplace } from "@/lib/route";
 import { NOVA_SUPPORT_VISIBLE } from "@/lib/nova-visibility";
-import { createSendLimiter } from "@/lib/send-limiter";
+import { conversationSendLimiter } from "@/lib/send-limiter";
+import { MESSAGE_MAX_LENGTH, normalizeMessageText } from '@/lib/message-length-policy';
 import { h5DevicePreviewStatusBarHeight } from "@/lib/device-preview";
 import { isDeviceOnline } from "@/lib/hashpower";
 import { useConversations, type CategoryRefreshOutcome, type HumanComposer } from "@/store/conversations";
@@ -205,9 +209,13 @@ const humanSendBusy = ref(false);
 const localHumanSend = ref<ThreadMsg | null>(null);
 let localHumanSequence = 0;
 const sendSuccessRevision = ref(0);
+const sendSuccessOwner = ref('');
 const pendingNovaSounds = new Set<string>();
 function noteSendSuccess() {
-  if (novaPageVisible && !chatDisposed) sendSuccessRevision.value++;
+  if (novaPageVisible && !chatDisposed) {
+    sendSuccessOwner.value = JSON.stringify([app.accountKey, app.accountBindingEpoch, threadComposerKey.value]);
+    sendSuccessRevision.value++;
+  }
 }
 const queuedSendVisuals = new Map<string, (accepted?: boolean) => void>();
 function clearQueuedSendVisuals() {
@@ -445,7 +453,7 @@ async function retryHumanSend() {
       }
     } catch { return; }
   }
-  if (!current()) return;
+  if (!current() || !acquireSendSlot()) return;
   failedHumanSend.value = null;
   humanSendBusy.value = true;
   try { await sendHumanMessage(failed.text, failed.attachmentId, undefined, failed.attempts + 1); }
@@ -460,6 +468,8 @@ function editHumanSend() {
 
 const cid = ref("");
 const isAi = ref(false);
+const threadComposerKey = computed(() => isAi.value ? app.accountKey + ':' + nova.conversationId
+  : app.accountBindingEpoch + ':' + convStore.scopeInvalidated + ':' + (cid.value || startType.value || ''));
 const hiddenAiRoute = ref(false);
 const initialPrompt = ref("");
 // Nova availability belongs only to ?type=ai. Human advisor/support routes must
@@ -687,6 +697,7 @@ onLoad((q) => {
 // sessionStatus guards) makes redundant ticks free. A real backend pushes these
 // events — the interval then becomes a harmless no-op.
 onShow(async () => {
+  measureTopOverlay();
   if (hiddenAiRoute.value) return;
   novaPageVisible = true;
   if (!isAi.value) { humanShowRevision.value += 1; return; }
@@ -745,9 +756,6 @@ onHide(() => {
   }
   stopHumanThreadPolling();
 });
-
-const ADVISOR_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M6 21a6 6 0 0 1 12 0" /></svg>`;
-const SUPPORT_ICON = `<svg width="20" height="20" viewBox="0 -1.5 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2" /><path d="M21 16a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2zM3 16a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2z" /></svg>`;
 
 watch(() => app.accountKey, () => {
   if (!isAi.value || !remoteApiEnabled) return;
@@ -901,11 +909,6 @@ const dotStyle = computed<CSSProperties>(() =>
     ? { background: "var(--v5-ink-4)", animation: "none" }
     : { background: isAi.value ? headerTint.value : "var(--nx-presence-green)" },
 );
-const headerIcon = computed(() => (humanType.value === "advisor" ? ADVISOR_ICON : SUPPORT_ICON));
-const avaStyle = computed<CSSProperties>(() => ({
-  color: "var(--v5-ink-2)",
-  background: "var(--v5-surface-2)",
-}));
 
 const inputPlaceholder = computed(() =>
   isAi.value && novaProviderHold.value
@@ -1007,6 +1010,7 @@ const threadMessages = computed<ThreadMsg[]>(() => {
       id: localHumanSend.value?.id ?? `pending-human:${humanComposerKey.value}`,
       side: 'right', tone: 'user', text: failed.text || t.value.conversations.image.message,
       timestamp: localHumanSend.value?.timestamp, meta: t.value.conversations.image.you,
+      clientMessageId: localHumanSend.value?.clientMessageId,
       imageSrc: failed.attachmentId ? imageDraft.value?.filePath : undefined,
       deliveryState: failed.settled ? 'failed' : 'unknown', localSend: true,
     } : null;
@@ -1032,7 +1036,8 @@ const threadMessages = computed<ThreadMsg[]>(() => {
   const last = c.messages[c.messages.length - 1];
   const idleClose = c.status === "closed" && c.lastMessageKind === "IDLE_TIMEOUT_CLOSE" && (!last || c.lastTs > last.ts)
     ? localizedIdleClose(c.lastMessage, t.value.conversations) : null;
-  if (pending) messages.push(pending);
+  const confirmedPending = pending?.clientMessageId && c.messages.some(message => message.sender === 'user' && message.clientMessageId === pending.clientMessageId);
+  if (pending && !confirmedPending) messages.push(pending);
   return idleClose ? [...messages, {
     id: `idle-close:${c.id}:${c.lastTs}`, side: "left" as const,
     tone: "system" as const, text: idleClose, timestamp: c.lastTs,
@@ -1276,18 +1281,18 @@ onUnmounted(cleanup);
 
 // ── send rate limit — anti-spam guard across every channel of this chat
 // (advisor / support / AI free text, incl. quick chips). A real backend answers
-// 429 + Retry-After with the same policy; the limiter mirrors that contract.
+// 429 + Retry-After remains authoritative; the local budget protects the UI.
 const SEND_MAX = 5; // max sends…
 const SEND_WINDOW_MS = 15_000; // …per rolling window
 const SEND_MIN_GAP_MS = 1000; // min gap between two consecutive sends
-const sendLimiter = createSendLimiter(SEND_MAX, SEND_WINDOW_MS, SEND_MIN_GAP_MS);
+const sendLimiter = () => conversationSendLimiter(app.accountKey, isAi.value ? 'nova:' + nova.conversationId : cid.value || 'start:' + startType.value,
+  SEND_MAX, SEND_WINDOW_MS, SEND_MIN_GAP_MS);
 // Continuous input is accepted immediately. Apply the original anti-spam
 // budget to actual dispatch (including retries), without discarding input.
-let novaDispatchLimiter = createSendLimiter(SEND_MAX, SEND_WINDOW_MS, SEND_MIN_GAP_MS);
-let novaDispatchAccount = app.accountKey;
+const novaDispatchLimiter = () => conversationSendLimiter(app.accountKey, 'nova:' + nova.conversationId, SEND_MAX, SEND_WINDOW_MS, SEND_MIN_GAP_MS);
 
 function acquireSendSlot(): boolean {
-  const verdict = sendLimiter.tryAcquire();
+  const verdict = sendLimiter().tryAcquire();
   if (!verdict.ok) {
     toast.warn(
       t.value.conversations.rateLimited,
@@ -1319,6 +1324,8 @@ async function onSend(text: string, restore?: () => void, settled?: (accepted?: 
   let queuedVisualTurn: string | undefined;
   let accepted = false;
   try {
+  try { text = normalizeMessageText(text, { allowEmpty: !isAi.value && imageDraft.value?.state === 'ready' }); }
+  catch { restore?.(); toast.warn(fmt(t.value.conversations.messageTooLong, { n: MESSAGE_MAX_LENGTH })); return; }
   if (!isAi.value && !supportSessionReady.value) { restore?.(); return; }
   if (isAi.value && remoteApiEnabled) {
     const accountKey = app.accountKey;
@@ -1450,8 +1457,9 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
     }
     if (!stageHumanSend(text, attachmentId, attempts, restore)) { humanCreateRecovery.finish(); return; }
     try {
-      const createdId = await convStore.startConversation(type, text, attachmentId);
+      const createdId = await convStore.startConversation(type, text, attachmentId, bindHumanDispatchKey());
       if (!humanCreateRecovery.isCurrent(creation) || supportScope !== convStore.scopeInvalidated) return;
+      conversationSendLimiter.transfer(app.accountKey, 'start:' + type, createdId);
       humanCreateRecovery.complete(createdId, creation);
       if (imageDraft.value?.attachmentId === attachmentId) imageDraft.value = null;
       convStore.saveComposer(`start:${type}`, { text: draftText.value, imageDraft: null, failedSend: null, recoveredId: createdId });
@@ -1474,7 +1482,7 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
   const replyBinding = app.accountBindingEpoch;
   if (!stageHumanSend(text, attachmentId, attempts, restore)) return;
   try {
-    await convStore.sendUser(id, text, attachmentId);
+    await convStore.sendUser(id, text, attachmentId, bindHumanDispatchKey());
     if (replyBinding !== app.accountBindingEpoch || cid.value !== id || supportScope !== convStore.scopeInvalidated) return;
     if (imageDraft.value?.attachmentId === attachmentId) imageDraft.value = null;
     if (humanComposerKey.value) convStore.saveComposer(humanComposerKey.value, { text: draftText.value, imageDraft: imageDraft.value, failedSend: null });
@@ -1484,6 +1492,14 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
     if (replyBinding !== app.accountBindingEpoch || cid.value !== id || supportScope !== convStore.scopeInvalidated) return;
     humanSendFailed(text, attachmentId, cause, attempts);
   }
+}
+
+function bindHumanDispatchKey() {
+  const owner = threadComposerKey.value, binding = app.accountBindingEpoch, localId = localHumanSend.value?.id;
+  return (key: string) => {
+    if (owner === threadComposerKey.value && binding === app.accountBindingEpoch && localId && localHumanSend.value?.id === localId)
+      localHumanSend.value = { ...localHumanSend.value, clientMessageId: key };
+  };
 }
 
 function stageHumanSend(text: string, attachmentId: string | undefined, attempts: number, restore?: () => void): boolean {
@@ -1508,6 +1524,7 @@ function stageHumanSend(text: string, attachmentId: string | undefined, attempts
 }
 
 function humanSendFailed(text: string, attachmentId: string | undefined, cause: unknown, attempts: number) {
+  if (cause instanceof ApiError && cause.retryAfterMs !== undefined) sendLimiter().defer(cause.retryAfterMs);
   const expired = isSupportAttachmentNotReady(cause);
   const settled = expired || !isConversationDeliveryAmbiguous(cause);
   const draft = imageDraft.value;
@@ -1527,6 +1544,8 @@ async function drainNovaQueue() {
   const headDelivery = nova.pendingRemote[0]?.delivery;
   if (!headDelivery || !["queued", "tracking"].includes(headDelivery) || novaDispatchTimer !== undefined) return;
   const headTurnId = nova.pendingRemote[0].turnId!;
+  const retainedDeadline = nova.pendingRemote[0].replyDeadlineAt;
+  novaReplyDeadline = retainedDeadline === undefined ? undefined : { turnId: headTurnId, expiresAt: retainedDeadline };
   if (headDelivery === "tracking" && novaReplyDeadline?.turnId === headTurnId
       && Date.now() >= novaReplyDeadline.expiresAt) {
     nova.failRemote(headTurnId, "timeout");
@@ -1535,25 +1554,19 @@ async function drainNovaQueue() {
     handoffRecommended.value = true;
     return;
   }
-  if (novaDispatchAccount !== app.accountKey) {
-    novaDispatchAccount = app.accountKey;
-    novaDispatchLimiter = createSendLimiter(SEND_MAX, SEND_WINDOW_MS, SEND_MIN_GAP_MS);
-  }
-  if (headDelivery === "queued") {
-    const verdict = novaDispatchLimiter.tryAcquire();
+  {
+    const verdict = headDelivery === "queued" ? novaDispatchLimiter().tryAcquire() : novaDispatchLimiter().peek();
     if (!verdict.ok) {
       novaDispatchTimer = setTimeout(() => {
         novaDispatchTimer = undefined;
         void drainNovaQueue();
-      }, verdict.retryInSec * 1000);
+      }, Math.min(verdict.retryInSec * 1000, novaReplyDeadline ? Math.max(0, novaReplyDeadline.expiresAt - Date.now()) : Infinity));
       return;
     }
   }
-  const item = nova.claimRemote();
+  const item = nova.claimRemote(retainedDeadline ?? Date.now() + NOVA_REPLY_DEADLINE_MS);
   if (!item) return;
-  if (!novaReplyDeadline || novaReplyDeadline.turnId !== item.turnId || headDelivery === "queued") {
-    novaReplyDeadline = { turnId: item.turnId, expiresAt: Date.now() + NOVA_REPLY_DEADLINE_MS };
-  }
+  novaReplyDeadline = { turnId: item.turnId, expiresAt: nova.pendingRemote[0].replyDeadlineAt! };
   const accountKey = app.accountKey;
   const conversationId = nova.conversationId;
   const requestStartedAt = novaThinkingNow();
@@ -1575,6 +1588,7 @@ async function drainNovaQueue() {
     handoffRecommended.value = !!result.handoffReason;
   } catch (error) {
     if (current()) {
+      if (error instanceof ApiError && error.retryAfterMs !== undefined) novaDispatchLimiter().defer(error.retryAfterMs);
       const failure = novaFailure(error);
       if (Date.now() < novaReplyDeadline!.expiresAt
           && (failure === "timeout" || failure === "network" || (item.tracking && failure === "busy"))) {
@@ -1582,7 +1596,7 @@ async function drainNovaQueue() {
         novaDispatchTimer = setTimeout(() => {
           novaDispatchTimer = undefined;
           void drainNovaQueue();
-        }, Math.min(NOVA_SERVER_TRACK_RETRY_MS, novaReplyDeadline!.expiresAt - Date.now()));
+        }, Math.min(Math.max(NOVA_SERVER_TRACK_RETRY_MS, error instanceof ApiError ? error.retryAfterMs ?? 0 : 0), novaReplyDeadline!.expiresAt - Date.now()));
       } else {
         nova.failRemote(item.turnId, Date.now() >= novaReplyDeadline!.expiresAt ? "timeout" : failure);
         novaReplyDeadline = undefined;
@@ -1671,6 +1685,40 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   void action();
 }
 
+const topOverlayHost = ref<unknown>(null);
+const topOverlayHeight = ref(statusBarHeight.value + 74);
+const chatInstance = getCurrentInstance()?.proxy;
+let topOverlayObserver: ResizeObserver | undefined;
+function measureTopOverlay() {
+  void nextTick(() => {
+    if (chatDisposed) return;
+    const apply = (height?: number) => {
+      if (!chatDisposed && height && Number.isFinite(height)) topOverlayHeight.value = height;
+    };
+    const node = (topOverlayHost.value as { $el?: HTMLElement } | null)?.$el ?? topOverlayHost.value as HTMLElement | null;
+    if (node?.getBoundingClientRect) { apply(node.getBoundingClientRect().height); return; }
+    if (typeof uni === 'undefined' || !uni.createSelectorQuery) return;
+    try {
+      const query = uni.createSelectorQuery().in(chatInstance);
+      query.select('.cp-top-overlay').boundingClientRect();
+      query.exec(rows => apply((rows[0] as UniApp.NodeInfo)?.height));
+    } catch { /* Keep the conservative status-bar and control spacing. */ }
+  });
+}
+onMounted(() => {
+  measureTopOverlay();
+  const node = (topOverlayHost.value as { $el?: HTMLElement } | null)?.$el ?? topOverlayHost.value as HTMLElement | null;
+  if (typeof ResizeObserver !== 'undefined' && node?.getBoundingClientRect) {
+    topOverlayObserver = new ResizeObserver(measureTopOverlay);
+    topOverlayObserver.observe(node);
+  }
+});
+watch(() => [headerName.value, headerRole.value, locale.code, convStore.advisorError,
+  humanHistoryError.value, humanHistoryListError.value, showUnassignedReceived.value,
+  conv.value?.historyTruncated, conv.value?.historyNextCursor,
+  nova.historyTruncated, nova.historyNextCursor, handoffRecommended.value], measureTopOverlay);
+onUnmounted(() => topOverlayObserver?.disconnect());
+
 import LiquidGlass from "@/components/liquid-glass.vue";
 </script>
 
@@ -1693,8 +1741,20 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   flex-shrink: 0;
   padding: 10px 16px 12px;
   /* top padding is bound inline to the device status-bar height (see cp-head :style) */
-  border-bottom: 1px solid color-mix(in srgb, var(--v5-border) 55%, transparent);
 }
+.cp-top-overlay {
+  position: absolute; inset: 0 0 auto; z-index: 4;
+  background: transparent; pointer-events: none;
+}
+.cp-top-overlay > * { pointer-events: auto; }
+.cp-top-overlay .cp-head { pointer-events: none; }
+.cp-head > :not(.cp-head-spacer) { pointer-events: auto; }
+.cp-head {
+  --v5-liquid-tint: rgba(38, 42, 44, .46);
+  --v5-liquid-shadow: inset 0 1px 1px rgba(255,255,255,.1), 0 2px 8px rgba(0,0,0,.12);
+}
+:global([data-theme="light"] .cp-head) { --v5-liquid-tint: rgba(255,255,255,.58); --v5-liquid-shadow: inset 0 1px 1px rgba(255,255,255,.8), 0 2px 8px rgba(30,45,65,.06); }
+.cp-head :deep(.nx-liquid-glass[data-glass-strategy="frosted"]) { backdrop-filter: blur(18px) saturate(135%); -webkit-backdrop-filter: blur(18px) saturate(135%); }
 .cp-ai-safety {
   padding: 8px 16px;
   background: color-mix(in srgb, var(--v5-tech-cyan) 8%, var(--v5-bg));
@@ -1727,8 +1787,13 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   border-radius: 50%;
   position: relative;
 }
+.cp-back, .cp-ticket, .cp-identity {
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  backdrop-filter: blur(16px) saturate(135%);
+}
 .cp-head-spacer { width: 44px; height: 44px; pointer-events: none; }
 .cp-identity {
+  position: relative; isolation: isolate; min-height: 44px; padding: 5px 18px; border-radius: 24px; box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1736,24 +1801,15 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   min-width: 0;
   max-width: 100%;
 }
-.cp-ava {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-.cp-ava-icon { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; line-height: 0; }
-.cp-ava-icon :deep(svg) { display: block; }
 .cp-meta {
   min-width: 0;
+  position: relative; text-align: center;
 }
 .cp-name {
   display: block;
   font-family: var(--font-v5);
   font-weight: 600;
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1.3;
   overflow-wrap: anywhere;
   letter-spacing: -0.008em;
@@ -1762,6 +1818,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 .cp-role {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   margin-top: 2px;
 }

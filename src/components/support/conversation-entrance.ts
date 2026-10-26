@@ -33,10 +33,14 @@ export function useConversationEntrance(source: () => Snapshot, onIncoming?: () 
     // or inferring delivery from matching body text. Only a unique tail replacement
     // in this already-live view can adopt the local render key.
     const oldTail = previousMessages[previousMessages.length - 1];
+    let liveWindowStart: number | undefined;
     if (!changed && previouslyVisible && previouslyReady && current.visible && current.ready && oldTail?.localSend) {
       const candidates = current.messages.slice(previousMessages.length - 1)
         .filter(message => message.side === 'right' && !message.localSend && !previous.includes(message.id));
       const samePrefix = previous.slice(0, -1).every((id, index) => ids[index] === id);
+      // Incoming rows may arrive before the pending row/canonical replacement.
+      // Scan this entire live suffix, not just rows after the outgoing anchor.
+      if (samePrefix) liveWindowStart = previous.length - 1;
       // The store can publish the confirmed record one microtask before the
       // page retires its pending row. Remember that unique insertion as well.
       if (samePrefix && candidates.length === 1) acknowledgedTails.set(oldTail.id, candidates[0].id);
@@ -58,12 +62,12 @@ export function useConversationEntrance(source: () => Snapshot, onIncoming?: () 
     if (!current.visible || !current.ready) clear();
     const oldTailKey = oldTail && (renderKeys.value[oldTail.id] ?? oldTail.id);
     const tail = previous.length ? current.messages.findIndex(message => (renderKeys.value[message.id] ?? message.id) === oldTailKey) : -1;
-    const canAppend = !previous.length || tail !== -1;
+    const canAppend = liveWindowStart !== undefined || !previous.length || tail !== -1;
     if (!changed && previouslyVisible && previouslyReady && current.visible && current.ready && canAppend) {
       let incoming = false;
-      for (let index = tail + 1; index < current.messages.length; index++) {
+      for (let index = liveWindowStart ?? (tail + 1); index < current.messages.length; index++) {
         const message = current.messages[index];
-        if (seen.has(message.id) || message.tone === 'system') continue;
+        if (seen.has(message.id) || message.tone === 'system' || [...acknowledgedTails.values()].includes(message.id)) continue;
         if (message.side === 'left') incoming = true;
         const token = ++serial;
         active.value = { ...active.value, [message.id]: { token, identity: current.identity, expiresAt: Date.now() + CONVERSATION_ENTRANCE_MS + 20 } };

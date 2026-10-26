@@ -5,8 +5,15 @@ import { it } from 'vitest';
 // Isolate the missing native method from Vitest's own runtime.
 const script = String.raw`
 import assert from 'node:assert/strict';
-import { catchUpConversation } from './src/api/conversation-history.ts';
-import { createSupportApi } from './src/api/support-api.ts';
+import { registerHooks } from 'node:module';
+import { pathToFileURL } from 'node:url';
+const sourceRoot = pathToFileURL(process.cwd() + '/src/');
+registerHooks({ resolve(specifier, context, nextResolve) {
+  return nextResolve(specifier.startsWith('@/')
+    ? new URL(specifier.slice(2) + '.ts', sourceRoot).href : specifier, context);
+} });
+const { catchUpConversation } = await import('./src/api/conversation-history.ts');
+const { createSupportApi } = await import('./src/api/support-api.ts');
 Object.defineProperty(Array.prototype, 'at', { value: undefined, configurable: true, writable: true });
 assert.equal(typeof [].at, 'undefined');
 const scenario = process.argv[1];

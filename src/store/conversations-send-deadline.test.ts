@@ -51,7 +51,7 @@ async function setup(mode: 'reply' | 'opening') {
   const action = mode === 'reply' ? api.replyConversation : api.startConversation;
   const composerKey = mode === 'reply' ? 'conversation:CV-deadline' : 'start:support';
   const intent = { text: original, attachmentId: 'ATT-1', kind: 'unknown' as const, settled: false, retryable: true, attempts: 1 };
-  const send = () => mode === 'reply' ? store.sendUser('CV-deadline', original, 'ATT-1') : store.startConversation('support', original, 'ATT-1');
+  const send = (onKey?: (key: string) => void) => mode === 'reply' ? store.sendUser('CV-deadline', original, 'ATT-1', onKey) : store.startConversation('support', original, 'ATT-1', onKey);
   const isPending = () => store.hasPendingHumanSend(composerKey, intent);
   return { store, action, send, isPending, composerKey, intent };
 }
@@ -249,8 +249,12 @@ describe.each(['reply', 'opening'] as const)('bounded human %s dispatch', mode =
   it('shares one dispatch and one bounded readback between concurrent attempts of the same intent', async () => {
     const h = await setup(mode);
     h.action.mockReturnValue(new Promise(() => {})); api.commandResult.mockReturnValue(new Promise(() => {}));
-    const first = observe(h.send()), second = observe(h.send()); await vi.advanceTimersByTimeAsync(0);
+    const firstKey = vi.fn(), secondKey = vi.fn();
+    const first = observe(h.send(firstKey)), second = observe(h.send(secondKey)); await vi.advanceTimersByTimeAsync(0);
     expect(h.action).toHaveBeenCalledOnce();
+    const key = h.action.mock.calls[0][2];
+    expect(firstKey).toHaveBeenCalledExactlyOnceWith(key);
+    expect(secondKey).toHaveBeenCalledExactlyOnceWith(key);
     await vi.advanceTimersByTimeAsync(15_000); await Promise.all([first.done, second.done]);
     expect(api.commandResult).toHaveBeenCalledOnce();
     expect(first.settled.mock.calls[0][0].cause).toBe(second.settled.mock.calls[0][0].cause);

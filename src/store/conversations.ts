@@ -255,6 +255,7 @@ export const useConversations = defineStore("conversations", () => {
   const totalUnread = computed(() => conversations.value.filter(visibleInInbox).reduce((sum, row) => sum + row.unread, 0));
   let pendingKeys = new Map<string, string>();
   let inFlight = new Map<string, Promise<unknown>>();
+  const runningCommandKeys = new WeakMap<Promise<unknown>, string>();
   let accountEpoch = 0;
   let accountKeyValue = "anonymous";
   let pendingRunId = "unverified";
@@ -315,7 +316,7 @@ export const useConversations = defineStore("conversations", () => {
     scope.pending.delete(fingerprint);
   }
 
-  async function command<T>(intent: string, action: (key: string) => Promise<T>, recover?: (key: string) => Promise<T | null>, expectedAccount?: AccountScope, createPolicy?: { gate: () => boolean; recovery?: { scope: CommandScope; key: string } }): Promise<T> {
+  async function command<T>(intent: string, action: (key: string) => Promise<T>, recover?: (key: string) => Promise<T | null>, expectedAccount?: AccountScope, createPolicy?: { gate: () => boolean; recovery?: { scope: CommandScope; key: string } }, onKey?: (key: string) => void): Promise<T> {
     const scope = await commandScope();
     if (expectedAccount && (expectedAccount.epoch !== scope.epoch || expectedAccount.accountKey !== scope.accountKey)) {
       throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
@@ -335,7 +336,11 @@ export const useConversations = defineStore("conversations", () => {
       throw new Error("SUPPORT_CATEGORY_UNAVAILABLE");
     }
     const running = scope.inFlight.get(fingerprint) as Promise<T> | undefined;
-    if (running) return running;
+    if (running) {
+      const originalKey = runningCommandKeys.get(running);
+      if (originalKey) onKey?.(originalKey);
+      return running;
+    }
     const key = createPolicy?.recovery?.key ?? scope.pending.get(fingerprint) ?? mutationKey(intent);
     const humanSend = intent.startsWith('conversation-create:') || intent.startsWith('conversation-reply:');
     const echoedOutcome = () => humanSend && scopeIsCurrent(scope)
@@ -344,6 +349,7 @@ export const useConversations = defineStore("conversations", () => {
     scope.pending.set(fingerprint, key);
     persistPending(scope.accountKey, scope.runId, scope.pending);
     if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+    onKey?.(key);
     // Every caller shares the authoritative outcome, including recovery. Start
     // after installing the promise so even a synchronous failure is single-flight.
     const promise = Promise.resolve().then(async () => {
@@ -388,6 +394,7 @@ export const useConversations = defineStore("conversations", () => {
         if (scopeIsCurrent(scope)) mutating.value = scope.inFlight.size > 0;
       }
     });
+    runningCommandKeys.set(promise, key);
     scope.inFlight.set(fingerprint, promise);
     if (scopeIsCurrent(scope)) mutating.value = true;
     return promise;
@@ -612,7 +619,7 @@ export const useConversations = defineStore("conversations", () => {
     if (!accountScopeIsCurrent(account)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
     return pendingKeys.has(opaqueSupportIntentSlot(`conversation-create:${type}:${attachmentId ?? "text"}:${openingText.trim()}`));
   }
-  async function startConversation(type: Exclude<ConversationType, "ai">, openingText: string, attachmentId?: string): Promise<string> {
+  async function startConversation(type: Exclude<ConversationType, "ai">, openingText: string, attachmentId?: string, onDispatch?: (key: string) => void): Promise<string> {
     const account = { epoch: accountEpoch, accountKey: accountKeyValue };
     const intent = `conversation-create:${type}:${attachmentId ?? "text"}:${openingText.trim()}`;
     const originalScope = remoteApiEnabled ? await commandScope() : undefined;
@@ -627,7 +634,7 @@ export const useConversations = defineStore("conversations", () => {
         key => supportApi.startConversation(type, openingText, key, attachmentId), async key => {
           const result = await supportApi.commandResult(key);
           return result?.kind === "conversation" ? result.conversation : null;
-        }, account, createPolicy);
+        }, account, createPolicy, onDispatch);
     } catch (cause) {
       if (accountScopeIsCurrent(account) && mustReadBack(cause)) void reconcileAll(account);
       throw cause;
@@ -640,7 +647,7 @@ export const useConversations = defineStore("conversations", () => {
     return startConversation("support", openingText);
   }
 
-  async function sendUser(id: string, text: string, attachmentId?: string): Promise<boolean> {
+  async function sendUser(id: string, text: string, attachmentId?: string, onDispatch?: (key: string) => void): Promise<boolean> {
     const account = { epoch: accountEpoch, accountKey: accountKeyValue };
     const current = get(id) ?? await open(id);
     if (!accountScopeIsCurrent(account)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
@@ -651,7 +658,7 @@ export const useConversations = defineStore("conversations", () => {
         key => supportApi.replyConversation(current, text, key, attachmentId), async key => {
           const result = await supportApi.commandResult(key);
           return result?.kind === "conversation" ? result.conversation : null;
-        }, account);
+        }, account, undefined, onDispatch);
     } catch (cause) {
       if (accountScopeIsCurrent(account) && mustReadBack(cause)) void reconcile(id, account);
       throw cause;

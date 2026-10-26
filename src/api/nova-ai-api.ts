@@ -1,5 +1,6 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import { normalizeMessageText } from '@/lib/message-length-policy';
 
 export interface NovaAiStatus {
   available: boolean;
@@ -105,8 +106,8 @@ function parseHistory(value: unknown): NovaAiHistoryResponse {
 }
 
 function safeRequest(request: NovaAiChatRequest): NovaAiChatRequest {
-  const message = request.message.trim();
-  if (!message || message.length > 2_000 || !["en", "zh", "vi"].includes(request.language)) {
+  const message = normalizeMessageText(request.message);
+  if (!["en", "zh", "vi"].includes(request.language)) {
     throw new ApiError({ kind: "protocol", message: "NOVA_AI_INPUT_INVALID" });
   }
   if (!conversationId(request.conversationId)) {

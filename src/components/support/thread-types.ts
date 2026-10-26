@@ -25,6 +25,8 @@ export interface ThreadMsg {
   deliveryState?: MessageDeliveryState;
   /** Current local human outbox entry, not a confirmed server message. */
   localSend?: boolean;
+  /** Exact original command correlation, never inferred from matching body text. */
+  clientMessageId?: string;
   ctaLabel?: string;
   /** Logical route (mapped by lib/route navTo at tap time). */
   ctaHref?: string;

@@ -22,8 +22,9 @@ export function supportDemo(url,locale,state,request) {
         const at=(days,hours,minutes)=>{const date=new Date(today);date.setDate(date.getDate()+days);date.setHours(hours,minutes,0,0);return date.toISOString();};
         const minutes=[1,2,7,9,10,11,16,17];
         detail.messages.forEach((message,index)=>{
-          message.createdAt=index<8?at(-3,14,index):index<16?at(-1,23,52+index-8):at(0,0,minutes[index-16]);
+          message.createdAt=index<8?at(-3,23,45+index):index<16?at(-2,23,52+index-8):at(-1,0,minutes[index-16]);
         });
+        detail.messages[23].createdAt = new Date(new Date(detail.messages[22].createdAt).getTime() + 86_400_000).toISOString();
         const previousYear=new Date(today);previousYear.setFullYear(previousYear.getFullYear()-1,11,31);previousYear.setHours(10,0,0,0);
         detail.messages[0].createdAt=previousYear.toISOString();
       }

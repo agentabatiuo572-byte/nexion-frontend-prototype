@@ -1,5 +1,5 @@
 import { serverSessionContext, isUserSession, type ApiResult, type AuthSessionResponse } from "./contracts";
-import { ApiError, asApiError } from "./errors";
+import { ApiError, asApiError, parseRetryAfterMs } from "./errors";
 import type { RefreshCredentialMode, SessionSnapshot, SessionVault } from "./session-vault";
 import { withSessionCookieLock } from "./session-cookie-lock";
 import { acquireRotationNonce, clearRotationNonce, discardRotationNonce } from "./session-rotation-nonce";
@@ -21,6 +21,11 @@ export interface HttpResponse {
   status: number;
   data: unknown;
   headers: Record<string, string>;
+}
+
+function responseRetryAfterMs(response: HttpResponse): number | undefined {
+  const header = Object.entries(response.headers ?? {}).find(([name]) => name.toLowerCase() === 'retry-after');
+  return parseRetryAfterMs(header?.[1]);
 }
 
 export interface HttpTransport {
@@ -186,6 +191,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       throw asApiError(error);
     }
 
+    const retryAfterMs = responseRetryAfterMs(response);
     const responseData = decodeTransportData(response.data);
     const envelope = isEnvelope(responseData) ? responseData : null;
     const explicitlyAccepted = !!envelope && acceptedResponses.some(
@@ -202,6 +208,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         status: response.status,
         code: envelope?.code,
         sessionEndedReason: endedReason,
+        retryAfterMs,
       });
     }
     if ((response.status < 200 || response.status >= 300) && !explicitlyAccepted) {
@@ -215,11 +222,12 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         status: response.status,
         code: envelope?.code,
         retryable: response.status >= 500,
+        retryAfterMs,
         providerReason: typeof providerDenial?.providerReason === "string" ? providerDenial.providerReason : undefined,
       });
     }
     if (!envelope) {
-      throw new ApiError({ kind: "protocol", message: "API_ENVELOPE_INVALID", status: response.status });
+      throw new ApiError({ kind: "protocol", message: "API_ENVELOPE_INVALID", status: response.status, retryAfterMs });
     }
     if (envelope.code !== 0 && !explicitlyAccepted) {
       throw new ApiError({
@@ -227,6 +235,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         message: envelope.message || "BUSINESS_ERROR",
         status: response.status,
         code: envelope.code,
+        retryAfterMs,
       });
     }
     return envelope.data as T;
@@ -534,12 +543,13 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   }
 
   async function executeResponse<T>(response: HttpResponse): Promise<T> {
+    const retryAfterMs = responseRetryAfterMs(response);
     const responseData = decodeTransportData(response.data);
     const envelope = isEnvelope(responseData) ? responseData : null;
     const sessionEndedReason = envelope?.data && typeof envelope.data === "object"
       ? (envelope.data as { sessionEndedReason?: string }).sessionEndedReason : undefined;
     if (authFailure(response.status, envelope?.code, envelope?.message) || ((response.status === 401 || response.status === 403) && sessionEndedReason)) {
-      throw new ApiError({ kind: "auth", message: envelope?.message || "AUTH_REQUIRED", status: response.status, code: envelope?.code, sessionEndedReason });
+      throw new ApiError({ kind: "auth", message: envelope?.message || "AUTH_REQUIRED", status: response.status, code: envelope?.code, sessionEndedReason, retryAfterMs });
     }
     if (response.status < 200 || response.status >= 300) {
       throw new ApiError({
@@ -548,11 +558,12 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         status: response.status,
         code: envelope?.code,
         retryable: response.status >= 500,
+        retryAfterMs,
       });
     }
-    if (!envelope) throw new ApiError({ kind: "protocol", message: "API_ENVELOPE_INVALID", status: response.status });
+    if (!envelope) throw new ApiError({ kind: "protocol", message: "API_ENVELOPE_INVALID", status: response.status, retryAfterMs });
     if (envelope.code !== 0) {
-      throw new ApiError({ kind: "business", message: envelope.message || "BUSINESS_ERROR", status: response.status, code: envelope.code });
+      throw new ApiError({ kind: "business", message: envelope.message || "BUSINESS_ERROR", status: response.status, code: envelope.code, retryAfterMs });
     }
     return envelope.data as T;
   }

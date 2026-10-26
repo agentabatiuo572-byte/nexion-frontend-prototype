@@ -18,6 +18,7 @@ type CalendarTime = {
 
 const MINUTE = 60_000;
 const DAY = 86_400_000;
+export const CONVERSATION_TIME_GROUP_GAP_MS = DAY;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const COPY = {
@@ -129,15 +130,17 @@ export function buildConversationTimeGroups(
   const groups: Record<string, string> = Object.create(null);
   const format = timeFormatter(options);
   const unique = new Map(messages.map(message => [message.id, message]));
-  let previous: { timestamp: number; day: number } | undefined;
+  let previous: number | undefined;
   for (const message of unique.values()) {
     const date = validDate(message.timestamp);
-    if (!date) { previous = undefined; continue; }
-    const { day, labels } = format(date), timestamp = date.getTime();
-    if (!previous || day !== previous.day || timestamp < previous.timestamp || timestamp - previous.timestamp >= 5 * MINUTE) {
+    if (!date) continue;
+    const { labels } = format(date), timestamp = date.getTime();
+    // A calendar change alone is not a 24-hour pause. Unknown timestamps do
+    // not invent a divider; every bubble retains its own precise clock.
+    if (previous === undefined || timestamp - previous >= CONVERSATION_TIME_GROUP_GAP_MS) {
       groups[message.id] = labels.group;
     }
-    previous = { timestamp, day };
+    previous = timestamp;
   }
   return groups;
 }

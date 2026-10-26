@@ -254,6 +254,7 @@ import * as chatRealtime from "./conversation-realtime-page";
 import * as chatThinking from "@/lib/nova-thinking";
 import * as chatFailure from "@/lib/nova-failure";
 import * as chatLimiter from "@/lib/send-limiter";
+import * as messagePolicy from '@/lib/message-length-policy';
 import * as chatSecure from "@/lib/secure-command-id";
 import * as chatFormat from "@/i18n/format";
 import * as chatApiErrors from "@/api/errors";
@@ -317,7 +318,8 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/lib/support-idle-message": { localizedIdleClose },
     "@/lib/brand-copy": { catalogSkuBrandText, catalogSkuRecommendationBody },
     "@/lib/nova-visibility": { NOVA_SUPPORT_VISIBLE: false },
-    "@/lib/route": navigation, "@/lib/send-limiter": chatLimiter,
+    "@/lib/route": navigation, "@/lib/send-limiter": { ...chatLimiter, conversationSendLimiter: chatLimiter.createConversationSendBudgets() },
+    '@/lib/message-length-policy': messagePolicy,
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 }, "@/lib/hashpower": { isDeviceOnline: () => false },
     "@/store/conversations": { useConversations: () => store }, "@/store/nova": { useNova }, "@/store/app": { useApp: () => app },
     "@/store/auth": { useAuth: () => auth }, "@/lib/binary-session-ready": { binarySessionReady },
@@ -331,7 +333,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/lib/secure-command-id": chatSecure, "@/lib/nova-thinking": chatThinking, "./conversation-realtime-page": chatRealtime,
   };
   const scope = Vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, retryHumanSend, sendSuccessRevision, cid, startType, draftText, failedHumanSend, failedHumanLabel, humanSendBusy, supportSessionReady, localHumanSend, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
+  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, retryHumanSend, sendSuccessRevision, sendSuccessOwner, cid, startType, draftText, failedHumanSend, failedHumanLabel, humanSendBusy, supportSessionReady, localHumanSend, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
     if (name.endsWith(".vue")) return {}; if (!(name in modules)) throw new Error(`Unexpected chat dependency: ${name}`); return modules[name];
   }, {}));
   hooks.onLoad(query); chatCleanups.push(() => { page.cleanup(); scope.stop(); });
@@ -756,7 +758,7 @@ describe("rendered human composer account boundary", () => {
       composerKey: humanComposerBinding(state, scenario.startsWith("existing") ? "CV-same" : "", scenario.startsWith("new") ? "support" : null, false, {}, { scopeInvalidated: 0 }) }) });
     app.component("scroll-view", { setup: (_props: unknown, { slots }: any) => () => Vue.h("scroll-view", slots.default?.()) });
     app.mount(root); mounted.push(app);
-    const input = () => flatten(root).find(node => node.tag === "input")!;
+    const input = () => flatten(root).find(node => node.tag === "textarea")!;
     input().props.onInput({ detail: { value: "Private draft for account A" } }); await Vue.nextTick();
     expect(input().props.value).toBe("Private draft for account A");
     if (scenario.includes("A to B")) state.accountKey = "account-b";
@@ -772,10 +774,10 @@ describe("rendered human composer account boundary", () => {
 // missing revision/retry binding cannot be hidden by a test-only parent.
 const parentTemplate = readFileSync(new URL('./chat.vue', import.meta.url), 'utf8');
 const deliveryBindings = [
-  ['composerKey', 'composer-key'], ['sendSuccessRevision', 'send-success-revision'], ['initialDraft', 'initial-draft'],
+  ['composerKey', 'composer-key'], ['sendSuccessRevision', 'send-success-revision'], ['sendSuccessOwner', 'send-success-owner'], ['initialDraft', 'initial-draft'],
   ['failedSendLabel', 'failed-send-label'], ['canDiscardSend', 'can-discard-send'], ['canRetrySend', 'can-retry-send'], ['sendBlocked', 'send-blocked'],
 ].map(([prop, attribute]) => `${prop}: (${parentTemplate.match(new RegExp(`:${attribute}="([^"]+)"`))![1]})`);
-const bindDeliveryProps = new Function('scope', `const {app,cid,startType,isAi,nova,convStore,sendSuccessRevision,
+const bindDeliveryProps = new Function('scope', `const {app,cid,startType,isAi,nova,convStore,sendSuccessRevision,sendSuccessOwner,
   draftText,failedHumanLabel,failedHumanSend,humanSendBusy,supportSessionReady} = scope; return {${deliveryBindings.join(',')}};`);
 const retryHandler = parentTemplate.match(/@retry-message="([^"]+)"/)![1];
 function renderHumanDelivery(current: ReturnType<typeof mountRealHumanChat>) {
@@ -831,6 +833,10 @@ describe('rendered human delivery and success revisions', () => {
     expect(view.byClass('nx-conv-recovery-actions')).toHaveLength(status === 'failed' ? 1 : 0);
     expect(view.sound.play).not.toHaveBeenCalled();
     const retried = chatDeferred(); chatTransport.replyConversation.mockReturnValueOnce(retried.promise);
+    icon.props.onClick(); icon.props.onClick(); await vi.advanceTimersByTimeAsync(0);
+    expect(chatTransport.replyConversation).toHaveBeenCalledTimes(1);
+    expect(current.page.failedHumanSend.value).not.toBeNull();
+    await vi.advanceTimersByTimeAsync(1000);
     icon.props.onClick(); icon.props.onClick(); await vi.advanceTimersByTimeAsync(0);
     expect(chatTransport.replyConversation).toHaveBeenCalledTimes(2);
     expect(current.page.failedHumanSend.value).toBeNull();
@@ -914,10 +920,27 @@ describe('rendered human delivery and success revisions', () => {
       ? { ...message, clientMessageId: key } : message) });
     await current.store.open('CV-cold');
     expect(current.store.composer('conversation:CV-cold').failedSend).toBeNull();
+    expect(current.page.humanSendBusy.value).toBe(true);
+    expect(current.page.localHumanSend.value.clientMessageId).toBe(key);
+    expect(current.page.threadMessages.value.filter((row: any) => row.text === text)).toHaveLength(1);
+    expect(current.page.threadMessages.value.some((row: any) => row.localSend)).toBe(false);
     readback.resolve(null); await vi.advanceTimersByTimeAsync(0);
     expect(current.page.humanSendBusy.value).toBe(false); expect(current.page.failedHumanSend.value).toBeNull();
     expect(current.page.threadMessages.value.filter((row: any) => row.text === text)).toHaveLength(1);
     expect(current.page.sendSuccessRevision.value).toBe(1); expect(view.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+  });
+
+  it.each(['different-key', 'agent'] as const)('does not hide an in-flight local message for a same-body %s echo', async mismatch => {
+    const current = mountRealHumanChat(); await current.show(); const view = renderHumanDelivery(current);
+    chatTransport.replyConversation.mockReturnValue(new Promise(() => {}));
+    const text = 'Same body is not an identity'; await view.send(text);
+    const key = chatTransport.replyConversation.mock.calls[0][2], canonical = deliveredSnapshot(text);
+    chatTransport.conversation.mockResolvedValue({ ...canonical, messages: canonical.messages.map(message => message.sender === 'user'
+      ? { ...message, sender: mismatch === 'agent' ? 'agent' : 'user', clientMessageId: mismatch === 'different-key' ? key + '-other' : key } : message) });
+    await current.store.open('CV-cold'); await Vue.nextTick();
+    expect(current.page.humanSendBusy.value).toBe(true);
+    expect(current.page.threadMessages.value.filter((row: any) => row.localSend)).toHaveLength(1);
+    expect(current.page.threadMessages.value.filter((row: any) => row.text === text)).toHaveLength(2);
   });
 
   it.each(['support', 'advisor'])('sounds the first successful new %s conversation despite its composer-key reset', async type => {
@@ -930,6 +953,10 @@ describe('rendered human delivery and success revisions', () => {
     expect(current.page.sendSuccessRevision.value).toBe(1);
     expect(view.sound.play).toHaveBeenCalledExactlyOnceWith('send');
     expect(current.navigation.navReplace).toHaveBeenCalledExactlyOnceWith('/pages/support/chat?cid=CV-cold');
+    const restore = vi.fn();
+    await current.page.onSend('Must retain opening cooldown', restore);
+    expect(restore).toHaveBeenCalledOnce();
+    expect(chatTransport.replyConversation).not.toHaveBeenCalled();
     await current.hooks.onShow(); await vi.advanceTimersByTimeAsync(1000);
     expect(view.sound.play).toHaveBeenCalledOnce(); expect(chatTransport.startConversation).toHaveBeenCalledOnce();
   });

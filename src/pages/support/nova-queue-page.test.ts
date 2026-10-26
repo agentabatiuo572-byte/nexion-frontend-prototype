@@ -14,6 +14,7 @@ import { localizedIdleClose } from "@/lib/support-idle-message";
 import * as thinking from "@/lib/nova-thinking";
 import * as failure from "@/lib/nova-failure";
 import * as limiter from "@/lib/send-limiter";
+import * as messagePolicy from '@/lib/message-length-policy';
 import * as secureId from "@/lib/secure-command-id";
 import * as format from "@/i18n/format";
 import { ApiError } from "@/api/errors";
@@ -73,7 +74,8 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/lib/brand-copy": { catalogSkuBrandText, catalogSkuRecommendationBody },
     "@/lib/route": { navTo: vi.fn(), navBack: vi.fn(), navReplace: vi.fn(async () => true) },
     "@/lib/nova-visibility": { NOVA_SUPPORT_VISIBLE: true },
-    "@/lib/send-limiter": limiter,
+    "@/lib/send-limiter": { ...limiter, conversationSendLimiter: limiter.createConversationSendBudgets() },
+    '@/lib/message-length-policy': messagePolicy,
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 },
     "@/lib/hashpower": { isDeviceOnline: () => false },
     "@/store/conversations": { useConversations: () => ({
@@ -424,7 +426,7 @@ describe("human conversation restart", () => {
     await next.hooks.onShow();
     expect(next.navigation.navBack).not.toHaveBeenCalled();
     await next.page.onSend("Please help with my question");
-    expect(next.startConversation).toHaveBeenCalledExactlyOnceWith("advisor", "Please help with my question", undefined);
+    expect(next.startConversation).toHaveBeenCalledExactlyOnceWith("advisor", "Please help with my question", undefined, expect.any(Function));
     expect(next.navigation.navBack).not.toHaveBeenCalled();
     old.page.cleanup();
     next.page.cleanup();
@@ -756,7 +758,25 @@ describe("real Nova page queue worker", () => {
     page.cleanup();
   });
 
-  it("retains interrupted work, resumes tracking, and rejects the cancelled call's late answer", async () => {
+  it('respects server cooldown and retains the attempt deadline after hide and return', async () => {
+    const { page, hooks, api, nova } = mount(); await hooks.onShow();
+    api.chat.mockRejectedValueOnce(new ApiError({ kind: 'network', message: 'NETWORK_UNAVAILABLE', retryAfterMs: 30_000 }))
+      .mockReturnValue(new Promise(() => {}));
+    await page.onSend('cooldown'); await vi.advanceTimersByTimeAsync(0);
+    const deadline = nova.pendingRemote[0].replyDeadlineAt;
+    expect(nova.pendingRemote[0].delivery).toBe('tracking');
+    hooks.onHide(); await vi.advanceTimersByTimeAsync(1000); await hooks.onShow();
+    expect(api.chat).toHaveBeenCalledTimes(1);
+    expect(nova.pendingRemote[0].replyDeadlineAt).toBe(deadline);
+    await vi.advanceTimersByTimeAsync(28_999); expect(api.chat).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1); expect(api.chat).toHaveBeenCalledTimes(2);
+    expect(nova.pendingRemote[0].replyDeadlineAt).toBe(deadline);
+    await vi.advanceTimersByTimeAsync(45_000);
+    expect(nova.pendingRemote[0]).toMatchObject({ delivery: 'failed', failure: 'timeout' });
+    expect(api.chat).toHaveBeenCalledTimes(2); page.cleanup();
+  });
+
+  it("retains the original deadline across hide/return and requires manual retry after it expires", async () => {
     const { page, hooks, api, nova } = mount();
     await hooks.onShow();
     const old = deferred(); api.chat.mockReturnValueOnce(old.promise).mockResolvedValue({ reply: "retried" });
@@ -769,6 +789,9 @@ describe("real Nova page queue worker", () => {
     await hooks.onShow();
     expect(nova.pendingRemote).toHaveLength(2);
     await vi.advanceTimersByTimeAsync(0);
+    expect(nova.pendingRemote[0]).toMatchObject({ delivery: 'failed', failure: 'timeout' });
+    expect(api.chat).toHaveBeenCalledTimes(1);
+    page.onQueueAction(nova.pendingRemote[0].turnId, 'retry');
     old.resolve({ reply: "stale" });
     await vi.advanceTimersByTimeAsync(3600);
     expect(nova.messages.some(m => m.text === "stale")).toBe(false);

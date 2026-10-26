@@ -43,7 +43,8 @@ function mount(initial: ThreadMsg[] = [], sendSuccessRevision = 0) {
   const shown: Array<() => void> = [], hidden: Array<() => void> = [];
   const props = Vue.reactive({ messages: initial, entranceReady: true, timeLocale: 'zh' as 'zh' | 'en' | 'vi', composerKey: 'conversation:A', revealTick: 0,
     inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send', queueLabels: zh.nova.queue, sendSuccessRevision,
-    imageLabels: zh.conversations.image, statusLabels: zh.conversations.delivery, canRetrySend: true, sendBlocked: false, attachDisabled: false, attachUnavailable: '', attachRetry: false });
+    imageLabels: zh.conversations.image, statusLabels: zh.conversations.delivery, canRetrySend: true, sendBlocked: false, attachDisabled: false, attachUnavailable: '', attachRetry: false,
+    sendSuccessOwner: JSON.stringify(['user:7', 1, 'conversation:A']), maxInputLength: 2000, inputLimitHint: 'Message too long' });
   const exports: Record<string, any> = {}, emit = vi.fn();
   const sound = { unlock: vi.fn(), play: vi.fn(), stop: vi.fn(), destroy: vi.fn() };
   const modules: Record<string, unknown> = {
@@ -186,12 +187,19 @@ it.each(['atomic', 'store-before-outbox'] as const)('retains the mounted bubble 
   expect(screen.view.messageKey(confirmed)).toBe(key);
 });
 
-it('continues a quick acknowledgement while independently animating a simultaneous incoming reply', async () => {
+it.each(['atomic', 'incoming-first', 'store-before-outbox'] as const)('continues a quick acknowledgement while animating a simultaneous incoming reply: %s', async sequence => {
   const screen = mount([message('history', 'left')]);
   screen.props.messages.push(message('pending-fast', 'right', { localSend: true })); await flush();
-  screen.props.messages = [screen.props.messages[0], message('confirmed'), message('incoming', 'left')]; await flush();
+  const history = screen.props.messages[0], pending = screen.props.messages[1];
+  const confirmed = message('confirmed'), incoming = message('incoming', 'left');
+  if (sequence === 'store-before-outbox') {
+    screen.props.messages = [history, confirmed, incoming, pending]; await flush();
+    expect(findAll(await screen.node(), 'nx-conv-enter-left')).toHaveLength(1);
+    expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('receive');
+  }
+  screen.props.messages = sequence === 'incoming-first' ? [history, incoming, confirmed] : [history, confirmed, incoming]; await flush();
   const node = await screen.node();
-  expect(screen.view.messageKey(screen.props.messages[1])).toBe('pending-fast');
+  expect(screen.view.messageKey(confirmed)).toBe('pending-fast');
   expect(findAll(node, 'nx-conv-enter-right')).toHaveLength(1);
   expect(findAll(node, 'nx-conv-enter-left')).toHaveLength(1);
   expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('receive');
@@ -383,12 +391,22 @@ it('accepts a measured native zero prefix and retries after a failed measurement
   pending.shift()!([{ top: 0 }, { top: 300 }]); await flush(); expect(screen.view.scrollTop.value).toBe(450);
 });
 
+it.each([true, false])('keeps the latest bubble above a growing composer only when reading the tail: %s', async atTail => {
+  const screen = mount([message('old'), message('latest')]);
+  const host = { scrollTop: atTail ? 600 : 120, scrollHeight: 1000, clientHeight: 400, querySelectorAll: () => [] };
+  screen.view.listHost.value = host;
+  screen.view.onInputLines({ detail: { height: 120 } });
+  await flush(); await vi.advanceTimersByTimeAsync(100);
+  expect(host.scrollTop).toBe(atTail ? 1000 : 120);
+  if (atTail) expect(screen.view.scrollAnimated.value).toBe(false);
+});
+
 it('renders date/gap markers independently of precise per-message times and does not animate a clock refresh', async () => {
   const day = new Date(2026, 9, 26, 0, 0).getTime(); vi.setSystemTime(day + 3600000);
   const screen = mount([message('one', 'left', { timestamp: day + 60000, meta: 'Support' }),
     message('two', 'right', { timestamp: day + 120000, meta: 'You' }),
     message('three', 'left', { timestamp: day + 420000, meta: 'Support' })]);
-  expect(findAll(await screen.node(), 'nx-conv-time-divider')).toHaveLength(2);
+  expect(findAll(await screen.node(), 'nx-conv-time-divider')).toHaveLength(1);
   expect(screen.view.timeGroups.value.one).toContain('今天');
   expect(findAll(await screen.node(), 'nx-conv-message-time').map(visibleText)).toEqual(['00:01', '00:02', '00:07']);
   vi.setSystemTime(new Date(2026, 9, 27, 0, 1)); screen.hide(); screen.show(); await flush();
@@ -404,8 +422,8 @@ it('labels a fresh arrival as today between clock ticks without hiding a genuine
   const screen = mount(); vi.setSystemTime(start + 20_000);
   screen.props.messages = [message('live', 'left', { timestamp: start + 20_000 })]; await flush();
   expect(screen.view.timeGroups.value.live).toBe('今天 14:00');
-  screen.props.messages = [...screen.props.messages, message('future', 'left', { timestamp: start + 320_000 })]; await flush();
-  expect(screen.view.timeGroups.value.future).toContain('2026年10月26日');
+  screen.props.messages = [...screen.props.messages, message('future', 'left', { timestamp: start + 86_420_000 })]; await flush();
+  expect(screen.view.timeGroups.value.future).toContain('2026年10月27日');
 });
 
 it('disables unavailable image input without a visible caption while text sending and policy recovery remain usable', async () => {
@@ -520,7 +538,33 @@ it('sounds for retry success without a send-button callback and for first creati
   expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('send');
   await vi.advanceTimersByTimeAsync(401);
   screen.props.composerKey = 'conversation:created-first'; screen.props.sendSuccessRevision++; await flush();
+  expect(screen.sound.play.mock.calls).toEqual([['send']]);
+  screen.props.sendSuccessOwner = JSON.stringify([screen.app.accountKey, screen.app.accountBindingEpoch, screen.props.composerKey]);
+  screen.props.sendSuccessRevision++; await flush();
   expect(screen.sound.play.mock.calls).toEqual([['send'], ['send']]);
+});
+
+it.each(['account', 'binding', 'conversation', 'hide'] as const)('drops an already queued success sound if its %s boundary changes before post flush', async boundary => {
+  const screen = mount(); screen.props.sendSuccessRevision++;
+  if (boundary === 'account') screen.app.accountKey = 'user:8';
+  if (boundary === 'binding') screen.app.accountBindingEpoch++;
+  if (boundary === 'conversation') screen.props.composerKey = 'conversation:B';
+  if (boundary === 'hide') screen.hide();
+  await flush(); expect(screen.sound.play).not.toHaveBeenCalled();
+});
+
+it('grows a multiline composer within its cap, preserves over-limit input and collapses after sending', async () => {
+  const screen = mount();
+  screen.view.onInputLines({ detail: { height: 72 } }); expect(screen.view.inputHeight.value).toBe(72);
+  screen.view.onInputLines({ detail: { height: 480 } }); expect(screen.view.inputHeight.value).toBe(144);
+  const oversized = '文'.repeat(2001); screen.view.onDraft({ detail: { value: oversized } }); await flush();
+  expect(screen.view.draft.value).toBe(oversized); expect(screen.view.canSend.value).toBe(false);
+  screen.view.onSend(); expect(screen.emit.mock.calls.some(call => call[0] === 'send')).toBe(false);
+  const node = await screen.node(); expect(findAll(node, 'nx-conv-length--over')).toHaveLength(1);
+  const field = findAll(node, 'nx-conv-input')[0]; expect(field.type).toBe('textarea'); expect(field.props?.['confirm-type']).toBe('return');
+  screen.view.onDraft({ detail: { value: '第一行\n第二行' } }); screen.view.onSend(); await flush();
+  expect(screen.emit.mock.calls.find(call => call[0] === 'send')?.[1]).toBe('第一行\n第二行');
+  expect(screen.view.inputHeight.value).toBe(24);
 });
 
 it('does not replay an initial revision, a revision reset, or a disposed watcher', async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ApiClient } from "./api-client";
 import { createNovaAiApi } from "./nova-ai-api";
+import { MessageTextValidationError } from '@/lib/message-length-policy';
 
 function fakeClient(result: unknown): ApiClient {
   return {
@@ -11,6 +12,34 @@ function fakeClient(result: unknown): ApiClient {
 }
 
 describe("Nova AI API", () => {
+  it('uses the shared trimmed 2000 UTF-16 contract without changing turn identity or timeout', async () => {
+    const conversationId = '6f0b5c55-0ec5-4a31-85eb-1d4531c1e8df';
+    const turnId = '8c12eaf3-744d-405e-b2fb-64b3d81267be';
+    const client = fakeClient({ reply: 'Answer', conversationId, turnId });
+    const text = '😀'.repeat(1000);
+    const input = { message: ` \n${text}\r\n `, language: 'zh' as const, conversationId, turnId };
+    const controller = new AbortController();
+    await expect(createNovaAiApi(client).chat(input, controller.signal)).resolves.toMatchObject({ reply: 'Answer', conversationId, turnId });
+    expect(client.request).toHaveBeenCalledExactlyOnceWith({ method: 'POST', path: '/api/app/support/ai/chat',
+      body: { ...input, message: text }, timeoutMs: 120_000, signal: controller.signal });
+    expect(input.message).toBe(` \n${text}\r\n `);
+  });
+
+  it.each([
+    { message: ' \n\t', reason: 'required' },
+    { message: 'x'.repeat(2001), reason: 'too_long' },
+    { message: `${'😀'.repeat(1000)}x`, reason: 'too_long' },
+    { message: null, reason: 'invalid_type' },
+  ])('rejects $reason text before any Nova request is dispatched', async ({ message, reason }) => {
+    const client = fakeClient({});
+    const cause = await createNovaAiApi(client).chat({ message: message as unknown as string, language: 'en',
+      conversationId: '6f0b5c55-0ec5-4a31-85eb-1d4531c1e8df', turnId: '8c12eaf3-744d-405e-b2fb-64b3d81267be',
+    }).catch(error => error);
+    expect(cause).toBeInstanceOf(MessageTextValidationError);
+    expect(cause).toMatchObject({ kind: 'business', code: 422, reason, retryable: false });
+    expect(client.request).not.toHaveBeenCalled();
+  });
+
   it("accepts the customer-safe availability status", async () => {
     const api = createNovaAiApi(fakeClient({ available: true }));
 

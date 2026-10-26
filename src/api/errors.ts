@@ -1,11 +1,38 @@
 export type ApiErrorKind = "auth" | "business" | "http" | "network" | "protocol" | "configuration";
 
+/** Largest delay representable by the browser/native JavaScript timer contract. */
+export const MAX_RETRY_AFTER_MS = 2_147_483_647;
+
+function validRetryAfterMs(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= MAX_RETRY_AFTER_MS;
+}
+
+/** HTTP delta-seconds or HTTP-date; invalid/oversized hints are absent, never shortened. */
+export function parseRetryAfterMs(value: unknown, now = Date.now()): number | undefined {
+  if (typeof value !== 'string') return undefined;
+  const text = value.trim();
+  if (!text || text.length > 128) return undefined;
+  let delay: number;
+  if (/^\d+$/.test(text)) {
+    delay = Number(text) * 1000;
+  } else {
+    // HTTP dates start with a weekday. Exclude numeric strings that Date.parse
+    // would otherwise reinterpret as dates (negative/fractional/exponent values).
+    if (!/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*(?:,|\s)/i.test(text) || !Number.isFinite(now)) return undefined;
+    const deadline = Date.parse(text);
+    if (!Number.isFinite(deadline)) return undefined;
+    delay = Math.max(0, Math.ceil(deadline - now));
+  }
+  return validRetryAfterMs(delay) ? delay : undefined;
+}
+
 interface ApiErrorOptions {
   kind: ApiErrorKind;
   message: string;
   status?: number;
   code?: number;
   retryable?: boolean;
+  retryAfterMs?: number;
   providerReason?: string;
   sessionEndedReason?: string;
 }
@@ -22,6 +49,8 @@ export class ApiError extends Error {
   readonly status?: number;
   readonly code?: number;
   readonly retryable: boolean;
+  /** Valid HTTP Retry-After delay at response processing time; zero is meaningful. */
+  readonly retryAfterMs?: number;
   readonly providerReason?: string;
   readonly sessionEndedReason?: string;
 
@@ -32,6 +61,7 @@ export class ApiError extends Error {
     this.status = options.status;
     this.code = options.code;
     this.retryable = options.retryable ?? false;
+    this.retryAfterMs = validRetryAfterMs(options.retryAfterMs) ? options.retryAfterMs : undefined;
     this.providerReason = readProviderReason(options.providerReason);
     this.sessionEndedReason = options.sessionEndedReason;
   }

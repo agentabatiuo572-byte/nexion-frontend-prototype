@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { bubbleViewportPosition, compactMessageGroups } from './conversation-bubble-layout';
+import { bubbleFill, bubbleViewportPosition, compactMessageGroups } from './conversation-bubble-layout';
 import type { ThreadMsg } from './thread-types';
 
 describe('bubble colour position in the visible viewport', () => {
+  it('resolves one flat translucent paint per bubble with independent dark and light palettes', () => {
+    expect([0, 0.5, 1].map(position => bubbleFill(position, false))).toEqual([
+      'rgba(95, 123, 12, 0.84)', 'rgba(59, 106, 39, 0.84)', 'rgba(22, 88, 66, 0.84)',
+    ]);
+    expect([0, 0.5, 1].map(position => bubbleFill(position, true))).toEqual([
+      'rgba(130, 59, 191, 0.9)', 'rgba(71, 63, 205, 0.9)', 'rgba(13, 67, 219, 0.9)',
+    ]);
+    expect(bubbleFill(NaN, true)).toBe(bubbleFill(0.5, true));
+    expect(bubbleFill(-1, false)).toBe(bubbleFill(0, false));
+    expect(bubbleFill(2, false)).toBe(bubbleFill(1, false));
+  });
   it.each([
     ['top edge', 80, 40, 100, 400, 0],
     ['middle', 280, 40, 100, 400, 0.5],

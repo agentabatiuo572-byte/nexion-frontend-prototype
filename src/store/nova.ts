@@ -49,6 +49,8 @@ export interface NovaMessage {
   attempted?: boolean;
   /** The server may still own this turn after a client timeout or transport abort. */
   serverPending?: boolean;
+  /** Absolute deadline for this attempt; survives hidden/remounted chat pages. */
+  replyDeadlineAt?: number;
 }
 
 export interface NovaRemoteHistory {
@@ -187,10 +189,11 @@ export const useNova = defineStore("nova", () => {
     return true;
   }
 
-  function claimRemote() {
+  function claimRemote(replyDeadlineAt?: number) {
     const head = pendingRemote.value[0];
     if (!head || !["queued", "tracking"].includes(head.delivery!)) return;
     const tracking = head.serverPending === true;
+    if (head.replyDeadlineAt === undefined && replyDeadlineAt !== undefined) head.replyDeadlineAt = replyDeadlineAt;
     head.delivery = "processing";
     head.attempted = true;
     head.status = "read";
@@ -204,6 +207,7 @@ export const useNova = defineStore("nova", () => {
     messages.value[index].delivery = undefined;
     messages.value[index].failure = undefined;
     messages.value[index].serverPending = undefined;
+    messages.value[index].replyDeadlineAt = undefined;
     messages.value.splice(index + 1, 0, { id: `${turnId}:nova`, sender: "nova",
       kind: "nova-reply", text: reply, ts: Date.now() });
   }
@@ -230,6 +234,7 @@ export const useNova = defineStore("nova", () => {
     if (head?.turnId !== turnId || head.delivery !== "failed") return false;
     head.delivery = "queued";
     head.failure = undefined;
+    head.replyDeadlineAt = undefined;
     return true;
   }
 
