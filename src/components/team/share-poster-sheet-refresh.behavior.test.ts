@@ -3,6 +3,7 @@ import * as Vue from "vue";
 import { teamRedesignCopy } from "@/i18n/team-redesign";
 import { useLocaleStore } from "@/store/locale";
 import { formatAmount } from "@/lib/amount-display";
+import { formatJoinedDate } from "@/lib/profile-date";
 import type { Component } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -20,7 +21,7 @@ import { createSessionVault } from "@/api/session-vault";
 import { createAppHomeApi } from "@/api/app-home-api";
 import { createDeviceE3Api } from "@/api/device-e3-api";
 import { en } from "@/i18n/messages/en";
-import { fmt, dateLocale } from "@/i18n/format";
+import { fmt } from "@/i18n/format";
 import { displayNickname } from "@/lib/brand-copy";
 import { isActiveSlotDevice } from "@/lib/device-slot-policy";
 import source from "./share-poster-sheet.vue?raw";
@@ -31,10 +32,12 @@ const remote = vi.hoisted(() => ({
   sessionVault: { read: vi.fn() }, deviceE3Api: { fleet: vi.fn() }, appHomeApi: { fetch: vi.fn() },
   taskAssignmentApi: { state: vi.fn() }, withdrawalApi: { list: vi.fn(), submit: vi.fn(), get: vi.fn() },
   purchaseEligibilityApi: { snapshot: vi.fn() },
+  profileApi: {},
 }));
 vi.mock("@/api/runtime", () => remote);
 const { useApp } = await import("@/store/app");
 const { useConfig } = await import("@/store/config");
+const { useProfile } = await import("@/store/profile");
 const { useReferralReward } = await import("@/store/referral-reward");
 const { buildShareLink, currentShareReferralCode } = await import("@/lib/share");
 
@@ -133,7 +136,8 @@ async function mount(platform: "h5" | "native" = "h5", messages = en) {
   const client = createApiClient({ baseUrl: "https://poster.example.test", transport: { request: transport }, vault });
   remote.deviceE3Api.fleet.mockImplementation(createDeviceE3Api(client, "dev").fleet);
   remote.appHomeApi.fetch.mockImplementation(createAppHomeApi(client, "dev").fetch);
-  const app = useApp(), cfg = useConfig(); app.bindAccount("user:1001");
+  const app = useApp(), cfg = useConfig(), profile = useProfile(); app.bindAccount("user:1001");
+  profile.bindAccount("user:1001"); profile.projectServerNickname("Fixture");
   cfg.configStatus = "ready"; cfg.config.rewards.enabled = false; cfg.config.share.baseUrl = "https://poster.example.test/ref/";
   cfg.config.share.channels = [{ key: "telegram", enabled: true, intentType: "web", urlTemplate: "https://t.example/?url={link}" }];
   const referral = useReferralReward();
@@ -183,11 +187,12 @@ async function mount(platform: "h5" | "native" = "h5", messages = en) {
   const dependencies: Record<string, unknown> = {
     "@/i18n/team-logic-copy": { teamLogicCopy },
     "@/lib/amount-display": { formatAmount },
+    "@/lib/profile-date": { formatJoinedDate },
     "@/store/locale": { useLocaleStore }, "@/i18n/team-redesign": { teamRedesignCopy },
     "@/components/liquid-glass.vue": { default: { render: () => Vue.h("decoration") } },
-    vue: Vue, "qrcode-generator": { default: qrcode }, "@/i18n/use-t": { useT: () => Vue.ref(messages) }, "@/i18n/format": { fmt, dateLocale },
+    vue: Vue, "qrcode-generator": { default: qrcode }, "@/i18n/use-t": { useT: () => Vue.ref(messages) }, "@/i18n/format": { fmt },
     "@/lib/brand-copy": { displayNickname }, "@/api/runtime": remote, "@/lib/device-slot-policy": { isActiveSlotDevice },
-    "@/store/app": { useApp }, "@/store/config": { useConfig }, "@/store/profile": { useProfile: () => ({ displayName: "Fixture" }) },
+    "@/store/app": { useApp }, "@/store/config": { useConfig }, "@/store/profile": { useProfile },
     "@/store/ui": { toast },
     "@/lib/share": { buildShareLink, currentShareReferralCode, copyText, activateChannel, notifyUnavailableShareLink: unavailable },
     "@/composables/use-dialog-a11y": { useDialogA11y: () => {} }, "@/components/glass-segments.vue": segments,
@@ -208,7 +213,7 @@ async function mount(platform: "h5" | "native" = "h5", messages = en) {
   const finish = async (path = "/fixture-poster.png") => { exports.at(-1)!.success({ tempFilePath: path }); await flush(); };
   const selectYield = async () => { tab(en.share.tplYield)!.props.onClick({ currentTarget: {} }); await generate(); await finish(); };
   const hold = (path: string) => { const pending = deferred<HttpResponse>(); held.set(path, [...(held.get(path) ?? []), pending]); return pending; };
-  return { app, cfg, root, native, canvas, exports, copyText, activateChannel, unavailable, transport, session, hold, generate, finish, selectYield, control, tab,
+  return { app, cfg, profile, root, native, canvas, exports, copyText, activateChannel, unavailable, transport, session, hold, generate, finish, selectYield, control, tab,
     open, referral, toast, fetchImage, objectUrl, revokeUrl, download, anchors, unmount,
     image: () => all(root).find(entry => entry.tag === "image")?.props.src,
     selected: () => { const selected = all(root).find(entry => entry.props.role === "tab" && entry.props["aria-selected"]); return selected ? text(selected) : undefined; },
@@ -223,6 +228,30 @@ beforeEach(() => {
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("mounted poster template during real authority refresh", () => {
+  it.each(["h5", "native"] as const)("redraws the %s poster on a projected nickname change only while the username is shown", async platform => {
+    const s = await mount(platform); await s.generate(); await s.finish();
+    const oldCanvas = s.exports.at(-1)!, initialExports = s.exports.length;
+    s.profile.projectServerNickname("Current nickname"); await flush();
+    expect(s.image()).toBeUndefined(); expect(s.control(en.share.saveImage).props["aria-disabled"]).toBe(true);
+    oldCanvas.success({ tempFilePath: "/old-nickname.png" }); await flush();
+    expect(s.image()).toBeUndefined();
+    await s.generate();
+    expect(s.exports).toHaveLength(initialExports + 1);
+    expect(s.canvas.at(-1)!.texts).toContain("Current nickname");
+    expect(s.canvas.at(-1)!.texts).not.toContain("Fixture");
+    await s.finish("/current-nickname.png");
+    const toggle = all(s.root).find(entry => entry.props.role === "switch")!;
+    toggle.props.onClick(); await s.generate(); await s.finish("/hidden-nickname.png");
+    expect(s.canvas.at(-1)!.texts).not.toContain("Current nickname");
+    const hiddenExports = s.exports.length;
+    s.profile.projectServerNickname("Private nickname"); await flush(); await s.generate();
+    expect(s.exports).toHaveLength(hiddenExports); expect(s.image()).toBe("/hidden-nickname.png");
+    expect(s.control(en.share.saveImage).props["aria-disabled"]).toBe(false);
+    toggle.props.onClick(); await s.generate();
+    expect(s.exports).toHaveLength(hiddenExports + 1);
+    expect(s.canvas.at(-1)!.texts).toContain("Private nickname");
+  });
+
   it.each(["h5", "native"] as const)("keeps the ready %s poster while public config polls the same link and closes on confirmed failure", async platform => {
     const s = await mount(platform); await s.generate(); await s.finish();
     const confirmedLink = buildShareLink(), exportsBefore = s.exports.length, imageBefore = s.image();
@@ -440,6 +469,25 @@ describe("mounted native save callbacks use the same operation fence", () => {
 
 
 describe("approved decorative art and real poster QR", () => {
+  for (const platform of ["h5", "native"] as const) {
+    it.each([
+      [zh, "2026/10/22"], [en, "Oct 22, 2026"], [vietnamese, "22 thg 10, 2026"],
+    ] as const)(`formats the actual ${platform} reward effective date by the selected language without native Intl`, async (messages, date) => {
+      vi.spyOn(Date.prototype, "toLocaleDateString").mockReturnValue("Thu Oct 22 2026");
+      const s = await mount(platform, messages);
+      s.cfg.config.rewards.enabled = true; s.cfg.config.rewards.welcomeGift.usdtAmount = 2;
+      s.cfg.config.rewards.effectiveAt = new Date(2026, 9, 22, 12).toISOString();
+      await s.generate(); await s.finish();
+      const reward = all(s.root).find(entry => entry.props.class === "ps-reward")!;
+      expect(text(reward)).toContain(fmt(messages.share.posterRewardEffectiveAt, { date }));
+      expect(text(reward)).not.toContain("Thu Oct 22 2026");
+      for (const invalid of ["not-a-date", ""]) {
+        s.cfg.config.rewards.effectiveAt = invalid; await flush();
+        expect(all(reward).filter(entry => entry.tag === "text")).toHaveLength(1);
+      }
+    });
+  }
+
   it.each([en, zh, vietnamese])("composes one invite tile, fits localized text and decodes the generated QR to the confirmed link", async messages => {
     const s = await mount("h5", messages); await s.generate(); await s.finish();
     const drawing = s.canvas.at(-1)!;

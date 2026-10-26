@@ -101,10 +101,11 @@ import { useLocaleStore } from '@/store/locale';
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { formatAmount } from "@/lib/amount-display";
+import { formatJoinedDate } from "@/lib/profile-date";
 import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from "vue";
 import qrcode from "qrcode-generator";
 import { useT } from "@/i18n/use-t";
-import { dateLocale, fmt } from "@/i18n/format";
+import { fmt } from "@/i18n/format";
 import { displayNickname } from "@/lib/brand-copy";
 import { remoteApiEnabled } from "@/api/runtime";
 import { isActiveSlotDevice } from "@/lib/device-slot-policy";
@@ -148,7 +149,7 @@ const rewardEffectiveAtText = computed(() => {
   if (!welcomeGiftAvailable.value || !cfg.config.rewards.effectiveAt) return "";
   const at = new Date(cfg.config.rewards.effectiveAt);
   if (Number.isNaN(at.getTime())) return "";
-  return fmt(t.value.share.posterRewardEffectiveAt, { date: at.toLocaleDateString(dateLocale()) });
+  return fmt(t.value.share.posterRewardEffectiveAt, { date: formatJoinedDate(at.getTime(), locale.code) });
 });
 
 // 与 Earn 的设备位口径一致；远端设备清单未确认时不展示产出模板。
@@ -417,6 +418,7 @@ function regenerate() {
 watch(
   [
     () => props.open, () => tpl.value, () => showUsername.value, () => buildShareLink(),
+    () => showUsername.value ? profile.displayName : null,
     // Only the yield drawing depends on fleet/earnings authority. Compare source
     // values individually so a poll retaining the same link cannot clear ready art.
     () => tpl.value === "yield" ? runningDevices.value : null,
