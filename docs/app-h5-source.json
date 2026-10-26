@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
+  "sourcePath": "D:\\workspace\\.worktrees\\globe-native-app-20261026",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "3f2c462db5d1f7aa0a168259bdef4aa497f7107c",
-  "sourceRef": "3f2c462db5d1f7aa0a168259bdef4aa497f7107c",
+  "sourceHead": "304e7ebf70c0ffbb36ac2b2eb397eaaf02d7001f",
+  "sourceRef": "304e7ebf70c0ffbb36ac2b2eb397eaaf02d7001f",
   "sourceRefKind": "commit",
-  "sourceTree": "3accf4dccdfd71a99e736b9960b28968c038690d",
+  "sourceTree": "f0f91773a20bd79d03a9e40fc4bcaf2f78713f57",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -125,10 +125,10 @@
       "mode": "100644"
     },
     "PRD/UVEL_设计审查功能同步_20261026.md": {
-      "sourceBlob": "08811d764a512367d51a4863409c84462b365b7e",
-      "sourceSha256": "7b835ab42ff67c056017d9b7723e5e771b80487b6095fb774e5cbd21023ee602",
-      "targetBlob": "08811d764a512367d51a4863409c84462b365b7e",
-      "targetSha256": "7b835ab42ff67c056017d9b7723e5e771b80487b6095fb774e5cbd21023ee602",
+      "sourceBlob": "62c019d34d65a8eff570b6a5d1f9f31311793b9f",
+      "sourceSha256": "23e307541ea19bf0ba3fbbaf7379aeafc630359eb155acf46b044e11a0f0411e",
+      "targetBlob": "62c019d34d65a8eff570b6a5d1f9f31311793b9f",
+      "targetSha256": "23e307541ea19bf0ba3fbbaf7379aeafc630359eb155acf46b044e11a0f0411e",
       "mode": "100644"
     },
     "PRD/UVEL_首页信任与活动规则_20261025.md": {
@@ -349,17 +349,24 @@
       "mode": "100644"
     },
     "docs/audit/2026-10-26-fidelity-recheck.md": {
-      "sourceBlob": "c8a8ab47c6dd2d9f92f415a8afac743c75120607",
-      "sourceSha256": "88a48077223af9ee1c61df893d812ee9c9259fc69d945b96f9fa67b8aa287013",
-      "targetBlob": "c8a8ab47c6dd2d9f92f415a8afac743c75120607",
-      "targetSha256": "88a48077223af9ee1c61df893d812ee9c9259fc69d945b96f9fa67b8aa287013",
+      "sourceBlob": "259800332bda27a0404c7fcc43e8fabfa6fdb606",
+      "sourceSha256": "24242e6682af24ddefc830cbd6e1152914ef77ee3fb2aadee7f3c73e1b3a0913",
+      "targetBlob": "259800332bda27a0404c7fcc43e8fabfa6fdb606",
+      "targetSha256": "24242e6682af24ddefc830cbd6e1152914ef77ee3fb2aadee7f3c73e1b3a0913",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-globe-native-acceptance.md": {
+      "sourceBlob": "8fbe5fd3f825f346c36a493b18c04993a2955c0e",
+      "sourceSha256": "fcabcfc2e130946a4eb35e8451a24f7b21773531e30eb2f1e50052102acc793c",
+      "targetBlob": "8fbe5fd3f825f346c36a493b18c04993a2955c0e",
+      "targetSha256": "fcabcfc2e130946a4eb35e8451a24f7b21773531e30eb2f1e50052102acc793c",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-globe-simulation.md": {
-      "sourceBlob": "179ae705385f9485f711a80ba9ce20a80dae8bcd",
-      "sourceSha256": "4b2d47afeeb06e6e3b15eb8875fdaa59b7561c7fdd788ff7b3384aa6ddbae33a",
-      "targetBlob": "179ae705385f9485f711a80ba9ce20a80dae8bcd",
-      "targetSha256": "4b2d47afeeb06e6e3b15eb8875fdaa59b7561c7fdd788ff7b3384aa6ddbae33a",
+      "sourceBlob": "2ca6928b0caeb007e513cd2d233473f2da72e8f6",
+      "sourceSha256": "ac3abaf7eacebe629cfc7a2350927138dfb79212301bada4e6ea8780de11cdcf",
+      "targetBlob": "2ca6928b0caeb007e513cd2d233473f2da72e8f6",
+      "targetSha256": "ac3abaf7eacebe629cfc7a2350927138dfb79212301bada4e6ea8780de11cdcf",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-imagegen-prompts.md": {
@@ -542,6 +549,139 @@
       "sourceSha256": "d6422528ef89736171629f7bd8c2b5b25a8581e39d3e6b911c63a8352bb8bf17",
       "targetBlob": "01742ce30aaeeb9186ffd38b4d38c849b5404745",
       "targetSha256": "d6422528ef89736171629f7bd8c2b5b25a8581e39d3e6b911c63a8352bb8bf17",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/back-first-fixed.png": {
+      "sourceBlob": "f3068b84fd64e5bcef4956b40d06b2c6ae9508de",
+      "sourceSha256": "6dad6a999990cec3d3477c6509e681cdb6a30e43858c38f7b0b18ff32bf3beef",
+      "targetBlob": "f3068b84fd64e5bcef4956b40d06b2c6ae9508de",
+      "targetSha256": "6dad6a999990cec3d3477c6509e681cdb6a30e43858c38f7b0b18ff32bf3beef",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/back-second-fixed.png": {
+      "sourceBlob": "f8182e778990ba5b0d90be9d8d1f7ac41e813a82",
+      "sourceSha256": "b2c56d3fb204ade5a629e25d3533a42460114155a0c03d4b970505d171dcbe88",
+      "targetBlob": "f8182e778990ba5b0d90be9d8d1f7ac41e813a82",
+      "targetSha256": "b2c56d3fb204ade5a629e25d3533a42460114155a0c03d4b970505d171dcbe88",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/close-edge-fixed.png": {
+      "sourceBlob": "acf19e3ea36980952299ccf861990d6201f1ece7",
+      "sourceSha256": "d1db479f3d44b00bde38e5cd92b50adbe6d8b472641163ac25af59e2fe460239",
+      "targetBlob": "acf19e3ea36980952299ccf861990d6201f1ece7",
+      "targetSha256": "d1db479f3d44b00bde38e5cd92b50adbe6d8b472641163ac25af59e2fe460239",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/h5-en-320.jpg": {
+      "sourceBlob": "c5e8aa77640a5c67804bc36cea1c32ce9aaf0d9e",
+      "sourceSha256": "79ecfb79238942b89da2ea7034c6db0c627e76721f432fc2ef99fdd3a8e77ed8",
+      "targetBlob": "c5e8aa77640a5c67804bc36cea1c32ce9aaf0d9e",
+      "targetSha256": "79ecfb79238942b89da2ea7034c6db0c627e76721f432fc2ef99fdd3a8e77ed8",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/h5-light-320.jpg": {
+      "sourceBlob": "a43dd668e3add3063d4c32803d33032d3403db58",
+      "sourceSha256": "4d7d6a128046cddd70f720f42d956fd38f44874182c3f588b7569f74ead79bfe",
+      "targetBlob": "a43dd668e3add3063d4c32803d33032d3403db58",
+      "targetSha256": "4d7d6a128046cddd70f720f42d956fd38f44874182c3f588b7569f74ead79bfe",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/h5-runtime.json": {
+      "sourceBlob": "c8811c88b865355daa146ca588e4fe2e7cb2a73f",
+      "sourceSha256": "d8b77721dc72f83a849bff71c04b01d57b1b2c2708cf1d023c6974bf292d4a96",
+      "targetBlob": "c8811c88b865355daa146ca588e4fe2e7cb2a73f",
+      "targetSha256": "d8b77721dc72f83a849bff71c04b01d57b1b2c2708cf1d023c6974bf292d4a96",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/h5-vi-320.jpg": {
+      "sourceBlob": "93a44e525ba244fa5a955f70cf9cdcf7fe8daab5",
+      "sourceSha256": "162f4edaa26bb1eead1d863939e90062b7284bc25765ac0d892ed554dcf94bdc",
+      "targetBlob": "93a44e525ba244fa5a955f70cf9cdcf7fe8daab5",
+      "targetSha256": "162f4edaa26bb1eead1d863939e90062b7284bc25765ac0d892ed554dcf94bdc",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/list-frankfurt-latest.png": {
+      "sourceBlob": "5fd32625f0c094d49cd315cc2b137cbd86407872",
+      "sourceSha256": "d872a61ad2a9eb47c2fb31cbe916aee3017190874ae6a58bcbfd8488795ccb13",
+      "targetBlob": "5fd32625f0c094d49cd315cc2b137cbd86407872",
+      "targetSha256": "d872a61ad2a9eb47c2fb31cbe916aee3017190874ae6a58bcbfd8488795ccb13",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/list-london-latest.png": {
+      "sourceBlob": "33a99b0f3c734748e76426ef53c39425c20846a0",
+      "sourceSha256": "6cd445d1ce28cdade3b42be171386258cbd12e0258205d6abfe2c68a658f3a2f",
+      "targetBlob": "33a99b0f3c734748e76426ef53c39425c20846a0",
+      "targetSha256": "6cd445d1ce28cdade3b42be171386258cbd12e0258205d6abfe2c68a658f3a2f",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/list-new-york-latest.png": {
+      "sourceBlob": "c57beaddf8284452ab71618e04197396b16e7623",
+      "sourceSha256": "768b633fa9386eabc88a02e5b4e7fd3ef84e4aed2a2d74f94414e41cf3b4006d",
+      "targetBlob": "c57beaddf8284452ab71618e04197396b16e7623",
+      "targetSha256": "768b633fa9386eabc88a02e5b4e7fd3ef84e4aed2a2d74f94414e41cf3b4006d",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/list-paris-latest.png": {
+      "sourceBlob": "52389f7aad324982448454204ff2102334bb6903",
+      "sourceSha256": "df7f0b081dddaacf60e232464c826babf8b5c639b7e5c44c170c51b6e081267a",
+      "targetBlob": "52389f7aad324982448454204ff2102334bb6903",
+      "targetSha256": "df7f0b081dddaacf60e232464c826babf8b5c639b7e5c44c170c51b6e081267a",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/list-san-jose-latest.png": {
+      "sourceBlob": "6129afa06a49db696e9d178fd92e33cf07540a0d",
+      "sourceSha256": "9e93a3ee53c25102117ec28c7926452157867952236ff849f0ee8cae79b3d111",
+      "targetBlob": "6129afa06a49db696e9d178fd92e33cf07540a0d",
+      "targetSha256": "9e93a3ee53c25102117ec28c7926452157867952236ff849f0ee8cae79b3d111",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/list-singapore-latest.png": {
+      "sourceBlob": "e235079c953b0de055ec1566792decace1440d41",
+      "sourceSha256": "62500dfb94cfec093139438e04563c01f926b7dd16bc11cdd1ec0ff0892b4872",
+      "targetBlob": "e235079c953b0de055ec1566792decace1440d41",
+      "targetSha256": "62500dfb94cfec093139438e04563c01f926b7dd16bc11cdd1ec0ff0892b4872",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/list-tokyo-latest.png": {
+      "sourceBlob": "ad782c2932f8ec63c67241dfc618f88a2488e7d9",
+      "sourceSha256": "c67a31edf74ebb6c39f0c28cde837a96ca5215c5d73f828613294a8421215612",
+      "targetBlob": "ad782c2932f8ec63c67241dfc618f88a2488e7d9",
+      "targetSha256": "c67a31edf74ebb6c39f0c28cde837a96ca5215c5d73f828613294a8421215612",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/list-vietnam-latest.png": {
+      "sourceBlob": "3aa291e570bfd3c3bb6aaa1ca19a00faf8c96a59",
+      "sourceSha256": "759cd186eef7f239960403ec1778d877d0cbf1707b6e4b23d7590342e5ddebf0",
+      "targetBlob": "3aa291e570bfd3c3bb6aaa1ca19a00faf8c96a59",
+      "targetSha256": "759cd186eef7f239960403ec1778d877d0cbf1707b6e4b23d7590342e5ddebf0",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/scrim-down-fixed.png": {
+      "sourceBlob": "b4c3302791c2b91b5b29fa3250190e15b9a757a7",
+      "sourceSha256": "65abb1db5210eb3b41de900cb107f61fe2dceb78861b04366626d7116c9ed33a",
+      "targetBlob": "b4c3302791c2b91b5b29fa3250190e15b9a757a7",
+      "targetSha256": "65abb1db5210eb3b41de900cb107f61fe2dceb78861b04366626d7116c9ed33a",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/scrim-drag-beforefix.png": {
+      "sourceBlob": "d0418c28c26d7a78202d5d03d521da4c4588ca67",
+      "sourceSha256": "6935b0fda82223c9734ea359276fd70a743d1be55a322beb0b5869f222af1414",
+      "targetBlob": "d0418c28c26d7a78202d5d03d521da4c4588ca67",
+      "targetSha256": "6935b0fda82223c9734ea359276fd70a743d1be55a322beb0b5869f222af1414",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/scrim-up-fixed.png": {
+      "sourceBlob": "b97c1170e50ba2194ab302303e80c9903f85248a",
+      "sourceSha256": "36f1253a8ed031e884209f4c7854d9a3c2f8637d0cae3c9b9780ae717a14bb3c",
+      "targetBlob": "b97c1170e50ba2194ab302303e80c9903f85248a",
+      "targetSha256": "36f1253a8ed031e884209f4c7854d9a3c2f8637d0cae3c9b9780ae717a14bb3c",
+      "mode": "100644"
+    },
+    "docs/audit/globe-native-20261026/zentao-closure-receipt.json": {
+      "sourceBlob": "64b428f90dc29875cbe5a2063d4aa13c270cf9ae",
+      "sourceSha256": "b5e15723a624a647a185f1d3761cc81473f3058c7014e0d4c409f572466277e0",
+      "targetBlob": "64b428f90dc29875cbe5a2063d4aa13c270cf9ae",
+      "targetSha256": "b5e15723a624a647a185f1d3761cc81473f3058c7014e0d4c409f572466277e0",
       "mode": "100644"
     },
     "docs/audit/spec4-security-runtime.png": {

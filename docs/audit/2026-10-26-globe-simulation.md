@@ -28,3 +28,5 @@
 截图及日志保存在本机 `D:/WORKS/PLAN/.wt/uvel-design-preview/`：`globe-simulation-vi-320.png`、`globe-simulation-zh-detail.png`、`globe-simulation-en-320.png`、`globe-center-tests.log`、`globe-center-types.log`、`globe-center-build.log`；这些路径仅是本地证据，不冒称远端附件。
 
 未覆盖：原生APK/IPA真机安装与触控、完整verify套件、真实生产发布；地图小圆点不等同44px触控按钮，保留大尺寸城市列表作为等价入口。旧报告中真实区域接口的验收不再作为本页模拟展示依据，原后端接口未修改。
+
+2026-10-26接续：Android标准基座地图触控、详情安全区及TEST网页运行已补验，并修复系统返回、触摸冒泡及减少动态SMIL。具体版本、关键原始证据和仍未覆盖边界见[真机接续记录](2026-10-26-globe-native-acceptance.md)，不将本报告旧截图代替新一轮真机结果。
