@@ -1,0 +1,49 @@
+{
+  "cursor": 16986,
+  "hasMore": false,
+  "truncated": true,
+  "events": [
+    {
+      "event": "HTTP",
+      "path": "/api/app/support/conversation-categories",
+      "status": 200
+    },
+    {
+      "event": "HTTP",
+      "path": "/api/app/support/conversations/cursor",
+      "status": 200
+    },
+    {
+      "event": "HTTP",
+      "path": "/api/app/support/conversation-dismissals",
+      "status": 200
+    },
+    {
+      "event": "HTTP",
+      "path": "/api/app/support/realtime-ticket",
+      "status": 200
+    },
+    {
+      "event": "WS_HANDSHAKE",
+      "status": 101
+    },
+    {
+      "event": "WS_FRAME",
+      "type": "ready"
+    },
+    {
+      "event": "HTTP",
+      "path": "/api/app/support/conversations/cursor",
+      "status": 200
+    },
+    {
+      "event": "HTTP",
+      "path": "/api/app/support/conversation-dismissals",
+      "status": 200
+    },
+    {
+      "event": "WS_FRAME",
+      "type": "pong"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "baselineHead": "9c1706cdc3af54e487205c14402dc9e694704e52",
+  "outcome": "PASS",
+  "red": {
+    "tests": 32,
+    "failures": 9,
+    "log": "backend-onboarding-red.log",
+    "errors": 0,
+    "reason": "USER_ONBOARDING_REQUIRED on support communication"
+  },
+  "green": {
+    "log": "backend-onboarding-green.log",
+    "tests": 86.0,
+    "suites": [
+      {
+        "name": "ffdd.opsconsole.content.realtime.ConversationSocketAccessTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "ffdd.opsconsole.content.realtime.ConversationSocketCommandsTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "ffdd.opsconsole.content.realtime.ConversationSocketHandlerTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "ffdd.opsconsole.content.realtime.ConversationSocketSecurityIntegrationTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "ffdd.opsconsole.content.realtime.ConversationSocketTicketsTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "ffdd.opsconsole.content.realtime.ConversationSocketWireTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "ffdd.opsconsole.content.web.RetiredSupportTicketsTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "ffdd.opsconsole.shared.security.JwtAuthenticationFilterTest",
+        "tests": 38,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "ffdd.opsconsole.shared.security.UserBusinessWriteGateFilterTest",
+        "tests": 26,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "errors": 0.0,
+    "skipped": 0.0,
+    "failures": 0.0
+  },
+  "scope": [
+    "src/main/java/ffdd/opsconsole/content/realtime/ConversationSocketAccess.java",
+    "src/main/java/ffdd/opsconsole/shared/security/UserBusinessWriteGateFilter.java",
+    "src/test/java/ffdd/opsconsole/content/realtime/ConversationSocketAccessTest.java",
+    "src/test/java/ffdd/opsconsole/content/realtime/ConversationSocketPersistenceMySqlIntegrationTest.java",
+    "src/test/java/ffdd/opsconsole/content/realtime/ConversationSocketSecurityIntegrationTest.java",
+    "src/test/java/ffdd/opsconsole/shared/security/UserBusinessWriteGateFilterTest.java"
+  ],
+  "nativeTemporaryDiagnostics": "Saved to temporary-realtime-diagnostic.patch and removed from App source",
+  "runtimeAcceptance": "Parent thread owns TEST release and current-device acceptance"
+}

@@ -1,0 +1,47 @@
+{
+  "native": {
+    "appServiceSha256": "E750698F8B415CEFA40FC52FB58846FFF0EF6894B3D0A0D248CB1B5366BB08B7",
+    "chatInputPage": true,
+    "account": "Existing new TEST account, onboarding left incomplete",
+    "serviceUnavailableBanner": false,
+    "noticeExpanded": true,
+    "temporaryRealtimeDiagnosticInFinal": false,
+    "platform": "Samsung Android standard playground",
+    "conversationEmptyState": true,
+    "readStatePersisted": true
+  },
+  "outcome": "PASS - notification rendering and customer-support connection recovery only",
+  "date": "2026-10-26",
+  "boundaries": [
+    "No new human message delivery or attachment E2E claimed",
+    "Fixture write/security checks are not real TEST persistence proof",
+    "Current native Chinese dark theme and web Vietnamese only",
+    "No production release or main merge"
+  ],
+  "web": {
+    "origin": "https://18.142.169.24/app/",
+    "account": "Existing older TEST account",
+    "attachmentSent": false,
+    "frames": [
+      "ready",
+      "pong"
+    ],
+    "existingHistoryRead": true,
+    "networkCaptureTruncated": true,
+    "ticketStatus": 200,
+    "newReplySent": false,
+    "handshakeStatus": 101
+  },
+  "bugs": [
+    {
+      "resolution": "fixed",
+      "id": 658,
+      "status": "closed"
+    },
+    {
+      "resolution": "fixed",
+      "id": 659,
+      "status": "closed"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "id": 658,
+    "before": "resolved",
+    "status": "closed",
+    "resolution": "fixed",
+    "marker": "TEST-MSG-20261026-658"
+  },
+  {
+    "id": 659,
+    "before": "resolved",
+    "status": "closed",
+    "resolution": "fixed",
+    "marker": "TEST-MSG-20261026-659"
+  }
+]

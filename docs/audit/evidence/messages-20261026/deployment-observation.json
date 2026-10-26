@@ -1,0 +1,16 @@
+{
+  "app": {
+    "sha": "4ff18cf7e70cf91076fd6cc563f4ed9bf91106bc",
+    "component": "uniapp",
+    "build": 296,
+    "event": "DEPLOYED"
+  },
+  "backend": {
+    "sha": "93db54cca5acf9e18408cc497f3165b249c07008",
+    "component": "backend",
+    "build": 361,
+    "event": "DEPLOYED"
+  },
+  "source": "Observed AWS EC2 terminal release-broker stdout",
+  "environment": "TEST"
+}
