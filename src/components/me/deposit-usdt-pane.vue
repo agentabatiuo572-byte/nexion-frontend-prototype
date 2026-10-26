@@ -17,6 +17,11 @@
       <view class="nx-dep-sk" style="height: 96px; margin-top: 16px" />
     </view>
 
+    <view v-else-if="phase === 'preparing'" class="flex flex-col items-center" style="padding: 40px 0 32px" role="status">
+      <view class="nx-dep-sk" style="width: 56px; height: 56px; border-radius: 50%" />
+      <text style="margin-top: 16px; color: var(--v5-ink-2)">{{ t.topupChrome.addrPreparing }}</text>
+    </view>
+
     <!-- ── 地址拉取失败(断网)→ inline 重试 ── -->
     <view v-else-if="phase === 'error'" class="flex flex-col items-center" style="padding: 40px 0 32px">
       <view class="grid place-items-center" :style="stateIconBoxStyle">
@@ -155,6 +160,7 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import qrcode from "qrcode-generator";
 import { cregisDepositApi, fundsServerEnabled, sessionVault } from "@/api/runtime";
 import { binarySessionReady } from "@/lib/binary-session-ready";
@@ -208,10 +214,13 @@ const CHANNEL_SHORT: Record<DepositChannel, string> = {
 const CONFIRM_DELAY_NOTE_MS = 30 * 60 * 1000;
 
 // ── 正式模式从服务端获取地址与记录；失败时只显示重试，不回退到模拟地址。──
-const phase = ref<"loading" | "error" | "ready">("loading");
+const phase = ref<"loading" | "preparing" | "error" | "ready">("loading");
 let loadTimer: ReturnType<typeof setTimeout> | undefined;
 let pollTimer: ReturnType<typeof setInterval> | undefined;
 let loadGeneration = 0;
+let pageVisible = true;
+let requestRunning = false;
+let lastRefresh = 0;
 const serverAddress = ref("");
 const serverEnabled = ref(false);
 const serverCreditEnabled = ref(false);
@@ -229,12 +238,15 @@ function refreshBankHistory(): void {
       && dep.remoteReceiptInitialStatus !== "loading") void dep.refreshRemoteVietQrDeposits();
 }
 function load(background = false) {
-  if (fundsServerEnabled && !remoteSessionReady.value) return;
+  if (fundsServerEnabled && (!remoteSessionReady.value || !pageVisible)) return;
+  if (background && requestRunning) return;
   if (!background) phase.value = "loading";
   if (loadTimer) clearTimeout(loadTimer);
   if (fundsServerEnabled) {
     if (!background) refreshBankHistory();
     const generation = ++loadGeneration;
+    requestRunning = true;
+    lastRefresh = Date.now();
     const account = app.accountKey;
     const bindingEpoch = app.accountBindingEpoch;
     void (async () => {
@@ -264,7 +276,7 @@ function load(background = false) {
             : row.status === "CONFIRMING" ? "confirming" : "dust_hold",
           createdAt: row.createdAt, creditedAt: row.creditedAt ?? undefined,
         }));
-        phase.value = "ready";
+        phase.value = !snapshot.enabled && snapshot.reason === "CREGIS_ADDRESS_PREPARING" ? "preparing" : "ready";
       } catch {
         if (generation === loadGeneration && account === app.accountKey
             && bindingEpoch === app.accountBindingEpoch && remoteSessionReady.value) {
@@ -273,6 +285,8 @@ function load(background = false) {
           serverCreditEnabled.value = false;
           phase.value = "error";
         }
+      } finally {
+        if (generation === loadGeneration) requestRunning = false;
       }
     })();
     return;
@@ -296,10 +310,14 @@ watch([remoteSessionReady, () => app.accountKey, () => app.accountBindingEpoch],
 onMounted(() => {
   if (!fundsServerEnabled) load();
   if (fundsServerEnabled) pollTimer = setInterval(() => {
-    if (phase.value === "ready") load(true);
-  }, 30_000);
+    if (!pageVisible || (typeof document !== "undefined" && document.hidden)) return;
+    if (phase.value === "preparing" || (phase.value === "ready" && Date.now() - lastRefresh >= 30_000)) load(true);
+  }, 5_000);
 });
+onShow(() => { pageVisible = true; if (fundsServerEnabled) load(true); });
+onHide(() => { pageVisible = false; loadGeneration++; requestRunning = false; });
 onUnmounted(() => {
+  pageVisible = false;
   loadGeneration++;
   if (loadTimer) clearTimeout(loadTimer);
   if (pollTimer) clearInterval(pollTimer);

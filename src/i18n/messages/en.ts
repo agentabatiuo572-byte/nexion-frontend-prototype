@@ -6603,6 +6603,7 @@ openSeaErrorPool: {
     addrCopied: "Address copied",
     topupNotCreditedYet: "Confirming your deposit — funds aren't lost. Refresh shortly.",
     depositOpFailedNote: "Deposit information is temporarily unavailable. Refresh or contact support.",
+    addrPreparing: "Preparing your deposit address. It will appear automatically.",
     addrLoadFailed: "Couldn't load your deposit address",
     cardFeeLabel: "Card fee {rate}",
     cardLimitHint: "Per-transaction limit {min} – {max}",

@@ -93,7 +93,9 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
   const sessionUserId = Vue.ref<number | null>(options.cold ? null : 7);
   const dep: BankHistoryStore = options.dep ?? Vue.reactive({ records: [], remoteReceiptInitialStatus: "ready",
     currentAccountKey: () => app.accountKey, refreshRemoteVietQrDeposits: vi.fn(async () => {}) });
+  const lifecycle = { show: () => {}, hide: () => {} };
   const modules: Record<string, unknown> = {
+    "@dcloudio/uni-app": { onShow: (fn: () => void) => { lifecycle.show = fn; }, onHide: (fn: () => void) => { lifecycle.hide = fn; } },
     "@/lib/amount-display": { formatAmount },
     vue: Vue, "qrcode-generator": { default: qrcode },
     "@/api/runtime": { fundsServerEnabled: true, cregisDepositApi: api,
@@ -117,7 +119,7 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
   cleanups.push(() => mounted.unmount());
   await new Promise<void>(resolve => setTimeout(resolve, 0));
   await Vue.nextTick();
-  return { root, navTo, info, request, state, app, auth, sessionUserId, dep, text: () => textOf(root) };
+  return { root, navTo, info, request, state, app, auth, sessionUserId, dep, lifecycle, text: () => textOf(root) };
 }
 
 test.each([zh, en, vietnamese])("paused channel and disabled button use the same message without account allowlisting", async messages => {
@@ -253,7 +255,7 @@ test("a kept-alive 30-second chain poll preserves appended bank receipts and the
   bankRuntime.paymentApi.listVietQrReceipts.mockResolvedValue({ items: [first], nextOffset: 50 });
   let tick!: () => void;
   vi.stubGlobal("setInterval", (callback: () => void, delay: number) => {
-    expect(delay).toBe(30_000); tick = callback; return 1;
+    expect(delay).toBe(5_000); tick = callback; return 1;
   });
   vi.stubGlobal("clearInterval", vi.fn());
   const h = await pane(address, [], zh, { dep });
@@ -266,7 +268,9 @@ test("a kept-alive 30-second chain poll preserves appended bank receipts and the
   const intentReads = bankRuntime.paymentApi.listVietQrIntents.mock.calls.length;
   const receiptReads = bankRuntime.paymentApi.listVietQrReceipts.mock.calls.length;
   h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address") ? address : [rows[1]]);
+  const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 30_001);
   tick();
+  clock.mockRestore();
   await vi.waitFor(() => expect(controls(h.root, "nx-dep-record-row")).toHaveLength(3));
   expect({ receipts: dep.remoteReceipts, nextOffset: dep.remoteReceiptNextOffset }).toEqual({ receipts: [first, second], nextOffset: 100 });
   expect(bankRuntime.paymentApi.listVietQrIntents).toHaveBeenCalledTimes(intentReads);
@@ -482,4 +486,21 @@ test.each(["a", "b"])("the rendered QR bitmap decodes to the server address %s w
     reader.decode(bitmap.bitmap);
   });
   expect(decoded).toBe(serverAddress);
+});
+
+
+test.each([zh,en,vietnamese])("empty pool prepares automatically without an error or copyable address", async messages => {
+  const h=await pane({ enabled:false, network:"BEP20", reason:"CREGIS_ADDRESS_PREPARING" }, [], messages);
+  expect(h.text()).toContain(messages.topupChrome.addrPreparing);
+  expect(h.text()).not.toContain(messages.topupChrome.addrLoadFailed);
+  expect(h.text()).not.toContain(messages.topupChrome.allNetworksPaused);
+  expect(nodesOf(h.root).filter(n=>n.props["aria-label"]===messages.topupChrome.copyAddress)).toHaveLength(0);
+  h.request.mockImplementation(async ({path})=>path.startsWith("/api/deposits/address")?address:[]);
+  h.lifecycle.hide();
+  (h.state.load as (background:boolean)=>void)(true);
+  expect(h.request.mock.calls.filter(([r])=>r.path.startsWith("/api/deposits/address"))).toHaveLength(1);
+  h.lifecycle.show();
+  await new Promise(resolve=>setTimeout(resolve,0));await Vue.nextTick();
+  expect(h.text()).not.toContain(messages.topupChrome.addrPreparing);
+  expect((h.state.serverAddress as Vue.Ref<string>).value).toBe(address.address);
 });

@@ -6491,6 +6491,7 @@ openSeaErrorPool: {
     addrCopied: "Đã sao chép địa chỉ",
     topupNotCreditedYet: "Đang xác nhận khoản nạp — tiền không bị mất. Làm mới lại sau nhé.",
     depositOpFailedNote: "Thông tin nạp tiền tạm thời chưa khả dụng. Vui lòng làm mới hoặc liên hệ hỗ trợ.",
+    addrPreparing: "Đang chuẩn bị địa chỉ nạp. Địa chỉ sẽ tự động hiển thị khi sẵn sàng.",
     addrLoadFailed: "Không tải được địa chỉ nạp",
     cardFeeLabel: "Phí thẻ {rate}",
     cardLimitHint: "Hạn mức mỗi giao dịch {min} – {max}",
