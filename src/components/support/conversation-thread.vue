@@ -757,7 +757,11 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .nx-conv-queue-actions { flex-wrap: wrap; }
 .nx-conv-attachment-actions { gap: 8px; margin-top: 8px; }
 .nx-conv-image-caption { overflow-wrap: anywhere; }
-@media (prefers-reduced-motion: reduce) { .nx-conv-send .nx-conv-send-face { transition: none; animation: none; transform: none; } .nx-conv-typing-dots view { animation: none; opacity: .65; } }
+@media (prefers-reduced-motion: reduce) {
+  .nx-conv-send .nx-conv-send-face,
+  .nx-conv-send[aria-disabled="false"]:active .nx-conv-send-face { transition: none; animation: none; transform: none; }
+  .nx-conv-typing-dots view { animation: none; opacity: .65; }
+}
 </style>
 
 <style src="@/styles/message-family.css"></style>

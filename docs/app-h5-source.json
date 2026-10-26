@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "5e7c3525cc4f5e62412de626def94bd59c5b3196",
-  "sourceRef": "5e7c3525cc4f5e62412de626def94bd59c5b3196",
+  "sourceHead": "d65ee0b64a30739e44644e613511563239c2218c",
+  "sourceRef": "d65ee0b64a30739e44644e613511563239c2218c",
   "sourceRefKind": "commit",
-  "sourceTree": "f17a71344942eeff607c08a1f15eaeb345ffba62",
+  "sourceTree": "b8b089cb28daa12e7ca1bc579e89bd6a7627936f",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -10667,10 +10667,10 @@
       "mode": "100644"
     },
     "src/components/support/conversation-thread.vue": {
-      "sourceBlob": "8b63f91605efa939cf825ec015257e5455277f22",
-      "sourceSha256": "1d9304afb45d1752a2fcf97bbb0eb249aad85efc912d1e17347388f6d65edfa8",
-      "targetBlob": "8b63f91605efa939cf825ec015257e5455277f22",
-      "targetSha256": "1d9304afb45d1752a2fcf97bbb0eb249aad85efc912d1e17347388f6d65edfa8",
+      "sourceBlob": "3dfaf404610e72d5d41eee83ee0f78f6da28a619",
+      "sourceSha256": "460c86c7f720b130f5d7db31368065c29dbc33557054037a38c045c3953f886a",
+      "targetBlob": "3dfaf404610e72d5d41eee83ee0f78f6da28a619",
+      "targetSha256": "460c86c7f720b130f5d7db31368065c29dbc33557054037a38c045c3953f886a",
       "mode": "100644"
     },
     "src/components/support/conversation-time.test.ts": {
