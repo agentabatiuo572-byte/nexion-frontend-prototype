@@ -2996,3 +2996,15 @@ AUDIO的9.2是本审对已有闭环证据作出的独立判断，不从Averroes�
 **本次layout行为维持9.1/10，限定通过；该完整backflow的尾部定位P2现已闭环。** 依据为既有实际Uni函数最小回归加本次修后同序列实景，未用reload替代重入。3j失败／trace与8.6历史不变，其它已签项保持；仅签本地APP桌面原型范围，不外推真实手机、软键盘或真实服务。无新矩阵、测试、浏览器、构建或生产修改，仅追加此补记。
 
 证据SHA-256：runtime `ea2456cb3a4e9874f75410a8726d769bb70931188441721c0ed43830331740f6`；截图 `cdacecde61bca5ee032d24815f91e81044a7bb816dabfd9f7ef16964aa58dd03`。
+
+### 566facc5合入origin/test后的限定语义复核
+
+按父线程提供的566facc5普通merge origin/test（7c86e97c）背景，只读核对当前合并产物，**未发现新增阻塞或明确语义冲突**。`conversation-realtime.ts`第三个unavailable参数与store的`state(ready,_terminal,unavailable)`对应；正常续凭证保留已有故障至catch-up成功。连接级401/403终态停止重连／轮询，仍把在途命令作为UNKNOWN释放，不把连接终态误判为某条消息明确失败。已发WebSocket命令失败不自动再发HTTP，避免双投递。
+
+本地12秒ACK＋3秒原key读回、读回403／null仍保留原不确定结果、精确echo确认、pending持久化、scope隔离及singleflight加入者onKey均保留。原create恢复仍校验原scope/key后重放，不因入口关闭另造key。这里的连接终态与明确业务ACK拒绝保持分开。
+
+`invite-detail-sheet.vue`两处独立改动均在：规则区contactSupport按钮先关闭弹层再进入`/pages/me/support`，以及读取失败重试的text／medium按钮和纵向居中容器；原loading门与refresh处理保留。已签thread SHA-256仍为`4c339e53ce0999d74e98575bd5ea63a07c94093a7f1b0da352d4cdc301458b2c`，不重开layout与旧矩阵。
+
+读取指纹：realtime `e9d833d0cd85902586ce3fcc3ad9a54d6d4d4e40fb308fe606beb214d18951d0`；store `b65b5422f0b41f0cfe55e04f820e1bcbd148cbf190218a4cc8bfc379450ac6a9`；invite sheet `7f7c07d977acab9616194e5bd74a3b9a6a3c7a2627073731bbac384328ea4540`。另只读核对app-conversation-realtime、delivery-policy、错误分类及相关既有测试源码，未执行测试。
+
+父线程补充通报合并后5文件114项、type-check、browser build、APP compile通过，5237新K60P-cxP读回33条／draft0／presence online／尾距7.888；本审将其作为父线程验证记录，不冒称独立重跑或浏览器操作。本轮仅追加此短节，无生产、测试、构建、浏览器、Git或H5操作；既有签项及外部边界保持，审查结束。

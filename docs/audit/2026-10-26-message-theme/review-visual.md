@@ -1,8 +1,8 @@
 # 消息与主题专项独立视觉审查 B
 
-日期：2026-10-26起；最新增量复审2026-10-27。**最新增量见文末“PR5b0C9J清稿重入tail局部复评”：浅320越文清稿后两次重入结果9.2，受理；旧scroll0回归在该路径闭环。** 历史入口／日期叠字9.2、counter叠字9.1继承3jJgdd29五帧及读回范围。C2xTeVme取色与受控图片尺寸补证、暗色composer材质9.2、浅色9.1、小屏输入布局9.2、多行末尾9.2、5237原会话操作后结果9.2、透明偏好9.2均保持各自历史证据范围，不求平均，不冒称全部基于最新包或全部状态通过。真机／真实服务另列。旧失败与历史分保留，本审不操作浏览器或同步H5。
+日期：2026-10-26起；最新增量复审2026-10-27。**最新增量见文末“BSDHHyfm H5交付代表帧局部复评”：三张H5代表帧及交付读回9.1，限定受理，无新明确视觉P2。** APP浅320清稿重入tail9.2、历史入口／日期叠字9.2、counter叠字9.1及sampled等原签均保持各自版本、证据和范围；不求平均，不冒称全部基于最新包或全部状态通过。真机／真实服务另列。旧失败与历史分保留，本审不操作浏览器或执行同步。
 
-TIME-01旧实现基线为 APP `e2cad48f7c7314eca032724ddd6e6aa10bd8fcd0`；TIME-01、ATTACH-01与管理页补修曾按R5产物及实景复评，R7另补fresh时钟及发送场景，R8单独关闭SEND-01 reduced按住态问题。下文保留待证与勘误历史；当前要求以最新用户指令、本页总表及末尾R17／R18范围为准，旧版本通过不外推为新要求已通过。用户已明确先完成APP、暂停H5同步；H5 `cd94809` 初步产物不作发布或本轮验收完成的依据。
+TIME-01旧实现基线为 APP `e2cad48f7c7314eca032724ddd6e6aa10bd8fcd0`；TIME-01、ATTACH-01与管理页补修曾按R5产物及实景复评，R7另补fresh时钟及发送场景，R8单独关闭SEND-01 reduced按住态问题。下文保留待证与勘误历史；当前要求以最新用户指令、本页总表及末尾R17／R18范围为准，旧版本通过不外推为新要求已通过。此前用户要求先完成APP、暂停H5同步；最新通知为APP队列gate完成后已同步H5，本轮只复核BSDHHyfm代表证据，旧H5 `cd94809` 初步产物仍不作交付完成依据。
 
 **当前：c01及24／28用户图仍是旧方案的真实失败，sampled材质原签不重开。历史入口／日期叠字及counter覆盖历史消息两项已局部通过；清稿重入scroll0另由PR5b0C9J新截图和两次重入读回复评通过，不以旧初始tail代签。旧浅320双图差异仍不追认时序或原因；受控图片尺寸同步已验，真实网络加载未验。**
 
@@ -1513,3 +1513,11 @@ Noether与Averroes的独立行为／源码结论由各自报告负责；上述�
 [r18-final-tail-runtime.json](D:/WORKS/PLAN/.wt/uvel-design-20261025-app/docs/audit/2026-10-26-message-theme/r18-final-tail-runtime.json)记录构建`index-PR5b0C9J.js`、sourceHash `4c339e53ce0999d74e98575bd5ea63a07c94093a7f1b0da352d4cdc301458b2c`，路径为2001→2000→clear→返回列表→reopen→再次返回／reopen，无发送。afterBackflow与secondReentry均为scrollTop450.303009、末条bottom599.592735、field.top607.528381；差值为**7.935646px**，8条消息一致。旧0.3秒结束后采集这一时序来自父线程说明；JSON是终态读回，不写成逐帧录像。新截图及两次终态共同支持该回归在当前路径已关闭，旧scroll0失败记录保留。
 
 Header9.2、counter9.1及sampled原签继承；180ms消息／200ms发送动效本轮未重新测量，也不因程序scroll修正推定其已重测。public-phone文件按浏览器phoneclip分类，未作为native证据。无新矩阵；仅更新本报告，未操作浏览器、Git、生产文件或测试。
+
+## BSDHHyfm H5交付代表帧局部复评（2026-10-27）
+
+**9.1／10，限定受理，无新明确视觉P2。** 本次只用view_image original目检[暗390](D:/WORKS/PLAN/.wt/uvel-design-20261025-app/docs/audit/2026-10-26-message-theme/h5-r18-final-dark390-native.png)、[浅320越文超限](D:/WORKS/PLAN/.wt/uvel-design-20261025-app/docs/audit/2026-10-26-message-theme/h5-r18-final-overlimit320-native.png)、[外部指针操作后](D:/WORKS/PLAN/.wt/uvel-design-20261025-app/docs/audit/2026-10-26-message-theme/h5-r18-final-after-pointer-native.png)三张native桌面代表帧。所见输入色面完整、雾面／细内缘仍可辨；320计数及越文提示在框内，不覆盖历史文字或发送圆；操作后末条正文、时间及状态完整位于输入上方，未见旧矩形断面。
+
+[r18-delivery-runtime.json](D:/WORKS/PLAN/.wt/uvel-design-20261025-app/docs/audit/2026-10-26-message-theme/r18-delivery-runtime.json)记录H5 `index-BSDHHyfm.js`、APP `index-K60P-cxP.js`、thread SHA256 `4c339e53ce0999d74e98575bd5ea63a07c94093a7f1b0da352d4cdc301458b2c`；本审仅读取这些记录，未做额外源码审计。H5浅320在2001字时禁发true、field高215.2083／hint40px，2000字时禁发false、field高195.2083／hint20px，gap均8.11552px。清空返回／重入与afterOutside均为17条、scrollTop870.302979、field.top607.528381、末条bottom599.412861，间距8.11552px；与截图末条可见性一致。2000字恢复及重入过程按读回确认，未冒称另看两张不在本轮范围内的截图。
+
+原APP header9.2／counter9.1／tail9.2及sampled原签不重开。本结论仅覆盖所列本地H5代表外观、超限恢复与操作后终态，不是全过程录像、物理手机或真实后端验收。没有新增矩阵、测试、浏览器操作、实现或Git操作；仅简短更新本报告，供父线程交付收尾。
