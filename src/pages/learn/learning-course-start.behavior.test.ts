@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { LearningCourse } from "@/api/learning-api";
+import { ApiError } from "@/api/errors";
 import { createLearningCourseStartLoadCoalescer, loadPublishedCourseWithStart } from "./learning-course-start";
 
 const publishedCourse: LearningCourse = {
@@ -27,6 +28,42 @@ const publishedCourse: LearningCourse = {
 };
 
 describe("published course start recovery", () => {
+  it("logs only safe classification and numeric status/code, never the response text", async () => {
+    const log = vi.spyOn(console, "info").mockImplementation(() => {});
+    await loadPublishedCourseWithStart({ courseId: publishedCourse.id, language: "en",
+      read: vi.fn().mockResolvedValue(publishedCourse),
+      start: vi.fn().mockRejectedValue(new ApiError({ kind: "http", status: 503, code: 503, message: "private response token=secret user=example" })),
+      isCurrent: () => true });
+    expect(log).toHaveBeenCalledWith("UvelLearningStart", '{"reason":"unconfirmed","kind":"http","status":503,"code":503}');
+    expect(JSON.stringify(log.mock.calls)).not.toContain("private");
+    log.mockRestore();
+  });
+  it("ignores a late start refusal after the current page/account scope has changed", async () => {
+    let current = true;
+    const publish = vi.fn();
+    const result = await loadPublishedCourseWithStart({ courseId: publishedCourse.id, language: "en",
+      read: vi.fn().mockResolvedValue(publishedCourse), start: vi.fn(async () => {
+        current = false;
+        throw new ApiError({ kind: "http", status: 428, code: 428, message: "USER_ONBOARDING_REQUIRED" });
+      }), isCurrent: () => current, publish });
+    expect(result).toEqual({ kind: "stale" });
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(publish).toHaveBeenCalledWith(publishedCourse, "pending");
+  });
+  it.each([
+    [new ApiError({ kind: "http", status: 428, code: 428, message: "USER_ONBOARDING_REQUIRED" }), "onboarding"],
+    [new ApiError({ kind: "http", status: 428, code: 428, message: "LEGAL_TERMS_ACK_REQUIRED" }), "terms"],
+    [new ApiError({ kind: "network", message: "USER_ONBOARDING_REQUIRED" }), "network"],
+    [new ApiError({ kind: "http", status: 503, code: 428, message: "USER_ONBOARDING_REQUIRED" }), "unconfirmed"],
+    [new ApiError({ kind: "http", status: 428, code: 999, message: "USER_ONBOARDING_REQUIRED" }), "unconfirmed"],
+  ])("retains the actual start rejection as %s / %s without acknowledging start", async (failure, reason) => {
+    const publish = vi.fn();
+    const result = await loadPublishedCourseWithStart({ courseId: publishedCourse.id, language: "en",
+      read: vi.fn().mockResolvedValue(publishedCourse), start: vi.fn().mockRejectedValue(failure), isCurrent: () => true, publish });
+    expect(result).toMatchObject({ kind: "content", course: publishedCourse, start: "unconfirmed",
+      failure: { reason, kind: (failure as ApiError).kind } });
+    expect(publish).toHaveBeenLastCalledWith(publishedCourse, "unconfirmed", expect.objectContaining({ reason }));
+  });
   it("publishes the GET course as locked pending content before a slow start settles", async () => {
     let resolveStart: ((value: LearningCourse) => void) | undefined;
     const visible: Array<{ course: LearningCourse; start: string }> = [];
@@ -57,7 +94,7 @@ describe("published course start recovery", () => {
       isCurrent: () => true,
     });
 
-    expect(result).toEqual({ kind: "content", course: publishedCourse, start: "unconfirmed" });
+    expect(result).toMatchObject({ kind: "content", course: publishedCourse, start: "unconfirmed", failure: { reason: "unconfirmed", kind: "unknown" } });
     expect(start).toHaveBeenCalledTimes(1);
   });
 

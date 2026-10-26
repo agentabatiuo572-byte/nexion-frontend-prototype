@@ -1,9 +1,18 @@
 import type { LearningApi, LearningCourse } from "@/api/learning-api";
+import { ApiError, type ApiErrorKind } from "@/api/errors";
+import { observationRejectionReason } from "@/lib/day-one-observation-recovery";
+
+export interface LearningCourseStartFailure {
+  reason: "onboarding" | "terms" | "network" | "unconfirmed";
+  kind: ApiErrorKind | "unknown";
+  status?: number;
+  code?: number;
+}
 
 export type LearningCourseStartLoad =
   | { kind: "stale" }
   | { kind: "invalid" }
-  | { kind: "content"; course: LearningCourse; start: "confirmed" | "unconfirmed" };
+  | { kind: "content"; course: LearningCourse; start: "confirmed" | "unconfirmed"; failure?: LearningCourseStartFailure };
 
 export interface LearningCourseStartDependencies {
   courseId: string;
@@ -11,7 +20,7 @@ export interface LearningCourseStartDependencies {
   read: LearningApi["course"];
   start: LearningApi["start"];
   isCurrent: () => boolean;
-  publish?: (course: LearningCourse, start: "pending" | "confirmed" | "unconfirmed") => void;
+  publish?: (course: LearningCourse, start: "pending" | "confirmed" | "unconfirmed", failure?: LearningCourseStartFailure) => void;
 }
 
 // Reading published content and recording course start are deliberately
@@ -35,10 +44,17 @@ export async function loadPublishedCourseWithStart(
     }
     dependencies.publish?.(started, "confirmed");
     return { kind: "content", course: started, start: "confirmed" };
-  } catch {
+  } catch (cause) {
     if (!dependencies.isCurrent()) return { kind: "stale" };
-    dependencies.publish?.(loaded, "unconfirmed");
-    return { kind: "content", course: loaded, start: "unconfirmed" };
+    const failure: LearningCourseStartFailure = {
+      reason: cause instanceof ApiError && cause.kind === "network" ? "network" : observationRejectionReason(cause),
+      kind: cause instanceof ApiError ? cause.kind : "unknown",
+      status: cause instanceof ApiError && Number.isFinite(cause.status) ? cause.status : undefined,
+      code: cause instanceof ApiError && Number.isFinite(cause.code) ? cause.code : undefined,
+    };
+    if (import.meta.env.DEV) console.info("UvelLearningStart", JSON.stringify(failure));
+    dependencies.publish?.(loaded, "unconfirmed", failure);
+    return { kind: "content", course: loaded, start: "unconfirmed", failure };
   }
 }
 

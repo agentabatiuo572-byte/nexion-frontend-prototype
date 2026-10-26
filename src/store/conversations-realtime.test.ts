@@ -135,15 +135,18 @@ describe("conversation realtime lifecycle", () => {
     store.stopRealtime();
     store.startRealtime();
     const fresh = harness.instances[1];
-    fresh.options.state(true);
+    fresh.options.state(true, false, false);
     expect(store.realtimeFallback).toBe(false);
-    fresh.options.state(false, false);
+    fresh.options.state(false, false, false);
+    expect(store.realtimeReady).toBe(false);
+    expect(store.realtimeFallback).toBe(false);
+    fresh.options.state(false, false, true);
     expect(store.realtimeFallback).toBe(true);
-    fresh.options.state(false, true);
+    fresh.options.state(false, true, true);
     expect(store.realtimeFallback).toBe(true);
-    fresh.options.state(true);
+    fresh.options.state(true, false, false);
     fresh.options.presence({ conversationNo: "CV-1", online: true, typing: true, expiresIn: 1000 });
-    old.options.state(false);
+    old.options.state(false, false, true);
     old.options.presence({ conversationNo: "CV-1", online: false, typing: false, expiresIn: 1000 });
     await old.options.reconcile({ aborted: false });
 

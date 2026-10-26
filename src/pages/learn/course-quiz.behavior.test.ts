@@ -11,6 +11,7 @@ import * as visibility from '@/lib/page-visibility-refresh';
 import * as navigation from './course-navigation';
 import * as start from './learning-course-start';
 import * as details from './learning-result-details';
+import { observationRecoveryRoute } from '@/lib/day-one-observation-recovery';
 import { createLearningPageFenceReader } from './learning-page-fence';
 import { captureRuntimeRevision } from '@/api/order-api';
 import { LearningAttemptKeyRegistry } from '@/api/learning-attempt-key';
@@ -30,7 +31,7 @@ const failed: LearningResult = { courseId: quiz.id, version: quiz.version, score
 const scopes: vue.EffectScope[] = [];
 afterEach(() => { scopes.splice(0).forEach(scope => scope.stop()); vi.unstubAllGlobals(); });
 
-async function mount(published = quiz) {
+async function mount(published = quiz, web = true) {
   const hooks: Record<string, Array<(...args: any[]) => void>> = { load: [], mounted: [], show: [], hide: [], unmount: [] };
   const app = vue.reactive({ accountKey: 'a', accountBindingEpoch: 1 });
   let saved: unknown;
@@ -53,11 +54,13 @@ async function mount(published = quiz) {
     '@/store/locale': { useLocaleStore: () => ({ code: 'zh' }) }, '@/store/app': { useApp: () => app },
     '@/lib/page-visibility-refresh': visibility, './learning-page-fence': { createLearningPageFenceReader },
     './learning-course-start': start, './learning-result-details': details,
+    '@/lib/day-one-observation-recovery': { observationRecoveryRoute },
   };
-  const script = source.split('<script setup lang="ts">')[1].split('</script>')[0];
+  const script = source.split('<script setup lang="ts">')[1].split('</script>')[0]
+    .replace(/\/\/ #ifdef H5\s+web = true;\s+\/\/ #endif/, web ? 'web = true;' : '');
   const js = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope(); scopes.push(scope);
-  const worker = scope.run(() => new Function('require', 'exports', js + ';return { load, answers, allAnswered, canSubmit, result, resultDetails, restartQuiz, selectAnswer, moveAnswer, finish, pendingAttempt, interactionLocked };')(
+  const worker = scope.run(() => new Function('require', 'exports', js + ';return { load, answers, allAnswered, canSubmit, result, resultDetails, restartQuiz, selectAnswer, moveAnswer, finish, pendingAttempt, interactionLocked, recoverStart, startFailureText, startRecoveryLabel, startFailure };')(
     (name: string) => {
       if (name.endsWith('.vue')) return {};
       if (!(name in modules)) throw new Error(`Unexpected dependency ${name}`);
@@ -66,10 +69,54 @@ async function mount(published = quiz) {
   ));
   const fire = (name: string, ...args: unknown[]) => hooks[name].forEach(fn => fn(...args));
   fire('load', { id: quiz.id }); fire('mounted'); await worker.load();
-  return { worker, api, app, fire };
+  return { worker, api, app, fire, navTo: (modules['@/lib/route'] as any).navTo };
 }
 
 describe('quiz answer and retry behavior', () => {
+  it('clears recovery state when the page hides and prevents a stale recovery action', async () => {
+    const { worker, api, navTo, fire } = await mount();
+    api.start.mockRejectedValueOnce(new ApiError({ kind: 'http', status: 428, code: 428, message: 'USER_ONBOARDING_REQUIRED' }));
+    await worker.load();
+    expect(worker.startFailure.value.reason).toBe('onboarding');
+    fire('hide'); await worker.recoverStart();
+    expect(worker.startFailure.value).toBeUndefined();
+    expect(navTo).not.toHaveBeenCalled();
+    expect(api.start).toHaveBeenCalledTimes(2);
+    expect(worker.interactionLocked.value).toBe(true);
+  });
+  it.each([true, false])('routes an explicit setup refusal to the existing recovery page (web=%s), without submitting', async web => {
+    const { worker, api, navTo } = await mount(quiz, web);
+    api.start.mockRejectedValueOnce(new ApiError({ kind: 'http', status: 428, code: 428, message: 'USER_ONBOARDING_REQUIRED' }));
+    await worker.load();
+    expect(worker.startFailureText.value).toBe(zh.learning.courseStartSetup);
+    expect(worker.startRecoveryLabel.value).toBe(zh.home.dayOneObservationSetupAction);
+    expect(worker.canSubmit.value).toBe(false);
+    worker.selectAnswer(0, 1); await worker.finish();
+    expect(worker.answers.value).toEqual([-1, -1]);
+    await worker.recoverStart();
+    expect(navTo).toHaveBeenCalledWith(web ? '/pages/register/success?setup=1' : '/pages/onboarding/estimator');
+    expect(api.start).toHaveBeenCalledTimes(2);
+    expect(api.submitQuiz).not.toHaveBeenCalled(); expect(api.complete).not.toHaveBeenCalled();
+  });
+  it('routes an explicit terms refusal to support without inventing a new consent flow, while network errors remain retryable', async () => {
+    const { worker, api, navTo } = await mount();
+    api.start.mockRejectedValueOnce(new ApiError({ kind: 'http', status: 428, code: 428, message: 'LEGAL_TERMS_ACK_REQUIRED' }));
+    await worker.load(); await worker.recoverStart();
+    expect(navTo).toHaveBeenCalledWith('/pages/support/messages');
+    expect(worker.startRecoveryLabel.value).toBe(zh.conversations.contactSupport);
+    expect(worker.startFailureText.value).toBe(zh.learning.courseStartTerms);
+    api.start.mockRejectedValueOnce(new ApiError({ kind: 'network', message: 'LEGAL_TERMS_ACK_REQUIRED' }));
+    await worker.load();
+    expect(worker.startFailureText.value).toBe(zh.learning.courseStartNetwork);
+    expect(worker.startRecoveryLabel.value).toBe(zh.ui.retry);
+    await worker.recoverStart();
+    expect(navTo).toHaveBeenCalledTimes(1);
+    expect(api.start).toHaveBeenCalledTimes(4);
+    expect(worker.startFailure.value).toBeUndefined();
+    expect(worker.interactionLocked.value).toBe(false);
+    expect(api.submitQuiz).not.toHaveBeenCalled(); expect(api.complete).not.toHaveBeenCalled();
+    expect(source).toContain('data-testid="learning-start-recovery"');
+  });
   it('initializes every question and gives the first option a keyboard entry before any answer', async () => {
     const { worker } = await mount();
     expect(worker.answers.value).toEqual([-1, -1]);

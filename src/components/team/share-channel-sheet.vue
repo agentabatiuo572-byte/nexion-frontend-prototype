@@ -13,7 +13,7 @@
             <view class="ss-ch ss-row" role="button" :aria-label="channelMeta(c.key).label" :tabindex="channelDisabled(c) ? -1 : 0" :aria-busy="channelBusy" :aria-disabled="channelDisabled(c)" @click="onChannel(c)" @keydown.enter.prevent="onChannel(c)" @keydown.space.prevent="onChannel(c)"><view class="ss-row__icon" aria-hidden="true" v-html="channelMeta(c.key).svg" /><text class="ss-row__label">{{ channelMeta(c.key).label }}</text><svg class="ss-row__arrow" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></view>
           </template>
           <view class="ss-rules-toggle ss-row" role="button" tabindex="0" :aria-label="copy.inviteRules" :aria-expanded="rulesOpen" aria-controls="share-invite-rules" @click="rulesOpen=!rulesOpen" @keydown.enter.prevent="rulesOpen=!rulesOpen" @keydown.space.prevent="rulesOpen=!rulesOpen"><svg class="ss-row__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h10l4 4v14H5ZM9 11h6M9 15h6" /></svg><text class="ss-row__label">{{ copy.inviteRules }}</text><text class="ss-row__arrow" aria-hidden="true">{{ rulesOpen ? '−' : '+' }}</text></view>
-          <view v-if="rulesOpen" id="share-invite-rules" class="ss-rules" role="region" :aria-label="copy.inviteRules"><text>{{ copy.inviteRuleSummary }}</text><text>{{ copy.inviteRuleSettlement }}</text><view class="ss-rules-support" role="link" tabindex="0" @click="contactSupport" @keydown.enter.prevent="contactSupport" @keydown.space.prevent="contactSupport"><text>{{ copy.contactSupport }}</text><text aria-hidden="true">›</text></view></view>
+          <view v-if="rulesOpen" id="share-invite-rules" class="ss-rules" role="region" :aria-label="copy.inviteRules"><InviteRuleContent /><view class="ss-rules-support" role="link" tabindex="0" @click="contactSupport" @keydown.enter.prevent="contactSupport" @keydown.space.prevent="contactSupport"><text>{{ copy.contactSupport }}</text><text aria-hidden="true">›</text></view></view>
         </view>
         <view class="ss-cancel" role="button" tabindex="0" @click="emit('close')" @keydown.enter.prevent="emit('close')" @keydown.space.prevent="emit('close')"><text>{{ t.share.cancel }}</text></view>
       </view>
@@ -23,6 +23,7 @@
 
 <script setup lang="ts">
 import TeamArt from './team-art.vue';
+import InviteRuleContent from './invite-rule-content.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
 import { useApp } from '@/store/app';
 import { useLocaleStore } from '@/store/locale';

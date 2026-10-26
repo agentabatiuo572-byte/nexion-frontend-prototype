@@ -44,7 +44,10 @@
         <text class="block" style="margin-top: 10px; color: var(--v5-ink-2); text-wrap: pretty">{{ course.body }}</text>
         <text class="block" style="margin-top: 8px; color: var(--v5-ink-3)">{{ versionLine }}</text>
         <text v-if="startState === 'pending'" class="block" style="margin-top: 8px; color: var(--v5-ink-3); text-wrap: pretty" role="status" aria-live="polite">{{ t.learning.courseStartConfirming }}</text>
-        <text v-else-if="startState === 'unconfirmed'" class="block active:opacity-70" style="margin-top: 8px; color: var(--v5-ink-3); text-wrap: pretty" role="alert" aria-live="assertive" tabindex="0" :aria-label="t.learning.courseStartUnconfirmed" @click="load" @keydown.enter.prevent="onKeyboardActivate($event, load)" @keydown.space.prevent="onKeyboardActivate($event, load)">{{ t.learning.courseStartUnconfirmed }}</text>
+        <view v-else-if="startState === 'unconfirmed'" style="margin-top: 8px">
+          <text class="block" style="color: var(--v5-ink-3); text-wrap: pretty" role="alert" aria-live="assertive">{{ startFailureText }}</text>
+          <NxButton data-testid="learning-start-recovery" style="margin-top: 8px" variant="secondary" :label="startRecoveryLabel" @click="recoverStart" />
+        </view>
 
         <view v-for="(question, index) in course.questions" :key="question.questionId" style="margin-top: 16px">
           <text>{{ question.question }}</text>
@@ -102,7 +105,8 @@ import { useLocaleStore } from "@/store/locale";
 import { useApp } from "@/store/app";
 import { bindPageVisibilityRefresh, createPageVisibilityRefresh } from "@/lib/page-visibility-refresh";
 import { createLearningPageFenceReader, type LearningPageFence } from "./learning-page-fence";
-import { createLearningCourseStartLoadCoalescer, loadPublishedCourseWithStart } from "./learning-course-start";
+import { createLearningCourseStartLoadCoalescer, loadPublishedCourseWithStart, type LearningCourseStartFailure } from "./learning-course-start";
+import { observationRecoveryRoute } from "@/lib/day-one-observation-recovery";
 import { initialQuizAnswers, quizOptionTabIndex, learningAttemptRecoveryAction, learningResultDetails, matchingCourseResult, matchingReceiptResult, validAnswersForCourse } from "./learning-result-details";
 
 // 存 key 不存译文：译好的串快照进 ref 后不再跟随语言（见 courses.vue 同处注释）。
@@ -125,10 +129,16 @@ const answers = ref<number[]>([]);
 const pendingAttempt = ref<LearningPendingAttempt | null>(null);
 const pendingReceiptStatus = ref<LearningQuizReceiptStatus | null>(null);
 const startState = ref<CourseStartState>("idle");
+const startFailure = ref<LearningCourseStartFailure>();
 const loading = ref(true);
 const error = ref<CourseError>("");
 
 const errorText = computed(() => error.value ? t.value.learning[error.value] : "");
+const startFailureText = computed(() => startFailure.value?.reason === "onboarding" ? t.value.learning.courseStartSetup
+  : startFailure.value?.reason === "terms" ? t.value.learning.courseStartTerms
+  : startFailure.value?.reason === "network" ? t.value.learning.courseStartNetwork : t.value.learning.courseStartUnconfirmed);
+const startRecoveryLabel = computed(() => startFailure.value?.reason === "onboarding" ? t.value.home.dayOneObservationSetupAction
+  : startFailure.value?.reason === "terms" ? t.value.conversations.contactSupport : t.value.ui.retry);
 const allAnswered = computed(() => !!course.value
   && validAnswersForCourse(course.value, answers.value));
 const resultDetails = computed(() => answeringAgain.value && !result.value ? null : learningResultDetails(course.value, result.value));
@@ -275,6 +285,7 @@ async function performLoad() {
   pendingAttempt.value = null;
   pendingReceiptStatus.value = null;
   startState.value = "idle";
+  startFailure.value = undefined;
   // 🔴 zentao #240:缺课程 ID 与「没有网络」是两件事,此前共用一条分支 ——
   //   深链没带 courseId(或参数丢失)时报的是「课程需要在受信任网络中获取」,
   //   把用户引向检查网络这个错误方向,而真正该做的是从教程中心重新进入。
@@ -297,12 +308,13 @@ async function performLoad() {
       read: learningApi.course,
       start: learningApi.start,
       isCurrent: () => current(scope),
-      publish: (published, start) => {
+      publish: (published, start, failure) => {
         if (!current(scope)) return;
         course.value = published;
         confirmedAttempts.value = published.attempts;
         answers.value = initialQuizAnswers(published);
         startState.value = start;
+        startFailure.value = failure;
         loading.value = false;
       },
     });
@@ -323,6 +335,19 @@ async function performLoad() {
 let startLoad = createLearningCourseStartLoadCoalescer(performLoad);
 function load(): Promise<void> { return startLoad(); }
 function resetLoadCoalescer() { startLoad = createLearningCourseStartLoadCoalescer(performLoad); }
+
+function recoverStart() {
+  if (!mounted || loading.value || startState.value !== "unconfirmed" || !course.value) return;
+  const reason = startFailure.value?.reason;
+  if (reason === "terms") return navTo("/pages/support/messages");
+  if (reason !== "onboarding") return load();
+  let web = false;
+  // #ifdef H5
+  web = true;
+  // #endif
+  const returnTo = `/pages/learn/course?id=${encodeURIComponent(courseId.value)}${courseSource.value ? `&source=${encodeURIComponent(courseSource.value)}` : ""}`;
+  navTo(observationRecoveryRoute(reason, web, returnTo));
+}
 
 // 回读服务端课程快照。completed、lastScore、attempts、rewardGranted 都是当前
 // API 契约中的权威字段；不再把刷新后的结果降级成笼统的“已完成”。
@@ -442,6 +467,7 @@ function resetCourseState() {
   pendingAttempt.value = null;
   pendingReceiptStatus.value = null;
   startState.value = "idle";
+  startFailure.value = undefined;
   error.value = "";
 }
 function refreshForScopeChange() {
