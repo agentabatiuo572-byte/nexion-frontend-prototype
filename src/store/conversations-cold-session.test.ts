@@ -48,6 +48,7 @@ function pageHarness() {
   const parts = ast.statements.filter(node => ts.isFunctionDeclaration(node) && names.has(node.name?.text ?? "")).map(node => node.getText(ast));
   const declaration = (name: string) => ast.statements.find(node => ts.isVariableStatement(node) && node.declarationList.declarations.some(item => item.name.getText(ast) === name))?.getText(ast);
   // The fallback is unused by the old page and lets the same executable test prove its missing guard.
+  parts.unshift(declaration("humanHistoryListError")!);
   parts.unshift(declaration("humanShowRevision") ?? "const humanShowRevision = ref(0);");
   parts.unshift(declaration("humanCreateRecovery")!);
   parts.unshift(declaration("chatDisposed") ?? "let chatDisposed = false;");
